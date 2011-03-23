@@ -1,5 +1,5 @@
 /**
- * @file  LayerVolumeTracks.h
+ * @file  LayerVolumeTrack.h
  * @brief Layer class for tracks saved in a multi-frame volume.
  *
  */
@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2011/03/22 21:21:26 $
- *    $Revision: 1.2 $
+ *    $Date: 2011/03/23 21:36:50 $
+ *    $Revision: 1.1 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -23,30 +23,42 @@
  *
  */
 
-#ifndef LAYERVOLUMETRACKS_H
-#define LAYERVOLUMETRACKS_H
+#ifndef LAYERVOLUMETRACK_H
+#define LAYERVOLUMETRACK_H
 
 #include "LayerMRI.h"
+#include "vtkSmartPointer.h"
 #include <QList>
 
 class vtkActor;
 
-class LayerVolumeTracks : public LayerMRI
+class LayerVolumeTrack : public LayerMRI
 {
   Q_OBJECT
 public:
-  LayerVolumeTracks( LayerMRI* ref, QObject* parent = NULL );
-  virtual ~LayerVolumeTracks();
+  LayerVolumeTrack( LayerMRI* ref, QObject* parent = NULL );
+  virtual ~LayerVolumeTrack();
 
   bool LoadFromFile();
 
+  void SetVisible(bool bVisible);
+
   virtual void Append3DProps( vtkRenderer* renderer, bool* bPlaneVisibility = NULL );
+
+  virtual COLOR_TABLE* GetEmbeddedColorTable()
+  {
+    return m_ctabStripped;
+  }
+
+  virtual void UpdateOpacity();
 
 protected:
   void UpdateColorMap();
   void UpdateData();
+  void RebuildActors();
 
-  QList<vtkActor*>  m_actors;
+  QList< vtkSmartPointer<vtkActor> >  m_actors;
+  COLOR_TABLE* m_ctabStripped;
 };
 
-#endif // LAYERVOLUMETRACKS_H
+#endif // LAYERVOLUMETRACK_H

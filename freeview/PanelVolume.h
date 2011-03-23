@@ -6,9 +6,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/14 23:44:48 $
- *    $Revision: 1.37 $
+ *    $Author: rpwang $
+ *    $Date: 2011/03/23 21:36:51 $
+ *    $Revision: 1.38 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -97,6 +97,8 @@ private:
   QList<QWidget*> m_widgetlistContour;
   QList<QWidget*> m_widgetlistNormalDisplay;
   QList<QWidget*> m_widgetlistEditable;
+  QList<QWidget*> m_widgetlistVolumeTrack;
+  QList<QWidget*> m_widgetlistNonVolumeTrack;
 
   LUTDataHolder* m_luts;
 

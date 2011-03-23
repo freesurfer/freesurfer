@@ -6,9 +6,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/14 23:44:47 $
- *    $Revision: 1.4 $
+ *    $Author: rpwang $
+ *    $Date: 2011/03/23 21:36:51 $
+ *    $Revision: 1.5 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -340,8 +340,8 @@ bool MyVTKUtils::BuildContourActor( vtkImageData* data_in,
       smoother->SetInputConnection( conn->GetOutputPort() );
     }
     smoother->SetNumberOfIterations( nSmoothIterations );
-    smoother->FeatureEdgeSmoothingOn();
-    smoother->SetEdgeAngle( 90 );
+ //   smoother->FeatureEdgeSmoothingOn();
+ //   smoother->SetEdgeAngle( 90 );
     vtkSmartPointer<vtkPolyDataNormals> normals = vtkSmartPointer<vtkPolyDataNormals>::New();
     normals->SetInputConnection( smoother->GetOutputPort() );
 //    normals->SetInput( polydata );

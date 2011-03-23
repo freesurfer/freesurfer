@@ -6,9 +6,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/14 23:44:48 $
- *    $Revision: 1.4 $
+ *    $Author: rpwang $
+ *    $Date: 2011/03/23 21:36:51 $
+ *    $Revision: 1.5 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -27,6 +27,7 @@
 #include "LayerDTI.h"
 #include "LayerPLabel.h"
 #include "LayerTrack.h"
+#include "LayerVolumeTrack.h"
 
 ThreadIOWorker::ThreadIOWorker(QObject *parent) :
   QThread(parent),
@@ -103,6 +104,22 @@ void ThreadIOWorker::run()
         return;
       }
       if ( !mri->LoadVolumeFiles() )
+      {
+        emit Error( m_layer, m_nJobType );
+      }
+      else
+      {
+        emit Finished( m_layer, m_nJobType );
+      }
+    }
+    else if (m_layer->IsTypeOf("VolumeTrack"))
+    {
+      LayerVolumeTrack* mri = qobject_cast<LayerVolumeTrack*>( m_layer );
+      if ( !mri )
+      {
+        return;
+      }
+      if ( !mri->LoadFromFile() )
       {
         emit Error( m_layer, m_nJobType );
       }

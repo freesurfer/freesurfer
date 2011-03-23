@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2011/03/22 21:21:26 $
- *    $Revision: 1.161 $
+ *    $Date: 2011/03/23 21:36:50 $
+ *    $Revision: 1.162 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -29,6 +29,7 @@
 #include "LayerROI.h"
 #include "LayerTrack.h"
 #include "LayerDTI.h"
+#include "LayerVolumeTrack.h"
 #include "LayerCollection.h"
 #include "BrushProperty.h"
 #include <QtGui>
@@ -649,6 +650,21 @@ bool MainWindow::DoParseCommand(bool bAutoQuit)
     }
   }
 
+  nRepeats = m_cmdParser->GetNumberOfRepeats( "tv" );
+  for ( int n = 0; n < nRepeats; n++ )
+  {
+    m_cmdParser->Found( "tv", &sa, n );
+    for ( int i = 0; i < sa.size(); i++ )
+    {
+      QString script = QString("loadtrackvolume ") + sa[i];
+      if ( m_cmdParser->Found( "r" ) )
+      {
+        script += " r";
+      }
+      this->AddScript( script );
+    }
+  }
+
   nRepeats = m_cmdParser->GetNumberOfRepeats( "l" );
   for ( int n = 0; n < nRepeats; n++ )
   {
@@ -1064,6 +1080,10 @@ void MainWindow::RunScript()
   else if ( sa[0] == "loaddti" )
   {
     CommandLoadDTI( sa );
+  }
+  else if ( sa[0] == "loadtrackvolume" || sa[0] == "loadvolumetrack")
+  {
+    CommandLoadVolumeTrack( sa );
   }
   else if ( sa[0] == "loadsurface" )
   {
@@ -1865,6 +1885,16 @@ void MainWindow::CommandLoadDTI( const QStringList& sa )
 
     this->LoadDTIFile( fn, sa[2], reg_fn, bResample );
   }
+}
+
+void MainWindow::CommandLoadVolumeTrack( const QStringList& sa )
+{
+  bool bResample = false;
+  if ( sa.last() == "r" )
+  {
+    bResample = true;
+  }
+  this->LoadVolumeTrackFile(sa[1], bResample);
 }
 
 void MainWindow::CommandLoadPVolumes( const QStringList& cmd )
@@ -3353,6 +3383,15 @@ void MainWindow::OnLoadDTI()
   this->LoadDTIFile( dlg.GetVectorFileName(), dlg.GetFAFileName(), dlg.GetRegFileName(), dlg.IsToResample() );
 }
 
+void MainWindow::OnLoadTrackVolume()
+{
+  QString fn = QFileDialog::getOpenFileName( this, "Open track volume",
+                                     AutoSelectLastDir( "mri" ),
+                                     "Volume files (*.mgz *.mgh *.nii *.nii.gz *.img *.mnc);;All files (*)");
+  if (!fn.isEmpty())
+    this->LoadVolumeTrackFile(fn, this->m_bResampleToRAS);
+}
+
 void MainWindow::LoadDTIFile( const QString& fn_vector,
                               const QString& fn_fa,
                               const QString& reg_filename,
@@ -3374,6 +3413,22 @@ void MainWindow::LoadDTIFile( const QString& fn_vector,
   {
     layer->SetRegFileName( QFileInfo(reg_filename).absoluteFilePath() );
   }
+  m_threadIOWorker->LoadVolume( layer );
+}
+
+void MainWindow::LoadVolumeTrackFile(const QString &fn, bool bResample)
+{
+  m_bResampleToRAS = bResample;
+
+  LayerVolumeTrack* layer = new LayerVolumeTrack( m_layerVolumeRef );
+  layer->SetResampleToRAS( bResample );
+  QString layerName = QFileInfo( fn ).completeBaseName();
+  if ( QFileInfo( fn ).suffix() == "gz" )
+  {
+    layerName = QFileInfo( layerName ).completeBaseName();
+  }
+  layer->SetName( layerName );
+  layer->SetFileName( fn );
   m_threadIOWorker->LoadVolume( layer );
 }
 

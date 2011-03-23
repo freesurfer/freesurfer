@@ -123,7 +123,7 @@ BUILT_SOURCES = \
 	moc_LayerPropertyTrack.cpp \
   moc_DialogSaveVolume.cpp \
   moc_DialogReplaceLabel.cpp \
-  moc_LayerVolumeTracks.cpp \
+  moc_LayerVolumeTrack.cpp \
   moc_LayerLandmarks.cpp \
   qrc_freeview.cpp
 
@@ -364,8 +364,8 @@ freeview_SOURCES = $(BUILT_SOURCES) \
   DialogSaveVolume.h \
   DialogReplaceLabel.cpp \
   DialogReplaceLabel.h \
-  LayerVolumeTracks.cpp \
-  LayerVolumeTracks.h \
+  LayerVolumeTrack.cpp \
+  LayerVolumeTrack.h \
   LayerLandmarks.cpp \
   LayerLandmarks.h
 

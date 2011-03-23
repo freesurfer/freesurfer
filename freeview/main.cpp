@@ -6,9 +6,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/14 23:44:48 $
- *    $Revision: 1.4 $
+ *    $Author: rpwang $
+ *    $Date: 2011/03/23 21:36:51 $
+ *    $Revision: 1.5 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -71,6 +71,7 @@ int main(int argc, char *argv[])
     CmdLineEntry( CMD_LINE_SWITCH, "conform", "conform", "", "Conform the volume to the first loaded volume." ),
     CmdLineEntry( CMD_LINE_SWITCH, "trilinear", "trilinear", "", "Use trilinear as the default resample method." ),
     CmdLineEntry( CMD_LINE_OPTION, "dti", "dti", "<VECTOR> <FA>...", "Load one or more dti volumes. Need two files for each dti volume. First one is vector file. Second one is FA (brightness) file.", 2, 100 ),
+    CmdLineEntry( CMD_LINE_OPTION, "tv", "track_volume", "<FILE>...", "Load one or more track volumes.", 1, 100 ),
     CmdLineEntry( CMD_LINE_OPTION, "f", "surface", "<FILE>...", "Load one or multiple surface files. Available sub-options are:\n\n':curvature=curvature_filename' Load curvature data from the given curvature file. By default .curv file will be loaded if available.\n\n':overlay=overlay_filename' Load overlay data from file.\n\n':correlation=correlation_filename' Load correlation data from file. Correlation data is treated as a special kind of overlay data.\n\n':color=colorname' Set the base color of the surface. Color can be a color name such as 'red' or 3 values as RGB components of the color, e.g., '255,0,0'.\n\n':edgecolor=colorname' Set the color of the slice intersection outline on the surface. \n\n':edgethickness=thickness' Set the thickness of the slice intersection outline on the surface. set 0 to hide it.\n\n':annot=filenames' Set annotation files to load.\n\n':name=display_name' Set the display name of the surface.\n\n':offset=x,y,z' Set the position offset of the surface. Useful for connectivity display.\n\n':visible=visibility' Set the initial visibility of the surface. Visibility can be '1' or '0' or 'true' or 'false'.\n\n':vector=filename' Load a vector file for display.\n\n':target_surf=filename' Load a target surface file for vectors to project on for 2D display.\n\n':label=filename' Load a surface label file.\n", 1, 100 ),
     CmdLineEntry( CMD_LINE_OPTION, "l", "label", "<FILE>...", "Load one or multiple label(ROI) files. Available sub-options are:\n\n':ref=ref_volume' Enter the name of the reference volume for this label file. The volume is one of the volumes given by -v option. \n", 1, 100 ),
     CmdLineEntry( CMD_LINE_OPTION, "w", "way-points", "<FILE>...", "Load one or multiple way points files. Available sub-options are:\n\n':color=name' Set color of the way points. Name can be a generic color name such as 'red' or 'lightgreen', or three integer values as RGB values ranging from 0 to 255. For example '255,0,0' is the same as 'red'.\n\n':splinecolor=name' Set color of the spline.\n\n':radius=value' Set radius of the way points.\n\n':splineradius=value' Set radius of the spline tube.\n\n':name=display_name' Set the display name of the way points.\n\n':visible=visibility' Set the initial visibility of the way points. Visibility can be '1' or '0' or 'true' or 'false'.\n", 1, 100 ),

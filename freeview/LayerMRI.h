@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2011/03/21 21:27:40 $
- *    $Revision: 1.62 $
+ *    $Date: 2011/03/23 21:36:50 $
+ *    $Revision: 1.63 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -169,7 +169,7 @@ public:
 
   int GetDataType();
 
-  COLOR_TABLE* GetEmbeddedColorTable();
+  virtual COLOR_TABLE* GetEmbeddedColorTable();
 
   void SnapToVoxelCenter( const double* pt_in, double* pt_out );
 
@@ -259,7 +259,7 @@ Q_SIGNALS:
 
 protected slots:
   void UpdateDisplayMode();
-  void UpdateOpacity();
+  virtual void UpdateOpacity();
   void UpdateResliceInterpolation();
   void UpdateTextureSmoothing();
   void UpdateContour( int nSegIndex = -1 );

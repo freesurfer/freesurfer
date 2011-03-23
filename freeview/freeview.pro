@@ -119,7 +119,7 @@ SOURCES += \
     LayerPropertyTrack.cpp \
     DialogSaveVolume.cpp \
     DialogReplaceLabel.cpp \
-    LayerVolumeTracks.cpp \
+    LayerVolumeTrack.cpp \
     LayerLandmarks.cpp
 
 HEADERS  += \
@@ -229,7 +229,7 @@ HEADERS  += \
     LayerPropertyTrack.h \
     DialogSaveVolume.h \
     DialogReplaceLabel.h \
-    LayerVolumeTracks.h \
+    LayerVolumeTrack.h \
     LayerLandmarks.h
 
 FORMS    += MainWindow.ui \
