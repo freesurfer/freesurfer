@@ -7,9 +7,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2011/03/08 21:08:45 $
- *    $Revision: 1.76 $
+ *    $Author: fischl $
+ *    $Date: 2011/03/23 19:15:07 $
+ *    $Revision: 1.77 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -23,7 +23,7 @@
  *
  */
 
-char *MRI_INFO_VERSION = "$Revision: 1.76 $";
+char *MRI_INFO_VERSION = "$Revision: 1.77 $";
 
 #include <stdio.h>
 #include <sys/stat.h>
@@ -47,6 +47,7 @@ char *MRI_INFO_VERSION = "$Revision: 1.76 $";
 #include "fio.h"
 #include "cmdargs.h"
 #include "macros.h"
+#include "cma.h"
 
 static void do_file(char *fname);
 static int  parse_commandline(int argc, char **argv);
@@ -56,7 +57,7 @@ static void usage_exit(void);
 static void print_help(void) ;
 static void print_version(void) ;
 
-static char vcid[] = "$Id: mri_info.c,v 1.76 2011/03/08 21:08:45 greve Exp $";
+static char vcid[] = "$Id: mri_info.c,v 1.77 2011/03/23 19:15:07 fischl Exp $";
 
 char *Progname ;
 static char *inputlist[100];
@@ -65,6 +66,7 @@ static int PrintTR=0;
 static int PrintTE=0;
 static int PrintTI=0;
 static int PrintFlipAngle=0;
+static int PrintFlipAngleDeg=0;
 static int PrintPEDir = 0;
 static int PrintCRes = 0;
 static int PrintType = 0 ;
@@ -172,6 +174,7 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--te"))   PrintTE = 1;
     else if (!strcasecmp(option, "--ti"))   PrintTI = 1;
     else if (!strcasecmp(option, "--fa"))   PrintFlipAngle = 1;
+    else if (!strcasecmp(option, "--fad"))   PrintFlipAngleDeg = 1;
     else if (!strcasecmp(option, "--flip_angle"))   PrintFlipAngle = 1;
     else if (!strcasecmp(option, "--pedir"))   PrintPEDir = 1;
 
@@ -436,6 +439,10 @@ static void do_file(char *fname) {
 
   if (PrintFlipAngle) {
     fprintf(fpout,"%g\n",mri->flip_angle);
+    return;
+  }
+  if (PrintFlipAngleDeg) {
+    fprintf(fpout,"%g\n",DEGREES(mri->flip_angle));
     return;
   }
   if(PrintPEDir) {
@@ -719,6 +726,45 @@ static void do_file(char *fname) {
   printf("\nras to voxel transform:\n");
   PrettyMatrixPrint(m);
   MatrixFree(&m);
+
+  if (mri->ct)
+    CTABprintASCII(mri->ct, stdout) ;
+  {
+    int i ;
+    for (i = 0 ; i < mri->nframes ; i++)
+    {
+      MRI_FRAME *frame ;
+      int       frame_valid = 0 ;
+
+
+      frame = &mri->frames[i] ;
+
+      if ((frame->type != 0) ||
+          (!FZERO(frame->TE)) ||
+          (!FZERO(frame->TR)) ||
+          (!FZERO(frame->flip)) ||
+          (frame->label != 0) ||
+          (!FZERO(frame->thresh)))
+        frame_valid = 1 ;
+
+      if (frame_valid == 0)
+        continue ;
+      printf("frame %d info:\n", i) ;
+      if (frame->type != 0)
+        printf("\ttype = %d\n", frame->type) ;
+      if (!FZERO(frame->TE))
+        printf("\tTE = %2.1fms\n", frame->TE) ;
+      if (!FZERO(frame->TR))
+        printf("\tTR = %2.1fms\n", frame->TR) ;
+      if (!FZERO(frame->flip))
+        printf("\tflip angle = %2.1f deg\n", DEGREES(frame->flip)) ;
+      if (frame->label != 0)
+        printf("\tlabel = %s (%d)\n", cma_label_to_name(frame->label), frame->label) ;
+      if (!FZERO(frame->thresh))
+        printf("\tthresh = %2.1f deg\n", frame->thresh) ;
+    }
+  }
+
   MRIfree(&mri);
 
   return;
