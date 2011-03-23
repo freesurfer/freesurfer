@@ -14,8 +14,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2011/03/16 17:31:47 $
- *    $Revision: 1.292 $
+ *    $Date: 2011/03/23 22:01:29 $
+ *    $Revision: 1.293 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -11368,6 +11368,43 @@ cma_label_to_name(int label)
   if (label == Tumor)
     return("Tumor") ;
 
+
+  if (label == lh_cst)
+    return("lh_cst") ;
+  if (label == rh_cst)
+    return("rh_cst") ;
+  if (label == lh_ilf)
+    return("lh_ilf") ;
+  if (label == rh_ilf)
+    return("rh_ilf") ;
+  if (label == lh_unc)
+    return("lh_unc") ;
+  if (label == rh_unc)
+    return("rh_unc") ;
+  if (label == fmajor)
+    return("fmajor") ;
+  if (label == fminor)
+    return("fminor") ;
+  if (label == lh_atr)
+    return("lh_atr") ;
+  if (label == rh_atr)
+    return("rh_atr") ;
+  if (label == lh_ccg)
+    return("lh_ccg") ;
+  if (label == rh_ccg)
+    return("rh_ccg") ;
+  if (label == lh_cab)
+    return("lh_cab") ;
+  if (label == rh_cab)
+    return("rh_cab") ;
+  if (label == lh_slf)
+    return("lh_slf_") ;
+  if (label == rh_slf)
+    return("rh_slf_") ;
+  if (label == lh_slft)
+    return("lh_slft") ;
+  if (label == rh_slft)
+    return("rh_slft") ;
   return(name) ;
 }
 MRI *
