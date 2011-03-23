@@ -105,8 +105,15 @@ mri_robust_template --mov 001.mgz 002.mgz --average 1 --template rawavg.mgz --sa
 Is used in the recon-all stream for motion correction of several (here two: 001.mgz and 002.mgz) inputs. In this case all follow-ups are registered to the first input (as specified with --inittp 1 --fixtp --noit) and the rawavg.mgz is output as the median image (--average 1). 
 </example>
 
-	<references>Highly Accurate Inverse Consistent Registration: A Robust Approach, M. Reuter, H.D. Rosas, B. Fischl. NeuroImage 53 (4), pp. 1181-1196, 2010.
-	http://reuter.mit.edu/papers/reuter-robreg10.pdf </references>
+	<references>
+Highly Accurate Inverse Consistent Registration: A Robust Approach, M. Reuter, H.D. Rosas, B. Fischl.  NeuroImage 53 (4), pp. 1181-1196, 2010.
+  http://dx.doi.org/10.1016/j.neuroimage.2010.07.020
+  http://reuter.mit.edu/papers/reuter-robreg10.pdf 
+
+Avoiding Asymmetry-Induced Bias in Longitudinal Image Processing, M. Reuter, B. Fischl.  NeuroImage , 2011.
+  http://dx.doi.org/10.1016/j.neuroimage.2011.02.076
+  http://reuter.mit.edu/papers/reuter-bias11.pdf 
+  </references>
   <reporting>Report bugs to &lt;freesurfer@nmr.mgh.harvard.edu&gt;</reporting>
 	<see-also>mri_robust_register</see-also>
 </help>
