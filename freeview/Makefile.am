@@ -243,6 +243,9 @@ freeview_SOURCES = $(BUILT_SOURCES) \
 	WindowQuickReference.cpp \
 	FSTrack.cpp \
 	track_io/TrackIO.cpp \
+	track_io/TrackIO.h \
+	track_io/ByteSwap.h \
+	track_io/ErrorCode.h \
 	TrackData.cpp \
 	Track.cpp \
 	Track.h \
