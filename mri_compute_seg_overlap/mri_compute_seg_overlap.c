@@ -10,8 +10,8 @@
  * Original Authors: Xiao Han, Nick Schmansky 
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2011/03/09 19:46:00 $
- *    $Revision: 1.12 $
+ *    $Date: 2011/03/23 23:21:35 $
+ *    $Revision: 1.13 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -126,11 +126,13 @@ int main(int argc, char *argv[]) {
   nargs = 
     handle_version_option
     (argc, argv,
-     "$Id: mri_compute_seg_overlap.c,v 1.12 2011/03/09 19:46:00 nicks Exp $",
+     "$Id: mri_compute_seg_overlap.c,v 1.13 2011/03/23 23:21:35 nicks Exp $",
      "$Name:  $");
-  argc -= nargs ;
-  if (1 == argc)
-    usage (-1);
+  if (nargs && argc - nargs == 1)
+  {
+    exit (0);
+  }
+  argc -= nargs;
 
   ac = argc ;
   av = argv ;
