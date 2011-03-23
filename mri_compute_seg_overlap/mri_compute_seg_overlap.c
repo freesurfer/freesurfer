@@ -10,20 +10,18 @@
  * Original Authors: Xiao Han, Nick Schmansky 
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2010/01/12 19:47:57 $
- *    $Revision: 1.9 $
+ *    $Date: 2011/03/23 23:21:57 $
+ *    $Revision: 1.12.2.1 $
  *
- * Copyright (C) 2006-2010,
- * The General Hospital Corporation (Boston, MA). 
- * All rights reserved.
+ * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
- * Distribution, usage and copying of this software is covered under the
- * terms found in the License Agreement file named 'COPYING' found in the
- * FreeSurfer source code root directory, and duplicated here:
- * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ * Terms and conditions for use, reproduction, distribution and contribution
+ * are found in the 'FreeSurfer Software License Agreement' contained
+ * in the file 'LICENSE' found in the FreeSurfer distribution, and here:
  *
- * General inquiries: freesurfer@nmr.mgh.harvard.edu
- * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
+ *
+ * Reporting: freesurfer@nmr.mgh.harvard.edu
  *
  */
 
@@ -128,11 +126,13 @@ int main(int argc, char *argv[]) {
   nargs = 
     handle_version_option
     (argc, argv,
-     "$Id: mri_compute_seg_overlap.c,v 1.9 2010/01/12 19:47:57 nicks Exp $",
+     "$Id: mri_compute_seg_overlap.c,v 1.12.2.1 2011/03/23 23:21:57 nicks Exp $",
      "$Name:  $");
-  argc -= nargs ;
-  if (1 == argc)
+  if (nargs && argc - nargs == 1)
+  {
     exit (0);
+  }
+  argc -= nargs;
 
   ac = argc ;
   av = argv ;
@@ -259,7 +259,7 @@ int main(int argc, char *argv[]) {
   printf("mean +/- std = %6.4f +/- %6.4f \n", mean2, std2);
 
   if (log_fname != NULL) {
-    log_fp = fopen(log_fname, "w+") ;
+    log_fp = fopen(log_fname, "a+") ;
     if (!log_fp)
       ErrorExit(ERROR_BADFILE, "%s: could not open %s for writing",
                 Progname, log_fname) ;
@@ -268,6 +268,8 @@ int main(int argc, char *argv[]) {
     }
     fprintf(log_fp, "%6.4f ", mean2);
     fprintf(log_fp, "%6.4f ", std2);
+    fprintf(log_fp, "%6.4f \n",
+            subcorvolume_overlap*2.0/(float)(subcorvolume1 + subcorvolume2));
     fclose(log_fp);
   }
 
@@ -307,31 +309,11 @@ int main(int argc, char *argv[]) {
 }  /*  end main()  */
 
 
+#include "mri_compute_seg_overlap.help.xml.h"
 static void usage(int exit_val) {
-  FILE *fout;
-
-  fout = (exit_val ? stderr : stdout);
-
-  fprintf(fout, "usage: %s <seg vol1> <seg vol2>\n", Progname);
-  fprintf(fout, "This program compares two segmentation volumes and \n"
-          "computes the Dice and Jaccard Coefficients. \n"
-          "It considers only 9 major structures:\n"
-          "  L/R Hippocampus\n"
-          "  L/R Caudate\n"
-          "  L/R Putamen\n"
-          "  L/R Pallidum\n"
-          "  L/R Amygdala\n"
-          "  L/R Thalamus_Proper\n"
-          "  L/R Lateral_Ventricle\n"
-          "  Third and Fourth Ventricles\n"
-          "  L/R Inf_Lat_Vent\n");
-  fprintf(fout, "Options:\n");
-  fprintf(fout, "   -log %%s   log_file for individual Dice \n");
-  fprintf(fout, "   -mlog %%s  log_file for mean Dice \n");
-  fprintf(fout, "   -slog %%s  log_file for std Dice \n");
-  fprintf(fout, "   -olog %%s  log_file for overall Dice \n");
+  outputHelpXml(mri_compute_seg_overlap_help_xml,
+                mri_compute_seg_overlap_help_xml_len);
   exit(exit_val);
-
 }  /*  end usage()  */
 
 
