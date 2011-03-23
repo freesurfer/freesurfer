@@ -88,6 +88,9 @@ labels_union \
 labels_intersect \
 labels_disjoint \
 long_mris_slopes \
+long_stats_slopes \
+long_qdec_table \
+LongQdecTable.py \
 lpcregister \
 make_average_surface \
 make_average_volume \

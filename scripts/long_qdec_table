@@ -1,0 +1,170 @@
+#!/usr/bin/env python
+# -*- coding: latin-1 -*-
+
+#
+# long_qdec_table
+#
+# script process longitudinal qdec tables
+#
+# Original Author: Martin Reuter
+# CVS Revision Info:
+#    $Author: mreuter $
+#    $Date: 2011/03/23 16:03:47 $
+#    $Revision: 1.1.2.2 $
+#
+# Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+#
+# Terms and conditions for use, reproduction, distribution and contribution
+# are found in the 'FreeSurfer Software License Agreement' contained
+# in the file 'LICENSE' found in the FreeSurfer distribution, and here:
+#
+# https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
+#
+# Reporting: freesurfer@nmr.mgh.harvard.edu
+#
+#
+
+import warnings
+warnings.filterwarnings('ignore', '.*negative int.*')
+import os
+import sys
+import shlex
+import optparse
+import logging
+import subprocess
+import tempfile
+import shutil
+from Numeric import *
+from subject_info import *
+#from fsgd_parser import *
+from LongQdecTable import *
+
+# logging 
+ch = logging.StreamHandler()
+#create logger
+mylogger = logging.getLogger("long_qdec_table")
+mylogger.setLevel(logging.INFO)
+mylogger.addHandler(ch)
+
+
+HELPTEXT = """
+
+SUMMARY
+=======
+
+Will operate on a longitudinal QDEC table.
+
+A longitudinal QDEC table is a text file with space sperated columns where the
+first two columns have the title fsid and fsid-base, containing the time point
+id and the subject id, for example:
+
+fsid    fsid-base  age   weight   IQ
+Elmo_1   Elmo       3      10    1000        
+#Elmo_2  Elmo       3.5    15    1100
+Elmo_3   Elmo       4      20    1300 
+Snuffy_1 Snuffy    20      40    1100
+Snuffy_2 Snuffy    21      45    1200
+Bert_1   Bert       8      25    2000
+Bert_2   Bert       9      30    2500
+Bert_3   Bert       9.9    34    2400
+
+Rows with # comments will be ignored.
+
+
+OPERATIONS
+==========
+
+--split <column> 
+Split table based on <column> into different tables named long.qdec.<value>.dat
+where <value> is the common value in the column. Use column=fsid-base to split
+table into individual subjects, e.g., to process in parallel.
+
+--cross 
+Also pass --out <name> for output table. This will create a cross table
+from a long table. Meaning that all time points (rows) of the same subject
+will be collapsed into a single line. Numerical values will be averaged across
+time, everything else will be taken from the first tp (first line of each
+subject, as ordered in the input table).
+
+--sort <column>
+Also pass --out <name> for output table. This will sort each subject's enties
+according to the value in <column>, e.g. age.
+
+--out <name>
+Used to specify output in some of the above flags.
+"""
+
+def options_parse():
+    """
+    Command Line Options Parser
+    initiate the option parser and return the parsed object
+    """
+    parser = optparse.OptionParser(version='$Id: long_qdec_table,v 1.1.2.2 2011/03/23 16:03:47 mreuter Exp $', usage=HELPTEXT)
+    
+    # help text
+    h_qdec      = '(REQUIRED) qdec table file specifying the subjects and time points'
+    h_split     = 'split table based on column SPLIT (e.g. use --split fsid-base to separate subjects)'
+    h_cross     = 'output name to collapse table to cross sectional (one line per subject)'
+    h_sort      = 'sort table based on column SORT within subject (e.g. --sort age)'
+    h_out       = 'output file name for operations producing single table'
+ 
+    parser.add_option('--qdec',  dest='qdec',  help=h_qdec)
+    parser.add_option('--split', dest='split', help=h_split)
+    parser.add_option('--cross', dest='cross', action='store_true', help=h_cross, default=False)
+    parser.add_option('--sort',  dest='sort',  help=h_sort)
+    parser.add_option('--out',  dest='out',  help=h_out)
+
+    (options, args) = parser.parse_args()
+
+    if options.qdec is None:
+        print 'ERROR: Specify --qedc'
+        print '       or run with --help for help.'
+        sys.exit(1)
+
+    if ( options.sort is not None or options.cross ) and options.out is None:
+        print 'ERROR: Please specify output --out <name> '
+        sys.exit(1)
+
+    return options
+
+
+if __name__=="__main__":
+    # Command Line options and error checking done here
+    options = options_parse()
+    mylogger.debug('-- The options you entered --')
+    mylogger.debug(options) 
+
+    defaultvar  = ''
+    subjectsdir = ''
+    variables   = ''
+
+    print 'Parsing the qdec table: '+options.qdec
+    try:
+        mylogger.debug('Processing file ' + options.qdec)
+        longqdec = LongQdecTable(options.qdec)
+#        subjects_tp_map, variables, subjectdir = qdecparse.parse()
+    except BadFileError, e:
+        print 'ERROR: qdec table '+str(e)+' not found!'
+        sys.exit(1)
+    
+
+    if options.split is not None:
+        print 'Splitting the qdec table:  column '+options.split
+        alltables = longqdec.split(options.split)
+        for table in alltables:
+            outname="long.qdec."+table.commonval+".dat"
+            print 'Writing the qdec table: '+outname
+            table.write(outname)  
+
+    if options.cross:
+        print 'Collapsing the qdec table to CROSS '
+        longqdec.cross()
+        print 'Writing the qdec table: '+options.out
+        longqdec.write(options.out)
+    
+    if options.sort is not None:
+        print 'Sorting the qdec table: column '+options.sort
+        longqdec.sort(options.sort)
+        print 'Writing the qdec table: '+options.out
+        longqdec.write(options.out)
+        
