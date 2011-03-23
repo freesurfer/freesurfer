@@ -8,9 +8,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:09 $
- *    $Revision: 1.55 $
+ *    $Author: fischl $
+ *    $Date: 2011/03/23 22:01:35 $
+ *    $Revision: 1.56 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -267,12 +267,32 @@ extern "C" {
 #define left_subiculum 557  //                          0   119 86  0
 #define left_fornix 558  //                             20  100 201 0
 
+#define   lh_cst 5100 //                                           120 20  134 0
+#define   rh_cst 5101 //                                           120 20  134 0
+#define   lh_ilf 5102 //                                           236 15  176 0
+#define   rh_ilf 5103 //                                           236 15  176 0
+#define   lh_unc 5104 //                                           12  50  255 0
+#define   rh_unc 5105 //                                           12  50  255 0
+#define   fmajor 5106 //                                           255 5106 // 167 0   0
+#define   fminor 5107 //                                           255 5107 // 167 0   0
+#define   lh_atr 5108 //                                           232 147 33  0
+#define   rh_atr 5109 //                                           232 148 33  0
+#define   lh_ccg 5110 //                                           121 185 220 0
+#define   rh_ccg 5111 //                                           121 186 220 0
+#define   lh_cab 5112 //                                           220 252 163 0
+#define   rh_cab 5113 //                                           220 253 163 0
+#define   lh_slf 5114 //_                                          3   148 6   0
+#define   rh_slf 5115 //_                                          3   149 6   0
+#define   lh_slft 5116 //                                          42  205 167 0
+#define   rh_slft 5117 //                                          42  206 167 0
+
+
 #define Tumor       600 //                              253 253 253 0
 #define SUSPICIOUS 999 //                               255 100 100 0
 
 // be sure to update MAX_LABEL if additional labels are added!
 
-#define MAX_LABEL SUSPICIOUS
+#define MAX_LABEL rh_slft
 #define MAX_CMA_LABEL (MAX_LABEL)
 #define MAX_CMA_LABELS (MAX_CMA_LABEL+1)
 
