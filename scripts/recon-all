@@ -7,9 +7,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: nicks $
-#    $Date: 2011/03/22 22:58:34 $
-#    $Revision: 1.381 $
+#    $Author: mreuter $
+#    $Date: 2011/03/23 15:51:58 $
+#    $Revision: 1.382 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -26,7 +26,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.381 2011/03/22 22:58:34 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.382 2011/03/23 15:51:58 mreuter Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -6148,6 +6148,9 @@ the volume mri/orig.mgz. If no runs are found, then it looks for
 a volume in mri/orig (or mri/orig.mgz). If that volume is there, then
 it is used in subsequent processes as if it was the motion corrected
 volume. If no volume is found, then the process exits with errors.
+The motion correction step uses a robust registration [14] procedure
+to produce highly accurate registrations of the brain, ignoring outlier
+regions, such as differen cropping planes, jaw, neck, eye movement etc.
 
 NU Intensity Correction (-<no>nuintensitycor)
 
@@ -6428,7 +6431,8 @@ LONGITUDINAL PROCESSING
 
 The longitudinal processing scheme aims to incorporate the subject-wise
 correlation of longitudinal data into the processing stream in order to
-further reduce the measurement noise.
+increase sensitivity and repeatability, see [14][15]. Care is taken to
+avoid introduction of asymmetry-induced bias.
 
 Here is a summary of the longitudinal workflow, where tpN refers to the
 name of one timepoint of subject data, and longbase refers to the name
@@ -6438,13 +6442,13 @@ given to the base subject of a collection of timepoints:
   recon-all -s tp1 -i path_to_tp1_dicom -all
   recon-all -s tp2 -i path_to_tp2_dicom -all
 
-2) create base subject and cross-sectionally process:
-  recon-all -base longbase -base-tp tp1 -base-tp tp2 -all
+2) create and process the unbiased base (subject template):
+  recon-all -base longbase -tp tp1 -tp tp2 -all
 
 3) longitudinally process tpN subjects:
   recon-all -long tp1 longbase -all
   recon-all -long tp2 longbase -all
-
+ 
 4) do comparisons on results from 3), e.g. calculate differences
 between tp2.long.longbase - tp1.long.longbase
 
@@ -6452,18 +6456,8 @@ Note that the longitudinal processing stream always produces output subject
 data containing  .long.  in the name (to help distinguish from the default
 stream).
 
--long tp1 longbase
--longitudinal tp1 longbase
-
-Enables longitudinal processing.
-
-Example:
-
-  recon-all -long <tpNsubjid> <longbasesubjid> -all
-
-The output subject is named <tpNsubjid>.long.<longbasesubjid>.
-
-Notice that the -all flag is included. A work directive flag is required.
+Notice that the -all flag is included in the -base and -long calls above.
+A work directive flag is required.
 
 Other flags:
 
@@ -6493,8 +6487,11 @@ aseg.mgz.
 If a new timepoint needs to be added to a longitudinal run where a base subject
 has already been created (from prior timepoints), then the -addtp command
 can be added to the -long command in order to 'fix-up' the longitudinal
-stream to accept the new timepoint.  Note that the base subject is *not*
-recomputed using the new timepoint.  See the LongitudinalProcessing wiki page.
+stream to accept the new timepoint. Note that the base subject is *not*
+recomputed using the new timepoint. This potentially introduces a bias, and it 
+is recommended to NOT add a time point this way! Instead recreate the base
+from all time points and run all longitudinals again.
+See the LongitudinalProcessing wiki page.
 
 Example:
 
@@ -6655,3 +6652,7 @@ Gyrification (2007) IEEE Transactions on Medical Imaging.
 [14] Martin Reuter, H Diana Rosas, Bruce Fischl.
 Highly Accurate Inverse Consistent Registration: A Robust Approach.
 NeuroImage (2010). http://dx.doi.org/10.1016/j.neuroimage.2010.07.020
+
+[15] Martin Reuter, Bruce Fischl.
+Avoiding Asymmetry-Induced Bias in Longitudinal Image Processing.
+NeuroImage (2011). http://dx.doi.org/10.1016/j.neuroimage.2011.02.076
