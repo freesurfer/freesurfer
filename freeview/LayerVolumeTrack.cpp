@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2011/03/23 21:36:50 $
- *    $Revision: 1.1 $
+ *    $Date: 2011/03/24 13:55:22 $
+ *    $Revision: 1.2 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -113,7 +113,7 @@ void LayerVolumeTrack::RebuildActors()
     vtkSmartPointer<vtkActor> actor = vtkSmartPointer<vtkActor>::New();
     vtkSmartPointer<vtkPolyDataMapper> mapper = vtkSmartPointer<vtkPolyDataMapper>::New();
     actor->SetMapper(mapper);
-    MyVTKUtils::BuildContourActor(extract->GetOutput(), mri->frames[i].thresh, 10000000000, actor);
+    MyVTKUtils::BuildContourActor(extract->GetOutput(), mri->frames[i].thresh, 1e8, actor);
     mapper->ScalarVisibilityOff();
     if (ct)
     {
