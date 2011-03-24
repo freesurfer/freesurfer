@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2011/03/17 20:37:46 $
- *    $Revision: 1.694 $
+ *    $Author: nicks $
+ *    $Date: 2011/03/24 13:05:06 $
+ *    $Revision: 1.695 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -735,7 +735,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void)
 {
-  return("$Id: mrisurf.c,v 1.694 2011/03/17 20:37:46 greve Exp $");
+  return("$Id: mrisurf.c,v 1.695 2011/03/24 13:05:06 nicks Exp $");
 }
 
 /*-----------------------------------------------------
@@ -7703,7 +7703,7 @@ mrisIntegrateCUDA(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int n_averages)
 #endif // FS_CUDA_TIMINGS
 
   /* Get some device info */
-  MRISCdeviceInfo();
+  //NJS no need to call this every loop: MRISCdeviceInfo();
 
   /* Okay the neighborhood of the surface will not change anywhere in here,
      so we can upload this all at once
