@@ -13,9 +13,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: ayendiki $
- *    $Date: 2011/03/23 23:01:29 $
- *    $Revision: 1.294 $
+ *    $Author: fischl $
+ *    $Date: 2011/03/24 01:22:03 $
+ *    $Revision: 1.295 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -11403,7 +11403,7 @@ cma_label_to_name(int label)
     return("Right Superior Longitudinal Fasciculus") ;
   if (label == lh_slft)
     return("Left Superior Longitudinal Fasciculus - Temporal") ;
-  if (label == rh slft)
+  if (label == rh_slft)
     return("Right Superior Longitudinal Fasciculus - Temporal") ;
   return(name) ;
 }
