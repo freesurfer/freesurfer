@@ -1,0 +1,206 @@
+#! /bin/tcsh -f
+
+
+# mri_cvs_check
+#
+# Script to check whether all the files are available for running CVS.
+#
+# Original Author: Lilla Zollei
+# Created: 07-14-2010
+
+set inputargs = ($argv);
+set VERSION = '$Id: mri_cvs_check,v 1.1 2011/03/24 23:07:52 nicks Exp $';
+set PrintHelp = 0;
+
+set movingid = ();
+set templateid = ();
+set cvstemplate = 0;
+
+# Parsing and checking the input arguments
+if($#argv == 0) goto usage_exit;
+set n = `echo $argv | egrep -e --version | wc -l`
+if($n != 0) then
+  echo $VERSION
+  exit 0;
+endif
+set n = `echo $argv | egrep -e --help | wc -l`
+if($n != 0) then
+  set PrintHelp = 1;
+  goto usage_exit;
+endif
+
+goto parse_args;
+parse_args_return:
+goto check_params;
+check_params_return:
+
+############--------------##################
+############--------------##################
+
+set cvsdir =  $FREESURFER_HOME/bin
+
+set missing = ()
+
+set allids = $movingid
+if !($cvstemplate) then 
+  set allids = ($allids $templateid)
+endif 
+
+foreach s ($allids)
+  set surfdir = $SUBJECTS_DIR/$s/surf
+  foreach hemi (lh rh)
+    foreach f (inflated  pial  sphere  white  smoothwm sulc) 
+      set file = $surfdir/$hemi.$f 
+      if (! -e $file) then
+        set missing = ($missing $file)
+      endif
+    end
+  end
+end
+
+foreach s ($allids)
+  set surfdir = $SUBJECTS_DIR/$s/surf
+  foreach hemi (lh rh)
+    foreach f (inflated.H inflated.K)
+      set file = $surfdir/$hemi.$f
+      if ((! -e $file) && (! -e ${file:r}))  then # otherwise it can be computed 
+        set missing = ($missing $file)
+      endif
+    end
+  end
+end
+
+foreach s ($allids)
+  set labeldir = $SUBJECTS_DIR/$s/label
+  foreach hemi (lh rh)
+    foreach f (aparc.annot) 
+      set file = $labeldir/$hemi.$f
+      if (! -e $file) then
+        set missing = ($missing $file)
+      endif
+    end
+  end
+end
+
+foreach s ($allids)
+  set mridir = $SUBJECTS_DIR/$s/mri
+    foreach f (norm aseg) 
+      set file = $mridir/$f.mgz
+      if (! -e $file) then
+        set missing = ($missing $file)
+      endif
+    end
+end
+
+set file = $cvsdir/mri_cvs_register.settings.txt
+if (! -e $file) then
+  set missing = ($missing $file)
+endif
+
+set file = $cvsdir/id.xfm
+if (! -e $file) then
+  set missing = ($missing $file)
+endif
+
+# TODO: Check for python scripts as well!
+
+if ($#missing > 0) then 
+  echo "The following files are missing: "
+  echo $missing
+  echo "You need to find these files or run reconall on the data in order to run mri_cvs_register."
+else
+  echo "No files are missing. You are good to run mri_cvs_register."
+endif
+
+exit 0;
+
+############--------------##################
+############--------------##################
+parse_args:
+set cmdline = ($argv);
+while( $#argv != 0 )
+
+  set flag = $argv[1]; shift;
+
+  switch($flag)
+
+    case "--template":
+      if ( $#argv < 1) goto arg1err;
+      set templateid = $argv[1]; shift;
+      breaksw
+
+    case "--mov":
+      if ( $#argv < 1) goto arg1err;
+      set movingid = $argv[1]; shift;
+      breaksw
+
+    default:
+      echo ERROR: Flag $flag unrecognized.
+      echo $cmdline
+      exit 1
+      breaksw
+  endsw
+
+end
+
+goto parse_args_return;
+############--------------##################
+
+############--------------##################
+check_params:
+
+  if($#movingid == 0) then
+    echo "ERROR: must spec a moving subject id"
+    exit 1;
+  endif
+
+  if($#templateid == 0) then
+    echo "Using the CVS template as registration target."
+    set cvstemplate = 1
+  endif
+
+  if($templateid == $movingid) then
+    echo "ERROR: the moving and the template subjects need to be different!"
+    exit 1;
+  endif
+
+goto check_params_return;
+############--------------##################
+
+############--------------##################
+usage_exit:
+  echo "USAGE: mri_cvs_check"
+  echo ""
+  echo "Required Arguments:"
+  echo "   --mov subjid       : subjid for subject to be moved / registered (SUBJECTS_DIR needs to be set)"
+  echo "   --template subjid  : subjid for subject to be kept fixed (template). If missing, CVS template is assumed as a target."
+  echo ""
+  echo "Optional Arguments"
+  echo ""
+  echo "   --version    : print version and exit"
+  echo "   --help       : print help and exit"
+  echo ""
+
+  if($PrintHelp) \
+  cat $0 | awk 'BEGIN{prt=0}{if(prt) print $0; if($1 == "BEGINHELP") prt = 1 }'
+
+exit 1;
+
+#---- Everything below here is printed out as part of help -----#
+BEGINHELP
+
+Checks whether the files that are required for mri_cvs_register all exist.
+Set SUBJECTS_DIR properly before calling this script!
+
+Required Arguments:
+
+--mov subjid
+
+Subject id of the subject (as found in SUBJECTS_DIR) whose scan is to 
+be moved in registration with that of the template. 
+
+--template subjid
+
+Subject id of the subject (as found in SUBJECTS_DIR) whose scan is to 
+be used and the template / target for the registration. If missing, CVS 
+template is assumed as a target and no checks are done.

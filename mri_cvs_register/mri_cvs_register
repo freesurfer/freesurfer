@@ -12,7 +12,7 @@
 # Edited : 03-17-2011: replaces applyMorph with mri_vol2vol
 
 set inputargs = ($argv);
-set VERSION = '$Id: mri_cvs_register,v 1.19 2011/03/24 21:26:52 lzollei Exp $';
+set VERSION = '$Id: mri_cvs_register,v 1.20 2011/03/24 23:07:52 nicks Exp $';
 
 set movingid = ();
 set templateid = ();
@@ -598,6 +598,6 @@ endif
 exit 1;
 
 #---- Everything below is printed out as part of help -----#
-#-- During make install, the output of 'fsPrintHelp bbregister.help.xml' -- #
+#-- During make install, the output of 'fsPrintHelp mri_cvs_register.help.xml' -- #
 #-- is concatenated to this file --#
 BEGINHELP
