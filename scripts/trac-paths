@@ -1,0 +1,548 @@
+#! /bin/tcsh -f
+
+#
+# trac-paths
+#
+# Tractography for a single subject
+#
+# Original Author: Anastasia Yendiki
+# CVS Revision Info:
+#    $Author: nicks $
+#    $Date: 2011/03/24 01:59:19 $
+#    $Revision: 1.14.2.1 $
+#
+# Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+#
+# Terms and conditions for use, reproduction, distribution and contribution
+# are found in the 'FreeSurfer Software License Agreement' contained
+# in the file 'LICENSE' found in the FreeSurfer distribution, and here:
+#
+# https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
+#
+# Reporting: freesurfer@nmr.mgh.harvard.edu
+#
+#
+
+umask 002
+
+set VERSION = '$Id: trac-paths,v 1.14.2.1 2011/03/24 01:59:19 nicks Exp $'
+set ProgName = `basename $0`
+set inputargs = ($argv)
+
+#------------ Set default options -----------------------------------------#
+
+set PrintHelp = 0	# Print help and exit
+
+set debug = 0		# Generate more output
+
+set DoTime = 0		# Time main commands
+set fs_time = ()
+
+set rcfile = ()		# Name of input run command file
+set LF = ()		# Name of log file
+set CF = ()		# Name of command file
+
+set DoIsRunning = 1	# Create a lock file while processing continues
+
+set RunIt = 1		# If 0, do everything but run commands (for debugging)
+
+#------------ Parse input arguments ---------------------------------------#
+
+if ($#argv == 0) goto usage_exit
+
+set n = `echo $argv | egrep -e -help | wc -l`
+if ($n != 0) then
+  set PrintHelp = 1
+  goto usage_exit
+endif
+
+set n = `echo $argv | egrep -e -version | wc -l`
+if ($n != 0) then
+  echo $VERSION
+  exit 0
+endif
+
+goto parse_args
+parse_args_return:
+goto check_params
+check_params_return:
+
+#------------ Read configuration file -------------------------------------#
+
+source $rcfile
+
+if ($DoTime) then
+  fs_time ls >& /dev/null
+  if (! $status) set fs_time = fs_time
+endif
+
+printf '\n\n' >> $LF
+echo "New invocation of $ProgName"  >> $LF
+printf '\n\n' >> $LF
+whoami >> $LF
+hostname >> $LF
+uname -a >> $LF
+limit >> $LF
+if (-e /usr/bin/free) then
+  echo "" >> $LF
+  /usr/bin/free >> $LF
+  echo "" >> $LF
+endif
+if ("`uname -s`" == "Darwin") then
+  echo "" >> $LF
+  /usr/bin/top -l 1 | grep PhysMem >> $LF
+  echo "" >> $LF
+endif
+
+#---------- Create output directories -----------------------------------#
+
+set dtdir = $dtroot/$subj
+set fsdir = $SUBJECTS_DIR/$subj
+set dwidir = $dtdir/dmri
+set xfmdir = $dwidir/xfms
+set labdir = $dtdir/dlabel
+set touchdir = $dtdir/touch
+
+mkdir -p $dwidir $xfmdir $labdir
+
+#---------- Handle run status files -------------------------------------#
+
+# Delete the error file. This is created when error_exit is run.
+set ErrorFile = $dtdir/scripts/trac-all.error
+rm -f $ErrorFile
+
+# Delete the done file. This is created when the program exits normally.
+set DoneFile = $dtdir/scripts/$ProgName.done
+rm -f $DoneFile
+
+if ($DoIsRunning) then
+  set IsRunningFile = $dtdir/scripts/IsRunning.trac
+
+  if (-e $IsRunningFile) then
+    echo ""
+    echo "ERROR: it appears that an analysis is already running"
+    echo "for $subj based on the presence of $IsRunningFile. It could"
+    echo "also be that an analysis was running at one point but"
+    echo "died in an unexpected way. If it is the case that there"
+    echo "is a process running, you can kill it and start over or"
+    echo "just let it run. If the process has died, you should type:"
+    echo ""
+    echo "rm $IsRunningFile"
+    echo ""
+    echo "and re-run. Or you can add -no-isrunning to the trac-all"
+    echo "command-line. The contents of this file are:"
+    echo "----------------------------------------------------------"
+    cat  $IsRunningFile
+    echo "----------------------------------------------------------"
+    exit 1
+  endif
+
+  echo "------------------------------"	>  $IsRunningFile 
+  echo "SUBJECT $subj"			>> $IsRunningFile 
+  echo "DATE `date`"			>> $IsRunningFile 
+  echo "USER `whoami`"			>> $IsRunningFile 
+  echo "HOST `hostname`"		>> $IsRunningFile 
+  echo "PROCESSID $$"			>> $IsRunningFile 
+  echo "PROCESSOR `uname -m`"		>> $IsRunningFile 
+  echo "OS `uname -s`"			>> $IsRunningFile 
+  uname -a				>> $IsRunningFile 
+  echo "PROGRAM $ProgName"		>> $IsRunningFile
+  echo $VERSION				>> $IsRunningFile 
+else
+  set IsRunningFile = ()
+endif
+
+# Put a copy of myself (this script) in the scripts dir
+cp $0 $dtdir/scripts/$ProgName.local-copy
+
+if (! $RunIt) then
+  echo "INFO: -dontrun flag is in effect so subsequent commands" |& tee -a $LF
+  echo "may not have accurate arguments!" |& tee -a $LF
+endif
+
+echo "#-------------------------------------" |& tee -a $LF
+echo "$0 $argv" |& tee -a $LF |& tee -a $CF
+
+echo "#-------------------------------------" |& tee -a $LF
+echo "#@# Path reconstruction `date`" |& tee -a $LF
+
+set cvswarp = combined_to${cvstemp}_elreg_afteraseg-norm
+
+set xspacelist = ()
+if ($doregmni) set xspacelist = ($xspacelist mni)
+if ($doregcvs) set xspacelist = ($xspacelist cvs)
+
+set reglist = ()
+if ($doregflt) set reglist = ($reglist flt)
+if ($doregbbr) set reglist = ($reglist bbr)
+
+if ($#xspacelist > 1 || $#reglist > 1 || $#ncptlist > 1) set dopathsubdirs = 1
+
+foreach ntrain ($ntrainlist)
+  foreach xspace ($xspacelist)
+    foreach reg ($reglist)
+      foreach ncpts ($ncptlist)
+        set avgmode = $avgname${ntrain}_${xspace}_$reg
+        set mnimode = $avgname${ntrain}_mni_$reg
+
+        set outdir = $dtdir/dpath
+
+        if ($dopathsubdirs) then
+          set outdir = $outdir/${ncpts}cpts/prior$xspace
+
+          if ($dosegprior) then
+            set outdir = $outdir/seg14
+          else if ($doprior) then
+            set outdir = $outdir/man
+          else
+            set outdir = $outdir/noprior
+          endif
+
+          set outdir = $outdir/initmni/reg$reg
+        endif
+
+        mkdir -p $outdir
+
+        set outlist = `printf "$outdir/%s_$avgmode " $pathlist`
+
+        set roi1list = \
+          `printf "$labdir/$xspace/%s_${avgmode}_end1_dil.nii.gz " $pathlist`
+
+        set roi2list = \
+          `printf "$labdir/$xspace/%s_${avgmode}_end2_dil.nii.gz " $pathlist`
+
+        set initlist = \
+          `printf "$labdir/diff/%s_${mnimode}_cpts_$ncpts.txt " $pathlist`
+
+        set priorlist = ()
+        foreach pathname ($pathlist)
+          set priorlist = ($priorlist \
+            $labdir/$xspace/${pathname}_${avgmode}_logprior_0.nii.gz \
+            $labdir/$xspace/${pathname}_${avgmode}_logprior_1.nii.gz)
+        end
+
+        set npriorlist = ()
+        foreach pathname ($pathlist)
+          set npriorlist = ($npriorlist \
+            $labdir/$xspace/${pathname}_${avgmode}_fsnnprior \
+            $labdir/$xspace/${pathname}_${avgmode}_fsnnids)
+        end
+
+        if ($usetrunc) then
+          set npriorlist = `printf "%s_all " $npriorlist`
+        endif
+
+        set lpriorlist = ()
+        foreach pathname ($pathlist)
+          set lpriorlist = ($lpriorlist \
+            $labdir/$xspace/${pathname}_${avgmode}_fsprior \
+            $labdir/$xspace/${pathname}_${avgmode}_fsids)
+        end
+
+        if ($usetrunc) then
+          set lpriorlist = `printf "%s_all " $lpriorlist`
+        endif
+
+        set sdplist = \
+          `printf "$labdir/diff/%s_${mnimode}_cpts_${ncpts}_std.txt " $pathlist`
+
+        # Clean up pre-existing directories
+        foreach dname ($outlist)
+          rm -rf $dname
+        end
+
+        set cmd = $trcdir/dmri_paths
+        set cmd = ($cmd --outdir $outlist)
+        set cmd = ($cmd --dwi  $dwidir/dwi.nii.gz)
+        set cmd = ($cmd --grad $dwidir/bvecs)
+        set cmd = ($cmd --bval $dwidir/bvals)
+        if ($usemaskanat) then
+          if ($doregbbr && -e $labdir/diff/anat_brain_mask.bbr.nii.gz) then
+            set cmd = ($cmd --mask $labdir/diff/anat_brain_mask.bbr.nii.gz)
+          else
+            set cmd = ($cmd --mask $labdir/diff/anat_brain_mask.flt.nii.gz)
+          endif
+        else
+          set cmd = ($cmd --mask $labdir/diff/lowb_brain_mask.nii.gz)
+        endif
+        set cmd = ($cmd --bpdir $dtdir/dmri.bedpostX)
+        set cmd = ($cmd --ntr 2)
+        set cmd = ($cmd --fmin $fmin)
+        set cmd = ($cmd --roi1 $roi1list)
+        set cmd = ($cmd --roi2 $roi2list)
+        if ($xspace == mni) then
+          set cmd = ($cmd --reg $xfmdir/diff2mni.$reg.mat)
+        else if ($xspace == cvs) then
+          set cmd = ($cmd --reg $xfmdir/diff2anatorig.$reg.mat)
+          if ($subj != $cvstemp) then
+            set cmd = ($cmd --regnl $xfmdir/cvs/$cvswarp.m3z)
+          endif
+        endif
+        set cmd = ($cmd --init $initlist)
+        if ($dosegprior) then
+          set cmd = ($cmd --nprior $npriorlist)
+          set cmd = ($cmd --lprior $lpriorlist)
+          set cmd = ($cmd --seg    $labdir/$xspace/aparc+aseg.nii.gz)
+        else if ($doprior) then
+          set cmd = ($cmd --prior $priorlist)
+        endif
+        set cmd = ($cmd --nb $nburnin --ns $nsample --nu $nupdate --nk $nkeep)
+        if ($doinitprop) then
+          set cmd = ($cmd --sdp $sdplist)
+        endif
+        if ($debug) then
+          set cmd = ($cmd --debug)
+        endif
+        echo $cmd |& tee -a $LF |& tee -a $CF
+        if ($RunIt) then
+          $fs_time $cmd |& tee -a $LF
+          if ($status) goto error_exit
+        endif
+
+        foreach pathname ($pathlist)
+          set pathpre = ${pathname}_$avgmode
+
+          if (-e $outdir/$pathpre/cpts.map.txt) then
+            set pname = `echo $pathname | awk -v FS=_ '{print $1}'`
+
+            set cmd = $trcdir/dmri_pathstats
+            set cmd = ($cmd --intrc  $outdir/$pathpre)
+            set cmd = ($cmd --dtbase $dwidir/dtifit)
+            set cmd = ($cmd --path   $pname)
+            set cmd = ($cmd --subj   $subj)
+            set cmd = ($cmd --out    $outdir/$pathpre/pathstats.overall.txt)
+            set cmd = ($cmd --outvox $outdir/$pathpre/pathstats.byvoxel.txt)
+            echo $cmd |& tee -a $LF |& tee -a $CF
+            if ($RunIt) then
+              $fs_time $cmd |& tee -a $LF
+              if ($status) goto error_exit
+            endif
+          endif
+        end
+
+        set mergelist = ()
+        foreach dname ($outdir/*_$avgmode)
+          if (-e $dname/path.pd.nii.gz) then
+            set mergelist = ($mergelist `basename $dname`/path.pd.nii.gz)
+          endif
+        end
+
+        set cmd = $trcdir/dmri_mergepaths
+        set cmd = ($cmd --indir $outdir)
+        set cmd = ($cmd --in    $mergelist)
+        set cmd = ($cmd --out   $outdir/merged_$avgmode.mgz)
+        set cmd = ($cmd --ctab  $FREESURFER_HOME/FreeSurferColorLUT.txt)
+        echo $cmd |& tee -a $LF |& tee -a $CF
+        if ($RunIt) then
+          $cmd |& tee -a $LF
+          if ($status) goto error_exit
+        endif
+      end
+    end
+  end
+end
+
+# Remove the error file
+if ($DoIsRunning && $#IsRunningFile) rm -f $IsRunningFile
+
+# Create the done file
+echo "------------------------------" > $DoneFile
+echo "SUBJECT $subj" >> $DoneFile
+echo "DATE `date`"     >> $DoneFile
+echo "USER `whoami`"      >> $DoneFile
+echo "HOST `hostname`" >> $DoneFile
+echo "PROCESSOR `uname -m`" >> $DoneFile
+echo "OS `uname -s`"       >> $DoneFile
+uname -a         >> $DoneFile
+echo $VERSION    >> $DoneFile
+echo $0          >> $DoneFile
+
+echo "#-------------------------------------" |& tee -a $LF
+echo "$ProgName finished without error at `date`" |& tee -a $LF
+
+exit 0
+#############------------------------------------#######################
+##################>>>>>>>>>>>>>.<<<<<<<<<<<<<<<<<#######################
+#############------------------------------------#######################
+
+############--------------##################
+error_exit:
+  uname -a | tee -a $LF
+  echo "" |& tee -a $LF
+  echo "$ProgName exited with ERRORS at `date`" |& tee -a $LF
+  echo "" |& tee -a $LF
+
+  # Remove IsRunningFile
+  if($DoIsRunning && $#IsRunningFile) rm -f $IsRunningFile
+
+  # Create an error file with date, cmd, etc of error
+  if ($?ErrorFile) then
+    echo "------------------------------" > $ErrorFile
+    echo "SUBJECT $subj" >> $ErrorFile
+    echo "DATE `date`"     >> $ErrorFile
+    echo "USER `whoami`"      >> $ErrorFile
+    echo "HOST `hostname`" >> $ErrorFile
+    echo "PROCESSOR `uname -m`" >> $ErrorFile
+    echo "OS `uname -s`"       >> $ErrorFile
+    uname -a         >> $ErrorFile
+    echo $VERSION    >> $ErrorFile
+    echo $0          >> $ErrorFile
+    echo "PWD `pwd`" >> $ErrorFile
+    echo "CMD $cmd"  >> $ErrorFile
+  endif
+
+  # Finally exit
+  exit 1
+
+############--------------##################
+parse_args:
+set cmdline = ($argv)
+
+while( $#argv != 0 )
+  set flag = $argv[1]; shift;
+
+  switch($flag)
+    case "-c":
+      if ( $#argv < 1) goto arg1err;
+      set rcfile = "$argv[1]"; shift;
+      if (! -e "$rcfile") then
+        echo "ERROR: cannot find $rcfile"
+        goto error_exit
+      endif
+      if (! -r "$rcfile") then
+        echo "ERROR: $rcfile exists but is not readable"
+        goto error_exit
+      endif
+      breaksw
+
+    case "-time":
+      set DoTime = 1
+      breaksw
+
+    case "-notime":
+      set DoTime = 0
+      breaksw
+
+    case "-log":
+      if ( $#argv < 1) goto arg1err;
+      set LF = $argv[1]; shift;
+      breaksw
+
+    case "-nolog":
+      set LF = /dev/null
+      breaksw
+
+    case "-cmd":
+      if ( $#argv < 1) goto arg1err;
+      set CF = $argv[1]; shift;
+      breaksw
+
+    case "-nocmd":
+      set CF = /dev/null
+      breaksw
+
+    case "-no-isrunning":
+      set DoIsRunning = 0
+      breaksw
+
+    case "-umask":
+      if ( $#argv < 1) goto arg1err;
+      umask $1; shift;
+      breaksw
+
+    case "-grp":
+      if ( $#argv < 1) goto arg1err;
+      set grp = $argv[1];
+      set curgrp = `id -gn`;
+      if($grp != $curgrp) then
+        echo "ERROR: current group $curgrp and specified group $grp differ"
+        goto error_exit;
+      endif
+      breaksw
+
+    case "-allowcoredump":
+      limit coredumpsize unlimited
+      breaksw
+
+    case "-debug":
+      set debug = 1
+      breaksw
+
+    case "-dontrun":
+      set RunIt = 0
+      breaksw
+
+    case "-onlyversions":
+      set DoVersionsOnly = 1
+      breaksw
+
+    default:
+      echo "ERROR: flag $flag unrecognized"
+      echo $cmdline
+      goto error_exit
+      breaksw
+  endsw
+end
+
+goto parse_args_return;
+
+############--------------##################
+arg1err:
+  echo "ERROR: flag $flag requires one argument"
+  goto error_exit
+
+############--------------##################
+check_params:
+  if (! $#rcfile) then
+    echo "ERROR: a configuration (dmrirc) file must be specified"
+    goto error_exit
+  endif
+
+  if (! $#LF) set LF = `dirname $rcfile`/trac-all.log
+  if (! $#CF) set CF = `dirname $rcfile`/trac-all.cmd
+
+goto check_params_return;
+
+############--------------##################
+usage_exit:
+  echo ""
+  echo "USAGE: $ProgName"
+  echo ""
+  echo "Required arguments:"
+  echo "  -c <file>      : dmrirc file (see dmrirc.example)"
+  echo ""
+  echo "Other arguments:"
+  echo "  -log <file>    : default is trac-all.log in the same dir as dmrirc"
+  echo "  -nolog         : do not save a log file"
+  echo "  -cmd <file>    : default is trac-all.cmd in the same dir as dmrirc"
+  echo "  -nocmd         : do not save a cmd file"
+  echo "  -no-isrunning  : do not check whether this subject is currently being processed"
+  echo "  -umask umask   : set unix file permission mask (default 002)"
+  echo "  -grp groupid   : check that current group is alpha groupid "
+  echo "  -allowcoredump : set coredump limit to unlimited"
+  echo "  -debug         : generate much more output"
+  echo "  -dontrun       : do everything but execute each command"
+  echo "  -version       : print version of this script and exit"
+  echo "  -help          : print full contents of help"
+  echo ""
+
+  if(! $PrintHelp) exit 1
+
+  echo $VERSION
+  echo ""
+
+  cat $0 | awk 'BEGIN{prt=0}{if(prt) print $0;if($1 == "BEGINHELP") prt=1}'
+
+  exit 1
+
+#---- Everything below here is printed out as part of help -----#
+BEGINHELP
+
+Tractography for a single subject.
+
+This script is called by trac-all. Trac-all makes sure that a proper
+configuration file is written locally (scripts/dmrirc.local) and passed
+as an argument to this script.
+
+SEE ALSO: trac-all, dmrirc.example
+
