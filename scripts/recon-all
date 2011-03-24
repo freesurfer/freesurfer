@@ -7,9 +7,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: mreuter $
-#    $Date: 2011/03/23 15:51:58 $
-#    $Revision: 1.382 $
+#    $Author: nicks $
+#    $Date: 2011/03/24 22:16:49 $
+#    $Revision: 1.383 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -26,7 +26,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.382 2011/03/23 15:51:58 mreuter Exp $';
+set VERSION = '$Id: recon-all,v 1.383 2011/03/24 22:16:49 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -5171,6 +5171,19 @@ arg3err:
 
 ############--------------##################
 check_params:
+  if($UseCuda) then
+    # test a binary
+    echo "Testing for CUDA device:"
+    $FREESURFER_HOME/bin/mri_em_register_cuda --version
+    if ($status) goto error_exit;
+
+    # print version of installed driver
+    if ( -e /proc/driver/nvidia/version) then
+      echo "NVIDIA driver version info:"
+      cat /proc/driver/nvidia/version | grep NVIDIA
+    endif
+  endif
+
   if(! $DoVersionsOnly) then
     if($#subjid != 1) then
       echo "ERROR: must specify a subject id"
@@ -5455,13 +5468,6 @@ check_params:
     set tmpdir = `$PWD`;
     set WaitForFile = $tmpdir/`basename $WaitForFile`;
     popd > /dev/null;
-  endif
-
-  if($UseCuda) then
-    # test a binary
-    echo "Testing for CUDA device:"
-    $FREESURFER_HOME/bin/mri_em_register_cuda --version
-    if ($status) goto error_exit;
   endif
 
   if(! $DoCleanTal && ! $DoCleanCP && ! $DoCleanBM && ! $DoConvertInput && \
