@@ -201,6 +201,7 @@ thickdiffmap \
 trac-all \
 trac-paths \
 trac-preproc \
+tractstats2table \
 unpack_ima1.tcl \
 unpackimadir \
 unpackimadir2 \

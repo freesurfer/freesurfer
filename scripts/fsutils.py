@@ -1,7 +1,8 @@
 # Original author - Krish Subramaniam
-# $Id: fsutils.py,v 1.4 2011/02/07 18:48:46 krish Exp $
+# $Id: fsutils.py,v 1.5 2011/03/24 03:00:11 krish Exp $
 import os
 import logging
+import sys
 from misc import *
 from subject_info import *
 from datastruct_utils import *
@@ -18,6 +19,10 @@ aparclogger = logging.getLogger("aparcstats2table")
 aparclogger.setLevel(logging.INFO)
 aparclogger.addHandler(ch)
 
+tractlogger = logging.getLogger("tractstats2table")
+tractlogger.setLevel(logging.INFO)
+tractlogger.addHandler(ch)
+
 class BadFileError(Exception):
     def __init__(self, filename):
         self.filename = filename
@@ -27,7 +32,6 @@ class BadFileError(Exception):
 
 """
 This is the base class which parses the .stats files. 
-Both aparcstats and asegstats parsers should derive from this
 """
 class StatsParser:
 
@@ -216,3 +220,100 @@ class AparcStatsParser(StatsParser):
                         self.parc_measure_map[structn] = float( strlst[3])
 
         return self.parc_measure_map
+
+
+"""
+tracula overall.stats file parser ( or parser for similarly formatted .stats files )
+Derived from StatsParser
+"""
+class TractOverallStatsParser(StatsParser):
+    # this is a map of measure and its corresponding value in tract.overall.stats
+    measure_value_map = StableDict()
+
+    # we take in the measure we need..
+    def parse(self):
+        self.measure_value_map = StableDict()
+        pre_tuple = ( ('# pathwayname','pathway'),
+                      ('# subjectname','subject'),
+                    )
+        pthwy_subj = StableDict()
+        for line in self.fp:
+            # a valid line is a line without a '#'
+            if line.rfind('#') == -1:
+                strlist = line.split()
+                # for every measure assign value 
+                meas = strlist[0]
+                # if measure is in excluded measure list, we are not interested
+                if self.exclude_structlist and meas in self.exclude_structlist.keys():
+                    continue
+                val = float(strlist[1])
+                self.measure_value_map[meas] = val
+            else:
+                # lookfor subjectname and pathwayname
+                for start, what in pre_tuple:
+                    if line.startswith(start):
+                        strlst = line.split(' ')
+                        name = strlst[2].strip()
+                        pthwy_subj[what] = name
+
+        # if we have a spec which instructs the table to have only specified measures,
+        # we need to make sure the order has to be maintained
+        if self.include_structlist: 
+            tmp_measure_value_map = StableDict()
+            for omeasure in self.include_structlist.keys():
+                measurelist = self.measure_value_map.keys()
+                if omeasure in measurelist:
+                    tmp_measure_value_map[omeasure] = self.measure_value_map[omeasure] 
+                else:
+                    print 'ERROR: The measure you requested: '+ omeasure + ' is not valid'
+                    print 'It is not found one of the overall statistics file'
+                    sys.exit(1)
+            self.measure_value_map = tmp_measure_value_map
+        
+        return pthwy_subj, self.measure_value_map
+
+ 
+"""
+tracula byvoxel.stats file parser ( or parser for similarly formatted .stats files )
+Derived from StatsParser
+"""
+class TractByvoxelStatsParser(StatsParser):
+    # this is a map of measure and its corresponding value in tract.byvoxel.stats
+    measure_value_map = StableDict()
+
+    # map of measures needed and their corresponding column in byvoxel.stats file
+    measure_column_map = {'AD':3, 'RD':4, 'MD':5, 'FA':6 }
+
+    # we take in the measure we need..
+    def parse(self, measure):
+        self.measure_value_map = StableDict()
+        pre_tuple = ( ('# pathwayname','pathway'),
+                      ('# subjectname','subject'),
+                    )
+        pthwy_subj = StableDict()
+
+        # scroll to the start of data. find subjectname
+        # and pathwayname meanwhile
+        line = self.fp.readline()
+        while not line.startswith('# pathway start'):
+            # lookfor subjectname and pathwayname
+            for start, what in pre_tuple:
+                if line.startswith(start):
+                    strlst = line.split(' ')
+                    name = strlst[2].strip()
+                    pthwy_subj[what] = name
+            line = self.fp.readline()
+
+        line = self.fp.readline() # skip to the 'x y z AD RD MD FA line
+        line = self.fp.readline() # skip to the actual data
+        
+        # scroll until the end of data collecting the spec-ed measure
+        count = 0
+        while not line.startswith('# pathway end'):
+            strlst = line.split()
+            val = float(strlst[ self.measure_column_map[measure] ])
+            count = count + 1
+            self.measure_value_map[str(count)] = val
+            line = self.fp.readline()
+
+        return pthwy_subj, self.measure_value_map
