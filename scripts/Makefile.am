@@ -131,8 +131,6 @@ mri_nu_correct.mni\
 mri-func2sph \
 mri-funcvits \
 mri_create_t2combined \
-mri_cvs_check \
-mri_cvs_data_copy \
 mri_mergelabels \
 mri_motion_correct \
 mri_motion_correct2 \
@@ -265,9 +263,6 @@ tkregister2.tcl \
 tksurfer.tcl \
 tkUtils.tcl \
 fsgdfPlot.tcl
-
-foodir=$(prefix)/bin
-foo_DATA=mri_cvs_requiredfiles.txt
 
 xmldir=$(prefix)/docs/xml
 xml_DATA=bbregister.help.xml mri_motion_correct.fsl.help.xml \
