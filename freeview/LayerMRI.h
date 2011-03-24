@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2011/03/23 21:36:50 $
- *    $Revision: 1.63 $
+ *    $Date: 2011/03/24 17:39:14 $
+ *    $Revision: 1.64 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -79,7 +79,7 @@ public:
 
   virtual void Append2DProps( vtkRenderer* renderer, int nPlane );
   virtual void Append3DProps( vtkRenderer* renderer, bool* bPlaneVisibility = NULL );
-  bool HasProp( vtkProp* prop );
+  virtual bool HasProp( vtkProp* prop );
 
   void Remove2DProps( vtkRenderer* render, int nPlane );
 

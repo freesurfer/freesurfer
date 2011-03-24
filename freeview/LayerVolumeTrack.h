@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2011/03/23 21:36:50 $
- *    $Revision: 1.1 $
+ *    $Date: 2011/03/24 17:39:14 $
+ *    $Revision: 1.2 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -29,8 +29,10 @@
 #include "LayerMRI.h"
 #include "vtkSmartPointer.h"
 #include <QList>
+#include <QVariantMap>
 
 class vtkActor;
+class vtkProp;
 
 class LayerVolumeTrack : public LayerMRI
 {
@@ -51,6 +53,10 @@ public:
   }
 
   virtual void UpdateOpacity();
+
+  virtual bool HasProp(vtkProp *prop);
+
+  QVariantMap GetLabelByProp(vtkProp* prop);
 
 protected:
   void UpdateColorMap();

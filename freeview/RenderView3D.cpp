@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2011/03/21 21:27:40 $
- *    $Revision: 1.55 $
+ *    $Date: 2011/03/24 17:39:15 $
+ *    $Revision: 1.56 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -50,9 +50,11 @@
 #include <vtkCellArray.h>
 #include <QtGlobal>
 #include <QMenu>
+#include <QDebug>
 #include "Interactor3DNavigate.h"
 #include "Interactor3DMeasure.h"
 #include "Interactor3DVolumeCrop.h"
+#include "LayerVolumeTrack.h"
 #include <vtkScalarBarActor.h>
 #include "vtkRGBAColorTransferFunction.h"
 #include <vtkAnnotatedCubeActor.h>
@@ -432,6 +434,21 @@ void RenderView3D::DoUpdateRASPosition( int posX, int posY, bool bCursor )
             RequestRedraw( true ); // force redraw
             emit SurfaceRegionSelected(reg);
           }
+        }
+        else
+        {
+          LayerVolumeTrack* vt = qobject_cast<LayerVolumeTrack*>(lc_mri->HasProp( prop ));
+          if (vt)
+          {
+            QVariantMap info = vt->GetLabelByProp(prop);
+            if (!info.isEmpty())
+            {
+              this->setToolTip(QString("%1 %2").arg(info["label"].toInt()).arg(info["name"].toString()));
+              emit VolumeTrackMouseOver(vt, info);
+            }
+          }
+          else
+            this->setToolTip("");
         }
       }
       else if ( Layer* layer = lc_surface->HasProp( prop ) )

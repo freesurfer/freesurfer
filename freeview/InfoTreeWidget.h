@@ -6,9 +6,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/14 23:44:47 $
- *    $Revision: 1.4 $
+ *    $Author: rpwang $
+ *    $Date: 2011/03/24 17:39:14 $
+ *    $Revision: 1.5 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -25,9 +25,11 @@
 #define INFOTREEWIDGET_H
 
 #include <QTreeWidget>
+#include <QVariantMap>
 
 class QLineEdit;
 class QTreeWidgetItem;
+class Layer;
 
 class InfoTreeWidget : public QTreeWidget
 {
@@ -37,6 +39,9 @@ public:
 
 signals:
   void RASChangeTriggered(double x, double y, double z);
+
+public slots:
+  void UpdateTrackVolumeAnnotation(Layer* layer, const QVariantMap& info);
 
 protected slots:
   void OnMousePositionChanged();

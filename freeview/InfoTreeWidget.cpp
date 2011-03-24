@@ -6,9 +6,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/14 23:44:47 $
- *    $Revision: 1.4 $
+ *    $Author: rpwang $
+ *    $Date: 2011/03/24 17:39:14 $
+ *    $Revision: 1.5 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -335,4 +335,20 @@ void InfoTreeWidget::mousePressEvent(QMouseEvent *event)
   }
 
   QTreeWidget::mousePressEvent(event);
+}
+
+void InfoTreeWidget::UpdateTrackVolumeAnnotation(Layer *layer, const QVariantMap &info)
+{
+  for (int i = 0; i < this->topLevelItemCount(); i++)
+  {
+    QTreeWidgetItem* item = this->topLevelItem(i);
+    if (item)
+    {
+      QVariantMap map = item->data(1, Qt::UserRole).toMap();
+      if (map.contains("Object") && map["Object"].value<QObject*>() == layer)
+      {
+        item->setText(1, QString("%1 \t%2").arg(info["label"].toInt()).arg(info["name"].toString()));
+      }
+    }
+  }
 }

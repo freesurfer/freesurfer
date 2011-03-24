@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2011/03/23 21:36:50 $
- *    $Revision: 1.162 $
+ *    $Date: 2011/03/24 17:39:14 $
+ *    $Revision: 1.163 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -278,6 +278,8 @@ MainWindow::MainWindow( QWidget *parent, MyCmdLineParser* cmdParser ) :
   connect( ui->actionQuickReference, SIGNAL(triggered()), this->m_wndQuickRef, SLOT(show()));
   connect( ui->actionShowSlices, SIGNAL(toggled(bool)),
            this->ui->view3D, SLOT(SetShowSlices(bool)));
+  connect( ui->view3D, SIGNAL(VolumeTrackMouseOver(Layer*,QVariantMap)),
+           ui->treeWidgetMouseInfo, SLOT(UpdateTrackVolumeAnnotation(Layer*,QVariantMap)));
 
   m_threadIOWorker = new ThreadIOWorker( this );
   connect( m_threadIOWorker, SIGNAL(Error(Layer*, int)), this, SLOT(OnIOError(Layer*, int)), Qt::QueuedConnection );

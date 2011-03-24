@@ -6,9 +6,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/14 23:44:48 $
- *    $Revision: 1.33 $
+ *    $Author: rpwang $
+ *    $Date: 2011/03/24 17:39:15 $
+ *    $Revision: 1.34 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -26,6 +26,7 @@
 
 #include "RenderView.h"
 #include <vtkSmartPointer.h>
+#include <QVariantMap>
 
 class vtkActor;
 class vtkProp;
@@ -36,6 +37,7 @@ class Interactor3DNavigate;
 class Interactor3DMeasure;
 class Interactor3DVolumeCrop;
 class vtkAnnotatedCubeActor;
+class Layer;
 
 class RenderView3D : public RenderView
 {
@@ -101,6 +103,7 @@ signals:
   void SurfaceVertexClicked();
   void SurfaceRegionSelected(SurfaceRegion*);
   void SurfaceRegionRemoved(SurfaceRegion*);
+  void VolumeTrackMouseOver(Layer* layer, const QVariantMap& info);
 
 public slots:
   void RefreshAllActors(bool bForScreenShot = false);

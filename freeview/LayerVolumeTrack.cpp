@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2011/03/24 13:55:22 $
- *    $Revision: 1.2 $
+ *    $Date: 2011/03/24 17:39:14 $
+ *    $Revision: 1.3 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -150,4 +150,29 @@ void LayerVolumeTrack::UpdateOpacity()
   for (int i = 0; i < m_actors.size(); i++)
     m_actors[i]->GetProperty()->SetOpacity(GetProperty()->GetOpacity());
   LayerMRI::UpdateOpacity();
+}
+
+bool LayerVolumeTrack::HasProp(vtkProp *prop)
+{
+  for (int i = 0; i < m_actors.size(); i++)
+  {
+    if (m_actors[i].GetPointer() == prop)
+      return true;
+  }
+  return false;
+}
+
+QVariantMap LayerVolumeTrack::GetLabelByProp(vtkProp* prop)
+{
+  QVariantMap map;
+  for (int i = 0; i < m_actors.size(); i++)
+  {
+    if (m_actors[i].GetPointer() == prop)
+    {
+      MRI* mri = m_volumeSource->GetMRI();
+      map["label"] = mri->frames[i].label;
+      map["name"] = mri->frames[i].name;
+    }
+  }
+  return map;
 }
