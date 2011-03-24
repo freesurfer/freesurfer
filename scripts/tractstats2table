@@ -1,0 +1,358 @@
+#!/usr/bin/env python
+import warnings
+warnings.filterwarnings('ignore', '.*negative int.*')
+import os
+import sys
+import optparse
+import logging
+import fsutils
+from fsutils import TractOverallStatsParser, TractByvoxelStatsParser, BadFileError, tractlogger
+
+# Original Version - Krish Subramaniam, MGH
+# $Id: tractstats2table,v 1.1.2.2 2011/03/24 03:18:19 krish Exp $
+
+# globals
+l = tractlogger
+
+# map of delimeter choices and string literals
+delimiter2char = {'comma':',', 'tab':'\t', 'space':' ', 'semicolon':';'}
+
+HELPTEXT = """
+Converts a track overall stats file created by tracula and/or
+into a table which is used for group statistics.
+
+For a given tract, the table might contain subjects as rows and overall
+statistics of the tract as columns. Or for a given tract and a measure,
+the table might contain subjects vs byvoxel measures such as FA along the tract
+
+Hence tractstats2table has two modes of operation -- one for overall
+tract statistics ( --overall option ) and one for byvoxel statistics 
+( --byvoxel option ). Once one of these is specified, 
+
+The input consists of a set of path.stats files and can be spec'ed in
+one of the following ways:
+  1. Specify each input file after -i 
+
+          -i subject1/stats/pathstats.overall.txt -i subject2/stat/pathstats.overall.txt ..
+  
+  2. Specify all the input stat files after --inputs. --inputs does not have
+     to be the last argument. Eg:
+       
+          --inputs subject1/stats/pathstats.overall.txt subject2/stat/pathstats.overall.txt ..
+
+  3. Specify a file which contains all the stats files ( one per line )
+
+          --load-pathstats-from-file <filename>
+
+Note that the first two and the last are mutually exclusive. i.e
+don't specify --inputs when you are providing --load-pathstats-from-file and vice versa.
+
+The --overall option includes two optional options --only-measures and --exclude-measures.
+The first option outputs only the measures requested in order. The second option excludes 
+the measures specified. ( The measures spec-ed have to be in the .stats file )
+
+The --byvoxel option needs a required option of what measure we are interested in. One of 
+AD, RD, MD and FA. This is specified using --byvoxel-measure option. 
+
+The --transpose flag writes the transpose of the table. 
+This might be a useful way to see the table when the number of subjects is
+relatively less than the number of segmentations.
+
+The --delimiter option controls what character comes between the measures
+in the table. Valid options are 'tab' ( default), 'space', 'comma' and  'semicolon'.
+
+The -v or --debug option increases the verbosity in case of something going wrong.
+"""
+
+def options_parse():
+    """
+    Command Line Options Parser for trackstats2table
+    initiate the option parser and return the parsed object
+    """
+    parser = optparse.OptionParser(version='$Id: tractstats2table,v 1.1.2.2 2011/03/24 03:18:19 krish Exp $', usage=HELPTEXT)
+    
+    # help text
+    h_sub = '(REQUIRED) subject1 <subject2 subject3..>'
+    h_s = ' subjectname'
+    h_subf = 'name of the file which has the list of subjects ( one subject per line)'
+    h_inp = ' input1 <input2 input3..>'
+    h_o = ' Operate on the overall path statistics' 
+    h_oi = ' (ONLY with --overall) Only include the specified measures from overall path statistics' 
+    h_oe = ' (ONLY with --overall) Exclude the specified measures from overall path statistics' 
+    h_b = ' Operate on the byvoxel path statistics'
+    h_bm = ' (REQUIRED with --byvoxel) specify byvox measure. one of [AD, RD, MD, FA]'
+    h_i = ' inputname'
+    h_tr = 'transpose the table ( default is subject in rows and measures/count in cols)' 
+    h_t = '(REQUIRED) the output tablefile'
+    h_deli = 'delimiter between measures in the table. default is tab (alt comma, space, semicolon )' 
+    h_v = 'increase verbosity'
+
+    # Add options 
+    parser.add_option('--load-pathstats-from-file', dest='pathstatsfile', help=h_subf)
+    parser.add_option('--inputs', dest='inputs' ,action='callback',
+                      callback=fsutils.callback_var,  help=h_inp)
+    parser.add_option('-i', dest='inputs' ,action='append',
+                      help=h_i)
+    parser.add_option('-o', '--overall', dest='overall' ,action='store_true',
+                      help=h_o)
+    parser.add_option('--only-measures', dest='incl_overall' ,action='callback',
+                      callback=fsutils.callback_var, help=h_oi)
+    parser.add_option('--exclude-measures', dest='excl_overall' ,action='callback',
+                      callback=fsutils.callback_var, help=h_oe)
+    parser.add_option('-b', '--byvoxel', dest='byvoxel' ,action='store_true',
+                      help=h_b)
+    parser.add_option('--byvoxel-measure', dest='byvoxel_measure' ,
+                      help=h_bm)
+    parser.add_option('-t', '--tablefile', dest='outputfile',
+                      help=h_t)
+    parser.add_option('-d', '--delimiter', dest='delimiter',
+                      choices=('comma','tab','space','semicolon'),
+                      default='tab', help=h_deli)
+    parser.add_option('', '--transpose', action='store_true', dest='transposeflag',
+                      default=False, help=h_tr)
+    parser.add_option('-v', '--debug', action='store_true', dest='verboseflag',
+                      default=False, help=h_v)
+
+    (options, args) = parser.parse_args()
+    
+     # extensive error checks
+    if options.inputs is not None:
+        if len(options.inputs) < 1:
+            print 'ERROR: inputs are not specified'
+            sys.exit(1)
+        else:
+            options.dodirect = True
+    
+    if options.pathstatsfile is not None:
+        options.dodirect = False
+
+    if  options.inputs is None and options.pathstatsfile is None: 
+        print 'ERROR: Specify one of --inputs or --load-pathstats-from-file'
+        print '       or run with --help for help.'
+        sys.exit(1)
+    
+    if options.inputs is not None and options.pathstatsfile is not None:
+        print 'ERROR: Both pathstatsfile and inputs are specified. Please specify just one '
+        sys.exit(1)
+ 
+    if not options.outputfile:
+        print 'ERROR: output table name should be specified (use --tablefile FILE)'
+        sys.exit(1)
+
+    if options.overall is None and options.byvoxel is None:
+        print 'ERROR: Specify one of --overall or --byvoxel'
+        sys.exit(1)
+
+    if options.overall is not None and options.byvoxel is not None:
+        print 'ERROR: Specify only one of --overall or --byvoxel. Not both'
+        sys.exit(1)
+
+    if options.overall is not None:
+        if options.byvoxel_measure is not None:
+            print 'ERROR: --byvoxel-measure cannot be specified with --overall'
+            sys.exit(1)
+
+    if options.byvoxel is not None:
+        if options.incl_overall is not None:
+            print 'ERROR: --only-measures should not be specified with --byvoxel'
+            sys.exit(1)
+        if options.excl_overall is not None:
+            print 'ERROR: --excl-measures should not be specified with --byvoxel'
+            sys.exit(1)
+
+    if options.byvoxel is not None:
+        if options.byvoxel_measure is None:
+            print 'ERROR: should spec --byvoxel-measure with --byvoxel'
+            sys.exit(1)
+        if options.byvoxel_measure not in ['AD', 'RD', 'MD', 'FA']:
+            print 'ERROR: byvoxel measure should be one of AD, RD, MD, DA'
+            sys.exit(1)
+
+    if options.verboseflag:
+        l.setLevel(logging.DEBUG)
+
+    return options
+    
+"""
+Args:
+    the parsed options
+Returns:
+    a sequence of tuples ( see below)
+assemble_inputs takes the command line parsed options and gives a sequence of tuples.
+The tuples take the following format
+((specifier1, path1),
+ (specifier2, path2),
+ ...
+ )
+where specifierN is the name which goes in the first row of the table. 
+we should output just the number of the input
+pathN is the corresponding path where that stat file can be found
+"""
+def assemble_inputs(o):
+    specs_paths = []
+    # in the case of --inputs specification
+    if o.dodirect:
+        for count, inp in enumerate(o.inputs):
+            specs_paths.append( inp )
+    # in the case of --load-pathstats-from-file spec
+    else:
+        # in case the user gave --pathstatsfile argument
+        if o.pathstatsfile is not None:
+            o.pathfiles=[]
+            try:
+                sf = open(o.pathstatsfile)
+                [o.pathfiles.append(subfromfile.strip()) for subfromfile in sf]
+            except IOError:
+                print 'ERROR: the file %s doesnt exist'%o.pathstatsfile
+                sys.exit(1)
+        for path in o.pathfiles:
+            specs_paths.append( path  )
+    return specs_paths
+
+
+"""
+Args: 
+    parsed options
+    disorganized_table - the table is of the form (filepath, ps, measure_value_map)
+    where filepath is a string and denotes path of overall.stats file or byvoxelstats file
+    where ps is a dictionary which has keys 'pathname' 'subject' and values corresponding
+    pathname and subject
+    where measure_value_map is a stable hashtable of keys:measures/count and values the measures.
+    The table is disorganized because the length of the parc_measure_map may not be the same for all
+    specifiers. In that case, error out decently
+Returns:
+    rows - list of specifiers ( subjects)
+    columns - list of measures/count
+    table - a stable 2d table of size len(rows) x len(columns)
+"""
+def sanitize_table(options, disorganized_table):
+    o = options
+    dt = disorganized_table
+    
+    # ensure all pathways are same and set(all_pathways) has 1 element
+    pthwyset = fsutils.StableDict()
+    for filepath, pthwy_subj, measure_value_map in dt:
+        try:
+            pthwyset[pthwy_subj['pathway']] = 1
+        except KeyError:
+            print 'ERROR: cannot find a proper pathwayname in '+ filepath
+            sys.exit(1)
+    if not 1 == len(pthwyset.keys()):
+        print 'ERROR: all stats files need to have the same pathwayname. try verbose option'
+        print 'These are the pathwaynames found: ' + str(pthwyset.keys())
+        sys.exit(1)
+    
+    # find the union and the intersection of the measures
+    # these should be the same. so error out if not
+    _union = []
+    _fp,_ps,  _measure_value_map = dt[0]
+    intersection = _measure_value_map.keys()
+    for filepath, pthwy_subj, measure_value_map in dt:
+        measures = measure_value_map.keys()
+        _union.append(measures)
+        intersection = fsutils.intersect_order(intersection, measures)
+        l.debug('-'*20)
+        l.debug('Filepath: '+filepath)
+        l.debug('Intersection upto now:')
+        l.debug(intersection)
+    #_union is a list of lists. Make it a flat list ( single list )
+    temp_union = [item for sublist in _union for item in sublist]
+    union = fsutils.unique_union(temp_union)
+    l.debug('-'*20)
+    l.debug('Union:')
+    l.debug(union)
+
+    if not union == intersection:
+        print 'ERROR: One of the files have different measure than others. try verbose option'
+        sys.exit(1)
+        
+
+    # make a 2d Table
+    table = fsutils.Ddict(fsutils.StableDict)
+    subjlist = []
+    for filepath, pthwy_subj, measure_value_map in dt:
+        try:
+            subj = pthwy_subj['subject']
+            subjlist.append(subj)
+            for measure in intersection:
+                table[subj][measure] = measure_value_map[measure]
+        except KeyError:
+                print 'ERROR" cannot find a proper subject name in '+filepath
+
+    return pthwyset.keys()[0], subjlist, intersection, table
+
+
+def write_table(options, rows, cols, table, r1c1='Pathstats'):
+    """
+    Write the table from memory to disk. Initialize the writer class.
+    """
+    tw = fsutils.TableWriter(rows, cols, table)
+    tw.assign_attributes(filename=options.outputfile, row1col1=r1c1,
+                         delimiter=delimiter2char[options.delimiter] )
+    if options.transposeflag:
+        tw.write_transpose()
+    else:
+        tw.write()
+
+
+if __name__=="__main__": # Command Line options and error checking done here
+    options = options_parse()
+    l.debug('-- The options you entered --')
+    l.debug(options) 
+
+    # Assemble the input stats files
+    listoftuples = assemble_inputs(options)
+
+    # Init the table in memory
+    # is a list containing tuples of the form 
+    # [(specifier, segidlist, structlist, measurelist),] for all specifiers
+    pretable = []
+    
+    # Parse the parc.stats files 
+    print 'Parsing the .stats files'
+    for filepath in listoftuples:
+        try:
+            l.debug('-'*20)
+            l.debug('Processing file ' + filepath)
+
+            # in the case of overall stats parsing
+            if options.overall:
+                parsed = TractOverallStatsParser(filepath)
+                # measures filter from the command line
+                if options.incl_overall is not None:
+                    parsed.parse_only(options.incl_overall)
+                if options.excl_overall is not None:
+                    parsed.exclude_structs(options.excl_overall)
+
+                pathway_subj, measure_value_map = parsed.parse()
+                l.debug('-- Parsed Parcs and Measures --')
+                l.debug(measure_value_map)
+
+            # in the case of byvoxel stats parsing
+            else:
+                parsed = TractByvoxelStatsParser(filepath)
+                pathway_subj, measure_value_map = parsed.parse(options.byvoxel_measure)
+                l.debug('-- Parsed Parcs and Measures --')
+                l.debug(measure_value_map)
+
+
+        except BadFileError, e:
+            print 'ERROR: The stats file '+str(e)+' is not found or is too small to be a valid statsfile'
+            sys.exit(1)
+            
+        pretable.append( (filepath, pathway_subj, measure_value_map)) 
+
+    # Make sure the table has the same number of cols for all stats files
+    # and merge them up, clean them up etc. More in the documentation of the fn.
+    print 'Building the table..'
+    r1c1, rows, columns, table = sanitize_table(options, pretable)
+
+    # Write this table ( in memory ) to disk.. function uses TableWriter class
+    print 'Writing the table to %s' %options.outputfile
+    if options.overall:
+        write_table(options, rows, columns, table, r1c1)
+    else:
+        write_table(options, rows, columns, table, r1c1 + '/' + options.byvoxel_measure)
+
+    # always exit with 0 exit code
+    sys.exit(0)
