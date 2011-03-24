@@ -9,8 +9,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/04/01 13:22:50 $
- *    $Revision: 1.2 $
+ *    $Date: 2011/03/24 15:54:22 $
+ *    $Revision: 1.3 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -174,14 +174,14 @@ namespace GPU {
 	std::cerr << __FUNCTION__
 		  << ": Please do not copy"
 		  << std::endl;
-	exit( EXIT_FAILURE );
+	abort();
       }
       
       MRIconvolve& operator=( const MRIconvolve& src ) {
 	std::cerr << __FUNCTION__
 		  << ": Please do not copy"
 		  << std::endl;
-	exit( EXIT_FAILURE );
+	abort();
       }
       
 

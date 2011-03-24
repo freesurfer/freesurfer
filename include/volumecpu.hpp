@@ -13,8 +13,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/10/07 19:10:34 $
- *    $Revision: 1.6 $
+ *    $Date: 2011/03/24 15:54:22 $
+ *    $Revision: 1.7 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -193,7 +193,7 @@ namespace Freesurfer {
 	std::cerr << __FUNCTION__
 		  << ": Can't copy from NULL source"
 		  << std::endl;
-	exit( EXIT_FAILURE );	
+	abort();	
       }
 
       // Check for self-copy
@@ -255,7 +255,7 @@ namespace Freesurfer {
       std::cerr << __FUNCTION__
 		<< ": Please don't use copy constructor"
 		<< std::endl;
-      exit( EXIT_FAILURE );
+      abort();
     }
 
     //! Hidden assignment operator
@@ -263,7 +263,7 @@ namespace Freesurfer {
       std::cerr << __FUNCTION__
 		<< ": Please don't use assignment operator"
 		<< std::endl;
-      exit( EXIT_FAILURE );
+      abort();
     }
 
   };

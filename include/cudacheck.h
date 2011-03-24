@@ -37,7 +37,7 @@
     if( cudaSuccess != err) {						\
       fprintf(stderr, "Cuda error: %s in file '%s' in line %i : %s.\n",	\
 	      errorMessage, __FILE__, __LINE__, cudaGetErrorString( err) ); \
-      exit(EXIT_FAILURE);						\
+      abort();                                                          \
     }									\
     err = cudaThreadSynchronize();					\
     if( cudaSuccess != err) {						\

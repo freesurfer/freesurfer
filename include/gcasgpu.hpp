@@ -8,8 +8,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/02/11 16:37:42 $
- *    $Revision: 1.6 $
+ *    $Date: 2011/03/24 15:54:22 $
+ *    $Revision: 1.7 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -113,14 +113,14 @@ namespace GPU {
 						d_covars(NULL) {
 	std::cerr << __FUNCTION__ << ": Please don't copy"
 		  << std::endl;
-	exit( EXIT_FAILURE );
+	abort();
       }
 
       //! Assignment operator aborts
       GCASampleGPU& operator=( const GCASampleGPU& src ) {
 	std::cerr << __FUNCTION__ << ": Please don't copy"
 		  << std::endl;
-	exit( EXIT_FAILURE );
+	abort();
       }
     };
     
@@ -172,14 +172,14 @@ namespace GPU {
 			  means(NULL), priors(NULL), covars(NULL) {
 	std::cerr << __FUNCTION__ << ": Please don't use"
 		  << std::endl;
-	exit( EXIT_FAILURE );
+	abort();
       }
 
       //! Assignment operator should not be used
       GCASonGPU& operator=( const GCASonGPU& src ) {
 	std::cerr << __FUNCTION__ << ": Please don't use"
 		  << std::endl;
-	exit( EXIT_FAILURE );
+	abort();
       }
       
       

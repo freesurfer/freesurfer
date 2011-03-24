@@ -9,8 +9,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/04/06 20:10:00 $
- *    $Revision: 1.13 $
+ *    $Date: 2011/03/24 15:54:22 $
+ *    $Revision: 1.14 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -52,7 +52,7 @@
       std::cerr << "Error code was " << err << std::endl;	\
       std::cerr << "Error string was : " << nc_strerror(err)	\
 		<< std::endl;					\
-      exit( EXIT_FAILURE );					\
+      abort();                                                  \
     }								\
   } while ( 0 );
 

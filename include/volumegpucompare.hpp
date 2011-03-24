@@ -9,8 +9,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/03/04 15:48:45 $
- *    $Revision: 1.4 $
+ *    $Date: 2011/03/24 15:54:22 $
+ *    $Revision: 1.5 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -133,7 +133,7 @@ namespace GPU {
 	  std::cerr << __FUNCTION__
 		    << ": Dimension mismatch"
 		    << std::endl;
-	  exit( EXIT_FAILURE );
+	  abort();
 	}
 
 	
@@ -188,7 +188,7 @@ namespace GPU {
 	  std::cerr << __FUNCTION__
 		    << ": Dimension mismatch"
 		    << std::endl;
-	  exit( EXIT_FAILURE );
+	  abort();;
 	}
       
 	// Compute number of voxels
