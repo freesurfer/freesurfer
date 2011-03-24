@@ -143,6 +143,12 @@ bool Spline::InterpolateSpline() {
       mAllPoints.insert(mAllPoints.end(), newpoint.begin(), newpoint.end());
       mArcLength.push_back(t);
       MRIsetVoxVal(mVolume, newpoint[0], newpoint[1], newpoint[2], 0, 1);
+
+      // Check if the next control point has been reached
+      if ( abs(newpoint[0] - icpt[3]) < 2 &&
+           abs(newpoint[1] - icpt[4]) < 2 &&
+           abs(newpoint[2] - icpt[5]) < 2 )
+        break;
     }
 
     icpt += 3;
