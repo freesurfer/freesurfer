@@ -9,8 +9,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2011/03/17 18:00:30 $
- *    $Revision: 1.27 $
+ *    $Date: 2011/03/24 15:27:56 $
+ *    $Revision: 1.28 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -241,7 +241,7 @@ namespace GPU {
 
       //! Return information about the file version
       const char* VersionString( void ) const {
-	return "$Id: volumegpu.hpp,v 1.27 2011/03/17 18:00:30 rge21 Exp $";
+	return "$Id: volumegpu.hpp,v 1.28 2011/03/24 15:27:56 rge21 Exp $";
       }
 
       // -------------------------------------------
@@ -336,7 +336,7 @@ namespace GPU {
 	std::cerr << __FUNCTION__
 		  << ": Please don't use copy constructor"
 		  << std::endl;
-	exit( EXIT_FAILURE );
+	abort();
       }
 
       //! Hidden assignment operator
@@ -344,7 +344,7 @@ namespace GPU {
 	std::cerr << __FUNCTION__
 		  << ": Please don't use assignment operator"
 		  << std::endl;
-	exit( EXIT_FAILURE );
+	abort();
       }
 
     };

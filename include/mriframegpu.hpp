@@ -8,8 +8,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/10/28 19:50:10 $
- *    $Revision: 1.46 $
+ *    $Date: 2011/03/24 15:27:56 $
+ *    $Revision: 1.47 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -223,7 +223,7 @@ namespace GPU {
 
       //! Return information about the file version
       const char* VersionString( void ) const {
-	return "$Id: mriframegpu.hpp,v 1.46 2010/10/28 19:50:10 rge21 Exp $";
+	return "$Id: mriframegpu.hpp,v 1.47 2011/03/24 15:27:56 rge21 Exp $";
       }
       
       //! Return the 'thick' field
@@ -257,7 +257,7 @@ namespace GPU {
 	  std::cerr << __PRETTY_FUNCTION__
 		    << ": MRI type mismatch against "
 		    << src->type << std::endl;
-	  exit( EXIT_FAILURE );
+	  abort();
 	}
 
 	
@@ -340,7 +340,7 @@ namespace GPU {
 	  std:: cerr << __FUNCTION__
 		     << ": Bad frame requested " << iFrame
 		     << std::endl;
-	  exit( EXIT_FAILURE );
+	  abort();
 	}
 
 	// See if we need to allocate workspace
@@ -409,7 +409,7 @@ namespace GPU {
 	  std:: cerr << __FUNCTION__
 		     << ": Bad frame requested " << iFrame
 		     << std::endl;
-	  exit( EXIT_FAILURE );
+	  abort();
 	}
 
 	
@@ -456,14 +456,14 @@ namespace GPU {
 	  std::cerr << __PRETTY_FUNCTION__
 		    << ": MRI type mismatch against "
 		    << mri->type << std::endl;
-	  exit( EXIT_FAILURE );
+	  abort();
 	}
 	
 	if( !this->CheckDims( mri ) ) {
 	  std::cerr << __PRETTY_FUNCTION__
 		    << ": Size mismatch"
 		    << std::endl;
-	  exit( EXIT_FAILURE );
+	  abort();
 	}
       }
       
@@ -521,14 +521,14 @@ namespace GPU {
 	  std::cerr << __FUNCTION__
 		    << ": iFrame out of range"
 		    << std::endl;
-	  exit( EXIT_FAILURE );
+	  abort();
 	}
 	
 	if( h_slab == NULL ) {
 	  std::cerr << __FUNCTION__
 		    << ": h_slab unallocated"
 		    << std::endl;
-	  exit( EXIT_FAILURE );
+	  abort();
 	}
 	
 	this->VerifyMRI( src );
@@ -562,14 +562,14 @@ namespace GPU {
 	  std::cerr << __FUNCTION__
 		    << ": iFrame out of range"
 		    << std::endl;
-	  exit( EXIT_FAILURE );
+	  abort();
 	}
 	
 	if( h_slab == NULL ) {
 	  std::cerr << __FUNCTION__
 		    << ": h_slab unallocated"
 		    << std::endl;
-	  exit( EXIT_FAILURE );
+	  abort();
 	}
 	
 	this->VerifyMRI( dst );
@@ -602,7 +602,7 @@ namespace GPU {
 	std::cerr << __PRETTY_FUNCTION__
 		  << ": Unrecognised data type "
 		  << src->type << std::endl;
-	exit( EXIT_FAILURE );
+	abort();
       }
 
       // -----
@@ -623,7 +623,7 @@ namespace GPU {
 	std::cerr << __PRETTY_FUNCTION__
 		  << ": Unrecognised data type "
 		  << dst->type << std::endl;
-	exit( EXIT_FAILURE );
+	abort();
       }
       
       
