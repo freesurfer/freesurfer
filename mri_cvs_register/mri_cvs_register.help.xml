@@ -1,0 +1,178 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<!DOCTYPE help [
+<!ENTITY lt "#38;#60;">
+<!ENTITY gt "&#62;">
+<!ENTITY amp "&#38;#38;">
+<!ELEMENT help (name , synopsis , description , arguments+ , outputs* , 
+example* , bugs* , reporting* , references* , see-also*)*>
+<!ELEMENT name (#PCDATA)>
+<!ELEMENT synopsis (#PCDATA)>
+<!ELEMENT description (#PCDATA)>
+<!ELEMENT arguments (positional* , required-flagged* , optional-flagged*)*>
+<!ELEMENT positional (intro* , argument* , explanation*)*>
+<!ELEMENT required-flagged (intro* , argument* , explanation*)*>
+<!ELEMENT optional-flagged (intro* , argument* , explanation*)*>
+<!ELEMENT intro (#PCDATA)>
+<!ELEMENT argument (#PCDATA)>
+<!ELEMENT explanation (#PCDATA)>
+<!ELEMENT outputs (intro* , argument* , explanation*)*>
+<!ELEMENT output (#PCDATA)>
+<!ELEMENT example (#PCDATA)>
+<!ELEMENT bugs (#PCDATA)>
+<!ELEMENT reporting (#PCDATA)>
+<!ELEMENT references (#PCDATA)>
+<!ELEMENT see-also (#PCDATA)>
+]>
+
+<help>
+	<name>mri_cvs_register</name>
+	<synopsis>Combined Volume and Surface Registration</synopsis>
+	<description>This program performs subject-to-subject or subject-to-atlas volume registration using the combined volumetric and surface-based (CVS) registration algorithm (Postelnicu-Zollei-Fischl, TMI09). The CVS registration stream consists of 3 steps: (1) surface-based registration, (2) elastic registration and (3) volumetric regsitration. By default, in the current implementation of the script, step (3) consists of two steps: (i) registration using aseg volumes and (ii) registration using intensity volumes. This combination of the non-linear volumetric registrations proved to be very robust and accurate, but the (i) step could be eliminated if quicker execution time is required by using the "--noaseg" flag. Make sure that SUBJECTS_DIR is properly set before calling this script. </description>
+  <arguments>
+
+    <positional>
+      <intro>None</intro>
+    </positional>
+
+    <required-flagged>
+
+      <argument>--mov subjid</argument>
+      <explanation>FreeSurfer subject name as found in $SUBJECTS_DIR. This identifies the subject that is to be moved / registered to the target. </explanation>
+
+    </required-flagged>
+    
+    <optional-flagged>
+
+      <argument>--template subjid</argument>
+      <explanation>FreeSurfer subject name as found in $SUBJECTS_DIR (or --templatedir). This identifies the subject that is to be kept fixed (template). If this argument is missing from the function call, the CVS template is used. </explanation>
+
+      <argument>--templatedir directory</argument>
+      <explanation>This option needs to be used if the template subject's SUBJECTS_DIR directory is different from that of the moving subject. All the relevant FS recon files should be located here. By default, without using this option, this parameter is set to be SUBJECTS_DIR. If the --template argument is not specified, so the registration is to the CVS template, this parameter is implicitely set. </explanation>
+
+      <argument>--outdir directory</argument>
+      <explanation>Name of the output directory where all the registration results are written. The default is SUBJECTS_DIR/mov/cvs. The final output directory is going to be ~.6G, but make sure that there is around double that amount of space available for the computations.</explanation>
+
+      <intro>Partial run of the registration</intro>
+      <argument>--step1</argument>
+      <explanation>Only do step 1 (spherical registration).</explanation>
+      <argument>--step2</argument>
+      <explanation>Only do step 2 (elastic registration).</explanation>
+      <argument>--step3</argument>
+      <explanation>Only do step 3 (volumetric registration).</explanation>
+      <argument>--noaseg</argument>
+      <explanation>Do not use aseg volumes in the volumetric registration pipeline (default is 0). Setting this option could shorten significantly the time of registration, however, might also take away from the accuracy of the final results.</explanation>
+
+      <intro>Cleanup Arguments</intro>
+      <argument>--nocleanup</argument>
+      <explanation>Do not delete temporary files (default is 0). If this option is set, make sure you have ~2G space in the output directory.</explanation>
+      <argument>--keepelreg</argument>
+      <explanation>Do not delete elastic registration (default is 0) outcome. If this option is set, make sure ~1G of space is available in the output directory.</explanation>
+      <argument>--cleanall</argument>
+      <explanation>Overwrite / recompute all CVS-related morphs that might have been computed prior to the current CVS run (default is 0).</explanation>
+      <argument>--cleansurfreg</argument>
+      <explanation>Overwrite / recompute CVS-related surface registration morphs that might have been computed prior to the current CVS run (default is 0).</explanation>
+      <argument>--cleanelreg</argument>
+      <explanation>Overwrite /recompute the CVS-related elastic registration morph that might have been computed prior to the current CVS run (default is 0).</explanation>
+      <argument>--cleanvolreg</argument>
+      <explanation>Overwrite / recompute CVS-related volumetric morphs that might have been computed prior to the current CVS run (default is 0).</explanation>
+
+      <intro>Others</intro>
+      <argument>--nolog</argument>
+      <explanation>Do not produce a log file (default is 0).</explanation>
+      <argument>--mpi</argument>
+      <explanation>Use the mpi+openmp option for the 2nd step to speed computations (default is 0).</explanation>
+      <argument>--version</argument>
+      <explanation>Print version and exit.</explanation>
+      <argument>--help </argument>
+      <explanation>Print help and exit.</explanation>
+    </optional-flagged>
+  </arguments>
+
+  <outputs>
+    <intro>******************************************************************</intro>
+    <intro>(a) Full CVS (with both (i) and (ii))</intro>
+
+      <argument> combined_toTEMPLATE_elreg_afteraseg-norm.m3z</argument>
+      <explanation>the morph that combines correspondences recovered in steps (1), (2), (3) (i) and (3) (ii) </explanation>
+
+      <argument>nlalign-afteraseg-norm.m3z</argument>
+      <explanation>the morph resulting from (ii) of step (3) (intensity-based non-linear registration); it is NOT combined with the elastic registration morph</explanation>
+
+      <argument>nlalign-afteraseg-norm.mgz</argument>
+      <explanation>the morphed norm.mgz file; it is the final result of CVS and contains contributions from ALL registration steps (combination of the elatic morph and the two m3z files</explanation>
+
+      <argument>combined_toTEMPLATE_elreg_aseg.m3z</argument>
+      <explanation>the morph that combines correspondences recovered in steps (1), (2) and (3) (i)</explanation>
+
+      <argument>nlalign-aseg.m3z</argument>
+      <explanation>the morph resulting from (i) of step (3) (aseg-based non-linear registration); it is NOT combined with the elastic registration morph</explanation>
+
+      <argument>nlalign-aseg.mgz</argument>
+      <explanation>the morphed aseg.mgz file; it is the result of CVS up to (i) of step (3) and contains contributions from registration steps of the elatic morph and the above m3z file</explanation>
+
+      <argument>el_reg_toTEMPLATE_aseg.mgz</argument>
+      <explanation>the elastic morph applied to aseg.mgz</explanation>
+
+      <argument>el_reg_toTEMPLATE.mgz</argument>
+      <explanation>the elastic morph applied to norm.mgz</explanation>
+
+    <intro>(b) Shorter version of CVS (using only (ii) in step (3) of the algorithm)</intro>
+
+      <argument>combined_toTEMPLATE_elreg_norm.m3z</argument>
+      <explanation>The morph that combines correspondences recovered in steps (1), (2) and (3) (ii)</explanation>
+
+      <argument>nlalign-norm.m3z</argument>
+      <explanation>the morph resulting from step(3) (intensity-based non-linear registration); it is NOT combined with the elastic registration morph</explanation>
+
+      <argument>nlalign-norm.mgz</argument>
+      <explanation>the morphed norm.mgz file; it is the final result of CVS and contains contributions from ALL registration steps (combination of the elatic morph and the above m3z file)</explanation>
+
+      <argument>el_reg_toTEMPLATE.mgz</argument>
+      <explanation>the elastic morph applied to norm.mgz</explanation>
+
+    <intro>When the "--nocleanup" option is set: three more files will exist, called combined*tm3d and el_reg*tm3d. These files take up a lot of memory so by default are deleted. These files are</intro>
+    <intro>(a)</intro>
+
+      <argument>combined_toTEMPLATE_elreg_aseg.tm3d</argument>
+      <explanation>the morph that combines correspondences recovered in steps (1), (2) and (3) (i)</explanation>
+
+      <argument>combined_toTEMPLATE_elreg_afteraseg-norm.tm3d</argument>
+      <explanation>the morph that combines correspondences recovered in steps (1), (2), (3) (i) and (3) (ii)</explanation>
+
+      <argument>el_reg_toTEMPLATE.tm3d</argument>
+      <explanation>the elastic morph that combines correspondences recovered in steps (1) and (2). This file takes up a lot of memory so, by default, is deleted. It can only be recreated if the elastic registration step (--step 2) is re-run.</explanation>
+
+    <intro>(b)</intro>
+
+      <argument>combined_toTEMPLATE_elreg_norm.tm3d</argument>
+      <explanation>the morph that combines correspondences recovered in steps (1), (2) and (3) (ii)</explanation>
+
+      <argument>el_reg_toTEMPLATE.tm3d</argument>
+      <explanation>the elastic morph that combines correspondences recovered in steps (1) and (2). This file takes up a lot of memory so, by default, is deleted. It can only be recreated if the elastic registration step (--step 2) is re-run.</explanation>
+
+    <intro>If you ran the mri_cvs_registration script with the "--keepelreg" option then you will also see the output morph from the elastic registration step:</intro>
+
+      <argument>el_reg_toTEMPLATE.tm3d</argument>
+      <explanation>the elastic morph that combines correspondences recovered in steps (1) and (2). This file takes up a lot of memory so, by default, is deleted. It can only be recreated if the elastic registration step (--step 2) is re-run.</explanation>
+
+  </outputs>
+
+  <example>Register Subj1 to average CVS space: mri_cvs_register --mov Subj1ID</example>
+  <example>Register Subj1 to average CVS space with outputs written into "myFav" directory: mri_cvs_register --mov Subj1ID --outdir myFav/Subj1ID/cvs</example>
+
+  <example>Register Subj1 to Subj2: mri_cvs_register --mov Subj1ID --template Subj2ID</example>
+
+  <example>Register Subj1 to Subj2 where the two subjects have different SUBJECTS_DIR's: mri_cvs_register --mov Subj1ID --template Subj2ID --templatedir OTHER_SUBJECTS_DIR</example>
+
+  <bugs>None</bugs>
+
+  <reporting>Report bugs to &lt;freesurfer@nmr.mgh.harvard.edu&gt;</reporting>
+
+  <references>
+Combined Volumetric and Surface Registration, 
+G.Postelnicu, L.Zollei, B. Fischl.
+IEEE Transactions on Medical Imaging, Vol 28, No. 4, April 2009</references>
+
+	<see-also>mris_register, mri_nl_align, mris_resample, createMorph, applyMorph, exportGcam</see-also>
+
+</help>

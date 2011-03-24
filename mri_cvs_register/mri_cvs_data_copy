@@ -1,0 +1,148 @@
+#! /bin/tcsh -f
+
+
+# mri_cvs_data_copy
+#
+# Script to tar up subject dir with min mumber of files required for mri_cvs_register
+#
+# Original Author: Lilla Zollei
+# Created: 07-15-2010
+
+set inputargs = ($argv);
+set VERSION = '$Id: mri_cvs_data_copy,v 1.1.2.2 2011/03/24 23:09:55 nicks Exp $';
+set PrintHelp = 0;
+
+set subjid = ();
+set olddir = ();
+set newdir = ();
+
+# Parsing and checking the input arguments
+if($#argv == 0) goto usage_exit;
+set n = `echo $argv | egrep -e --version | wc -l`
+if($n != 0) then
+  echo $VERSION
+  exit 0;
+endif
+set n = `echo $argv | egrep -e --help | wc -l`
+if($n != 0) then
+  set PrintHelp = 1;
+  goto usage_exit;
+endif
+
+goto parse_args;
+parse_args_return:
+goto check_params;
+check_params_return:
+
+############--------------##################
+############--------------##################
+
+set cvsdir =  $FREESURFER_HOME/bin; 
+set inputfilelist = $cvsdir/mri_cvs_requiredfiles.txt;
+
+set cmd = (mkdir -p $newdir/$subjid);
+set cmd = ($cmd; pushd $olddir/$subjid);
+echo $cmd
+eval $cmd
+set cmd = (tar cvfz $newdir/$subjid/$subjid.cvsrequiredfiles.tar `cat  $inputfilelist` );
+echo $cmd
+eval $cmd
+set cmd = (popd);
+eval $cmd
+
+echo "mri_cvs_data_copy Done"
+echo " "
+
+exit 0;
+
+############--------------##################
+############--------------##################
+parse_args:
+set cmdline = ($argv);
+while( $#argv != 0 )
+
+  set flag = $argv[1]; shift;
+
+  switch($flag)
+
+    case "--subjid":
+      if ( $#argv < 1) goto arg1err;
+      set subjid = $argv[1]; shift;
+      breaksw
+
+    case "--olddir":
+      if ( $#argv < 1) goto arg1err;
+      set olddir = $argv[1]; shift;
+      breaksw
+
+    case "--newdir":
+      if ( $#argv < 1) goto arg1err;
+      set newdir = $argv[1]; shift;
+      breaksw
+
+    default:
+      echo ERROR: Flag $flag unrecognized.
+      echo $cmdline
+      exit 1
+      breaksw
+  endsw
+
+end
+
+goto parse_args_return;
+############--------------##################
+
+############--------------##################
+check_params:
+
+  if($#subjid == 0) then
+    echo "ERROR: must spec a subject id"
+    exit 1;
+  endif
+
+  if($#olddir == 0) then
+    echo "ERROR: must spec the original directory (FROM where the data is grabbed)"
+    exit 1;
+  endif
+
+  if($#newdir == 0) then
+    echo "ERROR: must spec the new directory (TO where the data is moved)"
+    exit 1;
+  endif
+
+goto check_params_return;
+############--------------##################
+
+############--------------##################
+usage_exit:
+  echo "USAGE: mri_cvs_data_copy"
+  echo ""
+  echo "Required Arguments:";
+  echo "   --subjid subjid       : subjid for subject to be moved / registered"
+  echo "   --olddir dir          : directory where data (FS reconned output files for the subject) is currently located in -- use full path"
+  echo "   --newdir dir          : directory where data (FS reconned output files for the subject) should be moved to -- use full path"
+  echo ""
+  echo "Optional Arguments"
+  echo ""
+  echo "   --version    : print version and exit"
+  echo "   --help       : print help and exit"
+  echo ""
+
+  if($PrintHelp) \
+  cat $0 | awk 'BEGIN{prt=0}{if(prt) print $0; if($1 == "BEGINHELP") prt = 1 }'
+
+exit 1;
+
+#---- Everything below here is printed out as part of help -----#
+BEGINHELP
+
+Packs and copies files that are required for mri_cvs_register.
+
+Required Arguments:
+
+--subjid subjid
+
+Subject id of the subject (as found in SUBJECTS_DIR) who will be involved in the mri_cvs_register processing. 
+
+--olddir source directory
+--newdir destination directory

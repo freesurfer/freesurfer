@@ -8,14 +8,17 @@
 # Original Author: Lilla Zollei
 # Created: 10-29-2009
 # Edited : 12-11-2009
+# Edited : 08-10-2010: added --mpi option
+# Edited : 03-17-2011: replaces applyMorph with mri_vol2vol
 
 set inputargs = ($argv);
-set VERSION = '$Id: mri_cvs_register,v 1.5 2010/07/19 20:06:59 lzollei Exp $';
+set VERSION = '$Id: mri_cvs_register,v 1.15.2.1 2011/03/24 23:09:55 nicks Exp $';
 
 set movingid = ();
 set templateid = ();
 #set outdir = ();
 set cleanup = 1;
+set keepelreg = 0;
 set nolog = 0;
 set UseAseg = 1;
 set PrintHelp = 0;
@@ -24,6 +27,10 @@ set OnlyStep2 = 0
 set OnlyStep3 = 0
 set DoAllSteps = 1
 set BothHemis = 1
+set UseMpi = 0
+set CleanSurfReg = 0
+set CleanElReg = 0
+set CleanVolReg = 0
 
 # Parsing and checking the input arguments
 if($#argv == 0) goto usage_exit;
@@ -38,6 +45,7 @@ if($n != 0) then
   goto usage_exit;
 endif
 
+setenv TEMPLATE_DIR $SUBJECTS_DIR # the default scenario
 goto parse_args;
 parse_args_return:
 goto check_params;
@@ -72,7 +80,7 @@ uname -a |& tee -a $LF
 set voltype = norm
 set annotfile = aparc.annot
 set cvsdir =  $FREESURFER_HOME/bin
-set settingsfile = $cvsdir/set-mpi17-3.txt
+set settingsfile = $cvsdir/mri_cvs_register.settings.txt
 
 ### Creating outputdir
 echo The outdir:
@@ -89,10 +97,10 @@ mkdir -p $outdir
 if ($DoAllSteps || $OnlyStep1) then 
 
 set movingsurfdir   = $SUBJECTS_DIR/$movingid/surf 
-set templatesurfdir = $SUBJECTS_DIR/$templateid/surf
+set templatesurfdir = $TEMPLATE_DIR/$templateid/surf
 
 set movinglabeldir   = $SUBJECTS_DIR/$movingid/label
-set templatelabeldir = $SUBJECTS_DIR/$templateid/label
+set templatelabeldir = $TEMPLATE_DIR/$templateid/label
 
 if ($BothHemis) then
   if ((! -e $movingsurfdir/lh.inflated.K ) || (! -e $movingsurfdir/rh.inflated.K) || ( ! -e $movingsurfdir/lh.inflated.H) || (! -e $movingsurfdir/rh.inflated.H)) then
@@ -177,7 +185,7 @@ endif #BothHemis
 ## Surface-based registration
 if ($BothHemis) then
   foreach hemi (lh rh)
-    if !(-e $movingsurfdir/$hemi.cvs.to$templateid.sphere.reg) then
+    if (!(-e $movingsurfdir/$hemi.cvs.to$templateid.sphere.reg) || $CleanSurfReg) then
       # the spherical registration does not yet exist
       set cmd = (mris_register -1 -inflated $movingsurfdir/$hemi.sphere $templatesurfdir/$hemi.sphere $movingsurfdir/$hemi.cvs.to$templateid.sphere.reg)
       echo $cmd |& tee -a $LF
@@ -186,7 +194,7 @@ if ($BothHemis) then
     endif
   end    # (hemi)
 else
-  if !(-e $movingsurfdir/$hemi.cvs.to$templateid.sphere.reg) then
+  if (!(-e $movingsurfdir/$hemi.cvs.to$templateid.sphere.reg) || $CleanSurfReg) then
     # the spherical registration does not yet exist
     set cmd = (mris_register -1 -inflated $movingsurfdir/$hemi.sphere $templatesurfdir/$hemi.sphere $movingsurfdir/$hemi.cvs.to$templateid.sphere.reg)
     echo $cmd |& tee -a $LF
@@ -199,8 +207,8 @@ endif #BothHemis
 if ($BothHemis) then
   foreach hemi (lh rh)
     foreach surf (white pial)
-      if !(-e $outdir/$hemi.resample.$surf) then 
-        set cmd = (mris_resample --atlas_reg $templatesurfdir/$hemi.sphere --annot $movinglabeldir/$hemi.$annotfile $outdir/$hemi.resample.$annotfile --subject_surf $movingsurfdir/$hemi.$surf --subject_reg $movingsurfdir/$hemi.cvs.to$templateid.sphere.reg --out $outdir/$hemi.resample.$surf)     
+      if (!(-e $outdir/$hemi.resample.$surf) || $CleanSurfReg) then 
+        set cmd = (mris_resample --atlas_reg $templatesurfdir/$hemi.sphere --annot_in $movinglabeldir/$hemi.$annotfile --annot_out $outdir/$hemi.resample.$annotfile --subject_surf $movingsurfdir/$hemi.$surf --subject_reg $movingsurfdir/$hemi.cvs.to$templateid.sphere.reg --out $outdir/$hemi.resample.$surf)     
         echo $cmd |& tee -a $LF
         $cmd |& tee -a $LF
         if($status) exit 1;
@@ -209,8 +217,8 @@ if ($BothHemis) then
   end    # (hemi)
 else
   foreach surf (white pial)
-    if !(-e $outdir/$hemi.resample.$surf) then 
-      set cmd = (mris_resample --atlas_reg $templatesurfdir/$hemi.sphere --annot $movinglabeldir/$hemi.$annotfile $outdir/$hemi.resample.$annotfile --subject_surf $movingsurfdir/$hemi.$surf --subject_reg $movingsurfdir/$hemi.cvs.to$templateid.sphere.reg --out $outdir/$hemi.resample.$surf)     
+    if (!(-e $outdir/$hemi.resample.$surf) || $CleanSurfReg) then 
+      set cmd = (mris_resample --atlas_reg $templatesurfdir/$hemi.sphere --annot_in $movinglabeldir/$hemi.$annotfile --annot_out $outdir/$hemi.resample.$annotfile --subject_surf $movingsurfdir/$hemi.$surf --subject_reg $movingsurfdir/$hemi.cvs.to$templateid.sphere.reg --out $outdir/$hemi.resample.$surf)     
       echo $cmd |& tee -a $LF
       $cmd |& tee -a $LF
       if($status) exit 1;
@@ -229,21 +237,32 @@ setenv ANNOTFILE $annotfile
 setenv OUTDIR $outdir 
 
 set mmri = $SUBJECTS_DIR/$movingid/mri/
-set tmri = $SUBJECTS_DIR/$templateid/mri/
+set tmri = $TEMPLATE_DIR/$templateid/mri/
+
+grep -n out_root $settingsfile | sed 's/[0-9]:/set /' > tmp.txt
+source tmp.txt
+rm -f tmp.txt
+set elasticmorph = ${out_root}_to$templateid.tm3d
 
 if ($DoAllSteps || $OnlyStep2) then 
 
 ## Run the elastic registration
 pushd $cvsdir
-if ! (-e $outdir/el_reg_to$templateid.tm3d) then
+if (!(-e $outdir/$elasticmorph) || $CleanElReg) then
  if ($BothHemis) then
   set cmd = (perl $cvsdir/elastic_registration_CVS.pl --fixed $templateid --moving $movingid --settings $settingsfile --exe surf2vol --pial )
+  if ($UseMpi) then 
+   set cmd = ($cmd --mpi)
+  endif 
   echo $cmd |& tee -a $LF
   $cmd |& tee -a $LF
   if($status) exit 1;
  else
   setenv HEMI $hemiReq
   set cmd = (perl $cvsdir/elastic_registration_CVS_hemi.pl --fixed $templateid --moving $movingid --settings $settingsfile --exe surf2vol --pial )
+  if ($UseMpi) then 
+   set cmd = ($cmd --mpi)
+  endif
   echo $cmd |& tee -a $LF
   $cmd |& tee -a $LF
   if($status) exit 1;
@@ -257,15 +276,9 @@ if ($DoAllSteps || $OnlyStep3) then
 
 ## Apply results of elastic registration to aseg 
 
-grep -n out_root $settingsfile | sed 's/[0-9]:/set /' > tmp.txt
-source tmp.txt
-rm -f tmp.txt
-
-set elasticmorph = ${out_root}_to$templateid.tm3d
-
 if ($UseAseg) then 
   set voltype = aseg
-  if !(-e $outdir/${elasticmorph:r}_${voltype}.mgz) then 
+  if (!(-e $outdir/${elasticmorph:r}_${voltype}.mgz) || $CleanSurfReg) then 
     set cmd = (applyMorph --template $tmri/$voltype.mgz --transform $outdir/${elasticmorph} vol $mmri/$voltype.mgz $outdir/${elasticmorph:r}_${voltype}.mgz nearest)
     echo $cmd |& tee -a $LF
     $cmd |& tee -a $LF
@@ -290,7 +303,7 @@ if ($UseAseg) then
     exit 1;
   endif
 ## Run the non-linear registration based on the aseg volumes.
-  if !(-e $outdir/${nl_regresult}) then
+  if (!(-e $outdir/${nl_regresult}) || $CleanVolReg) then
     set cmd = (mri_nl_align $options $outdir/${input}_${voltype}.mgz $tmri/$voltype.mgz $outdir/${nl_regresult})
     echo $cmd |& tee -a $LF
     $cmd |& tee -a $LF
@@ -298,19 +311,32 @@ if ($UseAseg) then
   endif
   
 ## COMBINE the elastic and aseg nonlinear morphs and APPLY the outcome to the norm volume (for the next registration step)
-  set combined = combined_elreg_$voltype.tm3d  
+## CREATE also the m3z version of the combined morph
+  set combined = combined_to${templateid}_elreg_$voltype.tm3d  
   set voltype  = norm
-  if !(-e $outdir/$combined) then
+  if (!(-e $outdir/$combined) || $CleanElReg || $CleanVolReg) then
     set cmd = ( createMorph --out $outdir/$combined --template $tmri/$voltype.mgz \
                             --subject $mmri/$voltype.mgz --in gcam $outdir/${nl_regresult} \
                             morph $outdir/${input}.tm3d )  
     echo $cmd |& tee -a $LF
     $cmd |& tee -a $LF
     if($status) exit 1;
+
+    set cmd = (exportGcam --fixed $tmri/$voltype.mgz --moving $mmri/$voltype.mgz \
+                          --morph $outdir/$combined --out_gcam $outdir/${combined:r}.m3z)			  
+
+    echo $cmd |& tee -a $LF
+    $cmd |& tee -a $LF
+    if($status) exit 1;
+
   endif
-  if !(-e $outdir/${combined:r}_${voltype}.mgz) then
-    set cmd = ( applyMorph --template $tmri/$voltype.mgz --transform $outdir/$combined \
-                           vol $mmri/${voltype}.mgz $outdir/${combined:r}_${voltype}.mgz linear )
+  if (!(-e $outdir/${combined:r}_${voltype}.mgz) || $CleanElReg || $CleanVolReg) then
+#    set cmd = ( applyMorph --template $tmri/$voltype.mgz --transform $outdir/$combined \
+#                           vol $mmri/${voltype}.mgz $outdir/${combined:r}_${voltype}.mgz linear )
+
+    set cmd = ( mri_vol2vol  --targ $tmri/$voltype.mgz --m3z $outdir/${combined:r}.m3z --noDefM3zPath \
+                            --mov $mmri/${voltype}.mgz --o $outdir/${combined:r}_${voltype}.mgz \
+                            --interp trilin --no-save-reg )
     echo $cmd |& tee -a $LF
     $cmd |& tee -a $LF
     if($status) exit 1;
@@ -335,7 +361,7 @@ if !(-e $outdir/${input} ) then
   exit 1;
 endif
 
-if !(-e $outdir/nlalign-$prefix${voltype}.m3z) then 
+if (!(-e $outdir/nlalign-$prefix${voltype}.m3z) || $CleanVolReg) then 
   set nl_regresult = nlalign-$prefix${voltype}.m3z
   set options = (-apply 1 -z 1 -sigma 2 -dt 0.0001 -intensity 0.1 -T $cvsdir/id.xfm  )
   set cmd = (mri_nl_align $options $outdir/${input} $tmri/$voltype.mgz $outdir/${nl_regresult})
@@ -344,27 +370,39 @@ if !(-e $outdir/nlalign-$prefix${voltype}.m3z) then
   if($status) exit 1;
 endif
 ## COMBINE the el_reg and the aseg morphs and APPLY it to the norm volumes (next registration step)
-if !(-e $outdir/combined_elreg_$prefix$voltype.tm3d  ) then 
-  set combined = combined_elreg_$prefix$voltype.tm3d  
+## CREATE also the m3z version of the combined morph
+if (!(-e $outdir/combined_to${templateid}_elreg_$prefix$voltype.tm3d  ) || $CleanElReg || $CleanVolReg) then 
+  set combined = combined_to${templateid}_elreg_$prefix$voltype.tm3d  
   set cmd = ( createMorph --out $outdir/$combined --template $tmri/$voltype.mgz \
                           --subject $mmri/$voltype.mgz --in gcam $outdir/${nl_regresult} \
-                          morph $outdir/$basemorph )  
+                          morph $outdir/$basemorph ) 
   echo $cmd |& tee -a $LF
   $cmd |& tee -a $LF
   if($status) exit 1;
-endif
-## APPLY the morph to the aseg volume; just for visualization
-set voltype = aseg
-if !(-e  $outdir/${combined:r}-${voltype}.mgz ) then 
-  set cmd = ( applyMorph --template $tmri/$voltype.mgz --transform $outdir/$combined \
-                         vol $mmri/$voltype.mgz $outdir/${combined:r}-${voltype}.mgz nearest )
-  echo $cmd |& tee -a $LF
+
+  set cmd = (exportGcam --fixed $tmri/$voltype.mgz --moving $mmri/$voltype.mgz \
+                        --morph $outdir/$combined --out_gcam $outdir/${combined:r}.m3z)
+ echo $cmd |& tee -a $LF
   $cmd |& tee -a $LF
   if($status) exit 1;
+
+  if ($cleanup) then # deleting tm3d file!
+    set cmd = ( rm -f $outdir/$combined $outdir/$oldcombined)
+    echo $cmd |& tee -a $LF
+    $cmd |& tee -a $LF
+    if($status) exit 1;
+  endif
+
 endif
 
-if ($cleanup) then
-  set cmd = ( rm -f $outdir/$oldcombined $outdir/$combined)
+## APPLY the morph to the aseg volume; just for visualization
+set voltype = aseg
+if (!(-e  $outdir/${combined:r}_${voltype}.mgz ) || $CleanElReg || $CleanVolReg) then 
+#  set cmd = ( applyMorph --template $tmri/$voltype.mgz --transform $outdir/$combined \
+#                         vol $mmri/$voltype.mgz $outdir/${combined:r}_${voltype}.mgz nearest )
+  set cmd = ( mri_vol2vol  --targ $tmri/$voltype.mgz --m3z $outdir/${combined:r}.m3z --noDefM3zPath \
+                           --mov $mmri/${voltype}.mgz --o $outdir/${combined:r}_${voltype}.mgz \
+                           --interp nearest --no-save-reg )
   echo $cmd |& tee -a $LF
   $cmd |& tee -a $LF
   if($status) exit 1;
@@ -375,6 +413,14 @@ echo "freeview -v $outdir/${nl_regresult:r}.mgz $tmri/norm.mgz $outdir/${combine
 echo " "
 
 endif #--step3
+
+if (!($keepelreg)) then # deleting elreg.tm3d file!
+    set cmd = ( rm -f $outdir/$elasticmorph)
+    echo $cmd |& tee -a $LF
+    $cmd |& tee -a $LF
+    if($status) exit 1;
+endif
+
 
 echo " " |& tee -a $LF
 echo "Started at $StartTime " |& tee -a $LF
@@ -410,6 +456,12 @@ while( $#argv != 0 )
       set outdir = $argv[1]; shift;
       breaksw
 
+    case "--templatedir":
+      if ( $#argv < 1) goto arg1err;
+      unsetenv $TEMPLATE_DIR
+      setenv TEMPLATE_DIR $argv[1]; shift;
+      breaksw
+
     case "--verbose":
       if ( $#argv < 1) goto arg1err;
       set Verbosity = $argv[1]; shift;
@@ -419,12 +471,35 @@ while( $#argv != 0 )
       set UseAseg = 0;
       breaksw
 
-    case "--nocleanup":
-      set cleanup = 0;
+    case "--mpi":
+      set UseMpi = 1;
       breaksw
 
-    case "--cleanup":
-      set cleanup = 1;
+    case "--nocleanup":
+      set cleanup = 0;
+      set keepelreg = 1;
+      breaksw
+
+    case "--keepelreg":
+      set keepelreg = 1;
+      breaksw
+
+    case "--cleanall":
+      set CleanSurfReg = 1;
+      set CleanElReg = 1;
+      set CleanVolReg = 1;
+      breaksw
+
+    case "--cleansurfreg":
+      set CleanSurfReg = 1;
+      breaksw
+
+    case "--cleanelreg":
+      set CleanElReg = 1;
+      breaksw
+
+    case "--cleanvolreg":
+      set CleanVolReg = 1;
       breaksw
 
     case "--step1":
@@ -479,8 +554,14 @@ check_params:
   endif
 
   if($#templateid == 0) then
-    echo "ERROR: must spec a template subject id"
-    exit 1;
+    unsetenv $TEMPLATE_DIR
+    #setenv TEMPLATE_DIR $FREESURFER_HOME/subjects/
+    #set templateid = cvs_avg35
+    setenv TEMPLATE_DIR /autofs/cluster/con_001/users/lilla/CVS_atlas/buckner35rerun/
+    set templateid = avg35rerun
+    echo "Using the CVS template as registration target..."
+    # echo "ERROR: must spec a template subject id"
+    # exit 1;
   endif
 
   if($templateid == $movingid) then
@@ -505,102 +586,18 @@ arg2err:
 
 ############--------------##################
 usage_exit:
-  echo "USAGE: mri_cvs_register"
-  echo ""
-  echo "Required Arguments:";
-  echo "   --mov subjid       : subjid for subject to be moved / registered"
-  echo "   --template subjid  : subjid for subject to be kept fixed (template)"
-  echo ""
-  echo "Optional Arguments"
-  echo ""
-  echo "   --outdir directory : output directory where all the results are written (default is SUBJECTS_DIR/mov/cvs)"
-  echo "   --noaseg     : do not use aseg volumes in the registration pipeline (default is 0)"
-  echo "   --nocleanup  : do not delete temporary files (default is 0)"
-  echo "   --nolog      : do not produce a log file (default is 0)"
-  echo "   --step1      : only do step 1 (spherical registration)"
-  echo "   --step2      : only do step 2 (elastic registration)"
-  echo "   --step3      : only do step 3 (volumetric registration)"
-  echo "   --version    : print version and exit"
-  echo "   --help       : print help and exit"
-  echo ""
 
-  if($PrintHelp) \
-  cat $0 | awk 'BEGIN{prt=0}{if(prt) print $0; if($1 == "BEGINHELP") prt = 1 }'
+if($PrintHelp) then
+  cat $0 | \
+    awk 'BEGIN{prt=0}{if(prt) print $0; if($1 == "BEGINHELP") prt = 1 }'
+else
+  echo "Usage: mri_cvs_register --mov <subj> --template <subj>"
+  echo "Help:  mri_cvs_register --help"
+endif
 
 exit 1;
 
-#---- Everything below here is printed out as part of help -----#
+#---- Everything below is printed out as part of help -----#
+#-- During make install, the output of 'fsPrintHelp mri_cvs_register.help.xml' -- #
+#-- is concatenated to this file --#
 BEGINHELP
-
-Registers a volume (mov) to another (template) using the CVS 
-registration algorithm (Postelnicu-Zollei-Fischl, TMI09). Make sure
-that SUBJECTS_DIR is properly set before calling this script!
-
-Required Arguments:
-
---mov subjid
-
-Subject id of the subject (as found in SUBJECTS_DIR) whose scan is to 
-be moved in registration with that of the template. 
-
---template subjid
-
-Subject id of the subject (as found in SUBJECTS_DIR) whose scan is to 
-be used and the template / target for the registration. 
-
-Optional Arguments:
-
---outdir 
-
-Output directory where the resulting morphs should be written. NOTE,
-the morphs require quite a lot of space so make sure that there is
-enough disk space available before your analysis. The default location
-for the output is: SUBJECTS_DIR/mov/cvs
-
---noaseg
-
-Do not use the aseg volumes in the registration pipeline. The deafult 
-value is 0.
-
---step1, --step2, --step3
-
-DETAILS:
-
-The CVS registration stream consists of 3 steps: (1) surface-based registration, (2) elastic registration and (3) volumetric regsitration. By default, in the current implementation of the script, step (3) consists of two steps: (i) registration using aseg volumes and (ii) registration using intensity volumes. This combination of the non-linear volumetric registrations proved to be very robust and accurate, butthe (i) step could be eliminated if quicker execution time is required by using the "--noaseg" flag.
-
-Relevant files that you should have in your directory (most recent on the top and the oldest in the bottom):
-
-(a) Full CVS (with both (i) and (ii))
-nlalign-afteraseg-norm.m3z : the morph resulting from (ii) of step (3) (intensity-based non-linear registration); it is NOT combined with the elastic registration morph
-nlalign-afteraseg-norm.mgz : the morphed norm.mgz file; it is the final result of CVS and contains contributions from ALL registration steps (combination of the elatic morph and the two m3z files)
-
-nlalign-aseg.m3z           : the morph resulting from (i) of step (3) (aseg-based non-linear registration); it is NOT combined with the elastic registration morph
-nlalign-aseg.mgz           : the morphed aseg.mgz file; it is the result of CVS up to (i) of step (3) and contains contributions from registration steps of the elatic morph and the above m3z file
-
-el_reg_toTEMPLATE_aseg.mgz : the elastic morph applied to aseg.mgz
-el_reg_toTEMPLATE.tm3d     : the elastic morph that combines correspondences recovered in steps (1) and (2)
-el_reg_toTEMPLATE.mgz      : the elastic morph applied to norm.mgz
-
-(b) shorter version of CVS (using only (ii) in step (3) of the algorithm):
-
-nlalign-norm.m3z           : the morph resulting from step(3) (intensity-based non-linear registration); it is NOT combined with the elastic registration morph
-nlalign-norm.mgz           : the morphed norm.mgz file; it is the final result of CVS and contains contributions from ALL registration steps (combination of the elatic morph and the above m3z file)
-
-el_reg_toTEMPLATE.tm3d     : the elastic morph that combines correspondences recovered in steps (1) and (2)
-el_reg_toTEMPLATE.mgz      : the elastic morph applied to norm.mgz
-
-If you ran the mri_cvs_registration script with the "--nocleanup" option then you will see two more files called combined*tm3d. These files take up a lot of memory so by default are deleted. They can be recreated in case the cvs morph needs to be applied to another volume at a later time.  The morphs left behind when using the "--nocleanup" option are:
-
-(a)
-el_reg_toTEMPLATE.tm3d              : the elastic morph that combines correspondences recovered in steps (1) and (2)
-combined_elreg_aseg.tm3d            : the morph that combines correspondences recovered in steps (1), (2) and (3) (i)
-combined_elreg_afteraseg-norm.tm3d  : the morph that combines correspondences recovered in steps (1), (2), (3) (i) and (3) (ii)
-(b)
-el_reg_toTEMPLATE.tm3d              : the elastic morph that combines correspondences recovered in steps (1) and (2)
-combined_elreg_norm.tm3d            : the morph that combines correspondences recovered in steps (1), (2) and (3) (ii)
-
-BUGS:
-
-SEE ALSO:
-
-mris_register, mri_nl_align, mris_resample 
