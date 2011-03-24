@@ -7,8 +7,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2011/01/07 20:45:30 $
- *    $Revision: 1.3 $
+ *    $Date: 2011/03/24 18:33:55 $
+ *    $Revision: 1.4 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -30,7 +30,7 @@
 
 #include "mri.h"
 #include "mriframegpu.hpp"
-
+#include "ctfactory.hpp"
 
 namespace GPU {
   namespace Algorithms {
@@ -49,19 +49,44 @@ namespace GPU {
 
       // --------------------------------------
 
-      void MarkLabelBorderVoxels( const GPU::Classes::MRIframeGPU<unsigned char>& src,
+      template<typename T>
+      void MarkLabelBorderVoxels( const GPU::Classes::MRIframeGPU<T>& src,
 				  GPU::Classes::MRIframeGPU<unsigned char>& dst,
 				  const int label,
 				  const int mark,
 				  const int sixConnect ) const;
 
-      float VoxInLabelWithPartialVolume( const GPU::Classes::MRIframeGPU<unsigned char>& mri,
-					 const GPU::Classes::MRIframeGPU<unsigned char>& mri_vals,
+      template<typename T>
+      void MLBVdispatch( const MRI* mri_src,
+                         MRI* mri_dst,
+                         int label,
+                         int mark,
+                         int six_connected ) const;
+
+
+
+      template<typename T,typename U>
+      float VoxInLabelWithPartialVolume( const GPU::Classes::MRIframeGPU<T>& mri,
+					 const GPU::Classes::MRIframeGPU<U>& mri_vals,
 					 const int label,
 					 GPU::Classes::MRIframeGPU<float>& mri_mixing_coeff,
 					 GPU::Classes::MRIframeGPU<unsigned char>& mri_nbr_labels ) const;
 					 
 
+      template<typename T, typename U>
+      float ViLwpVfinalDispatch( const MRI *mri,
+                                 const MRI *mri_vals, 
+                                 const int label,
+                                 MRI *mri_mixing_coef, 
+                                 MRI *mri_nbr_labels ) const;
+      
+
+      template<typename T>
+      float ViLwpVvalsDispatch( const MRI *mri,
+                                const MRI *mri_vals, 
+                                const int label,
+                                MRI *mri_mixing_coef, 
+                                MRI *mri_nbr_labels ) const;
 
       // --------------------------------------
     private:
@@ -86,6 +111,38 @@ namespace GPU {
 	std::cerr << __FUNCTION__
 		  << ": Please do not copy" << std::endl;
 	abort();
+      }
+
+
+      // ------------
+
+      //! Texture handling
+      template<typename T>
+      GPU::Classes::CTfactory* BindMRI( const GPU::Classes::MRIframeGPU<T>& src ) const {
+        std::cerr << __PRETTY_FUNCTION__
+                  << ": Unrecognised type"
+                  << std::endl;
+        abort();
+        return( NULL );
+      }
+
+      template<typename T>
+      GPU::Classes::CTfactory* BindMRIvals( const GPU::Classes::MRIframeGPU<T>& src ) const {
+        std::cerr << __PRETTY_FUNCTION__
+                  << ": Unrecognised type"
+                  << std::endl;
+        abort();
+        return( NULL );
+      }
+
+
+      template<typename T>
+      GPU::Classes::CTfactory* BindSrc( const GPU::Classes::MRIframeGPU<T>& src ) const {
+        std::cerr << __PRETTY_FUNCTION__
+                  << ": Unrecognised type"
+                  << std::endl;
+        abort();
+        return( NULL );
       }
 
     };

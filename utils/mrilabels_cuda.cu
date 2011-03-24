@@ -7,8 +7,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2011/03/16 19:22:03 $
- *    $Revision: 1.7 $
+ *    $Date: 2011/03/24 18:33:56 $
+ *    $Revision: 1.8 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -26,6 +26,7 @@
 
 #include <iostream>
 #include <iomanip>
+#include <memory>
 
 #include "mri.h"
 
@@ -44,24 +45,57 @@
 //! Texture for unsigned char source
 texture<unsigned char, 3, cudaReadModeElementType> dt_src_uchar;
 
+//! Texture for int source
+texture<int, 3, cudaReadModeElementType> dt_src_int;
+
+
 //! Texture for unsigned char mri
 texture<unsigned char, 3, cudaReadModeElementType> dt_mri_uchar;
 
+//! Texture for int mri
+texture<int, 3, cudaReadModeElementType> dt_mri_int;
+
+
 //! Texture for unsigned char mri_vals
 texture<unsigned char, 3, cudaReadModeElementType> dt_mri_vals_uchar;
+
+//! Texture for int mri_vals
+texture<int, 3, cudaReadModeElementType> dt_mri_vals_int;
+
 
 
 namespace GPU {
   namespace Algorithms {
 
     //! Helper function to get texture values
+    template<typename T>
     __device__
-    unsigned char FetchSrcVoxel( const int ix,
-				 const int iy,
-				 const int iz ) {
-      unsigned char texVal;
+    T FetchSrcVoxel( const int ix,
+                     const int iy,
+                     const int iz ) {
+      return( 10000 );
+    }
 
+    template<>
+    __device__
+    unsigned char FetchSrcVoxel<unsigned char>( const int ix,
+                                                const int iy,
+                                                const int iz ) {
+      unsigned char texVal;
+      
       texVal = tex3D( dt_src_uchar, ix+0.5f, iy+0.5f, iz+0.5f );
+
+      return( texVal );
+    }
+
+    template<>
+    __device__
+    int FetchSrcVoxel<int>( const int ix,
+                            const int iy,
+                            const int iz ) {
+      unsigned char texVal;
+      
+      texVal = tex3D( dt_src_int, ix+0.5f, iy+0.5f, iz+0.5f );
 
       return( texVal );
     }
@@ -69,7 +103,7 @@ namespace GPU {
 
     
     //! GPU kernel for MarkLabelBorderVoxel
-    template<bool sixConnect>
+    template<typename T,bool sixConnect>
     __global__
     void MarkLabelBorderVoxelKernel( GPU::Classes::MRIframeOnGPU<unsigned char> dst,
 				     const int label,
@@ -84,7 +118,7 @@ namespace GPU {
 
 	// Ensure we're in range
 	if( dst.InVolume(ix,iy,iz) ) {
-	  const int this_label = FetchSrcVoxel( ix, iy, iz );
+	  const int this_label = FetchSrcVoxel<T>( ix, iy, iz );
 	  int border = 0;
 
 	  // Loop over local volume
@@ -96,7 +130,7 @@ namespace GPU {
 		  continue;
 		}
 
-		const int that_label = FetchSrcVoxel( ix+xk, iy+yk, iz+zk );
+		const int that_label = FetchSrcVoxel<T>( ix+xk, iy+yk, iz+zk );
 		if( ((this_label == label) && (that_label != label)) ||
 		    ((this_label != label) && (that_label == label)) ) {
 		  border = 1 ;
@@ -117,7 +151,23 @@ namespace GPU {
 
     // =============================================
 
-    void MRIlabels::MarkLabelBorderVoxels( const GPU::Classes::MRIframeGPU<unsigned char>& src,
+    template<>
+    GPU::Classes::CTfactory* MRIlabels::BindSrc<unsigned char>( const GPU::Classes::MRIframeGPU<unsigned char>& src ) const {
+      GPU::Classes::CTfactory *tmp;
+      tmp = new GPU::Classes::CTfactory( src, dt_src_uchar );
+      return( tmp );
+    }
+
+    template<>
+    GPU::Classes::CTfactory* MRIlabels::BindSrc<int>( const GPU::Classes::MRIframeGPU<int>& src ) const {
+      GPU::Classes::CTfactory *tmp;
+      tmp = new GPU::Classes::CTfactory( src, dt_src_int );
+      return( tmp );
+    }
+
+    
+    template<typename T>
+    void MRIlabels::MarkLabelBorderVoxels( const GPU::Classes::MRIframeGPU<T>& src,
 					   GPU::Classes::MRIframeGPU<unsigned char>& dst,
 					   const int label,
 					   const int mark,
@@ -130,7 +180,7 @@ namespace GPU {
       dst.Allocate( src );
 
       // Get the input into a texture
-      GPU::Classes::CTfactory srcArray( src, dt_src_uchar );
+      std::auto_ptr<GPU::Classes::CTfactory> srcArray( this->BindSrc( src ) );
 
       // Run the kernel
       const unsigned int kKernelSize = 16;
@@ -143,9 +193,9 @@ namespace GPU {
       grid.z = 1;
 
       if( sixConnect ) {
-	MarkLabelBorderVoxelKernel<true><<<grid,threads>>>( dst, label, mark );
+	MarkLabelBorderVoxelKernel<T,true><<<grid,threads>>>( dst, label, mark );
       } else {
-	MarkLabelBorderVoxelKernel<false><<<grid,threads>>>( dst, label, mark );
+	MarkLabelBorderVoxelKernel<T,false><<<grid,threads>>>( dst, label, mark );
       }
       CUDA_CHECK_ERROR( "MarkLabelBorderVoxelKernel failed!\n" );
 
@@ -157,6 +207,26 @@ namespace GPU {
     }
 
 
+    template<typename T>
+    void MRIlabels::MLBVdispatch( const MRI* mri_src,
+                                  MRI* mri_dst,
+                                  int label,
+                                  int mark,
+                                  int six_connected ) const {
+      GPU::Classes::MRIframeGPU<T> srcGPU;
+      GPU::Classes::MRIframeGPU<unsigned char> dstGPU;
+      
+      srcGPU.Allocate( mri_src );
+      srcGPU.VerifyMRI( mri_src );
+      
+      srcGPU.SendFrame( mri_src, 0 );
+      
+      this->MarkLabelBorderVoxels( srcGPU, dstGPU,
+                                   label, mark,
+                                   six_connected );
+      
+      dstGPU.RecvFrame( mri_dst, 0 );
+    }
 
     // ==============================================================
 
@@ -170,23 +240,52 @@ namespace GPU {
       }
     }
 
+
     //! Texture wrapper for mri
+    template<typename T>
     __device__
-    unsigned char FetchMRIVoxel( const int ix,
-				 const int iy,
-				 const int iz ) {
+    T FetchMRIVoxel( const int ix,
+                     const int iy,
+                     const int iz ) {
+      return( 100000 );
+    }
 
+    template<>
+    __device__
+    unsigned char FetchMRIVoxel<unsigned char>( const int ix,
+                                                const int iy,
+                                                const int iz ) {
+      
       unsigned char texVal;
-
+      
       texVal = tex3D( dt_mri_uchar, ix+0.5f, iy+0.5f, iz+0.5f );
 
       return( texVal );
     }
 
-
-    //! Texture wrapper for mri_vals
+    template<>
     __device__
-    unsigned char FetchMRIval( const int ix,
+    int FetchMRIVoxel( const int ix,
+                       const int iy,
+                       const int iz ) {
+      int texVal;
+      texVal = tex3D( dt_mri_int, ix+0.5f, iy+0.5f, iz+0.5f );
+
+      return( texVal );
+    }
+  
+    //! Texture wrapper for mri_vals
+    template<typename T>
+    __device__
+    T FetchMRIval( const int ix,
+                   const int iy,
+                   const int iz ) {
+      return( 29321 );
+    }
+    
+    template<>
+    __device__
+    unsigned char FetchMRIval<unsigned char>( const int ix,
 			       const int iy,
 			       const int iz ) {
       unsigned char texVal;
@@ -195,13 +294,26 @@ namespace GPU {
       return( texVal );
     }
 
+
+    template<>
+    __device__
+    int FetchMRIval<int>( const int ix,
+                                    const int iy,
+                                    const int iz ) {
+      unsigned char texVal;
+      texVal = tex3D( dt_mri_vals_int, ix+0.5f, iy+0.5f, iz+0.5f );
+
+      return( texVal );
+    }
+    
+
     
     //! Implementation of MRIcomputeLabelNbhd
-    template<typename T, typename U>
+    template<typename T, typename U, typename CountType, typename MeanType>
     __device__
     void ComputeLabelNbhd( const int x, const int y, const int z,
-			   T& label_counts,
-			   U& label_means,
+			   CountType& label_counts,
+			   MeanType& label_means,
 			   const int whalf ) {
       /*!
 	This is an implementation of MRIcomputeLabelNbhd specific
@@ -219,10 +331,10 @@ namespace GPU {
       for( int zk=-whalf; zk<=whalf; zk++ ) {
 	for( int yk=-whalf; yk<=whalf; yk++ ) {
 	  for( int xk=-whalf; xk<=whalf; xk++ ) {
-	    const int label = FetchMRIVoxel( x+xk, y+yk, z+zk );
+	    const int label = FetchMRIVoxel<T>( x+xk, y+yk, z+zk );
 	    label_counts[label]++;
 
-	    const float val = FetchMRIval( x+xk, y+yk, z+zk );
+	    const float val = FetchMRIval<U>( x+xk, y+yk, z+zk );
 	    label_means[label] += val;
 	  }
 	}
@@ -236,6 +348,7 @@ namespace GPU {
     }
 
 
+    template<typename T, typename U>
     __global__
     void VoxInLabelPartVolumeKernel( const GPU::Classes::MRIframeOnGPU<unsigned char> mri_border,
 				     GPU::Classes::MRIframeOnGPU<unsigned char> mri_nbr_labels,
@@ -257,7 +370,7 @@ namespace GPU {
 	// Ensure we're in range
 	if( mri_nbr_labels.InVolume(ix,iy,iz) ) {
 
-	  const int vox_label = FetchMRIVoxel(ix,iy,iz);
+	  const int vox_label = FetchMRIVoxel<T>(ix,iy,iz);
 	  const int border = mri_border(ix,iy,iz);
  
 	  if( (vox_label!=label) && (border==0) ) {
@@ -267,15 +380,20 @@ namespace GPU {
 	  if( border == 0 ) {
 	    atomicAdd( volume, vox_vol );
 	  } else {
-	    
-	    GPU::Classes::FixedMap<int,int,32> nbr_label_counts( -1, 0 );
-	    GPU::Classes::FixedMap<int,int,1024> label_counts( -1, 0 );
-	    GPU::Classes::FixedMap<int,float,1024> label_means(-1, 0 );
+            typedef GPU::Classes::FixedMap<int,int,32> NLC;
+            typedef GPU::Classes::FixedMap<int,int,32> LC;
+            typedef GPU::Classes::FixedMap<int,float,1024> LM;
 
-	    ComputeLabelNbhd( ix, iy, iz, nbr_label_counts, label_means, 1 );
-	    ComputeLabelNbhd( ix, iy, iz, label_counts, label_means, 7 );
+	    NLC nbr_label_counts( -1, 0 );
+	    LC label_counts( -1, 0 );
+	    LM label_means(-1, 0 );
 
-	    const float val = FetchMRIval( ix, iy, iz );
+	    ComputeLabelNbhd<T,U,NLC,LM>( ix, iy, iz,
+                                        nbr_label_counts, label_means, 1 );
+	    ComputeLabelNbhd<T,U,NLC,LM>( ix, iy, iz,
+                                        label_counts, label_means, 7 );
+
+	    const float val = FetchMRIval<U>( ix, iy, iz );
 
 	    const float mean_label = label_means[vox_label];
 	    int nbr_label = -1;
@@ -394,9 +512,41 @@ namespace GPU {
 
     // ===========================
 
+    template<>
+    GPU::Classes::CTfactory* MRIlabels::BindMRI<unsigned char>( const GPU::Classes::MRIframeGPU<unsigned char>& src ) const {
+      GPU::Classes::CTfactory *tmp;
+      tmp = new GPU::Classes::CTfactory( src, dt_mri_uchar );
+      return( tmp );
+    }
+
+    template<>
+    GPU::Classes::CTfactory* MRIlabels::BindMRI<int>( const GPU::Classes::MRIframeGPU<int>& src ) const {
+      GPU::Classes::CTfactory *tmp;
+      tmp = new GPU::Classes::CTfactory( src, dt_mri_int );
+      return( tmp );
+    }
+
+    
+    template<>
+    GPU::Classes::CTfactory* MRIlabels::BindMRIvals<unsigned char>( const GPU::Classes::MRIframeGPU<unsigned char>& src ) const {
+      GPU::Classes::CTfactory *tmp;
+      tmp = new GPU::Classes::CTfactory( src, dt_mri_vals_uchar );
+      return( tmp );
+    }
+
+    template<>
+    GPU::Classes::CTfactory* MRIlabels::BindMRIvals<int>( const GPU::Classes::MRIframeGPU<int>& src ) const {
+      GPU::Classes::CTfactory *tmp;
+      tmp = new GPU::Classes::CTfactory( src, dt_mri_vals_int );
+      return( tmp );
+    }
+
+
+
     //! GPU implementation of MRIvoxelsInLabelWithPartialVolumeEffects
-    float MRIlabels::VoxInLabelWithPartialVolume( const GPU::Classes::MRIframeGPU<unsigned char>& mri,
-						  const GPU::Classes::MRIframeGPU<unsigned char>& mri_vals,
+    template<typename T, typename U>
+    float MRIlabels::VoxInLabelWithPartialVolume( const GPU::Classes::MRIframeGPU<T>& mri,
+						  const GPU::Classes::MRIframeGPU<U>& mri_vals,
 						  const int label,
 						  GPU::Classes::MRIframeGPU<float>& mri_mixing_coeff,
 						  GPU::Classes::MRIframeGPU<unsigned char>& mri_nbr_labels ) const {
@@ -432,8 +582,8 @@ namespace GPU {
 
 
       // Set up the textures
-      GPU::Classes::CTfactory mriArray( mri, dt_mri_uchar );
-      GPU::Classes::CTfactory mri_valsArray( mri_vals, dt_mri_vals_uchar );
+      std::auto_ptr<GPU::Classes::CTfactory> mriCT( this->BindMRI( mri ) );
+      std::auto_ptr<GPU::Classes::CTfactory> mri_valsCT( this->BindMRIvals( mri_vals ) );
 
       
       // Run the computation
@@ -446,18 +596,15 @@ namespace GPU {
       grid = mri.CoverBlocks( kKernelSize );
       grid.z = 1;
       MRIlabels::tVoxInLabelPartVolumeCompute.Start();
-      VoxInLabelPartVolumeKernel<<<grid,threads>>>( mriBorder,
-						    mri_nbr_labels,
-						    mri_mixing_coeff,
-						    vox_vol,
-						    label,
-						    d_volume );
+      VoxInLabelPartVolumeKernel<T,U><<<grid,threads>>>( mriBorder,
+                                                         mri_nbr_labels,
+                                                         mri_mixing_coeff,
+                                                         vox_vol,
+                                                         label,
+                                                       d_volume );
       CUDA_CHECK_ERROR( "VoxInLabelPartVolumeKernel failed!\n" );
       MRIlabels::tVoxInLabelPartVolumeCompute.Stop();
 
-      // Unbind textures
-      CUDA_SAFE_CALL( cudaUnbindTexture( dt_mri_uchar ) );
-      CUDA_SAFE_CALL( cudaUnbindTexture( dt_mri_vals_uchar ) );
 
 
       // Retrieve the volume global and release
@@ -478,6 +625,81 @@ namespace GPU {
 #endif
     }
 
+
+    template<typename T, typename U>
+    float MRIlabels::ViLwpVfinalDispatch( const MRI *mri,
+                                          const MRI *mri_vals, 
+                                          const int label,
+                                          MRI *mri_mixing_coef, 
+                                          MRI *mri_nbr_labels ) const {
+
+      GPU::Classes::MRIframeGPU<T> mriGPU;
+      GPU::Classes::MRIframeGPU<U> mri_valsGPU;
+      GPU::Classes::MRIframeGPU<unsigned char> mri_nbr_labelsGPU;
+      GPU::Classes::MRIframeGPU<float> mri_mixing_coefGPU;
+
+      // Send data to GPU
+      mriGPU.Allocate( mri );
+      mriGPU.VerifyMRI( mri );
+      mriGPU.Send( mri, 0 );
+
+      mri_valsGPU.Allocate( mri_vals );
+      mri_valsGPU.VerifyMRI( mri_vals );
+      mri_valsGPU.Send( mri_vals, 0 );
+
+      // Run computation
+      float vol = this->VoxInLabelWithPartialVolume<T,U>( mriGPU, mri_valsGPU,
+                                                          label,
+                                                          mri_mixing_coefGPU,
+                                                          mri_nbr_labelsGPU );
+      
+      // Retrieve results
+      if( mri_mixing_coef ) {
+        mri_mixing_coefGPU.RecvFrame( mri_mixing_coef, 0 );
+      }
+      if( mri_nbr_labels ) {
+        mri_nbr_labelsGPU.RecvFrame( mri_nbr_labels, 0 );
+      }
+      
+      return( vol );
+    }
+
+
+    template<typename T>
+    float MRIlabels::ViLwpVvalsDispatch( const MRI *mri,
+                                         const MRI *mri_vals, 
+                                         const int label,
+                                         MRI *mri_mixing_coef, 
+                                         MRI *mri_nbr_labels ) const {
+
+      float res = 0;
+      
+      switch( mri_vals->type ) {
+      case MRI_UCHAR:
+        res = this->ViLwpVfinalDispatch<T,unsigned char>( mri, mri_vals,
+                                                          label,
+                                                          mri_mixing_coef,
+                                                          mri_nbr_labels );
+        break;
+
+      case MRI_INT:
+        res = this->ViLwpVfinalDispatch<T,int>( mri, mri_vals,
+                                                label,
+                                                mri_mixing_coef,
+                                                mri_nbr_labels );
+        break;
+        
+      default:
+        std::cerr << __PRETTY_FUNCTION__
+                  << ": Unrecognised mri_vals type "
+                  << mri_vals->type
+                  << std::endl;
+        abort();
+      }
+
+      return( res );
+
+    }
 
 
     // ==============================================================
@@ -523,17 +745,22 @@ void MRImarkLabelBorderVoxelsGPU( const MRI* mri_src,
 				  int label,
 				  int mark,
 				  int six_connected ) {
-  GPU::Classes::MRIframeGPU<unsigned char> srcGPU;
-  GPU::Classes::MRIframeGPU<unsigned char> dstGPU;
+  switch( mri_src->type ) {
+  case MRI_UCHAR:
+    myLabels.MLBVdispatch<unsigned char>( mri_src,
+                                          mri_dst,
+                                          label,
+                                          mark,
+                                          six_connected );
+    break;
 
-  srcGPU.Allocate( mri_src );
-  srcGPU.VerifyMRI( mri_src );
-
-  srcGPU.SendFrame( mri_src, 0 );
-
-  myLabels.MarkLabelBorderVoxels( srcGPU, dstGPU, label, mark, six_connected );
-
-  dstGPU.RecvFrame( mri_dst, 0 );
+  default:
+    std::cerr << __FUNCTION__
+              << ": Unrecognised type for mri_src : "
+              << mri_src->type
+              << std::endl;
+    abort();
+  }
 }
 
 
@@ -546,32 +773,31 @@ float MRIvoxelsInLabelWithPartialVolumeEffectsGPU( const MRI *mri,
 						   MRI *mri_mixing_coef, 
 						   MRI *mri_nbr_labels ) {
   
-  GPU::Classes::MRIframeGPU<unsigned char> mriGPU, mri_valsGPU;
-  GPU::Classes::MRIframeGPU<unsigned char> mri_nbr_labelsGPU;
-  GPU::Classes::MRIframeGPU<float> mri_mixing_coefGPU;
+  float res;
 
-  // Send data to GPU
-  mriGPU.Allocate( mri );
-  mriGPU.VerifyMRI( mri );
-  mriGPU.Send( mri, 0 );
+  switch( mri->type ) {
+  case MRI_UCHAR:
+    res = myLabels.ViLwpVvalsDispatch<unsigned char>( mri, mri_vals,
+                                                      label,
+                                                      mri_mixing_coef,
+                                                      mri_nbr_labels );
+    break;
 
-  mri_valsGPU.Allocate( mri_vals );
-  mri_valsGPU.VerifyMRI( mri_vals );
-  mri_valsGPU.Send( mri_vals, 0 );
-
-  // Run computation
-  float vol = myLabels.VoxInLabelWithPartialVolume( mriGPU, mri_valsGPU,
-						    label,
-						    mri_mixing_coefGPU,
-						    mri_nbr_labelsGPU );
-
-  // Retrieve results
-  if( mri_mixing_coef ) {
-    mri_mixing_coefGPU.RecvFrame( mri_mixing_coef, 0 );
-  }
-  if( mri_nbr_labels ) {
-    mri_nbr_labelsGPU.RecvFrame( mri_nbr_labels, 0 );
+  case MRI_INT:
+    res = myLabels.ViLwpVvalsDispatch<int>( mri, mri_vals,
+                                            label,
+                                            mri_mixing_coef,
+                                            mri_nbr_labels );
+    break;
+    
+  default:
+    std::cerr << __FUNCTION__
+              << ": Unrecognised type for mri : "
+              << mri->type
+              << std::endl;
+    abort();
   }
 
-  return( vol );
+
+  return( res );
 }

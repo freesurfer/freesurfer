@@ -8,8 +8,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2011/03/24 15:27:56 $
- *    $Revision: 1.47 $
+ *    $Date: 2011/03/24 18:33:55 $
+ *    $Revision: 1.48 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -223,7 +223,7 @@ namespace GPU {
 
       //! Return information about the file version
       const char* VersionString( void ) const {
-	return "$Id: mriframegpu.hpp,v 1.47 2011/03/24 15:27:56 rge21 Exp $";
+	return "$Id: mriframegpu.hpp,v 1.48 2011/03/24 18:33:55 rge21 Exp $";
       }
       
       //! Return the 'thick' field
@@ -635,6 +635,7 @@ namespace GPU {
     template<> int MRIframeGPU<unsigned char>::MRItype( void ) const;
     template<> int MRIframeGPU<short>::MRItype( void ) const;
     template<> int MRIframeGPU<float>::MRItype( void ) const;
+    template<> int MRIframeGPU<int>::MRItype( void ) const;
     
 
 
@@ -656,6 +657,13 @@ namespace GPU {
 					const unsigned int iy,
 					const unsigned int iz,
 					const unsigned int iFrame ) const;
+
+    template<>
+    void MRIframeGPU<int>::ExhumeRow( const MRI* src,
+                                      int* h_slab,
+                                      const unsigned int iy,
+                                      const unsigned int iz,
+                                      const unsigned int iFrame ) const;
     
 
 
@@ -671,9 +679,17 @@ namespace GPU {
 					const unsigned int iy,
 					const unsigned int iz,
 					const unsigned int iFrame ) const;
+
     template<>
     void MRIframeGPU<float>::InhumeRow( MRI* dst,
 					const float* h_slab,
+					const unsigned int iy,
+					const unsigned int iz,
+					const unsigned int iFrame ) const;
+    
+    template<>
+    void MRIframeGPU<int>::InhumeRow( MRI* dst,
+					const int* h_slab,
 					const unsigned int iy,
 					const unsigned int iz,
 					const unsigned int iFrame ) const;

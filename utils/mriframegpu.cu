@@ -7,9 +7,9 @@
 /*
  * Original Author: Richard Edgar
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:45 $
- *    $Revision: 1.7 $
+ *    $Author: rge21 $
+ *    $Date: 2011/03/24 18:33:56 $
+ *    $Revision: 1.8 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -42,6 +42,10 @@ namespace GPU {
     
     template<> int MRIframeGPU<float>::MRItype( void ) const {
       return( MRI_FLOAT );
+    }
+
+    template<> int MRIframeGPU<int>::MRItype( void ) const {
+      return( MRI_INT );
     }
     
     
@@ -87,6 +91,21 @@ namespace GPU {
 	      &MRIFseq_vox( src, 0, iy, iz, iFrame ),
 	      src->width*sizeof(float) );
     }
+
+    // -----
+
+    template<>
+    void MRIframeGPU<int>::ExhumeRow( const MRI* src,
+                                      int* h_slab,
+                                      const unsigned int iy,
+                                      const unsigned int iz,
+                                      const unsigned int iFrame ) const {
+      
+      // Do the copy
+      memcpy( h_slab,
+	      &MRIIseq_vox( src, 0, iy, iz, iFrame ),
+	      src->width*sizeof(int) );
+    }
     
     
 
@@ -131,6 +150,20 @@ namespace GPU {
       memcpy( &MRIFseq_vox( dst, 0, iy, iz, iFrame ),
 	      h_slab,
 	      dst->width*sizeof(float) );
+    }
+
+    // -----
+
+    template<>
+    void MRIframeGPU<int>::InhumeRow( MRI* dst,
+                                      const int* h_slab,
+                                      const unsigned int iy,
+                                      const unsigned int iz,
+                                      const unsigned int iFrame ) const {
+      // Do the copy
+      memcpy( &MRIIseq_vox( dst, 0, iy, iz, iFrame ),
+	      h_slab,
+	      dst->width*sizeof(int) );
     }
     
     
