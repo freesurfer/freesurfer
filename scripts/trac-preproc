@@ -8,8 +8,8 @@
 # Original Author: Anastasia Yendiki
 # CVS Revision Info:
 #    $Author: ayendiki $
-#    $Date: 2011/03/18 16:13:47 $
-#    $Revision: 1.19 $
+#    $Date: 2011/03/24 22:01:34 $
+#    $Revision: 1.20 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -25,7 +25,7 @@
 
 umask 002
 
-set VERSION = '$Id: trac-preproc,v 1.19 2011/03/18 16:13:47 ayendiki Exp $'
+set VERSION = '$Id: trac-preproc,v 1.20 2011/03/24 22:01:34 ayendiki Exp $'
 set ProgName = `basename $0`
 set inputargs = ($argv)
 
@@ -1007,18 +1007,20 @@ if ($dotensor) then
   echo "#-------------------------------------" |& tee -a $LF
   echo "#@# Tensor fit `date`" |& tee -a $LF
 
+  set brainmask = $labdir/diff/lowb_brain_mask.nii.gz
+
+  if ($usemaskanat) then
+    if ($doregbbr && -e $labdir/diff/anat_brain_mask.bbr.nii.gz) then
+      set brainmask = $labdir/diff/anat_brain_mask.bbr.nii.gz
+    else if (-e $labdir/diff/anat_brain_mask.flt.nii.gz) then
+      set brainmask = $labdir/diff/anat_brain_mask.flt.nii.gz
+    endif
+  endif
+
   # LS tensor estimation
   set cmd = dtifit
   set cmd = ($cmd -k $dwidir/dwi.nii.gz)
-  if ($usemaskanat) then
-    if ($doregbbr && -e $labdir/diff/anat_brain_mask.bbr.nii.gz) then
-      set cmd = ($cmd -m $labdir/diff/anat_brain_mask.bbr.nii.gz)
-    else
-      set cmd = ($cmd -m $labdir/diff/anat_brain_mask.flt.nii.gz)
-    endif
-  else
-    set cmd = ($cmd -m $labdir/diff/lowb_brain_mask.nii.gz)
-  endif
+  set cmd = ($cmd -m $brainmask)
   set cmd = ($cmd -r $dwidir/bvecs)
   set cmd = ($cmd -b $dwidir/bvals)
   set cmd = ($cmd -o $dwidir/dtifit)
@@ -1148,6 +1150,12 @@ if ($dopriors) then
           endif
         end
 
+        set brainmask = $labdir/$xspace/lowb_brain_mask.$reg.nii.gz
+
+        if ($usemaskanat && -e $labdir/$xspace/anat_brain_mask.nii.gz) then
+          set brainmask = $labdir/$xspace/anat_brain_mask.nii.gz
+        endif
+
         # Compute priors, end ROIs, and initial control points from training set
         set cmd = $trcdir/dmri_train
         set cmd = ($cmd --outdir $outdir)
@@ -1158,11 +1166,7 @@ if ($dopriors) then
         set cmd = ($cmd --cmask  dlabel/$xspace/cortex+2mm.nii.gz)
         set cmd = ($cmd --lmask  $lablist)
         set cmd = ($cmd --rois   $roilist)
-        if ($usemaskanat) then
-          set cmd = ($cmd --bmask $labdir/$xspace/anat_brain_mask.nii.gz)
-        else
-          set cmd = ($cmd --bmask $labdir/$xspace/lowb_brain_mask.$reg.nii.gz)
-        endif
+        set cmd = ($cmd --bmask  $brainmask)
         set cmd = ($cmd --ncpts $ncptlist)
         if ($usetrunc) then
           set cmd = ($cmd --trunc)
