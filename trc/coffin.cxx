@@ -1125,6 +1125,7 @@ bool Coffin::InitializeMCMC() {
   mSpline.SetControlPoints(mControlPoints);
   if (!mSpline.InterpolateSpline()) {
     cout << "ERROR: Path from initial control points is not entirely in mask"
+         << endl << "ERROR: or is self-intersecting" << endl
          << "ERROR: Initialization failed" << endl;
     return false;
   }
