@@ -12,7 +12,7 @@
 # Edited : 03-17-2011: replaces applyMorph with mri_vol2vol
 
 set inputargs = ($argv);
-set VERSION = '$Id: mri_cvs_register,v 1.20 2011/03/24 23:07:52 nicks Exp $';
+set VERSION = '$Id: mri_cvs_register,v 1.21 2011/03/25 20:54:46 lzollei Exp $';
 
 set movingid = ();
 set templateid = ();
@@ -555,13 +555,9 @@ check_params:
 
   if($#templateid == 0) then
     unsetenv $TEMPLATE_DIR
-    #setenv TEMPLATE_DIR $FREESURFER_HOME/subjects/
-    #set templateid = cvs_avg35
-    setenv TEMPLATE_DIR /autofs/cluster/con_001/users/lilla/CVS_atlas/buckner35rerun/
-    set templateid = avg35rerun
+    setenv TEMPLATE_DIR $FREESURFER_HOME/subjects/
+    set templateid = cvs_avg35
     echo "Using the CVS template as registration target..."
-    # echo "ERROR: must spec a template subject id"
-    # exit 1;
   endif
 
   if($templateid == $movingid) then
