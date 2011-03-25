@@ -1,13 +1,14 @@
 #!/bin/tcsh -f
 # vlrmerge
 
-set VERSION = '$Id: vlrmerge,v 1.2 2011/03/10 15:45:31 greve Exp $';
+set VERSION = '$Id: vlrmerge,v 1.3 2011/03/25 20:47:48 greve Exp $';
 
 set outvol = ();
 set invol = ();
 set lhsurf = ();
 set rhsurf = ();
 set lrvol = ();
+set DoCorrection = 0; # Correction for multiple comparsisons
 
 set tmpdir = ();
 set cleanup = 1;
@@ -102,6 +103,16 @@ echo $cmd | tee -a $LF
 $cmd | tee -a $LF
 if($status) exit 1;
 
+if($DoCorrection) then
+  # Bonferroni correct for multiple comparisons across the 3
+  # spaces. Assumes that correction within a space have already been
+  # done
+  set cmd = (fscalc $outvol bcor 3 -o $outvol)
+  echo $cmd | tee -a $LF
+  $cmd | tee -a $LF
+  if($status) exit 1;
+endif
+
 if($cleanup) rm -r $tmpdir
 
 date | tee -a $LF
@@ -172,6 +183,12 @@ while( $#argv != 0 )
         echo "ERROR: cannot find $subcortmask"
         exit 1;
       endif
+      breaksw
+
+    case "--correct":
+      # Bonferroni correction for multiple comparsisons across 3 spaces
+      # Assumes that inputs have already been corrected
+      set DoCorrection = 1; 
       breaksw
 
     case "--log":
@@ -261,6 +278,7 @@ usage_exit:
   echo "  --lh lhsurf"
   echo "  --rh rhsurf"
   echo "  --subcortmask mask (--scm)"
+  echo "  --correct : bonferroni correct across 3 spaces"
   echo "  "
   echo "  --lrvol lrvol : output a volume with only lh and rh"
   echo ""
@@ -285,24 +303,27 @@ into a single volume using the surface-based analysis for the cortex
 and volume-based analysis for subcortical. This can allow you to look
 at all results inside the volume.
 
-There are inaccuracies in that the volume-based analysis overrides the
-surface-based analysis inside the subcortical mask. Ideally, the
-subcortical mask would not intersect the surfaces, but this is not
-possible with the simple MNI305 volume registration (but should be
-possible in the future with CVS).
-
 The usage would be something like:
-1. Create and analyze in each space
+1. Create and run FSFAST analysis in each space
 2. Run isxconcat-sess for each space
 3. Run mri_glmfit to create sig.nii in each space 
 
-vlrmerge --o vlr.mgh \
-  --v  analysis.mni305/contrast/glmdir/groupcontrast/sig.nii \
-  --lh analysis.lh/contrast/glmdir/groupcontrast/sig.nii \
-  --rh analysis.rh/contrast/glmdir/groupcontrast/sig.nii \
-  --subcortmask  analysis.mni305/subcort.mask.nii
+vlrmerge --o vlr.nii.gz \
+  --v  analysis.mni305/contrast/glmdir/groupcontrast/sig.nii.gz \
+  --lh analysis.lh/contrast/glmdir/groupcontrast/sig.nii.gz \
+  --rh analysis.rh/contrast/glmdir/groupcontrast/sig.nii.gz \
+  --subcortmask  analysis.mni305/subcort.mask.nii.gz
 
 View with
   tkmedit fsaverage orig.mgz -aparc+aseg -ov vlr.mgh
 
+If you do corrections for multiple comparisons for each space, you
+can combine the cluster-corrected images into the volume and 
+correct for comparisons across the three spaces with something like
+
+vlrmerge --o vlr.corrected.mgh --correct \
+  --vol analysis.mni305/contrast/glmdir/osgm/grf.th3.pos.sig.cluster.nii.gz \
+  --lh  analysis.lh/contrast/glmdir/osgm/cache.th30.pos.sig.cluster.nii.gz  \
+  --rh  analysis.rh/contrast/glmdir/osgm/cache.th30.pos.sig.cluster.nii.gz  \
+  --scm analysis.mni305/subcort.mask.nii.gz)
 
