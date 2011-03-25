@@ -8,8 +8,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2011/03/17 18:45:06 $
- *    $Revision: 1.6 $
+ *    $Date: 2011/03/25 20:05:13 $
+ *    $Revision: 1.7 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -26,6 +26,8 @@
 #include <iostream>
 #include <iomanip>
 #include <memory>
+#include <fstream>
+#include <sstream>
 using namespace std;
 
 
@@ -45,6 +47,8 @@ using namespace std;
 #include "cudatypeutils.hpp"
 
 #include "em_register_cuda.h"
+
+//#define OUTPUT_STAGES
 
 // ==================================================================
 
@@ -133,7 +137,7 @@ __device__ float SumLogPs( const GPU::Classes::AffineTransShared &afTrans,
   __syncthreads();
 
   // Perform reduction sum
-#if 0
+#if 1
   // Slow but always correct version
   for( unsigned int d=blockDim.x / 2; d>0; d>>=1 ) {
     if( threadIdx.x < d ) { 
@@ -413,6 +417,18 @@ void CUDA_FindOptimalTranslation( const MATRIX *baseTransform,
     within the given limits are searched
   */
 
+#ifdef OUTPUT_STAGES
+  static unsigned int nCalls = 0;
+
+  std::stringstream fileName;
+  fileName << "FastTransGPU"
+           << std::setw(2) << std::setfill('0')
+           << nCalls
+           << ".output";
+  
+  std::ofstream outFile( fileName.str().c_str() );
+#endif
+
   const unsigned int totalTrans = nTrans * nTrans * nTrans;
 
   // Device vector to hold logps
@@ -448,14 +464,14 @@ void CUDA_FindOptimalTranslation( const MATRIX *baseTransform,
 				      thrust::raw_pointer_cast( d_logps ) );
   CUDA_CHECK_ERROR( "TranslationLogps failed!" );
  
-#if 0
+#ifdef OUTPUT_STAGES
   for( unsigned int i=0; i<totalTrans; i++ ) {
     float3 translation = myGen(i);
-    cout << __FUNCTION__  << " "
-	 << setw(8) << setprecision(4) << translation.x << " "
-	 << setw(8) << setprecision(4) << translation.y << " "
-	 << setw(8) << setprecision(4) << translation.z << " "
-	 << setw(12) << setprecision(8) << d_logps[i] << endl;
+    outFile << setw(20) << setprecision(12) << translation.x << ",";
+    outFile << setw(20) << setprecision(12) << translation.y << ",";
+    outFile << setw(20) << setprecision(12) << translation.z << ",";
+    outFile << setw(20) << setprecision(12) << d_logps[i];
+    outFile << "\n";
   }
 #endif
 
@@ -476,6 +492,11 @@ void CUDA_FindOptimalTranslation( const MATRIX *baseTransform,
   *dz = trans.z;
 
   thrust::device_delete( d_logps );
+
+#ifdef OUTPUT_STAGES
+  nCalls++;
+#endif
+
 }
 
 

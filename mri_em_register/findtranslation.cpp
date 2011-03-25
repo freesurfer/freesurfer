@@ -9,8 +9,8 @@
  * CUDA version : Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2011/03/22 15:47:05 $
- *    $Revision: 1.1 $
+ *    $Date: 2011/03/25 20:05:13 $
+ *    $Revision: 1.2 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -24,6 +24,12 @@
  *
  */
 
+#include <fstream>
+#include <string>
+#include <sstream>
+#include <iostream>
+#include <iomanip>
+
 #include "diag.h"
 #include "macros.h"
 #include "proto.h"
@@ -33,6 +39,21 @@
 #include "devicemanagement.h"
 #include "em_register_cuda.h"
 #endif
+
+
+//#define OUTPUT_STAGES
+
+
+#ifdef OUTPUT_STAGES
+#ifdef FS_CUDA
+const std::string stem( "TransGPU" );
+#else
+const std::string stem( "TransCPU" );
+#endif
+
+const std::string stern( ".output" );
+#endif
+
 
 
 #include "emregisterutils.h"
@@ -62,6 +83,12 @@ double find_optimal_translation( GCA *gca,
 
 
 #ifdef FS_CUDA
+  if( exvivo ) {
+    std::cerr << __FUNCTION__
+              << ": exvivo not supported!"
+              << std::endl;
+    exit( EXIT_FAILURE );
+  }
   CUDA_em_register_Prepare( gca, gcas, mri, nsamples );
 #endif // FS_CUDA
 
@@ -74,6 +101,15 @@ double find_optimal_translation( GCA *gca,
 
   for (i = 0 ; i <= nreductions ; i++)
   {
+#ifdef OUTPUT_STAGES
+    std::stringstream numString;
+    numString << std::setw(2)
+              << std::setfill('0')
+              << i;
+    
+    std::ofstream outFile( (stem + numString.str() + stern).c_str() );
+#endif
+
     delta = (max_trans-min_trans) / trans_steps ;
     if (FZERO(delta))
     {
@@ -88,7 +124,7 @@ double find_optimal_translation( GCA *gca,
     }
 
 #if defined(FS_CUDA) && FAST_TRANSLATION
-    unsigned int nTrans = 1+((max_trans-min_trans)/delta);
+    unsigned int nTrans = static_cast<unsigned int>( 1+((max_trans-min_trans)/delta) );
     float myMaxLogP, mydx, mydy, mydz;
     CUDA_FindOptimalTranslation( m_L, min_trans, max_trans, nTrans,
                                  &myMaxLogP, &mydx, &mydy, &mydz );
@@ -134,6 +170,14 @@ double find_optimal_translation( GCA *gca,
                   log_p );
 #endif
 
+#ifdef OUTPUT_STAGES
+          outFile << std::setw(20) << std::setprecision(12) << x_trans << ",";
+          outFile << std::setw(20) << std::setprecision(12) << y_trans << ",";
+          outFile << std::setw(20) << std::setprecision(12) << z_trans << ",";
+          outFile << std::setw(20) << std::setprecision(12) << log_p;
+          outFile << "\n";
+#endif
+
           if (log_p > max_log_p)
           {
             max_log_p = log_p ;
@@ -173,7 +217,7 @@ double find_optimal_translation( GCA *gca,
                 (gca, gcas, mri, m_L,nsamples, exvivo) ;
 #endif
 
-#if 0
+#if 1
     // Repeat for debugging
     printf(
       "max log p = %12.6f @ (%4.3f, %4.3f, %4.3f)\n",
@@ -194,6 +238,13 @@ double find_optimal_translation( GCA *gca,
 
 #ifdef FS_CUDA
   CUDA_em_register_Release();
+#endif
+
+#ifdef OUTPUT_STAGES
+  std::cerr << __FUNCTION__
+            << ": Early exit for debugging"
+            << std::endl;
+  exit( 0 );
 #endif
 
   return(max_log_p) ;
