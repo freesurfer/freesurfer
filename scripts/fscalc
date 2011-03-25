@@ -1,7 +1,7 @@
 #!/bin/tcsh -f
 # fscalc
 
-set VERSION = '$Id: fscalc,v 1.3 2011/03/25 19:50:05 greve Exp $';
+set VERSION = '$Id: fscalc,v 1.4 2011/03/25 20:26:36 greve Exp $';
 
 set outvol = ();
 set inops = ();
@@ -94,7 +94,7 @@ while($#inops)
      $op == eq  || $op == lt  || $op == lte   || $op == gt || \
      $op == gte || $op == upl || $op == lrl   || $op == and || \
      $op == or  || $op == andbw || $op == orbw || $op == masked ||\
-     $op == pow ) then
+     $op == pow || $op == bcor) then
     set opok = 1;
     if($#inops == 0) then
       echo "ERROR: $op requires two arguments" | tee -a $LF

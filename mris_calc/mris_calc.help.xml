@@ -70,6 +70,9 @@ will result in the 'black.mgz' volume having all its intensity values set to 0.
 </explanation>
       <argument>atan2</argument>
       <explanation>2 inputs and 1 output. &lt;outputFile&gt; = atan2(&lt;file1&gt;,&lt;file2&gt;)</explanation>
+      <argument>bcor</argument>
+      <explanation>2 inputs and 1 output. &lt;outputFile&gt; = -log10(1-(1-p)^N)*sign(sig)  where p = 10^-abs(&lt;file1&gt;) and N = &lt;file2&gt; or constant. Can be used to bonferroni corrected sig file.
+</explanation>
       <argument>mag</argument>
       <explanation>2 inputs and 1 output. &lt;outputFile&gt; = atan2(&lt;file1&gt;,&lt;file2&gt;)</explanation>
       <argument>sqr</argument>

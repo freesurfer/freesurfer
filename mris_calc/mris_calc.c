@@ -12,8 +12,8 @@
  * Original Author: Rudolph Pienaar
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2011/03/25 19:50:04 $
- *    $Revision: 1.38 $
+ *    $Date: 2011/03/25 20:26:35 $
+ *    $Revision: 1.39 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -60,7 +60,8 @@
 #define  START_i      	3
 
 static const char vcid[] =
-  "$Id: mris_calc.c,v 1.38 2011/03/25 19:50:04 greve Exp $";
+  "$Id: mris_calc.c,v 1.39 2011/03/25 20:26:35 greve Exp $";
+double fn_sign(float af_A);
 
 // ----------------------------------------------------------------------------
 // DECLARATION
@@ -124,6 +125,7 @@ typedef enum _operation
   e_sqrt,
   e_set,
   e_atan2,
+  e_bcor,
   e_mag,
   e_abs,
   e_inv,
@@ -168,6 +170,7 @@ const char* Gppch_operation[] =
   "square root"
   "set",
   "atan2",
+  "bcor",
   "mag",
   "abs",
   "inv",
@@ -314,6 +317,14 @@ double fn_set(float af_A, float af_B)
 double fn_atan2(float af_A, float af_B)
 {
   return (atan2(af_A,af_B));
+}
+double fn_bcor(float af_A, float af_B)
+{
+  // bonferroni correction, assumes input is sig (ie, -log10(p))
+  double p;
+  p = pow(10,-fabs(af_A));
+  p = 1 - pow(1-p,af_B);
+  return (-log10(p)*fn_sign(af_A));
 }
 double fn_mag(float af_A, float af_B)
 {
@@ -1312,7 +1323,7 @@ main(
   init();
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mris_calc.c,v 1.38 2011/03/25 19:50:04 greve Exp $",
+           "$Id: mris_calc.c,v 1.39 2011/03/25 20:26:35 greve Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
   {
@@ -1548,6 +1559,10 @@ operation_lookup(
   else if(!strcmp(apch_operation, "atan2"))
   {
     e_op    = e_atan2;
+  }
+  else if(!strcmp(apch_operation, "bcor"))
+  {
+    e_op    = e_bcor;
   }
   else if(!strcmp(apch_operation, "mag"))
   {
@@ -1989,6 +2004,7 @@ b_outCurvFile_write(e_operation e_op)
     e_op == e_sqrt          ||
     e_op == e_set           ||
     e_op == e_atan2         ||
+    e_op == e_bcor          ||
     e_op == e_mag           ||
     e_op == e_abs           ||
     e_op == e_inv           ||
@@ -2091,6 +2107,9 @@ CURV_process(void)
     break;
   case  e_atan2:
     CURV_functionRunABC(fn_atan2);
+    break;
+  case  e_bcor:
+    CURV_functionRunABC(fn_bcor);
     break;
   case  e_mag:
     CURV_functionRunABC(fn_mag);
