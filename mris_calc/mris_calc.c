@@ -11,9 +11,9 @@
 /*
  * Original Author: Rudolph Pienaar
  * CVS Revision Info:
- *    $Author: rudolph $
- *    $Date: 2011/03/11 21:13:13 $
- *    $Revision: 1.37 $
+ *    $Author: greve $
+ *    $Date: 2011/03/25 19:50:04 $
+ *    $Revision: 1.38 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -60,7 +60,7 @@
 #define  START_i      	3
 
 static const char vcid[] =
-  "$Id: mris_calc.c,v 1.37 2011/03/11 21:13:13 rudolph Exp $";
+  "$Id: mris_calc.c,v 1.38 2011/03/25 19:50:04 greve Exp $";
 
 // ----------------------------------------------------------------------------
 // DECLARATION
@@ -117,6 +117,7 @@ typedef enum _operation
   e_div,
   e_mod,
   e_add,
+  e_pow,
   e_sub,
   e_sqd,
   e_sqr,
@@ -125,6 +126,7 @@ typedef enum _operation
   e_atan2,
   e_mag,
   e_abs,
+  e_inv,
   e_sign,
   e_eq,
   e_lt,
@@ -159,6 +161,7 @@ const char* Gppch_operation[] =
   "divide",
   "modulus",
   "add",
+  "pow",
   "subtract",
   "square difference",
   "square",
@@ -167,6 +170,7 @@ const char* Gppch_operation[] =
   "atan2",
   "mag",
   "abs",
+  "inv",
   "sign",
   "less than",
   "less than or equal to",
@@ -291,6 +295,10 @@ double fn_add(float af_A, float af_B)
 {
   return (af_A + af_B);
 }
+double fn_pow(float af_A, float af_B)
+{
+  return ( pow(af_A,af_B) );
+}
 double fn_sub(float af_A, float af_B)
 {
   return (af_A - af_B);
@@ -373,6 +381,10 @@ double fn_abs(float af_A)
 {
   return fabs(af_A);
 }
+double fn_inv(float af_A)
+{
+  return(1.0/af_A);
+}
 double fn_sqr(float af_A)
 {
   return (af_A*af_A);
@@ -381,7 +393,6 @@ double fn_sqrt(float af_A)
 {
   return sqrt(af_A);
 }
-
 double fn_sign(float af_A)
 {
   float f_ret=0.0;
@@ -1301,7 +1312,7 @@ main(
   init();
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mris_calc.c,v 1.37 2011/03/11 21:13:13 rudolph Exp $",
+           "$Id: mris_calc.c,v 1.38 2011/03/25 19:50:04 greve Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
   {
@@ -1510,6 +1521,10 @@ operation_lookup(
   {
     e_op    = e_add;
   }
+  else if(!strcmp(apch_operation, "pow"))
+  {
+    e_op    = e_pow;
+  }
   else if(!strcmp(apch_operation, "sub"))
   {
     e_op    = e_sub;
@@ -1541,6 +1556,10 @@ operation_lookup(
   else if(!strcmp(apch_operation, "abs"))
   {
     e_op    = e_abs;
+  }
+  else if(!strcmp(apch_operation, "inv"))
+  {
+    e_op    = e_inv;
   }
   else if(!strcmp(apch_operation, "sign"))
   {
@@ -1962,6 +1981,7 @@ b_outCurvFile_write(e_operation e_op)
     e_op == e_mul           ||
     e_op == e_div           ||
     e_op == e_mod   ||
+    e_op == e_pow           ||
     e_op == e_add           ||
     e_op == e_sub           ||
     e_op == e_sqd           ||
@@ -1971,6 +1991,7 @@ b_outCurvFile_write(e_operation e_op)
     e_op == e_atan2         ||
     e_op == e_mag           ||
     e_op == e_abs           ||
+    e_op == e_inv           ||
     e_op == e_sign    ||
     e_op == e_eq            ||
     e_op == e_lt            ||
@@ -2056,6 +2077,9 @@ CURV_process(void)
   case  e_mod:
     CURV_functionRunABC(fn_mod);
     break;
+  case  e_pow:
+    CURV_functionRunABC(fn_pow);
+    break;
   case  e_add:
     CURV_functionRunABC(fn_add);
     break;
@@ -2076,6 +2100,9 @@ CURV_process(void)
     break;
   case  e_abs:
     CURV_functionRunAC( fn_abs);
+    break;
+  case  e_inv:
+    CURV_functionRunAC( fn_inv);
     break;
   case  e_sign:
     CURV_functionRunAC( fn_sign);

@@ -39,6 +39,8 @@
       <explanation>2 inputs and 1 output. &lt;outputFile&gt; = &lt;file1&gt; * &lt;file2&gt;.</explanation>
       <argument>div</argument>
       <explanation>2 inputs and 1 output. &lt;outputFile&gt; = &lt;file1&gt; / &lt;file2&gt;</explanation>
+      <argument>pow</argument>
+      <explanation>2 inputs and 1 output. &lt;outputFile&gt; = pow(&lt;file1&gt;,&lt;file2&gt;)</explanation>
       <argument>norm</argument>
       <explanation>1 inputs and 1 output. &lt;outputFile&gt; = norm(&lt;file1&gt;). This creates an output file such that all values are constrained (normalized) between 0.0 and 1.0.</explanation>
       <explanation>
@@ -76,6 +78,8 @@ will result in the 'black.mgz' volume having all its intensity values set to 0.
       <explanation>1 inputs and 1 output. &lt;outputFile&gt; = sqrt(&lt;file1&gt;)</explanation>
       <argument>abs</argument>
       <explanation>1 inputs and 1 output. &lt;outputFile&gt; = abs(&lt;file1&gt;)</explanation>
+      <argument>inv</argument>
+      <explanation>1 inputs and 1 output. &lt;outputFile&gt; = 1/(&lt;file1&gt;)</explanation>
       <argument>sign</argument>
       <explanation>1 inputs and 1 output. &lt;outputFile&gt; = sign(&lt;file1&gt;). The 'sign' function returns at each index of an input file:
 -1 if &lt;file1&gt;[n] &lt;  0
