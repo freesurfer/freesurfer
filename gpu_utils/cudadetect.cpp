@@ -10,18 +10,17 @@
 /*
  * Original Author: Krish Subramaniam
  * CVS Revision Info:
- * $Id: cudadetect.cpp,v 1.7 2010/06/01 15:11:31 nicks Exp $
+ * $Id: cudadetect.cpp,v 1.8.2.1 2011/03/26 19:43:47 nicks Exp $
  *
- * Copyright (C) 2009-2010,
- * The General Hospital Corporation (Boston, MA).
- * All rights reserved.
+ * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
- * Distribution, usage and copying of this software is covered under the
- * terms found in the License Agreement file named 'COPYING' found in the
- * FreeSurfer source code root directory, and duplicated here:
- * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ * Terms and conditions for use, reproduction, distribution and contribution
+ * are found in the 'FreeSurfer Software License Agreement' contained
+ * in the file 'LICENSE' found in the FreeSurfer distribution, and here:
  *
- * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
+ *
+ * Reporting: freesurfer@nmr.mgh.harvard.edu
  *
  * Copyright 1993-2009 NVIDIA Corporation.  All rights reserved.
  *
@@ -117,7 +116,7 @@ int main(int argc, char **argv)
 /////////////////////////////////////////////////////////////////////////////
 static int dump()
 {
-  int deviceCount;
+  int deviceCount = 0;
 
   // This function call returns 0 if there are no CUDA capable devices.
   cudaGetDeviceCount(&deviceCount);
