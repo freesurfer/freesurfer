@@ -10,7 +10,7 @@
 /*
  * Original Author: Krish Subramaniam
  * CVS Revision Info:
- * $Id: cudadetect.cpp,v 1.8 2011/03/02 00:04:08 nicks Exp $
+ * $Id: cudadetect.cpp,v 1.9 2011/03/26 19:43:19 nicks Exp $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -116,7 +116,7 @@ int main(int argc, char **argv)
 /////////////////////////////////////////////////////////////////////////////
 static int dump()
 {
-  int deviceCount;
+  int deviceCount = 0;
 
   // This function call returns 0 if there are no CUDA capable devices.
   cudaGetDeviceCount(&deviceCount);
