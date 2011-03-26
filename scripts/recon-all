@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2011/03/24 22:16:49 $
-#    $Revision: 1.383 $
+#    $Date: 2011/03/26 19:50:05 $
+#    $Revision: 1.384 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -26,7 +26,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.383 2011/03/24 22:16:49 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.384 2011/03/26 19:50:05 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -157,6 +157,7 @@ set UseCuda = 0; # if 1 (-use-cuda), then use GPU versions of tools:
                  # mri_em_register_cuda, mri_ca_register_cuda,
                  # mris_inflate_cuda, mris_sphere_cuda
                  # mri_segstats_cuda
+set GetCuda = 0; # if 1 (-get-cuda) then print cuda info and exit
 set PialNoAparc = 0; # if 1 (-pial-noaparc), then add -noaparc flag to
                      # mris_make_surfaces to bypass usage of parcellation
 set DoNuMakeUchar = 1; # if 1, then run mri_nu_correct.mni using talairach.xfm
@@ -5147,6 +5148,12 @@ while( $#argv != 0 )
       source $FREESURFER_HOME/bin/cuda_setup
       breaksw;
 
+    case "-get-cuda":
+      set GetCuda = 1; # info dump in check_params section below
+      # then set LD_LIBRARY_PATH to distributed cuda libs
+      source $FREESURFER_HOME/bin/cuda_setup
+      breaksw;
+
     default:
       echo ERROR: Flag $flag unrecognized.
       echo $cmdline
@@ -5171,16 +5178,25 @@ arg3err:
 
 ############--------------##################
 check_params:
-  if($UseCuda) then
+  if($UseCuda || $GetCuda) then
     # test a binary
     echo "Testing for CUDA device:"
-    $FREESURFER_HOME/bin/mri_em_register_cuda --version
+    $FREESURFER_HOME/bin/mri_em_register_cuda --version \
+        | grep -v "\-\-all\-info"
     if ($status) goto error_exit;
+    echo ""
 
     # print version of installed driver
     if ( -e /proc/driver/nvidia/version) then
       echo "NVIDIA driver version info:"
       cat /proc/driver/nvidia/version | grep NVIDIA
+      echo ""
+    endif
+
+    if ($GetCuda) then
+      $FREESURFER_HOME/bin/cudadetect
+      if ($status) goto error_exit;
+      exit 0;
     endif
   endif
 
