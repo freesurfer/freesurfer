@@ -7,13 +7,14 @@
 # Note:    The csh/tcsh equivalent script is FreeSurferEnv.csh, and should
 #          be maintained to operate the same way.
 #
-# $Id: FreeSurferEnv.sh,v 1.50 2011/03/01 01:41:21 nicks Exp $
+# $Id: FreeSurferEnv.sh,v 1.51 2011/03/27 20:17:48 nicks Exp $
 #############################################################################
 
-VERSION='$Id: FreeSurferEnv.sh,v 1.50 2011/03/01 01:41:21 nicks Exp $'
+VERSION='$Id: FreeSurferEnv.sh,v 1.51 2011/03/27 20:17:48 nicks Exp $'
 
 ## Print help if --help or -help is specified
-if [[ "$1" == "--help" || "$1" == "-help" ]]; then
+if [ $# -gt 1 ]; then
+  if [[ "$1" == "--help" || "$1" == "-help" ]]; then
     echo "FreeSurferEnv.sh"
     echo ""
     echo "Purpose: Setup the environment to run FreeSurfer and FS-FAST"
@@ -48,6 +49,7 @@ if [[ "$1" == "--help" || "$1" == "-help" ]]; then
     echo "FS_FREESURFERENV_NO_OUTPUT as appropriate, and then source this"
     echo "script.  See SetUpFreeSurfer.sh for an example."
     return 0;
+  fi
 fi
 
 ## Get the name of the operating system
@@ -86,11 +88,13 @@ if [[ $output == 1 ]]; then
         echo "-------- `cat $FREESURFER_HOME/build-stamp.txt` --------"
     fi
     echo "Setting up environment for FreeSurfer/FS-FAST (and FSL)"
-    if [[ "$1" == "--version" || \
+    if [ $# -gt 1 ]; then
+      if [[ "$1" == "--version" || \
         "$1" == "--V" || \
         "$1" == "-V" || \
         "$1" == "-v" ]]; then
         echo $VERSION
+      fi
     fi
 fi
 
