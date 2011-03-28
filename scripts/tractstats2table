@@ -9,7 +9,7 @@ import fsutils
 from fsutils import TractOverallStatsParser, TractByvoxelStatsParser, BadFileError, tractlogger
 
 # Original Version - Krish Subramaniam, MGH
-# $Id: tractstats2table,v 1.1.2.4 2011/03/27 18:29:48 krish Exp $
+# $Id: tractstats2table,v 1.1.2.5 2011/03/28 00:35:44 krish Exp $
 
 # globals
 l = tractlogger
@@ -18,7 +18,7 @@ l = tractlogger
 delimiter2char = {'comma':',', 'tab':'\t', 'space':' ', 'semicolon':';'}
 
 HELPTEXT = """
-Converts a track overall stats file created by tracula and/or
+Converts a track overall stats file created by tracula 
 into a table which is used for group statistics.
 
 For a given tract, the table might contain subjects as rows and overall
@@ -62,6 +62,23 @@ The --delimiter option controls what character comes between the measures
 in the table. Valid options are 'tab' ( default), 'space', 'comma' and  'semicolon'.
 
 The -v or --debug option increases the verbosity in case of something going wrong.
+
+Example Invocation:
+    
+    tractstats2table --load-pathstats-from-file=$HOME/pathfiles.txt -o \
+    --only-measures FA_Avg Count --tablefile overall.tab
+
+This takes all the pathstats.overall.txt specified in $HOME/pathfiles.txt and outputs
+only the overall measures FA_Avg and Count of the possible measures to the output file
+overall.tab
+
+    tractstats2table --inputs bert/dpath/pathstats.byvoxel.txt \
+            fsaverage/dpath/pathstats.byvoxel.txt -b --byvoxel-measure FA\
+            --tablefile byvoxel.tab
+
+This takes the two input byvoxel statsfiles specified using the --inputs option and 
+writes the FA along the length of the pathway for both the inputs. 
+
 """
 
 def options_parse():
@@ -69,7 +86,7 @@ def options_parse():
     Command Line Options Parser for trackstats2table
     initiate the option parser and return the parsed object
     """
-    parser = optparse.OptionParser(version='$Id: tractstats2table,v 1.1.2.4 2011/03/27 18:29:48 krish Exp $', usage=HELPTEXT)
+    parser = optparse.OptionParser(version='$Id: tractstats2table,v 1.1.2.5 2011/03/28 00:35:44 krish Exp $', usage=HELPTEXT)
     
     # help text
     h_sub = '(REQUIRED) subject1 <subject2 subject3..>'
