@@ -7,9 +7,9 @@
 /*
  * Original Author: Martin Reuter
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:24 $
- *    $Revision: 1.20 $
+ *    $Author: mreuter $
+ *    $Date: 2011/03/28 22:49:04 $
+ *    $Revision: 1.21 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -2084,6 +2084,50 @@ LTA* MyMatrix::RASmatrix2LTA(const vnl_matrix_fixed < double, 4 , 4 >& m, MRI* s
 
   return ret;
 }
+
+vnl_matrix < double > MyMatrix::LTA2VOXmatrix (LTA * lta)
+{
+
+  vnl_matrix < double > M;
+  if (lta->type == LINEAR_RAS_TO_RAS )
+  {
+    LINEAR_TRANSFORM *lt = &lta->xforms[0];
+    MATRIX *m_L = MatrixCopy(lt->m_L,NULL);
+    //           sI2R
+    //     src -------> RAS
+    //      |?           | mod (input)
+    //      V            V
+    //     dst <------- RAS
+    //           dR2I
+    MATRIX *sI2R = vg_i_to_r(&lt->src);
+    MATRIX *dR2I = vg_r_to_i(&lt->dst);
+    MATRIX *tmp = 0;
+    if (sI2R==0 || dR2I==0)
+    {
+      cout << "LTAgetV2V: passed volumes did not have the info on i_to_r or r_to_i."<< endl;
+      exit (1);
+    }
+    tmp = MatrixMultiply(m_L, sI2R, NULL);
+    MatrixMultiply(dR2I, tmp, m_L); 
+    MatrixFree(&tmp);
+    MatrixFree(&sI2R);
+    MatrixFree(&dR2I);
+    M = convertMATRIX2VNL(m_L);
+    MatrixFree(&m_L);
+  }
+  else if (lta->type == LINEAR_VOX_TO_VOX )
+  {
+    M = convertMATRIX2VNL(lta->xforms[0].m_L);
+  }
+  else
+  {
+    cout << " MyMatrix::LTA2VOXmatrix ERROR lta type not supported !" << endl;
+    exit(1);
+  }
+     
+  return M;
+}
+
 
 ////// MATRIX stuff
 

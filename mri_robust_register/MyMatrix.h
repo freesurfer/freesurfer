@@ -9,9 +9,9 @@
 /*
  * Original Author: Martin Reuter
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:24 $
- *    $Revision: 1.12 $
+ *    $Author: mreuter $
+ *    $Date: 2011/03/28 22:49:04 $
+ *    $Revision: 1.13 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -116,6 +116,7 @@ public:
   static double RotMatrixLogNorm(const vnl_matrix_fixed < double, 4, 4 > &m);
   static LTA* VOXmatrix2LTA(const vnl_matrix_fixed < double, 4, 4 >&m, MRI* src, MRI* dst);
   static LTA* RASmatrix2LTA(const vnl_matrix_fixed < double, 4, 4 >&m, MRI* src, MRI* dst);
+  static vnl_matrix < double > LTA2VOXmatrix (LTA * lta);
   static void getRTfromM(const vnl_matrix_fixed < double , 4 , 4 > &m,
 	                             vnl_matrix_fixed < double , 3 , 3 > &r, 
 															 vnl_vector_fixed < double, 3 >      &t);
