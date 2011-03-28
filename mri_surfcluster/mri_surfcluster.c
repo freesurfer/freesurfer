@@ -7,8 +7,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2011/03/04 00:01:30 $
- *    $Revision: 1.51 $
+ *    $Date: 2011/03/28 15:30:23 $
+ *    $Revision: 1.52 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -67,7 +67,7 @@ static int  stringmatch(char *str1, char *str2);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_surfcluster.c,v 1.51 2011/03/04 00:01:30 greve Exp $";
+static char vcid[] = "$Id: mri_surfcluster.c,v 1.52 2011/03/28 15:30:23 greve Exp $";
 char *Progname = NULL;
 
 char *subjectdir = NULL;
@@ -163,11 +163,12 @@ double fwhm = -1;
 double fdr = -1;
 
 double cwpvalthresh = -1; // pvalue, NOT log10(p)!
+int Bonferroni = 0;
 
 /*---------------------------------------------------------------*/
 int main(int argc, char **argv) {
   char fname[2000];
-  int  n,NClusters,NPrunedClusters,vtx, rt;
+  int  n,nsearch,NClusters,NPrunedClusters,vtx, rt;
   FILE *fp;
   float totarea;
   int nargs,err;
@@ -176,7 +177,7 @@ int main(int argc, char **argv) {
   double cmaxsize;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_surfcluster.c,v 1.51 2011/03/04 00:01:30 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_surfcluster.c,v 1.52 2011/03/28 15:30:23 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -335,10 +336,10 @@ int main(int argc, char **argv) {
       }
     }
   }
-  n = 0;
+  nsearch=0;
   for (vtx = 0; vtx < srcsurf->nvertices; vtx++)
-    if(srcsurf->vertices[vtx].undefval) n++;
-  printf("number of voxels in search space = %d\n",n);
+    if(srcsurf->vertices[vtx].undefval) nsearch++;
+  printf("number of voxels in search space = %d\n",nsearch);
 
 
   /* Compute the overall max and min */
@@ -381,7 +382,7 @@ int main(int argc, char **argv) {
   if (voxwisesigfile) {
     printf("Computing voxel-wise significance\n");
     srcval = MRIcopyMRIS(NULL,srcsurf,0,"val");
-    voxwisesig = CSDpvalMaxSigMap(srcval, csd, NULL, NULL);
+    voxwisesig = CSDpvalMaxSigMap(srcval, csd, NULL, NULL, Bonferroni);
     MRIwrite(voxwisesig,voxwisesigfile);
     MRIfree(&srcval);
     MRIfree(&voxwisesig);
@@ -453,6 +454,24 @@ int main(int argc, char **argv) {
       scs[n].pval_clusterwise_hi  = 0;
     }
   }
+
+  if(Bonferroni > 0){
+    // Bonferroni correction -- generally for across spaces
+    for (n=0; n < NClusters; n++) {
+      pval = scs[n].pval_clusterwise;
+      pval = 1 - pow((1-pval),Bonferroni);
+      scs[n].pval_clusterwise = pval;
+
+      pval = scs[n].pval_clusterwise_low;
+      pval = 1 - pow((1-pval),Bonferroni);
+      scs[n].pval_clusterwise_low = pval;
+
+      pval = scs[n].pval_clusterwise_hi;
+      pval = 1 - pow((1-pval),Bonferroni);
+      scs[n].pval_clusterwise_hi = pval;
+    }
+  }
+
   /* Remove clusters that do not meet the minimum clusterwise pvalue */
   if(cwpvalthresh > 0 && (fwhm >0 || csd != NULL) ){
     printf("Pruning by CW P-Value %g\n",cwpvalthresh);
@@ -496,6 +515,9 @@ int main(int argc, char **argv) {
     fprintf(fp,"# SUBJECTS_DIR %s\n",subjectsdir);
 
     if(fdr>0) fprintf(fp,"# FDR %lf\n",fdr);
+    fprintf(fp,"# SearchSpace_mm2 %g\n",totarea);
+    fprintf(fp,"# SearchSpace_vtx %d\n",nsearch);
+    fprintf(fp,"# Bonferroni %d\n",Bonferroni);
     fprintf(fp,"# Minimum Threshold %g\n",thmin);
     if (thmax < 0)
       fprintf(fp,"# Maximum Threshold infinity\n");
@@ -674,12 +696,19 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcmp(option, "--no-fix-vertex-area")) {
       printf("Turning off fixing of vertex area\n");
       MRISsetFixVertexAreaValue(0);
-    } else if (!strcasecmp(option, "--diag")) {
+    } 
+    else if (!strcasecmp(option, "--diag")) {
       if (nargc < 1) argnerr(option,1);
       sscanf(pargv[0],"%d",&Gdiag_no);
       printf("Gdiag_no = %d\n",Gdiag_no);
       nargsused = 1;
-    } else if (!strcmp(option, "--hemi")) {
+    } 
+    else if (!strcasecmp(option, "--bonferroni")) {
+      if (nargc < 1) argnerr(option,1);
+      sscanf(pargv[0],"%d",&Bonferroni);
+      nargsused = 1;
+    } 
+    else if (!strcmp(option, "--hemi")) {
       if (nargc < 1) argnerr(option,1);
       hemi = pargv[0];
       if (!stringmatch(hemi,"lh") && !stringmatch(hemi,"rh")) {
@@ -932,6 +961,7 @@ static void print_usage(void) {
   printf("   --csd csdfile <--csd csdfile ...>\n");
   printf("   --vwsig vwsig : map of corrected voxel-wise significances\n");
   printf("   --cwsig cwsig : map of cluster-wise significances\n");
+  printf("   --bonferroni N : addition correction across N (eg, spaces)\n");
   printf("   --csdpdf csdpdffile\n");
   printf("   --csdpdf-only : write csd pdf file and exit.\n");
   printf("   --csd-out out.csd : write out merged csd files as one.\n");
@@ -1161,7 +1191,7 @@ static void print_help(void) {
     "summary file is shown below.\n"
     "\n"
     "Cluster Growing Summary (mri_surfcluster)\n"
-    "$Id: mri_surfcluster.c,v 1.51 2011/03/04 00:01:30 greve Exp $\n"
+    "$Id: mri_surfcluster.c,v 1.52 2011/03/28 15:30:23 greve Exp $\n"
     "Input :      minsig-0-lh.w\n"
     "Frame Number:      0\n"
     "Minimum Threshold: 5\n"
@@ -1367,6 +1397,7 @@ static void dump_options(FILE *fp) {
   fprintf(fp,"thmax          = %g\n",thmax);
   fprintf(fp,"fdr            = %g\n",fdr);
   fprintf(fp,"minarea        = %g\n",minarea);
+  if(Bonferroni) fprintf(fp,"Bonferroni      = %d\n",Bonferroni);
   fprintf(fp,"xfmfile        = %s\n",xfmfile);
   if (maskid != NULL) {
     fprintf(fp,"maskid         = %s %s\n",maskid, maskfmt);

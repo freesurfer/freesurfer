@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:10 $
- *    $Revision: 1.23 $
+ *    $Author: greve $
+ *    $Date: 2011/03/28 15:30:23 $
+ *    $Revision: 1.24 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -156,7 +156,7 @@ CSD *CSDreadMerge(char *csdfile, CSD *csd);
 int CSDprintHeader(FILE *fp, CLUSTER_SIM_DATA *csd);
 int CSDprint(FILE *fp, CSD *csd);
 double CSDpvalMaxSig(double val, CSD *csd);
-MRI *CSDpvalMaxSigMap(MRI *sig, CSD *csd, MRI *mask, MRI *vwsig);
+MRI *CSDpvalMaxSigMap(MRI *sig, CSD *csd, MRI *mask, MRI *vwsig, int Bonf);
 double CSDpvalClustSize(CLUSTER_SIM_DATA *csd, double ClusterSize,
                         double ciPct, double *pvalLow, double *pvalHi);
 

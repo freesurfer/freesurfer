@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2011/03/03 23:49:47 $
- *    $Revision: 1.45 $
+ *    $Date: 2011/03/28 15:30:23 $
+ *    $Revision: 1.46 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -96,7 +96,7 @@ double round(double); // why is this never defined?!?
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-  "$Id: mri_volcluster.c,v 1.45 2011/03/03 23:49:47 greve Exp $";
+  "$Id: mri_volcluster.c,v 1.46 2011/03/28 15:30:23 greve Exp $";
 char *Progname = NULL;
 
 static char tmpstr[2000];
@@ -191,7 +191,7 @@ struct utsname uts;
 char *cmdline, cwd[2000];
 char *segctabfile = NULL;
 COLOR_TABLE *segctab = NULL;
-
+int Bonferroni = 0;
 
 /*--------------------------------------------------------------*/
 /*--------------------- MAIN -----------------------------------*/
@@ -208,7 +208,7 @@ int main(int argc, char **argv) {
   nargs =
     handle_version_option
     (argc, argv,
-     "$Id: mri_volcluster.c,v 1.45 2011/03/03 23:49:47 greve Exp $",
+     "$Id: mri_volcluster.c,v 1.46 2011/03/28 15:30:23 greve Exp $",
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -355,7 +355,7 @@ int main(int argc, char **argv) {
 
   if (voxwisesigfile) {
     printf("Computing voxel-wise significance\n");
-    voxwisesig = CSDpvalMaxSigMap(vol, csd, binmask, NULL);
+    voxwisesig = CSDpvalMaxSigMap(vol, csd, binmask, NULL, Bonferroni);
     MRIwrite(voxwisesig,voxwisesigfile);
   }
 
@@ -467,6 +467,22 @@ int main(int argc, char **argv) {
       ClusterList[n]->pval_clusterwise     = pval;
     }
   }
+  if(Bonferroni > 0){
+    // Bonferroni correction -- generally for across spaces
+    for (n=0; n < nclusters; n++) {
+      pval = ClusterList[n]->pval_clusterwise;
+      pval = 1 - pow((1-pval),Bonferroni);
+      ClusterList[n]->pval_clusterwise = pval;
+
+      pval = ClusterList[n]->pval_clusterwise_low;
+      pval = 1 - pow((1-pval),Bonferroni);
+      ClusterList[n]->pval_clusterwise_low = pval;
+
+      pval = ClusterList[n]->pval_clusterwise_hi;
+      pval = 1 - pow((1-pval),Bonferroni);
+      ClusterList[n]->pval_clusterwise_hi = pval;
+    }
+  }
   /* Remove clusters that do not meet the minimum clusterwise pvalue */
   if(cwpvalthresh > 0 && (fwhm >0 || csd != NULL) ){
     printf("Pruning by CW P-Value %g\n",cwpvalthresh);
@@ -499,7 +515,11 @@ int main(int argc, char **argv) {
 
   fprintf(fpsum,"# Input Volume:      %s\n",volid);
   fprintf(fpsum,"# Frame Number:      %d\n",frame);
+  fprintf(fpsum,"# VoxSize_mm3 %g\n",voxsize);
+  fprintf(fpsum,"# SearchSpace_mm3 %g\n",searchspace);
+  fprintf(fpsum,"# SearchSpace_vox %d\n",nmask);
   fprintf(fpsum,"# Minimum Threshold: %g\n",threshmin);
+  fprintf(fpsum,"# Bonferroni %d\n",Bonferroni);
   if (threshmax < 0)
     fprintf(fpsum,"# Maximum Threshold: inifinity\n");
   else
@@ -887,7 +907,13 @@ static int parse_commandline(int argc, char **argv) {
         exit(1);
       }
       nargsused = 1;
-    } else if (!strcmp(option, "--minsize")) {
+    } 
+    else if (!strcasecmp(option, "--bonferroni")) {
+      if (nargc < 1) argnerr(option,1);
+      sscanf(pargv[0],"%d",&Bonferroni);
+      nargsused = 1;
+    } 
+    else if (!strcmp(option, "--minsize")) {
       if (nargc < 1) argnerr(option,1);
       sscanf(pargv[0],"%f",&sizethresh);
       if (sizethresh < 0) {
@@ -989,6 +1015,7 @@ static void print_usage(void) {
   printf("   --minsizevox minimum volume (voxels)\n");
   printf("   --mindist distance threshold <0>\n");
   printf("   --allowdiag  : define contiguity to include diagonal\n");
+  printf("   --bonferroni N : addition correction across N (eg, spaces)\n");
   printf("\n");
   printf("   --mask      mask volid (same dim as input)\n");
   printf("   --mask_type file format \n");

@@ -7,9 +7,9 @@
 /*
  * Original Author: Doug Greve
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:55 $
- *    $Revision: 1.50 $
+ *    $Author: greve $
+ *    $Date: 2011/03/28 15:30:23 $
+ *    $Revision: 1.51 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -46,7 +46,7 @@
   ---------------------------------------------------------------*/
 const char *vclustSrcVersion(void)
 {
-  return("$Id: volcluster.c,v 1.50 2011/03/02 00:04:55 nicks Exp $");
+  return("$Id: volcluster.c,v 1.51 2011/03/28 15:30:23 greve Exp $");
 }
 
 static int ConvertCRS2XYZ(int col, int row, int slc, MATRIX *CRS2XYZ,
@@ -1918,12 +1918,14 @@ double CSDpvalMaxSig(double val, CSD *csd)
 /*-------------------------------------------------------------------
   CSDpvalMaxSigMap() - computes the voxel-wise sig value of each voxel
   based on the CSD. The input and output are -log10(p)*sign, where
-  sign is the sign of the input value.
+  sign is the sign of the input value. Bonf is for an additional 
+  Bonferroni correction (eg, 2 for across hemisphere or 3 for across
+  hemis and subcortical).
   ------------------------------------------------------------------*/
-MRI *CSDpvalMaxSigMap(MRI *sig, CSD *csd, MRI *mask, MRI *vwsig)
+MRI *CSDpvalMaxSigMap(MRI *sig, CSD *csd, MRI *mask, MRI *vwsig, int Bonf)
 {
   int c,r,s,f,nhits,nvox;
-  double m,val,voxsig;
+  double m,val,voxsig,pval;
 
   if (vwsig == NULL) vwsig = MRIclone(sig,NULL);
 
@@ -1944,8 +1946,11 @@ MRI *CSDpvalMaxSigMap(MRI *sig, CSD *csd, MRI *mask, MRI *vwsig)
         for (f=0; f < sig->nframes; f++)
         {
           val = MRIgetVoxVal(sig,c,r,s,f);
-          if (fabs(val) > 0.0)
-            voxsig = -SIGN(val)*log10(CSDpvalMaxSig(val,csd));
+          if (fabs(val) > 0.0){
+	    pval = CSDpvalMaxSig(val,csd);
+	    if(Bonf > 0) pval = 1 - pow((1-pval),Bonf);
+            voxsig = -SIGN(val)*log10(pval);
+	  }
           else voxsig = 0;
           if (fabs(voxsig) > 0) nhits ++;
           MRIsetVoxVal(vwsig,c,r,s,f,voxsig);
