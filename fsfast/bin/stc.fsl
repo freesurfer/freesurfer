@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2009/06/29 18:38:26 $
-#    $Revision: 1.7 $
+#    $Date: 2011/03/28 20:38:31 $
+#    $Revision: 1.7.4.1 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: stc.fsl,v 1.7 2009/06/29 18:38:26 greve Exp $'
+set VERSION = '$Id: stc.fsl,v 1.7.4.1 2011/03/28 20:38:31 greve Exp $'
 set debug = 0;
 set cmdargs = ($argv);
 set PrintHelp = 0;
@@ -157,7 +157,7 @@ set intmpmat = $tmpdir/in.mat
 # Apply slicetimer
 setenv FSLOUTPUTTYPE NIFTI
 set outtmp = $tmpdir/out.nii
-set cmd = (slicetimer -i $intmp -o $outtmp --ocustom=$saof)
+set cmd = (slicetimer.fsl -i $intmp -o $outtmp --ocustom=$saof)
 pwd |& tee -a $LF
 echo $cmd  |& tee -a $LF
 $cmd  |& tee -a $LF

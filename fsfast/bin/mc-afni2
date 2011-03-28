@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2009/12/09 18:09:08 $
-#    $Revision: 1.6 $
+#    $Date: 2011/03/28 20:38:31 $
+#    $Revision: 1.6.4.1 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: mc-afni2,v 1.6 2009/12/09 18:09:08 greve Exp $';
+set VERSION = '$Id: mc-afni2,v 1.6.4.1 2011/03/28 20:38:31 greve Exp $';
 
 set invol = ();
 set outvol = ();
@@ -57,9 +57,9 @@ goto check_params;
 check_params_return:
 
 # Check that the AFNI 3dvolreg exists
-which 3dvolreg > /dev/null
+which 3dvolreg.afni > /dev/null
 if($status) then
-  echo "ERROR: cannot find AFNI command 3dvolreg"
+  echo "ERROR: cannot find AFNI command 3dvolreg.afni"
   exit 1;
 endif
 
@@ -115,7 +115,7 @@ date     >> $LF
 id       >> $LF
 hostname >> $LF
 uname -a >> $LF
-which 3dvolreg >> $LF
+which 3dvolreg.afni >> $LF
 
 echo "mcdat file is $mcdat" |& tee -a $LF
 
@@ -149,14 +149,14 @@ if($status) exit 1;
 set newoutvol = $tmpdir/outvol.nii.gz
 
 # Now, finally, do the motion correction
-set cmd = (3dvolreg -verbose -dfile $mcdat -1Dmatrix_save $matdat \
+set cmd = (3dvolreg.afni -verbose -dfile $mcdat -1Dmatrix_save $matdat \
            -base $newtempvol -prefix $newoutvol $newinvol )
 echo "#@# --------------------------------" |& tee -a $LF
 pwd       |& tee -a $LF
 echo $cmd |& tee -a $LF
 $cmd      |& tee -a $LF
 if($status) then
-  echo "ERROR: 3dvolreg" |& tee -a $LF
+  echo "ERROR: 3dvolreg.afni" |& tee -a $LF
   if($cleanup) then
     echo "... cleaning up ...."; |& tee -a $LF
     rm -r $tmpdir
