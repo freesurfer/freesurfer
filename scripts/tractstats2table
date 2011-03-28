@@ -9,7 +9,7 @@ import fsutils
 from fsutils import TractOverallStatsParser, TractByvoxelStatsParser, BadFileError, tractlogger
 
 # Original Version - Krish Subramaniam, MGH
-# $Id: tractstats2table,v 1.3 2011/03/28 00:33:23 krish Exp $
+# $Id: tractstats2table,v 1.4 2011/03/28 00:36:34 krish Exp $
 
 # globals
 l = tractlogger
@@ -86,7 +86,7 @@ def options_parse():
     Command Line Options Parser for trackstats2table
     initiate the option parser and return the parsed object
     """
-    parser = optparse.OptionParser(version='$Id: tractstats2table,v 1.3 2011/03/28 00:33:23 krish Exp $', usage=HELPTEXT)
+    parser = optparse.OptionParser(version='$Id: tractstats2table,v 1.4 2011/03/28 00:36:34 krish Exp $', usage=HELPTEXT)
     
     # help text
     h_sub = '(REQUIRED) subject1 <subject2 subject3..>'
@@ -364,8 +364,6 @@ if __name__=="__main__": # Command Line options and error checking done here
     # and merge them up, clean them up etc. More in the documentation of the fn.
     print 'Building the table..'
     r1c1, rows, columns, table = sanitize_table(options, pretable)
-    print rows
-    print columns
 
     # Write this table ( in memory ) to disk.. function uses TableWriter class
     print 'Writing the table to %s' %options.outputfile
