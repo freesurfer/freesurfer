@@ -7,21 +7,19 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2010/01/04 18:44:55 $
- *    $Revision: 1.20 $
+ *    $Author: greve $
+ *    $Date: 2011/03/28 20:27:29 $
+ *    $Revision: 1.26.2.1 $
  *
- * Copyright (C) 2002-2007,
- * The General Hospital Corporation (Boston, MA). 
- * All rights reserved.
+ * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
- * Distribution, usage and copying of this software is covered under the
- * terms found in the License Agreement file named 'COPYING' found in the
- * FreeSurfer source code root directory, and duplicated here:
- * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ * Terms and conditions for use, reproduction, distribution and contribution
+ * are found in the 'FreeSurfer Software License Agreement' contained
+ * in the file 'LICENSE' found in the FreeSurfer distribution, and here:
  *
- * General inquiries: freesurfer@nmr.mgh.harvard.edu
- * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
+ *
+ * Reporting: freesurfer@nmr.mgh.harvard.edu
  *
  */
 
@@ -65,20 +63,18 @@ int regio_read_register(char *regfile, char **subject, float *inplaneres,
   if (!stricmp(FileNameExtension(regfile, tmp), "LTA"))
   {
     LTA *lta ;
+    printf("regio_read_register: loading lta\n");
     lta = LTAread(regfile) ;
-    if (lta == NULL)
-      return(1) ;
+    if(lta == NULL) return(1) ;
+    if(lta->subject[0]==0) strcpy(lta->subject, "subject-unknown"); 
     *subject = (char *) calloc(strlen(lta->subject)+2,sizeof(char));
     strcpy(*subject, lta->subject) ;
 
     *intensity = lta->fscale ;
     *float2int = FLT2INT_ROUND ;
-    *inplaneres = lta->xforms[0].dst.xsize ;
-    *betplaneres = lta->xforms[0].dst.zsize ;
-    *R = MatrixCopy(lta->xforms[0].m_L, NULL) ;
-    if (lta->type != LINEAR_CORONAL_RAS_TO_CORONAL_RAS)
-      printf("!!! WARNING: non TKREG .lta file %s read in regio_read_register !!!\n",
-             regfile) ;
+    *inplaneres  = lta->xforms[0].src.xsize ;
+    *betplaneres = lta->xforms[0].src.zsize ;
+    *R = TransformLTA2RegDat(lta);
     LTAfree(&lta) ;
     return(0) ;
   }
@@ -198,7 +194,7 @@ int regio_print_register(FILE *fp, char *subject, float inplaneres,
   {
     for (c=0;c<4;c++)
     {
-      fprintf(fp,"%e ",R->rptr[r+1][c+1]);
+      fprintf(fp,"%18.15e ",R->rptr[r+1][c+1]);
     }
     fprintf(fp,"\n");
   }
@@ -357,7 +353,7 @@ int regio_write_mincxfm(char *xfmfile, MATRIX *R, char *fileinfo)
     return(1);
   }
   fprintf(fp,"MNI Transform File\n");
-  if (fileinfo) fprintf(fp,"%s\n",fileinfo);
+  if (fileinfo) fprintf(fp,"%% %s\n",fileinfo);
   fprintf(fp,"%% This file was created by %s\n",Progname);
   time(&time_now);
   fprintf(fp,"%% %s\n", ctime(&time_now));
@@ -477,7 +473,7 @@ regio_write_surfacexform_to_register_dat(MATRIX *B, char *fname,
 {
   MATRIX *Ta, *Sa, *invTa, *A, *R, *S, *invS, *T, *m1, *m2 ;
   MRI *mri_surf = MRIallocHeader(mris->vg.width, mris->vg.height, 
-                                 mris->vg.depth, MRI_UCHAR) ;
+                                 mris->vg.depth, MRI_UCHAR,1) ;
 
   MRIcopyVolGeomToMRI(mri_surf, &mris->vg) ;
 
@@ -509,7 +505,7 @@ regio_read_surfacexform_from_register_dat(char *fname, MRI_SURFACE *mris,
   float  pres, bres, intensity ;
   int    float2int ;
   MRI *mri_surf = MRIallocHeader(mris->vg.width, mris->vg.height, 
-                                 mris->vg.depth, MRI_UCHAR) ;
+                                 mris->vg.depth, MRI_UCHAR,1) ;
 
   if (regio_read_register(fname, subject, &pres, &bres, &intensity,&B,&float2int) != 0)
     ErrorReturn(NULL, (ERROR_NOFILE, 
