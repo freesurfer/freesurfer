@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2007/12/21 10:54:52 $
-#    $Revision: 1.14 $
+#    $Date: 2011/03/28 20:38:08 $
+#    $Revision: 1.15 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -25,7 +25,7 @@
 #
 
 
-set VERSION = '$Id: mkbrainmask,v 1.14 2007/12/21 10:54:52 greve Exp $';
+set VERSION = '$Id: mkbrainmask,v 1.15 2011/03/28 20:38:08 greve Exp $';
 
 set inputargs = ($argv);
 
@@ -60,7 +60,7 @@ check_params_return:
 
 setenv FSLOUTPUTTYPE NIFTI
 
-set FSLMATHS = fslmaths
+set FSLMATHS = fslmaths.fsl
 which $FSLMATHS > /dev/null
 if($status) then
   set FSLMATHS = avwmaths
@@ -97,7 +97,7 @@ if($status) then
 endif
 
 echo "# ---------- Using FSL's BET to Extract Brain------------------ #"
-set cmd = (bet $inimg $scratchdir/brain -m -f $thresh)
+set cmd = (bet.fsl $inimg $scratchdir/brain -m -f $thresh)
 pwd
 echo $cmd
 $cmd
