@@ -9,8 +9,8 @@
 # Original Author: Martin Reuter
 # CVS Revision Info:
 #    $Author: mreuter $
-#    $Date: 2011/03/24 16:26:42 $
-#    $Revision: 1.22 $
+#    $Date: 2011/03/28 15:38:36 $
+#    $Revision: 1.23 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -236,7 +236,7 @@ def options_parse():
     Command Line Options Parser for long_mris_slopes
     initiate the option parser and return the parsed object
     """
-    parser = optparse.OptionParser(version='$Id: long_mris_slopes,v 1.22 2011/03/24 16:26:42 mreuter Exp $', usage=HELPTEXT)
+    parser = optparse.OptionParser(version='$Id: long_mris_slopes,v 1.23 2011/03/28 15:38:36 mreuter Exp $', usage=HELPTEXT)
     
     # help text
 #    h_fsgd = '(REQUIRED) fsdg file specifying the subjects and time points'
@@ -700,8 +700,9 @@ if __name__=="__main__":
                 beta1fwhm = beta1
                 if options.do_pc1:
                     tp1fwhm = os.path.join(dirname,'tp1.mgh') 
-                    cmd = 'mri_surf2surf --hemi '+options.hemi+' --s '+tpids[0]+' --sval '+measures[0]+' --src_type curv --tval '+tp1fwhm+' --trg_type mgh'
-                    run_cmd(cmd,'mri_surf2surf converting did not work?')
+                    #cmd = 'mri_surf2surf --hemi '+options.hemi+' --s '+tpids[0]+' --sval '+measures[0]+' --src_type curv --tval '+tp1fwhm+' --trg_type mgh'
+                    cmd = 'mri_convert '+measures[0]+' '+tp1fwhm
+                    run_cmd(cmd,'mri_convert converting TP1 measure did not work?')
         
         
             # create ouput (depending on type)
