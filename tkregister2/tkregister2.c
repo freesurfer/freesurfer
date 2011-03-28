@@ -8,19 +8,20 @@
  * Original Authors: Martin Sereno and Anders Dale, 1996; Doug Greve, 2002
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2010/04/09 23:51:25 $
- *    $Revision: 1.117 $
+ *    $Date: 2011/03/28 20:25:16 $
+ *    $Revision: 1.121.2.1 $
  *
- * Copyright (C) 2002-2010, CorTechs Labs, Inc. (La Jolla, CA) and
+ * Copyright (C) 2002-2011, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA).
- * All rights reserved.
  *
- * Distribution, usage and copying of this software is covered under the
- * terms found in the License Agreement file named 'COPYING' found in the
- * FreeSurfer source code root directory, and duplicated here:
- * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ * Terms and conditions for use, reproduction, distribution and contribution
+ * are found in the 'FreeSurfer/CorTechs Software License Agreement' contained
+ * in the file 'license.cortechs.txt' found in the FreeSurfer distribution,
+ * and here:
  *
- * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferCorTechsLicense
+ *
+ * Reporting: freesurfer@nmr.mgh.harvard.edu
  *
  */
 
@@ -34,7 +35,7 @@
 
 #ifndef lint
 static char vcid[] =
-"$Id: tkregister2.c,v 1.117 2010/04/09 23:51:25 greve Exp $";
+"$Id: tkregister2.c,v 1.121.2.1 2011/03/28 20:25:16 greve Exp $";
 #endif /* lint */
 
 #ifdef HAVE_TCL_TK_GL
@@ -205,8 +206,6 @@ static int MRItagVol(MRI *mri, float val);
 #endif // HAVE_TCL_TK_GL
 static int MRIisConformant(MRI *vol);
 
-MATRIX *TransformLTA2RegDatB(LTA *lta);
-MATRIX *vg_i_to_r_tkr(const VOL_GEOM *vg);
 MATRIX *Load4x4(char *fname);
 char *Vox2VoxFName = NULL;
 MATRIX *Vox2Vox = NULL;
@@ -358,6 +357,7 @@ int use_colornorm = 0;
 int DoSlicePrescription = 0;
 
 char subjectid[1000];
+int subjectidOverride = 0;
 char *mov_vol_id = NULL;
 int   mov_vol_fmt = MRI_VOLUME_TYPE_UNKNOWN;
 char *targ_vol_id;
@@ -417,10 +417,10 @@ float int_ipr, int_bpr, int_fscale;
 int int_float2int,err;
 char *xfmfileinfo=NULL;
 
+char *ltafname = NULL;
 TRANSFORM *FSXform = NULL;
 LTA *lta = NULL;
 LT  *linxfm = NULL;
-char *ltafname;
 char *ltaoutfname=NULL;
 
 int checkreg = 0;
@@ -584,6 +584,7 @@ int Register(ClientData clientData,
       sprintf(targ_vol_path,"%s/%s/mri/%s",subjectsdir,subjectid,targ_vol_id);
       if (! fio_FileExistsReadable(targ_vol_path)) {
         printf("ERROR: could not find %s as either mgz or COR\n",targ_vol_id);
+        printf("%s\n",targ_vol_path);
         exit(1);
       }
     }
@@ -1309,7 +1310,35 @@ static int parse_commandline(int argc, char **argv) {
       if (nargc < 1) argnerr(option,1);
       regfname = pargv[0];
       nargsused = 1;
-    } else if (!strcmp(option, "--det")) {
+    } 
+    else if (!strcmp(option, "--lta")) {
+      // Having a separate flag for --lta allows conversion
+      if (nargc < 1) argnerr(option,1);
+      ltafname = pargv[0];
+      FSXform = TransformRead(ltafname);
+      if(FSXform == NULL) exit(1);
+      lta = (LTA*) FSXform->xform;
+      if(lta->type != LINEAR_RAS_TO_RAS){
+        printf("INFO: LTA input is not RAS to RAS...converting...\n");
+        lta = LTAchangeType(lta, LINEAR_RAS_TO_RAS);
+      } 
+     if(lta->type != LINEAR_RAS_TO_RAS){
+        printf("ERROR: LTA input is not RAS to RAS\n");
+        exit(1);
+      }
+      linxfm = &(lta->xforms[0]);
+      // Assume RAS2RAS and uses vox2ras from input volumes:
+      // Note: This ignores the volume geometry in the LTA file.
+      XFM = lta->xforms[0].m_L;
+      printf("lta->subject %s\n",lta->subject);
+      if(lta->subject[0] != 0) {
+	memset(subjectid,'\0',1000);
+	memmove(subjectid,lta->subject,strlen(lta->subject));
+      }
+      mkheaderreg = 1;
+      nargsused = 1;
+    } 
+    else if (!strcmp(option, "--det")) {
       if (nargc < 1) argnerr(option,1);
       DetFile = pargv[0];
       nargsused = 1;
@@ -1349,27 +1378,6 @@ static int parse_commandline(int argc, char **argv) {
       if (nargc < 1) argnerr(option,1);
       fslregfname = pargv[0];
       read_fslreg(fslregfname);
-      nargsused = 1;
-    } 
-    else if (!strcmp(option, "--lta")) {
-      if (nargc < 1) argnerr(option,1);
-      ltafname = pargv[0];
-      FSXform = TransformRead(ltafname);
-      if(FSXform == NULL) exit(1);
-      lta = (LTA*) FSXform->xform;
-      if(lta->type != LINEAR_RAS_TO_RAS){
-        printf("INFO: LTA input is not RAS to RAS...converting...\n");
-        lta = LTAchangeType(lta, LINEAR_RAS_TO_RAS);
-      }
-      if(lta->type != LINEAR_RAS_TO_RAS){
-        printf("ERROR: LTA input is not RAS to RAS\n");
-        exit(1);
-      }
-      linxfm = &(lta->xforms[0]);
-      // Assume RAS2RAS and uses vox2ras from input volumes:
-      // Note: This ignores the volume geometry in the LTA file.
-      XFM = lta->xforms[0].m_L;
-      mkheaderreg = 1;
       nargsused = 1;
     } 
     else if (!strcmp(option, "--gca-skull")) {
@@ -1474,6 +1482,7 @@ static int parse_commandline(int argc, char **argv) {
       if (nargc < 1) argnerr(option,1);
       memset(subjectid,'\0',1000);
       memmove(subjectid,pargv[0],strlen(pargv[0]));
+      subjectidOverride = 1;
       nargsused = 1;
     } else if ( !strcmp(option, "--sd") ) {
       if (nargc < 1) argnerr(option,1);
@@ -3556,7 +3565,7 @@ void  read_reg(char *fname) {
   ps_2 = ipr;
   st_2 = bpr;
   if (fscale_2 == 0) fscale_2 = fscale;
-  strcpy(subjectid,tmpstr);
+  if(subjectidOverride == 0) strcpy(subjectid,tmpstr);
 
   for (i=0;i<4;i++) {
     for (j=0;j<4;j++) {
@@ -3627,50 +3636,27 @@ void write_reg(char *fname) {
   if(fname != NULL){
     if(fscale_2 == 0.0) fscale_2 = .1;
     make_backup(fname);
-#if 1
-    // BRF - use lta code
     {
       LTA *lta = LTAalloc(1, NULL) ;
       strcpy(lta->subject, pname) ;
       lta->fscale = fscale_2 ;
       lta->xforms[0].m_L = MatrixCopy(RegMatTmp, NULL) ;
-      lta->xforms[0].src.xsize = mov_vol->xsize;
-      lta->xforms[0].src.ysize = mov_vol->ysize;
-      lta->xforms[0].src.zsize = mov_vol->zsize;
-      lta->type = LINEAR_CORONAL_RAS_TO_CORONAL_RAS ;
-      if (LTAwrite(lta, fname) != NO_ERROR)
+      getVolGeom(mov_vol,   &lta->xforms[0].src);
+      getVolGeom(targ_vol0, &lta->xforms[0].dst);
+      lta->type = REGISTER_DAT;
+      //lta = LTAchangeType(lta, LINEAR_VOX_TO_VOX);
+      if(LTAwrite(lta, fname) != NO_ERROR)
         printf("register: ### can't create file %s\n",fname);
       LTAfree(&lta) ;
-        
     }
-#else
-    fp = fopen(fname,"w");
-    if (fp==NULL) {
-      printf("register: ### can't create file %s\n",fname);
-      return;
-    }
-    fprintf(fp,"%s\n",pname);
-    fprintf(fp,"%f\n",ps_2);
-    fprintf(fp,"%f\n",st_2);
-    fprintf(fp,"%f\n",fscale_2);
-    for (i=0;i<4;i++) {
-      for (j=0;j<4;j++)
-	//fprintf(fp,"%e ",tm[i][j]);
-	fprintf(fp,"%e ",RegMatTmp->rptr[i+1][j+1]);
-      fprintf(fp,"\n");
-    }
-    fprintf(fp,"round\n");
-    printf("register: file %s written\n",fname);
-    fclose(fp);
-#endif
   }    
 
   if(fslregoutfname != NULL) write_fslreg(fslregoutfname);
   if(freeviewfname != NULL) write_freeviewreg(freeviewfname);
-  if(xfmoutfname != NULL) write_xfmreg(xfmoutfname);
   if(ltaoutfname != NULL) write_lta(ltaoutfname);
 
-  if(fstal) {
+  if(xfmoutfname != NULL) write_xfmreg(xfmoutfname);
+  else if(fstal) {
     if(ZeroCRAS){
       printf("UnZeroing CRAS for fstal output xfm\n");
       RegMatTmp = MatrixMultiply(RegMatTmp,invMcras0,RegMatTmp);
@@ -3818,49 +3804,23 @@ void write_xfmreg(char *fname) {
 /*-----------------------------------------------------*/
 void write_lta(char *fname) {
   extern MRI *mov_vol, *targ_vol0;
-  extern MATRIX *RegMat;
+  extern MATRIX *RegMat, *Mtc;
+  extern char *pname;
   LTA              *lta ;
-  LINEAR_TRANSFORM *lt ;
-  MATRIX *Mxfm=NULL, *RegMatTmp=NULL;
-  VOL_GEOM srcG, dstG;
-  FILE *fp;
+  MATRIX *RegMatTmp=NULL;
 
   RegMatTmp = MatrixMultiply(RegMat,Mtc,NULL);
-  Mxfm = MRItkReg2Native(targ_vol0, mov_vol, RegMatTmp);
-
   lta = LTAalloc(1, NULL) ;
-  lt = &lta->xforms[0] ;
-  lt->sigma = 1.0f ;
-  lt->x0 = lt->y0 = lt->z0 = 0 ;
-  lta->type = LINEAR_RAS_TO_RAS;
-  lt->m_L = MatrixCopy(Mxfm,NULL);
-
-  getVolGeom(mov_vol,   &srcG);
-  getVolGeom(targ_vol0, &dstG);
-
-  // On 5/18/07 this was the code. It seems so obviously wrong
-  // that I wonder if I originally did it intentionally for some 
-  // reason that I now cannot remember. This only affects the 
-  // volume geometry, so any software that ignores the VG will
-  // be unaffected (eg, when reading the LTA back into tkregister2,
-  // I think scuba probably ignores it too).
-  //lta->xforms[0].src = dstG;
-  //lta->xforms[0].dst = srcG;
-  // Here's the new code
-  lta->xforms[0].src = srcG;
-  lta->xforms[0].dst = dstG;
-
-  fp = fopen(fname,"w");
-  if(!fp){
-    printf("ERROR: cannot open %s for writing\n",fname);
-    exit(1);
-  }
-  LTAprint(fp, lta);
-
-  MatrixFree(&Mxfm);
-  MatrixFree(&RegMatTmp);
-  LTAfree(&lta);
-
+  strcpy(lta->subject, pname) ;
+  lta->fscale = fscale_2 ;
+  lta->xforms[0].m_L = MatrixCopy(RegMatTmp, NULL) ;
+  getVolGeom(mov_vol,   &lta->xforms[0].src);
+  getVolGeom(targ_vol0, &lta->xforms[0].dst);
+  lta->type = REGISTER_DAT;
+  lta = LTAchangeType(lta, LINEAR_VOX_TO_VOX);
+  if (LTAwrite(lta, fname) != NO_ERROR)
+    printf("register: ### can't create file %s\n",fname);
+  LTAfree(&lta) ;
   return;
 }
 
@@ -4903,7 +4863,7 @@ int main(argc, argv)   /* new main */
   nargs =
     handle_version_option
     (argc, argv,
-     "$Id: tkregister2.c,v 1.117 2010/04/09 23:51:25 greve Exp $", "$Name:  $");
+     "$Id: tkregister2.c,v 1.121.2.1 2011/03/28 20:25:16 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -4920,7 +4880,7 @@ int main(argc, argv)   /* new main */
     exit(1);
   }
   if(tkregister_tcl == NULL){
-    sprintf(tmpstr,"%s/lib/tcl/%s",envptr,"tkregister2.tcl");
+    sprintf(tmpstr,"%s/tktools/%s",envptr,"tkregister2.tcl");
     tkregister_tcl = strcpyalloc(tmpstr);
   }
   printf("tkregister_tcl %s\n",tkregister_tcl);
@@ -5234,17 +5194,6 @@ static int MRIisConformant(MRI *vol) {
   return(1);
 }
 
-
-MATRIX *vg_i_to_r_tkr(const VOL_GEOM *vg)
-{
-  MATRIX *mat =0;
-  MRI *tmp = 0;
-  tmp = MRIallocHeader(vg->width, vg->height, vg->depth, MRI_UCHAR);
-  useVolGeomToMRI(vg, tmp);
-  mat = MRIxfmCRS2XYZtkreg(tmp);
-  MRIfree(&tmp);
-  return mat;
-}
 
 /*!
   \fn MATRIX *Load4x4(char *fname)
