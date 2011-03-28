@@ -364,6 +364,8 @@ install-data-hook:
 			cp -f $(FSLDIR)/bin/fslmaths $(DESTDIR)$(bindir)/fslmaths.fsl ; \
 			cp -f $(FSLDIR)/bin/slicetimer $(DESTDIR)$(bindir)/slicetimer.fsl ; \
 			cp -f $(FSLDIR)/bin/bet $(DESTDIR)$(bindir)/bet.fsl ; \
+			cp -f $(FSLDIR)/bin/fslswapdim $(DESTDIR)$(bindir)/fslswapdim.fsl ; \
+			cp -f $(FSLDIR)/bin/fslorient $(DESTDIR)$(bindir)/fslorient.fsl ; \
 		fi; \
 	fi;
 	if test ! "x$(AFNIDIR)" = "x" ; then \
