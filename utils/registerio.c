@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2011/03/16 17:31:44 $
- *    $Revision: 1.26 $
+ *    $Author: greve $
+ *    $Date: 2011/03/28 20:27:03 $
+ *    $Revision: 1.27 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -353,7 +353,7 @@ int regio_write_mincxfm(char *xfmfile, MATRIX *R, char *fileinfo)
     return(1);
   }
   fprintf(fp,"MNI Transform File\n");
-  if (fileinfo) fprintf(fp,"%s\n",fileinfo);
+  if (fileinfo) fprintf(fp,"%% %s\n",fileinfo);
   fprintf(fp,"%% This file was created by %s\n",Progname);
   time(&time_now);
   fprintf(fp,"%% %s\n", ctime(&time_now));
