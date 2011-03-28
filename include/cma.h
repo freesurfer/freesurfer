@@ -9,19 +9,18 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2010/04/05 21:01:35 $
- *    $Revision: 1.52 $
+ *    $Date: 2011/03/28 01:50:42 $
+ *    $Revision: 1.55.2.1 $
  *
- * Copyright (C) 2002-2010,
- * The General Hospital Corporation (Boston, MA). 
- * All rights reserved.
+ * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
- * Distribution, usage and copying of this software is covered under the
- * terms found in the License Agreement file named 'COPYING' found in the
- * FreeSurfer source code root directory, and duplicated here:
- * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ * Terms and conditions for use, reproduction, distribution and contribution
+ * are found in the 'FreeSurfer Software License Agreement' contained
+ * in the file 'LICENSE' found in the FreeSurfer distribution, and here:
  *
- * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
+ *
+ * Reporting: freesurfer@nmr.mgh.harvard.edu
  *
  */
 
@@ -268,12 +267,32 @@ extern "C" {
 #define left_subiculum 557  //                          0   119 86  0
 #define left_fornix 558  //                             20  100 201 0
 
+#define   lh_cst 5100 //                                           120 20  134 0
+#define   rh_cst 5101 //                                           120 20  134 0
+#define   lh_ilf 5102 //                                           236 15  176 0
+#define   rh_ilf 5103 //                                           236 15  176 0
+#define   lh_unc 5104 //                                           12  50  255 0
+#define   rh_unc 5105 //                                           12  50  255 0
+#define   fmajor 5106 //                                           255 5106 // 167 0   0
+#define   fminor 5107 //                                           255 5107 // 167 0   0
+#define   lh_atr 5108 //                                           232 147 33  0
+#define   rh_atr 5109 //                                           232 148 33  0
+#define   lh_ccg 5110 //                                           121 185 220 0
+#define   rh_ccg 5111 //                                           121 186 220 0
+#define   lh_cab 5112 //                                           220 252 163 0
+#define   rh_cab 5113 //                                           220 253 163 0
+#define   lh_slf 5114 //_                                          3   148 6   0
+#define   rh_slf 5115 //_                                          3   149 6   0
+#define   lh_slft 5116 //                                          42  205 167 0
+#define   rh_slft 5117 //                                          42  206 167 0
+
+
 #define Tumor       600 //                              253 253 253 0
 #define SUSPICIOUS 999 //                               255 100 100 0
 
 // be sure to update MAX_LABEL if additional labels are added!
 
-#define MAX_LABEL SUSPICIOUS
+#define MAX_LABEL rh_slft
 #define MAX_CMA_LABEL (MAX_LABEL)
 #define MAX_CMA_LABELS (MAX_CMA_LABEL+1)
 
@@ -344,7 +363,8 @@ typedef struct
 {
   int width, height;
   CMAoutlineClaim **claim_field;
-  unsigned char **fill_field;
+  //unsigned char **fill_field;
+  short **fill_field;
   unsigned char **outline_points_field;
 }
 CMAoutlineField;
@@ -383,6 +403,76 @@ double SupraTentorialVolCorrection(MRI *aseg, MRI *ribbon);
 #define GM_CLASS         1
 #define WM_CLASS         2
 #define NTISSUE_CLASSES  3
+#define LH_CLASS         4
+#define RH_CLASS         5
+#define FLUID_CLASS      6
+#define OTHER_CLASS      7
+
+#define IS_GRAY_MATTER(l) (         \
+   ((l) == Left_Cerebral_Cortex) || \
+   ((l) == Left_Hippocampus) || \
+   ((l) == Left_Amygdala) || \
+   ((l) == Left_Putamen) || \
+   ((l) == Left_Caudate) || \
+   ((l) == Left_Cerebellum_Cortex) || \
+   ((l) == Left_Accumbens_area) || \
+   ((l) == Right_Cerebral_Cortex) || \
+   ((l) == Right_Hippocampus) || \
+   ((l) == Right_Amygdala) || \
+   ((l) == Right_Putamen) || \
+   ((l) == Right_Caudate) || \
+   ((l) == Right_Cerebellum_Cortex) || \
+   ((l) == Right_Accumbens_area))
+
+#define IS_WHITE_MATTER(l) (         \
+   ((l) == Left_Cerebellum_White_Matter) || \
+   ((l) == Left_Cerebral_White_Matter) || \
+   ((l) == Right_Cerebellum_White_Matter) || \
+   ((l) == Right_Cerebral_White_Matter))
+
+#define IS_FLUID(l) (         \
+   ((l) == Left_Lateral_Ventricle) || \
+   ((l) == Left_Inf_Lat_Vent) || \
+   ((l) == Right_Lateral_Ventricle) || \
+   ((l) == Right_Inf_Lat_Vent) || \
+   ((l) == Unknown))
+
+
+#define IS_LH_CLASS(l) (\
+   ((l) == Left_Cerebral_Cortex) || \
+   ((l) == Left_Cerebral_White_Matter) || \
+   ((l) == Left_Hippocampus) || \
+   ((l) == Left_Amygdala) || \
+   ((l) == Left_Putamen) || \
+   ((l) == Left_Pallidum) || \
+   ((l) == Left_Caudate) || \
+   ((l) == Left_Lateral_Ventricle) || \
+   ((l) == Left_Inf_Lat_Vent) || \
+   ((l) == Left_Cerebellum_Cortex) || \
+   ((l) == Left_Cerebellum_White_Matter) || \
+   ((l) == Left_Thalamus_Proper) || \
+   ((l) == Left_vessel) || \
+   ((l) == Left_choroid_plexus) || \
+   ((l) == Left_VentralDC) || \
+   ((l) == Left_Accumbens_area))
+
+#define IS_RH_CLASS(l) (\
+   ((l) == Right_Cerebral_Cortex) || \
+   ((l) == Right_Cerebral_White_Matter) || \
+   ((l) == Right_Hippocampus) || \
+   ((l) == Right_Amygdala) || \
+   ((l) == Right_Putamen) || \
+   ((l) == Right_Pallidum) || \
+   ((l) == Right_Caudate) || \
+   ((l) == Right_Lateral_Ventricle) || \
+   ((l) == Right_Inf_Lat_Vent) || \
+   ((l) == Right_Cerebellum_Cortex) || \
+   ((l) == Right_Cerebellum_White_Matter) || \
+   ((l) == Right_Thalamus_Proper) || \
+   ((l) == Right_vessel) || \
+   ((l) == Right_choroid_plexus) || \
+   ((l) == Right_VentralDC) || \
+   ((l) == Right_Accumbens_area))
 
 
 // only structures that are 'pure' of one tissue type
