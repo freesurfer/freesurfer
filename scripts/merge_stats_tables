@@ -9,8 +9,8 @@
 # Original Author: Martin Reuter
 # CVS Revision Info:
 #    $Author: mreuter $
-#    $Date: 2011/03/24 16:29:29 $
-#    $Revision: 1.1.2.2 $
+#    $Date: 2011/03/28 16:23:02 $
+#    $Revision: 1.1.2.3 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -127,7 +127,7 @@ def options_parse():
     Command Line Options Parser for asegstats2table
     initiate the option parser and return the parsed object
     """
-    parser = optparse.OptionParser(version='$Id: merge_stats_tables,v 1.1.2.2 2011/03/24 16:29:29 mreuter Exp $', usage=HELPTEXT)
+    parser = optparse.OptionParser(version='$Id: merge_stats_tables,v 1.1.2.3 2011/03/28 16:23:02 mreuter Exp $', usage=HELPTEXT)
     
     # help text
     h_sub = '(REQUIRED) subject1 <subject2 subject3..>'
@@ -476,8 +476,8 @@ if __name__=="__main__":
 
             # read in table (later also check segnos, no_segnos, maxsegnos etc)
             measure,cols,rows,data = parse_stats_table(filepath)
-            print 'cols in '+filepath+' : \n'+str(cols)
-            print
+            #print 'cols in '+filepath+' : \n'+str(cols)
+            #print
             
 
 #            parsed = AsegStatsParser(filepath)
@@ -512,12 +512,12 @@ if __name__=="__main__":
     print 'Building the table..'
     rows, columns, table = sanitize_table(options, pretable)
     
-    print "rows: "+str(rows)
-    print
-    print "columns: "+str(columns)
-    print
-    print "table: " +str(table)
-    print
+    #print "rows: "+str(rows)
+    #print
+    #print "columns: "+str(columns)
+    #print
+    #print "table: " +str(table)
+    #print
 
     # Write this table ( in memory ) to disk.. function uses TableWriter class
     print 'Writing the table to %s' %options.outputfile
