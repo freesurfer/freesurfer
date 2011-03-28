@@ -1,5 +1,5 @@
 #!/bin/tcsh -f
-set VERSION = '$Id: mri_glmfit-sim,v 1.28 2010/07/26 18:34:11 greve Exp $';
+set VERSION = '$Id: mri_glmfit-sim,v 1.36.2.1 2011/03/28 15:46:10 greve Exp $';
 
 set inputargs = ($argv);
 
@@ -23,6 +23,9 @@ set DiagCluster = 0;
 set PBNodeType = ();
 set UseCache = 0;
 set PermForce = 0;
+set UseGRF = 0;
+set volsubject = fsaverage;
+set Bonferroni = 0;
 
 set nJobs = 1;
 set DoBackground = 0;
@@ -100,7 +103,8 @@ set wls = ();
 set glmfitcwd = `cat $glmfitlog | awk '{if($1 == "cwd") print $2}'`
 
 # Go through the original mri_glmfit command-line
-set glmfitcmd = `cat $glmfitlog | awk '{if($1 == "cmdline") print $0}'`
+set glmfitcmd0 = `cat $glmfitlog | awk '{if($1 == "cmdline") print $0}'`
+set glmfitcmd = ($glmfitcmd0);
 echo $glmfitcmd
 set gd2mtx = dods
 set label = ();
@@ -109,6 +113,7 @@ while($#glmfitcmd)
   #echo $flag
   switch($flag)
   case "--surf"
+  case "--surface"
     set subject = $glmfitcmd[1]; shift glmfitcmd;
     set hemi    = $glmfitcmd[1]; shift glmfitcmd;
     set anattype = surface;
@@ -164,10 +169,14 @@ while($#glmfitcmd)
   case "--debug"
   case "--synth"
   case "--cortex"
+  case "--kurtosis"
+  case "--nii"
+  case "--nii.gz"
   case "dods"
     breaksw
-  # Ignore these options that have one args
+  # Ignore these options that have one arg
   case "--glmdir"
+  case "--o"
   case "--C"
   case "--X"
   case "--w"
@@ -189,6 +198,17 @@ while($#glmfitcmd)
     breaksw 
   endsw
 end
+
+if($UseGRF && $anattype != volume) then
+  echo "ERROR: can only use --grf with volume"
+  exit 1;
+endif
+if($UseGRF) then
+  set csdbase = "grf.th$thresh.$simsign"
+  #set tmp = `echo "$thresh*10"|bc -l`
+  #set tmp = `printf %02d $tmp`
+  #set csdbase = "grf.th$tmp.$simsign"
+endif
 
 # Make sure the subject exists
 if($#subject != 0) then
@@ -264,6 +284,10 @@ uname -a | tee -a $LF
 echo $user | tee -a $LF
 echo "setenv SUBJECTS_DIR $SUBJECTS_DIR" | tee -a $LF
 echo "FREESURFER_HOME $FREESURFER_HOME" | tee -a $LF
+echo "" | tee -a $LF
+echo "Original mri_glmfit command line:" | tee -a $LF
+echo $glmfitcmd0 | tee -a $LF
+echo "" | tee -a $LF
 echo "DoSim = $DoSim" | tee -a $LF
 echo "UseCache = $UseCache" | tee -a $LF
 echo "DoPoll = $DoPoll" | tee -a $LF
@@ -448,26 +472,31 @@ endif
 # -------------- now run clustering -------------------- #
 foreach conname ($conlist)
 
-  if($UseCache) then
-    set csdfiles = ($csdCache)
-  else
-    ls $glmdir/csd/$csdbase.j???-$conname.csd >& /dev/null
-    if($status) then
-      echo "ERROR: cannot find any csd files"| tee -a $LF
-      exit 1; 
+  set csdlist = ();
+  if(! $UseGRF) then
+    if($UseCache) then
+      set csdfiles = ($csdCache)
+    else
+      ls $glmdir/csd/$csdbase.j???-$conname.csd >& /dev/null
+      if($status) then
+        echo "ERROR: cannot find any csd files"| tee -a $LF
+        exit 1; 
+      endif
+      set csdfiles = ($glmdir/csd/$csdbase.j???-$conname.csd)
     endif
-    set csdfiles = ($glmdir/csd/$csdbase.j???-$conname.csd)
+
+    set csdlist = ();
+    foreach csd ($csdfiles)
+      set csdlist = ($csdlist --csd $csd);
+    end
   endif
 
-  set csdlist = ();
-  foreach csd ($csdfiles)
-    set csdlist = ($csdlist --csd $csd);
-  end
-
   set sig = `stem2fname $glmdir/$conname/sig`
-  set vwsig = $glmdir/$conname/$csdbase.sig.voxel.mgh
-  set cwsig = $glmdir/$conname/$csdbase.sig.cluster.mgh
-  set ocn   = $glmdir/$conname/$csdbase.sig.ocn.mgh
+  set ext = `fname2ext $sig`
+  set vwsig = $glmdir/$conname/$csdbase.sig.voxel.$ext
+  set cwsig = $glmdir/$conname/$csdbase.sig.cluster.$ext
+  set msig  = $glmdir/$conname/$csdbase.sig.masked.$ext
+  set ocn   = $glmdir/$conname/$csdbase.sig.ocn.$ext
   set annot = $glmdir/$conname/$csdbase.sig.ocn.annot
   set sum   = $glmdir/$conname/$csdbase.sig.cluster.summary
   set csdpdf = $glmdir/$conname/$csdbase.pdf.dat
@@ -476,7 +505,8 @@ foreach conname ($conlist)
     set cmd = (mri_surfcluster --in $sig $csdlist --mask $mask \
       --cwsig $cwsig --vwsig $vwsig --sum $sum --ocn $ocn \
       --oannot $annot --annot aparc --csdpdf $csdpdf \
-      --cwpvalthresh $cwpvalthresh)
+      --cwpvalthresh $cwpvalthresh --o $msig --no-fixmni)
+    if($Bonferroni) set cmd = ($cmd --bonferroni $Bonferroni)
     set cmd = ($cmd --surf $surf); # bug to have to do this
     echo $cmd | tee -a $LF
     $cmd | tee -a $LF
@@ -492,12 +522,38 @@ foreach conname ($conlist)
   endif
 
   if($anattype == volume) then
-    set cmd = (mri_volcluster --in $sig $csdlist --mask $mask \
-      --cwsig $cwsig --vwsig $vwsig --sum $sum --ocn $ocn \
-      --csdpdf $csdpdf --cwpvalthresh $cwpvalthresh)
+    set reg = $FREESURFER_HOME/subjects/$volsubject/mri.2mm/reg.2mm.dat 
+    set aseg = aparc+aseg.mgz
+    if(! -e $FREESURFER_HOME/subjects/$volsubject/mri/$aseg) set aseg = aseg.mgz
+    set cmd = (mri_volcluster --in $sig --mask $mask --reg $reg --no-fixmni\
+      --cwsig $cwsig --sum $sum --ocn $ocn --cwpvalthresh $cwpvalthresh \
+      --seg $volsubject $aseg)
+    if($Bonferroni) set cmd = ($cmd --bonferroni $Bonferroni)
+    if(! $UseGRF) set cmd = ($cmd --csdpdf $csdpdf $csdlist --vwsig $vwsig )
+    if($UseGRF)   set cmd = ($cmd --fwhmdat $glmdir/fwhm.dat --sign $simsign --thmin $thresh)
     echo $cmd | tee -a $LF
     $cmd | tee -a $LF
     if($status) exit 1;
+
+    # Create an average "waveform" for each cluster
+    set avgwf = $glmdir/$conname/$csdbase.y.ocn.dat
+    set cmd = (mri_segstats --seg $ocn --exclude 0 --i $y \
+     --avgwf $avgwf --sum /tmp/mri_glmfit-sim.junk.$$)
+    echo $cmd | tee -a $LF
+    $cmd | tee -a $LF
+    if($status) exit 1;
+    rm -f /tmp/mri_glmfit-sim.junk.$$
+
+    if($UseGRF) then
+      set ocnanat = $glmdir/$conname/$csdbase.sig.ocn.anat.$ext
+      set cmd = (mri_vol2vol --interp nearest --mov $ocn --regheader \
+        --targ $SUBJECTS_DIR/fsaverage/mri/orig.mgz \
+        --o $ocnanat --no-save-reg)
+      echo $cmd | tee -a $LF
+      $cmd | tee -a $LF
+      if($status) exit 1;
+    endif
+
   endif
 
   # For some reason cwsig has 4 frames, just take 1st
@@ -539,6 +595,7 @@ while( $#argv != 0 )
       set simsign = $argv[1]; shift;
       set UseCache = 1;
       set DoSim = 0;
+      set thresh = `printf %2.1f $thresh`
       if($thresh != 1.3 && $thresh != 2.0 && $thresh != 2.3 && \
          $thresh != 3.0 && $thresh != 3.3 && $thresh != 4.0) then
          echo "ERROR: thresh = $thresh, must be 1.3, 2.0, 2.3, 3.0, 3.3, 4.0"
@@ -554,6 +611,23 @@ while( $#argv != 0 )
     case "--cache-label":
       if( $#argv < 1) goto arg1err;
       set CacheLabel = $argv[1]; shift;
+      breaksw
+
+    case "--vol-subject":
+      if( $#argv < 1) goto arg1err;
+      set volsubject = $argv[1]; shift;
+      breaksw
+
+    case "--grf":
+      if( $#argv < 2) goto arg2err;
+      set thresh = $argv[1]; shift;
+      set simsign = $argv[1]; shift;
+      if($simsign != pos && $simsign != neg) then
+        echo "ERROR: must use pos or neg with --grf"
+        exit 1;
+      endif
+      set UseGRF = 1;
+      set DoSim = 0;
       breaksw
 
     case "--sim":
@@ -627,6 +701,17 @@ while( $#argv != 0 )
     case "--tmp":
       if($#argv < 1) goto arg1err;
       set tmpdir = $argv[1]; shift;
+      breaksw
+
+    case "--bonferroni":
+      if($#argv < 1) goto arg1err;
+      set Bonferroni = $argv[1]; shift;
+      breaksw
+    case "--2spaces":
+      set Bonferroni = 2;
+      breaksw
+    case "--3spaces":
+      set Bonferroni = 3;
       breaksw
 
     case "--cwpvalthresh":
@@ -731,8 +816,13 @@ usage_exit:
   echo "   --cache-dir dir : default is FREESURFER_HOME/average/mult-comp-cor"
   echo "   --cache-label label : default is cortex"
   echo ""
-  echo " --sim nulltype nsim threshhold csdbase"
+  echo " --grf threshold sign : -log10(p) and pos or neg (volumes only)"
+  echo ""
+  echo " --sim nulltype nsim threshold csdbase"
   echo " --sim-sign sign : <abs>,pos,neg"
+  echo ""
+  echo " --2spaces : additional Bonferroni correction across 2 spaces (eg, lh, rh)"
+  echo " --3spaces : additional Bonferroni correction across 3 spaces (eg, lh, rh, mni305)"
   echo ""
   echo " --overwrite : delete previous CSDs"
   echo " --bg njobs : divide sim into njobs and put in background"
@@ -844,6 +934,7 @@ csdbase.sig.cluster.summary
 csdbase.y.ocn.dat
 csdbase.sig.ocn.mgh
 csdbase.sig.ocn.annot (for surfaces only)
+csdbase.sig.masked.mgh 
 
 csdbase.sig.voxel.mgh - the sig volume corrected for multiple
 comparisons on a voxel-wise basis. The threshhold and sign are
@@ -874,6 +965,9 @@ with the annotation name being the cluster number. This can be
 used like any other annotation (eg, to load into tksurfer or 
 as input for mri_segstats or mris_anatomical_stats).
 
+csdbase.sig.masked.mgh - the original sig volume masked to show
+only clusters.
+
 OTHER OPTIONS
 
 --overwrite
@@ -890,8 +984,10 @@ some reason, this will never quit because it looks for a file created
 by the simulation job before continuing. If this file is not created,
 then it will keep polling for this file forever. ALSO: if you are not
 running on a computer with multiple nodes, then this will not make it
-run any faster (in fact, it will run slower). You can stop backgrounded
-jobs creating a file called glmdir/csd/poll/StopSim.
+run any faster (in fact, it will run slower). You can stop
+backgrounded jobs creating a file called glmdir/csd/poll/StopSim. If
+you are in the Martinos center, do not attempt to use --bg on the
+launchpad computational cluster.
 
 --cwpvalthresh cwpvalthresh
 
@@ -899,6 +995,19 @@ Only report clusters that have p < cwpvalthresh. Default is .05. If you
 want to change this after running a simulation, you do not need to 
 re-run the entire simulation. Just run mri_glmfit with the --no-sim
 option.
+
+--2spaces
+--3spaces
+
+This adds an addition correction for multiple comparisons for when the
+current correction is part of a larger analysis. For example, if you
+are doing a structural study looking at both the left and the right
+hemispheres, mri_glmfit-sim must be run separately for each
+hemisphere. By default, it will give you p-values corrected only for
+one hemisphere. To correct for both hemispheres use --2spaces. For an
+fMRI study in which you are using both hemispheres and subcortical
+structures, then use --3spaces. The correction applied is Bonferroni
+(N=2 for --2spaces and N=3 for --3spaces).
 
 --no-sim csdbase
 
