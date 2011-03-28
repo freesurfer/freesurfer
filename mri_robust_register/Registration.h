@@ -7,9 +7,9 @@
 /*
  * Original Author: Martin Reuter
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:24 $
- *    $Revision: 1.37 $
+ *    $Author: mreuter $
+ *    $Date: 2011/03/28 22:22:06 $
+ *    $Revision: 1.38 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -371,7 +371,7 @@ void Registration::iterativeRegistrationHelper( int nmax,double epsit, MRI * mri
       mh  = MyMatrix::MatrixSqrt(fmd.first); //!! symmetry slighlty destroyed here? !!
 
 			// test if we moved out of our space
-			if (rigid)
+			if (rigid && Minit.empty()) // if minit was passed, it might be an affine initialization
 			{
 			  vnl_matrix < double > R(3,3),S(3,3),A(3,3),I(3,3);
 				I.set_identity();
