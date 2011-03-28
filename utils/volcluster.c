@@ -8,20 +8,18 @@
  * Original Author: Doug Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2010/04/09 14:43:09 $
- *    $Revision: 1.49 $
+ *    $Date: 2011/03/28 15:32:36 $
+ *    $Revision: 1.50.2.1 $
  *
- * Copyright (C) 2002-2007,
- * The General Hospital Corporation (Boston, MA). 
- * All rights reserved.
+ * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
- * Distribution, usage and copying of this software is covered under the
- * terms found in the License Agreement file named 'COPYING' found in the
- * FreeSurfer source code root directory, and duplicated here:
- * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ * Terms and conditions for use, reproduction, distribution and contribution
+ * are found in the 'FreeSurfer Software License Agreement' contained
+ * in the file 'LICENSE' found in the FreeSurfer distribution, and here:
  *
- * General inquiries: freesurfer@nmr.mgh.harvard.edu
- * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
+ *
+ * Reporting: freesurfer@nmr.mgh.harvard.edu
  *
  */
 
@@ -48,7 +46,7 @@
   ---------------------------------------------------------------*/
 const char *vclustSrcVersion(void)
 {
-  return("$Id: volcluster.c,v 1.49 2010/04/09 14:43:09 greve Exp $");
+  return("$Id: volcluster.c,v 1.50.2.1 2011/03/28 15:32:36 greve Exp $");
 }
 
 static int ConvertCRS2XYZ(int col, int row, int slc, MATRIX *CRS2XYZ,
@@ -1920,12 +1918,14 @@ double CSDpvalMaxSig(double val, CSD *csd)
 /*-------------------------------------------------------------------
   CSDpvalMaxSigMap() - computes the voxel-wise sig value of each voxel
   based on the CSD. The input and output are -log10(p)*sign, where
-  sign is the sign of the input value.
+  sign is the sign of the input value. Bonf is for an additional 
+  Bonferroni correction (eg, 2 for across hemisphere or 3 for across
+  hemis and subcortical).
   ------------------------------------------------------------------*/
-MRI *CSDpvalMaxSigMap(MRI *sig, CSD *csd, MRI *mask, MRI *vwsig)
+MRI *CSDpvalMaxSigMap(MRI *sig, CSD *csd, MRI *mask, MRI *vwsig, int Bonf)
 {
   int c,r,s,f,nhits,nvox;
-  double m,val,voxsig;
+  double m,val,voxsig,pval;
 
   if (vwsig == NULL) vwsig = MRIclone(sig,NULL);
 
@@ -1946,8 +1946,11 @@ MRI *CSDpvalMaxSigMap(MRI *sig, CSD *csd, MRI *mask, MRI *vwsig)
         for (f=0; f < sig->nframes; f++)
         {
           val = MRIgetVoxVal(sig,c,r,s,f);
-          if (fabs(val) > 0.0)
-            voxsig = -SIGN(val)*log10(CSDpvalMaxSig(val,csd));
+          if (fabs(val) > 0.0){
+	    pval = CSDpvalMaxSig(val,csd);
+	    if(Bonf > 0) pval = 1 - pow((1-pval),Bonf);
+            voxsig = -SIGN(val)*log10(pval);
+	  }
           else voxsig = 0;
           if (fabs(voxsig) > 0) nhits ++;
           MRIsetVoxVal(vwsig,c,r,s,f,voxsig);
