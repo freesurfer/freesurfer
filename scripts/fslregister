@@ -7,9 +7,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: nicks $
-#    $Date: 2011/03/02 20:16:39 $
-#    $Revision: 1.34 $
+#    $Author: greve $
+#    $Date: 2011/03/28 20:35:14 $
+#    $Revision: 1.35 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -24,7 +24,7 @@
 #
 
 #
-set VERSION = '$Id: fslregister,v 1.34 2011/03/02 20:16:39 nicks Exp $';
+set VERSION = '$Id: fslregister,v 1.35 2011/03/28 20:35:14 greve Exp $';
 set inputargs = ($argv);
 
 set subjid = ();
@@ -171,11 +171,14 @@ set DoSwap = 0;
 if($AllowSwapPosDet && $isPosDet) then
   echo "Swapping dims for pos det" | tee -a $LF
   set DoSwap = 1;
-  fslswapdim $movvolimg -x y z $movvolimg |& tee -a $LF
-  fslorient  -swaporient $movvolimg |& tee -a $LF
+  fslswapdim.fsl $movvolimg -x y z $movvolimg |& tee -a $LF
+  if($status) exit 1;
+  fslorient.fsl  -swaporient $movvolimg |& tee -a $LF
+  if($status) exit 1;
   set swapreg = $tmpdir/swapreg.dat
   tkregister2_cmdl --mov $movvol --targ $movvolimg \
      --regheader --reg $swapreg |& tee -a $LF
+  if($status) exit 1;
 endif
 
 
@@ -184,7 +187,7 @@ if($betmov) then
   if($UseBETFunc) then
     set cmd = (betfunc $movvolimg $movvolimg)
   else
-    set cmd = (bet $movvolimg $movvolimg -f $betfvalue);
+    set cmd = (bet.fsl $movvolimg $movvolimg -f $betfvalue);
   endif
   date | tee -a $LF
   pwd | tee -a $LF
