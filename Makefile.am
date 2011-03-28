@@ -359,11 +359,14 @@ install-data-hook:
 	if test ! "x$(FSLDIR)" = "x" ; then \
 		if test -e $(FSLDIR) ; then \
 			cp -f $(FSLDIR)/bin/flirt $(DESTDIR)$(bindir)/flirt.fsl ; \
+			cp -f $(FSLDIR)/bin/fslmaths $(DESTDIR)$(bindir)/fslmaths.fsl ; \
+			cp -f $(FSLDIR)/bin/slicetimer $(DESTDIR)$(bindir)/slicetimer.fsl ; \
+			cp -f $(FSLDIR)/bin/bet $(DESTDIR)$(bindir)/bet.fsl ; \
 		fi; \
 	fi;
 	if test ! "x$(AFNIDIR)" = "x" ; then \
 		if test -e $(AFNIDIR) ; then \
-			cp -f $(AFNIDIR)/bin/3dvolreg $(DESTDIR)$(bindir) ; \
+			cp -f $(AFNIDIR)/bin/3dvolreg $(DESTDIR)$(bindir)/3dvolreg.afni ; \
 		fi; \
 	fi;
 	if test ! "x$(TCL_DIR)" = "x" ; then \
