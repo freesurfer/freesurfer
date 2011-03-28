@@ -23,7 +23,7 @@ foo_SCRIPTS= \
 	FreeSurferEnv.sh \
 	SetUpFreeSurfer.sh
 
-EXTRA_DIST=$(foo_DATA) \
+EXTRA_DIST=$(foo_DATA) $(foo_SCRIPTS) \
 	SetUpFreeSurfer-SAMPLE.csh SetUpFreeSurfer-SAMPLE.sh
 
 SetUpFreeSurfer.csh: SetUpFreeSurfer-SAMPLE.csh
