@@ -7,25 +7,23 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2010/07/21 20:21:23 $
- *    $Revision: 1.72 $
+ *    $Author: nicks $
+ *    $Date: 2011/03/28 02:01:47 $
+ *    $Revision: 1.76.2.1 $
  *
- * Copyright (C) 2002-2007,
- * The General Hospital Corporation (Boston, MA). 
- * All rights reserved.
+ * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
- * Distribution, usage and copying of this software is covered under the
- * terms found in the License Agreement file named 'COPYING' found in the
- * FreeSurfer source code root directory, and duplicated here:
- * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ * Terms and conditions for use, reproduction, distribution and contribution
+ * are found in the 'FreeSurfer Software License Agreement' contained
+ * in the file 'LICENSE' found in the FreeSurfer distribution, and here:
  *
- * General inquiries: freesurfer@nmr.mgh.harvard.edu
- * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
+ *
+ * Reporting: freesurfer@nmr.mgh.harvard.edu
  *
  */
 
-char *MRI_INFO_VERSION = "$Revision: 1.72 $";
+char *MRI_INFO_VERSION = "$Revision: 1.76.2.1 $";
 
 #include <stdio.h>
 #include <sys/stat.h>
@@ -49,6 +47,7 @@ char *MRI_INFO_VERSION = "$Revision: 1.72 $";
 #include "fio.h"
 #include "cmdargs.h"
 #include "macros.h"
+#include "cma.h"
 
 static void do_file(char *fname);
 static int  parse_commandline(int argc, char **argv);
@@ -58,7 +57,7 @@ static void usage_exit(void);
 static void print_help(void) ;
 static void print_version(void) ;
 
-static char vcid[] = "$Id: mri_info.c,v 1.72 2010/07/21 20:21:23 greve Exp $";
+static char vcid[] = "$Id: mri_info.c,v 1.76.2.1 2011/03/28 02:01:47 nicks Exp $";
 
 char *Progname ;
 static char *inputlist[100];
@@ -67,6 +66,7 @@ static int PrintTR=0;
 static int PrintTE=0;
 static int PrintTI=0;
 static int PrintFlipAngle=0;
+static int PrintFlipAngleDeg=0;
 static int PrintPEDir = 0;
 static int PrintCRes = 0;
 static int PrintType = 0 ;
@@ -77,6 +77,8 @@ static int PrintVoxVol  = 0;
 static int PrintNCols = 0;
 static int PrintNRows = 0;
 static int PrintNSlices = 0;
+static int PrintDim = 0;
+static int PrintRes = 0;
 static int PrintDOF = 0;
 static int PrintNFrames = 0;
 static int PrintMidFrame = 0;
@@ -172,6 +174,7 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--te"))   PrintTE = 1;
     else if (!strcasecmp(option, "--ti"))   PrintTI = 1;
     else if (!strcasecmp(option, "--fa"))   PrintFlipAngle = 1;
+    else if (!strcasecmp(option, "--fad"))   PrintFlipAngleDeg = 1;
     else if (!strcasecmp(option, "--flip_angle"))   PrintFlipAngle = 1;
     else if (!strcasecmp(option, "--pedir"))   PrintPEDir = 1;
 
@@ -191,6 +194,8 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--height"))    PrintNRows = 1;
     else if (!strcasecmp(option, "--nslices"))   PrintNSlices = 1;
     else if (!strcasecmp(option, "--depth"))     PrintNSlices = 1;
+    else if (!strcasecmp(option, "--dim"))       PrintDim = 1;
+    else if (!strcasecmp(option, "--res"))       PrintRes = 1;
     else if (!strcasecmp(option, "--dof"))       PrintDOF = 1;
 
     else if (!strcasecmp(option, "--cdc"))       PrintColDC = 1;
@@ -261,13 +266,15 @@ static void print_usage(void) {
   printf("   --ti : print TI to stdout\n");
   printf("   --fa : print flip angle to stdout\n");
   printf("   --pedir : print phase encode direction\n");
+  printf("   --res : print col row slice and frame resolution \n");
   printf("   --cres : print column voxel size (xsize)\n");
   printf("   --rres : print row    voxel size (ysize)\n");
   printf("   --sres : print slice  voxel size (zsize)\n");
   printf("   --voxvol : print voxel volume\n");
   printf("   --ncols : print number of columns (width) to stdout\n");
   printf("   --nrows : print number of rows (height) to stdout\n");
-  printf("   --nslices : print number of columns (depth) to stdout\n");
+  printf("   --nslices : print number of slices (depth) to stdout\n");
+  printf("   --dim : print number of columns, rows, slices, and frames \n");
   printf("   --cdc : print column direction cosine (x_{r,a,s})\n");
   printf("   --rdc : print row    direction cosine (y_{r,a,s})\n");
   printf("   --sdc : print slice  direction cosine (z_{r,a,s})\n");
@@ -434,6 +441,10 @@ static void do_file(char *fname) {
     fprintf(fpout,"%g\n",mri->flip_angle);
     return;
   }
+  if (PrintFlipAngleDeg) {
+    fprintf(fpout,"%g\n",DEGREES(mri->flip_angle));
+    return;
+  }
   if(PrintPEDir) {
     if(mri->pedir) fprintf(fpout,"%s\n",mri->pedir);
     else           fprintf(fpout,"UNKNOWN\n");
@@ -465,6 +476,14 @@ static void do_file(char *fname) {
   }
   if (PrintNSlices) {
     fprintf(fpout,"%d\n",mri->depth);
+    return;
+  }
+  if (PrintDim) {
+    fprintf(fpout,"%d %d %d %d\n",mri->width,mri->height,mri->depth,mri->nframes);
+    return;
+  }
+  if (PrintRes) {
+    fprintf(fpout,"%5.3f %5.3f %5.3f %5.3f\n",mri->xsize,mri->ysize,mri->zsize,mri->tr);
     return;
   }
   if (PrintDOF) {
@@ -707,6 +726,45 @@ static void do_file(char *fname) {
   printf("\nras to voxel transform:\n");
   PrettyMatrixPrint(m);
   MatrixFree(&m);
+
+  if (mri->ct)
+    CTABprintASCII(mri->ct, stdout) ;
+  {
+    int i ;
+    for (i = 0 ; i < mri->nframes ; i++)
+    {
+      MRI_FRAME *frame ;
+      int       frame_valid = 0 ;
+
+
+      frame = &mri->frames[i] ;
+
+      if ((frame->type != 0) ||
+          (!FZERO(frame->TE)) ||
+          (!FZERO(frame->TR)) ||
+          (!FZERO(frame->flip)) ||
+          (frame->label != 0) ||
+          (!FZERO(frame->thresh)))
+        frame_valid = 1 ;
+
+      if (frame_valid == 0)
+        continue ;
+      printf("frame %d info:\n", i) ;
+      if (frame->type != 0)
+        printf("\ttype = %d\n", frame->type) ;
+      if (!FZERO(frame->TE))
+        printf("\tTE = %2.1fms\n", frame->TE) ;
+      if (!FZERO(frame->TR))
+        printf("\tTR = %2.1fms\n", frame->TR) ;
+      if (!FZERO(frame->flip))
+        printf("\tflip angle = %2.1f deg\n", DEGREES(frame->flip)) ;
+      if (frame->label != 0)
+        printf("\tlabel = %s (%d)\n", cma_label_to_name(frame->label), frame->label) ;
+      if (!FZERO(frame->thresh))
+        printf("\tthresh = %2.1f\n", frame->thresh) ;
+    }
+  }
+
   MRIfree(&mri);
 
   return;
