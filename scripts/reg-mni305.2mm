@@ -5,9 +5,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: nicks $
-#    $Date: 2011/03/02 20:16:39 $
-#    $Revision: 1.2 $
+#    $Author: greve $
+#    $Date: 2011/03/28 20:28:49 $
+#    $Revision: 1.3 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -21,7 +21,7 @@
 #
 #
 
-set VERSION = '$Id: reg-mni305.2mm,v 1.2 2011/03/02 20:16:39 nicks Exp $';
+set VERSION = '$Id: reg-mni305.2mm,v 1.3 2011/03/28 20:28:49 greve Exp $';
 
 set subject = ();
 set regfile = ();
@@ -57,7 +57,8 @@ set mni2mmreg = $FREESURFER_HOME/average/mni305.cor.subfov2.reg
 # target subject. This is just another way to express the 
 # talairach.xfm file.
 set mni305reg = /tmp/tmp.$$.mni305toAnat.dat
-set cmd = (tkregister2_cmdl --fstal --reg $mni305reg --s $subject --noedit)
+set cmd = (tkregister2_cmdl --fstal --reg $mni305reg --s $subject \
+  --xfmout /tmp/tmp.$$.mni305toAnat.xfm --noedit)
 echo $cmd
 $cmd
 if($status) exit 1;
