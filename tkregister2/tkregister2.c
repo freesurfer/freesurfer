@@ -7,9 +7,9 @@
 /*
  * Original Authors: Martin Sereno and Anders Dale, 1996; Doug Greve, 2002
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/01 01:41:22 $
- *    $Revision: 1.121 $
+ *    $Author: greve $
+ *    $Date: 2011/03/28 20:24:46 $
+ *    $Revision: 1.122 $
  *
  * Copyright (C) 2002-2011, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA).
@@ -35,7 +35,7 @@
 
 #ifndef lint
 static char vcid[] =
-"$Id: tkregister2.c,v 1.121 2011/03/01 01:41:22 nicks Exp $";
+"$Id: tkregister2.c,v 1.122 2011/03/28 20:24:46 greve Exp $";
 #endif /* lint */
 
 #ifdef HAVE_TCL_TK_GL
@@ -3653,10 +3653,10 @@ void write_reg(char *fname) {
 
   if(fslregoutfname != NULL) write_fslreg(fslregoutfname);
   if(freeviewfname != NULL) write_freeviewreg(freeviewfname);
-  if(xfmoutfname != NULL) write_xfmreg(xfmoutfname);
   if(ltaoutfname != NULL) write_lta(ltaoutfname);
 
-  if(fstal) {
+  if(xfmoutfname != NULL) write_xfmreg(xfmoutfname);
+  else if(fstal) {
     if(ZeroCRAS){
       printf("UnZeroing CRAS for fstal output xfm\n");
       RegMatTmp = MatrixMultiply(RegMatTmp,invMcras0,RegMatTmp);
@@ -4863,7 +4863,7 @@ int main(argc, argv)   /* new main */
   nargs =
     handle_version_option
     (argc, argv,
-     "$Id: tkregister2.c,v 1.121 2011/03/01 01:41:22 nicks Exp $", "$Name:  $");
+     "$Id: tkregister2.c,v 1.122 2011/03/28 20:24:46 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
