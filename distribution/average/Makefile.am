@@ -149,7 +149,7 @@ uninstall-hook:
 	rm -Rf $(DESTDIR)$(prefix)/subjects/fsaverage6
 	rm -Rf $(DESTDIR)$(prefix)/subjects/?h.EC_average
 	rm -Rf $(DESTDIR)$(prefix)/subjects/V1_average
-	rm -f $(DESTDIR)$(prefix)/bin/predict_v1.sh
+	rm -f $(DESTDIR)$(bindir)/predict_v1.sh
 	rm -Rf $(DESTDIR)$(prefix)/average/mult-comp-cor
 
 # Our release target. Include files to be excluded here. They will be

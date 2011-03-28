@@ -4,7 +4,7 @@
 
 dist_bin_SCRIPTS = mri_cvs_register mri_cvs_check mri_cvs_data_copy
 
-foodir=$(prefix)/bin
+foodir=$(DESTDIR)$(bindir)
 foo_DATA= \
 	elastic_registration_CVS.pl \
 	elastic_registration_CVS_hemi.pl \
