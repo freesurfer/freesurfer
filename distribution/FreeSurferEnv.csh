@@ -5,10 +5,10 @@
 # Note:    The bash equivalent script is FreeSurferEnv.sh, and should
 #          be maintained to operate the same way.
 #
-# $Id: FreeSurferEnv.csh,v 1.78 2010/02/26 19:32:45 nicks Exp $
+# $Id: FreeSurferEnv.csh,v 1.79.2.1 2011/03/29 22:06:48 greve Exp $
 #############################################################################
 
-set VERSION = '$Id: FreeSurferEnv.csh,v 1.78 2010/02/26 19:32:45 nicks Exp $'
+set VERSION = '$Id: FreeSurferEnv.csh,v 1.79.2.1 2011/03/29 22:06:48 greve Exp $'
 
 ## Print help if --help or -help is specified
 if (("$1" == "--help") || ("$1" == "-help")) then
@@ -184,7 +184,7 @@ foreach d ($FSFAST_HOME $SUBJECTS_DIR)
     endif
 end
 
-if( ! $?FSF_OUTPUT_FORMAT) setenv FSF_OUTPUT_FORMAT nii
+if( ! $?FSF_OUTPUT_FORMAT) setenv FSF_OUTPUT_FORMAT nii.gz
 if( $output ) then
     echo "FREESURFER_HOME   $FREESURFER_HOME"
     echo "FSFAST_HOME       $FSFAST_HOME"
@@ -418,6 +418,10 @@ endif
 
 
 ### ----------- Freesurfer Bin and Lib Paths  ------------ ####
+if ( -e $FREESURFER_HOME/tktools ) then
+    # tktools dir could be deleted to remove Cortech license dependency
+    set path = ( $FREESURFER_HOME/tktools $path )
+endif
 set path = ( $FREESURFER_HOME/bin \
              $FSFAST_HOME/bin \
              $path \
