@@ -8,8 +8,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2011/03/28 22:49:04 $
- *    $Revision: 1.21 $
+ *    $Date: 2011/03/29 14:16:44 $
+ *    $Revision: 1.22 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -2104,7 +2104,7 @@ vnl_matrix < double > MyMatrix::LTA2VOXmatrix (LTA * lta)
     MATRIX *tmp = 0;
     if (sI2R==0 || dR2I==0)
     {
-      cout << "LTAgetV2V: passed volumes did not have the info on i_to_r or r_to_i."<< endl;
+      cout << "MyMatrix::LTA2VOXmatrix ERROR : passed volumes did not have the info on i_to_r or r_to_i."<< endl;
       exit (1);
     }
     tmp = MatrixMultiply(m_L, sI2R, NULL);
@@ -2128,6 +2128,48 @@ vnl_matrix < double > MyMatrix::LTA2VOXmatrix (LTA * lta)
   return M;
 }
 
+vnl_matrix < double > MyMatrix::LTA2RASmatrix (LTA * lta)
+{
+
+  vnl_matrix < double > M;
+  if (lta->type == LINEAR_VOX_TO_VOX )
+  {
+    LINEAR_TRANSFORM *lt = &lta->xforms[0];
+    MATRIX *m_L = MatrixCopy(lt->m_L,NULL);
+    //           sR2I
+    //     src <------- RAS
+    //      | mod        | ?
+    //      V            V
+    //     dst -------> RAS
+    //           dI2R
+    MATRIX *sR2I = vg_r_to_i(&lt->src);
+    MATRIX *dI2R = vg_i_to_r(&lt->dst);
+    MATRIX *tmp = 0;
+    if (sR2I==0 || dI2R==0)
+    {
+      cout << "MyMatrix::LTA2RASmatrix ERROR: passed volumes did not have the info on i_to_r or r_to_i."<< endl;
+      exit (1);
+    }
+    tmp = MatrixMultiply(m_L, sR2I, NULL);
+    MatrixMultiply(dI2R, tmp, m_L); 
+    MatrixFree(&tmp);
+    MatrixFree(&sR2I);
+    MatrixFree(&dI2R);
+    M = convertMATRIX2VNL(m_L);
+    MatrixFree(&m_L);
+  }
+  else if (lta->type == LINEAR_RAS_TO_RAS )
+  {
+    M = convertMATRIX2VNL(lta->xforms[0].m_L);
+  }
+  else
+  {
+    cout << " MyMatrix::LTA2VOXmatrix ERROR lta type not supported !" << endl;
+    exit(1);
+  }
+     
+  return M;
+}
 
 ////// MATRIX stuff
 
