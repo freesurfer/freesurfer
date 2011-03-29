@@ -9,8 +9,8 @@
 # Original Author: Martin Reuter
 # CVS Revision Info:
 #    $Author: mreuter $
-#    $Date: 2011/03/24 16:29:02 $
-#    $Revision: 1.4.2.3 $
+#    $Date: 2011/03/29 18:18:54 $
+#    $Revision: 1.4.2.4 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -79,6 +79,8 @@ One or more of the following:
 
 
 OPTIONAL ARGUMENTS
+
+--do-stack        Compute and output the a tables showing the time series (row per time point)
 
 --time <name>     Variable name of time variable (e.g. age)
 
@@ -157,7 +159,7 @@ def options_parse():
     Command Line Options Parser for long_mris_slopes
     initiate the option parser and return the parsed object
     """
-    parser = optparse.OptionParser(version='$Id: long_stats_slopes,v 1.4.2.3 2011/03/24 16:29:02 mreuter Exp $', usage=HELPTEXT)
+    parser = optparse.OptionParser(version='$Id: long_stats_slopes,v 1.4.2.4 2011/03/29 18:18:54 mreuter Exp $', usage=HELPTEXT)
     
     # help text
     h_qdec      = '(REQUIRED) qdec table file specifying the subjects and time points'
@@ -333,6 +335,10 @@ if __name__=="__main__":
     
     # process
     retcode = 0
+    allavg = []
+    allspc = []
+    allpc1 = []
+    allrate= []
     for subjectid, tplist in qdectable.subjects_tp_map.items():
         print '\nSubject-Template: '+subjectid
         
@@ -425,6 +431,7 @@ if __name__=="__main__":
             run_cmd(cmd,'mris_calc compute sym. pct. change (spc) problem?')    
             outname = os.path.join(basestatsdir,options.out_spc)
             outex = outname
+            allspc.append(outname)
             template = os.path.join(dirname,'template.'+options.out_spc+'.dat')
             create_template_table(meas_target,options.meas+'-spc',[ subjectid ], template)
             cmd ='mri_convert --out_stats_table --like '+template+' '+outtmp+' '+outname
@@ -451,6 +458,7 @@ if __name__=="__main__":
             run_cmd(cmd,'mris_calc compute percent change (pc1) problem?')
             outname = os.path.join(basestatsdir,options.out_pc1)
             outex = outname
+            allpc1.append(outname)
             template = os.path.join(dirname,'template.'+options.out_pc1+'.dat')
             create_template_table(meas_target,options.meas+'-pc1',[ subjectid ], template)
             cmd ='mri_convert --out_stats_table --like '+template+' '+outtmp+' '+outname
@@ -459,6 +467,7 @@ if __name__=="__main__":
         if options.out_rate is not None: 
             outname = os.path.join(basestatsdir,options.out_rate)
             outex = outname
+            allrate.append(outname)
             template = os.path.join(dirname,'template.'+options.out_rate+'.dat')
             create_template_table(meas_target,options.meas+'-rate',[ subjectid ], template)
             cmd ='mri_convert --out_stats_table --like '+template+' '+beta1+' '+outname
@@ -467,6 +476,7 @@ if __name__=="__main__":
         if  options.out_avg is not None:
             outname = os.path.join(basestatsdir,options.out_avg)
             outex = outname
+            allavg.append(outname)
             template = os.path.join(dirname,'template.'+options.out_avg+'.dat')
             create_template_table(meas_target,options.meas+'-avg',[ subjectid ], template)
             cmd ='mri_convert --out_stats_table --like '+template+' '+beta0+' '+outname
@@ -477,10 +487,12 @@ if __name__=="__main__":
         shutil.rmtree(dirname)
         
                
-        print 'You can look at the result with, e.g. (specify "space" for separation):'
+        print 'You can look at the result with, e.g. (specify "Space" for separation and "Merge delimiters"):'
         print '  ooffice -calc '+os.path.join(basestatsdir,outex)
         print
           
-            
+    
+    #print 'merge_stats_tables --inputs '+" ".join(allavg)+' -t long.all.'+options.stats+'.'+options.meas+'-avg.dat --meas '+options.meas+'-avg'
+       
     # always exit with 0 exit code
     sys.exit(0)
