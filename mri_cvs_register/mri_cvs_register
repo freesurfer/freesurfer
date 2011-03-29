@@ -12,7 +12,7 @@
 # Edited : 03-17-2011: replaces applyMorph with mri_vol2vol
 
 set inputargs = ($argv);
-set VERSION = '$Id: mri_cvs_register,v 1.21 2011/03/25 20:54:46 lzollei Exp $';
+set VERSION = '$Id: mri_cvs_register,v 1.22 2011/03/29 13:13:22 lzollei Exp $';
 
 set movingid = ();
 set templateid = ();
@@ -84,7 +84,6 @@ set settingsfile = $cvsdir/mri_cvs_register.settings.txt
 
 ### Creating outputdir
 echo The outdir:
-#if ( $outdir == ()) then
 if (! $?outdir) then
   set outdir = $SUBJECTS_DIR/$movingid/cvs  
 endif
@@ -321,7 +320,9 @@ if ($UseAseg) then
     echo $cmd |& tee -a $LF
     $cmd |& tee -a $LF
     if($status) exit 1;
+  endif  
 
+  if (!(-e $outdir/${combined:r}.m3z) || $CleanElReg || $CleanVolReg) then
     set cmd = (exportGcam --fixed $tmri/$voltype.mgz --moving $mmri/$voltype.mgz \
                           --morph $outdir/$combined --out_gcam $outdir/${combined:r}.m3z)			  
 
@@ -379,21 +380,23 @@ if (!(-e $outdir/combined_to${templateid}_elreg_$prefix$voltype.tm3d  ) || $Clea
   echo $cmd |& tee -a $LF
   $cmd |& tee -a $LF
   if($status) exit 1;
+endif
 
+if (!(-e $outdir/combined_to${templateid}_elreg_$prefix$voltype.m3z  ) || $CleanElReg || $CleanVolReg) then 
   set cmd = (exportGcam --fixed $tmri/$voltype.mgz --moving $mmri/$voltype.mgz \
                         --morph $outdir/$combined --out_gcam $outdir/${combined:r}.m3z)
- echo $cmd |& tee -a $LF
+  echo $cmd |& tee -a $LF
   $cmd |& tee -a $LF
   if($status) exit 1;
-
-  if ($cleanup) then # deleting tm3d file!
-    set cmd = ( rm -f $outdir/$combined $outdir/$oldcombined)
-    echo $cmd |& tee -a $LF
-    $cmd |& tee -a $LF
-    if($status) exit 1;
-  endif
-
 endif
+
+if ($cleanup) then # deleting tm3d file!
+  set cmd = ( rm -f $outdir/$combined $outdir/$oldcombined)
+  echo $cmd |& tee -a $LF
+  $cmd |& tee -a $LF
+  if($status) exit 1;
+endif
+
 
 ## APPLY the morph to the aseg volume; just for visualization
 set voltype = aseg
