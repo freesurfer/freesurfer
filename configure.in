@@ -8,9 +8,9 @@
 # Process this file with autoconf to produce a configure script.
 #
 # CVS Revision Info:
-#    $Author: krish $
-#    $Date: 2011/03/28 22:45:25 $
-#    $Revision: 1.519.2.3 $
+#    $Author: nicks $
+#    $Date: 2011/03/29 17:13:43 $
+#    $Revision: 1.519.2.4 $
 #
 ########################################################################
 AC_PREREQ(2.57)
@@ -3200,11 +3200,6 @@ AC_SUBST(TESTS_ENVIRONMENT)
 # output
 #########################################################################
 AC_OUTPUT([Makefile
-           Atlas3D/Makefile
-           Atlas3D/data/Makefile
-           Atlas3D/scripts/Makefile
-           Atlas3D/scripts/WholeBrainParcellation/Makefile
-           Atlas3D/scripts/exVivoHippocampi/Makefile
            check_siemens_dir/Makefile
            cudatest/Makefile
            cudatest/gcatest/Makefile
@@ -3340,6 +3335,7 @@ AC_OUTPUT([Makefile
            mri_label_volume/Makefile
            mri_linear_register/Makefile
            mri_compute_structure_transforms/Makefile
+           mri_make_bem_surfaces/Makefile
            mri_make_density_map/Makefile
            mri_make_register/Makefile
            mri_make_template/Makefile
