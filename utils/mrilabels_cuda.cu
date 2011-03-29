@@ -7,8 +7,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2011/03/24 18:33:56 $
- *    $Revision: 1.8 $
+ *    $Date: 2011/03/29 14:48:49 $
+ *    $Revision: 1.9 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -752,6 +752,14 @@ void MRImarkLabelBorderVoxelsGPU( const MRI* mri_src,
                                           label,
                                           mark,
                                           six_connected );
+    break;
+
+  case MRI_INT:
+    myLabels.MLBVdispatch<int>( mri_src,
+                                mri_dst,
+                                label,
+                                mark,
+                                six_connected );
     break;
 
   default:
