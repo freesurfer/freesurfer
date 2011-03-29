@@ -14,8 +14,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2011/03/28 21:21:06 $
- *    $Revision: 1.35.2.1 $
+ *    $Date: 2011/03/29 14:18:39 $
+ *    $Revision: 1.35.2.2 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -47,6 +47,7 @@
 #include <vnl/vnl_matrix.h>
 #include <vnl/vnl_matrix_fixed.h>
 #include <vnl/algo/vnl_svd.h>
+#include <vnl/algo/vnl_determinant.h>
 
 // all other software are all in "C"
 #ifdef __cplusplus
@@ -379,7 +380,7 @@ bool MultiRegistration::computeTemplate(int itmax, double eps , int iterate, dou
     MRIwrite(mri_mean,(outdir+"template-it0.mgz").c_str());
   }
 
-  // cout << "template fname: " << mri_mean->fname << endl;
+   //cout << "template fname: " << mri_mean->fname << endl;
 
 //  int itmax  = 10;
 //  double eps = 0.025;
@@ -1191,7 +1192,25 @@ bool MultiRegistration::writeLTAs(const std::vector < std::string > & nltas, boo
 			}
       strncpy(ltas[i]->xforms[0].dst.fname, mean.c_str(),STRLEN);
       strncpy(ltas[i]->xforms[0].src.fname, mov[i].c_str(),STRLEN);
-      LTAwriteEx(ltas[i], nltas[i].c_str()) ;	 
+      LTAwriteEx(ltas[i], nltas[i].c_str()) ;
+      
+      vnl_matrix < double >fMv2v= MyMatrix::LTA2VOXmatrix(ltas[i]);
+      cout << " Determinant( lta[ "<<i<<" ]) : " << vnl_determinant(fMv2v) << endl << endl;
+      
+      if (!rigid)
+      {
+        cout << " Decompose into Rot * Shear * Scale : " << endl << endl;
+        vnl_matrix < double > Rot, Shear;
+        vnl_diag_matrix < double > Scale;
+        MyMatrix::Polar2Decomposition(fMv2v.extract(3,3),Rot,Shear,Scale);
+        vnl_matlab_print(vcl_cout,Rot,"Rot",vnl_matlab_print_format_long);
+        cout << endl;
+        vnl_matlab_print(vcl_cout,Shear,"Shear",vnl_matlab_print_format_long);
+        cout << endl;
+        vnl_matlab_print(vcl_cout,Scale,"Scale",vnl_matlab_print_format_long);
+        cout << endl;     
+      }
+      	 
 	 }
 	 return (error == 0);
 }
