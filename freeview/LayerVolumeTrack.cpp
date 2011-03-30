@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2011/03/24 17:39:14 $
- *    $Revision: 1.3 $
+ *    $Date: 2011/03/30 19:23:59 $
+ *    $Revision: 1.4 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -34,6 +34,10 @@
 #include "vtkProperty.h"
 #include "MyVTKUtils.h"
 #include <QDebug>
+extern "C"
+{
+#include "cma.h"
+}
 
 LayerVolumeTrack::LayerVolumeTrack( LayerMRI* ref, QObject* parent ) :
     LayerMRI( ref, parent ),
@@ -84,7 +88,10 @@ void LayerVolumeTrack::UpdateData()
         if (list.contains(i))
         {
           // update name
-          strcpy(m_ctabStripped->entries[i]->name, mri->frames[list.indexOf(i)].name);
+          QString name = mri->frames[list.indexOf(i)].name;
+          if (name.isEmpty())
+            name = cma_label_to_name(i);
+          strcpy(m_ctabStripped->entries[i]->name, qPrintable(name));
         }
         else
         {

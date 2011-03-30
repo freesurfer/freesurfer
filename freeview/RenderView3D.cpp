@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2011/03/24 17:39:15 $
- *    $Revision: 1.56 $
+ *    $Date: 2011/03/30 19:23:59 $
+ *    $Revision: 1.57 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -306,6 +306,7 @@ void RenderView3D::DoUpdateRASPosition( int posX, int posY, bool bCursor )
   LayerCollection* lc_roi = MainWindow::GetMainWindow()->GetLayerCollection( "ROI" );
   LayerCollection* lc_surface = MainWindow::GetMainWindow()->GetLayerCollection( "Surface" );
 
+  this->setToolTip("");
   if ( lc_mri->IsEmpty() && lc_roi->IsEmpty() && lc_surface->IsEmpty() )
   {
     return;
@@ -447,8 +448,6 @@ void RenderView3D::DoUpdateRASPosition( int posX, int posY, bool bCursor )
               emit VolumeTrackMouseOver(vt, info);
             }
           }
-          else
-            this->setToolTip("");
         }
       }
       else if ( Layer* layer = lc_surface->HasProp( prop ) )

@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2011/03/24 17:39:14 $
- *    $Revision: 1.5 $
+ *    $Date: 2011/03/30 19:23:58 $
+ *    $Revision: 1.6 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -42,11 +42,11 @@ signals:
 
 public slots:
   void UpdateTrackVolumeAnnotation(Layer* layer, const QVariantMap& info);
+  void UpdateAll();
 
 protected slots:
   void OnMousePositionChanged();
   void OnCursorPositionChanged();
-  void UpdateAll();
   void OnItemClicked(QTreeWidgetItem * item, int column);
   void OnEditFinished();
 

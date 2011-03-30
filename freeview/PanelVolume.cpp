@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2011/03/23 21:36:51 $
- *    $Revision: 1.62 $
+ *    $Date: 2011/03/30 19:23:59 $
+ *    $Revision: 1.63 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -169,6 +169,7 @@ PanelVolume::PanelVolume(QWidget *parent) :
           << m_widgetlistDirectionCode
           << m_widgetlistEditable;
   */
+
   LayerCollection* lc = mainwnd->GetLayerCollection("MRI");
   PanelLayer::InitializeLayerList( ui->treeWidgetLayers, lc );
   connect( ui->actionLockLayer, SIGNAL(toggled(bool)), lc, SLOT(LockCurrent(bool)) );

@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2011/03/24 17:39:14 $
- *    $Revision: 1.163 $
+ *    $Date: 2011/03/30 19:23:59 $
+ *    $Revision: 1.164 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -215,12 +215,16 @@ MainWindow::MainWindow( QWidget *parent, MyCmdLineParser* cmdParser ) :
             ui->treeWidgetCursorInfo, SLOT(UpdateAll()), Qt::QueuedConnection);
     connect(m_layerCollections[keys[i]], SIGNAL(LayerMoved(Layer*)),
             ui->treeWidgetCursorInfo, SLOT(UpdateAll()), Qt::QueuedConnection);
+    connect(m_layerCollections[keys[i]], SIGNAL(LayerShowInfoChanged()),
+            ui->treeWidgetCursorInfo, SLOT(UpdateAll()), Qt::QueuedConnection);
 
     connect(m_layerCollections[keys[i]], SIGNAL(LayerAdded(Layer*)),
             ui->treeWidgetMouseInfo, SLOT(UpdateAll()), Qt::QueuedConnection);
     connect(m_layerCollections[keys[i]], SIGNAL(LayerRemoved(Layer*)),
             ui->treeWidgetMouseInfo, SLOT(UpdateAll()), Qt::QueuedConnection);
     connect(m_layerCollections[keys[i]], SIGNAL(LayerMoved(Layer*)),
+            ui->treeWidgetMouseInfo, SLOT(UpdateAll()), Qt::QueuedConnection);
+    connect(m_layerCollections[keys[i]], SIGNAL(LayerShowInfoChanged()),
             ui->treeWidgetMouseInfo, SLOT(UpdateAll()), Qt::QueuedConnection);
 
     connect(m_layerCollections[keys[i]], SIGNAL(ActiveLayerChanged(Layer*)),

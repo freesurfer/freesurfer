@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2011/03/21 21:27:40 $
- *    $Revision: 1.97 $
+ *    $Date: 2011/03/30 19:23:59 $
+ *    $Revision: 1.98 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -2099,6 +2099,12 @@ bool LayerMRI::SaveAllSurfaceRegions( const QString& fn )
   FILE* fp = fopen( fn.toAscii().data(), "w" );
   if ( !fp )
   {
+    return false;
+  }
+
+  if (m_surfaceRegions.size() == 0)
+  {
+    cerr << "No surface regions to save.\n";
     return false;
   }
 
