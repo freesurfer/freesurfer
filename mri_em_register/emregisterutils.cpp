@@ -9,8 +9,8 @@
  * CUDA version : Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2011/03/22 15:47:05 $
- *    $Revision: 1.1 $
+ *    $Date: 2011/03/30 17:50:13 $
+ *    $Revision: 1.2 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -23,6 +23,8 @@
  * Reporting: freesurfer@nmr.mgh.harvard.edu
  *
  */
+
+#include <iostream>
 
 #include "macros.h"
 #include "diag.h"
@@ -55,12 +57,20 @@ double local_GCAcomputeLogSampleProbability( GCA *gca,
     return( (SQR(gm - wm) + SQR(gm-fluid) + SQR(fluid - wm) + SQR(gm) - SQR(fluid))) ;
   }
 
-  if (robust) // Defined 0 at the top of the file
-    return(GCAcomputeNumberOfGoodFittingSamples
-           (gca, gcas, mri, transform, nsamples)) ;
-  else
-    return(GCAcomputeLogSampleProbability
-           (gca, gcas, mri, transform, nsamples)) ;
+
+  double result;
+
+  if (robust) {
+    // Defined 0 at the top of the file
+    result = GCAcomputeNumberOfGoodFittingSamples( gca, gcas, mri,
+                                                   transform, nsamples );
+  } else {
+    result = GCAcomputeLogSampleProbability( gca, gcas, mri,
+                                             transform, nsamples );
+  }
+
+
+  return( result );
 }
 
 
