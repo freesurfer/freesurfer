@@ -9,8 +9,8 @@
 # Original Author: Martin Reuter
 # CVS Revision Info:
 #    $Author: mreuter $
-#    $Date: 2011/03/28 15:40:42 $
-#    $Revision: 1.15.2.3 $
+#    $Date: 2011/03/30 22:00:38 $
+#    $Revision: 1.15.2.4 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -236,7 +236,7 @@ def options_parse():
     Command Line Options Parser for long_mris_slopes
     initiate the option parser and return the parsed object
     """
-    parser = optparse.OptionParser(version='$Id: long_mris_slopes,v 1.15.2.3 2011/03/28 15:40:42 mreuter Exp $', usage=HELPTEXT)
+    parser = optparse.OptionParser(version='$Id: long_mris_slopes,v 1.15.2.4 2011/03/30 22:00:38 mreuter Exp $', usage=HELPTEXT)
     
     # help text
 #    h_fsgd = '(REQUIRED) fsdg file specifying the subjects and time points'
@@ -718,7 +718,7 @@ if __name__=="__main__":
                     outtname= os.path.join(basesurfdir,options.hemi+'.'+options.out_spc+fwhmstr+'.'+options.qcache+'.mgh')
                     alltout.append(outtname)
 
-            if options.out_pc1 is not None:
+            if options.do_pc1:
                 outname = os.path.join(basesurfdir,options.hemi+'.'+options.out_pc1+fwhmstr+'.mgh')
                 # compute pct change:
                 cmd = 'mris_calc -o '+outname+' '+beta1fwhm+' div '+tp1fwhm
@@ -730,7 +730,7 @@ if __name__=="__main__":
                     outtname = os.path.join(basesurfdir,options.hemi+'.'+options.out_pc1+fwhmstr+'.'+options.qcache+'.mgh')
                     alltout.append(outtname)
             
-            if options.out_rate is not None: 
+            if options.do_rate: 
                 outname = os.path.join(basesurfdir,options.hemi+'.'+options.out_rate+fwhmstr+'.mgh')
                 # mul 1 to remove everything outside the label:
                 cmd = 'mris_calc -o '+outname+' --label '+label+' '+beta1fwhm+' mul 1'
@@ -740,7 +740,7 @@ if __name__=="__main__":
                     outtname = os.path.join(basesurfdir,options.hemi+'.'+options.out_rate+fwhmstr+'.'+options.qcache+'.mgh')
                     alltout.append(outtname)
             
-            if  options.out_avg is not None:
+            if  options.do_avg:
                 outname = os.path.join(basesurfdir,options.hemi+'.'+options.out_avg+fwhmstr+'.mgh')
                 # mul 1 to remove everything outside the label:
                 cmd = 'mris_calc -o '+outname+' --label '+label+' '+beta0fwhm+' mul 1'
