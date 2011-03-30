@@ -6,9 +6,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/14 23:44:48 $
- *    $Revision: 1.7 $
+ *    $Author: rpwang $
+ *    $Date: 2011/03/30 21:18:18 $
+ *    $Revision: 1.8 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -97,6 +97,8 @@ bool VolumeFilter::Update()
   }
 }
 
+#include <QDebug>
+
 MRI* VolumeFilter::CreateMRIFromVolume( LayerMRI* layer )
 {
   vtkImageData* image = layer->GetImageData();
@@ -121,7 +123,7 @@ MRI* VolumeFilter::CreateMRIFromVolume( LayerMRI* layer )
     mri_type = MRI_SHORT;
     break;
   default:
-    break ;
+    break;
   }
 
   int* dim = image->GetDimensions();
@@ -133,25 +135,42 @@ MRI* VolumeFilter::CreateMRIFromVolume( LayerMRI* layer )
     return NULL;
   }
 
-  int zX = mri->width;
-  int zY = mri->height;
-  int zZ = mri->depth;
-  int nScalarSize = image->GetScalarSize();
-  for ( int nZ = 0; nZ < zZ; nZ++ )
+  for ( int j = 0; j < mri->height; j++ )
   {
-    for ( int nY = 0; nY < zY; nY++ )
-    {
-      for ( int nX = 0; nX < zX; nX++ )
+      for ( int k = 0; k < mri->depth; k++ )
       {
-        for ( int nFrame = 0; nFrame < zFrames; nFrame++ )
+        for ( int i = 0; i < mri->width; i++ )
         {
-          void* buf = (char*)&MRIseq_vox( mri, nX, nY, nZ, nFrame);
-          void* ptr = (char*)image->GetScalarPointer( nX, nY, nZ )
-                      + nFrame * nScalarSize;
-          memcpy( buf, ptr, nScalarSize );
+          for ( int nFrame = 0; nFrame < mri->nframes; nFrame++ )
+          {
+            switch ( mri->type )
+            {
+            case MRI_UCHAR:
+              MRIseq_vox( mri, i, j, k, nFrame ) =
+                (unsigned char)image->GetScalarComponentAsDouble(i, j, k, nFrame);
+              break;
+            case MRI_INT:
+              MRIIseq_vox( mri, i, j, k, nFrame ) =
+                (int)image->GetScalarComponentAsDouble(i, j, k, nFrame);
+              break;
+            case MRI_LONG:
+              MRILseq_vox( mri, i, j, k, nFrame ) =
+                (int)image->GetScalarComponentAsDouble(i, j, k, nFrame);
+              break;
+            case MRI_FLOAT:
+              MRIFseq_vox( mri, i, j, k, nFrame ) =
+                (int)image->GetScalarComponentAsDouble(i, j, k, nFrame);
+              break;
+            case MRI_SHORT:
+              MRISseq_vox( mri, i, j, k, nFrame ) =
+                (int)image->GetScalarComponentAsDouble(i, j, k, nFrame);
+              break;
+            default:
+              break;
+            }
+          }
         }
       }
-    }
   }
 
   return mri;
@@ -165,7 +184,6 @@ void VolumeFilter::MapMRIToVolume( MRI* mri, LayerMRI* layer )
   int zY = mri->height;
   int zZ = mri->depth;
   int zFrames = mri->nframes;
-  int nScalarSize = image->GetScalarSize();
   for ( int nZ = 0; nZ < zZ; nZ++ )
   {
     for ( int nY = 0; nY < zY; nY++ )
@@ -174,10 +192,31 @@ void VolumeFilter::MapMRIToVolume( MRI* mri, LayerMRI* layer )
       {
         for ( int nFrame = 0; nFrame < zFrames; nFrame++ )
         {
-          void* buf = (char*)&MRIseq_vox( mri, nX, nY, nZ, nFrame);
-          void* ptr = (char*)image->GetScalarPointer( nX, nY, nZ )
-                      + nFrame * nScalarSize;
-          memcpy( ptr, buf, nScalarSize );
+          switch ( mri->type )
+          {
+          case MRI_UCHAR:
+            image->SetScalarComponentFromDouble(nX, nY, nZ, nFrame,
+                                   MRIseq_vox( mri, nX, nY, nZ, nFrame ) );
+            break;
+          case MRI_INT:
+            image->SetScalarComponentFromDouble(nX, nY, nZ, nFrame,
+                                   MRIIseq_vox( mri, nX, nY, nZ, nFrame ) );
+            break;
+          case MRI_LONG:
+            image->SetScalarComponentFromDouble(nX, nY, nZ, nFrame,
+                                   MRILseq_vox( mri, nX, nY, nZ, nFrame ) );
+            break;
+          case MRI_FLOAT:
+            image->SetScalarComponentFromDouble(nX, nY, nZ, nFrame,
+                                   MRIFseq_vox( mri, nX, nY, nZ, nFrame ) );
+            break;
+          case MRI_SHORT:
+            image->SetScalarComponentFromDouble(nX, nY, nZ, nFrame,
+                                   MRISseq_vox( mri, nX, nY, nZ, nFrame ) );
+            break;
+          default:
+            break;
+          }
         }
       }
     }
