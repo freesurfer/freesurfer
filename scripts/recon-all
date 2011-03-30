@@ -7,9 +7,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: nicks $
-#    $Date: 2011/03/26 19:50:05 $
-#    $Revision: 1.384 $
+#    $Author: mreuter $
+#    $Date: 2011/03/30 19:34:00 $
+#    $Revision: 1.385 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -26,7 +26,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.384 2011/03/26 19:50:05 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.385 2011/03/30 19:34:00 mreuter Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -179,6 +179,7 @@ set BaseSubjsListFname = (base-tps); # file containing BaseSubjsList
 set robust_template_avg_arg = 1; # construct template from: 0 Mean, 1 Median
 set DoNuIntensityCor3T = 0; # if 1, use Zheng, Chee, Zagorodnov params for 3T
 set DoAddTp = 0; # if 1, then 'fake'-add this timepoint to long subj set
+set DoAffineBase = 0; # if 1, allow affine when creating the base (fix callibration)
 
 # For defacing, as found in:
 # $FREESURFER_HOME/average/
@@ -909,24 +910,67 @@ if ($DoCreateBaseInput && $DoCreateBaseSubj) then
   set subjInVols=();
   set normInVols=();
   set ltaXforms=();
+  set lta1forms=();
+  set ltaAforms=();
+  set headInVols=(); 
   foreach s ($BaseSubjsList)
     if($RunIt) echo "${s}" >> ${BaseSubjsListFname};
     set normInVols = ($normInVols ${SUBJECTS_DIR}/${s}/mri/norm.mgz)
+    set headInVols = ($headInVols ${SUBJECTS_DIR}/${s}/mri/T1.mgz)
     set subjInVols = ($subjInVols ${SUBJECTS_DIR}/${s}/mri/${BaseSubjInvol})
     set ltaname = ${s}_to_${subjid}.lta
     set ltaXforms = ($ltaXforms ${subjdir}/mri/transforms/${ltaname})
+    set lta1forms = ($lta1forms ${subjdir}/mri/transforms/${s}_to_${subjid}_norm.lta)
+    set ltaAforms = ($ltaAforms ${subjdir}/mri/transforms/${s}_to_${subjid}_affine.lta)    
   end
   # create the 'mean/median' norm volume:
-  set cmd = (mri_robust_template --mov ${normInVols})
-  set cmd = ($cmd --lta ${ltaXforms})
+  set cmd = ($SUBJECTS_DIR/mri_robust_template --mov ${normInVols})
+  if ($DoAffineBase) then
+    # this is only initial rigid reg
+    set cmd = ($cmd --lta ${lta1forms})
+    set cmd = ($cmd --template ${subjdir}/mri/norm1_template.mgz)
+  else
+    # this is final rigid reg
+    set cmd = ($cmd --lta ${ltaXforms})
+    set cmd = ($cmd --template ${subjdir}/mri/norm_template.mgz)
+  endif
   set cmd = ($cmd --average ${robust_template_avg_arg})
-  set cmd = ($cmd --template ${subjdir}/mri/norm_template.mgz)
   set cmd = ($cmd --sat 4.685 )
   echo "\n $cmd \n" |& tee -a $LF |& tee -a $CF
   if($RunIt) then
     $fs_time $cmd |& tee -a $LF
     if($status) goto error_exit;
   endif
+  
+  if ($DoAffineBase) then
+    # use registration on norm.mgz to initialize affine reg on full head imgs:
+    set cmd = ($SUBJECTS_DIR/mri_robust_template --mov ${headInVols})
+    set cmd = ($cmd --lta ${ltaAforms})
+    set cmd = ($cmd --average ${robust_template_avg_arg})
+    set cmd = ($cmd --template ${subjdir}/mri/head_template.mgz)
+    set cmd = ($cmd --sat 4.685 )
+    set cmd = ($cmd --ixforms ${lta1forms})
+    set cmd = ($cmd --affine)
+    echo "\n $cmd \n" |& tee -a $LF |& tee -a $CF
+    if($RunIt) then
+      $fs_time $cmd |& tee -a $LF
+      if($status) goto error_exit;
+    endif
+    # use affine reg to init rigid reg on norm,.mgz (fine tuning)
+    # not sure if it is really necessary
+    set cmd = ($SUBJECTS_DIR/mri_robust_template --mov ${normInVols})
+    set cmd = ($cmd --lta ${ltaXforms})
+    set cmd = ($cmd --average ${robust_template_avg_arg})
+    set cmd = ($cmd --template ${subjdir}/mri/norm_template.mgz)
+    set cmd = ($cmd --sat 4.685 )
+    set cmd = ($cmd --ixforms ${ltaAforms})
+    echo "\n $cmd \n" |& tee -a $LF |& tee -a $CF
+    if($RunIt) then
+      $fs_time $cmd |& tee -a $LF
+      if($status) goto error_exit;
+    endif  
+  endif
+  
   # create the 'mean/median' input volume:
   set cmd = (mri_robust_template --mov ${subjInVols})
   set cmd = ($cmd --average ${robust_template_avg_arg})
@@ -3773,6 +3817,9 @@ while( $#argv != 0 )
       set DoConvertInput = 1;
       breaksw
 
+    case "-base-affine":
+      set DoAffineBase = 1;
+      # don't break here, but also switch on -base:
     case "-base":
       if ( $#argv < 1) goto arg1err;
       set subjid = $argv[1]; shift;
