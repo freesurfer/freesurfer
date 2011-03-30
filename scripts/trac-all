@@ -8,8 +8,8 @@
 # Original Author: Anastasia Yendiki
 # CVS Revision Info:
 #    $Author: ayendiki $
-#    $Date: 2011/03/24 22:01:34 $
-#    $Revision: 1.23 $
+#    $Date: 2011/03/30 03:38:40 $
+#    $Revision: 1.24 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -25,7 +25,7 @@
 
 umask 002
 
-set VERSION = '$Id: trac-all,v 1.23 2011/03/24 22:01:34 ayendiki Exp $'
+set VERSION = '$Id: trac-all,v 1.24 2011/03/30 03:38:40 ayendiki Exp $'
 set ProgName = `basename $0`
 set inputargs = ($argv)
 
@@ -496,10 +496,10 @@ if ($onpbs && $RunIt) then
 
   if ($dopreproc) then
     if (! $?MYPBSWAIT) setenv MYPBSWAIT 30
-#    if ($doregcvs) then
-#      if ($hname == launchpad)  setenv MYPBSARCH "ppn=2"
-#      if ($hname == seychelles)	setenv MYPBSARCH "bigmem:ppn=2"
-#    endif
+    if ($doregcvs) then
+      if ($hname == launchpad)  setenv MYPBSARCH "ppn=2"
+      if ($hname == seychelles)	setenv MYPBSARCH "bigmem:ppn=2"
+    endif
     echo Queueing pre-processing
     set preid = `fsl_sub_seychelles \
                  -l $pbslogdir/log -m a -N trcpre -t $submitfile`
@@ -508,10 +508,10 @@ if ($onpbs && $RunIt) then
     bedpostx_seychelles $dmdirlist
   else if ($dopaths) then
     if (! $?MYPBSWAIT) setenv MYPBSWAIT 30
-#    if ($doregcvs) then
-#      if ($hname == launchpad)  setenv MYPBSARCH "ppn=2"
-#      if ($hname == seychelles)	setenv MYPBSARCH "bigmem:ppn=2"
-#    endif
+    if ($doregcvs) then
+      if ($hname == launchpad)  setenv MYPBSARCH "ppn=2"
+      if ($hname == seychelles)	setenv MYPBSARCH "bigmem:ppn=2"
+    endif
     echo Queueing path reconstruction
     set trcid = `fsl_sub_seychelles \
                  -l $pbslogdir/log -m a -N trc -t $submitfile`
