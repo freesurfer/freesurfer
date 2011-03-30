@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: mreuter $
-#    $Date: 2011/03/30 19:40:13 $
-#    $Revision: 1.379.2.7 $
+#    $Date: 2011/03/30 22:00:17 $
+#    $Revision: 1.379.2.8 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -26,7 +26,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.379.2.7 2011/03/30 19:40:13 mreuter Exp $';
+set VERSION = '$Id: recon-all,v 1.379.2.8 2011/03/30 22:00:17 mreuter Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -924,7 +924,7 @@ if ($DoCreateBaseInput && $DoCreateBaseSubj) then
     set ltaAforms = ($ltaAforms ${subjdir}/mri/transforms/${s}_to_${subjid}_affine.lta)    
   end
   # create the 'mean/median' norm volume:
-  set cmd = ($SUBJECTS_DIR/mri_robust_template --mov ${normInVols})
+  set cmd = (mri_robust_template --mov ${normInVols})
   if ($DoAffineBase) then
     # this is only initial rigid reg
     set cmd = ($cmd --lta ${lta1forms})
@@ -944,7 +944,7 @@ if ($DoCreateBaseInput && $DoCreateBaseSubj) then
   
   if ($DoAffineBase) then
     # use registration on norm.mgz to initialize affine reg on full head imgs:
-    set cmd = ($SUBJECTS_DIR/mri_robust_template --mov ${headInVols})
+    set cmd = (mri_robust_template --mov ${headInVols})
     set cmd = ($cmd --lta ${ltaAforms})
     set cmd = ($cmd --average ${robust_template_avg_arg})
     set cmd = ($cmd --template ${subjdir}/mri/head_template.mgz)
@@ -958,7 +958,7 @@ if ($DoCreateBaseInput && $DoCreateBaseSubj) then
     endif
     # use affine reg to init rigid reg on norm,.mgz (fine tuning)
     # not sure if it is really necessary
-    set cmd = ($SUBJECTS_DIR/mri_robust_template --mov ${normInVols})
+    set cmd = (mri_robust_template --mov ${normInVols})
     set cmd = ($cmd --lta ${ltaXforms})
     set cmd = ($cmd --average ${robust_template_avg_arg})
     set cmd = ($cmd --template ${subjdir}/mri/norm_template.mgz)
