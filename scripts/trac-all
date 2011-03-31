@@ -8,8 +8,8 @@
 # Original Author: Anastasia Yendiki
 # CVS Revision Info:
 #    $Author: ayendiki $
-#    $Date: 2011/03/30 03:38:40 $
-#    $Revision: 1.24 $
+#    $Date: 2011/03/31 22:54:21 $
+#    $Revision: 1.25 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -25,7 +25,7 @@
 
 umask 002
 
-set VERSION = '$Id: trac-all,v 1.24 2011/03/30 03:38:40 ayendiki Exp $'
+set VERSION = '$Id: trac-all,v 1.25 2011/03/31 22:54:21 ayendiki Exp $'
 set ProgName = `basename $0`
 set inputargs = ($argv)
 
@@ -115,8 +115,8 @@ set doregbbr = 1
 set doregmni = 1
 set doregcvs = 1
 set mnitemp = $FSLDIR/data/standard/MNI152_T1_1mm_brain.nii.gz
-set cvstempdir = $SUBJECTS_DIR
-set cvstemp = avg35rerun
+set cvstempdir = $FREESURFER_HOME/subjects
+set cvstemp = cvs_avg35
 set usemaskanat = 1
 set pathlist = ( lh.cst_AS rh.cst_AS \
                  lh.ilf_AS rh.ilf_AS \
@@ -185,7 +185,7 @@ set dmdirlist = ()
 
 foreach isubj ($runlist)
   if ($isubj > $#subjlist) then
-    echo "ERROR: $isubj found in run list but have only $#subjlist subjects"
+    echo "ERROR: $isubj is in run list but have only $#subjlist subjects"
     exit 1
   endif
 
@@ -826,6 +826,13 @@ check_params:
     endif
 
     if (! $?ncptlist ) set ncptlist = $ncpts
+
+    foreach n ($ncptlist)
+      if ($n < 2) then
+        echo "ERROR: number of control points cannot be less than 2"
+        exit 1
+      endif
+    end
 
     if ($#runlist > $#subjlist) then
       echo "ERROR: run list is longer than subject list - potential duplicates"

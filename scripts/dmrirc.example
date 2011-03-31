@@ -13,8 +13,8 @@
 # Original Author: Anastasia Yendiki
 # CVS Revision Info:
 #    $Author: ayendiki $
-#    $Date: 2011/03/24 22:08:42 $
-#    $Revision: 1.4 $
+#    $Date: 2011/03/31 22:54:21 $
+#    $Revision: 1.5 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -141,13 +141,13 @@ set doregcvs = 1
 
 # CVS template subject ID
 # Only used if doregcvs = 1
-# Default: avg35rerun
+# Default: cvs_avg35
 #
 set cvstemp = donald
 
-# CVS template subject directory
+# Parent directory of the CVS template subject
 # Only used if doregcvs = 1
-# Default: Same as SUBJECTS_DIR
+# Default: $FREESURFER_HOME/subjects
 #
 set cvstempdir = /path/to/cvs/atlases/of/ducks
 
