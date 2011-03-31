@@ -9,8 +9,8 @@
  * CUDA version : Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2011/03/25 20:05:13 $
- *    $Revision: 1.2 $
+ *    $Date: 2011/03/31 17:53:14 $
+ *    $Revision: 1.3 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -162,6 +162,7 @@ double find_optimal_translation( GCA *gca,
             local_GCAcomputeLogSampleProbability
             (gca, gcas, mri, m_L_tmp,nsamples, exvivo) ;
 #endif
+
 
 #if 0
           printf( "%s: %8.3f %8.3f %8.3f %12.6f\n",

@@ -8,8 +8,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2011/03/25 20:05:13 $
- *    $Revision: 1.7 $
+ *    $Date: 2011/03/31 17:53:14 $
+ *    $Revision: 1.8 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -28,6 +28,7 @@
 #include <memory>
 #include <fstream>
 #include <sstream>
+#include <vector>
 using namespace std;
 
 
@@ -35,6 +36,8 @@ using namespace std;
 #include <thrust/device_ptr.h>
 #include <thrust/extrema.h>
 #include <thrust/reduce.h>
+
+
 
 #include "cudacheck.h"
 
@@ -49,6 +52,78 @@ using namespace std;
 #include "em_register_cuda.h"
 
 //#define OUTPUT_STAGES
+
+#ifdef OUTPUT_STAGES
+#include <netcdf.h>
+
+#define NC_SAFE_CALL( call ) do {		\
+    int err = call;				\
+    if( NC_NOERR != err ) {			\
+      std::cerr << __FUNCTION__ \
+		<< ": NetCDF failure on line " << __LINE__	\
+		<< " of file " << __FILE__			\
+		<< std::endl;					\
+      std::cerr << "Error code was " << err << std::endl;	\
+      std::cerr << "Error string was : " << nc_strerror(err)	\
+		<< std::endl;					\
+      abort();                                                  \
+    }								\
+  } while ( 0 );
+
+
+
+
+void WriteTranslationLogPs( const float minTrans,
+                            const float maxTrans,
+                            const unsigned int nTrans,
+                            const float* const logps,
+                            const unsigned int iteration ) {
+  enum dimIndices{ iX, iY, iZ };
+
+  // Create the filename
+  std::stringstream fileName;
+  fileName << "TranslationLogPs"
+           << setw(4) << setfill( '0' ) << iteration
+           << ".nc";
+
+  // Set up the translations
+  TranslationGenerator myGen( minTrans, maxTrans, nTrans );
+
+  // Reference for the file
+  int ncid;
+
+  // Open the file
+  NC_SAFE_CALL( nc_create( fileName.str().c_str(), NC_CLOBBER, &ncid ) );
+
+  // Set up the dimensions
+  int dimIDs[nTrans];
+  NC_SAFE_CALL( nc_def_dim( ncid, "delta_x", nTrans, &dimIDs[iX] ) );
+  NC_SAFE_CALL( nc_def_dim( ncid, "delta_y", nTrans, &dimIDs[iY] ) );
+  NC_SAFE_CALL( nc_def_dim( ncid, "delta_z", nTrans, &dimIDs[iZ] ) );
+
+  // Set up the variable ID
+  int varID;
+  NC_SAFE_CALL( nc_def_var( ncid,
+                            "log_p",
+                            NC_FLOAT,
+                            3, dimIDs,
+                            &varID ) );
+
+  // Make the end of the 'definition' region
+  NC_SAFE_CALL( nc_enddef( ncid ) );
+
+  // Write the log ps
+  NC_SAFE_CALL( nc_put_var_float( ncid,
+				  varID,
+				  logps ) );
+
+
+  // Close the file
+  NC_SAFE_CALL( nc_close( ncid ) );
+}
+
+#endif
+
 
 // ==================================================================
 
@@ -210,9 +285,10 @@ void TranslationLogps( const GPU::Classes::AffineTransformation base,
 				  const TranslationGenerator tGen,
 				  const GPU::Classes::GCASonGPU gcas,
 				  float *logps ) {
+  const size_t b1d = blockIdx.x + ( blockIdx.y * gridDim.x );
 
   // Find our translation
-  float3 myTrans = tGen( blockIdx.x );
+  float3 myTrans = tGen( b1d );
   
   __shared__ float m1[GPU::Classes::AffineTransShared::kMatrixSize];
   __shared__ float m2[GPU::Classes::AffineTransShared::kMatrixSize];
@@ -243,7 +319,7 @@ void TranslationLogps( const GPU::Classes::AffineTransformation base,
   float myLogP = SumLogPs( final, gcas );
 
   if( threadIdx.x == 0 ) {
-    logps[ blockIdx.x ] = myLogP;
+    logps[ b1d ] = myLogP;
   }
 }
 
@@ -455,8 +531,9 @@ void CUDA_FindOptimalTranslation( const MATRIX *baseTransform,
   threads.x = kOptimiseBlockSize;
   threads.y = threads.z = 1;
 
-  grid.x = totalTrans;
-  grid.y = grid.z = 1;
+  grid.x = nTrans*nTrans;
+  grid.y = nTrans;
+  grid.z = 1;
 
   TranslationLogps<<<grid,threads>>>( myBaseTransform,
 				      myGen,
@@ -465,6 +542,7 @@ void CUDA_FindOptimalTranslation( const MATRIX *baseTransform,
   CUDA_CHECK_ERROR( "TranslationLogps failed!" );
  
 #ifdef OUTPUT_STAGES
+  std::vector<float> h_logps( totalTrans );
   for( unsigned int i=0; i<totalTrans; i++ ) {
     float3 translation = myGen(i);
     outFile << setw(20) << setprecision(12) << translation.x << ",";
@@ -472,7 +550,11 @@ void CUDA_FindOptimalTranslation( const MATRIX *baseTransform,
     outFile << setw(20) << setprecision(12) << translation.z << ",";
     outFile << setw(20) << setprecision(12) << d_logps[i];
     outFile << "\n";
+    h_logps.at(i) = d_logps[i];
   }
+  WriteTranslationLogPs( minTrans, maxTrans, nTrans,
+                         &h_logps[0], nCalls );
+                         
 #endif
 
   // Extract the maximum location
