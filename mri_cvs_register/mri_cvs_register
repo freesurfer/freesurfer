@@ -12,7 +12,7 @@
 # Edited : 03-17-2011: replaces applyMorph with mri_vol2vol
 
 set inputargs = ($argv);
-set VERSION = '$Id: mri_cvs_register,v 1.15.2.2 2011/03/26 19:20:43 nicks Exp $';
+set VERSION = '$Id: mri_cvs_register,v 1.15.2.3 2011/03/31 23:20:25 lzollei Exp $';
 
 set movingid = ();
 set templateid = ();
@@ -56,7 +56,8 @@ set DateString = "`date '+%y%m%d%H%M'`"
 
 # Setting up the default params and logging utilities 
 if(! $nolog) then
-  set LF = ${movingid}_to_${templateid}.mri_cvs_register.$DateString.log
+  set currdir = `pwd`
+  set LF = $currdir/${movingid}_to_${templateid}.mri_cvs_register.$DateString.log
   if(-e $LF) mv $LF $LF.old;
   echo ""
   echo "Log file is $LF"
@@ -84,7 +85,6 @@ set settingsfile = $cvsdir/mri_cvs_register.settings.txt
 
 ### Creating outputdir
 echo The outdir:
-#if ( $outdir == ()) then
 if (! $?outdir) then
   set outdir = $SUBJECTS_DIR/$movingid/cvs  
 endif
@@ -321,7 +321,9 @@ if ($UseAseg) then
     echo $cmd |& tee -a $LF
     $cmd |& tee -a $LF
     if($status) exit 1;
+  endif  
 
+  if (!(-e $outdir/${combined:r}.m3z) || $CleanElReg || $CleanVolReg) then
     set cmd = (exportGcam --fixed $tmri/$voltype.mgz --moving $mmri/$voltype.mgz \
                           --morph $outdir/$combined --out_gcam $outdir/${combined:r}.m3z)			  
 
@@ -379,21 +381,23 @@ if (!(-e $outdir/combined_to${templateid}_elreg_$prefix$voltype.tm3d  ) || $Clea
   echo $cmd |& tee -a $LF
   $cmd |& tee -a $LF
   if($status) exit 1;
+endif
 
+if (!(-e $outdir/combined_to${templateid}_elreg_$prefix$voltype.m3z  ) || $CleanElReg || $CleanVolReg) then 
   set cmd = (exportGcam --fixed $tmri/$voltype.mgz --moving $mmri/$voltype.mgz \
                         --morph $outdir/$combined --out_gcam $outdir/${combined:r}.m3z)
- echo $cmd |& tee -a $LF
+  echo $cmd |& tee -a $LF
   $cmd |& tee -a $LF
   if($status) exit 1;
-
-  if ($cleanup) then # deleting tm3d file!
-    set cmd = ( rm -f $outdir/$combined $outdir/$oldcombined)
-    echo $cmd |& tee -a $LF
-    $cmd |& tee -a $LF
-    if($status) exit 1;
-  endif
-
 endif
+
+if ($cleanup) then # deleting tm3d file!
+  set cmd = ( rm -f $outdir/$combined $outdir/$oldcombined)
+  echo $cmd |& tee -a $LF
+  $cmd |& tee -a $LF
+  if($status) exit 1;
+endif
+
 
 ## APPLY the morph to the aseg volume; just for visualization
 set voltype = aseg
