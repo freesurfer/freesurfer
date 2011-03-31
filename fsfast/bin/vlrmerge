@@ -1,13 +1,14 @@
 #!/bin/tcsh -f
 # vlrmerge
 
-set VERSION = '$Id: vlrmerge,v 1.2.2.1 2011/03/25 20:48:09 greve Exp $';
+set VERSION = '$Id: vlrmerge,v 1.2.2.2 2011/03/31 21:32:21 greve Exp $';
 
 set outvol = ();
 set invol = ();
 set lhsurf = ();
 set rhsurf = ();
 set lrvol = ();
+set subcortmask = ();
 set DoCorrection = 0; # Correction for multiple comparsisons
 
 set tmpdir = ();
@@ -45,7 +46,11 @@ popd > /dev/null
 if($#tmpdir == 0) set tmpdir = $outdir/tmpdir.vlrmerge
 mkdir -p $tmpdir
 
-if($#LF == 0) set LF = $outdir/vlrmerge.log
+if($#LF == 0) then
+  set stem = `fname2stem $outvol`
+  set stem = `basename $stem`
+  set LF = $outdir/vlrmerge.$stem.log
+endif
 if($LF != /dev/null) rm -f $LF
 
 echo "Log file for vlrmerge" >> $LF
@@ -236,25 +241,26 @@ goto parse_args_return;
 check_params:
 
 if($#invol == 0) then
-  echo "ERROR: must spec input volume"
+  echo "ERROR: must specify input volume"
   exit 1;
 endif
 if($#lhsurf == 0) then
-  echo "ERROR: must spec lh surf"
+  echo "ERROR: must specify lh surf"
   exit 1;
 endif
 if($#rhsurf == 0) then
-  echo "ERROR: must spec rh surf"
-  exit 1;
-endif
-if($#subcortmask == 0) then
-  echo "ERROR: must spec subcortmasks"
+  echo "ERROR: must specify rh surf"
   exit 1;
 endif
 if($#outvol == 0) then
-  echo "ERROR: must spec out volume"
+  echo "ERROR: must specify out volume"
   exit 1;
 endif
+if($#subcortmask == 0) then
+  echo "ERROR: must specify a subcortical mask "
+  exit 1;
+endif
+
 
 goto check_params_return;
 ############--------------##################
