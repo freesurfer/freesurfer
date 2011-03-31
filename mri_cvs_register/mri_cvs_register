@@ -12,7 +12,7 @@
 # Edited : 03-17-2011: replaces applyMorph with mri_vol2vol
 
 set inputargs = ($argv);
-set VERSION = '$Id: mri_cvs_register,v 1.22 2011/03/29 13:13:22 lzollei Exp $';
+set VERSION = '$Id: mri_cvs_register,v 1.23 2011/03/31 23:23:54 lzollei Exp $';
 
 set movingid = ();
 set templateid = ();
@@ -56,7 +56,8 @@ set DateString = "`date '+%y%m%d%H%M'`"
 
 # Setting up the default params and logging utilities 
 if(! $nolog) then
-  set LF = ${movingid}_to_${templateid}.mri_cvs_register.$DateString.log
+  set currdir = `pwd`
+  set LF = $currdir/${movingid}_to_${templateid}.mri_cvs_register.$DateString.log
   if(-e $LF) mv $LF $LF.old;
   echo ""
   echo "Log file is $LF"
