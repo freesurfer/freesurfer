@@ -424,7 +424,7 @@ install-exec-hook:freeview
 		>> $(DESTDIR)$(bindir)/freeview
 	echo "source \$$FREESURFER_HOME/bin/qt_setup" \
 		>> $(DESTDIR)$(bindir)/freeview
-	echo "exec $(DESTDIR)$(bindir)/Freeview.app/Contents/MacOS/freeview.bin \$$*" >> $(DESTDIR)$(bindir)/freeview
+	echo "exec \$$FREESURFER_HOME/bin/Freeview.app/Contents/MacOS/freeview.bin \$$*" >> $(DESTDIR)$(bindir)/freeview
 	chmod a+x $(DESTDIR)$(bindir)/freeview
 #	./mac_package_dylibs.sh $(WXWIDGETS_DIR)lib $(DESTDIR)$(bindir)/Freeview.app/Contents/Frameworks $(DESTDIR)$(bindir)/Freeview.app/Contents/MacOS/freeview.bin
 	if [[ -f /usr/pubsw/bin/chrpath ]]; then \
