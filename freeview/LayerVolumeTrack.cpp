@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2011/03/30 19:23:59 $
- *    $Revision: 1.4 $
+ *    $Date: 2011/04/01 20:10:22 $
+ *    $Revision: 1.5 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -33,6 +33,7 @@
 #include "LayerPropertyMRI.h"
 #include "vtkProperty.h"
 #include "MyVTKUtils.h"
+#include <QTimer>
 #include <QDebug>
 extern "C"
 {
@@ -132,6 +133,59 @@ void LayerVolumeTrack::RebuildActors()
   }
 }
 
+void LayerVolumeTrack::RestoreColors()
+{
+  MRI* mri = m_volumeSource->GetMRI();
+  COLOR_TABLE* ct = m_ctabStripped;
+  if (!ct)
+    return;
+  for (int i = 0; i < mri->nframes; i++)
+  {
+    int nr, ng, nb;
+    CTABrgbAtIndexi( ct, mri->frames[i].label, &nr, &ng, &nb );
+    m_actors[i]->GetProperty()->SetColor(nr/255.0, ng/255.0, nb/255.0);
+  }
+  emit ActorUpdated();
+}
+
+void LayerVolumeTrack::SetThreshold(int nLabel, double th)
+{
+  MRI* mri = m_volumeSource->GetMRI();
+  for (int i = 0; i < mri->nframes; i++)
+  {
+    if (nLabel == mri->frames[i].label)
+    {
+      mri->frames[i].thresh = th;
+      UpdateFrameActor(i);
+      emit ActorUpdated();
+      return;
+    }
+  }
+}
+
+void LayerVolumeTrack::UpdateFrameActor(int n)
+{
+  vtkActor* actor = m_actors[n];
+  vtkSmartPointer<vtkImageExtractComponents> extract = vtkSmartPointer<vtkImageExtractComponents>::New();
+  extract->SetComponents(n);
+  extract->SetInput(m_imageData);
+  extract->Update();
+  MRI* mri = m_volumeSource->GetMRI();
+  MyVTKUtils::BuildContourActor(extract->GetOutput(), mri->frames[n].thresh, 1e8, actor);
+  actor->GetMapper()->ScalarVisibilityOff();
+}
+
+double LayerVolumeTrack::GetThreshold(int nLabel)
+{
+  MRI* mri = m_volumeSource->GetMRI();
+  for (int i = 0; i < mri->nframes; i++)
+  {
+    if (nLabel == mri->frames[i].label)
+      return mri->frames[i].thresh;
+  }
+  return 0;
+}
+
 void LayerVolumeTrack::Append3DProps(vtkRenderer *renderer, bool *bPlaneVisibility)
 {
   for (int i = 0; i < m_actors.size(); i++)
@@ -182,4 +236,18 @@ QVariantMap LayerVolumeTrack::GetLabelByProp(vtkProp* prop)
     }
   }
   return map;
+}
+
+void LayerVolumeTrack::Highlight(int nLabel)
+{
+  MRI* mri = m_volumeSource->GetMRI();
+  for (int i = 0; i < mri->nframes; i++)
+  {
+    if (nLabel == mri->frames[i].label)
+    {
+      m_actors[i]->GetProperty()->SetColor(1.5, 1.5, 1.5);  // let it over-flow
+      emit ActorUpdated();
+      QTimer::singleShot(300, this, SLOT(RestoreColors()));
+    }
+  }
 }

@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2011/03/30 19:23:59 $
- *    $Revision: 1.63 $
+ *    $Date: 2011/04/01 20:10:22 $
+ *    $Revision: 1.64 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -30,6 +30,7 @@
 #include "LayerPropertyMRI.h"
 #include "LayerDTI.h"
 #include "LayerPropertyDTI.h"
+#include "LayerVolumeTrack.h"
 #include "LUTDataHolder.h"
 #include "MyUtils.h"
 #include <QToolBar>
@@ -133,14 +134,12 @@ PanelVolume::PanelVolume(QWidget *parent) :
                             << ui->labelColorMap
                             << ui->comboBoxColorMap;
 
-  m_widgetlistVolumeTrack << ui->treeWidgetColorTable << m_widgetlistFrame
-                        << ui->treeWidgetColorTable;
-  /*
-                        << ui->labelLookUpTable
-                        << ui->comboBoxLookUpTable
-                        << ui->labelColorMap
-                        << ui->comboBoxColorMap;
- */
+  m_widgetlistVolumeTrack << ui->treeWidgetColorTable << m_widgetlistFrame;
+
+  m_widgetlistVolumeTrackSpecs
+                        << ui->labelTrackVolumeThreshold
+                        << ui->sliderTrackVolumeThresholdLow
+                        << ui->lineEditTrackVolumeThresholdLow;
 
   QList<QWidget*> combo;
   combo << m_widgetlistGrayScale << m_widgetlistHeatScale
@@ -480,6 +479,8 @@ void PanelVolume::DoUpdateWidgets()
     }
   }
 
+  UpdateTrackVolumeThreshold();
+
   BlockAllSignals( false );
 }
 
@@ -490,7 +491,11 @@ void PanelVolume::OnColorTableCurrentItemChanged( QTreeWidgetItem* item )
     QStringList strglist = item->text( 0 ).split(" ");
     double val = strglist[0].toDouble();
     LayerMRI* layer = GetCurrentLayer<LayerMRI*>();
-    if ( layer )
+    if ( layer->IsTypeOf("VolumeTrack") )
+    {
+      UpdateTrackVolumeThreshold();
+    }
+    else
     {
       layer->SetFillValue( val );
     }
@@ -516,6 +521,27 @@ void PanelVolume::UpdateColorLabel()
   {
     ui->colorLabelBrushValue->setPixmap( QPixmap() );
   }
+}
+
+void PanelVolume::UpdateTrackVolumeThreshold()
+{
+  LayerVolumeTrack* layer = GetCurrentLayer<LayerVolumeTrack*>();
+  QTreeWidgetItem* item = ui->treeWidgetColorTable->currentItem();
+  if ( item && layer )
+  {
+    int nLabel = item->text(0).split(" ").at(0).toInt();
+    ui->sliderTrackVolumeThresholdLow->blockSignals(true);
+    ui->lineEditTrackVolumeThresholdLow->blockSignals(true);
+    double fMin = layer->GetProperty()->GetMinValue();
+    double fMax = layer->GetProperty()->GetMaxValue()/4;
+    ui->sliderTrackVolumeThresholdLow->setValue( (int)( ( layer->GetThreshold(nLabel) - fMin ) / ( fMax - fMin ) * 100 ) );
+    ChangeLineEditNumber( ui->lineEditTrackVolumeThresholdLow, layer->GetThreshold(nLabel) );
+    ui->sliderTrackVolumeThresholdLow->blockSignals(false);
+    ui->lineEditTrackVolumeThresholdLow->blockSignals(false);
+    layer->Highlight(nLabel);
+  }
+  ShowWidgets(m_widgetlistVolumeTrackSpecs, layer);
+  EnableWidgets(this->m_widgetlistVolumeTrackSpecs, item);
 }
 
 void PanelVolume::PopulateColorTable( COLOR_TABLE* ct )
@@ -929,6 +955,39 @@ void PanelVolume::OnContourSave()
     }
   }
 }
+
+void PanelVolume::OnSliderTrackVolumeMin(int nval)
+{
+  LayerMRI* layer = GetCurrentLayer<LayerMRI*>();
+  if ( layer && layer->IsTypeOf("VolumeTrack"))
+  {
+    double fMin = layer->GetProperty()->GetMinValue();
+    double fMax = layer->GetProperty()->GetMaxValue()/4;
+    ChangeLineEditNumber( ui->lineEditTrackVolumeThresholdLow,
+                          nval / 100.0 * ( fMax - fMin ) + fMin );
+  }
+}
+
+void PanelVolume::OnTrackVolumeThresholdChanged()
+{
+  QTreeWidgetItem* item = ui->treeWidgetColorTable->currentItem();
+  if (!item)
+    return;
+
+  int nLabel = item->text(0).split(" ").at(0).toInt();
+  bool bOK;
+  double fMin;
+  fMin = ui->lineEditTrackVolumeThresholdLow->text().trimmed().toDouble(&bOK);
+  if (bOK)
+  {
+    LayerVolumeTrack* layer = GetCurrentLayer<LayerVolumeTrack*>();
+    if (layer)
+    {
+      layer->SetThreshold(nLabel, fMin);
+    }
+  }
+}
+
 
 void PanelVolume::OnCopySettings()
 {

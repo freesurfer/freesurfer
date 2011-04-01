@@ -26,9 +26,9 @@
    <property name="geometry">
     <rect>
      <x>0</x>
-     <y>0</y>
+     <y>-47</y>
      <width>308</width>
-     <height>1445</height>
+     <height>1482</height>
     </rect>
    </property>
    <layout class="QVBoxLayout" name="verticalLayout">
@@ -747,6 +747,50 @@
      </widget>
     </item>
     <item>
+     <layout class="QGridLayout" name="gridLayout_3">
+      <property name="topMargin">
+       <number>0</number>
+      </property>
+      <item row="0" column="0">
+       <widget class="QLabel" name="labelTrackVolumeThreshold">
+        <property name="text">
+         <string>Threshold</string>
+        </property>
+       </widget>
+      </item>
+      <item row="0" column="1">
+       <layout class="QHBoxLayout" name="horizontalLayout_19">
+        <item>
+         <widget class="QSlider" name="sliderTrackVolumeThresholdLow">
+          <property name="maximum">
+           <number>100</number>
+          </property>
+          <property name="orientation">
+           <enum>Qt::Horizontal</enum>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QLineEdit" name="lineEditTrackVolumeThresholdLow">
+          <property name="sizePolicy">
+           <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+            <horstretch>0</horstretch>
+            <verstretch>0</verstretch>
+           </sizepolicy>
+          </property>
+          <property name="maximumSize">
+           <size>
+            <width>60</width>
+            <height>16777215</height>
+           </size>
+          </property>
+         </widget>
+        </item>
+       </layout>
+      </item>
+     </layout>
+    </item>
+    <item>
      <widget class="QCheckBox" name="checkBoxShowOutline">
       <property name="text">
        <string>Show label outline only (Alt+L)</string>
@@ -771,36 +815,6 @@
          <string>Low threshold</string>
         </property>
        </widget>
-      </item>
-      <item row="0" column="1">
-       <layout class="QHBoxLayout" name="horizontalLayout_12">
-        <item>
-         <widget class="QSlider" name="sliderContourThresholdLow">
-          <property name="maximum">
-           <number>100</number>
-          </property>
-          <property name="orientation">
-           <enum>Qt::Horizontal</enum>
-          </property>
-         </widget>
-        </item>
-        <item>
-         <widget class="QLineEdit" name="lineEditContourThresholdLow">
-          <property name="sizePolicy">
-           <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
-            <horstretch>0</horstretch>
-            <verstretch>0</verstretch>
-           </sizepolicy>
-          </property>
-          <property name="maximumSize">
-           <size>
-            <width>60</width>
-            <height>16777215</height>
-           </size>
-          </property>
-         </widget>
-        </item>
-       </layout>
       </item>
       <item row="2" column="1">
        <widget class="QCheckBox" name="checkBoxContourExtractAll">
@@ -924,6 +938,36 @@
            </size>
           </property>
          </spacer>
+        </item>
+       </layout>
+      </item>
+      <item row="0" column="1">
+       <layout class="QHBoxLayout" name="horizontalLayout_12">
+        <item>
+         <widget class="QSlider" name="sliderContourThresholdLow">
+          <property name="maximum">
+           <number>100</number>
+          </property>
+          <property name="orientation">
+           <enum>Qt::Horizontal</enum>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QLineEdit" name="lineEditContourThresholdLow">
+          <property name="sizePolicy">
+           <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+            <horstretch>0</horstretch>
+            <verstretch>0</verstretch>
+           </sizepolicy>
+          </property>
+          <property name="maximumSize">
+           <size>
+            <width>60</width>
+            <height>16777215</height>
+           </size>
+          </property>
+         </widget>
         </item>
        </layout>
       </item>
@@ -1081,7 +1125,7 @@
    <hints>
     <hint type="sourcelabel">
      <x>301</x>
-     <y>574</y>
+     <y>527</y>
     </hint>
     <hint type="destinationlabel">
      <x>44</x>
@@ -1113,7 +1157,7 @@
    <hints>
     <hint type="sourcelabel">
      <x>165</x>
-     <y>970</y>
+     <y>923</y>
     </hint>
     <hint type="destinationlabel">
      <x>37</x>
@@ -1129,7 +1173,7 @@
    <hints>
     <hint type="sourcelabel">
      <x>239</x>
-     <y>481</y>
+     <y>434</y>
     </hint>
     <hint type="destinationlabel">
      <x>39</x>
@@ -1145,7 +1189,7 @@
    <hints>
     <hint type="sourcelabel">
      <x>219</x>
-     <y>671</y>
+     <y>624</y>
     </hint>
     <hint type="destinationlabel">
      <x>101</x>
@@ -1161,7 +1205,7 @@
    <hints>
     <hint type="sourcelabel">
      <x>219</x>
-     <y>706</y>
+     <y>659</y>
     </hint>
     <hint type="destinationlabel">
      <x>91</x>
@@ -1177,7 +1221,7 @@
    <hints>
     <hint type="sourcelabel">
      <x>219</x>
-     <y>741</y>
+     <y>694</y>
     </hint>
     <hint type="destinationlabel">
      <x>94</x>
@@ -1193,7 +1237,7 @@
    <hints>
     <hint type="sourcelabel">
      <x>219</x>
-     <y>776</y>
+     <y>729</y>
     </hint>
     <hint type="destinationlabel">
      <x>64</x>
@@ -1209,7 +1253,7 @@
    <hints>
     <hint type="sourcelabel">
      <x>219</x>
-     <y>811</y>
+     <y>764</y>
     </hint>
     <hint type="destinationlabel">
      <x>97</x>
@@ -1225,7 +1269,7 @@
    <hints>
     <hint type="sourcelabel">
      <x>219</x>
-     <y>846</y>
+     <y>799</y>
     </hint>
     <hint type="destinationlabel">
      <x>74</x>
@@ -1241,7 +1285,7 @@
    <hints>
     <hint type="sourcelabel">
      <x>300</x>
-     <y>674</y>
+     <y>627</y>
     </hint>
     <hint type="destinationlabel">
      <x>324</x>
@@ -1257,7 +1301,7 @@
    <hints>
     <hint type="sourcelabel">
      <x>300</x>
-     <y>709</y>
+     <y>662</y>
     </hint>
     <hint type="destinationlabel">
      <x>323</x>
@@ -1273,7 +1317,7 @@
    <hints>
     <hint type="sourcelabel">
      <x>300</x>
-     <y>744</y>
+     <y>697</y>
     </hint>
     <hint type="destinationlabel">
      <x>325</x>
@@ -1289,7 +1333,7 @@
    <hints>
     <hint type="sourcelabel">
      <x>300</x>
-     <y>779</y>
+     <y>732</y>
     </hint>
     <hint type="destinationlabel">
      <x>325</x>
@@ -1305,7 +1349,7 @@
    <hints>
     <hint type="sourcelabel">
      <x>300</x>
-     <y>814</y>
+     <y>767</y>
     </hint>
     <hint type="destinationlabel">
      <x>326</x>
@@ -1321,7 +1365,7 @@
    <hints>
     <hint type="sourcelabel">
      <x>300</x>
-     <y>849</y>
+     <y>802</y>
     </hint>
     <hint type="destinationlabel">
      <x>309</x>
@@ -1337,7 +1381,7 @@
    <hints>
     <hint type="sourcelabel">
      <x>301</x>
-     <y>607</y>
+     <y>560</y>
     </hint>
     <hint type="destinationlabel">
      <x>52</x>
@@ -1385,7 +1429,7 @@
    <hints>
     <hint type="sourcelabel">
      <x>234</x>
-     <y>1314</y>
+     <y>1304</y>
     </hint>
     <hint type="destinationlabel">
      <x>421</x>
@@ -1433,7 +1477,7 @@
    <hints>
     <hint type="sourcelabel">
      <x>234</x>
-     <y>1314</y>
+     <y>1304</y>
     </hint>
     <hint type="destinationlabel">
      <x>435</x>
@@ -1481,7 +1525,7 @@
    <hints>
     <hint type="sourcelabel">
      <x>300</x>
-     <y>1317</y>
+     <y>1307</y>
     </hint>
     <hint type="destinationlabel">
      <x>68</x>
@@ -1497,7 +1541,7 @@
    <hints>
     <hint type="sourcelabel">
      <x>208</x>
-     <y>1403</y>
+     <y>1393</y>
     </hint>
     <hint type="destinationlabel">
      <x>395</x>
@@ -1553,6 +1597,70 @@
     </hint>
    </hints>
   </connection>
+  <connection>
+   <sender>sliderTrackVolumeThresholdLow</sender>
+   <signal>valueChanged(int)</signal>
+   <receiver>PanelVolume</receiver>
+   <slot>OnSliderTrackVolumeMin(int)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>137</x>
+     <y>1100</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>355</x>
+     <y>1125</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>lineEditTrackVolumeThresholdLow</sender>
+   <signal>returnPressed()</signal>
+   <receiver>PanelVolume</receiver>
+   <slot>OnTrackVolumeThresholdChanged()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>288</x>
+     <y>1103</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>389</x>
+     <y>1113</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>sliderTrackVolumeThresholdLow</sender>
+   <signal>sliderReleased()</signal>
+   <receiver>PanelVolume</receiver>
+   <slot>OnTrackVolumeThresholdChanged()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>184</x>
+     <y>1095</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>363</x>
+     <y>1102</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>treeWidgetColorTable</sender>
+   <signal>itemClicked(QTreeWidgetItem*,int)</signal>
+   <receiver>PanelVolume</receiver>
+   <slot>UpdateTrackVolumeThreshold()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>80</x>
+     <y>995</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>406</x>
+     <y>1026</y>
+    </hint>
+   </hints>
+  </connection>
  </connections>
  <slots>
   <slot>OnCheckShowContour(bool)</slot>
@@ -1581,5 +1689,8 @@
   <slot>OnCopySettings()</slot>
   <slot>OnPasteSettings()</slot>
   <slot>OnPasteSettingsToAll()</slot>
+  <slot>OnTrackVolumeThresholdChanged()</slot>
+  <slot>OnSliderTrackVolumeMin(int)</slot>
+  <slot>UpdateTrackVolumeThreshold()</slot>
  </slots>
 </ui>

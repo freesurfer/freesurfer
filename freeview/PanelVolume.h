@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2011/03/23 21:36:51 $
- *    $Revision: 1.38 $
+ *    $Date: 2011/04/01 20:10:22 $
+ *    $Revision: 1.39 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -75,8 +75,11 @@ protected slots:
   void OnCopySettings();
   void OnPasteSettings();
   void OnPasteSettingsToAll();
+  void OnSliderTrackVolumeMin(int);
+  void OnTrackVolumeThresholdChanged();
 
   void UpdateColorLabel();
+  void UpdateTrackVolumeThreshold();
 
 protected:
   void PopulateColorTable( COLOR_TABLE* ctab );
@@ -98,6 +101,7 @@ private:
   QList<QWidget*> m_widgetlistNormalDisplay;
   QList<QWidget*> m_widgetlistEditable;
   QList<QWidget*> m_widgetlistVolumeTrack;
+  QList<QWidget*> m_widgetlistVolumeTrackSpecs;
   QList<QWidget*> m_widgetlistNonVolumeTrack;
 
   LUTDataHolder* m_luts;
