@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2011/03/30 21:18:18 $
- *    $Revision: 1.24 $
+ *    $Date: 2011/04/01 01:29:35 $
+ *    $Revision: 1.25 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -349,7 +349,7 @@ void ToolWindowMeasure::OnSaveAll()
                      "Save region",
                      "",
                      "All files (*)");
-  if ( m_surfaceRegion && !filename.isEmpty() )
+  if (!filename.isEmpty() )
   {
     LayerMRI* mri = (LayerMRI*)MainWindow::GetMainWindow()->GetActiveLayer( "MRI" );
     if ( !mri->SaveAllSurfaceRegions( filename ) )
