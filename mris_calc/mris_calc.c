@@ -11,9 +11,9 @@
 /*
  * Original Author: Rudolph Pienaar
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2011/03/25 20:26:35 $
- *    $Revision: 1.39 $
+ *    $Author: rudolph $
+ *    $Date: 2011/04/01 18:52:37 $
+ *    $Revision: 1.40 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -60,7 +60,7 @@
 #define  START_i      	3
 
 static const char vcid[] =
-  "$Id: mris_calc.c,v 1.39 2011/03/25 20:26:35 greve Exp $";
+  "$Id: mris_calc.c,v 1.40 2011/04/01 18:52:37 rudolph Exp $";
 double fn_sign(float af_A);
 
 // ----------------------------------------------------------------------------
@@ -798,13 +798,13 @@ fileType_find(
   int* 	  ap_FSFILETYPE)
 {
 
-  int   	len, type;
-  float   	f     		= -1.0;
-  char**  	ppch_end    	= &apch_inputFile;
-
+  int   		len, type;
+  float   		f     			= -1.0;
+  char*  		pch_end;
+	
   // First, check if we have a valid float arg conversion
   errno = 0;
-  f   = strtof(apch_inputFile, ppch_end);
+  f   = strtof(apch_inputFile, &pch_end);
   len = (int) strlen(apch_inputFile);
   if(!len)
   {
@@ -1323,7 +1323,7 @@ main(
   init();
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mris_calc.c,v 1.39 2011/03/25 20:26:35 greve Exp $",
+           "$Id: mris_calc.c,v 1.40 2011/04/01 18:52:37 rudolph Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
   {
