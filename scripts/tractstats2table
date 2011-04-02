@@ -9,7 +9,7 @@ import fsutils
 from fsutils import TractOverallStatsParser, TractByvoxelStatsParser, BadFileError, tractlogger
 
 # Original Version - Krish Subramaniam, MGH
-# $Id: tractstats2table,v 1.4 2011/03/28 00:36:34 krish Exp $
+# $Id: tractstats2table,v 1.5 2011/04/02 00:54:53 krish Exp $
 
 # globals
 l = tractlogger
@@ -86,7 +86,7 @@ def options_parse():
     Command Line Options Parser for trackstats2table
     initiate the option parser and return the parsed object
     """
-    parser = optparse.OptionParser(version='$Id: tractstats2table,v 1.4 2011/03/28 00:36:34 krish Exp $', usage=HELPTEXT)
+    parser = optparse.OptionParser(version='$Id: tractstats2table,v 1.5 2011/04/02 00:54:53 krish Exp $', usage=HELPTEXT)
     
     # help text
     h_sub = '(REQUIRED) subject1 <subject2 subject3..>'
@@ -224,6 +224,7 @@ def assemble_inputs(o):
                 sys.exit(1)
         for path in o.pathfiles:
             if path != '':
+                path = os.path.expandvars(path)
                 specs_paths.append( path  )
     return specs_paths
 
