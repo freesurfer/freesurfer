@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2011/03/22 23:38:45 $
- *    $Revision: 1.90.2.2 $
+ *    $Date: 2011/04/02 02:11:07 $
+ *    $Revision: 1.90.2.3 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -217,6 +217,9 @@ protected:
                     const QString& fn_fa,
                     const QString& reg_fn = "",
                     bool Resample = true );
+  void LoadVolumeTrackFile( const QString& fn,
+                    bool Resample = false );
+
   void LoadSurfaceFile( const QString& filename,
                         const QString& fn_patch = "",
                         const QString& fn_target = "" );
@@ -232,6 +235,7 @@ protected:
   void CommandLoadCommand( const QStringList& sa );
   void CommandLoadVolume( const QStringList& sa );
   void CommandLoadDTI           ( const QStringList& cmd );
+  void CommandLoadVolumeTrack   ( const QStringList& cmd );
   void CommandLoadROI           ( const QStringList& cmd );
   void CommandLoadTrack         ( const QStringList& cmd );
   void CommandLoadSurface       ( const QStringList& cmd );
@@ -284,6 +288,7 @@ protected slots:
   void OnCloseVolume();
   void OnSaveVolume();
   void OnLoadDTI();
+  void OnLoadTrackVolume();
   void OnLoadSurface();
   void OnCloseSurface();
   void OnNewROI();

@@ -1,0 +1,2277 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>MainWindow</class>
+ <widget class="QMainWindow" name="MainWindow">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>1213</width>
+    <height>872</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>FreeView</string>
+  </property>
+  <property name="iconSize">
+   <size>
+    <width>24</width>
+    <height>24</height>
+   </size>
+  </property>
+  <property name="unifiedTitleAndToolBarOnMac">
+   <bool>false</bool>
+  </property>
+  <widget class="QWidget" name="centralWidget">
+   <layout class="QHBoxLayout" name="horizontalLayout">
+    <property name="margin">
+     <number>0</number>
+    </property>
+    <item>
+     <widget class="QSplitter" name="splitterMain">
+      <property name="frameShape">
+       <enum>QFrame::NoFrame</enum>
+      </property>
+      <property name="orientation">
+       <enum>Qt::Horizontal</enum>
+      </property>
+      <property name="handleWidth">
+       <number>5</number>
+      </property>
+      <property name="childrenCollapsible">
+       <bool>false</bool>
+      </property>
+      <widget class="QTabWidget" name="tabWidgetControlPanel">
+       <property name="minimumSize">
+        <size>
+         <width>0</width>
+         <height>0</height>
+        </size>
+       </property>
+       <property name="tabShape">
+        <enum>QTabWidget::Rounded</enum>
+       </property>
+       <property name="currentIndex">
+        <number>0</number>
+       </property>
+       <property name="elideMode">
+        <enum>Qt::ElideNone</enum>
+       </property>
+       <property name="usesScrollButtons">
+        <bool>true</bool>
+       </property>
+       <property name="documentMode">
+        <bool>false</bool>
+       </property>
+       <property name="movable">
+        <bool>true</bool>
+       </property>
+       <widget class="PanelVolume" name="tabVolume">
+        <attribute name="title">
+         <string>Volumes</string>
+        </attribute>
+       </widget>
+       <widget class="PanelSurface" name="tabSurface">
+        <attribute name="title">
+         <string>Surfaces</string>
+        </attribute>
+       </widget>
+       <widget class="PanelROI" name="tabROI">
+        <attribute name="title">
+         <string>ROIs</string>
+        </attribute>
+       </widget>
+       <widget class="PanelPointSet" name="tabPointSet">
+        <attribute name="title">
+         <string>Point Sets</string>
+        </attribute>
+       </widget>
+       <widget class="PanelTrack" name="tabTrack">
+        <attribute name="title">
+         <string>Tracks</string>
+        </attribute>
+       </widget>
+      </widget>
+      <widget class="QWidget" name="widget" native="true">
+       <property name="sizePolicy">
+        <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+         <horstretch>1</horstretch>
+         <verstretch>0</verstretch>
+        </sizepolicy>
+       </property>
+       <layout class="QHBoxLayout" name="horizontalLayout_2">
+        <property name="spacing">
+         <number>0</number>
+        </property>
+        <property name="margin">
+         <number>0</number>
+        </property>
+        <item>
+         <widget class="QSplitter" name="splitterInfoPanel">
+          <property name="orientation">
+           <enum>Qt::Vertical</enum>
+          </property>
+          <property name="handleWidth">
+           <number>5</number>
+          </property>
+          <property name="childrenCollapsible">
+           <bool>false</bool>
+          </property>
+          <widget class="QWidget" name="widgetViewportHolder" native="true">
+           <property name="sizePolicy">
+            <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+             <horstretch>0</horstretch>
+             <verstretch>1</verstretch>
+            </sizepolicy>
+           </property>
+           <property name="minimumSize">
+            <size>
+             <width>100</width>
+             <height>100</height>
+            </size>
+           </property>
+           <property name="autoFillBackground">
+            <bool>true</bool>
+           </property>
+           <layout class="QGridLayout" name="gridLayoutViewport" rowstretch="0,0">
+            <property name="margin">
+             <number>0</number>
+            </property>
+            <property name="spacing">
+             <number>1</number>
+            </property>
+            <item row="0" column="0">
+             <widget class="RenderView2D" name="viewAxial" native="true">
+              <property name="mouseTracking">
+               <bool>true</bool>
+              </property>
+             </widget>
+            </item>
+            <item row="0" column="1">
+             <widget class="RenderView2D" name="viewSagittal" native="true">
+              <property name="mouseTracking">
+               <bool>true</bool>
+              </property>
+             </widget>
+            </item>
+            <item row="1" column="0">
+             <widget class="RenderView2D" name="viewCoronal" native="true">
+              <property name="mouseTracking">
+               <bool>true</bool>
+              </property>
+             </widget>
+            </item>
+            <item row="1" column="1">
+             <widget class="RenderView3D" name="view3D" native="true">
+              <property name="mouseTracking">
+               <bool>true</bool>
+              </property>
+             </widget>
+            </item>
+           </layout>
+          </widget>
+          <widget class="QWidget" name="widget_3" native="true">
+           <layout class="QHBoxLayout" name="horizontalLayout_3">
+            <property name="spacing">
+             <number>2</number>
+            </property>
+            <property name="margin">
+             <number>0</number>
+            </property>
+            <item>
+             <widget class="InfoTreeWidget" name="treeWidgetCursorInfo">
+              <property name="rootIsDecorated">
+               <bool>false</bool>
+              </property>
+              <property name="uniformRowHeights">
+               <bool>true</bool>
+              </property>
+              <property name="columnCount">
+               <number>2</number>
+              </property>
+              <attribute name="headerCascadingSectionResizes">
+               <bool>false</bool>
+              </attribute>
+              <column>
+               <property name="text">
+                <string notr="true">Cursor</string>
+               </property>
+              </column>
+              <column>
+               <property name="text">
+                <string>-</string>
+               </property>
+              </column>
+             </widget>
+            </item>
+            <item>
+             <widget class="InfoTreeWidget" name="treeWidgetMouseInfo">
+              <property name="rootIsDecorated">
+               <bool>false</bool>
+              </property>
+              <property name="uniformRowHeights">
+               <bool>true</bool>
+              </property>
+              <column>
+               <property name="text">
+                <string>Mouse</string>
+               </property>
+              </column>
+              <column>
+               <property name="text">
+                <string>-</string>
+               </property>
+              </column>
+             </widget>
+            </item>
+           </layout>
+          </widget>
+         </widget>
+        </item>
+       </layout>
+      </widget>
+     </widget>
+    </item>
+   </layout>
+  </widget>
+  <widget class="QMenuBar" name="menuBar">
+   <property name="geometry">
+    <rect>
+     <x>0</x>
+     <y>0</y>
+     <width>1213</width>
+     <height>25</height>
+    </rect>
+   </property>
+   <widget class="QMenu" name="menuFile">
+    <property name="title">
+     <string>File</string>
+    </property>
+    <widget class="QMenu" name="menuRecentFiles">
+     <property name="title">
+      <string>Recent Files</string>
+     </property>
+     <addaction name="actionVolumes"/>
+     <addaction name="actionSurfaces"/>
+    </widget>
+    <addaction name="actionNewVolume"/>
+    <addaction name="actionLoadVolume"/>
+    <addaction name="actionSaveVolume"/>
+    <addaction name="actionCloseVolume"/>
+    <addaction name="actionSaveVolumeAs"/>
+    <addaction name="separator"/>
+    <addaction name="actionLoadDTIVolumes"/>
+    <addaction name="actionLoadTrackVolume"/>
+    <addaction name="separator"/>
+    <addaction name="actionLoadSurface"/>
+    <addaction name="actionSaveSurface"/>
+    <addaction name="actionSaveSurfaceAs"/>
+    <addaction name="separator"/>
+    <addaction name="actionNewROI"/>
+    <addaction name="actionLoadROI"/>
+    <addaction name="actionSaveROI"/>
+    <addaction name="actionSaveROIAs"/>
+    <addaction name="separator"/>
+    <addaction name="actionNewPointSet"/>
+    <addaction name="actionLoadPointSet"/>
+    <addaction name="actionSavePointSet"/>
+    <addaction name="actionSavePointSetAs"/>
+    <addaction name="separator"/>
+    <addaction name="actionSaveScreenshot"/>
+    <addaction name="actionSaveMovieFrames"/>
+    <addaction name="separator"/>
+    <addaction name="actionRunCommand"/>
+    <addaction name="actionLoadCommand"/>
+    <addaction name="separator"/>
+    <addaction name="menuRecentFiles"/>
+    <addaction name="separator"/>
+    <addaction name="actionExit"/>
+   </widget>
+   <widget class="QMenu" name="menuEdit">
+    <property name="title">
+     <string>Edit</string>
+    </property>
+    <addaction name="actionCopy"/>
+    <addaction name="actionCopyStructure"/>
+    <addaction name="actionPaste"/>
+    <addaction name="separator"/>
+    <addaction name="actionUndo"/>
+    <addaction name="actionRedo"/>
+    <addaction name="separator"/>
+    <addaction name="actionPreferences"/>
+   </widget>
+   <widget class="QMenu" name="menuView">
+    <property name="title">
+     <string>View</string>
+    </property>
+    <widget class="QMenu" name="menuViewport_Layout">
+     <property name="title">
+      <string>Viewport Layout</string>
+     </property>
+     <addaction name="actionLayout1x1"/>
+     <addaction name="actionLayout2x2"/>
+     <addaction name="actionLayout1n3"/>
+     <addaction name="actionLayout1n3h"/>
+     <addaction name="separator"/>
+     <addaction name="actionViewSagittal"/>
+     <addaction name="actionViewCoronal"/>
+     <addaction name="actionViewAxial"/>
+     <addaction name="actionView3D"/>
+    </widget>
+    <addaction name="menuViewport_Layout"/>
+    <addaction name="actionShowControlPanel"/>
+    <addaction name="actionShowCommandConsole"/>
+    <addaction name="actionResetView"/>
+    <addaction name="actionResetViewNearestAxis"/>
+    <addaction name="separator"/>
+    <addaction name="actionShowCoordinateAnnotation"/>
+    <addaction name="actionShowColorScale"/>
+    <addaction name="actionShowSlices"/>
+    <addaction name="actionShowSliceFrames"/>
+    <addaction name="separator"/>
+    <addaction name="actionToggleCursorVisibility"/>
+   </widget>
+   <widget class="QMenu" name="menuLayer">
+    <property name="title">
+     <string>Layer</string>
+    </property>
+    <addaction name="actionShowAllLayers"/>
+    <addaction name="actionHideAllLayers"/>
+    <addaction name="separator"/>
+    <addaction name="actionCycleLayer"/>
+    <addaction name="actionReverseCycleLayer"/>
+    <addaction name="separator"/>
+    <addaction name="actionToggleVolumeVisibility"/>
+    <addaction name="actionToggleSurfaceVisibility"/>
+    <addaction name="actionToggleROIVisibility"/>
+    <addaction name="actionTogglePointSetVisibility"/>
+   </widget>
+   <widget class="QMenu" name="menuAction">
+    <property name="title">
+     <string>Action</string>
+    </property>
+    <addaction name="actionNavigate"/>
+    <addaction name="actionMeasure"/>
+    <addaction name="actionVoxelEdit"/>
+    <addaction name="actionROIEdit"/>
+    <addaction name="actionPointSetEdit"/>
+   </widget>
+   <widget class="QMenu" name="menuTools">
+    <property name="title">
+     <string>Tools</string>
+    </property>
+    <widget class="QMenu" name="menuVolume_Fiilter">
+     <property name="title">
+      <string>Volume Fiilter</string>
+     </property>
+     <addaction name="actionVolumeFilterMean"/>
+     <addaction name="actionVolumeFilterMedian"/>
+     <addaction name="actionVolumeFilterConvolve"/>
+     <addaction name="actionVolumeFilterGradient"/>
+     <addaction name="actionVolumeFilterSobel"/>
+    </widget>
+    <addaction name="menuVolume_Fiilter"/>
+    <addaction name="actionTransformVolume"/>
+    <addaction name="actionCropVolume"/>
+    <addaction name="actionCreateOptimalCombinedVolume"/>
+    <addaction name="separator"/>
+    <addaction name="actionRepositionSurface"/>
+    <addaction name="separator"/>
+    <addaction name="actionSavePoint"/>
+    <addaction name="actionGoToPoint"/>
+    <addaction name="separator"/>
+    <addaction name="actionShowLabelStats"/>
+   </widget>
+   <widget class="QMenu" name="menuHelp">
+    <property name="title">
+     <string>Help</string>
+    </property>
+    <addaction name="actionQuickReference"/>
+    <addaction name="actionAbout"/>
+   </widget>
+   <addaction name="menuFile"/>
+   <addaction name="menuEdit"/>
+   <addaction name="menuView"/>
+   <addaction name="menuLayer"/>
+   <addaction name="menuAction"/>
+   <addaction name="menuTools"/>
+   <addaction name="menuHelp"/>
+  </widget>
+  <widget class="QToolBar" name="mainToolBar">
+   <property name="movable">
+    <bool>false</bool>
+   </property>
+   <property name="allowedAreas">
+    <set>Qt::TopToolBarArea</set>
+   </property>
+   <property name="toolButtonStyle">
+    <enum>Qt::ToolButtonIconOnly</enum>
+   </property>
+   <property name="floatable">
+    <bool>false</bool>
+   </property>
+   <attribute name="toolBarArea">
+    <enum>TopToolBarArea</enum>
+   </attribute>
+   <attribute name="toolBarBreak">
+    <bool>false</bool>
+   </attribute>
+   <addaction name="actionNavigate"/>
+   <addaction name="actionMeasure"/>
+   <addaction name="actionVoxelEdit"/>
+   <addaction name="actionROIEdit"/>
+   <addaction name="actionPointSetEdit"/>
+   <addaction name="separator"/>
+   <addaction name="actionUndo"/>
+   <addaction name="actionRedo"/>
+   <addaction name="separator"/>
+   <addaction name="actionShowControlPanel"/>
+   <addaction name="actionShowCommandConsole"/>
+   <addaction name="separator"/>
+   <addaction name="actionLayout1x1"/>
+   <addaction name="actionLayout2x2"/>
+   <addaction name="actionLayout1n3"/>
+   <addaction name="actionLayout1n3h"/>
+   <addaction name="separator"/>
+   <addaction name="actionViewSagittal"/>
+   <addaction name="actionViewCoronal"/>
+   <addaction name="actionViewAxial"/>
+   <addaction name="actionView3D"/>
+   <addaction name="separator"/>
+   <addaction name="actionShowCoordinateAnnotation"/>
+   <addaction name="actionShowColorScale"/>
+   <addaction name="separator"/>
+   <addaction name="actionSaveScreenshot"/>
+   <addaction name="separator"/>
+   <addaction name="actionSavePoint"/>
+   <addaction name="actionGoToPoint"/>
+  </widget>
+  <action name="actionNewVolume">
+   <property name="icon">
+    <iconset resource="freeview.qrc">
+     <normaloff>:/resource/icons/volume_new.png</normaloff>:/resource/icons/volume_new.png</iconset>
+   </property>
+   <property name="text">
+    <string>New Volume...</string>
+   </property>
+  </action>
+  <action name="actionLoadVolume">
+   <property name="icon">
+    <iconset resource="freeview.qrc">
+     <normaloff>:/resource/icons/volume_load.png</normaloff>:/resource/icons/volume_load.png</iconset>
+   </property>
+   <property name="text">
+    <string>Load Volume...</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+O</string>
+   </property>
+  </action>
+  <action name="actionSaveVolume">
+   <property name="icon">
+    <iconset resource="freeview.qrc">
+     <normaloff>:/resource/icons/volume_save.png</normaloff>:/resource/icons/volume_save.png</iconset>
+   </property>
+   <property name="text">
+    <string>Save Volume</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+S</string>
+   </property>
+  </action>
+  <action name="actionSaveVolumeAs">
+   <property name="text">
+    <string>Save Volume As...</string>
+   </property>
+  </action>
+  <action name="actionNavigate">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="checked">
+    <bool>true</bool>
+   </property>
+   <property name="icon">
+    <iconset resource="freeview.qrc">
+     <normaloff>:/resource/icons/navigate.png</normaloff>:/resource/icons/navigate.png</iconset>
+   </property>
+   <property name="text">
+    <string>Navigate</string>
+   </property>
+   <property name="shortcut">
+    <string>Alt+N</string>
+   </property>
+  </action>
+  <action name="actionMeasure">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="icon">
+    <iconset resource="freeview.qrc">
+     <normaloff>:/resource/icons/measure.png</normaloff>:/resource/icons/measure.png</iconset>
+   </property>
+   <property name="text">
+    <string>Measure</string>
+   </property>
+  </action>
+  <action name="actionVoxelEdit">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="icon">
+    <iconset resource="freeview.qrc">
+     <normaloff>:/resource/icons/voxel_edit.png</normaloff>:/resource/icons/voxel_edit.png</iconset>
+   </property>
+   <property name="text">
+    <string>Voxel Edit</string>
+   </property>
+   <property name="shortcut">
+    <string>Alt+E</string>
+   </property>
+  </action>
+  <action name="actionROIEdit">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="icon">
+    <iconset resource="freeview.qrc">
+     <normaloff>:/resource/icons/roi_edit.png</normaloff>:/resource/icons/roi_edit.png</iconset>
+   </property>
+   <property name="text">
+    <string>ROI Edit</string>
+   </property>
+  </action>
+  <action name="actionPointSetEdit">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="icon">
+    <iconset resource="freeview.qrc">
+     <normaloff>:/resource/icons/waypoints_edit.png</normaloff>:/resource/icons/waypoints_edit.png</iconset>
+   </property>
+   <property name="text">
+    <string>Point Set Edit</string>
+   </property>
+  </action>
+  <action name="actionLoadDTIVolumes">
+   <property name="text">
+    <string>Load DTI Volume...</string>
+   </property>
+  </action>
+  <action name="actionLoadSurface">
+   <property name="icon">
+    <iconset resource="freeview.qrc">
+     <normaloff>:/resource/icons/surface_load.png</normaloff>:/resource/icons/surface_load.png</iconset>
+   </property>
+   <property name="text">
+    <string>Load Surface...</string>
+   </property>
+  </action>
+  <action name="actionSaveSurface">
+   <property name="text">
+    <string>Save Surface</string>
+   </property>
+  </action>
+  <action name="actionSaveSurfaceAs">
+   <property name="text">
+    <string>Save Surface As...</string>
+   </property>
+  </action>
+  <action name="actionNewROI">
+   <property name="icon">
+    <iconset resource="freeview.qrc">
+     <normaloff>:/resource/icons/roi_new.png</normaloff>:/resource/icons/roi_new.png</iconset>
+   </property>
+   <property name="text">
+    <string>New ROI...</string>
+   </property>
+  </action>
+  <action name="actionLoadROI">
+   <property name="icon">
+    <iconset resource="freeview.qrc">
+     <normaloff>:/resource/icons/roi_load.png</normaloff>:/resource/icons/roi_load.png</iconset>
+   </property>
+   <property name="text">
+    <string>Load ROI...</string>
+   </property>
+  </action>
+  <action name="actionSaveROI">
+   <property name="icon">
+    <iconset resource="freeview.qrc">
+     <normaloff>:/resource/icons/roi_save.png</normaloff>:/resource/icons/roi_save.png</iconset>
+   </property>
+   <property name="text">
+    <string>Save ROI...</string>
+   </property>
+  </action>
+  <action name="actionSaveROIAs">
+   <property name="text">
+    <string>Save ROI As...</string>
+   </property>
+  </action>
+  <action name="actionNewPointSet">
+   <property name="icon">
+    <iconset resource="freeview.qrc">
+     <normaloff>:/resource/icons/waypoints_new.png</normaloff>:/resource/icons/waypoints_new.png</iconset>
+   </property>
+   <property name="text">
+    <string>New Point Set...</string>
+   </property>
+  </action>
+  <action name="actionLoadPointSet">
+   <property name="icon">
+    <iconset resource="freeview.qrc">
+     <normaloff>:/resource/icons/waypoints_load.png</normaloff>:/resource/icons/waypoints_load.png</iconset>
+   </property>
+   <property name="text">
+    <string>Load Point Set...</string>
+   </property>
+  </action>
+  <action name="actionSavePointSet">
+   <property name="icon">
+    <iconset resource="freeview.qrc">
+     <normaloff>:/resource/icons/waypoints_save.png</normaloff>:/resource/icons/waypoints_save.png</iconset>
+   </property>
+   <property name="text">
+    <string>Save Point Set</string>
+   </property>
+  </action>
+  <action name="actionSavePointSetAs">
+   <property name="text">
+    <string>Save Point Set As...</string>
+   </property>
+  </action>
+  <action name="actionSaveScreenshot">
+   <property name="icon">
+    <iconset resource="freeview.qrc">
+     <normaloff>:/resource/icons/file_screenshot.png</normaloff>:/resource/icons/file_screenshot.png</iconset>
+   </property>
+   <property name="text">
+    <string>Save Screenshot As...</string>
+   </property>
+   <property name="font">
+    <font/>
+   </property>
+  </action>
+  <action name="actionSaveMovieFrames">
+   <property name="text">
+    <string>Save Movie Frames...</string>
+   </property>
+  </action>
+  <action name="actionExit">
+   <property name="text">
+    <string>Exit</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+Q</string>
+   </property>
+  </action>
+  <action name="actionCopy">
+   <property name="icon">
+    <iconset resource="freeview.qrc">
+     <normaloff>:/resource/icons/edit_copy.png</normaloff>:/resource/icons/edit_copy.png</iconset>
+   </property>
+   <property name="text">
+    <string>Copy</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+C</string>
+   </property>
+  </action>
+  <action name="actionCopyStructure">
+   <property name="text">
+    <string>Copy Structure</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+Alt+C</string>
+   </property>
+  </action>
+  <action name="actionPaste">
+   <property name="icon">
+    <iconset resource="freeview.qrc">
+     <normaloff>:/resource/icons/edit_paste.png</normaloff>:/resource/icons/edit_paste.png</iconset>
+   </property>
+   <property name="text">
+    <string>Paste</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+V</string>
+   </property>
+  </action>
+  <action name="actionUndo">
+   <property name="icon">
+    <iconset resource="freeview.qrc">
+     <normaloff>:/resource/icons/edit_undo.png</normaloff>:/resource/icons/edit_undo.png</iconset>
+   </property>
+   <property name="text">
+    <string>Undo</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+Z</string>
+   </property>
+  </action>
+  <action name="actionRedo">
+   <property name="icon">
+    <iconset resource="freeview.qrc">
+     <normaloff>:/resource/icons/edit_redo.png</normaloff>:/resource/icons/edit_redo.png</iconset>
+   </property>
+   <property name="text">
+    <string>Redo</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+Shift+Z</string>
+   </property>
+  </action>
+  <action name="actionRenameLayer">
+   <property name="text">
+    <string>Rename Layer...</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+Alt+N</string>
+   </property>
+  </action>
+  <action name="actionPreferences">
+   <property name="text">
+    <string>Preferences...</string>
+   </property>
+  </action>
+  <action name="actionLayout1x1">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="icon">
+    <iconset resource="freeview.qrc">
+     <normaloff>:/resource/icons/layout_1x1.png</normaloff>:/resource/icons/layout_1x1.png</iconset>
+   </property>
+   <property name="text">
+    <string>1 X 1</string>
+   </property>
+  </action>
+  <action name="actionLayout2x2">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="checked">
+    <bool>true</bool>
+   </property>
+   <property name="icon">
+    <iconset resource="freeview.qrc">
+     <normaloff>:/resource/icons/layout_2x2.png</normaloff>:/resource/icons/layout_2x2.png</iconset>
+   </property>
+   <property name="text">
+    <string>2 X 2</string>
+   </property>
+  </action>
+  <action name="actionLayout1n3">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="icon">
+    <iconset resource="freeview.qrc">
+     <normaloff>:/resource/icons/layout_1n3.png</normaloff>:/resource/icons/layout_1n3.png</iconset>
+   </property>
+   <property name="text">
+    <string>1 &amp;&amp; 3</string>
+   </property>
+  </action>
+  <action name="actionLayout1n3h">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="icon">
+    <iconset resource="freeview.qrc">
+     <normaloff>:/resource/icons/layout_1n3_h.png</normaloff>:/resource/icons/layout_1n3_h.png</iconset>
+   </property>
+   <property name="text">
+    <string>1 &amp;&amp; 3 Horizontal</string>
+   </property>
+  </action>
+  <action name="actionViewSagittal">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="checked">
+    <bool>true</bool>
+   </property>
+   <property name="icon">
+    <iconset resource="freeview.qrc">
+     <normaloff>:/resource/icons/view_sagittal.png</normaloff>:/resource/icons/view_sagittal.png</iconset>
+   </property>
+   <property name="text">
+    <string>Sagittal</string>
+   </property>
+   <property name="shortcut">
+    <string>Alt+X</string>
+   </property>
+  </action>
+  <action name="actionViewCoronal">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="icon">
+    <iconset resource="freeview.qrc">
+     <normaloff>:/resource/icons/view_coronal.png</normaloff>:/resource/icons/view_coronal.png</iconset>
+   </property>
+   <property name="text">
+    <string>Coronal</string>
+   </property>
+   <property name="shortcut">
+    <string>Alt+Y</string>
+   </property>
+  </action>
+  <action name="actionViewAxial">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="icon">
+    <iconset resource="freeview.qrc">
+     <normaloff>:/resource/icons/view_axial.png</normaloff>:/resource/icons/view_axial.png</iconset>
+   </property>
+   <property name="text">
+    <string>Axial</string>
+   </property>
+   <property name="shortcut">
+    <string>Alt+Z</string>
+   </property>
+  </action>
+  <action name="actionView3D">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="icon">
+    <iconset resource="freeview.qrc">
+     <normaloff>:/resource/icons/view_3d.png</normaloff>:/resource/icons/view_3d.png</iconset>
+   </property>
+   <property name="text">
+    <string>3D</string>
+   </property>
+   <property name="shortcut">
+    <string>Alt+3</string>
+   </property>
+  </action>
+  <action name="actionShowControlPanel">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="checked">
+    <bool>true</bool>
+   </property>
+   <property name="icon">
+    <iconset resource="freeview.qrc">
+     <normaloff>:/resource/icons/view_control_panel.png</normaloff>:/resource/icons/view_control_panel.png</iconset>
+   </property>
+   <property name="text">
+    <string>Show Control Panel</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+P</string>
+   </property>
+  </action>
+  <action name="actionResetView">
+   <property name="text">
+    <string>Reset View</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+R</string>
+   </property>
+  </action>
+  <action name="actionResetViewNearestAxis">
+   <property name="text">
+    <string>Reset View to Nearest Axis (3D View)</string>
+   </property>
+   <property name="shortcut">
+    <string>Alt+R</string>
+   </property>
+  </action>
+  <action name="actionShowCoordinateAnnotation">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="checked">
+    <bool>true</bool>
+   </property>
+   <property name="icon">
+    <iconset resource="freeview.qrc">
+     <normaloff>:/resource/icons/view_coordinate.png</normaloff>:/resource/icons/view_coordinate.png</iconset>
+   </property>
+   <property name="text">
+    <string>Show Coordinate Annotation</string>
+   </property>
+  </action>
+  <action name="actionShowColorScale">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="icon">
+    <iconset resource="freeview.qrc">
+     <normaloff>:/resource/icons/view_scalar_bar.png</normaloff>:/resource/icons/view_scalar_bar.png</iconset>
+   </property>
+   <property name="text">
+    <string>Show Color Scale</string>
+   </property>
+  </action>
+  <action name="actionShowSliceFrames">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>Show Slice Frames (3D View)</string>
+   </property>
+   <property name="toolTip">
+    <string>Show Slice Frames (3D View)</string>
+   </property>
+  </action>
+  <action name="actionToggleCursorVisibility">
+   <property name="text">
+    <string>Toggle Cursor Visibility</string>
+   </property>
+   <property name="shortcut">
+    <string>Alt+U</string>
+   </property>
+  </action>
+  <action name="actionToggleVoxelCoordinateDisplay">
+   <property name="text">
+    <string>Toggle Voxel Coordinate Display</string>
+   </property>
+   <property name="shortcut">
+    <string>Alt+D</string>
+   </property>
+  </action>
+  <action name="actionShowAllLayers">
+   <property name="text">
+    <string>Show All Layers</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+Alt+S</string>
+   </property>
+  </action>
+  <action name="actionHideAllLayers">
+   <property name="text">
+    <string>Hide All Layers</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+Alt+H</string>
+   </property>
+  </action>
+  <action name="actionCycleLayer">
+   <property name="text">
+    <string>Cycle Through Layer List</string>
+   </property>
+   <property name="shortcut">
+    <string>Alt+C</string>
+   </property>
+  </action>
+  <action name="actionReverseCycleLayer">
+   <property name="text">
+    <string>Reverse Cycle Through Layer List</string>
+   </property>
+   <property name="shortcut">
+    <string>Alt+Shift+C</string>
+   </property>
+  </action>
+  <action name="actionToggleVolumeVisibility">
+   <property name="text">
+    <string>Toggle Volume Visibility</string>
+   </property>
+   <property name="shortcut">
+    <string>Alt+V</string>
+   </property>
+  </action>
+  <action name="actionToggleSurfaceVisibility">
+   <property name="text">
+    <string>Toggle Surface Visibility</string>
+   </property>
+   <property name="shortcut">
+    <string>Alt+F</string>
+   </property>
+  </action>
+  <action name="actionToggleROIVisibility">
+   <property name="text">
+    <string>Toggle ROI Visibility</string>
+   </property>
+   <property name="shortcut">
+    <string>Alt+R</string>
+   </property>
+  </action>
+  <action name="actionTogglePointSetVisibility">
+   <property name="text">
+    <string>Toggle Point Set Visibility</string>
+   </property>
+   <property name="shortcut">
+    <string>Alt+W</string>
+   </property>
+  </action>
+  <action name="actionTransformVolume">
+   <property name="text">
+    <string>Transform Volume...</string>
+   </property>
+  </action>
+  <action name="actionCropVolume">
+   <property name="text">
+    <string>Crop Volume...</string>
+   </property>
+  </action>
+  <action name="actionCreateOptimalCombinedVolume">
+   <property name="text">
+    <string>Create Optimal Combined Volume...</string>
+   </property>
+  </action>
+  <action name="actionRepositionSurface">
+   <property name="text">
+    <string>Reposition Surface...</string>
+   </property>
+  </action>
+  <action name="actionSavePoint">
+   <property name="icon">
+    <iconset resource="freeview.qrc">
+     <normaloff>:/resource/icons/tool_save_point.png</normaloff>:/resource/icons/tool_save_point.png</iconset>
+   </property>
+   <property name="text">
+    <string>Save Point</string>
+   </property>
+  </action>
+  <action name="actionGoToPoint">
+   <property name="icon">
+    <iconset resource="freeview.qrc">
+     <normaloff>:/resource/icons/tool_goto_point.png</normaloff>:/resource/icons/tool_goto_point.png</iconset>
+   </property>
+   <property name="text">
+    <string>Go To Saved Point</string>
+   </property>
+  </action>
+  <action name="actionShowLabelStats">
+   <property name="text">
+    <string>Show Label Stats...</string>
+   </property>
+   <property name="shortcut">
+    <string>Alt+T</string>
+   </property>
+  </action>
+  <action name="actionQuickReference">
+   <property name="text">
+    <string>Quick Reference...</string>
+   </property>
+  </action>
+  <action name="actionAbout">
+   <property name="text">
+    <string>About FreeView...</string>
+   </property>
+  </action>
+  <action name="actionVolumeFilterMean">
+   <property name="text">
+    <string>Mean...</string>
+   </property>
+  </action>
+  <action name="actionVolumeFilterMedian">
+   <property name="text">
+    <string>Median...</string>
+   </property>
+  </action>
+  <action name="actionVolumeFilterConvolve">
+   <property name="text">
+    <string>Convolve...</string>
+   </property>
+  </action>
+  <action name="actionVolumeFilterGradient">
+   <property name="text">
+    <string>Gradient...</string>
+   </property>
+  </action>
+  <action name="actionCloseVolume">
+   <property name="icon">
+    <iconset resource="freeview.qrc">
+     <normaloff>:/resource/icons/volume_delete.png</normaloff>:/resource/icons/volume_delete.png</iconset>
+   </property>
+   <property name="text">
+    <string>Close Volume</string>
+   </property>
+  </action>
+  <action name="actionCloseSurface">
+   <property name="icon">
+    <iconset resource="freeview.qrc">
+     <normaloff>:/resource/icons/surface_delete.png</normaloff>:/resource/icons/surface_delete.png</iconset>
+   </property>
+   <property name="text">
+    <string>Close Surface</string>
+   </property>
+   <property name="toolTip">
+    <string>Close Surface</string>
+   </property>
+  </action>
+  <action name="actionCloseROI">
+   <property name="icon">
+    <iconset resource="freeview.qrc">
+     <normaloff>:/resource/icons/roi_delete.png</normaloff>:/resource/icons/roi_delete.png</iconset>
+   </property>
+   <property name="text">
+    <string>Close ROI</string>
+   </property>
+   <property name="toolTip">
+    <string>Close ROI</string>
+   </property>
+  </action>
+  <action name="actionClosePointSet">
+   <property name="icon">
+    <iconset resource="freeview.qrc">
+     <normaloff>:/resource/icons/waypoints_delete.png</normaloff>:/resource/icons/waypoints_delete.png</iconset>
+   </property>
+   <property name="text">
+    <string>Close Point Set</string>
+   </property>
+   <property name="toolTip">
+    <string>Close Point Set</string>
+   </property>
+  </action>
+  <action name="actionVolumes">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>Volumes</string>
+   </property>
+   <property name="font">
+    <font>
+     <weight>75</weight>
+     <bold>true</bold>
+    </font>
+   </property>
+  </action>
+  <action name="actionSurfaces">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>Surfaces</string>
+   </property>
+   <property name="font">
+    <font>
+     <weight>75</weight>
+     <bold>true</bold>
+    </font>
+   </property>
+  </action>
+  <action name="actionVolumeFilterSobel">
+   <property name="text">
+    <string>Sobel</string>
+   </property>
+  </action>
+  <action name="actionRunCommand">
+   <property name="text">
+    <string>Run Command...</string>
+   </property>
+  </action>
+  <action name="actionLoadCommand">
+   <property name="text">
+    <string>Load Command...</string>
+   </property>
+  </action>
+  <action name="actionShowCommandConsole">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="icon">
+    <iconset resource="freeview.qrc">
+     <normaloff>:/resource/icons/view_command_console.png</normaloff>:/resource/icons/view_command_console.png</iconset>
+   </property>
+   <property name="text">
+    <string>Show Command Console</string>
+   </property>
+  </action>
+  <action name="actionLoadTrack">
+   <property name="icon">
+    <iconset resource="freeview.qrc">
+     <normaloff>:/resource/icons/track_load.png</normaloff>:/resource/icons/track_load.png</iconset>
+   </property>
+   <property name="text">
+    <string>Load Track...</string>
+   </property>
+  </action>
+  <action name="actionCloseTrack">
+   <property name="icon">
+    <iconset resource="freeview.qrc">
+     <normaloff>:/resource/icons/track_delete.png</normaloff>:/resource/icons/track_delete.png</iconset>
+   </property>
+   <property name="text">
+    <string>Close Track</string>
+   </property>
+   <property name="toolTip">
+    <string>Close Track</string>
+   </property>
+  </action>
+  <action name="actionShowSlices">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>Show Slices (3D View)</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+Shift+S</string>
+   </property>
+  </action>
+  <action name="actionLoadTrackVolume">
+   <property name="text">
+    <string>Load Track Volume...</string>
+   </property>
+  </action>
+ </widget>
+ <layoutdefault spacing="6" margin="11"/>
+ <customwidgets>
+  <customwidget>
+   <class>PanelVolume</class>
+   <extends>QWidget</extends>
+   <header>PanelVolume.h</header>
+   <container>1</container>
+  </customwidget>
+  <customwidget>
+   <class>PanelSurface</class>
+   <extends>QWidget</extends>
+   <header>PanelSurface.h</header>
+  </customwidget>
+  <customwidget>
+   <class>PanelROI</class>
+   <extends>QWidget</extends>
+   <header>PanelROI.h</header>
+   <container>1</container>
+  </customwidget>
+  <customwidget>
+   <class>PanelPointSet</class>
+   <extends>QWidget</extends>
+   <header>PanelPointSet.h</header>
+   <container>1</container>
+  </customwidget>
+  <customwidget>
+   <class>RenderView3D</class>
+   <extends>QWidget</extends>
+   <header>RenderView3D.h</header>
+   <container>1</container>
+   <slots>
+    <slot>SnapToNearestAxis()</slot>
+    <slot>SetShowSliceFrames(bool)</slot>
+   </slots>
+  </customwidget>
+  <customwidget>
+   <class>RenderView2D</class>
+   <extends>QWidget</extends>
+   <header>RenderView2D.h</header>
+   <container>1</container>
+  </customwidget>
+  <customwidget>
+   <class>InfoTreeWidget</class>
+   <extends>QTreeWidget</extends>
+   <header>InfoTreeWidget.h</header>
+  </customwidget>
+  <customwidget>
+   <class>PanelTrack</class>
+   <extends>QWidget</extends>
+   <header>PanelTrack.h</header>
+   <container>1</container>
+  </customwidget>
+ </customwidgets>
+ <resources>
+  <include location="freeview.qrc"/>
+ </resources>
+ <connections>
+  <connection>
+   <sender>actionShowControlPanel</sender>
+   <signal>toggled(bool)</signal>
+   <receiver>tabWidgetControlPanel</receiver>
+   <slot>setVisible(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>101</x>
+     <y>455</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>actionExit</sender>
+   <signal>triggered()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>close()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>606</x>
+     <y>433</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>actionLoadVolume</sender>
+   <signal>triggered()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>OnLoadVolume()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>606</x>
+     <y>433</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>actionCloseVolume</sender>
+   <signal>triggered()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>OnCloseVolume()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>606</x>
+     <y>433</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>actionCycleLayer</sender>
+   <signal>triggered()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>OnCycleLayer()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>606</x>
+     <y>433</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>actionReverseCycleLayer</sender>
+   <signal>triggered()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>OnReverseCycleLayer()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>606</x>
+     <y>433</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>actionLoadSurface</sender>
+   <signal>triggered()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>OnLoadSurface()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>606</x>
+     <y>433</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>actionCloseSurface</sender>
+   <signal>triggered()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>OnCloseSurface()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>606</x>
+     <y>433</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>actionNavigate</sender>
+   <signal>triggered()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>OnSetModeNavigate()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>606</x>
+     <y>433</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>actionMeasure</sender>
+   <signal>triggered()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>OnSetModeMeasure()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>606</x>
+     <y>433</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>actionPointSetEdit</sender>
+   <signal>triggered()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>OnSetModePointSetEdit()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>606</x>
+     <y>433</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>actionVoxelEdit</sender>
+   <signal>triggered()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>OnSetModeVoxelEdit()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>606</x>
+     <y>433</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>actionROIEdit</sender>
+   <signal>triggered()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>OnSetModeROIEdit()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>606</x>
+     <y>433</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>actionUndo</sender>
+   <signal>triggered()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>OnEditUndo()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>606</x>
+     <y>433</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>actionRedo</sender>
+   <signal>triggered()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>OnEditRedo()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>606</x>
+     <y>433</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>actionSaveVolume</sender>
+   <signal>triggered()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>OnSaveVolume()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>606</x>
+     <y>433</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>actionNewVolume</sender>
+   <signal>triggered()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>OnNewVolume()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>606</x>
+     <y>433</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>actionSaveROI</sender>
+   <signal>triggered()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>OnSaveROI()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>606</x>
+     <y>433</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>actionLoadROI</sender>
+   <signal>triggered()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>OnLoadROI()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>606</x>
+     <y>433</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>actionNewROI</sender>
+   <signal>triggered()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>OnNewROI()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>606</x>
+     <y>433</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>actionCloseROI</sender>
+   <signal>triggered()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>OnCloseROI()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>606</x>
+     <y>433</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>actionNewPointSet</sender>
+   <signal>triggered()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>OnNewPointSet()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>606</x>
+     <y>433</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>actionSavePointSet</sender>
+   <signal>triggered()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>OnSavePointSet()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>606</x>
+     <y>433</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>actionClosePointSet</sender>
+   <signal>triggered()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>OnClosePointSet()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>606</x>
+     <y>433</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>actionPreferences</sender>
+   <signal>triggered()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>OnPreferences()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>606</x>
+     <y>433</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>actionLoadDTIVolumes</sender>
+   <signal>triggered()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>OnLoadDTI()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>606</x>
+     <y>433</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>actionLoadPointSet</sender>
+   <signal>triggered()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>OnLoadPointSet()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>606</x>
+     <y>433</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>actionTransformVolume</sender>
+   <signal>triggered()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>OnTransformVolume()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>606</x>
+     <y>433</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>actionCropVolume</sender>
+   <signal>triggered()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>OnCropVolume()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>606</x>
+     <y>433</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>actionSaveScreenshot</sender>
+   <signal>triggered()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>OnSaveScreenshot()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>606</x>
+     <y>433</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>actionVolumeFilterMean</sender>
+   <signal>triggered()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>OnVolumeFilterMean()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>606</x>
+     <y>433</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>actionVolumeFilterMedian</sender>
+   <signal>triggered()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>OnVolumeFilterMedian()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>606</x>
+     <y>433</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>actionVolumeFilterConvolve</sender>
+   <signal>triggered()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>OnVolumeFilterConvolve()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>606</x>
+     <y>433</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>actionVolumeFilterGradient</sender>
+   <signal>triggered()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>OnVolumeFilterGradient()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>606</x>
+     <y>433</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>actionResetView</sender>
+   <signal>triggered()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>OnResetView()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>606</x>
+     <y>433</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>actionResetViewNearestAxis</sender>
+   <signal>triggered()</signal>
+   <receiver>view3D</receiver>
+   <slot>SnapToNearestAxis()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>962</x>
+     <y>503</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>actionShowSliceFrames</sender>
+   <signal>toggled(bool)</signal>
+   <receiver>view3D</receiver>
+   <slot>SetShowSliceFrames(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>962</x>
+     <y>503</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>actionGoToPoint</sender>
+   <signal>triggered()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>OnGoToPoint()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>606</x>
+     <y>433</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>actionSavePoint</sender>
+   <signal>triggered()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>OnSavePoint()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>606</x>
+     <y>433</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>actionShowAllLayers</sender>
+   <signal>triggered()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>ShowAllLayers()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>606</x>
+     <y>433</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>actionHideAllLayers</sender>
+   <signal>triggered()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>HideAllLayers()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>606</x>
+     <y>433</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>actionShowCoordinateAnnotation</sender>
+   <signal>toggled(bool)</signal>
+   <receiver>MainWindow</receiver>
+   <slot>OnShowAnnotation(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>606</x>
+     <y>433</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>actionShowColorScale</sender>
+   <signal>toggled(bool)</signal>
+   <receiver>MainWindow</receiver>
+   <slot>OnShowColorBar(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>606</x>
+     <y>433</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>actionCopy</sender>
+   <signal>triggered()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>OnCopy()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>606</x>
+     <y>433</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>actionCopyStructure</sender>
+   <signal>triggered()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>OnCopyStructure()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>606</x>
+     <y>433</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>actionPaste</sender>
+   <signal>triggered()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>OnPaste()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>606</x>
+     <y>433</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>actionToggleVolumeVisibility</sender>
+   <signal>triggered()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>OnToggleShowVolume()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>606</x>
+     <y>433</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>actionToggleSurfaceVisibility</sender>
+   <signal>triggered()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>OnToggleShowSurface()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>606</x>
+     <y>433</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>actionToggleROIVisibility</sender>
+   <signal>triggered()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>OnToggleShowROI()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>606</x>
+     <y>433</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>actionTogglePointSetVisibility</sender>
+   <signal>triggered()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>OnToggleShowPointSet()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>606</x>
+     <y>433</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>actionAbout</sender>
+   <signal>triggered()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>OnAbout()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>606</x>
+     <y>433</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>actionVolumeFilterSobel</sender>
+   <signal>triggered()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>OnVolumeFilterSobel()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>606</x>
+     <y>433</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>actionSaveVolumeAs</sender>
+   <signal>triggered()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>SaveVolumeAs()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>606</x>
+     <y>435</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>actionLoadCommand</sender>
+   <signal>triggered()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>OnLoadCommand()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>606</x>
+     <y>435</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>actionLoadTrack</sender>
+   <signal>triggered()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>OnLoadTrack()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>606</x>
+     <y>435</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>actionCloseTrack</sender>
+   <signal>triggered()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>OnCloseTrack()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>606</x>
+     <y>435</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>actionSavePointSetAs</sender>
+   <signal>triggered()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>OnSavePointSetAs()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>606</x>
+     <y>435</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>actionSaveMovieFrames</sender>
+   <signal>triggered()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>OnWriteMovieFrames()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>606</x>
+     <y>435</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>actionLoadTrackVolume</sender>
+   <signal>triggered()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>OnLoadTrackVolume()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>606</x>
+     <y>435</y>
+    </hint>
+   </hints>
+  </connection>
+ </connections>
+ <slots>
+  <slot>OnLoadVolume()</slot>
+  <slot>OnCloseVolume()</slot>
+  <slot>OnCycleLayer()</slot>
+  <slot>OnReverseCycleLayer()</slot>
+  <slot>OnLoadSurface()</slot>
+  <slot>OnCloseSurface()</slot>
+  <slot>OnSetModeNavigate()</slot>
+  <slot>OnSetModeMeasure()</slot>
+  <slot>OnSetModeVoxelEdit()</slot>
+  <slot>OnSetModeROIEdit()</slot>
+  <slot>OnSetModePointSetEdit()</slot>
+  <slot>OnEditUndo()</slot>
+  <slot>OnEditRedo()</slot>
+  <slot>OnSaveVolume()</slot>
+  <slot>OnNewVolume()</slot>
+  <slot>OnLoadROI()</slot>
+  <slot>OnNewROI()</slot>
+  <slot>OnCloseROI()</slot>
+  <slot>OnSaveROI()</slot>
+  <slot>OnNewPointSet()</slot>
+  <slot>OnLoadPointSet()</slot>
+  <slot>OnSavePointSet()</slot>
+  <slot>OnClosePointSet()</slot>
+  <slot>OnPreferences()</slot>
+  <slot>OnLoadDTI()</slot>
+  <slot>OnTransformVolume()</slot>
+  <slot>OnCropVolume()</slot>
+  <slot>OnSaveScreenshot()</slot>
+  <slot>OnVolumeFilterConvolve()</slot>
+  <slot>OnVolumeFilterMean()</slot>
+  <slot>OnVolumeFilterMedian()</slot>
+  <slot>OnVolumeFilterGradient()</slot>
+  <slot>OnResetView()</slot>
+  <slot>OnSavePoint()</slot>
+  <slot>OnGoToPoint()</slot>
+  <slot>ShowAllLayers()</slot>
+  <slot>HideAllLayers()</slot>
+  <slot>OnShowAnnotation(bool)</slot>
+  <slot>OnShowColorBar(bool)</slot>
+  <slot>OnCopy()</slot>
+  <slot>OnPaste()</slot>
+  <slot>OnCopyStructure()</slot>
+  <slot>OnToggleShowVolume()</slot>
+  <slot>OnToggleShowSurface()</slot>
+  <slot>OnToggleShowROI()</slot>
+  <slot>OnToggleShowPointSet()</slot>
+  <slot>OnAbout()</slot>
+  <slot>OnVolumeFilterSobel()</slot>
+  <slot>SaveVolumeAs()</slot>
+  <slot>OnLoadCommand()</slot>
+  <slot>OnLoadTrack()</slot>
+  <slot>OnCloseTrack()</slot>
+  <slot>OnSavePointSetAs()</slot>
+  <slot>OnWriteMovieFrames()</slot>
+  <slot>OnLoadTrackVolume()</slot>
+ </slots>
+</ui>

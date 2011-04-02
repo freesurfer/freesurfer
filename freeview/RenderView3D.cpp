@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2011/03/22 23:38:45 $
- *    $Revision: 1.54.2.2 $
+ *    $Date: 2011/04/02 02:11:07 $
+ *    $Revision: 1.54.2.3 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -50,9 +50,11 @@
 #include <vtkCellArray.h>
 #include <QtGlobal>
 #include <QMenu>
+#include <QDebug>
 #include "Interactor3DNavigate.h"
 #include "Interactor3DMeasure.h"
 #include "Interactor3DVolumeCrop.h"
+#include "LayerVolumeTrack.h"
 #include <vtkScalarBarActor.h>
 #include "vtkRGBAColorTransferFunction.h"
 #include <vtkAnnotatedCubeActor.h>
@@ -304,6 +306,7 @@ void RenderView3D::DoUpdateRASPosition( int posX, int posY, bool bCursor )
   LayerCollection* lc_roi = MainWindow::GetMainWindow()->GetLayerCollection( "ROI" );
   LayerCollection* lc_surface = MainWindow::GetMainWindow()->GetLayerCollection( "Surface" );
 
+  this->setToolTip("");
   if ( lc_mri->IsEmpty() && lc_roi->IsEmpty() && lc_surface->IsEmpty() )
   {
     return;
@@ -431,6 +434,19 @@ void RenderView3D::DoUpdateRASPosition( int posX, int posY, bool bCursor )
           {
             RequestRedraw( true ); // force redraw
             emit SurfaceRegionSelected(reg);
+          }
+        }
+        else
+        {
+          LayerVolumeTrack* vt = qobject_cast<LayerVolumeTrack*>(lc_mri->HasProp( prop ));
+          if (vt)
+          {
+            QVariantMap info = vt->GetLabelByProp(prop);
+            if (!info.isEmpty())
+            {
+              this->setToolTip(QString("%1 %2").arg(info["label"].toInt()).arg(info["name"].toString()));
+              emit VolumeTrackMouseOver(vt, info);
+            }
           }
         }
       }

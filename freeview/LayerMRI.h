@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2011/03/22 23:38:45 $
- *    $Revision: 1.61.2.2 $
+ *    $Date: 2011/04/02 02:11:06 $
+ *    $Revision: 1.61.2.3 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -79,7 +79,7 @@ public:
 
   virtual void Append2DProps( vtkRenderer* renderer, int nPlane );
   virtual void Append3DProps( vtkRenderer* renderer, bool* bPlaneVisibility = NULL );
-  bool HasProp( vtkProp* prop );
+  virtual bool HasProp( vtkProp* prop );
 
   void Remove2DProps( vtkRenderer* render, int nPlane );
 
@@ -169,7 +169,7 @@ public:
 
   int GetDataType();
 
-  COLOR_TABLE* GetEmbeddedColorTable();
+  virtual COLOR_TABLE* GetEmbeddedColorTable();
 
   void SnapToVoxelCenter( const double* pt_in, double* pt_out );
 
@@ -259,7 +259,7 @@ Q_SIGNALS:
 
 protected slots:
   void UpdateDisplayMode();
-  void UpdateOpacity();
+  virtual void UpdateOpacity();
   void UpdateResliceInterpolation();
   void UpdateTextureSmoothing();
   void UpdateContour( int nSegIndex = -1 );

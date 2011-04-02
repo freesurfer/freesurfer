@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2011/03/22 23:38:45 $
- *    $Revision: 1.60.2.1 $
+ *    $Date: 2011/04/02 02:11:07 $
+ *    $Revision: 1.60.2.2 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -30,6 +30,7 @@
 #include "LayerPropertyMRI.h"
 #include "LayerDTI.h"
 #include "LayerPropertyDTI.h"
+#include "LayerVolumeTrack.h"
 #include "LUTDataHolder.h"
 #include "MyUtils.h"
 #include <QToolBar>
@@ -92,7 +93,6 @@ PanelVolume::PanelVolume(QWidget *parent) :
                   << ui->labelLookUpTable
                   << ui->comboBoxLookUpTable
                   << ui->colorLabelBrushValue;
-  PanelVolume::
 
   m_widgetlistDirectionCode << ui->comboBoxDirectionCode
                             << ui->labelDirectionCode;
@@ -133,6 +133,32 @@ PanelVolume::PanelVolume(QWidget *parent) :
                             << ui->checkBoxUpsample
                             << ui->labelColorMap
                             << ui->comboBoxColorMap;
+
+  m_widgetlistVolumeTrack << ui->treeWidgetColorTable << m_widgetlistFrame;
+
+  m_widgetlistVolumeTrackSpecs
+                        << ui->labelTrackVolumeThreshold
+                        << ui->sliderTrackVolumeThresholdLow
+                        << ui->lineEditTrackVolumeThresholdLow;
+
+  QList<QWidget*> combo;
+  combo << m_widgetlistGrayScale << m_widgetlistHeatScale
+      << m_widgetlistGenericColorMap << m_widgetlistLUT
+      << m_widgetlistDirectionCode << m_widgetlistVector
+      << m_widgetlistContour << m_widgetlistEditable
+      << ui->checkBoxSmooth << ui->checkBoxUpsample
+      << ui->labelColorMap << ui->comboBoxColorMap
+      << ui->checkBoxShowContour << ui->checkBoxShowOutline;
+
+  combo = combo.toSet().toList();
+  foreach (QWidget* w, m_widgetlistVolumeTrack)
+  {
+    int n = combo.indexOf(w);
+    if (n >= 0)
+      combo.removeAt(n);
+  }
+  m_widgetlistNonVolumeTrack = combo;
+
   /*
           << m_widgetlistGrayScale
           << m_widgetlistHeatScale
@@ -142,6 +168,7 @@ PanelVolume::PanelVolume(QWidget *parent) :
           << m_widgetlistDirectionCode
           << m_widgetlistEditable;
   */
+
   LayerCollection* lc = mainwnd->GetLayerCollection("MRI");
   PanelLayer::InitializeLayerList( ui->treeWidgetLayers, lc );
   connect( ui->actionLockLayer, SIGNAL(toggled(bool)), lc, SLOT(LockCurrent(bool)) );
@@ -392,55 +419,67 @@ void PanelVolume::DoUpdateWidgets()
 
   bool bNormalDisplay = (layer && !layer->GetProperty()->GetDisplayVector() && !layer->GetProperty()->GetDisplayTensor());
 
-  ShowWidgets( m_widgetlistNormalDisplay, bNormalDisplay );
-  ShowWidgets( m_widgetlistGrayScale, bNormalDisplay && nColorMap == LayerPropertyMRI::Grayscale );
-  ShowWidgets( m_widgetlistHeatScale, bNormalDisplay && nColorMap == LayerPropertyMRI::Heat );
-  ShowWidgets( m_widgetlistGenericColorMap, bNormalDisplay && nColorMap != LayerPropertyMRI::LUT &&
-               nColorMap != LayerPropertyMRI::DirectionCoded );
-  ShowWidgets( m_widgetlistLUT, bNormalDisplay && nColorMap == LayerPropertyMRI::LUT );
-  ShowWidgets( m_widgetlistDirectionCode, bNormalDisplay && nColorMap == LayerPropertyMRI::DirectionCoded );
-  ShowWidgets( m_widgetlistEditable, bNormalDisplay && layer->IsEditable() );
-  ShowWidgets( m_widgetlistFrame, layer &&
-               !layer->IsTypeOf( "DTI" ) &&
-               layer->GetNumberOfFrames() > 1 );
-
-  ui->sliderFrame->setEnabled( layer &&
-                               !layer->GetProperty()->GetDisplayVector() &&
-                               !layer->GetProperty()->GetDisplayTensor() );
-  ui->spinBoxFrame->setEnabled( layer &&
-                                !layer->GetProperty()->GetDisplayVector() &&
-                                !layer->GetProperty()->GetDisplayTensor() );
-  ui->checkBoxDisplayVector->setVisible( layer && ( layer->IsTypeOf( "DTI" ) || layer->GetNumberOfFrames() == 3 ) );
-  ui->checkBoxDisplayVector->setChecked( layer && layer->GetProperty()->GetDisplayVector() );
-  ui->checkBoxDisplayTensor->setVisible( layer && layer->GetNumberOfFrames() == 9 );
-  ui->checkBoxDisplayTensor->setChecked( layer && layer->GetProperty()->GetDisplayTensor() );
-  ShowWidgets( m_widgetlistVector, ui->checkBoxDisplayVector->isChecked() || ui->checkBoxDisplayTensor->isChecked() );
-  ShowWidgets( m_widgetlistContour, ui->checkBoxShowContour->isChecked() );
-  ui->checkBoxShowContour->setVisible( bNormalDisplay );
-  //  ShowWidgets( m_widgetlistContour, false );
-  //  m_checkContour->Show( false /*nColorMap == LayerPropertyMRI::LUT*/ );
-
-  if ( layer && layer->GetProperty()->GetColorMap() == LayerPropertyMRI::LUT )
+  if (layer && layer->IsTypeOf("VolumeTrack"))
   {
-    if ( m_curCTAB != layer->GetProperty()->GetLUTCTAB() )
-    {
-      PopulateColorTable( layer->GetProperty()->GetLUTCTAB() );
-    }
-
-    for ( int i = 0; i < ui->treeWidgetColorTable->topLevelItemCount(); i++ )
-    {
-      QTreeWidgetItem* item = ui->treeWidgetColorTable->topLevelItem( i );
-      QStringList strglist = item->text(0).split( " " );
-      bool bOK;
-      double dvalue = strglist[0].trimmed().toDouble( &bOK );
-      if ( bOK && dvalue == layer->GetFillValue() )
-      {
-        ui->treeWidgetColorTable->setCurrentItem( item );
-        break;
-      }
-    }
-    UpdateColorLabel();
+    ShowWidgets(m_widgetlistNonVolumeTrack, false);
+    ShowWidgets(m_widgetlistVolumeTrack, true);
+    if (m_curCTAB != layer->GetEmbeddedColorTable())
+      PopulateColorTable( layer->GetEmbeddedColorTable() );
   }
+  else
+  {
+    ShowWidgets( m_widgetlistNormalDisplay, bNormalDisplay );
+    ShowWidgets( m_widgetlistGrayScale, bNormalDisplay && nColorMap == LayerPropertyMRI::Grayscale );
+    ShowWidgets( m_widgetlistHeatScale, bNormalDisplay && nColorMap == LayerPropertyMRI::Heat );
+    ShowWidgets( m_widgetlistGenericColorMap, bNormalDisplay && nColorMap != LayerPropertyMRI::LUT &&
+                 nColorMap != LayerPropertyMRI::DirectionCoded );
+    ShowWidgets( m_widgetlistLUT, bNormalDisplay && nColorMap == LayerPropertyMRI::LUT );
+    ShowWidgets( m_widgetlistDirectionCode, bNormalDisplay && nColorMap == LayerPropertyMRI::DirectionCoded );
+    ShowWidgets( m_widgetlistEditable, bNormalDisplay && layer->IsEditable() );
+    ShowWidgets( m_widgetlistFrame, layer &&
+                 !layer->IsTypeOf( "DTI" ) &&
+                 layer->GetNumberOfFrames() > 1 );
+
+    ui->sliderFrame->setEnabled( layer &&
+                                 !layer->GetProperty()->GetDisplayVector() &&
+                                 !layer->GetProperty()->GetDisplayTensor() );
+    ui->spinBoxFrame->setEnabled( layer &&
+                                  !layer->GetProperty()->GetDisplayVector() &&
+                                  !layer->GetProperty()->GetDisplayTensor() );
+    ui->checkBoxDisplayVector->setVisible( layer && ( layer->IsTypeOf( "DTI" ) || layer->GetNumberOfFrames() == 3 ) );
+    ui->checkBoxDisplayVector->setChecked( layer && layer->GetProperty()->GetDisplayVector() );
+    ui->checkBoxDisplayTensor->setVisible( layer && layer->GetNumberOfFrames() == 9 );
+    ui->checkBoxDisplayTensor->setChecked( layer && layer->GetProperty()->GetDisplayTensor() );
+    ShowWidgets( m_widgetlistVector, ui->checkBoxDisplayVector->isChecked() || ui->checkBoxDisplayTensor->isChecked() );
+    ShowWidgets( m_widgetlistContour, ui->checkBoxShowContour->isChecked() );
+    ui->checkBoxShowContour->setVisible( bNormalDisplay );
+    //  ShowWidgets( m_widgetlistContour, false );
+    //  m_checkContour->Show( false /*nColorMap == LayerPropertyMRI::LUT*/ );
+
+    if ( layer && layer->GetProperty()->GetColorMap() == LayerPropertyMRI::LUT )
+    {
+      if ( m_curCTAB != layer->GetProperty()->GetLUTCTAB() )
+      {
+        PopulateColorTable( layer->GetProperty()->GetLUTCTAB() );
+      }
+
+      for ( int i = 0; i < ui->treeWidgetColorTable->topLevelItemCount(); i++ )
+      {
+        QTreeWidgetItem* item = ui->treeWidgetColorTable->topLevelItem( i );
+        QStringList strglist = item->text(0).split( " " );
+        bool bOK;
+        double dvalue = strglist[0].trimmed().toDouble( &bOK );
+        if ( bOK && dvalue == layer->GetFillValue() )
+        {
+          ui->treeWidgetColorTable->setCurrentItem( item );
+          break;
+        }
+      }
+      UpdateColorLabel();
+    }
+  }
+
+  UpdateTrackVolumeThreshold();
 
   BlockAllSignals( false );
 }
@@ -452,7 +491,11 @@ void PanelVolume::OnColorTableCurrentItemChanged( QTreeWidgetItem* item )
     QStringList strglist = item->text( 0 ).split(" ");
     double val = strglist[0].toDouble();
     LayerMRI* layer = GetCurrentLayer<LayerMRI*>();
-    if ( layer )
+    if ( layer->IsTypeOf("VolumeTrack") )
+    {
+      UpdateTrackVolumeThreshold();
+    }
+    else
     {
       layer->SetFillValue( val );
     }
@@ -478,6 +521,27 @@ void PanelVolume::UpdateColorLabel()
   {
     ui->colorLabelBrushValue->setPixmap( QPixmap() );
   }
+}
+
+void PanelVolume::UpdateTrackVolumeThreshold()
+{
+  LayerVolumeTrack* layer = GetCurrentLayer<LayerVolumeTrack*>();
+  QTreeWidgetItem* item = ui->treeWidgetColorTable->currentItem();
+  if ( item && layer )
+  {
+    int nLabel = item->text(0).split(" ").at(0).toInt();
+    ui->sliderTrackVolumeThresholdLow->blockSignals(true);
+    ui->lineEditTrackVolumeThresholdLow->blockSignals(true);
+    double fMin = layer->GetProperty()->GetMinValue();
+    double fMax = layer->GetProperty()->GetMaxValue()/4;
+    ui->sliderTrackVolumeThresholdLow->setValue( (int)( ( layer->GetThreshold(nLabel) - fMin ) / ( fMax - fMin ) * 100 ) );
+    ChangeLineEditNumber( ui->lineEditTrackVolumeThresholdLow, layer->GetThreshold(nLabel) );
+    ui->sliderTrackVolumeThresholdLow->blockSignals(false);
+    ui->lineEditTrackVolumeThresholdLow->blockSignals(false);
+    layer->Highlight(nLabel);
+  }
+  ShowWidgets(m_widgetlistVolumeTrackSpecs, layer);
+  EnableWidgets(this->m_widgetlistVolumeTrackSpecs, item);
 }
 
 void PanelVolume::PopulateColorTable( COLOR_TABLE* ct )
@@ -891,6 +955,39 @@ void PanelVolume::OnContourSave()
     }
   }
 }
+
+void PanelVolume::OnSliderTrackVolumeMin(int nval)
+{
+  LayerMRI* layer = GetCurrentLayer<LayerMRI*>();
+  if ( layer && layer->IsTypeOf("VolumeTrack"))
+  {
+    double fMin = layer->GetProperty()->GetMinValue();
+    double fMax = layer->GetProperty()->GetMaxValue()/4;
+    ChangeLineEditNumber( ui->lineEditTrackVolumeThresholdLow,
+                          nval / 100.0 * ( fMax - fMin ) + fMin );
+  }
+}
+
+void PanelVolume::OnTrackVolumeThresholdChanged()
+{
+  QTreeWidgetItem* item = ui->treeWidgetColorTable->currentItem();
+  if (!item)
+    return;
+
+  int nLabel = item->text(0).split(" ").at(0).toInt();
+  bool bOK;
+  double fMin;
+  fMin = ui->lineEditTrackVolumeThresholdLow->text().trimmed().toDouble(&bOK);
+  if (bOK)
+  {
+    LayerVolumeTrack* layer = GetCurrentLayer<LayerVolumeTrack*>();
+    if (layer)
+    {
+      layer->SetThreshold(nLabel, fMin);
+    }
+  }
+}
+
 
 void PanelVolume::OnCopySettings()
 {

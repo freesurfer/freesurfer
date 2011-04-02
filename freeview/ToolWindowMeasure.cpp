@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2011/03/22 23:38:45 $
- *    $Revision: 1.22.2.2 $
+ *    $Date: 2011/04/02 02:11:07 $
+ *    $Revision: 1.22.2.3 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -349,12 +349,12 @@ void ToolWindowMeasure::OnSaveAll()
                      "Save region",
                      "",
                      "All files (*)");
-  if ( m_surfaceRegion && !filename.isEmpty() )
+  if (!filename.isEmpty() )
   {
     LayerMRI* mri = (LayerMRI*)MainWindow::GetMainWindow()->GetActiveLayer( "MRI" );
     if ( !mri->SaveAllSurfaceRegions( filename ) )
     {
-      QMessageBox::warning(this, "Error", QString("Can not write to file ") + filename);
+      QMessageBox::warning(this, "Error", QString("Failed to write to file ") + filename);
     }
   }
 }
