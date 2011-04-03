@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2011/04/01 20:10:22 $
- *    $Revision: 1.5 $
+ *    $Date: 2011/04/03 19:03:23 $
+ *    $Revision: 1.6 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -70,14 +70,20 @@ bool LayerVolumeTrack::LoadFromFile()
 void LayerVolumeTrack::UpdateData()
 {
   if (!m_volumeSource->GetEmbeddedColorTable())
+  {
     cerr << "Did not find color table in track volume.\n";
+    m_ctabStripped = CTABdeepCopy(this->GetProperty()->GetLUTCTAB());
+  }
   else
+    m_ctabStripped = CTABdeepCopy(m_volumeSource->GetEmbeddedColorTable());
+
+  if (m_ctabStripped)
   {
     MRI* mri = m_volumeSource->GetMRI();
     QList<int> list;
     for (int i = 0; i < mri->nframes; i++)
       list << mri->frames[i].label;
-    m_ctabStripped = CTABdeepCopy(m_volumeSource->GetEmbeddedColorTable());
+
     int nTotalCount;
     int nValid = 0;
     CTABgetNumberOfTotalEntries( m_ctabStripped, &nTotalCount );

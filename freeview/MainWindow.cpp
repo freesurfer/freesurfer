@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2011/03/30 19:23:59 $
- *    $Revision: 1.164 $
+ *    $Date: 2011/04/03 19:03:23 $
+ *    $Revision: 1.165 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -3428,6 +3428,7 @@ void MainWindow::LoadVolumeTrackFile(const QString &fn, bool bResample)
 
   LayerVolumeTrack* layer = new LayerVolumeTrack( m_layerVolumeRef );
   layer->SetResampleToRAS( bResample );
+  layer->GetProperty()->SetLUTCTAB( m_luts->GetColorTable( 0 ) );
   QString layerName = QFileInfo( fn ).completeBaseName();
   if ( QFileInfo( fn ).suffix() == "gz" )
   {

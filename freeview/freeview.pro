@@ -379,7 +379,8 @@ LIBS += -L/usr/pubsw/packages/vtk/current/lib/vtk-5.6 -framework OpenGL -lm -ldl
     /usr/pubsw/packages/itk/current/lib/InsightToolkit/libitkopenjpeg.a /usr/pubsw/packages/itk/current/lib/InsightToolkit/libitkjpeg8.a \
     /usr/pubsw/packages/itk/current/lib/InsightToolkit/libitkjpeg12.a /usr/pubsw/packages/itk/current/lib/InsightToolkit/libitkjpeg16.a \
     /usr/pubsw/packages/itk/current/lib/InsightToolkit/libITKDICOMParser.a -lz -ldl -lpthread \
-    /usr/pubsw/packages/mni/1.4/lib/libvolume_io.a -L/usr/pubsw/packages/mni/1.4/lib /usr/pubsw/packages/mni/1.4/lib/libminc.a /usr/pubsw/packages/mni/1.4/lib/libnetcdf.a \
+    /usr/pubsw/packages/mni/current/lib/libvolume_io.a -L/usr/pubsw/packages/mni/current/lib \
+    /usr/pubsw/packages/mni/current/lib/libminc.a /usr/pubsw/packages/mni/current/lib/libnetcdf.a \
     -lvnl_algo -lvnl -lvcl -lnetlib -lv3p_netlib
 
 LIBS -= -L/usr/X11R6/lib -lX11 -lXext -lXt -lSM -lICE -lGLU -lGL
