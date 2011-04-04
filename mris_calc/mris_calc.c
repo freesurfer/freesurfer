@@ -12,8 +12,8 @@
  * Original Author: Rudolph Pienaar
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2011/04/02 01:32:27 $
- *    $Revision: 1.37.2.3 $
+ *    $Date: 2011/04/04 00:53:08 $
+ *    $Revision: 1.37.2.4 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -33,6 +33,7 @@
 #include <string.h>
 #include <math.h>
 #include <ctype.h>
+#include <sys/stat.h>
 
 #include <assert.h>
 #include <errno.h>
@@ -60,7 +61,7 @@
 #define  START_i      	3
 
 static const char vcid[] =
-  "$Id: mris_calc.c,v 1.37.2.3 2011/04/02 01:32:27 nicks Exp $";
+  "$Id: mris_calc.c,v 1.37.2.4 2011/04/04 00:53:08 nicks Exp $";
 double fn_sign(float af_A);
 
 // ----------------------------------------------------------------------------
@@ -798,19 +799,28 @@ fileType_find(
   int* 	  ap_FSFILETYPE)
 {
 
-  int   		len, type;
+  int   		len, type, filestat;
   float   		f     			= -1.0;
   char*  		pch_end;
+  char			pch_floatArg[64];
+  struct stat 	stFileInfo; 
+  	
 	
-  // First, check if we have a valid float arg conversion
-  errno = 0;
-  f   = strtof(apch_inputFile, &pch_end);
-  len = (int) strlen(apch_inputFile);
-  if(!len)
-  {
-    return(e_FloatArg);
+  // The acph_inputFile can be either a file on the filesystem
+  // or a float argument. Check if <apch_inputFile> is an actual 
+  // file, if not, check if it converts to a float.
+  filestat = stat(apch_inputFile, &stFileInfo); 
+  if(filestat) {
+	  // <apch_inputFile> does not seem to refer to a valid file.
+	  // Check if it converts to a float.
+	  strcpy(pch_floatArg, apch_inputFile);
+	  f = strtof(pch_floatArg, &pch_end);
+	  len = strlen(pch_end);
+	  if(!len) {
+		return(e_FloatArg);
+	  }
   }
-
+	
   // Check if input is a volume file...
   type 		 = mri_identify(apch_inputFile);
   *ap_FSFILETYPE = type;
@@ -1323,7 +1333,7 @@ main(
   init();
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mris_calc.c,v 1.37.2.3 2011/04/02 01:32:27 nicks Exp $",
+           "$Id: mris_calc.c,v 1.37.2.4 2011/04/04 00:53:08 nicks Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
   {
