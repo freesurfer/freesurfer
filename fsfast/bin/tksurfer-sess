@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2010/07/14 16:04:21 $
-#    $Revision: 1.16 $
+#    $Date: 2011/04/05 22:25:15 $
+#    $Revision: 1.16.2.1 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: tksurfer-sess,v 1.16 2010/07/14 16:04:21 greve Exp $'
+set VERSION = '$Id: tksurfer-sess,v 1.16.2.1 2011/04/05 22:25:15 greve Exp $'
 set inputargs = ($argv);
 set analysis      = ();
 set contrastlist   = ();
@@ -83,6 +83,7 @@ which tksurfer
 # ---------------------------------------------
 foreach sess ($SessList)
   echo ""
+  set sessid = `basename $sess`
   set self = `cat $sess/subjectname`;
 
   # Determine the source subject
@@ -147,7 +148,11 @@ foreach sess ($SessList)
     echo con/map $contrast $mappath
   end
   echo maplist $maplist
-  set mapconcatfile = $sess/$mapfsd/$mapanalysis/tksconcat.nii
+  if($?FREESURFER_TMP_DIR) then
+    set mapconcatfile = $FREESURFER_TMP_DIR/$sessid.$mapfsd.$mapanalysis.tksconcat.nii
+  else
+    set mapconcatfile = $sess/$mapfsd/$mapanalysis/tksconcat.nii
+  endif
   set cmd = (mri_concat $maplist --o $mapconcatfile);
   echo $cmd
   $cmd
@@ -394,6 +399,13 @@ while( $#argv != 0 )
         echo "ERROR: cannot find $TCL"
         exit 1
       endif
+      breaksw
+
+    case "-tmp":
+    case "-tmpdir":
+    case "-tmp-dir":
+      if($#argv == 0) goto arg1err;
+      setenv FREESURFER_TMP_DIR $argv[1];shift;
       breaksw
 
     case "-nohdr":
