@@ -157,15 +157,6 @@ Coffin::Coffin(const char *OutDir, const char *DwiFile,
   else
     mAseg = 0;
 
-  // Set variables specific to pathway
-  SetPathway(InitFile, RoiFile1, RoiFile2,
-             RoiMeshFile1, RoiMeshFile2, RoiRefFile1, RoiRefFile2,
-             PriorFile0, PriorFile1,
-             AsegPriorType, AsegPriorFile0, AsegPriorFile1, AsegIdFile,
-             AsegTrainFile, PathTrainFile,
-             NeighPriorFile, NeighIdFile,
-             LocalPriorFile, LocalIdFile);
-
   // Initialize voxel-wise diffusion model
   Bite::SetStatic(GradientFile, BvalueFile,
                   NumTract, phi[0]->nframes, FminPath);
@@ -210,6 +201,17 @@ Coffin::Coffin(const char *OutDir, const char *DwiFile,
 
   MRIfree(&d0);
 
+  // Read start ROI as reference volume
+  // TODO: Use more general reference volume if ROI isn't specified
+  if (RoiFile1) {
+    cout << "Loading atlas reference volume from " << RoiFile1 << endl;
+    mRoi1 = MRIread(RoiFile1);
+    if (!mRoi1) {
+      cout << "ERROR: Could not read " << RoiFile1 << endl;
+      exit(1);
+    }
+  }
+
   // Read DWI-to-atlas registration
 #ifndef NO_CVS_UP_IN_HERE
   if (NonlinXfmFile) {
@@ -230,6 +232,15 @@ mNonlinReg.ApplyXfm(pt, pt.begin());
 cout << "In atlas space: " << pt[0] << " " << pt[1] << " " << pt[2] << endl;
 exit(1);
 	*/
+
+  // Set variables specific to pathway
+  SetPathway(InitFile, RoiFile1, RoiFile2,
+             RoiMeshFile1, RoiMeshFile2, RoiRefFile1, RoiRefFile2,
+             PriorFile0, PriorFile1,
+             AsegPriorType, AsegPriorFile0, AsegPriorFile1, AsegIdFile,
+             AsegTrainFile, PathTrainFile,
+             NeighPriorFile, NeighIdFile,
+             LocalPriorFile, LocalIdFile);
 
   // Set variables specific to MCMC algorithm
   SetMCMCParameters(NumBurnIn, NumSample,
@@ -347,16 +358,7 @@ void Coffin::SetPathway(const char *InitFile,
             << "Local aseg label ID list: " << LocalIdFile << endl;
   mInfoPathway = infostr.str();
 
-  // Read control point initialization
-  ReadControlPoints(InitFile);
-  if (!mProposalStdInit.empty() &&
-      (mProposalStdInit.size() != mControlPoints.size())) {
-    mProposalStdInit.resize(mControlPoints.size(), 1.0);
-    cout << "WARN: Resized proposal standard deviations to match new number "
-         << "of control points" << endl;
-  }
-
-  // Read end ROIs
+  // Read start ROI
   if (RoiFile1) {
     if (mRoi1)
       MRIfree(&mRoi1);
@@ -370,6 +372,7 @@ void Coffin::SetPathway(const char *InitFile,
   }
   else if (RoiMeshFile1) {}
 
+  // Read end ROI
   if (RoiFile2) {
     if (mRoi2)
       MRIfree(&mRoi2);
@@ -387,6 +390,15 @@ void Coffin::SetPathway(const char *InitFile,
   mNxAtlas = mRoi1->width;
   mNyAtlas = mRoi1->height;
   mNzAtlas = mRoi1->depth;
+
+  // Read control point initialization
+  ReadControlPoints(InitFile);
+  if (!mProposalStdInit.empty() &&
+      (mProposalStdInit.size() != mControlPoints.size())) {
+    mProposalStdInit.resize(mControlPoints.size(), 1.0);
+    cout << "WARN: Resized proposal standard deviations to match new number "
+         << "of control points" << endl;
+  }
 
   // Read spatial path priors
   if (PriorFile0 && PriorFile1) {
@@ -846,6 +858,92 @@ void Coffin::ReadControlPoints(const char *ControlPointFile) {
                 dmin = dist;
               }
             }
+
+      icpt[0] = ixmin;
+      icpt[1] = iymin;
+      icpt[2] = izmin;
+
+      cout << icpt[0] << " " << icpt[1] << " " << icpt[2] << ")" << endl;
+    }
+  }
+
+  // Make sure that initial start point is in start ROI
+  if (mRoi1) {
+    vector<int>::iterator icpt = mControlPoints.begin();
+
+    if (!IsInRoi(icpt, mRoi1)) {
+      int dmin = 1000000, ixmin = 0, iymin = 0, izmin = 0;
+      vector<int> newpoint(3);
+
+      cout << "WARN: Initial start point "
+           << icpt[0] << " " << icpt[1] << " " << icpt[2]
+           << " is not in start ROI" << endl
+           << "WARN: Replacing with closest point in start ROI (";
+
+      for (int iz = 0; iz < mNz; iz++)
+        for (int iy = 0; iy < mNy; iy++)
+          for (int ix = 0; ix < mNx; ix++) {
+            newpoint[0] = ix;
+            newpoint[1] = iy;
+            newpoint[2] = iz;
+
+            if (IsInRoi(newpoint.begin(), mRoi1)) {
+              const int dx = icpt[0] - ix,
+                        dy = icpt[1] - iy,
+                        dz = icpt[2] - iz,
+                        dist = dx*dx + dy*dy + dz*dz;
+
+              if (dist < dmin) {
+                ixmin = ix;
+                iymin = iy;
+                izmin = iz;
+                dmin = dist;
+              }
+            }
+          }
+
+      icpt[0] = ixmin;
+      icpt[1] = iymin;
+      icpt[2] = izmin;
+
+      cout << icpt[0] << " " << icpt[1] << " " << icpt[2] << ")" << endl;
+    }
+  }
+
+  // Make sure that initial end point is in end ROI
+  if (mRoi2) {
+    vector<int>::iterator icpt = mControlPoints.end() - 3;
+
+    if (!IsInRoi(icpt, mRoi2)) {
+      int dmin = 1000000, ixmin = 0, iymin = 0, izmin = 0;
+      vector<int> newpoint(3);
+
+      cout << "WARN: Initial end point "
+           << icpt[0] << " " << icpt[1] << " " << icpt[2]
+           << " is not in end ROI" << endl
+           << "WARN: Replacing with closest point in end ROI (";
+
+      for (int iz = 0; iz < mNz; iz++)
+        for (int iy = 0; iy < mNy; iy++)
+          for (int ix = 0; ix < mNx; ix++) {
+            newpoint[0] = ix;
+            newpoint[1] = iy;
+            newpoint[2] = iz;
+
+            if (IsInRoi(newpoint.begin(), mRoi2)) {
+              const int dx = icpt[0] - ix,
+                        dy = icpt[1] - iy,
+                        dz = icpt[2] - iz,
+                        dist = dx*dx + dy*dy + dz*dz;
+
+              if (dist < dmin) {
+                ixmin = ix;
+                iymin = iy;
+                izmin = iz;
+                dmin = dist;
+              }
+            }
+          }
 
       icpt[0] = ixmin;
       icpt[1] = iymin;
