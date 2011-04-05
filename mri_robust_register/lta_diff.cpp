@@ -8,20 +8,18 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2010/07/26 19:39:13 $
- *    $Revision: 1.15 $
+ *    $Date: 2011/04/05 16:23:01 $
+ *    $Revision: 1.19.2.1 $
  *
- * Copyright (C) 2008-2009
- * The General Hospital Corporation (Boston, MA).
- * All rights reserved.
+ * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
- * Distribution, usage and copying of this software is covered under the
- * terms found in the License Agreement file named 'COPYING' found in the
- * FreeSurfer source code root directory, and duplicated here:
- * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ * Terms and conditions for use, reproduction, distribution and contribution
+ * are found in the 'FreeSurfer Software License Agreement' contained
+ * in the file 'LICENSE' found in the FreeSurfer distribution, and here:
  *
- * General inquiries: freesurfer@nmr.mgh.harvard.edu
- * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
+ *
+ * Reporting: freesurfer@nmr.mgh.harvard.edu
  *
  */
 #include <string>
@@ -31,6 +29,8 @@
 #include <vector>
 #include <cassert>
 #include <limits>
+#include <vnl/vnl_matrix.h>
+#include <vnl/algo/vnl_determinant.h>
 
 #include "Registration.h"
 #include "MyMatrix.h"
@@ -56,8 +56,15 @@ extern "C"
 
 using namespace std;
 
-//static char vcid[] = "$Id: lta_diff.cpp,v 1.15 2010/07/26 19:39:13 mreuter Exp $";
+//static char vcid[] = "$Id: lta_diff.cpp,v 1.19.2.1 2011/04/05 16:23:01 mreuter Exp $";
 char *Progname = NULL;
+void writeVox2Vox(LTA * lta)
+{
+  cout << " convet to vox 2 vox" << endl;
+  LTAchangeType(lta,LINEAR_VOX_TO_VOX);
+  cout << " writing" << endl;
+  LTAwrite(lta,"test-vox2vox.lta");
+}
 
 double cornerdiff(LTA* lta1, LTA* lta2)
 {
@@ -110,8 +117,8 @@ double cornerdiff(LTA* lta1)
 
   VECTOR * v_X  = VectorAlloc(4, MATRIX_REAL) ;  /* input (src) coordinates */
   VECTOR * v_Y1 = VectorAlloc(4, MATRIX_REAL) ;  /* transformed (dst) coordinates */
-   VECTOR_ELT(v_X,4) = 1;	
-   VECTOR_ELT(v_Y1,4) = 1;	
+  VECTOR_ELT(v_X,4) = 1;	
+  VECTOR_ELT(v_Y1,4) = 1;	
 
   int y3,y2,y1;
   double d = 0;
@@ -146,19 +153,48 @@ double cornerdiff(LTA* lta1)
 double determinant(MATRIX * M1, MATRIX* M2)
 {
 
-   MATRIX* M = MatrixAlloc(4,4,MATRIX_REAL);
-	 if (M2 == NULL) M = MatrixCopy(M1,M);
-	 else
+//   MATRIX* M = MatrixAlloc(4,4,MATRIX_REAL);
+   MATRIX* M = MatrixCopy(M1,NULL);
+	 if (M2 != NULL)
 	 {
-	 cout << " inverting" << endl;
-	    M = MatrixInverse(M1,M);
+      //cout << " inverting" << endl;
+	    //M = MatrixInverse(M1,M);
 			M = MatrixMultiply(M2,M,M);
 	 }
-
 
    double d = MatrixDeterminant(M);
 	 MatrixFree(&M);
    return d;
+}
+
+void decompose (MATRIX * M1, MATRIX* M2)
+{
+   vnl_matrix <double > m = MyMatrix::convertMATRIX2VNL(M1);
+    
+	 if (M2 != NULL)
+	 {
+      //cout << " inverting" << endl;
+	    //M = MatrixInverse(M1,M);
+      vnl_matrix <double > m2 = MyMatrix::convertMATRIX2VNL(M2);
+			m = m*m2;
+	 }
+
+   cout << " Decompose RAS2RAS into Rot * Shear * Scale + Trans: " << endl << endl;
+   vnl_matrix < double > Rot, Shear;
+   vnl_diag_matrix < double > Scale;
+   MyMatrix::Polar2Decomposition(m.extract(3,3),Rot,Shear,Scale);
+   vnl_matlab_print(vcl_cout,Rot,"Rot",vnl_matlab_print_format_long);
+   cout << endl;
+   vnl_matlab_print(vcl_cout,Shear,"Shear",vnl_matlab_print_format_long);
+   cout << endl;
+   vnl_matlab_print(vcl_cout,Scale,"Scale",vnl_matlab_print_format_long);
+   cout << endl;     
+   vnl_vector < double >	t = m.extract(3,1,0,3).get_column(0);
+   vnl_matlab_print(vcl_cout,t,"Trans",vnl_matlab_print_format_long);
+   cout << endl;     
+   cout << "Determinant = " << vnl_determinant(m) << endl << endl;
+   
+
 }
 
 double sphereDiff(MATRIX * M1, MATRIX* M2, double r)
@@ -408,16 +444,19 @@ int main(int argc, char *argv[])
   if (argc < 3)
   {
     cout << endl;
-    cout << argv[0] << " file1.lta file2.lta [dist-type] [norm-div] [invert1]" << endl;
+    cout << argv[0] << " file1.lta file2.lta [dist-type] [norm-div] [invert]" << endl;
     cout << endl;
     cout << "    dist-type " << endl;
     cout << "       1            Rigid Transform Distance (||log(R)|| + ||T||)" << endl;
     cout << "       2  (default) Affine Transform Distance (RMS) " << endl;
     cout << "       3            8-corners mean distance after transform " << endl;
     cout << "       4            Max Displacement on Sphere " << endl;
-    cout << "       5            Determinant (scaling)" << endl;
+    cout << "       5            Determinant (scaling) M1*M2" << endl;
+		cout << "       6            Interpolation Smoothing (only for first transform)" << endl;
+		cout << "       7            Decomposition M1*M2 = Rot*Shear*Scaling" << endl;
+		cout << "                       pass 'identity.nofile' for second lta " << endl;
     cout << "    norm-div  (=1)  divide final distance by this (e.g. step adjustment)" << endl;
-		cout << "    invert1         invert first LTA: 1 true, 0 false (default)" << endl;
+		cout << "    invert          invert LTA: 0 false (default), 1 invert first, 2 second" << endl;
     cout << endl;
 		cout << " For the RMS and Sphere we use a ball with radius 10cm at the RAS center." << endl;
 		cout << " Instead of 'file2.lta' you can specify 'identity.nofile'." << endl;
@@ -436,8 +475,8 @@ int main(int argc, char *argv[])
   }
   if (argc >4 ) d = atof(argv[4]);
 	
-	bool invert1 = false;
-	if (argc >5 ) invert1 = (atoi(argv[5]) == 1);
+	int invert = 0;
+	if (argc >5 ) invert = atoi(argv[5]);
 
   if (disttype == 100)
   {
@@ -481,14 +520,38 @@ int main(int argc, char *argv[])
     exit(1);
   }
 
-  if (invert1 )
-	{
+  if (invert ==1 )
+  {
     VOL_GEOM vgtmp;
     LT *lt;
     MATRIX *m_tmp = lta1->xforms[0].m_L ;
     lta1->xforms[0].m_L = MatrixInverse(lta1->xforms[0].m_L, NULL) ;
     MatrixFree(&m_tmp) ;
     lt = &lta1->xforms[0];
+    if (lt->dst.valid == 0 || lt->src.valid == 0)
+    {
+      fprintf
+        (stderr, 
+         "WARNING:********************************************************\n");
+      fprintf
+        (stderr, 
+         "WARNING:dst or src volume is invalid.  Inverse likely wrong.\n");
+      fprintf
+        (stderr, 
+         "WARNING:********************************************************\n");
+    }
+    copyVolGeom(&lt->dst, &vgtmp);
+    copyVolGeom(&lt->src, &lt->dst);
+    copyVolGeom(&vgtmp, &lt->src);
+  }
+  if (invert ==2 )
+  {
+    VOL_GEOM vgtmp;
+    LT *lt;
+    MATRIX *m_tmp = lta2->xforms[0].m_L ;
+    lta2->xforms[0].m_L = MatrixInverse(lta2->xforms[0].m_L, NULL) ;
+    MatrixFree(&m_tmp) ;
+    lt = &lta2->xforms[0];
     if (lt->dst.valid == 0 || lt->src.valid == 0)
     {
       fprintf
@@ -512,11 +575,13 @@ int main(int argc, char *argv[])
   Registration R;
 	
   LTAchangeType(lta1,LINEAR_RAS_TO_RAS);
+//  LTAchangeType(lta1,LINEAR_VOX_TO_VOX);
 	MATRIX* RAS1 = lta1->xforms[0].m_L;
 	MATRIX* RAS2 = NULL;
 	if (lta2f != "identity.nofile")
 	{
     LTAchangeType(lta2,LINEAR_RAS_TO_RAS);
+//    LTAchangeType(lta2,LINEAR_VOX_TO_VOX);
 	  RAS2 = lta2->xforms[0].m_L;
 	}
 	
@@ -538,10 +603,17 @@ int main(int argc, char *argv[])
   case 4 :
     dist =  sphereDiff(RAS1,RAS2,100)/d; 
 		break;
-   case 5 :
+  case 5 :
     dist =  determinant(RAS1,RAS2)/d; 
 		break;
-	 default:
+  case 6 :
+    dist =  MyMatrix::getResampSmoothing(lta1)/d; 
+		break;
+  case 7 :
+    decompose(RAS1,RAS2); 
+    exit(0);
+		break;
+	default:
      cerr<< "ERROR: dist-type " << disttype << " unknown!" << endl;
 		 exit(1);
 		break;
