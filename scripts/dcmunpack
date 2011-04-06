@@ -2,7 +2,7 @@
 # dcmunpack
 # 
 
-set VERSION = '$Id: dcmunpack,v 1.13 2011/03/31 21:22:04 greve Exp $';
+set VERSION = '$Id: dcmunpack,v 1.14 2011/04/06 18:21:55 greve Exp $';
 
 set SeriesInfo = ();
 
@@ -32,6 +32,7 @@ set Site = ();
 set BIRNID = ();
 set VisitNo = ();
 set RunPars = ();
+set GetMax = 0;
 
 set inputargs = ("$argv");
 set PrintHelp = 0;
@@ -214,8 +215,10 @@ foreach series ($SeriesNos)
     continue;
   endif
   set f = $r[$#r];
+  set max = ();
+  if($GetMax) set max = (`mri_probedicom --i $f --max`)
   set descr = (`mri_probedicom --i $f --t 8 103e | sed 's/ //g' | sed 's/\///g' | sed 's/(//g' | sed 's/)//g'`)
-  echo $r[2] $descr $r[5-11] | tee -a $SeriesInfo
+  echo $r[2] $descr $r[5-11] $max | tee -a $SeriesInfo
 end
 
 # If no runs have been specified, then just exit
@@ -468,6 +471,10 @@ while( $#argv != 0 )
       set DoCopy = 1;
       breaksw
 
+    case "-max":
+      set GetMax = 1;
+      breaksw
+
     case "-generic":
       set FSFAST = 0;
       breaksw
@@ -643,6 +650,7 @@ usage_exit:
   echo "   -generic : do not use fs-fast hierarchy"
   echo "   -copy-only"
   echo "   -no-convert : do not convert to output format"
+  echo "   -max : print out max in given dicom file"
   echo ""
   echo "   -fips project site birnid visit"
   echo "   -fips-run run paradigm <<nskip> ndrop>"
