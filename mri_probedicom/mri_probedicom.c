@@ -16,20 +16,18 @@
  * Original Author: Doug Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2010/01/07 21:55:30 $
- *    $Revision: 1.29 $
+ *    $Date: 2011/04/06 18:18:11 $
+ *    $Revision: 1.33.2.1 $
  *
- * Copyright (C) 2002-2007,
- * The General Hospital Corporation (Boston, MA). 
- * All rights reserved.
+ * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
- * Distribution, usage and copying of this software is covered under the
- * terms found in the License Agreement file named 'COPYING' found in the
- * FreeSurfer source code root directory, and duplicated here:
- * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ * Terms and conditions for use, reproduction, distribution and contribution
+ * are found in the 'FreeSurfer Software License Agreement' contained
+ * in the file 'LICENSE' found in the FreeSurfer distribution, and here:
  *
- * General inquiries: freesurfer@nmr.mgh.harvard.edu
- * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
+ *
+ * Reporting: freesurfer@nmr.mgh.harvard.edu
  *
  */
 
@@ -65,7 +63,7 @@
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_probedicom.c,v 1.29 2010/01/07 21:55:30 greve Exp $";
+static char vcid[] = "$Id: mri_probedicom.c,v 1.33.2.1 2011/04/06 18:18:11 greve Exp $";
 char *Progname = NULL;
 
 static int  parse_commandline(int argc, char **argv);
@@ -128,6 +126,7 @@ int DoPatientName = 1;
 char *title = NULL;
 int DoBackslash = 0;
 int DoAltDump = 0;
+int GetMax = 0;
 
 /*---------------------------------------------------------------*/
 int main(int argc, char **argv) {
@@ -139,9 +138,12 @@ int main(int argc, char **argv) {
   void * Ctx = NULL;
   int nrows, ncols, endian;
   int nargs;
+  short *pixeldata;
+  short minpixel, maxpixel;
+  int n,nvoxs;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_probedicom.c,v 1.29 2010/01/07 21:55:30 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_probedicom.c,v 1.33.2.1 2011/04/06 18:18:11 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -188,7 +190,6 @@ int main(int argc, char **argv) {
     fprintf(stderr,"ERROR: cannot determine file type\n");
     exit(1);
   }/*--------------------------------------------------------------*/
-
   if(!IsDICOM(dicomfile)) {
     setenv("FS_DICOM_DEBUG","1",1);
     IsDICOM(dicomfile);
@@ -254,24 +255,41 @@ int main(int argc, char **argv) {
         fprintf(fp,"%s\n",ElementValueString(&element));
         fclose(fp);
       }
-    } else {
-      if (outputbfile) {
-        sprintf(tmpstr,"%s.hdr",outputfile);
-        ncols = GetDimLength(dicomfile,0);
-        nrows = GetDimLength(dicomfile,1);
-        endian = bf_getarchendian();
-        fp = fopen(tmpstr,"w");
-        fprintf(fp,"%d %d 1 %d\n",nrows,ncols,endian);
-        fclose(fp);
-        sprintf(tmpstr,"%s.bshort",outputfile);
-      } else
-        sprintf(tmpstr,"%s",outputfile);
+    } 
+    else{
+      if(! GetMax){
+	if(outputbfile) {
+	  sprintf(tmpstr,"%s.hdr",outputfile);
+	  ncols = GetDimLength(dicomfile,0);
+	  nrows = GetDimLength(dicomfile,1);
+	  endian = bf_getarchendian();
+	  fp = fopen(tmpstr,"w");
+	  fprintf(fp,"%d %d 1 %d\n",nrows,ncols,endian);
+	  fclose(fp);
+	  sprintf(tmpstr,"%s.bshort",outputfile);
+	} 
+	else sprintf(tmpstr,"%s",outputfile);
 
-      //printf("Writing Pixel Data to %s\n",tmpstr);
-      fp = fopen(tmpstr,"w");
-      fwrite(element.d.string,sizeof(char),element.length,fp);
-      fclose(fp);
-      //printf("Done\n");
+	//printf("Writing Pixel Data to %s\n",tmpstr);
+	fp = fopen(tmpstr,"w");
+	fwrite(element.d.string,sizeof(char),element.length,fp);
+	fclose(fp);
+	//printf("Done\n");
+      }
+      else {
+	ncols = GetDimLength(dicomfile,0);
+	nrows = GetDimLength(dicomfile,1);
+	nvoxs = nrows*ncols;
+	pixeldata = (short *) element.d.string;
+	maxpixel = pixeldata[0];
+	minpixel = pixeldata[0];
+	for (n=0;n<nvoxs;n++) {
+	  if (maxpixel < pixeldata[n]) maxpixel = pixeldata[n];
+	  if (minpixel > pixeldata[n]) minpixel = pixeldata[n];
+	}
+	//printf("min = %d, max = %d\n",minpixel,maxpixel);
+	printf("%d\n",maxpixel);
+      }
     }
     break;
 
@@ -329,14 +347,22 @@ static int parse_commandline(int argc, char **argv) {
       if(DCMCompare(dicomfile1,dicomfile2)) exit(1);
       exit(0);
       nargsused = 2;
-    } else if (!strcmp(option, "--o")) {
+    } 
+    else if (!strcmp(option, "--o")) {
       if (nargc < 1) argnerr(option,1);
       outputfile = pargv[0];
       nargsused = 1;
       grouptag = 0x7FE0;
       elementtag = 0x10;
       DoPartialDump = 0;
-    } else if (!strcmp(option, "--ob")) {
+    } 
+    else if (!strcmp(option, "--max")) {
+      grouptag = 0x7FE0;
+      elementtag = 0x10;
+      DoPartialDump = 0;
+      GetMax = 1;
+    } 
+    else if (!strcmp(option, "--ob")) {
       if (nargc < 1) argnerr(option,1);
       outputfile = pargv[0];
       outputbfile = 1;
@@ -411,6 +437,7 @@ static void print_usage(void) {
   fprintf(stdout, "   --i dicomfile     : path to dicom file \n");
   fprintf(stdout, "   --t group element : dicom group and element\n");
   fprintf(stdout, "   --d directive     : <val>, length, filetype, tag, desc, mult, rep \n");
+  fprintf(stdout, "   --max             : print max of pixel data\n");
   fprintf(stdout, "   --no-name         : do not print patient name (10,10) with dump \n");
   fprintf(stdout, "   --view            : view the image  \n");
   fprintf(stdout, "   --title title     : set window title when viewing the image \n");
@@ -579,6 +606,13 @@ static void check_options(void) {
   }
 
   if(DoPartialDump) {
+    if(!IsDICOM(dicomfile)) {
+      printf("\nERROR: %s is not a dicom file or some other problem\n\n",dicomfile);
+      setenv("FS_DICOM_DEBUG","1",1);
+      IsDICOM(dicomfile);
+      printf("\nERROR: %s is not a dicom file or some other problem\n\n",dicomfile);
+      exit(1);
+    }
     PartialDump(dicomfile,stdout);
     DumpSiemensASCII(dicomfile, stdout);
     if(DoAltDump) DumpSiemensASCIIAlt(dicomfile, stdout);
@@ -598,7 +632,7 @@ static void check_options(void) {
 
   if (grouptag == 0x7FE0 && elementtag == 0x10) GettingPixelData = 1;
 
-  if (GettingPixelData && outputfile == NULL && directive == QRY_VALUE) {
+  if(GettingPixelData && outputfile == NULL && directive == QRY_VALUE && GetMax==0) {
     fprintf(stderr,"ERROR: must specify output file when querying value of  pixel data\n");
     exit(1);
   }
@@ -1157,7 +1191,8 @@ int DumpSiemensASCII(char *dicomfile, FILE *fpout) {
     exit(1);
   }
 
-  BeginStr = "### ASCCONV BEGIN ###";
+  //BeginStr = "### ASCCONV BEGIN ###";
+  BeginStr = "### ASCCONV BEGIN";
   LenBeginStr = strlen(BeginStr);
   TestStr = (char *) calloc(LenBeginStr+1,sizeof(char));
 
@@ -1483,7 +1518,7 @@ int DCMCompare(char *dcmfile1, char *dcmfile2)
   n = 0;
   tagname[n] = "Manufacturer";     tag1[n] = 0x8;  tag2[n] = 0x0070; type[n] = 0; n++;
   tagname[n] = "Model";            tag1[n] = 0x8;  tag2[n] = 0x1090; type[n] = 0; n++;
-  tagname[n] = "Software Version"; tag1[n] = 0x8;  tag2[n] = 0x1090; type[n] = 0; n++;
+  tagname[n] = "Software Version"; tag1[n] = 0x18; tag2[n] = 0x1020; type[n] = 0; n++;
   tagname[n] = "Institution";      tag1[n] = 0x8;  tag2[n] = 0x0080; type[n] = 0; n++;
   //tagname[n] = "Imaging Frequency";tag1[n] = 0x18; tag2[n] = 0x0084; type[n] = 0; n++;
   tagname[n] = "Pixel Frequency";  tag1[n] = 0x18; tag2[n] = 0x0095; type[n] = 0; n++;
