@@ -8,8 +8,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2011/03/31 17:53:14 $
- *    $Revision: 1.8 $
+ *    $Date: 2011/04/06 19:43:41 $
+ *    $Revision: 1.9 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -179,9 +179,11 @@ __device__ float ComputeLogP( const float val, const float mean,
 
   float log_p = - logf( sqrtf( det ) ) - 0.5*( v*v / covar ) + logf( prior );
 
+#if 1
   if( log_p < -3 ) {
     log_p = -3;
   }
+#endif
 
   return( log_p );
 }
@@ -733,7 +735,9 @@ void CUDA_em_register_Prepare( GCA *gca,
   src_uchar.Allocate( mri );
   src_uchar.Send( mri, nFrame );
 
-  srcFactory.reset( new GPU::Classes::CTfactory( src_uchar, dt_mri ) );
+  srcFactory.reset( new GPU::Classes::CTfactory( src_uchar,
+                                                 dt_mri,
+                                                 cudaFilterModePoint ) );
 
   // Send the GCAS
 
