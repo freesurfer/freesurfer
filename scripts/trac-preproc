@@ -8,8 +8,8 @@
 # Original Author: Anastasia Yendiki
 # CVS Revision Info:
 #    $Author: ayendiki $
-#    $Date: 2011/04/05 02:15:47 $
-#    $Revision: 1.21 $
+#    $Date: 2011/04/06 21:40:56 $
+#    $Revision: 1.22 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -25,7 +25,7 @@
 
 umask 002
 
-set VERSION = '$Id: trac-preproc,v 1.21 2011/04/05 02:15:47 ayendiki Exp $'
+set VERSION = '$Id: trac-preproc,v 1.22 2011/04/06 21:40:56 ayendiki Exp $'
 set ProgName = `basename $0`
 set inputargs = ($argv)
 
@@ -1062,6 +1062,8 @@ if ($dotensor) then
 
   # Map scalar outputs of tensor fit to CVS template
   if ($doregcvs) then
+    set cvswarp = combined_to${cvstemp}_elreg_afteraseg-norm
+
     if ($subj == $cvstemp) then
       ln -sfn $dwidir/anatorig $dwidir/cvs
     else
@@ -1069,24 +1071,24 @@ if ($dotensor) then
       if (-e $xfmdir/cvs/$cvswarp.m3z) mkdir -p $dwidir/cvs
     endif
 
-    set cvswarp = combined_to${cvstemp}_elreg_afteraseg-norm
-
     foreach reg (flt bbr)
-      if (-e $xfmdir/diff2anatorig.$reg.mat && -e $xfmdir/cvs/$cvswarp.m3z) then
-        foreach fname ($maplist)
+      foreach fname ($maplist)
+        if (-e $xfmdir/diff2anatorig.$reg.mat) then
           set cmd = flirt
           set cmd = ($cmd -in  $dwidir/$fname.nii.gz)
           set cmd = ($cmd -ref $dwidir/brain_anat_orig.nii.gz)
-          set cmd = ($cmd -out $dwidir/cvs/$fname.$reg.nii.gz)
+          set cmd = ($cmd -out $dwidir/anatorig/$fname.$reg.nii.gz)
           set cmd = ($cmd -applyxfm -init $xfmdir/diff2anatorig.$reg.mat)
           echo $cmd |& tee -a $LF |& tee -a $CF
           if ($RunIt) then
             $cmd |& tee -a $LF
             if ($status) goto error_exit
           endif
+        endif
 
+        if (-e $xfmdir/cvs/$cvswarp.m3z) then
           set cmd = mri_vol2vol
-          set cmd = ($cmd --mov  $dwidir/cvs/$fname.$reg.nii.gz)
+          set cmd = ($cmd --mov  $dwidir/anatorig/$fname.$reg.nii.gz)
           set cmd = ($cmd --targ $SUBJECTS_DIR/$cvstemp/mri/norm.mgz)
           set cmd = ($cmd --o    $dwidir/cvs/$fname.$reg.nii.gz)
           set cmd = ($cmd --m3z  $xfmdir/cvs/$cvswarp.m3z)
@@ -1098,8 +1100,8 @@ if ($dotensor) then
             $cmd |& tee -a $LF
             if ($status) goto error_exit
           endif
-        end
-      endif
+        endif
+      end
     end
   endif
 endif
