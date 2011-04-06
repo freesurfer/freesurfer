@@ -8,8 +8,8 @@
  * Original Author: Anastasia Yendiki
  * CVS Revision Info:
  *    $Author: ayendiki $
- *    $Date: 2011/03/15 02:40:06 $
- *    $Revision: 1.8 $
+ *    $Date: 2011/04/06 20:33:37 $
+ *    $Revision: 1.9 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -84,8 +84,9 @@ struct timeb cputimer;
 /*--------------------------------------------------*/
 int main(int argc, char **argv) {
   int nargs, cputime;
-  char fname[PATH_MAX];
+  char fname[PATH_MAX], outorient[4];
   vector<float> point(3), step(3, 0);
+  MATRIX *outv2r;
   MRI *inref = 0, *outref = 0, *outvol = 0;
   AffineReg affinereg;
 #ifndef NO_CVS_UP_IN_HERE
@@ -120,6 +121,10 @@ int main(int argc, char **argv) {
 
   if (nvol > 0)
     outvol = MRIclone(outref, NULL);
+
+  // Output space orientation information
+  outv2r = MRIgetVoxelToRasXform(outref);
+  MRIdircosToOrientationString(outref, outorient);
 
   // Read transform files
 #ifndef NO_CVS_UP_IN_HERE
@@ -156,9 +161,36 @@ int main(int argc, char **argv) {
     if (nout > 0) {
       // Set output .trk header
       trkheadout = trkheadin;
+
       trkheadout.voxel_size[0] = outref->xsize;
       trkheadout.voxel_size[1] = outref->ysize;
       trkheadout.voxel_size[2] = outref->zsize;
+
+      trkheadout.dim[0] = outref->width;
+      trkheadout.dim[1] = outref->height;
+      trkheadout.dim[2] = outref->depth;
+
+      for (int i = 0; i < 4; i++)
+        for (int j = 0; j < 4; j++)
+          trkheadout.vox_to_ras[i][j] = outv2r->rptr[i+1][j+1];
+
+      strcpy(trkheadout.voxel_order, outorient);
+
+      // Find patient-to-scanner coordinate transform:
+      // Take x and y vectors from vox2RAS matrix, convert to LPS,
+      // divide by voxel size
+      trkheadout.image_orientation_patient[0] = 
+        - trkheadout.vox_to_ras[0][0] / trkheadout.voxel_size[0];
+      trkheadout.image_orientation_patient[1] = 
+        - trkheadout.vox_to_ras[1][0] / trkheadout.voxel_size[0];
+      trkheadout.image_orientation_patient[2] = 
+          trkheadout.vox_to_ras[2][0] / trkheadout.voxel_size[0];
+      trkheadout.image_orientation_patient[3] = 
+        - trkheadout.vox_to_ras[0][1] / trkheadout.voxel_size[1];
+      trkheadout.image_orientation_patient[4] = 
+        - trkheadout.vox_to_ras[1][1] / trkheadout.voxel_size[1];
+      trkheadout.image_orientation_patient[5] = 
+          trkheadout.vox_to_ras[2][1] / trkheadout.voxel_size[1];
 
       // Open output .trk file
       if (outDir)
@@ -279,6 +311,12 @@ int main(int argc, char **argv) {
     cputime = TimerStop(&cputimer);
     printf("Done in %g sec.\n", cputime/1000.0);
   }
+
+  MatrixFree(&outv2r);
+  MRIfree(&inref);
+  MRIfree(&outref);
+  if (nvol > 0)
+    MRIfree(&outvol);
 
   printf("dmri_trk2trk done\n");
   return(0);
