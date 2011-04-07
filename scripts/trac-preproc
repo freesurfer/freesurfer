@@ -8,8 +8,8 @@
 # Original Author: Anastasia Yendiki
 # CVS Revision Info:
 #    $Author: ayendiki $
-#    $Date: 2011/04/06 21:40:56 $
-#    $Revision: 1.22 $
+#    $Date: 2011/04/07 03:42:03 $
+#    $Revision: 1.23 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -25,7 +25,7 @@
 
 umask 002
 
-set VERSION = '$Id: trac-preproc,v 1.22 2011/04/06 21:40:56 ayendiki Exp $'
+set VERSION = '$Id: trac-preproc,v 1.23 2011/04/07 03:42:03 ayendiki Exp $'
 set ProgName = `basename $0`
 set inputargs = ($argv)
 
@@ -1061,7 +1061,9 @@ if ($dotensor) then
   endif
 
   # Map scalar outputs of tensor fit to CVS template
-  if ($doregcvs) then
+  if ($doregcvs && -e $fsdir/mri/aparc+aseg.mgz) then
+    mkdir -p $dwidir/anatorig
+
     set cvswarp = combined_to${cvstemp}_elreg_afteraseg-norm
 
     if ($subj == $cvstemp) then
