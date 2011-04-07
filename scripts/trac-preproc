@@ -8,8 +8,8 @@
 # Original Author: Anastasia Yendiki
 # CVS Revision Info:
 #    $Author: ayendiki $
-#    $Date: 2011/04/07 03:42:03 $
-#    $Revision: 1.23 $
+#    $Date: 2011/04/07 04:01:56 $
+#    $Revision: 1.24 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -25,7 +25,7 @@
 
 umask 002
 
-set VERSION = '$Id: trac-preproc,v 1.23 2011/04/07 03:42:03 ayendiki Exp $'
+set VERSION = '$Id: trac-preproc,v 1.24 2011/04/07 04:01:56 ayendiki Exp $'
 set ProgName = `basename $0`
 set inputargs = ($argv)
 
@@ -1095,7 +1095,7 @@ if ($dotensor) then
           set cmd = ($cmd --o    $dwidir/cvs/$fname.$reg.nii.gz)
           set cmd = ($cmd --m3z  $xfmdir/cvs/$cvswarp.m3z)
           set cmd = ($cmd --noDefM3zPath)
-          set cmd = ($cmd --interp nearest)			# Binary masks!
+          set cmd = ($cmd --interp trilin)
           set cmd = ($cmd --no-save-reg)
           echo $cmd |& tee -a $LF |& tee -a $CF
           if ($RunIt) then
