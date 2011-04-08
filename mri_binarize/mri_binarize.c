@@ -10,25 +10,23 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2010/04/02 18:37:53 $
- *    $Revision: 1.23 $
+ *    $Date: 2011/04/08 15:40:50 $
+ *    $Revision: 1.26.2.1 $
  *
- * Copyright (C) 2002-2007,
- * The General Hospital Corporation (Boston, MA). 
- * All rights reserved.
+ * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
- * Distribution, usage and copying of this software is covered under the
- * terms found in the License Agreement file named 'COPYING' found in the
- * FreeSurfer source code root directory, and duplicated here:
- * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ * Terms and conditions for use, reproduction, distribution and contribution
+ * are found in the 'FreeSurfer Software License Agreement' contained
+ * in the file 'LICENSE' found in the FreeSurfer distribution, and here:
  *
- * General inquiries: freesurfer@nmr.mgh.harvard.edu
- * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
+ *
+ * Reporting: freesurfer@nmr.mgh.harvard.edu
  *
  */
 
 
-// $Id: mri_binarize.c,v 1.23 2010/04/02 18:37:53 greve Exp $
+// $Id: mri_binarize.c,v 1.26.2.1 2011/04/08 15:40:50 greve Exp $
 
 /*
   BEGINHELP
@@ -54,7 +52,14 @@ must set one of the thresholds. Cannot be used with --match. If --rmin
 or --rmax are specified, then min (or max) is computed as rmin (or
 rmax) times the global mean of the input.
 
---match matchvalue <--match matchvalue>
+--pct P
+
+Set min threshold so that the top P percent of the voxels are captured
+in the output mask. The percent will be computed based on the number of
+voxels in the volume (if not input mask is specified) or within the
+input mask.
+
+--match matchvalue <matchvalue2 ...>
 
 Binarize based on matching values. Any number of match values can be 
 specified. Cannot be used with --min/--max.
@@ -174,7 +179,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_binarize.c,v 1.23 2010/04/02 18:37:53 greve Exp $";
+static char vcid[] = "$Id: mri_binarize.c,v 1.26.2.1 2011/04/08 15:40:50 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -195,6 +200,7 @@ int BinVal=1;
 int BinValNot=0;
 int frame=0;
 int DoAbs=0;
+int DoNeg=0;
 int ZeroColEdges = 0;
 int ZeroRowEdges = 0;
 int ZeroSliceEdges = 0;
@@ -204,7 +210,7 @@ int nMatch = 0;
 int MatchValues[1000];
 int Matched = 0;
 
-MRI *InVol,*OutVol,*MergeVol,*MaskVol;
+MRI *InVol,*OutVol,*MergeVol,*MaskVol=NULL;
 double MaskThresh = 0.5;
 
 int nErode2d = 0;
@@ -215,6 +221,8 @@ int DoBinCol = 0;
 int mriTypeUchar = 0;
 int DoFrameSum = 0;
 int DoFrameAnd = 0;
+int DoPercent = 0;
+double TopPercent = -1;
 
 /*---------------------------------------------------------------*/
 int main(int argc, char *argv[]) {
@@ -252,12 +260,17 @@ int main(int argc, char *argv[]) {
   if(DoFrameSum || DoFrameAnd) {
     printf("Summing over %d frames\n",InVol->nframes);
     InVol = MRIframeSum(InVol,InVol);
+    frame = 0;
   }
   if(DoFrameAnd) MinThresh = InVol->nframes - 0.5;
 
   if(DoAbs) {
     printf("Removing sign from input\n");
     MRIabs(InVol,InVol);
+  }
+  if(DoNeg) {
+    printf("Negating input\n");
+    MRImultiplyConst(InVol,-1.0,InVol);
   }
 
   if(RMinThreshSet || RMaxThreshSet){
@@ -312,6 +325,12 @@ int main(int argc, char *argv[]) {
       printf("ERROR: dimension mismatch between input and mask volumes\n");
       exit(1);
     }
+  }
+
+  if(DoPercent) {
+    printf("Computing threshold based on top %g percent\n",TopPercent);
+    MinThresh = MRIpercentThresh(InVol, MaskVol, frame, TopPercent);
+    printf("  Threshold set to %g\n",MinThresh);
   }
 
   // Prepare the output volume
@@ -403,7 +422,7 @@ int main(int argc, char *argv[]) {
     for (r=0; r < OutVol->height; r++) {
       for (s=0; s < OutVol->depth; s++) {
 	// Get the value at this voxel
-        val = MRIgetVoxVal(OutVol,c,r,s,frame);
+        val = MRIgetVoxVal(OutVol,c,r,s,0);
 	if(fabs(val-BinVal) < .00001) nhits ++;
       } // slice
     } // row
@@ -435,7 +454,7 @@ int main(int argc, char *argv[]) {
 }
 /* --------------------------------------------- */
 static int parse_commandline(int argc, char **argv) {
-  int  nargc , nargsused;
+  int  nargc , nargsused, nth;
   char **pargv, *option ;
 
   if (argc < 1) usage_exit();
@@ -457,6 +476,7 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--checkopts"))   checkoptsonly = 1;
     else if (!strcasecmp(option, "--nocheckopts")) checkoptsonly = 0;
     else if (!strcasecmp(option, "--abs")) DoAbs = 1;
+    else if (!strcasecmp(option, "--neg")) DoNeg = 1;
     else if (!strcasecmp(option, "--bincol")) DoBinCol = 1;
     else if (!strcasecmp(option, "--uchar")) mriTypeUchar = 1;
     else if (!strcasecmp(option, "--zero-edges")){
@@ -532,6 +552,12 @@ static int parse_commandline(int argc, char **argv) {
       if (nargc < 1) CMDargNErr(option,1);
       sscanf(pargv[0],"%lf",&MaskThresh);
       nargsused = 1;
+    } else if (!strcasecmp(option, "--pct")) {
+      if (nargc < 1) CMDargNErr(option,1);
+      sscanf(pargv[0],"%lf",&TopPercent);
+      MinThreshSet = 1;
+      DoPercent = 1;
+      nargsused = 1;
     } else if (!strcasecmp(option, "--min")) {
       if (nargc < 1) CMDargNErr(option,1);
       sscanf(pargv[0],"%lf",&MinThresh);
@@ -565,10 +591,14 @@ static int parse_commandline(int argc, char **argv) {
       BinValNot = 1;
     } else if (!strcasecmp(option, "--match")) {
       if (nargc < 1) CMDargNErr(option,1);
-      sscanf(pargv[0],"%d",&MatchValues[nMatch]);
-      nMatch ++;
+      nth = 0;
+      while(CMDnthIsArg(nargc, pargv, nth) ){
+	sscanf(pargv[nth],"%d",&MatchValues[nMatch]);
+	nMatch ++;
+	nth++;
+      }
+      nargsused = nth;
       DoMatch = 1;
-      nargsused = 1;
     } 
     else if (!strcasecmp(option, "--frame")) {
       if (nargc < 1) CMDargNErr(option,1);
@@ -622,9 +652,10 @@ static void print_usage(void) {
   printf("   \n");
   printf("   --min min  : min thresh (def is -inf)\n");
   printf("   --max max  : max thresh (def is +inf)\n");
+  printf("   --pct P : set threshold to capture top P%% (in mask or total volume)\n");
   printf("   --rmin rmin  : compute min based on rmin*globalmean\n");
   printf("   --rmax rmax  : compute max based on rmax*globalmean\n");
-  printf("   --match matchval <--match matchval>  : match instead of threshold\n");
+  printf("   --match matchval <matchval2 ...>  : match instead of threshold\n");
   printf("   --wm : set match vals to 2 and 41 (aseg for cerebral WM)\n");
   printf("   --ventricles : set match vals those for aseg ventricles+choroid (not 4th)\n");
   printf("   --wm+vcsf : WM and ventricular CSF, including choroid (not 4th)\n");
@@ -682,7 +713,14 @@ printf("must set one of the thresholds. Cannot be used with --match. If --rmin\n
 printf("or --rmax are specified, then min (or max) is computed as rmin (or\n");
 printf("rmax) times the global mean of the input.\n");
 printf("\n");
-printf("--match matchvalue <--match matchvalue>\n");
+printf("--pct P\n");
+printf("\n");
+printf("Set min threshold so that the top P percent of the voxels are captured\n");
+printf("in the output mask. The percent will be computed based on the number of\n");
+printf("voxels in the volume (if not input mask is specified) or within the\n");
+printf("input mask.\n");
+printf("\n");
+printf("--match matchvalue <matchvalue2 ...>\n");
 printf("\n");
 printf("Binarize based on matching values. Any number of match values can be \n");
 printf("specified. Cannot be used with --min/--max.\n");
@@ -837,4 +875,7 @@ static void dump_options(FILE *fp) {
   }
   return;
 }
+
+
+
 
