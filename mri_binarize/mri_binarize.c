@@ -9,9 +9,9 @@
 /*
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:13 $
- *    $Revision: 1.26 $
+ *    $Author: greve $
+ *    $Date: 2011/04/08 15:40:27 $
+ *    $Revision: 1.27 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -26,7 +26,7 @@
  */
 
 
-// $Id: mri_binarize.c,v 1.26 2011/03/02 00:04:13 nicks Exp $
+// $Id: mri_binarize.c,v 1.27 2011/04/08 15:40:27 greve Exp $
 
 /*
   BEGINHELP
@@ -179,7 +179,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_binarize.c,v 1.26 2011/03/02 00:04:13 nicks Exp $";
+static char vcid[] = "$Id: mri_binarize.c,v 1.27 2011/04/08 15:40:27 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -422,7 +422,7 @@ int main(int argc, char *argv[]) {
     for (r=0; r < OutVol->height; r++) {
       for (s=0; s < OutVol->depth; s++) {
 	// Get the value at this voxel
-        val = MRIgetVoxVal(OutVol,c,r,s,frame);
+        val = MRIgetVoxVal(OutVol,c,r,s,0);
 	if(fabs(val-BinVal) < .00001) nhits ++;
       } // slice
     } // row
