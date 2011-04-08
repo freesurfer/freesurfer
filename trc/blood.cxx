@@ -1161,25 +1161,27 @@ bool Blood::IsEnd1InMask(vector< vector<int> >::iterator Streamline,
       MRIgetVoxVal(Aseg, itop[0], itop[1], itop[2], 0) == mMaskLabel))
     return true;
 
-  // Extend the streamline by a few voxels if that gets it inside the mask
-  int newpt[3] = { itop[0], itop[1], itop[2] };
-  int diff[3]  = { itop[0] - itop[3],
-                   itop[1] - itop[4],
-                   itop[2] - itop[5] };
-  vector<int> extend;
+  if (itop < Streamline->end() - 3) {	// If more than one voxel in streamline
+    // Extend the streamline by a few voxels if that gets it inside the mask
+    int newpt[3] = { itop[0], itop[1], itop[2] };
+    int diff[3]  = { itop[0] - itop[3],
+                     itop[1] - itop[4],
+                     itop[2] - itop[5] };
+    vector<int> extend;
 
-  for (int d = mDistThresh; d > 0; d--) {
-    for (int k = 0; k < 3; k++)
-      newpt[k] += diff[k];
+    for (int d = mDistThresh; d > 0; d--) {
+      for (int k = 0; k < 3; k++)
+        newpt[k] += diff[k];
 
-    extend.insert(extend.begin(), newpt, newpt+3);
+      extend.insert(extend.begin(), newpt, newpt+3);
 
-    if (MRIgetVoxVal(Mask, newpt[0], newpt[1], newpt[2], 0) > 0 ||
-        (mMaskLabel > 0 &&
-        MRIgetVoxVal(Aseg, newpt[0], newpt[1], newpt[2], 0) == mMaskLabel)) {
-      Streamline->insert(Streamline->begin(), extend.begin(), extend.end());
-      mLengths[Streamline - mStreamlines.begin()] = Streamline->size() / 3;
-      return true; 
+      if (MRIgetVoxVal(Mask, newpt[0], newpt[1], newpt[2], 0) > 0 ||
+          (mMaskLabel > 0 &&
+          MRIgetVoxVal(Aseg, newpt[0], newpt[1], newpt[2], 0) == mMaskLabel)) {
+        Streamline->insert(Streamline->begin(), extend.begin(), extend.end());
+        mLengths[Streamline - mStreamlines.begin()] = Streamline->size() / 3;
+        return true; 
+      }
     }
   }
 
@@ -1199,25 +1201,27 @@ bool Blood::IsEnd2InMask(vector< vector<int> >::iterator Streamline,
       MRIgetVoxVal(Aseg, ibottom[0], ibottom[1], ibottom[2], 0) == mMaskLabel))
     return true;
 
-  // Extend the streamline by a few voxels if that gets it inside the mask
-  int newpt[3] = { ibottom[0], ibottom[1], ibottom[2] };
-  int diff[3] = { ibottom[0] - ibottom[-3],
-                  ibottom[1] - ibottom[-2],
-                  ibottom[2] - ibottom[-1] };
-  vector<int> extend;
+  if (ibottom > Streamline->begin()) {	// If more than one voxel in streamline
+    // Extend the streamline by a few voxels if that gets it inside the mask
+    int newpt[3] = { ibottom[0], ibottom[1], ibottom[2] };
+    int diff[3] = { ibottom[0] - ibottom[-3],
+                    ibottom[1] - ibottom[-2],
+                    ibottom[2] - ibottom[-1] };
+    vector<int> extend;
 
-  for (int d = mDistThresh; d > 0; d--) {
-    for (int k = 0; k < 3; k++)
-      newpt[k] += diff[k];
+    for (int d = mDistThresh; d > 0; d--) {
+      for (int k = 0; k < 3; k++)
+        newpt[k] += diff[k];
 
-    extend.insert(extend.end(), newpt, newpt+3);
+      extend.insert(extend.end(), newpt, newpt+3);
 
-    if (MRIgetVoxVal(Mask, newpt[0], newpt[1], newpt[2], 0) > 0 ||
-        (mMaskLabel > 0 &&
-        MRIgetVoxVal(Aseg, newpt[0], newpt[1], newpt[2], 0) == mMaskLabel)) {
-      Streamline->insert(Streamline->end(), extend.begin(), extend.end());
-      mLengths[Streamline - mStreamlines.begin()] = Streamline->size() / 3;
-      return true;
+      if (MRIgetVoxVal(Mask, newpt[0], newpt[1], newpt[2], 0) > 0 ||
+          (mMaskLabel > 0 &&
+          MRIgetVoxVal(Aseg, newpt[0], newpt[1], newpt[2], 0) == mMaskLabel)) {
+        Streamline->insert(Streamline->end(), extend.begin(), extend.end());
+        mLengths[Streamline - mStreamlines.begin()] = Streamline->size() / 3;
+        return true;
+      }
     }
   }
 
