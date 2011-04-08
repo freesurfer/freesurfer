@@ -5,8 +5,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2011/02/15 21:01:54 $
-#    $Revision: 1.10 $
+#    $Date: 2011/04/08 15:52:51 $
+#    $Revision: 1.11 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -21,7 +21,7 @@
 # Bug reports: analysis-bugs@nmr.mgh.harvard.edu
 #
 
-set VERSION = '$Id: funcroi-config,v 1.10 2011/02/15 21:01:54 greve Exp $';
+set VERSION = '$Id: funcroi-config,v 1.11 2011/04/08 15:52:51 greve Exp $';
 
 set roiconfig = ();
 set label = ();
@@ -35,7 +35,8 @@ set contrast = ();
 set thresh = ();
 set pct = ();
 set map = sig;
-set frame = 0;
+set sign = ();
+set frame = ();
 set fillthresh = 0;
 
 set Force = 0;
@@ -260,6 +261,21 @@ check_params:
     endif
   endif
 
+  if($#contrast == 0) then
+    if($#frame) then
+      echo "ERROR: you must specify a contrast with -frame"
+      exit 1;
+    endif
+    if($#sign) then
+      echo "ERROR: you must specify a contrast with -sign"
+      exit 1;
+    endif
+    if($#thresh) then
+      echo "ERROR: you must specify a contrast with -thresh"
+      exit 1;
+    endif
+  endif
+
   if($#contrast) then
     set ConList = (`getana -a $analysis -t contrasts`)
     set ConFound = 0;
@@ -282,6 +298,7 @@ check_params:
       echo "ERROR: must specify a sign (-sign) with contrast"
       exit 1;
     endif
+    if($#frame == 0) set frame = 0;
   endif
 
   if(0) then
@@ -338,7 +355,7 @@ usage_exit:
   echo "   -thresh threshold "
   echo "   -sign sign : abs, pos, neg"
   echo "   -map  map  : (default is sig)"
-  echo "   -frame frameno : default is 0"
+  echo "   -frame frameno : frame within contrast sig (default is 0)"
   echo ""
   echo " Other options"
   echo ""

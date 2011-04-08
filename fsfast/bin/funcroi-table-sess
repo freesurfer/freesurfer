@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2010/12/07 19:04:46 $
-#    $Revision: 1.3 $
+#    $Date: 2011/04/08 15:52:51 $
+#    $Revision: 1.4 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: funcroi-table-sess,v 1.3 2010/12/07 19:04:46 greve Exp $';
+set VERSION = '$Id: funcroi-table-sess,v 1.4 2011/04/08 15:52:51 greve Exp $';
 
 set inputargs = ($argv);
 
@@ -31,7 +31,7 @@ set outtable = ();
 set roicfg = ();
 set analysis = ();
 set contrast = ();
-set map = ces;
+set map = ();
 set frame = 0;
 set measure = "mean";
 
@@ -285,6 +285,11 @@ endif
 
 if($#analysis == 0) set analysis = $ROIanalysis
 
+if($#contrast == 0 && $#map != 0) then
+  echo "ERROR: you must specify a contrast with -map"
+  exit 1;
+endif
+
 if($#contrast) then
   set conlist = (`getana -a $analysis -t contrasts`);
   set ConFound = 0;
@@ -295,6 +300,7 @@ if($#contrast) then
     echo "ERROR: cannot find $contrast in $analysis"
     exit 1;
   endif
+  if($#map == 0) set map = ces;
 endif
 
 set fsd = `getana -a $analysis -t fsd`
