@@ -8,8 +8,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2011/03/17 15:19:53 $
- *    $Revision: 1.422 $
+ *    $Date: 2011/04/10 20:47:58 $
+ *    $Revision: 1.423 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -79,7 +79,7 @@ typedef struct
   int     label ;          // index into CLUT
   char    name[STRLEN] ;   // human-readable description of frame contents
   int     dof ;            // for stat maps (e.g. # of subjects)
-  MATRIX  m_ras2vox ;      
+  MATRIX  *m_ras2vox ;      
   float   thresh ;
   int     units ;          // e.g. UNITS_PPM,  UNITS_RAD_PER_SEC, ...         
 } MRI_FRAME ;

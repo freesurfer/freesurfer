@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2011/03/15 01:14:53 $
- *    $Revision: 1.21 $
+ *    $Date: 2011/04/10 20:47:58 $
+ *    $Revision: 1.22 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -58,8 +58,8 @@ int TAGskip(FILE *fp, int tag, long long len) ;
 int TAGmakeCommandLineString(int argc, char **argv, char *cmd_line) ;
 int TAGwriteCommandLine(FILE *fp, char *cmd_line) ;
 int TAGwrite(FILE *fp, int tag, void *buf, long long len) ;
-int TAGwriteAutoAlign(FILE *fp, MATRIX *M);
-MATRIX *TAGreadAutoAlign(FILE *fp);
+int TAGwriteMatrix(FILE *fp, MATRIX *M);
+MATRIX *TAGreadMatrix(FILE *fp);
 
 /* zlib i/o support */
 int znzTAGreadStart(znzFile fp, long long *plen) ;
@@ -68,7 +68,7 @@ int znzTAGwriteEnd(znzFile fp, long long there) ;
 int znzTAGskip(znzFile fp, int tag, long long len) ;
 int znzTAGwriteCommandLine(znzFile fp, char *cmd_line) ;
 int znzTAGwrite(znzFile fp, int tag, void *buf, long long len) ;
-int znzTAGwriteAutoAlign(znzFile fp, MATRIX *M);
-MATRIX *znzTAGreadAutoAlign(znzFile fp);
+int znzWriteMatrix(znzFile fp, MATRIX *M);
+MATRIX *znzReadMatrix(znzFile fp);
 
 #endif
