@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:55 $
- *    $Revision: 1.12 $
+ *    $Author: fischl $
+ *    $Date: 2011/04/10 20:47:30 $
+ *    $Revision: 1.13 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -276,7 +276,7 @@ znzTAGwriteCommandLine(znzFile fp, char *cmd_line)
   return(NO_ERROR) ;
 }
 
-int znzTAGwriteAutoAlign(znzFile fp, MATRIX *M)
+int znzWriteMatrix(znzFile fp, MATRIX *M)
 {
   long long here ;
   char buf[16*100];
@@ -296,7 +296,7 @@ int znzTAGwriteAutoAlign(znzFile fp, MATRIX *M)
   return(NO_ERROR) ;
 }
 
-MATRIX *znzTAGreadAutoAlign(znzFile fp)
+MATRIX *znzReadMatrix(znzFile fp)
 {
   /* no fscanf equivalent in zlib!! have to hack it */
   char buf[16*100];

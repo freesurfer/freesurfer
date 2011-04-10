@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2011/03/16 17:31:48 $
- *    $Revision: 1.486 $
+ *    $Date: 2011/04/10 20:47:29 $
+ *    $Revision: 1.487 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -23,7 +23,7 @@
  */
 
 extern const char* Progname;
-const char *MRI_C_VERSION = "$Revision: 1.486 $";
+const char *MRI_C_VERSION = "$Revision: 1.487 $";
 
 
 /*-----------------------------------------------------
@@ -6015,7 +6015,7 @@ MRI *MRIallocChunk(int width, int height, int depth, int type, int nframes)
 MRI *MRIallocSequence(int width, int height, int depth, int type, int nframes)
 {
   MRI     *mri ;
-  int     slice, row, bpp ;
+  int     slice, row, bpp, i ;
   BUFTYPE *buf ;
 
   if (getenv("FS_USE_MRI_CHUNK") != NULL)
@@ -6052,6 +6052,8 @@ MRI *MRIallocSequence(int width, int height, int depth, int type, int nframes)
   if (!mri->frames)
     ErrorExit(ERROR_NO_MEMORY,
               "MRIalloc: could not allocate %d frames\n", nframes) ;
+  for (i = 0 ; i < mri->nframes ; i++)
+    mri->frames[i].m_ras2vox = MatrixAlloc(4,4, MATRIX_REAL) ;
   mri->slices = (BUFTYPE ***)calloc(depth*nframes, sizeof(BUFTYPE **)) ;
   if (!mri->slices)
     ErrorExit(ERROR_NO_MEMORY,
@@ -6168,6 +6170,7 @@ MRI *MRIallocSequence(int width, int height, int depth, int type, int nframes)
 MRI *MRIallocHeader(int width, int height, int depth, int type, int nframes)
 {
   MRI  *mri ;
+  int  i ;
 
   mri = (MRI *)calloc(1, sizeof(MRI)) ;
   if (!mri)
@@ -6177,6 +6180,8 @@ MRI *MRIallocHeader(int width, int height, int depth, int type, int nframes)
   if (!mri->frames)
     ErrorExit(ERROR_NO_MEMORY,
               "MRIalloc: could not allocate %d frame\n", nframes) ;
+  for (i = 0 ; i < mri->nframes ; i++)
+    mri->frames[i].m_ras2vox = MatrixAlloc(4,4, MATRIX_REAL) ;
   mri->imnr0 = 1 ;
   mri->imnr1 = depth;
   mri->fov = width ;
@@ -6282,7 +6287,14 @@ MRIfree(MRI **pmri)
   if (!mri)
     ErrorReturn(ERROR_BADPARM, (ERROR_BADPARM, "MRIfree: null pointer\n")) ;
 
-  if (mri->frames)free(mri->frames) ;
+  if (mri->frames)
+  {
+    int i ;
+    for (i = 0 ; i < mri->nframes ; i++)
+      if (mri->frames[i].m_ras2vox)
+        MatrixFree(&mri->frames[i].m_ras2vox) ;
+    free(mri->frames) ;
+  }
   if (mri->xi)    free(mri->xi-MAX_INDEX) ;
   if (mri->yi)    free(mri->yi-MAX_INDEX) ;
   if (mri->zi)    free(mri->zi-MAX_INDEX) ;

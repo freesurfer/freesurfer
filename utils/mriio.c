@@ -9,8 +9,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2011/03/18 00:30:13 $
- *    $Revision: 1.388 $
+ *    $Date: 2011/04/10 20:47:29 $
+ *    $Revision: 1.389 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -4316,6 +4316,11 @@ static MRI *get_b_info
     if (mri->frames == NULL)
       ErrorExit(ERROR_NOMEMORY, "get_b_info: could not allocate %d frames", nt) ;
     fclose(fp);
+    {
+      int i ;
+      for (i = 0 ; i < nt ; i++)
+        mri->frames->m_ras2vox = MatrixIdentity(4, NULL) ;
+    }
 
     strcpy(mri->fname, fname_passed);
 
@@ -12016,6 +12021,104 @@ local_buffer_to_image(BUFTYPE *buf, MRI *mri, int slice, int frame)
   }
 }
 
+int
+znzTAGwriteMRIframes(znzFile fp, MRI *mri)
+{
+  long long len = 0, fstart, fend, here ;
+  int       fno, i ;
+  MRI_FRAME *frame ;
+  char      *buf ;
+
+  // write some extra space so that we have enough room (can't seek in zz files)
+  len = 2*mri->nframes*sizeof(MRI_FRAME) ;
+  znzTAGwriteStart(fp, TAG_MRI_FRAME, &fstart, len) ;
+  here = znztell(fp) ;
+  for (fno = 0 ; fno < mri->nframes ; fno++)
+  {
+    frame = &mri->frames[fno] ;
+    znzwriteInt(frame->type, fp) ;
+    znzwriteFloat(frame->TE, fp) ;
+    znzwriteFloat(frame->TR, fp) ;
+    znzwriteFloat(frame->flip, fp) ;
+    znzwriteFloat(frame->TI, fp) ;
+    znzwriteFloat(frame->TD, fp) ;
+    znzwriteFloat(frame->TM, fp) ;
+    znzwriteInt(frame->sequence_type, fp) ;
+    znzwriteFloat(frame->echo_spacing, fp) ;
+    znzwriteFloat(frame->echo_train_len, fp) ;
+    for (i = 0 ; i < 3 ; i++)
+      znzwriteFloat(frame->read_dir[i], fp) ;
+    for (i = 0 ; i < 3 ; i++)
+      znzwriteFloat(frame->pe_dir[i], fp) ;
+    for (i = 0 ; i < 3 ; i++)
+      znzwriteFloat(frame->slice_dir[i], fp) ;
+    znzwriteInt(frame->label, fp) ;
+    znzwrite(frame->name, sizeof(char), STRLEN, fp) ;
+    znzwriteInt(frame->dof, fp) ;
+    if (frame->m_ras2vox && frame->m_ras2vox->rows > 0)
+      znzWriteMatrix(fp, frame->m_ras2vox) ;
+    else
+    {
+      MATRIX *m = MatrixAlloc(4, 4, MATRIX_REAL) ;
+      znzWriteMatrix(fp, m) ;
+    }
+    znzwriteFloat(frame->thresh, fp) ;
+    znzwriteInt(frame->units, fp) ;
+  }
+  fend = znztell(fp) ;
+  len -= (fend - here) ;   // unused space
+  buf = (char *)calloc(len, sizeof(char)) ;
+  znzwrite(buf, len, sizeof(char), fp) ;
+  free(buf) ;
+  znzTAGwriteEnd(fp, fend) ;
+      
+  return(NO_ERROR) ;
+}
+int
+znzTAGreadMRIframes(znzFile fp, MRI *mri, long len)
+{
+  int       fno, i ;
+  long long fstart, fend ;
+  MRI_FRAME *frame ;
+  char      *buf ;
+
+  fstart = znztell(fp) ;
+  for (fno = 0 ; fno < mri->nframes ; fno++)
+  {
+    frame = &mri->frames[fno] ;
+    frame->type = znzreadInt(fp) ;
+    frame->TE = znzreadFloat(fp) ;
+    frame->TR = znzreadFloat(fp) ;
+    frame->flip = znzreadFloat(fp) ;
+    frame->TI = znzreadFloat(fp) ;
+    frame->TD = znzreadFloat(fp) ;
+    frame->TM = znzreadFloat(fp) ;
+    frame->sequence_type = znzreadInt(fp) ;
+    frame->echo_spacing = znzreadFloat(fp) ;
+    frame->echo_train_len = znzreadFloat(fp) ;
+    for (i = 0 ; i < 3 ; i++)
+      frame->read_dir[i] = znzreadFloat(fp) ;
+    for (i = 0 ; i < 3 ; i++)
+      frame->pe_dir[i] = znzreadFloat(fp) ;
+    for (i = 0 ; i < 3 ; i++)
+      frame->slice_dir[i] = znzreadFloat(fp) ;
+    frame->label = znzreadInt(fp) ;
+    znzread(frame->name, sizeof(char), STRLEN, fp) ;
+    frame->dof = znzreadInt(fp) ;
+    frame->m_ras2vox = znzReadMatrix(fp) ;
+
+    frame->thresh = znzreadFloat(fp) ;
+    frame->units = znzreadInt(fp) ;
+  }
+
+  fend = znztell(fp) ;
+  len -=  (fend - fstart) ;
+  buf = (char *)calloc(len, sizeof(char)) ;
+  znzread(buf, len, sizeof(char), fp) ;
+  free(buf) ;
+  return(NO_ERROR) ;
+}
+
 #define UNUSED_SPACE_SIZE 256
 #define USED_SPACE_SIZE   (3*sizeof(float)+4*3*sizeof(float))
 
@@ -12325,7 +12428,8 @@ mghRead(const char *fname, int read_volume, int frame)
         if (mri->frames == NULL)
           ErrorExit(ERROR_NOMEMORY, "mghRead(%s): could not allocate %d MRI_FRAMEs", fname, mri->nframes) ;
 #endif
-        if (znzread(mri->frames, mri->nframes*sizeof(MRI_FRAME), 1, fp) != 1)
+        
+        if (znzTAGreadMRIframes(fp, mri, len) != NO_ERROR)
           fprintf(stderr, "couldn't read frame structure from file\n") ;
         break ;
       case TAG_OLD_COLORTABLE:
@@ -12398,7 +12502,7 @@ mghRead(const char *fname, int read_volume, int frame)
         break ;
 
       case TAG_AUTO_ALIGN:
-        mri->AutoAlign = znzTAGreadAutoAlign(fp);
+        mri->AutoAlign = znzReadMatrix(fp);
         break;
 
       case TAG_PEDIR:
@@ -12613,7 +12717,7 @@ mghWrite(MRI *mri, const char *fname, int frame)
     fwriteInt(flen+1, fp); // write the size + 1 (for null) of string
     fputs(mri->transform_fname, fp);
 #else
-    znzTAGwrite(fp, TAG_MGH_XFORM, mri->transform_fname, flen+1) ;
+   znzTAGwrite(fp, TAG_MGH_XFORM, mri->transform_fname, flen+1) ;
 #endif
   }
   // If we have any saved tag data, write it.
@@ -12624,11 +12728,11 @@ mghWrite(MRI *mri, const char *fname, int frame)
     znzwrite( mri->tag_data, mri->tag_data_size, 1, fp );
   }
 
-  if(mri->AutoAlign) znzTAGwriteAutoAlign(fp, mri->AutoAlign);
+  if(mri->AutoAlign) znzWriteMatrix(fp, mri->AutoAlign);
   if(mri->pedir) znzTAGwrite(fp, TAG_PEDIR, mri->pedir, strlen(mri->pedir)+1);
   else znzTAGwrite(fp, TAG_PEDIR, "UNKNOWN", strlen("UNKNOWN"));
 
-  znzTAGwrite(fp, TAG_MRI_FRAME, mri->frames, mri->nframes*sizeof(MRI_FRAME));
+  znzTAGwriteMRIframes(fp, mri);
 
   if (mri->ct)
   {
