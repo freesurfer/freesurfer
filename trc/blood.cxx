@@ -1154,7 +1154,7 @@ void Blood::FlipStreamline(vector< vector<int> >::iterator Streamline) {
 
 //
 // Check if a streamline has a valid (not truncated) start point
-// by checking if the start point is within (a small distance of) the mask
+// by checking if the start point is within (a small distance of) cortex mask
 //
 bool Blood::IsEnd1InMask(vector< vector<int> >::iterator Streamline,
                          MRI *Mask, MRI *Aseg) {
@@ -1179,6 +1179,9 @@ bool Blood::IsEnd1InMask(vector< vector<int> >::iterator Streamline,
 
       extend.insert(extend.begin(), newpt, newpt+3);
 
+      if (!IsInMask(extend.begin()))	// Must also be in test subject's mask
+        break;
+
       if (MRIgetVoxVal(Mask, newpt[0], newpt[1], newpt[2], 0) > 0 ||
           (mMaskLabel > 0 &&
           MRIgetVoxVal(Aseg, newpt[0], newpt[1], newpt[2], 0) == mMaskLabel)) {
@@ -1194,7 +1197,7 @@ bool Blood::IsEnd1InMask(vector< vector<int> >::iterator Streamline,
 
 //
 // Check if a streamline has a valid (not truncated) end point
-// by checking if the end point is within (a small distance of) the mask
+// by checking if the end point is within (a small distance of) cortex mask
 //
 bool Blood::IsEnd2InMask(vector< vector<int> >::iterator Streamline,
                          MRI *Mask, MRI *Aseg) {
@@ -1218,6 +1221,9 @@ bool Blood::IsEnd2InMask(vector< vector<int> >::iterator Streamline,
         newpt[k] += diff[k];
 
       extend.insert(extend.end(), newpt, newpt+3);
+
+      if (!IsInMask(extend.end()-3))	// Must also be in test subject's mask
+        break;
 
       if (MRIgetVoxVal(Mask, newpt[0], newpt[1], newpt[2], 0) > 0 ||
           (mMaskLabel > 0 &&
