@@ -6,20 +6,19 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: rpwang $
- *    $Date: 2010/02/09 23:16:13 $
- *    $Revision: 1.11 $
+ *    $Author: nicks $
+ *    $Date: 2011/04/11 14:47:11 $
+ *    $Revision: 1.12.2.1 $
  *
- * Copyright (C) 2005-2010,
- * The General Hospital Corporation (Boston, MA). 
- * All rights reserved.
+ * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
- * Distribution, usage and copying of this software is covered under the
- * terms found in the License Agreement file named 'COPYING' found in the
- * FreeSurfer source code root directory, and duplicated here:
- * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ * Terms and conditions for use, reproduction, distribution and contribution
+ * are found in the 'FreeSurfer Software License Agreement' contained
+ * in the file 'LICENSE' found in the FreeSurfer distribution, and here:
  *
- * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
+ *
+ * Reporting: freesurfer@nmr.mgh.harvard.edu
  *
  */
 
@@ -277,7 +276,7 @@ znzTAGwriteCommandLine(znzFile fp, char *cmd_line)
   return(NO_ERROR) ;
 }
 
-int znzTAGwriteAutoAlign(znzFile fp, MATRIX *M)
+int znzWriteMatrix(znzFile fp, MATRIX *M)
 {
   long long here ;
   char buf[16*100];
@@ -297,7 +296,7 @@ int znzTAGwriteAutoAlign(znzFile fp, MATRIX *M)
   return(NO_ERROR) ;
 }
 
-MATRIX *znzTAGreadAutoAlign(znzFile fp)
+MATRIX *znzReadMatrix(znzFile fp)
 {
   /* no fscanf equivalent in zlib!! have to hack it */
   char buf[16*100];

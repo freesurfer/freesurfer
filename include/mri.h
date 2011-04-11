@@ -7,20 +7,19 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: rge21 $
- *    $Date: 2010/07/13 18:35:32 $
- *    $Revision: 1.404 $
+ *    $Author: nicks $
+ *    $Date: 2011/04/11 14:47:10 $
+ *    $Revision: 1.422.2.1 $
  *
- * Copyright (C) 2002-2010,
- * The General Hospital Corporation (Boston, MA). 
- * All rights reserved.
+ * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
- * Distribution, usage and copying of this software is covered under the
- * terms found in the License Agreement file named 'COPYING' found in the
- * FreeSurfer source code root directory, and duplicated here:
- * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ * Terms and conditions for use, reproduction, distribution and contribution
+ * are found in the 'FreeSurfer Software License Agreement' contained
+ * in the file 'LICENSE' found in the FreeSurfer distribution, and here:
  *
- * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
+ *
+ * Reporting: freesurfer@nmr.mgh.harvard.edu
  *
  */
 
@@ -37,6 +36,8 @@ extern "C" {
 #include "machine.h"
 #include "colortab.h"
 
+#include "affine.h"
+
 #define BUFTYPE  unsigned char
 
 #define SAMPLE_NEAREST       0
@@ -52,8 +53,38 @@ extern "C" {
 #define MRI_SHORT   4
 #define MRI_BITMAP  5
 #define MRI_TENSOR  6
+#define MRI_FLOAT_COMPLEX  7
+#define MRI_DOUBLE_COMPLEX  8
 
 #define MAX_CMDS 1000
+
+#define SEQUENCE_MPRAGE      1
+#define SEQUENCE_EPI         2
+
+typedef struct
+{
+  int     type ;           // code for what is stored in this frame
+  float   TE ;             // echo time
+  float   TR ;             // recovery time
+  float   flip ;           // flip angle
+  float   TI ;             // time-to-inversion
+  float   TD ;             // delay time
+  float   TM;              // mixing time (for stimulluated echo sequences)
+  int     sequence_type ;  // see SEQUENCE* constants
+  float   echo_spacing ;
+  float   echo_train_len ; // length of the echo train
+  float   read_dir[3] ;    // read-out direction in RAS coords
+  float   pe_dir[3] ;      // phase-encode direction in RAS coords
+  float   slice_dir[3] ;   // slice direction in RAS coords
+  int     label ;          // index into CLUT
+  char    name[STRLEN] ;   // human-readable description of frame contents
+  int     dof ;            // for stat maps (e.g. # of subjects)
+  MATRIX  *m_ras2vox ;      
+  float   thresh ;
+  int     units ;          // e.g. UNITS_PPM,  UNITS_RAD_PER_SEC, ...         
+} MRI_FRAME ;
+
+
 
 typedef struct
 {
@@ -138,7 +169,7 @@ typedef struct
 
   void*         tag_data; /* saved tag data */
   int           tag_data_size; /* size of saved tag data */
-  MATRIX *i_to_r__; /* cache */
+  AffineMatrix *i_to_r__; /* cache */
   MATRIX *r_to_i__;
   char   *cmdlines[MAX_CMDS] ;
   int    ncmds;
@@ -157,6 +188,7 @@ typedef struct
   size_t    bytes_per_vol; // # bytes per volume/timepoint
   size_t    bytes_total; // # total number of pixel bytes in the struct
   COLOR_TABLE *ct ;
+  MRI_FRAME   *frames ;
 }
 MRI_IMAGE, MRI ;
 
@@ -215,7 +247,7 @@ float  MRIfindNearestNonzeroLocation(MRI *mri, int wsize,
                                      int *pxv, int *pyv, int *pzv) ;
 /* single pixel filtering */
 float MRIvoxelMedian(MRI *mri, int x0, int y0, int z0, int wsize) ;
-float MRIvoxelMean(MRI *mri, int x, int y, int z, int wsize, int frame) ;
+float MRIvoxelMean( const MRI *mri, int x, int y, int z, int wsize, int frame) ;
 float MRIvoxelMin(MRI *mri, int x0, int y0, int z0, int wsize) ;
 float MRIvoxelMax(MRI *mri, int x0, int y0, int z0, int wsize) ;
 float MRIvoxelStd(MRI *mri, int x, int y, int z, float mean, int wsize) ;
@@ -263,7 +295,7 @@ int   MRIfree(MRI **pmri) ;
 int   MRIfreeFrames(MRI *mri, int start_frame) ;
 MRI   *MRIalloc(int width, int height, int depth, int type) ;
 MRI   *MRIallocSequence(int width, int height,int depth,int type,int nframes);
-MRI   *MRIallocHeader(int width, int height, int depth, int type) ;
+MRI   *MRIallocHeader(int width, int height, int depth, int type, int nframes) ;
 int   MRIallocIndices(MRI *mri) ;
 int   MRIsetResolution(MRI *mri, float xres, float yres, float zres) ;
 int   MRIsetTransform(MRI *mri,   General_transform *transform) ;
@@ -280,7 +312,8 @@ long  MRIcorrelate(MRI *mri_ref, MRI *mri_in, int xoff, int yoff, int zoff) ;
 
 
 int   MRIpeak(MRI *mri, int *px, int *py, int *pz) ;
-int   MRIcopyHeader(MRI *mri_src, MRI *mri_dst) ;
+int   MRIcompareHeaders(MRI *mri1, MRI *mri2) ;
+MRI   *MRIcopyHeader( const MRI *mri_src, MRI *mri_dst) ;
 int   MRIcopyPulseParameters(MRI *mri_src, MRI *mri_dst) ;
 MRI   *MRIcopy(MRI *mri_src, MRI *mri_dst) ;
 MRI   *MRIreslice(MRI *mri_src, MRI *mri_dst, int slice_direction) ;
@@ -435,7 +468,7 @@ MRI   *MRIapplyOffset(MRI *mri_src, MRI *mri_dst, MRI *mri_offset) ;
 
 
  /* it just copies the header info, not image data */
-MRI   *MRIclone(MRI *mri_src, MRI *mri_dst) ;  
+MRI   *MRIclone( const MRI *mri_src, MRI *mri_dst );  
 MRI   *MRIcloneDifferentType(MRI *mri_src, int type) ;
 MRI   *MRIcloneRoi(MRI *mri_src, MRI *mri_dst) ;
 MRI   *MRIcloneBySpace(MRI *mri_src, int type, int nframes);
@@ -532,6 +565,7 @@ MRI   *MRIcomplement(MRI *mri_src, MRI *mri_dst) ;
 MRI   *MRIxor(MRI *mri1, MRI *mri2, MRI *mri_dst, int t1, int t2) ;
 MRI   *MRIand(MRI *mri1, MRI *mri2, MRI *mri_dst, int thresh) ;
 MRI   *MRIor(MRI *mri1, MRI *mri2, MRI *mri_dst, int thresh) ;
+MRI   *MRIorVal(MRI *mri1, MRI *mri2, MRI *mri_dst, int thresh) ;
 MRI   *MRInot(MRI *mri_src, MRI *mri_dst) ;
 MRI   *MRIcomputeResidual(MRI *mri1, MRI *mri2, MRI *mri_dst, int t1, int t2) ;
 
@@ -643,6 +677,9 @@ double *MRItrilinKernel(MRI *mri,
 int   MRIinterpolateIntoVolume(MRI *mri,
                                double x, double y, double z,
                                double val) ;
+int   MRIinterpolateIntoVolumeFrame(MRI *mri,
+                               double x, double y, double z,
+                                    int frame, double val) ;
 int   MRIsampleVolumeSlice(MRI *mri,
                            double x, double y, double z,
                            double *pval,
@@ -975,6 +1012,7 @@ int MRIsetDifferentVoxelsWithValue(MRI *mri1,
                                    MRI *mri2,
                                    MRI *mri_dst,
                                    int dst_val) ;
+double MRIpercentThresh(MRI *mri, MRI *mask, int frame, double pct);
 int MRIcopyLabeledVoxels(MRI *mri_src, MRI *mri_labeled, MRI *mri_dst,
                          int label) ;
 MRI *MRIcpolvVote(MRI *mri_src, MRI *mri_labeled, MRI *mri_dst, int wsize,
@@ -1117,6 +1155,7 @@ int MRIwrite(MRI *mri,const  char *fname);
 int MRIwriteFrame(MRI *mri,const  char *fname, int frame) ;
 int MRIwriteType(MRI *mri,const  char *fname, int type);
 MRI *MRIreadRaw(FILE *fp, int width, int height, int depth, int type);
+int MRIreorderVox2RAS(MRI *mri_src, MRI *mri_dst, int xdim, int ydim, int zdim);
 MRI *MRIreorder(MRI *mri_src, MRI *mri_dst, int xdim, int ydim, int zdim);
 MRI *MRIreorder4(MRI *mri, int order[4]);
 MRI *MRIsmoothParcellation(MRI *mri, int smooth_parcellation_count);
@@ -1135,6 +1174,8 @@ int decompose_b_fname(const char *fname_passed, char *directory, char *stem);
 #define READ_OTL_ZERO_OUTLINES_FLAG     0x08
 MRI *MRIreadOtl(const char *fname, int width, int height, int slices,
                 const char *color_file_name, int flags);
+
+int list_labels_in_otl_file(FILE *fp);
 
 MATRIX *extract_i_to_r(MRI *mri);
 int apply_i_to_r(MRI *mri, MATRIX *m);
@@ -1192,15 +1233,17 @@ MRI *MRIremoveNaNs(MRI *mri_src, MRI *mri_dst) ;
 MRI *MRImakePositive(MRI *mri_src, MRI *mri_dst);
 MRI *MRIeraseNegative(MRI *mri_src, MRI *mri_dst) ;
 
-MRI *MRImarkLabelBorderVoxels(MRI *mri_src, MRI *mri_dst,
-                              int label, int mark, int six_connected) ;
-int MRIcomputeLabelNbhd(MRI *mri_labels, MRI *mri_vals,
-                        int x, int y, int z,
-                        int *label_counts, float *label_means,
-                        int whalf, int max_labels) ;
-float MRIvoxelsInLabelWithPartialVolumeEffects(MRI *mri, MRI *mri_vals,
-                                               int label,MRI *mri_mixing_coef,
-                                               MRI *mri_nbr_labels);
+MRI *MRImarkLabelBorderVoxels( const MRI *mri_src, MRI *mri_dst,
+			       int label, int mark, int six_connected) ;
+int MRIcomputeLabelNbhd( const MRI *mri_labels, const MRI *mri_vals,
+			 const int x, const int y, const int z,
+			 int *label_counts, float *label_means,
+			 const int whalf, const int max_labels );
+float MRIvoxelsInLabelWithPartialVolumeEffects( const MRI *mri,
+						const MRI *mri_vals,
+						int label,
+						MRI *mri_mixing_coef,
+						MRI *mri_nbr_labels );
 MRI   *MRImakeDensityMap(MRI *mri, MRI *mri_vals, int label, MRI *mri_dst,
                          float orig_res) ;
 int MRIfillBox(MRI *mri, MRI_REGION *box, float fillval) ;
@@ -1256,6 +1299,7 @@ int MRIcountThreshInNbhd(MRI *mri, int wsize, int x,int y,int z, float thresh);
 MRI *MRImatchMeanIntensity(MRI *mri_source,
                            MRI *mri_target,
                            MRI *mri_source_scaled) ;
+MRI *MRIsqrt(MRI *mri_src, MRI *mri_dst)  ;
 double MRImaxInLabelInRegion(MRI *mri_src,
                              MRI *mri_labeled,
                              int label,
@@ -1271,6 +1315,7 @@ int MRInormalizeFramesMean(MRI *mri);
 int MRInormalizeFramesFirst(MRI *mri);
 MRI *MRIsort(MRI *in, MRI *mask, MRI *sorted);
 int CompareDoubles(const void *a, const void *b);
+int MRIlabeledVoxels(MRI *mri_src, int label) ;
 int MRIlabelInVolume(MRI *mri_src, int label) ;
 #define MRI_MEAN_MIN_DISTANCE 0
 double MRIcomputeLabelAccuracy(MRI *mri_src, MRI *mri_ref, 
@@ -1325,6 +1370,21 @@ MRI *MRInormalizeInteriorDistanceTransform(MRI *mri_src_dist,
                                            MRI *mri_dst_dist);
 
 const char* MRItype2str(int type);
+int MRIfindSliceWithMostStructure(MRI *mri_aseg, int slice_direction, int label) ;
+
+#ifdef FS_CUDA
+  void MRImarkLabelBorderVoxelsGPU( const MRI* mri_src,
+				    MRI* mri_dst,
+				    int label,
+				    int mark,
+				    int six_connected );
+
+  float MRIvoxelsInLabelWithPartialVolumeEffectsGPU( const MRI *mri,
+						     const MRI *mri_vals, 
+						     const int label,
+						     MRI *mri_mixing_coef, 
+						     MRI *mri_nbr_labels );
+#endif
 
 #if defined(__cplusplus)
 };

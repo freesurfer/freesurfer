@@ -7,19 +7,18 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2010/02/09 17:52:29 $
- *    $Revision: 1.19 $
+ *    $Date: 2011/04/11 14:47:10 $
+ *    $Revision: 1.21.2.1 $
  *
- * Copyright (C) 2005-2010,
- * The General Hospital Corporation (Boston, MA). 
- * All rights reserved.
+ * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
- * Distribution, usage and copying of this software is covered under the
- * terms found in the License Agreement file named 'COPYING' found in the
- * FreeSurfer source code root directory, and duplicated here:
- * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ * Terms and conditions for use, reproduction, distribution and contribution
+ * are found in the 'FreeSurfer Software License Agreement' contained
+ * in the file 'LICENSE' found in the FreeSurfer distribution, and here:
  *
- * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
+ *
+ * Reporting: freesurfer@nmr.mgh.harvard.edu
  *
  */
 
@@ -50,6 +49,7 @@
 
 #define TAG_SCALAR_DOUBLE           40
 #define TAG_PEDIR                   41
+#define TAG_MRI_FRAME               42
 
 int TAGreadStart(FILE *fp, long long *plen) ;
 int TAGwriteStart(FILE *fp, int tag, long long *phere, long long len) ;
@@ -58,8 +58,8 @@ int TAGskip(FILE *fp, int tag, long long len) ;
 int TAGmakeCommandLineString(int argc, char **argv, char *cmd_line) ;
 int TAGwriteCommandLine(FILE *fp, char *cmd_line) ;
 int TAGwrite(FILE *fp, int tag, void *buf, long long len) ;
-int TAGwriteAutoAlign(FILE *fp, MATRIX *M);
-MATRIX *TAGreadAutoAlign(FILE *fp);
+int TAGwriteMatrix(FILE *fp, MATRIX *M);
+MATRIX *TAGreadMatrix(FILE *fp);
 
 /* zlib i/o support */
 int znzTAGreadStart(znzFile fp, long long *plen) ;
@@ -68,7 +68,7 @@ int znzTAGwriteEnd(znzFile fp, long long there) ;
 int znzTAGskip(znzFile fp, int tag, long long len) ;
 int znzTAGwriteCommandLine(znzFile fp, char *cmd_line) ;
 int znzTAGwrite(znzFile fp, int tag, void *buf, long long len) ;
-int znzTAGwriteAutoAlign(znzFile fp, MATRIX *M);
-MATRIX *znzTAGreadAutoAlign(znzFile fp);
+int znzWriteMatrix(znzFile fp, MATRIX *M);
+MATRIX *znzReadMatrix(znzFile fp);
 
 #endif
