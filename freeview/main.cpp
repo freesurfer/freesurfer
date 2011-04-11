@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2011/03/23 21:36:51 $
- *    $Revision: 1.5 $
+ *    $Date: 2011/04/11 21:15:33 $
+ *    $Revision: 1.6 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -34,7 +34,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-char Progname[] = "freeview";
+char* Progname;
 
 void myMessageOutput(QtMsgType type, const char *msg)
 {
@@ -61,6 +61,7 @@ void myMessageOutput(QtMsgType type, const char *msg)
 
 int main(int argc, char *argv[])
 {
+  Progname = argv[0];
   putenv("SURFER_FRONTDOOR=");
   qInstallMsgHandler(myMessageOutput);
 
