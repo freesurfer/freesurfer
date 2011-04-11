@@ -275,16 +275,21 @@ void Blood::ReadStreamlines(const char *TrainListFile,
         }
 
       // Disregard first points if they are off the mask
-      while (!IsInMask(rawptsmask)) {
+      while (!IsInMask(rawptsmask) && nptsmask > 0) {
         rawptsmask += 3;
         nptsmask--;
       }
 
       // Disregard last points if they are off the mask
       iraw = rawpts + (npts-1)*3; 
-      while (!IsInMask(iraw)) {
+      while (!IsInMask(iraw) && nptsmask > 0) {
         iraw -= 3;
         nptsmask--;
+      }
+
+      if (nptsmask == 0) {			// No points in mask
+        delete[] rawpts;
+        continue;
       }
 
       iraw = rawptsmask; 
@@ -502,7 +507,6 @@ void Blood::ReadStreamlines(const char *TrainListFile,
       }
 
       mStreamlines.push_back(pts);
-mStreamlines.size();
       mLengths.push_back(pts.size() / 3);
       nlines++;
 
