@@ -6,9 +6,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/14 23:44:47 $
- *    $Revision: 1.4 $
+ *    $Author: rpwang $
+ *    $Date: 2011/04/11 20:26:58 $
+ *    $Revision: 1.5 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -30,7 +30,7 @@
 #include "MyUtils.h"
 #include <QFile>
 #include <QTextStream>
-
+#include <QDebug>
 
 FSPointSet::FSPointSet( QObject* parent ) : QObject( parent ),
   m_label( NULL )
@@ -46,8 +46,7 @@ FSPointSet::~FSPointSet()
 
 bool FSPointSet::IsLabelFormat( const QString& filename )
 {
-  LABEL* label = ::LabelRead( NULL, filename.toAscii().data() );
-
+  LABEL* label = ::LabelRead( NULL, qPrintable(filename) );
   if ( label == NULL )
   {
     return false;
@@ -105,7 +104,7 @@ bool FSPointSet::ReadAsControlPoints( const QString& filename )
     {
       for ( int j = 0; j < 3; j++ )
       {
-        values.push_back( subs[i].toDouble() );
+        values.push_back( subs[j].toDouble() );
       }
       nCount ++;
     }
