@@ -6,12 +6,12 @@
 # dev/ directory:
 
 set cmd1=(rm -rf autom4te.cache)
-set cmd2=(aclocal)
 if ( "`uname -s`" == "Darwin" ) then 
-    set cmd3=(glibtoolize --force)
+    set cmd2=(glibtoolize --force)
 else
-    set cmd3=(libtoolize --force)
+    set cmd2=(libtoolize --force)
 endif
+set cmd3=(aclocal)
 #automake --add-missing is necessary because config.sub
 # and config.guess are links, and make not be present,
 # so if missing, --add-missing will add them for this
