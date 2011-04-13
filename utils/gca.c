@@ -13,9 +13,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: ayendiki $
- *    $Date: 2011/04/07 22:06:50 $
- *    $Revision: 1.296 $
+ *    $Author: fischl $
+ *    $Date: 2011/04/13 19:08:37 $
+ *    $Revision: 1.297 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -4371,7 +4371,7 @@ GCAremoveOutlyingSamples(GCA *gca, GCA_SAMPLE *gcas, MRI *mri_inputs,
 float
 GCAnormalizedLogSampleProbability(GCA *gca, GCA_SAMPLE *gcas,
                                   MRI *mri_inputs,
-                                  TRANSFORM *transform, int nsamples)
+                                  TRANSFORM *transform, int nsamples, double clamp)
 {
   int        x, y, z, width, height, depth,
   xn, yn, zn, i, n, xp, yp, zp ;
@@ -4424,6 +4424,8 @@ GCAnormalizedLogSampleProbability(GCA *gca, GCA_SAMPLE *gcas,
         gc = GCAfindPriorGC(gca, xp, yp, zp, gcas[i].label) ;
         log_p = GCAcomputeConditionalDensity(gc, vals, gca->ninputs,
                                              gcas[i].label) ;
+        if (log_p < -clamp)
+          log_p = -clamp ;
         log_p = log(log_p) + log(gcas[i].prior) ;
         log_p -= norm_log_p ;
         total_log_p += log_p ;
@@ -4446,7 +4448,8 @@ GCAcomputeLogSampleProbability(GCA *gca,
                                GCA_SAMPLE *gcas,
                                MRI *mri_inputs,
                                TRANSFORM *transform,
-                               int nsamples)
+                               int nsamples,
+                               double clamp)
 {
   int        x, y, z, width, height, depth, i, xp, yp, zp ;
   float      vals[MAX_GCA_INPUTS] ;
@@ -4501,8 +4504,8 @@ GCAcomputeLogSampleProbability(GCA *gca,
         DiagBreak() ;
       }
 #if 1
-      if (log_p < -3)
-        log_p = -3 ;
+      if (log_p < -clamp)
+        log_p = -clamp ;
 #endif
       total_log_p += log_p ;
       gcas[i].log_p = log_p ;
@@ -4544,7 +4547,8 @@ GCAcomputeLogSampleProbabilityLongitudinal(GCA *gca,
                                            GCA_SAMPLE *gcas,
                                            MRI *mri_inputs,
                                            TRANSFORM *transform,
-                                           int nsamples)
+                                           int nsamples,
+                                           double clamp)
 {
   int        x, y, z, width, height, depth, i, xp, yp, zp ;
   float      vals[MAX_GCA_INPUTS] ;
@@ -4595,8 +4599,8 @@ GCAcomputeLogSampleProbabilityLongitudinal(GCA *gca,
           DiagBreak() ;
         }
 #if 1
-        if (log_p < -3)
-          log_p = -3 ;
+        if (log_p < -clamp)
+          log_p = -clamp ;
 #endif
         total_log_p += log_p ;
         gcas[i].log_p = log_p ;
@@ -4636,8 +4640,8 @@ GCAcomputeLogSampleProbabilityLongitudinal(GCA *gca,
 
 float
 GCAcomputeLogSampleProbabilityUsingCoords(GCA *gca, GCA_SAMPLE *gcas,
-    MRI *mri_inputs,
-    TRANSFORM *transform, int nsamples)
+                                          MRI *mri_inputs,
+                                          TRANSFORM *transform, int nsamples, double clamp)
 {
   int        x, y, z, width, height, depth, xp, yp, zp,
   xn, yn, zn, i ;
@@ -4670,6 +4674,8 @@ GCAcomputeLogSampleProbabilityUsingCoords(GCA *gca, GCA_SAMPLE *gcas,
       load_vals(mri_inputs, x, y, z, vals, gca->ninputs) ;
 
       log_p = gcaComputeSampleLogDensity(&gcas[i], vals, gca->ninputs) ;
+      if (log_p < -clamp)
+        log_p = -clamp ;
       total_log_p += log_p ;
       gcas[i].log_p = log_p ;
 
@@ -12056,7 +12062,7 @@ GCArenormalize(MRI *mri_in, MRI *mri_labeled, GCA *gca, TRANSFORM *transform)
       continue ;
     }
     ordered_indices = (int *)calloc(nsamples, sizeof(int)) ;
-    GCAcomputeLogSampleProbability(gca, gcas, mri_in, transform, nsamples) ;
+    GCAcomputeLogSampleProbability(gca, gcas, mri_in, transform, nsamples, DEFAULT_CLAMP) ;
     GCArankSamples(gca, gcas, nsamples, ordered_indices) ;
 
     if (nint(nsamples*SAMPLE_PCT) < MIN_MEAN_SAMPLES)
@@ -12223,7 +12229,7 @@ GCArenormalizeAdaptive(MRI *mri_in, MRI *mri_labeled,
                                              gcas,
                                              mri_in,
                                              transform,
-                                             nsamples) ;
+                                             nsamples, DEFAULT_CLAMP) ;
               GCArankSamples(gca, gcas, nsamples,
                              ordered_indices) ;
 
@@ -12324,7 +12330,7 @@ GCArenormalizeLabels(MRI *mri_in,
       continue ;
     }
     ordered_indices = (int *)calloc(nsamples, sizeof(int)) ;
-    GCAcomputeLogSampleProbability(gca, gcas, mri_in, transform, nsamples) ;
+    GCAcomputeLogSampleProbability(gca, gcas, mri_in, transform, nsamples, DEFAULT_CLAMP) ;
     GCArankSamples(gca, gcas, nsamples, ordered_indices) ;
 
     if (nint(nsamples*SAMPLE_PCT) < MIN_SAMPLES)
