@@ -10,9 +10,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:09 $
- *    $Revision: 1.114 $
+ *    $Author: fischl $
+ *    $Date: 2011/04/13 19:08:43 $
+ *    $Revision: 1.115 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -49,6 +49,7 @@ extern "C" {
 #define GCA_PARAM      2  // used T1 and PD data to create GCA
 #define GCA_UNKNOWN   99  // what ???
 
+#define DEFAULT_CLAMP 6   // anything more negative than -DEFAULT_CLAMP is set to -DEFAULT_CLAMP in logSample stuff
 
 // somehow these were in here and not in tags.h. For backwards compatibility
 // have to keep using them
@@ -242,16 +243,16 @@ float GCAcomputeNumberOfGoodFittingSamples(GCA *gca, GCA_SAMPLE *gcas,
 
 float  GCAcomputeLogSampleProbability(GCA *gca, GCA_SAMPLE *gcas,
                                       MRI *mri_inputs,
-                                      TRANSFORM *transform,int nsamples);
+                                      TRANSFORM *transform,int nsamples, double clamp);
 float  GCAcomputeLogSampleProbabilityLongitudinal(GCA *gca, GCA_SAMPLE *gcas,
                                                   MRI *mri_inputs,
-                                                  TRANSFORM *transform,int nsamples);
+                                                  TRANSFORM *transform,int nsamples, double clamp);
 float  GCAcomputeLogSampleProbabilityUsingCoords(GCA *gca, GCA_SAMPLE *gcas,
     MRI *mri_inputs,
-    TRANSFORM *transform,int nsamples);
+    TRANSFORM *transform,int nsamples, double clamp);
 float  GCAnormalizedLogSampleProbability(GCA *gca, GCA_SAMPLE *gcas,
     MRI *mri_inputs,
-    TRANSFORM *transform,int nsamples);
+    TRANSFORM *transform,int nsamples, double clamp);
 int   GCAremoveOutlyingSamples(GCA *gca, GCA_SAMPLE *gcas,
                                MRI *mri_inputs,
                                TRANSFORM *transform,int nsamples, float nsigma);
