@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:46 $
- *    $Revision: 1.74 $
+ *    $Author: fischl $
+ *    $Date: 2011/04/13 20:22:47 $
+ *    $Revision: 1.75 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -8127,7 +8127,7 @@ computeEMAlignmentErrorFunctional(float *p)
   old_lta = (LTA *)parms->transform->xform ;
   parms->transform->xform = (void *)lta ;
   log_p = GCAcomputeLogSampleProbability(gca,parms->gcas,g_mri_in,
-                                         parms->transform,parms->nsamples);
+                                         parms->transform,parms->nsamples, DEFAULT_CLAMP);
   parms->transform->xform = (void *)old_lta ;
   LTAfree(&lta) ;
   return(-log_p) ;
@@ -8408,7 +8408,7 @@ MRIemAlign(MRI *mri_in, GCA *gca, MORPH_PARMS *parms, MATRIX *m_L)
   /* E step */
   pcurrent =
     -GCAcomputeLogSampleProbability(gca,parms->gcas,mri_in,
-                                    parms->transform,parms->nsamples);
+                                    parms->transform,parms->nsamples, DEFAULT_CLAMP);
 
   i = 0 ;
   do
@@ -8419,7 +8419,7 @@ MRIemAlign(MRI *mri_in, GCA *gca, MORPH_PARMS *parms, MATRIX *m_L)
 
     pcurrent =
       -GCAcomputeLogSampleProbability(gca,parms->gcas,mri_in,
-                                      parms->transform,parms->nsamples);
+                                      parms->transform,parms->nsamples, DEFAULT_CLAMP);
     i++ ;
     printf("outof QuasiNewtonEMA: %03d: -log(p) = %6.1f  tol %f\n",parms->start_t+i, pcurrent, parms->tol) ;
   }
