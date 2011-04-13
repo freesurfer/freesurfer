@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2011/03/23 21:36:51 $
- *    $Revision: 1.92 $
+ *    $Date: 2011/04/13 19:50:54 $
+ *    $Revision: 1.93 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -222,7 +222,8 @@ protected:
 
   void LoadSurfaceFile( const QString& filename,
                         const QString& fn_patch = "",
-                        const QString& fn_target = "" );
+                        const QString& fn_target = "",
+                        bool bAllSurfaces = false );
   void LoadPVolumeFiles( const QStringList& filenames, const QString& prefix, const QString& lut );
   void LoadROIFile( const QString& fn, const QString& ref_vol );
   void LoadWayPointsFile        ( const QString& fn );
@@ -336,6 +337,8 @@ protected slots:
   void OnToggleShowPointSet();
   void OnLoadCommand();
   void OnWriteMovieFrames();
+  void OnIncreaseOpacity();
+  void OnDecreaseOpacity();
 
   void OnActiveLayerChanged(Layer*);
 

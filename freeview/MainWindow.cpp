@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2011/04/03 19:03:23 $
- *    $Revision: 1.165 $
+ *    $Date: 2011/04/13 19:50:54 $
+ *    $Revision: 1.166 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -114,6 +114,9 @@ MainWindow::MainWindow( QWidget *parent, MyCmdLineParser* cmdParser ) :
 #ifndef DEVELOPMENT
   ui->tabWidgetControlPanel->removeTab(ui->tabWidgetControlPanel->indexOf(ui->tabTrack));
 #endif
+
+  this->addAction(ui->actionIncreaseOpacity);
+  this->addAction(ui->actionDecreaseOpacity);
 
   m_statusBar = new FloatingStatusBar(this);
   m_statusBar->hide();
@@ -1973,6 +1976,7 @@ void MainWindow::CommandLoadSurface( const QStringList& cmd )
   QString fn = sa_fn[0];
   QString fn_patch = "";
   QString fn_target = "";
+  bool bLoadAll = false;
   for ( int k = sa_fn.size()-1; k >= 1; k-- )
   {
     int n = sa_fn[k].indexOf( "=" );
@@ -2119,6 +2123,11 @@ void MainWindow::CommandLoadSurface( const QStringList& cmd )
         script += subArgu.replace(",", " ");
         m_scripts.insert( 0, script );
       }
+      else if ( subOption == "all")
+      {
+        if ( subArgu.toLower() == "true" || subArgu.toLower() == "yes" || subArgu == "1")
+          bLoadAll = true;
+      }
       else
       {
         cerr << "Unrecognized sub-option flag '" << subOption.toAscii().constData() << "'.\n";
@@ -2126,7 +2135,7 @@ void MainWindow::CommandLoadSurface( const QStringList& cmd )
       }
     }
   }
-  LoadSurfaceFile( fn, fn_patch, fn_target );
+  LoadSurfaceFile( fn, fn_patch, fn_target, bLoadAll );
 }
 
 void MainWindow::CommandSetSurfaceOverlayMethod( const QStringList& cmd )
@@ -3836,7 +3845,8 @@ void MainWindow::OnLoadSurface()
   }
 }
 
-void MainWindow::LoadSurfaceFile( const QString& filename, const QString& fn_patch, const QString& fn_target )
+void MainWindow::LoadSurfaceFile( const QString& filename, const QString& fn_patch, const QString& fn_target,
+                                  bool bAllSurfaces)
 {
   QFileInfo fi( filename );
   m_strLastDir = fi.absolutePath();
@@ -3850,6 +3860,7 @@ void MainWindow::LoadSurfaceFile( const QString& filename, const QString& fn_pat
   layer->SetFileName( fullpath );
   layer->SetPatchFileName( fn_patch );
   layer->SetTargetFileName( fn_target );
+  layer->SetLoadAllSurfaces(bAllSurfaces);
 
   m_threadIOWorker->LoadSurface( layer );
 }
@@ -4894,4 +4905,24 @@ void MainWindow::OnWriteMovieFrames()
 Layer* MainWindow::GetSupplementLayer(const QString &type)
 {
   return m_layerCollections["Supplement"]->GetLayer(type);
+}
+
+void MainWindow::OnIncreaseOpacity()
+{
+  LayerMRI* mri = (LayerMRI*)this->GetActiveLayer( "MRI" );
+  if ( mri )
+  {
+    double dOpacity = mri->GetProperty()->GetOpacity();
+    mri->GetProperty()->SetOpacity( qMin(1., dOpacity+0.1) );
+  }
+}
+
+void MainWindow::OnDecreaseOpacity()
+{
+  LayerMRI* mri = (LayerMRI*)this->GetActiveLayer( "MRI" );
+  if ( mri )
+  {
+    double dOpacity = mri->GetProperty()->GetOpacity();
+    mri->GetProperty()->SetOpacity( qMax(0., dOpacity-0.1) );
+  }
 }

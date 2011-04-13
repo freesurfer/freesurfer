@@ -6,9 +6,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/14 23:44:47 $
- *    $Revision: 1.56 $
+ *    $Author: rpwang $
+ *    $Date: 2011/04/13 19:50:54 $
+ *    $Revision: 1.57 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -66,7 +66,8 @@ LayerSurface::LayerSurface( LayerMRI* ref, QObject* parent ) : LayerEditable( pa
   m_nActiveAnnotation( -1 ),
   m_nActiveLabel( -1 ),
   m_bUndoable( false ),
-  m_bVector2DPendingUpdate( true )
+  m_bVector2DPendingUpdate( true ),
+  m_bLoadAll(false)
 {
   m_strTypeNames.push_back( "Surface" );
 
@@ -157,10 +158,11 @@ bool LayerSurface::LoadSurfaceFromFile()
   }
 
   m_surfaceSource = new FSSurface( m_volumeRef ? m_volumeRef->GetSourceVolume() : NULL );
-  if ( !m_surfaceSource->MRISRead( m_sFilename.toAscii().data(),
-                                   m_sVectorFilename.size() > 0 ? m_sVectorFilename.toAscii().data() : NULL,
-                                   m_sPatchFilename.size() > 0 ? m_sPatchFilename.toAscii().data() : NULL,
-                                   m_sTargetFilename.size() > 0 ? m_sTargetFilename.toAscii().data() : NULL )
+  if ( !m_surfaceSource->MRISRead( m_sFilename,
+                                   m_sVectorFilename,
+                                   m_sPatchFilename,
+                                   m_sTargetFilename,
+                                   m_bLoadAll )
      )
   {
     return false;

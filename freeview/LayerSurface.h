@@ -6,9 +6,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/14 23:44:47 $
- *    $Revision: 1.40 $
+ *    $Author: rpwang $
+ *    $Date: 2011/04/13 19:50:54 $
+ *    $Revision: 1.41 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -208,6 +208,10 @@ public:
 public slots:
   void SetActiveSurface( int nSurfaceType );
   void UpdateOverlay( bool bAskRedraw = true );
+  void SetLoadAllSurfaces(bool bLoadAll)
+  {
+    m_bLoadAll = bLoadAll;
+  }
 
 Q_SIGNALS:
   void SurfaceAnnotationAdded( SurfaceAnnotation* );
@@ -275,6 +279,7 @@ protected:
 
   bool        m_bUndoable;
   bool        m_bVector2DPendingUpdate;
+  bool        m_bLoadAll;
 };
 
 #endif

@@ -6,9 +6,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/14 23:44:47 $
- *    $Revision: 1.32 $
+ *    $Author: rpwang $
+ *    $Date: 2011/04/13 19:50:54 $
+ *    $Revision: 1.33 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -58,7 +58,8 @@ public:
   bool MRISRead( const QString& filename,
                  const QString& vector_filename = QString(),
                  const QString& patch_filename = QString(),
-                 const QString& target_filename = QString() );
+                 const QString& target_filename = QString(),
+                 bool bAllSurfaces = false);
 
   bool MRISWrite( const QString& filename );
 

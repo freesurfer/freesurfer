@@ -1214,6 +1214,22 @@
     <string>Load Track Volume...</string>
    </property>
   </action>
+  <action name="actionIncreaseOpacity">
+   <property name="text">
+    <string>Increase Opacity</string>
+   </property>
+   <property name="shortcut">
+    <string>Alt+S</string>
+   </property>
+  </action>
+  <action name="actionDecreaseOpacity">
+   <property name="text">
+    <string>Decrease Opacity</string>
+   </property>
+   <property name="shortcut">
+    <string>Alt+A</string>
+   </property>
+  </action>
  </widget>
  <layoutdefault spacing="6" margin="11"/>
  <customwidgets>
@@ -2216,6 +2232,38 @@
     </hint>
    </hints>
   </connection>
+  <connection>
+   <sender>actionIncreaseOpacity</sender>
+   <signal>triggered()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>OnIncreaseOpacity()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>606</x>
+     <y>435</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>actionDecreaseOpacity</sender>
+   <signal>triggered()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>OnDecreaseOpacity()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>606</x>
+     <y>435</y>
+    </hint>
+   </hints>
+  </connection>
  </connections>
  <slots>
   <slot>OnLoadVolume()</slot>
@@ -2273,5 +2321,7 @@
   <slot>OnSavePointSetAs()</slot>
   <slot>OnWriteMovieFrames()</slot>
   <slot>OnLoadTrackVolume()</slot>
+  <slot>OnIncreaseOpacity()</slot>
+  <slot>OnDecreaseOpacity()</slot>
  </slots>
 </ui>
