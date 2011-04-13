@@ -8,9 +8,9 @@
  * Original Author: Bruce Fischl
  * CUDA version : Richard Edgar
  * CVS Revision Info:
- *    $Author: rge21 $
- *    $Date: 2011/03/22 15:47:05 $
- *    $Revision: 1.1 $
+ *    $Author: fischl $
+ *    $Date: 2011/04/13 19:08:22 $
+ *    $Revision: 1.2 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -44,7 +44,8 @@ extern "C" {
                                    float min_trans,
                                    float max_trans,
                                    float trans_steps,
-                                   int nreductions );
+                                   int nreductions,
+                                   double clamp);
 
 
 #if defined(__cplusplus)

@@ -8,9 +8,9 @@
  * Original Author: Bruce Fischl
  * CUDA version : Richard Edgar
  * CVS Revision Info:
- *    $Author: rge21 $
- *    $Date: 2011/03/30 17:50:13 $
- *    $Revision: 1.2 $
+ *    $Author: fischl $
+ *    $Date: 2011/04/13 19:08:22 $
+ *    $Revision: 1.3 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -40,7 +40,8 @@ double local_GCAcomputeLogSampleProbability( GCA *gca,
                                              MRI *mri,
                                              MATRIX *m_L,
                                              int nsamples,
-                                             int exvivo ) {
+                                             int exvivo,
+                                             double clamp) {
   static TRANSFORM *transform = NULL ;
 
   if (!transform)
@@ -66,7 +67,7 @@ double local_GCAcomputeLogSampleProbability( GCA *gca,
                                                    transform, nsamples );
   } else {
     result = GCAcomputeLogSampleProbability( gca, gcas, mri,
-                                             transform, nsamples );
+                                             transform, nsamples, clamp );
   }
 
 

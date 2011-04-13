@@ -8,9 +8,9 @@
  * Original Author: Bruce Fischl
  * CUDA version : Richard Edgar
  * CVS Revision Info:
- *    $Author: rge21 $
- *    $Date: 2011/03/31 17:53:14 $
- *    $Revision: 1.3 $
+ *    $Author: fischl $
+ *    $Date: 2011/04/13 19:08:22 $
+ *    $Revision: 1.4 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -70,7 +70,8 @@ double find_optimal_translation( GCA *gca,
                                  float min_trans,
                                  float max_trans,
                                  float trans_steps,
-                                 int nreductions ) {
+                                 int nreductions ,
+                                 double clamp) {
   MATRIX   *m_trans, *m_L_tmp ;
   double   x_trans, y_trans, z_trans, x_max, y_max, z_max, delta,
            log_p, max_log_p, mean_trans ;
@@ -97,7 +98,7 @@ double find_optimal_translation( GCA *gca,
   m_trans = MatrixIdentity(4, NULL) ;
   x_max = y_max = z_max = 0.0 ;
   max_log_p = local_GCAcomputeLogSampleProbability
-              (gca, gcas, mri, m_L,nsamples, exvivo) ;
+    (gca, gcas, mri, m_L,nsamples, exvivo, clamp) ;
 
   for (i = 0 ; i <= nreductions ; i++)
   {
@@ -160,7 +161,7 @@ double find_optimal_translation( GCA *gca,
 #else
           log_p =
             local_GCAcomputeLogSampleProbability
-            (gca, gcas, mri, m_L_tmp,nsamples, exvivo) ;
+            (gca, gcas, mri, m_L_tmp,nsamples, exvivo, clamp) ;
 #endif
 
 
@@ -215,7 +216,7 @@ double find_optimal_translation( GCA *gca,
     max_log_p = CUDA_ComputeLogSampleProbability( m_L_tmp );
 #else
     max_log_p = local_GCAcomputeLogSampleProbability
-                (gca, gcas, mri, m_L,nsamples, exvivo) ;
+      (gca, gcas, mri, m_L,nsamples, exvivo, clamp) ;
 #endif
 
 #if 1

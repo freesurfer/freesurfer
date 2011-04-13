@@ -8,9 +8,9 @@
  * Original Author: Bruce Fischl
  * CUDA version : Richard Edgar
  * CVS Revision Info:
- *    $Author: rge21 $
- *    $Date: 2011/03/22 15:47:05 $
- *    $Revision: 1.1 $
+ *    $Author: fischl $
+ *    $Date: 2011/04/13 19:08:22 $
+ *    $Revision: 1.2 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -48,7 +48,7 @@ extern "C" {
                                                MRI *mri,
                                                MATRIX *m_L,
                                                int nsamples,
-                                               int exvivo );
+                                               int exvivo, double clamp );
 
 
   int compute_tissue_modes( MRI *mri_inputs,

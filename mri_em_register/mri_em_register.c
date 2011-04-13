@@ -9,9 +9,9 @@
  * Original Author: Bruce Fischl
  * CUDA version : Richard Edgar
  * CVS Revision Info:
- *    $Author: rge21 $
- *    $Date: 2011/03/22 15:47:05 $
- *    $Revision: 1.85 $
+ *    $Author: fischl $
+ *    $Date: 2011/04/13 19:08:21 $
+ *    $Revision: 1.86 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -53,6 +53,7 @@
 #define FAST_TRANSFORM 0
 #endif // FS_CUDA
 
+static double Gclamp = -6 ;   // robust threshold - everything less likely than -Gclamp will be set to -Gclamp
 static int remove_cerebellum = 0 ;
 static int mark_gcas_classes(GCA_SAMPLE *gcas, int nsamples) ;
 static void printUsage(void);
@@ -200,7 +201,7 @@ main(int argc, char *argv[])
   nargs =
     handle_version_option
     (argc, argv,
-     "$Id: mri_em_register.c,v 1.85 2011/03/22 15:47:05 rge21 Exp $",
+     "$Id: mri_em_register.c,v 1.86 2011/04/13 19:08:21 fischl Exp $",
      "$Name:  $");
   if (nargs && argc - nargs == 1)
   {
@@ -377,6 +378,16 @@ main(int argc, char *argv[])
                   Progname, mask_fname) ;
       MRImask(mri_tmp, mri_mask, mri_tmp, 0, 0) ;
       MRIfree(&mri_mask) ;
+      if (parms.write_iterations != 0 && Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
+      {
+        char fname[STRLEN] ;
+        sprintf(fname, "%s_masked", parms.base_name) ;
+        printf("writing masked volume to %s...\n", fname) ;
+        MRIwriteImageViews(mri_tmp, fname, IMAGE_SIZE) ;
+        sprintf(fname, "%s_masked.mgz", parms.base_name) ;
+        fflush(stdout);
+        MRIwrite(mri_tmp, fname) ;
+  }
     }
     if (i == 0)
     {
@@ -676,12 +687,12 @@ main(int argc, char *argv[])
       printf("samples written\n") ;
     }
     old_log_p = local_GCAcomputeLogSampleProbability
-                (gca, parms.gcas, mri_in, ((LTA *)(transform->xform))->xforms[0].m_L, nsamples, exvivo) ;
+      (gca, parms.gcas, mri_in, ((LTA *)(transform->xform))->xforms[0].m_L, nsamples, exvivo, Gclamp) ;
     // real work done here
     register_mri(mri_in, gca, &parms, i, spacing) ;
     // calculate log_p
     log_p = local_GCAcomputeLogSampleProbability
-            (gca, parms.gcas, mri_in, ((LTA *)(transform->xform))->xforms[0].m_L, nsamples, exvivo) ;
+      (gca, parms.gcas, mri_in, ((LTA *)(transform->xform))->xforms[0].m_L, nsamples, exvivo, Gclamp) ;
     printf("pass %d, spacing %d: log(p) = %2.1f (old=%2.1f)\n",
            i+1, spacing, log_p, old_log_p) ;
     GCAfreeSamples(&parms.gcas, nsamples) ;
@@ -712,6 +723,8 @@ main(int argc, char *argv[])
     mri_in->nframes = gca->ninputs ;
     sprintf(fname, "%s%03d", parms.base_name, parms.start_t) ;
     MRIwriteImageViews(mri_aligned, fname, IMAGE_SIZE) ;
+    sprintf(fname, "%s%03d.mgz", parms.base_name, parms.start_t) ;
+    MRIwrite(mri_aligned, fname) ;
     MRIfree(&mri_aligned) ;
 
     /*                Glta->xforms[0].m_L = m_L ;*/
@@ -835,7 +848,7 @@ main(int argc, char *argv[])
     MRI   *mri_norm ;
 
     local_GCAcomputeLogSampleProbability(gca, parms.gcas, mri_in,
-                                         ((LTA *)(transform->xform))->xforms[0].m_L, nsamples, exvivo) ;
+                                         ((LTA *)(transform->xform))->xforms[0].m_L, nsamples, exvivo, Gclamp) ;
 #if 0
     GCAnormalizedLogSampleProbability(gca, parms.gcas, mri_in,
                                       transform, nsamples, exvivo) ;
@@ -1196,7 +1209,7 @@ find_optimal_transform
   CUDA_em_register_Release();
 #else
   max_log_p =
-    local_GCAcomputeLogSampleProbability(gca, gcas, mri, m_L,nsamples, exvivo) ;
+    local_GCAcomputeLogSampleProbability(gca, gcas, mri, m_L,nsamples, exvivo, Gclamp) ;
 #endif
 
   // create volume from gca with the size of input
@@ -1346,7 +1359,7 @@ find_optimal_transform
     *MATRIX_RELT(m_L, 2, 4) = dy ;
     *MATRIX_RELT(m_L, 3, 4) = dz ;
     max_log_p = local_GCAcomputeLogSampleProbability
-                (gca, gcas, mri, m_L,nsamples, exvivo) ;
+      (gca, gcas, mri, m_L,nsamples, exvivo, Gclamp) ;
     printf("initial translation: (%2.1f, %2.1f, %2.1f): log p = %2.1f\n",
            dx,dy,dz, max_log_p) ;
 #else ///////////////this is executed  ////////////////////////////////////
@@ -1396,9 +1409,9 @@ find_optimal_transform
       HISTOfree(&h_smooth) ;
     }
     max_log_p = find_optimal_translation(gca, gcas, mri, nsamples, m_L,
-                                         -100, 100, 11, 5) ;
+                                         -100, 100, 11, 5, Gclamp) ;
     max_log_p = local_GCAcomputeLogSampleProbability
-                (gca, gcas, mri, m_L,nsamples, exvivo) ;
+      (gca, gcas, mri, m_L,nsamples, exvivo, Gclamp) ;
     fprintf(stdout,
             "Found translation: (%2.1f, %2.1f, %2.1f): log p = %4.3f\n",
             *MATRIX_RELT(m_L, 1, 4),
@@ -1470,7 +1483,7 @@ find_optimal_transform
                  max_scale,
                  -scale*(spacing/16.0)*MAX_TRANS,
                  scale*(spacing/16.0)*MAX_TRANS,
-                 max_angles, scale_samples, 3, 2);
+                 max_angles, scale_samples, /*MAX_TRANS_STEPS*/3, 2);
     fflush(stdout);
 
 
@@ -1575,6 +1588,12 @@ get_option(int argc, char *argv[])
   {
     // seems not used
     nomap = 1 ;
+  }
+  else if (!strcmp(option, "CLAMP"))
+  {
+    Gclamp = atof(argv[2]) ;
+    nargs = 1 ;
+    printf("setting robust clamp to %2.3f\n", Gclamp) ;
   }
   else if (!strcmp(option, "ROBUST"))
   {
@@ -1990,7 +2009,7 @@ get_option(int argc, char *argv[])
              parms.sigma) ;
       nargs = 1 ;
 #else
-      MAX_ANGLES = MAX_TRANS_STEPS = max_angles = (float)atoi(argv[2]) ;
+      Gscale_samples = max_scales = MAX_ANGLES = MAX_TRANS_STEPS = max_angles = (float)atoi(argv[2]) ;
       nargs = 1 ;
       printf("examining %2.0f different trans/rot/scale values...\n",
              MAX_ANGLES);
@@ -2096,7 +2115,7 @@ find_optimal_linear_xform
   max_log_p = CUDA_ComputeLogSampleProbability( m_L );
 #else
   max_log_p = local_GCAcomputeLogSampleProbability
-              (gca, gcas, mri, m_L, nsamples, exvivo) ;
+    (gca, gcas, mri, m_L, nsamples, exvivo, Gclamp) ;
 #endif
 
   // Loop a set number of times to polish transform
@@ -2247,7 +2266,7 @@ find_optimal_linear_xform
 #else
                       log_p =
                         local_GCAcomputeLogSampleProbability
-                        (gca, gcas, mri, m_L_tmp, nsamples, exvivo);
+                        (gca, gcas, mri, m_L_tmp, nsamples, exvivo, Gclamp);
 #endif
                       if (log_p > max_log_p)
                       {
