@@ -8,9 +8,9 @@
 # Process this file with autoconf to produce a configure script.
 #
 # CVS Revision Info:
-#    $Author: krish $
-#    $Date: 2011/03/30 01:21:16 $
-#    $Revision: 1.519.2.5 $
+#    $Author: nicks $
+#    $Date: 2011/04/13 20:04:43 $
+#    $Revision: 1.519.2.6 $
 #
 ########################################################################
 AC_PREREQ(2.57)
@@ -661,10 +661,13 @@ else
   fi
 fi
 if( test ! "x$CUDA_DIR" = "xno" ) then
+  LIB_CUDA=""
+  AC_CHECK_LIB([cuda], [cuInit],[LIB_CUDA="-lcuda"],[])
+  AC_SUBST(LIB_CUDA)
   CUDA_CFLAGS="-I$CUDA_DIR/include"
-  CUDA_LIBS="-L$CUDA_DIR/lib -lcuda -lcudart"
+  CUDA_LIBS="-L$CUDA_DIR/lib $LIB_CUDA -lcudart"
   if test -e /usr/lib64 ; then
-    CUDA_LIBS="-L$CUDA_DIR/lib64 -lcuda -lcudart"
+    CUDA_LIBS="-L$CUDA_DIR/lib64 $LIB_CUDA -lcudart"
   fi
   NVCC="$CUDA_DIR/bin/nvcc"
 fi
@@ -679,9 +682,10 @@ if test "x$with_cuda" = "xno"; then
   AM_CONDITIONAL(BUILDCUDA, false)
   NVCC=no
   AC_SUBST(NVCC)
-else # else enable if nvcc is found
+else # else enable if nvcc is found and libcuda is found
   AC_PATH_PROG([NVCC],[nvcc],[no],[$PATH:$with_cuda/bin])
-  AM_CONDITIONAL(BUILDCUDA, test ! x$NVCC = xno)
+  AM_CONDITIONAL(BUILDCUDA, 
+    (test ! "x$NVCC" = "xno") && (test ! "x$LIB_CUDA" = "x"))
 fi
 
 AC_ARG_ENABLE([emu],
