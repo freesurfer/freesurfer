@@ -6,9 +6,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/14 23:44:47 $
- *    $Revision: 1.17 $
+ *    $Author: rpwang $
+ *    $Date: 2011/04/14 20:30:35 $
+ *    $Revision: 1.18 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -133,11 +133,11 @@ bool MyCmdLineParser::Found( const char* ch, string_array* sa, int nIndex )
 bool MyCmdLineParser::Found( const QString flag, QStringList* args, int nIndex )
 {
   string_array sa;
-  bool ret = Found( flag.toAscii().constData(), &sa );
+  bool ret = Found( flag.toAscii().constData(), &sa, nIndex );
   if (ret)
   {
     args->clear();
-    for ( size_t i = 0; i < sa.size(); i++ )
+    for ( int i = 0; i < sa.size(); i++ )
     {
       args->push_back( sa[i].c_str() );
     }
@@ -148,7 +148,7 @@ bool MyCmdLineParser::Found( const QString flag, QStringList* args, int nIndex )
 bool MyCmdLineParser::Found( const char* chFlag, CmdLineEntry* e, int nIndex )
 {
   int n = 0;
-  for ( size_t i = 0; i < m_cmdLineEntries.size(); i++ )
+  for ( int i = 0; i < m_cmdLineEntries.size(); i++ )
   {
     if ( strcmp( m_cmdLineEntries[i].shortName, chFlag ) == 0 ||
          strcmp( m_cmdLineEntries[i].longName, chFlag ) == 0 )
