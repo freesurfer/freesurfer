@@ -6,9 +6,9 @@
 /*
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:45 $
- *    $Revision: 1.66 $
+ *    $Author: rge21 $
+ *    $Date: 2011/04/14 17:41:42 $
+ *    $Revision: 1.67 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -41,6 +41,8 @@
 #include "sig.h"
 #include "cma.h"
 #include "chronometer.h"
+
+#include "affine.h"
 
 #ifdef FS_CUDA
 #include "mrivol2vol_cuda.h"
@@ -2926,7 +2928,9 @@ MRI *MRIvol2surfVSM(MRI *SrcVol, MATRIX *Rtk, MRI_SURFACE *TrgSurf,
                     float ProjFrac, int ProjType, int nskip, 
 		    MRI *TrgVol)
 {
-  MATRIX *ras2vox, *vox2ras, *Scrs, *Txyz;
+  MATRIX *ras2vox, *vox2ras;
+  AffineVector Scrs, Txyz;
+  AffineMatrix ras2voxAffine;
   int   irow, icol, islc; /* integer row, col, slc in source */
   int cvsm,rvsm;
   float frow, fcol, fslc; /* float row, col, slc in source */
@@ -2950,10 +2954,6 @@ MRI *MRIvol2surfVSM(MRI *SrcVol, MATRIX *Rtk, MRI_SURFACE *TrgSurf,
   MatrixFree(&vox2ras);
   // ras2vox now converts surfacs RAS to SrcVol vox
 
-  /* preallocate the row-col-slc vectors */
-  Scrs = MatrixAlloc(4,1,MATRIX_REAL);
-  Txyz = MatrixAlloc(4,1,MATRIX_REAL);
-  Txyz->rptr[3+1][0+1] = 1.0;
 
   /* allocate a "volume" to hold the output */
   if(TrgVol == NULL){
@@ -2983,6 +2983,9 @@ MRI *MRIvol2surfVSM(MRI *SrcVol, MATRIX *Rtk, MRI_SURFACE *TrgSurf,
   srcval = 0;
   valvect = (float *) calloc(sizeof(float),SrcVol->nframes);
   nhits = 0;
+
+  SetAffineMatrix( &ras2voxAffine, ras2vox );
+
   /*--- loop through each vertex ---*/
   for (vtx = 0; vtx < TrgSurf->nvertices; vtx+=nskip)
   {
@@ -3004,15 +3007,10 @@ MRI *MRIvol2surfVSM(MRI *SrcVol, MATRIX *Rtk, MRI_SURFACE *TrgSurf,
     }
 
     /* Load the Target xyz vector */
-    Txyz->rptr[0+1][0+1] = Tx;
-    Txyz->rptr[1+1][0+1] = Ty;
-    Txyz->rptr[2+1][0+1] = Tz;
-
+    SetAffineVector( &Txyz, Tx, Ty, Tz );
     /* Compute the corresponding Source col-row-slc vector */
-    Scrs = MatrixMultiply(ras2vox,Txyz,Scrs);
-    fcol = Scrs->rptr[1][1];
-    frow = Scrs->rptr[2][1];
-    fslc = Scrs->rptr[3][1];
+    AffineMV( &Scrs, &ras2voxAffine, &Txyz );
+    GetAffineVector( &Scrs, &fcol, &frow, &fslc );
 
     icol = nint(fcol);
     irow = nint(frow);
@@ -3047,6 +3045,7 @@ MRI *MRIvol2surfVSM(MRI *SrcVol, MATRIX *Rtk, MRI_SURFACE *TrgSurf,
       if (irow < 0 || irow >= SrcVol->height) continue;
     }
 
+#if 0
     if (Gdiag_no == vtx)
     {
       printf("diag -----------------------------\n");
@@ -3056,6 +3055,7 @@ MRI *MRIvol2surfVSM(MRI *SrcVol, MATRIX *Rtk, MRI_SURFACE *TrgSurf,
              Scrs->rptr[2][1],Scrs->rptr[3][1]);
       printf("CRS  %d %d %d\n",icol,irow,islc);
     }
+#endif
 
     /* only gets here if it is in bounds */
     nhits ++;
@@ -3091,8 +3091,6 @@ MRI *MRIvol2surfVSM(MRI *SrcVol, MATRIX *Rtk, MRI_SURFACE *TrgSurf,
   }
 
   MatrixFree(&ras2vox);
-  MatrixFree(&Scrs);
-  MatrixFree(&Txyz);
   free(valvect);
 
   //printf("vol2surf_linear: nhits = %d/%d\n",nhits,TrgSurf->nvertices);
