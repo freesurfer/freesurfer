@@ -9,9 +9,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:13 $
- *    $Revision: 1.96 $
+ *    $Author: fischl $
+ *    $Date: 2011/04/14 11:36:06 $
+ *    $Revision: 1.97 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -192,13 +192,13 @@ main(int argc, char *argv[])
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mri_ca_label.c,v 1.96 2011/03/02 00:04:13 nicks Exp $",
+   "$Id: mri_ca_label.c,v 1.97 2011/04/14 11:36:06 fischl Exp $",
    "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mri_ca_label.c,v 1.96 2011/03/02 00:04:13 nicks Exp $",
+           "$Id: mri_ca_label.c,v 1.97 2011/04/14 11:36:06 fischl Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
   {
@@ -2711,7 +2711,7 @@ insert_thin_temporal_white_matter( MRI *mri_inputs, MRI *mri_labeled,
     }
   }
   GCAcomputeLogSampleProbabilityUsingCoords(gca, gcas, mri_inputs,
-      transform, nsamples) ;
+      transform, nsamples, DEFAULT_CLAMP) ;
   for (i = 0 ; i < nsamples ; i++)
   {
     double p ;
