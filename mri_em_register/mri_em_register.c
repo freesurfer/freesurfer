@@ -10,8 +10,8 @@
  * CUDA version : Richard Edgar
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2011/04/13 19:08:21 $
- *    $Revision: 1.86 $
+ *    $Date: 2011/04/14 19:02:41 $
+ *    $Revision: 1.87 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -53,7 +53,7 @@
 #define FAST_TRANSFORM 0
 #endif // FS_CUDA
 
-static double Gclamp = -6 ;   // robust threshold - everything less likely than -Gclamp will be set to -Gclamp
+static double Gclamp = 6 ;   // robust threshold - everything less likely than -Gclamp will be set to -Gclamp
 static int remove_cerebellum = 0 ;
 static int mark_gcas_classes(GCA_SAMPLE *gcas, int nsamples) ;
 static void printUsage(void);
@@ -201,7 +201,7 @@ main(int argc, char *argv[])
   nargs =
     handle_version_option
     (argc, argv,
-     "$Id: mri_em_register.c,v 1.86 2011/04/13 19:08:21 fischl Exp $",
+     "$Id: mri_em_register.c,v 1.87 2011/04/14 19:02:41 fischl Exp $",
      "$Name:  $");
   if (nargs && argc - nargs == 1)
   {
