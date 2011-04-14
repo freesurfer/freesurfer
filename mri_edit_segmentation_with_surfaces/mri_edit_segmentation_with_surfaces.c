@@ -7,9 +7,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:15 $
- *    $Revision: 1.18 $
+ *    $Author: fischl $
+ *    $Date: 2011/04/14 15:23:51 $
+ *    $Revision: 1.19 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -45,7 +45,7 @@
 #include "colortab.h"
 #include "gca.h"
 
-static char vcid[] = "$Id: mri_edit_segmentation_with_surfaces.c,v 1.18 2011/03/02 00:04:15 nicks Exp $";
+static char vcid[] = "$Id: mri_edit_segmentation_with_surfaces.c,v 1.19 2011/04/14 15:23:51 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -71,8 +71,9 @@ static char *annot_name = "aparc.annot" ;
 #define HYPO_EDITS       0x0001
 #define CEREBELLUM_EDITS 0x0002
 #define CORTEX_EDITS     0x0004
+#define WM_EDITS         0x0008
 
-static int which_edits = HYPO_EDITS | CEREBELLUM_EDITS | CORTEX_EDITS ;
+static int which_edits = HYPO_EDITS | CEREBELLUM_EDITS | CORTEX_EDITS | WM_EDITS ;
 
 char *Progname ;
 
@@ -157,6 +158,7 @@ main(int argc, char *argv[]) {
       if (MRISreadPialCoordinates(mris, "pial") != NO_ERROR)
         ErrorExit(Gerror, "") ;
       MRISsaveVertexPositions(mris, ORIGINAL_VERTICES) ;
+      MRISsaveVertexPositions(mris, WHITE_VERTICES) ;
       MRIScomputeMetricProperties(mris) ;
       MRISsmoothSurfaceNormals(mris, 10) ;   /* remove kinks in surface */
       thickness = MRISreadCurvatureVector(mris, "thickness") ;
@@ -254,6 +256,14 @@ get_option(int argc, char *argv[]) {
     else
       which_edits &= ~CORTEX_EDITS ;
     printf("turning %s cortex editing\n", on ? "on" : "off") ;
+  } else if (!stricmp(option, "white")) {
+    on = atof(argv[2]) ;
+    nargs = 1 ;
+    if (on)
+      which_edits |= WM_EDITS ;
+    else
+      which_edits &= ~WM_EDITS ;
+    printf("turning %s wm editing\n", on ? "on" : "off") ;
   } else if (!stricmp(option, "cerebellum")) {
     on = atof(argv[2]) ;
     nargs = 1 ;
@@ -518,8 +528,9 @@ static int
 relabel_gray_matter(MRI *mri, MRI_SURFACE *mris, int which_edits) {
   int              x, y, z, label, changed, out_label, xi, yi, zi, left ;
   VECTOR           *v1, *v2 ;
-  MRI              *mri_dist ;
+  MRI              *mri_pial_dist, *mri_white_dist ;
   MATRIX           *m_vox2vox ;
+  float            dist ;
 
   left = mris->hemisphere == LEFT_HEMISPHERE ;
   v1 = VectorAlloc(4, MATRIX_REAL) ;
@@ -528,9 +539,9 @@ relabel_gray_matter(MRI *mri, MRI_SURFACE *mris, int which_edits) {
 
   MRISrestoreVertexPositions(mris, PIAL_VERTICES) ;
   MRIScomputeMetricProperties(mris) ;
-  mri_dist = MRIcloneDifferentType(mri, MRI_FLOAT) ;
-  mri_dist = MRIScomputeDistanceToSurface(mris, mri_dist, 1) ;
-  m_vox2vox = MRIgetVoxelToVoxelXform(mri, mri_dist) ;
+  mri_pial_dist = MRIcloneDifferentType(mri, MRI_FLOAT) ;
+  mri_pial_dist = MRIScomputeDistanceToSurface(mris, mri_pial_dist, 1) ;
+  m_vox2vox = MRIgetVoxelToVoxelXform(mri, mri_pial_dist) ;
   for (changed = x = 0 ; x < mri->width ; x++) {
     for (y = 0 ; y < mri->height ; y++) {
       for (z = 0 ; z < mri->depth ; z++) {
@@ -538,15 +549,16 @@ relabel_gray_matter(MRI *mri, MRI_SURFACE *mris, int which_edits) {
         MatrixMultiply(m_vox2vox, v1, v2) ;
         xi = nint(V3_X(v2)) ; yi = nint(V3_Y(v2)) ; zi = nint(V3_Z(v2)) ; 
         if (xi < 0 || yi < 0 || zi < 0 || 
-            xi >= mri_dist->width ||
-            yi >= mri_dist->height ||
-            zi >= mri_dist->depth)
+            xi >= mri_pial_dist->width ||
+            yi >= mri_pial_dist->height ||
+            zi >= mri_pial_dist->depth)
           continue ;
         if (x == Gx && y == Gy && z == Gz)
           DiagBreak() ;
         label = nint(MRIgetVoxVal(mri, x, y, z, 0)) ;
         out_label = label ;
-        if (MRIgetVoxVal(mri_dist, xi, yi, zi, 0) < -0.5) // clearly inside ribbon
+        dist = MRIgetVoxVal(mri_pial_dist, xi, yi, zi, 0) ;
+        if (dist < -0.5) // clearly inside ribbon
         {
           if (which_edits & CEREBELLUM_EDITS) switch (label)
           {
@@ -555,7 +567,7 @@ relabel_gray_matter(MRI *mri, MRI_SURFACE *mris, int which_edits) {
           default: break ;
           }
         }
-        else if (MRIgetVoxVal(mri_dist, xi, yi, zi, 0) > 0.5) // clearly outside ribbon
+        else if (dist > 0.5) // clearly outside ribbon
         {
           if (which_edits & CORTEX_EDITS) switch (label)
           {
@@ -573,8 +585,63 @@ relabel_gray_matter(MRI *mri, MRI_SURFACE *mris, int which_edits) {
       }
     }
   }
+
+  // now look for cortex that is interior to the white surface
+  MRISrestoreVertexPositions(mris, WHITE_VERTICES) ;
+  MRIScomputeMetricProperties(mris) ;
+  mri_white_dist = MRIcloneDifferentType(mri, MRI_FLOAT) ;
+  mri_white_dist = MRIScomputeDistanceToSurface(mris, mri_white_dist, 1) ;
+  m_vox2vox = MRIgetVoxelToVoxelXform(mri, mri_white_dist) ;
+  for (changed = x = 0 ; x < mri->width ; x++) {
+    for (y = 0 ; y < mri->height ; y++) {
+      for (z = 0 ; z < mri->depth ; z++) {
+        V3_X(v1) = x ; V3_Y(v1) = y ; V3_Z(v1) = z ;
+        MatrixMultiply(m_vox2vox, v1, v2) ;
+        xi = nint(V3_X(v2)) ; yi = nint(V3_Y(v2)) ; zi = nint(V3_Z(v2)) ; 
+        if (xi < 0 || yi < 0 || zi < 0 || 
+            xi >= mri_white_dist->width ||
+            yi >= mri_white_dist->height ||
+            zi >= mri_white_dist->depth)
+          continue ;
+        if (x == Gx && y == Gy && z == Gz)
+          DiagBreak() ;
+        label = nint(MRIgetVoxVal(mri, x, y, z, 0)) ;
+        out_label = label ;
+        dist = MRIgetVoxVal(mri_white_dist, xi, yi, zi, 0) ;
+        if (dist  < -0.5) // clearly inside the white matter
+        {
+          if (which_edits & CORTEX_EDITS) switch (label)
+          {
+          case Left_Cerebral_Cortex:  out_label = Left_Cerebral_White_Matter ;  break ;
+          case Right_Cerebral_Cortex: out_label = Right_Cerebral_White_Matter ; break ;
+          default: break ;
+          }
+        }
+        else if (dist > 0) //  outside white matter surface
+        {
+          if (MRIgetVoxVal(mri_pial_dist, xi, yi, zi, 0) < 0) // in ribbon
+          {
+            if (which_edits & WM_EDITS) switch (label)
+            {
+            case Left_WM_hypointensities:
+            case Left_Cerebral_White_Matter:  if (left) out_label = Left_Cerebral_Cortex ;  break ;
+            case Right_WM_hypointensities:
+            case Right_Cerebral_White_Matter: if (left == 0) out_label = Right_Cerebral_Cortex ; break ;
+            default: break ;
+            }
+          }
+        }
+
+        if (label != out_label)
+        {
+          MRIsetVoxVal(mri, x, y, z, 0, out_label) ;
+          changed++ ;
+        }
+      }
+    }
+  }
   printf("%d voxels gray matter voxels changed\n", changed) ;
-  MRIfree(&mri_dist) ;
+  MRIfree(&mri_pial_dist) ; MRIfree(&mri_white_dist) ;
   MatrixFree(&m_vox2vox) ; VectorFree(&v1) ; VectorFree(&v2) ;
   return(NO_ERROR) ;
 }
