@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:14 $
- *    $Revision: 1.52 $
+ *    $Author: fischl $
+ *    $Date: 2011/04/14 13:00:23 $
+ *    $Revision: 1.53 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -56,6 +56,10 @@ static MRI *normalize_from_segmentation_volume
 static double TRs[MAX_GCA_INPUTS] ;
 static double fas[MAX_GCA_INPUTS] ;
 static double TEs[MAX_GCA_INPUTS] ;
+
+static int remove_cerebellum = 0 ;
+static int remove_lh = 0 ;
+static int remove_rh = 0 ;
 
 static int file_only = 0 ;
 static char *normalized_transformed_sample_fname = NULL ;
@@ -146,13 +150,13 @@ main(int argc, char *argv[])
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mri_ca_normalize.c,v 1.52 2011/03/02 00:04:14 nicks Exp $",
+   "$Id: mri_ca_normalize.c,v 1.53 2011/04/14 13:00:23 fischl Exp $",
    "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mri_ca_normalize.c,v 1.52 2011/03/02 00:04:14 nicks Exp $",
+           "$Id: mri_ca_normalize.c,v 1.53 2011/04/14 13:00:23 fischl Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
   {
@@ -247,6 +251,19 @@ main(int argc, char *argv[])
       GCAunifyVariance(gca) ;
     }
 
+    if (remove_lh)
+      GCAremoveHemi(gca, 1) ; // for exvivo contrast
+    if (remove_rh)
+      GCAremoveHemi(gca, 0) ; // for exvivo contrast
+    if (remove_cerebellum)
+    {
+      GCAremoveLabel(gca, Brain_Stem) ;
+      GCAremoveLabel(gca, Left_Cerebellum_Cortex) ;
+      GCAremoveLabel(gca, Left_Cerebellum_White_Matter) ;
+      GCAremoveLabel(gca, Right_Cerebellum_White_Matter) ;
+      GCAremoveLabel(gca, Right_Cerebellum_Cortex) ;
+    }
+  
     if (renormalization_fname)
     {
       FILE   *fp ;
@@ -664,6 +681,21 @@ get_option(int argc, char *argv[])
     printf("using longitudinal segmentation volume %s to generate control points...\n",
            long_seg_fname) ;
   }
+  else if (!stricmp(option, "LH"))
+  {
+    remove_rh = 1  ;
+    printf("removing right hemisphere labels\n") ;
+  }
+  else if (!stricmp(option, "RH"))
+  {
+    remove_lh = 1  ;
+    printf("removing left hemisphere labels\n") ;
+  }
+  else if (!strcmp(option, "NOCEREBELLUM"))
+  {
+    remove_cerebellum = 1 ;
+    printf("removing cerebellum from atlas\n") ;
+  }
   else if (!strcmp(option, "FONLY"))
   {
     ctl_point_fname = argv[2] ;
@@ -1067,7 +1099,7 @@ find_control_points
         }
 
         GCAcomputeLogSampleProbability
-        (gca, gcas_region, mri_in, transform, region_samples) ;
+        (gca, gcas_region, mri_in, transform, region_samples, DEFAULT_CLAMP) ;
         GCArankSamples
         (gca, gcas_region, region_samples, ordered_indices) ;
 #if 0

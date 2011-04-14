@@ -7,20 +7,18 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2011/02/19 03:11:58 $
- *    $Revision: 1.2 $
+ *    $Date: 2011/04/14 13:00:23 $
+ *    $Revision: 1.3 $
  *
- * Copyright (C) 2002-2007,
- * The General Hospital Corporation (Boston, MA).
- * All rights reserved.
+ * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
- * Distribution, usage and copying of this software is covered under the
- * terms found in the License Agreement file named 'COPYING' found in the
- * FreeSurfer source code root directory, and duplicated here:
- * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ * Terms and conditions for use, reproduction, distribution and contribution
+ * are found in the 'FreeSurfer Software License Agreement' contained
+ * in the file 'LICENSE' found in the FreeSurfer distribution, and here:
  *
- * General inquiries: freesurfer@nmr.mgh.harvard.edu
- * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
+ *
+ * Reporting: freesurfer@nmr.mgh.harvard.edu
  *
  */
 
@@ -63,8 +61,9 @@ static double bias_sigma = 4.0 ;
 static float min_prior = 0.6 ;
 static FILE *diag_fp = NULL ;
 
+static int normalize_timepoints_with_parzen_window(MRI *mri, double cross_time_sigma) ;
 static int normalize_timepoints_with_samples(MRI *mri, GCA_SAMPLE *gcas, int nsamples, int nsoap) ;
-static int normalize_timepoints(MRI *mri, double thresh, int nsoap) ;
+static int normalize_timepoints(MRI *mri, double thresh, double cross_time_sigma) ;
 static void usage_exit(int code) ;
 static int get_option(int argc, char *argv[]) ;
 static int copy_ctrl_points_to_volume(GCA_SAMPLE *gcas, int nsamples, 
@@ -116,6 +115,8 @@ static int normalization_structures[] =
 
 #define NSTRUCTURES (sizeof(normalization_structures) / sizeof(normalization_structures[0]))
 
+static double cross_time_sigma = 1.0 ;
+
 static int nregions = 3 ;  /* divide each struct into 3x3x3 regions */
 
 static char *ctrl_point_fname = NULL ;
@@ -162,13 +163,13 @@ main(int argc, char *argv[])
 
   make_cmd_version_string
     (argc, argv,
-     "$Id: mri_cal_normalize.c,v 1.2 2011/02/19 03:11:58 fischl Exp $",
+     "$Id: mri_cal_normalize.c,v 1.3 2011/04/14 13:00:23 fischl Exp $",
      "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
     (argc, argv,
-     "$Id: mri_cal_normalize.c,v 1.2 2011/02/19 03:11:58 fischl Exp $",
+     "$Id: mri_cal_normalize.c,v 1.3 2011/04/14 13:00:23 fischl Exp $",
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -228,7 +229,7 @@ main(int argc, char *argv[])
   ninputs = 0 ;
   fp = fopen(argv[1], "r") ;
   if (fp == NULL)
-    ErrorExit(ERROR_NOFILE, "%s: could not read time point file %s", argv[1]) ;
+    ErrorExit(ERROR_NOFILE, "%s: could not read time point file %s", Progname, argv[1]) ;
 
   do
   {
@@ -381,22 +382,22 @@ main(int argc, char *argv[])
       printf("RMS after (%d) = %2.2f\n", i, rms_after) ;
     }
   }
+
+  // try to bring the images closer to each other at each voxel where they seem to come from the same distribution
   {
     MRI   *mri_frame1, *mri_frame2 ;
     double rms_after ;
-    int    i ;
 
-    mri_tmp = MRIcopy(mri_in, NULL) ;
-    for (i = 10 ; i <= 10 ; i += 10)
-    {
-      MRIcopy(mri_tmp, mri_in) ;
-      normalize_timepoints(mri_in, 2.0, i) ;
-      mri_frame1 = MRIcopyFrame(mri_in, NULL, 0, 0) ;
-      mri_frame2 = MRIcopyFrame(mri_in, NULL, 1, 0) ;
-      rms_after = MRIrmsDiff(mri_frame1, mri_frame2) ;
-      MRIfree(&mri_frame1) ; MRIfree(&mri_frame2) ;
-      printf("RMS after intensity cohering = %2.2f\n", rms_after) ;
-    }
+    if (0)
+      normalize_timepoints(mri_in, 2.0, cross_time_sigma) ;
+    else
+      normalize_timepoints_with_parzen_window(mri_in, cross_time_sigma) ;
+      
+    mri_frame1 = MRIcopyFrame(mri_in, NULL, 0, 0) ;
+    mri_frame2 = MRIcopyFrame(mri_in, NULL, 1, 0) ;
+    rms_after = MRIrmsDiff(mri_frame1, mri_frame2) ;
+    MRIfree(&mri_frame1) ; MRIfree(&mri_frame2) ;
+    printf("RMS after intensity cohering  = %2.2f (sigma=%2.2f)\n", rms_after, cross_time_sigma) ;
   }
 
   for (input = 0 ; input < ninputs ; input++)
@@ -500,6 +501,12 @@ get_option(int argc, char *argv[])
     bias_sigma = atof(argv[2]) ;
     nargs = 1 ;
     printf("smoothing bias field with sigma = %2.1f\n", bias_sigma) ;
+  }
+  else if (!stricmp(option, "cross_time_sigma"))
+  {
+    cross_time_sigma = atof(argv[2]) ;
+    nargs = 1 ;
+    printf("smoothing temporal bias field with sigma = %2.1f\n", cross_time_sigma) ;
   }
   else if (!strcmp(option, "DIAG"))
   {
@@ -814,7 +821,7 @@ find_control_points(GCA *gca, GCA_SAMPLE *gcas_total,
         }
 
         GCAcomputeLogSampleProbability
-          (gca, gcas_region, mri_in, transform, region_samples) ;
+          (gca, gcas_region, mri_in, transform, region_samples, DEFAULT_CLAMP);
         GCArankSamples
           (gca, gcas_region, region_samples, ordered_indices) ;
         GCAremoveOutlyingSamples
@@ -1224,7 +1231,7 @@ normalize_timepoints_with_samples(MRI *mri, GCA_SAMPLE *gcas, int nsamples, int 
   return(NO_ERROR) ;
 }
 static int
-normalize_timepoints(MRI *mri, double thresh, int nsoap)
+normalize_timepoints(MRI *mri, double thresh, double cross_time_sigma)
 {
   int   frame, x, y, z, skip, nvox ;
   double target, val ;
@@ -1233,7 +1240,7 @@ normalize_timepoints(MRI *mri, double thresh, int nsoap)
   mri_ctrl = MRIcloneDifferentType(mri, MRI_UCHAR) ;
   mri_bias = MRIcloneDifferentType(mri, MRI_FLOAT) ;
   mri_target = MRIcloneDifferentType(mri, MRI_FLOAT) ;
-  mri_kernel = MRIgaussian1d(sqrt(2.0*nsoap/M_PI), -1) ;
+  mri_kernel = MRIgaussian1d(cross_time_sigma, -1) ;
 
   for (nvox = x = 0 ; x < mri->width ; x++)
     for (y = 0 ; y < mri->height ; y++)
@@ -1297,6 +1304,40 @@ normalize_timepoints(MRI *mri, double thresh, int nsoap)
     MRIcopyFrame(mri_frame, mri, 0, frame) ;
   }
   MRIfree(&mri_bias) ; MRIfree(&mri_kernel) ; MRIfree(&mri_target) ; MRIfree(&mri_ctrl) ;
+  return(NO_ERROR) ;
+}
+
+
+
+static int
+normalize_timepoints_with_parzen_window(MRI *mri, double cross_time_sigma)
+{
+  int   frame1, frame2, x, y, z ;
+  double val0, val, total, g, norm, total_norm ;
+
+  norm = 1 / sqrt(2 * M_PI * SQR(cross_time_sigma)) ;
+  for (x = 0 ; x < mri->width ; x++)
+    for (y = 0 ; y < mri->height ; y++)
+      for (z = 0 ; z < mri->depth ; z++)
+      {
+        if (x == Gx && y == Gy && z == Gz)
+          DiagBreak() ;
+        for (frame1 = 0 ; frame1 < mri->nframes ; frame1++)
+        {
+          val0 = MRIgetVoxVal(mri, x, y, z, frame1) ;
+          for (total = total_norm = 0.0, frame2 = 0 ; frame2 < mri->nframes ; frame2++)
+          {
+            val = MRIgetVoxVal(mri, x, y, z, frame2) ;
+            g = norm * exp( - SQR(val-val0) / (2 * SQR(cross_time_sigma))) ;
+            total += g*val ; 
+            total_norm += g ;
+          }
+          total /= total_norm ;
+          MRIsetVoxVal(mri, x, y, z, frame1, total) ;
+        }
+      }
+
+
   return(NO_ERROR) ;
 }
 
