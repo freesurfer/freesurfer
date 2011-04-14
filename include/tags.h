@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2011/04/10 20:47:58 $
- *    $Revision: 1.22 $
+ *    $Date: 2011/04/14 18:54:08 $
+ *    $Revision: 1.23 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -70,5 +70,8 @@ int znzTAGwriteCommandLine(znzFile fp, char *cmd_line) ;
 int znzTAGwrite(znzFile fp, int tag, void *buf, long long len) ;
 int znzWriteMatrix(znzFile fp, MATRIX *M);
 MATRIX *znzReadMatrix(znzFile fp);
+
+int znzWriteAutoAlignMatrix(znzFile fp, MATRIX *M);
+MATRIX *znzReadAutoAlignMatrix(znzFile fp);
 
 #endif
