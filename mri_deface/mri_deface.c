@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:14 $
- *    $Revision: 1.23 $
+ *    $Author: fischl $
+ *    $Date: 2011/04/14 18:49:57 $
+ *    $Revision: 1.24 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -193,7 +193,7 @@ double local_GCAcomputeLogSampleProbability(GCA *gca,
     GCA_SAMPLE *gcas,
     MRI *mri,
     MATRIX *m_L,
-    int nsamples);
+    int nsamples, double clamp);
 /*
    command line consists of three inputs:
 
@@ -279,7 +279,7 @@ main(int argc, char *argv[]) {
 
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mri_deface.c,v 1.23 2011/03/02 00:04:14 nicks Exp $", "$Name:  $");
+           "$Id: mri_deface.c,v 1.24 2011/04/14 18:49:57 fischl Exp $", "$Name:  $");
   argc -= nargs ;
   if (1 == argc)
     ErrorExit
@@ -498,10 +498,10 @@ main(int argc, char *argv[]) {
       printf("samples written\n") ;
     }
     old_log_p = GCAcomputeLogSampleProbability
-                (gca, parms.gcas, mri_in, transform, nsamples) ;
+                (gca, parms.gcas, mri_in, transform, nsamples, DEFAULT_CLAMP) ;
     register_mri(mri_in, gca, &parms,i, spacing) ;
     log_p = GCAcomputeLogSampleProbability
-            (gca, parms.gcas, mri_in, transform, nsamples) ;
+            (gca, parms.gcas, mri_in, transform, nsamples, DEFAULT_CLAMP) ;
 
     printf("pass %d, spacing %d: log(p) = %2.1f (old=%2.1f)\n",
            i+1, spacing, log_p, old_log_p) ;
@@ -725,7 +725,7 @@ find_optimal_transform(MRI *mri,
     min_search_scale /= 4;
 
   max_log_p =
-    local_GCAcomputeLogSampleProbability(gca, gcas, mri, m_L,nsamples) ;
+    local_GCAcomputeLogSampleProbability(gca, gcas, mri, m_L,nsamples, DEFAULT_CLAMP) ;
 
   mri_gca = MRIclone(mri, NULL) ;
   GCAmri(gca, mri_gca) ;
@@ -824,7 +824,7 @@ find_optimal_transform(MRI *mri,
     }
 
     max_log_p =
-      local_GCAcomputeLogSampleProbability(gca, gcas, mri, m_L,nsamples) ;
+      local_GCAcomputeLogSampleProbability(gca, gcas, mri, m_L,nsamples, DEFAULT_CLAMP) ;
     printf("initial translation: (%2.1f, %2.1f, %2.1f): log p = %2.1f\n",
            dx,dy,dz, max_log_p) ;
 #else
@@ -832,7 +832,7 @@ find_optimal_transform(MRI *mri,
       find_optimal_translation
       (gca, gcas, mri, nsamples, m_L, -100, 100, 11, 3) ;
     max_log_p = local_GCAcomputeLogSampleProbability
-                (gca, gcas, mri, m_L,nsamples) ;
+                (gca, gcas, mri, m_L,nsamples, DEFAULT_CLAMP) ;
     printf("after initial translation: (%2.1f, %2.1f, %2.1f): "
            "log p = %2.1f\n",
            *MATRIX_RELT(m_L, 1, 4),
@@ -977,7 +977,7 @@ find_optimal_rotation(GCA *gca, GCA_SAMPLE *gcas, MRI *mri, int nsamples,
   m_L_tmp = m_x_rot = m_y_rot = m_z_rot = m_rot = m_tmp = m_tmp2 = NULL ;
   x_max = y_max = z_max = 0.0 ;
   max_log_p =
-    local_GCAcomputeLogSampleProbability(gca, gcas, mri, m_L,nsamples) ;
+    local_GCAcomputeLogSampleProbability(gca, gcas, mri, m_L,nsamples, DEFAULT_CLAMP) ;
   for (i = 0 ; i <= nreductions ; i++) {
     delta = (max_angle-min_angle) / angle_steps ;
     if (FZERO(delta))
@@ -1007,7 +1007,7 @@ find_optimal_rotation(GCA *gca, GCA_SAMPLE *gcas, MRI *mri, int nsamples,
           m_L_tmp = MatrixMultiply(m_rot, m_L, m_L_tmp) ;
           log_p =
             local_GCAcomputeLogSampleProbability
-            (gca, gcas, mri, m_L_tmp,nsamples) ;
+            (gca, gcas, mri, m_L_tmp,nsamples, DEFAULT_CLAMP) ;
           if (log_p > max_log_p) {
             max_log_p = log_p ;
             x_max = x_angle ;
@@ -1086,7 +1086,7 @@ find_optimal_scaling(GCA *gca, GCA_SAMPLE *gcas, MRI *mri, int nsamples,
   m_L_tmp = m_tmp = NULL ;
   x_max = y_max = z_max = 1.0 ;
   max_log_p =
-    local_GCAcomputeLogSampleProbability(gca, gcas, mri, m_L,nsamples) ;
+    local_GCAcomputeLogSampleProbability(gca, gcas, mri, m_L,nsamples, DEFAULT_CLAMP) ;
   for (i = 0 ; i <= nreductions ; i++) {
     delta = (max_scale-min_scale) / scale_steps ;
     if (FZERO(delta))
@@ -1115,7 +1115,7 @@ find_optimal_scaling(GCA *gca, GCA_SAMPLE *gcas, MRI *mri, int nsamples,
           m_L_tmp = MatrixMultiply(m_scale, m_L, m_L_tmp) ;
           log_p =
             local_GCAcomputeLogSampleProbability
-            (gca, gcas, mri, m_L_tmp,nsamples) ;
+            (gca, gcas, mri, m_L_tmp,nsamples, DEFAULT_CLAMP) ;
           if (log_p > max_log_p) {
             max_log_p = log_p ;
             x_max = x_scale ;
@@ -1178,7 +1178,7 @@ find_optimal_translation(GCA *gca, GCA_SAMPLE *gcas, MRI *mri, int nsamples,
   m_trans = MatrixIdentity(4, NULL) ;
   x_max = y_max = z_max = 0.0 ;
   max_log_p =
-    local_GCAcomputeLogSampleProbability(gca, gcas, mri, m_L,nsamples) ;
+    local_GCAcomputeLogSampleProbability(gca, gcas, mri, m_L,nsamples, DEFAULT_CLAMP) ;
 
   for (i = 0 ; i <= nreductions ; i++) {
     delta = (max_trans-min_trans) / trans_steps ;
@@ -1201,7 +1201,7 @@ find_optimal_translation(GCA *gca, GCA_SAMPLE *gcas, MRI *mri, int nsamples,
           m_L_tmp = MatrixMultiply(m_trans, m_L, m_L_tmp) ;
           log_p =
             local_GCAcomputeLogSampleProbability
-            (gca, gcas, mri, m_L_tmp,nsamples) ;
+            (gca, gcas, mri, m_L_tmp,nsamples, DEFAULT_CLAMP) ;
           if (log_p > max_log_p) {
             max_log_p = log_p ;
             x_max = x_trans ;
@@ -1539,7 +1539,7 @@ find_optimal_scaling_and_rotation(GCA *gca, GCA_SAMPLE *gcas,
   x_max_scale = y_max_scale = z_max_scale = 1.0f ;
   m_scale = MatrixIdentity(4, NULL) ;
   max_log_p =
-    local_GCAcomputeLogSampleProbability(gca, gcas, mri, m_L,nsamples) ;
+    local_GCAcomputeLogSampleProbability(gca, gcas, mri, m_L,nsamples, DEFAULT_CLAMP) ;
   for (i = 0 ; i <= nreductions ; i++) {
     delta_scale = (max_scale-min_scale) / scale_steps ;
     delta = (max_angle-min_angle) / angle_steps ;
@@ -1595,7 +1595,7 @@ find_optimal_scaling_and_rotation(GCA *gca, GCA_SAMPLE *gcas,
                 m_L_tmp = MatrixMultiply(m_tmp2, m_L, m_L_tmp) ;
                 log_p =
                   local_GCAcomputeLogSampleProbability
-                  (gca, gcas, mri, m_L_tmp, nsamples) ;
+                  (gca, gcas, mri, m_L_tmp, nsamples, DEFAULT_CLAMP) ;
                 if (log_p > max_log_p) {
                   max_log_p = log_p ;
                   x_max_scale = x_scale ;
@@ -1710,7 +1710,7 @@ find_optimal_linear_xform(GCA *gca, GCA_SAMPLE *gcas,
   x_max_scale = y_max_scale = z_max_scale = 1.0f ;
   m_scale = MatrixIdentity(4, NULL) ;
   max_log_p = local_GCAcomputeLogSampleProbability
-              (gca, gcas, mri, m_L,nsamples) ;
+              (gca, gcas, mri, m_L,nsamples, DEFAULT_CLAMP) ;
   for (i = 0 ; i < nreductions ; i++) {
     delta_trans = (max_trans-min_trans) / (trans_steps-1) ;
     delta_scale = (max_scale-min_scale) / (scale_steps-1) ;
@@ -1789,7 +1789,7 @@ find_optimal_linear_xform(GCA *gca, GCA_SAMPLE *gcas,
                                 (m_trans, m_tmp3, m_L_tmp) ;
                       log_p =
                         local_GCAcomputeLogSampleProbability
-                        (gca,gcas,mri,m_L_tmp,nsamples);
+                        (gca,gcas,mri,m_L_tmp,nsamples, DEFAULT_CLAMP);
                       if (log_p > max_log_p) {
                         max_log_p = log_p ;
                         x_max_scale = x_scale ;
@@ -1891,13 +1891,14 @@ local_GCAcomputeLogSampleProbability(GCA *gca,
                                      GCA_SAMPLE *gcas,
                                      MRI *mri,
                                      MATRIX *m_L,
-                                     int nsamples) {
+                                     int nsamples,
+                                     double clamp) {
   static TRANSFORM *transform = NULL ;
 
   if (!transform)
     transform = TransformAlloc(LINEAR_VOX_TO_VOX, NULL) ;
   ((LTA *)transform->xform)->xforms[0].m_L = m_L ;
-  return(GCAcomputeLogSampleProbability(gca, gcas, mri, transform, nsamples)) ;
+  return(GCAcomputeLogSampleProbability(gca, gcas, mri, transform, nsamples, clamp)) ;
 }
 
 #if 0
@@ -1917,7 +1918,7 @@ update_optimal_transform(MRI *mri, GCA *gca, GCA_SAMPLE *gcas, int nsamples,
   GCAmri(gca, mri_gca) ;
 
   max_log_p =
-    local_GCAcomputeLogSampleProbability(gca, gcas, mri, m_L,nsamples) ;
+    local_GCAcomputeLogSampleProbability(gca, gcas, mri, m_L,nsamples, DEFAULT_CLAMP) ;
   printf("initial log_p = %2.1f\n", max_log_p) ;
 
   MRIcenterOfMass(mri_gca, gca_means, 0) ;
@@ -2019,7 +2020,7 @@ update_optimal_transform(MRI *mri, GCA *gca, GCA_SAMPLE *gcas, int nsamples,
   int      niter ;
 
   max_log_p =
-    local_GCAcomputeLogSampleProbability(gca, gcas, mri, m_L,nsamples) ;
+    local_GCAcomputeLogSampleProbability(gca, gcas, mri, m_L,nsamples, DEFAULT_CLAMP) ;
   printf("initial log_p = %2.1f\n", max_log_p) ;
 
   if (write_iterations != 0) {
@@ -2093,7 +2094,7 @@ find_optimal_3x4(GCA *gca, GCA_SAMPLE *gcas, MRI *mri, int nsamples,
 
   for (i = 0 ; i < MAX_ITER ; i++) {
     max_log_p =
-      local_GCAcomputeLogSampleProbability(gca, gcas, mri, m_L,nsamples) ;
+      local_GCAcomputeLogSampleProbability(gca, gcas, mri, m_L,nsamples, DEFAULT_CLAMP) ;
     old_log_p = max_log_p ;
 
     ndim = 0 ;
@@ -2187,7 +2188,7 @@ find_optimal_3x4(GCA *gca, GCA_SAMPLE *gcas, MRI *mri, int nsamples,
                             *MATRIX_RELT(m_L_tmp, 3,4) = m34 ;
                             {
                               log_p =
-                                local_GCAcomputeLogSampleProbability(gca, gcas, mri, m_L_tmp,nsamples) ;
+                                local_GCAcomputeLogSampleProbability(gca, gcas, mri, m_L_tmp,nsamples, DEFAULT_CLAMP) ;
                               if (log_p > max_log_p) {
                                 printf
                                 ("new optimal "
@@ -2247,7 +2248,7 @@ compare_transform(MRI *mri, GCA *gca, GCA_SAMPLE *gcas, int nsamples,
     transform = TransformAlloc(LINEAR_VOX_TO_VOX, NULL) ;
   ((LTA *)transform->xform)->xforms[0].m_L = m_L ;
 
-  log_p1 = GCAcomputeLogSampleProbability(gca, gcas, mri, transform,nsamples);
+  log_p1 = GCAcomputeLogSampleProbability(gca, gcas, mri, transform,nsamples,DEFAULT_CLAMP);
   ((LTA *)transform->xform)->xforms[0].m_L = MatrixIdentity(4, NULL) ;
   log_p2 = compareLogSampleProbability(gca, gcas, mri, transform,nsamples);
   MatrixFree(&((LTA *)transform->xform)->xforms[0].m_L) ;
