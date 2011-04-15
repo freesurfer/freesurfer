@@ -10,8 +10,8 @@
  * CUDA version : Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2011/04/15 13:42:04 $
- *    $Revision: 1.88 $
+ *    $Date: 2011/04/15 13:46:26 $
+ *    $Revision: 1.89 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -50,7 +50,7 @@
 #ifdef FS_CUDA
 #include "devicemanagement.h"
 #include "em_register_cuda.h"
-#define FAST_TRANSFORM 1
+#define FAST_TRANSFORM 0
 #endif // FS_CUDA
 
 static double Gclamp = 6 ;   // robust threshold - everything less likely than -Gclamp will be set to -Gclamp
@@ -201,7 +201,7 @@ main(int argc, char *argv[])
   nargs =
     handle_version_option
     (argc, argv,
-     "$Id: mri_em_register.c,v 1.88 2011/04/15 13:42:04 rge21 Exp $",
+     "$Id: mri_em_register.c,v 1.89 2011/04/15 13:46:26 rge21 Exp $",
      "$Name:  $");
   if (nargs && argc - nargs == 1)
   {
@@ -1205,7 +1205,7 @@ find_optimal_transform
   /////////////////////////////////////////////////////////////////////////////
 #ifdef FS_CUDA
   CUDA_em_register_Prepare( gca, gcas, mri, nsamples );
-  max_log_p = CUDA_ComputeLogSampleProbability( m_L );
+  max_log_p = CUDA_ComputeLogSampleProbability( m_L, Gclamp );
   CUDA_em_register_Release();
 #else
   max_log_p =
@@ -2112,7 +2112,7 @@ find_optimal_linear_xform
   x_max_scale = y_max_scale = z_max_scale = 1.0f ;
   m_scale = MatrixIdentity(4, NULL) ;
 #ifdef FS_CUDA
-  max_log_p = CUDA_ComputeLogSampleProbability( m_L );
+  max_log_p = CUDA_ComputeLogSampleProbability( m_L, Gclamp );
 #else
   max_log_p = local_GCAcomputeLogSampleProbability
     (gca, gcas, mri, m_L, nsamples, exvivo, Gclamp) ;
@@ -2166,6 +2166,7 @@ find_optimal_linear_xform
                                min_trans, max_trans, nTrans,
                                min_scale, max_scale, nScale,
                                min_angle, max_angle, nAngle,
+                               Gclamp,
                                &maxLogP,
                                &xMaxTrans, &yMaxTrans, &zMaxTrans,
                                &xMaxScale, &yMaxScale, &zMaxScale,
@@ -2262,7 +2263,7 @@ find_optimal_linear_xform
                                 (m_trans, m_tmp3, m_L_tmp) ;
 
 #ifdef FS_CUDA
-                      log_p = CUDA_ComputeLogSampleProbability( m_L_tmp );
+                      log_p = CUDA_ComputeLogSampleProbability( m_L_tmp, Gclamp );
 #else
                       log_p =
                         local_GCAcomputeLogSampleProbability

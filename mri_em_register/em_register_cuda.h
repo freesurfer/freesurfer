@@ -8,8 +8,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2011/03/22 15:47:05 $
- *    $Revision: 1.3 $
+ *    $Date: 2011/04/15 13:46:26 $
+ *    $Revision: 1.4 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -45,13 +45,15 @@ extern "C" {
   void CUDA_em_register_Release( void );
 
   //! Routine to compute the probability of the given transform matrix
-  float CUDA_ComputeLogSampleProbability( const MATRIX *m_L );
+  float CUDA_ComputeLogSampleProbability( const MATRIX *m_L,
+                                          const float clamp );
 
   //! Routine to find the best translation
   void CUDA_FindOptimalTranslation( const MATRIX *baseTransform,
 				    const float minTrans,
 				    const float maxTrans,
 				    const unsigned int nTrans,
+                                    const float clamp,
 				    float *maxLogP,
 				    float *dx,
 				    float *dy,
@@ -69,6 +71,7 @@ extern "C" {
 				  const float minRot,
 				  const float maxRot,
 				  const unsigned int nRot,
+                                  const float clamp,
 				  double *maxLogP,
 				  double *dx,
 				  double *dy,

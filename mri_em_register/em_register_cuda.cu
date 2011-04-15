@@ -8,8 +8,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2011/04/15 13:42:04 $
- *    $Revision: 1.10 $
+ *    $Date: 2011/04/15 13:46:26 $
+ *    $Revision: 1.11 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -171,7 +171,8 @@ __device__ float MRIlookup( const float3 r ) {
 
 //! Computes the log_p value for a single point.
 __device__ float ComputeLogP( const float val, const float mean,
-			      const float prior, const float covar ) {
+			      const float prior, const float covar,
+                              const float clamp ) {
   
   float det = covar;
 
@@ -179,11 +180,10 @@ __device__ float ComputeLogP( const float val, const float mean,
 
   float log_p = - logf( sqrtf( det ) ) - 0.5f*( v*v / covar ) + logf( prior );
 
-#if 1
-  if( log_p < -3 ) {
-    log_p = -3;
+  // Assume that clamp is already -ve
+  if( log_p < clamp ) {
+    log_p = clamp;
   }
-#endif
 
   return( log_p );
 }
@@ -192,7 +192,8 @@ __device__ float ComputeLogP( const float val, const float mean,
 
 //! Routine to sum all the logps for a given transform in shared memory
 __device__ float SumLogPs( const GPU::Classes::AffineTransShared &afTrans,
-			   const GPU::Classes::GCASonGPU& gcas ) {
+			   const GPU::Classes::GCASonGPU& gcas,
+                           const float clamp ) {
   // The accumulator array for this block
   __shared__ float myLogps[kOptimiseBlockSize];
   myLogps[threadIdx.x] = 0;
@@ -207,7 +208,8 @@ __device__ float SumLogPs( const GPU::Classes::AffineTransShared &afTrans,
       myLogps[threadIdx.x] += ComputeLogP( mriVal,
 					   gcas.means[i+threadIdx.x],
 					   gcas.priors[i+threadIdx.x],
-					   gcas.covars[i+threadIdx.x] );
+					   gcas.covars[i+threadIdx.x],
+                                           clamp );
     }
   }
 
@@ -255,6 +257,7 @@ __device__ float SumLogPs( const GPU::Classes::AffineTransShared &afTrans,
 __global__
 void ComputeAllLogP( const GPU::Classes::AffineTransformation afTrans,
 		     const GPU::Classes::GCASonGPU gcas,
+                     const float clamp,
 		     float *logps ) {
   /*!
     Driver kernel to compute the value of log_p for every sample.
@@ -277,16 +280,18 @@ void ComputeAllLogP( const GPU::Classes::AffineTransformation afTrans,
   logps[iSample] = ComputeLogP( mriVal,
 				gcas.means[iSample],
 				gcas.priors[iSample],
-				gcas.covars[iSample] );
+				gcas.covars[iSample],
+                                clamp );
 }
 
 
 //! Kernel to compute all probabilities for a given translation generator
 __global__
 void TranslationLogps( const GPU::Classes::AffineTransformation base,
-				  const TranslationGenerator tGen,
-				  const GPU::Classes::GCASonGPU gcas,
-				  float *logps ) {
+                       const TranslationGenerator tGen,
+                       const GPU::Classes::GCASonGPU gcas,
+                       const float clamp,
+                       float *logps ) {
   const size_t b1d = blockIdx.x + ( blockIdx.y * gridDim.x );
 
   // Find our translation
@@ -318,7 +323,7 @@ void TranslationLogps( const GPU::Classes::AffineTransformation base,
   
   // Compute the final result
 
-  float myLogP = SumLogPs( final, gcas );
+  float myLogP = SumLogPs( final, gcas, clamp );
 
   if( threadIdx.x == 0 ) {
     logps[ b1d ] = myLogP;
@@ -332,6 +337,7 @@ __global__
 void TransformLogps( const GPU::Classes::AffineTransformation base,
 		     const float3 originTranslation,
 		     const GPU::Classes::GCASonGPU gcas,
+                     const float clamp,
 		     float *logps ) {
 
   
@@ -415,7 +421,7 @@ void TransformLogps( const GPU::Classes::AffineTransformation base,
 
   // -- All threads now have access to the transformation
   
-  float myLogp = SumLogPs( B, gcas );
+  float myLogp = SumLogPs( B, gcas, clamp );
 
   // Write the final result
   if( threadIdx.x == 0 ) {
@@ -430,7 +436,8 @@ void TransformLogps( const GPU::Classes::AffineTransformation base,
 // ===================================================================
 // External Functions
 
-float CUDA_ComputeLogSampleProbability( const MATRIX *m_L ) {
+float CUDA_ComputeLogSampleProbability( const MATRIX *m_L,
+                                        const float clamp ) {
 /*!
     Re-implementation of local_GCAcomputeLogSampleProbability() from
     file mri_em_register.c.
@@ -463,7 +470,9 @@ float CUDA_ComputeLogSampleProbability( const MATRIX *m_L ) {
   grid.x = static_cast<int>( ceilf ( static_cast<float>(nsamples) / threads.x ) );
   grid.y = grid.z = 1;
 
+  // Do the computation (note sign change on clamp!
   ComputeAllLogP<<<grid,threads>>>( myTransform, myGCASonGPU,
+                                    -clamp,
 				    thrust::raw_pointer_cast(d_logpvals) );
   CUDA_CHECK_ERROR( "ComputeAllLogP kernel failed!\n" );
 
@@ -484,6 +493,7 @@ void CUDA_FindOptimalTranslation( const MATRIX *baseTransform,
 				  const float minTrans,
 				  const float maxTrans,
 				  const unsigned int nTrans,
+                                  const float clamp,
 				  float *maxLogP,
 				  float *dx,
 				  float *dy,
@@ -540,6 +550,7 @@ void CUDA_FindOptimalTranslation( const MATRIX *baseTransform,
   TranslationLogps<<<grid,threads>>>( myBaseTransform,
 				      myGen,
 				      myGCAS,
+                                      -clamp, // Note sign change
 				      thrust::raw_pointer_cast( d_logps ) );
   CUDA_CHECK_ERROR( "TranslationLogps failed!" );
  
@@ -598,6 +609,7 @@ void CUDA_FindOptimalTransform( const MATRIX *baseTransform,
 				const float minRot,
 				const float maxRot,
 				const unsigned int nRot,
+                                const float clamp,
 				double *maxLogP,
 				double *dx,
 				double *dy,
@@ -677,6 +689,7 @@ void CUDA_FindOptimalTransform( const MATRIX *baseTransform,
   TransformLogps<<<grid,threads>>>( myBaseTransform,
 				    oTranslate,
 				    myGCAS,
+                                    -clamp, // Note sign change
 				    thrust::raw_pointer_cast( d_logps ) );
   CUDA_CHECK_ERROR( "TransformLogps failed!" );
   

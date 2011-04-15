@@ -9,8 +9,8 @@
  * CUDA version : Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2011/04/15 13:42:04 $
- *    $Revision: 1.5 $
+ *    $Date: 2011/04/15 13:46:26 $
+ *    $Revision: 1.6 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -35,7 +35,7 @@
 #include "proto.h"
 
 #ifdef FS_CUDA
-#define FAST_TRANSLATION 1
+#define FAST_TRANSLATION 0
 #include "devicemanagement.h"
 #include "em_register_cuda.h"
 #endif
@@ -71,7 +71,7 @@ double find_optimal_translation( GCA *gca,
                                  float max_trans,
                                  float trans_steps,
                                  int nreductions ,
-                                 double clamp) {
+                                 double clamp ) {
   MATRIX   *m_trans, *m_L_tmp ;
   double   x_trans, y_trans, z_trans, x_max, y_max, z_max, delta,
            log_p, max_log_p, mean_trans ;
@@ -127,6 +127,7 @@ double find_optimal_translation( GCA *gca,
     unsigned int nTrans = static_cast<unsigned int>( 1+((max_trans-min_trans)/delta) );
     float myMaxLogP, mydx, mydy, mydz;
     CUDA_FindOptimalTranslation( m_L, min_trans, max_trans, nTrans,
+                                 clamp,
                                  &myMaxLogP, &mydx, &mydy, &mydz );
     if( myMaxLogP > max_log_p )
     {
@@ -156,7 +157,7 @@ double find_optimal_translation( GCA *gca,
           m_L_tmp = MatrixMultiply(m_trans, m_L, m_L_tmp) ;
           // calculate the LogSample probability
 #ifdef FS_CUDA
-          log_p = CUDA_ComputeLogSampleProbability( m_L_tmp );
+          log_p = CUDA_ComputeLogSampleProbability( m_L_tmp, clamp );
 #else
           log_p =
             local_GCAcomputeLogSampleProbability
@@ -212,7 +213,7 @@ double find_optimal_translation( GCA *gca,
     m_L_tmp = MatrixMultiply(m_trans, m_L, m_L_tmp) ;
     MatrixCopy(m_L_tmp, m_L) ;
 #ifdef FS_CUDA
-    max_log_p = CUDA_ComputeLogSampleProbability( m_L_tmp );
+    max_log_p = CUDA_ComputeLogSampleProbability( m_L_tmp, clamp );
 #else
     max_log_p = local_GCAcomputeLogSampleProbability
       (gca, gcas, mri, m_L,nsamples, exvivo, clamp) ;
