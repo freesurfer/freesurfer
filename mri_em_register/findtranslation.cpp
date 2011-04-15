@@ -9,8 +9,8 @@
  * CUDA version : Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2011/04/15 13:46:26 $
- *    $Revision: 1.6 $
+ *    $Date: 2011/04/15 17:33:17 $
+ *    $Revision: 1.7 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -52,6 +52,44 @@ const std::string stem( "TransCPU" );
 #endif
 
 const std::string stern( ".output" );
+
+
+//! See if an affine matrix really inverts a translation
+void CheckInverseTranslation( const MATRIX* mat,
+                              const float dx,
+                              const float dy,
+                              const float dz ) {
+
+  bool exactInverse = true;
+
+  // Check 'identity' portion
+  for( int i=1; i<4; i++ ) {
+    for( int j=1; j<3; j++ ) {
+      const float mij = mat->rptr[i][j];
+      if( (i==j) ) {
+        exactInverse = (exactInverse && (mij==1));
+      } else {
+        exactInverse = (exactInverse && (mij==0));
+      }
+    }
+  }
+
+  // Check the translation itself
+  exactInverse = (exactInverse && ( (-dx) == mat->rptr[1][4] ) );
+  exactInverse = (exactInverse && ( (-dy) == mat->rptr[2][4] ) );
+  exactInverse = (exactInverse && ( (-dz) == mat->rptr[3][4] ) );
+  exactInverse = (exactInverse && ( (1) == mat->rptr[4][4] ) );
+
+  if( !exactInverse ) {
+    std::cout << "Inexact inverse" << std::endl;
+    MatrixPrint( stdout, mat );
+    std::cout << std::setprecision(12) << std::setw(20) << dx
+              << std::setprecision(12) << std::setw(20) << dy
+              << std::setprecision(12) << std::setw(20) << dz
+              << std::endl;
+  }
+}
+
 #endif
 
 
@@ -178,6 +216,23 @@ double find_optimal_translation( GCA *gca,
           outFile << std::setw(20) << std::setprecision(12) << z_trans << ",";
           outFile << std::setw(20) << std::setprecision(12) << log_p;
           outFile << "\n";
+
+          MATRIX *inv_m_L = NULL;
+          inv_m_L = MatrixInverse( (MATRIX*)m_L_tmp, inv_m_L );
+#if 0
+          // Check against original matrix
+          CheckInverseTranslation( inv_m_L,
+                                   m_L_tmp->rptr[1][4],
+                                   m_L_tmp->rptr[2][4],
+                                   m_L_tmp->rptr[3][4] );
+#else
+          // Check against base matrix + translation
+          CheckInverseTranslation( inv_m_L,
+                                   m_L->rptr[1][4] + x_trans,
+                                   m_L->rptr[2][4] + y_trans,
+                                   m_L->rptr[3][4] + z_trans );
+#endif
+          MatrixFree( &inv_m_L );
 #endif
 
           if (log_p > max_log_p)
