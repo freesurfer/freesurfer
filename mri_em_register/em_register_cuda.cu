@@ -8,8 +8,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2011/04/06 19:43:41 $
- *    $Revision: 1.9 $
+ *    $Date: 2011/04/15 13:42:04 $
+ *    $Revision: 1.10 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -177,7 +177,7 @@ __device__ float ComputeLogP( const float val, const float mean,
 
   float v = val - mean;
 
-  float log_p = - logf( sqrtf( det ) ) - 0.5*( v*v / covar ) + logf( prior );
+  float log_p = - logf( sqrtf( det ) ) - 0.5f*( v*v / covar ) + logf( prior );
 
 #if 1
   if( log_p < -3 ) {

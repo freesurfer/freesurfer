@@ -9,9 +9,9 @@
  * Original Author: Bruce Fischl
  * CUDA version : Richard Edgar
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2011/04/14 19:02:41 $
- *    $Revision: 1.87 $
+ *    $Author: rge21 $
+ *    $Date: 2011/04/15 13:42:04 $
+ *    $Revision: 1.88 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -50,7 +50,7 @@
 #ifdef FS_CUDA
 #include "devicemanagement.h"
 #include "em_register_cuda.h"
-#define FAST_TRANSFORM 0
+#define FAST_TRANSFORM 1
 #endif // FS_CUDA
 
 static double Gclamp = 6 ;   // robust threshold - everything less likely than -Gclamp will be set to -Gclamp
@@ -201,7 +201,7 @@ main(int argc, char *argv[])
   nargs =
     handle_version_option
     (argc, argv,
-     "$Id: mri_em_register.c,v 1.87 2011/04/14 19:02:41 fischl Exp $",
+     "$Id: mri_em_register.c,v 1.88 2011/04/15 13:42:04 rge21 Exp $",
      "$Name:  $");
   if (nargs && argc - nargs == 1)
   {

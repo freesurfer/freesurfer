@@ -8,9 +8,9 @@
  * Original Author: Bruce Fischl
  * CUDA version : Richard Edgar
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2011/04/13 19:08:22 $
- *    $Revision: 1.4 $
+ *    $Author: rge21 $
+ *    $Date: 2011/04/15 13:42:04 $
+ *    $Revision: 1.5 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -35,7 +35,7 @@
 #include "proto.h"
 
 #ifdef FS_CUDA
-#define FAST_TRANSLATION 0
+#define FAST_TRANSLATION 1
 #include "devicemanagement.h"
 #include "em_register_cuda.h"
 #endif
@@ -81,7 +81,6 @@ double find_optimal_translation( GCA *gca,
   x_trans = 0;
   y_trans = 0;
   z_trans = 0;
-
 
 #ifdef FS_CUDA
   if( exvivo ) {
