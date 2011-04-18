@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2011/04/18 17:28:00 $
-#    $Revision: 1.3.2.2 $
+#    $Date: 2011/04/18 19:50:37 $
+#    $Revision: 1.3.2.3 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: funcroi-table-sess,v 1.3.2.2 2011/04/18 17:28:00 greve Exp $';
+set VERSION = '$Id: funcroi-table-sess,v 1.3.2.3 2011/04/18 19:50:37 greve Exp $';
 
 set inputargs = ($argv);
 
@@ -86,6 +86,7 @@ set tmpdir = /tmp/tmp.funcroi-table-sess.$$
 mkdir -p $tmpdir
 
 # Go thru each session
+set sess0list = ();
 set sumlist = ();
 set sessidlist = $tmpdir/sessid
 rm -f $sessidlist
@@ -143,16 +144,16 @@ foreach sess ($SessList)
 
   set ok = `grep -v \# $sum | wc -l`
   if(! $ok) then
-    echo "ERROR: $sessid does not have any voxels in ROI"
-    exit 1;
+    echo "WARNING: $sessid does not have any voxels in ROI" | tee -a $LF
+    set sess0list = ($sess0list $sessid)
+    #exit 1;
   endif
 
   set sumlist = ($sumlist $sum)
-
 end
 
 set tbltmp = $tmpdir/table.dat
-set cmd = (asegstats2table --inputs $sumlist -t $tbltmp -m $measure)
+set cmd = (asegstats2table --inputs $sumlist -t $tbltmp -m $measure --all-segs)
 echo $cmd | tee -a $LF
 $cmd | tee -a $LF
 if($status) exit 1;
@@ -162,6 +163,14 @@ paste $sessidlist $tbltmp | awk '{print $1" "$3}' | tail -n +2 > $outtable
 if($status) exit 1;
 
 if($cleanup) rm -r $tmpdir
+
+if($#sess0list) then
+  echo ""
+  echo "WARNING: the following sessions had empty ROIs:"
+  echo "   $sess0list"
+  echo "Their values have been set to 0 in the table."
+  echo ""
+endif
 
 echo "" | tee -a $LF
 echo "Started at $StartTime" | tee -a $LF
