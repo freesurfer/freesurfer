@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2011/04/08 15:53:13 $
-#    $Revision: 1.3.2.1 $
+#    $Date: 2011/04/18 17:28:00 $
+#    $Revision: 1.3.2.2 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: funcroi-table-sess,v 1.3.2.1 2011/04/08 15:53:13 greve Exp $';
+set VERSION = '$Id: funcroi-table-sess,v 1.3.2.2 2011/04/18 17:28:00 greve Exp $';
 
 set inputargs = ($argv);
 
@@ -34,6 +34,7 @@ set contrast = ();
 set map = ();
 set frame = 0;
 set measure = "mean";
+set LF = ();
 
 set sessargs = ();
 set tmpdir = ();
@@ -66,7 +67,7 @@ goto check_params;
 check_params_return:
 
 ##### Create a log file ######
-set LF = log/funcroi-table-sess.log
+if($#LF == 0) set LF = log/funcroi-table-sess.log
 if(-e $LF) mv $LF $LF.old
 echo $LF
 
@@ -125,11 +126,14 @@ foreach sess ($SessList)
       echo "$mapfile"
       exit 1;
     endif
-    set sum = $condir/$map.$ROIname.$frame.dat
+    #set sumdir = $condir
   else
     set mapfile = `stem2fname $anadir/meanfunc`
-    set sum = $anadir/$ROIname.$frame.dat
+    #set sumdir = $anadir
   endif
+  set sumdir = $tmpdir/$sessid
+  mkdir -p $sumdir
+  set sum = $sumdir/$ROIname.$frame.dat
 
   set cmd = (mri_segstats --seg $ROImask --frame $frame --id 1 \
      --i $mapfile --sum $sum)
@@ -137,17 +141,25 @@ foreach sess ($SessList)
   $cmd | tee -a $LF
   if($status) exit 1;
 
+  set ok = `grep -v \# $sum | wc -l`
+  if(! $ok) then
+    echo "ERROR: $sessid does not have any voxels in ROI"
+    exit 1;
+  endif
+
   set sumlist = ($sumlist $sum)
 
 end
 
 set tbltmp = $tmpdir/table.dat
 set cmd = (asegstats2table --inputs $sumlist -t $tbltmp -m $measure)
-echo $cmd
+echo $cmd | tee -a $LF
 $cmd | tee -a $LF
 if($status) exit 1;
 
+echo "Pasting" | tee -a $LF
 paste $sessidlist $tbltmp | awk '{print $1" "$3}' | tail -n +2 > $outtable
+if($status) exit 1;
 
 if($cleanup) rm -r $tmpdir
 
@@ -222,6 +234,11 @@ while( $#argv != 0 )
       if ($#argv < 1) goto arg1err;
       set tmpdir = $argv[1]; shift;
       set cleanup = 0;
+      breaksw
+
+    case "-log":
+      if ($#argv < 1) goto arg1err;
+      set LF = $argv[1]; shift;
       breaksw
 
     case "-debug":
