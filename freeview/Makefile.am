@@ -419,6 +419,8 @@ install-exec-hook:freeview
 	cp $(top_builddir)/freeview/Info.plist $(DESTDIR)$(bindir)/Freeview.app/Contents
 	echo -n 'APPL????' > $(DESTDIR)$(bindir)/Freeview.app/Contents/PkgInfo
 	cp $(top_builddir)/freeview/freeview $(DESTDIR)$(bindir)/Freeview.app/Contents/MacOS/freeview.bin
+	if [[ -d  /usr/pubsw/packages/qt/current/lib/qt_menu.nib ]]; then \
+	cp -rv /usr/pubsw/packages/qt/current/lib/qt_menu.nib $(DESTDIR)$(bindir)/Freeview.app/Contents/Resources; fi
 	echo "#!/bin/tcsh -ef" > $(DESTDIR)$(bindir)/freeview
 #	echo "source \$$FREESURFER_HOME/bin/tcl_setup" \
 		>> $(DESTDIR)$(bindir)/freeview
