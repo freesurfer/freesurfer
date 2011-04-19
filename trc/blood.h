@@ -52,10 +52,11 @@ class Blood {
                          float TrainMaskLabel);
     void ReadAnatomy(const char *TrainListFile, const char *TrainAsegFile,
                                                 const char *TrainMaskFile);
+    void RemoveLengthOutliers();
     void MatchStreamlineEnds();
     void ComputeHistogram();
     void ComputePriors();
-    void FindCenterStreamline();
+    void FindCenterStreamline(bool CheckOverlap=true);
     void SelectControlPoints(int NumControls);
     void WriteOutputs(const char *OutBase);
     void WriteCenterStreamline(const char *CenterTrkFile,

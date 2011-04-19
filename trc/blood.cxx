@@ -531,6 +531,8 @@ void Blood::ReadStreamlines(const char *TrainListFile,
   cout << "INFO: Rejected " << nrejrev
        << " streamlines for reversing direction" << endl;
 
+  RemoveLengthOutliers();
+
   ComputeStats();
 }
 
@@ -739,6 +741,95 @@ void Blood::ReadAnatomy(const char *TrainListFile, const char *TrainAsegFile,
          << endl;
     exit(1);
   }
+}
+
+//
+// Remove very short and very long streamlines
+//
+void Blood::RemoveLengthOutliers() {
+  const int lmin = *min_element(mLengths.begin(), mLengths.end()),
+            lmax = *max_element(mLengths.begin(), mLengths.end()),
+            nlen = mLengths.size();
+  int lsum = 0, l2sum = 0, llow = lmin, lhigh = lmax, nrejlen = 0;
+  float lmean, lstd;
+  vector<int> lhisto(lmax-lmin+1, 0);
+  vector<int>::const_iterator ihisto;
+
+
+  if (nlen < 3)
+    return;
+
+  // Find mean and standard deviation of lengths
+  for (vector<int>::const_iterator ilen = mLengths.begin();
+                                   ilen < mLengths.end(); ilen++) {
+    lsum += *ilen;
+    l2sum += (*ilen) * (*ilen);
+  }
+
+  lmean = lsum / (float) nlen;
+  lstd = sqrt((l2sum - nlen*lmean*lmean) / (nlen-1));
+
+  // Calculate histogram of lengths
+  for (vector<int>::const_iterator ilen = mLengths.begin();
+                                   ilen < mLengths.end(); ilen++)
+    lhisto.at(*ilen - lmin)++;
+
+  // Find gap in lower half of histogram
+  ihisto = lhisto.begin() + ((int) floor(lmean) - lmin);
+
+  while (ihisto > lhisto.begin()) {
+    if (*ihisto == 0) {
+      int nzeros = 1;
+      vector<int>::const_iterator ithresh = ihisto;
+
+      while (*(ihisto--) == 0 && ihisto > lhisto.begin())
+        nzeros++;
+
+      if (nzeros > lstd) {
+        llow = lmin + (ithresh + 1 - lhisto.begin());
+        break;
+      }
+    }
+
+    ihisto--;
+  }
+  
+  // Find gap in upper half of histogram
+  ihisto = lhisto.begin() + ((int) ceil(lmean) - lmin);
+
+  while (ihisto < lhisto.end()) {
+    if (*ihisto == 0) {
+      int nzeros = 1;
+      vector<int>::const_iterator ithresh = ihisto;
+
+      while (*(ihisto++) == 0 && ihisto < lhisto.end())
+        nzeros++;
+
+      if (nzeros > lstd) {
+        lhigh = lmin + (ithresh - 1 - lhisto.begin());
+        break;
+      }
+    }
+
+    ihisto++;
+  }
+  
+  // Remove outlier streamlines
+  vector<int>::iterator ilen = mLengths.begin();
+  for (vector<int>::iterator inum = mNumLines.begin();
+                             inum != mNumLines.end(); inum++)
+    for (int k = *inum; k > 0; k--)
+      if (*ilen < llow || *ilen > lhigh) {
+        ilen = mLengths.erase(ilen);
+        mStreamlines.erase(mStreamlines.begin() + (ilen - mLengths.begin()));
+        (*inum)--;
+        nrejlen++;
+      }
+      else
+        ilen++;
+
+  cout << "INFO: Rejected " << nrejlen
+       << " streamlines as length outliers" << endl;
 }
 
 //
@@ -1270,10 +1361,10 @@ void Blood::SetArcSegments() {
   }
 
   // Set the number of arc segments to a fraction of the shortest length
-  mNumArc = (int) round(*ilen / mLengthRatio);
+  mNumArc = max(1, (int) round(*ilen / mLengthRatio));
 /*
-  mNumArc = (int) round(*min_element(lengths.begin(), lengths.end())
-                        / mLengthRatio);
+  mNumArc = max(1, (int) round(*min_element(lengths.begin(), lengths.end())
+                        / mLengthRatio));
 */
 
   cout << "INFO: Split streamlines into " << mNumArc << " segments"  << endl;
@@ -1712,7 +1803,7 @@ void Blood::ComputeCurvaturePrior(bool UseTruncated) {
 //
 // Find central streamline among streamlines with valid end points
 //
-void Blood::FindCenterStreamline() {
+void Blood::FindCenterStreamline(bool CheckOverlap) {
   const int lag = max(1, (int) round(mHausStepRatio * mLengthAvgEnds)) * 3;
   double hdmin = numeric_limits<double>::infinity();
   vector<bool>::const_iterator ivalid1 = mIsInEnd1.begin(),
@@ -1722,10 +1813,26 @@ void Blood::FindCenterStreamline() {
   if (mStreamlines.empty() || mNumStrEnds == 0)
     return;
 
+  if (mNumStrEnds == 1)		// Only one candidate streamline
+    for (vector< vector<int> >::const_iterator istr = mStreamlines.begin();
+                                            istr < mStreamlines.end(); istr++) {
+      if (*ivalid1 && *ivalid2) {
+        mCenterStreamline = *istr;
+
+        cout << "INFO: Length of center streamline is "
+             << mCenterStreamline.size()/3 << " voxels" << endl;
+
+        return;
+      }
+
+      ivalid1++;
+      ivalid2++;
+    }
+
   cout << "INFO: Step is " << lag/3 << " voxels" << endl;
 
   for (vector< vector<int> >::const_iterator istr = mStreamlines.begin();
-                                           istr < mStreamlines.end(); istr++) {
+                                            istr < mStreamlines.end(); istr++) {
     if (*ivalid1 && *ivalid2) {
       int nzeros = 0;
       double hdtot = 0;
@@ -1733,7 +1840,7 @@ void Blood::FindCenterStreamline() {
                                    jvalid2 = mIsInEnd2.begin();
       vector<int>::const_iterator jlen = mLengths.begin();
 
-      if (mNumTrain > 1)	// Don't do this for single subject case
+      if (mNumTrain > 1 && CheckOverlap)	// No check in one-subject case
         for (vector<int>::const_iterator ipt = istr->begin(); ipt < istr->end();
                                                               ipt += 3) {
           const float h = MRIgetVoxVal(mHistoStr, ipt[0], ipt[1], ipt[2], 0);
@@ -1787,10 +1894,14 @@ void Blood::FindCenterStreamline() {
     ivalid2++;
   }
 
-  mCenterStreamline = *icenter;
+  if (hdmin == numeric_limits<double>::infinity() && CheckOverlap)
+    FindCenterStreamline(false);	// In case overlap check caused failure
+  else {
+    mCenterStreamline = *icenter;
 
-  cout << "INFO: Length of center streamline is " << mCenterStreamline.size()/3
-       << " voxels" << endl;
+    cout << "INFO: Length of center streamline is "
+         << mCenterStreamline.size()/3 << " voxels" << endl;
+  }
 }
 
 //
