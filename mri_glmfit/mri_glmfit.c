@@ -14,8 +14,8 @@
  * Original Author: Douglas N Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2011/03/15 22:34:15 $
- *    $Revision: 1.196 $
+ *    $Date: 2011/04/19 21:29:12 $
+ *    $Revision: 1.197 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -546,7 +546,7 @@ static int SmoothSurfOrVol(MRIS *surf, MRI *mri, MRI *mask, double SmthLevel);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-"$Id: mri_glmfit.c,v 1.196 2011/03/15 22:34:15 greve Exp $";
+"$Id: mri_glmfit.c,v 1.197 2011/04/19 21:29:12 greve Exp $";
 const char *Progname = "mri_glmfit";
 
 int SynthSeed = -1;
@@ -1724,13 +1724,21 @@ int main(int argc, char **argv) {
   fp = fopen(tmpstr,"w");  
   if(DoFFx) fprintf(fp,"%d\n",(int)mriglm->ffxdof);
   else      fprintf(fp,"%d\n",(int)mriglm->glm->dof);
+  fclose(fp);
 
   if(useqa){
     // Compute FSNR
+    float fsnrmin, fsnrmax, fsnrrange, fsnrmean, fsnrstd;
     printf("Computing FSNR\n");
     fsnr = MRIdivide(mriglm->gamma[0],rstd,NULL);
     sprintf(tmpstr,"%s/fsnr.%s",GLMDir,format);
     MRIwrite(fsnr,tmpstr);
+    MRIsegStats(mriglm->mask, 1, fsnr, 0,
+		&fsnrmin, &fsnrmax, &fsnrrange, &fsnrmean, &fsnrstd);
+    sprintf(tmpstr,"%s/fsnr.dat",GLMDir);
+    fp = fopen(tmpstr,"w");  
+    fprintf(fp,"%f %f\n",fsnrmean,fsnrstd);
+    fclose(fp);
     // Write out mean
     sprintf(tmpstr,"%s/mean.%s",GLMDir,format);
     MRIwrite(mriglm->gamma[0],tmpstr);
