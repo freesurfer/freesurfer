@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:10 $
- *    $Revision: 1.35 $
+ *    $Author: greve $
+ *    $Date: 2011/04/19 21:24:27 $
+ *    $Revision: 1.36 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -100,6 +100,11 @@ MRI *MRIsegBoundary(MRI *seg);
 MRI *MRIsliceNo(MRI *in, MRI *out);
 MRI *MRIindexNo(MRI *in, MRI *out);
 MRI *MRIcrs(MRI *in, MRI *out);
+int MRIsegFrameAvg(MRI *seg, int segid, MRI *mri, double *favg);
+int MRIsegStats(MRI *seg, int segid, MRI *mri,int frame,
+                float *min, float *max, float *range,
+                float *mean, float *std);
+
 
 #if defined(__cplusplus)
 };

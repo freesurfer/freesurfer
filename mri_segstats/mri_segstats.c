@@ -11,9 +11,9 @@
 /*
  * Original Author: Dougas N Greve
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:24 $
- *    $Revision: 1.75 $
+ *    $Author: greve $
+ *    $Date: 2011/04/19 21:24:27 $
+ *    $Revision: 1.76 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -114,7 +114,7 @@ int DumpStatSumTable(STATSUMENTRY *StatSumTable, int nsegid);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-  "$Id: mri_segstats.c,v 1.75 2011/03/02 00:04:24 nicks Exp $";
+  "$Id: mri_segstats.c,v 1.76 2011/04/19 21:24:27 greve Exp $";
 char *Progname = NULL, *SUBJECTS_DIR = NULL, *FREESURFER_HOME=NULL;
 char *SegVolFile = NULL;
 char *InVolFile = NULL;
@@ -2121,124 +2121,6 @@ int MRIsegCount(MRI *seg, int id, int frame)
   }
   return(nhits);
 }
-/*---------------------------------------------------------
-  MRIsegStats() - computes statistics within a given
-  segmentation. Returns the number of voxels in the
-  segmentation.
-  ---------------------------------------------------------*/
-int MRIsegStats(MRI *seg, int segid, MRI *mri,int frame,
-                float *min, float *max, float *range,
-                float *mean, float *std)
-{
-  int id,nvoxels,r,c,s;
-  double val, sum, sum2;
-
-  *min = 0;
-  *max = 0;
-  sum  = 0;
-  sum2 = 0;
-  nvoxels = 0;
-  for (c=0; c < seg->width; c++)
-  {
-    for (r=0; r < seg->height; r++)
-    {
-      for (s=0; s < seg->depth; s++)
-      {
-        id = (int) MRIgetVoxVal(seg,c,r,s,0);
-        if (id != segid)
-        {
-          continue;
-        }
-        val =  MRIgetVoxVal(mri,c,r,s,frame);
-        nvoxels++;
-        if ( nvoxels == 1 )
-        {
-          *min = val;
-          *max = val;
-        }
-        if (*min > val)
-        {
-          *min = val;
-        }
-        if (*max < val)
-        {
-          *max = val;
-        }
-        sum  += val;
-        sum2 += (val*val);
-      }
-    }
-  }
-
-  *range = *max - *min;
-
-  if (nvoxels != 0)
-  {
-    *mean = sum/nvoxels;
-  }
-  else
-  {
-    *mean = 0.0;
-  }
-
-  if (nvoxels > 1)
-    *std = sqrt(((nvoxels)*(*mean)*(*mean) - 2*(*mean)*sum + sum2)/
-                (nvoxels-1));
-  else
-  {
-    *std = 0.0;
-  }
-
-  return(nvoxels);
-}
-/*---------------------------------------------------------
-  MRIsegFrameAvg() - computes the average time course withing the
-  given segmentation. Returns the number of voxels in the
-  segmentation. favg must be preallocated to number of
-  frames. favg = (double *) calloc(sizeof(double),mri->nframes);
-  ---------------------------------------------------------*/
-int MRIsegFrameAvg(MRI *seg, int segid, MRI *mri, double *favg)
-{
-  int id,nvoxels,r,c,s,f;
-  double val;
-
-  /* zero it out */
-  for (f=0; f<mri->nframes; f++)
-  {
-    favg[f] = 0;
-  }
-
-  nvoxels = 0;
-  for (c=0; c < seg->width; c++)
-  {
-    for (r=0; r < seg->height; r++)
-    {
-      for (s=0; s < seg->depth; s++)
-      {
-        id = (int) MRIgetVoxVal(seg,c,r,s,0);
-        if (id != segid)
-        {
-          continue;
-        }
-        for (f=0; f<mri->nframes; f++)
-        {
-          val =  MRIgetVoxVal(mri,c,r,s,f);
-          favg[f] += val;
-        }
-        nvoxels++;
-      }
-    }
-  }
-
-  if (nvoxels != 0)
-    for (f=0; f<mri->nframes; f++)
-    {
-      favg[f] /= nvoxels;
-    }
-
-  return(nvoxels);
-}
-
 /*------------------------------------------------------------*/
 STATSUMENTRY *LoadStatSumFile(char *fname, int *nsegid)
 {
