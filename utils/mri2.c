@@ -7,19 +7,18 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2010/07/19 20:47:46 $
- *    $Revision: 1.64 $
+ *    $Date: 2011/04/19 21:33:41 $
+ *    $Revision: 1.66.2.1 $
  *
- * Copyright (C) 2002-2010,
- * The General Hospital Corporation (Boston, MA).
- * All rights reserved.
+ * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
- * Distribution, usage and copying of this software is covered under the
- * terms found in the License Agreement file named 'COPYING' found in the
- * FreeSurfer source code root directory, and duplicated here:
- * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ * Terms and conditions for use, reproduction, distribution and contribution
+ * are found in the 'FreeSurfer Software License Agreement' contained
+ * in the file 'LICENSE' found in the FreeSurfer distribution, and here:
  *
- * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
+ *
+ * Reporting: freesurfer@nmr.mgh.harvard.edu
  *
  */
 
@@ -42,6 +41,8 @@
 #include "sig.h"
 #include "cma.h"
 #include "chronometer.h"
+
+#include "affine.h"
 
 #ifdef FS_CUDA
 #include "mrivol2vol_cuda.h"
@@ -2927,7 +2928,9 @@ MRI *MRIvol2surfVSM(MRI *SrcVol, MATRIX *Rtk, MRI_SURFACE *TrgSurf,
                     float ProjFrac, int ProjType, int nskip, 
 		    MRI *TrgVol)
 {
-  MATRIX *ras2vox, *vox2ras, *Scrs, *Txyz;
+  MATRIX *ras2vox, *vox2ras;
+  AffineVector Scrs, Txyz;
+  AffineMatrix ras2voxAffine;
   int   irow, icol, islc; /* integer row, col, slc in source */
   int cvsm,rvsm;
   float frow, fcol, fslc; /* float row, col, slc in source */
@@ -2951,10 +2954,6 @@ MRI *MRIvol2surfVSM(MRI *SrcVol, MATRIX *Rtk, MRI_SURFACE *TrgSurf,
   MatrixFree(&vox2ras);
   // ras2vox now converts surfacs RAS to SrcVol vox
 
-  /* preallocate the row-col-slc vectors */
-  Scrs = MatrixAlloc(4,1,MATRIX_REAL);
-  Txyz = MatrixAlloc(4,1,MATRIX_REAL);
-  Txyz->rptr[3+1][0+1] = 1.0;
 
   /* allocate a "volume" to hold the output */
   if(TrgVol == NULL){
@@ -2967,6 +2966,8 @@ MRI *MRIvol2surfVSM(MRI *SrcVol, MATRIX *Rtk, MRI_SURFACE *TrgSurf,
 	     TrgVol->width,TrgSurf->nvertices,TrgVol->nframes,SrcVol->nframes);
       return(NULL);
     }
+    // make sure all values are zero
+    MRIconst(TrgVol->width,TrgVol->height,TrgVol->depth,1,0,TrgVol); 
   }
   // Dims here are meaningless, but setting to 1 means "volume" will be 
   // number of vertices.
@@ -2982,6 +2983,9 @@ MRI *MRIvol2surfVSM(MRI *SrcVol, MATRIX *Rtk, MRI_SURFACE *TrgSurf,
   srcval = 0;
   valvect = (float *) calloc(sizeof(float),SrcVol->nframes);
   nhits = 0;
+
+  SetAffineMatrix( &ras2voxAffine, ras2vox );
+
   /*--- loop through each vertex ---*/
   for (vtx = 0; vtx < TrgSurf->nvertices; vtx+=nskip)
   {
@@ -3003,15 +3007,10 @@ MRI *MRIvol2surfVSM(MRI *SrcVol, MATRIX *Rtk, MRI_SURFACE *TrgSurf,
     }
 
     /* Load the Target xyz vector */
-    Txyz->rptr[0+1][0+1] = Tx;
-    Txyz->rptr[1+1][0+1] = Ty;
-    Txyz->rptr[2+1][0+1] = Tz;
-
+    SetAffineVector( &Txyz, Tx, Ty, Tz );
     /* Compute the corresponding Source col-row-slc vector */
-    Scrs = MatrixMultiply(ras2vox,Txyz,Scrs);
-    fcol = Scrs->rptr[1][1];
-    frow = Scrs->rptr[2][1];
-    fslc = Scrs->rptr[3][1];
+    AffineMV( &Scrs, &ras2voxAffine, &Txyz );
+    GetAffineVector( &Scrs, &fcol, &frow, &fslc );
 
     icol = nint(fcol);
     irow = nint(frow);
@@ -3046,6 +3045,7 @@ MRI *MRIvol2surfVSM(MRI *SrcVol, MATRIX *Rtk, MRI_SURFACE *TrgSurf,
       if (irow < 0 || irow >= SrcVol->height) continue;
     }
 
+#if 0
     if (Gdiag_no == vtx)
     {
       printf("diag -----------------------------\n");
@@ -3055,6 +3055,7 @@ MRI *MRIvol2surfVSM(MRI *SrcVol, MATRIX *Rtk, MRI_SURFACE *TrgSurf,
              Scrs->rptr[2][1],Scrs->rptr[3][1]);
       printf("CRS  %d %d %d\n",icol,irow,islc);
     }
+#endif
 
     /* only gets here if it is in bounds */
     nhits ++;
@@ -3090,8 +3091,6 @@ MRI *MRIvol2surfVSM(MRI *SrcVol, MATRIX *Rtk, MRI_SURFACE *TrgSurf,
   }
 
   MatrixFree(&ras2vox);
-  MatrixFree(&Scrs);
-  MatrixFree(&Txyz);
   free(valvect);
 
   //printf("vol2surf_linear: nhits = %d/%d\n",nhits,TrgSurf->nvertices);
@@ -3253,5 +3252,123 @@ MRI *MRIcrs(MRI *in, MRI *out)
   }
 
   return(out);
+}
+
+/*---------------------------------------------------------
+  MRIsegStats() - computes statistics within a given
+  segmentation. Returns the number of voxels in the
+  segmentation.
+  ---------------------------------------------------------*/
+int MRIsegStats(MRI *seg, int segid, MRI *mri,int frame,
+                float *min, float *max, float *range,
+                float *mean, float *std)
+{
+  int id,nvoxels,r,c,s;
+  double val, sum, sum2;
+
+  *min = 0;
+  *max = 0;
+  sum  = 0;
+  sum2 = 0;
+  nvoxels = 0;
+  for (c=0; c < seg->width; c++)
+  {
+    for (r=0; r < seg->height; r++)
+    {
+      for (s=0; s < seg->depth; s++)
+      {
+        id = (int) MRIgetVoxVal(seg,c,r,s,0);
+        if (id != segid)
+        {
+          continue;
+        }
+        val =  MRIgetVoxVal(mri,c,r,s,frame);
+        nvoxels++;
+        if ( nvoxels == 1 )
+        {
+          *min = val;
+          *max = val;
+        }
+        if (*min > val)
+        {
+          *min = val;
+        }
+        if (*max < val)
+        {
+          *max = val;
+        }
+        sum  += val;
+        sum2 += (val*val);
+      }
+    }
+  }
+
+  *range = *max - *min;
+
+  if (nvoxels != 0)
+  {
+    *mean = sum/nvoxels;
+  }
+  else
+  {
+    *mean = 0.0;
+  }
+
+  if (nvoxels > 1)
+    *std = sqrt(((nvoxels)*(*mean)*(*mean) - 2*(*mean)*sum + sum2)/
+                (nvoxels-1));
+  else
+  {
+    *std = 0.0;
+  }
+
+  return(nvoxels);
+}
+/*---------------------------------------------------------
+  MRIsegFrameAvg() - computes the average time course withing the
+  given segmentation. Returns the number of voxels in the
+  segmentation. favg must be preallocated to number of
+  frames. favg = (double *) calloc(sizeof(double),mri->nframes);
+  ---------------------------------------------------------*/
+int MRIsegFrameAvg(MRI *seg, int segid, MRI *mri, double *favg)
+{
+  int id,nvoxels,r,c,s,f;
+  double val;
+
+  /* zero it out */
+  for (f=0; f<mri->nframes; f++)
+  {
+    favg[f] = 0;
+  }
+
+  nvoxels = 0;
+  for (c=0; c < seg->width; c++)
+  {
+    for (r=0; r < seg->height; r++)
+    {
+      for (s=0; s < seg->depth; s++)
+      {
+        id = (int) MRIgetVoxVal(seg,c,r,s,0);
+        if (id != segid)
+        {
+          continue;
+        }
+        for (f=0; f<mri->nframes; f++)
+        {
+          val =  MRIgetVoxVal(mri,c,r,s,f);
+          favg[f] += val;
+        }
+        nvoxels++;
+      }
+    }
+  }
+
+  if (nvoxels != 0)
+    for (f=0; f<mri->nframes; f++)
+    {
+      favg[f] /= nvoxels;
+    }
+
+  return(nvoxels);
 }
 
