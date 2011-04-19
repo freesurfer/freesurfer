@@ -14,19 +14,18 @@
  * Original Author: Douglas N Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2010/07/26 15:54:16 $
- *    $Revision: 1.188 $
+ *    $Date: 2011/04/19 21:34:17 $
+ *    $Revision: 1.196.2.1 $
  *
- * Copyright (C) 2002-2010,
- * The General Hospital Corporation (Boston, MA).
- * All rights reserved.
+ * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
- * Distribution, usage and copying of this software is covered under the
- * terms found in the License Agreement file named 'COPYING' found in the
- * FreeSurfer source code root directory, and duplicated here:
- * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ * Terms and conditions for use, reproduction, distribution and contribution
+ * are found in the 'FreeSurfer Software License Agreement' contained
+ * in the file 'LICENSE' found in the FreeSurfer distribution, and here:
  *
- * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
+ *
+ * Reporting: freesurfer@nmr.mgh.harvard.edu
  *
  */
 
@@ -106,6 +105,7 @@ USAGE: ./mri_glmfit
    --no-fix-vertex-area : turn off fixing of vertex area (for back comapt only)
    --allowsubjrep allow subject names to repeat in the fsgd file (must appear
                   before --fsgd)
+   --allow-zero-dof : mostly for very special purposes
    --illcond : allow ill-conditioned design matrices
    --sim-done SimDoneFile : create DoneFile when simulation finished 
 
@@ -530,21 +530,7 @@ double round(double x);
 #include "randomfields.h"
 #include "dti.h"
 #include "image.h"
-
-typedef struct {
-  char *measure;
-  int nrows, ncols;
-  char **colnames;
-  char **rownames;
-  double **data;
-  char *filename;
-  MRI *mri;
-}
-STAT_TABLE;
-STAT_TABLE *LoadStatTable(char *statfile);
-STAT_TABLE *AllocStatTable(int nrows, int ncols);
-int PrintStatTable(FILE *fp, STAT_TABLE *st);
-int WriteStatTable(char *fname, STAT_TABLE *st);
+#include "stats.h"
 
 int MRISmaskByLabel(MRI *y, MRIS *surf, LABEL *lb, int invflag);
 
@@ -560,7 +546,7 @@ static int SmoothSurfOrVol(MRIS *surf, MRI *mri, MRI *mask, double SmthLevel);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-"$Id: mri_glmfit.c,v 1.188 2010/07/26 15:54:16 greve Exp $";
+"$Id: mri_glmfit.c,v 1.196.2.1 2011/04/19 21:34:17 greve Exp $";
 const char *Progname = "mri_glmfit";
 
 int SynthSeed = -1;
@@ -584,7 +570,7 @@ int   nmask, nvoxels;
 float maskfraction, voxelsize;
 int   prunemask = 1;
 
-MRI *mritmp=NULL, *sig=NULL, *rstd, *fsnr;
+MRI *mritmp=NULL, *mritmp2=NULL, *sig=NULL, *rstd, *fsnr;
 
 int debug = 0, checkoptsonly = 0;
 char tmpstr[2000];
@@ -714,11 +700,16 @@ int  nSignList = 3, nthSign;
 int SignList[3] = {-1,0,1};
 CSD *csdList[5][3];
 
+int nRandExclude=0,  *ExcludeFrames=NULL, nExclude=0;
+MATRIX *MatrixExcludeFrames(MATRIX *Src, int *ExcludeFrames, int nExclude);
+MRI *fMRIexcludeFrames(MRI *f, int *ExcludeFrames, int nExclude, MRI *fex);
+int AllowZeroDOF=0;
+
 /*--------------------------------------------------*/
 int main(int argc, char **argv) {
-  int nargs,n, m;
+  int nargs, n,m,nframesNew;
   int msecFitTime;
-  MATRIX *wvect=NULL, *Mtmp=NULL, *Xselfreg=NULL;
+  MATRIX *wvect=NULL, *Mtmp=NULL, *Xselfreg=NULL, *Ex=NULL, *XgNew=NULL;
   MATRIX *Ct, *CCt;
   FILE *fp;
   double Ccond, dtmp, threshadj;
@@ -797,6 +788,12 @@ int main(int argc, char **argv) {
     fp = fopen(tmpstr,"w");
     dump_options(fp);
     fclose(fp);
+    if(subject){
+      sprintf(tmpstr,"%s/surface",GLMDir);
+      fp = fopen(tmpstr,"w");
+      fprintf(fp,"%s %s\n",subject,hemi);
+      fclose(fp);
+    }
   }
 
   mriglm->npvr     = npvr;
@@ -809,6 +806,10 @@ int main(int argc, char **argv) {
     mriglm->y = MRIread(yFile);
     if (mriglm->y == NULL) {
       printf("ERROR: loading y %s\n",yFile);
+      exit(1);
+    }
+    if(mriglm->y->width == 163842 && surf == NULL){
+      printf("ERROR: you must use '--surface subject hemi' with surface data\n");
       exit(1);
     }
   }
@@ -957,8 +958,43 @@ int main(int argc, char **argv) {
     mriglm->Xg = MatrixConstVal(1.0,mriglm->y->nframes,1,NULL);
   }
 
-  if (! DontSave) {
-    if (GLMDir != NULL) {
+  // Randomly create frames to exclude
+  if(nRandExclude > 0){
+    ExcludeFrames = (int *) calloc(sizeof(int),nRandExclude);
+    Ex = MatrixConstVal(0,mriglm->y->nframes,1,NULL);
+    for(n=0; n<nRandExclude; n++) Ex->rptr[n+1][1] = 1;
+    MatrixRandPermRows(Ex);
+    nExclude = 0;
+    for(n=0; n<mriglm->y->nframes; n++){
+      if(Ex->rptr[n+1][1]){
+	ExcludeFrames[nExclude] = n;
+	nExclude++;
+      }
+    }
+    MatrixFree(&Ex);
+  }
+  // Exclude frames from both design matrix and data
+  if(ExcludeFrames){
+    sprintf(tmpstr,"%s/exclude-frames.dat",GLMDir);
+    fp = fopen(tmpstr,"w");
+    for(m=0; m<nExclude; m++) fprintf(fp,"%d\n",ExcludeFrames[m]);
+    fclose(fp);
+    nframesNew = mriglm->y->nframes - nExclude;
+    XgNew = MatrixExcludeFrames(mriglm->Xg, ExcludeFrames,nExclude);
+    MatrixFree(&mriglm->Xg);
+    mriglm->Xg = XgNew; 
+    mritmp = fMRIexcludeFrames(mriglm->y, ExcludeFrames,nExclude,NULL);
+    MRIfree(&mriglm->y);
+    mriglm->y = mritmp;
+    if(mriglm->w){
+      mritmp = fMRIexcludeFrames(mriglm->w, ExcludeFrames,nExclude,NULL);
+      MRIfree(&mriglm->w);
+      mriglm->w = mritmp;
+    }
+  }
+
+  if(! DontSave) {
+    if(GLMDir != NULL) {
       sprintf(tmpstr,"%s/Xg.dat",GLMDir);
       printf("Saving design matrix to %s\n",tmpstr);
       MatrixWriteTxt(tmpstr, mriglm->Xg);
@@ -1274,8 +1310,14 @@ int main(int argc, char **argv) {
     printf("DOF = %g\n",mriglm->glm->dof);
     if(mriglm->glm->dof < 1) {
       if(!usedti || mriglm->glm->dof < 0){
-	printf("ERROR: DOF = %g\n",mriglm->glm->dof);
-	exit(1);
+	if(! AllowZeroDOF){
+	  printf("ERROR: DOF = %g\n",mriglm->glm->dof);
+	  exit(1);
+	} 
+	else {
+	  mriglm->glm->AllowZeroDOF = 1;
+	  mriglm->glm->dof = 1;
+	}
       } else
 	printf("WARNING: DOF = %g\n",mriglm->glm->dof);
     }
@@ -1682,13 +1724,21 @@ int main(int argc, char **argv) {
   fp = fopen(tmpstr,"w");  
   if(DoFFx) fprintf(fp,"%d\n",(int)mriglm->ffxdof);
   else      fprintf(fp,"%d\n",(int)mriglm->glm->dof);
+  fclose(fp);
 
   if(useqa){
     // Compute FSNR
+    float fsnrmin, fsnrmax, fsnrrange, fsnrmean, fsnrstd;
     printf("Computing FSNR\n");
     fsnr = MRIdivide(mriglm->gamma[0],rstd,NULL);
     sprintf(tmpstr,"%s/fsnr.%s",GLMDir,format);
     MRIwrite(fsnr,tmpstr);
+    MRIsegStats(mriglm->mask, 1, fsnr, 0,
+		&fsnrmin, &fsnrmax, &fsnrrange, &fsnrmean, &fsnrstd);
+    sprintf(tmpstr,"%s/fsnr.dat",GLMDir);
+    fp = fopen(tmpstr,"w");  
+    fprintf(fp,"%f %f\n",fsnrmean,fsnrstd);
+    fclose(fp);
     // Write out mean
     sprintf(tmpstr,"%s/mean.%s",GLMDir,format);
     MRIwrite(mriglm->gamma[0],tmpstr);
@@ -1993,6 +2043,7 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--logy")) logflag = 1;
     else if (!strcasecmp(option, "--no-logy")) logflag = 0;
     else if (!strcasecmp(option, "--kurtosis")) DoKurtosis = 1;
+    else if (!strcasecmp(option, "--allow-zero-dof")) AllowZeroDOF = 1;
     else if (!strcasecmp(option, "--prune_thr")){
       if (nargc < 1) CMDargNErr(option,1);
       sscanf(pargv[0],"%f",&prune_thr); 
@@ -2000,9 +2051,12 @@ static int parse_commandline(int argc, char **argv) {
     }
     else if (!strcasecmp(option, "--nii")) format = "nii";
     else if (!strcasecmp(option, "--nii.gz")) format = "nii.gz";
+    else if (!strcasecmp(option, "--mgh")) format = "mgh";
+    else if (!strcasecmp(option, "--mgz")) format = "mgz";
     else if (!strcasecmp(option, "--allowsubjrep"))
       fsgdf_AllowSubjRep = 1; /* external, see fsgdf.h */
     else if (!strcasecmp(option, "--tar1")) DoTemporalAR1 = 1;
+    else if (!strcasecmp(option, "--no-tar1")) DoTemporalAR1 = 0;
     else if (!strcasecmp(option, "--qa")) {
       useqa = 1;
       DoTemporalAR1 = 1;
@@ -2050,7 +2104,8 @@ static int parse_commandline(int argc, char **argv) {
       sscanf(pargv[1],"%lf",&UniformMax);
       UseUniform = 1;
       nargsused = 2;
-    } else if (!strcasecmp(option, "--sim-sign")) {
+    } 
+    else if (!strcasecmp(option, "--sim-sign")) {
       // this applies only to t-tests
       if (nargc < 1) CMDargNErr(option,1);
       if (!strcmp(pargv[0],"abs"))      tSimSign = 0;
@@ -2061,7 +2116,13 @@ static int parse_commandline(int argc, char **argv) {
         exit(1);
       }
       nargsused = 1;
-    } else if (!strcmp(option, "--really-use-average7")) ReallyUseAverage7 = 1;
+    } 
+    else if (!strcasecmp(option, "--rand-exclude")) {
+      if(nargc < 1) CMDargNErr(option,1);
+      sscanf(pargv[0],"%d",&nRandExclude);
+      nargsused = 1;
+    } 
+    else if (!strcmp(option, "--really-use-average7")) ReallyUseAverage7 = 1;
     else if (!strcasecmp(option, "--surf") || !strcasecmp(option, "--surface")) {
       if (nargc < 2) CMDargNErr(option,1);
       SUBJECTS_DIR = getenv("SUBJECTS_DIR");
@@ -2254,7 +2315,7 @@ static int parse_commandline(int argc, char **argv) {
       pvrFiles[npvr] = pargv[0];
       npvr++;
       nargsused = 1;
-    } else if (!strcmp(option, "--glmdir")) {
+    } else if (!strcmp(option, "--glmdir") || !strcmp(option, "--o")) {
       if (nargc < 1) CMDargNErr(option,1);
       GLMDir = pargv[0];
       nargsused = 1;
@@ -2415,6 +2476,7 @@ printf("   --version   print out version and exit\n");
 printf("   --no-fix-vertex-area : turn off fixing of vertex area (for back comapt only)\n");
 printf("   --allowsubjrep allow subject names to repeat in the fsgd file (must appear\n");
 printf("                  before --fsgd)\n");
+printf("   --allow-zero-dof : mostly for very special purposes\n");
 printf("   --illcond : allow ill-conditioned design matrices\n");
 printf("   --sim-done SimDoneFile : create DoneFile when simulation finished \n");
 printf("\n");
@@ -3057,138 +3119,6 @@ int MRISmaskByLabel(MRI *y, MRIS *surf, LABEL *lb, int invflag) {
 
   free(lbmask);
   MRIScrsLUTFree(crslut);
-  return(0);
-}
-
-
-/*--------------------------------------------------------------------*/
-STAT_TABLE *LoadStatTable(char *statfile) 
-{
-  STAT_TABLE *st;
-  FILE *fp;
-  char tmpstr[100000];
-  int r,c,n;
-
-  fp = fopen(statfile,"r");
-  if (fp == NULL) {
-    printf("ERROR: could not open %s\n",statfile);
-    return(NULL);
-  }
-
-  st = (STAT_TABLE *) calloc(sizeof(STAT_TABLE),1);
-  st->filename = strcpyalloc(statfile);
-
-  // Read in the first line
-  fgets(tmpstr,100000,fp);
-  st->ncols = gdfCountItemsInString(tmpstr) - 1;
-  if (st->ncols < 1) {
-    printf("ERROR: format:  %s\n",statfile);
-    return(NULL);
-  }
-  printf("Found %d data colums\n",st->ncols);
-
-  // Count the number of rows
-  st->nrows = 0;
-  while (fgets(tmpstr,100000,fp) != NULL) st->nrows ++;
-  printf("Found %d data rows\n",st->nrows);
-  fclose(fp);
-
-  st->colnames = (char **) calloc(st->ncols,sizeof(char*));
-  st->rownames = (char **) calloc(st->nrows,sizeof(char*));
-
-  // OK, now read everything in
-  fp = fopen(statfile,"r");
-
-  // Read the measure
-  fscanf(fp,"%s",tmpstr);
-  st->measure = strcpyalloc(tmpstr);
-
-  // Read the column headers
-  for (c=0; c < st->ncols; c++) {
-    fscanf(fp,"%s",tmpstr);
-    st->colnames[c] = strcpyalloc(tmpstr);
-  }
-
-  // Alloc the data
-  st->data = (double **) calloc(st->nrows,sizeof(double *));
-  for (r=0; r < st->nrows; r++)
-    st->data[r] = (double *) calloc(st->ncols,sizeof(double));
-
-  // Read each row
-  for(r=0; r < st->nrows; r++) {
-    fscanf(fp,"%s",tmpstr);
-    st->rownames[r] = strcpyalloc(tmpstr);
-    for(c=0; c < st->ncols; c++) {
-      n = fscanf(fp,"%lf", &(st->data[r][c]) );
-      if(n != 1) {
-        printf("ERROR: format: %s at row %d, col %d\n",
-               statfile,r,c);
-        return(NULL);
-      }
-    }
-    //printf("%s %lf\n",st->rownames[r],st->data[r][st->ncols-1]);
-  }
-  fclose(fp);
-
-  st->mri = MRIallocSequence(st->ncols,1,1,MRI_FLOAT,st->nrows);
-  st->mri->xsize = 1; st->mri->ysize = 1; st->mri->zsize = 1;
-  st->mri->x_r = 1; st->mri->x_a = 0; st->mri->x_s = 0;
-  st->mri->y_r = 0; st->mri->y_a = 1; st->mri->y_s = 0;
-  st->mri->z_r = 0; st->mri->z_a = 0; st->mri->z_s = 1;
-
-  for(r=0; r < st->nrows; r++)
-    for(c=0; c < st->ncols; c++)
-      MRIsetVoxVal(st->mri,c,0,0,r,st->data[r][c]);
-
-  return(st);
-}
-
-STAT_TABLE *AllocStatTable(int nrows, int ncols)
-{
-  STAT_TABLE * st;
-
-  st = (STAT_TABLE *) calloc(sizeof(STAT_TABLE),1);
-  st->nrows = nrows;
-  st->ncols = ncols;
-  st->colnames = (char **) calloc(st->ncols,sizeof(char*));
-  st->rownames = (char **) calloc(st->nrows,sizeof(char*));
-
-  st->data = (double **) calloc(st->nrows,sizeof(double *));
-  for (r=0; r < st->nrows; r++)
-    st->data[r] = (double *) calloc(st->ncols,sizeof(double));
-
-  return(st);
-}
-
-int WriteStatTable(char *fname, STAT_TABLE *st)
-{
-  FILE *fp;
-  int err;
-
-  fp = fopen(fname,"w");
-  if(fp == NULL){
-    printf("ERROR: cannot open %s\n",fname);
-    exit(1);
-  }
-  err = PrintStatTable(fp, st);
-  return(err);
-}
-
-
-int PrintStatTable(FILE *fp, STAT_TABLE *st)
-{
-  int r, c;
-
-  fprintf(fp,"%-33s ",st->measure);
-  for(c=0; c < st->ncols; c++)   
-    fprintf(fp,"%s ",st->colnames[c]);
-  fprintf(fp,"\n");
-  for(r=0; r < st->nrows; r++){
-    fprintf(fp,"%-33s ",st->rownames[r]);
-    for(c=0; c < st->ncols; c++)   
-      fprintf(fp,"%7.3lf ",st->data[r][c]);
-    fprintf(fp,"\n");
-  }
   return(0);
 }
 
