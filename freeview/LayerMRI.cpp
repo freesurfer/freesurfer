@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2011/03/30 19:23:59 $
- *    $Revision: 1.98 $
+ *    $Date: 2011/04/20 16:22:56 $
+ *    $Revision: 1.99 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -78,7 +78,9 @@ LayerMRI::LayerMRI( LayerMRI* ref, QObject* parent ) : LayerVolumeBase( parent )
   m_nSampleMethod( SAMPLE_NEAREST ),
   m_bConform( false ),
   m_bWriteResampled( true ),
-  m_currentSurfaceRegion( NULL )
+  m_currentSurfaceRegion( NULL ),
+  m_nGotoLabelSlice(-1),
+  m_nGotoLabelOrientation(-1)
 {
   m_strTypeNames.push_back( "MRI" );
 
@@ -229,6 +231,9 @@ bool LayerMRI::LoadVolumeFromFile( )
 
   GetProperty()->SetVolumeSource( m_volumeSource );
   GetProperty()->RestoreSettings( m_sFilename );
+
+  if (m_nGotoLabelOrientation >= 0)
+    m_nGotoLabelSlice = this->GoToLabel(m_nGotoLabelOrientation, m_strGotoLabelName);
 
   return true;
 }

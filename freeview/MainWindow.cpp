@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2011/04/13 19:50:54 $
- *    $Revision: 1.166 $
+ *    $Date: 2011/04/20 16:22:56 $
+ *    $Revision: 1.167 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -585,29 +585,27 @@ bool MainWindow::DoParseCommand(bool bAutoQuit)
   if ( m_cmdParser->Found( "viewport", &sa ) )
   {
     QString strg = sa[0].toLower();
-    QString script = "setviewport ";
     if ( strg == "sagittal" || strg == "x" )
     {
-      script += "x";
+      SetMainView( MV_Sagittal );
     }
     else if ( strg == "coronal" || strg == "y" )
     {
-      script += "y";
+      SetMainView( MV_Coronal );
     }
     else if ( strg == "axial" || strg == "z" )
     {
-      script += "z";
+      SetMainView( MV_Axial );
     }
     else if ( strg == "3d" )
     {
-      script += "3d";
+      SetMainView( MV_3D );
     }
     else
     {
       std::cerr << "Unrecognized viewport name '" << qPrintable(sa[0]) << "'.\n";
       return false;
     }
-    this->AddScript( script );
   }
 
   if ( m_cmdParser->Found( "viewsize", &sa ) )
@@ -1291,6 +1289,7 @@ void MainWindow::CommandLoadVolume( const QStringList& sa )
           tensor_render = "boxoid";
   int nSampleMethod = m_nDefaultSampleMethod;
   bool bConform = m_bDefaultConform;
+  QString gotoLabelName;
   for ( int i = 1; i < sa_vol.size(); i++ )
   {
     QString strg = sa_vol[i];
@@ -1424,6 +1423,7 @@ void MainWindow::CommandLoadVolume( const QStringList& sa )
       else if ( subOption == "gotolabel" || subOption == "structure")
       {
         m_scripts.insert(0, QString("gotolabel ")+subArgu);
+        gotoLabelName = subArgu;
       }
       else
       {
@@ -1473,7 +1473,21 @@ void MainWindow::CommandLoadVolume( const QStringList& sa )
     m_scripts.insert( 0, script );
   }
 
-  LoadVolumeFile( fn, reg_fn, bResample, nSampleMethod, bConform );
+  int nView = this->GetMainViewId();
+  if (nView > 2)
+  {
+    nView = 0;
+  }
+  int orientation = nView;
+  if (orientation == 0 )
+  {
+    orientation = 1;
+  }
+  else if (orientation == 1)
+  {
+    orientation = 0;
+  }
+  LoadVolumeFile( fn, reg_fn, bResample, nSampleMethod, bConform, orientation, gotoLabelName );
 }
 
 void MainWindow::CommandSetColorMap( const QStringList& sa )
@@ -2338,21 +2352,7 @@ void MainWindow::CommandGotoLabel(const QStringList &cmd)
   LayerMRI* mri = (LayerMRI*)GetActiveLayer("MRI");
   if ( mri )
   {
-    int nView = this->GetMainViewId();
-    if (nView > 2)
-    {
-      nView = 0;
-    }
-    int orientation = nView;
-    if (orientation == 0 )
-    {
-      orientation = 1;
-    }
-    else if (orientation == 1)
-    {
-      orientation = 0;
-    }
-    int nSlice = mri->GoToLabel(orientation, cmd[1]);
+    int nSlice = mri->GetGotoLabelSlice();
     if (nSlice >= 0)
     {
       double pos[3];
@@ -2361,6 +2361,9 @@ void MainWindow::CommandGotoLabel(const QStringList &cmd)
       mri->TargetToRAS(pos, pos);
       mri->RASToOriginalIndex(pos, n);
       QString ostr = mri->GetOrientationString();
+      int nView = this->GetMainViewId();
+      if (nView > 2)
+        nView = 0;
       int nOrigPlane = nView;
       char ch[3][3] = {"RL", "AP", "IS"};
       for (int i = 0; i < 3; i++)
@@ -3226,7 +3229,9 @@ void MainWindow::OnLoadVolume()
 void MainWindow::LoadVolumeFile( const QString& filename,
                                  const QString& reg_filename,
                                  bool bResample_in, int nSampleMethod,
-                                 bool bConform )
+                                 bool bConform,
+                                 int nGotoLabelOrientation,
+                                 const QString& strGotoLabelName )
 {
   QFileInfo fi(filename);
   bool bResample = bResample_in;
@@ -3242,6 +3247,7 @@ void MainWindow::LoadVolumeFile( const QString& filename,
   layer->SetConform( bConform );
   layer->GetProperty()->SetLUTCTAB( m_luts->GetColorTable( 0 ) );
   layer->SetName( fi.completeBaseName() );
+  layer->SetGotoLabel(nGotoLabelOrientation, strGotoLabelName);
   QString fullpath = fi.absoluteFilePath();
   if ( fullpath.isEmpty() )
   {
