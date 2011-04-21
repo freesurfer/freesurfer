@@ -1,4 +1,5 @@
-function [hf, hp, av_filtered] = mris_display(astr_mris, astr_curv, varargin)
+function [hf, hp, av_filtered] = mris_display(astr_mris, astr_curv, ...
+                                                varargin)
 %
 % NAME
 %       [hf, hp, av_filtered]   =                       ...
@@ -9,7 +10,7 @@ function [hf, hp, av_filtered] = mris_display(astr_mris, astr_curv, varargin)
 %                               af_bandFilter,          ...
 %                               ab_invMap>
 %                         )
-% $Id: mris_display.m,v 1.3 2010/02/01 21:16:13 rudolph Exp $
+% $Id: mris_display.m,v 1.4 2011/04/21 23:07:46 rudolph Exp $
 %
 %
 % ARGUMENTS
@@ -100,23 +101,23 @@ end
 if length(varargin) >= 4, b_invCurv = varargin{4};      end
 
 % Read curvature file
-colprintf('40;40', 'Reading curvature file', astr_curv);
+colprintf('40;40', 'Reading curvature file', '[ %s ]\n', astr_curv);
 [v_curv, fnum] = read_curv(astr_curv);
-colprintf('40;40', 'Number of curv elements', sprintf('%d', numel(v_curv)));
+colprintf('40;40', 'Number of curv elements', '[ %d ]\n', numel(v_curv));
 if b_invCurv
-    colprintf('40;40', 'Invert curvature data sign', sprintf('%d', b_invCurv));
+    colprintf('40;40', 'Invert curvature data sign', '[ %d ]\n', b_invCurv);
     v_curv = v_curv * -1;
 end
 
 % Read surface
-colprintf('40;40', 'Reading mris file', astr_mris);
+colprintf('40;40', 'Reading mris file', '[ %s ]\n', astr_mris);
 [v_vertices, v_faces] = read_surf(astr_mris);
 v_vertSize      = size(v_vertices);
 v_faceSize      = size(v_faces);
 str_vertSize    = sprintf('%d x %d', v_vertSize(1), v_vertSize(2));
 str_faceSize    = sprintf('%d x %d', v_faceSize(1), v_faceSize(2));
-colprintf('40;40', 'Size of vert struct', str_vertSize);
-colprintf('40;40', 'Size of face struct', str_faceSize);
+colprintf('40;40', 'Size of vert struct', '[ %s ]\n', str_vertSize);
+colprintf('40;40', 'Size of face struct', '[ %s ]\n', str_faceSize);
 
 if numel(v_curv) ~= v_vertSize(1)
     error_exit( 'reading inputs',        ...
