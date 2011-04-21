@@ -6,9 +6,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/14 23:44:47 $
- *    $Revision: 1.4 $
+ *    $Author: rpwang $
+ *    $Date: 2011/04/21 18:43:45 $
+ *    $Revision: 1.5 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -79,6 +79,7 @@ void PanelLayer::InitializeLayerList( QTreeWidget* treeWidget, LayerCollection* 
   connect( cl, SIGNAL(LayerMoved(Layer*)), this, SLOT(OnLayerMoved(Layer*)), Qt::UniqueConnection );
   connect( cl, SIGNAL(ActiveLayerChanged(Layer*)), this, SLOT(OnActiveLayerChanged(Layer*)), Qt::UniqueConnection );
   connect( cl, SIGNAL(LayerCycled(Layer*)), this, SLOT(UpdateWidgets()), Qt::UniqueConnection );
+  connect( cl, SIGNAL(LayerNameChanged()), this, SLOT(OnLayerNameChanged()), Qt::UniqueConnection );
   connect( cl, SIGNAL(LayerVisibilityChanged()), this, SLOT(UpdateWidgets()), Qt::UniqueConnection );
   connect( treeWidget, SIGNAL(currentItemChanged(QTreeWidgetItem*,QTreeWidgetItem*)),
            this, SLOT(OnCurrentItemChanged(QTreeWidgetItem*)) );
@@ -116,6 +117,21 @@ void PanelLayer::OnLayerAdded( Layer* layer )
   t->insertTopLevelItem( 0, item );
   t->blockSignals( false );
   t->setCurrentItem( item );
+}
+
+
+void PanelLayer::OnLayerNameChanged()
+{
+  QTreeWidget* t = treeWidgetPrivate;
+  for ( int i = 0; i < t->topLevelItemCount(); i++ )
+  {
+    QTreeWidgetItem* item = t->topLevelItem( i );
+    Layer* layer = qobject_cast<Layer*>(item->data( 0, Qt::UserRole ).value<QObject*>());
+    if (layer)
+    {
+      item->setText(0, layer->GetName());
+    }
+  }
 }
 
 void PanelLayer::OnLayerRemoved( Layer *layer )
