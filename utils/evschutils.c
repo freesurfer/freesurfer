@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:43 $
- *    $Revision: 1.14 $
+ *    $Author: greve $
+ *    $Date: 2011/04/21 19:48:51 $
+ *    $Revision: 1.15 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -743,6 +743,7 @@ float EVScb1Error(EVSCH *EvSch)
 int EVScostId(char *CostString)
 {
   if (! strcmp("eff",CostString) )       return(EVS_COST_EFF);
+  if (! strcmp("effinv",CostString) )    return(EVS_COST_EFF_INV);
   if (! strcmp("vrfavg",CostString) )    return(EVS_COST_VRFAVG);
   if (! strcmp("vrfstd",CostString) )    return(EVS_COST_VRFSTD);
   if (! strcmp("vrfavgstd",CostString) ) return(EVS_COST_VRFAVGSTD);
@@ -764,6 +765,9 @@ char *EVScostString(int CostId)
     break;
   case EVS_COST_EFF:
     return("eff");
+    break;
+  case EVS_COST_EFF_INV:
+    return("effinv");
     break;
   case EVS_COST_VRFAVG:
     return("vrfavg");
@@ -793,6 +797,10 @@ float EVScost(EVSCH *EvSch, int CostId, float *params)
   case EVS_COST_EFF:
     /* efficiency */
     EvSch->cost = EvSch->eff;
+    break;
+  case EVS_COST_EFF_INV:
+    /* 1/efficiency -- get worst schedule*/
+    EvSch->cost = 1./(EvSch->eff+.000000000001);
     break;
   case EVS_COST_VRFAVG:
     /* variance reduction factor averaged across task estimates */

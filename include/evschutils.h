@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:09 $
- *    $Revision: 1.8 $
+ *    $Author: greve $
+ *    $Date: 2011/04/21 19:48:51 $
+ *    $Revision: 1.9 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -38,6 +38,7 @@
 #define EVS_COST_VRFSTD    3
 #define EVS_COST_VRFAVGSTD 4
 #define EVS_COST_IDEALXTX  5
+#define EVS_COST_EFF_INV   6
 
 typedef struct
 {
