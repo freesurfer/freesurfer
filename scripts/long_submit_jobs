@@ -1,0 +1,1025 @@
+#!/usr/bin/env python
+# -*- coding: latin-1 -*-
+
+#
+# long_submit_jobs
+#
+# script to submit jobs for longitudinal data
+#
+# Original Author: Martin Reuter
+# CVS Revision Info:
+#    $Author: mreuter $
+#    $Date: 2011/04/21 23:52:46 $
+#    $Revision: 1.1 $
+#
+# Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+#
+# Terms and conditions for use, reproduction, distribution and contribution
+# are found in the 'FreeSurfer Software License Agreement' contained
+# in the file 'LICENSE' found in the FreeSurfer distribution, and here:
+#
+# https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
+#
+# Reporting: freesurfer@nmr.mgh.harvard.edu
+#
+#
+
+import warnings
+warnings.filterwarnings('ignore', '.*negative int.*')
+import os
+import sys
+import shlex
+import optparse
+import logging
+import subprocess
+import tempfile
+import shutil
+import time
+import stat
+from subject_info import *
+from LongQdecTable import *
+
+# logging 
+ch = logging.StreamHandler()
+#create logger
+logger = logging.getLogger("long_submit_jobs")
+logger.setLevel(logging.INFO)
+logger.addHandler(ch)
+
+"""
+=======================================================================================================
+EDIT mycluster to make this work on your specific cluster
+=======================================================================================================
+"""
+
+# edit mycluster (see examples for launchpad or seychelles) to run on your cluster
+#  at minimum you need to pass %(command)s to specify the place where the comand file goes
+mycluster = ''
+# also edit the queue flag if your submit command takes a queue parameter
+#  ( will only be used if --queue is passed on comand line to long_submit_jobs )
+queueflag ='-q'
+
+# examples for our servers:
+launchpad ='pbsubmit -c "%(command)s" -m %(username)s -e -n %(nodes)s'
+seychelles='pbsubmit -c "%(command)s" -m %(username)s -e -l nodes=1:opteron'
+
+def submit(fname,nodes,queue):
+    """
+    submits jobs to the cluster using pbsubmit
+    """
+    
+    user     = os.getenv('USER')
+    hostname = os.getenv('HOSTNAME')
+        
+    # assemble the command (maybe modify to your needs):
+    if hostname == "launchpad":
+        pbcmd = launchpad % {'command':fname,'username':user,'nodes':nodes}
+    elif hostname == "seychelles":
+        pbcmd = seychelles % {'command':fname,'username':user}
+    else:
+        pbcmd = mycluster % {'command':fname,'username':user}
+        
+    # adding a queue if passed (using queueflag defined above)
+    if queue is not None and queue != "" and pbcmd != "":
+        pbcmd = pbcmd+' '+queueflag+' '+queue
+    # Done assemble command
+     
+    if pbcmd == "":
+        print "job submission failed, maybe unknown host "+hostname
+        print "you can use --simulate if not on cluster"
+        sys.exit(1)
+        
+    print pbcmd+'\n'
+    args = shlex.split(pbcmd)
+    try:
+        retcode = subprocess.call(args)
+    except OSError, e:
+        print "job submission failed:", e 
+        sys.exit(1)
+        
+    if retcode != 0 :
+        print 'ERROR: while submitting job'
+        sys.exit(1)
+    print '\n'
+
+
+def wait_jobs(maxjobs):
+    """
+    wait until jobs of user drop below maxjobs
+    uses qstat output to count current user jobs
+    if qstat cannot be run, it will return without waiting (and start submitting)
+    """
+    
+    user = os.getenv('USER')
+    
+    count = 1
+    while True:
+        localtime = time.asctime( time.localtime(time.time()) )
+        # basically run:
+        #   qstat | grep $USER | wc -l
+        
+        
+        #  first try if qstat can be run:
+        try:
+            p1 = subprocess.Popen(["qstat"], stdout=subprocess.PIPE)
+        except OSError, e:
+            print "qstat execution failed:", e 
+            return
+        # concat with grep
+        p2 = subprocess.Popen(["grep", user], stdin=p1.stdout, stdout=subprocess.PIPE)
+        p1.stdout.close()  # Allow p1 to receive a SIGPIPE if p2 exits.
+        # and with wc -l
+        p3 = subprocess.Popen(["wc", "-l"], stdin=p2.stdout, stdout=subprocess.PIPE)
+        p2.stdout.close()  # Allow p2 to receive a SIGPIPE if p3 exits.
+        # get results into num:
+        num = p3.communicate()[0]
+         
+        # stop if slots available
+        if int(num) <= maxjobs:
+            break
+
+        #else wait
+        #count = count - 1
+        #if count == 0:
+        print('\rwaiting: '+str(int(num))+' jobs on cluster ... ('+localtime+')'),
+        sys.stdout.flush()
+        #    count = 10 
+        time.sleep(30)
+
+    
+"""
+=======================================================================================================
+You should not need to edit anything below 
+=======================================================================================================
+"""
+
+
+HELPTEXT = """
+
+SUMMARY
+
+Submits jobs to the cluster (either seychelles or launchpad at NMR) for 
+longitudinal processing. It can submit either cross, base or long or all.
+The script will run based on a qdec table (long format) and will wait
+with submission of base or long until necessary files are available.
+
+
+REQUIRED ARGUMENTS
+
+--qdec <name>     qdec.table.dat file with first columns: fsid  fsid-base
+
+--cdir <name>     Subjects dir for cross (inherited by base and long)
+
+
+OPTIONAL ARGUMENTS
+
+--bdir <name>     Subjects dir for base runs (default: inherit from cdir)
+
+--ldir <name>     Subjects dir for long runs (default: inherit from bdir)
+
+--cross           Run cross sectionals (default: do cross base and long)
+
+--base            Run bases (default: do cross base and long)
+
+--long            Run longitudinals (default: do cross base and long)
+
+--affine          Use affine registration for base
+
+--cflags          Manually specify flags for cross (e.g. --cflags '-all -cw256')
+
+--bflags          Manually specify flags for base (default: '-all')
+
+--lflags          Manually specify flags for long (default: '-all')
+
+--force           Force reprocessing even if finished (recon-all.done)
+
+--simulate        Do not submit anything, just print commands
+
+--check           Checks if all longitudinals are done
+
+--pause <int>     Pause in sec between submissions (default: 13)
+
+--max  <int>      Max num of jobs of this user (default: 100)
+
+--queue <name>    Special queue to submit
+
+
+DETAILS
+=======
+QDEC.TABLE
+Pass a qdec table file, where the first 2 columns need to be 'fsid  fsid-base'.
+fsid is the id of the individual time points an 'fsid-base' the template/base
+id (grouping the timepoints that belong to the same subject). By default the
+third column is taken as the time variable, but this can be overwritten with
+--time <name>. 
+
+QDEC.TABLE-EXAMPLE:
+fsid    fsid-base  age   weight   IQ
+Elmo_1   Elmo       3      10    1000        
+#Elmo_2  Elmo       3.5    15    1100
+Elmo_3   Elmo       4      20    1300 
+Snuffy_1 Snuffy    20      40    1100
+Snuffy_2 Snuffy    21      45    1200
+Bert_1   Bert       8      25    2000
+Bert_2   Bert       9      30    2500
+Bert_3   Bert       9.9    34    2400
+
+
+STREAMS
+=======
+Default is to run all streams: cross, base and long. You can switch on individual
+streams with --cross, --base and --long (then only the ones specifed are run). 
+
+
+SUBJECTS DIRS
+=============
+You can pass individual subject directories for cross (--cdir), base (--bdir) and 
+longitudinals (--ldir). You can ommit the --ldir or --bdir, their values will then
+be inherited from the previous directory. E.g., if you only specify --cdir, then
+the base and longitudinal directory will be intialized with the same value. Similarly,
+when specifying --cdir and --bdir, the longitudinal directory will be automatically
+initialized with the  base subject dir. It is often a good idea to have the cross
+sectionals in a different directory and base togehter with long in another directory.
+This way you can run several base/longitudinal streams with different parameters using
+the same cross sectional runs.
+
+
+REFERENCES
+==========
+Highly Accurate Inverse Consistent Registration: A Robust Approach,
+M. Reuter, H.D. Rosas, B. Fischl. NeuroImage 53 (4), pp. 1181-1196, 2010.
+  http://dx.doi.org/10.1016/j.neuroimage.2010.07.020
+  http://reuter.mit.edu/papers/reuter-robreg10.pdf 
+
+Avoiding Asymmetry-Induced Bias in Longitudinal Image Processing,
+M. Reuter, B. Fischl. NeuroImage, 2011.
+  http://dx.doi.org/10.1016/j.neuroimage.2011.02.076
+  http://reuter.mit.edu/papers/reuter-bias11.pdf 
+
+"""
+
+
+
+def options_parse():
+    """
+    Command Line Options Parser for long_mris_slopes
+    initiate the option parser and return the parsed object
+    """
+    parser = optparse.OptionParser(version='$Id: long_submit_jobs,v 1.1 2011/04/21 23:52:46 mreuter Exp $', usage=HELPTEXT)
+    
+    # help text
+    h_qdec      = '(REQUIRED) qdec table file specifying the subjects and time points'
+
+    h_cdir      = '(REQUIRED) use subjects dir for cross sectionals'
+    h_bdir      = 'use subjects dir for base runs (default: inherit from cross)'
+    h_ldir      = 'use subjects dir for long runs (default: inherit from base)'
+
+    h_cross     = 'process the cross sectionals'
+    h_base      = 'process the bases'
+    h_long      = 'process the longitudinals'
+    
+    h_cflags    = 'Manually specify flags for cross (e.g. --cflags \'-all -cw256\')'
+    h_bflags    = 'Manually specify flags for base (default: \'-all\')'
+    h_lflags    = 'Manually specify flags for long (default: \'-all\')'
+    
+    h_affine    = 'use affine registration for base'
+    h_force     = 'force reprocessing even if finished (recon-all.done)'
+    h_simulate  = 'do not submit anything, just print commands'
+    h_skip      = '0 (exit on missing), 1 (default, skip instead of exit), 2 (skip instead of wait)'
+    h_check     = 'check if all longitudinals are done'
+    h_pause     = 'pause in sec between submissions (default: 13)'
+    h_max       = 'max num of jobs of this user (default: 100)'
+    h_queue     = 'special queue to submit'
+    
+    # Add options 
+
+    # Sepcify inputs
+    parser.add_option('--qdec', dest='qdec', help=h_qdec)
+
+    # directories
+    parser.add_option('--cdir' , dest='cdir' , help=h_cdir)
+    parser.add_option('--bdir' , dest='bdir' , help=h_bdir)
+    parser.add_option('--ldir' , dest='ldir' , help=h_ldir)
+    
+    # do computations:
+    parser.add_option('--cross', action='store_true', dest='cross', help=h_cross , default=False)
+    parser.add_option('--base' , action='store_true', dest='base' , help=h_base  , default=False)
+    parser.add_option('--long' , action='store_true', dest='long' , help=h_long  , default=False)
+
+    # flags
+    parser.add_option('--cflags' , dest='cflags' , help=h_cflags)
+    parser.add_option('--bflags' , dest='bflags' , help=h_bflags)
+    parser.add_option('--lflags' , dest='lflags' , help=h_lflags)
+    
+    parser.add_option('--affine' , action='store_true', dest='affine', help=h_affine , default=False)
+    parser.add_option('--force'  , action='store_true', dest='force',  help=h_force , default=False)
+    parser.add_option('--simulate', action='store_true', dest='simulate',  help=h_simulate , default=False)
+    parser.add_option('--skip', dest='skip',  help=h_skip , default=1, type="int")
+    parser.add_option('--check', action='store_true', dest='check',  help=h_check , default=False)
+
+    parser.add_option('--pause' , dest='pause' , help=h_pause, default=13, type="float")
+    parser.add_option('--max'   , dest='max'   , help=h_max, default=100, type="int")
+    parser.add_option('--queue' , dest='queue' , help=h_queue)
+        
+    
+                      
+    (options, args) = parser.parse_args()
+
+    # WITHOUT FREESURFER DO NOTHING
+    fshome = os.getenv('FREESURFER_HOME')
+    if fshome is None:
+        print 'ERROR: environment variable FREESURFER_HOME not set'
+        sys.exit(1)
+
+    recall = os.path.join(fshome,"bin","recon-all")
+    if not os.path.exists(recall):
+        print 'ERROR: cannot find recon-all'
+        sys.exit(1)
+    
+    # extensive error checks
+    if options.qdec is None or options.cdir is None:
+        print 'ERROR: Specify --qedc and --cdir'
+        print '       or run with --help for help.'
+        sys.exit(1)
+
+    # setting all to true if not manually selected through parameters (unless check is true):
+    if options.cross is False and options.base is False and options.long is False and options.check is False:
+        options.cross = True
+        options.base  = True
+        options.long  = True
+        
+    if options.long:
+        options.check = True    
+        
+    if options.bdir is None:
+        options.bdir = options.cdir
+        
+    if options.ldir is None:
+        options.ldir = options.bdir
+        
+    options.cdir = os.path.abspath(options.cdir)
+    options.bdir = os.path.abspath(options.bdir)
+    options.ldir = os.path.abspath(options.ldir)
+    
+        
+    if options.cflags is None:
+        options.cflags = "-all"
+        
+    if options.bflags is None:
+        options.bflags = "-all"
+        
+    if options.lflags is None:
+        options.lflags = "-all"
+                   
+    return options
+
+
+
+def cp_recall(odir):
+    fshome = os.getenv('FREESURFER_HOME')
+    recall = os.path.join(fshome,"bin","recon-all")
+    orecall= os.path.join(odir,"recon-all")
+    if not os.path.exists(orecall):
+        shutil.copy(recall,orecall)
+#    else:
+#        print "Warning: recon-all already exists in "+odir+" !\n"        
+    return orecall
+
+    
+def wait_file(sdir,sid,lpath,interval):
+     # e.g. wait for norm.mgz in cross dirs while still running
+    fname = os.path.join(sdir,sid,lpath)
+    frun  = os.path.join(sdir,sid,"scripts","IsRunning.lh+rh")
+    waited=0
+    
+    while ( (not os.path.exists(fname)) and os.path.exists(frun)):
+        sys.stdout.write('.')
+        waited=1
+        time.sleep(interval)
+            
+    # maybe job stopped running before file was created?
+    if not os.path.exists(frun) and not os.path.exists(fname):
+        print("\n")
+        waited = 2
+        return waited
+    
+    #make sure norm is written
+    if waited==1:
+        time.sleep(20)
+        print("\n")
+        
+    return waited
+   
+   
+def check_file(sdir,sid,lpath):
+
+    spath = os.path.join(sdir,sid)
+    fname = os.path.join(sdir,sid,lpath)
+    frun  = os.path.join(sdir,sid,"scripts","IsRunning.lh+rh")
+    
+    if os.path.exists(fname) and os.access(fname,os.R_OK):
+        return 0 # file is there and readable
+       
+    if os.path.exists(frun):
+        return 1 # file is not there, but is running
+     
+    if os.path.exists(spath) and os.access(spath,os.R_OK) and os.access(spath,os.X_OK):
+        return 2    # file is not there and not running, directory exists and is rx
+        
+    if os.path.exists(spath):
+        return 3 # sid directory exists, but not rx
+        
+    return 4 # sid directory does not exist
+
+
+def run_cross(qdectable,options):
+    print "\n================ CROSS SECTIONAL PROCESSING ================\n\n"
+
+    if not os.path.exists(options.cdir):
+        print 'ERROR: Cross dir '+options.cdir+' does not exist!\n'
+        sys.exit(1)
+
+    # copy recon-all to cross dir:
+    recall = cp_recall(options.cdir)
+    
+    done     = []
+    running  = []
+    notexist = []
+    norights = []
+    submitted= 0
+    total = 0
+    for subjectid, tplist in qdectable.subjects_tp_map.items():
+        print '\n========================================\n'
+        print '[CROSS] Subject: '+subjectid+'\n'
+
+        # check if 2 or more time points
+        #if len(tplist) < 2 :
+        #    print 'ERROR: '+str(subjectid)+' must have at least 2 time points!'
+        #    sys.exit(1)
+
+        for tp in tplist:
+            tpid = tp[0]
+            print 'TP id: '+tpid+'\n'
+            total = total + 1
+            
+                        
+            # check if cross dir exists:
+            if not os.path.exists(os.path.join(options.cdir,tpid)):
+                print "ERROR [cross]: "+tpid+" does not exist in "+options.cdir+"\n";
+                notexist.append( (subjectid,tpid) )
+                if options.simulate:
+                    continue
+                if options.skip > 0:
+                    continue
+                sys.exit(1)
+                
+            
+            # skip if still running or done and no force
+            isrunning = os.path.join(options.cdir,tpid,"scripts","IsRunning.lh+rh")
+            isdone    = os.path.join(options.cdir,tpid,"scripts","recon-all.done")
+            if os.path.exists(isrunning):
+                print "WARNING: "+tpid+" seems to be still running ? Skipping ... \n"
+                running.append( (subjectid,tpid) )
+                continue
+            if os.path.exists(isdone) and not options.force:
+                print "Skipping cross "+tpid+"  (is done and no --force specified)\n"
+                done.append( (subjectid,tpid) )
+                continue
+
+            # check if read/write access:
+            tpcdir = os.path.join(options.cdir,tpid)
+            if not os.access(tpcdir,os.R_OK) or not os.access(tpcdir,os.X_OK) or not os.access(tpcdir,os.W_OK):
+                print "ERROR [cross]: "+tpid+" no rwx rights "+options.cdir+"\n";
+                norights.append( (subjectid,tpid) )
+                if options.simulate:
+                    continue
+                if options.skip > 0:
+                    continue
+                sys.exit(1)
+            
+            # create tp cross sectionally:
+            cmd = recall+" -s "+tpid+" -sd "+options.cdir+" "+options.cflags
+            if not options.simulate:
+                cmdf=os.path.join(options.cdir,tpid+"-cross.cmdf")
+                f = open(cmdf, 'w')
+                f.write(cmd+"\n")
+                f.close()
+                os.chmod(cmdf,stat.S_IRWXU)
+                wait_jobs(options.max)
+                submit(cmdf,1,options.queue)
+                submitted = submitted + 1
+                print "Submitted: "+str(submitted)+"\n"
+                time.sleep(options.pause)
+            else:
+                print cmd
+
+    print
+    print "CROSS STATS: " 
+    print 
+    print "total           : "+str(total)
+    print            
+    print "already done    : "+str(len(done))
+    print "already running : "+str(len(running))
+    print "submitted       : "+str(submitted)
+    print "dirs not exist  : "+str(len(notexist))
+    print "dirs no rights  : "+str(len(norights))
+    print
+
+    return submitted
+
+
+def run_base(qdectable,options):
+    print "\n===================== BASE PROCESSING =====================\n\n"
+
+    if not os.path.exists(options.cdir):
+        print 'ERROR: Cross dir '+options.cdir+' does not exist!\n'
+        sys.exit(1)
+        
+    if not os.path.exists(options.bdir):
+        os.mkdir(options.bdir)
+        
+    # copy recon-all to cross dir:
+    recall = cp_recall(options.bdir)
+   
+    done     = []
+    running  = []
+    notexist = []
+    norightsB= []
+    submitted= 0
+    total = 0
+    less2 = 0
+    for subjectid, tplist in qdectable.subjects_tp_map.items():
+        print '\n========================================\n'
+        print '[BASE] Subject: '+subjectid+'\n'
+        total = total+1
+
+        # check if 2 or more time points
+        if len(tplist) < 2 :
+            less2 = less2 + 1
+            print 'WARNING: '+str(subjectid)+' has less than 2 time points, skipping ...'
+            continue
+
+        basedir   = os.path.join(options.bdir,subjectid)
+        if os.path.exists(basedir) and not ( os.access(basedir,os.R_OK) and os.access(basedir,os.X_OK)and os.access(basedir,os.W_OK)):
+            print "ERROR [base]: "+subjid+" missing rwx rights in "+options.bdir+"\n";
+            norightsB.append( subjectid )
+            if options.simulate:
+                continue
+            if options.skip > 0:
+                continue
+            sys.exit(1)
+            
+
+        # skip if base still running or done and no force
+        isrunning = os.path.join(options.bdir,subjectid,"scripts","IsRunning.lh+rh")
+        isdone    = os.path.join(options.bdir,subjectid,"scripts","recon-all.done")
+        if os.path.exists(isrunning):
+            print "WARNING: "+subjectid+" seems to be still running ? Skipping ... \n"
+            running.append( subjectid )
+            continue
+        if os.path.exists(isdone) and not options.force:
+            print "Skipping base "+subjectid+"  (is done and no --force specified)\n"
+            done.append( subjectid )
+            continue
+
+        tpids = [entry[0] for entry in tplist]
+        tps   = ""
+        skip  = False
+        for tpid in tpids:
+            print 'TP id: '+tpid+'\n'
+            tps = tps+" -tp "+tpid
+
+            requirement = os.path.join("mri","norm.mgz")
+            status = check_file(options.cdir,tpid,requirement)
+            
+            if status >= 2: # not there and not running:
+                print "ERROR [base]: "+tpid+" (norm.mgz) does not exist or not readable in "+options.cdir;
+                print "               and no IsRunning.lh+rh found!\n";
+                notexist.append( (subjectid,tpid) )
+                if options.simulate:
+                    continue # check other time points
+                if options.skip > 0:
+                    print "  ... skipping instead of exit ..."
+                    skip = True
+                    break # skip this base below
+                sys.exit(1)
+       
+            if status == 1: # not there and still running:
+                # if skipping >= 2: don't wait for complete base below
+                if options.skip >= 2:
+                    print "WARNING [base]: "+tpid+" missing norm.mgz. Skipping base..."
+                    if options.simulate:
+                        continue # check other time points
+                    skip = True
+                    break  # skip this base below
+
+    
+            #if simulate don't wait or create links
+            if options.simulate:
+                continue;
+
+            # wait for norm.mgz in cross dirs
+            tpincdir =  os.path.join(options.cdir,tpid)
+            status = wait_file(options.cdir,tpid,requirement,60)
+            if status >= 2: # not there and not running:
+                print "ERROR [base]: "+tpid+" (norm.mgz) does not exist or not readable in "+options.cdir;
+                print "               and no IsRunning.lh+rh found!\n";
+                notexist.append( (subjectid,tpid) )
+                if options.simulate:
+                    continue # check other time points
+                if options.skip > 0:
+                    print "  ... skipping instead of exit ..."
+                    skip = True
+                    break # skip this base below
+                sys.exit(1)
+            
+    
+            #link cross dir:
+            tpinbdir = os.path.join(options.bdir,tpid)
+            if not os.path.exists(tpinbdir):
+                os.symlink(tpincdir, tpinbdir)
+        # end loop tpids
+        
+        if skip:
+            #echo "WARNING $base has missing cross sectionals. Skipping ..."
+            continue
+
+        #determine nodes (mem usage)
+        nodes = 1
+        if len(tpids) > 3:
+            nodes = 2
+        if len(tpids) > 5:
+            nodes = 3
+        if len(tpids) > 7:
+            nodes = 4
+
+
+        baseflag = " -base "
+        if options.affine:
+            baseflag = " -base-affine "
+            # also maybe adjust nodes number
+            if nodes < 4: nodes = nodes+1
+            
+        cmd = recall+" -sd "+options.bdir+baseflag+subjectid+tps+" "+options.bflags
+        if not options.simulate:
+            cmdf=os.path.join(options.bdir,subjectid+"-base.cmdf")
+            f = open(cmdf, 'w')
+            f.write(cmd+"\n")
+            f.close()
+            os.chmod(cmdf,stat.S_IRWXU)
+            wait_jobs(options.max)
+            submit(cmdf,nodes,options.queue)
+            submitted = submitted + 1
+            print "Submitted: "+str(submitted)+"\n"
+            time.sleep(options.pause)
+        else:
+            print cmd
+
+    print "\nBASE STATS: "                
+    print "submitted: "+str(submitted)+"\n"
+    
+    print "already done    : "+str(len(done))
+    print "already running : "+str(len(running))
+    print "dirs not exist  : "+str(len(notexist))
+
+    return submitted
+
+
+
+def run_long(qdectable,options):
+    print "\n================ LONGITUDINAL PROCESSING ================\n\n"
+
+    if not os.path.exists(options.cdir):
+        print 'ERROR: Cross dir '+options.cdir+' does not exist!\n'
+        sys.exit(1)
+
+    if not os.path.exists(options.bdir):
+        print 'ERROR: Base dir '+options.bdir+' does not exist!\n'
+        sys.exit(1)
+        
+    if not os.path.exists(options.ldir):
+        os.mkdir(options.ldir)
+        
+    # copy recon-all to cross dir:
+    recall = cp_recall(options.cdir)
+    
+    done     = []
+    running  = []
+    notexist = []
+    nobase   = []
+    norights = []
+    submitted= 0
+    for subjectid, tplist in qdectable.subjects_tp_map.items():
+        print '\n========================================\n'
+        print '[LONG] Subject: '+subjectid+'\n'
+
+        # check if 2 or more time points
+        if len(tplist) < 2 :
+            print 'WARNING: '+str(subjectid)+' has less than 2 time points, skipping ...'
+            continue
+
+
+        requirement = os.path.join("scripts","recon-all.done")
+        status = check_file(options.bdir,subjectid,requirement)
+            
+        if status >= 2: # not there and not running:
+            print "ERROR [long]: "+subjectid+" not complete (or not readable) in "+options.bdir;
+            print "               and no IsRunning.lh+rh found!\n";
+            nobase.append( subjectid )
+            if options.skip > 0:
+                print "  ... skipping instead of exit ..."
+                continue
+            if not options.simulate:
+                sys.exit(1)
+       
+        if status == 1: # not there and still running:
+            # if skipping >= 2: don't wait for complete base below
+            if options.skip >= 2:
+                print "WARNING [long]: "+subjectid+" base not complete. Skipping longs..."
+                if not options.simulate:
+                    continue  # skip this subject
+            # wait for requirement    
+            if not options.simulate:
+                status = wait_file(os.path.join(options.bdir,subjectid,requirement),60)
+                if status >= 2: # not there and not running anymore:
+                    print "ERROR [long]: "+subjectid+" not complete (or not readable) in "+options.bdir;
+                    print "               and no IsRunning.lh+rh found!\n";
+                    nobase.append( subjectid )
+                    if options.skip > 0:
+                        print "  ... skipping instead of exit ..."
+                        continue
+                    if not options.simulate:
+                        sys.exit(1)
+            else:
+                print "Simulate: would wait for base "+subjectsid+" here ...\n"
+
+        #link base dir if not simulate:
+        baseinbdir = os.path.join(options.bdir,subjectid)
+        baseinldir = os.path.join(options.ldir,subjectid)
+        if not options.simulate and not os.path.exists(baseinldir):
+            os.symlink(baseinbdir, baseinldir)
+            
+        # check / wait for ALL aseg.mgz in cross tps
+        skip = False
+        for tp in tplist:
+            tpid = tp[0]
+            print 'CHECK TP cross: '+tpid+'\n'
+            
+            requirement = os.path.join("mri","aseg.mgz")
+            status = check_file(options.cdir,tpid,requirement)
+
+            if status >= 2: # not there and not running:
+                print "ERROR [long]: "+tpid+" (aseg.mgz) does not exist or not readable in "+options.cdir;
+                print "               and no IsRunning.lh+rh found!\n";
+                notexist.append( (subjectid,tpid) )
+                if options.simulate:
+                    continue # check other time points
+                if options.skip > 0:
+                    print "  ... skipping instead of exit ..."
+                    skip = True
+                    break # skip this base below
+                sys.exit(1)
+       
+            if status == 1: # not there and still running:
+                # if skipping >= 2: don't wait for complete base below
+                if options.skipping >= 2:
+                    print "WARNING [long]: "+tpid+" missing norm.mgz. Skipping longs ..."
+                    if options.simulate:
+                        continue # check other time points
+                    skip = True
+                    break  # skip this subject below
+                
+            #if simulate don't wait or create links
+            if options.simulate:
+                continue;
+
+            # wait for requirement in cross dirs
+            status = wait_file(options.cdir,tpid,requirement,60)
+            if status >= 2: # not there and not running:
+                print "ERROR [long]: "+tpid+" (aseg.mgz) does not exist or not readable in "+options.cdir;
+                print "               and no IsRunning.lh+rh found!\n";
+                notexist.append( (subjectid,tpid) )
+                if options.simulate:
+                    continue # check other time points
+                if options.skip > 0:
+                    print "  ... skipping instead of exit ..."
+                    skip = True
+                    break # skip this base below
+                sys.exit(1)
+            
+    
+            #link cross dir:
+            tpincdir = os.path.join(options.cdir,tpid)
+            tpinbdir = os.path.join(options.bdir,tpid)
+            if not os.path.exists(tpinldir):
+                os.symlink(tpincdir, tpinldir)
+                  
+        # end loop tpids
+                
+        if skip:
+            #print "WARNING subject has missing cross sectionals. Skipping ..."
+            continue
+            
+                
+        for tp in tplist:
+            tpid = tp[0]
+            print 'RUN TP long: '+tpid+'\n'
+
+   
+            # skip if still running or done and no force
+            isrunning = os.path.join(options.ldir,tpid+".long."+subjectid,"scripts","IsRunning.lh+rh")
+            isdone    = os.path.join(options.ldir,tpid+".long."+subjectid,"scripts","recon-all.done")
+            if os.path.exists(isrunning):
+                print "WARNING: "+tpid+".long."+subjectid+" seems to be still running ? Skipping ... \n"
+                running.append( (subjectid,tpid) )
+                continue
+            if os.path.exists(isdone) and not options.force:
+                print "Skipping long "+tpid+".long."+subjectid+"  (is done and no --force specified)\n"
+                done.append( (subjectid,tpid) )
+                continue
+                
+            tpiddir = os.path.join(options.ldir,tpid+".long."+subjectid)
+            if os.path.exists(tpiddir) and not (os.access(tpiddir,os.R_OK) and os.access(tpiddir,os.X_OK) and os.access(tpiddir,os.W_OK)):
+                print "ERROR [long]: "+tpid+".long."+subjectid+" missing rwx rights in "+options.ldir+"\n";
+                norights.append( (subjectid,tpid) )
+                if options.simulate:
+                    continue
+                if options.skip > 0:
+                    continue
+                sys.exit(1)
+            
+            
+            cmd = recall+" -sd "+options.ldir+" -long "+tpid+" "+subjectid+" "+options.lflags
+            if not options.simulate:
+                cmdf=os.path.join(options.ldir,tpid+"-long.cmdf")
+                f = open(cmdf, 'w')
+                f.write(cmd+"\n")
+                f.close()
+                os.chmod(cmdf,stat.S_IRWXU)
+                wait_jobs(options.max)
+                submit(cmdf,1,options.queue)
+                submitted = submitted + 1
+                print "Submitted: "+str(submitted)+"\n"
+                time.sleep(options.pause)
+            else:
+                print cmd
+        # end loop tpids
+    # end loop subjects
+
+    print "\nLONG STATS: "                
+    print "submitted: "+str(submitted)+"\n"
+    
+    print "already done    : "+str(len(done))
+    print "already running : "+str(len(running))
+    print "dirs not exist  : "+str(len(notexist))
+    print "base not exist  : "+str(len(nobase))
+
+    return submitted
+
+def check_long(qdectable,options):
+
+    # wait for outputs if we have processed longs
+    wait = options.long
+
+    print "\n================ LONGITUDINAL CHECKING ================\n\n"
+
+    if not os.path.exists(options.ldir):
+        print 'ERROR: Long dir '+options.ldir+' does not exist!\n'
+        sys.exit(1)
+
+    doneids = 0
+    allids = 0
+    alltps = 0
+    donetps = 0
+    notexist = []
+    running = []
+    for subjectid, tplist in qdectable.subjects_tp_map.items():
+        allids = allids + 1
+        alltps = alltps + len(tplist)
+        print '\n========================================\n'
+        print '[CHECK] Subject: '+subjectid+'\n'
+
+        # check if 2 or more time points
+        if len(tplist) < 2 :
+            print 'WARNING: '+str(subjectid)+' has less than 2 time points, skipping ...'
+            continue
+
+
+        # check / wait for ALL aseg.mgz in cross tps
+        done = 0;
+        for tp in tplist:
+            tpid = tp[0]
+            print 'CHECK TP id (long): '+tpid,  #no newline here
+                
+            tpdir=tpid+".long."+subjectid
+            requirement = os.path.join("scripts","recon-all.done")
+            status = check_file(options.ldir,tpdir,requirement)
+
+            if status == 0:
+                print "DONE"
+                done = done + 1
+                donetps = donetps +1
+                continue
+
+            if status == 2: # not there and not running:
+                print "\nERROR [check]: "+tpdir+" not done in "+options.ldir;
+                print "               and no IsRunning.lh+rh found!\n";
+                notexist.append( (subjectid,tpid) )
+                if options.skip > 0:
+                    print "  ... skipping instead of exit ...\n"
+                    continue 
+                sys.exit(1)
+       
+            # status == 1
+            # not there and still running:
+                
+            #if simulate don't wait
+            if not wait:
+                print "\nWarning [check]: "+tpdir+" not done in "+options.ldir;            
+                print "               but IsRunning.lh+rh found!\n";
+                running.append( (subjectid,tpid) )
+                continue;
+
+            # wait for requirement in longidr dirs
+            status = wait_file(options.ldir,tpdir,requirement,60)
+            if status == 2: # not there and not running:
+                print "\nERROR [check]: "+tpdir+" not done in "+options.cdir;
+                print "               and no IsRunning.lh+rh found!\n";
+                notexist.append( (subjectid,tpid) )
+                if options.skip > 0:
+                    print "  ... skipping instead of exit ...\n"
+                    continue
+                sys.exit(1)
+            else:
+                print "DONE"
+                done = done + 1
+                donetps = donetps + 1
+            
+        if done == len(tplist):
+            doneids = doneids+ 1
+        
+    print '\n========================================\n'
+    print "CHECK STATS: \n"
+    
+    if len(running) > 0:
+       print "STILL RUNNING "+str(len(running))+" :"
+       for base, tp in running:
+           print base+" TP: "+tp
+#           print '{0} TP: {1}'.format(base, tp)
+
+    if len(notexist) > 0:
+       print "STALLED "+str(len(notexist))+" :"
+       for base, tp in notexist:
+           print base+" TP: "+tp
+#           print '{0} TP: {1}'.format(base, tp)
+    
+                    
+    print "\nDONE tps : "+str(donetps)+" of total: "+str(alltps)
+    print "DONE sbj : "+str(doneids)+" of total: "+str(allids)
+    
+    if not wait:
+        print "running  : "+str(len(running))
+    
+    print "stalled  : "+str(len(notexist))
+    print
+  
+
+    
+
+if __name__=="__main__":
+    # Command Line options and error checking done here
+    options = options_parse()
+    logger.debug('-- The options you entered --')
+    logger.debug(options) 
+
+    defaultvar  = ''
+    subjectsdir = ''
+    # Parse the stats files 
+    print 'Parsing the qdec table: '+options.qdec
+    try:
+        logger.debug('Processing file ' + options.qdec)
+        qdectable = LongQdecTable(options.qdec)
+        #subjects_tp_map, variables, subjectdir = qdecparse.parse()
+    except BadFileError, e:
+        print 'ERROR: qdec table '+str(e)+' not found!'
+        sys.exit(1)
+
+#    user = os.getenv('USER')
+
+    if options.cross:
+        run_cross(qdectable,options)
+       
+    if options.base:
+        if options.cross: time.sleep(options.pause)
+        run_base(qdectable,options)
+    
+    if options.long:
+        if options.base: time.sleep(options.pause)
+        run_long(qdectable,options)
+
+    if options.check or options.long:
+        if options.long: time.sleep(options.pause)
+        check_long(qdectable,options)
+       
+    # always exit with 0 exit code
+    sys.exit(0)
