@@ -7,21 +7,19 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: twitzel $
- *    $Date: 2010/07/15 15:29:33 $
- *    $Revision: 1.13 $
+ *    $Author: greve $
+ *    $Date: 2011/04/21 19:50:06 $
+ *    $Revision: 1.14.2.1 $
  *
- * Copyright (C) 2002-2007,
- * The General Hospital Corporation (Boston, MA). 
- * All rights reserved.
+ * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
- * Distribution, usage and copying of this software is covered under the
- * terms found in the License Agreement file named 'COPYING' found in the
- * FreeSurfer source code root directory, and duplicated here:
- * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ * Terms and conditions for use, reproduction, distribution and contribution
+ * are found in the 'FreeSurfer Software License Agreement' contained
+ * in the file 'LICENSE' found in the FreeSurfer distribution, and here:
  *
- * General inquiries: freesurfer@nmr.mgh.harvard.edu
- * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
+ *
+ * Reporting: freesurfer@nmr.mgh.harvard.edu
  *
  */
 
@@ -745,6 +743,7 @@ float EVScb1Error(EVSCH *EvSch)
 int EVScostId(char *CostString)
 {
   if (! strcmp("eff",CostString) )       return(EVS_COST_EFF);
+  if (! strcmp("effinv",CostString) )    return(EVS_COST_EFF_INV);
   if (! strcmp("vrfavg",CostString) )    return(EVS_COST_VRFAVG);
   if (! strcmp("vrfstd",CostString) )    return(EVS_COST_VRFSTD);
   if (! strcmp("vrfavgstd",CostString) ) return(EVS_COST_VRFAVGSTD);
@@ -766,6 +765,9 @@ char *EVScostString(int CostId)
     break;
   case EVS_COST_EFF:
     return("eff");
+    break;
+  case EVS_COST_EFF_INV:
+    return("effinv");
     break;
   case EVS_COST_VRFAVG:
     return("vrfavg");
@@ -795,6 +797,10 @@ float EVScost(EVSCH *EvSch, int CostId, float *params)
   case EVS_COST_EFF:
     /* efficiency */
     EvSch->cost = EvSch->eff;
+    break;
+  case EVS_COST_EFF_INV:
+    /* 1/efficiency -- get worst schedule*/
+    EvSch->cost = 1./(EvSch->eff+.000000000001);
     break;
   case EVS_COST_VRFAVG:
     /* variance reduction factor averaged across task estimates */

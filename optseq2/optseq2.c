@@ -10,19 +10,18 @@
  * Original Author: Doug Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2010/03/02 18:26:21 $
- *    $Revision: 2.20 $
+ *    $Date: 2011/04/21 19:50:06 $
+ *    $Revision: 2.21.2.1 $
  *
- * Copyright (C) 2002-2010,
- * The General Hospital Corporation (Boston, MA). 
- * All rights reserved.
+ * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
- * Distribution, usage and copying of this software is covered under the
- * terms found in the License Agreement file named 'COPYING' found in the
- * FreeSurfer source code root directory, and duplicated here:
- * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ * Terms and conditions for use, reproduction, distribution and contribution
+ * are found in the 'FreeSurfer Software License Agreement' contained
+ * in the file 'LICENSE' found in the FreeSurfer distribution, and here:
  *
- * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
+ *
+ * Reporting: freesurfer@nmr.mgh.harvard.edu
  *
  */
 
@@ -77,7 +76,7 @@ Can something be done to affect the off-diagonals?
 #undef X
 #endif
 
-static char vcid[] = "$Id: optseq2.c,v 2.20 2010/03/02 18:26:21 greve Exp $";
+static char vcid[] = "$Id: optseq2.c,v 2.21.2.1 2011/04/21 19:50:06 greve Exp $";
 char *Progname = NULL;
 
 static int  parse_commandline(int argc, char **argv);
@@ -180,7 +179,7 @@ int main(int argc, char **argv) {
   int nargs;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: optseq2.c,v 2.20 2010/03/02 18:26:21 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: optseq2.c,v 2.21.2.1 2011/04/21 19:50:06 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -876,7 +875,7 @@ static void print_usage(void) {
   printf("  --pen alpha T dtmin: penalize for presentations being too close\n");
   printf("  --evc c1 c2 ... cN : event contrast\n");
   printf("  --C cmtx : load contrast from ascii cmtx\n");
-  printf("  --cost name <params>: eff, vrfavg, vrfavgstd\n");
+  printf("  --cost name <params>: eff, vrfavg, vrfavgstd, effinv\n");
   printf("\n");
   printf("  --sumdelays : sum delays when forming contrast matrix\n");
   printf("  --seed seedval : initialize random number generator to seedval\n");
@@ -1066,13 +1065,13 @@ static void print_help(void) {
          "--cost costname <params> \n"
          " \n"
          "Specify cost function. Legal values are eff, vrfavg, \n"
-         "vrfavgstd. Default is eff. params as any parameters which accompany \n"
+         "vrfavgstd, effinv. Default is eff. params as any parameters which accompany \n"
          "the given cost function. eff is the cost function which maximizes \n"
          "efficiency (no parameters). vrfavg is the cost function which \n"
          "maximizes the average Variance Reduction Factor (VRF) (no \n"
          "parameters). vrfavgstd maximizes a weighted combination of the average \n"
          "and stddev VRF; there is one parameter, the weight give to the stddev \n"
-         "component. \n"
+         "component. effinv optimizes 1/eff to find the worst schedules\n"
          " \n"
          "--sumdelays \n"
          " \n"
