@@ -286,7 +286,7 @@ STATSDIRS=\
 	stat_normalize
 
 MISCDIRS=\
-	Atlas3D \
+	GEMS \
 	histo_compute_joint_density \
 	histo_register_block \
 	regdat2xfm \
