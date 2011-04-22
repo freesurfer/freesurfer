@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2011/03/21 21:27:40 $
- *    $Revision: 1.62 $
+ *    $Date: 2011/04/22 18:49:30 $
+ *    $Revision: 1.63 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -891,10 +891,27 @@ bool FSVolume::UpdateMRIFromImage( vtkImageData* rasImage, bool resampleToOrigin
         {
           for ( int nFrame = 0; nFrame < mri->nframes; nFrame++ )
           {
-            void* buf = (char*)&MRIseq_vox( mri, i, j, k, nFrame);
-            void* ptr = (char*)rasImage->GetScalarPointer( i, j, k )
-                        + nFrame * rasImage->GetScalarSize();
-            memcpy( buf, ptr, rasImage->GetScalarSize() );
+            float val = rasImage->GetScalarComponentAsFloat(i, j, k, nFrame);
+            switch ( mri->type )
+            {
+            case MRI_UCHAR:
+              MRIseq_vox( mri, i, j, k, nFrame ) = (unsigned char)val;
+              break;
+            case MRI_INT:
+              MRIIseq_vox( mri, i, j, k, nFrame ) = (int)val;
+              break;
+            case MRI_LONG:
+              MRILseq_vox( mri, i, j, k, nFrame ) = (long)val;
+              break;
+            case MRI_FLOAT:
+              MRIFseq_vox( mri, i, j, k, nFrame ) = val;
+              break;
+            case MRI_SHORT:
+              MRISseq_vox( mri, i, j, k, nFrame ) = (short)val;
+              break;
+            default:
+              break;
+            }
           }
         }
       }
