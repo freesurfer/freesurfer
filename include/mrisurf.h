@@ -9,8 +9,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2011/03/16 18:03:59 $
- *    $Revision: 1.351 $
+ *    $Date: 2011/04/22 13:59:04 $
+ *    $Revision: 1.352 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -1545,6 +1545,7 @@ int  MRISreadDecimation(MRI_SURFACE *mris, char *fname) ;
 #define VERTEX_DY          7
 #define VERTEX_DZ          8
 #define VERTEX_STATS       9
+#define VERTEX_LOGODDS     10
 
 
 int MRISclearOrigArea(MRI_SURFACE *mris) ;
@@ -1694,6 +1695,7 @@ int MRISvertexNormalInVoxelCoords(MRI_SURFACE *mris,
  }
 
 #include "label.h" // LABEL
+int MRISlogOdds(MRI_SURFACE *mris, LABEL *area, double slope)  ;
 MRI_SP  *MRISPorLabel(MRI_SP *mrisp, MRI_SURFACE *mris, LABEL *area) ;
 MRI_SP  *MRISPandLabel(MRI_SP *mrisp, MRI_SURFACE *mris, LABEL *area) ;
 MRI *MRISlabel2Mask(MRIS *surf, LABEL *lb, MRI *mask);

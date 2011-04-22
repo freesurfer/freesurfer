@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/24 13:05:06 $
- *    $Revision: 1.695 $
+ *    $Author: fischl $
+ *    $Date: 2011/04/22 13:59:04 $
+ *    $Revision: 1.696 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -735,7 +735,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void)
 {
-  return("$Id: mrisurf.c,v 1.695 2011/03/24 13:05:06 nicks Exp $");
+  return("$Id: mrisurf.c,v 1.696 2011/04/22 13:59:04 fischl Exp $");
 }
 
 /*-----------------------------------------------------
@@ -69268,3 +69268,26 @@ mrisProjectOntoSurface(MRI_SURFACE *mris, int which_vertices)
   return(NO_ERROR) ;
 }
 
+int
+MRISlogOdds(MRI_SURFACE *mris, LABEL *area, double slope) 
+{
+  int    vno ;
+  VERTEX *v ;
+  double p ;
+
+  MRISdistanceTransform(mris, area, DTRANS_MODE_SIGNED) ;
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    v = &mris->vertices[vno] ;
+    if (v->ripflag)
+      continue ;
+    if (vno == Gdiag_no)
+      DiagBreak() ;
+    p = v->val ;
+    if (p < 0)
+      p = 0 ;
+    p = exp(-p*slope) ;
+    v->val = p ;
+  }
+  return(NO_ERROR) ;
+}
