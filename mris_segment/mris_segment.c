@@ -9,8 +9,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2011/04/22 13:48:38 $
- *    $Revision: 1.4 $
+ *    $Date: 2011/04/22 17:16:58 $
+ *    $Revision: 1.5 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -130,29 +130,6 @@ MRIcmatDotProductFrames(MRI *mri1, int frame1, MRI *mri2, int frame2, VECTOR *v_
     VECTOR_ELT(v_dot, r1+1) = dot ;
   }
   return(v_dot) ;
-}
-int
-MRISlogOdds(MRI_SURFACE *mris, LABEL *area, double slope) 
-{
-  int    vno ;
-  VERTEX *v ;
-  double p ;
-
-  MRISdistanceTransform(mris, area, DTRANS_MODE_SIGNED) ;
-  for (vno = 0 ; vno < mris->nvertices ; vno++)
-  {
-    v = &mris->vertices[vno] ;
-    if (v->ripflag)
-      continue ;
-    if (vno == Gdiag_no)
-      DiagBreak() ;
-    p = v->val ;
-    if (p < 0)
-      p = 0 ;
-    p = exp(-p*slope) ;
-    v->val = p ;
-  }
-  return(NO_ERROR) ;
 }
 
 int
@@ -424,7 +401,7 @@ main(int argc, char *argv[])
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mris_segment.c,v 1.4 2011/04/22 13:48:38 fischl Exp $",
+           "$Id: mris_segment.c,v 1.5 2011/04/22 17:16:58 fischl Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
   {
