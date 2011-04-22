@@ -9,8 +9,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2011/04/22 13:47:30 $
- *    $Revision: 1.3 $
+ *    $Date: 2011/04/22 13:48:38 $
+ *    $Revision: 1.4 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -244,7 +244,7 @@ classify_subject(MRI_SURFACE *mris, LABEL *prior_label, MRI *mri_cmat,
   int    start_index, end_index, sno, vno, ind, vno2, nvertices, nevals ;
   MRI    *mri_out ;
   MATRIX *m_train ;
-  double dot, max_dot, logp, var, val, val2, ll_in, ll_out ;
+  double dot, max_dot, logp, val, val2, ll_in, ll_out ;
   VECTOR *v_test, *v_in_vars, *v_in_means, *v_out_means, *v_out_vars ;
   LABEL  *area ;
   VERTEX *v ;
@@ -370,7 +370,8 @@ classify_subject(MRI_SURFACE *mris, LABEL *prior_label, MRI *mri_cmat,
       v->val2 = ll_in ;
       v->val2bak = ll_out ;
       if (vno == Gdiag_no)
-        printf("v %d: ll_in = %2.4f, ll_out = %2.4f, prior = %2.4f\n", ll_in, ll_out, v->val) ;
+        printf("v %d: ll_in = %2.4f, ll_out = %2.4f, prior = %2.4f\n", 
+               Gdiag_no, ll_in, ll_out, v->val) ;
       ll_in += log(v->val) ;
       if (FEQUAL(v->val, 1))
         ll_out += log(1e-10) ;
@@ -423,7 +424,7 @@ main(int argc, char *argv[])
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mris_segment.c,v 1.3 2011/04/22 13:47:30 fischl Exp $",
+           "$Id: mris_segment.c,v 1.4 2011/04/22 13:48:38 fischl Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
   {
