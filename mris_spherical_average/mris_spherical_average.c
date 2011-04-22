@@ -7,9 +7,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:34 $
- *    $Revision: 1.30 $
+ *    $Author: fischl $
+ *    $Date: 2011/04/22 17:47:13 $
+ *    $Revision: 1.31 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -44,7 +44,7 @@
 #include "label.h"
 #include "version.h"
 
-static char vcid[] = "$Id: mris_spherical_average.c,v 1.30 2011/03/02 00:04:34 nicks Exp $";
+static char vcid[] = "$Id: mris_spherical_average.c,v 1.31 2011/04/22 17:47:13 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -73,6 +73,7 @@ static int segment = 0 ;  // not implemented yet
 static int which_ic = 7 ;
 static char *sdir = NULL ;
 static char *osdir = NULL ;
+static double logodds_slope = 0.1 ;
 
 static int spatial_prior_avgs = 0 ;
 static char *spatial_prior_fname = NULL ;
@@ -90,10 +91,10 @@ main(int argc, char *argv[]) {
 
   char cmdline[CMD_LINE_LEN] ;
 
-  make_cmd_version_string (argc, argv, "$Id: mris_spherical_average.c,v 1.30 2011/03/02 00:04:34 nicks Exp $", "$Name:  $", cmdline);
+  make_cmd_version_string (argc, argv, "$Id: mris_spherical_average.c,v 1.31 2011/04/22 17:47:13 fischl Exp $", "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_spherical_average.c,v 1.30 2011/03/02 00:04:34 nicks Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_spherical_average.c,v 1.31 2011/04/22 17:47:13 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -154,6 +155,12 @@ main(int argc, char *argv[]) {
     if (strlen(dir) == 0)
       strcpy(dir, "label") ;
   }
+  else if (!stricmp(argv[1], "logodds"))
+  {
+    which = VERTEX_LOGODDS ;
+    if (strlen(dir) == 0)
+      strcpy(dir, "label") ;
+  }
   else
     usage_exit() ;
 
@@ -192,7 +199,8 @@ main(int argc, char *argv[]) {
         ErrorExit(ERROR_BADPARM, "could not read surface positions from %s", orig_name) ;
       MRISsaveVertexPositions(mris, ORIGINAL_VERTICES) ;
     }
-    if (which == VERTEX_LABEL)  // read orig coords in case we need to assign vertices
+    // read orig coords in case we need to assign vertices
+    if (which == VERTEX_LABEL || which == VERTEX_LOGODDS)  
     {
       if (MRISreadOriginalProperties(mris, orig_name) != NO_ERROR)
         ErrorExit(ERROR_BADPARM, "could not read surface positions from %s", orig_name) ;
@@ -224,6 +232,37 @@ main(int argc, char *argv[]) {
       MRIScopyCurvatureToValues(mris) ; // MRIScombine will use v->val
       break ;
     }
+    case VERTEX_LOGODDS:
+      if (i == FIRST_SUBJECT)
+        area_avg = LabelAlloc(mris_avg->nvertices, NULL, data_fname) ;
+      if (strchr(data_fname, '/') != NULL)
+        strcpy(fname, data_fname) ;
+      else
+        sprintf(fname, "%s/%s/%s/%s", sdir, argv[i], dir, data_fname) ;
+      area = LabelRead(NULL, fname) ;
+      if (!area)
+        ErrorExit(ERROR_BADFILE,"%s: could not read label file %s for %s.\n",
+                  Progname, data_fname, argv[i]);
+      if (reassign)
+        LabelUnassign(area) ;
+      LabelFillUnassignedVertices(mris, area, ORIG_VERTICES) ;
+      if (argc-1-FIRST_SUBJECT > 1)
+        LabelSetStat(area, 1) ;
+      else
+        printf("only %d subject - copying statistics...\n", argc-1-FIRST_SUBJECT );
+      if (navgs > 0)
+      {
+        int i ;
+        LabelMarkStats(area, mris) ;
+        LabelFree(&area) ;
+        MRISaverageMarkedStats(mris, navgs) ;
+        area = LabelFromMarkedSurface(mris) ;
+        for (i = 0 ; i < area->n_points ; i++)
+          if (FZERO(area->lv[i].stat))
+            DiagBreak() ;
+      }
+      MRISlogOdds(mris, area, logodds_slope) ;
+      break ;
     case VERTEX_LABEL:
       if (i == FIRST_SUBJECT)
         area_avg = LabelAlloc(mris_avg->nvertices, NULL, data_fname) ;
@@ -374,6 +413,7 @@ main(int argc, char *argv[]) {
         LabelErode(area, mris, erode) ;
       LabelWrite(area, out_fname) ;
       break ;
+    case VERTEX_LOGODDS:
     case VERTEX_VALS:
       //      MRIScopyCurvatureToValues(mris) ;
       MRISwriteValues(mris, out_fname) ;
