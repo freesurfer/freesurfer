@@ -1,0 +1,255 @@
+# data file for the Fltk User Interface Designer (fluid)
+version 1.0107 
+header_name {.h} 
+code_name {.cxx}
+class kvlAtlasMeshSegmenterConsoleGUI {open
+} {
+  Function {kvlAtlasMeshSegmenterConsoleGUI()} {} {
+    Fl_Window m_Window {
+      callback {exit( 0 );} open
+      xywh {137 24 1765 1105} type Double visible
+    } {
+      Fl_Group m_ImageViewer {
+        label Image
+        callback {//this->SelectTriangleContainingPoint( Fl::event_x(), m_ImageViewer->h() - Fl::event_y() );}
+        xywh {20 28 512 512} box FLAT_BOX color 0
+        code0 {\#include "kvlImageViewer.h"}
+        class {kvl::ImageViewer}
+      } {}
+      Fl_Group m_PriorViewer {
+        label Prior
+        callback {//this->SelectTriangleContainingPoint( Fl::event_x(), m_PriorViewer->h() - Fl::event_y() );}
+        xywh {20 569 512 512} box FLAT_BOX color 0
+        class {kvl::ImageViewer}
+      } {}
+      Fl_Group m_PosteriorViewer {
+        label Posterior
+        callback {//this->SelectCurrentTriangleContainingPoint( Fl::event_x(), m_PosteriorViewer->h() - Fl::event_y() );}
+        xywh {570 570 512 512} box FLAT_BOX color 0
+        class {kvl::ImageViewer}
+      } {}
+      Fl_Group m_ReconstructionViewer {
+        label Reconstruction
+        callback {//this->SelectTriangleContainingPoint( Fl::event_x(), m_ReconstructionViewer->h() - Fl::event_y() );}
+        xywh {570 28 512 512} box FLAT_BOX color 0
+        class {kvl::ImageViewer}
+      } {}
+      Fl_Button {} {
+        label {Go!}
+        callback {this->Segment();}
+        xywh {1215 840 105 25}
+      }
+      Fl_Check_Button m_ShowMesh {
+        label {Show mesh:}
+        callback {m_LabelSelecter->do_callback();}
+        xywh {1130 620 25 25} down_box DOWN_BOX align 8
+      }
+      Fl_Check_Button m_ShowAlphasEstimationIterations {
+        label {Show alphas estimation iterations:}
+        xywh {1130 770 25 25} down_box DOWN_BOX value 1 align 8
+      }
+      Fl_Check_Button m_ShowGradient {
+        label {Show gradient:}
+        callback {m_LabelSelecter->do_callback();}
+        xywh {1130 720 40 25} down_box DOWN_BOX align 8
+      }
+      Fl_Button {} {
+        label Interrupt
+        callback {this->Interrupt();}
+        xywh {1215 885 105 25}
+      }
+      Fl_Button {} {
+        label Step
+        callback {this->Step();}
+        xywh {1215 935 105 25}
+      }
+      Fl_Button {} {
+        label Continue
+        callback {this->Continue();}
+        xywh {1215 980 105 25}
+      }
+      Fl_Progress m_Progress {
+        label Inactive
+        xywh {1130 1050 290 25}
+      }
+      Fl_Check_Button m_ShowOverlay {
+        label {Show overlay:}
+        callback {m_LabelSelecter->do_callback();}
+        xywh {1130 670 25 25} down_box DOWN_BOX value 1 align 8
+      }
+      Fl_Browser m_LabelSelecter {
+        label {Select label:}
+        callback {if ( m_LabelSelecter->value() )
+  {
+  this->DisplayLabel( m_LabelSelecter->value() - 1 );
+  }}
+        xywh {1120 30 330 345} type Hold align 1
+      }
+      Fl_Group {} {
+        label Transformation
+        xywh {1120 401 380 190} box DOWN_BOX
+      } {
+        Fl_Value_Input m_RotX {
+          label {Rot X:}
+          xywh {1185 414 60 25} when 4 minimum -100 maximum 100
+        }
+        Fl_Value_Input m_RotY {
+          label {Rot Y:}
+          xywh {1305 414 60 25} when 4 minimum -100 maximum 100
+        }
+        Fl_Value_Input m_RotZ {
+          label {Rot Z:}
+          xywh {1430 416 60 25} when 4 minimum -100 maximum 100
+        }
+        Fl_Value_Input m_TransX {
+          label {Trans X:}
+          xywh {1185 449 60 22} when 4 minimum -100 maximum 100
+        }
+        Fl_Value_Input m_TransY {
+          label {Trans Y:}
+          xywh {1305 451 62 25} when 4 minimum -100 maximum 100
+        }
+        Fl_Value_Input m_TransZ {
+          label {Trans Z:}
+          xywh {1430 451 60 25} when 4 minimum -100 maximum 100
+        }
+        Fl_Value_Input m_ScaleX {
+          label {Scale X:}
+          xywh {1185 484 60 22} when 4 minimum -10 maximum 10 value 1
+        }
+        Fl_Value_Input m_ScaleY {
+          label {Scale Y:}
+          xywh {1305 486 62 25} when 4 minimum -10 maximum 10 value 1
+        }
+        Fl_Value_Input m_ScaleZ {
+          label {Scale Z:}
+          xywh {1430 486 60 25} when 4 minimum -10 maximum 10 value 1
+        }
+        Fl_Value_Input m_SkewX {
+          label {Skew X:}
+          xywh {1185 519 60 22} when 4 minimum -10 maximum 10
+        }
+        Fl_Value_Input m_SkewY {
+          label {Skew Y:}
+          xywh {1305 521 62 25} when 4 minimum -10 maximum 10
+        }
+        Fl_Value_Input m_SkewZ {
+          label {Skew Z:}
+          xywh {1430 521 60 25} when 4 minimum -10 maximum 10
+        }
+        Fl_Button {} {
+          label Reset
+          callback {this->ResetAffineParameters();
+m_LabelSelecter->do_callback();}
+          xywh {1215 556 100 25}
+        }
+        Fl_Button {} {
+          label Apply
+          callback {this->ApplyAffineParameters();
+m_LabelSelecter->do_callback();}
+          xywh {1345 556 100 25}
+        }
+      }
+      Fl_Button {} {
+        label {Go affine!}
+        callback {this->Segment( true );}
+        xywh {1345 840 105 25}
+      }
+      Fl_Value_Input m_GradientDescentStepSize {
+        label {Gradient descent step size}
+        callback {this->SetGradientDescentStepSize( m_GradientDescentStepSize->value() );}
+        xywh {1565 656 45 28}
+      }
+      Fl_Value_Input m_PositionUpdatingStopCriterion {
+        label {Position updating stop criterion}
+        callback {this->SetPositionUpdatingStopCriterion( m_PositionUpdatingStopCriterion->value() );}
+        xywh {1565 697 45 28}
+      }
+      Fl_Group {} {
+        label View open
+        xywh {1535 75 115 90} box DOWN_BOX
+      } {
+        Fl_Round_Button m_ViewOne {
+          callback {this->ShowSelectedView();}
+          xywh {1541 82 29 29} type Radio down_box ROUND_DOWN_BOX align 16
+        }
+        Fl_Round_Button m_ViewTwo {
+          callback {this->ShowSelectedView();}
+          xywh {1620 81 27 28} type Radio down_box ROUND_DOWN_BOX
+        }
+        Fl_Round_Button m_ViewFour {
+          callback {this->ShowSelectedView();}
+          xywh {1620 131 25 29} type Radio down_box ROUND_DOWN_BOX
+        }
+        Fl_Round_Button m_ViewThree {
+          callback {this->ShowSelectedView();}
+          xywh {1541 134 24 21} type Radio down_box ROUND_DOWN_BOX
+        }
+        Fl_Round_Button m_ViewFive {
+          callback {this->ShowSelectedView();}
+          xywh {1580 113 30 27} type Radio down_box ROUND_DOWN_BOX value 1
+        }
+      }
+      Fl_Group {} {open
+        xywh {1535 235 195 90} box DOWN_BOX
+      } {
+        Fl_Round_Button m_OverlayPrior {
+          label {Overlay prior}
+          callback {m_LabelSelecter->do_callback();}
+          xywh {1547 246 29 29} type Radio down_box ROUND_DOWN_BOX
+        }
+        Fl_Round_Button m_OverlayPosterior {
+          label {Overlay posterior}
+          callback {m_LabelSelecter->do_callback();}
+          xywh {1546 280 29 29} type Radio down_box ROUND_DOWN_BOX value 1
+        }
+      }
+      Fl_Value_Slider m_CoronalSliceNumber {
+        label {Coronal slice number:}
+        callback {this->SetSliceLocation( 
+  static_cast< unsigned int >( m_SagittalSliceNumber->value() ),
+  static_cast< unsigned int >( m_CoronalSliceNumber->value() ),
+  static_cast< unsigned int >( m_AxialSliceNumber->value() ) );}
+        xywh {1545 405 175 25} type Horizontal align 1 step 1 textsize 14
+      }
+      Fl_Value_Slider m_SagittalSliceNumber {
+        label {Sagittal slice number:}
+        callback {m_CoronalSliceNumber->do_callback();}
+        xywh {1545 480 175 25} type Horizontal align 1 step 1 textsize 14
+      }
+      Fl_Value_Slider m_AxialSliceNumber {
+        label {Axial slice number:}
+        callback {m_CoronalSliceNumber->do_callback();}
+        xywh {1545 560 175 25} type Horizontal align 1 step 1 textsize 14
+      }
+    }
+  }
+  Function {~kvlAtlasMeshSegmenterConsoleGUI()} {open return_type virtual
+  } {}
+  Function {DisplayLabel( unsigned int labelImageNumber )} {open return_type {virtual void}
+  } {}
+  Function {Segment( bool useAffine=false )} {open return_type {virtual void}
+  } {}
+  Function {SelectTriangleContainingPoint( float, float )} {return_type {virtual void}
+  } {}
+  Function {SelectCurrentTriangleContainingPoint( float, float )} {return_type {virtual void}
+  } {}
+  Function {Interrupt()} {open return_type {virtual void}
+  } {}
+  Function {Step()} {open return_type {virtual void}
+  } {}
+  Function {Continue()} {open return_type {virtual void}
+  } {}
+  Function {ApplyAffineParameters()} {open return_type {virtual void}
+  } {}
+  Function {ResetAffineParameters()} {open return_type {virtual void}
+  } {}
+  Function {SetGradientDescentStepSize( float stepSize )} {open return_type {virtual void}
+  } {}
+  Function {SetPositionUpdatingStopCriterion( float stopCriterion )} {open return_type {virtual void}
+  } {}
+  Function {ShowSelectedView()} {open return_type {virtual void}
+  } {}
+  Function {SetSliceLocation( unsigned int, unsigned int, unsigned int )} {open selected return_type {virtual void}
+  } {}
+} 

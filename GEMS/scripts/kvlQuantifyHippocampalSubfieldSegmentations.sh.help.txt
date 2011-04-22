@@ -1,0 +1,88 @@
+Name
+----
+
+kvlQuantifyHippocampalSubfieldSegmentations.sh - program to estimate the volume of the subfields within the hippocampus after they have been segmented with "kvlSegmentHippocampalSubfields.sh"
+
+
+Synopsis
+--------
+
+kvlQuantifyHippocampalSubfieldSegmentations.sh [ resultsDirectory startIndex=1 endIndex=end ]
+
+
+Description
+-----------
+
+Creates the text files "nonPartialVolumeStatsLeft.txt" and "nonPartialVolumeStatsRight.txt" in the directory "resultsDirectory", containing tables that summarize the volumes of the hippocampal subfield segmentations of the left and right side, respectively, in some or all of the subject subdirectories in the directory "resultsDirectory". The directory "resultsDirectory" is assumed to have been created by the program "kvlSegmentHippocampalSubfields.sh"; if none is provided, the standard FreeSurfer's $SUBJECTs_DIR will be used, assuming recon-all has copied the results there. 
+
+The reported volumes are given in number of voxels, where each voxel is of the size "0.5x0.5x0.5mm^3". It is expected that for each subject, "kvlSegmentHippocampalSubfields.sh" has been run for both the left and the right side.
+
+
+Positional Arguments
+--------------------
+
+resultsDirectory: A directory where "kvlSegmentHippocampalSubfields.sh" has written all its results to. 
+
+startIndex and endIndex: Optional arguments that allow to include only a subset of the subjects in the results. Each subject, i.e., a subdirectory of the resultsDirectory, is given a number according to 
+
+  ls -1d resultsDirectory/*/ | cat -n
+
+and only subjects with a number within the range [startIndex endIndex] are considered.
+
+
+Required Flagged Arguments
+--------------------------
+
+None
+
+
+Optional Flagged Arguments
+--------------------------
+
+None
+
+
+Example(s)
+----------
+
+All subjects in the standard FreeSurfer $SUBJECTS_DIR:
+
+  kvlQuantifyHippocampalSubfieldSegmentations.sh
+
+All subjects in the directory structure created by "kvlSegmentHippocampalSubfields.sh"
+
+  kvlQuantifyHippocampalSubfieldSegmentations.sh /tmp/subfieldResults
+
+Only the first 10 subjects:
+
+  kvlQuantifyHippocampalSubfieldSegmentations.sh /tmp/subfieldResults 1 10
+
+Only subject with number 47:
+
+  kvlQuantifyHippocampalSubfieldSegmentations.sh /tmp/subfieldResults 47 47
+
+All subjects expect the first 10:
+
+  kvlQuantifyHippocampalSubfieldSegmentations.sh /tmp/subfieldResults 11
+
+
+Reference(s)
+------------
+
+Automated Segmentation of Hippocampal Subfields from Ultra-High Resolution In Vivo MRI. K. Van Leemput, A. Bakkour, T. Benner, G. Wiggins, L.L. Wald, J. Augustinack, B.C. Dickerson, P. Golland, B. Fischl. Hippocampus, vol. 19, no. 6, pp. 549-557, June 2009
+
+
+Reporting
+---------
+
+Report bugs to <freesurfer@nmr.mgh.harvard.edu>
+
+
+See Also
+--------
+
+kvlSegmentHippocampalSubfields.sh
+
+
+
+

@@ -1,0 +1,76 @@
+Name
+----
+
+kvlSegmentHippocampalSubfields.sh - program to segment the subfields within the hippocampus
+
+
+Synopsis
+--------
+
+kvlSegmentHippocampalSubfields.sh subjectName side inputDirectory outputDirectory
+
+
+Description
+-----------
+
+Automated segmentation of the subfields of the hippocampus, using models built from manual segmentations of the right hippocampus in 0.38x0.38x0.8 mm^3 in vivo MRI scans in 10 subjects. For the left hippocampus, the model for the right side is simply mirrored.
+
+Running this program requires that the standard volumetric FreeSurfer pipeline has been run first. The output consists of a collection of images in the directory outputDirectory/subjectName/side/posterior_* that indicate each voxel's posterior probability of belonging to different subregions. The estimated volumes of these subregions can be obtained using the "kvlQuantifyHippocampalSubfieldSegmentations.sh" script. Visualizing the subregion segmentations on top of the MRI data can be achieved by doing 
+
+  cd outputDirectory/subjectName/left/segmentationWithoutPartialVolumingLog/
+  freeview ../nu.mgz -p-labels posterior_left_* posterior_Left-Hippocampus.mgz -p-prefix posterior_ -p-lut FreeSurferColorLUT_edited.txt 
+
+for the left side, and analogous for the right side.
+
+
+Positional Arguments
+--------------------
+
+subjectName: The name/ID of the subject to be analyzed. This corresponds to the name of a subdirectory in the "inputDirectory" input argument.
+
+side: Either "left" or "right", indicating which hippocampus is going to be segmented into subfields.
+
+inputDirectory: Root directory where the results of the standard FreeSurfer pipeline are written to (typically $SUBJECTS_DIR)
+
+outputDirectory: A directory where all the results will be written to. Any directory will do.
+
+
+Required Flagged Arguments
+--------------------------
+
+None
+
+
+Optional Flagged Arguments
+--------------------------
+
+None
+
+
+Example(s)
+----------
+
+kvlSegmentHippocampalSubfields.sh bert left $SUBJECTS_DIR /tmp/subfieldResults
+
+kvlSegmentHippocampalSubfields.sh bert right $SUBJECTS_DIR /tmp/subfieldResults
+
+
+Reference(s)
+------------
+
+Automated Segmentation of Hippocampal Subfields from Ultra-High Resolution In Vivo MRI. K. Van Leemput, A. Bakkour, T. Benner, G. Wiggins, L.L. Wald, J. Augustinack, B.C. Dickerson, P. Golland, B. Fischl. Hippocampus, vol. 19, no. 6, pp. 549-557, June 2009
+
+
+Reporting
+---------
+
+Report bugs to <freesurfer@nmr.mgh.harvard.edu>
+
+
+See Also
+--------
+
+kvlQuantifyHippocampalSubfieldSegmentations.sh
+
+
+

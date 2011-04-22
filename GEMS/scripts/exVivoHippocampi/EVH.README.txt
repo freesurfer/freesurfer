@@ -1,0 +1,24 @@
+from	Allison Stevens <astevens@nmr.mgh.harvard.edu>
+to	Koen Van Leemput <koen@nmr.mgh.harvard.edu>
+date	Mon, Sep 13, 2010 at 2:19 PM
+subject	Location of hp data
+hide details Sep 13
+
+
+http://surfer.nmr.mgh.harvard.edu:8080/fswiki/HippocampalLabeling
+
+(Labeling log)
+
+All data is symlinked to:
+/autofs/space/rock_004/users/hires
+
+within the case's directory (which is in the rock/4 dir) you will find a few scans, mainly hires and one lowres. Original low res scans are called recon/mef* or lowres/mef* (multi echo flash); the rest is done automatically using tool chain described in http://surfer.nmr.mgh.harvard.edu:8080/fswiki/ExvivoRecons. The high res is only one /mri/flash/flash20_*_avg.mgz that is labeled manually.
+
+Some of these subjects have in vivo scans, which can be found /autofs/space/rock_004/users/hires/recons; typically called *_invivo but Allison will look into this to make sure.
+
+About the cases:
+ *FHS = Framingham Heart Study, some of which have in vivo's
+ *I = MGH main campus subjects, only one has in vivo scan
+
+
+

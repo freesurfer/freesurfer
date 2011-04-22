@@ -1,0 +1,2 @@
+volume_in_number_of_voxels   Left-Hippocampus   left_presubiculum   left_CA1   left_CA2-3   left_fimbria   left_subiculum   left_CA4-DG   left_hippocampal_fissure
+bert    2855.62    3429.56    3104.91    8899.84    542.248    5615.64    4992.45    379.01

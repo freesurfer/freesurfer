@@ -1,0 +1,2 @@
+volume_in_number_of_voxels   Right-Hippocampus   right_presubiculum   right_CA1   right_CA2-3   right_fimbria   right_subiculum   right_CA4-DG   right_hippocampal_fissure
+bert    3278.17    3145.26    2957.78    8843.32    518.476    5058.12    5046.25    636.943
