@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2011/04/22 13:59:04 $
- *    $Revision: 1.696 $
+ *    $Date: 2011/04/22 17:46:55 $
+ *    $Revision: 1.697 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -735,7 +735,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void)
 {
-  return("$Id: mrisurf.c,v 1.696 2011/04/22 13:59:04 fischl Exp $");
+  return("$Id: mrisurf.c,v 1.697 2011/04/22 17:46:55 fischl Exp $");
 }
 
 /*-----------------------------------------------------
@@ -11068,6 +11068,7 @@ MRISwriteIntoVolume(MRI_SURFACE *mris, MRI *mri, int which)
     case VERTEX_DZ:
       val = v->dz ;
       break ;
+    case VERTEX_LOGODDS:
     case VERTEX_VAL:
       val = v->val ;
       break ;
@@ -15732,7 +15733,11 @@ MRISinflateBrain(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
       }
 
       if (parms->scale > 0)
+      {
+        MRIScomputeMetricProperties(mris) ;
+        printf("rescaling brain to retain original surface area %2.0f (%2.2f)\n", mris->orig_area, sqrt(mris->orig_area / (mris->total_area+mris->neg_area))) ;
         MRISscaleBrainArea(mris) ;
+      }
       if ((parms->write_iterations > 0) &&
           !((n+1)%write_iterations)&&(Gdiag&DIAG_WRITE))
         mrisWriteSnapshot(mris, parms, n+1) ;
@@ -60895,6 +60900,7 @@ MRIScombine(MRI_SURFACE *mris_src, MRI_SURFACE *mris_total,
     case VERTEX_CURV:
       vdst->d += v->curv ;
       break ;
+    case VERTEX_LOGODDS:
     case VERTEX_VALS:
       vdst->d += v->val ;
       break ;
@@ -60928,6 +60934,7 @@ MRIScombine(MRI_SURFACE *mris_src, MRI_SURFACE *mris_total,
       vdst->curv += mean ;
       vdst->val2 += mean*mean ;
       break ;
+    case VERTEX_LOGODDS:
     case VERTEX_VALS:
       vdst->val += mean ;
       vdst->val2 += mean*mean ;
@@ -60983,6 +60990,7 @@ MRIScombine(MRI_SURFACE *mris_src, MRI_SURFACE *mris_total,
       vdst->curv += v->curv ;
       vdst->val2 += (v->curv*v->curv) ;
       break ;
+    case VERTEX_LOGODDS:
     case VERTEX_VALS:
       vdst->val += v->val ;
       vdst->val2 += (v->val*v->val) ;
@@ -61051,6 +61059,7 @@ MRISsphericalCopy(MRI_SURFACE *mris_src, MRI_SURFACE *mris_dst,
     case VERTEX_CURV:
       vdst->curv = v->curv ;
       break ;
+    case VERTEX_LOGODDS:
     case VERTEX_VALS:
       vdst->val = v->val ;
       break ;
@@ -61168,6 +61177,7 @@ MRISsphericalCopy(MRI_SURFACE *mris_src, MRI_SURFACE *mris_dst,
     case VERTEX_CURV:
       vdst->d += v->curv ;
       break ;
+    case VERTEX_LOGODDS:
     case VERTEX_VALS:
       vdst->d += v->val ;
       break ;
@@ -61192,6 +61202,7 @@ MRISsphericalCopy(MRI_SURFACE *mris_src, MRI_SURFACE *mris_dst,
     case VERTEX_CURV:
       vdst->curv = mean ;
       break ;
+    case VERTEX_LOGODDS:
     case VERTEX_VALS:
       vdst->val = mean ;
       break ;
@@ -61225,6 +61236,7 @@ MRISsphericalCopy(MRI_SURFACE *mris_src, MRI_SURFACE *mris_dst,
     case VERTEX_CURV:
       vdst->curv = v->curv ;
       break ;
+    case VERTEX_LOGODDS:
     case VERTEX_VALS:
       vdst->val = v->val ;
       break ;
@@ -61354,6 +61366,7 @@ MRISclear(MRI_SURFACE *mris, int which)
     case VERTEX_CURV:
       v->curv = 0 ;
       break ;
+    case VERTEX_LOGODDS:
     case VERTEX_VAL:
       v->val = 0 ;
       break ;
@@ -61391,6 +61404,7 @@ MRISnormalize(MRI_SURFACE *mris, int dof, int which)
       mean = v->curv ;
       break ;
     default:
+    case VERTEX_LOGODDS:
     case VERTEX_VAL:
       v->val /= fdof ;
       mean = v->val ;
