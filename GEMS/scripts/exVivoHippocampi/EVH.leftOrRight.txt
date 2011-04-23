@@ -1,0 +1,70 @@
+# From the "Subjects" table at http://surfer.nmr.mgh.harvard.edu/fswiki/HippocampalLabeling:
+
+# FHS18 -- subject01: left 
+# I9 -- subject02: left 
+# FHS20 -- subject03: left
+# FHS8 -- subject04: right
+# FHS21 -- subject05: left
+# FHS5 -- subject06: right
+# FHS19 -- subject07: left
+# I13 rh -- subject08: right
+# I13 lh -- subject09: left
+#  I21 -- subject10: left
+#  I28 -- subject11: right
+#  I23 -- subject12: left
+#  I10 -- subject13: right
+#  I27 -- subject14: left
+#  FHS34 -- subject15: left
+#  I26 -- subject16: right
+#  I_ellen -- subject17: right
+#  FHS38 -- subject18: left
+#  I25 -- subject19: left
+#  I16 -- subject20: left
+#  I18 -- subject21: right
+#  FHS37 -- subject22: right
+#  FHS39 -- subject23: left
+#  I29 -- subject24: right
+#  FHS36_rh -- subject25: right
+#  FHS31_rh -- subject26: right
+
+
+# In summary: 12x right and 14x left
+#
+
+#
+# These are the right ones (12 in total):
+#
+
+subject04
+subject06
+subject08
+subject11
+subject13
+subject16
+subject17
+subject21
+subject22
+subject24
+subject25
+subject26
+
+
+#
+# These are the left ones (14 in total):
+#
+
+subject01
+subject02
+subject03
+subject05
+subject07
+subject09
+subject10
+subject12
+subject14
+subject15
+subject18
+subject19
+subject20
+subject23
+
