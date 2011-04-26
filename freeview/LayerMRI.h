@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2011/04/02 02:11:06 $
- *    $Revision: 1.61.2.3 $
+ *    $Date: 2011/04/26 18:20:39 $
+ *    $Revision: 1.61.2.4 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -241,6 +241,17 @@ public:
 
   void ReplaceVoxelValue(double orig_value, double new_value, int nPlane = -1);
 
+  void SetGotoLabel(int nOrientation, const QString& name)
+  {
+    m_nGotoLabelOrientation = nOrientation;
+    m_strGotoLabelName = name;
+  }
+
+  int GetGotoLabelSlice()
+  {
+    return m_nGotoLabelSlice;
+  }
+
 public slots:
   void SetActiveFrame( int nFrame );
   void SetActiveFrameOneBase( int nFrame )
@@ -344,6 +355,10 @@ protected:
   SurfaceRegionGroups*            m_surfaceRegionGroups;
 
   int         m_nOrientationIndex[3];
+
+  int         m_nGotoLabelSlice;
+  int         m_nGotoLabelOrientation;
+  QString     m_strGotoLabelName;
 
 private:
   double**    private_buf1_3x3;

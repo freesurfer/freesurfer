@@ -7,32 +7,32 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2009/08/12 18:03:06 $
- *    $Revision: 1.11 $
+ *    $Date: 2011/04/26 18:20:39 $
+ *    $Revision: 1.17.2.1 $
  *
- * Copyright (C) 2008-2009,
- * The General Hospital Corporation (Boston, MA).
- * All rights reserved.
+ * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
- * Distribution, usage and copying of this software is covered under the
- * terms found in the License Agreement file named 'COPYING' found in the
- * FreeSurfer source code root directory, and duplicated here:
- * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ * Terms and conditions for use, reproduction, distribution and contribution
+ * are found in the 'FreeSurfer Software License Agreement' contained
+ * in the file 'LICENSE' found in the FreeSurfer distribution, and here:
  *
- * General inquiries: freesurfer@nmr.mgh.harvard.edu
- * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
+ *
+ * Reporting: freesurfer@nmr.mgh.harvard.edu
+ *
  *
  */
 
 
 #include "MyCmdLineParser.h"
+#include "MyUtils.h"
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
 #include <string>
 #include <vector>
-
 #include <iostream>
+#include <QDebug>
 
 #include <fstream>
 #include <stdarg.h>
@@ -46,8 +46,10 @@ MyCmdLineParser::MyCmdLineParser( const char* ProgramName, CmdLineEntry* entries
   SetProgramName( ProgramName );
   m_nNumberOfPureArguments = 0;
   if ( entries )
+  {
     SetValidCmdLineEntries( entries );
-  
+  }
+
   m_bNewLineStyle = true;
 }
 
@@ -66,7 +68,9 @@ void MyCmdLineParser::SetValidCmdLineEntries( CmdLineEntry* entries )
   while ( entries[n].type != CMD_LINE_NONE )
   {
     if ( strcmp( entries[n].shortName, "h" ) == 0 )
+    {
       bHasHelp = true;
+    }
     m_cmdLineEntriesValid.push_back( entries[n] );
     n++;
   }
@@ -112,44 +116,6 @@ bool MyCmdLineParser::Found( const char* chFlag )
   return false;
 }
 
-/*
-bool MyCmdLineParser::Found( const char* ch, string* strg )
-{
-  if ( Found( ch ) )
-  {
-    *strg = GetArgument( ch, 0 );
-    return true;
-  }
-  else
-    return false;
-}
-
-
-bool MyCmdLineParser::Found( const char* ch, int* value )
-{
-  if ( Found( ch ) )
-{
-    string strg = GetArgument( ch, 0 );
-    *value = atoi( strg.c_str() );
-    return true;
-}
-  else
-    return false;
-}
-
-bool MyCmdLineParser::Found( const char* ch, double* value )
-{
-  if ( Found( ch ) )
-{
-    string strg = GetArgument( ch, 0 );
-    *value = atof( strg.c_str() );
-    return true;
-}
-  else
-    return false;
-}
-*/
-
 bool MyCmdLineParser::Found( const char* ch, string_array* sa, int nIndex )
 {
   if ( Found( ch ) )
@@ -158,33 +124,57 @@ bool MyCmdLineParser::Found( const char* ch, string_array* sa, int nIndex )
     return true;
   }
   else
+  {
     return false;
+  }
+}
+
+
+bool MyCmdLineParser::Found( const QString flag, QStringList* args, int nIndex )
+{
+  string_array sa;
+  bool ret = Found( flag.toAscii().constData(), &sa, nIndex );
+  if (ret)
+  {
+    args->clear();
+    for ( int i = 0; i < sa.size(); i++ )
+    {
+      args->push_back( sa[i].c_str() );
+    }
+  }
+  return ret;
 }
 
 bool MyCmdLineParser::Found( const char* chFlag, CmdLineEntry* e, int nIndex )
 {
   int n = 0;
-  for ( size_t i = 0; i < m_cmdLineEntries.size(); i++ )
+  for ( int i = 0; i < m_cmdLineEntries.size(); i++ )
   {
     if ( strcmp( m_cmdLineEntries[i].shortName, chFlag ) == 0 ||
          strcmp( m_cmdLineEntries[i].longName, chFlag ) == 0 )
     {
       *e = m_cmdLineEntries[i];
       if ( nIndex >= 0 && n == nIndex )
+      {
         return true;
-          
+      }
+
       n++;
     }
   }
   if ( n > 0 )
+  {
     return true;
+  }
   else
+  {
     return false;
+  }
 }
 
 int MyCmdLineParser::GetNumberOfRepeats( const char* chFlag )
 {
-  int n = 0; 
+  int n = 0;
   for ( size_t i = 0; i < m_cmdLineEntries.size(); i++ )
   {
     if ( strcmp( m_cmdLineEntries[i].shortName, chFlag ) == 0 ||
@@ -214,7 +204,9 @@ int MyCmdLineParser::GetNumberOfArguments( const char* ch )
 {
   CmdLineEntry e;
   if ( Found( ch, &e ) )
+  {
     return e.arguments.size();
+  }
 
   return 0;
 }
@@ -225,12 +217,18 @@ string MyCmdLineParser::GetArgument( const char* ch, int n, const char* chDefaul
   if ( Found( ch, &e ) )
   {
     if ( ( int )e.arguments.size() > n )
+    {
       return e.arguments[n];
+    }
   }
   if ( chDefault )
+  {
     return chDefault;
+  }
   else
+  {
     return "";
+  }
 }
 
 string_array MyCmdLineParser::GetArguments( const char* ch, int nIndex )
@@ -241,24 +239,30 @@ string_array MyCmdLineParser::GetArguments( const char* ch, int nIndex )
     return e.arguments;
   }
   else
+  {
     return string_array();
+  }
 }
 
 void MyCmdLineParser::PrintHelp()
 {
-  cout << endl << "Usage: " << m_strProgramName.c_str() << " [OPTION <ARGUMENT:SUB-OPTION>]..." << endl;
+  cout << "\n" << "Usage: " << m_strProgramName.c_str() << " [OPTION <ARGUMENT:SUB-OPTION>]..." << "\n";
 
   string desc = m_strProgramDescription;
   while ( desc.length() > CONSOLE_WIDTH )
   {
     int n = desc.rfind( " ", CONSOLE_WIDTH);
     if ( n >= 0 )
-      cout << desc.substr( 0, n ).c_str() << endl;
+    {
+      cout << desc.substr( 0, n ).c_str() << "\n";
+    }
     desc = desc.substr( n+1 );
   }
   if ( desc.length() > 0 )
-    cout << desc.c_str() << endl;
-  cout << endl;
+  {
+    cout << desc.c_str() << "\n";
+  }
+  cout << "\n";
 
   size_t nLen = 0;
   for ( size_t i = 0; i < m_cmdLineEntriesValid.size(); i++ )
@@ -266,11 +270,15 @@ void MyCmdLineParser::PrintHelp()
     CmdLineEntry e = m_cmdLineEntriesValid[i];
     string strg = string( e.shortName ) + e.longName + e.arguName;
     if ( nLen < strg.length() )
+    {
       nLen = strg.length();
+    }
   }
   nLen += 7;
   if ( m_bNewLineStyle )
+  {
     nLen = 7;
+  }
   for ( size_t i = 0; i < m_cmdLineEntriesValid.size(); i++ )
   {
     CmdLineEntry e = m_cmdLineEntriesValid[i];
@@ -279,15 +287,19 @@ void MyCmdLineParser::PrintHelp()
     cout << strg.c_str();
     if ( m_bNewLineStyle )
     {
-      cout << endl;
+      cout << "\n";
       for ( size_t j = 0; j < nLen; j++ )
+      {
         cout << " ";
+      }
     }
     else
     {
       int nCnt = nLen - strg.length();
       for ( int j = 0; j < nCnt; j++ )
+      {
         cout << " ";
+      }
     }
     desc = e.description;
     while ( desc.length() > CONSOLE_WIDTH - nLen || desc.find( "\n" ) != string::npos )
@@ -295,59 +307,104 @@ void MyCmdLineParser::PrintHelp()
       size_t n = desc.rfind( " ", CONSOLE_WIDTH - nLen );
       size_t m = desc.substr( 0, CONSOLE_WIDTH - nLen ).find( "\n" );
       if ( m != string::npos )
+      {
         n = m;
+      }
       if ( n != string::npos )
       {
-        cout << desc.substr( 0, n ).c_str() << endl;
+        cout << desc.substr( 0, n ).c_str() << "\n";
         desc = desc.substr( n+1 );
       }
       if ( desc.size() > 0 )
       {
         for ( size_t j = 0; j < nLen; j++ )
+        {
           cout << " ";
+        }
       }
       else
-        cout << endl;
+      {
+        cout << "\n";
+      }
     }
     if ( desc.length() > 0 )
-      cout << desc.c_str() << endl;
+    {
+      cout << desc.c_str() << "\n";
+    }
   }
-  cout << endl;
+  cout << "\n";
 }
 
 void MyCmdLineParser::PrintErrorMessage( string msg )
 {
-  PrintHelp();
+// PrintHelp();
 
-  cout << msg.c_str() << endl << endl;
+  std::cerr << msg.c_str() << " Run 'freeview -h' for more information.\n\n";
 }
 
 bool MyCmdLineParser::Parse( int argc, char* argv[] )
+{
+  string_array args;
+  for (int i = 0; i < argc; i++)
+  {
+    args.push_back(argv[i]);
+  }
+
+  return Parse(args);
+}
+
+bool MyCmdLineParser::Parse(const QString &cmd)
+{
+  string_array args;
+  QStringList list = cmd.split(QRegExp("\\s+"), QString::SkipEmptyParts);
+  for (int i = 0; i < list.size(); i++)
+  {
+    args.push_back(list[i].toStdString());
+  }
+  return Parse(args);
+}
+
+bool MyCmdLineParser::Parse(const string_array& args)
 {
   // first parse the input command line into entries, don't care if they are valid or not
   vector<string_array*> entries;
   string_array pureArgs;
   string_array* sa = NULL;
 
+  int argc = args.size();
   for ( int i = 1; i < argc; i++ )
   {
-    if ( argv[i][0] == '-' && string( argv[i] ).length() > 1
-         && !IsNumber( argv[i][1] ) && argv[i][1] != '.' )
+    // hack to ignore mac os x bundle argument
+    string arg = args[i];
+#ifdef Q_CYGWIN_WIN
+    arg = MyUtils::CygwinPathProof(args[i].c_str()).toStdString();
+#endif
+    if (arg.substr(0, 6) != "-psn_0" )
     {
-      sa = new string_array;
-      sa->clear();
-      if ( string( argv[i] ).length() > 2 && argv[i][1] == '-' )    // long name
-        sa->push_back( argv[i]+2 );
+      if ( arg[0] == '-' && arg.length() > 1
+           && !IsNumber( arg[1] ) && arg[1] != '.' )
+      {
+        sa = new string_array;
+        sa->clear();
+        if ( arg.length() > 2 && arg[1] == '-' )    // long name
+        {
+          sa->push_back( arg.substr(2) );
+        }
+        else
+        {
+          sa->push_back( arg.substr(1) );
+        }
+        entries.push_back( sa );
+      }
+      else if ( sa )
+      {
+        sa->push_back( arg );
+      }
       else
-        sa->push_back( argv[i]+1 );
-      entries.push_back( sa );
+      {
+        pureArgs.push_back( arg );
+      }
     }
-    else if ( sa )
-    {
-      sa->push_back( argv[i] );
-    }
-    else
-      pureArgs.push_back( argv[i] );
   }
 
   //
@@ -371,14 +428,18 @@ bool MyCmdLineParser::Parse( int argc, char* argv[] )
       for ( size_t j = 1; j < strgs.size(); j++ )
       {
         if ( j <= (size_t)e.maxArguments )
+        {
           e.arguments.push_back( strgs[j] );
+        }
         else
+        {
           pureArgs.push_back( strgs[j] );
+        }
       }
       if ( (int)e.arguments.size() < e.minArguments )
       {
         bSucceed = false;
-        cout << e.arguments.size() << " " << e.minArguments << endl;
+        //  cout << e.arguments.size() << " " << e.minArguments << "\n";
         error_msg += "Argument missing for option '" + strgs[0] + "'.";
       }
     }
@@ -408,7 +469,7 @@ bool MyCmdLineParser::Parse( int argc, char* argv[] )
   */
 
   m_cmdLineFloatingArguments = pureArgs;
-  
+
   if ( !bSucceed )
   {
     PrintErrorMessage( error_msg );

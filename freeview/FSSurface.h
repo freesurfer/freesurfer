@@ -6,27 +6,27 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: rpwang $
- *    $Date: 2010/06/08 17:43:26 $
- *    $Revision: 1.26 $
+ *    $Author: nicks $
+ *    $Date: 2011/04/26 18:20:38 $
+ *    $Revision: 1.32.2.1 $
  *
- * Copyright (C) 2008-2009,
- * The General Hospital Corporation (Boston, MA).
- * All rights reserved.
+ * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
- * Distribution, usage and copying of this software is covered under the
- * terms found in the License Agreement file named 'COPYING' found in the
- * FreeSurfer source code root directory, and duplicated here:
- * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ * Terms and conditions for use, reproduction, distribution and contribution
+ * are found in the 'FreeSurfer Software License Agreement' contained
+ * in the file 'LICENSE' found in the FreeSurfer distribution, and here:
  *
- * General inquiries: freesurfer@nmr.mgh.harvard.edu
- * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
+ *
+ * Reporting: freesurfer@nmr.mgh.harvard.edu
+ *
  *
  */
 
 #ifndef FSSurface_h
 #define FSSurface_h
 
+#include <QObject>
 #include "vtkSmartPointer.h"
 #include "vtkImageData.h"
 #include "vtkPolyData.h"
@@ -43,27 +43,27 @@ extern "C"
 
 #define NUM_OF_VSETS 5
 
-class wxWindow;
-class wxCommandEvent;
 class vtkTransform;
 class FSVolume;
 
-class FSSurface
+class FSSurface : public QObject
 {
+  Q_OBJECT
 public:
-  FSSurface( FSVolume* ref = NULL );
+  FSSurface( FSVolume* ref, QObject* parent = NULL );
   virtual ~FSSurface();
 
   enum ACTIVE_SURFACE { SurfaceMain = 0, SurfaceInflated, SurfaceWhite, SurfacePial, SurfaceOriginal };
 
-  bool MRISRead( const char* filename, wxWindow* wnd, wxCommandEvent& event, 
-                 const char* vector_filename = NULL,
-                 const char* patch_filename = NULL,
-                 const char* target_filename = NULL );
+  bool MRISRead( const QString& filename,
+                 const QString& vector_filename = QString(),
+                 const QString& patch_filename = QString(),
+                 const QString& target_filename = QString(),
+                 bool bAllSurfaces = false);
 
-  bool MRISWrite( const char* filename, wxWindow* wnd, wxCommandEvent& event );
-  
-  bool MRISReadVectors( const char* filename, wxWindow* wnd, wxCommandEvent& event );
+  bool MRISWrite( const QString& filename );
+
+  bool MRISReadVectors( const QString& filename );
 
   void GetBounds ( float oRASBounds[6] );
 
@@ -99,9 +99,9 @@ public:
 
   int GetNumberOfVertices () const;
 
-  bool LoadSurface    ( const char* filename, int nSet );
-  bool LoadCurvature  ( const char* filename = NULL );
-  bool LoadOverlay    ( const char* filename );
+  bool LoadSurface    ( const QString& filename, int nSet );
+  bool LoadCurvature  ( const QString& filename = NULL );
+  bool LoadOverlay    ( const QString& filename );
 
   bool IsSurfaceLoaded( int nSet )
   {
@@ -114,7 +114,7 @@ public:
   }
 
   double GetCurvatureValue( int nVertex );
-  
+
   bool SetActiveSurface( int nIndex );
 
   int GetActiveSurface()
@@ -132,7 +132,7 @@ public:
     return m_vertexVectors.size();
   }
 
-  const char* GetVectorSetName( int nSet );
+  QString GetVectorSetName( int nSet );
 
   int GetActiveVector()
   {
@@ -150,12 +150,12 @@ public:
   {
     return m_polydataTarget;
   }
-  
+
   vtkPolyData* GetVectorPolyData()
   {
     return m_polydataVector;
   }
-  
+
   vtkPolyData* GetVector2DPolyData( int n )
   {
     return m_polydataVector2D[n];
@@ -165,34 +165,39 @@ public:
   {
     return m_polydataVertices;
   }
-  
+
   void GetVectorAtVertex( int nVertex, double* vec_out, int nVector = -1 );
-  
+
   vtkPolyData* GetWireframePolyData()
   {
     return m_polydataWireframes;
   }
-  
+
   MRIS* GetMRIS()
   {
     return m_MRIS;
   }
-  
+
   void GetNormalAtVertex( int nVertex, double* vec_out );
-  
-  void UpdateVector2D( int nPlane, double slice_pos, 
+
+  void UpdateVector2D( int nPlane, double slice_pos,
                        vtkPolyData* contour_polydata = NULL );
-  
+
   void Reposition( FSVolume* volume, int target_vnos, double target_val, int nsize, double sigma );
-  
+
   void Reposition( FSVolume* volume, int target_vnos, double* coord, int nsize, double sigma );
-  
+
   void UndoReposition();
+
+  bool HasValidVolumeGeometry()
+  {
+    return m_bValidVolumeGeometry;
+  }
 
 protected:
   void UpdatePolyData();
-  void UpdatePolyData( MRIS* mris, vtkPolyData* polydata, 
-                       vtkPolyData* polydata_verts = NULL, 
+  void UpdatePolyData( MRIS* mris, vtkPolyData* polydata,
+                       vtkPolyData* polydata_verts = NULL,
                        vtkPolyData* polydata_wireframe = NULL );
   void UpdateVerticesAndNormals();
   void ComputeNormals();
@@ -200,8 +205,8 @@ protected:
   float TriangleArea( int fac, int n );
   void Normalize( float v[3] );
 
-  bool LoadVectors( const char* filename );
-  void LoadTargetSurface( const char* filename, wxWindow* wnd, wxCommandEvent& event );
+  bool LoadVectors( const QString& filename );
+  void LoadTargetSurface( const QString& filename );
   void UpdateVectors();
   void UpdateVertices();
 
@@ -209,10 +214,10 @@ protected:
   void RestoreNormals ( MRIS* mris, int nSet );
   void SaveVertices ( MRIS* mris, int nSet );
   void RestoreVertices( MRIS* mris, int nSet );
-  
-  bool ProjectVectorPoint2D( double* pt_in, 
-                             vtkPoints* contour_pts, 
-                             vtkCellArray* contour_lines, 
+
+  bool ProjectVectorPoint2D( double* pt_in,
+                             vtkPoints* contour_pts,
+                             vtkCellArray* contour_lines,
                              double* pt_out );
 
   MRIS*   m_MRIS;
@@ -259,7 +264,7 @@ protected:
 
   struct VertexVectorItem
   {
-    std::string  name;
+    QString  name;
     VertexItem*  data;
 
     VertexVectorItem()
@@ -270,6 +275,8 @@ protected:
 
   std::vector<VertexVectorItem>  m_vertexVectors;
   int      m_nActiveVector;
+
+  bool     m_bValidVolumeGeometry;
 };
 
 #endif

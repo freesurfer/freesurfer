@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2011/04/02 02:11:06 $
- *    $Revision: 1.159.2.3 $
+ *    $Date: 2011/04/26 18:20:39 $
+ *    $Revision: 1.159.2.4 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -114,6 +114,9 @@ MainWindow::MainWindow( QWidget *parent, MyCmdLineParser* cmdParser ) :
 #ifndef DEVELOPMENT
   ui->tabWidgetControlPanel->removeTab(ui->tabWidgetControlPanel->indexOf(ui->tabTrack));
 #endif
+
+  this->addAction(ui->actionIncreaseOpacity);
+  this->addAction(ui->actionDecreaseOpacity);
 
   m_statusBar = new FloatingStatusBar(this);
   m_statusBar->hide();
@@ -582,29 +585,27 @@ bool MainWindow::DoParseCommand(bool bAutoQuit)
   if ( m_cmdParser->Found( "viewport", &sa ) )
   {
     QString strg = sa[0].toLower();
-    QString script = "setviewport ";
     if ( strg == "sagittal" || strg == "x" )
     {
-      script += "x";
+      SetMainView( MV_Sagittal );
     }
     else if ( strg == "coronal" || strg == "y" )
     {
-      script += "y";
+      SetMainView( MV_Coronal );
     }
     else if ( strg == "axial" || strg == "z" )
     {
-      script += "z";
+      SetMainView( MV_Axial );
     }
     else if ( strg == "3d" )
     {
-      script += "3d";
+      SetMainView( MV_3D );
     }
     else
     {
       std::cerr << "Unrecognized viewport name '" << qPrintable(sa[0]) << "'.\n";
       return false;
     }
-    this->AddScript( script );
   }
 
   if ( m_cmdParser->Found( "viewsize", &sa ) )
@@ -1288,6 +1289,7 @@ void MainWindow::CommandLoadVolume( const QStringList& sa )
           tensor_render = "boxoid";
   int nSampleMethod = m_nDefaultSampleMethod;
   bool bConform = m_bDefaultConform;
+  QString gotoLabelName;
   for ( int i = 1; i < sa_vol.size(); i++ )
   {
     QString strg = sa_vol[i];
@@ -1421,6 +1423,7 @@ void MainWindow::CommandLoadVolume( const QStringList& sa )
       else if ( subOption == "gotolabel" || subOption == "structure")
       {
         m_scripts.insert(0, QString("gotolabel ")+subArgu);
+        gotoLabelName = subArgu;
       }
       else
       {
@@ -1470,7 +1473,21 @@ void MainWindow::CommandLoadVolume( const QStringList& sa )
     m_scripts.insert( 0, script );
   }
 
-  LoadVolumeFile( fn, reg_fn, bResample, nSampleMethod, bConform );
+  int nView = this->GetMainViewId();
+  if (nView > 2)
+  {
+    nView = 0;
+  }
+  int orientation = nView;
+  if (orientation == 0 )
+  {
+    orientation = 1;
+  }
+  else if (orientation == 1)
+  {
+    orientation = 0;
+  }
+  LoadVolumeFile( fn, reg_fn, bResample, nSampleMethod, bConform, orientation, gotoLabelName );
 }
 
 void MainWindow::CommandSetColorMap( const QStringList& sa )
@@ -1973,6 +1990,7 @@ void MainWindow::CommandLoadSurface( const QStringList& cmd )
   QString fn = sa_fn[0];
   QString fn_patch = "";
   QString fn_target = "";
+  bool bLoadAll = false;
   for ( int k = sa_fn.size()-1; k >= 1; k-- )
   {
     int n = sa_fn[k].indexOf( "=" );
@@ -2119,6 +2137,11 @@ void MainWindow::CommandLoadSurface( const QStringList& cmd )
         script += subArgu.replace(",", " ");
         m_scripts.insert( 0, script );
       }
+      else if ( subOption == "all")
+      {
+        if ( subArgu.toLower() == "true" || subArgu.toLower() == "yes" || subArgu == "1")
+          bLoadAll = true;
+      }
       else
       {
         cerr << "Unrecognized sub-option flag '" << subOption.toAscii().constData() << "'.\n";
@@ -2126,7 +2149,7 @@ void MainWindow::CommandLoadSurface( const QStringList& cmd )
       }
     }
   }
-  LoadSurfaceFile( fn, fn_patch, fn_target );
+  LoadSurfaceFile( fn, fn_patch, fn_target, bLoadAll );
 }
 
 void MainWindow::CommandSetSurfaceOverlayMethod( const QStringList& cmd )
@@ -2329,21 +2352,7 @@ void MainWindow::CommandGotoLabel(const QStringList &cmd)
   LayerMRI* mri = (LayerMRI*)GetActiveLayer("MRI");
   if ( mri )
   {
-    int nView = this->GetMainViewId();
-    if (nView > 2)
-    {
-      nView = 0;
-    }
-    int orientation = nView;
-    if (orientation == 0 )
-    {
-      orientation = 1;
-    }
-    else if (orientation == 1)
-    {
-      orientation = 0;
-    }
-    int nSlice = mri->GoToLabel(orientation, cmd[1]);
+    int nSlice = mri->GetGotoLabelSlice();
     if (nSlice >= 0)
     {
       double pos[3];
@@ -2352,6 +2361,9 @@ void MainWindow::CommandGotoLabel(const QStringList &cmd)
       mri->TargetToRAS(pos, pos);
       mri->RASToOriginalIndex(pos, n);
       QString ostr = mri->GetOrientationString();
+      int nView = this->GetMainViewId();
+      if (nView > 2)
+        nView = 0;
       int nOrigPlane = nView;
       char ch[3][3] = {"RL", "AP", "IS"};
       for (int i = 0; i < 3; i++)
@@ -3217,7 +3229,9 @@ void MainWindow::OnLoadVolume()
 void MainWindow::LoadVolumeFile( const QString& filename,
                                  const QString& reg_filename,
                                  bool bResample_in, int nSampleMethod,
-                                 bool bConform )
+                                 bool bConform,
+                                 int nGotoLabelOrientation,
+                                 const QString& strGotoLabelName )
 {
   QFileInfo fi(filename);
   bool bResample = bResample_in;
@@ -3233,6 +3247,7 @@ void MainWindow::LoadVolumeFile( const QString& filename,
   layer->SetConform( bConform );
   layer->GetProperty()->SetLUTCTAB( m_luts->GetColorTable( 0 ) );
   layer->SetName( fi.completeBaseName() );
+  layer->SetGotoLabel(nGotoLabelOrientation, strGotoLabelName);
   QString fullpath = fi.absoluteFilePath();
   if ( fullpath.isEmpty() )
   {
@@ -3428,6 +3443,7 @@ void MainWindow::LoadVolumeTrackFile(const QString &fn, bool bResample)
 
   LayerVolumeTrack* layer = new LayerVolumeTrack( m_layerVolumeRef );
   layer->SetResampleToRAS( bResample );
+  layer->GetProperty()->SetLUTCTAB( m_luts->GetColorTable( 0 ) );
   QString layerName = QFileInfo( fn ).completeBaseName();
   if ( QFileInfo( fn ).suffix() == "gz" )
   {
@@ -3835,7 +3851,8 @@ void MainWindow::OnLoadSurface()
   }
 }
 
-void MainWindow::LoadSurfaceFile( const QString& filename, const QString& fn_patch, const QString& fn_target )
+void MainWindow::LoadSurfaceFile( const QString& filename, const QString& fn_patch, const QString& fn_target,
+                                  bool bAllSurfaces)
 {
   QFileInfo fi( filename );
   m_strLastDir = fi.absolutePath();
@@ -3849,6 +3866,7 @@ void MainWindow::LoadSurfaceFile( const QString& filename, const QString& fn_pat
   layer->SetFileName( fullpath );
   layer->SetPatchFileName( fn_patch );
   layer->SetTargetFileName( fn_target );
+  layer->SetLoadAllSurfaces(bAllSurfaces);
 
   m_threadIOWorker->LoadSurface( layer );
 }
@@ -4893,4 +4911,24 @@ void MainWindow::OnWriteMovieFrames()
 Layer* MainWindow::GetSupplementLayer(const QString &type)
 {
   return m_layerCollections["Supplement"]->GetLayer(type);
+}
+
+void MainWindow::OnIncreaseOpacity()
+{
+  LayerMRI* mri = (LayerMRI*)this->GetActiveLayer( "MRI" );
+  if ( mri )
+  {
+    double dOpacity = mri->GetProperty()->GetOpacity();
+    mri->GetProperty()->SetOpacity( qMin(1., dOpacity+0.1) );
+  }
+}
+
+void MainWindow::OnDecreaseOpacity()
+{
+  LayerMRI* mri = (LayerMRI*)this->GetActiveLayer( "MRI" );
+  if ( mri )
+  {
+    double dOpacity = mri->GetProperty()->GetOpacity();
+    mri->GetProperty()->SetOpacity( qMax(0., dOpacity-0.1) );
+  }
 }

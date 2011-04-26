@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2011/04/02 02:11:06 $
- *    $Revision: 1.28.2.3 $
+ *    $Date: 2011/04/26 18:20:39 $
+ *    $Revision: 1.28.2.4 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -101,6 +101,7 @@ bool LayerCollection::AddLayer( Layer* layer, bool initializeCoordinate )
   connect( layer, SIGNAL(ActorUpdated()), this, SIGNAL(LayerActorUpdated()) );
   connect( layer, SIGNAL(Transformed()), this, SIGNAL(LayerActorUpdated()) );
   connect( layer, SIGNAL(ActorChanged()), this, SIGNAL(LayerActorChanged()) );
+  connect( layer, SIGNAL(NameChanged(QString)), this, SIGNAL(LayerNameChanged()));
   if (layer->GetProperty())
   {
     connect( layer->GetProperty(), SIGNAL(PropertyChanged()), this, SIGNAL(LayerPropertyChanged()));

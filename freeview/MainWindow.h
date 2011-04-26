@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2011/04/02 02:11:07 $
- *    $Revision: 1.90.2.3 $
+ *    $Date: 2011/04/26 18:20:39 $
+ *    $Revision: 1.90.2.4 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -211,7 +211,9 @@ protected:
                         const QString& reg_filename = "",
                         bool bResample = false,
                         int nSampleMethod = 0,
-                        bool bConform = false );
+                        bool bConform = false,
+                        int nGotoLabelOrientation = -1,
+                        const QString& strGotoLabelName = "" );
 
   void LoadDTIFile( const QString& fn_vector,
                     const QString& fn_fa,
@@ -222,7 +224,8 @@ protected:
 
   void LoadSurfaceFile( const QString& filename,
                         const QString& fn_patch = "",
-                        const QString& fn_target = "" );
+                        const QString& fn_target = "",
+                        bool bAllSurfaces = false );
   void LoadPVolumeFiles( const QStringList& filenames, const QString& prefix, const QString& lut );
   void LoadROIFile( const QString& fn, const QString& ref_vol );
   void LoadWayPointsFile        ( const QString& fn );
@@ -336,6 +339,8 @@ protected slots:
   void OnToggleShowPointSet();
   void OnLoadCommand();
   void OnWriteMovieFrames();
+  void OnIncreaseOpacity();
+  void OnDecreaseOpacity();
 
   void OnActiveLayerChanged(Layer*);
 

@@ -6,27 +6,27 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: rpwang $
- *    $Date: 2009/06/17 20:41:17 $
- *    $Revision: 1.6 $
+ *    $Author: nicks $
+ *    $Date: 2011/04/26 18:20:38 $
+ *    $Revision: 1.11.2.1 $
  *
- * Copyright (C) 2008-2009,
- * The General Hospital Corporation (Boston, MA).
- * All rights reserved.
+ * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
- * Distribution, usage and copying of this software is covered under the
- * terms found in the License Agreement file named 'COPYING' found in the
- * FreeSurfer source code root directory, and duplicated here:
- * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ * Terms and conditions for use, reproduction, distribution and contribution
+ * are found in the 'FreeSurfer Software License Agreement' contained
+ * in the file 'LICENSE' found in the FreeSurfer distribution, and here:
  *
- * General inquiries: freesurfer@nmr.mgh.harvard.edu
- * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
+ *
+ * Reporting: freesurfer@nmr.mgh.harvard.edu
+ *
  *
  */
 
 #ifndef FSLabel_h
 #define FSLabel_h
 
+#include <QObject>
 #include "vtkImageData.h"
 #include "vtkMatrix4x4.h"
 
@@ -36,19 +36,18 @@ extern "C"
 }
 
 class FSVolume;
-class wxWindow;
-class wxCommandEvent;
 
-class FSLabel
+class FSLabel : public QObject
 {
+  Q_OBJECT
 public:
-  FSLabel();
+  FSLabel( QObject* parent );
   virtual ~FSLabel();
 
-  bool LabelRead( const char* filename );
-  bool LabelWrite( const char* filename );
+  bool LabelRead( const QString& filename );
+  bool LabelWrite( const QString& filename );
 
-  void UpdateLabelFromImage( vtkImageData* rasImage_in, FSVolume* ref_vol, wxWindow* wnd, wxCommandEvent& event );
+  void UpdateLabelFromImage( vtkImageData* rasImage_in, FSVolume* ref_vol );
   void UpdateRASImage( vtkImageData* rasImage_out, FSVolume* ref_vol );
 
 protected:

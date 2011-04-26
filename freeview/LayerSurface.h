@@ -6,21 +6,20 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: rpwang $
- *    $Date: 2010/06/08 17:43:26 $
- *    $Revision: 1.33 $
+ *    $Author: nicks $
+ *    $Date: 2011/04/26 18:20:39 $
+ *    $Revision: 1.40.2.1 $
  *
- * Copyright (C) 2008-2009,
- * The General Hospital Corporation (Boston, MA).
- * All rights reserved.
+ * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
- * Distribution, usage and copying of this software is covered under the
- * terms found in the License Agreement file named 'COPYING' found in the
- * FreeSurfer source code root directory, and duplicated here:
- * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ * Terms and conditions for use, reproduction, distribution and contribution
+ * are found in the 'FreeSurfer Software License Agreement' contained
+ * in the file 'LICENSE' found in the FreeSurfer distribution, and here:
  *
- * General inquiries: freesurfer@nmr.mgh.harvard.edu
- * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
+ *
+ * Reporting: freesurfer@nmr.mgh.harvard.edu
+ *
  *
  */
 
@@ -29,8 +28,6 @@
 
 #include "LayerEditable.h"
 #include "vtkSmartPointer.h"
-#include <string>
-#include <vector>
 
 class vtkImageReslice;
 class vtkImageMapToColors;
@@ -44,10 +41,8 @@ class vtkImageData;
 class vtkPlane;
 class vtkDecimatePro;
 class vtkProp;
-class LayerPropertiesSurface;
+class LayerPropertySurface;
 class FSSurface;
-class wxWindow;
-class wxCommandEvent;
 class LayerMRI;
 class SurfaceOverlay;
 class SurfaceAnnotation;
@@ -55,31 +50,34 @@ class SurfaceLabel;
 
 class LayerSurface : public LayerEditable
 {
+  Q_OBJECT
 public:
-  LayerSurface( LayerMRI* mri = NULL );
+  LayerSurface( LayerMRI* mri = NULL, QObject* parent = NULL );
   virtual ~LayerSurface();
 
-  bool LoadSurfaceFromFile( wxWindow* wnd, wxCommandEvent& event );
-  bool LoadVectorFromFile( wxWindow* wnd, wxCommandEvent& event );
-  bool LoadCurvatureFromFile( const char* filename );
-  bool LoadOverlayFromFile( const char* filename );
-  bool LoadAnnotationFromFile( const char* filename );
-  bool LoadLabelFromFile( const char* filename );
+  bool LoadSurfaceFromFile();
+  bool LoadVectorFromFile();
+  bool LoadCurvatureFromFile( const QString& filename );
+  bool LoadOverlayFromFile( const QString& filename, bool bCorrelation );
+  bool LoadGenericOverlayFromFile( const QString& filename );
+  bool LoadCorrelationFromFile( const QString& filename );
+  bool LoadAnnotationFromFile( const QString& filename );
+  bool LoadLabelFromFile( const QString& filename );
 
   void Append2DProps( vtkRenderer* renderer, int nPlane );
   void Append3DProps( vtkRenderer* renderer, bool* bSliceVisibility = NULL );
   bool HasProp( vtkProp* prop );
-  
-  bool SaveSurface( const char* filename, wxWindow* wnd, wxCommandEvent& event );
-  bool SaveSurface( wxWindow* wnd, wxCommandEvent& event );
+
+  bool SaveSurface( const QString& filename );
+  bool SaveSurface( );
 
   void SetSlicePositionToWorldCenter();
 
-  inline LayerPropertiesSurface* GetProperties()
+  inline LayerPropertySurface* GetProperty()
   {
-    return (LayerPropertiesSurface*)mProperties;
+    return (LayerPropertySurface*)mProperty;
   }
-  
+
   virtual void SetVisible( bool bVisible = true );
   virtual bool IsVisible();
 
@@ -91,9 +89,9 @@ public:
   bool GetSurfaceRASAtVertex( int nVertex, double* ras_out );
 
   bool GetTargetAtVertex( int nVertex, double* ras );
-  
+
   void GetSurfaceRASAtTarget( double* pos_in, double* ras_out );
-  
+
   void GetTargetAtSurfaceRAS( double* ras_in, double* pos_out );
 
   FSSurface* GetSourceSurface()
@@ -101,112 +99,133 @@ public:
     return m_surfaceSource;
   }
 
-  void SetPatchFileName( const char* fn )
+  void SetPatchFileName( const QString& fn )
   {
     m_sPatchFilename = fn;
   }
-  
-  void SetVectorFileName( const char* fn )
+
+  void SetVectorFileName( const QString& fn )
   {
     m_sVectorFilename = fn;
   }
 
-  void SetTargetFileName( const char* fn )
+  void SetTargetFileName( const QString& fn )
   {
     m_sTargetFilename = fn;
   }
-  
-  int GetActiveSurface();
 
-  void SetActiveSurface( int nSurfaceType );
+  int GetActiveSurface();
 
   int GetNumberOfVectorSets();
 
   int GetActiveVector();
 
   void SetActiveVector( int nVector );
-  
+
   void GetVectorAtVertex( int nVertex, double* vec_out );
-  
+
   void GetNormalAtVertex( int nVertex, double* vec_out );
-  
+
   bool HasCurvature();
-  
+
   void GetCurvatureRange( double* range );
-  
+
   double GetCurvatureValue( int nVertex );
-  
+
   // overlay functions
   bool HasOverlay();
-  
+
   int GetNumberOfOverlays();
-  
+
   SurfaceOverlay* GetOverlay( int n );
-  
-  SurfaceOverlay* GetOverlay( const char* name );
-  
+
+  SurfaceOverlay* GetOverlay( const QString& name );
+
   int GetActiveOverlayIndex();
-  
+
   SurfaceOverlay* GetActiveOverlay();
-  
+
   void SetActiveOverlay( int nOverlay );
-  
-  void SetActiveOverlay( const char* name );
-  
-  void UpdateOverlay( bool bAskRedraw = false );
-  
+
+  void SetActiveOverlay( const QString& name );
+
+  void CopyCorrelationOverlay(LayerSurface* surf);
+
   // annotation functions
   int GetNumberOfAnnotations();
-  
+
   SurfaceAnnotation* GetAnnotation( int n );
-  
-  SurfaceAnnotation* GetAnnotation( const char* name );
-  
+
+  SurfaceAnnotation* GetAnnotation( const QString& name );
+
   int GetActiveAnnotationIndex();
-  
+
   SurfaceAnnotation* GetActiveAnnotation();
-  
+
   void SetActiveAnnotation( int n );
-  
-  void SetActiveAnnotation( const char* name );
-  
+
+  void SetActiveAnnotation( const QString& name );
+
   void UpdateAnnotation( bool bAskRedraw = false );
-  
+
   // label functions
   int GetNumberOfLabels();
-  
+
   SurfaceLabel* GetLabel( int n );
-  
+
   SurfaceLabel* GetActiveLabel()
   {
     return ( m_nActiveLabel >= 0 ? m_labels[m_nActiveLabel] : NULL );
   }
-  
+
   int GetActiveLabelIndex()
   {
     return m_nActiveLabel;
   }
-  
+
   void SetActiveLabel( int n );
-  
+
   LayerMRI* GetRefVolume()
   {
     return m_volumeRef;
   }
-  
+
   int GetHemisphere();
-  
+
   void RepositionSurface( LayerMRI* mri, int nVertex, double value, int size, double sigma );
   void RepositionSurface( LayerMRI* mri, int nVertex, double* pos, int size, double sigma );
-  
+
   void Undo();
   bool HasUndo();
 
-protected:
-  virtual void DoListenToMessage ( std::string const iMessage, void* iData, void* sender );
+  void UpdateCorrelationOverlayAtVertex( int nVertex );
+  void UpdateCorrelationOverlay();
 
-  void InitializeSurface();
-  void InitializeActors();
+  bool HasValidVolumeGeometry();
+
+  int GetNumberOfVertices();
+
+public slots:
+  void SetActiveSurface( int nSurfaceType );
+  void UpdateOverlay( bool bAskRedraw = true );
+  void SetLoadAllSurfaces(bool bLoadAll)
+  {
+    m_bLoadAll = bLoadAll;
+  }
+
+Q_SIGNALS:
+  void SurfaceAnnotationAdded( SurfaceAnnotation* );
+  void SurfaceLabelAdded( SurfaceLabel* );
+  void SurfaceOverlayAdded( SurfaceOverlay* );
+  void SurfaceOverlyDataUpdated();
+  void SurfaceCurvatureLoaded();
+  void SurfaceVectorLoaded();
+  void ActiveSurfaceChanged( int n );
+  void ActiveOverlayChanged( int n );
+  void ActiveAnnotationChanged( int n );
+  void ActiveLabelChanged( int n );
+
+protected slots:
   void UpdateOpacity();
   void UpdateColorMap();
   void UpdateEdgeThickness();
@@ -216,6 +235,10 @@ protected:
   void UpdateMeshRender();
   void UpdateActorPositions();
   void UpdateVectorActor2D();
+
+protected:
+  void InitializeSurface();
+  void InitializeActors();
   void MapLabels( unsigned char* data, int nVertexCount );
 
   virtual void OnSlicePositionChanged( int nPlane );
@@ -231,9 +254,9 @@ protected:
   bool    m_bResampleToRAS;
   LayerMRI*   m_volumeRef;
 
-  std::string   m_sPatchFilename;
-  std::string   m_sVectorFilename;
-  std::string   m_sTargetFilename;
+  QString   m_sPatchFilename;
+  QString   m_sVectorFilename;
+  QString   m_sTargetFilename;
 
   vtkActor*   m_sliceActor2D[3];
   vtkActor*   m_sliceActor3D[3];
@@ -244,18 +267,19 @@ protected:
   vtkSmartPointer<vtkActor>   m_vectorActor;
   vtkSmartPointer<vtkActor>   m_vertexActor;
   vtkSmartPointer<vtkActor>   m_wireframeActor;
-  
+
   std::vector<SurfaceOverlay*>    m_overlays;
   int         m_nActiveOverlay;
-  
+
   std::vector<SurfaceAnnotation*> m_annotations;
   int         m_nActiveAnnotation;
-  
+
   std::vector<SurfaceLabel*>      m_labels;
   int         m_nActiveLabel;
-  
+
   bool        m_bUndoable;
   bool        m_bVector2DPendingUpdate;
+  bool        m_bLoadAll;
 };
 
 #endif
