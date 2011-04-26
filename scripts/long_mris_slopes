@@ -9,8 +9,8 @@
 # Original Author: Martin Reuter
 # CVS Revision Info:
 #    $Author: mreuter $
-#    $Date: 2011/03/30 22:01:09 $
-#    $Revision: 1.24 $
+#    $Date: 2011/04/26 17:00:22 $
+#    $Revision: 1.25 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -236,7 +236,7 @@ def options_parse():
     Command Line Options Parser for long_mris_slopes
     initiate the option parser and return the parsed object
     """
-    parser = optparse.OptionParser(version='$Id: long_mris_slopes,v 1.24 2011/03/30 22:01:09 mreuter Exp $', usage=HELPTEXT)
+    parser = optparse.OptionParser(version='$Id: long_mris_slopes,v 1.25 2011/04/26 17:00:22 mreuter Exp $', usage=HELPTEXT)
     
     # help text
 #    h_fsgd = '(REQUIRED) fsdg file specifying the subjects and time points'
@@ -475,9 +475,14 @@ if __name__=="__main__":
         qdectable = LongQdecTable(options.qdec)
         #subjects_tp_map, variables, subjectdir = qdecparse.parse()
     except BadFileError, e:
-        print 'ERROR: qdec table '+str(e)+' not found!'
+        print 'ERROR: qdec table '+options.qdec+' not found!'
         sys.exit(1)
     
+    # make sure we have a long table containing the bases
+    if qdectable.cross:
+        print '\nERROR: qdec table '+options.qdec+' is cross sectional\n       (2nd column not \'fsid-base\')!\n'
+        sys.exit(1)
+        
 
     # use the first column by default for time variable
     varidx = 1
@@ -488,12 +493,15 @@ if __name__=="__main__":
     # if defaultvar, make sure it is part of variables
     # compute correct index (starting with 1, 0 is the tpID)
     if not defaultvar == '':
+        #varup = [x.upper() for x in variables]
+        #idx   = varup.index(defaultvar.upper())
+        #print "IDX: " +str(idx)
         for index in (i for i in xrange(len(variables)) if variables[i].upper()==defaultvar.upper()):
             varidx = index
             #print 'found: '+str(varidx)+' '+variables[varidx]
             break
         if not variables[varidx].upper()==defaultvar.upper():
-            print 'ERROR: DefaultVariable \''+str(defaultvar)+'\' not found in Variables: '+str(variables)
+            print '\nERROR: DefaultVariable \''+str(defaultvar)+'\' not found in Variables: '+str(variables)+'\n'
             sys.exit(1)
         varidx = varidx +1;
 
@@ -519,7 +527,7 @@ if __name__=="__main__":
         # check if basedir exists
         basedir = os.path.join(subjectsdir,subjectid)
         if not os.path.exists(basedir):
-            print 'ERROR: Template dir '+str(basedir)+' does not exist!'
+            print '\nERROR: Template dir '+str(basedir)+' does not exist!\n '
             sys.exit(1)
 
         basesurfdir=os.path.join(basedir,'surf')
