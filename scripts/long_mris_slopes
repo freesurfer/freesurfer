@@ -9,8 +9,8 @@
 # Original Author: Martin Reuter
 # CVS Revision Info:
 #    $Author: mreuter $
-#    $Date: 2011/04/26 17:03:40 $
-#    $Revision: 1.15.2.5 $
+#    $Date: 2011/04/26 19:48:24 $
+#    $Revision: 1.15.2.6 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -236,7 +236,7 @@ def options_parse():
     Command Line Options Parser for long_mris_slopes
     initiate the option parser and return the parsed object
     """
-    parser = optparse.OptionParser(version='$Id: long_mris_slopes,v 1.15.2.5 2011/04/26 17:03:40 mreuter Exp $', usage=HELPTEXT)
+    parser = optparse.OptionParser(version='$Id: long_mris_slopes,v 1.15.2.6 2011/04/26 19:48:24 mreuter Exp $', usage=HELPTEXT)
     
     # help text
 #    h_fsgd = '(REQUIRED) fsdg file specifying the subjects and time points'
@@ -456,7 +456,6 @@ if __name__=="__main__":
     slopelogger.debug('-- The options you entered --')
     slopelogger.debug(options) 
 
-    defaultvar  = ''
     subjectsdir = ''
     # Parse the stats files 
 #    if options.fsgd is not None:
@@ -484,26 +483,32 @@ if __name__=="__main__":
         sys.exit(1)
         
 
+    # get other variables:
+    variables=qdectable.variables
+    if len(variables) < 1:
+        print '\nERROR: qdec table '+options.qdec+' needs 3rd column with time value,'
+        print '       e.g. age or time since baseline scan ...!\n'
+        sys.exit(1)
+        
     # use the first column by default for time variable
     varidx = 1
-    variables=qdectable.variables
-    # if time variable is passed on command line, overwrite
+
+    # if time variable is passed on command line, make sure it is part of variables
     if not options.time is None:
         defaultvar = options.time
-    # if defaultvar, make sure it is part of variables
-    # compute correct index (starting with 1, 0 is the tpID)
-    if not defaultvar == '':
-        #varup = [x.upper() for x in variables]
-        #idx   = varup.index(defaultvar.upper())
-        #print "IDX: " +str(idx)
+        # compute correct index (starting with 1, 0 is the tpID)
+        foundidx = False
         for index in (i for i in xrange(len(variables)) if variables[i].upper()==defaultvar.upper()):
             varidx = index
+            foundidx = True
             #print 'found: '+str(varidx)+' '+variables[varidx]
             break
-        if not variables[varidx].upper()==defaultvar.upper():
-            print '\nERROR: DefaultVariable \''+str(defaultvar)+'\' not found in Variables: '+str(variables)+'\n'
+        if not foundidx:
+            print '\nERROR: DefaultVariable \''+str(defaultvar)+'\' not found in variables: '+str(variables)+'\n'
             sys.exit(1)
         varidx = varidx +1;
+        
+    # maybe later check if time column is really a float?
 
     # if env is set, overwrite info from file (if it was passed in qdec)
     subjectsdir = qdectable.subjectsdir
