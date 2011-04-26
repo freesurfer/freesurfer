@@ -2,6 +2,10 @@
 ## Makefile.am 
 ##
 
+if HAVE_ITK_LIBS
+if HAVE_PETSC_LIBS
+if HAVE_BOOST_LIBS
+
 AM_CFLAGS=-I$(top_srcdir)/include
 AM_CXXFLAGS=-I$(top_srcdir)/include \
         -I$(top_srcdir)/fem_elastic \
@@ -47,6 +51,11 @@ dmri_pathstats_LDFLAGS=$(OS_LDFLAGS)
 dmri_mergepaths_SOURCES=dmri_mergepaths.cxx
 dmri_mergepaths_LDADD= $(addprefix $(top_builddir)/, $(LIBS_MGH))
 dmri_mergepaths_LDFLAGS=$(OS_LDFLAGS)
+
+# endif HAVE_ITK_LIBS, HAVE_PETSC_LIBS, HAVE_BOOST_LIBS
+endif
+endif
+endif
 
 EXCLUDE_FILES=""
 include $(top_srcdir)/Makefile.extra
