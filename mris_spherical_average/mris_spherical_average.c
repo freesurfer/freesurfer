@@ -8,8 +8,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2011/04/22 17:47:13 $
- *    $Revision: 1.31 $
+ *    $Date: 2011/04/26 20:07:17 $
+ *    $Revision: 1.32 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -44,7 +44,7 @@
 #include "label.h"
 #include "version.h"
 
-static char vcid[] = "$Id: mris_spherical_average.c,v 1.31 2011/04/22 17:47:13 fischl Exp $";
+static char vcid[] = "$Id: mris_spherical_average.c,v 1.32 2011/04/26 20:07:17 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -67,7 +67,7 @@ static char *output_subject_name = NULL ;
 static int navgs = 0 ;
 static char *ohemi = NULL ;
 static char *osurf = NULL ;
-static char *orig_name = "orig" ;
+static char *orig_name = "white" ;
 static int segment = 0 ;  // not implemented yet
 
 static int which_ic = 7 ;
@@ -91,10 +91,10 @@ main(int argc, char *argv[]) {
 
   char cmdline[CMD_LINE_LEN] ;
 
-  make_cmd_version_string (argc, argv, "$Id: mris_spherical_average.c,v 1.31 2011/04/22 17:47:13 fischl Exp $", "$Name:  $", cmdline);
+  make_cmd_version_string (argc, argv, "$Id: mris_spherical_average.c,v 1.32 2011/04/26 20:07:17 fischl Exp $", "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_spherical_average.c,v 1.31 2011/04/22 17:47:13 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_spherical_average.c,v 1.32 2011/04/26 20:07:17 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -407,10 +407,19 @@ main(int argc, char *argv[]) {
       }
       if (threshold > 0)
         LabelThreshold(area, threshold) ;
+      if (dilate > 0 || erode > 0)
+      {
+        MRISsaveVertexPositions(mris, TMP_VERTICES) ;
+        MRISrestoreVertexPositions(mris, ORIGINAL_VERTICES) ;
+      }
       if (dilate > 0)
         LabelDilate(area, mris, dilate) ;
       if (erode > 0)
         LabelErode(area, mris, erode) ;
+      if (dilate > 0 || erode > 0)
+      {
+        MRISrestoreVertexPositions(mris, TMP_VERTICES) ;
+      }
       LabelWrite(area, out_fname) ;
       break ;
     case VERTEX_LOGODDS:
