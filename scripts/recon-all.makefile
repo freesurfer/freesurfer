@@ -21,11 +21,11 @@ $(RAW):
 $(ORIG): $(RAW)
 	recon-all -s $(subj) -motioncor
 
-$(NU): $(ORIG)
-	recon-all -s $(subj) -nuintensitycor
-
-$(TAL): $(NU)
+$(TAL): $(ORIG)
 	recon-all -s $(subj) -talairach -tal-check
+
+$(NU): $(ORIG) $(TAL)
+	recon-all -s $(subj) -nuintensitycor
 
 $(T1): $(NU) $(CP)
 	recon-all -s $(subj) -normalization
