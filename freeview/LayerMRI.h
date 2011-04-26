@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2011/04/20 16:22:56 $
- *    $Revision: 1.65 $
+ *    $Date: 2011/04/26 19:21:51 $
+ *    $Revision: 1.66 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -75,7 +75,7 @@ public:
   }
 
   bool LoadVolumeFromFile();
-  bool Create( LayerMRI* mri, bool bCopyVoxel, int data_type = -1 );
+  bool Create( LayerMRI* mri, bool bCopyVoxel, int data_type = -1, int dummy_option = -1 );
 
   virtual void Append2DProps( vtkRenderer* renderer, int nPlane );
   virtual void Append3DProps( vtkRenderer* renderer, bool* bPlaneVisibility = NULL );

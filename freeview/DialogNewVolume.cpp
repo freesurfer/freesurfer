@@ -6,9 +6,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/14 23:44:47 $
- *    $Revision: 1.16 $
+ *    $Author: rpwang $
+ *    $Date: 2011/04/26 19:21:51 $
+ *    $Revision: 1.17 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -109,4 +109,26 @@ void DialogNewVolume::OnToggleCopyVoxelData(bool bCopy)
     ui->comboBoxDataType->setCurrentIndex(ui->comboBoxDataType->count()-1);
   }
   ui->comboBoxDataType->setDisabled(bCopy);
+}
+
+void DialogNewVolume::OnToggleVoxelDataOption(bool bChecked)
+{
+  if (bChecked)
+  {
+    if (sender() != ui->checkBoxCopyData)
+      ui->checkBoxCopyData->setChecked(false);
+    if (sender() != ui->checkBoxDummyCube)
+      ui->checkBoxDummyCube->setChecked(false);
+    if (sender() != ui->checkBoxDummySphere)
+      ui->checkBoxDummySphere->setChecked(false);
+  }
+}
+
+int DialogNewVolume::GetDummyOption()
+{
+  if (ui->checkBoxDummySphere->isChecked())
+    return 0;
+  if (ui->checkBoxDummyCube->isChecked())
+    return 1;
+  return -1;
 }

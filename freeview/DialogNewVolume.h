@@ -6,9 +6,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/14 23:44:47 $
- *    $Revision: 1.13 $
+ *    $Author: rpwang $
+ *    $Date: 2011/04/26 19:21:51 $
+ *    $Revision: 1.14 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -47,6 +47,8 @@ public:
   bool GetCopyVoxel();
   void SetCopyVoxel( bool bVoxel );
 
+  int GetDummyOption();
+
   int GetDataType();
 
   LayerMRI* GetTemplate();
@@ -54,6 +56,7 @@ public:
 protected slots:
   void OnOK();
   void OnToggleCopyVoxelData(bool bCopy);
+  void OnToggleVoxelDataOption(bool bChecked);
 
 private:
   Ui::DialogNewVolume *ui;

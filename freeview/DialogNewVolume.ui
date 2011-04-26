@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>295</width>
-    <height>293</height>
+    <height>325</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -127,6 +127,20 @@
     </widget>
    </item>
    <item>
+    <widget class="QCheckBox" name="checkBoxDummySphere">
+     <property name="text">
+      <string>Dummy Sphere</string>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="QCheckBox" name="checkBoxDummyCube">
+     <property name="text">
+      <string>Dummy Cube</string>
+     </property>
+    </widget>
+   </item>
+   <item>
     <spacer name="verticalSpacer">
      <property name="orientation">
       <enum>Qt::Vertical</enum>
@@ -161,7 +175,7 @@
    <hints>
     <hint type="sourcelabel">
      <x>279</x>
-     <y>283</y>
+     <y>314</y>
     </hint>
     <hint type="destinationlabel">
      <x>286</x>
@@ -177,7 +191,7 @@
    <hints>
     <hint type="sourcelabel">
      <x>279</x>
-     <y>283</y>
+     <y>314</y>
     </hint>
     <hint type="destinationlabel">
      <x>294</x>
@@ -196,8 +210,56 @@
      <y>210</y>
     </hint>
     <hint type="destinationlabel">
-     <x>340</x>
+     <x>294</x>
      <y>193</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>checkBoxCopyData</sender>
+   <signal>toggled(bool)</signal>
+   <receiver>DialogNewVolume</receiver>
+   <slot>OnToggleVoxelDataOption(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>227</x>
+     <y>209</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>512</x>
+     <y>240</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>checkBoxDummySphere</sender>
+   <signal>toggled(bool)</signal>
+   <receiver>DialogNewVolume</receiver>
+   <slot>OnToggleVoxelDataOption(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>116</x>
+     <y>235</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>433</x>
+     <y>273</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>checkBoxDummyCube</sender>
+   <signal>toggled(bool)</signal>
+   <receiver>DialogNewVolume</receiver>
+   <slot>OnToggleVoxelDataOption(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>116</x>
+     <y>264</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>261</x>
+     <y>390</y>
     </hint>
    </hints>
   </connection>
@@ -205,5 +267,6 @@
  <slots>
   <slot>OnOK()</slot>
   <slot>OnToggleCopyVoxelData(bool)</slot>
+  <slot>OnToggleVoxelDataOption(bool)</slot>
  </slots>
 </ui>
