@@ -2,7 +2,7 @@
 # Makefile.am for scripts
 #
 
-SUBDIRS=WholeBrainParcellation
+SUBDIRS=WholeBrainParcellation exVivoHippocampi
 
 dist_bin_SCRIPTS = \
 kvlSegmentHippocampalSubfields.sh \
