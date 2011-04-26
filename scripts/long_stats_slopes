@@ -9,8 +9,8 @@
 # Original Author: Martin Reuter
 # CVS Revision Info:
 #    $Author: mreuter $
-#    $Date: 2011/03/29 18:18:54 $
-#    $Revision: 1.4.2.4 $
+#    $Date: 2011/04/26 17:03:41 $
+#    $Revision: 1.4.2.5 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -159,7 +159,7 @@ def options_parse():
     Command Line Options Parser for long_mris_slopes
     initiate the option parser and return the parsed object
     """
-    parser = optparse.OptionParser(version='$Id: long_stats_slopes,v 1.4.2.4 2011/03/29 18:18:54 mreuter Exp $', usage=HELPTEXT)
+    parser = optparse.OptionParser(version='$Id: long_stats_slopes,v 1.4.2.5 2011/04/26 17:03:41 mreuter Exp $', usage=HELPTEXT)
     
     # help text
     h_qdec      = '(REQUIRED) qdec table file specifying the subjects and time points'
@@ -307,6 +307,12 @@ if __name__=="__main__":
         print 'ERROR: qdec table '+str(e)+' not found!'
         sys.exit(1)
     
+    
+    # make sure we have a long table containing the bases
+    if qdectable.cross:
+        print '\nERROR: qdec table '+options.qdec+' is cross sectional\n       (2nd column not \'fsid-base\')!\n'
+        sys.exit(1)
+        
 
     # use the first column by default for time variable
     varidx = 1

@@ -9,8 +9,8 @@
 # Original Author: Martin Reuter
 # CVS Revision Info:
 #    $Author: mreuter $
-#    $Date: 2011/03/23 16:03:47 $
-#    $Revision: 1.1.2.2 $
+#    $Date: 2011/04/26 17:03:40 $
+#    $Revision: 1.1.2.3 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -99,7 +99,7 @@ def options_parse():
     Command Line Options Parser
     initiate the option parser and return the parsed object
     """
-    parser = optparse.OptionParser(version='$Id: long_qdec_table,v 1.1.2.2 2011/03/23 16:03:47 mreuter Exp $', usage=HELPTEXT)
+    parser = optparse.OptionParser(version='$Id: long_qdec_table,v 1.1.2.3 2011/04/26 17:03:40 mreuter Exp $', usage=HELPTEXT)
     
     # help text
     h_qdec      = '(REQUIRED) qdec table file specifying the subjects and time points'
@@ -158,7 +158,7 @@ if __name__=="__main__":
 
     if options.cross:
         print 'Collapsing the qdec table to CROSS '
-        longqdec.cross()
+        longqdec.make_cross()
         print 'Writing the qdec table: '+options.out
         longqdec.write(options.out)
     
