@@ -10,7 +10,9 @@ compressionLookupTable.txt \
 compressionLookupTable_left.txt \
 imageDump.mgz \
 nonPartialVolumeStatsLeftReferenceForBert.txt \
-nonPartialVolumeStatsRightReferenceForBert.txt
+nonPartialVolumeStatsRightReferenceForBert.txt \
+kvlQuantifyHippocampalSubfieldSegmentations.sh.help.xml \
+kvlSegmentHippocampalSubfields.sh.help.xml
 
 EXTRA_DIST = $(foo_DATA)
 

@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<!DOCTYPE help [
+<!ENTITY lt "#38;#60;">
+<!ENTITY gt "&#62;">
+<!ENTITY amp "&#38;#38;">
+<!ELEMENT help (name , synopsis , description , arguments+ , outputs* , example* , bugs* , reporting* , see-also*)*>
+<!ELEMENT name (#PCDATA)>
+<!ELEMENT synopsis (#PCDATA)>
+<!ELEMENT description (#PCDATA)>
+<!ELEMENT arguments (positional* , required-flagged* , optional-flagged*)*>
+<!ELEMENT positional (intro* , argument* , explanation*)*>
+<!ELEMENT required-flagged (intro* , argument* , explanation*)*>
+<!ELEMENT optional-flagged (intro* , argument* , explanation*)*>
+<!ELEMENT intro (#PCDATA)>
+<!ELEMENT argument (#PCDATA)>
+<!ELEMENT explanation (#PCDATA)>
+<!ELEMENT outputs (output* , explanation*)>
+<!ELEMENT output (#PCDATA)>
+<!ELEMENT example (#PCDATA)>
+<!ELEMENT bugs (#PCDATA)>
+<!ELEMENT reporting (#PCDATA)>
+<!ELEMENT see-also (#PCDATA)>
+]>
+<help>
+	<name>kvlQuantifyHippocampalSubfieldSegmentations.sh - program to estimate the volume of the subfields within the hippocampus after they have been segmented with "kvlSegmentHippocampalSubfields.sh"</name>
+	<synopsis>kvlQuantifyHippocampalSubfieldSegmentations.sh [ resultsDirectory startIndex=1 endIndex=end ]</synopsis>
+	<description>
+Creates the text files "nonPartialVolumeStatsLeft.txt" and "nonPartialVolumeStatsRight.txt" in the directory "resultsDirectory", containing tables that summarize the volumes of the hippocampal subfield segmentations of the left and right side, respectively, in some or all of the subject subdirectories in the directory "resultsDirectory". The directory "resultsDirectory" is assumed to have been created by the program "kvlSegmentHippocampalSubfields.sh"; if none is provided, the standard FreeSurfer's $SUBJECTs_DIR will be used, assuming recon-all has copied the results there. 
+
+The reported volumes are given in number of voxels, where each voxel is of the size "0.5x0.5x0.5mm^3". It is expected that for each subject, "kvlSegmentHippocampalSubfields.sh" has been run for both the left and the right side.
+  </description>
+	<arguments>
+		<positional>
+			<argument>resultsDirectory</argument>
+			<explanation>(optional) A directory where "kvlSegmentHippocampalSubfields.sh" has written all its results to. If none is provided, the standard FreeSurfer's $SUBJECTs_DIR will be used, assuming recon-all has copied the results there.</explanation>
+      <argument>startIndex</argument>
+      <explanation>(optional) Argument that allows to include only a subset of the subjects in the results. Each subject, i.e., a subdirectory of the resultsDirectory, is given a number according to 
+
+  ls -1d resultsDirectory/*/ | cat -n
+
+ and only subjects with a number starting from startIndex are considered. If non startIndex argument is provided, all subjects will be included.</explanation>
+      <argument>endIndex</argument>
+      <explanation>(optional) Similar to startIndex, but only subjects with a number up to endIndex are considered.</explanation>
+		</positional>
+		<required-flagged>
+			<intro>None</intro>
+		</required-flagged>
+		<optional-flagged>
+			<argument>--help</argument>
+			<explanation>print help and exit</explanation>
+		</optional-flagged>
+	</arguments>
+<example>
+All subjects in the standard FreeSurfer $SUBJECTS_DIR:
+  kvlQuantifyHippocampalSubfieldSegmentations.sh
+</example>
+<example>
+All subjects in the directory structure created by "kvlSegmentHippocampalSubfields.sh":
+  kvlQuantifyHippocampalSubfieldSegmentations.sh /tmp/subfieldResults
+</example>
+<example>
+Only the first 10 subjects:
+  kvlQuantifyHippocampalSubfieldSegmentations.sh /tmp/subfieldResults 1 10
+</example>
+<example>
+Only subject with number 47:
+  kvlQuantifyHippocampalSubfieldSegmentations.sh /tmp/subfieldResults 47 47
+</example>
+<example>
+All subjects expect the first 10:
+  kvlQuantifyHippocampalSubfieldSegmentations.sh /tmp/subfieldResults 11
+</example>
+<reporting>Report bugs to &lt;freesurfer@nmr.mgh.harvard.edu&gt;</reporting>
+<see-also>kvlSegmentHippocampalSubfields.sh</see-also>
+</help>

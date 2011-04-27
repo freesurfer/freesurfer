@@ -12,6 +12,35 @@ doNonPartialVolumedSegmentation=true;
 doPartialVolumedSegmentation=false;
 
 
+# Define a function that will show what we're doing, and
+# exits if something goes wrong.
+function doIt {
+
+  command="$1"
+
+  echo "$command"
+  eval "$command"
+
+  if [ $? != 0 ]; then
+    echo "failed to do $command"
+    exit -1
+  fi
+}
+
+
+# Set hard coded location of Atlas3D binaries and atlas
+source kvlSetHardCodedLocations.sh
+
+
+# Print help if needed
+if [ $# = 1 ]; then
+  if [ $1 = "--help" ]; then
+    fsPrintHelp $atlasDirectory/kvlQuantifyHippocampalSubfieldSegmentations.sh.help.xml
+    exit 0
+  fi
+fi
+
+
 # See what type of directory structure this is: the one created by
 # kvlSegmentHippocampalSubfields.sh, which has its results in
 # something like 
@@ -29,27 +58,6 @@ fi
 
 # Show what we have
 echo "resultsDirectory $resultsDirectory"
-
-
-# Define a function that will show what we're doing, and
-# exits if something goes wrong.
-function doIt {
-
-  command="$1"
-
-  echo "$command"
-  eval "$command"
-
-  if [ $? != 0 ]; then
-    echo "failed to do $command"
-    exit -1
-  fi
-
-}
-
-# Set hard coded location of Atlas3D binaries and atlas
-doIt "source kvlSetHardCodedLocations.sh"
-echo "atlasDirectory: "$atlasDirectory""
 
 
 # Go to the output directory

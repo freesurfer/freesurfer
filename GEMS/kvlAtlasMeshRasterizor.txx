@@ -1,7 +1,7 @@
 #ifndef __kvlAtlasMeshRasterizor_txx
 #define __kvlAtlasMeshRasterizor_txx
 
-#include "Mesa/gl.h"
+#include "GL/gl.h"
 
 
 #if 1

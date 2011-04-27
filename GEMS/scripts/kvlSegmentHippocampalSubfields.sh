@@ -11,20 +11,6 @@ doPartialVolumedSegmentation=false;
 # K to use
 K=0.01;
 
-
-# Parse input
-if [ $# != 4 ]; then
-  echo
-  echo "Usage: $0 subjectName side inputDirectory outputDirectory"
-  echo
-  exit -1
-fi
-subjectName=$1
-side=$2
-inputDirectory=$3
-outputDirectory=$4
-
-
 # Define a function that will show what we're doing, and
 # exits if something goes wrong
 function doIt {
@@ -37,13 +23,30 @@ function doIt {
 
 }
 
-
 # Set hard coded location of Atlas3D binaries and atlas
-doIt "source kvlSetHardCodedLocations.sh"
-echo "atlasDirectory: "$atlasDirectory""
-
+source kvlSetHardCodedLocations.sh
 meshFileName="$atlasDirectory/CurrentMeshCollection30.gz"
 boundingBoxFileName="$atlasDirectory/imageDump.mgz"
+
+
+# Parse input
+if [ $# = 1 ]; then
+  if [ $1 = "--help" ]; then
+    fsPrintHelp $atlasDirectory/kvlSegmentHippocampalSubfields.sh.help.xml
+    exit 0
+  fi
+fi
+if [ $# != 4 ]; then
+  echo
+  echo "Usage: $0 subjectName side inputDirectory outputDirectory"
+  echo
+  exit -1
+fi
+subjectName=$1
+side=$2
+inputDirectory=$3
+outputDirectory=$4
+
 
 
 # Depending on the side, retreive the standard FreeSurfer codes for the subfields (cf. FreeSurferColorLUT.txt)

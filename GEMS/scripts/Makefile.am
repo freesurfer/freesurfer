@@ -2,34 +2,12 @@
 # Makefile.am for scripts
 #
 
-
-SUBDIRS=WholeBrainParcellation \
-		exVivoHippocampi 
+SUBDIRS=WholeBrainParcellation exVivoHippocampi
 
 dist_bin_SCRIPTS = \
-kvlcoregisterIntensityBased \
-kvlnonPartialVolumeStatsRightReferenceForBert.txt \
-kvlTestHippocampalSubfields.sh \
-kvlcoregisterASEGBased \
-kvltestLinearClassifier.m \
-kvlanalyzeADNIResults.m \
-kvlSegmentHippocampalSubfields.sh.help.txt \
-kvldoAllCombinationsOfSpecialSubject.sh \
-kvlanalyzeResults.m \
-kvlinspectAllResults.sh \
-kvldoSpecialSubject.sh \
-kvlQuantifyHippocampalSubfieldSegmentations.sh.help.txt \
-kvlkillAll.sh \
-kvlpermutationTest.m \
-kvlQuantifyHippocampalSubfieldSegmentations.sh \
 kvlSegmentHippocampalSubfields.sh \
-kvlnonPartialVolumeStatsLeftReferenceForBert.txt \
-kvldoSubjectFSPipelineForNifti.sh \
-kvlcoregisterFreeSurferLabels.sh \
-kvlmakeVolumePlot.m \
-kvldoAllSubjects.sh \
-kvldoAllSubjectsFSPipelineForNifti.sh \
-kvlcollectResults.sh
+kvlQuantifyHippocampalSubfieldSegmentations.sh \
+kvlTestHippocampalSubfields.sh
 
 # ensure kvlSetHardCodedLocations.sh correctly points to stuff
 install-exec-hook:
