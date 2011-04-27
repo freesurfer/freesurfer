@@ -73,6 +73,14 @@ void AcquireCUDADevice( void ) {
   
   CUDA_SAFE_CALL( cudaGetDeviceProperties( &devProp, iDevice ) );
   cout << "CUDA device: " << devProp.name << endl;
+
+#ifdef GCAMORPH_ON_GPU
+  if( devProp.major < 2 ) {
+    cerr << "Must have compute capability 2 for GCAMORPH_ON_GPU"
+         << endl;
+    exit( EXIT_FAILURE );
+  }
+#endif
   
 }
 
