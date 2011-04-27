@@ -9,8 +9,8 @@
 # Original Author: Martin Reuter
 # CVS Revision Info:
 #    $Author: mreuter $
-#    $Date: 2011/04/26 19:48:24 $
-#    $Revision: 1.15.2.6 $
+#    $Date: 2011/04/27 17:23:22 $
+#    $Revision: 1.15.2.7 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -34,9 +34,7 @@ import logging
 import subprocess
 import tempfile
 import shutil
-from Numeric import *
 from subject_info import *
-#from fsgd_parser import *
 from LongQdecTable import *
 
 # logging 
@@ -236,7 +234,7 @@ def options_parse():
     Command Line Options Parser for long_mris_slopes
     initiate the option parser and return the parsed object
     """
-    parser = optparse.OptionParser(version='$Id: long_mris_slopes,v 1.15.2.6 2011/04/26 19:48:24 mreuter Exp $', usage=HELPTEXT)
+    parser = optparse.OptionParser(version='$Id: long_mris_slopes,v 1.15.2.7 2011/04/27 17:23:22 mreuter Exp $', usage=HELPTEXT)
     
     # help text
 #    h_fsgd = '(REQUIRED) fsdg file specifying the subjects and time points'
@@ -482,7 +480,6 @@ if __name__=="__main__":
         print '\nERROR: qdec table '+options.qdec+' is cross sectional\n       (2nd column not \'fsid-base\')!\n'
         sys.exit(1)
         
-
     # get other variables:
     variables=qdectable.variables
     if len(variables) < 1:
