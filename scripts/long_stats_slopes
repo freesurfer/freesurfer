@@ -9,8 +9,8 @@
 # Original Author: Martin Reuter
 # CVS Revision Info:
 #    $Author: mreuter $
-#    $Date: 2011/04/27 17:15:19 $
-#    $Revision: 1.9 $
+#    $Date: 2011/04/27 17:24:08 $
+#    $Revision: 1.10 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -97,6 +97,17 @@ To manually specify the within subject output in <template>/stats/<name> :
 --out-stack <name> Store time series file <template>/stats/<name> (default: long.<stats>.<meas>-stack.dat)
 
 
+To manually specify stacked tables:
+
+--stack-avg <name>   Output filename (without hemi ?h) to stack temporal average tables (default no stacking)
+
+--stack-rate <name>  Output filename (without hemi ?h) to stack rate tables (default no stacking)
+
+--stack-pc1 <name>   Output filename (without hemi ?h) to stack pct. change to tp1 tables (default no stacking)
+
+--stack-spc <name>   Output filename (without hemi ?h) to stack sym. pct. tables (default no stacking)
+
+
 
 DETAILS
 =======
@@ -158,7 +169,7 @@ def options_parse():
     Command Line Options Parser for long_mris_slopes
     initiate the option parser and return the parsed object
     """
-    parser = optparse.OptionParser(version='$Id: long_stats_slopes,v 1.9 2011/04/27 17:15:19 mreuter Exp $', usage=HELPTEXT)
+    parser = optparse.OptionParser(version='$Id: long_stats_slopes,v 1.10 2011/04/27 17:24:08 mreuter Exp $', usage=HELPTEXT)
     
     # help text
     h_qdec      = '(REQUIRED) qdec table file specifying the subjects and time points'
