@@ -9,8 +9,8 @@
 # Original Author: Martin Reuter
 # CVS Revision Info:
 #    $Author: mreuter $
-#    $Date: 2011/04/26 19:49:09 $
-#    $Revision: 1.8 $
+#    $Date: 2011/04/27 17:15:19 $
+#    $Revision: 1.9 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -34,7 +34,6 @@ import logging
 import subprocess
 import tempfile
 import shutil
-from Numeric import *
 from subject_info import *
 from LongQdecTable import *
 
@@ -85,7 +84,7 @@ OPTIONAL ARGUMENTS
 --time <name>     Variable name of time variable (e.g. age)
 
 
-To manually specify the output in <template>/stats/<name> :
+To manually specify the within subject output in <template>/stats/<name> :
 
 --out-avg <name>   Output filename (without hemi ?h) for temporal average (default: long.<stats>.<meas>-avg.dat)
 
@@ -159,7 +158,7 @@ def options_parse():
     Command Line Options Parser for long_mris_slopes
     initiate the option parser and return the parsed object
     """
-    parser = optparse.OptionParser(version='$Id: long_stats_slopes,v 1.8 2011/04/26 19:49:09 mreuter Exp $', usage=HELPTEXT)
+    parser = optparse.OptionParser(version='$Id: long_stats_slopes,v 1.9 2011/04/27 17:15:19 mreuter Exp $', usage=HELPTEXT)
     
     # help text
     h_qdec      = '(REQUIRED) qdec table file specifying the subjects and time points'
@@ -174,11 +173,16 @@ def options_parse():
 
     h_out_avg   = 'filename (without hemi ?h) to store temporal average in <template>/surf/<hemi>.<OUT_AVG>.mgh (default: long.<meas>-avg)'
     h_out_rate  = 'filename (without hemi ?h) to store rate in <template>/surf/<hemi>.<OUT_RATE>.mgh (default: long.<meas>-rate)'
-    h_out_pc1   = 'filename (without hemi ?h) to store pct. change (to TP1) in <template>/surf/<hemi>.<OUT_PC1>.mgh (default: long.<meas>-pc1)'
+    h_out_pc1   = 'filename (without hemi ?h) to store pct. change (to tp1) in <template>/surf/<hemi>.<OUT_PC1>.mgh (default: long.<meas>-pc1)'
     h_out_spc   = 'filename (without hemi ?h) to store sym. pct. change in <template>/surf/<hemi>.<OUT_SPC>.mgh (default: long.<meas>-spc)'
     h_outstack  = 'filename to store stacked measure file <template>/surf/<hemi>.<OUT_STACK>.mgh (default: long.<meas>-stack)'
 
     h_time      = 'variable name for time column variable (e.g. age) in qdec table'    
+    
+    h_stack_avg = 'filename (without hemi ?h) to stack temporal average tables (default no stacking)'
+    h_stack_rate= 'filename (without hemi ?h) to stack rate tables (default no stacking)'
+    h_stack_pc1 = 'filename (without hemi ?h) to stack pct. change to tp1 tables (default no stacking)'
+    h_stack_spc = 'filename (without hemi ?h) to stack sym. pct. tables (default no stacking)'
     
     # Add options 
 
@@ -204,6 +208,10 @@ def options_parse():
     parser.add_option('--out-spc'  , dest='out_spc'  , help=h_out_spc)
     parser.add_option('--out-stack', dest='out_stack', help=h_outstack)
     
+    parser.add_option('--stack-avg'  , dest='stack_avg'  , help=h_stack_avg)
+    parser.add_option('--stack-rate' , dest='stack_rate' , help=h_stack_rate)
+    parser.add_option('--stack-pc1'  , dest='stack_pc1'  , help=h_stack_pc1)
+    parser.add_option('--stack-spc'  , dest='stack_spc'  , help=h_stack_spc)
                       
     (options, args) = parser.parse_args()
     
@@ -450,15 +458,18 @@ if __name__=="__main__":
             cmd ='mri_convert --out_stats_table --like '+template+' '+outtmp+' '+outname
             run_cmd(cmd,'converting spc to statstable failed?') 
                 
-        if options.out_pc1 is not None:
+        if options.do_pc1:
             # create tp1 table and mgh file
             tp1tab = os.path.join(dirname,'tp1.'+options.stats+'.'+options.meas+'.dat')
             cmd = 'head -n 2 '+meas_target
+            print cmd
             args = shlex.split(cmd)
             output_f = open(tp1tab, 'w')
-            retcode = subprocess.Popen(args,stdout=output_f)
+            p = subprocess.Popen(args,stdout=output_f)
+            retcode = p.wait()
             if retcode != 0 :
-                print 'ERROR: head on first 2 lines of time series table did not work?'
+                print '\nERROR: head on first 2 lines of time series table did not work? ('+str(retcode)+')\n'
+                sys.exit(1)
             output_f.close()
             tp1 = os.path.join(dirname,'tp1.'+options.stats+'.'+options.meas+'.mgh')
             cmd = 'mri_convert --in_stats_table '+tp1tab+' '+tp1
@@ -477,7 +488,7 @@ if __name__=="__main__":
             cmd ='mri_convert --out_stats_table --like '+template+' '+outtmp+' '+outname
             run_cmd(cmd,'converting spc to statstable failed?') 
         
-        if options.out_rate is not None: 
+        if options.do_rate: 
             outname = os.path.join(basestatsdir,options.out_rate)
             outex = outname
             allrate.append(outname)
@@ -486,7 +497,7 @@ if __name__=="__main__":
             cmd ='mri_convert --out_stats_table --like '+template+' '+beta1+' '+outname
             run_cmd(cmd,'converting rate to statstable failed?') 
         
-        if  options.out_avg is not None:
+        if  options.do_avg:
             outname = os.path.join(basestatsdir,options.out_avg)
             outex = outname
             allavg.append(outname)
@@ -504,6 +515,23 @@ if __name__=="__main__":
         print '  ooffice -calc '+os.path.join(basestatsdir,outex)
         print
           
+    
+    if options.stack_avg is not None:
+        # out table: long.all.'+options.stats+'.'+options.meas+'-avg.dat
+        cmd = 'merge_stats_tables --inputs '+" ".join(allavg)+' -t long.all.'+options.stack_avg+' --meas '+options.meas+'-avg'
+        run_cmd(cmd,'merge_stats_tables failed?') 
+
+    if options.stack_rate is not None:
+        cmd = 'merge_stats_tables --inputs '+" ".join(allrate)+' -t long.all.'+options.stack_rate+' --meas '+options.meas+'-rate'
+        run_cmd(cmd,'merge_stats_tables failed?') 
+
+    if options.stack_pc1 is not None:
+        cmd = 'merge_stats_tables --inputs '+" ".join(allpc1)+' -t long.all.'+options.stack_pc1+' --meas '+options.meas+'-pc1'
+        run_cmd(cmd,'merge_stats_tables failed?') 
+
+    if options.stack_spc is not None:
+        cmd = 'merge_stats_tables --inputs '+" ".join(allspc)+' -t long.all.'+options.stack_spc+' --meas '+options.meas+'-spc'
+        run_cmd(cmd,'merge_stats_tables failed?') 
     
     #print 'merge_stats_tables --inputs '+" ".join(allavg)+' -t long.all.'+options.stats+'.'+options.meas+'-avg.dat --meas '+options.meas+'-avg'
        
