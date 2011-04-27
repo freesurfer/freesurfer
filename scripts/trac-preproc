@@ -8,8 +8,8 @@
 # Original Author: Anastasia Yendiki
 # CVS Revision Info:
 #    $Author: ayendiki $
-#    $Date: 2011/04/07 04:01:56 $
-#    $Revision: 1.24 $
+#    $Date: 2011/04/27 02:24:33 $
+#    $Revision: 1.25 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -25,7 +25,7 @@
 
 umask 002
 
-set VERSION = '$Id: trac-preproc,v 1.24 2011/04/07 04:01:56 ayendiki Exp $'
+set VERSION = '$Id: trac-preproc,v 1.25 2011/04/27 02:24:33 ayendiki Exp $'
 set ProgName = `basename $0`
 set inputargs = ($argv)
 
@@ -779,23 +779,22 @@ if ($domasks) then
 
     # Map cortical parcellation to volume, growing 2mm into the WM
     set gmgrow = 2
-    if (! -e $fsdir/label/aparc+${gmgrow}mm.mgz) then
-      set cmd = mri_aparc2aseg
-      set cmd = ($cmd --s $subj)
-      set cmd = ($cmd --annot aparc)
-      set cmd = ($cmd --wmparc-dmax $gmgrow)
-      set cmd = ($cmd --labelwm --hypo-as-wm)
-      set cmd = ($cmd --o $fsdir/label/aparc+${gmgrow}mm.mgz)
-      echo $cmd |& tee -a $LF |& tee -a $CF
-      if ($RunIt) then
-        $cmd |& tee -a $LF
-        if ($status) goto error_exit
-      endif
+
+    set cmd = mri_aparc2aseg
+    set cmd = ($cmd --s $subj)
+    set cmd = ($cmd --annot aparc)
+    set cmd = ($cmd --wmparc-dmax $gmgrow)
+    set cmd = ($cmd --labelwm --hypo-as-wm)
+    set cmd = ($cmd --o $labdir/anatorig/aparc+aseg+${gmgrow}mm.mgz)
+    echo $cmd |& tee -a $LF |& tee -a $CF
+    if ($RunIt) then
+      $cmd |& tee -a $LF
+      if ($status) goto error_exit
     endif
 
     # Make mask of cortex
     set cmd = mri_binarize
-    set cmd = ($cmd --i $fsdir/label/aparc+${gmgrow}mm.mgz)
+    set cmd = ($cmd --i $labdir/anatorig/aparc+aseg+${gmgrow}mm.mgz)
     set cmd = ($cmd --min 1000 --max 2999)
     set cmd = ($cmd --o $labdir/anatorig/cortex.nii.gz)
     echo $cmd |& tee -a $LF |& tee -a $CF
@@ -806,7 +805,7 @@ if ($domasks) then
 
     # Make mask of grown cortex
     set cmd = mri_binarize
-    set cmd = ($cmd --i $fsdir/label/aparc+${gmgrow}mm.mgz)
+    set cmd = ($cmd --i $labdir/anatorig/aparc+aseg+${gmgrow}mm.mgz)
     set cmd = ($cmd --min 1000 --max 4999)
     set cmd = ($cmd --o $labdir/anatorig/cortex+${gmgrow}mm.nii.gz)
     echo $cmd |& tee -a $LF |& tee -a $CF
@@ -873,7 +872,8 @@ if ($domasks) then
     # Transform anatomical masks
     foreach label ( White-Matter White-Matter++ notventricles \
                     cortex cortex+${gmgrow}mm cortex+${gmgrow}mm+bs \
-                    anat_brain_mask anat_brain_mask-vent aparc+aseg )
+                    aparc+aseg aparc+aseg+${gmgrow}mm \
+                    anat_brain_mask anat_brain_mask-vent )
       # Change orientation to make FSL happy
       set cmd = flip4fsl
       set cmd = ($cmd $labdir/anatorig/$label.nii.gz)
