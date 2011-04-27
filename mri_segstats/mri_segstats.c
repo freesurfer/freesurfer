@@ -11,9 +11,9 @@
 /*
  * Original Author: Dougas N Greve
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2011/04/19 21:24:27 $
- *    $Revision: 1.76 $
+ *    $Author: rge21 $
+ *    $Date: 2011/04/27 19:09:01 $
+ *    $Revision: 1.77 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -114,7 +114,7 @@ int DumpStatSumTable(STATSUMENTRY *StatSumTable, int nsegid);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-  "$Id: mri_segstats.c,v 1.76 2011/04/19 21:24:27 greve Exp $";
+  "$Id: mri_segstats.c,v 1.77 2011/04/27 19:09:01 rge21 Exp $";
 char *Progname = NULL, *SUBJECTS_DIR = NULL, *FREESURFER_HOME=NULL;
 char *SegVolFile = NULL;
 char *InVolFile = NULL;
@@ -219,6 +219,10 @@ int main(int argc, char **argv)
   MATRIX *vox2vox = NULL;
   nhits = 0;
   vol = 0;
+
+#if FS_CUDA
+  AcquireCUDADevice();
+#endif
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option (argc, argv, vcid, "$Name:  $");
