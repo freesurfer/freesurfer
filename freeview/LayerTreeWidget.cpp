@@ -6,9 +6,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/14 23:44:47 $
- *    $Revision: 1.4 $
+ *    $Author: rpwang $
+ *    $Date: 2011/04/27 19:52:29 $
+ *    $Revision: 1.5 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -41,6 +41,14 @@ void LayerTreeWidget::drawRow( QPainter * painter, const QStyleOptionViewItem & 
     QImage img( ":resource/icons/volume_lock.png");
     QRect rc = option.rect;
     rc.setLeft( rc.right() - 20 );
-    painter->drawImage( rc.topLeft()+QPoint(0,1), img.scaled( 16, 16) );
+    int nsize = qMin(16, rc.height());
+    painter->drawImage( rc.topLeft(),
+                        img.scaled( nsize, nsize, Qt::KeepAspectRatio, Qt::SmoothTransformation) );
   }
+}
+
+void LayerTreeWidget::ForceUpdate()
+{
+  this->setDirtyRegion(QRegion(rect()));
+  update();
 }

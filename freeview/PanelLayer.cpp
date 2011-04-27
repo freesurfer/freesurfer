@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2011/04/21 18:43:45 $
- *    $Revision: 1.5 $
+ *    $Date: 2011/04/27 19:52:29 $
+ *    $Revision: 1.6 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -93,7 +93,7 @@ void PanelLayer::InitializeLayerList( QTreeWidget* treeWidget, LayerCollection* 
 
 void PanelLayer::ConnectLayer( Layer* layer )
 {
-  connect( layer, SIGNAL(Locked(bool)), treeWidgetPrivate, SLOT(repaint()) );
+  connect( layer, SIGNAL(Locked(bool)), treeWidgetPrivate, SLOT(ForceUpdate()) );
 }
 
 void PanelLayer::OnLayerAdded( Layer* layer )

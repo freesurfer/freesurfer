@@ -6,9 +6,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/14 23:44:47 $
- *    $Revision: 1.4 $
+ *    $Author: rpwang $
+ *    $Date: 2011/04/27 19:52:29 $
+ *    $Revision: 1.5 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -35,6 +35,7 @@ public:
 signals:
 
 public slots:
+  void ForceUpdate();
 
 protected:
   void drawRow ( QPainter * painter, const QStyleOptionViewItem & option, const QModelIndex & index ) const;
