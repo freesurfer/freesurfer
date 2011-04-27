@@ -8,9 +8,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:45 $
- *    $Revision: 1.100 $
+ *    $Author: fischl $
+ *    $Date: 2011/04/27 13:28:07 $
+ *    $Revision: 1.101 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -1940,11 +1940,15 @@ LabelErode(LABEL *area, MRI_SURFACE *mris, int num_times)
            neighbor_index < mris->vertices[vno].vnum; neighbor_index++)
       {
         neighbor_vno = mris->vertices[vno].v[neighbor_index];
+        if (neighbor_vno == Gdiag_no)
+          DiagBreak() ;
 
         /* Look for neighbor_vno in the label. */
         vn = &mris->vertices[neighbor_vno] ;
         if (vn->marked == 0) // found a nbr not in the label 
         {
+        if (neighbor_vno == Gdiag_no)
+          DiagBreak() ;
           found = 1;
           break;
         }
@@ -2018,6 +2022,8 @@ LabelDilate(LABEL *area, MRI_SURFACE *mris, int num_times)
         vn = &mris->vertices[neighbor_vno] ;
         if (vn->marked > 0) 
         {
+          if (neighbor_vno == Gdiag_no)
+             DiagBreak() ;
           found = 1;
           break;
         }
@@ -2026,11 +2032,13 @@ LabelDilate(LABEL *area, MRI_SURFACE *mris, int num_times)
       // add it if at least one nbr was found that was in label
       if (found)
       {
+          if (vno == Gdiag_no)
+             DiagBreak() ;
         new_lv[num_new_lvs].vno = vno ;
         new_lv[num_new_lvs].x = v->x;
         new_lv[num_new_lvs].y = v->y;
         new_lv[num_new_lvs].z = v->z;
-        new_lv[num_new_lvs].z = v->stat;
+        new_lv[num_new_lvs].stat = v->stat;
         num_new_lvs++;
       }
     }
