@@ -8,8 +8,8 @@
 # Original Author: Anastasia Yendiki
 # CVS Revision Info:
 #    $Author: ayendiki $
-#    $Date: 2011/04/27 02:24:33 $
-#    $Revision: 1.25 $
+#    $Date: 2011/04/27 21:13:04 $
+#    $Revision: 1.26 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -25,7 +25,7 @@
 
 umask 002
 
-set VERSION = '$Id: trac-preproc,v 1.25 2011/04/27 02:24:33 ayendiki Exp $'
+set VERSION = '$Id: trac-preproc,v 1.26 2011/04/27 21:13:04 ayendiki Exp $'
 set ProgName = `basename $0`
 set inputargs = ($argv)
 
@@ -785,7 +785,7 @@ if ($domasks) then
     set cmd = ($cmd --annot aparc)
     set cmd = ($cmd --wmparc-dmax $gmgrow)
     set cmd = ($cmd --labelwm --hypo-as-wm)
-    set cmd = ($cmd --o $labdir/anatorig/aparc+aseg+${gmgrow}mm.mgz)
+    set cmd = ($cmd --o $labdir/anatorig/aparc+aseg+${gmgrow}mm.nii.gz)
     echo $cmd |& tee -a $LF |& tee -a $CF
     if ($RunIt) then
       $cmd |& tee -a $LF
@@ -794,7 +794,7 @@ if ($domasks) then
 
     # Make mask of cortex
     set cmd = mri_binarize
-    set cmd = ($cmd --i $labdir/anatorig/aparc+aseg+${gmgrow}mm.mgz)
+    set cmd = ($cmd --i $labdir/anatorig/aparc+aseg+${gmgrow}mm.nii.gz)
     set cmd = ($cmd --min 1000 --max 2999)
     set cmd = ($cmd --o $labdir/anatorig/cortex.nii.gz)
     echo $cmd |& tee -a $LF |& tee -a $CF
@@ -805,7 +805,7 @@ if ($domasks) then
 
     # Make mask of grown cortex
     set cmd = mri_binarize
-    set cmd = ($cmd --i $labdir/anatorig/aparc+aseg+${gmgrow}mm.mgz)
+    set cmd = ($cmd --i $labdir/anatorig/aparc+aseg+${gmgrow}mm.nii.gz)
     set cmd = ($cmd --min 1000 --max 4999)
     set cmd = ($cmd --o $labdir/anatorig/cortex+${gmgrow}mm.nii.gz)
     echo $cmd |& tee -a $LF |& tee -a $CF
