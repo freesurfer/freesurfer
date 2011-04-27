@@ -7,9 +7,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: mreuter $
-#    $Date: 2011/03/30 22:00:17 $
-#    $Revision: 1.379.2.8 $
+#    $Author: krish $
+#    $Date: 2011/04/27 22:33:35 $
+#    $Revision: 1.379.2.9 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -26,7 +26,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.379.2.8 2011/03/30 22:00:17 mreuter Exp $';
+set VERSION = '$Id: recon-all,v 1.379.2.9 2011/04/27 22:33:35 krish Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -180,6 +180,9 @@ set robust_template_avg_arg = 1; # construct template from: 0 Mean, 1 Median
 set DoNuIntensityCor3T = 0; # if 1, use Zheng, Chee, Zagorodnov params for 3T
 set DoAddTp = 0; # if 1, then 'fake'-add this timepoint to long subj set
 set DoAffineBase = 0; # if 1, allow affine when creating the base (fix callibration)
+
+# Hippocampal subfields:
+set DoGEMS = 0;      # if 1, will run the hippocampal subfields processing
 
 # For defacing, as found in:
 # $FREESURFER_HOME/average/
@@ -3665,6 +3668,60 @@ if($DoAParcASegStats) then
   echo $cmd > $touchdir/aparc+aseg.stats.touch
 endif
 
+#-------------- Hippocampal Subfields  -----------------#
+if($DoGEMS) then
+  echo "#--------------------------------------------" \
+      |& tee -a $LF |& tee -a $CF
+  echo "#@# Hippocampal Subfields processing `date`" \
+      |& tee -a $SF |& tee -a $LF |& tee -a $CF
+  if (-e ${subjdir}/mri/aseg.mgz && -e ${subjdir}/mri/nu.mgz && -e ${subjdir}/mri/transforms/talairach.xfm ) then
+    # create a tmp directory if it doesn't exist
+    set cmd = (mkdir -p ${subjdir}/tmp/subfieldResults)
+    echo "\n $cmd"|& tee -a $LF |& tee -a $CF
+    if($RunIt) $cmd |& tee -a $LF
+
+    set kvltmpd = (${subjdir}/tmp/subfieldResults)
+      
+    # do hippocampal processing
+    set cmd = (kvlSegmentHippoCampalSubfields.sh $subjid left $SUBJECTS_DIR ${kvltmpd} ) 
+    echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+    if($RunIt) $fs_time $cmd |& tee -a $LF
+    if($status) goto error_exit;
+    set cmd = (kvlSegmentHippoCampalSubfields.sh $subjid right $SUBJECTS_DIR ${kvltmpd} ) 
+    echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+    if($RunIt) $fs_time $cmd |& tee -a $LF
+    if($status) goto error_exit;
+
+    # copy results back to mri directory
+    set cmd = (cp ${kvltmpd}/${subjid}/left/segmentationWithoutPartialVolumingLog/posterior_left* ${subjdir}/mri )
+    echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+    if($RunIt) $fs_time $cmd |& tee -a $LF
+    if($status) goto error_exit;
+    set cmd = (cp ${kvltmpd}/${subjid}/left/segmentationWithoutPartialVolumingLog/posterior_Left* ${subjdir}/mri )
+    echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+    if($RunIt) $fs_time $cmd |& tee -a $LF
+    if($status) goto error_exit;
+    set cmd = (cp ${kvltmpd}/${subjid}/right/segmentationWithoutPartialVolumingLog/posterior_right* ${subjdir}/mri )
+    echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+    if($RunIt) $fs_time $cmd |& tee -a $LF
+    if($status) goto error_exit;
+    set cmd = (cp ${kvltmpd}/${subjid}/right/segmentationWithoutPartialVolumingLog/posterior_Right* ${subjdir}/mri )
+    echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+    if($RunIt) $fs_time $cmd |& tee -a $LF
+    if($status) goto error_exit;
+
+    # delete the tmp directory 
+    set cmd = (rm -rf ${kvltmpd} )
+    echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+    if($RunIt) $fs_time $cmd |& tee -a $LF
+
+    echo $cmd > $touchdir/hippocampal_subfield.touch
+  else
+    echo "ERROR: cannot find aseg.mgz or nu.mgz or talairach.xfm for the subject."
+    echo "ERROR: Maybe, run recon-all again or disable hippocampal subfields processing."
+    goto error_exit;
+  endif #checking of aseg.mgz, nu.mgz and talairach.xfm
+endif
 
 echo "" |& tee -a $LF
 echo "#------------------------------------------" |& tee -a $LF
@@ -5200,6 +5257,12 @@ while( $#argv != 0 )
       # then set LD_LIBRARY_PATH to distributed cuda libs
       source $FREESURFER_HOME/bin/cuda_setup
       breaksw;
+  
+    # hippocampal subfield processing
+    case "-gems":
+    case "-hippocampal-subfields":
+      set DoGEMS = 1;
+      breaksw;
 
     default:
       echo ERROR: Flag $flag unrecognized.
@@ -5553,7 +5616,7 @@ check_params:
      ! $DoMakefile && ! $DoAsegStatsDiff && ! $DoAparcStatsDiff && \
      ! $DoSurfVolume && ! $DoASegMerge && ! $DoCurvStats && ! $DoLabelV1 && \
      ! $DoCreateBaseSubj && ! $DoBaLabels && ! $DoShowEdits && \
-     ! $DoLabelExvivoEC && ! $DoSurfSegEdit && ! $DoPialSurfs ) then
+     ! $DoLabelExvivoEC && ! $DoSurfSegEdit && ! $DoPialSurfs && ! $DoGEMS) then
      echo "ERROR: nothing to do"
      exit 1;
   endif
