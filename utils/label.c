@@ -2,15 +2,15 @@
  * @file  label.c
  * @brief utilities for manipulating ROIs.
  *
- * utilities (surface and volume) for manipulating arbitrary lists of 
+ * utilities (surface and volume) for manipulating arbitrary lists of
  * vertices/voxels.
  */
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2011/04/27 13:28:07 $
- *    $Revision: 1.101 $
+ *    $Author: nicks $
+ *    $Date: 2011/04/27 13:58:23 $
+ *    $Revision: 1.102 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -64,11 +64,14 @@ LABEL *LabelRead(const char *subject_name, const char *label_name)
 
   area = (LABEL *)calloc(1, sizeof(LABEL)) ;
   if (!area)
+  {
     ErrorExit(ERROR_NOMEMORY,"%s: could not allocate LABEL struct.",Progname);
+  }
 
   sprintf(label_name0,"%s",label_name); // keep a copy
 
-  if (subject_name && !strchr(label_name, '/')) {
+  if (subject_name && !strchr(label_name, '/'))
+  {
     // subject name passed and label name does not have /
     // so assume it is in subject/label
     cp = getenv("SUBJECTS_DIR") ;
@@ -79,28 +82,52 @@ LABEL *LabelRead(const char *subject_name, const char *label_name)
     strcpy(subjects_dir, cp) ;
     strcpy(lname, label_name) ;
     cp = strstr(lname, ".label") ;
-    if(cp) *cp = 0 ;
+    if(cp)
+    {
+      *cp = 0 ;
+    }
     cp = strrchr(lname, '/') ;
-    if(cp) label_name = cp+1 ;
-    else   label_name = lname ;
+    if(cp)
+    {
+      label_name = cp+1 ;
+    }
+    else
+    {
+      label_name = lname ;
+    }
     sprintf(fname, "%s/%s/label/%s.label", subjects_dir,subject_name,
             label_name);
     strcpy(area->subject_name, subject_name) ;
   }
-  else  {
+  else
+  {
     strcpy(fname, label_name) ;
     cp = getenv("SUBJECTS_DIR") ;
-    if(!cp) strcpy(subjects_dir, ".") ;
-    else    strcpy(subjects_dir, cp) ;
+    if(!cp)
+    {
+      strcpy(subjects_dir, ".") ;
+    }
+    else
+    {
+      strcpy(subjects_dir, cp) ;
+    }
     strcpy(lname, label_name) ;
     cp = strstr(lname, ".label") ;
-    if (cp == NULL)  sprintf(fname, "%s.label", lname);
-    else             strcpy(fname, label_name) ;
+    if (cp == NULL)
+    {
+      sprintf(fname, "%s.label", lname);
+    }
+    else
+    {
+      strcpy(fname, label_name) ;
+    }
   }
 
   // As a last resort, treat label_name0 as a full path name
   if(!fio_FileExistsReadable(fname) && fio_FileExistsReadable(label_name0))
+  {
     sprintf(fname,"%s",label_name0);
+  }
 
   //  printf("%s %s\n",label_name0,fname);
 
@@ -109,7 +136,10 @@ LABEL *LabelRead(const char *subject_name, const char *label_name)
   /* read in the file */
   errno = 0 ;
   fp = fopen(fname, "r") ;
-  if (errno) perror(NULL);
+  if (errno)
+  {
+    perror(NULL);
+  }
   if (!fp)
     ErrorReturn(NULL, (ERROR_NOFILE, "%s: could not open label file %s",
                        Progname, fname)) ;
@@ -119,7 +149,8 @@ LABEL *LabelRead(const char *subject_name, const char *label_name)
   if (!cp)
     ErrorReturn(NULL,
                 (ERROR_BADFILE, "%s: empty label file %s", Progname, fname)) ;
-  if (!sscanf(cp, "%d", &area->n_points)){
+  if (!sscanf(cp, "%d", &area->n_points))
+  {
     printf("\n%s\n",cp);
     ErrorReturn(NULL,
                 (ERROR_BADFILE, "%s: could not scan # of lines from %s",
@@ -245,7 +276,9 @@ LabelFromCanonical(LABEL *area, MRI_SURFACE *mris)
   }
 
   if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
+  {
     ImageWrite(mrisp->Ip, "label.tif") ;
+  }
 
   /* now go through the surface and build a list of the vertices and
      keep track of those which fall into volume regions marked as within
@@ -255,12 +288,18 @@ LabelFromCanonical(LABEL *area, MRI_SURFACE *mris)
   {
     v = &mris->vertices[vno] ;
     if (v->ripflag)
+    {
       continue ;
+    }
     MRISPcoordinate(mrisp, v->cx, v->cy, v->cz, &ui, &vi) ;
     if (nvertices+1 >= MAX_VERTICES)
+    {
       break ;
+    }
     if (MRISPvox(mrisp, ui, vi) > 0.0f)
+    {
       vlist[nvertices++] = vno ;
+    }
   }
 
   if (area->max_points < nvertices)
@@ -318,17 +357,37 @@ LabelFromTalairach(LABEL *area, MRI_SURFACE *mris)
     xv = nint(xw) ;
     yv = nint(yw) ;
     zv = nint(zw) ;
-    if (xv < 0) xv = 0 ;
-    if (yv < 0) yv = 0 ;
-    if (zv < 0) zv = 0 ;
-    if (xv >= mri->width)  xv = mri->width-1 ;
-    if (yv >= mri->height) yv = mri->height-1 ;
-    if (zv >= mri->depth)  zv = mri->depth-1 ;
+    if (xv < 0)
+    {
+      xv = 0 ;
+    }
+    if (yv < 0)
+    {
+      yv = 0 ;
+    }
+    if (zv < 0)
+    {
+      zv = 0 ;
+    }
+    if (xv >= mri->width)
+    {
+      xv = mri->width-1 ;
+    }
+    if (yv >= mri->height)
+    {
+      yv = mri->height-1 ;
+    }
+    if (zv >= mri->depth)
+    {
+      zv = mri->depth-1 ;
+    }
     MRIvox(mri, xv, yv, zv) = 1 ;
   }
 
   if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
+  {
     MRIwrite(mri, "label.mnc") ;
+  }
   /* now go through the surface and build a list of the vertices and
      keep track of those which fall into volume regions marked as within
      the area.
@@ -337,21 +396,45 @@ LabelFromTalairach(LABEL *area, MRI_SURFACE *mris)
   {
     v = &mris->vertices[vno] ;
     if (v->ripflag)
+    {
       continue ;
+    }
     MRISorigVertexToVoxel(mris, v, mri, &xw, &yw, &zw) ;
     xv = nint(xw) ;
     yv = nint(yw) ;
     zv = nint(zw) ;
-    if (xv < 0) xv = 0 ;
-    if (yv < 0) yv = 0 ;
-    if (zv < 0) zv = 0 ;
-    if (xv >= mri->width)  xv = mri->width-1 ;
-    if (yv >= mri->height) yv = mri->height-1 ;
-    if (zv >= mri->depth)  zv = mri->depth-1 ;
+    if (xv < 0)
+    {
+      xv = 0 ;
+    }
+    if (yv < 0)
+    {
+      yv = 0 ;
+    }
+    if (zv < 0)
+    {
+      zv = 0 ;
+    }
+    if (xv >= mri->width)
+    {
+      xv = mri->width-1 ;
+    }
+    if (yv >= mri->height)
+    {
+      yv = mri->height-1 ;
+    }
+    if (zv >= mri->depth)
+    {
+      zv = mri->depth-1 ;
+    }
     if (nvertices+1 >= MAX_VERTICES)
+    {
       break ;
+    }
     if (MRIvox(mri, xv, yv, zv) > 0)
+    {
       vlist[nvertices++] = vno ;
+    }
   }
 
   if (area->max_points < nvertices)
@@ -446,11 +529,15 @@ LabelToFlat(LABEL *area, MRI_SURFACE *mris)
                                     area->lv[n].z,
                                     0);
       if (v == NULL)
+      {
         continue ;
+      }
       vno = v - mris->vertices ;
       ;
       if (vno == Gdiag_no)
+      {
         DiagBreak() ;
+      }
       area->lv[n].vno = vno ;
       area->lv[n].x = v->x ;
       area->lv[n].y = v->y ;
@@ -477,7 +564,9 @@ LabelWrite(LABEL *area, const char *label_name)
   strcpy(lname, label_name) ;
   cp = strrchr(lname, '.') ;
   if (cp && stricmp(cp, ".label") == 0)
+  {
     *cp = 0 ;
+  }
   label_name = lname ;
   cp = strrchr(lname, '/') ;
   if ((cp == NULL) && strlen(area->subject_name) > 0)
@@ -495,14 +584,20 @@ LabelWrite(LABEL *area, const char *label_name)
   {
     cp = strstr(lname, ".label") ;
     if (cp)
+    {
       strcpy(fname, label_name) ;
+    }
     else
+    {
       sprintf(fname, "%s.label", label_name) ;
+    }
   }
 
   for (num = n = 0 ; n < area->n_points ; n++)
     if (!area->lv[n].deleted)
+    {
       num++ ;
+    }
 
   printf("LabelWrite: saving to %s\n",fname);
 
@@ -513,28 +608,32 @@ LabelWrite(LABEL *area, const char *label_name)
                                Progname, fname)) ;
 
   nbytes = fprintf(fp, "#!ascii label %s , from subject %s vox2ras=TkReg %s\n",
-		   area->name, area->subject_name, area->space);
-  if(nbytes < 0){
+                   area->name, area->subject_name, area->space);
+  if(nbytes < 0)
+  {
     printf("ERROR: writing to %s\n",fname);
     fclose(fp);
     return(1);
   }
 
   nbytes =   fprintf(fp, "%d\n", num) ;
-  if(nbytes < 0){
+  if(nbytes < 0)
+  {
     printf("ERROR: writing to %s\n",fname);
     fclose(fp);
     return(1);
   }
   for (n = 0 ; n < area->n_points ; n++)
-    if (!area->lv[n].deleted){
+    if (!area->lv[n].deleted)
+    {
       nbytes = fprintf(fp, "%d  %2.3f  %2.3f  %2.3f %10.10f\n",
-		       area->lv[n].vno, area->lv[n].x,
-		       area->lv[n].y, area->lv[n].z, area->lv[n].stat) ;
-      if(nbytes < 0){
-	printf("ERROR: writing to %s\n",fname);
-	fclose(fp);
-	return(1);
+                       area->lv[n].vno, area->lv[n].x,
+                       area->lv[n].y, area->lv[n].z, area->lv[n].stat) ;
+      if(nbytes < 0)
+      {
+        printf("ERROR: writing to %s\n",fname);
+        fclose(fp);
+        return(1);
       }
     }
   fclose(fp) ;
@@ -564,9 +663,13 @@ LabelRipRestOfSurface(LABEL *area, MRI_SURFACE *mris)
   {
     vno = area->lv[n].vno ;
     if (vno < 0 || vno >= mris->nvertices)
+    {
       continue ;
+    }
     if (vno == Gdiag_no)
+    {
       DiagBreak() ;
+    }
     v = &mris->vertices[vno] ;
     v->ripflag = 0 ;
   }
@@ -599,10 +702,14 @@ LabelRipRestOfSurfaceWithThreshold(LABEL *area,
   for (n = 0 ; n < area->n_points ; n++)
   {
     if (area->lv[n].stat < thresh)
+    {
       continue ;
+    }
     vno = area->lv[n].vno ;
     if (vno < 0 || vno >= mris->nvertices)
+    {
       continue ;
+    }
     v = &mris->vertices[vno] ;
     v->ripflag = 0 ;
   }
@@ -642,50 +749,70 @@ LabelRemoveOverlap(LABEL *area1, LABEL *area2)
 
         Returns value: error code and intersection in area1
 
-        Description: elements are not removed, only the deleted 
-				             flag is set
+        Description: elements are not removed, only the deleted
+                     flag is set
 ------------------------------------------------------*/
 int
 LabelIntersect(LABEL *area1, LABEL *area2)
 {
   int n, vno ;
-	int vmin, vmax,vnum;
-	int * isec;
-	if (area1->n_points == 0) return(NO_ERROR) ;
-  
-	vmin = area1->lv[0].vno;
-	vmax = area1->lv[0].vno;
+  int vmin, vmax,vnum;
+  int * isec;
+  if (area1->n_points == 0)
+  {
+    return(NO_ERROR) ;
+  }
+
+  vmin = area1->lv[0].vno;
+  vmax = area1->lv[0].vno;
   for (n = 0 ; n < area1->n_points ; n++)
   {
     vno = area1->lv[n].vno ;
-	  if ( vno < vmin) vmin = vno;
-		if ( vno > vmax) vmax = vno;
-	}
+    if ( vno < vmin)
+    {
+      vmin = vno;
+    }
+    if ( vno > vmax)
+    {
+      vmax = vno;
+    }
+  }
   for (n = 0 ; n < area2->n_points ; n++)
   {
     vno = area2->lv[n].vno ;
-	  if ( vno < vmin) vmin = vno;
-		if ( vno > vmax) vmax = vno;
-	}
-	vnum = vmax - vmin;
-	isec = (int*) calloc(vnum,sizeof(int));
+    if ( vno < vmin)
+    {
+      vmin = vno;
+    }
+    if ( vno > vmax)
+    {
+      vmax = vno;
+    }
+  }
+  vnum = vmax - vmin;
+  isec = (int*) calloc(vnum,sizeof(int));
   if (!isec)
     ErrorExit(ERROR_NOMEMORY,
               "%s: could not allocate LabelIntersect struct.",Progname);
-  for (n = 0 ; n<vnum; n++) isec[n] = -1;
+  for (n = 0 ; n<vnum; n++)
+  {
+    isec[n] = -1;
+  }
 
   for (n = 0 ; n < area1->n_points ; n++)
   {
     vno = area1->lv[n].vno - vmin ;
-		isec[vno] = n;
-		area1->lv[n].deleted = 1;
-	}
+    isec[vno] = n;
+    area1->lv[n].deleted = 1;
+  }
   for (n = 0 ; n < area2->n_points ; n++)
   {
     vno = area2->lv[n].vno -vmin;
-	  if (isec[vno] > -1) 
-		  area1->lv[isec[vno]].deleted = 0;
-	}
+    if (isec[vno] > -1)
+    {
+      area1->lv[isec[vno]].deleted = 0;
+    }
+  }
 
   return(NO_ERROR) ;
 }
@@ -704,7 +831,9 @@ LabelAlloc(int max_points, char *subject_name, char *label_name)
 
   area = (LABEL *)calloc(1, sizeof(LABEL)) ;
   if (!area)
+  {
     ErrorExit(ERROR_NOMEMORY, "%s: could not allocate LABEL struct.",Progname);
+  }
   if (subject_name)
   {
     cp = getenv("SUBJECTS_DIR") ;
@@ -716,10 +845,12 @@ LabelAlloc(int max_points, char *subject_name, char *label_name)
     strcpy(area->subject_name, subject_name) ;
   }
   else
-
+  {
     if (label_name)
+    {
       strcpy(area->name, label_name) ;
-
+    }
+  }
   strcpy(area->space, "");
 
   area->n_points = 0 ;
@@ -749,7 +880,9 @@ LabelCurvFill(LABEL *area, int *vertex_list, int nvertices,
   LV     *lv, *lvn ;
 
   if (!max_vertices)
+  {
     max_vertices = area->max_points ;
+  }
 
   MRISclearMarks(mris) ;
   max_curv = min_curv = 0 ;
@@ -757,7 +890,9 @@ LabelCurvFill(LABEL *area, int *vertex_list, int nvertices,
   {
     v = &mris->vertices[vertex_list[n]] ;
     if (v->ripflag)
+    {
       continue ;
+    }
     v->marked = 1 ;
     lv = &area->lv[n] ;
     lv->vno = vertex_list[n] ;
@@ -766,14 +901,22 @@ LabelCurvFill(LABEL *area, int *vertex_list, int nvertices,
     lv->z = v->z ;
     area->n_points++ ;
     if (v->curv > max_curv)
+    {
       max_curv = v->curv ;
+    }
     if (v->curv < min_curv)
+    {
       min_curv = v->curv ;
+    }
   }
   if (-min_curv > max_curv)
+  {
     curv_thresh = min_curv ;
+  }
   else
+  {
     curv_thresh = max_curv ;
+  }
   curv_thresh *= 0.1 ;   /* 10% of max */
   fprintf(stderr, "starting fill with curvature threshold = %2.3f\n",
           curv_thresh) ;
@@ -787,12 +930,16 @@ LabelCurvFill(LABEL *area, int *vertex_list, int nvertices,
       lv = &area->lv[n] ;
       v = &mris->vertices[lv->vno] ;
       if (v->ripflag)
+      {
         continue ;
+      }
       for (nv = 0 ; nv < v->vnum ; nv++)   /* go through neighbors */
       {
         vn = &mris->vertices[v->v[nv]] ;
         if (vn->ripflag || vn->marked)
+        {
           continue ;
+        }
         if (((curv_thresh > 0) && (vn->curv > curv_thresh)) ||
             ((curv_thresh < 0) && (vn->curv < curv_thresh)))
         {
@@ -805,10 +952,14 @@ LabelCurvFill(LABEL *area, int *vertex_list, int nvertices,
           lvn->z = vn->z ;
         }
         if (area->n_points+nfilled >= area->max_points)
+        {
           break ;
+        }
       }
       if (area->n_points+nfilled >= area->max_points)
+      {
         break ;
+      }
     }
     fprintf(stderr, "%d vertices added.\n", nfilled) ;
     area->n_points += nfilled ;
@@ -843,12 +994,16 @@ LabelFillMarked(LABEL *area, MRI_SURFACE *mris)
       v = &mris->vertices[lv->vno] ;
       v->marked = 2 ;
       if (v->ripflag)
+      {
         continue ;
+      }
       for (nv = 0 ; nv < v->vnum ; nv++)   /* go through neighbors */
       {
         vn = &mris->vertices[v->v[nv]] ;
         if (vn->ripflag)
+        {
           continue ;
+        }
         if (vn->marked == 1)  /* add it to the label */
         {
           vn->marked = 2 ;
@@ -860,10 +1015,14 @@ LabelFillMarked(LABEL *area, MRI_SURFACE *mris)
           lvn->z = vn->z ;
         }
         if (area->n_points+nfilled >= area->max_points)
+        {
           break ;
+        }
       }
       if (area->n_points+nfilled >= area->max_points)
+      {
         break ;
+      }
     }
     /*    fprintf(stderr, "%d vertices added.\n", nfilled) ;*/
     area->n_points += nfilled ;
@@ -900,12 +1059,16 @@ LabelFillAnnotated(LABEL *area, MRI_SURFACE *mris)
       v = &mris->vertices[lv->vno] ;
       v->marked = 1 ;
       if (v->ripflag)
+      {
         continue ;
+      }
       for (nv = 0 ; nv < v->vnum ; nv++)   /* go through neighbors */
       {
         vn = &mris->vertices[v->v[nv]] ;
         if (vn->ripflag || vn->marked)
+        {
           continue ;
+        }
         if (vn->annotation == annotation)  /* add it to the label */
         {
           vn->marked = 1 ;
@@ -917,10 +1080,14 @@ LabelFillAnnotated(LABEL *area, MRI_SURFACE *mris)
           lvn->z = vn->z ;
         }
         if (area->n_points+nfilled >= area->max_points)
+        {
           break ;
+        }
       }
       if (area->n_points+nfilled >= area->max_points)
+      {
         break ;
+      }
     }
     /*    fprintf(stderr, "%d vertices added.\n", nfilled) ;*/
     area->n_points += nfilled ;
@@ -947,13 +1114,17 @@ LabelFillAll(LABEL *area, int *vertex_list, int nvertices,
   LV     *lv, *lvn ;
 
   if (!max_vertices)
+  {
     max_vertices = area->max_points ;
+  }
 
   for (n = 0 ; n < nvertices ; n++)
   {
     v = &mris->vertices[vertex_list[n]] ;
     if (v->ripflag)
+    {
       continue ;
+    }
     v->marked = 1 ;
     lv = &area->lv[n] ;
     lv->vno = vertex_list[n] ;
@@ -973,12 +1144,16 @@ LabelFillAll(LABEL *area, int *vertex_list, int nvertices,
       lv = &area->lv[n] ;
       v = &mris->vertices[lv->vno] ;
       if (v->ripflag)
+      {
         continue ;
+      }
       for (nv = 0 ; nv < v->vnum ; nv++)   /* go through neighbors */
       {
         vn = &mris->vertices[v->v[nv]] ;
         if (vn->ripflag || vn->marked)
+        {
           continue ;
+        }
         vn->marked = 1 ;
         lvn = &area->lv[area->n_points+nfilled] ;
         nfilled++ ;
@@ -987,10 +1162,14 @@ LabelFillAll(LABEL *area, int *vertex_list, int nvertices,
         lvn->y = vn->y ;
         lvn->z = vn->z ;
         if (area->n_points+nfilled >= area->max_points)
+        {
           break ;
+        }
       }
       if (area->n_points+nfilled >= area->max_points)
+      {
         break ;
+      }
     }
     fprintf(stderr, "%d vertices added.\n", nfilled) ;
     area->n_points += nfilled ;
@@ -1118,7 +1297,9 @@ LabelCombine(LABEL *asrc, LABEL *adst)
   LV     *vsrc, *vdst ;
 
   if (!adst)
+  {
     adst = LabelClone(asrc) ;
+  }
   if (adst->max_points < asrc->n_points+adst->n_points)/* won't fit - expand */
   {
     atmp = LabelAlloc(2*(asrc->n_points+adst->n_points),
@@ -1148,7 +1329,9 @@ LABEL *
 LabelCopy(LABEL *asrc, LABEL *adst)
 {
   if (!adst)
+  {
     adst = LabelAlloc(asrc->n_points, asrc->subject_name, asrc->name) ;
+  }
 
   adst->n_points = asrc->n_points ;
   strcpy(adst->name, asrc->name) ;
@@ -1159,7 +1342,7 @@ LabelCopy(LABEL *asrc, LABEL *adst)
 }
 /*-----------------------------------------------------
   int LabelRemoveDuplicates(LABEL *area)
-  Sets the 'deleted' flag of a label point if it is 
+  Sets the 'deleted' flag of a label point if it is
   a duplicate. Does not actually remove duplicats!
   ------------------------------------------------------*/
 int LabelRemoveDuplicates(LABEL *area)
@@ -1168,13 +1351,19 @@ int LabelRemoveDuplicates(LABEL *area)
   LV     *lv1, *lv2 ;
 
   // loop thru each label point
-  for (n1 = 0 ; n1 < area->n_points ; n1++)  {
+  for (n1 = 0 ; n1 < area->n_points ; n1++)
+  {
     lv1 = &area->lv[n1] ;
-    if(lv1->deleted) continue ;
+    if(lv1->deleted)
+    {
+      continue ;
+    }
     // loop thru the remaining looking for duplicates
-    for (n2 = n1+1 ; n2 < area->n_points ; n2++)    {
+    for (n2 = n1+1 ; n2 < area->n_points ; n2++)
+    {
       lv2 = &area->lv[n2] ;
-      if(lv1->vno >= 0 && lv2->vno >= 0 && lv1->vno == lv2->vno) {
+      if(lv1->vno >= 0 && lv2->vno >= 0 && lv1->vno == lv2->vno)
+      {
         deleted++ ;
         lv2->deleted = 1 ;
       }
@@ -1198,7 +1387,9 @@ double LabelArea(LABEL *area, MRI_SURFACE *mris)
     lv = &area->lv[i] ;
     v = &mris->vertices[lv->vno] ;
     if (v->ripflag)
+    {
       continue ;
+    }
     total_area += v->area ;
   }
 
@@ -1278,9 +1469,13 @@ LabelMark(LABEL *area, MRI_SURFACE *mris)
   {
     vno = area->lv[n].vno ;
     if (vno < 0 || vno >= mris->nvertices)
+    {
       DiagBreak() ;
+    }
     if (area->lv[n].deleted > 0)
+    {
       continue ;
+    }
     v = &mris->vertices[vno] ;
     v->marked = 1 ;
   }
@@ -1302,7 +1497,9 @@ LabelMarkWithThreshold(LABEL *area, MRI_SURFACE *mris, float thresh)
   for (n = 0 ; n < area->n_points ; n++)
   {
     if (area->lv[n].stat < thresh)
+    {
       continue ;
+    }
     vno = area->lv[n].vno ;
     v = &mris->vertices[vno] ;
     v->marked = 1 ;
@@ -1328,7 +1525,7 @@ LabelMarkUndeleted(LABEL *area, MRI_SURFACE *mris)
   VERTEX *v ;
 
   if (NULL == area || NULL == mris)
-    ErrorReturn( ERROR_BADPARM, 
+    ErrorReturn( ERROR_BADPARM,
                  (ERROR_BADPARM,
                   "LabelMarkUndeleted: area or mris was NULL" ));
 
@@ -1337,17 +1534,17 @@ LabelMarkUndeleted(LABEL *area, MRI_SURFACE *mris)
   for (n = 0 ; n < area->n_points ; n++)
   {
     if (!area->lv[n].deleted)
+    {
+      vno = area->lv[n].vno ;
+      if (vno < 0 || vno >= mris->nvertices)
       {
-	vno = area->lv[n].vno ;
-	if (vno < 0 || vno >= mris->nvertices)
-	  {
-	    printf ("LabelMarkUndeleted: label point %d had invalid vno %d\n",
-		    n, vno);
-	    continue;
-	  }
-	v = &mris->vertices[vno] ;
-	v->marked = 1 ;
+        printf ("LabelMarkUndeleted: label point %d had invalid vno %d\n",
+                n, vno);
+        continue;
       }
+      v = &mris->vertices[vno] ;
+      v->marked = 1 ;
+    }
   }
   return(NO_ERROR) ;
 }
@@ -1368,7 +1565,9 @@ LabelUnmark(LABEL *area, MRI_SURFACE *mris)
   {
     vno = area->lv[n].vno ;
     if (vno < 0)
+    {
       continue ;
+    }
     v = &mris->vertices[vno] ;
     v->marked = 0 ;
   }
@@ -1391,7 +1590,9 @@ LabelToOriginal(LABEL *area, MRI_SURFACE *mris)
   {
     vno = area->lv[n].vno ;
     if (vno < 0 || vno >= mris->nvertices)
+    {
       continue;
+    }
     v = &mris->vertices[vno] ;
     area->lv[n].x = v->origx ;
     area->lv[n].y = v->origy ;
@@ -1419,7 +1620,9 @@ LabelToWhite(LABEL *area, MRI_SURFACE *mris)
   {
     vno = area->lv[n].vno ;
     if (vno < 0 || vno >= mris->nvertices)
+    {
       continue;
+    }
     v = &mris->vertices[vno] ;
     area->lv[n].x = v->whitex ;
     area->lv[n].y = v->whitey ;
@@ -1444,25 +1647,35 @@ LabelFromMarkedSurface(MRI_SURFACE *mris)
 
   for (npoints = vno = 0 ; vno < mris->nvertices ; vno++)
     if (mris->vertices[vno].marked)
+    {
       npoints++ ;
+    }
 
   if (!npoints)
+  {
     return(NULL) ;
+  }
   area = LabelAlloc(npoints, NULL, NULL) ;
   for (n = vno = 0 ; vno < mris->nvertices ; vno++)
   {
     v = &mris->vertices[vno] ;
     if (!v->marked)
+    {
       continue ;
+    }
     if (vno == Gdiag_no)
+    {
       DiagBreak() ;
+    }
     area->lv[n].x = v->x ;
     area->lv[n].y = v->y ;
     area->lv[n].z = v->z ;
     area->lv[n].vno = vno ;
     area->lv[n].stat = v->stat ;
     if (FZERO(v->stat))
+    {
       DiagBreak() ;
+    }
     n++ ;
   }
   area->n_points = npoints ;
@@ -1484,25 +1697,35 @@ LabelFromMarkValue(MRI_SURFACE *mris, int mark)
 
   for (npoints = vno = 0 ; vno < mris->nvertices ; vno++)
     if (mris->vertices[vno].marked == mark)
+    {
       npoints++ ;
+    }
 
   if (!npoints)
+  {
     return(NULL) ;
+  }
   area = LabelAlloc(npoints, NULL, NULL) ;
   for (n = vno = 0 ; vno < mris->nvertices ; vno++)
   {
     v = &mris->vertices[vno] ;
     if (v->marked != mark)
+    {
       continue ;
+    }
     if (vno == Gdiag_no)
+    {
       DiagBreak() ;
+    }
     area->lv[n].x = v->x ;
     area->lv[n].y = v->y ;
     area->lv[n].z = v->z ;
     area->lv[n].vno = vno ;
     area->lv[n].stat = v->stat ;
     if (FZERO(v->stat))
+    {
       DiagBreak() ;
+    }
     n++ ;
   }
   area->n_points = npoints ;
@@ -1515,16 +1738,24 @@ int LabelMarkSurface(LABEL *area, MRI_SURFACE *mris)
   int     n, vno ;
   VERTEX  *v ;
 
-  for (n = 0 ; n < area->n_points ; n++) {
+  for (n = 0 ; n < area->n_points ; n++)
+  {
     vno = area->lv[n].vno ;
-    if(vno < 0) continue ;
-    if(vno >= mris->nvertices){
+    if(vno < 0)
+    {
+      continue ;
+    }
+    if(vno >= mris->nvertices)
+    {
       printf("ERROR: LabelMarkSurface: label point %d exceeds nvertices %d\n",
-	     vno,mris->nvertices);
+             vno,mris->nvertices);
       return(1);
     }
     v = &mris->vertices[vno] ;
-    if(v->ripflag) continue ;
+    if(v->ripflag)
+    {
+      continue ;
+    }
     v->marked = 1 ;
   }
   return(NO_ERROR) ;
@@ -1542,9 +1773,13 @@ LabelIsCompletelyUnassigned(LABEL *area, int *unassigned)
   int i;
 
   if (NULL == area)
+  {
     return ERROR_BADPARM;
+  }
   if (NULL == unassigned)
+  {
     return ERROR_BADPARM;
+  }
 
   /* Go through the label. If a point vno is _not_ -1, return false,
      because we have an assigned point. If we get through the entire
@@ -1584,18 +1819,22 @@ LabelFillUnassignedVertices(MRI_SURFACE *mris, LABEL *area, int coords)
   double  max_spacing ;
   vx = vy = vz = -1;
 
-  MRIScomputeVertexSpacingStats(mris, NULL, NULL, &max_spacing, 
+  MRIScomputeVertexSpacingStats(mris, NULL, NULL, &max_spacing,
                                 NULL,&max_vno, CURRENT_VERTICES);
 
   for (i = n = 0 ; n < area->n_points ; n++)
   {
     lv = &area->lv[n] ;
     if (lv->vno >= 0 && lv->vno < mris->nvertices)
+    {
       continue ;
+    }
     i++ ;   /* count # of unassigned vertices */
   }
   if (i <= 0)
+  {
     return(0) ;  /* no work needed */
+  }
 
   fprintf(stderr,"%d unassigned vertices in label - building spatial LUT...\n",
           i) ;
@@ -1608,7 +1847,9 @@ LabelFillUnassignedVertices(MRI_SURFACE *mris, LABEL *area, int coords)
   {
     lv = &area->lv[n] ;
     if (lv->vno >= 0 && lv->vno <= mris->nvertices)
+    {
       continue ;
+    }
     nfilled++ ;
     bucket = MHTgetBucket(mht, lv->x, lv->y, lv->z) ;
 
@@ -1624,7 +1865,9 @@ LabelFillUnassignedVertices(MRI_SURFACE *mris, LABEL *area, int coords)
         vno = bin->fno ;
         v = &mris->vertices[vno] ;
         if (vno == Gdiag_no)
+        {
           DiagBreak() ;
+        }
 
         MRISgetCoords(v, coords, &vx, &vy, &vz);
 
@@ -1661,14 +1904,18 @@ LabelFillUnassignedVertices(MRI_SURFACE *mris, LABEL *area, int coords)
       }
     }
     if (min_vno == -1)
+    {
       num_not_found++;
+    }
     lv->vno = min_vno ;
   }
   LabelRemoveDuplicates(area) ;
   MHTfree(&mht) ;
 
   if (num_not_found > 0)
+  {
     fprintf (stderr, "Couldn't assign %d vertices.\n", num_not_found);
+  }
 
 
   return(nfilled) ;
@@ -1685,7 +1932,9 @@ LabelSphericalCombine(MRI_SURFACE *mris, LABEL *asrc, MRIS_HASH_TABLE *mht,
   double           max_len ;
 
   if (!adst)
+  {
     adst = LabelClone(asrc) ;
+  }
 
   if (adst->max_points < asrc->n_points+adst->n_points)/* won't fit - expand */
   {
@@ -1703,10 +1952,14 @@ LabelSphericalCombine(MRI_SURFACE *mris, LABEL *asrc, MRIS_HASH_TABLE *mht,
   {
     vno = asrc->lv[n].vno ;
     if (vno == Gdiag_no)
+    {
       DiagBreak() ;
+    }
     v = &mris->vertices[vno] ;
     if (v->ripflag)
+    {
       continue ;
+    }
     vdst = MHTfindClosestVertex(mht, mris_dst, v) ;
     if (!vdst)
     {
@@ -1714,22 +1967,36 @@ LabelSphericalCombine(MRI_SURFACE *mris, LABEL *asrc, MRIS_HASH_TABLE *mht,
       continue ;
     }
     if (vdst->marked)  /* only add this vertex once */
+    {
       continue ;
+    }
     vdst->marked = 1 ;
     if (vdst-mris_dst->vertices == Gdiag_no)
+    {
       DiagBreak() ;
+    }
     lv_dst = labelFindVertexNumber(adst, vdst-mris_dst->vertices) ;
     if (lv_dst == NULL)
+    {
       lv_dst = &adst->lv[adst->n_points++] ;
+    }
     else if (lv_dst-adst->lv == Gdiag_no)
+    {
       DiagBreak() ;
+    }
     lv_dst->vno = vdst-mris_dst->vertices ;
     if (lv_dst->vno == 60008)
+    {
       DiagBreak() ;
+    }
     if (lv_dst->vno == 85592)
+    {
       DiagBreak() ;
+    }
     if (lv_dst->vno == Gdiag_no)
+    {
       DiagBreak() ;
+    }
     lv_dst->x = asrc->lv[n].x ;
     lv_dst->y = asrc->lv[n].y ;
     lv_dst->z = asrc->lv[n].z ;
@@ -1754,9 +2021,13 @@ LabelSphericalCombine(MRI_SURFACE *mris, LABEL *asrc, MRIS_HASH_TABLE *mht,
     {
       v = &mris_dst->vertices[adst->lv[n].vno] ;
       if (adst->lv[n].vno == Gdiag_no)
+      {
         DiagBreak() ;
+      }
       if (n == Gdiag_no)
+      {
         DiagBreak() ;
+      }
       if (v->marked == 0)   /* hasn't been processed for this surface yet */
       {
         vsrc = MHTfindClosestVertex(mht_src, mris, v) ;
@@ -1770,14 +2041,22 @@ LabelSphericalCombine(MRI_SURFACE *mris, LABEL *asrc, MRIS_HASH_TABLE *mht,
       {
         vn = &mris_dst->vertices[v->v[m]] ;
         if (vn->marked)
-          continue ;   /* already in label */
+        {
+          continue ;  /* already in label */
+        }
         vsrc = MHTfindClosestVertex(mht_src, mris, vn) ;
         if (vsrc == NULL)
+        {
           DiagBreak() ;
+        }
         if (vsrc - mris->vertices == 62644)
+        {
           DiagBreak() ;
+        }
         if (vsrc - mris->vertices == Gdiag_no)
+        {
           DiagBreak() ;
+        }
         if (vsrc->marked)
         {
           if (adst->n_points >= adst->max_points-1)
@@ -1793,20 +2072,30 @@ LabelSphericalCombine(MRI_SURFACE *mris, LABEL *asrc, MRIS_HASH_TABLE *mht,
           vn->marked = 1 ;
           lv_dst = labelFindVertexNumber(adst, v->v[m]) ;
           if (lv_dst == NULL)
+          {
             lv_dst = &adst->lv[adst->n_points++] ;
+          }
           else if (lv_dst-adst->lv == Gdiag_no)
+          {
             DiagBreak() ;
+          }
           lv_dst->x = adst->lv[n].x ;
           lv_dst->y = adst->lv[n].y ;
           lv_dst->z = adst->lv[n].z ;
           lv_dst->vno = v->v[m] ;
           lv_dst->stat += vsrc->stat ;
           if (lv_dst->vno == Gdiag_no)
+          {
             DiagBreak() ;
+          }
           if (lv_dst->vno == 55185)
+          {
             DiagBreak() ;
+          }
           if (lv_dst->vno == 85592)
+          {
             DiagBreak() ;
+          }
           nfilled++ ;
         }
       }
@@ -1853,7 +2142,10 @@ LABEL *MaskSurfLabel(LABEL *lbl, MRI *SurfMask,
   ok = 0;
   for (n = 0; n < lbl->n_points; n++)
   {
-    if (lbl->lv[n].vno != 0) ok = 1;
+    if (lbl->lv[n].vno != 0)
+    {
+      ok = 1;
+    }
   }
   if (!ok)
   {
@@ -1879,10 +2171,19 @@ LABEL *MaskSurfLabel(LABEL *lbl, MRI *SurfMask,
       return(NULL);
     }
     maskval = MRIgetVoxVal(SurfMask,vno,0,0,frame);
-    if (!strcmp(masksign,"abs")) maskval = fabs(maskval);
-    if (!strcmp(masksign,"neg")) maskval = -maskval;
+    if (!strcmp(masksign,"abs"))
+    {
+      maskval = fabs(maskval);
+    }
+    if (!strcmp(masksign,"neg"))
+    {
+      maskval = -maskval;
+    }
     //printf("%4d  %6d  %g %g  %d\n",n,vno,maskval,thresh,maskval>thresh);
-    if (maskval < thresh) continue;
+    if (maskval < thresh)
+    {
+      continue;
+    }
     msklbl->lv[noverlap].vno = vno;
     msklbl->lv[noverlap].x = lbl->lv[noverlap].x;
     msklbl->lv[noverlap].y = lbl->lv[noverlap].y;
@@ -1908,11 +2209,17 @@ LabelErode(LABEL *area, MRI_SURFACE *mris, int num_times)
   VERTEX *vn ;
 
   if (NULL == area)
+  {
     ErrorReturn(ERROR_BADPARM,(ERROR_BADPARM,"LabelErode: NULL label"));
+  }
   if (NULL == mris)
+  {
     ErrorReturn(ERROR_BADPARM,(ERROR_BADPARM,"LabelErode: NULL mris"));
+  }
   if (num_times < 1)
+  {
     ErrorReturn(ERROR_BADPARM,(ERROR_BADPARM,"LabelErode: num_times < 1"));
+  }
 
   for (n = 0; n < num_times; n++)
   {
@@ -1931,7 +2238,9 @@ LabelErode(LABEL *area, MRI_SURFACE *mris, int num_times)
     {
       vno = area->lv[label_vno].vno;
       if (vno == Gdiag_no)
+      {
         DiagBreak() ;
+      }
 
       // check to see if we should not add this label
       // (if one of it's nbrs is not in label)
@@ -1941,14 +2250,18 @@ LabelErode(LABEL *area, MRI_SURFACE *mris, int num_times)
       {
         neighbor_vno = mris->vertices[vno].v[neighbor_index];
         if (neighbor_vno == Gdiag_no)
+        {
           DiagBreak() ;
+        }
 
         /* Look for neighbor_vno in the label. */
         vn = &mris->vertices[neighbor_vno] ;
-        if (vn->marked == 0) // found a nbr not in the label 
+        if (vn->marked == 0) // found a nbr not in the label
         {
-        if (neighbor_vno == Gdiag_no)
-          DiagBreak() ;
+          if (neighbor_vno == Gdiag_no)
+          {
+            DiagBreak() ;
+          }
           found = 1;
           break;
         }
@@ -1968,7 +2281,7 @@ LabelErode(LABEL *area, MRI_SURFACE *mris, int num_times)
     area->n_points = num_new_lvs;
     area->max_points = num_new_lvs;
   }
-  
+
   MRISclearMarks(mris) ;
   return (NO_ERROR);
 }
@@ -1981,11 +2294,17 @@ LabelDilate(LABEL *area, MRI_SURFACE *mris, int num_times)
   VERTEX *vn, *v ;
 
   if (NULL == area)
+  {
     ErrorReturn(ERROR_BADPARM,(ERROR_BADPARM,"LabelDilate: NULL label"));
+  }
   if (NULL == mris)
+  {
     ErrorReturn(ERROR_BADPARM,(ERROR_BADPARM,"LabelDilate: NULL mris"));
+  }
   if (num_times < 1)
+  {
     ErrorReturn(ERROR_BADPARM,(ERROR_BADPARM,"LabelDilate: num_times < 1"));
+  }
 
   for (n = 0; n< num_times; n++ )
   {
@@ -2009,21 +2328,27 @@ LabelDilate(LABEL *area, MRI_SURFACE *mris, int num_times)
     {
       v = &mris->vertices[vno] ;
       if (vno == Gdiag_no)
+      {
         DiagBreak() ;
+      }
       if (v->marked == 1) // already in label
+      {
         continue ;
+      }
 
       // Check its neighbors. If any are in the label, add it
       found = 0 ;
       for (neighbor_index = 0; neighbor_index < v->vnum; neighbor_index++)
       {
-          /* Look for neighbor_vno in the label. */
+        /* Look for neighbor_vno in the label. */
         neighbor_vno = mris->vertices[vno].v[neighbor_index];
         vn = &mris->vertices[neighbor_vno] ;
-        if (vn->marked > 0) 
+        if (vn->marked > 0)
         {
           if (neighbor_vno == Gdiag_no)
-             DiagBreak() ;
+          {
+            DiagBreak() ;
+          }
           found = 1;
           break;
         }
@@ -2032,8 +2357,10 @@ LabelDilate(LABEL *area, MRI_SURFACE *mris, int num_times)
       // add it if at least one nbr was found that was in label
       if (found)
       {
-          if (vno == Gdiag_no)
-             DiagBreak() ;
+        if (vno == Gdiag_no)
+        {
+          DiagBreak() ;
+        }
         new_lv[num_new_lvs].vno = vno ;
         new_lv[num_new_lvs].x = v->x;
         new_lv[num_new_lvs].y = v->y;
@@ -2065,7 +2392,9 @@ labelFindVertexNumber(LABEL *area, int vno)
   {
     lv = &area->lv[n] ;
     if (lv->vno == vno)
+    {
       return(lv) ;
+    }
   }
   return(NULL) ;
 }
@@ -2076,7 +2405,9 @@ LabelSetStat(LABEL *area, float stat)
   int  n ;
 
   for (n = 0 ; n < area->n_points ; n++)
+  {
     area->lv[n].stat = stat ;
+  }
 
   return(NO_ERROR) ;
 }
@@ -2090,7 +2421,9 @@ LabelMarkStats(LABEL *area, MRI_SURFACE *mris)
   for (n = 0 ; n < area->n_points ; n++)
   {
     if (area->lv[n].deleted > 0)
+    {
       continue ;
+    }
     vno = area->lv[n].vno ;
     v = &mris->vertices[vno] ;
     v->marked = 1 ;
@@ -2124,9 +2457,13 @@ LabelFillHoles(LABEL *area_src, MRI_SURFACE *mris, int coords)
     // MRIworldToVoxel(mri, xw, yw, zw, &xv, &yv, &zv) ;
 #if 0
     if (mris->useRealRAS)
+    {
       MRIworldToVoxel(mri, xw, yw, zw, &xv, &yv, &zv) ;
+    }
     else
+    {
       MRIsurfaceRASToVoxel(mri, xw, yw, zw, &xv, &yv, &zv) ;
+    }
 #else
     MRISsurfaceRASToVoxel(mris, mri, xw, yw, zw, &xv, &yv, &zv) ;
 #endif
@@ -2141,16 +2478,29 @@ LabelFillHoles(LABEL *area_src, MRI_SURFACE *mris, int coords)
     {
       v = &mris->vertices[vno] ;
       if (vno == Gdiag_no)
+      {
         DiagBreak() ;
+      }
       if (v->ripflag || v->marked)   /* already in label */
+      {
         continue ;
+      }
       MRISvertexCoordToVoxel(mris, v, mri, coords, &xv, &yv, &zv) ;
       xi = nint(xv) ;
       yi = nint(yv) ;
       zi = nint(zv) ;
-      if (xi >= mri->width)  xi = mri->width-1;
-      if (yi >= mri->height) yi = mri->height-1;
-      if (zi >= mri->depth)  zi = mri->depth-1;
+      if (xi >= mri->width)
+      {
+        xi = mri->width-1;
+      }
+      if (yi >= mri->height)
+      {
+        yi = mri->height-1;
+      }
+      if (zi >= mri->depth)
+      {
+        zi = mri->depth-1;
+      }
       if (MRIvox(mri, xi, yi, zi) == 1)
       {
         MRISgetCoords(v, coords, &vx, &vy, &vz);
@@ -2197,7 +2547,8 @@ LabelFillHoles(LABEL *area_src, MRI_SURFACE *mris, int coords)
             }
       }
     }
-  } while (nchanged > 0) ;
+  }
+  while (nchanged > 0) ;
 
   MRIfree(&mri) ;
   return(area_dst) ;
@@ -2224,9 +2575,13 @@ LabelFillHolesWithOrig(LABEL *area_src, MRI_SURFACE *mris)
     zw = area_src->lv[i].z  ;
     // MRIworldToVoxel(mri, xw, yw, zw, &xv, &yv, &zv) ;
     if (mris->useRealRAS)
+    {
       MRIworldToVoxel(mri, xw, yw, zw, &xv, &yv, &zv) ;
+    }
     else
+    {
       MRIsurfaceRASToVoxel(mri, xw, yw, zw, &xv, &yv, &zv) ;
+    }
     MRIvox(mri, nint(xv), nint(yv), nint(zv)) = 1 ;
   }
 
@@ -2235,7 +2590,9 @@ LabelFillHolesWithOrig(LABEL *area_src, MRI_SURFACE *mris)
   {
     v = &mris->vertices[vno] ;
     if (v->ripflag || v->marked)   /* already in label */
+    {
       continue ;
+    }
     MRISorigVertexToVoxel(mris, v, mri, &xv, &yv, &zv) ;
     if (MRIvox(mri, nint(xv), nint(yv), nint(zv)) == 1)
     {
@@ -2261,7 +2618,10 @@ int LabelHasVertex(int vtxno, LABEL *lb)
 {
   int n;
   for (n = 0; n < lb->n_points; n++)
-    if (lb->lv[n].vno == vtxno) return(n);
+    if (lb->lv[n].vno == vtxno)
+    {
+      return(n);
+    }
   return(-1);
 }
 /*---------------------------------------------------------------
@@ -2273,10 +2633,16 @@ int LabelRealloc(LABEL *lb, int max_points)
 {
   LV *lvtmp;
 
-  if (max_points <= lb->max_points) return(0);
+  if (max_points <= lb->max_points)
+  {
+    return(0);
+  }
 
   lvtmp = realloc(lb->lv,sizeof(LV)*max_points);
-  if (lvtmp == NULL) return(1);
+  if (lvtmp == NULL)
+  {
+    return(1);
+  }
   lb->max_points = max_points;
   lb->lv = lvtmp;
 
@@ -2304,12 +2670,18 @@ LABEL *LabelfromASeg(MRI *aseg, int segcode)
       for (s=0; s < aseg->depth; s++)
       {
         v = (int)MRIgetVoxVal(aseg,c,r,s,0);
-        if (v == segcode) nlabel++;
+        if (v == segcode)
+        {
+          nlabel++;
+        }
       }
     }
   }
   //printf("Found %d voxels in label\n",nlabel);
-  if (nlabel==0)return(NULL);
+  if (nlabel==0)
+  {
+    return(NULL);
+  }
 
   lb = LabelAlloc(nlabel,"dontknow","dontcare");
 
@@ -2363,7 +2735,10 @@ int VertexIsInLabel(int vtxno, LABEL *label)
   int n;
 
   for (n=0; n<label->n_points; n++)
-    if (label->lv[n].vno == vtxno) return(1);
+    if (label->lv[n].vno == vtxno)
+    {
+      return(1);
+    }
 
   return(0);
 }
@@ -2475,14 +2850,22 @@ LabelInFOV(MRI_SURFACE *mris, MRI *mri, float pad)
   {
     v = &mris->vertices[vno] ;
     if (v->ripflag)
+    {
       continue ;
+    }
     if (vno == Gdiag_no)
+    {
       DiagBreak() ;
+    }
 #if 0
     if (mris->useRealRAS)
+    {
       MRIworldToVoxel(mri, v->x, v->y, v->z, &xv, &yv, &zv);
+    }
     else
+    {
       MRIsurfaceRASToVoxel(mri, v->x, v->y, v->z, &xv, &yv, &zv);
+    }
 #else
     MRISsurfaceRASToVoxel(mris, mri, v->x, v->y, v->z, &xv, &yv, &zv) ;
 #endif
@@ -2490,7 +2873,9 @@ LabelInFOV(MRI_SURFACE *mris, MRI *mri, float pad)
         xv > (mri->width-1)-nvox ||
         yv > (mri->height-1)-nvox ||
         zv > (mri->depth-1)-nvox)
+    {
       continue ;
+    }
     npoints++ ;
   }
 
@@ -2499,14 +2884,22 @@ LabelInFOV(MRI_SURFACE *mris, MRI *mri, float pad)
   {
     v = &mris->vertices[vno] ;
     if (v->ripflag)
+    {
       continue ;
+    }
     if (vno == Gdiag_no)
+    {
       DiagBreak() ;
+    }
 #if 0
     if (mris->useRealRAS)
+    {
       MRIworldToVoxel(mri, v->x, v->y, v->z, &xv, &yv, &zv);
+    }
     else
+    {
       MRIsurfaceRASToVoxel(mri, v->x, v->y, v->z, &xv, &yv, &zv);
+    }
 #else
     MRISsurfaceRASToVoxel(mris, mri, v->x, v->y, v->z, &xv, &yv, &zv) ;
 #endif
@@ -2514,7 +2907,9 @@ LabelInFOV(MRI_SURFACE *mris, MRI *mri, float pad)
         xv > (mri->width-1)-nvox ||
         yv > (mri->height-1)-nvox ||
         zv > (mri->depth-1)-nvox)
+    {
       continue ;
+    }
     lv = &area->lv[area->n_points] ;
     area->n_points++ ;
     lv->vno = vno ;
@@ -2532,7 +2927,9 @@ LabelTranslate(LABEL *area, LABEL *area_offset, float dx, float dy, float dz)
   int i ;
 
   if (area_offset == NULL)
+  {
     area_offset = LabelCopy(area, NULL) ;
+  }
 
 
   for (i = 0 ; i < area->n_points ; i++)
@@ -2550,7 +2947,9 @@ LabelUnassign(LABEL *area)
   int i ;
 
   for (i = 0 ; i < area->n_points ; i++)
+  {
     area->lv[i].vno = -1 ;
+  }
   return(NO_ERROR) ;
 }
 
@@ -2570,7 +2969,10 @@ LABEL *MRISlabelInvert(MRIS *surf, LABEL *label)
   // Count number of points. Need to do this in case duplicates
   nlabel = 0;
   for(vtxno=0; vtxno < surf->nvertices; vtxno++)
-    if(MRIgetVoxVal(tmpmri,vtxno,0,0,0) > 0.5) nlabel++;
+    if(MRIgetVoxVal(tmpmri,vtxno,0,0,0) > 0.5)
+    {
+      nlabel++;
+    }
 
   // Alloc inverse label
   ninv = surf->nvertices-nlabel;
@@ -2579,8 +2981,10 @@ LABEL *MRISlabelInvert(MRIS *surf, LABEL *label)
 
   // Assign label points to vtxs NOT in the mask
   n = 0;
-  for(vtxno=0; vtxno < surf->nvertices; vtxno++){
-    if(MRIgetVoxVal(tmpmri,vtxno,0,0,0) < 0.5){
+  for(vtxno=0; vtxno < surf->nvertices; vtxno++)
+  {
+    if(MRIgetVoxVal(tmpmri,vtxno,0,0,0) < 0.5)
+    {
       invlabel->lv[n].vno = vtxno;
       invlabel->lv[n].x = surf->vertices[vtxno].x;
       invlabel->lv[n].y = surf->vertices[vtxno].y;
@@ -2605,11 +3009,17 @@ LabelCopyStatsToSurface(LABEL *area, MRI_SURFACE *mris, int which)
     v->marked = 1 ;
     switch (which)
     {
-    case VERTEX_VALS: v->val = area->lv[n].stat ; break ;
-    case VERTEX_CURV: v->curv = area->lv[n].stat ; break ;
-    case VERTEX_STATS: v->stat = area->lv[n].stat ; break ;
+    case VERTEX_VALS:
+      v->val = area->lv[n].stat ;
+      break ;
+    case VERTEX_CURV:
+      v->curv = area->lv[n].stat ;
+      break ;
+    case VERTEX_STATS:
+      v->stat = area->lv[n].stat ;
+      break ;
     default:
-      ErrorExit(ERROR_BADPARM, 
+      ErrorExit(ERROR_BADPARM,
                 "LabelCopyStatsToSurface: unsupported which = %d", which);
     }
   }
@@ -2644,15 +3054,19 @@ LabelCropAnterior(LABEL *area, float anterior_dist)
   for (n = 0 ; n < area->n_points ; n++)
   {
     if (area->lv[n].y > amax)
+    {
       amax = area->lv[n].y ;
+    }
   }
-  
+
   amax -= anterior_dist ;
   printf("cropping all vertices with Y > %2.0f\n", amax) ;
   for (n = 0 ; n < area->n_points ; n++)
   {
     if (area->lv[n].y < amax)
+    {
       area->lv[n].deleted = 1 ;
+    }
   }
   return(NO_ERROR) ;
 }
@@ -2667,15 +3081,19 @@ LabelCropPosterior(LABEL *area, float anterior_dist)
   for (n = 0 ; n < area->n_points ; n++)
   {
     if (area->lv[n].y > amax)
+    {
       amax = area->lv[n].y ;
+    }
   }
-  
+
   amax += anterior_dist ;
   printf("cropping all vertices with Y > %2.0f\n", amax) ;
   for (n = 0 ; n < area->n_points ; n++)
   {
     if (area->lv[n].y > amax)
+    {
       area->lv[n].deleted = 1 ;
+    }
   }
   return(NO_ERROR) ;
 }
@@ -2692,7 +3110,9 @@ LabelMaskSurface(LABEL *area, MRI_SURFACE *mris)
   {
     v = &mris->vertices[vno] ;
     if (v->marked || v->ripflag)
+    {
       continue ;
+    }
     v->stat = v->val = v->imag_val = v->val2 = v->valbak = v->val2bak = 0.0 ;
   }
   MRISclearMarks(mris) ;
@@ -2711,11 +3131,17 @@ LabelCentroid(LABEL *area, MRI_SURFACE *mris, double *px, double *py, double *pz
     vno = area->lv[n].vno ;
     v = &mris->vertices[vno] ;
     if (vno == Gdiag_no)
+    {
       DiagBreak() ;
+    }
     num++ ;
-    xc += v->x ; yc += v->y ; zc += v->z ;
+    xc += v->x ;
+    yc += v->y ;
+    zc += v->z ;
   }
-  *px = xc / num ; *py = yc / num ; *pz = zc / num ;
+  *px = xc / num ;
+  *py = yc / num ;
+  *pz = zc / num ;
   return(NO_ERROR) ;
 }
 
