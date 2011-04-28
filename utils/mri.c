@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2011/04/11 14:47:10 $
- *    $Revision: 1.486.2.1 $
+ *    $Date: 2011/04/28 15:10:44 $
+ *    $Revision: 1.486.2.2 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -23,7 +23,7 @@
  */
 
 extern const char* Progname;
-const char *MRI_C_VERSION = "$Revision: 1.486.2.1 $";
+const char *MRI_C_VERSION = "$Revision: 1.486.2.2 $";
 
 
 /*-----------------------------------------------------
@@ -15228,7 +15228,7 @@ MRImarkLabelBorderVoxels( const MRI *mri_src,
     mri_dst = MRIclone(mri_src, NULL) ;
   }
 
-#ifdef FS_CUDA
+#if (defined(FS_CUDA) && defined(GCAMORPH_ON_GPU))
   MRImarkLabelBorderVoxelsGPU( mri_src, mri_dst, label, mark, six_connected );
 #else
   int  x, y, z, xk, yk, zk, xi, yi, zi;
