@@ -9,9 +9,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/14 23:44:48 $
- *    $Revision: 1.4 $
+ *    $Author: rpwang $
+ *    $Date: 2011/04/29 17:27:01 $
+ *    $Revision: 1.5 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -98,6 +98,18 @@ public:
   }
   void SetCustomColorScale(QGradientStops stops);
 
+  bool GetSmooth()
+  {
+    return m_bSmooth;
+  }
+  void SetSmooth(bool bSmooth);
+
+  int GetSmoothSteps()
+  {
+    return m_nSmoothSteps;
+  }
+  void SetSmoothSteps(int n);
+
 //  void MapOverlayColor( unsigned char* colordata, int nPoints );
   void MapOverlayColor( float* data, unsigned char* colordata, int nPoints );
   void MapOverlayColorSymmetric( float* data, unsigned char* colordata, int nPoints );
@@ -117,6 +129,7 @@ public:
 
 Q_SIGNALS:
   void ColorMapChanged();
+  void SmoothChanged();
 
 private:
 
@@ -136,6 +149,8 @@ private:
   double      m_dMaxStop;
   bool        m_bClearLower;
   bool        m_bClearHigher;
+  bool        m_bSmooth;
+  int         m_nSmoothSteps;
 
   vtkRGBAColorTransferFunction* m_lut;
 

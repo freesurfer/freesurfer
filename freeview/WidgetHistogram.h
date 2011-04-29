@@ -6,9 +6,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/14 23:44:48 $
- *    $Revision: 1.4 $
+ *    $Author: rpwang $
+ *    $Date: 2011/04/29 17:27:02 $
+ *    $Revision: 1.5 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -51,7 +51,7 @@ public:
   explicit WidgetHistogram(QWidget *parent = 0);
   ~WidgetHistogram();
 
-  template <class T> void SetInputData( T* data, long size );
+  template <class T> void SetInputData( T* data, long size, double* range = NULL );
 
   void GetOutputRange( double* dRange );
 
@@ -93,6 +93,12 @@ public:
   LineMarkers GetMarkers()
   {
     return m_markers;
+  }
+
+  void GetInputRange(double* range)
+  {
+    range[0] = m_dInputRange[0];
+    range[1] = m_dInputRange[1];
   }
 
 signals:
@@ -146,7 +152,7 @@ protected:
   bool        m_bActiveMarkerMirrored;
 };
 
-template <class T> void WidgetHistogram::SetInputData( T* data, long size )
+template <class T> void WidgetHistogram::SetInputData( T* data, long size, double* range )
 {
   if ( m_dInputData )
   {
@@ -172,6 +178,12 @@ template <class T> void WidgetHistogram::SetInputData( T* data, long size )
     m_nInputSize = size;
     m_dOutputRange[0] = m_dInputRange[0];
     m_dOutputRange[1] = m_dInputRange[1];
+  }
+
+  if (range)
+  {
+    m_dOutputRange[0] = range[0];
+    m_dOutputRange[1] = range[1];
   }
 
   UpdateData();

@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2011/04/22 18:49:30 $
- *    $Revision: 1.63 $
+ *    $Date: 2011/04/29 17:27:01 $
+ *    $Revision: 1.64 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -420,7 +420,6 @@ bool FSVolume::Create( FSVolume* src_vol, bool bCopyVoxelData, int data_type )
     MRIcopyHeader( src_vol->m_MRI, m_MRI );
   }
 
-// if ( !m_imageData.GetPointer() )
   if ( m_imageData == NULL )
   {
     m_imageData = vtkSmartPointer<vtkImageData>::New();

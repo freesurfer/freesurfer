@@ -6,9 +6,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/14 23:44:48 $
- *    $Revision: 1.4 $
+ *    $Author: rpwang $
+ *    $Date: 2011/04/29 17:27:02 $
+ *    $Revision: 1.5 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -62,12 +62,15 @@ protected slots:
   void UpdateThresholdChanges();
   void OnHistogramMouseButtonPressed(int button, double value);
   void OnHistogramMarkerChanged();
+  void OnSmoothChanged();
+  void OnTextThresholdChanged(const QString& strg);
 
 private:
   Ui::WindowConfigureOverlay *ui;
 
   LineMarkers   m_markers;    // custom gradient markers
   LayerSurface* m_layerSurface;
+  float*        m_fDataCache;
 };
 
 #endif // WINDOWCONFIGUREOVERLAY_H

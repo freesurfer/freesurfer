@@ -9,9 +9,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/14 23:44:48 $
- *    $Revision: 1.10 $
+ *    $Author: rpwang $
+ *    $Date: 2011/04/29 17:27:01 $
+ *    $Revision: 1.11 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -70,6 +70,11 @@ public:
     return m_fData;
   }
 
+  float* GetOriginalData()
+  {
+    return m_fDataOriginal;
+  }
+
   int GetDataSize()
   {
     return m_nDataSize;
@@ -109,13 +114,17 @@ public:
     return m_strFileName;
   }
 
+  void SmoothData(int nSteps = -1, float* data_out = NULL);
+
 signals:
   void DataUpdated();
 
-protected:
+public slots:
+  void UpdateSmooth(bool trigger_paired = true);
 
 private:
   float*        m_fData;
+  float*        m_fDataOriginal;
   int           m_nDataSize;
   double        m_dMaxValue;
   double        m_dMinValue;

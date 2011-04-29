@@ -6,9 +6,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/14 23:44:48 $
- *    $Revision: 1.4 $
+ *    $Author: rpwang $
+ *    $Date: 2011/04/29 17:27:02 $
+ *    $Revision: 1.5 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -37,6 +37,7 @@ WindowConfigureOverlay::WindowConfigureOverlay(QWidget *parent) :
 {
   ui->setupUi(this);
   setWindowFlags( Qt::Tool );
+  m_fDataCache = NULL;
   ui->widgetHistogram->SetNumberOfBins( 200 );
   ui->widgetHolderAddPoint->hide();
   ui->checkBoxClearLower->hide();
@@ -55,6 +56,10 @@ WindowConfigureOverlay::WindowConfigureOverlay(QWidget *parent) :
 
 WindowConfigureOverlay::~WindowConfigureOverlay()
 {
+  if (m_fDataCache)
+    delete[] m_fDataCache;
+  m_fDataCache = 0;
+
   QSettings settings;
   settings.setValue("WindowConfigureOverlay/Geometry", this->saveGeometry());
   delete ui;
@@ -76,6 +81,11 @@ void WindowConfigureOverlay::OnActiveSurfaceChanged(Layer* layer)
     connect(m_layerSurface, SIGNAL(SurfaceOverlyDataUpdated()),
             this, SLOT(UpdateGraph()), Qt::UniqueConnection);
   }
+
+  if (m_fDataCache)
+    delete[] m_fDataCache;
+  m_fDataCache = 0;
+
   UpdateUI();
   UpdateGraph();
 }
@@ -115,6 +125,10 @@ void WindowConfigureOverlay::UpdateUI()
     ui->labelMid->setEnabled( ui->radioButtonPiecewise->isChecked() );
     ui->lineEditMid->setEnabled( ui->radioButtonPiecewise->isChecked() );
 
+    ui->checkBoxEnableSmooth->setChecked(p->GetSmooth());
+    ui->spinBoxSmoothSteps->setValue(p->GetSmoothSteps());
+    ui->spinBoxSmoothSteps->setEnabled(p->GetSmooth());
+
     QGradientStops stops = p->GetCustomColorScale();
     m_markers.clear();
     for (int i = 0; i < stops.size(); i++)
@@ -144,15 +158,25 @@ void WindowConfigureOverlay::OnClicked( QAbstractButton* btn )
   }
   else if (ui->buttonBox->buttonRole(btn) == QDialogButtonBox::ApplyRole)
   {
+ /*   if (m_fDataCache)
+      delete[] m_fDataCache;
+    m_fDataCache = 0;
+    */
+
     if ( !m_layerSurface || !m_layerSurface->GetActiveOverlay() )
     {
       return;
     }
 
     SurfaceOverlayProperty* p = m_layerSurface->GetActiveOverlay()->GetProperty();
+    bool smooth_changed = (p->GetSmooth() != ui->checkBoxEnableSmooth->isChecked() ||
+                     p->GetSmoothSteps() != ui->spinBoxSmoothSteps->value() );
     if ( UpdateOverlayProperty( p ) )
     {
-      p->EmitColorMapChanged();
+      if (smooth_changed)
+        m_layerSurface->GetActiveOverlay()->UpdateSmooth();
+      else
+        p->EmitColorMapChanged();
     }
   }
 }
@@ -229,6 +253,10 @@ bool WindowConfigureOverlay::UpdateOverlayProperty( SurfaceOverlayProperty* p )
     stops << QGradientStop(m_markers[i].position, m_markers[i].color);
   }
   p->SetCustomColorScale(stops);
+
+  p->SetSmooth(ui->checkBoxEnableSmooth->isChecked());
+  p->SetSmoothSteps(ui->spinBoxSmoothSteps->value());
+
   return true;
 }
 
@@ -248,7 +276,10 @@ void WindowConfigureOverlay::UpdateGraph()
 
       SurfaceOverlayProperty* p = new SurfaceOverlayProperty( overlay );
       UpdateOverlayProperty( p );
-      ui->widgetHistogram->SetInputData( overlay->GetData(), overlay->GetDataSize() );
+      if (m_fDataCache)
+        ui->widgetHistogram->SetInputData( m_fDataCache, overlay->GetDataSize(), range );
+      else
+        ui->widgetHistogram->SetInputData( overlay->GetData(), overlay->GetDataSize(), range );
       ui->widgetHistogram->SetSymmetricMarkers(p->GetColorScale() <= SurfaceOverlayProperty::CS_BlueRed);
       ui->widgetHistogram->SetMarkerEditable(p->GetColorScale() == SurfaceOverlayProperty::CS_Custom);
 
@@ -256,6 +287,7 @@ void WindowConfigureOverlay::UpdateGraph()
       float* fData = new float[ nBins ];
       unsigned char* nColorTable = new unsigned char[ nBins*4 ];
 
+      ui->widgetHistogram->GetOutputRange(range);
       double bin_width = ( range[1] - range[0] ) / nBins;
       int rgb[3];
       double* dColor = m_layerSurface->GetProperty()->GetBinaryColor();
@@ -403,4 +435,53 @@ void WindowConfigureOverlay::OnButtonAdd()
     return;
   }
   ui->widgetHistogram->AddMarker(pos, ui->widgetColorPicker->currentColor());
+}
+
+void WindowConfigureOverlay::OnSmoothChanged()
+{
+  if ( m_layerSurface && m_layerSurface->GetActiveOverlay() )
+  {
+    SurfaceOverlay* overlay = m_layerSurface->GetActiveOverlay();
+    if ( overlay )
+    {
+      if (!m_fDataCache)
+        m_fDataCache = new float[overlay->GetDataSize()];
+
+      if (ui->checkBoxEnableSmooth->isChecked())
+      {
+        overlay->SmoothData(ui->spinBoxSmoothSteps->value(), m_fDataCache);
+      }
+      else
+      {
+        memcpy(m_fDataCache, overlay->GetOriginalData(), sizeof(float)*overlay->GetDataSize());
+      }
+      UpdateGraph();
+    }
+  }
+}
+
+void WindowConfigureOverlay::OnTextThresholdChanged(const QString &strg)
+{
+  bool ok;
+  double val = strg.toDouble(&ok);
+  if (!ok)
+    return;
+
+  LineMarkers markers = ui->widgetHistogram->GetMarkers();
+  if (markers.isEmpty())
+    return;
+
+  if (sender() == ui->lineEditMax)
+  {
+    LineMarker marker = markers.last();
+    marker.position = val;
+    markers[markers.size()-1] = marker;
+  }
+  else if (sender() == ui->lineEditMin)
+  {
+    LineMarker marker = markers.first();
+    marker.position = val;
+    markers[0] = marker;
+  }
+  ui->widgetHistogram->SetMarkers(markers);
 }

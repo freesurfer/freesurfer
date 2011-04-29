@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2011/04/26 19:21:51 $
- *    $Revision: 1.168 $
+ *    $Date: 2011/04/29 17:27:01 $
+ *    $Revision: 1.169 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -178,6 +178,11 @@ MainWindow::MainWindow( QWidget *parent, MyCmdLineParser* cmdParser ) :
           m_term, SLOT(setVisible(bool)));
   connect(ui->actionRunCommand, SIGNAL(triggered()),
           m_term, SLOT(show()));
+
+  m_dlgMessage = new QMessageBox(QMessageBox::Warning, "Warning", "", QMessageBox::Ok,
+                                 this, Qt::Tool | Qt::MSWindowsFixedSizeDialogHint);
+  m_dlgMessage->setModal(false);
+  m_dlgMessage->hide();
 
   QStringList keys = m_layerCollections.keys();
   for ( int i = 0; i < keys.size(); i++ )
@@ -965,6 +970,7 @@ void MainWindow::OnIdle()
   ui->actionLoadROI         ->setEnabled( !bBusy && layerVolume );
   ui->actionLoadPointSet    ->setEnabled( !bBusy && layerVolume );
   ui->actionLoadSurface     ->setEnabled( !bBusy );
+  ui->actionLoadTrackVolume ->setEnabled( !bBusy );
   ui->actionNewVolume       ->setEnabled( layerVolume );
   ui->actionNewROI          ->setEnabled( layerVolume );
   ui->actionNewPointSet     ->setEnabled( layerVolume );
@@ -1004,6 +1010,8 @@ void MainWindow::OnIdle()
 
   ui->actionShowCoordinateAnnotation->setChecked(ui->viewAxial->GetShowCoordinateAnnotation());
   ui->actionShowColorScale->setChecked(view->GetShowScalarBar());
+
+  ui->actionToggleCursorVisibility->setChecked(ui->viewAxial->GetCursor2D()->IsShown());
 
   ui->actionCopy->setEnabled(false);
   ui->actionCopyStructure->setEnabled(false);
@@ -3990,7 +3998,8 @@ void MainWindow::OnIOFinished( Layer* layer, int jobtype )
 
     if ( !sf->HasValidVolumeGeometry() )
     {
-      QMessageBox::warning( this, "Warning", "Surface does not contain valid volume geometry information. It may not align with volumes and other surfaces.");
+      ShowNonModalMessage("Warning",
+                          "Surface does not contain valid volume geometry information. It may not align with volumes and other surfaces.");
     }
 
     m_strLastDir = QFileInfo( layer->GetFileName() ).canonicalPath();
@@ -4288,7 +4297,7 @@ void MainWindow::LoadSurfaceVectorFile( const QString& filename )
 
     if ( !layer->LoadVectorFromFile() )
     {
-      QMessageBox::warning( this, "Error", "Can not load vector file." );
+      ShowNonModalMessage("Error", "Can not load vector file.");
     }
   }
 }
@@ -4484,7 +4493,7 @@ void MainWindow::RotateVolume( std::vector<RotationElement>& rotations, bool bAl
   }
   if ( !bSuccess )
   {
-    QMessageBox::warning( this, "Error", "Error occured while rotating volumes.");
+    ShowNonModalMessage("Error", "Error occured while rotating volumes.");
   }
 }
 
@@ -4931,4 +4940,20 @@ void MainWindow::OnDecreaseOpacity()
     double dOpacity = mri->GetProperty()->GetOpacity();
     mri->GetProperty()->SetOpacity( qMax(0., dOpacity-0.1) );
   }
+}
+
+void MainWindow::OnToggleCursorVisibility(bool bShow)
+{
+  ui->viewAxial->GetCursor2D()->Show( bShow );
+  ui->viewSagittal->GetCursor2D()->Show( bShow );
+  ui->viewCoronal->GetCursor2D()->Show( bShow );
+  ui->view3D->GetCursor3D()->Show( bShow );
+  this->RequestRedraw();
+}
+
+void MainWindow::ShowNonModalMessage(const QString &title, const QString &msg)
+{
+  m_dlgMessage->setWindowTitle(title);
+  m_dlgMessage->setText(msg);
+  m_dlgMessage->show();
 }

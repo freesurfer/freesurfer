@@ -10,9 +10,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/14 23:44:48 $
- *    $Revision: 1.4 $
+ *    $Author: rpwang $
+ *    $Date: 2011/04/29 17:27:01 $
+ *    $Revision: 1.5 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -44,6 +44,8 @@ SurfaceOverlayProperty::SurfaceOverlayProperty ( SurfaceOverlay* overlay) :
   m_bColorTruncate( false ),
   m_bClearLower(true),
   m_bClearHigher(false),
+  m_bSmooth(false),
+  m_nSmoothSteps(1),
   m_overlay( overlay )
 {
   m_lut = vtkRGBAColorTransferFunction::New();
@@ -614,4 +616,22 @@ void SurfaceOverlayProperty::SetClearHigher(bool bClear)
 {
   m_bClearHigher = bClear;
   SetColorScale(m_nColorScale);
+}
+
+void SurfaceOverlayProperty::SetSmooth(bool bSmooth)
+{
+  if (m_bSmooth != bSmooth)
+  {
+    m_bSmooth = bSmooth;
+    emit SmoothChanged();
+  }
+}
+
+void SurfaceOverlayProperty::SetSmoothSteps(int n)
+{
+  if (n != m_nSmoothSteps)
+  {
+    m_nSmoothSteps = n;
+    emit SmoothChanged();
+  }
 }

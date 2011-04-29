@@ -11,8 +11,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2011/03/16 22:07:51 $
- *    $Revision: 1.12 $
+ *    $Date: 2011/04/29 17:27:01 $
+ *    $Revision: 1.13 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -27,7 +27,6 @@
  *
  */
 
-
 #include "SurfaceOverlay.h"
 #include "vtkLookupTable.h"
 #include "vtkRGBAColorTransferFunction.h"
@@ -40,6 +39,7 @@
 SurfaceOverlay::SurfaceOverlay ( LayerSurface* surf ) :
   QObject(),
   m_fData( NULL ),
+  m_fDataOriginal( NULL ),
   m_dMaxValue(0),
   m_dMinValue(0),
   m_surface( surf ),
@@ -51,14 +51,16 @@ SurfaceOverlay::SurfaceOverlay ( LayerSurface* surf ) :
 
   m_property =  new SurfaceOverlayProperty( this );
   connect( m_property, SIGNAL(ColorMapChanged()), surf, SLOT(UpdateOverlay()), Qt::UniqueConnection);
+  connect( m_property, SIGNAL(SmoothChanged()), this, SLOT(UpdateSmooth()), Qt::UniqueConnection);
 }
 
 SurfaceOverlay::~SurfaceOverlay ()
 {
   if ( m_fData )
-  {
     delete[] m_fData;
-  }
+
+  if (m_fDataOriginal)
+    delete[] m_fDataOriginal;
 
   if (m_overlayPaired)
   {
@@ -80,12 +82,20 @@ void SurfaceOverlay::InitializeData()
   {
     MRIS* mris = m_surface->GetSourceSurface()->GetMRIS();
     if ( m_fData )
-    {
       delete[] m_fData;
-    }
+
     m_nDataSize = mris->nvertices;
     m_fData = new float[ m_nDataSize ];
     if ( !m_fData )
+    {
+      return;
+    }
+
+    if ( m_fDataOriginal )
+      delete[] m_fDataOriginal;
+
+    m_fDataOriginal = new float[ m_nDataSize ];
+    if ( !m_fDataOriginal )
     {
       return;
     }
@@ -103,6 +113,7 @@ void SurfaceOverlay::InitializeData()
         m_dMinValue = m_fData[vno];
       }
     }
+    memcpy(m_fDataOriginal, m_fData, sizeof(float)*m_nDataSize);
   }
 }
 
@@ -184,6 +195,12 @@ void SurfaceOverlay::UpdateCorrelationAtVertex( int nVertex, int nHemisphere )
       m_dMinValue = m_fData[i];
     }
   }
+  memcpy(m_fDataOriginal, m_fData, sizeof(float)*m_nDataSize);
+  if (GetProperty()->GetSmooth())
+  {
+    SmoothData();
+  }
+
   m_bCorrelationDataReady = true;
   if (old_range <= 0)
   {
@@ -224,4 +241,52 @@ double SurfaceOverlay::GetDataAtVertex( int nVertex )
   return m_fData[nVertex];
 }
 
+void SurfaceOverlay::UpdateSmooth(bool trigger_paired)
+{
+  if (GetProperty()->GetSmooth())
+  {
+    SmoothData();
+  }
+  else
+  {
+    memcpy(m_fData, m_fDataOriginal, sizeof(float)*m_nDataSize);
+  }
+  m_surface->UpdateOverlay(true);
+  emit DataUpdated();
 
+  if (trigger_paired && m_overlayPaired)
+    m_overlayPaired->UpdateSmooth(false);
+}
+
+void SurfaceOverlay::SmoothData(int nSteps_in, float *data_out)
+{
+  MRI* mri = MRIallocSequence( m_nDataSize,
+                               1,
+                               1,
+                               MRI_FLOAT, 1);
+  if (!mri)
+  {
+    cerr << "Can not allocate mri\n";
+    return;
+  }
+  memcpy(&MRIFseq_vox( mri, 0, 0, 0, 0 ), m_fDataOriginal, sizeof(float)*m_nDataSize);
+  int nSteps = nSteps_in;
+  if (nSteps < 1)
+    nSteps = GetProperty()->GetSmoothSteps();
+  MRI* mri_smoothed = ::MRISsmoothMRI(m_surface->GetSourceSurface()->GetMRIS(), mri,
+                                      nSteps, NULL, NULL);
+  if (mri_smoothed)
+  {
+    if (data_out)
+      memcpy(data_out, &MRIFseq_vox( mri_smoothed, 0, 0, 0, 0 ), sizeof(float)*m_nDataSize);
+    else
+      memcpy(m_fData, &MRIFseq_vox( mri_smoothed, 0, 0, 0, 0 ), sizeof(float)*m_nDataSize);
+    MRIfree(&mri_smoothed);
+    MRIfree(&mri);
+  }
+  else
+  {
+    cerr << "Can not allocate mri\n";
+    MRIfree(&mri);
+  }
+}

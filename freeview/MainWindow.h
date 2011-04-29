@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2011/04/20 16:22:56 $
- *    $Revision: 1.94 $
+ *    $Date: 2011/04/29 17:27:01 $
+ *    $Revision: 1.95 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -52,6 +52,7 @@ class TermWidget;
 class MyCmdLineParser;
 class LayerSurface;
 class DialogWriteMovieFrames;
+class QMessageBox;
 
 #define MAX_RECENT_FILES    10
 
@@ -341,6 +342,7 @@ protected slots:
   void OnWriteMovieFrames();
   void OnIncreaseOpacity();
   void OnDecreaseOpacity();
+  void OnToggleCursorVisibility(bool bShow);
 
   void OnActiveLayerChanged(Layer*);
 
@@ -366,6 +368,7 @@ private:
   void UpdateRecentFileActions();
   void ToggleShowLayer(const QString& type );
   bool UpdateSurfaceCorrelation(LayerSurface* layer);
+  void ShowNonModalMessage(const QString& title, const QString& msg);
 
   int m_nViewLayout;
   int m_nMainView;
@@ -411,6 +414,7 @@ private:
   SettingsScreenshot    m_settingsScreenshot;
   QVariantMap           m_settings;
   QPoint                m_ptBackUpPos;      // for X11 geometry hack
+  QMessageBox*          m_dlgMessage;
 };
 
 #endif // MAINWINDOW_H
