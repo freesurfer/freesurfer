@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2011/04/11 14:47:11 $
- *    $Revision: 1.12.2.1 $
+ *    $Date: 2011/04/30 18:07:21 $
+ *    $Revision: 1.12.2.2 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -276,7 +276,64 @@ znzTAGwriteCommandLine(znzFile fp, char *cmd_line)
   return(NO_ERROR) ;
 }
 
+#define MATRIX_STRLEN  (4*4*100)
 int znzWriteMatrix(znzFile fp, MATRIX *M)
+{
+  long long here, len ;
+  char buf[MATRIX_STRLEN];
+
+  bzero(buf,MATRIX_STRLEN);
+  sprintf(buf,"AutoAlign %10lf %10lf %10lf %10lf %10lf %10lf %10lf %10lf %10lf %10lf %10lf %10lf %10lf %10lf %10lf %10lf",
+    M->rptr[1][1],M->rptr[1][2],M->rptr[1][3],M->rptr[1][4],
+    M->rptr[2][1],M->rptr[2][2],M->rptr[2][3],M->rptr[2][4],
+    M->rptr[3][1],M->rptr[3][2],M->rptr[3][3],M->rptr[3][4],
+    M->rptr[4][1],M->rptr[4][2],M->rptr[4][3],M->rptr[4][4]);
+  znzTAGwriteStart(fp, TAG_AUTO_ALIGN, &len, MATRIX_STRLEN) ;
+  here = znztell(fp) ;
+  znzwrite(buf, sizeof(char), MATRIX_STRLEN, fp) ;
+  here = znztell(fp) ;
+
+  znzTAGwriteEnd(fp, len) ;
+  return(NO_ERROR) ;
+}
+
+MATRIX *znzReadMatrix(znzFile fp)
+{
+  /* no fscanf equivalent in zlib!! have to hack it */
+  char buf[MATRIX_STRLEN];
+  MATRIX *M;
+  char ch[100];
+  int  ret ;
+  long long here, len ;
+  
+  znzTAGreadStart(fp, &len) ;
+  M = MatrixAlloc(4,4,MATRIX_REAL);
+  here = znztell(fp) ;
+  ret = znzread(buf, sizeof(unsigned char), MATRIX_STRLEN, fp) ;
+  here = znztell(fp) ;
+  sscanf(buf,"%s %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f", ch, 
+         &(M->rptr[1][1]),
+         &(M->rptr[1][2]),
+         &(M->rptr[1][3]),
+         &(M->rptr[1][4]),
+         &(M->rptr[2][1]),
+         &(M->rptr[2][2]),
+         &(M->rptr[2][3]),
+         &(M->rptr[2][4]),
+         &(M->rptr[3][1]),
+         &(M->rptr[3][2]),
+         &(M->rptr[3][3]),
+         &(M->rptr[3][4]),
+         &(M->rptr[4][1]),
+         &(M->rptr[4][2]),
+         &(M->rptr[4][3]),
+         &(M->rptr[4][4])
+        ); 
+  
+  return(M);
+}
+
+int znzWriteAutoAlignMatrix(znzFile fp, MATRIX *M)
 {
   long long here ;
   char buf[16*100];
@@ -296,7 +353,7 @@ int znzWriteMatrix(znzFile fp, MATRIX *M)
   return(NO_ERROR) ;
 }
 
-MATRIX *znzReadMatrix(znzFile fp)
+MATRIX *znzReadAutoAlignMatrix(znzFile fp)
 {
   /* no fscanf equivalent in zlib!! have to hack it */
   char buf[16*100];

@@ -9,8 +9,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2011/04/11 14:47:11 $
- *    $Revision: 1.387.2.2 $
+ *    $Date: 2011/04/30 18:07:20 $
+ *    $Revision: 1.387.2.3 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -12502,7 +12502,7 @@ mghRead(const char *fname, int read_volume, int frame)
         break ;
 
       case TAG_AUTO_ALIGN:
-        mri->AutoAlign = znzReadMatrix(fp);
+        mri->AutoAlign = znzReadAutoAlignMatrix(fp);
         break;
 
       case TAG_PEDIR:
