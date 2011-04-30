@@ -7,9 +7,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: krish $
-#    $Date: 2011/04/27 22:29:27 $
-#    $Revision: 1.387 $
+#    $Author: nicks $
+#    $Date: 2011/04/30 19:22:00 $
+#    $Revision: 1.388 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -26,7 +26,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.387 2011/04/27 22:29:27 krish Exp $';
+set VERSION = '$Id: recon-all,v 1.388 2011/04/30 19:22:00 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -4044,6 +4044,7 @@ while( $#argv != 0 )
     case "-multistrip":
       set DoMultiStrip = 1;
       set DoSkullStrip = 1;
+      set DoCleanPFH   = 1;
       breaksw
     case "-nomultistrip":
       set DoMultiStrip = 0;
