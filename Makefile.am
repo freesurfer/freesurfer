@@ -427,7 +427,10 @@ install-data-hook:
 uninstall-hook:
 	rm -f $(DESTDIR)$(prefix)/build-stamp.txt
 	rm -f $(DESTDIR)$(prefix)/VERSION
+	rm -f $(DESTDIR)$(bindir)/3dvolreg.afni
 	rm -f $(DESTDIR)$(bindir)/flirt.fsl
+	rm -f $(DESTDIR)$(bindir)/slicetimer.fsl
+	rm -f $(DESTDIR)$(bindir)/bet.fsl
 
 EXTRA_DIST=setup_configure Makefile.extra x86cpucaps \
 	doxy-file-header Doxyfile $(foo_DATA)
