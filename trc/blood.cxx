@@ -26,7 +26,8 @@
 
 using namespace std;
 
-const int Blood::mDistThresh = 4;
+const int Blood::mDistThresh = 4,
+          Blood::mEndDilation = 2;
 const unsigned int Blood::mCurvOffset = 4;
 const float Blood::mLengthCutoff = 0.05,
             Blood::mLengthRatio = 3.0,
@@ -671,6 +672,19 @@ bool Blood::IsInRoi(vector<int>::const_iterator Point, MRI *Roi) {
 }
 
 //
+// Check that a point is inside a training subject's cortical mask
+//
+bool Blood::IsInCortex(vector<int>::const_iterator Point,
+                       MRI *Mask, MRI *Aseg) {
+  return (Point[0] > -1) && (Point[0] < mNx) &&
+         (Point[1] > -1) && (Point[1] < mNy) &&
+         (Point[2] > -1) && (Point[2] < mNz) &&
+         (MRIgetVoxVal(Mask, Point[0], Point[1], Point[2], 0) > 0 ||
+          (mMaskLabel > 0 &&
+           MRIgetVoxVal(Aseg, Point[0], Point[1], Point[2], 0) == mMaskLabel));
+}
+
+//
 // Read segmentations and cortical masks of training subjects
 //
 void Blood::ReadAnatomy(const char *TrainListFile, const char *TrainAsegFile,
@@ -750,7 +764,7 @@ void Blood::RemoveLengthOutliers() {
   const int lmin = *min_element(mLengths.begin(), mLengths.end()),
             lmax = *max_element(mLengths.begin(), mLengths.end()),
             nlen = mLengths.size();
-  int lsum = 0, l2sum = 0, llow = lmin, lhigh = lmax, nrejlen = 0;
+  int lsum = 0, l2sum = 0, hthresh, llow = lmin, lhigh = lmax, nrejlen = 0;
   float lmean, lstd;
   vector<int> lhisto(lmax-lmin+1, 0);
   vector<int>::const_iterator ihisto;
@@ -774,18 +788,21 @@ void Blood::RemoveLengthOutliers() {
                                    ilen < mLengths.end(); ilen++)
     lhisto.at(*ilen - lmin)++;
 
+  // How many streamlines are too few?
+  hthresh = (int) ceil(0.03 * (*max_element(lhisto.begin(), lhisto.end())));
+
   // Find gap in lower half of histogram
   ihisto = lhisto.begin() + ((int) floor(lmean) - lmin);
 
   while (ihisto > lhisto.begin()) {
-    if (*ihisto == 0) {
-      int nzeros = 1;
+    if (*ihisto < hthresh) {
+      int ngap = 1;
       vector<int>::const_iterator ithresh = ihisto;
 
-      while (*(ihisto--) == 0 && ihisto > lhisto.begin())
-        nzeros++;
+      while (*(ihisto--) < hthresh && ihisto > lhisto.begin())
+        ngap++;
 
-      if (nzeros > lstd) {
+      if (ngap > lstd) {
         llow = lmin + (ithresh + 1 - lhisto.begin());
         break;
       }
@@ -798,14 +815,14 @@ void Blood::RemoveLengthOutliers() {
   ihisto = lhisto.begin() + ((int) ceil(lmean) - lmin);
 
   while (ihisto < lhisto.end()) {
-    if (*ihisto == 0) {
-      int nzeros = 1;
+    if (*ihisto < hthresh) {
+      int ngap = 1;
       vector<int>::const_iterator ithresh = ihisto;
 
-      while (*(ihisto++) == 0 && ihisto < lhisto.end())
-        nzeros++;
+      while (*(ihisto++) < hthresh && ihisto < lhisto.end())
+        ngap++;
 
-      if (nzeros > lstd) {
+      if (ngap > lstd) {
         lhigh = lmin + (ithresh - 1 - lhisto.begin());
         break;
       }
@@ -2467,6 +2484,70 @@ void Blood::WriteOutputs(const char *OutBase) {
 
   sprintf(fname, "%s_end2.nii.gz", OutBase);
   MRIwrite(out2, fname);
+
+  // Write dilated end ROIs to volumes
+  if (!mMask.empty()) {
+    vector<MRI *>::const_iterator imask = mMask.begin(),
+                                  iaseg = mAseg.begin();
+    vector<int> dilpt(3);
+
+    MRIclear(out1);
+    MRIclear(out2);
+
+    istr = mStreamlines.begin();
+    ivalid1 = mIsInEnd1.begin();
+    ivalid2 = mIsInEnd2.begin();
+
+    for (vector<int>::const_iterator inum = mNumLines.begin();
+                                     inum != mNumLines.end(); inum++) {
+      for (int k = *inum; k > 0; k--) {
+        if (*ivalid1) {
+          vector<int>::const_iterator iend1 = istr->begin();
+
+          for (int iz = - mEndDilation; iz <= mEndDilation; iz++)
+            for (int iy = - mEndDilation; iy <= mEndDilation; iy++)
+              for (int ix = - mEndDilation; ix <= mEndDilation; ix++) {
+                dilpt[0] = iend1[0] + ix;
+                dilpt[1] = iend1[1] + iy;
+                dilpt[2] = iend1[2] + iz;
+
+                if (IsInCortex(dilpt.begin(), *imask, *iaseg))
+                  MRIsetVoxVal(out1, dilpt[0], dilpt[1], dilpt[2], 0,
+                    MRIgetVoxVal(out1, dilpt[0], dilpt[1], dilpt[2], 0) + 1);
+              }
+        }
+
+        if (*ivalid2) {
+          vector<int>::const_iterator iend2 = istr->end() - 3;
+
+          for (int iz = - mEndDilation; iz <= mEndDilation; iz++)
+            for (int iy = - mEndDilation; iy <= mEndDilation; iy++)
+              for (int ix = - mEndDilation; ix <= mEndDilation; ix++) {
+                dilpt[0] = iend2[0] + ix;
+                dilpt[1] = iend2[1] + iy;
+                dilpt[2] = iend2[2] + iz;
+
+                if (IsInCortex(dilpt.begin(), *imask, *iaseg))
+                  MRIsetVoxVal(out2, dilpt[0], dilpt[1], dilpt[2], 0,
+                    MRIgetVoxVal(out2, dilpt[0], dilpt[1], dilpt[2], 0) + 1);
+              }
+        }
+
+        istr++;
+        ivalid1++;
+        ivalid2++;
+      }
+
+      imask++;
+      iaseg++;
+    }
+
+    sprintf(fname, "%s_end1_dil.nii.gz", OutBase);
+    MRIwrite(out1, fname);
+
+    sprintf(fname, "%s_end2_dil.nii.gz", OutBase);
+    MRIwrite(out2, fname);
+  }
 
   // Write central streamline to text file and volume
   sprintf(fname, "%s_cpts_all.txt", OutBase);

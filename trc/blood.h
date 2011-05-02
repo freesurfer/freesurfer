@@ -79,7 +79,7 @@ class Blood {
     int GetLengthCenter();
 
   private:
-    static const int mDistThresh;
+    static const int mDistThresh, mEndDilation;
     static const unsigned int mCurvOffset;
     static const float mLengthCutoff, mLengthRatio,
                        mHausStepRatio, mControlStepRatio;
@@ -115,6 +115,8 @@ class Blood {
     bool IsInMask(std::vector<int>::const_iterator Point);
     bool IsInMask(float *Point);
     bool IsInRoi(std::vector<int>::const_iterator Point, MRI *Roi);
+    bool IsInCortex(std::vector<int>::const_iterator Point,
+                    MRI *Mask, MRI *Aseg);
     void SetArcSegments();
     void ComputeAnatomyPrior(bool UseTruncated);
     void ComputeCurvaturePrior(bool UseTruncated);
