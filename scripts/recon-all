@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2011/04/30 19:22:00 $
-#    $Revision: 1.388 $
+#    $Date: 2011/05/02 15:59:37 $
+#    $Revision: 1.389 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -26,7 +26,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.388 2011/04/30 19:22:00 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.389 2011/05/02 15:59:37 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -156,7 +156,7 @@ set mc_robust_template_avg_arg = 1; # when using mri_robust_template for motion
 set UseCuda = 0; # if 1 (-use-cuda), then use GPU versions of tools:
                  # mri_em_register_cuda, mri_ca_register_cuda,
                  # mris_inflate_cuda, mris_sphere_cuda
-                 # mri_segstats_cuda
+                 # (future: mri_segstats_cuda)
 set GetCuda = 0; # if 1 (-get-cuda) then print cuda info and exit
 set PialNoAparc = 0; # if 1 (-pial-noaparc), then add -noaparc flag to
                      # mris_make_surfaces to bypass usage of parcellation
@@ -3218,7 +3218,7 @@ if($DoSegStats) then
   cd $subjdir > /dev/null
   set xopts = `fsr-getxopts mri_segstats $XOptsFile`;
   set cmd = (mri_segstats --seg mri/aseg.mgz --sum stats/aseg.stats)
-  if($UseCuda) set cmd = (mri_segstats_cuda --seg mri/aseg.mgz --sum stats/aseg.stats)
+#  if($UseCuda) set cmd = (mri_segstats_cuda --seg mri/aseg.mgz --sum stats/aseg.stats)
   set cmd = ($cmd --pv mri/norm.mgz --empty)
   set cmd = ($cmd --excludeid 0 --excl-ctxgmwm)
   if ( -e mri/ribbon.mgz ) then
@@ -3322,7 +3322,7 @@ if($DoWMParc) then
   echo $cmd > $touchdir/wmaparc.touch
   # Do segstats while we're here
   set cmd = (mri_segstats)
-  if($UseCuda) set cmd = (mri_segstats_cuda)
+#  if($UseCuda) set cmd = (mri_segstats_cuda)
   set cmd = ($cmd --seg mri/wmparc.mgz --sum stats/wmparc.stats \
     --pv mri/norm.mgz --excludeid 0 --brain-vol-from-seg  \
     --brainmask mri/brainmask.mgz --in mri/norm.mgz --in-intensity-name norm \
@@ -3646,7 +3646,7 @@ if($DoAParcASegStats) then
   cd $subjdir > /dev/null
   set xopts = `fsr-getxopts mri_segstats $XOptsFile`;
   set cmd = (mri_segstats)
-  if($UseCuda) set cmd = (mri_segstats_cuda)
+#  if($UseCuda) set cmd = (mri_segstats_cuda)
   set cmd = ($cmd --seg mri/aparc+aseg.mgz --sum stats/aparc+aseg.stats)
   set cmd = ($cmd --pv mri/norm.mgz )
   set cmd = ($cmd --excludeid 0 --ctab-default --empty)
