@@ -8,23 +8,24 @@
 # Original Author: Nick Schmansky
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2009/04/22 03:41:22 $
-#    $Revision: 1.9 $
+#    $Date: 2011/05/02 21:09:55 $
+#    $Revision: 1.9.4.1 $
 #
-# Copyright (C) 2007-2008,
-# The General Hospital Corporation (Boston, MA). 
-# All rights reserved.
+# Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
-# Distribution, usage and copying of this software is covered under the
-# terms found in the License Agreement file named 'COPYING' found in the
-# FreeSurfer source code root directory, and duplicated here:
-# https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+# Terms and conditions for use, reproduction, distribution and contribution
+# are found in the 'FreeSurfer Software License Agreement' contained
+# in the file 'LICENSE' found in the FreeSurfer distribution, and here:
+#
+# https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
+#
+# Reporting: freesurfer@nmr.mgh.harvard.edu
 #
 # General inquiries: freesurfer@nmr.mgh.harvard.edu
 # Bug reports: analysis-bugs@nmr.mgh.harvard.edu
 #
 
-set VERSION='$Id: test_mri_aparc2aseg,v 1.9 2009/04/22 03:41:22 nicks Exp $'
+set VERSION='$Id: test_mri_aparc2aseg,v 1.9.4.1 2011/05/02 21:09:55 nicks Exp $'
 
 umask 002
 
