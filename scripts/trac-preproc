@@ -8,8 +8,8 @@
 # Original Author: Anastasia Yendiki
 # CVS Revision Info:
 #    $Author: ayendiki $
-#    $Date: 2011/04/27 21:13:04 $
-#    $Revision: 1.26 $
+#    $Date: 2011/05/02 07:34:57 $
+#    $Revision: 1.27 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -25,7 +25,7 @@
 
 umask 002
 
-set VERSION = '$Id: trac-preproc,v 1.26 2011/04/27 21:13:04 ayendiki Exp $'
+set VERSION = '$Id: trac-preproc,v 1.27 2011/05/02 07:34:57 ayendiki Exp $'
 set ProgName = `basename $0`
 set inputargs = ($argv)
 
@@ -869,10 +869,21 @@ if ($domasks) then
       if ($status) goto error_exit
     endif
 
+    # Dilate segmentation to make brain mask
+    set cmd = fslmaths
+    set cmd = ($cmd $labdir/anatorig/aparc+aseg.nii.gz)
+    set cmd = ($cmd -dilM -bin)
+    set cmd = ($cmd $labdir/anatorig/aparc+aseg_mask.nii.gz)
+    echo $cmd |& tee -a $LF |& tee -a $CF
+    if ($RunIt) then
+      $cmd |& tee -a $LF
+      if ($status) goto error_exit
+    endif
+
     # Transform anatomical masks
     foreach label ( White-Matter White-Matter++ notventricles \
                     cortex cortex+${gmgrow}mm cortex+${gmgrow}mm+bs \
-                    aparc+aseg aparc+aseg+${gmgrow}mm \
+                    aparc+aseg aparc+aseg+${gmgrow}mm aparc+aseg_mask \
                     anat_brain_mask anat_brain_mask-vent )
       # Change orientation to make FSL happy
       set cmd = flip4fsl
@@ -1010,10 +1021,10 @@ if ($dotensor) then
   set brainmask = $labdir/diff/lowb_brain_mask.nii.gz
 
   if ($usemaskanat) then
-    if ($doregbbr && -e $labdir/diff/aparc+aseg.bbr.nii.gz) then
-      set brainmask = $labdir/diff/aparc+aseg.bbr.nii.gz
-    else if (-e $labdir/diff/aparc+aseg.flt.nii.gz) then
-      set brainmask = $labdir/diff/aparc+aseg.flt.nii.gz
+    if ($doregbbr && -e $labdir/diff/aparc+aseg_mask.bbr.nii.gz) then
+      set brainmask = $labdir/diff/aparc+aseg_mask.bbr.nii.gz
+    else if (-e $labdir/diff/aparc+aseg_mask.flt.nii.gz) then
+      set brainmask = $labdir/diff/aparc+aseg_mask.flt.nii.gz
     endif
   endif
 
@@ -1156,8 +1167,8 @@ if ($dopriors) then
 
         set brainmask = $labdir/$xspace/lowb_brain_mask.$reg.nii.gz
 
-        if ($usemaskanat && -e $labdir/$xspace/aparc+aseg.nii.gz) then
-          set brainmask = $labdir/$xspace/aparc+aseg.nii.gz
+        if ($usemaskanat && -e $labdir/$xspace/aparc+aseg_mask.nii.gz) then
+          set brainmask = $labdir/$xspace/aparc+aseg_mask.nii.gz
         endif
 
         # Compute priors, end ROIs, and initial control points from training set
@@ -1182,32 +1193,11 @@ if ($dopriors) then
           if ($status) goto error_exit
         endif
 
-        # Compute end point dilation size based on training space resolution
-        set dx = `mri_info --cres $labdir/$xspace/aparc+aseg.nii.gz`
-        set ndil = `echo "4 / $dx" | bc`
-
+        # Map initial control points and spread around them to diffusion space
+        # For now only possible for control points from MNI space
         foreach pathname ($pathlist)
           set pathpre = ${pathname}_$avgmode
 
-          # Make end points contiguous by dilating
-          foreach fname ( ${pathpre}_end1 ${pathpre}_end2 )
-            set cmd = fslmaths
-            set cmd = ($cmd $labdir/$xspace/$fname.nii.gz)
-            set cmd = ($cmd -bin)
-            foreach idil (`jot - 1 $ndil 1`) 
-              set cmd = ($cmd -dilM)
-            end
-            set cmd = ($cmd -mul $labdir/$xspace/cortex+2mm+bs.nii.gz)
-            set cmd = ($cmd $labdir/$xspace/${fname}_dil.nii.gz)
-            echo $cmd |& tee -a $LF |& tee -a $CF
-            if ($RunIt) then
-              $cmd |& tee -a $LF
-              if ($status) goto error_exit
-            endif
-          end
-
-          # Map initial control points and spread around them to diffusion space
-          # For now only possible for control points from MNI space
           foreach ncpts ($ncptlist)
             foreach fname ( ${pathpre}_cpts_$ncpts \
                             ${pathpre}_cpts_${ncpts}_std )
