@@ -8,8 +8,8 @@
 # Original Author: Nick Schmansky
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2011/05/02 21:09:56 $
-#    $Revision: 1.4.2.1 $
+#    $Date: 2011/05/02 21:24:10 $
+#    $Revision: 1.4.2.2 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -21,11 +21,8 @@
 #
 # Reporting: freesurfer@nmr.mgh.harvard.edu
 #
-# General inquiries: freesurfer@nmr.mgh.harvard.edu
-# Bug reports: analysis-bugs@nmr.mgh.harvard.edu
-#
 
-set VERSION='$Id: test_mri_concatenate_lta,v 1.4.2.1 2011/05/02 21:09:56 nicks Exp $'
+set VERSION='$Id: test_mri_concatenate_lta,v 1.4.2.2 2011/05/02 21:24:10 nicks Exp $'
 
 umask 002
 
@@ -53,6 +50,9 @@ endif
 # look for differences
 #
 set cmd=(diff nickbase_to_nick13.lta reference-nickbase_to_nick13.lta)
+if ("`uname -p`" == "powerpc") then
+  set cmd=(diff nickbase_to_nick13.lta reference-ppc-nickbase_to_nick13.lta)
+endif
 echo ""
 echo $cmd
 $cmd
@@ -80,6 +80,9 @@ endif
 # look for differences
 #
 set cmd=(diff 002-long.lta reference-002-long.lta)
+if ("`uname -p`" == "powerpc") then
+  set cmd=(diff 002-long.lta reference-ppc-002-long.lta)
+endif
 echo ""
 echo $cmd
 $cmd
