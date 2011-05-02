@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2011/04/29 17:27:02 $
- *    $Revision: 1.5 $
+ *    $Date: 2011/05/02 20:38:16 $
+ *    $Revision: 1.6 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -476,12 +476,23 @@ void WindowConfigureOverlay::OnTextThresholdChanged(const QString &strg)
     LineMarker marker = markers.last();
     marker.position = val;
     markers[markers.size()-1] = marker;
+    double val2 = ui->lineEditMin->text().toDouble(&ok);
+    if (markers.size() == 2 && ok)
+    {
+      this->ChangeLineEditNumber(ui->lineEditMid, (val+val2)/2);
+    }
   }
   else if (sender() == ui->lineEditMin)
   {
     LineMarker marker = markers.first();
     marker.position = val;
     markers[0] = marker;
+    double val2 = ui->lineEditMax->text().toDouble(&ok);
+    if (markers.size() == 2 && ok)
+    {
+      this->ChangeLineEditNumber(ui->lineEditMid, (val+val2)/2);
+    }
   }
   ui->widgetHistogram->SetMarkers(markers);
+  UpdateGraph();
 }
