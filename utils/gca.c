@@ -14,8 +14,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2011/03/28 01:50:43 $
- *    $Revision: 1.292.2.1 $
+ *    $Date: 2011/05/02 20:02:26 $
+ *    $Revision: 1.292.2.2 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -11397,10 +11397,10 @@ cma_label_to_name(int label)
     return("Left Cingulum - Angular Bundle") ;
   if (label == rh_cab)
     return("Right Cingulum - Angular Bundle") ;
-  if (label == lh_slf)
-    return("Left Superior Longitudinal Fasciculus") ;
-  if (label == rh_slf)
-    return("Right Superior Longitudinal Fasciculus") ;
+  if (label == lh_slfp)
+    return("Left Superior Longitudinal Fasciculus - Parietal") ;
+  if (label == rh_slfp)
+    return("Right Superior Longitudinal Fasciculus - Parietal") ;
   if (label == lh_slft)
     return("Left Superior Longitudinal Fasciculus - Temporal") ;
   if (label == rh_slft)
