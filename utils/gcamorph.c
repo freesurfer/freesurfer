@@ -10,9 +10,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: lzollei $
- *    $Date: 2011/03/15 21:02:14 $
- *    $Revision: 1.247 $
+ *    $Author: fischl $
+ *    $Date: 2011/05/03 15:02:36 $
+ *    $Revision: 1.248 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -1347,6 +1347,7 @@ GCAMalloc( const int width, const int height, const int depth )
   gcam->width =  width  ;
   gcam->height = height ;
   gcam->depth =  depth  ;
+  gcam->spacing = 1 ;  // may be changed by the user later
 
   gcam->nodes = (GCA_MORPH_NODE ***)calloc(width, sizeof(GCA_MORPH_NODE **)) ;
   if (!gcam->nodes)
@@ -4406,7 +4407,7 @@ GCAMmorphToAtlasWithDensityCorrection(MRI *mri_src, GCA_MORPH *gcam,
         {
           for (frame = start_frame ; frame <= end_frame ; frame++)
           {
-            val = MRIgetVoxVal(mri_src, x, y, z, frame) ;
+            val = MRIgetVoxVal(mri_morphed, x, y, z, frame) ;
             val *= jacobian ;
             MRIsetVoxVal(mri_morphed, x, y, z, frame-start_frame, val) ;
           }
