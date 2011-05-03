@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2011/04/01 20:10:22 $
- *    $Revision: 1.3 $
+ *    $Date: 2011/05/03 21:27:03 $
+ *    $Revision: 1.4 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -61,6 +61,8 @@ public:
   double GetThreshold(int nLabel);
 
   void SetThreshold(int nLabel, double th);
+
+  int GetFrameLabel(int nFrame);
 
 public slots:
   void Highlight(int nLabel);
