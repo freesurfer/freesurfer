@@ -1,6 +1,6 @@
 #!/bin/tcsh -f
 
-set ID='$Id: build_release_type.csh,v 1.140 2011/03/22 22:58:33 nicks Exp $'
+set ID='$Id: build_release_type.csh,v 1.141 2011/05/03 20:35:08 nicks Exp $'
 
 unsetenv echo
 if ($?SET_ECHO_1) set echo=1
@@ -26,8 +26,9 @@ set FAILURE_MAIL_LIST=(\
     greve@nmr.mgh.harvard.edu \
     krish@nmr.mgh.harvard.edu \
     rpwang@nmr.mgh.harvard.edu \
-    rge21@nmr.mgh.harvard.edu)
-set FAILURE_MAIL_LIST=(nicks@nmr.mgh.harvard.edu)
+    rge21@nmr.mgh.harvard.edu \
+    koen@nmr.mgh.harvard.edu)
+#set FAILURE_MAIL_LIST=(nicks@nmr.mgh.harvard.edu)
 #if ("$HOSTNAME" == "hima") then
 #  set FAILURE_MAIL_LIST=(nicks@nmr.mgh.harvard.edu krish@nmr.mgh.harvard.edu)
 #endif
@@ -765,7 +766,8 @@ chmod ${change_flags} g+rw ${LOG_DIR} >>& $OUTPUTF
 # checks that the tarball works by untarring into a _build directory,
 # runs make, then make check, make install, and make uninstall.
 #goto make_distcheck_done
-if ("$RELEASE_TYPE" == "dev") then
+if (("$RELEASE_TYPE" == "stable") || \
+    ("$RELEASE_TYPE" == "dev")) then
 # just run on swan
 if ("$HOSTNAME" == "swan") then
 # just do this once a week, as it takes a few hours to run
@@ -920,7 +922,8 @@ if ("$RELEASE_TYPE" == "dev") then
 	${BUILD_DIR}/hipsstubs/libhipsstubs.a \
 	${BUILD_DIR}/rgb/librgb.a \
 	${BUILD_DIR}/unix/libunix.a \
-	${BUILD_DIR}/utils/libutils.a)
+	${BUILD_DIR}/utils/libutils.a \
+	${BUILD_DIR}/fsgdf/libfsgdf.a )
   set cmd=(cp $dirlist ${INSTALL_DIR}/lib/dev)
   echo "$cmd" >>& $OUTPUTF
   $cmd >>& $OUTPUTF

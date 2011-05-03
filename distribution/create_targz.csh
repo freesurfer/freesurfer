@@ -1,6 +1,6 @@
 #!/bin/tcsh -f
 
-set ID='$Id: create_targz.csh,v 1.29 2010/11/05 12:58:00 nicks Exp $'
+set ID='$Id: create_targz.csh,v 1.30 2011/05/03 20:35:09 nicks Exp $'
 
 unsetenv echo
 if ($?SET_ECHO_1) set echo=1

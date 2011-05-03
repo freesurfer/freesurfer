@@ -1,6 +1,6 @@
 #!/bin/tcsh -f
 
-set ID='$Id: postprocess_targz.csh,v 1.13 2008/10/23 17:51:46 nicks Exp $'
+set ID='$Id: postprocess_targz.csh,v 1.14 2011/05/03 20:35:09 nicks Exp $'
 
 set echo=1
 
@@ -19,10 +19,6 @@ cd scratch
 if (-e freesurfer) sudo rm -Rf freesurfer
 sudo tar zxvf ${SPACE_FS}/build/pub-releases/$1.tar.gz
 if ($status) exit 1
-if ("$2" == "nostrip") then
-else
-    strip freesurfer/bin/*
-endif
 sudo chmod -R u+rw freesurfer
 sudo chmod -R go-w freesurfer
 if ($status) exit 1
@@ -38,6 +34,7 @@ sudo chgrp -R $ROOTGRP freesurfer
 if ($status) exit 1
 sudo chgrp -R $ROOTGRP freesurfer/*.*
 if ($status) exit 1
+pwd
 tar -X ${SPACE_FS}/build/scripts/exclude_from_targz -cvf $1.tar freesurfer
 if ($status) exit 1
 gzip $1.tar
@@ -46,6 +43,6 @@ md5sum $1.tar.gz >> ${SPACE_FS}/build/pub-releases/md5sum.txt
 sha1sum $1.tar.gz >> ${SPACE_FS}/build/pub-releases/sha1sum.txt
 mv $1.tar.gz ${SPACE_FS}/build/pub-releases/
 if ($status) exit 1
-sudo rm -Rf /tmp/scratch/freesurfer
+sudo rm -Rf freesurfer
 
 exit 0
