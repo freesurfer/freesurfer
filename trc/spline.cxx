@@ -77,7 +77,7 @@ bool Spline::InterpolateSpline() {
   MRIclear(mVolume);
 
   for (int kcpt = 1; kcpt <= ncpts; kcpt++) {
-    float t = 0, dt = 0;
+    float t = 0, dt = 0, newt;
 
     // Append current control point to spline
     if (!IsInMask(icpt))
@@ -97,27 +97,36 @@ bool Spline::InterpolateSpline() {
       vector<int>::const_iterator ipt = mAllPoints.end()-3;
 
       do {
-        // Interpolate new point
-        CatmullRomInterp(newpoint, t+dt, (kcpt==1)?icpt:(icpt-3), 
-                                         icpt, icpt+3,
-                                         (kcpt==ncpts)?(icpt+3):(icpt+6));
+        newt = t + dt;
 
-        // Check that the new point is adjacent to the previous point
-        incstep = true;
-        decstep = false;
+        if (newt > 1)  {
+cout << "bleep" << endl;
+          incstep = false;
+          decstep = true;
+        }
+        else {
+          // Interpolate new point
+          CatmullRomInterp(newpoint, newt, (kcpt==1)?icpt:(icpt-3), 
+                                           icpt, icpt+3,
+                                           (kcpt==ncpts)?(icpt+3):(icpt+6));
 
-        for (int k=0; k<3; k++)
-          switch(abs(ipt[k] - newpoint[k])) {
-            case 0:
-              break;
-            case 1:
-              incstep = false;
-              break;
-            default:
-              incstep = false;
-              decstep = true;
-              break;
-          }
+          // Check that the new point is adjacent to the previous point
+          incstep = true;
+          decstep = false;
+
+          for (int k=0; k<3; k++)
+            switch(abs(ipt[k] - newpoint[k])) {
+              case 0:
+                break;
+              case 1:
+                incstep = false;
+                break;
+              default:
+                incstep = false;
+                decstep = true;
+                break;
+            }
+        }
 
         // Adjust arc length step size if neccessary
         if (incstep) {
@@ -130,7 +139,7 @@ bool Spline::InterpolateSpline() {
         }
       } while (incstep || decstep);
 
-      t += dt;
+      t = newt;
 
       // Check if the next control point has been reached
       if ((newpoint[0] == icpt[3]) && (newpoint[1] == icpt[4])
@@ -143,12 +152,6 @@ bool Spline::InterpolateSpline() {
       mAllPoints.insert(mAllPoints.end(), newpoint.begin(), newpoint.end());
       mArcLength.push_back(t);
       MRIsetVoxVal(mVolume, newpoint[0], newpoint[1], newpoint[2], 0, 1);
-
-      // Check if the next control point has been reached
-      if ( abs(newpoint[0] - icpt[3]) < 2 &&
-           abs(newpoint[1] - icpt[4]) < 2 &&
-           abs(newpoint[2] - icpt[5]) < 2 )
-        break;
     }
 
     icpt += 3;
