@@ -14,8 +14,8 @@
  * Original Author: Douglas N Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2011/04/19 21:34:17 $
- *    $Revision: 1.196.2.1 $
+ *    $Date: 2011/05/03 15:05:26 $
+ *    $Revision: 1.196.2.2 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -546,7 +546,7 @@ static int SmoothSurfOrVol(MRIS *surf, MRI *mri, MRI *mask, double SmthLevel);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-"$Id: mri_glmfit.c,v 1.196.2.1 2011/04/19 21:34:17 greve Exp $";
+"$Id: mri_glmfit.c,v 1.196.2.2 2011/05/03 15:05:26 greve Exp $";
 const char *Progname = "mri_glmfit";
 
 int SynthSeed = -1;
@@ -1002,8 +1002,7 @@ int main(int argc, char **argv) {
   }
 
   // Check the condition of the global matrix -----------------
-  Xnorm = MatrixNormalizeCol(mriglm->Xg,NULL);
-  Xcond = MatrixNSConditionNumber(Xnorm);
+  Xcond = MatrixNSConditionNumber(mriglm->Xg);
   printf("Matrix condition is %g\n",Xcond);
   if(Xcond > 10000 && ! IllCondOK) {
     printf("Design matrix ------------------\n");
@@ -1011,6 +1010,10 @@ int main(int argc, char **argv) {
     printf("--------------------------------\n");
     printf("ERROR: matrix is ill-conditioned or badly scaled, condno = %g\n",
            Xcond);
+    Xnorm = MatrixNormalizeCol(mriglm->Xg,NULL);
+    Xcond = MatrixNSConditionNumber(Xnorm);
+    printf("Normalized matrix condition is %g\n",Xcond);
+    printf("--------------------------------\n");
     printf("Possible problem with experimental design:\n");
     printf("Check for duplicate entries and/or lack of range of\n"
            "continuous variables within a class.\n");
