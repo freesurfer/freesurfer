@@ -100,7 +100,6 @@ bool Spline::InterpolateSpline() {
         newt = t + dt;
 
         if (newt > 1)  {
-cout << "bleep" << endl;
           incstep = false;
           decstep = true;
         }
