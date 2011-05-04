@@ -38,16 +38,17 @@ void AcquireCUDADevice( void ) {
   int iDevice;
 
   cout << nvcc_version << endl;
-  int driverVersion, runtimeVersion;
-  cudaDriverGetVersion( &driverVersion );
-  cudaRuntimeGetVersion( &runtimeVersion );
-  cout << "Driver : "
-       << driverVersion/1000 << "." << driverVersion%1000
-       << endl;
-  cout << "Runtime : "
-       << runtimeVersion/1000 << "." << runtimeVersion%1000
-       << endl;
-  cout << endl;
+  int driverVersion=0, runtimeVersion=0;
+  if( cudaSuccess == cudaDriverGetVersion( &driverVersion ) ) {
+    cudaRuntimeGetVersion( &runtimeVersion );
+    cout << "Driver : "
+         << driverVersion/1000 << "." << driverVersion%1000
+         << endl;
+    cout << "Runtime : "
+         << runtimeVersion/1000 << "." << runtimeVersion%1000
+         << endl;
+    cout << endl;
+  }
 
   cout << "Acquiring CUDA device" << endl;
 
@@ -58,12 +59,18 @@ void AcquireCUDADevice( void ) {
   } else {
     iDevice = atoi( devString );
     cout << "Device " << iDevice << " requested" << endl;
-    CUDA_SAFE_CALL( cudaSetDevice( iDevice ) );
+    if( cudaSuccess != cudaSetDevice( iDevice ) ) {
+      cerr << "ERROR: Unable to set CUDA device " << iDevice << endl;
+      exit( EXIT_FAILURE );
+    }
   }
 
   // Acquire the device
   int *d_tmp;
-  CUDA_SAFE_CALL( cudaMalloc( (void**)&d_tmp, sizeof(int) ) );
+  if( cudaSuccess != cudaMalloc( (void**)&d_tmp, sizeof(int) ) ) {
+    cerr << "ERROR: Unable to acquire a CUDA device!" << endl;
+    exit( EXIT_FAILURE );
+  }
   CUDA_SAFE_CALL( cudaFree( d_tmp ) );
 
   // Verify and print out device name
