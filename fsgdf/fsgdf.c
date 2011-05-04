@@ -45,20 +45,18 @@
  * Original Author: Doug Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2010/04/21 16:50:14 $
- *    $Revision: 1.49 $
+ *    $Date: 2011/05/04 16:28:33 $
+ *    $Revision: 1.50.2.1 $
  *
- * Copyright (C) 2002-2007,
- * The General Hospital Corporation (Boston, MA).
- * All rights reserved.
+ * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
- * Distribution, usage and copying of this software is covered under the
- * terms found in the License Agreement file named 'COPYING' found in the
- * FreeSurfer source code root directory, and duplicated here:
- * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ * Terms and conditions for use, reproduction, distribution and contribution
+ * are found in the 'FreeSurfer Software License Agreement' contained
+ * in the file 'LICENSE' found in the FreeSurfer distribution, and here:
  *
- * General inquiries: freesurfer@nmr.mgh.harvard.edu
- * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
+ *
+ * Reporting: freesurfer@nmr.mgh.harvard.edu
  *
  */
 
@@ -69,6 +67,7 @@
 #include <ctype.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <float.h>
 #include "mri2.h"
 #include "fio.h"
 #include "matfile.h"
@@ -191,6 +190,7 @@ static int gdfPrintV1(FILE *fp, FSGD *gd) {
   if (strlen(gd->DesignMatFile) > 0)
     fprintf(fp,"DesignMatFile %s %s\n",gd->DesignMatFile,gd->DesignMatMethod);
   fprintf(fp,"DeMeanFlag %d\n",gd->DeMean);
+  fprintf(fp,"ReScaleFlag %d\n",gd->ReScale);
   fprintf(fp,"ResidualFWHM %lf\n",gd->ResFWHM);
   fprintf(fp,"LogY %d\n",gd->LogY);
   if (strlen(gd->defvarlabel) > 0)
@@ -409,6 +409,7 @@ static FSGD *gdfReadV1(char *gdfname) {
   gd = gdfAlloc(1);
   gd->nvarsfromfile = 0;
   gd->DeMean = -1;
+  gd->ReScale = 0;
 
   /*------- begin input loop --------------*/
   while (1) {
@@ -473,6 +474,12 @@ static FSGD *gdfReadV1(char *gdfname) {
     /*----------------- DeMeanFlag ---------------------*/
     if (!strcasecmp(tag,"DeMeanFlag")) {
       r = fscanf(fp,"%d",&gd->DeMean);
+      if (r==EOF) goto formaterror;
+      continue;
+    }
+    /*----------------- ReScaleFlag ---------------------*/
+    if (!strcasecmp(tag,"ReScaleFlag")) {
+      r = fscanf(fp,"%d",&gd->ReScale);
       if (r==EOF) goto formaterror;
       continue;
     }
@@ -898,8 +905,10 @@ int gdfVarMeans(FSGD *gd) {
   int vno, n;
 
   // Init
-  for (vno = 0; vno < gd->nvariables; vno++)
+  for (vno = 0; vno < gd->nvariables; vno++){
     gd->VarMeans[vno] = 0;
+    gd->VarStds[vno] = 0;
+  }
 
   // Sum over all inputs regardless of class
   for (n=0; n < gd->ninputs; n++) {
@@ -908,15 +917,27 @@ int gdfVarMeans(FSGD *gd) {
     }
   }
 
-  // Divide by ninputs
+  // Divide Sum by ninputs
   for (vno = 0; vno < gd->nvariables; vno++)
     gd->VarMeans[vno] /= gd->ninputs;
+
+  // Computes SumSq
+  for (n=0; n < gd->ninputs; n++) {
+    for (vno = 0; vno < gd->nvariables; vno++) {
+      gd->VarStds[vno] += SQR(gd->varvals[n][vno]-gd->VarMeans[vno]);
+    }
+  }
+  // Compute StdDev 
+  for (vno = 0; vno < gd->nvariables; vno++){
+    gd->VarStds[vno] = sqrt(gd->VarStds[vno]/gd->ninputs);
+    if(gd->VarStds[vno] < FLT_MIN) gd->VarStds[vno] = FLT_MIN;
+  }
 
   if (gd->nvariables > 0) {
     printf("Continuous Variable Means (all subjects)\n");
   }
   for (vno = 0; vno < gd->nvariables; vno++)
-    printf("%d %s %g\n",vno,gd->varlabel[vno],gd->VarMeans[vno]);
+    printf("%d %s %g %g\n",vno,gd->varlabel[vno],gd->VarMeans[vno],gd->VarStds[vno]);
 
   return(0);
 }
@@ -987,6 +1008,7 @@ MATRIX *gdfMatrixDOSS(FSGD *gd, MATRIX *X) {
       else           mn = 0;
       c = v + gd->nclasses;
       X->rptr[r+1][c+1] = gd->varvals[r][v] - mn;
+      if(gd->ReScale) X->rptr[r+1][c+1] /= gd->VarStds[v];
     }
   }
 
@@ -1024,6 +1046,7 @@ MATRIX *gdfMatrixDODS(FSGD *gd, MATRIX *X) {
       else           mn = 0;
       c += gd->nclasses;
       X->rptr[r+1][c+1] = gd->varvals[r][v] - mn;
+      if(gd->ReScale) X->rptr[r+1][c+1] /= gd->VarStds[v];
     }
   }
 
