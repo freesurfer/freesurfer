@@ -1265,8 +1265,6 @@ bool Coffin::InitializeMCMC() {
 
     // Perturb control points until I get a valid initial path
     for (int itry = 0; itry < 100; itry++) {
-      cout << "INFO: Try " << itry << endl;
-
       fill(mRejectControl.begin(), mRejectControl.end(), false);
 
       for (int icpt = mNumControl-1; icpt >= 0; icpt--) {
@@ -1280,7 +1278,7 @@ bool Coffin::InitializeMCMC() {
       }
 
       if (!mRejectSpline && !mRejectControl[0]) {
-        cout << "INFO: Success" << endl;
+        cout << "INFO: Success after " << itry+1 << " perturbation(s)" << endl;
         break;
       }
     }
