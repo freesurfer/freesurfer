@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:09 $
- *    $Revision: 1.23 $
+ *    $Author: greve $
+ *    $Date: 2011/05/04 16:26:55 $
+ *    $Revision: 1.24 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -77,6 +77,7 @@ typedef struct
   float varvals[FSGDF_NINPUTS_MAX][FSGDF_NVARS_MAX];
   double NPerClass[FSGDF_NCLASSES_MAX];
   double VarMeans[FSGDF_NVARS_MAX];
+  double VarStds[FSGDF_NVARS_MAX];
   double ClassVarMeans[FSGDF_NCLASSES_MAX][FSGDF_NVARS_MAX];
   char DesignMatFile[1000]; /* actual matlab4 mat file */
   char DesignMatMethod[100]; /* creation method */
@@ -85,6 +86,7 @@ typedef struct
   double ResFWHM;
   int LogY; // indicates whether nat log of y was used
   int DeMean; // remove mean from continuous variables
+  int ReScale; // divide continuous variables by stddev
 }
 GROUPDESCRIPTOR, FSGD;
 

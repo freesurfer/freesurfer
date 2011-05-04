@@ -44,9 +44,9 @@
 /*
  * Original Author: Doug Greve
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:08 $
- *    $Revision: 1.50 $
+ *    $Author: greve $
+ *    $Date: 2011/05/04 16:26:55 $
+ *    $Revision: 1.51 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -67,6 +67,7 @@
 #include <ctype.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <float.h>
 #include "mri2.h"
 #include "fio.h"
 #include "matfile.h"
@@ -189,6 +190,7 @@ static int gdfPrintV1(FILE *fp, FSGD *gd) {
   if (strlen(gd->DesignMatFile) > 0)
     fprintf(fp,"DesignMatFile %s %s\n",gd->DesignMatFile,gd->DesignMatMethod);
   fprintf(fp,"DeMeanFlag %d\n",gd->DeMean);
+  fprintf(fp,"ReScaleFlag %d\n",gd->ReScale);
   fprintf(fp,"ResidualFWHM %lf\n",gd->ResFWHM);
   fprintf(fp,"LogY %d\n",gd->LogY);
   if (strlen(gd->defvarlabel) > 0)
@@ -407,6 +409,7 @@ static FSGD *gdfReadV1(char *gdfname) {
   gd = gdfAlloc(1);
   gd->nvarsfromfile = 0;
   gd->DeMean = -1;
+  gd->ReScale = 0;
 
   /*------- begin input loop --------------*/
   while (1) {
@@ -471,6 +474,12 @@ static FSGD *gdfReadV1(char *gdfname) {
     /*----------------- DeMeanFlag ---------------------*/
     if (!strcasecmp(tag,"DeMeanFlag")) {
       r = fscanf(fp,"%d",&gd->DeMean);
+      if (r==EOF) goto formaterror;
+      continue;
+    }
+    /*----------------- ReScaleFlag ---------------------*/
+    if (!strcasecmp(tag,"ReScaleFlag")) {
+      r = fscanf(fp,"%d",&gd->ReScale);
       if (r==EOF) goto formaterror;
       continue;
     }
@@ -896,8 +905,10 @@ int gdfVarMeans(FSGD *gd) {
   int vno, n;
 
   // Init
-  for (vno = 0; vno < gd->nvariables; vno++)
+  for (vno = 0; vno < gd->nvariables; vno++){
     gd->VarMeans[vno] = 0;
+    gd->VarStds[vno] = 0;
+  }
 
   // Sum over all inputs regardless of class
   for (n=0; n < gd->ninputs; n++) {
@@ -906,15 +917,27 @@ int gdfVarMeans(FSGD *gd) {
     }
   }
 
-  // Divide by ninputs
+  // Divide Sum by ninputs
   for (vno = 0; vno < gd->nvariables; vno++)
     gd->VarMeans[vno] /= gd->ninputs;
+
+  // Computes SumSq
+  for (n=0; n < gd->ninputs; n++) {
+    for (vno = 0; vno < gd->nvariables; vno++) {
+      gd->VarStds[vno] += SQR(gd->varvals[n][vno]-gd->VarMeans[vno]);
+    }
+  }
+  // Compute StdDev 
+  for (vno = 0; vno < gd->nvariables; vno++){
+    gd->VarStds[vno] = sqrt(gd->VarStds[vno]/gd->ninputs);
+    if(gd->VarStds[vno] < FLT_MIN) gd->VarStds[vno] = FLT_MIN;
+  }
 
   if (gd->nvariables > 0) {
     printf("Continuous Variable Means (all subjects)\n");
   }
   for (vno = 0; vno < gd->nvariables; vno++)
-    printf("%d %s %g\n",vno,gd->varlabel[vno],gd->VarMeans[vno]);
+    printf("%d %s %g %g\n",vno,gd->varlabel[vno],gd->VarMeans[vno],gd->VarStds[vno]);
 
   return(0);
 }
@@ -985,6 +1008,7 @@ MATRIX *gdfMatrixDOSS(FSGD *gd, MATRIX *X) {
       else           mn = 0;
       c = v + gd->nclasses;
       X->rptr[r+1][c+1] = gd->varvals[r][v] - mn;
+      if(gd->ReScale) X->rptr[r+1][c+1] /= gd->VarStds[v];
     }
   }
 
@@ -1022,6 +1046,7 @@ MATRIX *gdfMatrixDODS(FSGD *gd, MATRIX *X) {
       else           mn = 0;
       c += gd->nclasses;
       X->rptr[r+1][c+1] = gd->varvals[r][v] - mn;
+      if(gd->ReScale) X->rptr[r+1][c+1] /= gd->VarStds[v];
     }
   }
 
