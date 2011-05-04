@@ -8,9 +8,9 @@
 #
 # Original Author: Martin Reuter
 # CVS Revision Info:
-#    $Author: nicks $
-#    $Date: 2011/03/02 20:16:39 $
-#    $Revision: 1.7 $
+#    $Author: mreuter $
+#    $Date: 2011/05/04 18:01:39 $
+#    $Revision: 1.8 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -25,7 +25,7 @@
 #
 
 
-set VERSION = '$Id: mri_add_new_tp,v 1.7 2011/03/02 20:16:39 nicks Exp $';
+set VERSION = '$Id: mri_add_new_tp,v 1.8 2011/05/04 18:01:39 mreuter Exp $';
 
 if ($#argv < 2) then
   echo
@@ -57,14 +57,20 @@ if ($#argv < 2) then
   exit 1;  
 endif
 
+if(! $?FREESURFER_HOME ) then
+  echo "\nERROR: environment variable FREESURFER_HOME not set"
+  echo "  this can be done by setting it in the shell before executing\n"
+  exit 1;
+endif
+
 if(! $?SUBJECTS_DIR ) then
-  echo "ERROR: environment variable SUBJECTS_DIR not set"
-  echo "  this can be done by setting it in the shell before executing"
+  echo "\nERROR: environment variable SUBJECTS_DIR not set"
+  echo "  this can be done by setting it in the shell before executing\n"
   exit 1;
 endif
 
 if(! -e $SUBJECTS_DIR ) then
-  echo "ERROR: SUBJECTS_DIR $SUBJECTS_DIR does not exist."
+  echo "\nERROR: SUBJECTS_DIR $SUBJECTS_DIR does not exist.\n"
   exit 1;
 endif
 
@@ -75,37 +81,44 @@ set newtpid  = $2
 
 set basedir = $SUBJECTS_DIR/$baseid
 if(! -e $basedir) then
-  echo "ERROR: cannot find $basedir"
+  echo "\nERROR: cannot find $basedir\n"
   exit 1;
 endif
 
 set newtpdir = $SUBJECTS_DIR/$newtpid
 if(! -e $newtpdir) then
-  echo "ERROR: cannot find $newtpdir"
+  echo "\nERROR: cannot find $newtpdir"
   echo "     Make sure, this time point is processed with recon-all"
-  echo "     before adding it to the base/template."
+  echo "     cross sectionally before adding it to the base/template.\n"
   exit 1;
 endif
 
 set BaseSubjsListFname = (base-tps)
 set BaseSubjsList = (`cat ${basedir}/${BaseSubjsListFname}`)
 
+set affinebase = 0
+set affinemap = $basedir/mri/transforms/${BaseSubjsList[1]}_to_${baseid}_affine.lta
+if ( -e $affinemap ) then
+  echo "INFO: Affine Base "
+  set affinebase = 1
+endif
+
 set voltype = norm
 set newtpvol   = $newtpdir/mri/${voltype}.mgz
 if(! -e $newtpvol) then
-  echo "ERROR: cannot find $newtpvol"
+  echo "\nERROR: cannot find $newtpvol\n"
   exit 1;
 endif
     
 set basevol  = ${basedir}/mri/${voltype}.mgz
 if(! -e $newtpvol) then
-  echo "ERROR: cannot find $basevol"
+  echo "\nERROR: cannot find $basevol\n"
   exit 1;
 endif
 
 foreach s ($BaseSubjsList)
   if ($s == $newtpid) then
-    echo "ERROR: $newtpid already contained in base $baseid"
+    echo "\nERROR: $newtpid already contained in base $baseid\n"
     exit 1
   endif
 end
@@ -114,16 +127,54 @@ end
 set newmean    = ${basedir}/mri/${voltype}.with_${newtpid}.mgz
 set newtplta   = ${basedir}/mri/transforms/${newtpid}_to_${baseid}.lta
 set newmeanssd = ${basedir}/mri/${voltype}.with_${newtpid}.ssd.txt
+# we might need these if affine base:
+set lta1form   = ${basedir}/mri/transforms/${newtpid}_to_${baseid}_norm.lta
+set ltaAform   = ${basedir}/mri/transforms/${newtpid}_to_${baseid}_affine.lta
 
 # register new tp to current base
-set cmd = ( mri_robust_register --mov $newtpvol --dst $basevol --lta $newtplta --sat 4.685 )
+set cmd = (mri_robust_register --mov $newtpvol --dst $basevol --sat 4.685)
+if ( $affinebase ) then
+  #this is only initial rigid reg
+  set cmd = ($cmd --lta $lta1form)
+else
+  # this is final rigid reg
+  set cmd = ($cmd --lta $newtplta)
+endif
 echo 
 echo $cmd
 echo
 eval $cmd
 if ($status) then
-  echo "ERROR: error running mri_robust_register"
+  echo "\nERROR: error running mri_robust_register\n"
   exit 1;
+endif
+
+# run more registrations in case of affine base:
+if ($affinebase) then
+  # first affinely register T1.mgz
+  set amov = $newtpdir/mri/T1.mgz
+  set adst = ${basedir}/mri/T1.mgz
+  set cmd = (mri_robust_register --mov $amov --dst $adst --sat 4.685)
+  set cmd = ($cmd --lta $ltaAform --ixform $lta1form --affine)
+  echo 
+  echo $cmd
+  echo
+  eval $cmd
+  if ($status) then
+    echo "\nERROR: error running mri_robust_register --affine\n"
+    exit 1;
+  endif
+  # then fine tune rigid on norm.mgz to create final lta:
+  set cmd = (mri_robust_register --mov $newtpvol --dst $basevol --sat 4.685)
+  set cmd = ($cmd --lta $newtplta --ixform $ltaAform)
+  echo 
+  echo $cmd
+  echo
+  eval $cmd
+  if ($status) then
+    echo "\nERROR: error running mri_robust_register fine tune\n"
+    exit 1;
+  endif
 endif
 
 # collect volumes and init xforms from base
@@ -132,7 +183,7 @@ set ltaXforms  = ""
 foreach s ($BaseSubjsList)
    set invol = ${SUBJECTS_DIR}/${s}/mri/${voltype}.mgz
    if(! -e $invol) then
-     echo "ERROR: cannot find $invol"
+     echo "\nERROR: cannot find $invol\n"
      exit 1;
    endif
    
@@ -148,7 +199,7 @@ echo $cmd
 echo
 eval $cmd
 if ($status) then
-  echo "ERROR: error running mri_robust_template"
+  echo "\nERROR: error running mri_robust_template\n"
   exit 1;
 endif
 
@@ -185,7 +236,7 @@ if ( "$small" == "1" ) then
   set basetotp = ${basedir}/mri/transforms/${baseid}_to_${newtpid}.lta
   mri_concatenate_lta -invert1 $newtplta identity.nofile $basetotp
   if ($status) then
-    echo "ERROR: error running mri_concatenate_lta"
+    echo "\nERROR: error running mri_concatenate_lta\n"
     exit 1;
   endif
 
