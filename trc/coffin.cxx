@@ -1113,12 +1113,12 @@ bool Coffin::RunMCMC1() {
     fill(mRejectControl.begin(), mRejectControl.end(), false);
 
     for (icpt = cptorder.begin(); icpt != cptorder.end(); icpt++) {
-mRejectSpline = false;
-mRejectF = false;
-mAcceptF = false;
-mRejectTheta = false;
-mAcceptTheta = false;
-mRejectPosterior = false;
+      mRejectSpline = false;
+      mRejectF = false;
+      mAcceptF = false;
+      mRejectTheta = false;
+      mAcceptTheta = false;
+      mRejectPosterior = false;
 
       if (JumpMCMC1(*icpt) || mAcceptF || mAcceptTheta) {	// Accept point
         UpdatePath();
@@ -1165,12 +1165,12 @@ mRejectPosterior = false;
     fill(mRejectControl.begin(), mRejectControl.end(), false);
 
     for (icpt = cptorder.begin(); icpt != cptorder.end(); icpt++) {
-mRejectSpline = false;
-mRejectF = false;
-mAcceptF = false;
-mRejectTheta = false;
-mAcceptTheta = false;
-mRejectPosterior = false;
+      mRejectSpline = false;
+      mRejectF = false;
+      mAcceptF = false;
+      mRejectTheta = false;
+      mAcceptTheta = false;
+      mRejectPosterior = false;
 
       if (JumpMCMC1(*icpt) || mAcceptF || mAcceptTheta) {	// Accept point
         UpdatePath();
@@ -1219,13 +1219,79 @@ mRejectPosterior = false;
 bool Coffin::InitializeMCMC() {
   vector<float>::iterator phi, theta;
 
+  // Initialize control point proposal distribution
+  mProposalStd.resize(mProposalStdInit.size());
+  copy(mProposalStdInit.begin(), mProposalStdInit.end(), mProposalStd.begin());
+
+  if (mDebug) {
+    mLog << "Proposal STDs: ";
+    for (vector<float>::const_iterator pstd = mProposalStd.begin();
+                                       pstd < mProposalStd.end(); pstd++)
+      mLog << *pstd << " ";
+    mLog << endl;
+  }
+
+  // Initialize jump acceptance statistics
+  mRejectControl.resize(mNumControl);
+
+  mAcceptCount.resize(mNumControl);
+  fill(mAcceptCount.begin(), mAcceptCount.end(), 0);
+  mRejectCount.resize(mNumControl);
+  fill(mRejectCount.begin(), mRejectCount.end(), 0);
+
+  mAcceptSpan.resize(mControlPoints.size());
+  fill(mAcceptSpan.begin(), mAcceptSpan.end(), 0.0);
+  mRejectSpan.resize(mControlPoints.size());
+  fill(mRejectSpan.begin(), mRejectSpan.end(), 0.0);
+
+  mControlPointsNew.resize(mControlPoints.size());
+  mControlPointJumps.resize(mControlPoints.size());
+  mControlPointsMap.resize(mControlPoints.size());
+
+  // Clear saved path samples
+  mControlPointSamples.clear();
+  mPathLengthSamples.clear();
+  mLikelihoodOnPathSamples.clear();
+  mPriorOnPathSamples.clear();
+  mPosteriorOnPathSamples.clear();
+  MRIclear(mPathSamples);
+
   // Interpolate spline from initial control points
   mSpline.SetControlPoints(mControlPoints);
   if (!mSpline.InterpolateSpline()) {
-    cout << "ERROR: Path from initial control points is not entirely in mask"
-         << endl << "ERROR: or is self-intersecting" << endl
-         << "ERROR: Initialization failed" << endl;
-    return false;
+    cout << "INFO: Path from initial control points is not entirely in mask"
+         << endl << "INFO: or is self-intersecting" << endl
+         << "INFO: Attemping to perturb control points" << endl;
+
+    // Perturb control points until I get a valid initial path
+    for (int itry = 0; itry < 100; itry++) {
+      cout << "INFO: Try " << itry << endl;
+
+      fill(mRejectControl.begin(), mRejectControl.end(), false);
+
+      for (int icpt = mNumControl-1; icpt >= 0; icpt--) {
+        mRejectSpline = false;
+
+        if (ProposePath1(icpt)) {
+          copy(mControlPointsNew.begin(), mControlPointsNew.end(),
+               mControlPoints.begin());
+          break;
+        }
+      }
+
+      if (!mRejectSpline && !mRejectControl[0]) {
+        cout << "INFO: Success" << endl;
+        break;
+      }
+    }
+
+    mSpline.SetControlPoints(mControlPoints);
+    if (!mSpline.InterpolateSpline()) {
+      cout << "ERROR: Path from initial control points is not entirely in mask"
+           << endl << "ERROR: or is self-intersecting" << endl
+           << "ERROR: Initialization failed" << endl;
+      return false;
+    }
   }
 
   mSpline.ComputeTangent();
@@ -1283,43 +1349,6 @@ bool Coffin::InitializeMCMC() {
   mAnatomicalPrior = ComputeAnatomicalPrior(mPathPoints);
 
   mPosteriorOnPath = mLikelihoodOnPath + mPriorOnPath + mAnatomicalPrior;
-
-  // Initialize control point proposal distribution
-  mProposalStd.resize(mProposalStdInit.size());
-  copy(mProposalStdInit.begin(), mProposalStdInit.end(), mProposalStd.begin());
-
-  if (mDebug) {
-    mLog << "Proposal STDs: ";
-    for (vector<float>::const_iterator pstd = mProposalStd.begin();
-                                       pstd < mProposalStd.end(); pstd++)
-      mLog << *pstd << " ";
-    mLog << endl;
-  }
-
-  // Initialize jump acceptance statistics
-  mRejectControl.resize(mNumControl);
-
-  mAcceptCount.resize(mNumControl);
-  fill(mAcceptCount.begin(), mAcceptCount.end(), 0);
-  mRejectCount.resize(mNumControl);
-  fill(mRejectCount.begin(), mRejectCount.end(), 0);
-
-  mAcceptSpan.resize(mControlPoints.size());
-  fill(mAcceptSpan.begin(), mAcceptSpan.end(), 0.0);
-  mRejectSpan.resize(mControlPoints.size());
-  fill(mRejectSpan.begin(), mRejectSpan.end(), 0.0);
-
-  mControlPointsNew.resize(mControlPoints.size());
-  mControlPointJumps.resize(mControlPoints.size());
-  mControlPointsMap.resize(mControlPoints.size());
-
-  // Clear saved path samples
-  mControlPointSamples.clear();
-  mPathLengthSamples.clear();
-  mLikelihoodOnPathSamples.clear();
-  mPriorOnPathSamples.clear();
-  mPosteriorOnPathSamples.clear();
-  MRIclear(mPathSamples);
 
   return true;
 }
@@ -1897,7 +1926,7 @@ void Coffin::UpdateRejectionRate() {
       mLog << "Reject due to control point" << endl;
 
   if (mRejectPosterior || mRejectSpline)
-    // Update length of rejected jumps all control points
+    // Update length of rejected jumps for all control points
     for (vector<float>::iterator span = mRejectSpan.begin();
                                  span < mRejectSpan.end(); span++) {
       *span += *jump;
