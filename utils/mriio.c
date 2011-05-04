@@ -9,8 +9,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2011/04/14 18:21:46 $
- *    $Revision: 1.390 $
+ *    $Date: 2011/05/04 23:55:00 $
+ *    $Revision: 1.391 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -12030,7 +12030,7 @@ znzTAGwriteMRIframes(znzFile fp, MRI *mri)
   char      *buf ;
 
   // write some extra space so that we have enough room (can't seek in zz files)
-  len = 2*mri->nframes*sizeof(MRI_FRAME) ;
+  len = 10*mri->nframes*sizeof(MRI_FRAME) ;
   znzTAGwriteStart(fp, TAG_MRI_FRAME, &fstart, len) ;
   here = znztell(fp) ;
   for (fno = 0 ; fno < mri->nframes ; fno++)
@@ -12067,9 +12067,12 @@ znzTAGwriteMRIframes(znzFile fp, MRI *mri)
   }
   fend = znztell(fp) ;
   len -= (fend - here) ;   // unused space
-  buf = (char *)calloc(len, sizeof(char)) ;
-  znzwrite(buf, len, sizeof(char), fp) ;
-  free(buf) ;
+  if (len > 0)
+    {
+      buf = (char *)calloc(len, sizeof(char)) ;
+      znzwrite(buf, len, sizeof(char), fp) ;
+      free(buf) ;
+    }
   znzTAGwriteEnd(fp, fend) ;
       
   return(NO_ERROR) ;
@@ -12113,9 +12116,12 @@ znzTAGreadMRIframes(znzFile fp, MRI *mri, long len)
 
   fend = znztell(fp) ;
   len -=  (fend - fstart) ;
-  buf = (char *)calloc(len, sizeof(char)) ;
-  znzread(buf, len, sizeof(char), fp) ;
-  free(buf) ;
+  if (len > 0)
+    {
+      buf = (char *)calloc(len, sizeof(char)) ;
+      znzread(buf, len, sizeof(char), fp) ;
+      free(buf) ;
+    }
   return(NO_ERROR) ;
 }
 
