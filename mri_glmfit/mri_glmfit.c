@@ -14,8 +14,8 @@
  * Original Author: Douglas N Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2011/05/03 15:05:26 $
- *    $Revision: 1.196.2.2 $
+ *    $Date: 2011/05/04 16:50:12 $
+ *    $Revision: 1.196.2.3 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -234,6 +234,17 @@ for each class.  However, there will be NClass*NVar more columns (ie,
 one column for each variable for each class). The first NClass columns
 are for the first variable, etc. If neither of these models works for
 you, you will have to specify the design matrix manually (with --X).
+
+--fsgd-rescale
+
+This will perform a rescaling of each continuous variable based on all
+the values for that variable regardless of class. The scale is such
+that the new standard deviation is 1. In principle, rescaling should
+not affect the p-values, but it will improve the conditioning of the
+design matrix which will affect the final output. Rescaling makes the
+regression coefficients harder to interpret. A better approach would
+be to rescale the columns of X, then rescale the betas to account for
+this (this will have to wait for the next version).
 
 --X design matrix file
 
@@ -546,7 +557,7 @@ static int SmoothSurfOrVol(MRIS *surf, MRI *mri, MRI *mask, double SmthLevel);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-"$Id: mri_glmfit.c,v 1.196.2.2 2011/05/03 15:05:26 greve Exp $";
+"$Id: mri_glmfit.c,v 1.196.2.3 2011/05/04 16:50:12 greve Exp $";
 const char *Progname = "mri_glmfit";
 
 int SynthSeed = -1;
@@ -597,6 +608,7 @@ int voxdumpflag = 0;
 char *fsgdfile = NULL;
 FSGD *fsgd=NULL;
 char  *gd2mtx_method = "none";
+int fsgdReScale = 0; 
 
 int nSelfReg = 0;
 int crsSelfReg[100][3];
@@ -2058,6 +2070,7 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--mgz")) format = "mgz";
     else if (!strcasecmp(option, "--allowsubjrep"))
       fsgdf_AllowSubjRep = 1; /* external, see fsgdf.h */
+    else if (!strcasecmp(option, "--fsgd-rescale")) fsgdReScale = 1; 
     else if (!strcasecmp(option, "--tar1")) DoTemporalAR1 = 1;
     else if (!strcasecmp(option, "--no-tar1")) DoTemporalAR1 = 0;
     else if (!strcasecmp(option, "--qa")) {
@@ -2420,6 +2433,7 @@ printf("   --X design matrix file\n");
 printf("   --C contrast1.mtx <--C contrast2.mtx ...>\n");
 printf("   --osgm : construct X and C as a one-sample group mean\n");
 printf("   --no-contrasts-ok : do not fail if no contrasts specified\n");
+printf("   --fsgd-rescale : rescale continuous variables in FSGD to have StdDev=1\n");
 printf("\n");
 printf("   --pvr pvr1 <--prv pvr2 ...> : per-voxel regressors\n");
 printf("   --selfreg col row slice   : self-regressor from index col row slice\n");
@@ -2611,6 +2625,17 @@ printf("for each class.  However, there will be NClass*NVar more columns (ie,\n"
 printf("one column for each variable for each class). The first NClass columns\n");
 printf("are for the first variable, etc. If neither of these models works for\n");
 printf("you, you will have to specify the design matrix manually (with --X).\n");
+printf("\n");
+printf("--fsgd-rescale\n");
+printf("\n");
+printf("This will perform a rescaling of each continuous variable based on all\n");
+printf("the values for that variable regardless of class. The scale is such\n");
+printf("that the new standard deviation is 1. In principle, rescaling should\n");
+printf("not affect the p-values, but it will improve the conditioning of the\n");
+printf("design matrix which will affect the final output. Rescaling makes the\n");
+printf("regression coefficients harder to interpret. A better approach would\n");
+printf("be to rescale the columns of X, then rescale the betas to account for\n");
+printf("this (this will have to wait for the next version).\n");
 printf("\n");
 printf("--X design matrix file\n");
 printf("\n");
@@ -2993,6 +3018,14 @@ static void check_options(void) {
   if(DoSimThreshLoop && strcmp(csd->simtype,"mc-z")){
     printf("ERROR: you can only use --sim-thresh-loop with mc-z\n");
     exit(1);
+  }
+
+  if(fsgdReScale){
+    if(fsgdfile == NULL){
+      printf("ERROR: need an fsgd file to use --fsgd-rescale\n");
+      exit(1);
+    }
+    fsgd->ReScale = 1;
   }
 
   return;
