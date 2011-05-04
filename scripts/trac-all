@@ -8,8 +8,8 @@
 # Original Author: Anastasia Yendiki
 # CVS Revision Info:
 #    $Author: ayendiki $
-#    $Date: 2011/03/31 22:54:21 $
-#    $Revision: 1.25 $
+#    $Date: 2011/05/04 03:00:43 $
+#    $Revision: 1.26 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -25,7 +25,7 @@
 
 umask 002
 
-set VERSION = '$Id: trac-all,v 1.25 2011/03/31 22:54:21 ayendiki Exp $'
+set VERSION = '$Id: trac-all,v 1.26 2011/05/04 03:00:43 ayendiki Exp $'
 set ProgName = `basename $0`
 set inputargs = ($argv)
 
@@ -139,9 +139,9 @@ set dosegprior = 1
 set dopathsubdirs = 0
 set fmin = 0.05
 set nburnin = 200
-set nsample = 1000
+set nsample = 5000
 set nupdate = 0
-set nkeep = 10
+set nkeep = 5
 set doinitprop = 0
 set trcdir = $FREESURFER_HOME/bin
 
