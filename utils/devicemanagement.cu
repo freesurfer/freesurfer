@@ -6,6 +6,8 @@
 #include <cstdlib>
 using namespace std;
 
+#include "nvcc_version.h"
+
 #include "cudacheck.h"
 
 #include "devicemanagement.h"
@@ -18,7 +20,10 @@ using namespace std;
 #include "gcamorphenergy.hpp"
 #include "gcamorphgpu.hpp"
 #include "gcamorphtermgpu.hpp"
+#include "gcamorphcpu.hpp"
 #endif
+
+#include "mrilabels_cuda.hpp"
 
 // ==============================================
 
@@ -32,6 +37,19 @@ void AcquireCUDADevice( void ) {
   char *devString;
   int iDevice;
 
+  cout << nvcc_version << endl;
+  int driverVersion=0, runtimeVersion=0;
+  if( cudaSuccess == cudaDriverGetVersion( &driverVersion ) ) {
+    cudaRuntimeGetVersion( &runtimeVersion );
+    cout << "Driver : "
+         << driverVersion/1000 << "." << driverVersion%1000
+         << endl;
+    cout << "Runtime : "
+         << runtimeVersion/1000 << "." << runtimeVersion%1000
+         << endl;
+    cout << endl;
+  }
+
   cout << "Acquiring CUDA device" << endl;
 
   // Get the environment variable
@@ -41,12 +59,18 @@ void AcquireCUDADevice( void ) {
   } else {
     iDevice = atoi( devString );
     cout << "Device " << iDevice << " requested" << endl;
-    CUDA_SAFE_CALL( cudaSetDevice( iDevice ) );
+    if( cudaSuccess != cudaSetDevice( iDevice ) ) {
+      cerr << "ERROR: Unable to set CUDA device " << iDevice << endl;
+      exit( EXIT_FAILURE );
+    }
   }
 
   // Acquire the device
   int *d_tmp;
-  CUDA_SAFE_CALL( cudaMalloc( (void**)&d_tmp, sizeof(int) ) );
+  if( cudaSuccess != cudaMalloc( (void**)&d_tmp, sizeof(int) ) ) {
+    cerr << "ERROR: Unable to acquire a CUDA device!" << endl;
+    exit( EXIT_FAILURE );
+  }
   CUDA_SAFE_CALL( cudaFree( d_tmp ) );
 
   // Verify and print out device name
@@ -56,6 +80,14 @@ void AcquireCUDADevice( void ) {
   
   CUDA_SAFE_CALL( cudaGetDeviceProperties( &devProp, iDevice ) );
   cout << "CUDA device: " << devProp.name << endl;
+
+#ifdef GCAMORPH_ON_GPU
+  if( devProp.major < 2 ) {
+    cerr << "Must have compute capability 2 for GCAMORPH_ON_GPU"
+         << endl;
+    exit( EXIT_FAILURE );
+  }
+#endif
   
 }
 
@@ -75,5 +107,7 @@ void PrintGPUtimers( void ) {
   GPU::Classes::GCAmorphGPU::ShowTimings();
   GPU::Algorithms::GCAmorphEnergy::ShowTimings();
   GPU::Algorithms::GCAmorphTerm::ShowTimings();
+  Freesurfer::GCAmorphCPU::ShowTimings();
 #endif
+  GPU::Algorithms::MRIlabels::ShowTimings();
 }
