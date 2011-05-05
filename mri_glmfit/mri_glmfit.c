@@ -14,8 +14,8 @@
  * Original Author: Douglas N Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2011/05/04 16:50:12 $
- *    $Revision: 1.196.2.3 $
+ *    $Date: 2011/05/05 13:42:01 $
+ *    $Revision: 1.196.2.4 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -557,7 +557,7 @@ static int SmoothSurfOrVol(MRIS *surf, MRI *mri, MRI *mask, double SmthLevel);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-"$Id: mri_glmfit.c,v 1.196.2.3 2011/05/04 16:50:12 greve Exp $";
+"$Id: mri_glmfit.c,v 1.196.2.4 2011/05/05 13:42:01 greve Exp $";
 const char *Progname = "mri_glmfit";
 
 int SynthSeed = -1;
@@ -1014,17 +1014,15 @@ int main(int argc, char **argv) {
   }
 
   // Check the condition of the global matrix -----------------
-  Xcond = MatrixNSConditionNumber(mriglm->Xg);
-  printf("Matrix condition is %g\n",Xcond);
+  Xnorm = MatrixNormalizeCol(mriglm->Xg,NULL);
+  Xcond = MatrixNSConditionNumber(Xnorm);
+  printf("Normalized matrix condition is %g\n",Xcond);
   if(Xcond > 10000 && ! IllCondOK) {
     printf("Design matrix ------------------\n");
     MatrixPrint(stdout,mriglm->Xg);
     printf("--------------------------------\n");
     printf("ERROR: matrix is ill-conditioned or badly scaled, condno = %g\n",
            Xcond);
-    Xnorm = MatrixNormalizeCol(mriglm->Xg,NULL);
-    Xcond = MatrixNSConditionNumber(Xnorm);
-    printf("Normalized matrix condition is %g\n",Xcond);
     printf("--------------------------------\n");
     printf("Possible problem with experimental design:\n");
     printf("Check for duplicate entries and/or lack of range of\n"
@@ -1036,6 +1034,14 @@ int main(int argc, char **argv) {
     printf("  3. And the design matrix above\n");
     exit(1);
   }
+  Xcond = MatrixNSConditionNumber(mriglm->Xg);
+  printf("Matrix condition is %g\n",Xcond);
+  if(Xcond > 10000){
+    printf("\n");
+    printf("WARNING: matrix may be badly scaled!\n");
+    printf("\n");
+  }
+
   // Load Per-Voxel Regressors -----------------------------------
   if (mriglm->npvr > 0) {
     for (n=0; n < mriglm->npvr; n++) {
