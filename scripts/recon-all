@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: krish $
-#    $Date: 2011/05/02 21:04:33 $
-#    $Revision: 1.379.2.11 $
+#    $Date: 2011/05/05 21:47:46 $
+#    $Revision: 1.379.2.12 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -26,7 +26,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.379.2.11 2011/05/02 21:04:33 krish Exp $';
+set VERSION = '$Id: recon-all,v 1.379.2.12 2011/05/05 21:47:46 krish Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -3683,11 +3683,11 @@ if($DoGEMS) then
     set kvltmpd = (${subjdir}/tmp/subfieldResults)
       
     # do hippocampal processing
-    set cmd = (kvlSegmentHippoCampalSubfields.sh $subjid left $SUBJECTS_DIR ${kvltmpd} ) 
+    set cmd = (kvlSegmentHippocampalSubfields.sh $subjid left $SUBJECTS_DIR ${kvltmpd} ) 
     echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
     if($RunIt) $fs_time $cmd |& tee -a $LF
     if($status) goto error_exit;
-    set cmd = (kvlSegmentHippoCampalSubfields.sh $subjid right $SUBJECTS_DIR ${kvltmpd} ) 
+    set cmd = (kvlSegmentHippocampalSubfields.sh $subjid right $SUBJECTS_DIR ${kvltmpd} ) 
     echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
     if($RunIt) $fs_time $cmd |& tee -a $LF
     if($status) goto error_exit;
