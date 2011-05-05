@@ -15,20 +15,18 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2010/06/28 17:14:04 $
- *    $Revision: 1.49 $
+ *    $Date: 2011/05/05 17:14:31 $
+ *    $Revision: 1.51.2.1 $
  *
- * Copyright (C) 2002-2009,
- * The General Hospital Corporation (Boston, MA).
- * All rights reserved.
+ * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
- * Distribution, usage and copying of this software is covered under the
- * terms found in the License Agreement file named 'COPYING' found in the
- * FreeSurfer source code root directory, and duplicated here:
- * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ * Terms and conditions for use, reproduction, distribution and contribution
+ * are found in the 'FreeSurfer Software License Agreement' contained
+ * in the file 'LICENSE' found in the FreeSurfer distribution, and here:
  *
- * General inquiries: freesurfer@nmr.mgh.harvard.edu
- * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
+ *
+ * Reporting: freesurfer@nmr.mgh.harvard.edu
  *
  */
 
@@ -37,6 +35,7 @@
 #include <stdlib.h>
 #include <math.h>
 #include <float.h>
+#include <ctype.h>
 #include "macros.h"
 #include "mrisurf.h"
 #include "mrisutils.h"
@@ -62,12 +61,14 @@ static void dump_options(FILE *fp);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_concat.c,v 1.49 2010/06/28 17:14:04 greve Exp $";
+static char vcid[] = "$Id: mri_concat.c,v 1.51.2.1 2011/05/05 17:14:31 greve Exp $";
 char *Progname = NULL;
 int debug = 0;
 #define NInMAX 400000
 char *inlist[NInMAX];
 int ninputs = 0;
+char flist[NInMAX][2000];
+int nthf=0;
 char *out = NULL;
 MRI *mritmp, *mritmp0, *mriout, *mask=NULL;
 char *maskfile = NULL;
@@ -523,8 +524,9 @@ int main(int argc, char **argv) {
 
 /* --------------------------------------------- */
 static int parse_commandline(int argc, char **argv) {
-  int  nargc , nargsused;
-  char **pargv, *option ;
+  int  nargc , nargsused, rt;
+  char **pargv, *option, listfile[2000] ;
+  FILE *fp0;
 
   if (argc < 1) usage_exit();
 
@@ -650,11 +652,21 @@ static int parse_commandline(int argc, char **argv) {
       nargsused = 1;
     } else if ( !strcmp(option, "--mul") ) {
       if (nargc < 1) argnerr(option,1);
+      if(! isdigit(pargv[0][0])){
+	printf("ERROR: value passed to the --mul flag must be a number\n");
+	printf("       If you want to multiply two images, use fscalc\n");
+	exit(1);
+      }
       sscanf(pargv[0],"%lf",&MultiplyVal);
       DoMultiply = 1;
       nargsused = 1;
     } else if ( !strcmp(option, "--add") ) {
       if (nargc < 1) argnerr(option,1);
+      if(! isdigit(pargv[0][0])){
+	printf("ERROR: value passed to the --add flag must be a number\n");
+	printf("       If you want to add two images, use --sum or fscalc\n");
+	exit(1);
+      }
       sscanf(pargv[0],"%lf",&AddVal);
       DoAdd = 1;
       nargsused = 1;
@@ -663,6 +675,26 @@ static int parse_commandline(int argc, char **argv) {
       if(nargc < 1) argnerr(option,1);
       sscanf(pargv[0],"%d",&TAR1DOFAdjust);
       DoTAR1 = 1;
+      nargsused = 1;
+    }
+    else if (!strcasecmp(option, "--f")){
+      if(nargc < 1) argnerr(option,1);
+      sscanf(pargv[0],"%s",listfile);
+      fp0 = fopen(listfile,"r");
+      if(fp0==NULL){
+	printf("ERROR: opening %s\n",listfile);
+	exit(1);
+      }
+      while(1){
+	rt = fscanf(fp0,"%s",flist[nthf]);
+	if(rt == EOF){
+	  fclose(fp0);
+	  break;
+	}
+	inlist[ninputs] = flist[nthf];
+	nthf++;
+	ninputs ++;
+      }
       nargsused = 1;
     }
     else {
@@ -691,8 +723,9 @@ static void usage_exit(void) {
 static void print_usage(void) {
   printf("USAGE: %s \n",Progname) ;
   printf("\n");
-  printf("   --i invol <--i invol ...> (don't need --i) \n");
   printf("   --o out \n");
+  printf("   --i invol <--i invol ...> (don't need --i) \n");
+  printf("   --f listfile : list file has a text list of files (up to %d)\n",NInMAX);
   printf("\n");
   printf("   --paired-sum  : compute paired sum (1+2, 3d+4, etc) \n");
   printf("   --paired-avg  : compute paired avg (1+2, 3d+4, etc) \n");
