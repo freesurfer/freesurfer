@@ -8,9 +8,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/05/05 15:24:57 $
- *    $Revision: 1.387.2.4 $
+ *    $Author: greve $
+ *    $Date: 2011/05/05 19:04:12 $
+ *    $Revision: 1.387.2.5 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -12419,6 +12419,7 @@ mghRead(const char *fname, int read_volume, int frame)
     }
   }
   // tag reading
+  if (getenv("FS_SKIP_TAGS") == NULL)
   {
     long long len ;
     char *fnamedir;
