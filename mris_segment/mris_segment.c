@@ -9,8 +9,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2011/05/05 19:02:14 $
- *    $Revision: 1.6 $
+ *    $Date: 2011/05/05 22:49:44 $
+ *    $Revision: 1.7 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -414,6 +414,8 @@ classify_vertices(MRI_SURFACE *mris, MRI *mri_prior, MRI *mri_cmat,
             if (in_label[sno][vno])
               val += corrs[sno] ;
           }
+        else
+          val = 0.0 ;
         MRIsetVoxVal(mri_out, vno, 0, 0, 0, val) ;
       }
     }
@@ -528,7 +530,7 @@ main(int argc, char *argv[])
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mris_segment.c,v 1.6 2011/05/05 19:02:14 fischl Exp $",
+           "$Id: mris_segment.c,v 1.7 2011/05/05 22:49:44 fischl Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
   {
