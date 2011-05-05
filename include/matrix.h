@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:10 $
- *    $Revision: 1.74 $
+ *    $Author: greve $
+ *    $Date: 2011/05/05 15:28:03 $
+ *    $Revision: 1.75 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -193,7 +193,8 @@ float  VectorTripleProduct( const VECTOR *v1,
                             const VECTOR *v2,
                             const VECTOR *v3) ;
 VECTOR *VectorNormalize( const VECTOR *vin, VECTOR *vout) ;
-MATRIX *MatrixNormalizeCol(MATRIX *m, MATRIX *mcnorm);
+MATRIX *MatrixNormalizeCol(MATRIX *m, MATRIX *mcnorm, MATRIX *scale);
+MATRIX *MatrixNormalizeColScale(MATRIX *m, MATRIX *scale);
 
 /* these are macro versions that work on 3-d vectors */
 #define RV3_X(v)     (RVECTOR_ELT(v,1))

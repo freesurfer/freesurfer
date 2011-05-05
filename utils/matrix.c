@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:45 $
- *    $Revision: 1.125 $
+ *    $Author: greve $
+ *    $Date: 2011/05/05 15:28:02 $
+ *    $Revision: 1.126 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -3217,11 +3217,38 @@ MATRIX *MatrixToeplitz(VECTOR *v, MATRIX *T, int Type)
 }
 
 
-/*----------------------------------------------------------*/
-MATRIX *MatrixNormalizeCol(MATRIX *m, MATRIX *mcnorm)
+/*!
+\fn MATRIX *MatrixNormalizeColScale(MATRIX *m, MATRIX *scale)
+\brief Computes the scaling used for MatrixNormalizeCol()
+*/
+MATRIX *MatrixNormalizeColScale(MATRIX *m, MATRIX *scale)
 {
   int r,c;
-  float sum2, v;
+  double sum2, v;
+
+  if(scale == NULL) scale = MatrixAlloc(1,m->cols,MATRIX_REAL);
+  for (c=1; c <= m->cols; c++) {
+    sum2 = 0.0;
+    for (r=1; r <= m->rows; r++) {
+      v = m->rptr[r][c];
+      sum2 += (v*v);
+    }
+    scale->rptr[1][c] = sqrt(sum2);
+  }
+  //printf("scale -----------------------------\n");
+  //MatrixPrint(stdout,scale);
+  //printf("------------------------------------\n");
+  return(scale);
+}
+
+/*!
+\fn MATRIX *MatrixNormalizeCol(MATRIX *m, MATRIX *mcnorm)
+\brief Rescales m so that sum(col^2)=1
+*/
+MATRIX *MatrixNormalizeCol(MATRIX *m, MATRIX *mcnorm, MATRIX *scale)
+{
+  int r,c,FreeScale=1;
+  double v;
 
   if (mcnorm == NULL)
   {
@@ -3241,15 +3268,11 @@ MATRIX *MatrixNormalizeCol(MATRIX *m, MATRIX *mcnorm)
     }
   }
 
+  if(scale) FreeScale = 0;
+  scale = MatrixNormalizeColScale(m,scale);
   for (c=1; c <= m->cols; c++)
   {
-    sum2 = 0.0;
-    for (r=1; r <= m->rows; r++)
-    {
-      v = m->rptr[r][c];
-      sum2 += (v*v);
-    }
-    v = sqrt(sum2);
+    v = scale->rptr[1][c];
     if (v != 0)
       for (r=1; r <= m->rows; r++)
         mcnorm->rptr[r][c] = (m->rptr[r][c])/v;
@@ -3258,6 +3281,7 @@ MATRIX *MatrixNormalizeCol(MATRIX *m, MATRIX *mcnorm)
         mcnorm->rptr[r][c] = 0.0;
 
   }
+  if(FreeScale) MatrixFree(&scale);
 
   //printf("m ----------------------------\n");
   //MatrixPrint(stdout,m);

@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2011/03/15 22:34:32 $
- *    $Revision: 1.14 $
+ *    $Date: 2011/05/05 15:28:03 $
+ *    $Revision: 1.15 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -25,7 +25,7 @@
 
 
 // fsglm.h - include file for fsglm.c
-// $Id: fsglm.h,v 1.14 2011/03/15 22:34:32 greve Exp $
+// $Id: fsglm.h,v 1.15 2011/05/05 15:28:03 greve Exp $
 
 #ifndef FSGLM_H
 #define FSGLM_H
@@ -67,6 +67,10 @@ typedef struct {
   MATRIX *gamma[GLMMAT_NCONTRASTS_MAX];
   double F[GLMMAT_NCONTRASTS_MAX];
   double p[GLMMAT_NCONTRASTS_MAX];
+
+  /* When ReScaleX=1, rescale cols of X before computing inv(X'*X), 
+     then rescale X'*X and inv(X'*X) so that it is transparent.*/
+  int ReScaleX; 
 
   // These are matrices to hold intermediate values
   MATRIX *Ct[GLMMAT_NCONTRASTS_MAX];   // transposes of contrast matrices

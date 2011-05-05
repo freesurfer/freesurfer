@@ -6,9 +6,9 @@
 /*
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:32 $
- *    $Revision: 1.54 $
+ *    $Author: greve $
+ *    $Date: 2011/05/05 15:28:03 $
+ *    $Revision: 1.55 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -93,7 +93,7 @@ static char *getstem(char *bfilename);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mris_glm.c,v 1.54 2011/03/02 00:04:32 nicks Exp $";
+static char vcid[] = "$Id: mris_glm.c,v 1.55 2011/05/05 15:28:03 greve Exp $";
 const char *Progname = "mris_glm";
 
 char *hemi        = NULL;
@@ -220,7 +220,7 @@ int main(int argc, char **argv) {
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option (argc, argv,
-                                 "$Id: mris_glm.c,v 1.54 2011/03/02 00:04:32 nicks Exp $", "$Name:  $");
+                                 "$Id: mris_glm.c,v 1.55 2011/05/05 15:28:03 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -1809,7 +1809,7 @@ int CheckDesignMatrix(MATRIX *X) {
     exit(1);
   }
 
-  Xnorm = MatrixNormalizeCol(X,NULL);
+  Xnorm = MatrixNormalizeCol(X,NULL,NULL);
   Xcondition = sqrt(MatrixNSConditionNumber(Xnorm));
   MatrixFree(&Xnorm);
   printf("INFO: Normalized Design Matrix Condition Number is %g\n",

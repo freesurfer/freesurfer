@@ -14,8 +14,8 @@
  * Original Author: Douglas N Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2011/05/05 13:41:43 $
- *    $Revision: 1.200 $
+ *    $Date: 2011/05/05 15:28:03 $
+ *    $Revision: 1.201 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -557,7 +557,7 @@ static int SmoothSurfOrVol(MRIS *surf, MRI *mri, MRI *mask, double SmthLevel);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-"$Id: mri_glmfit.c,v 1.200 2011/05/05 13:41:43 greve Exp $";
+"$Id: mri_glmfit.c,v 1.201 2011/05/05 15:28:03 greve Exp $";
 const char *Progname = "mri_glmfit";
 
 int SynthSeed = -1;
@@ -609,6 +609,7 @@ char *fsgdfile = NULL;
 FSGD *fsgd=NULL;
 char  *gd2mtx_method = "none";
 int fsgdReScale = 0; 
+int ReScaleX = 0; 
 
 int nSelfReg = 0;
 int crsSelfReg[100][3];
@@ -753,6 +754,8 @@ int main(int argc, char **argv) {
   parse_commandline(argc, argv);
   check_options();
   if (checkoptsonly) return(0);
+
+  mriglm->glm->ReScaleX = ReScaleX;
 
   // Seed the random number generator just in case
   if (SynthSeed < 0) SynthSeed = PDFtodSeed();
@@ -1014,7 +1017,7 @@ int main(int argc, char **argv) {
   }
 
   // Check the condition of the global matrix -----------------
-  Xnorm = MatrixNormalizeCol(mriglm->Xg,NULL);
+  Xnorm = MatrixNormalizeCol(mriglm->Xg,NULL,NULL);
   Xcond = MatrixNSConditionNumber(Xnorm);
   printf("Normalized matrix condition is %g\n",Xcond);
   if(Xcond > 10000 && ! IllCondOK) {
@@ -1036,9 +1039,10 @@ int main(int argc, char **argv) {
   }
   Xcond = MatrixNSConditionNumber(mriglm->Xg);
   printf("Matrix condition is %g\n",Xcond);
-  if(Xcond > 10000){
+  if(Xcond > 10000 && !ReScaleX){
     printf("\n");
     printf("WARNING: matrix may be badly scaled!\n");
+    printf("You might want to re-run with --rescale-x\n");
     printf("\n");
   }
 
@@ -2077,6 +2081,8 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--allowsubjrep"))
       fsgdf_AllowSubjRep = 1; /* external, see fsgdf.h */
     else if (!strcasecmp(option, "--fsgd-rescale")) fsgdReScale = 1; 
+    else if (!strcasecmp(option, "--rescale-x"))    ReScaleX = 1; 
+    else if (!strcasecmp(option, "--no-rescale-x")) ReScaleX = 0; 
     else if (!strcasecmp(option, "--tar1")) DoTemporalAR1 = 1;
     else if (!strcasecmp(option, "--no-tar1")) DoTemporalAR1 = 0;
     else if (!strcasecmp(option, "--qa")) {
@@ -2922,7 +2928,7 @@ static void check_options(void) {
     printf("INFO: gd2mtx_method is %s\n",gd2mtx_method);
     Xtmp = gdfMatrix(fsgd,gd2mtx_method,NULL);
     if(Xtmp==NULL) exit(1);
-    Xnorm = MatrixNormalizeCol(Xtmp,NULL);
+    Xnorm = MatrixNormalizeCol(Xtmp,NULL,NULL);
     Xcond = MatrixNSConditionNumber(Xnorm);
     printf("Matrix condition is %g\n",Xcond);
     MatrixWriteTxt(XOnlyFile, Xtmp);
@@ -3076,6 +3082,7 @@ static void dump_options(FILE *fp) {
 
   fprintf(fp,"glmdir %s\n",GLMDir);
   fprintf(fp,"IllCondOK %d\n",IllCondOK);
+  fprintf(fp,"ReScaleX %d\n",ReScaleX);
 
   for (n=0; n < nSelfReg; n++) {
     fprintf(fp,"SelfRegressor %d  %4d %4d %4d\n",n+1,

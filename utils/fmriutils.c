@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:43 $
- *    $Revision: 1.67 $
+ *    $Author: greve $
+ *    $Date: 2011/05/05 15:28:03 $
+ *    $Revision: 1.68 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -28,7 +28,7 @@
   \file fmriutils.c
   \brief Multi-frame utilities
 
-  $Id: fmriutils.c,v 1.67 2011/03/02 00:04:43 nicks Exp $
+  $Id: fmriutils.c,v 1.68 2011/05/05 15:28:03 greve Exp $
 
   Things to do:
   1. Add flag to turn use of weight on and off
@@ -60,7 +60,7 @@ double round(double x);
 // Return the CVS version of this file.
 const char *fMRISrcVersion(void)
 {
-  return("$Id: fmriutils.c,v 1.67 2011/03/02 00:04:43 nicks Exp $");
+  return("$Id: fmriutils.c,v 1.68 2011/05/05 15:28:03 greve Exp $");
 }
 
 
@@ -2695,7 +2695,7 @@ MRI *fMRIspatialCorMatrix(MRI *fmri)
   //MatrixWrite(M, "Mdm.mat", "Mdm");
 
   printf("fMRIspatialCorMatrix: normalizing\n");
-  M = MatrixNormalizeCol(M,M);
+  M = MatrixNormalizeCol(M,M,NULL);
   if(M == NULL) return(NULL);
   //MatrixWrite(M, "Mnorm.mat", "Mnorm");
 
