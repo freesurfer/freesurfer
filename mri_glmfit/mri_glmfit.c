@@ -14,8 +14,8 @@
  * Original Author: Douglas N Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2011/05/05 15:28:03 $
- *    $Revision: 1.201 $
+ *    $Date: 2011/05/05 20:54:08 $
+ *    $Revision: 1.202 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -235,16 +235,14 @@ one column for each variable for each class). The first NClass columns
 are for the first variable, etc. If neither of these models works for
 you, you will have to specify the design matrix manually (with --X).
 
---fsgd-rescale
+--no-rescale-x
 
-This will perform a rescaling of each continuous variable based on all
-the values for that variable regardless of class. The scale is such
-that the new standard deviation is 1. In principle, rescaling should
-not affect the p-values, but it will improve the conditioning of the
-design matrix which will affect the final output. Rescaling makes the
-regression coefficients harder to interpret. A better approach would
-be to rescale the columns of X, then rescale the betas to account for
-this (this will have to wait for the next version).
+By default the inverse of the covariance of the desgin matrix is
+computed by rescaling each column of the design matrix prior to the 
+inverse computation, then rescaling back afterwards. This helps
+with designs that are badly scaled. This is completely transparent
+to the user. This flag turns this feature off so that the inverse
+is computed directly from the design matrix.
 
 --X design matrix file
 
@@ -557,7 +555,7 @@ static int SmoothSurfOrVol(MRIS *surf, MRI *mri, MRI *mask, double SmthLevel);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-"$Id: mri_glmfit.c,v 1.201 2011/05/05 15:28:03 greve Exp $";
+"$Id: mri_glmfit.c,v 1.202 2011/05/05 20:54:08 greve Exp $";
 const char *Progname = "mri_glmfit";
 
 int SynthSeed = -1;
@@ -609,7 +607,7 @@ char *fsgdfile = NULL;
 FSGD *fsgd=NULL;
 char  *gd2mtx_method = "none";
 int fsgdReScale = 0; 
-int ReScaleX = 0; 
+int ReScaleX = 1; 
 
 int nSelfReg = 0;
 int crsSelfReg[100][3];
@@ -2507,6 +2505,7 @@ printf("   --allowsubjrep allow subject names to repeat in the fsgd file (must a
 printf("                  before --fsgd)\n");
 printf("   --allow-zero-dof : mostly for very special purposes\n");
 printf("   --illcond : allow ill-conditioned design matrices\n");
+printf("   --no-rescale-x : do not rescale X prior to computing inverse\n");
 printf("   --sim-done SimDoneFile : create DoneFile when simulation finished \n");
 printf("\n");
 }
