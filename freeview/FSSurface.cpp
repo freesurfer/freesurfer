@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2011/04/13 19:50:54 $
- *    $Revision: 1.50 $
+ *    $Date: 2011/05/05 19:48:29 $
+ *    $Revision: 1.51 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -56,6 +56,7 @@ extern "C"
 #include "mri_identify.h"
 }
 using namespace std;
+
 
 FSSurface::FSSurface( FSVolume* ref, QObject* parent ) : QObject( parent ),
   m_MRIS( NULL ),

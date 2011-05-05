@@ -6,9 +6,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/14 23:44:48 $
- *    $Revision: 1.39 $
+ *    $Author: rpwang $
+ *    $Date: 2011/05/05 19:48:29 $
+ *    $Revision: 1.40 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -265,6 +265,7 @@ void PanelSurface::DoUpdateWidgets()
   ui->comboBoxLabel->clear();
   if ( layer )
   {
+    ui->comboBoxLabel->addItem( "Off" );
     if ( layer->GetNumberOfLabels() > 0 )
     {
       for ( int i = 0; i < layer->GetNumberOfLabels(); i++ )
@@ -272,15 +273,11 @@ void PanelSurface::DoUpdateWidgets()
         ui->comboBoxLabel->addItem( layer->GetLabel( i )->GetName() );
       }
     }
-    else
-    {
-      ui->comboBoxLabel->addItem( "None" );
-    }
   }
   ui->comboBoxLabel->addItem( "Load from file..." );
   if ( layer && layer->GetActiveLabelIndex() >= 0 )
   {
-    ui->comboBoxLabel->setCurrentIndex( layer->GetActiveLabelIndex() );
+    ui->comboBoxLabel->setCurrentIndex( layer->GetActiveLabelIndex()+1 );
   }
   else
   {
@@ -421,11 +418,12 @@ void PanelSurface::OnComboAnnotation( int nSel_in )
   }
 }
 
-void PanelSurface::OnComboLabel( int nSel )
+void PanelSurface::OnComboLabel( int nSel_in )
 {
   LayerSurface* surf = GetCurrentLayer<LayerSurface*>();
   if ( surf )
   {
+    int nSel = nSel_in - 1;
     if ( nSel >= surf->GetNumberOfLabels() )
     {
       MainWindow::GetMainWindow()->LoadSurfaceLabel();

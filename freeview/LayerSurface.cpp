@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2011/04/13 19:50:54 $
- *    $Revision: 1.57 $
+ *    $Date: 2011/05/05 19:48:29 $
+ *    $Revision: 1.58 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -1079,7 +1079,7 @@ void LayerSurface::UpdateOverlay( bool bAskRedraw )
   }
   else
   {
-    if ( m_labels.size() == 0 )   // no labels
+    if ( m_labels.size() == 0 || m_nActiveLabel < 0)   // no labels
     {
       polydata->GetPointData()->SetActiveScalars( "Curvature" );
       if ( GetProperty()->GetMeshColorMap() == LayerPropertySurface::MC_Surface )
