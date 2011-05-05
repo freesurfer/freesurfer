@@ -6,9 +6,9 @@
 /*
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2011/04/19 21:24:27 $
- *    $Revision: 1.68 $
+ *    $Author: rge21 $
+ *    $Date: 2011/05/05 20:10:43 $
+ *    $Revision: 1.69 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -992,7 +992,7 @@ MRI *MRIvol2VolTLKernel(MRI *src, MRI *targ, MATRIX *Vt2s)
     3 slices mismatch
     4 frames mismatch - note: frameflag must = 1 to check frames
   ---------------------------------------------------------------*/
-int MRIdimMismatch(MRI *v1, MRI *v2, int frameflag)
+int MRIdimMismatch( const MRI *v1, const MRI *v2, int frameflag )
 {
   if (v1->width  != v2->width)  return(1);
   if (v1->height != v2->height) return(2);
@@ -2923,10 +2923,12 @@ int MRIvol2VolVSM(MRI *src, MRI *targ, MATRIX *Vt2s,
 }
 
 /*---------------------------------------------------------------*/
-MRI *MRIvol2surfVSM(MRI *SrcVol, MATRIX *Rtk, MRI_SURFACE *TrgSurf,
-                    MRI *vsm, int InterpMethod, MRI *SrcHitVol,
-                    float ProjFrac, int ProjType, int nskip, 
-		    MRI *TrgVol)
+MRI *MRIvol2surfVSM( const MRI *SrcVol,
+                     const MATRIX *Rtk,
+                     const MRI_SURFACE *TrgSurf,
+                     const MRI *vsm, int InterpMethod, MRI *SrcHitVol,
+                     float ProjFrac, int ProjType, int nskip, 
+		     MRI *TrgVol )
 {
   MATRIX *ras2vox, *vox2ras;
   AffineVector Scrs, Txyz;
@@ -2938,7 +2940,7 @@ MRI *MRIvol2surfVSM(MRI *SrcVol, MATRIX *Rtk, MRI_SURFACE *TrgSurf,
   int frm, vtx,nhits, err;
   double rval,val;
   float Tx, Ty, Tz;
-  VERTEX *v ;
+  const VERTEX *v ;
 
   if (vsm)  {
     err = MRIdimMismatch(vsm,SrcVol,0);

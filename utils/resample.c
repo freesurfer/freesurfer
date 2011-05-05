@@ -40,9 +40,9 @@
 /*
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:55 $
- *    $Revision: 1.37 $
+ *    $Author: rge21 $
+ *    $Date: 2011/05/05 20:10:44 $
+ *    $Revision: 1.38 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -633,8 +633,8 @@ MRI * vol2maskavg(MRI *SrcVol, MRI *SrcMskVol, int *nhits)
   ProjNormFracThick() - projects along the surface normal a given
   fraction of the thickness at that point.
   ----------------------------------------------------------------*/
-int ProjNormFracThick(float *x, float *y, float *z,
-                      MRI_SURFACE *surf, int vtx, float frac)
+int ProjNormFracThick( float *x, float *y, float *z,
+                       const MRI_SURFACE *surf, int vtx, float frac )
 {
   float r;
   r = frac * surf->vertices[vtx].curv;
@@ -668,8 +668,8 @@ int ProjNormFracThickNbr(float *x, float *y, float *z, MRI_SURFACE *surf,
   ProjNormDist() - projects along the surface normal a given
   distance.
   ----------------------------------------------------------------*/
-int ProjNormDist(float *x, float *y, float *z,
-                 MRI_SURFACE *surf, int vtx, float dist)
+int ProjNormDist( float *x, float *y, float *z,
+                  const MRI_SURFACE *surf, int vtx, float dist)
 {
   *x = surf->vertices[vtx].x + dist*surf->vertices[vtx].nx;
   *y = surf->vertices[vtx].y + dist*surf->vertices[vtx].ny;

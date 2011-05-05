@@ -7,9 +7,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2011/04/10 20:47:58 $
- *    $Revision: 1.423 $
+ *    $Author: rge21 $
+ *    $Date: 2011/05/05 20:10:41 $
+ *    $Revision: 1.424 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -192,11 +192,11 @@ typedef struct
 }
 MRI_IMAGE, MRI ;
 
-MATRIX *MRIxfmCRS2XYZ(MRI *mri, int base); /* Native Vox2RAS Matrix
+MATRIX *MRIxfmCRS2XYZ( const MRI *mri, int base ); /* Native Vox2RAS Matrix
                                               (scanner and xfm too) */
 int MRIsetVox2RASFromMatrix(MRI *mri, MATRIX *m_vox2ras);
 int MRIsetVox2RASFromMatrixUnitTest(MRI *mri);
-MATRIX *MRIxfmCRS2XYZtkreg(MRI *mri);      // TkReg  Vox2RAS Matrix
+MATRIX *MRIxfmCRS2XYZtkreg( const MRI *mri );      // TkReg  Vox2RAS Matrix
 MATRIX *MRIxfmCRS2XYZfsl(MRI *mri);        // FSL/FLIRT  Vox2RAS Matrix
 MATRIX *MRItkRegMtxFromVox2Vox(MRI *ref,
                                MRI *mov,
@@ -668,7 +668,8 @@ int   MRIerasePlane(MRI *mri, float x0, float y0, float z0,
 int   MRIeraseBorders(MRI *mri, int width) ;
 int   MRIindexNotInVolume( const MRI *mri,
 			   const double col, const double row, const double slice );
-int   MRIsampleVolume(MRI *mri, double x, double y, double z, double *pval) ;
+int   MRIsampleVolume( const MRI *mri,
+                       double x, double y, double z, double *pval );
 double *MRItrilinKernel(MRI *mri,
                         double c,
                         double r,
@@ -684,18 +685,18 @@ int   MRIsampleVolumeSlice(MRI *mri,
                            double x, double y, double z,
                            double *pval,
                            int slice_direction) ;
-int   MRIsampleSeqVolume(MRI *mri,
-                         double x, double y, double z,
-                         float *valvect,
-                         int firstframe, int lastframe);
+int   MRIsampleSeqVolume( const MRI *mri,
+                          double x, double y, double z,
+                          float *valvect,
+                          int firstframe, int lastframe);
 int   MRIsampleSeqVolumeType(MRI *mri,
 			     double x, double y, double z,
 			     float *valvect,
 			     int firstframe, int lastframe, int type);
-int   MRIsampleVolumeType(MRI *mri,
-                          double x, double y, double z,
-                          double *pval,
-                          int type) ;
+int   MRIsampleVolumeType( const MRI *mri,
+                           double x, double y, double z,
+                           double *pval,
+                           int type );
 int   MRIsampleLabeledVolume(MRI *mri,
                              double x, double y, double z,
                              double *pval,
@@ -1196,12 +1197,12 @@ MATRIX *MRIrasXformToVoxelXform(MRI *mri_src, MRI *mri_dst,
                                 MATRIX *m_ras_xform, MATRIX *m_voxel_xform);
 
 
-int MRIsincSampleVolume(MRI *mri,
-                        double x, double y, double z,
-                        int hw, double *pval);
-int MRIcubicSampleVolume(MRI *mri,
+int MRIsincSampleVolume( const MRI *mri,
                          double x, double y, double z,
-                         double *pval); /*E*/
+                         int hw, double *pval );
+int MRIcubicSampleVolume( const MRI *mri,
+                          double x, double y, double z,
+                          double *pval ); /*E*/
 MRI *MRIsincTransform(MRI *mri_src, MRI *mri_dst, MATRIX *mA, int hw);
 int MRIlabelOverlap(MRI *mri1, MRI *mri2, int label) ;
 int MRIlabelUnion(MRI *mri1, MRI *mri2, int label) ;

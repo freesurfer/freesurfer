@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2011/04/28 13:29:18 $
- *    $Revision: 1.488 $
+ *    $Date: 2011/05/05 20:10:43 $
+ *    $Revision: 1.489 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -23,7 +23,7 @@
  */
 
 extern const char* Progname;
-const char *MRI_C_VERSION = "$Revision: 1.488 $";
+const char *MRI_C_VERSION = "$Revision: 1.489 $";
 
 
 /*-----------------------------------------------------
@@ -124,7 +124,7 @@ static long mris_alloced = 0 ;
 
   Note: MRIgetVoxelToRasXform is #defined to be extract_i_to_r().
   ----------------------------------------------------------------*/
-MATRIX *MRIxfmCRS2XYZ(MRI *mri, int base)
+MATRIX *MRIxfmCRS2XYZ( const MRI *mri, int base)
 {
   MATRIX *m;
   MATRIX *Pcrs, *PxyzOffset;
@@ -305,7 +305,7 @@ int MRIsetVox2RASFromMatrixUnitTest(MRI *mri)
   arbitrary, they must be applied consistently. See also:
   surfaceRASFromVoxel_ and voxelFromSurfaceRAS_.
   -------------------------------------------------------------*/
-MATRIX *MRIxfmCRS2XYZtkreg(MRI *mri)
+MATRIX *MRIxfmCRS2XYZtkreg( const MRI *mri)
 {
   MRI *tmp;
   MATRIX *K;
@@ -9559,9 +9559,9 @@ MRIsampleLabeledVolume(MRI *mri,
   Description
   ------------------------------------------------------*/
 int
-MRIsampleVolumeType(MRI *mri,
-                    double x, double y, double z,
-                    double *pval, int type)
+MRIsampleVolumeType( const MRI *mri,
+                     double x, double y, double z,
+                     double *pval, int type)
 {
   int   xv, yv, zv ;
   int OutOfBounds;
@@ -9825,7 +9825,7 @@ MRIinterpolateIntoVolumeFrame(MRI *mri, double x, double y, double z, int frame,
   multi-frame.
   -------------------------------------------------------------------*/
 int
-MRIsampleVolume(MRI *mri, double x, double y, double z, double *pval)
+MRIsampleVolume( const MRI *mri, double x, double y, double z, double *pval)
 {
   int  OutOfBounds;
   int  xm, xp, ym, yp, zm, zp, width, height, depth ;
@@ -9941,8 +9941,8 @@ MRIsampleVolume(MRI *mri, double x, double y, double z, double *pval)
   sampled at the same time (this can be important in time-sensitive
   applications).
   -------------------------------------------------------------------*/
-int MRIsampleSeqVolume(MRI *mri, double x, double y, double z, float *valvect,
-                       int firstframe, int lastframe)
+int MRIsampleSeqVolume( const MRI *mri, double x, double y, double z, float *valvect,
+                        int firstframe, int lastframe )
 {
   int  OutOfBounds;
   int  f,xm, xp, ym, yp, zm, zp, width, height, depth ;
@@ -10312,7 +10312,8 @@ localeval(double x, int iter)
 
   ------------------------------------------------------*/
 int
-MRIcubicSampleVolume(MRI *mri, double x, double y, double z, double *pval)
+MRIcubicSampleVolume( const MRI *mri,
+                      double x, double y, double z, double *pval )
 {
   int  OutOfBounds;
   int  width, height, depth ;
@@ -10587,9 +10588,9 @@ double ham_sinc(double x,double fullwidth)
 
 /*-------------------------------------------------------------------------*/
 int
-MRIsincSampleVolume(MRI *mri,
-                    double x, double y, double z,
-                    int hw, double *pval)
+MRIsincSampleVolume( const MRI *mri,
+                     double x, double y, double z,
+                     int hw, double *pval )
 {
   int  OutOfBounds;
   int  width, height, depth ;
