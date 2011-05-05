@@ -8,26 +8,24 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2009/06/02 01:03:03 $
- *    $Revision: 1.12 $
+ *    $Date: 2011/05/05 15:29:50 $
+ *    $Revision: 1.14.2.1 $
  *
- * Copyright (C) 2002-2007,
- * The General Hospital Corporation (Boston, MA). 
- * All rights reserved.
+ * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
- * Distribution, usage and copying of this software is covered under the
- * terms found in the License Agreement file named 'COPYING' found in the
- * FreeSurfer source code root directory, and duplicated here:
- * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ * Terms and conditions for use, reproduction, distribution and contribution
+ * are found in the 'FreeSurfer Software License Agreement' contained
+ * in the file 'LICENSE' found in the FreeSurfer distribution, and here:
  *
- * General inquiries: freesurfer@nmr.mgh.harvard.edu
- * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
+ *
+ * Reporting: freesurfer@nmr.mgh.harvard.edu
  *
  */
 
 
 // fsglm.h - include file for fsglm.c
-// $Id: fsglm.h,v 1.12 2009/06/02 01:03:03 greve Exp $
+// $Id: fsglm.h,v 1.14.2.1 2011/05/05 15:29:50 greve Exp $
 
 #ifndef FSGLM_H
 #define FSGLM_H
@@ -44,6 +42,7 @@ typedef struct {
   // Note: weighted GLM not included here. To do weighted,
   // weight y and X prior to analysis.
   double dof;  // nrows of X - ncols
+  int AllowZeroDOF; 
   int ill_cond_flag;
 
   MATRIX *beta;
@@ -68,6 +67,10 @@ typedef struct {
   MATRIX *gamma[GLMMAT_NCONTRASTS_MAX];
   double F[GLMMAT_NCONTRASTS_MAX];
   double p[GLMMAT_NCONTRASTS_MAX];
+
+  /* When ReScaleX=1, rescale cols of X before computing inv(X'*X), 
+     then rescale X'*X and inv(X'*X) so that it is transparent.*/
+  int ReScaleX; 
 
   // These are matrices to hold intermediate values
   MATRIX *Ct[GLMMAT_NCONTRASTS_MAX];   // transposes of contrast matrices

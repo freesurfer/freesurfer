@@ -8,26 +8,24 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2009/06/02 01:03:03 $
- *    $Revision: 1.22 $
+ *    $Date: 2011/05/05 15:29:50 $
+ *    $Revision: 1.25.2.1 $
  *
- * Copyright (C) 2002-2007,
- * The General Hospital Corporation (Boston, MA). 
- * All rights reserved.
+ * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
- * Distribution, usage and copying of this software is covered under the
- * terms found in the License Agreement file named 'COPYING' found in the
- * FreeSurfer source code root directory, and duplicated here:
- * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ * Terms and conditions for use, reproduction, distribution and contribution
+ * are found in the 'FreeSurfer Software License Agreement' contained
+ * in the file 'LICENSE' found in the FreeSurfer distribution, and here:
  *
- * General inquiries: freesurfer@nmr.mgh.harvard.edu
- * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
+ *
+ * Reporting: freesurfer@nmr.mgh.harvard.edu
  *
  */
 
 
 // fsglm.c - routines to perform GLM analysis.
-// $Id: fsglm.c,v 1.22 2009/06/02 01:03:03 greve Exp $
+// $Id: fsglm.c,v 1.25.2.1 2011/05/05 15:29:50 greve Exp $
 /*
   y = X*beta + n;                      Forward Model
   beta = inv(X'*X)*X'*y;               Fit beta
@@ -152,7 +150,7 @@
 // Return the CVS version of this file.
 const char *GLMSrcVersion(void)
 {
-  return("$Id: fsglm.c,v 1.22 2009/06/02 01:03:03 greve Exp $");
+  return("$Id: fsglm.c,v 1.25.2.1 2011/05/05 15:29:50 greve Exp $");
 }
 
 
@@ -189,7 +187,9 @@ GLMMAT *GLMalloc(void)
   glm->eres = NULL;
   glm->rvar = 0;
   glm->dof  = 0;
+  glm->AllowZeroDOF = 0;
   glm->ill_cond_flag  = 0;
+  glm->ReScaleX = 0;
 
   glm->yffxvar = NULL;
   glm->ffxdof = 0;
@@ -237,6 +237,7 @@ GLMMAT *GLMalloc(void)
 int GLMdof(GLMMAT *glm)
 {
   glm->dof = glm->X->rows - glm->X->cols;
+  if(glm->dof == 0 && glm->AllowZeroDOF) glm->dof = 1;
   return(glm->dof);
 }
 
@@ -363,14 +364,25 @@ int GLMcMatrices(GLMMAT *glm)
   ---------------------------------------------------------------*/
 int GLMxMatrices(GLMMAT *glm)
 {
-  int n;
-  MATRIX *Mtmp;
+  int n,c,r;
+  MATRIX *Mtmp,*Xnorm,*Xtnorm,*Xscale,*XtX;
+  double v;
+  Xscale=NULL;
 
   glm->dof = glm->X->rows - glm->X->cols;
+  if(glm->dof == 0 && glm->AllowZeroDOF) glm->dof = 1;
 
   glm->Xt   = MatrixTranspose(glm->X,glm->Xt);
   glm->XtX  = MatrixMultiply(glm->Xt,glm->X,glm->XtX);
-  Mtmp = MatrixInverse(glm->XtX,glm->iXtX);
+  if(glm->ReScaleX){
+    Xscale = MatrixAlloc(glm->X->cols,1,MATRIX_REAL);
+    Xnorm = MatrixNormalizeCol(glm->X,NULL,Xscale);
+    Xtnorm = MatrixTranspose(Xnorm,NULL);
+    XtX  = MatrixMultiply(Xtnorm,Xnorm,NULL);
+  } 
+  else XtX = glm->XtX;
+
+  Mtmp = MatrixInverse(XtX,glm->iXtX);
   if(Mtmp == NULL) {
     printf("Matrix is Ill-conditioned\n");
     MatrixPrint(stdout,glm->X);
@@ -379,6 +391,18 @@ int GLMxMatrices(GLMMAT *glm)
   }
   glm->ill_cond_flag  = 0;
   glm->iXtX = Mtmp;
+  if(glm->ReScaleX){
+    for(c=1; c <= glm->iXtX->rows; c++){
+      for(r=1; r <= glm->iXtX->rows; r++){
+	v = Xscale->rptr[1][c] * Xscale->rptr[1][r] ;
+	glm->iXtX->rptr[c][r] /= v;
+      }
+    }
+    MatrixFree(&Xnorm);
+    MatrixFree(&Xtnorm);
+    MatrixFree(&Xscale);
+    MatrixFree(&XtX);
+  }
 
   for (n = 0; n < glm->ncontrasts; n++){
     // gamma = C*beta
@@ -469,7 +493,7 @@ int GLMtest(GLMMAT *glm)
     glm->gammat[n] = MatrixTranspose(glm->gamma[n],glm->gammat[n]);
     glm->gCVM[n]   = MatrixScalarMul(glm->CiXtXCt[n],dtmp,glm->gCVM[n]);
     mtmp           = MatrixInverse(glm->CiXtXCt[n],glm->igCVM[n]);
-    if (mtmp != NULL)  {
+    if (mtmp != NULL && glm->rvar > FLT_MIN)  {
       glm->igCVM[n]    =
         MatrixScalarMul(glm->igCVM[n],1.0/dtmp,glm->igCVM[n]);
       glm->gtigCVM[n]  =

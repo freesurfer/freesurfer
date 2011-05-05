@@ -6,20 +6,19 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2010/03/13 01:32:40 $
- *    $Revision: 1.72 $
+ *    $Author: greve $
+ *    $Date: 2011/05/05 15:29:50 $
+ *    $Revision: 1.74.2.1 $
  *
- * Copyright (C) 2002-2010,
- * The General Hospital Corporation (Boston, MA). 
- * All rights reserved.
+ * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
- * Distribution, usage and copying of this software is covered under the
- * terms found in the License Agreement file named 'COPYING' found in the
- * FreeSurfer source code root directory, and duplicated here:
- * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ * Terms and conditions for use, reproduction, distribution and contribution
+ * are found in the 'FreeSurfer Software License Agreement' contained
+ * in the file 'LICENSE' found in the FreeSurfer distribution, and here:
  *
- * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
+ *
+ * Reporting: freesurfer@nmr.mgh.harvard.edu
  *
  */
 
@@ -194,7 +193,8 @@ float  VectorTripleProduct( const VECTOR *v1,
                             const VECTOR *v2,
                             const VECTOR *v3) ;
 VECTOR *VectorNormalize( const VECTOR *vin, VECTOR *vout) ;
-MATRIX *MatrixNormalizeCol(MATRIX *m, MATRIX *mcnorm);
+MATRIX *MatrixNormalizeCol(MATRIX *m, MATRIX *mcnorm, MATRIX *scale);
+MATRIX *MatrixNormalizeColScale(MATRIX *m, MATRIX *scale);
 
 /* these are macro versions that work on 3-d vectors */
 #define RV3_X(v)     (RVECTOR_ELT(v,1))
@@ -283,6 +283,7 @@ int MatrixCheckFinite(MATRIX *m);
 double MatrixRowDotProduct(MATRIX *m, int row, VECTOR *v) ;
 MATRIX *MatrixKron(MATRIX *m1, MATRIX *m2, MATRIX *k);
 MATRIX *MatrixDemean(MATRIX *M, MATRIX *Mdm);
+MATRIX *MatrixExcludeFrames(MATRIX *Src, int *ExcludeFrames, int nExclude);
 
 #if defined(__cplusplus)
 };

@@ -6,20 +6,19 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2010/03/13 01:32:42 $
- *    $Revision: 1.123 $
+ *    $Author: greve $
+ *    $Date: 2011/05/05 15:29:50 $
+ *    $Revision: 1.125.2.1 $
  *
- * Copyright (C) 2002-2010,
- * The General Hospital Corporation (Boston, MA). 
- * All rights reserved.
+ * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
- * Distribution, usage and copying of this software is covered under the
- * terms found in the License Agreement file named 'COPYING' found in the
- * FreeSurfer source code root directory, and duplicated here:
- * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ * Terms and conditions for use, reproduction, distribution and contribution
+ * are found in the 'FreeSurfer Software License Agreement' contained
+ * in the file 'LICENSE' found in the FreeSurfer distribution, and here:
  *
- * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
+ *
+ * Reporting: freesurfer@nmr.mgh.harvard.edu
  *
  */
 
@@ -3218,11 +3217,38 @@ MATRIX *MatrixToeplitz(VECTOR *v, MATRIX *T, int Type)
 }
 
 
-/*----------------------------------------------------------*/
-MATRIX *MatrixNormalizeCol(MATRIX *m, MATRIX *mcnorm)
+/*!
+\fn MATRIX *MatrixNormalizeColScale(MATRIX *m, MATRIX *scale)
+\brief Computes the scaling used for MatrixNormalizeCol()
+*/
+MATRIX *MatrixNormalizeColScale(MATRIX *m, MATRIX *scale)
 {
   int r,c;
-  float sum2, v;
+  double sum2, v;
+
+  if(scale == NULL) scale = MatrixAlloc(1,m->cols,MATRIX_REAL);
+  for (c=1; c <= m->cols; c++) {
+    sum2 = 0.0;
+    for (r=1; r <= m->rows; r++) {
+      v = m->rptr[r][c];
+      sum2 += (v*v);
+    }
+    scale->rptr[1][c] = sqrt(sum2);
+  }
+  //printf("scale -----------------------------\n");
+  //MatrixPrint(stdout,scale);
+  //printf("------------------------------------\n");
+  return(scale);
+}
+
+/*!
+\fn MATRIX *MatrixNormalizeCol(MATRIX *m, MATRIX *mcnorm)
+\brief Rescales m so that sum(col^2)=1
+*/
+MATRIX *MatrixNormalizeCol(MATRIX *m, MATRIX *mcnorm, MATRIX *scale)
+{
+  int r,c,FreeScale=1;
+  double v;
 
   if (mcnorm == NULL)
   {
@@ -3242,15 +3268,11 @@ MATRIX *MatrixNormalizeCol(MATRIX *m, MATRIX *mcnorm)
     }
   }
 
+  if(scale) FreeScale = 0;
+  scale = MatrixNormalizeColScale(m,scale);
   for (c=1; c <= m->cols; c++)
   {
-    sum2 = 0.0;
-    for (r=1; r <= m->rows; r++)
-    {
-      v = m->rptr[r][c];
-      sum2 += (v*v);
-    }
-    v = sqrt(sum2);
+    v = scale->rptr[1][c];
     if (v != 0)
       for (r=1; r <= m->rows; r++)
         mcnorm->rptr[r][c] = (m->rptr[r][c])/v;
@@ -3259,6 +3281,7 @@ MATRIX *MatrixNormalizeCol(MATRIX *m, MATRIX *mcnorm)
         mcnorm->rptr[r][c] = 0.0;
 
   }
+  if(FreeScale) MatrixFree(&scale);
 
   //printf("m ----------------------------\n");
   //MatrixPrint(stdout,m);
@@ -3828,4 +3851,32 @@ MATRIX *MatrixDemean(MATRIX *M, MATRIX *Mdm)
     for(r=1; r <= M->rows; r++) M->rptr[r][c] -= vmean;
   }    
   return(Mdm);
+}
+
+
+/*!
+  \fn MATRIX *MatrixExcludeFrames(MATRIX *Src, int *ExcludeFrames, int nExclude)
+  \brief Creates a new matrix by excluding the given set of rows.
+  \param Src - source matrix.
+*/
+MATRIX *MatrixExcludeFrames(MATRIX *Src, int *ExcludeFrames, int nExclude)
+{
+  MATRIX *Trg=NULL;
+  int q, n, skip, m, c, nframesNew;
+
+  nframesNew = Src->rows - nExclude;
+  
+  Trg = MatrixAlloc(nframesNew,Src->cols,MATRIX_REAL);
+  q = 0;
+  for(n=0; n < Src->rows; n++){
+    skip = 0;
+    for(m=0; m < nExclude; m++) if(n == ExcludeFrames[m]) skip = 1;
+    if(skip) continue;
+    for(c=0; c < Src->cols; c++) {
+      //printf("%d %d %d %d\n",n,q,c,Src->cols);
+      Trg->rptr[q+1][c+1] = Src->rptr[n+1][c+1];
+    }
+    q++;
+  }
+  return(Trg);
 }
