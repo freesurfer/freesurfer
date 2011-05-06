@@ -7,9 +7,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: rge21 $
- *    $Date: 2011/05/05 20:10:41 $
- *    $Revision: 1.424 $
+ *    $Author: fischl $
+ *    $Date: 2011/05/06 14:34:23 $
+ *    $Revision: 1.425 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -967,6 +967,7 @@ MRI *MRIvariancesToStds(MRI *mri_var, MRI *mri_std, int dst_frame) ;
 MRI *MRIconcatenateFrames(MRI *mri_frame1, MRI *mri_frame2, MRI *mri_dst);
 MRI *MRIcopyFrame(MRI *mri_src, MRI *mri_dst, int src_frame, int dst_frame) ;
 double MRImeanFrameNonzeroMask(MRI *mri, int frame, MRI *mri_mask) ;
+MRI *MRIcopyFrames(MRI *mri_src, MRI *mri_dst, int src_start_frame, int src_end_frame, int dst_start_frame) ;
 double MRImeanFrame(MRI *mri, int frame) ;
 
 int   MRIcountPlanarAboveThreshold(MRI *mri_src, int vertex, int x, int y,
