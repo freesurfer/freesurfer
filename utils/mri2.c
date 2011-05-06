@@ -7,8 +7,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2011/05/05 20:10:43 $
- *    $Revision: 1.69 $
+ *    $Date: 2011/05/06 19:10:43 $
+ *    $Revision: 1.70 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -41,6 +41,9 @@
 #include "sig.h"
 #include "cma.h"
 #include "chronometer.h"
+
+//#define MRI2_TIMERS
+
 
 #include "affine.h"
 
@@ -2923,6 +2926,8 @@ int MRIvol2VolVSM(MRI *src, MRI *targ, MATRIX *Vt2s,
 }
 
 /*---------------------------------------------------------------*/
+
+
 MRI *MRIvol2surfVSM( const MRI *SrcVol,
                      const MATRIX *Rtk,
                      const MRI_SURFACE *TrgSurf,
@@ -2941,6 +2946,11 @@ MRI *MRIvol2surfVSM( const MRI *SrcVol,
   double rval,val;
   float Tx, Ty, Tz;
   const VERTEX *v ;
+
+#ifdef MRI2_TIMERS
+  Chronometer tLoop;
+  InitChronometer( &tLoop );
+#endif
 
   if (vsm)  {
     err = MRIdimMismatch(vsm,SrcVol,0);
@@ -2989,11 +2999,20 @@ MRI *MRIvol2surfVSM( const MRI *SrcVol,
   SetAffineMatrix( &ras2voxAffine, ras2vox );
 
   /*--- loop through each vertex ---*/
+#ifdef MRI2_TIMERS
+  StartChronometer( &tLoop );
+  unsigned int skipped = 0;
+#endif
   for (vtx = 0; vtx < TrgSurf->nvertices; vtx+=nskip)
   {
     v = &TrgSurf->vertices[vtx] ;
-    if (v->ripflag)
-      continue ;
+    if( v->ripflag ) {
+#ifdef MRI2_TIMERS
+      skipped++;
+#endif
+      continue;
+    }
+
     if (ProjFrac != 0.0)
     {
       if (ProjType == 0)
@@ -3091,6 +3110,11 @@ MRI *MRIvol2surfVSM( const MRI *SrcVol,
     }// else
     if (SrcHitVol != NULL) MRIFseq_vox(SrcHitVol,icol,irow,islc,0)++;
   }
+#ifdef MRI2_TIMERS
+  StopChronometer( &tLoop );
+  printf( "%s: Main Loop complete in %6.3f ms (%6u %6u)\n",
+          __FUNCTION__, GetChronometerValue( &tLoop ), skipped, nhits );
+#endif
 
   MatrixFree(&ras2vox);
   free(valvect);
