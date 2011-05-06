@@ -10,8 +10,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2011/05/06 16:49:08 $
- *    $Revision: 1.38 $
+ *    $Date: 2011/05/06 18:39:37 $
+ *    $Revision: 1.39 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -46,7 +46,7 @@
 #include "mrishash.h"
 
 static char vcid[] =
-  "$Id: mris_flatten.c,v 1.38 2011/05/06 16:49:08 fischl Exp $";
+  "$Id: mris_flatten.c,v 1.39 2011/05/06 18:39:37 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -83,6 +83,8 @@ static char *original_unfold_surf_name = ORIG_NAME ;
 static float rescale = 1.0f ;
 
 static MRI *mri_overlay ;  // if "flattening" an overlay with an existing flatmap
+
+static LABEL *label_overlay = NULL ;
 
 static double
 rectangle_error(MRI_SURFACE *mris, double xmin, double ymin, double xmax, double ymax)
@@ -160,23 +162,29 @@ find_biggest_inscribed_rectangle(MRI_SURFACE *mris, double *pxmin, double *pymin
   return(NO_ERROR) ;
 }
 MRI *
-MRIflattenOverlay(MRI_SURFACE *mris, MRI *mri_overlay, MRI *mri_flat, double res)
+MRIflattenOverlay(MRI_SURFACE *mris, MRI *mri_overlay, MRI *mri_flat, double res, LABEL *label_overlay)
 {
   double   xmin, ymin, xmax, ymax, fdist, lambda[3], xf, yf, val0, val1, val2, val ;
   int      width, height, x, y, fno, ret, z ;
   MHT      *mht ;
   FACE     *face;
 
-  mht = MHTfillTableAtResolution(mris, NULL, CURRENT_VERTICES, 1.0) ;
   find_biggest_inscribed_rectangle(mris, &xmin, &ymin, &xmax, &ymax) ;
   width = (int)ceil((xmax-xmin)/res) ;
   height = (int)ceil((ymax-ymin)/res) ;
   mri_flat = MRIalloc(width, height, mri_overlay->nframes, MRI_FLOAT) ;
+  mri_flat->xstart = xmin ; mri_flat->xend = xmax ;
+  mri_flat->ystart = ymin ; mri_flat->yend = ymax ;
+  mri_flat->zstart = 0 ; mri_flat->zend = mri_overlay->nframes-1 ;
+  MRIsetResolution(mri_flat, res, res, 1) ;
+  if (label_overlay)  // constrain processing to only this label
+    LabelRipRestOfSurface(label_overlay, mris) ;
+  mht = MHTfillTableAtResolution(mris, NULL, CURRENT_VERTICES, 1.0) ;
   for (x = 0 ; x < width; x++)
     for (y = 0 ; y < height ; y++)
     {
       xf = x*res + xmin ;  yf = y*res + ymin ;   // back to flattened coords
-      MHTfindClosestFaceGeneric(mht, mris, xf, yf, 0.0, 1000, -1, 0, &face, &fno, &fdist) ;
+      MHTfindClosestFaceGeneric(mht, mris, xf, yf, 0.0, 10*res, 2, 1, &face, &fno, &fdist) ;
       if (fno >= 0)  // otherwise this point is not in a face
       {
         ret = face_barycentric_coords(mris, fno, CURRENT_VERTICES, xf, yf, 0, &lambda[0], &lambda[1],&lambda[2]); 
@@ -190,6 +198,13 @@ MRIflattenOverlay(MRI_SURFACE *mris, MRI *mri_overlay, MRI *mri_flat, double res
             val = lambda[0]*val0 + lambda[1]*val1 + lambda[2]*val2 ;
             MRIsetVoxVal(mri_flat, x, y, z, 0, val) ;
           }
+        }
+        else if (fabs(xf) < 10 && fabs(yf) < 10)
+        {
+          MHTfindClosestFaceGeneric(mht, mris, xf, yf, 0.0, 1000, -1, 1, &face, &fno, &fdist) ;
+          printf("(%d, %d) --> %f %f unmapped (goes to face %d, v (%d, %d, %d) if projected\n",
+                 x, y, xf, yf, fno, face->v[0], face->v[1], face->v[2]) ;
+          DiagBreak() ;
         }
       }
     }
@@ -210,7 +225,7 @@ main(int argc, char *argv[])
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mris_flatten.c,v 1.38 2011/05/06 16:49:08 fischl Exp $",
+           "$Id: mris_flatten.c,v 1.39 2011/05/06 18:39:37 fischl Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -527,7 +542,7 @@ main(int argc, char *argv[])
     
     printf("resampling overlay (%d x %d x %d x %d into flattened coordinates..\n",
            mri_overlay->width, mri_overlay->height, mri_overlay->depth, mri_overlay->nframes) ;
-    mri_flattened = MRIflattenOverlay(mris, mri_overlay, NULL, 1.0) ;
+    mri_flattened = MRIflattenOverlay(mris, mri_overlay, NULL, 1.0, label_overlay) ;
     printf("writing flattened overlay to %s\n", out_patch_fname) ;
     MRIwrite(mri_flattened, out_patch_fname) ;
     MRIfree(&mri_flattened) ;
@@ -574,6 +589,13 @@ get_option(int argc, char *argv[])
     if (mri_overlay == NULL)
       ErrorExit(ERROR_NOFILE, "%s: could not read overlay from %s", argv[2]) ;
     parms.niterations = 0 ;   // this will disable the actual flattening
+  }
+  else if (!stricmp(option, "label_overlay") || !stricmp(option, "overlay_label"))
+  {
+    label_overlay = LabelRead(NULL, argv[2]) ;
+    nargs = 1 ;
+    if (label_overlay == NULL)
+      ErrorExit(ERROR_NOFILE, "%s: could not read label overlay from %s", argv[2]) ;
   }
   else if (!stricmp(option, "norand"))
   {
