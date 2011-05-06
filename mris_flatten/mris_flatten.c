@@ -9,9 +9,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:32 $
- *    $Revision: 1.37 $
+ *    $Author: fischl $
+ *    $Date: 2011/05/06 16:49:08 $
+ *    $Revision: 1.38 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -42,9 +42,11 @@
 #include "utils.h"
 #include "version.h"
 #include "fastmarching.h"
+#include "mri2.h"
+#include "mrishash.h"
 
 static char vcid[] =
-  "$Id: mris_flatten.c,v 1.37 2011/03/02 00:04:32 nicks Exp $";
+  "$Id: mris_flatten.c,v 1.38 2011/05/06 16:49:08 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -80,6 +82,122 @@ static char *original_surf_name = SMOOTH_NAME ;
 static char *original_unfold_surf_name = ORIG_NAME ;
 static float rescale = 1.0f ;
 
+static MRI *mri_overlay ;  // if "flattening" an overlay with an existing flatmap
+
+static double
+rectangle_error(MRI_SURFACE *mris, double xmin, double ymin, double xmax, double ymax)
+{
+  int    vno ;
+  VERTEX *v ;
+  double max_dist, x0, y0, x, y, dx, dy, xtop, ytop, xbottom, ybottom ;
+
+  // find point that is closest to (or outside) of the boundary
+  // negative distances mean inside the rectangle
+  // note this is only for a rectangle aligned with the cardinal axes
+  x0 = (xmin + xmax) / 2 ; y0 = (ymin + ymax) / 2 ; // center of rectangle
+  xtop = xmax - x0 ; ytop = ymax - y0 ;
+  xbottom = xmin - x0 ; ybottom = ymin - y0 ;
+  max_dist = -MAX(xmax-xmin, ymax-ymin) ;
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    v = &mris->vertices[vno] ;
+    if (vno == Gdiag_no)
+      DiagBreak() ;
+    if (v->ripflag)
+      continue ;
+
+    x = v->x - x0 ; y = v->y - y0 ;
+    if (x > 0)
+      dx = x - xtop ;
+    else
+      dx = xbottom - x ;
+    if (y > 0)
+      dy = y - ytop ;
+    else
+      dy = ybottom - y ;
+    if (vno == 0 || dx > max_dist)
+      max_dist = dx ;
+    if (dy > max_dist)
+      max_dist = dy ;
+  }
+  return(max_dist) ;
+}
+
+static int
+find_biggest_inscribed_rectangle(MRI_SURFACE *mris, double *pxmin, double *pymin, double *pxmax, double *pymax)
+{
+  double   x0, y0, xmin, ymin, xmax, ymax, error ;
+  int      nv, vno ;
+  VERTEX   *v ;
+
+  xmin = ymin = 1000000 ;
+  xmax = ymax = -xmin ;
+  for (x0 = y0 = 0.0, nv = vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    v = &mris->vertices[vno] ;
+    if (vno == Gdiag_no)
+      DiagBreak() ;
+    if (v->ripflag)
+      continue ;
+
+    nv++ ;
+    x0 += v->x ; y0 += v->y ;
+    if (v->x > xmax)
+      xmax = v->x ;
+    if (v->y > ymax)
+      ymax = v->y ;
+    if (v->x < xmin)
+      xmin = v->x ;
+    if (v->y < ymin)
+      ymin = v->y ;
+  }
+  x0 /= nv ; y0 /= nv ;
+  error = rectangle_error(mris, xmin, ymin, xmax, ymax) ;
+  if (DIAG_VERBOSE_ON)
+    printf("centroid of flatmap found at (%2.1f, %2.1f), bounding box (%2.1f --> %2.1f, %2.1f --> %2.1f) : %2.2f\n", 
+           x0, y0, xmin, xmax, ymin, ymax, error) ;
+  *pxmax = xmax ; *pxmin = xmin ; *pymin = ymin ; *pymax = ymax ;
+  return(NO_ERROR) ;
+}
+MRI *
+MRIflattenOverlay(MRI_SURFACE *mris, MRI *mri_overlay, MRI *mri_flat, double res)
+{
+  double   xmin, ymin, xmax, ymax, fdist, lambda[3], xf, yf, val0, val1, val2, val ;
+  int      width, height, x, y, fno, ret, z ;
+  MHT      *mht ;
+  FACE     *face;
+
+  mht = MHTfillTableAtResolution(mris, NULL, CURRENT_VERTICES, 1.0) ;
+  find_biggest_inscribed_rectangle(mris, &xmin, &ymin, &xmax, &ymax) ;
+  width = (int)ceil((xmax-xmin)/res) ;
+  height = (int)ceil((ymax-ymin)/res) ;
+  mri_flat = MRIalloc(width, height, mri_overlay->nframes, MRI_FLOAT) ;
+  for (x = 0 ; x < width; x++)
+    for (y = 0 ; y < height ; y++)
+    {
+      xf = x*res + xmin ;  yf = y*res + ymin ;   // back to flattened coords
+      MHTfindClosestFaceGeneric(mht, mris, xf, yf, 0.0, 1000, -1, 0, &face, &fno, &fdist) ;
+      if (fno >= 0)  // otherwise this point is not in a face
+      {
+        ret = face_barycentric_coords(mris, fno, CURRENT_VERTICES, xf, yf, 0, &lambda[0], &lambda[1],&lambda[2]); 
+        if (ret >= 0)
+        {
+          for (z = 0 ;z < mri_flat->depth ; z++)
+          {
+            val0 = MRIgetVoxVal(mri_overlay, face->v[0], 0, 0, z) ;
+            val1 = MRIgetVoxVal(mri_overlay, face->v[1], 0, 0, z) ;
+            val2 = MRIgetVoxVal(mri_overlay, face->v[2], 0, 0, z) ;
+            val = lambda[0]*val0 + lambda[1]*val1 + lambda[2]*val2 ;
+            MRIsetVoxVal(mri_flat, x, y, z, 0, val) ;
+          }
+        }
+      }
+    }
+
+  MHTfree(&mht) ;
+  return(mri_flat) ;
+}
+
 
 int
 main(int argc, char *argv[])
@@ -92,7 +210,7 @@ main(int argc, char *argv[])
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mris_flatten.c,v 1.37 2011/03/02 00:04:32 nicks Exp $",
+           "$Id: mris_flatten.c,v 1.38 2011/05/06 16:49:08 fischl Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -357,6 +475,63 @@ main(int argc, char *argv[])
     fclose(fp) ;
   }
 
+  if (mri_overlay)
+  {
+    MRI *mri_flattened ;
+    // if it is NxNx1x1 reshape it to be Nx1x1xN
+    if ( mri_overlay->width == mri_overlay->height &&
+       mri_overlay->depth == 1 &&
+       mri_overlay->nframes == 1)
+    {
+      MRI *mri_tmp ;
+      printf("reshaping to move 2nd dimension to time\n") ;
+      mri_tmp = mri_reshape( mri_overlay, mri_overlay->width, 1, 1, mri_overlay->height);
+      MRIfree( &mri_overlay );
+      mri_overlay = mri_tmp;
+    }
+
+    // put in some special code that knows about icosahedra
+    if (mris->nvertices == 163842 ||  // ic7
+        mris->nvertices == 40962 ||  // ic6
+        mris->nvertices == 10242 ||  // ic5
+        mris->nvertices == 2562)  // ic4
+    {
+      int nvals, start_index, end_index ;
+      MRI *mri_tmp ;
+      
+      printf("cross-hemispheric correlation matrix detected, reshaping...\n") ;
+      nvals = mri_overlay->width * mri_overlay->height * mri_overlay->depth ;
+      if (nvals == 2*mris->nvertices)   // it's a corr matrix for both hemis
+      {
+        if (mris->hemisphere == LEFT_HEMISPHERE || mris->hemisphere == RIGHT_HEMISPHERE)
+        {
+          if (mris->hemisphere == LEFT_HEMISPHERE)
+          {
+            start_index = 0 ; 
+            end_index = mris->nvertices-1 ;
+          }
+          else
+          {
+            start_index = mris->nvertices ; 
+            end_index = 2*mris->nvertices-1 ;
+          }
+          mri_tmp = MRIextract(mri_overlay, NULL, start_index, 0, 0, mris->nvertices, 1, 1) ;
+          MRIfree(&mri_overlay) ;
+          mri_overlay = mri_tmp;
+        }
+        else // both hemis
+        {
+        }
+      }
+    }
+    
+    printf("resampling overlay (%d x %d x %d x %d into flattened coordinates..\n",
+           mri_overlay->width, mri_overlay->height, mri_overlay->depth, mri_overlay->nframes) ;
+    mri_flattened = MRIflattenOverlay(mris, mri_overlay, NULL, 1.0) ;
+    printf("writing flattened overlay to %s\n", out_patch_fname) ;
+    MRIwrite(mri_flattened, out_patch_fname) ;
+    MRIfree(&mri_flattened) ;
+  }
 #if 0
   sprintf(fname, "%s.area_error", out_fname) ;
   printf("writing area errors to %s\n", fname) ;
@@ -391,6 +566,14 @@ get_option(int argc, char *argv[])
   else if (!stricmp(option, "-version"))
   {
     print_version() ;
+  }
+  else if (!stricmp(option, "overlay"))
+  {
+    mri_overlay = MRIread(argv[2]) ;
+    nargs = 1 ;
+    if (mri_overlay == NULL)
+      ErrorExit(ERROR_NOFILE, "%s: could not read overlay from %s", argv[2]) ;
+    parms.niterations = 0 ;   // this will disable the actual flattening
   }
   else if (!stricmp(option, "norand"))
   {
