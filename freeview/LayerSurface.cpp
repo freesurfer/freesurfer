@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2011/05/06 17:09:50 $
- *    $Revision: 1.59 $
+ *    $Date: 2011/05/06 18:19:48 $
+ *    $Revision: 1.60 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -1367,6 +1367,16 @@ void LayerSurface::MapLabels( unsigned char* data, int nVertexCount )
   {
     if (i == m_nActiveLabel)
       m_labels[i]->MapLabel( data, nVertexCount );
+  }
+}
+
+void LayerSurface::SetActiveLabelColor(const QColor &c)
+{
+  if ( m_nActiveLabel >= 0)
+  {
+    m_labels[m_nActiveLabel]->SetColor(c.redF(), c.greenF(), c.blueF());
+    UpdateColorMap();
+    emit ActorUpdated();
   }
 }
 
