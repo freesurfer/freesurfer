@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:11 $
- *    $Revision: 1.7 $
+ *    $Author: fischl $
+ *    $Date: 2011/05/06 12:25:11 $
+ *    $Revision: 1.8 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -52,6 +52,9 @@ char *Progname ;
 static int verbose = 0 ;
 
 static int no_talairach = 0 ;  /* use talairach coords by default */
+static int ndilate = 0 ;
+static int nerode = 0 ;
+static int nclose = 0 ;
 
 #define MAX_AREAS     100
 #define MAX_SUBJECTS  1000
@@ -99,7 +102,7 @@ main(int argc, char *argv[]) {
   MRI_SURFACE  *mris ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: label2flat.c,v 1.7 2011/03/02 00:04:11 nicks Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: label2flat.c,v 1.8 2011/05/06 12:25:11 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -162,6 +165,10 @@ main(int argc, char *argv[]) {
     MRISreadCanonicalCoordinates(mris, surf_fname) ;
     LabelToCanonical(area, mris) ;
   }
+  if (ndilate > 0)
+    LabelDilate(area, mris, ndilate) ;
+  if (nerode > 0)
+    LabelErode(area, mris, nerode) ;
   if (output_subject)   /* write onto a different subject's flat map */
   {
     MRISfree(&mris) ;
@@ -210,7 +217,27 @@ get_option(int argc, char *argv[]) {
   char *option ;
 
   option = argv[1] + 1 ;            /* past '-' */
-  switch (toupper(*option)) {
+  if (!stricmp(option, "dilate"))
+  {
+    ndilate = atoi(argv[2]) ;
+    printf("dilating label %d times before generating patch\n", ndilate) ;
+    nargs = 1 ;
+  }
+  else if (!stricmp(option, "erode"))
+  {
+    nerode = atoi(argv[2]) ;
+    printf("eroding label %d times before generating patch\n", nerode) ;
+    nargs = 1 ;
+  }
+  else if (!stricmp(option, "close"))
+  {
+    nclose = atoi(argv[2]) ;
+    printf("closing label %d times before generating patch\n", nclose) ;
+    ndilate = nclose ;
+    nerode = nclose ;
+    nargs = 1 ;
+  }
+  else switch (toupper(*option)) {
   case 'C':
     canon_name = argv[2] ;
     fprintf(stderr, "using surface %s as canonical coordinate system.\n",
