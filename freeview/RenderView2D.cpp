@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2011/03/21 21:27:40 $
- *    $Revision: 1.45 $
+ *    $Date: 2011/05/06 19:43:02 $
+ *    $Revision: 1.46 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -150,6 +150,14 @@ void RenderView2D::RefreshAllActors(bool bForScreenShot)
     m_renderer->AddViewProp( m_actorFocusFrame );
   }
 
+  if (!lc->IsEmpty())
+  {
+    double* orig = lc->GetWorldOrigin();
+    double* size = lc->GetWorldSize();
+    m_renderer->ResetCameraClippingRange(orig[0], orig[0]+size[0],
+                                         orig[1], orig[1]+size[1],
+                                         orig[2], orig[2]+size[2]);
+  }
   RenderView::RefreshAllActors(bForScreenShot);
 }
 
@@ -176,8 +184,8 @@ void RenderView2D::UpdateViewByWorldCoordinate()
     cam->SetPosition( wcenter[0], wcenter[1], wcenter[2] - m_dWorldSize[2] );
     break;
   }
-  cam->SetParallelScale( qMax( qMax(m_dWorldSize[0], m_dWorldSize[1]), m_dWorldSize[2]) / 2 );
-  //  m_renderer->ResetCameraClippingRange();
+//  m_renderer->ResetCameraClippingRange();
+  cam->SetParallelScale( qMax( qMax(m_dWorldSize[0], m_dWorldSize[1]), m_dWorldSize[2]) );
 }
 
 void RenderView2D::UpdateAnnotation()
