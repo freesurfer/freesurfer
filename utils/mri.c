@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: rge21 $
- *    $Date: 2011/05/05 20:10:43 $
- *    $Revision: 1.489 $
+ *    $Author: fischl $
+ *    $Date: 2011/05/06 14:34:06 $
+ *    $Revision: 1.490 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -23,7 +23,7 @@
  */
 
 extern const char* Progname;
-const char *MRI_C_VERSION = "$Revision: 1.489 $";
+const char *MRI_C_VERSION = "$Revision: 1.490 $";
 
 
 /*-----------------------------------------------------
@@ -3558,6 +3558,26 @@ MRIextract(MRI *mri_src, MRI *mri_dst, int x0, int y0, int z0,
            int dx, int dy, int dz)
 {
   return(MRIextractInto(mri_src, mri_dst, x0, y0, z0, dx, dy, dz, 0, 0, 0)) ;
+}
+MRI *
+MRIcopyFrames(MRI *mri_src, MRI *mri_dst, int src_start_frame, int src_end_frame, int dst_start_frame)
+{
+  int  fno, offset ;
+
+  if (mri_dst == NULL)
+  {
+    mri_dst = MRIallocSequence(mri_src->width, mri_src->height, mri_src->depth, mri_src->type,
+          src_end_frame-src_start_frame+1) ;
+    MRIcopyHeader(mri_src, mri_dst) ;
+  }
+
+  offset = dst_start_frame-src_start_frame ;
+
+  for (fno = src_start_frame ; fno <= src_end_frame ; fno++)
+  {
+    MRIcopyFrame(mri_src, mri_dst, fno, fno+offset) ;
+  }
+  return(mri_dst) ;
 }
 /*-----------------------------------------------------
   Parameters:
