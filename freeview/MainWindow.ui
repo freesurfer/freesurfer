@@ -361,7 +361,7 @@
     </property>
     <widget class="QMenu" name="menuVolume_Fiilter">
      <property name="title">
-      <string>Volume Fiilter</string>
+      <string>Volume Filter</string>
      </property>
      <addaction name="actionVolumeFilterMean"/>
      <addaction name="actionVolumeFilterMedian"/>
