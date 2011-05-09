@@ -20,8 +20,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2011/03/09 17:35:34 $
- *    $Revision: 1.68 $
+ *    $Date: 2011/05/09 22:02:25 $
+ *    $Revision: 1.69 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -102,6 +102,7 @@ static LABEL *faf_label ;
 static int niter=10 ;
 static int conform = 0 ;
 
+static char compress_char = 'z' ;
 static int InterpMethod = SAMPLE_TRILINEAR;  /*E* prev default behavior */
 static int sinchalfwindow = 3;
 
@@ -217,14 +218,14 @@ main(int argc, char *argv[]) {
 
   make_cmd_version_string
     (argc, argv,
-     "$Id: mri_ms_fitparms.c,v 1.68 2011/03/09 17:35:34 fischl Exp $",
+     "$Id: mri_ms_fitparms.c,v 1.69 2011/05/09 22:02:25 fischl Exp $",
      "$Name:  $",
      cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option (
     argc, argv,
-    "$Id: mri_ms_fitparms.c,v 1.68 2011/03/09 17:35:34 fischl Exp $",
+    "$Id: mri_ms_fitparms.c,v 1.69 2011/05/09 22:02:25 fischl Exp $",
     "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -575,19 +576,19 @@ main(int argc, char *argv[]) {
       }
 
       if ((write_iterations>0) && (iter%write_iterations==0)) {
-        sprintf(fname,"%s/T1-%d.mgz",out_dir,iter);
+        sprintf(fname,"%s/T1-%d.mg%c",out_dir,iter, compress_char);
         printf("writing T1 estimates to %s...\n", fname) ;
         if (Glta)
           useVolGeomToMRI(&Glta->xforms[0].dst, mri_T1) ;
         MRIaddCommandLine(mri_T1, cmdline) ;
         MRIwrite(mri_T1, fname) ;
-        sprintf(fname,"%s/PD-%d.mgz",out_dir,iter);
+        sprintf(fname,"%s/PD-%d.mg%c",out_dir,iter, compress_char);
         printf("writing PD estimates to %s...\n", fname) ;
         if (Glta)
           useVolGeomToMRI(&Glta->xforms[0].dst, mri_PD) ;
         MRIaddCommandLine(mri_PD, cmdline) ;
         MRIwrite(mri_PD, fname) ;
-        sprintf(fname,"%s/sse-%d.mgz",out_dir,iter);
+        sprintf(fname,"%s/sse-%d.mg%c",out_dir,iter, compress_char);
         printf("writing residual sse to %s...\n", fname) ;
         if (Glta)
           useVolGeomToMRI(&Glta->xforms[0].dst, mri_sse) ;
@@ -595,7 +596,7 @@ main(int argc, char *argv[]) {
         MRIwrite(mri_sse, fname) ;
 
         for (j=0;j<nvolumes;j++) {
-          sprintf(fname,"%s/vol%d-%d.mgz",out_dir,j,iter);
+          sprintf(fname,"%s/vol%d-%d.mg%c",out_dir,j,iter, compress_char);
           printf("writing synthetic images to %s...\n", fname);
           if (Glta)
             useVolGeomToMRI(&Glta->xforms[0].dst, mri_flash_synth[j]) ;
@@ -657,7 +658,7 @@ main(int argc, char *argv[]) {
       rms = estimate_ms_params_with_faf(mri_flash, mri_flash_synth,
                                         nvolumes, mri_T1, mri_PD,
                                         mri_sse, M_reg, mri_faf) ;
-      sprintf(fname,  "%s/faf%d.mgz", out_dir, iter);
+      sprintf(fname,  "%s/faf%d.mg%c", out_dir, iter, compress_char);
       printf("writing flip angle field estimates to %s...\n", fname) ;
       MRIaddCommandLine(mri_faf, cmdline) ;
       MRIwrite(mri_faf, fname);
@@ -674,21 +675,21 @@ main(int argc, char *argv[]) {
 
     if (nvolumes > 1) {
       resetTRTEFA(mri_PD, TR, TE, FA);
-      sprintf(fname,"%s/PD.mgz",out_dir);
+      sprintf(fname,"%s/PD.mg%c",out_dir, compress_char);
       printf("writing PD estimates to %s...\n", fname) ;
       if (Glta)
         useVolGeomToMRI(&Glta->xforms[0].dst, mri_PD) ;
       MRIaddCommandLine(mri_PD, cmdline) ;
       MRIwrite(mri_PD, fname) ;
       resetTRTEFA(mri_T1, TR, TE, FA);
-      sprintf(fname,"%s/T1.mgz",out_dir);
+      sprintf(fname,"%s/T1.mg%c",out_dir, compress_char);
       printf("writing T1 estimates to %s...\n", fname) ;
       if (Glta)
         useVolGeomToMRI(&Glta->xforms[0].dst, mri_T1) ;
       MRIaddCommandLine(mri_T1, cmdline) ;
       MRIwrite(mri_T1, fname) ;
 
-      sprintf(fname,"%s/sse.mgz",out_dir);
+      sprintf(fname,"%s/sse.mg%c",out_dir, compress_char);
       printf("writing residual sse to %s...\n", fname) ;
       if (Glta)
         useVolGeomToMRI(&Glta->xforms[0].dst, mri_sse) ;
@@ -699,7 +700,7 @@ main(int argc, char *argv[]) {
 
     if (mri_faf) {
       resetTRTEFA(mri_faf, TR, TE, FA);
-      sprintf(fname,"%s/faf.mgz",out_dir);
+      sprintf(fname,"%s/faf.mg%c",out_dir, compress_char);
       printf("writing faf map to %s...\n", fname) ;
       MRIaddCommandLine(mri_faf, cmdline) ;
       MRIwrite(mri_faf, fname) ;
@@ -707,10 +708,10 @@ main(int argc, char *argv[]) {
     if (synth_flag > 0 && nvolumes > 1) {
       for (j=0;j<nvolumes;j++) {
 #if 0
-        sprintf(fname,"%s/vol%d.mgz",out_dir,j);
+        sprintf(fname,"%s/vol%d.mg%c",out_dir,j, compress_char);
 #else
-        sprintf(fname,"%s/flash%d.mgz",out_dir,
-                nint(DEGREES(mri_flash_synth[j]->flip_angle)));
+        sprintf(fname,"%s/flash%d.mg%c",out_dir,
+                nint(DEGREES(mri_flash_synth[j]->flip_angle)), compress_char);
 #endif
         printf("writing synthetic images to %s...\n", fname);
         if (Glta)
@@ -740,14 +741,14 @@ main(int argc, char *argv[]) {
   if (mri_T2star) {
     resetTRTEFA(mri_T2star, TR, TE, FA);
     if  (correct_PD && nvolumes > 1) {
-      sprintf(fname,"%s/PDcorrected.mgz",out_dir);
+      sprintf(fname,"%s/PDcorrected.mg%c",out_dir, compress_char);
       printf("writing corrected PD estimates to %s...\n", fname) ;
       if (Glta)
         useVolGeomToMRI(&Glta->xforms[0].dst, mri_PD) ;
       MRIaddCommandLine(mri_PD, cmdline) ;
       MRIwrite(mri_PD, fname) ;
     }
-    sprintf(fname,"%s/T2star.mgz",out_dir);
+    sprintf(fname,"%s/T2star.mg%c",out_dir, compress_char);
     printf("writing T2star estimates to %s...\n", fname) ;
     if (Glta)
       useVolGeomToMRI(&Glta->xforms[0].dst, mri_T2star) ;
@@ -822,6 +823,10 @@ get_option(int argc, char *argv[]) {
     printf("scaling volumes by %2.3f after reading\n", scale) ;
   } else if (!stricmp(option, "window")) {
     printf("window option not implemented\n");
+    /*E* window_flag = 1 ; */
+  } else if (!stricmp(option, "nocompress")) {
+    compress_char = 'h' ;
+    printf("not compressing output volumes (saving as .mgh)") ;
     /*E* window_flag = 1 ; */
   }
 
