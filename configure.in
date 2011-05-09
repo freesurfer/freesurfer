@@ -8,9 +8,9 @@
 # Process this file with autoconf to produce a configure script.
 #
 # CVS Revision Info:
-#    $Author: krish $
-#    $Date: 2011/04/22 21:51:39 $
-#    $Revision: 1.526 $
+#    $Author: nicks $
+#    $Date: 2011/05/09 19:21:47 $
+#    $Revision: 1.527 $
 #
 ########################################################################
 AC_PREREQ(2.57)
@@ -662,7 +662,7 @@ else
 fi
 if( test ! "x$CUDA_DIR" = "xno" ) then
   LIB_CUDA=""
-  AC_CHECK_LIB([cuda], [cuInit],[LIB_CUDA="-lcuda"],[])
+  AC_CHECK_LIB([cuda -L$CUDA_DIR/lib], [cuInit],[LIB_CUDA="-lcuda"],[])
   AC_SUBST(LIB_CUDA)
   CUDA_CFLAGS="-I$CUDA_DIR/include"
   CUDA_LIBS="-L$CUDA_DIR/lib $LIB_CUDA -lcudart"
