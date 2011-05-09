@@ -12,7 +12,7 @@
 # Edited : 03-17-2011: replaces applyMorph with mri_vol2vol
 
 set inputargs = ($argv);
-set VERSION = '$Id: mri_cvs_register,v 1.15.2.3 2011/03/31 23:20:25 lzollei Exp $';
+set VERSION = '$Id: mri_cvs_register,v 1.15.2.4 2011/05/09 15:35:39 lzollei Exp $';
 
 set movingid = ();
 set templateid = ();
@@ -81,7 +81,7 @@ uname -a |& tee -a $LF
 set voltype = norm
 set annotfile = aparc.annot
 set cvsdir =  $FREESURFER_HOME/bin
-set settingsfile = $cvsdir/mri_cvs_register.settings.txt
+# set settingsfile = $cvsdir/mri_cvs_register.settings.txt
 
 ### Creating outputdir
 echo The outdir:
@@ -238,10 +238,13 @@ setenv OUTDIR $outdir
 
 set mmri = $SUBJECTS_DIR/$movingid/mri/
 set tmri = $TEMPLATE_DIR/$templateid/mri/
+set tsurf  = $TEMPLATE_DIR/$templateid/surf/
+set tlabel = $TEMPLATE_DIR/$templateid/label/
 
-grep -n out_root $settingsfile | sed 's/[0-9]:/set /' > tmp.txt
-source tmp.txt
-rm -f tmp.txt
+# grep -n out_root $settingsfile | sed 's/[0-9]:/set /' > tmp.txt
+# source tmp.txt
+# rm -f tmp.txt
+set out_root = el_reg
 set elasticmorph = ${out_root}_to$templateid.tm3d
 
 if ($DoAllSteps || $OnlyStep2) then 
@@ -249,20 +252,40 @@ if ($DoAllSteps || $OnlyStep2) then
 ## Run the elastic registration
 pushd $cvsdir
 if (!(-e $outdir/$elasticmorph) || $CleanElReg) then
+ set elasticoptions = (-lin_res 20 -ksp_rtol 1.0e-9 -penalty_weight 1000 -fem_steps 17 \
+                       -log_summary -topology_old -compress -pc_type none -ksp_type preonly \
+                       -pc_type jacobi -ksp_type cg -ksp_view -ksp_converged_reason )
+ 
  if ($BothHemis) then
-  set cmd = (perl $cvsdir/elastic_registration_CVS.pl --fixed $templateid --moving $movingid --settings $settingsfile --exe surf2vol --pial )
-  if ($UseMpi) then 
-   set cmd = ($cmd --mpi)
-  endif 
+  set cmd = (surf2vol -fixed_mri $tmri/$voltype.mgz -moving_mri $mmri/$voltype.mgz  \
+                      -fixed_surf $tsurf/lh.white     -moving_surf $outdir/lh.resample.white \
+                      -fixed_surf_2 $tsurf/rh.white   -moving_surf_2 $outdir/rh.resample.white \
+                      -fixed_surf_3 $tsurf/lh.pial    -moving_surf_3 $outdir/lh.resample.pial \
+                      -fixed_surf_4 $tsurf/rh.pial    -moving_surf_4 $outdir/rh.resample.pial \
+                      -aparc $tlabel/lh.aparc.annot   -aparc_2 $tlabel/rh.aparc.annot \
+                      -aparc_3 $tlabel/lh.aparc.annot -aparc_4 $tlabel/rh.aparc.annot \
+                      $elasticoptions -cache_transform $outdir/transform.txt \
+                      -out $outdir/el_reg_to$templateid.mgz -out_surf $outdir/surf-mfc_to$templateid \
+                      -out_mesh $outdir/el_reg_to$templateid)
+  #set cmd = (perl $cvsdir/elastic_registration_CVS.pl --fixed $templateid --moving $movingid --settings $settingsfile --exe surf2vol --pial )
+  #if ($UseMpi) then 
+  # set cmd = ($cmd --mpi)
+  #endif 
   echo $cmd |& tee -a $LF
   $cmd |& tee -a $LF
   if($status) exit 1;
  else
-  setenv HEMI $hemiReq
-  set cmd = (perl $cvsdir/elastic_registration_CVS_hemi.pl --fixed $templateid --moving $movingid --settings $settingsfile --exe surf2vol --pial )
-  if ($UseMpi) then 
-   set cmd = ($cmd --mpi)
-  endif
+  set cmd = (surf2vol -fixed_mri $tmri/$voltype.mgz -moving_mri $mmri/$voltype.mgz  \
+                      -fixed_surf $tsurf/$hemiReq.white     -moving_surf $outdir/$hemiReq.resample.white \
+                      -fixed_surf_2 $tsurf/$hemiReq.pial    -moving_surf_2 $outdir/$hemiReq.resample.pial \
+                      -aparc $tlabel/$hemiReq.aparc.annot   -aparc_2 $tlabel/$hemiReq.aparc.annot \
+                      $elasticoptions -cache_transform $outdir/transform.txt \
+                      -out $outdir/el_reg_to$templateid.mgz -out_surf $outdir/surf-mfc_to$templateid \
+                      -out_mesh $outdir/el_reg_to$templateid)
+#  set cmd = (perl $cvsdir/elastic_registration_CVS_hemi.pl --fixed $templateid --moving $movingid --settings $settingsfile --exe surf2vol --pial )
+#  if ($UseMpi) then 
+#   set cmd = ($cmd --mpi)
+#  endif
   echo $cmd |& tee -a $LF
   $cmd |& tee -a $LF
   if($status) exit 1;
