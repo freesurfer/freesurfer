@@ -13,7 +13,11 @@ AM_CPPFLAGS=\
 	$(PETSC_CFLAGS) \
 	$(BOOST_CFLAGS)
 
+if HAVE_MAC_OSX
 AM_LDFLAGS=$(OS_LDFLAGS)
+else
+AM_LDFLAGS=$(OS_LDFLAGS) -z muldefs
+endif
 
 common3d_SOURCES=\
 	fem_3d.cpp fem_3d.h solver.h \
@@ -61,11 +65,20 @@ surf2vol_SOURCES=\
 	pbCluster_mesh_crop.cpp pbCluster_mesh_crop.h mesh_bfs.h \
 	untangler.cpp untangler.h pbmesh_crop.h
 
+if HAVE_MAC_OSX
 surf2vol_LDADD=\
 	$(addprefix $(top_builddir)/, $(LIBS_MGH)) \
 	$(top_builddir)/tetgen/libtetgen.a \
 	$(PETSC_LIBS) -lpetscts -lpetscsnes -lpetscksp -lpetscdm -lpetscmat \
-	-lpetscvec -lpetsc -lmpich  $(LIB_GFORTRAN) $(LIB_LAPACK_A) $(LIB_BLAS_A) $(LIB_G2C_A) $(LIB_GFORTRAN)
+	-lpetscvec -lpetsc -lpmpich -lmpich -llmpe -lmpe -lflapack -lfblas \
+	$(LIB_LAPACK_A) $(LIB_BLAS_A) $(LIB_G2C_A)
+else
+surf2vol_LDADD=\
+    $(addprefix $(top_builddir)/, $(LIBS_MGH)) \
+    $(top_builddir)/tetgen/libtetgen.a \
+    $(PETSC_LIBS) -lpetscts -lpetscsnes -lpetscksp -lpetscdm -lpetscmat \
+    -lpetscvec -lpetsc -lmpich  $(LIB_GFORTRAN) $(LIB_LAPACK_A) $(LIB_BLAS_A) $(LIB_G2C_A) $(LIB_GFORTRAN)
+endif
 
 exportGcam_SOURCES=\
 	$(common3d_SOURCES) \
@@ -75,6 +88,10 @@ exportGcam_SOURCES=\
 exportGcam_LDADD=\
 	$(addprefix $(top_builddir)/, $(LIBS_MGH)) \
 	$(top_builddir)/tetgen/libtetgen.a $(BOOST_PO_LIB)
+
+# build library...
+noinst_LIBRARIES= libfem_elastic.a
+libfem_elastic_a_SOURCES = $(createMorph_SOURCES) $(applyMorph_SOURCES)
 
 endif
 endif
