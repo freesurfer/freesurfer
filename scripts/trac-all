@@ -8,8 +8,8 @@
 # Original Author: Anastasia Yendiki
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2011/03/26 19:22:31 $
-#    $Revision: 1.22.2.1 $
+#    $Date: 2011/05/09 19:36:45 $
+#    $Revision: 1.22.2.2 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -25,7 +25,7 @@
 
 umask 002
 
-set VERSION = '$Id: trac-all,v 1.22.2.1 2011/03/26 19:22:31 nicks Exp $'
+set VERSION = '$Id: trac-all,v 1.22.2.2 2011/05/09 19:36:45 nicks Exp $'
 set ProgName = `basename $0`
 set inputargs = ($argv)
 
@@ -115,8 +115,8 @@ set doregbbr = 1
 set doregmni = 1
 set doregcvs = 1
 set mnitemp = $FSLDIR/data/standard/MNI152_T1_1mm_brain.nii.gz
-set cvstempdir = $SUBJECTS_DIR
-set cvstemp = avg35rerun
+set cvstempdir = $FREESURFER_HOME/subjects
+set cvstemp = cvs_avg35
 set usemaskanat = 1
 set pathlist = ( lh.cst_AS rh.cst_AS \
                  lh.ilf_AS rh.ilf_AS \
@@ -125,7 +125,7 @@ set pathlist = ( lh.cst_AS rh.cst_AS \
                  lh.atr_PP rh.atr_PP \
                  lh.ccg_PP rh.ccg_PP \
                  lh.cab_PP rh.cab_PP \
-                 lh.slf_PP rh.slf_PP \
+                 lh.slfp_PP rh.slfp_PP \
                  lh.slft_PP rh.slft_PP )
 set ncpts = 5
 set trainfile = $FREESURFER_HOME/trctrain/trainlist.txt
@@ -139,9 +139,9 @@ set dosegprior = 1
 set dopathsubdirs = 0
 set fmin = 0.05
 set nburnin = 200
-set nsample = 1000
+set nsample = 5000
 set nupdate = 0
-set nkeep = 10
+set nkeep = 5
 set doinitprop = 0
 set trcdir = $FREESURFER_HOME/bin
 
@@ -185,7 +185,7 @@ set dmdirlist = ()
 
 foreach isubj ($runlist)
   if ($isubj > $#subjlist) then
-    echo "ERROR: $isubj found in run list but have only $#subjlist subjects"
+    echo "ERROR: $isubj is in run list but have only $#subjlist subjects"
     exit 1
   endif
 
@@ -496,10 +496,10 @@ if ($onpbs && $RunIt) then
 
   if ($dopreproc) then
     if (! $?MYPBSWAIT) setenv MYPBSWAIT 30
-#    if ($doregcvs) then
-#      if ($hname == launchpad)  setenv MYPBSARCH "ppn=2"
-#      if ($hname == seychelles)	setenv MYPBSARCH "bigmem:ppn=2"
-#    endif
+    if ($doregcvs) then
+      if ($hname == launchpad)  setenv MYPBSARCH "ppn=2"
+      if ($hname == seychelles)	setenv MYPBSARCH "bigmem:ppn=2"
+    endif
     echo Queueing pre-processing
     set preid = `fsl_sub_seychelles \
                  -l $pbslogdir/log -m a -N trcpre -t $submitfile`
@@ -508,10 +508,10 @@ if ($onpbs && $RunIt) then
     bedpostx_seychelles $dmdirlist
   else if ($dopaths) then
     if (! $?MYPBSWAIT) setenv MYPBSWAIT 30
-#    if ($doregcvs) then
-#      if ($hname == launchpad)  setenv MYPBSARCH "ppn=2"
-#      if ($hname == seychelles)	setenv MYPBSARCH "bigmem:ppn=2"
-#    endif
+    if ($doregcvs) then
+      if ($hname == launchpad)  setenv MYPBSARCH "ppn=2"
+      if ($hname == seychelles)	setenv MYPBSARCH "bigmem:ppn=2"
+    endif
     echo Queueing path reconstruction
     set trcid = `fsl_sub_seychelles \
                  -l $pbslogdir/log -m a -N trc -t $submitfile`
@@ -826,6 +826,13 @@ check_params:
     endif
 
     if (! $?ncptlist ) set ncptlist = $ncpts
+
+    foreach n ($ncptlist)
+      if ($n < 2) then
+        echo "ERROR: number of control points cannot be less than 2"
+        exit 1
+      endif
+    end
 
     if ($#runlist > $#subjlist) then
       echo "ERROR: run list is longer than subject list - potential duplicates"

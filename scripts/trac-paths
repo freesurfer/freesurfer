@@ -8,8 +8,8 @@
 # Original Author: Anastasia Yendiki
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2011/03/26 19:22:31 $
-#    $Revision: 1.14.2.2 $
+#    $Date: 2011/05/09 19:36:45 $
+#    $Revision: 1.14.2.3 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -25,7 +25,7 @@
 
 umask 002
 
-set VERSION = '$Id: trac-paths,v 1.14.2.2 2011/03/26 19:22:31 nicks Exp $'
+set VERSION = '$Id: trac-paths,v 1.14.2.3 2011/05/09 19:36:45 nicks Exp $'
 set ProgName = `basename $0`
 set inputargs = ($argv)
 
@@ -254,10 +254,10 @@ foreach ntrain ($ntrainlist)
         set brainmask = $labdir/diff/lowb_brain_mask.nii.gz
 
         if ($usemaskanat) then
-          if ($doregbbr && -e $labdir/diff/anat_brain_mask.bbr.nii.gz) then
-            set brainmask = $labdir/diff/anat_brain_mask.bbr.nii.gz
-          else if (-e $labdir/diff/anat_brain_mask.flt.nii.gz) then
-            set brainmask = $labdir/diff/anat_brain_mask.flt.nii.gz
+          if ($doregbbr && -e $labdir/diff/aparc+aseg_mask.bbr.nii.gz) then
+            set brainmask = $labdir/diff/aparc+aseg_mask.bbr.nii.gz
+          else if (-e $labdir/diff/aparc+aseg_mask.flt.nii.gz) then
+            set brainmask = $labdir/diff/aparc+aseg_mask.flt.nii.gz
           endif
         endif
 

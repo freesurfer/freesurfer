@@ -8,17 +8,15 @@
  * Original Author: Anastasia Yendiki
  * CVS Revision Info:
  *
- * Copyright (C) 2010,
- * The General Hospital Corporation (Boston, MA).
- * All rights reserved.
+ * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
- * Distribution, usage and copying of this software is covered under the
- * terms found in the License Agreement file named 'COPYING' found in the
- * FreeSurfer source code root directory, and duplicated here:
- * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ * Terms and conditions for use, reproduction, distribution and contribution
+ * are found in the 'FreeSurfer Software License Agreement' contained
+ * in the file 'LICENSE' found in the FreeSurfer distribution, and here:
  *
- * General inquiries: freesurfer@nmr.mgh.harvard.edu
- * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
+ *
+ * Reporting: freesurfer@nmr.mgh.harvard.edu
  *
  */
 
@@ -64,7 +62,7 @@ bool Spline::IsDegenerate() {
 }
 
 bool Spline::InterpolateSpline() {
-  const unsigned int ncpts = mNumControl-1;
+  const int ncpts = mNumControl-1;
   vector<int>::const_iterator icpt = mControlPoints.begin();
   vector<int> newpoint(3);
 
@@ -78,8 +76,8 @@ bool Spline::InterpolateSpline() {
   mArcLength.clear();
   MRIclear(mVolume);
 
-  for (unsigned int kcpt = 1; kcpt <= ncpts; kcpt++) {
-    float t = 0, dt = 0;
+  for (int kcpt = 1; kcpt <= ncpts; kcpt++) {
+    float t = 0, dt = 0, newt;
 
     // Append current control point to spline
     if (!IsInMask(icpt))
@@ -89,7 +87,7 @@ bool Spline::InterpolateSpline() {
     MRIsetVoxVal(mVolume, icpt[0], icpt[1], icpt[2], 0, 1);
 
     // Initialize arc length step size
-    for (unsigned int k=0; k<3; k++)
+    for (int k=0; k<3; k++)
       dt += pow(icpt[k] - icpt[k+3], 2);
     dt = 1.0 / sqrt(dt);
 
@@ -99,27 +97,35 @@ bool Spline::InterpolateSpline() {
       vector<int>::const_iterator ipt = mAllPoints.end()-3;
 
       do {
-        // Interpolate new point
-        CatmullRomInterp(newpoint, t+dt, (kcpt==1)?icpt:(icpt-3), 
-                                         icpt, icpt+3,
-                                         (kcpt==ncpts)?(icpt+3):(icpt+6));
+        newt = t + dt;
 
-        // Check that the new point is adjacent to the previous point
-        incstep = true;
-        decstep = false;
+        if (newt > 1)  {
+          incstep = false;
+          decstep = true;
+        }
+        else {
+          // Interpolate new point
+          CatmullRomInterp(newpoint, newt, (kcpt==1)?icpt:(icpt-3), 
+                                           icpt, icpt+3,
+                                           (kcpt==ncpts)?(icpt+3):(icpt+6));
 
-        for (unsigned int k=0; k<3; k++)
-          switch(abs(ipt[k] - newpoint[k])) {
-            case 0:
-              break;
-            case 1:
-              incstep = false;
-              break;
-            default:
-              incstep = false;
-              decstep = true;
-              break;
-          }
+          // Check that the new point is adjacent to the previous point
+          incstep = true;
+          decstep = false;
+
+          for (int k=0; k<3; k++)
+            switch(abs(ipt[k] - newpoint[k])) {
+              case 0:
+                break;
+              case 1:
+                incstep = false;
+                break;
+              default:
+                incstep = false;
+                decstep = true;
+                break;
+            }
+        }
 
         // Adjust arc length step size if neccessary
         if (incstep) {
@@ -132,7 +138,7 @@ bool Spline::InterpolateSpline() {
         }
       } while (incstep || decstep);
 
-      t += dt;
+      t = newt;
 
       // Check if the next control point has been reached
       if ((newpoint[0] == icpt[3]) && (newpoint[1] == icpt[4])
@@ -161,8 +167,8 @@ bool Spline::InterpolateSpline() {
 }
 
 void Spline::ComputeTangent() {
-  unsigned int kcpt = 1;
-  const unsigned int ncpts = mNumControl-1;
+  int kcpt = 1;
+  const int ncpts = mNumControl-1;
   vector<int>::const_iterator icpt = mControlPoints.begin();
   vector<int>::const_iterator ipt;
   vector<float>::const_iterator iarc = mArcLength.begin();
@@ -183,26 +189,26 @@ void Spline::ComputeTangent() {
     }
   }
 
-  // Tangent at final control point
+  // Tangent vector at final control point
   CatmullRomTangent(newtangent, *iarc, icpt-3, icpt, icpt, icpt);
   mTangent.insert(mTangent.end(), newtangent.begin(), newtangent.end());
 }
 
-void Spline::ComputeCurvature() {
-  unsigned int kcpt = 1;
-  const unsigned int ncpts = mNumControl-1;
+void Spline::ComputeNormal() {
+  int kcpt = 1;
+  const int ncpts = mNumControl-1;
   vector<int>::const_iterator icpt = mControlPoints.begin();
   vector<int>::const_iterator ipt;
   vector<float>::const_iterator iarc = mArcLength.begin();
-  vector<float> newcurv(3);
+  vector<float> newnorm(3);
 
-  mCurvature.clear();
+  mNormal.clear();
 
   for (ipt = mAllPoints.begin(); ipt != mAllPoints.end()-3; ipt += 3) {
-    CatmullRomCurvature(newcurv, *iarc, (kcpt==1)?icpt:(icpt-3),
-                                         icpt, icpt+3,
-                                         (kcpt==ncpts)?(icpt+3):(icpt+6));
-    mCurvature.insert(mCurvature.end(), newcurv.begin(), newcurv.end());
+    CatmullRomNormal(newnorm, *iarc, (kcpt==1)?icpt:(icpt-3),
+                                     icpt, icpt+3,
+                                     (kcpt==ncpts)?(icpt+3):(icpt+6));
+    mNormal.insert(mNormal.end(), newnorm.begin(), newnorm.end());
 
     iarc++;
     if (*iarc == 0) {	// Have reached next control point
@@ -211,9 +217,29 @@ void Spline::ComputeCurvature() {
     }
   }
 
-  // Curvature at final control point
-  CatmullRomCurvature(newcurv, *iarc, icpt-3, icpt, icpt, icpt);
-  mCurvature.insert(mCurvature.end(), newcurv.begin(), newcurv.end());
+  // Normal vector at final control point
+  CatmullRomNormal(newnorm, *iarc, icpt-3, icpt, icpt, icpt);
+  mNormal.insert(mNormal.end(), newnorm.begin(), newnorm.end());
+}
+
+void Spline::ComputeCurvature() {
+  vector<float>::iterator icurv;
+  vector<float>::const_iterator itang = mTangent.begin(),
+                                inorm = mNormal.begin();
+
+  mCurvature.resize(mNormal.size() / 3);
+
+  // Curvature = |r' x r''| / |r'|^3
+  for (icurv = mCurvature.begin(); icurv != mCurvature.end(); icurv++) {
+    *icurv =
+      sqrt( ( pow(itang[1] * inorm[2] - itang[2] * inorm[1], 2) +
+              pow(itang[2] * inorm[0] - itang[0] * inorm[2], 2) +
+              pow(itang[0] * inorm[1] - itang[1] * inorm[0], 2) ) / 
+            pow(pow(itang[0], 2) + pow(itang[1], 2) + pow(itang[2], 2), 3) );
+
+    itang += 3;
+    inorm += 3;
+  }
 }
 
 void Spline::ReadControlPoints(const char *ControlPointFile) {
@@ -228,7 +254,7 @@ void Spline::ReadControlPoints(const char *ControlPointFile) {
   cout << "Loading spline control points from " << ControlPointFile << endl;
   mControlPoints.clear();
   while (infile >> coord)
-    mControlPoints.push_back(round(coord));
+    mControlPoints.push_back((int) round(coord));
 
   if (mControlPoints.size() % 3 != 0) {
     cout << "ERROR: File " << ControlPointFile
@@ -261,6 +287,49 @@ void Spline::WriteVolume(const char *VolumeFile, const bool ShowControls) {
   MRIwrite(mVolume, VolumeFile);
 }
 
+void Spline::WriteValues(vector<MRI *> &ValueVolumes, const char *TextFile) {
+  ofstream outfile(TextFile, ios::app);
+  if (!outfile) {
+    cout << "ERROR: Could not open " << TextFile << " for writing" << endl;
+    exit(1);
+  }
+
+  cout << "Writing values along spline to " << TextFile << endl;
+
+  for (vector<int>::const_iterator ipt = mAllPoints.begin();
+                                   ipt < mAllPoints.end(); ipt += 3) {
+    outfile << ipt[0] << " " << ipt[1] << " " << ipt[2];
+
+    for (vector<MRI *>::const_iterator ivol = ValueVolumes.begin();
+                                       ivol < ValueVolumes.end(); ivol++)
+      outfile << " " << MRIgetVoxVal(*ivol, ipt[0], ipt[1], ipt[2], 0);
+
+    outfile << endl;
+  }
+}
+
+vector<float> Spline::ComputeAvg(vector<MRI *> &ValueVolumes) {
+  int nvox = (int) mAllPoints.size()/3;
+  vector<float> avg(ValueVolumes.size(), 0);
+  vector<float>::iterator iavg;
+
+  for (vector<int>::const_iterator ipt = mAllPoints.begin();
+                                   ipt < mAllPoints.end(); ipt += 3) {
+    iavg = avg.begin();
+
+    for (vector<MRI *>::const_iterator ivol = ValueVolumes.begin();
+                                       ivol < ValueVolumes.end(); ivol++) {
+      *iavg += MRIgetVoxVal(*ivol, ipt[0], ipt[1], ipt[2], 0);
+      iavg++;
+    }
+  }
+
+  for (iavg = avg.begin(); iavg < avg.end(); iavg++)
+    *iavg /= nvox;
+
+  return avg;
+}
+
 void Spline::PrintControlPoints() {
   vector<int>::const_iterator icpt;
 
@@ -276,17 +345,24 @@ void Spline::PrintAllPoints() {
 }
 
 void Spline::PrintTangent() {
-  vector<float>::const_iterator ipt;
+  vector<float>::const_iterator itang;
 
-  for (ipt = mTangent.begin(); ipt != mTangent.end(); ipt += 3)
-    cout << ipt[0] << " " << ipt[1] << " " << ipt[2] << endl;
+  for (itang = mTangent.begin(); itang != mTangent.end(); itang += 3)
+    cout << itang[0] << " " << itang[1] << " " << itang[2] << endl;
+}
+
+void Spline::PrintNormal() {
+  vector<float>::const_iterator inorm;
+
+  for (inorm = mNormal.begin(); inorm != mNormal.end(); inorm += 3)
+    cout << inorm[0] << " " << inorm[1] << " " << inorm[2] << endl;
 }
 
 void Spline::PrintCurvature() {
-  vector<float>::const_iterator ipt;
+  vector<float>::const_iterator icurv;
 
-  for (ipt = mCurvature.begin(); ipt != mCurvature.end(); ipt += 3)
-    cout << ipt[0] << " " << ipt[1] << " " << ipt[2] << endl;
+  for (icurv = mCurvature.begin(); icurv != mCurvature.end(); icurv++)
+    cout << *icurv << endl;
 }
 
 vector<int>::const_iterator Spline::GetAllPointsBegin() {
@@ -303,6 +379,14 @@ vector<float>::const_iterator Spline::GetTangentBegin() {
 
 vector<float>::const_iterator Spline::GetTangentEnd() {
   return mTangent.end();
+}
+
+vector<float>::const_iterator Spline::GetNormalBegin() {
+  return mNormal.begin();
+}
+
+vector<float>::const_iterator Spline::GetNormalEnd() {
+  return mNormal.end();
 }
 
 vector<float>::const_iterator Spline::GetCurvatureBegin() {
@@ -326,9 +410,9 @@ void Spline::CatmullRomInterp(vector<int> &InterpPoint,
               c = -1.5*t3 + 2*t2 + .5*t,
               d = .5*(t3 - t2);
 
-  for (unsigned int k = 0; k < 3; k++)
-    InterpPoint[k] = round(a * ControlPoint1[k] + b * ControlPoint2[k] +
-                           c * ControlPoint3[k] + d * ControlPoint4[k]);
+  for (int k = 0; k < 3; k++)
+    InterpPoint[k] = (int) round(a * ControlPoint1[k] + b * ControlPoint2[k] +
+                                 c * ControlPoint3[k] + d * ControlPoint4[k]);
 }
 
 void Spline::CatmullRomTangent(vector<float> &InterpTangent,
@@ -343,12 +427,12 @@ void Spline::CatmullRomTangent(vector<float> &InterpTangent,
               c = -4.5*t2 + 4*t + .5,
               d = 1.5*t2 - t;
 
-  for (unsigned int k = 0; k < 3; k++)
+  for (int k = 0; k < 3; k++)
     InterpTangent[k] = a * ControlPoint1[k] + b * ControlPoint2[k] +
                        c * ControlPoint3[k] + d * ControlPoint4[k];
 }
 
-void Spline::CatmullRomCurvature(vector<float> &InterpCurvature,
+void Spline::CatmullRomNormal(vector<float> &InterpNormal,
                                  const float t,
                                  vector<int>::const_iterator ControlPoint1,
                                  vector<int>::const_iterator ControlPoint2,
@@ -359,9 +443,9 @@ void Spline::CatmullRomCurvature(vector<float> &InterpCurvature,
               c = -9*t + 4,
               d = 3*t - 1;
 
-  for (unsigned int k = 0; k < 3; k++)
-    InterpCurvature[k] = a * ControlPoint1[k] + b * ControlPoint2[k] +
-                         c * ControlPoint3[k] + d * ControlPoint4[k];
+  for (int k = 0; k < 3; k++)
+    InterpNormal[k] = a * ControlPoint1[k] + b * ControlPoint2[k] +
+                      c * ControlPoint3[k] + d * ControlPoint4[k];
 }
 
 bool Spline::IsInMask(vector<int>::const_iterator Point) {
