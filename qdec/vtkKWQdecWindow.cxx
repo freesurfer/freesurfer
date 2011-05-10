@@ -11,19 +11,18 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2010/07/27 17:42:22 $
- *    $Revision: 1.59 $
+ *    $Date: 2011/05/10 21:40:35 $
+ *    $Revision: 1.61.2.1 $
  *
- * Copyright (C) 2007-2010,
- * The General Hospital Corporation (Boston, MA).
- * All rights reserved.
+ * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
- * Distribution, usage and copying of this software is covered under the
- * terms found in the License Agreement file named 'COPYING' found in the
- * FreeSurfer source code root directory, and duplicated here:
- * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ * Terms and conditions for use, reproduction, distribution and contribution
+ * are found in the 'FreeSurfer Software License Agreement' contained
+ * in the file 'LICENSE' found in the FreeSurfer distribution, and here:
  *
- * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
+ *
+ * Reporting: freesurfer@nmr.mgh.harvard.edu
  *
  */
 
@@ -103,7 +102,7 @@ extern "C" {
 using namespace std;
 
 vtkStandardNewMacro( vtkKWQdecWindow );
-vtkCxxRevisionMacro( vtkKWQdecWindow, "$Revision: 1.59 $" );
+vtkCxxRevisionMacro( vtkKWQdecWindow, "$Revision: 1.61.2.1 $" );
 
 const char* vtkKWQdecWindow::ksSubjectsPanelName = "Subjects";
 const char* vtkKWQdecWindow::ksDesignPanelName = "Design";
@@ -2282,6 +2281,20 @@ vtkKWQdecWindow::LoadSurface ( const char* ifnSurface, const char* isLabel ) {
       // Select this one.
       this->SetCurrentSurface( sLabel.c_str() );
 
+      // determine whether this is the lh or rh, and set our var
+      string str (ifnSurface);
+      size_t found = str.find( "rh." );
+      if (found != string::npos) {
+        mMenuMorphHemisphere->SetValue( "rh" );
+        mQdecProject->GetGlmDesign()->SetHemi( "rh" );
+      } else {
+        found = str.find( "lh." );
+        if (found != string::npos) {
+          mMenuMorphHemisphere->SetValue( "lh" );
+          mQdecProject->GetGlmDesign()->SetHemi( "lh" );
+        }
+      }
+
       // reset the view to initialized it
       mView->ResetView();
 
@@ -2620,6 +2633,9 @@ vtkKWQdecWindow::MapLabelToSubjects ( const char* ifnLabel ) {
     // Try to write the label to the average subject.
     mROISource->SetLabelFileName( ifnLabel );
     mROISource->WriteLabelFile();
+
+    // make sure hemi is set
+    mQdecProject->GetGlmDesign()->SetHemi( mMenuMorphHemisphere->GetValue() );
 
     // Tell the project to run this for all our subjects.
     mQdecProject->GenerateMappedLabelForAllSubjects( ifnLabel, this );
@@ -4936,7 +4952,7 @@ vtkKWQdecWindow::ScatterPlotGraphSetUpContextualMenu (const char* isElement,
     stringstream ssTkmeditCmd;
     stringstream ssTkmeditCommand;
     // catch { exec tkmedit $s norm.mgz $hemi.white -segmentation aseg.mgz }
-    ssTkmeditCmd << envVars->FREESURFER_HOME << "/bin/tkmedit "
+    ssTkmeditCmd << envVars->FREESURFER_HOME << "/tktools/tkmedit "
                  << isElement << " norm.mgz -aux T1.mgz -surfs " 
                  << "-segmentation aseg.mgz &";
     ssTkmeditCommand << "set err [catch { exec "
@@ -4954,7 +4970,7 @@ vtkKWQdecWindow::ScatterPlotGraphSetUpContextualMenu (const char* isElement,
     stringstream ssTksurferCmd;
     stringstream ssTksurferCommand;
     // catch { exec tksurfer $s $hemi inflated -annotation aparc.annot }
-    ssTksurferCmd << envVars->FREESURFER_HOME << "/bin/tksurfer "
+    ssTksurferCmd << envVars->FREESURFER_HOME << "/tktools/tksurfer "
                   << isElement << " " 
                   << "lh inflated "
                   << "-annotation aparc.annot &";
@@ -4968,7 +4984,7 @@ vtkKWQdecWindow::ScatterPlotGraphSetUpContextualMenu (const char* isElement,
     // tksurfer, right hemi
     stringstream ssTksurferCmd2;
     stringstream ssTksurferCommand2;
-    ssTksurferCmd2 << envVars->FREESURFER_HOME << "/bin/tksurfer "
+    ssTksurferCmd2 << envVars->FREESURFER_HOME << "/tktools/tksurfer "
                   << isElement << " " 
                   << "rh inflated "
                   << "-annotation aparc.annot &";
