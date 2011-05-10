@@ -9,8 +9,8 @@
 # Original Author: Martin Reuter
 # CVS Revision Info:
 #    $Author: mreuter $
-#    $Date: 2011/05/10 19:48:07 $
-#    $Revision: 1.11 $
+#    $Date: 2011/05/10 20:37:19 $
+#    $Revision: 1.12 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -169,7 +169,7 @@ def options_parse():
     Command Line Options Parser for long_mris_slopes
     initiate the option parser and return the parsed object
     """
-    parser = optparse.OptionParser(version='$Id: long_stats_slopes,v 1.11 2011/05/10 19:48:07 mreuter Exp $', usage=HELPTEXT)
+    parser = optparse.OptionParser(version='$Id: long_stats_slopes,v 1.12 2011/05/10 20:37:19 mreuter Exp $', usage=HELPTEXT)
     
     # help text
     h_qdec      = '(REQUIRED) qdec table file specifying the subjects and time points'
@@ -529,19 +529,19 @@ if __name__=="__main__":
     
     if options.stack_avg is not None:
         # out table: long.all.'+options.stats+'.'+options.meas+'-avg.dat
-        cmd = 'merge_stats_tables --inputs '+" ".join(allavg)+' -t '+options.stack_avg+' --meas '+options.meas+'-avg'
+        cmd = 'merge_stats_tables --inputs '+" ".join(allavg)+' -t '+options.stack_avg+' --meas '+options.meas+'-avg'+" --all-segs"
         run_cmd(cmd,'merge_stats_tables failed?') 
 
     if options.stack_rate is not None:
-        cmd = 'merge_stats_tables --inputs '+" ".join(allrate)+' -t '+options.stack_rate+' --meas '+options.meas+'-rate'
+        cmd = 'merge_stats_tables --inputs '+" ".join(allrate)+' -t '+options.stack_rate+' --meas '+options.meas+'-rate'+" --all-segs"
         run_cmd(cmd,'merge_stats_tables failed?') 
 
     if options.stack_pc1 is not None:
-        cmd = 'merge_stats_tables --inputs '+" ".join(allpc1)+' -t '+options.stack_pc1+' --meas '+options.meas+'-pc1'
+        cmd = 'merge_stats_tables --inputs '+" ".join(allpc1)+' -t '+options.stack_pc1+' --meas '+options.meas+'-pc1'+" --all-segs"
         run_cmd(cmd,'merge_stats_tables failed?') 
 
     if options.stack_spc is not None:
-        cmd = 'merge_stats_tables --inputs '+" ".join(allspc)+' -t '+options.stack_spc+' --meas '+options.meas+'-spc'
+        cmd = 'merge_stats_tables --inputs '+" ".join(allspc)+' -t '+options.stack_spc+' --meas '+options.meas+'-spc'+" --all-segs"
         run_cmd(cmd,'merge_stats_tables failed?') 
     
     #print 'merge_stats_tables --inputs '+" ".join(allavg)+' -t long.all.'+options.stats+'.'+options.meas+'-avg.dat --meas '+options.meas+'-avg'

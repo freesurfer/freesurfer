@@ -9,8 +9,8 @@
 # Original Author: Martin Reuter
 # CVS Revision Info:
 #    $Author: mreuter $
-#    $Date: 2011/05/10 19:48:07 $
-#    $Revision: 1.5 $
+#    $Date: 2011/05/10 20:37:18 $
+#    $Revision: 1.6 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -126,7 +126,7 @@ def options_parse():
     Command Line Options Parser for asegstats2table
     initiate the option parser and return the parsed object
     """
-    parser = optparse.OptionParser(version='$Id: merge_stats_tables,v 1.5 2011/05/10 19:48:07 mreuter Exp $', usage=HELPTEXT)
+    parser = optparse.OptionParser(version='$Id: merge_stats_tables,v 1.6 2011/05/10 20:37:18 mreuter Exp $', usage=HELPTEXT)
     
     # help text
     h_sub = '(REQUIRED) subject1 <subject2 subject3..>'
@@ -165,10 +165,8 @@ def options_parse():
 #                      callback=fsutils.callback_var,  help=h_seg)
 #    parser.add_option('--no-segno', dest='no_segnos' ,action='callback',
 #                      callback=fsutils.callback_var,  help=h_noseg)
-#    parser.add_option('--common-segs', dest='common_flag' ,action='store_true',
-#                      default=False, help=h_common)
-#    parser.add_option('--all-segs', dest='all_flag' ,action='store_true',
-#                      default=False, help=h_all)
+    parser.add_option('--common-segs', dest='common_flag' ,action='store_true', default=False, help=h_common)
+    parser.add_option('--all-segs', dest='all_flag' ,action='store_true', default=False, help=h_all)
     parser.add_option('--intable', dest='intable', help=h_intable)
     parser.add_option('--subdir', dest='subdir', help=h_subdir)
     parser.add_option('-d', '--delimiter', dest='delimiter',
@@ -230,6 +228,9 @@ def options_parse():
         print 'ERROR: input filename should be specified when passing subject ids (use --intable NAME)'
         sys.exit(1)
     
+    if options.all_flag and options.common_flag:
+        print 'ERROR: specify either --all-segs or --common-segs'
+        sys.exit(1)
 
 #    if options.segidsfile is not None and options.segnos is not None:
 #        print 'ERROR: cannot spec both --segids-from-file and --segnos. Spec just one'
@@ -340,37 +341,34 @@ def make_table2d(disorganized_table, segnamelist):
 """
 Args:
 sanitize_tables takes in a datastructure of the form 
-(spec1, id_name_map1, measurelist1)
-(spec2, id_name_map2, measurelist2)
+(spec1, collist1, measurelist1)
+(spec2, collist2, measurelist2)
 ..
 ..
 where 
-specN - either the name of the subject or the number of the stat file
-id_name_mapN - an ordered dict with keys=segmentations ids, and values=seg names corresponding to the specN file
+specN        - usually the name of the subject (or the number of the stat file)
+collistN     - list of col entries (segmentations ids)
 measurelistN - list of measures corresponding to the segs
+               same length as collistN (but can be different for each subject)
 
-For a proper 2d tabular structure len(segnamelistN) == len(measurelistN)
-And usually this might not be the case because different stats files will have slightly 
-different segmentations. 
+Usually the collists for different subjects (N) are not the same because different stats
+files will contain slightly different segmentations (some might not be listed). 
+
 - If --common-segs is specified, output the intersection of segs
 - If --all-segs is specified, output the union of segs ( put 0.0 as measure wherever appropriate )
 - If none of the above is specified but still the lengths of the lists are inconsistent, exit gracefully.
 
 Returns:
 returns rows, columns, table
-rows - the sequence which consists of specifiers ( subjects/statsfile numbers)
-columns - the sequence which consists of segmentation names
-table -  2d table containing the measure
+rows    - the sequence which consists of specifiers ( subjects/statsfile numbers)
+columns - the sequence which consists of all segmentation names
+table   - full 2d table StableDict(StableDict) containing the measure (where all rows have the same col elements)
+          first index is the rows, second the cols
 
-Special Case:
-    There might be some segmentations named "Placeholder_Segmentation". These are segs for which the ids were given by the users..
-    but when parsing, the parser wasn't able to find the segmentations in the initial list of .stats files. But it puts their value as 0.
-    After parsing all the .stats files, the segmentation names for the ids given by the users should be clearer 
-    and this function will attempt to rename the "Placeholder Segmentation" to the proper segmentation name. 
 """
 def sanitize_table(options, disorganized_table):
-    o = options
-    _t = disorganized_table
+    #o = options
+    #_t = disorganized_table
 
     l.debug( '-'*40)
     l.debug('Sanitizing the table')
@@ -394,9 +392,30 @@ def sanitize_table(options, disorganized_table):
     for row, cols, tmp2 in disorganized_table:
         all_cols.append(cols)
         all_rows.append(row)
+        
     #all_cols is a list of lists. Make it a flat list ( single list )
-    temp_union = [item for sublist in all_cols for item in sublist]
-    all_cols = fsutils.unique_union(temp_union)
+    if options.all_flag:
+        # create union:
+        temp_union = [item for sublist in all_cols for item in sublist]
+        all_cols = fsutils.unique_union(temp_union)
+    elif options.common_flag:
+        # create intersection:
+        intersection = all_cols[0]
+        for cols in all_cols[1:]:
+            intersection = fsutils.intersect_order(intersection, cols)
+        all_cols = intersection
+    else:
+        # check if all cols the same
+        firstcols = sorted(all_cols[0])
+        for cols in all_cols[1:]:
+            if not firstcols == sorted(cols):
+                print 'ERROR: All stat files should have the same segmentations'
+                print 'If one or more stats file have different segs from others,'
+                print 'use --common-segs or --all-segs flag depending on the need.'
+                print '(see help)'
+                sys.exit(1)
+        all_cols = all_cols[0]
+            
     
     # future: remove specific cols based on passed options
     
