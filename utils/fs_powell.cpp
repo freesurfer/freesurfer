@@ -12,14 +12,13 @@
  *    $Date$
  *    $Revision$
  *
- * Copyright (C) 2002-2009,
- * The General Hospital Corporation (Boston, MA). 
- * All rights reserved.
+ * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
- * Distribution, usage and copying of this software is covered under the
- * terms found in the License Agreement file named 'COPYING' found in the
- * FreeSurfer source code root directory, and duplicated here:
- * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ * Terms and conditions for use, reproduction, distribution and contribution
+ * are found in the 'FreeSurfer Software License Agreement' contained
+ * in the file 'LICENSE' found in the FreeSurfer distribution, and here:
+ *
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
  *
  * General inquiries and bugs: freesurfer@nmr.mgh.harvard.edu
  *
@@ -214,7 +213,7 @@ fs_powell::minimize(vnl_vector<double>& p, vnl_matrix<double>* xi)
         vnl_brent brent(&f1d);
         double ax = 0.0;
         double xx = 1.0;
-        double bx;
+        double bx = 0.0;
         brent.bracket_minimum(&ax, &xx, &bx);
         fret = brent.minimize_given_bounds
                (bx, xx, ax, linmin_xtol_, &xx);
