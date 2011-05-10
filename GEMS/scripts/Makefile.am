@@ -11,7 +11,7 @@ kvlTestHippocampalSubfields.sh
 install-exec-hook:
 	echo "#!/bin/bash" > $(DESTDIR)$(bindir)/kvlSetHardCodedLocations.sh
 	echo "PATH=\$$PATH:\$$FREESURFER_HOME/bin " >> $(DESTDIR)$(bindir)/kvlSetHardCodedLocations.sh
-	echo "atlasDirectory=\$$FREESURFER_HOME/data/Atlas3D" >> $(DESTDIR)$(bindir)/kvlSetHardCodedLocations.sh
+	echo "atlasDirectory=\$$FREESURFER_HOME/data/GEMS" >> $(DESTDIR)$(bindir)/kvlSetHardCodedLocations.sh
 	chmod a+x $(DESTDIR)$(bindir)/kvlSetHardCodedLocations.sh
 
 uninstall-hook:
