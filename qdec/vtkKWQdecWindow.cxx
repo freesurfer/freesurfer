@@ -11,8 +11,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:35 $
- *    $Revision: 1.61 $
+ *    $Date: 2011/05/10 21:40:12 $
+ *    $Revision: 1.62 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -102,7 +102,7 @@ extern "C" {
 using namespace std;
 
 vtkStandardNewMacro( vtkKWQdecWindow );
-vtkCxxRevisionMacro( vtkKWQdecWindow, "$Revision: 1.61 $" );
+vtkCxxRevisionMacro( vtkKWQdecWindow, "$Revision: 1.62 $" );
 
 const char* vtkKWQdecWindow::ksSubjectsPanelName = "Subjects";
 const char* vtkKWQdecWindow::ksDesignPanelName = "Design";
@@ -4952,7 +4952,7 @@ vtkKWQdecWindow::ScatterPlotGraphSetUpContextualMenu (const char* isElement,
     stringstream ssTkmeditCmd;
     stringstream ssTkmeditCommand;
     // catch { exec tkmedit $s norm.mgz $hemi.white -segmentation aseg.mgz }
-    ssTkmeditCmd << envVars->FREESURFER_HOME << "/bin/tkmedit "
+    ssTkmeditCmd << envVars->FREESURFER_HOME << "/tktools/tkmedit "
                  << isElement << " norm.mgz -aux T1.mgz -surfs " 
                  << "-segmentation aseg.mgz &";
     ssTkmeditCommand << "set err [catch { exec "
@@ -4970,7 +4970,7 @@ vtkKWQdecWindow::ScatterPlotGraphSetUpContextualMenu (const char* isElement,
     stringstream ssTksurferCmd;
     stringstream ssTksurferCommand;
     // catch { exec tksurfer $s $hemi inflated -annotation aparc.annot }
-    ssTksurferCmd << envVars->FREESURFER_HOME << "/bin/tksurfer "
+    ssTksurferCmd << envVars->FREESURFER_HOME << "/tktools/tksurfer "
                   << isElement << " " 
                   << "lh inflated "
                   << "-annotation aparc.annot &";
@@ -4984,7 +4984,7 @@ vtkKWQdecWindow::ScatterPlotGraphSetUpContextualMenu (const char* isElement,
     // tksurfer, right hemi
     stringstream ssTksurferCmd2;
     stringstream ssTksurferCommand2;
-    ssTksurferCmd2 << envVars->FREESURFER_HOME << "/bin/tksurfer "
+    ssTksurferCmd2 << envVars->FREESURFER_HOME << "/tktools/tksurfer "
                   << isElement << " " 
                   << "rh inflated "
                   << "-annotation aparc.annot &";
