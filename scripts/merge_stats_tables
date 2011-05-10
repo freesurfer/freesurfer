@@ -9,8 +9,8 @@
 # Original Author: Martin Reuter
 # CVS Revision Info:
 #    $Author: mreuter $
-#    $Date: 2011/04/27 17:24:08 $
-#    $Revision: 1.4 $
+#    $Date: 2011/05/10 19:48:07 $
+#    $Revision: 1.5 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -126,7 +126,7 @@ def options_parse():
     Command Line Options Parser for asegstats2table
     initiate the option parser and return the parsed object
     """
-    parser = optparse.OptionParser(version='$Id: merge_stats_tables,v 1.4 2011/04/27 17:24:08 mreuter Exp $', usage=HELPTEXT)
+    parser = optparse.OptionParser(version='$Id: merge_stats_tables,v 1.5 2011/05/10 19:48:07 mreuter Exp $', usage=HELPTEXT)
     
     # help text
     h_sub = '(REQUIRED) subject1 <subject2 subject3..>'
@@ -398,18 +398,22 @@ def sanitize_table(options, disorganized_table):
     temp_union = [item for sublist in all_cols for item in sublist]
     all_cols = fsutils.unique_union(temp_union)
     
+    # future: remove specific cols based on passed options
+    
     # go through all rows, pad with zeros if fields are missing
     all_data = fsutils.StableDict()
+    zero_data = fsutils.StableDict()
+    for col in all_cols:
+        zero_data[col] = 0
     for rowid, cols, data in disorganized_table:
-        lookup = fsutils.StableDict()
+        # init with zero
+        all_data[rowid] = zero_data.copy()
+        # fill existing elements form disorganized table
         for i in range(0,len(cols)):
-            lookup[cols[i]] = data[i]
-        data_row=[]
-        for col in all_cols:
-            if lookup[col] is None:
-                lookup[col] = 0
-        all_data[rowid]=lookup
-    
+           all_data[rowid][cols[i]] = data[i]
+        #print "all data : " + str(all_data)
+        #raw_input("Press Enter to continue...")
+  
 
     return all_rows, all_cols, all_data
 

@@ -9,8 +9,8 @@
 # Original Author: Martin Reuter
 # CVS Revision Info:
 #    $Author: mreuter $
-#    $Date: 2011/04/27 17:24:08 $
-#    $Revision: 1.10 $
+#    $Date: 2011/05/10 19:48:07 $
+#    $Revision: 1.11 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -99,13 +99,13 @@ To manually specify the within subject output in <template>/stats/<name> :
 
 To manually specify stacked tables:
 
---stack-avg <name>   Output filename (without hemi ?h) to stack temporal average tables (default no stacking)
+--stack-avg <name>   Full output filename to stack temporal average tables (default no stacking)
 
---stack-rate <name>  Output filename (without hemi ?h) to stack rate tables (default no stacking)
+--stack-rate <name>  Full output filename to stack rate tables (default no stacking)
 
---stack-pc1 <name>   Output filename (without hemi ?h) to stack pct. change to tp1 tables (default no stacking)
+--stack-pc1 <name>   Full output filename to stack pct. change to tp1 tables (default no stacking)
 
---stack-spc <name>   Output filename (without hemi ?h) to stack sym. pct. tables (default no stacking)
+--stack-spc <name>   Full output filename to stack sym. pct. tables (default no stacking)
 
 
 
@@ -169,7 +169,7 @@ def options_parse():
     Command Line Options Parser for long_mris_slopes
     initiate the option parser and return the parsed object
     """
-    parser = optparse.OptionParser(version='$Id: long_stats_slopes,v 1.10 2011/04/27 17:24:08 mreuter Exp $', usage=HELPTEXT)
+    parser = optparse.OptionParser(version='$Id: long_stats_slopes,v 1.11 2011/05/10 19:48:07 mreuter Exp $', usage=HELPTEXT)
     
     # help text
     h_qdec      = '(REQUIRED) qdec table file specifying the subjects and time points'
@@ -190,10 +190,10 @@ def options_parse():
 
     h_time      = 'variable name for time column variable (e.g. age) in qdec table'    
     
-    h_stack_avg = 'filename (without hemi ?h) to stack temporal average tables (default no stacking)'
-    h_stack_rate= 'filename (without hemi ?h) to stack rate tables (default no stacking)'
-    h_stack_pc1 = 'filename (without hemi ?h) to stack pct. change to tp1 tables (default no stacking)'
-    h_stack_spc = 'filename (without hemi ?h) to stack sym. pct. tables (default no stacking)'
+    h_stack_avg = 'full filename to stack temporal average tables (default no stacking)'
+    h_stack_rate= 'full filename to stack rate tables (default no stacking)'
+    h_stack_pc1 = 'full filename to stack pct. change to tp1 tables (default no stacking)'
+    h_stack_spc = 'full filename to stack sym. pct. tables (default no stacking)'
     
     # Add options 
 
@@ -529,19 +529,19 @@ if __name__=="__main__":
     
     if options.stack_avg is not None:
         # out table: long.all.'+options.stats+'.'+options.meas+'-avg.dat
-        cmd = 'merge_stats_tables --inputs '+" ".join(allavg)+' -t long.all.'+options.stack_avg+' --meas '+options.meas+'-avg'
+        cmd = 'merge_stats_tables --inputs '+" ".join(allavg)+' -t '+options.stack_avg+' --meas '+options.meas+'-avg'
         run_cmd(cmd,'merge_stats_tables failed?') 
 
     if options.stack_rate is not None:
-        cmd = 'merge_stats_tables --inputs '+" ".join(allrate)+' -t long.all.'+options.stack_rate+' --meas '+options.meas+'-rate'
+        cmd = 'merge_stats_tables --inputs '+" ".join(allrate)+' -t '+options.stack_rate+' --meas '+options.meas+'-rate'
         run_cmd(cmd,'merge_stats_tables failed?') 
 
     if options.stack_pc1 is not None:
-        cmd = 'merge_stats_tables --inputs '+" ".join(allpc1)+' -t long.all.'+options.stack_pc1+' --meas '+options.meas+'-pc1'
+        cmd = 'merge_stats_tables --inputs '+" ".join(allpc1)+' -t '+options.stack_pc1+' --meas '+options.meas+'-pc1'
         run_cmd(cmd,'merge_stats_tables failed?') 
 
     if options.stack_spc is not None:
-        cmd = 'merge_stats_tables --inputs '+" ".join(allspc)+' -t long.all.'+options.stack_spc+' --meas '+options.meas+'-spc'
+        cmd = 'merge_stats_tables --inputs '+" ".join(allspc)+' -t '+options.stack_spc+' --meas '+options.meas+'-spc'
         run_cmd(cmd,'merge_stats_tables failed?') 
     
     #print 'merge_stats_tables --inputs '+" ".join(allavg)+' -t long.all.'+options.stats+'.'+options.meas+'-avg.dat --meas '+options.meas+'-avg'
