@@ -669,13 +669,11 @@ kvlViewImage_LDADD=$(LIBS_ITK) \
 				 $(addprefix $(top_builddir)/, $(LIBS_MGH) )
 kvlViewImage_LDFLAGS = $(OS_LDFLAGS)
 
-# put a wrapper around the gui bins, used to setup tcltktixblt and vtk enviro vars
+# put a wrapper around the gui bins, used to setup vtk enviro vars
 install-exec-hook:kvlThresholdImage kvlEstimateAtlasParameters
 	cp $(top_builddir)/GEMS/kvlThresholdImage \
 		$(DESTDIR)$(bindir)/kvlThresholdImage.bin
 	echo "#!/bin/tcsh -ef" > $(DESTDIR)$(bindir)/kvlThresholdImage
-	echo "source \$$FREESURFER_HOME/bin/tcl_setup" \
-		>> $(DESTDIR)$(bindir)/kvlThresholdImage
 	echo "source \$$FREESURFER_HOME/bin/vtk_setup" \
 		>> $(DESTDIR)$(bindir)/kvlThresholdImage
 	echo "if (-e /bin/pwd) then" >> $(DESTDIR)$(bindir)/kvlThresholdImage
@@ -691,8 +689,6 @@ install-exec-hook:kvlThresholdImage kvlEstimateAtlasParameters
 	cp $(top_builddir)/GEMS/kvlEstimateAtlasParameters \
 		$(DESTDIR)$(bindir)/kvlEstimateAtlasParameters.bin
 	echo "#!/bin/tcsh -ef" > $(DESTDIR)$(bindir)/kvlEstimateAtlasParameters
-	echo "source \$$FREESURFER_HOME/bin/tcl_setup" \
-		>> $(DESTDIR)$(bindir)/kvlEstimateAtlasParameters
 	echo "source \$$FREESURFER_HOME/bin/vtk_setup" \
 		>> $(DESTDIR)$(bindir)/kvlEstimateAtlasParameters
 	echo "if (-e /bin/pwd) then" >> \
@@ -711,8 +707,6 @@ install-exec-hook:kvlThresholdImage kvlEstimateAtlasParameters
 	cp $(top_builddir)/GEMS/kvlViewImage \
 		$(DESTDIR)$(bindir)/kvlViewImage.bin
 	echo "#!/bin/tcsh -ef" > $(DESTDIR)$(bindir)/kvlViewImage
-	echo "source \$$FREESURFER_HOME/bin/tcl_setup" \
-		>> $(DESTDIR)$(bindir)/kvlViewImage
 	echo "source \$$FREESURFER_HOME/bin/vtk_setup" \
 		>> $(DESTDIR)$(bindir)/kvlViewImage
 	echo "if (-e /bin/pwd) then" >> $(DESTDIR)$(bindir)/kvlViewImage
