@@ -589,6 +589,7 @@ SUFFIXES: .fl .cxx .h
 
 bin_PROGRAMS+=kvlEstimateAtlasParameters
 
+# Add GUI executable
 kvlEstimateAtlasParameters_SOURCES = kvlAtlasParameterEstimationConsoleGUI.fl \
 						 kvlEstimateAtlasParameters.cxx \
 						 kvlAtlasParameterEstimationConsole.cxx
@@ -613,6 +614,8 @@ kvlEstimateAtlasParameters_LDADD=$(LIBS_ITK) \
 				 $(addprefix $(top_builddir)/, $(LIBS_MGH) )
 kvlEstimateAtlasParameters_LDFLAGS = $(OS_LDFLAGS)
 
+
+# Add GUI executable 
 bin_PROGRAMS+=kvlThresholdImage
 
 kvlThresholdImage_SOURCES = kvlImageThresholdingConsoleGUI.fl \
@@ -641,6 +644,8 @@ kvlThresholdImage_LDADD=$(LIBS_ITK) \
 				 $(addprefix $(top_builddir)/, $(LIBS_MGH) )
 kvlThresholdImage_LDFLAGS = $(OS_LDFLAGS)
 
+
+# Add GUI executable 
 bin_PROGRAMS+=kvlViewImage
 
 kvlViewImage_SOURCES = kvlImageViewingConsoleGUI.fl \
@@ -668,6 +673,93 @@ kvlViewImage_LDADD=$(LIBS_ITK) \
 				 $(FLTK_LIBS) $(FLTK_LDFLAGS)\
 				 $(addprefix $(top_builddir)/, $(LIBS_MGH) )
 kvlViewImage_LDFLAGS = $(OS_LDFLAGS)
+
+
+
+# Add GUI executable 
+bin_PROGRAMS+=kvlViewMeshCollectionWithGUI
+
+kvlViewMeshCollectionWithGUI_SOURCES = kvlAtlasMeshViewingConsoleGUI.fl \
+                                       kvlViewMeshCollectionWithGUI.cxx \
+                                       kvlAtlasMeshViewingConsole.cxx
+kvlViewMeshCollectionWithGUI_LDADD=$(LIBS_ITK) \
+                                 $(top_builddir)/itkio/libitkio.a \
+                                 $(top_builddir)/itkutils/libitkutils.a \
+                                 libkvlAtlas3DCommon.a \
+                                 libkvlAtlas3DGUI.a \
+                                 -lITKCommon -lITKBasicFilters -lITKAlgorithms -lITKIO -lITKznz \
+                                $(VTK_LIBS) $(VTK_VERDICT_LIB) -lvtkGraphics \
+                                $(VTK_EXPAT_LIB) $(VTK_FREETYPE_LIB) \
+                                $(VTK_TIFF_LIB) $(VTK_JPEG_LIB) \
+                                $(VTK_METAIO_LIB) $(VTK_PNG_LIB) $(VTK_Z_LIB) \
+                                $(VTK_SQLITE_LIB) \
+                                -lvtkImaging -lvtkFiltering \
+                                -lvtkCommon -lvtksys \
+                                -lvtkexoIIc -lvtkNetCDF \
+                                -lvtkVolumeRendering -lvtkRendering -lvtkftgl \
+                                -lvtkWidgets -lvtkHybrid \
+                                -lvtkIO -lvtkDICOMParser $(VTK_MPEG2ENCODE_LIB) \
+                                 $(FLTK_LIBS) $(FLTK_LDFLAGS)\
+                                 $(addprefix $(top_builddir)/, $(LIBS_MGH) )
+kvlViewMeshCollectionWithGUI_LDFLAGS = $(OS_LDFLAGS)
+
+
+## Add GUI executable
+#bin_PROGRAMS+=kvlSegment
+#
+#kvlSegment_SOURCES = kvlAtlasMeshSegmenterConsoleGUI.fl \
+#                     kvlSegment.cxx \
+#                     kvlAtlasMeshSegmenterConsole.cxx
+#kvlSegment_LDADD=$(LIBS_ITK) \
+#                                 $(top_builddir)/itkio/libitkio.a \
+#                                 $(top_builddir)/itkutils/libitkutils.a \
+#                                 libkvlAtlas3DCommon.a \
+#                                 libkvlAtlas3DGUI.a \
+#                                 -lITKCommon -lITKBasicFilters -lITKAlgorithms -lITKIO -lITKznz \
+#                                $(VTK_LIBS) $(VTK_VERDICT_LIB) -lvtkGraphics \
+#                                $(VTK_EXPAT_LIB) $(VTK_FREETYPE_LIB) \
+#                                $(VTK_TIFF_LIB) $(VTK_JPEG_LIB) \
+#                                $(VTK_METAIO_LIB) $(VTK_PNG_LIB) $(VTK_Z_LIB) \
+#                                $(VTK_SQLITE_LIB) \
+#                                -lvtkImaging -lvtkFiltering \
+#                                -lvtkCommon -lvtksys \
+#                                -lvtkexoIIc -lvtkNetCDF \
+#                                -lvtkVolumeRendering -lvtkRendering -lvtkftgl \
+#                                -lvtkWidgets -lvtkHybrid \
+#                                -lvtkIO -lvtkDICOMParser $(VTK_MPEG2ENCODE_LIB) \
+#                                 $(FLTK_LIBS) $(FLTK_LDFLAGS)\
+#                                 $(addprefix $(top_builddir)/, $(LIBS_MGH) )
+#kvlSegment_LDFLAGS = $(OS_LDFLAGS)
+
+
+# Add GUI executable
+bin_PROGRAMS+=kvlEvaluateSegmentation
+
+kvlEvaluateSegmentation_SOURCES = kvlSegmentationEvaluationConsoleGUI.fl \
+                                  kvlEvaluateSegmentation.cxx \
+                                  kvlSegmentationEvaluationConsole.cxx
+kvlEvaluateSegmentation_LDADD=$(LIBS_ITK) \
+                                 $(top_builddir)/itkio/libitkio.a \
+                                 $(top_builddir)/itkutils/libitkutils.a \
+                                 libkvlAtlas3DCommon.a \
+                                 libkvlAtlas3DGUI.a \
+                                 -lITKCommon -lITKBasicFilters -lITKAlgorithms -lITKIO -lITKznz \
+                                $(VTK_LIBS) $(VTK_VERDICT_LIB) -lvtkGraphics \
+                                $(VTK_EXPAT_LIB) $(VTK_FREETYPE_LIB) \
+                                $(VTK_TIFF_LIB) $(VTK_JPEG_LIB) \
+                                $(VTK_METAIO_LIB) $(VTK_PNG_LIB) $(VTK_Z_LIB) \
+                                $(VTK_SQLITE_LIB) \
+                                -lvtkImaging -lvtkFiltering \
+                                -lvtkCommon -lvtksys \
+                                -lvtkexoIIc -lvtkNetCDF \
+                                -lvtkVolumeRendering -lvtkRendering -lvtkftgl \
+                                -lvtkWidgets -lvtkHybrid \
+                                -lvtkIO -lvtkDICOMParser $(VTK_MPEG2ENCODE_LIB) \
+                                 $(FLTK_LIBS) $(FLTK_LDFLAGS)\
+                                 $(addprefix $(top_builddir)/, $(LIBS_MGH) )
+kvlEvaluateSegmentation_LDFLAGS = $(OS_LDFLAGS)
+
+
 
 # put a wrapper around the gui bins, used to setup vtk enviro vars
 install-exec-hook:kvlThresholdImage kvlEstimateAtlasParameters
@@ -719,16 +811,49 @@ install-exec-hook:kvlThresholdImage kvlEstimateAtlasParameters
 	chmod a+x $(DESTDIR)$(bindir)/kvlViewImage
 	if [[ -f /usr/pubsw/bin/chrpath ]]; then \
 	/usr/pubsw/bin/chrpath -d $(DESTDIR)$(bindir)/kvlViewImage.bin; fi
+	cp $(top_builddir)/GEMS/kvlViewMeshCollectionWithGUI \
+		$(DESTDIR)$(bindir)/kvlViewMeshCollectionWithGUI.bin
+	echo "#!/bin/tcsh -ef" > $(DESTDIR)$(bindir)/kvlViewMeshCollectionWithGUI
+	echo "source \$$FREESURFER_HOME/bin/vtk_setup" \
+		>> $(DESTDIR)$(bindir)/kvlViewMeshCollectionWithGUI
+	echo "if (-e /bin/pwd) then" >> $(DESTDIR)$(bindir)/kvlViewMeshCollectionWithGUI
+	echo "  setenv HOME \`cd \$$HOME; /bin/pwd\`" \
+		>> $(DESTDIR)$(bindir)/kvlViewMeshCollectionWithGUI
+	echo "  setenv SUBJECTS_DIR \`cd \$$SUBJECTS_DIR; /bin/pwd\`" \
+		>> $(DESTDIR)$(bindir)/kvlViewMeshCollectionWithGUI
+	echo "endif" >> $(DESTDIR)$(bindir)/kvlViewMeshCollectionWithGUI
+	echo "kvlViewMeshCollectionWithGUI.bin \$$argv" >> $(DESTDIR)$(bindir)/kvlViewMeshCollectionWithGUI
+	chmod a+x $(DESTDIR)$(bindir)/kvlViewMeshCollectionWithGUI
+	if [[ -f /usr/pubsw/bin/chrpath ]]; then \
+	/usr/pubsw/bin/chrpath -d $(DESTDIR)$(bindir)/kvlViewMeshCollectionWithGUI.bin; fi
+	cp $(top_builddir)/GEMS/kvlEvaluateSegmentation \
+		$(DESTDIR)$(bindir)/kvlEvaluateSegmentation.bin
+	echo "#!/bin/tcsh -ef" > $(DESTDIR)$(bindir)/kvlEvaluateSegmentation
+	echo "source \$$FREESURFER_HOME/bin/vtk_setup" \
+		>> $(DESTDIR)$(bindir)/kvlEvaluateSegmentation
+	echo "if (-e /bin/pwd) then" >> $(DESTDIR)$(bindir)/kvlEvaluateSegmentation
+	echo "  setenv HOME \`cd \$$HOME; /bin/pwd\`" \
+		>> $(DESTDIR)$(bindir)/kvlEvaluateSegmentation
+	echo "  setenv SUBJECTS_DIR \`cd \$$SUBJECTS_DIR; /bin/pwd\`" \
+		>> $(DESTDIR)$(bindir)/kvlEvaluateSegmentation
+	echo "endif" >> $(DESTDIR)$(bindir)/kvlEvaluateSegmentation
+	echo "kvlEvaluateSegmentation.bin \$$argv" >> $(DESTDIR)$(bindir)/kvlEvaluateSegmentation
+	chmod a+x $(DESTDIR)$(bindir)/kvlEvaluateSegmentation
+	if [[ -f /usr/pubsw/bin/chrpath ]]; then \
+	/usr/pubsw/bin/chrpath -d $(DESTDIR)$(bindir)/kvlEvaluateSegmentation.bin; fi
+
+
 
 uninstall-hook:
 	rm -f $(DESTDIR)$(bindir)/kvlThresholdImage.bin \
 		$(DESTDIR)$(bindir)/kvlEstimateAtlasParameters.bin \
-		$(DESTDIR)$(bindir)/kvlViewImage.bin
+		$(DESTDIR)$(bindir)/kvlViewImage.bin \
+                $(DESTDIR)$(bindir)/kvlViewMeshCollectionWithGUI.bin \
+                $(DESTDIR)$(bindir)/kvlEvaluateSegmentation.bin
 
 EXTRA_DIST=\
 	gzstream.h \
 	itkAffine3DTransform.h \
-	itkMGHImageIOFactory.h \
 	itkPowellOptimizer.h \
 	kvlAtlasMeshAlphaDrawer.h \
 	kvlAtlasMeshBuilder.h \
