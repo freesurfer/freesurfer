@@ -866,6 +866,7 @@ EXTRA_DIST=\
 	kvlAtlasMeshCollectionReferencePositionCost.h \
 	kvlAtlasMeshCollectionValidator.h \
 	kvlAtlasMeshDeformationLevenbergMarquardt.h \
+	kvlAtlasMeshDeformationLevenbergMarquardt2.h \
 	kvlAtlasMesh.h \
 	kvlAtlasMeshHamiltonianPositionSampler.h \
 	kvlAtlasMeshLabelStatisticsCollector.h \
