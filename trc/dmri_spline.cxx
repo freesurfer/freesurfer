@@ -7,9 +7,9 @@
 /*
  * Original Author: Anastasia Yendiki
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:41 $
- *    $Revision: 1.2 $
+ *    $Author: ayendiki $
+ *    $Date: 2011/05/11 04:58:21 $
+ *    $Revision: 1.3 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -69,7 +69,7 @@ int main(int argc, char *argv[]) ;
 static char vcid[] = "";
 const char *Progname = "dmri_spline";
 
-char *inFile = NULL, *outFile = NULL, *maskFile = NULL, *labelFile = NULL;
+char *inFile = NULL, *outFile = NULL, *maskFile = NULL;
 //char *inFiles[50];
 
 struct utsname uts;
@@ -157,11 +157,6 @@ static int parse_commandline(int argc, char **argv) {
       maskFile = fio_fullpath(pargv[0]);
       nargsused = 1;
     } 
-    else if (!strcmp(option, "--label")) {
-      if (nargc < 1) CMDargNErr(option,1);
-      labelFile = fio_fullpath(pargv[0]);
-      nargsused = 1;
-    } 
     nargc -= nargsused;
     pargv += nargsused;
   }
@@ -177,8 +172,6 @@ static void print_usage(void)
   printf("   --cpts <filename>:   input text file containing control points\n");
   printf("   --mask <filename>:   input mask volume\n");
   printf("   --out <filename>:    output spline volume\n");
-  printf("\n");
-  printf("   --label <filename>:  output freeview label\n");
   printf("\n");
   printf("   --debug:     turn on debugging\n");
   printf("   --checkopts: don't run anything, just check options and exit\n");
@@ -239,7 +232,6 @@ static void dump_options(FILE *fp) {
   fprintf(fp, "Control points: %s\n", inFile);
   fprintf(fp, "Mask volume: %s\n", maskFile);
   fprintf(fp, "Output volume: %s\n", outFile);
-  if (labelFile) fprintf(fp,"Output label: %s\n", labelFile);
 
   return;
 }
