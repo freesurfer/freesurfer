@@ -95,7 +95,8 @@ AtlasMeshDeformationLevenbergMarquardt
   gmm::row_matrix< gmm::wsvector< double > >  lhs( m_Hessian->ncols()-1, m_Hessian->ncols()-1 ); // Loose last entry that was used to put immobile components
   for ( unsigned int i = 0; i < lhs.ncols(); i++ )
     {
-    lhs( i, i ) = ( ( *m_Hessian )( i, i ) ) * ( 1 + lambda );
+    const double  tmp = ( *m_Hessian )( i, i );
+    lhs( i, i ) = tmp * ( 1 + lambda );
     }
 
 #endif
