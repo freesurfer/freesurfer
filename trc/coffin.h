@@ -50,10 +50,6 @@ class Coffin {
            const char *RoiMeshFile1, const char *RoiMeshFile2,
            const char *RoiRefFile1, const char *RoiRefFile2,
            const char *PriorFile0, const char *PriorFile1,
-           const int AsegPriorType,
-           const char *AsegPriorFile0, const char *AsegPriorFile1,
-           const char *AsegIdFile, 
-           const char *AsegTrainFile, const char *PathTrainFile,
            const char *NeighPriorFile, const char *NeighIdFile,
            const char *LocalPriorFile, const char *LocalIdFile,
            const char *AsegFile,
@@ -69,10 +65,6 @@ class Coffin {
                     const char *RoiMeshFile1, const char *RoiMeshFile2,
                     const char *RoiRefFile1, const char *RoiRefFile2,
                     const char *PriorFile0, const char *PriorFile1,
-                    int AsegPriorType,
-                    const char *AsegPriorFile0, const char *AsegPriorFile1,
-                    const char *AsegIdFile,
-                    const char *AsegTrainFile, const char *PathTrainFile,
                     const char *NeighPriorFile, const char *NeighIdFile,
                     const char *LocalPriorFile, const char *LocalIdFile);
     void SetMCMCParameters(const int NumBurnIn, const int NumSample,
@@ -114,9 +106,8 @@ class Coffin {
     char *mOutDir;
     MRI *mMask, *mRoi1, *mRoi2, 
         *mPathPrior0, *mPathPrior1, 
-        *mAsegTrain, *mPathTrain, *mAseg,
+        *mAseg,
         *mPathSamples;
-    std::vector<MRI *> mSegPrior0, mSegPrior1;
     std::ofstream mLog;
     Spline mSpline;
     AffineReg mAffineReg;
@@ -144,7 +135,8 @@ class Coffin {
     bool IsInRoi(std::vector<int>::const_iterator Point, MRI *Roi);
     void MapToAtlas(std::vector<int> &OutPoint,
                     std::vector<int>::const_iterator InPoint);
-    void LogInputs();
+    void LogObjective();
+    void LogObjectiveNaN();
 };
 
 #endif
