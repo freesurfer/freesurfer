@@ -7,9 +7,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: krish $
-#    $Date: 2011/05/05 21:47:46 $
-#    $Revision: 1.379.2.12 $
+#    $Author: nicks $
+#    $Date: 2011/05/11 21:27:30 $
+#    $Revision: 1.379.2.13 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -26,7 +26,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.379.2.12 2011/05/05 21:47:46 krish Exp $';
+set VERSION = '$Id: recon-all,v 1.379.2.13 2011/05/11 21:27:30 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -156,7 +156,7 @@ set mc_robust_template_avg_arg = 1; # when using mri_robust_template for motion
 set UseCuda = 0; # if 1 (-use-cuda), then use GPU versions of tools:
                  # mri_em_register_cuda, mri_ca_register_cuda,
                  # mris_inflate_cuda, mris_sphere_cuda
-                 # mri_segstats_cuda
+                 # (future: mri_segstats_cuda)
 set GetCuda = 0; # if 1 (-get-cuda) then print cuda info and exit
 set PialNoAparc = 0; # if 1 (-pial-noaparc), then add -noaparc flag to
                      # mris_make_surfaces to bypass usage of parcellation
@@ -3693,27 +3693,29 @@ if($DoGEMS) then
     if($status) goto error_exit;
 
     # copy results back to mri directory
-    set cmd = (cp ${kvltmpd}/${subjid}/left/segmentationWithoutPartialVolumingLog/posterior_left* ${subjdir}/mri )
-    echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
-    if($RunIt) $fs_time $cmd |& tee -a $LF
-    if($status) goto error_exit;
-    set cmd = (cp ${kvltmpd}/${subjid}/left/segmentationWithoutPartialVolumingLog/posterior_Left* ${subjdir}/mri )
-    echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
-    if($RunIt) $fs_time $cmd |& tee -a $LF
-    if($status) goto error_exit;
-    set cmd = (cp ${kvltmpd}/${subjid}/right/segmentationWithoutPartialVolumingLog/posterior_right* ${subjdir}/mri )
-    echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
-    if($RunIt) $fs_time $cmd |& tee -a $LF
-    if($status) goto error_exit;
-    set cmd = (cp ${kvltmpd}/${subjid}/right/segmentationWithoutPartialVolumingLog/posterior_Right* ${subjdir}/mri )
-    echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
-    if($RunIt) $fs_time $cmd |& tee -a $LF
-    if($status) goto error_exit;
+    if($RunIt) then
+      set cmd = (cp ${kvltmpd}/${subjid}/left/segmentationWithoutPartialVolumingLog/posterior_left* ${subjdir}/mri )
+      echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+      $fs_time $cmd |& tee -a $LF
+      if($status) goto error_exit;
+      set cmd = (cp ${kvltmpd}/${subjid}/left/segmentationWithoutPartialVolumingLog/posterior_Left* ${subjdir}/mri )
+      echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+      $fs_time $cmd |& tee -a $LF
+      if($status) goto error_exit;
+      set cmd = (cp ${kvltmpd}/${subjid}/right/segmentationWithoutPartialVolumingLog/posterior_right* ${subjdir}/mri )
+      echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+      $fs_time $cmd |& tee -a $LF
+      if($status) goto error_exit;
+      set cmd = (cp ${kvltmpd}/${subjid}/right/segmentationWithoutPartialVolumingLog/posterior_Right* ${subjdir}/mri )
+      echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+      $fs_time $cmd |& tee -a $LF
+      if($status) goto error_exit;
 
-    # delete the tmp directory 
-    set cmd = (rm -rf ${kvltmpd} )
-    echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
-    if($RunIt) $fs_time $cmd |& tee -a $LF
+      # delete the tmp directory 
+      set cmd = (rm -rf ${kvltmpd} )
+      echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+      $fs_time $cmd |& tee -a $LF
+    endif
 
     echo $cmd > $touchdir/hippocampal_subfield.touch
   else
