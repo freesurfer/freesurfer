@@ -1,27 +1,3 @@
-/**
- * @file  kvlAtlasMeshAlphaDrawer.h
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
- *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
- */
-/*
- * Original Author: Koen Van Leemput
- * CVS Revision Info:
- *    $Author: krish $
- *    $Date: 2011/04/22 22:46:45 $
- *    $Revision: 1.1 $
- *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
- *
- * Terms and conditions for use, reproduction, distribution and contribution
- * are found in the 'FreeSurfer Software License Agreement' contained
- * in the file 'LICENSE' found in the FreeSurfer distribution, and here:
- *
- * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
- *
- * Reporting: freesurfer@nmr.mgh.harvard.edu
- *
- */
 #ifndef __kvlAtlasMeshAlphaDrawer_h
 #define __kvlAtlasMeshAlphaDrawer_h
 
@@ -32,7 +8,7 @@ namespace kvl
 {
 
 
-namespace FragmentProcessor
+namespace FragmentProcessor 
 {
 
 /**
@@ -41,11 +17,11 @@ namespace FragmentProcessor
 class DrawAlpha
 {
 public:
-
+  
   typedef itk::Image< float, 3 >  ImageType;
 
-  DrawAlpha()
-  {
+  DrawAlpha() 
+    {
     m_Image = 0;
     m_AlphaInVertex0 = 1.0f;
     m_AlphaInVertex1 = 0.0f;
@@ -53,64 +29,65 @@ public:
     m_AlphaInVertex3 = 0.0f;
     m_LabelNumber = 0;
     m_Mesh = 0;
-  }
+    }
 
   ~DrawAlpha() {};
 
   void AllocateImage( ImageType::SizeType  size )
-  {
+    {
     m_Image = ImageType::New();
     m_Image->SetRegions( size );
     m_Image->Allocate();
     m_Image->FillBuffer( 0 );
-  }
+    }
+    
+  void SetImage( ImageType* image )
+    { m_Image = image; }
 
   const ImageType* GetImage() const
-  {
-    return m_Image;
-  }
+    { return m_Image; }
 
   void SetLabelNumber( unsigned char labelNumber )
-  {
-    m_LabelNumber = labelNumber;
-  }
-
+    { m_LabelNumber = labelNumber; }
+  
   inline void operator()( const float& pi0, const float& pi1, const float& pi2, const float& pi3 )
-  {
+    {
     float  alpha = pi0 * m_AlphaInVertex0 +
                    pi1 * m_AlphaInVertex1 +
                    pi2 * m_AlphaInVertex2 +
                    pi3 * m_AlphaInVertex3;
+#if 1                   
     m_Image->SetPixel( m_Index, alpha );
-
+#else
+    const unsigned long  offset = m_Image->ComputeOffset( m_Index );
+    *( m_Image->GetBufferPointer()+offset ) = alpha;
+#endif
+    
+    
+    
+      
     m_Index[ 0 ]++;
-  }
-
+    }
+    
   inline void StartNewSpan( int x, int y, int z, const unsigned char* sourcePointer )
-  {
+    {
     m_Index[ 0 ] = x;
     m_Index[ 1 ] = y;
     m_Index[ 2 ] = z;
-#if 0
-    if ( z == 49 )
-    {
-      std::cout << "         Starting span (" << x << ", " << y << ", " << z << ")" << std::endl;
     }
-#endif
-  }
-
+    
   inline bool StartNewTetrahedron( AtlasMesh::CellIdentifier cellId )
-  {
+    {
     // Cache the alpha of the specified class in each of the vertices of this tetrahedron
     AtlasMesh::CellAutoPointer  cell;
     m_Mesh->GetCell( cellId, cell );
-
+          
     AtlasMesh::CellType::PointIdIterator  pit = cell->PointIdsBegin();
     AtlasAlphasType  alphas0;
     AtlasAlphasType  alphas1;
     AtlasAlphasType  alphas2;
     AtlasAlphasType  alphas3;
-
+    
     alphas0 = m_Mesh->GetPointData()->ElementAt( *pit ).m_Alphas;
     ++pit;
     alphas1 = m_Mesh->GetPointData()->ElementAt( *pit ).m_Alphas;
@@ -118,35 +95,35 @@ public:
     alphas2 = m_Mesh->GetPointData()->ElementAt( *pit ).m_Alphas;
     ++pit;
     alphas3 = m_Mesh->GetPointData()->ElementAt( *pit ).m_Alphas;
-
+    
     m_AlphaInVertex0 = alphas0[ m_LabelNumber ];
     m_AlphaInVertex1 = alphas1[ m_LabelNumber ];
     m_AlphaInVertex2 = alphas2[ m_LabelNumber ];
     m_AlphaInVertex3 = alphas3[ m_LabelNumber ];
 
     return true;
-  }
-
+    }
+    
   inline void SetMesh( const AtlasMesh* mesh )
-  {
+    {
     m_Mesh = mesh;
-  }
-
+    }
+    
 private:
 
   ImageType::Pointer  m_Image;
   ImageType::IndexType  m_Index;
-
+  
   float  m_AlphaInVertex0;
   float  m_AlphaInVertex1;
   float  m_AlphaInVertex2;
   float  m_AlphaInVertex3;
-
+  
   unsigned char  m_LabelNumber;
-
+  
   AtlasMesh::ConstPointer  m_Mesh;
-
-
+  
+    
 };
 
 
@@ -159,7 +136,7 @@ private:
 class AtlasMeshAlphaDrawer: public AtlasMeshRasterizor< FragmentProcessor::DrawAlpha >
 {
 public :
-
+  
   /** Standard class typedefs */
   typedef AtlasMeshAlphaDrawer  Self;
   typedef AtlasMeshRasterizor< FragmentProcessor::DrawAlpha >  Superclass;
@@ -179,26 +156,41 @@ public :
 
   /** */
   void SetLabelNumber( unsigned char labelNumber )
-  {
-    this->GetFragmentProcessor().SetLabelNumber( labelNumber );
-  }
-
+    {
+    for ( std::vector< FragmentProcessorType >::iterator  it = this->GetFragmentProcessors().begin(); 
+          it != this->GetFragmentProcessors().end(); ++it )
+      {  
+      it->SetLabelNumber( labelNumber );
+      }
+    }
+    
   /** */
   virtual void SetLabelImage( const LabelImageType*  labelImage )
-  {
-    // Use the label image as a template for the alpha image
-    this->GetFragmentProcessor().AllocateImage( labelImage->GetLargestPossibleRegion().GetSize() );
-
+    {
+    // Allocate the result image for the first fragment processor, and point to the other
+    // fragment processors to that 
+    std::vector< FragmentProcessorType >::iterator  it = this->GetFragmentProcessors().begin();  
+    it->AllocateImage( labelImage->GetLargestPossibleRegion().GetSize() );
+    AlphaImageType::Pointer  image = const_cast< AlphaImageType* >( it->GetImage() );
+    for ( ; it != this->GetFragmentProcessors().end(); ++it )
+      {
+      it->SetImage( image );
+      }
     // Invoke superclass' implementation
     Superclass::SetLabelImage( labelImage );
-  }
-
+    }
+  
   /** */
   const AlphaImageType*  GetAlphaImage() const
-  {
-    return this->GetFragmentProcessor().GetImage();
-  }
-
+    { return this->GetFragmentProcessor().GetImage(); }
+    
+  /**  */
+  void Rasterize( const AtlasMesh* mesh )
+    {
+    // Rasterize using multithreading
+    Superclass::Rasterize( mesh, true );
+    }
+  
 protected:
   AtlasMeshAlphaDrawer() {};
   virtual ~AtlasMeshAlphaDrawer() {};
@@ -206,8 +198,8 @@ protected:
 private:
   AtlasMeshAlphaDrawer(const Self&); //purposely not implemented
   void operator=(const Self&); //purposely not implemented
-
-
+  
+  
 };
 
 

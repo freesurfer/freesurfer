@@ -1,27 +1,3 @@
-/**
- * @file  kvlAtlasMeshDeformationLevenbergMarquardt.h
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
- *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
- */
-/*
- * Original Author: Koen Van Leemput
- * CVS Revision Info:
- *    $Author: krish $
- *    $Date: 2011/04/22 22:46:46 $
- *    $Revision: 1.1 $
- *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
- *
- * Terms and conditions for use, reproduction, distribution and contribution
- * are found in the 'FreeSurfer Software License Agreement' contained
- * in the file 'LICENSE' found in the FreeSurfer distribution, and here:
- *
- * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
- *
- * Reporting: freesurfer@nmr.mgh.harvard.edu
- *
- */
 #ifndef __kvlAtlasMeshDeformationLevenbergMarquardt_h
 #define __kvlAtlasMeshDeformationLevenbergMarquardt_h
 
@@ -37,7 +13,7 @@ namespace kvl
 {
 
 
-namespace FragmentProcessor
+namespace FragmentProcessor 
 {
 
 /**
@@ -55,7 +31,7 @@ public:
 
 
   CalculateGradientAndHessian()
-  {
+    {
     m_ProbabilityImage = 0;
     m_Image = 0;
     m_Mesh = 0;
@@ -72,88 +48,78 @@ public:
     m_ContributionsFromLastTetrahdronFlushedOut = true;
 
     m_UseProbabilityImage = false;
-  }
+    }
 
   ~CalculateGradientAndHessian()
-  {
+    {
     // Clean up stuff we've allocated
     if ( m_Gradient )
-    {
+      {
       //std::cout << "Destructor of CalculateGradientAndHessian deleting m_Gradient" << std::endl;
       delete m_Gradient;
-    }
+      }
 
     if ( m_Hessian )
-    {
+      {
       //std::cout << "Destructor of CalculateGradientAndHessian deleting m_Hessian" << std::endl;
       delete m_Hessian;
-    }
+      }
 
     if ( m_HessianPriorContribution )
-    {
+      {
       delete m_HessianPriorContribution;
-    }
+      }
 
     if ( m_HessianDataContribution )
-    {
+      {
       delete m_HessianDataContribution;
-    }
+      }
 
     if ( m_GradientContribution )
-    {
+      {
       delete m_GradientContribution;
+      }
+
+    };
+
+  void SetImage( const ImageType* image ) 
+    {
+    m_Image = image;
     }
 
-  };
-
-  void SetImage( const ImageType* image )
-  {
-    m_Image = image;
-  }
-
   const ImageType* GetImage() const
-  {
-    return m_Image;
-  }
+    { return m_Image; }
 
   void SetProbabilityImage( const ProbabilityImageType* probabilityImage )
-  {
+    {
     m_ProbabilityImage = probabilityImage;
-  }
+    }
 
   const ProbabilityImageType* GetProbabilityImage() const
-  {
-    return m_ProbabilityImage;
-  }
+    { return m_ProbabilityImage; }
 
   void  SetUseProbabilityImage( bool  useProbabilityImage )
-  {
+    {
     m_UseProbabilityImage = useProbabilityImage;
-  }
+    }
 
   bool  GetUseProbabilityImage() const
-  {
+    {
     return m_UseProbabilityImage;
-  }
+    }
 
   const AtlasMesh*  GetMesh() const
-  {
-    return m_Mesh;
-  }
+    { return m_Mesh; }
 
   void SetMeans( const itk::Array< float >& means )
-  {
-    m_Means = means;
-  }
+    { m_Means = means; }
 
   //
   void SetVariances( const itk::Array< float >& variances )
-  {
-    m_Variances = variances;
-  }
+    { m_Variances = variances; }
 
   inline void operator()( const float& pi0, const float& pi1, const float& pi2, const float& pi3 )
-  {
+    {
     // This will hold the precious gradient basis from which this voxel's contribution to each
     // of the tetrahedral nodes can be easily calculated
     double  tmpX = 0.0f;
@@ -167,12 +133,12 @@ public:
     double  tmpZZ = 0.0f;
 
     if ( m_UseProbabilityImage )
-    {
+      {
       // Loop over all classes
       const AtlasAlphasType&  weights = m_ProbabilityImage->GetPixel( m_Index );
       double  cost = 0.0f;
       for ( unsigned int classNumber = 0; classNumber < m_AlphasInVertex0.Size(); classNumber++ )
-      {
+        {
         // Get the weight of this class's contribution
         const double  weight = weights[ classNumber ];
 
@@ -199,34 +165,34 @@ public:
         tmpYY += tmp2 * ( m_YGradientBasis[ classNumber ] * m_YGradientBasis[ classNumber ] );
         tmpYZ += tmp2 * ( m_YGradientBasis[ classNumber ] * m_ZGradientBasis[ classNumber ] );
         tmpZZ += tmp2 * ( m_ZGradientBasis[ classNumber ] * m_ZGradientBasis[ classNumber ] );
-      }
+        }
       m_MinLogLikelihoodTimesPrior += cost;
-    }
+      }
     else
-    {
+      {
       //std::cout << "!!!!!! Using original image to directly deform to !!!!!" << std::endl;
 
       const ImageType::PixelType  intensity = m_Image->GetPixel( m_Index );
 
       // Skip zero entries
       if ( intensity == 0 )
-      {
+        {
         // Move on to the next pixel
         m_Index[ 0 ]++;
 
         return;
-      }
+        }
 
       double likelihood = 0.0f;
       double  intensityXGradientBasis = 0.0f;
       double  intensityYGradientBasis = 0.0f;
       double  intensityZGradientBasis = 0.0f;
       for ( unsigned int classNumber = 0; classNumber < m_AlphasInVertex0.Size(); classNumber++ )
-      {
+        {
         // Evaluate the Gaussian of this class at the intensity of this pixel
         const double  gauss = exp( -pow( intensity - m_Means[ classNumber ] , 2 ) /
-                                   2 / m_Variances[ classNumber ] ) /
-                              sqrt( 2 * 3.14 * m_Variances[ classNumber ] );
+                                    2 / m_Variances[ classNumber ] ) / 
+                                    sqrt( 2 * 3.14 * m_Variances[ classNumber ] );
 
         // Collect the data terms for each vertex
         double  alpha0 = m_AlphasInVertex0[ classNumber ];
@@ -241,7 +207,7 @@ public:
         intensityXGradientBasis += gauss * m_XGradientBasis[ classNumber ];
         intensityYGradientBasis += gauss * m_YGradientBasis[ classNumber ];
         intensityZGradientBasis += gauss * m_ZGradientBasis[ classNumber ];
-      }
+        }
       m_MinLogLikelihoodTimesPrior -= log( likelihood );
 
 
@@ -256,13 +222,13 @@ public:
       tmpYY = tmpY * tmpY;
       tmpYZ = tmpY * tmpZ;
       tmpZZ = tmpZ * tmpZ;
-    }
+      }
 
 
     const double  pis[] = { pi0, pi1, pi2, pi3 };
     int  indexInHessianDataContribution = 0;
     for ( int vertexNumber = 0; vertexNumber < 4; vertexNumber++ )
-    {
+      {
       const double  pi = pis[ vertexNumber ];
 
       // Add contribution to gradient
@@ -272,7 +238,7 @@ public:
 
 
       for ( int vertexNumber2 = vertexNumber; vertexNumber2 < 4; vertexNumber2++ )
-      {
+        {
         // Add contribution to Hessian in which second-order terms are ignored
         const double  pi2 = pis[ vertexNumber2 ];
         const double  piTimesPi2 = pi * pi2;
@@ -285,27 +251,27 @@ public:
         m_HessianDataContribution[ indexInHessianDataContribution+5 ] += tmpZZ * piTimesPi2;
 
         indexInHessianDataContribution += 6;
-      }
+        }
 
-    }
+      }
 
     // Move on to the next pixel
     m_Index[ 0 ]++;
-  }
-
+    }
+    
   inline void StartNewSpan( int x, int y, int z, const unsigned char* sourcePointer )
-  {
+    {
     m_Index[ 0 ] = x;
     m_Index[ 1 ] = y;
     m_Index[ 2 ] = z;
-  }
-
+    }
+    
   inline bool StartNewTetrahedron( AtlasMesh::CellIdentifier cellId )
-  {
+    {
     //std::cout << "Starting tetrahedron with id " << cellId << std::endl;
 
     if ( !this->FlushContributionsFromPreviousTetrahedron() )
-    {
+      {
       // This is the very first tetrahedron being rasterized. Allocate space
       // for holding the contributions
       m_HessianPriorContribution = new double[ 78 ]; // Upper diagonal of a 12 x 12 matrix (78 = 12 * 13 / 2 )
@@ -313,15 +279,15 @@ public:
       m_GradientContribution = new double[ 12 ];
 
       m_ContributionsFromLastTetrahdronFlushedOut = false;
-    }
+      }
     for ( int i = 0; i < 60; i++ )
-    {
+      {
       m_HessianDataContribution[ i ] = 0.0f;
-    }
+      }
     for ( int i = 0; i < 12; i++ )
-    {
+      {
       m_GradientContribution[ i ] = 0.0f;
-    }
+      }
 
 
     //
@@ -329,7 +295,7 @@ public:
     //
     AtlasMesh::CellAutoPointer  cell;
     m_Mesh->GetCell( cellId, cell );
-
+          
     AtlasMesh::CellType::PointIdIterator  pit = cell->PointIdsBegin();
     AtlasMesh::PointType  p;
     m_Mesh->GetPoint( *pit, &p );
@@ -429,14 +395,14 @@ public:
 
     const double  detJ = m11 * ( m22*m33 - m32*m23 ) - m12 * ( m21*m33 - m31*m23 ) + m13 * ( m21*m32 - m31*m22 );
     if ( detJ <= 0 )
-    {
+      {
       std::cout << "Oooooops: tetrahedron " << cellId << " has managed to turn bad (detJ: " << detJ << ")" << std::endl;
 
       // std::cout << std::endl;
       // std::cout << "YfirstThreeRows: [ " << y11 << " " << y12 << " " << y13 << " " << y14 << ";" << std::endl;
       // std::cout << "                   " << y21 << " " << y22 << " " << y23 << " " << y24 << ";" << std::endl;
       // std::cout << "                   " << y31 << " " << y32 << " " << y33 << " " << y34 << "]" << std::endl;
-      //
+      // 
       // std::cout << std::endl;
       // std::cout << "ZfirstThreeColumns: [ " << z11 << " " << z12 << " " << z13 << ";" << std::endl;
       // std::cout << "                      " << z21 << " " << z22 << " " << z23 << ";" << std::endl;
@@ -445,7 +411,7 @@ public:
 
       m_MinLogLikelihoodTimesPrior = itk::NumericTraits< double >::max();
       return false;
-    }
+      }
 
 
 
@@ -469,7 +435,7 @@ public:
     const double  sumOfSquaresOfReciprocalsOfSingularValuesOfJ = traceOfKTransposeTimesK / ( detJ * detJ );
 
     const double  priorCost = referenceVolumeTimesK * ( 1 + detJ ) *
-                              ( sumOfSquaresOfSingularValuesOfJ + sumOfSquaresOfReciprocalsOfSingularValuesOfJ - 6 );
+                             ( sumOfSquaresOfSingularValuesOfJ + sumOfSquaresOfReciprocalsOfSingularValuesOfJ - 6 );
     m_MinLogLikelihoodTimesPrior += priorCost;
     //std::cout << "PositionGradientCalculator: setting m_MinLogLikelihoodTimesPrior to: " << m_MinLogLikelihoodTimesPrior << std::endl;
 
@@ -525,50 +491,50 @@ public:
 
 
     if ( m_MeshToImageTransform )
-    {
+      {
       // If we just use the dcostdy's defined above, we calculate gradients of the prior term w.r.t. to
       // the image grid coordinate system. In order to implement the sliding boundary conditions of
       // the mesh deformation, we'd like the gradients w.r.t. the mesh coordinate system. To accomplish
       // this, simply transform things around
       const double  dcostdu11 = ( m_MeshToImageTransform->GetMatrix() )( 0, 0 ) * dcostdy11 +
-                                ( m_MeshToImageTransform->GetMatrix() )( 1, 0 ) * dcostdy21 +
-                                ( m_MeshToImageTransform->GetMatrix() )( 2, 0 ) * dcostdy31;
+                               ( m_MeshToImageTransform->GetMatrix() )( 1, 0 ) * dcostdy21 +
+                               ( m_MeshToImageTransform->GetMatrix() )( 2, 0 ) * dcostdy31;
       const double  dcostdu21 = ( m_MeshToImageTransform->GetMatrix() )( 0, 1 ) * dcostdy11 +
-                                ( m_MeshToImageTransform->GetMatrix() )( 1, 1 ) * dcostdy21 +
-                                ( m_MeshToImageTransform->GetMatrix() )( 2, 1 ) * dcostdy31;
+                               ( m_MeshToImageTransform->GetMatrix() )( 1, 1 ) * dcostdy21 +
+                               ( m_MeshToImageTransform->GetMatrix() )( 2, 1 ) * dcostdy31;
       const double  dcostdu31 = ( m_MeshToImageTransform->GetMatrix() )( 0, 2 ) * dcostdy11 +
-                                ( m_MeshToImageTransform->GetMatrix() )( 1, 2 ) * dcostdy21 +
-                                ( m_MeshToImageTransform->GetMatrix() )( 2, 2 ) * dcostdy31;
+                               ( m_MeshToImageTransform->GetMatrix() )( 1, 2 ) * dcostdy21 +
+                               ( m_MeshToImageTransform->GetMatrix() )( 2, 2 ) * dcostdy31;
 
       const double  dcostdu12 = ( m_MeshToImageTransform->GetMatrix() )( 0, 0 ) * dcostdy12 +
-                                ( m_MeshToImageTransform->GetMatrix() )( 1, 0 ) * dcostdy22 +
-                                ( m_MeshToImageTransform->GetMatrix() )( 2, 0 ) * dcostdy32;
+                               ( m_MeshToImageTransform->GetMatrix() )( 1, 0 ) * dcostdy22 +
+                               ( m_MeshToImageTransform->GetMatrix() )( 2, 0 ) * dcostdy32;
       const double  dcostdu22 = ( m_MeshToImageTransform->GetMatrix() )( 0, 1 ) * dcostdy12 +
-                                ( m_MeshToImageTransform->GetMatrix() )( 1, 1 ) * dcostdy22 +
-                                ( m_MeshToImageTransform->GetMatrix() )( 2, 1 ) * dcostdy32;
+                               ( m_MeshToImageTransform->GetMatrix() )( 1, 1 ) * dcostdy22 +
+                               ( m_MeshToImageTransform->GetMatrix() )( 2, 1 ) * dcostdy32;
       const double  dcostdu32 = ( m_MeshToImageTransform->GetMatrix() )( 0, 2 ) * dcostdy12 +
-                                ( m_MeshToImageTransform->GetMatrix() )( 1, 2 ) * dcostdy22 +
-                                ( m_MeshToImageTransform->GetMatrix() )( 2, 2 ) * dcostdy32;
+                               ( m_MeshToImageTransform->GetMatrix() )( 1, 2 ) * dcostdy22 +
+                               ( m_MeshToImageTransform->GetMatrix() )( 2, 2 ) * dcostdy32;
 
       const double  dcostdu13 = ( m_MeshToImageTransform->GetMatrix() )( 0, 0 ) * dcostdy13 +
-                                ( m_MeshToImageTransform->GetMatrix() )( 1, 0 ) * dcostdy23 +
-                                ( m_MeshToImageTransform->GetMatrix() )( 2, 0 ) * dcostdy33;
+                               ( m_MeshToImageTransform->GetMatrix() )( 1, 0 ) * dcostdy23 +
+                               ( m_MeshToImageTransform->GetMatrix() )( 2, 0 ) * dcostdy33;
       const double  dcostdu23 = ( m_MeshToImageTransform->GetMatrix() )( 0, 1 ) * dcostdy13 +
-                                ( m_MeshToImageTransform->GetMatrix() )( 1, 1 ) * dcostdy23 +
-                                ( m_MeshToImageTransform->GetMatrix() )( 2, 1 ) * dcostdy33;
+                               ( m_MeshToImageTransform->GetMatrix() )( 1, 1 ) * dcostdy23 +
+                               ( m_MeshToImageTransform->GetMatrix() )( 2, 1 ) * dcostdy33;
       const double  dcostdu33 = ( m_MeshToImageTransform->GetMatrix() )( 0, 2 ) * dcostdy13 +
-                                ( m_MeshToImageTransform->GetMatrix() )( 1, 2 ) * dcostdy23 +
-                                ( m_MeshToImageTransform->GetMatrix() )( 2, 2 ) * dcostdy33;
+                               ( m_MeshToImageTransform->GetMatrix() )( 1, 2 ) * dcostdy23 +
+                               ( m_MeshToImageTransform->GetMatrix() )( 2, 2 ) * dcostdy33;
 
       const double  dcostdu14 = ( m_MeshToImageTransform->GetMatrix() )( 0, 0 ) * dcostdy14 +
-                                ( m_MeshToImageTransform->GetMatrix() )( 1, 0 ) * dcostdy24 +
-                                ( m_MeshToImageTransform->GetMatrix() )( 2, 0 ) * dcostdy34;
+                               ( m_MeshToImageTransform->GetMatrix() )( 1, 0 ) * dcostdy24 +
+                               ( m_MeshToImageTransform->GetMatrix() )( 2, 0 ) * dcostdy34;
       const double  dcostdu24 = ( m_MeshToImageTransform->GetMatrix() )( 0, 1 ) * dcostdy14 +
-                                ( m_MeshToImageTransform->GetMatrix() )( 1, 1 ) * dcostdy24 +
-                                ( m_MeshToImageTransform->GetMatrix() )( 2, 1 ) * dcostdy34;
+                               ( m_MeshToImageTransform->GetMatrix() )( 1, 1 ) * dcostdy24 +
+                               ( m_MeshToImageTransform->GetMatrix() )( 2, 1 ) * dcostdy34;
       const double  dcostdu34 = ( m_MeshToImageTransform->GetMatrix() )( 0, 2 ) * dcostdy14 +
-                                ( m_MeshToImageTransform->GetMatrix() )( 1, 2 ) * dcostdy24 +
-                                ( m_MeshToImageTransform->GetMatrix() )( 2, 2 ) * dcostdy34;
+                               ( m_MeshToImageTransform->GetMatrix() )( 1, 2 ) * dcostdy24 +
+                               ( m_MeshToImageTransform->GetMatrix() )( 2, 2 ) * dcostdy34;
 
 
       dcostdy11 = dcostdu11;
@@ -586,7 +552,7 @@ public:
       dcostdy14 = dcostdu14;
       dcostdy24 = dcostdu24;
       dcostdy34 = dcostdu34;
-    }
+      }
 
     // Add contributions of prior to gradient and hessian
     double  priorGradient[ 12 ];
@@ -607,22 +573,22 @@ public:
 
     int  indexInHessianPriorContribution = 0;
     for ( int i = 0; i < 12; i++ )
-    {
+      {
       const double  gradientComponent = priorGradient[ i ];
 
       // Gradient
       m_GradientContribution[ i ] += gradientComponent;
 
       for ( int j = i; j < 12; j++ )
-      {
+        {
         const double  gradientComponent2 = priorGradient[ j ];
 
         // Hessian
         m_HessianPriorContribution[ indexInHessianPriorContribution ] = tmp * gradientComponent * gradientComponent2;
         indexInHessianPriorContribution++;
-      }
+        }
 
-    }
+      }
 
 
     //
@@ -665,40 +631,40 @@ public:
 
 
     if ( m_MeshToImageTransform )
-    {
+      {
       // If we just use the gamma's defined above, we calculate gradients of the image term w.r.t. to
       // the image grid coordinate system. In order to implement the sliding boundary conditions of
       // the mesh deformation, we'd like the gradients w.r.t. the mesh coordinate system. To accomplish
       // this, simply transform things around
       const double  transformedGamma11 = ( m_MeshToImageTransform->GetMatrix() )( 0, 0 ) * gamma11 +
-                                         ( m_MeshToImageTransform->GetMatrix() )( 1, 0 ) * gamma12 +
-                                         ( m_MeshToImageTransform->GetMatrix() )( 2, 0 ) * gamma13;
+                                        ( m_MeshToImageTransform->GetMatrix() )( 1, 0 ) * gamma12 +
+                                        ( m_MeshToImageTransform->GetMatrix() )( 2, 0 ) * gamma13;
       const double  transformedGamma21 = ( m_MeshToImageTransform->GetMatrix() )( 0, 0 ) * gamma21 +
-                                         ( m_MeshToImageTransform->GetMatrix() )( 1, 0 ) * gamma22 +
-                                         ( m_MeshToImageTransform->GetMatrix() )( 2, 0 ) * gamma23;
+                                        ( m_MeshToImageTransform->GetMatrix() )( 1, 0 ) * gamma22 +
+                                        ( m_MeshToImageTransform->GetMatrix() )( 2, 0 ) * gamma23;
       const double  transformedGamma31 = ( m_MeshToImageTransform->GetMatrix() )( 0, 0 ) * gamma31 +
-                                         ( m_MeshToImageTransform->GetMatrix() )( 1, 0 ) * gamma32 +
-                                         ( m_MeshToImageTransform->GetMatrix() )( 2, 0 ) * gamma33;
+                                        ( m_MeshToImageTransform->GetMatrix() )( 1, 0 ) * gamma32 +
+                                        ( m_MeshToImageTransform->GetMatrix() )( 2, 0 ) * gamma33;
 
       const double  transformedGamma12 = ( m_MeshToImageTransform->GetMatrix() )( 0, 1 ) * gamma11 +
-                                         ( m_MeshToImageTransform->GetMatrix() )( 1, 1 ) * gamma12 +
-                                         ( m_MeshToImageTransform->GetMatrix() )( 2, 1 ) * gamma13;
+                                        ( m_MeshToImageTransform->GetMatrix() )( 1, 1 ) * gamma12 +
+                                        ( m_MeshToImageTransform->GetMatrix() )( 2, 1 ) * gamma13;
       const double  transformedGamma22 = ( m_MeshToImageTransform->GetMatrix() )( 0, 1 ) * gamma21 +
-                                         ( m_MeshToImageTransform->GetMatrix() )( 1, 1 ) * gamma22 +
-                                         ( m_MeshToImageTransform->GetMatrix() )( 2, 1 ) * gamma23;
+                                        ( m_MeshToImageTransform->GetMatrix() )( 1, 1 ) * gamma22 +
+                                        ( m_MeshToImageTransform->GetMatrix() )( 2, 1 ) * gamma23;
       const double  transformedGamma32 = ( m_MeshToImageTransform->GetMatrix() )( 0, 1 ) * gamma31 +
-                                         ( m_MeshToImageTransform->GetMatrix() )( 1, 1 ) * gamma32 +
-                                         ( m_MeshToImageTransform->GetMatrix() )( 2, 1 ) * gamma33;
+                                        ( m_MeshToImageTransform->GetMatrix() )( 1, 1 ) * gamma32 +
+                                        ( m_MeshToImageTransform->GetMatrix() )( 2, 1 ) * gamma33;
 
       const double  transformedGamma13 = ( m_MeshToImageTransform->GetMatrix() )( 0, 2 ) * gamma11 +
-                                         ( m_MeshToImageTransform->GetMatrix() )( 1, 2 ) * gamma12 +
-                                         ( m_MeshToImageTransform->GetMatrix() )( 2, 2 ) * gamma13;
+                                        ( m_MeshToImageTransform->GetMatrix() )( 1, 2 ) * gamma12 +
+                                        ( m_MeshToImageTransform->GetMatrix() )( 2, 2 ) * gamma13;
       const double  transformedGamma23 = ( m_MeshToImageTransform->GetMatrix() )( 0, 2 ) * gamma21 +
-                                         ( m_MeshToImageTransform->GetMatrix() )( 1, 2 ) * gamma22 +
-                                         ( m_MeshToImageTransform->GetMatrix() )( 2, 2 ) * gamma23;
+                                        ( m_MeshToImageTransform->GetMatrix() )( 1, 2 ) * gamma22 +
+                                        ( m_MeshToImageTransform->GetMatrix() )( 2, 2 ) * gamma23;
       const double  transformedGamma33 = ( m_MeshToImageTransform->GetMatrix() )( 0, 2 ) * gamma31 +
-                                         ( m_MeshToImageTransform->GetMatrix() )( 1, 2 ) * gamma32 +
-                                         ( m_MeshToImageTransform->GetMatrix() )( 2, 2 ) * gamma33;
+                                        ( m_MeshToImageTransform->GetMatrix() )( 1, 2 ) * gamma32 +
+                                        ( m_MeshToImageTransform->GetMatrix() )( 2, 2 ) * gamma33;
 
 
       gamma11 = transformedGamma11;
@@ -712,7 +678,7 @@ public:
       gamma31 = transformedGamma31;
       gamma32 = transformedGamma32;
       gamma33 = transformedGamma33;
-    }
+      }
 
 
 
@@ -720,17 +686,17 @@ public:
     m_YGradientBasis = AtlasAlphasType( m_AlphasInVertex0.Size() );
     m_ZGradientBasis = AtlasAlphasType( m_AlphasInVertex0.Size() );
     for ( unsigned int labelNumber = 0; labelNumber < m_AlphasInVertex0.Size(); labelNumber++ )
-    {
+      {
       double  alpha0 = m_AlphasInVertex0[ labelNumber ];
       double  alpha1 = m_AlphasInVertex1[ labelNumber ];
       double  alpha2 = m_AlphasInVertex2[ labelNumber ];
       double  alpha3 = m_AlphasInVertex3[ labelNumber ];
-
+  
 
       m_XGradientBasis[ labelNumber ] = alpha1 * gamma11 + alpha2 * gamma21 + alpha3 * gamma31 - alpha0 * ( gamma11 + gamma21 + gamma31 );
       m_YGradientBasis[ labelNumber ] = alpha1 * gamma12 + alpha2 * gamma22 + alpha3 * gamma32 - alpha0 * ( gamma12 + gamma22 + gamma32 );
       m_ZGradientBasis[ labelNumber ] = alpha1 * gamma13 + alpha2 * gamma23 + alpha3 * gamma33 - alpha0 * ( gamma13 + gamma23 + gamma33 );
-    }
+      }
 
 
 #if 0
@@ -743,7 +709,7 @@ public:
     std::cout << "           Y = [ p0 p1 p2 p3; 1 1 1 1 ];" << std::endl;
     std::cout << std::endl;
     for ( int labelNumber = 0; labelNumber < m_AlphasInVertex0.Size(); labelNumber++ )
-    {
+      {
       std::cout << "For labelNumber: " << labelNumber << std::endl;
       std::cout << "    alpha0 = " << m_AlphasInVertex0[ labelNumber ] << std::endl;
       std::cout << "    alpha1 = " << m_AlphasInVertex1[ labelNumber ] << std::endl;
@@ -751,10 +717,10 @@ public:
       std::cout << "    alpha3 = " << m_AlphasInVertex3[ labelNumber ] << std::endl;
       std::cout << std::endl;
       std::cout << "    gradientBasis = [" << m_XGradientBasis[ labelNumber ] << " "
-                << m_YGradientBasis[ labelNumber ] << " "
-                << m_ZGradientBasis[ labelNumber ] << " ]'" << std::endl;
+                                           << m_YGradientBasis[ labelNumber ] << " "
+                                           << m_ZGradientBasis[ labelNumber ] << " ]'" << std::endl;
 
-    }
+      }
 
 #endif
 #if 0
@@ -845,26 +811,48 @@ public:
     //std::cout << "Done setting up tetrahedron" << std::endl;
 
     return true;
-  }
+    }
 
   inline void SetMesh( const AtlasMesh* mesh )
-  {
-    m_Mesh = mesh;
-
+    {
     m_MinLogLikelihoodTimesPrior = 0.0f;
 
     // Clean up from possible previous usage
     if ( m_HessianPriorContribution )
-    {
+      {
       delete m_HessianPriorContribution;
       m_HessianPriorContribution = 0;
-    }
+      }
     if ( m_HessianDataContribution )
-    {
+      {
       delete m_HessianDataContribution;
       m_HessianDataContribution = 0;
-    }
+      }
 
+    //std::cout << "mesh: " << mesh << std::endl;
+    //std::cout << "m_Mesh.GetPointer(): " << m_Mesh.GetPointer() << std::endl;
+    if ( mesh == m_Mesh.GetPointer() )
+      {
+      //std::cout << "Not initializing any more because that's costly" << std::endl;
+    
+      gmm::fill( *m_Gradient, 0.0 );
+
+      for ( std::vector< gmm::wsvector< double > >::iterator  hesIt = m_Hessian->begin();
+            hesIt != m_Hessian->end(); ++hesIt )
+        {
+        for ( gmm::linalg_traits< gmm::wsvector< double > >::iterator  hesRowIt = gmm::vect_begin( *hesIt );
+              hesRowIt != gmm::vect_end( *hesIt ); ++hesRowIt )
+          {
+          *hesRowIt = 1e-12;
+          }
+        }
+      
+      return;
+      }
+
+
+
+    m_Mesh = mesh;
 
     // Precalculate lookup table for the mesh nodes, mapping each component (x, y, and z)
     // to a continuous index to be used in the Levenberg-Marquardt calculations. In order to
@@ -881,38 +869,38 @@ public:
     int  currentIndex = 0;
     for ( AtlasMesh::PointDataContainer::ConstIterator  paramIt = m_Mesh->GetPointData()->Begin();
           paramIt != m_Mesh->GetPointData()->End(); ++paramIt )
-    {
-      if ( paramIt.Value().m_CanMoveX )
       {
+      if ( paramIt.Value().m_CanMoveX )
+        {
         m_ComponentXLookupTable[ paramIt.Index() ] = currentIndex;
         currentIndex++;
-      }
+        }
       else
-      {
+        {
         m_ComponentXLookupTable[ paramIt.Index() ] = -1; // Sentinel value; to be replace later
-      }
+        }
 
       if ( paramIt.Value().m_CanMoveY )
-      {
+        {
         m_ComponentYLookupTable[ paramIt.Index() ] = currentIndex;
         currentIndex++;
-      }
+        }
       else
-      {
+        {
         m_ComponentYLookupTable[ paramIt.Index() ] = -1; // Sentinel value; to be replace later
-      }
+        }
 
       if ( paramIt.Value().m_CanMoveZ )
-      {
+        {
         m_ComponentZLookupTable[ paramIt.Index() ] = currentIndex;
         currentIndex++;
-      }
+        }
       else
-      {
+        {
         m_ComponentZLookupTable[ paramIt.Index() ] = -1; // Sentinel value; to be replace later
-      }
+        }
 
-    }
+      }
 
 
     const int  numberOfEntries = currentIndex + 1; // Extra entry for "knocked out" components
@@ -921,28 +909,28 @@ public:
     // replace the sentinel value with the last index
     for ( std::map< AtlasMesh::PointIdentifier, int >::iterator  it = m_ComponentXLookupTable.begin();
           it != m_ComponentXLookupTable.end(); ++it )
-    {
-      if ( it->second == -1 )
       {
+      if ( it->second == -1 )
+        {
         it->second = ( numberOfEntries - 1 );
+        }
       }
-    }
     for ( std::map< AtlasMesh::PointIdentifier, int >::iterator  it = m_ComponentYLookupTable.begin();
           it != m_ComponentYLookupTable.end(); ++it )
-    {
-      if ( it->second == -1 )
       {
+      if ( it->second == -1 )
+        {
         it->second = ( numberOfEntries - 1 );
+        }
       }
-    }
     for ( std::map< AtlasMesh::PointIdentifier, int >::iterator  it = m_ComponentZLookupTable.begin();
           it != m_ComponentZLookupTable.end(); ++it )
-    {
-      if ( it->second == -1 )
       {
+      if ( it->second == -1 )
+        {
         it->second = ( numberOfEntries - 1 );
+        }
       }
-    }
 
 
 
@@ -952,73 +940,163 @@ public:
     // Now that we have the lookup tables, we know the size of the Hessian matrix
     // and gradient vector. Allocate them.
     if ( m_Gradient )
-    {
+      {
       delete m_Gradient;
-    }
+      }
     if ( m_Hessian )
-    {
+      {
       delete m_Hessian;
-    }
+      }
     m_Gradient = new GradientType( numberOfEntries );
     m_Hessian = new HessianType( numberOfEntries, numberOfEntries );
 
+    
+    
+    
+    
+    
+    
+    
+#if 1    
+
+    for ( AtlasMesh::CellsContainer::ConstIterator  cellIt = mesh->GetCells()->Begin();
+          cellIt != mesh->GetCells()->End(); ++cellIt )
+      {
+      AtlasMesh::CellType*  cell = cellIt.Value();
+
+      if( cell->GetType() != AtlasMesh::CellType::TETRAHEDRON_CELL )
+        {
+        continue;
+        }
+          
+      AtlasMesh::CellType::PointIdIterator  pit = cell->PointIdsBegin();
+      int  indicesForVertex0[ 3 ];
+      indicesForVertex0[ 0 ] = m_ComponentXLookupTable[ *pit ];
+      indicesForVertex0[ 1 ] = m_ComponentYLookupTable[ *pit ];
+      indicesForVertex0[ 2 ] = m_ComponentZLookupTable[ *pit ];
+
+
+      ++pit;
+      int  indicesForVertex1[ 3 ];
+      indicesForVertex1[ 0 ] = m_ComponentXLookupTable[ *pit ];
+      indicesForVertex1[ 1 ] = m_ComponentYLookupTable[ *pit ];
+      indicesForVertex1[ 2 ] = m_ComponentZLookupTable[ *pit ];
+
+
+      ++pit;
+      int  indicesForVertex2[ 3 ];
+      indicesForVertex2[ 0 ] = m_ComponentXLookupTable[ *pit ];
+      indicesForVertex2[ 1 ] = m_ComponentYLookupTable[ *pit ];
+      indicesForVertex2[ 2 ] = m_ComponentZLookupTable[ *pit ];
+
+
+      ++pit;
+      int  indicesForVertex3[ 3 ];
+      indicesForVertex3[ 0 ] = m_ComponentXLookupTable[ *pit ];
+      indicesForVertex3[ 1 ] = m_ComponentYLookupTable[ *pit ];
+      indicesForVertex3[ 2 ] = m_ComponentZLookupTable[ *pit ];
+
+
+      const int  componentXIndices[] = { indicesForVertex0[ 0 ], indicesForVertex1[ 0 ],
+                                        indicesForVertex2[ 0 ], indicesForVertex3[ 0 ] };
+      const int  componentYIndices[] = { indicesForVertex0[ 1 ], indicesForVertex1[ 1 ],
+                                        indicesForVertex2[ 1 ], indicesForVertex3[ 1 ] };
+      const int  componentZIndices[] = { indicesForVertex0[ 2 ], indicesForVertex1[ 2 ],
+                                        indicesForVertex2[ 2 ], indicesForVertex3[ 2 ] };
+
+
+      for ( int vertexNumber = 0; vertexNumber < 4; vertexNumber++ )
+        {
+        const int  indexX = componentXIndices[ vertexNumber ];
+        const int  indexY = componentYIndices[ vertexNumber ];
+        const int  indexZ = componentZIndices[ vertexNumber ];
+
+
+        for ( int vertexNumber2 = 0; vertexNumber2 < 4; vertexNumber2++ )
+          {
+          const int  index2X = componentXIndices[ vertexNumber2 ];
+          const int  index2Y = componentYIndices[ vertexNumber2 ];
+          const int  index2Z = componentZIndices[ vertexNumber2 ];
+
+          // Fill in first row of the 3x3 matrix
+          const double eps = 1e-12;
+          ( *m_Hessian )( indexX, index2X ) = eps;
+          ( *m_Hessian )( indexX, index2Y ) = eps;
+          ( *m_Hessian )( indexX, index2Z ) = eps;
+
+          // Fill in second row of the 3x3 matrix
+          ( *m_Hessian )( indexY, index2X ) = eps;
+          ( *m_Hessian )( indexY, index2Y ) = eps;
+          ( *m_Hessian )( indexY, index2Z ) = eps;
+
+          // Fill in third row of the 3x3 matrix
+          ( *m_Hessian )( indexZ, index2X ) = eps;
+          ( *m_Hessian )( indexZ, index2Y ) = eps;
+          ( *m_Hessian )( indexZ, index2Z ) = eps;
+
+          }
+
+        }
+    
+    
+      } // End loop over all tetrahedra
+    
+#endif    
+    
+    
     //std::cout << "Done setting mesh" << std::endl;
-  }
+    }
 
   void  SetMeshToImageTransform( const TransformType* meshToImageTransform )
-  {
-    m_MeshToImageTransform = meshToImageTransform;
-  }
+    { m_MeshToImageTransform = meshToImageTransform; }
 
   const TransformType* GetMeshToImageTransform() const
-  {
-    return m_MeshToImageTransform;
-  }
+    { return m_MeshToImageTransform; }
 
   const GradientType* GetGradient() const
-  {
-    if ( !m_ContributionsFromLastTetrahdronFlushedOut )
     {
+    if ( !m_ContributionsFromLastTetrahdronFlushedOut )
+      {
       ( const_cast< CalculateGradientAndHessian* >( this ) )->FlushContributionsFromPreviousTetrahedron();
       *( const_cast< bool* >( &m_ContributionsFromLastTetrahdronFlushedOut ) ) = true;
-      std::cout << "Set m_ContributionsFromLastTetrahdronFlushedOut to true: " << m_ContributionsFromLastTetrahdronFlushedOut << std::endl;
-    }
+      //std::cout << "Set m_ContributionsFromLastTetrahdronFlushedOut to true: " << m_ContributionsFromLastTetrahdronFlushedOut << std::endl;
+      }
 
     return m_Gradient;
-  }
-
-  const HessianType* GetHessian() const
-  {
-    if ( !m_ContributionsFromLastTetrahdronFlushedOut )
-    {
-      ( const_cast< CalculateGradientAndHessian* >( this ) )->FlushContributionsFromPreviousTetrahedron();
-      *( const_cast< bool* >( &m_ContributionsFromLastTetrahdronFlushedOut ) ) = true;
-      std::cout << "Set m_ContributionsFromLastTetrahdronFlushedOut to true: " << m_ContributionsFromLastTetrahdronFlushedOut << std::endl;
     }
 
+  const HessianType* GetHessian() const
+    {
+    if ( !m_ContributionsFromLastTetrahdronFlushedOut )
+      {
+      ( const_cast< CalculateGradientAndHessian* >( this ) )->FlushContributionsFromPreviousTetrahedron();
+      *( const_cast< bool* >( &m_ContributionsFromLastTetrahdronFlushedOut ) ) = true;
+      //std::cout << "Set m_ContributionsFromLastTetrahdronFlushedOut to true: " << m_ContributionsFromLastTetrahdronFlushedOut << std::endl;
+      }
+
     return m_Hessian;
-  }
+    }
 
   double GetMinLogLikelihoodTimesPrior() const
-  {
+    {
     //std::cout << "PositionGradientCalculator: returning m_MinLogLikelihoodTimesPrior " << m_MinLogLikelihoodTimesPrior << std::endl;
     return m_MinLogLikelihoodTimesPrior;
-  }
+    }
 
   const std::map< AtlasMesh::PointIdentifier, int >&  GetComponentXLookupTable() const
-  {
+    {
     return m_ComponentXLookupTable;
-  }
+    }
 
   const std::map< AtlasMesh::PointIdentifier, int >&  GetComponentYLookupTable() const
-  {
+    {
     return m_ComponentYLookupTable;
-  }
+    }
 
   const std::map< AtlasMesh::PointIdentifier, int >&  GetComponentZLookupTable() const
-  {
+    {
     return m_ComponentZLookupTable;
-  }
+    }
 
 
 private:
@@ -1026,55 +1104,52 @@ private:
   // If a symmetric matrix A = [ a11 a12 a13 ...; a12 a22 a23 ...; ] is stored as a vector b = [ a11 a12 a13 a22 a23 ... ],
   // what is the index in b corresponding to matrix element ( i ,j )?
   static int  GetIndexInUpperDiagonalMatrixRepresentation( int rowNumber, int colNumber, int matrixSize )
-  {
+    {
     int  index = 0;
     if ( rowNumber <= colNumber )
-    {
+      {
       const int  offset = static_cast< int >( rowNumber * ( rowNumber + 1 ) / 2.0f + ( matrixSize - rowNumber ) * rowNumber + 0.5 );
       index = offset + ( colNumber - rowNumber );
-    }
+      }
     else
-    {
+      {
       const int  offset = static_cast< int >( colNumber * ( colNumber + 1) / 2.0f + ( matrixSize - colNumber ) * colNumber + 0.5 );
       index = offset + ( rowNumber - colNumber );
-    }
+      }
 
     return index;
-  }
+    }
 
   //
   bool  FlushContributionsFromPreviousTetrahedron()
-  {
-    if ( !m_HessianPriorContribution )
     {
+    if ( !m_HessianPriorContribution )
+      {
       return false;
-    }
+      }  
 
-    // Flush out
+    // Flush out 
     const int  componentXIndices[] = { m_IndicesForVertex0[ 0 ], m_IndicesForVertex1[ 0 ],
-                                       m_IndicesForVertex2[ 0 ], m_IndicesForVertex3[ 0 ]
-                                     };
+                                       m_IndicesForVertex2[ 0 ], m_IndicesForVertex3[ 0 ] };
     const int  componentYIndices[] = { m_IndicesForVertex0[ 1 ], m_IndicesForVertex1[ 1 ],
-                                       m_IndicesForVertex2[ 1 ], m_IndicesForVertex3[ 1 ]
-                                     };
+                                       m_IndicesForVertex2[ 1 ], m_IndicesForVertex3[ 1 ] };
     const int  componentZIndices[] = { m_IndicesForVertex0[ 2 ], m_IndicesForVertex1[ 2 ],
-                                       m_IndicesForVertex2[ 2 ], m_IndicesForVertex3[ 2 ]
-                                     };
+                                       m_IndicesForVertex2[ 2 ], m_IndicesForVertex3[ 2 ] };
 
 
     for ( int vertexNumber = 0; vertexNumber < 4; vertexNumber++ )
-    {
+      {
       const int  indexX = componentXIndices[ vertexNumber ];
       const int  indexY = componentYIndices[ vertexNumber ];
       const int  indexZ = componentZIndices[ vertexNumber ];
 
-      // Add contribution to gradient
+      // Add contribution to gradient 
       ( *m_Gradient )[ indexX ] += m_GradientContribution[ vertexNumber * 3 ];
       ( *m_Gradient )[ indexY ] += m_GradientContribution[ vertexNumber * 3 + 1 ];
       ( *m_Gradient )[ indexZ ] += m_GradientContribution[ vertexNumber * 3 + 2 ];
 
       for ( int vertexNumber2 = 0; vertexNumber2 < 4; vertexNumber2++ )
-      {
+        {
         const int  index2X = componentXIndices[ vertexNumber2 ];
         const int  index2Y = componentYIndices[ vertexNumber2 ];
         const int  index2Z = componentZIndices[ vertexNumber2 ];
@@ -1090,42 +1165,42 @@ private:
         // Fill in first row of the 3x3 matrix
         ( *m_Hessian )( indexX, index2X ) += m_HessianDataContribution[ startIndexInHessianDataContribution ] +
                                              m_HessianPriorContribution[ GetIndexInUpperDiagonalMatrixRepresentation( vertexNumber*3,
-                                                 vertexNumber2*3, 12 ) ];
+                                                                                                                      vertexNumber2*3, 12 ) ];
         ( *m_Hessian )( indexX, index2Y ) += m_HessianDataContribution[ startIndexInHessianDataContribution+1 ] +
                                              m_HessianPriorContribution[ GetIndexInUpperDiagonalMatrixRepresentation( vertexNumber*3,
-                                                 vertexNumber2*3+1, 12 ) ];
+                                                                                                                      vertexNumber2*3+1, 12 ) ];
         ( *m_Hessian )( indexX, index2Z ) += m_HessianDataContribution[ startIndexInHessianDataContribution+2 ] +
                                              m_HessianPriorContribution[ GetIndexInUpperDiagonalMatrixRepresentation( vertexNumber*3,
-                                                 vertexNumber2*3+2, 12 ) ];
+                                                                                                                      vertexNumber2*3+2, 12 ) ];
 
         // Fill in second row of the 3x3 matrix
         ( *m_Hessian )( indexY, index2X ) += m_HessianDataContribution[ startIndexInHessianDataContribution+1 ] +
                                              m_HessianPriorContribution[ GetIndexInUpperDiagonalMatrixRepresentation( vertexNumber*3+1,
-                                                 vertexNumber2*3, 12 ) ];
+                                                                                                                      vertexNumber2*3, 12 ) ];
         ( *m_Hessian )( indexY, index2Y ) += m_HessianDataContribution[ startIndexInHessianDataContribution+3 ] +
                                              m_HessianPriorContribution[ GetIndexInUpperDiagonalMatrixRepresentation( vertexNumber*3+1,
-                                                 vertexNumber2*3+1, 12 ) ];
+                                                                                                                      vertexNumber2*3+1, 12 ) ];
         ( *m_Hessian )( indexY, index2Z ) += m_HessianDataContribution[ startIndexInHessianDataContribution+4 ] +
                                              m_HessianPriorContribution[ GetIndexInUpperDiagonalMatrixRepresentation( vertexNumber*3+1,
-                                                 vertexNumber2*3+2, 12 ) ];
+                                                                                                                      vertexNumber2*3+2, 12 ) ];
 
         // Fill in third row of the 3x3 matrix
         ( *m_Hessian )( indexZ, index2X ) += m_HessianDataContribution[ startIndexInHessianDataContribution+2 ] +
                                              m_HessianPriorContribution[ GetIndexInUpperDiagonalMatrixRepresentation( vertexNumber*3+2,
-                                                 vertexNumber2*3, 12 ) ];
+                                                                                                                      vertexNumber2*3, 12 ) ];
         ( *m_Hessian )( indexZ, index2Y ) += m_HessianDataContribution[ startIndexInHessianDataContribution+4 ] +
                                              m_HessianPriorContribution[ GetIndexInUpperDiagonalMatrixRepresentation( vertexNumber*3+2,
-                                                 vertexNumber2*3+1, 12 ) ];
+                                                                                                                      vertexNumber2*3+1, 12 ) ];
         ( *m_Hessian )( indexZ, index2Z ) += m_HessianDataContribution[ startIndexInHessianDataContribution+5 ] +
                                              m_HessianPriorContribution[ GetIndexInUpperDiagonalMatrixRepresentation( vertexNumber*3+2,
-                                                 vertexNumber2*3+2, 12 ) ];
+                                                                                                                      vertexNumber2*3+2, 12 ) ];
+
+        }
 
       }
 
-    }
-
     return true;
-  }
+    }
 
 
 
@@ -1203,8 +1278,8 @@ private:
 
 };
 
-
-
+ 
+ 
 
 } // End namespace FragmentProcessor
 
@@ -1219,7 +1294,7 @@ class AtlasMeshDeformationLevenbergMarquardt :
   public AtlasMeshRasterizor< FragmentProcessor::CalculateGradientAndHessian >
 {
 public :
-
+  
   /** Standard class typedefs */
   typedef AtlasMeshDeformationLevenbergMarquardt  Self;
   typedef AtlasMeshRasterizor< FragmentProcessor::CalculateGradientAndHessian >  Superclass;
@@ -1241,82 +1316,185 @@ public :
 
   /** */
   void  SetProbabilityImage( const ProbabilityImageType* probabilityImage )
-  {
-    this->GetFragmentProcessor().SetProbabilityImage( probabilityImage );
-  }
+    {
+    for ( std::vector< FragmentProcessorType >::iterator  it = this->GetFragmentProcessors().begin();
+          it != this->GetFragmentProcessors().end(); ++it )
+      {
+      it->SetProbabilityImage( probabilityImage );  
+      }
+    }
 
   /** */
   const ProbabilityImageType*  GetProbabilityImage() const
-  {
+    {
     return this->GetFragmentProcessor().GetProbabilityImage();
-  }
+    }
 
   /** */
   void  SetImage( const ImageType* image )
-  {
-    this->GetFragmentProcessor().SetImage( image );
-  }
+    {
+    for ( std::vector< FragmentProcessorType >::iterator  it = this->GetFragmentProcessors().begin();
+          it != this->GetFragmentProcessors().end(); ++it )
+      {
+      it->SetImage( image );
+      }
+    }
 
   /** */
   const ImageType*  GetImage() const
-  {
+    {
     return this->GetFragmentProcessor().GetImage();
-  }
+    }
 
   /** */
   void SetMeans( const itk::Array< float >& means )
-  {
-    this->GetFragmentProcessor().SetMeans( means );
-  }
+    { 
+    for ( std::vector< FragmentProcessorType >::iterator  it = this->GetFragmentProcessors().begin();
+          it != this->GetFragmentProcessors().end(); ++it )
+      {
+      it->SetMeans( means ); 
+      }
+    }
 
-  /** */
+  /** */ 
   void SetVariances( const itk::Array< float >& variances )
-  {
-    this->GetFragmentProcessor().SetVariances( variances );
-  }
+    {
+    for ( std::vector< FragmentProcessorType >::iterator  it = this->GetFragmentProcessors().begin();
+          it != this->GetFragmentProcessors().end(); ++it )
+      {
+      it->SetVariances( variances ); 
+      }
+    }
 
   /** */
   void  SetMeshToImageTransform( const TransformType* meshToImageTransform )
-  {
-    this->GetFragmentProcessor().SetMeshToImageTransform( meshToImageTransform );
-  }
+    {
+    for ( std::vector< FragmentProcessorType >::iterator  it = this->GetFragmentProcessors().begin();
+          it != this->GetFragmentProcessors().end(); ++it )
+      {
+      it->SetMeshToImageTransform( meshToImageTransform );
+      }
+    }
 
   const TransformType* GetMeshToImageTransform() const
-  {
+    {
     return this->GetFragmentProcessor().GetMeshToImageTransform();
-  }
+    }
 
   /** */
   void  SetUseProbabilityImage( bool  useProbabilityImage )
-  {
-    this->GetFragmentProcessor().SetUseProbabilityImage( useProbabilityImage );
-  }
+    {
+    for ( std::vector< FragmentProcessorType >::iterator  it = this->GetFragmentProcessors().begin();
+          it != this->GetFragmentProcessors().end(); ++it )
+      {
+      it->SetUseProbabilityImage( useProbabilityImage );
+      }
+    }
 
   /** */
   bool  GetUseProbabilityImage() const
-  {
+    {
     return this->GetFragmentProcessor().GetUseProbabilityImage();
-  }
+    }
 
   /** */
   double GetMinLogLikelihoodTimesPrior() const
-  {
-    return this->GetFragmentProcessor().GetMinLogLikelihoodTimesPrior();
-  }
-
+    {
+    double  minLogLikelihoodTimesPrior = 0;
+    for ( std::vector< FragmentProcessorType >::const_iterator  it = this->GetFragmentProcessors().begin();
+          it != this->GetFragmentProcessors().end(); ++it )
+      {
+      if ( it->GetMinLogLikelihoodTimesPrior() == itk::NumericTraits< double >::max() )
+        {
+        return itk::NumericTraits< double >::max();  
+        }
+  
+      minLogLikelihoodTimesPrior += it->GetMinLogLikelihoodTimesPrior();
+      }
+      
+      return minLogLikelihoodTimesPrior;
+    }
+  
   /** */
   AtlasPositionGradientContainerType::Pointer  GetStep( float lambda, bool verbose=false ) const;
+  
 
-
-  /** This is only needed here for debugging, i.e., timing the rasterization process */
+  /**  */
   void Rasterize( const AtlasMesh* mesh )
-  {
+    {
+    // Rasterize
     itk::TimeProbe  timeProbe;
     timeProbe.Start();
-    Superclass::Rasterize( mesh );
+    Superclass::Rasterize( mesh, true );
     timeProbe.Stop();
     std::cout << "Time taken to rasterize Levenberg-Marquardt: " << timeProbe.GetMeanTime() << std::endl;
-  }
+    
+    // Collect results of all threads
+    timeProbe = itk::TimeProbe();
+    timeProbe.Start();
+    m_Gradient = const_cast<  FragmentProcessorType::GradientType* >( this->GetFragmentProcessor().GetGradient() );
+    m_Hessian = const_cast< FragmentProcessorType::HessianType*  >( this->GetFragmentProcessor().GetHessian() );
+
+    std::vector< FragmentProcessorType >::const_iterator it = this->GetFragmentProcessors().begin();
+    ++it;
+    for ( ; it != this->GetFragmentProcessors().end(); ++it )
+      {
+      gmm::add( *( it->GetGradient() ), *m_Gradient );
+
+#if 0  
+      gmm::add( *( it->GetHessian() ), *hessian );
+
+      //std::vector< gmm::wsvector< double > >::iterator  destHesIt = hessian->begin();
+      //std::vector< gmm::wsvector< double > >::const_iterator  sourceHesIt = it->GetHessian()->begin();
+      //for ( ; destHesIt != hessian->end(); ++destHesIt, ++sourceHesIt )
+      //  {
+      //  gmm::linalg_traits< gmm::wsvector< double > >::const_iterator  sourceIt = gmm::vect_const_begin( *sourceHesIt );
+      //  gmm::linalg_traits< gmm::wsvector< double > >::const_iterator  sourceIte = gmm::vect_const_end( *sourceHesIt );
+      //  for ( ; sourceIt != sourceIte; ++sourceIt )
+      //    {
+      //    ( *( destHesIt ) )[ sourceIt.index() ] += *sourceIt;  
+      //    }
+      //  }
+    
+#else
+      //std::cout << "number of non-zero entries in hessian: " << gmm::nnz( *hessian )
+      //          << " (" <<  static_cast< float >( gmm::nnz( *hessian ) ) /
+      //                      static_cast< float >( hessian->nrows() ) /
+      //                      static_cast< float >( hessian->ncols() ) *
+      //                      100.0f << " % of all elements)" << std::endl;
+
+      //std::cout << "number of non-zero entries in it->GetHessian(): " << gmm::nnz( *( it->GetHessian() ) )
+      //          << " (" <<  static_cast< float >( gmm::nnz( *( it->GetHessian() ) ) ) /
+      //                      static_cast< float >( it->GetHessian()->nrows() ) /
+      //                      static_cast< float >( hessian->ncols() ) *
+      //                      100.0f << " % of all elements)" << std::endl;
+
+
+      std::vector< gmm::wsvector< double > >::iterator  destHesIt = m_Hessian->begin();
+      std::vector< gmm::wsvector< double > >::const_iterator  sourceHesIt = it->GetHessian()->begin();
+      for ( ; destHesIt != m_Hessian->end(); ++destHesIt, ++sourceHesIt )
+        {
+        //std::cout << "     number of non-zero entries in dest row: " << gmm::nnz( *destHesIt ) << std::endl;  
+        //std::cout << "     number of non-zero entries in source row: " << gmm::nnz( *sourceHesIt ) << std::endl;  
+          
+        gmm::linalg_traits< gmm::wsvector< double > >::iterator  destIt = gmm::vect_begin( *destHesIt );
+        gmm::linalg_traits< gmm::wsvector< double > >::const_iterator  sourceIt = gmm::vect_const_begin( *sourceHesIt );
+        for ( ; destIt != gmm::vect_end( *destHesIt ); ++destIt, ++sourceIt )
+          {
+          //std::cout << "              dest: " << destIt.index() << " -> " << *destIt << std::endl;  
+          //std::cout << "              source: " << sourceIt.index() << " -> " << *sourceIt << std::endl;  
+          *destIt += *sourceIt;  
+          }
+        }
+
+#endif
+      } // End loop over all fragment processors
+    
+    timeProbe.Stop();
+    std::cout << "Time taken to add contributions: " << timeProbe.GetMeanTime() << std::endl;
+
+    
+    }
 
 protected:
   AtlasMeshDeformationLevenbergMarquardt();
@@ -1325,8 +1503,11 @@ protected:
 private:
   AtlasMeshDeformationLevenbergMarquardt(const Self&); //purposely not implemented
   void operator=(const Self&); //purposely not implemented
-
-
+  
+  FragmentProcessorType::GradientType*  m_Gradient;
+  FragmentProcessorType::HessianType*  m_Hessian;
+  
+  
 };
 
 
