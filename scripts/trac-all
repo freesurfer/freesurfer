@@ -8,8 +8,8 @@
 # Original Author: Anastasia Yendiki
 # CVS Revision Info:
 #    $Author: ayendiki $
-#    $Date: 2011/05/06 14:21:41 $
-#    $Revision: 1.27 $
+#    $Date: 2011/05/11 20:12:13 $
+#    $Revision: 1.28 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -25,9 +25,17 @@
 
 umask 002
 
-set VERSION = '$Id: trac-all,v 1.27 2011/05/06 14:21:41 ayendiki Exp $'
+set VERSION = '$Id: trac-all,v 1.28 2011/05/11 20:12:13 ayendiki Exp $'
 set ProgName = `basename $0`
 set inputargs = ($argv)
+
+if ($?PBS_JOBID) then
+  echo "ERROR: Do not submit $Progname as a job with pbsubmit or qsub."
+  echo "ERROR: Run it directly on the command line."
+  echo "ERROR: If run on the cluster, $Progname will submit the jobs for you."
+  echo "ERROR: Each subject listed in your dmrirc will be submitted as a job."
+  exit 1
+endif
 
 set onpbs = 0
 set hname = `hostname -s`
