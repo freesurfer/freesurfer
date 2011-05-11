@@ -24,11 +24,9 @@
 
 using namespace std;
 
-int Bite::mNumDir, Bite::mNumB0, Bite::mNumTract, Bite::mNumBedpost,
-    Bite::mAsegPriorType, Bite::mNumTrain;
+int Bite::mNumDir, Bite::mNumB0, Bite::mNumTract, Bite::mNumBedpost;
 float Bite::mFminPath;
 vector<float> Bite::mGradients, Bite::mBvalues;
-vector< vector<unsigned int> > Bite::mAsegIds;
 
 Bite::Bite(MRI *Dwi, MRI **Phi, MRI **Theta, MRI **F,
            MRI **V0, MRI **F0, MRI *D0,
@@ -139,22 +137,6 @@ void Bite::SetStatic(const char *GradientFile, const char *BvalueFile,
   mFminPath = FminPath;
 }
 
-//
-// Set prior-related variables that are common for all voxels
-//
-void Bite::SetStaticPrior(int AsegPriorType,
-                          const vector< vector<unsigned int> > &AsegIds,
-                          int NumTrain) {
-  mAsegPriorType = AsegPriorType;
-
-  mAsegIds.clear();
-  for (vector< vector<unsigned int> >::const_iterator ipr = AsegIds.begin();
-                                                     ipr < AsegIds.end(); ipr++)
-    mAsegIds.push_back(*ipr);
-
-  mNumTrain = NumTrain;
-}
-
 int Bite::GetNumTract() { return mNumTract; }
 
 int Bite::GetNumDir() { return mNumDir; }
@@ -172,9 +154,6 @@ bool Bite::IsPriorSet() { return mIsPriorSet; }
 // Compute priors for this voxel, given its coordinates in atlas space
 //
 void Bite::SetPrior(MRI *Prior0, MRI *Prior1,
-                    std::vector<MRI *> &AsegPrior0,
-                    std::vector<MRI *> &AsegPrior1,
-                    MRI *AsegTrain, MRI *PathTrain, MRI *Aseg,
                     int CoordX, int CoordY, int CoordZ) {
   // Spatial path priors
   if (Prior0 && Prior1) {
@@ -184,272 +163,6 @@ void Bite::SetPrior(MRI *Prior0, MRI *Prior1,
   else {
     mPathPrior0 = 0;
     mPathPrior1 = 0;
-  }
-
-  // Aseg priors
-  if (!AsegPrior0.empty() && !AsegPrior1.empty()) {
-    vector<float> tmp0, tmp1;
-    vector<unsigned int>::const_iterator iid;
-    vector< vector<unsigned int> >::const_iterator iids;
-    vector<MRI *>::const_iterator iprior0 = AsegPrior0.begin(),
-                                  iprior1 = AsegPrior1.begin();
-
-    for (iids = mAsegIds.begin(); iids != mAsegIds.end(); iids++) {
-      int k = 0;
-
-      tmp0.clear();
-      tmp1.clear();
-
-      for (iid = iids->begin(); iid != iids->end(); iid++) {
-        tmp0.push_back(MRIgetVoxVal(*iprior0, CoordX, CoordY, CoordZ, k));
-        tmp1.push_back(MRIgetVoxVal(*iprior1, CoordX, CoordY, CoordZ, k));
-        k++;
-      }
-
-      mAsegPrior0.push_back(tmp0);
-      mAsegPrior1.push_back(tmp1);
-
-      iprior0++;
-      iprior1++;
-    }
-  }
-
-  // Training paths and segmentation maps
-  if (AsegTrain && PathTrain) {
-    for (int itrain = 0; itrain < mNumTrain; itrain++) {
-      mPathTrain.push_back((unsigned int)
-                 MRIgetVoxVal(PathTrain, CoordX, CoordY, CoordZ, itrain));
-
-      mAsegTrain.push_back((unsigned int)
-                 MRIgetVoxVal(AsegTrain, CoordX, CoordY, CoordZ, itrain));
-    }
-
-    if (mAsegPriorType == 2) {
-      int coord;
-
-      coord = (CoordX < Aseg->width-1 ? CoordX+1 : CoordX);
-      for (int itrain = 0; itrain < mNumTrain; itrain++)
-        mAsegTrain.push_back((unsigned int)
-                   MRIgetVoxVal(AsegTrain, coord, CoordY, CoordZ, itrain));
-
-      coord = (CoordX > 0 ? CoordX-1 : CoordX);
-      for (int itrain = 0; itrain < mNumTrain; itrain++)
-        mAsegTrain.push_back((unsigned int)
-                   MRIgetVoxVal(AsegTrain, coord, CoordY, CoordZ, itrain));
-
-      coord = (CoordY < Aseg->height-1 ? CoordY+1 : CoordY);
-      for (int itrain = 0; itrain < mNumTrain; itrain++)
-        mAsegTrain.push_back((unsigned int)
-                   MRIgetVoxVal(AsegTrain, CoordX, coord, CoordZ, itrain));
-
-      coord = (CoordY > 0 ? CoordY-1 : CoordY);
-      for (int itrain = 0; itrain < mNumTrain; itrain++)
-        mAsegTrain.push_back((unsigned int)
-                   MRIgetVoxVal(AsegTrain, CoordX, coord, CoordZ, itrain));
-
-      coord = (CoordZ < Aseg->depth-1 ? CoordZ+1 : CoordZ);
-      for (int itrain = 0; itrain < mNumTrain; itrain++)
-        mAsegTrain.push_back((unsigned int)
-                   MRIgetVoxVal(AsegTrain, CoordX, CoordY, coord, itrain));
-
-      coord = (CoordZ > 0 ? CoordZ-1 : CoordZ);
-      for (int itrain = 0; itrain < mNumTrain; itrain++)
-        mAsegTrain.push_back((unsigned int)
-                   MRIgetVoxVal(AsegTrain, CoordX, CoordY, coord, itrain));
-    }
-    else if (mAsegPriorType > 2) {
-      int coord;
-      float seg, seg0;
-
-      for (int itrain = 0; itrain < mNumTrain; itrain++) {
-        seg0 = MRIgetVoxVal(Aseg, CoordX, CoordY, CoordZ, itrain);
-        seg = seg0;
-        coord = CoordX;
-        while ((coord < Aseg->width-1) && (seg == seg0)) {
-          coord++;
-          seg = MRIgetVoxVal(AsegTrain, coord, CoordY, CoordZ, itrain);
-        }
-        mAsegTrain.push_back((unsigned int) seg);
-
-        if (mAsegPriorType == 4)
-          mAsegDistTrain.push_back(coord - CoordX);
-      }
-
-      for (int itrain = 0; itrain < mNumTrain; itrain++) {
-        seg0 = MRIgetVoxVal(AsegTrain, CoordX, CoordY, CoordZ, itrain);
-        seg = seg0;
-        coord = CoordX;
-        while ((coord > 0) && (seg == seg0)) {
-          coord--;
-          seg = MRIgetVoxVal(AsegTrain, coord, CoordY, CoordZ, itrain);
-        }
-        mAsegTrain.push_back((unsigned int) seg);
-
-        if (mAsegPriorType == 4)
-          mAsegDistTrain.push_back(CoordX - coord);
-      }
-
-      for (int itrain = 0; itrain < mNumTrain; itrain++) {
-        seg0 = MRIgetVoxVal(AsegTrain, CoordX, CoordY, CoordZ, itrain);
-        seg = seg0;
-        coord = CoordY;
-        while ((coord < Aseg->height-1) && (seg == seg0)) {
-          coord++;
-          seg = MRIgetVoxVal(AsegTrain, CoordX, coord, CoordZ, itrain);
-        }
-        mAsegTrain.push_back((unsigned int) seg);
-
-        if (mAsegPriorType == 4)
-          mAsegDistTrain.push_back(coord - CoordY);
-      }
-
-      for (int itrain = 0; itrain < mNumTrain; itrain++) {
-        seg0 = MRIgetVoxVal(AsegTrain, CoordX, CoordY, CoordZ, itrain);
-        seg = seg0;
-        coord = CoordY;
-        while ((coord > 0) && (seg == seg0)) {
-          coord--;
-          seg = MRIgetVoxVal(AsegTrain, CoordX, coord, CoordZ, itrain);
-        }
-        mAsegTrain.push_back((unsigned int) seg);
-
-        if (mAsegPriorType == 4)
-          mAsegDistTrain.push_back(CoordY - coord);
-      }
-
-      for (int itrain = 0; itrain < mNumTrain; itrain++) {
-        seg0 = MRIgetVoxVal(AsegTrain, CoordX, CoordY, CoordZ, itrain);
-        seg = seg0;
-        coord = CoordZ;
-        while ((coord < Aseg->depth-1) && (seg == seg0)) {
-          coord++;
-          seg = MRIgetVoxVal(AsegTrain, CoordX, CoordY, coord, itrain);
-        }
-        mAsegTrain.push_back((unsigned int) seg);
-
-        if (mAsegPriorType == 4)
-          mAsegDistTrain.push_back(coord - CoordZ);
-      }
-
-      for (int itrain = 0; itrain < mNumTrain; itrain++) {
-        seg0 = MRIgetVoxVal(AsegTrain, CoordX, CoordY, CoordZ, itrain);
-        seg = seg0;
-        coord = CoordZ;
-        while ((coord > 0) && (seg == seg0)) {
-          coord--;
-          seg = MRIgetVoxVal(AsegTrain, CoordX, CoordY, coord, itrain);
-        }
-        mAsegTrain.push_back((unsigned int) seg);
-
-        if (mAsegPriorType == 4)
-          mAsegDistTrain.push_back(CoordZ - coord);
-      }
-    }
-   }
-
-  // Segmentation map
-  if (Aseg) {
-    mAseg.push_back((unsigned int)
-          MRIgetVoxVal(Aseg, CoordX, CoordY, CoordZ, 0));
-
-    if (mAsegPriorType == 2) {
-      int coord;
-
-      coord = (CoordX < Aseg->width-1 ? CoordX+1 : CoordX);
-      mAseg.push_back((unsigned int)
-            MRIgetVoxVal(Aseg, coord, CoordY, CoordZ, 0));
-
-      coord = (CoordX > 0 ? CoordX-1 : CoordX);
-      mAseg.push_back((unsigned int)
-            MRIgetVoxVal(Aseg, coord, CoordY, CoordZ, 0));
-
-      coord = (CoordY < Aseg->height-1 ? CoordY+1 : CoordY);
-      mAseg.push_back((unsigned int)
-            MRIgetVoxVal(Aseg, CoordX, coord, CoordZ, 0));
-
-      coord = (CoordY > 0 ? CoordY-1 : CoordY);
-      mAseg.push_back((unsigned int)
-            MRIgetVoxVal(Aseg, CoordX, coord, CoordZ, 0));
-
-      coord = (CoordZ < Aseg->depth-1 ? CoordZ+1 : CoordZ);
-      mAseg.push_back((unsigned int)
-            MRIgetVoxVal(Aseg, CoordX, CoordY, coord, 0));
-
-      coord = (CoordZ > 0 ? CoordZ-1 : CoordZ);
-      mAseg.push_back((unsigned int)
-            MRIgetVoxVal(Aseg, CoordX, CoordY, coord, 0));
-    }
-    else if (mAsegPriorType > 2) {
-      int coord;
-      float seg;
-      const float seg0 = MRIgetVoxVal(Aseg, CoordX, CoordY, CoordZ, 0);
-
-      seg = seg0;
-      coord = CoordX;
-      while ((coord < Aseg->width-1) && (seg == seg0)) {
-        coord++;
-        seg = MRIgetVoxVal(Aseg, coord, CoordY, CoordZ, 0);
-      }
-      mAseg.push_back((unsigned int) seg);
-
-      if (mAsegPriorType == 4)
-        mAsegDist.push_back(coord - CoordX);
-
-      seg = seg0;
-      coord = CoordX;
-      while ((coord > 0) && (seg == seg0)) {
-        coord--;
-        seg = MRIgetVoxVal(Aseg, coord, CoordY, CoordZ, 0);
-      }
-      mAseg.push_back((unsigned int) seg);
-
-      if (mAsegPriorType == 4)
-        mAsegDist.push_back(CoordX - coord);
-
-      seg = seg0;
-      coord = CoordY;
-      while ((coord < Aseg->height-1) && (seg == seg0)) {
-        coord++;
-        seg = MRIgetVoxVal(Aseg, CoordX, coord, CoordZ, 0);
-      }
-      mAseg.push_back((unsigned int) seg);
-
-      if (mAsegPriorType == 4)
-        mAsegDist.push_back(coord - CoordY);
-
-      seg = seg0;
-      coord = CoordY;
-      while ((coord > 0) && (seg == seg0)) {
-        coord--;
-        seg = MRIgetVoxVal(Aseg, CoordX, coord, CoordZ, 0);
-      }
-      mAseg.push_back((unsigned int) seg);
-
-      if (mAsegPriorType == 4)
-        mAsegDist.push_back(CoordY - coord);
-
-      seg = seg0;
-      coord = CoordZ;
-      while ((coord < Aseg->depth-1) && (seg == seg0)) {
-        coord++;
-        seg = MRIgetVoxVal(Aseg, CoordX, CoordY, coord, 0);
-      }
-      mAseg.push_back((unsigned int) seg);
-
-      if (mAsegPriorType == 4)
-        mAsegDist.push_back(coord - CoordZ);
-
-      seg = seg0;
-      coord = CoordZ;
-      while ((coord > 0) && (seg == seg0)) {
-        coord--;
-        seg = MRIgetVoxVal(Aseg, CoordX, CoordY, coord, 0);
-      }
-      mAseg.push_back((unsigned int) seg);
-
-      if (mAsegPriorType == 4)
-        mAsegDist.push_back(CoordZ - coord);
-    }
   }
 
   mIsPriorSet = true;
@@ -464,19 +177,6 @@ void Bite::ResetPrior() {
   // Spatial path priors
   mPathPrior0 = 0;
   mPathPrior1 = 0;
-
-  // Aseg priors
-  mAsegPrior0.clear();
-  mAsegPrior1.clear();
-
-  // Training paths and segmentation maps
-  mPathTrain.clear();
-  mAsegTrain.clear();
-  mAsegDistTrain.clear();
-
-  // Segmentation map
-  mAseg.clear();
-  mAsegDist.clear();
 }
 
 //
@@ -686,8 +386,6 @@ void Bite::ChoosePathTractLike(float PathPhi, float PathTheta) {
 void Bite::ComputePriorOffPath() {
   vector<float>::const_iterator fjl = mF.begin() + mPathTract;
   vector<float>::const_iterator thetajl = mTheta.begin() + mPathTract;
-  vector<unsigned int>::const_iterator iaseg = mAseg.begin();
-
 
 //cout << (*fjl) << " " << log((*fjl - 1) * log(1 - *fjl)) << " "
 //     << log(((double)*fjl - 1) * log(1 - (double)*fjl)) << endl;
@@ -697,125 +395,13 @@ if (1)
           + mPathPrior0;
 else  
   mPrior0 = mPathPrior0;
-
-  if (!mAsegPrior0.empty()) {
-    vector<unsigned int>::const_iterator iid;
-    vector< vector<unsigned int> >::const_iterator iids;
-    vector<float>::const_iterator iprior;
-    vector< vector<float> >::const_iterator ipriors;
-
-    ipriors = mAsegPrior0.begin();
-
-    for (iids = mAsegIds.begin(); iids != mAsegIds.end(); iids++) {
-      bool isinlist = false;
-
-      iprior = ipriors->begin();
-
-      for (iid = iids->begin(); iid != iids->end(); iid++) {
-        if (*iaseg == *iid) {
-          mPrior0 += *iprior;
-          isinlist = true;
-          break;
-        }
-
-        iprior++;
-      }
-
-      if (!isinlist)
-        mPrior0 += 0.6931; // Instead should be: mPrior0 -= log((nA+1)/(nA+2));
-
-      iaseg++;
-      ipriors++;
-    }
-  }
-
-  if (!mAsegTrain.empty()) {
-    vector<unsigned int>::const_iterator iasegtr = mAsegTrain.begin();
-
-    while (iaseg != mAseg.end()) {
-      int n1 = 0, n2 = 0;
-      vector<unsigned int>::const_iterator ipathtr = mPathTrain.begin();
-
-      for (int itrain = mNumTrain; itrain > 0; itrain--) {
-        if (*iaseg == *iasegtr) {
-          n2++;
-          if (*ipathtr > 0)
-            n1++;
-        }
-
-        iasegtr++;
-        ipathtr++;
-      }
-
-      mPrior0 -= log(float(n2-n1+1) / (n2+2));
-
-      iaseg++;
-    }
-  }
 }
 
 //
 // Compute prior given that voxel is on path
 //
 void Bite::ComputePriorOnPath() {
-  vector<unsigned int>::const_iterator iaseg = mAseg.begin();
-
   mPrior1 = mPathPrior1;
-
-  if (!mAsegPrior1.empty()) {
-    vector<unsigned int>::const_iterator iid;
-    vector< vector<unsigned int> >::const_iterator iids;
-    vector<float>::const_iterator iprior;
-    vector< vector<float> >::const_iterator ipriors;
-
-    ipriors = mAsegPrior1.begin();
-
-    for (iids = mAsegIds.begin(); iids != mAsegIds.end(); iids++) {
-      bool isinlist = false;
-
-      iprior = ipriors->begin();
-
-      for (iid = iids->begin(); iid != iids->end(); iid++) {
-        if (*iaseg == *iid) {
-          mPrior1 += *iprior;
-          isinlist = true;
-          break;
-        }
-
-        iprior++;
-      }
-
-      if (!isinlist)
-        mPrior1 += 0.6931; // Instead should be: mPrior1 -= log(1/(nA+2));
-
-      iaseg++;
-      ipriors++;
-    }
-  }
-
-  if (!mAsegTrain.empty()) {
-    vector<unsigned int>::const_iterator iasegtr = mAsegTrain.begin();
-
-    while (iaseg != mAseg.end()) {
-      int n1 = 0, n2 = 0;
-      vector<unsigned int>::const_iterator ipathtr = mPathTrain.begin();
-
-      for (int itrain = mNumTrain; itrain > 0; itrain--) {
-        if (*iaseg == *iasegtr) {
-          n2++;
-          if (*ipathtr > 0)
-            n1++;
-        }
-
-        iasegtr++;
-        ipathtr++;
-      }
-
-      mPrior1 -= log(float(n1+1) / (n2+2));
-
-      iaseg++;
-    }
-  }
 }
 
 bool Bite::IsFZero() { return (mF[mPathTract] < mFminPath); }

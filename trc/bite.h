@@ -39,12 +39,10 @@ class Bite {
     ~Bite();
 
   private:
-    static int mNumDir, mNumB0, mNumTract, mNumBedpost,
-               mAsegPriorType, mNumTrain;
+    static int mNumDir, mNumB0, mNumTract, mNumBedpost;
     static float mFminPath;
     static std::vector<float> mGradients,	// [3 x mNumDir]
                               mBvalues;		// [mNumDir]
-    static std::vector< std::vector<unsigned int> > mAsegIds;
 
     bool mIsPriorSet;
     int mCoordX, mCoordY, mCoordZ, mPathTract;
@@ -57,17 +55,10 @@ class Bite {
     std::vector<float> mPhi;		// [mNumTract]
     std::vector<float> mTheta;		// [mNumTract]
     std::vector<float> mF;		// [mNumTract]
-    std::vector<unsigned int> mAsegTrain, mPathTrain, mAseg,
-                              mAsegDistTrain, mAsegDist;
-    std::vector< std::vector<float> > mAsegPrior0, mAsegPrior1;
 
   public:
     static void SetStatic(const char *GradientFile, const char *BvalueFile,
                           int NumTract, int NumBedpost, float FminPath);
-    static void SetStaticPrior(int AsegPriorType,
-                               const std::vector<
-                                     std::vector<unsigned int> > &AsegIds,
-                               int NumTrain);
     static int GetNumTract();
     static int GetNumDir();
     static int GetNumB0();
@@ -75,9 +66,6 @@ class Bite {
 
     bool IsPriorSet();
     void SetPrior(MRI *Prior0, MRI *Prior1,
-                  std::vector<MRI *> &AsegPrior0,
-                  std::vector<MRI *> &AsegPrior1,
-                  MRI *AsegTrain, MRI *PathTrain, MRI *Aseg,
                   int CoordX, int CoordY, int CoordZ);
     void ResetPrior();
     void SampleParameters();
