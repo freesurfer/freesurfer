@@ -8,8 +8,8 @@
 # Original Author: Anastasia Yendiki
 # CVS Revision Info:
 #    $Author: ayendiki $
-#    $Date: 2011/05/11 20:12:13 $
-#    $Revision: 1.28 $
+#    $Date: 2011/05/11 20:26:44 $
+#    $Revision: 1.29 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -25,7 +25,7 @@
 
 umask 002
 
-set VERSION = '$Id: trac-all,v 1.28 2011/05/11 20:12:13 ayendiki Exp $'
+set VERSION = '$Id: trac-all,v 1.29 2011/05/11 20:26:44 ayendiki Exp $'
 set ProgName = `basename $0`
 set inputargs = ($argv)
 
@@ -1047,6 +1047,12 @@ OTHER OPTIONS
 -onlyversions   : print version of each binary and exit
 -version        : print version of this script and exit
 -help           : print full contents of help
+
+FOR NMR CENTER CLUSTER USERS
+Do not submit trac-all as a job with pbsubmit or qsub. Run it directly on the
+command line. If run on a local machine, trac-all will run all analyses locally.
+If run on the cluster, trac-all will submit the analysis of each subject listed
+in your dmrirc file as a job.
 
 SEE ALSO: dmrirc.example
 
