@@ -8,8 +8,8 @@
  * Original Author: Anastasia Yendiki
  * CVS Revision Info:
  *    $Author: ayendiki $
- *    $Date: 2011/03/15 02:34:44 $
- *    $Revision: 1.1 $
+ *    $Date: 2011/05/11 05:56:41 $
+ *    $Revision: 1.2 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -74,7 +74,7 @@ unsigned int nTract = 1,
              asegPriorType = 0;
 int nout = 0, ninit = 0, nroi1 = 0, nroi2 = 0, nlab1 = 0, nlab2 = 0,
     nmesh1 = 0, nmesh2 = 0, nref1 = 0, nref2 = 0,
-    npri = 0, nseg = 0, ntra = 0, nnei = 0, nloc = 0, nsdp = 0;
+    npri = 0, nnei = 0, nloc = 0, nsdp = 0;
 float fminPath = 0;
 char *outDir[100], *dwiFile = NULL,
      *gradFile = NULL, *bvalFile = NULL,
@@ -84,9 +84,6 @@ char *outDir[100], *dwiFile = NULL,
      *roiMeshFile1[100], *roiMeshFile2[100],
      *roiRefFile1[100], *roiRefFile2[100],
      *priorFile0[100], *priorFile1[100],
-     *asegPriorFile0[100], *asegPriorFile1[100],
-     *asegIdFile[100],
-     *asegTrainFile[100], *pathTrainFile[100],
      *neighPriorFile[100], *neighIdFile[100],
      *localPriorFile[100], *localIdFile[100],
      *asegFile = NULL,
@@ -133,10 +130,6 @@ int main(int argc, char **argv) {
                   nlab1 ? roiMeshFile1[0] : 0, nlab2 ? roiMeshFile2[0] : 0,
                   nlab1 ? roiRefFile1[0] : 0, nlab2 ? roiRefFile2[0] : 0,
                   npri ? priorFile0[0] : 0, npri ? priorFile1[0] : 0,
-                  asegPriorType,
-                  nseg ? asegPriorFile0[0] : 0, nseg ? asegPriorFile1[0] : 0,
-                  nseg ? asegIdFile[0] : 0,
-                  ntra ? asegTrainFile[0] : 0, ntra ? pathTrainFile[0] : 0,
                   nnei ? neighPriorFile[0] : 0, nnei ? neighIdFile[0] : 0,
                   nloc ? localPriorFile[0] : 0, nloc ? localIdFile[0] : 0,
                   asegFile,
@@ -154,10 +147,6 @@ int main(int argc, char **argv) {
                   nlab1 ? roiMeshFile1[k] : 0, nlab2 ? roiMeshFile2[k] : 0,
                   nlab1 ? roiRefFile1[k] : 0, nlab2 ? roiRefFile2[k] : 0,
                   npri ? priorFile0[k] : 0, npri ? priorFile1[k] : 0,
-                  asegPriorType,
-                  nseg ? asegPriorFile0[k] : 0, nseg ? asegPriorFile1[k] : 0,
-                  nseg ? asegIdFile[k] : 0,
-                  ntra ? asegTrainFile[k] : 0, ntra ? pathTrainFile[k] : 0,
                   nnei ? neighPriorFile[k] : 0, nnei ? neighIdFile[k] : 0,
                   nloc ? localPriorFile[k] : 0, nloc ? localIdFile[k] : 0);
       mycoffin.SetMCMCParameters(nBurnIn, nSample,
@@ -347,34 +336,6 @@ static int parse_commandline(int argc, char **argv) {
         npri++;
       }
     }
-    else if (!strcmp(option, "--segtype")) {
-      if (nargc < 1) CMDargNErr(option,1);
-      sscanf(pargv[0],"%u",&asegPriorType);
-      nargsused = 1;
-    }
-    else if (!strcmp(option, "--segprior")) {
-      if (nargc < 3) CMDargNErr(option,3);
-      while (strncmp(pargv[nargsused], "--", 2)) {
-        asegPriorFile0[nseg] = fio_fullpath(pargv[nargsused]);
-        nargsused++;
-        asegPriorFile1[nseg] = fio_fullpath(pargv[nargsused]);
-        nargsused++;
-        asegIdFile[nseg]     = fio_fullpath(pargv[nargsused]);
-        nargsused++;
-        nseg++;
-      }
-    }
-    else if (!strcmp(option, "--segtrain")) {
-      if (nargc < 2) CMDargNErr(option,2);
-      nargsused = 0;
-      while (strncmp(pargv[nargsused], "--", 2)) {
-        asegTrainFile[ntra] = fio_fullpath(pargv[nargsused]);
-        nargsused++;
-        pathTrainFile[ntra] = fio_fullpath(pargv[nargsused]);
-        nargsused++;
-        ntra++;
-      }
-    }
     else if (!strcmp(option, "--nprior")) {
       if (nargc < 2) CMDargNErr(option,2);
       while (strncmp(pargv[nargsused], "--", 2)) {
@@ -455,17 +416,9 @@ static void print_usage(void)
   printf("   --roiref1 <file> [...]: reference volume for end ROI 1 (for label ROIs)\n");
   printf("   --roiref2 <file> [...]: reference volume for end ROI 2 (for label ROIs)\n");
   printf("\n");
-  printf("Prior inputs\n");
+  printf("Prior-related inputs\n");
   printf("   --prior <file0 file1> [...]: spatial path prior\n");
   printf("     (negative log-likelihoods for H0 and H1, one pair per path)\n");
-  printf("   --segtype <number>: 1 = local aseg prior\n");
-  printf("                       2 = local neighborhood aseg prior\n");
-  printf("                       3 = nearest-neighbor aseg prior\n");
-  printf("                       4 = distance aseg prior\n");
-  printf("   --segprior <file0 file1 fileID> [...]: aseg priors\n");
-  printf("     (negative log-likelihoods for H0 and H1 and list of labels, one triplet per path)\n");
-  printf("   --segtrain <pathfile asegfile> [...]: local aseg prior\n");
-  printf("     (training sets of segmentation maps and paths, one pair per path)\n");
   printf("   --nprior <priorfile idfile> [...]: near neighbor aseg priors\n");
   printf("     (negative log-likelihood and list of labels, one pair per path)\n");
   printf("   --lprior <priorfile idfile> [...]: local neighbor aseg priors\n");
@@ -568,14 +521,6 @@ static void check_options(void) {
     printf("ERROR: must specify as many spatial prior pairs as outputs\n");
     exit(1);
   }
-  if(nseg > 0 && nseg != nout) {
-    printf("ERROR: must specify as many aseg prior triplets as outputs\n");
-    exit(1);
-  }
-  if(ntra > 0 && ntra != nout) {
-    printf("ERROR: must specify as many training paths and aseg's as outputs\n");
-    exit(1);
-  }
   if(nnei > 0 && nnei != nout) {
     printf("ERROR: must specify as many neighbor aseg prior pairs as outputs\n");
     exit(1);
@@ -584,7 +529,7 @@ static void check_options(void) {
     printf("ERROR: must specify as many local aseg prior pairs as outputs\n");
     exit(1);
   }
-  if(!asegFile && (nseg > 0 || ntra > 0 || nnei > 0 || nloc > 0)) {
+  if(!asegFile && (nnei > 0 || nloc > 0)) {
     printf("ERROR: must specify segmentation map file with aseg prior\n");
     exit(1);
   }
@@ -657,30 +602,6 @@ static void dump_options(FILE *fp) {
     fprintf(fp, "Spatial prior (on path):");
     for (int k = 0; k < npri; k++)
       fprintf(fp, " %s", priorFile1[k]);
-    fprintf(fp, "\n");
-  }
-  if (nseg > 0) {
-    fprintf(fp, "Aseg prior (off path):");
-    for (int k = 0; k < nseg; k++)
-      fprintf(fp, " %s", asegPriorFile0[k]);
-    fprintf(fp, "\n");
-    fprintf(fp, "Aseg prior (on path):");
-    for (int k = 0; k < nseg; k++)
-      fprintf(fp, " %s", asegPriorFile1[k]);
-    fprintf(fp, "\n");
-    fprintf(fp, "Aseg label ID list:");
-    for (int k = 0; k < nseg; k++)
-      fprintf(fp, " %s", asegIdFile[k]);
-    fprintf(fp, "\n");
-  }
-  if (ntra > 0) {
-    fprintf(fp, "Seg. map training set:");
-    for (int k = 0; k < ntra; k++)
-      fprintf(fp, " %s", asegTrainFile[k]);
-    fprintf(fp, "\n");
-    fprintf(fp, "Path training set:");
-    for (int k = 0; k < ntra; k++)
-      fprintf(fp, " %s", pathTrainFile[k]);
     fprintf(fp, "\n");
   }
   if (nnei > 0) {
