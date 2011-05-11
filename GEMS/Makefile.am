@@ -51,7 +51,7 @@ libkvlAtlas3DCommon_a_SOURCES= \
 		kvlAtlasMeshVertexProcessor2.cxx \
 		kvlAtlasMeshCollectionPositionCostCalculator2.cxx \
 		kvlImageSmoother.cxx \
-		kvlAtlasMeshDeformationLevenbergMarquardt2.cxx \
+		kvlAtlasMeshDeformationLevenbergMarquardt.cxx \
                 kvlAtlasMeshDeformationLevenbergMarquardtOptimizer.cxx \
 		kvlAtlasMeshHamiltonianPositionSampler.cxx
 

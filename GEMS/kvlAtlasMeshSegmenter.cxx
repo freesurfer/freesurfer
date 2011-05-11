@@ -7,7 +7,7 @@
 #include "kvlAtlasMeshVisitCounter.h"
 
 #include "kvlAtlasMeshToProbabilityImageGradientCalculator.h"
-#include "kvlAtlasMeshDeformationLevenbergMarquardt2.h"
+#include "kvlAtlasMeshDeformationLevenbergMarquardt.h"
 
 #if 1
   #include "kvlAtlasMeshCollection.h"
