@@ -30,14 +30,14 @@ Automated segmentation of the subfields of the hippocampus, using models built f
 Running this program requires that the standard volumetric FreeSurfer pipeline has been run first. The output consists of a collection of images in the directory outputDirectory/subjectName/side/posterior_* that indicate each voxel's posterior probability of belonging to different subregions. The estimated volumes of these subregions can be obtained using the "kvlQuantifyHippocampalSubfieldSegmentations.sh" script. Visualizing the subregion segmentations on top of the MRI data can be achieved by doing 
   
   cd outputDirectory/subjectName/left/segmentationWithoutPartialVolumingLog/
-  freeview ../nu.mgz -p-labels posterior_left_* posterior_Left-Hippocampus.mgz -p-prefix posterior_ -p-lut $FREESURFER_HOME/data/Atlas3D/FreeSurferColorLUT_edited.txt 
+  freeview ../nu.mgz -p-labels posterior_left_* posterior_Left-Hippocampus.mgz -p-prefix posterior_ -p-lut $FREESURFER_HOME/data/GEMS/FreeSurferColorLUT_edited.txt 
 
 for the left side, and analogous for the right side. 
 
 Note that, if kvlSegmentHippocampalSubfields.sh was executed by FreeSurfer's recon-all script, recon-all will have copied the results to $SUBJECTS_DIR/subjectName/mri, and you should do
 
   cd $SUBJECTS_DIR/subjectName/mri
-  freeview nu.mgz -p-labels posterior_left_* posterior_Left-Hippocampus.mgz -p-prefix posterior_ -p-lut $FREESURFER_HOME/data/Atlas3D/FreeSurferColorLUT_edited.txt 
+  freeview nu.mgz -p-labels posterior_left_* posterior_Left-Hippocampus.mgz -p-prefix posterior_ -p-lut $FREESURFER_HOME/data/GEMS/FreeSurferColorLUT_edited.txt 
 
 instead.
  

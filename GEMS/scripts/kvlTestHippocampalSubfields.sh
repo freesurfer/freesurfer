@@ -117,7 +117,7 @@ done # End loop over left and right side
 
 # Clean up
 doIt "cd .."
-doIt "rm -f $resultDirectory"
+doIt "rm -rf $resultDirectory"
 
 
 
