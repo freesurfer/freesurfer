@@ -9,8 +9,8 @@
 # Original Author: Martin Reuter
 # CVS Revision Info:
 #    $Author: mreuter $
-#    $Date: 2011/05/10 21:17:28 $
-#    $Revision: 1.15.2.8 $
+#    $Date: 2011/05/12 16:12:52 $
+#    $Revision: 1.15.2.9 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -251,7 +251,7 @@ def options_parse():
     Command Line Options Parser for long_mris_slopes
     initiate the option parser and return the parsed object
     """
-    parser = optparse.OptionParser(version='$Id: long_mris_slopes,v 1.15.2.8 2011/05/10 21:17:28 mreuter Exp $', usage=HELPTEXT)
+    parser = optparse.OptionParser(version='$Id: long_mris_slopes,v 1.15.2.9 2011/05/12 16:12:52 mreuter Exp $', usage=HELPTEXT)
     
     # help text
 #    h_fsgd = '(REQUIRED) fsdg file specifying the subjects and time points'
@@ -598,13 +598,6 @@ if __name__=="__main__":
             print 'ERROR: '+str(basedir)+' must have at least 2 time points!'
             sys.exit(1)
         
-        # create tmpdir:
-        prefix = './tmp-'+subjectid+'_'+options.hemi+'_'+options.meas+'_'
-        dirname = tempfile.mkdtemp('',prefix,'')
-        if not os.path.exists(dirname):
-            print 'ERROR: tmp dir '+str(dirname)+' cannot be created (write permissions?)!'
-            sys.exit(1)
-        
         # extract ids and age data:
         tpids = [entry[0]+'.long.'+subjectid for entry in tplist]
         times = [float(entry[varidx]) for entry in tplist]
@@ -655,6 +648,13 @@ if __name__=="__main__":
         # list of thickness files:
         measures=[os.path.join(subjectsdir,entry,'surf',options.hemi+'.'+options.meas) for entry in tpids]
         all = " ".join(measures)
+        
+        # create tmpdir:
+        prefix = './tmp-'+subjectid+'_'+options.hemi+'_'+options.meas+'_'
+        dirname = tempfile.mkdtemp('',prefix,'')
+        if not os.path.exists(dirname):
+            print 'ERROR: tmp dir '+str(dirname)+' cannot be created (write permissions?)!'
+            sys.exit(1)
         
         # stack measure maps:
         meas_target = os.path.join(dirname,options.hemi+'.long.'+options.meas+'-stack.mgh')
