@@ -8,9 +8,9 @@
 # Process this file with autoconf to produce a configure script.
 #
 # CVS Revision Info:
-#    $Author: nicks $
-#    $Date: 2011/05/09 19:21:02 $
-#    $Revision: 1.519.2.8 $
+#    $Author: koen $
+#    $Date: 2011/05/12 09:52:41 $
+#    $Revision: 1.519.2.9 $
 #
 ########################################################################
 AC_PREREQ(2.57)
@@ -3207,8 +3207,6 @@ AC_OUTPUT([Makefile
            GEMS/Makefile
            GEMS/data/Makefile
            GEMS/scripts/Makefile
-           GEMS/scripts/WholeBrainParcellation/Makefile
-           GEMS/scripts/exVivoHippocampi/Makefile
            check_siemens_dir/Makefile
            cudatest/Makefile
            cudatest/gcatest/Makefile
