@@ -7,9 +7,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: nicks $
-#    $Date: 2011/05/11 21:27:30 $
-#    $Revision: 1.379.2.13 $
+#    $Author: koen $
+#    $Date: 2011/05/12 12:02:14 $
+#    $Revision: 1.379.2.14 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -26,7 +26,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.379.2.13 2011/05/11 21:27:30 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.379.2.14 2011/05/12 12:02:14 koen Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -5262,8 +5262,8 @@ while( $#argv != 0 )
       breaksw;
   
     # hippocampal subfield processing
-    case "-gems":
-    case "-subfields":
+    case "-hippo-subfields":
+
       set DoGEMS = 1;
       breaksw;
 
