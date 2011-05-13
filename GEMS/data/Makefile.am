@@ -12,7 +12,8 @@ imageDump.mgz \
 nonPartialVolumeStatsLeftReferenceForBert.txt \
 nonPartialVolumeStatsRightReferenceForBert.txt \
 kvlQuantifyHippocampalSubfieldSegmentations.sh.help.xml \
-kvlSegmentHippocampalSubfields.sh.help.xml
+kvlSegmentHippocampalSubfields.sh.help.xml \
+FreeSurferColorLUT_edited.txt
 
 EXTRA_DIST = $(foo_DATA)
 
