@@ -8,10 +8,10 @@
 #include <boost/progress.hpp>
 
 // MPI
-#undef SEEK_SET
-#undef SEEK_END
-#undef SEEK_CUR
-#include <mpi.h>
+//#undef SEEK_SET
+//#undef SEEK_END
+//#undef SEEK_CUR
+//#include <mpi.h>
 
 // OWN
 #include "morph.h"
@@ -488,6 +488,7 @@ VolumeFilter::Execute()
   initVolGeom(&vgLike);
   getVolGeom(pmorph->m_template, &vgLike);
 
+  pmorph->invert(); // lz 2/28/11 
   MRI* mriOut  = pmorph->apply_transforms(mri,
                                           false,
                                           &vgLike);
@@ -750,3 +751,4 @@ PointListProbeFilter::Execute()
   ofs.close();
   //  std::cout << "Out counter :" <<  counter << "\n";
   }
+

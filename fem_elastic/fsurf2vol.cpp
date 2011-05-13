@@ -273,9 +273,9 @@ main(int argc,
 
   PetscInitialize(&argc, &argv, (char*)0, help);
 
-  PetscMPIInt       mpiSize;
-  ierr = MPI_Comm_size(PETSC_COMM_WORLD, &mpiSize);
-  CHKERRQ(ierr);
+  //PetscMPIInt       mpiSize;
+  //ierr = MPI_Comm_size(PETSC_COMM_WORLD, &mpiSize);
+  //CHKERRQ(ierr);
 
   // process cmd-line
 
@@ -639,25 +639,24 @@ main(int argc,
       os << params.strOutputMesh << ".tm3d";
       std::cout << " will write volume morph in file "
                 << os.str() << std::endl;
-      try
-      {
-        gmp::VolumeMorph morph;
-        morph.set_volGeom_fixed( mri_fixed );
-        morph.set_volGeom_moving( mri_moving );
 
-        morph.m_transforms.push_back(ptransform);
-
-        boost::shared_ptr<gmp::AffineTransform3d>
-        paffine( new gmp::AffineTransform3d(inv_t));
-        morph.m_transforms.push_back( paffine );
-
-        morph.save(os.str().c_str());
-      }
+      try {
+      gmp::VolumeMorph morph;
+      morph.set_volGeom_fixed( mri_fixed );
+      morph.set_volGeom_moving( mri_moving );
+      
+      morph.m_transforms.push_back(ptransform);
+      boost::shared_ptr<gmp::AffineTransform3d>
+	paffine( new gmp::AffineTransform3d(inv_t));
+      morph.m_transforms.push_back( paffine );	
+      
+      morph.save(os.str().c_str());
+      }  
       catch (const char* msg)
-      {
-        std::cerr << " exception caught while trying to write transform \n"
-        << msg << std::endl;
-      }
+	{
+	  std::cerr << " exception caught while trying to write transform \n"
+		    << msg << std::endl;
+	}
     }
   }
   catch (const char* msg)
@@ -1376,7 +1375,7 @@ IoParams::parse(std::string& errMsg)
                               &petscFlag);
   CHKERRQ(ierr);
   bUsePialForSurf = static_cast<bool>(petscFlag);
-
+  
   return 0;
 
 }
