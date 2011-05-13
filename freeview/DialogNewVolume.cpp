@@ -1,130 +1,134 @@
 /**
- * @file  DialogNewVolume.h
- * @brief Preferences dialog.
+ * @file  DialogNewVolume.cpp
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
  *
  */
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/10/29 20:53:43 $
- *    $Revision: 1.10 $
+ *    $Date: 2011/05/13 15:04:31 $
+ *    $Revision: 1.16.2.1 $
  *
- * Copyright (C) 2008-2009,
- * The General Hospital Corporation (Boston, MA).
- * All rights reserved.
+ * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
- * Distribution, usage and copying of this software is covered under the
- * terms found in the License Agreement file named 'COPYING' found in the
- * FreeSurfer source code root directory, and duplicated here:
- * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ * Terms and conditions for use, reproduction, distribution and contribution
+ * are found in the 'FreeSurfer Software License Agreement' contained
+ * in the file 'LICENSE' found in the FreeSurfer distribution, and here:
  *
- * General inquiries: freesurfer@nmr.mgh.harvard.edu
- * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
+ *
+ * Reporting: freesurfer@nmr.mgh.harvard.edu
  *
  */
-
-
-
 #include "DialogNewVolume.h"
-#include <wx/xrc/xmlres.h>
-#include <wx/msgdlg.h>
-#include "stdlib.h"
-#include "stdio.h"
+#include "ui_DialogNewVolume.h"
 #include "LayerMRI.h"
 #include "LayerCollection.h"
+#include "MainWindow.h"
+#include <QMessageBox>
 
-BEGIN_EVENT_TABLE( DialogNewVolume, wxDialog )
-  EVT_BUTTON     ( wxID_OK,                 DialogNewVolume::OnOK )
-  EVT_TEXT_ENTER ( XRCID( "ID_TEXT_NAME" ), DialogNewVolume::OnTextEnter )
-END_EVENT_TABLE()
-
-
-DialogNewVolume::DialogNewVolume( wxWindow* parent, LayerCollection* col_mri )
+DialogNewVolume::DialogNewVolume(QWidget *parent) :
+  QDialog(parent),
+  ui(new Ui::DialogNewVolume)
 {
-  wxXmlResource::Get()->LoadDialog
-    ( this, parent, wxT("ID_DIALOG_NEW_VOLUME") );
-  m_checkCopyVoxel  = XRCCTRL( *this, "ID_CHECK_COPY_VOXEL", wxCheckBox );
-  m_textName        = XRCCTRL( *this, "ID_TEXT_NAME", wxTextCtrl );
-  m_choiceTemplate  = XRCCTRL( *this, "ID_CHOICE_TEMPLATE", wxChoice );
-  m_choiceDataType  = XRCCTRL( *this, "ID_CHOICE_DATA_TYPE", wxChoice );
+  ui->setupUi(this);
 
-  std::vector<Layer*> layers = col_mri->GetLayers();
+  LayerCollection* col_mri = MainWindow::GetMainWindow()->GetLayerCollection("MRI");
+  QList<Layer*> layers = col_mri->GetLayers();
   int nSel = 0;
-  for ( size_t i = 0; i < layers.size(); i++ )
+  for ( int i = 0; i < layers.size(); i++ )
   {
-    m_choiceTemplate->Insert( wxString::FromAscii(layers[i]->GetName()), 
-			      0, (void*)layers[i] );
+    ui->comboBoxTemplate->addItem(layers[i]->GetName(), QVariant::fromValue((QObject*)layers[i]));
     if ( layers[i] == col_mri->GetActiveLayer() )
+    {
       nSel = i;
+    }
   }
-  m_choiceTemplate->SetSelection( nSel );
-  m_textName->SetFocus();
+  ui->comboBoxTemplate->setCurrentIndex(nSel);
+  ui->lineEditName->setFocus();
 }
 
 DialogNewVolume::~DialogNewVolume()
-{}
-
-wxString DialogNewVolume::GetVolumeName()
 {
-  return m_textName->GetValue().Trim( true ).Trim( false );
+  delete ui;
 }
 
-void DialogNewVolume::SetVolumeName( const wxString& name )
+QString DialogNewVolume::GetVolumeName()
 {
-  m_textName->SetValue( name );
+  return ui->lineEditName->text().trimmed();
+}
+
+void DialogNewVolume::SetVolumeName( const QString& name )
+{
+  ui->lineEditName->setText( name );
 }
 
 bool DialogNewVolume::GetCopyVoxel()
 {
-  return m_checkCopyVoxel->IsChecked();
+  return ui->checkBoxCopyData->isChecked();
 }
 
 void DialogNewVolume::SetCopyVoxel( bool bVoxel )
 {
-  m_checkCopyVoxel->SetValue( bVoxel );
+  ui->checkBoxCopyData->setChecked( bVoxel );
 }
 
 LayerMRI* DialogNewVolume::GetTemplate()
 {
-  return ( LayerMRI* )( void* )m_choiceTemplate->
-    GetClientData( m_choiceTemplate->GetSelection() );
+  return qobject_cast<LayerMRI*>(
+           ui->comboBoxTemplate->itemData(ui->comboBoxTemplate->currentIndex()).value<QObject*>());
 }
 
 int DialogNewVolume::GetDataType()
 {
-  if ( m_choiceDataType->GetSelection() == (int)m_choiceDataType->GetCount()-1 )
+  if ( ui->comboBoxDataType->currentIndex() == ui->comboBoxDataType->count()-1 )
+  {
     return GetTemplate()->GetDataType();
+  }
   else
-    return m_choiceDataType->GetSelection();
+  {
+    return ui->comboBoxDataType->currentIndex();
+  }
 }
 
-void DialogNewVolume::OnOK( wxCommandEvent& event )
+void DialogNewVolume::OnOK()
 {
-  if ( GetVolumeName().IsEmpty() )
+  if ( GetVolumeName().isEmpty())
   {
-    wxMessageDialog dlg( this, 
-			 _("Volume name can not be empty."), 
-			 _("Error"), 
-			 wxOK );
-    dlg.ShowModal();
+    QMessageBox::warning( this, "Error", "Volume name can not be empty." );
     return;
   }
-  event.Skip();
+  accept();
 }
 
-
-void DialogNewVolume::OnTextEnter( wxCommandEvent& event )
+void DialogNewVolume::OnToggleCopyVoxelData(bool bCopy)
 {
-  if ( GetVolumeName().IsEmpty() )
+  if (bCopy)
   {
-    wxMessageDialog dlg( this, 
-			 _("Volume name can not be empty."), 
-			 _("Error"), 
-			 wxOK );
-    dlg.ShowModal();
-    return;
+    ui->comboBoxDataType->setCurrentIndex(ui->comboBoxDataType->count()-1);
   }
-  EndModal( wxID_OK );
+  ui->comboBoxDataType->setDisabled(bCopy);
 }
 
+void DialogNewVolume::OnToggleVoxelDataOption(bool bChecked)
+{
+  if (bChecked)
+  {
+    if (sender() != ui->checkBoxCopyData)
+      ui->checkBoxCopyData->setChecked(false);
+    if (sender() != ui->checkBoxDummyCube)
+      ui->checkBoxDummyCube->setChecked(false);
+    if (sender() != ui->checkBoxDummySphere)
+      ui->checkBoxDummySphere->setChecked(false);
+  }
+}
+
+int DialogNewVolume::GetDummyOption()
+{
+  if (ui->checkBoxDummySphere->isChecked())
+    return 0;
+  if (ui->checkBoxDummyCube->isChecked())
+    return 1;
+  return -1;
+}

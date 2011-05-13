@@ -6,9 +6,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/04/26 18:20:39 $
- *    $Revision: 1.60.2.3 $
+ *    $Author: rpwang $
+ *    $Date: 2011/05/13 15:04:32 $
+ *    $Revision: 1.60.2.4 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -206,6 +206,7 @@ void PanelVolume::ConnectLayer( Layer* layer_in )
     connect( ui->comboBoxDirectionCode, SIGNAL(currentIndexChanged(int)),
              qobject_cast<LayerDTI*>(layer)->GetProperty(), SLOT(SetDirectionCode(int)) );
   connect( layer, SIGNAL(ActiveFrameChanged(int)), this, SLOT(UpdateWidgets()) );
+  connect( layer, SIGNAL(ActiveFrameChanged(int)), this, SLOT(OnActiveFrameChanged(int)));
   connect( layer, SIGNAL(FillValueChanged(double)), this, SLOT(UpdateWidgets()) );
   connect( ui->checkBoxClearBackground, SIGNAL(toggled(bool)), p, SLOT(SetClearZero(bool)) );
   connect( ui->checkBoxClearHigher, SIGNAL(toggled(bool)), p, SLOT(SetHeatScaleClearHigh(bool)) );
@@ -988,7 +989,6 @@ void PanelVolume::OnTrackVolumeThresholdChanged()
   }
 }
 
-
 void PanelVolume::OnCopySettings()
 {
   LayerMRI* layer = GetCurrentLayer<LayerMRI*>();
@@ -1048,6 +1048,24 @@ void PanelVolume::OnPasteSettingsToAll()
     for (int i = 0; i < layers.size(); i++)
     {
       ((LayerMRI*)layers[i])->GetProperty()->RestoreSettings(map);
+    }
+  }
+}
+
+void PanelVolume::OnActiveFrameChanged(int nFrame)
+{
+  LayerVolumeTrack* layer = GetCurrentLayer<LayerVolumeTrack*>();
+  if ( layer )
+  {
+    int nLabel = layer->GetFrameLabel(nFrame);
+    for (int i = 0; i < ui->treeWidgetColorTable->topLevelItemCount(); i++)
+    {
+      QTreeWidgetItem* item = ui->treeWidgetColorTable->topLevelItem(i);
+      if ( item->text(0).split(" ").at(0).toInt() == nLabel )
+      {
+        ui->treeWidgetColorTable->setCurrentItem(item);
+        return;
+      }
     }
   }
 }

@@ -6,9 +6,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/04/26 18:20:39 $
- *    $Revision: 1.5.2.2 $
+ *    $Author: rpwang $
+ *    $Date: 2011/05/13 15:04:32 $
+ *    $Revision: 1.5.2.3 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -163,10 +163,17 @@ void LayerVolumeTrack::SetThreshold(int nLabel, double th)
     {
       mri->frames[i].thresh = th;
       UpdateFrameActor(i);
+      GetProperty()->SetHeatScaleMinThreshold(th);
       emit ActorUpdated();
       return;
     }
   }
+}
+
+int LayerVolumeTrack::GetFrameLabel(int nFrame)
+{
+  MRI* mri = m_volumeSource->GetMRI();
+  return mri->frames[nFrame].label;
 }
 
 void LayerVolumeTrack::UpdateFrameActor(int n)
@@ -251,6 +258,7 @@ void LayerVolumeTrack::Highlight(int nLabel)
   {
     if (nLabel == mri->frames[i].label)
     {
+      this->SetActiveFrame(i);
       m_actors[i]->GetProperty()->SetColor(1.5, 1.5, 1.5);  // let it over-flow
       emit ActorUpdated();
       QTimer::singleShot(300, this, SLOT(RestoreColors()));

@@ -326,10 +326,9 @@
     <addaction name="separator"/>
     <addaction name="actionShowCoordinateAnnotation"/>
     <addaction name="actionShowColorScale"/>
+    <addaction name="actionToggleCursorVisibility"/>
     <addaction name="actionShowSlices"/>
     <addaction name="actionShowSliceFrames"/>
-    <addaction name="separator"/>
-    <addaction name="actionToggleCursorVisibility"/>
    </widget>
    <widget class="QMenu" name="menuLayer">
     <property name="title">
@@ -362,7 +361,7 @@
     </property>
     <widget class="QMenu" name="menuVolume_Fiilter">
      <property name="title">
-      <string>Volume Filter</string>
+      <string>Volume Fiilter</string>
      </property>
      <addaction name="actionVolumeFilterMean"/>
      <addaction name="actionVolumeFilterMedian"/>
@@ -922,8 +921,11 @@
    </property>
   </action>
   <action name="actionToggleCursorVisibility">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
    <property name="text">
-    <string>Toggle Cursor Visibility</string>
+    <string>Show Cursor</string>
    </property>
    <property name="shortcut">
     <string>Alt+U</string>
@@ -2264,6 +2266,22 @@
     </hint>
    </hints>
   </connection>
+  <connection>
+   <sender>actionToggleCursorVisibility</sender>
+   <signal>toggled(bool)</signal>
+   <receiver>MainWindow</receiver>
+   <slot>OnToggleCursorVisibility(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>606</x>
+     <y>435</y>
+    </hint>
+   </hints>
+  </connection>
  </connections>
  <slots>
   <slot>OnLoadVolume()</slot>
@@ -2323,5 +2341,6 @@
   <slot>OnLoadTrackVolume()</slot>
   <slot>OnIncreaseOpacity()</slot>
   <slot>OnDecreaseOpacity()</slot>
+  <slot>OnToggleCursorVisibility(bool)</slot>
  </slots>
 </ui>

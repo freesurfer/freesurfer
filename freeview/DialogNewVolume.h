@@ -1,68 +1,65 @@
 /**
  * @file  DialogNewVolume.h
- * @brief Dialog to create new volume.
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
  *
  */
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/10/29 20:53:43 $
- *    $Revision: 1.7 $
+ *    $Date: 2011/05/13 15:04:31 $
+ *    $Revision: 1.13.2.1 $
  *
- * Copyright (C) 2008-2009,
- * The General Hospital Corporation (Boston, MA).
- * All rights reserved.
+ * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
- * Distribution, usage and copying of this software is covered under the
- * terms found in the License Agreement file named 'COPYING' found in the
- * FreeSurfer source code root directory, and duplicated here:
- * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ * Terms and conditions for use, reproduction, distribution and contribution
+ * are found in the 'FreeSurfer Software License Agreement' contained
+ * in the file 'LICENSE' found in the FreeSurfer distribution, and here:
  *
- * General inquiries: freesurfer@nmr.mgh.harvard.edu
- * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
+ *
+ * Reporting: freesurfer@nmr.mgh.harvard.edu
  *
  */
-#ifndef DialogNewVolume_h
-#define DialogNewVolume_h
+#ifndef DIALOGNEWVOLUME_H
+#define DIALOGNEWVOLUME_H
 
-#include <wx/wx.h>
+#include <QDialog>
 
-
-class wxCheckBox;
-class wxChoice;
-class wxTextCtrl;
-class LayerMRI;
-class LayerCollection;
-
-class DialogNewVolume : public wxDialog
+namespace Ui
 {
-public:
-  DialogNewVolume( wxWindow* parent, LayerCollection* col );
-  virtual ~DialogNewVolume();
+class DialogNewVolume;
+}
 
-  wxString GetVolumeName();
-  void SetVolumeName( const wxString& name );
+class LayerMRI;
+
+class DialogNewVolume : public QDialog
+{
+  Q_OBJECT
+
+public:
+  explicit DialogNewVolume(QWidget *parent = 0);
+  ~DialogNewVolume();
+
+  QString GetVolumeName();
+  void SetVolumeName( const QString& name );
 
   bool GetCopyVoxel();
   void SetCopyVoxel( bool bVoxel );
-  
+
+  int GetDummyOption();
+
   int GetDataType();
 
   LayerMRI* GetTemplate();
 
-  void OnOK( wxCommandEvent& event );
-
-  void OnTextEnter( wxCommandEvent& event );
+protected slots:
+  void OnOK();
+  void OnToggleCopyVoxelData(bool bCopy);
+  void OnToggleVoxelDataOption(bool bChecked);
 
 private:
-  wxCheckBox*   m_checkCopyVoxel;
-  wxChoice*     m_choiceTemplate;
-  wxTextCtrl*   m_textName;
-  wxChoice*     m_choiceDataType;
-
-  DECLARE_EVENT_TABLE()
+  Ui::DialogNewVolume *ui;
 };
 
-#endif
-
+#endif // DIALOGNEWVOLUME_H

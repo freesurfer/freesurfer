@@ -6,9 +6,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/04/26 18:20:39 $
- *    $Revision: 1.4.2.1 $
+ *    $Author: rpwang $
+ *    $Date: 2011/05/13 15:04:32 $
+ *    $Revision: 1.4.2.2 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -93,7 +93,7 @@ void PanelLayer::InitializeLayerList( QTreeWidget* treeWidget, LayerCollection* 
 
 void PanelLayer::ConnectLayer( Layer* layer )
 {
-  connect( layer, SIGNAL(Locked(bool)), treeWidgetPrivate, SLOT(repaint()) );
+  connect( layer, SIGNAL(Locked(bool)), treeWidgetPrivate, SLOT(ForceUpdate()) );
 }
 
 void PanelLayer::OnLayerAdded( Layer* layer )

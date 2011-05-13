@@ -6,9 +6,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/04/26 18:20:39 $
- *    $Revision: 1.56.2.1 $
+ *    $Author: rpwang $
+ *    $Date: 2011/05/13 15:04:32 $
+ *    $Revision: 1.56.2.2 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -1079,7 +1079,7 @@ void LayerSurface::UpdateOverlay( bool bAskRedraw )
   }
   else
   {
-    if ( m_labels.size() == 0 )   // no labels
+    if ( m_labels.size() == 0 || m_nActiveLabel < 0)   // no labels
     {
       polydata->GetPointData()->SetActiveScalars( "Curvature" );
       if ( GetProperty()->GetMeshColorMap() == LayerPropertySurface::MC_Surface )
@@ -1365,7 +1365,18 @@ void LayerSurface::MapLabels( unsigned char* data, int nVertexCount )
 {
   for ( size_t i = 0; i < m_labels.size(); i++ )
   {
-    m_labels[i]->MapLabel( data, nVertexCount );
+    if (i == m_nActiveLabel)
+      m_labels[i]->MapLabel( data, nVertexCount );
+  }
+}
+
+void LayerSurface::SetActiveLabelColor(const QColor &c)
+{
+  if ( m_nActiveLabel >= 0)
+  {
+    m_labels[m_nActiveLabel]->SetColor(c.redF(), c.greenF(), c.blueF());
+    UpdateColorMap();
+    emit ActorUpdated();
   }
 }
 

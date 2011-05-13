@@ -1,0 +1,272 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>DialogNewVolume</class>
+ <widget class="QDialog" name="DialogNewVolume">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>295</width>
+    <height>325</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>New Volume</string>
+  </property>
+  <layout class="QVBoxLayout" name="verticalLayout">
+   <property name="sizeConstraint">
+    <enum>QLayout::SetFixedSize</enum>
+   </property>
+   <property name="leftMargin">
+    <number>15</number>
+   </property>
+   <property name="rightMargin">
+    <number>15</number>
+   </property>
+   <item>
+    <widget class="QLabel" name="label">
+     <property name="text">
+      <string>Enter the name of the new volume</string>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="QLineEdit" name="lineEditName"/>
+   </item>
+   <item>
+    <spacer name="verticalSpacer_2">
+     <property name="orientation">
+      <enum>Qt::Vertical</enum>
+     </property>
+     <property name="sizeType">
+      <enum>QSizePolicy::Fixed</enum>
+     </property>
+     <property name="sizeHint" stdset="0">
+      <size>
+       <width>0</width>
+       <height>5</height>
+      </size>
+     </property>
+    </spacer>
+   </item>
+   <item>
+    <widget class="QLabel" name="label_2">
+     <property name="text">
+      <string>Select data type</string>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="QComboBox" name="comboBoxDataType">
+     <property name="currentIndex">
+      <number>1</number>
+     </property>
+     <item>
+      <property name="text">
+       <string>UCHAR</string>
+      </property>
+     </item>
+     <item>
+      <property name="text">
+       <string>INT (for new label volume)</string>
+      </property>
+     </item>
+     <item>
+      <property name="text">
+       <string>LONG</string>
+      </property>
+     </item>
+     <item>
+      <property name="text">
+       <string>FLOAT</string>
+      </property>
+     </item>
+     <item>
+      <property name="text">
+       <string>SHORT</string>
+      </property>
+     </item>
+     <item>
+      <property name="text">
+       <string>Same as template volume</string>
+      </property>
+     </item>
+    </widget>
+   </item>
+   <item>
+    <spacer name="verticalSpacer_3">
+     <property name="orientation">
+      <enum>Qt::Vertical</enum>
+     </property>
+     <property name="sizeType">
+      <enum>QSizePolicy::Fixed</enum>
+     </property>
+     <property name="sizeHint" stdset="0">
+      <size>
+       <width>0</width>
+       <height>5</height>
+      </size>
+     </property>
+    </spacer>
+   </item>
+   <item>
+    <widget class="QLabel" name="label_3">
+     <property name="text">
+      <string>Select template volume</string>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="QComboBox" name="comboBoxTemplate"/>
+   </item>
+   <item>
+    <widget class="QCheckBox" name="checkBoxCopyData">
+     <property name="text">
+      <string>Copy voxel data from template</string>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="QCheckBox" name="checkBoxDummySphere">
+     <property name="text">
+      <string>Dummy Sphere</string>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="QCheckBox" name="checkBoxDummyCube">
+     <property name="text">
+      <string>Dummy Cube</string>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <spacer name="verticalSpacer">
+     <property name="orientation">
+      <enum>Qt::Vertical</enum>
+     </property>
+     <property name="sizeHint" stdset="0">
+      <size>
+       <width>0</width>
+       <height>10</height>
+      </size>
+     </property>
+    </spacer>
+   </item>
+   <item>
+    <widget class="QDialogButtonBox" name="buttonBox">
+     <property name="orientation">
+      <enum>Qt::Horizontal</enum>
+     </property>
+     <property name="standardButtons">
+      <set>QDialogButtonBox::Cancel|QDialogButtonBox::Ok</set>
+     </property>
+    </widget>
+   </item>
+  </layout>
+ </widget>
+ <resources/>
+ <connections>
+  <connection>
+   <sender>buttonBox</sender>
+   <signal>rejected()</signal>
+   <receiver>DialogNewVolume</receiver>
+   <slot>reject()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>279</x>
+     <y>314</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>286</x>
+     <y>274</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>buttonBox</sender>
+   <signal>accepted()</signal>
+   <receiver>DialogNewVolume</receiver>
+   <slot>OnOK()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>279</x>
+     <y>314</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>294</x>
+     <y>226</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>checkBoxCopyData</sender>
+   <signal>toggled(bool)</signal>
+   <receiver>DialogNewVolume</receiver>
+   <slot>OnToggleCopyVoxelData(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>90</x>
+     <y>210</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>294</x>
+     <y>193</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>checkBoxCopyData</sender>
+   <signal>toggled(bool)</signal>
+   <receiver>DialogNewVolume</receiver>
+   <slot>OnToggleVoxelDataOption(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>227</x>
+     <y>209</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>512</x>
+     <y>240</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>checkBoxDummySphere</sender>
+   <signal>toggled(bool)</signal>
+   <receiver>DialogNewVolume</receiver>
+   <slot>OnToggleVoxelDataOption(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>116</x>
+     <y>235</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>433</x>
+     <y>273</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>checkBoxDummyCube</sender>
+   <signal>toggled(bool)</signal>
+   <receiver>DialogNewVolume</receiver>
+   <slot>OnToggleVoxelDataOption(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>116</x>
+     <y>264</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>261</x>
+     <y>390</y>
+    </hint>
+   </hints>
+  </connection>
+ </connections>
+ <slots>
+  <slot>OnOK()</slot>
+  <slot>OnToggleCopyVoxelData(bool)</slot>
+  <slot>OnToggleVoxelDataOption(bool)</slot>
+ </slots>
+</ui>

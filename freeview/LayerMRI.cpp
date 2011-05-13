@@ -6,9 +6,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/04/26 18:20:39 $
- *    $Revision: 1.96.2.4 $
+ *    $Author: rpwang $
+ *    $Date: 2011/05/13 15:04:32 $
+ *    $Revision: 1.96.2.5 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -238,7 +238,7 @@ bool LayerMRI::LoadVolumeFromFile( )
   return true;
 }
 
-bool LayerMRI::Create( LayerMRI* mri, bool bCopyVoxelData, int data_type )
+bool LayerMRI::Create( LayerMRI* mri, bool bCopyVoxelData, int data_type, int dummy_option )
 {
   if ( m_volumeSource )
   {
@@ -254,7 +254,6 @@ bool LayerMRI::Create( LayerMRI* mri, bool bCopyVoxelData, int data_type )
   m_bResampleToRAS = mri->m_bResampleToRAS;
   m_bReorient = mri->m_bReorient;
   m_imageDataRef = mri->GetImageData();
-// if ( m_imageDataRef.GetPointer() )
   if ( m_imageDataRef != NULL )
   {
     SetWorldOrigin( mri->GetWorldOrigin() );
@@ -263,10 +262,44 @@ bool LayerMRI::Create( LayerMRI* mri, bool bCopyVoxelData, int data_type )
 
     m_imageData = m_volumeSource->GetImageOutput();
 
+    int* dim = m_imageData->GetDimensions();
+    int len = qMin(dim[0], qMin(dim[1], dim[2]))/3;
+    int len2 = len*len;
+    if (dummy_option == 0)    // sphere
+    {
+      int c[3] = {dim[0]/2, dim[1]/2, dim[2]/2};
+      double val = 100;
+      for (int i = c[0]-len; i <= c[0]+len; i++)
+      {
+        for (int j = c[1]-len; j <= c[1]+len; j++)
+        {
+          for (int k = c[2]-len; k <= c[2]+len; k++)
+          {
+            if ((i-c[0])*(i-c[0])+(j-c[1])*(j-c[1])+(k-c[2])*(k-c[2]) < len2)
+              m_imageData->SetScalarComponentFromDouble(i, j, k, 0, val);
+          }
+        }
+      }
+    }
+    else if (dummy_option == 1)  // cube
+    {
+      int c[3] = {dim[0]/2, dim[1]/2, dim[2]/2};
+      double val = 100;
+      for (int i = c[0]-len; i <= c[0]+len; i++)
+      {
+        for (int j = c[1]-len; j <= c[1]+len; j++)
+        {
+          for (int k = c[2]-len; k <= c[2]+len; k++)
+          {
+              m_imageData->SetScalarComponentFromDouble(i, j, k, 0, val);
+          }
+        }
+      }
+    }
+
     InitializeActors();
 
     GetProperty()->SetVolumeSource( m_volumeSource );
-    // mProperty->SetColorMap( LayerPropertyMRI::LUT );
 
     m_sFilename = "";
 
