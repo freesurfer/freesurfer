@@ -1,4 +1,3 @@
-
 // STL includes
 #include <cmath>
 #include <fstream>
@@ -9,10 +8,10 @@
 #include <boost/progress.hpp>
 
 // MPI
-#undef SEEK_SET
-#undef SEEK_END
-#undef SEEK_CUR
-#include <mpi.h>
+//#undef SEEK_SET
+//#undef SEEK_END
+//#undef SEEK_CUR
+//#include <mpi.h>
 
 // OWN
 #include "morph.h"
@@ -28,6 +27,8 @@ extern "C"
 
 // required by FreeSurfer
 char *Progname;
+
+int tractPointList = 0;
 
 ////////////
 
@@ -132,7 +133,6 @@ struct IoParams
   std::vector<DataItem> items;
 
   std::string strTemplate;
-  //  std::string strSourceVol; // LZ: for morphing pointlists (need the hdr reference)
   std::string strTransform;
   std::string strGcam; // option to export gcam -- not yet implemented
 
@@ -165,7 +165,7 @@ main(int argc,
   }
 
   // load template
-  std::cout<<"Template name:";  // TODO: why does not read nii volumes????
+  std::cout<<"Template name:";  // TODO: why does not it read nii volumes????
   std::cout<< const_cast<char*>( params.strTemplate.c_str()) << "\n";
   MRI* mriTemplate = MRIread( const_cast<char*>( params.strTemplate.c_str()) );
   if ( !mriTemplate )
@@ -175,22 +175,19 @@ main(int argc,
     exit(1);
   }
   std::cout<<"After loading template\n";
-  // LZb -- load sourcevol -- if exists
-  /*MRI* mriSourceVol = NULL;
-  if ( ! params.strSourceVol.empty() )
+
+  // load template
+  std::cout<<"Template name:";  // TODO: why does not it read nii volumes????
+  std::cout<< const_cast<char*>( params.strTemplate.c_str()) << "\n";
+  mriTemplate = MRIread( const_cast<char*>( params.strTemplate.c_str()) );
+  if ( !mriTemplate )
     {
-      std::cout<<"Source volume name:";
-      std::cout<< const_cast<char*>( params.strSourceVol.c_str()) << "\n";
-      mriSourceVol = MRIread( const_cast<char*>( params.strSourceVol.c_str()) );
-      if ( !mriSourceVol )
-  {
-   std::cerr << " Failed reading source volume "
-      << params.strSourceVol << std::endl;
-   exit(1);
-  }
-      std::cout<<"After loading source volume\n";
-      }*/
-  // LZe
+      std::cerr << " Failed reading template volume "
+		<< params.strTemplate << std::endl;
+      exit(1);
+    }
+  std::cout<<"After loading template\n";
+  
 
   // load transform
   boost::shared_ptr<gmp::VolumeMorph> pmorph(new gmp::VolumeMorph);
@@ -201,11 +198,11 @@ main(int argc,
     pmorph->load( params.strTransform.c_str(), params.zlibBuffer );
   }
   catch (const char* msg)
-  {
+    {
     std::cerr << " Exception caught while loading transform\n"
-    << msg << std::endl;
+	      << msg << std::endl;
     exit(1);
-  }
+    }
   std::cout << " loaded transform\n";
   initOctree(*pmorph);
 
@@ -347,11 +344,6 @@ IoParams::parse(int ac,
     exit(0);
   }
 
-  // LZb
-  //if ( vm.count("sourcevol") )
-  //strSourceVol = vm["sourcevol"].as<std::string>();
-  // LZe
-
   if ( !vm.count("template") )
     throw " IoParams - you need to specify a template volume";
   strTemplate = vm["template"].as<std::string>();
@@ -431,10 +423,27 @@ IoParams::parse(int ac,
     }
     else if ( *cit == "point_list" )
     {
-      // LZ: note need to do!
-      //if ( strSourceVol.empty() )
-      //throw " IoParams - you need to specify a source volume to transform a pointlist";
 
+      if ( ++cit == container.end() )
+        throw " Incomplete data item ";
+
+      DataItem item;
+      item.m_type = DataItem::pointList;
+      item.strInput = *cit;
+
+      if ( ++cit == container.end() )
+        throw " Incomplete data item ";
+      item.strOutput = *cit;
+
+      if ( ++cit == container.end() )
+        throw " Incomplete data item ";
+      item.strAttached = *cit;
+
+      items.push_back( item );
+    }
+    else if ( *cit == "tract_point_list" )
+    {
+      tractPointList = 1;
       if ( ++cit == container.end() )
         throw " Incomplete data item ";
 
@@ -479,6 +488,7 @@ VolumeFilter::Execute()
   initVolGeom(&vgLike);
   getVolGeom(pmorph->m_template, &vgLike);
 
+  pmorph->invert(); // lz 2/28/11 
   MRI* mriOut  = pmorph->apply_transforms(mri,
                                           false,
                                           &vgLike);
@@ -497,9 +507,9 @@ VolumeFilter::Execute()
 void
 SurfaceFilter::Execute()
 {
-  std::cout << " before serialize\n";
+  //std::cout << " before serialize\n";
   pmorph->serialize();
-  std::cout << " before inverting\n";
+  //std::cout << " before inverting\n";
   //pmorph->invert();
 
   // load the surface
@@ -695,151 +705,50 @@ void
 PointListProbeFilter::Execute()
 {
   std::ifstream ifs( this->strInput.c_str() );
-  if ( !ifs )
-    throw " Failed to open input file while applying PointListProbeFilter ";
-
-  // lz
-  std::cout << " Source vol " << this->strMode.c_str() << " \n";
-  MRI* mri = MRIread(
-    const_cast<char*>
-    ( this->strMode.c_str() ) ); // LZ: Maybe need some renaming...
-  if ( !mri )
-  {
-    std::cerr << " Failed reading source volume "
-    << strInput << std::endl;
-    exit(1);
-  }
-  // lz
+  if ( !ifs ) throw " Failed to open input file while applying PointListProbeFilter ";
 
   std::vector<Coords3d> outputImages;
-  Coords3d pt, img, tmpPt;
+  Coords3d pt, img; 
 
-  // lz
-  // initialize matrices for RAS 2 matrix stuff
-  MATRIX* mat_template = NULL;
-  MATRIX* mat_subject  = NULL;
-  VOL_GEOM vg, vgFixed, vgMoving;
-  initVolGeom(&vg);
-  vg_print(&vg);
-  getVolGeom(pmorph->m_template, &vg);
-  vg_print(&vg);  // I guess, in case output has different geometry than template
-  initVolGeom(&vgFixed);
-  vg_print(&vgFixed);
-  getVolGeom(pmorph->m_template, &vgFixed);
-  vg_print(&vgFixed);
-  initVolGeom(&vgMoving);
-  vg_print(&vgMoving);
-  getVolGeom(mri, &vgMoving);
-  vg_print(&vgMoving);
-  // setup the matrix for the fixed side
-  {
-    MATRIX* vox2ras_crt = vg_i_to_r(&vg);
-    MatrixPrint( stdout, vox2ras_crt  );
-    MATRIX* ras2vox_morph = vg_r_to_i(&vgFixed);
-    MatrixPrint( stdout, ras2vox_morph );
+  //int counter = 0;
 
-    if ( !vox2ras_crt || !ras2vox_morph )
-      throw " VolumeMorph apply_transforms - NULL matrix ";
-
-    mat_template = MatrixMultiply( ras2vox_morph,
-                                   vox2ras_crt,
-                                   NULL
-                                 );
-    MatrixFree(&vox2ras_crt);
-    MatrixFree(&ras2vox_morph);
-  }
-
-  // setup the matrix for the moving side
-  {
-    MATRIX* vox2ras_morph = vg_i_to_r(&vgMoving);
-    MatrixPrint( stdout, vox2ras_morph  );
-    MATRIX* ras2vox_crt   = extract_r_to_i(mri);
-    MatrixPrint( stdout, ras2vox_crt );
-
-    if ( !vox2ras_morph || !ras2vox_crt )
-      throw " VolumeMorph apply_transforms - NULL matrix ";
-
-    mat_subject = MatrixMultiply( ras2vox_crt,
-                                  vox2ras_morph,
-                                  NULL
-                                );
-    MatrixFree(&vox2ras_morph);
-    MatrixFree(&ras2vox_crt);
-  }
-
-  MatrixPrint( stdout, mat_template );
-  MatrixPrint( stdout, mat_subject );
-  // lz
-
-  /*VECTOR* vTmp, tmpVec1;
-  vTmp    = VectorAlloc(4, MATRIX_REAL);
-  tmpVec1 = VectorAlloc(4, MATRIX_REAL);*/
-  VECTOR *vTmp, *vFixed, *vMoving;
-  vFixed  = VectorAlloc(4, MATRIX_REAL);
-  VECTOR_ELT(vFixed, 4) = 1.0;
-  vMoving = VectorAlloc(4, MATRIX_REAL);
-  VECTOR_ELT(vMoving,4) = 1.0;
-  vTmp    = VectorAlloc(4, MATRIX_REAL);
-  VECTOR_ELT(vTmp,4) = 1.0;
-  int x, y, z;
+  if (tractPointList) 
+    this->pmorph->invert();
+  
+  //unsigned int voxInvalid(0);
   while ( ifs )
-  {
-    //ifs >> pt(0) >> pt(1) >> pt(2);
-    ifs >> x >> y >> z;
-    tmpPt(0) = x;
-    tmpPt(1) = y;
-    tmpPt(2) = z;
-
-    if ( ifs.eof() ) break;
-    //// ORIG: img = this->pmorph->image(pt);
-
-    V3_X(vTmp) = x;
-    V3_Y(vTmp) = y;
-    V3_Z(vTmp) = z;
-
-    vFixed = MatrixMultiply( mat_template, vTmp, vFixed );
-    //tCoords img;
-    pt.validate();
-    pt(0) = V3_X( vFixed );
-    pt(1) = V3_Y( vFixed );
-    pt(2) = V3_Z( vFixed );
-
-    img = this->pmorph->image(pt);
-    /*if ( !img.isValid() )
     {
-    if (img.status()==cInvalid)
-    continue;
-    }*/
+      ifs >> pt(0) >> pt(1) >> pt(2);
+      
+      img = this->pmorph->image(pt);
+      /*  if ( !img.isValid() )
+	  {
+	  if (img.status()==cInvalid)
+	  ++voxInvalid;
+	  continue;
+	  }*/
+      
+      outputImages.push_back( img );
+      //counter ++;
+    }
 
-    V3_X(vTmp) = img(0);
-    V3_Y(vTmp) = img(1);
-    V3_Z(vTmp) = img(2);
-
-    vMoving = MatrixMultiply(mat_subject, vTmp, vMoving);
-
-    img(0) = V3_X( vMoving );
-    img(1) = V3_Y( vMoving );
-    img(2) = V3_Z( vMoving );
-
-    // LZ: NOTE add all the checks to this
-    std::cout << "The morphed points are: "
-              << this->pmorph->image(tmpPt) << " and " <<  img << "\n";
-    outputImages.push_back( img );
-  }
   ifs.close();
+  //std::cout << "In counter :" <<  counter << "\n";
 
   std::ofstream ofs( this->strOutput.c_str() );
-  if ( !ofs )
-    throw " Failed to open output stream while applying PointListProbeFilter";
+  if ( !ofs ) throw " Failed to open output stream while applying PointListProbeFilter";
 
+  //counter = 0;
   for ( std::vector<Coords3d>::const_iterator cit = outputImages.begin();
         cit != outputImages.end(); ++cit )
-  {
-    if ( cit->isValid() )
-      ofs << (*cit)(0) << " " << (*cit)(1) << " " << (*cit)(2) << std::endl;
-    else
-      ofs << 10000 << " " << 10000 <<  " " << 10000 
-          << std::endl; // hack not to lose order
-  } // next cit
+    {
+      if ( cit->isValid() )
+        ofs << (*cit)(0) << " " << (*cit)(1) << " " << (*cit)(2) << std::endl;
+      else
+	ofs << 10000 << " "<< 10000 << " " << 10000 << std::endl; // hack not to lose order
+      //  counter ++;
+    } // next cit
   ofs.close();
-}
+  //  std::cout << "Out counter :" <<  counter << "\n";
+  }
+

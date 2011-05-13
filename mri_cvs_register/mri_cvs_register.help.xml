@@ -79,8 +79,6 @@ example* , bugs* , reporting* , references* , see-also*)*>
       <intro>Others</intro>
       <argument>--nolog</argument>
       <explanation>Do not produce a log file (default is 0).</explanation>
-      <argument>--mpi</argument>
-      <explanation>Use the mpi+openmp option for the 2nd step to speed computations (default is 0).</explanation>
       <argument>--version</argument>
       <explanation>Print version and exit.</explanation>
       <argument>--help </argument>
