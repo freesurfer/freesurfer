@@ -10,9 +10,10 @@
 # Edited : 12-11-2009
 # Edited : 08-10-2010: added --mpi option
 # Edited : 03-17-2011: replaces applyMorph with mri_vol2vol
+# Edited : 05-13-2011: deleted --mpi option
 
 set inputargs = ($argv);
-set VERSION = '$Id: mri_cvs_register,v 1.24 2011/05/04 12:32:50 lzollei Exp $';
+set VERSION = '$Id: mri_cvs_register,v 1.25 2011/05/13 22:41:00 lzollei Exp $';
 
 set movingid = ();
 set templateid = ();
@@ -27,7 +28,6 @@ set OnlyStep2 = 0
 set OnlyStep3 = 0
 set DoAllSteps = 1
 set BothHemis = 1
-set UseMpi = 0
 set CleanSurfReg = 0
 set CleanElReg = 0
 set CleanVolReg = 0
@@ -81,7 +81,6 @@ uname -a |& tee -a $LF
 set voltype = norm
 set annotfile = aparc.annot
 set cvsdir =  $FREESURFER_HOME/bin
-# set settingsfile = $cvsdir/mri_cvs_register.settings.txt
 
 ### Creating outputdir
 echo The outdir:
@@ -241,9 +240,6 @@ set tmri = $TEMPLATE_DIR/$templateid/mri/
 set tsurf  = $TEMPLATE_DIR/$templateid/surf/
 set tlabel = $TEMPLATE_DIR/$templateid/label/
 
-# grep -n out_root $settingsfile | sed 's/[0-9]:/set /' > tmp.txt
-# source tmp.txt
-# rm -f tmp.txt
 set out_root = el_reg
 set elasticmorph = ${out_root}_to$templateid.tm3d
 
@@ -267,10 +263,6 @@ if (!(-e $outdir/$elasticmorph) || $CleanElReg) then
                       $elasticoptions -cache_transform $outdir/transform.txt \
                       -out $outdir/el_reg_to$templateid.mgz -out_surf $outdir/surf-mfc_to$templateid \
                       -out_mesh $outdir/el_reg_to$templateid)
-  #set cmd = (perl $cvsdir/elastic_registration_CVS.pl --fixed $templateid --moving $movingid --settings $settingsfile --exe surf2vol --pial )
-  #if ($UseMpi) then 
-  # set cmd = ($cmd --mpi)
-  #endif 
   echo $cmd |& tee -a $LF
   $cmd |& tee -a $LF
   if($status) exit 1;
@@ -282,10 +274,6 @@ if (!(-e $outdir/$elasticmorph) || $CleanElReg) then
                       $elasticoptions -cache_transform $outdir/transform.txt \
                       -out $outdir/el_reg_to$templateid.mgz -out_surf $outdir/surf-mfc_to$templateid \
                       -out_mesh $outdir/el_reg_to$templateid)
-#  set cmd = (perl $cvsdir/elastic_registration_CVS_hemi.pl --fixed $templateid --moving $movingid --settings $settingsfile --exe surf2vol --pial )
-#  if ($UseMpi) then 
-#   set cmd = ($cmd --mpi)
-#  endif
   echo $cmd |& tee -a $LF
   $cmd |& tee -a $LF
   if($status) exit 1;
@@ -496,10 +484,6 @@ while( $#argv != 0 )
 
     case "--noaseg":
       set UseAseg = 0;
-      breaksw
-
-    case "--mpi":
-      set UseMpi = 1;
       breaksw
 
     case "--nocleanup":
