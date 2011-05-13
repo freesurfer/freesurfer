@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2011/04/29 17:27:01 $
- *    $Revision: 1.169 $
+ *    $Date: 2011/05/13 18:18:50 $
+ *    $Revision: 1.170 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -746,8 +746,10 @@ bool MainWindow::DoParseCommand(bool bAutoQuit)
     }
   }
 
-  if ( m_cmdParser->Found( "p-labels", &sa ) )
+  nRepeats = m_cmdParser->GetNumberOfRepeats( "p-labels" );
+  for ( int n = 0; n < nRepeats; n++ )
   {
+    m_cmdParser->Found( "p-labels", &sa, n );
     QString filenames = sa.join(";");
     QString script = "loadpvolumes ";
     script += filenames;

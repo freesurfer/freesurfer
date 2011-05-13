@@ -6,9 +6,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/14 23:44:47 $
- *    $Revision: 1.8 $
+ *    $Author: rpwang $
+ *    $Date: 2011/05/13 18:18:50 $
+ *    $Revision: 1.9 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -99,7 +99,8 @@ bool LayerPLabel::LoadVolumeFiles()
     }
 
     int r, g, b;
-    if ( CTABrgbAtIndexi( ct, CTABentryNameToIndex( fn.toAscii().data(), ct ), &r, &g, &b ) != 0 )
+    if ( CTABrgbAtIndexi( ct, CTABentryNameToIndex( fn.toAscii().data(), ct ), &r, &g, &b ) != 0 &&
+         CTABrgbAtIndexi( ct, CTABentryNameToIndex( QString(fn).replace("-", "/").toAscii().data(), ct ), &r, &g, &b ) != 0)
     {
       cerr << "Can not find index for color name " << qPrintable(fn) << "\n";
       return false;
