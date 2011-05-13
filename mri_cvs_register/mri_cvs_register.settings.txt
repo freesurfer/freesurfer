@@ -1,7 +1,0 @@
-ksp_rtol=9
-weight= 1000
-out_root=el_reg
-surf_root=surf-mfc
-overwrite=1
-options    = -fem_steps 17 -elt_vol_range 5.0,10.0 -log_summary -poisson .3 -topology_old -compress -pc_type none -ksp_type preonly -pc_type jacobi -ksp_type cg -ksp_view -ksp_converged_reason
-mpioptions = -fem_steps 17 -elt_vol_range 5.0,10.0 -log_summary -poisson .3 -topology_old -compress -pc_type openmp -ksp_type preonly -openmp_pc_type jacobi -openmp_ksp_type cg -openmp_ksp_view -openmp_ksp_rtol 1.0e-9 -openmp_ksp_converged_reason
