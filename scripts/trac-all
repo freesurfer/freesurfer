@@ -7,9 +7,9 @@
 #
 # Original Author: Anastasia Yendiki
 # CVS Revision Info:
-#    $Author: nicks $
-#    $Date: 2011/05/09 19:36:45 $
-#    $Revision: 1.22.2.2 $
+#    $Author: ayendiki $
+#    $Date: 2011/05/15 05:00:24 $
+#    $Revision: 1.22.2.3 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -25,9 +25,17 @@
 
 umask 002
 
-set VERSION = '$Id: trac-all,v 1.22.2.2 2011/05/09 19:36:45 nicks Exp $'
+set VERSION = '$Id: trac-all,v 1.22.2.3 2011/05/15 05:00:24 ayendiki Exp $'
 set ProgName = `basename $0`
 set inputargs = ($argv)
+
+if ($?PBS_JOBID) then
+  echo "ERROR: Do not submit $ProgName as a job with pbsubmit or qsub."
+  echo "ERROR: Run it directly on the command line."
+  echo "ERROR: If run on the cluster, $ProgName will submit the jobs for you."
+  echo "ERROR: Each subject listed in your dmrirc will be submitted as a job."
+  exit 1
+endif
 
 set onpbs = 0
 set hname = `hostname -s`
@@ -113,7 +121,7 @@ set thrbet = 0.3
 set doregflt = 1
 set doregbbr = 1
 set doregmni = 1
-set doregcvs = 1
+set doregcvs = 0
 set mnitemp = $FSLDIR/data/standard/MNI152_T1_1mm_brain.nii.gz
 set cvstempdir = $FREESURFER_HOME/subjects
 set cvstemp = cvs_avg35
@@ -770,6 +778,15 @@ arg1err:
 ############--------------##################
 check_params:
   if (! $DoVersionsOnly) then
+    if ($doregcvs) then
+      echo "WARN: CVS template is not unavailable in the current version"
+      set doregcvs = 0
+    endif
+    if (! $doregmni) then
+      echo "WARN: MNI is the only available inter-subject registration template"
+      set doregmni = 1
+    endif
+
     if (-e $trainfile) then
       if ($do1out) then
         # Leave-one-out training file:
@@ -1039,6 +1056,12 @@ OTHER OPTIONS
 -onlyversions   : print version of each binary and exit
 -version        : print version of this script and exit
 -help           : print full contents of help
+
+FOR NMR CENTER CLUSTER USERS
+Do not submit trac-all as a job with pbsubmit or qsub. Run it directly on the
+command line. If run on a local machine, trac-all will run all analyses locally.
+If run on the cluster, trac-all will submit the analysis of each subject listed
+in your dmrirc file as a job.
 
 SEE ALSO: dmrirc.example
 
