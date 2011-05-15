@@ -33,10 +33,6 @@ Coffin::Coffin(const char *OutDir, const char *DwiFile,
         const char *RoiMeshFile1, const char *RoiMeshFile2,
         const char *RoiRefFile1, const char *RoiRefFile2,
         const char *PriorFile0, const char *PriorFile1,
-        const int AsegPriorType,
-        const char *AsegPriorFile0, const char *AsegPriorFile1,
-        const char *AsegIdFile,
-        const char *AsegTrainFile, const char *PathTrainFile,
         const char *NeighPriorFile, const char *NeighIdFile,
         const char *LocalPriorFile, const char *LocalIdFile,
         const char *AsegFile,
@@ -48,7 +44,7 @@ Coffin::Coffin(const char *OutDir, const char *DwiFile,
         mDebug(Debug),
         mMask(0), mRoi1(0), mRoi2(0),
         mPathPrior0(0), mPathPrior1(0),
-        mAsegTrain(0), mPathTrain(0), mAseg(0),
+        mAseg(0),
         mPathSamples(0),
         mSpline(InitFile, MaskFile) {
   char fname[PATH_MAX];
@@ -64,10 +60,8 @@ Coffin::Coffin(const char *OutDir, const char *DwiFile,
            << "BEDPOST directory: " << BedpostDir << endl
            << "Max number of tracts per voxel: " << NumTract << endl
            << "Tract volume fraction threshold: " << FminPath << endl;
-  if (AsegFile) {
-    infostr << "Segmentation map: " << AsegFile << endl
-            << "Type of aseg prior: " << AsegPriorType << endl;
-  }
+  if (AsegFile)
+    infostr << "Segmentation map: " << AsegFile << endl;
   if (AffineXfmFile)
     infostr << "DWI-to-atlas affine registration: "
             << AffineXfmFile << endl;
@@ -237,8 +231,6 @@ exit(1);
   SetPathway(InitFile, RoiFile1, RoiFile2,
              RoiMeshFile1, RoiMeshFile2, RoiRefFile1, RoiRefFile2,
              PriorFile0, PriorFile1,
-             AsegPriorType, AsegPriorFile0, AsegPriorFile1, AsegIdFile,
-             AsegTrainFile, PathTrainFile,
              NeighPriorFile, NeighIdFile,
              LocalPriorFile, LocalIdFile);
 
@@ -257,20 +249,6 @@ Coffin::~Coffin() {
     MRIfree(&mPathPrior0);
     MRIfree(&mPathPrior1);
   }
-
-  for (vector<MRI *>::iterator iseg = mSegPrior0.begin();
-                               iseg != mSegPrior0.end(); iseg++)
-    MRIfree(&(*iseg));
-
-  for (vector<MRI *>::iterator iseg = mSegPrior1.begin();
-                               iseg != mSegPrior1.end(); iseg++)
-    MRIfree(&(*iseg));
-
-  if (mAsegTrain)
-    MRIfree(&mAsegTrain);
-
-  if (mPathTrain)
-    MRIfree(&mPathTrain);
 
   if (mAseg)
     MRIfree(&mAseg);
@@ -304,10 +282,6 @@ void Coffin::SetPathway(const char *InitFile,
                         const char *RoiMeshFile1, const char *RoiMeshFile2,
                         const char *RoiRefFile1, const char *RoiRefFile2,
                         const char *PriorFile0, const char *PriorFile1,
-                        const int AsegPriorType,
-                        const char *AsegPriorFile0, const char *AsegPriorFile1,
-                        const char *AsegIdFile,
-                        const char *AsegTrainFile, const char *PathTrainFile,
                         const char *NeighPriorFile, const char *NeighIdFile,
                         const char *LocalPriorFile, const char *LocalIdFile) {
   int dirs[45] = { 0,  0,  0,
@@ -325,7 +299,6 @@ void Coffin::SetPathway(const char *InitFile,
                   -1,  1, -1,
                    1, -1, -1,
                   -1, -1, -1 };
-  char fname[PATH_MAX];
   ostringstream infostr;
   vector< vector<unsigned int> > segids, neighids, localids;
   vector< vector<float> > neighpr, localpr;
@@ -343,13 +316,6 @@ void Coffin::SetPathway(const char *InitFile,
   if (PriorFile0)
     infostr << "Spatial prior (off path): " << PriorFile0 << endl
             << "Spatial prior (on path): " << PriorFile1 << endl;
-  if (AsegPriorFile0)
-    infostr << "Aseg prior (off path): " << AsegPriorFile0 << endl
-            << "Aseg prior (on path): " << AsegPriorFile1 << endl
-            << "Aseg label ID list: " << AsegIdFile << endl;
-  if (AsegTrainFile)
-    infostr << "Seg. map training set: " << AsegTrainFile << endl
-            << "Path training set: " << PathTrainFile << endl;
   if (NeighPriorFile)
     infostr << "Neighbor aseg prior: " << NeighPriorFile << endl
             << "Neighbor aseg label ID list: " << NeighIdFile << endl;
@@ -426,128 +392,6 @@ void Coffin::SetPathway(const char *InitFile,
     mPathPrior0 = 0;
     mPathPrior1 = 0;
   }
-
-  // Read aseg priors
-  if (AsegPriorFile0 && AsegPriorFile1 && AsegIdFile) {
-    MRI *tmp;
-    vector<string> suff;
-
-    for (vector<MRI *>::iterator iseg = mSegPrior0.begin();
-                                 iseg != mSegPrior0.end(); iseg++)
-      MRIfree(&(*iseg));
-
-    mSegPrior0.clear();
-
-    for (vector<MRI *>::iterator iseg = mSegPrior1.begin();
-                                 iseg != mSegPrior1.end(); iseg++)
-      MRIfree(&(*iseg));
-
-    mSegPrior1.clear();
-
-    if (FileExists(AsegPriorFile0))
-      suff.push_back("");
-    else {
-      suff.push_back("_0_0_0.nii.gz");
-
-      if (AsegPriorType == 2) {		// Local neighborhood aseg prior
-        suff.push_back("_1_0_0.nii.gz");
-        suff.push_back("_-1_0_0.nii.gz");
-        suff.push_back("_0_1_0.nii.gz");
-        suff.push_back("_0_-1_0.nii.gz");
-        suff.push_back("_0_0_1.nii.gz");
-        suff.push_back("_0_0_-1.nii.gz");
-      }
-      else if (AsegPriorType > 2) {	// Nearest-neighbor aseg prior
-        suff.push_back("_x.nii.gz");
-        suff.push_back("_-x.nii.gz");
-        suff.push_back("_y.nii.gz");
-        suff.push_back("_-y.nii.gz");
-        suff.push_back("_z.nii.gz");
-        suff.push_back("_-z.nii.gz");
-      }
-    }
-
-    for (vector<string>::const_iterator isuff = suff.begin();
-                                        isuff < suff.end(); isuff++) {
-      unsigned int val;
-      vector<unsigned int> idlist;
-      sprintf(fname, "%s%s", AsegIdFile, isuff->c_str());
-      ifstream idfile(fname, ios::in);
-
-      if (!idfile) {
-        cout << "ERROR: Could not open " << fname << endl;
-        exit(1);
-      }
-
-      cout << "Loading label IDs for aseg prior from " << fname << endl;
-      while (idfile >> val)
-        idlist.push_back(val);
-      segids.push_back(idlist);
-
-      sprintf(fname, "%s%s", AsegPriorFile0, isuff->c_str());
-      cout << "Loading aseg prior from " << fname << endl;
-      tmp = MRIread(fname);
-      if (!tmp) {
-        cout << "ERROR: Could not read " << fname << endl;
-        exit(1);
-      }
-      if (tmp->nframes != (int) idlist.size()) {
-        cout << "ERROR: Expected " << idlist.size() << " frames in " << fname
-             << ", found " << tmp->nframes << endl;
-        exit(1);
-      }
-      mSegPrior0.push_back(tmp);
-
-      sprintf(fname, "%s%s", AsegPriorFile1, isuff->c_str());
-      cout << "Loading aseg prior from " << fname << endl;
-      tmp = MRIread(fname);
-      if (!tmp) {
-        cout << "ERROR: Could not read " << fname << endl;
-        exit(1);
-      }
-      if (tmp->nframes != (int) idlist.size()) {
-        cout << "ERROR: Expected " << idlist.size() << " frames in " << fname
-             << ", found " << tmp->nframes << endl;
-        exit(1);
-      }
-      mSegPrior1.push_back(tmp);
-    }
-  }
-
-  // Read segmentation map training set
-  if (AsegTrainFile) {
-    if (mAsegTrain)
-      MRIfree(&mAsegTrain);
-
-    cout << "Loading seg. map training set from " << AsegTrainFile << endl;
-    mAsegTrain = MRIread(AsegTrainFile);
-    if (!mAsegTrain) {
-      cout << "ERROR: Could not read " << AsegTrainFile << endl;
-      exit(1);
-    }
-  }
-  else
-    mAsegTrain = 0;
-
-  // Read path training set
-  if (PathTrainFile) {
-    if (mPathTrain)
-      MRIfree(&mPathTrain);
-
-    cout << "Loading path training set from " << PathTrainFile << endl;
-    mPathTrain = MRIread(PathTrainFile);
-    if (!mPathTrain) {
-      cout << "ERROR: Could not read " << PathTrainFile << endl;
-      exit(1);
-    }
-    if (mPathTrain->nframes != mAsegTrain->nframes) {
-      cout << "ERROR: Numbers of training samples in " << PathTrainFile 
-           << " and " << AsegTrainFile << " do not match." << endl;
-      exit(1);
-    }
-  }
-  else
-    mPathTrain = 0;
 
   mNumArc = 0;
 
@@ -702,10 +546,6 @@ void Coffin::SetPathway(const char *InitFile,
   for (vector<Bite>::iterator idat = mData.begin(); idat < mData.end(); idat++)
     if (idat->IsPriorSet())
       idat->ResetPrior();
-
-  // Initialize prior-related variables that are common to all voxels
-  Bite::SetStaticPrior(AsegPriorType, segids,
-                       mPathTrain ? mPathTrain->nframes : 0);
 }
 
 //
@@ -1073,6 +913,7 @@ bool Coffin::RunMCMC() {
       ikeep++;
   }
 
+  mLog.flush();
   mLog.close();
   return true;
 }
@@ -1209,6 +1050,7 @@ bool Coffin::RunMCMC1() {
       ikeep++;
   }
 
+  mLog.flush();
   mLog.close();
   return true;
 }
@@ -1323,14 +1165,12 @@ bool Coffin::InitializeMCMC() {
                                    ipt < mPathPoints.end(); ipt += 3) {
     Bite *ivox = mDataMask[ipt[0] + ipt[1]*mNx + ipt[2]*mNxy];
 
-    if ( (mPathPrior0 || !mSegPrior0.empty() || mAsegTrain)
-         && !ivox->IsPriorSet() ) {
+    if (mPathPrior0 && !ivox->IsPriorSet()) {
       vector<int> atlaspt(3);
 
       MapToAtlas(atlaspt, ipt);
 
       ivox->SetPrior(mPathPrior0, mPathPrior1,
-                     mSegPrior0, mSegPrior1, mAsegTrain, mPathTrain, mAseg,
                      atlaspt[0], atlaspt[1], atlaspt[2]);
     }
 
@@ -1363,39 +1203,13 @@ bool Coffin::JumpMCMC() {
   mAcceptTheta = false;
   mRejectPosterior = false;
 
-  if (!ProposePath()) {
-    if (mDebug)
-      mLog << "mLikelihoodOnPathNew=NaN mPriorOnPathNew=NaN" << endl
-           << "mAnatomicalPriorNew=NaN" << endl
-           << "mLikelihoodOffPathNew=NaN mPriorOffPathNew=NaN" << endl
-           << "mLikelihoodOn-OffPathNew=NaN mPriorOn-OffPathNew=NaN" << endl
-           << "mPathLengthNew=NaN" << endl
-           << "mLikelihoodOnPath=NaN mPriorOnPath=NaN" << endl
-           << "mAnatomicalPrior=NaN" << endl
-           << "mLikelihoodOffPath=NaN mPriorOffPath=NaN" << endl
-           << "mLikelihoodOff-OnPath=NaN mPriorOff-OnPath=NaN" << endl
-           << "mPathLength=NaN" << endl;
-
+  if (!ProposePath())
     return false;
-  }
 
   ProposeDiffusionParameters();
 
-  if (!AcceptPath()) {
-    if (mDebug && !mRejectPosterior)
-      mLog << "mLikelihoodOnPathNew=NaN mPriorOnPathNew=NaN" << endl
-           << "mAnatomicalPriorNew=NaN" << endl
-           << "mLikelihoodOffPathNew=NaN mPriorOffPathNew=NaN" << endl
-           << "mLikelihoodOn-OffPathNew=NaN mPriorOn-OffPathNew=NaN" << endl
-           << "mPathLengthNew=NaN" << endl
-           << "mLikelihoodOnPath=NaN mPriorOnPath=NaN" << endl
-           << "mAnatomicalPrior=NaN" << endl
-           << "mLikelihoodOffPath=NaN mPriorOffPath=NaN" << endl
-           << "mLikelihoodOff-OnPath=NaN mPriorOff-OnPath=NaN" << endl
-           << "mPathLength=NaN" << endl;
-
+  if (!AcceptPath())
     return false;
-  }
 
   return true;
 }
@@ -1404,21 +1218,8 @@ bool Coffin::JumpMCMC() {
 // Perform a single MCMC jump (single point updates)
 //
 bool Coffin::JumpMCMC1(int ControlIndex) {
-  if (!ProposePath1(ControlIndex)) {
-    if (mDebug)
-      mLog << "mLikelihoodOnPathNew=NaN mPriorOnPathNew=NaN" << endl
-           << "mAnatomicalPriorNew=NaN" << endl
-           << "mLikelihoodOffPathNew=NaN mPriorOffPathNew=NaN" << endl
-           << "mLikelihoodOn-OffPathNew=NaN mPriorOn-OffPathNew=NaN" << endl
-           << "mPathLengthNew=NaN" << endl
-           << "mLikelihoodOnPath=NaN mPriorOnPath=NaN" << endl
-           << "mAnatomicalPrior=NaN" << endl
-           << "mLikelihoodOffPath=NaN mPriorOffPath=NaN" << endl
-           << "mLikelihoodOff-OnPath=NaN mPriorOff-OnPath=NaN" << endl
-           << "mPathLength=NaN" << endl;
-
+  if (!ProposePath1(ControlIndex))
     return false;
-  }
 
   ProposeDiffusionParameters();
 
@@ -1471,8 +1272,15 @@ bool Coffin::ProposePath() {
     }
 
     // Check that new control point is in mask
-    if (!IsInMask(cpoint))
+    if (!IsInMask(cpoint)) {
       *isrej = true;
+
+      if (mDebug)
+        mLog << "Reject due to control point " 
+             << isrej - mRejectControl.begin() << " off mask at "
+             << cpoint[0] << " " << cpoint[1] << " " << cpoint[2] << endl;
+        LogObjectiveNaN();
+    }
 
     cpoint += 3;
   }
@@ -1481,11 +1289,28 @@ bool Coffin::ProposePath() {
     mLog << endl;
 
   // Check that new end points are in end ROIs
-  if (!IsInRoi(mControlPointsNew.begin(), mRoi1))
+  if (!IsInRoi(mControlPointsNew.begin(), mRoi1)) {
     mRejectControl[0] = true;
 
-  if (!IsInRoi(mControlPointsNew.end() - 3, mRoi2))
+    if (mDebug) {
+      cpoint = mControlPointsNew.begin();
+      mLog << "Reject due to control point 0 off end ROI at "
+           << cpoint[0] << " " << cpoint[1] << " " << cpoint[2] << endl;
+      LogObjectiveNaN();
+    }
+  }
+
+  if (!IsInRoi(mControlPointsNew.end() - 3, mRoi2)) {
     mRejectControl[mNumControl-1] = true;
+
+    if (mDebug) {
+      cpoint = mControlPointsNew.end() - 3;
+      mLog << "Reject due to control point " << mNumControl-1
+           << " off end ROI at "
+           << cpoint[0] << " " << cpoint[1] << " " << cpoint[2] << endl;
+      LogObjectiveNaN();
+    }
+  }
 
   for (isrej = mRejectControl.begin(); isrej < mRejectControl.end(); isrej++)
     if (*isrej)
@@ -1495,6 +1320,12 @@ bool Coffin::ProposePath() {
   mSpline.SetControlPoints(mControlPointsNew);
   if (!mSpline.InterpolateSpline()) {
     mRejectSpline = true;
+
+    if (mDebug) {
+      mLog << "Reject due to spline" << endl;
+      LogObjectiveNaN();
+    }
+
     return false;
   }
     
@@ -1563,6 +1394,14 @@ bool Coffin::ProposePath1(int ControlIndex) {
       ((ControlIndex == 0) && !IsInRoi(cpoint, mRoi1)) ||
       ((ControlIndex == mNumControl-1) && !IsInRoi(cpoint, mRoi2))) {
     mRejectControl[ControlIndex] = true;
+
+    if (mDebug) {
+      mLog << "Reject due to control point " << ControlIndex 
+           << (IsInMask(cpoint) ? " off end ROI at " : " off mask at ")
+           << cpoint[0] << " " << cpoint[1] << " " << cpoint[2] << endl;
+      LogObjectiveNaN();
+    }
+
     return false;
   }
 
@@ -1570,6 +1409,12 @@ bool Coffin::ProposePath1(int ControlIndex) {
   mSpline.SetControlPoints(mControlPointsNew);
   if (!mSpline.InterpolateSpline()) {
     mRejectSpline = true;
+
+    if (mDebug) {
+      mLog << "Reject due to spline" << endl;
+      LogObjectiveNaN();
+    }
+
     return false;
   }
     
@@ -1634,14 +1479,12 @@ bool Coffin::AcceptPath() {
   for (ipt = mPathPointsNew.begin(); ipt < mPathPointsNew.end(); ipt += 3) {
     Bite *ivox = mDataMask[ipt[0] + ipt[1]*mNx + ipt[2]*mNxy];
 
-    if ( (mPathPrior0 || !mSegPrior0.empty() || mAsegTrain)
-         && !ivox->IsPriorSet() ) {
+    if (mPathPrior0 && !ivox->IsPriorSet()) {
       vector<int> atlaspt(3);
 
       MapToAtlas(atlaspt, ipt);
 
       ivox->SetPrior(mPathPrior0, mPathPrior1,
-                     mSegPrior0, mSegPrior1, mAsegTrain, mPathTrain, mAseg,
                      atlaspt[0], atlaspt[1], atlaspt[2]);
     }
 
@@ -1649,10 +1492,24 @@ bool Coffin::AcceptPath() {
     ivox->ComputeLikelihoodOnPath(*phi, *theta);
     if (ivox->IsFZero()) {
       mRejectF = true;
+
+      if (mDebug) {
+        mLog << "Reject due to f=0 at "
+             << ipt[0] << " " << ipt[1] << " " << ipt[2] << endl;
+        LogObjectiveNaN();
+      }
+
       return false;
     }
     if (ivox->IsThetaZero()) {
       mAcceptTheta = true;
+
+      if (mDebug) {
+        mLog << "Accept due to theta=0 at "
+             << ipt[0] << " " << ipt[1] << " " << ipt[2] << endl;
+        LogObjectiveNaN();
+      }
+
       return false;
     }
     ivox->ComputePriorOffPath();
@@ -1683,17 +1540,6 @@ bool Coffin::AcceptPath() {
                                                + mAnatomicalPriorNew;
   mPosteriorOffPathNew = mLikelihoodOffPathNew + mPriorOffPathNew;
 
-  if (mDebug)
-    mLog << "mLikelihoodOnPathNew=" << mLikelihoodOnPathNew << " "
-         << "mPriorOnPathNew=" << mPriorOnPathNew << endl
-         << "mAnatomicalPriorNew=" << mAnatomicalPriorNew << endl
-         << "mLikelihoodOffPathNew=" << mLikelihoodOffPathNew << " "
-         << "mPriorOffPathNew=" << mPriorOffPathNew << endl
-         << "mLikelihoodOn-OffPathNew="
-         << mLikelihoodOnPathNew-mLikelihoodOffPathNew << " "
-         << "mPriorOn-OffPathNew=" << mPriorOnPathNew-mPriorOffPathNew << endl
-         << "mPathLengthNew=" << mPathPointsNew.size()/3 << endl;
-
   mLikelihoodOnPath = 0;
   mPriorOnPath = 0;
   mLikelihoodOffPath = 0;
@@ -1705,14 +1551,12 @@ bool Coffin::AcceptPath() {
   for (ipt = mPathPoints.begin(); ipt < mPathPoints.end(); ipt += 3) {
     Bite *ivox = mDataMask[ipt[0] + ipt[1]*mNx + ipt[2]*mNxy];
 
-    if ( (mPathPrior0 || !mSegPrior0.empty() || mAsegTrain)
-         && !ivox->IsPriorSet() ) {
+    if (mPathPrior0 && !ivox->IsPriorSet()) {
       vector<int> atlaspt(3);
 
       MapToAtlas(atlaspt, ipt);
 
       ivox->SetPrior(mPathPrior0, mPathPrior1,
-                     mSegPrior0, mSegPrior1, mAsegTrain, mPathTrain, mAseg,
                      atlaspt[0], atlaspt[1], atlaspt[2]);
     }
 
@@ -1720,10 +1564,24 @@ bool Coffin::AcceptPath() {
     ivox->ComputeLikelihoodOnPath(*phi, *theta);
     if (ivox->IsFZero()) {
       mAcceptF = true;
+
+      if (mDebug) {
+        mLog << "Accept due to f=0 at "
+             << ipt[0] << " " << ipt[1] << " " << ipt[2] << endl;
+        LogObjectiveNaN();
+      }
+
       return false;
     }
     if (ivox->IsThetaZero()) {
       mRejectTheta = true;
+
+      if (mDebug) {
+        mLog << "Reject due to theta=0 at "
+             << ipt[0] << " " << ipt[1] << " " << ipt[2] << endl;
+        LogObjectiveNaN();
+      }
+
       return false;
     }
     ivox->ComputePriorOffPath();
@@ -1742,17 +1600,6 @@ bool Coffin::AcceptPath() {
   mPosteriorOnPath  = mLikelihoodOnPath  + mPriorOnPath + mAnatomicalPrior;
   mPosteriorOffPath = mLikelihoodOffPath + mPriorOffPath;
 
-  if (mDebug)
-    mLog << "mLikelihoodOnPath=" << mLikelihoodOnPath << " "
-         << "mPriorOnPath=" << mPriorOnPath << endl
-         << "mAnatomicalPrior=" << mAnatomicalPrior << endl
-         << "mLikelihoodOffPath=" << mLikelihoodOffPath << " "
-         << "mPriorOffPath=" << mPriorOffPath << endl
-         << "mLikelihoodOff-OnPath="
-         << mLikelihoodOffPath-mLikelihoodOnPath << " "
-         << "mPriorOff-OnPath=" << mPriorOffPath-mPriorOnPath << endl
-         << "mPathLength=" << mPathPoints.size()/3 << endl;
-
   neglogratio = (mPosteriorOnPathNew - mPosteriorOffPathNew)
                 / (mPathPointsNew.size()/3) 
               + (mPosteriorOffPath   - mPosteriorOnPath)
@@ -1760,17 +1607,28 @@ bool Coffin::AcceptPath() {
 //neglogratio = mLikelihoodOnPathNew / (mPathPointsNew.size()/3)
 //            - mLikelihoodOnPath / (mPathPoints.size()/3);
 
-  if (mDebug)
-    mLog << "alpha=" << exp(-neglogratio) << endl;
-
   // Accept or reject based on ratio of posteriors
-  if (drand48() < exp(-neglogratio))
+  if (drand48() < exp(-neglogratio)) {
+    if (mDebug) {
+      mLog << "Accept due to posterior (alpha = " << exp(-neglogratio) << ")"
+           << endl;
+      LogObjective();
+    }
+
     return true;
+  }
 
   mRejectPosterior = true;
+
+  if (mDebug) {
+    mLog << "Reject due to posterior (alpha = " << exp(-neglogratio) << ")"
+         << endl;
+    LogObjective();
+  }
+
   return false;
 }
-
+ 
 //
 // Compute prior on path given anatomical segmentation labels around path
 //
@@ -1914,14 +1772,6 @@ void Coffin::UpdateAcceptanceRate() {
 //
 void Coffin::UpdateRejectionRate() {
   vector<float>::const_iterator jump = mControlPointJumps.begin();
-
-  if (mDebug)
-    if (mRejectPosterior)
-      mLog << "Reject due to posterior" << endl;
-    else if (mRejectSpline)
-      mLog << "Reject due to spline" << endl;
-    else
-      mLog << "Reject due to control point" << endl;
 
   if (mRejectPosterior || mRejectSpline)
     // Update length of rejected jumps for all control points
@@ -2131,6 +1981,46 @@ void Coffin::MapToAtlas(vector<int> &OutPoint,
   else
     for (int k = 0; k < 3; k++)
       OutPoint[k] = InPoint[k];
+}
+
+//
+// Write elements of objective function to log file
+//
+void Coffin::LogObjective() {
+  mLog << "mLikelihoodOnPathNew=" << mLikelihoodOnPathNew << " "
+       << "mPriorOnPathNew=" << mPriorOnPathNew << endl
+       << "mAnatomicalPriorNew=" << mAnatomicalPriorNew << endl
+       << "mLikelihoodOffPathNew=" << mLikelihoodOffPathNew << " "
+       << "mPriorOffPathNew=" << mPriorOffPathNew << endl
+       << "mLikelihoodOn-OffPathNew="
+       << mLikelihoodOnPathNew-mLikelihoodOffPathNew << " "
+       << "mPriorOn-OffPathNew=" << mPriorOnPathNew-mPriorOffPathNew << endl
+       << "mPathLengthNew=" << mPathPointsNew.size()/3 << endl
+       << "mLikelihoodOnPath=" << mLikelihoodOnPath << " "
+       << "mPriorOnPath=" << mPriorOnPath << endl
+       << "mAnatomicalPrior=" << mAnatomicalPrior << endl
+       << "mLikelihoodOffPath=" << mLikelihoodOffPath << " "
+       << "mPriorOffPath=" << mPriorOffPath << endl
+       << "mLikelihoodOff-OnPath="
+       << mLikelihoodOffPath-mLikelihoodOnPath << " "
+       << "mPriorOff-OnPath=" << mPriorOffPath-mPriorOnPath << endl
+       << "mPathLength=" << mPathPoints.size()/3 << endl;
+}
+
+//
+// Placeholder for elements of objective function when path is not valid
+//
+void Coffin::LogObjectiveNaN() {
+  mLog << "mLikelihoodOnPathNew=NaN mPriorOnPathNew=NaN" << endl
+       << "mAnatomicalPriorNew=NaN" << endl
+       << "mLikelihoodOffPathNew=NaN mPriorOffPathNew=NaN" << endl
+       << "mLikelihoodOn-OffPathNew=NaN mPriorOn-OffPathNew=NaN" << endl
+       << "mPathLengthNew=NaN" << endl
+       << "mLikelihoodOnPath=NaN mPriorOnPath=NaN" << endl
+       << "mAnatomicalPrior=NaN" << endl
+       << "mLikelihoodOffPath=NaN mPriorOffPath=NaN" << endl
+       << "mLikelihoodOff-OnPath=NaN mPriorOff-OnPath=NaN" << endl
+       << "mPathLength=NaN" << endl;
 }
 
 //

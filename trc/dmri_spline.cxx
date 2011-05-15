@@ -8,20 +8,18 @@
  * Original Author: Anastasia Yendiki
  * CVS Revision Info:
  *    $Author: ayendiki $
- *    $Date: 2010/07/23 22:34:16 $
- *    $Revision: 1.1 $
+ *    $Date: 2011/05/15 05:16:23 $
+ *    $Revision: 1.2.2.1 $
  *
- * Copyright (C) 2010
- * The General Hospital Corporation (Boston, MA).
- * All rights reserved.
+ * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
- * Distribution, usage and copying of this software is covered under the
- * terms found in the License Agreement file named 'COPYING' found in the
- * FreeSurfer source code root directory, and duplicated here:
- * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ * Terms and conditions for use, reproduction, distribution and contribution
+ * are found in the 'FreeSurfer Software License Agreement' contained
+ * in the file 'LICENSE' found in the FreeSurfer distribution, and here:
  *
- * General inquiries: freesurfer@nmr.mgh.harvard.edu
- * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
+ *
+ * Reporting: freesurfer@nmr.mgh.harvard.edu
  *
  */
 
@@ -71,7 +69,7 @@ int main(int argc, char *argv[]) ;
 static char vcid[] = "";
 const char *Progname = "dmri_spline";
 
-char *inFile = NULL, *outFile = NULL, *maskFile = NULL, *labelFile = NULL;
+char *inFile = NULL, *outFile = NULL, *maskFile = NULL;
 //char *inFiles[50];
 
 struct utsname uts;
@@ -159,11 +157,6 @@ static int parse_commandline(int argc, char **argv) {
       maskFile = fio_fullpath(pargv[0]);
       nargsused = 1;
     } 
-    else if (!strcmp(option, "--label")) {
-      if (nargc < 1) CMDargNErr(option,1);
-      labelFile = fio_fullpath(pargv[0]);
-      nargsused = 1;
-    } 
     nargc -= nargsused;
     pargv += nargsused;
   }
@@ -179,8 +172,6 @@ static void print_usage(void)
   printf("   --cpts <filename>:   input text file containing control points\n");
   printf("   --mask <filename>:   input mask volume\n");
   printf("   --out <filename>:    output spline volume\n");
-  printf("\n");
-  printf("   --label <filename>:  output freeview label\n");
   printf("\n");
   printf("   --debug:     turn on debugging\n");
   printf("   --checkopts: don't run anything, just check options and exit\n");
@@ -241,7 +232,6 @@ static void dump_options(FILE *fp) {
   fprintf(fp, "Control points: %s\n", inFile);
   fprintf(fp, "Mask volume: %s\n", maskFile);
   fprintf(fp, "Output volume: %s\n", outFile);
-  if (labelFile) fprintf(fp,"Output label: %s\n", labelFile);
 
   return;
 }

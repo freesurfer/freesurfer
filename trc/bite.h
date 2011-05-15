@@ -8,17 +8,15 @@
  * Original Author: Anastasia Yendiki
  * CVS Revision Info:
  *
- * Copyright (C) 2010,
- * The General Hospital Corporation (Boston, MA).
- * All rights reserved.
+ * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
- * Distribution, usage and copying of this software is covered under the
- * terms found in the License Agreement file named 'COPYING' found in the
- * FreeSurfer source code root directory, and duplicated here:
- * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ * Terms and conditions for use, reproduction, distribution and contribution
+ * are found in the 'FreeSurfer Software License Agreement' contained
+ * in the file 'LICENSE' found in the FreeSurfer distribution, and here:
  *
- * General inquiries: freesurfer@nmr.mgh.harvard.edu
- * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
+ *
+ * Reporting: freesurfer@nmr.mgh.harvard.edu
  *
  */
 
@@ -29,6 +27,7 @@
 #include <string>
 #include <iostream>
 #include <fstream>
+#include <limits>
 #include <math.h>
 #include "mri.h"
 
@@ -36,21 +35,17 @@ class Bite {
   public:
     Bite(MRI *Dwi, MRI **Phi, MRI **Theta, MRI **F,
          MRI **V0, MRI **F0, MRI *D0,
-         MRI *Prior0, MRI *Prior1,
-         std::vector<MRI *> &AsegPrior0, std::vector<MRI *> &AsegPrior1,
-         MRI *AsegTrain, MRI *PathTrain, MRI *Aseg,
-         unsigned int CoordX, unsigned int CoordY, unsigned int CoordZ);
+         int CoordX, int CoordY, int CoordZ);
     ~Bite();
 
   private:
-    static unsigned int mNumDir, mNumB0, mNumTract, mNumBedpost,
-                        mAsegPriorType, mNumTrain;
-    static const float mFminPath;
+    static int mNumDir, mNumB0, mNumTract, mNumBedpost;
+    static float mFminPath;
     static std::vector<float> mGradients,	// [3 x mNumDir]
                               mBvalues;		// [mNumDir]
-    static std::vector< std::vector<unsigned int> > mAsegIds;
 
-    unsigned int mCoordX, mCoordY, mCoordZ, mPathTract;
+    bool mIsPriorSet;
+    int mCoordX, mCoordY, mCoordZ, mPathTract;
     float mS0, mD, mPathPrior0, mPathPrior1,
           mLikelihood0, mLikelihood1, mPrior0, mPrior1;
     std::vector<float> mDwi;		// [mNumDir]
@@ -60,24 +55,19 @@ class Bite {
     std::vector<float> mPhi;		// [mNumTract]
     std::vector<float> mTheta;		// [mNumTract]
     std::vector<float> mF;		// [mNumTract]
-    std::vector<unsigned int> mAsegTrain, mPathTrain, mAseg,
-                              mAsegDistTrain, mAsegDist;
-    std::vector< std::vector<float> > mAsegPrior0, mAsegPrior1;
 
   public:
-    static void InitializeStatic(const char *GradientFile,
-                                 const char *BvalueFile,
-                                 unsigned int NumTract,
-                                 unsigned int NumBedpost,
-                                 unsigned int AsegPriorType,
-                                 const std::vector<
-                                       std::vector<unsigned int> > &AsegIds,
-                                 unsigned int NumTrain);
-    static unsigned int GetNumTract();
-    static unsigned int GetNumDir();
-    static unsigned int GetNumB0();
-    static unsigned int GetNumBedpost();
+    static void SetStatic(const char *GradientFile, const char *BvalueFile,
+                          int NumTract, int NumBedpost, float FminPath);
+    static int GetNumTract();
+    static int GetNumDir();
+    static int GetNumB0();
+    static int GetNumBedpost();
 
+    bool IsPriorSet();
+    void SetPrior(MRI *Prior0, MRI *Prior1,
+                  int CoordX, int CoordY, int CoordZ);
+    void ResetPrior();
     void SampleParameters();
     void ComputeLikelihoodOffPath();
     void ComputeLikelihoodOnPath(float PathPhi, float PathTheta);
