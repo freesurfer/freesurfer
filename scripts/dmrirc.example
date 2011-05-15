@@ -12,9 +12,9 @@
 #
 # Original Author: Anastasia Yendiki
 # CVS Revision Info:
-#    $Author: nicks $
-#    $Date: 2011/05/09 19:36:41 $
-#    $Revision: 1.3.2.1 $
+#    $Author: ayendiki $
+#    $Date: 2011/05/15 04:47:49 $
+#    $Revision: 1.3.2.2 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -123,33 +123,10 @@ set doregflt = 1
 #
 set doregbbr = 1
 
-# Perform registration of T1 to MNI template?
-# Default: 1 (yes)
-#
-set doregmni = 1
-
-# MNI template
-# Only used if doregmni = 1
+# MNI template (the only option for inter-subject registration in this version)
 # Default: $FSLDIR/data/standard/MNI152_T1_1mm_brain.nii.gz
 #
 set mnitemp = /path/to/mni_template.nii.gz
-
-# Perform registration of T1 to CVS template?
-# Default: 1 (yes)
-#
-set doregcvs = 1
-
-# CVS template subject ID
-# Only used if doregcvs = 1
-# Default: cvs_avg35
-#
-set cvstemp = donald
-
-# Parent directory of the CVS template subject
-# Only used if doregcvs = 1
-# Default: $FREESURFER_HOME/subjects
-#
-set cvstempdir = /path/to/cvs/atlases/of/ducks
 
 # Use brain mask extracted from T1 image instead of low-b diffusion image?
 # Has no effect if there is no T1 data
