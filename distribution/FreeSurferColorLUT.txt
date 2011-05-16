@@ -1,4 +1,4 @@
-#$Id: FreeSurferColorLUT.txt,v 1.73 2011/04/08 03:40:27 ayendiki Exp $
+#$Id: FreeSurferColorLUT.txt,v 1.74 2011/05/16 20:43:38 nicks Exp $
 
 #No. Label Name:                            R   G   B   A
 
@@ -114,7 +114,7 @@
 
 118 Epidermis                               255 20  147 0
 119 Conn-Tissue                             205 179 139 0
-120 SC-Fat/Muscle                           238 238 209 0
+120 SC-Fat-Muscle                           238 238 209 0
 121 Cranium                                 200 200 200 0
 122 CSF-SA                                  74  255 74  0
 123 Muscle                                  238 0   0   0
@@ -130,8 +130,8 @@
 133 Nasal-Structures                        238 174 238 0
 134 Globe                                   255 0   0   0
 135 Teeth                                   72  61  139 0
-136 Left-Caudate/Putamen                    21  39  132 0
-137 Right-Caudate/Putamen                   21  39  132 0
+136 Left-Caudate-Putamen                    21  39  132 0
+137 Right-Caudate-Putamen                   21  39  132 0
 138 Left-Claustrum                          65  135 20  0
 139 Right-Claustrum                         65  135 20  0
 140 Cornea                                  134 4   160 0
@@ -143,9 +143,9 @@
 147 Inner-Table                             70  130 181 0
 148 Periosteum                              139 121 94  0
 149 Endosteum                               224 224 224 0
-150 R/C/S                                   255 0   0   0
+150 R-C-S                                   255 0   0   0
 151 Iris                                    205 205 0   0
-152 SC-Adipose/Muscle                       238 238 209 0
+152 SC-Adipose-Muscle                       238 238 209 0
 153 SC-Tissue                               139 121 94  0
 154 Orbital-Adipose                         238 59  59  0
 
@@ -297,23 +297,23 @@
 439 Visual_VP_r                             227 45  100 0
 
 # HiRes Hippocampus labeling
-500 right_CA2/3                             17  85  136 0
+500 right_CA2-3                             17  85  136 0
 501 right_alveus                            119 187 102 0
 502 right_CA1                               204 68  34  0
 503 right_fimbria                           204 0   255 0
 504 right_presubiculum                      221 187 17  0
 505 right_hippocampal_fissure               153 221 238 0
-506 right_CA4/DG                            51  17  17  0
+506 right_CA4-DG                            51  17  17  0
 507 right_subiculum                         0   119 85  0
 508 right_fornix                            20  100 200 0
 
-550 left_CA2/3                              17  85  137 0
+550 left_CA2-3                              17  85  137 0
 551 left_alveus                             119 187 103 0
 552 left_CA1                                204 68  35  0
 553 left_fimbria                            204 0   254 0
 554 left_presubiculum                       221 187 16  0
 555 left_hippocampal_fissure                153 221 239 0
-556 left_CA4/DG                             51  17  18  0
+556 left_CA4-DG                             51  17  18  0
 557 left_subiculum                          0   119 86  0
 558 left_fornix                             20  100 201 0
 
