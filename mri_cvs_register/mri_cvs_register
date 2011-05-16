@@ -13,7 +13,7 @@
 # Edited : 05-13-2011: deleted --mpi option
 
 set inputargs = ($argv);
-set VERSION = '$Id: mri_cvs_register,v 1.25 2011/05/13 22:41:00 lzollei Exp $';
+set VERSION = '$Id: mri_cvs_register,v 1.26 2011/05/16 19:51:13 lzollei Exp $';
 
 set movingid = ();
 set templateid = ();
@@ -246,7 +246,7 @@ set elasticmorph = ${out_root}_to$templateid.tm3d
 if ($DoAllSteps || $OnlyStep2) then 
 
 ## Run the elastic registration
-pushd $cvsdir
+# pushd $cvsdir
 if (!(-e $outdir/$elasticmorph) || $CleanElReg) then
  set elasticoptions = (-lin_res 20 -ksp_rtol 1.0e-9 -penalty_weight 1000 -fem_steps 17 \
                        -log_summary -topology_old -compress -pc_type none -ksp_type preonly \
@@ -279,7 +279,7 @@ if (!(-e $outdir/$elasticmorph) || $CleanElReg) then
   if($status) exit 1;
  endif
 endif
-popd
+# popd
 
 endif #--step2
 
