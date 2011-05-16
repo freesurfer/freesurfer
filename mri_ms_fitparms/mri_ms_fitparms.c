@@ -20,8 +20,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2011/05/16 17:25:16 $
- *    $Revision: 1.70 $
+ *    $Date: 2011/05/16 17:49:25 $
+ *    $Revision: 1.71 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -219,14 +219,14 @@ main(int argc, char *argv[])
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mri_ms_fitparms.c,v 1.70 2011/05/16 17:25:16 nicks Exp $",
+   "$Id: mri_ms_fitparms.c,v 1.71 2011/05/16 17:49:25 nicks Exp $",
    "$Name:  $",
    cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option (
             argc, argv,
-            "$Id: mri_ms_fitparms.c,v 1.70 2011/05/16 17:25:16 nicks Exp $",
+            "$Id: mri_ms_fitparms.c,v 1.71 2011/05/16 17:49:25 nicks Exp $",
             "$Name:  $");
   if (nargs && argc - nargs == 1)
   {
@@ -1067,6 +1067,10 @@ get_option(int argc, char *argv[])
     invert_outside_xfm = 1;
     nargs = 1;
   }
+  else if (!stricmp(option, "-help"))
+  {
+    usage_exit(0);
+  }
   else if (!stricmp(option, "use_brain_mask"))
   {
     use_brain_mask = 1 ;
@@ -1255,36 +1259,18 @@ get_option(int argc, char *argv[])
 
   return(nargs) ;
 }
+
+
 /*----------------------------------------------------------------------
   Parameters:
 
   Description:
   ----------------------------------------------------------------------*/
+#include "mri_ms_fitparms.help.xml.h"
 static void
 usage_exit(int code)
 {
-  printf("Usage: %s [options] <volume> ... <output directory>\n", Progname) ;
-  printf("This program takes up to %d FLASH images as input, and "
-         "estimates\n"
-         "the T1 and PD values of the data for voxel, as well as a "
-         "linear transform\n"
-         "aligning each of the images. The T1 and PD maps are written "
-         "into <output directory>\n"
-         "together with synthetic volumes names vol?.mgz, one for each of "
-         "the input\n"
-         "volumes. All the output volumes are generated in the common "
-         "(motion-corrected) space.\n", MAX_IMAGES);
-  printf("Note that TR, TE and the flip angle are read directly from the "
-         "image header.\n"
-         "If this information is not available, it can be specified on the "
-         "command line using\n"
-         "-tr <TR in msec> -te <TE in msec> -fa <flip angle in degrees> "
-         "before each volume.\n");
-  printf("Use -at <xform file name> or -ait <xform file name> to specify "
-         "transformation for each\n"
-         "individual volume. Note only one for each flip-angle is enough.\n"
-         "-at will apply the transform to the following volume to align "
-         "with others. \n");
+  outputHelpXml(mri_ms_fitparms_help_xml,mri_ms_fitparms_help_xml_len);
   exit(code) ;
 }
 

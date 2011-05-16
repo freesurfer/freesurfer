@@ -1,0 +1,135 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<!DOCTYPE help [
+<!ENTITY lt "#38;#60;">
+<!ENTITY gt "&#62;">
+<!ENTITY amp "&#38;#38;">
+<!ELEMENT help (name , synopsis , description , arguments+ , outputs* , example* , bugs* , reporting* , see-also*)*>
+<!ELEMENT name (#PCDATA)>
+<!ELEMENT synopsis (#PCDATA)>
+<!ELEMENT description (#PCDATA)>
+<!ELEMENT arguments (positional* , required-flagged* , optional-flagged*)*>
+<!ELEMENT positional (intro* , argument* , explanation*)*>
+<!ELEMENT required-flagged (intro* , argument* , explanation*)*>
+<!ELEMENT optional-flagged (intro* , argument* , explanation*)*>
+<!ELEMENT intro (#PCDATA)>
+<!ELEMENT argument (#PCDATA)>
+<!ELEMENT explanation (#PCDATA)>
+<!ELEMENT outputs (output* , explanation*)*>
+<!ELEMENT output (#PCDATA)>
+<!ELEMENT example (#PCDATA)>
+<!ELEMENT bugs (#PCDATA)>
+<!ELEMENT reporting (#PCDATA)>
+<!ELEMENT see-also (#PCDATA)>
+]>
+
+<help>
+  <name>mri_ms_fitparms</name>
+  <synopsis>mri_ms_fitparms [options] [vol_1] [vol_2] ... [output_dir]</synopsis>
+  <description> This program takes up to 500 FLASH images as input, and estimates the T1 and PD values of the data for voxel, as well as a linear transform aligning each of the images. The T1 and PD maps are written into [output_dir] together with synthetic volumes names vol?.mgz, one for each of the input volumes. All the output volumes are generated in the common (motion-corrected) space. Note that TR, TE and the flip angle are read directly from the image header. If this information is not available, it can be specified on the command line using -tr [TR in msec] -te [TE in msec] -fa [flip angle in degrees] before each volume. Use -at [xform file name] or -ait [xform file name] to specify transformation for each individual volume. Note only one for each flip-angle is enough. -at will apply the transform to the following volume to align with others.
+
+Interpolation method.  Default is trilinear, other options are nearest, cubic, sinc.  You can say -foo or -interp foo.  For sinc, you can say -interp sinc 3 or -interp sinc -hw 3 or -sinc 3 or -sinc -hw 3.  Maybe -hw 3 should imply sinc, but right now it doesn't.
+</description>
+  <arguments>
+    <positional>
+      <argument>vol_1</argument>
+      <explanation>3D FLASH flip angle 1</explanation>
+      <argument>vol_2</argument>
+      <explanation>3D FLASH flip angle 2</explanation>
+      <argument>output_dir</argument>
+      <explanation>output directory</explanation>
+    </positional>
+    <required-flagged>
+      <intro>None</intro>
+    </required-flagged>
+    <optional-flagged>
+	      <argument>-afi, -fam</argument>
+		<explanation>Designate flip angle map to use with nominal value 60 degrees</explanation>
+	      <argument>-ait</argument>
+		<explanation>Apply inverse of transform</explanation>
+	      <argument>-at</argument>
+		<explanation>Set acquisition time</explanation>
+	      <argument>-conform</argument>
+		<explanation>Interpolate volume to be isotropic 1mm^3</explanation>
+	      <argument>-correct</argument>
+		<explanation>Correct proton density map(PD) by T2* estimates</explanation>
+	      <argument>-cubic</argument>
+		<explanation>Use cubic interpolation</explanation>
+	      <argument>-debug_slice</argument>
+		<explanation>????</explanation>
+	      <argument>-debug_voxel</argument>
+		<explanation>????</explanation>
+	      <argument>-dt</argument>
+		<explanation>Set dt ????</explanation>
+	      <argument>-fa</argument>
+		<explanation>Set flip angle</explanation>
+	      <argument>-fa_scale</argument>
+		<explanation>Set value to scale all flip angles by</explanation>
+	      <argument>-faf</argument>
+		<explanation>Designate flip angle map to use with specified control points</explanation>
+	      <argument>-fsmooth</argument>
+		<explanation>Smooth flip angle map for X interations of soap bubble smoothing (thres=??)</explanation>
+	      <argument>-i</argument>
+		<explanation>Invert</explanation>
+	      <argument>-m</argument>
+		<explanation>Set momentum</explanation>
+	      <argument>-max</argument>
+		<explanation>Set max T2*</explanation>
+	      <argument>-n</argument>
+		<explanation>Perform estimation/motion correction X times</explanation>
+	      <argument>-nearest</argument>
+		<explanation>Use nearest-neighbor interpolation</explanation>
+	      <argument>-nocompress</argument>
+		<explanation>Do not compress output volumes (save as .mgh)</explanation>
+	      <argument>-nosynth</argument>
+		<explanation>Disable volume synthesis</explanation>
+	      <argument>-r</argument>
+		<explanation>write out residuals to designated location</explanation>
+	      <argument>-s</argument>
+		<explanation>Smooth faf field with sigma=X</explanation>
+	      <argument>-scale</argument>
+		<explanation>Scale volumes by X after reading</explanation>
+	      <argument>-sinc</argument>
+		<explanation>Use sinc interpolation (default window width is 6)</explanation>
+	      <argument>-t</argument>
+		<explanation>Apply transform to output volumes</explanation>
+	      <argument>-te</argument>
+		<explanation>Set echo time (TE) in ms</explanation>
+	      <argument>-tr</argument>
+		<explanation>Set repetition time (TR) in ms</explanation>
+	      <argument>-trilinear</argument>
+		<explanation>Use trilinear interpolation</explanation>
+	      <argument>-tukey</argument>
+		<explanation>Use tukey bi-weight of residuals</explanation>
+	      <argument>-u</argument>
+		<explanation>this help text</explanation>
+	      <argument>-use_brain_mask</argument>
+		<explanation>Compute a brain mask from the PD map and use it when computing registration</explanation>
+	      <argument>-w</argument>
+		<explanation>Write out intermediate results every X iterations</explanation>
+	      <argument>-window</argument>
+		<explanation>Not implemented(????)</explanation>
+    </optional-flagged>
+  </arguments>
+  <outputs>
+    <output>T1.mgz</output>
+    <explanation>Compressed T1 map</explanation>
+    <output>PD.mgz</output>
+    <explanation>Compressed Proton Density map</explanation>
+    <output>vol0.mgz</output>
+    <explanation>Compressed Synthetic volume for input [vol_1], in motion corrected space</explanation>
+    <output>vol0.lta</output>
+    <explanation>Motion correction afine information (text file)</explanation>
+    <output>vol1.mgz</output>
+    <explanation>Compressed Synthetic volume for input [vol_2], in motion corrected space</explanation>
+    <output>vol1.lta</output>
+    <explanation>Motion correction afine information (text file)</explanation>
+  </outputs>
+  <example>cd subjectid/mri/flash
+mri_ms_fitparms -tr 20 -te 6 -fa 5 flash5.mgh -tr 20 -te 6 -fa 30 flash30.mgh
+
+Description: Two 3D FLASH volumes (flip angles 5 and 30 degrees), both acquired with the same TE (20ms) and TR (6ms) are used to fit T1 and PD maps and the results are written into the same directory (subjectid/mri/flash).
+  </example>
+  <bugs>None</bugs>
+  <reporting>Report bugs to &lt;freesurfer@nmr.mgh.harvard.edu&gt;</reporting>
+</help>
+
