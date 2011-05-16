@@ -56,7 +56,7 @@ class Blood {
     void MatchStreamlineEnds();
     void ComputeHistogram();
     void ComputePriors();
-    void FindCenterStreamline(bool CheckOverlap=true);
+    void FindCenterStreamline(bool CheckOverlap=true, bool CheckDeviation=true);
     void SelectControlPoints(int NumControls);
     void WriteOutputs(const char *OutBase);
     void WriteCenterStreamline(const char *CenterTrkFile,
@@ -91,9 +91,11 @@ class Blood {
         mNumArc, mNumLocal, mNumNear;
     float mMaskLabel, mDx, mLengthAvg, mLengthAvgEnds;
     std::vector<bool> mIsInEnd1, mIsInEnd2;
-    std::vector<int> mNumLines, mLengths, mTruncatedLengths, mCenterStreamline,
-                     mDirLocal, mDirNear;
-    std::vector<float> mTangentMean, mTangentStd,
+    std::vector<int> mNumLines, mLengths, mMidPoints, mTruncatedLengths,
+                     mCenterStreamline, mDirLocal, mDirNear;
+    std::vector<float> mMeanEnd1, mMeanEnd2, mMeanMid,
+                       mVarEnd1, mVarEnd2, mVarMid,
+                       mTangentMean, mTangentStd,
                        mTangentMeanAll, mTangentStdAll,
                        mCurvatureMean, mCurvatureStd,
                        mCurvatureMeanAll, mCurvatureStdAll;
@@ -112,6 +114,7 @@ class Blood {
 
     void ComputeStats();
     void ComputeStatsEnds();
+    void ComputeEndPointCoM();
     bool IsInMask(std::vector<int>::const_iterator Point);
     bool IsInMask(float *Point);
     bool IsInRoi(std::vector<int>::const_iterator Point, MRI *Roi);

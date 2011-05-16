@@ -166,6 +166,13 @@ void Blood::ReadStreamlines(const char *TrainListFile,
   mNumLines.clear();
   mIsInEnd1.clear();
   mIsInEnd2.clear();
+  mMidPoints.clear();
+  mMeanEnd1.clear();
+  mMeanEnd2.clear();
+  mMeanMid.clear();
+  mVarEnd1.clear();
+  mVarEnd2.clear();
+  mVarMid.clear();
   mCenterStreamline.clear();
   mControlPoints.clear();
   mControlStd.clear();
@@ -625,6 +632,114 @@ void Blood::ComputeStatsEnds() {
          << mLengthMinEnds << "/" << round(mLengthAvgEnds) << "/"
          << mLengthMaxEnds << ")" << endl;
   }
+}
+
+//
+// Compute center of mass of end points to constrain center streamline selection
+//
+void Blood::ComputeEndPointCoM() {
+  vector<int>::iterator imidpts;
+  vector<bool>::const_iterator ivalid1 = mIsInEnd1.begin(),
+                               ivalid2 = mIsInEnd2.begin();
+  vector<MRI *>::const_iterator iroi1 = mRoi1.begin(),
+                                iroi2 = mRoi2.begin();
+  vector< vector<int> >::const_iterator istr = mStreamlines.begin();
+  vector<int> sum1(3, 0), sum2(3, 0), summ(3, 0),
+              sumsq1(3, 0), sumsq2(3, 0), sumsqm(3, 0);
+
+  mMidPoints.resize(mNumStrEnds);
+  imidpts = mMidPoints.begin();
+
+  mMeanEnd1.resize(3);
+  mMeanEnd2.resize(3);
+  mMeanMid.resize(3);
+  mVarEnd1.resize(3);
+  mVarEnd2.resize(3);
+  mVarMid.resize(3);
+
+  for (vector<int>::const_iterator inum = mNumLines.begin();
+                                   inum != mNumLines.end(); inum++) {
+    for (int k = *inum; k > 0; k--) {
+      if (*ivalid1 && *ivalid2) {
+        vector<int>::const_iterator itop    = istr->begin(),
+                                    ibottom = istr->end() - 3,
+                                    ipt1, ipt2, imiddle;
+
+        // Distance from the streamline start to the start ROI
+        for (ipt1 = istr->begin(); ipt1 < istr->end(); ipt1 += 3)
+          if (MRIgetVoxVal(*iroi1, ipt1[0], ipt1[1], ipt1[2], 0) > 0)
+            break;
+
+        // Distance from the streamline start to the end ROI
+        for (ipt2 = ipt1; ipt2 < istr->end(); ipt2 += 3)
+          if (MRIgetVoxVal(*iroi2, ipt2[0], ipt2[1], ipt2[2], 0) > 0)
+            break;
+
+        // Midpoint of streamline between start and end ROI
+        *imidpts = (int) (ipt1 - itop) +
+                   (int) round(float(ipt2 - ipt1) / 6) * 3;
+        imiddle = itop + *imidpts;
+
+        for (int k = 0; k < 3; k++) {
+          sum1[k]   += itop[k];
+          sumsq1[k] += itop[k]*itop[k];
+          sum2[k]   += ibottom[k];
+          sumsq2[k] += ibottom[k]*ibottom[k];
+          summ[k]   += imiddle[k];
+          sumsqm[k] += imiddle[k]*imiddle[k];
+        }
+
+        imidpts++;
+      }
+
+      istr++;
+      ivalid1++;
+      ivalid2++;
+    }
+
+    iroi1++;
+    iroi2++;
+  }
+
+  if (mNumStrEnds == 1) {
+    for (int k = 0; k < 3; k++) {
+      mMeanEnd1[k] = (float) sum1[k];
+      mMeanEnd2[k] = (float) sum2[k];
+      mMeanMid[k]  = (float) summ[k];
+    }
+
+    fill(mVarEnd1.begin(), mVarEnd1.end(), 0.0);
+    fill(mVarEnd2.begin(), mVarEnd2.end(), 0.0);
+    fill(mVarMid.begin(), mVarMid.end(), 0.0);
+  }
+  else
+    for (int k = 0; k < 3; k++) {
+      mMeanEnd1[k] = sum1[k] / float(mNumStrEnds);
+      mVarEnd1[k] = (sumsq1[k] - mNumStrEnds * mMeanEnd1[k] * mMeanEnd1[k])
+                    / (mNumStrEnds-1);
+      mMeanEnd2[k] = sum2[k] / float(mNumStrEnds);
+      mVarEnd2[k] = (sumsq2[k] - mNumStrEnds * mMeanEnd2[k] * mMeanEnd2[k])
+                    / (mNumStrEnds-1);
+      mMeanMid[k] = summ[k] / float(mNumStrEnds);
+      mVarMid[k] = (sumsqm[k] - mNumStrEnds * mMeanMid[k] * mMeanMid[k])
+                   / (mNumStrEnds-1);
+    }
+
+  cout << "INFO: Center of mass of start points: ("
+       << round(mMeanEnd1[0]) << "+/-" << round(sqrt(mVarEnd1[0])) << ", "
+       << round(mMeanEnd1[1]) << "+/-" << round(sqrt(mVarEnd1[1])) << ", "
+       << round(mMeanEnd1[2]) << "+/-" << round(sqrt(mVarEnd1[2])) << ")"
+       << endl;
+  cout << "INFO: Center of mass of midpoints: ("
+       << round(mMeanMid[0]) << "+/-" << round(sqrt(mVarMid[0])) << ", "
+       << round(mMeanMid[1]) << "+/-" << round(sqrt(mVarMid[1])) << ", "
+       << round(mMeanMid[2]) << "+/-" << round(sqrt(mVarMid[2])) << ")"
+       << endl;
+  cout << "INFO: Center of mass of end points: ("
+       << round(mMeanEnd2[0]) << "+/-" << round(sqrt(mVarEnd2[0])) << ", "
+       << round(mMeanEnd2[1]) << "+/-" << round(sqrt(mVarEnd2[1])) << ", "
+       << round(mMeanEnd2[2]) << "+/-" << round(sqrt(mVarEnd2[2])) << ")" 
+       << endl;
 }
 
 //
@@ -1136,6 +1251,8 @@ void Blood::MatchStreamlineEnds() {
   }
 
   ComputeStatsEnds();
+
+  ComputeEndPointCoM();
 
   // Map each truncated streamline to its nearest streamline that has
   // both start and end point in mask
@@ -1820,11 +1937,12 @@ void Blood::ComputeCurvaturePrior(bool UseTruncated) {
 //
 // Find central streamline among streamlines with valid end points
 //
-void Blood::FindCenterStreamline(bool CheckOverlap) {
+void Blood::FindCenterStreamline(bool CheckOverlap, bool CheckDeviation) {
   const int lag = max(1, (int) round(mHausStepRatio * mLengthAvgEnds)) * 3;
   double hdmin = numeric_limits<double>::infinity();
   vector<bool>::const_iterator ivalid1 = mIsInEnd1.begin(),
                                ivalid2 = mIsInEnd2.begin();
+  vector<int>::const_iterator imidpts = mMidPoints.begin();
   vector< vector<int> >::const_iterator icenter;
 
   if (mStreamlines.empty() || mNumStrEnds == 0)
@@ -1851,22 +1969,46 @@ void Blood::FindCenterStreamline(bool CheckOverlap) {
   for (vector< vector<int> >::const_iterator istr = mStreamlines.begin();
                                             istr < mStreamlines.end(); istr++) {
     if (*ivalid1 && *ivalid2) {
+      bool okend1 = true, okend2 = true, okmid = true;
       int nzeros = 0;
       double hdtot = 0;
       vector<bool>::const_iterator jvalid1 = mIsInEnd1.begin(),
                                    jvalid2 = mIsInEnd2.begin();
       vector<int>::const_iterator jlen = mLengths.begin();
 
-      if (mNumTrain > 1 && CheckOverlap)	// No check in one-subject case
-        for (vector<int>::const_iterator ipt = istr->begin(); ipt < istr->end();
-                                                              ipt += 3) {
-          const float h = MRIgetVoxVal(mHistoStr, ipt[0], ipt[1], ipt[2], 0);
+      if (mNumTrain > 1) {	// No checks in one-subject case
+        if (CheckOverlap)	// Check overlap with histogram
+          for (vector<int>::const_iterator ipt = istr->begin();
+                                           ipt < istr->end(); ipt += 3) {
+            const float h = MRIgetVoxVal(mHistoStr, ipt[0], ipt[1], ipt[2], 0);
 
-          if (h < 4.0)		// Little overlap with other streamlines
-            nzeros++;
+            if (h < 4.0)	// Little overlap with other streamlines
+              nzeros++;
+          }
+
+        if (CheckDeviation) {	// Check endpoint deviation from center of mass
+          vector<int>::const_iterator itop    = istr->begin(),
+                                      ibottom = istr->end() - 3,
+                                      imiddle = itop + *imidpts;
+
+          for (int k = 0; k < 3; k++) {
+            const float dist = itop[k] - mMeanEnd1[k];
+            okend1 = okend1 && (dist*dist < mVarEnd1[k]);
+          }
+
+          for (int k = 0; k < 3; k++) {
+            const float dist = ibottom[k] - mMeanEnd2[k];
+            okend2 = okend2 && (dist*dist < mVarEnd2[k]);
+          }
+
+          for (int k = 0; k < 3; k++) {
+            const float dist = imiddle[k] - mMeanMid[k];
+            okmid = okmid && (dist*dist < mVarMid[k]);
+          }
         }
+      }
 
-      if (nzeros < (int) (.1 * istr->size()/3)) {
+      if ((nzeros < (int) (.1 * istr->size()/3)) && okend1 && okend2 && okmid) {
         for (vector< vector<int> >::const_iterator
              jstr = mStreamlines.begin(); jstr < mStreamlines.end(); jstr++) {
           double hd = 0;
@@ -1905,14 +2047,25 @@ void Blood::FindCenterStreamline(bool CheckOverlap) {
           icenter = istr;
         }
       }
+
+      imidpts++;
     }
 
     ivalid1++;
     ivalid2++;
   }
 
-  if (hdmin == numeric_limits<double>::infinity() && CheckOverlap)
-    FindCenterStreamline(false);	// In case overlap check caused failure
+  if (hdmin == numeric_limits<double>::infinity()) {
+    // In case checks caused failure
+    if (CheckDeviation) {
+      cout << "WARN: Turning off deviation check for center streamline" << endl;
+      FindCenterStreamline(CheckOverlap, false);
+    }
+    else {
+      cout << "WARN: Turning off overlap check for center streamline" << endl;
+      FindCenterStreamline(false, false);
+    }
+  }
   else {
     mCenterStreamline = *icenter;
 
@@ -2246,8 +2399,8 @@ void Blood::ComputeStreamlineSpread(vector<int> &ControlPoints) {
       }
 
       for (int k = 0; k < 3; k++)
-        cstd.push_back( (sumsq[k] - sum[k] * sum[k] / mNumStrEnds)
-                        / (mNumStrEnds-1) );
+        cstd.push_back( sqrt((sumsq[k] - sum[k] * (sum[k] / float(mNumStrEnds)))
+                             / (mNumStrEnds-1)) );
     }
   }
 
