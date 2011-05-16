@@ -7,9 +7,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/28 02:01:47 $
- *    $Revision: 1.76.2.1 $
+ *    $Author: greve $
+ *    $Date: 2011/05/16 21:39:28 $
+ *    $Revision: 1.76.2.2 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -23,7 +23,7 @@
  *
  */
 
-char *MRI_INFO_VERSION = "$Revision: 1.76.2.1 $";
+char *MRI_INFO_VERSION = "$Revision: 1.76.2.2 $";
 
 #include <stdio.h>
 #include <sys/stat.h>
@@ -57,7 +57,7 @@ static void usage_exit(void);
 static void print_help(void) ;
 static void print_version(void) ;
 
-static char vcid[] = "$Id: mri_info.c,v 1.76.2.1 2011/03/28 02:01:47 nicks Exp $";
+static char vcid[] = "$Id: mri_info.c,v 1.76.2.2 2011/05/16 21:39:28 greve Exp $";
 
 char *Progname ;
 static char *inputlist[100];
@@ -98,6 +98,7 @@ static int PrintDet = 0;
 static int PrintOrientation = 0;
 static int PrintSliceDirection = 0;
 static int PrintCRAS = 0;
+static int PrintP0 = 0;
 static int PrintEntropy = 0;
 static int PrintVoxel = 0;
 static int PrintAutoAlign = 0;
@@ -210,6 +211,7 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--scanner2tkr")) PrintScanner2Tkr = 1;
     else if (!strcasecmp(option, "--ras_good"))   PrintRASGood = 1;
     else if (!strcasecmp(option, "--cras"))      PrintCRAS = 1;
+    else if (!strcasecmp(option, "--p0"))        PrintP0 = 1;
 
     else if (!strcasecmp(option, "--det"))     PrintDet = 1;
 
@@ -287,6 +289,7 @@ static void print_usage(void) {
   printf("   --scanner2tkr : print scannerRAS-to-tkrRAS matrix \n");
   printf("   --ras_good : print the ras_good_flag\n");
   printf("   --cras : print the RAS at the 'center' of the volume\n");
+  printf("   --p0 : print the RAS at voxel (0,0,0)\n");
   printf("   --det : print the determinant of the vox2ras matrix\n");
   printf("   --dof : print the dof stored in the header\n");
   printf("   --nframes : print number of frames to stdout\n");
@@ -512,6 +515,12 @@ static void do_file(char *fname) {
   }
   if (PrintCRAS) {
     fprintf(fpout,"%g %g %g\n",mri->c_r,mri->c_a,mri->c_s);
+    return;
+  }
+  if (PrintP0) {
+    m = MRIgetVoxelToRasXform(mri) ;
+    fprintf(fpout,"%g %g %g\n",m->rptr[1][4],m->rptr[2][4],m->rptr[3][4]);
+    MatrixFree(&m) ;
     return;
   }
   if (PrintDet) {
