@@ -27,19 +27,30 @@ bin_PROGRAMS =
 endif
 
 if ENABLE_TCLTK_APPS
+# put a wrapper around the bin, used to setup tcltktixblt enviro vars
+# and install in 'tktools' dir instead of 'bin' (to allow easy deletion
+# of all cortech-licensed software)
 install-exec-hook:
+	mv -v $(DESTDIR)$(bindir)/tkregister2_cmdl $(DESTDIR)$(prefix)/tktools/
+	rm -vf $(DESTDIR)$(bindir)/tkregister*
 	cp $(top_builddir)/tkregister2/tkregister2 \
-		$(DESTDIR)$(bindir)/tkregister2.bin
-	echo "#!/bin/tcsh -ef" > $(DESTDIR)$(bindir)/tkregister2
+		$(DESTDIR)$(prefix)/tktools/tkregister2.bin
+	echo "#!/bin/tcsh -ef" > $(DESTDIR)$(prefix)/tktools/tkregister2
 	echo "source \$$FREESURFER_HOME/bin/tcl_setup" \
-		>> $(DESTDIR)$(bindir)/tkregister2
-	echo "tkregister2.bin \$$argv" >> $(DESTDIR)$(bindir)/tkregister2
-	chmod a+x $(DESTDIR)$(bindir)/tkregister2
+		>> $(DESTDIR)$(prefix)/tktools/tkregister2
+	echo "exec \$$FREESURFER_HOME/tktools/tkregister2.bin \$$argv" \
+		>> $(DESTDIR)$(prefix)/tktools/tkregister2
+	cp $(DESTDIR)$(prefix)/tktools/tkregister2 \
+		$(DESTDIR)$(prefix)/tktools/tkregister
+	chmod a+x $(DESTDIR)$(prefix)/tktools/tkregister
+	chmod a+x $(DESTDIR)$(prefix)/tktools/tkregister2
+	cp $(DESTDIR)$(prefix)/tktools/tkregister $(DESTDIR)$(bindir)/
+	cp $(DESTDIR)$(prefix)/tktools/tkregister2 $(DESTDIR)$(bindir)/
 	if [[ -f /usr/pubsw/bin/chrpath ]]; then \
-	/usr/pubsw/bin/chrpath -d $(DESTDIR)$(bindir)/tkregister2.bin; fi
+	/usr/pubsw/bin/chrpath -d $(DESTDIR)$(prefix)/tktools/tkregister2.bin; fi
 
 uninstall-hook:
-	rm -f $(DESTDIR)$(bindir)/tkregister2.bin
+	rm -f $(DESTDIR)$(prefix)/tktools/tkregister*
 
 else
 all:
