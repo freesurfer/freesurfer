@@ -15,6 +15,8 @@ foo_DATA=mri_ms_fitparms.help.xml
 
 TESTS=$(top_builddir)/scripts/help_xml_validate
 
+EXTRA_DIST=$(foo_DATA) $(BUILT_SOURCES)
+
 # Our release target. Include files to be excluded here. They will be
 # found and removed after 'make install' is run during the 'make
 # release' target.
