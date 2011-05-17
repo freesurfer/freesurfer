@@ -10,9 +10,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: nicks $
-#    $Date: 2011/03/02 20:16:39 $
-#    $Revision: 1.59 $
+#    $Author: greve $
+#    $Date: 2011/05/17 03:41:30 $
+#    $Revision: 1.60 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -29,7 +29,7 @@
 #
 setenv FIX_VERTEX_AREA
 
-set VERSION = '$Id: mris_preproc,v 1.59 2011/03/02 20:16:39 nicks Exp $';
+set VERSION = '$Id: mris_preproc,v 1.60 2011/05/17 03:41:30 greve Exp $';
 
 set PrintHelp = 0;
 set subjlist = ();
@@ -74,6 +74,7 @@ set MeasIn  = 0;
 set outdir = ();
 set SmoothCortexOnly = 0; # At some point, this should be the default
 set DoXHemi = 0;
+set DualHemi = 0;
 set subjlistfile = ();
 set fsgdf = ();
 
@@ -241,6 +242,7 @@ foreach subj ($subjlist)
     set cmd = (mri_surf2surf)
     set cmd = ($cmd --srcsubject $subj   --srchemi $srchemi --srcsurfreg $SrcSurfReg)
     set cmd = ($cmd --trgsubject $target --trghemi $trghemi --trgsurfreg $TrgSurfReg)
+    if($DualHemi) set cmd = ($cmd --dual-hemi)
     set cmd = ($cmd --tval $tval)
     if($#sval == 0) then
        set cmd = ($cmd --sval $srcsurfpath)
@@ -494,6 +496,10 @@ while( $#argv != 0 )
     case "--trghemi":
       if ( $#argv == 0) goto arg1err;
       set trghemi = $argv[1]; shift;
+      breaksw
+
+    case "--dual-hemi":
+      set DualHemi = 1;
       breaksw
 
     case "--target":
