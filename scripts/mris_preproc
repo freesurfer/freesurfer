@@ -10,27 +10,26 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: nicks $
-#    $Date: 2009/10/13 17:01:00 $
-#    $Revision: 1.53 $
+#    $Author: greve $
+#    $Date: 2011/05/17 03:42:01 $
+#    $Revision: 1.59.2.1 $
 #
-# Copyright (C) 2002-2009,
-# The General Hospital Corporation (Boston, MA).
-# All rights reserved.
+# Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
-# Distribution, usage and copying of this software is covered under the
-# terms found in the License Agreement file named 'COPYING' found in the
-# FreeSurfer source code root directory, and duplicated here:
-# https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+# Terms and conditions for use, reproduction, distribution and contribution
+# are found in the 'FreeSurfer Software License Agreement' contained
+# in the file 'LICENSE' found in the FreeSurfer distribution, and here:
 #
-# General inquiries: freesurfer@nmr.mgh.harvard.edu
-# Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+# https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
+#
+# Reporting: freesurfer@nmr.mgh.harvard.edu
+#
 #
 
 #
 setenv FIX_VERTEX_AREA
 
-set VERSION = '$Id: mris_preproc,v 1.53 2009/10/13 17:01:00 nicks Exp $';
+set VERSION = '$Id: mris_preproc,v 1.59.2.1 2011/05/17 03:42:01 greve Exp $';
 
 set PrintHelp = 0;
 set subjlist = ();
@@ -46,6 +45,8 @@ set fwhmtarg = ();
 set niterssrc = ();
 set niterstarg = ();
 set projfrac = ();
+set projfracmax = ();
+set V2SMaskNonCtx = 1; 
 set outpath = ();
 set paireddiff = 0;
 set paireddiffnorm = 0;
@@ -73,6 +74,9 @@ set MeasIn  = 0;
 set outdir = ();
 set SmoothCortexOnly = 0; # At some point, this should be the default
 set DoXHemi = 0;
+set DualHemi = 0;
+set subjlistfile = ();
+set fsgdf = ();
 
 set SessFile = ();
 set SessDirFile = ();
@@ -156,22 +160,28 @@ endif
 # Log file
 if(! $nolog) then
   if($#LF == 0) then
-    if(! $#CacheOutOnly) set LF = $outdir/mris_preproc.$geom.$trghemi.log
-    if($#CacheOutOnly)   set LF = mris_preproc.$geom.$trghemi.log
+    if(! $CacheOutOnly) set LF = $outstem.mris_preproc.log
+    if($CacheOutOnly)   set LF = mris_preproc.$geom.$trghemi.log
     if(-e $LF) mv $LF $LF.bak
   endif
 else
   set LF = /dev/null
 endif
 
+echo "Log file is $LF"
+
 date | tee -a $LF
-pwd | tee -a $LF
-echo $cmdargs  | tee -a $LF
-uname -a  | tee -a $LF
 echo "setenv SUBJECTS_DIR $SUBJECTS_DIR" | tee -a $LF
+echo "cd `pwd`" | tee -a $LF
+echo $0 $cmdargs | tee -a $LF
+echo ""  | tee -a $LF
+uname -a  | tee -a $LF
+echo $VERSION | tee -a $LF
+cat $FREESURFER_HOME/build-stamp.txt | tee -a $LF
 echo "tmpdir is $tmpdir" | tee -a $LF
 echo "Src $srchemi $SrcSurfReg" | tee -a $LF
 echo "Trg $trghemi $TrgSurfReg" | tee -a $LF
+echo ""  | tee -a $LF
 
 set tvallist = ();
 @ nthsubj = 0;
@@ -209,6 +219,8 @@ foreach subj ($subjlist)
       set cmd = (mri_vol2surf --src $vol --srcreg $reg --hemi $srchemi)
       set cmd = ($cmd --out $srcsurfpath)
       if($#projfrac) set cmd = ($cmd --projfrac $projfrac)
+      if($#projfracmax)  set cmd = ($cmd --projfrac-max $projfracmax)
+      if($V2SMaskNonCtx) set cmd = ($cmd --cortex)
       if($synth)     set cmd = ($cmd --srcsynth -1) # Synth if desired
       if($reshape)   set cmd = ($cmd --reshape);
       if(! $reshape) set cmd = ($cmd --noreshape);
@@ -230,6 +242,7 @@ foreach subj ($subjlist)
     set cmd = (mri_surf2surf)
     set cmd = ($cmd --srcsubject $subj   --srchemi $srchemi --srcsurfreg $SrcSurfReg)
     set cmd = ($cmd --trgsubject $target --trghemi $trghemi --trgsurfreg $TrgSurfReg)
+    if($DualHemi) set cmd = ($cmd --dual-hemi)
     set cmd = ($cmd --tval $tval)
     if($#sval == 0) then
        set cmd = ($cmd --sval $srcsurfpath)
@@ -300,12 +313,12 @@ echo "\n\n" | tee -a $LF
 if(! $CacheOutOnly) then
   # Now concatenate all the inputs together
   set cmd = (mri_concat $tvallist --o $outpath)
-  if($paireddiff)      set cmd = ($cmd --paired-diff);
-  if($paireddiffnorm)  set cmd = ($cmd --paired-diff-norm);
-  if($paireddiffnorm1) set cmd = ($cmd --paired-diff-norm1);
-  if($paireddiffnorm2) set cmd = ($cmd --paired-diff-norm2);
-  if($catmean)         set cmd = ($cmd --mean);
-  if($catstd)          set cmd = ($cmd --std);
+  if($paireddiff)      set cmd = ($cmd --paired-diff --prune);
+  if($paireddiffnorm)  set cmd = ($cmd --paired-diff-norm --prune);
+  if($paireddiffnorm1) set cmd = ($cmd --paired-diff-norm1 --prune);
+  if($paireddiffnorm2) set cmd = ($cmd --paired-diff-norm2 --prune);
+  if($catmean)         set cmd = ($cmd --mean --prune);
+  if($catstd)          set cmd = ($cmd --std --prune);
   echo "-----------------------"| tee -a $LF
   echo $cmd | tee -a $LF
   if($RunIt) $cmd |& tee -a $LF
@@ -471,6 +484,10 @@ while( $#argv != 0 )
       set trghemi = $srchemi;
       breaksw
 
+    case "--no-mask-non-cortex":
+      set V2SMaskNonCtx = 0;
+      breaksw
+
     case "--srchemi":
       if ( $#argv == 0) goto arg1err;
       set srchemi = $argv[1]; shift;
@@ -479,6 +496,10 @@ while( $#argv != 0 )
     case "--trghemi":
       if ( $#argv == 0) goto arg1err;
       set trghemi = $argv[1]; shift;
+      breaksw
+
+    case "--dual-hemi":
+      set DualHemi = 1;
       breaksw
 
     case "--target":
@@ -521,11 +542,17 @@ while( $#argv != 0 )
       set projfrac = $argv[1]; shift;
       breaksw
 
+    case "--projfrac-max":
+      if ( $#argv < 3) goto arg3err;
+      set projfracmax = ($argv[1] $argv[2] $argv[3]); 
+      shift; shift; shift;
+      breaksw
+
     case "--out":
       if ( $#argv == 0) goto arg1err;
       set outpath = $argv[1]; shift;
       # Make sure format is recognized
-      fname2stem $outpath > /dev/null
+      set outstem = `fname2stem $outpath`
       if($status) then
         echo "ERROR: format for $outpath not recognized"
         exit 1
@@ -768,6 +795,18 @@ goto handle_fsfast_return;
 ############--------------##################
 check_params:
 
+if($#subjlistfile && $#ivplist) then
+  echo "ERROR: do not use both --f and --iv "
+  exit 1;
+endif
+if($#subjlistfile && $#fsgdf) then
+  echo "ERROR: do not use both --f and --fsgd "
+  exit 1;
+endif
+if($#ivplist && $#fsgdf) then
+  echo "ERROR: do not use both --iv and --fsgd "
+  exit 1;
+endif
 if($#subjlist == 0) then
   echo "ERROR: no subjects specified"
   exit 1;
@@ -822,7 +861,7 @@ if($MeasIn && $CacheIn) then
 endif
 if($#ivplist != 0) then
   if($#ivplist != $#subjlist) then
-    echo "ERROR: number of input volumes ($#ivplist) does not equal number of subjects"
+    echo "ERROR: number of input volumes ($#ivplist) does not equal number of subjects ($#subjlist)"
     exit 1;
   endif
 endif
@@ -892,6 +931,11 @@ if($#fwhmtarg && $#niterstarg) then
   exit 1;
 endif
 
+if($#projfrac && $#projfracmax) then
+  echo "ERROR: cannot specify --projfrac and --projfrac-max"
+  exit 1;
+endif
+
 goto check_params_return;
 ############--------------##################
 
@@ -904,6 +948,12 @@ arg1err:
 ############--------------##################
 arg2err:
   echo "ERROR: flag $flag requires two arguments"
+  exit 1
+############--------------##################
+
+############--------------##################
+arg3err:
+  echo "ERROR: flag $flag requires three arguments"
   exit 1
 ############--------------##################
 
@@ -928,6 +978,8 @@ usage_exit:
   echo ""
   echo "  --iv volmeasfile reg <--iv volmeasfile reg>"
   echo "  --projfrac frac : projection fraction for vol2surf"
+  echo "  --projfrac-max min max delta : find max along projection for vol2surf"
+  echo "  --no-mask-non-cortex : do not mask out non-cortex in vol2surf"
   echo ""
   echo "  --sf sessfile        : fsfast session file"
   echo "  --df sessdirfile     : fsfast session directory file"
@@ -1058,11 +1110,21 @@ The registration matrix file is of the type accepted/created by
 tkregister2. The volume is sampled to the surface, and the result is
 used as the input surface measure. This is an alternative to
 using --meas. This still requires that a subject list be supplied.
+The non-cortical area (eg in the medial wall) is set to 0 unless
+--no-mask-non-cortex is specified.
 
 --projfrac projfrac
 
 When sampling a volume onto the surface, sample a fraction of the thickness
 along the surface normal. projfrac is 0-1. Default is 0.
+
+--projfrac-max min max delta 
+
+When sampling a volume onto the surface, return the maximum along the
+surface normal sampled at fractions of the thickness between min and
+max at increments of delta.  Eg, 0 1 .1 means to sample every 10% of
+the thickness between the white and pial surfaces. Just passes
+the arguments to mri_vol2surf with the --projfrac-max flag.
 
 --fwhm fwhm
 
@@ -1098,12 +1160,14 @@ Allow medial wall values to smooth into cortex (default).
 
 After concatenating all the inputs together, create a new output file by
 computing paired differences, ie, Input1-Input2, Input3-Input4, etc.
-There must be an even number of inputs.
+There must be an even number of inputs. The inputs are "pruned" before
+taking the difference, meaning that values for all inputs are set to 0
+if any individual is 0.
 
 --paired-diff-norm
 
 Same as --paired-diff, but normalizes by average of time points, ie,
-(Input1-Input2)/((Input1-Input2)/2).
+(Input1-Input2)/((Input1+Input2)/2).
 
 --paired-diff-norm1
 
