@@ -9,8 +9,8 @@
 # Original Author: Martin Reuter
 # CVS Revision Info:
 #    $Author: mreuter $
-#    $Date: 2011/05/03 21:25:26 $
-#    $Revision: 1.4.2.2 $
+#    $Date: 2011/05/17 18:36:15 $
+#    $Revision: 1.4.2.3 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -265,7 +265,7 @@ def options_parse():
     Command Line Options Parser for long_mris_slopes
     initiate the option parser and return the parsed object
     """
-    parser = optparse.OptionParser(version='$Id: long_submit_jobs,v 1.4.2.2 2011/05/03 21:25:26 mreuter Exp $', usage=HELPTEXT)
+    parser = optparse.OptionParser(version='$Id: long_submit_jobs,v 1.4.2.3 2011/05/17 18:36:15 mreuter Exp $', usage=HELPTEXT)
     
     # help text
     h_qdec      = '(REQUIRED) qdec table file specifying the subjects and time points'
@@ -740,7 +740,7 @@ def run_long(qdectable,options):
                     continue  # skip this subject
             # wait for requirement    
             if not options.simulate:
-                status = wait_file(os.path.join(options.bdir,subjectid,requirement),60)
+                status = wait_file(options.bdir,subjectid,requirement,60)
                 if status >= 2: # not there and not running anymore:
                     print "ERROR [long]: "+subjectid+" not complete (or not readable) in "+options.bdir;
                     print "               and no IsRunning.lh+rh found!\n";
