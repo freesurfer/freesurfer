@@ -120,7 +120,8 @@ SOURCES += \
     DialogSaveVolume.cpp \
     DialogReplaceLabel.cpp \
     LayerVolumeTrack.cpp \
-    LayerLandmarks.cpp
+    LayerLandmarks.cpp \
+    SurfaceROI.cpp
 
 HEADERS  += \
     Annotation2D.h \
@@ -230,7 +231,8 @@ HEADERS  += \
     DialogSaveVolume.h \
     DialogReplaceLabel.h \
     LayerVolumeTrack.h \
-    LayerLandmarks.h
+    LayerLandmarks.h \
+    SurfaceROI.h
 
 FORMS    += MainWindow.ui \
     PanelVolume.ui \

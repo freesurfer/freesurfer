@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2011/05/06 18:19:48 $
- *    $Revision: 1.42 $
+ *    $Date: 2011/05/17 14:20:14 $
+ *    $Revision: 1.43 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -47,6 +47,7 @@ class LayerMRI;
 class SurfaceOverlay;
 class SurfaceAnnotation;
 class SurfaceLabel;
+class SurfaceROI;
 
 class LayerSurface : public LayerEditable
 {
@@ -205,6 +206,11 @@ public:
 
   int GetNumberOfVertices();
 
+  SurfaceROI* GetSurfaceROI()
+  {
+    return m_roi;
+  }
+
 public slots:
   void SetActiveSurface( int nSurfaceType );
   void UpdateOverlay( bool bAskRedraw = true );
@@ -277,6 +283,8 @@ protected:
 
   std::vector<SurfaceLabel*>      m_labels;
   int         m_nActiveLabel;
+
+  SurfaceROI*           m_roi;
 
   bool        m_bUndoable;
   bool        m_bVector2DPendingUpdate;

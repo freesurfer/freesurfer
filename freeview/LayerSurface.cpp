@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2011/05/06 18:19:48 $
- *    $Revision: 1.60 $
+ *    $Date: 2011/05/17 14:20:14 $
+ *    $Revision: 1.61 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -51,6 +51,7 @@
 #include "SurfaceAnnotation.h"
 #include "SurfaceLabel.h"
 #include "LayerPropertySurface.h"
+#include "SurfaceROI.h"
 #include <QFileInfo>
 #include <QDir>
 #include <QDebug>
@@ -108,6 +109,8 @@ LayerSurface::LayerSurface( LayerMRI* ref, QObject* parent ) : LayerEditable( pa
 
   m_wireframeActor = vtkSmartPointer<vtkActor>::New();
   m_wireframeActor->VisibilityOff();
+
+  m_roi = new SurfaceROI(this);
 
   LayerPropertySurface* p = GetProperty();
   connect( p, SIGNAL(ColorMapChanged()), this, SLOT(UpdateColorMap()) ),
@@ -622,6 +625,7 @@ void LayerSurface::Append3DProps( vtkRenderer* renderer, bool* bSliceVisibility 
   renderer->AddViewProp( m_vectorActor );
   renderer->AddViewProp( m_vertexActor );
   renderer->AddViewProp( m_wireframeActor );
+  m_roi->AppendProps(renderer);
 }
 
 /*

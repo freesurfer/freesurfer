@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2011/03/30 19:23:59 $
- *    $Revision: 1.57 $
+ *    $Date: 2011/05/17 14:20:14 $
+ *    $Revision: 1.58 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -33,6 +33,7 @@
 #include "VolumeCropper.h"
 #include "Cursor3D.h"
 #include "SurfaceRegion.h"
+#include "SurfaceROI.h"
 #include "SurfaceOverlayProperty.h"
 #include <vtkProp.h>
 #include <vtkCellPicker.h>
@@ -808,6 +809,58 @@ void RenderView3D::DeleteCurrentSelectRegion()
     {
       emit SurfaceRegionRemoved(reg);
     }
+  }
+}
+
+SurfaceROI* RenderView3D::InitializeSurfaceROI( int posX, int posY )
+{
+  double pos[3];
+  vtkProp* prop = this->PickProp( posX, posY, pos );
+  if ( !prop )
+  {
+    return NULL;
+  }
+
+  LayerCollection* lc_surf = MainWindow::GetMainWindow()->GetLayerCollection( "Surface" );
+  LayerSurface* surf = NULL;
+  for ( int i = 0; i < lc_surf->GetNumberOfLayers(); i++ )
+  {
+    LayerSurface* temp = (LayerSurface*)lc_surf->GetLayer(i);
+    if ( temp->HasProp( prop ) )
+    {
+      surf = temp;
+      break;
+    }
+  }
+
+  if ( !surf )
+  {
+    return false;
+  }
+
+  lc_surf->SetActiveLayer( surf );
+  SurfaceROI* roi = surf->GetSurfaceROI();
+  if ( roi )
+  {
+    roi->InitializeOutline(pos);
+  }
+  return roi;
+}
+
+void RenderView3D::AddSurfaceROIPoint( int posX, int posY )
+{
+  LayerSurface* surf = (LayerSurface*)MainWindow::GetMainWindow()->GetActiveLayer( "Surface" );
+  if ( surf )
+  {
+    double pos[3];
+    vtkProp* prop = this->PickProp( posX, posY, pos );
+    if ( !prop || !surf->HasProp( prop ) )
+    {
+      return;
+    }
+
+    surf->GetSurfaceROI()->AddPoint( pos );
+    RequestRedraw();
   }
 }
 

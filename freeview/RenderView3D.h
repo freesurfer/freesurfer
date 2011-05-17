@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2011/03/24 17:39:15 $
- *    $Revision: 1.34 $
+ *    $Date: 2011/05/17 14:20:14 $
+ *    $Revision: 1.35 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -38,6 +38,7 @@ class Interactor3DMeasure;
 class Interactor3DVolumeCrop;
 class vtkAnnotatedCubeActor;
 class Layer;
+class SurfaceROI;
 
 class RenderView3D : public RenderView
 {
@@ -98,6 +99,10 @@ public:
   {
     return m_bShowSlices;
   }
+
+  SurfaceROI* InitializeSurfaceROI( int posX, int posY );
+
+  void AddSurfaceROIPoint( int posX, int posY );
 
 signals:
   void SurfaceVertexClicked();

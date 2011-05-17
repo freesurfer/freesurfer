@@ -125,6 +125,7 @@ BUILT_SOURCES = \
   moc_DialogReplaceLabel.cpp \
   moc_LayerVolumeTrack.cpp \
   moc_LayerLandmarks.cpp \
+  moc_SurfaceROI.cpp \
   qrc_freeview.cpp
 
 freeview_SOURCES = $(BUILT_SOURCES) \
@@ -367,7 +368,9 @@ freeview_SOURCES = $(BUILT_SOURCES) \
   LayerVolumeTrack.cpp \
   LayerVolumeTrack.h \
   LayerLandmarks.cpp \
-  LayerLandmarks.h
+  LayerLandmarks.h \
+  SurfaceROI.cpp \
+  SurfaceROI.h
 
 if HAVE_MAC_OSX
 AM_CXXFLAGS=\
