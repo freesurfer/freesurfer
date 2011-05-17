@@ -7,8 +7,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2011/03/04 17:41:17 $
- *    $Revision: 1.46 $
+ *    $Date: 2011/05/17 03:43:34 $
+ *    $Revision: 1.47 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -41,6 +41,7 @@
 #include "MRIio_old.h"
 #include "randomfields.h"
 #include "mri_circulars.h"
+double round(double);
 
 MRI *fMRIsqrt(MRI *mri, MRI *mrisqrt);
 
@@ -62,7 +63,7 @@ static int  isflag(char *flag);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-"$Id: mri_volsynth.c,v 1.46 2011/03/04 17:41:17 greve Exp $";
+"$Id: mri_volsynth.c,v 1.47 2011/05/17 03:43:34 greve Exp $";
 
 char *Progname = NULL;
 
@@ -115,6 +116,8 @@ int SpikeTP = -1;
 int DoCurv = 0;
 char *subject=NULL, *hemi=NULL;
 MRIS *surf;
+int resSpeced=0,dimSpeced=0;
+int NewVoxSizeSpeced=0;
 
 /*---------------------------------------------------------------*/
 int main(int argc, char **argv)
@@ -162,6 +165,27 @@ int main(int argc, char **argv)
       printf("ERROR: reading %s header\n",tempid);
       exit(1);
     }
+    if(NewVoxSizeSpeced){
+      dim[0] = round(mritemp->width*mritemp->xsize/res[0]);
+      dim[1] = round(mritemp->height*mritemp->ysize/res[1]);
+      dim[2] = round(mritemp->depth*mritemp->zsize/res[2]);
+      dim[3] = mritemp->nframes;
+      res[3] = mritemp->tr;
+      dimSpeced = 1;
+    }
+    if(dimSpeced){
+      mritmp = MRIallocSequence(dim[0],dim[1],dim[2],MRI_FLOAT,dim[3]);
+      MRIcopyHeader(mritemp,mritmp);
+      MRIfree(&mritemp);
+      mritemp = mritmp;
+    }
+    if(resSpeced){
+      mritemp->xsize = res[0];
+      mritemp->ysize = res[1];
+      mritemp->zsize = res[2];
+      mritemp->tr    = res[3];
+    }
+
     dim[0] = mritemp->width;
     dim[1] = mritemp->height;
     dim[2] = mritemp->depth;
@@ -510,6 +534,7 @@ static int parse_commandline(int argc, char **argv) {
       if (nargc < 4) argnerr(option,4);
       for (i=0;i<4;i++) sscanf(pargv[i],"%d",&dim[i]);
       nargsused = 4;
+      dimSpeced = 1;
     } 
     else if ( !strcmp(option, "--nframes") ) {
       if (nargc < 1) argnerr(option,1);
@@ -525,6 +550,14 @@ static int parse_commandline(int argc, char **argv) {
       if (nargc < 4) argnerr(option,4);
       for (i=0;i<4;i++) sscanf(pargv[i],"%f",&res[i]);
       nargsused = 4;
+      resSpeced = 1;
+    } 
+    else if ( !strcmp(option, "--vox-size") ) {
+      if (nargc < 3) argnerr(option,3);
+      for (i=0;i<3;i++) sscanf(pargv[i],"%f",&res[i]);
+      nargsused = 4;
+      resSpeced = 1;
+      NewVoxSizeSpeced = 1;
     } 
     else if ( !strcmp(option, "--c_ras") ) {
       if (nargc < 3) argnerr(option,3);
@@ -661,8 +694,9 @@ static void print_usage(void) {
   printf("   --curv subject hemi : save output as curv (uses lh.thickness as template)\n");
   printf("\n");
   printf(" Specify geometry explicitly\n");
-  printf("   --dim nc nr ns nf  (required)\n");
-  printf("   --res dc dr ds df  (df is TR, use msec)\n");
+  printf("   --dim nc nr ns nf : required without template (overrides template)\n");
+  printf("   --res dc dr ds df : voxel resolution (df is TR, use msec) (overrides template)\n");
+  printf("   --vox-size dc dr ds : changes template voxel res AND dim\n");
   printf("   --tr TR : time between frames in msec \n");
   printf("   --cdircos x y z\n");
   printf("   --rdircos x y z\n");
