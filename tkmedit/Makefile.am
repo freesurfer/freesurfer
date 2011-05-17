@@ -48,8 +48,10 @@ install-exec-hook:
 	echo "#!/bin/tcsh -ef" > $(DESTDIR)$(prefix)/tktools/tkmedit
 	echo "source \$$FREESURFER_HOME/bin/tcl_setup" \
 		>> $(DESTDIR)$(prefix)/tktools/tkmedit
-	echo "exec tkmedit.bin \$$argv" >> $(DESTDIR)$(prefix)/tktools/tkmedit
+	echo "exec \$$FREESURFER_HOME/tktools/tkmedit.bin \$$argv" \
+		>> $(DESTDIR)$(prefix)/tktools/tkmedit
 	chmod a+x $(DESTDIR)$(prefix)/tktools/tkmedit
+	cp $(DESTDIR)$(prefix)/tktools/tkmedit $(DESTDIR)$(bindir)/
 	if [[ -f /usr/pubsw/bin/chrpath ]]; then \
 	/usr/pubsw/bin/chrpath -d $(DESTDIR)$(prefix)/tktools/tkmedit.bin; fi
 

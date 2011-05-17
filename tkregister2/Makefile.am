@@ -38,11 +38,14 @@ install-exec-hook:
 	echo "#!/bin/tcsh -ef" > $(DESTDIR)$(prefix)/tktools/tkregister2
 	echo "source \$$FREESURFER_HOME/bin/tcl_setup" \
 		>> $(DESTDIR)$(prefix)/tktools/tkregister2
-	echo "tkregister2.bin \$$argv" >> $(DESTDIR)$(prefix)/tktools/tkregister2
+	echo "exec \$$FREESURFER_HOME/tktools/tkregister2.bin \$$argv" \
+		>> $(DESTDIR)$(prefix)/tktools/tkregister2
 	cp $(DESTDIR)$(prefix)/tktools/tkregister2 \
 		$(DESTDIR)$(prefix)/tktools/tkregister
 	chmod a+x $(DESTDIR)$(prefix)/tktools/tkregister
 	chmod a+x $(DESTDIR)$(prefix)/tktools/tkregister2
+	cp $(DESTDIR)$(prefix)/tktools/tkregister $(DESTDIR)$(bindir)/
+	cp $(DESTDIR)$(prefix)/tktools/tkregister2 $(DESTDIR)$(bindir)/
 	if [[ -f /usr/pubsw/bin/chrpath ]]; then \
 	/usr/pubsw/bin/chrpath -d $(DESTDIR)$(prefix)/tktools/tkregister2.bin; fi
 

@@ -42,8 +42,10 @@ install-exec-hook:
 	echo "#!/bin/tcsh -ef" > $(DESTDIR)$(prefix)/tktools/tksurfer
 	echo "source \$$FREESURFER_HOME/bin/tcl_setup" \
 		>> $(DESTDIR)$(prefix)/tktools/tksurfer
-	echo "tksurfer.bin \$$argv" >> $(DESTDIR)$(prefix)/tktools/tksurfer
+	echo "exec \$$FREESURFER_HOME/tktools/tksurfer.bin \$$argv" \
+		>> $(DESTDIR)$(prefix)/tktools/tksurfer
 	chmod a+x $(DESTDIR)$(prefix)/tktools/tksurfer
+	cp $(DESTDIR)$(prefix)/tktools/tksurfer $(DESTDIR)$(bindir)/
 	if [[ -f /usr/pubsw/bin/chrpath ]]; then \
 	/usr/pubsw/bin/chrpath -d $(DESTDIR)$(prefix)/tktools/tksurfer.bin; fi
 
