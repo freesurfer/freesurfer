@@ -43,7 +43,7 @@ class Blood {
           const char *TrainRoi1File, const char *TrainRoi2File,
           const char *TrainAsegFile, const char *TrainMaskFile,
           float TrainMaskLabel, const char *TestMaskFile,
-          bool UseTruncated);
+          const char *TestFaFile, bool UseTruncated);
     Blood(const char *TrainTrkFile, const char *TrainRoi1File,
           const char *TrainRoi2File);
     ~Blood();
@@ -56,7 +56,8 @@ class Blood {
     void MatchStreamlineEnds();
     void ComputeHistogram();
     void ComputePriors();
-    void FindCenterStreamline(bool CheckOverlap=true, bool CheckDeviation=true);
+    void FindCenterStreamline(bool CheckOverlap=true, bool CheckDeviation=true,
+                                                      bool CheckFa=true);
     void SelectControlPoints(int NumControls);
     void WriteOutputs(const char *OutBase);
     void WriteCenterStreamline(const char *CenterTrkFile,
@@ -110,7 +111,7 @@ class Blood {
     std::vector< std::set<unsigned int> > mIdsLocal, mIdsNear, //[{6,7}xmNumArc]
                                           mIdsLocalAll, mIdsNearAll;
     std::vector<MRI *> mRoi1, mRoi2, mAseg, mMask;
-    MRI *mTestMask, *mHistoStr, *mHistoSubj;
+    MRI *mTestMask, *mTestFa, *mHistoStr, *mHistoSubj;
 
     void ComputeStats();
     void ComputeStatsEnds();

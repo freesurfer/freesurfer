@@ -38,7 +38,7 @@ Blood::Blood(const char *TrainListFile, const char *TrainTrkFile,
              const char *TrainRoi1File, const char *TrainRoi2File,
              const char *TrainAsegFile, const char *TrainMaskFile,
              float TrainMaskLabel, const char *TestMaskFile,
-             bool UseTruncated) :
+             const char *TestFaFile, bool UseTruncated) :
              mUseTruncated(UseTruncated),
              mMaskLabel(TrainMaskLabel) {
   int dirs[45] = { 0,  0,  0,
@@ -66,6 +66,11 @@ Blood::Blood(const char *TrainListFile, const char *TrainTrkFile,
   
   cout << "Loading brain mask of output subject from " << TestMaskFile << endl;
   mTestMask = MRIread(TestMaskFile);
+
+  if (TestFaFile) {
+    cout << "Loading FA map of output subject from " << TestFaFile << endl;
+    mTestFa = MRIread(TestFaFile);
+  }
 
   // Size of volumes in common space
   mNx = mTestMask->width;
@@ -1937,7 +1942,8 @@ void Blood::ComputeCurvaturePrior(bool UseTruncated) {
 //
 // Find central streamline among streamlines with valid end points
 //
-void Blood::FindCenterStreamline(bool CheckOverlap, bool CheckDeviation) {
+void Blood::FindCenterStreamline(bool CheckOverlap, bool CheckDeviation,
+                                                    bool CheckFa) {
   const int lag = max(1, (int) round(mHausStepRatio * mLengthAvgEnds)) * 3;
   double hdmin = numeric_limits<double>::infinity();
   vector<bool>::const_iterator ivalid1 = mIsInEnd1.begin(),
@@ -1969,22 +1975,53 @@ void Blood::FindCenterStreamline(bool CheckOverlap, bool CheckDeviation) {
   for (vector< vector<int> >::const_iterator istr = mStreamlines.begin();
                                             istr < mStreamlines.end(); istr++) {
     if (*ivalid1 && *ivalid2) {
-      bool okend1 = true, okend2 = true, okmid = true;
-      int nzeros = 0;
+      bool okhist = true, okfa = true,
+           okend1 = true, okend2 = true, okmid = true;
       double hdtot = 0;
       vector<bool>::const_iterator jvalid1 = mIsInEnd1.begin(),
                                    jvalid2 = mIsInEnd2.begin();
       vector<int>::const_iterator jlen = mLengths.begin();
 
-      if (mNumTrain > 1) {	// No checks in one-subject case
-        if (CheckOverlap)	// Check overlap with histogram
+      if (mNumTrain > 1) {		// No checks in single-subject case
+        if (CheckOverlap) {		// Check overlap with histogram
+          int nzeros = 0;
+
           for (vector<int>::const_iterator ipt = istr->begin();
                                            ipt < istr->end(); ipt += 3) {
             const float h = MRIgetVoxVal(mHistoStr, ipt[0], ipt[1], ipt[2], 0);
 
-            if (h < 4.0)	// Little overlap with other streamlines
+            if (h < 4.0)		// Little overlap with other streamlines
               nzeros++;
           }
+
+          if (nzeros >= (int) (.1 * istr->size()/3))
+            okhist = false;
+        }
+
+        if (CheckFa && mTestFa) {	// Check overlap with test subject's FA
+          for (vector<int>::const_iterator ipt = istr->begin();
+                                           ipt < istr->end(); ipt += 3) {
+            int nzeros = 0;
+            float f = MRIgetVoxVal(mTestFa, ipt[0], ipt[1], ipt[2], 0);
+
+            while (f < 0.075) {		// Low anisotropy area
+              nzeros++;
+
+              if (nzeros > 4) {
+                okfa = false;
+                break;
+              }
+
+              ipt += 3;
+              if (ipt == istr->end())
+                break;
+              f = MRIgetVoxVal(mTestFa, ipt[0], ipt[1], ipt[2], 0);
+            }
+
+            if (!okfa)
+              break;
+          }
+        }
 
         if (CheckDeviation) {	// Check endpoint deviation from center of mass
           vector<int>::const_iterator itop    = istr->begin(),
@@ -2008,7 +2045,7 @@ void Blood::FindCenterStreamline(bool CheckOverlap, bool CheckDeviation) {
         }
       }
 
-      if ((nzeros < (int) (.1 * istr->size()/3)) && okend1 && okend2 && okmid) {
+      if (okhist && okfa && okend1 && okend2 && okmid) {
         for (vector< vector<int> >::const_iterator
              jstr = mStreamlines.begin(); jstr < mStreamlines.end(); jstr++) {
           double hd = 0;
@@ -2057,9 +2094,13 @@ void Blood::FindCenterStreamline(bool CheckOverlap, bool CheckDeviation) {
 
   if (hdmin == numeric_limits<double>::infinity()) {
     // In case checks caused failure
-    if (CheckDeviation) {
+    if (CheckFa) {
+      cout << "WARN: Turning off FA check for center streamline" << endl;
+      FindCenterStreamline(CheckOverlap, CheckDeviation, false);
+    }
+    else if (CheckDeviation) {
       cout << "WARN: Turning off deviation check for center streamline" << endl;
-      FindCenterStreamline(CheckOverlap, false);
+      FindCenterStreamline(CheckOverlap, false, false);
     }
     else {
       cout << "WARN: Turning off overlap check for center streamline" << endl;
@@ -2512,11 +2553,13 @@ void Blood::TryControlPoint(float &OverlapMax,
       for (vector<int>::const_iterator ipt = TrySpline.GetAllPointsBegin();
                                        ipt < TrySpline.GetAllPointsEnd();
                                        ipt += 3) {
-        const float h = MRIgetVoxVal(mHistoStr, ipt[0], ipt[1], ipt[2], 0);
+        const float h = MRIgetVoxVal(mHistoStr, ipt[0], ipt[1], ipt[2], 0),
+                    f = (mTestFa ? 
+                        MRIgetVoxVal(mTestFa, ipt[0], ipt[1], ipt[2], 0) : 1.0);
 
         overlap += h;
 
-        if (h < 1.0) {			// Point is off the histogram
+        if (h < 1.0 || f < 0.075) {	// Point is off histogram or in low FA
           double dmin = numeric_limits<double>::infinity();
 
           // Check point distance from true streamline

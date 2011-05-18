@@ -7,9 +7,9 @@
 /*
  * Original Author: Anastasia Yendiki
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:41 $
- *    $Revision: 1.3 $
+ *    $Author: ayendiki $
+ *    $Date: 2011/05/18 06:38:28 $
+ *    $Revision: 1.4 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -74,7 +74,8 @@ int nControl[100], nout = 0, ntrk = 0, nroi1 = 0, nroi2 = 0, nlab = 0, ncpt = 0;
 float trainMaskLabel[100];
 char *outDir = NULL, *outBase[100], *trainListFile = NULL,
      *trainTrkList[100], *trainRoi1List[100], *trainRoi2List[100],
-     *trainAsegFile = NULL, *trainMaskFile = NULL, *testMaskFile = NULL;
+     *trainAsegFile = NULL, *trainMaskFile = NULL,
+     *testMaskFile = NULL, *testFaFile = NULL;
 
 struct utsname uts;
 char *cmdline, cwd[2000];
@@ -111,7 +112,7 @@ int main(int argc, char **argv) {
   Blood myblood(trainListFile, trainTrkList[0],
                 nroi1 ? trainRoi1List[0] : 0, nroi2 ? trainRoi2List[0] : 0,
                 trainAsegFile, trainMaskFile, nlab ? trainMaskLabel[0] : 0,
-                testMaskFile, useTrunc);
+                testMaskFile, testFaFile, useTrunc);
 
   for (int itrk = 0; itrk < ntrk; itrk++) {
     if (itrk > 0)
@@ -226,6 +227,11 @@ static int parse_commandline(int argc, char **argv) {
       testMaskFile = fio_fullpath(pargv[0]);
       nargsused = 1;
     }
+    else if (!strcmp(option, "--fa")) {
+      if (nargc < 1) CMDargNErr(option,1);
+      testFaFile = fio_fullpath(pargv[0]);
+      nargsused = 1;
+    }
     else if (!strcmp(option, "--ncpts")) {
       if (nargc < 1) CMDargNErr(option,1);
       while (strncmp(pargv[nargsused], "--", 2)) {
@@ -249,7 +255,7 @@ static void print_usage(void)
   printf("\n");
   printf("USAGE: ./dmri_train\n");
   printf("\n");
-  printf("Basic inputs\n");
+  printf("Basic inputs (all must be in common space)\n");
   printf("   --out <base> [...]:\n");
   printf("     Base name(s) of output(s), one per path\n");
   printf("   --outdir <dir>:\n");
@@ -273,6 +279,8 @@ static void print_usage(void)
   printf("     (0 doesn't add any label)\n");
   printf("   --bmask <file>:\n");
   printf("     Input brain mask volume for test subject\n");
+  printf("   --fa <file>:\n");
+  printf("     Input FA volume for test subject (optional)\n");
   printf("   --ncpts <num> [...]:\n");
   printf("     Number of control points for initial spline\n");
   printf("   --trunc:\n");
@@ -398,6 +406,8 @@ static void dump_options(FILE *fp) {
   }
   fprintf(fp, "Location of aparc+aseg's relative to base: %s\n", trainAsegFile);
   fprintf(fp, "Brain mask for output subject: %s\n", testMaskFile);
+  if (testFaFile)
+    fprintf(fp, "FA map for output subject: %s\n", testFaFile);
   fprintf(fp, "Number of control points for initial spline:");
   for (int k = 0; k < ncpt; k++)
     fprintf(fp, " %d ", nControl[k]);
