@@ -7,9 +7,9 @@
 /*
  * Original Author: Anastasia Yendiki
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/05/09 19:36:47 $
- *    $Revision: 1.3.2.2 $
+ *    $Author: ayendiki $
+ *    $Date: 2011/05/18 20:01:36 $
+ *    $Revision: 1.3.2.3 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -43,6 +43,7 @@ double round(double x);
 #include <time.h>
 #include <limits.h>
 
+#include "cma.h"
 #include "error.h"
 #include "diag.h"
 #include "mri.h"
@@ -151,7 +152,8 @@ int main(int argc, char **argv) {
 
       if (cte != NULL && strstr(inFile[iframe], cte->name)) {
         outvol->frames[iframe].label = ict;
-        strcpy(outvol->frames[iframe].name, cte->name);
+        strcpy(outvol->frames[iframe].name, cma_label_to_name(ict));
+
         continue;
       }
     }
