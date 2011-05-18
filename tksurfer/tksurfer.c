@@ -11,9 +11,9 @@
 /*
  * Original Author: Martin Sereno and Anders Dale, 1996
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/01 01:41:23 $
- *    $Revision: 1.346 $
+ *    $Author: fischl $
+ *    $Date: 2011/05/18 02:04:28 $
+ *    $Revision: 1.347 $
  *
  * Copyright (C) 2002-2011, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA).
@@ -870,6 +870,7 @@ void smooth_boundary_normals(int niter) ;
 void scaledist(float sf) ;
 float rtanh(float x) ;
 void shrink(int niter) ;
+void taubin_smooth(MRI_SURFACE *mris, int niter, double mu, double lambda) ;
 void curv_shrink_to_fill(int niter) ;
 void shrink_to_fill(int niter) ;
 void transform(float *xptr, float *yptr, float *zptr, float nx, float ny,
@@ -2215,6 +2216,7 @@ int  main(int argc,char *argv[])
   int setmedialview = FALSE;
 
   int take_snapshot = FALSE;
+  double pthresh = -1, pmid=0, pmax=0 ;
   char snap_fname[NAME_LENGTH] = "";
 
   int load_colortable = FALSE;
@@ -2555,6 +2557,15 @@ int  main(int argc,char *argv[])
       strcpy (snap_fname, argv[i+1]) ;
       take_snapshot = TRUE;
       nargs = 2 ;
+    }
+    else if (!stricmp(argv[i], "-pthresh"))
+    {
+      pthresh = atof(argv[i+1]) ;
+      pmid = atof(argv[i+2]) ;
+      pmax = atof(argv[i+3]) ;
+      printf("setting percentile thresholds (%2.2f, %2.2f, %2.2f)\n",
+             pthresh, pmid, pmax) ;
+      nargs = 4 ;
     }
     else if (!stricmp(argv[i], "-lateral"))
     {
@@ -3065,6 +3076,15 @@ int  main(int argc,char *argv[])
   {
     printf("setting view to medial...\n") ;
     make_medial_view(stem);
+    redraw() ;
+  }
+
+  
+  printf("setting percentile thresholds (%2.2f, %2.2f, %2.2f)\n",
+         pthresh, pmid, pmax) ;
+  if (pthresh >= 0)
+  {
+    sclv_set_current_threshold_from_percentile(pthresh, pmid, pmax) ;
     redraw() ;
   }
 
@@ -12496,6 +12516,65 @@ float rtanh(float x)
 {
   return (x<0.0)?0.0:tanh(x);
 }
+static void
+Laplacian(MRI_SURFACE *mris, int vno, double *plx, double *ply, double *plz)
+{
+  VERTEX *v, *vn ;
+  double lx, ly, lz, w ;
+  int    n ;
+
+  v = &mris->vertices[vno] ;
+  if (v->vnum == 0)
+    return ;
+  w = 1.0 / (double)v->vnum ;
+  for (lx = ly = lz = 0.0, n = 0 ; n < v->vnum ; n++)
+  {
+    vn = &mris->vertices[v->v[n]] ;
+    lx += w * (v->x - vn->x) ;
+    ly += w * (v->y - vn->y) ;
+    lz += w * (v->z - vn->z) ;
+  }
+  *plx = lx ; *ply = ly ; *plz = lz ;
+  return ;
+}
+void
+taubin_smooth(MRI_SURFACE *mris, int niter, double mu, double lambda)
+{
+  int    iter, vno ;
+  double dx, dy, dz ;
+  VERTEX *v ;
+
+  dx = dy = dz = 0 ;
+  for (iter = 0 ; iter < niter ; iter++)
+  {
+    for (vno = 0 ; vno < mris->nvertices ; vno++)
+    {
+      v = &mris->vertices[vno] ;
+      Laplacian(mris, vno, &dx, &dy, &dz) ;
+      if (EVEN(iter))
+      {
+        v->tx = v->x + lambda * dx ;
+        v->ty = v->y + lambda * dy ;
+        v->tz = v->z + lambda * dz ;
+      }
+      else
+      {
+        v->tx = v->x + mu * dx ;
+        v->ty = v->y + mu * dy ;
+        v->tz = v->z + mu * dz ;
+      }
+    }
+    MRISrestoreVertexPositions(mris, TMP_VERTICES) ;
+  }
+
+
+  MRIScomputeMetricProperties(mris) ;
+  vset_save_surface_vertices(vset_current_set) ;
+  vset_set_current_set(vset_current_set) ;
+  vertex_array_dirty = 1 ;
+  redraw() ;
+}
+
 
 void
 shrink(int niter)   /* shrinktypes: nei,mri,curv,exp,area,2d,fill,sphe,ell */
@@ -19392,6 +19471,8 @@ int W_sol_plot  PARM;
 
 int W_remove_triangle_links  PARM;
 
+int W_taubin_smooth  PARM;
+
 int W_label_to_stat  PARM;
 int W_label_from_stats  PARM;
 int W_set_stats  PARM;
@@ -20553,6 +20634,11 @@ ERR(2,"Wrong # args: label_to_stat ")
 label_to_stat(atoi(argv[1]));
 WEND
 
+int                  W_taubin_smooth  WBEGIN
+ERR(4,"Wrong # args: taubin_smooth <niter> <lambda> <mu>  where  mu < -lambda < 0 ")
+  taubin_smooth(mris, atoi(argv[1]), atof(argv[2]), atof(argv[3]));
+WEND
+
 int                  W_label_from_stats  WBEGIN
 ERR(2,"Wrong # args: label_from_stats ")
 label_from_stats(atoi(argv[1]));
@@ -21353,7 +21439,7 @@ int main(int argc, char *argv[])   /* new main */
   nargs =
     handle_version_option
     (argc, argv,
-     "$Id: tksurfer.c,v 1.346 2011/03/01 01:41:23 nicks Exp $", "$Name:  $");
+     "$Id: tksurfer.c,v 1.347 2011/05/18 02:04:28 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -21977,6 +22063,8 @@ int main(int argc, char *argv[])   /* new main */
                     (Tcl_CmdProc*) W_f_to_t, REND);
   Tcl_CreateCommand(interp, "label_to_stat",
                     (Tcl_CmdProc*) W_label_to_stat, REND);
+  Tcl_CreateCommand(interp, "taubin_smooth",
+                    (Tcl_CmdProc*) W_taubin_smooth, REND);
 
   Tcl_CreateCommand(interp, "label_from_stats",
                     (Tcl_CmdProc*) W_label_from_stats, REND);
@@ -26326,6 +26414,10 @@ int sclv_set_threshold_from_percentile (int field, float thresh, float mid,
   sclv_get_value_for_percentile (field, thresh, &thresh_value);
   sclv_get_value_for_percentile (field, mid, &mid_value);
   sclv_get_value_for_percentile (field, max, &max_value);
+
+  printf("%2.2f --> %2.2f\n", thresh, thresh_value) ;
+  printf("%2.2f --> %2.2f\n", mid, mid_value) ;
+  printf("%2.2f --> %2.2f\n", max, max_value) ;
 
   sclv_field_info[field].fthresh = thresh_value;
   sclv_field_info[field].fmid = mid_value;
