@@ -8,8 +8,8 @@
 # Original Author: Anastasia Yendiki
 # CVS Revision Info:
 #    $Author: ayendiki $
-#    $Date: 2011/05/02 07:34:57 $
-#    $Revision: 1.27 $
+#    $Date: 2011/05/18 05:17:13 $
+#    $Revision: 1.28 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -25,7 +25,7 @@
 
 umask 002
 
-set VERSION = '$Id: trac-preproc,v 1.27 2011/05/02 07:34:57 ayendiki Exp $'
+set VERSION = '$Id: trac-preproc,v 1.28 2011/05/18 05:17:13 ayendiki Exp $'
 set ProgName = `basename $0`
 set inputargs = ($argv)
 
@@ -1182,6 +1182,7 @@ if ($dopriors) then
         set cmd = ($cmd --lmask  $lablist)
         set cmd = ($cmd --rois   $roilist)
         set cmd = ($cmd --bmask  $brainmask)
+        set cmd = ($cmd --fa     $dwidir/$xspace/dtifit_FA.$reg.nii.gz)
         set cmd = ($cmd --ncpts $ncptlist)
         if ($usetrunc) then
           set cmd = ($cmd --trunc)
