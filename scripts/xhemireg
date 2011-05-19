@@ -16,7 +16,7 @@
 #  Dont convert volumes in mri/orig
 #
 
-set VERSION = '$Id: xhemireg,v 1.12 2010/01/25 16:55:26 greve Exp $';
+set VERSION = '$Id: xhemireg,v 1.12.4.1 2011/05/19 17:36:56 greve Exp $';
 
 set subject = ();
 set srchemilist = ();
@@ -24,7 +24,7 @@ set surfreg = xhemi.reg
 set UseNoNeg = 0
 set NoRandomness = 1;
 set RngSeed = 1234
-set DoReg = 1;
+set DoReg = 0;
 set PrintHelp = 0;
 set outdir = ();
 set DoAllVol = 0;
@@ -32,6 +32,8 @@ set vollist = (orig aseg aparc+aseg T1 brain brainmask nu norm)
 set ovlist = (curv sulc area area.pial curv.pial avg_curv \
        inflated.H inflated.K thickness)
 set surflist = (orig white pial smoothwm inflated sphere)
+set annotlist = (aparc BA aparc.a2009s)
+set labellist = (cortex)
 
 # For cortical registration, as found in $AvgCurvTifPath/$hemi.$AvgCurvTif
 set AvgCurvTifPath = "$FREESURFER_HOME/average"
@@ -89,10 +91,9 @@ foreach srchemi ($srchemilist)
   pwd | tee -a $LF
   echo "setenv SUBJECTS_DIR $SUBJECTS_DIR "| tee -a $LF
 
+  # Convert volumes, create LR registration
   if($nthhemi == 1) then
-    #--------------------------------------------------------------
-    echo "" | tee -a $LF
-    echo "" | tee -a $LF
+    # Convert volumes
     date | tee -a $LF
     foreach vol ($vollist )
       set invol = mri/$vol.mgz
@@ -110,10 +111,15 @@ foreach srchemi ($srchemilist)
       if($status) exit 1;
     end
 
-    #--------------------------------------------------------------
-    echo ""| tee -a $LF
-    echo ""| tee -a $LF
-    date| tee -a $LF
+    # Recompute talairach registration
+    set cmd = (recon-all -sb $xsubject -talairach)
+    date | tee -a $LF
+    echo $cmd  | tee -a $LF
+    $cmd | tee -a $LF
+    if($status) exit 1;
+
+    # Create LR registration
+    date | tee -a $LF
     set reg = $outdir/lrrev.register.dat
     set cmd = (tkregister2_cmdl --targ mri/orig.mgz \
            --mov $outdir/mri/orig.mgz \
@@ -123,10 +129,8 @@ foreach srchemi ($srchemilist)
     if($status) exit 1;
   endif
 
-  #--------------------------------------------------------------
+  # Convert Surfaces (apply LR registration)
   foreach surf ($surflist)
-    echo "" | tee -a $LF
-    echo "" | tee -a $LF
     date | tee -a $LF
     set cmd = (mri_surf2surf --s $subject --sval-xyz $surf \
      --hemi $srchemi --tval-xyz --tval $outdir/surf/$trghemi.$surf \
@@ -136,40 +140,48 @@ foreach srchemi ($srchemilist)
     if($status) exit 1;
   end
 
-  #--------------------------------------------------------------
+  # Copy overlays (curvs, thicknesses, etc)
   foreach ov ($ovlist )
     if(! -e surf/$srchemi.$ov) continue;
-    echo "" | tee -a $LF
-    echo "" | tee -a $LF
     date | tee -a $LF
     set cmd = (cp surf/$srchemi.$ov $outdir/surf/$trghemi.$ov)
+    echo $cmd >> $LF
+    $cmd | tee -a $LF
+    if($status) exit 1;
+  end
+
+  # Copy labels (no need to convert)
+  foreach label ($labellist )
+    set srclabel = label/$srchemi.$label.label
+    if(! -e $srclabel) continue;
+    set trglabel = xhemi/label/$trghemi.$label.label
+    cp $srclabel $trglabel 
+    if($status) exit 1;
+  end
+
+  # Copy annotations
+  foreach annot ($annotlist)
+    set fname = label/$srchemi.$annot.annot
+    if(! -e $fname) continue;
+    date | tee -a $LF
+    set cmd = (cp $fname $outdir/label/$trghemi.$annot.annot)
     echo $cmd  | tee -a $LF
     $cmd | tee -a $LF
     if($status) exit 1;
   end
 
+  # Surface-based registration 
   if($DoReg) then
-    #------------------------------------------------------------------
-    set cmd = (recon-all -sb $xsubject -hemi $trghemi \
-                -surfreg -cortparc -cortparc2)
-    if($nthhemi == 1) set cmd = ($cmd -talairach)
-    echo "" | tee -a $LF
-    echo "" | tee -a $LF
+    set cmd = (recon-all -sb $xsubject -hemi $trghemi -surfreg)
     date | tee -a $LF
     echo $cmd  | tee -a $LF
     $cmd | tee -a $LF
-    if($status) exit 1;
-
-    #--------------------------------------------------------------
-    cp $outdir/surf/$trghemi.sphere.reg \
-         surf/$srchemi.$trghemi.xhemi.reg |& tee -a $LF
     if($status) exit 1;
   endif
 
 end # Loop over srchemi
 
 #--------------------------------------------------------------
-echo "" | tee -a $LF
 echo "" | tee -a $LF
 date | tee -a $LF
 echo "xhemireg done"  | tee -a $LF
@@ -203,11 +215,6 @@ while( $#argv != 0 )
       set srchemilist = rh;
       breaksw
 
-    case "--reg":
-      if ( $#argv < 1) goto arg1err;
-      set surfreg = $argv[1]; shift;
-      breaksw
-
     case "--all-vol":
       set DoAllVol = 1;
       set DoReg = 0;
@@ -223,8 +230,13 @@ while( $#argv != 0 )
       set outdir = $argv[1]; shift;
       breaksw
 
+    case "--noreg":
     case "--no-reg":
       set DoReg = 0;
+      breaksw
+
+    case "--reg":
+      set DoReg = 1;
       breaksw
 
     case "--debug":
@@ -280,14 +292,13 @@ usage_exit:
   echo "xhemireg"
   echo ""
   echo "   --s subject"
-  echo "   --lh : srchemi = lh (map from left to right) "
-  echo "   --rh : srchemi = rh (map from right to left) "
-  echo "   --reg surfreg : output will be srchemi.trghemi.surfreg (def xhemi.reg)"
   echo ""
+  echo "   --lh : srchemi = lh (map from left to right) (default is to do lh and rh)"
+  echo "   --reg       : perform reg to create sphere.reg"
+  echo "   --rh : srchemi = rh (map from right to left) "
   echo "   --o outdir  : output dir (subject/xhemireg.hemi by def)"
-  echo "   --noreg   : do not actually perform the reg, just set up dir"
-  echo "   --version : print version and exit"
-  echo "   --help    : print help and exit"
+  echo "   --version   : print version and exit"
+  echo "   --help      : print help and exit"
   echo ""
 
   if($PrintHelp) \
