@@ -14,8 +14,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2011/04/13 19:08:37 $
- *    $Revision: 1.297 $
+ *    $Date: 2011/05/19 17:09:56 $
+ *    $Revision: 1.298 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -11411,6 +11411,62 @@ cma_label_to_name(int label)
     return("Left Superior Longitudinal Fasciculus - Temporal") ;
   if (label == rh_slft)
     return("Right Superior Longitudinal Fasciculus - Temporal") ;
+  if (label == Cbm_Left_I_IV)
+    return("Cbm_Left_I_IV") ;
+  if (label == Cbm_Right_I_IV)
+    return("Cbm_Right_I_IV") ;
+  if (label == Cbm_Left_V)
+    return("Cbm_Left_V") ; 
+  if (label == Cbm_Right_V)
+    return("Cbm_Right_V") ; 
+  if (label == Cbm_Left_VI)
+    return("Cbm_Left_VI") ; 
+  if (label == Cbm_Vermis_VI)
+    return("Cbm_Vermis_VI") ; 
+  if (label == Cbm_Right_VI)
+    return("Cbm_Right_VI") ; 
+  if (label == Cbm_Left_CrusI)
+    return("Cbm_Left_CrusI") ; 
+  if (label == Cbm_Vermis_CrusI)
+    return("Cbm_Vermis_CrusI") ; 
+  if (label == Cbm_Right_CrusI)
+    return("Cbm_Right_CrusI") ; 
+  if (label == Cbm_Left_CrusII)
+    return("Cbm_Left_CrusII") ; 
+  if (label == Cbm_Vermis_CrusII)
+    return("Cbm_Vermis_CrusII") ; 
+  if (label == Cbm_Right_CrusII)
+    return("Cbm_Right_CrusII") ; 
+  if (label == Cbm_Left_VIIb)
+    return("Cbm_Left_VIIb") ; 
+  if (label == Cbm_Vermis_VIIb)
+    return("Cbm_Vermis_VIIb") ; 
+  if (label == Cbm_Right_VIIb)
+    return("Cbm_Right_VIIb") ; 
+  if (label == Cbm_Left_VIIIa)
+    return("Cbm_Left_VIIIa") ; 
+  if (label == Cbm_Vermis_VIIIa)
+    return("Cbm_Vermis_VIIIa") ; 
+  if (label == Cbm_Right_VIIIa)
+    return("Cbm_Right_VIIIa") ; 
+  if (label == Cbm_Left_VIIIb)
+    return("Cbm_Left_VIIIb") ; 
+  if (label == Cbm_Vermis_VIIIb)
+    return("Cbm_Vermis_VIIIb") ; 
+  if (label == Cbm_Right_VIIIb)
+    return("Cbm_Right_VIIIb") ; 
+  if (label == Cbm_Left_IX)
+    return("Cbm_Left_IX") ; 
+  if (label == Cbm_Vermis_IX)
+    return("Cbm_Vermis_IX") ; 
+  if (label == Cbm_Right_IX)
+    return("Cbm_Right_IX") ; 
+  if (label == Cbm_Left_X)
+    return("Cbm_Left_X") ; 
+  if (label == Cbm_Vermis_X)
+    return("Cbm_Vermis_X") ; 
+  if (label == Cbm_Right_X)
+    return("Cbm_Right_X") ; 
   return(name) ;
 }
 MRI *
