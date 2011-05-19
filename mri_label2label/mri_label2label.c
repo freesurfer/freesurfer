@@ -39,20 +39,19 @@
 /*
  * Original Author: Douglas Greve
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2010/03/27 21:24:31 $
- *    $Revision: 1.39 $
+ *    $Author: greve $
+ *    $Date: 2011/05/19 17:21:56 $
+ *    $Revision: 1.40.2.1 $
  *
- * Copyright (C) 2002-2010,
- * The General Hospital Corporation (Boston, MA).
- * All rights reserved.
+ * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
- * Distribution, usage and copying of this software is covered under the
- * terms found in the License Agreement file named 'COPYING' found in the
- * FreeSurfer source code root directory, and duplicated here:
- * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ * Terms and conditions for use, reproduction, distribution and contribution
+ * are found in the 'FreeSurfer Software License Agreement' contained
+ * in the file 'LICENSE' found in the FreeSurfer distribution, and here:
  *
- * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
+ *
+ * Reporting: freesurfer@nmr.mgh.harvard.edu
  *
  */
 
@@ -91,7 +90,7 @@ static int  nth_is_arg(int nargc, char **argv, int nth);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] = 
-  "$Id: mri_label2label.c,v 1.39 2010/03/27 21:24:31 nicks Exp $";
+  "$Id: mri_label2label.c,v 1.40.2.1 2011/05/19 17:21:56 greve Exp $";
 char *Progname = NULL;
 
 char  *srclabelfile = NULL;
@@ -178,7 +177,7 @@ int main(int argc, char **argv) {
   /* rkt: check for and handle version tag */
   nargs = handle_version_option 
     (argc, argv,
-     "$Id: mri_label2label.c,v 1.39 2010/03/27 21:24:31 nicks Exp $",
+     "$Id: mri_label2label.c,v 1.40.2.1 2011/05/19 17:21:56 greve Exp $",
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -261,7 +260,7 @@ int main(int argc, char **argv) {
     trglabel = LabelAlloc(srclabel->n_points,trgsubject,trglabelfile);
     trglabel->n_points = srclabel->n_points;
 
-    printf("Starting volumetric mapping\n");
+    printf("Starting volumetric mapping %d points\n",trglabel->n_points);
 
     if (RegFile == NULL) {
       if (XFMFile) {
@@ -324,14 +323,16 @@ int main(int argc, char **argv) {
       trglabel->lv[n].z = xyzTrg->rptr[0+3][0+1];
       trglabel->lv[n].stat = srclabel->lv[n].stat;
 
-      /*printf("%3d  %6.4f %6.4f %6.4f    %6.4f %6.4f %6.4f\n",n,
-       srclabel->lv[n].x,srclabel->lv[n].y,srclabel->lv[n].z,
-       trglabel->lv[n].x,trglabel->lv[n].y,trglabel->lv[n].z);*/
+      if(n<5){
+	printf("%3d  %6.4f %6.4f %6.4f    %6.4f %6.4f %6.4f\n",n,
+	       srclabel->lv[n].x,srclabel->lv[n].y,srclabel->lv[n].z,
+	       trglabel->lv[n].x,trglabel->lv[n].y,trglabel->lv[n].z);
+      }
     }
 
-    MatrixFree(&SrcVolReg) ;
-    MatrixFree(&TrgVolReg) ;
-    MatrixFree(&InvTrgVolReg) ;
+    if(SrcVolReg) MatrixFree(&SrcVolReg) ;
+    if(TrgVolReg) MatrixFree(&TrgVolReg) ;
+    if(InvTrgVolReg) MatrixFree(&InvTrgVolReg) ;
     MatrixFree(&Src2TrgVolReg) ;
     MatrixFree(&xyzSrc);
     MatrixFree(&xyzTrg);
@@ -684,7 +685,7 @@ int main(int argc, char **argv) {
       LabelFillUnassignedVertices(mris, trglabel, CURRENT_VERTICES);
       MRISfree(&mris) ;
     }
-    printf("Writing label file %s \n",trglabelfile);
+    printf("Writing label file %s %d\n",trglabelfile,trglabel->n_points);
     if (LabelWrite(trglabel,trglabelfile))
       printf("ERROR: writing label file\n");
   }
