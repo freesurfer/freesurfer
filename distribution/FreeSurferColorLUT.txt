@@ -1,4 +1,4 @@
-#$Id: FreeSurferColorLUT.txt,v 1.74 2011/05/16 20:43:38 nicks Exp $
+#$Id: FreeSurferColorLUT.txt,v 1.75 2011/05/19 15:49:04 fischl Exp $
 
 #No. Label Name:                            R   G   B   A
 
@@ -1262,3 +1262,34 @@
 14173  wm_rh_S_temporal_inf                    21 180 180   0
 14174  wm_rh_S_temporal_sup                   223 220  60   0
 14175  wm_rh_S_temporal_transverse            221  60  60   0
+
+
+# Cerebellar parcellation labels from SUIT
+14201  Cbm_Left_I_IV 	70  130 180 0
+14202  Cbm_Right_I_IV	245 245 245 0
+14203  Cbm_Left_V		205 62  78  0
+14204  Cbm_Right_V		120 18  134 0
+14205  Cbm_Left_VI		196 58  250 0
+14206  Cbm_Vermis_VI	0   148 0   0
+14207  Cbm_Right_VI		220 248 164 0
+14208  Cbm_Left_CrusI	230 148 34  0
+14209  Cbm_Vermis_CrusI	0   118 14  0
+14210  Cbm_Right_CrusI	0   118 14  0
+14211  Cbm_Left_CrusII	122 186 220 0
+14212  Cbm_Vermis_CrusII	236 13  176 0
+14213  Cbm_Right_CrusII	12  48  255 0
+14214  Cbm_Left_VIIb	204 182 142 0
+14215  Cbm_Vermis_VIIb	42  204 164 0
+14216  Cbm_Right_VIIb	119 159 176 0
+14217  Cbm_Left_VIIIa	220 216 20  0
+14218  Cbm_Vermis_VIIIa	103 255 255 0
+14219  Cbm_Right_VIIIa	80  196 98  0
+14220  Cbm_Left_VIIIb	60  58  210 0
+14221  Cbm_Vermis_VIIIb	60  58  210 0
+14222  Cbm_Right_VIIIb	60  58  210 0
+14223  Cbm_Left_IX		60  58  210 0
+14224  Cbm_Vermis_IX	60  60  60  0
+14225  Cbm_Right_IX		255 165 0   0
+14226  Cbm_Left_X		255 165 0   0
+14227  Cbm_Vermis_X		0   255 127 0
+14228  Cbm_Right_X		165 42  42  0
