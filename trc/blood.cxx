@@ -2004,10 +2004,10 @@ void Blood::FindCenterStreamline(bool CheckOverlap, bool CheckDeviation,
             int nzeros = 0;
             float f = MRIgetVoxVal(mTestFa, ipt[0], ipt[1], ipt[2], 0);
 
-            while (f < 0.075) {		// Low anisotropy area
+            while (f < 0.1) {		// Low anisotropy area
               nzeros++;
 
-              if (nzeros > 4) {
+              if (nzeros > 3) {
                 okfa = false;
                 break;
               }
@@ -2457,7 +2457,7 @@ void Blood::FindPointsOnStreamlineComb(vector<int> &Streamline, int NumPoints) {
             strdiv = (int) round((strlen-1) / (NumPoints-1)),
             lag = max(1, min((int) round(mControlStepRatio * NumPoints / mDx),
                              strdiv)) * 3;
-  float overlapmax = 0;
+  float overlapmax = 0.0;
   vector<int> cpts(NumPoints*3);
   vector<int>::const_iterator ipt;
   vector<vector<int>::const_iterator> cptopt(NumPoints);
@@ -2489,6 +2489,9 @@ void Blood::FindPointsOnStreamlineComb(vector<int> &Streamline, int NumPoints) {
        cptopt[1] <= Streamline.end() - 3 - (NumPoints-2) * lag;
        cptopt[1] += lag)
     TryControlPoint(overlapmax, 2, lag, cpts, cptopt, spline, Streamline);
+
+  if (overlapmax == 0.0)
+    cout << "WARN: Defaulting to equidistant control points" << endl;
 
   cout << "INFO: Selected control points are" << endl;
   for (vector<int>::const_iterator icpt = cpts.begin(); icpt < cpts.end();
@@ -2534,8 +2537,8 @@ void Blood::TryControlPoint(float &OverlapMax,
     for (ControlPoints[IndexPoint] = ControlPoints[IndexPoint-1] + SearchLag;
          ControlPoints[IndexPoint] < Streamline.end() - SearchLag;
          ControlPoints[IndexPoint] += SearchLag) {
-      int splen, nzeros = 0;
-      float overlap = 0;
+      int splen, nhzeros = 0, nfzeros = 0;
+      float overlap = 0.0;
       vector<int> cpts;
 
       // Fit spline to current control points
@@ -2557,9 +2560,16 @@ void Blood::TryControlPoint(float &OverlapMax,
                     f = (mTestFa ? 
                         MRIgetVoxVal(mTestFa, ipt[0], ipt[1], ipt[2], 0) : 1.0);
 
-        overlap += h;
+        if (f < 0.1) {		 	// Point is in low anisotropy area
+          nfzeros++;
 
-        if (h < 1.0 || f < 0.075) {	// Point is off histogram or in low FA
+          if (nfzeros > 3)
+            break;
+        }
+        else
+          nfzeros = 0;
+
+        if (h < 1.0) {			// Point is off histogram
           double dmin = numeric_limits<double>::infinity();
 
           // Check point distance from true streamline
@@ -2576,13 +2586,16 @@ void Blood::TryControlPoint(float &OverlapMax,
           }
 
           if (dmin > 2)
-            nzeros++;
+            nhzeros++;
         }
+
+        overlap += h;
       }
 
-      // Don't allow spline if more than 10% of its points
-      // are off the histogram and far from true streamline
-      if (nzeros > (int) (.1 * splen))
+      // Don't allow spline if more than 3 contiguous points are in low FA
+      // or if more than 10% of all points are off the histogram and also
+      // far from true streamline
+      if (nfzeros > 3 || nhzeros > (int) (.1 * splen))
         continue;
 
       overlap /= splen;
