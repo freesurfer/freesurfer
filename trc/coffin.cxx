@@ -2031,6 +2031,9 @@ void Coffin::WriteOutputs() {
   MRI *out1 = MRIclone(mMask, NULL);
   MRI *out2 = MRIclone(mMask, NULL);
 
+  sprintf(fname, "%s/log.txt", mOutDir);
+  mLog.open(fname, ios::out | ios::app);
+
   cout << "Writing output files to " << mOutDir << endl;
   mLog << "Writing output files to " << mOutDir << endl;
 
@@ -2130,5 +2133,8 @@ void Coffin::WriteOutputs() {
 
   MRIfree(&out1);
   MRIfree(&out2);
+
+  mLog.flush();
+  mLog.close();
 }
 
