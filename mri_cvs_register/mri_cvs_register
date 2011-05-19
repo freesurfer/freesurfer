@@ -13,7 +13,7 @@
 # Edited : 05-13-2011: deleted --mpi option
 
 set inputargs = ($argv);
-set VERSION = '$Id: mri_cvs_register,v 1.26 2011/05/16 19:51:13 lzollei Exp $';
+set VERSION = '$Id: mri_cvs_register,v 1.27 2011/05/19 19:55:47 lzollei Exp $';
 
 set movingid = ();
 set templateid = ();
@@ -403,7 +403,12 @@ if (!(-e $outdir/combined_to${templateid}_elreg_$prefix$voltype.m3z  ) || $Clean
 endif
 
 if ($cleanup) then # deleting tm3d file!
-  set cmd = ( rm -f $outdir/$combined $outdir/$oldcombined)
+  if ($USeAseg) then
+    set filesToDelete = $outdir/$oldcombined $outdir/$combined
+  else 
+    set filesToDelete = $outdir/$combined
+  endif
+  set cmd = ( rm -f $filesToDelete)
   echo $cmd |& tee -a $LF
   $cmd |& tee -a $LF
   if($status) exit 1;
