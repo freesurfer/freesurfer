@@ -8,8 +8,8 @@
  * Original Author: Anastasia Yendiki
  * CVS Revision Info:
  *    $Author: ayendiki $
- *    $Date: 2011/05/18 06:38:28 $
- *    $Revision: 1.4 $
+ *    $Date: 2011/05/20 06:55:04 $
+ *    $Revision: 1.5 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -69,7 +69,7 @@ int main(int argc, char *argv[]) ;
 static char vcid[] = "";
 const char *Progname = "dmri_train";
 
-bool useTrunc = false;
+bool useTrunc = false, excludeStr = false;
 int nControl[100], nout = 0, ntrk = 0, nroi1 = 0, nroi2 = 0, nlab = 0, ncpt = 0;
 float trainMaskLabel[100];
 char *outDir = NULL, *outBase[100], *trainListFile = NULL,
@@ -85,7 +85,7 @@ struct timeb cputimer;
 /*--------------------------------------------------*/
 int main(int argc, char **argv) {
   int nargs, cputime;
-  char fbase[PATH_MAX];
+  char excfile[PATH_MAX], fbase[PATH_MAX];
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option (argc, argv, vcid, "$Name:  $");
@@ -109,17 +109,31 @@ int main(int argc, char **argv) {
 
   dump_options(stdout);
 
+  if (excludeStr)
+    if (outDir)
+      sprintf(excfile, "%s/%s_cpts_all.bad.txt", outDir, outBase[0]);
+    else
+      sprintf(excfile, "%s_cpts_all.bad.txt", outBase[0]);
+    
   Blood myblood(trainListFile, trainTrkList[0],
                 nroi1 ? trainRoi1List[0] : 0, nroi2 ? trainRoi2List[0] : 0,
                 trainAsegFile, trainMaskFile, nlab ? trainMaskLabel[0] : 0,
-                testMaskFile, testFaFile, useTrunc);
+                testMaskFile, testFaFile, excludeStr ? excfile : 0, useTrunc);
 
   for (int itrk = 0; itrk < ntrk; itrk++) {
-    if (itrk > 0)
+    if (itrk > 0) {
+      if (excludeStr)
+        if (outDir)
+          sprintf(excfile, "%s/%s_cpts_all.bad.txt", outDir, outBase[itrk]);
+        else
+          sprintf(excfile, "%s_cpts_all.bad.txt", outBase[itrk]);
+    
       myblood.ReadStreamlines(trainListFile, trainTrkList[itrk],
                               nroi1 ? trainRoi1List[itrk] : 0,
                               nroi2 ? trainRoi2List[itrk] : 0,
-                              nlab ? trainMaskLabel[itrk] : 0);
+                              nlab ? trainMaskLabel[itrk] : 0,
+                              excludeStr ? excfile : 0);
+    }
 
     printf("Processing pathway %d of %d...\n", itrk+1, ntrk);
     TimerStart(&cputimer);
@@ -242,6 +256,8 @@ static int parse_commandline(int argc, char **argv) {
     }
     else if (!strcmp(option, "--trunc"))
       useTrunc = true;
+    else if (!strcmp(option, "--xstr"))
+      excludeStr = true;
 
     nargc -= nargsused;
     pargv += nargsused;
@@ -283,6 +299,8 @@ static void print_usage(void)
   printf("     Input FA volume for test subject (optional)\n");
   printf("   --ncpts <num> [...]:\n");
   printf("     Number of control points for initial spline\n");
+  printf("   --xstr:\n");
+  printf("     Exclude previously chosen center streamline(s) (Default: No)\n");
   printf("   --trunc:\n");
   printf("     Also save results using all streamlines, truncated or not\n");
   printf("     (Default: Only save results using non-truncated streamlines)\n");
@@ -412,6 +430,7 @@ static void dump_options(FILE *fp) {
   for (int k = 0; k < ncpt; k++)
     fprintf(fp, " %d ", nControl[k]);
   fprintf(fp, "\n");
+  fprintf(fp, "Exclude previously chosen center streamlines: %d\n", excludeStr);
   fprintf(fp, "Use truncated streamlines: %d\n", useTrunc);
 
   return;
