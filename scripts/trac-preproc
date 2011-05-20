@@ -8,8 +8,8 @@
 # Original Author: Anastasia Yendiki
 # CVS Revision Info:
 #    $Author: ayendiki $
-#    $Date: 2011/05/18 06:42:54 $
-#    $Revision: 1.17.2.4 $
+#    $Date: 2011/05/20 06:51:51 $
+#    $Revision: 1.17.2.5 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -25,7 +25,7 @@
 
 umask 002
 
-set VERSION = '$Id: trac-preproc,v 1.17.2.4 2011/05/18 06:42:54 ayendiki Exp $'
+set VERSION = '$Id: trac-preproc,v 1.17.2.5 2011/05/20 06:51:51 ayendiki Exp $'
 set ProgName = `basename $0`
 set inputargs = ($argv)
 
@@ -1171,6 +1171,18 @@ if ($dopriors) then
           set brainmask = $labdir/$xspace/aparc+aseg_mask.nii.gz
         endif
 
+        if ($reinit) then	# Exclude previous spline initialization
+          foreach outbase ($outlist)
+            set oldinit = $outdir/${outbase}_cpts_all.txt
+
+            if (-e $oldinit) then
+              set excfile = $outdir/${outbase}_cpts_all.bad.txt
+              echo exclude >> $excfile
+              cat $oldinit >> $excfile
+            endif
+          end
+        endif
+
         # Compute priors, end ROIs, and initial control points from training set
         set cmd = $trcdir/dmri_train
         set cmd = ($cmd --outdir $outdir)
@@ -1184,6 +1196,9 @@ if ($dopriors) then
         set cmd = ($cmd --bmask  $brainmask)
         set cmd = ($cmd --fa     $dwidir/$xspace/dtifit_FA.$reg.nii.gz)
         set cmd = ($cmd --ncpts $ncptlist)
+        if ($reinit) then
+          set cmd = ($cmd --xstr)
+        endif
         if ($usetrunc) then
           set cmd = ($cmd --trunc)
         endif

@@ -8,8 +8,8 @@
 # Original Author: Anastasia Yendiki
 # CVS Revision Info:
 #    $Author: ayendiki $
-#    $Date: 2011/05/15 05:00:24 $
-#    $Revision: 1.22.2.3 $
+#    $Date: 2011/05/20 06:51:51 $
+#    $Revision: 1.22.2.4 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -25,7 +25,7 @@
 
 umask 002
 
-set VERSION = '$Id: trac-all,v 1.22.2.3 2011/05/15 05:00:24 ayendiki Exp $'
+set VERSION = '$Id: trac-all,v 1.22.2.4 2011/05/20 06:51:51 ayendiki Exp $'
 set ProgName = `basename $0`
 set inputargs = ($argv)
 
@@ -121,7 +121,7 @@ set thrbet = 0.3
 set doregflt = 1
 set doregbbr = 1
 set doregmni = 1
-set doregcvs = 0
+set doregcvs = 1
 set mnitemp = $FSLDIR/data/standard/MNI152_T1_1mm_brain.nii.gz
 set cvstempdir = $FREESURFER_HOME/subjects
 set cvstemp = cvs_avg35
@@ -140,6 +140,7 @@ set trainfile = $FREESURFER_HOME/trctrain/trainlist.txt
 set trainsubjlist = ()
 set ntrainlist = ()
 set avgname = ()
+set reinit = 0
 set usetrunc = 0
 set do1out = 0
 set doprior = 0
@@ -418,6 +419,7 @@ foreach isubj ($runlist)
   echo "set trainsubjlist = ($trainsubjlist)"				>> $RCF
   echo "set ntrainlist = ($ntrainlist)"					>> $RCF
   echo "set avgname = ($avgname)"					>> $RCF
+  echo "set reinit = ($reinit)"					>> $RCF
   echo "set usetrunc = ($usetrunc)"					>> $RCF
   echo "set doprior = ($doprior)"					>> $RCF
   echo "set dosegprior = ($dosegprior)"					>> $RCF
@@ -778,15 +780,6 @@ arg1err:
 ############--------------##################
 check_params:
   if (! $DoVersionsOnly) then
-    if ($doregcvs) then
-      echo "WARN: CVS template is not unavailable in the current version"
-      set doregcvs = 0
-    endif
-    if (! $doregmni) then
-      echo "WARN: MNI is the only available inter-subject registration template"
-      set doregmni = 1
-    endif
-
     if (-e $trainfile) then
       if ($do1out) then
         # Leave-one-out training file:
