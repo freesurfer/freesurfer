@@ -8,8 +8,8 @@
 # Original Author: Anastasia Yendiki
 # CVS Revision Info:
 #    $Author: ayendiki $
-#    $Date: 2011/05/12 16:42:27 $
-#    $Revision: 1.30 $
+#    $Date: 2011/05/20 06:50:30 $
+#    $Revision: 1.31 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -25,7 +25,7 @@
 
 umask 002
 
-set VERSION = '$Id: trac-all,v 1.30 2011/05/12 16:42:27 ayendiki Exp $'
+set VERSION = '$Id: trac-all,v 1.31 2011/05/20 06:50:30 ayendiki Exp $'
 set ProgName = `basename $0`
 set inputargs = ($argv)
 
@@ -140,6 +140,7 @@ set trainfile = $FREESURFER_HOME/trctrain/trainlist.txt
 set trainsubjlist = ()
 set ntrainlist = ()
 set avgname = ()
+set reinit = 0
 set usetrunc = 0
 set do1out = 0
 set doprior = 0
@@ -418,6 +419,7 @@ foreach isubj ($runlist)
   echo "set trainsubjlist = ($trainsubjlist)"				>> $RCF
   echo "set ntrainlist = ($ntrainlist)"					>> $RCF
   echo "set avgname = ($avgname)"					>> $RCF
+  echo "set reinit = ($reinit)"					>> $RCF
   echo "set usetrunc = ($usetrunc)"					>> $RCF
   echo "set doprior = ($doprior)"					>> $RCF
   echo "set dosegprior = ($dosegprior)"					>> $RCF
