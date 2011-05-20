@@ -38,7 +38,8 @@ Blood::Blood(const char *TrainListFile, const char *TrainTrkFile,
              const char *TrainRoi1File, const char *TrainRoi2File,
              const char *TrainAsegFile, const char *TrainMaskFile,
              float TrainMaskLabel, const char *TestMaskFile,
-             const char *TestFaFile, bool UseTruncated) :
+             const char *TestFaFile, const char *ExcludeFile,
+             bool UseTruncated) :
              mUseTruncated(UseTruncated),
              mMaskLabel(TrainMaskLabel) {
   int dirs[45] = { 0,  0,  0,
@@ -82,7 +83,7 @@ Blood::Blood(const char *TrainListFile, const char *TrainTrkFile,
 
   // Read inputs for first pathway
   ReadStreamlines(TrainListFile, TrainTrkFile, TrainRoi1File, TrainRoi2File,
-                  TrainMaskLabel);
+                  TrainMaskLabel, ExcludeFile);
   ReadAnatomy(TrainListFile, TrainAsegFile, TrainMaskFile);
 
   // Allocate space for histograms
@@ -96,7 +97,7 @@ Blood::Blood(const char *TrainTrkFile, const char *TrainRoi1File,
              mNx(0), mNy(0), mNz(0),
              mTestMask(0) {
   // Read single input streamline file
-  ReadStreamlines(0, TrainTrkFile, TrainRoi1File, TrainRoi2File, 0);
+  ReadStreamlines(0, TrainTrkFile, TrainRoi1File, TrainRoi2File, 0, 0);
 
   if (TrainRoi1File) {
     // Allocate space for histograms
@@ -142,7 +143,8 @@ void Blood::ReadStreamlines(const char *TrainListFile,
                             const char *TrainTrkFile,
                             const char *TrainRoi1File,
                             const char *TrainRoi2File,
-                            float TrainMaskLabel) {
+                            float TrainMaskLabel,
+                            const char *ExcludeFile) {
   int nrejmask = 0, nrejrev = 0;
   vector<string> dirlist;
   vector<MRI *>::iterator ivol;
@@ -178,6 +180,7 @@ void Blood::ReadStreamlines(const char *TrainListFile,
   mVarEnd1.clear();
   mVarEnd2.clear();
   mVarMid.clear();
+  mExcludedStreamlines.clear();
   mCenterStreamline.clear();
   mControlPoints.clear();
   mControlStd.clear();
@@ -547,6 +550,54 @@ void Blood::ReadStreamlines(const char *TrainListFile,
   RemoveLengthOutliers();
 
   ComputeStats();
+
+  if (ExcludeFile)
+    ReadExcludedStreamlines(ExcludeFile);
+}
+
+//
+// Read list of streamlines to be excluded from search for center streamline
+//
+void Blood::ReadExcludedStreamlines(const char *ExcludeFile) {
+  string excline;
+  ifstream excfile;
+
+  mExcludedStreamlines.clear();
+
+  cout << "Loading list of excluded streamlines from " << ExcludeFile << endl;
+  excfile.open(ExcludeFile, ios::in);
+
+  if (!excfile) {
+    cout << "WARN: Could not open " << ExcludeFile << endl;
+  }
+  else {
+    getline(excfile, excline);
+
+    while (excline.compare("exclude") == 0) {
+      vector<int> points;
+
+      while (getline(excfile, excline) && excline.compare("exclude") != 0) {
+        float coord;
+        istringstream excstr(excline);
+
+        while (excstr >> coord)
+          points.push_back((int) round(coord));
+      }
+
+      if (points.size() % 3 != 0) {
+        cout << "ERROR: File " << ExcludeFile
+             << " must contain triplets of coordinates" << endl;
+        exit(1);
+      }
+
+      mExcludedStreamlines.push_back(points);
+    }
+
+    excfile.close();
+  }
+
+  cout << "INFO: Found " << mExcludedStreamlines.size() 
+       << " streamlines to be excluded" << endl;
 }
 
 //
@@ -1975,14 +2026,22 @@ void Blood::FindCenterStreamline(bool CheckOverlap, bool CheckDeviation,
   for (vector< vector<int> >::const_iterator istr = mStreamlines.begin();
                                             istr < mStreamlines.end(); istr++) {
     if (*ivalid1 && *ivalid2) {
-      bool okhist = true, okfa = true,
+      bool isexcluded = false,
+           okhist = true, okfa = true,
            okend1 = true, okend2 = true, okmid = true;
       double hdtot = 0;
       vector<bool>::const_iterator jvalid1 = mIsInEnd1.begin(),
                                    jvalid2 = mIsInEnd2.begin();
       vector<int>::const_iterator jlen = mLengths.begin();
 
-      if (mNumTrain > 1) {		// No checks in single-subject case
+      // Check if this is one of the excluded streamlines, if any
+      for (vector< vector<int> >::const_iterator
+                                  ixstr = mExcludedStreamlines.begin();
+                                  ixstr < mExcludedStreamlines.end(); ixstr++)
+        if (equal(istr->begin(), istr->end(), ixstr->begin()))
+          isexcluded = true;
+
+      if (!isexcluded && mNumTrain > 1) {	// No checks for single subject
         if (CheckOverlap) {		// Check overlap with histogram
           int nzeros = 0;
 
@@ -2045,7 +2104,7 @@ void Blood::FindCenterStreamline(bool CheckOverlap, bool CheckDeviation,
         }
       }
 
-      if (okhist && okfa && okend1 && okend2 && okmid) {
+      if (!isexcluded && okhist && okfa && okend1 && okend2 && okmid) {
         for (vector< vector<int> >::const_iterator
              jstr = mStreamlines.begin(); jstr < mStreamlines.end(); jstr++) {
           double hd = 0;

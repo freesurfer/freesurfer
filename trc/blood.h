@@ -28,6 +28,7 @@
 #include <string>
 #include <iostream>
 #include <fstream>
+#include <sstream>
 #include <algorithm>
 #include <limits>
 #include <limits.h>
@@ -43,13 +44,14 @@ class Blood {
           const char *TrainRoi1File, const char *TrainRoi2File,
           const char *TrainAsegFile, const char *TrainMaskFile,
           float TrainMaskLabel, const char *TestMaskFile,
-          const char *TestFaFile, bool UseTruncated);
+          const char *TestFaFile, const char *ExcludeFile,
+          bool UseTruncated);
     Blood(const char *TrainTrkFile, const char *TrainRoi1File,
           const char *TrainRoi2File);
     ~Blood();
     void ReadStreamlines(const char *TrainListFile, const char *TrainTrkFile,
                          const char *TrainRoi1File, const char *TrainRoi2File,
-                         float TrainMaskLabel);
+                         float TrainMaskLabel, const char *ExcludeFile);
     void ReadAnatomy(const char *TrainListFile, const char *TrainAsegFile,
                                                 const char *TrainMaskFile);
     void RemoveLengthOutliers();
@@ -101,6 +103,7 @@ class Blood {
                        mCurvatureMean, mCurvatureStd,
                        mCurvatureMeanAll, mCurvatureStdAll;
     std::vector< std::vector<int> > mStreamlines, mControlPoints,
+                                    mExcludedStreamlines,
                                     mHistoLocal, mHistoNear,
                                     mHistoLocalAll, mHistoNearAll;
     std::vector< std::vector<float> > mControlStd,
@@ -113,6 +116,7 @@ class Blood {
     std::vector<MRI *> mRoi1, mRoi2, mAseg, mMask;
     MRI *mTestMask, *mTestFa, *mHistoStr, *mHistoSubj;
 
+    void ReadExcludedStreamlines(const char *ExcludeFile);
     void ComputeStats();
     void ComputeStatsEnds();
     void ComputeEndPointCoM();
