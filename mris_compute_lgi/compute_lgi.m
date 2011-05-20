@@ -72,15 +72,21 @@ for iV = 1 : nsteps: length(mesh_outer.vertices)
     lGI = areaPialROI/areasOuterROI(iV);
    
           
-    if lGI > 7 
+    if lGI > 9 
         disp(['... remeasuring lGI value for vertex iV = ', num2str(iV), '. It may take a few minutes.'])
-        areaPialROI = getMeshArea(mesh_total) - areaPialROI ; % see the corresponding label, which is inverted
+        areaPialROI = getMeshArea(mesh_total) - areaPialROI ; % see the corresponding label, which is probably inverted
         if areaPialROI < areasOuterROI(iV)
             disp(['WARNING -- Problem for vertex iV = ', num2str(iV), ', lGI value is aberrantly high (lGI=', num2str(lGI), ')...'])
             disp([ '...lGI computation will be stopped. This may be caused by topological defects, check mris_euler_number on the pial surface.'])
             return
         end
         lGI = areaPialROI/areasOuterROI(iV);
+        
+        if lGI > 9
+            disp(['WARNING -- Problem for vertex iV = ', num2str(iV), ', lGI value is aberrantly high (lGI=', num2str(lGI), ')...'])
+            disp([ '...lGI computation will be stopped. This may be caused by topological defects, check mris_euler_number on the pial surface.'])
+            return
+        end
     end
 
     disp(['lGI for vertex number ',num2str(iV),' of the outer mesh is ',num2str(lGI)])
