@@ -10,26 +10,25 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2009/09/14 23:29:09 $
-#    $Revision: 1.29 $
+#    $Date: 2011/05/20 23:35:44 $
+#    $Revision: 1.30.2.1 $
 #
-# Copyright (C) 2002-2007,
-# The General Hospital Corporation (Boston, MA).
-# All rights reserved.
+# Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
-# Distribution, usage and copying of this software is covered under the
-# terms found in the License Agreement file named 'COPYING' found in the
-# FreeSurfer source code root directory, and duplicated here:
-# https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+# Terms and conditions for use, reproduction, distribution and contribution
+# are found in the 'FreeSurfer Software License Agreement' contained
+# in the file 'LICENSE' found in the FreeSurfer distribution, and here:
 #
-# General inquiries: freesurfer@nmr.mgh.harvard.edu
-# Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+# https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
+#
+# Reporting: freesurfer@nmr.mgh.harvard.edu
+#
 #
 
 # uncomment this to increase number of allowable open files to maximum:
 #limit descriptors unlimited
 
-set VERSION = '$Id: make_average_volume,v 1.29 2009/09/14 23:29:09 greve Exp $';
+set VERSION = '$Id: make_average_volume,v 1.30.2.1 2011/05/20 23:35:44 greve Exp $';
 
 set PrintHelp = 0;
 set transform_fname = talairach.xfm
@@ -116,8 +115,14 @@ foreach volid (orig T1 brain)
       endif
     endif
 
-    # Use mgh to keep from having to compress and decompress
-    set xfmvol = $tmpdir/$volid-$subject.mgh
+
+    set thisXHemi = `basename $subject`
+    if( "$thisXHemi" != "xhemi") then
+      set xfmvol = $tmpdir/$volid-$subject.mgh
+    else
+      set tmp = `dirname $subject`
+      set xfmvol = $tmpdir/$volid-$tmp-xhemi.mgh
+    endif
 
     set cmd = (mri_convert $invol $xfmvol  --apply_transform $xfm)
     set cmd = ($cmd -oc 0 0 0 ); # sets output c_ras=0
@@ -345,13 +350,20 @@ while( $#argv != 0 )
     case "--no-link":
       breaksw
 
+    case "--xhemi":
+      set DoXHemi = 1;
+      if ( $getting_subjects ) then
+        set getting_subjects = 0;
+        # got em all, from --subjects variable arg loop
+      endif
+      breaksw
+
     # These are flags passed to make_average_subject, but dont apply here
     case "--no-link":
     case "--link":
     case "--no-surf":
     case "--no-vol":
     case "--force":
-    case "--xhemi":
       if ( $getting_subjects ) then
         set getting_subjects = 0;
         # got em all, from --subjects variable arg loop
