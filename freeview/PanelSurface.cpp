@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2011/05/06 18:19:48 $
- *    $Revision: 1.41 $
+ *    $Date: 2011/05/20 17:35:30 $
+ *    $Revision: 1.42 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -69,7 +69,8 @@ PanelSurface::PanelSurface(QWidget *parent) :
                 << ui->labelMeshColor;
 
   m_widgetsLabel << ui->colorpickerLabelColor
-                 << ui->labelLabelColor;
+                 << ui->labelLabelColor
+                 << ui->checkBoxLabelOutline;
 
   ui->actionSurfaceMain->setData( FSSurface::SurfaceMain );
   ui->actionSurfaceInflated->setData( FSSurface::SurfaceInflated );
@@ -134,6 +135,7 @@ void PanelSurface::ConnectLayer( Layer* layer_in )
   connect( ui->spinBoxVectorPointSize, SIGNAL(valueChanged(int)), p, SLOT(SetVectorPointSize(int)) );
   connect( ui->spinBoxVertexPointSize, SIGNAL(valueChanged(int)), p, SLOT(SetVertexPointSize(int)) );
   connect( ui->colorpickerLabelColor, SIGNAL(colorChanged(QColor)), layer, SLOT(SetActiveLabelColor(QColor)));
+  connect( ui->checkBoxLabelOutline, SIGNAL(toggled(bool)), layer, SLOT(SetActiveLabelOutline(bool)));
 }
 
 void PanelSurface::DoIdle()
@@ -288,6 +290,7 @@ void PanelSurface::DoUpdateWidgets()
   {
     double* rgb = layer->GetActiveLabel()->GetColor();
     ui->colorpickerLabelColor->setCurrentColor( QColor( (int)(rgb[0]*255), (int)(rgb[1]*255), (int)(rgb[2]*255) ) );
+    ui->checkBoxLabelOutline->setChecked(layer->GetActiveLabel()->GetShowOutline());
   }
 
   int nCurvatureMap = layer ? layer->GetProperty()->GetCurvatureMap() : 0;

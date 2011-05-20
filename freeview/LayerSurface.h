@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2011/05/17 14:20:14 $
- *    $Revision: 1.43 $
+ *    $Date: 2011/05/20 17:35:30 $
+ *    $Revision: 1.44 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -150,6 +150,8 @@ public:
 
   void SetActiveOverlay( const QString& name );
 
+  SurfaceOverlay* GetCorrelationOverlay();
+
   void CopyCorrelationOverlay(LayerSurface* surf);
 
   // annotation functions
@@ -218,7 +220,9 @@ public slots:
   {
     m_bLoadAll = bLoadAll;
   }
+
   void SetActiveLabelColor(const QColor& c);
+  void SetActiveLabelOutline(bool bOutline);
 
 Q_SIGNALS:
   void SurfaceAnnotationAdded( SurfaceAnnotation* );
@@ -241,6 +245,7 @@ protected slots:
   void UpdateVertexRender();
   void UpdateMeshRender();
   void UpdateActorPositions();
+  void UpdateROIPosition(double dx, double dy, double dz);
   void UpdateVectorActor2D();
 
 protected:

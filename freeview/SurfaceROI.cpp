@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2011/05/17 14:20:14 $
- *    $Revision: 1.1 $
+ *    $Date: 2011/05/20 17:35:30 $
+ *    $Revision: 1.2 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -69,7 +69,11 @@ void SurfaceROI::InitializeOutline(double* pos)
 {
   m_actorOutline->VisibilityOn();
   m_points->Reset();
-  m_points->InsertNextPoint(pos);
+  double* offset = m_mris->GetProperty()->GetPosition();
+  double pt[3];
+  for (int i = 0; i < 3; i++)
+    pt[i] = pos[i] - offset[i];
+  m_points->InsertNextPoint(pt);
 }
 
 void SurfaceROI::RebuildOutline( bool bClose )
@@ -90,8 +94,12 @@ void SurfaceROI::RebuildOutline( bool bClose )
   m_actorOutline->SetMapper( mapper );
 }
 
-void SurfaceROI::AddPoint( double* pt )
+void SurfaceROI::AddPoint( double* pos )
 {
+  double* offset = m_mris->GetProperty()->GetPosition();
+  double pt[3];
+  for (int i = 0; i < 3; i++)
+    pt[i] = pos[i] - offset[i];
   m_points->InsertNextPoint( pt );
   RebuildOutline( false );
 }
@@ -124,4 +132,9 @@ QColor SurfaceROI::GetColor()
 void SurfaceROI::Show( bool bShow )
 {
   m_actorOutline->SetVisibility( bShow?1:0 );
+}
+
+vtkActor* SurfaceROI::GetActor()
+{
+  return m_actorOutline;
 }

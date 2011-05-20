@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2011/05/13 18:18:50 $
- *    $Revision: 1.170 $
+ *    $Date: 2011/05/20 17:35:30 $
+ *    $Revision: 1.171 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -295,7 +295,7 @@ MainWindow::MainWindow( QWidget *parent, MyCmdLineParser* cmdParser ) :
 
   m_threadIOWorker = new ThreadIOWorker( this );
   connect( m_threadIOWorker, SIGNAL(Error(Layer*, int)), this, SLOT(OnIOError(Layer*, int)), Qt::QueuedConnection );
-  connect( m_threadIOWorker, SIGNAL(Finished(Layer*, int )), this, SLOT(OnIOFinished(Layer*, int)) );
+  connect( m_threadIOWorker, SIGNAL(Finished(Layer*, int )), this, SLOT(OnIOFinished(Layer*, int)), Qt::QueuedConnection );
   connect( m_threadIOWorker, SIGNAL(started()), this, SLOT(SetProcessing()));
 
   connect( m_threadIOWorker, SIGNAL(Progress(int)), m_statusBar, SLOT(SetProgress(int)) );
@@ -1246,6 +1246,10 @@ void MainWindow::RunScript()
   {
     CommandSetSurfaceEdgeThickness( sa );
   }
+  else if ( sa[0] == "setsurfacelabeloutline" )
+  {
+    CommandSetSurfaceLabelOutline( sa );
+  }
   else if ( sa[0] == "setlayername" )
   {
     CommandSetLayerName( sa );
@@ -2001,6 +2005,7 @@ void MainWindow::CommandLoadSurface( const QStringList& cmd )
   QString fn_patch = "";
   QString fn_target = "";
   bool bLoadAll = false;
+  bool bLabelOutline = false;
   for ( int k = sa_fn.size()-1; k >= 1; k-- )
   {
     int n = sa_fn[k].indexOf( "=" );
@@ -2152,6 +2157,11 @@ void MainWindow::CommandLoadSurface( const QStringList& cmd )
         if ( subArgu.toLower() == "true" || subArgu.toLower() == "yes" || subArgu == "1")
           bLoadAll = true;
       }
+      else if ( subOption == "label_outline" || subOption == "labeloutline")
+      {
+        if ( subArgu.toLower() == "true" || subArgu.toLower() == "yes" || subArgu == "1")
+          bLabelOutline = true;
+      }
       else
       {
         cerr << "Unrecognized sub-option flag '" << subOption.toAscii().constData() << "'.\n";
@@ -2159,7 +2169,27 @@ void MainWindow::CommandLoadSurface( const QStringList& cmd )
       }
     }
   }
+  if (bLabelOutline)
+  {
+    for (int i = 0; i < m_scripts.size(); i++)
+    {
+      if (m_scripts[i].indexOf("loadsurfacelabel") == 0)
+        m_scripts.insert(i+1, "setsurfacelabeloutline 1");
+    }
+  }
   LoadSurfaceFile( fn, fn_patch, fn_target, bLoadAll );
+}
+
+void MainWindow::CommandSetSurfaceLabelOutline(const QStringList &cmd)
+{
+  LayerSurface* surf = (LayerSurface*)GetLayerCollection( "Surface" )->GetActiveLayer();
+  if ( surf )
+  {
+    if (cmd[1] == "1")
+    {
+      surf->SetActiveLabelOutline(true);
+    }
+  }
 }
 
 void MainWindow::CommandSetSurfaceOverlayMethod( const QStringList& cmd )

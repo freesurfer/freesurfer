@@ -10,9 +10,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/14 23:44:47 $
- *    $Revision: 1.4 $
+ *    $Author: rpwang $
+ *    $Date: 2011/05/20 17:35:30 $
+ *    $Revision: 1.5 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -289,12 +289,15 @@ void LayerPropertySurface::SetMeshColorMap( int nMap )
 
 void LayerPropertySurface::SetPosition( double* p )
 {
+  double dp[3];
   for ( int i = 0; i < 3; i++ )
   {
+    dp[i] = p[i] - m_dPosition[i];
     m_dPosition[i] = p[i];
   }
 
   emit PositionChanged();
+  emit PositionChanged(dp[0], dp[1], dp[2]);
 }
 
 

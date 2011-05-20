@@ -158,11 +158,11 @@
        </widget>
       </item>
       <item row="2" column="1">
-	<layout class="QHBoxLayout" name="horizontalLayout21">
+       <layout class="QHBoxLayout" name="horizontalLayout21">
         <item>
-       <widget class="QtColorPicker" name="colorpickerSurfaceColor" native="true"/>
-	</item>
-<item>
+         <widget class="QtColorPicker" name="colorpickerSurfaceColor" native="true"/>
+        </item>
+        <item>
          <spacer name="horizontalSpacer_21">
           <property name="orientation">
            <enum>Qt::Horizontal</enum>
@@ -175,7 +175,7 @@
           </property>
          </spacer>
         </item>
-	</layout>
+       </layout>
       </item>
       <item row="3" column="0">
        <widget class="QLabel" name="labelRender">
@@ -255,11 +255,11 @@
        </widget>
       </item>
       <item row="6" column="1">
-	<layout class="QHBoxLayout" name="horizontalLayout20">
+       <layout class="QHBoxLayout" name="horizontalLayout20">
         <item>
-       		<widget class="QtColorPicker" name="colorpickerVertexColor" native="true"/>
-	</item>
-	<item>
+         <widget class="QtColorPicker" name="colorpickerVertexColor" native="true"/>
+        </item>
+        <item>
          <spacer name="horizontalSpacer_20">
           <property name="orientation">
            <enum>Qt::Horizontal</enum>
@@ -272,7 +272,7 @@
           </property>
          </spacer>
         </item>
-	</layout>
+       </layout>
       </item>
       <item row="7" column="0">
        <widget class="QLabel" name="labelVertexPointSize">
@@ -476,11 +476,18 @@
        </widget>
       </item>
       <item row="15" column="1">
-<layout class="QHBoxLayout" name="horizontalLayout22">
+       <layout class="QHBoxLayout" name="horizontalLayout22">
         <item>
-       <widget class="QtColorPicker" name="colorpickerLabelColor" native="true"/>
-</item>
-	<item>
+         <widget class="QtColorPicker" name="colorpickerLabelColor" native="true"/>
+        </item>
+        <item>
+         <widget class="QCheckBox" name="checkBoxLabelOutline">
+          <property name="text">
+           <string>Show as outline</string>
+          </property>
+         </widget>
+        </item>
+        <item>
          <spacer name="horizontalSpacer_22">
           <property name="orientation">
            <enum>Qt::Horizontal</enum>
@@ -493,7 +500,7 @@
           </property>
          </spacer>
         </item>
-	</layout>
+       </layout>
       </item>
       <item row="16" column="0">
        <widget class="QLabel" name="labelEdgeColor">
@@ -503,11 +510,11 @@
        </widget>
       </item>
       <item row="16" column="1">
-<layout class="QHBoxLayout" name="horizontalLayout23">
+       <layout class="QHBoxLayout" name="horizontalLayout23">
         <item>
-       <widget class="QtColorPicker" name="colorpickerEdgeColor" native="true"/>
-</item>
-	<item>
+         <widget class="QtColorPicker" name="colorpickerEdgeColor" native="true"/>
+        </item>
+        <item>
          <spacer name="horizontalSpacer_23">
           <property name="orientation">
            <enum>Qt::Horizontal</enum>
@@ -520,7 +527,7 @@
           </property>
          </spacer>
         </item>
-	</layout>
+       </layout>
       </item>
       <item row="17" column="0">
        <widget class="QLabel" name="labelEdgeThickness">
@@ -570,11 +577,11 @@
        </widget>
       </item>
       <item row="19" column="1">
-<layout class="QHBoxLayout" name="horizontalLayout24">
+       <layout class="QHBoxLayout" name="horizontalLayout24">
         <item>
-       <widget class="QtColorPicker" name="colorpickerVectorColor" native="true"/>
-	</item>
-	<item>
+         <widget class="QtColorPicker" name="colorpickerVectorColor" native="true"/>
+        </item>
+        <item>
          <spacer name="horizontalSpacer_24">
           <property name="orientation">
            <enum>Qt::Horizontal</enum>
@@ -587,7 +594,7 @@
           </property>
          </spacer>
         </item>
-	</layout>
+       </layout>
       </item>
       <item row="20" column="0">
        <widget class="QLabel" name="labelVectorPointSize">
@@ -758,6 +765,7 @@
    <header>qtcolorpicker.h</header>
    <container>1</container>
    <slots>
+    <signal>colorChanged(QColor)</signal>
     <signal>currentColorChanged(QColor)</signal>
    </slots>
   </customwidget>

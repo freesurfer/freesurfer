@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2011/05/17 14:20:14 $
- *    $Revision: 1.61 $
+ *    $Date: 2011/05/20 17:35:30 $
+ *    $Revision: 1.62 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -121,6 +121,8 @@ LayerSurface::LayerSurface( LayerMRI* ref, QObject* parent ) : LayerEditable( pa
   connect( p, SIGNAL(VertexRenderChanged()), this, SLOT(UpdateVertexRender()) );
   connect( p, SIGNAL(MeshRenderChanged()), this, SLOT(UpdateMeshRender()) );
   connect( p, SIGNAL(PositionChanged()), this, SLOT(UpdateActorPositions()) );
+  connect( p, SIGNAL(PositionChanged(double, double, double)),
+           this, SLOT(UpdateROIPosition(double, double, double)));
 }
 
 LayerSurface::~LayerSurface()
@@ -320,16 +322,19 @@ bool LayerSurface::LoadCorrelationFromFile( const QString& filename )
 
 void LayerSurface::CopyCorrelationOverlay(LayerSurface *surf)
 {
-  SurfaceOverlay* src = surf->GetActiveOverlay();
-  SurfaceOverlay* overlay = new SurfaceOverlay( this );
-  overlay->SetName(src->GetName());
-  overlay->CopyCorrelationData(src);
-  m_overlays.push_back( overlay );
-  SetActiveOverlay( m_overlays.size() - 1 );
+  SurfaceOverlay* src = surf->GetCorrelationOverlay();
+  if (src)
+  {
+    SurfaceOverlay* overlay = new SurfaceOverlay( this );
+    overlay->SetName(src->GetName());
+    overlay->CopyCorrelationData(src);
+    m_overlays.push_back( overlay );
+    SetActiveOverlay( m_overlays.size() - 1 );
 
-  emit Modified();
-  emit SurfaceOverlayAdded( overlay );
-  connect(overlay, SIGNAL(DataUpdated()), this, SIGNAL(SurfaceOverlyDataUpdated()), Qt::UniqueConnection);
+    emit Modified();
+    emit SurfaceOverlayAdded( overlay );
+    connect(overlay, SIGNAL(DataUpdated()), this, SIGNAL(SurfaceOverlyDataUpdated()), Qt::UniqueConnection);
+  }
 }
 
 bool LayerSurface::LoadAnnotationFromFile( const QString& filename )
@@ -392,6 +397,7 @@ bool LayerSurface::LoadLabelFromFile( const QString& filename )
 
   emit Modified();
   emit SurfaceLabelAdded( label );
+  emit ActorChanged();
   return true;
 }
 
@@ -625,6 +631,9 @@ void LayerSurface::Append3DProps( vtkRenderer* renderer, bool* bSliceVisibility 
   renderer->AddViewProp( m_vectorActor );
   renderer->AddViewProp( m_vertexActor );
   renderer->AddViewProp( m_wireframeActor );
+
+  for (size_t i = 0; i < m_labels.size(); i++)
+    renderer->AddViewProp(m_labels[i]->GetOutlineActor());
   m_roi->AppendProps(renderer);
 }
 
@@ -727,6 +736,14 @@ void LayerSurface::SetVisible( bool bVisible )
   {
     m_vectorActor2D[i]->SetVisibility( nVectorVisibility );
   }
+
+  for (size_t i = 0; i < m_labels.size(); i++)
+  {
+    m_labels[i]->GetOutlineActor()->VisibilityOff();
+  }
+
+  if (bVisible && m_nActiveLabel >= 0 && m_labels[m_nActiveLabel]->GetShowOutline())
+    m_labels[m_nActiveLabel]->GetOutlineActor()->VisibilityOn();
 
   LayerEditable::SetVisible(bVisible);
 }
@@ -1003,6 +1020,16 @@ SurfaceOverlay* LayerSurface::GetActiveOverlay()
   {
     return NULL;
   }
+}
+
+SurfaceOverlay* LayerSurface::GetCorrelationOverlay()
+{
+  for (size_t i = 0; i < m_overlays.size(); i++)
+  {
+    if ( m_overlays[i]->HasCorrelationData())
+      return m_overlays[i];
+  }
+  return NULL;
 }
 
 SurfaceOverlay* LayerSurface::GetOverlay( int n )
@@ -1329,7 +1356,18 @@ void LayerSurface::UpdateActorPositions()
   m_vectorActor->SetPosition( pos );
   m_vertexActor->SetPosition( pos );
   m_wireframeActor->SetPosition( pos );
+
+  for (size_t i = 0; i < m_labels.size(); i++)
+  {
+    m_labels[i]->GetOutlineActor()->SetPosition(pos);
+  }
+
   emit ActorUpdated();
+}
+
+void LayerSurface::UpdateROIPosition(double dx, double dy, double dz)
+{
+  m_roi->GetActor()->AddPosition(dx, dy, dz);
 }
 
 int LayerSurface::GetHemisphere()
@@ -1360,6 +1398,12 @@ void LayerSurface::SetActiveLabel( int n )
   {
     m_nActiveLabel = n;
     UpdateColorMap();
+    for (size_t i = 0; i < m_labels.size(); i++)
+    {
+      m_labels[i]->GetOutlineActor()->VisibilityOff();
+    }
+    if (n >= 0 && m_labels[n]->GetShowOutline())
+      m_labels[n]->GetOutlineActor()->VisibilityOn();
     emit ActiveLabelChanged( n );
     emit ActorUpdated();
   }
@@ -1379,6 +1423,18 @@ void LayerSurface::SetActiveLabelColor(const QColor &c)
   if ( m_nActiveLabel >= 0)
   {
     m_labels[m_nActiveLabel]->SetColor(c.redF(), c.greenF(), c.blueF());
+    UpdateColorMap();
+    emit ActorUpdated();
+  }
+}
+
+void LayerSurface::SetActiveLabelOutline(bool bOutline)
+{
+  if ( m_nActiveLabel >= 0)
+  {
+    m_labels[m_nActiveLabel]->SetShowOutline(bOutline);
+    if (!this->IsVisible())
+      m_labels[m_nActiveLabel]->GetOutlineActor()->VisibilityOff();
     UpdateColorMap();
     emit ActorUpdated();
   }
