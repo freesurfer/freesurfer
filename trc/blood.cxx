@@ -37,9 +37,9 @@ const float Blood::mLengthCutoff = 0.05,
 Blood::Blood(const char *TrainListFile, const char *TrainTrkFile,
              const char *TrainRoi1File, const char *TrainRoi2File,
              const char *TrainAsegFile, const char *TrainMaskFile,
-             float TrainMaskLabel, const char *TestMaskFile,
-             const char *TestFaFile, const char *ExcludeFile,
-             bool UseTruncated) :
+             float TrainMaskLabel, const char *ExcludeFile,
+             const char *TestMaskFile, const char *TestFaFile,
+             bool UseTruncated, vector<int> &NumControls) :
              mUseTruncated(UseTruncated),
              mMaskLabel(TrainMaskLabel) {
   int dirs[45] = { 0,  0,  0,
@@ -80,6 +80,10 @@ Blood::Blood(const char *TrainListFile, const char *TrainTrkFile,
 
   // Resolution of volumes in common space
   mDx = mTestMask->xsize;
+
+  // Number(s) of control points to fit for spline initialization
+  mNumControls.resize(NumControls.size());
+  copy(NumControls.begin(), NumControls.end(), mNumControls.begin());
 
   // Read inputs for first pathway
   ReadStreamlines(TrainListFile, TrainTrkFile, TrainRoi1File, TrainRoi2File,
@@ -1050,17 +1054,33 @@ void Blood::ComputePriors() {
     ComputeCurvaturePrior(true);
   }
 
-  cout << "Finding center streamline" << endl;
-  FindCenterStreamline();
-}
+  for (int itry = 0; itry < 100; itry++) {
+    bool retry = false;
 
-//
-// Select initial control points from center streamline
-//
-void Blood::SelectControlPoints(int NumControls) {
-  cout << "Selecting " << NumControls << " points on center streamline" << endl;
-  //FindPointsOnStreamline(mCenterStreamline, NumControls);
-  FindPointsOnStreamlineComb(mCenterStreamline, NumControls);
+    mCenterStreamline.clear();
+    mControlPoints.clear();
+    mControlStd.clear();
+
+    cout << "Finding center streamline" << endl;
+    FindCenterStreamline();
+
+    for (vector<int>::const_iterator incpt = mNumControls.begin();
+                                     incpt < mNumControls.end(); incpt++) {
+      cout << "Selecting " << *incpt << " points on center streamline" << endl;
+      //FindPointsOnStreamline(mCenterStreamline, *incpt);
+      if (!FindPointsOnStreamlineComb(mCenterStreamline, *incpt)) {
+        cout << "WARN: Could not find satisfactory control point fit - try "
+             << itry+1 << endl;
+        retry = true;
+        break;
+      }
+    }
+
+    if (retry)			// Try to find a better-behaved streamline
+      mExcludedStreamlines.push_back(mCenterStreamline);
+    else
+      break;
+  }
 }
 
 //
@@ -2511,7 +2531,8 @@ void Blood::ComputeStreamlineSpread(vector<int> &ControlPoints) {
 // Select control points on a streamline
 // to maximize overlap of the fitted spline with the streamline histogram
 //
-void Blood::FindPointsOnStreamlineComb(vector<int> &Streamline, int NumPoints) {
+bool Blood::FindPointsOnStreamlineComb(vector<int> &Streamline, int NumPoints) {
+  bool success = true;
   const int strlen = (int) Streamline.size() / 3,
             strdiv = (int) round((strlen-1) / (NumPoints-1)),
             lag = max(1, min((int) round(mControlStepRatio * NumPoints / mDx),
@@ -2549,8 +2570,10 @@ void Blood::FindPointsOnStreamlineComb(vector<int> &Streamline, int NumPoints) {
        cptopt[1] += lag)
     TryControlPoint(overlapmax, 2, lag, cpts, cptopt, spline, Streamline);
 
-  if (overlapmax == 0.0)
+  if (overlapmax == 0.0) {
     cout << "WARN: Defaulting to equidistant control points" << endl;
+    success = false;
+  }
 
   cout << "INFO: Selected control points are" << endl;
   for (vector<int>::const_iterator icpt = cpts.begin(); icpt < cpts.end();
@@ -2571,6 +2594,8 @@ void Blood::FindPointsOnStreamlineComb(vector<int> &Streamline, int NumPoints) {
   mControlPoints.push_back(cpts);
 
   ComputeStreamlineSpread(cpts);
+
+  return success;
 }
 
 //
@@ -2611,6 +2636,8 @@ void Blood::TryControlPoint(float &OverlapMax,
 
       splen = (TrySpline.GetAllPointsEnd() - TrySpline.GetAllPointsBegin()) / 3;
 
+      double dmin = numeric_limits<double>::infinity();
+
       // Find overlap of fitted spline segments between controls with histogram
       for (vector<int>::const_iterator ipt = TrySpline.GetAllPointsBegin();
                                        ipt < TrySpline.GetAllPointsEnd();
@@ -2618,6 +2645,8 @@ void Blood::TryControlPoint(float &OverlapMax,
         const float h = MRIgetVoxVal(mHistoStr, ipt[0], ipt[1], ipt[2], 0),
                     f = (mTestFa ? 
                         MRIgetVoxVal(mTestFa, ipt[0], ipt[1], ipt[2], 0) : 1.0);
+
+        dmin = numeric_limits<double>::infinity();
 
         if (f < 0.1) {		 	// Point is in low anisotropy area
           nfzeros++;
@@ -2628,25 +2657,24 @@ void Blood::TryControlPoint(float &OverlapMax,
         else
           nfzeros = 0;
 
-        if (h < 1.0) {			// Point is off histogram
-          double dmin = numeric_limits<double>::infinity();
+        // Check point distance from true streamline
+        for (vector<int>::const_iterator iptrue = Streamline.begin();
+                                         iptrue < Streamline.end();
+                                         iptrue += 3) {
+          const int dx = ipt[0] - iptrue[0],
+                    dy = ipt[1] - iptrue[1],
+                    dz = ipt[2] - iptrue[2];
+          const double dist = sqrt(dx*dx + dy*dy + dz*dz);
 
-          // Check point distance from true streamline
-          for (vector<int>::const_iterator iptrue = Streamline.begin();
-                                           iptrue < Streamline.end();
-                                           iptrue += 3) {
-            const int dx = ipt[0] - iptrue[0],
-                      dy = ipt[1] - iptrue[1],
-                      dz = ipt[2] - iptrue[2];
-            const double dist = sqrt(dx*dx + dy*dy + dz*dz);
-
-            if (dist < dmin)
-              dmin = dist;
-          }
-
-          if (dmin > 2)
-            nhzeros++;
+          if (dist < dmin)
+            dmin = dist;
         }
+
+        if (dmin > 5)				// Bad fit to streamline
+          break;
+
+        if (h < 1.0 && dmin > 2)		// Point is off histogram
+          nhzeros++;
 
         overlap += h;
       }
@@ -2654,7 +2682,7 @@ void Blood::TryControlPoint(float &OverlapMax,
       // Don't allow spline if more than 3 contiguous points are in low FA
       // or if more than 10% of all points are off the histogram and also
       // far from true streamline
-      if (nfzeros > 3 || nhzeros > (int) (.1 * splen))
+      if (dmin > 5 || nfzeros > 3 || nhzeros > (int) (.1 * splen))
         continue;
 
       overlap /= splen;
