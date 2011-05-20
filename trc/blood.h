@@ -43,9 +43,9 @@ class Blood {
     Blood(const char *TrainListFile, const char *TrainTrkFile,
           const char *TrainRoi1File, const char *TrainRoi2File,
           const char *TrainAsegFile, const char *TrainMaskFile,
-          float TrainMaskLabel, const char *TestMaskFile,
-          const char *TestFaFile, const char *ExcludeFile,
-          bool UseTruncated);
+          float TrainMaskLabel, const char *ExcludeFile,
+          const char *TestMaskFile, const char *TestFaFile,
+          bool UseTruncated, std::vector<int> &NumControls);
     Blood(const char *TrainTrkFile, const char *TrainRoi1File,
           const char *TrainRoi2File);
     ~Blood();
@@ -60,7 +60,6 @@ class Blood {
     void ComputePriors();
     void FindCenterStreamline(bool CheckOverlap=true, bool CheckDeviation=true,
                                                       bool CheckFa=true);
-    void SelectControlPoints(int NumControls);
     void WriteOutputs(const char *OutBase);
     void WriteCenterStreamline(const char *CenterTrkFile,
                                const char *RefTrkFile);
@@ -95,7 +94,7 @@ class Blood {
     float mMaskLabel, mDx, mLengthAvg, mLengthAvgEnds;
     std::vector<bool> mIsInEnd1, mIsInEnd2;
     std::vector<int> mNumLines, mLengths, mMidPoints, mTruncatedLengths,
-                     mCenterStreamline, mDirLocal, mDirNear;
+                     mCenterStreamline, mDirLocal, mDirNear, mNumControls;
     std::vector<float> mMeanEnd1, mMeanEnd2, mMeanMid,
                        mVarEnd1, mVarEnd2, mVarMid,
                        mTangentMean, mTangentStd,
@@ -129,7 +128,7 @@ class Blood {
     void ComputeAnatomyPrior(bool UseTruncated);
     void ComputeCurvaturePrior(bool UseTruncated);
     void FindPointsOnStreamline(std::vector<int> &Streamline, int NumPoints);
-    void FindPointsOnStreamlineComb(std::vector<int> &Streamline,
+    bool FindPointsOnStreamlineComb(std::vector<int> &Streamline,
                                     int NumPoints);
     void TryControlPoint(float &OverlapMax,
                          int IndexPoint,

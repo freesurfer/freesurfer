@@ -8,8 +8,8 @@
  * Original Author: Anastasia Yendiki
  * CVS Revision Info:
  *    $Author: ayendiki $
- *    $Date: 2011/05/20 06:55:04 $
- *    $Revision: 1.5 $
+ *    $Date: 2011/05/20 23:37:37 $
+ *    $Revision: 1.6 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -70,7 +70,8 @@ static char vcid[] = "";
 const char *Progname = "dmri_train";
 
 bool useTrunc = false, excludeStr = false;
-int nControl[100], nout = 0, ntrk = 0, nroi1 = 0, nroi2 = 0, nlab = 0, ncpt = 0;
+int nout = 0, ntrk = 0, nroi1 = 0, nroi2 = 0, nlab = 0, ncpt = 0;
+vector<int> nControl;
 float trainMaskLabel[100];
 char *outDir = NULL, *outBase[100], *trainListFile = NULL,
      *trainTrkList[100], *trainRoi1List[100], *trainRoi2List[100],
@@ -118,7 +119,8 @@ int main(int argc, char **argv) {
   Blood myblood(trainListFile, trainTrkList[0],
                 nroi1 ? trainRoi1List[0] : 0, nroi2 ? trainRoi2List[0] : 0,
                 trainAsegFile, trainMaskFile, nlab ? trainMaskLabel[0] : 0,
-                testMaskFile, testFaFile, excludeStr ? excfile : 0, useTrunc);
+                excludeStr ? excfile : 0,
+                testMaskFile, testFaFile, useTrunc, nControl);
 
   for (int itrk = 0; itrk < ntrk; itrk++) {
     if (itrk > 0) {
@@ -139,9 +141,6 @@ int main(int argc, char **argv) {
     TimerStart(&cputimer);
 
     myblood.ComputePriors();
-
-    for (int icpt = 0; icpt < ncpt; icpt++)
-      myblood.SelectControlPoints(nControl[icpt]);
 
     if (outDir)
       sprintf(fbase, "%s/%s", outDir, outBase[itrk]);
@@ -249,7 +248,7 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcmp(option, "--ncpts")) {
       if (nargc < 1) CMDargNErr(option,1);
       while (strncmp(pargv[nargsused], "--", 2)) {
-        sscanf(pargv[nargsused],"%u",&nControl[ncpt]);
+        nControl.push_back(atoi(pargv[nargsused]));
         nargsused++;
         ncpt++;
       }
