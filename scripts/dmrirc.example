@@ -13,8 +13,8 @@
 # Original Author: Anastasia Yendiki
 # CVS Revision Info:
 #    $Author: ayendiki $
-#    $Date: 2011/05/15 04:47:49 $
-#    $Revision: 1.3.2.2 $
+#    $Date: 2011/05/24 06:47:12 $
+#    $Revision: 1.3.2.3 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -109,6 +109,7 @@ set doeddy = 1
 set dorotbvecs = 1
 
 # Fractional intensity threshold for BET mask extraction from low-b images
+# This mask is used only if usemaskanat = 0
 # Default: 0.3
 #
 set thrbet = 0.5
@@ -119,9 +120,9 @@ set thrbet = 0.5
 set doregflt = 1
 
 # Perform diffusion-to-T1 registration by bbregister?
-# Default: 1 (yes)
+# Default: 0 (no)
 #
-set doregbbr = 1
+set doregbbr = 0
 
 # MNI template (the only option for inter-subject registration in this version)
 # Default: $FSLDIR/data/standard/MNI152_T1_1mm_brain.nii.gz
@@ -144,7 +145,7 @@ set pathlist = ( lh.cst_AS rh.cst_AS \
                  lh.atr_PP rh.atr_PP \
                  lh.ccg_PP rh.ccg_PP \
                  lh.cab_PP rh.cab_PP \
-                 lh.slf_PP rh.slf_PP \
+                 lh.slfp_PP rh.slfp_PP \
                  lh.slft_PP rh.slft_PP )
 
 # Number of path control points
@@ -152,8 +153,32 @@ set pathlist = ( lh.cst_AS rh.cst_AS \
 #
 set ncpts = 5
 
-# Location of trc executables
-# Default: $FREESURFER_HOME/bin
+# List of training subjects
+# This text file lists the locations of training subject directories
+# Default: $FREESURFER_HOME/trctrain/trainlist.txt
 #
-set trcdir = /path/to/trc/bin
+set trainfile = $FREESURFER_HOME/trctrain/trainlist.txt
+
+# Use long (more descriptive) directory hierarchy for saving path distributions?
+# By default, paths distributions are saved directly under $subjectname/dpath
+# Default: 0 (no)
+#
+set dopathsubdirs = 0
+
+# Number of MCMC burn-in iterations
+# (Path samples drawn initially by MCMC algorithm and discarded)
+# Default: 200
+#
+set nburnin = 200
+
+# Number of MCMC iterations
+# (Path samples drawn by MCMC algorithm and used to estimate path distribution)
+# Default: 5000
+#
+set nsample = 5000
+
+# Frequency with which MCMC path samples are retained for path distribution
+# Default: 5 (keep every 5th sample)
+#
+set nkeep = 5
 
