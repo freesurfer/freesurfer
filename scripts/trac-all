@@ -8,8 +8,8 @@
 # Original Author: Anastasia Yendiki
 # CVS Revision Info:
 #    $Author: ayendiki $
-#    $Date: 2011/05/20 06:50:30 $
-#    $Revision: 1.31 $
+#    $Date: 2011/05/24 06:48:42 $
+#    $Revision: 1.32 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -25,7 +25,7 @@
 
 umask 002
 
-set VERSION = '$Id: trac-all,v 1.31 2011/05/20 06:50:30 ayendiki Exp $'
+set VERSION = '$Id: trac-all,v 1.32 2011/05/24 06:48:42 ayendiki Exp $'
 set ProgName = `basename $0`
 set inputargs = ($argv)
 
@@ -119,9 +119,9 @@ set doeddy = 1
 set dorotbvecs = 1
 set thrbet = 0.3
 set doregflt = 1
-set doregbbr = 1
+set doregbbr = 0
 set doregmni = 1
-set doregcvs = 1
+set doregcvs = 0
 set mnitemp = $FSLDIR/data/standard/MNI152_T1_1mm_brain.nii.gz
 set cvstempdir = $FREESURFER_HOME/subjects
 set cvstemp = cvs_avg35
