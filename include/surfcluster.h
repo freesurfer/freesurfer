@@ -9,21 +9,19 @@
 /*
  * Original Author: Doug Greve
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2009/11/10 07:40:12 $
- *    $Revision: 1.13 $
+ *    $Author: greve $
+ *    $Date: 2011/05/25 20:23:07 $
+ *    $Revision: 1.15.2.1 $
  *
- * Copyright (C) 2002-2007,
- * The General Hospital Corporation (Boston, MA). 
- * All rights reserved.
+ * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
- * Distribution, usage and copying of this software is covered under the
- * terms found in the License Agreement file named 'COPYING' found in the
- * FreeSurfer source code root directory, and duplicated here:
- * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ * Terms and conditions for use, reproduction, distribution and contribution
+ * are found in the 'FreeSurfer Software License Agreement' contained
+ * in the file 'LICENSE' found in the FreeSurfer distribution, and here:
  *
- * General inquiries: freesurfer@nmr.mgh.harvard.edu
- * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
+ *
+ * Reporting: freesurfer@nmr.mgh.harvard.edu
  *
  */
 
@@ -54,6 +52,8 @@ typedef struct
   int   vtxmaxval;
   float x,y,z;
   float xxfm,yxfm,zxfm;
+  float cx,cy,cz; // centroid
+  float cxxfm,cyxfm,czxfm; // centroid
   double pval_clusterwise; // from cluster simulation
   double pval_clusterwise_low; // from cluster simulation
   double pval_clusterwise_hi; // from cluster simulation
@@ -67,6 +67,7 @@ int sclustGrowSurfCluster(int ClustNo, int SeedVtx, MRI_SURFACE *Surf,
                           float thmin, float thmax, int thsign);
 float sclustSurfaceArea(int ClusterNo, MRI_SURFACE *Surf, int *nvtxs) ;
 float sclustSurfaceMax(int ClusterNo, MRI_SURFACE *Surf, int *vtxmax) ;
+int sclustSurfaceCentroid(const int ClusterNo, const MRI_SURFACE *Surf, double *xyz);
 float sclustZeroSurfaceClusterNo(int ClusterNo, MRI_SURFACE *Surf);
 float sclustZeroSurfaceNonClusters(MRI_SURFACE *Surf);
 float sclustSetSurfaceValToClusterNo(MRI_SURFACE *Surf);
@@ -77,6 +78,7 @@ int DumpSurfClusterSum(FILE *fp, SCS *scs, int nClusters);
 SCS *SortSurfClusterSum(SCS *scs, int nClusters);
 int sclustReMap(MRI_SURFACE *Surf, int nClusters, SCS *scs_sorted);
 double sclustMaxClusterArea(SURFCLUSTERSUM *scs, int nClusters);
+int sclustMaxClusterCount(SURFCLUSTERSUM *scs, int nClusters);
 SCS *sclustPruneByCWPval(SCS *ClusterList, int nclusters, 
 			 double cwpvalthresh,int *nPruned, 
 			 MRIS *surf);

@@ -10,20 +10,18 @@
  * Original Author: Doug Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2010/04/09 14:43:09 $
- *    $Revision: 1.24 $
+ *    $Date: 2011/05/25 20:23:08 $
+ *    $Revision: 1.26.2.1 $
  *
- * Copyright (C) 2002-2007,
- * The General Hospital Corporation (Boston, MA). 
- * All rights reserved.
+ * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
- * Distribution, usage and copying of this software is covered under the
- * terms found in the License Agreement file named 'COPYING' found in the
- * FreeSurfer source code root directory, and duplicated here:
- * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ * Terms and conditions for use, reproduction, distribution and contribution
+ * are found in the 'FreeSurfer Software License Agreement' contained
+ * in the file 'LICENSE' found in the FreeSurfer distribution, and here:
  *
- * General inquiries: freesurfer@nmr.mgh.harvard.edu
- * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
+ *
+ * Reporting: freesurfer@nmr.mgh.harvard.edu
  *
  */
 
@@ -53,7 +51,7 @@ static int sclustCompare(const void *a, const void *b);
   ---------------------------------------------------------------*/
 const char *sculstSrcVersion(void)
 {
-  return("$Id: surfcluster.c,v 1.24 2010/04/09 14:43:09 greve Exp $");
+  return("$Id: surfcluster.c,v 1.26.2.1 2011/05/25 20:23:08 greve Exp $");
 }
 
 /* ------------------------------------------------------------
@@ -260,6 +258,28 @@ float sclustSurfaceMax(int ClusterNo, MRI_SURFACE *Surf, int *vtxmax)
   return(vtx_val_max);
 }
 /*----------------------------------------------------------------
+  sclustSurfaceCentroid() - returns the centroid of a cluster.
+----------------------------------------------------------------*/
+int sclustSurfaceCentroid(const int ClusterNo, const MRI_SURFACE *Surf, double *xyz)
+{
+  int vtx, vtx_clusterno, nvtx;
+  float xsum, ysum, zsum;
+  nvtx=0;xsum=0; ysum=0; zsum=0;
+  for(vtx = 0; vtx < Surf->nvertices; vtx++){
+    vtx_clusterno = Surf->vertices[vtx].undefval;
+    if (vtx_clusterno != ClusterNo) continue;
+    xsum += Surf->vertices[vtx].x;
+    ysum += Surf->vertices[vtx].y;
+    zsum += Surf->vertices[vtx].z;
+    nvtx++;
+  }
+  xyz[0] = xsum/nvtx;
+  xyz[1] = ysum/nvtx;
+  xyz[2] = zsum/nvtx;
+
+  return(0);
+}
+/*----------------------------------------------------------------
   sclustZeroSurfaceClusterNo() - finds all the vertices with
   cluster number equal to ClusterNo and sets the cluster number
   to zero (cluster number is the undefval member of the surface
@@ -364,6 +384,7 @@ SCS *SurfClusterSummary(MRI_SURFACE *Surf, MATRIX *T, int *nClusters)
   int n;
   SURFCLUSTERSUM *scs;
   MATRIX *xyz, *xyzxfm;
+  double centroidxyz[3];
 
   *nClusters = sclustCountClusters(Surf);
   if (*nClusters == 0) return(NULL);
@@ -382,8 +403,11 @@ SCS *SurfClusterSummary(MRI_SURFACE *Surf, MATRIX *T, int *nClusters)
     scs[n].x = Surf->vertices[scs[n].vtxmaxval].x;
     scs[n].y = Surf->vertices[scs[n].vtxmaxval].y;
     scs[n].z = Surf->vertices[scs[n].vtxmaxval].z;
-    if (T != NULL)
-    {
+    sclustSurfaceCentroid(n+1,  Surf, &centroidxyz[0]);
+    scs[n].cx = centroidxyz[0];
+    scs[n].cy = centroidxyz[1];
+    scs[n].cz = centroidxyz[2];
+    if (T != NULL){
       xyz->rptr[1][1] = scs[n].x;
       xyz->rptr[2][1] = scs[n].y;
       xyz->rptr[3][1] = scs[n].z;
@@ -391,6 +415,14 @@ SCS *SurfClusterSummary(MRI_SURFACE *Surf, MATRIX *T, int *nClusters)
       scs[n].xxfm = xyzxfm->rptr[1][1];
       scs[n].yxfm = xyzxfm->rptr[2][1];
       scs[n].zxfm = xyzxfm->rptr[3][1];
+
+      xyz->rptr[1][1] = scs[n].cx;
+      xyz->rptr[2][1] = scs[n].cy;
+      xyz->rptr[3][1] = scs[n].cz;
+      MatrixMultiply(T,xyz,xyzxfm);
+      scs[n].cxxfm = xyzxfm->rptr[1][1];
+      scs[n].cyxfm = xyzxfm->rptr[2][1];
+      scs[n].czxfm = xyzxfm->rptr[3][1];
     }
   }
 
@@ -504,6 +536,23 @@ double sclustMaxClusterArea(SURFCLUSTERSUM *scs, int nClusters)
   for (n=0; n<nClusters; n++)
     if (maxarea < scs[n].area) maxarea = scs[n].area;
   return(maxarea);
+}
+
+/*-------------------------------------------------------------------
+  sclustMaxClusterCount() - returns the area of the cluster with the
+  maximum number of members (count)
+  -------------------------------------------------------------------*/
+int sclustMaxClusterCount(SURFCLUSTERSUM *scs, int nClusters)
+{
+  int n;
+  int maxcount;
+
+  if (nClusters==0) return(0);
+
+  maxcount = scs[0].nmembers;
+  for (n=0; n<nClusters; n++)
+    if (maxcount < scs[n].nmembers) maxcount = scs[n].nmembers;
+  return(maxcount);
 }
 
 /*---------------------------------------------------------------*/
