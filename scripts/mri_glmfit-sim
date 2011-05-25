@@ -1,5 +1,5 @@
 #!/bin/tcsh -f
-set VERSION = '$Id: mri_glmfit-sim,v 1.37 2011/03/28 15:45:46 greve Exp $';
+set VERSION = '$Id: mri_glmfit-sim,v 1.38 2011/05/25 19:37:47 greve Exp $';
 
 set inputargs = ($argv);
 
@@ -25,6 +25,7 @@ set UseCache = 0;
 set PermForce = 0;
 set UseGRF = 0;
 set volsubject = fsaverage;
+set subjectOverride = ();
 set Bonferroni = 0;
 
 set nJobs = 1;
@@ -172,6 +173,8 @@ while($#glmfitcmd)
   case "--kurtosis"
   case "--nii"
   case "--nii.gz"
+  case "--rescale-x"
+  case "--no-rescale-x"
   case "dods"
     breaksw
   # Ignore these options that have one arg
@@ -209,6 +212,8 @@ if($UseGRF) then
   #set tmp = `printf %02d $tmp`
   #set csdbase = "grf.th$tmp.$simsign"
 endif
+
+if($#subjectOverride) set subject = $subjectOverride
 
 # Make sure the subject exists
 if($#subject != 0) then
@@ -641,6 +646,11 @@ while( $#argv != 0 )
     case "--sim-sign":
       if( $#argv < 1) goto arg1err;
       set simsign = $argv[1]; shift;
+      breaksw
+
+    case "--subject-override":
+      if( $#argv < 1) goto arg1err;
+      set subjectOverride = $argv[1]; shift;
       breaksw
 
     case "--log":
