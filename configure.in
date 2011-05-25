@@ -8,9 +8,9 @@
 # Process this file with autoconf to produce a configure script.
 #
 # CVS Revision Info:
-#    $Author: koen $
-#    $Date: 2011/05/12 09:52:41 $
-#    $Revision: 1.519.2.9 $
+#    $Author: nicks $
+#    $Date: 2011/05/25 18:59:06 $
+#    $Revision: 1.519.2.10 $
 #
 ########################################################################
 AC_PREREQ(2.57)
@@ -348,7 +348,12 @@ AC_SUBST(LIB_LAPACK_A)
 
 # Centos 5 needs libgfortran when linking fem_elastic/surf2vol
 LIB_GFORTRAN=""
-AC_CHECK_LIB([gfortran], [_gfortran_compare_string],[LIB_GFORTRAN="-lgfortran"],[])
+# but the Mac doesnt need libgfortran!  furthermore, its not installed
+# by default, so dont use it on the Mac!
+if test ! "$OS" = "Darwin"; then
+  AC_CHECK_LIB([gfortran], [_gfortran_compare_string],\
+                           [LIB_GFORTRAN="-lgfortran"],[])
+fi
 AC_SUBST(LIB_GFORTRAN)
 AM_CONDITIONAL(HAVE_GFORTRAN, test ! "x$LIB_GFORTRAN" = "x" )
 # note: gcc 4.4 might give 'undefined reference to _gfortran_ errors, and so
