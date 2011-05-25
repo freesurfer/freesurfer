@@ -2,9 +2,9 @@
 ## tksurfer.tcl
 ##
 ## CVS Revision Info:
-##    $Author: nicks $
-##    $Date: 2011/03/01 01:41:22 $
-##    $Revision: 1.167 $
+##    $Author: krish $
+##    $Date: 2011/05/25 21:37:24 $
+##    $Revision: 1.168 $
 ##
 ## Copyright (C) 2000-2011, CorTechs Labs, Inc. (La Jolla, CA) and
 ## The General Hospital Corporation (Boston, MA).
@@ -1434,13 +1434,12 @@ tkm_MakeDialogButtons $fwButtons $wwDialog [list \
 	[list Help {ShowOverlayHelpWindow}] \
 ]
 
-pack $fwMain $fwDisplay $fwPlane $fwColorScale \
-    $fwFlags $fwHisto $fwFDR $fwButtons \
-    -side top       \
-    -expand yes     \
-    -fill x         \
-    -padx 5         \
-    -pady 5
+grid $fwDisplay   -column 0 -row 0  -sticky news -padx 5 -pady 5
+grid $fwPlane   -column 0 -row 1 -sticky news -padx 5 -pady 5
+grid $fwColorScale   -column 0 -row 2 -sticky news -padx 5 -pady 5
+grid $fwFlags   -column 0 -row 3 -sticky news -padx 5 -pady 5
+grid $fwHisto   -column 1 -row 0 -rowspan 4 -padx 5 -pady 5
+grid $fwButtons  -column 0 -row 4 -columnspan 2 -padx 5 -pady 5 
 
 # now update it so that we have the current info and stuff.
 UpdateOverlayDlogInfo
