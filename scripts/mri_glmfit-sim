@@ -1,5 +1,5 @@
 #!/bin/tcsh -f
-set VERSION = '$Id: mri_glmfit-sim,v 1.38 2011/05/25 19:37:47 greve Exp $';
+set VERSION = '$Id: mri_glmfit-sim,v 1.39 2011/05/25 20:21:45 greve Exp $';
 
 set inputargs = ($argv);
 
@@ -27,6 +27,7 @@ set UseGRF = 0;
 set volsubject = fsaverage;
 set subjectOverride = ();
 set Bonferroni = 0;
+set ReportCentroid = 0;
 
 set nJobs = 1;
 set DoBackground = 0;
@@ -387,6 +388,7 @@ if($DoSim) then
         if($anattype == surface) then
           set cmd = (mri_surfcluster --subject $subject \
             --hemi $hemi --surf $surf --cwpvalthresh $cwpvalthresh)
+          if($ReportCentroid) set cmd = ($cmd --centroid);
           set c = 4;
         endif
         if($anattype == volume) then
@@ -512,6 +514,7 @@ foreach conname ($conlist)
       --oannot $annot --annot aparc --csdpdf $csdpdf \
       --cwpvalthresh $cwpvalthresh --o $msig --no-fixmni)
     if($Bonferroni) set cmd = ($cmd --bonferroni $Bonferroni)
+    if($ReportCentroid) set cmd = ($cmd --centroid);
     set cmd = ($cmd --surf $surf); # bug to have to do this
     echo $cmd | tee -a $LF
     $cmd | tee -a $LF
@@ -651,6 +654,10 @@ while( $#argv != 0 )
     case "--subject-override":
       if( $#argv < 1) goto arg1err;
       set subjectOverride = $argv[1]; shift;
+      breaksw
+
+    case "--centroid":
+      set ReportCentroid = 1;
       breaksw
 
     case "--log":

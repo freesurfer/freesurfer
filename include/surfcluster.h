@@ -9,9 +9,9 @@
 /*
  * Original Author: Doug Greve
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:10 $
- *    $Revision: 1.15 $
+ *    $Author: greve $
+ *    $Date: 2011/05/25 20:21:45 $
+ *    $Revision: 1.16 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -52,6 +52,8 @@ typedef struct
   int   vtxmaxval;
   float x,y,z;
   float xxfm,yxfm,zxfm;
+  float cx,cy,cz; // centroid
+  float cxxfm,cyxfm,czxfm; // centroid
   double pval_clusterwise; // from cluster simulation
   double pval_clusterwise_low; // from cluster simulation
   double pval_clusterwise_hi; // from cluster simulation
@@ -65,6 +67,7 @@ int sclustGrowSurfCluster(int ClustNo, int SeedVtx, MRI_SURFACE *Surf,
                           float thmin, float thmax, int thsign);
 float sclustSurfaceArea(int ClusterNo, MRI_SURFACE *Surf, int *nvtxs) ;
 float sclustSurfaceMax(int ClusterNo, MRI_SURFACE *Surf, int *vtxmax) ;
+int sclustSurfaceCentroid(const int ClusterNo, const MRI_SURFACE *Surf, double *xyz);
 float sclustZeroSurfaceClusterNo(int ClusterNo, MRI_SURFACE *Surf);
 float sclustZeroSurfaceNonClusters(MRI_SURFACE *Surf);
 float sclustSetSurfaceValToClusterNo(MRI_SURFACE *Surf);

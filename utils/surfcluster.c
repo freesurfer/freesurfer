@@ -9,9 +9,9 @@
 /*
  * Original Author: Doug Greve
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:55 $
- *    $Revision: 1.26 $
+ *    $Author: greve $
+ *    $Date: 2011/05/25 20:21:45 $
+ *    $Revision: 1.27 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -51,7 +51,7 @@ static int sclustCompare(const void *a, const void *b);
   ---------------------------------------------------------------*/
 const char *sculstSrcVersion(void)
 {
-  return("$Id: surfcluster.c,v 1.26 2011/03/02 00:04:55 nicks Exp $");
+  return("$Id: surfcluster.c,v 1.27 2011/05/25 20:21:45 greve Exp $");
 }
 
 /* ------------------------------------------------------------
@@ -258,6 +258,28 @@ float sclustSurfaceMax(int ClusterNo, MRI_SURFACE *Surf, int *vtxmax)
   return(vtx_val_max);
 }
 /*----------------------------------------------------------------
+  sclustSurfaceCentroid() - returns the centroid of a cluster.
+----------------------------------------------------------------*/
+int sclustSurfaceCentroid(const int ClusterNo, const MRI_SURFACE *Surf, double *xyz)
+{
+  int vtx, vtx_clusterno, nvtx;
+  float xsum, ysum, zsum;
+  nvtx=0;xsum=0; ysum=0; zsum=0;
+  for(vtx = 0; vtx < Surf->nvertices; vtx++){
+    vtx_clusterno = Surf->vertices[vtx].undefval;
+    if (vtx_clusterno != ClusterNo) continue;
+    xsum += Surf->vertices[vtx].x;
+    ysum += Surf->vertices[vtx].y;
+    zsum += Surf->vertices[vtx].z;
+    nvtx++;
+  }
+  xyz[0] = xsum/nvtx;
+  xyz[1] = ysum/nvtx;
+  xyz[2] = zsum/nvtx;
+
+  return(0);
+}
+/*----------------------------------------------------------------
   sclustZeroSurfaceClusterNo() - finds all the vertices with
   cluster number equal to ClusterNo and sets the cluster number
   to zero (cluster number is the undefval member of the surface
@@ -362,6 +384,7 @@ SCS *SurfClusterSummary(MRI_SURFACE *Surf, MATRIX *T, int *nClusters)
   int n;
   SURFCLUSTERSUM *scs;
   MATRIX *xyz, *xyzxfm;
+  double centroidxyz[3];
 
   *nClusters = sclustCountClusters(Surf);
   if (*nClusters == 0) return(NULL);
@@ -380,8 +403,11 @@ SCS *SurfClusterSummary(MRI_SURFACE *Surf, MATRIX *T, int *nClusters)
     scs[n].x = Surf->vertices[scs[n].vtxmaxval].x;
     scs[n].y = Surf->vertices[scs[n].vtxmaxval].y;
     scs[n].z = Surf->vertices[scs[n].vtxmaxval].z;
-    if (T != NULL)
-    {
+    sclustSurfaceCentroid(n+1,  Surf, &centroidxyz[0]);
+    scs[n].cx = centroidxyz[0];
+    scs[n].cy = centroidxyz[1];
+    scs[n].cz = centroidxyz[2];
+    if (T != NULL){
       xyz->rptr[1][1] = scs[n].x;
       xyz->rptr[2][1] = scs[n].y;
       xyz->rptr[3][1] = scs[n].z;
@@ -389,6 +415,14 @@ SCS *SurfClusterSummary(MRI_SURFACE *Surf, MATRIX *T, int *nClusters)
       scs[n].xxfm = xyzxfm->rptr[1][1];
       scs[n].yxfm = xyzxfm->rptr[2][1];
       scs[n].zxfm = xyzxfm->rptr[3][1];
+
+      xyz->rptr[1][1] = scs[n].cx;
+      xyz->rptr[2][1] = scs[n].cy;
+      xyz->rptr[3][1] = scs[n].cz;
+      MatrixMultiply(T,xyz,xyzxfm);
+      scs[n].cxxfm = xyzxfm->rptr[1][1];
+      scs[n].cyxfm = xyzxfm->rptr[2][1];
+      scs[n].czxfm = xyzxfm->rptr[3][1];
     }
   }
 

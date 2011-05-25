@@ -7,8 +7,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2011/03/28 15:30:23 $
- *    $Revision: 1.52 $
+ *    $Date: 2011/05/25 20:21:45 $
+ *    $Revision: 1.53 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -67,7 +67,7 @@ static int  stringmatch(char *str1, char *str2);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_surfcluster.c,v 1.52 2011/03/28 15:30:23 greve Exp $";
+static char vcid[] = "$Id: mri_surfcluster.c,v 1.53 2011/05/25 20:21:45 greve Exp $";
 char *Progname = NULL;
 
 char *subjectdir = NULL;
@@ -164,6 +164,7 @@ double fdr = -1;
 
 double cwpvalthresh = -1; // pvalue, NOT log10(p)!
 int Bonferroni = 0;
+int ReportCentroid = 0;
 
 /*---------------------------------------------------------------*/
 int main(int argc, char **argv) {
@@ -177,7 +178,7 @@ int main(int argc, char **argv) {
   double cmaxsize;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_surfcluster.c,v 1.52 2011/03/28 15:30:23 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_surfcluster.c,v 1.53 2011/05/25 20:21:45 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -561,9 +562,15 @@ int main(int argc, char **argv) {
     fprintf(fp,"\n");
 
     for (n=0; n < NClusters; n++) {
-      fprintf(fp,"%4d     %8.3f  %6d  %8.2f   %6.1f %6.1f %6.1f",
-              n+1, scs[n].maxval, scs[n].vtxmaxval, scs[n].area,
-              scs[n].xxfm, scs[n].yxfm, scs[n].zxfm);
+      if(ReportCentroid){ // Report Centriod XYZ
+	fprintf(fp,"%4d     %8.3f  %6d  %8.2f   %6.1f %6.1f %6.1f",
+		n+1, scs[n].maxval, scs[n].vtxmaxval, scs[n].area,
+              scs[n].cxxfm, scs[n].cyxfm, scs[n].czxfm);
+      } else { // Report Max XYZ
+	fprintf(fp,"%4d     %8.3f  %6d  %8.2f   %6.1f %6.1f %6.1f",
+		n+1, scs[n].maxval, scs[n].vtxmaxval, scs[n].area,
+		scs[n].xxfm, scs[n].yxfm, scs[n].zxfm);
+      }
       if (csd != NULL)
         fprintf(fp,"  %7.5lf  %7.5lf  %7.5lf", scs[n].pval_clusterwise,
                 scs[n].pval_clusterwise_low,scs[n].pval_clusterwise_hi);
@@ -693,6 +700,7 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--no-adjust")) AdjustThreshWhenOneTail=0;
     else if (!strcmp(option, "--csdpdf-only")) csdpdfonly = 1;
     else if (!strcmp(option, "--cortex")) UseCortexLabel = 1;
+    else if (!strcmp(option, "--centroid")) ReportCentroid = 1;
     else if (!strcmp(option, "--no-fix-vertex-area")) {
       printf("Turning off fixing of vertex area\n");
       MRISsetFixVertexAreaValue(0);
@@ -1191,7 +1199,7 @@ static void print_help(void) {
     "summary file is shown below.\n"
     "\n"
     "Cluster Growing Summary (mri_surfcluster)\n"
-    "$Id: mri_surfcluster.c,v 1.52 2011/03/28 15:30:23 greve Exp $\n"
+    "$Id: mri_surfcluster.c,v 1.53 2011/05/25 20:21:45 greve Exp $\n"
     "Input :      minsig-0-lh.w\n"
     "Frame Number:      0\n"
     "Minimum Threshold: 5\n"
