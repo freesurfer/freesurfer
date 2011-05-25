@@ -9,26 +9,26 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: nicks $
-#    $Date: 2010/07/15 22:07:03 $
-#    $Revision: 1.52 $
+#    $Author: greve $
+#    $Date: 2011/05/25 20:53:44 $
+#    $Revision: 1.53.2.1 $
 #
-# Copyright (C) 2002-2010,
-# The General Hospital Corporation (Boston, MA).
-# All rights reserved.
+# Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
-# Distribution, usage and copying of this software is covered under the
-# terms found in the License Agreement file named 'COPYING' found in the
-# FreeSurfer source code root directory, and duplicated here:
-# https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+# Terms and conditions for use, reproduction, distribution and contribution
+# are found in the 'FreeSurfer Software License Agreement' contained
+# in the file 'LICENSE' found in the FreeSurfer distribution, and here:
 #
-# General inquiries: freesurfer@nmr.mgh.harvard.edu
+# https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
+#
+# Reporting: freesurfer@nmr.mgh.harvard.edu
+#
 #
 
 # uncomment this to increase number of allowable open files to maximum:
 #limit descriptors unlimited
 
-set VERSION = '$Id: make_average_surface,v 1.52 2010/07/15 22:07:03 nicks Exp $';
+set VERSION = '$Id: make_average_surface,v 1.53.2.1 2011/05/25 20:53:44 greve Exp $';
 setenv FIX_VERTEX_AREA
 
 set PrintHelp = 0;
@@ -49,7 +49,7 @@ set XFORM_FLAG=""
 set ico_no=7
 set DoXHemi = 0;
 set topdir = ();
-set inputargs = ($argv)
+set DoTemplateOnly = 0;
 
 # these should match latest declarations in recon-all
 set DESIKAN_GCS = curvature.buckner40.filled.desikan_killiany.2010-03-25.gcs
@@ -157,6 +157,8 @@ foreach hemi (lh rh)
   echo $cmd | tee -a $LF
   $cmd |& tee -a $LF
   if($status) exit(1);
+
+  if($DoTemplateOnly) continue;
 
   #--------------------------------------------------------------
   # Do we really want to do this?
@@ -323,23 +325,25 @@ foreach hemi (lh rh)
 
 end
 
-#--------------------------------------------------------------
-# Now create the average area surface
-set subjlistfile = /tmp/subjlist.$$
-rm -f $subjlistfile
-echo $SUBJECTS > $subjlistfile
-foreach hemi (rh lh)
-  foreach surf (orig white pial)
-    set avgarea = $hemi.$surf.avg.area.mgh
-    set cmd = (mris_preproc --out $avgarea  --f $subjlistfile)
-    set cmd = ($cmd --target $average_subject --hemi $hemi)
-    set cmd = ($cmd --area $surf --mean --surfreg $sphere_reg)
-    pwd | tee -a $LF
-    echo $cmd | tee -a $LF
-    $cmd |& tee -a $LF
-    if($status) exit (1)
+if(! $DoTemplateOnly) then
+  #--------------------------------------------------------------
+  # Now create the average area surface
+  set subjlistfile = /tmp/subjlist.$$
+  rm -f $subjlistfile
+  echo $SUBJECTS > $subjlistfile
+  foreach hemi (rh lh)
+    foreach surf (orig white pial)
+      set avgarea = $hemi.$surf.avg.area.mgh
+      set cmd = (mris_preproc --out $avgarea  --f $subjlistfile)
+      set cmd = ($cmd --target $average_subject --hemi $hemi)
+      set cmd = ($cmd --area $surf --mean --surfreg $sphere_reg)
+      pwd | tee -a $LF
+      echo $cmd | tee -a $LF
+      $cmd |& tee -a $LF
+      if($status) exit (1)
+    end
   end
-end
+endif
 
 echo "---------------------------------------------------" | tee -a $LF
 echo "" | tee -a $LF
@@ -496,6 +500,14 @@ while( $#argv != 0 )
       endif
       breaksw
 
+    case "--template-only":
+      set DoTemplateOnly = 1;
+      if ( $getting_subjects ) then
+        set getting_subjects = 0;
+        # got em all, from --subjects variable arg loop
+      endif
+      breaksw
+
     case "--xhemi":
       set DoXHemi = 1;
       if ( $getting_subjects ) then
@@ -606,6 +618,7 @@ usage_exit:
   echo "   --surf-reg <surface name>   : alternative registration surface"
   echo "                                 default: sphere.reg"
   echo "   --force   : overwrite existing average subject data"
+  echo "   --template-only : useful when creating iterative atlases"
   echo ""
   echo "   --help       : short descriptive help"
   echo "   --no-symlink : do not use symbolic links (just copy files)"
