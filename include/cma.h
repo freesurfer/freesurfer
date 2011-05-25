@@ -8,9 +8,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2011/05/19 17:10:07 $
- *    $Revision: 1.58 $
+ *    $Author: nicks $
+ *    $Date: 2011/05/25 17:49:42 $
+ *    $Revision: 1.59 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -32,8 +32,6 @@
 #if defined(__cplusplus)
 extern "C" {
 #endif
-
-
 
 /*
  * colors for these labels defined in distribution/FreeSurferColorLUT.txt
@@ -267,6 +265,43 @@ extern "C" {
 #define left_subiculum 557  //                          0   119 86  0
 #define left_fornix 558  //                             20  100 201 0
 
+#define Tumor       600 //                              253 253 253 0
+
+// Cerebellar parcellation labels from SUIT (matches FreeSurferColorLUT.txt)
+#define Cbm_Left_I_IV     601    // 70  130 180 0
+#define Cbm_Right_I_IV    602    // 245 245 245 0
+#define Cbm_Left_V        603    // 205 62  78  0
+#define Cbm_Right_V       604    // 120 18  134 0
+#define Cbm_Left_VI       605    // 196 58  250 0
+#define Cbm_Vermis_VI     606    // 0   148 0   0
+#define Cbm_Right_VI      607    // 220 248 164 0
+#define Cbm_Left_CrusI    608    // 230 148 34  0
+#define Cbm_Vermis_CrusI  609    // 0   118 14  0
+#define Cbm_Right_CrusI   610    // 0   118 14  0
+#define Cbm_Left_CrusII   611    // 122 186 220 0
+#define Cbm_Vermis_CrusII 612    // 236 13  176 0
+#define Cbm_Right_CrusII  613    // 12  48  255 0
+#define Cbm_Left_VIIb     614    // 204 182 142 0
+#define Cbm_Vermis_VIIb   615    // 42  204 164 0
+#define Cbm_Right_VIIb    616    // 119 159 176 0
+#define Cbm_Left_VIIIa    617    // 220 216 20  0
+#define Cbm_Vermis_VIIIa  618    // 103 255 255 0
+#define Cbm_Right_VIIIa   619    // 80  196 98  0
+#define Cbm_Left_VIIIb    620    // 60  58  210 0
+#define Cbm_Vermis_VIIIb  621    // 60  58  210 0
+#define Cbm_Right_VIIIb   622    // 60  58  210 0
+#define Cbm_Left_IX       623    // 60  58  210 0
+#define Cbm_Vermis_IX     624    // 60  60  60  0
+#define Cbm_Right_IX      625    // 255 165 0   0
+#define Cbm_Left_X        626    // 255 165 0   0
+#define Cbm_Vermis_X      627    // 0   255 127 0
+#define Cbm_Right_X       628    // 165 42  42  0
+
+
+#define SUSPICIOUS 999 //                               255 100 100 0
+
+
+// Tracula labeling
 #define fmajor 5100 //                                  204 102 102 0
 #define fminor 5101 //                                  204 102 102 0
 #define lh_atr 5102 //                                  255 255 102 0
@@ -286,41 +321,9 @@ extern "C" {
 #define rh_slft 5116 //                                 153 255 255 0
 #define rh_unc 5117 //                                  102 153 255 0
 
-#define Tumor       600 //                              253 253 253 0
-#define SUSPICIOUS 999 //                               255 100 100 0
-
-#define  Cbm_Left_I_IV 	14201    // 70  130 180 0
-#define  Cbm_Right_I_IV	14202    // 245 245 245 0
-#define  Cbm_Left_V		14203    // 205 62  78  0
-#define  Cbm_Right_V		14204    // 120 18  134 0
-#define  Cbm_Left_VI		14205    // 196 58  250 0
-#define  Cbm_Vermis_VI	14206    // 0   148 0   0
-#define  Cbm_Right_VI		14207    // 220 248 164 0
-#define  Cbm_Left_CrusI	14208    // 230 148 34  0
-#define  Cbm_Vermis_CrusI	14209    // 0   118 14  0
-#define  Cbm_Right_CrusI	14210    // 0   118 14  0
-#define  Cbm_Left_CrusII	14211    // 122 186 220 0
-#define  Cbm_Vermis_CrusII	14212    // 236 13  176 0
-#define  Cbm_Right_CrusII	14213    // 12  48  255 0
-#define  Cbm_Left_VIIb	14214    // 204 182 142 0
-#define  Cbm_Vermis_VIIb	14215    // 42  204 164 0
-#define  Cbm_Right_VIIb	14216    // 119 159 176 0
-#define  Cbm_Left_VIIIa	14217    // 220 216 20  0
-#define  Cbm_Vermis_VIIIa	14218    // 103 255 255 0
-#define  Cbm_Right_VIIIa	14219    // 80  196 98  0
-#define  Cbm_Left_VIIIb	14220    // 60  58  210 0
-#define  Cbm_Vermis_VIIIb	14221    // 60  58  210 0
-#define  Cbm_Right_VIIIb	14222    // 60  58  210 0
-#define  Cbm_Left_IX		14223    // 60  58  210 0
-#define  Cbm_Vermis_IX	14224    // 60  60  60  0
-#define  Cbm_Right_IX		14225    // 255 165 0   0
-#define  Cbm_Left_X		14226    // 255 165 0   0
-#define  Cbm_Vermis_X		14227    // 0   255 127 0
-#define  Cbm_Right_X		14228    // 165 42  42  0
-
 // be sure to update MAX_LABEL if additional labels are added!
 
-#define MAX_LABEL Cbm_Right_X
+#define MAX_LABEL rh_unc
 #define MAX_CMA_LABEL (MAX_LABEL)
 #define MAX_CMA_LABELS (MAX_CMA_LABEL+1)
 
@@ -513,8 +516,8 @@ double SupraTentorialVolCorrection(MRI *aseg, MRI *ribbon);
 #define IS_CLASS(l,c) (c == CSF_CLASS ? IS_CSF_CLASS(l) : c == GM_CLASS ? IS_GRAY_CLASS(l) : IS_WHITE_CLASS(l))
 
 #include "mrisurf.h"
-int insert_ribbon_into_aseg(MRI *mri_src_aseg, MRI *mri_aseg, 
-                            MRI_SURFACE *mris_white, MRI_SURFACE *mris_pial, 
+int insert_ribbon_into_aseg(MRI *mri_src_aseg, MRI *mri_aseg,
+                            MRI_SURFACE *mris_white, MRI_SURFACE *mris_pial,
                             int hemi) ;
 
 
