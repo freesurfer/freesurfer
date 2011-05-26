@@ -9,8 +9,8 @@
 #
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2011/05/25 18:59:06 $
-#    $Revision: 1.519.2.10 $
+#    $Date: 2011/05/26 01:16:45 $
+#    $Revision: 1.519.2.11 $
 #
 ########################################################################
 AC_PREREQ(2.57)
@@ -346,22 +346,6 @@ if test "$host" = "powerpc64-suse-linux"; then
 fi
 AC_SUBST(LIB_LAPACK_A)
 
-# Centos 5 needs libgfortran when linking fem_elastic/surf2vol
-LIB_GFORTRAN=""
-# but the Mac doesnt need libgfortran!  furthermore, its not installed
-# by default, so dont use it on the Mac!
-if test ! "$OS" = "Darwin"; then
-  AC_CHECK_LIB([gfortran], [_gfortran_compare_string],\
-                           [LIB_GFORTRAN="-lgfortran"],[])
-fi
-AC_SUBST(LIB_GFORTRAN)
-AM_CONDITIONAL(HAVE_GFORTRAN, test ! "x$LIB_GFORTRAN" = "x" )
-# note: gcc 4.4 might give 'undefined reference to _gfortran_ errors, and so
-# the following may be necessary to get around this, as root:
-# cd /usr/lib64
-# rm libgfortran.so; 
-# ln -s libgfortran.so.1.0.0 libgfortran.so
-
 
 
 ################################################################
@@ -565,6 +549,27 @@ AC_SUBST(FCLIBS)
 AC_MSG_NOTICE(OS is $OS)
 
 AM_CONDITIONAL(HAVE_MAC_OSX, test "x$OS" = "xDarwin" )
+
+
+################################################################
+# gfortran
+################################################################
+# Centos 5 needs libgfortran when linking fem_elastic/surf2vol
+LIB_GFORTRAN=""
+# but the Mac doesnt need libgfortran!  furthermore, its not installed
+# by default, so dont use it on the Mac!
+# NOTE! OS is was just defined, so dont move this section
+if test ! "$OS" = "Darwin"; then
+  AC_CHECK_LIB([gfortran], [_gfortran_compare_string],\
+                           [LIB_GFORTRAN="-lgfortran"],[])
+fi
+AC_SUBST(LIB_GFORTRAN)
+AM_CONDITIONAL(HAVE_GFORTRAN, test ! "x$LIB_GFORTRAN" = "x" )
+# note: gcc 4.4 might give 'undefined reference to _gfortran_ errors, and so
+# the following may be necessary to get around this, as root:
+# cd /usr/lib64
+# rm libgfortran.so; 
+# ln -s libgfortran.so.1.0.0 libgfortran.so
 
 
 ################################################################
