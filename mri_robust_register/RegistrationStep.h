@@ -7,9 +7,9 @@
 /*
  * Original Author: Martin Reuter
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:24 $
- *    $Revision: 1.11 $
+ *    $Author: mreuter $
+ *    $Date: 2011/05/27 19:49:24 $
+ *    $Revision: 1.12 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -480,7 +480,7 @@ void RegistrationStep<T>::constructAb(MRI *mriS, MRI *mriT,vnl_matrix < T >& A,v
         }
         counti++; // start with 1
       }	
-  if (verbose > 1) std::cout << "  need only: " << counti << std::endl;
+  if (verbose > 1 && n > counti) std::cout << "  need only: " << counti << std::endl;
 	if (counti == 0)
 	{
 	   std::cerr << std::endl;
