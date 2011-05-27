@@ -11,9 +11,9 @@
 /*
  * Original Author: Rudolph Pienaar
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/04/04 00:53:08 $
- *    $Revision: 1.37.2.4 $
+ *    $Author: greve $
+ *    $Date: 2011/05/27 16:49:00 $
+ *    $Revision: 1.37.2.5 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -61,7 +61,7 @@
 #define  START_i      	3
 
 static const char vcid[] =
-  "$Id: mris_calc.c,v 1.37.2.4 2011/04/04 00:53:08 nicks Exp $";
+  "$Id: mris_calc.c,v 1.37.2.5 2011/05/27 16:49:00 greve Exp $";
 double fn_sign(float af_A);
 
 // ----------------------------------------------------------------------------
@@ -127,6 +127,7 @@ typedef enum _operation
   e_set,
   e_atan2,
   e_bcor,
+  e_sig2p,
   e_mag,
   e_abs,
   e_inv,
@@ -172,6 +173,7 @@ const char* Gppch_operation[] =
   "set",
   "atan2",
   "bcor",
+  "sig2p",
   "mag",
   "abs",
   "inv",
@@ -326,6 +328,10 @@ double fn_bcor(float af_A, float af_B)
   p = pow(10,-fabs(af_A));
   p = 1 - pow(1-p,af_B);
   return (-log10(p)*fn_sign(af_A));
+}
+double fn_sig2p(float af_A)
+{
+  return (pow(10,-fabs(af_A)));
 }
 double fn_mag(float af_A, float af_B)
 {
@@ -1333,7 +1339,7 @@ main(
   init();
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mris_calc.c,v 1.37.2.4 2011/04/04 00:53:08 nicks Exp $",
+           "$Id: mris_calc.c,v 1.37.2.5 2011/05/27 16:49:00 greve Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
   {
@@ -1573,6 +1579,10 @@ operation_lookup(
   else if(!strcmp(apch_operation, "bcor"))
   {
     e_op    = e_bcor;
+  }
+  else if(!strcmp(apch_operation, "sig2p"))
+  {
+    e_op    = e_sig2p;
   }
   else if(!strcmp(apch_operation, "mag"))
   {
@@ -2015,6 +2025,7 @@ b_outCurvFile_write(e_operation e_op)
     e_op == e_set           ||
     e_op == e_atan2         ||
     e_op == e_bcor          ||
+    e_op == e_sig2p         ||
     e_op == e_mag           ||
     e_op == e_abs           ||
     e_op == e_inv           ||
@@ -2120,6 +2131,9 @@ CURV_process(void)
     break;
   case  e_bcor:
     CURV_functionRunABC(fn_bcor);
+    break;
+  case  e_sig2p:
+    CURV_functionRunAC(fn_sig2p);
     break;
   case  e_mag:
     CURV_functionRunABC(fn_mag);
