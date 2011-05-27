@@ -13,9 +13,9 @@
 /*
  * Original Author: Martin Reuter
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:24 $
- *    $Revision: 1.35 $
+ *    $Author: mreuter $
+ *    $Date: 2011/05/27 19:46:37 $
+ *    $Revision: 1.36 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -47,6 +47,7 @@
 #include <vnl/vnl_matrix.h>
 #include <vnl/vnl_matrix_fixed.h>
 #include <vnl/algo/vnl_svd.h>
+#include <vnl/algo/vnl_determinant.h>
 
 // all other software are all in "C"
 #ifdef __cplusplus
@@ -232,14 +233,14 @@ void MultiRegistration::initRegistration(Registration & R)
   R.setDoublePrec(doubleprec);
   //R.setDebug(debug);
   
-  if (subsamplesize > 0) R.setSubsamplesize(subsamplesize);
+  if (subsamplesize > 0) R.setSubsampleSize(subsamplesize);
   if (highit >= 0) R.setHighit(highit);
 
 //   int pos = P.mov[n].rfind(".");
 //   if (pos > 0) R.setName(P.mov[n].substr(0,pos));
 //   else  R.setName(P.mov[n]);
 //
-//  // if (P.subsamplesize > 0) R.setSubsamplesize(P.subsamplesize);
+//  // if (P.subsamplesize > 0) R.setSubsampleSize(P.subsamplesize);
 //
 //
 //   R.setSource(P.mri_mov[n],P.fixvoxel,P.keeptype);
@@ -379,7 +380,7 @@ bool MultiRegistration::computeTemplate(int itmax, double eps , int iterate, dou
     MRIwrite(mri_mean,(outdir+"template-it0.mgz").c_str());
   }
 
-   cout << "template fname: " << mri_mean->fname << endl;
+   //cout << "template fname: " << mri_mean->fname << endl;
 
 //  int itmax  = 10;
 //  double eps = 0.025;
@@ -483,7 +484,7 @@ bool MultiRegistration::computeTemplate(int itmax, double eps , int iterate, dou
 //        maxres = 0; //go up to hig-res allways (skip first steps as above)
 //      }
 
-      Rv[i].setSubsamplesize(subsamp);
+      Rv[i].setSubsampleSize(subsamp);
       Rv[i].setIscaleInit(intensities[i]);
       Rv[i].setMinitOrig(transforms[i]); // as the transforms are in the original space
 			if (satit) Rv[i].findSaturation();
@@ -690,7 +691,7 @@ bool MultiRegistration::halfWayTemplate(int maxres, int iterate, double epsit, b
   //std::pair <MATRIX*, double> Md;
   std::pair < vnl_matrix_fixed < double, 4, 4> , double> Md;
 	// adjust subsamplesize, if passed:
-	if (subsamplesize > 0 ) R.setSubsamplesize(subsamplesize);
+	if (subsamplesize > 0 ) R.setSubsampleSize(subsamplesize);
 	if (satit) R.findSaturation();
 
 	//!!!! what if iscale init was passed? needs fixing, if this is used at all?
@@ -1191,7 +1192,25 @@ bool MultiRegistration::writeLTAs(const std::vector < std::string > & nltas, boo
 			}
       strncpy(ltas[i]->xforms[0].dst.fname, mean.c_str(),STRLEN);
       strncpy(ltas[i]->xforms[0].src.fname, mov[i].c_str(),STRLEN);
-      LTAwriteEx(ltas[i], nltas[i].c_str()) ;	 
+      LTAwriteEx(ltas[i], nltas[i].c_str()) ;
+      
+      vnl_matrix < double >fMv2v= MyMatrix::LTA2VOXmatrix(ltas[i]);
+      cout << " Determinant( lta[ "<<i<<" ]) : " << vnl_determinant(fMv2v) << endl << endl;
+      
+      if (!rigid)
+      {
+        cout << " Decompose into Rot * Shear * Scale : " << endl << endl;
+        vnl_matrix < double > Rot, Shear;
+        vnl_diag_matrix < double > Scale;
+        MyMatrix::Polar2Decomposition(fMv2v.extract(3,3),Rot,Shear,Scale);
+        vnl_matlab_print(vcl_cout,Rot,"Rot",vnl_matlab_print_format_long);
+        cout << endl;
+        vnl_matlab_print(vcl_cout,Shear,"Shear",vnl_matlab_print_format_long);
+        cout << endl;
+        vnl_matlab_print(vcl_cout,Scale,"Scale",vnl_matlab_print_format_long);
+        cout << endl;     
+      }
+      	 
 	 }
 	 return (error == 0);
 }
