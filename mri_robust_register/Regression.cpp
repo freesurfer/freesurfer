@@ -11,9 +11,9 @@
 /*
  * Original Author: Martin Reuter
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:24 $
- *    $Revision: 1.22 $
+ *    $Author: mreuter $
+ *    $Date: 2011/05/27 19:50:17 $
+ *    $Revision: 1.23 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -231,6 +231,7 @@ vnl_vector< T > Regression<T>::getRobustEstWAB(vnl_vector< T >& wfinal, double s
   vnl_vector < T > *vtmp = NULL;
   
   int count = 0; 
+  int incr  = 0;
   // iteration until we increase the error, we reach maxit or we have no error
 	do
 	{
@@ -275,8 +276,9 @@ vnl_vector< T > Regression<T>::getRobustEstWAB(vnl_vector< T >& wfinal, double s
       swr += t1*t2;
     }
     err[count] = swr/sw;
-		
-	} while (err[count-1] > err[count] && count < MAXIT && err[count] > EPS);
+		//cout << "err [ " << count << " ] = " << err[count] << endl;
+    if (err[count-1] <= err[count]) incr++;
+	} while (incr<1 && count < MAXIT && err[count] > EPS);
 
 	delete(r); // won't be needed below
 	
