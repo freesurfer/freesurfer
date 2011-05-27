@@ -1,7 +1,7 @@
 #!/bin/tcsh -f
 # fscalc
 
-set VERSION = '$Id: fscalc,v 1.4 2011/03/25 20:26:36 greve Exp $';
+set VERSION = '$Id: fscalc,v 1.5 2011/05/27 16:48:08 greve Exp $';
 
 set outvol = ();
 set inops = ();
@@ -111,7 +111,7 @@ while($#inops)
 
   # Unary operations
   if($op == sqr || $op == sqrt || $op == abs || $op == sign ||\
-     $op == norm || $op == inv) then
+     $op == norm || $op == inv || $op == sig2p) then
     set opok = 1;
     set cmd = (mris_calc -o $tmpvol $tmpvol $op)
     echo $cmd | tee -a $LF
@@ -245,9 +245,9 @@ usage_exit:
   echo "fscalc input1 op <input2 op ...> --o outvol"
   echo ""
   echo "Binary Ops: mul, div, mod, sub, sqd, atan2, mag, eq, "
-  echo " lt, lte, gt, gte, upl, lrl, and, or, andbw, orbw, masked"
+  echo " lt, lte, gt, gte, upl, lrl, and, or, andbw, orbw, masked, bcor"
   echo ""
-  echo "Unary Ops: sqr, sqrt, abs, sign, norm"
+  echo "Unary Ops: sqr, sqrt, abs, sign, norm, sig2p"
   echo ""
   echo "--odt type : output data type (uchar|short|int|float)."
   echo "--help"
