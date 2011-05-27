@@ -11,9 +11,9 @@
  * Original Author: Kevin Teich
  * Reimplemented by: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/14 23:44:47 $
- *    $Revision: 1.4 $
+ *    $Author: rpwang $
+ *    $Date: 2011/05/27 14:16:52 $
+ *    $Revision: 1.5 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -234,6 +234,36 @@ QVariantMap LayerPropertyMRI::GetSettings()
   map["MaxGenericThreshold"] = mMaxGenericThreshold;
   map["MinContourThreshold"] = mMinContourThreshold;
   map["MaxContourThreshold"] = mMaxContourThreshold;
+  return map;
+}
+
+QVariantMap LayerPropertyMRI::GetActiveSettings()
+{
+  QVariantMap map;
+  switch (mColorMapType)
+  {
+  case Grayscale:
+    map["MinGrayscaleWindow"] = mMinGrayscaleWindow;
+    map["MaxGrayscaleWindow"] = mMaxGrayscaleWindow;
+    break;
+  case Heat:
+    map["HeatScaleMinThreshold"] = mHeatScaleMinThreshold;
+    map["HeatScaleMidThreshold"] = mHeatScaleMidThreshold;
+    map["HeatScaleMaxThreshold"] = mHeatScaleMaxThreshold;
+    map["HeatScaleOffset"] = mHeatScaleOffset;
+    break;
+  case Jet:
+  case GEColor:
+  case NIH:
+    map["MinGenericThreshold"] = mMinGenericThreshold;
+    map["MaxGenericThreshold"] = mMaxGenericThreshold;
+    break;
+  }
+  if (this->GetShowAsContour())
+  {
+      map["MinContourThreshold"] = mMinContourThreshold;
+      map["MaxContourThreshold"] = mMaxContourThreshold;
+  }
   return map;
 }
 

@@ -10,9 +10,9 @@
  * Original Author: Kevin Teich
  * Reimplemented by: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/14 23:44:47 $
- *    $Revision: 1.4 $
+ *    $Author: rpwang $
+ *    $Date: 2011/05/27 14:16:52 $
+ *    $Revision: 1.5 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -82,6 +82,7 @@ public:
   };
 
   QVariantMap GetSettings();
+  QVariantMap GetActiveSettings();
   void CopySettings  ( const LayerPropertyMRI* p );
   void RestoreSettings(const QVariantMap& map);
   void RestoreSettings( const QString& filename );

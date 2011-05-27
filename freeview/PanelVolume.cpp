@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2011/05/03 21:27:03 $
- *    $Revision: 1.65 $
+ *    $Date: 2011/05/27 14:16:52 $
+ *    $Revision: 1.66 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -994,7 +994,7 @@ void PanelVolume::OnCopySettings()
   LayerMRI* layer = GetCurrentLayer<LayerMRI*>();
   if ( layer )
   {
-    QVariantMap map = layer->GetProperty()->GetSettings();
+    QVariantMap map = layer->GetProperty()->GetActiveSettings();
     QStringList keys = map.keys();
     QStringList strgs;
     strgs << FS_VOLUME_SETTING_ID;
