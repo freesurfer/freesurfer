@@ -7,9 +7,9 @@
 /*
  * Original Author: Martin Reuter
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/16 21:23:49 $
- *    $Revision: 1.67 $
+ *    $Author: mreuter $
+ *    $Date: 2011/05/30 15:32:22 $
+ *    $Revision: 1.68 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -40,6 +40,7 @@
 #include <vnl/vnl_inverse.h>
 #include <vnl/vnl_vector_fixed.h>
 #include <vnl/vnl_matlab_print.h>
+#include <vnl/algo/vnl_determinant.h>
 
 #ifdef __cplusplus
 extern "C"
@@ -113,7 +114,7 @@ void Registration::computeIterativeRegistration( int nmax,double epsit, MRI * mr
 // The caller needs to retrieve any really final transform with getFinalVox2Vox
 {
 
-  // call helper to avoid code dupliacation:
+  // call helper to avoid code duplication:
 	
 	if (doubleprec)
 	 iterativeRegistrationHelper<double>(nmax,epsit,mriS,mriT,m,scaleinit);
@@ -516,26 +517,28 @@ double Registration::findSaturation ( )
   MRI * mriS = mri_source;
 	MRI * mriT = mri_target;
 	
-//   // if mriS and mriT have been passed, redo pyramid
-//   if (mriS != mri_source)
-//   {
-//     if (gpS.size() > 0) freeGaussianPyramid(gpS);
-//     gpS = buildGaussianPyramid(mriS,16);
-//   }
-//   if (mriT != mri_target)
-//   {
-//     if (gpT.size() > 0) freeGaussianPyramid(gpT);
-//     gpT = buildGaussianPyramid(mriT,16);
-//   }
+  vnl_matrix_fixed < double, 4, 4> m; m.set_identity();
 
-  if (gpS.size() ==0) gpS = buildGaussianPyramid(mriS,16);
-  if (gpT.size() ==0) gpT = buildGaussianPyramid(mriT,16);
+  // variables to store matrix m and scaling factor d:
+  pair < vnl_matrix_fixed < double, 4, 4> , double > md(vnl_matrix_fixed < double, 4, 4> (),iscaleinit);
+
+	if (!Minit.empty()) md.first = getMinitResampled();
+  else md.first = initializeTransform(mriS,mriT);
+
+//   if (scaleinit != 1.0) md.second = scaleinit;
+// 	else md.second = iscaleinit;
+
+  int MINS = 16;
+  if (minsize > MINS) MINS = minsize; // use minsize, but at least 16
+  
+  if (gpS.size() ==0) gpS = buildGaussianPyramid(mriS,MINS,maxsize);
+  if (gpT.size() ==0) gpT = buildGaussianPyramid(mriT,MINS,maxsize);
   //assert(gpS.size() == gpT.size());
-  if ( gpS[0]->width < 16 || gpS[0]->height < 16 || gpS[0]->depth < 16)
+  if ( gpS[0]->width < MINS || gpS[0]->height < MINS || gpS[0]->depth < MINS)
 	{
      ErrorExit(ERROR_BADFILE, "Input images must be larger than 16^3.\n") ;
 	}
-  if ( gpT[0]->width < 16 || gpT[0]->height < 16 || gpT[0]->depth < 16)
+  if ( gpT[0]->width < MINS || gpT[0]->height < MINS || gpT[0]->depth < MINS)
 	{
      ErrorExit(ERROR_BADFILE, "Input images must be larger than 16^3.\n") ;
 	}	
@@ -569,19 +572,6 @@ double Registration::findSaturation ( )
   cout << "     -- gpS ( " << gpS[stopres]->width <<" , " << gpS[stopres]->height << " , " << gpS[stopres]->depth << " )" << endl;
   cout << "     -- gpT ( " << gpT[stopres]->width <<" , " << gpT[stopres]->height << " , " << gpT[stopres]->depth << " )" << endl;
 
-  vnl_matrix_fixed < double, 4, 4> m; m.set_identity();
-
-  // variables to store matrix m and scaling factor d:
-  pair < vnl_matrix_fixed < double, 4, 4> , double > md(vnl_matrix_fixed < double, 4, 4> (),iscaleinit);
-
-  // check if mi (inital transform) is passed
-//   if (!mi.empty()) md.first = mi;
-//   else 
-	if (!Minit.empty()) md.first = getMinitResampled();
-  else md.first = initializeTransform(mriS,mriT);
-
-//   if (scaleinit != 1.0) md.second = scaleinit;
-// 	else md.second = iscaleinit;
 
   if (verbose >1 ) 
   {
@@ -701,10 +691,39 @@ void Registration::computeMultiresRegistration (int stopres, int n,double epsit)
 
   MRI * mriS = mri_source;
 	MRI * mriT = mri_target;
+  
 
-  if (gpS.size() ==0) gpS = buildGaussianPyramid(mriS,16);
-  if (gpT.size() ==0) gpT = buildGaussianPyramid(mriT,16);
-  if ( gpT[0]->width < 16 || gpT[0]->height < 16 || gpT[0]->depth < 16)
+  // variables to store matrix m and scaling factor d:
+  pair < vnl_matrix_fixed <double, 4, 4> , double > cmd;
+  pair < vnl_matrix_fixed <double, 4, 4> , double > md(vnl_matrix_fixed <double, 4, 4>(),iscaleinit);
+
+  // check if mi (inital transform) is passed
+ // if (!mi.empty()) md.first =mi;
+ // else 
+	if (!Minit.empty()) md.first = getMinitResampled();
+  else md.first = initializeTransform(mriS,mriT);
+
+//  if (scaleinit != 1.0) md.second = scaleinit;
+//	else md.second = iscaleinit;
+
+  if (debug)
+  {
+    cout << " Debug: writing inital MOV resampled to DST ..." << endl;
+    MRI * mri_tmp = MRIclone(mriT,NULL); // bring to same space as target (output after resampling)
+    mri_tmp = MyMRI::MRIlinearTransform(mriS,mri_tmp,md.first);
+    MyMRI::MRIvalscale(mri_tmp,mri_tmp,md.second);
+	  string fn = getName() + "-mapmov-init.mgz";
+    MRIwrite(mri_tmp,fn.c_str());
+    MRIfree(&mri_tmp);
+  }
+  
+  int MINS = 16;
+  if (minsize > MINS) MINS = minsize; // use minsize, but at least 16
+   
+  if (gpS.size() ==0) gpS = buildGaussianPyramid(mriS,MINS,maxsize);
+  if (gpT.size() ==0) gpT = buildGaussianPyramid(mriT,MINS,maxsize);
+
+  if ( gpT[0]->width < MINS || gpT[0]->height < MINS || gpT[0]->depth < MINS)
 	{
      ErrorExit(ERROR_BADFILE, "Input images must be larger than 16^3.\n") ;
 	}	
@@ -718,35 +737,12 @@ void Registration::computeMultiresRegistration (int stopres, int n,double epsit)
 	gpT.resize(resolution);
 
 
-  if (debug)
-  {
-    saveGaussianPyramid(gpS, "pyramidS");
-    saveGaussianPyramid(gpT, "pyramidT");
-  }
+  //if (debug)
+  //{
+  //  saveGaussianPyramid(gpS, "pyramidS");
+  //  saveGaussianPyramid(gpT, "pyramidT");
+  //}
 
-
-  // variables to store matrix m and scaling factor d:
-  pair < vnl_matrix_fixed <double, 4, 4> , double > cmd;
-  pair < vnl_matrix_fixed <double, 4, 4> , double > md(vnl_matrix_fixed <double, 4, 4>(),iscaleinit);
-
-  // check if mi (inital transform) is passed
- // if (!mi.empty()) md.first =mi;
- // else 
-	if (!Minit.empty()) md.first = getMinitResampled();
-  else md.first = initializeTransform(mriS,mriT); //default
-
-//  if (scaleinit != 1.0) md.second = scaleinit;
-//	else md.second = iscaleinit;
-
-  if (debug)
-  {
-    MRI * mri_tmp = MRIclone(mriT,NULL); // bring to same space as target (output after resampling)
-    mri_tmp = MyMRI::MRIlinearTransform(mriS,mri_tmp,md.first);
-    MyMRI::MRIvalscale(mri_tmp,mri_tmp,md.second);
-	  string fn = getName() + "-mriS-init.mgz";
-    MRIwrite(mri_tmp,fn.c_str());
-    MRIfree(&mri_tmp);
-  }
 
   if (verbose >0 ) 
   {
@@ -785,8 +781,8 @@ void Registration::computeMultiresRegistration (int stopres, int n,double epsit)
 
   for (int r = resolution-rstart;r>=stopres;r--)
   {
-//    MRIwrite(gpS[r],"mriS-smooth.mgz");
-//    MRIwrite(gpT[r],"mriT-smooth.mgz");
+    //MRIwrite(gpS[r],"mriS-smooth.mgz");
+    //MRIwrite(gpT[r],"mriT-smooth.mgz");
 
     if (verbose >0 )
 		{
@@ -1315,7 +1311,7 @@ void Registration::testRobust(const std::string& fname, int testno)
 //
 // exit(1);
 
-  vector < MRI* > gpS = buildGaussianPyramid(mri,100);
+  vector < MRI* > gpS = buildGaussianPyramid(mri,16,-1);
   //int level = gpS.size();
   int level = gpS.size()-1;
 //  MRIwrite(gpS[gpS.size()-level],"small.mgz");
@@ -2903,6 +2899,7 @@ pair < MATRIX*, double > Registration::convertP2MATRIXd(MATRIX* p)
 
 vector < MRI* > Registration::buildGaussianPyramid (MRI * mri_in, int min, int max )
 // min: no dimension should get smaller than min voxels, default 16
+// max: no dimension will be larger than max
 {
 
   if (verbose >0) cout << "   - Gaussian Pyramid " << endl;
@@ -2910,12 +2907,22 @@ vector < MRI* > Registration::buildGaussianPyramid (MRI * mri_in, int min, int m
   // if max not passed allow pyramid to go up to highest resolution:
   if (max == -1 ) max = mri_in->width + mri_in->height + mri_in->depth;
   
+  if (mri_in->width < min || mri_in->height < min || mri_in->depth < min )
+  {
+    cout << " Input image is samller than min dimension: " << min << endl;
+    cout << " Input dimensions (after conformalizing): " << mri_in->width << " " << mri_in->height << " " <<mri_in->depth << endl;
+    cout << " Specify larger minimum ..." << endl;
+    exit(1);
+  }
+  
 	int n=mri_in->depth; // choose n too large and adjust below
 	
   vector <MRI* > p (n);
   MRI * mri_tmp;
 // if (mri_in->type == MRI_UCHAR) cout << " MRI_UCHAR" << endl;
 // else cout << " type: " << mri_in->type << endl;
+
+  if (verbose >1) cout << "        dim: " << mri_in->width << " " << mri_in->height << " " <<mri_in->depth << endl;
 
   // smoothing kernel:
   MRI *mri_kernel ;
@@ -3023,8 +3030,19 @@ vnl_matrix_fixed <double,4,4> Registration::initializeTransform(MRI *mriS, MRI *
 		 cout << "        Centroid T: " << centroidT[0] << ", " << centroidT[1] << ", "<< centroidT[2] << endl;	
 	}
 
-  if (!inittransform) return myinit;
-
+  if (!inittransform)
+  {
+     // default (new) initialize based on ras coordinates
+     // later: allow option to use voxel identity for init?
+     cout << "   - initialize transform based on RAS\n" ;
+     
+     MATRIX* v2v = MRIgetVoxelToVoxelXform(mriS,mriT);
+     myinit = MyMatrix::convertMATRIX2VNL(v2v);
+     MatrixFree(&v2v);
+ 
+     return myinit;
+  }
+  
   cout << "   - computing initial transform\n" ;
 
 
@@ -3201,11 +3219,91 @@ int Registration::init_scaling(MRI *mri_in, MRI *mri_ref, MATRIX *m_L)
   return(NO_ERROR) ;
 }
 
+bool Registration::reorientSource()
+// potentially changes mri_Source and the resample matrix
+{
+   assert(mri_source);
+   assert(mri_target);
+      
+   MATRIX* v2v = MRIgetVoxelToVoxelXform(mri_source,mri_target);
+   vnl_matrix_fixed <double, 4,4> myinit = MyMatrix::convertMATRIX2VNL(v2v);
+   MatrixFree(&v2v);
+	 //vnl_matlab_print(vcl_cout,myinit,"myinit",vnl_matlab_print_format_long);cout << endl;
+     
+   // swap (and possibly invert) axis, so that rotation gets smaller
+   int xd =1;
+   int yd =1;
+   int zd =1;
+   // determine max in each column:
+   if (fabs(myinit[1][0]) > fabs(myinit[0][0])) xd = 2;
+   if (fabs(myinit[2][0]) > fabs(myinit[0][0]) && fabs(myinit[2][0]) > fabs(myinit[1][0])) xd = 3;
+   if (fabs(myinit[1][1]) > fabs(myinit[0][1])) yd = 2;
+   if (fabs(myinit[2][1]) > fabs(myinit[0][1]) && fabs(myinit[2][1]) > fabs(myinit[1][1])) yd = 3;
+   if (fabs(myinit[1][2]) > fabs(myinit[0][2])) zd = 2;
+   if (fabs(myinit[2][2]) > fabs(myinit[0][2]) && fabs(myinit[2][2]) > fabs(myinit[1][2])) zd = 3;
+   // sign
+   if ( myinit[xd-1][0] < 0.0 ) xd= -xd;   
+   if ( myinit[yd-1][1] < 0.0 ) yd= -yd;   
+   if ( myinit[zd-1][2] < 0.0 ) zd= -zd;   
+     
+   //cout << " xd: " << xd << " yd: " << yd << " zd: " << zd << endl;
+     
+   if ( xd == 1 && yd ==2 && zd==3 ) return false; // nothing to swap
+     
+   if ( abs(xd) + abs(yd) + abs(zd) != 6 )
+   {
+      cout << "WARNING: reorder not clear ..." << endl;
+	    vnl_matlab_print(vcl_cout,myinit,"v2v",vnl_matlab_print_format_long);cout << endl;
+      cout << " xd: " << xd << " yd: " << yd << " zd: " << zd << endl;
+      if (vnl_determinant(myinit) < 0)
+      {  // cannot run sqrt later if det < 0
+         cout << "ERROR: vox2vox det: " << vnl_determinant(myinit) << " < 0"<< endl;
+         cout << "       Something might be wrong with RAS info in inputs." << endl;
+         cout << "       Make sure volumes are in same voxel orientation." << endl;
+         exit(1);
+      }
+      return false;
+   }
+    
+   cout << "   Reordering axes ..." << endl; 
+     
+   //swap stuff:
+   MRI* mri_temp = mri_source;
+   mri_source = MRIreorder(mri_temp, NULL, xd,yd,zd);
+     
+   v2v = MRIgetVoxelToVoxelXform(mri_source,mri_temp);
+   vnl_matrix_fixed <double,4,4> Sreorderinv = MyMatrix::convertMATRIX2VNL(v2v);
+   MatrixFree(&v2v);
+   MRIfree(&mri_temp);
+     
+	 //string fn = getName() + "-mriS-reorder.mgz";
+   //MRIwrite(mri_source,fn.c_str());
+
+	 //vnl_matlab_print(vcl_cout,Sreorder,"reorder",vnl_matlab_print_format_long);cout << endl;
+     
+   // adjust reslice matrix of source          
+   // Rsrc points from resliced/reordered back to original input
+   Rsrc = Rsrc*Sreorderinv;     
+   
+  
+  
+   return true;
+
+}
+
+
 void Registration::setSourceAndTarget (MRI * s,MRI * t, bool keeptype)
 // both need to be in the same voxel space
 {
   cout << "Registration::setSourceAndTarget ..." << endl;
 	
+  cout << "   Type Source : " << s->type <<  "  Type Target : " << t->type << endl;
+  if (s->type != t->type )
+  {
+     cout << "   Types differ, will switch to uchar internally ..." << endl;
+     keeptype = false;
+  }
+
 	// we will make images isotropic
 
   // get smallest dimension
@@ -3220,13 +3318,20 @@ void Registration::setSourceAndTarget (MRI * s,MRI * t, bool keeptype)
   if ( mint > mins ) isosize = mint;
   vector < int > s_dim = MyMRI::findRightSize(s, isosize,false);
   vector < int > t_dim = MyMRI::findRightSize(t, isosize,false);
-  for (uint i = 0;i<3;i++)
-	  if (s_dim[i] < t_dim[i]) s_dim[i] = t_dim[i];
+
+  if (symmetry) // adjust dimensions to match
+  {
+     for (uint i = 0;i<3;i++)
+     {
+	     if (s_dim[i] < t_dim[i]) s_dim[i] = t_dim[i];
+       else t_dim[i] = s_dim[i];
+     }
+  }
 
   cout << "   Mov: (" << s->xsize << ", " << s->ysize << ", " << s->zsize << ")mm  and dim (" << s->width << ", " << s->height << ", " << s->depth << ")" <<endl;
   cout << "   Dst: (" << t->xsize << ", " << t->ysize << ", " << t->zsize << ")mm  and dim (" << t->width << ", " << t->height << ", " << t->depth << ")" <<endl;
 
-  cout << "   Asserting both images: " << isosize <<"mm isotropic and (" << s_dim[0] << ", " << s_dim[1] << ", " << s_dim[2] <<") voxels" <<endl;
+  cout << "   Asserting both images: " << isosize <<"mm isotropic " << endl; //and (" << s_dim[0] << ", " << s_dim[1] << ", " << s_dim[2] <<") voxels" <<endl;
 
   // source
 	pair < MRI*, vnl_matrix_fixed < double, 4, 4> > mm = makeIsotropic(s,NULL,isosize,s_dim[0],s_dim[1],s_dim[2],keeptype);
@@ -3244,14 +3349,14 @@ void Registration::setSourceAndTarget (MRI * s,MRI * t, bool keeptype)
        MRIwrite(mri_source,n.c_str());
      }
   }
-	if (!rl ) cout << "    - no Source reslice necessary" << endl;
+	if (!rl ) cout << "    - no Mov reslice necessary" << endl;
 	   
 	// target
-	mm = makeIsotropic(t,NULL,isosize,s_dim[0],s_dim[1],s_dim[2],keeptype);
+	mm = makeIsotropic(t,NULL,isosize,t_dim[0],t_dim[1],t_dim[2],keeptype);
 	if (mri_target) MRIfree(&mri_target);
 	mri_target = mm.first;
 	Rtrg = mm.second;
-	rl = needReslice(t,isosize,s_dim[0],s_dim[1],s_dim[2],keeptype);
+	rl = needReslice(t,isosize,t_dim[0],t_dim[1],t_dim[2],keeptype);
   if (debug)
 	{
 	  cout << "   Reslice Trg Matrix: " << endl << mm.second << endl;
@@ -3262,14 +3367,16 @@ void Registration::setSourceAndTarget (MRI * s,MRI * t, bool keeptype)
       MRIwrite(mri_target,n.c_str());
     }
   }
-	if (!rl ) cout << "    - no Target reslice necessary" << endl;
-		 
-	
+	if (!rl ) cout << "    - no Dst reslice necessary" << endl;
+
+  // flip and reorder axis based on RAS alignment:
+  reorientSource(); 
+  
   if (gpS.size() > 0) freeGaussianPyramid(gpS);
 	centroidS.clear();
   if (gpT.size() > 0) freeGaussianPyramid(gpT);
 	centroidT.clear();
-	if (verbose > 1 ) cout << " DONE setSoruceAndTarget " << endl;
+	if (verbose > 1 ) cout << " DONE setSourceAndTarget " << endl;
 }
 
 
