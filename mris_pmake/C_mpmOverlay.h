@@ -15,9 +15,9 @@
 /*
  * Original Author: Rudolph Pienaar
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/02/27 21:18:07 $
- *    $Revision: 1.2 $
+ *    $Author: rudolph $
+ *    $Date: 2011/05/31 18:18:49 $
+ *    $Revision: 1.3 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -246,6 +246,29 @@ class C_mpmOverlay_unity : public C_mpmOverlay {
   public:
     C_mpmOverlay_unity(s_env* aps_env);
     ~C_mpmOverlay_unity(void);
+
+    //
+    // Access block
+    //
+
+    //
+    // Functional block
+    //
+    void			costWeightVector_init(void);
+    virtual float		costEdge_calc(int i, int j);
+};
+
+//
+// An "distance" subclass -- returns a (weighted) distance between
+// two vertices by look up in the FreeSurfer mesh.
+//
+class C_mpmOverlay_distance : public C_mpmOverlay {
+
+  protected:
+
+  public:
+    C_mpmOverlay_distance(s_env* aps_env);
+    ~C_mpmOverlay_distance(void);
 
     //
     // Access block

@@ -17,9 +17,9 @@
 /*
  * Original Authors: Rudolph Pienaar / Christian Haselgrove
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/02/27 21:18:07 $
- *    $Revision: 1.15 $
+ *    $Author: rudolph $
+ *    $Date: 2011/05/31 18:18:49 $
+ *    $Revision: 1.16 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -74,7 +74,7 @@ bool    Gb_stdout       = true;         // Global flag controlling output to
                                         //+stdout
 string  G_SELF          = "";           // "My" name
 string  G_VERSION       =               // version
-  "$Id: mris_pmake.cpp,v 1.15 2011/02/27 21:18:07 nicks Exp $";
+  "$Id: mris_pmake.cpp,v 1.16 2011/05/31 18:18:49 rudolph Exp $";
 char 	pch_buffer[65536];
 
 // "Class"-like globals...
@@ -86,7 +86,7 @@ int
 main(
     int         argc,
     char**      ppch_argv) {
-
+ 
   /* ----- initializations ----- */
   Gpch_Progname  = strrchr(ppch_argv[0], '/');
   Gpch_Progname  = (Gpch_Progname == NULL ? ppch_argv[0] : Gpch_Progname+1);

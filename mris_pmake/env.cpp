@@ -11,9 +11,9 @@
 /*
  * Original Author: Rudolph Pienaar / Christian Haselgrove
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/02/27 21:18:07 $
- *    $Revision: 1.26 $
+ *    $Author: rudolph $
+ *    $Date: 2011/05/31 18:18:49 $
+ *    $Revision: 1.27 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -506,7 +506,7 @@ s_env_HUP(
     s_weights_copy(*(st_env.pSTw), 	st_costWeight);
     s_Dweights_copy(*(st_env.pSTDw),	st_DcostWeight);
     // LEGACY DEBUGGING!!
-    st_env.b_mpmOverlayUse		= false;
+    // st_env.b_mpmOverlayUse		= false;
     // end legacy
     
     if(st_env.port != oldport) {
@@ -666,7 +666,7 @@ s_env_defaultsSet(
     st_env.pSTDw                        = new s_Dweights;
 
     s_weights_setAll(*st_env.pSTw, 0.0);
-    st_env.pSTw->wd                    	= 1.0;
+    st_env.pSTw->wc                    	= 1.0;
 
     st_env.b_transitionPenalties        = false;
     s_Dweights_setAll(*st_env.pSTDw, 1.0);
@@ -704,10 +704,17 @@ s_env_optionsFile_write(
     //
 
     C_SMessage*                 O;
+    char                        pch_commandLine[65536];
+    int                         i;
 
     if(ab_setToDefaults)        s_env_defaultsSet(st_env);
 
     O                           = st_env.pcsm_optionsFile;
+    strcpy(pch_commandLine, "");
+    for(i=0; i<st_env.argc; i++) {
+        strcat(pch_commandLine, st_env.ppch_argv[i]);
+        strcat(pch_commandLine, " ");
+    }
     if(O) {
 	delete O;
 	O             		= new C_SMessage( "",
@@ -816,6 +823,8 @@ s_env_optionsFile_write(
                         st_env.b_mpmProgUse);
         O->pcolprintf("b_mpmOverlayUse",	" = %d\n",
                         st_env.b_mpmOverlayUse);
+        O->pcolprintf("argc", " = %d\n", st_env.argc);
+        O->pcolprintf("argv", " = %s\n", pch_commandLine);
 
         O->dump();
     }
@@ -1549,15 +1558,16 @@ s_env_mpmProgSetIndex(
 	    s_env_optionsFile_write(*apst_env);
           }
 	break;
-      case emp_autodijk | emp_autodijk_fast:
+      case emp_autodijk: 
+      case emp_autodijk_fast:
 	if(aindex == emp_autodijk)
 	  apst_env->pCmpmProg	    	= new C_mpmProg_autodijk(apst_env);
 	if(aindex == emp_autodijk_fast)
           apst_env->pCmpmProg		= new C_mpmProg_autodijk_fast(apst_env);
           // Check for any command-line spec'd args for the 'autodijk' mpmProg:
           if(apst_env->str_mpmArgs != "-x") {
-            C_scanopt                   cso_mpm(apst_env->str_mpmArgs, ";",
-                                                e_EquLink, "--", ":");
+            C_scanopt                   cso_mpm(apst_env->str_mpmArgs, ",",
+                                                e_EquLink, "", ":");
             string      str_polarVertex         = "0";
             string      str_costCurvStem        = "";
             int         polarVertex             = 0;
@@ -1569,8 +1579,9 @@ s_env_mpmProgSetIndex(
             }
             if(cso_mpm.scanFor("costCurvStem", &str_costCurvStem)) {
                 apst_env->str_costCurvFile = apst_env->str_hemi + "." +
-                        apst_env->str_mainSurfaceFileName       + "." + 
-                        str_costCurvStem + ".crv";
+                        "autodijk."                             +
+                        str_costCurvStem                        + 
+                        ".crv";
                 pC_autodijk->costFile_set(apst_env->str_costCurvFile);
                 s_env_optionsFile_write(*apst_env);
             }
@@ -1609,6 +1620,10 @@ s_env_mpmOverlaySetIndex(
     }
     
     switch ((e_MPMOVERLAY) aindex) {
+      case emo_LEGACY:
+        lprintf(lw, "Forcing overlay engine to LEGACY mode.\n");
+        apst_env->b_mpmOverlayUse       = false;
+        break;
       case emo_NULL:
 	break;
       case emo_NOP:
@@ -1618,6 +1633,7 @@ s_env_mpmOverlaySetIndex(
 	apst_env->pCmpmOverlay	= new C_mpmOverlay_unity(apst_env);
 	break;
       case emo_distance:
+	apst_env->pCmpmOverlay	= new C_mpmOverlay_distance(apst_env);
 	break;
       case emo_euclidean:
         break;
@@ -1628,8 +1644,8 @@ s_env_mpmOverlaySetIndex(
         apst_env->pCmpmOverlay		= new C_mpmOverlay_NOP(apst_env);
         break;
   }
-  if(aindex < 0 || aindex >= apst_env->totalmpmOverlays)
-      ret       = -1;
+  if(aindex < -2 || aindex >= apst_env->totalmpmOverlays)
+      ret       = -2;
   else
       ret       = aindex;
   apst_env->empmOverlay_current  = (e_MPMOVERLAY) ret;

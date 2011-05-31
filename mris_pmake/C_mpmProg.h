@@ -12,9 +12,9 @@
 /*
  * Original Author: Rudolph Pienaar
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/02/27 21:18:07 $
- *    $Revision: 1.10 $
+ *    $Author: rudolph $
+ *    $Date: 2011/05/31 18:18:49 $
+ *    $Revision: 1.11 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -386,6 +386,51 @@ class C_mpmProg_autodijk_fast : public C_mpmProg_autodijk
     // Functional block
     //
     virtual int         run(void);
+};
+
+
+///
+/// \class C_mpmProg_ROI
+/// \brief This class paints an ROI about a vertex.
+///
+class C_mpmProg_ROI : public C_mpmProg {
+
+  protected:
+
+    int         mvertex_center;
+    float       mf_radius;
+    bool        mb_surfaceRipClear;
+      
+  public:
+    C_mpmProg_ROI(
+        s_env* 		aps_env, 
+        int 		amvertex_center = 0, 
+        float 		af_radius       = 10);
+    ~C_mpmProg_ROI(void);
+
+    //
+    // Access block
+    //
+    void        surfaceRipClear_set(bool avalue) {
+            mb_surfaceRipClear  = avalue;
+    };
+    int         surfaceRipClear_get() {
+            return(mb_surfaceRipClear);
+    };
+    void        vertexCenter_set(int avalue) {
+            mvertex_center       	= avalue;
+    };
+    int         vertexCenter_get() {
+            return(mvertex_center);
+    };
+    void        print(void);
+
+    //
+    // Functional block
+    //
+
+    virtual int         run(void);
+    float               cost_compute(int start, int end);
 };
 
 

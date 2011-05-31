@@ -11,9 +11,9 @@
 /*
  * Original Author: Rudolph Pienaar / Christian Haselgrove
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/02/27 21:18:07 $
- *    $Revision: 1.16 $
+ *    $Author: rudolph $
+ *    $Date: 2011/05/31 18:18:49 $
+ *    $Revision: 1.17 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -175,7 +175,10 @@ typedef enum _e_mpmProg {
 } e_MPMPROG;
 
 // enum typedef for mpmOverlays
+// ordering should be same as e_COSTFUNCTION
 typedef enum _e_mpmOverlay {
+    emo_LEGACY          = -2,   // LEGACY overlay -- toggles cost calc to legacy
+                                // engine.
     emo_NULL 		= -1,	// NULL overlay -- for debugging
     emo_NOP		= 0,	// NOP overlay -- for debugging 
     emo_unity		= 1,	// returns '1' for each internode distance	
@@ -191,6 +194,10 @@ typedef enum _e_mpmOverlay {
 ///
 
 typedef struct _env {
+    int           argc;                     // original number of command line
+                                            // args
+    char**        ppch_argv;                // char array of command line args
+    
     s_weights*    pSTw;                     // weight structure
     s_Dweights*   pSTDw;                    // Del weight structure
 

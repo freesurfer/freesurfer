@@ -15,9 +15,9 @@
 /*
  * Original Author: Rudolph Pienaar
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/02/27 21:18:07 $
- *    $Revision: 1.2 $
+ *    $Author: rudolph $
+ *    $Date: 2011/05/31 18:18:49 $
+ *    $Revision: 1.3 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -559,5 +559,104 @@ C_mpmOverlay_FScurvs::costEdge_calc(int i, int j) {
 	return 0.0;
 }
 
+//
+//\\\***
+// C_   mpmOverlay_distance definitions ****>>>>
+/////***
+//
+
+void
+C_mpmOverlay_distance::costWeightVector_init(void) {
+    //
+    // ARGS
+    //
+    // DESC
+    // Initialize the cost weight vector for this class
+    //
+    // POSTCONDITIONS
+    // 	o Both weight vectors are initialized to '1'.
+    //
+    // HISTORY
+    // April 2011
+    // o Initial design and coding.
+    //
+
+    mv_costWeight.clear();
+    mv_costWeightDel.clear();
+    mv_costWeight.push_back(1.);
+    mv_costWeightDel.push_back(1.);
+}
+
+C_mpmOverlay_distance::C_mpmOverlay_distance(
+    s_env*      aps_env) : C_mpmOverlay(aps_env)
+{
+    //
+    // ARGS
+    //
+    // DESC
+    // Basically a thin "fall-through" constructor to the base
+    // class.
+    //
+    // PRECONDITIONS
+    // o aps_env must be fully instantiated.
+    //
+    // HISTORY
+    // 14 December 2009
+    // o Initial design and coding.
+    //
+
+    debug_push("C_mpmOverlay_distance");
+    mstr_obj	= "C_mpmOverlay_distance";
+    mstr_costWeightFile	= "M_weights_distance.mat";
+
+    if(!costVector_read()) {
+	costWeightVector_init();
+	costVector_write();
+    }
+
+    mb_created	= true;
+    debug_pop();
+}
+
+C_mpmOverlay_distance::~C_mpmOverlay_distance() {
+    //
+    // Destructor
+    //
+
+}
+
+float
+C_mpmOverlay_distance::costEdge_calc(int i, int j) {
+    //
+    // Return the cost in moving from vertex 'i' to vertex 'j'.
+    // In this overlay, this is simply the edge length between
+    // the two vertices, as defined in the FreeSurfer mesh
+    // structure.
+    //
+
+    VERTEX*     pVrtx_i         = &mps_env->pMS_active->vertices[i];
+    float       wd              = mv_costWeight[0];
+    float       f_distance      = 0.;
+    float       f_cost          = 0.;
+    int 	jrel            = 0;
+    int 	jrelcount;
+
+    debug_push ("costEdge_calc (...)");
+    
+    for(jrelcount=0; jrelcount< pVrtx_i->vnum; jrelcount++) {
+        if(pVrtx_i->v[jrelcount] == j) {
+            jrel = jrelcount;
+            break;
+        }
+    }
+    j = jrel;
+    f_distance  = pVrtx_i->dist[j];
+
+    f_cost  = f_distance * wd;
+    if (wd <= 0.) error("negative edge length detected!", 1);
+
+    debug_pop();
+    return(f_cost);
+}
 
 /* eof */

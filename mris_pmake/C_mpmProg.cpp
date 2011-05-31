@@ -12,9 +12,9 @@
 /*
  * Original Author: Rudolph Pienaar
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/02/27 21:18:07 $
- *    $Revision: 1.15 $
+ *    $Author: rudolph $
+ *    $Date: 2011/05/31 18:18:49 $
+ *    $Revision: 1.16 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -484,8 +484,6 @@ C_mpmProg_autodijk::C_mpmProg_autodijk(
     mb_surfaceRipClear          = false;
     mprogressIter               = 100;
 
-    if(s_env_costFctSetIndex(mps_env, m_costFunctionIndex) == -1)
-        error_exit("setting costFunctionIndex", "Could not set index", 1);
     s_env_activeSurfaceSetIndex(mps_env, 0);
     mstr_costFileName   = mps_env->str_costCurvFile;
     mstr_costFullPath   = mps_env->str_workingDir + "/" + mstr_costFileName;
@@ -767,5 +765,62 @@ int C_mpmProg_autodijk_fast::run()
     return ret;
 }
 
+//
+//\\\***
+// C_mpmProg_ROI definitions ****>>>>
+/////***
+//
+
+C_mpmProg_ROI::C_mpmProg_ROI(
+    s_env*      aps_env, 
+    int 	amvertex_center, 
+    float 	af_radius) : C_mpmProg(aps_env)
+{
+    //
+    // ARGS
+    //
+    // DESC
+    // Basically a thin "fall-through" constructor to the base
+    // class.
+    //
+    // PRECONDITIONS
+    // o aps_env must be fully instantiated.
+    //
+    // HISTORY
+    // 05 May 2011
+    // o Initial design and coding.
+    //
+
+    debug_push("C_mpmProg_ROI");
+    mstr_obj	        = "C_mpmProg_ROI";
+
+    mvertex_center      = amvertex_center;
+    mf_radius           = af_radius;
+
+    debug_pop();
+}
+
+C_mpmProg_ROI::~C_mpmProg_ROI() {
+    //
+    // Destructor
+    //
+
+}
+
+int
+C_mpmProg_ROI::run() {
+    //
+    // DESC
+    // Main entry to the actual 'run' core of the mpmProg
+    //
+
+    int         ret     = 1;
+
+    debug_push("run");
+
+
+    debug_pop();
+    return ret;
+}
 
 /* eof */

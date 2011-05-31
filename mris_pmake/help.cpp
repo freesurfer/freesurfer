@@ -6,9 +6,9 @@
 /*
  * Original Author: Rudolph Pienaar / Christian Haselgrove
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/02/27 21:18:07 $
- *    $Revision: 1.14 $
+ *    $Author: rudolph $
+ *    $Date: 2011/05/31 18:18:49 $
+ *    $Revision: 1.15 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -116,34 +116,39 @@ mpmOverlay_check(
                "you must also specify '--mpmOverlay <mpmOverlayID>'.",
                20);
   }
+  if(str_mpmOverlay == "legacy")
+  {
+    b_validMpmOverlay           = true;
+    st_env.empmOverlay_current  = emo_LEGACY;
+  }
   if(str_mpmOverlay == "NULL")
   {
-    b_validMpmOverlay         = true;
+    b_validMpmOverlay           = true;
     st_env.empmOverlay_current  = emo_NULL;
   }
   if(str_mpmOverlay == "NOP")
   {
-    b_validMpmOverlay         = true;
+    b_validMpmOverlay           = true;
     st_env.empmOverlay_current  = emo_NOP;
   }
   if(str_mpmOverlay == "unity")
   {
-    b_validMpmOverlay         = true;
+    b_validMpmOverlay           = true;
     st_env.empmOverlay_current  = emo_unity;
   }
   if(str_mpmOverlay == "distance")
   {
-    b_validMpmOverlay         = true;
+    b_validMpmOverlay           = true;
     st_env.empmOverlay_current  = emo_distance;
   }
   if(str_mpmOverlay == "euclidean")
   {
-    b_validMpmOverlay         = true;
+    b_validMpmOverlay           = true;
     st_env.empmOverlay_current  = emo_euclidean;
   }
   if(str_mpmOverlay == "fscurvs")
   {
-    b_validMpmOverlay         = true;
+    b_validMpmOverlay           = true;
     st_env.empmOverlay_current  = emo_fscurvs;
   }
 
@@ -190,7 +195,9 @@ commandLineOptions_process(
   if( (pch_subjectsDir = getenv("SUBJECTS_DIR")) == NULL)
     error_exit("processing environment,",
                "it seems that the SUBJECTS_DIR env variable is not set.", 10);
-  str_subjectsDir     = pch_subjectsDir;
+  str_subjectsDir       = pch_subjectsDir;
+  st_env.argc           = argc;
+  st_env.ppch_argv      = ppch_argv;
   while (1)
   {
     int opt;
@@ -258,8 +265,9 @@ commandLineOptions_process(
       b_optionsFileUse                = false;
       break;
     case 'O':
-      str_mpmOverlay      = optarg;
-      b_optionsFileUse    = false;
+      str_mpmOverlay                    = optarg;
+      st_env.b_mpmOverlayUse            = true;
+      b_optionsFileUse                  = false;
       break;
     default:
       cout << "?? getopt returned character code " << opt << endl;
