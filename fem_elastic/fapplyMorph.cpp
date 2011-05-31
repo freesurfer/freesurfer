@@ -488,7 +488,6 @@ VolumeFilter::Execute()
   initVolGeom(&vgLike);
   getVolGeom(pmorph->m_template, &vgLike);
 
-  pmorph->invert(); // lz 2/28/11 
   MRI* mriOut  = pmorph->apply_transforms(mri,
                                           false,
                                           &vgLike);
