@@ -8,8 +8,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2011/05/30 15:32:23 $
- *    $Revision: 1.39 $
+ *    $Date: 2011/05/31 18:54:19 $
+ *    $Revision: 1.40 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -441,7 +441,7 @@ void Registration::iterativeRegistrationHelper( int nmax,double epsit, MRI * mri
       mri_Swarp = MyMRI::MRIlinearTransform(mriS,mri_Swarp, mh);
       if (mri_Twarp) MRIfree(&mri_Twarp);
       mri_Twarp = MRIclone(mriS,NULL); // bring them to same space (just use src geometry) !! symmetry slightly destroyed here!!
-      mri_Twarp = MyMRI::MRIlinearTransform(mriT,mri_Twarp, mhi);      
+      mri_Twarp = MyMRI::MRIlinearTransform(mriT,mri_Twarp, mhi);
     }
     else // resample at target location (using target geometry)
     {
@@ -456,11 +456,11 @@ void Registration::iterativeRegistrationHelper( int nmax,double epsit, MRI * mri
     if (debug > 0)
     {
       // write weights and warped images after last step: 
-      MRIwrite(mri_Swarp,(name+"-mriS-hw.mgz").c_str());
-      MRIwrite(mri_Twarp,(name+"-mriT-hw.mgz").c_str());
-      char ch;
-      std::cout << "Press a key to continue iterations: ";
-      std::cin  >> ch;
+      //MRIwrite(mri_Swarp,(name+"-mriS-hw.mgz").c_str());
+      //MRIwrite(mri_Twarp,(name+"-mriT-hw.mgz").c_str());
+      //char ch;
+      //std::cout << "Press a key to continue iterations: ";
+      //std::cin  >> ch;
     }
 
     // adjust intensity 	
@@ -517,22 +517,22 @@ void Registration::iterativeRegistrationHelper( int nmax,double epsit, MRI * mri
     //std::cout << " intens: " << fmd.second << std::endl;
 		i++;
 		
-    if (debug > 0)
-    {
-      // write weights
-      if (robust)
-      {
-        if (mri_hweights) MRIfree(&mri_hweights);
- 		    assert(RStep.getWeights());
- 	      mri_hweights = MRIcopy(RStep.getWeights(),NULL);
-        std::string n = name+std::string("-weights.mgz");
-        MRIwrite(mri_hweights,n.c_str());
-      }
-      //MRI* salign = MRIclone(mriS,NULL);
-      //salign = MyMRI::MRIlinearTransform(mri_Swarp, salign,fmd.first);
-      //MRIwrite(salign,(name+"-mriS-align.mgz").c_str());
-      //MRIfree(&salign);
-    } // end if debug
+//    if (debug > 0)
+//    {
+//      // write weights
+//      if (robust)
+//      {
+//        if (mri_hweights) MRIfree(&mri_hweights);
+// 		    assert(RStep.getWeights());
+// 	      mri_hweights = MRIcopy(RStep.getWeights(),NULL);
+//        std::string n = name+std::string("-weights.mgz");
+//        MRIwrite(mri_hweights,n.c_str());
+//      }
+//      //MRI* salign = MRIclone(mriS,NULL);
+//      //salign = MyMRI::MRIlinearTransform(mri_Swarp, salign,fmd.first);
+//      //MRIwrite(salign,(name+"-mriS-align.mgz").c_str());
+//      //MRIfree(&salign);
+//    } // end if debug
 	
   } // end while loop
   

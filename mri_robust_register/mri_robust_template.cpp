@@ -9,9 +9,9 @@
 /*
  * Original Author: Martin Reuter
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:24 $
- *    $Revision: 1.37 $
+ *    $Author: mreuter $
+ *    $Date: 2011/05/31 18:54:19 $
+ *    $Revision: 1.38 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -169,7 +169,7 @@ static void printUsage(void);
 static bool parseCommandLine(int argc, char *argv[],Parameters & P) ;
 
 static char vcid[] =
-  "$Id: mri_robust_template.cpp,v 1.37 2011/03/02 00:04:24 nicks Exp $";
+  "$Id: mri_robust_template.cpp,v 1.38 2011/05/31 18:54:19 mreuter Exp $";
 char *Progname = NULL;
 
 int getRandomNumber(int start, int end, unsigned int & seed)
@@ -761,45 +761,60 @@ static bool parseCommandLine(int argc, char *argv[], Parameters & P)
   }
 
   bool ntest = true;
+  
+  if (P.mov.size() < 2 )
+  {
+    ntest = false;
+    cerr << "ERROR: Specify at least 2 inputs with --mov !"
+         << endl;
+    exit(1); 
+  }  
+  if (P.mean == "" )
+  {
+    ntest = false;
+    cerr << "ERROR: Specify output image with --template !"
+         << endl;
+    exit(1); 
+  }  
   if (P.nwarps.size() > 0 && P.mov.size() != P.nwarps.size())
   {
     ntest = false;
-    cerr << "ERROR: No. of filnames for --warp should agree with no. of inputs!"
+    cerr << "ERROR: Number of filnames for --warp should agree with number of inputs!"
          << endl;
     exit(1);
   }
   if (P.nltas.size() > 0 && P.mov.size() != P.nltas.size())
   {
     ntest = false;
-    cerr << "ERROR: No. of filnames for --lta should agree with no. of inputs!"
+    cerr << "ERROR: Number of filnames for --lta should agree with number of inputs!"
          << endl;
     exit(1);
   }
   if (P.iltas.size() > 0 && P.mov.size() != P.iltas.size())
   {
     ntest = false;
-    cerr << "ERROR: No. of filnames for --ixforms should agree with no. of inputs!"
+    cerr << "ERROR: Number of filnames for --ixforms should agree with number of inputs!"
          << endl;
     exit(1);
   }
   if (P.nweights.size() > 0 && P.mov.size() != P.nweights.size())
   {
     ntest = false;
-    cerr << "ERROR: No. of filnames for --weights should agree with no. of inputs!"
+    cerr << "ERROR: Number of filnames for --weights should agree with number of inputs!"
          << endl;
     exit(1);
   }
   if (P.iscalein.size() > 0 && P.iltas.size() != P.iscalein.size())
   {
     ntest = false;
-    cerr << "ERROR: No. of filnames for --iscalein should agree with no. of init LTAs (--ixforms)!"
+    cerr << "ERROR: Number of filnames for --iscalein should agree with number of init LTAs (--ixforms)!"
          << endl;
     exit(1);
   }
   if (P.iscaleout.size() > 0 && P.mov.size() != P.iscaleout.size())
   {
     ntest = false;
-    cerr << "ERROR: No. of filnames for --iscaleout should agree with no. of inputs!"
+    cerr << "ERROR: Number of filnames for --iscaleout should agree with number of inputs!"
          << endl;
     exit(1);
   }
@@ -811,5 +826,5 @@ static bool parseCommandLine(int argc, char *argv[], Parameters & P)
     exit(1);
   }
 
-  return (P.mov.size() >= 2 && P.mean != "" && ntest);
+  return (ntest);
 }
