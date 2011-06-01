@@ -188,6 +188,7 @@ spm_t_to_b \
 spmregister \
 sratio \
 subject_info.py \
+surfreg \
 pctsurfcon\
 talairach \
 talairach2 \
