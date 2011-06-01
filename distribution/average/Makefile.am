@@ -74,7 +74,8 @@ foo_DATA=\
 	mni152.mni305.cor.subfov2.dat 
 endif
 
-EXTRA_DIST=$(foo_DATA) fsaverage.tar.gz V1_average.tar.gz \
+EXTRA_DIST=$(foo_DATA) fsaverage.tar.gz fsaverage_sym.tar.gz \
+        V1_average.tar.gz \
 	fsaverage3.tar.gz fsaverage4.tar.gz \
 	fsaverage5.tar.gz fsaverage6.tar.gz fsaverage7.tar.gz \
 	EC_average.tar.gz mult-comp-cor.tar.gz \
@@ -93,6 +94,12 @@ install: install-fooDATA
 	mv $(top_builddir)/distribution/average/fsaverage \
 		$(DESTDIR)$(prefix)/subjects
 	chmod -R 775 $(DESTDIR)$(prefix)/subjects/fsaverage
+	rm -Rf $(DESTDIR)$(prefix)/subjects/fsaverage_sym
+	rm -Rf $(top_builddir)/distribution/average/fsaverage_sym
+	gunzip -c $(top_srcdir)/distribution/average/fsaverage_sym.tar.gz | tar xvf -
+	mv $(top_builddir)/distribution/average/fsaverage_sym \
+		$(DESTDIR)$(prefix)/subjects
+	chmod -R 775 $(DESTDIR)$(prefix)/subjects/fsaverage_sym
 	rm -Rf $(DESTDIR)$(prefix)/subjects/V1_average
 	rm -Rf $(top_builddir)/distribution/average/V1_average
 	gunzip -c $(top_srcdir)/distribution/average/V1_average.tar.gz | tar xvf -
