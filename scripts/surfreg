@@ -1,0 +1,222 @@
+#!/bin/tcsh -f
+# thalseg
+
+set VERSION = '$Id: surfreg,v 1.1 2011/06/01 15:52:06 greve Exp $';
+
+set subject = ();
+set hemilist  = ();
+set target = ();
+set DoXHemi = 0;
+set UseNoNeg = 0;
+set tmpdir = ();
+set cleanup = 1;
+
+set LF = ();
+
+set inputargs = ($argv);
+set PrintHelp = 0;
+
+if($#argv == 0) goto usage_exit;
+set n = `echo $argv | grep -e -help | wc -l` 
+if($n != 0) then
+  set PrintHelp = 1;
+  goto usage_exit;
+endif
+set n = `echo $argv | grep -e -version | wc -l` 
+if($n != 0) then
+  echo $VERSION
+  exit 0;
+endif
+
+goto parse_args;
+parse_args_return:
+
+goto check_params;
+check_params_return:
+
+set sd = $SUBJECTS_DIR/$subject
+if($DoXHemi) set sd = $SUBJECTS_DIR/$subject/xhemi
+mkdir -p $sd/scripts
+
+if($#hemilist == 2) set LF = $sd/scripts/surfreg.$target.log
+if($#hemilist == 1) set LF = $sd/scripts/surfreg.$target.$hemilist.log
+rm -f $LF
+echo "Log file for surfreg" >> $LF
+date  | tee -a $LF
+echo "" | tee -a $LF
+echo "setenv SUBJECTS_DIR $SUBJECTS_DIR" | tee -a $LF
+echo "cd `pwd`"  | tee -a $LF
+echo $0 $inputargs | tee -a $LF
+echo "" | tee -a $LF
+uname -a  | tee -a $LF
+
+if($DoXHemi) then
+  if(! -e $sd/lrrev.register.dat) then
+    echo "xhemi does not exist for $subject, running now"
+    set cmd = (xhemireg --s $subject)
+    echo $cmd | tee -a $LF
+    $cmd | tee -a $LF
+    if($status) exit 1;
+  endif
+endif
+
+foreach hemi ($hemilist)
+  echo "#@# $hemi `date`" | tee -a $LF
+  set AvgTif = $SUBJECTS_DIR/$target/$hemi.reg.template.tif
+  set sphreg = $sd/surf/$hemi.sphere
+  set outreg = $sd/surf/$hemi.$target.sphere.reg
+  set cmd = (mris_register -curv $sphreg)
+  if($UseNoNeg) set cmd = ($cmd -remove_negative 1)
+  set cmd = ($cmd $AvgTif $outreg)
+  echo "#CMD# $cmd"|& tee -a $LF
+  $cmd |& tee -a $LF
+  if($status) exit 1;
+end
+
+date  | tee -a $LF
+echo "surfreg done" | tee -a $LF
+
+exit 0
+
+###############################################
+
+############--------------##################
+parse_args:
+set cmdline = ($argv);
+while( $#argv != 0 )
+
+  set flag = $argv[1]; shift;
+  
+  switch($flag)
+
+    case "--s":
+      if($#argv < 1) goto arg1err;
+      set subject = $argv[1]; shift;
+      breaksw
+
+    case "--t":
+      if($#argv < 1) goto arg1err;
+      set target = $argv[1]; shift;
+      if(! -e $SUBJECTS_DIR/$target) then
+        echo "ERROR: cannot find $target in $SUBJECTS_DIR"
+        exit 1;
+      endif
+      breaksw
+
+    case "--lh":
+      set hemilist = (lh);
+      breaksw
+
+    case "--rh":
+      set hemilist = (rh);
+      breaksw
+
+    case "--lhrh":
+      set hemilist = (lh rh);
+      breaksw
+
+    case "--noneg":
+      set UseNoNeg = 1;
+      breaksw
+
+    case "--xhemi":
+      set DoXHemi = 1;
+      breaksw
+
+    case "--debug":
+      set verbose = 1;
+      set echo = 1;
+      breaksw
+
+    default:
+      echo ERROR: Flag $flag unrecognized. 
+      echo $cmdline
+      exit 1
+      breaksw
+  endsw
+
+end
+
+goto parse_args_return;
+############--------------##################
+
+############--------------##################
+check_params:
+
+if($#target == 0) then
+  echo "ERROR: must spec target subject"
+  exit 1;
+endif
+if($#subject == 0) then
+  echo "ERROR: must spec input subject"
+  exit 1;
+endif
+set sd = $SUBJECTS_DIR/$subject
+if(! -e $sd) then
+   echo "ERROR: cannot find $subject in $SUBJECTS_DIR"
+   exit 1;
+endif
+
+if($#hemilist == 0 && ! $DoXHemi) set hemilist = (lh rh)
+if($#hemilist == 0 && $DoXHemi)   set hemilist = (lh)
+
+foreach hemi ($hemilist)
+  set AvgTif = $SUBJECTS_DIR/$target/$hemi.reg.template.tif
+  if(! -e $AvgTif) then
+    echo "ERROR: cannot find $AvgTif"
+    exit 1;
+  endif
+  set outreg = $sd/surf/$hemi.$target.sphere.reg
+  if($DoXHemi)  set outreg = $sd/xhemi/surf/$hemi.$target.sphere.reg
+  if(-e $outreg) then
+    echo "ERROR: output already exists $outreg"
+    exit 1;
+  endif
+end
+
+goto check_params_return;
+############--------------##################
+
+############--------------##################
+arg1err:
+  echo "ERROR: flag $flag requires one argument"
+  exit 1
+############--------------##################
+
+############--------------##################
+usage_exit:
+  echo ""
+  echo "surfreg"
+  echo ""
+  echo "  --s subject : subject to register"
+  echo "  --t target  : average subject to use as a target"
+  echo "  --xhemi     : for performing cross-hemi registration"
+  echo ""
+  echo "  --lh : only reg lh (default for --xhemi)"
+  echo "  --rh : only reg rh"
+  echo "  --lhrh : reg both lh and rh (default when not using --xhemi)"
+  echo "  --noneg "
+  echo ""
+
+  if(! $PrintHelp) exit 1;
+
+  echo $VERSION
+
+  cat $0 | awk 'BEGIN{prt=0}{if(prt) print $0; if($1 == "BEGINHELP") prt = 1 }'
+
+exit 1;
+
+
+#---- Everything below here is printed out as part of help -----#
+BEGINHELP
+
+Performs surface registration (mris_register) between a subject and a
+target average subject based on the hemi.reg.template.tif atlas in the
+average subject. The source surface is subject/surf/hemi.sphere.
+Creates hemi.target.sphere.reg in the subject/surf dir. If --xhemi is
+used, then the subject name is replaced with subject/xhemi. If this
+directrory is not there, then xhemireg is run on the subject. If
+--xhemi is NOT used, then both hemispheres are registered by default.
+If --xhemi IS used, then only the left hemispheres is registered by
+default. If the output already exists, then it throws an error.
+
