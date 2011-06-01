@@ -16,8 +16,8 @@
  * Original Author: Doug Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2011/04/06 18:17:29 $
- *    $Revision: 1.34 $
+ *    $Date: 2011/06/01 15:12:51 $
+ *    $Revision: 1.35 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -63,7 +63,7 @@
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_probedicom.c,v 1.34 2011/04/06 18:17:29 greve Exp $";
+static char vcid[] = "$Id: mri_probedicom.c,v 1.35 2011/06/01 15:12:51 greve Exp $";
 char *Progname = NULL;
 
 static int  parse_commandline(int argc, char **argv);
@@ -85,6 +85,7 @@ int GetDimLength(char *dicomfile, int dimtype);
 #define QRY_MULTIPLICITY    4
 #define QRY_LENGTH          5
 #define QRY_VALUE           6
+#define QRY_HAS_PIXEL_DATA  7
 
 char* dicomfile = NULL;
 char* directivestring = NULL;
@@ -143,7 +144,7 @@ int main(int argc, char **argv) {
   int n,nvoxs;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_probedicom.c,v 1.34 2011/04/06 18:17:29 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_probedicom.c,v 1.35 2011/06/01 15:12:51 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -196,7 +197,6 @@ int main(int argc, char **argv) {
     fprintf(stderr,"ERROR: %s is not a dicom file or some other problem\n",dicomfile);
     exit(1);
   }
-
   if (DisplayImage) {
     RenderImage(argc,argv);
     return(0);
@@ -213,7 +213,13 @@ int main(int argc, char **argv) {
 
   COND_PopCondition(1);
   cond = DCM_GetElement(&object, tag, &element);
-  if (cond != DCM_NORMAL) {
+  if (directive == QRY_HAS_PIXEL_DATA) {
+    if(cond != DCM_NORMAL)  printf("0\n");
+    if(cond == DCM_NORMAL)  printf("1\n");
+    exit(0);
+  }
+
+  if(cond != DCM_NORMAL) {
     COND_DumpConditions();
     printf("ERROR: DCM_GetElement()\n");
     exit(1);
@@ -436,7 +442,7 @@ static void print_usage(void) {
   fprintf(stdout, "\n");
   fprintf(stdout, "   --i dicomfile     : path to dicom file \n");
   fprintf(stdout, "   --t group element : dicom group and element\n");
-  fprintf(stdout, "   --d directive     : <val>, length, filetype, tag, desc, mult, rep \n");
+  fprintf(stdout, "   --d directive     : <val>, length, filetype, tag, desc, mult, rep, haspixel \n");
   fprintf(stdout, "   --max             : print max of pixel data\n");
   fprintf(stdout, "   --no-name         : do not print patient name (10,10) with dump \n");
   fprintf(stdout, "   --view            : view the image  \n");
@@ -524,6 +530,7 @@ static void print_help(void) {
     "        desc - description of the item.\n"
     "        mult - multiplicity\n"
     "        rep  - representation\n"
+    "        haspixel  - file has pixel data in it 1 (or 0 if not) (probes 0x7FE0,0x10)\n"
     "\n"
     "  --no-name\n"
     "\n"
@@ -650,6 +657,11 @@ int GetDirective(char *directivestring) {
   if (! strncasecmp(directivestring,"multiplicity",1)) return(QRY_MULTIPLICITY);
   if (! strncasecmp(directivestring,"length",1)) return(QRY_LENGTH);
   if (! strncasecmp(directivestring,"value",1)) return(QRY_VALUE);
+  if (! strncasecmp(directivestring,"haspixel",1)){
+    grouptag = 0x7FE0;
+    elementtag = 0x10;
+    return(QRY_HAS_PIXEL_DATA);
+  }
   fprintf(stderr,"ERROR: Directive %s unrecognized\n",directivestring);
   exit(1);
 }
