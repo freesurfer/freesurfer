@@ -47,8 +47,8 @@ function mri = MRIread(fstring,headeronly)
 % Original Author: Doug Greve
 % CVS Revision Info:
 %    $Author: greve $
-%    $Date: 2011/03/11 23:48:45 $
-%    $Revision: 1.22 $
+%    $Date: 2011/06/02 21:01:21 $
+%    $Revision: 1.23 $
 %
 % Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 %
@@ -251,10 +251,13 @@ mri.vox2ras1 = vox2ras_0to1(M);
 % Matrix of direction cosines
 mri.Mdc = [M(1:3,1)/mri.xsize M(1:3,2)/mri.ysize M(1:3,3)/mri.zsize];
 
-% Vector of voxel resolutions (Col-Row-Slice)
-mri.volres = [mri.xsize mri.ysize mri.zsize];
+% Vector of voxel resolutions (Row-Col-Slice)
+mri.volres = [mri.ysize mri.xsize mri.zsize];
 
-mri.tkrvox2ras = vox2ras_tkreg(mri.volsize,mri.volres);
+% Have to swap rows and columns back
+voldim = [mri.volsize(2) mri.volsize(1) mri.volsize(3)]; %[ncols nrows nslices] 
+volres = [mri.volres(2)  mri.volres(1)  mri.volres(3)];  %[dcol drow dslice] 
+mri.tkrvox2ras = vox2ras_tkreg(voldim,volres);
 
 
 return;
