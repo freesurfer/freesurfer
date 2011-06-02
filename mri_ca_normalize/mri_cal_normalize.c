@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2011/06/02 13:00:21 $
- *    $Revision: 1.4 $
+ *    $Date: 2011/06/02 14:13:36 $
+ *    $Revision: 1.5 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -49,6 +49,10 @@ char *Progname ;
 static int remove_cerebellum = 0 ;
 static int remove_lh = 0 ;
 static int remove_rh = 0 ;
+
+static char *ctl_point_fname = NULL ;
+static char *sample_fname = NULL ;
+static char *normalized_transformed_sample_fname = NULL ;
 
 static int file_only = 0 ;
 static char *mask_fname = NULL ;
@@ -137,13 +141,13 @@ main(int argc, char *argv[])
 
   make_cmd_version_string
     (argc, argv,
-     "$Id: mri_cal_normalize.c,v 1.4 2011/06/02 13:00:21 fischl Exp $",
+     "$Id: mri_cal_normalize.c,v 1.5 2011/06/02 14:13:36 fischl Exp $",
      "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
     (argc, argv,
-     "$Id: mri_cal_normalize.c,v 1.4 2011/06/02 13:00:21 fischl Exp $",
+     "$Id: mri_cal_normalize.c,v 1.5 2011/06/02 14:13:36 fischl Exp $",
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
