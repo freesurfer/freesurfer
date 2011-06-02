@@ -1,6 +1,6 @@
 #!/bin/tcsh -f
 
-set ID='$Id: build_release_type.csh,v 1.141 2011/05/03 20:35:08 nicks Exp $'
+set ID='$Id: build_release_type.csh,v 1.142 2011/06/02 15:04:54 nicks Exp $'
 
 unsetenv echo
 if ($?SET_ECHO_1) set echo=1
@@ -26,7 +26,6 @@ set FAILURE_MAIL_LIST=(\
     greve@nmr.mgh.harvard.edu \
     krish@nmr.mgh.harvard.edu \
     rpwang@nmr.mgh.harvard.edu \
-    rge21@nmr.mgh.harvard.edu \
     koen@nmr.mgh.harvard.edu)
 #set FAILURE_MAIL_LIST=(nicks@nmr.mgh.harvard.edu)
 #if ("$HOSTNAME" == "hima") then
@@ -618,20 +617,23 @@ echo "CMD: cd $BUILD_DIR" >>& $OUTPUTF
 cd ${BUILD_DIR} >>& $OUTPUTF
 echo "$make_cmd" >>& $OUTPUTF
 $make_cmd >>& $OUTPUTF
+set makestatus=($status)
 if ("$OSTYPE" == "Darwin") then
   # stupid Mac OS NFS has intermittent file access failures,
   # resulting in make failures because it cant find stuff in
   # /usr/pubsw/packages, so we will retry make a couple times...
-  if ($status != 0) then
+  if ($makestatus != 0) then
     sleep 60
     $make_cmd >>& $OUTPUTF
-    if ($status != 0) then
+    set makestatus=($status)
+    if ($makestatus != 0) then
       sleep 60
       $make_cmd >>& $OUTPUTF
+      set makestatus=($status)
     endif
   endif
 endif
-if ($status != 0) then
+if ($makestatus != 0) then
   set msg="$HOSTNAME $RELEASE_TYPE build ($make_cmd) FAILED"
   tail -n 20 $OUTPUTF | mail -s "$msg" $FAILURE_MAIL_LIST
   rm -f ${FAILED_FILE}
