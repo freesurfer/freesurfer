@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2011/05/06 14:34:06 $
- *    $Revision: 1.490 $
+ *    $Date: 2011/06/02 13:00:21 $
+ *    $Revision: 1.491 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -23,7 +23,7 @@
  */
 
 extern const char* Progname;
-const char *MRI_C_VERSION = "$Revision: 1.490 $";
+const char *MRI_C_VERSION = "$Revision: 1.491 $";
 
 
 /*-----------------------------------------------------
@@ -17317,3 +17317,26 @@ MRIfindSliceWithMostStructure(MRI *mri_aseg, int slice_direction, int label)
   }
   return(max_slice) ;
 }
+double
+MRIrmsDiff(MRI *mri1, MRI *mri2)
+{
+  double  rms, val1, val2 ;
+  int     x, y, z, nvox ;
+
+  for (rms = 0.0, nvox = x = 0 ;  x < mri1->width ; x++)
+    for (y = 0 ; y < mri1->height ; y++)
+      for (z = 0 ; z < mri1->depth ; z++)
+      {
+        val1 = MRIgetVoxVal(mri1, x, y, z, 0) ;
+        val2 = MRIgetVoxVal(mri2, x, y, z, 0) ;
+        if (!FZERO(val1) || !FZERO(val2))
+        {
+          nvox++ ;
+          rms += (val1-val2)*(val1-val2) ;
+        }
+      }
+  if (nvox > 0)
+    rms = sqrt(rms/nvox) ;
+  return(rms) ;
+}
+

@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2011/04/14 13:00:23 $
- *    $Revision: 1.3 $
+ *    $Date: 2011/06/02 13:00:21 $
+ *    $Revision: 1.4 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -51,10 +51,7 @@ static int remove_lh = 0 ;
 static int remove_rh = 0 ;
 
 static int file_only = 0 ;
-static char *normalized_transformed_sample_fname = NULL ;
 static char *mask_fname = NULL ;
-static char *sample_fname = NULL ;
-static char *ctl_point_fname = NULL ;
 static int novar = 0 ;
 
 static double bias_sigma = 4.0 ;
@@ -122,29 +119,6 @@ static int nregions = 3 ;  /* divide each struct into 3x3x3 regions */
 static char *ctrl_point_fname = NULL ;
 static char *read_ctrl_point_fname = NULL ;
 
-static double MRIrmsDiff(MRI *mri1, MRI *mri2)
-{
-  double  rms, val1, val2 ;
-  int     x, y, z, nvox ;
-
-  for (rms = 0.0, nvox = x = 0 ;  x < mri1->width ; x++)
-    for (y = 0 ; y < mri1->height ; y++)
-      for (z = 0 ; z < mri1->depth ; z++)
-      {
-        val1 = MRIgetVoxVal(mri1, x, y, z, 0) ;
-        val2 = MRIgetVoxVal(mri2, x, y, z, 0) ;
-        if (!FZERO(val1) || !FZERO(val2))
-        {
-          nvox++ ;
-          rms += (val1-val2)*(val1-val2) ;
-        }
-      }
-  if (nvox > 0)
-    rms = sqrt(rms/nvox) ;
-  return(rms) ;
-}
-
-
 #define MAX_TIMEPOINTS 2000
 static char *subjects[MAX_TIMEPOINTS] ;
 int
@@ -163,13 +137,13 @@ main(int argc, char *argv[])
 
   make_cmd_version_string
     (argc, argv,
-     "$Id: mri_cal_normalize.c,v 1.3 2011/04/14 13:00:23 fischl Exp $",
+     "$Id: mri_cal_normalize.c,v 1.4 2011/06/02 13:00:21 fischl Exp $",
      "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
     (argc, argv,
-     "$Id: mri_cal_normalize.c,v 1.3 2011/04/14 13:00:23 fischl Exp $",
+     "$Id: mri_cal_normalize.c,v 1.4 2011/06/02 13:00:21 fischl Exp $",
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);

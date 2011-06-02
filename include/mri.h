@@ -8,8 +8,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2011/05/06 14:34:23 $
- *    $Revision: 1.425 $
+ *    $Date: 2011/06/02 13:00:21 $
+ *    $Revision: 1.426 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -440,6 +440,7 @@ MRI   *MRIconvolve1d(MRI *mri_src, MRI *mri_dst, float *kernel,
 MRI   *MRIreduce1d(MRI *mri_src, MRI *mri_dst,float *kernel,int len,int axis);
 MRI   *MRIreduce1dByte(MRI *mri_src, MRI *mri_dst,float *kernel,int len,
                        int axis);
+double MRIrmsDiff(MRI *mri1, MRI *mri2) ;
 MRI   *MRIdiffuse(MRI *mri_src, MRI *mri_dst, double k,
                   int niter, int which, double slope) ;
 MRI   *MRIdiffuseCurvature(MRI *mri_src, MRI *mri_dst,
