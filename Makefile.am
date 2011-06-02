@@ -86,6 +86,7 @@ MRISUBDIRS=\
 	mri_hausdorff_dist \
 	mri_histo_normalize \
 	mri_fuse_segmentations \
+	mri_fuse_intensity_images \
 	mri_simulate_atrophy \
 	mri_joint_density \
 	mri_label_histo \
