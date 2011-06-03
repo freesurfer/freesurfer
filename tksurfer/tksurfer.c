@@ -11,9 +11,9 @@
 /*
  * Original Author: Martin Sereno and Anders Dale, 1996
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2011/05/18 02:04:28 $
- *    $Revision: 1.347 $
+ *    $Author: krish $
+ *    $Date: 2011/06/03 22:17:31 $
+ *    $Revision: 1.348 $
  *
  * Copyright (C) 2002-2011, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA).
@@ -550,6 +550,8 @@ double colscalebar_width = COLSCALEBAR_WIDTH;
 double colscalebar_height = COLSCALEBAR_HEIGHT;
 double colscalebar_xpos = COLSCALEBAR_XPOS;
 double colscalebar_ypos = COLSCALEBAR_YPOS;
+
+int long_config_overlay = FALSE;
 
 double cthk = 1.0;  /* cortical thickness (mm) */
 float ostilt = 1.0; /* outside stilt length (mm) */
@@ -2438,6 +2440,12 @@ int  main(int argc,char *argv[])
       nargs = 2 ;
       offset = atof(argv[i+1]) ;
       fprintf(stderr, "setting offset to %2.4f\n", offset) ;
+    }
+    else if (!stricmp(argv[i], "-long-config-overlay"))
+    {
+      long_config_overlay = TRUE;
+      nargs = 1 ;
+      fprintf(stderr, "long view of configure overlay dialog enabled") ;
     }
     else if (!stricmp(argv[i], "-sdir"))
     {
@@ -19391,6 +19399,7 @@ print_help_tksurfer(void)
   printf("-fmid <value>                : set the overlay threshold midpoint value\n");
   printf("-fthresh <value>             : set the overlay threshold minimum value\n");
   printf("-foffset <value>             : set the overlay threshold offset value\n");
+  printf("-long-config-overlay         : enable the vertical mode of Configure Overlay Display dialog\n");
   printf("-colscalebarflag <1|0>       : display color scale bar\n");
   printf("-colscaletext <1|0>          : display text in color scale bar\n");
   printf("-truncphaseflag <1|0>        : truncate the overlay display\n");
@@ -21439,7 +21448,7 @@ int main(int argc, char *argv[])   /* new main */
   nargs =
     handle_version_option
     (argc, argv,
-     "$Id: tksurfer.c,v 1.347 2011/05/18 02:04:28 fischl Exp $", "$Name:  $");
+     "$Id: tksurfer.c,v 1.348 2011/06/03 22:17:31 krish Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -22395,6 +22404,8 @@ int main(int argc, char *argv[])   /* new main */
               (char *)&labels_before_overlay_flag,
               TCL_LINK_BOOLEAN);
   Tcl_LinkVar(interp,"cptn_draw_flag",(char *)&cptn_draw_flag,
+              TCL_LINK_BOOLEAN);
+  Tcl_LinkVar(interp,"long_config_overlay",(char *)&long_config_overlay,
               TCL_LINK_BOOLEAN);
   /* end rkt */
   /*=======================================================================*/
