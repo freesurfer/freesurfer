@@ -150,6 +150,7 @@ install: install-fooDATA
 uninstall-hook:
 	rm -Rf $(DESTDIR)$(prefix)/subjects/cvs_avg35
 	rm -Rf $(DESTDIR)$(prefix)/subjects/fsaverage
+	rm -Rf $(DESTDIR)$(prefix)/subjects/fsaverage_sym
 	rm -Rf $(DESTDIR)$(prefix)/subjects/fsaverage3
 	rm -Rf $(DESTDIR)$(prefix)/subjects/fsaverage4
 	rm -Rf $(DESTDIR)$(prefix)/subjects/fsaverage5
