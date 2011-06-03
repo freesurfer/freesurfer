@@ -11,20 +11,21 @@
 /*
  * Original Author: Martin Sereno and Anders Dale, 1996
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2010/05/07 20:47:57 $
- *    $Revision: 1.342 $
+ *    $Author: krish $
+ *    $Date: 2011/06/03 22:33:13 $
+ *    $Revision: 1.346.2.1 $
  *
- * Copyright (C) 2002-2010, CorTechs Labs, Inc. (La Jolla, CA) and
+ * Copyright (C) 2002-2011, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA).
- * All rights reserved.
  *
- * Distribution, usage and copying of this software is covered under the
- * terms found in the License Agreement file named 'COPYING' found in the
- * FreeSurfer source code root directory, and duplicated here:
- * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ * Terms and conditions for use, reproduction, distribution and contribution
+ * are found in the 'FreeSurfer/CorTechs Software License Agreement' contained
+ * in the file 'license.cortechs.txt' found in the FreeSurfer distribution,
+ * and here:
  *
- * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferCorTechsLicense
+ *
+ * Reporting: freesurfer@nmr.mgh.harvard.edu
  *
  */
 
@@ -550,6 +551,8 @@ double colscalebar_height = COLSCALEBAR_HEIGHT;
 double colscalebar_xpos = COLSCALEBAR_XPOS;
 double colscalebar_ypos = COLSCALEBAR_YPOS;
 
+int long_config_overlay = FALSE;
+
 double cthk = 1.0;  /* cortical thickness (mm) */
 float ostilt = 1.0; /* outside stilt length (mm) */
 int mingm = 50;     /* outer edge gray matter */
@@ -854,6 +857,7 @@ static int vertex_array_dirty = 0;
 static int use_vertex_arrays = 1;
 
 static int color_scale_changed = TRUE;
+static char tmpstr[STRLEN];
 
 /*---------------------- PROTOTYPES (should be static) ----------------*/
 #ifdef TCL
@@ -2385,6 +2389,15 @@ int  main(int argc,char *argv[])
       fthresh = atof(argv[i+1]) ;
       fprintf(stderr, "setting fthresh to %2.4f\n", fthresh) ;
     }
+    else if (!stricmp(argv[i], "-fminmax"))
+    {
+      nargs = 3 ;
+      fthresh = atof(argv[i+1]) ;
+      tksfmax = atof(argv[i+2]) ;
+      fmid = (tksfmax+fthresh)/2.0;
+      fslope = 1.0/(tksfmax-fthresh);
+      printf("thresholds min=%g max=%g slope=%g mid=%g\n", fthresh,tksfmax,fslope,fmid) ;
+    }
     else if (!stricmp(argv[i], "-patch"))
     {
       nargs = 2 ;
@@ -2425,6 +2438,12 @@ int  main(int argc,char *argv[])
       nargs = 2 ;
       offset = atof(argv[i+1]) ;
       fprintf(stderr, "setting offset to %2.4f\n", offset) ;
+    }
+    else if (!stricmp(argv[i], "-long-config-overlay"))
+    {
+      long_config_overlay = TRUE;
+      nargs = 1 ;
+      fprintf(stderr, "long view of configure overlay dialog enabled\n") ;
     }
     else if (!stricmp(argv[i], "-sdir"))
     {
@@ -2689,6 +2708,10 @@ int  main(int argc,char *argv[])
   sprintf(lext,"%s",argv[3]);
   tclscriptflag = FALSE;
 
+  printf("subject is %s\n",lpname);
+  printf("hemi    is %s\n",lstem);
+  printf("surface is %s\n",lext);
+
   /* rkt: commented this part out. i'm not sure how it was accepting
      any other command line options with it active. */
 #if 0
@@ -2733,6 +2756,33 @@ int  main(int argc,char *argv[])
   }
   strcpy(lsubjectsdir,envptr);
   printf("surfer: current subjects dir: %s\n",lsubjectsdir);
+
+  /* OK, now we're going to do something silly and check whether the subject
+   actually exists in SUBJECTS_DIR. If it does not, then we're going to do
+   something REALLY silly and print out a coherent msg to the terminal.*/
+  sprintf(tmpstr,"%s/%s",lsubjectsdir,lpname);
+  if(!fio_IsDirectory(tmpstr)){
+    printf("Checking %s\n",lpname);
+    if(fio_FileExistsReadable(lpname)){
+      /* Check whether subjectname is an actual file. Try opening it and reading
+	 a string if it is */
+      FILE *fp00;
+      printf("Getting subjectname from %s\n",lpname);
+      fp00 = fopen(lpname,"r");
+      fscanf(fp00,"%s",lpname);
+      fclose(fp00);
+      printf("subject is %s\n",lpname);
+      sprintf(tmpstr,"%s/%s",lsubjectsdir,lpname);
+      if(!fio_IsDirectory(tmpstr)){
+	printf("ERROR: cannot find subject %s in %s\n",lpname,lsubjectsdir);
+	exit(1);
+      }
+    }
+    else{
+      printf("ERROR: cannot find subject %s in %s\n",lpname,lsubjectsdir);
+      exit(1);
+    }
+  }
 
   /* guess datadir from cwd path */
   getcwd(cwd,100*NAME_LENGTH);
@@ -2826,6 +2876,13 @@ int  main(int argc,char *argv[])
   last_frame_xdim = frame_xdim;
   sf=0.55;
 
+  printf("checking for nofix files in '%s'\n", lext) ;
+  if ((strcmp(lext, "orig.nofix") == 0) || (strcmp(lext, "inflated.nofix") == 0))
+  {
+    printf("nofix surface detected - using nofix for orig and white\n") ;
+    white_suffix = "orig.nofix" ;
+    orig_suffix = "orig.nofix" ;
+  }
   make_filenames(lsubjectsdir,lsrname,lpname,lstem,lext);
 
   if (MATCH(cwd,srname))
@@ -19258,10 +19315,12 @@ print_help_tksurfer(void)
   printf("-overlay-reg-identity        : calculate an identity transform for registration\n");
   printf("-mni152reg : for use with average subject when overlay is mni152\n");
   printf("-zm                          : remove mean from overlays\n") ;
+  printf("-fminmax min max             : set the overlay threshold min (fthresh) and max\n");
   printf("-fslope <value>              : set the overlay threshold slope value\n");
   printf("-fmid <value>                : set the overlay threshold midpoint value\n");
   printf("-fthresh <value>             : set the overlay threshold minimum value\n");
   printf("-foffset <value>             : set the overlay threshold offset value\n");
+  printf("-long-config-overlay         : enable the vertical mode of Configure Overlay Display dialog\n");
   printf("-colscalebarflag <1|0>       : display color scale bar\n");
   printf("-colscaletext <1|0>          : display text in color scale bar\n");
   printf("-truncphaseflag <1|0>        : truncate the overlay display\n");
@@ -21303,7 +21362,7 @@ int main(int argc, char *argv[])   /* new main */
   nargs =
     handle_version_option
     (argc, argv,
-     "$Id: tksurfer.c,v 1.342 2010/05/07 20:47:57 nicks Exp $", "$Name:  $");
+     "$Id: tksurfer.c,v 1.346.2.1 2011/06/03 22:33:13 krish Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -21355,8 +21414,8 @@ int main(int argc, char *argv[])   /* new main */
      2) tksurfer.tcl in TKSURFER_SCRIPTS_DIR
      3) tksurfer.new.tcl in local dir
      4) tksurfer.tcl in local dir
-     5) tksurfer.new.tcl in FREESURFER_HOME/lib/tcl
-     6) tksurfer.tcl in FREESURFER_HOME/lib/tcl
+     5) tksurfer.new.tcl in FREESURFER_HOME/tktools
+     6) tksurfer.tcl in FREESURFER_HOME/tktools
   */
 
   found_script = FALSE;
@@ -21400,7 +21459,7 @@ int main(int argc, char *argv[])   /* new main */
   }
   if (!found_script && envptr)
   {
-    sprintf (tksurfer_tcl, "%s/lib/tcl/tksurfer.new.tcl", envptr);
+    sprintf (tksurfer_tcl, "%s/tktools/tksurfer.new.tcl", envptr);
     if ((fp=fopen(tksurfer_tcl,"r"))!=NULL)
     {
       fclose(fp);
@@ -21409,7 +21468,7 @@ int main(int argc, char *argv[])   /* new main */
   }
   if (!found_script && envptr)
   {
-    sprintf (tksurfer_tcl, "%s/lib/tcl/tksurfer.tcl", envptr);
+    sprintf (tksurfer_tcl, "%s/tktools/tksurfer.tcl", envptr);
     if ((fp=fopen(tksurfer_tcl,"r"))!=NULL)
     {
       fclose(fp);
@@ -21446,32 +21505,37 @@ int main(int argc, char *argv[])   /* new main */
       {
         sprintf(script_tcl,"%s/lib/tcl/%s",envptr,argv[5]);
         fp = fopen(script_tcl,"r");
-        if (fp == NULL)            /* then TKSURFER_TCL_SCRIPTS dir */
+        if (fp == NULL)            /* then FREESURFER_HOME/tktools dir */
         {
-          cp = getenv("TKSURFER_TCL_SCRIPTS") ;
-          if (cp)
-            /* see if script is in users has own scripts directory */
+          sprintf(script_tcl,"%s/tktools/%s",envptr,argv[5]);
+          fp = fopen(script_tcl,"r");
+          if (fp == NULL)            /* then TKSURFER_TCL_SCRIPTS dir */
           {
-            sprintf(script_tcl,"%s/%s",cp,argv[5]);
-            fp = fopen(script_tcl,"r");
-          } else
-            fp = NULL ;
-          if (fp==NULL)              /* then aliases */
-          {
-            aliasflag = TRUE;
-            sprintf(script_tcl,"%s/lib/tcl/alias.tcl",envptr);
-            fp = fopen(script_tcl,"r");
-            if (fp==NULL)            /* couldn't find it anywhere */
+            cp = getenv("TKSURFER_TCL_SCRIPTS") ;
+            if (cp)
+              /* see if script is in users has own scripts directory */
             {
-              printf("tksurfer: (1) File ./%s not found\n",
-                     argv[5]);
-              printf("          (2) File %s/lib/tcl/%s "
-                     "not found\n",
-                     envptr,argv[5]);
-              printf("          (3) File %s/lib/tcl/alias.tcl "
-                     "not found\n",
-                     envptr);
-              exit(0);
+              sprintf(script_tcl,"%s/%s",cp,argv[5]);
+              fp = fopen(script_tcl,"r");
+            } else
+              fp = NULL ;
+            if (fp==NULL)              /* then aliases */
+            {
+              aliasflag = TRUE;
+              sprintf(script_tcl,"%s/lib/tcl/alias.tcl",envptr);
+              fp = fopen(script_tcl,"r");
+              if (fp==NULL)            /* couldn't find it anywhere */
+              {
+                printf("tksurfer: (1) File ./%s not found\n",
+                       argv[5]);
+                printf("          (2) File %s/lib/tcl/%s "
+                       "not found\n",
+                       envptr,argv[5]);
+                printf("          (3) File %s/lib/tcl/alias.tcl "
+                       "not found\n",
+                       envptr);
+                exit(0);
+              }
             }
           }
         }
@@ -22252,6 +22316,8 @@ int main(int argc, char *argv[])   /* new main */
               (char *)&labels_before_overlay_flag,
               TCL_LINK_BOOLEAN);
   Tcl_LinkVar(interp,"cptn_draw_flag",(char *)&cptn_draw_flag,
+              TCL_LINK_BOOLEAN);
+  Tcl_LinkVar(interp,"long_config_overlay",(char *)&long_config_overlay,
               TCL_LINK_BOOLEAN);
   /* end rkt */
   /*=======================================================================*/

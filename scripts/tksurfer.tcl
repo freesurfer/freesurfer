@@ -3,8 +3,8 @@
 ##
 ## CVS Revision Info:
 ##    $Author: krish $
-##    $Date: 2011/05/25 21:44:52 $
-##    $Revision: 1.167.2.1 $
+##    $Date: 2011/06/03 22:33:17 $
+##    $Revision: 1.167.2.2 $
 ##
 ## Copyright (C) 2000-2011, CorTechs Labs, Inc. (La Jolla, CA) and
 ## The General Hospital Corporation (Boston, MA).
@@ -267,7 +267,7 @@ array set gaLinkedVarGroups {
     overlay { falpha fopaqueflag colscale truncphaseflag invphaseflag
 	revphaseflag complexvalflag foffset fthresh fmid fslope fmin fmax 
 	fnumtimepoints fnumconditions ftimepoint fcondition 
-	ignorezeroesinhistogramflag autosetfslope labels_before_overlay_flag linkvertexmode 
+	ignorezeroesinhistogramflag autosetfslope labels_before_overlay_flag linkvertexmode long_config_overlay
 	}
     curvature { cslope cmid cmin cmax forcegraycurvatureflag }
     phase { angle_offset angle_cycles }
@@ -1433,13 +1433,22 @@ tkm_MakeDialogButtons $fwButtons $wwDialog [list \
 	[list Close {}] \
 	[list Help {ShowOverlayHelpWindow}] \
 ]
-
-grid $fwDisplay   -column 0 -row 0  -sticky news -padx 5 -pady 5
-grid $fwPlane   -column 0 -row 1 -sticky news -padx 5 -pady 5
-grid $fwColorScale   -column 0 -row 2 -sticky news -padx 5 -pady 5
-grid $fwFlags   -column 0 -row 3 -sticky news -padx 5 -pady 5
-grid $fwHisto   -column 1 -row 0 -rowspan 4 -padx 5 -pady 5
-grid $fwButtons  -column 0 -row 4 -columnspan 2 -padx 5 -pady 5 
+if { $gaLinkedVars(long_config_overlay) == 0 } {
+    grid $fwDisplay   -column 0 -row 0  -sticky news -padx 5 -pady 5
+    grid $fwPlane   -column 0 -row 1 -sticky news -padx 5 -pady 5
+    grid $fwColorScale   -column 0 -row 2 -sticky news -padx 5 -pady 5
+    grid $fwFlags   -column 0 -row 3 -sticky news -padx 5 -pady 5
+    grid $fwHisto   -column 1 -row 0 -rowspan 4 -padx 5 -pady 5
+    grid $fwButtons  -column 0 -row 4 -columnspan 2 -padx 5 -pady 5 
+} else {
+   pack $fwMain $fwDisplay $fwPlane $fwColorScale \
+    $fwFlags $fwHisto $fwFDR $fwButtons \
+    -side top       \
+    -expand yes     \
+    -fill x         \
+    -padx 5         \
+    -pady 5 
+}
 
 # now update it so that we have the current info and stuff.
 UpdateOverlayDlogInfo
