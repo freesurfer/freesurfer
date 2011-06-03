@@ -8,8 +8,8 @@
 # Original Author: Anastasia Yendiki
 # CVS Revision Info:
 #    $Author: ayendiki $
-#    $Date: 2011/05/24 06:49:09 $
-#    $Revision: 1.22.2.6 $
+#    $Date: 2011/06/03 16:15:31 $
+#    $Revision: 1.22.2.7 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -25,7 +25,7 @@
 
 umask 002
 
-set VERSION = '$Id: trac-all,v 1.22.2.6 2011/05/24 06:49:09 ayendiki Exp $'
+set VERSION = '$Id: trac-all,v 1.22.2.7 2011/06/03 16:15:31 ayendiki Exp $'
 set ProgName = `basename $0`
 set inputargs = ($argv)
 
@@ -781,7 +781,7 @@ arg1err:
 check_params:
   if (! $DoVersionsOnly) then
     if ($doregcvs) then
-      echo "WARN: CVS template is not unavailable in the current version"
+      echo "WARN: CVS template is unavailable in the current version"
       set doregcvs = 0
     endif
     if (! $doregmni) then
