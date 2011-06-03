@@ -51,6 +51,7 @@ install-exec-hook:
 
 uninstall-hook:
 	rm -f $(DESTDIR)$(prefix)/tktools/tkregister*
+	rm -f $(DESTDIR)$(bindir)/tkregister*
 
 else
 all:
