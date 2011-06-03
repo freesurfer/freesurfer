@@ -12,8 +12,8 @@
  * Original Author: Martin Sereno and Anders Dale, 1996
  * CVS Revision Info:
  *    $Author: krish $
- *    $Date: 2011/06/03 22:17:31 $
- *    $Revision: 1.348 $
+ *    $Date: 2011/06/03 22:19:55 $
+ *    $Revision: 1.349 $
  *
  * Copyright (C) 2002-2011, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA).
@@ -2445,7 +2445,7 @@ int  main(int argc,char *argv[])
     {
       long_config_overlay = TRUE;
       nargs = 1 ;
-      fprintf(stderr, "long view of configure overlay dialog enabled") ;
+      fprintf(stderr, "long view of configure overlay dialog enabled\n") ;
     }
     else if (!stricmp(argv[i], "-sdir"))
     {
@@ -21448,7 +21448,7 @@ int main(int argc, char *argv[])   /* new main */
   nargs =
     handle_version_option
     (argc, argv,
-     "$Id: tksurfer.c,v 1.348 2011/06/03 22:17:31 krish Exp $", "$Name:  $");
+     "$Id: tksurfer.c,v 1.349 2011/06/03 22:19:55 krish Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
