@@ -11,9 +11,9 @@
 /*
  * Original Author: Martin Sereno and Anders Dale, 1996
  * CVS Revision Info:
- *    $Author: krish $
- *    $Date: 2011/06/03 22:33:13 $
- *    $Revision: 1.346.2.1 $
+ *    $Author: greve $
+ *    $Date: 2011/06/06 14:43:20 $
+ *    $Revision: 1.346.2.2 $
  *
  * Copyright (C) 2002-2011, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA).
@@ -551,7 +551,7 @@ double colscalebar_height = COLSCALEBAR_HEIGHT;
 double colscalebar_xpos = COLSCALEBAR_XPOS;
 double colscalebar_ypos = COLSCALEBAR_YPOS;
 
-int long_config_overlay = FALSE;
+int long_config_overlay = TRUE;
 
 double cthk = 1.0;  /* cortical thickness (mm) */
 float ostilt = 1.0; /* outside stilt length (mm) */
@@ -2444,6 +2444,12 @@ int  main(int argc,char *argv[])
       long_config_overlay = TRUE;
       nargs = 1 ;
       fprintf(stderr, "long view of configure overlay dialog enabled\n") ;
+    }
+    else if (!stricmp(argv[i], "-wide-config-overlay"))
+    {
+      long_config_overlay = FALSE;
+      nargs = 1 ;
+      fprintf(stderr, "wide view of configure overlay dialog enabled\n") ;
     }
     else if (!stricmp(argv[i], "-sdir"))
     {
@@ -19320,6 +19326,7 @@ print_help_tksurfer(void)
   printf("-fmid <value>                : set the overlay threshold midpoint value\n");
   printf("-fthresh <value>             : set the overlay threshold minimum value\n");
   printf("-foffset <value>             : set the overlay threshold offset value\n");
+  printf("-wide-config-overlay         : enable the wide mode of Configure Overlay Display dialog\n");
   printf("-long-config-overlay         : enable the vertical mode of Configure Overlay Display dialog\n");
   printf("-colscalebarflag <1|0>       : display color scale bar\n");
   printf("-colscaletext <1|0>          : display text in color scale bar\n");
@@ -21362,7 +21369,7 @@ int main(int argc, char *argv[])   /* new main */
   nargs =
     handle_version_option
     (argc, argv,
-     "$Id: tksurfer.c,v 1.346.2.1 2011/06/03 22:33:13 krish Exp $", "$Name:  $");
+     "$Id: tksurfer.c,v 1.346.2.2 2011/06/06 14:43:20 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
