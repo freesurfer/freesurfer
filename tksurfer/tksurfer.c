@@ -11,9 +11,9 @@
 /*
  * Original Author: Martin Sereno and Anders Dale, 1996
  * CVS Revision Info:
- *    $Author: krish $
- *    $Date: 2011/06/03 22:19:55 $
- *    $Revision: 1.349 $
+ *    $Author: greve $
+ *    $Date: 2011/06/06 14:40:07 $
+ *    $Revision: 1.350 $
  *
  * Copyright (C) 2002-2011, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA).
@@ -551,7 +551,7 @@ double colscalebar_height = COLSCALEBAR_HEIGHT;
 double colscalebar_xpos = COLSCALEBAR_XPOS;
 double colscalebar_ypos = COLSCALEBAR_YPOS;
 
-int long_config_overlay = FALSE;
+int long_config_overlay = TRUE;
 
 double cthk = 1.0;  /* cortical thickness (mm) */
 float ostilt = 1.0; /* outside stilt length (mm) */
@@ -2231,16 +2231,14 @@ int  main(int argc,char *argv[])
   EnableDebuggingOutput ;
 
   // Read in env defaults
-  if (getenv("FS_TKFTHRESH"))
-  {
-    sscanf(getenv("FS_TKFTHRESH"),"%lf",&fthresh);
-  }
-  if (getenv("FS_TKFMAX"))
+  if(getenv("FS_TKFTHRESH")) sscanf(getenv("FS_TKFTHRESH"),"%lf",&fthresh);
+  if(getenv("FS_TKFMAX"))
   {
     sscanf(getenv("FS_TKFMAX"),"%lf",&tksfmax);
     fmid = (tksfmax+fthresh)/2.0;
     fslope = 1.0/(tksfmax-fthresh);
   }
+  if(getenv("FS_TKS_OV_WIDE") && !strcmp(getenv("FS_TKS_OV_WIDE"),"1")) long_config_overlay = FALSE;
 
   /* This is a pre-pass of our arguments and just looks for -option
      options and copies their information for later use. It actually
@@ -2446,6 +2444,12 @@ int  main(int argc,char *argv[])
       long_config_overlay = TRUE;
       nargs = 1 ;
       fprintf(stderr, "long view of configure overlay dialog enabled\n") ;
+    }
+    else if (!stricmp(argv[i], "-wide-config-overlay"))
+    {
+      long_config_overlay = FALSE;
+      nargs = 1 ;
+      fprintf(stderr, "wide view of configure overlay dialog enabled\n") ;
     }
     else if (!stricmp(argv[i], "-sdir"))
     {
@@ -19399,7 +19403,9 @@ print_help_tksurfer(void)
   printf("-fmid <value>                : set the overlay threshold midpoint value\n");
   printf("-fthresh <value>             : set the overlay threshold minimum value\n");
   printf("-foffset <value>             : set the overlay threshold offset value\n");
-  printf("-long-config-overlay         : enable the vertical mode of Configure Overlay Display dialog\n");
+  printf("-wide-config-overlay         : enable the wide mode of Configure Overlay Display dialog\n");
+  printf("             can also 'setenv FS_TKS_OV_WIDE 1'\n");
+  printf("-long-config-overlay         : enable the vertical mode of Configure Overlay Display dialog (default)\n");
   printf("-colscalebarflag <1|0>       : display color scale bar\n");
   printf("-colscaletext <1|0>          : display text in color scale bar\n");
   printf("-truncphaseflag <1|0>        : truncate the overlay display\n");
@@ -21448,7 +21454,7 @@ int main(int argc, char *argv[])   /* new main */
   nargs =
     handle_version_option
     (argc, argv,
-     "$Id: tksurfer.c,v 1.349 2011/06/03 22:19:55 krish Exp $", "$Name:  $");
+     "$Id: tksurfer.c,v 1.350 2011/06/06 14:40:07 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
