@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2011/05/05 19:48:29 $
- *    $Revision: 1.51 $
+ *    $Date: 2011/06/06 17:09:49 $
+ *    $Revision: 1.52 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -634,6 +634,17 @@ void FSSurface::UpdatePolyData( MRIS* mris,
     normal[0] = mris->vertices[vno].nx;
     normal[1] = mris->vertices[vno].ny;
     normal[2] = mris->vertices[vno].nz;
+    float orig[3] = { 0, 0, 0 };
+    this->ConvertSurfaceToRAS( orig, orig );
+    this->ConvertSurfaceToRAS( normal, normal );
+    if ( m_volumeRef )
+    {
+      m_volumeRef->RASToTarget( orig, orig );
+      m_volumeRef->RASToTarget( normal, normal );
+    }
+    for (int i = 0; i < 3; i++)
+      normal[i] = normal[i] - orig[i];
+    vtkMath::Normalize(normal);
     newNormals->InsertNextTuple( normal );
 
     if ( polydata_verts )
@@ -1148,6 +1159,7 @@ void FSSurface::ComputeNormals()
   float norm[3],snorm[3];
 
   for (k=0; k<mris->nfaces; k++)
+  {
     if (mris->faces[k].ripflag)
     {
       f = &mris->faces[k];
@@ -1156,10 +1168,12 @@ void FSSurface::ComputeNormals()
         mris->vertices[f->v[n]].border = TRUE;
       }
     }
+  }
   for (k=0; k<mris->nvertices; k++)
+  {
+    v = &mris->vertices[k];
     if (!mris->vertices[k].ripflag)
     {
-      v = &mris->vertices[k];
       snorm[0]=snorm[1]=snorm[2]=0;
       v->area = 0;
       for (n=0; n<v->num; n++)
@@ -1183,6 +1197,7 @@ void FSSurface::ComputeNormals()
       v->ny = snorm[1];
       v->nz = snorm[2];
     }
+  }
 }
 
 void FSSurface::ConvertSurfaceToRAS ( float iX, float iY, float iZ,
