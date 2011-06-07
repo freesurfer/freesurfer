@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: mreuter $
- *    $Date: 2011/03/07 18:29:31 $
- *    $Revision: 1.41 $
+ *    $Author: fischl $
+ *    $Date: 2011/06/07 17:37:16 $
+ *    $Revision: 1.42 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -107,7 +107,7 @@ int       HISTOfindPreviousPeak(HISTOGRAM *h, int b0, int whalf) ;
 HISTO     *HISTOlinearScale(HISTOGRAM *hsrc, HISTOGRAM *hdst, float scale,
                             float offset) ;
 
-int       HISTOfindLinearFit(HISTOGRAM *h1,
+double    HISTOfindLinearFit(HISTOGRAM *h1,
                              HISTOGRAM *h2,
                              double amin, double amax,
                              double bmin, double bmax,
