@@ -7,9 +7,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: mreuter $
- *    $Date: 2011/03/07 18:29:54 $
- *    $Revision: 1.70 $
+ *    $Author: fischl $
+ *    $Date: 2011/06/07 17:37:24 $
+ *    $Revision: 1.71 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -1659,7 +1659,7 @@ histoComputeLinearFitCorrelation(HISTOGRAM *h1, HISTOGRAM *h2, double a, double 
 
 
 #define NSTEPS 100
-int
+double
 HISTOfindLinearFit(HISTOGRAM *h1, HISTOGRAM *h2, double amin, double amax,
                    double bmin, double bmax, float *pa, float *pb)
 {
@@ -1687,7 +1687,7 @@ HISTOfindLinearFit(HISTOGRAM *h1, HISTOGRAM *h2, double amin, double amax,
   *pa = best_a ;
   *pb = best_b ;
 
-  return(NO_ERROR) ;
+  return(best_correlation) ;
 }
 
 
