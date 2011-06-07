@@ -8,8 +8,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2011/05/30 15:32:22 $
- *    $Revision: 1.68 $
+ *    $Date: 2011/06/07 16:29:10 $
+ *    $Revision: 1.69 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -530,10 +530,10 @@ double Registration::findSaturation ( )
 
   int MINS = 16;
   if (minsize > MINS) MINS = minsize; // use minsize, but at least 16
-  
-  if (gpS.size() ==0) gpS = buildGaussianPyramid(mriS,MINS,maxsize);
-  if (gpT.size() ==0) gpT = buildGaussianPyramid(mriT,MINS,maxsize);
-  //assert(gpS.size() == gpT.size());
+  pair <int, int> limits = getGPLimits(mriS,mriT,MINS,maxsize);
+  if (gpS.size() ==0) gpS = buildGPLimits(mriS,limits);
+  if (gpT.size() ==0) gpT = buildGPLimits(mriT,limits);
+  assert(gpS.size() == gpT.size());
   if ( gpS[0]->width < MINS || gpS[0]->height < MINS || gpS[0]->depth < MINS)
 	{
      ErrorExit(ERROR_BADFILE, "Input images must be larger than 16^3.\n") ;
@@ -544,9 +544,6 @@ double Registration::findSaturation ( )
 	}	
 	
   int resolution = gpS.size();
-	if ((int)gpT.size() < resolution) resolution = gpT.size();
-	gpS.resize(resolution);
-	gpT.resize(resolution);
 	
 	assert(resolution >= 1); // otherwise we should have exited above
   int rstart = 1;  // at least 16^3, last and most coarse image
@@ -720,8 +717,14 @@ void Registration::computeMultiresRegistration (int stopres, int n,double epsit)
   int MINS = 16;
   if (minsize > MINS) MINS = minsize; // use minsize, but at least 16
    
-  if (gpS.size() ==0) gpS = buildGaussianPyramid(mriS,MINS,maxsize);
-  if (gpT.size() ==0) gpT = buildGaussianPyramid(mriT,MINS,maxsize);
+  ////freeGaussianPyramid(gpS);
+  ////freeGaussianPyramid(gpT);
+  //if (gpS.size() ==0) gpS = buildGaussianPyramid(mriS,MINS,maxsize);
+  //if (gpT.size() ==0) gpT = buildGaussianPyramid(mriT,MINS,maxsize);
+  pair <int, int> limits = getGPLimits(mriS,mriT,MINS,maxsize);
+  if (gpS.size() ==0) gpS = buildGPLimits(mriS,limits);
+  if (gpT.size() ==0) gpT = buildGPLimits(mriT,limits);
+  assert(gpS.size() == gpT.size());
 
   if ( gpT[0]->width < MINS || gpT[0]->height < MINS || gpT[0]->depth < MINS)
 	{
@@ -732,16 +735,17 @@ void Registration::computeMultiresRegistration (int stopres, int n,double epsit)
      ErrorExit(ERROR_BADFILE, "Input images must be larger than 16^3.\n") ;
 	}	
   int resolution = gpS.size();
-	if ((int) gpT.size() < resolution) resolution = gpT.size();
-	gpS.resize(resolution);
-	gpT.resize(resolution);
+	//if ((int) gpT.size() < resolution) resolution = gpT.size();
+	//gpS.resize(resolution);
+	//gpT.resize(resolution);
 
 
-  //if (debug)
-  //{
-  //  saveGaussianPyramid(gpS, "pyramidS");
-  //  saveGaussianPyramid(gpT, "pyramidT");
-  //}
+
+//    if (debug)
+//    {
+//      saveGaussianPyramid(gpS, "pyramidS");
+//      saveGaussianPyramid(gpT, "pyramidT");
+//    }
 
 
   if (verbose >0 ) 
@@ -752,8 +756,9 @@ void Registration::computeMultiresRegistration (int stopres, int n,double epsit)
   }
 
   // adjust minit to current (lowest) resolution:
-  int rstart = 1;
-  for (int r = 1; r<=resolution-rstart; r++)
+  //int rstart = 1;
+  //for (int r = 1; r<=resolution-rstart; r++)
+  for (int r = 1; r<=limits.second; r++)
     for (int rr = 0;rr<3;rr++)
       md.first[rr][3]  = 0.5 *  md.first[rr][3];
 			
@@ -765,21 +770,28 @@ void Registration::computeMultiresRegistration (int stopres, int n,double epsit)
 	  vnl_matlab_print(vcl_cout,md.first,"Tia",vnl_matlab_print_format_long);cout << endl;
   }
 
+  if (debug)
+  {
+    cout << " Debug: writing inital MOV (lowres) resampled to DST (lowres)..." << endl;
+    MRI * mri_tmp = MRIclone(gpT[resolution-1],NULL); // bring to same space as target (output after resampling)
+    mri_tmp = MyMRI::MRIlinearTransform(gpS[resolution-1],mri_tmp,md.first);
+    MyMRI::MRIvalscale(mri_tmp,mri_tmp,md.second);
+	  string fn = getName() + "-mapmov-low-init.mgz";
+    MRIwrite(mri_tmp,fn.c_str());
+    MRIfree(&mri_tmp);
+    fn = getName() + "-mriT-low.mgz";
+    MRIwrite(gpT[resolution-1],fn.c_str());
+  }
 
   bool iscaletmp = iscale;
 //  iscale = false; //disable intensity scaling on low resolutions
-
-  if ( gpS[0]->width < 16 || gpS[0]->height < 16 || gpS[0]->depth < 16)
-	{
-     ErrorExit(ERROR_BADFILE, "Input images must be larger than 16^3.\n") ;
-	}
 	
-	if ( resolution-rstart < stopres)
+	if ( resolution-1 < stopres)
 	{
      ErrorExit(ERROR_BADFILE, "Input images have insufficient resoltuion.\n") ;	
 	}
 
-  for (int r = resolution-rstart;r>=stopres;r--)
+  for (int r = resolution-1;r>=stopres;r--)
   {
     //MRIwrite(gpS[r],"mriS-smooth.mgz");
     //MRIwrite(gpT[r],"mriT-smooth.mgz");
@@ -947,12 +959,25 @@ void Registration::computeMultiresRegistration (int stopres, int n,double epsit)
     }
   } // resolution loop
 	
-    if (verbose == 1)
-    {
-      cout << endl << "   - final transform: " << endl;
-	    vnl_matlab_print(vcl_cout,md.first,"Tf",vnl_matlab_print_format_long);cout << endl;
-      cout << "   - final iscale:  If = " << md.second << endl;
-    }
+  // adjust final transform to highest resolution (stopres + limits.first steps)
+  if (stopres > 0) stopres -= 1; //because then we did one step inside of loop already
+  // go through remaining stopres and also min pyramid steps
+  for (int r = 0; r< stopres+limits.first; r++)
+  {
+      for (int rr = 0; rr<3; rr++)
+      {
+        md.first[rr][3] = 2.0 * md.first[rr][3];
+      }
+  }
+  
+  
+  
+  if (verbose == 1)
+  {
+    cout << endl << "   - final transform: " << endl;
+	  vnl_matlab_print(vcl_cout,md.first,"Tf",vnl_matlab_print_format_long);cout << endl;
+    cout << "   - final iscale:  If = " << md.second << endl;
+  }
 	
 	
   Mfinal = md.first;
@@ -2895,21 +2920,140 @@ pair < MATRIX*, double > Registration::convertP2MATRIXd(MATRIX* p)
 //   return ret;
 // }
 
+pair < int, int > Registration::getGPLimits(MRI *mriS, MRI *mriT, int min, int max)
+// both mri are assumed to have conform voxels (same size)
+// min: no dimension should get smaller than min voxels, default 16
+// max: no dimension will be larger than max in both images (can happen in one)
+{
+  
+  if (verbose >0) cout << "   - Gaussian Pyramid Limits ( min size: " << min << " max size: " << max << " ) "<< endl;
+  
+  int smallest = mriS->width;
+  if (mriS->height < smallest) smallest = mriS->height;
+  if (mriS->depth  < smallest) smallest = mriS->depth;
+  if (mriT->width  < smallest) smallest = mriT->width;
+  if (mriT->height < smallest) smallest = mriT->height;
+  if (mriT->depth  < smallest) smallest = mriT->depth;
+  
+  if (smallest < min )
+  {
+    cout << endl;
+    cout << " Input image is smaller than min dimension: " << smallest << " < " << min << endl;
+    cout << " Input dimensions (after conformalizing) MOV: " << mriS->width << " " << mriS->height << " " <<mriS->depth << endl;
+    cout << " Input dimensions (after conformalizing) DST: " << mriT->width << " " << mriT->height << " " <<mriT->depth << endl;
+    cout << " Specify larger minimum ..." << endl;
+    exit(1);
+  }
+  
+  // how often can I subdivide smallest to be >= min
+  int maxsubdiv,minsubdiv;
+  int temp = smallest/2;
+  for (maxsubdiv = 0; temp > min; maxsubdiv++) temp = temp/2; // floor
 
+  // if max size irrelevant, done:
+  if (max == -1 ) return pair < int, int >(0,maxsubdiv);
+  
+  // get smaller value in each dimension:
+  int t1 = mriT->width;
+  if (mriS->width < t1) t1 = mriS->width;
+  int t2 = mriT->height;
+  if (mriS->height < t2) t2 = mriS->height;
+  int t3 = mriT->depth;
+  if (mriS->depth < t3) t3 = mriS->depth;
+  
+  //cout << " t1: " << t1 << " t2: " << t2 << " t3: " << t3 << endl;
+  
+  // get largest dimension
+  temp = t1; 
+  if (t2>temp) temp = t2;
+  if (t3>temp) temp = t3;
+  
+  //cout << " largest of smallest : " << temp;
+  for (minsubdiv = 0; minsubdiv < maxsubdiv; minsubdiv++)
+  {
+    if (temp < max) break; // done, smaller value in all dimensions below max
+    temp = temp/2;
+  }
+  //cout << " minsubdiv : "<< minsubdiv << endl;
+  //cout << "   then    : " << temp;
+ 
+  return pair < int, int >(minsubdiv,maxsubdiv);
+ 
+}
+
+vector < MRI* > Registration::buildGPLimits (MRI * mri_in, pair< int, int > limits )
+// here limits is the min and max iterations (subdivision level)
+// meaning:  start highest resolution after min steps
+//           don't do more than max steps.
+{
+  if (verbose >0) cout << "   - Gaussian Pyramid ( min steps: " << limits.first << " max steps: " << limits.second << " ) "<< endl;
+
+  int n = limits.second - limits.first + 1;
+  vector <MRI* > p (n);
+
+  // smoothing kernel:
+  MRI *mri_kernel ;
+  mri_kernel = MRIgaussian1d(1.08, 5) ;
+  //mri_kernel = MRIalloc(5,1,1, MRI_FLOAT);
+  MRIFvox(mri_kernel, 0, 0, 0) =  0.0625 ;
+  MRIFvox(mri_kernel, 1, 0, 0) =  0.25 ;
+  MRIFvox(mri_kernel, 2, 0, 0) =  0.375 ;
+  MRIFvox(mri_kernel, 3, 0, 0) =  0.25 ;
+  MRIFvox(mri_kernel, 4, 0, 0) =  0.0625 ;
+
+  MRI * mri_tmp;
+  if (verbose >1) cout << "        dim: " << mri_in->width << " " << mri_in->height << " " <<mri_in->depth << endl;
+
+	// smooth high res:
+  p[0] = MRIconvolveGaussian(mri_in, NULL, mri_kernel);
+  mri_tmp = mri_in;
+  
+  // subsample until highest resolution is small enough
+  int i;
+  for (i = 0; i<limits.first;i++)
+  {  
+    //subsample:
+    mri_tmp = MRIconvolveGaussian(mri_tmp, NULL, mri_kernel) ;
+    MRIfree(&p[0]);
+    p[0] = MRIdownsample2(mri_tmp,NULL);
+    MRIfree(&mri_tmp);
+    mri_tmp = p[0];    
+	}
+  
+	//cout << " w[0]: " << p[0]->width << endl;
+  int j=1;
+  for (;i<limits.second;i++)
+  {
+    //subsample:
+    mri_tmp = MRIconvolveGaussian(mri_tmp, NULL, mri_kernel) ;
+    p[j] = MRIdownsample2(mri_tmp,NULL);
+    MRIfree(&mri_tmp);
+    mri_tmp = p[j];
+    j++;
+	  //cout << " w[" << i<<"]: " << p[i]->width << endl;
+  }
+  
+  assert(j==n); // check that all fields were filled
+
+  MRIfree(&mri_kernel);
+
+  return p;
+
+}
 
 vector < MRI* > Registration::buildGaussianPyramid (MRI * mri_in, int min, int max )
 // min: no dimension should get smaller than min voxels, default 16
 // max: no dimension will be larger than max
 {
 
-  if (verbose >0) cout << "   - Gaussian Pyramid " << endl;
+  if (verbose >0) cout << "   - Gaussian Pyramid ( min: " << min << " max: " << max << " ) "<< endl;
 
   // if max not passed allow pyramid to go up to highest resolution:
   if (max == -1 ) max = mri_in->width + mri_in->height + mri_in->depth;
   
   if (mri_in->width < min || mri_in->height < min || mri_in->depth < min )
   {
-    cout << " Input image is samller than min dimension: " << min << endl;
+    cout << " Input image is smaller than min dimension: " << min << endl;
     cout << " Input dimensions (after conformalizing): " << mri_in->width << " " << mri_in->height << " " <<mri_in->depth << endl;
     cout << " Specify larger minimum ..." << endl;
     exit(1);
@@ -3221,13 +3365,21 @@ int Registration::init_scaling(MRI *mri_in, MRI *mri_ref, MATRIX *m_L)
 
 bool Registration::reorientSource()
 // potentially changes mri_Source and the resample matrix
+  // flip and reorder axis of source based on RAS alignment or ixform:
+  // this ensures that vox2vox rot is small and dimensions agree 
+  // important for gaussian pyramid
 {
    assert(mri_source);
    assert(mri_target);
-      
-   MATRIX* v2v = MRIgetVoxelToVoxelXform(mri_source,mri_target);
-   vnl_matrix_fixed <double, 4,4> myinit = MyMatrix::convertMATRIX2VNL(v2v);
-   MatrixFree(&v2v);
+   vnl_matrix_fixed <double, 4,4> myinit;
+   
+	 if (!Minit.empty()) myinit = getMinitResampled();
+   else
+   {
+      MATRIX* v2v = MRIgetVoxelToVoxelXform(mri_source,mri_target);
+      myinit = MyMatrix::convertMATRIX2VNL(v2v);
+      MatrixFree(&v2v);
+   }
 	 //vnl_matlab_print(vcl_cout,myinit,"myinit",vnl_matlab_print_format_long);cout << endl;
      
    // swap (and possibly invert) axis, so that rotation gets smaller
@@ -3271,13 +3423,17 @@ bool Registration::reorientSource()
    MRI* mri_temp = mri_source;
    mri_source = MRIreorder(mri_temp, NULL, xd,yd,zd);
      
-   v2v = MRIgetVoxelToVoxelXform(mri_source,mri_temp);
+   MATRIX *v2v = MRIgetVoxelToVoxelXform(mri_source,mri_temp);
    vnl_matrix_fixed <double,4,4> Sreorderinv = MyMatrix::convertMATRIX2VNL(v2v);
    MatrixFree(&v2v);
    MRIfree(&mri_temp);
      
-	 //string fn = getName() + "-mriS-reorder.mgz";
-   //MRIwrite(mri_source,fn.c_str());
+   if (debug)
+	 {
+	   string fn = getName() + "-mriS-reorder.mgz"; 
+     cout << "   Writing reordered source as " << fn << endl;
+     MRIwrite(mri_source,fn.c_str());
+   }
 
 	 //vnl_matlab_print(vcl_cout,Sreorder,"reorder",vnl_matlab_print_format_long);cout << endl;
      
@@ -3339,15 +3495,12 @@ void Registration::setSourceAndTarget (MRI * s,MRI * t, bool keeptype)
 	mri_source = mm.first;
 	Rsrc = mm.second;
 	bool rl = needReslice(s,isosize,s_dim[0],s_dim[1],s_dim[2],keeptype);
-  if (debug)
+  if (debug && rl)
 	{
 	   cout << "   Reslice Src Matrix: " << endl << mm.second << endl;
-     if (rl)
-     {
-	     string n = name+string("-mriS-resample.mgz");
-		   cout << "   Writing resampled source as " << n << endl;
-       MRIwrite(mri_source,n.c_str());
-     }
+//	     string n = name+string("-mriS-resample.mgz");
+//		   cout << "   Writing resampled source as " << n << endl;
+//       MRIwrite(mri_source,n.c_str());
   }
 	if (!rl ) cout << "    - no Mov reslice necessary" << endl;
 	   
@@ -3357,19 +3510,18 @@ void Registration::setSourceAndTarget (MRI * s,MRI * t, bool keeptype)
 	mri_target = mm.first;
 	Rtrg = mm.second;
 	rl = needReslice(t,isosize,t_dim[0],t_dim[1],t_dim[2],keeptype);
-  if (debug)
+  if (debug && rl)
 	{
-	  cout << "   Reslice Trg Matrix: " << endl << mm.second << endl;
-    if (rl)
-    {
+ 	   cout << "   Reslice Trg Matrix: " << endl << mm.second << endl;
 	    string n = name+string("-mriT-resample.mgz");
 		  cout << "   Writing resampled target as " << n << endl;
       MRIwrite(mri_target,n.c_str());
-    }
   }
 	if (!rl ) cout << "    - no Dst reslice necessary" << endl;
 
-  // flip and reorder axis based on RAS alignment:
+  // flip and reorder axis of source based on RAS alignment or ixform:
+  // this ensures that vox2vox rot is small and dimensions agree 
+  // important for gaussian pyramid
   reorientSource(); 
   
   if (gpS.size() > 0) freeGaussianPyramid(gpS);

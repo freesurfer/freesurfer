@@ -8,8 +8,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2011/05/31 18:54:19 $
- *    $Revision: 1.40 $
+ *    $Date: 2011/06/07 16:29:10 $
+ *    $Revision: 1.41 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -300,7 +300,9 @@ private:
   void findSatMultiRes(const vnl_matrix < double > &mi, double scaleinit );
 
   // gaussian pyramid:
+  std::pair < int, int > getGPLimits(MRI *mriS, MRI *mriT, int min, int max);
   std::vector < MRI* > buildGaussianPyramid (MRI * mri_in, int min = 16, int max = -1);
+  std::vector < MRI* > buildGPLimits (MRI * mri_in,std::pair< int, int > limits);
   void freeGaussianPyramid(std::vector< MRI* >& p);
   void saveGaussianPyramid(std::vector< MRI* >& p, const std::string & prefix);
 
@@ -453,16 +455,6 @@ void Registration::iterativeRegistrationHelper( int nmax,double epsit, MRI * mri
       if (! mri_Twarp ) mri_Twarp = MRIcopy(mriT,NULL);
     }
       
-    if (debug > 0)
-    {
-      // write weights and warped images after last step: 
-      //MRIwrite(mri_Swarp,(name+"-mriS-hw.mgz").c_str());
-      //MRIwrite(mri_Twarp,(name+"-mriT-hw.mgz").c_str());
-      //char ch;
-      //std::cout << "Press a key to continue iterations: ";
-      //std::cin  >> ch;
-    }
-
     // adjust intensity 	
     if (iscale)
     {
@@ -472,6 +464,16 @@ void Registration::iterativeRegistrationHelper( int nmax,double epsit, MRI * mri
       MyMRI::MRIvalscale(mri_Swarp,mri_Swarp,si);
       MyMRI::MRIvalscale(mri_Twarp,mri_Twarp,1.0/si);
     }
+    
+     if (debug > 0)
+     {
+       // write hw images before next registration step: 
+       MRIwrite(mri_Swarp,(name+"-mriS-hw.mgz").c_str());
+       MRIwrite(mri_Twarp,(name+"-mriT-hw.mgz").c_str());
+       char ch;
+       std::cout << "Press a key to continue iterations: ";
+       std::cin  >> ch;
+     }
 
     // ==========================================================================
     //

@@ -10,8 +10,8 @@
  * Original Author: Martin Reuter, Nov. 4th ,2008
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2011/05/30 15:32:23 $
- *    $Revision: 1.53 $
+ *    $Date: 2011/06/07 16:29:10 $
+ *    $Revision: 1.54 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -127,7 +127,7 @@ static void printUsage(void);
 static bool parseCommandLine(int argc, char *argv[],Parameters & P) ;
 static void initRegistration(Registration & R, Parameters & P) ;
 
-static char vcid[] = "$Id: mri_robust_register.cpp,v 1.53 2011/05/30 15:32:23 mreuter Exp $";
+static char vcid[] = "$Id: mri_robust_register.cpp,v 1.54 2011/06/07 16:29:10 mreuter Exp $";
 char *Progname = NULL;
 
 //static MORPH_PARMS  parms ;
@@ -1138,10 +1138,14 @@ static void initRegistration(Registration & R, Parameters & P)
 //     {
     // try to read other transform
     TRANSFORM * trans = TransformRead(P.transform.c_str());
+    if (!trans)
+    {
+      ErrorExit(ERROR_BADFILE, "%s: could not read transform file %s",Progname, P.transform.c_str()) ;
+    }
     LTA* lta =  (LTA *)trans->xform ;
     if (!lta)
     {
-      ErrorExit(ERROR_BADFILE, "%s: could not read transform file %s",Progname, P.transform.c_str()) ;
+      ErrorExit(ERROR_BADFILE, "%s: could not read lta transform file %s",Progname, P.transform.c_str()) ;
     }
     if (! lta->xforms[0].src.valid )
     {
@@ -1195,6 +1199,7 @@ static void initRegistration(Registration & R, Parameters & P)
   cout << endl;
 
   // now actually set source and target (and possibly reslice):
+  // important that first everything else is set!
   R.setSourceAndTarget(mri_mov,mri_dst,!P.floattype);
   MRIfree(&mri_mov);
   MRIfree(&mri_dst);
