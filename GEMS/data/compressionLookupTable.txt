@@ -2,10 +2,10 @@
 41   0  Right-Cerebral-White-Matter     0 225 0 255 
 42   1  Right-Cerebral-Cortex     205 62 78 255 
 53   3  Right-Hippocampus     220 216 20 255 
-500   5  right_CA2-3     17 85 136 255 
+500   5  right_CA2_3     17 85 136 255 
 502   9  right_CA1     204 68 34 255 
 503   4  right_fimbria     204 0 255 255 
 504   7  right_presubiculum     221 187 17 255 
 505   10  right_hippocampal_fissure     153 221 238 255 
-506   6  right_CA4-DG     51 17 17 255 
+506   6  right_CA4_DG     51 17 17 255 
 507   8  right_subiculum     0 119 85 255 
