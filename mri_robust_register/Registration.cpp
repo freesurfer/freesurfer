@@ -8,8 +8,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2011/06/07 16:29:10 $
- *    $Revision: 1.69 $
+ *    $Date: 2011/06/08 19:25:43 $
+ *    $Revision: 1.70 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -1479,6 +1479,7 @@ void Registration::testRobust(const std::string& fname, int testno)
     a  = MatrixIdentity(4,a);
     ai = MatrixIdentity(4,ai);
     iscaleval = 0.8;
+    iscaleval = 0.2;
 		level = 3;
 	  mriTs = MRIcopy(gpS[gpS.size()-level], NULL);
     mriTt = MyMRI::MRIvalscale(gpS[gpS.size()-level], NULL, iscaleval);
@@ -1514,10 +1515,10 @@ void Registration::testRobust(const std::string& fname, int testno)
     mriTs = MRIlinearTransformInterp(gpS[gpS.size()-level],mriTs, a, SAMPLE_TRILINEAR);
     mriTt = MRIlinearTransformInterp(gpS[gpS.size()-level],mriTt, ai, SAMPLE_TRILINEAR);
     iscaleval = 0.8;
-    mriTt = MyMRI::MRIvalscale(mriTt, NULL, iscaleval);
-		MRI* tttt = mriTs;
-		mriTs = mriTt;
-		mriTt = tttt;
+    mriTt = MyMRI::MRIvalscale(mriTt, mriTt, iscaleval);
+// 		MRI* tttt = mriTs;
+// 		mriTs = mriTt;
+// 		mriTt = tttt;
     MRIwrite(mriTs,"rottransintS.mgz");
     MRIwrite(mriTt,"rottransintT.mgz");
     break;
@@ -1876,10 +1877,14 @@ double Registration::estimateIScale(MRI *mriS, MRI *mriT)
   if (subsamplesize > 0)
     dosubsample = (mriS->width > subsamplesize && mriS->height > subsamplesize && mriS->depth > subsamplesize);
 
-  // we will need the derivatives
+  // we will need the blurred images (as float):
   if (verbose > 1) cout << "     -- compute smoothie ... " << flush;
-  MRI *Sbl= MyMRI::getBlur(mriS,NULL);
-  MRI *Tbl= MyMRI::getBlur(mriT,NULL);
+  MRI *Sbl= MRIalloc(mriS->width, mriS->height, mriS->depth,MRI_FLOAT);
+  Sbl = MRIcopy(mriS,Sbl);
+  Sbl= MyMRI::getBlur(Sbl,Sbl);
+  MRI *Tbl= MRIalloc(mriT->width, mriT->height, mriT->depth,MRI_FLOAT);
+  Tbl = MRIcopy(mriT,Tbl);
+  Tbl= MyMRI::getBlur(Tbl,Tbl);
 
   if (verbose > 1) cout << " done!" << endl;
 
@@ -1958,15 +1963,15 @@ double Registration::estimateIScale(MRI *mriS, MRI *mriT)
 
         if (dosubsample)
         {
-          xp1 = 2*x+3;
-          yp1 = 2*y+3;
-          zp1 = 2*z+3;
+          xp1 = 2*x;
+          yp1 = 2*y;
+          zp1 = 2*z;
         }
         else
         {
-          xp1 = x+3;
-          yp1 = y+3;
-          zp1 = z+3; // if not subsampled
+          xp1 = x;
+          yp1 = y;
+          zp1 = z; // if not subsampled
         }
         assert(xp1 < mriS->width);
         assert(yp1 < mriS->height);
@@ -1991,11 +1996,13 @@ double Registration::estimateIScale(MRI *mriS, MRI *mriT)
 
         MRILvox(mri_indexing, xp1, yp1, zp1) = count;
 
-////        *MATRIX_RELT(A, count, 1) = - MRIFvox(Sbl, x, y, z);
-////        *MATRIX_RELT(b, count, 1) = MRIFvox(Tbl, x, y, z) - MRIFvox(Sbl, x, y, z);
-//        *MATRIX_RELT(A, count, 1) = 0.5 / iscalefinal *( MRIFvox(Tbl,x,y,z) + MRIFvox(Sbl, x, y, z));
-//        *MATRIX_RELT(b, count, 1) = -(MRIFvox(Tbl, x, y, z) - MRIFvox(Sbl, x, y, z));
-        Ab.first[count][0]  = 0.5 / iscalefinal *( MRIFvox(Tbl,x,y,z) + MRIFvox(Sbl, x, y, z));
+        //Ab.first[count][0]  = 0.5 / iscalefinal *( MRIFvox(Tbl,x,y,z) + MRIFvox(Sbl, x, y, z)); 
+        //Ab.first[count][0]  = MRIFvox(Sbl, x, y, z);
+
+        // intensity model: R(s,IS,IT) = exp(-0.5 s) IT - exp(0.5 s) IS
+        //                  R'  = -0.5 ( exp(-0.5 s) IT + exp(0.5 s) IS)
+        Ab.first[count][0]  = 0.5 * (MRIFvox(Tbl,x,y,z) + MRIFvox(Sbl, x, y, z));
+
         Ab.second[count] = -(MRIFvox(Tbl, x, y, z) - MRIFvox(Sbl, x, y, z));
         
 				count++; // start with 0
@@ -2015,7 +2022,9 @@ double Registration::estimateIScale(MRI *mriS, MRI *mriT)
 	vnl_vector<double> p( R.getRobustEst());
 
   double is = p[0];
-  iscalefinal = iscalefinal - is;
+  double s = log(iscalefinal);
+  s = s - is;
+  iscalefinal = exp(s);
   cout << " ISCALE: " << iscalefinal << " returned: " << is  << endl;
 	
   return iscalefinal;

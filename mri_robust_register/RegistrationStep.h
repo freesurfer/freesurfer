@@ -8,8 +8,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2011/06/07 16:29:10 $
- *    $Revision: 1.13 $
+ *    $Date: 2011/06/08 19:25:43 $
+ *    $Revision: 1.14 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -418,6 +418,10 @@ void RegistrationStep<T>::constructAb(MRI *mriS, MRI *mriT,vnl_matrix < T >& A,v
 	MRI * SmT = MRIalloc(mriS->width,mriS->height,mriS->depth,MRI_FLOAT);
 	SmT = MRIsubtract(mriS,mriT,SmT);
 	SmT = MyMRI::getBlur(SmT,SmT);
+  
+//  MRI *Sbl = MRIalloc(mriS->width,mriS->height,mriS->depth,MRI_FLOAT);
+//  Sbl = MRIcopy(mriS,Sbl);
+//  Sbl = MyMRI::getBlur(Sbl,Sbl);
 #endif
   if (verbose > 1) std::cout << " done!" << std::endl;
   //MRIwrite(fx1,"fx.mgz");
@@ -522,7 +526,7 @@ void RegistrationStep<T>::constructAb(MRI *mriS, MRI *mriT,vnl_matrix < T >& A,v
 		 exit(1);
 	}
   
-  if (verbose >1) cout << " nans: " << ncount << " zeros: " <<zcount << " outside: " << ocount << endl;
+  if (verbose >1) cout << "     -- nans: " << ncount << " zeros: " <<zcount << " outside: " << ocount << endl;
 
   // allocate the space for A and B
   int pnum = 12;
@@ -665,19 +669,19 @@ void RegistrationStep<T>::constructAb(MRI *mriS, MRI *mriT,vnl_matrix < T >& A,v
 					dof = 12;
         }
 
-////          if (iscale) *MATRIX_RELT(A, count, 7) = MRIFvox(Sbl, x, y, z);
- //         if (iscale) *MATRIX_RELT(A, count, dof+1) = MRIFvox(Tbl, x, y, z);
- 
- // !! ISCALECHANGE
-        // if (iscale) *MATRIX_RELT(A, count, dof+1) =  (0.5 / iscalefinal) * ( MRIFvox(Tbl, x, y, z) + MRIFvox(Sbl,x,y,z));
+     // !! ISCALECHANGE
+        //if (iscale) A[count][dof] =  (0.5 / iscalefinal) * ( MRIFvox(Tbl, x, y, z) + MRIFvox(Sbl,x,y,z));
+        //if (iscale) A[count][dof] =  2.0* MRIFvox(ft, x, y, z) / sqrt(iscalefinal);
+        //if (iscale) A[count][dof] = MRIFvox(ft, x, y, z) / iscalefinal;
+        //if (iscale) A[count][dof] = MRIFvox(Sbl,x,y,z); // not symmetric here, but much more stable, we still map both to geometric intensity mean
+        //if (iscale) A[count][dof] = 2.0 * MRIFvox(ft,x,y,z); 
 
-        // if (iscale) A[count][dof] =  (0.5 / iscalefinal) * ( MRIFvox(Tbl, x, y, z) + MRIFvox(Sbl,x,y,z));
-         if (iscale) A[count][dof] =  MRIFvox(ft, x, y, z) / iscalefinal;
-//         if (iscale) A[count][dof]  = MRIFvox(Sbl,x,y,z);
-				 
-//         *MATRIX_RELT(b, count, 1) = - MRIFvox(ft, x, y, z); // ft = T-S => -ft = S-T
-//         b[count] = - MRIFvox(ft, x, y, z); // ft was = T-S => -ft = S-T
-         b[count] =  MRIFvox(SmT, x, y, z); // S-T
+        // intensity model: R(s,IS,IT) = exp(-0.5 s) IT - exp(0.5 s) IS
+        //                  R'  = -0.5 ( exp(-0.5 s) IT + exp(0.5 s) IS)
+        //   ft = 0.5 ( exp(-0.5s) IT + exp(0.5s) IS)  (average of intensity adjusted images)
+        if (iscale) A[count][dof]  = MRIFvox(ft,x,y,z); 
+        				 
+        b[count] =  MRIFvox(SmT, x, y, z); // S-T
 
         count++; // start with 0 above
 
@@ -752,6 +756,7 @@ pair < vnl_matrix_fixed <double,4,4 >, double > RegistrationStep<T>::convertP2Md
    // //ret.second = 1.0-*MATRIX_RELT(p, p->rows, 1);		
 //    ret.second = 1.0/(1.0+*MATRIX_RELT(p, p->rows, 1));
     ret.second =  (double) p[p.size()-1];
+//    ret.second =  (double) p[p.size()-1] * (double) p[p.size()-1];
 		
     pt.set_size(p.size()-1);
     for (unsigned int rr = 0; rr< pt.size(); rr++)
