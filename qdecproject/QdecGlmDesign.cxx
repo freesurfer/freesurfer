@@ -12,8 +12,8 @@
  * Original Author: Nick Schmansky
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:35 $
- *    $Revision: 1.21 $
+ *    $Date: 2011/06/14 16:56:48 $
+ *    $Revision: 1.22 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -2037,7 +2037,7 @@ int QdecGlmDesign::WriteYdataFile ( )
       continue;
     }
 
-    // Build file name.
+    // Build file name (.mgh, then .mgz).
     stringstream fnInput;
     fnInput << this->mfnSubjectsDir
             << "/" << *tSubjectID << "/surf/"
@@ -2047,10 +2047,26 @@ int QdecGlmDesign::WriteYdataFile ( )
             << this->msAverageSubject
             << ".mgh";
 
-    // Check to it exists and is readable.
+    // Check if it exists and is readable.
     ifstream fInput( fnInput.str().c_str(), std::ios::in );
     if( !fInput || fInput.bad() )
-      throw runtime_error( string("Couldn't open file " ) + fnInput.str() );
+    {
+      // if .mgh is not found, try .mgz extension
+      fnInput.str("");
+      fnInput << this->mfnSubjectsDir
+              << "/" << *tSubjectID << "/surf/"
+              << this->GetHemi() << "." 
+              << this->GetMeasure() << ".fwhm"
+              << this->GetSmoothness() << "." 
+              << this->msAverageSubject
+              << ".mgz";
+      ifstream fInput( fnInput.str().c_str(), std::ios::in );
+      if( !fInput || fInput.bad() )
+      {
+        throw runtime_error( string("Couldn't open " )
+                             + fnInput.str() + string(" or .mgh file.") );
+      }
+    }
 
     // Add it to our list.
     lfnInputs.push_back( fnInput.str() );
