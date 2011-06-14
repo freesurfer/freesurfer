@@ -1,6 +1,6 @@
 #!/bin/tcsh -f
 
-set ID='$Id: build_release_type.csh,v 1.142 2011/06/02 15:04:54 nicks Exp $'
+set ID='$Id: build_release_type.csh,v 1.143 2011/06/14 17:54:36 nicks Exp $'
 
 unsetenv echo
 if ($?SET_ECHO_1) set echo=1
@@ -420,12 +420,12 @@ if ($status != 0) then
   rm -f ${FAILED_FILE}
   touch ${FAILED_FILE}
   # set group write bit on files changed by make tools:
-  echo "CMD: chgrp ${change_flags} fsdev ${BUILD_DIR}" >>& $OUTPUTF
-  chgrp ${change_flags} fsdev ${BUILD_DIR} >>& $OUTPUTF
+  echo "CMD: chgrp ${change_flags} fsbuild ${BUILD_DIR}" >>& $OUTPUTF
+  chgrp ${change_flags} fsbuild ${BUILD_DIR} >>& $OUTPUTF
   echo "CMD: chmod ${change_flags} g+rw ${BUILD_DIR}" >>& $OUTPUTF
   chmod ${change_flags} g+rw ${BUILD_DIR} >>& $OUTPUTF
   chmod g+rw ${BUILD_DIR}/autom4te.cache >>& $OUTPUTF
-  chgrp fsdev ${BUILD_DIR}/config.h.in >>& $OUTPUTF
+  chgrp fsbuild ${BUILD_DIR}/config.h.in >>& $OUTPUTF
   exit 1
 endif
 echo "CMD: ./configure..." >>& $OUTPUTF
@@ -476,12 +476,12 @@ if ($status != 0) then
   rm -f ${FAILED_FILE}
   touch ${FAILED_FILE}
   # set group write bit on files changed by make tools:
-  echo "CMD: chgrp ${change_flags} fsdev ${BUILD_DIR}" >>& $OUTPUTF
-  chgrp ${change_flags} fsdev ${BUILD_DIR} >>& $OUTPUTF
+  echo "CMD: chgrp ${change_flags} fsbuild ${BUILD_DIR}" >>& $OUTPUTF
+  chgrp ${change_flags} fsbuild ${BUILD_DIR} >>& $OUTPUTF
   echo "CMD: chmod ${change_flags} g+rw ${BUILD_DIR}" >>& $OUTPUTF
   chmod ${change_flags} g+rw ${BUILD_DIR} >>& $OUTPUTF
   chmod g+rw ${BUILD_DIR}/autom4te.cache >>& $OUTPUTF
-  chgrp fsdev ${BUILD_DIR}/config.h.in >>& $OUTPUTF
+  chgrp fsbuild ${BUILD_DIR}/config.h.in >>& $OUTPUTF
   exit 1
 endif
 # save-away the configure string for debug:
@@ -539,12 +539,12 @@ if ($mstat != 0) then
   rm -f ${FAILED_FILE}
   touch ${FAILED_FILE}
   # set group write bit on files changed by make tools:
-  echo "CMD: chgrp ${change_flags} fsdev ${BUILD_DIR}" >>& $OUTPUTF
-  chgrp ${change_flags} fsdev ${BUILD_DIR} >>& $OUTPUTF
+  echo "CMD: chgrp ${change_flags} fsbuild ${BUILD_DIR}" >>& $OUTPUTF
+  chgrp ${change_flags} fsbuild ${BUILD_DIR} >>& $OUTPUTF
   echo "CMD: chmod ${change_flags} g+rw ${BUILD_DIR}" >>& $OUTPUTF
   chmod ${change_flags} g+rw ${BUILD_DIR} >>& $OUTPUTF
   chmod g+rw ${BUILD_DIR}/autom4te.cache >>& $OUTPUTF
-  chgrp fsdev ${BUILD_DIR}/config.h.in >>& $OUTPUTF
+  chgrp fsbuild ${BUILD_DIR}/config.h.in >>& $OUTPUTF
   exit 1  
 endif
 
@@ -586,12 +586,12 @@ if ("$RELEASE_TYPE" != "stable-pub") then
     rm -f ${FAILED_FILE}
     touch ${FAILED_FILE}
     # set group write bit on files changed by make tools:
-    echo "CMD: chgrp ${change_flags} fsdev ${BUILD_DIR}" >>& $OUTPUTF
-    chgrp ${change_flags} fsdev ${BUILD_DIR} >>& $OUTPUTF
+    echo "CMD: chgrp ${change_flags} fsbuild ${BUILD_DIR}" >>& $OUTPUTF
+    chgrp ${change_flags} fsbuild ${BUILD_DIR} >>& $OUTPUTF
     echo "CMD: chmod ${change_flags} g+rw ${BUILD_DIR}" >>& $OUTPUTF
     chmod ${change_flags} g+rw ${BUILD_DIR} >>& $OUTPUTF
     chmod g+rw ${BUILD_DIR}/autom4te.cache >>& $OUTPUTF
-    chgrp fsdev ${BUILD_DIR}/config.h.in >>& $OUTPUTF
+    chgrp fsbuild ${BUILD_DIR}/config.h.in >>& $OUTPUTF
     exit 1  
   endif
 endif
@@ -639,17 +639,17 @@ if ($makestatus != 0) then
   rm -f ${FAILED_FILE}
   touch ${FAILED_FILE}
   # set group write bit on files changed by make tools:
-  echo "CMD: chgrp ${change_flags} fsdev ${BUILD_DIR}" >>& $OUTPUTF
-  chgrp ${change_flags} fsdev ${BUILD_DIR} >>& $OUTPUTF
+  echo "CMD: chgrp ${change_flags} fsbuild ${BUILD_DIR}" >>& $OUTPUTF
+  chgrp ${change_flags} fsbuild ${BUILD_DIR} >>& $OUTPUTF
   echo "CMD: chmod ${change_flags} g+rw ${BUILD_DIR}" >>& $OUTPUTF
   chmod ${change_flags} g+rw ${BUILD_DIR} >>& $OUTPUTF
   chmod g+rw ${BUILD_DIR}/autom4te.cache >>& $OUTPUTF
-  chgrp fsdev ${BUILD_DIR}/config.h.in >>& $OUTPUTF
+  chgrp fsbuild ${BUILD_DIR}/config.h.in >>& $OUTPUTF
   # and the fsaverage in the subjects dir...
   echo "CMD: chmod ${change_flags} g+rw ${INSTALL_DIR}/subjects/fsaverage" \
     >>& $OUTPUTF
   chmod ${change_flags} g+rw ${INSTALL_DIR}/subjects/fsaverage >>& $OUTPUTF
-  chgrp ${change_flags} fsdev ${INSTALL_DIR}/subjects/fsaverage >>& $OUTPUTF
+  chgrp ${change_flags} fsbuild ${INSTALL_DIR}/subjects/fsaverage >>& $OUTPUTF
   exit 1  
 endif
 # strip symbols from binaries, greatly reducing their size
@@ -715,17 +715,17 @@ else
       rm -f ${FAILED_FILE}
       touch ${FAILED_FILE}
       # set group write bit on files changed by make tools:
-      echo "CMD: chgrp ${change_flags} fsdev ${BUILD_DIR}" >>& $OUTPUTF
-      chgrp ${change_flags} fsdev ${BUILD_DIR} >>& $OUTPUTF
+      echo "CMD: chgrp ${change_flags} fsbuild ${BUILD_DIR}" >>& $OUTPUTF
+      chgrp ${change_flags} fsbuild ${BUILD_DIR} >>& $OUTPUTF
       echo "CMD: chmod ${change_flags} g+rw ${BUILD_DIR}" >>& $OUTPUTF
       chmod ${change_flags} g+rw ${BUILD_DIR} >>& $OUTPUTF
       chmod g+rw ${BUILD_DIR}/autom4te.cache >>& $OUTPUTF
-      chgrp fsdev ${BUILD_DIR}/config.h.in >>& $OUTPUTF
+      chgrp fsbuild ${BUILD_DIR}/config.h.in >>& $OUTPUTF
       # and the fsaverage in the subjects dir...
       echo "CMD: chmod ${change_flags} g+rw ${INSTALL_DIR}/subjects/fsaverage" \
         >>& $OUTPUTF
       chmod ${change_flags} g+rw ${INSTALL_DIR}/subjects/fsaverage >>& $OUTPUTF
-      chgrp ${change_flags} fsdev ${INSTALL_DIR}/subjects/fsaverage >>& $OUTPUTF
+      chgrp ${change_flags} fsbuild ${INSTALL_DIR}/subjects/fsaverage >>& $OUTPUTF
       exit 1
     endif  
   endif
@@ -747,16 +747,16 @@ endif
 echo "##########################################################" >>& $OUTPUTF
 echo "Setting permissions" >>& $OUTPUTF
 echo "" >>& $OUTPUTF
-echo "CMD: chgrp ${change_flags} fsdev ${INSTALL_DIR}" >>& $OUTPUTF
-chgrp ${change_flags} fsdev ${INSTALL_DIR} >>& $OUTPUTF
+echo "CMD: chgrp ${change_flags} fsbuild ${INSTALL_DIR}" >>& $OUTPUTF
+chgrp ${change_flags} fsbuild ${INSTALL_DIR} >>& $OUTPUTF
 echo "CMD: chmod ${change_flags} g+rw ${INSTALL_DIR}" >>& $OUTPUTF
 chmod ${change_flags} g+rw ${INSTALL_DIR} >>& $OUTPUTF
-echo "CMD: chgrp ${change_flags} fsdev ${BUILD_DIR}" >>& $OUTPUTF
-chgrp ${change_flags} fsdev ${BUILD_DIR} >>& $OUTPUTF
+echo "CMD: chgrp ${change_flags} fsbuild ${BUILD_DIR}" >>& $OUTPUTF
+chgrp ${change_flags} fsbuild ${BUILD_DIR} >>& $OUTPUTF
 echo "CMD: chmod ${change_flags} g+rw ${BUILD_DIR}" >>& $OUTPUTF
 chmod ${change_flags} g+rw ${BUILD_DIR} >>& $OUTPUTF
 chmod g+rw ${BUILD_DIR}/autom4te.cache >>& $OUTPUTF
-chgrp fsdev ${BUILD_DIR}/config.h.in >>& $OUTPUTF
+chgrp fsbuild ${BUILD_DIR}/config.h.in >>& $OUTPUTF
 echo "CMD: chmod ${change_flags} g+rw ${LOG_DIR}" >>& $OUTPUTF
 chmod ${change_flags} g+rw ${LOG_DIR} >>& $OUTPUTF
 
@@ -791,12 +791,12 @@ if ("$HOSTNAME" == "swan") then
     rm -f ${FAILED_FILE}
     touch ${FAILED_FILE}
     # set group write bit on files changed by make tools:
-    echo "CMD: chgrp ${change_flags} fsdev ${BUILD_DIR}" >>& $OUTPUTF
-    chgrp ${change_flags} fsdev ${BUILD_DIR} >>& $OUTPUTF
+    echo "CMD: chgrp ${change_flags} fsbuild ${BUILD_DIR}" >>& $OUTPUTF
+    chgrp ${change_flags} fsbuild ${BUILD_DIR} >>& $OUTPUTF
     echo "CMD: chmod ${change_flags} g+rw ${BUILD_DIR}" >>& $OUTPUTF
     chmod ${change_flags} g+rw ${BUILD_DIR} >>& $OUTPUTF
     chmod g+rw ${BUILD_DIR}/autom4te.cache >>& $OUTPUTF
-    chgrp fsdev ${BUILD_DIR}/config.h.in >>& $OUTPUTF
+    chgrp fsbuild ${BUILD_DIR}/config.h.in >>& $OUTPUTF
 # HACK: dont exit:
 #    exit 1
   else
