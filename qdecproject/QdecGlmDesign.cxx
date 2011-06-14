@@ -12,20 +12,18 @@
  * Original Author: Nick Schmansky
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2010/02/05 00:54:31 $
- *    $Revision: 1.19 $
+ *    $Date: 2011/06/14 16:59:12 $
+ *    $Revision: 1.21.2.1 $
  *
- * Copyright (C) 2007-2009,
- * The General Hospital Corporation (Boston, MA).
- * All rights reserved.
+ * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
- * Distribution, usage and copying of this software is covered under the
- * terms found in the License Agreement file named 'COPYING' found in the
- * FreeSurfer source code root directory, and duplicated here:
- * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ * Terms and conditions for use, reproduction, distribution and contribution
+ * are found in the 'FreeSurfer Software License Agreement' contained
+ * in the file 'LICENSE' found in the FreeSurfer distribution, and here:
  *
- * General inquiries: freesurfer@nmr.mgh.harvard.edu
- * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
+ *
+ * Reporting: freesurfer@nmr.mgh.harvard.edu
  *
  */
 
@@ -265,10 +263,21 @@ int QdecGlmDesign::Create ( QdecDataTable* iDataTable,
   int err =  mkdir( this->mfnWorkingDir.c_str(), 0777 );
   if( err != 0 && errno != EEXIST )
   {
-    fprintf( stderr,
-             "ERROR: QdecGlmDesign::Create: could not create directory %s\n",
-             this->mfnWorkingDir.c_str());
-    return(-2);
+    // try again, with relaxed permissions
+    err =  mkdir( this->mfnWorkingDir.c_str(), 0770 );
+    if( err != 0 && errno != EEXIST )
+    {
+      // one more time...
+      err =  mkdir( this->mfnWorkingDir.c_str(), 0700 );
+      if( err != 0 && errno != EEXIST )
+      {
+        fprintf( stderr,
+                 "ERROR: QdecGlmDesign::Create: "
+                 "could not create directory %s\n",
+                 this->mfnWorkingDir.c_str());
+        return(-2);
+      }
+    }
   }
 
   if( this->mProgressUpdateGUI )
@@ -2028,7 +2037,7 @@ int QdecGlmDesign::WriteYdataFile ( )
       continue;
     }
 
-    // Build file name.
+    // Build file name (.mgh, then .mgz).
     stringstream fnInput;
     fnInput << this->mfnSubjectsDir
             << "/" << *tSubjectID << "/surf/"
@@ -2038,10 +2047,26 @@ int QdecGlmDesign::WriteYdataFile ( )
             << this->msAverageSubject
             << ".mgh";
 
-    // Check to it exists and is readable.
+    // Check if it exists and is readable.
     ifstream fInput( fnInput.str().c_str(), std::ios::in );
     if( !fInput || fInput.bad() )
-      throw runtime_error( string("Couldn't open file " ) + fnInput.str() );
+    {
+      // if .mgh is not found, try .mgz extension
+      fnInput.str("");
+      fnInput << this->mfnSubjectsDir
+              << "/" << *tSubjectID << "/surf/"
+              << this->GetHemi() << "." 
+              << this->GetMeasure() << ".fwhm"
+              << this->GetSmoothness() << "." 
+              << this->msAverageSubject
+              << ".mgz";
+      ifstream fInput( fnInput.str().c_str(), std::ios::in );
+      if( !fInput || fInput.bad() )
+      {
+        throw runtime_error( string("Couldn't open " )
+                             + fnInput.str() + string(" or .mgh file.") );
+      }
+    }
 
     // Add it to our list.
     lfnInputs.push_back( fnInput.str() );
