@@ -8,8 +8,8 @@
 # Original Author: Anastasia Yendiki
 # CVS Revision Info:
 #    $Author: ayendiki $
-#    $Date: 2011/05/02 07:34:57 $
-#    $Revision: 1.23 $
+#    $Date: 2011/06/15 22:03:34 $
+#    $Revision: 1.24 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -25,7 +25,7 @@
 
 umask 002
 
-set VERSION = '$Id: trac-paths,v 1.23 2011/05/02 07:34:57 ayendiki Exp $'
+set VERSION = '$Id: trac-paths,v 1.24 2011/06/15 22:03:34 ayendiki Exp $'
 set ProgName = `basename $0`
 set inputargs = ($argv)
 
@@ -329,16 +329,18 @@ foreach ntrain ($ntrainlist)
           endif
         end
 
-        set cmd = $trcdir/dmri_mergepaths
-        set cmd = ($cmd --indir $outdir)
-        set cmd = ($cmd --in    $mergelist)
-        set cmd = ($cmd --out   $outdir/merged_$avgmode.mgz)
-        set cmd = ($cmd --ctab  $FREESURFER_HOME/FreeSurferColorLUT.txt)
-        set cmd = ($cmd --thresh .15)
-        echo $cmd |& tee -a $LF |& tee -a $CF
-        if ($RunIt) then
-          $cmd |& tee -a $LF
-          if ($status) goto error_exit
+        if ($#mergelist) then
+          set cmd = $trcdir/dmri_mergepaths
+          set cmd = ($cmd --indir $outdir)
+          set cmd = ($cmd --in    $mergelist)
+          set cmd = ($cmd --out   $outdir/merged_$avgmode.mgz)
+          set cmd = ($cmd --ctab  $FREESURFER_HOME/FreeSurferColorLUT.txt)
+          set cmd = ($cmd --thresh .15)
+          echo $cmd |& tee -a $LF |& tee -a $CF
+          if ($RunIt) then
+            $cmd |& tee -a $LF
+            if ($status) goto error_exit
+          endif
         endif
       end
     end
