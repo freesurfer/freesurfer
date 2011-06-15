@@ -8,8 +8,8 @@
 # Original Author: Anastasia Yendiki
 # CVS Revision Info:
 #    $Author: ayendiki $
-#    $Date: 2011/05/20 06:50:30 $
-#    $Revision: 1.29 $
+#    $Date: 2011/06/15 21:56:20 $
+#    $Revision: 1.30 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -25,7 +25,7 @@
 
 umask 002
 
-set VERSION = '$Id: trac-preproc,v 1.29 2011/05/20 06:50:30 ayendiki Exp $'
+set VERSION = '$Id: trac-preproc,v 1.30 2011/06/15 21:56:20 ayendiki Exp $'
 set ProgName = `basename $0`
 set inputargs = ($argv)
 
@@ -429,7 +429,7 @@ if ($dointra && -e $fsdir/mri/brain.mgz) then
     set cmd = ($cmd -ref $dwidir/brain_anat.nii.gz)
     set cmd = ($cmd -out $dwidir/lowb_brain_anat.flt.nii.gz)
     set cmd = ($cmd -omat $xfmdir/diff2anat.flt.mat)
-    set cmd = ($cmd -cost mutualinfo)
+    set cmd = ($cmd -cost corratio)
     echo $cmd |& tee -a $LF |& tee -a $CF
     if ($RunIt) then
       $fs_time $cmd |& tee -a $LF
@@ -678,7 +678,7 @@ if ($dointer) then
     set cmd = ($cmd -ref $mnitemp)
     set cmd = ($cmd -out $dwidir/lowb_brain_mni.nii.gz)
     set cmd = ($cmd -omat $xfmdir/diff2mni.mat)
-    set cmd = ($cmd -cost mutualinfo)
+    set cmd = ($cmd -cost corratio)
     echo $cmd |& tee -a $LF |& tee -a $CF
     if ($RunIt) then
       $fs_time $cmd |& tee -a $LF
