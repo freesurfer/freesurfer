@@ -7,9 +7,9 @@
 /*
  * Original Author: Anastasia Yendiki
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/04/27 15:51:23 $
- *    $Revision: 1.6 $
+ *    $Author: ayendiki $
+ *    $Date: 2011/06/15 21:52:38 $
+ *    $Revision: 1.7 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -74,7 +74,8 @@ const char *Progname = "dmri_pathstats";
 
 char *inTrkFile = NULL, *inRoi1File = NULL, *inRoi2File = NULL,
      *inTrcDir = NULL, *dtBase = NULL,
-     *outFile = NULL, *outVoxFile = NULL, *outStrFile = NULL,
+     *outFile = NULL, *outVoxFile = NULL,
+     *outStrFile = NULL, *outEndBase = NULL, *refVolFile = NULL,
      fname[PATH_MAX];
 
 MRI *l1, *l2, *l3, *v1;
@@ -281,6 +282,18 @@ int main(int argc, char **argv) {
     // Save center streamline
     if (outStrFile)
       myblood.WriteCenterStreamline(outStrFile, inTrkFile);
+
+    // Save streamline end points
+    if (outEndBase) {
+      MRI *refvol;
+
+      if (refVolFile)
+        refvol = MRIread(refVolFile);
+      else
+        refvol = l1;
+
+      myblood.WriteEndPoints(outEndBase, refvol);
+    }
   }
 
   if (outFile) {
@@ -394,6 +407,16 @@ static int parse_commandline(int argc, char **argv) {
       outStrFile = fio_fullpath(pargv[0]);
       nargsused = 1;
     }
+    else if (!strcmp(option, "--outend")) {
+      if (nargc < 1) CMDargNErr(option,1);
+      outEndBase = fio_fullpath(pargv[0]);
+      nargsused = 1;
+    }
+    else if (!strcmp(option, "--ref")) {
+      if (nargc < 1) CMDargNErr(option,1);
+      refVolFile = fio_fullpath(pargv[0]);
+      nargsused = 1;
+    }
     nargc -= nargsused;
     pargv += nargsused;
   }
@@ -424,6 +447,10 @@ static void print_usage(void)
   printf("     Output text file for voxel-by-voxel measures along path (optional)\n");
   printf("   --outstr <file>:\n");
   printf("     Output .trk file of center streamline (optional)\n");
+  printf("   --outend <base>:\n");
+  printf("     Base name of output volumes of streamline ends (optional)\n");
+  printf("   --ref <file>:\n");
+  printf("     Reference volume (needed only if using --outend without --dtbase)\n");
   printf("\n");
   printf("\n");
   printf("   --debug:     turn on debugging\n");
@@ -464,12 +491,24 @@ static void check_options(void) {
     printf("ERROR: must specify input .trk file or tracula directory\n");
     exit(1);
   }
-  if(!outFile && !outVoxFile && !outStrFile) {
-    printf("ERROR: must specify at least one type of output file\n");
+  if(!outFile && !outVoxFile && !outStrFile && !outEndBase) {
+    printf("ERROR: must specify at least one type of output\n");
     exit(1);
   }
   if(outVoxFile && !dtBase) {
     printf("ERROR: must specify dtifit base name for voxel-by-voxel output\n");
+    exit(1);
+  }
+  if(outStrFile && !inTrkFile) {
+    printf("ERROR: must specify input .trk file to use --outstr\n");
+    exit(1);
+  }
+  if(outEndBase && !inTrkFile) {
+    printf("ERROR: must specify input .trk file to use --outend\n");
+    exit(1);
+  }
+  if(outEndBase && !refVolFile && !dtBase) {
+    printf("ERROR: must specify reference volume to use --outend\n");
     exit(1);
   }
   return;
@@ -526,7 +565,11 @@ static void dump_options(FILE *fp) {
   if (outVoxFile)
     fprintf(fp, "Output file for voxel-by-voxel measures: %s\n", outVoxFile);
   if (outStrFile)
-    fprintf(fp, "Output center streamline volume: %s\n", outStrFile);
+    fprintf(fp, "Output center streamline .trk file: %s\n", outStrFile);
+  if (outEndBase)
+    fprintf(fp, "Base name of output end point volumes: %s\n", outEndBase);
+  if (refVolFile)
+    fprintf(fp, "Reference for output end point volumes: %s\n", refVolFile);
 
   return;
 }
