@@ -81,6 +81,7 @@ MRISUBDIRS=\
 	histo_fix_topology \
 	mri_histo_eq \
 	mri_compute_structure_transforms \
+	mri_ibmc \
 	mri_info \
 	mri_and \
 	mri_hausdorff_dist \
