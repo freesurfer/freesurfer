@@ -9,8 +9,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2011/06/16 22:45:27 $
- *    $Revision: 1.3 $
+ *    $Date: 2011/06/16 23:07:39 $
+ *    $Revision: 1.4 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -69,7 +69,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_ibmc.c,v 1.3 2011/06/16 22:45:27 greve Exp $";
+static char vcid[] = "$Id: mri_ibmc.c,v 1.4 2011/06/16 23:07:39 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -148,6 +148,7 @@ IBMC *ibmc=NULL;
 int nCostEvaluations=0;
 int MinPowell(double ftol, double linmintol, int nmaxiters);
 int IBMCwriteBeta(IBMC *ibmc, char *fname);
+MATRIX *MRIangles2RotMatB(double *angles, MATRIX *R);
 
 /*---------------------------------------------------------------*/
 int main(int argc, char *argv[]) 
@@ -536,8 +537,10 @@ IBMC_PAIR *IBMCsetupPair(IBMC_PAIR *p, float betaA[6], float betaB[6])
     p->anglesA[k] = betaA[k];
     p->anglesB[k] = betaB[k];
   }
-  p->A = MRIangles2RotMat(p->anglesA);
-  p->B = MRIangles2RotMat(p->anglesB);
+  p->A = MRIangles2RotMatB(p->anglesA,p->A);
+  p->B = MRIangles2RotMatB(p->anglesB,p->B);
+  //p->A = MRIangles2RotMat(p->anglesA);
+  //p->B = MRIangles2RotMat(p->anglesB);
   for(k=0;k<3;k++){  
     p->A->rptr[k+1][4] = betaA[k+3];
     p->B->rptr[k+1][4] = betaB[k+3];
@@ -689,7 +692,6 @@ int IBMCfloatCoords(IBMC_PAIR *p, double Ldelta)
     }
     XA = MatrixMultiply(p->FA,xRef, XA);
     XB = MatrixMultiply(p->FB,xRef, XB);
-    fflush(stdout);
     for(k=1; k<=2; k++) {
       p->XA[k-1][n] = (double)XA->rptr[k][1];
       p->XB[k-1][n] = XB->rptr[k][1];
@@ -849,6 +851,7 @@ IBMC *IBMCinit(MRI *vol0, MATRIX *P0, MRI *vol1, MATRIX *P1, MRI *vol2, MATRIX *
   return(ibmc);
 }
 
+/*--------------------------------------------------------*/
 int IBMCwriteBeta(IBMC *ibmc, char *fname)
 {
   FILE *fp;
@@ -870,9 +873,6 @@ int IBMCwriteBeta(IBMC *ibmc, char *fname)
 
   return(0);
 }
-
-
-
 
 /*--------------------------------------------------------*/
 float compute_powell_cost(float *params)
@@ -912,6 +912,7 @@ float compute_powell_cost(float *params)
   secCostTime = TimerStop(&timer)/1000.0;
   printf("%4d %3d %7.3f %7.3f %7.3f %5.1f\n",
 	 nCostEvaluations,kbeta,params[kbeta],cost/cost0,copt/cost0,secCostTime/60.0);
+  fflush(stdout);
 
   for(k=0; k < ibmc->nbeta; k++) betaprev[k] = params[k];
 
@@ -934,9 +935,6 @@ int MinPowell(double ftol, double linmintol, int nmaxiters)
       xi[r][c] = r == c ? 1 : 0 ;
     }
   }
-  ftol = 1;
-  linmintol = 1;
-  nmaxiters = 1;
 
   OpenPowell2(ibmc->beta, xi, ibmc->nbeta, ftol, linmintol, nmaxiters, 
 	      &niters, &fret, compute_powell_cost);
@@ -945,4 +943,67 @@ int MinPowell(double ftol, double linmintol, int nmaxiters)
   free_matrix(xi, 1, ibmc->nbeta, 1, ibmc->nbeta);
 
   return(niters);
+}
+/*-----------------------------------------------------*/
+MATRIX *MRIangles2RotMatB(double *angles, MATRIX *R)
+{
+  double gamma, beta, alpha;
+  int r,c;
+  MATRIX *R3, *Rx, *Ry, *Rz;
+
+  gamma = angles[0];
+  beta  = angles[1];
+  alpha = angles[2];
+
+  //printf("angles %g %g %g\n",angles[0],angles[1],angles[2]);
+
+  Rx = MatrixZero(3,3,NULL);
+  Rx->rptr[1][1] = +1;
+  Rx->rptr[2][2] = +cos(gamma);
+  Rx->rptr[2][3] = -sin(gamma);
+  Rx->rptr[3][2] = +sin(gamma);
+  Rx->rptr[3][3] = +cos(gamma);
+  //printf("Rx ----------------\n");
+  //MatrixPrint(stdout,Rx);
+
+  Ry = MatrixZero(3,3,NULL);
+  Ry->rptr[1][1] = +cos(beta);
+  Ry->rptr[1][3] = +sin(beta);
+  Ry->rptr[2][2] = 1;
+  Ry->rptr[3][1] = -sin(beta);
+  Ry->rptr[3][3] = +cos(beta);
+  //printf("Ry ----------------\n");
+  //MatrixPrint(stdout,Ry);
+
+  Rz = MatrixZero(3,3,NULL);
+  Rz->rptr[1][1] = +cos(alpha);
+  Rz->rptr[1][2] = -sin(alpha);
+  Rz->rptr[2][1] = +sin(alpha);
+  Rz->rptr[2][2] = +cos(alpha);
+  Rz->rptr[3][3] = +1;
+  //printf("Rz ----------------\n");
+  //MatrixPrint(stdout,Rz);
+
+  // This will be a 3x3 matrix
+  R3 = MatrixMultiply(Rz,Ry,NULL);
+  R3 = MatrixMultiply(R3,Rx,R3);
+
+  // Stuff 3x3 into a 4x4 matrix, with (4,4) = 1
+  R = MatrixZero(4,4,R);
+  for(c=1; c <= 3; c++){
+    for(r=1; r <= 3; r++){
+      R->rptr[r][c] = R3->rptr[r][c];
+    }
+  }
+  R->rptr[4][4] = 1;
+
+  MatrixFree(&Rx);
+  MatrixFree(&Ry);
+  MatrixFree(&Rz);
+  MatrixFree(&R3);
+
+  //printf("R ----------------\n");
+  //MatrixPrint(stdout,R);
+
+  return(R);
 }
