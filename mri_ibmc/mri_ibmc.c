@@ -9,8 +9,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2011/06/16 18:58:42 $
- *    $Revision: 1.2 $
+ *    $Date: 2011/06/16 22:45:27 $
+ *    $Revision: 1.3 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -54,15 +54,35 @@
 #include "matrix.h"
 #include "mri2.h"
 #include "transform.h"
+#include "timer.h"
+#include "numerics.h"
 
 
 double round(double);
 
+static int  parse_commandline(int argc, char **argv);
+static void check_options(void);
+static void print_usage(void) ;
+static void usage_exit(void);
+static void print_help(void) ;
+static void print_version(void) ;
+static void dump_options(FILE *fp);
+int main(int argc, char *argv[]) ;
+
+static char vcid[] = "$Id: mri_ibmc.c,v 1.3 2011/06/16 22:45:27 greve Exp $";
+char *Progname = NULL;
+char *cmdline, cwd[2000];
+int debug=0;
+int checkoptsonly=0;
+struct utsname uts;
+
 #define IBMC_NL_MAX 500
+int IBMC_ForceReRun = 0;
 
 //------------------------------------------------------------------------
 typedef struct {
   MRI *mriA, *mriB; // just a pointer, do not dealloc
+  int volidA,volidB;
   MATRIX *PA, *PB, *Pref; // tkr reg.dat
   int SnoA, SnoB; // slice number
   double ColFoVA, RowFoVA;
@@ -89,16 +109,244 @@ typedef struct {
   double IA[IBMC_NL_MAX], IB[IBMC_NL_MAX];
   double D;
   MATRIX *tmpv3; 
+  float betaA0[6],betaB0[6];
+  int InitNeeded;
 } IBMC_PAIR;
 //-------------------------------------------
 typedef struct 
 {
-  int nvols;
-  MRI *mri[10];
-  MATRIX *P[10]; 
+  MRI *vol[3];
+  MATRIX *P[3];
+  int npairs;
   IBMC_PAIR **p;
   int mriRef, SnoRef;
+  int nbeta;
+  float *beta;
+  double cost;
 } IBMC;
+
+IBMC_PAIR *IBMCallocPair(void);
+IBMC_PAIR *IBMCinitPair(MRI *mriA,   int volidA, int SnoA,   MATRIX *PA, 
+			MRI *mriB,   int volidB, int SnoB,   MATRIX *PB,
+			MRI *mriRef, int SnoRef, MATRIX *PRef);
+int IBMClambdaLimitPair(IBMC_PAIR *p);
+IBMC_PAIR *IBMCsetupPair(IBMC_PAIR *p, float betaA[6], float betaB[6]);
+int IBMCprintPairCoords(IBMC_PAIR *p,FILE *fp);
+int IBMCprintPair(IBMC_PAIR *p,FILE *fp);
+int IBMCfloatCoords(IBMC_PAIR *p, double Ldelta);
+int IBMCsamplePair(IBMC_PAIR *p);
+IBMC *IBMCinit(MRI *vol0, MATRIX *P0, MRI *vol1, MATRIX *P1, MRI *vol2, MATRIX *P2);
+double IBMCcost(IBMC *ibmc, float *beta);
+int IBMCbetaStartIndex(IBMC *ibmc, int volid, int Sno);
+float compute_powell_cost(float *params);
+
+char *V1File=NULL,*V2File=NULL,*V3File=NULL;
+char *V1PFile=NULL,*V2PFile=NULL,*V3PFile=NULL;
+char tmpstr[2000];
+FILE *fp;
+IBMC *ibmc=NULL;
+int nCostEvaluations=0;
+int MinPowell(double ftol, double linmintol, int nmaxiters);
+int IBMCwriteBeta(IBMC *ibmc, char *fname);
+
+/*---------------------------------------------------------------*/
+int main(int argc, char *argv[]) 
+{
+  int nargs,k,nbeta;
+  MRI *vol1, *vol2, *vol3;
+  MATRIX *P1=NULL, *P2=NULL, *P3=NULL;
+  float *beta;
+  struct timeb  mytimer;
+  double secCostTime;
+
+  nargs = handle_version_option (argc, argv, vcid, "$Name:  $");
+  if (nargs && argc - nargs == 1) exit (0);
+  argc -= nargs;
+  cmdline = argv2cmdline(argc,argv);
+  uname(&uts);
+  getcwd(cwd,2000);
+
+  Progname = argv[0] ;
+  argc --;
+  argv++;
+  ErrorInit(NULL, NULL, NULL) ;
+  DiagInit(NULL, NULL, NULL) ;
+  if (argc == 0) usage_exit();
+  parse_commandline(argc, argv);
+  check_options();
+  if (checkoptsonly) return(0);
+  dump_options(stdout);
+
+  vol1 = MRIread(V1File);
+  if(vol1 == NULL) exit(1);
+  vol2 = MRIread(V2File);
+  if(vol2 == NULL) exit(1);
+  vol3 = MRIread(V3File);
+  if(vol3 == NULL) exit(1);
+
+  if(V1PFile) P1 = regio_read_registermat(V1PFile);
+  if(V2PFile) P2 = regio_read_registermat(V2PFile);
+  if(V3PFile) P3 = regio_read_registermat(V3PFile);
+
+  ibmc = IBMCinit(vol1,P1,vol2,P2,vol3,P3);
+  MinPowell(.1, .1, 10);
+  IBMCwriteBeta(ibmc, "beta.dat");
+  exit(1);
+
+
+  beta = ibmc->beta;
+  nbeta = IBMCbetaStartIndex(ibmc,0,20);
+  nbeta = nbeta + 5;
+  fp = fopen("cost.dat","w");
+  for(k=0;k<50;k++){
+    beta[nbeta] = (10*(k-25.0)/25.0);
+    //beta[nbeta] *= M_PI/180;
+    TimerStart(&mytimer);
+    IBMCcost(ibmc,beta);
+    secCostTime = TimerStop(&mytimer)/1000.0;
+    printf("%2d %8.7f %7.4f %7.4f\n",k,beta[nbeta],ibmc->cost,secCostTime);
+    fprintf(fp,"%2d %8.7f %7.4f\n",k,beta[nbeta],ibmc->cost);
+    //sprintf(tmpstr,"coords.%02d.dat",k);
+    //fp = fopen(tmpstr,"w");
+    //IBMCprintPairCoords(p,fp);
+    //fclose(fp);
+  }
+  fclose(fp);
+
+  return 0;
+}
+
+/*------------------------------------------------------------------*/
+static int parse_commandline(int argc, char **argv) {
+  int  nargc , nargsused;
+  char **pargv, *option ;
+
+  if (argc < 1) usage_exit();
+
+  nargc   = argc;
+  pargv = argv;
+  while (nargc > 0) {
+
+    option = pargv[0];
+    if (debug) printf("%d %s\n",nargc,option);
+    nargc -= 1;
+    pargv += 1;
+
+    nargsused = 0;
+
+    if (!strcasecmp(option, "--help"))  print_help() ;
+    else if (!strcasecmp(option, "--version")) print_version() ;
+    else if (!strcasecmp(option, "--debug"))   debug = 1;
+    else if (!strcasecmp(option, "--checkopts"))   checkoptsonly = 1;
+    else if (!strcasecmp(option, "--nocheckopts")) checkoptsonly = 0;
+    else if (!strcasecmp(option, "--force-rerun")) IBMC_ForceReRun = 1;
+
+    else if (!strcasecmp(option, "--v1")) {
+      if (nargc < 1) CMDargNErr(option,1);
+      V1File = pargv[0];
+      nargsused = 1;
+      if(CMDnthIsArg(nargc, pargv, 1)) {
+        V1PFile = pargv[1];
+        nargsused ++;
+      }
+    } 
+    else if (!strcasecmp(option, "--v2")) {
+      if (nargc < 1) CMDargNErr(option,1);
+      V2File = pargv[0];
+      nargsused = 1;
+      if(CMDnthIsArg(nargc, pargv, 1)) {
+        V2PFile = pargv[1];
+        nargsused ++;
+      }
+    } 
+    else if (!strcasecmp(option, "--v3")) {
+      if (nargc < 1) CMDargNErr(option,1);
+      V3File = pargv[0];
+      nargsused = 1;
+      if(CMDnthIsArg(nargc, pargv, 1)) {
+        V3PFile = pargv[1];
+        nargsused ++;
+      }
+    } 
+    else {
+      fprintf(stderr,"ERROR: Option %s unknown\n",option);
+      if (CMDsingleDash(option))
+        fprintf(stderr,"       Did you really mean -%s ?\n",option);
+      exit(-1);
+    }
+    nargc -= nargsused;
+    pargv += nargsused;
+  }
+  return(0);
+}
+/*------------------------------------------------------------------*/
+static void usage_exit(void) {
+  print_usage() ;
+  exit(1) ;
+}
+/*------------------------------------------------------------------*/
+static void print_usage(void) {
+  printf("USAGE: %s \n",Progname) ;
+  printf("\n");
+  printf("   --v1 vol1 <regfile>: template volume \n");
+  printf("   --v2 vol2 <regfile>: template volume \n");
+  printf("   --v3 vol3 <regfile>: template volume \n");
+  printf("\n");
+  printf("   --debug     turn on debugging\n");
+  printf("   --checkopts don't run anything, just check options and exit\n");
+  printf("   --help      print out information on how to use this program\n");
+  printf("   --version   print out version and exit\n");
+  printf("\n");
+  printf("%s\n", vcid) ;
+  printf("\n");
+}
+/*------------------------------------------------------------------*/
+static void print_help(void) {
+  print_usage() ;
+  printf("WARNING: this program is not yet tested!\n");
+  exit(1) ;
+}
+/*------------------------------------------------------------------*/
+static void print_version(void) {
+  printf("%s\n", vcid) ;
+  exit(1) ;
+}
+/*------------------------------------------------------------------*/
+static void check_options(void) {
+  if(V1File == NULL){
+    printf("ERROR: must spec v1\n");
+    exit(1);
+  }
+  if(V2File == NULL){
+    printf("ERROR: must spec v2\n");
+    exit(1);
+  }
+  if(V3File == NULL){
+    printf("ERROR: must spec v3\n");
+    exit(1);
+  }
+
+  return;
+}
+/*------------------------------------------------------------------*/
+static void dump_options(FILE *fp) {
+  fprintf(fp,"\n");
+  fprintf(fp,"%s\n",vcid);
+  fprintf(fp,"cwd %s\n",cwd);
+  fprintf(fp,"cmdline %s\n",cmdline);
+  fprintf(fp,"sysname  %s\n",uts.sysname);
+  fprintf(fp,"hostname %s\n",uts.nodename);
+  fprintf(fp,"machine  %s\n",uts.machine);
+  fprintf(fp,"user     %s\n",VERuser());
+  fprintf(fp,"V1      %s %s\n",V1File,V1PFile);
+  fprintf(fp,"V2      %s %s\n",V2File,V2PFile);
+  fprintf(fp,"V3      %s %s\n",V3File,V3PFile);
+
+  return;
+}
+
+
+
 //------------------------------------------------------------------------
 IBMC_PAIR *IBMCallocPair(void)
 {
@@ -117,12 +365,13 @@ IBMC_PAIR *IBMCallocPair(void)
   p->vAp = NULL;
   p->vBp = NULL;
   p->ve = MatrixAlloc(3,1,MATRIX_REAL);
-  p->tmpv3 = MatrixAlloc(3,1,MATRIX_REAL);
+  p->tmpv3 = MatrixAlloc(1,3,MATRIX_REAL); // 1x3 row vector
+  p->InitNeeded = 1;
   return(p);
 }
 //------------------------------------------------------------------------
-IBMC_PAIR *IBMCinitPair(MRI *mriA,   int SnoA,   MATRIX *PA, 
-			MRI *mriB,   int SnoB,   MATRIX *PB,
+IBMC_PAIR *IBMCinitPair(MRI *mriA,   int volidA, int SnoA,   MATRIX *PA, 
+			MRI *mriB,   int volidB, int SnoB,   MATRIX *PB,
 			MRI *mriRef, int SnoRef, MATRIX *PRef)
 {
   MATRIX *Tref, *Dref, *invDref, *invPRef, *invWref;
@@ -133,6 +382,8 @@ IBMC_PAIR *IBMCinitPair(MRI *mriA,   int SnoA,   MATRIX *PA,
   p = IBMCallocPair();
   p->mriA = mriA;
   p->mriB = mriB;
+  p->volidA = volidA;
+  p->volidB = volidB;
   p->SnoA = SnoA;
   p->SnoB = SnoB;
   p->ColFoVA = mriA->xsize * mriA->width;
@@ -255,9 +506,31 @@ int IBMClambdaLimitPair(IBMC_PAIR *p)
   return(0);
 }
 //------------------------------------------------------------------------
-IBMC_PAIR *IBMCsetupPair(IBMC_PAIR *p, double betaA[6], double betaB[6])
+IBMC_PAIR *IBMCsetupPair(IBMC_PAIR *p, float betaA[6], float betaB[6])
 {
-  int k;
+  extern int IBMC_ForceReRun;
+  int k,ReRunNeeded;
+
+  // This logic is used to keep it run re-running if the betas have not changed
+  // Good for when doing line minimization
+  if(p->InitNeeded){
+    for(k=0;k<6;k++){
+      p->betaA0[k] = betaA[k];
+      p->betaB0[k] = betaB[k];
+    }
+    p->InitNeeded = 0;
+    ReRunNeeded = 1;
+  }
+  else {
+    ReRunNeeded = 0;
+    for(k=0;k<6;k++){
+      if(p->betaA0[k] != betaA[k] || p->betaB0[k] != betaB[k]){
+	ReRunNeeded = 1;
+	break;
+      }
+    }
+  }
+  if(ReRunNeeded == 0 && ! IBMC_ForceReRun) return(p);
 
   for(k=0;k<3;k++){
     p->anglesA[k] = betaA[k];
@@ -266,18 +539,18 @@ IBMC_PAIR *IBMCsetupPair(IBMC_PAIR *p, double betaA[6], double betaB[6])
   p->A = MRIangles2RotMat(p->anglesA);
   p->B = MRIangles2RotMat(p->anglesB);
   for(k=0;k<3;k++){  
-    p->A->rptr[k+1][4] = betaA[k];
-    p->B->rptr[k+1][4] = betaB[k];
+    p->A->rptr[k+1][4] = betaA[k+3];
+    p->B->rptr[k+1][4] = betaB[k+3];
   }
   p->FA = MatrixMultiply(p->A,p->FA0,p->FA);
   p->FB = MatrixMultiply(p->B,p->FB0,p->FB);
   p->RA = MatrixCopyRegion(p->FA,p->RA, 1,1, 3,3, 1,1);
   p->RB = MatrixCopyRegion(p->FB,p->RB, 1,1, 3,3, 1,1);
 
-  p->tmpv3 = MatrixCopyRegion(p->RA,p->vA, 3,1, 1,3, 1,1);
+  p->tmpv3 = MatrixCopyRegion(p->RA,p->tmpv3, 3,1, 1,3, 1,1);
   p->vA = MatrixTranspose(p->tmpv3,p->vA);
 
-  p->tmpv3 = MatrixCopyRegion(p->RB,p->vB, 3,1, 1,3, 1,1);
+  p->tmpv3 = MatrixCopyRegion(p->RB,p->tmpv3, 3,1, 1,3, 1,1);
   p->vB = MatrixTranspose(p->tmpv3,p->vB);
 
   p->tAz = p->FA->rptr[3][4];
@@ -388,7 +661,7 @@ int IBMCprintPair(IBMC_PAIR *p,FILE *fp)
 
   return(0);
 }
-
+/*-------------------------------------------------------------------*/
 int IBMCfloatCoords(IBMC_PAIR *p, double Ldelta)
 {
   int n,k;
@@ -435,6 +708,7 @@ int IBMCsamplePair(IBMC_PAIR *p)
 {
   int n,icsA,irsA,icsB,irsB;
   float valvect;
+  double c;
 
   p->D = 0;
   for(n=0; n < p->nL; n++){
@@ -455,220 +729,220 @@ int IBMCsamplePair(IBMC_PAIR *p)
     MRIsampleSeqVolume(p->mriB, p->colB[n], p->rowB[n], p->SnoB, &valvect, 0, 0);
     p->IB[n] = valvect;
     //p->IB[n] = MRIgetVoxVal(p->mriB,icsB,irsB,p->SnoB,0);
-
-    p->D += (p->IA[n]-p->IB[n])*(p->IA[n]-p->IB[n]);
+    c = (p->IA[n]-p->IB[n])*(p->IA[n]-p->IB[n]);
+    if(isnan(c)){
+      printf("ERROR: pair cost at nthL=%d is NaN\n",n);
+      IBMCprintPair(p,stdout);
+      exit(1);
+    }
+    p->D += c;
   }
-  p->D /= p->nL;
+  if(p->nL > 0) p->D /= p->nL;
 
   return(0);
 }
-
-
-static int  parse_commandline(int argc, char **argv);
-static void check_options(void);
-static void print_usage(void) ;
-static void usage_exit(void);
-static void print_help(void) ;
-static void print_version(void) ;
-static void dump_options(FILE *fp);
-int main(int argc, char *argv[]) ;
-
-static char vcid[] = "$Id: mri_ibmc.c,v 1.2 2011/06/16 18:58:42 greve Exp $";
-char *Progname = NULL;
-char *cmdline, cwd[2000];
-int debug=0;
-int checkoptsonly=0;
-struct utsname uts;
-
-char *V1File=NULL,*V2File=NULL,*V3File=NULL;
-char *V1PFile=NULL,*V2PFile=NULL,*V3PFile=NULL;
-char tmpstr[2000];
-FILE *fp;
-
-/*---------------------------------------------------------------*/
-int main(int argc, char *argv[]) 
+/*-----------------------------------------------------*/
+int IBMCbetaStartIndex(IBMC *ibmc, int volid, int Sno)
 {
-  int nargs,k;
-  MRI *vol1, *vol2, *vol3;
-  MATRIX *P1=NULL, *P2=NULL, *P3=NULL;
-  IBMC_PAIR *p=NULL;
-  double betaA[6] =  {0,0,0,0,0,0};
-  double betaB[6] =  {0,0,0,0,0,0};
+  int nbeta;
+  int k;
+  nbeta = Sno;
+  for(k=0; k <= volid-1; k++) nbeta += ibmc->vol[k]->depth;
+  nbeta *= 6;
+  return(nbeta);
+}
 
-  nargs = handle_version_option (argc, argv, vcid, "$Name:  $");
-  if (nargs && argc - nargs == 1) exit (0);
-  argc -= nargs;
-  cmdline = argv2cmdline(argc,argv);
-  uname(&uts);
-  getcwd(cwd,2000);
+/*-----------------------------------------------------*/
+double IBMCcost(IBMC *ibmc, float *beta)
+{
+  static float *beta0=NULL;
+  IBMC_PAIR *p;
+  float *betaA,*betaB;
+  int k,nbetaA,nbetaB;
 
-  Progname = argv[0] ;
-  argc --;
-  argv++;
-  ErrorInit(NULL, NULL, NULL) ;
-  DiagInit(NULL, NULL, NULL) ;
-  if (argc == 0) usage_exit();
-  parse_commandline(argc, argv);
-  check_options();
-  if (checkoptsonly) return(0);
-  dump_options(stdout);
+  if(beta0 == NULL){
+    beta0 = (float *)calloc(ibmc->nbeta,sizeof(float));
+    for(k=0; k < ibmc->nbeta; k++) beta0[k] = beta[k];
+  }
 
-  vol1 = MRIread(V1File);
-  if(vol1 == NULL) exit(1);
-  vol2 = MRIread(V2File);
-  if(vol2 == NULL) exit(1);
-  vol3 = MRIread(V3File);
-  if(vol3 == NULL) exit(1);
-
-  if(V1PFile) P1 = regio_read_registermat(V1PFile);
-  if(V2PFile) P2 = regio_read_registermat(V2PFile);
-  if(V3PFile) P3 = regio_read_registermat(V3PFile);
-
-  fp = fopen("cost.dat","w");
-  for(k=0;k<1000;k++){
-    p = IBMCinitPair(vol1,10,P1,vol2,11,P2,vol3,10,P3);
-    betaA[2] = (10*(k-500)/500)*M_PI/180;
+  ibmc->cost = 0;
+  for(k=0;k<ibmc->npairs;k++){
+    p = ibmc->p[k];
+    nbetaA = IBMCbetaStartIndex(ibmc, p->volidA, p->SnoA);
+    nbetaB = IBMCbetaStartIndex(ibmc, p->volidB, p->SnoB);
+    betaA = &beta[nbetaA];
+    betaB = &beta[nbetaB];
     IBMCsetupPair(p, betaA, betaB);
     IBMCfloatCoords(p, 1);
     IBMCsamplePair(p);
-    printf("%2d %8.7f %7.4f\n",k,betaA[2],p->D);
-    fprintf(fp,"%2d %8.7f %7.4f\n",k,betaA[2]*180/M_PI,p->D);
-    //sprintf(tmpstr,"coords.%02d.dat",k);
-    //fp = fopen(tmpstr,"w");
-    //IBMCprintPairCoords(p,fp);
-    //fclose(fp);
+    if(isnan(p->D)){
+      printf("ERROR: pair %d cost is NaN\n",k);
+      IBMCprintPair(p,stdout);
+      exit(1);
+    }
+    ibmc->cost += p->D;
+    //printf("%2d  %d %2d  %d %2d     %7.4f %10.1f\n",
+    //k,p->volidA,p->SnoA,p->volidB,p->SnoB,p->D,Dsum);
+  }
+  ibmc->cost /= ibmc->npairs;
+  if(isnan(ibmc->cost)){
+    printf("ERROR: cost is NaN\n");
+    exit(1);
+  }
+  return(ibmc->cost);
+}
+/*---------------------------------------------------------------*/
+IBMC *IBMCinit(MRI *vol0, MATRIX *P0, MRI *vol1, MATRIX *P1, MRI *vol2, MATRIX *P2)
+{
+  IBMC *ibmc;
+  int s0,s1,s2,nthpair;
+
+  ibmc = (IBMC *) calloc(1,sizeof(IBMC));
+  ibmc->vol[0] = vol0;
+  ibmc->P[0]   = P0;
+  ibmc->vol[1] = vol1;
+  ibmc->P[1]   = P1;
+  ibmc->vol[2] = vol2;
+  ibmc->P[2]   = P2;
+
+  ibmc->npairs = 
+    ibmc->vol[0]->depth * ibmc->vol[1]->depth +
+    ibmc->vol[0]->depth * ibmc->vol[2]->depth +
+    ibmc->vol[1]->depth * ibmc->vol[2]->depth;
+
+  ibmc->nbeta = 6*(ibmc->vol[0]->depth + ibmc->vol[1]->depth + ibmc->vol[2]->depth);
+
+  printf("ns %d %d %d\n",ibmc->vol[0]->depth,ibmc->vol[1]->depth,ibmc->vol[2]->depth);
+  printf("npairs = %d\n",ibmc->npairs);
+  printf("nbeta = %d\n",ibmc->nbeta);
+
+  ibmc->p = (IBMC_PAIR **) calloc(ibmc->npairs,sizeof(IBMC_PAIR *));
+  if(ibmc->p == NULL){
+    printf("ERROR: could not alloc %d pairs\n",ibmc->npairs);
+    return(NULL);
+  }
+
+  ibmc->beta = (float *) calloc(ibmc->nbeta,sizeof(float));
+
+  printf("Initializing %d pairs\n",ibmc->npairs);
+  nthpair = 0;
+  for(s0=0; s0 < ibmc->vol[0]->depth; s0++){
+    for(s1=0; s1 < ibmc->vol[1]->depth; s1++){
+      ibmc->p[nthpair] = IBMCinitPair(vol0,0,s0,P0, vol1,1,s1,P1, vol0,0,P0);
+      nthpair++;
+    }
+  }
+  for(s0=0; s0 < ibmc->vol[0]->depth; s0++){
+    for(s2=0; s2 < ibmc->vol[2]->depth; s2++){
+      ibmc->p[nthpair] = IBMCinitPair(vol0,0,s0,P0, vol2,2,s2,P2, vol0,0,P0);
+      nthpair++;
+    }
+  }
+  for(s1=0; s1 < ibmc->vol[1]->depth; s1++){
+    for(s2=0; s2 < ibmc->vol[2]->depth; s2++){
+      ibmc->p[nthpair] = IBMCinitPair(vol1,1,s1,P1, vol2,2,s2,P2, vol0,0,P0);
+      nthpair++;
+    }
+  }
+  printf("Done initializing pairs %d\n",nthpair);
+
+  return(ibmc);
+}
+
+int IBMCwriteBeta(IBMC *ibmc, char *fname)
+{
+  FILE *fp;
+  int volid, Sno, k, nthbeta;
+
+  fp = fopen(fname,"w");
+  nthbeta = 0;
+  for(volid=0; volid < 3; volid++) {
+    for(Sno=0; Sno < ibmc->vol[volid]->depth; Sno++){
+      fprintf(fp,"%d %2d ",volid,Sno);
+      for(k=0; k<6; k++){
+	fprintf(fp,"%7.3f ",ibmc->beta[nthbeta]);
+	nthbeta ++;
+      }
+      fprintf(fp,"\n");
+    }
   }
   fclose(fp);
 
-
-
-  return 0;
-}
-
-/*------------------------------------------------------------------*/
-static int parse_commandline(int argc, char **argv) {
-  int  nargc , nargsused;
-  char **pargv, *option ;
-
-  if (argc < 1) usage_exit();
-
-  nargc   = argc;
-  pargv = argv;
-  while (nargc > 0) {
-
-    option = pargv[0];
-    if (debug) printf("%d %s\n",nargc,option);
-    nargc -= 1;
-    pargv += 1;
-
-    nargsused = 0;
-
-    if (!strcasecmp(option, "--help"))  print_help() ;
-    else if (!strcasecmp(option, "--version")) print_version() ;
-    else if (!strcasecmp(option, "--debug"))   debug = 1;
-    else if (!strcasecmp(option, "--checkopts"))   checkoptsonly = 1;
-    else if (!strcasecmp(option, "--nocheckopts")) checkoptsonly = 0;
-
-    else if (!strcasecmp(option, "--v1")) {
-      if (nargc < 1) CMDargNErr(option,1);
-      V1File = pargv[0];
-      nargsused = 1;
-      if(CMDnthIsArg(nargc, pargv, 1)) {
-        V1PFile = pargv[1];
-        nargsused ++;
-      }
-    } 
-    else if (!strcasecmp(option, "--v2")) {
-      if (nargc < 1) CMDargNErr(option,1);
-      V2File = pargv[0];
-      nargsused = 1;
-      if(CMDnthIsArg(nargc, pargv, 1)) {
-        V2PFile = pargv[1];
-        nargsused ++;
-      }
-    } 
-    else if (!strcasecmp(option, "--v3")) {
-      if (nargc < 1) CMDargNErr(option,1);
-      V3File = pargv[0];
-      nargsused = 1;
-      if(CMDnthIsArg(nargc, pargv, 1)) {
-        V3PFile = pargv[1];
-        nargsused ++;
-      }
-    } 
-    else {
-      fprintf(stderr,"ERROR: Option %s unknown\n",option);
-      if (CMDsingleDash(option))
-        fprintf(stderr,"       Did you really mean -%s ?\n",option);
-      exit(-1);
-    }
-    nargc -= nargsused;
-    pargv += nargsused;
-  }
   return(0);
 }
-/*------------------------------------------------------------------*/
-static void usage_exit(void) {
-  print_usage() ;
-  exit(1) ;
-}
-/*------------------------------------------------------------------*/
-static void print_usage(void) {
-  printf("USAGE: %s \n",Progname) ;
-  printf("\n");
-  printf("   --v1 vol1 <regfile>: template volume \n");
-  printf("   --v2 vol2 <regfile>: template volume \n");
-  printf("   --v3 vol3 <regfile>: template volume \n");
-  printf("\n");
-  printf("   --debug     turn on debugging\n");
-  printf("   --checkopts don't run anything, just check options and exit\n");
-  printf("   --help      print out information on how to use this program\n");
-  printf("   --version   print out version and exit\n");
-  printf("\n");
-  printf("%s\n", vcid) ;
-  printf("\n");
-}
-/*------------------------------------------------------------------*/
-static void print_help(void) {
-  print_usage() ;
-  printf("WARNING: this program is not yet tested!\n");
-  exit(1) ;
-}
-/*------------------------------------------------------------------*/
-static void print_version(void) {
-  printf("%s\n", vcid) ;
-  exit(1) ;
-}
-/*------------------------------------------------------------------*/
-static void check_options(void) {
-  if(V1File == NULL){
-    printf("ERROR: must spec v1\n");
-    exit(1);
+
+
+
+
+/*--------------------------------------------------------*/
+float compute_powell_cost(float *params)
+{
+  extern IBMC *ibmc;
+  extern int nCostEvaluations;
+  static double copt = 10e10;
+  static int first=1;
+  static float *betaprev, cost0;
+  static struct timeb timer;
+  double secCostTime;
+  float cost;
+  int newopt,k,kbeta=0;
+
+  if(first){
+    betaprev = (float *) calloc(ibmc->nbeta,sizeof(float));
+    TimerStart(&timer);
+    kbeta=0;
   }
-  if(V2File == NULL){
-    printf("ERROR: must spec v2\n");
-    exit(1);
-  }
-  if(V3File == NULL){
-    printf("ERROR: must spec v3\n");
-    exit(1);
+  else {
+    for(k=0; k < ibmc->nbeta; k++) {
+      if(betaprev[k] != params[k]){
+	kbeta = k;
+	break;
+      }
+    }
   }
 
-  return;
-}
-/*------------------------------------------------------------------*/
-static void dump_options(FILE *fp) {
-  fprintf(fp,"\n");
-  fprintf(fp,"%s\n",vcid);
-  fprintf(fp,"cwd %s\n",cwd);
-  fprintf(fp,"cmdline %s\n",cmdline);
-  fprintf(fp,"sysname  %s\n",uts.sysname);
-  fprintf(fp,"hostname %s\n",uts.nodename);
-  fprintf(fp,"machine  %s\n",uts.machine);
-  fprintf(fp,"user     %s\n",VERuser());
-  fprintf(fp,"V1      %s %s\n",V1File,V1PFile);
-  fprintf(fp,"V2      %s %s\n",V2File,V2PFile);
-  fprintf(fp,"V3      %s %s\n",V3File,V3PFile);
+  cost = IBMCcost(ibmc,params);
+  nCostEvaluations ++;
+  newopt = 0;
+  if(copt > cost){
+    copt = cost;
+    newopt = 1;
+  }
+  if(first) cost0 = cost;
+  secCostTime = TimerStop(&timer)/1000.0;
+  printf("%4d %3d %7.3f %7.3f %7.3f %5.1f\n",
+	 nCostEvaluations,kbeta,params[kbeta],cost/cost0,copt/cost0,secCostTime/60.0);
 
-  return;
+  for(k=0; k < ibmc->nbeta; k++) betaprev[k] = params[k];
+
+  first=0;
+  return(cost);
+}
+
+
+
+/*---------------------------------------------------------*/
+int MinPowell(double ftol, double linmintol, int nmaxiters)
+{
+  float **xi, fret;
+  int    r, c;
+  int niters;
+
+  xi = matrix(1, ibmc->nbeta, 1, ibmc->nbeta) ;
+  for (r = 1 ; r <= ibmc->nbeta ; r++) {
+    for (c = 1 ; c <= ibmc->nbeta ; c++) {
+      xi[r][c] = r == c ? 1 : 0 ;
+    }
+  }
+  ftol = 1;
+  linmintol = 1;
+  nmaxiters = 1;
+
+  OpenPowell2(ibmc->beta, xi, ibmc->nbeta, ftol, linmintol, nmaxiters, 
+	      &niters, &fret, compute_powell_cost);
+  printf("Powell done niters = %d\n",niters);
+
+  free_matrix(xi, 1, ibmc->nbeta, 1, ibmc->nbeta);
+
+  return(niters);
 }
