@@ -11,8 +11,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2011/04/29 17:27:01 $
- *    $Revision: 1.13 $
+ *    $Date: 2011/06/17 02:39:27 $
+ *    $Revision: 1.14 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -35,6 +35,12 @@
 #include "SurfaceOverlayProperty.h"
 #include "FSSurface.h"
 #include <QDebug>
+#include "ProgressCallback.h"
+
+extern "C"
+{
+#include "utils.h"
+}
 
 SurfaceOverlay::SurfaceOverlay ( LayerSurface* surf ) :
   QObject(),
@@ -148,6 +154,7 @@ bool SurfaceOverlay::LoadCorrelationData( const QString& filename )
     return false;
   }
   MRIfree( &mri );
+  ::SetProgressCallback(ProgressCallback, 0, 100);
   mri = ::MRIread( filename.toAscii().data() );      // long process
   if ( mri == NULL )
   {

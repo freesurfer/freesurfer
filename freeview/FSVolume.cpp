@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2011/04/29 17:27:01 $
- *    $Revision: 1.64 $
+ *    $Date: 2011/06/17 02:39:26 $
+ *    $Revision: 1.65 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -46,6 +46,7 @@
 #include <QTextStream>
 #include <QDir>
 #include <QDebug>
+#include "ProgressCallback.h"
 
 extern "C"
 {
@@ -128,6 +129,7 @@ bool FSVolume::LoadMRI( const QString& filename, const QString& reg_filename )
   // save old header to release later so there is no gap where m_MRI becomes NULL during re-loading process
   MRI* tempMRI = m_MRI;
 
+
   m_MRI = ::MRIread( filename.toAscii().data() );      // could be long process
 
   if ( m_MRI == NULL )
@@ -185,9 +187,11 @@ bool FSVolume::LoadMRI( const QString& filename, const QString& reg_filename )
 
 bool FSVolume::MRIRead( const QString& filename, const QString& reg_filename )
 {
+  ::SetProgressCallback(ProgressCallback, 0, 50);
   if ( LoadMRI( filename, reg_filename ) )
   {
     this->CopyMatricesFromMRI();
+    ::SetProgressCallback(ProgressCallback, 50, 100);
     if ( !this->MapMRIToImage() )
     {
       return false;
@@ -219,6 +223,7 @@ bool FSVolume::MRIRead( const QString& filename, const QString& reg_filename )
 
 bool FSVolume::Restore( const QString& filename, const QString& reg_filename )
 {
+  ::SetProgressCallback(ProgressCallback, 0, 100);
   if ( LoadMRI( filename, reg_filename ) )
   {
     // create m_MRITemp for save/rotate
@@ -836,22 +841,6 @@ bool FSVolume::MRIWrite( const QString& filename, int nSampleMethod, bool resamp
 
 bool FSVolume::MRIWrite()
 {
-  /*
-  if ( !m_MRITemp )
-  {
-    cerr << "Volume not ready for save.\n";
-    return false;
-  }
-
-  int err = ::MRIwrite( m_MRITemp, m_MRI->fname );
-  if ( err != 0 )
-  {
-    cerr << "MRIwrite failed\n";
-  }
-  MRIfree( &m_MRITemp );
-  m_MRITemp = NULL;
-
-  return err == 0;*/
   return MRIWrite( m_MRI->fname );
 }
 
@@ -880,8 +869,11 @@ bool FSVolume::UpdateMRIFromImage( vtkImageData* rasImage, bool resampleToOrigin
   MRIcopyHeader( m_MRITarget, mri );
 
   int nProgress = 0;
+  int nstart = global_progress_range[0];
+  int nend = global_progress_range[1];
   if ( mri->nframes > 1 )
   {
+    global_progress_range[1] = nstart+(nend-nstart)*2/3;
     for ( int j = 0; j < mri->height; j++ )
     {
       for ( int k = 0; k < mri->depth; k++ )
@@ -919,10 +911,12 @@ bool FSVolume::UpdateMRIFromImage( vtkImageData* rasImage, bool resampleToOrigin
         nProgress += nProgressStep;
         emit ProgressChanged( nProgress );
       }
+      exec_progress_callback(j, mri->height, 0, 1);
     }
   }
   else
   {
+    global_progress_range[1] = nstart+(nend-nstart)/3;
     for ( int k = 0; k < mri->depth; k++ )
     {
       void* ptr = rasImage->GetScalarPointer( 0, 0, k );
@@ -934,6 +928,7 @@ bool FSVolume::UpdateMRIFromImage( vtkImageData* rasImage, bool resampleToOrigin
         nProgress += nProgressStep;
         emit ProgressChanged( nProgress );
       }
+      exec_progress_callback(k, mri->depth, 0, 1);
     }
   }
 
@@ -943,6 +938,8 @@ bool FSVolume::UpdateMRIFromImage( vtkImageData* rasImage, bool resampleToOrigin
     MRIfree( &m_MRITemp );
   }
 
+  global_progress_range[0] = global_progress_range[1];
+  global_progress_range[1] = nend;
   if ( resampleToOriginal )
   {
     m_MRITemp = MRIallocSequence( m_MRI->width,

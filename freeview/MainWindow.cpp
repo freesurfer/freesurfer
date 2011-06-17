@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2011/05/20 17:35:30 $
- *    $Revision: 1.171 $
+ *    $Date: 2011/06/17 02:39:27 $
+ *    $Revision: 1.172 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -80,6 +80,7 @@
 #include "DialogWriteMovieFrames.h"
 #include "LayerLandmarks.h"
 #include "Interactor2DNavigate.h"
+#include "MainApplication.h"
 
 MainWindow::MainWindow( QWidget *parent, MyCmdLineParser* cmdParser ) :
   QMainWindow( parent ),
@@ -298,7 +299,7 @@ MainWindow::MainWindow( QWidget *parent, MyCmdLineParser* cmdParser ) :
   connect( m_threadIOWorker, SIGNAL(Finished(Layer*, int )), this, SLOT(OnIOFinished(Layer*, int)), Qt::QueuedConnection );
   connect( m_threadIOWorker, SIGNAL(started()), this, SLOT(SetProcessing()));
 
-  connect( m_threadIOWorker, SIGNAL(Progress(int)), m_statusBar, SLOT(SetProgress(int)) );
+  connect( qApp, SIGNAL(GlobalProgress(int)), m_statusBar, SLOT(SetProgress(int)) );
   connect( m_threadIOWorker, SIGNAL(started()), m_statusBar, SLOT(ShowProgress()));
   connect( m_threadIOWorker, SIGNAL(finished()), m_statusBar, SLOT(HideProgress()));
 
@@ -335,6 +336,11 @@ MainWindow* MainWindow::GetMainWindow()
     }
   }
   return NULL;
+}
+
+void MainWindow::SetProgress(int n)
+{
+  m_statusBar->SetProgress(n);
 }
 
 void MainWindow::LoadSettings()
@@ -3909,6 +3915,7 @@ void MainWindow::LoadSurfaceFile( const QString& filename, const QString& fn_pat
   layer->SetLoadAllSurfaces(bAllSurfaces);
 
   m_threadIOWorker->LoadSurface( layer );
+  m_statusBar->StartTimer();
 }
 
 void MainWindow::OnCloseSurface()
@@ -3943,6 +3950,7 @@ void MainWindow::OnIOError( Layer* layer, int jobtype )
 
 void MainWindow::OnIOFinished( Layer* layer, int jobtype )
 {
+  m_statusBar->StopTimer();
   LayerCollection* lc_mri = GetLayerCollection( "MRI" );
   LayerCollection* lc_surface = GetLayerCollection( "Surface" );
   LayerCollection* lc_track = GetLayerCollection( "Track" );

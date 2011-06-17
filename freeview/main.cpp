@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2011/05/20 17:35:30 $
- *    $Revision: 1.8 $
+ *    $Date: 2011/06/17 02:39:27 $
+ *    $Revision: 1.9 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -21,7 +21,7 @@
  * Reporting: freesurfer@nmr.mgh.harvard.edu
  *
  */
-#include <QApplication>
+#include "MainApplication.h"
 #include "MainWindow.h"
 #include "MyCmdLineParser.h"
 #include "MyUtils.h"
@@ -100,7 +100,7 @@ int main(int argc, char *argv[])
     return false;
   }
 
-  QApplication app(argc, argv);
+  MainApplication app(argc, argv);
   app.setOrganizationName("Massachusetts General Hospital");
   app.setOrganizationDomain("nmr.mgh.harvard.edu");
 #ifdef Q_WS_X11

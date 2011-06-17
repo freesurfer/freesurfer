@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2011/03/21 21:27:40 $
- *    $Revision: 1.6 $
+ *    $Date: 2011/06/17 02:39:27 $
+ *    $Revision: 1.7 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -57,7 +57,7 @@ void FloatingStatusBar::ShowProgress()
   ui->progressBar->show();
   ui->progressBar->setValue(0);
   this->show();
-  m_timer->start();
+//  m_timer->start();
   Reposition();
 }
 
@@ -89,7 +89,7 @@ void FloatingStatusBar::OnProgressTimer()
   }
   else
   {
-    ui->progressBar->setValue( ui->progressBar->value()+1 );
+    ui->progressBar->setValue( ui->progressBar->value()+2 );
   }
 }
 

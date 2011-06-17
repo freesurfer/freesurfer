@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2011/05/20 17:35:30 $
- *    $Revision: 1.96 $
+ *    $Date: 2011/06/17 02:39:27 $
+ *    $Revision: 1.97 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -35,7 +35,6 @@ class LayerCollection;
 class LayerMRI;
 class BrushProperty;
 class RenderView;
-class QProgressBar;
 class LUTDataHolder;
 class ThreadIOWorker;
 class VolumeCropper;
@@ -202,6 +201,8 @@ public slots:
   void ShowAllLayers();
   void HideAllLayers();
   bool ParseCommand(const QString& cmd, bool bAutoQuit = false);
+
+  void SetProgress(int n);
 
 protected:
   void closeEvent   ( QCloseEvent * event );

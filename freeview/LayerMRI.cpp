@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2011/04/26 19:21:51 $
- *    $Revision: 1.100 $
+ *    $Date: 2011/06/17 02:39:27 $
+ *    $Revision: 1.101 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -67,6 +67,13 @@
 #include "ThreadBuildContour.h"
 #include <QtGlobal>
 #include <QFile>
+#include <QDebug>
+#include "ProgressCallback.h"
+
+extern "C"
+{
+#include "utils.h"
+}
 
 #define IMAGE_RESAMPLE_FACTOR     4.0     // must be multiples of 2
 
@@ -325,6 +332,7 @@ bool LayerMRI::SaveVolume()
     return false;
   }
 
+  ::SetProgressCallback(ProgressCallback, 0, 60);
   if ( !m_volumeSource->UpdateMRIFromImage( m_imageData, !m_bReorient ) )
   {
     return false;
@@ -338,6 +346,7 @@ bool LayerMRI::SaveVolume()
     QFile::rename( m_sFilename, new_fn );
   }
 
+  ::SetProgressCallback(ProgressCallback, 60, 100);
   bool bSaved = m_volumeSource->MRIWrite( m_sFilename.toAscii().data(),
                                           (mReslice[0]->GetInterpolationMode() == VTK_RESLICE_NEAREST ? SAMPLE_NEAREST : SAMPLE_TRILINEAR ),
                                           m_bWriteResampled);
