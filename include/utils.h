@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:10 $
- *    $Revision: 1.44 $
+ *    $Author: rpwang $
+ *    $Date: 2011/06/17 02:36:40 $
+ *    $Revision: 1.45 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -114,6 +114,12 @@ int nint( double f );
 
 /* Outputs the help files (found in utils/fsPrintHelp.c) */
 int outputHelpXml(const unsigned char *text, unsigned int size);
+
+/* Set progress callback */
+extern void (*progress_callback)(int progress);
+extern int global_progress_range[2];
+void SetProgressCallback(void (*callback)(int), int start, int end);
+void exec_progress_callback(int slice, int total_slices, int frame, int total_frames);
 
 #if defined(__cplusplus)
 };

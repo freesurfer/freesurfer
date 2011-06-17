@@ -7,9 +7,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:55 $
- *    $Revision: 1.79 $
+ *    $Author: rpwang $
+ *    $Date: 2011/06/17 02:37:48 $
+ *    $Revision: 1.80 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -56,6 +56,7 @@ int isblank (int c);
 #include "macros.h"
 #include "mghendian.h"
 #include "numerics.h"
+
 
 /*------------------------------------------------------------------------
   Parameters:
@@ -1588,3 +1589,38 @@ int nint( double f )
   return (f<0?((int)(f-0.5)):((int)(f+0.5)));
 }
 
+
+
+void (*progress_callback)(int) = 0;
+int global_progress_range[2] = {0, 100};
+
+/*---------------------------------------------------------------------------
+// Function SetProgressCallback:
+//       set call back function to respond to progress change
+//
+//       input start and end as the range of progress
+//       default is 0 and 100
+//
+ ---------------------------------------------------------------------------*/
+void SetProgressCallback(void (*callback)(int), int start, int end)
+{
+  progress_callback = callback;
+  global_progress_range[0] = start;
+  global_progress_range[1] = end;
+}
+
+/*---------------------------------------------------------------------------
+// Function exec_progress_callback:
+//       convenient function to call progress callback function
+//       and set current progress
+//
+//       In case of single frame volume, set frame to 0 and
+//       total_frames to 1
+//
+ ---------------------------------------------------------------------------*/
+void exec_progress_callback(int slice, int total_slices, int frame, int total_frames)
+{
+  if (progress_callback)
+    progress_callback(global_progress_range[0] +
+                      (global_progress_range[1]-global_progress_range[0])*(slice+total_slices*frame)/(total_slices*total_frames));
+}

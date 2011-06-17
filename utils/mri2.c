@@ -6,9 +6,9 @@
 /*
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
- *    $Author: rge21 $
- *    $Date: 2011/05/06 19:10:43 $
- *    $Revision: 1.70 $
+ *    $Author: rpwang $
+ *    $Date: 2011/06/17 02:37:48 $
+ *    $Revision: 1.71 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -833,6 +833,7 @@ int MRIvol2Vol(MRI *src, MRI *targ, MATRIX *Vt2s,
 
       } /* target col */
     } /* target row */
+    exec_progress_callback(ct, targ->width, 0, 1);
   } /* target slice */
 #endif
 

@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2011/04/14 18:21:46 $
- *    $Revision: 1.14 $
+ *    $Author: rpwang $
+ *    $Date: 2011/06/17 02:37:48 $
+ *    $Revision: 1.15 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -202,8 +202,7 @@ int znzTAGreadStart(znzFile fp, long long *plen)
 {
   int  tag ;
 
-  if ( znzreadIntEx(&tag, fp) != 1 )
-    return(0);
+  tag = znzreadInt(fp);
   if (znzeof(fp))
     return(0) ;
 
