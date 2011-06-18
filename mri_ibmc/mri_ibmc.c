@@ -9,8 +9,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2011/06/18 00:27:32 $
- *    $Revision: 1.5 $
+ *    $Date: 2011/06/18 00:46:40 $
+ *    $Revision: 1.6 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -41,6 +41,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <sys/utsname.h>
+#include <float.h>
 
 #include "macros.h"
 #include "utils.h"
@@ -69,7 +70,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_ibmc.c,v 1.5 2011/06/18 00:27:32 greve Exp $";
+static char vcid[] = "$Id: mri_ibmc.c,v 1.6 2011/06/18 00:46:40 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -140,7 +141,7 @@ double IBMCcost(IBMC *ibmc, float *beta);
 int IBMCbetaStartIndex(IBMC *ibmc, int volid, int Sno);
 float compute_powell_cost(float *params);
 int MinPowell(double ftol, double linmintol, int nmaxiters);
-int IBMCwriteBeta(IBMC *ibmc, char *fname);
+int IBMCwriteBeta(IBMC *ibmc, char *fname, float *beta);
 MATRIX *MRIangles2RotMatB(double *angles, MATRIX *R);
 int MinSearch(IBMC *ibmc);
 int IBMCreadBeta(IBMC *ibmc, char *fname);
@@ -153,6 +154,9 @@ FILE *fp;
 IBMC *ibmc=NULL;
 char *BetaFile="beta.dat";
 char *BetaInitFile=NULL;
+int nMaxItersPowell = 36;
+double TolPowell = 1e-8;
+double LinMinTolPowell = 1e-8;
 
 /*---------------------------------------------------------------*/
 int main(int argc, char *argv[]) 
@@ -210,11 +214,11 @@ int main(int argc, char *argv[])
     exit(1);
   }
 
-  IBMCwriteBeta(ibmc, "beta.init.dat");
-  MinPowell(.1, .1, 1);
+  IBMCwriteBeta(ibmc, "beta.init.dat",NULL);
+  MinPowell(TolPowell, LinMinTolPowell, nMaxItersPowell);
   IBMCcost(ibmc,ibmc->beta);
   printf("final cost = %g\n",ibmc->cost);
-  if(BetaFile) IBMCwriteBeta(ibmc, BetaFile);
+  if(BetaFile) IBMCwriteBeta(ibmc, BetaFile,NULL);
 
   nthpair = 100;
   IBMCprintPair(ibmc->p[nthpair],stdout);
@@ -292,6 +296,21 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--nocheckopts")) checkoptsonly = 0;
     else if (!strcasecmp(option, "--force-rerun")) IBMC_ForceReRun = 1;
 
+    else if (!strcasecmp(option, "--nmax")) {
+      if (nargc < 1) CMDargNErr(option,1);
+      sscanf(pargv[0],"%d",&nMaxItersPowell);
+      nargsused = 1;
+    } else if (!strcasecmp(option, "--tol")) {
+      if (nargc < 1) CMDargNErr(option,1);
+      sscanf(pargv[0],"%lf",&TolPowell);
+      nargsused = 1;
+    } 
+    else if (!strcasecmp(option, "--tol1d")) {
+      if (nargc < 1) CMDargNErr(option,1);
+      sscanf(pargv[0],"%lf",&LinMinTolPowell);
+      nargsused = 1;
+    }
+
     else if (!strcasecmp(option, "--v1")) {
       if (nargc < 1) CMDargNErr(option,1);
       V1File = pargv[0];
@@ -352,6 +371,12 @@ static void print_usage(void) {
   printf("   --v1 vol1 <regfile>: template volume \n");
   printf("   --v2 vol2 <regfile>: template volume \n");
   printf("   --v3 vol3 <regfile>: template volume \n");
+  printf("\n");
+  printf("  --nmax nmax   : max number of powell iterations (def 36)\n");
+  printf("  --tol   tol   : powell inter-iteration tolerance on cost\n");
+  printf("       This is the fraction of the cost that the difference in \n");
+  printf("       successive costs must drop below to stop the optimization.  \n");
+  printf("  --tol1d tol1d : tolerance on powell 1d minimizations\n");
   printf("\n");
   printf("   --debug     turn on debugging\n");
   printf("   --checkopts don't run anything, just check options and exit\n");
@@ -921,7 +946,7 @@ IBMC *IBMCinit(MRI *vol0, MATRIX *P0, MRI *vol1, MATRIX *P1, MRI *vol2, MATRIX *
 }
 
 /*--------------------------------------------------------*/
-int IBMCwriteBeta(IBMC *ibmc, char *fname)
+int IBMCwriteBeta(IBMC *ibmc, char *fname, float *beta)
 {
   FILE *fp;
   int volid, Sno, k, nthbeta;
@@ -932,7 +957,8 @@ int IBMCwriteBeta(IBMC *ibmc, char *fname)
     for(Sno=0; Sno < ibmc->vol[volid]->depth; Sno++){
       fprintf(fp,"%d %2d ",volid,Sno);
       for(k=0; k<6; k++){
-	fprintf(fp,"%7.3f ",ibmc->beta[nthbeta]);
+	if(beta == NULL) fprintf(fp,"%7.3f ",ibmc->beta[nthbeta]);
+	else             fprintf(fp,"%7.3f ",beta[nthbeta]);
 	nthbeta ++;
       }
       fprintf(fp,"\n");
@@ -1003,13 +1029,17 @@ float compute_powell_cost(float *params)
     copt = cost;
     newopt = 1;
   }
-  if(first) cost0 = cost;
+  if(first) {
+    cost0 = cost;
+    if(cost0 < FLT_MIN) cost0 = 1;
+  }
 
   if(newopt){
     secCostTime = TimerStop(&timer)/1000.0;
     printf("%4d %3d   %9.6f    %9.6f %9.6f   t=%7.3f\n",
-	   nCostEvaluations,kbeta,params[kbeta],cost,copt,secCostTime/60.0);
+	   nCostEvaluations,kbeta,params[kbeta],cost/cost0,copt/cost0,secCostTime/60.0);
     fflush(stdout);
+    IBMCwriteBeta(ibmc, "beta.curopt.dat", beta);
   }
 
   for(k=0; k < ibmc->nbeta; k++) paramsprev[k+1] = params[k+1];
