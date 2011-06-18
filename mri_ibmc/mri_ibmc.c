@@ -9,8 +9,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2011/06/16 23:07:39 $
- *    $Revision: 1.4 $
+ *    $Date: 2011/06/18 00:27:32 $
+ *    $Revision: 1.5 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -69,7 +69,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_ibmc.c,v 1.4 2011/06/16 23:07:39 greve Exp $";
+static char vcid[] = "$Id: mri_ibmc.c,v 1.5 2011/06/18 00:27:32 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -139,21 +139,25 @@ IBMC *IBMCinit(MRI *vol0, MATRIX *P0, MRI *vol1, MATRIX *P1, MRI *vol2, MATRIX *
 double IBMCcost(IBMC *ibmc, float *beta);
 int IBMCbetaStartIndex(IBMC *ibmc, int volid, int Sno);
 float compute_powell_cost(float *params);
+int MinPowell(double ftol, double linmintol, int nmaxiters);
+int IBMCwriteBeta(IBMC *ibmc, char *fname);
+MATRIX *MRIangles2RotMatB(double *angles, MATRIX *R);
+int MinSearch(IBMC *ibmc);
+int IBMCreadBeta(IBMC *ibmc, char *fname);
+int nCostEvaluations=0;
 
 char *V1File=NULL,*V2File=NULL,*V3File=NULL;
 char *V1PFile=NULL,*V2PFile=NULL,*V3PFile=NULL;
 char tmpstr[2000];
 FILE *fp;
 IBMC *ibmc=NULL;
-int nCostEvaluations=0;
-int MinPowell(double ftol, double linmintol, int nmaxiters);
-int IBMCwriteBeta(IBMC *ibmc, char *fname);
-MATRIX *MRIangles2RotMatB(double *angles, MATRIX *R);
+char *BetaFile="beta.dat";
+char *BetaInitFile=NULL;
 
 /*---------------------------------------------------------------*/
 int main(int argc, char *argv[]) 
 {
-  int nargs,k,nbeta;
+  int nargs,k,nbeta,nthpair;
   MRI *vol1, *vol2, *vol3;
   MATRIX *P1=NULL, *P2=NULL, *P3=NULL;
   float *beta;
@@ -188,11 +192,56 @@ int main(int argc, char *argv[])
   if(V1PFile) P1 = regio_read_registermat(V1PFile);
   if(V2PFile) P2 = regio_read_registermat(V2PFile);
   if(V3PFile) P3 = regio_read_registermat(V3PFile);
-
   ibmc = IBMCinit(vol1,P1,vol2,P2,vol3,P3);
-  MinPowell(.1, .1, 10);
-  IBMCwriteBeta(ibmc, "beta.dat");
+
+  IBMCcost(ibmc,ibmc->beta);
+  printf("cost0 = %g\n",ibmc->cost);
+
+  if(BetaInitFile){
+    IBMCreadBeta(ibmc, BetaInitFile);
+    IBMCcost(ibmc,ibmc->beta);
+    printf("cost at init beta = %g\n",ibmc->cost);
+    nthpair = 100;
+    IBMCprintPair(ibmc->p[nthpair],stdout);
+    sprintf(tmpstr,"coords.%02d.dat",nthpair);
+    fp = fopen(tmpstr,"w");
+    IBMCprintPairCoords(ibmc->p[nthpair],fp);
+    fclose(fp);
+    exit(1);
+  }
+
+  IBMCwriteBeta(ibmc, "beta.init.dat");
+  MinPowell(.1, .1, 1);
+  IBMCcost(ibmc,ibmc->beta);
+  printf("final cost = %g\n",ibmc->cost);
+  if(BetaFile) IBMCwriteBeta(ibmc, BetaFile);
+
+  nthpair = 100;
+  IBMCprintPair(ibmc->p[nthpair],stdout);
+  sprintf(tmpstr,"coords.%02d.dat",nthpair);
+  fp = fopen(tmpstr,"w");
+  IBMCprintPairCoords(ibmc->p[nthpair],fp);
+  fclose(fp);
+
+
   exit(1);
+
+
+  IBMCcost(ibmc,ibmc->beta);
+  for(nthpair = 0; nthpair < ibmc->npairs; nthpair++){
+    if(ibmc->p[nthpair]->D > 0){
+      printf("%4d  %2d %2d   %2d %2d   %g\n",nthpair,
+	     ibmc->p[nthpair]->volidA,ibmc->p[nthpair]->SnoA,
+	     ibmc->p[nthpair]->volidB,ibmc->p[nthpair]->SnoB,
+	     ibmc->p[nthpair]->D);
+      IBMCprintPair(ibmc->p[nthpair],stdout);
+      sprintf(tmpstr,"coords.%02d.dat",nthpair);
+      fp = fopen(tmpstr,"w");
+      IBMCprintPairCoords(ibmc->p[nthpair],fp);
+      fclose(fp);
+      exit(1);
+    }
+  }
 
 
   beta = ibmc->beta;
@@ -237,7 +286,8 @@ static int parse_commandline(int argc, char **argv) {
 
     if (!strcasecmp(option, "--help"))  print_help() ;
     else if (!strcasecmp(option, "--version")) print_version() ;
-    else if (!strcasecmp(option, "--debug"))   debug = 1;
+    else if (!strcasecmp(option, "--debug"))  debug = 1;
+    else if (!strcasecmp(option, "--diag")) Gdiag_no = 1;
     else if (!strcasecmp(option, "--checkopts"))   checkoptsonly = 1;
     else if (!strcasecmp(option, "--nocheckopts")) checkoptsonly = 0;
     else if (!strcasecmp(option, "--force-rerun")) IBMC_ForceReRun = 1;
@@ -268,6 +318,16 @@ static int parse_commandline(int argc, char **argv) {
         V3PFile = pargv[1];
         nargsused ++;
       }
+    } 
+    else if (!strcasecmp(option, "--beta")) {
+      if (nargc < 1) CMDargNErr(option,1);
+      BetaFile = pargv[0];
+      nargsused = 1;
+    } 
+    else if (!strcasecmp(option, "--beta-init")) {
+      if (nargc < 1) CMDargNErr(option,1);
+      BetaInitFile = pargv[0];
+      nargsused = 1;
     } 
     else {
       fprintf(stderr,"ERROR: Option %s unknown\n",option);
@@ -534,8 +594,8 @@ IBMC_PAIR *IBMCsetupPair(IBMC_PAIR *p, float betaA[6], float betaB[6])
   if(ReRunNeeded == 0 && ! IBMC_ForceReRun) return(p);
 
   for(k=0;k<3;k++){
-    p->anglesA[k] = betaA[k];
-    p->anglesB[k] = betaB[k];
+    p->anglesA[k] = betaA[k]*M_PI/180;
+    p->anglesB[k] = betaB[k]*M_PI/180;
   }
   p->A = MRIangles2RotMatB(p->anglesA,p->A);
   p->B = MRIangles2RotMatB(p->anglesB,p->B);
@@ -579,6 +639,11 @@ IBMC_PAIR *IBMCsetupPair(IBMC_PAIR *p, float betaA[6], float betaB[6])
   for(k=0; k< 3; k++) p->ve->rptr[k+1][1] = p->g*p->vA->rptr[k+1][1] + p->h*p->vB->rptr[k+1][1];
   IBMClambdaLimitPair(p);
 
+  for(k=0;k<6;k++){
+    p->betaA0[k] = betaA[k];
+    p->betaB0[k] = betaB[k];
+  }
+
   return(p);
 }
 //-----------------------------------------------------------------
@@ -597,6 +662,9 @@ int IBMCprintPairCoords(IBMC_PAIR *p,FILE *fp)
 int IBMCprintPair(IBMC_PAIR *p,FILE *fp)
 {
   int k;
+  fprintf(fp,"VolIdA %d SnoA %d\n",p->volidA,p->SnoA);
+  fprintf(fp,"VolIdB %d SnoB %d\n",p->volidB,p->SnoB);
+
   fprintf(fp,"nColsA nRowsA %d %d\n",p->mriA->width,p->mriA->height);
   fprintf(fp,"ColResA RowResA %f %f\n",p->mriA->xsize,p->mriA->ysize);
   fprintf(fp,"ColFoVA RowFoVA %f %f\n",p->ColFoVA,p->RowFoVA);
@@ -605,8 +673,6 @@ int IBMCprintPair(IBMC_PAIR *p,FILE *fp)
   fprintf(fp,"ColResB RowResB %f %f\n",p->mriB->xsize,p->mriB->ysize);
   fprintf(fp,"ColFoVB RowFoVB %f %f\n",p->ColFoVB,p->RowFoVB);
 
-  fprintf(fp,"SnoA %d\n",p->SnoA);
-  fprintf(fp,"SnoB %d\n",p->SnoB);
   fprintf(fp,"FA0--------\n");
   MatrixPrint(fp,p->FA0);
   fprintf(fp,"FB0--------\n");
@@ -711,6 +777,7 @@ int IBMCsamplePair(IBMC_PAIR *p)
   int n,icsA,irsA,icsB,irsB;
   float valvect;
   double c;
+  valvect = 0;
 
   p->D = 0;
   for(n=0; n < p->nL; n++){
@@ -731,6 +798,7 @@ int IBMCsamplePair(IBMC_PAIR *p)
     MRIsampleSeqVolume(p->mriB, p->colB[n], p->rowB[n], p->SnoB, &valvect, 0, 0);
     p->IB[n] = valvect;
     //p->IB[n] = MRIgetVoxVal(p->mriB,icsB,irsB,p->SnoB,0);
+
     c = (p->IA[n]-p->IB[n])*(p->IA[n]-p->IB[n]);
     if(isnan(c)){
       printf("ERROR: pair cost at nthL=%d is NaN\n",n);
@@ -761,6 +829,7 @@ double IBMCcost(IBMC *ibmc, float *beta)
   IBMC_PAIR *p;
   float *betaA,*betaB;
   int k,nbetaA,nbetaB;
+  double Ldelta = 4;
 
   if(beta0 == NULL){
     beta0 = (float *)calloc(ibmc->nbeta,sizeof(float));
@@ -775,7 +844,7 @@ double IBMCcost(IBMC *ibmc, float *beta)
     betaA = &beta[nbetaA];
     betaB = &beta[nbetaB];
     IBMCsetupPair(p, betaA, betaB);
-    IBMCfloatCoords(p, 1);
+    IBMCfloatCoords(p, Ldelta);
     IBMCsamplePair(p);
     if(isnan(p->D)){
       printf("ERROR: pair %d cost is NaN\n",k);
@@ -875,59 +944,86 @@ int IBMCwriteBeta(IBMC *ibmc, char *fname)
 }
 
 /*--------------------------------------------------------*/
+int IBMCreadBeta(IBMC *ibmc, char *fname)
+{
+  FILE *fp;
+  int volid, Sno, k, nthbeta;
+  int tmp1, tmp2;
+
+  fp = fopen(fname,"r");
+  nthbeta = 0;
+  for(volid=0; volid < 3; volid++) {
+    for(Sno=0; Sno < ibmc->vol[volid]->depth; Sno++){
+      fscanf(fp,"%d %d ",&tmp1,&tmp2);
+      for(k=0; k<6; k++){
+	fscanf(fp,"%f ",&ibmc->beta[nthbeta]);
+	nthbeta ++;
+      }
+    }
+  }
+  fclose(fp);
+
+  return(0);
+}
+
+/*--------------------------------------------------------*/
 float compute_powell_cost(float *params)
 {
   extern IBMC *ibmc;
   extern int nCostEvaluations;
   static double copt = 10e10;
   static int first=1;
-  static float *betaprev, cost0;
+  static float *paramsprev, *beta, cost0;
   static struct timeb timer;
-  double secCostTime;
+  double secCostTime=0;
   float cost;
   int newopt,k,kbeta=0;
 
   if(first){
-    betaprev = (float *) calloc(ibmc->nbeta,sizeof(float));
+    paramsprev = vector(1,ibmc->nbeta);
+    beta = (float *) calloc(ibmc->nbeta,sizeof(float));
     TimerStart(&timer);
-    kbeta=0;
+    kbeta=1;
   }
   else {
+    kbeta=0;
     for(k=0; k < ibmc->nbeta; k++) {
-      if(betaprev[k] != params[k]){
-	kbeta = k;
+      if(paramsprev[k+1] != params[k+1]){
+	kbeta = k+1;
 	break;
       }
     }
   }
 
-  cost = IBMCcost(ibmc,params);
+  for(k=0; k < ibmc->nbeta; k++) beta[k] = params[k+1];
+  cost = IBMCcost(ibmc,beta);
   nCostEvaluations ++;
   newopt = 0;
-  if(copt > cost){
+  if(copt >= cost){
     copt = cost;
     newopt = 1;
   }
   if(first) cost0 = cost;
-  secCostTime = TimerStop(&timer)/1000.0;
-  printf("%4d %3d %7.3f %7.3f %7.3f %5.1f\n",
-	 nCostEvaluations,kbeta,params[kbeta],cost/cost0,copt/cost0,secCostTime/60.0);
-  fflush(stdout);
 
-  for(k=0; k < ibmc->nbeta; k++) betaprev[k] = params[k];
+  if(newopt){
+    secCostTime = TimerStop(&timer)/1000.0;
+    printf("%4d %3d   %9.6f    %9.6f %9.6f   t=%7.3f\n",
+	   nCostEvaluations,kbeta,params[kbeta],cost,copt,secCostTime/60.0);
+    fflush(stdout);
+  }
+
+  for(k=0; k < ibmc->nbeta; k++) paramsprev[k+1] = params[k+1];
 
   first=0;
   return(cost);
 }
-
-
-
 /*---------------------------------------------------------*/
 int MinPowell(double ftol, double linmintol, int nmaxiters)
 {
   float **xi, fret;
-  int    r, c;
-  int niters;
+  int    r, c, n;
+  int niters,err;
+  float *pPowel;
 
   xi = matrix(1, ibmc->nbeta, 1, ibmc->nbeta) ;
   for (r = 1 ; r <= ibmc->nbeta ; r++) {
@@ -936,14 +1032,20 @@ int MinPowell(double ftol, double linmintol, int nmaxiters)
     }
   }
 
-  OpenPowell2(ibmc->beta, xi, ibmc->nbeta, ftol, linmintol, nmaxiters, 
+  pPowel = vector(1, ibmc->nbeta) ;
+  for(n=0; n < ibmc->nbeta; n++) pPowel[n+1] = ibmc->beta[n];
+
+  err=OpenPowell2(pPowel, xi, ibmc->nbeta, ftol, linmintol, nmaxiters, 
 	      &niters, &fret, compute_powell_cost);
-  printf("Powell done niters = %d\n",niters);
+  printf("Powell done niters = %d, err=%d, fret = %f\n",niters,err,fret);
+
+  for(n=0; n < ibmc->nbeta; n++) ibmc->beta[n] = pPowel[n+1];
 
   free_matrix(xi, 1, ibmc->nbeta, 1, ibmc->nbeta);
-
   return(niters);
 }
+
+
 /*-----------------------------------------------------*/
 MATRIX *MRIangles2RotMatB(double *angles, MATRIX *R)
 {
@@ -1007,3 +1109,41 @@ MATRIX *MRIangles2RotMatB(double *angles, MATRIX *R)
 
   return(R);
 }
+/*-----------------------------------------------------------*/
+int MinSearch(IBMC *ibmc)
+{
+  int nthbeta,k,ndelta;
+  float *beta2,*betaopt,minbeta,maxbeta,dbeta;
+  float cmin,cminall,cost;
+
+  beta2   = (float *) calloc(ibmc->nbeta,sizeof(float));
+  betaopt = (float *) calloc(ibmc->nbeta,sizeof(float));
+
+  minbeta = -8;
+  maxbeta = +8;
+  dbeta = 1;
+  ndelta = round((maxbeta-minbeta)/dbeta);
+
+  cminall = 10e10;
+  for(nthbeta=0; nthbeta < ibmc->nbeta; nthbeta++){
+    // Set back to init.
+    for(k=0; k < ibmc->nbeta; k++) beta2[k] = ibmc->beta[k];
+    cmin = 10e10;
+    for(k=0; k < ndelta; k++) {
+      beta2[nthbeta] = k*dbeta + minbeta;
+      cost = IBMCcost(ibmc,beta2);
+      if(cminall > cost) cminall = cost;
+      printf("%4d %2d %8.4f %8.4f %8.4f\n",nthbeta,k,beta2[nthbeta],cost,cminall);
+      if(cmin > cost){
+	cmin = cost;
+	betaopt[nthbeta] = beta2[nthbeta];
+      }
+    }
+    printf("\n");
+  }
+
+
+  return(0);
+}
+
+
