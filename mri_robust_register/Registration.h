@@ -8,8 +8,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2011/06/08 19:25:43 $
- *    $Revision: 1.42 $
+ *    $Date: 2011/06/20 23:23:59 $
+ *    $Revision: 1.43 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -346,6 +346,7 @@ void Registration::iterativeRegistrationHelper( int nmax,double epsit, MRI * mri
   //                  R'  = -0.5 ( exp(-0.5 s) IT + exp(0.5 s) IS)
   //  thus iscalefinal= exp(0.5 s) * (1/exp(-0.5 s)) = exp(s)
   //     ==> s = log (iscalefinal)
+  iscalefinal = 1.0;
   if (scaleinit != 1.0) iscalefinal = scaleinit;
 	else iscalefinal = iscaleinit;
   fmd.second = log(iscalefinal);
@@ -508,12 +509,15 @@ void Registration::iterativeRegistrationHelper( int nmax,double epsit, MRI * mri
     else fmd.first = cmd.first * mh;
 
     // ISCALECHANGE:
-    fmd.second -= cmd.second; // adjust log
-	  iscalefinal = exp(fmd.second); // compute full factor (source to target)
-    idiff = fabs(cmd.second);
-    std::ostringstream istar;
-    if (idiff <= ieps) istar << " <= " << ieps << "  :-)" ;
-    if (verbose >0) std::cout << "     -- intensity log diff: abs(" << cmd.second << ") " << istar.str() << std::endl;
+    if (iscale)
+    {
+      fmd.second -= cmd.second; // adjust log
+      iscalefinal = exp(fmd.second); // compute full factor (source to target)
+      idiff = fabs(cmd.second);
+      std::ostringstream istar;
+      if (idiff <= ieps) istar << " <= " << ieps << "  :-)" ;
+      if (verbose >0 ) std::cout << "     -- intensity log diff: abs(" << cmd.second << ") " << istar.str() << std::endl;
+    }
 		
     if (!rigid) diff = MyMatrix::getFrobeniusDiff(fmd.first, fmdtmp);
     else        diff = sqrt(MyMatrix::RigidTransDistSq(fmd.first, fmdtmp));
