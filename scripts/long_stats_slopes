@@ -9,8 +9,8 @@
 # Original Author: Martin Reuter
 # CVS Revision Info:
 #    $Author: mreuter $
-#    $Date: 2011/05/10 21:17:29 $
-#    $Revision: 1.4.2.7 $
+#    $Date: 2011/06/20 19:17:38 $
+#    $Revision: 1.4.2.8 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -86,7 +86,7 @@ OPTIONAL ARGUMENTS
 
 To manually specify the within subject output in <template>/stats/<name> :
 
---out-avg <name>   Output filename (without hemi ?h) for temporal average (default: long.<stats>.<meas>-avg.dat)
+--out-avg <name>   Output filename for temporal average (default: long.<stats>.<meas>-avg.dat)
 
 --out-rate <name>  Output filename for the rate (diff per time) (default: long.<stats>.<meas>-rate.dat)
 
@@ -97,7 +97,7 @@ To manually specify the within subject output in <template>/stats/<name> :
 --out-stack <name> Store time series file <template>/stats/<name> (default: long.<stats>.<meas>-stack.dat)
 
 
-To manually specify stacked tables:
+To manually specify stacked tables (across all input subjects):
 
 --stack-avg <name>   Full output filename to stack temporal average tables (default no stacking)
 
@@ -132,7 +132,7 @@ Bert_3   Bert       9.9    34    2400
 
 OUTPUT
 ======
-The output will be written into the template stats directory:
+The within subject output will be written into the template stats directory:
 <template>/stats/<name>
 
 For the output choose one or more of the following options:
@@ -146,8 +146,15 @@ For the output choose one or more of the following options:
    average instead of taking it from the first time point. The average is
    computed from the linear fit at the middle of the time interval.
    This is a symmetric 'percent thinning per year' and more robust, as TP1
-   can be an outlier.
+   can be an outlier. Therefore we recommend spc over pc1.
 *  'out-avg' for output of the temporal average (linear fit at mid time).
+*  'out-stack' for a table with the time series (each row a time point).
+
+
+It is also possible to store final stacked tables of the results
+where each row corresponds to the computed measure for each subject.
+For this specify --stack-* <name> with full path and filename of the
+specific table.
 
 
 REFERENCES
@@ -158,7 +165,7 @@ M. Reuter, H.D. Rosas, B. Fischl. NeuroImage 53 (4), pp. 1181-1196, 2010.
   http://reuter.mit.edu/papers/reuter-robreg10.pdf 
 
 Avoiding Asymmetry-Induced Bias in Longitudinal Image Processing,
-M. Reuter, B. Fischl. NeuroImage, 2011.
+M. Reuter, B. Fischl. NeuroImage 57 (1), pp. 19-21, 2011.
   http://dx.doi.org/10.1016/j.neuroimage.2011.02.076
   http://reuter.mit.edu/papers/reuter-bias11.pdf 
 
@@ -169,24 +176,24 @@ def options_parse():
     Command Line Options Parser for long_mris_slopes
     initiate the option parser and return the parsed object
     """
-    parser = optparse.OptionParser(version='$Id: long_stats_slopes,v 1.4.2.7 2011/05/10 21:17:29 mreuter Exp $', usage=HELPTEXT)
+    parser = optparse.OptionParser(version='$Id: long_stats_slopes,v 1.4.2.8 2011/06/20 19:17:38 mreuter Exp $', usage=HELPTEXT)
     
     # help text
     h_qdec      = '(REQUIRED) qdec table file specifying the subjects and time points'
     h_stats     = '(REQUIRED) the stats file, e.g. aseg.stats or lh.aparc.stats'
     h_meas      = '(REQUIRED) the stats measure (e.g. volume, thickness, mean, std)'
 
-    h_doavg     = 'compute and output the temporal average (recommended)'
-    h_dorate    = 'compute and output the rate (recommended)'
+    h_doavg     = 'compute and output the temporal average'
+    h_dorate    = 'compute and output the rate'
     h_dopc1     = 'compute and output the pct. change (w.r.t. tp1)'
-    h_dospc     = 'compute and output the sym. pct. change (w.r.t. temp. average) (recommended)'
-    h_dostack   = 'save the stacked within subject file (time series) (recommended)'
+    h_dospc     = 'compute and output the sym. pct. change (w.r.t. temp. average)'
+    h_dostack   = 'save the stacked within subject time point data (time series)'
 
-    h_out_avg   = 'filename (without hemi ?h) to store temporal average in <template>/surf/<hemi>.<OUT_AVG>.mgh (default: long.<meas>-avg)'
-    h_out_rate  = 'filename (without hemi ?h) to store rate in <template>/surf/<hemi>.<OUT_RATE>.mgh (default: long.<meas>-rate)'
-    h_out_pc1   = 'filename (without hemi ?h) to store pct. change (to tp1) in <template>/surf/<hemi>.<OUT_PC1>.mgh (default: long.<meas>-pc1)'
-    h_out_spc   = 'filename (without hemi ?h) to store sym. pct. change in <template>/surf/<hemi>.<OUT_SPC>.mgh (default: long.<meas>-spc)'
-    h_outstack  = 'filename to store stacked measure file <template>/surf/<hemi>.<OUT_STACK>.mgh (default: long.<meas>-stack)'
+    h_out_avg   = 'filename to store temporal average in <template>/stats/<OUT_AVG> (default: long.<stats>.<meas>-avg.dat)'
+    h_out_rate  = 'filename to store rate in <template>/stats/<OUT_RATE> (default: long.<stats>.<meas>-rate.dat)'
+    h_out_pc1   = 'filename to store pct. change (to tp1) in <template>/stats/<OUT_PC1> (default: long.<stats>.<meas>-pc1.dat)'
+    h_out_spc   = 'filename to store sym. pct. change in <template>/stats/<OUT_SPC> (default: long.<stats>.<meas>-spc.dat)'
+    h_outstack  = 'filename to store stacked measure file <template>/stats/<OUT_STACK> (default: long.<stats>.<meas>-stack.dat)'
 
     h_time      = 'variable name for time column variable (e.g. age) in qdec table'    
     
