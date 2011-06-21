@@ -9,8 +9,8 @@
 # Original Author: Martin Reuter
 # CVS Revision Info:
 #    $Author: mreuter $
-#    $Date: 2011/06/20 19:14:53 $
-#    $Revision: 1.13 $
+#    $Date: 2011/06/21 19:47:59 $
+#    $Revision: 1.14 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -176,7 +176,7 @@ def options_parse():
     Command Line Options Parser for long_mris_slopes
     initiate the option parser and return the parsed object
     """
-    parser = optparse.OptionParser(version='$Id: long_stats_slopes,v 1.13 2011/06/20 19:14:53 mreuter Exp $', usage=HELPTEXT)
+    parser = optparse.OptionParser(version='$Id: long_stats_slopes,v 1.14 2011/06/21 19:47:59 mreuter Exp $', usage=HELPTEXT)
     
     # help text
     h_qdec      = '(REQUIRED) qdec table file specifying the subjects and time points'
@@ -202,6 +202,7 @@ def options_parse():
     h_stack_pc1 = 'full filename to stack pct. change to tp1 tables (default no stacking)'
     h_stack_spc = 'full filename to stack sym. pct. tables (default no stacking)'
     
+    h_cross     = 'use cross sectional results (for testing only)'
     # Add options 
 
     # Sepcify inputs
@@ -230,6 +231,8 @@ def options_parse():
     parser.add_option('--stack-rate' , dest='stack_rate' , help=h_stack_rate)
     parser.add_option('--stack-pc1'  , dest='stack_pc1'  , help=h_stack_pc1)
     parser.add_option('--stack-spc'  , dest='stack_spc'  , help=h_stack_spc)
+
+    parser.add_option('--cross', action='store_true', dest='cross', help=h_cross, default=False)
                       
     (options, args) = parser.parse_args()
     
@@ -248,24 +251,28 @@ def options_parse():
         print 'ERROR: Specify --meas (e.g. \'volume\')'
         sys.exit(1)
  
+    crosslong = 'long.'
+    if options.cross:
+        crosslong = 'cross.'
+ 
     if options.out_avg is None:
-        options.out_avg = 'long.'+options.stats+'.'+options.meas+'-avg.dat'
+        options.out_avg = crosslong+options.stats+'.'+options.meas+'-avg.dat'
     else: 
         options.do_avg = True
     if options.out_rate is None:
-        options.out_rate = 'long.'+options.stats+'.'+options.meas+'-rate.dat'
+        options.out_rate = crosslong+options.stats+'.'+options.meas+'-rate.dat'
     else: 
         options.do_rate = True
     if options.out_pc1 is None:
-        options.out_pc1 = 'long.'+options.stats+'.'+options.meas+'-pc1.dat'
+        options.out_pc1 = crosslong+options.stats+'.'+options.meas+'-pc1.dat'
     else:
         options.do_pc1 = True
     if options.out_spc is None:
-        options.out_spc = 'long.'+options.stats+'.'+options.meas+'-spc.dat'
+        options.out_spc = crosslong+options.stats+'.'+options.meas+'-spc.dat'
     else:
         options.do_spc = True
     if options.out_stack is None:
-        options.out_stack = 'long.'+options.stats+'.'+options.meas+'-stack.dat'
+        options.out_stack = crosslong+options.stats+'.'+options.meas+'-stack.dat'
     else:
         options.do_stack = True
     
@@ -402,7 +409,10 @@ if __name__=="__main__":
             sys.exit(1)
         
         # extract ids and age data:
-        tpids = [entry[0]+'.long.'+subjectid for entry in tplist]
+        if options.cross:
+            tpids = [entry[0] for entry in tplist]
+        else:
+            tpids = [entry[0]+'.long.'+subjectid for entry in tplist]
         times = [float(entry[varidx]) for entry in tplist]
         num   = len(times)
         meant = sum(times) / num
