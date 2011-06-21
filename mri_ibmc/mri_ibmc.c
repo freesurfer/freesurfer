@@ -9,8 +9,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2011/06/18 00:46:40 $
- *    $Revision: 1.6 $
+ *    $Date: 2011/06/21 21:04:49 $
+ *    $Revision: 1.7 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -70,7 +70,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_ibmc.c,v 1.6 2011/06/18 00:46:40 greve Exp $";
+static char vcid[] = "$Id: mri_ibmc.c,v 1.7 2011/06/21 21:04:49 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -145,6 +145,7 @@ int IBMCwriteBeta(IBMC *ibmc, char *fname, float *beta);
 MATRIX *MRIangles2RotMatB(double *angles, MATRIX *R);
 int MinSearch(IBMC *ibmc);
 int IBMCreadBeta(IBMC *ibmc, char *fname);
+int IBMCbetaIndex2VolSno(IBMC *ibmc, int nthbeta, int *volid, int *Sno, int *parno);
 int nCostEvaluations=0;
 
 char *V1File=NULL,*V2File=NULL,*V3File=NULL;
@@ -221,9 +222,9 @@ int main(int argc, char *argv[])
   if(BetaFile) IBMCwriteBeta(ibmc, BetaFile,NULL);
 
   nthpair = 100;
-  IBMCprintPair(ibmc->p[nthpair],stdout);
   sprintf(tmpstr,"coords.%02d.dat",nthpair);
   fp = fopen(tmpstr,"w");
+  IBMCprintPair(ibmc->p[nthpair],fp);
   IBMCprintPairCoords(ibmc->p[nthpair],fp);
   fclose(fp);
 
@@ -846,6 +847,29 @@ int IBMCbetaStartIndex(IBMC *ibmc, int volid, int Sno)
   nbeta *= 6;
   return(nbeta);
 }
+/*-----------------------------------------------------*/
+int IBMCbetaIndex2VolSno(IBMC *ibmc, int nthbeta, int *volid, int *Sno, int *parno)
+{
+  int m;
+  m = nthbeta;
+  *parno = (m%6);
+  m = (m - *parno)/6;
+  if(m < ibmc->vol[0]->depth){
+    *volid = 0;
+    *Sno = m;
+    return(0);
+  }
+  m -= ibmc->vol[0]->depth;
+  if(m < ibmc->vol[1]->depth){
+    *volid = 1;
+    *Sno = m;
+    return(0);
+  }
+  m -= ibmc->vol[1]->depth;
+  *volid = 2;
+  *Sno = m;
+  return(0);
+}
 
 /*-----------------------------------------------------*/
 double IBMCcost(IBMC *ibmc, float *beta)
@@ -1003,7 +1027,7 @@ float compute_powell_cost(float *params)
   static struct timeb timer;
   double secCostTime=0;
   float cost;
-  int newopt,k,kbeta=0;
+  int newopt,k,kbeta=0,volid,Sno,nthpar;
 
   if(first){
     paramsprev = vector(1,ibmc->nbeta);
@@ -1034,10 +1058,13 @@ float compute_powell_cost(float *params)
     if(cost0 < FLT_MIN) cost0 = 1;
   }
 
-  if(newopt){
+  if(newopt && kbeta != 0){
+    IBMCbetaIndex2VolSno(ibmc, kbeta-1, &volid, &Sno, &nthpar);
+
     secCostTime = TimerStop(&timer)/1000.0;
-    printf("%4d %3d   %9.6f    %9.6f %9.6f   t=%7.3f\n",
-	   nCostEvaluations,kbeta,params[kbeta],cost/cost0,copt/cost0,secCostTime/60.0);
+    printf("%4d %3d  %d %2d %d   %9.6f    %9.6f %9.6f   t=%7.3f\n",
+	   nCostEvaluations,kbeta-1,volid,Sno,nthpar,params[kbeta],cost/cost0,copt/cost0,
+	   secCostTime/60.0);
     fflush(stdout);
     IBMCwriteBeta(ibmc, "beta.curopt.dat", beta);
   }
@@ -1065,6 +1092,8 @@ int MinPowell(double ftol, double linmintol, int nmaxiters)
   pPowel = vector(1, ibmc->nbeta) ;
   for(n=0; n < ibmc->nbeta; n++) pPowel[n+1] = ibmc->beta[n];
 
+  printf("Starting Powell nitersmax = %d, ftol=%g  linmintol %g, \n",
+	 nmaxiters,ftol,linmintol);
   err=OpenPowell2(pPowel, xi, ibmc->nbeta, ftol, linmintol, nmaxiters, 
 	      &niters, &fret, compute_powell_cost);
   printf("Powell done niters = %d, err=%d, fret = %f\n",niters,err,fret);
@@ -1177,3 +1206,20 @@ int MinSearch(IBMC *ibmc)
 }
 
 
+#if 0
+// not time for this yet
+int IBMCxRefBB(IBMC *ibmc)
+{
+  int volid, sno, col, row;
+
+  for(volid = 0; volid < 3; volid++){
+    for(sno=0; sno < ibmc->vol[volid]->depth; sno++){
+      for(col = 0; col < ibmc->vol[volid]->width; col += (ibmc->vol[volid]->width-1) ){
+	for(row = 0; row < ibmc->vol[volid]->height; row += (ibmc->vol[volid]->height-1) ){
+	} // row
+      } // col
+    } // slice no
+  } // volid
+  return(0);
+}
+#endif
