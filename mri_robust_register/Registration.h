@@ -8,8 +8,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2011/06/20 23:23:59 $
- *    $Revision: 1.43 $
+ *    $Date: 2011/06/21 22:26:31 $
+ *    $Revision: 1.44 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -367,8 +367,8 @@ void Registration::iterativeRegistrationHelper( int nmax,double epsit, MRI * mri
   vnl_matrix_fixed<double , 4, 4> mhi;mhi.set_identity();
   vnl_matrix_fixed<double , 4, 4> mi;
 	
-  double diff = 100;
-  double idiff = 100;
+  double diff = 100.0;
+  double idiff = 0.0;
   double ieps = 0.001; // exp(ieps) = 1.0010005, so stop if below 0.1% change
 
   int i = 1;
