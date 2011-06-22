@@ -132,23 +132,22 @@ fs_powell::minimize(vnl_vector<double>& p, vnl_matrix<double>* xi)
   double fret = functor_->f(p);
   report_eval(fret);
   vnl_vector<double> pt = p;
-  if(verbose_){
-    printf("maxfev %ld\n",maxfev);
-    printf("ftol   %lf\n",(double)ftol);
-    printf("linmin_xtol_   %lf\n",(double)linmin_xtol_);
-  }
+  printf("fs_powell::minimize\n");
+  printf("  nparams %d\n",n);
+  printf("  maxfev %ld\n",maxfev);
+  printf("  ftol   %lf\n",(double)ftol);
+  printf("  linmin_xtol_   %lf\n",(double)linmin_xtol_);
 
   while (num_iterations_ < unsigned(maxfev))
   {
     double fp = fret;
     int ibig=0;
     double del=0.0;
-    if(verbose_) printf("  niters %d\n",(int)num_iterations_);
+    printf("  powell nthiter %d\n",(int)num_iterations_);
 
     for (int i=0;i<n;i++)
     {
-      if(verbose_) 
-        printf("    i %d  niters %d\n",(int)i, (int)num_iterations_);
+      if(verbose_) printf("    param %3d  nthiter %2d\n",(int)i, (int)num_iterations_);
 
       // xit = ith column of xi
       for (int j = 0; j < n; ++j)
@@ -161,8 +160,11 @@ fs_powell::minimize(vnl_vector<double>& p, vnl_matrix<double>* xi)
       double ax = 0.0;
       double xx = initial_step_;
       double bx = 0;
+      if(verbose_)  printf("  bracketing\n");
       brent.bracket_minimum(&ax, &xx, &bx);
+      if(verbose_)  printf("  bracket ax=%g xx=%g bx=%g\n",ax,xx,bx);
       fret = brent.minimize_given_bounds(bx, xx, ax, linmin_xtol_, &xx);
+      if(verbose_)  printf("  min xx=%g, fret=%g\n",xx,fret);
       f1d.uninit(xx, p);
       // Now p is minimizer along xi
 
