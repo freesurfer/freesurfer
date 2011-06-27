@@ -50,6 +50,7 @@ foo_DATA=\
 	$(TIF) \
 	$(TXT) \
 	$(MGZ) \
+	label_scales.dat \
 	mni305.cor.readme \
 	mni305.cor.subfov1.reg \
 	mni305.cor.subfov2.reg \
@@ -62,6 +63,7 @@ foo_DATA=\
 	$(GCS) \
 	$(TIF) \
 	$(TXT) \
+	label_scales.dat \
 	mni305.cor.mgz \
 	mni305.cor.readme \
 	mni305.mask.cor.mgz \
