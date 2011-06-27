@@ -8,8 +8,8 @@
 # Original Author: Anastasia Yendiki
 # CVS Revision Info:
 #    $Author: ayendiki $
-#    $Date: 2011/06/15 21:56:20 $
-#    $Revision: 1.30 $
+#    $Date: 2011/06/27 21:22:47 $
+#    $Revision: 1.31 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -25,7 +25,7 @@
 
 umask 002
 
-set VERSION = '$Id: trac-preproc,v 1.30 2011/06/15 21:56:20 ayendiki Exp $'
+set VERSION = '$Id: trac-preproc,v 1.31 2011/06/27 21:22:47 ayendiki Exp $'
 set ProgName = `basename $0`
 set inputargs = ($argv)
 
@@ -281,7 +281,14 @@ if ($docorr) then
 
     set cmd = epidewarp.fsl
     set cmd = ($cmd --mag $dwidir/b0mag.nii.gz)
-    set cmd = ($cmd --ph $dwidir/b0pha.nii.gz)
+    if (`mri_info --nframes $dwidir/b0pha.nii.gz` == 2) then
+      set cmd = ($cmd --ph $dwidir/b0pha.nii.gz)	# Two phase maps
+    else if (`mri_info --nframes $dwidir/b0pha.nii.gz` == 1) then
+      set cmd = ($cmd --dph $dwidir/b0pha.nii.gz)	# Phase difference map
+    else
+      echo "ERROR: Unrecognized format of phase map $dwidir/b0pha.nii.gz"
+      goto error_exit
+    endif
     set cmd = ($cmd --exf $dwidir/lowb.nii.gz)
     set cmd = ($cmd --epi $dwidir/dwi_orig_flip.nii.gz)
     set cmd = ($cmd --tediff $dTE --esp $echospacing)
