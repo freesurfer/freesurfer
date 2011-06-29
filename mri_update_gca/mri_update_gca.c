@@ -8,8 +8,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2011/06/29 18:40:22 $
- *    $Revision: 1.1 $
+ *    $Date: 2011/06/29 19:35:58 $
+ *    $Revision: 1.2 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -57,7 +57,7 @@ main(int argc, char *argv[]) {
   MRI          *mri_norm, *mri_aseg ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_update_gca.c,v 1.1 2011/06/29 18:40:22 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_update_gca.c,v 1.2 2011/06/29 19:35:58 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -76,7 +76,7 @@ main(int argc, char *argv[]) {
     argv += nargs ;
   }
 
-  if (argc < 3)
+  if (argc < 5)
     usage_exit(1) ;
   
   gca = GCAread(argv[1]) ;
@@ -128,12 +128,8 @@ get_option(int argc, char *argv[]) {
 ----------------------------------------------------------------------*/
 static void
 usage_exit(int code) {
-  printf("usage: %s [options] <inverse operator> <EEG/MEG data file>",
+  printf("usage: %s [options] <input gca> <norm volume> <segmentation> <output gca>\n",
          Progname) ;
-  printf(
-    "\tf <f low> <f hi> - apply specified filter (not implemented yet)\n"
-  );
-  printf("\tn - noise-sensitivity normalize inverse (default=1)") ;
   exit(code) ;
 }
 
