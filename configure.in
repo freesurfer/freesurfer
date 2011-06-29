@@ -8,9 +8,9 @@
 # Process this file with autoconf to produce a configure script.
 #
 # CVS Revision Info:
-#    $Author: greve $
-#    $Date: 2011/06/16 18:08:05 $
-#    $Revision: 1.532 $
+#    $Author: fischl $
+#    $Date: 2011/06/29 18:40:02 $
+#    $Revision: 1.533 $
 #
 ########################################################################
 AC_PREREQ(2.57)
@@ -3301,6 +3301,7 @@ AC_OUTPUT([Makefile
            mri_cht2p/Makefile
            mri_cnr/Makefile
            mri_compile_edits/Makefile
+           mri_update_gca/Makefile
            mri_compute_overlap/Makefile
            mri_compute_seg_overlap/Makefile
            mri_concat/Makefile

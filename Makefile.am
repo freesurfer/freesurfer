@@ -29,6 +29,7 @@ MRISUBDIRS=\
 	rbftest \
 	mri_interpolate \
 	mri_jacobian \
+	mri_update_gca \
 	mri_compile_edits \
 	mri_compute_volume_fractions \
 	mri_label_accuracy \
