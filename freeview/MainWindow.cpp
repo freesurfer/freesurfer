@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2011/06/17 02:39:27 $
- *    $Revision: 1.172 $
+ *    $Date: 2011/06/30 18:19:25 $
+ *    $Revision: 1.173 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -3422,6 +3422,7 @@ void MainWindow::SaveVolumeAs()
     {
       fn = dlg.GetFileName();
       layer_mri->SetWriteResampled(dlg.GetResample());
+      layer_mri->SetCropToOriginal(dlg.GetCrop());
     }
   }
   else

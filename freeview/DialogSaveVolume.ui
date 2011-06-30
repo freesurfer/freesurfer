@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>400</width>
-    <height>133</height>
+    <width>401</width>
+    <height>163</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -50,6 +50,13 @@
     </widget>
    </item>
    <item>
+    <widget class="QCheckBox" name="checkBoxCrop">
+     <property name="text">
+      <string>Crop to original volume size</string>
+     </property>
+    </widget>
+   </item>
+   <item>
     <spacer name="verticalSpacer">
      <property name="orientation">
       <enum>Qt::Vertical</enum>
@@ -88,12 +95,12 @@
    <slot>reject()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>325</x>
-     <y>123</y>
+     <x>334</x>
+     <y>153</y>
     </hint>
     <hint type="destinationlabel">
      <x>286</x>
-     <y>274</y>
+     <y>162</y>
     </hint>
    </hints>
   </connection>
@@ -108,7 +115,7 @@
      <y>25</y>
     </hint>
     <hint type="destinationlabel">
-     <x>415</x>
+     <x>400</x>
      <y>82</y>
     </hint>
    </hints>
@@ -120,12 +127,28 @@
    <slot>OnOK()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>347</x>
-     <y>108</y>
+     <x>356</x>
+     <y>153</y>
     </hint>
     <hint type="destinationlabel">
-     <x>418</x>
+     <x>400</x>
      <y>156</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>checkBoxNoResample</sender>
+   <signal>toggled(bool)</signal>
+   <receiver>checkBoxCrop</receiver>
+   <slot>setHidden(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>194</x>
+     <y>64</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>195</x>
+     <y>86</y>
     </hint>
    </hints>
   </connection>

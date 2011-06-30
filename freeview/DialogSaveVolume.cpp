@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2011/03/22 21:21:26 $
- *    $Revision: 1.5 $
+ *    $Date: 2011/06/30 18:19:25 $
+ *    $Revision: 1.6 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -48,6 +48,13 @@ QString DialogSaveVolume::GetFileName()
 bool DialogSaveVolume::GetResample()
 {
   return !ui->checkBoxNoResample->isChecked();
+}
+
+bool DialogSaveVolume::GetCrop()
+{
+  if (ui->checkBoxNoResample->isChecked())
+    return false;
+  return ui->checkBoxCrop->isChecked();
 }
 
 void DialogSaveVolume::OnOK()

@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2011/06/17 02:39:26 $
- *    $Revision: 1.65 $
+ *    $Date: 2011/06/30 18:19:25 $
+ *    $Revision: 1.66 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -72,7 +72,8 @@ FSVolume::FSVolume( FSVolume* ref, QObject* parent ) : QObject( parent ),
   m_bBoundsCacheDirty( true ),
   m_nInterpolationMethod( SAMPLE_NEAREST ),
   m_bConform( false ),
-  m_bCrop( false )
+  m_bCrop( false ),
+  m_bCropToOriginal( false )
 {
   m_imageData = NULL;
   if ( ref )
@@ -663,6 +664,12 @@ bool FSVolume::MRIWrite( const QString& filename, int nSampleMethod, bool resamp
       dim[1] = (int)( indexBounds[3] - indexBounds[2] + 0.5 );
       dim[2] = (int)( indexBounds[5] - indexBounds[4] + 0.5 );
 
+      if (m_bCropToOriginal)
+      {
+        dim[0] = m_MRITemp->width;
+        dim[1] = m_MRITemp->height;
+        dim[2] = m_MRITemp->depth;
+      }
       MRI* mri = MRIallocSequence( dim[0], dim[1], dim[2], m_MRITemp->type, m_MRITemp->nframes );
       if ( mri == NULL )
       {
@@ -672,13 +679,16 @@ bool FSVolume::MRIWrite( const QString& filename, int nSampleMethod, bool resamp
       }
 
       MRIcopyHeader( m_MRITemp, mri );
-      Real p0[3];
-      ::MRIvoxelToWorld( m_MRITemp,
-                         (int)indexBounds[0],
-                         (int)indexBounds[2],
-                         (int)indexBounds[4],
-                         &p0[0], &p0[1], &p0[2] );
-      MRIp0ToCRAS( mri, p0[0], p0[1], p0[2] );
+      if (!m_bCropToOriginal)
+      {
+        Real p0[3];
+        ::MRIvoxelToWorld( m_MRITemp,
+                           (int)indexBounds[0],
+                           (int)indexBounds[2],
+                           (int)indexBounds[4],
+                           &p0[0], &p0[1], &p0[2] );
+        MRIp0ToCRAS( mri, p0[0], p0[1], p0[2] );
+      }
 
       mri = MRIapplyRASlinearTransformInterp( m_MRITemp, mri, m, nSampleMethod );
       if ( !mri )

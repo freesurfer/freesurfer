@@ -6,9 +6,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/14 23:44:47 $
- *    $Revision: 1.35 $
+ *    $Author: rpwang $
+ *    $Date: 2011/06/30 18:19:25 $
+ *    $Revision: 1.36 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -181,6 +181,12 @@ public:
 
   void SetConform( bool bConform );
 
+  // for saving only
+  void SetCropToOriginal(bool bCrop)
+  {
+    m_bCropToOriginal = bCrop;
+  }
+
 Q_SIGNALS:
   void ProgressChanged( int n );
 
@@ -232,6 +238,7 @@ protected:
 
   double    m_dBounds[6];
   bool      m_bCrop;
+  bool      m_bCropToOriginal;
 };
 
 #endif

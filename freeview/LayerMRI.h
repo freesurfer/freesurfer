@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2011/06/17 02:39:27 $
- *    $Revision: 1.67 $
+ *    $Date: 2011/06/30 18:19:25 $
+ *    $Revision: 1.68 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -209,6 +209,8 @@ public:
   bool LoadSurfaceRegions( const QString& fn );
 
   QString GetOrientationString();
+
+  void SetCropToOriginal(bool bCropToOriginal);
 
   void SetCroppingBounds( double* bounds );
 

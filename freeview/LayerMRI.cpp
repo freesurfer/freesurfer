@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2011/06/17 02:39:27 $
- *    $Revision: 1.101 $
+ *    $Date: 2011/06/30 18:19:25 $
+ *    $Revision: 1.102 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -2217,6 +2217,11 @@ bool LayerMRI::LoadSurfaceRegions( const QString& fn )
 void LayerMRI::SetCroppingBounds( double* bounds )
 {
   m_volumeSource->SetCroppingBounds( bounds );
+}
+
+void LayerMRI::SetCropToOriginal(bool bCropToOriginal)
+{
+  m_volumeSource->SetCropToOriginal(bCropToOriginal);
 }
 
 void LayerMRI::GetDisplayBounds( double* bounds )
