@@ -13,9 +13,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2011/06/29 18:49:04 $
- *    $Revision: 1.299 $
+ *    $Author: nicks $
+ *    $Date: 2011/06/30 00:29:20 $
+ *    $Revision: 1.300 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -1683,13 +1683,11 @@ gcaAllocMax(int ninputs,
   gca->prior_depth = (int)(((float)depth/prior_spacing)+.99) ;
   gca->flags = flags ;
 
-#if 0  
   printf( "%s: node dims %i %i %i\n",
 	  __FUNCTION__, gca->node_width, gca->node_height, gca->node_depth );
   printf( "%s: prior dims %i %i %i\n",
 	  __FUNCTION__, gca->prior_width, gca->prior_height, gca->prior_depth );
   printf( "%s: max_labels %i\n", __FUNCTION__, max_labels );
-#endif
 
   if (max_labels >= 0)
   {
@@ -16658,7 +16656,7 @@ GCAmapRenormalizeWithAlignment(GCA *gca,
   mean_gm_scale, mean_wm_scale, mean_csf_scale,
   label_offsets[MAX_CMA_LABELS], mean_wm_offset, \
   mean_csf_offset, mean_gm_offset ;
-  double      val, corr/*, scale*/ ;
+  double      val/*, scale*/ ;
   GCA_NODE  *gcan ;
   GC1D      *gc ;
   MRI       *mri_seg = NULL, *mri_aligned, *mri_labels = NULL ;
@@ -16683,7 +16681,7 @@ GCAmapRenormalizeWithAlignment(GCA *gca,
       m_by_label[l] = NULL ;  // not estimated yet
     }
 
-    printf("renormalizing input #%d\n", frame) ; /*  */
+    printf("renormalizing input #%d\n", frame) ;
     MRIvalRangeFrame(mri, &fmin, &fmax, frame) ;
     nbins = 256 ;
     h_mri = HISTOalloc(nbins) ;
@@ -16993,14 +16991,14 @@ GCAmapRenormalizeWithAlignment(GCA *gca,
       if (overlap > 0.01)
       {
         //                        if (l == Gdiag_no)
-        corr = HISTOfindLinearFit(h_gca, h_mri, .025, 10, -75, 75,
-				  &label_scales[l],
-				  &label_offsets[l]) ;
+        HISTOfindLinearFit(h_gca, h_mri, .025, 10, -75, 75,
+                           &label_scales[l],
+                           &label_offsets[l]) ;
         computed[l] = 1 ;
         printf("%s (%d): linear fit = %2.2f x + %2.1f "
-               "(%d voxels, overlap=%2.3f, corr = %2.4f)\n",
+               "(%d voxels, overlap=%2.3f)\n",
                cma_label_to_name(l), l,
-               label_scales[l], label_offsets[l], num,overlap, corr);
+               label_scales[l], label_offsets[l], num,overlap);
         if (logfp)
         {
           fprintf(logfp, "%s (%d): linear fit = %2.2f x + "
@@ -17601,7 +17599,7 @@ GCAcomputeRenormalizationWithAlignment(GCA *gca, MRI *mri, TRANSFORM *transform,
             label_offsets[MAX_CMA_LABELS], \
             mean_wm_offset, mean_csf_offset, mean_gm_offset,
             lower_thresh, upper_thresh ;
-  double      val, corr/*, scale*/ ;
+  double      val/*, scale*/ ;
   MRI       *mri_seg = NULL, *mri_aligned, *mri_labels = NULL, *mri_borders ;
   char      fname[STRLEN] ;
   MATRIX    *m_L, *m_by_label[MAX_CMA_LABELS] ;
@@ -17619,7 +17617,6 @@ GCAcomputeRenormalizationWithAlignment(GCA *gca, MRI *mri, TRANSFORM *transform,
   double    det = -1 ;
   float peak_threshold = 0.03;
   float overlap_threshold = 0.001;
-  float corr_threshold = .10 ;
   int equiv_class[MAX_CMA_LABELS];
 
   memset(label_peaks, 0, sizeof(label_peaks)) ;
@@ -18121,24 +18118,17 @@ GCAcomputeRenormalizationWithAlignment(GCA *gca, MRI *mri, TRANSFORM *transform,
 
       //if (overlap > 0.01)
       //      if (overlap > 0.001)
-      if (IS_LAT_VENT(l) || (overlap > overlap_threshold))
+      if (IS_LAT_VENT(l) || overlap > overlap_threshold)
       {
         //                        if (l == Gdiag_no)
         //  HISTOfindLinearFit(h_gca, h_mri, .025, 10, -75, 75,
         // &label_scales[l],  &label_offsets[l]) ;
         //              HISTOfindLinearFit(h_gca, h_mri, .025,
         // 4, -125, 125, &label_scales[l], &label_offsets[l]) ;
-        corr = HISTOfindLinearFit(h_gca, h_mri, .025, 4, 0, 0,
-				  &label_scales[l], &label_offsets[l]) ;
+        HISTOfindLinearFit(h_gca, h_mri, .025, 4, 0, 0,
+                           &label_scales[l], &label_offsets[l]) ;
 
         val = h_gca->bins[gca_peak]*label_scales[l]+label_offsets[l] ;
-	if (corr < corr_threshold)
-        {
-	  printf("%s: insufficient  correlation (%2.4f) rejecting\n", cma_label_to_name(l), corr) ;
-	  label_scales[l] = 1.0 ;
-	  label_offsets[l] = 1.0 ;
-	  continue ;
-	}
         if ((val < lower_thresh || 
              val > upper_thresh) ||
             (h_mri->bins[mri_peak] < lower_thresh || 
@@ -18161,9 +18151,9 @@ GCAcomputeRenormalizationWithAlignment(GCA *gca, MRI *mri, TRANSFORM *transform,
         // (which is what happens when computed[l] = 2)
         computed[l] = (det > 0) ? 2 : 1 ;
         printf("%s (%d): linear fit = %2.2f x + %2.1f "
-               "(%d voxels, overlap=%2.3f, corr=%2.4f)\n",
+               "(%d voxels, overlap=%2.3f)\n",
                cma_label_to_name(l), l,
-               label_scales[l], label_offsets[l], num,overlap, corr);
+               label_scales[l], label_offsets[l], num,overlap);
 
         //note that the following range need be changed
         // if both scale and offset are allowed' 1/1.5 = 0.67
@@ -18192,17 +18182,17 @@ GCAcomputeRenormalizationWithAlignment(GCA *gca, MRI *mri, TRANSFORM *transform,
         if (logfp)
         {
           fprintf(logfp, "%s (%d): linear fit = %2.2f x + "
-                  "%2.1f (%d voxels, peak = %2.0f, corr=%2.4f), gca=%2.1f\n",
+                  "%2.1f (%d voxels, peak = %2.0f), gca=%2.1f\n",
                   cma_label_to_name(l), l,
                   label_scales[l], label_offsets[l],
-                  num, val, corr, label_peaks[l]);
+                  num, val, label_peaks[l]);
           fflush(logfp) ;
         }
         fprintf(stdout, "%s (%d): linear fit = %2.2f x + "
-                "%2.1f (%d voxels, peak = %2.0f, corr=%2.4f), gca=%2.1f\n",
+                "%2.1f (%d voxels, peak = %2.0f), gca=%2.1f\n",
                 cma_label_to_name(l), l,
                 label_scales[l], label_offsets[l],
-                num, val, corr, label_peaks[l]);
+                num, val, label_peaks[l]);
         fflush(stdout) ;
         {
           HISTOlinearScale(h_gca, h_gca,
@@ -18243,8 +18233,8 @@ GCAcomputeRenormalizationWithAlignment(GCA *gca, MRI *mri, TRANSFORM *transform,
         gca_peak = HISTOfindHighestPeakInRegion(h_gca, 0, h_gca->nbins) ;
         HISTOmakePDF(h_gca, h_gca) ;
         label_peaks[l] = h_gca->bins[gca_peak] ;
-        corr = HISTOfindLinearFit(h_gca, h_caudate, .025, 4, 0, 0,
-				  &label_scales[l], &label_offsets[l]) ;
+        HISTOfindLinearFit(h_gca, h_caudate, .025, 4, 0, 0,
+                           &label_scales[l], &label_offsets[l]) ;
         val = h_gca->bins[gca_peak]*label_scales[l]+label_offsets[l] ;
         lower_thresh = 50 ;
         upper_thresh = 100 ;
@@ -18294,8 +18284,8 @@ GCAcomputeRenormalizationWithAlignment(GCA *gca, MRI *mri, TRANSFORM *transform,
         gca_peak = HISTOfindHighestPeakInRegion(h_gca, 0, h_gca->nbins) ;
         HISTOmakePDF(h_gca, h_gca) ;
         label_peaks[l] = h_gca->bins[gca_peak] ;
-        corr = HISTOfindLinearFit(h_gca, h_mtl, .025, 4, 0, 0,
-				  &label_scales[l], &label_offsets[l]) ;
+        HISTOfindLinearFit(h_gca, h_mtl, .025, 4, 0, 0,
+                           &label_scales[l], &label_offsets[l]) ;
         val = h_gca->bins[gca_peak]*label_scales[l]+label_offsets[l] ;
         lower_thresh = 50 ;
         upper_thresh = 90 ;
@@ -18396,303 +18386,219 @@ GCAcomputeRenormalizationWithAlignment(GCA *gca, MRI *mri, TRANSFORM *transform,
         fclose(fp) ;
       }
     }
-    if ((getenv("FS_LABEL_SCALES") != NULL) || 1)
+    fprintf(stdout, "not using caudate to estimate GM means\n") ;
+    for (k = 0 ; k < NHEMI_LABELS ; k++)
     {
-      FILE *fp ;
-      char line[STRLEN], *cp ;
-      int  nlabels, i, labels[MAX_CMA_LABEL+1], l1, l2, label1, label2 ;
-      double **mean_ratios, **var_ratios, scale, norm, wt ;
+      int lhl, rhl ;
+      if (computed[lh_labels[k]] && !computed[rh_labels[k]])
+      {
+        lhl = lh_labels[k] ;
+        rhl = rh_labels[k] ;
+        label_scales[rhl] = label_scales[lhl] ;
+        label_offsets[rhl] = label_offsets[lhl] ;
+        label_peaks[rhl] = label_peaks[lhl] ;
+        computed[rhl] = 1;
+        fprintf(stdout, "setting label %s based on %s = %2.2f x + %2.0f: %2.0f\n",
+                cma_label_to_name(rhl), cma_label_to_name(lhl),
+                label_scales[rhl], label_offsets[rhl], label_peaks[rhl]) ;
+      }
+      else if (computed[rh_labels[k]] && !computed[lh_labels[k]])
+      {
+        lhl = lh_labels[k] ;
+        rhl = rh_labels[k] ;
+        label_scales[lhl] = label_scales[rhl] ;
+        label_offsets[lhl] = label_offsets[rhl] ;
+        label_peaks[lhl] = label_peaks[rhl] ;
+        computed[lhl] = 1;
+        fprintf(stdout, "setting label %s based on %s = %2.2f x + %2.0f: %2.0f\n",
+                cma_label_to_name(lhl), cma_label_to_name(rhl),
+                label_scales[lhl], label_offsets[lhl], label_peaks[lhl]) ;
+      }
+    }
 
-      printf("scaling labels based on prior statistics\n") ;
-      fp =  fopen("label_scales.dat", "r") ;
-      if (fp == NULL)
+    num = 0 ;
+    mean_gm_scale = 0 ;
+    mean_gm_offset = 0 ;
+    for (k = 0 ; k < NGM_LABELS ; k++)
+    {
+      label = gm_labels[k] ;
+      if (computed[label])
       {
-	sprintf(line, "%s/average/label_scales.dat", getenv("FREESURFER_HOME")) ;
-	printf("reading label scaling statistics from %s\n", line) ;
-	fp =  fopen(line, "r") ;
+        mean_gm_scale += label_scales[label] ;
+        mean_gm_offset += label_offsets[label] ;
+        num++ ;
       }
-	
-      if (fp == NULL)
-	ErrorExit(ERROR_NOFILE, "%s: could not open label_scales.dat",Progname);
-
-      cp = fgetl(line, STRLEN-1, fp) ; nlabels = 0 ;
-      cp = strtok(cp, " ") ;
-      do
-      {
-	sscanf(cp, "%d", &labels[nlabels]) ;
-	nlabels++ ;
-	cp = strtok(NULL, " ") ;
-      } while (cp != NULL) ;
-      mean_ratios = (double **)calloc(nlabels, sizeof(double)) ;
-      for (l1 = 0 ; l1 < nlabels ; l1++)
-      {
-	mean_ratios[l1] = (double *)calloc(nlabels, sizeof(double)) ;
-	cp = fgetl(line, STRLEN-1, fp) ; i = 0 ;
-	cp = strtok(cp, " ") ;
-	for (l2 = 0 ; l2 < nlabels ; l2++)
-	{
-	  sscanf(cp, "%lf", &mean_ratios[l1][l2]) ;
-	  cp = strtok(NULL, " ") ;
-	}
-      }
-
-      var_ratios = (double **)calloc(nlabels, sizeof(double)) ;
-      for (l1 = 0 ; l1 < nlabels ; l1++)
-      {
-	var_ratios[l1] = (double *)calloc(nlabels, sizeof(double)) ;
-	cp = fgetl(line, STRLEN-1, fp) ; i = 0 ;
-	cp = strtok(cp, " ") ;
-	for (l2 = 0 ; l2 < nlabels ; l2++)
-	{
-	  sscanf(cp, "%lf", &var_ratios[l1][l2]) ;
-	  cp = strtok(NULL, " ") ;
-	}
-      }
-      for (l1 = 0 ; l1 < nlabels ; l1++)
-      {
-	label1 = labels[l1] ;
-	scale = 0 ; norm = 0 ;
-	for (l2 = 0 ; l2 < nlabels ; l2++)
-	{
-	  label2 = labels[l2] ;
-	  if (computed[label2] == 0)
-	    continue ;
-	  wt =  1.0 / (var_ratios[l1][l2] + 1e-7) ;
-	  norm += wt ;
-	  scale += wt * mean_ratios[l1][l2] * label_scales[label2] ;
-	}
-	if (!FZERO(norm))
-	{
-	  label_scales[label1] = scale / norm ;
-	  computed[label1] = 1;
-	  label_peaks[label] = label_peaks[label1] * label_scales[label1] + label_offsets[label1];
-	  fprintf(stdout, "setting label %s = %2.2f x + %2.0f: %2.0f\n",
-		  cma_label_to_name(label1), label_scales[label1], label_offsets[label1], 
-		  label_peaks[label1]) ;
-	}
-      }
-      for (l1 = 0 ; l1 < nlabels ; l1++)
-      {
-	free(mean_ratios[l1]); free(var_ratios[l1]) ;
-      }
-      free(mean_ratios) ; free(var_ratios) ;
+    }
+    if (num == 0)
+    {
+      mean_gm_scale = 1 ;
+      mean_gm_offset = 0 ;
     }
     else
     {
-      fprintf(stdout, "not using caudate to estimate GM means\n") ;
-      for (k = 0 ; k < NHEMI_LABELS ; k++)
+      mean_gm_scale /= (float)num ;
+      mean_gm_offset /= (float)num ;
+    }
+
+    num = 0 ;
+    mean_wm_scale = 0 ;
+    mean_wm_offset = 0 ;
+    for (k = 0 ; k < NWM_LABELS ; k++)
+    {
+      label = wm_labels[k] ;
+      if (computed[label])
       {
-	int lhl, rhl ;
-	if (computed[lh_labels[k]] && !computed[rh_labels[k]])
-	{
-	  lhl = lh_labels[k] ;
-	  rhl = rh_labels[k] ;
-	  label_scales[rhl] = label_scales[lhl] ;
-	  label_offsets[rhl] = label_offsets[lhl] ;
-	  label_peaks[rhl] = label_peaks[lhl] ;
-	  computed[rhl] = 1;
-	  fprintf(stdout, "setting label %s based on %s = %2.2f x + %2.0f: %2.0f\n",
-		  cma_label_to_name(rhl), cma_label_to_name(lhl),
-		  label_scales[rhl], label_offsets[rhl], label_peaks[rhl]) ;
-	}
-	else if (computed[rh_labels[k]] && !computed[lh_labels[k]])
-	{
-	  lhl = lh_labels[k] ;
-	  rhl = rh_labels[k] ;
-	  label_scales[lhl] = label_scales[rhl] ;
-	  label_offsets[lhl] = label_offsets[rhl] ;
-	  label_peaks[lhl] = label_peaks[rhl] ;
-	  computed[lhl] = 1;
-	  fprintf(stdout, "setting label %s based on %s = %2.2f x + %2.0f: %2.0f\n",
-		  cma_label_to_name(lhl), cma_label_to_name(rhl),
-		  label_scales[lhl], label_offsets[lhl], label_peaks[lhl]) ;
-	}
+        mean_wm_scale += label_scales[label] ;
+        mean_wm_offset += label_offsets[label] ;
+        num++ ;
       }
-      
-      num = 0 ;
-      mean_gm_scale = 0 ;
-      mean_gm_offset = 0 ;
-      for (k = 0 ; k < NGM_LABELS ; k++)
-      {
-	label = gm_labels[k] ;
-	if (computed[label])
-	{
-	  mean_gm_scale += label_scales[label] ;
-	  mean_gm_offset += label_offsets[label] ;
-	  num++ ;
-	}
-      }
-      if (num == 0)
-      {
-	mean_gm_scale = 1 ;
-	mean_gm_offset = 0 ;
-      }
-      else
-      {
-	mean_gm_scale /= (float)num ;
-	mean_gm_offset /= (float)num ;
-      }
-      
-      num = 0 ;
-      mean_wm_scale = 0 ;
+    }
+    if (num == 0)
+    {
+      mean_wm_scale = 1 ;
       mean_wm_offset = 0 ;
-      for (k = 0 ; k < NWM_LABELS ; k++)
+    }
+    else
+    {
+      mean_wm_scale /= (float)num ;
+      mean_wm_offset /= (float)num ;
+    }
+
+    num = 0 ;
+    mean_csf_scale = 0 ;
+    mean_csf_offset = 0 ;
+    for (k = 0 ; k < NCSF_LABELS ; k++)
+    {
+      label = csf_labels[k] ;
+      if (computed[label])
       {
-	label = wm_labels[k] ;
-	if (computed[label])
-	{
-	  mean_wm_scale += label_scales[label] ;
-	  mean_wm_offset += label_offsets[label] ;
-	  num++ ;
-	}
+        mean_csf_scale += label_scales[label] ;
+        mean_csf_offset += label_offsets[label] ;
+        num++ ;
       }
-      if (num == 0)
-      {
-	mean_wm_scale = 1 ;
-	mean_wm_offset = 0 ;
-      }
-      else
-      {
-	mean_wm_scale /= (float)num ;
-	mean_wm_offset /= (float)num ;
-      }
-      
-      num = 0 ;
-      mean_csf_scale = 0 ;
+    }
+    if (num == 0)
+    {
+      mean_csf_scale = 1 ;
       mean_csf_offset = 0 ;
-      for (k = 0 ; k < NCSF_LABELS ; k++)
-      {
-	label = csf_labels[k] ;
-	if (computed[label])
-	{
-	  mean_csf_scale += label_scales[label] ;
-	  mean_csf_offset += label_offsets[label] ;
-	  num++ ;
-	}
-      }
-      if (num == 0)
-      {
-	mean_csf_scale = 1 ;
-	mean_csf_offset = 0 ;
-      }
-      else
-      {
-	mean_csf_scale /= (float)num ;
-	mean_csf_offset /= (float)num ;
-      }
-      
-      printf("estimating mean gm scale to be %2.2f x + %2.1f\n",
-	     mean_gm_scale, mean_gm_offset) ;
-      printf("estimating mean wm scale to be %2.2f x + %2.1f\n",
-	     mean_wm_scale, mean_wm_offset) ;
-      printf("estimating mean csf scale to be %2.2f x + %2.1f\n",
-	     mean_csf_scale, mean_csf_offset) ;
-      
-      // assume that cortical gm goes as wm
-      if (computed[Left_Cerebral_Cortex] == 0 &&
-	  computed[Left_Cerebral_White_Matter] != 0)
-      {
-	if (m_by_label[Left_Cerebral_White_Matter])
-	  m_by_label[Left_Cerebral_Cortex] =
-	    MatrixCopy(m_by_label[Left_Cerebral_White_Matter], NULL) ;
-	label_scales[Left_Cerebral_Cortex] = mean_gm_scale ;
-	label_offsets[Left_Cerebral_Cortex] = mean_gm_offset ;
-	computed[Left_Cerebral_Cortex] = 1;
-	l = Left_Cerebral_Cortex ;
-	label_peaks[l] = label_peaks[l] * label_scales[l] + label_offsets[l];
-      }
-      if (computed[Left_Cerebellum_Cortex] == 0)
-      {
-	label_scales[Left_Cerebellum_Cortex] = mean_gm_scale ;
-	label_offsets[Left_Cerebellum_Cortex] = mean_gm_offset ;
-	computed[Left_Cerebellum_Cortex] = 1;
-	l = Left_Cerebellum_Cortex ;
-	label_peaks[l] = label_peaks[l] * label_scales[l] + label_offsets[l];
-	printf("setting left cbm cortex = %2.2f x + %2.2f\n",
-	       mean_gm_scale, mean_gm_offset) ;
-      }
-      if (computed[Right_Cerebellum_Cortex] == 0)
-      {
-	label_scales[Right_Cerebellum_Cortex] = mean_gm_scale ;
-	label_offsets[Right_Cerebellum_Cortex] = mean_gm_offset ;
-	computed[Right_Cerebellum_Cortex] = 1;
-	l = Right_Cerebellum_Cortex ;
-	label_peaks[l] = label_peaks[l] * label_scales[l] + label_offsets[l];
-	printf("setting right cbm cortex = %2.2f x + %2.2f\n",
-	       mean_gm_scale, mean_gm_offset) ;
-      }
-      if (computed[Right_Cerebral_Cortex] == 0 &&
-	  computed[Right_Cerebral_White_Matter] != 0)
-      {
-	if (m_by_label[Right_Cerebral_White_Matter])
-	  m_by_label[Right_Cerebral_Cortex] =
-	    MatrixCopy(m_by_label[Right_Cerebral_White_Matter], NULL) ;
-	label_scales[Right_Cerebral_Cortex] = mean_gm_scale ;
-	label_offsets[Right_Cerebral_Cortex] = mean_gm_offset ;
-	l = Right_Cerebral_Cortex ;
-	label_peaks[l] = label_peaks[l] * label_scales[l] + label_offsets[l];
-	computed[Right_Cerebral_Cortex] = 1;
-      }
-      
-      // lock some labels scaling to others that have been estimated
-      if (computed[Left_Caudate])
-      {
-	label_offsets[Left_Accumbens_area] = label_offsets[Left_Caudate] ;
-	label_scales[Left_Accumbens_area] = label_scales[Left_Caudate] ;
-	l = Left_Accumbens_area ;
-	label_peaks[l] = label_peaks[l] * label_scales[l] + label_offsets[l];
-	computed[Left_Accumbens_area] = 1;
-      }
-      if (computed[Right_Caudate])
-      {
-	label_offsets[Right_Accumbens_area] = label_offsets[Right_Caudate] ;
-	label_scales[Right_Accumbens_area] = label_scales[Right_Caudate] ;
-	l = Right_Accumbens_area ;
-	label_peaks[l] = label_peaks[l] * label_scales[l] + label_offsets[l];
-	computed[Right_Accumbens_area] = 1;
-      }
-      if (computed[Left_Inf_Lat_Vent] == 0 && computed[Left_Hippocampus] != 0)
-      {
-	label_scales[Left_Inf_Lat_Vent] = label_scales[Left_Hippocampus] ;
-	label_offsets[Left_Inf_Lat_Vent] = label_offsets[Left_Hippocampus] ;
-	l = Left_Inf_Lat_Vent ;
-	label_peaks[l] = label_peaks[l] * label_scales[l] + label_offsets[l];
-	computed[Left_Inf_Lat_Vent] = 1 ;
-      }
-      if (computed[Right_Inf_Lat_Vent] == 0 &&
-	  computed[Right_Hippocampus] != 0)
-      {
-	label_scales[Right_Inf_Lat_Vent] = label_scales[Right_Hippocampus] ;
-	label_offsets[Right_Inf_Lat_Vent] =
-	  label_offsets[Right_Hippocampus] ;
-	l = Right_Inf_Lat_Vent ;
-	label_peaks[l] = label_peaks[l] * label_scales[l] + label_offsets[l];
-	computed[Right_Inf_Lat_Vent] = 1 ;
-      }
-      
-      label_scales[CSF] = mean_csf_scale ;
-      label_scales[Fifth_Ventricle] = mean_csf_scale ;
-      label_offsets[CSF] = mean_csf_offset ;
-      label_offsets[Fifth_Ventricle] = mean_csf_offset ;
-      computed[CSF] = computed[Fifth_Ventricle] = 1 ;
-      l = CSF ;
-      label_peaks[l] = label_peaks[l] * label_scales[l] + label_offsets[l];
-      l = Fifth_Ventricle ;
+    }
+    else
+    {
+      mean_csf_scale /= (float)num ;
+      mean_csf_offset /= (float)num ;
+    }
+
+    printf("estimating mean gm scale to be %2.2f x + %2.1f\n",
+           mean_gm_scale, mean_gm_offset) ;
+    printf("estimating mean wm scale to be %2.2f x + %2.1f\n",
+           mean_wm_scale, mean_wm_offset) ;
+    printf("estimating mean csf scale to be %2.2f x + %2.1f\n",
+           mean_csf_scale, mean_csf_offset) ;
+
+    // assume that cortical gm goes as wm
+    if (computed[Left_Cerebral_Cortex] == 0 &&
+        computed[Left_Cerebral_White_Matter] != 0)
+    {
+      if (m_by_label[Left_Cerebral_White_Matter])
+        m_by_label[Left_Cerebral_Cortex] =
+          MatrixCopy(m_by_label[Left_Cerebral_White_Matter], NULL) ;
+      label_scales[Left_Cerebral_Cortex] = mean_gm_scale ;
+      label_offsets[Left_Cerebral_Cortex] = mean_gm_offset ;
+      computed[Left_Cerebral_Cortex] = 1;
+      l = Left_Cerebral_Cortex ;
       label_peaks[l] = label_peaks[l] * label_scales[l] + label_offsets[l];
     }
-    
+    if (computed[Left_Cerebellum_Cortex] == 0)
+    {
+      label_scales[Left_Cerebellum_Cortex] = mean_gm_scale ;
+      label_offsets[Left_Cerebellum_Cortex] = mean_gm_offset ;
+      computed[Left_Cerebellum_Cortex] = 1;
+      l = Left_Cerebellum_Cortex ;
+      label_peaks[l] = label_peaks[l] * label_scales[l] + label_offsets[l];
+      printf("setting left cbm cortex = %2.2f x + %2.2f\n",
+             mean_gm_scale, mean_gm_offset) ;
+    }
+    if (computed[Right_Cerebellum_Cortex] == 0)
+    {
+      label_scales[Right_Cerebellum_Cortex] = mean_gm_scale ;
+      label_offsets[Right_Cerebellum_Cortex] = mean_gm_offset ;
+      computed[Right_Cerebellum_Cortex] = 1;
+      l = Right_Cerebellum_Cortex ;
+      label_peaks[l] = label_peaks[l] * label_scales[l] + label_offsets[l];
+      printf("setting right cbm cortex = %2.2f x + %2.2f\n",
+             mean_gm_scale, mean_gm_offset) ;
+    }
+    if (computed[Right_Cerebral_Cortex] == 0 &&
+        computed[Right_Cerebral_White_Matter] != 0)
+    {
+      if (m_by_label[Right_Cerebral_White_Matter])
+        m_by_label[Right_Cerebral_Cortex] =
+          MatrixCopy(m_by_label[Right_Cerebral_White_Matter], NULL) ;
+      label_scales[Right_Cerebral_Cortex] = mean_gm_scale ;
+      label_offsets[Right_Cerebral_Cortex] = mean_gm_offset ;
+      l = Right_Cerebral_Cortex ;
+      label_peaks[l] = label_peaks[l] * label_scales[l] + label_offsets[l];
+      computed[Right_Cerebral_Cortex] = 1;
+    }
+
+    // lock some labels scaling to others that have been estimated
+    if (computed[Left_Caudate])
+    {
+      label_offsets[Left_Accumbens_area] = label_offsets[Left_Caudate] ;
+      label_scales[Left_Accumbens_area] = label_scales[Left_Caudate] ;
+      l = Left_Accumbens_area ;
+      label_peaks[l] = label_peaks[l] * label_scales[l] + label_offsets[l];
+      computed[Left_Accumbens_area] = 1;
+    }
+    if (computed[Right_Caudate])
+    {
+      label_offsets[Right_Accumbens_area] = label_offsets[Right_Caudate] ;
+      label_scales[Right_Accumbens_area] = label_scales[Right_Caudate] ;
+      l = Right_Accumbens_area ;
+      label_peaks[l] = label_peaks[l] * label_scales[l] + label_offsets[l];
+      computed[Right_Accumbens_area] = 1;
+    }
+    if (computed[Left_Inf_Lat_Vent] == 0 && computed[Left_Hippocampus] != 0)
+    {
+      label_scales[Left_Inf_Lat_Vent] = label_scales[Left_Hippocampus] ;
+      label_offsets[Left_Inf_Lat_Vent] = label_offsets[Left_Hippocampus] ;
+      l = Left_Inf_Lat_Vent ;
+      label_peaks[l] = label_peaks[l] * label_scales[l] + label_offsets[l];
+      computed[Left_Inf_Lat_Vent] = 1 ;
+    }
+    if (computed[Right_Inf_Lat_Vent] == 0 &&
+        computed[Right_Hippocampus] != 0)
+    {
+      label_scales[Right_Inf_Lat_Vent] = label_scales[Right_Hippocampus] ;
+      label_offsets[Right_Inf_Lat_Vent] =
+        label_offsets[Right_Hippocampus] ;
+      l = Right_Inf_Lat_Vent ;
+      label_peaks[l] = label_peaks[l] * label_scales[l] + label_offsets[l];
+      computed[Right_Inf_Lat_Vent] = 1 ;
+    }
+
+    label_scales[CSF] = mean_csf_scale ;
+    label_scales[Fifth_Ventricle] = mean_csf_scale ;
+    label_offsets[CSF] = mean_csf_offset ;
+    label_offsets[Fifth_Ventricle] = mean_csf_offset ;
+    computed[CSF] = computed[Fifth_Ventricle] = 1 ;
+    l = CSF ;
+    label_peaks[l] = label_peaks[l] * label_scales[l] + label_offsets[l];
+    l = Fifth_Ventricle ;
+    label_peaks[l] = label_peaks[l] * label_scales[l] + label_offsets[l];
+
     //set the scale and offset for the rest; added by xhan
     for (l = 0 ; l < MAX_CMA_LABELS ; l++)
     {
       if (l == Gdiag_no)
-	DiagBreak() ;
+        DiagBreak() ;
       if (computed[l] > 0)
-	continue;
+        continue;
       if (equiv_class[l] == 1)
       {
-	label_scales[l] = mean_csf_scale;
-	label_offsets[l] = mean_csf_offset;
-	computed[l] = 1 ;
+        label_scales[l] = mean_csf_scale;
+        label_offsets[l] = mean_csf_offset;
+        computed[l] = 1 ;
       }
       else if (equiv_class[l] == 2)
       {
