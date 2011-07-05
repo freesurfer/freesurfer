@@ -10,7 +10,7 @@ function [hf, hp, av_curv, av_filtered] = mris_display( astr_mris, ...
 %                               a_az,                   ...
 %                               a_el,                   ...
 %                               a_bandFilter,           ...
-%                               ab_invMap,              ...
+%                               a_mapOperation,         ...
 %                               astr_colorMap
 %                         )
 %
@@ -24,7 +24,11 @@ function [hf, hp, av_curv, av_filtered] = mris_display( astr_mris, ...
 %       OPTIONAL
 %       astr_title      string          title of plot. If empty string,
 %                                       title will be constructed from
-%                                       surface and curvature file names
+%                                       surface and curvature file names.
+%                                       If title string starts with "save:"
+%                                       then the graph is also saved to
+%                                       filesystem using the title string
+%                                       as a filestem.
 %       a_az            float           azimuth of viewpoint
 %       a_el            float           elevation of viewpoint
 %       a_bandFilter    variable        apply a bandpass filter over data:
@@ -34,10 +38,13 @@ function [hf, hp, av_curv, av_filtered] = mris_display( astr_mris, ...
 %                                           if string == 'gz'
 %                                              define range as [>0, max] 
 %                                       between vector range.
-%       ab_invMap       bool            if true, invert the sign of the
-%                                       curvature data -- useful if 'neg'
-%                                       values are on gyri and 'pos' values
-%                                       in sulci.
+%       a_mapOperation  string          apply an operation on the curvature
+%                                       data post filtering.
+%                                           'none' | '':        no operation 
+%                                           'inv'      :        invert sign
+%                                           'signed'   :        shift values
+%                                                               symmetrically
+%                                                               about 0.
 %       astr_colorMap   string          colormap override to use.
 %
 %       OUTPUT
@@ -99,9 +106,10 @@ el              = 0;
 
 b_bandFilter    = 0;
 av_bandFilter   = [-1 1];
-b_invCurv       = 0;
+b_mapOperation  = 0;
 b_colorMap      = 0;
 str_colorMap    = 'Jet';
+str_title       = '';
 
 % Parse optional arguments
 if length(varargin) >= 1, str_title = varargin{1};      end
@@ -111,30 +119,37 @@ if length(varargin) >= 4
     b_bandFilter        = 1;
     a_bandFilter        = varargin{4};
 end
-if length(varargin) >= 5, b_invCurv = varargin{5};      end
+if length(varargin) >= 5,
+    b_mapOperation      = 1;
+    a_mapOperation      = varargin{5};      
+end
 if length(varargin) >= 6
     b_colorMap          = 1;      
     str_colorMap        = varargin{6};
 end
 
-% Read curvature file
-cprintsn('Reading curvature file', astr_curv);
-[v_curv, fnum] = read_curv(astr_curv);
-cprintdn('Number of curv elements', numel(v_curv));
-if b_invCurv
-    cprintdn('Invert curvature data sign', b_invCurv);
-    v_curv = v_curv * -1;
+% Parse title string for 'save:' directive
+b_save			= 0;
+c_title			= regexp(str_title, 'save:', 'split');
+if numel(c_title) == 2
+    b_save		= 1;
+    str_title		= c_title{2};
 end
 
+% Read curvature file
+colprintf('40;40', 'Reading curvature file', '[ %s ]\n', astr_curv);
+[v_curv, fnum] = read_curv(astr_curv);
+colprintf('40;40', 'Number of curv elements', '[ %d ]\n', numel(v_curv));
+
 % Read surface
-cprintsn('Reading mris file', astr_mris);
+colprintf('40;40', 'Reading mris file', '[ %s ]\n', astr_mris);
 [v_vertices, v_faces] = read_surf(astr_mris);
 v_vertSize      = size(v_vertices);
 v_faceSize      = size(v_faces);
 str_vertSize    = sprintf('%d x %d', v_vertSize(1), v_vertSize(2));
 str_faceSize    = sprintf('%d x %d', v_faceSize(1), v_faceSize(2));
-cprintsn('Size of vert struct', str_vertSize);
-cprintsn('Size of face struct', str_faceSize);
+colprintf('40;40', 'Size of vert struct', '[ %s ]\n', str_vertSize);
+colprintf('40;40', 'Size of face struct', '[ %s ]\n', str_faceSize);
 
 if numel(v_curv) ~= v_vertSize(1)
     error_exit( 'reading inputs',        ...
@@ -151,7 +166,7 @@ if b_bandFilter
     if isfloat(a_bandFilter)
         v_bandFilter    = [-a_bandFilter a_bandFilter];
     end
-    if isvector(a_bandFilter)
+    if isvector(a_bandFilter) & numel(a_bandFilter) == 2
         v_bandFilter    = a_bandFilter;
     end
     if ischar(a_bandFilter)
@@ -166,13 +181,26 @@ if b_bandFilter
                                  v_bandFilter(1), v_bandFilter(2), 1);
 end
 
+if b_mapOperation
+    if strcmp(a_mapOperation, 'inv')    
+        colprintf('40;40', 'Inverting curvature data sign', '[ ok ]\n');
+        v_curv = v_curv * -1;
+    end
+    if strcmp(a_mapOperation, 'signed')
+        colprintf('40;40', 'Shifting curvs evenly about zero', '[ ok ]\n');
+        f_range = max(v_curv) - min(v_curv);
+        v_curv = v_curv - min(v_curv) - f_range/2;
+    end
+end 
+
+
 % Display:
 hf              = figure;
-hp              = patch('vertices',     v_vertices,             ...
-                        'faces',        v_faces(:,[1 3 2]),     ...
-                        'facevertexcdata',      v_curv,         ...
-                        'edgecolor',    'none',                 ...
-                        'facecolor',    'interp'); 
+hp              = patch('vertices',             v_vertices,             ...
+                        'faces',                v_faces(:,[1 3 2]),     ...
+                        'facevertexcdata',      v_curv,                 ...
+                        'edgecolor',            'none',                 ...
+                        'facecolor',            'interp'); 
 axis equal; 
 grid;
 try
@@ -192,6 +220,17 @@ else
 end
 colorbar;
 view(az, el);
+
+if b_save
+    str_epsFile	= [ str_title '.eps' ];
+    str_pngFile	= [ str_title '.png' ];
+    colprintf('40;40', 'Saving eps snapshot', '');
+    print('-depsc2', str_epsFile);
+    colprintf('40;40', '', '[ %s ]\n', str_epsFile);
+    colprintf('40;40', 'Saving png snapshot', '');
+    print('-dpng', str_pngFile);
+    colprintf('40;40', '', '[ %s ]\n', str_pngFile);
+end
 
 sys_print('mris_display: END\n');
 
