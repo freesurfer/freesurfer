@@ -9,8 +9,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2011/07/05 23:00:37 $
- *    $Revision: 1.9 $
+ *    $Date: 2011/07/06 22:17:10 $
+ *    $Revision: 1.10 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -42,6 +42,8 @@
 #include <unistd.h>
 #include <sys/utsname.h>
 #include <float.h>
+#include <sys/stat.h>
+#include <sys/types.h>
 
 #include "macros.h"
 #include "utils.h"
@@ -71,13 +73,15 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_ibmc.c,v 1.9 2011/07/05 23:00:37 greve Exp $";
+static char vcid[] = "$Id: mri_ibmc.c,v 1.10 2011/07/06 22:17:10 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
 int checkoptsonly=0;
 struct utsname uts;
 MATRIX *MRIangles2RotMatB(double *angles, MATRIX *R);
+
+#define IBMC_NL_MAX 500
 
 #define IBMC_A2B_EQUAL 0
 #define IBMC_A2B_RIGID 1
@@ -91,7 +95,7 @@ typedef struct
   double beta[6]; // motion params
   int Vno, Sno;   // volume stack and slice numbers
   MATRIX *D, *iD; // index stack-to-slice (and inv)
-  MATRIX *Ts;     // tkr vox2ras
+  MATRIX *Ts, *iTs;  // tkr vox2ras (and inv)
   MATRIX *iRs;    // inv(Rs)
   MATRIX *TsDiTv; // cache
   MATRIX *Rs0;    // tkreg matrix for slice if Rbeta=I
@@ -111,13 +115,46 @@ typedef struct
   IBMC_SLICE **slice; // slices in the stack
   int Vno;            // volume stack number 
   IBMC_PARAMS *params;
+  char *subjname;
 } IBMC_STACK;
 /*---------------------------------------------------------------*/
 typedef struct 
 {
-  int nstackss; // Number of input volume stacks
-  IBMC_STACK *stacks; // Input stacks
+  IBMC_SLICE *sliceA;
+  IBMC_SLICE *sliceB;
+  MATRIX *M; // M = inv(TsB)*RsB*inv(RsA)*TsA
+  int nL;
+  double colA[IBMC_NL_MAX], rowA[IBMC_NL_MAX];
+  double colB[IBMC_NL_MAX], rowB[IBMC_NL_MAX];
+  double IA[IBMC_NL_MAX], IB[IBMC_NL_MAX];
+  double cost;
+  double betaAprev[6],betaBprev[6]; // for caching values at previous step
+  int InitNeeded;
+} IBMC_PAIR;
+/*---------------------------------------------------------------*/
+typedef struct 
+{
+  int nstacks; // Number of input volume stacks
+  IBMC_STACK *stack[20]; // Input stacks
+  int nparamstot; // Total number of parameters to opt = sum(nalpha)
+  int npairs;
+  IBMC_PAIR **pair;
+  double cost;
 } IBMC;
+
+
+
+/*---------------------------------------------------------------*/
+/*---------------------------------------------------------------*/
+/*---------------------------------------------------------------*/
+IBMC_PAIR *IBMCallocPair(void)
+{
+  IBMC_PAIR *pair;
+  pair = (IBMC_PAIR *) calloc(sizeof(IBMC_PAIR),1);
+  pair->M = MatrixIdentity(4,NULL);
+  pair->InitNeeded = 1;
+  return(pair);
+}
 /*---------------------------------------------------------------*/
 IBMC_SLICE *IBMCinitSlice(IBMC_STACK *stack, int Sno)
 {
@@ -125,8 +162,10 @@ IBMC_SLICE *IBMCinitSlice(IBMC_STACK *stack, int Sno)
 
   slice = (IBMC_SLICE *) calloc(1,sizeof(IBMC_SLICE));
   slice->Sno = Sno;
+  slice->Vno = stack->Vno;
   slice->mri = MRIcrop(stack->mri, 0,0,Sno, stack->mri->width-1,stack->mri->height-1,Sno);
   slice->Ts  = MRIxfmCRS2XYZtkreg(slice->mri);
+  slice->iTs  = MatrixInverse(slice->Ts,NULL);
   slice->D = MatrixIdentity(4,NULL);
   slice->D->rptr[3][4] = -Sno;
   slice->iD   = MatrixInverse(slice->D,NULL);
@@ -135,14 +174,22 @@ IBMC_SLICE *IBMCinitSlice(IBMC_STACK *stack, int Sno)
   slice->TsDiTv  = MatrixMultiply(slice->TsDiTv,stack->iTv,slice->TsDiTv);
   // Rs0 = Ts*D*inv(Tv)*Rv = Rs when Rbeta=I
   slice->Rs0  = MatrixMultiply(slice->TsDiTv,stack->Rv,NULL);
-  slice->Rbeta = MatrixAlloc(4,4,MATRIX_REAL);
+  slice->Rbeta = MatrixIdentity(4,NULL);
   slice->Rs    = MatrixAlloc(4,4,MATRIX_REAL);
   slice->iRs   = MatrixAlloc(4,4,MATRIX_REAL);
   return(slice);
 }
 /*---------------------------------------------------------------*/
-int IBMCnAlpha(IBMC_STACK *stack)
+int IBMCinitParams(IBMC_STACK *stack, int a2bmethod)
 {
+  int AllocAlpha = 0;
+
+  if(stack->params==NULL){
+    stack->params = (IBMC_PARAMS *) calloc(sizeof(IBMC_PARAMS),1);
+    AllocAlpha = 1;
+  }
+ 
+  stack->params->a2bmethod = a2bmethod;
   stack->params->nalpha = -1;
   switch(stack->params->a2bmethod){
   case IBMC_A2B_EQUAL:
@@ -154,7 +201,10 @@ int IBMCnAlpha(IBMC_STACK *stack)
   default:
     printf("ERROR: A2B method %d not regocnized\n",stack->params->a2bmethod);
   }
-  return(stack->params->nalpha);
+  if(AllocAlpha) 
+    stack->params->alpha = (double *) calloc(sizeof(double),stack->params->nalpha);
+
+ return(0);
 }
 
 /*---------------------------------------------------------------*/
@@ -194,7 +244,7 @@ IBMC_PARAMS *IBMCreadParams(char *fname)
   fscanf(fp,"%*s %d",&a2bmethod);
   fscanf(fp,"%*s %d",&nalpha);
   fscanf(fp,"%*s %d",&IsASCII);
-  fprintf(stderr,"IBMCreadParams: %s %d %d %d\n",fname,a2bmethod,nalpha,IsASCII);
+  //fprintf(stderr,"IBMCreadParams: %s %d %d %d\n",fname,a2bmethod,nalpha,IsASCII);
   p = IBMCallocParams(nalpha);
   p->a2bmethod = a2bmethod;
 
@@ -208,7 +258,7 @@ IBMC_PARAMS *IBMCreadParams(char *fname)
     fread(&magic,sizeof(int),1,fp);
     nitems = fread(p->alpha,sizeof(double),nalpha,fp);
     if(nitems != nalpha){
-      printf("ERROR: %s tried to read %d, actually read %ld\n",fname,nalpha,nitems);
+      printf("ERROR: %s tried to read %d, actually read %d\n",fname,nalpha,(int)nitems);
       return(NULL);
     }
   }
@@ -249,10 +299,24 @@ int IBMCprintParams(FILE *fp, IBMC_PARAMS *p)
     fprintf(fp,"%3d %10.5lf\n",k,p->alpha[k]);
   return(0);
 }
+/*---------------------------------------------------------------*/
+int IBMCwriteParamsAscii(char *fname, IBMC_PARAMS *p)
+{
+  FILE *fp;
+
+  fp = fopen(fname,"w");
+  if(fp == NULL){
+    printf("ERROR: could not open %s\n",fname);
+    return(1);
+  }
+  IBMCprintParams(fp, p);
+  fclose(fp);
+  return(0);
+}
 
 
 /*---------------------------------------------------------------*/
-IBMC_STACK *IBMCinitStack(MRI *vol, MATRIX *Rv)
+IBMC_STACK *IBMCinitStack(MRI *vol, MATRIX *Rv, int Vno)
 {
   IBMC_STACK *stack;
   int nthslice;
@@ -264,6 +328,8 @@ IBMC_STACK *IBMCinitStack(MRI *vol, MATRIX *Rv)
   stack->slice = (IBMC_SLICE **)calloc(vol->depth,sizeof(IBMC_SLICE *));
   stack->Tv  = MRIxfmCRS2XYZtkreg(stack->mri);
   stack->iTv = MatrixInverse(stack->Tv,NULL);
+  stack->Vno = Vno;
+  stack->params = NULL;
 
   for(nthslice = 0; nthslice < stack->mri->depth; nthslice++){
     stack->slice[nthslice] = IBMCinitSlice(stack, nthslice);
@@ -312,7 +378,7 @@ MRI *IBMCcopyStack2MRI(IBMC_STACK *stack, MRI *mri)
       for(s=0; s < mri->depth; s++){
 	for(f=0; f < mri->nframes; f++){
 	  v = MRIgetVoxVal(stack->slice[s]->mri,c,r,0,f);
-	  MRIsetVoxVal(mri,c,r,s,f,nint(v));
+	  MRIsetVoxVal(mri,c,r,s,f,v);
 	}
       }
     }
@@ -394,7 +460,207 @@ int IBMCsetSliceBeta(IBMC_SLICE *slice, const double beta[6])
   slice->iRs = MatrixInverse(slice->Rs,slice->iRs);
   return(0);
 }
+/*------------------------------------------------------------*/
+int IBMCpairCost(IBMC_PAIR *pair)
+{
+  extern int ForceUpdate;
+  IBMC_SLICE *sA, *sB;
+  int nth,k,UpdateNeeded;
+  double M31, M32, M34, M11, M12, M14, M21, M22, M24, c;
+  float valvect=0;
+  static double colA[IBMC_NL_MAX], rowA[IBMC_NL_MAX];
+  static double colB[IBMC_NL_MAX], rowB[IBMC_NL_MAX];
+  int nL,mth;
 
+  sA = pair->sliceA;
+  sB = pair->sliceB;
+
+  if(pair->InitNeeded){
+    for(k=0; k<6; k++) {
+      pair->betaAprev[k] = sA->beta[k];
+      pair->betaBprev[k] = sB->beta[k];
+    }
+  }
+
+  UpdateNeeded = 0;
+  for(k=0; k<6; k++){
+    if(pair->betaAprev[k] != sA->beta[k]) UpdateNeeded = 1;
+    if(pair->betaBprev[k] != sB->beta[k]) UpdateNeeded = 1;
+  }
+  if(!UpdateNeeded  && !ForceUpdate && !pair->InitNeeded) return(0);
+  pair->InitNeeded=0;
+
+  pair->M = MatrixMultiply(sB->iTs,sB->Rs, pair->M);
+  MatrixMultiply(pair->M, sA->iRs, pair->M);
+  MatrixMultiply(pair->M, sA->Ts, pair->M);
+  
+  #if 0
+  printf("iTsB \n");
+  MatrixPrint(stdout,sB->iTs);
+  printf("RsB \n");
+  MatrixPrint(stdout,sB->Rs);
+  printf("iRsA \n");
+  MatrixPrint(stdout,sA->iRs);
+  printf("TsA \n");
+  MatrixPrint(stdout,sA->Ts);
+  printf("M \n");
+  MatrixPrint(stdout,pair->M);
+  #endif
+
+  M31 = pair->M->rptr[3][1];
+  M32 = pair->M->rptr[3][2];
+  M34 = pair->M->rptr[3][4];
+
+  if(fabs(M32) > fabs(M31)){
+    nL = sA->mri->width;
+    for(nth=0; nth < nL; nth++) {
+      colA[nth] = nth; //+0.5; // +0.5 force interp
+      rowA[nth] = -(M34+M31*colA[nth])/M32;
+    }
+  }
+  else {
+    nL = sA->mri->height;
+    for(nth=0; nth < nL; nth++) {
+      rowA[nth] = nth; //+0.5; // +0.5 force interp
+      colA[nth] = -(M34+M32*rowA[nth])/M31;
+    }
+  }
+
+  M11 = pair->M->rptr[1][1];
+  M12 = pair->M->rptr[1][2];
+  M14 = pair->M->rptr[1][4];
+
+  M21 = pair->M->rptr[2][1];
+  M22 = pair->M->rptr[2][2];
+  M24 = pair->M->rptr[2][4];
+
+  pair->cost = 0;
+  mth = 0;
+  for(nth=0; nth < nL; nth++) {
+    colB[nth] = M11*colA[nth] + M12*rowA[nth] + M14;
+    rowB[nth] = M21*colA[nth] + M22*rowA[nth] + M24;
+
+    if(colA[nth] < 0 || colA[nth] > sA->mri->width-1) continue;
+    if(rowA[nth] < 0 || rowA[nth] > sA->mri->height-1) continue;
+    if(colB[nth] < 0 || colB[nth] > sB->mri->width-1) continue;
+    if(rowB[nth] < 0 || rowB[nth] > sB->mri->height-1) continue;
+    pair->colA[mth] = colA[nth];
+    pair->rowA[mth] = rowA[nth];
+    pair->colB[mth] = colB[nth];
+    pair->rowB[mth] = rowB[nth];
+
+    MRIsampleSeqVolume(sA->mri, colA[nth], rowA[nth], 0, &valvect, 0, 0);
+    pair->IA[mth] = valvect;
+    //pair->IA[nth] = MRIgetVoxVal(sA->mri,,irsA,p->SnoA,0);
+
+    MRIsampleSeqVolume(sB->mri, colB[nth], rowB[nth], 0, &valvect, 0, 0);
+    pair->IB[mth] = valvect;
+
+    c = (pair->IA[mth]-pair->IB[mth])*(pair->IA[mth]-pair->IB[mth]);
+    if(isnan(c)){
+      printf("ERROR: pair cost at nthL=%d is NaN\n",nth);
+      //IBMCprintPair(p,stdout);
+      exit(1);
+    }
+    //printf("   %2d   %2d %2d   %2d %2d   %6.4f %6.4f   %6.4f\n",
+    //   mth, (int)round(pair->colA[mth]), (int) round(pair->rowA[mth]), 
+    //   (int)round(pair->colB[mth]),(int)round(pair->rowB[mth]),
+    //   pair->IA[mth],pair->IB[mth],c);
+    pair->cost += c;
+    mth ++;
+  }
+  pair->nL = mth;
+
+  for(k=0; k<6; k++) {
+    pair->betaAprev[k] = sA->beta[k];
+    pair->betaBprev[k] = sB->beta[k];
+  }
+
+  return(0);
+}
+/*---------------------------------------------------------------*/
+double IBMCcost(IBMC *ibmc)
+{
+  int k, nthpair;
+  double cost;
+
+  for(k=0; k < ibmc->nstacks; k++)  IBMCalpha2Beta(ibmc->stack[k]);
+
+  cost=0;
+  for(nthpair = 0; nthpair < ibmc->npairs; nthpair++){
+    IBMCpairCost(ibmc->pair[nthpair]);
+    cost += ibmc->pair[nthpair]->cost;
+  }
+  cost /= ibmc->npairs;
+  ibmc->cost = cost;
+  return(cost);
+}
+
+/*---------------------------------------------------------------*/
+int IBMCinit(IBMC *ibmc, int a2bmethod)
+{
+  int k, nthpair, s0, s1, s2;
+
+  ibmc->nparamstot = 0;
+  for(k=0; k < ibmc->nstacks; k++){
+    IBMCinitParams(ibmc->stack[k],a2bmethod);
+    ibmc->nparamstot += ibmc->stack[k]->params->nalpha;
+  }
+
+  ibmc->npairs = 
+    ibmc->stack[0]->mri->depth * ibmc->stack[1]->mri->depth +
+    ibmc->stack[0]->mri->depth * ibmc->stack[2]->mri->depth +
+    ibmc->stack[1]->mri->depth * ibmc->stack[2]->mri->depth;
+  printf("npairs = %d\n",ibmc->npairs);
+
+  ibmc->pair = (IBMC_PAIR **) calloc(ibmc->npairs,sizeof(IBMC_PAIR *));
+  if(ibmc->pair == NULL){
+    printf("ERROR: could not alloc %d pairs\n",ibmc->npairs);
+    return(1);
+  }
+
+  printf("Initializing %d pairs\n",ibmc->npairs);
+  nthpair = 0;
+  for(s0=0; s0 < ibmc->stack[0]->mri->depth; s0++){
+    for(s1=0; s1 < ibmc->stack[1]->mri->depth; s1++){
+      ibmc->pair[nthpair] = IBMCallocPair();
+      ibmc->pair[nthpair]->sliceA = ibmc->stack[0]->slice[s0];
+      ibmc->pair[nthpair]->sliceB = ibmc->stack[1]->slice[s1];
+      nthpair++;
+    }
+  }
+  for(s0=0; s0 < ibmc->stack[0]->mri->depth; s0++){
+    for(s2=0; s2 < ibmc->stack[2]->mri->depth; s2++){
+      ibmc->pair[nthpair] = IBMCallocPair();
+      ibmc->pair[nthpair]->sliceA = ibmc->stack[0]->slice[s0];
+      ibmc->pair[nthpair]->sliceB = ibmc->stack[2]->slice[s2];
+      nthpair++;
+    }
+  }
+  for(s1=0; s1 < ibmc->stack[1]->mri->depth; s1++){
+    for(s2=0; s2 < ibmc->stack[2]->mri->depth; s2++){
+      ibmc->pair[nthpair] = IBMCallocPair();
+      ibmc->pair[nthpair]->sliceA = ibmc->stack[1]->slice[s1];
+      ibmc->pair[nthpair]->sliceB = ibmc->stack[2]->slice[s2];
+      nthpair++;
+    }
+  }
+
+  printf("Done initializing pairs %d\n",nthpair);
+
+
+  return(0);
+}
+/*---------------------------------------------------------------*/
+int IBMCsetParam(IBMC *ibmc, int nthparam, double paramval);
+int IBMCzeroParams(IBMC *ibmc);
+int IBMCprofile(IBMC *ibmc, char *ProfileFile);
+double *IBMCgetParams(IBMC *ibmc, double *params);
+int IBMCsetParams(IBMC *ibmc, double *params);
+int IBMClineMin(IBMC *ibmc);
+int IBMCwriteStackReg(IBMC_STACK *stack, char *fname);
+float compute_powell_cost(float *params);
+int MinPowell(double ftol, double linmintol, int nmaxiters);
 /*---------------------------------------------------------------*/
 /*---------------------------------------------------------------*/
 /*---------------------------------------------------------------*/
@@ -402,14 +668,28 @@ MRI *targ=NULL, *mov=NULL;
 MATRIX *Rtarg=NULL,*Rmov=NULL;
 char *AlphaFile=NULL;
 char tmpstr[2000];
+IBMC *ibmc;
+int a2bmethod = IBMC_A2B_RIGID;
+int nCostEvaluations;
+int nMaxItersPowell = 36;
+double TolPowell = 1e-8; //1e-8;
+double LinMinTolPowell = 1e-8; //1e-8;
+int DoProfile=0;
+char *ProfileFile=NULL;
+int ProfileParam=0;
+char *outdir = NULL;
+char *ParBase=NULL;
+int ForceUpdate=0;
+int DoLineMin = 0;
 
 /*---------------------------------------------------------------*/
 int main(int argc, char *argv[]) 
 {
-  int nargs,k,nthslice;
-  IBMC_STACK *stack;
-  double beta[6];
-  MRI *vol;
+  int nargs,k,err;
+  double p;
+  FILE *fp;
+
+  ibmc = (IBMC *) calloc(sizeof(IBMC),1);
 
   nargs = handle_version_option (argc, argv, vcid, "$Name:  $");
   if (nargs && argc - nargs == 1) exit (0);
@@ -429,27 +709,67 @@ int main(int argc, char *argv[])
   if (checkoptsonly) return(0);
   dump_options(stdout);
 
-  stack = IBMCinitStack(mov, Rmov);
-  IBMCwriteSlices(stack, "base0");
+  IBMCinit(ibmc,a2bmethod);
 
-  for(k=0; k<6; k++) beta[k] = 0;
-  for(nthslice=0; nthslice < stack->mri->depth; nthslice++)
-    IBMCsetSliceBeta(stack->slice[nthslice], beta);
-  IBMCsynthStack(targ, stack);
-  IBMCwriteSlices(stack, "base");
-  vol = IBMCcopyStack2MRI(stack, NULL);
-  MRIwrite(vol,"vol.nii");
+  if(DoProfile){
+    printf("Profiling %d %s\n",ProfileParam,ProfileFile);
+    IBMCprofile(ibmc, ProfileFile);
+    exit(0);
+    IBMCzeroParams(ibmc);
+    fp = fopen(ProfileFile,"w");
+    for(p = -5; p < 5; p+= .01){
+      IBMCsetParam(ibmc, ProfileParam, p);
+      IBMCcost(ibmc);
+      printf("%6.4lf %10.5lf\n",p,ibmc->cost);
+      fprintf(fp,"%6.4lf %10.5lf\n",p,ibmc->cost);
+    }
+    fclose(fp);
+    exit(0);
+  }
 
-  beta[3] = 2;
-  for(nthslice=0; nthslice < stack->mri->depth; nthslice++)
-    IBMCsetSliceBeta(stack->slice[nthslice], beta);
-  IBMCsynthStack(targ, stack);
-  IBMCwriteSlices(stack, "base2");
+  printf("Creating output directory %s\n",outdir);
+  err = mkdir(outdir,0777);
+  if (err != 0 && errno != EEXIST) {
+    printf("ERROR: creating directory %s\n",outdir);
+    perror(NULL);
+    return(1);
+  }
 
-  vol = IBMCcopyStack2MRI(stack, NULL);
-  MRIwrite(vol,"vol2.nii");
+  IBMCcost(ibmc);
+  printf("Initial cost %g\n",ibmc->cost);
 
-  return 0;
+  for(k=0; k < ibmc->nstacks; k++){
+    sprintf(tmpstr,"%s/init.%s%d.ibmc",outdir,ParBase,k);
+    IBMCwriteParamsAscii(tmpstr,ibmc->stack[k]->params);
+    printf("Init Stack %d ------\n",k);
+    IBMCprintParams(stdout,ibmc->stack[k]->params);
+  }
+
+  if(DoLineMin){
+    IBMClineMin(ibmc);
+    printf("Params at min after line search\n");
+    for(k=0; k < ibmc->nstacks; k++){
+      sprintf(tmpstr,"%s/linmin.%s%d.ibmc",outdir,ParBase,k);
+      IBMCwriteParamsAscii(tmpstr,ibmc->stack[k]->params);
+      printf("Stack %d ------\n",k);
+      IBMCprintParams(stdout,ibmc->stack[k]->params);
+    }
+    printf("\n");
+  }
+
+
+  MinPowell(TolPowell, LinMinTolPowell, nMaxItersPowell);
+
+  for(k=0; k < ibmc->nstacks; k++){
+    sprintf(tmpstr,"%s/%s%d.ibmc",outdir,ParBase,k);
+    IBMCwriteParamsAscii(tmpstr,ibmc->stack[k]->params);
+    printf("Stack %d ------\n",k);
+    IBMCprintParams(stdout,ibmc->stack[k]->params);
+    sprintf(tmpstr,"%s/%s%d.reg.dat",outdir,ParBase,k);
+    IBMCwriteStackReg(ibmc->stack[k], tmpstr);
+  }
+
+  exit(0);
 }
 
 /*------------------------------------------------------------------*/
@@ -473,10 +793,52 @@ static int parse_commandline(int argc, char **argv) {
     if (!strcasecmp(option, "--help"))  print_help() ;
     else if (!strcasecmp(option, "--version")) print_version() ;
     else if (!strcasecmp(option, "--debug"))  debug = 1;
+    else if (!strcasecmp(option, "--force-update"))  ForceUpdate = 1;
     else if (!strcasecmp(option, "--diag")) Gdiag_no = 1;
     else if (!strcasecmp(option, "--checkopts"))   checkoptsonly = 1;
     else if (!strcasecmp(option, "--nocheckopts")) checkoptsonly = 0;
+    else if (!strcasecmp(option, "--a2b-rigid")) a2bmethod = IBMC_A2B_RIGID;
+    else if (!strcasecmp(option, "--a2b-equal")) a2bmethod = IBMC_A2B_EQUAL;
+    else if (!strcasecmp(option, "--line-min"))  DoLineMin = 1;
+    else if (!strcasecmp(option, "--low-tol")){
+      TolPowell = 1e-1;
+      LinMinTolPowell = 1e-1;
+    }
 
+    else if (!strcasecmp(option, "--o")) {
+      if(nargc < 1) CMDargNErr(option,1);
+      outdir = pargv[0];
+      nargsused = 1;
+    } 
+    else if (!strcasecmp(option, "--par")) {
+      if(nargc < 1) CMDargNErr(option,1);
+      ParBase = pargv[0];
+      nargsused = 1;
+    } 
+    else if (!strcasecmp(option, "--profile")) {
+      if(nargc < 2) CMDargNErr(option,2);
+      DoProfile = 1;
+      ProfileFile = pargv[0];
+      sscanf(pargv[1],"%d",&ProfileParam);
+      nargsused = 2;
+    } 
+    else if (!strcasecmp(option, "--stack")) {
+      if(nargc < 2) CMDargNErr(option,2);
+      MRI *mri;    // dont free
+      MATRIX *reg; // dont free
+      printf("Reading stack %d  %s\n",ibmc->nstacks,pargv[0]);
+      mri = MRIread(pargv[0]);
+      reg = regio_read_registermat(pargv[1]);
+      ibmc->stack[ibmc->nstacks] = IBMCinitStack(mri, reg,ibmc->nstacks);
+      nargsused = 2;
+      if(CMDnthIsArg(nargc, pargv, 2)) {
+        ibmc->stack[ibmc->nstacks]->params = IBMCreadParams(pargv[2]);
+	printf("Loaded Stack %d ------\n",ibmc->nstacks);
+	IBMCprintParams(stdout,ibmc->stack[ibmc->nstacks]->params);
+        nargsused ++;
+      }
+      ibmc->nstacks++;
+    } 
     else if (!strcasecmp(option, "--targ")) {
       if(nargc < 1) CMDargNErr(option,1);
       printf("Reading targ\n");
@@ -512,7 +874,7 @@ static int parse_commandline(int argc, char **argv) {
       SynthSrc = MRIread(pargv[0]);
       SynthTemp = MRIread(pargv[1]);
       SynthReg  = regio_read_registermat(pargv[2]);      
-      SynthStack = IBMCinitStack(SynthTemp, SynthReg);
+      SynthStack = IBMCinitStack(SynthTemp, SynthReg, 0);
       SynthStack->params = IBMCreadParams(pargv[3]);
       IBMCalpha2Beta(SynthStack);
       IBMCsynthStack(SynthSrc,SynthStack);
@@ -590,6 +952,16 @@ static void print_version(void) {
 }
 /*------------------------------------------------------------------*/
 static void check_options(void) {
+  if(!DoProfile){
+    if(outdir==NULL){
+      printf("ERROR: must spec outdir\n");
+      exit(1);
+    }
+    if(ParBase==NULL){
+      printf("ERROR: must spec par base\n");
+      exit(1);
+    }
+  }
   return;
 }
 /*------------------------------------------------------------------*/
@@ -716,4 +1088,265 @@ MRI *MRIextractSlice(MRI *vol, MRI *slice, int Sno)
   
   return(slice);
 }
+
+/*--------------------------------------------------------*/
+float compute_powell_cost(float *params)
+{
+  extern IBMC *ibmc;
+  extern int nCostEvaluations;
+  extern char *ParBase;
+  static double copt = 10e10;
+  static int first=1;
+  static float *paramsprev, *beta, cost0;
+  static struct timeb timer;
+  double secCostTime=0;
+  float cost;
+  int newopt,k,kbeta=0,n,r,c;
+
+  if(first){
+    paramsprev = vector(1,ibmc->nparamstot);
+    beta = (float *) calloc(ibmc->nparamstot,sizeof(float));
+    TimerStart(&timer);
+    kbeta=1;
+  }
+  else {
+    kbeta=0;
+    for(k=0; k < ibmc->nparamstot; k++) {
+      if(paramsprev[k+1] != params[k+1]){
+	kbeta = k+1;
+	break;
+      }
+    }
+  }
+
+  n = 0;
+  for(c=0; c < ibmc->nstacks; c++) {
+    for(r=0; r < ibmc->stack[c]->params->nalpha; r++) {
+      ibmc->stack[c]->params->alpha[r] = params[n+1];
+      n++;
+    }
+  }
+
+  cost = IBMCcost(ibmc);
+  nCostEvaluations ++;
+  newopt = 0;
+  if(copt >= cost){
+    copt = cost;
+    newopt = 1;
+  }
+  if(first) {
+    cost0 = cost;
+    if(cost0 < FLT_MIN) cost0 = 1;
+    printf("Initial cost %g\n",cost);
+  }
+
+  if(newopt && kbeta != 0){
+    secCostTime = TimerStop(&timer)/1000.0;
+    printf("%4d %3d  %9.6f    %9.6f %9.6f   t=%7.3f\n",
+	   nCostEvaluations,kbeta-1,params[kbeta],cost,copt,
+	   secCostTime/60.0);
+    fflush(stdout);
+    for(k=0; k < ibmc->nstacks; k++){
+      sprintf(tmpstr,"%s/curopt.%s%d.ibmc",outdir,ParBase,k);
+      IBMCwriteParamsAscii(tmpstr,ibmc->stack[k]->params);
+    }
+  }
+
+  for(k=0; k < ibmc->nparamstot; k++) paramsprev[k+1] = params[k+1];
+
+  first=0;
+  return(cost);
+}
+/*---------------------------------------------------------*/
+int MinPowell(double ftol, double linmintol, int nmaxiters)
+{
+  float **xi, fret;
+  int    r, c, n;
+  int niters,err;
+  float *pPowel;
+
+  xi = matrix(1, ibmc->nparamstot, 1, ibmc->nparamstot) ;
+  for (r = 1 ; r <= ibmc->nparamstot ; r++) {
+    for (c = 1 ; c <= ibmc->nparamstot ; c++) {
+      xi[r][c] = r == c ? 1 : 0 ;
+    }
+  }
+
+  pPowel = vector(1, ibmc->nparamstot) ;
+  n = 0;
+  for(c=0; c < ibmc->nstacks; c++) {
+    for(r=0; r < ibmc->stack[c]->params->nalpha; r++) {
+      pPowel[n+1] = ibmc->stack[c]->params->alpha[r];
+      n++;
+    }
+  }
+
+  printf("Starting Powell nitersmax = %d, ftol=%g  linmintol %g, \n",
+	 nmaxiters,ftol,linmintol);
+  err=OpenPowell2(pPowel, xi, ibmc->nparamstot, ftol, linmintol, nmaxiters, 
+	      &niters, &fret, compute_powell_cost);
+  printf("Powell done niters = %d, err=%d, fret = %f\n",niters,err,fret);
+
+  // Stuff params back into IBMC
+  n = 0;
+  for(c=0; c < ibmc->nstacks; c++) {
+    for(r=0; r < ibmc->stack[c]->params->nalpha; r++) {
+      ibmc->stack[c]->params->alpha[r] = pPowel[n+1];
+      n++;
+    }
+  }
+  // Update IBMC and compute final cost
+  IBMCcost(ibmc);
+
+  free_matrix(xi, 1, ibmc->nparamstot, 1, ibmc->nparamstot);
+  return(niters);
+}
+/*---------------------------------------------------------*/
+int IBMCsetParam(IBMC *ibmc, int nthparam, double paramval)
+{
+  int  r, c, n;
+  n = 0;
+  for(c=0; c < ibmc->nstacks; c++) {
+    for(r=0; r < ibmc->stack[c]->params->nalpha; r++) {
+      if(n == nthparam) ibmc->stack[c]->params->alpha[r] = paramval;
+      n++;
+    }
+  }
+  return(0);
+}
+/*---------------------------------------------------------*/
+int IBMCzeroParams(IBMC *ibmc)
+{
+  int  s, p;
+  for(s=0; s < ibmc->nstacks; s++) {
+    for(p=0; p < ibmc->stack[s]->params->nalpha; p++)
+      ibmc->stack[s]->params->alpha[p] = 0;
+  }
+  return(0);
+}
+
+/*---------------------------------------------------------*/
+int IBMCprofile(IBMC *ibmc, char *ProfileFile)
+{
+  int  nthp, nv, nthv;
+  double v, vmin, vmax, dv;
+  MATRIX *C;
+  FILE *fp;
+
+  vmin = -5;
+  vmax = +5;
+  dv = .05;
+  nv = round((vmax-vmin)/dv);
+
+  C = MatrixAlloc(nv,ibmc->nparamstot,MATRIX_REAL);
+
+  printf("Starting Profile\n");
+  nthp = 0;
+  for(nthp = 0; nthp < ibmc->nparamstot; nthp++){
+    printf("Param %3d/%d\n",nthp+1,ibmc->nparamstot);
+    IBMCzeroParams(ibmc);
+    for(nthv=0; nthv < nv; nthv++){
+      v = vmin + nthv*dv;
+      IBMCsetParam(ibmc, nthp, v);
+      IBMCcost(ibmc);
+      C->rptr[nthv+1][nthp+1] = ibmc->cost;
+    }
+  }
+
+  fp = fopen(ProfileFile,"w");
+  for(nthv=0; nthv < nv; nthv++){
+    v = vmin + nthv*dv;
+    fprintf(fp,"%6.3lf ",v);
+    for(nthp = 0; nthp < ibmc->nparamstot; nthp++)
+      fprintf(fp,"%6.2f ",C->rptr[nthv+1][nthp+1]);
+    fprintf(fp,"\n");
+  }
+  fclose(fp);
+
+  MatrixFree(&C);
+  return(0);
+}
+/*---------------------------------------------------------------------*/
+double *IBMCgetParams(IBMC *ibmc, double *params)
+{
+  int  nths, ntha, nthp;
+
+  if(params == NULL) params = (double *) calloc(sizeof(double),ibmc->nparamstot);
+
+  nthp = 0;
+  for(nths=0; nths < ibmc->nstacks; nths++) {
+    for(ntha=0; ntha < ibmc->stack[nths]->params->nalpha; ntha++){
+      params[nthp] = ibmc->stack[nths]->params->alpha[ntha];
+      nthp ++;
+    }
+  }
+  return(params);
+}
+/*---------------------------------------------------------------------*/
+int IBMCsetParams(IBMC *ibmc, double *params)
+{
+  int  nths, ntha, nthp;
+
+  nthp = 0;
+  for(nths=0; nths < ibmc->nstacks; nths++) {
+    for(ntha=0; ntha < ibmc->stack[nths]->params->nalpha; ntha++){
+      ibmc->stack[nths]->params->alpha[ntha] = params[nthp];
+      nthp ++;
+    }
+  }
+  return(0);
+}
+/*---------------------------------------------------------------------*/
+int IBMClineMin(IBMC *ibmc)
+{
+  int  nthp, nv, nthv;
+  double v, vmin, vmax, dv, cmin;
+  double *optparams=NULL;
+
+  vmin = -5;
+  vmax = +5;
+  dv = .5;
+  nv = round((vmax-vmin)/dv);
+
+  printf("Starting Line Min init cost = %g\n",ibmc->cost);
+  nthp = 0;
+  cmin=ibmc->cost;
+  optparams = IBMCgetParams(ibmc,optparams);
+  for(nthp = 0; nthp < ibmc->nparamstot; nthp++){
+    printf("  Param %3d/%d\n",nthp+1,ibmc->nparamstot);
+    fflush(stdout);
+    IBMCsetParams(ibmc,optparams);    
+    for(nthv=0; nthv < nv; nthv++){
+      v = vmin + nthv*dv;
+      IBMCsetParam(ibmc, nthp, v);
+      IBMCcost(ibmc);
+      if(cmin > ibmc->cost){
+	cmin = ibmc->cost;
+	optparams = IBMCgetParams(ibmc,optparams);
+	printf("     %g\n",ibmc->cost);
+	fflush(stdout);
+      }	
+    }
+  }
+  IBMCsetParams(ibmc,optparams);
+  IBMCcost(ibmc);
+  printf("Ending Line Min init cost = %g\n",ibmc->cost);
+
+  return(0);
+}
+/*---------------------------------------------------------------------*/
+int IBMCwriteStackReg(IBMC_STACK *stack, char *fname)
+{
+  MATRIX *R;
+  // Really only useful for RIGID, slice number does not matter with RIGID
+  R = MatrixMultiply(stack->slice[0]->Rbeta,stack->Rv,NULL);
+  regio_write_register(fname, "fsf01anat", stack->slice[0]->mri->xsize,
+		       stack->slice[0]->mri->zsize, .15, R,FLT2INT_ROUND);
+  MatrixFree(&R);
+  return(0);
+}
+
+
+
+
 
