@@ -9,8 +9,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2011/07/08 13:47:55 $
- *    $Revision: 1.11 $
+ *    $Date: 2011/07/08 14:20:36 $
+ *    $Revision: 1.12 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -73,7 +73,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_ibmc.c,v 1.11 2011/07/08 13:47:55 greve Exp $";
+static char vcid[] = "$Id: mri_ibmc.c,v 1.12 2011/07/08 14:20:36 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -136,14 +136,12 @@ typedef struct
 {
   int nstacks; // Number of input volume stacks
   IBMC_STACK *stack[20]; // Input stacks
-  int nparamstot; // Total number of parameters to opt = sum(nalpha)
+  int dof; // Total number of parameters to opt = sum(nalpha)-6
   int npairs;
   IBMC_PAIR **pair;
   double cost;
   int DoSmooth;
 } IBMC;
-
-
 
 /*---------------------------------------------------------------*/
 /*---------------------------------------------------------------*/
@@ -388,11 +386,14 @@ MRI *IBMCcopyStack2MRI(IBMC_STACK *stack, MRI *mri)
   return(mri);
 }
 /*---------------------------------------------------------------*/
-int IBMCalpha2Beta(IBMC_STACK *stack)
+int IBMCalpha2Beta(IBMC *ibmc, int nthstack)
 {
   int s,k,nthalpha;
   static double angles[3];
+  IBMC_STACK *stack;
   IBMC_SLICE *slice;
+
+  stack = ibmc->stack[nthstack];
 
   switch(stack->params->a2bmethod){
   case IBMC_A2B_EQUAL:
@@ -602,7 +603,7 @@ double IBMCcost(IBMC *ibmc)
   int k, nthpair;
   double cost;
 
-  for(k=0; k < ibmc->nstacks; k++)  IBMCalpha2Beta(ibmc->stack[k]);
+  for(k=0; k < ibmc->nstacks; k++)  IBMCalpha2Beta(ibmc,k);
 
   cost=0;
   for(nthpair = 0; nthpair < ibmc->npairs; nthpair++){
@@ -619,11 +620,12 @@ int IBMCinit(IBMC *ibmc, int a2bmethod)
 {
   int k, nthpair, s0, s1, s2;
 
-  ibmc->nparamstot = 0;
+  ibmc->dof = 0;
   for(k=0; k < ibmc->nstacks; k++){
     IBMCinitParams(ibmc->stack[k],a2bmethod);
-    ibmc->nparamstot += ibmc->stack[k]->params->nalpha;
+    ibmc->dof += ibmc->stack[k]->params->nalpha;
   }
+  ibmc->dof -= 6; 
 
   ibmc->npairs = 
     ibmc->stack[0]->mri->depth * ibmc->stack[1]->mri->depth +
@@ -663,10 +665,7 @@ int IBMCinit(IBMC *ibmc, int a2bmethod)
       nthpair++;
     }
   }
-
   printf("Done initializing pairs %d\n",nthpair);
-
-
   return(0);
 }
 /*---------------------------------------------------------------*/
@@ -896,7 +895,8 @@ static int parse_commandline(int argc, char **argv) {
       SynthReg  = regio_read_registermat(pargv[2]);      
       SynthStack = IBMCinitStack(SynthTemp, SynthReg, 0);
       SynthStack->params = IBMCreadParams(pargv[3]);
-      IBMCalpha2Beta(SynthStack);
+      ibmc->stack[0] = SynthStack;
+      IBMCalpha2Beta(ibmc,0);
       IBMCsynthStack(SynthSrc,SynthStack);
       IBMCwriteSlices(SynthStack, pargv[4]);
       SynthVol = IBMCcopyStack2MRI(SynthStack, NULL);
@@ -1121,17 +1121,17 @@ float compute_powell_cost(float *params)
   static struct timeb timer;
   double secCostTime=0;
   float cost;
-  int newopt,k,kbeta=0,n,r,c;
+  int newopt,k,kbeta=0,n,r,c,r0;
 
   if(first){
-    paramsprev = vector(1,ibmc->nparamstot);
-    beta = (float *) calloc(ibmc->nparamstot,sizeof(float));
+    paramsprev = vector(1,ibmc->dof);
+    beta = (float *) calloc(ibmc->dof,sizeof(float));
     TimerStart(&timer);
     kbeta=1;
   }
   else {
     kbeta=0;
-    for(k=0; k < ibmc->nparamstot; k++) {
+    for(k=0; k < ibmc->dof; k++) {
       if(paramsprev[k+1] != params[k+1]){
 	kbeta = k+1;
 	break;
@@ -1141,7 +1141,9 @@ float compute_powell_cost(float *params)
 
   n = 0;
   for(c=0; c < ibmc->nstacks; c++) {
-    for(r=0; r < ibmc->stack[c]->params->nalpha; r++) {
+    r0 = 0;
+    if(c==0) r0 = 6;
+    for(r=r0; r < ibmc->stack[c]->params->nalpha; r++) {
       ibmc->stack[c]->params->alpha[r] = params[n+1];
       n++;
     }
@@ -1172,7 +1174,7 @@ float compute_powell_cost(float *params)
     }
   }
 
-  for(k=0; k < ibmc->nparamstot; k++) paramsprev[k+1] = params[k+1];
+  for(k=0; k < ibmc->dof; k++) paramsprev[k+1] = params[k+1];
 
   first=0;
   return(cost);
@@ -1181,21 +1183,23 @@ float compute_powell_cost(float *params)
 int MinPowell(double ftol, double linmintol, int nmaxiters)
 {
   float **xi, fret;
-  int    r, c, n;
+  int    r, r0,c, n;
   int niters,err;
   float *pPowel;
 
-  xi = matrix(1, ibmc->nparamstot, 1, ibmc->nparamstot) ;
-  for (r = 1 ; r <= ibmc->nparamstot ; r++) {
-    for (c = 1 ; c <= ibmc->nparamstot ; c++) {
+  xi = matrix(1, ibmc->dof, 1, ibmc->dof) ;
+  for (r = 1 ; r <= ibmc->dof ; r++) {
+    for (c = 1 ; c <= ibmc->dof ; c++) {
       xi[r][c] = r == c ? 1 : 0 ;
     }
   }
 
-  pPowel = vector(1, ibmc->nparamstot) ;
+  pPowel = vector(1, ibmc->dof) ;
   n = 0;
   for(c=0; c < ibmc->nstacks; c++) {
-    for(r=0; r < ibmc->stack[c]->params->nalpha; r++) {
+    r0 = 0;
+    if(c==0) r0 = 6;
+    for(r=r0; r < ibmc->stack[c]->params->nalpha; r++) {
       pPowel[n+1] = ibmc->stack[c]->params->alpha[r];
       n++;
     }
@@ -1203,14 +1207,16 @@ int MinPowell(double ftol, double linmintol, int nmaxiters)
 
   printf("Starting Powell nitersmax = %d, ftol=%g  linmintol %g, \n",
 	 nmaxiters,ftol,linmintol);
-  err=OpenPowell2(pPowel, xi, ibmc->nparamstot, ftol, linmintol, nmaxiters, 
+  err=OpenPowell2(pPowel, xi, ibmc->dof, ftol, linmintol, nmaxiters, 
 	      &niters, &fret, compute_powell_cost);
   printf("Powell done niters = %d, err=%d, fret = %f\n",niters,err,fret);
 
   // Stuff params back into IBMC
   n = 0;
   for(c=0; c < ibmc->nstacks; c++) {
-    for(r=0; r < ibmc->stack[c]->params->nalpha; r++) {
+    r0 = 0;
+    if(c==0) r0 = 6;
+    for(r=r0; r < ibmc->stack[c]->params->nalpha; r++) {
       ibmc->stack[c]->params->alpha[r] = pPowel[n+1];
       n++;
     }
@@ -1218,7 +1224,7 @@ int MinPowell(double ftol, double linmintol, int nmaxiters)
   // Update IBMC and compute final cost
   IBMCcost(ibmc);
 
-  free_matrix(xi, 1, ibmc->nparamstot, 1, ibmc->nparamstot);
+  free_matrix(xi, 1, ibmc->dof, 1, ibmc->dof);
   return(niters);
 }
 /*---------------------------------------------------------*/
@@ -1258,12 +1264,12 @@ int IBMCprofile(IBMC *ibmc, char *ProfileFile)
   dv = .05;
   nv = round((vmax-vmin)/dv);
 
-  C = MatrixAlloc(nv,ibmc->nparamstot,MATRIX_REAL);
+  C = MatrixAlloc(nv,ibmc->dof,MATRIX_REAL);
 
   printf("Starting Profile\n");
   nthp = 0;
-  for(nthp = 0; nthp < ibmc->nparamstot; nthp++){
-    printf("Param %3d/%d\n",nthp+1,ibmc->nparamstot);
+  for(nthp = 0; nthp < ibmc->dof; nthp++){
+    printf("Param %3d/%d\n",nthp+1,ibmc->dof);
     IBMCzeroParams(ibmc);
     for(nthv=0; nthv < nv; nthv++){
       v = vmin + nthv*dv;
@@ -1277,7 +1283,7 @@ int IBMCprofile(IBMC *ibmc, char *ProfileFile)
   for(nthv=0; nthv < nv; nthv++){
     v = vmin + nthv*dv;
     fprintf(fp,"%6.3lf ",v);
-    for(nthp = 0; nthp < ibmc->nparamstot; nthp++)
+    for(nthp = 0; nthp < ibmc->dof; nthp++)
       fprintf(fp,"%6.2f ",C->rptr[nthv+1][nthp+1]);
     fprintf(fp,"\n");
   }
@@ -1291,7 +1297,7 @@ double *IBMCgetParams(IBMC *ibmc, double *params)
 {
   int  nths, ntha, nthp;
 
-  if(params == NULL) params = (double *) calloc(sizeof(double),ibmc->nparamstot);
+  if(params == NULL) params = (double *) calloc(sizeof(double),ibmc->dof);
 
   nthp = 0;
   for(nths=0; nths < ibmc->nstacks; nths++) {
@@ -1332,8 +1338,8 @@ int IBMClineMin(IBMC *ibmc)
   nthp = 0;
   cmin=ibmc->cost;
   optparams = IBMCgetParams(ibmc,optparams);
-  for(nthp = 0; nthp < ibmc->nparamstot; nthp++){
-    printf("  Param %3d/%d\n",nthp+1,ibmc->nparamstot);
+  for(nthp = 0; nthp < ibmc->dof; nthp++){
+    printf("  Param %3d/%d\n",nthp+1,ibmc->dof);
     fflush(stdout);
     IBMCsetParams(ibmc,optparams);    
     for(nthv=0; nthv < nv; nthv++){
