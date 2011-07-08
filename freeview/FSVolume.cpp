@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2011/06/30 18:19:25 $
- *    $Revision: 1.66 $
+ *    $Date: 2011/07/08 17:28:52 $
+ *    $Revision: 1.67 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -2329,8 +2329,13 @@ void FSVolume::TargetToRAS( double x_in, double y_in, double z_in,
 void FSVolume::TargetToRAS( const double* pos_in, double* pos_out )
 {
   double pos[4] = { 0 };
-  double* vs = m_imageData->GetSpacing();
-  double* origin = m_imageData->GetOrigin();
+  double vs[3] = {1,1,1};
+  double origin[3] = {0};
+  if (m_imageData != NULL)
+  {
+    m_imageData->GetSpacing(vs);
+    m_imageData->GetOrigin(origin);
+  }
   for ( int i = 0; i < 3; i++ )
   {
     pos[i] = ( pos_in[i] - origin[i] ) / vs[i];
@@ -2349,8 +2354,13 @@ void FSVolume::TargetToRAS( const double* pos_in, double* pos_out )
 
 MATRIX* FSVolume::GetTargetToRASMatrix()
 {
-  double* vs = m_imageData->GetSpacing();
-  double* origin = m_imageData->GetOrigin();
+  double vs[3] = {1,1,1};
+  double origin[3] = {0};
+  if (m_imageData != NULL)
+  {
+    m_imageData->GetSpacing(vs);
+    m_imageData->GetOrigin(origin);
+  }
   MATRIX* m = MatrixZero( 4, 4, NULL );
   *MATRIX_RELT( m, 1, 1 ) = vs[0];
   *MATRIX_RELT( m, 2, 2 ) = vs[1];
@@ -2389,8 +2399,13 @@ void FSVolume::RASToTarget( const double* pos_in, double* pos_out )
                      &pos[0],
                      &pos[1],
                      &pos[2] );
-  double* vs = m_imageData->GetSpacing();
-  double* origin = m_imageData->GetOrigin();
+  double vs[3] = {1,1,1};
+  double origin[3] = {0};
+  if (m_imageData != NULL)
+  {
+    m_imageData->GetSpacing(vs);
+    m_imageData->GetOrigin(origin);
+  }
   for ( int i = 0; i < 3; i++ )
   {
     pos_out[i] = vs[i] * pos[i] + origin[i];
@@ -2411,11 +2426,16 @@ void FSVolume::RASToTargetIndex( const double* pos_in, int* index_out )
 {
   double pos[3];
   RASToTarget( pos_in, pos );
-  double* vs = m_imageData->GetSpacing();
-  double* orig = m_imageData->GetOrigin();
+  double vs[3] = {1,1,1};
+  double origin[3] = {0};
+  if (m_imageData != NULL)
+  {
+    m_imageData->GetSpacing(vs);
+    m_imageData->GetOrigin(origin);
+  }
   for ( int i = 0; i < 3; i++ )
   {
-    index_out[i] = ( int )( ( pos[i] - orig[i] ) / vs[i] + 0.5 );
+    index_out[i] = ( int )( ( pos[i] - origin[i] ) / vs[i] + 0.5 );
   }
 }
 

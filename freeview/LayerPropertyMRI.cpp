@@ -12,8 +12,8 @@
  * Reimplemented by: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2011/05/27 14:16:52 $
- *    $Revision: 1.5 $
+ *    $Date: 2011/07/08 17:28:52 $
+ *    $Revision: 1.6 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -1092,7 +1092,6 @@ void LayerPropertyMRI::SetShowLabelOutline( bool bOutline )
     m_bShowLabelOutline = bOutline;
 
     emit LabelOutlineChanged( bOutline );
-
   }
 }
 

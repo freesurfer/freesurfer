@@ -1,14 +1,14 @@
 /**
  * @file  DialogSaveVolume.h
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief Dialog to save volume
  *
  */
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2011/06/30 18:19:25 $
- *    $Revision: 1.5 $
+ *    $Date: 2011/07/08 17:28:52 $
+ *    $Revision: 1.6 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2011/05/06 19:43:02 $
- *    $Revision: 1.46 $
+ *    $Date: 2011/07/08 17:28:52 $
+ *    $Revision: 1.47 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -185,7 +185,7 @@ void RenderView2D::UpdateViewByWorldCoordinate()
     break;
   }
 //  m_renderer->ResetCameraClippingRange();
-  cam->SetParallelScale( qMax( qMax(m_dWorldSize[0], m_dWorldSize[1]), m_dWorldSize[2]) );
+  cam->SetParallelScale( qMax( qMax(m_dWorldSize[0], m_dWorldSize[1]), m_dWorldSize[2])/2 );
 }
 
 void RenderView2D::UpdateAnnotation()
