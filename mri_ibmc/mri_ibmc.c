@@ -9,8 +9,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2011/07/06 22:17:10 $
- *    $Revision: 1.10 $
+ *    $Date: 2011/07/08 13:47:55 $
+ *    $Revision: 1.11 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -73,7 +73,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_ibmc.c,v 1.10 2011/07/06 22:17:10 greve Exp $";
+static char vcid[] = "$Id: mri_ibmc.c,v 1.11 2011/07/08 13:47:55 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -140,6 +140,7 @@ typedef struct
   int npairs;
   IBMC_PAIR **pair;
   double cost;
+  int DoSmooth;
 } IBMC;
 
 
@@ -461,7 +462,7 @@ int IBMCsetSliceBeta(IBMC_SLICE *slice, const double beta[6])
   return(0);
 }
 /*------------------------------------------------------------*/
-int IBMCpairCost(IBMC_PAIR *pair)
+int IBMCpairCost(IBMC *ibmc, int nthpair)
 {
   extern int ForceUpdate;
   IBMC_SLICE *sA, *sB;
@@ -470,7 +471,11 @@ int IBMCpairCost(IBMC_PAIR *pair)
   float valvect=0;
   static double colA[IBMC_NL_MAX], rowA[IBMC_NL_MAX];
   static double colB[IBMC_NL_MAX], rowB[IBMC_NL_MAX];
+  static double diff[IBMC_NL_MAX],diffsm[IBMC_NL_MAX];
   int nL,mth;
+  IBMC_PAIR *pair;
+
+  pair = ibmc->pair[nthpair];
 
   sA = pair->sliceA;
   sB = pair->sliceB;
@@ -534,7 +539,6 @@ int IBMCpairCost(IBMC_PAIR *pair)
   M22 = pair->M->rptr[2][2];
   M24 = pair->M->rptr[2][4];
 
-  pair->cost = 0;
   mth = 0;
   for(nth=0; nth < nL; nth++) {
     colB[nth] = M11*colA[nth] + M12*rowA[nth] + M14;
@@ -556,20 +560,34 @@ int IBMCpairCost(IBMC_PAIR *pair)
     MRIsampleSeqVolume(sB->mri, colB[nth], rowB[nth], 0, &valvect, 0, 0);
     pair->IB[mth] = valvect;
 
-    c = (pair->IA[mth]-pair->IB[mth])*(pair->IA[mth]-pair->IB[mth]);
-    if(isnan(c)){
-      printf("ERROR: pair cost at nthL=%d is NaN\n",nth);
-      //IBMCprintPair(p,stdout);
-      exit(1);
-    }
+    diff[mth] = pair->IA[mth] - pair->IB[mth];
+
     //printf("   %2d   %2d %2d   %2d %2d   %6.4f %6.4f   %6.4f\n",
     //   mth, (int)round(pair->colA[mth]), (int) round(pair->rowA[mth]), 
     //   (int)round(pair->colB[mth]),(int)round(pair->rowB[mth]),
     //   pair->IA[mth],pair->IB[mth],c);
-    pair->cost += c;
     mth ++;
   }
   pair->nL = mth;
+
+  if(ibmc->DoSmooth){
+    for(mth=0; mth < pair->nL; mth++) {
+      if(mth==0 || mth == pair->nL-1) {
+	diffsm[mth] = diff[mth];
+	continue;
+      }
+      diffsm[mth] = (diff[mth-1] + diff[mth] + diff[mth+1])/3.0;
+    }
+  }
+  else {
+    for(mth=0; mth < pair->nL; mth++) diffsm[mth] = diff[mth];
+  }
+
+  pair->cost = 0;
+  for(mth=0; mth < pair->nL; mth++) {
+    c = diffsm[mth] * diffsm[mth];
+    pair->cost += c;
+  }
 
   for(k=0; k<6; k++) {
     pair->betaAprev[k] = sA->beta[k];
@@ -588,7 +606,7 @@ double IBMCcost(IBMC *ibmc)
 
   cost=0;
   for(nthpair = 0; nthpair < ibmc->npairs; nthpair++){
-    IBMCpairCost(ibmc->pair[nthpair]);
+    IBMCpairCost(ibmc,nthpair);
     cost += ibmc->pair[nthpair]->cost;
   }
   cost /= ibmc->npairs;
@@ -690,6 +708,7 @@ int main(int argc, char *argv[])
   FILE *fp;
 
   ibmc = (IBMC *) calloc(sizeof(IBMC),1);
+  ibmc->DoSmooth = 0;
 
   nargs = handle_version_option (argc, argv, vcid, "$Name:  $");
   if (nargs && argc - nargs == 1) exit (0);
@@ -800,6 +819,7 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--a2b-rigid")) a2bmethod = IBMC_A2B_RIGID;
     else if (!strcasecmp(option, "--a2b-equal")) a2bmethod = IBMC_A2B_EQUAL;
     else if (!strcasecmp(option, "--line-min"))  DoLineMin = 1;
+    else if (!strcasecmp(option, "--smooth"))  ibmc->DoSmooth = 1;
     else if (!strcasecmp(option, "--low-tol")){
       TolPowell = 1e-1;
       LinMinTolPowell = 1e-1;
@@ -1233,8 +1253,8 @@ int IBMCprofile(IBMC *ibmc, char *ProfileFile)
   MATRIX *C;
   FILE *fp;
 
-  vmin = -5;
-  vmax = +5;
+  vmin = -3;
+  vmax = +3;
   dv = .05;
   nv = round((vmax-vmin)/dv);
 
