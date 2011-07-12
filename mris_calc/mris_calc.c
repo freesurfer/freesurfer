@@ -11,9 +11,9 @@
 /*
  * Original Author: Rudolph Pienaar
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2011/05/27 16:48:07 $
- *    $Revision: 1.42 $
+ *    $Author: rudolph $
+ *    $Date: 2011/07/12 17:15:09 $
+ *    $Revision: 1.43 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -34,6 +34,7 @@
 #include <math.h>
 #include <ctype.h>
 #include <sys/stat.h>
+#include <libgen.h>
 
 #include <assert.h>
 #include <errno.h>
@@ -61,7 +62,7 @@
 #define  START_i      	3
 
 static const char vcid[] =
-  "$Id: mris_calc.c,v 1.42 2011/05/27 16:48:07 greve Exp $";
+  "$Id: mris_calc.c,v 1.43 2011/07/12 17:15:09 rudolph Exp $";
 double fn_sign(float af_A);
 
 // ----------------------------------------------------------------------------
@@ -250,7 +251,7 @@ static e_operation      Ge_operation            = e_unknown;
 
 // Output file
 static int        	G_sizeCurv3             = 0;
-static char       	G_pch_curvFile3[STRBUF];
+static char		G_pch_curvFile3[STRBUF];
 static float*     	G_pf_arrayCurv3         = NULL;
 static float*           G_pf_arrayCurv3Copy     = NULL;
 static int              G_sizeCurv3Copy         = 0;
@@ -808,14 +809,13 @@ fileType_find(
   int   		len, type, filestat;
   float   		f     			= -1.0;
   char*  		pch_end;
-  char			pch_floatArg[64];
+  char			pch_floatArg[STRBUF];
   struct stat 	stFileInfo; 
   	
-	
   // The acph_inputFile can be either a file on the filesystem
   // or a float argument. Check if <apch_inputFile> is an actual 
   // file, if not, check if it converts to a float.
-  filestat = stat(apch_inputFile, &stFileInfo); 
+  filestat = stat(basename(apch_inputFile), &stFileInfo); 
   if(filestat) {
 	  // <apch_inputFile> does not seem to refer to a valid file.
 	  // Check if it converts to a float.
@@ -828,7 +828,7 @@ fileType_find(
   }
 	
   // Check if input is a volume file...
-  type 		 = mri_identify(apch_inputFile);
+  type 		 = mri_identify(basename(apch_inputFile));
   *ap_FSFILETYPE = type;
   if(type != MRI_VOLUME_TYPE_UNKNOWN && type != MRI_CURV_FILE)
   {
@@ -1339,7 +1339,7 @@ main(
   init();
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mris_calc.c,v 1.42 2011/05/27 16:48:07 greve Exp $",
+           "$Id: mris_calc.c,v 1.43 2011/07/12 17:15:09 rudolph Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
   {
@@ -1459,7 +1459,7 @@ options_parse(int argc, char *argv[])
   option = argv[1] + 1 ;            /* past '-' */
   if (!stricmp(option, "-output") || (toupper(*option) == 'O'))
   {
-    strcpy(G_pch_curvFile3, (argv[2]));
+    strcpy(G_pch_curvFile3, argv[2]);
     Gb_file3    	= 1;
     nargs         	= 1;
   }
@@ -1711,11 +1711,11 @@ VOL_fileRead(
 )
 {
 
-  char    pch_readMessage[STRBUF];
-  int   i, j, k, f;
-  int   I         = 0;
-  MRI*    pMRI        = NULL;
-  float*    pf_data       = NULL;
+  char    	pch_readMessage[STRBUF];
+  int   	i, j, k, f;
+  int   	I         		= 0;
+  MRI*    	pMRI        		= NULL;
+  float*    	pf_data       		= NULL;
 
   if(G_verbosity)
   {
@@ -1769,12 +1769,12 @@ VOL_fileWrite(
   // o Gp_MRI saved to <apchq_volFileName>.
   //
 
-  int   volSize;
-  int   i, j, k, f;
-  int   I       = 0;
-  char            pch_readMessage[STRBUF];
+  int   	volSize;
+  int   	i, j, k, f;
+  int   	I       		= 0;
+  char		pch_readMessage[STRBUF];
   int           ret;
-  MRI *out;
+  MRI 		*out;
 
   if(!Gp_MRI)
   {
@@ -1823,18 +1823,18 @@ VOL_fileWrite(
 #define   NEW_VERSION_MAGIC_NUMBER  16777215
 e_FILEACCESS
 CURV_fileRead(
-  char* apch_curvFileName,
-  int*  ap_vectorSize,
-  float*  apf_curv[]
+  char* 	apch_curvFileName,
+  int*  	ap_vectorSize,
+  float*  	apf_curv[]
 )
 {
 
-  FILE*   FP_curv;
-  int     vnum;
-  int     nvertices;
-  int     i;
-  char    pch_readMessage[STRBUF];
-  float*    pf_data       = NULL;
+  FILE*   	FP_curv;
+  int     	vnum;
+  int     	nvertices;
+  int     	i;
+  char    	pch_readMessage[STRBUF];
+  float*    	pf_data       		= NULL;
 
   if((FP_curv = fopen(apch_curvFileName, "r")) == NULL)
   {
@@ -2079,9 +2079,9 @@ CURV_process(void)
   float f_range         = 0.;
   int   mini            = -1;
   int   maxi            = -1;
-  float f_mean    = 0.;
-  float f_std     = 0.;
-  float f_dev     = 0.;
+  float f_mean    	= 0.;
+  float f_std     	= 0.;
+  float f_dev     	= 0.;
   char  pch_text[STRBUF];
 
   Ge_operation  = operation_lookup(G_pch_operator);
