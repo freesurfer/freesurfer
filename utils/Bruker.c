@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:41 $
- *    $Revision: 1.11 $
+ *    $Author: rpwang $
+ *    $Date: 2011/07/13 19:44:49 $
+ *    $Revision: 1.12 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -29,9 +29,9 @@
 /* created by : y.tosa                    */
 /* date       :8/27/2003                  */
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: nicks $
-// Revision Date  : $Date: 2011/03/02 00:04:41 $
-// Revision       : $Revision: 1.11 $
+// Revision Author: $Author: rpwang $
+// Revision Date  : $Date: 2011/07/13 19:44:49 $
+// Revision       : $Revision: 1.12 $
 
 // there are many files present in Bruker directory
 //
@@ -138,7 +138,7 @@
 
 /* Martin Hoerrmann. */
 
-char *BRUCKER_C_VERSION= "$Revision: 1.11 $";
+char *BRUCKER_C_VERSION= "$Revision: 1.12 $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -149,6 +149,7 @@ char *BRUCKER_C_VERSION= "$Revision: 1.11 $";
 #include "mri.h"
 #include "matrix.h"
 #include "Bruker.h"
+#include "utils.h"
 
 #define V4_LOAD(v, x, y, z, r)  (VECTOR_ELT(v,1)=x, VECTOR_ELT(v,2)=y, \
                                   VECTOR_ELT(v,3)=z, VECTOR_ELT(v,4)=r) ;
@@ -834,6 +835,7 @@ int readBrukerVolume(MRI *mri, char *dataFile)
   }
 
   for (k = 0; k < mri->depth; ++k)
+  {
     for (j = 0; j < mri->height; ++j)
     {
       nread = fread(mri->slices[k][j], sizeof(short), mri->width, fp);
@@ -850,6 +852,8 @@ int readBrukerVolume(MRI *mri, char *dataFile)
         swab(mri->slices[k][j], mri->slices[k][j], mri->width *sizeof(short));
       }
     }
+    exec_progress_callback(k, mri->depth, 0, 1);
+  }
 
   fclose(fp);
   return 1;

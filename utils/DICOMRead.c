@@ -6,9 +6,9 @@
 /*
  * Original Authors: Sebastien Gicquel and Douglas Greve, 06/04/2001
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2011/03/16 17:31:47 $
- *    $Revision: 1.135 $
+ *    $Author: rpwang $
+ *    $Date: 2011/07/13 19:44:49 $
+ *    $Revision: 1.136 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -115,6 +115,10 @@ MRI * sdcmLoadVolume(const char *dcmfile, int LoadVolume, int nthonly)
 
   sliceDirCosPresent = 0; // assume not present
 
+  /* split progress to 3 parts */
+  int nstart = global_progress_range[0];
+  int nend = global_progress_range[1];
+  global_progress_range[1] = nstart + (nend-nstart)/3;
   if (SDCMListFile != NULL)
     SeriesList = ReadSiemensSeries(SDCMListFile, &nlist, dcmfile);
   else
@@ -136,6 +140,8 @@ MRI * sdcmLoadVolume(const char *dcmfile, int LoadVolume, int nthonly)
   //nnlist,SeriesList[nnlist]);
   //fflush(stdout);
 
+  global_progress_range[0] = global_progress_range[1];
+  global_progress_range[1] += (nend-nstart)/3;
   printf("INFO: loading series header info.\n");
   sdfi_list = LoadSiemensSeriesInfo(SeriesList, nlist);
 
@@ -340,7 +346,13 @@ MRI * sdcmLoadVolume(const char *dcmfile, int LoadVolume, int nthonly)
 
 
   /* Return now if we're not loading pixel data */
-  if (!LoadVolume) return(vol);
+  if (!LoadVolume)
+  {
+    /* restore progress range */
+    global_progress_range[0] = nstart;
+    global_progress_range[1] = nend;
+    return(vol);
+  }
 
   if(strcmp(sdfi->TransferSyntaxUID,"1.2.840.10008.1.2.4.70")==0)
   {
@@ -370,6 +382,8 @@ MRI * sdcmLoadVolume(const char *dcmfile, int LoadVolume, int nthonly)
     nlist = nslices*nframes;
   }
   /* ------- Go through each file in the Run ---------*/
+  global_progress_range[0] = global_progress_range[1];
+  global_progress_range[1] += (nend-nstart)/3;
   for (nthfile = 0; nthfile < nlist; nthfile ++)
   {
 
@@ -462,7 +476,7 @@ MRI * sdcmLoadVolume(const char *dcmfile, int LoadVolume, int nthonly)
 
     FreeElementData(element);
     free(element);
-
+    exec_progress_callback(nthfile, nlist, 0, 1);
   }/* for nthfile */
 
   /* Determine whether Siemens has reversed the slice order prior to
@@ -516,6 +530,10 @@ MRI * sdcmLoadVolume(const char *dcmfile, int LoadVolume, int nthonly)
     free(sdfi_list[nlist]);
   }
   free(sdfi_list);
+
+  /* restore progress range */
+  global_progress_range[0] = nstart;
+  global_progress_range[1] = nend;
 
   return(vol);
 }
@@ -2121,6 +2139,7 @@ SDCMFILEINFO **LoadSiemensSeriesInfo(char **SeriesList, int nList)
       free(sdfi_list);
       return(NULL);
     }
+    exec_progress_callback(n, nList, 0, 1);
   }
   fprintf(stderr,"\n");
   fflush(stdout);
@@ -2287,6 +2306,7 @@ char **ScanSiemensSeries(const char *dcmfile, int *nList)
         (*nList)++;
       }
     }
+    exec_progress_callback(i, NFiles, 0, 1);
   }
   fprintf(stderr,"INFO: found %d files in series\n",*nList);
   fflush(stderr);
@@ -4090,6 +4110,7 @@ void *ReadDICOMImage(int nfiles, DICOMInfo **aDicomInfo)
       free(PixelData16);
       break;
     }
+    exec_progress_callback(n, nfiles, 0, 1);
   }
 
   for (i=0; i<3; i++)
@@ -4205,6 +4226,7 @@ void *ReadDICOMImage2(int nfiles, DICOMInfo **aDicomInfo, int startIndex)
       free(PixelData16);
       break;
     }
+    exec_progress_callback(n, nfiles, 0, 1);
   }
   // fill missing info
   for (i=0; i<3; i++)
@@ -4771,6 +4793,7 @@ MRI *DICOMRead2(const char *dcmfile, int LoadVolume)
         free(element);
         nthfile++;
       } // frame
+      exec_progress_callback(f, nframes, s, nslices);
     } // slice
   } // 16 bit
 

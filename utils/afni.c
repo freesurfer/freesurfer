@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2011/03/16 17:31:46 $
- *    $Revision: 1.11 $
+ *    $Author: rpwang $
+ *    $Date: 2011/07/13 19:44:49 $
+ *    $Revision: 1.12 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -28,9 +28,9 @@
 // afni.c
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2011/03/16 17:31:46 $
-// Revision       : $Revision: 1.11 $
+// Revision Author: $Author: rpwang $
+// Revision Date  : $Date: 2011/07/13 19:44:49 $
+// Revision       : $Revision: 1.12 $
 //
 // moved out from mriio.c
 //
@@ -44,6 +44,7 @@
 #include "AFNI.h"
 #include "machine.h"
 #include "mghendian.h"
+#include "utils.h"
 
 #ifdef Linux
 extern void swab(const void *from, void *to, size_t n);
@@ -1007,6 +1008,7 @@ MRI *afniRead(const char *fname, int read_volume)
             }
           }
         } // height
+        exec_progress_callback(k, mri->depth, frame, header->nframes);
       } // depth
       // valid only for nframs == 1
       {
