@@ -2,9 +2,9 @@
 ## tkm_functional.tcl
 ##
 ## CVS Revision Info:
-##    $Author: nicks $
-##    $Date: 2011/03/01 01:41:22 $
-##    $Revision: 1.43 $
+##    $Author: greve $
+##    $Date: 2011/07/14 22:07:25 $
+##    $Revision: 1.44 $
 ##
 ## Copyright (C) 2002-2011, CorTechs Labs, Inc. (La Jolla, CA) and
 ## The General Hospital Corporation (Boston, MA).
@@ -459,10 +459,11 @@ proc Overlay_DoConfigDlog {} {
 	
 	frame $fwTimePointTop
 
+	set iRange [list 0 $nMaxTimePoint]
 	tkm_MakeEntryWithIncDecButtons \
 	    $fwTimePoint "Time Point (0-$nMaxTimePoint)" \
 	    gnOverlayTimePoint \
-	    {} 1
+	    {} 1 $iRange
 
 	# Play and stop buttons for animating the overlay.
 	button $fwLoopTimePoint \
