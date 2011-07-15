@@ -1,0 +1,339 @@
+#!/usr/bin/env python
+# -*- coding: latin-1 -*-
+
+#
+# long_submit_stuff
+#
+# script to submit jobs for longitudinal data
+#
+# Original Author: Martin Reuter
+# CVS Revision Info:
+#    $Author: mreuter $
+#    $Date: 2011/07/15 17:52:14 $
+#    $Revision: 1.1.2.2 $
+#
+# Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+#
+# Terms and conditions for use, reproduction, distribution and contribution
+# are found in the 'FreeSurfer Software License Agreement' contained
+# in the file 'LICENSE' found in the FreeSurfer distribution, and here:
+#
+# https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
+#
+# Reporting: freesurfer@nmr.mgh.harvard.edu
+#
+#
+
+import warnings
+warnings.filterwarnings('ignore', '.*negative int.*')
+import os
+import sys
+import shlex
+import optparse
+import logging
+import subprocess
+import tempfile
+import shutil
+import time
+import stat
+from subject_info import *
+from LongQdecTable import *
+
+# logging 
+ch = logging.StreamHandler()
+#create logger
+logger = logging.getLogger("long_submit_jobs")
+logger.setLevel(logging.INFO)
+logger.addHandler(ch)
+
+"""
+=======================================================================================================
+EDIT mycluster to make this work on your specific cluster
+=======================================================================================================
+"""
+
+# edit mycluster (see examples for launchpad or seychelles) to run on your cluster
+#  at minimum you need to pass %(command)s to specify the place where the comand file goes
+mycluster = ''
+# also edit the queue flag if your submit command takes a queue parameter
+#  ( will only be used if --queue is passed on comand line to long_submit_jobs )
+queueflag ='-q'
+
+# examples for our servers:
+launchpad ='pbsubmit -c "%(command)s" -m %(username)s -e -n %(nodes)s'
+seychelles='pbsubmit -c "%(command)s" -m %(username)s -e -l nodes=1:opteron'
+
+def submit(fname,nodes,queue):
+    """
+    submits jobs to the cluster using pbsubmit
+    """
+    
+    user     = os.getenv('USER')
+    hostname = os.getenv('HOSTNAME')
+        
+    # assemble the command (maybe modify to your needs):
+    if hostname == "launchpad":
+        pbcmd = launchpad % {'command':fname,'username':user,'nodes':nodes}
+    elif hostname == "seychelles":
+        pbcmd = seychelles % {'command':fname,'username':user}
+    else:
+        pbcmd = mycluster % {'command':fname,'username':user}
+        
+    # adding a queue if passed (using queueflag defined above)
+    if queue is not None and queue != "" and pbcmd != "":
+        pbcmd = pbcmd+' '+queueflag+' '+queue
+    # Done assemble command
+     
+    if pbcmd == "":
+        print "job submission failed, maybe unknown host "+hostname
+        print "you can use --simulate if not on cluster"
+        sys.exit(1)
+        
+    print pbcmd+'\n'
+    args = shlex.split(pbcmd)
+    try:
+        retcode = subprocess.call(args)
+    except OSError, e:
+        print "job submission failed:", e 
+        sys.exit(1)
+        
+    if retcode != 0 :
+        print 'ERROR: while submitting job'
+        sys.exit(1)
+    print '\n'
+
+
+def wait_jobs(maxjobs):
+    """
+    wait until jobs of user drop below maxjobs
+    uses qstat output to count current user jobs
+    if qstat cannot be run, it will return without waiting (and start submitting)
+    """
+    
+    user = os.getenv('USER')
+    
+    count = 1
+    while True:
+        localtime = time.asctime( time.localtime(time.time()) )
+        # basically run:
+        #   qstat | grep $USER | wc -l
+        
+        
+        #  first try if qstat can be run:
+        try:
+            p1 = subprocess.Popen(["qstat"], stdout=subprocess.PIPE)
+        except OSError, e:
+            print "qstat execution failed:", e 
+            return
+        # concat with grep
+        p2 = subprocess.Popen(["grep", user], stdin=p1.stdout, stdout=subprocess.PIPE)
+        p1.stdout.close()  # Allow p1 to receive a SIGPIPE if p2 exits.
+        # and with wc -l
+        p3 = subprocess.Popen(["wc", "-l"], stdin=p2.stdout, stdout=subprocess.PIPE)
+        p2.stdout.close()  # Allow p2 to receive a SIGPIPE if p3 exits.
+        # get results into num:
+        num = p3.communicate()[0]
+         
+        # stop if slots available
+        if int(num) <= maxjobs:
+            break
+
+        #else wait
+        #count = count - 1
+        #if count == 0:
+        print('\rwaiting: '+str(int(num))+' jobs on cluster ... ('+localtime+')'),
+        sys.stdout.flush()
+        #    count = 10 
+        time.sleep(30)
+
+    
+"""
+=======================================================================================================
+You should not need to edit anything below 
+=======================================================================================================
+"""
+
+
+HELPTEXT = """
+
+SUMMARY
+
+Submits jobs to the cluster (either seychelles or launchpad at NMR) for 
+longitudinal post-processing. 
+The script will run based on a qdec table (long format) and will wait
+with submission of base or long until necessary files are available.
+It can call any other longitudinal processing script that takes a
+--qdec flag and will submit a call to that program with the passed
+parameters for each individual fsid-base in the qdec table separately.
+
+
+REFERENCES
+==========
+Highly Accurate Inverse Consistent Registration: A Robust Approach,
+M. Reuter, H.D. Rosas, B. Fischl. NeuroImage 53 (4), pp. 1181-1196, 2010.
+  http://dx.doi.org/10.1016/j.neuroimage.2010.07.020
+  http://reuter.mit.edu/papers/reuter-robreg10.pdf 
+
+Avoiding Asymmetry-Induced Bias in Longitudinal Image Processing,
+M. Reuter, B. Fischl. NeuroImage 57 (1), pp. 19-21, 2011.
+  http://dx.doi.org/10.1016/j.neuroimage.2011.02.076
+  http://reuter.mit.edu/papers/reuter-bias11.pdf 
+
+"""
+
+
+
+def options_parse():
+    """
+    Command Line Options Parser for long_mris_slopes
+    initiate the option parser and return the parsed object
+    """
+    parser = optparse.OptionParser(version='$Id: long_submit_postproc,v 1.1.2.2 2011/07/15 17:52:14 mreuter Exp $', usage=HELPTEXT)
+    
+    # help text
+    h_qdec      = '(REQUIRED) qdec table file specifying the subjects and time points'
+    h_prog      = '(REQUIRED) longitudinal script to call'
+    h_flags     = 'parameters (without --qdec) to pass to prog (using quotes "...")'
+    h_dir       = 'directory to store sub-tables and command files'
+
+    h_simulate  = 'do not submit anything, just print commands'
+    h_pause     = 'pause in sec between submissions (default: 13)'
+    h_max       = 'max num of jobs of this user (default: 100)'
+    h_queue     = 'special queue to submit'
+    
+    # Add options 
+
+    # Sepcify inputs
+    parser.add_option('--qdec', dest='qdec', help=h_qdec)
+    parser.add_option('--prog', dest='prog', help=h_prog)
+    parser.add_option('--flags', dest='flags', help=h_flags)
+    parser.add_option('--dir', dest='dir', help=h_dir, default='./')
+
+    parser.add_option('--simulate', action='store_true', dest='simulate',  help=h_simulate , default=False)
+    parser.add_option('--pause' , dest='pause' , help=h_pause, default=13, type="float")
+    parser.add_option('--max'   , dest='max'   , help=h_max, default=100, type="int")
+    parser.add_option('--queue' , dest='queue' , help=h_queue)
+        
+    
+                      
+    (options, args) = parser.parse_args()
+
+    # WITHOUT FREESURFER DO NOTHING
+    fshome = os.getenv('FREESURFER_HOME')
+    if fshome is None:
+        print 'ERROR: environment variable FREESURFER_HOME not set'
+        sys.exit(1)
+
+    # extensive error checks
+    if options.qdec is None or options.prog is None:
+        print 'ERROR: Specify --qedc and --prog'
+        print '       or run with --help for help.'
+        sys.exit(1)
+
+    if not os.path.exists(options.dir):
+        os.makedirs(options.dir) 
+
+    return options
+
+
+    
+def wait_file(sdir,sid,lpath,interval):
+     # e.g. wait for norm.mgz in cross dirs while still running
+    fname = os.path.join(sdir,sid,lpath)
+    frun  = os.path.join(sdir,sid,"scripts","IsRunning.lh+rh")
+    waited=0
+    
+    while ( (not os.path.exists(fname)) and os.path.exists(frun)):
+        sys.stdout.write('.')
+        sys.stdout.flush()
+        waited=1
+        time.sleep(interval)
+            
+    # maybe job stopped running before file was created?
+    if not os.path.exists(frun) and not os.path.exists(fname):
+        print("\n")
+        waited = 2
+        return waited
+    
+    #make sure norm is written
+    if waited==1:
+        time.sleep(20)
+        print("\n")
+        
+    return waited
+   
+   
+def check_file(sdir,sid,lpath):
+
+    spath = os.path.join(sdir,sid)
+    fname = os.path.join(sdir,sid,lpath)
+    frun  = os.path.join(sdir,sid,"scripts","IsRunning.lh+rh")
+    
+    if os.path.exists(fname) and os.access(fname,os.R_OK):
+        return 0 # file is there and readable
+       
+    if os.path.exists(frun):
+        return 1 # file is not there, but is running
+     
+    if os.path.exists(spath) and os.access(spath,os.R_OK) and os.access(spath,os.X_OK):
+        return 2    # file is not there and not running, directory exists and is rx
+        
+    if os.path.exists(spath):
+        return 3 # sid directory exists, but not rx
+        
+    return 4 # sid directory does not exist
+
+    
+
+if __name__=="__main__":
+    # Command Line options and error checking done here
+    options = options_parse()
+    logger.debug('-- The options you entered --')
+    logger.debug(options) 
+
+    defaultvar  = ''
+    subjectsdir = ''
+    # Parse the stats files 
+    print 'Parsing the qdec table: '+options.qdec
+    try:
+        logger.debug('Processing file ' + options.qdec)
+        qdectable = LongQdecTable(options.qdec)
+        #subjects_tp_map, variables, subjectdir = qdecparse.parse()
+    except BadFileError, e:
+        print 'ERROR: qdec table '+options.qdec+' not found!'
+        sys.exit(1)
+
+    # make sure we have a long table containing the bases if base or long specified
+    if qdectable.cross:
+        print '\nERROR: qdec table '+options.qdec+' is cross sectional\n       (2nd column not \'fsid-base\')!'
+        print '       Specify longitudinal qdec table.\n'
+        sys.exit(1)
+
+    alltables = qdectable.split('fsid-base')
+    total = 0
+    submitted = 0
+    for table in alltables:
+        total = total+1
+        outname= os.path.join(options.dir,"long.qdec."+table.commonval+".dat")
+        print 'Writing the qdec table: '+outname
+        table.write(outname) 
+
+        cmd = options.prog+" "+options.flags+" --qdec "+outname
+        if not options.simulate:
+            cmdf=os.path.join(options.dir,"long.command."+table.commonval+".cmdf")
+            f = open(cmdf, 'w')
+            f.write(cmd+"\n")
+            f.close()
+            os.chmod(cmdf,stat.S_IRWXU)
+         
+            wait_jobs(options.max)
+            submit(cmdf,1,options.queue)
+            submitted = submitted + 1
+            print "Submitted: "+str(submitted)+"\n"
+            time.sleep(options.pause)
+        else:
+            print cmd
+
+       
+    # always exit with 0 exit code
+    sys.exit(0)
