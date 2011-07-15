@@ -130,12 +130,12 @@ for i in `eval echo {$startIndex..$endIndex}`; do
     if [ $side = right ]; then
       echo "Doing right side"
       Hippocampus="Right-Hippocampus"
-      CA23="right_CA2-3"
+      CA23="right_CA2_3"
       CA1="right_CA1"
       fimbria="right_fimbria"
       presubiculum="right_presubiculum"
       hippocampal_fissure="right_hippocampal_fissure"
-      CA4DG="right_CA4-DG"
+      CA4DG="right_CA4_DG"
       subiculum="right_subiculum"
 
       compressionLookupTableFileName="$atlasDirectory/compressionLookupTable.txt"
@@ -143,12 +143,12 @@ for i in `eval echo {$startIndex..$endIndex}`; do
     else 
       echo "Doing left side"
       Hippocampus="Left-Hippocampus"
-      CA23="left_CA2-3"
+      CA23="left_CA2_3"
       CA1="left_CA1"
       fimbria="left_fimbria"
       presubiculum="left_presubiculum"
       hippocampal_fissure="left_hippocampal_fissure"
-      CA4DG="left_CA4-DG"
+      CA4DG="left_CA4_DG"
       subiculum="left_subiculum"
 
       compressionLookupTableFileName="$atlasDirectory/compressionLookupTable_left.txt"
