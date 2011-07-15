@@ -9,8 +9,8 @@
 # Original Author: Martin Reuter
 # CVS Revision Info:
 #    $Author: mreuter $
-#    $Date: 2011/06/20 19:14:53 $
-#    $Revision: 1.30 $
+#    $Date: 2011/07/15 16:49:43 $
+#    $Revision: 1.31 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -44,20 +44,7 @@ slopelogger = logging.getLogger("long_mris_slopes")
 slopelogger.setLevel(logging.INFO)
 slopelogger.addHandler(ch)
 
-
-HELPTEXT = """
-
-SUMMARY
-
-Computes slope maps (e.g. of thickness) in a longitudinal study.
-The slope is computed within subject from the longitudinally processed
-results (taken from the <tpNid>.long.<template> directories) and the
-output is written into the subjects <template>/surf directory for further
-processing (e.g. group analysis). Will also output the intersections of
-all within-subject cortex labels in <template>/label/?h.long.cortex.label
-if an input label is not specified with --inlabel <name> or if no different
-output name is specified with --outlabel <name> .
-
+ARGTEXT = """
 
 REQUIRED ARGUMENTS
 
@@ -123,6 +110,21 @@ To ouput stacked/intersected results on the qtarget (all require --qcache) :
 
 --stack-spc <name>   Output stacked spc maps on <qtarget> for all fwhm levels
 
+"""
+
+HELPTEXT = """
+
+SUMMARY
+=======
+
+Computes slope maps (e.g. of thickness) in a longitudinal study.
+The slope is computed within subject from the longitudinally processed
+results (taken from the <tpNid>.long.<template> directories) and the
+output is written into the subjects <template>/surf directory for further
+processing (e.g. group analysis). Will also output the intersections of
+all within-subject cortex labels in <template>/label/?h.long.cortex.label
+if an input label is not specified with --inlabel <name> or if no different
+output name is specified with --outlabel <name> .
 
 
 DETAILS
@@ -131,6 +133,7 @@ DETAILS
 
 QDEC.TABLE
 ==========
+
 Pass a qdec table file, where the first 2 columns need to be 'fsid  fsid-base'.
 fsid is the id of the individual time points an 'fsid-base' the template/base
 id (grouping the timepoints that belong to the same subject). By default the
@@ -150,46 +153,85 @@ Bert_3   Bert       9.9    34    2400
 
 If you like, you can create an independent qdec table file for each subject,
 containing only the time points of that subject (e.g. to process stuff
-simultaneously). You can also run left and right hemisphere at the same time.
+simultaneously). You can also run left and right hemisphere in parallel.
 
 
-OUTPUT
-======
-The output will be written into the template surf directory (unless qcache
-is used):
-
-<template>/surf/<hemi>.<NAME>(.fwhm<fwhm>).mgh
+ANALYSIS
+========
 
 Choose one or more of the following options:
-*  'do-rate' for rate, this will compute the slope of a linear fit.
-   Depending on the time variable will yield the thinning in mm/time
-   (if the time variable is measured in years, such as age: mm/year).
-*  'do-pc1' is the percent change, this is the rate normalized by the
-   measure at the first time point times 100, e.g. percent thinning per year.
-*  'do-spc' for symmetrized percent change. Here we normalize by the temporal
-   average instead of taking it from the first time point. The average is
-   computed from the linear fit at the middle of the time interval.
-   This is a symmetric 'percent thinning per year' and more robust, as TP1
-   can be an outlier.
-*  'do-avg' for output of the temporal average (linear fit at mid time).
+
+* 'do-rate' for rate, this will compute the slope of a linear fit across
+     time within each subject. Depending on the time variable this will
+     yield the thinning in mm/time (if the time variable is measured in
+     years, such as age: mm/year).
+* 'do-pc1' is the percent change, this is the rate normalized by the
+     measure at the first time point times 100, e.g. percent thinning per
+     year.
+* 'do-spc' for symmetrized percent change. Here we normalize by the temporal
+     average instead of taking it from the first time point. The average
+     is computed from the linear fit at the middle of the time interval.
+     This is a symmetric 'percent thinning per year' and more robust, as
+     TP1 can be an outlier.
+* 'do-avg' for output of the temporal average (linear fit evaluated at mid
+     time).
 
 NOTE that for percent change (pc1 and spc) prior smoothing (--fwhm) is
 highly recommended as the division can produce very large values!
 
 
-CORTEX LABEL
-============
+WITHIN SUBJECT OUTPUT
+=====================
+
+The output of the within subject surface maps will be written into the
+template's surf directory:
+
+     <template>/surf/<hemi>.<NAME>(.fwhm<fwhm>).mgh
+
+For each of the above analysis, the <NAME> can be manually specified
+using --name-rate, --name-pc1, --name-spc, --name-avg. Defaults are
+long.<meas>-rate, long.<meas>-pc1 etc.
+
+It is possible to also store the stack of the measure across time in each
+subject using -do-stack. The default is destination is
+<template>/surf/<hemi>.<NAME>(.fwhm<fwhm>).mgh
+with <NAME> = 'long.<meas>-stack' which can be overwritten with
+--out-stack <NAME>
+
+
+CORTEX LABELS
+=============
+
+Create within subject intersections:
 It is recommended to specify --do-label which will intersect the cortex label
-of all time point within a subject. The intersected label is stored to 
-<template>/label/<HEMI>.<OUT_LABEL> (where default <OUT_LABEL>=long.cortex).
-The <name> can be overwritten by --out-label <OUT_LABEL>.
+of all time points within each subject. The intersected label is saved to 
+<template>/label/<HEMI>.<OUT_LABEL> (default: <OUT_LABEL>=long.cortex).
+The <OUT_LABEL> part can be manually specified by --out-label <OUT_LABEL>.
+
+Map to common target subject (qcache, see also below):
 If additionally --qcache and --isec-labels <name> is specified, these labels
 will be mapped and intersected on the <qtarget> and output will be written
-to <name>.
+to <name> (where <name> is the full path and filename of the output label).
+
+Use existing labels:
+An existing label can be used and is specified with --in-label <name> where
+<name> is the label name without the hemisphere as found in each subjects
+template label dir: template/label/<hemi>.<name>
+for example 'long.cortex.label' to use previously created intersected labels
+or just 'cortex.label' to use the label from each template.
+
+Only intersect existing qtarget labels:
+If labels were mapped to qtarget (with --qcache) before and need to be
+intersected again (e.g. if subjects were removed) use
+--in-label <name>.<qtarget>.label --qcache <qtarget> --iscec-labels <outlabel>
+but don't specify any do-??? flags as within subject analysis will fail
+using the qtarget labels.
+
 
 
 QCACHE
 ======
+
 In order to run a group analysis with QDEC all surface measures need to be 
 resampled to some target. If you plant to use QDEC, specify --qcache <qtarget>.
 You can select the qtarget (needs to be in the subjectsdir), usually fsaverage
@@ -211,27 +253,49 @@ If cortex labels are intersected (--do-label), it will also be mapped to
 the qtarget and output as:
 <template>/label/<HEMI>.<NAME>(.fwhm<fwhm>).<QTARGET>.mgh
 
+Stacking all maps on QTARGET:
+You can specify --stack-??? to stack all maps on qtarget, this is needed
+if you plan to run your own GLM's (mri_glmfit). It is possible to stack
+previously created qtarget maps, simply do not run any subject analysis
+with do-???.
+
+
 
 EXAMPLES
 ========
+
 Simply create avg, rate, pc1, spc for each subject. Also will output
 the stacked thickness files and will intersect the cortex label. Here we
 work on the left hemisphere (lh) and use smoothing of 15 fwhm. Note that
 'age' is the column secifying the age in the long.qdec.table.dat file:
 
-long_mris_slopes --qdec ./long.qdec.table.dat --meas thickness --hemi lh \
-  --do-avg --do-rate --do-pc1 --do-spc --do-stack --do-label \
-  --fwhm 15 --time age
+long_mris_slopes --qdec ./long.qdec.table.dat --meas thickness --hemi lh \ 
+  --do-avg --do-rate --do-pc1 --do-spc --do-stack --do-label \ 
+  --fwhm 15 --time age --sd ./
 
-or to create Qdec cache on fsaverage:
+To create Qdec cache on fsaverage (several fwhm levels):
 
-long_mris_slopes --qdec ./long.qdec.table.dat --meas thickness --hemi lh \
-  --do-avg --do-rate --do-pc1 --do-spc --do-stack --do-label \
-  --time age --qcache fsaverage
+long_mris_slopes --qdec ./long.qdec.table.dat --meas thickness --hemi lh \ 
+  --do-avg --do-rate --do-pc1 --do-spc --do-stack --do-label \ 
+  --time age --qcache fsaverage --sd ./ 
+ 
+To stack results for spc and fwhm 15:
+
+long_mris_slopes --qdec ./long.qdec.table.dat --meas thickness --hemi lh \ 
+   --fwhm 15 --qcache fsaverage --stack-spc ./lh.thickness-spc.stack.mgh \ 
+   --sd ./
+
+To intersect previously mapped cortex labels:
+
+long_mris_slopes --qdec ./long.qdec.table.dat --hemi lh \ 
+   --qcache fsaverage --in-label long.cortex.fsaverage.label \ 
+   --isec-labels ./lh.long.isec.fsaverage.cotex.label --sd ./
+  
   
   
 REFERENCES
 ==========
+
 Highly Accurate Inverse Consistent Registration: A Robust Approach,
 M. Reuter, H.D. Rosas, B. Fischl. NeuroImage 53 (4), pp. 1181-1196, 2010.
   http://dx.doi.org/10.1016/j.neuroimage.2010.07.020
@@ -251,13 +315,15 @@ def options_parse():
     Command Line Options Parser for long_mris_slopes
     initiate the option parser and return the parsed object
     """
-    parser = optparse.OptionParser(version='$Id: long_mris_slopes,v 1.30 2011/06/20 19:14:53 mreuter Exp $', usage=HELPTEXT)
+    parser = optparse.OptionParser(version='$Id: long_mris_slopes,v 1.31 2011/07/15 16:49:43 mreuter Exp $', usage=HELPTEXT)
     
     # help text
 #    h_fsgd = '(REQUIRED) fsdg file specifying the subjects and time points'
     h_qdec      = '(REQUIRED) qdec table file specifying the subjects and time points'
     h_meas      = '(REQUIRED) the surface input measure (e.g. thickness)'
     h_hemi      = '(REQUIRED) run one hemisphere: lh or rh'
+    
+    h_sd        = '(REQUIRED) full path to FreeSurfer subjects dir'
 
     h_doavg     = 'compute and output the temporal average (recommended)'
     h_dorate    = 'compute and output the rate (recommended)'
@@ -266,10 +332,10 @@ def options_parse():
     h_dostack   = 'save the stacked within subject file (time series)'
     h_dolabel   = 'compute and output intersected cortex label (recommended)'
 
-    h_out_avg   = 'filename (without hemi ?h) to store temporal average in <template>/surf/<hemi>.<OUT_AVG>.mgh (default: long.<meas>-avg)'
-    h_out_rate  = 'filename (without hemi ?h) to store rate in <template>/surf/<hemi>.<OUT_RATE>.mgh (default: long.<meas>-rate)'
-    h_out_pc1   = 'filename (without hemi ?h) to store pct. change (to TP1) in <template>/surf/<hemi>.<OUT_PC1>.mgh (default: long.<meas>-pc1)'
-    h_out_spc   = 'filename (without hemi ?h) to store sym. pct. change in <template>/surf/<hemi>.<OUT_SPC>.mgh (default: long.<meas>-spc)'
+    h_name_avg  = 'filename (without hemi ?h) to store temporal average in <template>/surf/<hemi>.<NAME_AVG>.mgh (default: long.<meas>-avg)'
+    h_name_rate = 'filename (without hemi ?h) to store rate in <template>/surf/<hemi>.<NAME_RATE>.mgh (default: long.<meas>-rate)'
+    h_name_pc1  = 'filename (without hemi ?h) to store pct. change (to TP1) in <template>/surf/<hemi>.<NAME_PC1>.mgh (default: long.<meas>-pc1)'
+    h_name_spc  = 'filename (without hemi ?h) to store sym. pct. change in <template>/surf/<hemi>.<NAME_SPC>.mgh (default: long.<meas>-spc)'
     h_outstack  = 'filename to store stacked measure file <template>/surf/<hemi>.<OUT_STACK>.mgh (default: long.<meas>-stack)'
     h_outlabel  = 'filename to store within-subject intersected cortex labels in <template>/label/<hemi>.<OUT_LABEL>.label (default: long.cortex)'
 
@@ -294,6 +360,7 @@ def options_parse():
     parser.add_option('--qdec', dest='qdec', help=h_qdec)
     parser.add_option('--meas', dest='meas', help=h_meas)
     parser.add_option('--hemi', dest='hemi', help=h_hemi, choices=('lh','rh'))
+    parser.add_option('--sd',   dest='sd'  , help=h_sd)
 
     # do computations:
     parser.add_option('--do-avg'  , action='store_true', dest='do_avg'  , help=h_doavg  , default=False)
@@ -310,13 +377,13 @@ def options_parse():
     parser.add_option('--in-label' , dest='in_label' , help=h_inlabel)
     parser.add_option('--qcache' , dest='qcache' , help=h_qcache)
     
-    # overwrite default output names:
-    parser.add_option('--out-avg'  , dest='out_avg'  , help=h_out_avg)
-    parser.add_option('--out-rate' , dest='out_rate' , help=h_out_rate)
-    parser.add_option('--out-pc1'  , dest='out_pc1'  , help=h_out_pc1)
-    parser.add_option('--out-spc'  , dest='out_spc'  , help=h_out_spc)
-    parser.add_option('--out-stack', dest='out_stack', help=h_outstack)
-    parser.add_option('--out-label', dest='out_label', help=h_outlabel, default="long.cortex")
+    # overwrite default names:
+    parser.add_option('--name-avg'  , dest='name_avg'  , help=h_name_avg)
+    parser.add_option('--name-rate' , dest='name_rate' , help=h_name_rate)
+    parser.add_option('--name-pc1'  , dest='name_pc1'  , help=h_name_pc1)
+    parser.add_option('--name-spc'  , dest='name_spc'  , help=h_name_spc)
+    parser.add_option('--out-stack' , dest='out_stack', help=h_outstack)
+    parser.add_option('--out-label' , dest='out_label', help=h_outlabel, default="long.cortex")
     
     # stuff on common qcache target:
     parser.add_option('--isec-labels', dest='isec_labels', help=h_iseclabels)
@@ -345,52 +412,70 @@ def options_parse():
         print 'ERROR: Specify --hemi (e.g. \'lh\')'
         sys.exit(1)
  
-    if options.do_avg and options.out_avg is None:
-        options.out_avg = 'long.'+options.meas+'-avg'
-    elif options.out_avg is not None:
-        options.do_avg = True
-    if options.do_rate and options.out_rate is None:
-        options.out_rate = 'long.'+options.meas+'-rate'
-    elif options.out_rate is not None:
-        options.do_rate = True
-    if options.do_pc1 and options.out_pc1 is None:
-        options.out_pc1 = 'long.'+options.meas+'-pc1'
-    elif options.out_pc1 is not None:
-        options.do_pc1 = True
-    if options.do_spc and options.out_spc is None:
-        options.out_spc = 'long.'+options.meas+'-spc'
-    elif options.out_spc is not None:
-        options.do_spc = True
+    if options.do_avg and options.name_avg is None:
+        options.name_avg = 'long.'+options.meas+'-avg'
+#    elif options.name_avg is not None:
+#        options.do_avg = True
+    if options.do_rate and options.name_rate is None:
+        options.name_rate = 'long.'+options.meas+'-rate'
+#    elif options.name_rate is not None:
+#        options.do_rate = True
+    if options.do_pc1 and options.name_pc1 is None:
+        options.name_pc1 = 'long.'+options.meas+'-pc1'
+#    elif options.name_pc1 is not None:
+#        options.do_pc1 = True
+    if options.do_spc and options.name_spc is None:
+        options.name_spc = 'long.'+options.meas+'-spc'
+#    elif options.name_spc is not None:
+#        options.do_spc = True
     if options.do_stack and options.out_stack is None:
         options.out_stack = 'long.'+options.meas+'-stack'
-    elif options.out_stack is not None:
-        options.do_stack = True
+#    elif options.out_stack is not None:
+#        options.do_stack = True
 
     do_analysis = options.do_avg or options.do_pc1 or options.do_spc or options.do_rate    
     if options.meas is None and do_analysis:
         print 'ERROR: Specify --meas (e.g. \'thickness\')'
         sys.exit(1)
     
+    if options.sd is None:
+        print 'ERROR: Specify the subject dir with --sd <fullpath>'
+        sys.exit(1)   
+    
     if options.meas is None: options.meas = "label" #needed later to create tmp dir
+
+    do_stacking = options.stack_spc is not None or options.stack_pc1 is not None or options.stack_rate is not None or options.stack_avg is not None
+    if do_stacking and options.qcache is None:
+        print 'ERROR: --stack-??? requires target subject (e.g. fsaverage) as specified with --qcache'
+        sys.exit(1)
+
+    # if we run analysis, but no label is created or passed
+    if do_analysis and not options.do_label and options.in_label is None:
+        print 'ERROR: either create intersected labels with --do-label or specify input label names with --in-label'
+        sys.exit(1)
+
+    # if labels should be created and are also passed:
+    if options.do_label and options.in_label is not None:
+        print 'ERROR: either create intersected labels with --do-label or specify input label names with --in-label'
 
     # switch on do_label if output is specified but no input
     if options.isec_labels is not None and options.in_label is None:
         options.do_label = True 
            
-    if not do_analysis and not options.do_label:
-        print 'ERROR: Analysis type should be specified, use one or more of --do-avg, --do-rate, --do-pc1 or --do-spc or --do-label'
+    if not do_analysis and not options.do_label and not do_stacking and options.isec_labels is None:
+        print 'ERROR: Analysis type should be specified, use one or more of --do-avg, --do-rate, --do-pc1, --do-spc, --do-label, --stack-??? or --isec-labels'
         sys.exit(1)
     
     if options.fwhm is not None and options.nosmooth:
         print 'ERROR: either specify --fwhm <int> or --nosmooth'
         sys.exit(1)
         
-    if (options.out_pc1 is not None or options.out_spc is not None) and options.fwhm is None and not options.nosmooth and options.qcache is None:
+    if (options.name_pc1 is not None or options.name_spc is not None) and options.fwhm is None and not options.nosmooth and options.qcache is None:
         print 'ERROR: when computing SPC or PC1 (pct. change) you should specify smoothing --fwhm <int>. If you really do not want to smooth pass --nosmooth'
         sys.exit(1)
     
     if options.isec_labels is not None and options.qcache is None:
-        print 'ERROR: --isec-labels requires target as specified with --qcache'
+        print 'ERROR: --isec-labels requires target subject (e.g. fsaverage) as specified with --qcache'
         sys.exit(1)
     
     return options
@@ -432,13 +517,15 @@ def intersect_labels(labellist,outlabel):
     if os.path.exists(outlabel):
        os.remove(outlabel)
 
+    first = True
     for label in labellist:
         if not os.path.exists(label):
             print 'ERROR: '+str(label)+' does not exist!'
             sys.exit(1)
         
-        if not os.path.exists(outlabel):
+        if first:
             cmd = 'cp '+label+' '+outlabel
+            first = False
         else:
             cmd = 'mris_label_calc intersect '+label+' '+outlabel+' '+outlabel
             
@@ -521,7 +608,7 @@ if __name__=="__main__":
         qdectable = LongQdecTable(options.qdec)
         #subjects_tp_map, variables, subjectdir = qdecparse.parse()
     except BadFileError, e:
-        print 'ERROR: qdec table '+options.qdec+' not found!'
+        print 'ERROR: qdec table '+options.qdec+' not found or empty?'
         sys.exit(1)
     
     # make sure we have a long table containing the bases
@@ -557,12 +644,17 @@ if __name__=="__main__":
     # maybe later check if time column is really a float?
 
     # if env is set, overwrite info from file (if it was passed in qdec)
-    subjectsdir = qdectable.subjectsdir
-    sdir = os.getenv('SUBJECTS_DIR')
-    if sdir is not None:
-        subjectsdir = sdir
+    subjectsdir = options.sd
+    if subjectsdir is None:
+        subjectsdir = os.getenv('SUBJECTS_DIR')
+    if subjectsdir is None:
+        subjectsdir = qdectable.subjectsdir
+    if subjectsdir is None:
+        print'\nERROR: no subjects dir specified, use --sd <fullpath>'
+        sys.exit(1)
     print '\nWorking in SUBJECTS_DIR: '+subjectsdir+'\n'
-
+    os.environ['SUBJECTS_DIR'] =  subjectsdir
+    
     if options.qcache is not None:
         # check if qcache target exists
         qsdir = os.path.join(subjectsdir,options.qcache)
@@ -628,10 +720,7 @@ if __name__=="__main__":
                 cmd = cmd+' --regmethod surface --hemi '+options.hemi
                 run_cmd(cmd,'mri_label2label mapping the label failed?') 
                 tlabels.append(outlabel)
-        
-        if not (options.do_pc1 or options.do_avg or options.do_spc or options.do_rate):
-            continue #only do label
-        
+
         if options.in_label is not None:
             label = os.path.join(basedir,'label',options.in_label)
             if not os.path.exists(label):
@@ -644,6 +733,46 @@ if __name__=="__main__":
                         print '\nERROR: cannot find '+options.in_label+' or '+label+'\n'
                         sys.exit(1)
             tlabels.append(label)
+        
+        # setup fwhms (either specified or full list):
+        fwhms = [ 0 ] 
+        if options.qcache is not None and options.fwhm is None:
+            fwhms = [ 0 , 5, 10, 15, 20, 25 ]
+        elif options.fwhm is not None:
+            fwhms = [ options.fwhm ] 
+        
+        # create lists of ouput filenames for stacking on qcache (depending on type)
+        if options.qcache is not None:
+            for fwhm in fwhms:
+                fwhmstr = '.fwhm'+str(fwhm)
+                if options.stack_spc is not None:
+                    outtname= os.path.join(basesurfdir,options.hemi+'.'+options.name_spc+fwhmstr+'.'+options.qcache+'.mgh')
+                    if fwhm not in tspc:
+                        tspc[fwhm] = []
+                    tspc[fwhm].append(outtname)
+
+                if options.stack_pc1 is not None:
+                    outtname = os.path.join(basesurfdir,options.hemi+'.'+options.name_pc1+fwhmstr+'.'+options.qcache+'.mgh')
+                    if fwhm not in tpc1:
+                        tpc1[fwhm] = []
+                    tpc1[fwhm].append(outtname)
+
+                if options.stack_rate is not None:
+                    outtname = os.path.join(basesurfdir,options.hemi+'.'+options.name_rate+fwhmstr+'.'+options.qcache+'.mgh')
+                    if fwhm not in trate:
+                        trate[fwhm] = []
+                    trate[fwhm].append(outtname)
+        
+                if options.stack_avg is not None:
+                    outtname = os.path.join(basesurfdir,options.hemi+'.'+options.name_avg+fwhmstr+'.'+options.qcache+'.mgh')
+                    if fwhm not in tavg:
+                        tavg[fwhm] = []
+                    tavg[fwhm].append(outtname)
+        
+        # if no subject base processing, continue:
+        if not (options.do_pc1 or options.do_avg or options.do_spc or options.do_rate):
+            continue #skip within subject processing and mapping to target
+        
         
         # list of thickness files:
         measures=[os.path.join(subjectsdir,entry,'surf',options.hemi+'.'+options.meas) for entry in tpids]
@@ -749,12 +878,6 @@ if __name__=="__main__":
         
         # either of the cases:        
         
-        fwhms = [ 0 ] 
-        if options.qcache is not None and options.fwhm is None:
-            fwhms = [ 0 , 5, 10, 15, 20, 25 ]
-        elif options.fwhm is not None:
-            fwhms = [ options.fwhm ] 
-            
         allout=[]
         alltout=[]
         for fwhm in fwhms:
@@ -798,7 +921,7 @@ if __name__=="__main__":
             if options.do_spc:
                 print "\n==============================================================================="
                 print "SUBJECT "+subjectid+" fwhm "+str(fwhm)+"  computing SPC\n"
-                outname = os.path.join(basesurfdir,options.hemi+'.'+options.out_spc+fwhmstr+'.mgh')
+                outname = os.path.join(basesurfdir,options.hemi+'.'+options.name_spc+fwhmstr+'.mgh')
                 # compute symmetrized pct change:
                 cmd = 'mris_calc -o '+outname+' '+beta1fwhm+' div '+beta0fwhm
                 run_cmd(cmd,'mris_calc compute sym. pct. change (spc) problem?')    
@@ -806,16 +929,13 @@ if __name__=="__main__":
                 run_cmd(cmd,'mris_calc compute sym. pct. change (spc) problem?')    
                 allout.append(outname)
                 if options.qcache is not None:
-                    outtname= os.path.join(basesurfdir,options.hemi+'.'+options.out_spc+fwhmstr+'.'+options.qcache+'.mgh')
+                    outtname= os.path.join(basesurfdir,options.hemi+'.'+options.name_spc+fwhmstr+'.'+options.qcache+'.mgh')
                     alltout.append(outtname)
-                    if fwhm not in tspc:
-                        tspc[fwhm] = []
-                    tspc[fwhm].append(outtname)
 
             if options.do_pc1:
                 print "\n==============================================================================="
                 print "SUBJECT "+subjectid+" fwhm "+str(fwhm)+"  computing PC1\n"
-                outname = os.path.join(basesurfdir,options.hemi+'.'+options.out_pc1+fwhmstr+'.mgh')
+                outname = os.path.join(basesurfdir,options.hemi+'.'+options.name_pc1+fwhmstr+'.mgh')
                 # compute pct change:
                 cmd = 'mris_calc -o '+outname+' '+beta1fwhm+' div '+tp1fwhm
                 run_cmd(cmd,'mris_calc compute percent change (pc1) problem?')
@@ -823,41 +943,32 @@ if __name__=="__main__":
                 run_cmd(cmd,'mris_calc compute percent change (pc1) problem?')
                 allout.append(outname)
                 if options.qcache is not None:
-                    outtname = os.path.join(basesurfdir,options.hemi+'.'+options.out_pc1+fwhmstr+'.'+options.qcache+'.mgh')
+                    outtname = os.path.join(basesurfdir,options.hemi+'.'+options.name_pc1+fwhmstr+'.'+options.qcache+'.mgh')
                     alltout.append(outtname)
-                    if fwhm not in tpc1:
-                        tpc1[fwhm] = []
-                    tpc1[fwhm].append(outtname)
             
             if options.do_rate: 
                 print "\n==============================================================================="
                 print "SUBJECT "+subjectid+" fwhm "+str(fwhm)+"  computing Rate\n"
-                outname = os.path.join(basesurfdir,options.hemi+'.'+options.out_rate+fwhmstr+'.mgh')
+                outname = os.path.join(basesurfdir,options.hemi+'.'+options.name_rate+fwhmstr+'.mgh')
                 # mul 1 to remove everything outside the label:
                 cmd = 'mris_calc -o '+outname+' --label '+label+' '+beta1fwhm+' mul 1'
                 run_cmd(cmd,'mris_calc masking with label (rate)') 
                 allout.append(outname)
                 if options.qcache is not None:
-                    outtname = os.path.join(basesurfdir,options.hemi+'.'+options.out_rate+fwhmstr+'.'+options.qcache+'.mgh')
+                    outtname = os.path.join(basesurfdir,options.hemi+'.'+options.name_rate+fwhmstr+'.'+options.qcache+'.mgh')
                     alltout.append(outtname)
-                    if fwhm not in trate:
-                        trate[fwhm] = []
-                    trate[fwhm].append(outtname)
             
             if  options.do_avg:
                 print "\n==============================================================================="
                 print "SUBJECT "+subjectid+" fwhm "+str(fwhm)+"  computing AVG\n"
-                outname = os.path.join(basesurfdir,options.hemi+'.'+options.out_avg+fwhmstr+'.mgh')
+                outname = os.path.join(basesurfdir,options.hemi+'.'+options.name_avg+fwhmstr+'.mgh')
                 # mul 1 to remove everything outside the label:
                 cmd = 'mris_calc -o '+outname+' --label '+label+' '+beta0fwhm+' mul 1'
                 run_cmd(cmd,'mris_calc masking with label (avg)') 
                 allout.append(outname)
                 if options.qcache is not None:
-                    outtname = os.path.join(basesurfdir,options.hemi+'.'+options.out_avg+fwhmstr+'.'+options.qcache+'.mgh')
+                    outtname = os.path.join(basesurfdir,options.hemi+'.'+options.name_avg+fwhmstr+'.'+options.qcache+'.mgh')
                     alltout.append(outtname)
-                    if fwhm not in tavg:
-                        tavg[fwhm] = []
-                    tavg[fwhm].append(outtname)
 
         # end iterate fwhm levels
 

@@ -9,8 +9,8 @@
 # Original Author: Martin Reuter
 # CVS Revision Info:
 #    $Author: mreuter $
-#    $Date: 2011/06/21 19:47:59 $
-#    $Revision: 1.14 $
+#    $Date: 2011/07/15 16:49:43 $
+#    $Revision: 1.15 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -176,12 +176,13 @@ def options_parse():
     Command Line Options Parser for long_mris_slopes
     initiate the option parser and return the parsed object
     """
-    parser = optparse.OptionParser(version='$Id: long_stats_slopes,v 1.14 2011/06/21 19:47:59 mreuter Exp $', usage=HELPTEXT)
+    parser = optparse.OptionParser(version='$Id: long_stats_slopes,v 1.15 2011/07/15 16:49:43 mreuter Exp $', usage=HELPTEXT)
     
     # help text
     h_qdec      = '(REQUIRED) qdec table file specifying the subjects and time points'
     h_stats     = '(REQUIRED) the stats file, e.g. aseg.stats or lh.aparc.stats'
     h_meas      = '(REQUIRED) the stats measure (e.g. volume, thickness, mean, std)'
+    h_sd        = '(REQUIRED) full path to FreeSurfer subjects dir'
 
     h_doavg     = 'compute and output the temporal average'
     h_dorate    = 'compute and output the rate'
@@ -209,6 +210,7 @@ def options_parse():
     parser.add_option('--qdec', dest='qdec', help=h_qdec)
     parser.add_option('--stats', dest='stats', help=h_stats)
     parser.add_option('--meas', dest='meas', help=h_meas)
+    parser.add_option('--sd',   dest='sd'  , help=h_sd)
 
     # do computations:
     parser.add_option('--do-avg'  , action='store_true', dest='do_avg'  , help=h_doavg  , default=False)
@@ -250,6 +252,11 @@ def options_parse():
     if options.meas is None:
         print 'ERROR: Specify --meas (e.g. \'volume\')'
         sys.exit(1)
+
+    if options.sd is None:
+        print 'ERROR: Specify the subject dir with --sd <fullpath>'
+        sys.exit(1)   
+    
  
     crosslong = 'long.'
     if options.cross:
@@ -373,11 +380,16 @@ if __name__=="__main__":
     # maybe later check if time column is really a float?
 
     # if env is set, overwrite info from file (if it was passed in qdec)
-    subjectsdir = qdectable.subjectsdir
-    sdir = os.getenv('SUBJECTS_DIR')
-    if sdir is not None:
-        subjectsdir = sdir
+    subjectsdir = options.sd
+    if subjectsdir is None:
+        subjectsdir = os.getenv('SUBJECTS_DIR')
+    if subjectsdir is None:
+        subjectsdir = qdectable.subjectsdir
+    if subjectsdir is None:
+        print'\nERROR: no subjects dir specified, use --sd <fullpath>'
+        sys.exit(1)
     print '\nWorking in SUBJECTS_DIR: '+subjectsdir+'\n'
+    os.environ['SUBJECTS_DIR'] =  subjectsdir
     
     # process
     retcode = 0
