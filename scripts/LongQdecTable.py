@@ -1,5 +1,5 @@
 # Original author - Martin Reuter
-# $Id: LongQdecTable.py,v 1.1.2.3 2011/04/26 17:03:41 mreuter Exp $
+# $Id: LongQdecTable.py,v 1.1.2.4 2011/07/15 17:52:00 mreuter Exp $
 import os
 import logging
 import sys
@@ -25,7 +25,7 @@ class LongQdecTable:
     cross = True
     
     # constructor
-    def __init__(self, stpmap, vari=None, sdir=None,cval=None):
+    def __init__(self, stpmap, vari=None, sdir=None,cval=None,cross=True):
         if isinstance(stpmap,str):
            self.parse(stpmap)
         else:
@@ -33,6 +33,7 @@ class LongQdecTable:
            self.variables = vari
            self.subjectsdir = sdir
            self.commonval = cval
+           self.cross = cross
     
                         
     # we read in the file
@@ -50,64 +51,71 @@ class LongQdecTable:
         
         gotheaders = False
         for line in fp:
-            # valid line
+            # remove WS from begining and end:
+            line = line.strip()
+            # skip empty line
+            if len(line) == 0:
+                continue
+            # skip comment
+            if line[0] == '#':
+                continue
 
-            if line.rfind('#') == -1:
-                strlst = line.split()
-                #print strlst[0].upper()
-                if strlst[0].upper() == 'SUBJECTS_DIR':
-                    self.subjectsdir = strlst[1]
-                    
-                elif strlst[0].upper() == 'FSID':
-                    gotheaders = True
-                    if not strlst[1].upper() == 'FSID-BASE':
-                        print '\nWarning: second column is not \'fsid-base\' assuming cross sectional qdec table\n'
-                        #print '\nERROR: Make sure second column is \'fsid-base\' to specify the subject tempate (base)\n'
-                        #sys.exit(1)
-                    else:
-                        self.cross = False
-                    self.variables= strlst[2:]  # 0 is tpid, 1 is templateid
-                    
+            strlst = line.split()
+            #print strlst[0].upper()
+            if strlst[0].upper() == 'SUBJECTS_DIR':
+                self.subjectsdir = strlst[1]
+                
+            elif strlst[0].upper() == 'FSID':
+                gotheaders = True
+                if not strlst[1].upper() == 'FSID-BASE':
+                    print '\nWarning: second column is not \'fsid-base\' assuming cross sectional qdec table\n'
+                    #print '\nERROR: Make sure second column is \'fsid-base\' to specify the subject tempate (base)\n'
+                    #sys.exit(1)
                 else:
-                    if not gotheaders:
-                        print '\nERROR: qdec table missing correct column headers?'
-                        print '       Make sure first column is labeled \'fsid\' for the time point and'
-                        print '       second column is \'fsid-base\' to specify the subject tempate (base), e.g.:\n'
-                        print ' fsid    fsid-base   age '
-                        print ' me1     me          22.3 '
-                        print ' me2     me          23.2 '
-                        print ' you1    you         21.6 '
-                        print ' you2    you         22.5\n'                
+                    self.cross = False
+                self.variables= strlst[2:]  # 0 is tpid, 1 is templateid
+                
+            else:
+                if not gotheaders:
+                    print '\nERROR: qdec table missing correct column headers?'
+                    print '       Make sure first column is labeled \'fsid\' for the time point and'
+                    print '       second column is \'fsid-base\' to specify the subject tempate (base), e.g.:\n'
+                    print ' fsid    fsid-base   age '
+                    print ' me1     me          22.3 '
+                    print ' me2     me          23.2 '
+                    print ' you1    you         21.6 '
+                    print ' you2    you         22.5\n'                
+                    sys.exit(1)
+                    
+                # check if time point already exists:
+                #base is in second column:
+                key = strlst[1]
+                # if cross format, use fsid for base:
+                if self.cross:
+                    key = strlst[0]
+                # fsid is the time point:    
+                tp  = strlst[0]
+                # if base exists
+                if key in self.subjects_tp_map:
+                    # if cross, make sure fsid does not have duplicates
+                    if self.cross:
+                        print '\nERROR: no fsid-base in header, but fsid '+key+' seems to exists multiple times?\n'
                         sys.exit(1)
-                        
-                    # check if time point already exists:
-                    #base is in second column:
-                    key = strlst[1]
-                    # if cross format, use fsid for base:
-                    if self.cross:
-                        key = strlst[0]
-                    # fsid is the time point:    
-                    tp  = strlst[0]
-                    # if base exists
-                    if key in self.subjects_tp_map:
-                        # if cross, make sure fsid does not have duplicates
-                        if self.cross:
-                            print '\nERROR: no fsid-base in header, but fsid '+key+' seems to exists multiple times?\n'
+                    # append this time point to this base
+                    for tpdata in self.subjects_tp_map[key]:
+                        if tpdata[0] == tp:
+                            print 'ERROR: Multiple occurence of time point (fsid) \''+tp+'\' in (fsid-base) '+key+'!'
                             sys.exit(1)
-                        # append this time point to this base
-                        for tpdata in self.subjects_tp_map[key]:
-                            if tpdata[0] == tp:
-                                print 'ERROR: Multiple occurence of time point (fsid) \''+tp+'\' in (fsid-base) '+key+'!'
-                                sys.exit(1)
-                    else:
-                        self.subjects_tp_map[key] = []
-                    # append tp and data to this subject
-                    if self.cross:
-                        self.subjects_tp_map[key].append( [tp] + strlst[1:]  )
-                    else:
-                        self.subjects_tp_map[key].append( [tp] + strlst[2:]  )
-
+                else:
+                    self.subjects_tp_map[key] = []
+                # append tp and data to this subject
+                if self.cross:
+                    self.subjects_tp_map[key].append( [tp] + strlst[1:]  )
+                else:
+                    self.subjects_tp_map[key].append( [tp] + strlst[2:]  )
         fp.close()
+        if len(self.subjects_tp_map) == 0:
+            raise BadFileError(filename)        
         return self.subjects_tp_map, self.variables, self.subjectsdir, self.cross
 
 
@@ -127,7 +135,7 @@ class LongQdecTable:
             for key,value in self.subjects_tp_map.items():
                 stpmap = StableDict()
                 stpmap[key] = value
-                alltables.append(LongQdecTable(stpmap,self.variables,"",key))        
+                alltables.append(LongQdecTable(stpmap,self.variables,"",key,self.cross))        
 
         elif col in self.variables:
 #            for key,value in self.subject_tp_map:

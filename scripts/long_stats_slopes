@@ -9,8 +9,8 @@
 # Original Author: Martin Reuter
 # CVS Revision Info:
 #    $Author: mreuter $
-#    $Date: 2011/06/20 19:17:38 $
-#    $Revision: 1.4.2.8 $
+#    $Date: 2011/07/15 17:52:01 $
+#    $Revision: 1.4.2.9 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -176,12 +176,13 @@ def options_parse():
     Command Line Options Parser for long_mris_slopes
     initiate the option parser and return the parsed object
     """
-    parser = optparse.OptionParser(version='$Id: long_stats_slopes,v 1.4.2.8 2011/06/20 19:17:38 mreuter Exp $', usage=HELPTEXT)
+    parser = optparse.OptionParser(version='$Id: long_stats_slopes,v 1.4.2.9 2011/07/15 17:52:01 mreuter Exp $', usage=HELPTEXT)
     
     # help text
     h_qdec      = '(REQUIRED) qdec table file specifying the subjects and time points'
     h_stats     = '(REQUIRED) the stats file, e.g. aseg.stats or lh.aparc.stats'
     h_meas      = '(REQUIRED) the stats measure (e.g. volume, thickness, mean, std)'
+    h_sd        = '(REQUIRED) full path to FreeSurfer subjects dir'
 
     h_doavg     = 'compute and output the temporal average'
     h_dorate    = 'compute and output the rate'
@@ -202,12 +203,14 @@ def options_parse():
     h_stack_pc1 = 'full filename to stack pct. change to tp1 tables (default no stacking)'
     h_stack_spc = 'full filename to stack sym. pct. tables (default no stacking)'
     
+    h_cross     = 'use cross sectional results (for testing only)'
     # Add options 
 
     # Sepcify inputs
     parser.add_option('--qdec', dest='qdec', help=h_qdec)
     parser.add_option('--stats', dest='stats', help=h_stats)
     parser.add_option('--meas', dest='meas', help=h_meas)
+    parser.add_option('--sd',   dest='sd'  , help=h_sd)
 
     # do computations:
     parser.add_option('--do-avg'  , action='store_true', dest='do_avg'  , help=h_doavg  , default=False)
@@ -230,6 +233,8 @@ def options_parse():
     parser.add_option('--stack-rate' , dest='stack_rate' , help=h_stack_rate)
     parser.add_option('--stack-pc1'  , dest='stack_pc1'  , help=h_stack_pc1)
     parser.add_option('--stack-spc'  , dest='stack_spc'  , help=h_stack_spc)
+
+    parser.add_option('--cross', action='store_true', dest='cross', help=h_cross, default=False)
                       
     (options, args) = parser.parse_args()
     
@@ -247,25 +252,34 @@ def options_parse():
     if options.meas is None:
         print 'ERROR: Specify --meas (e.g. \'volume\')'
         sys.exit(1)
+
+    if options.sd is None:
+        print 'ERROR: Specify the subject dir with --sd <fullpath>'
+        sys.exit(1)   
+    
+ 
+    crosslong = 'long.'
+    if options.cross:
+        crosslong = 'cross.'
  
     if options.out_avg is None:
-        options.out_avg = 'long.'+options.stats+'.'+options.meas+'-avg.dat'
+        options.out_avg = crosslong+options.stats+'.'+options.meas+'-avg.dat'
     else: 
         options.do_avg = True
     if options.out_rate is None:
-        options.out_rate = 'long.'+options.stats+'.'+options.meas+'-rate.dat'
+        options.out_rate = crosslong+options.stats+'.'+options.meas+'-rate.dat'
     else: 
         options.do_rate = True
     if options.out_pc1 is None:
-        options.out_pc1 = 'long.'+options.stats+'.'+options.meas+'-pc1.dat'
+        options.out_pc1 = crosslong+options.stats+'.'+options.meas+'-pc1.dat'
     else:
         options.do_pc1 = True
     if options.out_spc is None:
-        options.out_spc = 'long.'+options.stats+'.'+options.meas+'-spc.dat'
+        options.out_spc = crosslong+options.stats+'.'+options.meas+'-spc.dat'
     else:
         options.do_spc = True
     if options.out_stack is None:
-        options.out_stack = 'long.'+options.stats+'.'+options.meas+'-stack.dat'
+        options.out_stack = crosslong+options.stats+'.'+options.meas+'-stack.dat'
     else:
         options.do_stack = True
     
@@ -366,11 +380,16 @@ if __name__=="__main__":
     # maybe later check if time column is really a float?
 
     # if env is set, overwrite info from file (if it was passed in qdec)
-    subjectsdir = qdectable.subjectsdir
-    sdir = os.getenv('SUBJECTS_DIR')
-    if sdir is not None:
-        subjectsdir = sdir
+    subjectsdir = options.sd
+    if subjectsdir is None:
+        subjectsdir = os.getenv('SUBJECTS_DIR')
+    if subjectsdir is None:
+        subjectsdir = qdectable.subjectsdir
+    if subjectsdir is None:
+        print'\nERROR: no subjects dir specified, use --sd <fullpath>'
+        sys.exit(1)
     print '\nWorking in SUBJECTS_DIR: '+subjectsdir+'\n'
+    os.environ['SUBJECTS_DIR'] =  subjectsdir
     
     # process
     retcode = 0
@@ -402,7 +421,10 @@ if __name__=="__main__":
             sys.exit(1)
         
         # extract ids and age data:
-        tpids = [entry[0]+'.long.'+subjectid for entry in tplist]
+        if options.cross:
+            tpids = [entry[0] for entry in tplist]
+        else:
+            tpids = [entry[0]+'.long.'+subjectid for entry in tplist]
         times = [float(entry[varidx]) for entry in tplist]
         num   = len(times)
         meant = sum(times) / num
