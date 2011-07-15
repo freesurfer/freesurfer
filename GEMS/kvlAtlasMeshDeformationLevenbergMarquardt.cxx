@@ -81,7 +81,7 @@ AtlasMeshDeformationLevenbergMarquardt
 
   // Set up the linear system of equations ( Hessian + lambda * diag( Hessian ) ) * x = gradient
   // in a manner that GMM++ likes
-#if 0  
+#if 1  
   gmm::row_matrix< gmm::wsvector< double > >  lhs( m_Hessian->ncols(), m_Hessian->ncols() );
   gmm::copy( *m_Hessian, lhs );
   gmm::resize( lhs, lhs.nrows()-1, lhs.ncols()-1 );  // Loose last entry that was used to put immobile components
