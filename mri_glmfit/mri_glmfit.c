@@ -14,8 +14,8 @@
  * Original Author: Douglas N Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2011/05/05 20:54:08 $
- *    $Revision: 1.202 $
+ *    $Date: 2011/07/18 02:46:21 $
+ *    $Revision: 1.203 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -555,7 +555,7 @@ static int SmoothSurfOrVol(MRIS *surf, MRI *mri, MRI *mask, double SmthLevel);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-"$Id: mri_glmfit.c,v 1.202 2011/05/05 20:54:08 greve Exp $";
+"$Id: mri_glmfit.c,v 1.203 2011/07/18 02:46:21 greve Exp $";
 const char *Progname = "mri_glmfit";
 
 int SynthSeed = -1;
@@ -625,6 +625,7 @@ char *cmdline, cwd[2000];
 
 char *MaxVoxBase = NULL;
 int DontSave = 0;
+int DontSaveWn = 0;
 
 int DoSim=0;
 int synth = 0;
@@ -1167,7 +1168,7 @@ int main(int argc, char **argv) {
     if (mritmp==NULL) exit(1);
     if (weightsqrt || weightinv) {
       sprintf(tmpstr,"%s/wn.%s",GLMDir,format);
-      if (!DontSave) MRIwrite(mriglm->w,tmpstr);
+      if(!DontSave && !DontSaveWn) MRIwrite(mriglm->w,tmpstr);
     }
   } else mriglm->w = NULL;
 
@@ -2053,6 +2054,7 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--eres-scm")) eresSCMSave = 1;
     else if (!strcasecmp(option, "--save-cond")) condSave = 1;
     else if (!strcasecmp(option, "--dontsave")) DontSave = 1;
+    else if (!strcasecmp(option, "--dontsavewn")) DontSaveWn = 1;
     else if (!strcasecmp(option, "--synth"))   synth = 1;
     else if (!strcasecmp(option, "--mask-inv"))  maskinv = 1;
     else if (!strcasecmp(option, "--prune"))    prunemask = 1;
