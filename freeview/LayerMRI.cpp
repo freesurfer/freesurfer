@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2011/07/08 17:28:52 $
- *    $Revision: 1.103 $
+ *    $Date: 2011/07/21 19:30:09 $
+ *    $Revision: 1.104 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -45,6 +45,7 @@
 #include "vtkCellArray.h"
 #include "vtkContourFilter.h"
 #include "vtkTubeFilter.h"
+#include "vtkImageCast.h"
 #include "vtkSphereSource.h"
 #include "vtkCubeSource.h"
 #include "vtkAppendPolyData.h"
@@ -111,6 +112,8 @@ LayerMRI::LayerMRI( LayerMRI* ref, QObject* parent ) : LayerVolumeBase( parent )
     vtkSmartPointer<vtkPolyDataMapper> mapper2 = vtkSmartPointer<vtkPolyDataMapper>::New();
     m_glyphActor2D[i]->SetMapper( mapper );
     m_glyphActor3D[i]->SetMapper( mapper2 );
+
+    m_projectionMapActor[i] = vtkImageActor::New();
   }
 
   m_actorContour = vtkSmartPointer<vtkActor>::New();
@@ -143,6 +146,7 @@ LayerMRI::~LayerMRI()
     m_sliceActor3D[i]->Delete();
     m_glyphActor2D[i]->Delete();
     m_glyphActor3D[i]->Delete();
+    m_projectionMapActor[i]->Delete();
   }
 
   if ( m_sFilename.size() > 0 )
@@ -190,6 +194,7 @@ void LayerMRI::ConnectProperty()
   connect( p, SIGNAL(UpSampleMethodChanged(int)), this, SLOT(UpdateUpSampleMethod()) );
   connect( this, SIGNAL(SurfaceRegionAdded()), this, SIGNAL(ActorChanged()));
   connect( this, SIGNAL(SurfaceRegionRemoved()), this, SIGNAL(ActorChanged()));
+  connect( p, SIGNAL(ProjectionMapShown(bool)), this, SLOT(UpdateProjectionMap()));
 }
 
 
@@ -729,6 +734,7 @@ void LayerMRI::Append2DProps( vtkRenderer* renderer, int nPlane )
   else
   {
     renderer->AddViewProp( m_sliceActor2D[nPlane] );
+    renderer->AddViewProp(m_projectionMapActor[nPlane]);
   }
 }
 
@@ -804,6 +810,8 @@ void LayerMRI::OnSlicePositionChanged( int nPlane )
   vtkSmartPointer<vtkMatrix4x4> matrix =
     vtkSmartPointer<vtkMatrix4x4>::New();
   matrix->Identity();
+  double origin[3] = {0};
+  m_imageData->GetOrigin(origin);
   switch ( nPlane )
   {
   case 0:
@@ -815,6 +823,10 @@ void LayerMRI::OnSlicePositionChanged( int nPlane )
     m_sliceActor3D[0]->SetPosition( m_dSlicePosition[0], 0, 0 );
     m_sliceActor3D[0]->RotateX( 90 );
     m_sliceActor3D[0]->RotateY( 90 );
+    m_projectionMapActor[0]->PokeMatrix( matrix );
+    m_projectionMapActor[0]->SetPosition( m_dSlicePosition[0], origin[1], origin[2] );
+    m_projectionMapActor[0]->RotateX( 90 );
+    m_projectionMapActor[0]->RotateY( 90 );
 
     // Putting negatives in the reslice axes cosines will flip the
     // image on that axis.
@@ -831,6 +843,9 @@ void LayerMRI::OnSlicePositionChanged( int nPlane )
     m_sliceActor3D[1]->PokeMatrix( matrix );
     m_sliceActor3D[1]->SetPosition( 0, m_dSlicePosition[1], 0 );
     m_sliceActor3D[1]->RotateX( 90 );
+    m_projectionMapActor[1]->PokeMatrix( matrix );
+    m_projectionMapActor[1]->SetPosition( origin[0], m_dSlicePosition[1], origin[2] );
+    m_projectionMapActor[1]->RotateX( 90 );
 
     // Putting negatives in the reslice axes cosines will flip the
     // image on that axis.
@@ -845,11 +860,12 @@ void LayerMRI::OnSlicePositionChanged( int nPlane )
     // m_sliceActor2D[2]->RotateY( 180 );
     m_sliceActor3D[2]->SetPosition( 0, 0, m_dSlicePosition[2] );
     // m_sliceActor3D[2]->RotateY( 180 );
+    m_projectionMapActor[2]->SetPosition( origin[0], origin[1], m_dSlicePosition[2] );
 
     mReslice[2]->SetResliceAxesDirectionCosines( 1, 0, 0,
         0, 1, 0,
         0, 0, 1 );
-    mReslice[2]->SetResliceAxesOrigin( 0, 0, m_dSlicePosition[2]  );
+    mReslice[2]->SetResliceAxesOrigin( 0, 0, m_dSlicePosition[2] );
     mReslice[2]->Modified();
     break;
   }
@@ -902,10 +918,11 @@ void LayerMRI::SetVisible( bool bVisible )
 {
   for ( int i = 0; i < 3; i++ )
   {
-    m_sliceActor2D[i]->SetVisibility( bVisible ? 1 : 0 );
+    m_sliceActor2D[i]->SetVisibility( bVisible && !GetProperty()->GetShowProjectionMap() );
     m_sliceActor3D[i]->SetVisibility( bVisible ? 1 : 0 );
     m_glyphActor2D[i]->SetVisibility( bVisible ? 1 : 0 );
     m_glyphActor3D[i]->SetVisibility( bVisible ? 1 : 0 );
+    m_projectionMapActor[i]->SetVisibility( bVisible && GetProperty()->GetShowProjectionMap() );
   }
   m_actorContour->SetVisibility( bVisible ? 1 : 0 );
   LayerVolumeBase::SetVisible(bVisible);
@@ -913,7 +930,7 @@ void LayerMRI::SetVisible( bool bVisible )
 
 bool LayerMRI::IsVisible()
 {
-  return m_sliceActor2D[0]->GetVisibility() > 0;
+  return (m_sliceActor2D[0]->GetVisibility() || m_projectionMapActor[0]->GetVisibility());
 }
 
 double LayerMRI::GetVoxelValue( double* pos )
@@ -2469,5 +2486,87 @@ void LayerMRI::ReplaceVoxelValue(double orig_value, double new_value, int nPlane
     }
   }
   SetModified();
+  emit ActorUpdated();
+}
+
+void LayerMRI::UpdateProjectionMap()
+{
+  if (this->m_projectionMapActor[0]->GetInput() == NULL)
+  {
+    int m_dim[3];
+    m_imageData->GetDimensions(m_dim);
+    vtkSmartPointer<vtkImageData> images[3];
+    float* ptrs[3];
+    for (int i = 0; i < 3; i++)
+    {
+      vtkSmartPointer<vtkImageData> image = images[i] = vtkSmartPointer<vtkImageData>::New();
+      int dim[3];
+      m_imageData->GetDimensions(dim);
+      image->SetSpacing(m_imageData->GetSpacing());
+      dim[i] = 1;
+      image->SetDimensions(dim);
+      image->SetNumberOfScalarComponents( 1 );
+      image->SetScalarTypeToFloat();
+  //    image->SetOrigin( m_imageData->GetOrigin() );
+      image->AllocateScalars();
+      float* ptr = ( float* )image->GetScalarPointer();
+      memset(ptr, 0, sizeof(float)*dim[0]*dim[1]*dim[2]);
+      ptrs[i] = ptr;
+    }
+    vtkSmartPointer<vtkImageCast> cast = vtkSmartPointer<vtkImageCast>::New();
+    cast->SetInput(m_imageData);
+    cast->SetOutputScalarTypeToFloat();
+    cast->Update();
+    vtkImageData* new_image = cast->GetOutput();
+    float* ptr = (float*)new_image->GetScalarPointer();
+    for (int x = 0; x < m_dim[0]; x++)
+    {
+      for (int y = 0; y < m_dim[1]; y++)
+      {
+        for (int z = 0; z < m_dim[2]; z++)
+        {
+          float val = ptr[z*m_dim[0]*m_dim[1]+y*m_dim[0]+x];
+          if (ptrs[0][z*m_dim[1]+y] < val)
+            ptrs[0][z*m_dim[1]+y] = val;
+          if ( ptrs[1][z*m_dim[0]+x] < val)
+            ptrs[1][z*m_dim[0]+x] = val;
+          if ( ptrs[2][y*m_dim[0]+x] < val)
+            ptrs[2][y*m_dim[0]+x] = val;
+        }
+      }
+    }
+    for (int i = 0; i < 3; i++)
+    {
+      vtkSmartPointer<vtkImageReslice> reslice = vtkSmartPointer<vtkImageReslice>::New();
+      reslice->SetInput(images[i]);
+      reslice->BorderOff();
+    //  reslice->SetResliceTransform( tr );
+      reslice->SetOutputDimensionality( 2 );
+      switch (i)
+      {
+      case 0:
+        reslice->SetResliceAxesDirectionCosines( 0, 1, 0,
+          0, 0, 1,
+          1, 0, 0 );
+        break;
+      case 1:
+        reslice->SetResliceAxesDirectionCosines( 1, 0, 0,
+            0, 0, 1,
+            0, 1, 0 );
+        break;
+      case 2:
+        reslice->SetResliceAxesDirectionCosines( 1, 0, 0,
+            0, 1, 0,
+            0, 0, 1 );
+        break;
+      }
+      reslice->SetResliceAxesOrigin( 0, 0, 0 );
+      mColorMapMaxProjection[i] = vtkSmartPointer<vtkImageMapToColors>::New();
+      mColorMapMaxProjection[i]->SetInput(reslice->GetOutput());
+      mColorMapMaxProjection[i]->SetLookupTable(GetProperty()->GetActiveLookupTable());
+      m_projectionMapActor[i]->SetInput(mColorMapMaxProjection[i]->GetOutput());
+    }
+  }
+  SetVisible(IsVisible());
   emit ActorUpdated();
 }

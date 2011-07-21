@@ -6,9 +6,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/14 23:44:48 $
- *    $Revision: 1.4 $
+ *    $Author: rpwang $
+ *    $Date: 2011/07/21 19:30:09 $
+ *    $Revision: 1.5 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -26,6 +26,7 @@
 #include "Interactor2DROIEdit.h"
 #include "RenderView2D.h"
 #include "MainWindow.h"
+#include "BrushProperty.h"
 #include <QSettings>
 
 ToolWindowROIEdit::ToolWindowROIEdit(QWidget *parent) :
@@ -45,6 +46,8 @@ ToolWindowROIEdit::ToolWindowROIEdit(QWidget *parent) :
   ui->actionLiveWire->setData( Interactor2DROIEdit::EM_Livewire );
   ui->actionPolyLine->setData( Interactor2DROIEdit::EM_Polyline );
   connect( ag, SIGNAL(triggered(QAction*)), this, SLOT(OnEditMode(QAction*)) );
+  MainWindow* wnd = MainWindow::GetMainWindow();
+  connect( ui->spinBoxBrushSize, SIGNAL(valueChanged(int)), wnd->GetBrushProperty(), SLOT(SetBrushSize(int)));
 
   UpdateWidgets();
 }
@@ -77,11 +80,13 @@ void ToolWindowROIEdit::UpdateWidgets( )
     allwidgets[i]->blockSignals( true );
   }
 
-  RenderView2D* view = (RenderView2D*)MainWindow::GetMainWindow()->GetRenderView( 0 );
+  MainWindow* wnd = MainWindow::GetMainWindow();
+  RenderView2D* view = (RenderView2D*)wnd->GetRenderView( 0 );
   ui->actionFill->setChecked( view->GetAction() == Interactor2DROIEdit::EM_Fill );
   ui->actionLiveWire->setChecked( view->GetAction() == Interactor2DROIEdit::EM_Livewire );
   ui->actionFreeHand->setChecked( view->GetAction() == Interactor2DROIEdit::EM_Freehand );
   ui->actionPolyLine->setChecked( view->GetAction() == Interactor2DROIEdit::EM_Polyline );
+  ui->spinBoxBrushSize->setValue( wnd->GetBrushProperty()->GetBrushSize() );
 
   for ( int i = 0; i < allwidgets.size(); i++ )
   {

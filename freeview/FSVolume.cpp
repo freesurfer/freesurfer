@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2011/07/08 17:28:52 $
- *    $Revision: 1.67 $
+ *    $Date: 2011/07/21 19:30:09 $
+ *    $Revision: 1.68 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -721,6 +721,23 @@ bool FSVolume::MRIWrite( const QString& filename, int nSampleMethod, bool resamp
     }
     MatrixFree( &m );
     bTransformed = true;
+
+    // update ras2tkreg
+    m = MRIgetRasToVoxelXform( m_MRITemp );
+    for ( int i = 0; i < 16; i++ )
+    {
+      m_RASToVoxelMatrix[i] = (double) *MATRIX_RELT((m),(i/4)+1,(i%4)+1);
+    }
+
+    MATRIX* tkreg = MRIxfmCRS2XYZtkreg( m_MRITemp );
+    MATRIX* m1 = MatrixMultiply( tkreg, m, NULL );
+    for ( int i = 0; i < 16; i++ )
+    {
+      m_RASToTkRegMatrix[i] = (double) *MATRIX_RELT((m1),(i/4)+1,(i%4)+1);
+    }
+    MatrixFree( &m );
+    MatrixFree( &tkreg );
+    MatrixFree( &m1 );
   }
 
   // check if cropping is enabled

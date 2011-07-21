@@ -11,8 +11,8 @@
  * Reimplemented by: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2011/05/27 14:16:52 $
- *    $Revision: 1.5 $
+ *    $Date: 2011/07/21 19:30:09 $
+ *    $Revision: 1.6 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -292,6 +292,11 @@ public:
     return m_nContourSmoothIterations;
   }
 
+  bool GetShowProjectionMap()
+  {
+    return m_bShowProjectionMap;
+  }
+
 public slots:
   void SetOpacity( double opacity );
   void SetUpSampleMethod( int nUpSampleMethod );
@@ -318,6 +323,7 @@ public slots:
   {
     SetContourColor(c.redF(), c.greenF(), c.blueF());
   }
+  void SetShowProjectionMap(bool bShow);
 
 signals:
   void ColorMapChanged();
@@ -332,6 +338,7 @@ signals:
   void ContourSmoothIterationChanged( int );
   void LabelOutlineChanged( bool bOutline );
   void UpSampleMethodChanged( int nMethod );
+  void ProjectionMapShown(bool bShown);
 
 private:
 
@@ -404,6 +411,8 @@ private:
 
   bool    m_bShowLabelOutline;
   int     m_nUpSampleMethod;
+
+  bool    m_bShowProjectionMap;
 
   // ---------------------------------------------------------------------
 

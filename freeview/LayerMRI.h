@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2011/06/30 18:19:25 $
- *    $Revision: 1.68 $
+ *    $Date: 2011/07/21 19:30:09 $
+ *    $Revision: 1.69 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -288,6 +288,7 @@ protected slots:
 
   void UpdateLabelOutline();
   void UpdateUpSampleMethod();
+  void UpdateProjectionMap();
 
   void UpdateTensorActor();
   virtual void UpdateColorMap();
@@ -321,6 +322,7 @@ protected:
   // Pipeline ------------------------------------------------------------
   vtkSmartPointer<vtkImageReslice>      mReslice[3];
   vtkSmartPointer<vtkImageMapToColors>  mColorMap[3];
+  vtkSmartPointer<vtkImageMapToColors>  mColorMapMaxProjection[3];
   vtkSmartPointer<vtkSimpleLabelEdgeFilter>   mEdgeFilter[3];
   vtkSmartPointer<vtkImageResample>     mResample[3];
 
@@ -337,6 +339,8 @@ protected:
 
   vtkActor*       m_glyphActor2D[3];
   vtkActor*       m_glyphActor3D[3];
+
+  vtkImageActor*  m_projectionMapActor[3];
 
   struct SegmentationActor
   {

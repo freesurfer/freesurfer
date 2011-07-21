@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2011/07/08 17:28:52 $
- *    $Revision: 1.67 $
+ *    $Date: 2011/07/21 19:30:09 $
+ *    $Revision: 1.68 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -202,6 +202,7 @@ void PanelVolume::ConnectLayer( Layer* layer_in )
   connect( ui->checkBoxDisplayTensor, SIGNAL(toggled(bool)), p, SLOT(SetDisplayTensor(bool)) );
   connect( ui->comboBoxRenderObject, SIGNAL(currentIndexChanged(int)), p, SLOT(SetVectorRepresentation(int)) );
   connect( ui->comboBoxInversion, SIGNAL(currentIndexChanged(int)), p, SLOT(SetVectorInversion(int)) );
+  connect( ui->checkBoxProjectionMap, SIGNAL(toggled(bool)), p, SLOT(SetShowProjectionMap(bool)));
   if ( layer->IsTypeOf( "DTI" ) )
     connect( ui->comboBoxDirectionCode, SIGNAL(currentIndexChanged(int)),
              qobject_cast<LayerDTI*>(layer)->GetProperty(), SLOT(SetDirectionCode(int)) );
@@ -411,6 +412,7 @@ void PanelVolume::DoUpdateWidgets()
     }
 
     ui->checkBoxShowInfo->setChecked( layer->GetProperty()->GetShowInfo() );
+    ui->checkBoxProjectionMap->setChecked( layer->GetProperty()->GetShowProjectionMap());
 
     ui->checkBoxShowOutline->setChecked( layer->GetProperty()->GetShowLabelOutline() );
   //  ui->checkBoxShowOutline->setVisible( nColorMap == LayerPropertyMRI::LUT );

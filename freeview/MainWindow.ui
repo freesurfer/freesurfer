@@ -1232,6 +1232,11 @@
     <string>Alt+A</string>
    </property>
   </action>
+  <action name="actionIntensityProject">
+   <property name="text">
+    <string>Create Intensity Projection Map</string>
+   </property>
+  </action>
  </widget>
  <layoutdefault spacing="6" margin="11"/>
  <customwidgets>
@@ -2282,6 +2287,22 @@
     </hint>
    </hints>
   </connection>
+  <connection>
+   <sender>actionIntensityProject</sender>
+   <signal>triggered()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>OnCreateIntensityProjectionMap()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>606</x>
+     <y>435</y>
+    </hint>
+   </hints>
+  </connection>
  </connections>
  <slots>
   <slot>OnLoadVolume()</slot>
@@ -2342,5 +2363,6 @@
   <slot>OnIncreaseOpacity()</slot>
   <slot>OnDecreaseOpacity()</slot>
   <slot>OnToggleCursorVisibility(bool)</slot>
+  <slot>OnCreateIntensityProjectionMap()</slot>
  </slots>
 </ui>

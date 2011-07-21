@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2011/06/30 18:19:25 $
- *    $Revision: 1.173 $
+ *    $Date: 2011/07/21 19:30:09 $
+ *    $Revision: 1.174 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -964,6 +964,7 @@ void MainWindow::OnIdle()
   ui->actionMeasure         ->setEnabled( layerVolume );
   ui->actionPointSetEdit    ->setEnabled( layerPointSet && layerPointSet->IsEditable() );
   ui->actionCropVolume      ->setEnabled( layerVolume && layerVolume->IsEditable() );
+  ui->actionIntensityProject->setEnabled( layerVolume );
   ui->actionClosePointSet   ->setEnabled( !bBusy && layerPointSet );
   ui->actionCloseROI        ->setEnabled( !bBusy && layerROI );
   ui->actionCloseSurface    ->setEnabled( !bBusy && layerSurface );
@@ -4997,4 +4998,9 @@ void MainWindow::ShowNonModalMessage(const QString &title, const QString &msg)
   m_dlgMessage->setWindowTitle(title);
   m_dlgMessage->setText(msg);
   m_dlgMessage->show();
+}
+
+void MainWindow::OnCreateIntensityProjectionMap()
+{
+
 }

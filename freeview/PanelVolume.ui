@@ -26,9 +26,9 @@
    <property name="geometry">
     <rect>
      <x>0</x>
-     <y>-47</y>
+     <y>0</y>
      <width>308</width>
-     <height>1482</height>
+     <height>1510</height>
     </rect>
    </property>
    <layout class="QVBoxLayout" name="verticalLayout">
@@ -791,6 +791,13 @@
      </layout>
     </item>
     <item>
+     <widget class="QCheckBox" name="checkBoxProjectionMap">
+      <property name="text">
+       <string>Show intensity projection map</string>
+      </property>
+     </widget>
+    </item>
+    <item>
      <widget class="QCheckBox" name="checkBoxShowOutline">
       <property name="text">
        <string>Show label outline only (Alt+L)</string>
@@ -1108,8 +1115,8 @@
    <slot>OnCheckShowContour(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>168</x>
-     <y>1163</y>
+     <x>167</x>
+     <y>1228</y>
     </hint>
     <hint type="destinationlabel">
      <x>325</x>
@@ -1125,7 +1132,7 @@
    <hints>
     <hint type="sourcelabel">
      <x>301</x>
-     <y>527</y>
+     <y>574</y>
     </hint>
     <hint type="destinationlabel">
      <x>44</x>
@@ -1157,7 +1164,7 @@
    <hints>
     <hint type="sourcelabel">
      <x>165</x>
-     <y>923</y>
+     <y>970</y>
     </hint>
     <hint type="destinationlabel">
      <x>37</x>
@@ -1173,7 +1180,7 @@
    <hints>
     <hint type="sourcelabel">
      <x>239</x>
-     <y>434</y>
+     <y>481</y>
     </hint>
     <hint type="destinationlabel">
      <x>39</x>
@@ -1189,7 +1196,7 @@
    <hints>
     <hint type="sourcelabel">
      <x>219</x>
-     <y>624</y>
+     <y>671</y>
     </hint>
     <hint type="destinationlabel">
      <x>101</x>
@@ -1205,7 +1212,7 @@
    <hints>
     <hint type="sourcelabel">
      <x>219</x>
-     <y>659</y>
+     <y>706</y>
     </hint>
     <hint type="destinationlabel">
      <x>91</x>
@@ -1221,7 +1228,7 @@
    <hints>
     <hint type="sourcelabel">
      <x>219</x>
-     <y>694</y>
+     <y>741</y>
     </hint>
     <hint type="destinationlabel">
      <x>94</x>
@@ -1237,7 +1244,7 @@
    <hints>
     <hint type="sourcelabel">
      <x>219</x>
-     <y>729</y>
+     <y>776</y>
     </hint>
     <hint type="destinationlabel">
      <x>64</x>
@@ -1253,7 +1260,7 @@
    <hints>
     <hint type="sourcelabel">
      <x>219</x>
-     <y>764</y>
+     <y>811</y>
     </hint>
     <hint type="destinationlabel">
      <x>97</x>
@@ -1269,7 +1276,7 @@
    <hints>
     <hint type="sourcelabel">
      <x>219</x>
-     <y>799</y>
+     <y>846</y>
     </hint>
     <hint type="destinationlabel">
      <x>74</x>
@@ -1285,7 +1292,7 @@
    <hints>
     <hint type="sourcelabel">
      <x>300</x>
-     <y>627</y>
+     <y>674</y>
     </hint>
     <hint type="destinationlabel">
      <x>324</x>
@@ -1301,7 +1308,7 @@
    <hints>
     <hint type="sourcelabel">
      <x>300</x>
-     <y>662</y>
+     <y>709</y>
     </hint>
     <hint type="destinationlabel">
      <x>323</x>
@@ -1317,7 +1324,7 @@
    <hints>
     <hint type="sourcelabel">
      <x>300</x>
-     <y>697</y>
+     <y>744</y>
     </hint>
     <hint type="destinationlabel">
      <x>325</x>
@@ -1333,7 +1340,7 @@
    <hints>
     <hint type="sourcelabel">
      <x>300</x>
-     <y>732</y>
+     <y>779</y>
     </hint>
     <hint type="destinationlabel">
      <x>325</x>
@@ -1349,7 +1356,7 @@
    <hints>
     <hint type="sourcelabel">
      <x>300</x>
-     <y>767</y>
+     <y>814</y>
     </hint>
     <hint type="destinationlabel">
      <x>326</x>
@@ -1365,7 +1372,7 @@
    <hints>
     <hint type="sourcelabel">
      <x>300</x>
-     <y>802</y>
+     <y>849</y>
     </hint>
     <hint type="destinationlabel">
      <x>309</x>
@@ -1381,7 +1388,7 @@
    <hints>
     <hint type="sourcelabel">
      <x>301</x>
-     <y>560</y>
+     <y>607</y>
     </hint>
     <hint type="destinationlabel">
      <x>52</x>
@@ -1397,7 +1404,7 @@
    <hints>
     <hint type="sourcelabel">
      <x>234</x>
-     <y>1196</y>
+     <y>1261</y>
     </hint>
     <hint type="destinationlabel">
      <x>410</x>
@@ -1413,7 +1420,7 @@
    <hints>
     <hint type="sourcelabel">
      <x>234</x>
-     <y>1231</y>
+     <y>1298</y>
     </hint>
     <hint type="destinationlabel">
      <x>371</x>
@@ -1429,7 +1436,7 @@
    <hints>
     <hint type="sourcelabel">
      <x>234</x>
-     <y>1304</y>
+     <y>1379</y>
     </hint>
     <hint type="destinationlabel">
      <x>421</x>
@@ -1445,7 +1452,7 @@
    <hints>
     <hint type="sourcelabel">
      <x>234</x>
-     <y>1196</y>
+     <y>1261</y>
     </hint>
     <hint type="destinationlabel">
      <x>446</x>
@@ -1461,7 +1468,7 @@
    <hints>
     <hint type="sourcelabel">
      <x>234</x>
-     <y>1231</y>
+     <y>1298</y>
     </hint>
     <hint type="destinationlabel">
      <x>518</x>
@@ -1477,7 +1484,7 @@
    <hints>
     <hint type="sourcelabel">
      <x>234</x>
-     <y>1304</y>
+     <y>1379</y>
     </hint>
     <hint type="destinationlabel">
      <x>435</x>
@@ -1493,7 +1500,7 @@
    <hints>
     <hint type="sourcelabel">
      <x>300</x>
-     <y>1193</y>
+     <y>1258</y>
     </hint>
     <hint type="destinationlabel">
      <x>384</x>
@@ -1509,7 +1516,7 @@
    <hints>
     <hint type="sourcelabel">
      <x>300</x>
-     <y>1230</y>
+     <y>1294</y>
     </hint>
     <hint type="destinationlabel">
      <x>288</x>
@@ -1525,7 +1532,7 @@
    <hints>
     <hint type="sourcelabel">
      <x>300</x>
-     <y>1307</y>
+     <y>1382</y>
     </hint>
     <hint type="destinationlabel">
      <x>68</x>
@@ -1541,7 +1548,7 @@
    <hints>
     <hint type="sourcelabel">
      <x>208</x>
-     <y>1393</y>
+     <y>1468</y>
     </hint>
     <hint type="destinationlabel">
      <x>395</x>
@@ -1604,8 +1611,8 @@
    <slot>OnSliderTrackVolumeMin(int)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>137</x>
-     <y>1100</y>
+     <x>207</x>
+     <y>1140</y>
     </hint>
     <hint type="destinationlabel">
      <x>355</x>
@@ -1620,8 +1627,8 @@
    <slot>OnTrackVolumeThresholdChanged()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>288</x>
-     <y>1103</y>
+     <x>300</x>
+     <y>1137</y>
     </hint>
     <hint type="destinationlabel">
      <x>389</x>
@@ -1636,8 +1643,8 @@
    <slot>OnTrackVolumeThresholdChanged()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>184</x>
-     <y>1095</y>
+     <x>234</x>
+     <y>1140</y>
     </hint>
     <hint type="destinationlabel">
      <x>363</x>
@@ -1658,6 +1665,54 @@
     <hint type="destinationlabel">
      <x>406</x>
      <y>1026</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>checkBoxProjectionMap</sender>
+   <signal>toggled(bool)</signal>
+   <receiver>checkBoxShowOutline</receiver>
+   <slot>setHidden(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>59</x>
+     <y>1182</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>58</x>
+     <y>1203</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>checkBoxProjectionMap</sender>
+   <signal>toggled(bool)</signal>
+   <receiver>checkBoxShowContour</receiver>
+   <slot>setHidden(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>105</x>
+     <y>1187</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>103</x>
+     <y>1231</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>checkBoxShowContour</sender>
+   <signal>toggled(bool)</signal>
+   <receiver>checkBoxProjectionMap</receiver>
+   <slot>setDisabled(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>81</x>
+     <y>1232</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>83</x>
+     <y>1188</y>
     </hint>
    </hints>
   </connection>

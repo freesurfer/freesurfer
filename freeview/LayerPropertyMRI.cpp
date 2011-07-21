@@ -12,8 +12,8 @@
  * Reimplemented by: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2011/07/08 17:28:52 $
- *    $Revision: 1.6 $
+ *    $Date: 2011/07/21 19:30:09 $
+ *    $Revision: 1.7 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -81,7 +81,8 @@ LayerPropertyMRI::LayerPropertyMRI (QObject* parent) : LayerProperty( parent ),
   m_bShowLabelOutline( false ),
   m_nUpSampleMethod( UM_None ),
   m_nContourSmoothIterations( 0 ),
-  mSource( NULL )
+  mSource( NULL ),
+  m_bShowProjectionMap( false )
 {
   mGrayScaleTable = vtkSmartPointer<vtkRGBAColorTransferFunction>::New();
   mHeatScaleTable = vtkSmartPointer<vtkRGBAColorTransferFunction>::New();
@@ -1015,7 +1016,6 @@ void LayerPropertyMRI::SetShowAsContour( bool bContour )
   {
     mbShowAsContour = bContour;
     emit ContourShown( mbShowAsContour );
-
   }
 }
 
@@ -1025,7 +1025,6 @@ void LayerPropertyMRI::SetContourMinThreshold( double dValue )
   {
     mMinContourThreshold = dValue;
     emit ContourChanged();
-
   }
 }
 
@@ -1035,7 +1034,6 @@ void LayerPropertyMRI::SetContourMaxThreshold( double dValue )
   {
     mMaxContourThreshold = dValue;
     emit ContourChanged();
-
   }
 }
 
@@ -1046,7 +1044,6 @@ void LayerPropertyMRI::SetContourThreshold( double dMin, double dMax )
     mMinContourThreshold = dMin;
     mMaxContourThreshold = dMax;
     emit ContourChanged();
-
   }
 }
 
@@ -1056,7 +1053,6 @@ void LayerPropertyMRI::SetContourExtractAllRegions( bool bExtractAll )
   {
     m_bContourExtractAll = bExtractAll;
     emit ContourChanged();
-
   }
 }
 
@@ -1107,7 +1103,6 @@ void LayerPropertyMRI::SetUpSampleMethod( int nSampleMethod )
     m_nUpSampleMethod = nSampleMethod;
 
     emit UpSampleMethodChanged( nSampleMethod );
-
   }
 }
 
@@ -1117,6 +1112,14 @@ void LayerPropertyMRI::SetContourSmoothIterations( int nIterations )
   {
     m_nContourSmoothIterations = nIterations;
     emit ContourSmoothIterationChanged( nIterations );
+  }
+}
 
+void LayerPropertyMRI::SetShowProjectionMap(bool bShow)
+{
+  if (bShow != m_bShowProjectionMap)
+  {
+    m_bShowProjectionMap = bShow;
+    emit ProjectionMapShown(bShow);
   }
 }
