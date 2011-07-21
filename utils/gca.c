@@ -13,9 +13,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/06/30 00:29:20 $
- *    $Revision: 1.300 $
+ *    $Author: fischl $
+ *    $Date: 2011/07/21 19:04:56 $
+ *    $Revision: 1.301 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -1682,13 +1682,13 @@ gcaAllocMax(int ninputs,
   gca->prior_height = (int)((float)height/prior_spacing+.99) ;
   gca->prior_depth = (int)(((float)depth/prior_spacing)+.99) ;
   gca->flags = flags ;
-
+#if 0
   printf( "%s: node dims %i %i %i\n",
 	  __FUNCTION__, gca->node_width, gca->node_height, gca->node_depth );
   printf( "%s: prior dims %i %i %i\n",
 	  __FUNCTION__, gca->prior_width, gca->prior_height, gca->prior_depth );
   printf( "%s: max_labels %i\n", __FUNCTION__, max_labels );
-
+#endif
   if (max_labels >= 0)
   {
     gca->nodes = (GCA_NODE ***)calloc(gca->node_width, sizeof(GCA_NODE **)) ;
@@ -10198,6 +10198,18 @@ void GCAnormalizeSamplesOneChannel(MRI *mri_in, GCA *gca,
     MRIfree(&mri_bias) ;
     MRIfree(&mri_kernel) ;
     mri_bias = MRIupsample2(mri_smooth, NULL) ;
+    if (mri_bias->width != mri_in->width ||
+	mri_bias->height != mri_in->height ||
+	mri_bias->depth != mri_in->depth)
+    {
+      MRI *mri_tmp ;
+
+      mri_tmp = MRIcloneDifferentType(mri_in, mri_bias->type) ;
+      MRIextractInto(mri_bias, mri_tmp, 0,0,0,
+		     mri_bias->width,mri_bias->height, mri_bias->depth,
+		     0,0,0) ;
+      MRIfree(&mri_bias) ; mri_bias = mri_tmp ;
+    }
     sigma = 2.0f ;
     MRIfree(&mri_down) ;
     MRIfree(&mri_smooth) ;
@@ -17583,7 +17595,466 @@ MRImarkPossibleBorders(MRI *mri, MRI *mri_borders, float border_thresh)
       }
   return(mri_borders) ;
 }
+typedef struct
+{
+  int       nsubjects ;
+  int       nlabels ;
+  int       ntypes ;           // how many different acquisition types are there
+  int       *labels ;
+  int       *types ;           // indicated the acquisition sequence for each subject
+  double    *similarities ;    // correlation values
+  double    *avg_similarities ; // correlation values averaged by acquisition type
+  HISTOGRAM ***histos ;        // one for each subject for each label
+  HISTOGRAM **subject_histos ; // overall histo (not by label)
+  HISTOGRAM **mri_histos ;     // histos found in the volume being examined
+  HISTOGRAM *mri_histo ;
+  char      **subjects ;} LABEL_HISTOS, LH ;
 
+static LABEL_HISTOS *
+lhAlloc(int nsubjects, int nlabels, int ntypes) 
+{
+  LABEL_HISTOS  *lh ;
+  int           s, n ;
+
+  lh = (LABEL_HISTOS *)calloc(1, sizeof(LABEL_HISTOS)) ;
+
+  lh->nsubjects = nsubjects ;
+  lh->nlabels = nlabels ;
+  lh->labels = (int *)calloc(nsubjects, sizeof(int )) ;
+  lh->ntypes = ntypes ;
+  lh->avg_similarities = (double *)calloc(ntypes, sizeof(double)) ;
+  lh->histos = (HISTOGRAM ***)calloc(nsubjects, sizeof(HISTOGRAM **)) ;
+  lh->subject_histos = (HISTOGRAM **)calloc(nsubjects, sizeof(HISTOGRAM *)) ;
+  lh->subjects = (char **)calloc(nsubjects, sizeof(char *)) ;
+  lh->types = (int *)calloc(nsubjects, sizeof(int)) ;
+  lh->similarities = (double *)calloc(nsubjects, sizeof(double)) ;
+
+  lh->mri_histos = (HISTOGRAM **)calloc(nlabels, sizeof(HISTOGRAM *)) ;
+  for (n = 0 ; n < lh->nlabels ; n++)
+  {
+    lh->mri_histos[n] = HISTOinit(NULL, 256, 0, 255) ;
+  }
+  lh->mri_histo = HISTOinit(NULL, 256, 0, 255) ;
+  for (s = 0 ; s < nsubjects ; s++)
+  {
+    lh->subject_histos[s] = HISTOinit(NULL, 256, 0, 255) ;
+    lh->histos[s] = (HISTOGRAM **)calloc(nlabels, sizeof(HISTOGRAM *)) ;
+    for (n = 0 ; n < lh->nlabels ; n++)
+    {
+      lh->histos[s][n] = HISTOinit(NULL, 256, 0, 255) ;
+    }
+    lh->subjects[s] = (char *)calloc(100, sizeof(char)) ;
+  }
+
+  return(lh) ;
+}
+
+static int
+lhComputeMRIHistos(LH *lh, MRI *mri_norm, int nerode)
+{
+  MRI   *mri_label, *mri_eroded ;
+//  int   n ;
+
+  mri_label = MRIclone(mri_norm, NULL) ;
+  mri_eroded = MRIclone(mri_norm, NULL) ;
+#if 0
+  for (n = 0 ; n < lh->nlabels ; n++)
+  {
+    MRIclear(mri_label) ;
+    MRIcopyLabel(mri_seg, mri_label, lh->labels[n]) ;
+    MRIerode(mri_label, mri_eroded) ;
+    lh->mri_histos[n] = MRIhistogramLabel(mri_norm, mri_eroded, 
+					  lh->labels[n],256) ;
+  }
+#endif
+  MRIbinarize(mri_norm, mri_label, 1, 0, 1) ;
+  HISTOfree(&lh->mri_histo) ;
+  lh->mri_histo = MRIhistogramLabel(mri_norm, mri_label, 1, 256) ;
+  MRIfree(&mri_label) ; MRIfree(&mri_eroded) ;
+  return(NO_ERROR) ;
+}
+
+static double
+lhComputeSimilarity(LH *lh, int s)
+{
+  double total_sim ;
+#if 0
+  double sim, total_sim ;
+  int    n ;
+
+  for (total_sim = 0.0, n = 0 ; n < lh->nlabels ; n++)
+  {
+    sim = HISTOcorrelate(lh->mri_histos[n], lh->histos[s][n]) ;
+    total_sim += sim ;
+  }
+#endif
+  total_sim = HISTOcorrelate(lh->mri_histo, lh->subject_histos[s]) ;
+
+  return(total_sim) ;
+}
+
+#define MAX_SUBJECTS 10000
+static int
+lhFindMostSimilarAcquisitionType(LH *lh, MRI *mri_norm)
+{
+  int    max_ind, s, nsubjects[MAX_SUBJECTS], n ;
+  double max_sim, sim ;
+
+  memset(nsubjects, 0, sizeof(nsubjects)) ;
+  lhComputeMRIHistos(lh, mri_norm, 1) ;
+  max_sim = lhComputeSimilarity(lh, max_ind = 0) ; 
+  printf("subject %s (%d): sim = %f\n", lh->subjects[0], 0, max_sim) ;
+  for (s = 1 ; s < lh->nsubjects ; s++)
+  {
+    sim = lhComputeSimilarity(lh, s) ;
+    printf("type %d, subject %s, (%d): sim = %f\n", lh->types[s], lh->subjects[s], s, sim) ;
+    lh->avg_similarities[lh->types[s]] += sim ;
+    nsubjects[lh->types[s]]++ ;
+    if (sim > max_sim)
+    {
+      max_sim = sim ;
+      max_ind = s ;
+    }
+  }
+  max_ind = 0 ; max_sim = 0 ;
+  for (n = 0 ; n < lh->ntypes ; n++)
+  {
+    lh->avg_similarities[n] /= nsubjects[n] ;
+    printf("type %d (%d subjects): avg corr = %2.3f\n", n, nsubjects[n], lh->avg_similarities[n]) ;
+    if (lh->avg_similarities[n] > max_sim)
+    {
+      max_sim = lh->avg_similarities[n] ;
+      max_ind = n ;
+    }
+  }
+  printf("best matching acquisition = %d\n", max_ind) ;
+  return(max_ind) ;
+}
+
+static int
+lhFree(LH **plh)
+{
+  LH   *lh ;
+  int  s, n ;
+
+  lh = *plh ;
+  *plh = NULL ;
+  free(lh->labels) ;
+  for (s = 0 ; s < lh->nsubjects ; s++)
+  {
+    free(lh->subjects[s]) ;
+    for (n = 0 ; n < lh->nlabels ; n++)
+      HISTOfree(&lh->histos[s][n]) ;
+    free(lh->histos[s]) ;
+  }
+  HISTOfree(&lh->mri_histo) ;
+  for (n = 0 ; n < lh->nlabels ; n++)
+    HISTOfree(&lh->mri_histos[n]) ;
+  free(lh->mri_histos) ; free(lh->histos) ; free(lh->subjects) ; free(lh) ;
+  return(NO_ERROR) ;
+}
+
+static LABEL_HISTOS *
+lhRead(char *fname)
+{
+  FILE          *fp ;
+  int           nsubjects, nlabels, s, n, cnt, i, label, ntypes ;
+  LABEL_HISTOS  *lh ;
+  char          *cp, line[2*STRLEN] ;
+  
+  fp = fopen(fname, "r") ;
+  if (fp == NULL)
+    ErrorExit(ERROR_NOFILE, "lhRead: could not open file %s", fname) ;
+
+
+  cp = fgetl(line, STRLEN-1, fp) ;
+  sscanf(cp, "nsubjects = %d", &nsubjects) ;
+  cp = fgetl(line, STRLEN-1, fp) ;
+  sscanf(cp, "ntypes = %d", &ntypes) ;
+  cp = fgetl(line, STRLEN-1, fp) ;
+  sscanf(cp, "nlabels = %d", &nlabels) ;
+  printf("reading label histos for %d subjects with %d labels each\n", nsubjects, nlabels) ;
+
+  lh = lhAlloc(nsubjects, nlabels, ntypes) ;
+  cp = fgetl(line, STRLEN-1, fp) ;
+  cp = strtok(cp, " ") ;
+  for (n = 0 ; n < lh->nlabels ; n++)
+  {
+    sscanf(cp, "%d", &lh->labels[n]) ;
+    cp = strtok(NULL, " ") ;
+  }
+
+  for (s = 0 ; s < lh->nsubjects ; s++)
+  {
+    cp = fgetl(line, STRLEN-1, fp) ;
+    sscanf(cp, "subject = %s type = %d", lh->subjects[s], &lh->types[s]) ;
+//    printf("reading subject %d: %s, acquisition type = %d\n", s, lh->subjects[s], lh->types[s]) ;
+
+    // read in global histogram
+    cp = fgetl(line, 2*STRLEN-1, fp) ;
+    for (i = 0 ; i < 256 ; i++)
+    {
+      sscanf(cp, "%d", &cnt) ;
+      lh->subject_histos[s]->counts[i] = cnt ;
+      lh->subject_histos[s]->bins[i] = i ;
+      cp = strchr(cp, ' ') ;
+      if (cp == NULL)
+	break ;
+      cp++ ;  // past space
+    }
+    for (n = 0 ; n < nlabels ; n++)
+    {
+      if (s == 3 && n == 35)
+	DiagBreak() ;
+      cp = fgetl(line, STRLEN-1, fp) ;
+      sscanf(cp, "label = %d", &label) ;
+      cp = fgetl(line, 2*STRLEN-1, fp) ;
+      for (i = 0 ; i < 256 ; i++)
+      {
+	if (i == 110 && s == 0 && n == 0)
+	  DiagBreak() ;
+	sscanf(cp, "%d", &cnt) ;
+	lh->histos[s][n]->counts[i] = cnt ;
+	lh->histos[s][n]->bins[i] = i ;
+	cp = strchr(cp, ' ') ;
+	if (cp == NULL)
+	  break ;
+	cp++ ; // skip space
+      }
+      HISTOmakePDF(lh->histos[s][n], lh->histos[s][n]) ;
+    }
+  }
+
+
+  fclose(fp) ;
+  return(lh) ;
+}
+
+int
+GCAmapRenormalizeWithHistograms(GCA *gca, MRI *mri, TRANSFORM *transform, 
+				FILE *logfp,const char *base_name, 
+				float *plabel_scales, float *plabel_offsets, 
+				float *plabel_peaks, int* plabel_computed)
+{
+  int       l, frame, j, gca_peak, acq_type, s,num ;
+  float     label_scales[MAX_CMA_LABELS], label_peaks[MAX_CMA_LABELS],
+            label_offsets[MAX_CMA_LABELS], \
+            lower_thresh, upper_thresh ;
+  float     scale, offset, avg_scale, avg_offset ;
+  LH        *lh  ;
+  int       equiv_class[MAX_CMA_LABELS];
+  HISTOGRAM *h_gca ;
+
+
+  if (FileExists("label_scales.dat"))
+    lh = lhRead("label_scales.dat") ;
+  else
+  {
+    char *cp = getenv("FREESURFER_HOME"), fname[STRLEN] ;
+
+    sprintf(fname, "%s/average/label_scales.dat", cp) ;
+    lh = lhRead(fname) ;
+  }
+
+  acq_type = lhFindMostSimilarAcquisitionType(lh, mri) ;
+  if (plabel_scales == NULL)
+    plabel_scales = label_scales ;
+  if (plabel_offsets == NULL)
+    plabel_offsets = label_offsets ;
+  if (plabel_peaks == NULL)
+    plabel_peaks = label_peaks ;
+
+
+  memset(label_peaks, 0, sizeof(label_peaks)) ;
+
+  set_equilavent_classes(equiv_class);
+
+  printf("renormalizing by  histogram matching....\n") ;
+  for (frame = 0 ; frame < mri->nframes ; frame++)
+  {
+    for (l = 0 ; l < lh->nlabels ; l++)
+    {
+      if (l == Gdiag_no)
+        DiagBreak() ;
+      label_scales[l] = 1.0 ;
+      label_offsets[l] = 0.0 ;
+    }
+
+    printf("renormalizing input #%d\n", frame) ;
+    for (j = 0 ; j < lh->nlabels ; j++)
+    {
+      l = lh->labels[j] ;
+      if (l == Gdiag_no)
+        DiagBreak() ;
+
+
+      h_gca = gcaGetLabelHistogram(gca, l, 0, 0) ;
+      HISTOmakePDF(h_gca, h_gca) ;
+      for (avg_scale = avg_offset = 0.0, num = s = 0 ; s < lh->nsubjects ; s++)
+      {
+	if (lh->types[s] != acq_type)
+	  continue ;
+	num++ ;
+	HISTOfindLinearFit(h_gca, lh->histos[s][j], .025, 4, 0, 0, &scale, &offset) ;
+	avg_scale += scale ; avg_offset += offset ;
+      }
+
+      avg_scale /= num ; avg_offset /= num ;
+      label_offsets[l] = avg_offset ;
+      label_scales[l] = avg_scale ;
+
+      gca_peak = HISTOfindHighestPeakInRegion(h_gca, 0, h_gca->nbins) ;
+      if (gca_peak < 0)
+      {
+        //fprintf(stderr,
+        //      "INFO: GCAmapRenormalizeWithAlignment: "
+        //      "gca peak(=%d) < 0\n",gca_peak);
+        //fflush(stderr);
+        continue;
+      }
+      if (gca_peak >= h_gca->nbins)
+      {
+        fprintf(stderr,
+                "ERROR: GCAmapRenormalizeWithAlignment: "
+                "gca peak(=%d) >= h_gca->nbins(=%d)\n",
+                gca_peak,h_gca->nbins);
+        fflush(stderr);
+        exit(1);
+      }
+      if (gca_peak >= 0)
+      {
+        printf("%s: gca peak = %2.5f (%2.0f), scaling to %2.1f\n", 
+               cma_label_to_name(l), 
+	       h_gca->counts[gca_peak], 
+               h_gca->bins[gca_peak],	       
+               h_gca->bins[gca_peak]*label_scales[l]+label_offsets[l]
+	  ) ;
+      }
+
+      label_peaks[l] = h_gca->bins[gca_peak] ;
+      fflush(stdout);
+
+      switch (l)
+      {
+      case Brain_Stem:
+      case Left_VentralDC:
+      case Right_VentralDC:
+        lower_thresh = 80 ;
+        upper_thresh = 110 ;
+        break ;
+      case Left_Caudate:
+      case Right_Caudate:
+        lower_thresh = 50 ;
+        upper_thresh = 100 ;
+        break ;
+      case Left_Cerebral_Cortex:
+      case Right_Cerebral_Cortex:
+        lower_thresh = 40 ;
+        upper_thresh = 95 ;
+        break ;
+      case Left_Pallidum:
+      case Right_Pallidum:
+        lower_thresh = 75 ;
+        upper_thresh = 135 ;
+        break ;
+      case Left_Thalamus_Proper:
+      case Right_Thalamus_Proper:
+        lower_thresh = 75 ;
+        upper_thresh = 120 ;
+        break ;
+      case Left_Amygdala:
+      case Right_Amygdala:
+        lower_thresh = 50 ;
+        upper_thresh = 90 ;
+        break ;
+      case Left_Cerebral_White_Matter:
+      case Right_Cerebral_White_Matter:
+        lower_thresh = 90 ;
+        upper_thresh = 130 ;
+        break ;
+      case Left_Putamen:
+      case Right_Putamen:
+        lower_thresh = 60 ;
+        upper_thresh = 107 ;
+        break ;
+      case Left_Lateral_Ventricle:
+      case Right_Lateral_Ventricle:
+      case Third_Ventricle:
+      case Fourth_Ventricle:
+      case CSF:
+        lower_thresh = 0 ;
+        upper_thresh = 55 ;
+        break ;
+      case Left_Inf_Lat_Vent:
+      case Right_Inf_Lat_Vent:
+        lower_thresh = 0 ;
+        upper_thresh = 65 ;
+        break ;
+      default:
+        lower_thresh = 0 ;
+        upper_thresh = 256 ;
+        break ;
+      }
+      fflush(stdout);
+    }
+  }
+
+  
+  if (logfp)
+  {
+    for (l = 0 ; l < MAX_CMA_LABELS ; l++)
+      fprintf(logfp, "label %s: scaling by %2.2f  + %2.1f to %2.0f\n",
+	      cma_label_to_name(l),
+	      label_scales[l], label_offsets[l], label_peaks[l]) ;
+    fflush(logfp) ;
+  }
+  if (DIAG_VERBOSE_ON)
+  {
+    FILE *fp ;
+    fp = fopen("norm_offset.plt", "w") ;
+    for (l = 0 ; l < MAX_CMA_LABELS ; l++)
+      fprintf(fp, "%d %f %f\n", l, label_scales[l], label_offsets[l]) ;
+    fclose(fp) ;
+  }
+  
+  
+  if (base_name)
+  {
+    FILE *fp ;
+    char fname[STRLEN];
+    sprintf(fname, "%s.label_intensities.txt", base_name) ;
+    printf("saving intensity scales to %s\n", fname) ;
+    fp = fopen(fname, "w") ;
+    if (fp == NULL)
+      ErrorExit(ERROR_NOFILE, "%s: could not open intensity tracking file %s", Progname,fname) ;
+    
+    for (l = 0 ; l < MAX_CMA_LABELS ; l++)
+      fprintf(fp, "%d %s %2.2f %2.1f %2.0f\n",
+	      l, cma_label_to_name(l), label_scales[l], label_offsets[l], label_peaks[l]) ;
+    
+    fflush(fp) ;
+    fclose(fp) ;
+    if (getenv("EXIT_AFTER_INT") != NULL)
+      exit(0) ;
+  }
+  gcaCheck(gca) ;
+  for (frame = 0 ; frame < mri->nframes ; frame++)
+    GCAapplyRenormalization(gca, label_scales, label_offsets, frame) ;
+  gcaCheck(gca) ;
+#if 0
+  if (label_scales != plabel_scales) // copy to user-supplied space
+    memmove(plabel_scales, label_scales, MAX_CMA_LABELS*sizeof(label_scales[0]));
+  if (label_offsets != plabel_offsets) // copy to user-supplied space
+    memmove(plabel_offsets, label_offsets, MAX_CMA_LABELS*sizeof(label_offsets[0]));
+  if (label_peaks != plabel_peaks) // copy to user-supplied space
+	  memmove(plabel_peaks, label_peaks, MAX_CMA_LABELS*sizeof(label_peaks[0]));
+  if (computed != plabel_computed) // copy to user-supplied space
+	  memmove(plabel_computed, computed, MAX_CMA_LABELS*sizeof(computed[0]));
+
+#endif
+  lhFree(&lh) ;
+  return(NO_ERROR) ;
+}
 int
 GCAcomputeRenormalizationWithAlignment(GCA *gca, MRI *mri, TRANSFORM *transform, 
                                        FILE *logfp,const char *base_name, LTA **plta, 
