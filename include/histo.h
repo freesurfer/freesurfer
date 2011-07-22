@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2011/06/07 17:37:16 $
- *    $Revision: 1.42 $
+ *    $Date: 2011/07/22 12:50:27 $
+ *    $Revision: 1.43 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -52,6 +52,7 @@ HISTOGRAM *HISTOinit(HISTOGRAM *h, int nbins, double mn, double mx) ;
 HISTOGRAM *HISTOalloc(int nbins) ;
 HISTOGRAM *HISTOrealloc(HISTOGRAM *histo, int nbins) ;
 HISTOGRAM *HISTOcrunch(HISTOGRAM *histo_src, HISTOGRAM *histo_dst) ;
+double     HISTOcorrelate(HISTOGRAM *h1, HISTOGRAM *h2) ;
 HISTOGRAM *HISTOcopy(HISTOGRAM *histo_src, HISTOGRAM *histo_dst) ;
 HISTOGRAM *HISTOinvert(HISTOGRAM *histo_src, HISTOGRAM *histo_dst,int max_dst);
 HISTOGRAM *HISTOnormalize(HISTOGRAM *histo_src, HISTOGRAM *histo_dst,

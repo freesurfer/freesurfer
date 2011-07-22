@@ -8,8 +8,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2011/06/07 17:37:24 $
- *    $Revision: 1.71 $
+ *    $Date: 2011/07/22 12:50:06 $
+ *    $Revision: 1.72 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -1576,20 +1576,20 @@ HISTOclearBG(HISTOGRAM *hsrc, HISTOGRAM *hdst, int *pbg_end)
   return(hdst) ;
 }
 
-#if 0
-static double
-histoComputeLinearFitCorrelation(HISTOGRAM *h1, HISTOGRAM *h2, double a, double b)
+double
+HISTOcorrelate(HISTOGRAM *h1, HISTOGRAM *h2)
 {
   int    b1, b2, h2_done[256] ;
-  double error, sse, c1, c2;
+  double correlation, c1, c2, norm1, norm2 ;
 
   if (h2->nbins > 256)
     ErrorExit(ERROR_UNSUPPORTED, 
               "histoComputeLinearFitCorrelation: only 256 bins allowed") ;
   memset(h2_done, 0, sizeof(h2_done)) ;
-  for (sse = 0.0, b1 = 0 ; b1 < h1->nbins ; b1++)
+  norm1 = norm2 = 0.0 ;
+  for (correlation = 0, b1 = 0 ;  b1 < h1->nbins ; b1++)
   {
-    b2 = nint(b1*a+b) ;
+    b2 = HISTOfindBin(h2, h1->bins[b1]) ;
     if ((b2 < 0) || (b2 > h2->nbins-1))
       c2 = 0 ;
     else
@@ -1598,28 +1598,18 @@ histoComputeLinearFitCorrelation(HISTOGRAM *h1, HISTOGRAM *h2, double a, double 
       h2_done[b2] = 1 ;
     }
     c1 = h1->counts[b1] ;
-    error = (c2 - c1) ;
-    sse += error*error ;
+    correlation += c1 * c2 ;
+    norm1 += c1*c1 ;
+    norm2 += c2*c2 ;
   }
 
-  // inverse map
-  for (b2 = 0 ; b2 < h2->nbins ; b2++)
-  {
-    if (h2_done[b2])
-      continue ;
-    b1 = nint((b2-b)/a) ;
-    if ((b1 < 0) || (b1 > h1->nbins-1))
-      c1 = 0 ;
-    else
-      c1 = h1->counts[b1] ;
-    c2 = h2->counts[b2] ;
-    error = (c2 - c1) ;
-    sse += error*error ;
-  }
-
-  return(sse) ;
+  if (FZERO(norm1))
+    norm1 = 1.0 ;
+  if (FZERO(norm2))
+    norm2 = 1.0 ;
+  correlation /= (sqrt(norm1) * sqrt(norm2)) ;
+  return(correlation) ;
 }
-#endif
 
 
 static double
