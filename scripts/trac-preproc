@@ -8,8 +8,8 @@
 # Original Author: Anastasia Yendiki
 # CVS Revision Info:
 #    $Author: ayendiki $
-#    $Date: 2011/05/20 06:51:51 $
-#    $Revision: 1.17.2.5 $
+#    $Date: 2011/07/25 20:30:30 $
+#    $Revision: 1.17.2.6 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -25,7 +25,7 @@
 
 umask 002
 
-set VERSION = '$Id: trac-preproc,v 1.17.2.5 2011/05/20 06:51:51 ayendiki Exp $'
+set VERSION = '$Id: trac-preproc,v 1.17.2.6 2011/07/25 20:30:30 ayendiki Exp $'
 set ProgName = `basename $0`
 set inputargs = ($argv)
 
@@ -281,7 +281,14 @@ if ($docorr) then
 
     set cmd = epidewarp.fsl
     set cmd = ($cmd --mag $dwidir/b0mag.nii.gz)
-    set cmd = ($cmd --ph $dwidir/b0pha.nii.gz)
+    if (`mri_info --nframes $dwidir/b0pha.nii.gz` == 2) then
+      set cmd = ($cmd --ph $dwidir/b0pha.nii.gz)	# Two phase maps
+    else if (`mri_info --nframes $dwidir/b0pha.nii.gz` == 1) then
+      set cmd = ($cmd --dph $dwidir/b0pha.nii.gz)	# Phase difference map
+    else
+      echo "ERROR: Unrecognized format of phase map $dwidir/b0pha.nii.gz"
+      goto error_exit
+    endif
     set cmd = ($cmd --exf $dwidir/lowb.nii.gz)
     set cmd = ($cmd --epi $dwidir/dwi_orig_flip.nii.gz)
     set cmd = ($cmd --tediff $dTE --esp $echospacing)
@@ -709,6 +716,7 @@ if ($domasks) then
   if ($doregmni && -e $xfmdir/anat2mni.mat) mkdir -p $labdir/mni
   if ($doregcvs) then
     if ($subj == $cvstemp) then
+      if (-e $labdir/cvs && ! -l $labdir/cvs) rm -rf $labdir/cvs
       ln -sfn $labdir/anatorig $labdir/cvs
     else
       if (-l $labdir/cvs) rm -f $labdir/cvs
@@ -1078,6 +1086,7 @@ if ($dotensor) then
     set cvswarp = combined_to${cvstemp}_elreg_afteraseg-norm
 
     if ($subj == $cvstemp) then
+      if (-e $dwidir/cvs && ! -l $dwidir/cvs) rm -rf $dwidir/cvs
       ln -sfn $dwidir/anatorig $dwidir/cvs
     else
       if (-l $dwidir/cvs) rm -f $dwidir/cvs
