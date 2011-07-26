@@ -920,15 +920,15 @@ DelaunayMesh::get()
 {
   m_pmesh = new CMesh3d;
 
-  tetgenio* out = this->createDelaunay();
-  this->convertFormat( out );
+  //tetgenio* out = this->createDelaunay();
+  //this->convertFormat( out );
 
   // dbg - save mesh
-  out->save_nodes((char*)"iteration");
-  out->save_elements((char*)"iteration");
-  out->save_faces((char*)"iteration");
+  // out->save_nodes((char*)"iteration");
+  // out->save_elements((char*)"iteration");
+  // out->save_faces((char*)"iteration");
 
-  delete out;
+  //delete out;
 
   m_pmesh->set_constants(m_de, m_dnu);
   m_pmesh->m_cmin = m_cmin;
