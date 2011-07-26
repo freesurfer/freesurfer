@@ -8,7 +8,7 @@
 # Created: 07-16-2010
 
 set inputargs = ($argv);
-set VERSION = '$Id: mri_reorient_LR.csh,v 1.6 2011/05/01 17:38:32 lzollei Exp $';
+set VERSION = '$Id: mri_reorient_LR.csh,v 1.7 2011/07/26 17:10:48 lzollei Exp $';
 
 set inputvol      = ();
 set outputvol     = ();
@@ -80,7 +80,7 @@ endif
 echo "***Flip..."
 set outputdir = ${outputvol:h}
 set inputvolLR = $outputdir/${inputvol:t:r:r}.lrflipped.nii.gz
-set cmd = (mri_convert --in_orientation $neworientation $originputvol $inputvolLR)
+set cmd = (mri_convert --out_orientation $neworientation $originputvol $inputvolLR)
 echo $cmd; eval $cmd
 
 ### REGISTER between orig and lhrhflipped volumes
