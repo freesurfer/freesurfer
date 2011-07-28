@@ -9,9 +9,9 @@
  * Original Author: Bruce Fischl
  * CUDA version : Richard Edgar
  * CVS Revision Info:
- *    $Author: rge21 $
- *    $Date: 2011/04/15 13:46:26 $
- *    $Revision: 1.89 $
+ *    $Author: fischl $
+ *    $Date: 2011/07/28 13:18:02 $
+ *    $Revision: 1.90 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -53,6 +53,7 @@
 #define FAST_TRANSFORM 0
 #endif // FS_CUDA
 
+static int clamp_set = 0 ;
 static double Gclamp = 6 ;   // robust threshold - everything less likely than -Gclamp will be set to -Gclamp
 static int remove_cerebellum = 0 ;
 static int mark_gcas_classes(GCA_SAMPLE *gcas, int nsamples) ;
@@ -77,6 +78,8 @@ int robust = 0 ;
 */
 static int unknown_nbr_spacing = 1 ;
 
+static float label_scales[MAX_CMA_LABELS] ;
+static float label_offsets[MAX_CMA_LABELS] ;
 
 static double find_optimal_linear_xform
 (GCA *gca, GCA_SAMPLE *gcas,
@@ -201,7 +204,7 @@ main(int argc, char *argv[])
   nargs =
     handle_version_option
     (argc, argv,
-     "$Id: mri_em_register.c,v 1.89 2011/04/15 13:46:26 rge21 Exp $",
+     "$Id: mri_em_register.c,v 1.90 2011/07/28 13:18:02 fischl Exp $",
      "$Name:  $");
   if (nargs && argc - nargs == 1)
   {
@@ -272,6 +275,11 @@ main(int argc, char *argv[])
   if (gca == NULL)
     ErrorExit(ERROR_NOFILE, "%s: could not open GCA %s.\n",
               Progname, gca_fname) ;
+  if (gca->ninputs > 1 && clamp_set == 0)
+  {
+    printf("disabling robust clamp for multispectral data\n") ;
+    Gclamp = 2000 ;
+  }
 
   if (baby)
   {
@@ -311,6 +319,7 @@ main(int argc, char *argv[])
   //    GCAunifyVariance(gca) ;
 
   GCAfixSingularCovarianceMatrices(gca) ;
+  GCAapplyRenormalization(gca, label_scales, label_offsets, 0) ;
 
   ////////// -renorm fname ////////////////////////////////////////////
   if (renormalization_fname)
@@ -1589,8 +1598,20 @@ get_option(int argc, char *argv[])
     // seems not used
     nomap = 1 ;
   }
+  else if (!strcmp(option, "LSCALE"))
+  {
+    int l ;
+    l = atoi(argv[2]) ;
+    label_scales[l] = atof(argv[3]) ;
+    nargs = 2 ;
+    printf("scaling label %s by %2.2f\n", cma_label_to_name(l), label_scales[l]) ;
+    for (l = 0 ; l < MAX_CMA_LABELS ; l++)
+      if (FZERO(label_scales[l]))
+	label_scales[l] = 1.0 ;
+  }
   else if (!strcmp(option, "CLAMP"))
   {
+    clamp_set = 1 ;
     Gclamp = atof(argv[2]) ;
     nargs = 1 ;
     printf("setting robust clamp to %2.3f\n", Gclamp) ;
