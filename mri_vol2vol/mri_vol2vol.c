@@ -10,9 +10,9 @@
 /*
  * Original Author: Doug Greve
  * CVS Revision Info:
- *    $Author: lzollei $
- *    $Date: 2011/03/16 21:56:31 $
- *    $Revision: 1.69 $
+ *    $Author: mreuter $
+ *    $Date: 2011/07/29 23:56:08 $
+ *    $Revision: 1.70 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -36,6 +36,7 @@ mri_vol2vol
   --o    outvol       : output volume
   --disp dispvol      : displacement volume
 
+  --lta  register.lta : Linear Transform Array (usually only 1 transform)
   --reg  register.dat : tkRAS-to-tkRAS matrix   (tkregister2 format)
   --fsl  register.fsl : fslRAS-to-fslRAS matrix (FSL format)
   --xfm  register.xfm : ScannerRAS-to-ScannerRAS matrix (MNI format)
@@ -427,6 +428,7 @@ ENDHELP --------------------------------------------------------------
 #include "fio.h"
 #include "pdf.h"
 #include "cmdargs.h"
+#include "mri_circulars.h"
 
 #include "chronometer.h"
 
@@ -462,7 +464,7 @@ MATRIX *LoadRfsl(char *fname);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_vol2vol.c,v 1.69 2011/03/16 21:56:31 lzollei Exp $";
+static char vcid[] = "$Id: mri_vol2vol.c,v 1.70 2011/07/29 23:56:08 mreuter Exp $";
 char *Progname = NULL;
 
 int debug = 0, gdiagno = -1;
@@ -478,6 +480,8 @@ char *fslregfile=NULL;
 char *tempvolfile=NULL;
 int  invert=0;
 int  fstal=0;
+LTA  *lta=NULL;
+int  usedltageom=0;
 int  fstalres = 2; // Can only be 1 or 2
 char *precision = "float";
 int   precisioncode = MRI_FLOAT;
@@ -576,12 +580,12 @@ int main(int argc, char **argv) {
 
 
   make_cmd_version_string(argc, argv,
-                          "$Id: mri_vol2vol.c,v 1.69 2011/03/16 21:56:31 lzollei Exp $",
+                          "$Id: mri_vol2vol.c,v 1.70 2011/07/29 23:56:08 mreuter Exp $",
                           "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option(argc, argv,
-                                "$Id: mri_vol2vol.c,v 1.69 2011/03/16 21:56:31 lzollei Exp $",
+                                "$Id: mri_vol2vol.c,v 1.70 2011/07/29 23:56:08 mreuter Exp $",
                                 "$Name:  $");
   if(nargs && argc - nargs == 1) exit (0);
 
@@ -686,7 +690,13 @@ int main(int argc, char **argv) {
     // dont invert
     mov = MRIread(movvolfile);
     if (mov == NULL) exit(1);
-    targ = MRIreadHeader(targvolfile,MRI_VOLUME_TYPE_UNKNOWN);
+    if (targvolfile != NULL ) targ = MRIreadHeader(targvolfile,MRI_VOLUME_TYPE_UNKNOWN);
+    else if (lta != NULL)
+    {
+       targ = MRIclone(mov,targ);
+       MRIcopyVolGeomToMRI(targ,&lta->xforms[0].dst); 
+       usedltageom = 1;
+    }
     if (targ == NULL) exit(1);
     in = mov;
     template = targ;
@@ -694,10 +704,16 @@ int main(int argc, char **argv) {
   }
   else{
     //invert
-    mov = MRIreadHeader(movvolfile,MRI_VOLUME_TYPE_UNKNOWN);
-    if(mov == NULL) exit(1);
-    targ = MRIread(targvolfile);
+    if (targvolfile != NULL ) targ = MRIread(targvolfile);
     if(targ == NULL) exit(1);
+    if (movvolfile != NULL) mov = MRIreadHeader(movvolfile,MRI_VOLUME_TYPE_UNKNOWN);
+    else if (lta != NULL)
+    {
+       mov = MRIclone(targ,mov);
+       MRIcopyVolGeomToMRI(mov,&lta->xforms[0].src); 
+       usedltageom = 1;
+    }    
+    if(mov == NULL) exit(1);
     in = targ;
     template = mov;
     tempvolfile = movvolfile;
@@ -980,16 +996,36 @@ int main(int argc, char **argv) {
   }
 
   if(SaveReg) {
+    sprintf(regfile0,"%s.lta",outvolfile);
+    printf("INFO: writing registration to %s\n",regfile0);
+    if (lta) LTAfree(&lta);
+    lta = LTAalloc(1, NULL) ;
+    lta->xforms[0].sigma = 10000.000f ;
+    lta->xforms[0].x0 = lta->xforms[0].y0 = lta->xforms[0].z0 = 0 ;
+    strcpy(lta->subject, subject_outreg); 
+    MatrixCopy(R, lta->xforms[0].m_L) ;
+    lta->type = REGISTER_DAT;
+    lta->fscale  = 1;
+    LTAmodifySrcDstGeom(lta,in,template);
+    LTAchangeType(lta,LINEAR_VOX_TO_VOX);
+    LTAwrite(lta,regfile0);    
+    LTAfree(&lta);
+    
+     
     sprintf(regfile0,"%s.reg",outvolfile);
-    printf("INFO: wAriting registration matrix to %s\n",regfile0);
+    printf("INFO: writing registration matrix to %s\n",regfile0);
     regio_write_register(regfile0,subject_outreg,out->xsize,
                          out->zsize,1,R,FLT2INT_ROUND);
-    printf("To check registration, run:\n");
-    printf("\n");
     if (!fstal) {
-      printf("  tkregister2 --mov %s --targ %s --reg %s \n",
-             outvolfile,tempvolfile,regfile0);
+      if (! usedltageom ){
+        printf("To check registration, run:\n");
+        printf("\n");
+        printf("  tkregister2 --mov %s --targ %s --reg %s \n",
+               outvolfile,tempvolfile,regfile0);
+      }
     }  else {
+      printf("To check registration, run:\n");
+      printf("\n");
       printf("  tkregister2 --s %s --surf white --reg %s --mov %s \n",
              subject_outreg,regfile0,outvolfile);
     }
@@ -1013,6 +1049,7 @@ static int parse_commandline(int argc, char **argv) {
   int  nargc , nargsused;
   char **pargv, *option ;
   int err;
+  char tmp[1000];
 
   if (argc < 1) usage_exit();
 
@@ -1086,6 +1123,47 @@ static int parse_commandline(int argc, char **argv) {
       err = regio_read_register(regfile, &subject, &ipr, &bpr,
                                 &intensity, &R, &float2int);
       if (err) exit(1);
+      nargsused = 1;
+    } 
+    else if (istringnmatch(option, "--lta",0)) {
+      if (nargc < 1) argnerr(option,1);
+      regfile = pargv[0];
+      if (!stricmp(FileNameExtension(regfile, tmp), "LTA"))
+      {
+        lta = LTAread(regfile) ;
+        if(lta == NULL)
+        {
+           printf("ERROR reading LTA %s !\n",regfile);        
+           exit(1) ;
+        }
+        if (!lta->xforms[0].src.valid)
+        {
+           printf("ERROR LTA %s has no valid src geometry!\n",regfile);        
+           exit(1) ;       
+        }
+        if (!lta->xforms[0].dst.valid)
+        {
+           printf("ERROR LTA %s has no valid dst geometry!\n",regfile);        
+           exit(1) ; 
+        }
+        
+        if(lta->subject[0]==0) strcpy(lta->subject, "subject-unknown"); 
+        subject = (char *) calloc(strlen(lta->subject)+2,sizeof(char));
+        strcpy(subject, lta->subject) ;
+        intensity = lta->fscale ;
+        float2int = FLT2INT_ROUND ;
+        ipr = lta->xforms[0].src.xsize ;
+        bpr = lta->xforms[0].src.zsize ;
+        R = TransformLTA2RegDat(lta);
+        
+        
+        //err = regio_read_register(regfile, &subject, &ipr, &bpr,
+        //                          &intensity, &R, &float2int);
+      }
+      else {
+        printf("LTA registration file needs to have .lta extension!\n");
+        exit(1);        
+      }
       nargsused = 1;
     } 
     else if (istringnmatch(option, "--mni152reg",0)) {
@@ -1272,6 +1350,7 @@ printf("  --targ targvol      : output template (or input with --inv)\n");
 printf("  --o    outvol       : output volume\n");
 printf("  --disp dispvol      : displacement volume\n");
 printf("\n");
+printf("  --lta  register.lta : LTA registration file (FreeSurfer format)\n");
 printf("  --reg  register.dat : tkRAS-to-tkRAS matrix   (tkregister2 format)\n");
 printf("  --fsl  register.fsl : fslRAS-to-fslRAS matrix (FSL format)\n");
 printf("  --xfm  register.xfm : ScannerRAS-to-ScannerRAS matrix (MNI format)\n");
@@ -1346,6 +1425,13 @@ printf("this will be the volume will be the geometry template for the output.\n"
 printf("If --inv is specified, then this becomes the input volume that will be\n");
 printf("resampled instead. The target volume can be implicitly specified with\n");
 printf("--tal or --fstarg.\n");
+printf("\n");
+printf("--lta register.lta\n");
+printf("\n");
+printf("This text file contains the freesurfer registration matrix in LTA format.\n");
+printf("LTA (Linear Transform Arrays) are the preferred format as they contain\n");
+printf("all necessary information about source and target geometry. Usually only\n");
+printf("a single transform is stored in those files.\n");
 printf("\n");
 printf("--reg register.dat\n");
 printf("\n");
@@ -1664,10 +1750,12 @@ static void check_options(void) {
     printf("ERROR: SUBJECTS_DIR undefined.\n");
     exit(1);
   }
-  if (movvolfile == NULL) {
+  
+  if (movvolfile == NULL && ( lta == NULL || ! invert) ) {
     printf("ERROR: No mov volume supplied.\n");
     exit(1);
   }
+    
   if(outvolfile == NULL && DispFile == NULL) {
     printf("ERROR: No output volume supplied.\n");
     exit(1);
@@ -1681,7 +1769,7 @@ static void check_options(void) {
     }
   }
 
-  if(!fstal && !DoCrop && !fstarg && targvolfile == NULL) {
+  if(!fstal && !DoCrop && !fstarg && targvolfile == NULL &&  ( lta == NULL || invert) ) {
     printf("ERROR: No targ volume supplied.\n");
     exit(1);
   }
