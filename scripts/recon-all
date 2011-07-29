@@ -7,9 +7,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: mreuter $
-#    $Date: 2011/05/20 21:41:38 $
-#    $Revision: 1.396 $
+#    $Author: nicks $
+#    $Date: 2011/07/29 20:47:57 $
+#    $Revision: 1.397 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -26,7 +26,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.396 2011/05/20 21:41:38 mreuter Exp $';
+set VERSION = '$Id: recon-all,v 1.397 2011/07/29 20:47:57 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -1501,7 +1501,16 @@ if($DoNuIntensityCor) then
   # that are mostly brain. The top of the intensity histogram in this ball
   # will then be white matter, which allows us to center it at the desired
   # value, approximately (110).
-  if ($DoNuMakeUchar) set cmd = ($cmd --uchar transforms/talairach.xfm)
+  if ($DoNuMakeUchar) then
+    if ( ! -e transforms/talairach.xfm) then
+      echo "WARNING: transforms/talairach.xfm does not exist!" \
+        |& tee -a $LF
+      echo "It will not be used by mri_nu_correct.mni." \
+        |& tee -a $LF
+    else
+      set cmd = ($cmd --uchar transforms/talairach.xfm)
+    endif
+  endif
   # --cm for hi-res support:
   if ($ConformMin) set cmd = ($cmd --cm)
   if ($DoNuIntensityCor3T) then
