@@ -9,8 +9,8 @@
 #
 # CVS Revision Info:
 #    $Author: fischl $
-#    $Date: 2011/06/29 18:40:02 $
-#    $Revision: 1.533 $
+#    $Date: 2011/07/30 20:07:24 $
+#    $Revision: 1.534 $
 #
 ########################################################################
 AC_PREREQ(2.57)
@@ -3424,6 +3424,7 @@ AC_OUTPUT([Makefile
            mri_z2p/Makefile
            mri_label_accuracy/Makefile
            mri_multispectral_segment/Makefile
+           mri_multiscale_segment/Makefile
            mri_compute_change_map/Makefile
            mris2rgb/Makefile
            mris_hausdorff_dist/Makefile

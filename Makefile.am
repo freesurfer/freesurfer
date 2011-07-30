@@ -109,6 +109,7 @@ MRISUBDIRS=\
 	mri_mi_nl_align \
 	mri_modify \
 	mri_multispectral_segment \
+	mri_multiscale_segment \
 	mri_nlfilter \
 	mri_normalize \
 	mri_partial_ribbon \
