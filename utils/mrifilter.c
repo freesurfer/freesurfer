@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:45 $
- *    $Revision: 1.89 $
+ *    $Author: fischl $
+ *    $Date: 2011/07/30 20:36:59 $
+ *    $Revision: 1.90 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -1970,6 +1970,131 @@ MRImeanByte(MRI *mri_src, MRI *mri_dst, int wsize)
   return(mri_dst) ;
 }
 
+MRI *
+MRImeanInMask(MRI *mri_src, MRI *mri_dst, MRI *mri_mask, int wsize)
+{
+  int     width, height, depth, whalf, num;
+  float   wcubed;
+  int x, y, z, x0, y0, z0;
+  float val;
+
+  wcubed = (float)(wsize*wsize*wsize) ;
+  whalf = wsize/2 ;
+  width = mri_src->width ;
+  height = mri_src->height ;
+  depth = mri_src->depth ;
+
+  if (!mri_dst)
+  {
+    mri_dst = MRIalloc(width, height, depth, MRI_FLOAT) ;
+    MRIcopyHeader(mri_src, mri_dst) ;
+  }
+
+  for (z = 0 ; z < depth ; z++)
+  {
+    for (y = 0 ; y < height ; y++)
+    {
+      for (x = 0 ; x < width ; x++)
+      {
+        if (MRIgetVoxVal(mri_mask, x, y, z, 0) == 0)
+          continue ;
+        for (num = 0, val = 0.0, z0 = -whalf ; z0 <= whalf ; z0++)
+        {
+          if (z+z0 < 0 || z+z0 >= mri_src->depth)
+            continue ;
+          for (y0 = -whalf ; y0 <= whalf ; y0++)
+          {
+            if (y+y0 < 0 || y+y0 >= mri_src->height)
+              continue ;
+            for (x0 = -whalf ; x0 <= whalf ; x0++)
+            {
+              if (x+x0 < 0 || x+x0 >= mri_src->width)
+                continue ;
+              if (MRIgetVoxVal(mri_mask, x+x0, y+y0, z+z0, 0) == 0)
+                continue ;
+              val += MRIgetVoxVal(mri_src, x+x0, y+y0, z+z0, 0) ;
+              num++ ;
+            }
+          }
+        }
+        if (FZERO(num) == 0)
+        {
+          val /= num ;
+          MRIsetVoxVal(mri_dst, x, y, z, 0, val) ;
+        }
+      }
+    }
+  }
+
+  return(mri_dst) ;
+}
+
+MRI *
+MRIstdInMask(MRI *mri_src, MRI *mri_dst, MRI *mri_mean, MRI *mri_mask, int wsize) 
+{
+  int     width, height, depth, x, y, z, whalf, x0, y0, z0, xi, yi, zi ;
+  float   wcubed, mean, variance, f ;
+
+  width = mri_src->width ;
+  height = mri_src->height ;
+  depth = mri_src->depth ;
+  if (!mri_dst)
+  {
+    mri_dst = MRIalloc(width, height, depth, MRI_FLOAT) ;
+    MRIcopyHeader(mri_src, mri_dst) ;
+  }
+
+  if (mri_dst->type != MRI_FLOAT)
+    ErrorReturn(mri_dst,
+                (ERROR_UNSUPPORTED, "MRIstd: dst must be MRI_FLOAT")) ;
+
+  whalf = wsize/2 ;
+
+  for (z = 0 ; z < depth ; z++)
+  {
+    for (y = 0 ; y < height ; y++)
+    {
+      for (x = 0 ; x < width ; x++)
+      {
+        if (x == Gx && y == Gy && z == Gz)
+          DiagBreak() ;
+        if (MRIgetVoxVal(mri_mask, x, y, z, 0) == 0)
+          continue ;
+        mean = MRIgetVoxVal(mri_mean, x, y, z, 0) ;
+        wcubed = 0 ;
+        for (variance = 0.0f, z0 = -whalf ; z0 <= whalf ; z0++)
+        {
+          zi = z+z0 ;
+          if (zi < 0 || zi >= depth)
+            continue ;
+          for (y0 = -whalf ; y0 <= whalf ; y0++)
+          {
+            yi = y + y0 ;
+            if (yi < 0 || yi >= height)
+              continue ;
+            for (x0 = -whalf ; x0 <= whalf ; x0++)
+            {
+              xi = x + x0 ;
+              if (xi < 0 || xi >= width)
+                continue ;
+              if (MRIgetVoxVal(mri_mask, xi, yi, zi, 0) == 0)
+                continue ;
+              wcubed++ ;
+              f = MRIgetVoxVal(mri_src, xi, yi, zi, 0) ;
+              f -= mean ;
+              variance += (f * f) ;
+            }
+          }
+        }
+        if (wcubed == 0)
+          MRIsetVoxVal(mri_dst, x, y, z, 0, 0) ;
+        else
+          MRIsetVoxVal(mri_dst, x, y, z, 0, sqrt(variance/wcubed)) ;
+      }
+    }
+  }
+  return(mri_dst) ;
+}
 
 /*-----------------------------------------------------
         Parameters:

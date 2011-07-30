@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2011/06/02 13:00:21 $
- *    $Revision: 1.491 $
+ *    $Date: 2011/07/30 20:36:59 $
+ *    $Revision: 1.492 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -23,7 +23,7 @@
  */
 
 extern const char* Progname;
-const char *MRI_C_VERSION = "$Revision: 1.491 $";
+const char *MRI_C_VERSION = "$Revision: 1.492 $";
 
 
 /*-----------------------------------------------------
@@ -14685,6 +14685,37 @@ MRInormalizeSequence(MRI *mri, float target)
   }
 
   return(NO_ERROR) ;
+}
+
+double 
+MRIstdInLabel(MRI *mri_src, MRI *mri_labeled, MRI *mri_mean, int label)
+{
+  int  x, y, z, nvox, l ;
+  double mean, var = 0.0 ;
+  float  val ;
+
+  nvox = 0 ;
+  for (x = 0 ; x < mri_src->width ; x++)
+  {
+    for (y = 0 ; y < mri_src->height ; y++)
+    {
+      for (z = 0 ; z < mri_src->depth ; z++)
+      {
+        l = nint(MRIgetVoxVal(mri_labeled, x, y, z, 0)) ;
+        if (l == label)
+        {
+          val = MRIgetVoxVal(mri_src, x, y, z, 0) ;
+          mean = MRIgetVoxVal(mri_mean, x, y, z, 0) ;
+          val -= mean ;
+          var += (val*val) ;
+          nvox++ ;
+        }
+      }
+    }
+  }
+  if (!nvox)
+    nvox = 1 ;
+  return(sqrt(var/nvox)) ;
 }
 
 double

@@ -8,8 +8,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2011/06/02 13:00:21 $
- *    $Revision: 1.426 $
+ *    $Date: 2011/07/30 20:36:59 $
+ *    $Revision: 1.427 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -597,7 +597,10 @@ MRI *MRI_fft_highpass(MRI *src, MRI *dst, int percent);
 MRI *MRIscaleMeanIntensities(MRI *mri_src, MRI *mri_ref, MRI *mri_dst) ;
 MRI   *MRImedian(MRI *mri_src, MRI *mri_dst, int wsize, MRI_REGION *box) ;
 MRI   *MRImean(MRI *mri_src, MRI *mri_dst, int wsize) ;
+MRI   *MRImeanInMask(MRI *mri_src, MRI *mri_dst, MRI *mri_mask, int wsize) ;
+MRI   *MRIstdInMask(MRI *mri_src, MRI *mri_dst, MRI *mri_mean, MRI *mri_mask, int wsize) ;
 double MRImeanInLabel(MRI *mri_src, MRI *mri_labeled, int label) ;
+double MRIstdInLabel(MRI *mri_src, MRI *mri_labeled, MRI *mri_mean, int label) ;
 double MRImeanInLabelInRegion(MRI *mri_src, MRI *mri_labeled,
                               int label, int x0, int y0, int z0, int whalf);
 MRI   *MRImeanByte(MRI *mri_src, MRI *mri_dst, int wsize) ;
