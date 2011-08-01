@@ -11,9 +11,9 @@
 /*
  * Original Author: Rudolph Pienaar
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2011/05/27 16:49:00 $
- *    $Revision: 1.37.2.5 $
+ *    $Author: nicks $
+ *    $Date: 2011/08/01 18:24:21 $
+ *    $Revision: 1.37.2.6 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -34,6 +34,7 @@
 #include <math.h>
 #include <ctype.h>
 #include <sys/stat.h>
+#include <libgen.h>
 
 #include <assert.h>
 #include <errno.h>
@@ -54,14 +55,14 @@
 #include "mri_identify.h"
 #include "label.h"
 
-#define  STRBUF     	65536
+#define  STRBUF       65536
 #define  MAX_FILES      1000
-#define  CO( x )      	fprintf(stdout, ( x ))
-#define  CE( x )      	fprintf(stderr, ( x ))
-#define  START_i      	3
+#define  CO( x )        fprintf(stdout, ( x ))
+#define  CE( x )        fprintf(stderr, ( x ))
+#define  START_i        3
 
 static const char vcid[] =
-  "$Id: mris_calc.c,v 1.37.2.5 2011/05/27 16:49:00 greve Exp $";
+  "$Id: mris_calc.c,v 1.37.2.6 2011/08/01 18:24:21 nicks Exp $";
 double fn_sign(float af_A);
 
 // ----------------------------------------------------------------------------
@@ -106,11 +107,11 @@ char* Gppch_fileDotExt[] =
 
 typedef enum _FILEACCESS
 {
-  e_UNSPECIFIED   	= -10,
-  e_WRONGMAGICNUMBER  	= -1,
-  e_OK      		=  0,
-  e_READACCESSERROR 	=  1,
-  e_WRITEACCESSERROR  	=  2
+  e_UNSPECIFIED     = -10,
+  e_WRONGMAGICNUMBER    = -1,
+  e_OK          =  0,
+  e_READACCESSERROR   =  1,
+  e_WRITEACCESSERROR    =  2
 } e_FILEACCESS;
 
 typedef enum _operation
@@ -213,7 +214,7 @@ char*             Progname ;
 
 static int        G_verbosity             = 0;
 static FILE*      G_FP                    = NULL;
-static int 	  Gb_strictExtensions	  = 0;
+static int    Gb_strictExtensions   = 0;
 
 // Input 1
 static int        G_sizeCurv1             = 0;
@@ -223,8 +224,8 @@ static float*     G_pf_arrayCurv1Copy     = NULL;
 static int        G_sizeCurv1Copy         = 0;
 static int        G_nfaces                = 0;
 static int        G_valsPerVertex         = 0;
-static int 	  G_FSFILETYPE1		  = -1; // FreeSurfer type designator
-static e_FILETYPE G_eFILETYPE1    	  = e_Unknown;
+static int    G_FSFILETYPE1     = -1; // FreeSurfer type designator
+static e_FILETYPE G_eFILETYPE1        = e_Unknown;
 
 // Input 2
 static int        Gb_curvFile2            = 0;  //  The second input
@@ -233,11 +234,11 @@ static int        G_sizeCurv2             = 0;
 static float*     G_pf_arrayCurv2         = NULL;
 static float*     G_pf_arrayCurv2Copy     = NULL;
 static int        G_sizeCurv2Copy         = 0;
-static int 	  G_FSFILETYPE2		  = -1; // FreeSurfer type designator
-static e_FILETYPE G_eFILETYPE2    	  = e_Unknown;
+static int    G_FSFILETYPE2     = -1; // FreeSurfer type designator
+static e_FILETYPE G_eFILETYPE2        = e_Unknown;
 
 // "Helper" pointers
-static MRI*   	  Gp_MRI      		  = NULL; // Pointer to most
+static MRI*       Gp_MRI            = NULL; // Pointer to most
 //+ recently read
 //+ MRI_VOLUME struct
 //+ and used in volume
@@ -245,19 +246,19 @@ static MRI*   	  Gp_MRI      		  = NULL; // Pointer to most
 //+ for volume size.
 
 // Operation to perform on input1 and input2
-static char*      	G_pch_operator          = NULL;
+static char*        G_pch_operator          = NULL;
 static e_operation      Ge_operation            = e_unknown;
 
 // Output file
-static int        	G_sizeCurv3             = 0;
-static char       	G_pch_curvFile3[STRBUF];
-static float*     	G_pf_arrayCurv3         = NULL;
+static int          G_sizeCurv3             = 0;
+static char   G_pch_curvFile3[STRBUF];
+static float*       G_pf_arrayCurv3         = NULL;
 static float*           G_pf_arrayCurv3Copy     = NULL;
 static int              G_sizeCurv3Copy         = 0;
-static short    	Gb_file3    		= 0;
+static short      Gb_file3        = 0;
 static short            Gb_canWrite             = 0;
-static int 	  	G_FSFILETYPE3		= -1; // FreeSurfer type designator
-static e_FILETYPE 	G_eFILETYPE3		= e_Unknown;
+static int      G_FSFILETYPE3   = -1; // FreeSurfer type designator
+static e_FILETYPE   G_eFILETYPE3    = e_Unknown;
 
 // Label file and data
 static short            Gb_labelMask            = 0;
@@ -277,7 +278,7 @@ static void version_print(void);
 
 // Setup functions
 static int  options_parse(
-  int 	argc,
+  int   argc,
   char* apchv[]
 );
 static int  options_print(void);
@@ -562,7 +563,7 @@ double fn_dev(float af_A)
 e_FILETYPE
 fileType_find(
   char*   apch_inputFile,
-  int* 	  ap_FSFILETYPE
+  int*    ap_FSFILETYPE
 );
 
 // I/O functions
@@ -802,33 +803,34 @@ output_init(void)
 e_FILETYPE
 fileType_find(
   char*   apch_inputFile,
-  int* 	  ap_FSFILETYPE)
+  int*    ap_FSFILETYPE)
 {
 
-  int   		len, type, filestat;
-  float   		f     			= -1.0;
-  char*  		pch_end;
-  char			pch_floatArg[64];
-  struct stat 	stFileInfo; 
-  	
-	
+  int       len, type, filestat;
+  float       f           = -1.0;
+  char*     pch_end;
+  char      pch_floatArg[STRBUF];
+  struct stat   stFileInfo;
+
   // The acph_inputFile can be either a file on the filesystem
-  // or a float argument. Check if <apch_inputFile> is an actual 
+  // or a float argument. Check if <apch_inputFile> is an actual
   // file, if not, check if it converts to a float.
-  filestat = stat(apch_inputFile, &stFileInfo); 
-  if(filestat) {
-	  // <apch_inputFile> does not seem to refer to a valid file.
-	  // Check if it converts to a float.
-	  strcpy(pch_floatArg, apch_inputFile);
-	  f = strtof(pch_floatArg, &pch_end);
-	  len = strlen(pch_end);
-	  if(!len) {
-		return(e_FloatArg);
-	  }
+  filestat = stat(basename(apch_inputFile), &stFileInfo);
+  if(filestat)
+  {
+    // <apch_inputFile> does not seem to refer to a valid file.
+    // Check if it converts to a float.
+    strcpy(pch_floatArg, apch_inputFile);
+    f = strtof(pch_floatArg, &pch_end);
+    len = strlen(pch_end);
+    if(!len)
+    {
+      return(e_FloatArg);
+    }
   }
-	
+
   // Check if input is a volume file...
-  type 		 = mri_identify(apch_inputFile);
+  type     = mri_identify(basename(apch_inputFile));
   *ap_FSFILETYPE = type;
   if(type != MRI_VOLUME_TYPE_UNKNOWN && type != MRI_CURV_FILE)
   {
@@ -881,11 +883,11 @@ fileIO_errorHander(
 
 e_FILEACCESS
 fileRead(
-  char*   	apch_fileName,
-  int*    	ap_vectorSize,
-  float*    	apf_curv[],
-  e_FILETYPE* 	aeFILETYPE,
-  int* 		a_FSFILETYPE)
+  char*     apch_fileName,
+  int*      ap_vectorSize,
+  float*      apf_curv[],
+  e_FILETYPE*   aeFILETYPE,
+  int*    a_FSFILETYPE)
 {
 
   e_FILEACCESS  eACCESS   = e_UNSPECIFIED;
@@ -913,55 +915,70 @@ fileRead(
 
 e_FILEACCESS
 fileWrite(
-  char*   	apch_fileName,
-  int     	a_vectorSize,
-  float*    	apf_curv
+  char*     apch_fileName,
+  int       a_vectorSize,
+  float*      apf_curv
 )
 {
 
-    // HISTORY
-    // 09 March 2011 
-    // o Fixed output file name type handling. If no
-    //	 output extension is specified, append extension
-    //	 corresponding to input type.
-    // o Correctly handle curvature file name extension spec.
-    //
-    
-  e_FILEACCESS  eACCESS   	= e_UNSPECIFIED;
-  char*		pch_fileExt;
-  int 		b_fileID_OK	= 0;
+  // HISTORY
+  // 09 March 2011
+  // o Fixed output file name type handling. If no
+  //   output extension is specified, append extension
+  //   corresponding to input type.
+  // o Correctly handle curvature file name extension spec.
+  //
+
+  e_FILEACCESS  eACCESS     = e_UNSPECIFIED;
+  char*   pch_fileExt;
+  int     b_fileID_OK = 0;
 
   pch_fileExt = fio_extension(apch_fileName);
-  if(pch_fileExt) {
-      if(!strcmp(pch_fileExt, Gppch_fileExt[e_CurvatureFile])) {
-          G_eFILETYPE3 	= e_CurvatureFile;
-          G_FSFILETYPE3	= MRI_CURV_FILE;
-	  b_fileID_OK		= 1;
-      } else {
-    	  G_eFILETYPE3 = fileType_find(apch_fileName, &G_FSFILETYPE3);
-    	  if(G_eFILETYPE3 == e_Unknown) {
-	      if(Gb_strictExtensions)
-      	          strcat(apch_fileName, Gppch_fileDotExt[G_eFILETYPE1]);
-    	  } else {
-	      if(strcmp(pch_fileExt, Gppch_fileExt[G_eFILETYPE3]) && 
-	         Gb_strictExtensions) {
-      	          strcat(apch_fileName, Gppch_fileDotExt[G_eFILETYPE3]);
-		  G_eFILETYPE3	= G_eFILETYPE1;
-		 }
-	      b_fileID_OK	= 1;
-//	      G_FSFILETYPE3	= G_FSFILETYPE1;
-	      }
+  if(pch_fileExt)
+  {
+    if(!strcmp(pch_fileExt, Gppch_fileExt[e_CurvatureFile]))
+    {
+      G_eFILETYPE3  = e_CurvatureFile;
+      G_FSFILETYPE3 = MRI_CURV_FILE;
+      b_fileID_OK   = 1;
+    }
+    else
+    {
+      G_eFILETYPE3 = fileType_find(apch_fileName, &G_FSFILETYPE3);
+      if(G_eFILETYPE3 == e_Unknown)
+      {
+        if(Gb_strictExtensions)
+        {
+          strcat(apch_fileName, Gppch_fileDotExt[G_eFILETYPE1]);
+        }
       }
-  } else {
-	strcat(apch_fileName, Gppch_fileDotExt[G_eFILETYPE1]);
+      else
+      {
+        if(strcmp(pch_fileExt, Gppch_fileExt[G_eFILETYPE3]) &&
+            Gb_strictExtensions)
+        {
+          strcat(apch_fileName, Gppch_fileDotExt[G_eFILETYPE3]);
+          G_eFILETYPE3  = G_eFILETYPE1;
+        }
+        b_fileID_OK = 1;
+//        G_FSFILETYPE3 = G_FSFILETYPE1;
+      }
+    }
+  }
+  else
+  {
+    strcat(apch_fileName, Gppch_fileDotExt[G_eFILETYPE1]);
   }
 
-  if(!b_fileID_OK) {
-	G_eFILETYPE3	= G_eFILETYPE1;
-        G_FSFILETYPE3	= G_FSFILETYPE1;
-  }    
+  if(!b_fileID_OK)
+  {
+    G_eFILETYPE3  = G_eFILETYPE1;
+    G_FSFILETYPE3 = G_FSFILETYPE1;
+  }
   if(G_eFILETYPE3 != G_eFILETYPE1)
-	error_incompatibleOutputFileType();
+  {
+    error_incompatibleOutputFileType();
+  }
   switch(G_eFILETYPE1)
   {
   case e_Unknown:
@@ -986,7 +1003,7 @@ debuggingInfo_display()
 {
   cprintd("Size of input1: ",   G_sizeCurv1);
   cprints("Type of input1: ",   Gppch_filetype[G_eFILETYPE1]);
-  cprints("ACTION:",    	G_pch_operator);
+  cprints("ACTION:",      G_pch_operator);
   cprintd("Size of input2: ",   G_sizeCurv2);
   cprints("Type of input2: ",   Gppch_filetype[G_eFILETYPE2]);
 }
@@ -1339,7 +1356,7 @@ main(
   init();
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mris_calc.c,v 1.37.2.5 2011/05/27 16:49:00 greve Exp $",
+           "$Id: mris_calc.c,v 1.37.2.6 2011/08/01 18:24:21 nicks Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
   {
@@ -1459,13 +1476,13 @@ options_parse(int argc, char *argv[])
   option = argv[1] + 1 ;            /* past '-' */
   if (!stricmp(option, "-output") || (toupper(*option) == 'O'))
   {
-    strcpy(G_pch_curvFile3, (argv[2]));
-    Gb_file3    	= 1;
-    nargs         	= 1;
+    strcpy(G_pch_curvFile3, argv[2]);
+    Gb_file3      = 1;
+    nargs           = 1;
   }
   else if (!stricmp(option, "-strictExtensions") || (toupper(*option) == 'E'))
   {
-      Gb_strictExtensions = 1;
+    Gb_strictExtensions = 1;
   }
   else if (!stricmp(option, "-version") || (toupper(*option) == 'V'))
   {
@@ -1711,11 +1728,11 @@ VOL_fileRead(
 )
 {
 
-  char    pch_readMessage[STRBUF];
-  int   i, j, k, f;
-  int   I         = 0;
-  MRI*    pMRI        = NULL;
-  float*    pf_data       = NULL;
+  char      pch_readMessage[STRBUF];
+  int     i, j, k, f;
+  int     I             = 0;
+  MRI*      pMRI            = NULL;
+  float*      pf_data           = NULL;
 
   if(G_verbosity)
   {
@@ -1769,12 +1786,12 @@ VOL_fileWrite(
   // o Gp_MRI saved to <apchq_volFileName>.
   //
 
-  int   volSize;
-  int   i, j, k, f;
-  int   I       = 0;
-  char            pch_readMessage[STRBUF];
+  int     volSize;
+  int     i, j, k, f;
+  int     I           = 0;
+  char    pch_readMessage[STRBUF];
   int           ret;
-  MRI *out;
+  MRI     *out;
 
   if(!Gp_MRI)
   {
@@ -1789,14 +1806,14 @@ VOL_fileWrite(
   out = MRIallocSequence(Gp_MRI->width, Gp_MRI->height, Gp_MRI->depth, MRI_FLOAT, Gp_MRI->nframes);
   MRIcopyHeader(Gp_MRI,out);
   for(f=0; f<Gp_MRI->nframes; f++)              // number of frames
-    for(i=0; i<Gp_MRI->width; i++)    		// 'x', i.e. columns in slice
-      for(j=0; j<Gp_MRI->height; j++)   	// 'y', i.e. rows in slice
-        for(k=0; k<Gp_MRI->depth; k++)    	// 'z', i.e. # of slices
+    for(i=0; i<Gp_MRI->width; i++)        // 'x', i.e. columns in slice
+      for(j=0; j<Gp_MRI->height; j++)     // 'y', i.e. rows in slice
+        for(k=0; k<Gp_MRI->depth; k++)      // 'z', i.e. # of slices
         {
           CURV_arrayProgress_print(a_vectorSize, I, pch_readMessage);
           MRIsetVoxVal(out, i, j, k, f, (float) apf_data[I++]);
         }
-  sprintf(pch_readMessage, "Saving result to '%s' (type = %s )", 
+  sprintf(pch_readMessage, "Saving result to '%s' (type = %s )",
           apch_volFileName, type_to_string (G_FSFILETYPE3));
   cprints(pch_readMessage, "");
   ret = MRIwrite(out, apch_volFileName);
@@ -1823,18 +1840,18 @@ VOL_fileWrite(
 #define   NEW_VERSION_MAGIC_NUMBER  16777215
 e_FILEACCESS
 CURV_fileRead(
-  char* apch_curvFileName,
-  int*  ap_vectorSize,
-  float*  apf_curv[]
+  char*   apch_curvFileName,
+  int*    ap_vectorSize,
+  float*    apf_curv[]
 )
 {
 
-  FILE*   FP_curv;
-  int     vnum;
-  int     nvertices;
-  int     i;
-  char    pch_readMessage[STRBUF];
-  float*    pf_data       = NULL;
+  FILE*     FP_curv;
+  int       vnum;
+  int       nvertices;
+  int       i;
+  char      pch_readMessage[STRBUF];
+  float*      pf_data           = NULL;
 
   if((FP_curv = fopen(apch_curvFileName, "r")) == NULL)
   {
@@ -1889,9 +1906,9 @@ ascii_fileWrite(
     return(e_WRITEACCESSERROR);
   }
   sprintf(pch_readMessage, "Writing %s", apch_fileName);
-  sprintf(pch_readMessage, "Saving result to '%s' (type = ASCII)", 
+  sprintf(pch_readMessage, "Saving result to '%s' (type = ASCII)",
           apch_fileName);
-  cprints(pch_readMessage, "");    
+  cprints(pch_readMessage, "");
   for(i=0; i<G_sizeCurv1; i++)
   {
     CURV_arrayProgress_print(G_sizeCurv1, i, pch_readMessage);
@@ -1931,9 +1948,9 @@ CURV_fileWrite(
   fwriteInt(G_nfaces, FP_curv);
   fwriteInt(G_valsPerVertex, FP_curv);
   sprintf(pch_readMessage, "Writing %s", apch_curvFileName);
-  sprintf(pch_readMessage, "Saving result to '%s' (type = MRI_CURV_FILE)", 
+  sprintf(pch_readMessage, "Saving result to '%s' (type = MRI_CURV_FILE)",
           apch_curvFileName);
-  cprints(pch_readMessage, "");    
+  cprints(pch_readMessage, "");
   for(i=0; i<a_vectorSize; i++)
   {
     CURV_arrayProgress_print(a_vectorSize, i, pch_readMessage);
@@ -2015,7 +2032,7 @@ b_outCurvFile_write(e_operation e_op)
   if(
     e_op == e_mul           ||
     e_op == e_div           ||
-    e_op == e_mod   ||
+    e_op == e_mod           ||
     e_op == e_pow           ||
     e_op == e_add           ||
     e_op == e_sub           ||
@@ -2029,7 +2046,7 @@ b_outCurvFile_write(e_operation e_op)
     e_op == e_mag           ||
     e_op == e_abs           ||
     e_op == e_inv           ||
-    e_op == e_sign    ||
+    e_op == e_sign          ||
     e_op == e_eq            ||
     e_op == e_lt            ||
     e_op == e_lte           ||
@@ -2079,9 +2096,9 @@ CURV_process(void)
   float f_range         = 0.;
   int   mini            = -1;
   int   maxi            = -1;
-  float f_mean    = 0.;
-  float f_std     = 0.;
-  float f_dev     = 0.;
+  float f_mean      = 0.;
+  float f_std       = 0.;
+  float f_dev       = 0.;
   char  pch_text[STRBUF];
 
   Ge_operation  = operation_lookup(G_pch_operator);
