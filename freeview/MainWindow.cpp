@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2011/07/21 19:30:09 $
- *    $Revision: 1.174 $
+ *    $Date: 2011/08/01 20:03:55 $
+ *    $Revision: 1.175 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -87,6 +87,7 @@ MainWindow::MainWindow( QWidget *parent, MyCmdLineParser* cmdParser ) :
   ui(new Ui::MainWindow),
   m_bResampleToRAS(false),
   m_nDefaultSampleMethod( SAMPLE_NEAREST ),
+  m_strDefaultColorMapType( "grayscale" ),
   m_bDefaultConform( false ),
   m_layerVolumeRef( NULL ),
   m_bScriptRunning(false),
@@ -592,6 +593,10 @@ bool MainWindow::DoParseCommand(bool bAutoQuit)
   if ( m_cmdParser->Found( "conform" ) )
   {
     this->SetDefaultConform( true );
+  }
+  if ( m_cmdParser->Found( "colormap", &sa ))
+  {
+    this->SetDefaultColorMapType(sa[0]);
   }
   if ( m_cmdParser->Found( "viewport", &sa ) )
   {
@@ -1300,7 +1305,7 @@ void MainWindow::CommandLoadVolume( const QStringList& sa )
   QString fn = sa_vol[0];
   QString reg_fn;
   QStringList scales;
-  QString colormap = "grayscale";
+  QString colormap = m_strDefaultColorMapType;
   QString colormap_scale = "grayscale";
   QString lut_name;
   QString vector_display = "no",
@@ -1464,7 +1469,7 @@ void MainWindow::CommandLoadVolume( const QStringList& sa )
     bResample = true;
   }
 
-  if ( scales.size() > 0 || colormap != "grayscale" )
+  if ( scales.size() > 0 || (colormap != "grayscale" && colormap != "greyscale") )
   {
     QString script = "setcolormap ";
     script += colormap + " " + colormap_scale

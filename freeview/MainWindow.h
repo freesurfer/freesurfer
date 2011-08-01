@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2011/07/21 19:30:09 $
- *    $Revision: 1.98 $
+ *    $Date: 2011/08/01 20:04:14 $
+ *    $Revision: 1.99 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -122,6 +122,11 @@ public:
   void SetDefaultSampleMethod( int nMethod )
   {
     m_nDefaultSampleMethod = nMethod;
+  }
+
+  void SetDefaultColorMapType(const QString& colormap)
+  {
+    m_strDefaultColorMapType = colormap;
   }
 
   void SetDefaultConform( bool bConform )
@@ -387,6 +392,7 @@ private:
   bool              m_bResampleToRAS;
   int               m_nDefaultSampleMethod;
   bool              m_bDefaultConform;
+  QString           m_strDefaultColorMapType;
   LayerMRI*         m_layerVolumeRef;
   LUTDataHolder*    m_luts;
   ThreadIOWorker*   m_threadIOWorker;
