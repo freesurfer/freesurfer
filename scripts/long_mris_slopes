@@ -9,8 +9,8 @@
 # Original Author: Martin Reuter
 # CVS Revision Info:
 #    $Author: mreuter $
-#    $Date: 2011/07/15 16:49:43 $
-#    $Revision: 1.31 $
+#    $Date: 2011/08/02 20:34:01 $
+#    $Revision: 1.32 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -315,13 +315,13 @@ def options_parse():
     Command Line Options Parser for long_mris_slopes
     initiate the option parser and return the parsed object
     """
-    parser = optparse.OptionParser(version='$Id: long_mris_slopes,v 1.31 2011/07/15 16:49:43 mreuter Exp $', usage=HELPTEXT)
+    parser = optparse.OptionParser(version='$Id: long_mris_slopes,v 1.32 2011/08/02 20:34:01 mreuter Exp $', usage=HELPTEXT)
     
     # help text
 #    h_fsgd = '(REQUIRED) fsdg file specifying the subjects and time points'
     h_qdec      = '(REQUIRED) qdec table file specifying the subjects and time points'
     h_meas      = '(REQUIRED) the surface input measure (e.g. thickness)'
-    h_hemi      = '(REQUIRED) run one hemisphere: lh or rh'
+    h_hemi      = '(REQUIRED) run one hemisphere: lh or rh or both'
     
     h_sd        = '(REQUIRED) full path to FreeSurfer subjects dir'
 
@@ -359,7 +359,7 @@ def options_parse():
     # Sepcify inputs
     parser.add_option('--qdec', dest='qdec', help=h_qdec)
     parser.add_option('--meas', dest='meas', help=h_meas)
-    parser.add_option('--hemi', dest='hemi', help=h_hemi, choices=('lh','rh'))
+    parser.add_option('--hemi', dest='hemi', help=h_hemi, choices=('lh','rh','both'))
     parser.add_option('--sd',   dest='sd'  , help=h_sd)
 
     # do computations:
@@ -661,410 +661,419 @@ if __name__=="__main__":
         if not os.path.exists(qsdir):
             print 'ERROR: Qcache Target dir '+str(qsdir)+' not found!'
             sys.exit(1)
+
+    hemis = [ options.hemi ]
+    if hemis[0] == "both": hemis = [ "lh" , "rh" ]
+
+    for hemi in hemis:
+        print
+        print 'Working on hemi: '+hemi
+        print
+       
     
-    # process
-    retcode = 0
-    tlabels = []
-    tavg    = {}
-    trate   = {}
-    tpc1    = {}
-    tspc    = {}
-    for subjectid, tplist in qdectable.subjects_tp_map.items():
-        print '\nSubject-Template: '+subjectid
-        
-        # check if basedir exists
-        basedir = os.path.join(subjectsdir,subjectid)
-        if not os.path.exists(basedir):
-            print '\nERROR: Template dir '+str(basedir)+' does not exist!\n '
-            sys.exit(1)
+        # process
+        retcode = 0
+        tlabels = []
+        tavg    = {}
+        trate   = {}
+        tpc1    = {}
+        tspc    = {}
+        for subjectid, tplist in qdectable.subjects_tp_map.items():
+            print '\nSubject-Template: '+subjectid
+            
+            # check if basedir exists
+            basedir = os.path.join(subjectsdir,subjectid)
+            if not os.path.exists(basedir):
+                print '\nERROR: Template dir '+str(basedir)+' does not exist!\n '
+                sys.exit(1)
 
-        basesurfdir=os.path.join(basedir,'surf')
-        #if options.qcache is not None:
-        #    basesurfdir=os.path.join(basedir,'surf','qcache')
-        #    if not os.path.exists(basesurfdir):
-        #        os.mkdir(basesurfdir)
+            basesurfdir=os.path.join(basedir,'surf')
+            #if options.qcache is not None:
+            #    basesurfdir=os.path.join(basedir,'surf','qcache')
+            #    if not os.path.exists(basesurfdir):
+            #        os.mkdir(basesurfdir)
+                
             
-        
-        # check if 2 or more time points
-        if len(tplist) < 2 :
-            print 'ERROR: '+str(basedir)+' must have at least 2 time points!'
-            sys.exit(1)
-        
-        # extract ids and age data:
-        tpids = [entry[0]+'.long.'+subjectid for entry in tplist]
-        times = [float(entry[varidx]) for entry in tplist]
-        num   = len(times)
-        meant = sum(times) / num
-        print '\n\nINFO: '+str(num)+' TPs in '+subjectid+' , mean age: '+str(meant)+'\n'
-        
-        # intersect cortex ?
-        label=""
-        if options.do_label: 
-            print "\n==============================================================================="
-            print "SUBJECT "+subjectid+"  Intersecting Within-Subject Cortex Label\n"
-            label = options.hemi+'.'+options.out_label+'.label'
-            label = os.path.join(basedir,'label',label)
-            llist = [ os.path.join(subjectsdir,entry,'label',options.hemi+'.cortex.label') for entry in tpids]
-            # ouput written to base: /label/<hemi>.<outlabel>.label , default outlabel=long.cortex
-            intersect_labels(llist,label)
+            # check if 2 or more time points
+            if len(tplist) < 2 :
+                print 'ERROR: '+str(basedir)+' must have at least 2 time points!'
+                sys.exit(1)
             
-            # map label of this subject to common qcache target:
-            if options.qcache is not None:
+            # extract ids and age data:
+            tpids = [entry[0]+'.long.'+subjectid for entry in tplist]
+            times = [float(entry[varidx]) for entry in tplist]
+            num   = len(times)
+            meant = sum(times) / num
+            print '\n\nINFO: '+str(num)+' TPs in '+subjectid+' , mean age: '+str(meant)+'\n'
+            
+            # intersect cortex ?
+            label=""
+            if options.do_label: 
                 print "\n==============================================================================="
-                print "SUBJECT "+subjectid+"  mapping label to QCache\n"
-                label = options.hemi+'.'+options.out_label+'.label'
+                print "SUBJECT "+subjectid+"  Intersecting Within-Subject Cortex Label\n"
+                label = hemi+'.'+options.out_label+'.label'
                 label = os.path.join(basedir,'label',label)
-                outlabel = options.hemi+'.'+options.out_label+'.'+options.qcache+'.label'
-                outlabel = os.path.join(basedir,'label',outlabel)
-                cmd = 'mri_label2label --srclabel '+label+' --srcsubject '+subjectid+' --trglabel '+outlabel+' --trgsubject '+options.qcache
-                cmd = cmd+' --regmethod surface --hemi '+options.hemi
-                run_cmd(cmd,'mri_label2label mapping the label failed?') 
-                tlabels.append(outlabel)
+                llist = [ os.path.join(subjectsdir,entry,'label',hemi+'.cortex.label') for entry in tpids]
+                # ouput written to base: /label/<hemi>.<outlabel>.label , default outlabel=long.cortex
+                intersect_labels(llist,label)
+                
+                # map label of this subject to common qcache target:
+                if options.qcache is not None:
+                    print "\n==============================================================================="
+                    print "SUBJECT "+subjectid+"  mapping label to QCache\n"
+                    label = hemi+'.'+options.out_label+'.label'
+                    label = os.path.join(basedir,'label',label)
+                    outlabel = hemi+'.'+options.out_label+'.'+options.qcache+'.label'
+                    outlabel = os.path.join(basedir,'label',outlabel)
+                    cmd = 'mri_label2label --srclabel '+label+' --srcsubject '+subjectid+' --trglabel '+outlabel+' --trgsubject '+options.qcache
+                    cmd = cmd+' --regmethod surface --hemi '+hemi
+                    run_cmd(cmd,'mri_label2label mapping the label failed?') 
+                    tlabels.append(outlabel)
 
-        if options.in_label is not None:
-            label = os.path.join(basedir,'label',options.in_label)
-            if not os.path.exists(label):
-                label = options.hemi+'.'+options.in_label
-                label = os.path.join(basedir,'label',label)
+            if options.in_label is not None:
+                label = os.path.join(basedir,'label',options.in_label)
                 if not os.path.exists(label):
-                    label = options.hemi+'.'+options.in_label+'.label'
+                    label = hemi+'.'+options.in_label
                     label = os.path.join(basedir,'label',label)
                     if not os.path.exists(label):
-                        print '\nERROR: cannot find '+options.in_label+' or '+label+'\n'
-                        sys.exit(1)
-            tlabels.append(label)
-        
-        # setup fwhms (either specified or full list):
-        fwhms = [ 0 ] 
-        if options.qcache is not None and options.fwhm is None:
-            fwhms = [ 0 , 5, 10, 15, 20, 25 ]
-        elif options.fwhm is not None:
-            fwhms = [ options.fwhm ] 
-        
-        # create lists of ouput filenames for stacking on qcache (depending on type)
-        if options.qcache is not None:
-            for fwhm in fwhms:
-                fwhmstr = '.fwhm'+str(fwhm)
-                if options.stack_spc is not None:
-                    outtname= os.path.join(basesurfdir,options.hemi+'.'+options.name_spc+fwhmstr+'.'+options.qcache+'.mgh')
-                    if fwhm not in tspc:
-                        tspc[fwhm] = []
-                    tspc[fwhm].append(outtname)
-
-                if options.stack_pc1 is not None:
-                    outtname = os.path.join(basesurfdir,options.hemi+'.'+options.name_pc1+fwhmstr+'.'+options.qcache+'.mgh')
-                    if fwhm not in tpc1:
-                        tpc1[fwhm] = []
-                    tpc1[fwhm].append(outtname)
-
-                if options.stack_rate is not None:
-                    outtname = os.path.join(basesurfdir,options.hemi+'.'+options.name_rate+fwhmstr+'.'+options.qcache+'.mgh')
-                    if fwhm not in trate:
-                        trate[fwhm] = []
-                    trate[fwhm].append(outtname)
-        
-                if options.stack_avg is not None:
-                    outtname = os.path.join(basesurfdir,options.hemi+'.'+options.name_avg+fwhmstr+'.'+options.qcache+'.mgh')
-                    if fwhm not in tavg:
-                        tavg[fwhm] = []
-                    tavg[fwhm].append(outtname)
-        
-        # if no subject base processing, continue:
-        if not (options.do_pc1 or options.do_avg or options.do_spc or options.do_rate):
-            continue #skip within subject processing and mapping to target
-        
-        
-        # list of thickness files:
-        measures=[os.path.join(subjectsdir,entry,'surf',options.hemi+'.'+options.meas) for entry in tpids]
-        all = " ".join(measures)
-        
-        # create tmpdir:
-        prefix = './tmp-'+subjectid+'_'+options.hemi+'_'+options.meas+'_'
-        dirname = tempfile.mkdtemp('',prefix,'')
-        if not os.path.exists(dirname):
-            print 'ERROR: tmp dir '+str(dirname)+' cannot be created (write permissions?)!'
-            sys.exit(1)
-        
-        # stack measure maps:
-        meas_target = os.path.join(dirname,options.hemi+'.long.'+options.meas+'-stack.mgh')
-        if options.do_stack:
-            print "\n==============================================================================="
-            print "SUBJECT "+subjectid+"  Stackinbg Within-Subject Maps\n"
-            meas_target = os.path.join(basesurfdir,options.hemi+'.'+options.out_stack)
-            if meas_target[-4:] != '.mgh':
-                meas_target=meas_target+'.mgh'
-        cmd = 'mri_concat '+all+' --o '+meas_target
-        run_cmd(cmd,'mri_concat stacking did not work?')
-        
-#        # 2 tps, direct computation
-#        if num == 2 :  
-#        
-#            # sort
-#            if times[0] > times[1] :
-#                times[0] , times[1] = times[1] , times[0]
-#                measures[0] , measures[1] = measures[1], measures[0]
-#                tpids[0], tpids[1] = tpids[1], tpids[0]
-#
-#            labelpara=""
-#            if label != "" :
-#                labelpara  = ' --label '+label
-#        
-#            # create difference:
-#            beta1 = os.path.join(dirname,options.hemi+'.rate.'+options.meas)
-#            cmd = 'mris_calc -o '+beta1+labelpara+' '+measures[1]+' sub '+measures[0]
-#            run_cmd(cmd,'mri_calc difference did not work?')
-#            cmd = 'mris_calc -o '+beta1+labelpara+' '+beta1+' div '+str(times[1]-times[0])
-#            run_cmd(cmd,'mri_calc div did not work?')
-#        
-#            # create average for SPC or avg
-#            beta0 = os.path.join(dirname,options.hemi+'.avg.'+options.meas)
-#            cmd = 'mris_calc -o '+beta0+labelpara+' '+measures[0]+' add '+measures[1]
-#            run_cmd(cmd,'mri_calc sum did not work?')
-#            cmd = 'mris_calc -o '+beta0+' '+beta0+' mul 0.5'
-#            run_cmd(cmd,'mri_calc mul 0.5 did not work?')
-#
-#            # convert to mgh format (to imitate glm)
-#            beta0old = beta0
-#            beta0 = os.path.join(dirname,'beta0.mgh') 
-#            beta1old = beta1  
-#            beta1 = os.path.join(dirname,'beta1.mgh')                
-#            cmd = 'mri_convert '+beta0old+' '+beta0
-#            run_cmd(cmd,'mri_convert did not work?')        
-#            cmd = 'mri_convert '+beta1old+' '+beta1
-#            run_cmd(cmd,'mri_convert did not work?')
-#        
-#        
-#        else: # more than 2 time points, run GLM
-        
-        if 1==1:
-            print "\n==============================================================================="
-            print "SUBJECT "+subjectid+"  Running Within-Subject GLM\n"
-            #write X-matrix (times):
-            x_target    = os.path.join(dirname,'X-long.mat')
-            print 'Writing '+x_target+' ...\n'
-            if os.path.exists(x_target):
-                os.remove(x_target)
-            xfp = open(x_target, 'w')
-            for time in times:
-                xfp.write('1 '+str(time-meant)+'\n')
-            xfp.close()    
-        
-            # run glm in tmp dir:
-            zerodof=""
-            if num==2:
-                zerodof=" --allow-zero-dof "
-            labelpara=""
-            if label != "" :
-                labelpara  = ' --label '+label
-            glmdir=os.path.join(dirname,'glm')
-            cmd = 'mri_glmfit --y '+meas_target+' --X '+x_target+zerodof+' --no-contrasts-ok --surf '+subjectid+' '+options.hemi+labelpara+' --glmdir '+glmdir
-            run_cmd(cmd,'mri_glmfit did not work?')
-        
-            # harvest results (in beta.mgh)
-            betafn = os.path.join(glmdir,'beta.mgh' )  
-            beta0  = os.path.join(dirname,'beta0.mgh')  
-            beta1  = os.path.join(dirname,'beta1.mgh') 
-            if not os.path.exists(betafn):
-                print 'ERROR: GLM results '+str(betafn)+' does not exist!'
-                sys.exit(1)
+                        label = hemi+'.'+options.in_label+'.label'
+                        label = os.path.join(basedir,'label',label)
+                        if not os.path.exists(label):
+                            print '\nERROR: cannot find '+options.in_label+' or '+label+'\n'
+                            sys.exit(1)
+                tlabels.append(label)
             
-            # split beta
-            cmd = 'mri_convert --frame 0 '+betafn+' '+beta0 
-            run_cmd(cmd,'mri_convert split frames 0 did not work?')
-        
-            cmd = 'mri_convert --frame 1 '+betafn+' '+beta1 
-            run_cmd(cmd,'mri_convert split frames 1 did not work?')
-        
-        
-        # either of the cases:        
-        
-        allout=[]
-        alltout=[]
-        for fwhm in fwhms:
-        
-            fwhmstr = ''
-            if options.qcache is not None or fwhm > 0 :
-                fwhmstr = '.fwhm'+str(fwhm)
-
-            # do smoothing
-            beta0fwhm = ''
-            beta1fwhm = ''
-            tp1fwhm   = ''
-            if fwhm > 0:
-                print "\n==============================================================================="
-                print "SUBJECT "+subjectid+"  Smoothing at "+str(fwhm)+"\n"
-                smooth = ' --fwhm '+str(fwhm)+' --smooth-only'
-                labelpara=""
-                if label != "" :
-                    labelpara  = ' --label '+label
-                beta0fwhm = os.path.join(dirname,'beta0'+fwhmstr+'.mgh') 
-                cmd = 'mris_fwhm --hemi '+options.hemi+' --s '+subjectid+' --i '+beta0+labelpara+smooth+' --o '+beta0fwhm
-                run_cmd(cmd,'mris_fwhm smoothing did not work?')
-                beta1fwhm = os.path.join(dirname,'beta1'+fwhmstr+'.mgh') 
-                cmd = 'mris_fwhm --hemi '+options.hemi+' --s '+subjectid+' --i '+beta1+labelpara+smooth+' --o '+beta1fwhm
-                run_cmd(cmd,'mris_fwhm smoothing did not work?')
-                if options.do_pc1:
-                    tp1fwhm =  os.path.join(dirname,'tp1'+fwhmstr+'.mgh') 
-                    cmd = 'mris_fwhm --hemi '+options.hemi+' --s '+tpids[0]+' --i '+measures[0]+labelpara+smooth+' --o '+tp1fwhm
-                    run_cmd(cmd,'mris_fwhm smoothing did not work?')
-            else:
-                beta0fwhm = beta0
-                beta1fwhm = beta1
-                if options.do_pc1:
-                    tp1fwhm = os.path.join(dirname,'tp1.mgh') 
-                    #cmd = 'mri_surf2surf --hemi '+options.hemi+' --s '+tpids[0]+' --sval '+measures[0]+' --src_type curv --tval '+tp1fwhm+' --trg_type mgh'
-                    cmd = 'mri_convert '+measures[0]+' '+tp1fwhm
-                    run_cmd(cmd,'mri_convert converting TP1 measure did not work?')
-        
-        
-            # create ouput (depending on type)
-            if options.do_spc:
-                print "\n==============================================================================="
-                print "SUBJECT "+subjectid+" fwhm "+str(fwhm)+"  computing SPC\n"
-                outname = os.path.join(basesurfdir,options.hemi+'.'+options.name_spc+fwhmstr+'.mgh')
-                # compute symmetrized pct change:
-                cmd = 'mris_calc -o '+outname+' '+beta1fwhm+' div '+beta0fwhm
-                run_cmd(cmd,'mris_calc compute sym. pct. change (spc) problem?')    
-                cmd = 'mris_calc -o '+outname+' --label '+label+' '+outname+' mul 100'
-                run_cmd(cmd,'mris_calc compute sym. pct. change (spc) problem?')    
-                allout.append(outname)
-                if options.qcache is not None:
-                    outtname= os.path.join(basesurfdir,options.hemi+'.'+options.name_spc+fwhmstr+'.'+options.qcache+'.mgh')
-                    alltout.append(outtname)
-
-            if options.do_pc1:
-                print "\n==============================================================================="
-                print "SUBJECT "+subjectid+" fwhm "+str(fwhm)+"  computing PC1\n"
-                outname = os.path.join(basesurfdir,options.hemi+'.'+options.name_pc1+fwhmstr+'.mgh')
-                # compute pct change:
-                cmd = 'mris_calc -o '+outname+' '+beta1fwhm+' div '+tp1fwhm
-                run_cmd(cmd,'mris_calc compute percent change (pc1) problem?')
-                cmd = 'mris_calc -o '+outname+' --label '+label+' '+outname+' mul 100'
-                run_cmd(cmd,'mris_calc compute percent change (pc1) problem?')
-                allout.append(outname)
-                if options.qcache is not None:
-                    outtname = os.path.join(basesurfdir,options.hemi+'.'+options.name_pc1+fwhmstr+'.'+options.qcache+'.mgh')
-                    alltout.append(outtname)
-            
-            if options.do_rate: 
-                print "\n==============================================================================="
-                print "SUBJECT "+subjectid+" fwhm "+str(fwhm)+"  computing Rate\n"
-                outname = os.path.join(basesurfdir,options.hemi+'.'+options.name_rate+fwhmstr+'.mgh')
-                # mul 1 to remove everything outside the label:
-                cmd = 'mris_calc -o '+outname+' --label '+label+' '+beta1fwhm+' mul 1'
-                run_cmd(cmd,'mris_calc masking with label (rate)') 
-                allout.append(outname)
-                if options.qcache is not None:
-                    outtname = os.path.join(basesurfdir,options.hemi+'.'+options.name_rate+fwhmstr+'.'+options.qcache+'.mgh')
-                    alltout.append(outtname)
-            
-            if  options.do_avg:
-                print "\n==============================================================================="
-                print "SUBJECT "+subjectid+" fwhm "+str(fwhm)+"  computing AVG\n"
-                outname = os.path.join(basesurfdir,options.hemi+'.'+options.name_avg+fwhmstr+'.mgh')
-                # mul 1 to remove everything outside the label:
-                cmd = 'mris_calc -o '+outname+' --label '+label+' '+beta0fwhm+' mul 1'
-                run_cmd(cmd,'mris_calc masking with label (avg)') 
-                allout.append(outname)
-                if options.qcache is not None:
-                    outtname = os.path.join(basesurfdir,options.hemi+'.'+options.name_avg+fwhmstr+'.'+options.qcache+'.mgh')
-                    alltout.append(outtname)
-
-        # end iterate fwhm levels
-
-        # now we have all outputs at all fwhm levels
-        # if qcache, map them to target:
-        if options.qcache is not None:
-        
-            # stack ALL measure files and map to template and unstack again:
-            if len(allout) > 0:
-                print "\n==============================================================================="
-                print "SUBJECT "+subjectid+"  mapping all measure files to QCache (as stack)\n"
-                stack_map(subjectid,options.qcache,'mgh','mgh', allout , alltout ,dirname,options.hemi)
-           
-                   
-        # cleanup tmp dir:    
-        shutil.rmtree(dirname)
-                    
-        if len(allout) > 0:   
-            print 'You can look at the result with, e.g.:'
-            print '  tksurfer '+subjectid+' '+options.hemi+' pial -overlay '+allout[-1]
-            print
-                  
-    # end iterate subjects    
-    
-    # stuff on common qcache target:
-    if options.qcache is not None:
-
-        if options.isec_labels is not None:
-            print "\n==============================================================================="
-            print "Intersecting all lables in template QCache\n"
-            # intersect labels on common qcache target:
-            first=True
-            for label in tlabels:
-                if first:
-                    cmd = 'cp '+label+' '+options.isec_labels
-                    run_cmd(cmd,'cp first qcache label failed?')
-                    first = False
-                else:
-                    cmd = "mris_label_calc intersect "+options.isec_labels+' '+label+' '+options.isec_labels
-                    run_cmd(cmd,'mris_label_calc intersect failed?')
-                    
-            # erode a little
-            tpial = os.path.join(subjectsdir,options.qcache,"surf",options.hemi+'.pial')
-            if not os.path.exists(tpial):
-                print 'ERROR: qtemplate pial '+str(tpial)+' does not exist!'
-                sys.exit(1)
-            cmd="mris_label_calc erode 2 "+options.isec_labels+" "+tpial+" "+options.isec_labels
-            run_cmd(cmd,'mris_label_calc erode failed?')
-    
-        
-        # stack maps on qcache geometry if wanted:
-        if options.stack_spc is not None or options.stack_pc1 is not None or options.stack_avg is not None or options.stack_rate is not None:
-            print "\n==============================================================================="
-            print "Stacking all maps in template QCache\n"
-        
+            # setup fwhms (either specified or full list):
             fwhms = [ 0 ] 
-            if options.fwhm is None:
+            if options.qcache is not None and options.fwhm is None:
                 fwhms = [ 0 , 5, 10, 15, 20, 25 ]
             elif options.fwhm is not None:
                 fwhms = [ options.fwhm ] 
             
-            for fwhm in fwhms:        
-                fwhmstr = ''
-                if fwhm > 0 :
+            # create lists of ouput filenames for stacking on qcache (depending on type)
+            if options.qcache is not None:
+                for fwhm in fwhms:
                     fwhmstr = '.fwhm'+str(fwhm)
+                    if options.stack_spc is not None:
+                        outtname= os.path.join(basesurfdir,hemi+'.'+options.name_spc+fwhmstr+'.'+options.qcache+'.mgh')
+                        if fwhm not in tspc:
+                            tspc[fwhm] = []
+                        tspc[fwhm].append(outtname)
+
+                    if options.stack_pc1 is not None:
+                        outtname = os.path.join(basesurfdir,hemi+'.'+options.name_pc1+fwhmstr+'.'+options.qcache+'.mgh')
+                        if fwhm not in tpc1:
+                            tpc1[fwhm] = []
+                        tpc1[fwhm].append(outtname)
+
+                    if options.stack_rate is not None:
+                        outtname = os.path.join(basesurfdir,hemi+'.'+options.name_rate+fwhmstr+'.'+options.qcache+'.mgh')
+                        if fwhm not in trate:
+                            trate[fwhm] = []
+                        trate[fwhm].append(outtname)
             
-                # stack each type of measure for this fwhm:
-                if options.stack_spc is not None:
-                    allin   = " ".join(tspc[fwhm])
-                    allstack=options.stack_spc
-                    if allstack[-4:] == ".mgh": allstack = allstack[:-4]
-                    allstack= allstack+fwhmstr+'.mgh'
-                    cmd = 'mri_concat --i '+allin+' --o '+allstack
-                    run_cmd(cmd,'mri_concat stacking qcache spc outputs at fwhm '+str(fwhm)+' failed?') 
-                if options.stack_pc1 is not None:
-                    allin   = " ".join(tpc1[fwhm])
-                    allstack=options.stack_pc1
-                    if allstack[-4:] == ".mgh": allstack = allstack[:-4]
-                    allstack= allstack+fwhmstr+'.mgh'
-                    cmd = 'mri_concat --i '+allin+' --o '+allstack
-                    run_cmd(cmd,'mri_concat stacking qcache pc1 outputs at fwhm '+str(fwhm)+' failed?') 
-                if options.stack_avg is not None:
-                    allin   = " ".join(tavg[fwhm])
-                    allstack=options.stack_avg
-                    if allstack[-4:] == ".mgh": allstack = allstack[:-4]
-                    allstack= allstack+fwhmstr+'.mgh'
-                    cmd = 'mri_concat --i '+allin+' --o '+allstack
-                    run_cmd(cmd,'mri_concat stacking qcache avg outputs at fwhm '+str(fwhm)+' failed?') 
-                if options.stack_rate is not None:
-                    allin   = " ".join(trate[fwhm])
-                    allstack=options.stack_rate
-                    if allstack[-4:] == ".mgh": allstack = allstack[:-4]
-                    allstack= allstack+fwhmstr+'.mgh'
-                    cmd = 'mri_concat --i '+allin+' --o '+allstack
-                    run_cmd(cmd,'mri_concat stacking qcache rate outputs at fwhm '+str(fwhm)+' failed?') 
+                    if options.stack_avg is not None:
+                        outtname = os.path.join(basesurfdir,hemi+'.'+options.name_avg+fwhmstr+'.'+options.qcache+'.mgh')
+                        if fwhm not in tavg:
+                            tavg[fwhm] = []
+                        tavg[fwhm].append(outtname)
             
+            # if no subject base processing, continue:
+            if not (options.do_pc1 or options.do_avg or options.do_spc or options.do_rate):
+                continue #skip within subject processing and mapping to target
+            
+            
+            # list of thickness files:
+            measures=[os.path.join(subjectsdir,entry,'surf',hemi+'.'+options.meas) for entry in tpids]
+            all = " ".join(measures)
+            
+            # create tmpdir:
+            prefix = './tmp-'+subjectid+'_'+hemi+'_'+options.meas+'_'
+            dirname = tempfile.mkdtemp('',prefix,'')
+            if not os.path.exists(dirname):
+                print 'ERROR: tmp dir '+str(dirname)+' cannot be created (write permissions?)!'
+                sys.exit(1)
+            
+            # stack measure maps:
+            meas_target = os.path.join(dirname,hemi+'.long.'+options.meas+'-stack.mgh')
+            if options.do_stack:
+                print "\n==============================================================================="
+                print "SUBJECT "+subjectid+"  Stackinbg Within-Subject Maps\n"
+                meas_target = os.path.join(basesurfdir,hemi+'.'+options.out_stack)
+                if meas_target[-4:] != '.mgh':
+                    meas_target=meas_target+'.mgh'
+            cmd = 'mri_concat '+all+' --o '+meas_target
+            run_cmd(cmd,'mri_concat stacking did not work?')
+            
+    #        # 2 tps, direct computation
+    #        if num == 2 :  
+    #        
+    #            # sort
+    #            if times[0] > times[1] :
+    #                times[0] , times[1] = times[1] , times[0]
+    #                measures[0] , measures[1] = measures[1], measures[0]
+    #                tpids[0], tpids[1] = tpids[1], tpids[0]
+    #
+    #            labelpara=""
+    #            if label != "" :
+    #                labelpara  = ' --label '+label
+    #        
+    #            # create difference:
+    #            beta1 = os.path.join(dirname,hemi+'.rate.'+options.meas)
+    #            cmd = 'mris_calc -o '+beta1+labelpara+' '+measures[1]+' sub '+measures[0]
+    #            run_cmd(cmd,'mri_calc difference did not work?')
+    #            cmd = 'mris_calc -o '+beta1+labelpara+' '+beta1+' div '+str(times[1]-times[0])
+    #            run_cmd(cmd,'mri_calc div did not work?')
+    #        
+    #            # create average for SPC or avg
+    #            beta0 = os.path.join(dirname,hemi+'.avg.'+options.meas)
+    #            cmd = 'mris_calc -o '+beta0+labelpara+' '+measures[0]+' add '+measures[1]
+    #            run_cmd(cmd,'mri_calc sum did not work?')
+    #            cmd = 'mris_calc -o '+beta0+' '+beta0+' mul 0.5'
+    #            run_cmd(cmd,'mri_calc mul 0.5 did not work?')
+    #
+    #            # convert to mgh format (to imitate glm)
+    #            beta0old = beta0
+    #            beta0 = os.path.join(dirname,'beta0.mgh') 
+    #            beta1old = beta1  
+    #            beta1 = os.path.join(dirname,'beta1.mgh')                
+    #            cmd = 'mri_convert '+beta0old+' '+beta0
+    #            run_cmd(cmd,'mri_convert did not work?')        
+    #            cmd = 'mri_convert '+beta1old+' '+beta1
+    #            run_cmd(cmd,'mri_convert did not work?')
+    #        
+    #        
+    #        else: # more than 2 time points, run GLM
+            
+            if 1==1:
+                print "\n==============================================================================="
+                print "SUBJECT "+subjectid+"  Running Within-Subject GLM\n"
+                #write X-matrix (times):
+                x_target    = os.path.join(dirname,'X-long.mat')
+                print 'Writing '+x_target+' ...\n'
+                if os.path.exists(x_target):
+                    os.remove(x_target)
+                xfp = open(x_target, 'w')
+                for time in times:
+                    xfp.write('1 '+str(time-meant)+'\n')
+                xfp.close()    
+            
+                # run glm in tmp dir:
+                zerodof=""
+                if num==2:
+                    zerodof=" --allow-zero-dof "
+                labelpara=""
+                if label != "" :
+                    labelpara  = ' --label '+label
+                glmdir=os.path.join(dirname,'glm')
+                cmd = 'mri_glmfit --y '+meas_target+' --X '+x_target+zerodof+' --no-contrasts-ok --surf '+subjectid+' '+hemi+labelpara+' --glmdir '+glmdir
+                run_cmd(cmd,'mri_glmfit did not work?')
+            
+                # harvest results (in beta.mgh)
+                betafn = os.path.join(glmdir,'beta.mgh' )  
+                beta0  = os.path.join(dirname,'beta0.mgh')  
+                beta1  = os.path.join(dirname,'beta1.mgh') 
+                if not os.path.exists(betafn):
+                    print 'ERROR: GLM results '+str(betafn)+' does not exist!'
+                    sys.exit(1)
+                
+                # split beta
+                cmd = 'mri_convert --frame 0 '+betafn+' '+beta0 
+                run_cmd(cmd,'mri_convert split frames 0 did not work?')
+            
+                cmd = 'mri_convert --frame 1 '+betafn+' '+beta1 
+                run_cmd(cmd,'mri_convert split frames 1 did not work?')
+            
+            
+            # either of the cases:        
+            
+            allout=[]
+            alltout=[]
+            for fwhm in fwhms:
+            
+                fwhmstr = ''
+                if options.qcache is not None or fwhm > 0 :
+                    fwhmstr = '.fwhm'+str(fwhm)
+
+                # do smoothing
+                beta0fwhm = ''
+                beta1fwhm = ''
+                tp1fwhm   = ''
+                if fwhm > 0:
+                    print "\n==============================================================================="
+                    print "SUBJECT "+subjectid+"  Smoothing at "+str(fwhm)+"\n"
+                    smooth = ' --fwhm '+str(fwhm)+' --smooth-only'
+                    labelpara=""
+                    if label != "" :
+                        labelpara  = ' --label '+label
+                    beta0fwhm = os.path.join(dirname,'beta0'+fwhmstr+'.mgh') 
+                    cmd = 'mris_fwhm --hemi '+hemi+' --s '+subjectid+' --i '+beta0+labelpara+smooth+' --o '+beta0fwhm
+                    run_cmd(cmd,'mris_fwhm smoothing did not work?')
+                    beta1fwhm = os.path.join(dirname,'beta1'+fwhmstr+'.mgh') 
+                    cmd = 'mris_fwhm --hemi '+hemi+' --s '+subjectid+' --i '+beta1+labelpara+smooth+' --o '+beta1fwhm
+                    run_cmd(cmd,'mris_fwhm smoothing did not work?')
+                    if options.do_pc1:
+                        tp1fwhm =  os.path.join(dirname,'tp1'+fwhmstr+'.mgh') 
+                        cmd = 'mris_fwhm --hemi '+hemi+' --s '+tpids[0]+' --i '+measures[0]+labelpara+smooth+' --o '+tp1fwhm
+                        run_cmd(cmd,'mris_fwhm smoothing did not work?')
+                else:
+                    beta0fwhm = beta0
+                    beta1fwhm = beta1
+                    if options.do_pc1:
+                        tp1fwhm = os.path.join(dirname,'tp1.mgh') 
+                        #cmd = 'mri_surf2surf --hemi '+hemi+' --s '+tpids[0]+' --sval '+measures[0]+' --src_type curv --tval '+tp1fwhm+' --trg_type mgh'
+                        cmd = 'mri_convert '+measures[0]+' '+tp1fwhm
+                        run_cmd(cmd,'mri_convert converting TP1 measure did not work?')
+            
+            
+                # create ouput (depending on type)
+                if options.do_spc:
+                    print "\n==============================================================================="
+                    print "SUBJECT "+subjectid+" fwhm "+str(fwhm)+"  computing SPC\n"
+                    outname = os.path.join(basesurfdir,hemi+'.'+options.name_spc+fwhmstr+'.mgh')
+                    # compute symmetrized pct change:
+                    cmd = 'mris_calc -o '+outname+' '+beta1fwhm+' div '+beta0fwhm
+                    run_cmd(cmd,'mris_calc compute sym. pct. change (spc) problem?')    
+                    cmd = 'mris_calc -o '+outname+' --label '+label+' '+outname+' mul 100'
+                    run_cmd(cmd,'mris_calc compute sym. pct. change (spc) problem?')    
+                    allout.append(outname)
+                    if options.qcache is not None:
+                        outtname= os.path.join(basesurfdir,hemi+'.'+options.name_spc+fwhmstr+'.'+options.qcache+'.mgh')
+                        alltout.append(outtname)
+
+                if options.do_pc1:
+                    print "\n==============================================================================="
+                    print "SUBJECT "+subjectid+" fwhm "+str(fwhm)+"  computing PC1\n"
+                    outname = os.path.join(basesurfdir,hemi+'.'+options.name_pc1+fwhmstr+'.mgh')
+                    # compute pct change:
+                    cmd = 'mris_calc -o '+outname+' '+beta1fwhm+' div '+tp1fwhm
+                    run_cmd(cmd,'mris_calc compute percent change (pc1) problem?')
+                    cmd = 'mris_calc -o '+outname+' --label '+label+' '+outname+' mul 100'
+                    run_cmd(cmd,'mris_calc compute percent change (pc1) problem?')
+                    allout.append(outname)
+                    if options.qcache is not None:
+                        outtname = os.path.join(basesurfdir,hemi+'.'+options.name_pc1+fwhmstr+'.'+options.qcache+'.mgh')
+                        alltout.append(outtname)
+                
+                if options.do_rate: 
+                    print "\n==============================================================================="
+                    print "SUBJECT "+subjectid+" fwhm "+str(fwhm)+"  computing Rate\n"
+                    outname = os.path.join(basesurfdir,hemi+'.'+options.name_rate+fwhmstr+'.mgh')
+                    # mul 1 to remove everything outside the label:
+                    cmd = 'mris_calc -o '+outname+' --label '+label+' '+beta1fwhm+' mul 1'
+                    run_cmd(cmd,'mris_calc masking with label (rate)') 
+                    allout.append(outname)
+                    if options.qcache is not None:
+                        outtname = os.path.join(basesurfdir,hemi+'.'+options.name_rate+fwhmstr+'.'+options.qcache+'.mgh')
+                        alltout.append(outtname)
+                
+                if  options.do_avg:
+                    print "\n==============================================================================="
+                    print "SUBJECT "+subjectid+" fwhm "+str(fwhm)+"  computing AVG\n"
+                    outname = os.path.join(basesurfdir,hemi+'.'+options.name_avg+fwhmstr+'.mgh')
+                    # mul 1 to remove everything outside the label:
+                    cmd = 'mris_calc -o '+outname+' --label '+label+' '+beta0fwhm+' mul 1'
+                    run_cmd(cmd,'mris_calc masking with label (avg)') 
+                    allout.append(outname)
+                    if options.qcache is not None:
+                        outtname = os.path.join(basesurfdir,hemi+'.'+options.name_avg+fwhmstr+'.'+options.qcache+'.mgh')
+                        alltout.append(outtname)
+
+            # end iterate fwhm levels
+
+            # now we have all outputs at all fwhm levels
+            # if qcache, map them to target:
+            if options.qcache is not None:
+            
+                # stack ALL measure files and map to template and unstack again:
+                if len(allout) > 0:
+                    print "\n==============================================================================="
+                    print "SUBJECT "+subjectid+"  mapping all measure files to QCache (as stack)\n"
+                    stack_map(subjectid,options.qcache,'mgh','mgh', allout , alltout ,dirname,hemi)
+               
+                       
+            # cleanup tmp dir:    
+            shutil.rmtree(dirname)
+                        
+            if len(allout) > 0:   
+                print 'You can look at the result with, e.g.:'
+                print '  tksurfer '+subjectid+' '+hemi+' pial -overlay '+allout[-1]
+                print
+                      
+        # end iterate subjects    
+        
+        # stuff on common qcache target:
+        if options.qcache is not None:
+
+            if options.isec_labels is not None:
+                print "\n==============================================================================="
+                print "Intersecting all lables in template QCache\n"
+                # intersect labels on common qcache target:
+                first=True
+                for label in tlabels:
+                    if first:
+                        cmd = 'cp '+label+' '+options.isec_labels
+                        run_cmd(cmd,'cp first qcache label failed?')
+                        first = False
+                    else:
+                        cmd = "mris_label_calc intersect "+options.isec_labels+' '+label+' '+options.isec_labels
+                        run_cmd(cmd,'mris_label_calc intersect failed?')
+                        
+                # erode a little
+                tpial = os.path.join(subjectsdir,options.qcache,"surf",hemi+'.pial')
+                if not os.path.exists(tpial):
+                    print 'ERROR: qtemplate pial '+str(tpial)+' does not exist!'
+                    sys.exit(1)
+                cmd="mris_label_calc erode 2 "+options.isec_labels+" "+tpial+" "+options.isec_labels
+                run_cmd(cmd,'mris_label_calc erode failed?')
+        
+            
+            # stack maps on qcache geometry if wanted:
+            if options.stack_spc is not None or options.stack_pc1 is not None or options.stack_avg is not None or options.stack_rate is not None:
+                print "\n==============================================================================="
+                print "Stacking all maps in template QCache\n"
+            
+                fwhms = [ 0 ] 
+                if options.fwhm is None:
+                    fwhms = [ 0 , 5, 10, 15, 20, 25 ]
+                elif options.fwhm is not None:
+                    fwhms = [ options.fwhm ] 
+                
+                for fwhm in fwhms:        
+                    fwhmstr = ''
+                    if fwhm > 0 :
+                        fwhmstr = '.fwhm'+str(fwhm)
+                
+                    # stack each type of measure for this fwhm:
+                    if options.stack_spc is not None:
+                        allin   = " ".join(tspc[fwhm])
+                        allstack=options.stack_spc
+                        if allstack[-4:] == ".mgh": allstack = allstack[:-4]
+                        allstack= allstack+fwhmstr+'.mgh'
+                        cmd = 'mri_concat --i '+allin+' --o '+allstack
+                        run_cmd(cmd,'mri_concat stacking qcache spc outputs at fwhm '+str(fwhm)+' failed?') 
+                    if options.stack_pc1 is not None:
+                        allin   = " ".join(tpc1[fwhm])
+                        allstack=options.stack_pc1
+                        if allstack[-4:] == ".mgh": allstack = allstack[:-4]
+                        allstack= allstack+fwhmstr+'.mgh'
+                        cmd = 'mri_concat --i '+allin+' --o '+allstack
+                        run_cmd(cmd,'mri_concat stacking qcache pc1 outputs at fwhm '+str(fwhm)+' failed?') 
+                    if options.stack_avg is not None:
+                        allin   = " ".join(tavg[fwhm])
+                        allstack=options.stack_avg
+                        if allstack[-4:] == ".mgh": allstack = allstack[:-4]
+                        allstack= allstack+fwhmstr+'.mgh'
+                        cmd = 'mri_concat --i '+allin+' --o '+allstack
+                        run_cmd(cmd,'mri_concat stacking qcache avg outputs at fwhm '+str(fwhm)+' failed?') 
+                    if options.stack_rate is not None:
+                        allin   = " ".join(trate[fwhm])
+                        allstack=options.stack_rate
+                        if allstack[-4:] == ".mgh": allstack = allstack[:-4]
+                        allstack= allstack+fwhmstr+'.mgh'
+                        cmd = 'mri_concat --i '+allin+' --o '+allstack
+                        run_cmd(cmd,'mri_concat stacking qcache rate outputs at fwhm '+str(fwhm)+' failed?') 
+                
     
     # always exit with 0 exit code
     sys.exit(0)

@@ -1,5 +1,5 @@
 # Original author - Martin Reuter
-# $Id: LongQdecTable.py,v 1.3 2011/07/15 16:49:43 mreuter Exp $
+# $Id: LongQdecTable.py,v 1.4 2011/08/02 20:34:00 mreuter Exp $
 import os
 import logging
 import sys
@@ -35,6 +35,17 @@ class LongQdecTable:
            self.commonval = cval
            self.cross = cross
     
+    # append a new subject (base)
+    def append(self,bid,alltpdata,varlist):
+        if self.variables != varlist:
+            print '\nERROR: append: variables do not agree\n'
+            sys.exit(1)        
+        if bid in self.subjects_tp_map:
+            print '\nERROR: append: subject '+bid+' seems to exists already?\n'
+            sys.exit(1)        
+        self.subjects_tp_map[bid] = alltpdata
+        #later maybe if base exists, append tpdata?: self.subjects_tp_map[bid].append( alltpdata  )
+        
                         
     # we read in the file
     def parse(self,filename):
@@ -101,7 +112,7 @@ class LongQdecTable:
                     if self.cross:
                         print '\nERROR: no fsid-base in header, but fsid '+key+' seems to exists multiple times?\n'
                         sys.exit(1)
-                    # append this time point to this base
+                    # check if tp is already in this base
                     for tpdata in self.subjects_tp_map[key]:
                         if tpdata[0] == tp:
                             print 'ERROR: Multiple occurence of time point (fsid) \''+tp+'\' in (fsid-base) '+key+'!'
@@ -138,9 +149,29 @@ class LongQdecTable:
                 alltables.append(LongQdecTable(stpmap,self.variables,"",key,self.cross))        
 
         elif col in self.variables:
-#            for key,value in self.subject_tp_map:
-            print 'Sorry, not implemented yet!\n'
-            sys.exit(1)
+            allasdict = StableDict()
+            poscols = [i for i,x in enumerate(self.variables) if x == col]
+            if len(poscols) != 1:
+                print 'ERROR: did not find '+col+' or found it in several columns!'
+                sys.exit(1)
+            colnum = poscols[0] + 1
+              
+            for bid,value in self.subjects_tp_map.items():
+                key = value[0][colnum]
+                print 'Key: '+str(key)+'\n'
+                for tpdata in value:
+                    if tpdata[colnum] != key:
+                        print 'ERROR: split: '+col+' value needs to be the same within each subject ('+bid+')!'
+                        sys.exit(1)
+                if key not in allasdict:
+                    stpmap = StableDict()
+                    stpmap[bid] = value
+                    allasdict[key] = LongQdecTable(stpmap,self.variables,"",key,self.cross)
+                else:
+                    allasdict[key].append(bid,value,self.variables)
+            
+            for key in allasdict:
+               alltables.append(allasdict[key]) 
             
         else:
             print 'ERROR: column "'+col+'" unknown!\n'
