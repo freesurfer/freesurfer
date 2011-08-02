@@ -89,6 +89,7 @@ labels_intersect \
 labels_disjoint \
 long_mris_slopes \
 long_stats_slopes \
+long_stats_tps \
 long_submit_jobs \
 long_submit_postproc \
 long_qdec_table \
