@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2011/08/01 20:03:55 $
- *    $Revision: 1.175 $
+ *    $Date: 2011/08/02 15:58:25 $
+ *    $Revision: 1.176 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -81,6 +81,7 @@
 #include "LayerLandmarks.h"
 #include "Interactor2DNavigate.h"
 #include "MainApplication.h"
+#include "DialogRepositionSurface.h"
 
 MainWindow::MainWindow( QWidget *parent, MyCmdLineParser* cmdParser ) :
   QMainWindow( parent ),
@@ -185,6 +186,13 @@ MainWindow::MainWindow( QWidget *parent, MyCmdLineParser* cmdParser ) :
                                  this, Qt::Tool | Qt::MSWindowsFixedSizeDialogHint);
   m_dlgMessage->setModal(false);
   m_dlgMessage->hide();
+
+  m_dlgRepositionSurface = new DialogRepositionSurface(this);
+  m_dlgRepositionSurface->hide();
+  connect(m_layerCollections["Surface"], SIGNAL(LayerModified()),
+          m_dlgRepositionSurface, SLOT(UpdateUI()));
+  connect(ui->view3D, SIGNAL(SurfaceVertexClicked()),
+          m_dlgRepositionSurface, SLOT(OnSurfaceVertexClicked()));
 
   QStringList keys = m_layerCollections.keys();
   for ( int i = 0; i < keys.size(); i++ )
@@ -4077,6 +4085,11 @@ void MainWindow::OnIOFinished( Layer* layer, int jobtype )
   {
     std::cout << qPrintable(qobject_cast<LayerMRI*>(layer)->GetFileName()) << " saved successfully.\n";
   }
+  else if ( jobtype == ThreadIOWorker::JT_SaveSurface)
+  {
+    std::cout << qPrintable(qobject_cast<LayerSurface*>(layer)->GetFileName()) << " saved successfully.\n";
+    m_dlgRepositionSurface->UpdateUI();
+  }
 }
 
 bool MainWindow::UpdateSurfaceCorrelation(LayerSurface *layer)
@@ -5005,7 +5018,62 @@ void MainWindow::ShowNonModalMessage(const QString &title, const QString &msg)
   m_dlgMessage->show();
 }
 
-void MainWindow::OnCreateIntensityProjectionMap()
+void MainWindow::OnRepositionSurface()
 {
+  m_dlgRepositionSurface->show();
+}
 
+void MainWindow::SaveSurface()
+{
+  // first check if there is any volume/MRI layer and if the current one is visible
+  LayerSurface* layer_surf = ( LayerSurface* )GetActiveLayer( "Surface" );
+  if ( !layer_surf)
+  {
+    return;
+  }
+  else if ( !layer_surf->IsVisible() )
+  {
+    QMessageBox::warning( this, "Error", "Current surface layer is not visible. Please turn it on before saving.");
+    return;
+  }
+
+  QString fn = layer_surf->GetFileName();
+  if ( fn.isEmpty() )
+  {
+    QString name = layer_surf->GetName().trimmed();
+    name.replace( " ", "_" );
+    fn = QFileDialog::getSaveFileName( this, "Save surface",
+                                       AutoSelectLastDir("surf"),
+                                      "Surface files (*)");
+  }
+
+  if ( !fn.isEmpty() )
+  {
+    layer_surf->SetFileName( fn );
+    m_threadIOWorker->SaveSurface( layer_surf );
+  }
+}
+
+void MainWindow::SaveSurfaceAs()
+{
+  LayerSurface* layer_surf = ( LayerSurface* )GetActiveLayer( "Surface" );
+  if ( !layer_surf)
+  {
+    return;
+  }
+  else if ( !layer_surf->IsVisible() )
+  {
+    QMessageBox::warning( this, "Error", "Current surface layer is not visible. Please turn it on before saving.");
+    return;
+  }
+
+  QString fn = QFileDialog::getSaveFileName( this, "Save surface as",
+                                    layer_surf->GetFileName(),
+                                    "Surface files (*)");
+  if ( !fn.isEmpty() )
+  {
+    layer_surf->SetFileName(fn );
+    SaveSurface();
+    ui->tabSurface->UpdateWidgets();
+  }
 }

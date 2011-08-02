@@ -2288,10 +2288,10 @@
    </hints>
   </connection>
   <connection>
-   <sender>actionIntensityProject</sender>
+   <sender>actionRepositionSurface</sender>
    <signal>triggered()</signal>
    <receiver>MainWindow</receiver>
-   <slot>OnCreateIntensityProjectionMap()</slot>
+   <slot>OnRepositionSurface()</slot>
    <hints>
     <hint type="sourcelabel">
      <x>-1</x>
@@ -2364,5 +2364,6 @@
   <slot>OnDecreaseOpacity()</slot>
   <slot>OnToggleCursorVisibility(bool)</slot>
   <slot>OnCreateIntensityProjectionMap()</slot>
+  <slot>OnRepositionSurface()</slot>
  </slots>
 </ui>

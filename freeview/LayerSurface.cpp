@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2011/06/27 17:16:34 $
- *    $Revision: 1.63 $
+ *    $Date: 2011/08/02 15:58:25 $
+ *    $Revision: 1.64 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -364,6 +364,7 @@ bool LayerSurface::LoadAnnotationFromFile( const QString& filename )
 
   emit Modified();
   emit SurfaceAnnotationAdded( annot );
+  emit ActorChanged();
   return true;
 }
 
@@ -634,6 +635,9 @@ void LayerSurface::Append3DProps( vtkRenderer* renderer, bool* bSliceVisibility 
 
   for (size_t i = 0; i < m_labels.size(); i++)
     renderer->AddViewProp(m_labels[i]->GetOutlineActor());
+  for (size_t i = 0; i < m_annotations.size(); i++)
+    renderer->AddViewProp(m_annotations[i]->GetOutlineActor());
+
   m_roi->AppendProps(renderer);
 }
 

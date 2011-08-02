@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2011/08/01 20:04:14 $
- *    $Revision: 1.99 $
+ *    $Date: 2011/08/02 15:58:25 $
+ *    $Revision: 1.100 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -51,6 +51,7 @@ class TermWidget;
 class MyCmdLineParser;
 class LayerSurface;
 class DialogWriteMovieFrames;
+class DialogRepositionSurface;
 class QMessageBox;
 
 #define MAX_RECENT_FILES    10
@@ -209,6 +210,9 @@ public slots:
 
   void SetProgress(int n);
 
+  void SaveSurface();
+  void SaveSurfaceAs();
+
 protected:
   void closeEvent   ( QCloseEvent * event );
   void resizeEvent  (QResizeEvent * event);
@@ -350,7 +354,7 @@ protected slots:
   void OnIncreaseOpacity();
   void OnDecreaseOpacity();
   void OnToggleCursorVisibility(bool bShow);
-  void OnCreateIntensityProjectionMap();
+  void OnRepositionSurface();
 
   void OnActiveLayerChanged(Layer*);
 
@@ -416,6 +420,7 @@ private:
   DialogSaveScreenshot* m_dlgSaveScreenshot;
   DialogWriteMovieFrames*   m_dlgWriteMovieFrames;
   DialogPreferences*    m_dlgPreferences;
+  DialogRepositionSurface*  m_dlgRepositionSurface;
   WindowQuickReference* m_wndQuickRef;
   FloatingStatusBar*    m_statusBar;
   TermWidget*          m_term;

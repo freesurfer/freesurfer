@@ -9,9 +9,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/14 23:44:48 $
- *    $Revision: 1.13 $
+ *    $Author: rpwang $
+ *    $Date: 2011/08/02 15:58:25 $
+ *    $Revision: 1.14 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -30,6 +30,7 @@
 #define SurfaceAnnotation_h
 
 #include <QObject>
+#include <vtkSmartPointer.h>
 
 extern "C"
 {
@@ -39,6 +40,8 @@ extern "C"
 class vtkLookupTable;
 class vtkRGBAColorTransferFunction;
 class LayerSurface;;
+class vtkActor;
+class vtkPolyData;
 
 class SurfaceAnnotation  : public QObject
 {
@@ -84,10 +87,22 @@ public:
 
   void GetAnnotationColorAtIndex( int nIndex, int* rgb );
 
+  bool GetShowOutline()
+  {
+    return m_bShowOutline;
+  }
+
+  void SetShowOutline(bool bOutline);
+
+  vtkActor* GetOutlineActor();
+
 protected:
   void Reset();
 
 private:
+  QList<int> DoConnectEdgeVertices(const QList<int>& indices_in, const QList<int>& vertices);
+  vtkPolyData* MakeEdgePolyData(const QList<int>& indices_in, const QList<int>& vertices);
+
   int*          m_nIndices;
   int           m_nIndexSize;
   int*          m_nCenterVertices;  // center vertex of each annotation
@@ -96,6 +111,8 @@ private:
   QString       m_strName;
   COLOR_TABLE*  m_lut;
   LayerSurface* m_surface;
+  bool          m_bShowOutline;
+  vtkSmartPointer<vtkActor> m_actorOutline;
 };
 
 #endif

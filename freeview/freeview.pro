@@ -123,7 +123,8 @@ SOURCES += \
     LayerLandmarks.cpp \
     SurfaceROI.cpp \
     ProgressCallback.cpp \
-    MainApplication.cpp
+    MainApplication.cpp \
+    DialogRepositionSurface.cpp
 
 HEADERS  += \
     Annotation2D.h \
@@ -236,7 +237,8 @@ HEADERS  += \
     LayerLandmarks.h \
     SurfaceROI.h \
     ProgressCallback.h \
-    MainApplication.h
+    MainApplication.h \
+    DialogRepositionSurface.h
 
 FORMS    += MainWindow.ui \
     PanelVolume.ui \
@@ -267,7 +269,8 @@ FORMS    += MainWindow.ui \
     PanelTrack.ui \
     DialogSavePointSet.ui \
     DialogSaveVolume.ui \
-    DialogReplaceLabel.ui
+    DialogReplaceLabel.ui \
+    DialogRepositionSurface.ui
 
 RESOURCES += \
     freeview.qrc

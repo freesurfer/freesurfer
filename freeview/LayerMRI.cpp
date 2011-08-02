@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2011/07/21 19:30:09 $
- *    $Revision: 1.104 $
+ *    $Date: 2011/08/02 15:58:25 $
+ *    $Revision: 1.105 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -947,7 +947,6 @@ double LayerMRI::GetVoxelValue( double* pos )
   double* orig = m_imageData->GetOrigin();
   double* vsize = m_imageData->GetSpacing();
   int* ext = m_imageData->GetExtent();
-
 
   int n[3];
   for ( int i = 0; i < 3; i++ )

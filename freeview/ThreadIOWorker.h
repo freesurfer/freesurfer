@@ -6,9 +6,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/14 23:44:48 $
- *    $Revision: 1.4 $
+ *    $Author: rpwang $
+ *    $Date: 2011/08/02 15:58:25 $
+ *    $Revision: 1.5 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -36,11 +36,12 @@ class ThreadIOWorker : public QThread
 public:
   explicit ThreadIOWorker(QObject *parent = 0);
 
-  enum JobType { JT_LoadVolume = 0, JT_SaveVolume, JT_LoadSurface, JT_LoadSurfaceOverlay, JT_LoadTrack };
+  enum JobType { JT_LoadVolume = 0, JT_SaveVolume, JT_LoadSurface, JT_SaveSurface, JT_LoadSurfaceOverlay, JT_LoadTrack };
 
   void LoadVolume( Layer* layer, const QVariantMap& args = QVariantMap() );
   void SaveVolume( Layer* layer, const QVariantMap& args = QVariantMap() );
   void LoadSurface( Layer* layer, const QVariantMap& args = QVariantMap() );
+  void SaveSurface( Layer* layer, const QVariantMap& args = QVariantMap() );
   void LoadSurfaceOverlay( Layer* layer, const QVariantMap& args = QVariantMap() );
   void LoadTrack( Layer* layer, const QVariantMap& args = QVariantMap() );
 

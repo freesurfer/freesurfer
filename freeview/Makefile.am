@@ -35,6 +35,7 @@ BUILT_SOURCES = \
 	ui_DialogSavePointSet.h \
 	ui_DialogSaveVolume.h \
   ui_DialogReplaceLabel.h \
+  ui_DialogRepositionSurface.h \
 	qtcolorpicker.moc \
 	moc_BrushProperty.cpp \
 	moc_CommandEdit.cpp \
@@ -127,6 +128,7 @@ BUILT_SOURCES = \
   moc_LayerLandmarks.cpp \
   moc_SurfaceROI.cpp \
   moc_MainApplication.cpp \
+  moc_DialogRepositionSurface.cpp \
   qrc_freeview.cpp
 
 freeview_SOURCES = $(BUILT_SOURCES) \
@@ -375,7 +377,9 @@ freeview_SOURCES = $(BUILT_SOURCES) \
   MainApplication.cpp \
   MainApplication.h \
   ProgressCallback.cpp \
-  ProgressCallback.h
+  ProgressCallback.h \
+  DialogRepositionSurface.cpp \
+  DialogRepositionSurface.h
 
 if HAVE_MAC_OSX
 AM_CXXFLAGS=\

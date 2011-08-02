@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2011/05/20 17:35:30 $
- *    $Revision: 1.42 $
+ *    $Date: 2011/08/02 15:58:25 $
+ *    $Revision: 1.43 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -116,8 +116,6 @@ void PanelSurface::ConnectLayer( Layer* layer_in )
   connect( layer, SIGNAL(SurfaceAnnotationAdded(SurfaceAnnotation*)),
            this, SLOT(UpdateWidgets()), Qt::UniqueConnection );
   connect( layer, SIGNAL(SurfaceLabelAdded(SurfaceLabel*)),
-           this, SLOT(UpdateWidgets()), Qt::UniqueConnection );
-  connect( layer, SIGNAL(SurfaceAnnotationAdded(SurfaceAnnotation*)),
            this, SLOT(UpdateWidgets()), Qt::UniqueConnection );
   connect( layer, SIGNAL(SurfaceCurvatureLoaded()), this, SLOT(UpdateWidgets()) );
   connect( layer, SIGNAL(SurfaceVectorLoaded()), this, SLOT(UpdateWidgets()) );

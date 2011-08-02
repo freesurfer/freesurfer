@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2011/03/23 21:36:51 $
- *    $Revision: 1.5 $
+ *    $Date: 2011/08/02 15:58:25 $
+ *    $Revision: 1.6 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -59,6 +59,15 @@ void ThreadIOWorker::LoadSurface( Layer* layer, const QVariantMap& args )
   m_args = args;
   start();
 }
+
+void ThreadIOWorker::SaveSurface( Layer* layer, const QVariantMap& args )
+{
+  m_layer = layer;
+  m_nJobType = JT_SaveSurface;
+  m_args = args;
+  start();
+}
+
 
 void ThreadIOWorker::LoadSurfaceOverlay( Layer* layer, const QVariantMap& args )
 {
@@ -169,6 +178,22 @@ void ThreadIOWorker::run()
       return;
     }
     if ( !surf->LoadSurfaceFromFile() )
+    {
+      emit Error( m_layer, m_nJobType );
+    }
+    else
+    {
+      emit Finished( m_layer, m_nJobType );
+    }
+  }
+  else if ( m_nJobType == JT_SaveSurface )
+  {
+    LayerSurface* surf = qobject_cast<LayerSurface*>( m_layer );
+    if ( !surf )
+    {
+      return;
+    }
+    if ( !surf->SaveSurface() )
     {
       emit Error( m_layer, m_nJobType );
     }
