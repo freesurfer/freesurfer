@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2011/08/01 20:03:55 $
- *    $Revision: 1.10 $
+ *    $Date: 2011/08/03 20:38:10 $
+ *    $Revision: 1.11 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -89,6 +89,7 @@ int main(int argc, char *argv[])
     CmdLineEntry( CMD_LINE_OPTION, "ras", "ras", "<X> <Y> <Z>", "Set cursor location at the given RAS coordinate.", 3, 3 ),
     CmdLineEntry( CMD_LINE_OPTION, "slice", "slice", "<X> <Y> <Z>", "Set cursor location at the given slice numbers of the first loaded volume.", 3, 3 ),
     CmdLineEntry( CMD_LINE_OPTION, "cmd", "command", "<FILE>", "Load freeview commands from a text file.", 1, 1 ),
+    CmdLineEntry( CMD_LINE_OPTION, "hide", "hide", "<LAYER_TYPE>", "Hide the current layer. This is useful for scripting. Valid LAYER_TYPEs are volume, surface, label, etc.", 1, 1 ),
     CmdLineEntry( CMD_LINE_NONE )
   };
 

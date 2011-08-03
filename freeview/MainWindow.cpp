@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2011/08/03 20:18:54 $
- *    $Revision: 1.177 $
+ *    $Date: 2011/08/03 20:38:10 $
+ *    $Revision: 1.178 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -594,6 +594,10 @@ bool MainWindow::DoParseCommand(bool bAutoQuit)
   {
     this->AddScript( QString("loadcommand ") + sa[0]);
   }
+  if ( m_cmdParser->Found("hide", &sa))
+  {
+    this->AddScript( QString("hidelayer ") + sa[0]);
+  }
   if ( m_cmdParser->Found( "trilinear" ) )
   {
     this->SetDefaultSampleMethod( SAMPLE_TRILINEAR );
@@ -1110,6 +1114,10 @@ void MainWindow::RunScript()
   {
     CommandLoadCommand(sa);
   }
+  else if ( sa[0] == "hidelayer" )
+  {
+    CommandHideLayer(sa);
+  }
   else if ( sa[0] == "loadvolume" )
   {
     CommandLoadVolume( sa );
@@ -1308,6 +1316,29 @@ void MainWindow::CommandLoadCommand(const QStringList &sa)
     }
     args.prepend("freeview");
     ParseCommand(args.join(" "));
+  }
+}
+
+void MainWindow::CommandHideLayer(const QStringList &sa)
+{
+  QString type = sa[1].toLower();
+  if (type == "volume" || type == "mri")
+  {
+    Layer* layer = GetActiveLayer("MRI");
+    if (layer)
+      layer->SetVisible(false);
+  }
+  else if (type == "surface" || type == "surf")
+  {
+    Layer* layer = GetActiveLayer("Surface");
+    if (layer)
+      layer->SetVisible(false);
+  }
+  else if (type == "label" || type == "roi")
+  {
+    Layer* layer = GetActiveLayer("ROI");
+    if (layer)
+      layer->SetVisible(false);
   }
 }
 
