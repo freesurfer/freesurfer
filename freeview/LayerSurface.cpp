@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2011/08/02 15:58:25 $
- *    $Revision: 1.64 $
+ *    $Date: 2011/08/03 20:18:54 $
+ *    $Revision: 1.65 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -364,7 +364,7 @@ bool LayerSurface::LoadAnnotationFromFile( const QString& filename )
 
   emit Modified();
   emit SurfaceAnnotationAdded( annot );
-  emit ActorChanged();
+  emit ActorUpdated();
   return true;
 }
 
@@ -635,8 +635,6 @@ void LayerSurface::Append3DProps( vtkRenderer* renderer, bool* bSliceVisibility 
 
   for (size_t i = 0; i < m_labels.size(); i++)
     renderer->AddViewProp(m_labels[i]->GetOutlineActor());
-  for (size_t i = 0; i < m_annotations.size(); i++)
-    renderer->AddViewProp(m_annotations[i]->GetOutlineActor());
 
   m_roi->AppendProps(renderer);
 }
@@ -1077,7 +1075,7 @@ void LayerSurface::UpdateOverlay( bool bAskRedraw )
   vtkPolyDataMapper* mapper = vtkPolyDataMapper::SafeDownCast( m_mainActor->GetMapper() );
   vtkPolyData* polydata = mapper->GetInput();
   vtkPolyData* polydataWireframe = vtkPolyDataMapper::SafeDownCast( m_wireframeActor->GetMapper() )->GetInput();
-  if ( m_nActiveOverlay >= 0 )
+  if ( m_nActiveOverlay >= 0 || m_nActiveAnnotation >= 0 )
   {
     if ( mapper )
     {
@@ -1109,7 +1107,10 @@ void LayerSurface::UpdateOverlay( bool bAskRedraw )
           data[i*4+3] = 255;
         }
       }
-      GetActiveOverlay()->MapOverlay( data );
+      if (m_nActiveAnnotation >= 0)
+        GetActiveAnnotation()->MapAnnotationColor(data);
+      if (m_nActiveOverlay >= 0)
+        GetActiveOverlay()->MapOverlay( data );
       MapLabels( data, nCount );
       for ( int i = 0; i < nCount; i++ )
       {
@@ -1122,10 +1123,6 @@ void LayerSurface::UpdateOverlay( bool bAskRedraw )
         polydataWireframe->GetPointData()->SetActiveScalars( "Overlay" );
       }
     }
-  }
-  else if ( m_nActiveAnnotation >= 0 )
-  {
-    UpdateAnnotation( false );
   }
   else
   {
@@ -1202,6 +1199,10 @@ void LayerSurface::SetActiveAnnotation( int n )
 {
   if ( n < (int)m_annotations.size() )
   {
+    if ( m_nActiveAnnotation < 0 && n >= 0 )
+    {
+      this->GetProperty()->SetCurvatureMap( LayerPropertySurface::CM_Binary );
+    }
     m_nActiveAnnotation = n;
     UpdateAnnotation();
     emit ActiveAnnotationChanged( n );
@@ -1270,6 +1271,9 @@ SurfaceAnnotation* LayerSurface::GetAnnotation( int n )
 
 void LayerSurface::UpdateAnnotation( bool bAskRedraw )
 {
+  UpdateOverlay(bAskRedraw);
+  return;
+
   vtkPolyDataMapper* mapper = vtkPolyDataMapper::SafeDownCast( m_mainActor->GetMapper() );
   vtkPolyData* polydata = mapper->GetInput();
   vtkPolyDataMapper* mapperWireframe = vtkPolyDataMapper::SafeDownCast( m_wireframeActor->GetMapper() );
@@ -1458,6 +1462,17 @@ void LayerSurface::SetActiveLabelOutline(bool bOutline)
     emit ActorUpdated();
   }
 }
+
+void LayerSurface::SetActiveAnnotationOutline(bool bOutline)
+{
+  if ( m_nActiveAnnotation >= 0)
+  {
+    m_annotations[m_nActiveAnnotation]->SetShowOutline(bOutline);
+    UpdateColorMap();
+    emit ActorUpdated();
+  }
+}
+
 
 void LayerSurface::RepositionSurface( LayerMRI* mri, int nVertex, double value, int size, double sigma )
 {

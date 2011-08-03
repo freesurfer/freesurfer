@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2011/08/02 15:58:25 $
- *    $Revision: 1.176 $
+ *    $Date: 2011/08/03 20:18:54 $
+ *    $Revision: 1.177 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -1297,14 +1297,18 @@ void MainWindow::CommandLoadCommand(const QStringList &sa)
     cerr << "Can not open for read: " << qPrintable(sa[1]) << ".\n";
     return;
   }
-  QStringList args = QString(file.readAll()).trimmed().split(QRegExp("\\s+"), QString::SkipEmptyParts);
-  if (args.size() > 0 &&
-      ( args[0].toLower() == "freeview" || args[0].toLower() == "fv"))
+  QStringList lines = QString(file.readAll()).trimmed().split("\n", QString::SkipEmptyParts);
+  foreach (QString line, lines)
   {
-    args.removeFirst();
+    QStringList args = line.trimmed().split(QRegExp("\\s+"), QString::SkipEmptyParts);
+    if (args.size() > 0 &&
+        ( args[0].toLower() == "freeview" || args[0].toLower() == "fv"))
+    {
+      args.removeFirst();
+    }
+    args.prepend("freeview");
+    ParseCommand(args.join(" "));
   }
-  args.prepend("freeview");
-  ParseCommand(args.join(" "));
 }
 
 void MainWindow::CommandLoadVolume( const QStringList& sa )

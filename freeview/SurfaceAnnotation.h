@@ -10,8 +10,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2011/08/02 15:58:25 $
- *    $Revision: 1.14 $
+ *    $Date: 2011/08/03 20:18:54 $
+ *    $Revision: 1.15 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -59,7 +59,7 @@ public:
 
   int* GetIndices()
   {
-    return m_nIndices;
+    return (m_bShowOutline ? m_nOutlineIndices : m_nIndices);
   }
 
   int GetIndexSize()
@@ -94,16 +94,15 @@ public:
 
   void SetShowOutline(bool bOutline);
 
-  vtkActor* GetOutlineActor();
+  void MapAnnotationColor( unsigned char* colordata );
 
 protected:
   void Reset();
 
 private:
-  QList<int> DoConnectEdgeVertices(const QList<int>& indices_in, const QList<int>& vertices);
-  vtkPolyData* MakeEdgePolyData(const QList<int>& indices_in, const QList<int>& vertices);
 
   int*          m_nIndices;
+  int*          m_nOutlineIndices;
   int           m_nIndexSize;
   int*          m_nCenterVertices;  // center vertex of each annotation
   int           m_nAnnotations;     // number of valid annotations
@@ -112,7 +111,7 @@ private:
   COLOR_TABLE*  m_lut;
   LayerSurface* m_surface;
   bool          m_bShowOutline;
-  vtkSmartPointer<vtkActor> m_actorOutline;
+  double        m_dOpacity;
 };
 
 #endif

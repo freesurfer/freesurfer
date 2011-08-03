@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2011/08/02 15:58:25 $
- *    $Revision: 1.43 $
+ *    $Date: 2011/08/03 20:18:54 $
+ *    $Revision: 1.44 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -134,6 +134,7 @@ void PanelSurface::ConnectLayer( Layer* layer_in )
   connect( ui->spinBoxVertexPointSize, SIGNAL(valueChanged(int)), p, SLOT(SetVertexPointSize(int)) );
   connect( ui->colorpickerLabelColor, SIGNAL(colorChanged(QColor)), layer, SLOT(SetActiveLabelColor(QColor)));
   connect( ui->checkBoxLabelOutline, SIGNAL(toggled(bool)), layer, SLOT(SetActiveLabelOutline(bool)));
+  connect( ui->checkBoxAnnotationOutline, SIGNAL(toggled(bool)), layer, SLOT(SetActiveAnnotationOutline(bool)));
 }
 
 void PanelSurface::DoIdle()
@@ -290,6 +291,10 @@ void PanelSurface::DoUpdateWidgets()
     ui->colorpickerLabelColor->setCurrentColor( QColor( (int)(rgb[0]*255), (int)(rgb[1]*255), (int)(rgb[2]*255) ) );
     ui->checkBoxLabelOutline->setChecked(layer->GetActiveLabel()->GetShowOutline());
   }
+  if ( layer && layer->GetActiveAnnotation() )
+  {
+    ui->checkBoxAnnotationOutline->setChecked(layer->GetActiveAnnotation()->GetShowOutline());
+  }
 
   int nCurvatureMap = layer ? layer->GetProperty()->GetCurvatureMap() : 0;
   ShowWidgets( m_widgetsMidPoint, nCurvatureMap != LayerPropertySurface::CM_Off );
@@ -298,6 +303,7 @@ void PanelSurface::DoUpdateWidgets()
   ShowWidgets( m_widgetsVertex,   ui->checkBoxShowVertices->isChecked() );
   ShowWidgets( m_widgetsMesh,     layer && layer->GetProperty()->GetSurfaceRenderMode() != LayerPropertySurface::SM_Surface );
   ShowWidgets( m_widgetsLabel,    layer && layer->GetActiveLabelIndex() >= 0 );
+  ui->checkBoxAnnotationOutline->setVisible(layer && layer->GetActiveAnnotation());
   ui->colorpickerSurfaceColor->setEnabled( layer ); // && nCurvatureMap != LayerPropertySurface::CM_Threshold );
 
   BlockAllSignals( false );

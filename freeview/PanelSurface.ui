@@ -455,17 +455,17 @@
         </item>
        </widget>
       </item>
-      <item row="14" column="0">
+      <item row="15" column="0">
        <widget class="QLabel" name="labelLabel">
         <property name="text">
          <string>Label</string>
         </property>
        </widget>
       </item>
-      <item row="14" column="1">
+      <item row="15" column="1">
        <widget class="QComboBox" name="comboBoxLabel"/>
       </item>
-      <item row="15" column="0">
+      <item row="16" column="0">
        <widget class="QLabel" name="labelLabelColor">
         <property name="text">
          <string>Color</string>
@@ -475,7 +475,7 @@
         </property>
        </widget>
       </item>
-      <item row="15" column="1">
+      <item row="16" column="1">
        <layout class="QHBoxLayout" name="horizontalLayout22">
         <item>
          <widget class="QtColorPicker" name="colorpickerLabelColor" native="true"/>
@@ -483,7 +483,7 @@
         <item>
          <widget class="QCheckBox" name="checkBoxLabelOutline">
           <property name="text">
-           <string>Show as outline</string>
+           <string>Show outline only</string>
           </property>
          </widget>
         </item>
@@ -502,14 +502,14 @@
         </item>
        </layout>
       </item>
-      <item row="16" column="0">
+      <item row="17" column="0">
        <widget class="QLabel" name="labelEdgeColor">
         <property name="text">
          <string>Edge color</string>
         </property>
        </widget>
       </item>
-      <item row="16" column="1">
+      <item row="17" column="1">
        <layout class="QHBoxLayout" name="horizontalLayout23">
         <item>
          <widget class="QtColorPicker" name="colorpickerEdgeColor" native="true"/>
@@ -529,14 +529,14 @@
         </item>
        </layout>
       </item>
-      <item row="17" column="0">
+      <item row="18" column="0">
        <widget class="QLabel" name="labelEdgeThickness">
         <property name="text">
          <string>Edge thickness</string>
         </property>
        </widget>
       </item>
-      <item row="17" column="1">
+      <item row="18" column="1">
        <layout class="QHBoxLayout" name="horizontalLayout_17">
         <item>
          <widget class="QSpinBox" name="spinBoxEdgeThickness"/>
@@ -556,17 +556,17 @@
         </item>
        </layout>
       </item>
-      <item row="18" column="0">
+      <item row="19" column="0">
        <widget class="QLabel" name="labelVectorDisplay">
         <property name="text">
          <string>Vector display</string>
         </property>
        </widget>
       </item>
-      <item row="18" column="1">
+      <item row="19" column="1">
        <widget class="QComboBox" name="comboBoxVectorDisplay"/>
       </item>
-      <item row="19" column="0">
+      <item row="20" column="0">
        <widget class="QLabel" name="labelVectorColor">
         <property name="text">
          <string>Color</string>
@@ -576,7 +576,7 @@
         </property>
        </widget>
       </item>
-      <item row="19" column="1">
+      <item row="20" column="1">
        <layout class="QHBoxLayout" name="horizontalLayout24">
         <item>
          <widget class="QtColorPicker" name="colorpickerVectorColor" native="true"/>
@@ -596,7 +596,7 @@
         </item>
        </layout>
       </item>
-      <item row="20" column="0">
+      <item row="21" column="0">
        <widget class="QLabel" name="labelVectorPointSize">
         <property name="text">
          <string>Point size</string>
@@ -606,7 +606,7 @@
         </property>
        </widget>
       </item>
-      <item row="20" column="1">
+      <item row="21" column="1">
        <layout class="QHBoxLayout" name="horizontalLayout_3">
         <item>
          <widget class="QSpinBox" name="spinBoxVectorPointSize">
@@ -633,15 +633,39 @@
         </item>
        </layout>
       </item>
-      <item row="21" column="0">
+      <item row="22" column="0">
        <widget class="QLabel" name="labelPositionOffset">
         <property name="text">
          <string>Position offset</string>
         </property>
        </widget>
       </item>
-      <item row="21" column="1">
+      <item row="22" column="1">
        <widget class="QLineEdit" name="lineEditPositionOffset"/>
+      </item>
+      <item row="14" column="1">
+       <layout class="QHBoxLayout" name="horizontalLayout22_3">
+        <item>
+         <widget class="QCheckBox" name="checkBoxAnnotationOutline">
+          <property name="text">
+           <string>Show outline only</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <spacer name="horizontalSpacer_30">
+          <property name="orientation">
+           <enum>Qt::Horizontal</enum>
+          </property>
+          <property name="sizeHint" stdset="0">
+           <size>
+            <width>0</width>
+            <height>0</height>
+           </size>
+          </property>
+         </spacer>
+        </item>
+       </layout>
       </item>
      </layout>
     </item>
@@ -931,7 +955,7 @@
    <hints>
     <hint type="sourcelabel">
      <x>308</x>
-     <y>665</y>
+     <y>695</y>
     </hint>
     <hint type="destinationlabel">
      <x>60</x>
@@ -947,7 +971,7 @@
    <hints>
     <hint type="sourcelabel">
      <x>276</x>
-     <y>779</y>
+     <y>809</y>
     </hint>
     <hint type="destinationlabel">
      <x>27</x>
@@ -963,7 +987,7 @@
    <hints>
     <hint type="sourcelabel">
      <x>240</x>
-     <y>853</y>
+     <y>883</y>
     </hint>
     <hint type="destinationlabel">
      <x>486</x>

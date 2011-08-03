@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2011/05/20 17:35:30 $
- *    $Revision: 1.44 $
+ *    $Date: 2011/08/03 20:18:54 $
+ *    $Revision: 1.45 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -223,6 +223,8 @@ public slots:
 
   void SetActiveLabelColor(const QColor& c);
   void SetActiveLabelOutline(bool bOutline);
+
+  void SetActiveAnnotationOutline(bool bOutline);
 
 Q_SIGNALS:
   void SurfaceAnnotationAdded( SurfaceAnnotation* );

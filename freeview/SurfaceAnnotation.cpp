@@ -11,8 +11,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2011/08/02 15:58:25 $
- *    $Revision: 1.15 $
+ *    $Date: 2011/08/03 20:18:54 $
+ *    $Revision: 1.16 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -46,11 +46,13 @@
 SurfaceAnnotation::SurfaceAnnotation ( LayerSurface* surf ) :
   QObject( surf ),
   m_nIndices( NULL ),
+  m_nOutlineIndices(NULL),
   m_nCenterVertices( NULL ),
   m_lut( NULL ),
-  m_surface( surf )
+  m_surface( surf ),
+  m_bShowOutline(false),
+  m_dOpacity(1.0)
 {
-  m_actorOutline = vtkSmartPointer<vtkActor>::New();
 }
 
 SurfaceAnnotation::~SurfaceAnnotation ()
@@ -70,7 +72,13 @@ void SurfaceAnnotation::Reset()
     delete[] m_nCenterVertices;
   }
 
+  if ( m_nOutlineIndices )
+  {
+    delete[] m_nOutlineIndices;
+  }
+
   m_nIndices = NULL;
+  m_nOutlineIndices = NULL;
   m_lut = NULL;
   m_nCenterVertices = NULL;
 }
@@ -167,10 +175,11 @@ bool SurfaceAnnotation::LoadAnnotation( const QString& fn )
       }
       delete[] pts;
 
-      // build outline actor, not work yet
-      /*
+      // build outline indices, not work yet
+      m_nOutlineIndices = new int[m_nIndexSize];
+      memcpy(m_nOutlineIndices, m_nIndices, sizeof(int)*m_nIndexSize);
       vtkSmartPointer<vtkAppendPolyData> append = vtkSmartPointer<vtkAppendPolyData>::New();
-      for (int i = 1; i < m_nAnnotations; i++)
+      for (int i = 0; i < m_nAnnotations; i++)
       {
         if (true)
         {
@@ -179,43 +188,30 @@ bool SurfaceAnnotation::LoadAnnotation( const QString& fn )
           LABEL* label = MRISannotation_to_label(mris, i);
           if (label)
           {
-
             LabelMarkSurface(label, mris);
-            QList<int> vertices;
             for (int n = 0 ; n < label->n_points ; n++)
             {
               if (label->lv[n].vno >= 0)
               {
+                m_nOutlineIndices[label->lv[n].vno] = -1;
                 v = &mris->vertices[label->lv[n].vno] ;
                 if (v->ripflag)
-                  continue ;
+                  continue;
 
                 for (int m = 0 ; m < v->vnum ; m++)
                 {
                   if (mris->vertices[v->v[m]].marked == 0)
                   {
-                    vertices << label->lv[n].vno;
-                    break;
+                    m_nOutlineIndices[v->v[m]] = m_nIndices[v->v[m]];
                   }
                 }
               }
             }
 
-            QList<int> indices;
-            indices << vertices[0];
-            indices = this->DoConnectEdgeVertices(indices, vertices);
-            qDebug() << i;
-            vtkSmartPointer<vtkPolyData> polydata = MakeEdgePolyData(indices, vertices);
-            append->AddInput(polydata);
             LabelFree(&label);
           }
         }
       }
-
-      vtkSmartPointer<vtkPolyDataMapper> mapper = vtkSmartPointer<vtkPolyDataMapper>::New();
-      mapper->SetInput( append->GetOutput() );
-      m_actorOutline->SetMapper( mapper );
-      m_actorOutline->GetProperty()->SetColor(1,1,1);*/
       return true;
     }
   }
@@ -283,113 +279,20 @@ void SurfaceAnnotation::GetAnnotationColorAtIndex( int nIndex, int* rgb )
 void SurfaceAnnotation::SetShowOutline(bool bOutline)
 {
   this->m_bShowOutline = bOutline;
-  m_actorOutline->SetVisibility(bOutline?1:0);
 }
 
-vtkActor* SurfaceAnnotation::GetOutlineActor()
+void SurfaceAnnotation::MapAnnotationColor( unsigned char* colordata )
 {
-  return m_actorOutline;
-}
-
-
-vtkPolyData* SurfaceAnnotation::MakeEdgePolyData(const QList<int> &indices_in, const QList<int> &vertices)
-{
-  MRIS* mris = m_surface->GetSourceSurface()->GetMRIS();
-  VERTEX *v;
-  QList<int> indices = indices_in;
-  vtkSmartPointer<vtkPoints> points = vtkSmartPointer<vtkPoints>::New();
-  vtkPolyData* polydata = vtkPolyData::New();
-  vtkSmartPointer<vtkCellArray> lines = vtkSmartPointer<vtkCellArray>::New();
-  lines->InsertNextCell( indices.size() + 1 );
-  for ( int i = 0; i < indices.size(); i++ )
+  int c[4];
+  int* indices = (m_bShowOutline ? m_nOutlineIndices : m_nIndices);
+  for ( int i = 0; i < m_nIndexSize; i++ )
   {
-    lines->InsertCellPoint( i );
-    v = &mris->vertices[indices[i]];
-    double pt[3] = { v->x, v->y, v->z };
-    m_surface->GetTargetAtSurfaceRAS(pt, pt);
-    points->InsertNextPoint(pt);
-  }
-  lines->InsertCellPoint(0);
-
-  polydata->SetPoints( points );
-  polydata->SetLines( lines );
-
-  // Has a hole in the label, recursively add it to the overlay polydata
-  if (indices.size() < vertices.size())
-  {
-    QList<int> sub_vertices = vertices;
-    for (int i = 0; i < indices.size(); i++)
+    if (indices[i] >= 0)
     {
-      if (sub_vertices.contains(indices[i]))
-        sub_vertices.removeOne(indices[i]);
-    }
-
-    indices.clear();
-    indices << sub_vertices[0];
-    indices = DoConnectEdgeVertices(indices, sub_vertices);
-    vtkPolyData* polydata2 = MakeEdgePolyData(indices, sub_vertices);
-    vtkSmartPointer<vtkAppendPolyData> append = vtkSmartPointer<vtkAppendPolyData>::New();
-    append->AddInput(polydata);
-    append->AddInput(polydata2);
-    append->Update();
-    vtkPolyData* polydata_all = vtkPolyData::New();
-    polydata_all->DeepCopy(append->GetOutput());
-    return polydata_all;
-  }
-  else
-    return polydata;
-}
-
-QList<int> SurfaceAnnotation::DoConnectEdgeVertices(const QList<int> &prev_indices, const QList<int> &vertices)
-{
-  MRIS* mris = m_surface->GetSourceSurface()->GetMRIS();
-  VERTEX *v;
-
-//  qDebug() << vertices.size() << prev_indices.size();
-  QList<int> indices = prev_indices;
-  while (indices.size() < vertices.size())
-  {
-    v = &mris->vertices[indices.last()];
-    QList<int> connects;
-    for (int m = 0 ; m < v->vnum ; m++)
-    {
-      if (!indices.contains(v->v[m]) && vertices.contains(v->v[m]))
-      {
-        connects << v->v[m];
-      }
-    }
-    if (!connects.isEmpty())
-    {
-      if (connects.size() == 1)
-        indices << connects[0];
-      else
-      {
-        int ncount = 0;
-        int n = -1;
-        QList<int> solutions[10];
-        for (int i = 0; i < connects.size(); i++)
-        {
-          QList<int> sol_indices = indices;
-          sol_indices << connects[i];
-          solutions[i] = DoConnectEdgeVertices(sol_indices, vertices);
-          if (solutions[i].size() > ncount)
-          {
-            ncount = solutions[i].size();
-            n = i;
-          }
-        }
-        if (n == -1)
-        {
-          qDebug() << n;  // should not happen
-          n = 0;
-        }
-        return solutions[n];
-      }
-    }
-    else
-    {
-      return indices;
+      CTABrgbAtIndexi( m_lut, indices[i], c, c+1, c+2 );
+      colordata[i*4] = ( int )( colordata[i*4] * ( 1 - m_dOpacity ) + c[0] * m_dOpacity );
+      colordata[i*4+1] = ( int )( colordata[i*4+1] * ( 1 - m_dOpacity ) + c[1] * m_dOpacity );
+      colordata[i*4+2] = ( int )( colordata[i*4+2] * ( 1 - m_dOpacity ) + c[2] * m_dOpacity );
     }
   }
-  return indices;
 }
