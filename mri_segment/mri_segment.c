@@ -9,9 +9,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:24 $
- *    $Revision: 1.40 $
+ *    $Author: fischl $
+ *    $Date: 2011/08/04 19:39:41 $
+ *    $Revision: 1.41 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -25,7 +25,7 @@
  *
  */
 
-const char *MRI_SEGMENT_VERSION = "$Revision: 1.40 $";
+const char *MRI_SEGMENT_VERSION = "$Revision: 1.41 $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -121,7 +121,7 @@ main(int argc, char *argv[])
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mri_segment.c,v 1.40 2011/03/02 00:04:24 nicks Exp $",
+           "$Id: mri_segment.c,v 1.41 2011/08/04 19:39:41 fischl Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
   {
@@ -505,6 +505,7 @@ get_option(int argc, char *argv[])
     {
     case 'B':
       blur_sigma = atof(argv[1]) ;
+      nargs = 1 ;
       break ;
     case 'N':
       niter = atoi(argv[2]) ;
@@ -523,6 +524,7 @@ get_option(int argc, char *argv[])
     case 'P':
       pct = atof(argv[2]) ;
       fprintf(stderr, "using %2.0f%% threshold\n", pct*100.0f) ;
+      nargs = 1 ;
       break ;
     case 'X':
       if (sscanf(argv[2], "%d", &extract) != 1)
@@ -533,6 +535,7 @@ get_option(int argc, char *argv[])
     case 'W':
       wsize = atoi(argv[2]) ;
       fprintf(stderr, "using wsize = %d\n", wsize) ;
+      nargs = 1 ;
       break ;
     case '?':
     case 'H':
