@@ -11,8 +11,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2011/05/10 23:06:50 $
- *    $Revision: 1.63 $
+ *    $Date: 2011/08/04 16:43:03 $
+ *    $Revision: 1.64 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -102,7 +102,7 @@ extern "C" {
 using namespace std;
 
 vtkStandardNewMacro( vtkKWQdecWindow );
-vtkCxxRevisionMacro( vtkKWQdecWindow, "$Revision: 1.63 $" );
+vtkCxxRevisionMacro( vtkKWQdecWindow, "$Revision: 1.64 $" );
 
 const char* vtkKWQdecWindow::ksSubjectsPanelName = "Subjects";
 const char* vtkKWQdecWindow::ksDesignPanelName = "Design";
@@ -1318,7 +1318,7 @@ vtkKWQdecWindow::SetCurrentSurfaceMeasure( const char* isMeasure ) {
     mMenuMorphMeasure->GetMenu()->AddRadioButton( "curv" );
     mMenuMorphMeasure->GetMenu()->AddRadioButton( "white.K" );
     mMenuMorphMeasure->GetMenu()->AddRadioButton( "white.H" );
-    mMenuMorphMeasure->GetMenu()->AddRadioButton( "jacobian_white" );
+//NJS: not meaningful    mMenuMorphMeasure->GetMenu()->AddRadioButton( "jacobian_white" );
     mMenuMorphMeasure->GetMenu()->AddRadioButton( "intensity.deep" );
     mMenuMorphMeasure->GetMenu()->AddRadioButton( "intensity.superficial" );
     mMenuMorphMeasure->GetMenu()->AddRadioButton( "intensity.deep.mgz" );
