@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2011/08/05 01:35:47 $
- *    $Revision: 1.179 $
+ *    $Date: 2011/08/05 01:54:54 $
+ *    $Revision: 1.180 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -1355,21 +1355,18 @@ void MainWindow::CommandHideLayer(const QStringList &sa)
 void MainWindow::CommandUnloadLayer(const QStringList &sa)
 {
   QString type = sa[1].toLower();
-  LayerCollection* lc = NULL;
   if (type == "volume" || type == "mri")
   {
-    lc = GetLayerCollection("MRI");
+    OnCloseVolume();
   }
   else if (type == "surface" || type == "surf")
   {
-    lc = GetLayerCollection("Surface");
+    OnCloseSurface();
   }
   else if (type == "label" || type == "roi")
   {
-    lc = GetLayerCollection("ROI");
+    OnCloseROI();
   }
-  if (lc)
-    lc->RemoveLayer(lc->GetActiveLayer());
 }
 
 void MainWindow::CommandLoadVolume( const QStringList& sa )
