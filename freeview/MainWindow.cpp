@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2011/08/03 20:38:10 $
- *    $Revision: 1.178 $
+ *    $Date: 2011/08/05 01:35:47 $
+ *    $Revision: 1.179 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -598,6 +598,10 @@ bool MainWindow::DoParseCommand(bool bAutoQuit)
   {
     this->AddScript( QString("hidelayer ") + sa[0]);
   }
+  if ( m_cmdParser->Found("unload", &sa))
+  {
+    this->AddScript( QString("unloadlayer ") + sa[0]);
+  }
   if ( m_cmdParser->Found( "trilinear" ) )
   {
     this->SetDefaultSampleMethod( SAMPLE_TRILINEAR );
@@ -859,6 +863,8 @@ bool MainWindow::DoParseCommand(bool bAutoQuit)
       this->AddScript( "quit" );
     }
   }
+  if ( m_cmdParser->Found("quit"))
+    AddScript("quit");
   return true;
 }
 
@@ -1118,6 +1124,10 @@ void MainWindow::RunScript()
   {
     CommandHideLayer(sa);
   }
+  else if ( sa[0] == "unloadlayer" )
+  {
+    CommandUnloadLayer(sa);
+  }
   else if ( sa[0] == "loadvolume" )
   {
     CommandLoadVolume( sa );
@@ -1340,6 +1350,26 @@ void MainWindow::CommandHideLayer(const QStringList &sa)
     if (layer)
       layer->SetVisible(false);
   }
+}
+
+void MainWindow::CommandUnloadLayer(const QStringList &sa)
+{
+  QString type = sa[1].toLower();
+  LayerCollection* lc = NULL;
+  if (type == "volume" || type == "mri")
+  {
+    lc = GetLayerCollection("MRI");
+  }
+  else if (type == "surface" || type == "surf")
+  {
+    lc = GetLayerCollection("Surface");
+  }
+  else if (type == "label" || type == "roi")
+  {
+    lc = GetLayerCollection("ROI");
+  }
+  if (lc)
+    lc->RemoveLayer(lc->GetActiveLayer());
 }
 
 void MainWindow::CommandLoadVolume( const QStringList& sa )

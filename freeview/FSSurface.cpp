@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2011/06/06 17:09:49 $
- *    $Revision: 1.52 $
+ *    $Date: 2011/08/05 01:35:47 $
+ *    $Revision: 1.53 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -150,13 +150,12 @@ bool FSSurface::MRISRead( const QString& filename,
       cerr << "Can not load patch file " << qPrintable(patch_filename) << "\n";
     }
   }
+
   // Get some info from the MRIS. This can either come from the volume
   // geometry data embedded in the surface; this is done for newer
   // surfaces. Or it can come from the source information in the
   // transform. We use it to get the RAS center offset for the
   // surface->RAS transform.
-
-
   m_SurfaceToRASMatrix[0] = 1;
   m_SurfaceToRASMatrix[1] = 0;
   m_SurfaceToRASMatrix[2] = 0;
