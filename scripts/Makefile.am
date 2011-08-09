@@ -216,6 +216,7 @@ UpdateNeeded \
 usbtree \
 vno_match_check \
 qt_setup \
+vsm-smooth \
 vtk_setup \
 wfilemask \
 wm-anat-snr \
