@@ -1,6 +1,6 @@
 % fast_selxavg3.m
 %
-% $Id: fast_selxavg3.m,v 1.100 2011/03/02 16:14:38 greve Exp $
+% $Id: fast_selxavg3.m,v 1.101 2011/08/09 17:09:08 greve Exp $
 
 
 %
@@ -9,8 +9,8 @@
 % Original Author: Doug Greve
 % CVS Revision Info:
 %    $Author: greve $
-%    $Date: 2011/03/02 16:14:38 $
-%    $Revision: 1.100 $
+%    $Date: 2011/08/09 17:09:08 $
+%    $Revision: 1.101 $
 %
 % Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 %
@@ -31,7 +31,7 @@ fprintf('%s\n',sess);
 
 
 fprintf('-------------------------\n');
-fprintf('$Id: fast_selxavg3.m,v 1.100 2011/03/02 16:14:38 greve Exp $\n');
+fprintf('$Id: fast_selxavg3.m,v 1.101 2011/08/09 17:09:08 greve Exp $\n');
 which fast_selxavg3
 which fast_ldanaflac
 which MRIread
@@ -58,7 +58,7 @@ if(isempty(flac0))
   if(~monly) quit; end
   return; 
 end
-flac0.sxaversion = '$Id: fast_selxavg3.m,v 1.100 2011/03/02 16:14:38 greve Exp $';
+flac0.sxaversion = '$Id: fast_selxavg3.m,v 1.101 2011/08/09 17:09:08 greve Exp $';
 
 flac0.sess = sess;
 flac0.nthrun = 1;
@@ -73,6 +73,8 @@ ncontrasts = length(flac0.con);
 fprintf('autostimdur = %d\n',flac0.autostimdur);
 
 outanadir0 = sprintf('%s/%s/%s/%s',outtop,sessname,flac0.fsd,flac0.name);
+
+cputime0 = cputime;
 
 %%%%%%%
 if(perrun | jkrun) outer_runlist = [1:nruns];
@@ -97,6 +99,11 @@ for nthouter = outer_runlist
   fprintf('outanadir = %s\n',outanadir);
   err = mkdirp(outanadir);
   if(err) return; end
+  LF = sprintf('%s/selxavg3.log',outanadir);
+  fplf = fopen(LF,'w');
+  fprintf(fplf,'cd %s\n',sxa3pwd);
+  fprintf(fplf,'%s\n',sxa3cmd);
+  
   xfile   = sprintf('%s/X.mat',outanadir);
   outresdir = sprintf('%s/res',outanadir);
 
@@ -107,12 +114,13 @@ for nthouter = outer_runlist
     flac.nthrun = nthrun;
     flac = flac_customize(flac);
     if(isempty(flac)) 
+      fprintf(fplf,'ERROR: loading flac\n');
       if(~monly) quit;  end
       return; 
     end
     runflac(nthrun).flac = flac;
   end
-  
+
   % Load the brain mask
   if(strcmp(flac0.RawSpace,'native'))
     % Native space
@@ -120,6 +128,7 @@ for nthouter = outer_runlist
       mask = MRIread(flac0.maskfspec);
       if(isempty(mask))
 	fprintf('ERROR: cannot load %s\n',flac0.maskfspec);
+	fprintf(fplf,'ERROR: cannot load %s\n',flac0.maskfspec);
 	return;
       end
     else
@@ -137,6 +146,7 @@ for nthouter = outer_runlist
       runmask = MRIread(flac.maskfspec);
       if(isempty(runmask)) 
 	fprintf('ERROR: cannot load %s\n',flac.maskfspec);
+	fprintf(fplf,'ERROR: cannot load %s\n',flac.maskfspec);
 	return;
       end
       mask.vol = mask.vol + runmask.vol;
@@ -157,11 +167,13 @@ for nthouter = outer_runlist
   nslices = mask.volsize(3);
   nvox = prod(mask.volsize);
   fprintf('Found %d/%d (%4.1f) voxels in mask\n',nmask,nvox,100*nmask/nvox);
+  fprintf(fplf,'Found %d/%d (%4.1f) voxels in mask\n',nmask,nvox,100*nmask/nvox);
   mri = mask; % save as template
   mri.vol = []; % blank
 
   %---------------------------------------------%
   fprintf('Creating Design Matrix\n');
+  fprintf(fplf,'Creating Design Matrix\n');
   Xt = [];
   Xn = [];
   tpindrun = [];
@@ -218,8 +230,10 @@ for nthouter = outer_runlist
 
   end % loop over runs
   fprintf(' ... creation time = %6.3f sec\n',toc);
-  
+  fprintf(fplf,' ... creation time = %6.3f sec\n',toc);
+
   fprintf('DoMCFit = %d\n',DoMCFit);
+  fprintf(fplf,'DoMCFit = %d\n',DoMCFit);
   
   % These are the true indices of the mean regressors
   ind0 = find(reg0);
@@ -231,7 +245,17 @@ for nthouter = outer_runlist
   nX = size(X,2);
   ntptot = size(X,1);
   DOF = ntptot - nX;
-  
+  if(DOF <= 0)
+    for fp = [1 fplf]
+      fprintf(fp,'ERROR: DOF = %d <= 0\n',DOF);
+      fprintf(fp,'You have too many conditions and/or too few time points\n');
+      fprintf(fp,'Number of regressors = %d\n',nX);
+      fprintf(fp,'Number of time points = %d\n',ntptot);
+      fprintf(fp,'%s\n',outanadir);
+    end
+    return;
+  end
+    
   doffile = sprintf('%s/dof',outanadir);
   fp = fopen(doffile,'w');
   if(fp == -1)
@@ -241,6 +265,7 @@ for nthouter = outer_runlist
   fprintf(fp,'%d\n',DOF);
   fclose(fp);
   fprintf('ntptot = %d, nX = %d, DOF = %d\n',ntptot,nX,DOF);
+  fprintf(fplf,'ntptot = %d, nX = %d, DOF = %d\n',ntptot,nX,DOF);
 
   % Check condition, normalize to distinguish from scaled
   Xsss = sqrt(sum(X.^2));
@@ -253,8 +278,10 @@ for nthouter = outer_runlist
 
   XCond = cond(XtX);
   fprintf('XCond = %g (normalized)\n',XCond);
+  fprintf(fplf,'XCond = %g (normalized)\n',XCond);
   if(XCond > 1e6)
     fprintf('ERROR: design is ill-conditioned\n');
+    fprintf(fplf,'ERROR: design is ill-conditioned\n');
     return;
   end
 
@@ -267,6 +294,7 @@ for nthouter = outer_runlist
     R = eye(ntptot) - X*inv(X'*X)*X';
     [rfm.M rfm.rrho1 rfm.nrho1 rfm.nrho1hat] = fast_rfm2nrho1(R);
     fprintf('AR1 Correction M: %g %g\n',rfm.M(1),rfm.M(2));
+    fprintf(fplf,'AR1 Correction M: %g %g\n',rfm.M(1),rfm.M(2));
     clear R;
   else
     rfm.M(1) = 0;
@@ -319,6 +347,7 @@ if(DoGLMFit)
 
   % First pass thru the data to compute beta
   fprintf('OLS Beta Pass \n');
+  fprintf(fplf,'OLS Beta Pass \n');
   tic;
   betamat0 = zeros(nX,nvox);
   gmean = 0;
@@ -327,6 +356,7 @@ if(DoGLMFit)
   rawrvar = 0;
   for nthrun = nthrunlist
     fprintf('  run %d    t=%4.1f\n',nthrun,toc);
+    fprintf(fplf,'  run %d    t=%4.1f\n',nthrun,toc);
     flac = runflac(nthrun).flac;          
     indrun = find(tpindrun == nthrun);
     yrun = MRIread(flac.funcfspec);
@@ -342,12 +372,14 @@ if(DoGLMFit)
        yrun.volsize(2) ~= mask.volsize(2) | ...
        yrun.volsize(3) ~= mask.volsize(3))
       fprintf('ERROR: dimension mismatch between mask and %dth run\n',nthrun);
+      fprintf(fplf,'ERROR: dimension mismatch between mask and %dth run\n',nthrun);
       return;
     end
     yrun = fast_vol2mat(yrun);
     if(~isempty(flac.TFmtx))
       % Temporal filter
       fprintf('Temporally filtering\n');
+      fprintf(fplf,'Temporally filtering\n');
       yrun = flac.TFmtx * yrun;
     end
     % Compute mean and rvar of raw data for raw SFNR
@@ -357,6 +389,7 @@ if(DoGLMFit)
     rawrvar = rawrvar + rawrvarrun;
     if(isempty(yrun))
       fprintf('ERROR: loading %s\n',funcfspec);
+      fprintf(fplf,'ERROR: loading %s\n',funcfspec);
       return;
     end
     
@@ -364,6 +397,7 @@ if(DoGLMFit)
     betamat0 = betamat0 + Brun*yrun;
 
     fprintf('    Global Mean %8.2f\n',flac.globalmean);
+    fprintf(fplf,'    Global Mean %8.2f\n',flac.globalmean);
     gmean = gmean + flac.globalmean;
     clear yrun;
     %pack; % not good with matlab 7.4
@@ -395,19 +429,23 @@ if(DoGLMFit)
   if(flac0.inorm ~= 0)
     gmean0 = mean(betamn0(indmask));
     fprintf('Global In-Mask Mean = %g (%g)\n',gmean,gmean0);
+    fprintf(fplf,'Global In-Mask Mean = %g (%g)\n',gmean,gmean0);
     %gmean = gmean0; % This will use old method
     RescaleFactor = flac0.inorm/gmean;
     fprintf('Rescale Target = %g\n',flac0.inorm);
+    fprintf(fplf,'Rescale Target = %g\n',flac0.inorm);
   else
     RescaleFactor = 1;
   end
   fprintf('RescaleFactor = %g\n',RescaleFactor);
+  fprintf(fplf,'RescaleFactor = %g\n',RescaleFactor);
 
   betamn0  = RescaleFactor*betamn0;
   betamat0 = RescaleFactor*betamat0;
   
   % Second pass thru the data to compute residual
   fprintf('OLS Residual Pass \n');
+  fprintf(fplf,'OLS Residual Pass \n');
   tic;
   rsse = 0;
   rho1 = mri; 
@@ -416,6 +454,7 @@ if(DoGLMFit)
   sstd = [];
   for nthrun = nthrunlist
     fprintf('  run %d    t=%4.1f\n',nthrun,toc);
+    fprintf(fplf,'  run %d    t=%4.1f\n',nthrun,toc);
     flac = runflac(nthrun).flac;
     indrun = find(tpindrun == nthrun);
     yrun = MRIread(flac.funcfspec);
@@ -423,6 +462,7 @@ if(DoGLMFit)
     if(~isempty(flac.TFmtx))
       % Temporal filter
       fprintf('Temporally filtering\n');
+      fprintf(fplf,'Temporally filtering\n');
       yrun = flac.TFmtx * yrun;
     end
     yrun = RescaleFactor*yrun;
@@ -475,16 +515,19 @@ if(DoGLMFit)
     
     if(SaveResUnwhitened)
       fprintf('Saving unwhitened residuals\n');
+      fprintf(fplf,'Saving unwhitened residuals\n');
       fname = sprintf('%s/res-uw-%03d.%s',outresdir,nthrun,ext);
       rrunmri = mri;
       rrunmri.vol = fast_mat2vol(rrun,mri.volsize);
       MRIwrite(rrunmri,fname);
       fprintf('Computing ACF\n');
+      fprintf(fplf,'Computing ACF\n');
       acfmat = fast_acorr(rrun);
       acfmat = acfmat(1:30,:);
       acf = mri;
       acf.vol = fast_mat2vol(acfmat,acf.volsize);
       fprintf('Saving ACF\n');
+      fprintf(fplf,'Saving ACF\n');
       fname = sprintf('%s/acf-uw-%03d.%s',outresdir,nthrun,ext);      
       MRIwrite(acf,fname);
     end
@@ -501,6 +544,7 @@ if(DoGLMFit)
     if(flac.fsv3_whiten)
       % Compute Err Cov Mtx from unwhitened residuals
       fprintf('Computing ErrCovMtx\n');
+      fprintf(fplf,'Computing ErrCovMtx\n');
       ErrCovMtxRun = rrun(:,indmask)*rrun(:,indmask)';
       if(nthrun == 1) 
 	ErrCovMtx = ErrCovMtxRun;
@@ -540,6 +584,7 @@ if(DoGLMFit)
   % Apply spatial smoothing if desired
   if(flac.acffwhm > 0 & flac0.acfbins > 0)
     fprintf('Smoothing ACF\n');
+    fprintf(fplf,'Smoothing ACF\n');
     rho1mnsmfile = sprintf('%s/rho1mn.sm.%s',outanadir,ext);
     opts = sprintf('--mask %s --i %s --o %s --fwhm %f --smooth-only',...
 		   outmaskfile,rho1mnfile,rho1mnsmfile,flac.acffwhm);
@@ -554,6 +599,7 @@ if(DoGLMFit)
     fprintf('%s\n',rescmd);
     if(err)
       fprintf('ERROR: %s\n',cmd);
+      fprintf(fplf,'ERROR: %s\n',cmd);
       return;
     end
     % Reload smoothed acf
@@ -568,6 +614,7 @@ if(DoGLMFit)
   % Probably means there is something wrong with the scan
   ind = find(abs(nrho1mn.vol) > 0.90);
   fprintf('Found %d voxels with corrected AR1 > 0.90\n',length(ind));
+  fprintf(fplf,'Found %d voxels with corrected AR1 > 0.90\n',length(ind));
   if(length(ind) > 0)
     % This is a bit of a hack to "fix" them - just rescale to
     % within +/-1
@@ -587,7 +634,7 @@ if(DoGLMFit)
   nrho1segmn = [];
   if(flac0.acfbins > 0)
     fprintf('Whitening\n');
-
+    fprintf(fplf,'Whitening\n');
     acfseg = mri;
     acfseg.vol = zeros(acfseg.volsize);
     [edge bincenter binmap] = fast_histeq(nrho1mn.vol(indmask), flac0.acfbins);
@@ -598,6 +645,7 @@ if(DoGLMFit)
     
     % Compute average ar1 in each seg and corresponding acf
     fprintf('Computing whitening matrices\n');
+    fprintf(fplf,'Computing whitening matrices\n');
     tic;
     clear rho1segmn nalphasegmn acfsegmn S Sinv W;
     Sinv = zeros(ntptot,ntptot,flac0.acfbins);
@@ -623,6 +671,8 @@ if(DoGLMFit)
       
       fprintf('  seg  %2d  %5d  nrho1 = %5.3f\n',...
 	      nthseg,nsegvox,nrho1segmn(nthseg));
+      fprintf(fplf,'  seg  %2d  %5d  nrho1 = %5.3f\n',...
+	      nthseg,nsegvox,nrho1segmn(nthseg));
       for nthrun = nthrunlist
 	indrun = find(tpindrun == nthrun);
 	nnrun = 1:runflac(nthrun).flac.ntp;
@@ -646,10 +696,12 @@ if(DoGLMFit)
 
     % First pass thru the data to compute beta
     fprintf('GLS Beta Pass \n');
+    fprintf(fplf,'GLS Beta Pass \n');
     tic;
     betamat = zeros(nX,nvox);
     for nthrun = nthrunlist
       fprintf('  run %d    t=%4.1f\n',nthrun,toc);
+      fprintf(fplf,'  run %d    t=%4.1f\n',nthrun,toc);
       flac = runflac(nthrun).flac;
       indrun = find(tpindrun == nthrun);
       yrun = MRIread(flac.funcfspec);
@@ -658,6 +710,7 @@ if(DoGLMFit)
       if(~isempty(flac.TFmtx))
 	% Temporal filter
 	fprintf('Temporally filtering\n');
+	fprintf(fplf,'Temporally filtering\n');
 	yrun = flac.TFmtx * yrun;
       end
       yrun = RescaleFactor*yrun;  
@@ -677,6 +730,7 @@ if(DoGLMFit)
     
     % Second pass thru the data to compute beta
     fprintf('GLS Residual Pass \n');
+    fprintf(fplf,'GLS Residual Pass \n');
     err = mkdirp(outresdir);
     if(err) return; end
     tic;
@@ -691,6 +745,7 @@ if(DoGLMFit)
       if(~isempty(flac.TFmtx))
 	% Temporal filter
 	fprintf('Temporally filtering\n');
+	fprintf(fplf,'Temporally filtering\n');
 	yrun = flac.TFmtx * yrun;
       end
       yrun = RescaleFactor*yrun;
@@ -722,6 +777,7 @@ if(DoGLMFit)
     rvarmat = rsse/DOF;
   else
     fprintf('Not Whitening\n');
+    fprintf(fplf,'Not Whitening\n');
     rvarmat = rvarmat0;
     betamat = betamat0;
     W = [];
@@ -742,13 +798,16 @@ if(DoGLMFit)
 
   if(DoFWHM)
     fprintf('Concatenating residuals\n');
+    fprintf(fplf,'Concatenating residuals\n');
     cmd = sprintf('%s/bin/mri_concat %s/res-???.%s --o %s/all.%s',...
 		  FSHOME,outresdir,ext,outresdir,ext);    
     fprintf('%s\n',cmd);
     [err rescmd] = system(cmd);
     fprintf('%s\n',rescmd);
+    fprintf(fplf,'%s\n',rescmd);
     if(err)
       printf('ERROR: %s\n',cmd);
+      fprintf(fplf,'ERROR: %s\n',cmd);
       return;
     end
     fprintf('Computing FWHM\n');
@@ -763,8 +822,10 @@ if(DoGLMFit)
     fprintf('%s\n',cmd);
     [err rescmd] = system(cmd);
     fprintf('%s\n',rescmd);
+    fprintf(fplf,'%s\n',rescmd);
     if(err)
       fprintf('ERROR: %s\n',cmd);
+      fprintf(fplf,'ERROR: %s\n',cmd);
       return;
     end
     if(MatlabSaveRes == 0)
@@ -773,8 +834,10 @@ if(DoGLMFit)
       fprintf('%s\n',cmd);
       [err rescmd] = system(cmd);
       fprintf('%s\n',rescmd);
+      fprintf(fplf,'%s\n',rescmd);
       if(err)
 	fprintf('ERROR: %s\n',cmd);
+	fprintf(fplf,'ERROR: %s\n',cmd);
 	return;
       end
     end
@@ -799,6 +862,7 @@ if(DoGLMFit)
   indz  = find(baseline.vol==0);
   indnz = find(baseline.vol~=0);
   fprintf('Found %d zero-valued voxels\n',length(indz));
+  fprintf(fplf,'Found %d zero-valued voxels\n',length(indz));
 
   beta = mri;
   beta.vol = fast_mat2vol(betamat,beta.volsize);
@@ -836,9 +900,11 @@ end % DoGLMFit
 
 if(DoContrasts)
   fprintf('Computing contrasts\n');
+  fprintf(fplf,'Computing contrasts\n');
   
   if(~DoGLMFit)
     fprintf('Loading previous GLM fit\n');
+    fprintf(fplf,'Loading previous GLM fit\n');
     flac0tmp = flac0; % keep copy
     load(xfile);
     flac0 = flac0tmp; % So that it has all the contrasts
@@ -868,6 +934,7 @@ if(DoContrasts)
 
   %---------------------------------------------------------------%
   fprintf('Starting contrasts\n');
+  fprintf(fplf,'Starting contrasts\n');
   for nthcon = 1:ncontrasts
     if(~isempty(ConList))
       ind = strmatch(flac0.con(nthcon).name,ConList);
@@ -877,6 +944,7 @@ if(DoContrasts)
     C = flacC.con(nthcon).C;
     [J K] = size(C);
     fprintf('%s J=%d -------------\n',conname,J);
+    fprintf(fplf,'%s J=%d -------------\n',conname,J);
     if(J==1)
       [Fmat dof1 dof2 cesmat cesvarmat pccmat] = ...
 	  fast_fratiow(betamat,X,rvarmat,C,acfsegmn,acfseg.vol(:));
@@ -893,6 +961,7 @@ if(DoContrasts)
     if(exist(outcondir,'dir'))
       % Delete it if it exists
       fprintf('%s exists, deleting\n',outcondir);
+      fprintf(fplf,'%s exists, deleting\n',outcondir);
       rmdir(outcondir,'s');
     end
 
@@ -1053,6 +1122,7 @@ if(DoContrasts)
 
     if(DoMCFit)
       fprintf('Testing Motion Correction Parameters\n');
+      fprintf(fplf,'Testing Motion Correction Parameters\n');
       [F Fsig ces] = fast_fratio(betamc,X,rvarmc,C);
       Fsig = -log10(Fsig);
       minsig = max(Fsig);
@@ -1186,6 +1256,11 @@ end % outer run loop
 
 if(exist('okfile','var'))  fmri_touch(okfile); end
 
+fprintf('cputime-min %f\n',(cputime-cputime0)/60);
+fprintf(fplf,'cputime-min %f\n',(cputime-cputime0)/60);
+
 fprintf('fast_selxavg3 done for %s\n',sess);
+fprintf(fplf,'fast_selxavg3 done for %s\n',sess);
+fclose(fplf);
 
 return;
