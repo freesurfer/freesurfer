@@ -13,8 +13,8 @@
  * Original Author: Xiao Han
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2011/08/09 19:23:17 $
- *    $Revision: 1.6 $
+ *    $Date: 2011/08/09 19:47:14 $
+ *    $Revision: 1.7 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -252,7 +252,7 @@ main(int argc, char *argv[])
   int indexmap[MAX_CLASSES + 1];
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_ms_EM_with_atlas.c,v 1.6 2011/08/09 19:23:17 nicks Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_ms_EM_with_atlas.c,v 1.7 2011/08/09 19:47:14 nicks Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
   {
     exit (0);
@@ -3451,6 +3451,15 @@ MRI *MRInormalizeXH(MRI *mri_src, MRI *mri_dst, MRI *mri_mask)
   return (mri_dst);
 }
 
+/*
+ * Indexes an array arr[], outputs the array indx[] such that arr[indx[j]]
+ * is in ascending order for j = 1, 2, ... N.  The input quantities n and arr
+ * are not changed.
+ * That is, it produces a second array (indx[]) that contains pointers to the
+ * elements of the original array (arr[]) in the order of their size.
+ *
+ * This routine is from Numerical Recipes for C.
+ */
 void indexx(unsigned long n, float arr[], unsigned long indx[])
 {
   unsigned long i,indxt,ir=n,itemp,j,k,l=1;
