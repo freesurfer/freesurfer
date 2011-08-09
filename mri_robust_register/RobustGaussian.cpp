@@ -7,9 +7,9 @@
 /*
  * Original Author: Martin Reuter
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:24 $
- *    $Revision: 1.12 $
+ *    $Author: mreuter $
+ *    $Date: 2011/08/09 16:34:47 $
+ *    $Revision: 1.13 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -43,6 +43,10 @@ using namespace std;
   * This Quickselect routine is based on the algorithm described in
   * "Numerical recipes in C", Second Edition,
   * Cambridge University Press, 1992, Section 8.5, ISBN 0-521-43108-5
+  * This code is based on code by Nicolas Devillard - 1998. Public domain.  
+  * see also http://ndevilla.free.fr/median/median.pdf
+  * modifications: - instead of only selecting the median, select the k-th smallest
+  *                - additionally keep track of the index in the original array
   */
 #define ELEM_SWAPD(a,b) { T t=a;a=b;b=t; }
 #define ELEM_SWAPI(a,b) { int t=a;a=b;b=t; }
@@ -204,6 +208,11 @@ T RobustGaussian<T>::quick_select(T arr[], int n, int k)
                Publisher: Englewood Cliffs: Prentice-Hall, 1976
     Physical description: 366 p.
                   Series: Prentice-Hall Series in Automatic Computation
+
+    Implementation based on code by N.Devillard. Public Domain.
+
+    kth_smallestI is modified: we keep track of the position inside the original 
+    array of the k_th smallest element
 
  ---------------------------------------------------------------------------*/
 template <class T>
