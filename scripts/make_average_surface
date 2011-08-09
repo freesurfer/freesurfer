@@ -10,8 +10,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2011/05/25 20:52:55 $
-#    $Revision: 1.54 $
+#    $Date: 2011/08/09 17:13:21 $
+#    $Revision: 1.55 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -28,7 +28,7 @@
 # uncomment this to increase number of allowable open files to maximum:
 #limit descriptors unlimited
 
-set VERSION = '$Id: make_average_surface,v 1.54 2011/05/25 20:52:55 greve Exp $';
+set VERSION = '$Id: make_average_surface,v 1.55 2011/08/09 17:13:21 greve Exp $';
 setenv FIX_VERTEX_AREA
 
 set PrintHelp = 0;
@@ -50,6 +50,7 @@ set ico_no=7
 set DoXHemi = 0;
 set topdir = ();
 set DoTemplateOnly = 0;
+set hemilist = ();
 
 # these should match latest declarations in recon-all
 set DESIKAN_GCS = curvature.buckner40.filled.desikan_killiany.2010-03-25.gcs
@@ -141,7 +142,7 @@ endif
 set tmp_subjects = ( $SUBJECTS )
 
 #------------------------------------------------------------
-foreach hemi (lh rh)
+foreach hemi ($hemilist)
 
   echo ""  | tee -a $LF
   echo ""  | tee -a $LF
@@ -331,7 +332,7 @@ if(! $DoTemplateOnly) then
   set subjlistfile = /tmp/subjlist.$$
   rm -f $subjlistfile
   echo $SUBJECTS > $subjlistfile
-  foreach hemi (rh lh)
+  foreach hemi ($hemilist)
     foreach surf (orig white pial)
       set avgarea = $hemi.$surf.avg.area.mgh
       set cmd = (mris_preproc --out $avgarea  --f $subjlistfile)
@@ -516,6 +517,30 @@ while( $#argv != 0 )
       endif
       breaksw
 
+    case "--lh":
+      set hemilist = (lh)
+      if ( $getting_subjects ) then
+        set getting_subjects = 0;
+        # got em all, from --subjects variable arg loop
+      endif
+      breaksw
+
+    case "--rh":
+      set hemilist = (rh)
+      if ( $getting_subjects ) then
+        set getting_subjects = 0;
+        # got em all, from --subjects variable arg loop
+      endif
+      breaksw
+
+    case "--lhrh":
+      set hemilist = (lh rh)
+      if ( $getting_subjects ) then
+        set getting_subjects = 0;
+        # got em all, from --subjects variable arg loop
+      endif
+      breaksw
+
     case "--no-xhemi":
       set DoXHemi = 0;
       if ( $getting_subjects ) then
@@ -583,6 +608,7 @@ check_params:
     exit 1;
   endif
   if($#sdout == 0) set sdout = $SUBJECTS_DIR;
+  if($#hemilist == 0) set hemilist = (lh rh)
 goto check_params_return;
 ############--------------##################
 
@@ -616,6 +642,8 @@ usage_exit:
   echo "   --xform <transform_fname>       : filename of transform file"
   echo "   --ico <number>  : specify icosahedron number, default is 7 (ic7.tri)"
   echo "   --surf-reg <surface name>   : alternative registration surface"
+  echo "   --lh : only do left  hemi (default is to do both)"
+  echo "   --rh : only do right hemi (default is to do both)"
   echo "                                 default: sphere.reg"
   echo "   --force   : overwrite existing average subject data"
   echo "   --template-only : useful when creating iterative atlases"
