@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2011/08/09 17:09:09 $
-#    $Revision: 1.58 $
+#    $Date: 2011/08/09 19:55:22 $
+#    $Revision: 1.59 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: selxavg3-sess,v 1.58 2011/08/09 17:09:09 greve Exp $'
+set VERSION = '$Id: selxavg3-sess,v 1.59 2011/08/09 19:55:22 greve Exp $'
 
 set inputargs = ($argv);
 set DateStr = "`date '+%y%m%d%H%M%S'`"
@@ -173,8 +173,6 @@ echo "% `pwd`  " >> $MLF
 echo "% $flacfile $analysis  " >> $MLF
 echo "  " >> $MLF
 echo "  " >> $MLF
-echo "sxa3pwd = '`pwd`'">> $MLF
-echo "sxa3cmd = '$0 $inputargs'">> $MLF
 
 set okfile = /tmp/selxavg3-sess-$$.ok
 rm -f $okfile
@@ -276,6 +274,8 @@ foreach sess ($SessList)
   endif
 
   echo "%--------------------------------" >> $MLF
+  echo "sxa3pwd = '`pwd`'">> $MLF
+  echo "sxa3cmd = '$0 $inputargs'">> $MLF
   echo "which fast_selxavg3"               >> $MLF
   echo "okfile         = '$okfile';"       >> $MLF
   echo "if(fast_fileexists(okfile)) delete(okfile); end" >> $MLF
