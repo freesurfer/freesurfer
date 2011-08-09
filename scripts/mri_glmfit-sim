@@ -1,5 +1,5 @@
 #!/bin/tcsh -f
-set VERSION = '$Id: mri_glmfit-sim,v 1.39 2011/05/25 20:21:45 greve Exp $';
+set VERSION = '$Id: mri_glmfit-sim,v 1.40 2011/08/09 17:12:36 greve Exp $';
 
 set inputargs = ($argv);
 
@@ -90,10 +90,11 @@ else
 endif
 
 set glmfitcwd = `cat $glmfitlog | awk '{if($1 == "cwd") print $2}'`
-if(! -e $glmfitcwd) then
+if(0 && ! -e $glmfitcwd) then
   echo "ERROR: cannot find $glmfitcwd"
   exit 1;
 endif
+set glmfitcwd = `pwd`;
 
 set anattype = volume;
 set subject = ();
@@ -139,12 +140,15 @@ while($#glmfitcmd)
     set PermForce = 1;
     breaksw
   case "--y"
-    set y = $glmfitcwd/$glmfitcmd[1]; shift glmfitcmd;
+    set y = $glmfitcmd[1]; shift glmfitcmd;
     if(! -e $y) then
-      set y = $glmdir/`basename $y`
+      set y = $glmfitcwd/$y
       if(! -e $y) then
-        echo "ERROR: cannot find $y"
-        exit 1;
+        set y = $glmdir/`basename $y`
+        if(! -e $y) then
+          echo "ERROR: cannot find $y"
+          exit 1;
+        endif
       endif
     endif
     breaksw
