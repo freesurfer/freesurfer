@@ -1,0 +1,5 @@
+version 0.0.2: upgraded to OpenCV 2.2 and SBL 0.0.3; main.conf changed to path.conf; added doxygen configuration
+
+version 0.0.1: some code cleaning; added simple text export for particle sets and motion fields
+
+version 0.0.0: first release

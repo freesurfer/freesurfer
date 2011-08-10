@@ -1,0 +1,32 @@
+Please go to simple-base-lib.org for the latest version.
+
+============ DATA PATH CONFIGURATION ============ 
+
+The library expects to find a path.conf in the application's current directory 
+specifying the path of the application's data directory.
+
+============ OPTIONAL DEPENDENCIES ============
+
+The following flags can be defined to enable code that depends on external
+libraries:
+
+USE_OPENCV (for image processing functions and image/video I/O)
+USE_CDT (for triangulation functions)
+USE_ZLIB (for gzip support in the File class)
+USE_PYTHON (for scripting)
+
+============ RECOMMENDED VISUAL STUDIO SETTINGS ============
+
+General / Character set: "Not Set"
+C/C++ / General / Detect 64-bit Issues: No
+C/C++ / Preprocessor Definitions: WIN32;_CONSOLE;_CRT_SECURE_NO_DEPRECATE
+
+============ RECOMMENDED GCC FLAGS ============ 
+
+-Wall -Wstrict-aliasing 
+-msse2 -mfpmath=sse -march=i686
+-O2
+
+============ DOCUMENTATION ============ 
+
+to generate documentation with doxygen, run "doxygen sbl_doxygen.txt" from the doc sub-directory

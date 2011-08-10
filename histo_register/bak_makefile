@@ -1,0 +1,41 @@
+SBL=./SimpleBaseLib-0.0.4
+PVL=./ParticleVideoLib-0.0.2
+OPENCV=/usr/pubsw/packages/opencv/current
+CPP=g++
+OPTLEVEL=2
+WARNFLAGS=-Wall -Wstrict-aliasing #-Werror
+INCLUDE=-I. -I$(SBL)/include -I$(SBL)/external -I$(PVL)/include -I$(OPENCV)/include
+OPTFLAGS=-msse2 -mfpmath=sse
+CONFIGFLAGS=-DUSE_OPENCV -DUSE_CDT #-D_DEBUG 
+CPPFLAGS=-g -fpack-struct=8 $(WARNFLAGS) $(INCLUDE) -O$(OPTLEVEL) $(OPTFLAGS) $(CONFIGFLAGS) # -pg 
+#CPPFLAGS=-g -pg -mpc64 -fno-strict-aliasing -ffloat-store 
+SOURCES=$(wildcard prep/*.cc) $(wildcard registration/*.cc) $(wildcard external/*.cpp) Main.cc
+OBJECTS=$(SOURCES:.cc=.o)
+EXECUTABLE=histo_register
+LIBPATH=-L$(SBL)/lib -L$(PVL)/lib -L$(OPENCV)/lib
+LIBRARIES=-lm -lopencv_core -lopencv_imgproc -lopencv_highgui -lopencv_ml -lpvl -lsbl
+
+.PHONY: depend clean valgrind
+
+all: $(SOURCES) $(EXECUTABLE)
+
+$(EXECUTABLE): $(OBJECTS)
+	$(CPP) $(CPPFLAGS) $(OBJECTS) -o $(EXECUTABLE) $(LIBPATH) $(LIBRARIES)
+
+.cc:
+	$(CPP) $(CPPFLAGS) -c $@.cc -o $@.o
+
+clean:
+	rm -rf */*.o $(EXECUTABLE) *.o
+
+delete:
+	rm */*.cc
+	rm */*.h
+
+valgrind:
+	echo 'make sure optlevel=0'; valgrind --leak-check=full ./HistoBrainSystem
+
+depend: $(SRCS)
+	makedepend $(INCLUDES) $^
+
+# DO NOT DELETE THIS LINE -- make depend needs it

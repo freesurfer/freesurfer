@@ -1,0 +1,39 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 10.00
+# Visual C++ Express 2008
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ParticleVideoSample", "ParticleVideoSample.vcproj", "{57BEA7F3-C8BA-4379-98CE-8F47CEA0824C}"
+	ProjectSection(ProjectDependencies) = postProject
+		{09825078-9544-44B0-B278-10D5BFAB4F1C} = {09825078-9544-44B0-B278-10D5BFAB4F1C}
+		{65595B90-2FDF-44C5-98C7-5D6EFCF9C48B} = {65595B90-2FDF-44C5-98C7-5D6EFCF9C48B}
+	EndProjectSection
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "SimpleBaseLib_nogui", "..\..\SimpleBaseLib\build\SimpleBaseLib_nogui.vcproj", "{65595B90-2FDF-44C5-98C7-5D6EFCF9C48B}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ParticleVideoLib", "..\..\ParticleVideoLib\build\ParticleVideoLib.vcproj", "{09825078-9544-44B0-B278-10D5BFAB4F1C}"
+	ProjectSection(ProjectDependencies) = postProject
+		{65595B90-2FDF-44C5-98C7-5D6EFCF9C48B} = {65595B90-2FDF-44C5-98C7-5D6EFCF9C48B}
+	EndProjectSection
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Win32 = Debug|Win32
+		Release|Win32 = Release|Win32
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{57BEA7F3-C8BA-4379-98CE-8F47CEA0824C}.Debug|Win32.ActiveCfg = Debug|Win32
+		{57BEA7F3-C8BA-4379-98CE-8F47CEA0824C}.Debug|Win32.Build.0 = Debug|Win32
+		{57BEA7F3-C8BA-4379-98CE-8F47CEA0824C}.Release|Win32.ActiveCfg = Release|Win32
+		{57BEA7F3-C8BA-4379-98CE-8F47CEA0824C}.Release|Win32.Build.0 = Release|Win32
+		{65595B90-2FDF-44C5-98C7-5D6EFCF9C48B}.Debug|Win32.ActiveCfg = Debug|Win32
+		{65595B90-2FDF-44C5-98C7-5D6EFCF9C48B}.Debug|Win32.Build.0 = Debug|Win32
+		{65595B90-2FDF-44C5-98C7-5D6EFCF9C48B}.Release|Win32.ActiveCfg = Release|Win32
+		{65595B90-2FDF-44C5-98C7-5D6EFCF9C48B}.Release|Win32.Build.0 = Release|Win32
+		{09825078-9544-44B0-B278-10D5BFAB4F1C}.Debug|Win32.ActiveCfg = Debug|Win32
+		{09825078-9544-44B0-B278-10D5BFAB4F1C}.Debug|Win32.Build.0 = Debug|Win32
+		{09825078-9544-44B0-B278-10D5BFAB4F1C}.Release|Win32.ActiveCfg = Release|Win32
+		{09825078-9544-44B0-B278-10D5BFAB4F1C}.Release|Win32.Build.0 = Release|Win32
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal
