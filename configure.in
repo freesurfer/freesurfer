@@ -8,9 +8,9 @@
 # Process this file with autoconf to produce a configure script.
 #
 # CVS Revision Info:
-#    $Author: ythomas $
-#    $Date: 2011/08/02 17:18:40 $
-#    $Revision: 1.535 $
+#    $Author: krish $
+#    $Date: 2011/08/10 08:11:10 $
+#    $Revision: 1.536 $
 #
 ########################################################################
 AC_PREREQ(2.57)
@@ -602,6 +602,33 @@ AC_ARG_ENABLE(openmp,
  ])
 AM_CONDITIONAL(HAVE_OPENMP, test "x$ac_have_openmp" = "xyes")
 
+##############################################################
+# OpenCV
+##############################################################
+AC_ARG_WITH([opencv],
+   [  --with-opencv=PATH         prefix where opencv is installed])
+
+use_opencv="no"
+if test -n "$with_opencv"; then
+  OPENCV_DIR="$with_opencv"
+else
+  if test -e /usr/pubsw/packages/opencv/current ; then
+    OPENCV_DIR="/usr/pubsw/packages/opencv/current"
+  fi
+fi
+if( test ! "x$OPENCV_DIR" = "xno" ) then
+  use_opencv="yes"
+  LIB_OPENCV=""
+  OPENCV_CXXFLAGS="-I$OPENCV_DIR/include"
+  OPENCV_LIBS="-L$OPENCV_DIR/lib -lm -lopencv_core -lopencv_imgproc -lopencv_highgui -lopencv_ml"
+fi
+
+AC_SUBST(OPENCV_CXXFLAGS)
+AC_SUBST(OPENCV_LIBS)
+AC_SUBST(OPENCV_DIR)
+
+# if --without-opencv was specified, disable opencv build
+AM_CONDITIONAL(BUILDOPENCV, test x$use_opencv = xyes)
 
 ##############################################################
 # OPENCL enabling - added by Dan Ginsburg
@@ -3254,6 +3281,9 @@ AC_OUTPUT([Makefile
            hiam_register/Makefile
            hiam_make_template/Makefile
            hipsstubs/Makefile
+           histo_register/Makefile
+           histo_register/SimpleBaseLib/Makefile
+           histo_register/ParticleVideoLib/Makefile
            histo_segment/Makefile
            histo_synthesize/Makefile
            histo_compute_joint_density/Makefile

@@ -293,6 +293,7 @@ STATSDIRS=\
 
 MISCDIRS=\
 	GEMS \
+	histo_register \
 	histo_compute_joint_density \
 	histo_register_block \
 	regdat2xfm \
