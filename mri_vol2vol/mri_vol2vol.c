@@ -10,9 +10,9 @@
 /*
  * Original Author: Doug Greve
  * CVS Revision Info:
- *    $Author: mreuter $
- *    $Date: 2011/07/29 23:56:08 $
- *    $Revision: 1.70 $
+ *    $Author: greve $
+ *    $Date: 2011/08/10 15:44:31 $
+ *    $Revision: 1.71 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -41,7 +41,7 @@ mri_vol2vol
   --fsl  register.fsl : fslRAS-to-fslRAS matrix (FSL format)
   --xfm  register.xfm : ScannerRAS-to-ScannerRAS matrix (MNI format)
   --regheader         : ScannerRAS-to-ScannerRAS matrix = identity
-  --mni152reg         : $FREESURFER_HOME/average/mni152.register.dat
+  --mni152reg         : target MNI152 space (need FSL installed)
   --s subject         : set matrix = identity and use subject for any templates
 
   --inv               : sample from targ to mov
@@ -137,6 +137,17 @@ targ Scanner-RAS are the same. This is the same as using a register.xfm
 with the identity matrix in it. This can be used with some SPM
 registrations (which change only the matrix in the .mat file).
 Same as in tkregister2.
+
+--mni152reg 
+
+Target MNI152 space. If the mov volume is in the native space of an
+individual, then also supply a registration (--reg). This registration
+is concatenated with that in subject/mri/transforms/reg.mni152.2mm.dat
+(created with mni152reg) to produce a registration from the mov vol
+to MNI152 (defined by $FSLDIR/data/standard/MNI152_T1_2mm.nii.gz).
+If the data are in fsaverage 2mm space, then do not supply a --reg.
+Instead, $FREESURFER_HOME/average/mni152.register.dat is used
+as the registration. Do not supply a target volume with --mni152reg.
 
 --inv
 
@@ -464,7 +475,7 @@ MATRIX *LoadRfsl(char *fname);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_vol2vol.c,v 1.70 2011/07/29 23:56:08 mreuter Exp $";
+static char vcid[] = "$Id: mri_vol2vol.c,v 1.71 2011/08/10 15:44:31 greve Exp $";
 char *Progname = NULL;
 
 int debug = 0, gdiagno = -1;
@@ -563,6 +574,7 @@ MRI *vsm = NULL;
 char *vsmvolfile=NULL;
 
 int defM3zPath = 1; // use deafult path to the m3z file
+int TargMNI152 = 0;
 
 /*---------------------------------------------------------------*/
 int main(int argc, char **argv) {
@@ -580,12 +592,12 @@ int main(int argc, char **argv) {
 
 
   make_cmd_version_string(argc, argv,
-                          "$Id: mri_vol2vol.c,v 1.70 2011/07/29 23:56:08 mreuter Exp $",
+                          "$Id: mri_vol2vol.c,v 1.71 2011/08/10 15:44:31 greve Exp $",
                           "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option(argc, argv,
-                                "$Id: mri_vol2vol.c,v 1.70 2011/07/29 23:56:08 mreuter Exp $",
+                                "$Id: mri_vol2vol.c,v 1.71 2011/08/10 15:44:31 greve Exp $",
                                 "$Name:  $");
   if(nargs && argc - nargs == 1) exit (0);
 
@@ -1167,11 +1179,9 @@ static int parse_commandline(int argc, char **argv) {
       nargsused = 1;
     } 
     else if (istringnmatch(option, "--mni152reg",0)) {
-      sprintf(tmpstr,"%s/average/mni152.register.dat",getenv("FREESURFER_HOME"));
-      regfile = strcpyalloc(tmpstr);
-      err = regio_read_register(regfile, &subject, &ipr, &bpr,
-                                &intensity, &R, &float2int);
-      if (err) exit(1);
+      TargMNI152 = 1;
+      sprintf(tmpstr,"%s/data/standard/MNI152_T1_2mm.nii.gz",getenv("FSLDIR"));
+      targvolfile = strcpyalloc(tmpstr);
     } 
     else if (istringnmatch(option, "--reg-final",0)) {
       if (nargc < 1) argnerr(option,1);
@@ -1350,19 +1360,15 @@ printf("  --targ targvol      : output template (or input with --inv)\n");
 printf("  --o    outvol       : output volume\n");
 printf("  --disp dispvol      : displacement volume\n");
 printf("\n");
-printf("  --lta  register.lta : LTA registration file (FreeSurfer format)\n");
+printf("  --lta  register.lta : Linear Transform Array (usually only 1 transform)\n");
 printf("  --reg  register.dat : tkRAS-to-tkRAS matrix   (tkregister2 format)\n");
 printf("  --fsl  register.fsl : fslRAS-to-fslRAS matrix (FSL format)\n");
 printf("  --xfm  register.xfm : ScannerRAS-to-ScannerRAS matrix (MNI format)\n");
 printf("  --regheader         : ScannerRAS-to-ScannerRAS matrix = identity\n");
-printf("  --mni152reg         : $FREESURFER_HOME/average/mni152.register.dat\n");
+printf("  --mni152reg         : target MNI152 space (need FSL installed)\n");
 printf("  --s subject         : set matrix = identity and use subject for any templates\n");
 printf("\n");
 printf("  --inv               : sample from targ to mov\n");
-printf("\n");
-printf("  --m3z               : the non-linear warp to be applied\n");
-printf("  --noDefM3zPath      : do not use the default non-linear morph path; look at --m3z\n");
-printf("  --inv-morph         : invert the non-linear warp to be applied\n");
 printf("\n");
 printf("  --tal               : map to a sub FOV of MNI305 (with --reg only)\n");
 printf("  --talres resolution : set voxel size 1mm or 2mm (def is 1)\n");
@@ -1426,38 +1432,12 @@ printf("If --inv is specified, then this becomes the input volume that will be\n
 printf("resampled instead. The target volume can be implicitly specified with\n");
 printf("--tal or --fstarg.\n");
 printf("\n");
-printf("--lta register.lta\n");
-printf("\n");
-printf("This text file contains the freesurfer registration matrix in LTA format.\n");
-printf("LTA (Linear Transform Arrays) are the preferred format as they contain\n");
-printf("all necessary information about source and target geometry. Usually only\n");
-printf("a single transform is stored in those files.\n");
-printf("\n");
 printf("--reg register.dat\n");
 printf("\n");
 printf("This simple text file contains the freesurfer registration matrix. It\n");
 printf("is the same as the file passed to and generated by tkregister2 with\n");
 printf("the --reg flag. If --tal or --fstarg is specified, then the subject\n");
 printf("is obtained from the regfile.\n");
-printf("\n");
-printf("--m3z morph.m3z\n");
-printf("\n");
-printf("This is the morph to be applied to the volume. Unless the morph is in \n");
-printf("mri/transforms (eg.: for talairach.m3z computed by reconall), you will\n");
-printf("need to specify the full path to this morph and use the --noDefM3zPath\n");
-printf("flag.\n");
-printf("\n");
-printf("--noDefM3zPath\n");
-printf("\n");
-printf("To be used with the m3z flag. Instructs the code not to look for the m3z\n");
-printf("morph in the default location (SUBJECTS_DIR/subj/mri/transforms), but \n");
-printf("instead just use the path indicated in --m3z.\n");
-printf("\n");
-printf("--inv-morph\n");
-printf("\n");
-printf("Compute and use the inverse of the non-linear morph to resample the \n");
-printf("input volume. To be used by --m3z. \n");
-
 printf("\n");
 printf("--fsl register.fsl\n");
 printf("\n");
@@ -1481,6 +1461,17 @@ printf("targ Scanner-RAS are the same. This is the same as using a register.xfm\
 printf("with the identity matrix in it. This can be used with some SPM\n");
 printf("registrations (which change only the matrix in the .mat file).\n");
 printf("Same as in tkregister2.\n");
+printf("\n");
+printf("--mni152reg \n");
+printf("\n");
+printf("Target MNI152 space. If the mov volume is in the native space of an\n");
+printf("individual, then also supply a registration (--reg). This registration\n");
+printf("is concatenated with that in subject/mri/transforms/reg.mni152.2mm.dat\n");
+printf("(created with mni152reg) to produce a registration from the mov vol\n");
+printf("to MNI152 (defined by $FSLDIR/data/standard/MNI152_T1_2mm.nii.gz).\n");
+printf("If the data are in fsaverage 2mm space, then do not supply a --reg.\n");
+printf("Instead, $FREESURFER_HOME/average/mni152.register.dat is used\n");
+printf("as the registration. Do not supply a target volume with --mni152reg.\n");
 printf("\n");
 printf("--inv\n");
 printf("\n");
@@ -1750,12 +1741,11 @@ static void check_options(void) {
     printf("ERROR: SUBJECTS_DIR undefined.\n");
     exit(1);
   }
-  
   if (movvolfile == NULL && ( lta == NULL || ! invert) ) {
     printf("ERROR: No mov volume supplied.\n");
     exit(1);
   }
-    
+  
   if(outvolfile == NULL && DispFile == NULL) {
     printf("ERROR: No output volume supplied.\n");
     exit(1);
@@ -1768,6 +1758,33 @@ static void check_options(void) {
       exit(1);
     }
   }
+  if(TargMNI152){
+    if(regfile == NULL){
+      sprintf(tmpstr,"%s/average/mni152.register.dat",getenv("FREESURFER_HOME"));
+      regfile = strcpyalloc(tmpstr);
+      err = regio_read_register(regfile, &subject, &ipr, &bpr,
+                                &intensity, &R, &float2int);
+      if (err) exit(1);
+    } else {
+      MATRIX *Q, *invQ, *M;
+      sprintf(tmpstr,"%s/%s/mri/transforms/reg.mni152.2mm.dat",SUBJECTS_DIR,subject);
+      Q = regio_read_registermat(tmpstr);
+      if(Q == NULL){
+	printf("Run mni152reg --s %s to create reg.mni152.2mm.dat\n",subject);
+	exit(1);
+      }
+      invQ = MatrixInverse(Q,NULL);
+      M = MatrixMultiply(R,invQ,NULL);
+      MatrixFree(&R);
+      R = MatrixCopy(M,NULL);
+      MatrixFree(&Q);
+      MatrixFree(&invQ);
+      MatrixFree(&M);
+      printf("New MNI152 R\n");
+      MatrixPrint(stdout,R);
+    }
+  }
+  
 
   if(!fstal && !DoCrop && !fstarg && targvolfile == NULL &&  ( lta == NULL || invert) ) {
     printf("ERROR: No targ volume supplied.\n");
