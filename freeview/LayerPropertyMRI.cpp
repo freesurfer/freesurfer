@@ -12,8 +12,8 @@
  * Reimplemented by: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2011/07/21 19:30:09 $
- *    $Revision: 1.7 $
+ *    $Date: 2011/08/11 15:47:43 $
+ *    $Revision: 1.8 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -488,7 +488,6 @@ void LayerPropertyMRI::OnColorMapChanged ()
 
   // Notify the layers that use the color map stuff.
   emit ColorMapChanged();
-
 }
 
 void LayerPropertyMRI::BuildGenericLUT( const int colors[256][3] )
@@ -513,7 +512,6 @@ void LayerPropertyMRI::SetDisplayVector( bool b )
 {
   m_bDisplayVector = b;
   emit DisplayModeChanged();
-
 }
 
 void LayerPropertyMRI::SetVectorInversion( int nInversion )
@@ -522,13 +520,11 @@ void LayerPropertyMRI::SetVectorInversion( int nInversion )
   {
     m_nVectorInversion = nInversion;
     emit DisplayModeChanged();
-
   }
   else if ( m_bDisplayTensor )
   {
     m_nTensorInversion = nInversion;
     emit DisplayModeChanged();
-
   }
 }
 
@@ -538,7 +534,6 @@ void LayerPropertyMRI::SetVectorRepresentation( int n )
   {
     m_nVectorRepresentation = n;
     emit DisplayModeChanged();
-
   }
   else if ( m_bDisplayTensor )
   {
@@ -551,7 +546,6 @@ void LayerPropertyMRI::SetDisplayTensor( bool b )
 {
   m_bDisplayTensor = b;
   emit DisplayModeChanged();
-
 }
 
 void LayerPropertyMRI::SetColorMap ( int iType )
@@ -593,7 +587,6 @@ void LayerPropertyMRI::SetResliceInterpolation ( int iMode )
   {
     mResliceInterpolation = iMode;
     emit ResliceInterpolationChanged();
-
   }
 }
 
@@ -608,7 +601,6 @@ void LayerPropertyMRI::SetTextureSmoothing ( int iSmooth )
   {
     mTextureSmoothing = iSmooth;
     emit TextureSmoothingChanged();
-
   }
 }
 

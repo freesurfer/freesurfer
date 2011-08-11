@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2011/04/11 20:26:58 $
- *    $Revision: 1.5 $
+ *    $Date: 2011/08/11 15:47:43 $
+ *    $Revision: 1.6 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -33,7 +33,7 @@
 #include <QDebug>
 
 FSPointSet::FSPointSet( QObject* parent ) : QObject( parent ),
-  m_label( NULL )
+  m_label( NULL ), m_bRealRAS(true)
 {}
 
 FSPointSet::~FSPointSet()
@@ -108,6 +108,9 @@ bool FSPointSet::ReadAsControlPoints( const QString& filename )
       }
       nCount ++;
     }
+    else if (subs.size() > 1 &&
+             subs[0].toLower() == "userealras" && subs[1] == "0")
+      m_bRealRAS = false;
   }
 
   m_label = ::LabelAlloc( nCount, NULL, (char*)"" );
@@ -207,6 +210,10 @@ void FSPointSet::LabelToPointSet( PointSet& points_out, FSVolume* ref_vol )
     wp.pt[1] = m_label->lv[i].y;
     wp.pt[2] = m_label->lv[i].z;
     wp.value = m_label->lv[i].stat;
+    if ( !m_bRealRAS )
+    {
+      ref_vol->TkRegToNativeRAS( wp.pt, wp.pt );
+    }
     ref_vol->NativeRASToRAS( wp.pt, wp.pt );
     ref_vol->RASToTarget( wp.pt, wp.pt );
     points_out.push_back( wp );
