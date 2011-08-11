@@ -9,8 +9,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2011/04/22 13:59:04 $
- *    $Revision: 1.352 $
+ *    $Date: 2011/08/11 17:58:33 $
+ *    $Revision: 1.353 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -2003,4 +2003,5 @@ int MRISrepositionSurfaceToCoordinate(MRI_SURFACE *mris, MRI *mri, int target_vn
 int face_barycentric_coords(MRI_SURFACE *mris, int fno, int which_vertices,
                             double cx, double cy, double cz, double *pl1, double *pl2, double *pl3) ;
 
+MRI *MRIScomputeFlattenedVolume(MRI_SURFACE *mris, MRI *mri, double res, int nsamples, int normalize, MRI **pmri_vertices, int smooth_iters);
 #endif // MRISURF_H
