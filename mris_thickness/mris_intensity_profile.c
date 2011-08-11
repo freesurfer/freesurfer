@@ -7,9 +7,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:34 $
- *    $Revision: 1.20 $
+ *    $Author: fischl $
+ *    $Date: 2011/08/11 18:04:40 $
+ *    $Revision: 1.21 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -44,11 +44,10 @@
 #include "mrishash.h"
 #include "cma.h"
 
-static char vcid[] = "$Id: mris_intensity_profile.c,v 1.20 2011/03/02 00:04:34 nicks Exp $";
+static char vcid[] = "$Id: mris_intensity_profile.c,v 1.21 2011/08/11 18:04:40 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
-MRI *compute_flatpatch(MRI_SURFACE *mris, MRI *mri, double res, int nsamples, int norm) ;
 static int remove_bad_profiles(MRI_SURFACE *mris, MRI *mri_profiles, MRI *mri, float border_mm) ;
 static float *mrisComputeWhiteMatterIntensities(MRI_SURFACE *mris, MRI *mri, float wsize_mm, float *norm, int navgs,
                                                 MRI *mri_aseg, float mm_border) ;
@@ -131,7 +130,7 @@ main(int argc, char *argv[]) {
   float         *norm = NULL ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_intensity_profile.c,v 1.20 2011/03/02 00:04:34 nicks Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_intensity_profile.c,v 1.21 2011/08/11 18:04:40 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -403,7 +402,7 @@ main(int argc, char *argv[]) {
   {
     if (MRISreadFlattenedCoordinates(mris, flat_name) != NO_ERROR)
       ErrorExit(ERROR_NOFILE, "%s: could not load flat patch %d\n", Progname, flat_name) ;
-    mri_profiles = compute_flatpatch(mris, mri, flat_res, max_samples, normalize) ;
+    mri_profiles = MRIScomputeFlattenedVolume(mris, mri, flat_res, max_samples, normalize,NULL, smooth_iters) ;
   }
   else
     mri_profiles =
@@ -1432,226 +1431,6 @@ mrisComputeWhiteMatterIntensities(MRI_SURFACE *mris, MRI *mri, float wsize_mm, f
 }
 
 
-MRI *
-compute_flatpatch(MRI_SURFACE *mris, MRI *mri, double res, int nsamples, int normalize)
-{
-  MRI    *mri_flat, *mri_mask, *mri_counts, *mri_vno ;
-  int    vno, width, height, u, v, w, fno, num ;
-  int    uk, vk, ui, vi, whalf =3 ;
-  double xmin, xmax, ymin, ymax, fdist, x, y, z, dx, dy, dz, norm, xf, yf, val, xv, yv,zv,
-         oval, max_change ;
-  VERTEX *v0, *v1, *v2 ;
-  FACE   *face ;
-  MHT    *mht ;
-
-  mht = MHTfillTableAtResolution(mris, NULL, FLATTENED_VERTICES, 2.0) ;
-  ymax = xmax = -1e10 ;
-  ymin = xmin = 1e10 ;
-
-  for (vno = 0 ; vno < mris->nvertices ; vno++)
-  {
-    v0 = &mris->vertices[vno] ;
-    if (v0->ripflag)
-      continue ;
-    if (v0->fx < xmin)
-      xmin = v0->fx ;
-    if (v0->fy < ymin)
-      ymin = v0->fy ;
-
-    if (v0->fx > xmax)
-      xmax = v0->fx ;
-    if (v0->fy > ymax)
-      ymax = v0->fy ;
-  }
-
-  width = ceil((xmax - xmin)/res) ;
-  height = ceil((ymax - ymin)/res) ;
-  mri_flat = MRIalloc(width, height, nsamples, MRI_FLOAT) ;
-  mri_mask = MRIalloc(width, height, nsamples, MRI_UCHAR) ;
-  mri_counts = MRIalloc(width, height, nsamples, MRI_INT) ;
-  mri_vno = MRIalloc(width, height, nsamples, MRI_INT) ;
-  MRIsetResolution(mri_flat, res, res, 3.0/(float)nsamples) ;
-  MRIsetResolution(mri_mask, res, res, 3.0/(float)nsamples) ;
-  MRIsetResolution(mri_vno, res, res, 3.0/(float)nsamples) ;
-  num = 0 ;
-  whalf = ceil(2.0 / res) ;
-  printf("using mask window size = %d\n", 2*whalf+1) ;
-  for (vno = 0 ; vno < mris->nvertices ; vno++)
-  {
-    v0 = &mris->vertices[vno] ;
-    u = ceil(v0->fx - xmin) / res ;
-    v = ceil(v0->fy - ymin) / res ;
-    for (uk = -whalf ; uk <= whalf ; uk++)
-    {
-      ui = mri_mask->xi[u+uk] ;
-      for (vk = -whalf ; vk <= whalf ; vk++)
-      {
-        vi = mri_mask->yi[v+vk] ;
-        if (MRIgetVoxVal(mri_mask, ui, vi, 0, 0) == 0)
-          num++ ;
-        MRIsetVoxVal(mri_mask, ui, vi, 0, 0, 1) ;
-      }
-    }
-  }
-  printf("%d voxels set in mask\n", num);
-
-  for (num = u = 0 ; u < width ; u++)
-  {
-    if (!(u % 100))
-    {
-      printf("u = %d of %d\n", u, width) ;
-      fflush(stdout) ;
-    }
-    for (v = 0 ; v < height ; v++)
-    {
-      if (u == Gx && v == Gy)
-        DiagBreak() ;
-#if 1
-      if (MRIgetVoxVal(mri_mask, u, v, 0, 0) == 0)
-        continue ;
-#endif
-      num++ ;
-      xf = u*res + xmin ;
-      yf = v*res + ymin ;
-      MHTfindClosestFaceGeneric(mht, mris, xf,  yf, 0, 1000, -1, -1, &face, &fno, &fdist) ;
-      v0 = &mris->vertices[face->v[0]] ;
-      v1 = &mris->vertices[face->v[1]] ;
-      v2 = &mris->vertices[face->v[2]] ;
-      if (v0->ripflag || v1->ripflag || v2->ripflag /* || fdist > 2*/)
-        continue ;
-      if (v0-mris->vertices == Gdiag_no ||
-          v1-mris->vertices == Gdiag_no ||
-          v2-mris->vertices == Gdiag_no)
-        DiagBreak() ;
-
-      dx = MRISsampleFace(mris, fno, FLATTENED_VERTICES, xf, yf, 0, v0->nx, v1->nx, v2->nx) ;
-      dy = MRISsampleFace(mris, fno, FLATTENED_VERTICES, xf, yf, 0, v0->ny, v1->ny, v2->ny) ;
-      dz = MRISsampleFace(mris, fno, FLATTENED_VERTICES, xf, yf, 0, v0->nz, v1->nz, v2->nz) ;
-      norm = sqrt(SQR(dx)+SQR(dy)+SQR(dz)) ;
-      if (FZERO(norm))
-        continue ;
-      dx /= norm ; dy /= norm ; dz /= norm ;  // make it unit length
-      if (normalize)   // divide the ribbon at this point into equally spaced samples
-      {
-        norm =
-          (sqrt(SQR(v0->pialx - v0->whitex) +SQR(v0->pialy - v0->whitey) +SQR(v0->pialz - v0->whitez)) +
-           sqrt(SQR(v1->pialx - v1->whitex) +SQR(v1->pialy - v1->whitey) +SQR(v1->pialz - v1->whitez)) +
-           sqrt(SQR(v2->pialx - v2->whitex) +SQR(v2->pialy - v2->whitey) +SQR(v2->pialz-v2->whitez)))/3;
-        norm /= nsamples ;  // divide average thickness into this many samples
-      }
-      else   // use uniform spacing
-        norm = 1.0 / nsamples ;
-
-      dx *= norm; dy *= norm ; dz *= norm ;
-
-      x = MRISsampleFace(mris, fno, FLATTENED_VERTICES, xf, yf,0,v0->whitex, v1->whitex, v2->whitex) ;
-      y = MRISsampleFace(mris, fno, FLATTENED_VERTICES, xf, yf,0,v0->whitey, v1->whitey, v2->whitey) ;
-      z = MRISsampleFace(mris, fno, FLATTENED_VERTICES, xf, yf,0,v0->whitez, v1->whitez, v2->whitez) ;
-      for (w = 0 ; w < nsamples ; w++)
-      {
-        if (u == Gx && y == Gy && w == Gz)
-          DiagBreak() ;
-        MRISsurfaceRASToVoxelCached(mris, mri, x, y, z, &xv, &yv, &zv) ;
-        MRIsampleVolume(mri, xv, yv, zv, &val) ;
-        if (nint(xv) == Gx && nint(yv) == Gy && nint(zv) == Gz)
-          DiagBreak() ;
-        MRIsetVoxVal(mri_flat, u, v, w, 0, val) ;
-        MRIsetVoxVal(mri_counts, u, v, w, 0, 1) ;
-        MRIsetVoxVal(mri_vno, u, v, w, 0, v0-mris->vertices) ;
-        if (v0-mris->vertices == Gdiag_no ||
-            v1-mris->vertices == Gdiag_no ||
-            v2-mris->vertices == Gdiag_no)
-          printf("(%2.1f %2.1f %2.1f) --> (%d, %d, %d) : %2.1f\n",
-                 xv, yv, zv, u, v, w, val) ;
-
-        x += dx ; y += dy ; z += dz ;
-      }
-      if (v0-mris->vertices == Gdiag_no ||
-          v1-mris->vertices == Gdiag_no ||
-          v2-mris->vertices == Gdiag_no)
-        DiagBreak() ;
-    }
-  }
-  printf("%d voxel visited - %2.1f %% of total %d\n", num, 100.0*num/(width*height), width*height) ;
-  MRIremoveNaNs(mri_vno, mri_vno) ;
-  {
-    char fname[STRLEN] ;
-    sprintf(fname, "vno.mgz") ;
-    printf("writing vertex numbers to %s\n", fname) ;
-    MRIwrite(mri_vno, fname) ;
-  }
-#define MAX_ITERS 50
-  for (num = 0 ; num < MAX_ITERS ; num++)
-  {
-    max_change = 0.0 ;
-    for (u = 0 ; u < width ; u++)
-    {
-      for (v = 0 ; v < height ; v++)
-      {
-        for (w = 0 ; w < nsamples ; w++)
-        {
-          if (MRIgetVoxVal(mri_flat, u, v, w, 0) > 30000)
-          {
-            fprintf(stderr, "voxel (%d, %d, %d) = %f\n", u, v, w, MRIgetVoxVal(mri_flat,u,v,w,0)) ;
-            DiagBreak() ;
-          }
-          if (MRIgetVoxVal(mri_counts, u, v, w, 0) > 0)
-            continue ;
-          for (val = 0.0, uk = -1 ; uk <= 1 ; uk++)
-          {
-            ui = mri_flat->xi[u+uk] ;
-            for (vk = -1 ; vk <= 1 ; vk++)
-            {
-              vi = mri_flat->yi[v+vk] ;
-              val += MRIgetVoxVal(mri_flat, ui, vi, w, 0) ;
-            }
-          }
-          oval = MRIgetVoxVal(mri_flat, u, v, w, 0) ;
-          val /= 9.0 ;   // # of voxels visited
-          if (fabs(oval-val) > max_change)
-            max_change = fabs(oval-val) ;
-          MRIsetVoxVal(mri_flat, u, v, w, 0, val) ;
-#if 1
-          if (fabs(oval-val) < 1 && val > 50)
-            MRIsetVoxVal(mri_counts, u, v, w, 0, 1) ;
-#endif
-        }
-      }
-    }
-    if (max_change < .1)
-      break ;
-    printf("%d of %d: max change %2.1f\n", num+1, MAX_ITERS, max_change) ;
-    fflush(stdout) ;
-  }
-
-  // now apply a bit of tangential smoothing
-  for (num = 0 ; num < smooth_iters ; num++)
-  {
-    for (u = 0 ; u < width ; u++)
-    {
-      for (v = 0 ; v < height ; v++)
-      {
-        for (w = 0 ; w < nsamples ; w++)
-        {
-          for (val = 0.0, uk = -1 ; uk <= 1 ; uk++)
-          {
-            ui = mri_flat->xi[u+uk] ;
-            for (vk = -1 ; vk <= 1 ; vk++)
-            {
-              vi = mri_flat->yi[v+vk] ;
-              val += MRIgetVoxVal(mri_flat, ui, vi, w, 0) ;
-            }
-          }
-          val /= 9.0 ;   // # of voxels visited
-          MRIsetVoxVal(mri_flat, u, v, w, 0, val) ;
-        }
-      }
-    }
-  }
-
-  MHTfree(&mht) ; MRIfree(&mri_mask) ; MRIfree(&mri_counts) ; MRIfree(&mri_vno) ;
-  return(mri_flat) ;
-}
 int
 MRISsampleFaceNormals(MHT *mht, MRI_SURFACE *mris, double x, double y, double z, int which, 
                       float *px, float *py, float *pz)
