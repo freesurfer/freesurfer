@@ -8,8 +8,8 @@
  * Original Authors: Martin Sereno and Anders Dale, 1996; Doug Greve, 2002
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2011/03/28 20:24:46 $
- *    $Revision: 1.122 $
+ *    $Date: 2011/08/11 21:06:13 $
+ *    $Revision: 1.123 $
  *
  * Copyright (C) 2002-2011, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA).
@@ -35,7 +35,7 @@
 
 #ifndef lint
 static char vcid[] =
-"$Id: tkregister2.c,v 1.122 2011/03/28 20:24:46 greve Exp $";
+"$Id: tkregister2.c,v 1.123 2011/08/11 21:06:13 greve Exp $";
 #endif /* lint */
 
 #ifdef HAVE_TCL_TK_GL
@@ -365,6 +365,7 @@ int   targ_vol_fmt = MRI_VOLUME_TYPE_UNKNOWN;
 char targ_vol_path[1000];
 int  fstarg = 0;
 int mkheaderreg = 0;
+int mkheaderregCenter= 0;
 #ifdef  HAVE_TCL_TK_GL
 int noedit = 0;  // false by default, if gui
 #endif // HAVE_TCL_TK_GL
@@ -777,7 +778,14 @@ int Register(ClientData clientData,
   if(mkheaderreg) {
     /* Compute Reg from Header Info */
     printf("Computing reg from header (and possibly input matrix)\n");
-    if(!Vox2Vox) RegMat = MRItkRegMtx(targ_vol,mov_vol,XFM);
+    if(!Vox2Vox){
+      RegMat = MRItkRegMtx(targ_vol,mov_vol,XFM);
+      if(mkheaderregCenter){
+	RegMat->rptr[1][4] = 0;
+	RegMat->rptr[2][4] = 0;
+	RegMat->rptr[3][4] = 0;
+      }
+    }
     else         RegMat = MRItkRegMtxFromVox2Vox(targ_vol,mov_vol,Vox2Vox);
   } else if (fslregfname != NULL) {
     /* Compute Reg from FSLReg */
@@ -1094,6 +1102,12 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--inorm"))     use_inorm = 1;
     else if (!strcasecmp(option, "--no-inorm"))  use_inorm = 0;
     else if (!strcasecmp(option, "--regheader")) mkheaderreg = 1;
+    else if (!strcasecmp(option, "--regheader-center")){
+      // This performs the header registration but computes the shift
+      // to align the volume centers
+      mkheaderreg = 1;
+      mkheaderregCenter = 1;
+    }
     else if (!strcasecmp(option, "--identity"))  identityreg = 1;
     else if (!strcasecmp(option, "--noedit"))    noedit = 1;
     else if (!strcasecmp(option, "--zero-cras"))     ZeroCRAS = 1;
@@ -1547,6 +1561,7 @@ static void print_usage(void) {
   printf("   --reg  register.dat : input/output registration file\n");
   printf("   --check-reg : only check, no --reg needed\n");
   printf("   --regheader : compute regstration from headers\n");
+  printf("   --regheader-center : same as --regheader but aligns volume centers\n");
   printf("   --fsl-targ : use FSLDIR/data/standard/avg152T1.nii.gz\n");
   printf("   --fsl-targ-lr : use FSLDIR/data/standard/avg152T1_LR-marked.nii.gz\n");
   printf("   --fstal : set mov to be tal and reg to be tal xfm  \n");
@@ -4863,7 +4878,7 @@ int main(argc, argv)   /* new main */
   nargs =
     handle_version_option
     (argc, argv,
-     "$Id: tkregister2.c,v 1.122 2011/03/28 20:24:46 greve Exp $", "$Name:  $");
+     "$Id: tkregister2.c,v 1.123 2011/08/11 21:06:13 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
