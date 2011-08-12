@@ -7,8 +7,8 @@
  * Original Authors: Segonne and Greve 
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2011/08/11 17:58:23 $
- *    $Revision: 1.39 $
+ *    $Date: 2011/08/12 13:56:37 $
+ *    $Revision: 1.40 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -2180,17 +2180,20 @@ int MRISfindPath ( int *vert_vno, int num_vno, int max_path_length,
 }
 
 MRI *
-MRIScomputeFlattenedVolume(MRI_SURFACE *mris, MRI *mri, double res, int nsamples, int normalize, MRI **pmri_vertices, int smooth_iters)
+MRIScomputeFlattenedVolume(MRI_SURFACE *mris, MRI *mri, double res, int nsamples, int normalize, MRI **pmri_vertices, int smooth_iters, 
+			   double wm_dist, double outside_dist)
 {
   MRI    *mri_flat, *mri_mask, *mri_counts, *mri_vno ;
   int    vno, width, height, u, v, w, fno, num ;
-  int    uk, vk, ui, vi, whalf = 3, nv ;
+  int    uk, vk, ui, vi, whalf = 3, nv, wm_samples, outside_samples ;
   double xmin, xmax, ymin, ymax, fdist, x, y, z, dx, dy, dz, norm, xf, yf, val, xv, yv,zv,
          oval, max_change ;
   VERTEX *v0, *v1, *v2 ;
   FACE   *face ;
   MHT    *mht ;
 
+  wm_samples = nint(wm_dist / res) ;
+  outside_samples = nint(outside_dist / res) ;
   mht = MHTfillTableAtResolution(mris, NULL, FLATTENED_VERTICES, 2.0) ;
   ymax = xmax = -1e10 ;
   ymin = xmin = 1e10 ;
@@ -2289,6 +2292,7 @@ MRIScomputeFlattenedVolume(MRI_SURFACE *mris, MRI *mri, double res, int nsamples
           (sqrt(SQR(v0->pialx - v0->whitex) +SQR(v0->pialy - v0->whitey) +SQR(v0->pialz - v0->whitez)) +
            sqrt(SQR(v1->pialx - v1->whitex) +SQR(v1->pialy - v1->whitey) +SQR(v1->pialz - v1->whitez)) +
            sqrt(SQR(v2->pialx - v2->whitex) +SQR(v2->pialy - v2->whitey) +SQR(v2->pialz-v2->whitez)))/3;
+	norm += wm_dist + outside_dist ;
         norm /= nsamples ;  // divide average thickness into this many samples
       }
       else   // use uniform spacing
@@ -2312,6 +2316,7 @@ MRIScomputeFlattenedVolume(MRI_SURFACE *mris, MRI *mri, double res, int nsamples
       if (w == nv)
 	MRIsetVoxVal(mri_vno, u, v, 0, 0, nv+1) ;  // increment # of vertices mapping here
 
+      x -= dx * wm_dist ; y -= dy * wm_dist ; z -= dz * wm_dist ;
       for (w = 0 ; w < nsamples ; w++)
       {
         if (u == Gx && y == Gy && w == Gz)
@@ -2338,13 +2343,14 @@ MRIScomputeFlattenedVolume(MRI_SURFACE *mris, MRI *mri, double res, int nsamples
   }
   printf("%d voxel visited - %2.1f %% of total %d\n", num, 100.0*num/(width*height), width*height) ;
   MRIremoveNaNs(mri_vno, mri_vno) ;
+  if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
   {
     char fname[STRLEN] ;
     sprintf(fname, "vno.mgz") ;
     printf("writing vertex numbers to %s\n", fname) ;
     MRIwrite(mri_vno, fname) ;
   }
-  // fill in holes in the flatmap where no vertices mapped by averaging with neighboring filled locaitons
+  // fill in holes in the flatmap where no vertices mapped by averaging with neighboring filled locations
 #define MAX_ITERS 50
   for (num = 0 ; num < MAX_ITERS ; num++)
   {

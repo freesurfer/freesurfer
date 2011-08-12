@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2011/04/22 17:46:55 $
- *    $Revision: 1.697 $
+ *    $Date: 2011/08/12 13:56:36 $
+ *    $Revision: 1.698 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -735,7 +735,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void)
 {
-  return("$Id: mrisurf.c,v 1.697 2011/04/22 17:46:55 fischl Exp $");
+  return("$Id: mrisurf.c,v 1.698 2011/08/12 13:56:36 fischl Exp $");
 }
 
 /*-----------------------------------------------------
@@ -68529,6 +68529,17 @@ mris_project_point_into_face(MRI_SURFACE *mris, FACE *face, int which, double x,
   default:
     ErrorExit(ERROR_BADPARM, "mris_project_point_into_face: which %d not supported", which) ;
     break ;
+  case FLATTENED_VERTICES:
+    V0[0] = mris->vertices[face->v[0]].fx ;
+    V0[1] = mris->vertices[face->v[0]].fy ;
+    V0[2] = mris->vertices[face->v[0]].fz ;
+    V1[0] = mris->vertices[face->v[1]].fx ;
+    V1[1] = mris->vertices[face->v[1]].fy ;
+    V1[2] = mris->vertices[face->v[1]].fz ;
+    V2[0] = mris->vertices[face->v[2]].fx ;
+    V2[1] = mris->vertices[face->v[2]].fy ;
+    V2[2] = mris->vertices[face->v[2]].fz ;
+    break ;
   case CURRENT_VERTICES:
     V0[0] = mris->vertices[face->v[0]].x ;
     V0[1] = mris->vertices[face->v[0]].y ;
@@ -68584,6 +68595,17 @@ face_barycentric_coords(MRI_SURFACE *mris, int fno, int which_vertices,
   {
   default:
     ErrorExit(ERROR_BADPARM, "mris_project_point_into_face: which %d not supported", which_vertices) ;
+    break ;
+  case FLATTENED_VERTICES:
+    V0[0] = mris->vertices[face->v[0]].fx ;
+    V0[1] = mris->vertices[face->v[0]].fy ;
+    V0[2] = mris->vertices[face->v[0]].fz ;
+    V1[0] = mris->vertices[face->v[1]].fx ;
+    V1[1] = mris->vertices[face->v[1]].fy ;
+    V1[2] = mris->vertices[face->v[1]].fz ;
+    V2[0] = mris->vertices[face->v[2]].fx ;
+    V2[1] = mris->vertices[face->v[2]].fy ;
+    V2[2] = mris->vertices[face->v[2]].fz ;
     break ;
   case CURRENT_VERTICES:
     V0[0] = mris->vertices[face->v[0]].x ;
