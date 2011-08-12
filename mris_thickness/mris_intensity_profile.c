@@ -8,8 +8,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2011/08/11 18:04:40 $
- *    $Revision: 1.21 $
+ *    $Date: 2011/08/12 17:19:54 $
+ *    $Revision: 1.22 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -44,7 +44,7 @@
 #include "mrishash.h"
 #include "cma.h"
 
-static char vcid[] = "$Id: mris_intensity_profile.c,v 1.21 2011/08/11 18:04:40 fischl Exp $";
+static char vcid[] = "$Id: mris_intensity_profile.c,v 1.22 2011/08/12 17:19:54 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -130,7 +130,7 @@ main(int argc, char *argv[]) {
   float         *norm = NULL ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_intensity_profile.c,v 1.21 2011/08/11 18:04:40 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_intensity_profile.c,v 1.22 2011/08/12 17:19:54 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -402,7 +402,7 @@ main(int argc, char *argv[]) {
   {
     if (MRISreadFlattenedCoordinates(mris, flat_name) != NO_ERROR)
       ErrorExit(ERROR_NOFILE, "%s: could not load flat patch %d\n", Progname, flat_name) ;
-    mri_profiles = MRIScomputeFlattenedVolume(mris, mri, flat_res, max_samples, normalize,NULL, smooth_iters) ;
+    mri_profiles = MRIScomputeFlattenedVolume(mris, mri, flat_res, max_samples, normalize,NULL, smooth_iters, 0, 0) ;
   }
   else
     mri_profiles =
