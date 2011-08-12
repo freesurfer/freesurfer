@@ -9,8 +9,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2011/08/11 17:58:33 $
- *    $Revision: 1.353 $
+ *    $Date: 2011/08/12 14:07:15 $
+ *    $Revision: 1.354 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -558,6 +558,9 @@ typedef struct
   int          smooth_averages ;
   int          ico_order ;  // which icosahedron to use
   int          remove_neg ;
+  MRI          *mri_hires ;
+  MRI          *mri_vno ;
+  MRI          *mri_template ;
 }
 INTEGRATION_PARMS ;
 
@@ -2003,5 +2006,6 @@ int MRISrepositionSurfaceToCoordinate(MRI_SURFACE *mris, MRI *mri, int target_vn
 int face_barycentric_coords(MRI_SURFACE *mris, int fno, int which_vertices,
                             double cx, double cy, double cz, double *pl1, double *pl2, double *pl3) ;
 
-MRI *MRIScomputeFlattenedVolume(MRI_SURFACE *mris, MRI *mri, double res, int nsamples, int normalize, MRI **pmri_vertices, int smooth_iters);
+MRI *MRIScomputeFlattenedVolume(MRI_SURFACE *mris, MRI *mri, double res, int nsamples, int normalize, MRI **pmri_vertices, int smooth_iters,
+				double wm_dist, double outside_dist);
 #endif // MRISURF_H
