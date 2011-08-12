@@ -11,9 +11,9 @@
 /*
  * Original Author: Martin Sereno and Anders Dale, 1996
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2011/06/06 14:40:07 $
- *    $Revision: 1.350 $
+ *    $Author: fischl $
+ *    $Date: 2011/08/12 15:48:22 $
+ *    $Revision: 1.351 $
  *
  * Copyright (C) 2002-2011, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA).
@@ -926,6 +926,7 @@ int LabelColor(int vno, float* r, float* g, float* b);
 
 void restore_ripflags(int mode) ;
 void dilate_ripped(void) ;
+void rip_unmarked_vertices(void) ;
 void floodfill_marked_patch(int filltype) ;
 /* begin rkt */
 /* Replacements for the floodfill_marked_patch stuff. */
@@ -17280,6 +17281,25 @@ dilate_ripped(void)
   printf("%d vertices ripped\n", nripped) ;
 }
 
+void 
+rip_unmarked_vertices(void)
+{
+  int    vno ;
+  VERTEX *v ;
+
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    v = &mris->vertices[vno] ;
+    if (v->marked == 0)
+      v->ripflag = 1 ;
+  }
+  rip_faces() ;
+  surface_compiled = 0;
+  vertex_array_dirty = 1;
+
+  vset_set_current_set (vset_current_set);
+}
+
 void
 floodfill_marked_patch(int filltype)
 {
@@ -19577,6 +19597,7 @@ int W_clear_vals  PARM;
 int W_clear_ripflags  PARM;
 int W_restore_ripflags  PARM;
 int W_floodfill_marked_patch  PARM;
+int W_rip_unmarked_vertices  PARM;
 int W_dilate_ripped  PARM;
 int W_twocond  PARM;
 int W_cut_line  PARM;
@@ -20109,6 +20130,11 @@ int                  W_floodfill_marked_patch  WBEGIN
 ERR(2,"Wrong # args: floodfill_marked_patch "
     "<0=cutborder,1=fthreshborder,2=curvfill>")
 floodfill_marked_patch(atoi(argv[1]));
+WEND
+
+int                  W_rip_unmarked_vertices  WBEGIN
+ERR(1,"Wrong # args: rip_unmarked_vertices ")
+rip_unmarked_vertices();
 WEND
 
 int                  W_dilate_ripped  WBEGIN
@@ -21454,7 +21480,7 @@ int main(int argc, char *argv[])   /* new main */
   nargs =
     handle_version_option
     (argc, argv,
-     "$Id: tksurfer.c,v 1.350 2011/06/06 14:40:07 greve Exp $", "$Name:  $");
+     "$Id: tksurfer.c,v 1.351 2011/08/12 15:48:22 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -21866,6 +21892,8 @@ int main(int argc, char *argv[])   /* new main */
                     (Tcl_CmdProc*) W_restore_ripflags,   REND);
   Tcl_CreateCommand(interp, "floodfill_marked_patch",
                     (Tcl_CmdProc*) W_floodfill_marked_patch,    REND);
+  Tcl_CreateCommand(interp, "rip_unmarked_vertices",
+                    (Tcl_CmdProc*) W_rip_unmarked_vertices,    REND);
   Tcl_CreateCommand(interp, "dilate_ripped",
                     (Tcl_CmdProc*) W_dilate_ripped,    REND);
   Tcl_CreateCommand(interp, "twocond",
