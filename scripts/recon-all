@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2011/07/29 20:47:57 $
-#    $Revision: 1.397 $
+#    $Date: 2011/08/15 20:26:41 $
+#    $Revision: 1.398 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -26,7 +26,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.397 2011/07/29 20:47:57 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.398 2011/08/15 20:26:41 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -162,6 +162,7 @@ set PialNoAparc = 0; # if 1 (-pial-noaparc), then add -noaparc flag to
                      # mris_make_surfaces to bypass usage of parcellation
 set DoNuMakeUchar = 1; # if 1, then run mri_nu_correct.mni using talairach.xfm
                        # to run mri_make_uchar to correct histogram problem
+set DoTalairachUseNu = 0; # if 1, use nu.mgz as input to talairach stage
 
 # Longitudinal processing:
 set longitudinal = 0;    # if 1, will run the longitudinal scheme
@@ -1355,14 +1356,20 @@ talairach:
     set cmd = (cp $longbasedir/mri/$tal_xfm $subjdir/mri/$xfma)
   else
     # default processing:
+    set tal_input = orig.mgz
+    if ($DoTalairachUseNu) then
+      # note that this only works if nu exists
+      # this is used as an alternative if tal is giving bad results
+      set tal_input = nu.mgz
+    endif
     if ($UseMincMritotal) then
       # use the MINC mritotal utility
       set xopts = `fsr-getxopts talairach $XOptsFile`;
-      set cmd = (talairach --i orig.mgz --xfm $xfma $xopts)
+      set cmd = (talairach --i $tal_input --xfm $xfma $xopts)
     else
       # Avi Snyder's registration tools
       set xopts = `fsr-getxopts talairach_avi $XOptsFile`;
-      set cmd = (talairach_avi --i orig.mgz --xfm $xfma)
+      set cmd = (talairach_avi --i $tal_input --xfm $xfma)
       if($UseYa3tTalAtlas) then
         # special atlas composed of young adults scanned at 3T
         set cmd = ($cmd --atlas 3T18yoSchwartzReactN32_as_orig)
@@ -3974,6 +3981,10 @@ while( $#argv != 0 )
 
     case "-talairach":
       set DoTalairach = 1;
+      breaksw
+    case "-talairach-nu":
+      set DoTalairach = 1;
+      set DoTalairachUseNu = 1;
       breaksw
     case "-notalairach":
       set DoTalairach = 0;
