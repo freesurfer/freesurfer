@@ -5,6 +5,7 @@
 noinst_LIBRARIES=libsbl.a
 
 libsbl_a_CXXFLAGS=-I./include/ $(OPENCV_CXXFLAGS) 
+libsbl_a_CPPFLAGS=-Wno-sign-conversion
 libsbl_a_SOURCES=\
 	src/system/Timer.cc \
 	src/system/FileSystem.cc \
