@@ -8,9 +8,9 @@
 /*
  * Original Author: Florent Segonne
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:23 $
- *    $Revision: 1.20 $
+ *    $Author: fischl $
+ *    $Date: 2011/08/15 14:12:46 $
+ *    $Revision: 1.21 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -1064,7 +1064,7 @@ int main(int argc, char *argv[])
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mri_pretess.c,v 1.20 2011/03/02 00:04:23 nicks Exp $",
+           "$Id: mri_pretess.c,v 1.21 2011/08/15 14:12:46 fischl Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
   {
@@ -1073,7 +1073,7 @@ int main(int argc, char *argv[])
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mri_pretess.c,v 1.20 2011/03/02 00:04:23 nicks Exp $",
+   "$Id: mri_pretess.c,v 1.21 2011/08/15 14:12:46 fischl Exp $",
    "$Name:  $",
    cmdline);
 
@@ -1131,6 +1131,14 @@ int main(int argc, char *argv[])
     ErrorExit(ERROR_NOFILE, "%s: could not open %s", Progname, argv[3]) ;
   }
 
+  if (mri_orig->width != mri_seg->width ||
+      mri_orig->height != mri_seg->height ||
+      mri_orig->depth != mri_seg->depth)
+    ErrorExit(ERROR_BADPARM, 
+	      "intensity (%d, %d, %d) and segmentation volume"
+	      " (%d x %d x %d) don't match",
+	      mri_orig->width, mri_orig->height, mri_orig->depth,
+	      mri_seg->width, mri_seg->height, mri_seg->height) ;
   if (label == USE_WM)
   {
     printf("binarizing input wm segmentation...\n") ;
