@@ -91,7 +91,7 @@ SerialPort::~SerialPort() {
 /// read a byte; non-blocking; returns -1 if no byte to read 
 int SerialPort::readByte() {
     unsigned char byte = 0;
-    unsigned long readCount = -1;
+    unsigned long readCount = (unsigned long)-1;
 #ifdef WIN32
     ReadFile( m_comFile, &byte, 1, &readCount, NULL );
 #endif // WIN32

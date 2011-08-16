@@ -166,7 +166,7 @@ template<typename T, int CHANNEL_COUNT> void Image<T, CHANNEL_COUNT>::alloc( int
     m_deleteRaw = true;
 
     // check alignment
-    if (((long long int) m_raw) & 7)
+    if (((long) m_raw) & 7)
         fatalError("not quad-word aligned");
 
     // create row pointers
