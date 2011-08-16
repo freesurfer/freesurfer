@@ -36,6 +36,7 @@ BUILT_SOURCES = \
 	ui_DialogSaveVolume.h \
   ui_DialogReplaceLabel.h \
   ui_DialogRepositionSurface.h \
+  ui_WindowTimeCourse.h \
 	qtcolorpicker.moc \
 	moc_BrushProperty.cpp \
 	moc_CommandEdit.cpp \
@@ -129,6 +130,8 @@ BUILT_SOURCES = \
   moc_SurfaceROI.cpp \
   moc_MainApplication.cpp \
   moc_DialogRepositionSurface.cpp \
+  moc_WindowTimeCourse.cpp \
+  moc_WidgetTimeCoursePlot.cpp \
   qrc_freeview.cpp
 
 freeview_SOURCES = $(BUILT_SOURCES) \
@@ -379,7 +382,11 @@ freeview_SOURCES = $(BUILT_SOURCES) \
   ProgressCallback.cpp \
   ProgressCallback.h \
   DialogRepositionSurface.cpp \
-  DialogRepositionSurface.h
+  DialogRepositionSurface.h \
+  WindowTimeCourse.cpp \
+  WindowTimeCourse.h \
+  WidgetTimeCoursePlot.cpp \
+  WidgetTimeCoursePlot.h
 
 if HAVE_MAC_OSX
 AM_CXXFLAGS=\

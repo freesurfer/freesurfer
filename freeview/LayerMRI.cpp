@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2011/08/02 15:58:25 $
- *    $Revision: 1.105 $
+ *    $Date: 2011/08/16 17:15:21 $
+ *    $Revision: 1.106 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -966,9 +966,11 @@ double LayerMRI::GetVoxelValue( double* pos )
   }
 }
 
-double LayerMRI::GetVoxelValueByOriginalIndex( int i, int j, int k )
+double LayerMRI::GetVoxelValueByOriginalIndex( int i, int j, int k, int frame )
 {
-  return m_volumeSource->GetVoxelValue( i, j, k, m_nActiveFrame );
+  if (frame < 0)
+    frame = m_nActiveFrame;
+  return m_volumeSource->GetVoxelValue( i, j, k, frame );
 }
 
 void LayerMRI::SetModified()
@@ -2568,4 +2570,9 @@ void LayerMRI::UpdateProjectionMap()
   }
   SetVisible(IsVisible());
   emit ActorUpdated();
+}
+
+double LayerMRI::GetTR()
+{
+  return m_volumeSource->GetMRI()->tr;
 }

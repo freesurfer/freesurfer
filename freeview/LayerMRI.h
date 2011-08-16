@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2011/07/21 19:30:09 $
- *    $Revision: 1.69 $
+ *    $Date: 2011/08/16 17:15:21 $
+ *    $Revision: 1.70 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -87,7 +87,7 @@ public:
   void SetSlicePositionToWorldCenter();
 
   virtual double GetVoxelValue( double* pos );
-  virtual double GetVoxelValueByOriginalIndex( int i, int j, int k );
+  virtual double GetVoxelValueByOriginalIndex( int i, int j, int k, int frame = -1 );
 
   virtual QString GetLabelName( double value );
 
@@ -253,6 +253,8 @@ public:
   {
     return m_nGotoLabelSlice;
   }
+
+  double GetTR();
 
 public slots:
   void SetActiveFrame( int nFrame );

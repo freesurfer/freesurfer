@@ -425,7 +425,6 @@
    <addaction name="actionRedo"/>
    <addaction name="separator"/>
    <addaction name="actionShowControlPanel"/>
-   <addaction name="actionShowCommandConsole"/>
    <addaction name="separator"/>
    <addaction name="actionLayout1x1"/>
    <addaction name="actionLayout2x2"/>
@@ -439,6 +438,7 @@
    <addaction name="separator"/>
    <addaction name="actionShowCoordinateAnnotation"/>
    <addaction name="actionShowColorScale"/>
+   <addaction name="actionTimeCourse"/>
    <addaction name="separator"/>
    <addaction name="actionSaveScreenshot"/>
    <addaction name="separator"/>
@@ -1235,6 +1235,24 @@
   <action name="actionIntensityProject">
    <property name="text">
     <string>Create Intensity Projection Map</string>
+   </property>
+  </action>
+  <action name="actionTimeCourse">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="checked">
+    <bool>true</bool>
+   </property>
+   <property name="icon">
+    <iconset resource="freeview.qrc">
+     <normaloff>:/resource/icons/view_time_course.png</normaloff>:/resource/icons/view_time_course.png</iconset>
+   </property>
+   <property name="text">
+    <string>View Time Course</string>
+   </property>
+   <property name="toolTip">
+    <string>View Time Course</string>
    </property>
   </action>
  </widget>

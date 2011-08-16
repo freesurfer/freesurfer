@@ -124,7 +124,9 @@ SOURCES += \
     SurfaceROI.cpp \
     ProgressCallback.cpp \
     MainApplication.cpp \
-    DialogRepositionSurface.cpp
+    DialogRepositionSurface.cpp \
+    WindowTimeCourse.cpp \
+    WidgetTimeCoursePlot.cpp
 
 HEADERS  += \
     Annotation2D.h \
@@ -238,7 +240,9 @@ HEADERS  += \
     SurfaceROI.h \
     ProgressCallback.h \
     MainApplication.h \
-    DialogRepositionSurface.h
+    DialogRepositionSurface.h \
+    WindowTimeCourse.h \
+    WidgetTimeCoursePlot.h
 
 FORMS    += MainWindow.ui \
     PanelVolume.ui \
@@ -270,7 +274,8 @@ FORMS    += MainWindow.ui \
     DialogSavePointSet.ui \
     DialogSaveVolume.ui \
     DialogReplaceLabel.ui \
-    DialogRepositionSurface.ui
+    DialogRepositionSurface.ui \
+    WindowTimeCourse.ui
 
 RESOURCES += \
     freeview.qrc

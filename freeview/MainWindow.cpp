@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2011/08/05 01:54:54 $
- *    $Revision: 1.180 $
+ *    $Date: 2011/08/16 17:15:21 $
+ *    $Revision: 1.181 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -82,6 +82,7 @@
 #include "Interactor2DNavigate.h"
 #include "MainApplication.h"
 #include "DialogRepositionSurface.h"
+#include "WindowTimeCourse.h"
 
 MainWindow::MainWindow( QWidget *parent, MyCmdLineParser* cmdParser ) :
   QMainWindow( parent ),
@@ -193,6 +194,12 @@ MainWindow::MainWindow( QWidget *parent, MyCmdLineParser* cmdParser ) :
           m_dlgRepositionSurface, SLOT(UpdateUI()));
   connect(ui->view3D, SIGNAL(SurfaceVertexClicked()),
           m_dlgRepositionSurface, SLOT(OnSurfaceVertexClicked()));
+
+  m_wndTimeCourse = new WindowTimeCourse(this);
+  m_wndTimeCourse->hide();
+  connect(this, SIGNAL(SlicePositionChanged()), m_wndTimeCourse, SLOT(UpdateData()));
+  connect(ui->actionTimeCourse, SIGNAL(toggled(bool)),
+          m_wndTimeCourse, SLOT(setVisible(bool)));
 
   QStringList keys = m_layerCollections.keys();
   for ( int i = 0; i < keys.size(); i++ )
@@ -1088,6 +1095,9 @@ void MainWindow::OnIdle()
   }
 
   ui->actionShowCommandConsole->setChecked(m_term->isVisible());
+  ui->actionTimeCourse->setEnabled(layerVolume && layerVolume->GetNumberOfFrames() > 1);
+  if (ui->actionTimeCourse->isEnabled())
+    ui->actionTimeCourse->setChecked(m_wndTimeCourse->isVisible());
 }
 
 bool MainWindow::IsBusy()
@@ -5015,11 +5025,30 @@ void MainWindow::OnActiveLayerChanged(Layer* layer)
   if (!layer)
   {
     this->setWindowTitle("FreeView");
+    m_wndTimeCourse->hide();
   }
   else
   {
     this->setWindowTitle(QString("FreeView (%1)")
                          .arg(MyUtils::Win32PathProof(layer->GetFileName())));
+    if (layer->IsTypeOf("MRI") )
+    {
+      if (((LayerMRI*)layer)->GetNumberOfFrames() > 1)
+      {
+        connect(layer, SIGNAL(ActiveFrameChanged(int)), m_wndTimeCourse, SLOT(SetCurrentFrame(int)), Qt::UniqueConnection);
+        connect(layer, SIGNAL(ActiveFrameChanged(int)),
+                ui->treeWidgetCursorInfo, SLOT(OnCursorPositionChanged()), Qt::UniqueConnection);
+        connect(layer, SIGNAL(ActiveFrameChanged(int)),
+                ui->treeWidgetMouseInfo, SLOT(OnMousePositionChanged()), Qt::UniqueConnection);
+        if (ui->actionTimeCourse->isChecked())
+        {
+          m_wndTimeCourse->show();
+          m_wndTimeCourse->UpdateData();
+        }
+      }
+      else
+        m_wndTimeCourse->hide();
+    }
   }
 }
 
