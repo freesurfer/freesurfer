@@ -37,7 +37,7 @@ histo_register_LDADD=$(OPENCV_LIBS) $(LOCALLIBS)
 
 
 install-exec-hook:
-	cp $(top_builddir)/histo_register/histo_register 
+	cp $(top_builddir)/histo_register/histo_register \
 		$(DESTDIR)$(bindir)/histo_register.bin
 	echo "#!/bin/tcsh -ef" > $(DESTDIR)$(bindir)/histo_register
 	echo "setenv LD_LIBRARY_PATH /usr/pubsw/packages/opencv/current/lib" \
