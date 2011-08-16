@@ -9,8 +9,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2011/07/08 14:20:36 $
- *    $Revision: 1.12 $
+ *    $Date: 2011/08/16 22:24:02 $
+ *    $Revision: 1.13 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -73,7 +73,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_ibmc.c,v 1.12 2011/07/08 14:20:36 greve Exp $";
+static char vcid[] = "$Id: mri_ibmc.c,v 1.13 2011/08/16 22:24:02 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -338,7 +338,7 @@ IBMC_STACK *IBMCinitStack(MRI *vol, MATRIX *Rv, int Vno)
 }
 
 /*---------------------------------------------------------------*/
-int IBMCwriteSlices(IBMC_STACK *stack, char *base)
+int IBMCwriteSlices(IBMC_STACK *stack, char *base, char *subject)
 {
   char tmpstr[2000];
   int nthslice;
@@ -348,11 +348,11 @@ int IBMCwriteSlices(IBMC_STACK *stack, char *base)
     //printf("%2d %3d %s\n",nthslice,stack->slice[nthslice]->mri->depth,tmpstr);
     MRIwrite(stack->slice[nthslice]->mri,tmpstr);
     sprintf(tmpstr,"%s.%03d.Rs0.dat",base,nthslice);
-    regio_write_register(tmpstr, "fsf01anat", stack->slice[nthslice]->mri->xsize,
+    regio_write_register(tmpstr, subject, stack->slice[nthslice]->mri->xsize,
 			 stack->slice[nthslice]->mri->zsize, .15, 
 			 stack->slice[nthslice]->Rs0,FLT2INT_ROUND);
     sprintf(tmpstr,"%s.%03d.Rs.dat",base,nthslice);
-    regio_write_register(tmpstr, "fsf01anat", stack->slice[nthslice]->mri->xsize,
+    regio_write_register(tmpstr, subject, stack->slice[nthslice]->mri->xsize,
 			 stack->slice[nthslice]->mri->zsize, .15, 
 			 stack->slice[nthslice]->Rs,FLT2INT_ROUND);
   }
@@ -626,6 +626,7 @@ int IBMCinit(IBMC *ibmc, int a2bmethod)
     ibmc->dof += ibmc->stack[k]->params->nalpha;
   }
   ibmc->dof -= 6; 
+  printf("dof = %d\n",ibmc->dof); 
 
   ibmc->npairs = 
     ibmc->stack[0]->mri->depth * ibmc->stack[1]->mri->depth +
@@ -675,7 +676,7 @@ int IBMCprofile(IBMC *ibmc, char *ProfileFile);
 double *IBMCgetParams(IBMC *ibmc, double *params);
 int IBMCsetParams(IBMC *ibmc, double *params);
 int IBMClineMin(IBMC *ibmc);
-int IBMCwriteStackReg(IBMC_STACK *stack, char *fname);
+int IBMCwriteStackReg(IBMC_STACK *stack, char *fname, char *subject);
 float compute_powell_cost(float *params);
 int MinPowell(double ftol, double linmintol, int nmaxiters);
 /*---------------------------------------------------------------*/
@@ -698,6 +699,7 @@ char *outdir = NULL;
 char *ParBase=NULL;
 int ForceUpdate=0;
 int DoLineMin = 0;
+char *subject = "subject-unkown";
 
 /*---------------------------------------------------------------*/
 int main(int argc, char *argv[]) 
@@ -784,8 +786,18 @@ int main(int argc, char *argv[])
     printf("Stack %d ------\n",k);
     IBMCprintParams(stdout,ibmc->stack[k]->params);
     sprintf(tmpstr,"%s/%s%d.reg.dat",outdir,ParBase,k);
-    IBMCwriteStackReg(ibmc->stack[k], tmpstr);
+    IBMCwriteStackReg(ibmc->stack[k], tmpstr, subject);
+
+    if(a2bmethod == IBMC_A2B_EQUAL){
+      sprintf(tmpstr,"%s/stack%d",outdir,k);      
+      err = mkdir(tmpstr,0777);
+      sprintf(tmpstr,"%s/stack%d/v",outdir,k);      
+      IBMCwriteSlices(ibmc->stack[k], tmpstr, subject);
+    }
+
   }
+
+  printf("mri_ibmc done\n");
 
   exit(0);
 }
@@ -832,6 +844,11 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--par")) {
       if(nargc < 1) CMDargNErr(option,1);
       ParBase = pargv[0];
+      nargsused = 1;
+    } 
+    else if (!strcasecmp(option, "--s")) {
+      if(nargc < 1) CMDargNErr(option,1);
+      subject = pargv[0];
       nargsused = 1;
     } 
     else if (!strcasecmp(option, "--profile")) {
@@ -898,7 +915,7 @@ static int parse_commandline(int argc, char **argv) {
       ibmc->stack[0] = SynthStack;
       IBMCalpha2Beta(ibmc,0);
       IBMCsynthStack(SynthSrc,SynthStack);
-      IBMCwriteSlices(SynthStack, pargv[4]);
+      IBMCwriteSlices(SynthStack, pargv[4],subject);
       SynthVol = IBMCcopyStack2MRI(SynthStack, NULL);
       sprintf(tmpstr,"%s.nii",pargv[4]);
       MRIwrite(SynthVol,tmpstr);
@@ -1344,7 +1361,7 @@ int IBMClineMin(IBMC *ibmc)
     IBMCsetParams(ibmc,optparams);    
     for(nthv=0; nthv < nv; nthv++){
       v = vmin + nthv*dv;
-      IBMCsetParam(ibmc, nthp, v);
+      IBMCsetParam(ibmc, nthp+6, v);
       IBMCcost(ibmc);
       if(cmin > ibmc->cost){
 	cmin = ibmc->cost;
@@ -1361,12 +1378,12 @@ int IBMClineMin(IBMC *ibmc)
   return(0);
 }
 /*---------------------------------------------------------------------*/
-int IBMCwriteStackReg(IBMC_STACK *stack, char *fname)
+int IBMCwriteStackReg(IBMC_STACK *stack, char *fname, char *subject)
 {
   MATRIX *R;
   // Really only useful for RIGID, slice number does not matter with RIGID
   R = MatrixMultiply(stack->slice[0]->Rbeta,stack->Rv,NULL);
-  regio_write_register(fname, "fsf01anat", stack->slice[0]->mri->xsize,
+  regio_write_register(fname, subject, stack->slice[0]->mri->xsize,
 		       stack->slice[0]->mri->zsize, .15, R,FLT2INT_ROUND);
   MatrixFree(&R);
   return(0);
