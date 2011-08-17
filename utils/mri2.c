@@ -7,8 +7,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2011/04/19 21:33:41 $
- *    $Revision: 1.66.2.1 $
+ *    $Date: 2011/08/17 17:01:51 $
+ *    $Revision: 1.66.2.2 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -2155,12 +2155,8 @@ MRI *MRIsquare(MRI *in, MRI *mask, MRI *out)
         }
         for (f=0; f < in->nframes; f++)
         {
-          if (mval > 0.5)
-          {
-            val = MRIgetVoxVal(in,c,r,s,f);
-            if (val < 0) val = 0.0;
-          }
-          else val = 0.0;
+          if (mval > 0.5) val = MRIgetVoxVal(in,c,r,s,f);
+          else            val = 0.0;
           MRIsetVoxVal(out,c,r,s,f,val*val);
         }
       }
