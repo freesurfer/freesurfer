@@ -15,8 +15,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2011/05/05 17:13:49 $
- *    $Revision: 1.52 $
+ *    $Date: 2011/08/17 15:42:15 $
+ *    $Revision: 1.53 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -61,7 +61,7 @@ static void dump_options(FILE *fp);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_concat.c,v 1.52 2011/05/05 17:13:49 greve Exp $";
+static char vcid[] = "$Id: mri_concat.c,v 1.53 2011/08/17 15:42:15 greve Exp $";
 char *Progname = NULL;
 int debug = 0;
 #define NInMAX 400000
@@ -128,7 +128,7 @@ MRI *PruneMask = NULL;
 int main(int argc, char **argv) {
   int nargs, nthin, nframestot=0, nr=0,nc=0,ns=0, fout;
   int r,c,s,f,outf,nframes,err,nthrep;
-  double v, v1, v2, vavg;
+  double v, v1, v2, vavg, vsum;
   int inputDatatype=MRI_UCHAR;
   MATRIX *Upca=NULL,*Spca=NULL;
   MRI *Vpca=NULL;
@@ -202,7 +202,6 @@ int main(int argc, char **argv) {
     MRIfree(&mritmp);
   }
 
-  if(DoCombine) nframestot = 1; // combine creates a single-frame volume
   printf("nframestot = %d\n",nframestot);
 
   if(ngroups != 0){
@@ -270,10 +269,7 @@ int main(int argc, char **argv) {
         for(r=0; r < nr; r++) {
           for(s=0; s < ns; s++) {
             v = MRIgetVoxVal(mritmp,c,r,s,f);
-            if (DoCombine) {
-              if (v > 0) MRIsetVoxVal(mriout,c,r,s,0,v);
-            }
-            else MRIsetVoxVal(mriout,c,r,s,fout,v);
+            MRIsetVoxVal(mriout,c,r,s,fout,v);
           }
         }
       }
@@ -281,6 +277,31 @@ int main(int argc, char **argv) {
     }
     MRIfree(&mritmp);
   }
+
+  if(DoCombine){
+    // Average frames from non-zero voxels
+    int nhits;
+    mritmp = MRIallocSequence(nc,nr,ns,MRI_FLOAT,1);
+    MRIcopyHeader(mritmp,mriout);
+    for(c=0; c < nc; c++) {
+      for(r=0; r < nr; r++) {
+	for(s=0; s < ns; s++) {
+	  nhits = 0;
+	  vsum = 0;
+	  for(f=0; f < mriout->nframes; f++) {
+            v = MRIgetVoxVal(mriout,c,r,s,f);
+	    if (v > 0) {
+	      vsum += v;
+	      nhits ++;
+	    }
+	  }
+	  if(nhits > 0 ) MRIsetVoxVal(mritmp,c,r,s,0,vsum/nhits);
+	} // for s
+      }// for r 
+    } // for c 
+    MRIfree(&mriout);
+    mriout = mritmp;
+  } // do combine
 
   if(DoPrune){
     // This computes the prune mask, applied below
@@ -738,7 +759,7 @@ static void print_usage(void) {
   printf("   --mtx matrix.asc    : multiply by matrix in ascii file\n");
   printf("   --gmean Ng          : create matrix to average Ng groups, Nper=Ntot/Ng\n");
   printf("\n");
-  printf("   --combine : combine non-zero values into a one-frame volume\n");
+  printf("   --combine : average frames from non-zero voxels\n");
   printf("             (useful to combine lh.ribbon.mgz and rh.ribbon.mgz)\n");
   printf("   --keep-datatype : write output in same datatype as input\n");
   printf("                    (default is to write output in Float format)\n");
