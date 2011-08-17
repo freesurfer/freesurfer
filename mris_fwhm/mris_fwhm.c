@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2011/08/17 16:37:24 $
- *    $Revision: 1.32 $
+ *    $Date: 2011/08/17 17:02:55 $
+ *    $Revision: 1.33 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -148,7 +148,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mris_fwhm.c,v 1.32 2011/08/17 16:37:24 greve Exp $";
+static char vcid[] = "$Id: mris_fwhm.c,v 1.33 2011/08/17 17:02:55 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -289,7 +289,7 @@ int main(int argc, char *argv[]) {
 
   if(DoSqr){
     printf("Computing square of input\n");
-    MRIabs(InVals,InVals);
+    MRIsquare(InVals,NULL,InVals);
   }
 
   if(labelpath) {
