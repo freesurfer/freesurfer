@@ -15,5 +15,13 @@ libpvl_a_SOURCES=\
 	src/SparseSystem.cc \
 	src/VarMotion.cc \
 	src/VarMotionMultiRes.cc \
-	src/VarMotionUtil.cc
+	src/VarMotionUtil.cc \
+	include/pvl/Occlusion.h \
+	include/pvl/SimpleParticleBuild.h \
+	include/pvl/SimpleParticleData.h \
+	include/pvl/SimpleParticleOptimize.h \
+	include/pvl/SparseSystem.h \
+	include/pvl/VarMotionUtil.h \
+	include/pvl/VarMotionMultiRes.h \
+	include/pvl/VarMotion.h
 
