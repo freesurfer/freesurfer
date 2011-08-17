@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2011/08/15 20:27:51 $
-#    $Revision: 1.379.2.19 $
+#    $Date: 2011/08/17 21:31:55 $
+#    $Revision: 1.379.2.20 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -26,7 +26,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.379.2.19 2011/08/15 20:27:51 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.379.2.20 2011/08/17 21:31:55 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -162,6 +162,7 @@ set PialNoAparc = 0; # if 1 (-pial-noaparc), then add -noaparc flag to
                      # mris_make_surfaces to bypass usage of parcellation
 set DoNuMakeUchar = 1; # if 1, then run mri_nu_correct.mni using talairach.xfm
                        # to run mri_make_uchar to correct histogram problem
+set DoTalairachUseNu = 0; # if 1, use nu.mgz as input to talairach stage
 
 # Longitudinal processing:
 set longitudinal = 0;    # if 1, will run the longitudinal scheme
@@ -1727,7 +1728,7 @@ skullstrip:
         echo "\n $cmd2 \n"|& tee -a $LF |& tee -a $CF
         if($RunIt) $fs_time $cmd2 |& tee -a $LF
         if($status) goto error_exit;
-        echo $cmd2 > $touchdir/em_register.touch
+        echo $cmd2 > $touchdir/skull.lta.touch
       endif
     endif
 
@@ -2118,11 +2119,11 @@ if($DoSkullLTA) then
   if ($UseCuda) set cmd = (mri_em_register_cuda)
   set cmd = ($cmd -skull -t transforms/talairach.lta \
      $xopts nu_noneck.mgz ${GCADIR}/$GCASkull \
-     transforms/talairach_with_skull.lta)
+     transforms/talairach_with_skull_2.lta)
   echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
   if($RunIt) $fs_time $cmd |& tee -a $LF
   if($status) goto error_exit;
-  echo $cmd > $touchdir/skull.lta.touch
+  echo $cmd > $touchdir/skull_2.lta.touch
 endif
 
 #-------------- SubCort Segmentation --------------#
@@ -5283,6 +5284,9 @@ while( $#argv != 0 )
       breaksw;
 
     case "-get-cuda":
+    case "-get-gpu":
+    case "-show-cuda":
+    case "-show-gpu":
       set GetCuda = 1; # info dump in check_params section below
       # then set LD_LIBRARY_PATH to distributed cuda libs
       source $FREESURFER_HOME/bin/cuda_setup
@@ -6397,7 +6401,7 @@ EM Registration, with Skull (-<no>skull-lta)
 
 Computes transform to align volume mri/nu_noneck.mgz with GCA volume
 possessing the skull.
-Creates the file mri/transforms/talairach_with_skull.lta.
+Creates the file mri/transforms/talairach_with_skull_2.lta.
 
 CA Label (-<no>calabel)
 
