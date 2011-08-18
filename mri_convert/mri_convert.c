@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl (Apr 16, 1997)
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2011/05/16 20:53:14 $
- *    $Revision: 1.181 $
+ *    $Author: fischl $
+ *    $Date: 2011/08/18 19:18:04 $
+ *    $Revision: 1.182 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -200,7 +200,7 @@ int main(int argc, char *argv[])
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mri_convert.c,v 1.181 2011/05/16 20:53:14 greve Exp $",
+   "$Id: mri_convert.c,v 1.182 2011/08/18 19:18:04 fischl Exp $",
    "$Name:  $",
    cmdline);
 
@@ -320,7 +320,7 @@ int main(int argc, char *argv[])
     handle_version_option
     (
       argc, argv,
-      "$Id: mri_convert.c,v 1.181 2011/05/16 20:53:14 greve Exp $",
+      "$Id: mri_convert.c,v 1.182 2011/08/18 19:18:04 fischl Exp $",
       "$Name:  $"
     );
   if (nargs && argc - nargs == 1)
@@ -856,7 +856,7 @@ int main(int argc, char *argv[])
       out_n_k_flag = TRUE;
     }
     else if(strcmp(argv[i], "-vs") == 0 ||
-            strcmp(argv[i], "-voxsize") == 0 )
+            strcmp(argv[i], "--voxsize") == 0 )
     {
       get_floats(argc, argv, &i, voxel_size, 3);
       voxel_size_flag = TRUE;
@@ -1625,7 +1625,7 @@ int main(int argc, char *argv[])
             "= --zero_ge_z_offset option ignored.\n");
   }
 
-  printf("$Id: mri_convert.c,v 1.181 2011/05/16 20:53:14 greve Exp $\n");
+  printf("$Id: mri_convert.c,v 1.182 2011/08/18 19:18:04 fischl Exp $\n");
   printf("reading from %s...\n", in_name_only);
 
   if (in_volume_type == OTL_FILE)
