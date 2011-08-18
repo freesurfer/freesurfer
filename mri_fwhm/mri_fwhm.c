@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:15 $
- *    $Revision: 1.25 $
+ *    $Author: greve $
+ *    $Date: 2011/08/18 21:31:45 $
+ *    $Revision: 1.26 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -251,7 +251,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_fwhm.c,v 1.25 2011/03/02 00:04:15 nicks Exp $";
+static char vcid[] = "$Id: mri_fwhm.c,v 1.26 2011/08/18 21:31:45 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -300,6 +300,7 @@ double automaskthresh = .1;
 int nerode = 0;
 int SmoothOnly = 0;
 int nframesmin = 10;
+int DoSqr = 0; // take square of input before smoothing
 
 char *sum2file = NULL;
 
@@ -361,6 +362,11 @@ int main(int argc, char *argv[]) {
   }
   voxelvolume = InVals->xsize * InVals->ysize * InVals->zsize ;
   printf("voxelvolume %g mm3\n",voxelvolume);
+
+  if(DoSqr){
+    printf("Computing square of input\n");
+    MRIsquare(InVals,NULL,InVals);
+  }
 
   // -------------------- handle masking ------------------------
   if (maskpath) {
@@ -637,6 +643,7 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--save-detrended")) SaveDetrended = 1;
     else if (!strcasecmp(option, "--save-unmasked")) SaveUnmasked = 1;
     else if (!strcasecmp(option, "--smooth-only")) SmoothOnly = 1;
+    else if (!strcasecmp(option, "--sqr")) DoSqr = 1;
     else if (!strcasecmp(option, "--ispm")) InValsType = MRI_ANALYZE_FILE;
     else if (!strcasecmp(option, "--ar2")) DoAR2 = 1;
     else if (!strcasecmp(option, "--gdiag")) Gdiag_no = 1;
@@ -803,6 +810,7 @@ static void print_usage(void) {
   printf("\n");
   printf("   --X x.mat : matlab4 detrending matrix\n");
   printf("   --detrend order : polynomial detrending (default 0)\n");
+  printf("   --sqr : compute square of input before smoothing\n");
   printf("\n");
   printf("   --fwhm fwhm : smooth BY fwhm before measuring\n");
   printf("   --gstd gstd : same as --fwhm but specified as the stddev\n");
