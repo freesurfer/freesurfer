@@ -7,8 +7,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2011/05/17 03:43:34 $
- *    $Revision: 1.47 $
+ *    $Date: 2011/08/18 22:10:16 $
+ *    $Revision: 1.48 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -63,7 +63,7 @@ static int  isflag(char *flag);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-"$Id: mri_volsynth.c,v 1.47 2011/05/17 03:43:34 greve Exp $";
+"$Id: mri_volsynth.c,v 1.48 2011/08/18 22:10:16 greve Exp $";
 
 char *Progname = NULL;
 
@@ -118,12 +118,14 @@ char *subject=NULL, *hemi=NULL;
 MRIS *surf;
 int resSpeced=0,dimSpeced=0;
 int NewVoxSizeSpeced=0;
+int DoHSC=0; // force noise to be heteroscedastic
+double HSCMin=0, HSCMax=0;
 
 /*---------------------------------------------------------------*/
 int main(int argc, char **argv)
 {
-  int c,r,s;
-  double val;
+  int c,r,s,f;
+  double val,rval;
   FILE *fp;
   MRI *mritmp;
 
@@ -407,6 +409,24 @@ int main(int argc, char **argv)
     }
   }
 
+  if(DoHSC){
+    // This multiplies each frame by a random number
+    // between HSCMin HSCMax to simulate heteroscedastisity
+    printf("Applying HSC %lf %lf\n",HSCMin,HSCMax);
+    for(f=0; f < mri->nframes; f++){
+      rval = (HSCMax-HSCMin)*drand48() + HSCMin;
+      if(debug) printf("%3d %lf\n",f,rval);
+      for(c=0; c < mri->width; c ++){
+	for(r=0; r < mri->height; r ++){
+	  for(s=0; s < mri->depth; s ++){
+	    val = MRIgetVoxVal(mri,c,r,s,f);
+	    MRIsetVoxVal(mri,c,r,s,f,rval*val);
+	  }
+        }
+      }
+    }
+  }
+
   if(AddOffset) {
     printf("Adding offset\n");
     offset = MRIread(tempid);
@@ -486,6 +506,13 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--offset-mid")){
       AddOffset = 1;
       OffsetFrame = -1;
+    }
+    else if (!strcmp(option, "--hsc")) {
+      if (nargc < 2) argnerr(option,2);
+      sscanf(pargv[0],"%lf",&HSCMin);
+      sscanf(pargv[1],"%lf",&HSCMax);
+      DoHSC = 1;
+      nargsused = 2;
     }
     else if (!strcmp(option, "--sum2")) {
       if (nargc < 1) argnerr(option,1);
@@ -724,6 +751,7 @@ static void print_usage(void) {
   printf("   --val-a value : set ValA (default 1)\n");
   printf("   --val-b value : set ValB (default 0)\n");
   printf("   --radius voxradius : radius (in voxels) for sphere\n");
+  printf("   --hsc min max : multiply each frame by a random number bet min and max\n");
   printf("\n");
   printf(" Other arguments\n");
   printf("   --spike tp : set all values at time point tp to 1e9\n");
