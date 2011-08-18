@@ -11,8 +11,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2011/05/17 03:42:01 $
-#    $Revision: 1.59.2.1 $
+#    $Date: 2011/08/18 14:58:37 $
+#    $Revision: 1.59.2.2 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -29,7 +29,7 @@
 #
 setenv FIX_VERTEX_AREA
 
-set VERSION = '$Id: mris_preproc,v 1.59.2.1 2011/05/17 03:42:01 greve Exp $';
+set VERSION = '$Id: mris_preproc,v 1.59.2.2 2011/08/18 14:58:37 greve Exp $';
 
 set PrintHelp = 0;
 set subjlist = ();
@@ -66,6 +66,7 @@ set sval = ();
 set svalsurf = ();
 set hash = 1;
 set jac = 0;
+set NoJac = 0;
 set CacheOutFile = ();
 set CacheOutOnly = 0;
 set CacheOutUpdate = 0;
@@ -420,6 +421,14 @@ while( $#argv != 0 )
       set jac = 1;
       breaksw
 
+    case "--jac":
+      set jac = 1;
+      breaksw
+    case "--no-jac":
+      set jac = 0;
+      set NoJac = 1;
+      breaksw
+
     case "--surfreg":
       if($#argv < 1) goto arg1err;
       set SrcSurfReg = $argv[1]; shift;
@@ -548,6 +557,7 @@ while( $#argv != 0 )
       shift; shift; shift;
       breaksw
 
+    case "--o":
     case "--out":
       if ( $#argv == 0) goto arg1err;
       set outpath = $argv[1]; shift;
@@ -936,6 +946,12 @@ if($#projfrac && $#projfracmax) then
   exit 1;
 endif
 
+if(($meas == area      || $meas == area.mid || \
+    $meas == area.pial || $meas == volume) && $NoJac == 0) then
+  echo "INFO: turning on jacobican correction"
+  set jac = 1;
+endif
+
 goto check_params_return;
 ############--------------##################
 
@@ -967,7 +983,7 @@ usage_exit:
   echo "  --hemi hemi "
   echo ""
   echo "  --meas surfmeas"
-  echo "  --area surfname"
+  echo ""
   echo "  --s subj1 <--s subj2 ... --s subjN>"
   echo "  --fsgd fsgdfile"
   echo "  --f subjectlistfile"
@@ -997,6 +1013,9 @@ usage_exit:
   echo ""
   echo "  --smooth-cortex-only : only smooth cortex (ie, exclude medial wall)"
   echo "  --no-smooth-cortex-only : default"
+  echo ""
+  echo "  --no-jac : turn off jacobian correction (automatically turned on for"
+  echo "      area, area.mid, area.pial, and volume)"
   echo ""
   echo "  --paired-diff"
   echo "  --paired-diff-norm"
