@@ -206,7 +206,7 @@ G_SYNOPSIS = """
 """
 
 Gstr_SELF	= sys.argv[0]
-Gstr_VERSION	= "$Id: dsh,v 1.4 2011/02/24 21:11:41 rudolph Exp $"
+Gstr_VERSION	= "$Id: dsh,v 1.5 2011/08/18 20:31:17 rudolph Exp $"
 G_dieNow	= 0
 
 class dijkResultLogHandler(SocketServer.BaseRequestHandler) :
@@ -272,8 +272,8 @@ def transmit(str_msg):
 	str_transmit += ' --msg "' + str_msg + '"'
 	str_transmit += ' >/dev/null &'
 	
-	os.system(str_transmit)
-	#G_socket.tx(str_msg)
+#	os.system(str_transmit)
+	G_socket.tx(str_msg)
 
 def dijkstra_spawn(str_port):
 	#
