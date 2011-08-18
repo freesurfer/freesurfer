@@ -8,26 +8,25 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2010/05/10 03:49:56 $
-#    $Revision: 1.40 $
+#    $Date: 2011/08/18 15:01:09 $
+#    $Revision: 1.42.2.1 $
 #
-# Copyright (C) 2002-2007,
-# The General Hospital Corporation (Boston, MA).
-# All rights reserved.
+# Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
-# Distribution, usage and copying of this software is covered under the
-# terms found in the License Agreement file named 'COPYING' found in the
-# FreeSurfer source code root directory, and duplicated here:
-# https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+# Terms and conditions for use, reproduction, distribution and contribution
+# are found in the 'FreeSurfer Software License Agreement' contained
+# in the file 'LICENSE' found in the FreeSurfer distribution, and here:
 #
-# General inquiries: freesurfer@nmr.mgh.harvard.edu
-# Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+# https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
+#
+# Reporting: freesurfer@nmr.mgh.harvard.edu
+#
 #
 
 # epidewarp.fsl
 #
 
-set VERSION = '$Id: epidewarp.fsl,v 1.40 2010/05/10 03:49:56 greve Exp $'
+set VERSION = '$Id: epidewarp.fsl,v 1.42.2.1 2011/08/18 15:01:09 greve Exp $'
 set inputargs = ($argv);
 
 set KeepMean = 0;
@@ -51,6 +50,9 @@ set esp    = ();
 # FUGUE parameters
 set sigmamm = 2; # Smoothing sigma in mm
 set npart = ();
+
+# Bubble smoothing of output vsm
+set vsmfwhm = 10;
 
 # Outputs
 set epidw = ();
@@ -417,7 +419,7 @@ if($#epimat) cp $epimat `dirname $magfw`/`basename $magfw .$ext`.mat
 # Register magfw to example func. There are some parameters here
 # that may need to be tweeked. Should probably strip the mag.
 if($DoMagExfReg) then
-  set cmd = (flirt -in $magfw -ref $exf \
+  set cmd = (flirt.fsl -in $magfw -ref $exf \
     -out $tmpdir/magfw-in-exf.$ext \
     -omat $tmpdir/magfw-in-exf.fsl.mat \
     -bins 256 -cost corratio \
@@ -440,7 +442,7 @@ endif
 
 # Now resample VSM into epi space. This will take care of any
 # differences in in-plane voxel size.
-set cmd = (flirt -in $vsmmag -ref $exf -out $vsm \
+set cmd = (flirt.fsl -in $vsmmag -ref $exf -out $vsm \
   -init $tmpdir/magfw-in-exf.fsl.mat -applyxfm)
 echo $cmd |& tee -a $LF
 $cmd |& tee -a $LF
@@ -450,10 +452,18 @@ if($#epimat) then # Propogate mat file
   cp $epimat `dirname $vsm`/$vsmbase.mat
 endif
 
+# Bubble smoothing to extend vsm outside of mask
+if($vsmfwhm != 0) then
+  set cmd = (vsm-smooth --fwhm $vsmfwhm --i $vsm --o $vsm)
+  echo $cmd |& tee -a $LF
+  $cmd |& tee -a $LF
+  if($status) exit 1;
+endif
+
 # Now resample brain mask into epi space. This will take care of any
 # differences in in-plane voxel size.
 set maskexf = $tmpdir/maskexf.$ext
-set cmd = (flirt -in $mask -ref $exf -out $maskexf \
+set cmd = (flirt.fsl -in $mask -ref $exf -out $maskexf \
   -init $tmpdir/magfw-in-exf.fsl.mat -applyxfm)
 echo $cmd |& tee -a $LF
 $cmd |& tee -a $LF
@@ -680,6 +690,11 @@ while( $#argv != 0 )
       set PreludeOut = $argv[1]; shift;
       breaksw
 
+    case "--vsm-fwhm":
+      if($#argv < 1) goto arg1err;
+      set vsmfwhm = $argv[1]; shift;
+      breaksw
+
     case "--nocleanup":
       set cleanup = 0;
       breaksw
@@ -826,6 +841,7 @@ usage_exit:
   echo "  --perev         : assume reversed phase encode direction"
   echo "  "
   echo "  --sigma sigmamm : 2D spatial gaussing smoothing stddev (def 2mm)"
+  echo "  --vsm-fwhm fwhm : allows vsm to be extended outside of the mask"
   echo "  "
   echo "Outputs"
   echo "  --vsm volid   : voxel shift map (required)"
