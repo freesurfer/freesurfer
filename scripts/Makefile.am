@@ -213,6 +213,7 @@ unpacksdcmdir \
 UpdateNeeded \
 usbtree \
 vno_match_check \
+vsm-smooth \
 qt_setup \
 vtk_setup \
 wfilemask \
