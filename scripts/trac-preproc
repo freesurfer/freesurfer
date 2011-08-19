@@ -8,8 +8,8 @@
 # Original Author: Anastasia Yendiki
 # CVS Revision Info:
 #    $Author: ayendiki $
-#    $Date: 2011/07/25 20:22:09 $
-#    $Revision: 1.32 $
+#    $Date: 2011/08/19 20:22:55 $
+#    $Revision: 1.33 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -25,7 +25,7 @@
 
 umask 002
 
-set VERSION = '$Id: trac-preproc,v 1.32 2011/07/25 20:22:09 ayendiki Exp $'
+set VERSION = '$Id: trac-preproc,v 1.33 2011/08/19 20:22:55 ayendiki Exp $'
 set ProgName = `basename $0`
 set inputargs = ($argv)
 
@@ -620,7 +620,18 @@ if ($dointer) then
           endif
         endif
 
-        set cvswarp = combined_to${cvstemp}_elreg_afteraseg-norm
+        set cvswarp = final_CVSmorph_to$cvstemp
+
+        # If 2nd-generation CVS was run, make symlink with 3rd-generation naming
+        set oldcvswarp = combined_to${cvstemp}_elreg_afteraseg-norm.m3z
+        if (-e $xfmdir/cvs/$oldcvswarp.m3z && \
+            ! -e $xfmdir/cvs/$cvswarp.m3z) then
+          set cmd = (ln -s $xfmdir/cvs/$oldcvswarp.m3z $xfmdir/cvs/$cvswarp.m3z)
+          if ($RunIt) then
+            $cmd |& tee -a $LF
+            if ($status) goto error_exit
+          endif
+        endif
 
         if (! -e $xfmdir/cvs/$cvswarp.m3z) then
           if (! -e $SUBJECTS_DIR/$cvstemp) then
@@ -643,12 +654,13 @@ if ($dointer) then
             set cmd = ($cmd --mov $subj)
             set cmd = ($cmd --template $cvstemp)
             set cmd = ($cmd --outdir $xfmdir/cvs)
+            set cmd = ($cmd --cleanall)
             echo $cmd |& tee -a $LF |& tee -a $CF
             if ($RunIt) then
               $fs_time $cmd |& tee -a $LF
               if ($status) goto error_exit
             endif
-          else			# Old-school mri_cvs_register has been run
+          else			# 1st-generation mri_cvs_register has been run
             if (! -e $xfmdir/cvs/$cvswarp.tm3d) then
               # Recreate full morph .tm3d from its components
               set cmd = createMorph
@@ -709,7 +721,7 @@ if ($domasks) then
   echo "#-------------------------------------" |& tee -a $LF
   echo "#@# Masks `date`" |& tee -a $LF
 
-  set cvswarp = combined_to${cvstemp}_elreg_afteraseg-norm
+  set cvswarp = final_CVSmorph_to$cvstemp
 
   mkdir -p $labdir/diff
   if (-e $fsdir/mri/aparc+aseg.mgz) mkdir -p $labdir/anatorig $labdir/anat
@@ -1083,7 +1095,7 @@ if ($dotensor) then
   if ($doregcvs && -e $fsdir/mri/aparc+aseg.mgz) then
     mkdir -p $dwidir/anatorig
 
-    set cvswarp = combined_to${cvstemp}_elreg_afteraseg-norm
+    set cvswarp = final_CVSmorph_to$cvstemp
 
     if ($subj == $cvstemp) then
       if (-e $dwidir/cvs && ! -l $dwidir/cvs) rm -rf $dwidir/cvs
