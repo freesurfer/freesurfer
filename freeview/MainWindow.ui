@@ -326,6 +326,7 @@
     <addaction name="separator"/>
     <addaction name="actionShowCoordinateAnnotation"/>
     <addaction name="actionShowColorScale"/>
+    <addaction name="actionTimeCourse"/>
     <addaction name="actionToggleCursorVisibility"/>
     <addaction name="actionShowSlices"/>
     <addaction name="actionShowSliceFrames"/>
@@ -1249,7 +1250,7 @@
      <normaloff>:/resource/icons/view_time_course.png</normaloff>:/resource/icons/view_time_course.png</iconset>
    </property>
    <property name="text">
-    <string>View Time Course</string>
+    <string>Show Time Course</string>
    </property>
    <property name="toolTip">
     <string>View Time Course</string>

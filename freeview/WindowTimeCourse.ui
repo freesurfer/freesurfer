@@ -17,14 +17,14 @@
    <item>
     <widget class="QFrame" name="frame">
      <property name="frameShape">
-      <enum>QFrame::StyledPanel</enum>
+      <enum>QFrame::Panel</enum>
      </property>
      <property name="frameShadow">
       <enum>QFrame::Sunken</enum>
      </property>
      <layout class="QVBoxLayout" name="verticalLayout">
       <property name="margin">
-       <number>0</number>
+       <number>5</number>
       </property>
       <item>
        <widget class="WidgetTimeCoursePlot" name="widgetPlot" native="true">
