@@ -6,7 +6,7 @@ noinst_LIBRARIES=libpvl.a
 
 libpvl_a_CXXFLAGS=-I$(top_srcdir)/histo_register/ParticleVideoLib/include \
 	$(OPENCV_CXXFLAGS) -I$(top_srcdir)/histo_register/SimpleBaseLib/include
-libpvl_a_CPPFLAGS=-DUSE_CDT
+libpvl_a_CPPFLAGS=-DUSE_CDT -DUSE_OPENCV
 libpvl_a_SOURCES=\
 	src/Occlusion.cc \
 	src/SimpleParticleBuild.cc \
