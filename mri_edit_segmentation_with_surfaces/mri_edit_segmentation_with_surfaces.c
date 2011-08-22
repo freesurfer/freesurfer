@@ -1,15 +1,14 @@
 /**
  * @file  mri_edit_segmentation_with_surfaces.c
- * @brief relabel voxels interior to the ribbon or white matter
+ * @brief relabel aseg.mgz gm/wm voxels interior/exterier to the surfaces
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
  */
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2011/04/14 15:23:51 $
- *    $Revision: 1.19 $
+ *    $Author: nicks $
+ *    $Date: 2011/08/22 17:12:26 $
+ *    $Revision: 1.20 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -22,7 +21,6 @@
  * Reporting: freesurfer@nmr.mgh.harvard.edu
  *
  */
-
 
 
 #include <stdio.h>
@@ -45,11 +43,15 @@
 #include "colortab.h"
 #include "gca.h"
 
-static char vcid[] = "$Id: mri_edit_segmentation_with_surfaces.c,v 1.19 2011/04/14 15:23:51 fischl Exp $";
+static char vcid[] = "$Id: mri_edit_segmentation_with_surfaces.c,v 1.20 2011/08/22 17:12:26 nicks Exp $";
 
 int main(int argc, char *argv[]) ;
 
-double MRIlabelMean(MRI *mri, MRI  *mri_labels, int x, int y, int z, int whalf, int label) ;
+double MRIlabelMean(MRI *mri,
+                    MRI  *mri_labels,
+                    int x, int y, int z,
+                    int whalf,
+                    int label) ;
 static int  get_option(int argc, char *argv[]) ;
 static void usage_exit(void) ;
 static void print_usage(void) ;
@@ -58,13 +60,6 @@ static void print_version(void) ;
 static int relabel_hypointensities(MRI *mri, MRI_SURFACE *mris, int right,
                                    GCA *gca, TRANSFORM *transform) ;
 static int relabel_gray_matter(MRI *mri, MRI_SURFACE *mris, int which_edits) ;
-/*static int relabel_hypointensities_neighboring_gray(MRI *mri) ;*/
-#if 0
-static int  edit_unknowns(MRI *mri_aseg, MRI *mri) ;
-static int edit_hippocampal_complex(MRI *mri, MRI_SURFACE *mris, int right, char *annot_name, float *thickness) ;
-/*static int edit_hippocampus(MRI *mri) ;*/
-static int edit_calcarine(MRI *mri, MRI_SURFACE *mris, int right) ;
-#endif
 
 static char *annot_name = "aparc.annot" ;
 
@@ -73,7 +68,7 @@ static char *annot_name = "aparc.annot" ;
 #define CORTEX_EDITS     0x0004
 #define WM_EDITS         0x0008
 
-static int which_edits = HYPO_EDITS | CEREBELLUM_EDITS | CORTEX_EDITS | WM_EDITS ;
+static int which_edits=HYPO_EDITS|CEREBELLUM_EDITS|CORTEX_EDITS|WM_EDITS;
 
 char *Progname ;
 
@@ -87,9 +82,10 @@ static GCA *gca = NULL ;
 static TRANSFORM *transform = NULL ;
 
 int
-main(int argc, char *argv[]) {
+main(int argc, char *argv[])
+{
   char          **av, *hemi, fname[STRLEN], *in_fname,
-  *in_aseg_name, *out_aseg_name, *surf_dir ;
+                *in_aseg_name, *out_aseg_name, *surf_dir ;
   int           ac, nargs, h, i, ninputs, input ;
   MRI_SURFACE   *mris ;
   MRI           *mri_aseg, *mri_tmp = NULL, *mri_inputs = NULL ;
@@ -101,14 +97,17 @@ main(int argc, char *argv[]) {
 
   ac = argc ;
   av = argv ;
-  for ( ; argc > 1 && ISOPTION(*argv[1]) ; argc--, argv++) {
+  for ( ; argc > 1 && ISOPTION(*argv[1]) ; argc--, argv++)
+  {
     nargs = get_option(argc, argv) ;
     argc -= nargs ;
     argv += nargs ;
   }
 
   if (argc < 4)
+  {
     usage_exit() ;
+  }
 
   in_aseg_name = argv[1] ;
   surf_dir = argv[2] ;
@@ -116,7 +115,8 @@ main(int argc, char *argv[]) {
   ninputs = argc-4 ;
   printf("reading %d input volumes\n", ninputs) ;
 
-  for (input = 0 ; input < ninputs ; input++) {
+  for (input = 0 ; input < ninputs ; input++)
+  {
     in_fname = argv[3+input] ;
     printf("reading input volume from %s...\n", in_fname) ;
     mri_tmp = MRIread(in_fname) ;
@@ -124,7 +124,8 @@ main(int argc, char *argv[]) {
       ErrorExit(ERROR_NOFILE, "%s: could not read input MR volume from %s",
                 Progname, in_fname) ;
 
-    if (input == 0) {
+    if (input == 0)
+    {
       mri_inputs =
         MRIallocSequence(mri_tmp->width, mri_tmp->height, mri_tmp->depth,
                          mri_tmp->type, ninputs) ;
@@ -141,14 +142,23 @@ main(int argc, char *argv[]) {
   }
   mri_aseg = MRIread(in_aseg_name) ;
   if (!mri_aseg)
-    ErrorExit(ERROR_NOFILE, "%s: could not read input segmentation %s", Progname, in_aseg_name) ;
+  {
+    ErrorExit(ERROR_NOFILE, "%s: could not read input segmentation %s",
+              Progname, in_aseg_name) ;
+  }
 
-  for (i = 0 ; i < 2 ; i++) {
-    for (h = 0 ; h <= 1 ; h++) {
+  for (i = 0 ; i < 2 ; i++)
+  {
+    for (h = 0 ; h <= 1 ; h++)
+    {
       if (h == 0)
+      {
         hemi = "lh" ;
+      }
       else
+      {
         hemi = "rh" ;
+      }
       sprintf(fname, "%s/%s.%s", surf_dir, hemi, surf_name)  ;
       printf("reading input surface %s...\n", fname) ;
       mris = MRISread(fname) ;
@@ -156,18 +166,24 @@ main(int argc, char *argv[]) {
         ErrorExit(ERROR_NOFILE, "%s: could not read surface file %s",
                   Progname, fname) ;
       if (MRISreadPialCoordinates(mris, "pial") != NO_ERROR)
+      {
         ErrorExit(Gerror, "") ;
+      }
       MRISsaveVertexPositions(mris, ORIGINAL_VERTICES) ;
       MRISsaveVertexPositions(mris, WHITE_VERTICES) ;
       MRIScomputeMetricProperties(mris) ;
       MRISsmoothSurfaceNormals(mris, 10) ;   /* remove kinks in surface */
       thickness = MRISreadCurvatureVector(mris, "thickness") ;
       if (thickness == NULL)
-        ErrorExit(ERROR_NOFILE, "%s: could not read thickness file for %s\n",Progname,fname) ;
+      {
+        ErrorExit(ERROR_NOFILE, "%s: could not read thickness file for %s\n",
+                  Progname,fname) ;
+      }
 
 
       if (MRISreadAnnotation(mris, annot_name) != NO_ERROR)
-        ErrorExit(ERROR_NOFILE, "%s: could not read annotation file %s for hemi %s\n",
+        ErrorExit(ERROR_NOFILE,
+                  "%s: could not read annotation file %s for hemi %s\n",
                   Progname, annot_name, hemi) ;
 
       if (mris->ct == NULL)  /* color table not in annotation file */
@@ -178,7 +194,10 @@ main(int argc, char *argv[]) {
         printf("reading colortable from %s...\n", fname) ;
         mris->ct = CTABreadASCII(fname) ;
         if (!mris->ct)
-          ErrorExit(ERROR_NOFILE, "%s: could not read color table from %s",Progname, fname) ;
+        {
+          ErrorExit(ERROR_NOFILE, "%s: could not read color table from %s",
+                    Progname, fname) ;
+        }
       }
 
 #if 0
@@ -200,9 +219,14 @@ main(int argc, char *argv[]) {
       MRISfree(&mris) ;
       free(thickness) ;
     }
-    if (transform && i == 0) {
+    if (transform && i == 0)
+    {
       TransformInvert(transform, mri_inputs) ;
-      mri_tmp = GCAlabelWMandWMSAs(gca, mri_inputs, mri_aseg, mri_tmp, transform) ;
+      mri_tmp = GCAlabelWMandWMSAs(gca,
+                                   mri_inputs,
+                                   mri_aseg,
+                                   mri_tmp,
+                                   transform) ;
       MRIfree(&mri_aseg) ;
       mri_aseg = mri_tmp ;
     }
@@ -211,14 +235,18 @@ main(int argc, char *argv[]) {
 #if 0
   /* edit_hippocampus(mri_aseg) ;*/
   if (mri_vals)
+  {
     edit_unknowns(mri_aseg, mri_vals) ;
+  }
 #endif
 
   printf("writing modified segmentation to %s...\n", out_aseg_name) ;
   MRIwrite(mri_aseg, out_aseg_name) ;
+
   exit(0) ;
   return(0) ;  /* for ansi */
 }
+
 
 /*----------------------------------------------------------------------
             Parameters:
@@ -226,66 +254,102 @@ main(int argc, char *argv[]) {
            Description:
 ----------------------------------------------------------------------*/
 static int
-get_option(int argc, char *argv[]) {
+get_option(int argc, char *argv[])
+{
   int  on  ;
   int  nargs = 0 ;
   char *option ;
 
   option = argv[1] + 1 ;            /* past '-' */
   if (!stricmp(option, "-help"))
+  {
     print_help() ;
+  }
   else if (!stricmp(option, "-version"))
+  {
     print_version() ;
-  else if (!stricmp(option, "-annot")) {
+  }
+  else if (!stricmp(option, "-annot"))
+  {
     annot_name = argv[2] ;
     nargs = 2 ;
     printf("using annotation file %s...\n", annot_name) ;
-  } else if (!stricmp(option, "hypo")) {
+  }
+  else if (!stricmp(option, "hypo"))
+  {
     on = atof(argv[2]) ;
     nargs = 1 ;
     if (on)
+    {
       which_edits |= HYPO_EDITS ;
+    }
     else
+    {
       which_edits &= ~HYPO_EDITS ;
+    }
     printf("turning %s hypointensity editing\n", on ? "on" : "off") ;
-  } else if (!stricmp(option, "cortex")) {
+  }
+  else if (!stricmp(option, "cortex"))
+  {
     on = atof(argv[2]) ;
     nargs = 1 ;
     if (on)
+    {
       which_edits |= CORTEX_EDITS ;
+    }
     else
+    {
       which_edits &= ~CORTEX_EDITS ;
+    }
     printf("turning %s cortex editing\n", on ? "on" : "off") ;
-  } else if (!stricmp(option, "white")) {
+  }
+  else if (!stricmp(option, "white"))
+  {
     on = atof(argv[2]) ;
     nargs = 1 ;
     if (on)
+    {
       which_edits |= WM_EDITS ;
+    }
     else
+    {
       which_edits &= ~WM_EDITS ;
+    }
     printf("turning %s wm editing\n", on ? "on" : "off") ;
-  } else if (!stricmp(option, "cerebellum")) {
+  }
+  else if (!stricmp(option, "cerebellum"))
+  {
     on = atof(argv[2]) ;
     nargs = 1 ;
     if (on)
+    {
       which_edits |= CEREBELLUM_EDITS ;
+    }
     else
+    {
       which_edits &= ~CEREBELLUM_EDITS ;
+    }
     printf("turning %s cerebellum editing\n", on ? "on" : "off") ;
-  } else if (!stricmp(option, "debug_voxel")) {
+  }
+  else if (!stricmp(option, "debug_voxel"))
+  {
     Ggca_x = Gx = atoi(argv[2]) ;
     Ggca_y = Gy = atoi(argv[3]) ;
     Ggca_z = Gz = atoi(argv[4]) ;
     nargs = 3 ;
     printf("debugging voxel (%d, %d, %d)\n", Gx, Gy, Gz) ;
-  } else if (!stricmp(option, "MRI")) {
+  }
+  else if (!stricmp(option, "MRI"))
+  {
     printf("reading MRI volume from %s...\n", argv[2]) ;
     mri_vals = MRIread(argv[2]) ;
     if (!mri_vals)
       ErrorExit(ERROR_NOFILE, "%s: could not read MRI volume from %s",
                 Progname, argv[2]) ;
     nargs = 1 ;
-  } else if (!stricmp(option, "GCA")) {
+  }
+  else if (!stricmp(option, "GCA"))
+  {
     printf("reading GCA from %s, and xform from %s...\n", argv[2], argv[3]) ;
     gca = GCAread(argv[2]) ;
     if (!gca)
@@ -296,7 +360,9 @@ get_option(int argc, char *argv[]) {
       ErrorExit(ERROR_NOFILE, "%s: could not read transform from %s",
                 Progname, argv[3]) ;
     nargs = 2 ;
-  } else switch (toupper(*option)) {
+  }
+  else switch (toupper(*option))
+    {
     case 'L':
       label_name = argv[2] ;
       nargs = 1 ;
@@ -323,20 +389,24 @@ get_option(int argc, char *argv[]) {
 }
 
 static void
-usage_exit(void) {
+usage_exit(void)
+{
   print_help() ;
   exit(1) ;
 }
 
 static void
-print_usage(void) {
-  fprintf(stderr,
-          "usage: %s [options] <aseg name> <surface dir> <norm volume> <output volume>\n",
-          Progname) ;
+print_usage(void)
+{
+  fprintf(
+    stderr,
+    "usage: %s [options] <aseg name> <surface dir> <norm volume> <output volume>\n",
+    Progname) ;
 }
 
 static void
-print_help(void) {
+print_help(void)
+{
   print_usage() ;
   fprintf(stderr,
           "\nThis program edits an aseg with the surface\n") ;
@@ -358,13 +428,19 @@ print_help(void) {
 }
 
 static void
-print_version(void) {
+print_version(void)
+{
   fprintf(stderr, "%s\n", vcid) ;
   exit(1) ;
 }
 
 static int
-relabel_hypointensities(MRI *mri, MRI_SURFACE *mris, int right, GCA *gca, TRANSFORM *transform) {
+relabel_hypointensities(MRI *mri,
+                        MRI_SURFACE *mris,
+                        int right,
+                        GCA *gca,
+                        TRANSFORM *transform)
+{
   int              x, y, z, label, changed, n ;
   GCA_PRIOR        *gcap ;
   MRI              *mri_inside, *mri_inside_eroded, *mri_inside_dilated ;
@@ -378,39 +454,61 @@ relabel_hypointensities(MRI *mri, MRI_SURFACE *mris, int right, GCA *gca, TRANSF
   mri_inside_eroded = MRIerode(mri_inside, NULL) ;
   mri_inside_dilated = MRIdilate(mri_inside, NULL) ;
   mht = MHTfillVertexTableRes(mris,NULL, CURRENT_VERTICES, 8.0f) ;
-  if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON) {
+  if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
+  {
     char fname[STRLEN] ;
     sprintf(fname, "%s_inside.mgz", right?"rh":"lh") ;
     MRIwrite(mri_inside, fname) ;
   }
   if (gca)
+  {
     TransformInvert(transform, mri) ;
-  for (changed = x = 0 ; x < mri->width ; x++) {
-    for (y = 0 ; y < mri->height ; y++) {
-      for (z = 0 ; z < mri->depth ; z++) {
+  }
+  for (changed = x = 0 ; x < mri->width ; x++)
+  {
+    for (y = 0 ; y < mri->height ; y++)
+    {
+      for (z = 0 ; z < mri->depth ; z++)
+      {
         if (x == Gx && y == Gy && z == Gz)
+        {
           DiagBreak() ;
+        }
         label = MRIvox(mri, x, y, z) ;
         if (right &&
-            ((label != Right_Cerebral_Cortex) && (label != Right_WM_hypointensities)))
+            ((label != Right_Cerebral_Cortex) && 
+             (label != Right_WM_hypointensities)))
+        {
           continue ;
+        }
         if (right == 0 &&
-            ((label != Left_Cerebral_Cortex) && (label != Left_WM_hypointensities)))
+            ((label != Left_Cerebral_Cortex) && 
+             (label != Left_WM_hypointensities)))
+        {
           continue ;
+        }
 
-        if (MRIneighbors(mri, x, y, z, Unknown) >= 3) /* avoid stuff outside of brain in a sea of unknown */
+        if (MRIneighbors(mri, x, y, z, Unknown) >= 3)   
+        {
+          /* avoid stuff outside of brain in a sea of unknown */
           continue ;
+        }
 
         MRIvoxelToSurfaceRAS(mri, x, y, z, &xw, &yw, &zw) ;
         v = MHTfindClosestVertexInTable(mht, mris, xw, yw, zw, 0) ;
-        if (v == NULL)  // no vertices within range - either way inside or way outside
-        {
+        if (v == NULL)
+        {// no vertices within range - either way inside or way outside
           if  (MRIgetVoxVal(mri_inside, x, y, z, 0) > 0)
+          {
             dot = -1 ;
+          }
           else
+          {
             dot = 1 ;
+          }
           dist = 1000 ;
-        } else // see where we are relative to closest vertex
+        }
+        else   // see where we are relative to closest vertex
         {
           dx = xw - v->x ;
           dy = yw - v->y ;
@@ -419,22 +517,35 @@ relabel_hypointensities(MRI *mri, MRI_SURFACE *mris, int right, GCA *gca, TRANSF
           dist = sqrt(dx*dx+dy*dy+dz*dz) ;
         }
 
-        if (dot > 0 && (MRIgetVoxVal(mri_inside_eroded, x, y, z, 0) > 0))  // should be inside
+        if (dot > 0 && 
+            (MRIgetVoxVal(mri_inside_eroded, x, y, z, 0) > 0))  
+        { // should be inside
           dot *= -1 ;
-        else if (dot < 0 && (MRIgetVoxVal(mri_inside_dilated, x, y, z, 0) == 0)) // should be outside
+        }
+        else if (dot < 0 && 
+                 (MRIgetVoxVal(mri_inside_dilated, x, y, z, 0) == 0))
+        { // should be outside
           dot *= -1 ;
+        }
 
         if (x == Gx && y == Gy && z == Gz)
-          printf("(%d, %d, %d), label %s, dist = %2.1f, dot = %2.1f\n", Gx, Gy, Gz,
+          printf("(%d, %d, %d), label %s, dist = %2.1f, dot = %2.1f\n",
+                 Gx, Gy, Gz,
                  cma_label_to_name(label), dist, dot) ;
-        switch (label) {
+        switch (label)
+        {
         case Left_Cerebral_Cortex:
         case Right_Cerebral_Cortex:  // check to see if it's inside ribbon and change it to hypointensity
-          if (dot < 0 && dist > 2) {
+          if (dot < 0 && dist > 2)
+          {
             if (x == Gx && y == Gy && z == Gz)
-              printf("inside gray/white boundary, changing to hypointensity...\n") ;
+            {
+              printf("inside gray/white boundary, "
+                     "changing to hypointensity...\n") ;
+            }
             changed++ ;
-            MRIvox(mri, x, y, z) = right ? Right_WM_hypointensities : Left_WM_hypointensities ;
+            MRIvox(mri, x, y, z) = 
+              right ? Right_WM_hypointensities : Left_WM_hypointensities ;
           }
           break ;
         case Left_WM_hypointensities:
@@ -447,46 +558,60 @@ relabel_hypointensities(MRI *mri, MRI_SURFACE *mris, int right, GCA *gca, TRANSF
             // don't change things on the walls of the ventricles
             gcap = getGCAP(gca, mri, transform, x, y, z) ;
             found = 0 ;
-            for (n = 0 ; n < gcap->nlabels ; n++) {
-              if (IS_LAT_VENT(gcap->labels[n]) && (gcap->priors[n] > 0.5)) {
+            for (n = 0 ; n < gcap->nlabels ; n++)
+            {
+              if (IS_LAT_VENT(gcap->labels[n]) && (gcap->priors[n] > 0.5))
+              {
                 found = 1 ;
               }
-              if (IS_CAUDATE(gcap->labels[n])) {
+              if (IS_CAUDATE(gcap->labels[n]))
+              {
                 found = 1 ;
               }
             }
             if (found == 1)  // too near ventricle - can't be gm
             {
               if (x == Gx && y == Gy && z == Gz)
+              {
                 printf("too near ventricles and/or caudate - not changing\n") ;
+              }
               continue ;
             }
 
             // now see if gm is possible in this region
             // and make sure no ventricle in nbhd
             whalf = gca->prior_spacing ;
-            for (found_ven = found = 0, xk =-whalf ; !found_ven && xk <= whalf ; xk++) {
+            for (found_ven = found = 0, xk =-whalf ;
+                 !found_ven && xk <= whalf ; xk++)
+            {
               xi = mri->xi[x+xk] ;
-              for (yk =-whalf ; !found_ven && yk <= whalf ; yk++) {
+              for (yk =-whalf ; !found_ven && yk <= whalf ; yk++)
+              {
                 yi = mri->yi[y+yk] ;
-                for (zk =-whalf ; !found_ven && zk <= whalf ; zk++) {
+                for (zk =-whalf ; !found_ven && zk <= whalf ; zk++)
+                {
                   zi = mri->zi[z+zk] ;
 
                   dist = sqrt(xk*xk+yk*yk+zk*zk) ;
                   if (dist > gca->prior_spacing+1)
+                  {
                     continue ;
+                  }
                   label = MRIvox(mri, xi, yi, zi) ;
                   gcap = getGCAP(gca, mri, transform, xi, yi, zi) ;
-                  for (n = 0 ; n < gcap->nlabels ; n++) {
+                  for (n = 0 ; n < gcap->nlabels ; n++)
+                  {
                     if (gcap->labels[n] == Left_Lateral_Ventricle ||
-                        label == Right_Lateral_Ventricle) {
+                        label == Right_Lateral_Ventricle)
+                    {
                       found_ven = 1 ;
                       if (x == Gx && y == Gy && z == Gz)
                         printf("ventricle label found at (%d, %d, %d)\n",
                                xi, yi, zi) ;
                       break ;
                     }
-                    if (IS_GM(gcap->labels[n]) && gcap->priors[n] > 0.1) {
+                    if (IS_GM(gcap->labels[n]) && gcap->priors[n] > 0.1)
+                    {
                       if (x == Gx && y == Gy && z == Gz)
                         printf("possible gray matter found at (%d, %d, %d)\n",
                                xi, yi, zi) ;
@@ -496,19 +621,26 @@ relabel_hypointensities(MRI *mri, MRI_SURFACE *mris, int right, GCA *gca, TRANSF
                 }
               }
             }
-            if ((found == 0) || (found_ven == 1)) {
+            if ((found == 0) || (found_ven == 1))
+            {
               if (x == Gx && y == Gy && z == Gz)
+              {
                 printf("gray matter not possible at this location...\n") ;
+              }
               continue ;   // don't change it
             }
           }
 
           // if it's outside, or just inside change it to gm
-          if (dot > 0 || (dot < 0 &&  dist < 1)) {
+          if (dot > 0 || (dot < 0 &&  dist < 1))
+          {
             changed++ ;
             if (x == Gx && y == Gy && z == Gz)
+            {
               printf("outside ribbon: changing to cerebral cortex...\n") ;
-            MRIvox(mri, x, y, z) = right ? Right_Cerebral_Cortex : Left_Cerebral_Cortex ;
+            }
+            MRIvox(mri, x, y, z) =
+              right ? Right_Cerebral_Cortex : Left_Cerebral_Cortex ;
           }
           break ;
         }
@@ -525,7 +657,8 @@ relabel_hypointensities(MRI *mri, MRI_SURFACE *mris, int right, GCA *gca, TRANSF
 }
 
 static int
-relabel_gray_matter(MRI *mri, MRI_SURFACE *mris, int which_edits) {
+relabel_gray_matter(MRI *mri, MRI_SURFACE *mris, int which_edits)
+{
   int              x, y, z, label, changed, out_label, xi, yi, zi, left ;
   VECTOR           *v1, *v2 ;
   MRI              *mri_pial_dist, *mri_white_dist ;
@@ -535,46 +668,74 @@ relabel_gray_matter(MRI *mri, MRI_SURFACE *mris, int which_edits) {
   left = mris->hemisphere == LEFT_HEMISPHERE ;
   v1 = VectorAlloc(4, MATRIX_REAL) ;
   v2 = VectorAlloc(4, MATRIX_REAL) ;
-  VECTOR_ELT(v1, 4) = 1.0 ; VECTOR_ELT(v2, 4) = 1.0 ;
+  VECTOR_ELT(v1, 4) = 1.0 ;
+  VECTOR_ELT(v2, 4) = 1.0 ;
 
   MRISrestoreVertexPositions(mris, PIAL_VERTICES) ;
   MRIScomputeMetricProperties(mris) ;
   mri_pial_dist = MRIcloneDifferentType(mri, MRI_FLOAT) ;
   mri_pial_dist = MRIScomputeDistanceToSurface(mris, mri_pial_dist, 1) ;
   m_vox2vox = MRIgetVoxelToVoxelXform(mri, mri_pial_dist) ;
-  for (changed = x = 0 ; x < mri->width ; x++) {
-    for (y = 0 ; y < mri->height ; y++) {
-      for (z = 0 ; z < mri->depth ; z++) {
-        V3_X(v1) = x ; V3_Y(v1) = y ; V3_Z(v1) = z ;
+  for (changed = x = 0 ; x < mri->width ; x++)
+  {
+    for (y = 0 ; y < mri->height ; y++)
+    {
+      for (z = 0 ; z < mri->depth ; z++)
+      {
+        V3_X(v1) = x ;
+        V3_Y(v1) = y ;
+        V3_Z(v1) = z ;
         MatrixMultiply(m_vox2vox, v1, v2) ;
-        xi = nint(V3_X(v2)) ; yi = nint(V3_Y(v2)) ; zi = nint(V3_Z(v2)) ; 
-        if (xi < 0 || yi < 0 || zi < 0 || 
+        xi = nint(V3_X(v2)) ;
+        yi = nint(V3_Y(v2)) ;
+        zi = nint(V3_Z(v2)) ;
+        if (xi < 0 || yi < 0 || zi < 0 ||
             xi >= mri_pial_dist->width ||
             yi >= mri_pial_dist->height ||
             zi >= mri_pial_dist->depth)
+        {
           continue ;
+        }
         if (x == Gx && y == Gy && z == Gz)
+        {
           DiagBreak() ;
+        }
         label = nint(MRIgetVoxVal(mri, x, y, z, 0)) ;
         out_label = label ;
         dist = MRIgetVoxVal(mri_pial_dist, xi, yi, zi, 0) ;
         if (dist < -0.5) // clearly inside ribbon
         {
           if (which_edits & CEREBELLUM_EDITS) switch (label)
-          {
-          case Left_Cerebellum_Cortex:  out_label = Left_Cerebral_Cortex ;  break ;
-          case Right_Cerebellum_Cortex: out_label = Right_Cerebral_Cortex ; break ;
-          default: break ;
-          }
+            {
+            case Left_Cerebellum_Cortex:
+              out_label = Left_Cerebral_Cortex ;
+              break ;
+            case Right_Cerebellum_Cortex:
+              out_label = Right_Cerebral_Cortex ;
+              break ;
+            default:
+              break ;
+            }
         }
         else if (dist > 0.5) // clearly outside ribbon
         {
           if (which_edits & CORTEX_EDITS) switch (label)
-          {
-          case Left_Cerebral_Cortex:  if (left) out_label = Unknown ;  break ;
-          case Right_Cerebral_Cortex: if (left == 0) out_label = Unknown ; break ;
-          default: break ;
-          }
+            {
+            case Left_Cerebral_Cortex:
+              if (left)
+              {
+                out_label = Unknown ;
+              }
+              break ;
+            case Right_Cerebral_Cortex:
+              if (left == 0)
+              {
+                out_label = Unknown ;
+              }
+              break ;
+            default:
+              break ;
+            }
         }
 
         if (label != out_label)
@@ -592,43 +753,70 @@ relabel_gray_matter(MRI *mri, MRI_SURFACE *mris, int which_edits) {
   mri_white_dist = MRIcloneDifferentType(mri, MRI_FLOAT) ;
   mri_white_dist = MRIScomputeDistanceToSurface(mris, mri_white_dist, 1) ;
   m_vox2vox = MRIgetVoxelToVoxelXform(mri, mri_white_dist) ;
-  for (changed = x = 0 ; x < mri->width ; x++) {
-    for (y = 0 ; y < mri->height ; y++) {
-      for (z = 0 ; z < mri->depth ; z++) {
-        V3_X(v1) = x ; V3_Y(v1) = y ; V3_Z(v1) = z ;
+  for (changed = x = 0 ; x < mri->width ; x++)
+  {
+    for (y = 0 ; y < mri->height ; y++)
+    {
+      for (z = 0 ; z < mri->depth ; z++)
+      {
+        V3_X(v1) = x ;
+        V3_Y(v1) = y ;
+        V3_Z(v1) = z ;
         MatrixMultiply(m_vox2vox, v1, v2) ;
-        xi = nint(V3_X(v2)) ; yi = nint(V3_Y(v2)) ; zi = nint(V3_Z(v2)) ; 
-        if (xi < 0 || yi < 0 || zi < 0 || 
+        xi = nint(V3_X(v2)) ;
+        yi = nint(V3_Y(v2)) ;
+        zi = nint(V3_Z(v2)) ;
+        if (xi < 0 || yi < 0 || zi < 0 ||
             xi >= mri_white_dist->width ||
             yi >= mri_white_dist->height ||
             zi >= mri_white_dist->depth)
+        {
           continue ;
+        }
         if (x == Gx && y == Gy && z == Gz)
+        {
           DiagBreak() ;
+        }
         label = nint(MRIgetVoxVal(mri, x, y, z, 0)) ;
         out_label = label ;
         dist = MRIgetVoxVal(mri_white_dist, xi, yi, zi, 0) ;
         if (dist  < -0.5) // clearly inside the white matter
         {
           if (which_edits & CORTEX_EDITS) switch (label)
-          {
-          case Left_Cerebral_Cortex:  out_label = Left_Cerebral_White_Matter ;  break ;
-          case Right_Cerebral_Cortex: out_label = Right_Cerebral_White_Matter ; break ;
-          default: break ;
-          }
+            {
+            case Left_Cerebral_Cortex:
+              out_label = Left_Cerebral_White_Matter ;
+              break ;
+            case Right_Cerebral_Cortex:
+              out_label = Right_Cerebral_White_Matter ;
+              break ;
+            default:
+              break ;
+            }
         }
         else if (dist > 0) //  outside white matter surface
         {
           if (MRIgetVoxVal(mri_pial_dist, xi, yi, zi, 0) < 0) // in ribbon
           {
             if (which_edits & WM_EDITS) switch (label)
-            {
-            case Left_WM_hypointensities:
-            case Left_Cerebral_White_Matter:  if (left) out_label = Left_Cerebral_Cortex ;  break ;
-            case Right_WM_hypointensities:
-            case Right_Cerebral_White_Matter: if (left == 0) out_label = Right_Cerebral_Cortex ; break ;
-            default: break ;
-            }
+              {
+              case Left_WM_hypointensities:
+              case Left_Cerebral_White_Matter:
+                if (left)
+                {
+                  out_label = Left_Cerebral_Cortex ;
+                }
+                break ;
+              case Right_WM_hypointensities:
+              case Right_Cerebral_White_Matter:
+                if (left == 0)
+                {
+                  out_label = Right_Cerebral_Cortex ;
+                }
+                break ;
+              default:
+                break ;
+              }
           }
         }
 
@@ -641,28 +829,43 @@ relabel_gray_matter(MRI *mri, MRI_SURFACE *mris, int which_edits) {
     }
   }
   printf("%d voxels gray matter voxels changed\n", changed) ;
-  MRIfree(&mri_pial_dist) ; MRIfree(&mri_white_dist) ;
-  MatrixFree(&m_vox2vox) ; VectorFree(&v1) ; VectorFree(&v2) ;
+  MRIfree(&mri_pial_dist) ;
+  MRIfree(&mri_white_dist) ;
+  MatrixFree(&m_vox2vox) ;
+  VectorFree(&v1) ;
+  VectorFree(&v2) ;
   return(NO_ERROR) ;
 }
+
+
 #if 0
 int
-relabel_hypointensities_neighboring_gray(MRI *mri) {
+relabel_hypointensities_neighboring_gray(MRI *mri)
+{
   int    x, y, z, label, changed, i ;
   MRI    *mri_tmp = NULL ;
 
-  for (changed = i = 0 ; i < 2 ; i++) {
+  for (changed = i = 0 ; i < 2 ; i++)
+  {
     mri_tmp = MRIcopy(mri, mri_tmp) ;
-    for (x = 0 ; x < mri->width ; x++) {
-      for (y = 0 ; y < mri->height ; y++) {
-        for (z = 0 ; z < mri->depth ; z++) {
+    for (x = 0 ; x < mri->width ; x++)
+    {
+      for (y = 0 ; y < mri->height ; y++)
+      {
+        for (z = 0 ; z < mri->depth ; z++)
+        {
           label = MRIvox(mri_tmp, x, y, z) ;
           if (label != WM_hypointensities)
+          {
             continue ;
-          if (MRIneighbors(mri_tmp, x, y, z, Left_Cerebral_Cortex) > 0) {
+          }
+          if (MRIneighbors(mri_tmp, x, y, z, Left_Cerebral_Cortex) > 0)
+          {
             MRIvox(mri, x, y, z) = Left_Cerebral_Cortex ;
             changed++ ;
-          } else  if (MRIneighbors(mri_tmp, x, y, z, Right_Cerebral_Cortex) > 0) {
+          }
+          else  if (MRIneighbors(mri_tmp, x, y, z, Right_Cerebral_Cortex) > 0)
+          {
             MRIvox(mri, x, y, z) = Right_Cerebral_Cortex ;
             changed++ ;
           }
@@ -692,13 +895,20 @@ relabel_hypointensities_neighboring_gray(MRI *mri) {
 
 #if 0
 static int
-edit_hippocampal_complex(MRI *mri, MRI_SURFACE *mris, int right, char *annot_name, float *thickness) {
+edit_hippocampal_complex(MRI *mri,
+                         MRI_SURFACE *mris,
+                         int right,
+                         char *annot_name,
+                         float *thickness)
+{
   MRIS_HASH_TABLE *mht ;
-  int              x, y, z, label, changed, index, total_changed, i, vno, yi, dont_use, ystart, ind ;
+  int              x, y, z, label, changed, index, total_changed;
+  int              i, vno, yi, dont_use, ystart, ind ;
   Real             xw, yw, zw, xv, yv, zv ;
   VERTEX           *v ;
   float            dx, dy, dz, dot, dist ;
-  MRI              *mri_changed, *mri_above_para, *mri_below_para, *mri_above_inf_lat_vent, *mri_inside, *mri_aparc ;
+  MRI              *mri_changed, *mri_above_para, *mri_below_para,\
+    *mri_above_inf_lat_vent, *mri_inside, *mri_aparc ;
 
   mri_inside = MRIclone(mri, NULL) ;
   mri_changed = MRIclone(mri, NULL) ;
@@ -710,26 +920,37 @@ edit_hippocampal_complex(MRI *mri, MRI_SURFACE *mris, int right, char *annot_nam
   MRIdilate(mri_inside, mri_inside) ;
 
   /* build mask volume of stuff superior to inf lat vent */
-  for (changed = x = 0 ; x < mri->width ; x++) {
-    for (y = 0 ; y < mri->height ; y++) {
-      for (z = 0 ; z < mri->depth ; z++) {
+  for (changed = x = 0 ; x < mri->width ; x++)
+  {
+    for (y = 0 ; y < mri->height ; y++)
+    {
+      for (z = 0 ; z < mri->depth ; z++)
+      {
         if (x == Gx && y == Gy && z == Gz)
+        {
           DiagBreak() ;
+        }
         label = MRIvox(mri, x, y, z) ;
         if ((label != Right_Inf_Lat_Vent) && (label != Left_Inf_Lat_Vent))
+        {
           continue ;
+        }
         for (yi = y-1 ; yi >= 0 ; yi--)
+        {
           MRIvox(mri_above_inf_lat_vent, x, yi, z) = 128 ;
+        }
       }
     }
   }
   MRIclose(mri_above_inf_lat_vent, mri_above_inf_lat_vent) ;
 
   /* build volume with parcellation labels in it */
-  for (vno = 0 ; vno < mris->nvertices ; vno++) {
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
     v = &mris->vertices[vno] ;
     index = CTABannotationToIndex(mris->ct, v->annotation) ;
-    for (dist = 0 ; dist < 1 /*thickness[vno]*/ ; dist = dist + 0.25) {
+    for (dist = 0 ; dist < 1 /*thickness[vno]*/ ; dist = dist + 0.25)
+    {
       xw = v->x +  v->nx*dist ;
       yw = v->y +  v->ny*dist ;
       zw = v->z +  v->nz*dist ;
@@ -743,20 +964,28 @@ edit_hippocampal_complex(MRI *mri, MRI_SURFACE *mris, int right, char *annot_nam
   }
 
 
-  /* build two masks for stuff that is above (below) the parahippocampal gyrus */
-  for (vno = 0 ; vno < mris->nvertices ; vno++) {
+  /* build two masks for stuff that is above (below) 
+     the parahippocampal gyrus */
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
     v = &mris->vertices[vno] ;
     MRISvertexToVoxel(mris, v, mri_above_para, &xw, &yw, &zw) ;
     index = CTABannotationToIndex(mris->ct, v->annotation) ;
     if ((index == LINGUAL_SULCUS || index == LINGUAL_SULCUS2) &&
         sqrt(SQR(xw-Gx)+SQR(yw-Gy)+SQR(zw-Gz)) < 3)
+    {
       DiagBreak() ;
+    }
     if (IS_INF_TO_HIPPO(index) == 0)
+    {
       continue ;
+    }
 #if 0
     if (index != PARAHIPPOCAMPAL_GYRUS && index != LINGUAL_SULCUS && index != LINGUAL_SULCUS2 &&
         index != COLLATERAL_SULCUS_ANT && index != COLLATERAL_SULCUS_POS/* && index != TEMPORAL_POLE*/)
+    {
       continue ;
+    }
 #endif
     x = nint(xw) ;
     y = nint(yw) ;
@@ -764,65 +993,94 @@ edit_hippocampal_complex(MRI *mri, MRI_SURFACE *mris, int right, char *annot_nam
 
     /* check to see if these that we are inferior to a medial wall label */
     dont_use = 0 ;
-    for (yi = y-1 ; yi >= 0 ; yi--) {
+    for (yi = y-1 ; yi >= 0 ; yi--)
+    {
       if (x == Gx && yi == Gy && z == Gz)
+      {
         DiagBreak() ;
+      }
 
       if (MRIvox(mri_aparc, x, yi, z) != MEDIAL_WALL &&
           MRIvox(mri_aparc, x, yi, z) != index &&
-          MRIvox(mri_aparc, x, yi, z) != 0) {
+          MRIvox(mri_aparc, x, yi, z) != 0)
+      {
         dont_use = 1 ;
         break ;
       }
       if (MRIvox(mri_aparc, x, yi, z) == MEDIAL_WALL)
+      {
         break ;
+      }
     }
 
     for (yi = y+1 ; yi < mri->height ; yi++)
       if ((MRIvox(mri_aparc, x, yi, z) > 0) &&
-          (MRIvox(mri_aparc, x, yi, z) != index)) {
+          (MRIvox(mri_aparc, x, yi, z) != index))
+      {
         if (x == Gx && yi == Gy && z == Gz)
+        {
           DiagBreak() ;
-        if ((index == PARAHIPPOCAMPAL_GYRUS || index == LINGUAL_SULCUS || index == LINGUAL_SULCUS2) &&
+        }
+        if ((index == PARAHIPPOCAMPAL_GYRUS || 
+             index == LINGUAL_SULCUS || 
+             index == LINGUAL_SULCUS2) &&
             MRIvox(mri_aparc, x, yi, z) == FUSIFORM_GYRUS)
+        {
           continue ;
+        }
         dont_use = 1 ;
         break ;
       }
 
-    /* search superior - if a different label that can be inf to hippo, don't use this one */
+    /* search superior - if a different label that can be 
+       inf to hippo, don't use this one */
     ind = index ;
-    for (yi = y-1 ; yi >= 0 ; yi--) {
+    for (yi = y-1 ; yi >= 0 ; yi--)
+    {
       /* crossed unknown - not part of same surface location */
       if (MRIvox(mri_aparc, x, yi, z) == 0)
+      {
         ind = 0 ;
-      if (IS_INF_TO_HIPPO(MRIvox(mri_aparc, x, yi, z)) && MRIvox(mri_aparc, x, yi, z) != ind) {
+      }
+      if (IS_INF_TO_HIPPO(MRIvox(mri_aparc, x, yi, z)) && 
+          MRIvox(mri_aparc, x, yi, z) != ind)
+      {
         dont_use = 1 ;
         break ;
       }
     }
 
     if (dont_use)
+    {
       continue ;
+    }
 
 #if 0
     /* search for the end of this label and start filling there */
-    for (ystart = y-1 ; ystart >= 0 ; ystart--) {
+    for (ystart = y-1 ; ystart >= 0 ; ystart--)
+    {
       if (MRIvox(mri_aparc, x, ystart, z) == 0 ||
           MRIvox(mri_aparc, x, ystart, z) == MEDIAL_WALL)
+      {
         break ;
+      }
     }
 #else
     ystart = y ;
 #endif
 
-    for (yi = ystart-1 ; yi >= 0 ; yi--) {
+    for (yi = ystart-1 ; yi >= 0 ; yi--)
+    {
       if (x == Gx && yi == Gy && z == Gz)
+      {
         DiagBreak() ;
+      }
       MRIvox(mri_above_para, x, yi, z) = 128 ;
     }
     for (yi = ystart+1 ; yi < mri->height ; yi++)
+    {
       MRIvox(mri_below_para, x, yi, z) = 128 ;
+    }
   }
 
   MRIclose(mri_above_para, mri_above_para) ;
@@ -835,20 +1093,26 @@ edit_hippocampal_complex(MRI *mri, MRI_SURFACE *mris, int right, char *annot_nam
     MRI_SEGMENT_VOXEL *msv ;
 
     mriseg = MRIsegment(mri_above_para, 1, 255) ;
-    for (max_i = max_voxels = i = 0 ; i < mriseg->nsegments ; i++) {
+    for (max_i = max_voxels = i = 0 ; i < mriseg->nsegments ; i++)
+    {
       mseg = &mriseg->segments[i] ;
-      if (mseg->nvoxels > max_voxels) {
+      if (mseg->nvoxels > max_voxels)
+      {
         max_i = i ;
         max_voxels = mseg->nvoxels ;
       }
     }
 
     /* erase other segments */
-    for (i = 0 ; i < mriseg->nsegments ; i++) {
+    for (i = 0 ; i < mriseg->nsegments ; i++)
+    {
       if (i == max_i)
+      {
         continue ;
+      }
       mseg = &mriseg->segments[i] ;
-      for (j = 0 ; j < mseg->nvoxels ; j++) {
+      for (j = 0 ; j < mseg->nvoxels ; j++)
+      {
         msv = &mseg->voxels[j] ;
         MRIvox(mri_above_para, msv->x, msv->y, msv->z) = 0 ;
       }
@@ -856,20 +1120,26 @@ edit_hippocampal_complex(MRI *mri, MRI_SURFACE *mris, int right, char *annot_nam
     MRIsegmentFree(&mriseg) ;
 
     mriseg = MRIsegment(mri_below_para, 1, 255) ;
-    for (max_i = max_voxels = i = 0 ; i < mriseg->nsegments ; i++) {
+    for (max_i = max_voxels = i = 0 ; i < mriseg->nsegments ; i++)
+    {
       mseg = &mriseg->segments[i] ;
-      if (mseg->nvoxels > max_voxels) {
+      if (mseg->nvoxels > max_voxels)
+      {
         max_i = i ;
         max_voxels = mseg->nvoxels ;
       }
     }
 
     /* erase other segments */
-    for (i = 0 ; i < mriseg->nsegments ; i++) {
+    for (i = 0 ; i < mriseg->nsegments ; i++)
+    {
       if (i == max_i)
+      {
         continue ;
+      }
       mseg = &mriseg->segments[i] ;
-      for (j = 0 ; j < mseg->nvoxels ; j++) {
+      for (j = 0 ; j < mseg->nvoxels ; j++)
+      {
         msv = &mseg->voxels[j] ;
         MRIvox(mri_below_para, msv->x, msv->y, msv->z) = 0 ;
       }
@@ -880,71 +1150,128 @@ edit_hippocampal_complex(MRI *mri, MRI_SURFACE *mris, int right, char *annot_nam
 
   mht = MHTfillVertexTableRes(mris,NULL, CURRENT_VERTICES, 8.0f) ;
 
-  /* find voxels that are below the parahippocampal gyrus and labeled as something that should
-     be above (hippocampus, amygdala, inf lat vent), and change it's label to cortex.
+  /* find voxels that are below the parahippocampal gyrus and 
+     labeled as something that should
+     be above (hippocampus, amygdala, inf lat vent), and 
+     change it's label to cortex.
   */
-  for (changed = x = 0 ; x < mri->width ; x++) {
-    for (y = 0 ; y < mri->height ; y++) {
-      for (z = 0 ; z < mri->depth ; z++) {
+  for (changed = x = 0 ; x < mri->width ; x++)
+  {
+    for (y = 0 ; y < mri->height ; y++)
+    {
+      for (z = 0 ; z < mri->depth ; z++)
+      {
         if (x == Gx && y == Gy && z == Gz)
+        {
           DiagBreak() ;
+        }
         if (MRIvox(mri_above_para, x, y, z) > 0)  /* above the parahippocampal gyrus */
+        {
           continue ;
+        }
         if (MRIvox(mri_below_para, x, y, z) == 0)  /* not below the parahippocampal gyrus */
+        {
           continue ;
+        }
 
         label = MRIvox(mri, x, y, z) ;
-        /* only process amygdala and hippocampal voxels for the correct hemisphere */
-        if ((right && ((label != Right_Hippocampus) && (label != Right_Amygdala) && (label != Right_Inf_Lat_Vent))) ||
-            (!right && ((label != Left_Hippocampus) && (label != Left_Amygdala) && (label != Left_Inf_Lat_Vent))))
+        /* only process amygdala and hippocampal voxels 
+           for the correct hemisphere */
+        if ((right && ((label != Right_Hippocampus) && 
+                       (label != Right_Amygdala) && 
+                       (label != Right_Inf_Lat_Vent))) ||
+            (!right && ((label != Left_Hippocampus) && 
+                        (label != Left_Amygdala) && 
+                        (label != Left_Inf_Lat_Vent))))
+        {
           continue ;
+        }
         MRIvoxelToSurfaceRAS(mri, x, y, z, &xw, &yw, &zw) ;
         v = MHTfindClosestVertexInTable(mht, mris, xw, yw, zw) ;
         if (v == NULL)
+        {
           continue ;
+        }
         index = CTABannotationToIndex(mris->ct, v->annotation) ;
 #if 0
-        if (index == PARAHIPPOCAMPAL_GYRUS) {
+        if (index == PARAHIPPOCAMPAL_GYRUS)
+        {
 #if 1
-          /* don't change voxels where the wm surface normal is pointing superiorly */
-          if (v->nz >= 0) {
-            if (dist > MAX_DIST)  /* don't process amygdala that is far from surface */
-              continue ;
-            if (((fabs(v->nz) > fabs(v->nx)) || (fabs(v->nz) > fabs(v->ny))))
-              continue ;   /* this voxel is superior to wm surface */
-            /* at this point, the wm vertex is running nearly inferior-superior, so use
-              laterality to determine which side of parahippo it is on */
-            if (fabs(xw) - fabs(v->x) < MIN_DIST)  /* if it isn't clearly lateral to parahippo, don't change it */
-              continue ;
-
-          } else if (((fabs(v->nz) < fabs(v->nx)) || (fabs(v->nz) < fabs(v->ny)))) /* not clearly inf or sup */
+          /* don't change voxels where the wm surface normal
+             is pointing superiorly */
+          if (v->nz >= 0)
           {
-            /* at this point, the wm vertex is running nearly inferior-superior, so use
-              laterality to determine which side of parahippo it is on */
-            if (fabs(xw) - fabs(v->x) < MIN_DIST)  /* if it isn't clearly lateral to parahippo, don't change it */
+            if (dist > MAX_DIST)  /* don't process amygdala
+                                     that is far from surface */
+            {
               continue ;
-            if ((((fabs(v->nz)) < fabs(v->nx)) && ((fabs(v->nz) < fabs(v->ny)))))
+            }
+            if (((fabs(v->nz) > fabs(v->nx)) || (fabs(v->nz) > fabs(v->ny))))
+            {
+              continue ;  /* this voxel is superior to wm surface */
+            }
+            /* at this point, the wm vertex is running 
+               nearly inferior-superior, so use
+              laterality to determine which side of parahippo it is on */
+            if (fabs(xw) - fabs(v->x) < MIN_DIST)  /* if it isn't 
+                                                      clearly lateral 
+                                                      to parahippo,
+                                                      don't change it */
+            {
+              continue ;
+            }
+
+          }
+          else if (((fabs(v->nz) < fabs(v->nx)) || 
+                    (fabs(v->nz) < fabs(v->ny)))) /* not clearly inf or sup */
+          {
+            /* at this point, the wm vertex is running nearly 
+               inferior-superior, so use
+               laterality to determine which side of parahippo it is on */
+            if (fabs(xw) - fabs(v->x) < MIN_DIST)  /* if it isn't clearly 
+                                                      lateral to parahippo,
+                                                      don't change it */
+            {
+              continue ;
+            }
+            if ((((fabs(v->nz)) < fabs(v->nx)) && 
+                 ((fabs(v->nz) < fabs(v->ny)))))
+            {
               continue ;  /* if it's not clearly pointing up, don't use it */
+            }
           }
 #else
           if (zw > (v->z) && (fabs(zw-v->z) > MIN_DIST))
-            continue ;  /* don't change wm that is superior to parahippocampal gyrus */
-          if (fabs(zw-v->z) < MIN_DIST)  /* too close - make sure it is medial of wm */
           {
-            if (fabs(xw) - fabs(v->x) < MIN_DIST)  /* if it isn't clearly lateral to parahippo, don't change it */
+            continue ;  /* don't change wm that is superior 
+                           to parahippocampal gyrus */
+          }
+          if (fabs(zw-v->z) < 
+              MIN_DIST)  /* too close - make sure it is medial of wm */
+          {
+            if (fabs(xw) - fabs(v->x) < 
+                MIN_DIST)  /* if it isn't clearly lateral to parahippo,
+                              don't change it */
+            {
               continue ;
+            }
           }
 #endif
         }
 #endif
 
         if (x == Gx && y == Gy && z == Gz)
-          printf("voxel (%d, %d, %d): label %d (%s), parc %d, changing to cortex...\n",
+          printf("voxel (%d, %d, %d): label %d (%s), parc %d, "
+                 "changing to cortex...\n",
                  Gx, Gy, Gz, label, cma_label_to_name(label), index) ;
         if (right)
+        {
           MRIvox(mri, x, y, z) = Right_Cerebral_Cortex ;
+        }
         else
+        {
           MRIvox(mri, x, y, z) = Left_Cerebral_Cortex ;
+        }
         changed++ ;
         MRIvox(mri_changed, x, y, z) = 128 ;
       }
@@ -953,39 +1280,59 @@ edit_hippocampal_complex(MRI *mri, MRI_SURFACE *mris, int right, char *annot_nam
 
 
   /* look for points inside wm labeled as cortex  and change them to wm */
-  for (x = 0 ; x < mri->width ; x++) {
-    for (y = 0 ; y < mri->height ; y++) {
-      for (z = 0 ; z < mri->depth ; z++) {
+  for (x = 0 ; x < mri->width ; x++)
+  {
+    for (y = 0 ; y < mri->height ; y++)
+    {
+      for (z = 0 ; z < mri->depth ; z++)
+      {
         if (x == Gx && y == Gy && z == Gz)
+        {
           DiagBreak() ;
+        }
         if (MRIvox(mri_inside, x, y, z) == 0)
-          continue ;   /* not really inside */
+        {
+          continue ;  /* not really inside */
+        }
         label = MRIvox(mri, x, y, z) ;
 
         /* only process cortex voxels for the correct hemisphere */
-        if ((right && ((label != Right_Cerebral_Cortex) && (label != Right_Hippocampus))) ||
-            (!right && ((label != Left_Cerebral_Cortex) && (label != Left_Hippocampus))))
+        if ((right && ((label != Right_Cerebral_Cortex) && 
+                       (label != Right_Hippocampus))) ||
+            (!right && ((label != Left_Cerebral_Cortex) && 
+                        (label != Left_Hippocampus))))
+        {
           continue ;
+        }
         MRIvoxelToSurfaceRAS(mri, x, y, z, &xw, &yw, &zw) ;
         v = MHTfindClosestVertexInTable(mht, mris, xw, yw, zw) ;
         if (v == NULL)
+        {
           continue ;
+        }
         index = CTABannotationToIndex(mris->ct, v->annotation) ;
         /* only thin temporal wm */
-        if ((index != MEDIAL_WALL) && (index != LINGUAL_SULCUS) && (index != LINGUAL_SULCUS2) &&
+        if ((index != MEDIAL_WALL) && 
+            (index != LINGUAL_SULCUS) && 
+            (index != LINGUAL_SULCUS2) &&
             (index != PARAHIPPOCAMPAL_GYRUS))
+        {
           continue ;
+        }
         dx = xw - v->x ;
         dy = yw - v->y ;
         dz = zw - v->z ;
         dot = v->nx*dx + v->ny*dy + v->nz*dz ;
         dist = sqrt(dx*dx+dy*dy+dz*dz) ;
-        if (dot < 0 && dist < MAX_DIST) {
+        if (dot < 0 && dist < MAX_DIST)
+        {
           if (x == Gx && y == Gy && z == Gz)
-            printf("voxel (%d, %d, %d): label %d (%s), parc %d, changing to wm...\n",
+            printf("voxel (%d, %d, %d): label %d (%s), parc %d, "
+                   "changing to wm...\n",
                    Gx, Gy, Gz, label, cma_label_to_name(label), index) ;
           changed++ ;
-          MRIvox(mri, x, y, z) = right ? Right_Cerebral_White_Matter : Left_Cerebral_White_Matter ;
+          MRIvox(mri, x, y, z) = 
+            right ? Right_Cerebral_White_Matter : Left_Cerebral_White_Matter ;
         }
       }
     }
@@ -993,56 +1340,87 @@ edit_hippocampal_complex(MRI *mri, MRI_SURFACE *mris, int right, char *annot_nam
   total_changed = changed ;
   i = 0 ;
 
-  /* look for stuff that is above the parahippocampal gyrus and labeled cortex, and
+  /* look for stuff that is above the parahippocampal gyrus 
+     and labeled cortex, and
      change it to hippocampus */
-  do {
+  do
+  {
     if (++i > 10)
+    {
       break ;
+    }
     changed = 0 ;
-    for (x = 0 ; x < mri->width ; x++) {
-      for (y = 0 ; y < mri->height ; y++) {
-        for (z = 0 ; z < mri->depth ; z++) {
+    for (x = 0 ; x < mri->width ; x++)
+    {
+      for (y = 0 ; y < mri->height ; y++)
+      {
+        for (z = 0 ; z < mri->depth ; z++)
+        {
           if (x == Gx && y == Gy && z == Gz)
+          {
             DiagBreak() ;
+          }
           if (MRIvox(mri_below_para, x, y, z) > 0)
+          {
             continue ;
+          }
           if (MRIvox(mri_above_para, x, y, z) == 0)
+          {
             continue ;
+          }
           label = MRIvox(mri, x, y, z) ;
           /* only process cortical voxels */
           if ((right && ((label != Right_Cerebral_Cortex))) ||
               (!right && ((label != Left_Cerebral_Cortex))))
+          {
             continue ;
+          }
           MRIvoxelToSurfaceRAS(mri, x, y, z, &xw, &yw, &zw) ;
 #if 0
           v = MHTfindClosestVertexInTable(mht, mris, xw, yw, zw) ;
           if (v == NULL)
+          {
             continue ;
+          }
           dist = sqrt(SQR(v->x-xw)+SQR(v->y-yw)+SQR(v->z-zw)) ;
           if (dist > MAX_DIST)
-            continue ;   /* too far away - not reliable */
+          {
+            continue ;  /* too far away - not reliable */
+          }
           index = CTABannotationToIndex(mris->ct, v->annotation) ;
 #endif
-          if ((MRIneighbors(mri, x, y, z, right ? Right_Hippocampus : Left_Hippocampus) == 0) &&
-              (MRIneighbors(mri, x, y, z, right ? Right_Inf_Lat_Vent : Left_Inf_Lat_Vent) == 0))
-            continue ;   /* no hippocampal or inf lat vent neighbors - ignore it */
+          if ((MRIneighbors(mri, x, y, z, 
+                            right ? Right_Hippocampus : Left_Hippocampus) == 0) &&
+              (MRIneighbors(mri, x, y, z, 
+                            right ? Right_Inf_Lat_Vent : Left_Inf_Lat_Vent) == 0))
+          {
+            continue ;  /* no hippocampal or inf lat vent 
+                           neighbors - ignore it */
+          }
           if (MRIvox(mri_above_inf_lat_vent, x, y, z) > 0)
+          {
             continue ;
+          }
           /*     if (index == MEDIAL_WALL)*/
           {
             changed++ ;
             if (MRIneighbors3x3(mri, x, y, z, right ? Right_Hippocampus : Left_Hippocampus) <
                 MRIneighbors3x3(mri, x, y, z, right ? Right_Amygdala : Left_Amygdala))
+            {
               MRIvox(mri, x, y, z) = right ? Right_Amygdala : Left_Amygdala ;
+            }
             else
+            {
               MRIvox(mri, x, y, z) = right ? Right_Hippocampus : Left_Hippocampus ;
+            }
           }
         }
       }
     }
     printf("pass %d: changed %d...\n", i, changed) ;
     total_changed += changed ;
-  } while (changed > 0) ;
+  }
+  while (changed > 0) ;
 
   printf("%d voxels changed in medial temporal lobe...\n", total_changed) ;
   MHTfree(&mht) ;
@@ -1055,40 +1433,69 @@ edit_hippocampal_complex(MRI *mri, MRI_SURFACE *mris, int right, char *annot_nam
   return(NO_ERROR) ;
 }
 static int
-edit_unknowns(MRI *mri_aseg, MRI *mri) {
+edit_unknowns(MRI *mri_aseg, MRI *mri)
+{
   int    x, y, z, label, right ;
   double mean_wm, mean_vent ;
   Real   val ;
 
-  /*  find unknown voxels that border both wm and inf_lat_vent, and change them to one
+  /*  find unknown voxels that border both wm and 
+      inf_lat_vent, and change them to one
       or the other */
-  for (x = 0 ; x < mri->width ; x++) {
-    for (y = 0 ; y < mri->height ; y++) {
-      for (z = 0 ; z < mri->depth ; z++) {
+  for (x = 0 ; x < mri->width ; x++)
+  {
+    for (y = 0 ; y < mri->height ; y++)
+    {
+      for (z = 0 ; z < mri->depth ; z++)
+      {
         if (x == Gx && y == Gy && z == Gz)
+        {
           DiagBreak() ;
+        }
         label = MRIvox(mri_aseg, x, y, z) ;
         /* only process cortical voxels */
         if (IS_UNKNOWN(label) == 0)
+        {
           continue ;
-        if ((MRIneighbors(mri_aseg, x, y, z, Left_Cerebral_White_Matter) > 0) &&
-            (MRIneighbors(mri_aseg, x, y, z, Left_Inf_Lat_Vent) > 0)) {
+        }
+        if ((MRIneighbors(mri_aseg, x, y, z, 
+                          Left_Cerebral_White_Matter) > 0) &&
+            (MRIneighbors(mri_aseg, x, y, z, 
+                          Left_Inf_Lat_Vent) > 0))
+        {
           right = 0 ;
-          mean_vent = MRIlabelMean(mri, mri_aseg, x, y, z, 1, Left_Inf_Lat_Vent) ;
-          mean_wm = MRIlabelMean(mri, mri_aseg, x, y, z, 1, Left_Cerebral_White_Matter) ;
-        } else if ((MRIneighbors(mri_aseg, x, y, z, Right_Cerebral_White_Matter) > 0) &&
-                   (MRIneighbors(mri_aseg, x, y, z, Right_Inf_Lat_Vent) > 0)) {
-          mean_vent = MRIlabelMean(mri, mri_aseg, x, y, z, 1, Right_Inf_Lat_Vent) ;
-          mean_wm = MRIlabelMean(mri, mri_aseg, x, y, z, 1, Right_Cerebral_White_Matter) ;
+          mean_vent = MRIlabelMean(mri, mri_aseg, x, y, z, 1, 
+                                   Left_Inf_Lat_Vent) ;
+          mean_wm = MRIlabelMean(mri, mri_aseg, x, y, z, 1, 
+                                 Left_Cerebral_White_Matter) ;
+        }
+        else if ((MRIneighbors(mri_aseg, x, y, z, 
+                               Right_Cerebral_White_Matter) > 0) &&
+                 (MRIneighbors(mri_aseg, x, y, z, 
+                               Right_Inf_Lat_Vent) > 0))
+        {
+          mean_vent = MRIlabelMean(mri, mri_aseg, x, y, z, 1, 
+                                   Right_Inf_Lat_Vent) ;
+          mean_wm = MRIlabelMean(mri, mri_aseg, x, y, z, 1, 
+                                 Right_Cerebral_White_Matter) ;
           right = 1 ;
-        } else
-          continue ; /* must nbr both vent and wm, otherwise don't process it */
+        }
+        else
+        {
+          continue ;  /* must nbr both vent and wm, 
+                         otherwise don't process it */
+        }
 
         MRIsampleVolume(mri, x, y, z, &val) ;
-        if (fabs(val-mean_wm) < fabs(val-mean_vent)) {
-          MRIvox(mri_aseg, x, y, z) = right ? Right_Cerebral_White_Matter : Left_Cerebral_White_Matter ;
-        } else {
-          MRIvox(mri_aseg, x, y, z) = right ? Right_Inf_Lat_Vent : Left_Inf_Lat_Vent ;
+        if (fabs(val-mean_wm) < fabs(val-mean_vent))
+        {
+          MRIvox(mri_aseg, x, y, z) = 
+            right ? Right_Cerebral_White_Matter : Left_Cerebral_White_Matter ;
+        }
+        else
+        {
+          MRIvox(mri_aseg, x, y, z) = 
+            right ? Right_Inf_Lat_Vent : Left_Inf_Lat_Vent ;
         }
       }
     }
@@ -1099,46 +1506,67 @@ edit_unknowns(MRI *mri_aseg, MRI *mri) {
 
 #if 0
 static int
-edit_hippocampus(MRI *mri) {
+edit_hippocampus(MRI *mri)
+{
   int   x, y, z, right, changed, total = 0, yi, yk, found, label ;
 
-  do {
+  do
+  {
     changed =  0 ;
-    for (x = 0 ; x < mri->width ; x++) {
-      for (y = 0 ; y < mri->height ; y++) {
-        for (z = 0 ; z < mri->depth ; z++) {
+    for (x = 0 ; x < mri->width ; x++)
+    {
+      for (y = 0 ; y < mri->height ; y++)
+      {
+        for (z = 0 ; z < mri->depth ; z++)
+        {
           if (x == Gx && y == Gy && z == Gz)
+          {
             DiagBreak() ;
+          }
           label = MRIvox(mri, x, y, z) ;
           if (IS_CORTEX(label) == 0)
+          {
             continue ;
+          }
           right = (label == Right_Cerebral_Cortex) ;
           yi = mri->yi[y-1] ;  /* voxel immediately superior */
           if (IS_HIPPO(MRIvox(mri, x, yi, z)) == 0)
+          {
             continue ;
+          }
 
           /* check for wm within 3 mm inferior */
-          for (found = 0, yk = 1 ; yk <= 3 ; yk++) {
+          for (found = 0, yk = 1 ; yk <= 3 ; yk++)
+          {
             yi = mri->yi[y+yk] ;  /* inferior voxel */
-            if (IS_WM(MRIvox(mri, x, yi, z)) != 0) {
+            if (IS_WM(MRIvox(mri, x, yi, z)) != 0)
+            {
               found = 1 ;
               break ;
             }
           }
           if (!found)
+          {
             continue ;
+          }
 
           if (x == Gx && y == Gy && z == Gz)
-            printf("changing voxel (%d, %d, %d) from %s to ",Gx, Gy, Gz, cma_label_to_name(label)) ;
+          {
+            printf("changing voxel (%d, %d, %d) from %s to ",
+                   Gx, Gy, Gz, cma_label_to_name(label)) ;
+          }
           changed++ ;
           MRIvox(mri, x, y, z) = right ? Right_Hippocampus : Left_Hippocampus ;
           if (x == Gx && y == Gy && z == Gz)
+          {
             printf("%s\n", cma_label_to_name(MRIvox(mri, x, y, z))) ;
+          }
         }
       }
     }
     total += changed ;
-  } while (changed > 0) ;
+  }
+  while (changed > 0) ;
 
   printf("%d cortex voxels changed to hippocampus...\n", total) ;
   return(NO_ERROR)  ;
@@ -1146,21 +1574,31 @@ edit_hippocampus(MRI *mri) {
 #endif
 
 double
-MRIlabelMean(MRI *mri, MRI  *mri_labels, int x, int y, int z, int whalf, int label) {
+MRIlabelMean(MRI *mri,
+             MRI *mri_labels,
+             int x, int y, int z,
+             int whalf,
+             int label)
+{
   int    xi, yi, zi, xk, yk, zk, nvox ;
   double mean ;
   Real   val ;
 
   mean = 0.0 ;
   nvox = 0 ;
-  for (xk = -whalf ; xk <= whalf ; xk++) {
+  for (xk = -whalf ; xk <= whalf ; xk++)
+  {
     xi = mri->xi[x+xk] ;
-    for (yk = -whalf ; yk <= whalf ; yk++) {
+    for (yk = -whalf ; yk <= whalf ; yk++)
+    {
       yi = mri->yi[y+yk] ;
-      for (zk = -whalf ; zk <= whalf ; zk++) {
+      for (zk = -whalf ; zk <= whalf ; zk++)
+      {
         zi = mri->zi[z+zk] ;
         if (MRIvox(mri_labels, xi, yi, zi) != label)
+        {
           continue ;
+        }
         MRIsampleVolume(mri, xi, yi, zi, &val) ;
         mean += val ;
         nvox++ ;
@@ -1168,12 +1606,15 @@ MRIlabelMean(MRI *mri, MRI  *mri_labels, int x, int y, int z, int whalf, int lab
     }
   }
   if (nvox > 0)
+  {
     mean /= (double)nvox ;
+  }
   return(mean) ;
 }
 #if 0
 static int
-edit_calcarine(MRI *mri, MRI_SURFACE *mris, int right) {
+edit_calcarine(MRI *mri, MRI_SURFACE *mris, int right)
+{
   MRI     *mri_calc ;
   int     vno, changed, label, index, x, y, z ;
   VERTEX  *v ;
@@ -1182,12 +1623,16 @@ edit_calcarine(MRI *mri, MRI_SURFACE *mris, int right) {
 
   mri_calc = MRIclone(mri, NULL) ;
 
-  for (vno = 0 ; vno < mris->nvertices ; vno++) {
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
     v = &mris->vertices[vno] ;
     index = CTABannotationToIndex(mris->ct, v->annotation) ;
     if (index != CALCARINE_SULCUS)
+    {
       continue ;
-    for (d = 1  ; d <= 4  ; d += 0.5) {
+    }
+    for (d = 1  ; d <= 4  ; d += 0.5)
+    {
       xs = v->x + v->nx*d ;
       ys = v->y + v->ny*d ;
       zs = v->z + v->nz*d ;
@@ -1197,7 +1642,9 @@ edit_calcarine(MRI *mri, MRI_SURFACE *mris, int right) {
       y = nint(yv) ;
       z = nint(zv) ;
       if (x == Gx && y == Gy && z == Gz)
+      {
         DiagBreak() ;
+      }
 
       MRIvox(mri_calc, x, y, z) = 128 ;
     }
@@ -1205,19 +1652,27 @@ edit_calcarine(MRI *mri, MRI_SURFACE *mris, int right) {
 
   MRIclose(mri_calc, mri_calc) ;
 
-  for (changed = x = 0 ; x < mri->width ; x++) {
-    for (y =  0 ; y < mri->height ; y++) {
-      for (z = 0 ; z < mri->depth ; z++) {
+  for (changed = x = 0 ; x < mri->width ; x++)
+  {
+    for (y =  0 ; y < mri->height ; y++)
+    {
+      for (z = 0 ; z < mri->depth ; z++)
+      {
         if (x == Gx && y == Gy && z == Gz)
+        {
           DiagBreak() ;
+        }
         label = MRIvox(mri, x, y, z) ;
-        if (((label == Left_Lateral_Ventricle || label == Right_Lateral_Ventricle)) &&
-            (MRIvox(mri_calc, x, y, z) > 0)) {
+        if (((label == Left_Lateral_Ventricle || 
+              label == Right_Lateral_Ventricle)) &&
+            (MRIvox(mri_calc, x, y, z) > 0))
+        {
           changed++ ;
           MRIvox(mri, x, y, z) = Unknown ;
           if (x == Gx && y == Gy && z == Gz)
             printf("label %s at (%d, %d, %d) changed to %s\n",
-                   cma_label_to_name(label), x, y, z, cma_label_to_name(MRIvox(mri, x, y, z))) ;
+                   cma_label_to_name(label), x, y, z,
+                   cma_label_to_name(MRIvox(mri, x, y, z))) ;
         }
       }
     }
