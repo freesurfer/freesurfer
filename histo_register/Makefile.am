@@ -3,9 +3,9 @@
 #
 
 if BUILDOPENCV
-SBL=./SimpleBaseLib
-PVL=./ParticleVideoLib
-SUBDIRS=$(SBL) $(PVL)
+SBL=$(top_srcdir)/histo_register/SimpleBaseLib
+PVL=$(top_srcdir)/histo_register/ParticleVideoLib
+SUBDIRS=./SimpleBaseLib ./ParticleVideoLib
 
 bin_PROGRAMS = histo_register
 histo_register_SOURCES=\
