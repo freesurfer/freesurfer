@@ -8,8 +8,8 @@
 # Original Author: Anastasia Yendiki
 # CVS Revision Info:
 #    $Author: ayendiki $
-#    $Date: 2011/08/19 20:22:55 $
-#    $Revision: 1.33 $
+#    $Date: 2011/08/22 16:46:10 $
+#    $Revision: 1.34 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -25,7 +25,7 @@
 
 umask 002
 
-set VERSION = '$Id: trac-preproc,v 1.33 2011/08/19 20:22:55 ayendiki Exp $'
+set VERSION = '$Id: trac-preproc,v 1.34 2011/08/22 16:46:10 ayendiki Exp $'
 set ProgName = `basename $0`
 set inputargs = ($argv)
 
@@ -622,69 +622,72 @@ if ($dointer) then
 
         set cvswarp = final_CVSmorph_to$cvstemp
 
-        # If 2nd-generation CVS was run, make symlink with 3rd-generation naming
-        set oldcvswarp = combined_to${cvstemp}_elreg_afteraseg-norm.m3z
-        if (-e $xfmdir/cvs/$oldcvswarp.m3z && \
-            ! -e $xfmdir/cvs/$cvswarp.m3z) then
-          set cmd = (ln -s $xfmdir/cvs/$oldcvswarp.m3z $xfmdir/cvs/$cvswarp.m3z)
-          if ($RunIt) then
-            $cmd |& tee -a $LF
-            if ($status) goto error_exit
-          endif
-        endif
-
         if (! -e $xfmdir/cvs/$cvswarp.m3z) then
-          if (! -e $SUBJECTS_DIR/$cvstemp) then
-            if (! -e $cvstempdir/$cvstemp) then
-              echo "ERROR: Could not find CVS template $cvstempdir/$cvstemp"
-              goto error_exit
-            endif
+          set oldcvswarp = combined_to${cvstemp}_elreg_afteraseg-norm
 
-            set cmd = (ln -s $cvstempdir/$cvstemp $SUBJECTS_DIR)
+          if (-e $xfmdir/cvs/$oldcvswarp.m3z) then
+            # If 2nd-generation CVS was run,
+            # make symlink with 3rd-generation naming
+            set cmd = (ln -s $xfmdir/cvs/$oldcvswarp.m3z)
+            set cmd = ($cmd  $xfmdir/cvs/$cvswarp.m3z)
             echo $cmd |& tee -a $LF |& tee -a $CF
             if ($RunIt) then
               $cmd |& tee -a $LF
               if ($status) goto error_exit
             endif
-          endif
+          else
+            if (! -e $SUBJECTS_DIR/$cvstemp) then
+              if (! -e $cvstempdir/$cvstemp) then
+                echo "ERROR: Could not find CVS template $cvstempdir/$cvstemp"
+                goto error_exit
+              endif
 
-          if (! -e $xfmdir/cvs/nlalign-afteraseg-norm.m3z) then
-            # Register anatomical to CVS template
-            set cmd = mri_cvs_register
-            set cmd = ($cmd --mov $subj)
-            set cmd = ($cmd --template $cvstemp)
-            set cmd = ($cmd --outdir $xfmdir/cvs)
-            set cmd = ($cmd --cleanall)
-            echo $cmd |& tee -a $LF |& tee -a $CF
-            if ($RunIt) then
-              $fs_time $cmd |& tee -a $LF
-              if ($status) goto error_exit
+              set cmd = (ln -s $cvstempdir/$cvstemp $SUBJECTS_DIR)
+              echo $cmd |& tee -a $LF |& tee -a $CF
+              if ($RunIt) then
+                $cmd |& tee -a $LF
+                if ($status) goto error_exit
+              endif
             endif
-          else			# 1st-generation mri_cvs_register has been run
-            if (! -e $xfmdir/cvs/$cvswarp.tm3d) then
-              # Recreate full morph .tm3d from its components
-              set cmd = createMorph
-              set cmd = ($cmd --out $xfmdir/cvs/$cvswarp.tm3d)
-              set cmd = ($cmd --template $SUBJECTS_DIR/$cvstemp/mri/norm.mgz)
-              set cmd = ($cmd --subject $fsdir/mri/norm.mgz)
-              set cmd = ($cmd --in gcam $xfmdir/cvs/nlalign-afteraseg-norm.m3z)
-              set cmd = ($cmd      morph $xfmdir/cvs/el_reg_to$cvstemp.tm3d)
+
+            if (! -e $xfmdir/cvs/nlalign-afteraseg-norm.m3z) then
+              # Register anatomical to CVS template
+              set cmd = mri_cvs_register
+              set cmd = ($cmd --mov $subj)
+              set cmd = ($cmd --template $cvstemp)
+              set cmd = ($cmd --outdir $xfmdir/cvs)
+              set cmd = ($cmd --cleanall)
               echo $cmd |& tee -a $LF |& tee -a $CF
               if ($RunIt) then
                 $fs_time $cmd |& tee -a $LF
                 if ($status) goto error_exit
               endif
-            endif
+            else		# 1st-generation mri_cvs_register has been run
+              if (! -e $xfmdir/cvs/$cvswarp.tm3d) then
+                # Recreate full morph .tm3d from its components
+                set cmd = createMorph
+                set cmd = ($cmd --out $xfmdir/cvs/$cvswarp.tm3d)
+                set cmd = ($cmd --template $SUBJECTS_DIR/$cvstemp/mri/norm.mgz)
+                set cmd = ($cmd --subject $fsdir/mri/norm.mgz)
+                set cmd = ($cmd --in gcam $xfmdir/cvs/nlalign-afteraseg-norm.m3z)
+                set cmd = ($cmd      morph $xfmdir/cvs/el_reg_to$cvstemp.tm3d)
+                echo $cmd |& tee -a $LF |& tee -a $CF
+                if ($RunIt) then
+                  $fs_time $cmd |& tee -a $LF
+                  if ($status) goto error_exit
+                endif
+              endif
 
-            # Convert .tm3d to .m3z
-            set cmd = exportGcam
-            set cmd = ($cmd --morph    $xfmdir/cvs/$cvswarp.tm3d)
-            set cmd = ($cmd --fixed    $SUBJECTS_DIR/$cvstemp/mri/norm.mgz)
-            set cmd = ($cmd --moving   $fsdir/mri/norm.mgz)
-            set cmd = ($cmd --out_gcam $xfmdir/cvs/$cvswarp.m3z)
-            if ($RunIt) then
-              $fs_time $cmd |& tee -a $LF
-              if ($status) goto error_exit
+              # Convert .tm3d to .m3z
+              set cmd = exportGcam
+              set cmd = ($cmd --morph    $xfmdir/cvs/$cvswarp.tm3d)
+              set cmd = ($cmd --fixed    $SUBJECTS_DIR/$cvstemp/mri/norm.mgz)
+              set cmd = ($cmd --moving   $fsdir/mri/norm.mgz)
+              set cmd = ($cmd --out_gcam $xfmdir/cvs/$cvswarp.m3z)
+              if ($RunIt) then
+                $fs_time $cmd |& tee -a $LF
+                if ($status) goto error_exit
+              endif
             endif
           endif
         endif
