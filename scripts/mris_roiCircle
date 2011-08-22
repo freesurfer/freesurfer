@@ -21,7 +21,7 @@ G_SYNOPSIS="
  NAME 
 
  	mris_roiCircle
-        $Id: mris_roiCircle,v 1.4 2011/08/18 20:31:17 rudolph Exp $
+        $Id: mris_roiCircle,v 1.5 2011/08/22 15:05:38 rudolph Exp $
 
  SYNOPSIS
 
@@ -365,11 +365,10 @@ if (( Gb_surfaceSpecified && Gb_hemiSpecified )) ; then
     fileExist_check $G_SURFACEFILE $G_SURFACEFILE || fatal surface
 fi
 
-if (( G_distance == -1 )) ; then fatal distanceCheck ; fi
+if (( Gi_distance == -1 )) ; then fatal distanceCheck ; fi
 
 cprint "Radial distance"        "[ $Gi_distance mm ]"
 cprint "Terminate engine"       "[ $Gb_terminateEngine ]"
-
 
 #
 # Generate the 'options.txt' file
