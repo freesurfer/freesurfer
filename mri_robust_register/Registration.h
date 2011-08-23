@@ -8,8 +8,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2011/05/30 15:44:00 $
- *    $Revision: 1.37.2.2 $
+ *    $Date: 2011/08/23 18:53:41 $
+ *    $Revision: 1.37.2.3 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -136,7 +136,7 @@ public:
   void setSource (MRI * s, bool conform = false, bool keeptype = false);
   void setTarget (MRI * t, bool conform = false, bool keeptype = false);
   void setSourceAndTarget(MRI * s, MRI * t, bool keeptype = false);
-  void setSubsamplesize (int sss)
+  void setSubsampleSize (int sss)
   {
     subsamplesize = sss;
   };
@@ -280,6 +280,7 @@ private:
   // IterativeRegistrationHelper
   void computeIterativeRegistration(int n,double epsit,MRI * mriS, MRI* mriT, const vnl_matrix < double > &Minit, double iscaleinit);	
 	template < class T > void iterativeRegistrationHelper( int nmax,double epsit, MRI * mriS, MRI* mriT, const vnl_matrix < double >& m, double scaleinit);
+  bool reorientSource();
 
 
   // construct Ab and R:
@@ -299,7 +300,9 @@ private:
   void findSatMultiRes(const vnl_matrix < double > &mi, double scaleinit );
 
   // gaussian pyramid:
+  std::pair < int, int > getGPLimits(MRI *mriS, MRI *mriT, int min, int max);
   std::vector < MRI* > buildGaussianPyramid (MRI * mri_in, int min = 16, int max = -1);
+  std::vector < MRI* > buildGPLimits (MRI * mri_in,std::pair< int, int > limits);
   void freeGaussianPyramid(std::vector< MRI* >& p);
   void saveGaussianPyramid(std::vector< MRI* >& p, const std::string & prefix);
 
@@ -338,11 +341,20 @@ void Registration::iterativeRegistrationHelper( int nmax,double epsit, MRI * mri
   else if (!Minit.empty()) fmd.first = getMinitResampled();
   else fmd.first = initializeTransform(mriS,mriT);
 
-  if (scaleinit != 1.0) fmd.second = scaleinit;
-	else fmd.second = iscaleinit;
+  // ISCALECHANGE:
+  // intensity model: R(s,IS,IT) = exp(-0.5 s) IT - exp(0.5 s) IS
+  //                  R'  = -0.5 ( exp(-0.5 s) IT + exp(0.5 s) IS)
+  //  thus iscalefinal= exp(0.5 s) * (1/exp(-0.5 s)) = exp(s)
+  //     ==> s = log (iscalefinal)
+  iscalefinal = 1.0;
+  if (scaleinit != 1.0) iscalefinal = scaleinit;
+	else iscalefinal = iscaleinit;
+  fmd.second = log(iscalefinal);
+  
 
   if (verbose > 1)
   {
+    std::cout << "   - initial iscale: " << iscalefinal << std::endl;
     std::cout << "   - initial transform:\n" ;
 		std::cout << fmd.first << std::endl;
   }
@@ -355,7 +367,10 @@ void Registration::iterativeRegistrationHelper( int nmax,double epsit, MRI * mri
   vnl_matrix_fixed<double , 4, 4> mhi;mhi.set_identity();
   vnl_matrix_fixed<double , 4, 4> mi;
 	
-  double diff = 100;
+  double diff = 100.0;
+  double idiff = 0.0;
+  double ieps = 0.001; // exp(ieps) = 1.0010005, so stop if below 0.1% change
+
   int i = 1;
 	
   // here create RegistrationStep of the specific type: double or float:
@@ -363,9 +378,9 @@ void Registration::iterativeRegistrationHelper( int nmax,double epsit, MRI * mri
 	RStep.setFloatSVD(true); // even with double, use float for SVD to save some memory
 	T tt;	
 		
-  while (diff > epsit && i<=nmax)
+  while ((diff > epsit ||  idiff >ieps)&& i<=nmax  )
   {
-    if (verbose >0) std::cout << " Iteration(" << typeid(tt).name() << "): " << i << std::flush;
+    if (verbose >0) std::cout << " Iteration(" << typeid(tt).name() << "): " << i << std::endl;
 		if (verbose == 1 && subsamplesize > 0)
     if (mriS->width > subsamplesize || mriS->height > subsamplesize || mriS->depth > subsamplesize)
       std::cout << " (subsample " << subsamplesize << ") " << std::flush;
@@ -452,24 +467,24 @@ void Registration::iterativeRegistrationHelper( int nmax,double epsit, MRI * mri
       if (! mri_Twarp ) mri_Twarp = MRIcopy(mriT,NULL);
     }
       
-    if (debug > 0)
-    {
-      // write weights and warped images after last step: 
-      //MRIwrite(mri_Swarp,(name+"-mriS-hw.mgz").c_str());
-      //MRIwrite(mri_Twarp,(name+"-mriT-hw.mgz").c_str());
-      //char ch;
-      //std::cout << "Press a key to continue iterations: ";
-      //std::cin  >> ch;
-    }
-
     // adjust intensity 	
     if (iscale)
     {
-      if (verbose >1) std::cout << "   - adjusting intensity ( "<< fmd.second << " ) " << std::endl;
+      if (verbose >1) std::cout << "   - adjusting intensity ( "<< iscalefinal << " ) " << std::endl;
 			// ISCALECHANGE:
       double si = sqrt(iscalefinal);
       MyMRI::MRIvalscale(mri_Swarp,mri_Swarp,si);
       MyMRI::MRIvalscale(mri_Twarp,mri_Twarp,1.0/si);
+    }
+    
+    if (debug > 0)
+    {
+      // write hw images before next registration step: 
+      MRIwrite(mri_Swarp,(name+"-mriS-hw.mgz").c_str());
+      MRIwrite(mri_Twarp,(name+"-mriT-hw.mgz").c_str());
+      char ch;
+      std::cout << "Press a key to continue iterations: ";
+      std::cin  >> ch;
     }
 
     // ==========================================================================
@@ -494,23 +509,22 @@ void Registration::iterativeRegistrationHelper( int nmax,double epsit, MRI * mri
     else fmd.first = cmd.first * mh;
 
     // ISCALECHANGE:
-    if ((fmd.second - fabs(cmd.second)) < 0)
+    if (iscale)
     {
-       std::cout << std::endl;
-       std::cout << "WARNING: iscale change too large: " << cmd.second << std::endl;
-       
-       if (cmd.second > 0) cmd.second = 0.4 * fmd.second;
-       else cmd.second = -0.4 * fmd.second;
+      fmd.second -= cmd.second; // adjust log
+      iscalefinal = exp(fmd.second); // compute full factor (source to target)
+      idiff = fabs(cmd.second);
+      std::ostringstream istar;
+      if (idiff <= ieps) istar << " <= " << ieps << "  :-)" ;
+      if (verbose >0 ) std::cout << "     -- intensity log diff: abs(" << cmd.second << ") " << istar.str() << std::endl;
     }
-		fmd.second -= cmd.second;
-	  iscalefinal = fmd.second;
 		
     if (!rigid) diff = MyMatrix::getFrobeniusDiff(fmd.first, fmdtmp);
     else        diff = sqrt(MyMatrix::RigidTransDistSq(fmd.first, fmdtmp));
     if (verbose >1) std::cout << "     -- old diff. to prev. transform: " << diff << std::endl;
     diff = sqrt(MyMatrix::AffineTransDistSq(fmd.first, fmdtmp, 100));
 		std::ostringstream star;
-		if (diff < epsit) star << "  < " << epsit << "  :-)" ;
+    if (diff <= epsit) star << "  <= " << epsit << "   :-)" ;
 		else if (i == nmax) star<< " max it: " << nmax << " reached!";
     if (verbose >0) std::cout << "     -- diff. to prev. transform: " << diff << star.str() << std::endl;
     //std::cout << " intens: " << fmd.second << std::endl;
@@ -607,9 +621,7 @@ void Registration::iterativeRegistrationHelper( int nmax,double epsit, MRI * mri
   MRIfree(&mri_Swarp);
 
   Mfinal = fmd.first;
-  iscalefinal = fmd.second;
 
- // return pair < MATRIX *, double> (MatrixCopy(Mfinal,NULL),iscalefinal);
 }
 
 

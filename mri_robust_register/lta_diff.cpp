@@ -8,8 +8,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2011/04/05 16:23:01 $
- *    $Revision: 1.19.2.1 $
+ *    $Date: 2011/08/23 18:53:41 $
+ *    $Revision: 1.19.2.2 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -56,7 +56,7 @@ extern "C"
 
 using namespace std;
 
-//static char vcid[] = "$Id: lta_diff.cpp,v 1.19.2.1 2011/04/05 16:23:01 mreuter Exp $";
+//static char vcid[] = "$Id: lta_diff.cpp,v 1.19.2.2 2011/08/23 18:53:41 mreuter Exp $";
 char *Progname = NULL;
 void writeVox2Vox(LTA * lta)
 {
@@ -191,7 +191,9 @@ void decompose (MATRIX * M1, MATRIX* M2)
    cout << endl;     
    vnl_vector < double >	t = m.extract(3,1,0,3).get_column(0);
    vnl_matlab_print(vcl_cout,t,"Trans",vnl_matlab_print_format_long);
-   cout << endl;     
+   cout << endl;
+   cout << "AbsTrans = " << t.two_norm() << endl ;
+   cout << endl;
    cout << "Determinant = " << vnl_determinant(m) << endl << endl;
    
 

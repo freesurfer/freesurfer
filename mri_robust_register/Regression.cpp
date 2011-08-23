@@ -12,20 +12,18 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2010/07/17 02:35:07 $
- *    $Revision: 1.19 $
+ *    $Date: 2011/08/23 18:53:41 $
+ *    $Revision: 1.22.2.1 $
  *
- * Copyright (C) 2008-2009
- * The General Hospital Corporation (Boston, MA).
- * All rights reserved.
+ * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
- * Distribution, usage and copying of this software is covered under the
- * terms found in the License Agreement file named 'COPYING' found in the
- * FreeSurfer source code root directory, and duplicated here:
- * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ * Terms and conditions for use, reproduction, distribution and contribution
+ * are found in the 'FreeSurfer Software License Agreement' contained
+ * in the file 'LICENSE' found in the FreeSurfer distribution, and here:
  *
- * General inquiries: freesurfer@nmr.mgh.harvard.edu
- * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
+ *
+ * Reporting: freesurfer@nmr.mgh.harvard.edu
  *
  */
 
@@ -38,6 +36,7 @@
 #include <fstream>
 #include "RobustGaussian.h"
 #include <vnl/algo/vnl_svd.h>
+#include <vnl/algo/vnl_qr.h>
 
 #ifdef __cplusplus
 extern "C"
@@ -232,6 +231,7 @@ vnl_vector< T > Regression<T>::getRobustEstWAB(vnl_vector< T >& wfinal, double s
   vnl_vector < T > *vtmp = NULL;
   
   int count = 0; 
+  int incr  = 0;
   // iteration until we increase the error, we reach maxit or we have no error
 	do
 	{
@@ -276,8 +276,9 @@ vnl_vector< T > Regression<T>::getRobustEstWAB(vnl_vector< T >& wfinal, double s
       swr += t1*t2;
     }
     err[count] = swr/sw;
-		
-	} while (err[count-1] > err[count] && count < MAXIT && err[count] > EPS);
+		//cout << "err [ " << count << " ] = " << err[count] << endl;
+    if (err[count-1] <= err[count]) incr++;
+	} while (incr<1 && count < MAXIT && err[count] > EPS);
 
 	delete(r); // won't be needed below
 	
@@ -478,14 +479,13 @@ vnl_vector< T > Regression<T>::getRobustEstWAB(vnl_vector< T >& wfinal, double s
 //   return *pfinal;
 //}
 
-
 template <class T>
 vnl_vector< T >  Regression<T>::getWeightedLSEst(const vnl_vector< T > & w)
 // w is a vector representing a diagnoal matrix with the sqrt of the weights as elements
 // solving p = [A^T W A]^{-1} A^T W b     (with W = diag(w_i^2) )
 // done by computing M := Sqrt(W) A and and  wb := sqrt(W) b
-// then we have p = [ M^T M ]^{-1} M^T wb    which is solved by computing the pseudo inverse
-// of psdi(M) and then p = psdi(M) * wb
+// then we have p = [ M^T M ]^{-1} M^T wb  
+//  or M p = wb, this we solve with QR
 {
   unsigned int rr, cc;
 	
@@ -497,17 +497,9 @@ vnl_vector< T >  Regression<T>::getWeightedLSEst(const vnl_vector< T > & w)
     for (cc = 0; cc < A->cols();cc++)
       wA(rr,cc) = A->operator()(rr,cc) * w(rr);
   
-	// compute pseudoInverse of wA:
-	// uses a LOT of memory!!! for a 520MB matrix A it will be close to 2Gig
-  vnl_svd< T >* svdMatrix = new vnl_svd< T >( wA );
-  if (! svdMatrix->valid() )
-  {
-    cerr << "    Regression<T>::getWeightedLSEst    could not compute pseudo inverse!" << endl;
-		exit(1);
-  }
-	wA = svdMatrix->pinverse(); 
-  delete (svdMatrix);
-
+	
+	vnl_qr < T >* QR = new vnl_qr< T >( wA );
+  // I could maybe delete wA here?	
 
   // compute wb:
 	vnl_vector < T > wb(b->size());
@@ -515,8 +507,10 @@ vnl_vector< T >  Regression<T>::getWeightedLSEst(const vnl_vector< T > & w)
   for (rr = 0;rr<b->size();rr++)
     wb[rr] = b->operator[](rr) * w[rr];
   
-	// compute wAi * wb
-	vnl_vector < T > p = wA * wb;
+	// solve wA p = wb
+	vnl_vector < T > p = QR->solve(wb);
+	
+	delete(QR);
 
   return p;
 }
@@ -527,8 +521,8 @@ vnl_vector< T >  Regression<T>::getWeightedLSEstFloat(const vnl_vector< T > & w)
 // w is a vector representing a diagnoal matrix with the sqrt of the weights as elements
 // solving p = [A^T W A]^{-1} A^T W b     (with W = diag(w_i^2) )
 // done by computing M := Sqrt(W) A and and  wb := sqrt(W) b
-// then we have p = [ M^T M ]^{-1} M^T wb    which is solved by computing the pseudo inverse
-// of psdi(M) and then p = psdi(M) * wb
+// then we have p = [ M^T M ]^{-1} M^T wb   
+// or M p = wb, which we solve with QR
 {
   unsigned int rr, cc;
 	
@@ -540,17 +534,9 @@ vnl_vector< T >  Regression<T>::getWeightedLSEstFloat(const vnl_vector< T > & w)
     for (cc = 0; cc < A->cols();cc++)
       wA(rr,cc) = (float)(A->operator()(rr,cc) * w(rr));
   
-	// compute pseudoInverse of wA:
-	// uses a LOT of memory!!! for a 520MB double matrix A it will be close to 2Gig 
-	// therefore using float should reduce the max memory usage by 1 gig
-  vnl_svd< float >* svdMatrix = new vnl_svd< float >( wA );
-  if (! svdMatrix->valid() )
-  {
-    cerr << "    Regression<T>::getWeightedLSEst    could not compute pseudo inverse!" << endl;
-		exit(1);
-  }
-	wA = svdMatrix->pinverse(); 
-  delete (svdMatrix);
+	
+	vnl_qr < float >* QR = new vnl_qr< float >( wA );
+  // I could maybe delete wA here?	
 
 
   // compute wb:
@@ -558,9 +544,10 @@ vnl_vector< T >  Regression<T>::getWeightedLSEstFloat(const vnl_vector< T > & w)
   //if (!wb.valid()) ErrorExit(ERROR_NO_MEMORY,"Regression<T>::getWeightedLSEst could not allocate memory for wb") ;
   for (rr = 0;rr<b->size();rr++)
     wb[rr] = b->operator[](rr) * w[rr];
-  
-	// compute wAi * wb
-	vnl_vector < float > p = wA * wb;
+
+  // solve
+  vnl_vector < float > p = QR->solve(wb);
+  delete(QR);
 
   // copy p back:
  	vnl_vector < T > pd(p.size());
@@ -570,6 +557,99 @@ vnl_vector< T >  Regression<T>::getWeightedLSEstFloat(const vnl_vector< T > & w)
   return pd;
 }
 
+
+
+// template <class T>
+// vnl_vector< T >  Regression<T>::getWeightedLSEst(const vnl_vector< T > & w)
+// // w is a vector representing a diagnoal matrix with the sqrt of the weights as elements
+// // solving p = [A^T W A]^{-1} A^T W b     (with W = diag(w_i^2) )
+// // done by computing M := Sqrt(W) A and and  wb := sqrt(W) b
+// // then we have p = [ M^T M ]^{-1} M^T wb    which is solved by computing the pseudo inverse
+// // of psdi(M) and then p = psdi(M) * wb
+// {
+//   unsigned int rr, cc;
+// 	
+// 	assert(w.size() == A->rows());
+// 
+//   // compute wA  where w = diag(sqrt(W));
+// 	vnl_matrix < T > wA(A->rows(), A->cols());	
+//   for (rr = 0; rr < A->rows();rr++)
+//     for (cc = 0; cc < A->cols();cc++)
+//       wA(rr,cc) = A->operator()(rr,cc) * w(rr);
+//   
+// 	// compute pseudoInverse of wA:
+// 	// uses a LOT of memory!!! for a 520MB matrix A it will be close to 2Gig
+//   vnl_svd< T >* svdMatrix = new vnl_svd< T >( wA );
+//   if (! svdMatrix->valid() )
+//   {
+//     cerr << "    Regression<T>::getWeightedLSEst    could not compute pseudo inverse!" << endl;
+// 		exit(1);
+//   }
+// 	wA = svdMatrix->pinverse(); 
+//   delete (svdMatrix);
+// 
+// 
+//   // compute wb:
+// 	vnl_vector < T > wb(b->size());
+//   //if (!wb.valid()) ErrorExit(ERROR_NO_MEMORY,"Regression<T>::getWeightedLSEst could not allocate memory for wb") ;
+//   for (rr = 0;rr<b->size();rr++)
+//     wb[rr] = b->operator[](rr) * w[rr];
+//   
+// 	// compute wAi * wb
+// 	vnl_vector < T > p = wA * wb;
+// 
+//   return p;
+// }
+
+// template <class T>
+// vnl_vector< T >  Regression<T>::getWeightedLSEstFloat(const vnl_vector< T > & w)
+// // uses FLOAT internaly
+// // w is a vector representing a diagnoal matrix with the sqrt of the weights as elements
+// // solving p = [A^T W A]^{-1} A^T W b     (with W = diag(w_i^2) )
+// // done by computing M := Sqrt(W) A and and  wb := sqrt(W) b
+// // then we have p = [ M^T M ]^{-1} M^T wb    which is solved by computing the pseudo inverse
+// // of psdi(M) and then p = psdi(M) * wb
+// {
+//   unsigned int rr, cc;
+// 	
+// 	assert(w.size() == A->rows());
+// 
+//   // compute wA  where w = diag(sqrt(W));
+// 	vnl_matrix < float > wA(A->rows(), A->cols());
+//   for (rr = 0; rr < A->rows();rr++)
+//     for (cc = 0; cc < A->cols();cc++)
+//       wA(rr,cc) = (float)(A->operator()(rr,cc) * w(rr));
+//   
+// 	// compute pseudoInverse of wA:
+// 	// uses a LOT of memory!!! for a 520MB double matrix A it will be close to 2Gig 
+// 	// therefore using float should reduce the max memory usage by 1 gig
+//   vnl_svd< float >* svdMatrix = new vnl_svd< float >( wA );
+//   if (! svdMatrix->valid() )
+//   {
+//     cerr << "    Regression<T>::getWeightedLSEst    could not compute pseudo inverse!" << endl;
+// 		exit(1);
+//   }
+// 	wA = svdMatrix->pinverse(); 
+//   delete (svdMatrix);
+// 
+// 
+//   // compute wb:
+// 	vnl_vector <float > wb(b->size());
+//   //if (!wb.valid()) ErrorExit(ERROR_NO_MEMORY,"Regression<T>::getWeightedLSEst could not allocate memory for wb") ;
+//   for (rr = 0;rr<b->size();rr++)
+//     wb[rr] = b->operator[](rr) * w[rr];
+//   
+// 	// compute wAi * wb
+// 	vnl_vector < float > p = wA * wb;
+// 
+//   // copy p back:
+//  	vnl_vector < T > pd(p.size());
+//  	for (rr = 0;rr<p.size();rr++)
+//  	  pd[rr] = p[rr];
+// 
+//   return pd;
+// }
+// 
 
 template <class T>
 vnl_vector< T > Regression<T>::getLSEst()

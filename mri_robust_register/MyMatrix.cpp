@@ -8,8 +8,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2011/03/29 14:18:20 $
- *    $Revision: 1.20.2.1 $
+ *    $Date: 2011/08/23 18:53:40 $
+ *    $Revision: 1.20.2.2 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -2104,7 +2104,7 @@ vnl_matrix < double > MyMatrix::LTA2VOXmatrix (LTA * lta)
     MATRIX *tmp = 0;
     if (sI2R==0 || dR2I==0)
     {
-      cout << "LTAgetV2V: passed volumes did not have the info on i_to_r or r_to_i."<< endl;
+      cout << "MyMatrix::LTA2VOXmatrix ERROR : passed volumes did not have the info on i_to_r or r_to_i."<< endl;
       exit (1);
     }
     tmp = MatrixMultiply(m_L, sI2R, NULL);

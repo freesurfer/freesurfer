@@ -8,20 +8,18 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2010/06/14 21:19:47 $
- *    $Revision: 1.2 $
+ *    $Date: 2011/08/23 18:53:41 $
+ *    $Revision: 1.3.2.1 $
  *
- * Copyright (C) 2008-2009
- * The General Hospital Corporation (Boston, MA).
- * All rights reserved.
+ * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
- * Distribution, usage and copying of this software is covered under the
- * terms found in the License Agreement file named 'COPYING' found in the
- * FreeSurfer source code root directory, and duplicated here:
- * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ * Terms and conditions for use, reproduction, distribution and contribution
+ * are found in the 'FreeSurfer Software License Agreement' contained
+ * in the file 'LICENSE' found in the FreeSurfer distribution, and here:
  *
- * General inquiries: freesurfer@nmr.mgh.harvard.edu
- * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
+ *
+ * Reporting: freesurfer@nmr.mgh.harvard.edu
  *
  */
 #include <string>
@@ -54,7 +52,7 @@ extern "C"
 
 using namespace std;
 
-//static char vcid[] = "$Id: mri_gradient_info.cpp,v 1.2 2010/06/14 21:19:47 mreuter Exp $";
+//static char vcid[] = "$Id: mri_gradient_info.cpp,v 1.3.2.1 2011/08/23 18:53:41 mreuter Exp $";
 char *Progname = NULL;
 
 double scanX(MRI* mri_grad, MRI* mri_mask)
@@ -521,8 +519,32 @@ int main(int argc, char *argv[])
 //	MRIwriteFrame(mri_grad,"sobel_grad3.mgz",2);
 //	MRIwrite(mri_mag,"sobel_mag.mgz");
 	
+  int dd,hh,ww;
+  double avg = 0.0;
+  float val;
+  int count = 0;
+  int all = mri_mag->depth * mri_mag->height * mri_mag->width;
+	for (dd = 0; dd < mri_mag->depth ; dd++)
+	for (hh = 0; hh < mri_mag->height; hh++)
+	for (ww = 0; ww < mri_mag->width; ww++)
+  {
+     val = MRIgetVoxVal(mri_mag, ww, hh, dd, 0);
+      if (val > 30)
+      { 
+        count++;
+        avg+= val;
+      }
+       
+  //   avg += tanh(val/10.0);
+  }
+  avg /= count;
+  cout << "avg mag : " << avg << endl;
+  cout << "count   : " << count << endl;
+  
+  
 //  double b1 =	
-scanX(mri_grad,mri_mask);
+//scanX(mri_grad,mri_mask);
+
 //  double b2 =	scanY(mri_grad,mri_mask);
 //	double b3 = scanZ(mri_grad,mri_mask);
 //scanX(mri_mag,mri_mask);
@@ -534,14 +556,28 @@ scanX(mri_grad,mri_mask);
 //	cout << "avg: " << (b1+b2+b3)/3.0 <<" max: " << bmax << endl;
 //	scanX(mri_in,mri_grad,NULL);
 	
-	exit(0);
+//	exit(0);
 	
 	
 	MRIfree(&mri_grad);
 	
-	int n = 5;
+  MRIsetVoxVal(mri_mag,0,0,0,0,77);
+	int n = 2;
   HISTOGRAM *h = MRIhistogram(mri_mag,n);
+
+  cout << " h = [ " ;
+  for (int ii = 0;ii<n;ii++)
+  {  
+//    cout << "i " << ii << " : " << h->counts[ii] <<  " uval: " << h->bins[ii] << endl;
+      cout <<  h->bins[ii] << " , " <<  h->counts[ii] ;
+      if (ii < n-1) cout << " ; " << endl;
+      else cout << "] ; " << endl;
+  }
 	
-	cout << h->counts[n-1] << endl;	
+  
+  
+	cout << "pct: " << 100*h->counts[n-1]/all << endl;	
+  
+  cout << " entropy: " << HISTOgetEntropy(h) << endl;
 
 }

@@ -14,8 +14,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2011/03/29 14:18:39 $
- *    $Revision: 1.35.2.2 $
+ *    $Date: 2011/08/23 18:53:40 $
+ *    $Revision: 1.35.2.3 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -233,14 +233,14 @@ void MultiRegistration::initRegistration(Registration & R)
   R.setDoublePrec(doubleprec);
   //R.setDebug(debug);
   
-  if (subsamplesize > 0) R.setSubsamplesize(subsamplesize);
+  if (subsamplesize > 0) R.setSubsampleSize(subsamplesize);
   if (highit >= 0) R.setHighit(highit);
 
 //   int pos = P.mov[n].rfind(".");
 //   if (pos > 0) R.setName(P.mov[n].substr(0,pos));
 //   else  R.setName(P.mov[n]);
 //
-//  // if (P.subsamplesize > 0) R.setSubsamplesize(P.subsamplesize);
+//  // if (P.subsamplesize > 0) R.setSubsampleSize(P.subsamplesize);
 //
 //
 //   R.setSource(P.mri_mov[n],P.fixvoxel,P.keeptype);
@@ -484,7 +484,7 @@ bool MultiRegistration::computeTemplate(int itmax, double eps , int iterate, dou
 //        maxres = 0; //go up to hig-res allways (skip first steps as above)
 //      }
 
-      Rv[i].setSubsamplesize(subsamp);
+      Rv[i].setSubsampleSize(subsamp);
       Rv[i].setIscaleInit(intensities[i]);
       Rv[i].setMinitOrig(transforms[i]); // as the transforms are in the original space
 			if (satit) Rv[i].findSaturation();
@@ -691,7 +691,7 @@ bool MultiRegistration::halfWayTemplate(int maxres, int iterate, double epsit, b
   //std::pair <MATRIX*, double> Md;
   std::pair < vnl_matrix_fixed < double, 4, 4> , double> Md;
 	// adjust subsamplesize, if passed:
-	if (subsamplesize > 0 ) R.setSubsamplesize(subsamplesize);
+	if (subsamplesize > 0 ) R.setSubsampleSize(subsamplesize);
 	if (satit) R.findSaturation();
 
 	//!!!! what if iscale init was passed? needs fixing, if this is used at all?

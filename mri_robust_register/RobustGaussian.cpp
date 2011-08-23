@@ -8,20 +8,18 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2010/07/17 02:35:07 $
- *    $Revision: 1.11 $
+ *    $Date: 2011/08/23 18:53:41 $
+ *    $Revision: 1.12.2.1 $
  *
- * Copyright (C) 2008-2009
- * The General Hospital Corporation (Boston, MA).
- * All rights reserved.
+ * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
- * Distribution, usage and copying of this software is covered under the
- * terms found in the License Agreement file named 'COPYING' found in the
- * FreeSurfer source code root directory, and duplicated here:
- * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ * Terms and conditions for use, reproduction, distribution and contribution
+ * are found in the 'FreeSurfer Software License Agreement' contained
+ * in the file 'LICENSE' found in the FreeSurfer distribution, and here:
  *
- * General inquiries: freesurfer@nmr.mgh.harvard.edu
- * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
+ *
+ * Reporting: freesurfer@nmr.mgh.harvard.edu
  *
  */
 #include "RobustGaussian.h"
@@ -45,6 +43,11 @@ using namespace std;
   * This Quickselect routine is based on the algorithm described in
   * "Numerical recipes in C", Second Edition,
   * Cambridge University Press, 1992, Section 8.5, ISBN 0-521-43108-5
+  * This code is based on code by Nicolas Devillard - 1998. Public domain.  
+  * see also http://ndevilla.free.fr/median/median.pdf
+  * or http://ndevilla.free.fr/median/median/index.html
+  * modifications: - instead of only selecting the median, select the k-th smallest
+  *                - additionally keep track of the index in the original array
   */
 #define ELEM_SWAPD(a,b) { T t=a;a=b;b=t; }
 #define ELEM_SWAPI(a,b) { int t=a;a=b;b=t; }
@@ -206,6 +209,11 @@ T RobustGaussian<T>::quick_select(T arr[], int n, int k)
                Publisher: Englewood Cliffs: Prentice-Hall, 1976
     Physical description: 366 p.
                   Series: Prentice-Hall Series in Automatic Computation
+
+    Implementation based on code by N.Devillard. Public Domain.
+
+    kth_smallestI is modified: we keep track of the position inside the original 
+    array of the k_th smallest element
 
  ---------------------------------------------------------------------------*/
 template <class T>
