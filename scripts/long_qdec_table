@@ -9,8 +9,8 @@
 # Original Author: Martin Reuter
 # CVS Revision Info:
 #    $Author: mreuter $
-#    $Date: 2011/04/27 17:23:22 $
-#    $Revision: 1.1.2.4 $
+#    $Date: 2011/08/23 18:16:58 $
+#    $Revision: 1.1.2.5 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -97,7 +97,7 @@ def options_parse():
     Command Line Options Parser
     initiate the option parser and return the parsed object
     """
-    parser = optparse.OptionParser(version='$Id: long_qdec_table,v 1.1.2.4 2011/04/27 17:23:22 mreuter Exp $', usage=HELPTEXT)
+    parser = optparse.OptionParser(version='$Id: long_qdec_table,v 1.1.2.5 2011/08/23 18:16:58 mreuter Exp $', usage=HELPTEXT)
     
     # help text
     h_qdec      = '(REQUIRED) qdec table file specifying the subjects and time points'
@@ -149,8 +149,11 @@ if __name__=="__main__":
     if options.split is not None:
         print 'Splitting the qdec table:  column '+options.split
         alltables = longqdec.split(options.split)
+        colname = options.split+"."
+        if options.split == "fsid-base":
+            colname = ""
         for table in alltables:
-            outname="long.qdec."+table.commonval+".dat"
+            outname="long.qdec."+colname+table.commonval+".dat"
             print 'Writing the qdec table: '+outname
             table.write(outname)  
 
