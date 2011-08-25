@@ -11,8 +11,8 @@
  * Original Author: Doug Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2011/08/10 15:44:31 $
- *    $Revision: 1.71 $
+ *    $Date: 2011/08/25 16:08:00 $
+ *    $Revision: 1.72 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -475,7 +475,7 @@ MATRIX *LoadRfsl(char *fname);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_vol2vol.c,v 1.71 2011/08/10 15:44:31 greve Exp $";
+static char vcid[] = "$Id: mri_vol2vol.c,v 1.72 2011/08/25 16:08:00 greve Exp $";
 char *Progname = NULL;
 
 int debug = 0, gdiagno = -1;
@@ -592,12 +592,12 @@ int main(int argc, char **argv) {
 
 
   make_cmd_version_string(argc, argv,
-                          "$Id: mri_vol2vol.c,v 1.71 2011/08/10 15:44:31 greve Exp $",
+                          "$Id: mri_vol2vol.c,v 1.72 2011/08/25 16:08:00 greve Exp $",
                           "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option(argc, argv,
-                                "$Id: mri_vol2vol.c,v 1.71 2011/08/10 15:44:31 greve Exp $",
+                                "$Id: mri_vol2vol.c,v 1.72 2011/08/25 16:08:00 greve Exp $",
                                 "$Name:  $");
   if(nargs && argc - nargs == 1) exit (0);
 
@@ -1757,6 +1757,10 @@ static void check_options(void) {
       printf("ERROR: creating directory %s\n",outdir);
       exit(1);
     }
+  }
+  if(fstal && regheader){
+    printf("ERROR: cannot use --tal and --regheader\n");
+    exit(1);
   }
   if(TargMNI152){
     if(regfile == NULL){
