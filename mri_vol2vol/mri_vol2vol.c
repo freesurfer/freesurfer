@@ -10,9 +10,9 @@
 /*
  * Original Author: Doug Greve
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2011/08/25 16:08:00 $
- *    $Revision: 1.72 $
+ *    $Author: lzollei $
+ *    $Date: 2011/08/26 18:16:11 $
+ *    $Revision: 1.73 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -475,7 +475,7 @@ MATRIX *LoadRfsl(char *fname);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_vol2vol.c,v 1.72 2011/08/25 16:08:00 greve Exp $";
+static char vcid[] = "$Id: mri_vol2vol.c,v 1.73 2011/08/26 18:16:11 lzollei Exp $";
 char *Progname = NULL;
 
 int debug = 0, gdiagno = -1;
@@ -519,6 +519,7 @@ char *talxfmfile = "talairach.xfm";
 
 char *talsubject = NULL;
 char *subject = NULL;
+char *MNIsubject = "21_vc716";
 char *subject_outreg = NULL;
 
 int dont_irescale = 1;
@@ -538,7 +539,9 @@ int DoMorph = 0;
 int InvertMorph = 0;
 TRANSFORM *Rtransform;  //types : M3D, M3Z, LTA, FSLMAT, DAT, OCT(TA), XFM
 GCAM      *gcam;
+GCAM      *MNIgcam;
 char gcamfile[1000];
+char MNIgcamfile[1000];
 MRI_REGION region;
 char *m3zfile = "talairach.m3z";
 
@@ -592,12 +595,12 @@ int main(int argc, char **argv) {
 
 
   make_cmd_version_string(argc, argv,
-                          "$Id: mri_vol2vol.c,v 1.72 2011/08/25 16:08:00 greve Exp $",
+                          "$Id: mri_vol2vol.c,v 1.73 2011/08/26 18:16:11 lzollei Exp $",
                           "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option(argc, argv,
-                                "$Id: mri_vol2vol.c,v 1.72 2011/08/25 16:08:00 greve Exp $",
+                                "$Id: mri_vol2vol.c,v 1.73 2011/08/26 18:16:11 lzollei Exp $",
                                 "$Name:  $");
   if(nargs && argc - nargs == 1) exit (0);
 
@@ -625,6 +628,8 @@ int main(int argc, char **argv) {
   dump_options(stdout);
 
   if(DoCrop){
+    //printf("\n"); 
+    //printf("DoCrop \n"); 
     printf("Crop %lf\n",CropScale);
     mov = MRIread(movvolfile);
     if(mov == NULL) exit(1);
@@ -671,6 +676,7 @@ int main(int argc, char **argv) {
   if (fstal) {
     // Recompute R for converting to/from talairach space
     // and set the target volume file
+    printf("\n"); 
     printf("Compute R for talairach space\n");
     Xtal = DevolveXFM(subject, NULL, talxfmfile);
     invXtal = MatrixInverse(Xtal,NULL);
@@ -700,6 +706,8 @@ int main(int argc, char **argv) {
 
   if(!invert) {
     // dont invert
+    //printf("\n"); 
+    //printf("Don't invert!\n"); 
     mov = MRIread(movvolfile);
     if (mov == NULL) exit(1);
     if (targvolfile != NULL ) targ = MRIreadHeader(targvolfile,MRI_VOLUME_TYPE_UNKNOWN);
@@ -716,6 +724,8 @@ int main(int argc, char **argv) {
   }
   else{
     //invert
+    printf("\n"); 
+    printf("Invert!\n"); 
     if (targvolfile != NULL ) targ = MRIread(targvolfile);
     if(targ == NULL) exit(1);
     if (movvolfile != NULL) mov = MRIreadHeader(movvolfile,MRI_VOLUME_TYPE_UNKNOWN);
@@ -731,24 +741,31 @@ int main(int argc, char **argv) {
     tempvolfile = movvolfile;
   }
   if(synth) {
+    printf("\n"); 
     printf("Replacing input data with synthetic white noise\n");
     MRIrandn(in->width,in->height,in->depth,in->nframes,0,1,in);
   }
 
   if(regheader) {
+    printf("\n"); 
     printf("Computing registration based on scanner-to-scanner\n");
     R = MRItkRegMtx(targ,mov,XFM);
   }
 
   if(fslregfile) {
+    printf("\n"); 
     printf("Computing registration based on fsl registration\n");
     R = MRIfsl2TkReg(targ, mov, Rfsl);
     if(Rfsl2) R2 = MRIfsl2TkReg(targ, mov, Rfsl2);
   }
 
   if(R == NULL)
-    ErrorExit(ERROR_BADPARM, "ERROR: no registration specified\n") ;
+    ErrorExit(ERROR_BADPARM, "ERROR: no registration (R) is specified\n") ;
 
+  //printf("\n"); 
+  //printf("Registration:\n");
+  //MatrixPrint(stdout,R);
+  //printf("\n");
 
   if(R2){
     R = MatrixSubtract(R,R2,R);
@@ -796,10 +813,10 @@ int main(int argc, char **argv) {
     R = MatrixInverse(R,NULL);
   }
 
-  printf("\n");
-  printf("Final tkRAS-to-tkRAS Matrix is:\n");
-  MatrixPrint(stdout,R);
-  printf("\n");
+  //printf("\n");
+  //printf("Final tkRAS-to-tkRAS Matrix is:\n");
+  //MatrixPrint(stdout,R);
+  //printf("\n");
 
   if(DispFile){
     printf("Computing affine displacment\n");
@@ -872,10 +889,10 @@ int main(int argc, char **argv) {
   vox2vox = MatrixMultiply(invTin,R,NULL);
   MatrixMultiply(vox2vox,Ttemp,vox2vox);
 
-  printf("\n");
-  printf("Vox2Vox Matrix is:\n");
-  MatrixPrint(stdout,vox2vox);
-  printf("\n");
+  //printf("\n");
+  //printf("Vox2Vox Matrix is:\n");
+  //MatrixPrint(stdout,vox2vox);
+  //printf("\n");
 
   // Allocate the output
   template->type = precisioncode;
@@ -928,6 +945,11 @@ int main(int argc, char **argv) {
       GCAMapplyTransform(gcam, Rtransform);  //voxel2voxel
       printf("Applying morph to input\n");
       out = GCAMmorphToAtlas(in, gcam, NULL, -1, interpcode);
+
+      //sprintf(MNIgcamfile,"%s/transforms/talairach.m3z", fio_dirname(gcam->atlas.fname));
+      //printf("The MNI gcam fname is: %s\n", MNIgcamfile);      
+      //MNIgcam = GCAMread(MNIgcamfile);
+      //out = GCAMmorphToAtlasToMNI(in, gcam, MNIgcam, NULL, -1, interpcode);
     }
     else{
       //mri_vol2vol --mov orig.morphed.mgz --inv-morph --s subject --o origB.mgz
@@ -1113,7 +1135,7 @@ static int parse_commandline(int argc, char **argv) {
       nargsused = 1;
     } else if (istringnmatch(option, "--noDefM3zPath",0)) {
       defM3zPath = 0; // use the m3z file as it is; no assumed location
-      R = MatrixIdentity(4,NULL); // as subjid is not neccesary any more
+      if(R == NULL) R = MatrixIdentity(4,NULL); // as subjid is not neccesary any more
       printf("Using the m3z file as it is; no assumed location.\n");
     } else if (istringnmatch(option, "--mov",0)) {
       if (nargc < 1) argnerr(option,1);
@@ -1134,6 +1156,10 @@ static int parse_commandline(int argc, char **argv) {
       regfile = pargv[0];
       err = regio_read_register(regfile, &subject, &ipr, &bpr,
                                 &intensity, &R, &float2int);
+      printf("\n");
+      printf("Matrix from regfile:\n");
+      MatrixPrint(stdout,R);
+      printf("\n");
       if (err) exit(1);
       nargsused = 1;
     } 
