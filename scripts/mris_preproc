@@ -11,8 +11,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2011/08/02 15:39:38 $
-#    $Revision: 1.61 $
+#    $Date: 2011/08/26 20:13:47 $
+#    $Revision: 1.62 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -29,7 +29,7 @@
 #
 setenv FIX_VERTEX_AREA
 
-set VERSION = '$Id: mris_preproc,v 1.61 2011/08/02 15:39:38 greve Exp $';
+set VERSION = '$Id: mris_preproc,v 1.62 2011/08/26 20:13:47 greve Exp $';
 
 set PrintHelp = 0;
 set subjlist = ();
@@ -881,7 +881,7 @@ if($#isplist != 0) then
     exit 1;
   endif
 endif
-if($paireddiff) then
+if($paireddiff && ! $DoXHemi) then
   set rem = `echo "$#subjlist%2" | bc`;
   if($rem != 0) then
     echo "ERROR: need an even number of subjects with --paired-diff"
