@@ -1,14 +1,14 @@
 /**
  * @file  RenderView.cpp
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief View class for rendering 2D and 3D actors
  *
  */
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/14 23:44:48 $
- *    $Revision: 1.40 $
+ *    $Author: rpwang $
+ *    $Date: 2011/08/29 15:24:59 $
+ *    $Revision: 1.41 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

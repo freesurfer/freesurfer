@@ -1,6 +1,32 @@
+/**
+ * @file  WidgetTimeCoursePlot.cpp
+ * @brief Widget drawing time course plot
+ *
+ */
+/*
+ * Original Author: Ruopeng Wang
+ * CVS Revision Info:
+ *    $Author: rpwang $
+ *    $Date: 2011/08/29 15:24:59 $
+ *    $Revision: 1.2 $
+ *
+ * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ *
+ * Terms and conditions for use, reproduction, distribution and contribution
+ * are found in the 'FreeSurfer Software License Agreement' contained
+ * in the file 'LICENSE' found in the FreeSurfer distribution, and here:
+ *
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
+ *
+ * Reporting: freesurfer@nmr.mgh.harvard.edu
+ *
+ */
+
+
 #include "WidgetTimeCoursePlot.h"
 #include <QPainter>
 #include <QMouseEvent>
+#include <QDebug>
 #include "MyUtils.h"
 
 WidgetTimeCoursePlot::WidgetTimeCoursePlot(QWidget *parent) :
@@ -67,6 +93,11 @@ void WidgetTimeCoursePlot::paintEvent(QPaintEvent *e)
     dMin -= (dMax-dMin)/4;
     if (dMin < 0 && old_min >= 0)
       dMin = 0;
+  }
+  if (dMin == dMax)
+  {
+    dMin -= 1;
+    dMax += 1;
   }
   double dSpacing = rc_plot.width() / (m_data.size()-1);
   p.setRenderHint(QPainter::Antialiasing);

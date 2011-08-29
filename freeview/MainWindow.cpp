@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2011/08/16 17:15:21 $
- *    $Revision: 1.181 $
+ *    $Date: 2011/08/29 15:24:59 $
+ *    $Revision: 1.182 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -5040,10 +5040,10 @@ void MainWindow::OnActiveLayerChanged(Layer* layer)
                 ui->treeWidgetCursorInfo, SLOT(OnCursorPositionChanged()), Qt::UniqueConnection);
         connect(layer, SIGNAL(ActiveFrameChanged(int)),
                 ui->treeWidgetMouseInfo, SLOT(OnMousePositionChanged()), Qt::UniqueConnection);
-        if (ui->actionTimeCourse->isChecked())
+        m_wndTimeCourse->UpdateData();
+        if (ui->actionTimeCourse->isChecked() && !layer->IsTypeOf("VolumeTrack"))
         {
-          m_wndTimeCourse->show();
-          m_wndTimeCourse->UpdateData();
+            m_wndTimeCourse->show();
         }
       }
       else
