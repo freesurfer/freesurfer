@@ -54,7 +54,9 @@ libsbl_a_SOURCES=\
 	src/image/ImageTransform.cc \
 	src/image/Image.cc \
 	src/image/ImageSeqUtil.cc \
-	src/image/ImageUtil.cc \
+	src/image/ImageUtil.cc
+
+EXTRA_DIST=\
 	external/CDT/CDT.h \
 	external/win_dirent.h \
 	external/win_timegm.h \
@@ -118,3 +120,4 @@ libsbl_a_SOURCES=\
 	include/sbl/image/MotionFieldUtil.h \
 	include/sbl/image/ImageRegister.h \
 	include/sbl/image/Track.h
+
