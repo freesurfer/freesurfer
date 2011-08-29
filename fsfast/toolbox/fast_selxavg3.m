@@ -1,6 +1,6 @@
 % fast_selxavg3.m
 %
-% $Id: fast_selxavg3.m,v 1.101 2011/08/09 17:09:08 greve Exp $
+% $Id: fast_selxavg3.m,v 1.102 2011/08/29 17:40:55 greve Exp $
 
 
 %
@@ -9,8 +9,8 @@
 % Original Author: Doug Greve
 % CVS Revision Info:
 %    $Author: greve $
-%    $Date: 2011/08/09 17:09:08 $
-%    $Revision: 1.101 $
+%    $Date: 2011/08/29 17:40:55 $
+%    $Revision: 1.102 $
 %
 % Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 %
@@ -31,7 +31,7 @@ fprintf('%s\n',sess);
 
 
 fprintf('-------------------------\n');
-fprintf('$Id: fast_selxavg3.m,v 1.101 2011/08/09 17:09:08 greve Exp $\n');
+fprintf('$Id: fast_selxavg3.m,v 1.102 2011/08/29 17:40:55 greve Exp $\n');
 which fast_selxavg3
 which fast_ldanaflac
 which MRIread
@@ -58,7 +58,7 @@ if(isempty(flac0))
   if(~monly) quit; end
   return; 
 end
-flac0.sxaversion = '$Id: fast_selxavg3.m,v 1.101 2011/08/09 17:09:08 greve Exp $';
+flac0.sxaversion = '$Id: fast_selxavg3.m,v 1.102 2011/08/29 17:40:55 greve Exp $';
 
 flac0.sess = sess;
 flac0.nthrun = 1;
@@ -648,7 +648,11 @@ if(DoGLMFit)
     fprintf(fplf,'Computing whitening matrices\n');
     tic;
     clear rho1segmn nalphasegmn acfsegmn S Sinv W;
+    fprintf('Alloc Sinv: %d %d %d ... ',ntptot,ntptot,flac0.acfbins);
+    fprintf(fplf,'Alloc Sinv: %d %d %d ... ',ntptot,ntptot,flac0.acfbins);
     Sinv = zeros(ntptot,ntptot,flac0.acfbins);
+    fprintf(' done t = %g sec\n',toc);
+    fprintf(fplf,' done t = %g sec\n',toc);
     %S    = zeros(ntptot,ntptot,flac0.acfbins);
     %W    = zeros(ntptot,ntptot,flac0.acfbins);
     fname = sprintf('%s/acfsegLUT.txt',outanadir);
