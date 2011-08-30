@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2011/07/30 20:36:59 $
- *    $Revision: 1.492 $
+ *    $Author: greve $
+ *    $Date: 2011/08/30 21:19:10 $
+ *    $Revision: 1.493 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -23,7 +23,7 @@
  */
 
 extern const char* Progname;
-const char *MRI_C_VERSION = "$Revision: 1.492 $";
+const char *MRI_C_VERSION = "$Revision: 1.493 $";
 
 
 /*-----------------------------------------------------
@@ -6196,12 +6196,14 @@ MRI *MRIallocHeader(int width, int height, int depth, int type, int nframes)
   if (!mri)
     ErrorExit(ERROR_NO_MEMORY, "MRIalloc: could not allocate MRI\n") ;
 
+  // Note: changes here may need to be reflected in MRISeqchangeType()
   mri->frames = (MRI_FRAME *)calloc(nframes, sizeof(MRI_FRAME)) ;
   if (!mri->frames)
     ErrorExit(ERROR_NO_MEMORY,
               "MRIalloc: could not allocate %d frame\n", nframes) ;
   for (i = 0 ; i < mri->nframes ; i++)
     mri->frames[i].m_ras2vox = MatrixAlloc(4,4, MATRIX_REAL) ;
+
   mri->imnr0 = 1 ;
   mri->imnr1 = depth;
   mri->fov = width ;
@@ -12141,10 +12143,11 @@ MRImeanFrameThresh(MRI *mri, int frame, float thresh)
 MRI *MRISeqchangeType(MRI *vol, int dest_type, float f_low,
                       float f_high, int no_scale_option_flag)
 {
-  int nslices, nframes;
+  int nslices, nframes, i;
   MRI *mri;
 
   /* Change vol dimensions to make it look like a single frame */
+  // This can cause problems with MRI_FRAME operations, see below
   nslices = vol->depth;
   nframes = vol->nframes;
   vol->depth = nslices*nframes;
@@ -12167,6 +12170,11 @@ MRI *MRISeqchangeType(MRI *vol, int dest_type, float f_low,
   /* Change mri dimensions back to original */
   mri->depth = nslices;
   mri->nframes = nframes;
+
+  // Alloc MRI_FRAME. This needs to be updated when MRI_FRAME items are added
+  mri->frames = (MRI_FRAME *)calloc(mri->nframes, sizeof(MRI_FRAME)) ;
+  for (i = 0 ; i < mri->nframes ; i++)
+    mri->frames[i].m_ras2vox = MatrixAlloc(4,4, MATRIX_REAL) ;
 
   return(mri);
 }
