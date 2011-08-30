@@ -163,7 +163,7 @@ example* , bugs* , reporting* , references* , see-also*)*>
       <argument>el_reg_toTEMPLATE.tm3d</argument>
       <explanation>the elastic morph that combines correspondences recovered in steps (1) and (2). This file takes up a lot of memory so, by default, is deleted. It can only be recreated if the elastic registration step (--step 2) is re-run.</explanation>
 
-   <intro> The command also produces two log files. These will be created in the output directory with a .log extension and contain the function calls that are initiated by the registration. The one that has a *summary* prefix is easier to read and does not contain all the function outputs. The longer version is to be consulted if looking for more details or explanations for possible errors.
+   <intro> The command also produces two log files. These will be created in the output directory with a .log extension and contain the function calls that are initiated by the registration. The one that has a *summary* prefix is easier to read and does not contain all the function outputs. The longer version is to be consulted if looking for more details or explanations for possible errors.</intro>
 
   </outputs>
 
@@ -174,7 +174,7 @@ example* , bugs* , reporting* , references* , see-also*)*>
 
   <example>Register Subj1 to Subj2 where the two subjects have different SUBJECTS_DIR's: mri_cvs_register --mov Subj1ID --template Subj2ID --templatedir OTHER_SUBJECTS_DIR</example>
 
-  <example>If running mri_cvs_register on lanchpad, use "-l nodes=1:ppn=4,vmem=28gb"
+  <example>If running mri_cvs_register on lanchpad, use "-l nodes=1:ppn=4,vmem=28gb"</example>
 
   <bugs>None</bugs>
 
