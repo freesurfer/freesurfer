@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2011/08/29 15:24:59 $
- *    $Revision: 1.2 $
+ *    $Date: 2011/08/30 19:54:29 $
+ *    $Revision: 1.3 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -95,10 +95,7 @@ void WidgetTimeCoursePlot::paintEvent(QPaintEvent *e)
       dMin = 0;
   }
   if (dMin == dMax)
-  {
-    dMin -= 1;
     dMax += 1;
-  }
   double dSpacing = rc_plot.width() / (m_data.size()-1);
   p.setRenderHint(QPainter::Antialiasing);
   QPointF* pts = new QPointF[m_data.size()];
