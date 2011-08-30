@@ -8,8 +8,8 @@
 # Original Author: Anastasia Yendiki
 # CVS Revision Info:
 #    $Author: ayendiki $
-#    $Date: 2011/06/03 16:15:31 $
-#    $Revision: 1.22.2.7 $
+#    $Date: 2011/08/30 01:44:22 $
+#    $Revision: 1.22.2.8 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -25,7 +25,7 @@
 
 umask 002
 
-set VERSION = '$Id: trac-all,v 1.22.2.7 2011/06/03 16:15:31 ayendiki Exp $'
+set VERSION = '$Id: trac-all,v 1.22.2.8 2011/08/30 01:44:22 ayendiki Exp $'
 set ProgName = `basename $0`
 set inputargs = ($argv)
 
@@ -141,7 +141,7 @@ set trainsubjlist = ()
 set ntrainlist = ()
 set avgname = ()
 set reinit = 0
-set usetrunc = 0
+set usetrunc = 1
 set do1out = 0
 set doprior = 0
 set dosegprior = 1
