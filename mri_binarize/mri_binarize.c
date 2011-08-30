@@ -10,8 +10,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2011/04/08 15:40:27 $
- *    $Revision: 1.27 $
+ *    $Date: 2011/08/30 21:33:13 $
+ *    $Revision: 1.28 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -26,7 +26,7 @@
  */
 
 
-// $Id: mri_binarize.c,v 1.27 2011/04/08 15:40:27 greve Exp $
+// $Id: mri_binarize.c,v 1.28 2011/08/30 21:33:13 greve Exp $
 
 /*
   BEGINHELP
@@ -168,6 +168,7 @@ double round(double x);
 #include "volcluster.h"
 #include "surfcluster.h"
 #include "randomfields.h"
+#include "cma.h"
 
 
 static int  parse_commandline(int argc, char **argv);
@@ -179,7 +180,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_binarize.c,v 1.27 2011/04/08 15:40:27 greve Exp $";
+static char vcid[] = "$Id: mri_binarize.c,v 1.28 2011/08/30 21:33:13 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -600,6 +601,30 @@ static int parse_commandline(int argc, char **argv) {
       nargsused = nth;
       DoMatch = 1;
     } 
+    else if (!strcasecmp(option, "--subcort-gm")) {
+      MatchValues[nMatch] = Left_Thalamus_Proper; nMatch++;
+      MatchValues[nMatch] = Left_Caudate; nMatch++;
+      MatchValues[nMatch] = Left_Putamen; nMatch++;
+      MatchValues[nMatch] = Left_Pallidum; nMatch++;
+      MatchValues[nMatch] = Left_Hippocampus; nMatch++;
+      MatchValues[nMatch] = Left_Amygdala; nMatch++;
+      MatchValues[nMatch] = Left_Accumbens_area; nMatch++;
+      MatchValues[nMatch] = Left_VentralDC; nMatch++;
+      MatchValues[nMatch] = Left_Substancia_Nigra; nMatch++;
+      MatchValues[nMatch] = Left_Cerebellum_Cortex; nMatch++;
+      MatchValues[nMatch] = Right_Thalamus_Proper; nMatch++;
+      MatchValues[nMatch] = Right_Caudate; nMatch++;
+      MatchValues[nMatch] = Right_Putamen; nMatch++;
+      MatchValues[nMatch] = Right_Pallidum; nMatch++;
+      MatchValues[nMatch] = Right_Hippocampus; nMatch++;
+      MatchValues[nMatch] = Right_Amygdala; nMatch++;
+      MatchValues[nMatch] = Right_Accumbens_area; nMatch++;
+      MatchValues[nMatch] = Right_VentralDC; nMatch++;
+      MatchValues[nMatch] = Right_Substancia_Nigra; nMatch++;
+      MatchValues[nMatch] = Right_Cerebellum_Cortex; nMatch++;
+      MatchValues[nMatch] = Brain_Stem; nMatch++;
+      DoMatch = 1;
+    } 
     else if (!strcasecmp(option, "--frame")) {
       if (nargc < 1) CMDargNErr(option,1);
       sscanf(pargv[0],"%d",&frame);
@@ -659,6 +684,7 @@ static void print_usage(void) {
   printf("   --wm : set match vals to 2 and 41 (aseg for cerebral WM)\n");
   printf("   --ventricles : set match vals those for aseg ventricles+choroid (not 4th)\n");
   printf("   --wm+vcsf : WM and ventricular CSF, including choroid (not 4th)\n");
+  printf("   --subcort-gm : subcortical gray matter\n");
   printf("   \n");
   printf("   --o outvol : output volume \n");
   printf("   --count countfile : save number of hits in ascii file (hits,ntotvox,pct)\n");
