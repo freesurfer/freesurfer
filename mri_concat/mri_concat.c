@@ -15,8 +15,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2011/08/30 17:20:14 $
- *    $Revision: 1.54 $
+ *    $Date: 2011/08/30 22:34:23 $
+ *    $Revision: 1.55 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -61,7 +61,7 @@ static void dump_options(FILE *fp);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_concat.c,v 1.54 2011/08/30 17:20:14 nicks Exp $";
+static char vcid[] = "$Id: mri_concat.c,v 1.55 2011/08/30 22:34:23 nicks Exp $";
 char *Progname = NULL;
 int debug = 0;
 #define NInMAX 400000
@@ -123,6 +123,8 @@ int NReplications = 0;
 
 int DoPrune = 0;
 MRI *PruneMask = NULL;
+
+int DoRMS = 0; // compute root-mean-square on multi-frame input
 
 /*--------------------------------------------------*/
 int main(int argc, char **argv)
@@ -223,6 +225,20 @@ int main(int argc, char **argv)
 
   printf("nframestot = %d\n",nframestot);
 
+  if (DoRMS)
+  {
+    if (ninputs != 1)
+    {
+      printf("ERROR: --rms supports only single input w/ multiple frames\n");
+      exit (1);
+    }
+    if (nframestot == 1)
+    {
+      printf("ERROR: --rms input must have multiple frames\n");
+      exit (1);
+    }
+  }
+
   if(ngroups != 0)
   {
     printf("Creating grouped mean matrix ngroups=%d, nper=%d\n",
@@ -265,7 +281,15 @@ int main(int argc, char **argv)
   {
     datatype = inputDatatype;
   }
-  mriout = MRIallocSequence(nc,nr,ns,datatype,nframestot);
+  if (DoRMS)
+  {
+    // RMS always has single frame output
+    mriout = MRIallocSequence(nc,nr,ns,datatype,1);
+  }
+  else
+  {
+    mriout = MRIallocSequence(nc,nr,ns,datatype,nframestot);
+  }
   if (mriout == NULL)
   {
     exit(1);
@@ -275,6 +299,7 @@ int main(int argc, char **argv)
   fout = 0;
   for (nthin = 0; nthin < ninputs; nthin++)
   {
+    if (DoRMS) break; // MRIrms reads the input frames
     if(Gdiag_no > 0 || debug)
     {
       printf("Loading %dth input %s\n",
@@ -682,6 +707,14 @@ int main(int argc, char **argv)
     MRImask(mriout, PruneMask, mriout, 0, 0);
   }
 
+  if(DoRMS)
+  {
+    printf("Computing RMS across input frames\n");
+    mritmp = MRIread(inlist[0]);
+    MRIcopyHeader(mritmp, mriout);
+    MRIrms(mritmp,mriout);
+  }
+
   printf("Writing to %s\n",out);
   err = MRIwrite(mriout,out);
   if(err)
@@ -863,6 +896,10 @@ static int parse_commandline(int argc, char **argv)
     else if (!strcasecmp(option, "--combine"))
     {
       DoCombine = 1;
+    }
+    else if (!strcasecmp(option, "--rms"))
+    {
+      DoRMS = 1;
     }
     else if (!strcasecmp(option, "--keep-datatype"))
     {
@@ -1097,6 +1134,8 @@ static void print_usage(void)
   printf("   --add addval   : add addval\n");
   printf("\n");
   printf("   --mask maskfile : mask used with --vote or --sort\n");
+  printf("   --rms : root mean square (eg. combine memprage");
+  printf("           (square, sum, div-by-nframes, square root)\n");
   printf("   --no-check : do not check inputs (faster)\n");
   printf("   --help      print out information on how to use this program\n");
   printf("   --version   print out version and exit\n");
