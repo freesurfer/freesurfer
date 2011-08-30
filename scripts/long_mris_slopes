@@ -9,8 +9,8 @@
 # Original Author: Martin Reuter
 # CVS Revision Info:
 #    $Author: mreuter $
-#    $Date: 2011/08/02 20:34:01 $
-#    $Revision: 1.32 $
+#    $Date: 2011/08/30 22:34:05 $
+#    $Revision: 1.33 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -61,6 +61,8 @@ One or more of the following:
 
 --do-rate          Compute and output the rate (recommended)
 
+--do-pc1fit        Compute and output the pct. change (w.r.t. tp1 computed from line fit)
+
 --do-pc1           Compute and output the pct. change (w.r.t. tp1)
 
 --do-spc           Compute and output the sym. pct. change (w.r.t. temp. average) (recommended)
@@ -85,30 +87,34 @@ OPTIONAL ARGUMENTS
 
 To manually specify the subject specific output in <template>/surf/<hemi>.<name> :
 
---out-avg <name>   Output filename (without hemi ?h) for temporal average (default: long.<meas>-avg.mgh)
+--out-avg <name>     Output filename (without hemi ?h) for temporal average (default: long.<meas>-avg.mgh)
 
---out-rate <name>  Output filename for the rate (diff per time) (default: long.<meas>-rate.mgh)
+--out-rate <name>    Output filename for the rate (diff per time) (default: long.<meas>-rate.mgh)
 
---out-pc1 <name>   Output filename for percent change (w.r.t. time 1) (default: long.<meas>-pc1.mgh)
+--out-pc1fit <name>  Output filename for percent change (w.r.t. time 1 fit) (default: long.<meas>-pc1fit.mgh)
 
---out-spc <name>   Output filename for sym. pct. change (w.r.t. average) (default: long.<meas>-spc.mgh)
+--out-pc1 <name>     Output filename for percent change (w.r.t. time 1) (default: long.<meas>-pc1.mgh)
 
---out-stack <name> Store stacked measure file <template>/surf/<hemi>.<name> (default: long.<meas>-stack.mgh)
+--out-spc <name>     Output filename for sym. pct. change (w.r.t. average) (default: long.<meas>-spc.mgh)
 
---out-label <name> Store intersected cortex in <template>/label/<hemi>.<name>.label (default: long.cortex)
+--out-stack <name>   Store stacked measure file <template>/surf/<hemi>.<name> (default: long.<meas>-stack.mgh)
+
+--out-label <name>   Store intersected cortex in <template>/label/<hemi>.<name>.label (default: long.cortex)
 
 
 To ouput stacked/intersected results on the qtarget (all require --qcache) :
 
---isec-labels <name> Intersect labels on <qtarget> (usually cortex labels)
+--isec-labels <name>  Intersect labels on <qtarget> (usually cortex labels)
 
---stack-avg <name>   Output stacked avg maps on <qtarget> for all fwhm levels
+--stack-avg <name>    Output stacked avg maps on <qtarget> for all fwhm levels
 
---stack-rate <name>  Output stacked rate maps on <qtarget> for all fwhm levels
+--stack-rate <name>   Output stacked rate maps on <qtarget> for all fwhm levels
 
---stack-pc1 <name>   Output stacked pc1 maps on <qtarget> for all fwhm levels
+--stack-pc1fit <name> Output stacked pc1fit maps on <qtarget> for all fwhm levels
 
---stack-spc <name>   Output stacked spc maps on <qtarget> for all fwhm levels
+--stack-pc1 <name>    Output stacked pc1 maps on <qtarget> for all fwhm levels
+
+--stack-spc <name>    Output stacked spc maps on <qtarget> for all fwhm levels
 
 """
 
@@ -168,6 +174,12 @@ Choose one or more of the following options:
 * 'do-pc1' is the percent change, this is the rate normalized by the
      measure at the first time point times 100, e.g. percent thinning per
      year.
+* 'do-pc1fit' is the percent change with respect to the value at
+     tp1, evalutated from the linear fit. This is the rate normalized by the
+     estimated measure at the first time point times 100, e.g. percent
+     thinning per year. Using the linear fit instead of the measure at time
+     point 1 directly reduces noise as tp1 data is more noisy than the fit,
+     therefore we recommend pc1fit over pc1.
 * 'do-spc' for symmetrized percent change. Here we normalize by the temporal
      average instead of taking it from the first time point. The average
      is computed from the linear fit at the middle of the time interval.
@@ -176,8 +188,8 @@ Choose one or more of the following options:
 * 'do-avg' for output of the temporal average (linear fit evaluated at mid
      time).
 
-NOTE that for percent change (pc1 and spc) prior smoothing (--fwhm) is
-highly recommended as the division can produce very large values!
+NOTE that for percent change (pc1fit, pc1 and spc) prior smoothing (--fwhm)
+is highly recommended as the division can produce very large values!
 
 
 WITHIN SUBJECT OUTPUT
@@ -189,8 +201,8 @@ template's surf directory:
      <template>/surf/<hemi>.<NAME>(.fwhm<fwhm>).mgh
 
 For each of the above analysis, the <NAME> can be manually specified
-using --name-rate, --name-pc1, --name-spc, --name-avg. Defaults are
-long.<meas>-rate, long.<meas>-pc1 etc.
+using --name-rate, --name-pc1fit, --name-pc1, --name-spc, --name-avg.
+Defaults are:  long.<meas>-rate, long.<meas>-pc1 etc.
 
 It is possible to also store the stack of the measure across time in each
 subject using -do-stack. The default is destination is
@@ -270,13 +282,13 @@ work on the left hemisphere (lh) and use smoothing of 15 fwhm. Note that
 'age' is the column secifying the age in the long.qdec.table.dat file:
 
 long_mris_slopes --qdec ./long.qdec.table.dat --meas thickness --hemi lh \ 
-  --do-avg --do-rate --do-pc1 --do-spc --do-stack --do-label \ 
+  --do-avg --do-rate --do-pc1fit --do-spc --do-stack --do-label \ 
   --fwhm 15 --time age --sd ./
 
 To create Qdec cache on fsaverage (several fwhm levels):
 
 long_mris_slopes --qdec ./long.qdec.table.dat --meas thickness --hemi lh \ 
-  --do-avg --do-rate --do-pc1 --do-spc --do-stack --do-label \ 
+  --do-avg --do-rate --do-pc1fit --do-spc --do-stack --do-label \ 
   --time age --qcache fsaverage --sd ./ 
  
 To stack results for spc and fwhm 15:
@@ -315,7 +327,7 @@ def options_parse():
     Command Line Options Parser for long_mris_slopes
     initiate the option parser and return the parsed object
     """
-    parser = optparse.OptionParser(version='$Id: long_mris_slopes,v 1.32 2011/08/02 20:34:01 mreuter Exp $', usage=HELPTEXT)
+    parser = optparse.OptionParser(version='$Id: long_mris_slopes,v 1.33 2011/08/30 22:34:05 mreuter Exp $', usage=HELPTEXT)
     
     # help text
 #    h_fsgd = '(REQUIRED) fsdg file specifying the subjects and time points'
@@ -327,6 +339,7 @@ def options_parse():
 
     h_doavg     = 'compute and output the temporal average (recommended)'
     h_dorate    = 'compute and output the rate (recommended)'
+    h_dopc1fit  = 'compute and output the pct. change (w.r.t. tp1 from linear fit)'
     h_dopc1     = 'compute and output the pct. change (w.r.t. tp1)'
     h_dospc     = 'compute and output the sym. pct. change (w.r.t. temp. average) (recommended)'
     h_dostack   = 'save the stacked within subject file (time series)'
@@ -334,6 +347,7 @@ def options_parse():
 
     h_name_avg  = 'filename (without hemi ?h) to store temporal average in <template>/surf/<hemi>.<NAME_AVG>.mgh (default: long.<meas>-avg)'
     h_name_rate = 'filename (without hemi ?h) to store rate in <template>/surf/<hemi>.<NAME_RATE>.mgh (default: long.<meas>-rate)'
+    h_name_pc1fit  = 'filename (without hemi ?h) to store pct. change (to TP1fit) in <template>/surf/<hemi>.<NAME_PC1FIT>.mgh (default: long.<meas>-pc1fit)'
     h_name_pc1  = 'filename (without hemi ?h) to store pct. change (to TP1) in <template>/surf/<hemi>.<NAME_PC1>.mgh (default: long.<meas>-pc1)'
     h_name_spc  = 'filename (without hemi ?h) to store sym. pct. change in <template>/surf/<hemi>.<NAME_SPC>.mgh (default: long.<meas>-spc)'
     h_outstack  = 'filename to store stacked measure file <template>/surf/<hemi>.<OUT_STACK>.mgh (default: long.<meas>-stack)'
@@ -348,6 +362,7 @@ def options_parse():
     h_iseclabels= 'intersect labels on <qtarget> (usually cortex labels), requires --qcache'
     h_stackavg  = 'output stacked avg maps on <qtarget> for all fwhm levels, requires --qcache'
     h_stackrate = 'output stacked rate maps on <qtarget> for all fwhm levels, requires --qcache'
+    h_stackpc1fit  = 'output stacked pc1fit maps on <qtarget> for all fwhm levels, requires --qcache'
     h_stackpc1  = 'output stacked pc1 maps on <qtarget> for all fwhm levels, requires --qcache'
     h_stackspc  = 'output stacked spc maps on <qtarget> for all fwhm levels, requires --qcache'
     
@@ -365,6 +380,7 @@ def options_parse():
     # do computations:
     parser.add_option('--do-avg'  , action='store_true', dest='do_avg'  , help=h_doavg  , default=False)
     parser.add_option('--do-rate' , action='store_true', dest='do_rate' , help=h_dorate , default=False)
+    parser.add_option('--do-pc1fit'  , action='store_true', dest='do_pc1fit'  , help=h_dopc1fit  , default=False)
     parser.add_option('--do-pc1'  , action='store_true', dest='do_pc1'  , help=h_dopc1  , default=False)
     parser.add_option('--do-spc'  , action='store_true', dest='do_spc'  , help=h_dospc  , default=False)
     parser.add_option('--do-stack', action='store_true', dest='do_stack', help=h_dostack, default=False)
@@ -380,6 +396,7 @@ def options_parse():
     # overwrite default names:
     parser.add_option('--name-avg'  , dest='name_avg'  , help=h_name_avg)
     parser.add_option('--name-rate' , dest='name_rate' , help=h_name_rate)
+    parser.add_option('--name-pc1fit'  , dest='name_pc1fit'  , help=h_name_pc1fit)
     parser.add_option('--name-pc1'  , dest='name_pc1'  , help=h_name_pc1)
     parser.add_option('--name-spc'  , dest='name_spc'  , help=h_name_spc)
     parser.add_option('--out-stack' , dest='out_stack', help=h_outstack)
@@ -389,6 +406,7 @@ def options_parse():
     parser.add_option('--isec-labels', dest='isec_labels', help=h_iseclabels)
     parser.add_option('--stack-avg'  , dest='stack_avg'  , help=h_stackavg)
     parser.add_option('--stack-rate' , dest='stack_rate' , help=h_stackrate)
+    parser.add_option('--stack-pc1fit'  , dest='stack_pc1fit'  , help=h_stackpc1fit)
     parser.add_option('--stack-pc1'  , dest='stack_pc1'  , help=h_stackpc1)
     parser.add_option('--stack-spc'  , dest='stack_spc'  , help=h_stackspc)
    
@@ -420,6 +438,8 @@ def options_parse():
         options.name_rate = 'long.'+options.meas+'-rate'
 #    elif options.name_rate is not None:
 #        options.do_rate = True
+    if options.do_pc1fit and options.name_pc1 is None:
+        options.name_pc1fit = 'long.'+options.meas+'-pc1fit'
     if options.do_pc1 and options.name_pc1 is None:
         options.name_pc1 = 'long.'+options.meas+'-pc1'
 #    elif options.name_pc1 is not None:
@@ -433,7 +453,7 @@ def options_parse():
 #    elif options.out_stack is not None:
 #        options.do_stack = True
 
-    do_analysis = options.do_avg or options.do_pc1 or options.do_spc or options.do_rate    
+    do_analysis = options.do_avg or options.do_pc1fit or options.do_pc1 or options.do_spc or options.do_rate    
     if options.meas is None and do_analysis:
         print 'ERROR: Specify --meas (e.g. \'thickness\')'
         sys.exit(1)
@@ -444,7 +464,7 @@ def options_parse():
     
     if options.meas is None: options.meas = "label" #needed later to create tmp dir
 
-    do_stacking = options.stack_spc is not None or options.stack_pc1 is not None or options.stack_rate is not None or options.stack_avg is not None
+    do_stacking = options.stack_spc is not None or options.stack_pc1fit is not None or options.stack_pc1 is not None or options.stack_rate is not None or options.stack_avg is not None
     if do_stacking and options.qcache is None:
         print 'ERROR: --stack-??? requires target subject (e.g. fsaverage) as specified with --qcache'
         sys.exit(1)
@@ -470,7 +490,7 @@ def options_parse():
         print 'ERROR: either specify --fwhm <int> or --nosmooth'
         sys.exit(1)
         
-    if (options.name_pc1 is not None or options.name_spc is not None) and options.fwhm is None and not options.nosmooth and options.qcache is None:
+    if (options.name_pc1fit is not None or options.name_pc1 is not None or options.name_spc is not None) and options.fwhm is None and not options.nosmooth and options.qcache is None:
         print 'ERROR: when computing SPC or PC1 (pct. change) you should specify smoothing --fwhm <int>. If you really do not want to smooth pass --nosmooth'
         sys.exit(1)
     
@@ -677,6 +697,7 @@ if __name__=="__main__":
         tavg    = {}
         trate   = {}
         tpc1    = {}
+        tpc1fit = {}
         tspc    = {}
         for subjectid, tplist in qdectable.subjects_tp_map.items():
             print '\nSubject-Template: '+subjectid
@@ -760,6 +781,12 @@ if __name__=="__main__":
                             tspc[fwhm] = []
                         tspc[fwhm].append(outtname)
 
+                    if options.stack_pc1fit is not None:
+                        outtname = os.path.join(basesurfdir,hemi+'.'+options.name_pc1fit+fwhmstr+'.'+options.qcache+'.mgh')
+                        if fwhm not in tpc1fit:
+                            tpc1fit[fwhm] = []
+                        tpc1fit[fwhm].append(outtname)
+
                     if options.stack_pc1 is not None:
                         outtname = os.path.join(basesurfdir,hemi+'.'+options.name_pc1+fwhmstr+'.'+options.qcache+'.mgh')
                         if fwhm not in tpc1:
@@ -779,7 +806,7 @@ if __name__=="__main__":
                         tavg[fwhm].append(outtname)
             
             # if no subject base processing, continue:
-            if not (options.do_pc1 or options.do_avg or options.do_spc or options.do_rate):
+            if not (options.do_pc1fit or options.do_pc1 or options.do_avg or options.do_spc or options.do_rate):
                 continue #skip within subject processing and mapping to target
             
             
@@ -855,7 +882,8 @@ if __name__=="__main__":
                     os.remove(x_target)
                 xfp = open(x_target, 'w')
                 for time in times:
-                    xfp.write('1 '+str(time-meant)+'\n')
+                    xfp.write('1 '+str(time-times[0])+'\n')
+                    #xfp.write('1 '+str(time-meant)+'\n')
                 xfp.close()    
             
                 # run glm in tmp dir:
@@ -873,6 +901,7 @@ if __name__=="__main__":
                 betafn = os.path.join(glmdir,'beta.mgh' )  
                 beta0  = os.path.join(dirname,'beta0.mgh')  
                 beta1  = os.path.join(dirname,'beta1.mgh') 
+                betam  = os.path.join(dirname,'betam.mgh') 
                 if not os.path.exists(betafn):
                     print 'ERROR: GLM results '+str(betafn)+' does not exist!'
                     sys.exit(1)
@@ -883,6 +912,12 @@ if __name__=="__main__":
             
                 cmd = 'mri_convert --frame 1 '+betafn+' '+beta1 
                 run_cmd(cmd,'mri_convert split frames 1 did not work?')
+
+                # evaluate fit at mean age: betam = beta0 + (meanage-baseage) beta1
+                cmd = 'mris_calc -o '+betam+' '+beta1+' mul '+str(meant-times[0])
+                run_cmd(cmd,'mris_calc compute betam (mul) problem?')    
+                cmd = 'mris_calc -o '+betam+' '+betam+' add '+beta0
+                run_cmd(cmd,'mris_calc compute betam (add) problem?')    
             
             
             # either of the cases:        
@@ -898,6 +933,7 @@ if __name__=="__main__":
                 # do smoothing
                 beta0fwhm = ''
                 beta1fwhm = ''
+                betamfwhm = ''
                 tp1fwhm   = ''
                 if fwhm > 0:
                     print "\n==============================================================================="
@@ -912,6 +948,9 @@ if __name__=="__main__":
                     beta1fwhm = os.path.join(dirname,'beta1'+fwhmstr+'.mgh') 
                     cmd = 'mris_fwhm --hemi '+hemi+' --s '+subjectid+' --i '+beta1+labelpara+smooth+' --o '+beta1fwhm
                     run_cmd(cmd,'mris_fwhm smoothing did not work?')
+                    betamfwhm = os.path.join(dirname,'betam'+fwhmstr+'.mgh') 
+                    cmd = 'mris_fwhm --hemi '+hemi+' --s '+subjectid+' --i '+betam+labelpara+smooth+' --o '+betamfwhm
+                    run_cmd(cmd,'mris_fwhm smoothing did not work?')
                     if options.do_pc1:
                         tp1fwhm =  os.path.join(dirname,'tp1'+fwhmstr+'.mgh') 
                         cmd = 'mris_fwhm --hemi '+hemi+' --s '+tpids[0]+' --i '+measures[0]+labelpara+smooth+' --o '+tp1fwhm
@@ -919,6 +958,7 @@ if __name__=="__main__":
                 else:
                     beta0fwhm = beta0
                     beta1fwhm = beta1
+                    betamfwhm = betam
                     if options.do_pc1:
                         tp1fwhm = os.path.join(dirname,'tp1.mgh') 
                         #cmd = 'mri_surf2surf --hemi '+hemi+' --s '+tpids[0]+' --sval '+measures[0]+' --src_type curv --tval '+tp1fwhm+' --trg_type mgh'
@@ -927,12 +967,26 @@ if __name__=="__main__":
             
             
                 # create ouput (depending on type)
+                if options.do_pc1fit:
+                    print "\n==============================================================================="
+                    print "SUBJECT "+subjectid+" fwhm "+str(fwhm)+"  computing PC1FIT\n"
+                    outname = os.path.join(basesurfdir,hemi+'.'+options.name_pc1fit+fwhmstr+'.mgh')
+                    # compute symmetrized pc1fit change:
+                    cmd = 'mris_calc -o '+outname+' '+beta1fwhm+' div '+beta0fwhm
+                    run_cmd(cmd,'mris_calc compute pct. change (pc1fit) problem?')    
+                    cmd = 'mris_calc -o '+outname+' --label '+label+' '+outname+' mul 100'
+                    run_cmd(cmd,'mris_calc compute pct. change (pc1fit) problem?')    
+                    allout.append(outname)
+                    if options.qcache is not None:
+                        outtname= os.path.join(basesurfdir,hemi+'.'+options.name_pc1fit+fwhmstr+'.'+options.qcache+'.mgh')
+                        alltout.append(outtname)
+
                 if options.do_spc:
                     print "\n==============================================================================="
                     print "SUBJECT "+subjectid+" fwhm "+str(fwhm)+"  computing SPC\n"
                     outname = os.path.join(basesurfdir,hemi+'.'+options.name_spc+fwhmstr+'.mgh')
                     # compute symmetrized pct change:
-                    cmd = 'mris_calc -o '+outname+' '+beta1fwhm+' div '+beta0fwhm
+                    cmd = 'mris_calc -o '+outname+' '+beta1fwhm+' div '+betamfwhm
                     run_cmd(cmd,'mris_calc compute sym. pct. change (spc) problem?')    
                     cmd = 'mris_calc -o '+outname+' --label '+label+' '+outname+' mul 100'
                     run_cmd(cmd,'mris_calc compute sym. pct. change (spc) problem?')    
@@ -972,7 +1026,7 @@ if __name__=="__main__":
                     print "SUBJECT "+subjectid+" fwhm "+str(fwhm)+"  computing AVG\n"
                     outname = os.path.join(basesurfdir,hemi+'.'+options.name_avg+fwhmstr+'.mgh')
                     # mul 1 to remove everything outside the label:
-                    cmd = 'mris_calc -o '+outname+' --label '+label+' '+beta0fwhm+' mul 1'
+                    cmd = 'mris_calc -o '+outname+' --label '+label+' '+betamfwhm+' mul 1'
                     run_cmd(cmd,'mris_calc masking with label (avg)') 
                     allout.append(outname)
                     if options.qcache is not None:
@@ -1029,7 +1083,7 @@ if __name__=="__main__":
         
             
             # stack maps on qcache geometry if wanted:
-            if options.stack_spc is not None or options.stack_pc1 is not None or options.stack_avg is not None or options.stack_rate is not None:
+            if options.stack_spc is not None or options.stack_pc1fit is not None or options.stack_pc1 is not None or options.stack_avg is not None or options.stack_rate is not None:
                 print "\n==============================================================================="
                 print "Stacking all maps in template QCache\n"
             
@@ -1052,6 +1106,13 @@ if __name__=="__main__":
                         allstack= allstack+fwhmstr+'.mgh'
                         cmd = 'mri_concat --i '+allin+' --o '+allstack
                         run_cmd(cmd,'mri_concat stacking qcache spc outputs at fwhm '+str(fwhm)+' failed?') 
+                    if options.stack_pc1fit is not None:
+                        allin   = " ".join(tpc1fit[fwhm])
+                        allstack=options.stack_pc1fit
+                        if allstack[-4:] == ".mgh": allstack = allstack[:-4]
+                        allstack= allstack+fwhmstr+'.mgh'
+                        cmd = 'mri_concat --i '+allin+' --o '+allstack
+                        run_cmd(cmd,'mri_concat stacking qcache pc1fit outputs at fwhm '+str(fwhm)+' failed?') 
                     if options.stack_pc1 is not None:
                         allin   = " ".join(tpc1[fwhm])
                         allstack=options.stack_pc1

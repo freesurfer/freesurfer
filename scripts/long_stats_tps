@@ -9,8 +9,8 @@
 # Original Author: Martin Reuter
 # CVS Revision Info:
 #    $Author: mreuter $
-#    $Date: 2011/08/02 20:49:50 $
-#    $Revision: 1.1 $
+#    $Date: 2011/08/30 22:34:06 $
+#    $Revision: 1.2 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -40,7 +40,7 @@ from LongQdecTable import *
 # logging 
 ch = logging.StreamHandler()
 #create logger
-slopelogger = logging.getLogger("long_stats_slopes")
+slopelogger = logging.getLogger("long_stats_tps")
 slopelogger.setLevel(logging.INFO)
 slopelogger.addHandler(ch)
 
@@ -69,6 +69,12 @@ REQUIRED ARGUMENTS
 --out <name>      File name of output
 
 
+ALTERNATIVE ARGUMENT
+
+--qcol <name>     Select a column from the qdec table itself
+                  (then --stats, --meas and --sd are not necessary).
+                  If specifed in addition to the above, a column
+                  will be appended to the stats tables.
 
 DETAILS
 =======
@@ -109,7 +115,7 @@ def options_parse():
     Command Line Options Parser for long_mris_slopes
     initiate the option parser and return the parsed object
     """
-    parser = optparse.OptionParser(version='$Id: long_stats_tps,v 1.1 2011/08/02 20:49:50 mreuter Exp $', usage=HELPTEXT)
+    parser = optparse.OptionParser(version='$Id: long_stats_tps,v 1.2 2011/08/30 22:34:06 mreuter Exp $', usage=HELPTEXT)
     
     # help text
     h_qdec      = '(REQUIRED) qdec table file specifying the subjects and time points'
@@ -118,6 +124,7 @@ def options_parse():
     h_sd        = '(REQUIRED) full path to FreeSurfer subjects dir'
     h_tp        = '(REQUIRED) time point number'
     h_out       = '(REQUIRED) output file name'
+    h_qcol      = '(ALTERNATIVE) select column from qdec table itself instead of stats'
     
     h_cross     = 'use cross sectional results (for testing only)'
 
@@ -130,6 +137,7 @@ def options_parse():
     parser.add_option('--sd',    dest='sd'  ,  help=h_sd)
     parser.add_option('--tp',    dest='tp'  ,  help=h_tp, type="int")
     parser.add_option('--out',   dest='out'  , help=h_out)
+    parser.add_option('--qcol',  dest='qcol' , help=h_qcol)
 
     parser.add_option('--cross', action='store_true', dest='cross', help=h_cross, default=False)
                       
@@ -137,22 +145,26 @@ def options_parse():
     
     # extensive error checks
     if options.qdec is None:
+        parser.print_help() 
+        print
         print 'ERROR: Specify --qedc'
-        print '       or run with --help for help.'
+        print 
         sys.exit(1)
 
-        
-    if options.stats is None:
-        print 'ERROR: Specify --stats (e.g. \'aseg.stats\')'
-        sys.exit(1)
-
-    if options.meas is None:
-        print 'ERROR: Specify --meas (e.g. \'volume\')'
-        sys.exit(1)
-
-    if options.sd is None:
-        print 'ERROR: Specify the subject dir with --sd <fullpath>'
-        sys.exit(1)   
+    if options.qcol is None:    
+        if options.stats is None :
+            print 'ERROR: Specify --stats (e.g. \'aseg.stats\')'
+            sys.exit(1)
+        if options.meas is None :
+            print 'ERROR: Specify --meas (e.g. \'volume\')'
+            sys.exit(1)
+        if options.sd is None :
+            print 'ERROR: Specify the subject dir with --sd <fullpath>'
+            sys.exit(1)
+    else:
+        if options.sd is not None or options.meas is not None or options.stats is not None:
+            print 'ERROR: either specify --qcol OR --sd --meas --stats '
+            sys.exit(1)   
     
     if options.tp is None:
         print 'ERROR: Specify the time point with --tp <int>'
@@ -182,31 +194,6 @@ def run_cmd(cmd,err_msg):
         sys.exit(1)
     print '\n'
 
-def create_template_table(intable,measure,rows,outtable):
-    """
-    read columns from intable and switch measure and row headers
-    write to outtable
-    assumes white space for separator
-    """
-    if not os.path.exists(intable):
-        print 'ERROR: '+str(intable)+' not found!'
-        sys.exit(1)
-
-    file = open(intable,'r')
-    first = file.readline()    
-    file.close() 
-    cols = first.split(" ",1)
-    if len(cols) != 2:
-        print 'ERROR: table columns cannot be split into measure and headers?'
-        sys.exit(1)
-        
-    cols[0] = 'Measure:'+measure
-    file = open(outtable,'w')
-    file.write(cols[0]+' '+cols[1])
-    for r in rows:
-        file.write(r+'\n')
-    file.close()
-    
 
 if __name__=="__main__":
     # Command Line options and error checking done here
@@ -233,62 +220,43 @@ if __name__=="__main__":
         
     # get other variables:
     variables=qdectable.variables
-    #if len(variables) < 1:
-    #    print '\nERROR: qdec table '+options.qdec+' needs 3rd column with time value,'
-    #    print '       e.g. age or time since baseline scan ...!\n'
-    #    sys.exit(1)
-    #    
-    # use the first column by default for time variable
-    #varidx = 1
-    #    
-    # if time variable is passed on command line, make sure it is part of variables
-    #if not options.time is None:
-    #    defaultvar = options.time
-    #    # compute correct index (starting with 1, 0 is the tpID)
-    #    foundidx = False
-    #    for index in (i for i in xrange(len(variables)) if variables[i].upper()==defaultvar.upper()):
-    #        varidx = index
-    #        foundidx = True
-    #        #print 'found: '+str(varidx)+' '+variables[varidx]
-    #        break
-    #    if not foundidx:
-    #        print '\nERROR: DefaultVariable \''+str(defaultvar)+'\' not found in variables: '+str(variables)+'\n'
-    #        sys.exit(1)
-    #    varidx = varidx +1;
-        
-    # maybe later check if time column is really a float?
+    
+    # if qcol selected:
+    qcolidx = -1;
+    if options.qcol is not None:
+        foundidx = False
+        for index in (i for i in xrange(len(variables)) if variables[i].upper()==options.qcol.upper()):
+            qcolidx = index
+            foundidx = True
+            #print 'found: '+str(varidx)+' '+variables[varidx]
+            break
+        if not foundidx:
+            print '\nERROR: Qdec column \''+str(options.qcol)+'\' not found in variables: '+str(variables)+'\n'
+            sys.exit(1)
+        qcolidx = qcolidx +1;        
+        # maybe later check if qcol column is really a number?        
 
     # if env is set, overwrite info from file (if it was passed in qdec)
-    subjectsdir = options.sd
-    #if subjectsdir is None:
-    #    subjectsdir = os.getenv('SUBJECTS_DIR')
-    #if subjectsdir is None:
-    #    subjectsdir = qdectable.subjectsdir
-    #if subjectsdir is None:
-    #    print'\nERROR: no subjects dir specified, use --sd <fullpath>'
-    #    sys.exit(1)
-    print '\nWorking in SUBJECTS_DIR: '+subjectsdir+'\n'
-    os.environ['SUBJECTS_DIR'] =  subjectsdir
+    if options.sd is not None:
+        subjectsdir = options.sd
+        print '\nWorking in SUBJECTS_DIR: '+subjectsdir+'\n'
+        os.environ['SUBJECTS_DIR'] =  subjectsdir
     
     # process
     retcode = 0
     all = ""
+    qcoldata = []
+    slist = []
     for subjectid, tplist in qdectable.subjects_tp_map.items():
         print '\nSubject-Template: '+subjectid
-        
-        # check if basedir exists
-        #basedir = os.path.join(subjectsdir,subjectid)
-        #if not os.path.exists(basedir):
-        #    print 'ERROR: Template dir '+str(basedir)+' does not exist!'
-        #    sys.exit(1)
-        #   
-        #basestatsdir=os.path.join(basedir,'stats')            
-        
+                
         # check if 2 or more time points
         if len(tplist) < options.tp :
             print 'ERROR: '+str(basedir)+' must have at least '+str(options.tp)+' time points!'
             sys.exit(1)
         
+        if options.qcol is not None:
+            qcoldata.append(tplist[options.tp-1][qcolidx]);
         
         # extract id:
         if options.cross:
@@ -297,26 +265,44 @@ if __name__=="__main__":
             tpid = tplist[options.tp-1][0]+'.long.'+subjectid
         print '\n\nTP_ID: '+str(tpid)+'\n'
         
+        # list of subjects :
+        slist.append(tpid)
+        all = all+" "+tpid
+        
+        if options.qcol is not None:
+            continue
+            
         # check stats dir
         statsdir = os.path.join(subjectsdir,tpid,'stats')
         if not os.path.exists(statsdir):
             print 'ERROR: Stats dir '+str(statsdir)+' does not exist!'
             sys.exit(1)
         
-        # list of subjects :
-        all = all+" "+tpid
         
+    
+    if options.qcol is not None:
+        file = open(options.out,'w')
+        file.write("Measure "+options.qcol+'\n')
         
-    # create stacked stats table            
-    stats = options.stats
-    prog  = 'asegstats2table --common-segs --stats '+stats
-    if options.stats[0:3] == 'lh.' or options.stats[0:3]=='rh.':
-        stats = options.stats[3:]
-        if stats[-6:] == '.stats':
-           stats=stats[0:-6]
-        prog = 'aparcstats2table --common-parcs --hemi '+options.stats[0:2]+' --parc '+stats
-    cmd = prog+' --subjects '+all+' --meas '+options.meas+' --tablefile '+ options.out+' -d space'
-    run_cmd(cmd,prog+' stacking did not work?')        
+        i = 0
+        for sid in slist:
+            file.write(sid+' '+qcoldata[i]+'\n')
+            i= i+1
+        file.close()
+
+    
+    else:
+        
+        # create stacked stats table            
+        stats = options.stats
+        prog  = 'asegstats2table --common-segs --stats '+stats
+        if options.stats[0:3] == 'lh.' or options.stats[0:3]=='rh.':
+            stats = options.stats[3:]
+            if stats[-6:] == '.stats':
+               stats=stats[0:-6]
+            prog = 'aparcstats2table --common-parcs --hemi '+options.stats[0:2]+' --parc '+stats
+        cmd = prog+' --subjects '+all+' --meas '+options.meas+' --tablefile '+ options.out+' -d space'
+        run_cmd(cmd,prog+' stacking did not work?')        
 
        
     # always exit with 0 exit code
