@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2011/08/30 21:19:10 $
- *    $Revision: 1.493 $
+ *    $Author: nicks $
+ *    $Date: 2011/08/30 22:30:48 $
+ *    $Revision: 1.494 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -23,7 +23,7 @@
  */
 
 extern const char* Progname;
-const char *MRI_C_VERSION = "$Revision: 1.493 $";
+const char *MRI_C_VERSION = "$Revision: 1.494 $";
 
 
 /*-----------------------------------------------------
@@ -17377,5 +17377,46 @@ MRIrmsDiff(MRI *mri1, MRI *mri2)
   if (nvox > 0)
     rms = sqrt(rms/nvox) ;
   return(rms) ;
+}
+
+
+// compute root mean square of 'in', which is assumed to be multi-framed
+// writes to 'out'
+void MRIrms(MRI *in, MRI *out)
+{
+  int f,z,y,x;
+  int width = in->width ;
+  int height = in->height ;
+  int depth = in->depth ;
+  int nframes = in->nframes ;
+  if (nframes == 0) nframes = 1;
+
+  // square and sum each frame of input
+  // then divide by nframes and take sqrt
+  for (f = 0 ; f < nframes ; f++)
+  {
+    for (z = 0 ; z < depth ; z++)
+    {
+      for (y = 0 ; y < height ; y++)
+      {
+        for (x = 0 ; x < width ; x++)
+        {
+          double vin = MRIgetVoxVal(in,x,y,z,f);
+          double vout = MRIgetVoxVal(out,x,y,z,0);
+          if (f == 0)
+          {
+            vout = 0; // zero the output on first frame
+          }
+          double v = (vin*vin) + vout; // square and sum
+          if (f == (nframes - 1)) // if last frame, div and sqrt
+          {
+            v /= nframes; // divide
+            v = sqrt(v); // square root
+          }
+          MRIsetVoxVal(out,x,y,z,0,v);
+        }
+      }
+    }
+  }
 }
 

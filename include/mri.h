@@ -7,9 +7,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2011/07/30 20:36:59 $
- *    $Revision: 1.427 $
+ *    $Author: nicks $
+ *    $Date: 2011/08/30 22:30:48 $
+ *    $Revision: 1.428 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -378,6 +378,7 @@ MRI   *MRIlinearScale(MRI *mri_src,
                       int only_nonzer) ;
 MRI   *MRIscalarMul(MRI *mri_src, MRI *mri_dst, float scalar) ;
 MRI   *MRIscalarMulFrame(MRI *mri_src, MRI *mri_dst, float scalar, int frame) ;
+void  MRIrms(MRI *in, MRI *out);
 
 /* filtering */
 int   MRIcpolvAllQuadrantsFilled(MRI *mri,
