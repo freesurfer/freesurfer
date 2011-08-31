@@ -8,8 +8,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2011/08/09 16:34:47 $
- *    $Revision: 1.13 $
+ *    $Date: 2011/08/31 00:39:30 $
+ *    $Revision: 1.14 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -45,6 +45,7 @@ using namespace std;
   * Cambridge University Press, 1992, Section 8.5, ISBN 0-521-43108-5
   * This code is based on code by Nicolas Devillard - 1998. Public domain.  
   * see also http://ndevilla.free.fr/median/median.pdf
+  * or http://ndevilla.free.fr/median/median/index.html
   * modifications: - instead of only selecting the median, select the k-th smallest
   *                - additionally keep track of the index in the original array
   */
