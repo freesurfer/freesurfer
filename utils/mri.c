@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2011/08/30 22:30:48 $
- *    $Revision: 1.494 $
+ *    $Date: 2011/08/31 17:35:59 $
+ *    $Revision: 1.495 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -23,7 +23,7 @@
  */
 
 extern const char* Progname;
-const char *MRI_C_VERSION = "$Revision: 1.494 $";
+const char *MRI_C_VERSION = "$Revision: 1.495 $";
 
 
 /*-----------------------------------------------------
@@ -17402,10 +17402,11 @@ void MRIrms(MRI *in, MRI *out)
         for (x = 0 ; x < width ; x++)
         {
           double vin = MRIgetVoxVal(in,x,y,z,f);
-          double vout = MRIgetVoxVal(out,x,y,z,0);
-          if (f == 0)
+          double vout = 0; // output summation
+          if (f != 0)
           {
-            vout = 0; // zero the output on first frame
+            // after first frame, output gets summed
+            vout = MRIgetVoxVal(out,x,y,z,0);
           }
           double v = (vin*vin) + vout; // square and sum
           if (f == (nframes - 1)) // if last frame, div and sqrt
