@@ -12,8 +12,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2011/05/27 19:50:17 $
- *    $Revision: 1.23 $
+ *    $Date: 2011/08/31 00:40:25 $
+ *    $Revision: 1.24 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -253,8 +253,19 @@ vnl_vector< T > Regression<T>::getRobustEstWAB(vnl_vector< T >& wfinal, double s
 			// free residuals (to reduce max memory load)
 			r->clear();
 		}
+    else // first step, init weights based on zero p:
+    {
+      *r = *b;
+      // normalize r
+      sigma = getSigmaMAD(*r);
+      *r *= (1.0/sigma);
+		  // here we get sqrt of weights into w
+      getSqrtTukeyDiaWeights(*r, *w, sat);
+			// free residuals (to reduce max memory load)
+			r->clear();
+    }
 		
-		// compute weighted least squares (first weights = 1)
+		// compute weighted least squares
 		if (floatsvd) *p = getWeightedLSEstFloat(*w);
 		else          *p = getWeightedLSEst(*w);
 
