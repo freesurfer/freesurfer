@@ -12,8 +12,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2011/08/31 00:40:25 $
- *    $Revision: 1.24 $
+ *    $Date: 2011/08/31 16:49:17 $
+ *    $Revision: 1.25 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -247,6 +247,7 @@ vnl_vector< T > Regression<T>::getRobustEstWAB(vnl_vector< T >& wfinal, double s
 		  vtmp = lastw; lastw = w; w = vtmp;
       // normalize r
       sigma = getSigmaMAD(*r);
+      //cout << "Sigma: " << sigma << endl;
       *r *= (1.0/sigma);
 		  // here we get sqrt of weights into w
       getSqrtTukeyDiaWeights(*r, *w, sat);
@@ -255,14 +256,21 @@ vnl_vector< T > Regression<T>::getRobustEstWAB(vnl_vector< T >& wfinal, double s
 		}
     else // first step, init weights based on zero p:
     {
-      *r = *b;
-      // normalize r
-      sigma = getSigmaMAD(*r);
-      *r *= (1.0/sigma);
-		  // here we get sqrt of weights into w
-      getSqrtTukeyDiaWeights(*r, *w, sat);
-			// free residuals (to reduce max memory load)
-			r->clear();
+      sigma = getSigmaMAD(*b);
+      if (sigma < EPS) // e.g. if images are identical
+      {
+         cout << "  Sigma too small: " << sigma << " (identical images?)" << endl;
+      }
+      else
+      {
+        // normalize r
+        *r = *b;
+        *r *= (1.0/sigma);
+		    // here we get sqrt of weights into w
+        getSqrtTukeyDiaWeights(*r, *w, sat);
+			  // free residuals (to reduce max memory load)
+			  r->clear();
+      }
     }
 		
 		// compute weighted least squares
