@@ -8,8 +8,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2011/06/21 22:26:31 $
- *    $Revision: 1.44 $
+ *    $Date: 2011/08/31 00:38:30 $
+ *    $Revision: 1.45 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -483,7 +483,8 @@ void Registration::iterativeRegistrationHelper( int nmax,double epsit, MRI * mri
       MRIwrite(mri_Swarp,(name+"-mriS-hw.mgz").c_str());
       MRIwrite(mri_Twarp,(name+"-mriT-hw.mgz").c_str());
       char ch;
-      std::cout << "Press a key to continue iterations: ";
+      std::cout << "HW inputs written " << std::endl;
+      std::cout << "Press a key to run registration: ";
       std::cin  >> ch;
     }
 
@@ -530,22 +531,21 @@ void Registration::iterativeRegistrationHelper( int nmax,double epsit, MRI * mri
     //std::cout << " intens: " << fmd.second << std::endl;
 		i++;
 		
-//    if (debug > 0)
-//    {
-//      // write weights
-//      if (robust)
-//      {
-//        if (mri_hweights) MRIfree(&mri_hweights);
-// 		    assert(RStep.getWeights());
-// 	      mri_hweights = MRIcopy(RStep.getWeights(),NULL);
-//        std::string n = name+std::string("-weights.mgz");
-//        MRIwrite(mri_hweights,n.c_str());
-//      }
-//      //MRI* salign = MRIclone(mriS,NULL);
-//      //salign = MyMRI::MRIlinearTransform(mri_Swarp, salign,fmd.first);
-//      //MRIwrite(salign,(name+"-mriS-align.mgz").c_str());
-//      //MRIfree(&salign);
-//    } // end if debug
+    if (debug > 0)
+    {
+      // write weights
+      if (robust)
+      {
+        if (mri_hweights) MRIfree(&mri_hweights);
+ 		    assert(RStep.getWeights());
+ 	      mri_hweights = MRIcopy(RStep.getWeights(),NULL);
+        MRIwrite(mri_hweights,(name+"-mriS-hw-weights.mgz").c_str());
+        char ch;
+        std::cout << "Weights written for this iteration" << std::endl;
+        std::cout << "Press a key to continue iterations: ";
+        std::cin  >> ch;
+      }
+    } // end if debug
 	
   } // end while loop
   

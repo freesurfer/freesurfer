@@ -8,8 +8,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2011/06/08 19:25:43 $
- *    $Revision: 1.70 $
+ *    $Date: 2011/08/31 00:38:29 $
+ *    $Revision: 1.71 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -1638,10 +1638,20 @@ void Registration::testRobust(const std::string& fname, int testno)
     exit(0);
     break;
   }
-  default:
-    assert(1==2);
+  case 30:
+  {
+     cout << "Test " << testno << " : Save GP lowest" << endl;
+     MRIwrite(gpS[gpS.size()-1],"gps-low.mgz");
+     exit(0);
+     break;
   }
-
+  default:
+  {
+     cout << "Test " << testno << "unknown!" << endl;
+     exit(1);
+  }
+  }
+  
   cout << " Transformed , now registering ..." << endl;
 
   int steps;
@@ -3520,7 +3530,7 @@ void Registration::setSourceAndTarget (MRI * s,MRI * t, bool keeptype)
 	Rtrg = mm.second;
 	rl = needReslice(t,isosize,t_dim[0],t_dim[1],t_dim[2],keeptype);
   if (debug && rl)
-	{
+  {
  	   cout << "   Reslice Trg Matrix: " << endl << mm.second << endl;
 	    string n = name+string("-mriT-resample.mgz");
 		  cout << "   Writing resampled target as " << n << endl;
