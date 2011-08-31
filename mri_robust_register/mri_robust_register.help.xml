@@ -71,7 +71,7 @@ If most of the brain is labeled outlier, try to set the saturation to a higher v
 			<argument>--ixform lta</argument>
 			<explanation>use initial transform lta on source ('id'=identity), default is align centers of mass</explanation>
 			<argument>--initorient</argument>
-			<explanation>use moments for orientation initalization (default false). Recommended for stripped brains, but not with full head images with different cropping. </explanation>
+			<explanation>use moments for orientation initialization (default false). Recommended for stripped brains, but not with full head images with different cropping. </explanation>
 			<argument>--noinit</argument>
 			<explanation>skip automatic transform initialization. Default: translate images to align centers of mass, good for within subject full head or brain images. Use --noinit if center of mass is meaningless, e.g. when registering different resolutions or parts to larger images. </explanation>
 			<argument>--vox2vox</argument>
