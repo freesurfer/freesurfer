@@ -8,8 +8,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2011/04/11 14:47:10 $
- *    $Revision: 1.422.2.1 $
+ *    $Date: 2011/08/31 00:14:53 $
+ *    $Revision: 1.422.2.2 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -378,6 +378,7 @@ MRI   *MRIlinearScale(MRI *mri_src,
                       int only_nonzer) ;
 MRI   *MRIscalarMul(MRI *mri_src, MRI *mri_dst, float scalar) ;
 MRI   *MRIscalarMulFrame(MRI *mri_src, MRI *mri_dst, float scalar, int frame) ;
+void  MRIrms(MRI *in, MRI *out);
 
 /* filtering */
 int   MRIcpolvAllQuadrantsFilled(MRI *mri,
@@ -440,6 +441,7 @@ MRI   *MRIconvolve1d(MRI *mri_src, MRI *mri_dst, float *kernel,
 MRI   *MRIreduce1d(MRI *mri_src, MRI *mri_dst,float *kernel,int len,int axis);
 MRI   *MRIreduce1dByte(MRI *mri_src, MRI *mri_dst,float *kernel,int len,
                        int axis);
+double MRIrmsDiff(MRI *mri1, MRI *mri2) ;
 MRI   *MRIdiffuse(MRI *mri_src, MRI *mri_dst, double k,
                   int niter, int which, double slope) ;
 MRI   *MRIdiffuseCurvature(MRI *mri_src, MRI *mri_dst,
