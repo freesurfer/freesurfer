@@ -15,8 +15,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2011/08/30 22:34:23 $
- *    $Revision: 1.55 $
+ *    $Date: 2011/08/31 00:17:29 $
+ *    $Revision: 1.56 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -61,7 +61,7 @@ static void dump_options(FILE *fp);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_concat.c,v 1.55 2011/08/30 22:34:23 nicks Exp $";
+static char vcid[] = "$Id: mri_concat.c,v 1.56 2011/08/31 00:17:29 nicks Exp $";
 char *Progname = NULL;
 int debug = 0;
 #define NInMAX 400000
@@ -1134,7 +1134,7 @@ static void print_usage(void)
   printf("   --add addval   : add addval\n");
   printf("\n");
   printf("   --mask maskfile : mask used with --vote or --sort\n");
-  printf("   --rms : root mean square (eg. combine memprage");
+  printf("   --rms : root mean square (eg. combine memprage)\n");
   printf("           (square, sum, div-by-nframes, square root)\n");
   printf("   --no-check : do not check inputs (faster)\n");
   printf("   --help      print out information on how to use this program\n");
