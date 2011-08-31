@@ -4,7 +4,7 @@
 
 foodir=$(prefix)/diffusion/mgh-dti-seqpack
 foo_DATA=README \
-	gradient_mgh_dti6.gdt \
+	gradient_mgh_dti6.gdt   gradient_mgh_dti12.gdt \
 	gradient_mgh_dti13.gdt  gradient_mgh_dti57.gdt \
 	gradient_mgh_dti14.gdt  gradient_mgh_dti58.gdt \
 	gradient_mgh_dti15.gdt  gradient_mgh_dti59.gdt \
