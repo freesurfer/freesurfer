@@ -28,6 +28,25 @@ histo_register_SOURCES=\
 	registration/TestCorres3D.cc \
 	registration/VarCorres3D.cc \
 	registration/VarCorres3DUtil.cc \
+	prep/BlockPrep.h
+	prep/MPrep.h
+	prep/Polarization.h
+	prep/VolumeFile.h
+	prep/HistoStats.h
+	prep/Prediction.h
+	prep/VolumeUtil.h
+	prep/HistoStitch.h
+	prep/HistoPrep.h
+	prep/StitchNode.h
+	registration/HistoTransform.h
+	registration/HistoRegister.h
+	registration/VarCorres3DUtil.h
+	registration/TestCorres3D.h
+	registration/VarCorres3D.h
+	registration/Normalization.h
+	registration/CorresField3D.h
+	registration/BlockRegister.h
+	registration/ImageSetSeq.h
 	Main.cc
 
 histo_register_CXXFLAGS=-I. -I$(SBL)/include -I$(SBL)/external -I$(PVL)/include $(OPENCV_CXXFLAGS)
