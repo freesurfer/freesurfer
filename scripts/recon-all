@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2011/08/17 21:31:55 $
-#    $Revision: 1.379.2.20 $
+#    $Date: 2011/08/31 00:39:35 $
+#    $Revision: 1.379.2.21 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -26,7 +26,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.379.2.20 2011/08/17 21:31:55 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.379.2.21 2011/08/31 00:39:35 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -1222,6 +1222,10 @@ if($DoMotionCor) then
     if ($nframes != 1) then
       echo "ERROR: input(s) cannot have multiple frames!" |& tee -a $LF
       echo "$RunVol has $nframes frames" |& tee -a $LF
+      if ($nframes == 4) then
+        echo "If this is a multi-frame MEMPRAGE image," |& tee -a $LF
+        echo "use mri_concat --rms to combine echo frames." |& tee -a $LF
+      endif
       goto error_exit;
     endif
   end
