@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2011/08/17 21:26:50 $
-#    $Revision: 1.399 $
+#    $Date: 2011/08/31 00:38:45 $
+#    $Revision: 1.400 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -26,7 +26,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.399 2011/08/17 21:26:50 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.400 2011/08/31 00:38:45 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -1222,6 +1222,10 @@ if($DoMotionCor) then
     if ($nframes != 1) then
       echo "ERROR: input(s) cannot have multiple frames!" |& tee -a $LF
       echo "$RunVol has $nframes frames" |& tee -a $LF
+      if ($nframes == 4) then
+        echo "If this is a multi-frame MEMPRAGE image," |& tee -a $LF
+        echo "use mri_concat --rms to combine echo frames." |& tee -a $LF
+      endif
       goto error_exit;
     endif
   end
@@ -2713,7 +2717,7 @@ foreach hemi ($hemilist)
       if($status) goto error_exit;
       
       # also copy pial just in case (needed if $DoPialSurf == 0 below)
-      set cmd = (cp -vf $longbasedir/surf/${hemi}.pial\
+      set cmd = (cp -vf $longbasedir/surf/${hemi}.pial \
                         $subjdir/surf/${hemi}.orig_pial)
       echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
       if($RunIt) $fs_time $cmd |& tee -a $LF
@@ -3717,7 +3721,7 @@ if($DoGEMS) then
     echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
     if($RunIt) $fs_time $cmd |& tee -a $GEMSF
     if($status) goto error_exit;
-    
+
     # copy results back to mri directory
     set cmd = ("cp ${kvltmpd}/${subjid}/left/segmentationWithoutPartialVolumingLog/posterior_left* ${subjdir}/mri" )
     echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
