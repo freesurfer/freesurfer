@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2011/08/16 17:15:21 $
- *    $Revision: 1.106 $
+ *    $Date: 2011/09/01 21:03:51 $
+ *    $Revision: 1.107 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -70,6 +70,7 @@
 #include <QFile>
 #include <QDebug>
 #include "ProgressCallback.h"
+#include "LayerMRIWorkerThread.h"
 
 extern "C"
 {
@@ -136,6 +137,10 @@ LayerMRI::LayerMRI( LayerMRI* ref, QObject* parent ) : LayerVolumeBase( parent )
 
   mProperty = new LayerPropertyMRI( this );
   ConnectProperty();
+
+  qRegisterMetaType< IntList >( "IntList" );
+  m_worker = new LayerMRIWorkerThread(this);
+  connect(m_worker, SIGNAL(AvailableLabels(IntList)), this, SLOT(OnAvailableLabels(IntList)));
 }
 
 LayerMRI::~LayerMRI()
@@ -631,6 +636,10 @@ void LayerMRI::UpdateColorMap ()
 
   m_actorContour->GetMapper()->SetLookupTable( GetProperty()->GetActiveLookupTable() );
   emit ActorUpdated();
+
+  if (GetProperty()->GetColorMap() == LayerPropertyMRI::LUT &&
+      this->m_nAvailableLabels.isEmpty() && !m_worker->isRunning())
+    m_worker->start();
 }
 
 void LayerMRI::UpdateResliceInterpolation ()
@@ -2575,4 +2584,10 @@ void LayerMRI::UpdateProjectionMap()
 double LayerMRI::GetTR()
 {
   return m_volumeSource->GetMRI()->tr;
+}
+
+void LayerMRI::OnAvailableLabels(const IntList &vals)
+{
+  this->m_nAvailableLabels = vals;
+  emit LabelStatsReady();
 }

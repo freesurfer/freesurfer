@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2011/08/30 19:54:29 $
- *    $Revision: 1.3 $
+ *    $Date: 2011/09/01 21:03:51 $
+ *    $Revision: 1.4 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -159,7 +159,7 @@ void WidgetTimeCoursePlot::paintEvent(QPaintEvent *e)
   p.drawText(rc, Qt::AlignBottom | Qt::AlignHCenter, "Time (s)");
 
   // draw current stats
-  QString strg = QString("Signal:%1    Time: %2 (s)   #: %3")
+  QString strg = QString("Signal intensity:%1    Time: %2 (s)   #: %3")
                  .arg(m_data[m_nCurrentFrame])
                  .arg(m_nCurrentFrame*m_dTR/1000)
                  .arg(m_nCurrentFrame);

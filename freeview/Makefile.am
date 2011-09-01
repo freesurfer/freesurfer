@@ -132,6 +132,7 @@ BUILT_SOURCES = \
   moc_DialogRepositionSurface.cpp \
   moc_WindowTimeCourse.cpp \
   moc_WidgetTimeCoursePlot.cpp \
+  moc_LayerMRIWorkerThread.cpp \
   qrc_freeview.cpp
 
 freeview_SOURCES = $(BUILT_SOURCES) \
@@ -386,7 +387,9 @@ freeview_SOURCES = $(BUILT_SOURCES) \
   WindowTimeCourse.cpp \
   WindowTimeCourse.h \
   WidgetTimeCoursePlot.cpp \
-  WidgetTimeCoursePlot.h
+  WidgetTimeCoursePlot.h \
+  LayerMRIWorkerThread.cpp \
+  LayerMRIWorkerThread.h
 
 if HAVE_MAC_OSX
 AM_CXXFLAGS=\

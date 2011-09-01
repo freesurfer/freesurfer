@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2011/07/21 19:30:09 $
- *    $Revision: 1.68 $
+ *    $Date: 2011/09/01 21:03:51 $
+ *    $Revision: 1.69 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -46,7 +46,8 @@
 PanelVolume::PanelVolume(QWidget *parent) :
   PanelLayer(parent),
   ui(new Ui::PanelVolume),
-  m_curCTAB( NULL )
+  m_curCTAB( NULL ),
+  m_bShowExistingLabelsOnly(false)
 {
   ui->setupUi(this);
 
@@ -92,7 +93,8 @@ PanelVolume::PanelVolume(QWidget *parent) :
   m_widgetlistLUT << ui->treeWidgetColorTable
                   << ui->labelLookUpTable
                   << ui->comboBoxLookUpTable
-                  << ui->colorLabelBrushValue;
+                  << ui->colorLabelBrushValue
+                  << ui->checkBoxShowExistingLabels;
 
   m_widgetlistDirectionCode << ui->comboBoxDirectionCode
                             << ui->labelDirectionCode;
@@ -209,6 +211,7 @@ void PanelVolume::ConnectLayer( Layer* layer_in )
   connect( layer, SIGNAL(ActiveFrameChanged(int)), this, SLOT(UpdateWidgets()) );
   connect( layer, SIGNAL(ActiveFrameChanged(int)), this, SLOT(OnActiveFrameChanged(int)));
   connect( layer, SIGNAL(FillValueChanged(double)), this, SLOT(UpdateWidgets()) );
+  connect( layer, SIGNAL(LabelStatsReady()), this, SLOT(UpdateWidgets()));
   connect( ui->checkBoxClearBackground, SIGNAL(toggled(bool)), p, SLOT(SetClearZero(bool)) );
   connect( ui->checkBoxClearHigher, SIGNAL(toggled(bool)), p, SLOT(SetHeatScaleClearHigh(bool)) );
   connect( ui->checkBoxTruncate, SIGNAL(toggled(bool)), p, SLOT(SetHeatScaleTruncate(bool)) );
@@ -418,6 +421,7 @@ void PanelVolume::DoUpdateWidgets()
   //  ui->checkBoxShowOutline->setVisible( nColorMap == LayerPropertyMRI::LUT );
 
     //    ui->m_choiceUpSampleMethod->SetSelection( layer->GetProperty()->GetUpSampleMethod() );
+    ui->checkBoxShowExistingLabels->setEnabled(!layer->GetAvailableLabels().isEmpty());
   }
 
   bool bNormalDisplay = (layer && !layer->GetProperty()->GetDisplayVector() && !layer->GetProperty()->GetDisplayTensor());
@@ -461,7 +465,8 @@ void PanelVolume::DoUpdateWidgets()
 
     if ( layer && layer->GetProperty()->GetColorMap() == LayerPropertyMRI::LUT )
     {
-      if ( m_curCTAB != layer->GetProperty()->GetLUTCTAB() )
+      if ( m_curCTAB != layer->GetProperty()->GetLUTCTAB() ||
+           m_bShowExistingLabelsOnly != ui->checkBoxShowExistingLabels->isChecked())
       {
         PopulateColorTable( layer->GetProperty()->GetLUTCTAB() );
       }
@@ -567,6 +572,9 @@ void PanelVolume::PopulateColorTable( COLOR_TABLE* ct )
       nValue = (int)layer->GetFillValue();
     }
 
+    QList<int> labels;
+    if (layer)
+      labels = layer->GetAvailableLabels();
     int nValidCount = 0;
     for ( int i = 0; i < nTotalCount; i++ )
     {
@@ -584,6 +592,11 @@ void PanelVolume::PopulateColorTable( COLOR_TABLE* ct )
         pix.fill( color );
         item->setIcon(0, QIcon(pix) );
         item->setData( 0, Qt::UserRole, color );
+        item->setData(0, Qt::UserRole+1, i);
+        if (m_bShowExistingLabelsOnly && !labels.isEmpty())
+        {
+          item->setHidden(!labels.contains(i));
+        }
         if ( i == nValue )
         {
           nSel = nValidCount;
@@ -603,16 +616,24 @@ void PanelVolume::OnLineEditBrushValue( const QString& strg )
   QString text = strg.trimmed();
   bool bOK;
   int nVal = text.toInt( &bOK );
+  LayerMRI* layer = GetCurrentLayer<LayerMRI*>();
+  QList<int> labels = layer->GetAvailableLabels();
   if ( text.isEmpty() )
   {
     for ( int i = 0; i < ui->treeWidgetColorTable->topLevelItemCount(); i++ )
     {
-      ui->treeWidgetColorTable->topLevelItem( i )->setHidden( false );
+      QTreeWidgetItem* item = ui->treeWidgetColorTable->topLevelItem( i );
+      if (m_bShowExistingLabelsOnly)
+      {
+        int n = item->data(0, Qt::UserRole+1).toInt();
+        item->setHidden(!labels.contains(n));
+      }
+      else
+        item->setHidden( false );
     }
   }
   else if ( bOK )
   {
-    LayerMRI* layer = GetCurrentLayer<LayerMRI*>();
     if ( layer )
     {
       layer->SetFillValue( nVal );
@@ -621,7 +642,13 @@ void PanelVolume::OnLineEditBrushValue( const QString& strg )
     for ( int i = 0; i < ui->treeWidgetColorTable->topLevelItemCount(); i++ )
     {
       QTreeWidgetItem* item = ui->treeWidgetColorTable->topLevelItem( i );
-      item->setHidden( false );
+      if (m_bShowExistingLabelsOnly)
+      {
+        int n = item->data(0, Qt::UserRole+1).toInt();
+        item->setHidden(!labels.contains(n));
+      }
+      else
+        item->setHidden( false );
       QStringList strglist = item->text(0).split( " " );
       if ( strglist[0].toDouble() == layer->GetFillValue() )
       {
@@ -642,7 +669,13 @@ void PanelVolume::OnLineEditBrushValue( const QString& strg )
       QTreeWidgetItem* item = ui->treeWidgetColorTable->topLevelItem( i );
       if ( item->text(0).contains( text, Qt::CaseInsensitive ) )
       {
-        item->setHidden( false );
+        if (m_bShowExistingLabelsOnly)
+        {
+          int n = item->data(0, Qt::UserRole+1).toInt();
+          item->setHidden(!labels.contains(n));
+        }
+        else
+          item->setHidden( false );
       }
       else
       {
@@ -1070,4 +1103,11 @@ void PanelVolume::OnActiveFrameChanged(int nFrame)
       }
     }
   }
+}
+
+void PanelVolume::OnShowExistingLabelsOnly(bool b)
+{
+  m_bShowExistingLabelsOnly = b;
+//  this->UpdateWidgets();
+  OnLineEditBrushValue(ui->lineEditBrushValue->text());
 }

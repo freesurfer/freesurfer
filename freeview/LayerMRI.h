@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2011/08/16 17:15:21 $
- *    $Revision: 1.70 $
+ *    $Date: 2011/09/01 21:03:51 $
+ *    $Revision: 1.71 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -57,6 +57,11 @@ class BuildContourThread;
 class Contour2D;
 class SurfaceRegion;
 class SurfaceRegionGroups;
+class LayerMRIWorkerThread;
+
+#ifndef IntList
+typedef QList<int> IntList;
+#endif
 
 class LayerMRI : public LayerVolumeBase
 {
@@ -256,6 +261,11 @@ public:
 
   double GetTR();
 
+  QList<int> GetAvailableLabels()
+  {
+    return m_nAvailableLabels;
+  }
+
 public slots:
   void SetActiveFrame( int nFrame );
   void SetActiveFrameOneBase( int nFrame )
@@ -271,6 +281,7 @@ Q_SIGNALS:
   void SurfaceRegionUpdated();
   void SurfaceRegionRemoved();
   void IsoSurfaceUpdated();
+  void LabelStatsReady();
 
 protected slots:
   void UpdateDisplayMode();
@@ -296,6 +307,8 @@ protected slots:
   virtual void UpdateColorMap();
 
   void OnContourThreadFinished(int thread_id);
+
+  void OnAvailableLabels(const IntList& vals);
 
 protected:
   virtual void DoTransform(double *mat, int sample_method);
@@ -371,6 +384,9 @@ protected:
 private:
   double**    private_buf1_3x3;
   double**    private_buf2_3x3;
+
+  LayerMRIWorkerThread* m_worker;
+  QList<int>  m_nAvailableLabels;
 };
 
 

@@ -28,7 +28,7 @@
      <x>0</x>
      <y>0</y>
      <width>308</width>
-     <height>1510</height>
+     <height>1538</height>
     </rect>
    </property>
    <layout class="QVBoxLayout" name="verticalLayout">
@@ -714,6 +714,13 @@
      </layout>
     </item>
     <item>
+     <widget class="QCheckBox" name="checkBoxShowExistingLabels">
+      <property name="text">
+       <string>Show existing labels only</string>
+      </property>
+     </widget>
+    </item>
+    <item>
      <widget class="QTreeWidget" name="treeWidgetColorTable">
       <property name="sizePolicy">
        <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
@@ -1115,8 +1122,8 @@
    <slot>OnCheckShowContour(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>167</x>
-     <y>1228</y>
+     <x>166</x>
+     <y>1256</y>
     </hint>
     <hint type="destinationlabel">
      <x>325</x>
@@ -1404,7 +1411,7 @@
    <hints>
     <hint type="sourcelabel">
      <x>234</x>
-     <y>1261</y>
+     <y>1293</y>
     </hint>
     <hint type="destinationlabel">
      <x>410</x>
@@ -1420,7 +1427,7 @@
    <hints>
     <hint type="sourcelabel">
      <x>234</x>
-     <y>1298</y>
+     <y>1344</y>
     </hint>
     <hint type="destinationlabel">
      <x>371</x>
@@ -1436,7 +1443,7 @@
    <hints>
     <hint type="sourcelabel">
      <x>234</x>
-     <y>1379</y>
+     <y>1407</y>
     </hint>
     <hint type="destinationlabel">
      <x>421</x>
@@ -1452,7 +1459,7 @@
    <hints>
     <hint type="sourcelabel">
      <x>234</x>
-     <y>1261</y>
+     <y>1293</y>
     </hint>
     <hint type="destinationlabel">
      <x>446</x>
@@ -1468,7 +1475,7 @@
    <hints>
     <hint type="sourcelabel">
      <x>234</x>
-     <y>1298</y>
+     <y>1344</y>
     </hint>
     <hint type="destinationlabel">
      <x>518</x>
@@ -1484,7 +1491,7 @@
    <hints>
     <hint type="sourcelabel">
      <x>234</x>
-     <y>1379</y>
+     <y>1407</y>
     </hint>
     <hint type="destinationlabel">
      <x>435</x>
@@ -1500,7 +1507,7 @@
    <hints>
     <hint type="sourcelabel">
      <x>300</x>
-     <y>1258</y>
+     <y>1287</y>
     </hint>
     <hint type="destinationlabel">
      <x>384</x>
@@ -1516,7 +1523,7 @@
    <hints>
     <hint type="sourcelabel">
      <x>300</x>
-     <y>1294</y>
+     <y>1347</y>
     </hint>
     <hint type="destinationlabel">
      <x>288</x>
@@ -1532,7 +1539,7 @@
    <hints>
     <hint type="sourcelabel">
      <x>300</x>
-     <y>1382</y>
+     <y>1410</y>
     </hint>
     <hint type="destinationlabel">
      <x>68</x>
@@ -1548,7 +1555,7 @@
    <hints>
     <hint type="sourcelabel">
      <x>208</x>
-     <y>1468</y>
+     <y>1496</y>
     </hint>
     <hint type="destinationlabel">
      <x>395</x>
@@ -1611,8 +1618,8 @@
    <slot>OnSliderTrackVolumeMin(int)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>207</x>
-     <y>1140</y>
+     <x>234</x>
+     <y>1172</y>
     </hint>
     <hint type="destinationlabel">
      <x>355</x>
@@ -1628,7 +1635,7 @@
    <hints>
     <hint type="sourcelabel">
      <x>300</x>
-     <y>1137</y>
+     <y>1166</y>
     </hint>
     <hint type="destinationlabel">
      <x>389</x>
@@ -1644,7 +1651,7 @@
    <hints>
     <hint type="sourcelabel">
      <x>234</x>
-     <y>1140</y>
+     <y>1172</y>
     </hint>
     <hint type="destinationlabel">
      <x>363</x>
@@ -1675,12 +1682,12 @@
    <slot>setHidden(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>59</x>
-     <y>1182</y>
+     <x>58</x>
+     <y>1209</y>
     </hint>
     <hint type="destinationlabel">
-     <x>58</x>
-     <y>1203</y>
+     <x>57</x>
+     <y>1230</y>
     </hint>
    </hints>
   </connection>
@@ -1691,12 +1698,12 @@
    <slot>setHidden(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>105</x>
-     <y>1187</y>
+     <x>104</x>
+     <y>1214</y>
     </hint>
     <hint type="destinationlabel">
-     <x>103</x>
-     <y>1231</y>
+     <x>102</x>
+     <y>1258</y>
     </hint>
    </hints>
   </connection>
@@ -1707,12 +1714,28 @@
    <slot>setDisabled(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>81</x>
-     <y>1232</y>
+     <x>80</x>
+     <y>1259</y>
     </hint>
     <hint type="destinationlabel">
-     <x>83</x>
-     <y>1188</y>
+     <x>82</x>
+     <y>1215</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>checkBoxShowExistingLabels</sender>
+   <signal>toggled(bool)</signal>
+   <receiver>PanelVolume</receiver>
+   <slot>OnShowExistingLabelsOnly(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>178</x>
+     <y>1142</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>409</x>
+     <y>1145</y>
     </hint>
    </hints>
   </connection>
@@ -1747,5 +1770,6 @@
   <slot>OnTrackVolumeThresholdChanged()</slot>
   <slot>OnSliderTrackVolumeMin(int)</slot>
   <slot>UpdateTrackVolumeThreshold()</slot>
+  <slot>OnShowExistingLabelsOnly(bool)</slot>
  </slots>
 </ui>

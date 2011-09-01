@@ -126,7 +126,8 @@ SOURCES += \
     MainApplication.cpp \
     DialogRepositionSurface.cpp \
     WindowTimeCourse.cpp \
-    WidgetTimeCoursePlot.cpp
+    WidgetTimeCoursePlot.cpp \
+    LayerMRIWorkerThread.cpp
 
 HEADERS  += \
     Annotation2D.h \
@@ -242,7 +243,8 @@ HEADERS  += \
     MainApplication.h \
     DialogRepositionSurface.h \
     WindowTimeCourse.h \
-    WidgetTimeCoursePlot.h
+    WidgetTimeCoursePlot.h \
+    LayerMRIWorkerThread.h
 
 FORMS    += MainWindow.ui \
     PanelVolume.ui \
