@@ -5,6 +5,8 @@
 if BUILDOPENCV
 SBL=$(top_srcdir)/histo_register/SimpleBaseLib
 PVL=$(top_srcdir)/histo_register/ParticleVideoLib
+SBL_BUILD=$(top_builddir)/histo_register/SimpleBaseLib
+PVL_BUILD=$(top_builddir)/histo_register/ParticleVideoLib
 SUBDIRS=./SimpleBaseLib ./ParticleVideoLib
 
 bin_PROGRAMS = histo_register
@@ -51,7 +53,7 @@ histo_register_SOURCES=\
 
 histo_register_CXXFLAGS=-I. -I$(SBL)/include -I$(SBL)/external -I$(PVL)/include $(OPENCV_CXXFLAGS)
 histo_register_CPPFLAGS=-DUSE_OPENCV -DUSE_CDT
-LOCALLIBS=-L$(SBL) -L$(PVL) -lpvl -lsbl
+LOCALLIBS=-L$(SBL_BUILD) -L$(PVL_BUILD) -lpvl -lsbl
 histo_register_LDADD=$(OPENCV_LIBS) $(LOCALLIBS)
 
 
