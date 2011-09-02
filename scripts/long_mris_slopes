@@ -9,8 +9,8 @@
 # Original Author: Martin Reuter
 # CVS Revision Info:
 #    $Author: mreuter $
-#    $Date: 2011/08/30 22:34:05 $
-#    $Revision: 1.33 $
+#    $Date: 2011/09/02 15:51:20 $
+#    $Revision: 1.34 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -87,15 +87,15 @@ OPTIONAL ARGUMENTS
 
 To manually specify the subject specific output in <template>/surf/<hemi>.<name> :
 
---out-avg <name>     Output filename (without hemi ?h) for temporal average (default: long.<meas>-avg.mgh)
+--name-avg <name>    In/out filename (without hemi ?h) for temporal average (default: long.<meas>-avg.mgh)
 
---out-rate <name>    Output filename for the rate (diff per time) (default: long.<meas>-rate.mgh)
+--name-rate <name>   In/out filename for the rate (diff per time) (default: long.<meas>-rate.mgh)
 
---out-pc1fit <name>  Output filename for percent change (w.r.t. time 1 fit) (default: long.<meas>-pc1fit.mgh)
+--name-pc1fit <name> In/out filename for percent change (w.r.t. time 1 fit) (default: long.<meas>-pc1fit.mgh)
 
---out-pc1 <name>     Output filename for percent change (w.r.t. time 1) (default: long.<meas>-pc1.mgh)
+--name-pc1 <name>    In/out filename for percent change (w.r.t. time 1) (default: long.<meas>-pc1.mgh)
 
---out-spc <name>     Output filename for sym. pct. change (w.r.t. average) (default: long.<meas>-spc.mgh)
+--name-spc <name>    In/out filename for sym. pct. change (w.r.t. average) (default: long.<meas>-spc.mgh)
 
 --out-stack <name>   Store stacked measure file <template>/surf/<hemi>.<name> (default: long.<meas>-stack.mgh)
 
@@ -327,7 +327,7 @@ def options_parse():
     Command Line Options Parser for long_mris_slopes
     initiate the option parser and return the parsed object
     """
-    parser = optparse.OptionParser(version='$Id: long_mris_slopes,v 1.33 2011/08/30 22:34:05 mreuter Exp $', usage=HELPTEXT)
+    parser = optparse.OptionParser(version='$Id: long_mris_slopes,v 1.34 2011/09/02 15:51:20 mreuter Exp $', usage=HELPTEXT)
     
     # help text
 #    h_fsgd = '(REQUIRED) fsdg file specifying the subjects and time points'
@@ -438,7 +438,7 @@ def options_parse():
         options.name_rate = 'long.'+options.meas+'-rate'
 #    elif options.name_rate is not None:
 #        options.do_rate = True
-    if options.do_pc1fit and options.name_pc1 is None:
+    if options.do_pc1fit and options.name_pc1fit is None:
         options.name_pc1fit = 'long.'+options.meas+'-pc1fit'
     if options.do_pc1 and options.name_pc1 is None:
         options.name_pc1 = 'long.'+options.meas+'-pc1'
