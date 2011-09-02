@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2011/08/29 15:24:59 $
- *    $Revision: 1.182 $
+ *    $Date: 2011/09/02 16:42:51 $
+ *    $Revision: 1.183 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -3391,7 +3391,7 @@ void MainWindow::LoadVolumeFile( const QString& filename,
     layer->SetRegFileName( QFileInfo( QDir(fi.canonicalPath()), reg_filename ).absoluteFilePath() );
   }
 
-  if ( !bResample )
+  if ( !bResample && reg_filename.isEmpty())
   {
     LayerMRI* mri = (LayerMRI* )GetLayerCollection( "MRI" )->GetLayer( 0 );
     if ( mri )
@@ -3419,7 +3419,10 @@ void MainWindow::OnCloseVolume()
     }
   }
   GetLayerCollection( "MRI" )->RemoveLayer( layer );
-  m_layerVolumeRef = (LayerMRI*)GetActiveLayer( "MRI" );
+  if (layer == m_layerVolumeRef)
+  {
+    m_layerVolumeRef = (LayerMRI*)GetActiveLayer("MRI");
+  }
 }
 
 void MainWindow::OnNewVolume()
