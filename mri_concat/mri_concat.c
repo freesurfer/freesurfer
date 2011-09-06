@@ -14,9 +14,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/08/31 00:17:29 $
- *    $Revision: 1.56 $
+ *    $Author: greve $
+ *    $Date: 2011/09/06 22:18:30 $
+ *    $Revision: 1.57 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -61,7 +61,7 @@ static void dump_options(FILE *fp);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_concat.c,v 1.56 2011/08/31 00:17:29 nicks Exp $";
+static char vcid[] = "$Id: mri_concat.c,v 1.57 2011/09/06 22:18:30 greve Exp $";
 char *Progname = NULL;
 int debug = 0;
 #define NInMAX 400000
@@ -364,7 +364,7 @@ int main(int argc, char **argv)
     // Average frames from non-zero voxels
     int nhits;
     mritmp = MRIallocSequence(nc,nr,ns,MRI_FLOAT,1);
-    MRIcopyHeader(mritmp,mriout);
+    MRIcopyHeader(mriout,mritmp);
     for(c=0; c < nc; c++)
     {
       for(r=0; r < nr; r++)
