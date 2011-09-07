@@ -11,9 +11,9 @@
 /*
  * Original Author: Martin Sereno and Anders Dale, 1996
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/01 01:41:22 $
- *    $Revision: 1.343 $
+ *    $Author: fischl $
+ *    $Date: 2011/09/07 13:02:40 $
+ *    $Revision: 1.344 $
  *
  * Copyright (C) 2002-2011, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA).
@@ -35,7 +35,7 @@
 #endif /* HAVE_CONFIG_H */
 #undef VERSION
 
-char *VERSION = "$Revision: 1.343 $";
+char *VERSION = "$Revision: 1.344 $";
 
 #define TCL
 #define TKMEDIT
@@ -1191,7 +1191,7 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
   nNumProcessedVersionArgs =
     handle_version_option
     (argc, argv,
-     "$Id: tkmedit.c,v 1.343 2011/03/01 01:41:22 nicks Exp $",
+     "$Id: tkmedit.c,v 1.344 2011/09/07 13:02:40 fischl Exp $",
      "$Name:  $");
   if (nNumProcessedVersionArgs && argc - nNumProcessedVersionArgs == 1)
     exit (0);
@@ -5937,7 +5937,7 @@ int main ( int argc, char** argv ) {
   DebugPrint
     (
       (
-        "$Id: tkmedit.c,v 1.343 2011/03/01 01:41:22 nicks Exp $ $Name:  $\n"
+        "$Id: tkmedit.c,v 1.344 2011/09/07 13:02:40 fischl Exp $ $Name:  $\n"
         )
       );
 
@@ -7490,6 +7490,10 @@ void DeleteMRIIdxControlPoint ( xVoxelRef iMRIIdx ) {
 
   /* delete it */
   xVoxl_Delete( &MRIIdx );
+
+  /* write it to the control point file. */
+//  if ( ibWriteToFile )
+    WriteControlPointFile();
 
   DebugCatch;
   DebugCatchError( e3DList, x3Lst_tErr_NoErr, x3Lst_GetErrorString );
