@@ -14,8 +14,8 @@
  * Original Author: Douglas N Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2011/07/18 02:46:21 $
- *    $Revision: 1.203 $
+ *    $Date: 2011/09/07 20:45:37 $
+ *    $Revision: 1.204 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -555,7 +555,7 @@ static int SmoothSurfOrVol(MRIS *surf, MRI *mri, MRI *mask, double SmthLevel);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-"$Id: mri_glmfit.c,v 1.203 2011/07/18 02:46:21 greve Exp $";
+"$Id: mri_glmfit.c,v 1.204 2011/09/07 20:45:37 greve Exp $";
 const char *Progname = "mri_glmfit";
 
 int SynthSeed = -1;
@@ -2024,7 +2024,7 @@ int main(int argc, char **argv) {
 
 /* --------------------------------------------- */
 static int parse_commandline(int argc, char **argv) {
-  int  nargc , nargsused, msec, niters;
+  int  nargc , nargsused, msec, niters, frameno;
   char **pargv, *option ;
   double rvartmp;
   FILE *fp;
@@ -2148,6 +2148,14 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--rand-exclude")) {
       if(nargc < 1) CMDargNErr(option,1);
       sscanf(pargv[0],"%d",&nRandExclude);
+      nargsused = 1;
+    } 
+    else if (!strcasecmp(option, "--exclude-frame")) {
+      if(nargc < 1) CMDargNErr(option,1);
+      sscanf(pargv[0],"%d",&frameno);
+      nExclude = 1;
+      ExcludeFrames = (int *)calloc(1,sizeof(int));
+      ExcludeFrames[0] = frameno;
       nargsused = 1;
     } 
     else if (!strcmp(option, "--really-use-average7")) ReallyUseAverage7 = 1;
