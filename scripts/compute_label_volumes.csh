@@ -15,10 +15,10 @@ set PrintHelp = 0;
 set labelvol = ()
 set LOI = -1
 set outputfile = ()
-
+set fscolor = $FREESURFER_HOME/FreeSurferColorLUT.txt
 
 set inputargs = ($argv);
-set VERSION = '$Id: compute_label_volumes.csh,v 1.1 2010/04/21 19:01:21 lzollei Exp $';
+set VERSION = '$Id: compute_label_volumes.csh,v 1.2 2011/09/08 23:27:21 lzollei Exp $';
 
 if($#argv == 0) goto usage_exit;
 set n = `echo $argv | egrep -e --version | wc -l`
@@ -84,7 +84,17 @@ foreach LOI ($labels)
   set labelN   = ${tmp[1]:r}
   set labelVol = $tmp[2]
 
-  echo "Number of voxels and volume for label ${LOI} is = (${labelN}, ${labelVol}mm^3)" >> $outputfile
+  # To get FS structure name:
+  set linenumber = `sed -n "/^$LOI / =" $fscolor`
+  if ($LOI < 10) then
+    set structure  = `sed -n "$linenumber s/$LOI   \([0-9a-zA-Z-]*\).*/ \1/p" < $fscolor`
+  else if ($LOI < 100) then
+    set structure  = `sed -n "$linenumber s/$LOI  \([0-9a-zA-Z-]*\).*/ \1/p" < $fscolor`
+  else 
+    set structure  = `sed -n "$linenumber s/$LOI \([0-9a-zA-Z-]*\).*/ \1/p" < $fscolor`
+  endif
+
+  echo "Number of voxels and volume for $structure (label ${LOI}) is = (${labelN}, ${labelVol}mm^3)" >> $outputfile
 
 end
 
