@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2011/07/21 19:30:09 $
- *    $Revision: 1.68 $
+ *    $Date: 2011/09/08 18:32:45 $
+ *    $Revision: 1.69 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -679,6 +679,8 @@ bool FSVolume::MRIWrite( const QString& filename, int nSampleMethod, bool resamp
       }
 
       MRIcopyHeader( m_MRITemp, mri );
+      /*
+      // no need to calculate p0
       if (!m_bCropToOriginal)
       {
         Real p0[3];
@@ -689,6 +691,7 @@ bool FSVolume::MRIWrite( const QString& filename, int nSampleMethod, bool resamp
                            &p0[0], &p0[1], &p0[2] );
         MRIp0ToCRAS( mri, p0[0], p0[1], p0[2] );
       }
+      */
 
       mri = MRIapplyRASlinearTransformInterp( m_MRITemp, mri, m, nSampleMethod );
       if ( !mri )
