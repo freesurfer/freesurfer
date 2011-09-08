@@ -1,4 +1,4 @@
-#$Id: FreeSurferColorLUT.txt,v 1.76 2011/05/25 17:49:18 nicks Exp $
+#$Id: FreeSurferColorLUT.txt,v 1.77 2011/09/08 23:23:03 lzollei Exp $
 
 #No. Label Name:                            R   G   B   A
 
@@ -168,12 +168,12 @@
 
 # Label names and colors for Brainstem consituents
 # No.  Label Name:                          R   G   B   A
-170  brainstem                              119 159 176 0
-171  DCG                                    119 0   176 0
-172  Vermis                                 119 100 176 0
-173  Midbrain                               119 200 176 0
-174  Pons                                   119 159 100 0
-175  Medulla                                119 159 200 0
+170 brainstem                               119 159 176 0
+171 DCG                                     119 0   176 0
+172 Vermis                                  119 100 176 0
+173 Midbrain                                119 200 176 0
+174 Pons                                    119 159 100 0
+175 Medulla                                 119 159 200 0
 
 
 180 Left-Cortical-Dysplasia                 73  61  139 0
