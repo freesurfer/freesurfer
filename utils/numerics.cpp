@@ -5,9 +5,9 @@
 /*
  * Original Author: Dennis Jen and Silvester Czanner
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:54 $
- *    $Revision: 1.17 $
+ *    $Author: mreuter $
+ *    $Date: 2011/09/08 20:40:54 $
+ *    $Revision: 1.18 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -31,6 +31,7 @@
 #include <vnl/vnl_matrix.h>
 #include <vnl/vnl_vector_fixed.h>
 #include <vnl/vnl_matrix_fixed.h>
+#include <vnl/vnl_det.h>
 
 #include <vnl/algo/vnl_cholesky.h>
 #include <vnl/algo/vnl_svd.h>
@@ -1223,23 +1224,63 @@ extern "C" int OpenLUMatrixInverse( MATRIX *iMatrix, MATRIX *oInverse )
 
   vnl_matrix< float > vnlMatrix( iMatrix->data, iMatrix->rows, iMatrix->cols );
 
-  // the svd matrix inversion failed a test case, whereas qr passes, so we're
-  // going to use the qr generated inverse
-  vnl_qr< float > vnlMatrixInverter( vnlMatrix );
-
-  // determinant of 0 means that it's singular
-  if ( vnlMatrixInverter.determinant() != 0.0 )
+  unsigned int r = vnlMatrix.rows();
+  if (r <= 4 && r == vnlMatrix.cols())
   {
-
-    vnl_matrix< float > inverse = vnlMatrixInverter.inverse();
-    inverse.copy_out( oInverse->data );
-
+    if (r == 1)
+    {
+      if (vnlMatrix(0,0) == 0.0)
+        errorCode = ERROR_BADPARM;
+      else
+        oInverse->data[0] = 1.0/vnlMatrix(0,0);
+    } 
+    else if (r == 2)
+    {
+      vnl_matrix_fixed<float,2,2> m(vnlMatrix);
+      if (vnl_det(m) == 0.0)
+        errorCode = ERROR_BADPARM;
+      else
+        vnl_inverse(m).copy_out( oInverse->data );
+    }
+    else if (r == 3)
+    {
+      vnl_matrix_fixed<float,3,3> m(vnlMatrix);
+      if (vnl_det(m) == 0.0)
+        errorCode = ERROR_BADPARM;
+      else
+        vnl_inverse(m).copy_out( oInverse->data );
+    }
+    else
+    {
+      vnl_matrix_fixed<float,4,4> m(vnlMatrix);
+      if (vnl_det(m) == 0.0)
+        errorCode = ERROR_BADPARM;
+      else
+        vnl_inverse(m).copy_out( oInverse->data );
+    }
+     
   }
-  else
+
+  else // > 4x4 matrices
   {
-    errorCode = ERROR_BADPARM;
-  }
+    // the svd matrix inversion failed a test case, whereas qr passes, so we're
+    // going to use the qr generated inverse
+    vnl_qr< float > vnlMatrixInverter( vnlMatrix );
 
+    // determinant of 0 means that it's singular
+    if ( vnlMatrixInverter.determinant() != 0.0 )
+    {
+
+      vnl_matrix< float > inverse = vnlMatrixInverter.inverse();
+      inverse.copy_out( oInverse->data );
+
+    }
+    else
+    {
+      errorCode = ERROR_BADPARM;
+    }
+  }
+  
   return errorCode;
 }
 
@@ -1258,7 +1299,16 @@ extern "C" float OpenMatrixDeterminant( MATRIX *iMatrix )
     vnl_matrix< float >vnlMatrix( iMatrix->data,
                                   iMatrix->rows,
                                   iMatrix->cols );
-    determinant = vnl_determinant< float >( vnlMatrix );
+    if (vnlMatrix.rows() == 1)
+      determinant = vnlMatrix(0,0);
+    else if (vnlMatrix.rows() == 2)
+      determinant = vnl_det(vnl_matrix_fixed<float,2,2>(vnlMatrix));
+    else if (vnlMatrix.rows() == 3)
+      determinant = vnl_det(vnl_matrix_fixed<float,3,3>(vnlMatrix));
+    else if (vnlMatrix.rows() == 4)
+      determinant = vnl_det(vnl_matrix_fixed<float,4,4>(vnlMatrix));
+    else
+      determinant = vnl_determinant< float >( vnlMatrix );
   }
 
   return determinant;
