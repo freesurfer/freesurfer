@@ -11,8 +11,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2011/08/04 16:43:03 $
- *    $Revision: 1.64 $
+ *    $Date: 2011/09/08 01:35:26 $
+ *    $Revision: 1.65 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -102,7 +102,7 @@ extern "C" {
 using namespace std;
 
 vtkStandardNewMacro( vtkKWQdecWindow );
-vtkCxxRevisionMacro( vtkKWQdecWindow, "$Revision: 1.64 $" );
+vtkCxxRevisionMacro( vtkKWQdecWindow, "$Revision: 1.65 $" );
 
 const char* vtkKWQdecWindow::ksSubjectsPanelName = "Subjects";
 const char* vtkKWQdecWindow::ksDesignPanelName = "Design";
@@ -163,6 +163,24 @@ vtkKWQdecWindow::vtkKWQdecWindow () :
   mbSurfaceScalarsColorReverse( false ),
   mbSurfaceScalarsColorShowPositive( true ),
   mbSurfaceScalarsColorShowNegative( true ),
+  mnNegativeMaxRedValue( 0.0 ),
+  mnNegativeMaxGreenValue( 1.0 ),
+  mnNegativeMaxBlueValue( 1.0 ),
+  mnNegativeMidRedValue( 0.0 ),
+  mnNegativeMidGreenValue( 0.0 ),
+  mnNegativeMidBlueValue( 1.0 ),
+  mnNegativeMinRedValue( 0.0 ),
+  mnNegativeMinGreenValue( 0.0 ),
+  mnNegativeMinBlueValue( 1.0 ),
+  mnPositiveMinRedValue( 1.0 ),
+  mnPositiveMinGreenValue( 0.0 ),
+  mnPositiveMinBlueValue( 0.0 ),
+  mnPositiveMidRedValue( 1.0 ),
+  mnPositiveMidGreenValue( 0.0 ),
+  mnPositiveMidBlueValue( 0.0 ),
+  mnPositiveMaxRedValue( 1.0 ),
+  mnPositiveMaxGreenValue( 1.0 ),
+  mnPositiveMaxBlueValue( 0.0 ),
   mClusterStats( NULL ),
   mnClusters( 0 ),
   mCurrentCluster( 0 ),
@@ -3905,17 +3923,41 @@ vtkKWQdecWindow::UpdateSurfaceScalarsColorsEditor () {
     vtkSmartPointer<vtkRGBATransferFunction>::New();
   mEditorSurfaceScalarColors->SetRGBATransferFunction( colors );
   mnNegativeMaxValue =
-    colors->AddRGBAPoint( -mSurfaceScalarsColorMax, 0, 1, 1, 1 );
+    colors->AddRGBAPoint( -mSurfaceScalarsColorMax,
+                          mnNegativeMaxRedValue,
+                          mnNegativeMaxGreenValue,
+                          mnNegativeMaxBlueValue,
+                          1 );
   mnNegativeMidValue =
-    colors->AddRGBAPoint( -mSurfaceScalarsColorMid, 0, 0, 1, 1 );
+    colors->AddRGBAPoint( -mSurfaceScalarsColorMid,
+                          mnNegativeMidRedValue,
+                          mnNegativeMidGreenValue,
+                          mnNegativeMidBlueValue,
+                          1 );
   mnNegativeMinValue =
-    colors->AddRGBAPoint( -mSurfaceScalarsColorMin, 0, 0, 1, 1 );
+    colors->AddRGBAPoint( -mSurfaceScalarsColorMin,
+                          mnNegativeMinRedValue,
+                          mnNegativeMinGreenValue,
+                          mnNegativeMinBlueValue,
+                          1 );
   mnPositiveMinValue =
-    colors->AddRGBAPoint(  mSurfaceScalarsColorMin, 1, 0, 0, 1 );
+    colors->AddRGBAPoint(  mSurfaceScalarsColorMin,
+                           mnPositiveMinRedValue,
+                           mnPositiveMinGreenValue,
+                           mnPositiveMinBlueValue,
+                           1 );
   mnPositiveMidValue =
-    colors->AddRGBAPoint(  mSurfaceScalarsColorMid, 1, 0, 0, 1 );
+    colors->AddRGBAPoint(  mSurfaceScalarsColorMid,
+                           mnPositiveMidRedValue,
+                           mnPositiveMidGreenValue,
+                           mnPositiveMidBlueValue,
+                           1 );
   mnPositiveMaxValue =
-    colors->AddRGBAPoint(  mSurfaceScalarsColorMax, 1, 1, 0, 1 );
+    colors->AddRGBAPoint(  mSurfaceScalarsColorMax,
+                           mnPositiveMaxRedValue,
+                           mnPositiveMaxGreenValue,
+                           mnPositiveMaxBlueValue,
+                           1 );
   colors->Build();
 
   // Set up the point symmetry in the colors.
@@ -4048,6 +4090,36 @@ vtkKWQdecWindow::SurfaceScalarColorsEditorChanged () {
     GetFunctionPointParameter( mnPositiveMaxValue, &value );
   if( mSurfaceScalarsColorMax != value )
     this->SetSurfaceScalarsColorMax( value );
+
+  vtkSmartPointer<vtkRGBATransferFunction> colors = 
+    mEditorSurfaceScalarColors->GetRGBATransferFunction();
+
+  mnNegativeMaxRedValue = colors->GetRedValue( -mSurfaceScalarsColorMax );
+  mnNegativeMaxGreenValue = colors->GetGreenValue( -mSurfaceScalarsColorMax );
+  mnNegativeMaxBlueValue = colors->GetBlueValue( -mSurfaceScalarsColorMax );
+
+  mnNegativeMidRedValue = colors->GetRedValue( -mSurfaceScalarsColorMid );
+  mnNegativeMidGreenValue = colors->GetGreenValue( -mSurfaceScalarsColorMid );
+  mnNegativeMidBlueValue = colors->GetBlueValue( -mSurfaceScalarsColorMid );
+
+  mnNegativeMinRedValue = colors->GetRedValue( -mSurfaceScalarsColorMin );
+  mnNegativeMinGreenValue = colors->GetGreenValue( -mSurfaceScalarsColorMin );
+  mnNegativeMinBlueValue = colors->GetBlueValue( -mSurfaceScalarsColorMin );
+
+  mnPositiveMaxRedValue = colors->GetRedValue( mSurfaceScalarsColorMax );
+  mnPositiveMaxGreenValue = colors->GetGreenValue( mSurfaceScalarsColorMax );
+  mnPositiveMaxBlueValue = colors->GetBlueValue( mSurfaceScalarsColorMax );
+
+  mnPositiveMidRedValue = colors->GetRedValue( mSurfaceScalarsColorMid );
+  mnPositiveMidGreenValue = colors->GetGreenValue( mSurfaceScalarsColorMid );
+  mnPositiveMidBlueValue = colors->GetBlueValue( mSurfaceScalarsColorMid );
+
+  mnPositiveMinRedValue = colors->GetRedValue( mSurfaceScalarsColorMin );
+  mnPositiveMinGreenValue = colors->GetGreenValue( mSurfaceScalarsColorMin );
+  mnPositiveMinBlueValue = colors->GetBlueValue( mSurfaceScalarsColorMin );
+
+  // Draw with the new values.
+  this->ComposeSurfaceScalarsAndShow();
 }
 
 void
@@ -5615,9 +5687,18 @@ vtkKWQdecWindow::ComposeSurfaceScalarsAndShow () {
     // This is the negative scalar range.
     vtkSmartPointer<vtkColorTransferFunction> composedColors =
       vtkSmartPointer<vtkColorTransferFunction>::New();
-    composedColors->AddRGBPoint( -mSurfaceScalarsColorMax, 0, 1, 1 );
-    composedColors->AddRGBPoint( -mSurfaceScalarsColorMid, 0, 0, 1 );
-    composedColors->AddRGBPoint( -mSurfaceScalarsColorMin, 0, 0, 1 );
+    composedColors->AddRGBPoint( -mSurfaceScalarsColorMax,
+                                 mnNegativeMaxRedValue,
+                                 mnNegativeMaxGreenValue,
+                                 mnNegativeMaxBlueValue );
+    composedColors->AddRGBPoint( -mSurfaceScalarsColorMid,
+                                 mnNegativeMidRedValue,
+                                 mnNegativeMidGreenValue,
+                                 mnNegativeMidBlueValue );
+    composedColors->AddRGBPoint( -mSurfaceScalarsColorMin,
+                                 mnNegativeMinRedValue,
+                                 mnNegativeMinGreenValue,
+                                 mnNegativeMinBlueValue );
 
     // This pads the range from the -scalar min to the -curv min with
     // flat gray.
@@ -5659,10 +5740,18 @@ vtkKWQdecWindow::ComposeSurfaceScalarsAndShow () {
     }
 
     // Positive scalar range.
-    composedColors->AddRGBPoint( mSurfaceScalarsColorMin, 1, 0, 0 );
-    composedColors->AddRGBPoint( mSurfaceScalarsColorMid, 1, 0, 0 );
-    composedColors->AddRGBPoint( mSurfaceScalarsColorMax, 1, 1, 0 );
-
+    composedColors->AddRGBPoint( mSurfaceScalarsColorMax,
+                                 mnPositiveMaxRedValue,
+                                 mnPositiveMaxGreenValue,
+                                 mnPositiveMaxBlueValue );
+    composedColors->AddRGBPoint( mSurfaceScalarsColorMid,
+                                 mnPositiveMidRedValue,
+                                 mnPositiveMidGreenValue,
+                                 mnPositiveMidBlueValue );
+    composedColors->AddRGBPoint( mSurfaceScalarsColorMin,
+                                 mnPositiveMinRedValue,
+                                 mnPositiveMinGreenValue,
+                                 mnPositiveMinBlueValue );
     composedColors->Build();
 
     // Set the composed scalars and colors in the view to draw on the
@@ -5697,19 +5786,36 @@ vtkKWQdecWindow::ComposeSurfaceScalarsAndShow () {
       // that in the view's legend colors.
       vtkSmartPointer<vtkColorTransferFunction> surfaceScalarsColors =
         vtkSmartPointer<vtkColorTransferFunction>::New();
-      surfaceScalarsColors->AddRGBPoint( -mSurfaceScalarsColorMax, 0, 1, 1 );
-      surfaceScalarsColors->AddRGBPoint( -mSurfaceScalarsColorMid, 0, 0, 1 );
-      surfaceScalarsColors->AddRGBPoint( -mSurfaceScalarsColorMin, 0, 0, 1 );
-      surfaceScalarsColors->AddRGBPoint
-        ( -mSurfaceScalarsColorMin + EPS, 0.5, 0.5, 0.5 );
-      surfaceScalarsColors->AddRGBPoint
-        ( mSurfaceScalarsColorMin - EPS, 0.5, 0.5, 0.5 );
-      surfaceScalarsColors->AddRGBPoint( mSurfaceScalarsColorMin, 1, 0, 0 );
-      surfaceScalarsColors->AddRGBPoint( mSurfaceScalarsColorMid, 1, 0, 0 );
-      surfaceScalarsColors->AddRGBPoint( mSurfaceScalarsColorMax, 1, 1, 0 );
+      surfaceScalarsColors->AddRGBPoint( -mSurfaceScalarsColorMax,
+                                         mnNegativeMaxRedValue,
+                                         mnNegativeMaxGreenValue,
+                                         mnNegativeMaxBlueValue );
+      surfaceScalarsColors->AddRGBPoint( -mSurfaceScalarsColorMid,
+                                         mnNegativeMidRedValue,
+                                         mnNegativeMidGreenValue,
+                                         mnNegativeMidBlueValue );
+      surfaceScalarsColors->AddRGBPoint( -mSurfaceScalarsColorMin,
+                                         mnNegativeMinRedValue,
+                                         mnNegativeMinGreenValue,
+                                         mnNegativeMinBlueValue );
+      surfaceScalarsColors->AddRGBPoint( -mSurfaceScalarsColorMin + EPS,
+                                                             0.5, 0.5, 0.5 );
+      surfaceScalarsColors->AddRGBPoint( mSurfaceScalarsColorMin - EPS,
+                                                             0.5, 0.5, 0.5 );
+      surfaceScalarsColors->AddRGBPoint( mSurfaceScalarsColorMin,
+                                         mnPositiveMinRedValue,
+                                         mnPositiveMinGreenValue,
+                                         mnPositiveMinBlueValue );
+      surfaceScalarsColors->AddRGBPoint( mSurfaceScalarsColorMid,
+                                         mnPositiveMidRedValue,
+                                         mnPositiveMidGreenValue,
+                                         mnPositiveMidBlueValue );
+      surfaceScalarsColors->AddRGBPoint( mSurfaceScalarsColorMax,
+                                         mnPositiveMaxRedValue,
+                                         mnPositiveMaxGreenValue,
+                                         mnPositiveMaxBlueValue );
       surfaceScalarsColors->Build();
       mView->SetSurfaceLegendColors( surfaceScalarsColors );
-
     } else {
 
       mView->SetAnnotationMessage( "" );
