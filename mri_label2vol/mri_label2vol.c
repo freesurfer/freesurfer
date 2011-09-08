@@ -14,8 +14,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2011/03/22 18:08:44 $
- *    $Revision: 1.35 $
+ *    $Date: 2011/09/08 20:28:44 $
+ *    $Revision: 1.36 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -77,7 +77,7 @@ static int *NthLabelMap(MRI *aseg, int *nlabels);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_label2vol.c,v 1.35 2011/03/22 18:08:44 greve Exp $";
+static char vcid[] = "$Id: mri_label2vol.c,v 1.36 2011/09/08 20:28:44 greve Exp $";
 char *Progname = NULL;
 
 char *LabelList[100];
@@ -145,11 +145,11 @@ int main(int argc, char **argv) {
   char cmdline[CMD_LINE_LEN] ;
 
   make_cmd_version_string (argc, argv,
-                           "$Id: mri_label2vol.c,v 1.35 2011/03/22 18:08:44 greve Exp $", "$Name:  $", cmdline);
+                           "$Id: mri_label2vol.c,v 1.36 2011/09/08 20:28:44 greve Exp $", "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option (argc, argv,
-                                 "$Id: mri_label2vol.c,v 1.35 2011/03/22 18:08:44 greve Exp $", "$Name:  $");
+                                 "$Id: mri_label2vol.c,v 1.36 2011/09/08 20:28:44 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -271,7 +271,8 @@ int main(int argc, char **argv) {
     if (UseNewASeg2Vol) {
       OutVol = MRIaseg2vol(ASeg, R,TempVol, FillThresh, &HitVol);
       MRIaddCommandLine(OutVol, cmdline) ;
-      MRIwrite(OutVol,OutVolId);
+      err=MRIwrite(OutVol,OutVolId);
+      if(err) exit(1);
       if (HitVolId != NULL) {
         MRIaddCommandLine(HitVol, cmdline) ;
         MRIwrite(HitVol,HitVolId);
@@ -400,7 +401,10 @@ int main(int argc, char **argv) {
   } // End loop over labels
   printf("\n");
 
-  if(DoLabelStatVol) MRIwrite(LabelStatVol,LabelStatVolFSpec);
+  if(DoLabelStatVol){
+    err=MRIwrite(LabelStatVol,LabelStatVolFSpec);
+    if(err) exit(1);
+  }
 
   if(HitVolId != NULL) MRIwrite(HitVol,HitVolId);
   printf("PVF %s\n",PVFVolId);
@@ -455,9 +459,10 @@ int main(int argc, char **argv) {
 
   // Save out volume
   MRIaddCommandLine(OutVol, cmdline) ;
-  MRIwrite(OutVol,OutVolId);
+  err=MRIwrite(OutVol,OutVolId);
+  if(err) exit(1);
 
-  printf("done \n");
+  printf("mri_label2vol done \n");
   return(0);
 }
 /* ------------------------------------------------------------------ */
