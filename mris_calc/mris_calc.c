@@ -11,9 +11,9 @@
 /*
  * Original Author: Rudolph Pienaar
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/08/01 18:24:57 $
- *    $Revision: 1.44 $
+ *    $Author: greve $
+ *    $Date: 2011/09/08 19:56:39 $
+ *    $Revision: 1.45 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -62,7 +62,7 @@
 #define  START_i        3
 
 static const char vcid[] =
-  "$Id: mris_calc.c,v 1.44 2011/08/01 18:24:57 nicks Exp $";
+  "$Id: mris_calc.c,v 1.45 2011/09/08 19:56:39 greve Exp $";
 double fn_sign(float af_A);
 
 // ----------------------------------------------------------------------------
@@ -124,6 +124,7 @@ typedef enum _operation
   e_sub,
   e_sqd,
   e_sqr,
+  e_not,
   e_sqrt,
   e_set,
   e_atan2,
@@ -407,6 +408,11 @@ double fn_inv(float af_A)
 double fn_sqr(float af_A)
 {
   return (af_A*af_A);
+}
+double fn_not(float af_A)
+{
+  if(af_A > 0.5) return(0);
+  return(1);
 }
 double fn_sqrt(float af_A)
 {
@@ -1356,7 +1362,7 @@ main(
   init();
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mris_calc.c,v 1.44 2011/08/01 18:24:57 nicks Exp $",
+           "$Id: mris_calc.c,v 1.45 2011/09/08 19:56:39 greve Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
   {
@@ -1584,6 +1590,10 @@ operation_lookup(
   else if(!strcmp(apch_operation, "sqrt"))
   {
     e_op    = e_sqrt;
+  }
+  else if(!strcmp(apch_operation, "not"))
+  {
+    e_op    = e_not;
   }
   else if(!strcmp(apch_operation, "set"))
   {
@@ -2039,6 +2049,7 @@ b_outCurvFile_write(e_operation e_op)
     e_op == e_sqd           ||
     e_op == e_sqr           ||
     e_op == e_sqrt          ||
+    e_op == e_not           ||
     e_op == e_set           ||
     e_op == e_atan2         ||
     e_op == e_bcor          ||
@@ -2172,6 +2183,9 @@ CURV_process(void)
     break;
   case  e_sqrt:
     CURV_functionRunAC( fn_sqrt);
+    break;
+  case  e_not:
+    CURV_functionRunAC( fn_not);
     break;
   case  e_eq:
     CURV_functionRunABC(fn_eq);
