@@ -15,7 +15,7 @@ set LOI = -1
 set outputprefix = ()
 
 set inputargs = ($argv);
-set VERSION = '$Id: compute_interrater_variability.csh,v 1.1 2010/04/28 20:25:10 lzollei Exp $';
+set VERSION = '$Id: compute_interrater_variability.csh,v 1.2 2011/09/09 00:34:27 lzollei Exp $';
 
 if($#argv == 0) goto usage_exit;
 set n = `echo $argv | egrep -e --version | wc -l`
@@ -53,19 +53,19 @@ uname -a |& tee -a $LF
 ############--------------##################
 
 set meanhaus = ${outputprefix}.mean.haus.txt
-set cmd = (/autofs/space/erdos_001/users/lzollei/dev/mri_hausdorff_dist/mri_hausdorff_dist $file1 $file2 $meanhaus)
+set cmd = (mri_hausdorff_dist $file1 $file2 $meanhaus)
 echo $cmd |& tee -a $LF
 $cmd |& tee -a $LF
 if($status) exit 1;
 
 set maxhaus = ${outputprefix}.max.haus.txt
-set cmd = (/autofs/space/erdos_001/users/lzollei/dev/mri_hausdorff_dist/mri_hausdorff_dist -max $file1 $file2 $maxhaus)
+set cmd = (mri_hausdorff_dist -max $file1 $file2 $maxhaus)
 echo $cmd |& tee -a $LF
 $cmd |& tee -a $LF
 if($status) exit 1;
 
 set overlapoutput = ${outputprefix}.overlap.txt
-set cmd = (/autofs/space/erdos_001/users/lzollei/dev/mri_compute_overlap/mri_compute_overlap -a -s -l $overlapoutput $file1 $file2)
+set cmd = (mri_compute_overlap -a -s -l $overlapoutput $file1 $file2)
 echo $cmd |& tee -a $LF
 $cmd |& tee -a $LF
 if($status) exit 1;
