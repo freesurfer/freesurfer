@@ -11,19 +11,18 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2010/07/27 17:42:22 $
- *    $Revision: 1.24 $
+ *    $Date: 2011/09/12 19:06:41 $
+ *    $Revision: 1.25.2.1 $
  *
- * Copyright (C) 2007-2010,
- * The General Hospital Corporation (Boston, MA).
- * All rights reserved.
+ * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
- * Distribution, usage and copying of this software is covered under the
- * terms found in the License Agreement file named 'COPYING' found in the
- * FreeSurfer source code root directory, and duplicated here:
- * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ * Terms and conditions for use, reproduction, distribution and contribution
+ * are found in the 'FreeSurfer Software License Agreement' contained
+ * in the file 'LICENSE' found in the FreeSurfer distribution, and here:
  *
- * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
+ *
+ * Reporting: freesurfer@nmr.mgh.harvard.edu
  *
  */
 
@@ -671,6 +670,30 @@ class vtkKWQdecWindow : public vtkKWWindow
   bool mbSurfaceScalarsColorReverse;
   bool mbSurfaceScalarsColorShowPositive;
   bool mbSurfaceScalarsColorShowNegative;
+
+  double mnNegativeMaxRedValue;
+  double mnNegativeMaxGreenValue;
+  double mnNegativeMaxBlueValue;
+
+  double mnNegativeMidRedValue;
+  double mnNegativeMidGreenValue;
+  double mnNegativeMidBlueValue;
+
+  double mnNegativeMinRedValue;
+  double mnNegativeMinGreenValue;
+  double mnNegativeMinBlueValue;
+
+  double mnPositiveMinRedValue;
+  double mnPositiveMinGreenValue;
+  double mnPositiveMinBlueValue;
+
+  double mnPositiveMidRedValue;
+  double mnPositiveMidGreenValue;
+  double mnPositiveMidBlueValue;
+
+  double mnPositiveMaxRedValue;
+  double mnPositiveMaxGreenValue;
+  double mnPositiveMaxBlueValue;
 
   // cluster stats info
   SCS *mClusterStats;

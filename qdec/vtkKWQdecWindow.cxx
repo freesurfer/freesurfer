@@ -11,8 +11,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2011/08/04 16:43:40 $
- *    $Revision: 1.61.2.3 $
+ *    $Date: 2011/09/12 19:06:41 $
+ *    $Revision: 1.61.2.4 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -102,7 +102,7 @@ extern "C" {
 using namespace std;
 
 vtkStandardNewMacro( vtkKWQdecWindow );
-vtkCxxRevisionMacro( vtkKWQdecWindow, "$Revision: 1.61.2.3 $" );
+vtkCxxRevisionMacro( vtkKWQdecWindow, "$Revision: 1.61.2.4 $" );
 
 const char* vtkKWQdecWindow::ksSubjectsPanelName = "Subjects";
 const char* vtkKWQdecWindow::ksDesignPanelName = "Design";
@@ -111,6 +111,12 @@ const char* vtkKWQdecWindow::ksDisplayPanelName = "Display";
 
 const int vtkKWQdecWindow::kMaxDiscreteFactors = 2;
 const int vtkKWQdecWindow::kMaxContinuousFactors = 1;
+
+// if USE_MID is 1, then enable usage of the 'mid' threshold value (entry
+// of it, and inclusion in the histogram box).  in practice, this 'mid'
+// value is useless, and the code typically automatically sets it to some
+// epsilon greater than the 'min' value.
+#define USE_MID 0 
 
 vtkKWQdecWindow::vtkKWQdecWindow () :
   vtkKWWindow(),
@@ -157,12 +163,36 @@ vtkKWQdecWindow::vtkKWQdecWindow () :
   mAnnotationTable( NULL ),
   mbShowCurvature( true ),
   mSurfaceScalarsColorMin( 2.0 ),
+#if USE_MID
   mSurfaceScalarsColorMid( 2.0001 ),
+#endif
   mSurfaceScalarsColorMax( 5.0 ),
   mSurfaceScalarsColorOffset( 0.0 ),
   mbSurfaceScalarsColorReverse( false ),
   mbSurfaceScalarsColorShowPositive( true ),
   mbSurfaceScalarsColorShowNegative( true ),
+  mnNegativeMaxRedValue( 0.0 ),
+  mnNegativeMaxGreenValue( 1.0 ),
+  mnNegativeMaxBlueValue( 1.0 ),
+#if USE_MID
+  mnNegativeMidRedValue( 0.0 ),
+  mnNegativeMidGreenValue( 0.0 ),
+  mnNegativeMidBlueValue( 1.0 ),
+#endif
+  mnNegativeMinRedValue( 0.0 ),
+  mnNegativeMinGreenValue( 0.0 ),
+  mnNegativeMinBlueValue( 1.0 ),
+  mnPositiveMinRedValue( 1.0 ),
+  mnPositiveMinGreenValue( 0.0 ),
+  mnPositiveMinBlueValue( 0.0 ),
+#if USE_MID
+  mnPositiveMidRedValue( 1.0 ),
+  mnPositiveMidGreenValue( 0.0 ),
+  mnPositiveMidBlueValue( 0.0 ),
+#endif
+  mnPositiveMaxRedValue( 1.0 ),
+  mnPositiveMaxGreenValue( 1.0 ),
+  mnPositiveMaxBlueValue( 0.0 ),
   mClusterStats( NULL ),
   mnClusters( 0 ),
   mCurrentCluster( 0 ),
@@ -3569,7 +3599,7 @@ vtkKWQdecWindow::UpdateDisplayPage () {
       
       mEditorSurfaceScalarColors->ExpandCanvasWidthOn();
       //  mEditorSurfaceScalarColors->SetCanvasWidth( 450 );
-      mEditorSurfaceScalarColors->SetCanvasHeight( 150 );
+      mEditorSurfaceScalarColors->SetCanvasHeight( 100 );
       mEditorSurfaceScalarColors->SetLabelText("Threshold");
       mEditorSurfaceScalarColors->SetRangeLabelPositionToTop();
       mEditorSurfaceScalarColors->SetPointPositionInValueRangeToTop();
@@ -3633,6 +3663,7 @@ vtkKWQdecWindow::UpdateDisplayPage () {
       SetCommand( this, "SetSurfaceScalarsColorMin");
     mEntrySurfaceScalarsColorMin->SetValueAsDouble( mSurfaceScalarsColorMin );
 
+#if USE_MID
     vtkSmartPointer<vtkKWEntryWithLabel> labeledEntryMid =
       vtkSmartPointer<vtkKWEntryWithLabel>::New();
     labeledEntryMid->SetParent( frameEntries );
@@ -3644,6 +3675,7 @@ vtkKWQdecWindow::UpdateDisplayPage () {
     mEntrySurfaceScalarsColorMid->
       SetCommand( this, "SetSurfaceScalarsColorMid");
     mEntrySurfaceScalarsColorMid->SetValueAsDouble( mSurfaceScalarsColorMid );
+#endif
 
     vtkSmartPointer<vtkKWEntryWithLabel> labeledEntryMax = 
       vtkSmartPointer<vtkKWEntryWithLabel>::New();
@@ -3670,11 +3702,18 @@ vtkKWQdecWindow::UpdateDisplayPage () {
     mEntrySurfaceScalarsColorOffset->
       SetValueAsDouble( mSurfaceScalarsColorOffset );
 
+#if USE_MID
     this->Script( "pack %s %s %s %s -side left -padx 5 -fill x",
                   labeledEntryMin->GetWidgetName(),
                   labeledEntryMid->GetWidgetName(),
                   labeledEntryMax->GetWidgetName(),
                   labeledEntryOffset->GetWidgetName());
+#else
+    this->Script( "pack %s %s %s -side left -padx 5 -fill x",
+                  labeledEntryMin->GetWidgetName(),
+                  labeledEntryMax->GetWidgetName(),
+                  labeledEntryOffset->GetWidgetName());
+#endif
     this->Script( "pack %s -side top -fill x",
                   frameEntries->GetWidgetName() );
 
@@ -3858,7 +3897,9 @@ vtkKWQdecWindow::UpdateDisplayPage () {
     mEditorSurfaceScalarColors = NULL;
     mHistogramSurfaceScalarColors = NULL;
     mEntrySurfaceScalarsColorMin = NULL;
+#if USE_MID
     mEntrySurfaceScalarsColorMid = NULL;
+#endif
     mEntrySurfaceScalarsColorMax = NULL;
     mEntrySurfaceScalarsColorOffset = NULL;
     mbFrameSurfaceScalarsInited = false;
@@ -3905,17 +3946,45 @@ vtkKWQdecWindow::UpdateSurfaceScalarsColorsEditor () {
     vtkSmartPointer<vtkRGBATransferFunction>::New();
   mEditorSurfaceScalarColors->SetRGBATransferFunction( colors );
   mnNegativeMaxValue =
-    colors->AddRGBAPoint( -mSurfaceScalarsColorMax, 0, 1, 1, 1 );
+    colors->AddRGBAPoint( -mSurfaceScalarsColorMax,
+                          mnNegativeMaxRedValue,
+                          mnNegativeMaxGreenValue,
+                          mnNegativeMaxBlueValue,
+                          1 );
+#if USE_MID
   mnNegativeMidValue =
-    colors->AddRGBAPoint( -mSurfaceScalarsColorMid, 0, 0, 1, 1 );
+    colors->AddRGBAPoint( -mSurfaceScalarsColorMid,
+                          mnNegativeMidRedValue,
+                          mnNegativeMidGreenValue,
+                          mnNegativeMidBlueValue,
+                          1 );
+#endif
   mnNegativeMinValue =
-    colors->AddRGBAPoint( -mSurfaceScalarsColorMin, 0, 0, 1, 1 );
+    colors->AddRGBAPoint( -mSurfaceScalarsColorMin,
+                          mnNegativeMinRedValue,
+                          mnNegativeMinGreenValue,
+                          mnNegativeMinBlueValue,
+                          1 );
   mnPositiveMinValue =
-    colors->AddRGBAPoint(  mSurfaceScalarsColorMin, 1, 0, 0, 1 );
+    colors->AddRGBAPoint(  mSurfaceScalarsColorMin,
+                           mnPositiveMinRedValue,
+                           mnPositiveMinGreenValue,
+                           mnPositiveMinBlueValue,
+                           1 );
+#if USE_MID
   mnPositiveMidValue =
-    colors->AddRGBAPoint(  mSurfaceScalarsColorMid, 1, 0, 0, 1 );
+    colors->AddRGBAPoint(  mSurfaceScalarsColorMid,
+                           mnPositiveMidRedValue,
+                           mnPositiveMidGreenValue,
+                           mnPositiveMidBlueValue,
+                           1 );
+#endif
   mnPositiveMaxValue =
-    colors->AddRGBAPoint(  mSurfaceScalarsColorMax, 1, 1, 0, 1 );
+    colors->AddRGBAPoint(  mSurfaceScalarsColorMax,
+                           mnPositiveMaxRedValue,
+                           mnPositiveMaxGreenValue,
+                           mnPositiveMaxBlueValue,
+                           1 );
   colors->Build();
 
   // Set up the point symmetry in the colors.
@@ -3923,8 +3992,10 @@ vtkKWQdecWindow::UpdateSurfaceScalarsColorsEditor () {
   mEditorSurfaceScalarColors->SetPointCountMaximum( 6 );
   mEditorSurfaceScalarColors->
     SetPointSymmetry( mnNegativeMaxValue, mnPositiveMaxValue );
+#if USE_MID
   mEditorSurfaceScalarColors->
     SetPointSymmetry( mnNegativeMidValue, mnPositiveMidValue );
+#endif
   mEditorSurfaceScalarColors->
     SetPointSymmetry( mnNegativeMinValue, mnPositiveMinValue );
 
@@ -4039,15 +4110,51 @@ vtkKWQdecWindow::SurfaceScalarColorsEditorChanged () {
   if( mSurfaceScalarsColorMin != value )
     this->SetSurfaceScalarsColorMin( value );
   
+#if USE_MID
   mEditorSurfaceScalarColors->
     GetFunctionPointParameter( mnPositiveMidValue, &value );
   if( mSurfaceScalarsColorMid != value )
     this->SetSurfaceScalarsColorMid( value );
+#endif
   
   mEditorSurfaceScalarColors->
     GetFunctionPointParameter( mnPositiveMaxValue, &value );
   if( mSurfaceScalarsColorMax != value )
     this->SetSurfaceScalarsColorMax( value );
+
+  vtkSmartPointer<vtkRGBATransferFunction> colors = 
+    mEditorSurfaceScalarColors->GetRGBATransferFunction();
+
+  mnNegativeMaxRedValue = colors->GetRedValue( -mSurfaceScalarsColorMax );
+  mnNegativeMaxGreenValue = colors->GetGreenValue( -mSurfaceScalarsColorMax );
+  mnNegativeMaxBlueValue = colors->GetBlueValue( -mSurfaceScalarsColorMax );
+
+#if USE_MID
+  mnNegativeMidRedValue = colors->GetRedValue( -mSurfaceScalarsColorMid );
+  mnNegativeMidGreenValue = colors->GetGreenValue( -mSurfaceScalarsColorMid );
+  mnNegativeMidBlueValue = colors->GetBlueValue( -mSurfaceScalarsColorMid );
+#endif
+
+  mnNegativeMinRedValue = colors->GetRedValue( -mSurfaceScalarsColorMin );
+  mnNegativeMinGreenValue = colors->GetGreenValue( -mSurfaceScalarsColorMin );
+  mnNegativeMinBlueValue = colors->GetBlueValue( -mSurfaceScalarsColorMin );
+
+  mnPositiveMaxRedValue = colors->GetRedValue( mSurfaceScalarsColorMax );
+  mnPositiveMaxGreenValue = colors->GetGreenValue( mSurfaceScalarsColorMax );
+  mnPositiveMaxBlueValue = colors->GetBlueValue( mSurfaceScalarsColorMax );
+
+#if USE_MID
+  mnPositiveMidRedValue = colors->GetRedValue( mSurfaceScalarsColorMid );
+  mnPositiveMidGreenValue = colors->GetGreenValue( mSurfaceScalarsColorMid );
+  mnPositiveMidBlueValue = colors->GetBlueValue( mSurfaceScalarsColorMid );
+#endif
+
+  mnPositiveMinRedValue = colors->GetRedValue( mSurfaceScalarsColorMin );
+  mnPositiveMinGreenValue = colors->GetGreenValue( mSurfaceScalarsColorMin );
+  mnPositiveMinBlueValue = colors->GetBlueValue( mSurfaceScalarsColorMin );
+
+  // Draw with the new values.
+  this->ComposeSurfaceScalarsAndShow();
 }
 
 void
@@ -4068,9 +4175,11 @@ vtkKWQdecWindow::SetSurfaceScalarsColorMin ( double iMin ) {
       mEntrySurfaceScalarsColorMin->SetValueAsDouble
         ( mSurfaceScalarsColorMin );
 
+#if USE_MID
     // Update the Mid value as well, by 0.0001, since this typically
     // what you would always do anyway.
     this->SetSurfaceScalarsColorMid( iMin + 0.0001 );
+#endif
     // note that the prior call will update the editor, and
     // draw with the new values.
   }
@@ -4078,7 +4187,7 @@ vtkKWQdecWindow::SetSurfaceScalarsColorMin ( double iMin ) {
 
 void
 vtkKWQdecWindow::SetSurfaceScalarsColorMid ( double iMid ) {
-
+#if USE_MID
   assert( mEntrySurfaceScalarsColorMin.GetPointer() );
 
   // If not already equal...
@@ -4100,6 +4209,7 @@ vtkKWQdecWindow::SetSurfaceScalarsColorMid ( double iMid ) {
     // Draw with the new values.
     this->ComposeSurfaceScalarsAndShow();
   }
+#endif
 }
 
 void
@@ -4133,7 +4243,9 @@ vtkKWQdecWindow::SetSurfaceScalarsColors ( double iMin, double iMid,
                                            double iMax ) {
 
   assert( mEntrySurfaceScalarsColorMin.GetPointer() );
+#if USE_MID
   assert( mEntrySurfaceScalarsColorMid.GetPointer() );
+#endif
   assert( mEntrySurfaceScalarsColorMax.GetPointer() );
 
   // Does the same thing as the above colors, except all at once to
@@ -4156,7 +4268,7 @@ vtkKWQdecWindow::SetSurfaceScalarsColors ( double iMin, double iMid,
     bChanged = true;
   }
 
-
+#if USE_MID
   // If not already equal...
   if( fabs( iMid - mSurfaceScalarsColorMid ) >
       numeric_limits<double>::epsilon() ) {
@@ -4172,7 +4284,7 @@ vtkKWQdecWindow::SetSurfaceScalarsColors ( double iMin, double iMid,
 
     bChanged = true;
   }
-
+#endif
 
   // If not already equal...
   if( fabs( iMax - mSurfaceScalarsColorMax ) >
@@ -5615,9 +5727,20 @@ vtkKWQdecWindow::ComposeSurfaceScalarsAndShow () {
     // This is the negative scalar range.
     vtkSmartPointer<vtkColorTransferFunction> composedColors =
       vtkSmartPointer<vtkColorTransferFunction>::New();
-    composedColors->AddRGBPoint( -mSurfaceScalarsColorMax, 0, 1, 1 );
-    composedColors->AddRGBPoint( -mSurfaceScalarsColorMid, 0, 0, 1 );
-    composedColors->AddRGBPoint( -mSurfaceScalarsColorMin, 0, 0, 1 );
+    composedColors->AddRGBPoint( -mSurfaceScalarsColorMax,
+                                 mnNegativeMaxRedValue,
+                                 mnNegativeMaxGreenValue,
+                                 mnNegativeMaxBlueValue );
+#if USE_MID
+    composedColors->AddRGBPoint( -mSurfaceScalarsColorMid,
+                                 mnNegativeMidRedValue,
+                                 mnNegativeMidGreenValue,
+                                 mnNegativeMidBlueValue );
+#endif
+    composedColors->AddRGBPoint( -mSurfaceScalarsColorMin,
+                                 mnNegativeMinRedValue,
+                                 mnNegativeMinGreenValue,
+                                 mnNegativeMinBlueValue );
 
     // This pads the range from the -scalar min to the -curv min with
     // flat gray.
@@ -5659,10 +5782,20 @@ vtkKWQdecWindow::ComposeSurfaceScalarsAndShow () {
     }
 
     // Positive scalar range.
-    composedColors->AddRGBPoint( mSurfaceScalarsColorMin, 1, 0, 0 );
-    composedColors->AddRGBPoint( mSurfaceScalarsColorMid, 1, 0, 0 );
-    composedColors->AddRGBPoint( mSurfaceScalarsColorMax, 1, 1, 0 );
-
+    composedColors->AddRGBPoint( mSurfaceScalarsColorMax,
+                                 mnPositiveMaxRedValue,
+                                 mnPositiveMaxGreenValue,
+                                 mnPositiveMaxBlueValue );
+#if USE_MID
+    composedColors->AddRGBPoint( mSurfaceScalarsColorMid,
+                                 mnPositiveMidRedValue,
+                                 mnPositiveMidGreenValue,
+                                 mnPositiveMidBlueValue );
+#endif
+    composedColors->AddRGBPoint( mSurfaceScalarsColorMin,
+                                 mnPositiveMinRedValue,
+                                 mnPositiveMinGreenValue,
+                                 mnPositiveMinBlueValue );
     composedColors->Build();
 
     // Set the composed scalars and colors in the view to draw on the
@@ -5697,19 +5830,79 @@ vtkKWQdecWindow::ComposeSurfaceScalarsAndShow () {
       // that in the view's legend colors.
       vtkSmartPointer<vtkColorTransferFunction> surfaceScalarsColors =
         vtkSmartPointer<vtkColorTransferFunction>::New();
-      surfaceScalarsColors->AddRGBPoint( -mSurfaceScalarsColorMax, 0, 1, 1 );
-      surfaceScalarsColors->AddRGBPoint( -mSurfaceScalarsColorMid, 0, 0, 1 );
-      surfaceScalarsColors->AddRGBPoint( -mSurfaceScalarsColorMin, 0, 0, 1 );
-      surfaceScalarsColors->AddRGBPoint
-        ( -mSurfaceScalarsColorMin + EPS, 0.5, 0.5, 0.5 );
-      surfaceScalarsColors->AddRGBPoint
-        ( mSurfaceScalarsColorMin - EPS, 0.5, 0.5, 0.5 );
-      surfaceScalarsColors->AddRGBPoint( mSurfaceScalarsColorMin, 1, 0, 0 );
-      surfaceScalarsColors->AddRGBPoint( mSurfaceScalarsColorMid, 1, 0, 0 );
-      surfaceScalarsColors->AddRGBPoint( mSurfaceScalarsColorMax, 1, 1, 0 );
+      if( mbSurfaceScalarsColorReverse ) { // 'Reverse Values' check-boxed
+
+        surfaceScalarsColors->AddRGBPoint( -mSurfaceScalarsColorMax,
+                                           mnPositiveMaxRedValue,
+                                           mnPositiveMaxGreenValue,
+                                           mnPositiveMaxBlueValue );
+#if USE_MID
+        surfaceScalarsColors->AddRGBPoint( -mSurfaceScalarsColorMid,
+                                           mnPositiveMidRedValue,
+                                           mnPositiveMidGreenValue,
+                                           mnPositiveMidBlueValue );
+#endif
+        surfaceScalarsColors->AddRGBPoint( -mSurfaceScalarsColorMin,
+                                           mnPositiveMinRedValue,
+                                           mnPositiveMinGreenValue,
+                                           mnPositiveMinBlueValue );
+        surfaceScalarsColors->AddRGBPoint( -mSurfaceScalarsColorMin + EPS,
+                                           0.5, 0.5, 0.5 );
+        surfaceScalarsColors->AddRGBPoint( mSurfaceScalarsColorMin - EPS,
+                                           0.5, 0.5, 0.5 );
+        surfaceScalarsColors->AddRGBPoint( mSurfaceScalarsColorMin,
+                                           mnNegativeMinRedValue,
+                                           mnNegativeMinGreenValue,
+                                           mnNegativeMinBlueValue );
+#if USE_MID
+        surfaceScalarsColors->AddRGBPoint( mSurfaceScalarsColorMid,
+                                           mnNegativeMidRedValue,
+                                           mnNegativeMidGreenValue,
+                                           mnNegativeMidBlueValue );
+#endif
+        surfaceScalarsColors->AddRGBPoint( mSurfaceScalarsColorMax,
+                                           mnNegativeMaxRedValue,
+                                           mnNegativeMaxGreenValue,
+                                           mnNegativeMaxBlueValue );
+      } else { // normal color scheme (not reversed)
+
+        surfaceScalarsColors->AddRGBPoint( -mSurfaceScalarsColorMax,
+                                           mnNegativeMaxRedValue,
+                                           mnNegativeMaxGreenValue,
+                                           mnNegativeMaxBlueValue );
+#if USE_MID
+        surfaceScalarsColors->AddRGBPoint( -mSurfaceScalarsColorMid,
+                                           mnNegativeMidRedValue,
+                                           mnNegativeMidGreenValue,
+                                           mnNegativeMidBlueValue );
+#endif
+        surfaceScalarsColors->AddRGBPoint( -mSurfaceScalarsColorMin,
+                                           mnNegativeMinRedValue,
+                                           mnNegativeMinGreenValue,
+                                           mnNegativeMinBlueValue );
+        surfaceScalarsColors->AddRGBPoint( -mSurfaceScalarsColorMin + EPS,
+                                           0.5, 0.5, 0.5 );
+        surfaceScalarsColors->AddRGBPoint( mSurfaceScalarsColorMin - EPS,
+                                           0.5, 0.5, 0.5 );
+        surfaceScalarsColors->AddRGBPoint( mSurfaceScalarsColorMin,
+                                           mnPositiveMinRedValue,
+                                           mnPositiveMinGreenValue,
+                                           mnPositiveMinBlueValue );
+#if USE_MID
+        surfaceScalarsColors->AddRGBPoint( mSurfaceScalarsColorMid,
+                                           mnPositiveMidRedValue,
+                                           mnPositiveMidGreenValue,
+                                           mnPositiveMidBlueValue );
+#endif
+        surfaceScalarsColors->AddRGBPoint( mSurfaceScalarsColorMax,
+                                           mnPositiveMaxRedValue,
+                                           mnPositiveMaxGreenValue,
+                                           mnPositiveMaxBlueValue );
+      }
+
+
       surfaceScalarsColors->Build();
       mView->SetSurfaceLegendColors( surfaceScalarsColors );
-
     } else {
 
       mView->SetAnnotationMessage( "" );
@@ -6128,12 +6321,13 @@ vtkKWQdecWindow::SetSurfaceScalarsColorMin ( const char* isMin ) {
 
 void
 vtkKWQdecWindow::SetSurfaceScalarsColorMid ( const char* isMid ) {
-
+#if USE_MID
   double value;
   stringstream ssMid( isMid );
   ssMid >> value;
 
   this->SetSurfaceScalarsColorMid( value );
+#endif
 }
 
 void
