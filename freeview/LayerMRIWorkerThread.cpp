@@ -1,10 +1,17 @@
 #include "LayerMRIWorkerThread.h"
 #include "LayerMRI.h"
 #include "vtkImageData.h"
+#include <QMutexLocker>
 
 LayerMRIWorkerThread::LayerMRIWorkerThread(LayerMRI *mri) :
-    QThread(mri)
+    QThread(mri), m_bAbort(false)
 {
+}
+
+void LayerMRIWorkerThread::Abort()
+{
+  QMutexLocker locker(&mutex);
+  m_bAbort = true;
 }
 
 void LayerMRIWorkerThread::run()
@@ -23,6 +30,11 @@ void LayerMRIWorkerThread::run()
         int val = (int)image->GetScalarComponentAsDouble(i, j, k, 0);
         if (val != 0 && !vals.contains(val))
           vals << val;
+      }
+      {
+        QMutexLocker locker(&mutex);
+        if (m_bAbort)
+          return;
       }
     }
   }

@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2011/08/29 15:24:59 $
- *    $Revision: 1.31 $
+ *    $Date: 2011/09/12 20:38:23 $
+ *    $Revision: 1.32 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -26,6 +26,7 @@
 
 #include "GenericRenderView.h"
 #include "vtkSmartPointer.h"
+#include <QPointer>
 
 class Interactor;
 class QEvent;
@@ -35,6 +36,7 @@ class QWheelEvent;
 class QFocusEvent;
 class vtkActor2D;
 class vtkScalarBarActor;
+class Layer;
 
 class RenderView : public GenericRenderView
 {
@@ -88,6 +90,8 @@ public slots:
   void Reset();
   void SetAction( int nAction );
   void ShowScalarBar( bool bShow );
+  void SetScalarBarLayer( Layer* layer );
+  void SetScalarBarLayer( QAction* act );
 
 protected:
   virtual void paintEvent(QPaintEvent *event);
@@ -109,6 +113,7 @@ protected:
 
   vtkSmartPointer<vtkActor2D>   m_actorFocusFrame;
   vtkSmartPointer<vtkScalarBarActor>  m_actorScalarBar;
+  QPointer<Layer>        m_layerScalarBar;
 };
 
 #endif // RENDERVIEW_H

@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2011/09/01 21:03:51 $
- *    $Revision: 1.107 $
+ *    $Date: 2011/09/12 20:38:22 $
+ *    $Revision: 1.108 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -145,6 +145,8 @@ LayerMRI::LayerMRI( LayerMRI* ref, QObject* parent ) : LayerVolumeBase( parent )
 
 LayerMRI::~LayerMRI()
 {
+  if (m_worker->isRunning())
+    m_worker->Abort();
   for ( int i = 0; i < 3; i++ )
   {
     m_sliceActor2D[i]->Delete();

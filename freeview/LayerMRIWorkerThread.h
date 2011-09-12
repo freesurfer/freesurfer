@@ -3,6 +3,7 @@
 
 #include <QThread>
 #include <QList>
+#include <QMutex>
 
 #ifndef IntList
 typedef QList<int> IntList;
@@ -20,9 +21,13 @@ signals:
     void AvailableLabels(const IntList& list);
 
 public slots:
+    void Abort();
 
 protected:
     void run();
+
+    bool m_bAbort;
+    QMutex mutex;
 };
 
 #endif // LAYERMRIWORKERTHREAD_H

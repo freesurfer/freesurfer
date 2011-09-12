@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2011/07/08 17:28:52 $
- *    $Revision: 1.47 $
+ *    $Date: 2011/09/12 20:38:23 $
+ *    $Revision: 1.48 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -43,6 +43,8 @@
 #include "Region2DRectangle.h"
 #include "Cursor2D.h"
 #include "MyUtils.h"
+#include <QActionGroup>
+#include <QMenu>
 #include <QDebug>
 
 RenderView2D::RenderView2D( QWidget* parent ) : RenderView( parent )
@@ -486,4 +488,28 @@ bool RenderView2D::SetSliceNumber( int nNum )
   MainWindow::GetMainWindow()->SetSlicePosition( pos );
   lc_mri->SetCursorRASPosition( pos );
   return true;
+}
+
+void RenderView2D::TriggerContextMenu( QMouseEvent* event )
+{
+  QMenu menu;
+  bool bShowBar = this->GetShowScalarBar();
+  QList<Layer*> layers = MainWindow::GetMainWindow()->GetLayers("MRI");
+  if (layers.size() > 1)
+  {
+    QMenu* menu2 = menu.addMenu("Show Color Bar");
+    QActionGroup* ag = new QActionGroup(this);
+    ag->setExclusive(true);
+    foreach (Layer* layer, layers)
+    {
+      QAction* act = new QAction(layer->GetName(), this);
+      act->setCheckable(true);
+      act->setChecked(bShowBar && layer == m_layerScalarBar);
+      act->setData(QVariant::fromValue((QObject*)layer));
+      menu2->addAction(act);
+      ag->addAction(act);
+    }
+    connect(ag, SIGNAL(triggered(QAction*)), this, SLOT(SetScalarBarLayer(QAction*)));
+    menu.exec(event->globalPos());
+  }
 }

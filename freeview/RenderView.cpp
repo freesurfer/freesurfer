@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2011/08/29 15:24:59 $
- *    $Revision: 1.41 $
+ *    $Date: 2011/09/12 20:38:23 $
+ *    $Revision: 1.42 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -26,6 +26,11 @@
 #include "MainWindow.h"
 #include "LayerMRI.h"
 #include "LayerPropertyMRI.h"
+#include "LayerPointSet.h"
+#include "LayerPropertyPointSet.h"
+#include "LayerSurface.h"
+#include "SurfaceOverlay.h"
+#include "SurfaceOverlayProperty.h"
 #include <QTimer>
 #include <QApplication>
 #include "MyVTKUtils.h"
@@ -40,7 +45,9 @@
 #include "vtkMath.h"
 #include "vtkScalarBarActor.h"
 #include "vtkLookupTable.h"
+#include "vtkRGBAColorTransferFunction.h"
 #include <QPainter>
+#include <QAction>
 
 #define SCALE_FACTOR  200
 
@@ -416,11 +423,57 @@ bool RenderView::GetShowScalarBar()
 
 void RenderView::UpdateScalarBar()
 {
-  LayerMRI* mri = (LayerMRI*)MainWindow::GetMainWindow()->GetActiveLayer( "MRI" );
-  if ( mri )
+  if (m_layerScalarBar.isNull())
   {
-    m_actorScalarBar->SetLookupTable( mri->GetProperty()->GetActiveLookupTable() );
+    QList<Layer*> layers = MainWindow::GetMainWindow()->GetLayers("MRI");
+    foreach (Layer* layer, layers)
+    {
+      LayerMRI* mri = qobject_cast<LayerMRI*>(layer);
+      if (mri && mri->GetProperty()->GetColorMap() != LayerPropertyMRI::LUT)
+      {
+        m_actorScalarBar->SetLookupTable( mri->GetProperty()->GetActiveLookupTable() );
+        m_layerScalarBar = mri;
+        break;
+      }
+    }
   }
+  else
+  {
+    if (m_layerScalarBar->IsTypeOf("MRI"))
+    {
+      LayerMRI* mri = qobject_cast<LayerMRI*>(m_layerScalarBar);
+      m_actorScalarBar->SetLookupTable( mri->GetProperty()->GetActiveLookupTable() );
+    }
+    else if (m_layerScalarBar->IsTypeOf("PointSet"))
+    {
+      LayerPointSet* ps = qobject_cast<LayerPointSet*>(m_layerScalarBar);
+      if (ps->GetProperty()->GetColorMap() == LayerPropertyPointSet::HeatScale)
+      {
+        m_actorScalarBar->SetLookupTable(ps->GetProperty()->GetHeatScaleLUT());
+      }
+    }
+    else if (m_layerScalarBar->IsTypeOf("Surface"))
+    {
+      LayerSurface* surf = qobject_cast<LayerSurface*>(m_layerScalarBar);
+      if (surf->GetActiveOverlay())
+        m_actorScalarBar->SetLookupTable( surf->GetActiveOverlay()->GetProperty()->GetLookupTable() );
+    }
+  }
+}
+
+void RenderView::SetScalarBarLayer(Layer *layer)
+{
+  m_layerScalarBar = layer;
+  UpdateScalarBar();
+  if (!GetShowScalarBar())
+    ShowScalarBar(true);
+}
+
+void RenderView::SetScalarBarLayer(QAction *act)
+{
+  Layer* layer = qobject_cast<Layer*>(act->data().value<QObject*>());
+  if (layer)
+    SetScalarBarLayer(layer);
 }
 
 bool RenderView::SaveScreenShot(const QString& filename, bool bAntiAliasing, int nMag)

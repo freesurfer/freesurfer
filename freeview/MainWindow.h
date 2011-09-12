@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2011/08/16 17:15:21 $
- *    $Revision: 1.103 $
+ *    $Date: 2011/09/12 20:38:23 $
+ *    $Revision: 1.104 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -99,6 +99,7 @@ public:
 
   LayerCollection* GetLayerCollection( const QString& strType );
   Layer* GetActiveLayer( const QString& strType );
+  QList<Layer*> GetLayers( const QString& strType );
 
   LayerCollection* GetCurrentLayerCollection();
   bool SetSlicePosition( int nPlane, double dPos, bool bRoundToGrid = true );

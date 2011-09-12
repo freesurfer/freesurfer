@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2011/09/02 16:42:51 $
- *    $Revision: 1.183 $
+ *    $Date: 2011/09/12 20:38:22 $
+ *    $Revision: 1.184 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -3080,6 +3080,11 @@ LayerCollection* MainWindow::GetLayerCollection( const QString& strType )
 Layer* MainWindow::GetActiveLayer( const QString& strType )
 {
   return GetLayerCollection( strType )->GetActiveLayer();
+}
+
+QList<Layer*> MainWindow::GetLayers(const QString &strType)
+{
+  return GetLayerCollection( strType )->GetLayers();
 }
 
 void MainWindow::OnSetViewLayout( QAction* action )

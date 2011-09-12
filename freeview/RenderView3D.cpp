@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2011/05/17 14:20:14 $
- *    $Revision: 1.58 $
+ *    $Date: 2011/09/12 20:38:23 $
+ *    $Revision: 1.59 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -994,12 +994,14 @@ void RenderView3D::SnapToNearestAxis()
 
 void RenderView3D::UpdateScalarBar()
 {
+  /*
   LayerSurface* surf = (LayerSurface*) MainWindow::GetMainWindow()->GetActiveLayer( "Surface" );
   if ( surf && surf->GetActiveOverlay() )
   {
     m_actorScalarBar->SetLookupTable( surf->GetActiveOverlay()->GetProperty()->GetLookupTable() );
   }
   else
+  */
   {
     RenderView::UpdateScalarBar();
   }
@@ -1010,5 +1012,25 @@ void RenderView3D::TriggerContextMenu( QMouseEvent* event )
   QMenu menu;
   menu.addAction(MainWindow::GetMainWindow()->ui->actionShowSlices);
   menu.addAction(MainWindow::GetMainWindow()->ui->actionShowSliceFrames);
+  bool bShowBar = this->GetShowScalarBar();
+  QList<Layer*> layers = MainWindow::GetMainWindow()->GetLayers("Surface");
+  layers << MainWindow::GetMainWindow()->GetLayers("MRI");
+  layers << MainWindow::GetMainWindow()->GetLayers("PointSet");
+  if (!layers.isEmpty())
+  {
+    QMenu* menu2 = menu.addMenu("Show Color Bar");
+    QActionGroup* ag = new QActionGroup(this);
+    ag->setExclusive(true);
+    foreach (Layer* layer, layers)
+    {
+      QAction* act = new QAction(layer->GetName(), this);
+      act->setCheckable(true);
+      act->setChecked(bShowBar && layer == m_layerScalarBar);
+      act->setData(QVariant::fromValue((QObject*)layer));
+      menu2->addAction(act);
+      ag->addAction(act);
+    }
+    connect(ag, SIGNAL(triggered(QAction*)), this, SLOT(SetScalarBarLayer(QAction*)));
+  }
   menu.exec(event->globalPos());
 }
