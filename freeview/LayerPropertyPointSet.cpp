@@ -11,8 +11,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2011/09/12 20:38:22 $
- *    $Revision: 1.5 $
+ *    $Date: 2011/09/13 16:11:19 $
+ *    $Revision: 1.6 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -102,8 +102,8 @@ void LayerPropertyPointSet::SetColorMapChanged ()
     m_lutHeatScale->AddRGBAPoint( -m_dHeatScaleMid + m_dHeatScaleOffset, 0, 0, 1, 1 );
     m_lutHeatScale->AddRGBAPoint( -m_dHeatScaleMin + m_dHeatScaleOffset, 0, 0, 1, 0 );
     */
-    m_lutHeatScale->AddRGBAPoint(  m_dHeatScaleMin + m_dHeatScaleOffset, 1, 0, 0, 0 );
-    m_lutHeatScale->AddRGBAPoint(  m_dHeatScaleMid + m_dHeatScaleOffset, 1, 0, 0, 1 );
+    m_lutHeatScale->AddRGBAPoint(  m_dHeatScaleMin + m_dHeatScaleOffset, 1, 0, 0, 1 );
+    m_lutHeatScale->AddRGBAPoint(  m_dHeatScaleMid + m_dHeatScaleOffset, 1, 0.5, 0, 1 );
     m_lutHeatScale->AddRGBAPoint(  m_dHeatScaleMax + m_dHeatScaleOffset, 1, 1, 0, 1 );
     /* mHeatScaleTable->AddRGBAPoint(  mHeatScaleMinThreshold, 0, 0, 0, 0 );
      mHeatScaleTable->AddRGBAPoint(  mHeatScaleMinThreshold+0.0001, 0, 0, 0, 1 );

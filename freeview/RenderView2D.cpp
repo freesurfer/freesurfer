@@ -1,14 +1,14 @@
 /**
  * @file  RenderView2D.cpp
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief 2D slice view
  *
  */
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2011/09/12 20:38:23 $
- *    $Revision: 1.48 $
+ *    $Date: 2011/09/13 16:11:19 $
+ *    $Revision: 1.49 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
