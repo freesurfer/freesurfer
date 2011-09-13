@@ -23,7 +23,7 @@ bin_PROGRAMS = mri_robust_register \
 	mri_create_tests \
 	mri_gradient_info
 
-mri_robust_register_SOURCES= \
+mri_robust_register_SOURCES= JointHisto.cpp \
 	CostFunctions.cpp MyMatrix.cpp MyMRI.cpp \
 	Quaternion.cpp Registration.cpp RegPowell.cpp \
 	mri_robust_register.cpp mri_robust_register.help.xml.h
@@ -45,7 +45,7 @@ lta_diff_LDADD= $(addprefix $(top_builddir)/, $(LIBS_MGH)) \
 lta_diff_LDFLAGS=$(OS_LDFLAGS) $(OTHERLDFLAGS)
 
 mri_create_tests_SOURCES=mri_create_tests.cpp Quaternion.cpp \
-	MyMatrix.cpp MyMRI.cpp
+	MyMatrix.cpp MyMRI.cpp CostFunctions.cpp
 mri_create_tests_LDADD= $(addprefix $(top_builddir)/, $(LIBS_MGH)) \
   $(LIB_LAPACK_A) $(LIB_BLAS_A) $(LIB_G2C_A) $(LIB_GFORTRAN)
 mri_create_tests_LDFLAGS=$(OS_LDFLAGS) $(OTHERLDFLAGS)

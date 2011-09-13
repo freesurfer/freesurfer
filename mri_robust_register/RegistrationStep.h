@@ -8,8 +8,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2011/06/08 19:25:43 $
- *    $Revision: 1.14 $
+ *    $Date: 2011/09/13 03:08:26 $
+ *    $Revision: 1.15 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -60,7 +60,7 @@ public:
  
 					 
   RegistrationStep(const Registration & R):sat(R.sat),iscale(R.iscale),
-									 transonly(R.transonly),rigid(R.rigid),robust(R.robust),rtype(R.rtype),
+									 transonly(R.transonly),rigid(R.rigid),costfun(R.costfun),rtype(R.rtype),
 									 subsamplesize(R.subsamplesize),debug(R.debug),verbose(R.verbose),
 									 floatsvd(false),iscalefinal(R.iscalefinal),mri_weights(NULL),
 									 mri_indexing(NULL){};
@@ -93,7 +93,8 @@ public:
 	// should be made protected at some point.
   void constructAb(MRI *mriS, MRI *mriT, vnl_matrix < T > &A, vnl_vector < T > &b);
 
-  // called from RegPowell
+  // called from computeRegistrationStepW
+  // and externally from RegPowell
   static std::pair < vnl_matrix_fixed <double,4,4 >, double > convertP2Md(const vnl_vector < T >& p,int rtype);
 
 
@@ -109,7 +110,7 @@ private:
   bool iscale;
   bool transonly;
   bool rigid;
-  bool robust;
+  Registration::Cost costfun;
   int rtype;
   int subsamplesize;
   int debug;
@@ -191,7 +192,7 @@ std::pair < vnl_matrix_fixed <double,4,4 >, double >  RegistrationStep<T>::compu
   Regression< T > R(A,b);
 	R.setVerbose(verbose);
 	R.setFloatSvd(floatsvd);
-  if (robust)
+  if (costfun == Registration::ROB)
   {
 		vnl_vector < T > w;
     if (verbose > 1) std::cout << "   - compute robust estimate ( sat "<<sat<<" )..." << std::flush;
@@ -518,10 +519,12 @@ void RegistrationStep<T>::constructAb(MRI *mriS, MRI *mriT,vnl_matrix < T >& A,v
 	   std::cerr << " ERROR: All entries are zero! Images do not overlap (anymore?)." << std::endl;
      std::cerr << "    This can have several reasons (i.e. different modalities, different "<< std::endl;
 		 std::cerr << "    intensity scales, large non-linearities, too diff. voxel sizes ...)" << std::endl;
-		 //std::cerr << "    Try calling with --noinit (if the original images are well aligned)" << std::endl;
-		 std::cerr << "    Maybe use --transform <init.lta> with an approx. alignment" <<std::endl;
+		 std::cerr << "    Try calling with --noinit (if the original images are well aligned)" << std::endl;
+		 std::cerr << "    Maybe use --ixform <init.lta> with an approx. alignment" <<std::endl;
 		 std::cerr << "    obtained from tkregister or another registration program." << std::endl;
 		 std::cerr << "    Or do some prior intensity correction? " << std::endl;
+		 std::cerr << "    You can also try to switch off symmetric reg. via --nosym " << std::endl;
+		 std::cerr << "    or manually play around with the --sat parameter. " << std::endl;
 		 std::cerr << std::endl;
 		 exit(1);
 	}
@@ -745,48 +748,78 @@ pair < vnl_matrix_fixed <double,4,4 >, double > RegistrationStep<T>::convertP2Md
 //   std::cout << " RegistrationStep<T>::convertP2Md(MATRIX* p) (p->rows: " << p->rows << " )" << std::flush;
   std::pair < vnl_matrix_fixed <double,4,4 >, double> ret; ret.second = 0.0;
 
-  vnl_vector < T > pt;
+  int psize = p.size();
 	
-  if (p.size() == 4 ||p.size() == 7 || p.size() == 10|| p.size() == 13) // iscale
+  if (psize == 4 ||psize == 7 || psize == 10|| psize == 13) // iscale
   {
     //std::cout << " has intensity " << std::endl;
-    // cut off intensity scale
-		
+    // last is intensity scale		
 		// ISCALECHANGE:
-   // //ret.second = 1.0-*MATRIX_RELT(p, p->rows, 1);		
-//    ret.second = 1.0/(1.0+*MATRIX_RELT(p, p->rows, 1));
-    ret.second =  (double) p[p.size()-1];
-//    ret.second =  (double) p[p.size()-1] * (double) p[p.size()-1];
-		
-    pt.set_size(p.size()-1);
-    for (unsigned int rr = 0; rr< pt.size(); rr++)
-      pt[rr] = p[rr];
+    psize--;
+    ret.second =  (double) p[psize];
   }
-  else pt = p;
-
-  if (pt.size() == 12)
+  
+  // now transformation parameters:
+  
+  if (psize == 12)
 	{
-	  ret.first.set_identity();
-    int count = 0;
-    for (int rr = 0;rr<3;rr++)
-    for (int cc = 0;cc<4;cc++)
+    if (rtype == 1)
     {
-      ret.first[rr][cc] +=  pt[count];
-      count++;
+      // affine, just the 12 parameters as matrix add-ons
+	    ret.first.set_identity();
+      int count = 0;
+      for (int rr = 0;rr<3;rr++)
+      for (int cc = 0;cc<4;cc++)
+      {
+        ret.first[rr][cc] +=  p[count];
+        count++;
+      }
     }
-	  //ret.first = MyMatrix::aff2mat(pt,NULL);
+    else if (rtype == 2)
+    {
+      // M = T*shear*Scale*Rot
+      
+      //Rot
+		  Quaternion q;
+      q.importZYXAngles(-p[5], p[4], -p[3]); // same as spm now
+      vnl_matrix < double > rmat = MyMatrix::getVNLMatrix(q.getRotMatrix3d(),3);
+      //Scale
+      vnl_matrix < double > smat(3,3,0.0);
+      smat[0][0] = p[6]; smat[1][1] = p[7]; smat[2][2] = p[8];
+      //Shear
+      vnl_matrix <double > zmat(3,3); zmat.set_identity();
+      zmat[0][1] = p[9]; zmat[0][2] = p[10]; zmat[1][2] = p[11];
+      // product 3x3
+      vnl_matrix <double> M3 = zmat * smat * rmat;
+      // consturct 4x4 with translation also:
+      int rr, cc;
+      for (rr=0;rr<3;rr++)
+      {
+        for (cc=0;cc<3;cc++) // copy M3
+          ret.first[rr][cc] =M3[rr][cc];
+
+        // copy translation into 4th column
+        ret.first[rr][3] = p[rr];
+        // set 4th row to zero
+        ret.first[3][rr] = 0.0;
+      }
+      //except 4,4
+      ret.first[3][3] = 1.0;
+      
+      
+    }
+    else assert(1==2);
 	} 
-  else if (pt.size() == 6)
+  else if (psize == 6)
   {
-    //ret.first = p2mat(pt,NULL);
-		
+		// rigid: first 3 translation, next 3 rotation (as a vector)
 		// split translation and rotation:
 		vnl_vector_fixed <double,3 > t;
 		vnl_vector_fixed <double,3 > r;
     for (int rr = 0;rr<3;rr++)
     {
-      t[rr] = (double)pt[rr];
-      r[rr] = (double)pt[rr+3];
+      t[rr] = (double)p[rr];
+      r[rr] = (double)p[rr+3];
     }
     // converts rot vector (3x1) and translation vector (3x1)
     // into an affine matrix (homogeneous coord) 4x4
@@ -797,9 +830,10 @@ pair < vnl_matrix_fixed <double,4,4 >, double > RegistrationStep<T>::convertP2Md
     if (rtype == 2)
     {
       // first convert rotation to quaternion (clockwise)
-      q.importZYXAngles(-r[2], -r[1], -r[0]);
+      //q.importZYXAngles(-r[2], -r[1], -r[0]);
+      q.importZYXAngles(-r[2], r[1], -r[0]); // same as spm now
     }
-    else if (rtype ==1)
+    else if (rtype == 1)
     {
       // first convert rotation to quaternion;
       q.importRotVec(r[0],r[1],r[2]);
@@ -822,16 +856,16 @@ pair < vnl_matrix_fixed <double,4,4 >, double > RegistrationStep<T>::convertP2Md
     //except 4,4
     ret.first[3][3] = 1.0;
   }
-  else if (pt.size() ==3)
+  else if (psize == 3) // translation only
   {
 	  ret.first.set_identity();
-		ret.first[0][3] = pt[0];
-		ret.first[1][3] = pt[1];
-		ret.first[2][3] = pt[2];
+		ret.first[0][3] = p[0];
+		ret.first[1][3] = p[1];
+		ret.first[2][3] = p[2];
   }
   else
   {
-    cerr << " parameter neither 3,6 nor 12 : " << pt.size() <<" ??" << std::endl;
+    cerr << " transformation neither 3,6 nor 12 dof : " << psize <<" ??" << std::endl;
     assert(1==2);
   }
 

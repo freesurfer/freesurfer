@@ -7,9 +7,9 @@
 /*
  * Original Author: Martin Reuter
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:24 $
- *    $Revision: 1.5 $
+ *    $Author: mreuter $
+ *    $Date: 2011/09/13 03:08:26 $
+ *    $Revision: 1.6 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -57,11 +57,15 @@ public:
   virtual ~RegPowell()
   {};
 
-  virtual void computeIterativeRegistration( int n,double epsit,MRI * mriS=NULL, MRI* mriT=NULL, const vnl_matrix < double > &Minit = vnl_matrix<double>(), double iscaleinit = 1.0);
+  void computeIterativeRegistration(int n,double epsit){Registration::computeIterativeRegistration(n,epsit);};
+
+  //virtual void computeIterativeRegistration( int n,double epsit,MRI * mriS=NULL, MRI* mriT=NULL, const vnl_matrix < double > &Minit = vnl_matrix<double>(), double iscaleinit = 1.0);
+  virtual void computeIterativeRegistration( int n,double epsit,MRI * mriS, MRI* mriT, const vnl_matrix < double > &Minit, double iscaleinit);
+  //static float costFunction(float p[] );
+  static double costFunction(const vnl_vector<double> & p);
 
 protected:
 
-  static float costFunction(float p[] );
   static RegPowell* tocurrent;
   static MRI * scf;
   static MRI * tcf;
@@ -69,6 +73,7 @@ protected:
   static vnl_matrix_fixed < double , 4, 4 > mh1;
   static vnl_matrix_fixed < double , 4, 4 > mh2;
   static int icount;
+  static int subsamp;
 
 };
 

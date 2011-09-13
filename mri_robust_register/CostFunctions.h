@@ -8,9 +8,9 @@
 /*
  * Original Author: Martin Reuter
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:24 $
- *    $Revision: 1.10 $
+ *    $Author: mreuter $
+ *    $Date: 2011/09/13 03:08:25 $
+ *    $Revision: 1.11 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -46,29 +46,41 @@ extern "C"
 #include <vector>
 #include <iostream>
 #include <vnl/vnl_matrix_fixed.h>
+#include "JointHisto.h"
 
 class CostFunctions
 {
 public:
+  static std::pair < float, float > minmax(MRI *i);
+  static float max(MRI *i);
   static float mean(MRI *i);
   static float var(MRI *i);
   static float sdev(MRI *i)
-  {
-    return sqrt(var(i));
-  };
+     { return sqrt(var(i)); };
   static float median(MRI *i);
   static float mad(MRI *i, float d = 1.4826);
   static double moment(MRI * i, int x, int y, int z);
   static std::vector < double > centroid (MRI * i);
   static vnl_matrix_fixed < double,3,3 > orientation (MRI * i);
 
+  // never really tested:
   static float leastSquares(MRI * i1, MRI * i2 = NULL);
   static double tukeyBiweight(MRI *i1, MRI * i2 = NULL, double sat = 4.685);
-  static float normalizedCorrelation(MRI * i1, MRI * i2);
-  static float mutualInformation(MRI * i1, MRI * i2 = NULL);
-  static float normalizedMutualInformation(MRI * i1, MRI * i2 = NULL);
+  static double normalizedCorrelation(MRI * i1, MRI * i2);
+
+  // joint histograms stuff:
+  static double mutualInformation(MRI * i1, MRI * i2,double fwhm = 7)
+     { JointHisto H(i1,i2); H.smooth(fwhm); return -H.computeMI(); };
+  static double normalizedMutualInformation(MRI * i1, MRI * i2,double fwhm = 7 )
+     { JointHisto H(i1,i2); H.smooth(fwhm); return -H.computeNMI(); };
+  static double entropyCorrelationCoefficient(MRI * i1, MRI * i2,double fwhm = 7 )
+     { JointHisto H(i1,i2); H.smooth(fwhm); return -H.computeECC(); };
+  static double normalizedCrossCorrelation(MRI * i1, MRI * i2,double fwhm = 7 )
+     { JointHisto H(i1,i2); H.smooth(fwhm); return -H.computeNCC(); };
+
+  // not implemented and not sure where they are from? Flirt?
   static float woods(MRI * i1, MRI * i2 = NULL);
-  static float correlationRatio(MRI * i1, MRI * i2 = NULL);
+  static float correlationRatio(MRI * i1, MRI * i2 );
 
 
 protected:

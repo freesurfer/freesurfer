@@ -8,9 +8,9 @@
 /*
  * Original Author: Martin Reuter
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:24 $
- *    $Revision: 1.16 $
+ *    $Author: mreuter $
+ *    $Date: 2011/09/13 03:08:25 $
+ *    $Revision: 1.17 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -48,6 +48,20 @@ extern "C"
 #include <vnl/algo/vnl_symmetric_eigensystem.h>
 
 using namespace std;
+
+std::pair < float, float > CostFunctions::minmax(MRI *i)
+{
+  MRIiterator it1(i);
+  it1.begin();
+  float min= (*it1);
+  float max= min;
+  for (it1++;!it1.isEnd(); it1++)
+  {
+     if ( (*it1)<min) min = (*it1);
+     if ( (*it1)>max) max = (*it1);
+  }
+  return std::pair < float, float> (min,max);
+}
 
 float CostFunctions::mean(MRI *i)
 {
@@ -208,7 +222,7 @@ double CostFunctions::tukeyBiweight(MRI * i1, MRI * i2,double sat)
 }
 
 
-float CostFunctions::normalizedCorrelation(MRI * i1, MRI * i2)
+double CostFunctions::normalizedCorrelation(MRI * i1, MRI * i2)
 {
 
   assert(i1->width  == i2->width);
@@ -248,7 +262,7 @@ float CostFunctions::normalizedCorrelation(MRI * i1, MRI * i2)
           dd2 += d2 *d2;
         }
   }
-  return (float)(d/(sqrt(dd1)*sqrt(dd2)));
+  return (d/(sqrt(dd1)*sqrt(dd2)));
 }
 
 double CostFunctions::moment(MRI *i, int x, int y, int z)

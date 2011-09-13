@@ -14,8 +14,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2011/05/27 19:46:37 $
- *    $Revision: 1.36 $
+ *    $Date: 2011/09/13 03:08:25 $
+ *    $Revision: 1.37 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -228,7 +228,7 @@ void MultiRegistration::initRegistration(Registration & R)
   R.setRigid(rigid);
   R.setIscale(iscale);
   R.setTransonly(transonly);
-  R.setRobust(robust);
+  R.setCost(Registration::ROB);
   R.setSaturation(sat);
   R.setDoublePrec(doubleprec);
   //R.setDebug(debug);

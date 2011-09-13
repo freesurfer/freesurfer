@@ -8,8 +8,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2011/03/29 14:16:44 $
- *    $Revision: 1.22 $
+ *    $Date: 2011/09/13 03:08:25 $
+ *    $Revision: 1.23 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -1362,7 +1362,7 @@ vnl_matrix < double > MyMatrix::MatrixSqrt(const vnl_matrix < double >& A)
     if ( imagone > 10*n*eps_matlab*Asqrt.operator_one_norm() )
     //if ( imagone > 0.000000001 )
 	  {
-	    cerr << "Internal MatrixSqrt Error: " << endl;
+	    cerr << "MyMatrix::MatrixSqrt Internal Error: " << endl;
 		  cerr << " Result too imaginary to ignore! ( "<< imagone << " )" << endl;
 			cerr << " Debug Info: " << endl;
       vnl_matlab_print(vcl_cerr,A,"A",vnl_matlab_print_format_long);cerr << endl;
@@ -1390,12 +1390,12 @@ vnl_matrix < double > MyMatrix::MatrixSqrt(const vnl_matrix < double >& A)
 		double fnorm = ms2.frobenius_norm();
     if (fnorm > eps)
     {
-	    cerr << " MatrixSqrt Error: " << endl;
+	    cerr << "MyMatrix::MatrixSqrt Internal Error: " << endl;
 		  cerr << "  Result not close enough to square root!" << endl;
       cerr << "  Frobenius norm of difference: " << fnorm << endl;
       vnl_matlab_print(vcl_cerr,A,"A",vnl_matlab_print_format_long);cerr << endl;
       vnl_matlab_print(vcl_cerr,msqrt,"Asqrt",vnl_matlab_print_format_long);cerr << endl;
-      vnl_matlab_print(vcl_cerr,ms2,"Asqrt2",vnl_matlab_print_format_long);cerr << endl;
+      vnl_matlab_print(vcl_cerr,ms2,"Diff",vnl_matlab_print_format_long);cerr << endl;
 			exit(1);
     }
   }

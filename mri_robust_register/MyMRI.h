@@ -8,8 +8,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2011/05/27 19:48:34 $
- *    $Revision: 1.7 $
+ *    $Date: 2011/09/13 03:08:25 $
+ *    $Revision: 1.8 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -48,18 +48,22 @@ extern "C"
 class MyMRI
 {
 public:
-  static MRI * MRIvalscale(MRI *mri_src, MRI *mri_dst, double s);
+  static MRI * MRIvalscale(MRI *mri_src, MRI *mri_dst, double s, double b = 0.0);
+  static MRI * MRInorm255(MRI *mri_src, MRI *mri_dst);
   static bool  getPartials(MRI* mri, MRI* & outfx, MRI* & outfy, MRI* &outfz, MRI* &outblur);
   static MRI * getBlur(MRI* mriS, MRI* mriT);
   static MRI * subSample(MRI * mri);
   static MRI * entropyImage( MRI * mri, int radius, int sigma ); 
+  static MRI * entropyImage( MRI * mri, int radius ); 
 
   static vnl_matrix_fixed < double, 4, 4 > MRIvoxelXformToRasXform(MRI * src, MRI * trg, const vnl_matrix_fixed < double, 4, 4> &vox);
 	static MRI* MRIlinearTransform(MRI* mriS, MRI* mriT, const vnl_matrix_fixed < double, 4, 4 >& m);
 
 	static bool isIsotropic(MRI *mri);
   static std::vector < int > findRightSize(MRI *mri, float conform_size, bool conform);
-
+  
+  static MRI * gaussianCube(int size);
+  
 private:
   static MRI * getPrefilter();
   static MRI * getDerfilter();
@@ -73,6 +77,7 @@ private:
 	static bool isConform(MRI *mri);
 
   static MATRIX* MRIgetZslice(MRI * mri, int slice);
+  static double entropyPatch(MRI * mri, int x, int y, int z, int radius, int nbins, MRI* kernel);
 	
 };
 

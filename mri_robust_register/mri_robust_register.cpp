@@ -10,8 +10,8 @@
  * Original Author: Martin Reuter, Nov. 4th ,2008
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2011/06/07 16:29:10 $
- *    $Revision: 1.54 $
+ *    $Date: 2011/09/13 03:08:26 $
+ *    $Revision: 1.55 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -40,11 +40,13 @@
 #include <vnl/vnl_matlab_print.h>
 
 #include "Registration.h"
+#include "RegistrationStep.h"
 #include "Regression.h"
 #include "RegPowell.h"
 #include "CostFunctions.h"
 #include "MyMRI.h"
 #include "MyMatrix.h"
+#include "JointHisto.h"
 
 // all other software are all in "C"
 #ifdef __cplusplus
@@ -116,10 +118,11 @@ struct Parameters
   string iscalein;
   int    minsize;
   int    maxsize;
+  Registration::Cost cost;
 };
 static struct Parameters P =
 {
-  "","","","","","","","","","","",false,false,false,false,false,false,false,false,"",false,5,0.01,SAT,"","",SSAMPLE,0,NULL,NULL,false,false,true,1,-1,false,0.16,false,true,"","",-1,-1
+  "","","","","","","","","","","",false,false,false,false,false,false,false,false,"",false,5,0.01,SAT,"","",SSAMPLE,0,NULL,NULL,false,false,true,1,-1,false,0.16,false,true,"","",-1,-1,Registration::ROB
 };
 
 
@@ -127,7 +130,7 @@ static void printUsage(void);
 static bool parseCommandLine(int argc, char *argv[],Parameters & P) ;
 static void initRegistration(Registration & R, Parameters & P) ;
 
-static char vcid[] = "$Id: mri_robust_register.cpp,v 1.54 2011/06/07 16:29:10 mreuter Exp $";
+static char vcid[] = "$Id: mri_robust_register.cpp,v 1.55 2011/09/13 03:08:26 mreuter Exp $";
 char *Progname = NULL;
 
 //static MORPH_PARMS  parms ;
@@ -194,22 +197,158 @@ void testRegression()
 void entro (Parameters & P)
 {
 
-  int sigma = 5;
+  int sigma  = 7;
   int radius = 5;
   
+  cout << "Entropy sigma: " << sigma << "  radius: " << radius << endl;
+  
+  cout << "Converting: " << P.mov.c_str() << endl;
   MRI * mri1 = MRIread(P.mov.c_str());
-  MRI * mri1e = MyMRI::entropyImage(mri1,radius,sigma);
+  //MRI * mri1e = MyMRI::entropyImage(mri1,radius,sigma);
+  MRI * mri1e = MyMRI::entropyImage(mri1,radius);
   MRIwrite(mri1e,"mri1e.mgz");
+  P.mov = "mri1e.mgz";
 
+  cout << "Converting: " << P.dst.c_str() << endl;
   MRI * mri2 = MRIread(P.dst.c_str());
-  MRI * mri2e = MyMRI::entropyImage(mri2,radius,sigma);
+  //MRI * mri2e = MyMRI::entropyImage(mri2,radius,sigma);
+  MRI * mri2e = MyMRI::entropyImage(mri2,radius);
   MRIwrite(mri2e,"mri2e.mgz");
+  P.dst = "mri2e.mgz";
+  
+  exit(0);
+}
+
+void jointhisto(Parameters & P)
+{
+//    int n = 10;
+//    vnl_matrix < double > m(n,n);
+//    int i,j;
+//    for (i=0;i<n;i++)
+//    for (j=0;j<n;j++)
+//      m[i][j] = i+j+2;
+//    m[2][3] = 15;
+//    m[1][2] = 13;
+//    m[6][9] = 4;
+//    vnl_matlab_print(vcl_cerr,m,"m",vnl_matlab_print_format_long);std::cerr << std::endl;
+//    
+//    JointHisto h;
+//    h.set(m); 
+//    h.print("H");
+//    cout << " NMI: " << h.computeNMI() << endl;
+//    
+//    h.smooth(1);
+//    h.print("Hs");
+//    cout << " NMI: " << h.computeNMI() << endl;
+// //   
+// //   cout << " MI : " << h.computeMI() << endl;
+// //   cout << " ECC: " << h.computeECC() << endl;
+// //   cout << " NMI: " << h.computeNMI() << endl;
+// //   cout << " NCC: " << h.computeNCC() << endl;
+// 
+// exit(1);
+
+   MRI* mriS = MRIread(P.mov.c_str());
+   MyMRI::MRInorm255(mriS,mriS);
+   std::pair < float, float > mm = CostFunctions::minmax(mriS);
+   cout << " mriS   min: " << mm.first << "   max : " << mm.second << "   mean : " << CostFunctions::mean(mriS) << endl;
+   MRI* mriT = MRIread(P.dst.c_str());
+   MyMRI::MRInorm255(mriT,mriT);
+   mm = CostFunctions::minmax(mriT);
+   cout << " mriT   min: " << mm.first << "   max : " << mm.second << "   mean : " << CostFunctions::mean(mriT) << endl;
+   JointHisto hm(mriS,mriT);
+   //hm.print("H");
+   cout << " NMI : " << hm.computeNMI() << endl;
+   hm.smooth(7);
+   cout << " NMIs: " << hm.computeNMI() << endl;
+
+
+
+exit(1);
+}
+
+void gradmag (Parameters & P)
+{
+
+  MRI* mri1 = MRIread(P.mov.c_str());
+	MRI* mri_mag1  = MRIalloc(mri1->width, mri1->height, mri1->depth, MRI_FLOAT);
+	MRI* mri_grad1 = MRIsobel(mri1, NULL, mri_mag1);
+//  MRIwrite(mri_mag1,"mri1mag.mgz");
+//	MRIwriteFrame(mri_grad1,"mri1sobel_grad1.mgz",0);
+//	MRIwriteFrame(mri_grad1,"mri1sobel_grad2.mgz",1);
+//	MRIwriteFrame(mri_grad1,"mri1sobel_grad3.mgz",2);
+  
+  int dd,hh,ww;
+  float x,y,z,r,phi,psi;
+  
+//	MRI* mri_phi1  = MRIalloc(mri1->width, mri1->height, mri1->depth, MRI_FLOAT);
+//	MRI* mri_psi1  = MRIalloc(mri1->width, mri1->height, mri1->depth, MRI_FLOAT);
+	MRI* mri_pp1   = MRIalloc(mri1->width, mri1->height, mri1->depth, MRI_FLOAT);
+	for (dd = 0; dd < mri_mag1->depth ; dd++)
+	for (hh = 0; hh < mri_mag1->height; hh++)
+	for (ww = 0; ww < mri_mag1->width; ww++)
+  {
+     x = MRIgetVoxVal(mri_grad1, ww, hh, dd, 0);
+     y = MRIgetVoxVal(mri_grad1, ww, hh, dd, 1);
+     z = MRIgetVoxVal(mri_grad1, ww, hh, dd, 2);
+     r = MRIgetVoxVal(mri_mag1, ww, hh, dd, 0);
+     phi = 0;
+     psi = 0;
+     if ( r > 10 ) 
+     {
+       phi = acos(z/r);
+       psi = atan2(y,x);
+     }
+//     MRIsetVoxVal(mri_phi1,ww,hh,dd,0,phi);
+//     MRIsetVoxVal(mri_psi1,ww,hh,dd,0,psi);
+     MRIsetVoxVal(mri_pp1,ww,hh,dd,0,psi+phi);
+  }
+//  MRIwrite(mri_phi1,"mri1phi.mgz");
+//  MRIwrite(mri_psi1,"mri1psi.mgz");
+  MRIwrite(mri_pp1,"mri1phipsi.mgz");
+ 
+  MRI* mri2 = MRIread(P.dst.c_str());
+	MRI* mri_mag2  = MRIalloc(mri2->width, mri2->height, mri2->depth, MRI_FLOAT);
+	MRI* mri_grad2 = MRIsobel(mri2, NULL, mri_mag2);
+//  MRIwrite(mri_mag2,"mri2mag.mgz");
+//	MRIwriteFrame(mri_grad2,"mri2sobel_grad1.mgz",0);
+//	MRIwriteFrame(mri_grad2,"mri2sobel_grad2.mgz",1);
+//	MRIwriteFrame(mri_grad2,"mri2sobel_grad3.mgz",2);
+//	MRI* mri_phi2  = MRIalloc(mri2->width, mri2->height, mri2->depth, MRI_FLOAT);
+//	MRI* mri_psi2  = MRIalloc(mri2->width, mri2->height, mri2->depth, MRI_FLOAT);
+	MRI* mri_pp2  = MRIalloc(mri2->width, mri2->height, mri2->depth, MRI_FLOAT);
+	for (dd = 0; dd < mri_mag2->depth ; dd++)
+	for (hh = 0; hh < mri_mag2->height; hh++)
+	for (ww = 0; ww < mri_mag2->width; ww++)
+  {
+     x = MRIgetVoxVal(mri_grad2, ww, hh, dd, 0);
+     y = MRIgetVoxVal(mri_grad2, ww, hh, dd, 1);
+     z = MRIgetVoxVal(mri_grad2, ww, hh, dd, 2);
+     r = MRIgetVoxVal(mri_mag2, ww, hh, dd, 0);
+     phi = 0;
+     psi = 0;
+     if ( r > 10 ) 
+     {
+       phi = acos(z/r);
+       psi = atan2(y,x);
+     }
+//     MRIsetVoxVal(mri_phi2,ww,hh,dd,0,phi);
+//     MRIsetVoxVal(mri_psi2,ww,hh,dd,0,psi);
+     MRIsetVoxVal(mri_pp2,ww,hh,dd,0,psi+phi);
+  }
+//  MRIwrite(mri_phi2,"mri2phi.mgz");
+//  MRIwrite(mri_psi2,"mri2psi.mgz");
+  MRIwrite(mri_pp1,"mri1phipsi.mgz");
+  
+  MRIfree(&mri_grad1);
+  MRIfree(&mri_grad2);
   
   exit(0);
 }
 
 int main(int argc, char *argv[])
 {
+
   {
     // for valgrind, so that everything is freed
     cout << vcid << endl << endl;
@@ -243,6 +382,16 @@ int main(int argc, char *argv[])
     }
 
 //entro(P);
+//gradmag(P);
+//jointhisto(P);
+
+// vnl_vector < double > p(6,0.0);
+// p[3] = 0.1;
+// p[4] = .2;
+// p[5]=.3;
+// vnl_matrix < double > M = (RegistrationStep<double>::convertP2Md(p,2)).first;
+// vnl_matlab_print(vcl_cerr,M,"M",vnl_matlab_print_format_long);std::cerr << std::endl;
+// exit(1);
 
     // Timer
     struct timeb start ;
@@ -250,9 +399,16 @@ int main(int argc, char *argv[])
     TimerStart(&start) ;
 
 
-    // init registration from Parameters
-//  RegPowell R;
-    Registration R;
+  // init registration from Parameters
+  Registration * Rp=NULL;
+  if (P.cost == Registration::ROB || P.cost == Registration::LS )
+    Rp= new Registration;
+  else
+    Rp= new RegPowell;
+  // keep as reference (in order not to modify everything below to pointer)
+  Registration &R = *Rp;
+  
+//    Registration R;
     initRegistration(R,P);
 //conv(P.mri_dst);
 
@@ -708,6 +864,11 @@ int main(int argc, char *argv[])
     {
       MRIfree(&P.mri_dst);
     }
+    if (Rp)
+    {
+      delete(Rp);
+      Rp=NULL;
+    }
 
     ///////////////////////////////////////////////////////////////
     msec = TimerStop(&start) ;
@@ -715,6 +876,15 @@ int main(int argc, char *argv[])
     minutes = seconds / 60 ;
     seconds = seconds % 60 ;
     cout << endl << "Registration took "<<minutes<<" minutes and "<<seconds<<" seconds." << endl;
+    
+    cout << endl<<" Thank you for using RobustRegister! " << endl;
+    cout << " If you find it useful and use it for a publication, please cite: " << endl<<endl;
+    cout << " Highly Accurate Inverse Consistent Registration: A Robust Approach" << endl;
+    cout << " M. Reuter, H.D. Rosas, B. Fischl.  NeuroImage 53(4):1181-1196, 2010." << endl;
+    cout << " http://dx.doi.org/10.1016/j.neuroimage.2010.07.020" << endl;
+    cout << " http://reuter.mit.edu/papers/reuter-robreg10.pdf" << endl << endl;;
+
+    
     //if (diag_fp) fclose(diag_fp) ;
   } // for valgrind, so that everything is free
   exit(0) ;
@@ -937,7 +1107,7 @@ static void initRegistration(Registration & R, Parameters & P)
   R.setRigid(!P.affine);
   R.setIscale(P.iscale);
   R.setTransonly(P.transonly);
-  R.setRobust(!P.leastsquares);
+  //R.setRobust(!P.leastsquares);
   R.setSaturation(P.sat);
   R.setVerbose(P.verbose); // set before debug, as debug sets its own verbose level
   R.setDebug(P.debug);
@@ -947,6 +1117,7 @@ static void initRegistration(Registration & R, Parameters & P)
   R.setDoublePrec(P.doubleprec);
   R.setWLimit(P.wlimit);
   R.setSymmetry(P.symmetry);
+  R.setCost(P.cost);
   //R.setOutputWeights(P.weights,P.weightsout);
 
 
@@ -1282,10 +1453,28 @@ static int parseNextCommand(int argc, char *argv[], Parameters & P)
     P.inittrans = false;
     cout << "--noinit: Skipping init of transform !" << endl;
   }
-  else if (!strcmp(option, "LEASTSQUARES") || !strcmp(option, "L")  )
+  else if (!strcmp(option, "LEASTSQUARES")  )
   {
     P.leastsquares = true;
     cout << "--leastsquares: Using standard least squares (non-robust)!" << endl;
+  }
+  else if (!strcmp(option, "COST")  )
+  {
+    string cost(argv[1]);
+    nargs = 1;
+    if (cost == "LS") P.cost = Registration::LS;
+    else if (cost == "ROB") P.cost = Registration::ROB;
+    else if (cost == "MI")  P.cost = Registration::MI;
+    else if (cost == "NMI") P.cost = Registration::NMI;
+    else if (cost == "ECC") P.cost = Registration::ECC;
+    else if (cost == "NCC") P.cost = Registration::NCC;
+    else
+    {
+       cout << "ERROR: cost function " << cost << " unknown! " << endl;
+       exit(1);
+    }
+
+    cout << "--cost: Using cost function: " << cost << " !" << endl;
   }
   else if (!strcmp(option, "MAXIT")  )
   {
@@ -1532,7 +1721,7 @@ static bool parseCommandLine(int argc, char *argv[], Parameters & P)
     cerr << endl<< endl << "ERROR: Please specify --mov --dst and --lta !  "<< endl << endl;
     exit(1);
   }
-  bool test2 = ( P.satit || P.sat > 0 || P.leastsquares );
+  bool test2 = ( P.satit || P.sat > 0 || P.cost != Registration::ROB || P.leastsquares );
   if (!test2)
   {
     printUsage();

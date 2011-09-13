@@ -8,8 +8,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2011/08/31 00:38:29 $
- *    $Revision: 1.71 $
+ *    $Date: 2011/09/13 03:08:26 $
+ *    $Revision: 1.72 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -76,7 +76,7 @@ void Registration::clear() // initialize registration (keep source and target an
 {
   transonly = false;
   rigid = true;
-  robust = true;
+  costfun = ROB;
   sat = -1;
   iscale = false;
   rtype = 1;
@@ -791,6 +791,8 @@ void Registration::computeMultiresRegistration (int stopres, int n,double epsit)
      ErrorExit(ERROR_BADFILE, "Input images have insufficient resoltuion.\n") ;	
 	}
 
+  int m=n;
+  converged = true;
   for (int r = resolution-1;r>=stopres;r--)
   {
     //MRIwrite(gpS[r],"mriS-smooth.mgz");
@@ -878,7 +880,7 @@ void Registration::computeMultiresRegistration (int stopres, int n,double epsit)
     // compute Registration
     if (verbose >1 ) cout << "- compute new iterative registration" << endl;
     //if (cmd.first) MatrixFree(&cmd.first);
-		int m = n;
+		m = n;
 		if (r == 0 && highit == 0)
 		{
 		  cout << "  skipping (highit == 0) ..." << endl;
@@ -979,6 +981,17 @@ void Registration::computeMultiresRegistration (int stopres, int n,double epsit)
     cout << "   - final iscale:  If = " << md.second << endl;
   }
 	
+  if (!converged)
+  {
+    cout << endl;
+    cout << "**********************************************************" << endl;
+    cout << "*" << endl;
+    cout << "* WARNING: Registration did not converge in " << m << " steps! "<< endl;
+    cout << "*          Problem might be ill posed. " << endl;
+    cout << "*          Please inspect output manually!" << endl;
+    cout << "*" << endl;
+    cout << "**********************************************************" << endl;  
+  }
 	
   Mfinal = md.first;
   iscalefinal = md.second;
@@ -1553,7 +1566,7 @@ void Registration::testRobust(const std::string& fname, int testno)
       ai = NULL;
 
       transonly = false;
-      robust    = true;
+      costfun   = ROB;
       rigid     = true;
       iscale    = false;
 
@@ -1580,7 +1593,8 @@ void Registration::testRobust(const std::string& fname, int testno)
       for (int d = 0;d<mriTs->depth;d++)
         for (int h = 0;h<mriTs->height;h++)
           for (int w = 0;w<mriTs->width;w++)
-            ddd += MRIgetVoxVal(mridiff,w,h,d,1) * MRIgetVoxVal(mridiff,w,h,d,1);
+            ddd += MRIgetVoxVal(mridiff,w,h,d,0) * MRIgetVoxVal(mridiff,w,h,d,0);
+            //ddd += MRIgetVoxVal(mridiff,w,h,d,1) * MRIgetVoxVal(mridiff,w,h,d,1);
       mls2[i] = ddd;
       cout << "angle: " << theta[i] << "  mls: " << mls2[i] << endl;
 			A.clear();
@@ -1670,7 +1684,7 @@ void Registration::testRobust(const std::string& fname, int testno)
 
   transonly = false;
   rigid     = false;
-  robust = true;
+  costfun   = ROB;
   iscale = true;
 	setVerbose(2);
   sat = 5;
@@ -1684,11 +1698,11 @@ void Registration::testRobust(const std::string& fname, int testno)
 	pw.second = iscalefinal;
 	
   exit(0);
-  robust = false;
+  costfun = LS;
 //   pair <MATRIX*, double> pwls  = computeIterativeRegistration(steps,mriTs,mriTt);
 //   pair <MATRIX*, double> pwls  = computeMultiresRegistration(mriTs,mriTt);
   iscale = true;
-  robust = true;
+  costfun = ROB;
 //   pair <MATRIX*, double> pwi    = computeIterativeRegistration(steps,mriTs,mriTt);
 //    pair <MATRIX*, double> pwi   = computeMultiresRegistration(mriTs,mriTt);
 //
@@ -2695,249 +2709,144 @@ pair < MATRIX*, VECTOR* > Registration::constructAb2(MRI *mriS, MRI *mriT)
 // }
 // 
 
-MATRIX * Registration::rt2mat(MATRIX * r, MATRIX * t, MATRIX *outM)
-// converts rot vector (3x1) and translation vector (3x1)
-// into an affine matrix (homogeneous coord) 4x4
-// if global rtype ==1 r1,r2,r3 are as in robust paper (axis, and length is angle)
-// if global rtype ==2 then r1,r2,r3 are angles around x,y,z axis (order 1zrot,2yrot,3xrot)
-{
-  if (outM == NULL)
-    outM = MatrixAlloc(4, 4, MATRIX_REAL);
-
-  assert(r->rows == 3 && r->cols == 1);
-  assert(t->rows == 3 && t->cols == 1);
-
-  MATRIX *rmat;
-
-  if (rtype == 2)
-  {
-//      MATRIX* rx = MatrixAllocRotation(3,*MATRIX_RELT(r, 1, 1),X_ROTATION);
-//      MATRIX* ry = MatrixAllocRotation(3,*MATRIX_RELT(r, 2, 1),Y_ROTATION);
-//      MATRIX* rz = MatrixAllocRotation(3,*MATRIX_RELT(r, 3, 1),Z_ROTATION);
-//      MATRIX* tmp= MatrixMultiply(rx,ry,NULL);
-//      rmat = MatrixMultiply(tmp,rz,NULL);
-//      MatrixFree(&rx); MatrixFree(&ry); MatrixFree(&rz); MatrixFree(&tmp);
-//      MatrixPrintFmt(stdout,"% 2.8f",rmat);
-//      cout << endl;
-
-
-    // first convert rotation to quaternion (clockwise)
-    Quaternion q;
-    q.importZYXAngles(-*MATRIX_RELT(r, 3, 1), -*MATRIX_RELT(r, 2, 1), -*MATRIX_RELT(r, 1, 1));
-    // then to rotation matrix
-    rmat = MyMatrix::getMatrix(q.getRotMatrix3d(),3);
-    //MatrixPrintFmt(stdout,"% 2.8f",rmat2);
-
-  }
-  else if (rtype ==1)
-  {
-
-    // first convert rotation to quaternion
-    Quaternion q;
-    q.importRotVec(*MATRIX_RELT(r, 1, 1),*MATRIX_RELT(r, 2, 1),*MATRIX_RELT(r, 3, 1));
-    // then to rotation matrix
-    rmat = MyMatrix::getMatrix(q.getRotMatrix3d(),3);
-
-  }
-  else assert (1==2);
-
-  int rr, cc;
-  for (rr=1;rr<=3;rr++)
-  {
-    for (cc=1;cc<=3;cc++) // copy rot-matrix
-      *MATRIX_RELT(outM, rr, cc) = *MATRIX_RELT(rmat, rr, cc);
-
-    // copy translation into 4th column
-    *MATRIX_RELT(outM, rr, 4) = *MATRIX_RELT(t, rr, 1);
-    // set 4th row to zero
-    *MATRIX_RELT(outM, 4, rr) = 0.0;
-  }
-  //except 4,4
-  *MATRIX_RELT(outM, 4, 4) = 1.0;
-
-  MatrixFree(&rmat);
-
-  return outM;
-}
-
-
-MATRIX * Registration::p2mat(MATRIX * p6, MATRIX *outM)
-// converts trans-rot vector (6x1)
-// into an affine matrix (homogeneous coord) 4x4
-// if rtype ==2 , then p4,p5,p6 are angles around x,y,z axis
-// else rtype ==1 they are as in robust paper
-{
-  assert(p6->rows == 6 && p6->cols == 1);
-  MATRIX* t = MatrixAlloc(3, 1, MATRIX_REAL);
-  MATRIX* r = MatrixAlloc(3, 1, MATRIX_REAL);
-  for (int rr = 1;rr<=3;rr++)
-  {
-    *MATRIX_RELT(t, rr, 1) = *MATRIX_RELT(p6, rr, 1);
-    *MATRIX_RELT(r, rr, 1) = *MATRIX_RELT(p6, rr+3, 1);
-  }
-
-  outM = rt2mat(r,t,outM);
-  MatrixFree(&r);
-  MatrixFree(&t);
-  return outM;
-}
-
-pair < MATRIX*, double > Registration::convertP2MATRIXd(MATRIX* p)
-// rtype : use restriction (if 2) or rigid from robust paper
-// returns registration as 4x4 matrix M, and iscale
-{
-//   cout << " Registration::convertP2Md(MATRIX* p) (p->rows: " << p->rows << " )" << flush;
-  pair < MATRIX*, double> ret(NULL,1.0);
-  MATRIX* pt;
-
-  if (p->rows == 4 ||p->rows == 7 || p->rows == 13) // iscale
-  {
-    //cout << " has intensity " << endl;
-    // cut off intensity scale
-		
-//    //ret.second = 1.0-*MATRIX_RELT(p, p->rows, 1);		
-    ret.second = 1.0/(1.0+*MATRIX_RELT(p, p->rows, 1));
-//    ret.second = *MATRIX_RELT(p, p->rows, 1);
-		
-    pt=  MatrixAlloc(p->rows -1, 1,MATRIX_REAL);
-    for (int rr = 1; rr<p->rows; rr++)
-      *MATRIX_RELT(pt, rr, 1) = *MATRIX_RELT(p, rr, 1);
-  }
-  else pt = MatrixCopy(p,NULL);
-
-  if (pt->rows == 12)
-	{
-	  ret.first = MyMatrix::aff2mat(pt,NULL);
-	} 
-  else if (pt->rows == 6)
-  {
-    ret.first = p2mat(pt,NULL);
-  }
-  else if (pt->rows ==3)
-  {
-    ret.first = MatrixIdentity(4,NULL);
-    *MATRIX_RELT(ret.first, 1, 4) = *MATRIX_RELT(pt, 1, 1);
-    *MATRIX_RELT(ret.first, 2, 4) = *MATRIX_RELT(pt, 2, 1);
-    *MATRIX_RELT(ret.first, 3, 4) = *MATRIX_RELT(pt, 3, 1);
-  }
-  else
-  {
-    cerr << " parameter neither 3,6 nor 12 : " << pt->rows <<" ??" << endl;
-    assert(1==2);
-  }
-
-  MatrixFree(&pt);
-//   cout << " -- DONE " << endl;
-  return ret;
-}
-
-
-
-// pair < vnl_matrix_fixed <double,4,4 >, double > Registration::convertP2Md(const vnl_vector <double >& p)
+// MATRIX * Registration::rt2mat(MATRIX * r, MATRIX * t, MATRIX *outM)
+// // converts rot vector (3x1) and translation vector (3x1)
+// // into an affine matrix (homogeneous coord) 4x4
+// // if global rtype ==1 r1,r2,r3 are as in robust paper (axis, and length is angle)
+// // if global rtype ==2 then r1,r2,r3 are angles around x,y,z axis (order 1zrot,2yrot,3xrot)
+// {
+//   if (outM == NULL)
+//     outM = MatrixAlloc(4, 4, MATRIX_REAL);
+// 
+//   assert(r->rows == 3 && r->cols == 1);
+//   assert(t->rows == 3 && t->cols == 1);
+// 
+//   MATRIX *rmat;
+// 
+//   if (rtype == 2)
+//   {
+// //      MATRIX* rx = MatrixAllocRotation(3,*MATRIX_RELT(r, 1, 1),X_ROTATION);
+// //      MATRIX* ry = MatrixAllocRotation(3,*MATRIX_RELT(r, 2, 1),Y_ROTATION);
+// //      MATRIX* rz = MatrixAllocRotation(3,*MATRIX_RELT(r, 3, 1),Z_ROTATION);
+// //      MATRIX* tmp= MatrixMultiply(rx,ry,NULL);
+// //      rmat = MatrixMultiply(tmp,rz,NULL);
+// //      MatrixFree(&rx); MatrixFree(&ry); MatrixFree(&rz); MatrixFree(&tmp);
+// //      MatrixPrintFmt(stdout,"% 2.8f",rmat);
+// //      cout << endl;
+// 
+// 
+//     // first convert rotation to quaternion (clockwise)
+//     Quaternion q;
+//     q.importZYXAngles(-*MATRIX_RELT(r, 3, 1), -*MATRIX_RELT(r, 2, 1), -*MATRIX_RELT(r, 1, 1));
+//     // then to rotation matrix
+//     rmat = MyMatrix::getMatrix(q.getRotMatrix3d(),3);
+//     //MatrixPrintFmt(stdout,"% 2.8f",rmat2);
+// 
+//   }
+//   else if (rtype ==1)
+//   {
+// 
+//     // first convert rotation to quaternion
+//     Quaternion q;
+//     q.importRotVec(*MATRIX_RELT(r, 1, 1),*MATRIX_RELT(r, 2, 1),*MATRIX_RELT(r, 3, 1));
+//     // then to rotation matrix
+//     rmat = MyMatrix::getMatrix(q.getRotMatrix3d(),3);
+// 
+//   }
+//   else assert (1==2);
+// 
+//   int rr, cc;
+//   for (rr=1;rr<=3;rr++)
+//   {
+//     for (cc=1;cc<=3;cc++) // copy rot-matrix
+//       *MATRIX_RELT(outM, rr, cc) = *MATRIX_RELT(rmat, rr, cc);
+// 
+//     // copy translation into 4th column
+//     *MATRIX_RELT(outM, rr, 4) = *MATRIX_RELT(t, rr, 1);
+//     // set 4th row to zero
+//     *MATRIX_RELT(outM, 4, rr) = 0.0;
+//   }
+//   //except 4,4
+//   *MATRIX_RELT(outM, 4, 4) = 1.0;
+// 
+//   MatrixFree(&rmat);
+// 
+//   return outM;
+// }
+// 
+// 
+// MATRIX * Registration::p2mat(MATRIX * p6, MATRIX *outM)
+// // converts trans-rot vector (6x1)
+// // into an affine matrix (homogeneous coord) 4x4
+// // if rtype ==2 , then p4,p5,p6 are angles around x,y,z axis
+// // else rtype ==1 they are as in robust paper
+// {
+//   assert(p6->rows == 6 && p6->cols == 1);
+//   MATRIX* t = MatrixAlloc(3, 1, MATRIX_REAL);
+//   MATRIX* r = MatrixAlloc(3, 1, MATRIX_REAL);
+//   for (int rr = 1;rr<=3;rr++)
+//   {
+//     *MATRIX_RELT(t, rr, 1) = *MATRIX_RELT(p6, rr, 1);
+//     *MATRIX_RELT(r, rr, 1) = *MATRIX_RELT(p6, rr+3, 1);
+//   }
+// 
+//   outM = rt2mat(r,t,outM);
+//   MatrixFree(&r);
+//   MatrixFree(&t);
+//   return outM;
+// }
+// 
+// pair < MATRIX*, double > Registration::convertP2MATRIXd(MATRIX* p)
 // // rtype : use restriction (if 2) or rigid from robust paper
 // // returns registration as 4x4 matrix M, and iscale
 // {
 // //   cout << " Registration::convertP2Md(MATRIX* p) (p->rows: " << p->rows << " )" << flush;
-//   pair < vnl_matrix_fixed <double,4,4 >, double> ret; ret.second = 0.0;
+//   pair < MATRIX*, double> ret(NULL,1.0);
+//   MATRIX* pt;
 // 
-//   vnl_vector <double > pt;
-// 	
-//   if (p.size() == 4 ||p.size() == 7 || p.size() == 10|| p.size() == 13) // iscale
+//   if (p->rows == 4 ||p->rows == 7 || p->rows == 13) // iscale
 //   {
 //     //cout << " has intensity " << endl;
 //     // cut off intensity scale
 // 		
-// 		// ISCALECHANGE:
-//    // //ret.second = 1.0-*MATRIX_RELT(p, p->rows, 1);		
-// //    ret.second = 1.0/(1.0+*MATRIX_RELT(p, p->rows, 1));
-// 
-// //    ret.second =  *MATRIX_RELT(p, p->rows, 1);
-//     ret.second =  p[p.size()-1];
-//     //cout << " ret.second: " << ret.second << "   returned:  "<< *MATRIX_RELT(p, p->rows, 1) << endl;
+// //    //ret.second = 1.0-*MATRIX_RELT(p, p->rows, 1);		
+//     ret.second = 1.0/(1.0+*MATRIX_RELT(p, p->rows, 1));
+// //    ret.second = *MATRIX_RELT(p, p->rows, 1);
 // 		
-// //     pt=  MatrixAlloc(p->rows -1, 1,MATRIX_REAL);
-// //     for (int rr = 1; rr<p->rows; rr++)
-// //       *MATRIX_RELT(pt, rr, 1) = *MATRIX_RELT(p, rr, 1);
-//     pt.set_size(p.size()-1);
-//     for (unsigned int rr = 0; rr< pt.size(); rr++)
-//       pt[rr] = p[rr];
+//     pt=  MatrixAlloc(p->rows -1, 1,MATRIX_REAL);
+//     for (int rr = 1; rr<p->rows; rr++)
+//       *MATRIX_RELT(pt, rr, 1) = *MATRIX_RELT(p, rr, 1);
 //   }
-//   else pt = p;
+//   else pt = MatrixCopy(p,NULL);
 // 
-//   if (pt.size() == 12)
+//   if (pt->rows == 12)
 // 	{
-// 	  ret.first.set_identity();
-//     int count = 0;
-//     for (int rr = 0;rr<3;rr++)
-//     for (int cc = 0;cc<4;cc++)
-//     {
-//       ret.first[rr][cc] +=  pt[count];
-//       count++;
-//     }
-// 	  //ret.first = MyMatrix::aff2mat(pt,NULL);
+// 	  ret.first = MyMatrix::aff2mat(pt,NULL);
 // 	} 
-//   else if (pt.size() == 6)
+//   else if (pt->rows == 6)
 //   {
-//     //ret.first = p2mat(pt,NULL);
-// 		
-// 		// split translation and rotation:
-// 		vnl_vector_fixed <double,3 > t;
-// 		vnl_vector_fixed <double,3 > r;
-//     for (int rr = 0;rr<3;rr++)
-//     {
-//       t[rr] = pt[rr];
-//       r[rr] = pt[rr+3];
-//     }
-//     // converts rot vector (3x1) and translation vector (3x1)
-//     // into an affine matrix (homogeneous coord) 4x4
-//     // if global rtype ==1 r1,r2,r3 are as in robust paper (axis, and length is angle)
-//     // if global rtype ==2 then r1,r2,r3 are angles around x,y,z axis (order 1zrot,2yrot,3xrot)
-// 		vnl_matrix < double > rmat;
-// 		Quaternion q;
-//     if (rtype == 2)
-//     {
-//       // first convert rotation to quaternion (clockwise)
-//       q.importZYXAngles(-r[2], -r[1], -r[0]);
-//     }
-//     else if (rtype ==1)
-//     {
-//       // first convert rotation to quaternion;
-//       q.importRotVec(r[0],r[1],r[2]);
-//     }
-//     else assert (1==2);
-//     // then to rotation matrix
-//     rmat = MyMatrix::getVNLMatrix(q.getRotMatrix3d(),3);
-// 		
-//     int rr, cc;
-//     for (rr=0;rr<3;rr++)
-//     {
-//       for (cc=0;cc<3;cc++) // copy rot-matrix
-//         ret.first[rr][cc] = rmat[rr][cc];
-// 
-//       // copy translation into 4th column
-//       ret.first[rr][3] = t[rr];
-//       // set 4th row to zero
-//       ret.first[3][rr] = 0.0;
-//     }
-//     //except 4,4
-//     ret.first[3][3] = 1.0;
+//     ret.first = p2mat(pt,NULL);
 //   }
-//   else if (pt.size() ==3)
+//   else if (pt->rows ==3)
 //   {
-// 	  ret.first.set_identity();
-// 		ret.first[0][3] = pt[0];
-// 		ret.first[1][3] = pt[1];
-// 		ret.first[2][3] = pt[2];
+//     ret.first = MatrixIdentity(4,NULL);
+//     *MATRIX_RELT(ret.first, 1, 4) = *MATRIX_RELT(pt, 1, 1);
+//     *MATRIX_RELT(ret.first, 2, 4) = *MATRIX_RELT(pt, 2, 1);
+//     *MATRIX_RELT(ret.first, 3, 4) = *MATRIX_RELT(pt, 3, 1);
 //   }
 //   else
 //   {
-//     cerr << " parameter neither 3,6 nor 12 : " << pt.size() <<" ??" << endl;
+//     cerr << " parameter neither 3,6 nor 12 : " << pt->rows <<" ??" << endl;
 //     assert(1==2);
 //   }
 // 
+//   MatrixFree(&pt);
 // //   cout << " -- DONE " << endl;
 //   return ret;
 // }
+// 
+
+
 
 pair < int, int > Registration::getGPLimits(MRI *mriS, MRI *mriT, int min, int max)
 // both mri are assumed to have conform voxels (same size)
@@ -3198,10 +3107,23 @@ vnl_matrix_fixed <double,4,4> Registration::initializeTransform(MRI *mriS, MRI *
      // default (new) initialize based on ras coordinates
      // later: allow option to use voxel identity for init?
      cout << "   - initialize transform based on RAS\n" ;
-     
-     MATRIX* v2v = MRIgetVoxelToVoxelXform(mriS,mriT);
-     myinit = MyMatrix::convertMATRIX2VNL(v2v);
-     MatrixFree(&v2v);
+     MATRIX *mv2rS, *mv2rT ;
+     mv2rS = extract_i_to_r(mriS) ;
+     mv2rT = extract_i_to_r(mriT) ;
+     // first convert to double, then compute vox2vox (using inverse)
+     vnl_matrix_fixed <double,4,4> sv2r(MyMatrix::convertMATRIX2VNL(mv2rS));
+     vnl_matrix_fixed <double,4,4> tv2r(MyMatrix::convertMATRIX2VNL(mv2rT));
+     MatrixFree(&mv2rS);
+     MatrixFree(&mv2rT);     
+
+     myinit = vnl_inverse(tv2r) * sv2r;
+     //vnl_matlab_print(vcl_cerr,myinit,"myinit",vnl_matlab_print_format_long);cerr << endl;
+
+     // OLD: inaccurate due to float inversion internally:
+//     MATRIX* v2v = MRIgetVoxelToVoxelXform(mriS,mriT);
+//     myinit = MyMatrix::convertMATRIX2VNL(v2v);
+//     MatrixFree(&v2v);
+//     vnl_matlab_print(vcl_cerr,myinit,"myinit",vnl_matlab_print_format_long);cerr << endl;
  
      return myinit;
   }
@@ -3969,4 +3891,121 @@ vnl_matrix < double > Registration::getMinitResampled()
   //cout << " Rtrg: " << endl << Rtrg << endl;
 
   return MIR;
+}
+ 
+ 
+bool Registration::checkSqrtM(const vnl_matrix_fixed <double,4,4 > & M, bool testrigid)
+// expects sqrt to be passed as M
+{
+
+  if (testrigid) 
+  {
+    vnl_matrix < double > R(3,3),S(3,3),A(3,3),I(3,3);
+    I.set_identity();
+    M.extract(A);
+    MyMatrix::PolarDecomposition(A,R,S);
+    if (S[0][0] < 0.0 || S[1][1] < 0.0 || S[2][2] < 0.0)
+      ErrorExit(ERROR_OUT_OF_BOUNDS, "Internal Error: Matrix Sqrt produced reflection.\n") ;
+    double eps = 0.000001; // cannot be smaller due to scaling in ras2ras -> vox2vox conversion
+    
+    double fnorm1 = (S-I).frobenius_norm();
+    if (fnorm1 > eps)
+    {
+      std::cerr << "Internal Error: " << std::endl;
+      std::cerr << " Sqrt of Rotation should not scale ( fnorm(S-I) = "<< fnorm1 << " )" << std::endl;
+      std::cerr << " Debug Info: " << std::endl;
+      vnl_matlab_print(vcl_cerr,A,"A",vnl_matlab_print_format_long);std::cerr << std::endl;
+      vnl_matlab_print(vcl_cerr,R,"R",vnl_matlab_print_format_long);std::cerr << std::endl;
+      vnl_matlab_print(vcl_cerr,S,"S",vnl_matlab_print_format_long);std::cerr << std::endl;
+			ErrorExit(ERROR_OUT_OF_BOUNDS, "Internal Error: Sqrt of Rotation should not scale.\n") ;
+    }
+				  
+    double fnorm2 = (A-R).frobenius_norm();
+    if (fnorm2 > eps)
+    {
+      ErrorExit(ERROR_OUT_OF_BOUNDS, "Internal Error: Sqrt should be a rotation.\n") ;
+    }
+
+  }
+  else //affine 
+  {
+    vnl_matrix < double > R(3,3),S(3,3),A(3,3);
+    vnl_diag_matrix < double > D(3),I(3,1.0);
+    M.extract(A);
+    MyMatrix::Polar2Decomposition(A,R,S,D);
+				
+    if (D[0] < 0.0 || D[1] < 0.0 || D[2] < 0.0) 
+      ErrorExit(ERROR_OUT_OF_BOUNDS, "Internal Error: Matrix Sqrt produced reflection.\n") ;
+				
+    // actually should not even get close to zero
+    double eps = 0.001;
+    if (D[0] < eps || D[1] < eps || D[2] < eps) 
+      ErrorExit(ERROR_OUT_OF_BOUNDS, "Internal Error: Matrix Sqrt produced near projection.\n") ;
+			  
+  }
+  return true;
+}
+
+
+void Registration::mapToNewSpace(const vnl_matrix_fixed<double , 4, 4>& M, double iscaleval, 
+                                 MRI * mriS, MRI* mriT, MRI *& mri_Swarp, MRI*& mri_Twarp,
+                                 vnl_matrix_fixed<double , 4, 4>& mh,
+                                 vnl_matrix_fixed<double , 4, 4>& mhi) 
+// resample both images (or if not symmetric only src) to new space
+// also return half way transforms
+// checks members: symmetry and iscale
+// also rigid and Minit (if symmetry == true)
+{
+
+    if (symmetry)
+    {
+      // here symmetrically warp both images SQRT(M)
+      // this keeps the problem symmetric
+      if (verbose >1) std::cout << "   - resampling MOV and DST (sqrt)" << std::endl;
+      // half way voxelxform
+      //mh  = MyMatrix::MatrixSqrtAffine(M); // does not seem to work (creates imag results ...)?
+      mh  = MyMatrix::MatrixSqrt(M); //!! symmetry slighlty destroyed here? !!
+
+			// check if we moved out of our space:
+      checkSqrtM(mh,rigid&&Minit.empty()); // if minit was passed, it might be an affine initialization
+      // also in old code for affine we checked fmd.first (here M) instead of mh (bug??)
+      
+			
+      // do not just assume m = mh*mh, rather m = mh2 * mh
+      // for transforming target we need mh2^-1 = mh * m^-1
+      vnl_matrix_fixed<double , 4, 4> mi  = vnl_inverse(M);
+      mhi = mh*mi;
+      //vnl_matlab_print(vcl_cerr,mh,"mh",vnl_matlab_print_format_long);std::cerr << std::endl;
+      //vnl_matlab_print(vcl_cerr,mhi,"mhi",vnl_matlab_print_format_long);std::cerr << std::endl;
+      
+      // map both to mid space:
+      if (mri_Swarp) MRIfree(&mri_Swarp);
+      mri_Swarp = MRIclone(mriS,NULL);
+      mri_Swarp = MyMRI::MRIlinearTransform(mriS,mri_Swarp, mh);
+      if (mri_Twarp) MRIfree(&mri_Twarp);
+      mri_Twarp = MRIclone(mriS,NULL); // bring them to same space (just use src geometry) !! symmetry slightly destroyed here!!
+      mri_Twarp = MyMRI::MRIlinearTransform(mriT,mri_Twarp, mhi);
+      
+    }
+    else // resample at target location (using target geometry)
+    {
+      if (verbose >1) std::cout << "   - resampling MOV to DST " << std::endl;
+      if (mri_Swarp) MRIfree(&mri_Swarp);
+      mri_Swarp = MRIclone(mriT,NULL);
+      mri_Swarp = MyMRI::MRIlinearTransform(mriS,mri_Swarp, M);
+      mh = M;
+      mhi.set_identity();
+      if (! mri_Twarp ) mri_Twarp = MRIcopy(mriT,NULL);
+    }
+      
+    // adjust intensity 	
+    if (iscale)
+    {
+      if (verbose >1) std::cout << "   - adjusting intensity ( "<< iscaleval << " ) " << std::endl;
+			// ISCALECHANGE:
+      double si = sqrt(iscaleval);
+      MyMRI::MRIvalscale(mri_Swarp,mri_Swarp,si);
+      MyMRI::MRIvalscale(mri_Twarp,mri_Twarp,1.0/si);
+    }
+
 }
