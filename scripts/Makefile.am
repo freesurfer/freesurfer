@@ -147,6 +147,7 @@ ms_refine_subject \
 parc_atlas_jackknife_test \
 petsc_setup \
 plot_structure_stats.tcl \
+print_unique_labels.csh \
 progressbar.tcl \
 fsr-checkxopts \
 fsr-getxopts \
