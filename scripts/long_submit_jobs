@@ -9,8 +9,8 @@
 # Original Author: Martin Reuter
 # CVS Revision Info:
 #    $Author: mreuter $
-#    $Date: 2011/06/20 19:14:53 $
-#    $Revision: 1.7 $
+#    $Date: 2011/09/14 14:42:46 $
+#    $Revision: 1.8 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -135,7 +135,7 @@ def wait_jobs(maxjobs):
         num = p3.communicate()[0]
          
         # stop if slots available
-        if int(num) <= maxjobs:
+        if int(num) < maxjobs:
             break
 
         #else wait
@@ -265,7 +265,7 @@ def options_parse():
     Command Line Options Parser for long_mris_slopes
     initiate the option parser and return the parsed object
     """
-    parser = optparse.OptionParser(version='$Id: long_submit_jobs,v 1.7 2011/06/20 19:14:53 mreuter Exp $', usage=HELPTEXT)
+    parser = optparse.OptionParser(version='$Id: long_submit_jobs,v 1.8 2011/09/14 14:42:46 mreuter Exp $', usage=HELPTEXT)
     
     # help text
     h_qdec      = '(REQUIRED) qdec table file specifying the subjects and time points'
