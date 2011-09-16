@@ -787,12 +787,14 @@ void drawMaskBoundary( ImageColorU &output, const ImageGrayU &mask, int thresh, 
             int v = mask.data( x, y ) >= thresh;
             int vx = mask.data( x + 1, y ) >= thresh;
             int vy = mask.data( x, y + 1 ) >= thresh;
-            if (v != vx || v != vy) {
+             if (v != vx) {
+                output.setRGB( x, y, r, g, b );
+                output.setRGB( x + 1, y, r, g, b );
+             }
+             if (v != vy) {
                 output.setRGB( x, y, r, g, b );
                 output.setRGB( x, y + 1, r, g, b );
-                output.setRGB( x + 1, y, r, g, b );
-                output.setRGB( x + 1, y + 1, r, g, b );
-            }
+             }
         }
     }
 }
