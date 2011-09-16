@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/08/31 17:35:59 $
- *    $Revision: 1.495 $
+ *    $Author: mreuter $
+ *    $Date: 2011/09/16 17:51:36 $
+ *    $Revision: 1.496 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -23,7 +23,7 @@
  */
 
 extern const char* Progname;
-const char *MRI_C_VERSION = "$Revision: 1.495 $";
+const char *MRI_C_VERSION = "$Revision: 1.496 $";
 
 
 /*-----------------------------------------------------
@@ -8071,9 +8071,9 @@ MRIdownsample2(MRI *mri_src, MRI *mri_dst)
      (ERROR_UNSUPPORTED,
       "MRIdownsample2: source and dst must be same type"));
 
-  width = mri_src->width/2 ;
+  width  = mri_src->width/2 ;
   height = mri_src->height/2 ;
-  depth = mri_src->depth/2 ;
+  depth  = mri_src->depth/2 ;
 
   if (!mri_dst)
   {
@@ -8140,8 +8140,26 @@ MRIdownsample2(MRI *mri_src, MRI *mri_dst)
   mri_dst->ysize = mri_src->ysize*2 ;
   mri_dst->zsize = mri_src->zsize*2 ;
   mri_dst->thick = mri_src->thick*2 ;
-  mri_dst->ps = mri_src->ps*2 ;
+  mri_dst->ps    = mri_src->ps*2 ;
+  
+  // adjust cras
+  //printf("COMPUTING new CRAS\n") ;
+  VECTOR* C = VectorAlloc(4, MATRIX_REAL);
+  VECTOR_ELT(C,1) = mri_src->width/2.0+0.5;
+  VECTOR_ELT(C,2) = mri_src->height/2.0+0.5;
+  VECTOR_ELT(C,3) = mri_src->depth/2.0+0.5;
+  VECTOR_ELT(C,4) = 1.0;
+  MATRIX* V2R     = extract_i_to_r(mri_src);
+  MATRIX* P       = MatrixMultiply(V2R,C,NULL);
+  mri_dst->c_r    = P->rptr[1][1];
+  mri_dst->c_a    = P->rptr[2][1];
+  mri_dst->c_s    = P->rptr[3][1];
+  MatrixFree(&P);
+  MatrixFree(&V2R);
+  VectorFree(&C);
+  
   MRIreInitCache(mri_dst) ;
+  //printf("CRAS new: %2.3f %2.3f %2.3f\n",mri_dst->c_r,mri_dst->c_a,mri_dst->c_s);
 
   //  mri_dst->ras_good_flag = 0;
 
