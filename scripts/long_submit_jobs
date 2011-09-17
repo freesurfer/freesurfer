@@ -9,8 +9,8 @@
 # Original Author: Martin Reuter
 # CVS Revision Info:
 #    $Author: mreuter $
-#    $Date: 2011/09/14 14:42:46 $
-#    $Revision: 1.8 $
+#    $Date: 2011/09/17 02:08:36 $
+#    $Revision: 1.9 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -265,7 +265,7 @@ def options_parse():
     Command Line Options Parser for long_mris_slopes
     initiate the option parser and return the parsed object
     """
-    parser = optparse.OptionParser(version='$Id: long_submit_jobs,v 1.8 2011/09/14 14:42:46 mreuter Exp $', usage=HELPTEXT)
+    parser = optparse.OptionParser(version='$Id: long_submit_jobs,v 1.9 2011/09/17 02:08:36 mreuter Exp $', usage=HELPTEXT)
     
     # help text
     h_qdec      = '(REQUIRED) qdec table file specifying the subjects and time points'
@@ -283,9 +283,10 @@ def options_parse():
     h_lflags    = 'Manually specify flags for long (default: \'-all\')'
     
     h_affine    = 'use affine registration for base'
-    h_force     = 'force reprocessing even if finished (recon-all.done)'
+    h_force     = 'force reprocessing even if finished successfully before (recon-all.done)'
     h_simulate  = 'do not submit anything, just print commands'
     h_skip      = '0 (exit on missing), 1 (default, skip instead of exit), 2 (skip instead of wait)'
+    h_skiperror = 'skip re-submission if run had errors earlier (default: resubmit if not running)'
     h_check     = 'check if all longitudinals are done'
     h_pause     = 'pause in sec between submissions (default: 13)'
     h_max       = 'max num of jobs of this user (default: 100)'
@@ -315,6 +316,7 @@ def options_parse():
     parser.add_option('--force'  , action='store_true', dest='force',  help=h_force , default=False)
     parser.add_option('--simulate', action='store_true', dest='simulate',  help=h_simulate , default=False)
     parser.add_option('--skip', dest='skip',  help=h_skip , default=1, type="int")
+    parser.add_option('--skiperror'  , action='store_true', dest='skiperror',  help=h_skiperror , default=False)
     parser.add_option('--check', action='store_true', dest='check',  help=h_check , default=False)
 
     parser.add_option('--pause' , dest='pause' , help=h_pause, default=13, type="float")
@@ -447,6 +449,7 @@ def run_cross(qdectable,options):
     running  = []
     notexist = []
     norights = []
+    error    = []
     submitted= 0
     total = 0
     for subjectid, tplist in qdectable.subjects_tp_map.items():
@@ -476,6 +479,7 @@ def run_cross(qdectable,options):
                 
             
             # skip if still running or done and no force
+            iserror   = os.path.join(options.cdir,tpid,"scripts","recon-all.error")
             isrunning = os.path.join(options.cdir,tpid,"scripts","IsRunning.lh+rh")
             isdone    = os.path.join(options.cdir,tpid,"scripts","recon-all.done")
             if os.path.exists(isrunning):
@@ -486,6 +490,11 @@ def run_cross(qdectable,options):
                 print "Skipping cross "+tpid+"  (is done and no --force specified)\n"
                 done.append( (subjectid,tpid) )
                 continue
+            if os.path.exists(iserror) and options.skiperror:
+                print "Skipping cross "+tpid+"  (quit with error earlier)\n"
+                error.append( (subjectid,tpid) )
+                continue
+            
 
             # check if read/write access:
             tpcdir = os.path.join(options.cdir,tpid)
@@ -521,6 +530,7 @@ def run_cross(qdectable,options):
     print            
     print "already done    : "+str(len(done))
     print "already running : "+str(len(running))
+    print "skipped (errors): "+str(len(errors))
     print "submitted       : "+str(submitted)
     print "dirs not exist  : "+str(len(notexist))
     print "dirs no rights  : "+str(len(norights))
@@ -546,6 +556,7 @@ def run_base(qdectable,options):
     running  = []
     notexist = []
     norightsB= []
+    error    = []
     submitted= 0
     total = 0
     less2 = 0
@@ -574,6 +585,7 @@ def run_base(qdectable,options):
         # skip if base still running or done and no force
         isrunning = os.path.join(options.bdir,subjectid,"scripts","IsRunning.lh+rh")
         isdone    = os.path.join(options.bdir,subjectid,"scripts","recon-all.done")
+        iserror   = os.path.join(options.bdir,subjectid,"scripts","recon-all.error")
         if os.path.exists(isrunning):
             print "WARNING: "+subjectid+" seems to be still running ? Skipping ... \n"
             running.append( subjectid )
@@ -581,6 +593,10 @@ def run_base(qdectable,options):
         if os.path.exists(isdone) and not options.force:
             print "Skipping base "+subjectid+"  (is done and no --force specified)\n"
             done.append( subjectid )
+            continue
+        if os.path.exists(iserror) and options.skiperror:
+            print "Skipping base "+subjectid+"  (quit with error earlier)\n"
+            error.append( (subjectid,tpid) )
             continue
 
         tpids = [entry[0] for entry in tplist]
@@ -682,6 +698,7 @@ def run_base(qdectable,options):
     print "already done    : "+str(len(done))
     print "already running : "+str(len(running))
     print "dirs not exist  : "+str(len(notexist))
+    print "skipped (errors): "+str(len(error))
 
     return submitted
 
@@ -709,6 +726,7 @@ def run_long(qdectable,options):
     notexist = []
     nobase   = []
     norights = []
+    error    = []
     submitted= 0
     for subjectid, tplist in qdectable.subjects_tp_map.items():
         print '\n========================================\n'
@@ -830,6 +848,7 @@ def run_long(qdectable,options):
             # skip if still running or done and no force
             isrunning = os.path.join(options.ldir,tpid+".long."+subjectid,"scripts","IsRunning.lh+rh")
             isdone    = os.path.join(options.ldir,tpid+".long."+subjectid,"scripts","recon-all.done")
+            iserror   = os.path.join(options.ldir,tpid+".long."+subjectid,"scripts","recon-all.error")
             if os.path.exists(isrunning):
                 print "WARNING: "+tpid+".long."+subjectid+" seems to be still running ? Skipping ... \n"
                 running.append( (subjectid,tpid) )
@@ -837,6 +856,10 @@ def run_long(qdectable,options):
             if os.path.exists(isdone) and not options.force:
                 print "Skipping long "+tpid+".long."+subjectid+"  (is done and no --force specified)\n"
                 done.append( (subjectid,tpid) )
+                continue
+            if os.path.exists(iserror) and not options.skiperror:
+                print "Skipping long "+tpid+".long."+subjectid+"  (had error earlier)\n"
+                error.append( (subjectid,tpid) )
                 continue
                 
             tpiddir = os.path.join(options.ldir,tpid+".long."+subjectid)
@@ -874,6 +897,7 @@ def run_long(qdectable,options):
     print "already running : "+str(len(running))
     print "dirs not exist  : "+str(len(notexist))
     print "base not exist  : "+str(len(nobase))
+    print "skipped (errors): "+str(len(error))
 
     return submitted
 
