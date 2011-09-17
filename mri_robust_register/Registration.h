@@ -8,8 +8,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2011/09/13 03:08:26 $
- *    $Revision: 1.46 $
+ *    $Date: 2011/09/17 00:50:40 $
+ *    $Revision: 1.47 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -75,6 +75,7 @@ enum Cost
   NMI,
   ECC,
   NCC,
+  SCR
 };
 
   Registration(): sat(-1),iscale(false),transonly(false),rigid(true),

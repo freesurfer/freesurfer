@@ -8,8 +8,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2011/09/13 03:08:26 $
- *    $Revision: 1.72 $
+ *    $Date: 2011/09/17 00:50:40 $
+ *    $Revision: 1.73 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -3397,7 +3397,7 @@ void Registration::setSourceAndTarget (MRI * s,MRI * t, bool keeptype)
   cout << "   Type Source : " << s->type <<  "  Type Target : " << t->type << endl;
   if (s->type != t->type )
   {
-     cout << "   Types differ, will switch to uchar internally ..." << endl;
+     cout << "   Types differ, will adjust type internally ..." << endl;
      keeptype = false;
   }
 
@@ -3608,19 +3608,33 @@ Registration::makeIsotropic(MRI *mri, MRI *out, double vsize, int xdim, int ydim
 		else conform_dimensions[2] = zdim;
 	}
 
+  // histogram based methods need uchar later
+  // for rob at some point float performed better (needs further testing)
+  MRI * temp;
+  if (costfun == ROB || costfun == LS)
+  {
+    temp = MRIallocHeader(conform_dimensions[0],
+                          conform_dimensions[1],
+                          conform_dimensions[2],
+                          MRI_FLOAT,
+                          1);
+    MRIcopyHeader(mri, temp);
+    temp->type   = MRI_FLOAT;
+  }
+  else
+  {
+    temp = MRIallocHeader(conform_dimensions[0],
+                          conform_dimensions[1],
+                          conform_dimensions[2],
+                          MRI_UCHAR,
+                          1);
+    MRIcopyHeader(mri, temp);
+    temp->type   = MRI_UCHAR;
+  }
 	
- // MRI * temp = MRIallocHeader(conform_dimensions[0], conform_dimensions[1], conform_dimensions[2], MRI_UCHAR);
-  MRI * temp = MRIallocHeader(conform_dimensions[0],
-                              conform_dimensions[1],
-                              conform_dimensions[2],
-                              MRI_FLOAT,
-                              1);
-  MRIcopyHeader(mri, temp);
   temp->width  = conform_dimensions[0];
 	temp->height = conform_dimensions[1];
 	temp->depth  = conform_dimensions[2];
-//  temp->type   = MRI_UCHAR;
-  temp->type   = MRI_FLOAT;
   temp->imnr0  = 1;
   temp->imnr1  = temp->depth;
   temp->thick  = conform_size;

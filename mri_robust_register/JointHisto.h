@@ -8,8 +8,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2011/09/13 03:08:25 $
- *    $Revision: 1.1 $
+ *    $Date: 2011/09/17 00:50:40 $
+ *    $Revision: 1.2 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -66,12 +66,13 @@ public:
   void print(const std::string & n = "H"){vnl_matlab_print(vcl_cerr,histo,n.c_str());std::cerr << std::endl;};
   void normalize(){if (sum == 0.0 || sum == 1.0) return; else { histo /= sum; sum = 1.0;} };
 
-  double computeMI();
-  double computeNMI();
+  double computeMI();  // mutual information
+  double computeNMI(); // normalized mutual information
   double computeECC();
   double computeNCC();
   double computeLS();
-
+  double computeSCR(); // symmetric correlation ratio
+  
 protected:
 
   void computeRCsums()
@@ -79,6 +80,8 @@ protected:
      // compute row and column sums
      vnl_matrix < double > v1(n,1,1);
      vnl_matrix < double > v2(1,n,1);
+     if ((int)rowsum.size() != n) rowsum.set_size(n);
+     if ((int)colsum.size() != n) colsum.set_size(n);
      rowsum = (histo *v1).get_column(0);
      colsum = (v2 * histo).get_row(0);
   };

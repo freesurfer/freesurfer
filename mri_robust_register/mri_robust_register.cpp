@@ -10,8 +10,8 @@
  * Original Author: Martin Reuter, Nov. 4th ,2008
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2011/09/13 03:08:26 $
- *    $Revision: 1.55 $
+ *    $Date: 2011/09/17 00:50:40 $
+ *    $Revision: 1.56 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -130,7 +130,7 @@ static void printUsage(void);
 static bool parseCommandLine(int argc, char *argv[],Parameters & P) ;
 static void initRegistration(Registration & R, Parameters & P) ;
 
-static char vcid[] = "$Id: mri_robust_register.cpp,v 1.55 2011/09/13 03:08:26 mreuter Exp $";
+static char vcid[] = "$Id: mri_robust_register.cpp,v 1.56 2011/09/17 00:50:40 mreuter Exp $";
 char *Progname = NULL;
 
 //static MORPH_PARMS  parms ;
@@ -192,6 +192,16 @@ void testRegression()
 
   exit(0);
 
+}
+
+void testSubsamp(Parameters &P)
+{
+
+  MRI * mri1 = MRIread(P.mov.c_str());
+  MRI * mris = MRIdownsample2(mri1,NULL);
+  MRIwrite(mris,"mri1sub.mgz");
+
+  exit(0);
 }
 
 void entro (Parameters & P)
@@ -380,7 +390,8 @@ int main(int argc, char *argv[])
       //printUsage();
       exit(1);
     }
-
+// testSubsamp(P);
+ 
 //entro(P);
 //gradmag(P);
 //jointhisto(P);
@@ -401,10 +412,13 @@ int main(int argc, char *argv[])
 
   // init registration from Parameters
   Registration * Rp=NULL;
-  if (P.cost == Registration::ROB || P.cost == Registration::LS )
+  if (P.cost == Registration::ROB ) //|| P.cost == Registration::LS )
     Rp= new Registration;
   else
+  {
+    P.floattype = true;  // bad way, I know: will allow type to switch inside Registration, and because of the constfun, will switch to uchar
     Rp= new RegPowell;
+  }
   // keep as reference (in order not to modify everything below to pointer)
   Registration &R = *Rp;
   
@@ -1468,6 +1482,7 @@ static int parseNextCommand(int argc, char *argv[], Parameters & P)
     else if (cost == "NMI") P.cost = Registration::NMI;
     else if (cost == "ECC") P.cost = Registration::ECC;
     else if (cost == "NCC") P.cost = Registration::NCC;
+    else if (cost == "SCR") P.cost = Registration::SCR;
     else
     {
        cout << "ERROR: cost function " << cost << " unknown! " << endl;

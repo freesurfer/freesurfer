@@ -8,8 +8,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2011/09/13 03:08:26 $
- *    $Revision: 1.9 $
+ *    $Date: 2011/09/17 00:50:40 $
+ *    $Revision: 1.10 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -125,7 +125,8 @@ double RegPowell::costFunction(const vnl_vector < double >& p)
     case NMI: dd=-H.computeNMI(); break;
     case ECC: dd=-H.computeECC(); break;
     case NCC: dd=-H.computeNCC(); break;
-    //case LS:  dd= H.computeLS(); break;
+    case LS:  dd= H.computeLS();  break;
+    case SCR: dd=-H.computeSCR(); break;
     default:
       cout << " RegPowell::costFunction ERROR cannot deal with cost function " << tocurrent->costfun << " ! " << endl;
       exit(1);
@@ -135,7 +136,7 @@ double RegPowell::costFunction(const vnl_vector < double >& p)
   //cout.setf(ios::fixed,ios::floatfield);   // floatfield set to fixed
   //cout << " e = " << setprecision(14) << dd << "  @  " << flush;
   //vnl_matlab_print(vcl_cerr,p,"p",vnl_matlab_print_format_long);
-
+  //exit(1);
   return dd;
 
 //   // compute new half way maps
@@ -306,7 +307,7 @@ void RegPowell::computeIterativeRegistration( int nmax,double epsit,MRI * mriS, 
   if (subsamplesize <= 0) subsamplesize = 150;
   if (subsamplesize > 0 && mriT->width > subsamplesize && mriT->height > subsamplesize && mriT->depth > subsamplesize)
   {
-    cout << "   - subsampling this resoltuion ... " << endl;
+    cout << "   - subsampling this resolution ... " << endl;
     subsamp = 2;
   }
   // compute Registration
@@ -371,8 +372,10 @@ void RegPowell::computeIterativeRegistration( int nmax,double epsit,MRI * mriS, 
  // double tol = 1e-4; //-8
   //int maxiter = 5;
   //minimizer.set_linmin_xtol(tol);
-  minimizer.set_x_tolerance(1e-5);
-  minimizer.set_f_tolerance(1e-5);
+  //double tol = 1e-4; //
+  double tol = 1e-5; //
+  minimizer.set_x_tolerance(tol);
+  minimizer.set_f_tolerance(tol);
   //minimizer.set_max_function_evals(maxiter);
 
   //minimizer.set_trace(0);
@@ -443,27 +446,25 @@ void RegPowell::computeIterativeRegistration( int nmax,double epsit,MRI * mriS, 
 
   //if (fmd.first) MatrixFree(&fmd.first);
   fmd = RegistrationStep<double>::convertP2Md(p,rtype);
-	cout << fmd.first << endl;
+  //vnl_matlab_print(vcl_cerr,fmd.first,"M",vnl_matlab_print_format_long); cout << endl;   
 
-//  free_matrix(xi, 1, pcount+1, 1, pcount+1) ;
-//  free_vector(p, 1, pcount+1) ;
+  if (symmetry)
+  {
+    // new M = mh2 * cm * mh1
+    fmd.first = (mh2 * fmd.first) * mh1;
+  }
+  else fmd.first = fmd.first * initialM;
+  //vnl_matlab_print(vcl_cerr,fmd.first,"M",vnl_matlab_print_format_long); cout << endl;   
 
-    if (symmetry)
-    {
-      // new M = mh2 * cm * mh1
-      fmd.first = (mh2 * fmd.first) * mh1;
-    }
-    else fmd.first = fmd.first * initialM;
-
-    // ISCALECHANGE:
-    if (iscale)
-    {
-      iscalefinal = exp(fmd.second); // compute full factor (source to target)
-      //idiff = fabs(cmd.second);
-      //std::ostringstream istar;
-      //if (idiff <= ieps) istar << " <= " << ieps << "  :-)" ;
-      //if (verbose >0 ) std::cout << "     -- intensity log diff: abs(" << cmd.second << ") " << istar.str() << std::endl;
-    }
+  // ISCALECHANGE:
+  if (iscale)
+  {
+    iscalefinal = exp(fmd.second); // compute full factor (source to target)
+    //idiff = fabs(cmd.second);
+    //std::ostringstream istar;
+    //if (idiff <= ieps) istar << " <= " << ieps << "  :-)" ;
+    //if (verbose >0 ) std::cout << "     -- intensity log diff: abs(" << cmd.second << ") " << istar.str() << std::endl;
+  }
 
   // adjust half way maps to new midpoint based on final transform
   if (verbose >1) std::cout << "     -- adjusting half-way maps " << std::endl;
@@ -478,139 +479,19 @@ void RegPowell::computeIterativeRegistration( int nmax,double epsit,MRI * mriS, 
   Mfinal = fmd.first;
 
   cout << endl << " DONE " << endl;
-  cout << endl << "Final Transform:" << endl;
+  //cout << endl << "Final Transform:" << endl;
   
   //MatrixPrintFmt(stdout,"% 2.8f",Mfinal);
-	cout << Mfinal << endl;
+	//cout << Mfinal << endl;
 
-  MRI* mri_Swarp = MRIclone(mriT,NULL);
-  mri_Swarp = MyMRI::MRIlinearTransform(mriS,mri_Swarp,Mfinal);
-  MRIwrite(mriS,"mriS.mgz");
-  MRIwrite(mri_Swarp,"mriSwarp.mgz");
-  MRIwrite(mriT,"mriT.mgz");
-
-  MRIfree(&mri_Swarp);
+  //MRI* mri_Swarp = MRIclone(mriT,NULL);
+  //mri_Swarp = MyMRI::MRIlinearTransform(mriS,mri_Swarp,Mfinal);
+  //MRIwrite(mriS,"mriS.mgz");
+  //MRIwrite(mri_Swarp,"mriSwarp.mgz");
+  //MRIwrite(mriT,"mriT.mgz");
+  //MRIfree(&mri_Swarp);
+  
   if (cleanupS) MRIfree(&mriS);
   if (cleanupT) MRIfree(&mriT);
-
-//  exit(1);
-
-//  return fmd ;
-
-
-//
-//        //p = computeRegistrationStepP(mri_Swarp,mri_Twarp);
-//        if (pw.second) MRIfree(&pw.second);
-//        pw = computeRegistrationStepW(mri_Swarp,mri_Twarp);
-//
-//        if (cmd.first != NULL) MatrixFree(&cmd.first);
-//        cmd = convertP2MATRIXd(pw.first);
-//        if (lastp) MatrixFree(&lastp);
-//        lastp = pw.first;
-//        pw.first = NULL;
-//
-//
-//        // store M and d
-//        cout << "   - store transform" << endl;
-//        //cout << endl << " current : Matrix: " << endl;
-//        //MatrixPrintFmt(stdout,"% 2.8f",cmd.first);
-//        //cout << " intens: " << cmd.second << endl;
-//        MATRIX* fmdtmp = MatrixCopy(fmd.first,NULL);
-//        //fmd.first = MatrixMultiply(cmd.first,fmd.first,fmd.first); //old
-//        if(mh2) MatrixFree(&mh2);
-//        mh2 = MatrixInverse(mhi,NULL); // M = mh2 * mh
-//        // new M = mh2 * cm * mh
-//        fmd.first = MatrixMultiply(mh2,cmd.first,fmd.first);
-//        fmd.first = MatrixMultiply(fmd.first,mh,fmd.first);
-//
-//        fmd.second *= cmd.second;
-//        //cout << endl << " Matrix: " << endl;
-//        //MatrixPrintFmt(stdout,"% 2.8f",fmd.first);
-//        if (!rigid) diff = getFrobeniusDiff(fmd.first, fmdtmp);
-//        else        diff = sqrt(RigidTransDistSq(fmd.first, fmdtmp));
-//        cout << "     -- old difference to prev. transform: " << diff << endl;
-//        diff = sqrt(AffineTransDistSq(fmd.first, fmdtmp, 100));
-//        cout << "     -- difference to prev. transform: " << diff << endl;
-//        //cout << " intens: " << fmd.second << endl;
-//
-//        MatrixFree(&fmdtmp);
-//        MatrixFree(&mi);
-//        //MatrixFree(&mh);
-//        //MatrixFree(&mhi);
-//        //MatrixFree(&mh2);
-//
-//    }
-//
-//    //   DEBUG OUTPUT
-//    if (debug > 0)
-//    {
-//     // write weights and warped images after last step:
-//
-//        MRIwrite(mri_Swarp,(name+"-mriS-warp.mgz").c_str());
-//        MRIwrite(mri_Twarp,(name+"-mriT-warp.mgz").c_str());
-//        MRI* salign = MRIclone(mriS,NULL);
-//        salign = MRIlinearTransform(mri_Swarp, salign,cmd.first);
-//        MRIwrite(salign,(name+"-mriS-align.mgz").c_str());
-//        MRIfree(&salign);
-//        if (pw.second)
-//        {
-//      // in the half-way space:
-//             string n = name+string("-mriS-weights.mgz");
-//             MRIwrite(pw.second,n.c_str());
-//        }
-//     }
-//
-//    // store weights (mapped to target space):
-//    if (pw.second)
-//    {
-//          // remove negative weights (markers) set to 1
-//          int x,y,z;
-//          for (z = 0 ; z < pw.second->depth  ; z++)
-//          for (x = 0 ; x < pw.second->width  ; x++)
-//          for (y = 0 ; y < pw.second->height ; y++)
-//          {
-//             if (MRIFvox(pw.second,x,y,z) < 0) MRIFvox(pw.second,x,y,z) = 1;
-//          }
-//    MRI * mtmp = MRIalloc(mriT->width,mriT->height,mriT->depth,MRI_FLOAT);
-//   MRIcopyHeader(mriT,mtmp);
-//   mtmp->type = MRI_FLOAT;
-//    mtmp = MRIlinearTransform(pw.second,mtmp,mh2);
-//          //MRIwrite(mtmp,weightsname.c_str());
-//          MRIfree(&pw.second);
-//   pw.second = mtmp;
-//    }
-//    if (mri_weights) MRIfree(&mri_weights);
-//    mri_weights = pw.second;
-//    if (mov2weights) MatrixFree(&mov2weights);
-//    if (dst2weights) MatrixFree(&dst2weights);
-//    mov2weights = mh; // no freeing needed
-//    dst2weights = mhi;
-//
-//    if (diff > epsit) // adjust mh and mhi to new midpoint
-//    {
-//       cout << "     -- adjusting half-way maps " << endl;
-//       MATRIX * ch = MatrixSqrt(fmd.first);
-//       // do not just assume c = ch*ch, rather c = ch2 * ch
-//       // for transforming target we need ch2^-1 = ch * c^-1
-//       MATRIX * ci  = MatrixInverse(cmd.first,NULL);
-//       MATRIX * chi = MatrixMultiply(ch,ci,NULL);
-//       // append ch or chi to mh mhi
-//       mov2weights = MatrixMultiply(ch,mh,NULL);
-//       dst2weights = MatrixMultiply(chi,mhi,NULL);
-//       MatrixFree(&mh);
-//       MatrixFree(&mhi);
-//    }
-//
-//    MRIfree(&mri_Twarp);
-//    MRIfree(&mri_Swarp);
-//    MatrixFree(&mh2);
-//    if (cmd.first != NULL) MatrixFree(&cmd.first);
-//
-//
-//    Mfinal = MatrixCopy(fmd.first, Mfinal);
-//    iscalefinal = fmd.second;
-//
-//    return fmd;
-
 
 }

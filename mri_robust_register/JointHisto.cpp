@@ -8,8 +8,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2011/09/13 03:08:25 $
- *    $Revision: 1.1 $
+ *    $Date: 2011/09/17 00:50:40 $
+ *    $Revision: 1.2 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -66,35 +66,6 @@ void JointHisto::create(MRI *mri1, MRI * mri2, int d1, int d2, int d3)
   
 }
 
-float samp(MRI * mri, float x, float y, float z)
-{
-//cout << " samp: " << x << " " << y <<" " << z << endl;
-	int ix, iy, iz;
-	float dx1, dy1, dz1, dx2, dy2, dz2;
-	float k111,k112,k121,k122,k211,k212,k221,k222;
-	float vf;
-	//unsigned char *ff;
-
-	ix = (int)floor(x); dx1=x-ix; dx2=1.0-dx1;
-	iy = (int)floor(y); dy1=y-iy; dy2=1.0-dy1;
-	iz = (int)floor(z); dz1=z-iz; dz2=1.0-dz1;
-
-  k222 = MRIgetVoxVal(mri,ix,iy,iz,0);
-  k122 = MRIgetVoxVal(mri,ix+1,iy,iz,0);
-  k212 = MRIgetVoxVal(mri,ix,iy+1,iz,0);
-  k112 = MRIgetVoxVal(mri,ix+1,iy+1,iz,0);
-  k221 = MRIgetVoxVal(mri,ix,iy,iz+1,0);
-  k121 = MRIgetVoxVal(mri,ix+1,iy,iz+1,0);
-  k211 = MRIgetVoxVal(mri,ix,iy+1,iz+1,0);
-  k111 = MRIgetVoxVal(mri,ix+1,iy+1,iz+1,0);
-
-	vf = (((k222*dx2+k122*dx1)*dy2       +
-	       (k212*dx2+k112*dx1)*dy1))*dz2 +
-	     (((k221*dx2+k121*dx1)*dy2       +
-	       (k211*dx2+k111*dx1)*dy1))*dz1;
-	return(vf);
-}
-
 void JointHisto::create(MRI *mriS, MRI* mriT,
            const vnl_matrix_fixed < double, 4,4 >& Msi,
            const vnl_matrix_fixed < double, 4,4 >& Mti,
@@ -102,26 +73,45 @@ void JointHisto::create(MRI *mriS, MRI* mriT,
 {
   assert (mriS->type == MRI_UCHAR);
   assert (mriT->type == MRI_UCHAR);
-
-  //double eps = 2.2204E-16;
-  //histo.fill(eps);
-  histo.fill(0);
+  int dim = 4;
+  n = 256 / dim;
+  int nm1 = n-1;
+  histo.set_size(n,n);
+  histo.fill(0.0);
   haseps = false;
     
-//   static float ran[97] = {0.656619,0.891183,0.488144,0.992646,0.373326,0.531378,0.181316,0.501944,0.422195,
-// 	                        0.660427,0.673653,0.95733,0.191866,0.111216,0.565054,0.969166,0.0237439,0.870216,
-// 	                        0.0268766,0.519529,0.192291,0.715689,0.250673,0.933865,0.137189,0.521622,0.895202,
-// 	                        0.942387,0.335083,0.437364,0.471156,0.14931,0.135864,0.532498,0.725789,0.398703,
-// 	                        0.358419,0.285279,0.868635,0.626413,0.241172,0.978082,0.640501,0.229849,0.681335,
-// 	                        0.665823,0.134718,0.0224933,0.262199,0.116515,0.0693182,0.85293,0.180331,0.0324186,
-// 	                        0.733926,0.536517,0.27603,0.368458,0.0128863,0.889206,0.866021,0.254247,0.569481,
-// 	                        0.159265,0.594364,0.3311,0.658613,0.863634,0.567623,0.980481,0.791832,0.152594,
-// 	                        0.833027,0.191863,0.638987,0.669,0.772088,0.379818,0.441585,0.48306,0.608106,
-// 	                        0.175996,0.00202556,0.790224,0.513609,0.213229,0.10345,0.157337,0.407515,0.407757,
-// 	                        0.0526927,0.941815,0.149972,0.384374,0.311059,0.168534,0.896648};
-// 	int    iran=0;
-	double x,y,z;
-	double rx, ry, rz;
+//   static double uniform[101] = { 0.825960894329359, 0.391799656122844, 0.606822280998442, 0.923192169644637,
+//                                  0.772662867376799, 0.394913419972908, 0.562648884384293, 0.821213453107628,
+//                                  0.077777173551299, 0.536306917657496, 0.514107239245956, 0.761227511728186,
+//                                  0.978425890910315, 0.157030594951506, 0.147496203406248, 0.783403101626463,
+//                                  0.637363106003275, 0.257349279177570, 0.109403726553149, 0.136954287985675,
+//                                  0.654171911591805, 0.204476823923606, 0.164700938803686, 0.566376934840801,
+//                                  0.854095286894540, 0.430581644078462, 0.397193805113614, 0.045536084142315,
+//                                  0.140620297119782, 0.724179303888238, 0.210184975302471, 0.346103835004574,
+//                                  0.226683913788046, 0.308131967172401, 0.451070768412025, 0.831843821825446,
+//                                  0.086760750364257, 0.854135129404520, 0.742590231477529, 0.053858310273945,
+//                                  0.122791324135168, 0.526967625411493, 0.320307444448230, 0.520062337463421,
+//                                  0.878893684505441, 0.443226585521493, 0.320014638636649, 0.868171615160687,
+//                                  0.764138797526944, 0.864611801159897, 0.083244000805187, 0.340050247951733,
+//                                  0.581607039757426, 0.291315250124114, 0.467637373824935, 0.596640965216293,
+//                                  0.897387480194169, 0.121159463814373, 0.018178277226624, 0.747666956017887,
+//                                  0.670108792666926, 0.092391423049263, 0.917528192569663, 0.347581829497044,
+//                                  0.857229173664249, 0.632564501155682, 0.363593396666436, 0.385827512659221,
+//                                  0.003355759148503, 0.969283884272977, 0.459201707491767, 0.800715562489883,
+//                                  0.296945204007638, 0.619917383791628, 0.748749776544515, 0.394902341568457,
+//                                  0.354479046607957, 0.867388084434840, 0.627567204750354, 0.984294463747630,
+//                                  0.824472893444168, 0.295272747204669, 0.927251152590456, 0.119266587069099,
+//                                  0.241265513320426, 0.527775796652046, 0.060203502196487, 0.835363100840541,
+//                                  0.148398316485924, 0.121273963075904, 0.683207184266160, 0.500002874704566,
+//                                  0.561265939626174, 0.234256657698203, 0.486854859925734, 0.071141206079346,
+//                                  0.442630693187859, 0.327200604299592, 0.226827609433358, 0.971944076189183,
+//                                  0.302612670611030 };
+// 
+//  	int    upos=0;
+//   bool   ssamp = (d1>1 || d2 > 1 || d3 >1);
+
+	int    x,y,z;
+	double ux, uy, uz;
   double xs,ys,zs;
   double xt,yt,zt;
 	double vs,vt;
@@ -131,54 +121,57 @@ void JointHisto::create(MRI *mriS, MRI* mriT,
   double ds[3] = { mriS->width, mriS->height, mriS->depth};
   //int count = 0;
   //cout <<" df " << df[0] << " " << df[1] << " " << df[2] << endl;
-	for(z=0.0; z<dt[2]-d3-1; z+=d3)
+	for(z=0; z<dt[2]-d3-1; z+=d3)
 	{
-		for(y=0.0; y<dt[1]-d2-1; y+=d2)
+		for(y=0; y<dt[1]-d2-1; y+=d2)
 		{
-			for(x=0.0; x<dt[0]-d1-1; x+=d1)
+			for(x=0; x<dt[0]-d1-1; x+=d1)
 			{
+//         if (ssamp)
+//         {
+// 				  ux  = x + uniform[upos]*d1;
+//           upos = (upos+1)%101;
+// 				  uy  = y + uniform[upos]*d2;
+//           upos = (upos+1)%101;
+// 				  uz  = z + uniform[upos]*d3;
+//           upos = (upos+1)%101;
+//         }
+//         else
+        {
+          ux = x; uy = y; uz = z;
+        }
+				xt  = Mti[0][0]*ux + Mti[0][1]*uy + Mti[0][2]*uz + Mti[0][3];
+				yt  = Mti[1][0]*ux + Mti[1][1]*uy + Mti[1][2]*uz + Mti[1][3];
+				zt  = Mti[2][0]*ux + Mti[2][1]*uy + Mti[2][2]*uz + Mti[2][3];
 
-				//rx  = x + ran[iran]*d1;
-        //iran = (iran+1)%97;
-				//ry  = y + ran[iran]*d2;
-        //iran = (iran+1)%97;
-				//rz  = z + ran[iran]*d3;
-        //iran = (iran+1)%97;
-        
-        rx = x; ry = y; rz = z;
-
-				xt  = Mti[0][0]*rx + Mti[0][1]*ry + Mti[0][2]*rz + Mti[0][3];
-				yt  = Mti[1][0]*rx + Mti[1][1]*ry + Mti[1][2]*rz + Mti[1][3];
-				zt  = Mti[2][0]*rx + Mti[2][1]*ry + Mti[2][2]*rz + Mti[2][3];
-
-				xs  = Msi[0][0]*rx + Msi[0][1]*ry + Msi[0][2]*rz + Msi[0][3];
-				ys  = Msi[1][0]*rx + Msi[1][1]*ry + Msi[1][2]*rz + Msi[1][3];
-				zs  = Msi[2][0]*rx + Msi[2][1]*ry + Msi[2][2]*rz + Msi[2][3];
+				xs  = Msi[0][0]*ux + Msi[0][1]*uy + Msi[0][2]*uz + Msi[0][3];
+				ys  = Msi[1][0]*ux + Msi[1][1]*uy + Msi[1][2]*uz + Msi[1][3];
+				zs  = Msi[2][0]*ux + Msi[2][1]*uy + Msi[2][2]*uz + Msi[2][3];
         //cout << "( " << x << " " << y << " " << z << " )  ( " << xp << " " << yp << " " << zp << " )" << endl;
 				if (zs>=0.0 && zs<ds[2]-1 && ys>=0.0 && ys<ds[1]-1 && xs>=0.0 && xs<ds[0]-1 &&
             zt>=0.0 && zt<dt[2]-1 && yt>=0.0 && yt<dt[1]-1 && xt>=0.0 && xt<dt[0]-1 )
 				{
-					//vf  = samp(f, xp,yp,zp);
           MRIsampleVolumeFrame(mriS,xs,ys,zs,0,&vs);
+          if (dim != 1) vs /= dim;
+          //if (mask && vs == 0.0) continue;  // bad idea, try registering skull stripped to full
 					ivs = (int)floor(vs);
-          //vg = samp(g,rx,ry,rz);
           MRIsampleVolumeFrame(mriT,xt,yt,zt,0,&vt);
-					//ivg = (int)floor(vg+0.5);
+          if (dim != 1) vt /= dim;
+          //if (mask && vt == 0.0) continue;
 					ivt = (int)floor(vt);
-          //cout <<" ivf : " << ivf << " ivg: " << ivg << endl;
           assert (ivs >=0);
           assert (ivt >=0);
-          assert (ivs <256);
-          assert (ivt <256);
+          assert (ivs <n);
+          assert (ivt <n);
           sdiff  = vs-ivs;
           tdiff  = vt-ivt;
           // distribute peak among bins symetrically:
 					histo[ivs][ivt] += (1-sdiff)*(1-tdiff);
-					if (ivs<255)
+					if (ivs<nm1)
 						histo[ivs+1][ivt] += sdiff*(1-tdiff);
-					if (ivt<255)
+					if (ivt<nm1)
 						histo[ivs][ivt+1] += (1-sdiff)*tdiff;
-					if (ivs<255 && ivt<255)
+					if (ivs<nm1 && ivt<nm1)
 						histo[ivs+1][ivt+1] += sdiff*tdiff;
           //count++;
 				}
@@ -277,8 +270,7 @@ double JointHisto::computeMI()
 // Wells III, Viola, Atsumi, Nakajima & Kikinis (1996).
 // "Multi-modal volume registration by maximisation of mutual information".
 // Medical Image Analysis, 1(1):35-51, 1996. 
-//		H   = H.*log2(H./(s2*s1));
-//		mi  = sum(H(:));
+// sum_{i,j} [ P(i,j) log2(P(i,j) / Pr(i) Pc(j) )]
 {
   int i,j;
   double mi =0.0;
@@ -320,7 +312,7 @@ double JointHisto::computeNMI()
 // Studholme,  Hill & Hawkes (1998).
 // "A normalized entropy measure of 3-D medical image alignment".
 // in Proc. Medical Imaging 1998, vol. 3338, San Diego, CA, pp. 132-143.             
-//		nmi = (sum(s1.*log2(s1))+sum(s2.*log2(s2)))/sum(sum(H.*log2(H)));
+// nmi = [sum_i(Pr(i) log2(Pr(i))) + sum_i(Pc(i) log2(Pc(i))) ] / sum_ij (P(i,j) log2(P(i,j)))
 {
   double s1 = 0;
   double s2 = 0;
@@ -358,7 +350,8 @@ cout << " UNTESTED " << endl;
   double m1 = 0;
   double m2 = 0;
   int i,j;
-  addeps(2.2204E-16);
+  //addeps(2.2204E-16);
+  addeps(1);
   normalize();
   computeRCsums();
   for (i = 0;i<n;i++)
@@ -388,6 +381,70 @@ cout << " UNTESTED " << endl;
 
 }
 
+double JointHisto::computeSCR()
+// symmetric correlation ration (CR(I1, I2) + CR(I2,I1))
+// CR(I1,I2) := 1 - (1/sig) sum_i (sig_i Pr(i))
+// where sig = sum_i(i^2 Pc(i)) - [sum_i (i Pc(i))]^2
+// and  sig_i = (1/Pr(i)) sum_j j^2 P(i,j) - [ 1/Pr(i) sum_j j P(i,j) ]^2
+{
+  int i,j;
+  addeps(1);
+  normalize();
+  computeRCsums();
+  
+  // do everything twice to make stuff symmetric
+  double s1t1 = 0.0; // sum_i (i^2 P(i))
+  double s1t2 = 0.0; // sum_i (i P(i))
+  double s2t1 = 0.0;
+  double s2t2 = 0.0;
+  double t;
+  for (i = 0; i<n; i++)
+  {
+     t = rowsum[i] * i;
+     s1t1 += t*i;
+     s1t2 += t;
+     
+     t = colsum[i] * i;
+     s2t1 += t*i;
+     s2t2 += t;
+  }
+  double sig1 = s1t1 - s1t2 * s1t2;
+  double sig2 = s2t1 - s2t2 * s2t2;
+  //cout << " sig1: " << sig1 << endl;
+  //cout << " sig2: " << sig2 << endl;
+
+
+  double siga1t1;
+  double siga1t2;
+  double siga2t1;
+  double siga2t2;
+  double sum1 = 0.0;
+  double sum2 = 0.0;
+  for (i = 0; i<n; i++)
+  {    
+    siga1t1 = 0.0; siga1t2 = 0.0;
+    siga2t1 = 0.0; siga2t2 = 0.0;
+    for (j = 0; j<n; j++)
+    {
+      t = j * histo[i][j];
+      siga1t1 += j * t;
+      siga1t2 += t;
+      t = j * histo[j][i];
+      siga2t1 += j * t;
+      siga2t2 += t;
+    }
+
+    if(rowsum[i] != 0) sum1 += siga1t1 - siga1t2 * siga1t2 / colsum[i];
+    if(colsum[i] != 0) sum2 += siga2t1 - siga2t2 * siga2t2 / rowsum[i];
+//cout << " sum1: " << sum1 << " colsum[ " <<i << " ] = " << colsum[i]<< endl;
+  }
+//cout << " sum1: " << sum1 << endl;
+//cout << " sum2: " << sum2 << endl;
+
+  return 2.0 - (sum1/sig1) - (sum2/sig2);
+  
+}
+
 double JointHisto::computeLS()
 {
   double ssd = 0.0;
@@ -397,7 +454,7 @@ double JointHisto::computeLS()
   {
     if (i==j) continue;
     k=i-j;
-    ssd += k*histo[i][j];
+    ssd += k*k*histo[i][j];
   }
   return ssd;
 }
