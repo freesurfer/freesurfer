@@ -2695,7 +2695,8 @@ void Blood::TryControlPoint(double &HausDistMin,
 // Write histograms, priors, end ROIs, and initialization control points
 //
 void Blood::WriteOutputs(const char *OutBase) {
-  const int denom = mNumTrain + 2;
+  const int nstr2 = (int) mStreamlines.size() + 2,
+            nsubj2 = mNumTrain + 2;
   char fname[PATH_MAX];
   vector<bool>::const_iterator ivalid1, ivalid2;
   vector< vector<int> >::const_iterator istr;
@@ -2709,6 +2710,22 @@ void Blood::WriteOutputs(const char *OutBase) {
   sprintf(fname, "%s_histo_str.nii.gz", OutBase);
   MRIwrite(mHistoStr, fname);
 
+  // Convert streamline-wise histogram to negative log-likelihood
+  for (int iz = 0; iz < mNz; iz++)
+    for (int iy = 0; iy < mNy; iy++)
+      for (int ix = 0; ix < mNx; ix++) {
+        const float ratio = (MRIgetVoxVal(mHistoStr, ix, iy, iz, 0) + 1)
+                            / nstr2;
+        MRIsetVoxVal(out1, ix, iy, iz, 0, -log(ratio));
+        MRIsetVoxVal(out2, ix, iy, iz, 0, -log(1-ratio));
+      }
+
+  sprintf(fname, "%s_logprior_str_1.nii.gz", OutBase);
+  MRIwrite(out1, fname);
+
+  sprintf(fname, "%s_logprior_str_0.nii.gz", OutBase);
+  MRIwrite(out2, fname);
+
   // Write total number of streamlines to text file
   sprintf(fname, "%s_histo_nstr.txt", OutBase);
   ofstream nstrfile(fname, ios::out);
@@ -2720,16 +2737,19 @@ void Blood::WriteOutputs(const char *OutBase) {
 
   nstrfile << mStreamlines.size() << endl;
 
+  MRIclear(out1);
+  MRIclear(out2);
+
   // Write subject-wise histogram to volume
   sprintf(fname, "%s_histo.nii.gz", OutBase);
   MRIwrite(mHistoSubj, fname);
 
-  // Convert histogram to negative log-likelihood
+  // Convert subject-wise histogram to negative log-likelihood
   for (int iz = 0; iz < mNz; iz++)
     for (int iy = 0; iy < mNy; iy++)
       for (int ix = 0; ix < mNx; ix++) {
         const float ratio = (MRIgetVoxVal(mHistoSubj, ix, iy, iz, 0) + 1)
-                            / denom;
+                            / nsubj2;
         MRIsetVoxVal(out1, ix, iy, iz, 0, -log(ratio));
         MRIsetVoxVal(out2, ix, iy, iz, 0, -log(1-ratio));
       }
@@ -2740,10 +2760,10 @@ void Blood::WriteOutputs(const char *OutBase) {
   sprintf(fname, "%s_logprior_0.nii.gz", OutBase);
   MRIwrite(out2, fname);
 
-  // Save priors using only non-truncated streamlines
+  // Save anatomical priors using only non-truncated streamlines
   WritePriors(OutBase, false);
 
-  // Save priors using all streamlines, truncated or not
+  // Save anatomical priors using all streamlines, truncated or not
   if (mUseTruncated)
     WritePriors(OutBase, true);
 
