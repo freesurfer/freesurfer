@@ -8,8 +8,8 @@
 # Original Author: Anastasia Yendiki
 # CVS Revision Info:
 #    $Author: ayendiki $
-#    $Date: 2011/08/19 20:22:54 $
-#    $Revision: 1.25 $
+#    $Date: 2011/09/19 22:54:15 $
+#    $Revision: 1.26 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -25,7 +25,7 @@
 
 umask 002
 
-set VERSION = '$Id: trac-paths,v 1.25 2011/08/19 20:22:54 ayendiki Exp $'
+set VERSION = '$Id: trac-paths,v 1.26 2011/09/19 22:54:15 ayendiki Exp $'
 set ProgName = `basename $0`
 set inputargs = ($argv)
 
@@ -217,8 +217,8 @@ foreach ntrain ($ntrainlist)
         set priorlist = ()
         foreach pathname ($pathlist)
           set priorlist = ($priorlist \
-            $labdir/$xspace/${pathname}_${avgmode}_logprior_0.nii.gz \
-            $labdir/$xspace/${pathname}_${avgmode}_logprior_1.nii.gz)
+            $labdir/$xspace/${pathname}_${avgmode}_logprior_str_0.nii.gz \
+            $labdir/$xspace/${pathname}_${avgmode}_logprior_str_1.nii.gz)
         end
 
         set npriorlist = ()
