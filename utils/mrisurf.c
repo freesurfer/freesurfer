@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2011/08/12 13:56:36 $
- *    $Revision: 1.698 $
+ *    $Date: 2011/09/20 17:52:40 $
+ *    $Revision: 1.699 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -735,7 +735,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void)
 {
-  return("$Id: mrisurf.c,v 1.698 2011/08/12 13:56:36 fischl Exp $");
+  return("$Id: mrisurf.c,v 1.699 2011/09/20 17:52:40 fischl Exp $");
 }
 
 /*-----------------------------------------------------
@@ -5526,8 +5526,16 @@ static double nsigmas = NSIGMAS ;
 int
 MRISsetRegistrationSigmas(float *sigmas_local, int nsigmas_local)
 {
-  nsigmas = nsigmas_local ;
-  sigmas = sigmas_local ;
+  if (sigmas_local == NULL)
+  {
+    nsigmas = NSIGMAS ;
+    sigmas = sigmas_default ;
+  }
+  else
+  {
+    nsigmas = nsigmas_local ;
+    sigmas = sigmas_local ;
+  }
   return(NO_ERROR) ;
 }
 
@@ -5589,7 +5597,7 @@ MRISregister(MRI_SURFACE *mris, MRI_SP *mrisp_template,
              int max_passes, float min_degrees, float max_degrees, int nangles)
 {
   float   sigma /*, target_sigma, dof*/ ;
-  int     i, start_t, done, sno, ino, msec, min_averages=0, nsurfaces ;
+  int     i, start_t, done, sno, ino, msec, min_averages=0, nsurfaces, using_big_averages=0 ;
   MRI_SP  *mrisp ;
   char    fname[STRLEN], base_name[STRLEN], path[STRLEN] ;
   double  base_dt ;
@@ -5635,7 +5643,7 @@ MRISregister(MRI_SURFACE *mris, MRI_SP *mrisp_template,
                 Progname, fname) ;
     mrisLogIntegrationParms(parms->fp, mris,parms) ;
   }
-  if (Gdiag & DIAG_SHOW)
+//  if (Gdiag & DIAG_SHOW)
     mrisLogIntegrationParms(stderr, mris,parms) ;
 
   if (parms->flags & IP_NO_SULC)
@@ -5654,6 +5662,8 @@ MRISregister(MRI_SURFACE *mris, MRI_SP *mrisp_template,
     nsurfaces = parms->nsurfaces ;
   else
     nsurfaces = SURFACES ;
+
+  using_big_averages = ((parms->start_t == 0) && (parms->first_pass_averages > 0)) ;
   for (; sno < nsurfaces ; sno++)
   {
     if (!first && ((parms->flags & IP_USE_CURVATURE) == 0))
@@ -5718,7 +5728,7 @@ MRISregister(MRI_SURFACE *mris, MRI_SP *mrisp_template,
 #endif
       if (Gdiag & DIAG_WRITE)
         mrisLogIntegrationParms(parms->fp, mris, parms) ;
-      if (Gdiag & DIAG_SHOW)
+//      if (Gdiag & DIAG_SHOW)
         mrisLogIntegrationParms(stderr, mris, parms) ;
     }
     else
@@ -5733,7 +5743,7 @@ MRISregister(MRI_SURFACE *mris, MRI_SP *mrisp_template,
       parms->l_corr /= 3.0f ;  /* should be more adaptive */
       if (Gdiag & DIAG_WRITE)
         mrisLogIntegrationParms(parms->fp, mris, parms) ;
-      if (Gdiag & DIAG_SHOW)
+//      if (Gdiag & DIAG_SHOW)
         mrisLogIntegrationParms(stderr, mris, parms) ;
     }
 
@@ -5899,6 +5909,14 @@ MRISregister(MRI_SURFACE *mris, MRI_SP *mrisp_template,
 
       mrisClearMomentum(mris) ;
       done = 0 ;
+      if (using_big_averages)
+      {
+	float sigma = 4.0 ;
+	MRISsetRegistrationSigmas(&sigma, 1) ;
+	mrisIntegrationEpoch(mris, parms, parms->first_pass_averages) ;
+	MRISsetRegistrationSigmas(NULL, 0) ;
+	using_big_averages = 0 ;
+      }
       mrisIntegrationEpoch(mris, parms, parms->n_averages) ;
     }
     if (sno == 0) // doing inflated - was fairly rigid - restore orig values
@@ -22971,6 +22989,11 @@ MRISsaveVertexPositions(MRI_SURFACE *mris, int which)
 #endif
     switch (which)
     {
+    case LAYERIV_VERTICES:
+      v->l4x = v->x ;
+      v->l4y = v->y ;
+      v->l4z = v->z ;
+      break ;
     case TARGET_VERTICES:
       v->targx = v->x ;
       v->targy = v->y ;
@@ -23189,6 +23212,11 @@ MRISrestoreVertexPositions(MRI_SURFACE *mris, int which)
       v->x = v->whitex ;
       v->y = v->whitey ;
       v->z = v->whitez ;
+      break ;
+    case LAYERIV_VERTICES:
+      v->x = v->l4x ;
+      v->y = v->l4y ;
+      v->z = v->l4z ;
       break ;
     case PIAL_VERTICES:
       v->x = v->pialx ;
@@ -28536,7 +28564,9 @@ MRISpositionSurface(MRI_SURFACE *mris, MRI *mri_brain, MRI *mri_smooth,
   else
     last_rms = rms = mrisRmsValError(mris, mri_brain) ;
   last_sse = sse = MRIScomputeSSE(mris, parms) ;
-  if (DZERO(parms->l_intensity) && parms->l_external > 0)
+  if (DZERO(parms->l_intensity) && gMRISexternalRMS != NULL && parms->l_external > 0)
+    last_rms = rms = (*gMRISexternalRMS)(mris, parms) ;
+  else
     last_rms = rms = 10*sqrt(sse/MRISvalidVertices(mris)) ;
   if (Gdiag & DIAG_SHOW)
     fprintf(stdout, "%3.3d: dt: %2.4f, sse=%2.1f, rms=%2.2f\n",
@@ -28642,16 +28672,18 @@ MRISpositionSurface(MRI_SURFACE *mris, MRI *mri_brain, MRI *mri_smooth,
       MRISsaveVertexPositions(mris, WHITE_VERTICES) ;
       delta_t = mrisAsynchronousTimeStep(mris, parms->momentum, dt,mht,
                                          max_mm) ;
+      if (gMRISexternalTimestep)
+	(*gMRISexternalTimestep)(mris, parms) ;
       if (!(parms->flags & IPFLAG_NO_SELF_INT_TEST))
         MHTcheckFaces(mris, mht) ;
       MRIScomputeMetricProperties(mris) ;
       if (!FZERO(parms->l_location))
         rms = mrisRmsDistanceError(mris) ;
+      else if (DZERO(parms->l_intensity) && gMRISexternalRMS != NULL && parms->l_external > 0)
+	rms = (*gMRISexternalRMS)(mris, parms) ;
       else
         rms = mrisRmsValError(mris, mri_brain) ;
       sse = MRIScomputeSSE(mris, parms) ;
-      if (DZERO(parms->l_intensity) && parms->l_external > 0)
-        rms = 10*sqrt(sse/MRISvalidVertices(mris)) ;
       done = 1 ;
       /* check to see if the error decreased substantially, if not
       reduce the  step size  */
@@ -28688,11 +28720,11 @@ MRISpositionSurface(MRI_SURFACE *mris, MRI *mri_brain, MRI *mri_smooth,
                              deformation amount */
     if (!FZERO(parms->l_location))
       rms = mrisRmsDistanceError(mris) ;
+    else if (DZERO(parms->l_intensity) && gMRISexternalRMS != NULL && parms->l_external > 0)
+      rms = (*gMRISexternalRMS)(mris, parms) ;
     else
       rms = mrisRmsValError(mris, mri_brain) ;
     sse = MRIScomputeSSE(mris, parms) ;
-    if (DZERO(parms->l_intensity) && parms->l_external > 0)
-      rms = 10*sqrt(sse/MRISvalidVertices(mris)) ;
     if (Gdiag & DIAG_SHOW)
       fprintf(stdout, "%3.3d: dt: %2.4f, sse=%2.1f, rms=%2.2f\n",
               n+1,(float)delta_t, (float)sse, (float)rms);
