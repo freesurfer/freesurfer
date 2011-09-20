@@ -21,7 +21,7 @@ G_SYNOPSIS="
  NAME 
 
  	mris_roiCircle
-        $Id: mris_roiCircle,v 1.5 2011/08/22 15:05:38 rudolph Exp $
+        $Id: mris_roiCircle,v 1.6 2011/09/20 12:45:12 rudolph Exp $
 
  SYNOPSIS
 
@@ -139,7 +139,14 @@ G_SYNOPSIS="
 
  15 August 2011
  o More descriptive output file naming.
- 
+
+ August 2011
+ o Check on existing options.txt file and, if exists,
+   more intelligently compare with command line options
+   if passed.
+
+ September 2011
+ o GNU vs BSD sed annoyances. 
 "
 
 ###\\\
@@ -400,13 +407,13 @@ fi
 #
 # Comment out the 'b_exitOnDone' flag
 lprint  "Editing b_exitOnDone"
-sed -i 's/^b_exitOnDone/#b_exitOnDone/' "$G_OPTIONSFILE"
+sed -i.bak 's/^b_exitOnDone/#b_exitOnDone/' "$G_OPTIONSFILE"
 ret_check $?
 
 #
 # Make sure the 'wd' weight is 1.0000
 lprint "Editing the 'wd' weight"
-sed -i '/^wd /s/0\./1\./g' "$G_OPTIONSFILE"
+sed -i.bak '/^wd /s/0\./1\./g' "$G_OPTIONSFILE"
 ret_check $?
 
 # Generate a set of dsh scripts about each vertex
