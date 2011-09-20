@@ -1,14 +1,14 @@
 /**
  * @file  main.cpp
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief the 'main' for freeview
  *
  */
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: rpwang $
- *    $Date: 2011/08/11 15:47:43 $
- *    $Revision: 1.13 $
+ *    $Author: nicks $
+ *    $Date: 2011/09/20 21:20:03 $
+ *    $Revision: 1.14 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -61,7 +61,8 @@ void myMessageOutput(QtMsgType type, const char *msg)
 
 int main(int argc, char *argv[])
 {
-  Progname = argv[0]; putenv("SURFER_FRONTDOOR=");
+  Progname = argv[0]; 
+  putenv((char*)"SURFER_FRONTDOOR=");
   qInstallMsgHandler(myMessageOutput);
 
   CmdLineEntry cmdLineDesc[] =

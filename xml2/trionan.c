@@ -1,6 +1,6 @@
 /*************************************************************************
  *
- * $Id: trionan.c,v 1.3 2010/07/20 20:24:04 nicks Exp $
+ * $Id: trionan.c,v 1.4 2011/09/20 21:20:04 nicks Exp $
  *
  * Copyright (C) 2001 Bjorn Reese <breese@users.sourceforge.net>
  *
@@ -112,7 +112,7 @@
  * Constants
  */
 
-static TRIO_CONST char rcsid[] = "@(#)$Id: trionan.c,v 1.3 2010/07/20 20:24:04 nicks Exp $";
+static TRIO_CONST char rcsid[] = "@(#)$Id: trionan.c,v 1.4 2011/09/20 21:20:04 nicks Exp $";
 
 #if defined(USE_IEEE_754)
 
@@ -212,6 +212,7 @@ TRIO_ARGS2((number, has_mantissa),
 }
 
 #ifndef Darwin
+#if 0 // NJS: defined but not used
 /*
  * trio_is_negative
  */
@@ -229,6 +230,7 @@ TRIO_ARGS1((number),
   }
   return is_negative;
 }
+#endif
 #endif
 
 #endif /* USE_IEEE_754 */

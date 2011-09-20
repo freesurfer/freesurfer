@@ -6,9 +6,9 @@
 /*
  * Original Authors: Segonne and Greve 
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2011/08/12 13:56:37 $
- *    $Revision: 1.40 $
+ *    $Author: nicks $
+ *    $Date: 2011/09/20 21:20:04 $
+ *    $Revision: 1.41 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -2179,9 +2179,15 @@ int MRISfindPath ( int *vert_vno, int num_vno, int max_path_length,
   return (ERROR_NONE);
 }
 
-MRI *
-MRIScomputeFlattenedVolume(MRI_SURFACE *mris, MRI *mri, double res, int nsamples, int normalize, MRI **pmri_vertices, int smooth_iters, 
-			   double wm_dist, double outside_dist)
+MRI *MRIScomputeFlattenedVolume(MRI_SURFACE *mris,
+                                MRI *mri,
+                                double res,
+                                int nsamples,
+                                int normalize,
+                                MRI **pmri_vertices,
+                                int smooth_iters,
+                                double wm_dist,
+                                double outside_dist)
 {
   MRI    *mri_flat, *mri_mask, *mri_counts, *mri_vno ;
   int    vno, width, height, u, v, w, fno, num ;

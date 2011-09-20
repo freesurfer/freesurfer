@@ -413,7 +413,7 @@ freeview_CXXFLAGS = $(QT_CXXFLAGS) $(AM_CXXFLAGS)
 freeview_CPPFLAGS = $(QT_CPPFLAGS) $(AM_CPPFLAGS)
 freeview_LDFLAGS	= $(QT_LDFLAGS) $(OS_LDFLAGS) \
 	-framework Cocoa -framework IOKit
-freeview_LDADD		= $(QT_LIBS)	\
+freeview_LDADD		= $(QT_LIBS) \
 	$(addprefix $(top_builddir)/, $(LIBS_MGH)) \
 	$(top_builddir)/vtkfsio/libvtkfsio.a \
 	$(top_builddir)/vtkutils/libvtkutils.a \
