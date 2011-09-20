@@ -8,9 +8,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: rpwang $
- *    $Date: 2011/06/17 02:37:48 $
- *    $Revision: 1.393 $
+ *    $Author: greve $
+ *    $Date: 2011/09/20 22:06:38 $
+ *    $Revision: 1.394 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -9578,7 +9578,9 @@ static MRI *nifti1Read(const char *fname, int read_volume)
     if (hdr.slice_code != NIFTI_SLICE_SEQ_INC &&
         hdr.slice_code != NIFTI_SLICE_SEQ_DEC &&
         hdr.slice_code != NIFTI_SLICE_ALT_INC &&
-        hdr.slice_code != NIFTI_SLICE_ALT_DEC)
+        hdr.slice_code != NIFTI_SLICE_ALT_DEC &&
+        hdr.slice_code != NIFTI_SLICE_ALT_INC2 &&
+        hdr.slice_code != NIFTI_SLICE_ALT_DEC2)
     {
       ErrorReturn(NULL,
                   (ERROR_UNSUPPORTED,
@@ -10396,7 +10398,9 @@ static MRI *niiRead(const char *fname, int read_volume)
     if (hdr.slice_code != NIFTI_SLICE_SEQ_INC &&
         hdr.slice_code != NIFTI_SLICE_SEQ_DEC &&
         hdr.slice_code != NIFTI_SLICE_ALT_INC &&
-        hdr.slice_code != NIFTI_SLICE_ALT_DEC)
+        hdr.slice_code != NIFTI_SLICE_ALT_DEC &&
+        hdr.slice_code != NIFTI_SLICE_ALT_INC2 &&
+        hdr.slice_code != NIFTI_SLICE_ALT_DEC2)
     {
       ErrorReturn(NULL,
                   (ERROR_UNSUPPORTED,
