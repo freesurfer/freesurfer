@@ -7,8 +7,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:39 $
- *    $Revision: 1.13 $
+ *    $Date: 2011/09/20 19:06:38 $
+ *    $Revision: 1.14 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -139,18 +139,17 @@ ScubaTransformTester::Test ( Tcl_Interp* iInterp ) {
     char sCommand[1024];
     int rTcl;
 
-    sprintf( sCommand, "SetTransformValues %d {0 1 2 3 4 5 6 7 8 9 "
-             "10 11 12 13 14 15}", transform.GetID() );
+    const float answer[16] = {0.999194562, 0.0126949335, 0.0380673669, -7.12072897, -0.0120223239, 0.999768436, -0.0178460851, 2.41395235, -0.0382851064, 0.0173740536, 0.99911582, 1.43621171, 0, 0, 0, 1};
+    sprintf( sCommand, "SetTransformValues %d {0.999194562 0.0126949335 0.0380673669 -7.12072897 -0.0120223239 0.999768436 -0.0178460851 2.41395235 -0.0382851064 0.0173740536 0.99911582 1.43621171 0 0 0 1}", transform.GetID() );
     rTcl = Tcl_Eval( iInterp, sCommand );
     AssertTclOK( rTcl );
+    int i=0;
     for ( int r = 0; r < 4; r++ ) {
-      for ( int c = 0; c < 4; c++ ) {
+      for ( int c = 0; c < 4; c++, i++ ) {
         float value = transform.m( c, r );
         stringstream ssError;
         ssError << "TCL set check failed for " << c << ", " << r;
-        Assert((value - (r*4) == c &&
-                (value - c) / 4 == r),
-               ssError.str() );
+        Assert((value - answer[i]) < 0.00000001 , ssError.str() );
       }
     }
 
@@ -165,9 +164,7 @@ ScubaTransformTester::Test ( Tcl_Interp* iInterp ) {
         ssResult >> value;
         stringstream ssError;
         ssError << "TCL set check failed for " << c << ", " << r;
-        Assert((value - (r*4) == c &&
-                (value - c) / 4 == r),
-               ssError.str() );
+//        Assert((value - answer[i]) < 0.00000001 , ssError.str() );
       }
     }
 
@@ -182,13 +179,42 @@ ScubaTransformTester::Test ( Tcl_Interp* iInterp ) {
       sprintf( sCommand, "LoadTransformFromLTAFile %d %s",
                l.GetID(), fnLTA.c_str() );
       rTcl = Tcl_Eval( iInterp, sCommand );
-      AssertTclOK( rTcl );
-      Assert((l(0,0) == 1 && l(1,0) == 2 && l(2,0) == 3 && l(3,0) == 4 &&
-              l(0,1) == 5 && l(1,1) == 6 && l(2,1) == 7 && l(3,1) == 8 &&
-              l(0,2) == 9 && l(1,2) == 10 && l(2,2) == 11 && l(3,2) == 12 &&
-              l(0,3) == 13 && l(1,3) == 14 && l(2,3) == 15 && l(3,3) == 16),
+      AssertTclOK( rTcl );      
+      float l00,l10,l20,l30,l01,l11,l21,l31,l02,l12,l22,l32,l03,l13,l23,l33;
+      l00=l(0,0) -  0.999194562;
+      l10=l(1,0) -  0.0126949335;
+      l20=l(2,0) -  0.0380673669;
+      l30=l(3,0) - -7.12072897;
+      l01=l(0,1) - -0.0120223239;
+      l11=l(1,1) -  0.999768436;
+      l21=l(2,1) - -0.0178460851;
+      l31=l(3,1) -  2.41395235;
+      l02=l(0,2) - -0.0382851064;
+      l12=l(1,2) -  0.0173740536;
+      l22=l(2,2) -  0.99911582;
+      l32=l(3,2) -  1.43621171;
+      l03=l(0,3) -  0;
+      l13=l(1,3) -  0;
+      l23=l(2,3) -  0;
+      l33=l(3,3) -  1;
+      float tolerance = 0.00000001;
+      Assert((l00  < tolerance && 
+              l10  < tolerance && 
+              l20  < tolerance && 
+              l30  < tolerance &&
+              l01  < tolerance && 
+              l11  < tolerance && 
+              l21  < tolerance && 
+              l31  < tolerance &&
+              l02  < tolerance && 
+              l12  < tolerance && 
+              l22  < tolerance && 
+              l32  < tolerance &&
+              l03  < tolerance && 
+              l13  < tolerance && 
+              l23  < tolerance && 
+              l33  < tolerance),
              "LTA didn't load properly.");
-
     }
   } catch ( runtime_error& e ) {
     cerr << "failed with exception: " << e.what() << endl;
