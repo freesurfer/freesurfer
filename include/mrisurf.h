@@ -9,8 +9,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2011/08/12 14:07:15 $
- *    $Revision: 1.354 $
+ *    $Date: 2011/09/20 17:53:06 $
+ *    $Revision: 1.355 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -112,6 +112,7 @@ typedef struct vertex_type_
   float targx, targy, targz ;   // target coordinates
   float pialx, pialy, pialz ;   /* pial surface coordinates */
   float whitex, whitey, whitez ;/* white surface coordinates */
+  float l4x, l4y, l4z ;   /* layerIV surface coordinates */
   float infx, infy, infz; /* inflated coordinates */
   float fx, fy, fz ;      /* flattened coordinates */
   int   px,qx, py,qy, pz,qz; /* rational coordinates for exact calculations */
@@ -464,6 +465,7 @@ typedef struct
                                          dura shows up bright */
   int     n_averages ;        /* # of averages */
   int     min_averages ;
+  int     first_pass_averages;// # of averages to use in the first pass
   int     nbhd_size ;
   int     max_nbrs ;
   int     write_iterations ;  /* # of iterations between saving movies */
@@ -559,8 +561,10 @@ typedef struct
   int          ico_order ;  // which icosahedron to use
   int          remove_neg ;
   MRI          *mri_hires ;
+  MRI          *mri_hires_smooth ;
   MRI          *mri_vno ;
   MRI          *mri_template ;
+  int          which_surface ;
 }
 INTEGRATION_PARMS ;
 
@@ -1008,6 +1012,7 @@ double       MRISParea(MRI_SP *mrisp) ;
 #define WHITE_VERTICES      9
 #define TARGET_VERTICES     10
 #define LAYERIV_VERTICES    11
+#define LAYER4_VERTICES     LAYERIV_VERTICES
 
 int MRISsaveVertexPositions(MRI_SURFACE *mris, int which) ;
 int MRISrestoreVertexPositions(MRI_SURFACE *mris, int which) ;
@@ -1721,7 +1726,7 @@ int MRISsegmentAnnotated(MRI_SURFACE *mris,
                          int *pnlabels,
                          float min_label_area) ;
 int MRISaverageGradients(MRI_SURFACE *mris, int num_avgs) ;
-int MRISnormalTermWithGaussianCurvature(MRI_SURFACE *mris,double l_lambda) ;
+ int MRISnormalTermWithGaussianCurvature(MRI_SURFACE *mris,double l_lambda) ;
 int MRISnormalSpringTermWithGaussianCurvature(MRI_SURFACE *mris,
                                               double gaussian_norm,
                                               double l_spring) ;
@@ -2007,5 +2012,5 @@ int face_barycentric_coords(MRI_SURFACE *mris, int fno, int which_vertices,
                             double cx, double cy, double cz, double *pl1, double *pl2, double *pl3) ;
 
 MRI *MRIScomputeFlattenedVolume(MRI_SURFACE *mris, MRI *mri, double res, int nsamples, int normalize, MRI **pmri_vertices, int smooth_iters,
-				double wm_dist, double outside_dist);
+				int wm_samples, int outside_samples, int min_val_change);
 #endif // MRISURF_H
