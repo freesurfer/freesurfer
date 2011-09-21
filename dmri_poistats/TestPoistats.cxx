@@ -1551,13 +1551,13 @@ void TestPoistats::TestMask() {
 
   PoistatsFilterType::SizeType inputSize;
   PoistatsFilterType::IndexType inputStart;
-  double inputOrigin[ 4 ];
-  for( int cDim=0; cDim<4; cDim++ ) {
+  double inputOrigin[ 3 ];
+  for( int cDim=0; cDim<3; cDim++ ) {
     inputSize[ cDim ] = 3;
     inputStart[ cDim ] = 0;
     inputOrigin[ cDim ] = 0;
   }
-  inputSize[ 3 ] = 9;
+  inputSize[ 2 ] = 9;
       
   PoistatsFilterType::RegionType inputRegion;
   inputRegion.SetSize( inputSize );
