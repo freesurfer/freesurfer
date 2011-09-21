@@ -9,8 +9,8 @@
 #
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2011/09/21 17:15:09 $
-#    $Revision: 1.538 $
+#    $Date: 2011/09/21 17:28:43 $
+#    $Revision: 1.539 $
 #
 ########################################################################
 AC_PREREQ(2.57)
@@ -1150,7 +1150,14 @@ if test ! "$ac_mni_libraries" = "NO"; then
 fi
 
 # these are the libs used by freesurfer:
-LIBS_MNI="-lnetcdf -lvolume_io -lminc"
+MINC2=NO
+if test -e "$ac_mni_libraries/libminc2.a" ; then
+  # newer build of the MNI tools
+  LIBS_MNI="-lnetcdf -lhdf5 -lvolume_io2 -lminc2"
+  MINC2=YES
+else
+  LIBS_MNI="-lnetcdf -lvolume_io -lminc"
+fi
 
 AC_SUBST(MNI_CFLAGS)
 AC_SUBST(MNI_LIBS)
@@ -2813,12 +2820,22 @@ fi
 AC_CHECK_LIB([netcdf], [nccreate],[],
   [AC_MSG_ERROR([FATAL: netcdf lib not found. \
 Set LDFLAGS or --with-mni-dir.])] )
-AC_CHECK_LIB([minc], [miopen], [],
-  [AC_MSG_ERROR([FATAL: minc lib not found. \
-Set LDFLAGS or --with-mni-dir.])] )
-AC_CHECK_LIB([volume_io], [transform_point],[],
-  [AC_MSG_ERROR([FATAL: volume_io lib not found. \
-Set LDFLAGS or --with-mni-dir.])] )
+if test "x$MINC2" = "xYES"; then
+  # check for newer build of mni tools
+  AC_CHECK_LIB([minc2 -lhdf5], [miopen], [],
+    [AC_MSG_ERROR([FATAL: minc2 lib not found. \
+  Set LDFLAGS or --with-mni-dir.])] )
+  AC_CHECK_LIB([volume_io2], [transform_point],[],
+    [AC_MSG_ERROR([FATAL: volume_io2 lib not found. \
+  Set LDFLAGS or --with-mni-dir.])] )
+else
+  AC_CHECK_LIB([minc], [miopen], [],
+    [AC_MSG_ERROR([FATAL: minc lib not found. \
+  Set LDFLAGS or --with-mni-dir.])] )
+  AC_CHECK_LIB([volume_io], [transform_point],[],
+    [AC_MSG_ERROR([FATAL: volume_io lib not found. \
+  Set LDFLAGS or --with-mni-dir.])] )
+fi
 
 # VXL check
 AC_CHECK_FILE($VXL_LIB/libvnl$DYNAMIC_LIB_EXT,
@@ -3278,7 +3295,7 @@ AC_OUTPUT([Makefile
            distribution/Makefile
            distribution/average/Makefile
            distribution/average/surf/Makefile
-	   distribution/average/Yeo_JNeurophysiol11_MNI152/Makefile
+           distribution/average/Yeo_JNeurophysiol11_MNI152/Makefile
            distribution/docs/Makefile
            distribution/diffusion/Makefile
            distribution/diffusion/mgh-dti-seqpack/Makefile
@@ -3625,6 +3642,8 @@ AC_OUTPUT([Makefile
            vtkfsio/Makefile
            vtkutils/Makefile
            xml2/Makefile])
+
+#           mri_edit_seg_with_ribbons/Makefile
 
 ########################################################################
 
