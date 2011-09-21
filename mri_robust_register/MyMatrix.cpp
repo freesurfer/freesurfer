@@ -8,8 +8,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2011/09/13 03:08:25 $
- *    $Revision: 1.23 $
+ *    $Date: 2011/09/21 05:45:26 $
+ *    $Revision: 1.24 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -1382,7 +1382,7 @@ vnl_matrix < double > MyMatrix::MatrixSqrt(const vnl_matrix < double >& A)
 	//	}
 	
 	  // test if sqrt^2==A
-    double eps = 0.000000000001;  
+    double eps = 1e-10;  
     vnl_matrix < double > msqrt = vnl_real(Asqrt);
     vnl_matrix < double > ms2 = msqrt * msqrt;
     ms2 -= A;

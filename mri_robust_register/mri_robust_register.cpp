@@ -10,8 +10,8 @@
  * Original Author: Martin Reuter, Nov. 4th ,2008
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2011/09/17 00:50:40 $
- *    $Revision: 1.56 $
+ *    $Date: 2011/09/21 05:45:26 $
+ *    $Revision: 1.57 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -130,7 +130,7 @@ static void printUsage(void);
 static bool parseCommandLine(int argc, char *argv[],Parameters & P) ;
 static void initRegistration(Registration & R, Parameters & P) ;
 
-static char vcid[] = "$Id: mri_robust_register.cpp,v 1.56 2011/09/17 00:50:40 mreuter Exp $";
+static char vcid[] = "$Id: mri_robust_register.cpp,v 1.57 2011/09/21 05:45:26 mreuter Exp $";
 char *Progname = NULL;
 
 //static MORPH_PARMS  parms ;
@@ -584,10 +584,30 @@ int main(int argc, char *argv[])
         cout << " WARNING: movable has more than one frame !!! Only map first ..." << endl;
       }
       P.mri_mov->nframes = 1 ; // only map frame 1
-      MRI *mri_aligned = MRIclone(P.mri_dst,NULL);
+      
+//       //switch type to dst type:
+//       MRI *mri_aligned = MRIcloneDifferentType(P.mri_dst, MRI_FLOAT) ;
+//       mri_aligned = LTAtransform(P.mri_mov,mri_aligned, lta);
+//       if (mri_aligned->type != P.mri_dst->type)
+//       {
+//          int no_scale_flag = FALSE;
+//          MRI* mri2 = MRISeqchangeType(mri_aligned, P.mri_dst->type, 0.0, 0.999, no_scale_flag);
+//          if (mri2 == NULL)
+//          {
+//            printf("ERROR: MRISeqchangeType\n");
+//            exit(1);
+//          }
+//          MRIfree(&mri_aligned);
+//          mri_aligned = mri2;
+//       }
+      
+      // keep mov type:
+      MRI *mri_aligned = MRIcloneDifferentType(P.mri_dst, P.mri_mov->type) ;
       mri_aligned = LTAtransform(P.mri_mov,mri_aligned, lta);
-      P.mri_mov->nframes = nframes ;
-
+      
+      // reset mov n frames:
+      P.mri_mov->nframes = nframes ;      
+      
       // keep acquisition params:
       MRIcopyPulseParameters(P.mri_mov,mri_aligned);
 

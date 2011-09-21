@@ -8,8 +8,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2011/09/17 00:50:40 $
- *    $Revision: 1.2 $
+ *    $Date: 2011/09/21 05:45:26 $
+ *    $Revision: 1.3 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -73,7 +73,8 @@ void JointHisto::create(MRI *mriS, MRI* mriT,
 {
   assert (mriS->type == MRI_UCHAR);
   assert (mriT->type == MRI_UCHAR);
-  int dim = 4;
+  //int dim = 4;
+  int dim = 1;
   n = 256 / dim;
   int nm1 = n-1;
   histo.set_size(n,n);
@@ -106,6 +107,7 @@ void JointHisto::create(MRI *mriS, MRI* mriT,
 //                                  0.561265939626174, 0.234256657698203, 0.486854859925734, 0.071141206079346,
 //                                  0.442630693187859, 0.327200604299592, 0.226827609433358, 0.971944076189183,
 //                                  0.302612670611030 };
+//   int opos = 0;
 // 
 //  	int    upos=0;
 //   bool   ssamp = (d1>1 || d2 > 1 || d3 >1);
@@ -118,7 +120,9 @@ void JointHisto::create(MRI *mriS, MRI* mriT,
 	int    ivs, ivt;
   double sdiff, tdiff;
   double dt[3] = { mriT->width, mriT->height, mriT->depth};
-  double ds[3] = { mriS->width, mriS->height, mriS->depth};
+ // double ds[3] = { mriS->width, mriS->height, mriS->depth};
+  mriS->outside_val = -1;
+  mriT->outside_val = -1;
   //int count = 0;
   //cout <<" df " << df[0] << " " << df[1] << " " << df[2] << endl;
 	for(z=0; z<dt[2]-d3-1; z+=d3)
@@ -148,15 +152,25 @@ void JointHisto::create(MRI *mriS, MRI* mriT,
 				ys  = Msi[1][0]*ux + Msi[1][1]*uy + Msi[1][2]*uz + Msi[1][3];
 				zs  = Msi[2][0]*ux + Msi[2][1]*uy + Msi[2][2]*uz + Msi[2][3];
         //cout << "( " << x << " " << y << " " << z << " )  ( " << xp << " " << yp << " " << zp << " )" << endl;
-				if (zs>=0.0 && zs<ds[2]-1 && ys>=0.0 && ys<ds[1]-1 && xs>=0.0 && xs<ds[0]-1 &&
-            zt>=0.0 && zt<dt[2]-1 && yt>=0.0 && yt<dt[1]-1 && xt>=0.0 && xt<dt[0]-1 )
+//				if (zs>=0.0 && zs<ds[2]-1 && ys>=0.0 && ys<ds[1]-1 && xs>=0.0 && xs<ds[0]-1 &&
+//            zt>=0.0 && zt<dt[2]-1 && yt>=0.0 && yt<dt[1]-1 && xt>=0.0 && xt<dt[0]-1 )
 				{
           MRIsampleVolumeFrame(mriS,xs,ys,zs,0,&vs);
+          if (vs == -1) continue;
+//           {//cout << "outside vs" << endl;
+//              vs = 255.0 * uniform[opos];
+//              opos = (opos+1)%101;
+//           }
           if (dim != 1) vs /= dim;
           //if (mask && vs == 0.0) continue;  // bad idea, try registering skull stripped to full
 					ivs = (int)floor(vs);
           MRIsampleVolumeFrame(mriT,xt,yt,zt,0,&vt);
           if (dim != 1) vt /= dim;
+          if (vt == -1) continue;
+//           {//cout << "outside vt" << endl;
+//              vt = 255.0 * uniform[opos];
+//              opos = (opos+1)%101;
+//           }
           //if (mask && vt == 0.0) continue;
 					ivt = (int)floor(vt);
           assert (ivs >=0);
@@ -270,19 +284,21 @@ double JointHisto::computeMI()
 // Wells III, Viola, Atsumi, Nakajima & Kikinis (1996).
 // "Multi-modal volume registration by maximisation of mutual information".
 // Medical Image Analysis, 1(1):35-51, 1996. 
-// sum_{i,j} [ P(i,j) log2(P(i,j) / Pr(i) Pc(j) )]
+// mi =  sum_{i,j} [ P(i,j) log2 (P(i,j) / Pr(i) Pc(j)) ]
+// mi = H(M) + H(N) - H(M,N)
 {
   int i,j;
   double mi =0.0;
   double d;
-  addeps(2.2204E-16);
+  //addeps(2.2204E-16);
   normalize();
   computeRCsums();
   for (i=0;i<n;i++)
   for (j=0;j<n;j++)
   {
     d = histo[i][j];
-    mi += d * log2(d / (rowsum[i]*colsum[j]));
+    if (d != 0.0)
+      mi += d * log2(d / (rowsum[i]*colsum[j]));
   }
   return mi;
 }
@@ -295,16 +311,36 @@ double JointHisto::computeECC()
 //		H   = H.*log2(H./(s2*s1));
 //		mi  = sum(H(:));
 //		ecc = -2*mi/(sum(s1.*log2(s1))+sum(s2.*log2(s2)));
+// mi =  sum_{i,j} [ P(i,j) log2 (P(i,j) / Pr(i) Pc(j)) ]
+// mi = H(M) + H(N) - H(M,N)
+// ecc = -2*mi / [sum_i(Pr(i) log2(Pr(i))) + sum_i(Pc(i) log2(Pc(i))) ]
+// ecc = -2*mi / (H(M) + H(N))
+// ecc = -2 [ 1 - H(M,N) / (H(M) + H(N))  ] 
+// ecc = -2 + 2 H(M,N) / (H(M) + H(N))  
 {
-  double mi = computeMI();
-  double ecc = 0;
-  addeps(2.2204E-16);
+  //double mi = computeMI();
+  double msum = 0.0;
+  double mi =0.0;
+  double d;
+  int i,j;
+  //addeps(2.2204E-16);
   normalize();
   computeRCsums();
-  for (int i=0;i<n;i++)
-    ecc += rowsum[i]*log2(rowsum[i])+colsum[i]*log2(colsum[i]);
- 
-  return -2*mi/ecc;
+  for (i=0;i<n;i++)
+  {
+    if (rowsum[i] != 0.0)
+      msum += rowsum[i]*log2(rowsum[i]);
+    if (colsum[i] != 0.0)
+      msum += colsum[i]*log2(colsum[i]);
+    for (j=0;j<n;j++)
+    {
+      d = histo[i][j];
+      if (d != 0.0)
+        mi += d * log2(d / (rowsum[i]*colsum[j]));
+    }
+  }
+  return -2*mi/msum;
+//  return (-2.0 + 2.0/computeNMI());
 }
 
 double JointHisto::computeNMI()
@@ -313,22 +349,27 @@ double JointHisto::computeNMI()
 // "A normalized entropy measure of 3-D medical image alignment".
 // in Proc. Medical Imaging 1998, vol. 3338, San Diego, CA, pp. 132-143.             
 // nmi = [sum_i(Pr(i) log2(Pr(i))) + sum_i(Pc(i) log2(Pc(i))) ] / sum_ij (P(i,j) log2(P(i,j)))
+// (H(M) + H(N)) / H(M,N)
 {
   double s1 = 0;
   double s2 = 0;
   int i,j;
   double d;
-  addeps(2.2204E-16);
+  //addeps(2.2204E-16);
   normalize();
   computeRCsums();
     
   for (i = 0;i<n;i++)
   {
-    s1 += rowsum[i]*log2(rowsum[i])+colsum[i]*log2(colsum[i]);
+    if (rowsum[i] != 0.0)
+      s1 += rowsum[i]*log2(rowsum[i]);
+    if (colsum[i] != 0.0)
+      s1 += colsum[i]*log2(colsum[i]);
     for (j=0;j<n;j++)
     {
       d = histo[i][j];
-      s2 += d * log2(d);
+      if (d!=0.0)
+        s2 += d * log2(d);
     }
   }
 
@@ -337,21 +378,17 @@ double JointHisto::computeNMI()
 
 double JointHisto::computeNCC()
 // compute Normalised Cross Correlation
-//		i     = 1:size(H,1);
-//		j     = 1:size(H,2);
-//		m1    = sum(s2.*i');
-//		m2    = sum(s1.*j);
-//		sig1  = sqrt(sum(s2.*(i'-m1).^2));
-//		sig2  = sqrt(sum(s1.*(j -m2).^2));
-//		[i,j] = ndgrid(i-m1,j-m2);
-//		ncc   = sum(sum(H.*i.*j))/(sig1*sig2);
+// mean1 = sum_i Pr(i) * i
+// mean2 = sum_i Pc(i) * i
+// sig1  = sqrt(sum_i Pr(i) * (i-mean1)^2)
+// sig2  = sqrt(sum_i Pc(i) * (i-mean2)^2)
+// ncc   = (sum_ij P(i,j) (i-mean1) (j-mean2)) / (sig1 * sig2)
 {
-cout << " UNTESTED " << endl;
-  double m1 = 0;
-  double m2 = 0;
+  double m1 = 0.0;
+  double m2 = 0.0;
   int i,j;
   //addeps(2.2204E-16);
-  addeps(1);
+  //addeps(1);
   normalize();
   computeRCsums();
   for (i = 0;i<n;i++)
@@ -361,8 +398,8 @@ cout << " UNTESTED " << endl;
   }
   //cout << " m1 : " << m1 << "  m2: " << m2 << endl;
   
-  double sig1 = 0;
-  double sig2 = 0;
+  double sig1 = 0.0;
+  double sig2 = 0.0;
   for (i = 0;i<n;i++)
   {
      sig1 += rowsum[i] * (i-m1) * (i-m1);
@@ -372,7 +409,7 @@ cout << " UNTESTED " << endl;
   sig2 = sqrt(sig2);
   //cout << " sig1 : " << sig1 << "  sig2: " << sig2 << endl;
   
-  double ncc = 0;
+  double ncc = 0.0;
   for (i = 0;i<n;i++)
   for (j = 0;j<n;j++)
      ncc += histo[i][j] * (i-m1) * (j-m2);
@@ -383,66 +420,143 @@ cout << " UNTESTED " << endl;
 
 double JointHisto::computeSCR()
 // symmetric correlation ration (CR(I1, I2) + CR(I2,I1))
-// CR(I1,I2) := 1 - (1/sig) sum_i (sig_i Pr(i))
-// where sig = sum_i(i^2 Pc(i)) - [sum_i (i Pc(i))]^2
-// and  sig_i = (1/Pr(i)) sum_j j^2 P(i,j) - [ 1/Pr(i) sum_j j P(i,j) ]^2
+// Roche, Malandain, Pennec, Ayache (1998)
+// "The Correlation Ratio as a New Similarity Measure for
+// Multimodal Image Registration"
+// in Proc. MICCAI'98, vol 1496 of LNCS, 1115-1124
+//
+// CR(Ic,Ir) := 1 - (1/sig) sum_i (sig_i Pc(i))
+// where sig = sum_i(i^2 Pr(i)) - [sum_i (i Pr(i))]^2
+// and  sig_i = (1/Pc(i)) sum_j j^2 P(j,i) - [ 1/Pc(i) sum_j j P(j,i) ]^2
+// or equiv:
+// sig = sum_i ( Pr(i) (i-m)^2 )   with  m = sum_i Pr(i) i
+// sig_i =  (1/Pc(i)) sum_j P(j,i) (j-m_i)^2  with m_i=sum_j P(j,i) j
 {
-  int i,j;
-  addeps(1);
+
   normalize();
   computeRCsums();
-  
-  // do everything twice to make stuff symmetric
-  double s1t1 = 0.0; // sum_i (i^2 P(i))
-  double s1t2 = 0.0; // sum_i (i P(i))
-  double s2t1 = 0.0;
-  double s2t2 = 0.0;
-  double t;
-  for (i = 0; i<n; i++)
+  // compute means
+  double m1 = 0.0;
+  double m2 = 0.0;
+  int i,j;
+  for (i=0;i<n;i++)
   {
-     t = rowsum[i] * i;
-     s1t1 += t*i;
-     s1t2 += t;
-     
-     t = colsum[i] * i;
-     s2t1 += t*i;
-     s2t2 += t;
+    m1 += rowsum[i] * i;
+    m2 += colsum[i] * i;
   }
-  double sig1 = s1t1 - s1t2 * s1t2;
-  double sig2 = s2t1 - s2t2 * s2t2;
-  //cout << " sig1: " << sig1 << endl;
-  //cout << " sig2: " << sig2 << endl;
-
-
-  double siga1t1;
-  double siga1t2;
-  double siga2t1;
-  double siga2t2;
-  double sum1 = 0.0;
-  double sum2 = 0.0;
-  for (i = 0; i<n; i++)
-  {    
-    siga1t1 = 0.0; siga1t2 = 0.0;
-    siga2t1 = 0.0; siga2t2 = 0.0;
-    for (j = 0; j<n; j++)
-    {
-      t = j * histo[i][j];
-      siga1t1 += j * t;
-      siga1t2 += t;
-      t = j * histo[j][i];
-      siga2t1 += j * t;
-      siga2t2 += t;
-    }
-
-    if(rowsum[i] != 0) sum1 += siga1t1 - siga1t2 * siga1t2 / colsum[i];
-    if(colsum[i] != 0) sum2 += siga2t1 - siga2t2 * siga2t2 / rowsum[i];
-//cout << " sum1: " << sum1 << " colsum[ " <<i << " ] = " << colsum[i]<< endl;
+  // compute sig^2
+  double sig1 = 0.0;
+  double sig2 = 0.0;
+  for (i = 0;i<n;i++)
+  {
+     sig1 += rowsum[i] * (i-m1) * (i-m1);
+     sig2 += colsum[i] * (i-m2) * (i-m2);
   }
-//cout << " sum1: " << sum1 << endl;
-//cout << " sum2: " << sum2 << endl;
-
-  return 2.0 - (sum1/sig1) - (sum2/sig2);
   
+  double mi1,sigi1;
+  double sum1 = 0.0;
+  for (i=0;i<n;i++)
+  {
+    if (colsum[i] == 0.0) continue;
+    mi1 = 0.0;
+    for (j=0;j<n;j++)
+       mi1 += j* histo[j][i];
+    mi1 /= colsum[i];
+    
+    sigi1 = 0.0;
+    for (j=0;j<n;j++)
+       sigi1 += histo[j][i] * (j-mi1) * (j-mi1);
+    
+    sum1 += sigi1;
+  }
+  sum1 /= sig1;
+  sum1 = 1.0-sum1;
+  
+  double mi2,sigi2;
+  double sum2 = 0.0;
+  for (i=0;i<n;i++)
+  {
+    if (rowsum[i] == 0.0) continue;
+    mi2 = 0.0;
+    for (j=0;j<n;j++)
+       mi2 += j* histo[i][j];
+    mi2 /= rowsum[i];
+    
+    sigi2 = 0.0;
+    for (j=0;j<n;j++)
+       sigi2 += histo[i][j] * (j-mi2) * (j-mi2);
+    
+    sum2 += sigi2;
+  }
+  sum2 /= sig2;
+  sum2 = 1.0-sum2;
+
+  return sum1+sum2;
+
+// // same but slower:
+//   int i,j;
+//   //addeps(1);
+//   normalize();
+//   computeRCsums();
+//   
+//   // do everything twice to make stuff symmetric
+//   double s1t1 = 0.0; // sum_i (i^2 P(i))
+//   double s1t2 = 0.0; // sum_i (i P(i))
+//   double s2t1 = 0.0;
+//   double s2t2 = 0.0;
+//   double t;
+//   for (i = 0; i<n; i++)
+//   {
+//      t = rowsum[i] * i;
+//      s1t1 += t*i;
+//      s1t2 += t;
+//      
+//      t = colsum[i] * i;
+//      s2t1 += t*i;
+//      s2t2 += t;
+//   }
+//   double sig1 = s1t1 - s1t2 * s1t2;
+//   double sig2 = s2t1 - s2t2 * s2t2;
+//   //cout << " sig1: " << sig1 << endl;
+//   //cout << " sig2: " << sig2 << endl;
+// 
+// 
+//   double siga1t1;
+//   double siga1t2;
+//   double sum1 = 0.0;
+//   for (i = 0; i<n; i++)
+//   {    
+//     if (colsum[i]==0.0) continue;
+//     siga1t1 = 0.0; siga1t2 = 0.0;
+//     for (j = 0; j<n; j++)
+//     {
+//       t = j * histo[j][i];
+//       siga1t1 += j * t;
+//       siga1t2 += t;
+//     }
+//     sum1 += siga1t1 - siga1t2 * siga1t2 / colsum[i];
+//   }
+// 
+//   double siga2t1;
+//   double siga2t2;
+//   double sum2 = 0.0;
+//   for (i = 0; i<n; i++)
+//   {    
+//     if (rowsum[i] == 0.0) continue;
+//     siga2t1 = 0.0; siga2t2 = 0.0;
+//     for (j = 0; j<n; j++)
+//     {
+//       t = j * histo[i][j];
+//       siga2t1 += j * t;
+//       siga2t2 += t;
+//     }
+//     sum2 += siga2t1 - siga2t2 * siga2t2 / rowsum[i];
+//   }
+// //cout << " sum1: " << sum1 << endl;
+// //cout << " sum2: " << sum2 << endl;
+// 
+//   return 2.0 - (sum1/sig1) - (sum2/sig2);
+//   
 }
 
 double JointHisto::computeLS()

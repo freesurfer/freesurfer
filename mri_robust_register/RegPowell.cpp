@@ -8,8 +8,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2011/09/17 00:50:40 $
- *    $Revision: 1.10 $
+ *    $Date: 2011/09/21 05:45:26 $
+ *    $Revision: 1.11 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -133,9 +133,27 @@ double RegPowell::costFunction(const vnl_vector < double >& p)
   }
   
   // report eval:
-  //cout.setf(ios::fixed,ios::floatfield);   // floatfield set to fixed
-  //cout << " e = " << setprecision(14) << dd << "  @  " << flush;
-  //vnl_matlab_print(vcl_cerr,p,"p",vnl_matlab_print_format_long);
+  if (tocurrent->debug)
+  {
+    cout.setf(ios::fixed,ios::floatfield);   // floatfield set to fixed
+    cout << " e = " << setprecision(14) << dd << "  @  " << flush;
+    vnl_matlab_print(vcl_cerr,p,"p",vnl_matlab_print_format_long);
+    if (icount ==0)
+    {
+      MRI* mri_Swarp = MRIclone(tcf,NULL);
+      mri_Swarp = MyMRI::MRIlinearTransform(scf,mri_Swarp, vnl_inverse(msi));
+      MRI* mri_Twarp = MRIclone(tcf,NULL); // bring them to same space (just use dst geometry)
+      mri_Twarp = MyMRI::MRIlinearTransform(tcf,mri_Twarp, vnl_inverse(mti));
+      MRIwrite(mri_Swarp,"shw.mgz");
+      MRIwrite(mri_Twarp,"thw.mgz");
+
+      
+      MRIfree(&mri_Swarp);
+      MRIfree(&mri_Twarp);
+    }
+  }
+  icount++;
+  
   //exit(1);
   return dd;
 
@@ -206,6 +224,9 @@ void RegPowell::computeIterativeRegistration( int nmax,double epsit,MRI * mriS, 
 // computes 4x4 matrix and iscale value in members iscalefinal and Mfinal
 // nmax and epsit is ignored 
 {
+  cout << "RegPowell::computeIterativeRegistration" << endl;
+  cout << " sym: " << symmetry << endl; 
+
   if (!mriS) mriS = mri_source;
   if (!mriT) mriT = mri_target;
 
@@ -279,16 +300,24 @@ void RegPowell::computeIterativeRegistration( int nmax,double epsit,MRI * mriS, 
   }
 
   // decompose initial transform to apply in cost function (if symmetric):
-  // here  symmetrically warp both images SQRT(M)
-  // this keeps the problem symmetric
-  mh1 = MyMatrix::MatrixSqrt(fmd.first);
-  // do not just assume m = mh*mh, rather m = mh2 * mh
-  // for transforming target we need mh2^-1 = mh * m^-1
-  vnl_matrix_fixed < double, 4, 4 > mhi = mh1 * vnl_inverse(fmd.first);
+  if (symmetry)
+  {
+    // here  symmetrically warp both images SQRT(M)
+    // this keeps the problem symmetric
+    mh1 = MyMatrix::MatrixSqrt(fmd.first);
+    // do not just assume m = mh*mh, rather m = mh2 * mh
+    // for transforming target we need mh2^-1 = mh * m^-1
+    vnl_matrix_fixed < double, 4, 4 > mhi = mh1 * vnl_inverse(fmd.first);
 	
-  //set static
-  mh2 = vnl_inverse(mhi); // M = mh2 * mh1
-
+    //set static
+    mh2 = vnl_inverse(mhi); // M = mh2 * mh1
+  }
+  else
+  {
+     mh1 = fmd.first;
+     mh2.set_identity();
+  }
+  
 //cout << "M:" << endl << fmd.first << endl;
 //cout << "m':" << endl << mh2*mh1 << endl;
 
