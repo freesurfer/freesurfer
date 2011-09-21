@@ -73,6 +73,8 @@ class NonlinReg {
     void ReadXfm(const char *XfmFile, MRI *OutRefVol);
     void ApplyXfm(std::vector<float> &OutPoint,
                   std::vector<float>::const_iterator InPoint);
+    void ApplyXfmInv(std::vector<float> &OutPoint,
+                     std::vector<float>::const_iterator InPoint);
 
   private:
 //    boost::shared_ptr<gmp::VolumeMorph> mMorph;

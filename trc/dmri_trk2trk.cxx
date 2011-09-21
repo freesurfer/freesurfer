@@ -8,8 +8,8 @@
  * Original Author: Anastasia Yendiki
  * CVS Revision Info:
  *    $Author: ayendiki $
- *    $Date: 2011/04/06 20:33:37 $
- *    $Revision: 1.9 $
+ *    $Date: 2011/09/21 00:34:28 $
+ *    $Revision: 1.10 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -70,7 +70,7 @@ int main(int argc, char *argv[]) ;
 static char vcid[] = "";
 const char *Progname = "dmri_trk2trk";
 
-int doFill = 0, nin = 0, nout = 0, nvol = 0;
+int doInvNonlin = 0, doFill = 0, nin = 0, nout = 0, nvol = 0;
 char *inDir = NULL, *inFile[100],
      *outDir = NULL, *outFile[100], *outVolFile[100],
      *inRefFile = NULL, *outRefFile = NULL,
@@ -229,8 +229,12 @@ int main(int argc, char **argv) {
 
 #ifndef NO_CVS_UP_IN_HERE
         // Apply nonlinear transform
-        if (!nonlinreg.IsEmpty())
-          nonlinreg.ApplyXfm(point, point.begin());
+        if (!nonlinreg.IsEmpty()) {
+          if(doInvNonlin)
+            nonlinreg.ApplyXfmInv(point, point.begin());
+          else
+            nonlinreg.ApplyXfm(point, point.begin());
+        }
 #endif
 
         copy(point.begin(), point.end(), iraw-3);
@@ -402,6 +406,8 @@ static int parse_commandline(int argc, char **argv) {
       nonlinXfmFile = fio_fullpath(pargv[0]);
       nargsused = 1;
     }
+    else if (!strcasecmp(option, "--invnl"))
+      doInvNonlin = 1;
     else if (!strcasecmp(option, "--fill"))
       doFill = 1;
     else {
@@ -442,7 +448,9 @@ static void print_usage(void)
   printf("   --reg <file>:\n");
   printf("     Affine registration (.mat), applied first\n");
   printf("   --regnl <file>:\n");
-  printf("     Nonlinear registration (.tm3d), applied second\n");
+  printf("     Nonlinear registration (.m3z), applied second\n");
+  printf("   --invnl:\n");
+  printf("     Apply inverse of nonlinear warp (with --regnl, default: no)\n");
   printf("   --fill:\n");
   printf("     Fill gaps b/w mapped points by linear interpolation\n");
   printf("     (Default: don't fill)\n");

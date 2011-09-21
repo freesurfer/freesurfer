@@ -192,8 +192,8 @@ void NonlinReg::ReadXfm(const char *XfmFile, MRI *OutRefVol) {
   xfile.close();
 
   cout << "Loading non-linear registration from " << XfmFile << endl;
-  //mMorph = GCAMreadAndInvert(XfmFile);
   mMorph = GCAMreadAndInvertNonTal(XfmFile);
+
   if (mMorph == NULL) exit(1);
 
   mMorph->gca = gcaAllocMax(1, 1, 1, OutRefVol->width, OutRefVol->height,
@@ -210,6 +210,18 @@ void NonlinReg::ApplyXfm(vector<float> &OutPoint,
   copy(InPoint, InPoint+3, inpoint);
 
   GCAMmorphPlistFromAtlas(1, inpoint, mMorph, &OutPoint[0]);
+}
+
+//
+// Apply the inverse of a non-linear transform to a single point
+//
+void NonlinReg::ApplyXfmInv(vector<float> &OutPoint,
+                            vector<float>::const_iterator InPoint) {
+  float inpoint[3];
+
+  copy(InPoint, InPoint+3, inpoint);
+
+  GCAMmorphPlistToSource(1, inpoint, mMorph, &OutPoint[0]);
 }
 #endif
 
