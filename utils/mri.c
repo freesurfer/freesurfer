@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: mreuter $
- *    $Date: 2011/09/16 17:55:07 $
- *    $Revision: 1.497 $
+ *    $Author: fischl $
+ *    $Date: 2011/09/21 13:43:28 $
+ *    $Revision: 1.498 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -23,7 +23,7 @@
  */
 
 extern const char* Progname;
-const char *MRI_C_VERSION = "$Revision: 1.497 $";
+const char *MRI_C_VERSION = "$Revision: 1.498 $";
 
 
 /*-----------------------------------------------------
@@ -7302,7 +7302,7 @@ MRItoImageView(MRI *mri, IMAGE *I, int slice, int view, int frame)
 {
   int      width, height, depth, x, y, yp, w, h, d,
   xm, ym, zm, format ;
-  float    fmin, fmax ;
+  float    fmin, fmax, frac ;
   double     val ;
   int src_slice_direction;
   int xsign, ysign;
@@ -7333,6 +7333,7 @@ MRItoImageView(MRI *mri, IMAGE *I, int slice, int view, int frame)
   height = mri->height ;
   depth = mri->depth ;
 
+  frac = .6 ;
   switch (src_slice_direction)
   {
   case MRI_CORONAL: // x direction can be -R or R,
@@ -7343,6 +7344,7 @@ MRItoImageView(MRI *mri, IMAGE *I, int slice, int view, int frame)
     switch (view)
     {
     case MRI_CORONAL:
+      frac = .4 ;
       w = width;
       h = height;
       d = depth;
@@ -7383,6 +7385,7 @@ MRItoImageView(MRI *mri, IMAGE *I, int slice, int view, int frame)
     case MRI_SAGITTAL:
       w = width;
       h = height;
+      frac = .4 ;
       d = depth;
       xsign = (mri->x_a > 0) ? 1 : -1;
       ysign = (mri->y_s > 0) ? -1 : 1;
@@ -7420,6 +7423,7 @@ MRItoImageView(MRI *mri, IMAGE *I, int slice, int view, int frame)
     case MRI_HORIZONTAL:
       w = width;
       h = height;
+      frac = .4 ;
       d = depth;
       xsign = (mri->x_r > 0) ? -1 : 1;
       ysign = (mri->y_a > 0) ?  1 : -1;
@@ -7434,7 +7438,7 @@ MRItoImageView(MRI *mri, IMAGE *I, int slice, int view, int frame)
       slice, view, src_slice_direction)) ;
   }
   if (slice < 0)
-    slice = nint(6.0*d/10.0) ;
+    slice = nint(frac*d) ;
   else if (slice >= d)
     ErrorReturn(NULL, (ERROR_BADPARM, "MRItoImageView: bad slice %d\n",slice));
     
