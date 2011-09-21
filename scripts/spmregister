@@ -5,9 +5,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: nicks $
-#    $Date: 2011/03/02 20:16:40 $
-#    $Revision: 1.39 $
+#    $Author: mreuter $
+#    $Date: 2011/09/21 16:42:28 $
+#    $Revision: 1.40 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -22,7 +22,7 @@
 #
 
 #
-set VERSION = '$Id: spmregister,v 1.39 2011/03/02 20:16:40 nicks Exp $';
+set VERSION = '$Id: spmregister,v 1.40 2011/09/21 16:42:28 mreuter Exp $';
 set inputargs = ($argv);
 
 set subjid = ();
@@ -50,6 +50,8 @@ set fmt = img # Format for temporary volumes
 set UseSPMGetSpace = 1;
 set DNG = (); # For testing
 set DOF = 6;
+set ltafile = "";
+set regfile = "";
 
 if($?FS_SPMREG_MATLAB) then
   set matlab = $FS_SPMREG_MATLAB
@@ -143,6 +145,7 @@ if ( $subjid != "" ) then
   endif
 else
   set refvol = $fsvol
+  set MGZ = .mgz
 endif
 
 set refvolbase = $tmpdir/refvol.spmregister
@@ -178,7 +181,12 @@ echo "Matlab file is $MLF" |& tee -a $LF
 set errfile = $tmpdir/spmregister.$$.err
 rm -f $errfile
 
-if(-e $regfile) mv $regfile $regfile.$DateString
+if($regfile != "") then
+  if(-e $regfile) mv $regfile $regfile.$DateString
+endif
+if($ltafile != "") then
+  if(-e $ltafile) mv $ltafile $ltafile.$DateString
+endif
 
 set params = (0 0 0 0 0 0);
 
@@ -320,7 +328,7 @@ if($monly) then
 endif
 
 cat $MLF | $matlab -nosplash -display iconic -nodesktop |& tee -a $LF
-rm $MLF
+#rm $MLF
 
 if(-e $errfile) then
   echo "ERROR: matlab exited with errors" |& tee -a $LF
@@ -328,13 +336,14 @@ if(-e $errfile) then
   exit 1;
 endif
 
-# Computer the registration file #
+# Compute the registration file #
 #set TKR2 = ~/sg1/build/tkregister2/tkregister2
+if ( "$regfile" == "" ) set regfile = $tmpdir/regfile.dat
 set TKR2 = tkregister2_cmdl
 set cmd = ($TKR2 --s $subjid --mov $movvolimg \
            --regheader --noedit --reg $regfile \
            --targ $refvolimg );
-if ($subjid == "") then
+if ("$subjid" == "") then
    set cmd = ($TKR2 --mov $movvolimg \
            --regheader --noedit --reg $regfile \
            --targ $refvolimg );
@@ -346,6 +355,21 @@ pwd        |& tee -a $LF
 echo $cmd  |& tee -a $LF
 $cmd       |& tee -a $LF
 if($status) exit 1;
+
+# store lta
+if ("$ltafile" != "") then
+  set cmd = ($TKR2 --mov $movvol \
+          --targ $refvol --reg $regfile \
+          --ltaout $ltafile \
+          --noedit );
+  if($#MGZ) set cmd = ($cmd --mgz);
+  echo "--------------------------------------------------" |& tee -a $LF
+  pwd        |& tee -a $LF
+  echo $cmd  |& tee -a $LF
+  $cmd       |& tee -a $LF
+  if($status) exit 1;
+endif
+
 
 if($#templateout) then
   mri_convert $movvolimg $templateout
@@ -376,7 +400,7 @@ if($#OutVol) then
   set v2vreg = $regfile
   if($DoSegReg) set v2vreg = $segregfile
 	if($subjid == "") then
-	  set cmd = (mri_vol2vol --mov $movvolimg --targ $refvolimg \
+	  set cmd = (mri_vol2vol --mov $movvol --targ $refvol \
 		         --o $OutVol --reg $v2vreg --no-save-reg)
 	else
       set cmd = (mri_vol2vol --mov $movvolimg --fstarg \
@@ -409,12 +433,40 @@ else
   set tmp = ""
 endif
 
-echo "To check results, run:"
-if($#templateout) then
-  echo "tkregister2 --mov $templateout --reg $regfile $tmp"
+
+if ("$ltafile" != "") then
+  if($#templateout) then
+    echo "To check lta on templateout, run:"
+    echo "tkregister2 --mov $templateout --targ $refvol --lta $ltafile --check-reg $tmp"
+    echo
+  else
+    echo "To check lta on movable, run:"
+    echo "tkregister2 --mov $movvol --targ $refvol --lta $ltafile --check-reg $tmp"
+    echo
+  endif
 else
-  echo "tkregister2 --mov $movvol --reg $regfile $tmp"
+  if($#templateout) then
+    echo "To check reg on templateout, run:"
+    echo "tkregister2 --mov $templateout --targ $refvol --reg $regfile $tmp"
+    echo
+  else
+    echo "To check reg on movable, run:"
+    echo "tkregister2 --mov $movvol --targ $refvol --reg $regfile $tmp"
+    echo
+  endif
 endif
+
+if(-e $SUBJECTS_DIR/$subjid/surf/lh.orig) then
+  set tmp = "-f $SUBJECTS_DIR/$subjid/surf/?h.orig"
+else
+  set tmp = ""
+endif
+if($#OutVol) then
+  echo "To check resampled movable (outvol), run:"
+  echo "freeview -v $refvol $OutVol $tmp"
+  echo
+endif
+
 echo " "
 
 
@@ -448,6 +500,11 @@ while( $#argv != 0 )
     case "--template-out":
       if ( $#argv < 1) goto arg1err;
       set templateout = $argv[1]; shift;
+      breaksw
+
+    case "--lta":
+      if ( $#argv < 1) goto arg1err;
+      set ltafile = $argv[1]; shift;
       breaksw
 
     case "--frame":
@@ -606,8 +663,8 @@ check_params:
     exit 1;
   endif
 
-  if($#regfile == 0) then
-    echo "ERROR: must spec an output reg file"
+  if("$regfile" == "" && "$ltafile" == "") then
+    echo "ERROR: must spec an output reg or lta file"
     exit 1;
   endif
 
