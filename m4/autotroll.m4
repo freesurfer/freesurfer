@@ -157,8 +157,10 @@ dnl Memo: AC_ARG_WITH(package, help-string, [if-given], [if-not-given])
   test -d /opt/local/libexec/qt4-mac/bin \
     && tmp_qt_paths="$tmp_qt_paths:/opt/local/libexec/qt4-mac/bin"
 
-  test -d /usr/pubsw/packages/qt/current/bin \
-    && tmp_qt_paths="$tmp_qt_paths:/usr/pubsw/packages/qt/current/bin"
+  if test x"$QT_PATH" = "x"; then
+    test -d /usr/pubsw/packages/qt/current/bin \
+      && tmp_qt_paths="$tmp_qt_paths:/usr/pubsw/packages/qt/current/bin"
+  fi
 
   # Find qmake.
   AC_ARG_VAR([QMAKE], [Qt Makefile generator command])
