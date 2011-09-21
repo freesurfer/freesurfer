@@ -10,6 +10,8 @@ AM_LDFLAGS=
 ## CUDA
 ## ----
 
+if HAVE_BOOST_LIBS
+
 # BUILDCUDA is defined if configure.in finds CUDA
 if BUILDCUDA
 
@@ -24,7 +26,6 @@ CUDA_CFLAGS += -DGCAMORPH_ON_GPU
 
 bin_PROGRAMS = mriMarkLabelBorderVoxelTest mriMarkLabelBorderVoxelTest_cuda\
                mriVoxInLabelPartialVolumeTest mriVoxInLabelPartialVolumeTest_cuda
-
 
 # ---
 
@@ -60,6 +61,8 @@ mriVoxInLabelPartialVolumeTest_cuda_LINK = $(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS
 endif
 # endif BUILDCUDA
 
+endif
+# endif HAVE_BOOST_LIBS
 
 # Our release target. Include files to be excluded here. They will be
 # found and removed after 'make install' is run during the 'make

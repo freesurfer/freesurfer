@@ -13,6 +13,8 @@ AM_LDFLAGS=
 ## CUDA
 ## ----
 
+if HAVE_BOOST_LIBS
+
 # BUILDCUDA is defined if configure.in finds CUDA
 if BUILDCUDA
 
@@ -481,6 +483,9 @@ gcam_removesingularities_test_cuda_LINK = $(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS)
 
 endif
 # endif BUILDCUDA
+
+endif
+#endif HAVE_BOOST_LIBS
 
 
 # Our release target. Include files to be excluded here. They will be

@@ -8,6 +8,8 @@ AM_LDFLAGS=
 ## CUDA
 ## ----
 
+if HAVE_BOOST_LIBS
+
 # BUILDCUDA is defined if configure.in finds CUDA
 if BUILDCUDA
 
@@ -26,6 +28,9 @@ volume_copy_test_cuda_LDFLAGS = $(OS_LDFLAGS)
 
 endif
 # endif BUILDCUDA
+
+endif
+# endif HAVE_BOOST_LIBS
 
 # Our release target. Include files to be excluded here. They will be
 # found and removed after 'make install' is run during the 'make
