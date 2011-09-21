@@ -13,9 +13,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2011/07/21 19:04:56 $
- *    $Revision: 1.301 $
+ *    $Author: ayendiki $
+ *    $Date: 2011/09/21 00:16:03 $
+ *    $Revision: 1.302 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -1467,9 +1467,6 @@ GCApriorToSourceVoxelFloat( GCA *gca,
   double  xc, yc, zc;
   int errCode = NO_ERROR;
   LTA *lta;
-  width = mri->width ;
-  height = mri->height ;
-  depth = mri->depth ;
   // go to the template voxel position
   GCApriorToVoxelReal(gca, gca->mri_tal__, xp, yp, zp, &xt, &yt, &zt);
   // got the point in gca->mri_tal__ position
@@ -1477,6 +1474,9 @@ GCApriorToSourceVoxelFloat( GCA *gca,
   {
     if (transform->type == LINEAR_VOX_TO_VOX) // from src to talairach volume
     {
+      width = mri->width ;
+      height = mri->height ;
+      depth = mri->depth ;
       lta = (LTA *) transform->xform;
       // get the talairach to orig
       TransformWithMatrix(lta->inv_xforms[0].m_L,

@@ -14,9 +14,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: lzollei $
- *    $Date: 2011/03/05 22:04:19 $
- *    $Revision: 1.101 $
+ *    $Author: ayendiki $
+ *    $Date: 2011/09/21 00:15:25 $
+ *    $Revision: 1.102 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -263,6 +263,7 @@ int       GCAMfreeContents(GCA_MORPH *gcam) ;
 
 MRI       *GCAMmorphFromAtlas(MRI *mri_src, GCA_MORPH *gcam, MRI *mri_dst, int sample_type) ;
 int GCAMmorphPlistFromAtlas(int N, float *points_in, GCA_MORPH *gcam, float *points_out) ;
+int GCAMmorphPlistToSource(int N, float *points_in, GCA_MORPH *gcam, float *points_out);
   //int       GCAMmorphPointlistFromAtlas(float *points_in, int N, GCA_MORPH *gcam, float *points_out, float thickness) ;
 MRI_SUBCORTCONN *
 SubcortConn_alloc(int nLHLines, int nLHConnections, int nRHLines, int nRHConnections);

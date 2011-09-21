@@ -10,9 +10,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2011/05/03 15:02:36 $
- *    $Revision: 1.248 $
+ *    $Author: ayendiki $
+ *    $Date: 2011/09/21 00:16:04 $
+ *    $Revision: 1.249 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -4222,6 +4222,45 @@ GCAMmorphPlistFromAtlas(int N, float *points_in, GCA_MORPH *gcam, float *points_
 	if (x == Gx && y == Gy && z == Gz)
 	  DiagBreak() ;
 	if (GCAsourceVoxelToPriorReal(gcam->gca, NULL, transform, 
+				      x, y, z, &xr, &yr, &zr) != NO_ERROR)
+	  continue ;
+	xr *= scale ; yr *= scale ; zr *= scale ;
+	points_out[counter*3] = xr;
+	points_out[counter*3+1] = yr;
+	points_out[counter*3+2] = zr;
+      }
+  }
+  return(1);
+}
+
+/*
+  GCAMmorphPlistToSource:
+  Transforms a list of points from the target space back to the source space.
+*/
+int
+GCAMmorphPlistToSource(int N, float *points_in, GCA_MORPH *gcam, float *points_out)
+{
+  int sample_type = 0; // more options for sampling types: on the to do list
+  int counter = 0;
+
+  if (!sample_type) { // NN interpolation
+    TRANSFORM   _transform, *transform = &_transform ;
+    float      x, y, z;
+    float      xr, yr, zr, scale;
+    
+    transform->type = MORPH_3D_TYPE ;
+    transform->xform = (void *)gcam ;
+    TransformInvert(transform, NULL) ; //NOTE: if inverse exists / mri = NULL, it does nothing
+    scale = 1; 
+    
+    for (counter = 0; counter < N; counter++)
+      {
+	x = points_in[counter*3];
+	y = points_in[counter*3+1];
+	z = points_in[counter*3+2];
+	if (x == Gx && y == Gy && z == Gz)
+	  DiagBreak() ;
+	if (GCApriorToSourceVoxelFloat(gcam->gca, NULL, transform, 
 				      x, y, z, &xr, &yr, &zr) != NO_ERROR)
 	  continue ;
 	xr *= scale ; yr *= scale ; zr *= scale ;
