@@ -9,8 +9,8 @@
 #
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2011/09/20 21:20:02 $
-#    $Revision: 1.537 $
+#    $Date: 2011/09/21 17:15:09 $
+#    $Revision: 1.538 $
 #
 ########################################################################
 AC_PREREQ(2.57)
@@ -2001,7 +2001,9 @@ AC_DEFINE([XML_CONTEXT_BYTES], 1024,
 ################################################################
 m4_include([m4/autotroll.m4])
 AT_WITH_QT([opengl])
-AM_CONDITIONAL(ENABLE_QT_APPS, test "$qt_enabled" = "yes")
+# support for --without-qt:
+AM_CONDITIONAL(ENABLE_QT_APPS, ! test "$QT_PATH" = "no")
+
 
 #################################################################
 # If on a Mac, make scuba and qdec, bundles (Qt apps)
