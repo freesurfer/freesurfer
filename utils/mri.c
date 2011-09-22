@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2011/09/21 13:43:28 $
- *    $Revision: 1.498 $
+ *    $Author: mreuter $
+ *    $Date: 2011/09/22 00:48:39 $
+ *    $Revision: 1.499 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -23,7 +23,7 @@
  */
 
 extern const char* Progname;
-const char *MRI_C_VERSION = "$Revision: 1.498 $";
+const char *MRI_C_VERSION = "$Revision: 1.499 $";
 
 
 /*-----------------------------------------------------
@@ -8052,9 +8052,9 @@ MRIdownsample2LabeledVolume(MRI *mri_src, MRI *mri_dst)
   mri_dst->ps    = mri_src->ps*2 ;
 
   VECTOR* C = VectorAlloc(4, MATRIX_REAL);
-  VECTOR_ELT(C,1) = mri_src->width/2.0+0.5;
-  VECTOR_ELT(C,2) = mri_src->height/2.0+0.5;
-  VECTOR_ELT(C,3) = mri_src->depth/2.0+0.5;
+  VECTOR_ELT(C,1) = mri_src->width/2+0.5;
+  VECTOR_ELT(C,2) = mri_src->height/2+0.5;
+  VECTOR_ELT(C,3) = mri_src->depth/2+0.5;
   VECTOR_ELT(C,4) = 1.0;
   MATRIX* V2R     = extract_i_to_r(mri_src);
   MATRIX* P       = MatrixMultiply(V2R,C,NULL);
@@ -8167,9 +8167,9 @@ MRIdownsample2(MRI *mri_src, MRI *mri_dst)
   // adjust cras
   //printf("COMPUTING new CRAS\n") ;
   VECTOR* C = VectorAlloc(4, MATRIX_REAL);
-  VECTOR_ELT(C,1) = mri_src->width/2.0+0.5;
-  VECTOR_ELT(C,2) = mri_src->height/2.0+0.5;
-  VECTOR_ELT(C,3) = mri_src->depth/2.0+0.5;
+  VECTOR_ELT(C,1) = mri_src->width/2+0.5;
+  VECTOR_ELT(C,2) = mri_src->height/2+0.5;
+  VECTOR_ELT(C,3) = mri_src->depth/2+0.5;
   VECTOR_ELT(C,4) = 1.0;
   MATRIX* V2R     = extract_i_to_r(mri_src);
   MATRIX* P       = MatrixMultiply(V2R,C,NULL);
