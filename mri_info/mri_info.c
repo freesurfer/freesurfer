@@ -7,9 +7,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2011/05/16 21:39:10 $
- *    $Revision: 1.79 $
+ *    $Author: mreuter $
+ *    $Date: 2011/09/22 00:42:33 $
+ *    $Revision: 1.80 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -23,7 +23,7 @@
  *
  */
 
-char *MRI_INFO_VERSION = "$Revision: 1.79 $";
+char *MRI_INFO_VERSION = "$Revision: 1.80 $";
 
 #include <stdio.h>
 #include <sys/stat.h>
@@ -57,7 +57,7 @@ static void usage_exit(void);
 static void print_help(void) ;
 static void print_version(void) ;
 
-static char vcid[] = "$Id: mri_info.c,v 1.79 2011/05/16 21:39:10 greve Exp $";
+static char vcid[] = "$Id: mri_info.c,v 1.80 2011/09/22 00:42:33 mreuter Exp $";
 
 char *Progname ;
 static char *inputlist[100];
@@ -100,6 +100,7 @@ static int PrintSliceDirection = 0;
 static int PrintCRAS = 0;
 static int PrintP0 = 0;
 static int PrintEntropy = 0;
+static int PrintStats = 0;
 static int PrintVoxel = 0;
 static int PrintAutoAlign = 0;
 static int PrintCmds = 0;
@@ -222,6 +223,7 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--slicedirection")) PrintSliceDirection = 1;
     else if (!strcasecmp(option, "--autoalign")) PrintAutoAlign = 1;
     else if (!strcasecmp(option, "--entropy")) PrintEntropy = 1;
+    else if (!strcasecmp(option, "--stats")) PrintStats = 1;
     else if (!strcasecmp(option, "--cmds")) PrintCmds = 1;
     else if (!strcasecmp(option, "--o")) {
       PrintToFile = 1;
@@ -393,7 +395,7 @@ static void do_file(char *fname) {
     fprintf(fpout,"%s\n", type_to_string(mri_identify(fname)));
     return;
   }
-  if (!PrintVoxel && !PrintEntropy)  mri = MRIreadHeader(fname, intype) ;
+  if (!PrintVoxel && !PrintEntropy && !PrintStats)  mri = MRIreadHeader(fname, intype) ;
   else             mri = MRIread(fname);
   if(!mri) exit(1); // should exit with error here
 
@@ -642,6 +644,35 @@ static void do_file(char *fname) {
     fprintf(fpout,"%f\n",e);
 		HISTOfree(&h);
 		return;
+	}
+	if (PrintStats) {
+    int w = mri->width;
+    int h = mri->height;
+    int d = mri->depth;
+    int x,y,z;
+    double min;
+    double max;
+    double mean;
+    double val;
+    for (f = 0;f<mri->nframes;f++)
+    {
+      min = MRIgetVoxVal(mri,0,0,0,f);
+      max = MRIgetVoxVal(mri,0,0,0,f);
+      mean = 0.0;
+      for (z = 0;z<d;z++)
+        for (y = 0;y<h;y++)
+          for (x = 0;x<w;x++)
+          {
+            val = MRIgetVoxVal(mri,x,y,z,f);
+            mean += val;
+            if (val < min) min = val;
+            if (val > max) max = val;
+          }
+      mean/=(d*h*w); //bad way but no time to do it better now...
+      fprintf(fpout,"frame %i:  min %f  max %f  mean %f\n",f,min,max,mean);      
+    }
+		return;
+
 	}
   if (PrintVoxel) {
     c = VoxelCRS[0];
