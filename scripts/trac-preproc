@@ -8,8 +8,8 @@
 # Original Author: Anastasia Yendiki
 # CVS Revision Info:
 #    $Author: ayendiki $
-#    $Date: 2011/08/22 16:46:10 $
-#    $Revision: 1.34 $
+#    $Date: 2011/09/22 21:45:52 $
+#    $Revision: 1.35 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -25,7 +25,7 @@
 
 umask 002
 
-set VERSION = '$Id: trac-preproc,v 1.34 2011/08/22 16:46:10 ayendiki Exp $'
+set VERSION = '$Id: trac-preproc,v 1.35 2011/09/22 21:45:52 ayendiki Exp $'
 set ProgName = `basename $0`
 set inputargs = ($argv)
 
@@ -1149,6 +1149,8 @@ if ($dopriors) then
   echo "#-------------------------------------" |& tee -a $LF
   echo "#@# Priors `date`" |& tee -a $LF
 
+  set cvswarp = final_CVSmorph_to$cvstemp
+
   set xspacelist = ()
   if ($doregmni) set xspacelist = ($xspacelist mni)
   if ($doregcvs) set xspacelist = ($xspacelist cvs)
@@ -1233,31 +1235,62 @@ if ($dopriors) then
           if ($status) goto error_exit
         endif
 
-        # Map initial control points and spread around them to diffusion space
-        # For now only possible for control points from MNI space
-        foreach pathname ($pathlist)
-          set pathpre = ${pathname}_$avgmode
+        # Map initial control points and spread around them
+        # from common space to individual diffusion space
+        foreach ncpts ($ncptlist)
+          foreach suff ( ${avgmode}_cpts_$ncpts \
+                         ${avgmode}_cpts_${ncpts}_std )
+            set txtlist = `printf "%s_$suff.txt " $pathlist`
 
-          foreach ncpts ($ncptlist)
-            foreach fname ( ${pathpre}_cpts_$ncpts \
-                            ${pathpre}_cpts_${ncpts}_std )
-              if ($xspace == mni && -e $xfmdir/mni2diff.$reg.mat) then
-                set cmd = img2imgcoord
-                set cmd = ($cmd -src  $labdir/mni/lowb_brain_mask.$reg.nii.gz)
-                set cmd = ($cmd -dest $labdir/diff/lowb_brain_mask.nii.gz)
-                set cmd = ($cmd -xfm  $xfmdir/mni2diff.$reg.mat)
-                set cmd = ($cmd $labdir/mni/$fname.txt)
-                set a = 2
-                set b = `echo "$ncpts+1" | bc`
-                echo "$cmd | sed -n" \""$a,$b p"\" "> $labdir/diff/$fname.txt" \
-                     |& tee -a $LF |& tee -a $CF
+            if ($xspace == mni && -e $xfmdir/mni2diff.$reg.mat) then
+              # Map points from MNI space to individual diffusion space
+              set cmd = dmri_vox2vox
+              set cmd = ($cmd --indir $labdir/mni)
+              set cmd = ($cmd --in $txtlist)
+              set cmd = ($cmd --outdir $labdir/diff)
+              set cmd = ($cmd --out $txtlist)
+              set cmd = ($cmd --inref $labdir/mni/lowb_brain_mask.$reg.nii.gz)
+              set cmd = ($cmd --outref $labdir/diff/lowb_brain_mask.nii.gz)
+              set cmd = ($cmd --reg $xfmdir/mni2diff.$reg.mat)
+              echo $cmd |& tee -a $LF |& tee -a $CF
+              if ($RunIt) then
+                $fs_time $cmd |& tee -a $LF
+                if ($status) goto error_exit
+              endif
+            else if ($xspace == cvs && -e $xfmdir/cvs/$cvswarp.m3z) then
+              # Map points from CVS space to individual anatomical space
+              set cmd = dmri_vox2vox
+              set cmd = ($cmd --indir $labdir/cvs)
+              set cmd = ($cmd --in $txtlist)
+              set cmd = ($cmd --outdir $labdir/anatorig)
+              set cmd = ($cmd --out $txtlist)
+              set cmd = ($cmd --inref $labdir/cvs/lowb_brain_mask.$reg.nii.gz)
+              set cmd = ($cmd --outref $labdir/anatorig/lowb_brain_mask.$reg.nii.gz)
+              set cmd = ($cmd --regnl $xfmdir/cvs/$cvswarp.m3z)
+              set cmd = ($cmd --invnl)
+              echo $cmd |& tee -a $LF |& tee -a $CF
+              if ($RunIt) then
+                $fs_time $cmd |& tee -a $LF
+                if ($status) goto error_exit
+              endif
+
+              if (-e $xfmdir/diff2anatorig.$reg.mat) then
+                # Map points from individual anatomical to diffusion space
+                set cmd = dmri_vox2vox
+                set cmd = ($cmd --indir $labdir/anatorig)
+                set cmd = ($cmd --in $txtlist)
+                set cmd = ($cmd --outdir $labdir/diff)
+                set cmd = ($cmd --out $txtlist)
+                set cmd = ($cmd --inref $labdir/anatorig/lowb_brain_mask.$reg.nii.gz)
+                set cmd = ($cmd --outref $labdir/diff/lowb_brain_mask.nii.gz)
+                set cmd = ($cmd --reg $xfmdir/anatorig2diff.$reg.mat)
+                echo $cmd |& tee -a $LF |& tee -a $CF
                 if ($RunIt) then
-                  ($cmd | sed -n "$a,$b p" > $labdir/diff/$fname.txt) \
-                    >>& $LF
+                  $fs_time $cmd |& tee -a $LF
                   if ($status) goto error_exit
                 endif
               endif
-            end
+            endif
           end
         end
       end

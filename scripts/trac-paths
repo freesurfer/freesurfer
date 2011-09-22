@@ -8,8 +8,8 @@
 # Original Author: Anastasia Yendiki
 # CVS Revision Info:
 #    $Author: ayendiki $
-#    $Date: 2011/09/19 22:54:15 $
-#    $Revision: 1.26 $
+#    $Date: 2011/09/22 21:45:51 $
+#    $Revision: 1.27 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -25,7 +25,7 @@
 
 umask 002
 
-set VERSION = '$Id: trac-paths,v 1.26 2011/09/19 22:54:15 ayendiki Exp $'
+set VERSION = '$Id: trac-paths,v 1.27 2011/09/22 21:45:51 ayendiki Exp $'
 set ProgName = `basename $0`
 set inputargs = ($argv)
 
@@ -183,7 +183,6 @@ foreach ntrain ($ntrainlist)
     foreach reg ($reglist)
       foreach ncpts ($ncptlist)
         set avgmode = $avgname${ntrain}_${xspace}_$reg
-        set mnimode = $avgname${ntrain}_mni_$reg
 
         set outdir = $dtdir/dpath
 
@@ -198,7 +197,7 @@ foreach ntrain ($ntrainlist)
             set outdir = $outdir/noprior
           endif
 
-          set outdir = $outdir/initmni/reg$reg
+          set outdir = $outdir/init$xspace/reg$reg
         endif
 
         mkdir -p $outdir
@@ -212,7 +211,7 @@ foreach ntrain ($ntrainlist)
           `printf "$labdir/$xspace/%s_${avgmode}_end2_dil.nii.gz " $pathlist`
 
         set initlist = \
-          `printf "$labdir/diff/%s_${mnimode}_cpts_$ncpts.txt " $pathlist`
+          `printf "$labdir/diff/%s_${avgmode}_cpts_$ncpts.txt " $pathlist`
 
         set priorlist = ()
         foreach pathname ($pathlist)
@@ -244,7 +243,7 @@ foreach ntrain ($ntrainlist)
         endif
 
         set sdplist = \
-          `printf "$labdir/diff/%s_${mnimode}_cpts_${ncpts}_std.txt " $pathlist`
+          `printf "$labdir/diff/%s_${avgmode}_cpts_${ncpts}_std.txt " $pathlist`
 
         # Clean up pre-existing directories
         foreach dname ($outlist)
