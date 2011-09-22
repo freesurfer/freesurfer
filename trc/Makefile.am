@@ -17,8 +17,8 @@ AM_CXXFLAGS=-I$(top_srcdir)/include \
 
 AM_LDFLAGS=$(OS_LDFLAGS)
 
-bin_PROGRAMS = dmri_spline dmri_trk2trk dmri_train \
-               dmri_paths dmri_pathstats dmri_mergepaths
+bin_PROGRAMS = dmri_spline dmri_trk2trk dmri_vox2vox \
+               dmri_train dmri_paths dmri_pathstats dmri_mergepaths
 
 dmri_spline_SOURCES=dmri_spline.cxx spline.cxx spline.h
 dmri_spline_LDADD= $(addprefix $(top_builddir)/, $(LIBS_MGH))
@@ -29,6 +29,12 @@ dmri_trk2trk_LDADD= $(addprefix $(top_builddir)/, $(LIBS_MGH)) \
                   $(top_builddir)/fem_elastic/libfem_elastic.a \
                   $(top_builddir)/tetgen/libtetgen.a 
 dmri_trk2trk_LDFLAGS=$(OS_LDFLAGS)
+
+dmri_vox2vox_SOURCES=dmri_vox2vox.cxx vial.cxx vial.h
+dmri_vox2vox_LDADD= $(addprefix $(top_builddir)/, $(LIBS_MGH)) \
+                  $(top_builddir)/fem_elastic/libfem_elastic.a \
+                  $(top_builddir)/tetgen/libtetgen.a 
+dmri_vox2vox_LDFLAGS=$(OS_LDFLAGS)
 
 dmri_train_SOURCES=dmri_train.cxx blood.cxx blood.h spline.cxx spline.h \
                    TrackIO.cxx TrackIO.h ByteSwap.h ErrorCode.h
