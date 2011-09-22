@@ -8,8 +8,8 @@
  * Original Author: Anastasia Yendiki
  * CVS Revision Info:
  *    $Author: ayendiki $
- *    $Date: 2011/09/21 00:34:28 $
- *    $Revision: 1.10 $
+ *    $Date: 2011/09/22 18:41:18 $
+ *    $Revision: 1.11 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -230,7 +230,7 @@ int main(int argc, char **argv) {
 #ifndef NO_CVS_UP_IN_HERE
         // Apply nonlinear transform
         if (!nonlinreg.IsEmpty()) {
-          if(doInvNonlin)
+          if (doInvNonlin)
             nonlinreg.ApplyXfmInv(point, point.begin());
           else
             nonlinreg.ApplyXfm(point, point.begin());
@@ -548,8 +548,11 @@ static void dump_options(FILE *fp) {
   fprintf(fp, "Output reference: %s\n", outRefFile);
   if (affineXfmFile)
     fprintf(fp, "Affine registration: %s\n", affineXfmFile);
-  if (nonlinXfmFile)
+  if (nonlinXfmFile) {
     fprintf(fp, "Nonlinear registration: %s\n", nonlinXfmFile);
+    fprintf(fp, "Invert nonlinear morph: %d\n", doInvNonlin);
+  }
+  fprintf(fp, "Fill gaps between points: %d\n", doFill);
 
   return;
 }
