@@ -127,7 +127,8 @@ SOURCES += \
     DialogRepositionSurface.cpp \
     WindowTimeCourse.cpp \
     WidgetTimeCoursePlot.cpp \
-    LayerMRIWorkerThread.cpp
+    LayerMRIWorkerThread.cpp \
+    DialogLabelStats.cpp
 
 HEADERS  += \
     Annotation2D.h \
@@ -244,7 +245,8 @@ HEADERS  += \
     DialogRepositionSurface.h \
     WindowTimeCourse.h \
     WidgetTimeCoursePlot.h \
-    LayerMRIWorkerThread.h
+    LayerMRIWorkerThread.h \
+    DialogLabelStats.h
 
 FORMS    += MainWindow.ui \
     PanelVolume.ui \
@@ -277,7 +279,8 @@ FORMS    += MainWindow.ui \
     DialogSaveVolume.ui \
     DialogReplaceLabel.ui \
     DialogRepositionSurface.ui \
-    WindowTimeCourse.ui
+    WindowTimeCourse.ui \
+    DialogLabelStats.ui
 
 RESOURCES += \
     freeview.qrc

@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2011/09/12 20:38:22 $
- *    $Revision: 1.108 $
+ *    $Date: 2011/09/22 16:08:44 $
+ *    $Revision: 1.109 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -203,7 +203,6 @@ void LayerMRI::ConnectProperty()
   connect( this, SIGNAL(SurfaceRegionRemoved()), this, SIGNAL(ActorChanged()));
   connect( p, SIGNAL(ProjectionMapShown(bool)), this, SLOT(UpdateProjectionMap()));
 }
-
 
 void LayerMRI::SetResampleToRAS( bool bResample )
 {

@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2011/09/12 20:38:22 $
- *    $Revision: 1.184 $
+ *    $Date: 2011/09/22 16:08:45 $
+ *    $Revision: 1.185 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -83,6 +83,7 @@
 #include "MainApplication.h"
 #include "DialogRepositionSurface.h"
 #include "WindowTimeCourse.h"
+#include "DialogLabelStats.h"
 
 MainWindow::MainWindow( QWidget *parent, MyCmdLineParser* cmdParser ) :
   QMainWindow( parent ),
@@ -200,6 +201,10 @@ MainWindow::MainWindow( QWidget *parent, MyCmdLineParser* cmdParser ) :
   connect(this, SIGNAL(SlicePositionChanged()), m_wndTimeCourse, SLOT(UpdateData()));
   connect(ui->actionTimeCourse, SIGNAL(toggled(bool)),
           m_wndTimeCourse, SLOT(setVisible(bool)));
+
+  m_dlgLabelStats = new DialogLabelStats(this);
+  m_dlgLabelStats->hide();
+  connect(this, SIGNAL(SlicePositionChanged()), m_dlgLabelStats, SLOT(OnSlicePositionChanged()), Qt::QueuedConnection);
 
   QStringList keys = m_layerCollections.keys();
   for ( int i = 0; i < keys.size(); i++ )
@@ -5175,4 +5180,9 @@ void MainWindow::SaveSurfaceAs()
     SaveSurface();
     ui->tabSurface->UpdateWidgets();
   }
+}
+
+void MainWindow::OnShowLabelStats()
+{
+  m_dlgLabelStats->show();
 }

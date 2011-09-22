@@ -37,6 +37,7 @@ BUILT_SOURCES = \
   ui_DialogReplaceLabel.h \
   ui_DialogRepositionSurface.h \
   ui_WindowTimeCourse.h \
+  ui_DialogLabelStats.h \
 	qtcolorpicker.moc \
 	moc_BrushProperty.cpp \
 	moc_CommandEdit.cpp \
@@ -133,6 +134,7 @@ BUILT_SOURCES = \
   moc_WindowTimeCourse.cpp \
   moc_WidgetTimeCoursePlot.cpp \
   moc_LayerMRIWorkerThread.cpp \
+  moc_DialogLabelStats.cpp \
   qrc_freeview.cpp
 
 freeview_SOURCES = $(BUILT_SOURCES) \
@@ -389,7 +391,9 @@ freeview_SOURCES = $(BUILT_SOURCES) \
   WidgetTimeCoursePlot.cpp \
   WidgetTimeCoursePlot.h \
   LayerMRIWorkerThread.cpp \
-  LayerMRIWorkerThread.h
+  LayerMRIWorkerThread.h \
+  DialogLabelStats.cpp \
+  DialogLabelStats.h
 
 if HAVE_MAC_OSX
 AM_CXXFLAGS=\

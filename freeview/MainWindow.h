@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2011/09/12 20:38:23 $
- *    $Revision: 1.104 $
+ *    $Date: 2011/09/22 16:08:45 $
+ *    $Revision: 1.105 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -54,6 +54,7 @@ class DialogWriteMovieFrames;
 class DialogRepositionSurface;
 class QMessageBox;
 class WindowTimeCourse;
+class DialogLabelStats;
 
 #define MAX_RECENT_FILES    10
 
@@ -359,6 +360,7 @@ protected slots:
   void OnDecreaseOpacity();
   void OnToggleCursorVisibility(bool bShow);
   void OnRepositionSurface();
+  void OnShowLabelStats();
 
   void OnActiveLayerChanged(Layer*);
 
@@ -429,6 +431,7 @@ private:
   FloatingStatusBar*    m_statusBar;
   TermWidget*           m_term;
   WindowTimeCourse*     m_wndTimeCourse;
+  DialogLabelStats*     m_dlgLabelStats;
 
   SettingsScreenshot    m_settingsScreenshot;
   QVariantMap           m_settings;
