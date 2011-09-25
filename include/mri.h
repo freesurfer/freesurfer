@@ -7,9 +7,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/08/30 22:30:48 $
- *    $Revision: 1.428 $
+ *    $Author: mreuter $
+ *    $Date: 2011/09/25 16:41:11 $
+ *    $Revision: 1.429 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -45,6 +45,7 @@ extern "C" {
 #define SAMPLE_SINC          2
 #define SAMPLE_CUBIC         3 /*E*/
 #define SAMPLE_WEIGHTED      4
+#define SAMPLE_CUBIC_BSPLINE 5
 
 #define MRI_UCHAR   0
 #define MRI_INT     1
@@ -543,6 +544,7 @@ MRI   *MRIcomputeFrameVectorL1Length(MRI *mri_src, MRI *mri_dst);
 /* morphology */
 MRI   *MRImorph(MRI *mri_src, MRI *mri_dst, int which) ;
 MRI   *MRIerode(MRI *mri_src, MRI *mri_dst) ;
+MRI   *MRIerodeLabels(MRI *mri_src, MRI *mri_dst) ;
 MRI   *MRIerodeThresh(MRI *mri_src, MRI *mri_intensity, double thresh, 
                       MRI *mri_dst) ;
 MRI * MRIdilate6Thresh(MRI *mri_src, MRI *mri_intensity, double thresh, 
