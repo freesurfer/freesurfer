@@ -8,9 +8,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:46 $
- *    $Revision: 1.78 $
+ *    $Author: mreuter $
+ *    $Date: 2011/09/25 16:42:56 $
+ *    $Revision: 1.79 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -476,6 +476,117 @@ MRI * MRIerode(MRI *mri_src, MRI *mri_dst)
             }
           }
           *pdst++ = min_val ;
+        }
+      }
+    }
+  }
+  if (same)
+  {
+    MRIcopy(mri_dst, mri_src) ;
+    MRIfree(&mri_dst) ;
+    mri_dst = mri_src ;
+  }
+  return(mri_dst) ;
+}
+
+/*-----------------------------------------------------
+
+Set to zero every voxel where any of the neighbors has 
+a different value (e.g. to erode all labels in aseg)
+
+Not sure if meaningful for float images, maybe add 
+eps check?
+
+-----------------------------------------------------*/
+MRI * MRIerodeLabels(MRI *mri_src, MRI *mri_dst)
+{
+  int     width, height, depth, x, y, z, x0, y0, z0, xi, yi, zi, same ;
+  BUFTYPE *pdst, neighbor ;
+
+  MRIcheckVolDims(mri_src, mri_dst);
+
+  width = mri_src->width ;
+  height = mri_src->height ;
+  depth = mri_src->depth ;
+
+  if (!mri_dst)
+    mri_dst = MRIclone(mri_src, NULL) ;
+
+  if (mri_dst == mri_src)
+  {
+    same = 1 ;
+    mri_dst = MRIclone(mri_src, NULL) ;
+  }
+  else
+    same = 0 ;
+
+  if (mri_src->type != MRI_UCHAR || mri_dst->type != MRI_UCHAR)
+  {
+    double current, neighbor ;
+
+    for (z = 0 ; z < depth ; z++)
+    {
+      for (y = 0 ; y < height ; y++)
+      {
+        for (x = 0 ; x < width ; x++)
+        {
+          current  = MRIgetVoxVal(mri_src, x, y, z, 0) ;
+          neighbor = current;
+          for (z0 = -1 ; z0 <= 1 ; z0++)
+          {
+            zi = mri_src->zi[z+z0] ;
+            for (y0 = -1 ; y0 <= 1 ; y0++)
+            {
+              yi = mri_src->yi[y+y0] ;
+              for (x0 = -1 ; x0 <= 1 ; x0++)
+              {
+                xi = mri_src->xi[x+x0] ;
+                neighbor = MRIgetVoxVal(mri_src, xi,yi,zi, 0) ;
+                if (current != neighbor)
+                {
+                  current = 0.0 ;
+                  x0 = 2;
+                  y0 = 2;
+                  z0 = 2;
+                }
+              }
+            }
+          }
+          MRIsetVoxVal(mri_dst, x, y, z, 0, current) ;
+        }
+      }
+    }
+  }
+  else
+  {
+    for (z = 0 ; z < depth ; z++)
+    {
+      for (y = 0 ; y < height ; y++)
+      {
+        pdst = &MRIvox(mri_dst, 0, y, z) ;
+        for (x = 0 ; x < width ; x++)
+        {
+          for (z0 = -1 ; z0 <= 1 ; z0++)
+          {
+            zi = mri_src->zi[z+z0] ;
+            for (y0 = -1 ; y0 <= 1 ; y0++)
+            {
+              yi = mri_src->yi[y+y0] ;
+              for (x0 = -1 ; x0 <= 1 ; x0++)
+              {
+                xi = mri_src->xi[x+x0] ;
+                neighbor = MRIvox(mri_src, xi,yi,zi) ;
+                if (*pdst != neighbor)
+                {
+                  *pdst = 0 ;
+                  x0 = 2;
+                  y0 = 2;
+                  z0 = 2;
+                }
+              }
+            }
+          }
+          pdst++;
         }
       }
     }
