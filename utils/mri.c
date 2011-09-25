@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2011/09/22 00:48:39 $
- *    $Revision: 1.499 $
+ *    $Date: 2011/09/25 16:42:28 $
+ *    $Revision: 1.500 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -23,7 +23,7 @@
  */
 
 extern const char* Progname;
-const char *MRI_C_VERSION = "$Revision: 1.499 $";
+const char *MRI_C_VERSION = "$Revision: 1.500 $";
 
 
 /*-----------------------------------------------------
@@ -55,6 +55,7 @@ const char *MRI_C_VERSION = "$Revision: 1.499 $";
 #include "talairachex.h"
 #include "voxlist.h"
 #include "fastmarching.h"
+#include "mriBSpline.h"
 
 extern int errno;
 
@@ -7980,6 +7981,23 @@ MRIupsampleN(MRI *mri_src, MRI *mri_dst, int N)
   mri_dst->ysize = mri_src->ysize/N ;
   mri_dst->zsize = mri_src->zsize/N ;
 
+  // adjust cras
+  //printf("COMPUTING new CRAS\n") ;
+  VECTOR* C = VectorAlloc(4, MATRIX_REAL);
+  // here divide by 2.0 (because even odd images get fully upsampled)
+  VECTOR_ELT(C,1) = mri_src->width/2.0-(N-1)*0.5/N;
+  VECTOR_ELT(C,2) = mri_src->height/2.0-(N-1)*0.5/N;
+  VECTOR_ELT(C,3) = mri_src->depth/2.0-(N-1)*0.5/N;
+  VECTOR_ELT(C,4) = 1.0;
+  MATRIX* V2R     = extract_i_to_r(mri_src);
+  MATRIX* P       = MatrixMultiply(V2R,C,NULL);
+  mri_dst->c_r    = P->rptr[1][1];
+  mri_dst->c_a    = P->rptr[2][1];
+  mri_dst->c_s    = P->rptr[3][1];
+  MatrixFree(&P);
+  MatrixFree(&V2R);
+  VectorFree(&C);
+
   MRIreInitCache(mri_dst) ;
 
   return(mri_dst) ;
@@ -9722,6 +9740,11 @@ MRIsampleVolumeFrameType
       "MRIsampleVolumeFrameType(%d): unsupported interpolation type",
       type));
   default: break;
+    ErrorReturn
+    (ERROR_UNSUPPORTED,
+     (ERROR_UNSUPPORTED,
+      "MRIsampleVolumeFrameType(%d): unsupported interpolation type",
+      type));
     /*E* add SAMPLE_CUBIC here? */
     /*    return(MRIsincSampleVolume(mri, x, y, z, 5, pval)) ;*/
   }
@@ -11774,10 +11797,9 @@ MRIlinearTransformInterp(MRI *mri_src, MRI *mri_dst, MATRIX *mA,
 
   if (InterpMethod != SAMPLE_NEAREST &&
       InterpMethod != SAMPLE_TRILINEAR &&
-      InterpMethod != SAMPLE_CUBIC &&
-      InterpMethod != SAMPLE_SINC )
+      InterpMethod != SAMPLE_CUBIC_BSPLINE )
   {
-    printf("ERROR: MRIlinearTransformInterp: unrecoginzed interpolation "
+    printf("ERROR: MRIlinearTransformInterp: unrecognized or unsupported interpolation "
            "method %d\n",InterpMethod);
   }
 
@@ -11791,9 +11813,13 @@ MRIlinearTransformInterp(MRI *mri_src, MRI *mri_dst, MATRIX *mA,
   else
     MRIclear(mri_dst) ;
 
-  width = mri_dst->width ;
+  MRI_BSPLINE * bspline = NULL;
+  if (InterpMethod == SAMPLE_CUBIC_BSPLINE)
+    bspline = MRItoBSpline(mri_src,NULL,3);
+
+  width  = mri_dst->width ;
   height = mri_dst->height ;
-  depth = mri_dst->depth ;
+  depth  = mri_dst->depth ;
   v_X = VectorAlloc(4, MATRIX_REAL) ;  /* input (src) coordinates */
   v_Y = VectorAlloc(4, MATRIX_REAL) ;  /* transformed (dst) coordinates */
 
@@ -11830,8 +11856,13 @@ MRIlinearTransformInterp(MRI *mri_src, MRI *mri_dst, MATRIX *mA,
         //MRIsampleVolume(mri_src, x1, x2, x3, &val);
         for (frame = 0 ; frame < mri_src->nframes ; frame++)
         {
-          MRIsampleVolumeFrameType(mri_src, x1, x2, x3, 
-                                   frame, InterpMethod, &val);
+          if (InterpMethod == SAMPLE_CUBIC_BSPLINE)
+            // recommended to externally call this and keep mri_coeff
+            // if image is resampled often (e.g. in registration algo)
+            MRIsampleBSpline(bspline, x1, x2, x3, frame, &val);
+          else
+            MRIsampleVolumeFrameType(mri_src, x1, x2, x3, 
+                                     frame, InterpMethod, &val);
           MRIsetVoxVal(mri_dst, y1, y2, y3, frame, val) ;
 #if 0
           switch (mri_dst->type)
@@ -11860,7 +11891,7 @@ MRIlinearTransformInterp(MRI *mri_src, MRI *mri_dst, MATRIX *mA,
       }
     }
   }
-
+  if (bspline) MRIfreeBSpline(&bspline);
   MatrixFree(&v_X) ;
   MatrixFree(&mAinv) ;
   MatrixFree(&v_Y) ;
@@ -12683,6 +12714,11 @@ MRI *MRIresampleFill
 
   *MATRIX_RELT(dp, 4, 1) = 1.0;
 
+  MRI_BSPLINE * bspline = NULL;
+  if (resample_type == SAMPLE_CUBIC_BSPLINE)
+    bspline = MRItoBSpline(src,NULL,3);
+  
+
   for (nframe = 0; nframe < template_vol->nframes; nframe++)
   {
     for (di = 0;di < template_vol->width;di++)
@@ -12735,6 +12771,11 @@ MRI *MRIresampleFill
           else if (resample_type == SAMPLE_CUBIC)
           {
             MRIcubicSampleVolumeFrame(src, si_ff, sj_ff, sk_ff, nframe, &pval);
+            val = (float)pval;
+          }
+          else if (resample_type == SAMPLE_CUBIC_BSPLINE)
+          {
+            MRIsampleBSpline(bspline, si_ff, sj_ff, sk_ff, nframe, &pval);
             val = (float)pval;
           }
           else
