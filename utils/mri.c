@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2011/09/25 16:42:28 $
- *    $Revision: 1.500 $
+ *    $Date: 2011/09/25 16:51:45 $
+ *    $Revision: 1.501 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -23,7 +23,7 @@
  */
 
 extern const char* Progname;
-const char *MRI_C_VERSION = "$Revision: 1.500 $";
+const char *MRI_C_VERSION = "$Revision: 1.501 $";
 
 
 /*-----------------------------------------------------
@@ -7984,7 +7984,7 @@ MRIupsampleN(MRI *mri_src, MRI *mri_dst, int N)
   // adjust cras
   //printf("COMPUTING new CRAS\n") ;
   VECTOR* C = VectorAlloc(4, MATRIX_REAL);
-  // here divide by 2.0 (because even odd images get fully upsampled)
+  // here divide by 2.0 (because also  odd images get fully upsampled)
   VECTOR_ELT(C,1) = mri_src->width/2.0-(N-1)*0.5/N;
   VECTOR_ELT(C,2) = mri_src->height/2.0-(N-1)*0.5/N;
   VECTOR_ELT(C,3) = mri_src->depth/2.0-(N-1)*0.5/N;

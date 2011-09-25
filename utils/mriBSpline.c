@@ -15,8 +15,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2011/09/25 16:39:48 $
- *    $Revision: 1.1 $
+ *    $Date: 2011/09/25 16:51:46 $
+ *    $Revision: 1.2 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -2587,7 +2587,7 @@ extern MRI *MRIupsample2BSpline(MRI* mri_src, MRI *mri_dst)
   // adjust cras
   //printf("COMPUTING new CRAS\n") ;
   VECTOR* C = VectorAlloc(4, MATRIX_REAL);
-  // here divide by 2.0 (because even odd images get fully upsampled)
+  // here divide by 2.0 (because also odd images get fully upsampled)
   VECTOR_ELT(C,1) = mri_src->width/2.0-0.25;
   VECTOR_ELT(C,2) = mri_src->height/2.0-0.25;
   VECTOR_ELT(C,3) = mri_src->depth/2.0-0.25;
