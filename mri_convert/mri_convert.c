@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl (Apr 16, 1997)
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2011/08/19 12:40:28 $
- *    $Revision: 1.183 $
+ *    $Author: mreuter $
+ *    $Date: 2011/09/25 16:43:44 $
+ *    $Revision: 1.184 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -200,7 +200,7 @@ int main(int argc, char *argv[])
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mri_convert.c,v 1.183 2011/08/19 12:40:28 fischl Exp $",
+   "$Id: mri_convert.c,v 1.184 2011/09/25 16:43:44 mreuter Exp $",
    "$Name:  $",
    cmdline);
 
@@ -320,7 +320,7 @@ int main(int argc, char *argv[])
     handle_version_option
     (
       argc, argv,
-      "$Id: mri_convert.c,v 1.183 2011/08/19 12:40:28 fischl Exp $",
+      "$Id: mri_convert.c,v 1.184 2011/09/25 16:43:44 mreuter Exp $",
       "$Name:  $"
     );
   if (nargs && argc - nargs == 1)
@@ -966,13 +966,13 @@ int main(int argc, char *argv[])
       {
         resample_type_val = SAMPLE_WEIGHTED;
       }
-      else if(strcmp(StrLower(resample_type), "sinc") == 0)
+/*       else if(strcmp(StrLower(resample_type), "sinc") == 0)
       {
         resample_type_val = SAMPLE_SINC;
-      }
+      }*/
       else if(strcmp(StrLower(resample_type), "cubic") == 0)
       {
-        resample_type_val = SAMPLE_CUBIC;
+        resample_type_val = SAMPLE_CUBIC_BSPLINE;
       }
       else
       {
@@ -1626,7 +1626,7 @@ int main(int argc, char *argv[])
             "= --zero_ge_z_offset option ignored.\n");
   }
 
-  printf("$Id: mri_convert.c,v 1.183 2011/08/19 12:40:28 fischl Exp $\n");
+  printf("$Id: mri_convert.c,v 1.184 2011/09/25 16:43:44 mreuter Exp $\n");
   printf("reading from %s...\n", in_name_only);
 
   if (in_volume_type == OTL_FILE)
@@ -2787,9 +2787,9 @@ int main(int argc, char *argv[])
     case SAMPLE_NEAREST:
       printf("nearest \n");
       break;
-    case SAMPLE_SINC:
+/*    case SAMPLE_SINC:
       printf("sinc \n");
-      break;
+      break;*/
     case SAMPLE_CUBIC:
       printf("cubic \n");
       break;
