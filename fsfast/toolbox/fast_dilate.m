@@ -12,6 +12,8 @@ function md = fast_dilate(m,ndilations,erodeflag,flag2d)
 % flag2d=1, then 3x3x1. Dilation and erosion are reversible only
 % if there are no edge effects.
 %
+% This is pretty slow for big images. Gets slower with the use of
+% circshift. The slowness has to do with making a shifted copy.
 %
 
 
@@ -20,9 +22,9 @@ function md = fast_dilate(m,ndilations,erodeflag,flag2d)
 %
 % Original Author: Doug Greve
 % CVS Revision Info:
-%    $Author: nicks $
-%    $Date: 2011/03/02 00:04:04 $
-%    $Revision: 1.5 $
+%    $Author: greve $
+%    $Date: 2011/09/26 14:56:17 $
+%    $Revision: 1.6 $
 %
 % Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 %
@@ -66,7 +68,7 @@ else       dsrange = [-1:1];
 end
 
 md = m;
-tic;
+%tic;
 nth = 1;
 %fprintf('--------------------\n');
 for dc = -1:1
