@@ -10,8 +10,8 @@
  * CUDA version : Richard Edgar
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2011/07/28 13:18:02 $
- *    $Revision: 1.90 $
+ *    $Date: 2011/09/26 13:07:57 $
+ *    $Revision: 1.91 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -204,7 +204,7 @@ main(int argc, char *argv[])
   nargs =
     handle_version_option
     (argc, argv,
-     "$Id: mri_em_register.c,v 1.90 2011/07/28 13:18:02 fischl Exp $",
+     "$Id: mri_em_register.c,v 1.91 2011/09/26 13:07:57 fischl Exp $",
      "$Name:  $");
   if (nargs && argc - nargs == 1)
   {
@@ -768,6 +768,7 @@ main(int argc, char *argv[])
   printf("**************************************************\n");
   fflush(stdout);
   parms.mri_in = mri_in ;  /* for diagnostics */
+  parms.clamp = Gclamp ;
   MRIemAlign(mri_in, gca, &parms, parms.lta->xforms[0].m_L) ;
 
 
@@ -1458,6 +1459,12 @@ find_optimal_transform
       sprintf(fname, "%s%03d_means.mgz", parms.base_name, parms.start_t) ;
       GCAtransformAndWriteSampleMeans(gca, mri, gcas, nsamples,
                                       fname, transform) ;
+      sprintf(fname, "%s%03d.mgz", parms.base_name, parms.start_t) ;
+      MRIwrite(mri_aligned, fname) ;
+      MRIfree(&mri_aligned) ;
+      mri_aligned = MRIinverseLinearTransform(mri, NULL, m_L) ;
+      sprintf(fname, "%s%03d.inv.mgz", parms.base_name, parms.start_t) ;
+      MRIwrite(mri_aligned, fname) ;
       MRIfree(&mri_aligned) ;
     }
     MRIfree(&mri_gca) ;
