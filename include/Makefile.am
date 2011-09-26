@@ -137,6 +137,7 @@ EXTRA_DIST=\
 	minmax.hpp \
 	mosaic.h \
 	mri2.h \
+	mriBSpline.h \
 	mri_ca_configFile.h \
 	mri_ca_gausDist.h \
 	mri_ca_labelingParameters.h \
