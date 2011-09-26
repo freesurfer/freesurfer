@@ -8,8 +8,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2011/09/13 03:08:26 $
- *    $Revision: 1.6 $
+ *    $Date: 2011/09/26 21:50:11 $
+ *    $Revision: 1.7 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -74,6 +74,7 @@ protected:
   static vnl_matrix_fixed < double , 4, 4 > mh2;
   static int icount;
   static int subsamp;
+  static bool is2d;
 
 };
 

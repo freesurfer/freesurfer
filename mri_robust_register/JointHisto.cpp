@@ -8,8 +8,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2011/09/26 20:46:47 $
- *    $Revision: 1.4 $
+ *    $Date: 2011/09/26 21:50:10 $
+ *    $Revision: 1.5 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -80,6 +80,12 @@ void JointHisto::create(MRI *mriS, MRI* mriT,
   histo.set_size(n,n);
   histo.fill(0.0);
   haseps = false;
+  sum = 0.0;
+  
+//  MRIwrite(mriS,"histoS.mgz");
+//  MRIwrite(mriT,"histoT.mgz");
+//  vnl_matlab_print(vcl_cerr,Msi,"Msi",vnl_matlab_print_format_long);
+//  vnl_matlab_print(vcl_cerr,Mti,"Mti",vnl_matlab_print_format_long);
     
 //   static double uniform[101] = { 0.825960894329359, 0.391799656122844, 0.606822280998442, 0.923192169644637,
 //                                  0.772662867376799, 0.394913419972908, 0.562648884384293, 0.821213453107628,
@@ -125,11 +131,11 @@ void JointHisto::create(MRI *mriS, MRI* mriT,
   mriT->outside_val = -1;
   //int count = 0;
   //cout <<" df " << df[0] << " " << df[1] << " " << df[2] << endl;
-	for(z=0; z<dt[2]-d3-1; z+=d3)
+	for(z=0; z<dt[2]-d3+1; z+=d3)
 	{
-		for(y=0; y<dt[1]-d2-1; y+=d2)
+		for(y=0; y<dt[1]-d2+1; y+=d2)
 		{
-			for(x=0; x<dt[0]-d1-1; x+=d1)
+			for(x=0; x<dt[0]-d1+1; x+=d1)
 			{
 //         if (ssamp)
 //         {
@@ -182,11 +188,17 @@ void JointHisto::create(MRI *mriS, MRI* mriT,
 					if (ivs<nm1 && ivt<nm1)
 						histo[ivs+1][ivt+1] += sdiff*tdiff;
           //count++;
+          sum = sum+1.0;
 				}
 			}
 		}
 	}  
   //cout << " count: " << count << endl;
+  if (sum == 0.0)
+  {
+    cout << " ERROR JointHisto::create : histogram is empty? " << endl;
+    exit(1);
+  }
 }
 
 void JointHisto::set(const  vnl_matrix < double > & h)

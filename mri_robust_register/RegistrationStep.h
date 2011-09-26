@@ -8,8 +8,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2011/09/26 20:46:48 $
- *    $Revision: 1.16 $
+ *    $Date: 2011/09/26 21:50:11 $
+ *    $Revision: 1.17 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -96,7 +96,7 @@ public:
   // called from computeRegistrationStepW
   // and externally from RegPowell
   static std::pair < vnl_matrix_fixed <double,4,4 >, double > convertP2Md(const vnl_vector < T >& p,int rtype);
-  static std::pair < vnl_matrix_fixed <double,4,4 >, double > convertP2Md2(const vnl_vector < T >& p,int rtype);
+  static std::pair < vnl_matrix_fixed <double,4,4 >, double > convertP2Md2(const vnl_vector < T >& p,bool iscale,int rtype);
 
 
 protected:
@@ -309,7 +309,7 @@ std::pair < vnl_matrix_fixed <double,4,4 >, double >  RegistrationStep<T>::compu
   if (mriS->depth ==1 || mriT->depth ==1)
   {
     if (mriS->depth != mriT->depth) { cout << " ERROR both src and trg need to be 2d or 3d!" << endl; exit(1);}
-    Md = convertP2Md2(pvec,rtype);
+    Md = convertP2Md2(pvec,iscale,rtype);
   }
   else
     Md = convertP2Md(pvec,rtype);
@@ -933,7 +933,7 @@ pair < vnl_matrix_fixed <double,4,4 >, double > RegistrationStep<T>::convertP2Md
 }
 
 template <class T>
-pair < vnl_matrix_fixed <double,4,4 >, double > RegistrationStep<T>::convertP2Md2(const vnl_vector < T >& p, int rtype)
+pair < vnl_matrix_fixed <double,4,4 >, double > RegistrationStep<T>::convertP2Md2(const vnl_vector < T >& p, bool iscale, int rtype)
 // rtype : use restriction (if 2) or rigid from robust paper
 // returns registration as 4x4 matrix M, and iscale
 {
@@ -942,7 +942,7 @@ pair < vnl_matrix_fixed <double,4,4 >, double > RegistrationStep<T>::convertP2Md
 
   int psize = p.size();
 	
-  if (psize == 3 || psize == 4 || psize == 7) // iscale
+  if (iscale) // iscale
   {
     //std::cout << " has intensity " << std::endl;
     // last is intensity scale		
@@ -1025,6 +1025,8 @@ pair < vnl_matrix_fixed <double,4,4 >, double > RegistrationStep<T>::convertP2Md
     {
       // first convert rotation to quaternion;
       q.importRotVec(0,0,r);
+      //cout << " r: " << r << endl;
+      //cout << " q: " << q << endl;
     }
     else assert (1==2);
     // then to rotation matrix

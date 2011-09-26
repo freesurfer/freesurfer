@@ -8,8 +8,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2011/09/21 05:45:26 $
- *    $Revision: 1.11 $
+ *    $Date: 2011/09/26 21:50:11 $
+ *    $Revision: 1.12 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -51,6 +51,7 @@ vnl_matrix_fixed < double, 4, 4> RegPowell::mh1 = vnl_matrix_fixed < double, 4, 
 vnl_matrix_fixed < double, 4, 4> RegPowell::mh2 = vnl_matrix_fixed < double, 4, 4>();
 int RegPowell::icount = 0;
 int RegPowell::subsamp = 1;
+bool RegPowell::is2d = false;
 
 class my_cost_function : public fs_cost_function
 //class my_cost_function : public vnl_cost_function
@@ -72,12 +73,20 @@ double RegPowell::costFunction(const vnl_vector < double >& p)
 
   // transform into matrix and iscale double
   static pair < vnl_matrix_fixed < double , 4, 4 > , double > Md;
-  Md = RegistrationStep<double>::convertP2Md(p,tocurrent->rtype);
+  if (tocurrent->is2d)
+  {
+    Md = RegistrationStep<double>::convertP2Md2(p,tocurrent->iscale,tocurrent->rtype);  
+  }
+  else
+    Md = RegistrationStep<double>::convertP2Md(p,tocurrent->rtype);
   Md.second = exp(Md.second); // compute full factor (source to target)
   //cout << endl;
   //cout << " M(p)   : " << endl << Md.first << endl;
+  //cout << " psize : " << p.size() << endl;
   //vnl_matlab_print(vcl_cerr,Md.first,"M",vnl_matlab_print_format_long);
   //cout << " iscale : " << Md.second << endl;
+  //vnl_matlab_print(vcl_cerr,p,"p",vnl_matlab_print_format_long);
+  //vnl_matlab_print(vcl_cerr,Md.first,"M",vnl_matlab_print_format_long);
  
   // new full M = mh2 * cm * mh1
 	Md.first = mh2 * Md.first * mh1;
@@ -92,6 +101,7 @@ double RegPowell::costFunction(const vnl_vector < double >& p)
   {
     // compute new half way maps and here assign to mti (hwspace to target)
     mti = MyMatrix::MatrixSqrt(Md.first);
+    //vnl_matlab_print(vcl_cerr,mti,"Mti",vnl_matlab_print_format_long);
     // do not just assume m = mti*mti, rather m = mti * mh2
     // for sampling source we need mh2^-1 = m^-1 * mti
     msi = vnl_inverse(Md.first) * mti;
@@ -115,6 +125,8 @@ double RegPowell::costFunction(const vnl_vector < double >& p)
   static JointHisto H;
   H.create(scf,tcf,msi,mti,tocurrent->subsamp, tocurrent->subsamp, tocurrent->subsamp);
   //H.set(HM);
+  //H.print();
+  //exit(1);
   
   
   H.smooth(7);
@@ -231,6 +243,13 @@ void RegPowell::computeIterativeRegistration( int nmax,double epsit,MRI * mriS, 
   if (!mriT) mriT = mri_target;
 
   assert (mriS && mriT);
+
+  is2d = false;
+  if ( mriS->depth == 1 || mriT->depth == 1)
+  {
+    if (mriT->depth != mriS->depth){cout << "ERROR: both source and target need to be 2D or 3D" << endl; exit(1);}
+    is2d = true;
+  }
   
   bool cleanupS = true;
   if (mriS->type != MRI_UCHAR)
@@ -330,6 +349,13 @@ void RegPowell::computeIterativeRegistration( int nmax,double epsit,MRI * mriS, 
   if (rigid) pcount = 6;
   else pcount = 12;
   if (pcount==3) assert(transonly);
+  if (is2d)
+  { 
+    pcount = 6;
+    if (transonly) pcount = 2;
+    else if (rigid) pcount = 3;
+  }
+  
   if (iscale) pcount++;
 
   subsamp = 1;
@@ -346,12 +372,18 @@ void RegPowell::computeIterativeRegistration( int nmax,double epsit,MRI * mriS, 
 
 //  double tols[6] = { 0.01, 0.01, 0.01, 0.001, 0.001 ,0.001};
   double tols[13] = { 0.02, 0.02, 0.02, 0.001, 0.001 ,0.001, 0.01, 0.01, 0.01, 0.001, 0.001, 0.001,0.001};
-
   // initial parameters
   vnl_vector < double > p(pcount,0.0);
+
+  if (is2d)
+  { 
+    tols[2] = tols[1];
+    if (pcount >= 6) p[3] = 1.0 ; p[4] = 1.0;
+  }
+
   if (pcount >=12)
   {
-     p[6] = 1; p[7] = 1; p[8] = 1;
+     p[6] = 1.0; p[7] = 1.0; p[8] = 1.0;
   }
   if (iscale) p[pcount-1] = iscaleinit;
   // initial steps:
@@ -474,7 +506,10 @@ void RegPowell::computeIterativeRegistration( int nmax,double epsit,MRI * mriS, 
 //	cout << v << endl;
 
   //if (fmd.first) MatrixFree(&fmd.first);
-  fmd = RegistrationStep<double>::convertP2Md(p,rtype);
+  if (is2d)
+   fmd = RegistrationStep<double>::convertP2Md2(p,iscale,rtype);  
+  else
+   fmd = RegistrationStep<double>::convertP2Md(p,rtype);
   //vnl_matlab_print(vcl_cerr,fmd.first,"M",vnl_matlab_print_format_long); cout << endl;   
 
   if (symmetry)

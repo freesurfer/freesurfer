@@ -8,8 +8,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2011/09/17 00:50:40 $
- *    $Revision: 1.2 $
+ *    $Date: 2011/09/26 21:50:10 $
+ *    $Revision: 1.3 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -63,7 +63,7 @@ public:
               int d1=1, int d2=1, int d3=1);
   void set(const  vnl_matrix < double > & histo);
   void smooth(double fwhm1 = 7.0);
-  void print(const std::string & n = "H"){vnl_matlab_print(vcl_cerr,histo,n.c_str());std::cerr << std::endl;};
+  void print(const std::string & n = "H"){vnl_matlab_print(vcl_cout,histo,n.c_str());std::cout << std::endl;};
   void normalize(){if (sum == 0.0 || sum == 1.0) return; else { histo /= sum; sum = 1.0;} };
 
   double computeMI();  // mutual information
