@@ -8,8 +8,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2011/09/17 00:50:40 $
- *    $Revision: 1.73 $
+ *    $Date: 2011/09/26 20:46:47 $
+ *    $Revision: 1.74 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -30,6 +30,7 @@
 #include "MyMRI.h"
 #include "Regression.h"
 #include "CostFunctions.h"
+#include "mriBSpline.h"
 
 #include <limits>
 #include <cassert>
@@ -393,7 +394,8 @@ void Registration::findSatMultiRes(const vnl_matrix < double > &mi, double scale
   pair < vnl_matrix_fixed < double, 4, 4> , double > cmd;
   pair < vnl_matrix_fixed < double, 4, 4> , double > md(mi,scaleinit);
 
-  if ( gpS[0]->width < 16 || gpS[0]->height < 16 || gpS[0]->depth < 16)
+  // allow 2d case (depth == 1)
+  if ( gpS[0]->width < 16 || gpS[0]->height < 16 ||  (gpS[0]->depth < 16 && !gpS[0]->depth == 1))
 	{
      ErrorExit(ERROR_BADFILE, "Input images must be larger than 16^3.\n") ;
 	}
@@ -534,11 +536,11 @@ double Registration::findSaturation ( )
   if (gpS.size() ==0) gpS = buildGPLimits(mriS,limits);
   if (gpT.size() ==0) gpT = buildGPLimits(mriT,limits);
   assert(gpS.size() == gpT.size());
-  if ( gpS[0]->width < MINS || gpS[0]->height < MINS || gpS[0]->depth < MINS)
+  if ( gpS[0]->width < MINS || gpS[0]->height < MINS || (gpS[0]->depth < MINS && gpS[0]->depth != 1))
 	{
      ErrorExit(ERROR_BADFILE, "Input images must be larger than 16^3.\n") ;
 	}
-  if ( gpT[0]->width < MINS || gpT[0]->height < MINS || gpT[0]->depth < MINS)
+  if ( gpT[0]->width < MINS || gpT[0]->height < MINS || (gpT[0]->depth < MINS && gpT[0]->depth != 1))
 	{
      ErrorExit(ERROR_BADFILE, "Input images must be larger than 16^3.\n") ;
 	}	
@@ -726,11 +728,11 @@ void Registration::computeMultiresRegistration (int stopres, int n,double epsit)
   if (gpT.size() ==0) gpT = buildGPLimits(mriT,limits);
   assert(gpS.size() == gpT.size());
 
-  if ( gpT[0]->width < MINS || gpT[0]->height < MINS || gpT[0]->depth < MINS)
+  if ( gpT[0]->width < MINS || gpT[0]->height < MINS || (gpT[0]->depth < MINS && gpT[0]->depth != 1))
 	{
      ErrorExit(ERROR_BADFILE, "Input images must be larger than 16^3.\n") ;
 	}	
-  if ( gpS[0]->width < 16 || gpS[0]->height < 16 || gpS[0]->depth < 16)
+  if ( gpS[0]->width < 16 || gpS[0]->height < 16 || ( gpS[0]->depth < 16 && gpS[0]->depth != 1))
 	{
      ErrorExit(ERROR_BADFILE, "Input images must be larger than 16^3.\n") ;
 	}	
@@ -741,11 +743,11 @@ void Registration::computeMultiresRegistration (int stopres, int n,double epsit)
 
 
 
-//    if (debug)
-//    {
-//      saveGaussianPyramid(gpS, "pyramidS");
-//      saveGaussianPyramid(gpT, "pyramidT");
-//    }
+     if (debug)
+     {
+       saveGaussianPyramid(gpS, "pyramidS");
+       saveGaussianPyramid(gpT, "pyramidT");
+     }
 
 
   if (verbose >0 ) 
@@ -2857,11 +2859,16 @@ pair < int, int > Registration::getGPLimits(MRI *mriS, MRI *mriT, int min, int m
   if (verbose >0) cout << "   - Gaussian Pyramid Limits ( min size: " << min << " max size: " << max << " ) "<< endl;
   
   int smallest = mriS->width;
-  if (mriS->height < smallest) smallest = mriS->height;
-  if (mriS->depth  < smallest) smallest = mriS->depth;
   if (mriT->width  < smallest) smallest = mriT->width;
+  if (mriS->height < smallest) smallest = mriS->height;
   if (mriT->height < smallest) smallest = mriT->height;
-  if (mriT->depth  < smallest) smallest = mriT->depth;
+  //bool is2d = true;
+  if (mriS->depth != 1 || mriT->depth != 1)
+  {
+    if (mriS->depth  < smallest) smallest = mriS->depth;
+    if (mriT->depth  < smallest) smallest = mriT->depth;
+    //is2d=true;
+  }
   
   if (smallest < min )
   {
@@ -2914,7 +2921,7 @@ vector < MRI* > Registration::buildGPLimits (MRI * mri_in, pair< int, int > limi
 // meaning:  start highest resolution after min steps
 //           don't do more than max steps.
 {
-  if (verbose >0) cout << "   - Gaussian Pyramid ( min steps: " << limits.first << " max steps: " << limits.second << " ) "<< endl;
+  if (verbose >0) cout << "   - Gaussian Pyramid Limits ( min steps: " << limits.first << " max steps: " << limits.second << " ) "<< endl;
 
   int n = limits.second - limits.first + 1;
   vector <MRI* > p (n);
@@ -2933,7 +2940,8 @@ vector < MRI* > Registration::buildGPLimits (MRI * mri_in, pair< int, int > limi
   if (verbose >1) cout << "        dim: " << mri_in->width << " " << mri_in->height << " " <<mri_in->depth << endl;
 
 	// smooth high res:
-  p[0] = MRIconvolveGaussian(mri_in, NULL, mri_kernel);
+  //p[0] = MRIconvolveGaussian(mri_in, NULL, mri_kernel);
+  p[0] = MRIcopy(mri_in, NULL);
   mri_tmp = mri_in;
   
   // subsample until highest resolution is small enough
@@ -2943,7 +2951,8 @@ vector < MRI* > Registration::buildGPLimits (MRI * mri_in, pair< int, int > limi
     //subsample:
     mri_tmp = MRIconvolveGaussian(mri_tmp, NULL, mri_kernel) ;
     MRIfree(&p[0]);
-    p[0] = MRIdownsample2(mri_tmp,NULL);
+    //p[0] = MRIdownsample2(mri_tmp,NULL);
+    p[0] = MRIdownsample2BSpline(mri_tmp,NULL);
     MRIfree(&mri_tmp);
     mri_tmp = p[0];    
 	}
@@ -2954,7 +2963,8 @@ vector < MRI* > Registration::buildGPLimits (MRI * mri_in, pair< int, int > limi
   {
     //subsample:
     mri_tmp = MRIconvolveGaussian(mri_tmp, NULL, mri_kernel) ;
-    p[j] = MRIdownsample2(mri_tmp,NULL);
+    //p[j] = MRIdownsample2(mri_tmp,NULL);
+    p[j] = MRIdownsample2BSpline(mri_tmp,NULL);
     MRIfree(&mri_tmp);
     mri_tmp = p[j];
     j++;
@@ -2964,7 +2974,6 @@ vector < MRI* > Registration::buildGPLimits (MRI * mri_in, pair< int, int > limi
   assert(j==n); // check that all fields were filled
 
   MRIfree(&mri_kernel);
-
   return p;
 
 }
@@ -2974,7 +2983,7 @@ vector < MRI* > Registration::buildGaussianPyramid (MRI * mri_in, int min, int m
 // max: no dimension will be larger than max
 {
 
-  if (verbose >0) cout << "   - Gaussian Pyramid ( min: " << min << " max: " << max << " ) "<< endl;
+  if (verbose >0) cout << "   - Build Gaussian Pyramid ( min: " << min << " max: " << max << " ) "<< endl;
 
   // if max not passed allow pyramid to go up to highest resolution:
   if (max == -1 ) max = mri_in->width + mri_in->height + mri_in->depth;
@@ -3021,13 +3030,15 @@ vector < MRI* > Registration::buildGaussianPyramid (MRI * mri_in, int min, int m
       //subsample:
       mri_tmp = MRIconvolveGaussian(mri_tmp, NULL, mri_kernel) ;
       MRIfree(&p[0]);
-      p[0] = MRIdownsample2(mri_tmp,NULL);
+      //p[0] = MRIdownsample2(mri_tmp,NULL);
+      p[0] = MyMRI::subSample(mri_tmp,NULL,true);
+      //p[0] = MRIdownsample2BSpline(mri_tmp, NULL);
       MRIfree(&mri_tmp);
       mri_tmp = p[0];
     
     }
 	}
-  
+  cout << " downsample2 " << endl;
 	//cout << " w[0]: " << p[0]->width << endl;
   int i;
   for (i = 1;i<n;i++)
@@ -3036,7 +3047,9 @@ vector < MRI* > Registration::buildGaussianPyramid (MRI * mri_in, int min, int m
       break;
     //else subsample:
     mri_tmp = MRIconvolveGaussian(mri_tmp, NULL, mri_kernel) ;
-    p[i] = MRIdownsample2(mri_tmp,NULL);
+    //p[i] = MRIdownsample2(mri_tmp,NULL);
+    p[i] = MyMRI::subSample(mri_tmp,NULL,true);
+    //p[i] = MRIdownsample2BSpline(mri_tmp, NULL);
     MRIfree(&mri_tmp);
     mri_tmp = p[i];
 	  //cout << " w[" << i<<"]: " << p[i]->width << endl;
@@ -3611,8 +3624,8 @@ Registration::makeIsotropic(MRI *mri, MRI *out, double vsize, int xdim, int ydim
   // histogram based methods need uchar later
   // for rob at some point float performed better (needs further testing)
   MRI * temp;
-  if (costfun == ROB || costfun == LS)
-  {
+//   if (costfun == ROB || costfun == LS)
+//   {
     temp = MRIallocHeader(conform_dimensions[0],
                           conform_dimensions[1],
                           conform_dimensions[2],
@@ -3620,17 +3633,17 @@ Registration::makeIsotropic(MRI *mri, MRI *out, double vsize, int xdim, int ydim
                           1);
     MRIcopyHeader(mri, temp);
     temp->type   = MRI_FLOAT;
-  }
-  else
-  {
-    temp = MRIallocHeader(conform_dimensions[0],
-                          conform_dimensions[1],
-                          conform_dimensions[2],
-                          MRI_UCHAR,
-                          1);
-    MRIcopyHeader(mri, temp);
-    temp->type   = MRI_UCHAR;
-  }
+//   }
+//   else
+//   {
+//     temp = MRIallocHeader(conform_dimensions[0],
+//                           conform_dimensions[1],
+//                           conform_dimensions[2],
+//                           MRI_UCHAR,
+//                           1);
+//     MRIcopyHeader(mri, temp);
+//     temp->type   = MRI_UCHAR;
+//   }
 	
   temp->width  = conform_dimensions[0];
 	temp->height = conform_dimensions[1];
@@ -3750,7 +3763,8 @@ Registration::makeIsotropic(MRI *mri, MRI *out, double vsize, int xdim, int ydim
     printf("   Resampled: (%g, %g, %g) mm size and (%d, %d, %d) voxels.\n",
            temp->xsize,temp->ysize,temp->zsize, temp->width,temp->height,temp->depth);
 
-    int resample_type_val = SAMPLE_TRILINEAR;
+    //int resample_type_val = SAMPLE_TRILINEAR;
+    int resample_type_val = SAMPLE_CUBIC_BSPLINE;
 
     printf("   Reslicing using ");
     switch (resample_type_val)
@@ -3769,6 +3783,9 @@ Registration::makeIsotropic(MRI *mri, MRI *out, double vsize, int xdim, int ydim
       break;
     case SAMPLE_WEIGHTED:
       printf("weighted \n");
+      break;
+    case SAMPLE_CUBIC_BSPLINE:
+      printf("cubic bspline \n");
       break;
     }
     MRI * mri2 = MRIresample(out, temp, resample_type_val);
@@ -3978,6 +3995,18 @@ void Registration::mapToNewSpace(const vnl_matrix_fixed<double , 4, 4>& M, doubl
       if (verbose >1) std::cout << "   - resampling MOV and DST (sqrt)" << std::endl;
       // half way voxelxform
       //mh  = MyMatrix::MatrixSqrtAffine(M); // does not seem to work (creates imag results ...)?
+//      vnl_matrix_fixed<double , 4, 4> &Mnew =&M;
+//       // 2D correction
+//       if ( mriS->depth == 1)
+//       {
+//         assert (mriT->depth ==1);
+//         Mnew[2][0] = 0.0;
+//         Mnew[0][2] = 0.0;
+//         Mnew[2][1] = 0.0;
+//         Mnew[1][2] = 0.0;
+//         Mnew[2][2] = 1.0;
+//         Mnew[2][3] = 0.0;
+//       }
       mh  = MyMatrix::MatrixSqrt(M); //!! symmetry slighlty destroyed here? !!
 
 			// check if we moved out of our space:
@@ -4006,8 +4035,19 @@ void Registration::mapToNewSpace(const vnl_matrix_fixed<double , 4, 4>& M, doubl
       if (verbose >1) std::cout << "   - resampling MOV to DST " << std::endl;
       if (mri_Swarp) MRIfree(&mri_Swarp);
       mri_Swarp = MRIclone(mriT,NULL);
-      mri_Swarp = MyMRI::MRIlinearTransform(mriS,mri_Swarp, M);
       mh = M;
+//       // 2D correction
+//       if ( mriS->depth == 1)
+//       {
+//         assert (mriT->depth ==1);
+//         mh[2][0] = 0.0;
+//         mh[0][2] = 0.0;
+//         mh[2][1] = 0.0;
+//         mh[1][2] = 0.0;
+//         mh[2][2] = 1.0;
+//         mh[2][3] = 0.0;
+//       }
+      mri_Swarp = MyMRI::MRIlinearTransform(mriS,mri_Swarp, mh);
       mhi.set_identity();
       if (! mri_Twarp ) mri_Twarp = MRIcopy(mriT,NULL);
     }

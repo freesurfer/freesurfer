@@ -8,8 +8,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2011/09/13 03:08:25 $
- *    $Revision: 1.10 $
+ *    $Date: 2011/09/26 20:46:47 $
+ *    $Revision: 1.11 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -242,22 +242,135 @@ MRI * MyMRI::getDerfilter()
   return mri_derfilter;
 }
 
-MRI * MyMRI::subSample(MRI * mri)
+MRI * MyMRI::subSample(MRI * mri_src, MRI * mri_dst, bool fixheader)
+// this only makes sense when images are smoothed before
+// else you need to average neighboring voxel as in MRIdownsample2 (mri.h)_
 {
-  int w = (mri->width +1) / 2;
-  int h = (mri->height+1) / 2;
-  int d = (mri->depth +1) / 2;
-//   int d = mri->depth;
-  MRI* mri_sub = MRIalloc(w,h,d,mri->type);
+  int w = (mri_src->width +1) / 2;
+  int h = (mri_src->height+1) / 2;
+  int d = (mri_src->depth +1) / 2;
+  if (fixheader)
+  {
+    w = mri_src->width  / 2;
+    h = mri_src->height / 2;
+    d = mri_src->depth  / 2;
+  }
+
+  if (!mri_dst)
+  {
+    mri_dst = MRIalloc(w, h, d, mri_src->type) ;
+    MRIcopyHeader(mri_src, mri_dst) ;
+  }
+
   int x,y,z;
   for (z = 0;z<d;z++)
     for (y = 0;y<h;y++)
       for (x = 0;x<w;x++)
-        MRIsetVoxVal(mri_sub,x,y,z,0,MRIgetVoxVal(mri,2*x,2*y,2*z,0));
+        MRIsetVoxVal(mri_dst,x,y,z,0,MRIgetVoxVal(mri_src,2*x,2*y,2*z,0));
 
-  return mri_sub;
+  if (fixheader) // adjusts header of dest so that RAS coordinates agree
+  {
+    mri_dst->imnr0 = mri_src->imnr0 ;
+    mri_dst->imnr1 = mri_src->imnr0 + mri_dst->depth - 1 ;
+    mri_dst->xsize = mri_src->xsize*2 ;
+    mri_dst->ysize = mri_src->ysize*2 ;
+    mri_dst->zsize = mri_src->zsize*2 ;
+    mri_dst->thick = mri_src->thick*2 ;
+    mri_dst->ps    = mri_src->ps*2 ;
+  
+    // adjust cras
+    //printf("COMPUTING new CRAS\n") ;
+    VECTOR* C = VectorAlloc(4, MATRIX_REAL);
+    VECTOR_ELT(C,1) = mri_src->width/2+0.5;
+    VECTOR_ELT(C,2) = mri_src->height/2+0.5;
+    VECTOR_ELT(C,3) = mri_src->depth/2+0.5;
+    VECTOR_ELT(C,4) = 1.0;
+    MATRIX* V2R     = extract_i_to_r(mri_src);
+    MATRIX* P       = MatrixMultiply(V2R,C,NULL);
+    mri_dst->c_r    = P->rptr[1][1];
+    mri_dst->c_a    = P->rptr[2][1];
+    mri_dst->c_s    = P->rptr[3][1];
+    MatrixFree(&P);
+    MatrixFree(&V2R);
+    VectorFree(&C);
+  
+    MRIreInitCache(mri_dst) ;  
+  }
+
+
+  return mri_dst;
 
 }
+
+// MRI * MyMRI::subSample(MRI * mri_src, MRI * mri_dst)
+// // this only makes sense when images are smoothed before
+// // else you need to average neighboring voxel as in MRIdownsample2 (mri.h)
+// {
+//   int w = (mri_src->width ) / 2;
+//   int h = (mri_src->height) / 2;
+//   int d = (mri_src->depth ) / 2;
+// 
+//   if (!mri_dst)
+//   {
+//     mri_dst = MRIalloc(w, h, d, mri_src->type) ;
+//     MRIcopyHeader(mri_src, mri_dst) ;
+//   }
+// 
+//   int x,y,z;
+//   for (z = 0;z<d;z++)
+//     for (y = 0;y<h;y++)
+//       for (x = 0;x<w;x++)
+//       {
+//         switch (mri_src->type)
+//         {
+//         case MRI_UCHAR:
+//           MRIvox(mri_dst, x, y, z) = MRIvox(mri_src, 2*x, 2*y, 2*z) ;
+//           break ;
+//         case MRI_SHORT:
+//           MRISvox(mri_dst, x, y, z) = MRISvox(mri_src, 2*x, 2*y, 2*z) ;
+//           break ;
+//         case MRI_FLOAT:
+//           MRIFvox(mri_dst, x, y, z) = MRIFvox(mri_src, 2*x, 2*y, 2*z) ;
+//           break ;
+//         default:
+//           ErrorReturn
+//           (NULL,
+//            (ERROR_UNSUPPORTED,
+//             "MRIsubsample: unsupported input type %d",
+//             mri_src->type));
+//         }
+//       }
+//       
+//   mri_dst->imnr0 = mri_src->imnr0 ;
+//   mri_dst->imnr1 = mri_src->imnr0 + mri_dst->depth - 1 ;
+//   mri_dst->xsize = mri_src->xsize*2 ;
+//   mri_dst->ysize = mri_src->ysize*2 ;
+//   mri_dst->zsize = mri_src->zsize*2 ;
+//   mri_dst->thick = mri_src->thick*2 ;
+//   mri_dst->ps    = mri_src->ps*2 ;
+//   
+//   // adjust cras
+//   //printf("COMPUTING new CRAS\n") ;
+//   VECTOR* C = VectorAlloc(4, MATRIX_REAL);
+//   VECTOR_ELT(C,1) = mri_src->width/2.0+0.5;
+//   VECTOR_ELT(C,2) = mri_src->height/2.0+0.5;
+//   VECTOR_ELT(C,3) = mri_src->depth/2.0+0.5;
+//   VECTOR_ELT(C,4) = 1.0;
+//   MATRIX* V2R     = extract_i_to_r(mri_src);
+//   MATRIX* P       = MatrixMultiply(V2R,C,NULL);
+//   mri_dst->c_r    = P->rptr[1][1];
+//   mri_dst->c_a    = P->rptr[2][1];
+//   mri_dst->c_s    = P->rptr[3][1];
+//   MatrixFree(&P);
+//   MatrixFree(&V2R);
+//   VectorFree(&C);
+//   
+//   MRIreInitCache(mri_dst) ;
+// 
+//   return mri_dst;
+// 
+// }
+
 
 MRI * MyMRI::getBlur(MRI* mriS, MRI* mriT)
 {

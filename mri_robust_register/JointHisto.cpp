@@ -8,8 +8,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2011/09/21 05:45:26 $
- *    $Revision: 1.3 $
+ *    $Date: 2011/09/26 20:46:47 $
+ *    $Revision: 1.4 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -151,32 +151,26 @@ void JointHisto::create(MRI *mriS, MRI* mriT,
 				xs  = Msi[0][0]*ux + Msi[0][1]*uy + Msi[0][2]*uz + Msi[0][3];
 				ys  = Msi[1][0]*ux + Msi[1][1]*uy + Msi[1][2]*uz + Msi[1][3];
 				zs  = Msi[2][0]*ux + Msi[2][1]*uy + Msi[2][2]*uz + Msi[2][3];
-        //cout << "( " << x << " " << y << " " << z << " )  ( " << xp << " " << yp << " " << zp << " )" << endl;
-//				if (zs>=0.0 && zs<ds[2]-1 && ys>=0.0 && ys<ds[1]-1 && xs>=0.0 && xs<ds[0]-1 &&
-//            zt>=0.0 && zt<dt[2]-1 && yt>=0.0 && yt<dt[1]-1 && xt>=0.0 && xt<dt[0]-1 )
+
+				//if (zs>=0.0 && zs<ds[2]-1 && ys>=0.0 && ys<ds[1]-1 && xs>=0.0 && xs<ds[0]-1 &&
+        //    zt>=0.0 && zt<dt[2]-1 && yt>=0.0 && yt<dt[1]-1 && xt>=0.0 && xt<dt[0]-1 )
 				{
           MRIsampleVolumeFrame(mriS,xs,ys,zs,0,&vs);
           if (vs == -1) continue;
-//           {//cout << "outside vs" << endl;
-//              vs = 255.0 * uniform[opos];
-//              opos = (opos+1)%101;
-//           }
           if (dim != 1) vs /= dim;
           //if (mask && vs == 0.0) continue;  // bad idea, try registering skull stripped to full
 					ivs = (int)floor(vs);
           MRIsampleVolumeFrame(mriT,xt,yt,zt,0,&vt);
-          if (dim != 1) vt /= dim;
           if (vt == -1) continue;
-//           {//cout << "outside vt" << endl;
-//              vt = 255.0 * uniform[opos];
-//              opos = (opos+1)%101;
-//           }
-          //if (mask && vt == 0.0) continue;
+          if (dim != 1) vt /= dim;
 					ivt = (int)floor(vt);
-          assert (ivs >=0);
-          assert (ivt >=0);
-          assert (ivs <n);
-          assert (ivt <n);
+          if (ivs < 0 || ivt < 0 || ivs >=n || ivt >=n)
+          {
+            cout << "ERROR at ( " << x << " " << y << " " << z << " ) "<< endl;
+            cout <<" PS: ( " << xs << " " << ys << " " << zs << " )  PT: ( " << xt << " " << yt << " " << zt << " )" << endl;
+            cout << " ivs: " << ivs << "  ivt: " << ivt << "  n: " << n << endl;
+            exit(1);
+          }
           sdiff  = vs-ivs;
           tdiff  = vt-ivt;
           // distribute peak among bins symetrically:

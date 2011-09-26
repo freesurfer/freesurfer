@@ -61,7 +61,8 @@ If most of the brain is labeled outlier, try to set the saturation to a higher v
       <argument>--weights &lt;weights.mgz&gt; </argument>
       <explanation>output weights (outliers) in destination space</explanation>
 			<argument>--iscale </argument>
-			<explanation>estimate intensity scale factor (default no). Highly recommended for unnormalized images!</explanation>
+			<explanation>estimate intensity scale factor (default no).
+Highly recommended for unnormalized images!</explanation>
 			<argument>--iscaleout &lt;fname.txt&gt;</argument>
 			<explanation>output text file for iscale value (will activate --iscale). Default: no iscale output</explanation>
 			<argument>--iscalein &lt;fname.txt&gt;</argument>
@@ -69,18 +70,28 @@ If most of the brain is labeled outlier, try to set the saturation to a higher v
 			<argument>--transonly</argument>
 			<explanation>find 3 parameter translation only</explanation>
 			<argument>--ixform lta</argument>
-			<explanation>use initial transform lta on source ('id'=identity), default is align centers of mass</explanation>
+			<explanation>use initial transform lta on source ('id'=identity).
+Default: align centers of mass</explanation>
 			<argument>--initorient</argument>
 			<explanation>use moments for orientation initialization (default false). Recommended for stripped brains, but not with full head images with different cropping. </explanation>
 			<argument>--noinit</argument>
-			<explanation>skip automatic transform initialization. Default: translate images to align centers of mass, good for within subject full head or brain images. Use --noinit if center of mass is meaningless, e.g. when registering different resolutions or parts to larger images. </explanation>
+			<explanation>skip automatic transform initialization.
+Default: translate images to align centers of mass, good for within subject full head or brain images.
+Use --noinit if center of mass is meaningless, e.g. when registering different resolutions or parts to larger images. </explanation>
 			<argument>--vox2vox</argument>
 			<explanation>output VOX2VOX lta file (default is RAS2RAS)</explanation>
       <argument>--cost &lt;str&gt;</argument>
-      <explanation>Cost function: ROB (robust, default), MI (mutual information), NMI (normalized MI), ECC (entropy cor.coef.). Use MI, NMI (recommended), or ECC for registering across modality.</explanation>
+      <explanation>Cost function:
+      ROB (robust) &lt;- default,
+      MI  (mutual information),
+      NMI (normalized mutual information),
+      ECC (entropy correlation coefficient),
+      NCC (normalized cross corrrelation),
+      SCR (symetrized correlation ratio).
+Use MI, NMI (recommended), ECC, NCC or SCR for registering cross modality.</explanation>
 
       <argument>--nosym</argument>
-      <explanation>do not map to half way space, but resample mov to dst internally (destroys symmetrie, but is useful when registering a full hemisphere to a part)</explanation>
+      <explanation>do not map to half way space, but resample mov to dst internally (destroys symmetrie, but is useful when registering a larger block to a part)</explanation>
       <argument>--maxit &lt;#&gt;</argument>
       <explanation>iterate max # times on each resolution (default 5)</explanation>
       <argument>--highit &lt;#&gt;</argument>

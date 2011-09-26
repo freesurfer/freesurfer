@@ -2,7 +2,7 @@
  * @file  mri_robust_register.cpp
  * @brief Linear registration of two volumes using robust statistics
  *
- * See also "Robust Multiresolution Alignment of MRI Brain Volumes"
+ * Based on ideas in "Robust Multiresolution Alignment of MRI Brain Volumes"
  * by Nestares and Heeger (2000)
  */
 
@@ -10,8 +10,8 @@
  * Original Author: Martin Reuter, Nov. 4th ,2008
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2011/09/21 05:45:26 $
- *    $Revision: 1.57 $
+ *    $Date: 2011/09/26 20:46:48 $
+ *    $Revision: 1.58 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -56,6 +56,7 @@ extern "C"
 #include "error.h"
 #include "macros.h"
 #include "mri.h"
+#include "mriBSpline.h"
 #include "matrix.h"
 #include "timer.h"
 #include "diag.h"
@@ -119,10 +120,11 @@ struct Parameters
   int    minsize;
   int    maxsize;
   Registration::Cost cost;
+  int    finalsampletype;
 };
 static struct Parameters P =
 {
-  "","","","","","","","","","","",false,false,false,false,false,false,false,false,"",false,5,0.01,SAT,"","",SSAMPLE,0,NULL,NULL,false,false,true,1,-1,false,0.16,false,true,"","",-1,-1,Registration::ROB
+  "","","","","","","","","","","",false,false,false,false,false,false,false,false,"",false,5,0.01,SAT,"","",SSAMPLE,0,NULL,NULL,false,false,true,1,-1,false,0.16,false,true,"","",-1,-1,Registration::ROB,SAMPLE_TRILINEAR
 };
 
 
@@ -130,7 +132,7 @@ static void printUsage(void);
 static bool parseCommandLine(int argc, char *argv[],Parameters & P) ;
 static void initRegistration(Registration & R, Parameters & P) ;
 
-static char vcid[] = "$Id: mri_robust_register.cpp,v 1.57 2011/09/21 05:45:26 mreuter Exp $";
+static char vcid[] = "$Id: mri_robust_register.cpp,v 1.58 2011/09/26 20:46:48 mreuter Exp $";
 char *Progname = NULL;
 
 //static MORPH_PARMS  parms ;
@@ -198,8 +200,13 @@ void testSubsamp(Parameters &P)
 {
 
   MRI * mri1 = MRIread(P.mov.c_str());
-  MRI * mris = MRIdownsample2(mri1,NULL);
-  MRIwrite(mris,"mri1sub.mgz");
+//  MRI * mris = MRIdownsample2(mri1,NULL);
+  //MRI * mris = MRIdownsample2BSpline(mri1,NULL);
+  MRI * mris = MRIupsampleN(mri1,NULL,2);
+  MRIwrite(mris,"mri1up2.mgz");
+  
+  MRI * mril = MRIupsampleN(mri1,NULL,3);
+  MRIwrite(mril,"mri1up3.mgz");
 
   exit(0);
 }
@@ -355,6 +362,9 @@ void gradmag (Parameters & P)
   
   exit(0);
 }
+
+void testImage(Parameters & P)
+{}
 
 int main(int argc, char *argv[])
 {
@@ -603,7 +613,7 @@ int main(int argc, char *argv[])
       
       // keep mov type:
       MRI *mri_aligned = MRIcloneDifferentType(P.mri_dst, P.mri_mov->type) ;
-      mri_aligned = LTAtransform(P.mri_mov,mri_aligned, lta);
+      mri_aligned = LTAtransformInterp(P.mri_mov,mri_aligned, lta,P.finalsampletype);
       
       // reset mov n frames:
       P.mri_mov->nframes = nframes ;      
@@ -750,7 +760,7 @@ int main(int argc, char *argv[])
       {
         cout << " creating half-way movable ..." << endl;
         // take dst geometry info from lta:
-        MRI* mri_Swarp = LTAtransform(P.mri_mov,NULL, m2hwlta);
+        MRI* mri_Swarp = LTAtransformInterp(P.mri_mov,NULL, m2hwlta,P.finalsampletype);
 
         //cout << " MOV       RAS: " << P.mri_mov->c_r << " , " <<  P.mri_mov->c_a << " , " <<  P.mri_mov->c_s << endl;
         //cout << " DST       RAS: " << P.mri_dst->c_r << " , " <<  P.mri_dst->c_a << " , " <<  P.mri_dst->c_s << endl;
@@ -811,7 +821,7 @@ int main(int argc, char *argv[])
       if (P.halfdst != "")
       {
         cout << " creating half-way destination ..." << endl;
-        MRI* mri_Twarp = LTAtransform(P.mri_dst,NULL, d2hwlta);
+        MRI* mri_Twarp = LTAtransformInterp(P.mri_dst,NULL, d2hwlta,P.finalsampletype);
         MRIcopyPulseParameters(P.mri_dst,mri_Twarp);
         MRIwrite(mri_Twarp,P.halfdst.c_str());
         MRI * mri_weights = R.getWeights();
@@ -855,7 +865,7 @@ int main(int argc, char *argv[])
         if (mri_weights != NULL)
         {
           cout << " saving half-way weights ..." << endl;
-          MRI* mri_wtemp = LTAtransform(mri_weights,NULL, d2hwlta);
+          MRI* mri_wtemp = LTAtransformInterp(mri_weights,NULL, d2hwlta,P.finalsampletype);
           if (P.oneminusweights)
           {
             mri_wtemp = MRIlinearScale(mri_wtemp,mri_wtemp,-1,1,0);

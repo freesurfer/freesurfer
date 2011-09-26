@@ -8,8 +8,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2011/09/13 03:08:25 $
- *    $Revision: 1.8 $
+ *    $Date: 2011/09/26 20:46:47 $
+ *    $Revision: 1.9 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -52,7 +52,7 @@ public:
   static MRI * MRInorm255(MRI *mri_src, MRI *mri_dst);
   static bool  getPartials(MRI* mri, MRI* & outfx, MRI* & outfy, MRI* &outfz, MRI* &outblur);
   static MRI * getBlur(MRI* mriS, MRI* mriT);
-  static MRI * subSample(MRI * mri);
+  static MRI * subSample(MRI * mri_src, MRI * mri_dst = NULL, bool fixheader = false);
   static MRI * entropyImage( MRI * mri, int radius, int sigma ); 
   static MRI * entropyImage( MRI * mri, int radius ); 
 
