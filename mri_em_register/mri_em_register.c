@@ -10,8 +10,8 @@
  * CUDA version : Richard Edgar
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2011/09/26 13:07:57 $
- *    $Revision: 1.91 $
+ *    $Date: 2011/09/26 13:36:03 $
+ *    $Revision: 1.92 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -204,7 +204,7 @@ main(int argc, char *argv[])
   nargs =
     handle_version_option
     (argc, argv,
-     "$Id: mri_em_register.c,v 1.91 2011/09/26 13:07:57 fischl Exp $",
+     "$Id: mri_em_register.c,v 1.92 2011/09/26 13:36:03 fischl Exp $",
      "$Name:  $");
   if (nargs && argc - nargs == 1)
   {
@@ -729,6 +729,7 @@ main(int argc, char *argv[])
     mri_in->nframes = 1 ;
     mri_aligned =
       MRIlinearTransform(mri_in, NULL, parms.lta->xforms[0].m_L) ;
+    GCAcopyDCToMRI(gca, mri_aligned) ;
     mri_in->nframes = gca->ninputs ;
     sprintf(fname, "%s%03d", parms.base_name, parms.start_t) ;
     MRIwriteImageViews(mri_aligned, fname, IMAGE_SIZE) ;
@@ -784,6 +785,7 @@ main(int argc, char *argv[])
     mri_in->nframes = 1 ;
     mri_aligned =
       MRIlinearTransform(mri_in, NULL, parms.lta->xforms[0].m_L) ;
+    GCAcopyDCToMRI(gca, mri_aligned) ;
     mri_in->nframes = gca->ninputs ;
     sprintf(fname, "%s_after_final_alignment", parms.base_name) ;
     sprintf(fname, "%s%03d", parms.base_name, parms.start_t) ;
@@ -1145,6 +1147,7 @@ register_mri
     mri_in->nframes = 1 ;
     mri_aligned =
       MRIlinearTransform(mri_in, NULL, parms->lta->xforms[0].m_L) ;
+    GCAcopyDCToMRI(gca, mri_aligned) ;
     mri_in->nframes = gca->ninputs ;
     sprintf(fname, "%s_after_alignment", parms->base_name) ;
     MRIwriteImageViews(mri_aligned, fname, IMAGE_SIZE) ;
@@ -1249,6 +1252,7 @@ find_optimal_transform
 
       Glta->xforms[0].m_L = m_L ;
       mri_aligned = MRIlinearTransform(mri, NULL, m_L) ;
+      GCAcopyDCToMRI(gca, mri_aligned) ;
       sprintf(fname, "%s_after_intensity.mgz", parms.base_name) ;
       printf("writing snapshot to %s...\n", fname) ;
       fflush(stdout);
@@ -1444,11 +1448,13 @@ find_optimal_transform
       MRI *mri_aligned ;
 
       mri_aligned = MRIlinearTransform(mri, NULL, m_L) ;
+      GCAcopyDCToMRI(gca, mri_aligned) ;
       sprintf(fname, "%s%03d", parms.base_name, parms.start_t) ;
       MRIwriteImageViews(mri_aligned, fname, IMAGE_SIZE) ;
       sprintf(fname, "%s%03d.mgz", parms.base_name, parms.start_t) ;
       printf("writing image after centering to %s...\n", fname) ;
       fflush(stdout);
+      MRIwrite(mri_aligned, fname) ;
       Glta->xforms[0].m_L = m_L ;
       sprintf(fname, "%s%03d_fsamples.mgz", parms.base_name, parms.start_t) ;
       GCAtransformAndWriteSamples(gca, mri, gcas, nsamples,
@@ -1459,8 +1465,6 @@ find_optimal_transform
       sprintf(fname, "%s%03d_means.mgz", parms.base_name, parms.start_t) ;
       GCAtransformAndWriteSampleMeans(gca, mri, gcas, nsamples,
                                       fname, transform) ;
-      sprintf(fname, "%s%03d.mgz", parms.base_name, parms.start_t) ;
-      MRIwrite(mri_aligned, fname) ;
       MRIfree(&mri_aligned) ;
       mri_aligned = MRIinverseLinearTransform(mri, NULL, m_L) ;
       sprintf(fname, "%s%03d.inv.mgz", parms.base_name, parms.start_t) ;
@@ -1509,6 +1513,7 @@ find_optimal_transform
       MRI *mri_aligned ;
 
       mri_aligned = MRIlinearTransform(mri, NULL, m_L) ;
+      GCAcopyDCToMRI(gca, mri_aligned) ;
       sprintf(fname, "%s%03d", parms.base_name, parms.start_t+niter+1) ;
       MRIwriteImageViews(mri_aligned, fname, IMAGE_SIZE) ;
       sprintf(fname, "%s%03d.mgz",
