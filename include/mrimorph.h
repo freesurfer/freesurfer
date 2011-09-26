@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:10 $
- *    $Revision: 1.25 $
+ *    $Author: fischl $
+ *    $Date: 2011/09/26 13:07:46 $
+ *    $Revision: 1.26 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -91,6 +91,7 @@ typedef struct
   int        nsamples ;
   TRANSFORM  *transform ;
   void       *vgca ;
+  double     clamp ;                // saturation threshold for log likelihood
 }
 MORPH_PARMS, MP ;
 

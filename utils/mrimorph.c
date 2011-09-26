@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2011/04/13 20:22:47 $
- *    $Revision: 1.75 $
+ *    $Date: 2011/09/26 13:07:41 $
+ *    $Revision: 1.76 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -7380,6 +7380,7 @@ mriOrthonormalizeTransform(MATRIX *m_L)
 static MRI *g_mri_in, *g_mri_ref ;
 static MP *g_parms ;
 static GCA *g_gca ;
+static double g_clamp ;
 extern void (*user_call_func)(float []) ;
 
 #if 0
@@ -8101,9 +8102,11 @@ computeEMAlignmentErrorFunctional(float *p)
   GCA     *gca ;
   MRI     *mri_inputs ;
   MP      *parms ;
+  double  clamp ;
 
   parms = g_parms ;
   gca = g_gca ;
+  clamp = g_clamp ;
   mri_inputs = g_mri_in ;
 
   /* copy current matrix out of p into matrix format */
@@ -8127,7 +8130,7 @@ computeEMAlignmentErrorFunctional(float *p)
   old_lta = (LTA *)parms->transform->xform ;
   parms->transform->xform = (void *)lta ;
   log_p = GCAcomputeLogSampleProbability(gca,parms->gcas,g_mri_in,
-                                         parms->transform,parms->nsamples, DEFAULT_CLAMP);
+                                         parms->transform,parms->nsamples, clamp);
   parms->transform->xform = (void *)old_lta ;
   LTAfree(&lta) ;
   return(-log_p) ;
@@ -8408,7 +8411,7 @@ MRIemAlign(MRI *mri_in, GCA *gca, MORPH_PARMS *parms, MATRIX *m_L)
   /* E step */
   pcurrent =
     -GCAcomputeLogSampleProbability(gca,parms->gcas,mri_in,
-                                    parms->transform,parms->nsamples, DEFAULT_CLAMP);
+                                    parms->transform,parms->nsamples, parms->clamp);
 
   i = 0 ;
   do
@@ -8419,7 +8422,7 @@ MRIemAlign(MRI *mri_in, GCA *gca, MORPH_PARMS *parms, MATRIX *m_L)
 
     pcurrent =
       -GCAcomputeLogSampleProbability(gca,parms->gcas,mri_in,
-                                      parms->transform,parms->nsamples, DEFAULT_CLAMP);
+                                      parms->transform,parms->nsamples, parms->clamp);
     i++ ;
     printf("outof QuasiNewtonEMA: %03d: -log(p) = %6.1f  tol %f\n",parms->start_t+i, pcurrent, parms->tol) ;
   }
@@ -8955,6 +8958,7 @@ mriQuasiNewtonEMAlignPyramidLevel(MRI *mri_in, GCA *gca, MP *parms)
   }
   //////
   g_mri_in = mri_in ;
+  g_clamp = parms->clamp ;
   g_gca = gca ;
   g_parms = parms ;
   //////
