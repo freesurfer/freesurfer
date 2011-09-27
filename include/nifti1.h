@@ -953,6 +953,12 @@ typedef struct { unsigned char r,g,b; } rgb_byte ;
 
 #define NIFTI_INTENT_SHAPE        2005
 
+/*! support for retinotopy data, need originating from Brain Voyager */
+#define NIFTI_INTENT_RETINOTOPY_POLAR        2006
+#define NIFTI_INTENT_RETINOTOPY_ECCENTRICITY 2007
+#define NIFTI_INTENT_RETINOTOPY_FIELD_SIGN   2008
+
+
 /* @} */
 
 /*---------------------------------------------------------------------------*/
