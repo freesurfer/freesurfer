@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2010/07/16 16:20:10 $
-#    $Revision: 1.10 $
+#    $Date: 2011/09/27 15:56:27 $
+#    $Revision: 1.10.2.1 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set MKCONTRAST_VER = '$Id: mkcontrast,v 1.10 2010/07/16 16:20:10 greve Exp $';
+set MKCONTRAST_VER = '$Id: mkcontrast,v 1.10.2.1 2011/09/27 15:56:27 greve Exp $';
 
 set CorrIdeal = 0;
 set monly = 0;
@@ -112,7 +112,10 @@ if($monly) then
 else
   if($UseOctave == 0) then
     set MATLAB = `getmatlab`;
-    if($status) exit 1;
+    if($status) then
+      echo "ERROR: cannot find matlab. Is it in your path?"
+      exit 1;
+    endif
     set TARGET =  "$MATLAB -display iconic"
   else
     set TARGET = $FS_OCTAVE_BIN;
