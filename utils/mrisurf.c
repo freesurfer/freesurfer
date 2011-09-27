@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2011/09/20 17:52:40 $
- *    $Revision: 1.699 $
+ *    $Date: 2011/09/27 18:31:46 $
+ *    $Revision: 1.700 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -735,7 +735,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void)
 {
-  return("$Id: mrisurf.c,v 1.699 2011/09/20 17:52:40 fischl Exp $");
+  return("$Id: mrisurf.c,v 1.700 2011/09/27 18:31:46 fischl Exp $");
 }
 
 /*-----------------------------------------------------
@@ -35215,7 +35215,8 @@ MRISbuildFileName(MRI_SURFACE *mris, const char *sname, char *fname)
       sprintf(fname, "%s/%s", path, sname) ;
     else   /* no hemisphere specified */
       sprintf(fname, "%s/%s.%s", path,
-              mris->hemisphere == LEFT_HEMISPHERE ? "lh" : "rh", sname) ;
+              mris->hemisphere == LEFT_HEMISPHERE ? "lh" : 
+	      mris->hemisphere == BOTH_HEMISPHERES ? "both" : "rh", sname) ;
   }
   else
     strcpy(fname, sname) ;  /* path specified explicitly */
