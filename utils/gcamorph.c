@@ -10,9 +10,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: ayendiki $
- *    $Date: 2011/09/21 00:16:04 $
- *    $Revision: 1.249 $
+ *    $Author: mreuter $
+ *    $Date: 2011/09/28 23:33:48 $
+ *    $Revision: 1.250 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -84,6 +84,7 @@
 #include "proto.h"
 #include "mrimorph.h"
 #include "mrinorm.h"
+#include "mriBSpline.h"
 #include "matrix.h"
 #include "cma.h"
 #include "mri.h"
@@ -3900,6 +3901,10 @@ GCAMmorphFromAtlas(MRI *mri_in, GCA_MORPH *gcam, MRI *mri_morphed, int sample_ty
   TransformInvert(transform, mri_morphed) ; //NOTE: if inverse exists, it does nothing
   scale = 1; 
   //scale = gcam->spacing / mri_in->xsize ;
+
+  MRI_BSPLINE * bspline = NULL;
+  if (sample_type == SAMPLE_CUBIC_BSPLINE)
+    bspline = MRItoBSpline(mri_in,NULL,3);
   
   for (x = 0; x < mri_morphed->width; x++)
     for (y = 0; y < mri_morphed->height; y++)
@@ -3915,7 +3920,12 @@ GCAMmorphFromAtlas(MRI *mri_in, GCA_MORPH *gcam, MRI *mri_morphed, int sample_ty
 	  
 	  for (f = 0; f < mri_morphed->nframes; f++)
 	    {
-	      MRIsampleVolumeFrameType(mri_in, xr, yr, zr, f, sample_type, &val) ;
+        if (sample_type == SAMPLE_CUBIC_BSPLINE)
+          // recommended to externally call this and keep mri_coeff
+          // if image is resampled often (e.g. in registration algo)
+          MRIsampleBSpline(bspline, xr, yr, zr, f, &val);
+        else
+	        MRIsampleVolumeFrameType(mri_in, xr, yr, zr, f, sample_type, &val) ;
 	      MRIsetVoxVal(mri_morphed, x, y, z, f, val) ;
 	    }
 	}
@@ -4332,6 +4342,10 @@ GCAMmorphToAtlas(MRI *mri_src, GCA_MORPH *gcam, MRI *mri_morphed, int frame, int
   }
   else  xoff = yoff = zoff = 0 ;
 
+  MRI_BSPLINE * bspline = NULL;
+  if (sample_type == SAMPLE_CUBIC_BSPLINE)
+    bspline = MRItoBSpline(mri_src,NULL,3);
+
   // x, y, z are the col, row, and slice (and xyz) in the gcam/target volume
   for (x = 0 ; x < width ; x++)
   {
@@ -4371,8 +4385,13 @@ GCAMmorphToAtlas(MRI *mri_src, GCA_MORPH *gcam, MRI *mri_morphed, int frame, int
                 xd < mri_src->width && 
                 yd < mri_src->height && 
                 zd < mri_src->depth)
-              MRIsampleVolumeFrameType(mri_src, xd, yd, zd, 
-                                       frame, sample_type, &val) ;
+            {
+              if (sample_type == SAMPLE_CUBIC_BSPLINE)
+                MRIsampleBSpline(bspline, xd, yd, zd, frame, &val);
+              else
+                MRIsampleVolumeFrameType(mri_src, xd, yd, zd, 
+                                         frame, sample_type, &val) ;
+            }
             else
               val = 0.0 ;
             MRIsetVoxVal(mri_morphed, x, y, z, frame-start_frame, val) ;
@@ -4499,6 +4518,10 @@ GCAMmorphToAtlasType(MRI *mri_src, GCA_MORPH *gcam, MRI *mri_morphed,
     MRIcopyHeader(mri_src, mri_morphed) ;
   }
 
+  MRI_BSPLINE * bspline = NULL;
+  if (interp_type == SAMPLE_CUBIC_BSPLINE)
+    bspline = MRItoBSpline(mri_src,NULL,3);
+
   for (x = 0 ; x < width ; x++)
   {
     for (y = 0 ; y < height ; y++)
@@ -4519,8 +4542,15 @@ GCAMmorphToAtlasType(MRI *mri_src, GCA_MORPH *gcam, MRI *mri_morphed,
           {
             if (xd > -1 && yd > -1 && zd > 0 &&
                 xd < width && yd < height && zd < depth)
-              MRIsampleVolumeFrameType
-                (mri_src, xd, yd, zd, frame, interp_type, &val) ;
+            {
+              if (interp_type == SAMPLE_CUBIC_BSPLINE)
+                // recommended to externally call this and keep mri_coeff
+                // if image is resampled often (e.g. in registration algo)
+                MRIsampleBSpline(bspline, xd, yd, zd, frame, &val);
+              else
+                MRIsampleVolumeFrameType
+                  (mri_src, xd, yd, zd, frame, interp_type, &val) ;
+            }
             else
               val = 0.0 ;
             MRIsetVoxVal(mri_morphed, x, y, z, frame-start_frame, val) ;
@@ -16339,6 +16369,10 @@ MRIapplyMorph(MRI *mri_source, MRI *mri_warp, MRI *mri_dst, int sample_type)
   if (mri_dst == NULL)
     mri_dst = MRIclone(mri_source, NULL) ;
 
+  MRI_BSPLINE * bspline = NULL;
+  if (sample_type == SAMPLE_CUBIC_BSPLINE)
+    bspline = MRItoBSpline(mri_source,NULL,3);
+
   for (x = 0 ; x < mri_dst->width ; x++)
     for (y = 0 ; y < mri_dst->height ; y++)
       for (z = 0 ; z < mri_dst->depth ; z++)
@@ -16349,7 +16383,12 @@ MRIapplyMorph(MRI *mri_source, MRI *mri_warp, MRI *mri_dst, int sample_type)
         xd = x+dx ; yd = y+dy ; zd = z+dz ;
         for (f = 0 ; f < mri_source->nframes ; f++)
         {
-          MRIsampleVolumeFrameType(mri_source, xd, yd, zd, f, sample_type, &val);
+          if (sample_type == SAMPLE_CUBIC_BSPLINE)
+            // recommended to externally call this and keep mri_coeff
+            // if image is resampled often (e.g. in registration algo)
+            MRIsampleBSpline(bspline, xd, yd, zd, f, &val);
+          else
+            MRIsampleVolumeFrameType(mri_source, xd, yd, zd, f, sample_type, &val);
           MRIsetVoxVal(mri_dst, x, y, z, f, val) ;
         }
       }
