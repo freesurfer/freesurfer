@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2011/07/30 20:36:59 $
- *    $Revision: 1.90 $
+ *    $Author: mreuter $
+ *    $Date: 2011/09/28 14:53:44 $
+ *    $Revision: 1.91 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -2707,11 +2707,6 @@ MRIconvolveGaussian(MRI *mri_src, MRI *mri_dst, MRI *mri_gaussian)
   height = mri_src->height ;
   depth = mri_src->depth ;
 
-  if (width <= 1 || height <= 1 || depth <= 1)
-    ErrorExit(ERROR_BADPARM,
-              "MRIconvolveGaussian: insufficient dimension (%d, %d, %d)",
-              width, height, depth) ;
-
   if (!mri_dst)
     mri_dst = MRIclone(mri_src, NULL) ;
 
@@ -2721,6 +2716,11 @@ MRIconvolveGaussian(MRI *mri_src, MRI *mri_dst, MRI *mri_gaussian)
   }
 
 #ifdef FS_CUDA
+  if (width <= 1 || height <= 1 || depth <= 1)
+    ErrorExit(ERROR_BADPARM,
+              "MRIconvolveGaussian: (cuda) insufficient dimension (%d, %d, %d)",
+              width, height, depth) ;
+
   mri_dst = MRIconvolveGaussian_cuda( mri_src, mri_dst, kernel, klen );
 #else  
   if (mri_dst == mri_src)
@@ -3338,6 +3338,12 @@ MRIconvolve1d(MRI *mri_src, MRI *mri_dst, float *k, int len, int axis,
   height = mri_src->height ;
   depth = mri_src->depth ;
 
+  // if dimension in convolve direction is 1, skip convolving:
+  if ( (axis == MRI_WIDTH && width == 1) || (axis == MRI_HEIGHT && height ==1) || (axis == MRI_DEPTH && depth ==1))
+  {
+    mri_dst = MRIcopy(mri_src,mri_dst);
+    return mri_dst;
+  }
 
   if (!mri_dst)
     mri_dst = MRIalloc(width, height, depth, MRI_FLOAT) ;
