@@ -108,4 +108,4 @@ foreach hemi ( $hemis )
     end
 end
 
-if ("x$2" != "x") echo "Pass: all surfaces and surface data for subject $subj have the same number of vertices."
+if ("x$2" != "x") echo "Pass: all surfaces and surface data for subject $subj for hemi $hemi have the same number of vertices."
