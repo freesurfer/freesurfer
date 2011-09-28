@@ -21,7 +21,7 @@ bin_PROGRAMS = nmovie
 nmovie_SOURCES=nmovie.c
 if ENABLE_XAWPLUS_APPS
 nmovie_LDADD= $(addprefix $(top_builddir)/,$(LIBS_MGH)) \
-	$(LIBS_OPENGL) $(XAWPLUS_LIBS) -lXawPlus -lXpm -lXt -lXext \
+	$(LIBS_OPENGL) $(XAWPLUS_LIBS) $(LIBS_XAWPLUS) -lXext \
 	$(top_builddir)/glut/libglut.a
 else
 nmovie_LDADD= $(addprefix $(top_builddir)/,$(LIBS_MGH)) \

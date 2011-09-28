@@ -1,6 +1,6 @@
 /*************************************************************************
  *
- * $Id: trionan.c,v 1.3 2010/07/20 20:24:04 nicks Exp $
+ * $Id: trionan.c,v 1.3.2.1 2011/09/28 21:14:00 nicks Exp $
  *
  * Copyright (C) 2001 Bjorn Reese <breese@users.sourceforge.net>
  *
@@ -112,7 +112,7 @@
  * Constants
  */
 
-static TRIO_CONST char rcsid[] = "@(#)$Id: trionan.c,v 1.3 2010/07/20 20:24:04 nicks Exp $";
+static TRIO_CONST char rcsid[] = "@(#)$Id: trionan.c,v 1.3.2.1 2011/09/28 21:14:00 nicks Exp $";
 
 #if defined(USE_IEEE_754)
 
@@ -212,6 +212,7 @@ TRIO_ARGS2((number, has_mantissa),
 }
 
 #ifndef Darwin
+#if 0 // NJS: used inline below to avoid stupid compiler warnings
 /*
  * trio_is_negative
  */
@@ -229,6 +230,7 @@ TRIO_ARGS1((number),
   }
   return is_negative;
 }
+#endif
 #endif
 
 #endif /* USE_IEEE_754 */
@@ -694,7 +696,21 @@ TRIO_ARGS2((number, is_negative),
      * directly.
      */
 #  if defined(USE_IEEE_754)
-    *is_negative = trio_is_negative(number);
+    // NJS: trio_is_negative used inline to avoid stupid compiler warnings
+    //*is_negative = trio_is_negative(number);
+
+    //TRIO_PRIVATE int trio_is_negative TRIO_ARGS1((number), double number)
+    {
+      unsigned int i;
+      *is_negative = TRIO_FALSE;
+      
+      for (i = 0; i < (unsigned int)sizeof(double); i++) {
+        *is_negative |= (((unsigned char *)&number)[TRIO_DOUBLE_INDEX(i)]
+                        & ieee_754_sign_mask[i]);
+      }
+      //return is_negative;
+    }
+
 #  else
     *is_negative = TRIO_FALSE; /* FIXME */
 #  endif

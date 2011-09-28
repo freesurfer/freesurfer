@@ -8,20 +8,18 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2006/12/29 02:09:11 $
- *    $Revision: 1.28 $
+ *    $Date: 2011/09/28 21:14:00 $
+ *    $Revision: 1.29.2.1 $
  *
- * Copyright (C) 2002-2007,
- * The General Hospital Corporation (Boston, MA). 
- * All rights reserved.
+ * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
- * Distribution, usage and copying of this software is covered under the
- * terms found in the License Agreement file named 'COPYING' found in the
- * FreeSurfer source code root directory, and duplicated here:
- * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ * Terms and conditions for use, reproduction, distribution and contribution
+ * are found in the 'FreeSurfer Software License Agreement' contained
+ * in the file 'LICENSE' found in the FreeSurfer distribution, and here:
  *
- * General inquiries: freesurfer@nmr.mgh.harvard.edu
- * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
+ *
+ * Reporting: freesurfer@nmr.mgh.harvard.edu
  *
  */
 
@@ -30,11 +28,11 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: nicks $
-// Revision Date  : $Date: 2006/12/29 02:09:11 $
-// Revision       : $Revision: 1.28 $
+// Revision Date  : $Date: 2011/09/28 21:14:00 $
+// Revision       : $Revision: 1.29.2.1 $
 //
 ////////////////////////////////////////////////////////////////////
-char *NMOVIE_VERSION = "$Revision: 1.28 $";
+char *NMOVIE_VERSION = "$Revision: 1.29.2.1 $";
 #include <stdio.h>
 #include <image.h>
 #include <stdlib.h>
@@ -70,6 +68,9 @@ char *NMOVIE_VERSION = "$Revision: 1.28 $";
 #include <sys/ipc.h>
 #include <sys/shm.h>
 #include <X11/extensions/XShm.h>
+
+// Centos 6 doesnt seem to have Xpm
+void XpmReadFileToPixmap(){};
 
 static int nocolor = 0 ;
 
@@ -634,7 +635,7 @@ int main(int argc, char **argv) {
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: nmovie.c,v 1.28 2006/12/29 02:09:11 nicks Exp $",
+           "$Id: nmovie.c,v 1.29.2.1 2011/09/28 21:14:00 nicks Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
