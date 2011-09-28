@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2011/09/28 16:19:44 $
- *    $Revision: 1.502 $
+ *    $Date: 2011/09/28 23:33:21 $
+ *    $Revision: 1.503 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -23,7 +23,7 @@
  */
 
 extern const char* Progname;
-const char *MRI_C_VERSION = "$Revision: 1.502 $";
+const char *MRI_C_VERSION = "$Revision: 1.503 $";
 
 
 /*-----------------------------------------------------
@@ -1308,7 +1308,7 @@ int MRIinterpCode(char *InterpString)
   if (!strncasecmp(InterpString,"sinc",3))
     return(SAMPLE_SINC);
   if (!strncasecmp(InterpString,"cubic",3))
-    return(SAMPLE_CUBIC);
+    return(SAMPLE_CUBIC_BSPLINE);
 
   return(-1);
 }
@@ -1330,7 +1330,7 @@ char * MRIinterpString(int InterpCode)
   case SAMPLE_SINC:
     return("sinc");
     break ;
-  case SAMPLE_CUBIC:
+  case SAMPLE_CUBIC_BSPLINE:
     return("cubic");
     break ;
   }
@@ -9785,6 +9785,12 @@ MRIsampleVolumeFrameType
     break ;
   case SAMPLE_TRILINEAR:
     return(MRIsampleVolumeFrame(mri, x, y, z, frame, pval)) ;
+  case SAMPLE_CUBIC_BSPLINE:
+    ErrorReturn
+    (ERROR_UNSUPPORTED,
+     (ERROR_UNSUPPORTED,
+      "MRIsampleVolumeFrameType(%d): First create coeff image and then use it to sample (see mriBSpline).",
+      type));    
   case SAMPLE_SINC:
     ErrorReturn
     (ERROR_UNSUPPORTED,
