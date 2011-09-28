@@ -16,8 +16,8 @@
  * Original Author: Xiao Han
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2011/08/09 19:47:08 $
- *    $Revision: 1.6 $
+ *    $Date: 2011/09/28 21:41:22 $
+ *    $Revision: 1.7 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -220,7 +220,7 @@ main(int argc, char *argv[])
   /* rkt: check for and handle version tag */
   nargs = handle_version_option (
     argc, argv,
-    "$Id: mri_ms_EM.c,v 1.6 2011/08/09 19:47:08 nicks Exp $",
+    "$Id: mri_ms_EM.c,v 1.7 2011/09/28 21:41:22 nicks Exp $",
     "$Name:  $");
   if (nargs && argc - nargs == 1)
   {
@@ -2735,113 +2735,19 @@ MRI *MRInormalizeXH(MRI *mri_src, MRI *mri_dst, MRI *mri_mask)
  * elements of the original array (arr[]) in the order of their size.
  *
  * This routine is from Numerical Recipes for C.
+ *
+ * !!! NJS note: the guts of this routine have been removed, as we
+ * cannot distribute NRC routines.  A suitable replacement will need to be
+ * created by someone to get this code working again!
  */
 
 void indexx(unsigned long n, float arr[], unsigned long indx[])
 {
-  unsigned long i,indxt,ir=n,itemp,j,k,l=1;
-  int jstack=0,*istack;
-  float a;
-  int M = 7;
-  int NSTACK = 50;
-
-  istack=(int *)malloc(sizeof(int)*NSTACK);
-  istack -= 1;
-  //  istack=ivector(1,NSTACK);
-
-  for (j=1; j<=n; j++)
-  {
-    indx[j]=j;
-  }
-  for (;;)
-  {
-    if (ir-l < M)
-    {
-      for (j=l+1; j<=ir; j++)
-      {
-        indxt=indx[j];
-        a=arr[indxt];
-        for (i=j-1; i>=1; i--)
-        {
-          if (arr[indx[i]] <= a)
-          {
-            break;
-          }
-          indx[i+1]=indx[i];
-        }
-        indx[i+1]=indxt;
-      }
-      if (jstack == 0)
-      {
-        break;
-      }
-      ir=istack[jstack--];
-      l=istack[jstack--];
-    }
-    else
-    {
-      k=(l+ir) >> 1;
-      SWAP(indx[k],indx[l+1]);
-      if (arr[indx[l+1]] > arr[indx[ir]])
-      {
-        SWAP(indx[l+1],indx[ir])
-      }
-      if (arr[indx[l]] > arr[indx[ir]])
-      {
-        SWAP(indx[l],indx[ir])
-      }
-      if (arr[indx[l+1]] > arr[indx[l]])
-      {
-        SWAP(indx[l+1],indx[l])
-      }
-      i=l+1;
-      j=ir;
-      indxt=indx[l];
-      a=arr[indxt];
-      for (;;)
-      {
-        do
-        {
-          i++;
-        }
-        while (arr[indx[i]] < a);
-        do
-        {
-          j--;
-        }
-        while (arr[indx[j]] > a);
-        if (j < i)
-        {
-          break;
-        }
-        SWAP(indx[i],indx[j])
-      }
-      indx[l]=indx[j];
-      indx[j]=indxt;
-      jstack += 2;
-      if (jstack > NSTACK)
-      {
-        ErrorExit(ERROR_BADPARM, "%s: NSTACK too small in indexx.\n", Progname);
-      }
-      if (ir-i+1 >= j-l)
-      {
-        istack[jstack]=ir;
-        istack[jstack-1]=i;
-        ir=j-1;
-      }
-      else
-      {
-        istack[jstack]=j-1;
-        istack[jstack-1]=l;
-        l=i;
-      }
-    }
-  }
-
-  istack += 1;
-  free(istack);
-  //  free_ivector(istack,1,NSTACK);
-
+  ErrorExit(
+    ERROR_BADPARM,
+    "%s: ERROR: NRC routine indexx has been removed from the source.\n"
+    "%s is not usable until a suitable replacement is found!\n",
+    Progname, Progname);
   return;
 }
 
