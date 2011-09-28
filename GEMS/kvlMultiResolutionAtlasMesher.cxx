@@ -8,8 +8,8 @@
  * Original Author: Koen Van Leemput
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2011/04/27 16:52:04 $
- *    $Revision: 1.1.2.3 $
+ *    $Date: 2011/09/28 21:04:06 $
+ *    $Revision: 1.1.2.4 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -427,7 +427,7 @@ MultiResolutionAtlasMesher
 
   std::cout << "!!!!!!!!!!!!! Starting mesh generation " << std::endl;
   tetgenio  tetgenOutput;
-  tetrahedralize( "", &tetgenInput, &tetgenOutput );
+  tetrahedralize( (char*)"", &tetgenInput, &tetgenOutput );
   std::cout << "!!!!!!!!!!!!! Finished mesh generation " << std::endl;
 
 
