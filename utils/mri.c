@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2011/09/25 16:51:45 $
- *    $Revision: 1.501 $
+ *    $Date: 2011/09/28 16:19:44 $
+ *    $Revision: 1.502 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -23,7 +23,7 @@
  */
 
 extern const char* Progname;
-const char *MRI_C_VERSION = "$Revision: 1.501 $";
+const char *MRI_C_VERSION = "$Revision: 1.502 $";
 
 
 /*-----------------------------------------------------
@@ -64,6 +64,36 @@ extern int errno;
   -------------------------------------------------------*/
 
 #define DEBUG_POINT(x,y,z)  (((x==8&&y==9) || (x==9&&y==8)) &&((z)==15))
+
+
+#ifndef UCHAR_MIN
+#define UCHAR_MIN  0.0
+#endif
+#ifndef UCHAR_MAX
+#define UCHAR_MAX  255.0
+#endif
+#ifndef SHORT_MIN
+#define SHORT_MIN  -32768.0
+#endif
+#ifndef SHORT_MAX
+#define SHORT_MAX  32767.0
+#endif
+#ifndef INT_MIN
+#define INT_MIN    -2147483648.0
+#endif
+#ifndef INT_MAX
+#define INT_MAX    2147483647.0
+#endif
+#ifndef LONG_MIN
+#define LONG_MIN   -2147483648.0
+#endif
+#ifndef LONG_MAX
+#define LONG_MAX   2147483647.0
+#endif
+
+#define N_HIST_BINS 1000
+
+
 
 /*-----------------------------------------------------
   STATIC DATA
@@ -1193,6 +1223,28 @@ inline float MRIgetVoxVal(const MRI *mri, int c, int r, int s, int f)
 inline int MRIsetVoxVal(MRI *mri, int c, int r, int s, int f, float voxval)
 {
   static void *p=NULL;
+  
+  //clipping
+  switch (mri->type)
+  {
+  case MRI_UCHAR:
+    if (voxval < UCHAR_MIN) voxval = UCHAR_MIN;
+    if (voxval > UCHAR_MAX) voxval = UCHAR_MAX;
+    break;
+  case MRI_SHORT:
+    if (voxval < SHORT_MIN) voxval = SHORT_MIN;
+    if (voxval > SHORT_MAX) voxval = SHORT_MAX;
+    break;
+  case MRI_INT:
+    if (voxval < INT_MIN) voxval = INT_MIN;
+    if (voxval > INT_MAX) voxval = INT_MAX;
+    break;
+  case MRI_LONG:
+    if (voxval < LONG_MIN) voxval = LONG_MIN;
+    if (voxval > LONG_MAX) voxval = LONG_MAX;
+    break;
+  }  
+  
   if (mri->ischunked)
   {
     p = mri->chunk + c + r*mri->bytes_per_row +
@@ -11863,8 +11915,12 @@ MRIlinearTransformInterp(MRI *mri_src, MRI *mri_dst, MATRIX *mA,
           else
             MRIsampleVolumeFrameType(mri_src, x1, x2, x3, 
                                      frame, InterpMethod, &val);
+
+          // will clip the val according to mri_dst type:
           MRIsetVoxVal(mri_dst, y1, y2, y3, frame, val) ;
+
 #if 0
+          // if this gets ever enabled, don't forget to clip val to type...
           switch (mri_dst->type)
           {
           case MRI_UCHAR:
@@ -12177,32 +12233,6 @@ MRImeanFrameThresh(MRI *mri, int frame, float thresh)
   return(mean) ;
 }
 
-#ifndef UCHAR_MIN
-#define UCHAR_MIN  0.0
-#endif
-#ifndef UCHAR_MAX
-#define UCHAR_MAX  255.0
-#endif
-#ifndef SHORT_MIN
-#define SHORT_MIN  -32768.0
-#endif
-#ifndef SHORT_MAX
-#define SHORT_MAX  32767.0
-#endif
-#ifndef INT_MIN
-#define INT_MIN    -2147483648.0
-#endif
-#ifndef INT_MAX
-#define INT_MAX    2147483647.0
-#endif
-#ifndef LONG_MIN
-#define LONG_MIN   -2147483648.0
-#endif
-#ifndef LONG_MAX
-#define LONG_MAX   2147483647.0
-#endif
-
-#define N_HIST_BINS 1000
 
 /*--------------------------------------------------------------
   MRISeqchangeType() - changes the data type for a 3D or 4D volume.
@@ -13167,15 +13197,33 @@ MRI *MRIresampleFill
           }
 
           if (dest->type == MRI_UCHAR)
+          {
+            if (val < UCHAR_MIN) val = UCHAR_MIN;
+            if (val > UCHAR_MAX) val = UCHAR_MAX;
             MRIseq_vox(dest, di, dj, dk, nframe) = (unsigned char)nint(val);
+          }
           if (dest->type == MRI_SHORT)
+          {
+            if (val < SHORT_MIN) val = SHORT_MIN;
+            if (val > SHORT_MAX) val = SHORT_MAX;
             MRISseq_vox(dest, di, dj, dk, nframe) = (short)nint(val);
+          }
           if (dest->type == MRI_INT)
+          {
+            if (val < INT_MIN) val = INT_MIN;
+            if (val > INT_MAX) val = INT_MAX;
             MRIIseq_vox(dest, di, dj, dk, nframe) = (int)nint(val);
+          }
           if (dest->type == MRI_LONG)
+          {
+            if (val < LONG_MIN) val = LONG_MIN;
+            if (val > LONG_MAX) val = LONG_MAX;
             MRILseq_vox(dest, di, dj, dk, nframe) = (long)nint(val);
+          }
           if (dest->type == MRI_FLOAT)
+          {
             MRIFseq_vox(dest, di, dj, dk, nframe) = (float)val;
+          }
 
         }
       }

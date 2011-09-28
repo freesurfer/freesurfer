@@ -15,8 +15,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2011/09/25 16:51:46 $
- *    $Revision: 1.2 $
+ *    $Date: 2011/09/28 16:19:45 $
+ *    $Revision: 1.3 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -2223,6 +2223,29 @@ extern int	MRIsampleBSpline
     }
 		interpolated += zWeight[k] * w2;
   }
+  
+/*  // clip interpolation to limits:
+  // removed (let the caller decide)
+  switch (bspline->srctype)
+  {
+  case MRI_UCHAR:
+    if (interpolated < UCHAR_MIN) interpolated = UCHAR_MIN;
+    if (interpolated > UCHAR_MAX) interpolated = UCHAR_MAX;
+    break;
+  case MRI_SHORT:
+    if (interpolated < SHORT_MIN) interpolated = SHORT_MIN;
+    if (interpolated > SHORT_MAX) interpolated = SHORT_MAX;
+    break;
+  case MRI_INT:
+    if (interpolated < INT_MIN) interpolated = INT_MIN;
+    if (interpolated > INT_MAX) interpolated = INT_MAX;
+    break;
+  case MRI_LONG:
+    if (interpolated < LONG_MIN) interpolated = LONG_MIN;
+    if (interpolated > LONG_MAX) interpolated = LONG_MAX;
+    break;
+  } */
+  
   *pval = interpolated;
 	return NO_ERROR;
 } 
