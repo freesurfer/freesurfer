@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2011/09/08 18:32:45 $
- *    $Revision: 1.69 $
+ *    $Date: 2011/09/29 18:54:26 $
+ *    $Revision: 1.70 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -1001,7 +1001,8 @@ double FSVolume::GetVoxelValue( int i, int j, int k, int frame )
 {
   if ( i < 0 || i >= m_MRI->width ||
        j < 0 || j >= m_MRI->height ||
-       k < 0 || k >= m_MRI->depth )
+       k < 0 || k >= m_MRI->depth ||
+       frame >= m_MRI->nframes )
   {
     return 0;
   }

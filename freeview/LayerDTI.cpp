@@ -6,9 +6,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/14 23:44:47 $
- *    $Revision: 1.17 $
+ *    $Author: rpwang $
+ *    $Date: 2011/09/29 18:54:26 $
+ *    $Revision: 1.18 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -32,6 +32,7 @@
 #include "vtkImageMapToColors.h"
 #include "vtkLookupTable.h"
 #include "vtkMath.h"
+#include <QDebug>
 
 LayerDTI::LayerDTI( LayerMRI* ref, QObject* parent ) : LayerMRI( ref, parent ),
   m_vectorSource( NULL)
@@ -154,6 +155,7 @@ void LayerDTI::UpdateColorMap()
       mColorMap[i]->SetLookupTable( GetProperty()->GetDirectionCodedTable() );
       mColorMap[i]->SetActiveComponent( 1 );
     }
+    emit ActorUpdated();
   }
   else
   {
