@@ -70,44 +70,27 @@ void nrerror(char error_text[]) {
 
    cholesky solver and backsubstitution
    leaves upper right triangle intact (rows first order)
-   ***************************************************************/
 
+  * !!! NJS note: the guts of this routine have been removed, as we
+  * cannot distribute NRC routines.  A suitable replacement will need to be
+  * created by someone to get this code working again!
+  */
 void choldc(double a[], int n, double p[]) {
-  void nrerror(char error_text[]);
-  int i, j, k;
-  double sum;
-
-  for (i = 0; i < n; i++) {
-    for (j = i; j < n; j++) {
-      sum=a[n*i + j];
-      for (k=i-1; k>=0; k--) sum -= a[n*i + k]*a[n*j + k];
-      if (i == j) {
-        if (sum <= 0.0) {
-          nrerror("choldc failed, matrix not positive definite");
-          sum = 0.0;
-        }
-        p[i]=sqrt(sum);
-      } else a[n*j + i] = sum/p[i];
-    }
-  }
+  ErrorExit(
+    ERROR_BADPARM,
+    "ERROR: NRC routine choldc has been removed from the source.\n"
+    "This program is not usable until a suitable replacement is found!\n");
+  return;
 }
 
 void cholsb(double a[], int n, double p[], double b[], double x[]) {
-  int i, k;
-  double sum;
-
-  for (i=0; i<n; i++) {
-    sum=b[i];
-    for (k=i-1; k>=0; k--) sum -= a[n*i + k]*x[k];
-    x[i]=sum/p[i];
-  }
-
-  for (i=n-1; i>=0; i--) {
-    sum=x[i];
-    for (k=i+1; k<n; k++) sum -= a[n*k + i]*x[k];
-    x[i]=sum/p[i];
-  }
+  ErrorExit(
+    ERROR_BADPARM,
+    "ERROR: NRC routine cholsb has been removed from the source.\n"
+    "This program is not usable until a suitable replacement is found!\n");
+  return;
 }
+
 
 /*****************************************************************
   sometimes we only need the forward or backward pass of the
