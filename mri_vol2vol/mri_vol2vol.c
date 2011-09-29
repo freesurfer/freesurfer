@@ -10,9 +10,9 @@
 /*
  * Original Author: Doug Greve
  * CVS Revision Info:
- *    $Author: lzollei $
- *    $Date: 2011/08/26 18:16:11 $
- *    $Revision: 1.73 $
+ *    $Author: mreuter $
+ *    $Date: 2011/09/29 00:18:00 $
+ *    $Revision: 1.74 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -58,6 +58,7 @@ mri_vol2vol
 
   --trilin            : trilinear interpolation (default)
   --nearest           : nearest neighbor interpolation
+  --cubic             : cubic B-Spline interpolation
   --interp interptype : interpolation trilin or nearest (def is trilin)
 
   --precision precisionid : output precision (def is float)
@@ -207,8 +208,8 @@ updated to reflect the new limits.
 --interp method
 
 Interpolate the output based on the given method. Legal values are:
-trilin and nearest. trilin is the default. Can also use --trilin
-or --nearest.
+cubic, trilin and nearest. trilin is the default. Can also use
+--cubic, --trilin or --nearest.
 
 --precision precisionid
 
@@ -475,7 +476,7 @@ MATRIX *LoadRfsl(char *fname);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_vol2vol.c,v 1.73 2011/08/26 18:16:11 lzollei Exp $";
+static char vcid[] = "$Id: mri_vol2vol.c,v 1.74 2011/09/29 00:18:00 mreuter Exp $";
 char *Progname = NULL;
 
 int debug = 0, gdiagno = -1;
@@ -595,12 +596,12 @@ int main(int argc, char **argv) {
 
 
   make_cmd_version_string(argc, argv,
-                          "$Id: mri_vol2vol.c,v 1.73 2011/08/26 18:16:11 lzollei Exp $",
+                          "$Id: mri_vol2vol.c,v 1.74 2011/09/29 00:18:00 mreuter Exp $",
                           "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option(argc, argv,
-                                "$Id: mri_vol2vol.c,v 1.73 2011/08/26 18:16:11 lzollei Exp $",
+                                "$Id: mri_vol2vol.c,v 1.74 2011/09/29 00:18:00 mreuter Exp $",
                                 "$Name:  $");
   if(nargs && argc - nargs == 1) exit (0);
 
@@ -1296,6 +1297,9 @@ static int parse_commandline(int argc, char **argv) {
     else if (istringnmatch(option, "--nearest",7)) {
       interpmethod = "nearest";
     } 
+    else if (istringnmatch(option, "--cubic",0)) {
+      interpmethod = "cubic";
+    } 
     else if (istringnmatch(option, "--precision",0)) {
       if (nargc < 1) argnerr(option,1);
       precision = pargv[0];
@@ -1408,7 +1412,8 @@ printf("  --slice-bias alpha  : apply half-cosine bias field\n");
 printf("\n");
 printf("  --trilin            : trilinear interpolation (default)\n");
 printf("  --nearest           : nearest neighbor interpolation\n");
-printf("  --interp interptype : interpolation trilin or nearest (def is trilin)\n");
+printf("  --cubic             : cubic B-Spline interpolation\n");
+printf("  --interp interptype : interpolation cubic, trilin, nearest (def is trilin)\n");
 printf("\n");
 printf("  --precision precisionid : output precision (def is float)\n");
 printf("  --kernel            : save the trilinear interpolation kernel instead\n");
@@ -1557,8 +1562,8 @@ printf("\n");
 printf("--interp method\n");
 printf("\n");
 printf("Interpolate the output based on the given method. Legal values are:\n");
-printf("trilin and nearest. trilin is the default. Can also use --trilin\n");
-printf("or --nearest.\n");
+printf("cubic, trilin and nearest. trilin is the default. Can also use\n");
+printf("--cubic, --trilin or --nearest.\n");
 printf("\n");
 printf("--precision precisionid\n");
 printf("\n");
