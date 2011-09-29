@@ -14,9 +14,9 @@ function [vertex_coords, faces] = read_surf(fname)
 %
 % Original Author: Bruce Fischl
 % CVS Revision Info:
-%    $Author: nicks $
-%    $Date: 2011/03/02 00:04:12 $
-%    $Revision: 1.4 $
+%    $Author: fischl $
+%    $Date: 2011/09/29 14:20:17 $
+%    $Revision: 1.5 $
 %
 % Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 %
@@ -68,8 +68,10 @@ elseif (magic == TRIANGLE_FILE_MAGIC_NUMBER)
   vnum = fread(fid, 1, 'int32') ;
   fnum = fread(fid, 1, 'int32') ;
   vertex_coords = fread(fid, vnum*3, 'float32') ; 
-  faces = fread(fid, fnum*3, 'int32') ;
-  faces = reshape(faces, 3, fnum)' ;
+  if (nargout > 1)
+    faces = fread(fid, fnum*3, 'int32') ;
+    faces = reshape(faces, 3, fnum)' ;
+  end
 end
 
 vertex_coords = reshape(vertex_coords, 3, vnum)' ;
