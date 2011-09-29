@@ -8,8 +8,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2011/09/25 16:41:11 $
- *    $Revision: 1.429 $
+ *    $Date: 2011/09/29 00:17:12 $
+ *    $Revision: 1.430 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -1186,7 +1186,7 @@ MRI *MRIreadOtl(const char *fname, int width, int height, int slices,
 
 int list_labels_in_otl_file(FILE *fp);
 
-MATRIX *extract_i_to_r(MRI *mri);
+MATRIX *extract_i_to_r(const MRI *mri);
 int apply_i_to_r(MRI *mri, MATRIX *m);
 
 int stuff_four_by_four(MATRIX *m,
@@ -1195,7 +1195,7 @@ int stuff_four_by_four(MATRIX *m,
                        float m31, float m32, float m33, float m34,
                        float m41, float m42, float m43, float m44);
 
-MATRIX *extract_r_to_i(MRI *mri) ;
+MATRIX *extract_r_to_i(const MRI *mri) ;
 #define MRIgetVoxelToRasXform   extract_i_to_r
 #define MRIgetRasToVoxelXform   extract_r_to_i
 int    MRIsetVoxelToRasXform(MRI *mri, MATRIX *m_vox2ras) ;
