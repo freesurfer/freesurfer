@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2011/09/28 23:33:21 $
- *    $Revision: 1.503 $
+ *    $Date: 2011/09/29 00:17:40 $
+ *    $Revision: 1.504 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -23,7 +23,7 @@
  */
 
 extern const char* Progname;
-const char *MRI_C_VERSION = "$Revision: 1.503 $";
+const char *MRI_C_VERSION = "$Revision: 1.504 $";
 
 
 /*-----------------------------------------------------
@@ -223,7 +223,7 @@ MATRIX *MRIxfmCRS2XYZ( const MRI *mri, int base)
   non-zero voxels base correctly (eg, SPM expects vox2ras to be 1-based).
   Note: MRIgetVoxelToRasXform is #defined to be extract_i_to_r().
   ---------------------------------------------------------------------------*/
-MATRIX *extract_i_to_r(MRI *mri)
+MATRIX *extract_i_to_r(const MRI *mri)
 {
   MATRIX *m;
   m = MRIxfmCRS2XYZ(mri, 0);
@@ -233,7 +233,7 @@ MATRIX *extract_i_to_r(MRI *mri)
   extract_r_to_i() - computes scanner ras2vox. See also extract_i_to_r()
   and MRIxfmCRS2XYZ()
   ---------------------------------------------------------------------*/
-MATRIX *extract_r_to_i(MRI *mri)
+MATRIX *extract_r_to_i(const MRI *mri)
 {
   MATRIX *m_ras_to_voxel, *m_voxel_to_ras ;
   m_voxel_to_ras = extract_i_to_r(mri) ;

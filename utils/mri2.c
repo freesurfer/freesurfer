@@ -6,9 +6,9 @@
 /*
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2011/08/17 17:00:06 $
- *    $Revision: 1.72 $
+ *    $Author: mreuter $
+ *    $Date: 2011/09/29 00:17:40 $
+ *    $Revision: 1.73 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -32,6 +32,7 @@
 #include "diag.h"
 #include "mri.h"
 #include "mrisurf.h"
+#include "mriBSpline.h"
 #include "fio.h"
 #include "stats.h"
 #include "corio.h"
@@ -782,6 +783,11 @@ int MRIvol2Vol(MRI *src, MRI *targ, MATRIX *Vt2s,
     exit( EXIT_FAILURE );
   }
 #else
+
+  MRI_BSPLINE * bspline = NULL;
+  if (InterpCode == SAMPLE_CUBIC_BSPLINE)
+    bspline = MRItoBSpline(src,NULL,3);
+
   for (ct=0; ct < targ->width; ct++)
   {
     for (rt=0; rt < targ->height; rt++)
@@ -820,10 +826,18 @@ int MRIvol2Vol(MRI *src, MRI *targ, MATRIX *Vt2s,
             case SAMPLE_NEAREST:
               valvect[f] = MRIgetVoxVal(src,ics,irs,iss,f);
               break ;
+            case SAMPLE_CUBIC_BSPLINE:
+              MRIsampleBSpline(bspline, fcs, frs, fss, f, &rval);
+              valvect[f] = rval;
+              break ;
             case SAMPLE_SINC:      /* no multi-frame */
               MRIsincSampleVolume(src, fcs, frs, fss, sinchw, &rval) ;
               valvect[f] = rval;
               break ;
+            default:
+              printf("ERROR: MRIvol2vol: interpolation method %i unknown\n",InterpCode);
+              exit(1);
+
             }
           }
         }
@@ -2835,6 +2849,10 @@ int MRIvol2VolVSM(MRI *src, MRI *targ, MATRIX *Vt2s,
   sinchw = nint(param);
   valvect = (float *) calloc(sizeof(float),src->nframes);
 
+  MRI_BSPLINE * bspline = NULL;
+  if (InterpCode == SAMPLE_CUBIC_BSPLINE)
+    bspline = MRItoBSpline(src,NULL,3);
+    
   crsT = MatrixAlloc(4,1,MATRIX_REAL);
   crsT->rptr[4][1] = 1;
   crsS = MatrixAlloc(4,1,MATRIX_REAL);
@@ -2893,10 +2911,17 @@ int MRIvol2VolVSM(MRI *src, MRI *targ, MATRIX *Vt2s,
             case SAMPLE_NEAREST:
               valvect[f] = MRIgetVoxVal(src,ics,irs,iss,f);
               break ;
+            case SAMPLE_CUBIC_BSPLINE:     
+              MRIsampleBSpline(bspline, fcs, frs, fss, f, &rval);
+              valvect[f] = rval;
+              break ;
             case SAMPLE_SINC:      /* no multi-frame */
               MRIsincSampleVolume(src, fcs, frs, fss, sinchw, &rval) ;
               valvect[f] = rval;
               break ;
+            default:
+              printf("ERROR: MRIvol2volVSM: interpolation method %i unknown\n",InterpCode);
+              exit(1);
             }
           }
         }
@@ -2994,6 +3019,11 @@ MRI *MRIvol2surfVSM( const MRI *SrcVol,
   nhits = 0;
 
   SetAffineMatrix( &ras2voxAffine, ras2vox );
+
+  MRI_BSPLINE * bspline = NULL;
+  if (InterpMethod == SAMPLE_CUBIC_BSPLINE)
+    bspline = MRItoBSpline(SrcVol,NULL,3);
+
 
   /*--- loop through each vertex ---*/
 #ifdef MRI2_TIMERS
@@ -3096,10 +3126,17 @@ MRI *MRIvol2surfVSM( const MRI *SrcVol,
         case SAMPLE_NEAREST:
           srcval = MRIgetVoxVal(SrcVol,icol,irow,islc,frm);
           break ;
+        case SAMPLE_CUBIC_BSPLINE:
+          MRIsampleBSpline(bspline, fcol, frow, fslc, frm, &rval);
+          srcval = rval;
+          break ;
         case SAMPLE_SINC:      /* no multi-frame */
           MRIsincSampleVolume(SrcVol, fcol, frow, fslc, 5, &rval) ;
           srcval = rval;
           break ;
+        default:
+          printf("ERROR: MRIvol2surfVSM: interpolation method %i unknown\n",InterpMethod);
+          exit(1);
         } //switch
         MRIFseq_vox(TrgVol,vtx,0,0,frm) = srcval;
         if (Gdiag_no == vtx) printf("val[%d] = %f\n", frm, srcval) ;

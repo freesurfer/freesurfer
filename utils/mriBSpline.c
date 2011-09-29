@@ -15,8 +15,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2011/09/28 22:24:12 $
- *    $Revision: 1.4 $
+ *    $Date: 2011/09/29 00:17:40 $
+ *    $Revision: 1.5 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -145,12 +145,12 @@ static void		ConvertToInterpolationCoefficients
 
 // get and set line routines need to be improved (speedup by grabbing a
 // whole row in data block...)
-static void	getZLine (MRI	* mri, int	x, int y, int f, double Line[])
+static void	getZLine (const MRI	* mri, int	x, int y, int f, double Line[])
 { 
 	int	z;
   for (z=0;z<mri->depth;z++) Line[z] = MRIgetVoxVal(mri, x, y, z, f);
 } 
-static void	getZLineStop (MRI	* mri, int	x, int y, int f, double Line[], int zstop)
+static void	getZLineStop (const MRI	* mri, int	x, int y, int f, double Line[], int zstop)
 { 
 	int	z;
   for (z=0;z<zstop;z++) Line[z] = MRIgetVoxVal(mri, x, y, z, f);
@@ -173,12 +173,12 @@ static void	setZLine (MRI	* mri, int	x, int y, int f, double Line[])
       MRIsetVoxVal(mri, x, y, z, f, (float)Line[z]);
   }
 } 
-static void	getYLine (MRI	* mri, int	x, int z, int f, double Line[])
+static void	getYLine (const MRI	* mri, int	x, int z, int f, double Line[])
 { 
 	int	y;
   for (y=0;y<mri->height;y++) Line[y] = MRIgetVoxVal(mri, x, y, z, f);
 } 
-static void	getYLineStop (MRI	* mri, int	x, int z, int f, double Line[], int ystop)
+static void	getYLineStop (const MRI	* mri, int	x, int z, int f, double Line[], int ystop)
 { 
 	int	y;
   for (y=0;y<ystop;y++) Line[y] = MRIgetVoxVal(mri, x, y, z, f);
@@ -201,12 +201,12 @@ static void	setYLine (MRI	* mri, int	x, int z, int f, double Line[])
       MRIsetVoxVal(mri, x, y, z, f, (float)Line[y]);
   }
 } 
-static void	getXLine (MRI	* mri, int	y, int z, int f, double Line[])
+static void	getXLine (const MRI	* mri, int	y, int z, int f, double Line[])
 { 
 	int	x;
   for (x=0;x<mri->width;x++) Line[x] = MRIgetVoxVal(mri, x, y, z, f);
 } 
-// static void	getXLineStop (MRI	* mri, int	y, int z, int f, double Line[], int xstop)
+// static void	getXLineStop (const MRI	* mri, int	y, int z, int f, double Line[], int xstop)
 // { 
 // 	int	x;
 //   for (x=0;x<xstop;x++) Line[x] = MRIgetVoxVal(mri, x, y, z, f);
@@ -1717,7 +1717,7 @@ extern int MRIfreeBSpline(MRI_BSPLINE **pbspline)
   return(NO_ERROR) ;   
 }
 
-extern MRI_BSPLINE* MRItoBSpline (MRI	*mri_src,	MRI_BSPLINE *bspline, int degree)
+extern MRI_BSPLINE* MRItoBSpline (const MRI	*mri_src,	MRI_BSPLINE *bspline, int degree)
 { 
   printf("MRItoBSpline degree %i\n",degree);
   
@@ -1838,7 +1838,7 @@ extern MRI_BSPLINE* MRItoBSpline (MRI	*mri_src,	MRI_BSPLINE *bspline, int degree
 
 extern int	MRIsampleBSpline
 				(
-					MRI_BSPLINE	*bspline,	/* input B-spline array of coefficients */
+					const MRI_BSPLINE	*bspline,	/* input B-spline array of coefficients */
 					double	x,			/* x coordinate where to interpolate */
 					double	y,			/* y coordinate where to interpolate */
 					double	z,			/* y coordinate where to interpolate */
@@ -1991,7 +1991,7 @@ extern int	MRIsampleBSpline
 #define SPLINE_CENT		"Centered Spline"	/* Centered Spline filter (l2-norm) */
 #define SPLINE_CENT_L2	"Centered Spline L2"/* Centered Spline filter (L2-norm) */
 
-extern MRI *MRIdownsample2BSpline(MRI* mri_src, MRI *mri_dst)
+extern MRI *MRIdownsample2BSpline(const MRI* mri_src, MRI *mri_dst)
 {
   double 	*InBuffer;		/* Input buffer to 1D process */ 
   double	*OutBuffer;		/* Output buffer to 1D process */ 
@@ -2184,7 +2184,7 @@ extern MRI *MRIdownsample2BSpline(MRI* mri_src, MRI *mri_dst)
 
 }
 
-extern MRI *MRIupsample2BSpline(MRI* mri_src, MRI *mri_dst)
+extern MRI *MRIupsample2BSpline(const MRI* mri_src, MRI *mri_dst)
 { 
   double 	*InBuffer;		/* Input buffer to 1D process */ 
   double	*OutBuffer;		/* Output buffer to 1D process */ 
