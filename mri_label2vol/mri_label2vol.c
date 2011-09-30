@@ -13,9 +13,9 @@
 /*
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/09/21 20:49:44 $
- *    $Revision: 1.34.2.3 $
+ *    $Author: greve $
+ *    $Date: 2011/09/30 15:19:36 $
+ *    $Revision: 1.34.2.4 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -77,7 +77,7 @@ static int *NthLabelMap(MRI *aseg, int *nlabels);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_label2vol.c,v 1.34.2.3 2011/09/21 20:49:44 nicks Exp $";
+static char vcid[] = "$Id: mri_label2vol.c,v 1.34.2.4 2011/09/30 15:19:36 greve Exp $";
 char *Progname = NULL;
 
 char *LabelList[100];
@@ -145,11 +145,11 @@ int main(int argc, char **argv) {
   char cmdline[CMD_LINE_LEN] ;
 
   make_cmd_version_string (argc, argv,
-                           "$Id: mri_label2vol.c,v 1.34.2.3 2011/09/21 20:49:44 nicks Exp $", "$Name:  $", cmdline);
+                           "$Id: mri_label2vol.c,v 1.34.2.4 2011/09/30 15:19:36 greve Exp $", "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option (argc, argv,
-                                 "$Id: mri_label2vol.c,v 1.34.2.3 2011/09/21 20:49:44 nicks Exp $", "$Name:  $");
+                                 "$Id: mri_label2vol.c,v 1.34.2.4 2011/09/30 15:19:36 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -1126,7 +1126,8 @@ static int load_annotation(char *annotfile, MRIS *Surf) {
       annotid = annotation_to_index(annot);
     if (annotidmax < annotid) annotidmax = annotid;
   }
-
+  // add one to account for the 0 id
+  annotidmax++;
   printf("annotidmax = %d\n",annotidmax);
   return(annotidmax);
 }
