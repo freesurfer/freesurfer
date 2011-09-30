@@ -15,8 +15,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2011/09/29 00:17:12 $
- *    $Revision: 1.2 $
+ *    $Date: 2011/09/30 19:20:40 $
+ *    $Revision: 1.3 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -62,6 +62,8 @@ MRI_BSPLINE* MRItoBSpline (const MRI	*mri_src,	MRI_BSPLINE *bspline, int degree)
 
 // Step 2: Based on pre-computed B-spline coefficients, interpolate image
 int MRIsampleBSpline(const MRI_BSPLINE * bspline, double x, double y, double z, int frame, double *pval);
+int MRIsampleSeqBSpline(const MRI_BSPLINE *bspline,double x, double y, double z, float *valvect,
+			     int firstframe, int lastframe);
 
 // direct methods for up and downsample (based on simplified algo):
 MRI *MRIdownsample2BSpline(const MRI* mri_src, MRI *mri_dst) ;
