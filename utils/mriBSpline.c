@@ -15,8 +15,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2011/09/30 00:23:10 $
- *    $Revision: 1.6 $
+ *    $Date: 2011/09/30 00:27:50 $
+ *    $Revision: 1.7 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -2082,7 +2082,7 @@ extern int MRIsampleSeqBSpline(const MRI_BSPLINE *bspline,double x, double y, do
 		    w = 0.0;
 		    for (i = 0; i <= sdi; i++)
         {
-          w+= xWeight[i] * MRIgetVoxVal(bspline->coeff,xIndex[i],yIndex[j],zIndex[k],frame);
+          w+= xWeight[i] * MRIgetVoxVal(bspline->coeff,xIndex[i],yIndex[j],zIndex[k],f);
 		    }
         w2 += yWeight[j] * w;
       }

@@ -11,8 +11,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2011/09/30 00:23:09 $
- *    $Revision: 1.251 $
+ *    $Date: 2011/09/30 00:27:50 $
+ *    $Revision: 1.252 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -3916,12 +3916,7 @@ GCAMmorphFromAtlas(MRI *mri_in, GCA_MORPH *gcam, MRI *mri_morphed, int sample_ty
 	  
 	  for (f = 0; f < mri_morphed->nframes; f++)
 	    {
-        if (sample_type == SAMPLE_CUBIC_BSPLINE)
-          // recommended to externally call this and keep mri_coeff
-          // if image is resampled often (e.g. in registration algo)
-          MRIsampleBSpline(bspline, xr, yr, zr, f, &val);
-        else
-	        MRIsampleVolumeFrameType(mri_in, xr, yr, zr, f, sample_type, &val) ;
+	      MRIsampleVolumeFrameType(mri_in, xr, yr, zr, f, sample_type, &val) ;
 	      MRIsetVoxVal(mri_morphed, x, y, z, f, val) ;
 	    }
 	}

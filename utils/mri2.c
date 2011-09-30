@@ -7,8 +7,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2011/09/30 00:23:10 $
- *    $Revision: 1.74 $
+ *    $Date: 2011/09/30 00:27:50 $
+ *    $Revision: 1.75 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -722,6 +722,7 @@ int MRIvol2Vol(MRI *src, MRI *targ, MATRIX *Vt2s,
   int sinchw;
   MATRIX *V2Rsrc=NULL, *invV2Rsrc=NULL, *V2Rtarg=NULL;
   int FreeMats=0;
+  MRI_BSPLINE * bspline = NULL;
 
 #ifdef VERBOSE_MODE
   Chronometer tTotal, tSample;
@@ -784,7 +785,6 @@ int MRIvol2Vol(MRI *src, MRI *targ, MATRIX *Vt2s,
   }
 #else
 
-  MRI_BSPLINE * bspline = NULL;
   if (InterpCode == SAMPLE_CUBIC_BSPLINE)
     bspline = MRItoBSpline(src,NULL,3);
 
