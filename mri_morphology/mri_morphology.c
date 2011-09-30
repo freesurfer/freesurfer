@@ -8,9 +8,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:23 $
- *    $Revision: 1.13 $
+ *    $Author: fischl $
+ *    $Date: 2011/09/30 13:21:24 $
+ *    $Revision: 1.14 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -57,6 +57,7 @@ char *Progname ;
 #define ERODE_THRESH   7
 #define DILATE_THRESH  8
 #define ERODE_BOTTOM   9
+#define FILL_HOLES     10
 
 
 static void usage_exit(int code) ;
@@ -75,7 +76,7 @@ main(int argc, char *argv[]) {
   struct timeb start ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_morphology.c,v 1.13 2011/03/02 00:04:23 nicks Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_morphology.c,v 1.14 2011/09/30 13:21:24 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -121,6 +122,8 @@ main(int argc, char *argv[]) {
     operation = OPEN ;
   else  if (!stricmp(argv[2], "erode_bottom"))
     operation = ERODE_BOTTOM ;
+  else  if (!stricmp(argv[2], "fill_holes"))
+    operation = FILL_HOLES ;
   else {
     operation = 0 ;
     ErrorExit(ERROR_UNSUPPORTED, "morphological operation '%s'  is not supported", argv[2]) ;
@@ -150,6 +153,26 @@ main(int argc, char *argv[]) {
     mri_dst = MRImodeFilter(mri_src, NULL, niter) ;
     break ;
   }
+  case FILL_HOLES:
+    {
+      int x, y, z, nfilled = 0 ;
+      mri_dst = MRIbinarize(mri_src, NULL, 1, 0, 1) ;
+      for (x = 0 ; x < mri_src->width ; x++)
+        for (y = 0 ; y < mri_src->height ; y++)
+          for (z = 0 ; z < mri_src->depth ; z++)
+          {
+            if (x == Gx && y == Gy && z == Gz)
+              DiagBreak() ;
+            if ((MRIgetVoxVal(mri_src, x, y, z, 0) == 0) &&
+                MRIneighborsOn3x3(mri_src, x, y, z, 0) >= niter)
+	    {
+	      nfilled++ ;
+              MRIsetVoxVal(mri_dst, x, y, z, 0, 1) ;
+	    }
+          }
+      printf("%d holes filled with more than %d neighbors on\n",nfilled,niter);
+      break ;
+    }
   case ERODE_BOTTOM:
     if (label < 0)
       ErrorExit(ERROR_BADPARM, "%s: must specify label with -l <label>", Progname) ;
