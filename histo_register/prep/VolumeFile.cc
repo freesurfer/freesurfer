@@ -161,6 +161,7 @@ void convertMghFileToImages( Config &conf ) {
 	float cs = readFloatSwap( file );
 
 	// display header
+  disp( 1, "filename: %s",fileName.c_str() );
 	disp( 1, "version: %d", version );
 	disp( 1, "width: %d", width );
 	disp( 1, "height: %d", height );
