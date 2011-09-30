@@ -15,8 +15,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2011/09/29 00:17:40 $
- *    $Revision: 1.5 $
+ *    $Date: 2011/09/30 00:23:10 $
+ *    $Revision: 1.6 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -1835,7 +1835,6 @@ extern MRI_BSPLINE* MRItoBSpline (const MRI	*mri_src,	MRI_BSPLINE *bspline, int 
 	return bspline;
 }
 
-
 extern int	MRIsampleBSpline
 				(
 					const MRI_BSPLINE	*bspline,	/* input B-spline array of coefficients */
@@ -1866,13 +1865,13 @@ extern int	MRIsampleBSpline
     return(NO_ERROR) ;
   }
   
-  if (frame >= 1)
-  {
-    ErrorReturn(ERROR_UNSUPPORTED,
-                (ERROR_UNSUPPORTED,
-                 "MRIsampleBSpline: unsupported frame %d", frame)) ;
-     
-  }
+//   if (frame >= 1)
+//   {
+//     ErrorReturn(ERROR_UNSUPPORTED,
+//                 (ERROR_UNSUPPORTED,
+//                  "MRIsampleBSpline: unsupported frame %d", frame)) ;
+//      
+//   }
 
   OutOfBounds = MRIindexNotInVolume(bspline->coeff, x, y, z);
   if (OutOfBounds == 1)
@@ -1983,6 +1982,120 @@ extern int	MRIsampleBSpline
   *pval = interpolated;
 	return NO_ERROR;
 } 
+
+extern int MRIsampleSeqBSpline(const MRI_BSPLINE *bspline,double x, double y, double z, float *valvect,
+			     int firstframe, int lastframe)
+{
+
+  int f;
+  int OutOfBounds = MRIindexNotInVolume(bspline->coeff, x, y, z);
+  if (OutOfBounds == 1)
+  {
+    /* unambiguously out of bounds */
+    for (f=firstframe; f <= lastframe; f++) 
+      valvect[f] = bspline->coeff->outside_val;
+    return(NO_ERROR) ;
+  }
+  
+  int Width = bspline->coeff->width;
+  int Height= bspline->coeff->height;
+  int Depth = bspline->coeff->depth;
+  int SplineDegree = bspline->degree;
+
+	double	w, w2;
+  double	xWeight[10], yWeight[10], zWeight[10];
+	double	interpolated;
+	int	xIndex[10], yIndex[10], zIndex[10];
+	int	Width2 = 2 * Width - 2, Height2 = 2 * Height - 2, Depth2 = 2 * Depth -2;
+	long	i, j, k,l;
+  
+	/* compute the interpolation indexes */
+	if (SplineDegree & 1) {
+		i = floor(x) - SplineDegree / 2;
+		j = floor(y) - SplineDegree / 2;
+		k = floor(z) - SplineDegree / 2;
+		for (l = 0; l <= SplineDegree; l++) {
+			xIndex[l] = i++;
+			yIndex[l] = j++;
+			zIndex[l] = k++;
+		}
+	}
+	else {
+		i = (long)floor(x + 0.5) - SplineDegree / 2;
+		j = (long)floor(y + 0.5) - SplineDegree / 2;
+		k = (long)floor(z + 0.5) - SplineDegree / 2;
+		for (l = 0; l <= SplineDegree; l++) {
+			xIndex[l] = i++;
+			yIndex[l] = j++;
+			zIndex[l] = k++;
+		}
+	}
+
+	/* compute the interpolation weights */
+  if (Width == 1)  xWeight[0] = 1.0;
+  else BsplineWeights (SplineDegree, &x, xIndex, xWeight);
+  if (Height == 1)  yWeight[0] = 1.0;
+  else BsplineWeights (SplineDegree, &y, yIndex, yWeight);
+  if (Depth == 1)  zWeight[0] = 1.0;
+  else BsplineWeights (SplineDegree, &z, zIndex, zWeight);
+  
+    
+	/* apply the mirror boundary conditions */
+	for (k = 0; k <= SplineDegree; k++) {
+		xIndex[k] = (Width == 1) ? (0) : ((xIndex[k] < 0) ?
+			(-xIndex[k] - Width2 * ((-xIndex[k]) / Width2))
+			: (xIndex[k] - Width2 * (xIndex[k] / Width2)));
+		if (Width <= xIndex[k]) {
+			xIndex[k] = Width2 - xIndex[k];
+		}
+		yIndex[k] = (Height == 1) ? (0) : ((yIndex[k] < 0) ?
+			(-yIndex[k] - Height2 * ((-yIndex[k]) / Height2))
+			: (yIndex[k] - Height2 * (yIndex[k] / Height2)));
+		if (Height <= yIndex[k]) {
+			yIndex[k] = Height2 - yIndex[k];
+		}
+		zIndex[k] = (Depth == 1) ? (0) : ((zIndex[k] < 0) ?
+			(-zIndex[k] - Depth2 * ((-zIndex[k]) / Depth2))
+			: (zIndex[k] - Depth2 * (zIndex[k] / Depth2)));
+		if (Depth <= zIndex[k]) {
+			zIndex[k] = Depth2 - zIndex[k];
+		}
+	}
+
+	/* perform interpolation */
+  int sdk = SplineDegree;
+  int sdj = SplineDegree;
+  int sdi = SplineDegree;
+  if (Width == 1) sdi = 0;
+  if (Height == 1) sdj = 0;
+  if (Depth == 1) sdk = 0;
+  
+  for (f=firstframe; f <= lastframe; f++)
+  {
+  
+    interpolated = 0.0;
+    for (k = 0; k <= sdk; k++)
+    {
+     w2 = 0.0;
+	    for (j = 0; j <= sdj; j++)
+      {
+		    w = 0.0;
+		    for (i = 0; i <= sdi; i++)
+        {
+          w+= xWeight[i] * MRIgetVoxVal(bspline->coeff,xIndex[i],yIndex[j],zIndex[k],frame);
+		    }
+        w2 += yWeight[j] * w;
+      }
+		  interpolated += zWeight[k] * w2;
+    }
+  
+    valvect[f] = interpolated;
+  } 
+  
+  return NO_ERROR;
+}
+
+
 
 
 #define MAXF 200L		/* Maximum size of the filter */

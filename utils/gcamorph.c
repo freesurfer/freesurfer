@@ -11,8 +11,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2011/09/28 23:33:48 $
- *    $Revision: 1.250 $
+ *    $Date: 2011/09/30 00:23:09 $
+ *    $Revision: 1.251 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -3902,10 +3902,6 @@ GCAMmorphFromAtlas(MRI *mri_in, GCA_MORPH *gcam, MRI *mri_morphed, int sample_ty
   scale = 1; 
   //scale = gcam->spacing / mri_in->xsize ;
 
-  MRI_BSPLINE * bspline = NULL;
-  if (sample_type == SAMPLE_CUBIC_BSPLINE)
-    bspline = MRItoBSpline(mri_in,NULL,3);
-  
   for (x = 0; x < mri_morphed->width; x++)
     for (y = 0; y < mri_morphed->height; y++)
       for (z = 0; z < mri_morphed->depth; z++)
@@ -3929,7 +3925,7 @@ GCAMmorphFromAtlas(MRI *mri_in, GCA_MORPH *gcam, MRI *mri_morphed, int sample_ty
 	      MRIsetVoxVal(mri_morphed, x, y, z, f, val) ;
 	    }
 	}
-  
+
   return(mri_morphed) ;
   }
   else{
@@ -3978,6 +3974,11 @@ GCAMmorphFromAtlas(MRI *mri_in, GCA_MORPH *gcam, MRI *mri_morphed, int sample_ty
   mri_s_morphed = MRIallocSequence(width, height, depth, MRI_FLOAT, frames) ;
   MRIcopyHeader(mri_in, mri_s_morphed);
 
+  MRI_BSPLINE * bspline = NULL;
+  if (sample_type == SAMPLE_CUBIC_BSPLINE)
+    bspline = MRItoBSpline(mri_in,NULL,3);
+  
+
   // loop over input volume indices
   for (x = 0 ; x < width ; x++)
   {
@@ -4020,7 +4021,12 @@ GCAMmorphFromAtlas(MRI *mri_in, GCA_MORPH *gcam, MRI *mri_morphed, int sample_ty
           dz = zd - zm1 ;
 
 #if 1
-	  MRIsampleSeqVolumeType(mri_in, x, y, z, orig_vals, 0, frames-1, sample_type); 
+    if (sample_type == SAMPLE_CUBIC_BSPLINE)
+    // recommended to externally call this and keep mri_coeff
+    // if image is resampled often (e.g. in registration algo)
+      MRIsampleSeqBSpline(bspline, x, y, z, orig_vals, 0,frames-1);
+    else
+	    MRIsampleSeqVolumeType(mri_in, x, y, z, orig_vals, 0, frames-1, sample_type); 
 #else
 	  //orig_val = MRIgetVoxVal(mri_in, x, y, z, 0) ; 
 	  MRIsampleSeqVolume(mri_in, x, y, z, orig_vals, 0, frames-1) ; 
@@ -4094,7 +4100,10 @@ GCAMmorphFromAtlas(MRI *mri_in, GCA_MORPH *gcam, MRI *mri_morphed, int sample_ty
       }
     }
   }
-  
+  if (bspline) MRIfreeBSpline(&bspline);
+  if (sample_type == SAMPLE_CUBIC_BSPLINE)
+    bspline = MRItoBSpline(mri_s_morphed,NULL,3);
+
   /* now normalize weights and values */
   for (x = 0 ; x < width ; x++)
   {
@@ -4107,13 +4116,19 @@ GCAMmorphFromAtlas(MRI *mri_in, GCA_MORPH *gcam, MRI *mri_morphed, int sample_ty
         weight = (float)MRIFvox(mri_weights,x,y,z) ;
         if (!FZERO(weight))
 	  {
-	    MRIsampleSeqVolume(mri_s_morphed, x, y, z, vals, 0, frames-1);	  
+      if (sample_type == SAMPLE_CUBIC_BSPLINE)
+      // recommended to externally call this and keep mri_coeff
+      // if image is resampled often (e.g. in registration algo)
+        MRIsampleSeqBSpline(bspline, x, y, z, vals, 0, frames-1);
+      else
+	      MRIsampleSeqVolume(mri_s_morphed, x, y, z, vals, 0, frames-1);	  
 	    for (f = 0 ; f < frames ; f++)
 	      MRIFseq_vox(mri_s_morphed,x,y,z,f) = (float)((double)vals[f]/weight) ;
 	  }
       }
     }
   }
+  if (bspline) MRIfreeBSpline(&bspline);
   
   /* copy from short image to BUFTYPE one */
   if (!mri_morphed)
@@ -4400,6 +4415,7 @@ GCAMmorphToAtlas(MRI *mri_src, GCA_MORPH *gcam, MRI *mri_morphed, int frame, int
       }
     }
   }
+  if (bspline) MRIfreeBSpline(&bspline);
 
   // copy the gcam dst information to the morphed volume
   if (getenv("USE_AVERAGE305"))
@@ -4562,6 +4578,7 @@ GCAMmorphToAtlasType(MRI *mri_src, GCA_MORPH *gcam, MRI *mri_morphed,
 
   // copy the gcam dst information to the morphed volume
   useVolGeomToMRI(&gcam->atlas, mri_morphed);
+  if (bspline) MRIfreeBSpline(&bspline);
 
   return(mri_morphed) ;
 }
@@ -16394,6 +16411,7 @@ MRIapplyMorph(MRI *mri_source, MRI *mri_warp, MRI *mri_dst, int sample_type)
       }
 
   mri_dst->c_r = mri_warp->c_r ; mri_dst->c_a = mri_warp->c_a ; mri_dst->c_s = mri_warp->c_s ;
+  if (bspline) MRIfreeBSpline(&bspline);
   return(mri_dst) ;
 }
 

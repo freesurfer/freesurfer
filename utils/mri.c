@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2011/09/29 00:17:40 $
- *    $Revision: 1.504 $
+ *    $Date: 2011/09/30 00:23:10 $
+ *    $Revision: 1.505 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -23,7 +23,7 @@
  */
 
 extern const char* Progname;
-const char *MRI_C_VERSION = "$Revision: 1.504 $";
+const char *MRI_C_VERSION = "$Revision: 1.505 $";
 
 
 /*-----------------------------------------------------
@@ -10220,6 +10220,11 @@ int MRIsampleSeqVolumeType(MRI *mri, double x, double y, double z, float *valvec
 	printf("Sinc interpolation is not implemented yet on multi-frame data. Going ahead with tri-linear") ;
 	return(MRIsampleSeqVolume(mri, x, y, z, valvect, firstframe, lastframe)) ;
       }
+    case SAMPLE_CUBIC_BSPLINE:
+      {
+	printf("Cubic Bspline interpolation not implemented here. Needs to be done by calling function!") ;
+	exit(1);
+      }
     }
 
   OutOfBounds = MRIindexNotInVolume(mri, x, y, z);
@@ -13301,7 +13306,7 @@ MRI *MRIresampleFill
     MatrixFree(&m_old_voxel_to_ras) ;
   }
 
-
+  if (bspline) MRIfreeBSpline(&bspline);
   MatrixFree(&dp);
   MatrixFree(&sp);
   MatrixFree(&m);

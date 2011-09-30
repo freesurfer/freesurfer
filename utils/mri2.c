@@ -7,8 +7,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2011/09/29 00:17:40 $
- *    $Revision: 1.73 $
+ *    $Date: 2011/09/30 00:23:10 $
+ *    $Revision: 1.74 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -865,6 +865,8 @@ int MRIvol2Vol(MRI *src, MRI *targ, MATRIX *Vt2s,
     MatrixFree(&V2Rtarg);
     MatrixFree(&Vt2s);
   }
+  
+  if (bspline) MRIfreeBSpline(&bspline);
 
 #ifdef VERBOSE_MODE
   StopChronometer( &tTotal );
@@ -2936,6 +2938,7 @@ int MRIvol2VolVSM(MRI *src, MRI *targ, MATRIX *Vt2s,
   free(valvect);
   MatrixFree(&crsS);
   MatrixFree(&crsT);
+  if (bspline) MRIfreeBSpline(&bspline);
   if (FreeMats)
   {
     MatrixFree(&V2Rsrc);
@@ -3152,6 +3155,7 @@ MRI *MRIvol2surfVSM( const MRI *SrcVol,
 
   MatrixFree(&ras2vox);
   free(valvect);
+  if (bspline) MRIfreeBSpline(&bspline);
 
   //printf("vol2surf_linear: nhits = %d/%d\n",nhits,TrgSurf->nvertices);
 
