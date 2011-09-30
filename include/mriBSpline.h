@@ -15,8 +15,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2011/09/30 19:20:40 $
- *    $Revision: 1.3 $
+ *    $Date: 2011/09/30 23:51:04 $
+ *    $Revision: 1.4 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -38,6 +38,7 @@ extern "C" {
 #endif
 
 #include "mri.h"
+#include "transform.h"
 
 typedef struct
 {
@@ -64,6 +65,10 @@ MRI_BSPLINE* MRItoBSpline (const MRI	*mri_src,	MRI_BSPLINE *bspline, int degree)
 int MRIsampleBSpline(const MRI_BSPLINE * bspline, double x, double y, double z, int frame, double *pval);
 int MRIsampleSeqBSpline(const MRI_BSPLINE *bspline,double x, double y, double z, float *valvect,
 			     int firstframe, int lastframe);
+MRI *MRIlinearTransformBSpline(const MRI_BSPLINE *bspline, MRI *mri_dst, MATRIX *mA);
+MRI *MRIapplyRASlinearTransformBSpline(const MRI_BSPLINE *bspline, MRI *mri_dst, MATRIX *mA) ;
+MRI *LTAtransformBSpline(const MRI_BSPLINE *bspline, MRI *mri_dst, LTA *lta) ;
+
 
 // direct methods for up and downsample (based on simplified algo):
 MRI *MRIdownsample2BSpline(const MRI* mri_src, MRI *mri_dst) ;

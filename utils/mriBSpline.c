@@ -15,8 +15,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2011/09/30 00:27:50 $
- *    $Revision: 1.7 $
+ *    $Date: 2011/09/30 23:50:46 $
+ *    $Revision: 1.8 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -2095,7 +2095,251 @@ extern int MRIsampleSeqBSpline(const MRI_BSPLINE *bspline,double x, double y, do
   return NO_ERROR;
 }
 
+MRI *MRIlinearTransformBSpline(const MRI_BSPLINE *bspline, MRI *mri_dst, MATRIX *mA)
+// mainly copied from mri.c
+{
+  int    y1, y2, y3, width, height, depth,frame ;
+  VECTOR *v_X, *v_Y ;   /* original and transformed coordinate systems */
+  MATRIX *mAinv ;     /* inverse of mA */
+  double   val, x1, x2, x3 ;
 
+  mAinv = MatrixInverse(mA, NULL) ;      /* will sample from dst back to src */
+  if (!mAinv)
+    ErrorReturn(NULL, (ERROR_BADPARM,
+                       "MRIlinearTransformSpline: xform is singular")) ;
+
+  if (!mri_dst)
+  {
+    //mri_dst = MRIclone(mri_src, NULL) ;
+    mri_dst = MRIcloneDifferentType(bspline->coeff, bspline->srctype);
+  }
+  else
+    MRIclear(mri_dst) ;
+
+  width  = mri_dst->width ;
+  height = mri_dst->height ;
+  depth  = mri_dst->depth ;
+  v_X = VectorAlloc(4, MATRIX_REAL) ;  /* input (src) coordinates */
+  v_Y = VectorAlloc(4, MATRIX_REAL) ;  /* transformed (dst) coordinates */
+
+  v_Y->rptr[4][1] = 1.0f ;
+  for (y3 = 0 ; y3 < depth ; y3++)
+  {
+    V3_Z(v_Y) = y3 ;
+    for (y2 = 0 ; y2 < height ; y2++)
+    {
+      V3_Y(v_Y) = y2 ;
+      for (y1 = 0 ; y1 < width ; y1++)
+      {
+        V3_X(v_Y) = y1 ;
+        MatrixMultiply(mAinv, v_Y, v_X) ;
+
+        x1 = V3_X(v_X) ;
+        x2 = V3_Y(v_X) ;
+        x3 = V3_Z(v_X) ;
+
+        for (frame = 0 ; frame < bspline->coeff->nframes ; frame++)
+        {
+          MRIsampleBSpline(bspline, x1, x2, x3, frame, &val);
+
+          // will clip the val according to mri_dst type:
+          MRIsetVoxVal(mri_dst, y1, y2, y3, frame, val) ;
+
+        }
+      }
+    }
+  }
+  MatrixFree(&v_X) ;
+  MatrixFree(&mAinv) ;
+  MatrixFree(&v_Y) ;
+
+  mri_dst->ras_good_flag = 1;
+
+  return(mri_dst) ;
+}
+
+MRI *MRIapplyRASlinearTransformBSpline(const MRI_BSPLINE *bspline, MRI *mri_dst, MATRIX *m_ras_xform)
+{
+  MATRIX   *m_voxel_xform ;
+
+  m_voxel_xform = MRIrasXformToVoxelXform(bspline->coeff, mri_dst, m_ras_xform, NULL);
+  //fprintf(stderr, "applying the vox to vox linear transform\n");
+  //MatrixPrint(stderr, m_voxel_xform);
+  mri_dst = MRIlinearTransformBSpline(bspline, mri_dst, m_voxel_xform) ;
+  MatrixFree(&m_voxel_xform) ;
+  return(mri_dst) ;
+}
+
+MRI *
+LTAtransformBSpline(const MRI_BSPLINE *bspline, MRI *mri_dst, LTA *lta)
+// mainly copied from transform.c
+{
+  //int         y1, y2, y3, width, height, depth, xi, yi, zi, f ;
+  //VECTOR      *v_X, *v_Y ;/* original and transformed coordinate systems */
+  //double        x1, x2, x3 ;
+  //MATRIX      *m_L, *m_L_inv ;
+  LT *tran = &lta->xforms[0];
+  MATRIX *r2i = 0;
+  MATRIX *i2r = 0;
+  MATRIX *tmp = 0;
+  MATRIX *v2v = 0;
+  MRI *resMRI = 0;
+
+  if (lta->num_xforms == 1)
+  {
+    /////////////////////////////////////////////////////////////////////////
+    //  The transform was created using src and dst
+    //           src vox ----> RAS
+    //            |             |
+    //            V             V
+    //           dst vox ----> RAS
+    //
+    //  Note: RAS is the physical space.  vox is the way to
+    // embed voxel in physical space
+    //
+    //  You can take arbitray embedding of the dst but keeping the RAS same.
+    //
+    //           src vox ----> RAS
+    //            | v2v         | r2r
+    //            V             V
+    //           dst vox ----> RAS
+    //            |             || identity
+    //            V             ||
+    //           dst' vox ---> RAS
+    //
+    //  where dst->dst' map is given by V2V' = r2i(dst')*i2r(dst)
+    //  (here dst is from the lta, and dst' from mri_dst)
+    //
+    //  Note that in order to obtain src->dst' with r2r, you
+    // "don't need any info from dst (only from dst')"
+    //  since
+    //          src->dst'  = r2i(dst')* r2r * i2r(src)
+    //
+    //  However, using v2v, you need the information from dst
+    //  since
+    //          src->dst'  = r2i(dst')* i2r(dst) * v2v
+    //
+    ////////////////////////////////////////////////////////////////////////
+
+    // when the mri_dst volume is not given
+    if (!mri_dst)
+    {
+      if (tran->dst.valid == 1) // transform dst is valid
+      {
+        // modify dst geometry using the transform dst value,
+        // i.e. put the head in the same position in the dst'
+        // volume as the transform dst was
+//         if (DIAG_VERBOSE_ON)
+//           fprintf(stderr, "INFO: Modifying dst geometry, "
+//                   "using the transform dst\n");
+        // allocate dst space (take type from src and geometry from transform):
+        mri_dst = MRIallocSequence(tran->dst.width,
+                                   tran->dst.height,
+                                   tran->dst.depth,
+                                   bspline->srctype,
+                                   bspline->coeff->nframes) ;
+        // cp rest of header information from src:
+        MRIcopyHeader(bspline->coeff, mri_dst) ;
+        mri_dst->type = bspline->srctype;
+        // make sure the geometry is taken from the transform, not from src:
+        useVolGeomToMRI(&tran->dst,mri_dst);
+      }
+      else if (getenv("USE_AVERAGE305"))
+      {
+        fprintf(stderr, "INFO: Environmental variable "
+                "USE_AVERAGE305 set\n");
+        fprintf(stderr, "INFO: Modifying dst c_(r,a,s), "
+                "using average_305 values\n");
+        // use the same volume size as the src
+        mri_dst = MRIcloneDifferentType(bspline->coeff, bspline->srctype);
+        // reset talairach transform file name:
+        mri_dst->transform_fname[0] = '\0';
+        mri_dst->c_r = -0.0950;
+        mri_dst->c_a = -16.5100;
+        mri_dst->c_s = 9.7500;
+        mri_dst->ras_good_flag = 1;
+        // maye one should set also the other geometry entries
+        // from the average ???
+        //
+        // now we cache transform and thus we have to
+        // do the following whenever
+        // we change direction cosines
+        MRIreInitCache(mri_dst);
+      }
+      else
+			{
+        fprintf(stderr, "INFO: Transform dst volume "
+                "info is not used (valid flag = 0).\n");
+        // use the same volume size as the src
+        mri_dst = MRIcloneDifferentType(bspline->coeff, bspline->srctype);
+        // reset talairach transform file name:
+        mri_dst->transform_fname[0] = '\0';
+        // maybe also reset or concatenate the actual transform 
+        // if available in mri_dst->transform (not yet implemented) ...
+			}
+    }
+
+    ////////////////////////////////////////////////////////////////////////
+    if (lta->type == LINEAR_RAS_TO_RAS)
+    {
+      // don't need any info from dst(in lta) only from mri_dst:
+      return(MRIapplyRASlinearTransformBSpline(bspline,
+                                              mri_dst,
+                                              lta->xforms[0].m_L)) ;
+    }
+    else if (lta->type == LINEAR_VOX_TO_VOX)// vox-to-vox
+    {
+      if (lta->xforms[0].dst.valid)
+      {
+        i2r = vg_i_to_r(&lta->xforms[0].dst); // allocated
+        r2i = extract_r_to_i(mri_dst);
+        tmp = MatrixMultiply(i2r, lta->xforms[0].m_L, NULL);
+        v2v = MatrixMultiply(r2i, tmp, NULL);
+        resMRI = MRIlinearTransformBSpline(bspline, mri_dst, v2v);
+        MatrixFree(&v2v);
+        v2v = 0;
+        MatrixFree(&i2r);
+        i2r = 0;
+        MatrixFree(&r2i);
+        r2i = 0;
+        MatrixFree(&tmp);
+        tmp = 0;
+        return resMRI;
+      }
+      else
+      {
+        fprintf(stderr, "INFO: assumes that the dst volume "
+                "given is the same as the dst for the transform\n");
+        return(MRIlinearTransformBSpline(bspline, mri_dst,
+                                        lta->xforms[0].m_L)) ;
+      }
+    }
+    else if (lta->type == LINEAR_PHYSVOX_TO_PHYSVOX)
+    {
+      // must have both transform src and dst geometry information
+      LTAchangeType(lta, LINEAR_RAS_TO_RAS);
+      return(MRIapplyRASlinearTransformBSpline(bspline, mri_dst,
+                                              lta->xforms[0].m_L)) ;
+    }
+    else
+      ErrorExit(ERROR_BADPARM, "LTAtransformBSpline: unknown linear transform\n");
+  }
+  
+  
+  
+  ErrorExit(ERROR_BADPARM, "LTAtransformBSpline: numxforms != 1 not supported\n");
+  
+  // removed stuff here
+  
+  return(mri_dst) ;
+}
+
+
+// -------------------------------------------------------------------------------
+//
+//            UP DOWN SAMPLE
+//
+//--------------------------------------------------------------------------------
 
 
 #define MAXF 200L		/* Maximum size of the filter */
