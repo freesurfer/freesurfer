@@ -6,7 +6,7 @@ noinst_LIBRARIES=libsbl.a
 
 libsbl_a_CXXFLAGS=-I$(top_srcdir)/histo_register/SimpleBaseLib/include/ \
 	$(OPENCV_CXXFLAGS) 
-libsbl_a_CPPFLAGS=-DUSE_OPENCV
+libsbl_a_CPPFLAGS=-DUSE_OPENCV -DUSE_ZLIB
 libsbl_a_SOURCES=\
 	src/system/Timer.cc \
 	src/system/FileSystem.cc \
