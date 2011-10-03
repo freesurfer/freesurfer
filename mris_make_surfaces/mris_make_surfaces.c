@@ -11,9 +11,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:33 $
- *    $Revision: 1.127 $
+ *    $Author: fischl $
+ *    $Date: 2011/10/03 16:06:07 $
+ *    $Revision: 1.128 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -52,7 +52,7 @@
 #include "label.h"
 
 static char vcid[] =
-  "$Id: mris_make_surfaces.c,v 1.127 2011/03/02 00:04:33 nicks Exp $";
+  "$Id: mris_make_surfaces.c,v 1.128 2011/10/03 16:06:07 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -139,6 +139,7 @@ static float base_dt_scale = BASE_DT_SCALE ;
 static float pial_target_offset = 0 ;
 static float white_target_offset = 0 ;
 
+static MRI *mri_cover_seg = NULL ;
 static char *aseg_name = "aseg.mgz" ;
 static char *aparc_name = "aparc" ;  // for midline and cortex label
 static MRI *mri_aseg = NULL;
@@ -240,13 +241,13 @@ main(int argc, char *argv[])
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mris_make_surfaces.c,v 1.127 2011/03/02 00:04:33 nicks Exp $",
+   "$Id: mris_make_surfaces.c,v 1.128 2011/10/03 16:06:07 fischl Exp $",
    "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mris_make_surfaces.c,v 1.127 2011/03/02 00:04:33 nicks Exp $",
+           "$Id: mris_make_surfaces.c,v 1.128 2011/10/03 16:06:07 fischl Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
   {
@@ -908,12 +909,65 @@ main(int argc, char *argv[])
     {
       fix_midline(mris, mri_aseg, mri_T1, hemi, GRAY_WHITE, 0) ;
     }
-    MRIScomputeBorderValues(mris, mri_T1, mri_smooth,
-                            MAX_WHITE, max_border_white, min_border_white,
-                            min_gray_at_white_border,
-                            max_border_white /*max_gray*/, current_sigma,
-                            2*max_thickness, parms.fp, GRAY_WHITE, NULL, 0) ;
-    MRISfindExpansionRegions(mris) ;
+    if (mri_cover_seg)
+    {
+      MRI *mri_tmp, *mri_bin ;
+
+      if (i == 0)
+      {
+        mri_bin = MRIclone(mri_T1, NULL) ;
+
+        printf("creating distance transform volume from segmentation\n") ;
+        if (mris->hemisphere == LEFT_HEMISPHERE)
+        {
+          MRIcopyLabel(mri_cover_seg, mri_bin, Left_Cerebral_White_Matter) ;
+          MRIcopyLabel(mri_cover_seg, mri_bin, Left_Thalamus_Proper) ;
+          MRIcopyLabel(mri_cover_seg, mri_bin, Left_Caudate) ;
+          MRIcopyLabel(mri_cover_seg, mri_bin, Left_Pallidum) ;
+          MRIcopyLabel(mri_cover_seg, mri_bin, Left_Putamen) ;
+          MRIcopyLabel(mri_cover_seg, mri_bin, Left_VentralDC) ;
+          MRIcopyLabel(mri_cover_seg, mri_bin, Left_Lateral_Ventricle) ;
+          MRIcopyLabel(mri_cover_seg, mri_bin, Left_Lesion) ;
+          MRIcopyLabel(mri_cover_seg, mri_bin, Left_Accumbens_area) ;
+          MRIcopyLabel(mri_cover_seg, mri_bin, Left_WM_hypointensities) ;
+          MRIcopyLabel(mri_cover_seg, mri_bin, Left_non_WM_hypointensities) ;
+          MRIcopyLabel(mri_cover_seg, mri_bin, Left_vessel) ;
+        }
+        else
+        {
+          MRIcopyLabel(mri_cover_seg, mri_bin, Right_Cerebral_White_Matter) ;
+          MRIcopyLabel(mri_cover_seg, mri_bin, Right_Thalamus_Proper) ;
+          MRIcopyLabel(mri_cover_seg, mri_bin, Right_Caudate) ;
+          MRIcopyLabel(mri_cover_seg, mri_bin, Right_Pallidum) ;
+          MRIcopyLabel(mri_cover_seg, mri_bin, Right_Putamen) ;
+          MRIcopyLabel(mri_cover_seg, mri_bin, Right_Lateral_Ventricle) ;
+          MRIcopyLabel(mri_cover_seg, mri_bin, Right_Lesion) ;
+          MRIcopyLabel(mri_cover_seg, mri_bin, Right_Accumbens_area) ;
+          MRIcopyLabel(mri_cover_seg, mri_bin, Right_VentralDC) ;
+          MRIcopyLabel(mri_cover_seg, mri_bin, Right_WM_hypointensities) ;
+          MRIcopyLabel(mri_cover_seg, mri_bin, Right_non_WM_hypointensities) ;
+          MRIcopyLabel(mri_cover_seg, mri_bin, Right_vessel) ;
+        }
+        MRIcopyLabel(mri_cover_seg, mri_bin, Brain_Stem) ;
+        MRIcopyLabel(mri_cover_seg, mri_bin, Third_Ventricle) ;
+        MRIcopyLabel(mri_cover_seg, mri_bin, WM_hypointensities) ;
+        MRIbinarize(mri_bin, mri_bin, 1, 0, 1) ;
+        mri_tmp = MRIdistanceTransform(mri_bin, NULL, 1, 20, DTRANS_MODE_SIGNED, NULL) ;
+        MRIscalarMul(mri_tmp, mri_tmp, (100.0/mri_bin->xsize)) ;  // to be in same range as intensities
+        MRIfree(&mri_T1) ; mri_T1 = mri_tmp ;
+        MRISsetVals(mris, 0) ;   // target is 0 distance transform val
+        MRIfree(&mri_bin) ;
+      }
+    }
+    else
+    {
+      MRIScomputeBorderValues(mris, mri_T1, mri_smooth,
+                              MAX_WHITE, max_border_white, min_border_white,
+                              min_gray_at_white_border,
+                              max_border_white /*max_gray*/, current_sigma,
+                              2*max_thickness, parms.fp, GRAY_WHITE, NULL, 0) ;
+      MRISfindExpansionRegions(mris) ;
+    }
     if (vavgs)
     {
       fprintf
@@ -1287,12 +1341,68 @@ main(int argc, char *argv[])
       {
         MRIwrite(mri_T1, "pial_masked.mgz") ;
       }
-      MRIScomputeBorderValues
-      (mris, mri_T1, mri_smooth, max_gray,
-       max_gray_at_csf_border, min_gray_at_csf_border,
-       min_csf,(max_csf+max_gray_at_csf_border)/2,
-       current_sigma, 2*max_thickness, parms.fp,
-       GRAY_CSF, mri_mask, thresh) ;
+      if (mri_cover_seg)
+      {
+	MRI *mri_tmp, *mri_bin ;
+	
+	if (i == 0)
+	{
+	  mri_bin = MRIclone(mri_T1, NULL) ;
+	  
+	  printf("creating distance transform volume from segmentation\n") ;
+	  if (mris->hemisphere == LEFT_HEMISPHERE)
+	  {
+	    MRIcopyLabel(mri_cover_seg, mri_bin, Left_Cerebral_White_Matter) ;
+	    MRIcopyLabel(mri_cover_seg, mri_bin, Left_Cerebral_Cortex) ;
+	    MRIcopyLabel(mri_cover_seg, mri_bin, Left_Thalamus_Proper) ;
+	    MRIcopyLabel(mri_cover_seg, mri_bin, Left_Caudate) ;
+	    MRIcopyLabel(mri_cover_seg, mri_bin, Left_Pallidum) ;
+	    MRIcopyLabel(mri_cover_seg, mri_bin, Left_Putamen) ;
+	    MRIcopyLabel(mri_cover_seg, mri_bin, Left_VentralDC) ;
+	    MRIcopyLabel(mri_cover_seg, mri_bin, Left_Lateral_Ventricle) ;
+	    MRIcopyLabel(mri_cover_seg, mri_bin, Left_Lesion) ;
+	    MRIcopyLabel(mri_cover_seg, mri_bin, Left_Accumbens_area) ;
+	    MRIcopyLabel(mri_cover_seg, mri_bin, Left_WM_hypointensities) ;
+	    MRIcopyLabel(mri_cover_seg, mri_bin, Left_non_WM_hypointensities) ;
+	    MRIcopyLabel(mri_cover_seg, mri_bin, Left_vessel) ;
+	  }
+	  else
+	  {
+	    MRIcopyLabel(mri_cover_seg, mri_bin, Right_Cerebral_Cortex) ;
+	    MRIcopyLabel(mri_cover_seg, mri_bin, Right_Cerebral_White_Matter) ;
+	    MRIcopyLabel(mri_cover_seg, mri_bin, Right_Thalamus_Proper) ;
+	    MRIcopyLabel(mri_cover_seg, mri_bin, Right_Caudate) ;
+	    MRIcopyLabel(mri_cover_seg, mri_bin, Right_Pallidum) ;
+	    MRIcopyLabel(mri_cover_seg, mri_bin, Right_Putamen) ;
+	    MRIcopyLabel(mri_cover_seg, mri_bin, Right_Lateral_Ventricle) ;
+	    MRIcopyLabel(mri_cover_seg, mri_bin, Right_Lesion) ;
+	    MRIcopyLabel(mri_cover_seg, mri_bin, Right_Accumbens_area) ;
+	    MRIcopyLabel(mri_cover_seg, mri_bin, Right_VentralDC) ;
+	    MRIcopyLabel(mri_cover_seg, mri_bin, Right_WM_hypointensities) ;
+	    MRIcopyLabel(mri_cover_seg, mri_bin, Right_non_WM_hypointensities) ;
+	    MRIcopyLabel(mri_cover_seg, mri_bin, Right_vessel) ;
+	  }
+	  MRIcopyLabel(mri_cover_seg, mri_bin, Brain_Stem) ;
+	  MRIcopyLabel(mri_cover_seg, mri_bin, Third_Ventricle) ;
+	  MRIcopyLabel(mri_cover_seg, mri_bin, WM_hypointensities) ;
+	  MRIbinarize(mri_bin, mri_bin, 1, 0, 1) ;
+	  mri_tmp = MRIdistanceTransform(mri_bin, NULL, 1, 20, DTRANS_MODE_SIGNED, NULL) ;
+	  MRIscalarMul(mri_tmp, mri_tmp, (5/mri_tmp->xsize)) ;// to be in same range as intensities
+	  MRIfree(&mri_T1) ; mri_T1 = mri_tmp ;
+	  MRISsetVals(mris, 0) ;   // target is 0 distance transform val
+	  MRIfree(&mri_bin) ;
+	}
+      }
+      else
+      {
+	MRIScomputeBorderValues
+	  (mris, mri_T1, mri_smooth, max_gray,
+	   max_gray_at_csf_border, min_gray_at_csf_border,
+	   min_csf,(max_csf+max_gray_at_csf_border)/2,
+	   current_sigma, 2*max_thickness, parms.fp,
+	   GRAY_CSF, mri_mask, thresh) ;
+	MRImask(mri_T1, mri_labeled, mri_T1, BRIGHT_LABEL, 0) ;
+      }
       MRISaddToValues(mris, pial_target_offset) ;
       {
         int ii, vno, n, vtotal ;
@@ -1328,7 +1438,6 @@ main(int argc, char *argv[])
           }
         }
       }
-      MRImask(mri_T1, mri_labeled, mri_T1, BRIGHT_LABEL, 0) ;
       if (vavgs)
       {
         fprintf
@@ -1602,6 +1711,15 @@ get_option(int argc, char *argv[])
     aseg_name = argv[2] ;
     printf("using aseg volume %s to prevent surfaces crossing the midline\n",
            aseg_name) ;
+    nargs = 1 ;
+  }
+  else if (!stricmp(option, "cover_seg"))
+  {
+    auto_detect_stats = 0 ;
+    printf("creating surfaces to cover  segmented volume %s\n", argv[2]) ;
+    mri_cover_seg = MRIread(argv[2]) ;
+    if (mri_cover_seg == NULL)
+      ErrorExit(ERROR_NOFILE, "%s: could not read segmentation volume %s", argv[2]) ;
     nargs = 1 ;
   }
   else if (!stricmp(option, "write_aseg"))
