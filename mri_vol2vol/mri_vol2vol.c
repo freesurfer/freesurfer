@@ -10,9 +10,9 @@
 /*
  * Original Author: Doug Greve
  * CVS Revision Info:
- *    $Author: mreuter $
- *    $Date: 2011/09/29 00:18:00 $
- *    $Revision: 1.74 $
+ *    $Author: fischl $
+ *    $Date: 2011/10/03 19:36:13 $
+ *    $Revision: 1.75 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -476,7 +476,7 @@ MATRIX *LoadRfsl(char *fname);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_vol2vol.c,v 1.74 2011/09/29 00:18:00 mreuter Exp $";
+static char vcid[] = "$Id: mri_vol2vol.c,v 1.75 2011/10/03 19:36:13 fischl Exp $";
 char *Progname = NULL;
 
 int debug = 0, gdiagno = -1;
@@ -596,12 +596,12 @@ int main(int argc, char **argv) {
 
 
   make_cmd_version_string(argc, argv,
-                          "$Id: mri_vol2vol.c,v 1.74 2011/09/29 00:18:00 mreuter Exp $",
+                          "$Id: mri_vol2vol.c,v 1.75 2011/10/03 19:36:13 fischl Exp $",
                           "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option(argc, argv,
-                                "$Id: mri_vol2vol.c,v 1.74 2011/09/29 00:18:00 mreuter Exp $",
+                                "$Id: mri_vol2vol.c,v 1.75 2011/10/03 19:36:13 fischl Exp $",
                                 "$Name:  $");
   if(nargs && argc - nargs == 1) exit (0);
 
@@ -954,8 +954,16 @@ int main(int argc, char **argv) {
     }
     else{
       //mri_vol2vol --mov orig.morphed.mgz --inv-morph --s subject --o origB.mgz
-      gcam = GCAMreadAndInvert(gcamfile);
+      gcam = GCAMread(gcamfile);
       if(gcam == NULL) exit(1);
+      {
+	MRI *mri_tmp ;
+	mri_tmp = MRIalloc(gcam->image.width, gcam->image.height, gcam->image.depth, MRI_FLOAT) ;
+	useVolGeomToMRI(&gcam->image, mri_tmp);
+	
+	GCAMinvert(gcam, mri_tmp) ;
+	MRIfree(&mri_tmp) ;
+      }
       printf("Applying reg to gcam\n");
       GCAMapplyTransform(gcam, Rtransform);  //voxel2voxel
       if (0) { //(in->type != MRI_UCHAR){
