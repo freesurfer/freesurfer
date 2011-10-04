@@ -9,8 +9,8 @@
 #
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2011/09/21 17:28:43 $
-#    $Revision: 1.539 $
+#    $Date: 2011/10/04 17:44:49 $
+#    $Revision: 1.540 $
 #
 ########################################################################
 AC_PREREQ(2.57)
@@ -197,11 +197,11 @@ AC_PROG_F77
 if test "x$F77" = "x"; then
 	AC_MSG_ERROR([FATAL: A Fortran 77 compiler is required!])
 fi
-# hack: when building with gcc 4.4.4, AC_PROC_LIBTOOL creates
+# hack: when building with gcc 4.4.*, AC_PROC_LIBTOOL creates
 # a libtool which when run gives CDPATH errors. the workaround
 # is to use the libtool on the system.
 if test "${CC}" = "gcc"; then
-  gcc --version | head -n 1 | awk '{print $3}' | grep 4.4.4 >& /dev/null
+  gcc --version | head -n 1 | awk '{print $3}' | grep " 4.4." >& /dev/null
   if test "$?" = "0"; then
     AC_MSG_NOTICE(Copying /usr/bin/libtool overtop the PROG_LIBTOOL)
     cp /usr/bin/libtool .
