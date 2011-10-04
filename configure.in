@@ -9,8 +9,8 @@
 #
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2011/10/04 18:16:17 $
-#    $Revision: 1.541 $
+#    $Date: 2011/10/04 22:07:30 $
+#    $Revision: 1.542 $
 #
 ########################################################################
 AC_PREREQ(2.57)
@@ -3031,10 +3031,10 @@ AC_SUBST(VTK_METAIO_LIB)
 if test ! "x$tcltk_apps" = "xNO"; then
   ################## Tcl
   # check tcl8.5
-#  AC_CHECK_LIB([tcl8.5],[Tcl_Init],
-#    [LIB_TCL=-ltcl8.5],
+  AC_CHECK_LIB([tcl8.5],[Tcl_Init],
+    [LIB_TCL=-ltcl8.5],
   # check tcl8.4
-#    [
+    [
     AC_CHECK_LIB([tcl8.4],[Tcl_Init],
       [LIB_TCL=-ltcl8.4],
   # check tcl8.3
@@ -3058,7 +3058,7 @@ Check config.log. Set LDFLAGS or --with-tcl-dir.])
           ])
         ])
       ])
-#    ])
+    ])
   AC_SUBST(LIB_TCL)
 
   #################### Tk needs X11 (or Aqua)
@@ -3066,10 +3066,10 @@ Check config.log. Set LDFLAGS or --with-tcl-dir.])
   CPPFLAGS="$GL_CFLAGS $CPPFLAGS"
   LDFLAGS="$X_LIBS $LDFLAGS"
   # check tk8.5
-#  AC_CHECK_LIB([tk8.5],[Tk_Init],
-#    [LIB_TK=-ltk8.5],
+  AC_CHECK_LIB([tk8.5],[Tk_Init],
+    [LIB_TK=-ltk8.5],
   # check tk8.4
-#    [
+    [
     AC_CHECK_LIB([tk8.4],[Tk_Init],
       [LIB_TK=-ltk8.4],
   # check tk8.3
@@ -3090,7 +3090,7 @@ Check config.log. Set LDFLAGS or --with-tcl-dir.])
           ])
         ])
       ])
-#    ])
+    ])
   AC_SUBST(LIB_TK)
 
   ##################### Tix
@@ -3129,8 +3129,8 @@ Check config.log. Set LDFLAGS or --with-tcl-dir.])
   AC_SUBST(LIB_TIX)
 
   ######## BLT (we cannot build BLT in Aqua) must use X11
-  AC_CHECK_LIB([BltExt30 -lBltCore30 $LIB_BLT_JPEG],[Blt_Init],
-    [LIB_BLT="-lBltExt30 -lBltCore30"],
+  AC_CHECK_LIB([BLT25 $LIB_BLT_JPEG],[Blt_Init],
+    [LIB_BLT=-lBLT25],
     [
     AC_CHECK_LIB([BLT $LIB_BLT_JPEG],[Blt_Init],
       [LIB_BLT=-lBLT],
