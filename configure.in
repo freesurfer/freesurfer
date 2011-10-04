@@ -9,8 +9,8 @@
 #
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2011/10/04 17:46:11 $
-#    $Revision: 1.519.2.13 $
+#    $Date: 2011/10/04 18:16:55 $
+#    $Revision: 1.519.2.14 $
 #
 ########################################################################
 AC_PREREQ(2.57)
@@ -201,7 +201,7 @@ fi
 # a libtool which when run gives CDPATH errors. the workaround
 # is to use the libtool on the system.
 if test "${CC}" = "gcc"; then
-  gcc --version | head -n 1 | awk '{print $3}' | grep " 4.4." >& /dev/null
+  gcc --version | head -n 1 | awk '{print $2 $3}' | grep "(GCC)4.4." >& /dev/null
   if test "$?" = "0"; then
     AC_MSG_NOTICE(Copying /usr/bin/libtool overtop the PROG_LIBTOOL)
     cp /usr/bin/libtool .
