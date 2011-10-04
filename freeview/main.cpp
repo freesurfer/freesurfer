@@ -6,9 +6,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: rpwang $
- *    $Date: 2011/05/13 15:04:33 $
- *    $Revision: 1.4.2.3 $
+ *    $Author: nicks $
+ *    $Date: 2011/10/04 19:40:20 $
+ *    $Revision: 1.4.2.4 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -61,7 +61,8 @@ void myMessageOutput(QtMsgType type, const char *msg)
 
 int main(int argc, char *argv[])
 {
-  Progname = argv[0]; putenv("SURFER_FRONTDOOR=");
+  Progname = argv[0]; 
+  putenv((char*)"SURFER_FRONTDOOR=");
   qInstallMsgHandler(myMessageOutput);
 
   CmdLineEntry cmdLineDesc[] =
