@@ -7,9 +7,9 @@
 /*
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:15 $
- *    $Revision: 1.14 $
+ *    $Author: greve $
+ *    $Date: 2011/10/05 21:57:21 $
+ *    $Revision: 1.15 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -33,7 +33,7 @@
 */
 
 
-// $Id: mri_fieldsign.c,v 1.14 2011/03/02 00:04:15 nicks Exp $
+// $Id: mri_fieldsign.c,v 1.15 2011/10/05 21:57:21 greve Exp $
 
 /*
   BEGINHELP
@@ -86,7 +86,7 @@ MRI *SFA2MRI(MRI *eccen, MRI *polar, int SFATrue);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_fieldsign.c,v 1.14 2011/03/02 00:04:15 nicks Exp $";
+static char vcid[] = "$Id: mri_fieldsign.c,v 1.15 2011/10/05 21:57:21 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -230,7 +230,8 @@ int main(int argc, char *argv[]) {
   }
 
   printf("Ripping Zeros\n");
-  MRISripZeros(surf,mri);
+  err = MRISripZeros(surf,mri);
+  if(err) exit(1);
 
   if(fwhm > 0) {
     nsmooth = MRISfwhm2nitersSubj(fwhm,subject,hemi,"white");
