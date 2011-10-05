@@ -8,8 +8,8 @@
  * Original Authors: Martin Sereno and Anders Dale, 1996; Doug Greve, 2002
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2011/08/11 21:06:13 $
- *    $Revision: 1.123 $
+ *    $Date: 2011/10/05 18:27:42 $
+ *    $Revision: 1.124 $
  *
  * Copyright (C) 2002-2011, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA).
@@ -35,7 +35,7 @@
 
 #ifndef lint
 static char vcid[] =
-"$Id: tkregister2.c,v 1.123 2011/08/11 21:06:13 greve Exp $";
+"$Id: tkregister2.c,v 1.124 2011/10/05 18:27:42 greve Exp $";
 #endif /* lint */
 
 #ifdef HAVE_TCL_TK_GL
@@ -1325,7 +1325,7 @@ static int parse_commandline(int argc, char **argv) {
       regfname = pargv[0];
       nargsused = 1;
     } 
-    else if (!strcmp(option, "--lta")) {
+    else if(!strcmp(option, "--lta") || !strcmp(option, "--lta-inv")) {
       // Having a separate flag for --lta allows conversion
       if (nargc < 1) argnerr(option,1);
       ltafname = pargv[0];
@@ -1348,6 +1348,10 @@ static int parse_commandline(int argc, char **argv) {
       if(lta->subject[0] != 0) {
 	memset(subjectid,'\0',1000);
 	memmove(subjectid,lta->subject,strlen(lta->subject));
+      }
+      if(!strcmp(option, "--lta-inv")){
+	printf("Inverting LTA\n");
+	XFM = MatrixInverse(XFM,XFM);
       }
       mkheaderreg = 1;
       nargsused = 1;
@@ -1589,6 +1593,7 @@ static void print_usage(void) {
   printf("   --freeview file : FreeView registration output matrix\n");
   printf("   --vox2vox file : vox2vox matrix in ascii\n");
   printf("   --lta ltafile : Linear Transform Array\n");
+  printf("   --lta-inv ltafile : Read in LTA and invert\n");
   printf("   --ltaout ltaoutfile : Output a Linear Transform Array\n");
   printf("   --feat featdir : check example_func2standard registration\n");
   printf("   --fsfeat featdir : check reg/freesurfer/register.dat registration\n");
@@ -4878,7 +4883,7 @@ int main(argc, argv)   /* new main */
   nargs =
     handle_version_option
     (argc, argv,
-     "$Id: tkregister2.c,v 1.123 2011/08/11 21:06:13 greve Exp $", "$Name:  $");
+     "$Id: tkregister2.c,v 1.124 2011/10/05 18:27:42 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
