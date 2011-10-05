@@ -11,9 +11,9 @@
 /*
  * Original Author: Martin Sereno and Anders Dale, 1996
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2011/08/12 15:48:22 $
- *    $Revision: 1.351 $
+ *    $Author: nicks $
+ *    $Date: 2011/10/05 20:46:39 $
+ *    $Revision: 1.352 $
  *
  * Copyright (C) 2002-2011, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA).
@@ -2563,6 +2563,11 @@ int  main(int argc,char *argv[])
       strncpy (annotation_fname, "aparc.annot", sizeof(annotation_fname));
       load_annotation = TRUE;
       labl_draw_style = LABL_STYLE_OUTLINE;
+      nargs = 1 ;
+    }
+    else if (!stricmp(argv[i], "-gldebug"))
+    {
+      // let glutInit parse this flag
       nargs = 1 ;
     }
     else if (!stricmp(argv[i], "-snap") ||!stricmp(argv[i], "-snapshot"))
@@ -19317,11 +19322,17 @@ make_filenames(char *lsubjectsdir,char *lsrname,char *lpname,char *lstem,
   xffname = (char *)malloc(NAME_LENGTH*sizeof(char));
   /* following not set below */
   nfname = (char *)malloc(NAME_LENGTH*sizeof(char));
+  nfname[0]=0;
   rfname = (char *)malloc(NAME_LENGTH*sizeof(char));
+  rfname[0]=0;
   pname2 = (char *)malloc(NAME_LENGTH*sizeof(char));
+  pname2[0]=0;
   stem2 = (char *)malloc(NAME_LENGTH*sizeof(char));
+  stem2[0]=0;
   ext2 = (char *)malloc(NAME_LENGTH*sizeof(char));
+  ext2[0]=0;
   tf2name = (char *)malloc(NAME_LENGTH*sizeof(char));
+  tf2name[0]=0;
 
   /* make default names */
   strcpy(sphere_reg, sphere_reg_suffix) ;
@@ -21480,7 +21491,7 @@ int main(int argc, char *argv[])   /* new main */
   nargs =
     handle_version_option
     (argc, argv,
-     "$Id: tksurfer.c,v 1.351 2011/08/12 15:48:22 fischl Exp $", "$Name:  $");
+     "$Id: tksurfer.c,v 1.352 2011/10/05 20:46:39 nicks Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
