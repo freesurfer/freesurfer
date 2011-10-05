@@ -11,9 +11,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: nicks $
-#    $Date: 2011/03/02 20:16:40 $
-#    $Revision: 1.3 $
+#    $Author: greve $
+#    $Date: 2011/10/05 22:12:18 $
+#    $Revision: 1.4 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -38,14 +38,41 @@ endif
 
 set stem = $argv[1];
 
-foreach fmt (mgh mgz nii nii.gz bhdr img w)
-  set testfile = $stem.$fmt
-  if(-e $testfile) then
-    echo $testfile
-    exit 0;
+set fmtlist = (mgh mgz nii nii.gz bhdr img w)
+if($?FSF_OUTPUT_FORMAT) then
+  if($FSF_OUTPUT_FORMAT == nii.gz) then
+    set fmtlist = (mgh mgz nii.gz nii bhdr img w)
   endif
+endif
+
+
+# Make sure that the desired FSF OUTPUT format is first
+#if($?FSF_OUTPUT_FORMAT) then
+#  set fmtlist = ($FSF_OUTPUT_FORMAT $fmtlist)
+#endif
+
+@ n = 0;
+set tstlist = ();
+foreach fmt ($fmtlist)
+  set testfile = $stem.$fmt
+  if(-e $testfile) set tstlist = ($tstlist $testfile);
 end
 
-echo "ERROR: could not determine file for $stem"
+if($#tstlist == 0) then
+  echo "ERROR: could not determine file for $stem"
+  exit 1;
+endif
+
+echo "$tstlist[1]"
+if($#tstlist == 1) exit 0;
+
+# only option
+if($#tstlist > 1) then
+  echo "WARNING: multiple formats found for $stem" > /dev/stderr
+  echo "  USING: $tstlist[1]" > /dev/stderr
+  exit 1;
+endif
+
+
 exit 1;
 ##########################################
