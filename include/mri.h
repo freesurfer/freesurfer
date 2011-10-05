@@ -8,8 +8,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2011/09/29 00:17:12 $
- *    $Revision: 1.430 $
+ *    $Date: 2011/10/05 21:33:46 $
+ *    $Revision: 1.431 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -1237,6 +1237,9 @@ int setDirectionCosine(MRI *mri, int orientation);
 int getSliceDirection(MRI *mri);
 int mriOKforSurface(MRI *mri); // check whether the volume is conformed or not
 int mriConformed(MRI *mri) ;
+int MRIfindRightSize(MRI *mri, float conform_size);
+float MRIfindMinSize(MRI *mri, int *conform_width);
+
 void setMRIforSurface(MRI *mri); // set c_(r,a,s) = 0 for a conformed volume
 MRI *MRIremoveNaNs(MRI *mri_src, MRI *mri_dst) ;
 MRI *MRImakePositive(MRI *mri_src, MRI *mri_dst);
