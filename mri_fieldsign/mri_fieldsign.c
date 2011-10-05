@@ -8,20 +8,18 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2010/07/14 14:51:26 $
- *    $Revision: 1.13 $
+ *    $Date: 2011/10/05 21:57:53 $
+ *    $Revision: 1.14.2.1 $
  *
- * Copyright (C) 2002-2007,
- * The General Hospital Corporation (Boston, MA). 
- * All rights reserved.
+ * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
- * Distribution, usage and copying of this software is covered under the
- * terms found in the License Agreement file named 'COPYING' found in the
- * FreeSurfer source code root directory, and duplicated here:
- * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ * Terms and conditions for use, reproduction, distribution and contribution
+ * are found in the 'FreeSurfer Software License Agreement' contained
+ * in the file 'LICENSE' found in the FreeSurfer distribution, and here:
  *
- * General inquiries: freesurfer@nmr.mgh.harvard.edu
- * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
+ *
+ * Reporting: freesurfer@nmr.mgh.harvard.edu
  *
  */
 
@@ -35,7 +33,7 @@
 */
 
 
-// $Id: mri_fieldsign.c,v 1.13 2010/07/14 14:51:26 greve Exp $
+// $Id: mri_fieldsign.c,v 1.14.2.1 2011/10/05 21:57:53 greve Exp $
 
 /*
   BEGINHELP
@@ -88,7 +86,7 @@ MRI *SFA2MRI(MRI *eccen, MRI *polar, int SFATrue);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_fieldsign.c,v 1.13 2010/07/14 14:51:26 greve Exp $";
+static char vcid[] = "$Id: mri_fieldsign.c,v 1.14.2.1 2011/10/05 21:57:53 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -232,7 +230,8 @@ int main(int argc, char *argv[]) {
   }
 
   printf("Ripping Zeros\n");
-  MRISripZeros(surf,mri);
+  err = MRISripZeros(surf,mri);
+  if(err) exit(1);
 
   if(fwhm > 0) {
     nsmooth = MRISfwhm2nitersSubj(fwhm,subject,hemi,"white");
