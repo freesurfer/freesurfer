@@ -8,8 +8,8 @@
 # Original Author: Nick Schmansky
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2011/03/02 20:16:40 $
-#    $Revision: 1.6 $
+#    $Date: 2011/10/05 17:17:10 $
+#    $Revision: 1.7 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -53,7 +53,7 @@ if ( $?FS_TCL_HOME ) then
     if ( -e $TCLLIBPATH/tix8.1 )   setenv TIX_LIBRARY $TCLLIBPATH/tix8.1
     if ( -e $TCLLIBPATH/Tix8.4.2 ) setenv TIX_LIBRARY $TCLLIBPATH/Tix8.4.2
     if ( -e $TCLLIBPATH/blt2.4 ) setenv BLT_LIBRARY $TCLLIBPATH/blt2.4
-    if ( -e $TCLLIBPATH/blt3.0 ) setenv BLT_LIBRARY $TCLLIBPATH/blt3.0
+    if ( -e $TCLLIBPATH/blt2.5 ) setenv BLT_LIBRARY $TCLLIBPATH/blt2.5
     if(! $?LD_LIBRARY_PATH ) then
       setenv LD_LIBRARY_PATH $TCLLIBPATH
     else
