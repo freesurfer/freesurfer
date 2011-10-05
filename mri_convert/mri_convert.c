@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl (Apr 16, 1997)
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2011/09/25 16:43:44 $
- *    $Revision: 1.184 $
+ *    $Date: 2011/10/05 21:35:02 $
+ *    $Revision: 1.185 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -52,8 +52,6 @@ void get_floats(int argc, char *argv[], int *pos, float *vals, int nvals);
 void get_string(int argc, char *argv[], int *pos, char *val);
 void usage_message(FILE *stream);
 void usage(FILE *stream);
-float findMinSize(MRI *mri, int *conform_width);
-int   findRightSize(MRI *mri, float conform_size);
 
 int debug=0;
 
@@ -200,7 +198,7 @@ int main(int argc, char *argv[])
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mri_convert.c,v 1.184 2011/09/25 16:43:44 mreuter Exp $",
+   "$Id: mri_convert.c,v 1.185 2011/10/05 21:35:02 mreuter Exp $",
    "$Name:  $",
    cmdline);
 
@@ -320,7 +318,7 @@ int main(int argc, char *argv[])
     handle_version_option
     (
       argc, argv,
-      "$Id: mri_convert.c,v 1.184 2011/09/25 16:43:44 mreuter Exp $",
+      "$Id: mri_convert.c,v 1.185 2011/10/05 21:35:02 mreuter Exp $",
       "$Name:  $"
     );
   if (nargs && argc - nargs == 1)
@@ -1626,7 +1624,7 @@ int main(int argc, char *argv[])
             "= --zero_ge_z_offset option ignored.\n");
   }
 
-  printf("$Id: mri_convert.c,v 1.184 2011/09/25 16:43:44 mreuter Exp $\n");
+  printf("$Id: mri_convert.c,v 1.185 2011/10/05 21:35:02 mreuter Exp $\n");
   printf("reading from %s...\n", in_name_only);
 
   if (in_volume_type == OTL_FILE)
@@ -2358,7 +2356,7 @@ int main(int argc, char *argv[])
       conform_width = 256;
       if(conform_min == TRUE)
       {
-        conform_size = findMinSize(mri, &conform_width);
+        conform_size = MRIfindMinSize(mri, &conform_width);
       }
       else
       {
@@ -2368,7 +2366,7 @@ int main(int argc, char *argv[])
         }
         else
         {
-          conform_width = findRightSize(mri, conform_size);
+          conform_width = MRIfindRightSize(mri, conform_size);
         }
       }
       template->width =
@@ -3236,115 +3234,4 @@ void usage(FILE *stream)
   outputHelpXml(mri_convert_help_xml,mri_convert_help_xml_len);
 } /* end usage() */
 
-float findMinSize(MRI *mri, int *conform_width)
-{
-  double xsize, ysize, zsize, minsize;
-  double fwidth, fheight, fdepth, fmax;
-  xsize = mri->xsize;
-  ysize = mri->ysize;
-  zsize = mri->zsize;
-  // there are 3! = 6 ways of ordering
-  //             xy  yz  zx
-  // x > y > z    z min
-  // x > z > y    y min
-  // z > x > y    y min
-  //////////////////////////
-  // y > x > z    z min
-  // y > z > x    x min
-  // z > y > x    x min
-  if (xsize > ysize)
-  {
-    minsize = (ysize > zsize) ? zsize : ysize;
-  }
-  else
-  {
-    minsize = (zsize > xsize) ? xsize : zsize;
-  }
-
-  // now decide the conformed_width
-  // algorighm ----------------------------------------------
-  // calculate the size in mm for all three directions
-  fwidth = mri->xsize*mri->width;
-  fheight = mri->ysize*mri->height;
-  fdepth = mri->zsize*mri->depth;
-  // pick the largest
-  if (fwidth> fheight)
-  {
-    fmax = (fwidth > fdepth) ? fwidth : fdepth;
-  }
-  else
-  {
-    fmax = (fdepth > fheight) ? fdepth : fheight;
-  }
-
-  *conform_width = (int) ceil(fmax/minsize);
-  // just to make sure that if smaller than 256, use 256 anyway
-  if (*conform_width < 256)
-  {
-    *conform_width = 256;
-  }
-
-  return (float) minsize;
-}
 /* EOF */
-
-// this function is called when conform is done
-int findRightSize(MRI *mri, float conform_size)
-{
-  // user gave the conform_size
-  double xsize, ysize, zsize;
-  double fwidth, fheight, fdepth, fmax;
-  int conform_width;
-
-  xsize = mri->xsize;
-  ysize = mri->ysize;
-  zsize = mri->zsize;
-
-  // now decide the conformed_width
-  // calculate the size in mm for all three directions
-  fwidth = mri->xsize*mri->width;
-  fheight = mri->ysize*mri->height;
-  fdepth = mri->zsize*mri->depth;
-  // pick the largest
-  if (fwidth> fheight)
-  {
-    fmax = (fwidth > fdepth) ? fwidth : fdepth;
-  }
-  else
-  {
-    fmax = (fdepth > fheight) ? fdepth : fheight;
-  }
-  // get the width with conform_size
-  conform_width = (int) ceil(fmax/conform_size);
-
-  // just to make sure that if smaller than 256, use 256 anyway
-  if (conform_width < 256)
-  {
-    conform_width = 256;
-  }
-  // conform_width >= 256.   allow 10% leeway
-  else if ((conform_width -256.)/256. < 0.1)
-  {
-    conform_width = 256;
-  }
-
-  // if more than 256, warn users
-  if (conform_width > 256)
-  {
-    fprintf(stderr, "WARNING =================="
-            "++++++++++++++++++++++++"
-            "=======================================\n");
-    fprintf(stderr, "The physical sizes are "
-            "(%.2f mm, %.2f mm, %.2f mm), "
-            "which cannot fit in 256^3 mm^3 volume.\n",
-            fwidth, fheight, fdepth);
-    fprintf(stderr, "The resulting volume will have %d slices.\n",
-            conform_width);
-    fprintf(stderr, "If you find problems, please let us know "
-            "(freesurfer@nmr.mgh.harvard.edu).\n");
-    fprintf(stderr, "=================================================="
-            "++++++++++++++++++++++++"
-            "===============\n\n");
-  }
-  return conform_width;
-}
