@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2010/05/04 22:00:18 $
-#    $Revision: 1.2 $
+#    $Date: 2011/10/05 21:58:21 $
+#    $Revision: 1.3 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -22,7 +22,7 @@
 # Bug reports: analysis-bugs@nmr.mgh.harvard.edu
 #
 
-set VERSION = '$Id: fieldsign-sess,v 1.2 2010/05/04 22:00:18 greve Exp $';
+set VERSION = '$Id: fieldsign-sess,v 1.3 2011/10/05 21:58:21 greve Exp $';
 set inputargs = ($argv);
 
 set analysis = ();
@@ -168,7 +168,8 @@ foreach sess ($SessList)
     if($UseSphere) set cmd = ($cmd --sphere);
     if($DoReverse) set cmd = ($cmd --rev);
     echo $cmd   | tee -a $LF
-    $cmd  
+    $cmd  | tee -a $LF
+    if($status) exit 1;
   end # hemi
 
 end # sess
