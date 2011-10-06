@@ -10,8 +10,8 @@
  * Original Author: Bruce Fischl, 4/9/97
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2011/10/06 01:32:01 $
- *    $Revision: 1.105 $
+ *    $Date: 2011/10/06 11:47:20 $
+ *    $Revision: 1.106 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -2967,7 +2967,7 @@ mriSoapBubbleFloat(MRI *mri_src, MRI *mri_ctrl, MRI *mri_dst,int niter, float mi
           *pxi, *pyi, *pzi, num, x1, y1, z1, x2, y2, z2 ;
   BUFTYPE *pctrl, ctrl ;
   float   *ptmp ;
-  float     mean, max_change, val, min_val, max_val ;
+  float     mean, max_change = 0, val, min_val, max_val ;
   MRI     *mri_tmp ;
   MRI_REGION box ;
 
