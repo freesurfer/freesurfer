@@ -8,9 +8,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:13 $
- *    $Revision: 1.3 $
+ *    $Author: lzollei $
+ *    $Date: 2011/10/06 21:08:23 $
+ *    $Revision: 1.4 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -24,7 +24,7 @@
  *
  */
 
-char *MRI_INFO_VERSION = "$Revision: 1.3 $";
+char *MRI_INFO_VERSION = "$Revision: 1.4 $";
 
 #include <stdio.h>
 #include <sys/stat.h>
@@ -47,7 +47,7 @@ static void print_help(void) ;
 static void print_version(void) ;
 
 static int get_option(int argc, char *argv[]) ;
-static char vcid[] = "$Id: mri_or.c,v 1.3 2011/03/02 00:04:13 nicks Exp $";
+static char vcid[] = "$Id: mri_or.c,v 1.4 2011/10/06 21:08:23 lzollei Exp $";
 
 char *Progname ;
 int use_orig_value = 0;
@@ -88,8 +88,16 @@ int main(int argc, char *argv[])
     printf("processing input volume %d of %d: %s\n",
            index+1, nvolumes, fname) ;
     mri = MRIread(fname) ;
-    if (index == 0)
+    if (index == 0){
       mri_or = MRIcopy(mri, NULL) ;
+    // if nvolumes == 1 binarize the volume! LZ: MRIbinarize(MRI *mri_src, MRI *mri_dst, float threshold, float low_val,float hi_val)
+      if (nvolumes == 1) {
+	if(use_orig_value)
+	  MRIorVal(mri, mri_or, mri_or, 0) ;
+	else
+	  MRIor(mri, mri_or, mri_or, 0) ;
+      }
+    } 
     else {
       if(use_orig_value)
 	MRIorVal(mri, mri_or, mri_or, 0) ;
