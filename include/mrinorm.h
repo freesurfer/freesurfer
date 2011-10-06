@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:10 $
- *    $Revision: 1.31 $
+ *    $Author: fischl $
+ *    $Date: 2011/10/06 01:24:14 $
+ *    $Revision: 1.32 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -127,7 +127,7 @@ MRI *MRI3dGentleNormalize(MRI *mri_src, MRI *mri_bias, int wm_target,
                           MRI *mri_norm, float intensity_above,
                           float intensity_below, int only_file, float bias_sigma);
 MRI *MRIbuildVoronoiDiagram(MRI *mri_src, MRI *mri_ctrl, MRI *mri_dst);
-MRI *MRIsoapBubble(MRI *mri_src, MRI *mri_ctrl, MRI *mri_dst,int niter);
+MRI *MRIsoapBubble(MRI *mri_src, MRI *mri_ctrl, MRI *mri_dst,int niter, float min_change);
 MRI *MRIsoapBubbleExpand(MRI *mri_src, MRI *mri_ctrl, MRI *mri_dst,int niter);
 int MRI3dUseFileControlPoints(MRI *mri,const char *fname) ;
 int MRI3dWriteControlPoints(char *control_volume_fname) ;
