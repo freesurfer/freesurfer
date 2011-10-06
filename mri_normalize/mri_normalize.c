@@ -13,8 +13,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2011/03/11 20:55:38 $
- *    $Revision: 1.73 $
+ *    $Date: 2011/10/06 01:26:34 $
+ *    $Revision: 1.74 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -78,6 +78,11 @@ static char *mask_fname ;
 static char *interior_fname1 = NULL ;
 static char *interior_fname2 = NULL ;
 
+static float mask_sigma = 0.0 ;
+static float mask_thresh = 0.0 ;
+static char *mask_orig_fname = NULL ;
+static float mask_orig_thresh = 150 ;
+
 char *Progname ;
 
 static int scan_type = MRI_UNKNOWN ;
@@ -129,14 +134,14 @@ main(int argc, char *argv[])
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mri_normalize.c,v 1.73 2011/03/11 20:55:38 fischl Exp $",
+   "$Id: mri_normalize.c,v 1.74 2011/10/06 01:26:34 fischl Exp $",
    "$Name:  $",
    cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mri_normalize.c,v 1.73 2011/03/11 20:55:38 fischl Exp $",
+           "$Id: mri_normalize.c,v 1.74 2011/10/06 01:26:34 fischl Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
   {
@@ -254,6 +259,26 @@ main(int argc, char *argv[])
       MRInormAddFileControlPoints(mri_ctrl, CONTROL_MARKED) ;
     }
 
+    if (mask_sigma > 0)
+    {
+      MRI *mri_smooth, *mri_mag, *mri_grad ;
+      mri_smooth = MRIgaussianSmooth(mri_dst, mask_sigma, 1, NULL) ;
+      mri_mag = MRIcloneDifferentType(mri_dst, MRI_FLOAT) ;
+      mri_grad = MRIsobel(mri_smooth, NULL, mri_mag) ;
+      MRIbinarize(mri_mag, mri_mag, mask_thresh, 1, 0) ;
+      MRImask(mri_ctrl, mri_mag, mri_ctrl, 0, CONTROL_NONE) ;
+      MRIfree(&mri_grad) ; MRIfree(&mri_mag) ; MRIfree(&mri_smooth) ;
+    }
+    if (mask_orig_fname)
+    {
+      MRI *mri_orig ;
+      
+      mri_orig = MRIread(mask_orig_fname) ;
+      MRIbinarize(mri_orig, mri_orig, mask_orig_thresh, 0, 1) ;
+      
+      MRImask(mri_ctrl, mri_orig, mri_ctrl, 0, CONTROL_NONE) ;
+      MRIfree(&mri_orig) ; 
+    }
     if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
     {
       MRIwrite(mri_dist, "d.mgz");
@@ -359,7 +384,7 @@ main(int argc, char *argv[])
     mri_dst = MRIscalarMul(mri_src, NULL, scale) ;
     MRIremoveWMOutliers(mri_dst, mri_ctrl, mri_ctrl, intensity_below/2) ;
     mri_bias = MRIbuildBiasImage(mri_dst, mri_ctrl, NULL, 0.0) ;
-    MRIsoapBubble(mri_bias, mri_ctrl, mri_bias, 25) ;
+    MRIsoapBubble(mri_bias, mri_ctrl, mri_bias, 50, 1) ;
     MRIapplyBiasCorrectionSameGeometry(mri_dst, mri_bias, mri_dst,
                                        DEFAULT_DESIRED_WHITE_MATTER_VALUE);
     //    MRIwrite(mri_dst, out_fname) ;
@@ -670,6 +695,24 @@ get_option(int argc, char *argv[])
     mask_fname = argv[2] ;
     nargs = 1 ;
     printf("using MR volume %s to mask input volume...\n", mask_fname) ;
+  }
+  else if (!stricmp(option, "MASK_SIGMA"))
+  {
+    mask_sigma = atof(argv[2]) ;
+    mask_thresh = atof(argv[3]) ;
+    nargs = 1 ;
+    printf("smoothing input volume with sigma = %2.3f mm and thresholding at %2.0f for mask\n",
+	   mask_sigma, mask_thresh) ;
+    nargs = 2 ;
+  }
+  else if (!stricmp(option, "MASK_ORIG"))
+  {
+    mask_orig_fname = argv[2] ;
+    mask_orig_thresh = atof(argv[3]) ;
+    nargs = 1 ;
+    printf("removing control points that are below %2.3f in %s\n",
+	   mask_orig_thresh, mask_orig_fname) ;
+    nargs = 2 ;
   }
   else if (!stricmp(option, "SURFACE"))
   {
