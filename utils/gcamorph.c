@@ -10,9 +10,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: mreuter $
- *    $Date: 2011/09/30 00:27:50 $
- *    $Revision: 1.252 $
+ *    $Author: fischl $
+ *    $Date: 2011/10/06 01:24:08 $
+ *    $Revision: 1.253 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -1420,11 +1420,17 @@ GCAMinit(GCA_MORPH *gcam,
   GC1D            *gc ;
   GCA_PRIOR       *gcap ;
   int             invalid = 0, x, y, z, width, height, depth, n, max_n,
-                            max_label, label ;
+    max_label, label, xform_allocated = 0 ;
   float           max_p, ox, oy, oz ;
 
   if (!mri_image)
     ErrorExit(ERROR_BADPARM, "GCAMinit() must be called with valid mri_image.\n");
+
+  if (transform == NULL)
+  {
+    xform_allocated = 1 ;
+    transform = TransformAlloc(LINEAR_VOX_TO_VOX, mri_image) ;
+  }
 
   gcam->ninputs = mri_image->nframes ;
 
@@ -1697,6 +1703,8 @@ GCAMinit(GCA_MORPH *gcam,
   GCAMcomputeOriginalProperties(gcam) ;
   gcamComputeMetricProperties(gcam) ;
   gcam->type = GCAM_VOX ;
+  if (xform_allocated)
+    TransformFree(&transform) ;
   return(NO_ERROR) ;
 }
 
@@ -4203,7 +4211,7 @@ GCAMmorphFromAtlas(MRI *mri_in, GCA_MORPH *gcam, MRI *mri_morphed, int sample_ty
   */
   
   if( sample_type != 0) // non-NN interpolation
-    MRIsoapBubble(mri_morphed, mri_ctrl, mri_morphed, 3*gcam->spacing) ;
+    MRIsoapBubble(mri_morphed, mri_ctrl, mri_morphed, 3*gcam->spacing, -1) ;
   MRIfree(&mri_ctrl) ;
 
   // use gcam src information to the morphed image
@@ -7237,17 +7245,17 @@ GCAMinvert(GCA_MORPH *gcam, MRI *mri)
   MRIbuildVoronoiDiagram(gcam->mri_xind, mri_ctrl, gcam->mri_xind) ;
   if (DIAG_VERBOSE_ON && Gdiag & DIAG_WRITE)
     MRIwrite(gcam->mri_xind, "xi.mgz") ;
-  MRIsoapBubble(gcam->mri_xind, mri_ctrl, gcam->mri_xind, 5) ;
+  MRIsoapBubble(gcam->mri_xind, mri_ctrl, gcam->mri_xind, 50, 1) ;
   if (DIAG_VERBOSE_ON && Gdiag & DIAG_WRITE)
     MRIwrite(gcam->mri_xind, "xis.mgz") ;
   if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
     printf("performing soap bubble of y indices...\n") ;
   MRIbuildVoronoiDiagram(gcam->mri_yind, mri_ctrl, gcam->mri_yind) ;
-  MRIsoapBubble(gcam->mri_yind, mri_ctrl, gcam->mri_yind, 5) ;
+  MRIsoapBubble(gcam->mri_yind, mri_ctrl, gcam->mri_yind, 50, 1) ;
   if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
     printf("performing soap bubble of z indices...\n") ;
   MRIbuildVoronoiDiagram(gcam->mri_zind, mri_ctrl, gcam->mri_zind) ;
-  MRIsoapBubble(gcam->mri_zind, mri_ctrl, gcam->mri_zind, 5) ;
+  MRIsoapBubble(gcam->mri_zind, mri_ctrl, gcam->mri_zind, 50, 1) ;
   MRIfree(&mri_ctrl) ;
 
   if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
@@ -10292,9 +10300,9 @@ gcamAreaIntensityTerm(GCA_MORPH *gcam, MRI *mri, MRI *mri_smooth, double l_area_
     MRIwrite(mri_dy, "dyv.mgz") ;
     MRIwrite(mri_dz, "dzv.mgz") ;
   }
-  MRIsoapBubble(mri_dx, mri_ctrl, mri_dx, 10) ;
-  MRIsoapBubble(mri_dy, mri_ctrl, mri_dy, 10) ;
-  MRIsoapBubble(mri_dz, mri_ctrl, mri_dz, 10) ;
+  MRIsoapBubble(mri_dx, mri_ctrl, mri_dx, 10, -1) ;
+  MRIsoapBubble(mri_dy, mri_ctrl, mri_dy, 10, -1) ;
+  MRIsoapBubble(mri_dz, mri_ctrl, mri_dz, 10, -1) ;
   if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
   {
     MRIwrite(mri_dx, "dxs.mgz") ;
@@ -10855,15 +10863,15 @@ GCAMmorphFieldFromAtlas(GCA_MORPH *gcam, MRI *mri, int which, int save_inversion
     if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
       printf("performing soap bubble of x indices...\n") ;
     MRIbuildVoronoiDiagram(mri_xind, mri_ctrl, mri_xind) ;
-    MRIsoapBubble(mri_xind, mri_ctrl, mri_xind, 5) ;
+    MRIsoapBubble(mri_xind, mri_ctrl, mri_xind, 5, -1) ;
     if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
       printf("performing soap bubble of y indices...\n") ;
     MRIbuildVoronoiDiagram(mri_yind, mri_ctrl, mri_yind) ;
-    MRIsoapBubble(mri_yind, mri_ctrl, mri_yind, 5) ;
+    MRIsoapBubble(mri_yind, mri_ctrl, mri_yind, 5, -1) ;
     if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
       printf("performing soap bubble of z indices...\n") ;
     MRIbuildVoronoiDiagram(mri_zind, mri_ctrl, mri_zind) ;
-    MRIsoapBubble(mri_zind, mri_ctrl, mri_zind, 5) ;
+    MRIsoapBubble(mri_zind, mri_ctrl, mri_zind, 5, -1) ;
     MRIfree(&mri_ctrl) ;
 
     if (DIAG_VERBOSE_ON && Gdiag & DIAG_WRITE)
@@ -11448,15 +11456,15 @@ mri_tmp->c_s = gcam->atlas.c_s ;
     if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
       printf("performing soap bubble of x indices...\n") ;
     MRIbuildVoronoiDiagram(mri_xind, mri_ctrl, mri_xind) ;
-    MRIsoapBubble(mri_xind, mri_ctrl, mri_xind, 5) ;
+    MRIsoapBubble(mri_xind, mri_ctrl, mri_xind, 5, -1) ;
     if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
       printf("performing soap bubble of y indices...\n") ;
     MRIbuildVoronoiDiagram(mri_yind, mri_ctrl, mri_yind) ;
-    MRIsoapBubble(mri_yind, mri_ctrl, mri_yind, 5) ;
+    MRIsoapBubble(mri_yind, mri_ctrl, mri_yind, 5, -1) ;
     if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
       printf("performing soap bubble of z indices...\n") ;
     MRIbuildVoronoiDiagram(mri_zind, mri_ctrl, mri_zind) ;
-    MRIsoapBubble(mri_zind, mri_ctrl, mri_zind, 5) ;
+    MRIsoapBubble(mri_zind, mri_ctrl, mri_zind, 5, -1) ;
     MRIfree(&mri_ctrl) ;
 
     if (DIAG_VERBOSE_ON && Gdiag & DIAG_WRITE)

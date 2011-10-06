@@ -9,9 +9,9 @@
 /*
  * Original Author: Bruce Fischl, 4/9/97
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:46 $
- *    $Revision: 1.103 $
+ *    $Author: fischl $
+ *    $Date: 2011/10/06 01:24:09 $
+ *    $Revision: 1.104 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -86,7 +86,7 @@ static int mriRemoveOutliers(MRI *mri, int min_nbrs) ;
 static MRI *mriDownsampleCtrl2(MRI *mri_src, MRI *mri_dst) ;
 #endif
 static MRI *mriSoapBubbleFloat(MRI *mri_src, MRI *mri_ctrl, MRI *mri_dst,
-                               int niter) ;
+                               int niter, float min_change) ;
 static MRI *mriSoapBubbleShort(MRI *mri_src, MRI *mri_ctrl, MRI *mri_dst,
                                int niter) ;
 static MRI *mriSoapBubbleExpandFloat(MRI *mri_src, MRI *mri_ctrl, MRI *mri_dst,
@@ -1773,7 +1773,7 @@ MRIbuildBiasImage(MRI *mri_src, MRI *mri_ctrl, MRI *mri_bias, float sigma)
     }
   }
 #else
-MRIsoapBubble(mri_bias, mri_ctrl, mri_bias, 10) ;
+  MRIsoapBubble(mri_bias, mri_ctrl, mri_bias, 10, -1) ;
 #endif
   return(mri_bias) ;
 }
@@ -2610,7 +2610,7 @@ MRIbuildVoronoiDiagram(MRI *mri_src, MRI *mri_ctrl, MRI *mri_dst)
   Description
   ------------------------------------------------------*/
 MRI *
-MRIsoapBubble(MRI *mri_src, MRI *mri_ctrl, MRI *mri_dst,int niter)
+MRIsoapBubble(MRI *mri_src, MRI *mri_ctrl, MRI *mri_dst,int niter, float min_change)
 {
   int     width, height, depth, frames, x, y, z, f, xk, yk, zk, xi, yi, zi, i,
   *pxi, *pyi, *pzi, mean ;
@@ -2619,7 +2619,7 @@ MRIsoapBubble(MRI *mri_src, MRI *mri_ctrl, MRI *mri_dst,int niter)
 
 
   if (mri_src->type == MRI_FLOAT)
-    return(mriSoapBubbleFloat(mri_src, mri_ctrl, mri_dst, niter)) ;
+    return(mriSoapBubbleFloat(mri_src, mri_ctrl, mri_dst, niter, min_change)) ;
   else if (mri_src->type == MRI_SHORT)
     return(mriSoapBubbleShort(mri_src, mri_ctrl, mri_dst, niter)) ;
 
@@ -2890,7 +2890,7 @@ MRIsoapBubbleExpand(MRI *mri_src, MRI *mri_ctrl, MRI *mri_dst,int niter)
   ------------------------------------------------------*/
 #if 0
 static MRI *
-mriSoapBubbleFloat(MRI *mri_src, MRI *mri_ctrl, MRI *mri_dst,int niter)
+mriSoapBubbleFloat(MRI *mri_src, MRI *mri_ctrl, MRI *mri_dst,int niter, float min_change)
 {
   int     width, height, depth, x, y, z, xk, yk, zk, xi, yi, zi, i;
   int     *pxi, *pyi, *pzi ;
@@ -2961,16 +2961,17 @@ mriSoapBubbleFloat(MRI *mri_src, MRI *mri_ctrl, MRI *mri_dst,int niter)
 }
 #else
 static MRI *
-mriSoapBubbleFloat(MRI *mri_src, MRI *mri_ctrl, MRI *mri_dst,int niter)
+mriSoapBubbleFloat(MRI *mri_src, MRI *mri_ctrl, MRI *mri_dst,int niter, float min_change)
 {
   int     width, height, depth, frames, x, y, z, f, xk, yk, zk, xi, yi, zi, i,
           *pxi, *pyi, *pzi, num, x1, y1, z1, x2, y2, z2 ;
   BUFTYPE *pctrl, ctrl ;
   float   *ptmp ;
-  float     mean ;
+  float     mean, max_change, val, min_val, max_val ;
   MRI     *mri_tmp ;
   MRI_REGION box ;
 
+  MRIvalRange(mri_src, &min_val, &max_val) ;
   if (mri_ctrl->type != MRI_UCHAR)
     ErrorExit(ERROR_UNSUPPORTED, "mriSoapBubbleFloat: ctrl must be UCHAR");
   
@@ -2999,91 +3000,104 @@ mriSoapBubbleFloat(MRI *mri_src, MRI *mri_ctrl, MRI *mri_dst,int niter)
   z1 = box.z ; z2 = box.z+box.dz-1 ;
 
   for (f = 0; f < frames; f++) // NOTE: not very efficient with the multi-frame, but testing for now.
+  {
+    for ( z = MAX(0,z1-WHALF) ; z <= MIN(z2+WHALF,depth-1) ; z++)
     {
-      for ( z = MAX(0,z1-WHALF) ; z <= MIN(z2+WHALF,depth-1) ; z++)
+      for (y = MAX(0,y1-WHALF) ; y <= MIN(y2+WHALF,height-1) ; y++)
+      {
+	pctrl = &MRIvox(mri_ctrl, MAX(0,x1-WHALF), y, z) ;
+	ptmp = &MRIFseq_vox(mri_tmp, MAX(x1-WHALF, 0), y, z, f) ;
+	for (x = MAX(0,x1-WHALF) ; x <= MIN(x2+WHALF,width-1) ; x++)
 	{
-	  for (y = MAX(0,y1-WHALF) ; y <= MIN(y2+WHALF,height-1) ; y++)
+	  ctrl = *pctrl++ ;
+	  if (ctrl == CONTROL_MARKED)
+	    continue ;
+	  num = mean = 0 ;
+	  for (zk = -WHALF ; zk <= WHALF ; zk++)
+	  {
+	    zi = pzi[z+zk] ;
+	    for (yk = -WHALF ; yk <= WHALF ; yk++)
 	    {
-	      pctrl = &MRIvox(mri_ctrl, MAX(0,x1-WHALF), y, z) ;
-	      ptmp = &MRIFseq_vox(mri_tmp, MAX(x1-WHALF, 0), y, z, f) ;
-	      for (x = MAX(0,x1-WHALF) ; x <= MIN(x2+WHALF,width-1) ; x++)
-		{
-		  ctrl = *pctrl++ ;
-		  if (ctrl == CONTROL_MARKED)
-		    continue ;
-		  num = mean = 0 ;
-		  for (zk = -WHALF ; zk <= WHALF ; zk++)
-		    {
-		      zi = pzi[z+zk] ;
-		      for (yk = -WHALF ; yk <= WHALF ; yk++)
-			{
-			  yi = pyi[y+yk] ;
-			  for (xk = -WHALF ; xk <= WHALF ; xk++)
-			    {
-			      xi = pxi[x+xk] ;
-			      if (MRIvox(mri_ctrl, xi, yi, zi) != CONTROL_MARKED)
-				continue ;
-			      mean += MRIFseq_vox(mri_dst, xi, yi, zi, f) ;
-			      num++ ;
-			    }
-			}
-		    }
-		  if (num > 0)
-		    MRIFseq_vox(mri_dst, x, y, z, f) = (float)mean / (float)num;
-		  // MRIFvox(mri_dst, x, y, z) =
-		  //   (float)nint((float)mean / (float)num);
-		}
+	      yi = pyi[y+yk] ;
+	      for (xk = -WHALF ; xk <= WHALF ; xk++)
+	      {
+		xi = pxi[x+xk] ;
+		if (MRIvox(mri_ctrl, xi, yi, zi) != CONTROL_MARKED)
+		  continue ;
+		mean += MRIFseq_vox(mri_dst, xi, yi, zi, f) ;
+		num++ ;
+	      }
 	    }
+	  }
+//      num = (WHALF+1)*(WHALF+1)*(WHALF+1);
+	  if (num > 0)
+	  {
+	    val = MRIFseq_vox(mri_dst, x, y, z, f) ;
+	    if (fabs(mean/num - val) > max_change)
+	      max_change = fabs(mean/num - val) ;
+	    MRIFseq_vox(mri_dst, x, y, z, f) = (float)mean / (float)num;
+	  }
+	  // MRIFvox(mri_dst, x, y, z) =
+	  //   (float)nint((float)mean / (float)num);
 	}
-      
-      /* now propagate values outwards */
-      for (i = 0 ; i < niter ; i++)
+      }
+    }
+    
+    /* now propagate values outwards */
+    for (i = 0 ; i < niter ; i++)
+    {
+      if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
+	fprintf(stderr, "soap bubble iteration %d of %d\n", i+1, niter) ;
+      for ( z = z1 ; z <= z2 ; z++)
+      {
+	for (y = y1 ; y <= y2 ; y++)
 	{
-	  if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
-	    fprintf(stderr, "soap bubble iteration %d of %d\n", i+1, niter) ;
-	  for ( z = z1 ; z <= z2 ; z++)
+	  pctrl = &MRIvox(mri_ctrl, x1, y, z) ;
+	  ptmp = &MRIFseq_vox(mri_tmp, x1, y, z, f) ;
+	  for (x = x1 ; x <= x2 ; x++)
+	  {
+	    ctrl = *pctrl++ ;
+	    if (ctrl == CONTROL_MARKED)  // marked point - don't change it
 	    {
-	      for (y = y1 ; y <= y2 ; y++)
-		{
-		  pctrl = &MRIvox(mri_ctrl, x1, y, z) ;
-		  ptmp = &MRIFseq_vox(mri_tmp, x1, y, z, f) ;
-		  for (x = x1 ; x <= x2 ; x++)
-		    {
-		      ctrl = *pctrl++ ;
-		      if (ctrl == CONTROL_MARKED)  // marked point - don't change it
-			{
-			  ptmp++ ;
-			  continue ;
-			}
-		      /* now set this voxel to the average of
-			 the marked neighbors */
-		      mean = 0.0;
-		      for (zk = -1 ; zk <= 1 ; zk++)
-			{
-			  zi = pzi[z+zk] ;
-			  for (yk = -1 ; yk <= 1 ; yk++)
-			    {
-			      yi = pyi[y+yk] ;
-			      for (xk = -1 ; xk <= 1 ; xk++)
-				{
-				  xi = pxi[x+xk] ;
-				  mean += MRIFseq_vox(mri_dst, xi, yi, zi,f) ;
-				}
-			    }
-			}
-		      *ptmp++ = (float)mean / (3.0f*3.0f*3.0f);
-		      // *ptmp++ = (float)nint((float)mean / (3.0f*3.0f*3.0f));
-		    }
-		}
+	      ptmp++ ;
+	      continue ;
 	    }
-	  MRIcopy(mri_tmp, mri_dst) ;
-	  x1 = MAX(x1-1, 0) ; y1 = MAX(y1-1, 0) ; z1 = MAX(z1-1, 0) ;
-	  x2 = MIN(x2+1,width-1); y2 = MIN(y2+1,height-1); z2 = MIN(z2+1, depth-1);
-	} // iter
-    } //frames
+	    /* now set this voxel to the average of
+	       the marked neighbors */
+	    mean = 0.0;
+	    for (zk = -1 ; zk <= 1 ; zk++)
+	    {
+	      zi = pzi[z+zk] ;
+	      for (yk = -1 ; yk <= 1 ; yk++)
+	      {
+		yi = pyi[y+yk] ;
+		for (xk = -1 ; xk <= 1 ; xk++)
+		{
+		  xi = pxi[x+xk] ;
+		  mean += MRIFseq_vox(mri_dst, xi, yi, zi,f) ;
+		}
+	      }
+	    }
+	    val = *ptmp ;
+	    if (fabs(mean/(3*3*3.0) - val) > max_change)
+	      max_change = fabs(mean/(3*3*3.0) - val) ;
+	    *ptmp++ = (float)mean / (3.0f*3.0f*3.0f);
+	    // *ptmp++ = (float)nint((float)mean / (3.0f*3.0f*3.0f));
+	  }
+	}
+      }
+      MRIcopy(mri_tmp, mri_dst) ;
+      x1 = MAX(x1-1, 0) ; y1 = MAX(y1-1, 0) ; z1 = MAX(z1-1, 0) ;
+      x2 = MIN(x2+1,width-1); y2 = MIN(y2+1,height-1); z2 = MIN(z2+1, depth-1);
+      printf("iter %d: max change %f\n", i, max_change) ;
+      if (max_change < min_change)
+	break ;
+      max_change = 0 ;
+    } // iter
+  } //frames
   
   MRIfree(&mri_tmp) ;
-
+  
   if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
     MRIwrite(mri_dst, "soap.mgh") ;
   return(mri_dst) ;

@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: mreuter $
- *    $Date: 2011/09/30 00:23:10 $
- *    $Revision: 1.505 $
+ *    $Author: fischl $
+ *    $Date: 2011/10/06 01:24:08 $
+ *    $Revision: 1.506 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -23,7 +23,7 @@
  */
 
 extern const char* Progname;
-const char *MRI_C_VERSION = "$Revision: 1.505 $";
+const char *MRI_C_VERSION = "$Revision: 1.506 $";
 
 
 /*-----------------------------------------------------
@@ -16496,8 +16496,8 @@ MRIextractRegionAndPad(MRI *mri_src, MRI *mri_dst, MRI_REGION *region, int pad)
     box.dz = mri_src->depth ;
   }
   mri_dst =
-    MRIalloc
-    (region->dx+2*pad, region->dy+2*pad, region->dz+2*pad, mri_src->type) ;
+    MRIallocSequence
+    (region->dx+2*pad, region->dy+2*pad, region->dz+2*pad, mri_src->type,mri_src->nframes) ;
   MRIcopyHeader(mri_src, mri_dst) ;
   mri_tmp = MRIextractInto(mri_src, NULL, region->x, region->y, region->z,
                            region->dx, region->dy, region->dz, 0, 0, 0) ;

@@ -7,9 +7,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:20 $
- *    $Revision: 1.4 $
+ *    $Author: fischl $
+ *    $Date: 2011/10/06 01:18:12 $
+ *    $Revision: 1.5 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -68,7 +68,7 @@ main(int argc, char *argv[]) {
 
   make_cmd_version_string
     (argc, argv,
-     "$Id: mri_interpolate.c,v 1.4 2011/03/02 00:04:20 nicks Exp $",
+     "$Id: mri_interpolate.c,v 1.5 2011/10/06 01:18:12 fischl Exp $",
      "$Name:  $",cmdline);
   setRandomSeed(-1L) ;
   Progname = argv[0] ;
@@ -108,7 +108,7 @@ main(int argc, char *argv[]) {
           MRIsetVoxVal(mri_ctrl,x,y,z, 0, CONTROL_MARKED);
       }
   mri_out = MRIbuildVoronoiDiagram(mri_in, mri_ctrl, NULL) ;
-  MRIsoapBubble(mri_out, mri_ctrl, mri_out, navgs) ;
+  MRIsoapBubble(mri_out, mri_ctrl, mri_out, navgs, 1) ;
   MRIwrite(mri_out,out_fname);
   exit(0) ;
   return(0) ;

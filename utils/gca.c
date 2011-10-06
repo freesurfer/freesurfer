@@ -13,9 +13,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: ayendiki $
- *    $Date: 2011/09/21 00:16:03 $
- *    $Revision: 1.302 $
+ *    $Author: fischl $
+ *    $Date: 2011/10/06 01:24:08 $
+ *    $Revision: 1.303 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -9903,7 +9903,7 @@ GCAnormalizeSamples(MRI *mri_in, GCA *gca, GCA_SAMPLE *gcas, int nsamples,
     MRIfree(&mri_kernel) ;
   }
 #else
-  MRIsoapBubble(mri_bias, mri_ctrl, mri_bias, 10) ;
+  MRIsoapBubble(mri_bias, mri_ctrl, mri_bias, 10, -1) ;
 #endif
   /*  MRIwrite(mri_bias, "smooth_bias.mgz") ;*/
 
@@ -10222,7 +10222,7 @@ void GCAnormalizeSamplesOneChannel(MRI *mri_in, GCA *gca,
   else  // if manually specified control points, don't let them be overwhelmed
   {
     MRI *mri_kernel, *mri_smooth ;
-    mri_smooth = MRIsoapBubble(mri_bias, mri_ctrl, NULL, 10) ;
+    mri_smooth = MRIsoapBubble(mri_bias, mri_ctrl, NULL, 10, -1) ;
     mri_kernel = MRIgaussian1d(bias_sigma, 100) ;
     MRIconvolveGaussian(mri_smooth, mri_bias, mri_kernel) ;
     if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
@@ -10518,7 +10518,7 @@ GCAnormalizeSamplesT1PD(MRI *mri_in, GCA *gca,
     MRIfree(&mri_kernel) ;
   }
 #else
-  MRIsoapBubble(mri_bias, mri_ctrl, mri_bias, 10) ;
+  MRIsoapBubble(mri_bias, mri_ctrl, mri_bias, 10, -1) ;
 #endif
   /*  MRIwrite(mri_bias, "smooth_bias.mgz") ;*/
 
@@ -12531,9 +12531,9 @@ GCArenormalizeLabels(MRI *mri_in,
     MRIfree(&mri_control) ;
     mri_control = mri_tmp ;
 
-    MRIsoapBubble(mri_means, mri_control, mri_means, 10) ;
+    MRIsoapBubble(mri_means, mri_control, mri_means, 10, -1) ;
     MRIclear(mri_control) ;
-    MRIsoapBubble(mri_means, mri_control, mri_means, 1) ;
+    MRIsoapBubble(mri_means, mri_control, mri_means, 1, -1) ;
 
     if (DIAG_VERBOSE_ON && Gdiag & DIAG_WRITE)
     {
@@ -13529,7 +13529,7 @@ GCAhistoScaleImageIntensities(GCA *gca, MRI *mri, int noskull)
     if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
       HISTOplot(h_mri, "mri.histo") ;
     HISTOclearZeroBin(h_mri) ;
-    if (gca->ninputs == 1)   /* assume it is T1-weighted */
+    if (gca->ninputs == 1 || r == max_T1_weighted_image )   /* assume it is T1-weighted */
     {
 #define MIN_CONFORMED_WM_VAL  50   // assume wm greater than this
 #define MAX_CONFORMED_WM_VAL  240   // assume wm than this

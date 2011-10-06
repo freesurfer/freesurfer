@@ -6,9 +6,9 @@
 /*
  * Original Authors: Bruce Fischl and Doug Greve
  * CVS Revision Info:
- *    $Author: mreuter $
- *    $Date: 2011/03/21 23:35:34 $
- *    $Revision: 1.35 $
+ *    $Author: fischl $
+ *    $Date: 2011/10/06 01:24:09 $
+ *    $Revision: 1.36 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -1060,10 +1060,10 @@ StatAccumulateSurfaceVolume(SV *sv_surf, SV *sv, MRI_SURFACE *mris)
         fprintf(stderr,"performing soap bubble for %d iterations...\n", niter);
         /*        MRIsoapBubbleExpand(mri_avg, mri_ctrl, mri_avg, 1) ;*/
         MRIbuildVoronoiDiagram(mri_avg, mri_ctrl, mri_avg) ;
-        MRIsoapBubble(mri_avg, mri_ctrl, mri_avg, niter) ;
+        MRIsoapBubble(mri_avg, mri_ctrl, mri_avg, niter, -1) ;
         MRIbuildVoronoiDiagram(mri_avg, mri_ctrl, mri_avg) ;
         /*        MRIsoapBubbleExpand(mri_std, mri_ctrl, mri_std, 1) ;*/
-        MRIsoapBubble(mri_std, mri_ctrl, mri_std, niter) ;
+        MRIsoapBubble(mri_std, mri_ctrl, mri_std, niter, -1) ;
       }
 
       /*

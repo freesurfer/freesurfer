@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:13 $
- *    $Revision: 1.6 $
+ *    $Author: fischl $
+ *    $Date: 2011/10/06 01:19:35 $
+ *    $Revision: 1.7 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -69,7 +69,7 @@ main(int argc, char *argv[])
   /* rkt: check for and handle version tag */
   nargs = handle_version_option 
     (argc, argv, 
-     "$Id: mri_compute_bias.c,v 1.6 2011/03/02 00:04:13 nicks Exp $", 
+     "$Id: mri_compute_bias.c,v 1.7 2011/10/06 01:19:35 fischl Exp $", 
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -401,8 +401,8 @@ normalize_bias(MRI *mri_bias, MRI *mri_counts, int normalize)
     MRIscalarMul(mri_bias, mri_bias, 1.0/mn) ;
   }
   MRIbuildVoronoiDiagram(mri_bias, mri_ctrl, mri_bias) ;
-  MRIsoapBubble(mri_bias, mri_ctrl, mri_bias, 5) ;
+  MRIsoapBubble(mri_bias, mri_ctrl, mri_bias, 20, 1) ;
 
-	MRIfree(&mri_ctrl) ;
-	return(NO_ERROR) ;
+  MRIfree(&mri_ctrl) ;
+  return(NO_ERROR) ;
 }
