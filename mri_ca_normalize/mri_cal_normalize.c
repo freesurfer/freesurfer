@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2011/06/02 14:13:36 $
- *    $Revision: 1.5 $
+ *    $Date: 2011/10/06 12:47:46 $
+ *    $Revision: 1.6 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -141,13 +141,13 @@ main(int argc, char *argv[])
 
   make_cmd_version_string
     (argc, argv,
-     "$Id: mri_cal_normalize.c,v 1.5 2011/06/02 14:13:36 fischl Exp $",
+     "$Id: mri_cal_normalize.c,v 1.6 2011/10/06 12:47:46 fischl Exp $",
      "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
     (argc, argv,
-     "$Id: mri_cal_normalize.c,v 1.5 2011/06/02 14:13:36 fischl Exp $",
+     "$Id: mri_cal_normalize.c,v 1.6 2011/10/06 12:47:46 fischl Exp $",
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -1190,7 +1190,7 @@ normalize_timepoints_with_samples(MRI *mri, GCA_SAMPLE *gcas, int nsamples, int 
       MRIsetVoxVal(mri_bias, x, y, z, 0, target/val) ;
     }
     MRIbuildVoronoiDiagram(mri_bias, mri_ctrl, mri_bias) ;
-    MRIsoapBubble(mri_bias, mri_ctrl, mri_bias, nsoap) ;
+    MRIsoapBubble(mri_bias, mri_ctrl, mri_bias, nsoap, 1) ;
     mri_frame = MRIcopyFrame(mri, NULL, frame, 0) ;
     MRImultiply(mri_frame, mri_bias, mri_frame) ;
     if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
@@ -1266,7 +1266,7 @@ normalize_timepoints(MRI *mri, double thresh, double cross_time_sigma)
         }
     MRIbuildVoronoiDiagram(mri_bias, mri_ctrl, mri_bias) ;
     MRIconvolveGaussian(mri_bias, mri_bias, mri_kernel) ;
-    //    MRIsoapBubble(mri_bias, mri_ctrl, mri_bias, nsoap) ;
+    //    MRIsoapBubble(mri_bias, mri_ctrl, mri_bias, nsoap,1) ;
     mri_frame = MRIcopyFrame(mri, NULL, frame, 0) ;
     MRImultiply(mri_frame, mri_bias, mri_frame) ;
     if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
