@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2011/04/14 13:00:23 $
- *    $Revision: 1.53 $
+ *    $Date: 2011/10/06 01:24:46 $
+ *    $Revision: 1.54 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -150,13 +150,13 @@ main(int argc, char *argv[])
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mri_ca_normalize.c,v 1.53 2011/04/14 13:00:23 fischl Exp $",
+   "$Id: mri_ca_normalize.c,v 1.54 2011/10/06 01:24:46 fischl Exp $",
    "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mri_ca_normalize.c,v 1.53 2011/04/14 13:00:23 fischl Exp $",
+           "$Id: mri_ca_normalize.c,v 1.54 2011/10/06 01:24:46 fischl Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
   {
@@ -1699,7 +1699,7 @@ normalizeFromLabel(MRI *mri_in, MRI *mri_dst, MRI *mri_seg, double *fas)
     MRIfree(&mri_kernel) ;
   }
 #else
-  MRIsoapBubble(mri_bias, mri_ctrl, mri_bias, 10) ;
+  MRIsoapBubble(mri_bias, mri_ctrl, mri_bias, 10, -1) ;
 #endif
   /*  MRIwrite(mri_bias, "smooth_bias.mgh") ;*/
 
@@ -1899,7 +1899,7 @@ normalizeChannelFromLabel(MRI *mri_in, MRI *mri_dst, MRI *mri_seg,
     MRIfree(&mri_kernel) ;
   }
 #else
-  MRIsoapBubble(mri_bias, mri_ctrl, mri_bias, 10) ;
+  MRIsoapBubble(mri_bias, mri_ctrl, mri_bias, 10, -1) ;
 #endif
   /*  MRIwrite(mri_bias, "smooth_bias.mgh") ;*/
 
