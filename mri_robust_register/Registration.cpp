@@ -8,8 +8,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2011/09/26 20:46:47 $
- *    $Revision: 1.74 $
+ *    $Date: 2011/10/07 22:28:51 $
+ *    $Revision: 1.75 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -104,7 +104,7 @@ void Registration::computeIterativeRegistration( int nmax,double epsit)
 
   // wraping private routine
 	// parameters need to be set by caller vial set methods:
-  computeIterativeRegistration(nmax,epsit,mri_source,mri_target,Minit,iscaleinit);
+  computeIterativeRegistration(nmax,epsit,mri_source,mri_target,getMinitResampled(),iscaleinit);
 
 }
 
@@ -3323,81 +3323,104 @@ bool Registration::reorientSource()
   // this ensures that vox2vox rot is small and dimensions agree 
   // important for gaussian pyramid
 {
-   assert(mri_source);
-   assert(mri_target);
-   vnl_matrix_fixed <double, 4,4> myinit;
+  //cout << "Registration::reorientSource ..." << endl;
+  assert(mri_source);
+  assert(mri_target);
+  vnl_matrix_fixed <double, 4,4> myinit;
    
-	 if (!Minit.empty()) myinit = getMinitResampled();
-   else
-   {
-      MATRIX* v2v = MRIgetVoxelToVoxelXform(mri_source,mri_target);
-      myinit = MyMatrix::convertMATRIX2VNL(v2v);
-      MatrixFree(&v2v);
-   }
-	 //vnl_matlab_print(vcl_cout,myinit,"myinit",vnl_matlab_print_format_long);cout << endl;
+	if (!Minit.empty())
+  {
+    //cout << " get Minit after resampling" << endl;
+    myinit = getMinitResampled();
+  }
+  else
+  {
+    //cout << " Minit empty, get vox2vox" << endl;
+    MATRIX* v2v = MRIgetVoxelToVoxelXform(mri_source,mri_target);
+    myinit = MyMatrix::convertMATRIX2VNL(v2v);
+    MatrixFree(&v2v);
+  }
+ 	//vnl_matlab_print(vcl_cout,myinit,"initv2v",vnl_matlab_print_format_long);cout << endl;
+  //cout << " Determinant : " << vnl_determinant(myinit) << endl;
      
-   // swap (and possibly invert) axis, so that rotation gets smaller
-   int xd =1;
-   int yd =1;
-   int zd =1;
-   // determine max in each column:
-   if (fabs(myinit[1][0]) > fabs(myinit[0][0])) xd = 2;
-   if (fabs(myinit[2][0]) > fabs(myinit[0][0]) && fabs(myinit[2][0]) > fabs(myinit[1][0])) xd = 3;
-   if (fabs(myinit[1][1]) > fabs(myinit[0][1])) yd = 2;
-   if (fabs(myinit[2][1]) > fabs(myinit[0][1]) && fabs(myinit[2][1]) > fabs(myinit[1][1])) yd = 3;
-   if (fabs(myinit[1][2]) > fabs(myinit[0][2])) zd = 2;
-   if (fabs(myinit[2][2]) > fabs(myinit[0][2]) && fabs(myinit[2][2]) > fabs(myinit[1][2])) zd = 3;
-   // sign
-   if ( myinit[xd-1][0] < 0.0 ) xd= -xd;   
-   if ( myinit[yd-1][1] < 0.0 ) yd= -yd;   
-   if ( myinit[zd-1][2] < 0.0 ) zd= -zd;   
+  // swap (and possibly invert) axis, so that rotation gets smaller
+  int xd =1;
+  int yd =1;
+  int zd =1;
+  // determine max in each column:
+  if (fabs(myinit[1][0]) > fabs(myinit[0][0])) xd = 2;
+  if (fabs(myinit[2][0]) > fabs(myinit[0][0]) && fabs(myinit[2][0]) > fabs(myinit[1][0])) xd = 3;
+  if (fabs(myinit[1][1]) > fabs(myinit[0][1])) yd = 2;
+  if (fabs(myinit[2][1]) > fabs(myinit[0][1]) && fabs(myinit[2][1]) > fabs(myinit[1][1])) yd = 3;
+  if (fabs(myinit[1][2]) > fabs(myinit[0][2])) zd = 2;
+  if (fabs(myinit[2][2]) > fabs(myinit[0][2]) && fabs(myinit[2][2]) > fabs(myinit[1][2])) zd = 3;
+  // sign
+  if ( myinit[xd-1][0] < 0.0 ) xd= -xd;   
+  if ( myinit[yd-1][1] < 0.0 ) yd= -yd;   
+  if ( myinit[zd-1][2] < 0.0 ) zd= -zd;   
      
-   //cout << " xd: " << xd << " yd: " << yd << " zd: " << zd << endl;
+  //cout << " xd: " << xd << " yd: " << yd << " zd: " << zd << endl;
      
-   if ( xd == 1 && yd ==2 && zd==3 ) return false; // nothing to swap
+  if ( xd == 1 && yd ==2 && zd==3 ) return false; // nothing to swap
      
-   if ( abs(xd) + abs(yd) + abs(zd) != 6 )
-   {
-      cout << "WARNING: reorder not clear ..." << endl;
-	    vnl_matlab_print(vcl_cout,myinit,"v2v",vnl_matlab_print_format_long);cout << endl;
-      cout << " xd: " << xd << " yd: " << yd << " zd: " << zd << endl;
-      if (vnl_determinant(myinit) < 0)
-      {  // cannot run sqrt later if det < 0
-         cout << "ERROR: vox2vox det: " << vnl_determinant(myinit) << " < 0"<< endl;
-         cout << "       Something might be wrong with RAS info in inputs." << endl;
-         cout << "       Make sure volumes are in same voxel orientation." << endl;
-         exit(1);
-      }
-      return false;
-   }
+  if ( abs(xd) + abs(yd) + abs(zd) != 6 )
+  {
+     cout << "WARNING: reorder not clear ..." << endl;
+     vnl_matlab_print(vcl_cout,myinit,"v2v",vnl_matlab_print_format_long);cout << endl;
+     cout << " xd: " << xd << " yd: " << yd << " zd: " << zd << endl;
+     if (vnl_determinant(myinit) < 0)
+     {  // cannot run sqrt later if det < 0
+       cout << "ERROR: vox2vox det: " << vnl_determinant(myinit) << " < 0"<< endl;
+       cout << "       Something might be wrong with RAS info in inputs." << endl;
+       cout << "       Make sure volumes are in same voxel orientation." << endl;
+       exit(1);
+     }
+     return false;
+  }
     
-   cout << "   Reordering axes ..." << endl; 
+  cout << "   Reordering axes ..." << endl; 
+  resample = true;
+  
+  //swap stuff:
+  MRI* mri_temp = mri_source;
+  mri_source = MRIreorder(mri_temp, NULL, xd,yd,zd);
      
-   //swap stuff:
-   MRI* mri_temp = mri_source;
-   mri_source = MRIreorder(mri_temp, NULL, xd,yd,zd);
-     
-   MATRIX *v2v = MRIgetVoxelToVoxelXform(mri_source,mri_temp);
-   vnl_matrix_fixed <double,4,4> Sreorderinv = MyMatrix::convertMATRIX2VNL(v2v);
-   MatrixFree(&v2v);
-   MRIfree(&mri_temp);
-     
-   if (debug)
-	 {
-	   string fn = getName() + "-mriS-reorder.mgz"; 
-     cout << "   Writing reordered source as " << fn << endl;
-     MRIwrite(mri_source,fn.c_str());
-   }
-
-	 //vnl_matlab_print(vcl_cout,Sreorder,"reorder",vnl_matlab_print_format_long);cout << endl;
-     
-   // adjust reslice matrix of source          
-   // Rsrc points from resliced/reordered back to original input
-   Rsrc = Rsrc*Sreorderinv;     
+  MATRIX *v2v = MRIgetVoxelToVoxelXform(mri_source,mri_temp);
+  vnl_matrix_fixed <double,4,4> Sreorderinv = MyMatrix::convertMATRIX2VNL(v2v);
+  MatrixFree(&v2v);
+  MRIfree(&mri_temp);
    
+  if (debug)
+	{
+	  string fn = getName() + "-mriS-reorder.mgz"; 
+    cout << "   Writing reordered source as " << fn << endl;
+    MRIwrite(mri_source,fn.c_str());
+  }
+
+//  	vnl_matlab_print(vcl_cout,Sreorderinv,"reorder",vnl_matlab_print_format_long);cout << endl;
+//    cout << " Determinant : " << vnl_determinant(Sreorderinv) << endl;
+     
+  // adjust reslice matrix of source          
+  // Rsrc points from resliced/reordered back to original input
+  Rsrc = Rsrc*Sreorderinv;     
+    
+// 	if (!Minit.empty())
+//   {
+//     // also adjust myinit 
+//    // Minit = getMinitResampled(); // Minit*Sreorderinv;
+//     vnl_matlab_print(vcl_cout,getMinitResampled(),"finalv2v",vnl_matlab_print_format_long);cout << endl;
+//     cout << " Determinant : " << vnl_determinant(getMinitResampled()) << endl;
+//   }
+//  else
+//  {  
+//    v2v = MRIgetVoxelToVoxelXform(mri_source,mri_target);
+//    myinit = MyMatrix::convertMATRIX2VNL(v2v);
+//    MatrixFree(&v2v);
+//    vnl_matlab_print(vcl_cout,myinit,"finalv2v",vnl_matlab_print_format_long);cout << endl;
+//    cout << " Determinant : " << vnl_determinant(myinit) << endl;  
+//  }
   
-  
-   return true;
+  return true;
 
 }
 

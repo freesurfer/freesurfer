@@ -10,8 +10,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2011/05/31 18:54:19 $
- *    $Revision: 1.38 $
+ *    $Date: 2011/10/07 22:28:52 $
+ *    $Revision: 1.39 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -159,7 +159,7 @@ static struct Parameters P =
   false,
   vector < string >(0),
   vector < string >(0),
-  SAMPLE_TRILINEAR,
+  SAMPLE_CUBIC_BSPLINE,
   -1,
   0
 };
@@ -169,7 +169,7 @@ static void printUsage(void);
 static bool parseCommandLine(int argc, char *argv[],Parameters & P) ;
 
 static char vcid[] =
-  "$Id: mri_robust_template.cpp,v 1.38 2011/05/31 18:54:19 mreuter Exp $";
+  "$Id: mri_robust_template.cpp,v 1.39 2011/10/07 22:28:52 mreuter Exp $";
 char *Progname = NULL;
 
 int getRandomNumber(int start, int end, unsigned int & seed)
@@ -303,7 +303,8 @@ int main(int argc, char *argv[])
     }
 
     // create template:
-    MR.averageSet(0,P.finalinterp);
+    MR.setSampleType(P.finalinterp);
+    MR.mapAndAverageMov(0);
   }
   // run registrations
   else if (nin == 2)
@@ -318,7 +319,8 @@ int main(int argc, char *argv[])
     // to the first mean space is allready accurate
 
     // create template:
-    MR.averageSet(0,P.finalinterp);
+    MR.setSampleType(P.finalinterp);
+    MR.mapAndAverageMov(0);
 
 //    // here default params are adjusted for just 2 images (if not passed):
 //    if (P.iterate == -1) P.iterate = 5;
@@ -353,10 +355,11 @@ int main(int argc, char *argv[])
     // P.iterate and P.epsit are used for terminating the template iterations
     // while 5 and 0.01 are default for the individual registrations
     MR.computeTemplate(P.iterate,P.epsit,5,0.01);
-    // if final interp not trilinear (=default), then:
-    if (P.finalinterp == SAMPLE_NEAREST)
+    // if final interp not set in multireg, re-average with new type
+    if (P.finalinterp != MR.getSampleType())
     {
-      MR.averageSet(0,P.finalinterp);
+      MR.setSampleType(P.finalinterp);
+      MR.mapAndAverageMov(0);
     }
   }
 

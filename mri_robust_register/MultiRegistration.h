@@ -13,9 +13,9 @@
 /*
  * Original Author: Martin Reuter
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:24 $
- *    $Revision: 1.14 $
+ *    $Author: mreuter $
+ *    $Date: 2011/10/07 22:28:51 $
+ *    $Revision: 1.15 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -45,6 +45,7 @@ extern "C"
 #endif
 #include "matrix.h"
 #include "mri.h"
+#include "mriBSpline.h"
 #include "transform.h"
 #ifdef __cplusplus
 }
@@ -55,12 +56,13 @@ class MultiRegistration
 public:
   MultiRegistration():outdir("./"),transonly(false),rigid(true),robust(true),sat(4.685),satit(false),
 	                     debug(0),iscale(false),subsamplesize(-1),highit(-1),fixvoxel(false),
-											 keeptype(false),average(1),doubleprec(false),mri_mean(NULL)
+											 keeptype(false),average(1),doubleprec(false),sampletype(SAMPLE_CUBIC_BSPLINE),
+                       mri_mean(NULL)
 		{};
   MultiRegistration(const std::vector < std::string > mov):outdir("./"),transonly(false),
 	                     rigid(true),robust(true),sat(4.685),satit(false),debug(0),iscale(false),
 											 subsamplesize(-1),highit(-1),fixvoxel(false),keeptype(false),average(1),doubleprec(false),
-											 mri_mean(NULL)
+											 sampletype(SAMPLE_CUBIC_BSPLINE),mri_mean(NULL)
   { loadMovables(mov);};
 		
   ~MultiRegistration()
@@ -142,15 +144,34 @@ public:
   {
     doubleprec = b;
   }
-	
-  bool averageSet(int itdebug = 0, int interp = SAMPLE_TRILINEAR);
+  // sample type when creating averages
+  void setSampleType(int st)
+  {
+    switch (st)
+    {
+    case SAMPLE_TRILINEAR:
+    case SAMPLE_CUBIC_BSPLINE:
+      break;
+    default:
+      std::cout << "ERROR Registration:setSampleType: " << st << " not supported type!" << std::endl;
+      exit(1);
+    }
+    sampletype = st;
+  }
+  int getSampleType() {return sampletype;};
+  
+  // maps mov based on ltas (also iscale) and averages:
+  bool mapAndAverageMov(int itdebug);
+  
   MRI * averageConformSet(int itdebug = 0);
 	
+	// creates ltas based on centroids and maps and averages			 
+  bool initialAverageSet();
+
+  // averages a set of images (assumed to be aligned)
   static MRI* averageSet(const std::vector < MRI * >& set,
                        MRI* mean, int method, double sat);
-											 
-  static MRI* initialAverageSet(const std::vector < MRI * >& set,
-                              MRI* mean, int method, double sat);
+
 
 private:
 
@@ -185,9 +206,11 @@ private:
   bool   keeptype;
   int    average;
   bool   doubleprec;
+  int    sampletype;
 	
   // DATA
   std::vector < MRI* > mri_mov;
+  std::vector < MRI_BSPLINE* > mri_bsplines;
   std::vector < LTA* > ltas;
   std::vector < MRI* > mri_warps;
   std::vector < MRI* > mri_weights;

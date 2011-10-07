@@ -14,8 +14,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2011/09/13 03:08:25 $
- *    $Revision: 1.37 $
+ *    $Date: 2011/10/07 22:28:51 $
+ *    $Revision: 1.38 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -74,7 +74,7 @@ void MultiRegistration::clear()
 			if (i<mri_warps.size() && mri_warps[i]) MRIfree(&mri_warps[i]);
       if (i<mri_weights.size() && mri_weights[i]) MRIfree(&mri_weights[i]);
       if (i<mri_mov.size() && mri_mov[i]) MRIfree(&mri_mov[i]);
-
+      if (i<mri_bsplines.size() && mri_bsplines[i]) MRIfreeBSpline(&mri_bsplines[i]);
   }
 
 }
@@ -130,9 +130,10 @@ int MultiRegistration::loadMovables(const std::vector < std::string > pmov)
   int n = (int) pmov.size();
   assert(n>1);
   mri_mov.resize(n);
+  mri_bsplines.resize(n,NULL);
   mov = pmov; // copy of input filenames
   vector < double > msize (pmov.size());
-  for (unsigned int i = 0;i<mov.size(); i++)
+  for (int i = 0;i<n; i++)
   {
     cout << "reading source '"<<mov[i]<<"'..." << endl;
 
@@ -150,9 +151,16 @@ int MultiRegistration::loadMovables(const std::vector < std::string > pmov)
     msize[i] = mri_mov[i]->xsize;
     if (mri_mov[i]->ysize < msize[i]) msize[i] = mri_mov[i]->ysize ;
     if (mri_mov[i]->zsize < msize[i]) msize[i] = mri_mov[i]->zsize ;	
+    
+    if (sampletype == SAMPLE_CUBIC_BSPLINE)
+    {
+      cout << "converting source '"<<mov[i]<<"' to bspline ..." << endl;
+      mri_bsplines[i] = MRItoBSpline (mri_mov[i],	mri_bsplines[i], 3);
+    }
+    
   }
   float EPS = 0.001;
-  for (unsigned int i = 1;i<mov.size();i++)
+  for (int i = 1;i<n;i++)
   {
     if (fabs(mri_mov[i]->xsize-mri_mov[0]->xsize) > EPS || fabs(mri_mov[i]->ysize-mri_mov[0]->ysize) > EPS || fabs(mri_mov[i]->zsize-mri_mov[0]->zsize) > EPS)
     {
@@ -163,7 +171,7 @@ int MultiRegistration::loadMovables(const std::vector < std::string > pmov)
                 mov[i].c_str()) ;	 
     }
   }
-
+  
   mri_warps.resize(n,NULL);
   intensities.resize(n,1.0);
   ltas.resize(n,NULL);
@@ -247,41 +255,47 @@ void MultiRegistration::initRegistration(Registration & R)
 //   R.setTarget(P.mri_mean,P.fixvoxel,P.keeptype);
 }
 
-bool MultiRegistration::averageSet(int itdebug, int interp)
+/*!
+  \fn void mapAndAverageMov(int itdebug)
+  \brief  maps movables to template using lta's, adjusts intensities (if iscale) and creates average (mean,median)
+  \param idebug  specify iteration number for debug output
+*/
+bool MultiRegistration::mapAndAverageMov(int itdebug)
 // maps mov to template (using ltas)
 // adjust intensities (if iscale)
 // creates template acording to average:1 mean, 2 median..
 {
   unsigned int nin = mri_mov.size();
-	assert(nin > 1);
+  assert(nin > 1);
   assert (mri_warps.size() == nin);
-	assert (ltas.size() == nin);
-	assert (intensities.size() == nin);
+  assert (ltas.size() == nin);
+  assert (intensities.size() == nin);
 	
-    cout << "warping movs and creating initial template..." << endl;
-		if (iscale) cout << " allow intensity scaling" << endl;
-    for (unsigned int i = 0;i<nin;i++)
-    {  
-      if (mri_warps[i]) MRIfree(&mri_warps[i]); 
-      //mri_warps[i] = MRIclone(mri_mov[0],mri_warps[i]);
-      //mri_warps[i] = LTAtransform(mri_mov[i],mri_warps[i], ltas[i]);
-			// use geometry from ltas
-			// (if initXforms was called, this is the center of mass of all tps)
-      mri_warps[i] = LTAtransformInterp(mri_mov[i],NULL, ltas[i], interp);
-		  MRIcopyPulseParameters(mri_mov[i],mri_warps[i]);
-			if (iscale)
-			{
-			   mri_warps[i] = MyMRI::MRIvalscale(mri_warps[i],mri_warps[i], intensities[i]);
-			}
-      if (debug)
-      {
-        ostringstream oss;
-        oss << outdir << "tp" << i+1 << "_to_template-it"<<itdebug<<".mgz";
-        MRIwrite(mri_warps[i], oss.str().c_str()) ;
-      }
+  cout << "warping movs and creating initial template..." << endl;
+  if (iscale) cout << " allow intensity scaling" << endl;
+  for (unsigned int i = 0;i<nin;i++)
+  {  
+    if (mri_warps[i]) MRIfree(&mri_warps[i]); 
+    // use geometry from ltas
+    // (if initXforms was called, this is the center of mass of all tps)
+    if (sampletype == SAMPLE_CUBIC_BSPLINE)
+      mri_warps[i] = LTAtransformBSpline(mri_bsplines[i],NULL, ltas[i]);
+    else
+      mri_warps[i] = LTAtransformInterp(mri_mov[i],NULL, ltas[i], sampletype);
+    MRIcopyPulseParameters(mri_mov[i],mri_warps[i]);
+    if (iscale)
+    {
+      mri_warps[i] = MyMRI::MRIvalscale(mri_warps[i],mri_warps[i], intensities[i]);
     }
-    mri_mean = averageSet(mri_warps, mri_mean,average,sat);
-    return true;
+    if (debug)
+    {
+      ostringstream oss;
+      oss << outdir << "tp" << i+1 << "_to_template-it"<<itdebug<<".mgz";
+      MRIwrite(mri_warps[i], oss.str().c_str()) ;
+    }
+  }
+  mri_mean = averageSet(mri_warps, mri_mean,average,sat);
+  return true;
 }
 
 MRI* MultiRegistration::averageConformSet(int itdebug)
@@ -339,32 +353,10 @@ bool MultiRegistration::computeTemplate(int itmax, double eps , int iterate, dou
 	
   cout << "Computing first template" << endl;  
   bool havexforms = (ltas[0] != NULL);
-  if (!havexforms) // create simple initial transforms (not recommended)
-    mri_mean = initialAverageSet(mri_mov,NULL,average,sat);
+  if (!havexforms) // create simple initial average aligning centers (moments), blurry!
+    initialAverageSet();
   else // we have initial transforms
-  {  
-
-    averageSet(0);
-//     cout << "warping movs and creating initial template..." << endl;
-// 		if (iscale) cout << " allow intensity scaling" << endl;
-//     for (int i = 0;i<nin;i++)
-//     {  
-//       if (mri_warps[i]) MRIfree(&mri_warps[i]); // should not happen
-//       mri_warps[i] = MRIclone(mri_mov[0],mri_warps[i]);
-//       mri_warps[i] = LTAtransform(mri_mov[i],mri_warps[i], ltas[i]);
-// 			if (iscale)
-// 			{
-// 			   mri_warps[i] = MyMRI::MRIvalscale(mri_warps[i],mri_warps[i], intensities[i]);
-// 			}
-//       if (debug)
-//       {
-//         ostringstream oss;
-//         oss << outdir << "tp" << i+1 << "_to_template-it0.mgz";
-//         MRIwrite(mri_warps[i], oss.str().c_str()) ;
-//       }
-//     }
-//     mri_mean = averageSet(mri_warps, mri_mean,average,sat);
-  }
+    mapAndAverageMov(0);
   
   if (itmax==0) // no iterations necessary just return with mean (and ltas and warps);
   {
@@ -392,7 +384,7 @@ bool MultiRegistration::computeTemplate(int itmax, double eps , int iterate, dou
   for (int i = 0;i<nin;i++) Rv[i].setSource(mri_mov[i],fixvoxel,keeptype);
 	
   vector < vnl_matrix_fixed < double, 4, 4> > transforms(mri_mov.size());
-  if (havexforms) //initial transforms
+//  if (havexforms) //initial transforms
   {
      for (int i=0;i<nin;i++)
      {
@@ -405,13 +397,18 @@ bool MultiRegistration::computeTemplate(int itmax, double eps , int iterate, dou
         ltas[i] = LTAchangeType(ltas[i],LINEAR_VOX_TO_VOX);		//vox2vox for registration	
 				
 				// the transforms are maps from the original images
-				// (not resampled to conform as inside the Registeration)
+				// (not resampled to conform as inside the Registration)
         transforms[i] = MyMatrix::convertMATRIX2VNL(ltas[i]->xforms[0].m_L);
      }
 	
   }
   
   LTA * lastlta = NULL;
+  // if we do not have good transforms, run special treatement
+  // below on different resolutions, here we determine how often
+  // these lowres registrations are run.
+  // the methods are: maxit 3, maxit 2, maxit 1, subsample 180
+  int noxformits[4] = {3,1,0,0};
   while (itcount < itmax && maxchange > eps)
   {
     itcount++;
@@ -428,6 +425,9 @@ bool MultiRegistration::computeTemplate(int itmax, double eps , int iterate, dou
     //printmemusage();
     //cout << "========================================" << endl << endl;
 		
+    if (itcount <= 4 && noxformits[itcount-1]>0)
+      cout << "  noxformits = " << noxformits[itcount-1] << endl;
+    
     // register all inputs to mean
     vector < double > dists(nin,1000); // should be larger than maxchange!
     for (int i = 0;i<nin;i++)
@@ -452,12 +452,12 @@ bool MultiRegistration::computeTemplate(int itmax, double eps , int iterate, dou
 			// on higher iterations use subsamplesize as passed on commandline
       int subsamp = subsamplesize;
 			// simplify first steps (only if we do not have good transforms):
-			if (!havexforms)
+			if (!havexforms && itcount <= 4 && noxformits[itcount-1]>0)
 			{
         switch (itcount)
         {
         case 1:
-          maxres = 2;
+          maxres = 3;
           break;
         case 2:
           maxres = 2;
@@ -466,35 +466,16 @@ bool MultiRegistration::computeTemplate(int itmax, double eps , int iterate, dou
           maxres = 1;
           break;
         case 4:
-          maxres = 1;
-          break;
-        case 5:
           subsamp = 180;
           break;
         }
 		  }
 
-//      if (havexforms) // default case, as we use the new mean space init!
-//      {
-//        //// tried high res iteration only:
-//				// (does not make sense, we need 2 iter. on high res anyway)
-//        //Md= Rv[i].computeIterativeRegistration(1,epsit,NULL,NULL,transforms[i],P.intensities[i]);
-//        //dists[i] = sqrt(Rv[i].AffineTransDistSq(Md.first, transforms[i]));
-//        //if (itcount ==1) subsamp = 180;	// so use subsample for first step on high res
-//        maxres = 0; //go up to hig-res allways (skip first steps as above)
-//      }
-
       Rv[i].setSubsampleSize(subsamp);
       Rv[i].setIscaleInit(intensities[i]);
       Rv[i].setMinitOrig(transforms[i]); // as the transforms are in the original space
 			if (satit) Rv[i].findSaturation();
-//       Rv[i].computeMultiresRegistration(maxres,
-//                                                iterate,
-//                                                epsit,
-//                                                NULL,
-//                                                NULL,
-//                                                transforms[i],
-//                                                intensities[i]);
+
       Rv[i].computeMultiresRegistration(maxres, iterate, epsit);
 
 		  Md.first  = Rv[i].getFinalVox2Vox();
@@ -531,10 +512,18 @@ bool MultiRegistration::computeTemplate(int itmax, double eps , int iterate, dou
 
 
       // create warps: warp mov to mean
-      cout << "warping mov to template..." << endl;
       if (mri_warps[i]) MRIfree(&mri_warps[i]);
       mri_warps[i] = MRIclone(mri_mean,mri_warps[i]);
-      mri_warps[i] = LTAtransform(mri_mov[i],mri_warps[i], ltas[i]);
+      if (sampletype == SAMPLE_CUBIC_BSPLINE)
+      {
+        cout << "mapping mov to template (cubic bspline) ..." << endl;
+        mri_warps[i] = LTAtransformBSpline(mri_bsplines[i],mri_warps[i], ltas[i]);
+      }
+      else
+      {
+        cout << "mapping mov to template..." << endl;
+        mri_warps[i] = LTAtransformInterp(mri_mov[i],mri_warps[i], ltas[i],sampletype);
+      }
 		  MRIcopyPulseParameters(mri_mov[i],mri_warps[i]);
 
       // here do scaling of intensity values
@@ -548,7 +537,8 @@ bool MultiRegistration::computeTemplate(int itmax, double eps , int iterate, dou
 			// copy weights (as RV will be cleared)
       //   (info: they are in original half way space)
 	     cout << "backup weights ..." << endl;
-       mri_weights[i] = MRIcopy(Rv[i].getWeights(),mri_weights[i]);
+       if (mri_weights[i]) MRIfree(&mri_weights[i]); 
+       mri_weights[i] = MRIcopy(Rv[i].getWeights(),NULL);
 			 
       //cout << " LS difference after: " <<
       //CF.leastSquares(mri_aligned,P.mri_dst) << endl;
@@ -623,6 +613,16 @@ bool MultiRegistration::computeTemplate(int itmax, double eps , int iterate, dou
 
     } // for loop end (all timepoints)
 
+    // if we did not have initial transforms
+    // allow for more iterations on different resolutions
+    // based on noxformits vector defined above
+    if (!havexforms && itcount <= 4 && noxformits[itcount-1]>1)
+    {
+      noxformits[itcount-1]--;
+      itcount--;
+    }
+
+
     if (dists[0] <= maxchange) // it was computed, so print it:
     {
       cout << endl << "Global Iteration " << itcount <<" Distances: " << endl;
@@ -632,7 +632,7 @@ bool MultiRegistration::computeTemplate(int itmax, double eps , int iterate, dou
 
     // create new mean
     cout << "Computing new template " <<itcount << endl;
-    mri_mean = averageSet(mri_warps, mri_mean,average,sat);
+    mri_mean = averageSet(mri_warps, mri_mean, average, sat);
     if (debug)
     {
       ostringstream oss;
@@ -883,7 +883,12 @@ bool MultiRegistration::initialXforms(int tpi, bool fixtp, int maxres, int itera
       ostringstream oss;
       oss << outdir << "tp" << j+1 << "_to_mcoord";
       LTAwriteEx(ltas[j], (oss.str()+".lta").c_str()) ;
-      MRI * warped = LTAtransform(mri_mov[j],NULL, ltas[j]);
+      MRI * warped = NULL;
+      if (sampletype == SAMPLE_CUBIC_BSPLINE)
+        warped = LTAtransformBSpline(mri_bsplines[j], NULL, ltas[j]);
+      else
+        warped = LTAtransformInterp(mri_mov[j],NULL, ltas[j], sampletype);
+        
       if (iscale)
       {
         string fn = oss.str() + "-intensity.txt";
@@ -1103,7 +1108,11 @@ bool MultiRegistration::initialXforms(int tpi, bool fixtp, int maxres, int itera
       ostringstream oss;
       oss << outdir << "tp" << j+1 << "_to_mcoord";
       LTAwriteEx(ltas[j], (oss.str()+".lta").c_str()) ;
-      MRI * warped = LTAtransform(mri_mov[j],NULL, ltas[j]);
+      MRI * warped = NULL;
+      if (sampletype == SAMPLE_CUBIC_BSPLINE)
+        warped = LTAtransformBSpline(mri_bsplines[j], NULL, ltas[j]);
+      else
+        warped = LTAtransformInterp(mri_mov[j],NULL, ltas[j], sampletype);
       if (iscale)
       {
         string fn = oss.str() + "-intensity.txt";
@@ -1270,7 +1279,7 @@ bool MultiRegistration::writeWeights(const std::vector < std::string >& nweights
 
 /*!
   \fn MRI* averageSet(const vector < MRI * >& set, MRI* mean, int method, double sat)
-  \brief Averages the movable volumes depending on method
+  \brief Averages the passed and aligned volumes depending on method 
   \param set vector of movable volumes
   \param mean  output of mean volume
   \param method  0 = mean, 1 = median, 2 = tukey biweight (testing)
@@ -1432,15 +1441,10 @@ MRI* MultiRegistration::averageSet(const vector < MRI * >& set,
 }
 
 /*!
-  \fn MRI* initialAverageSet(const vector < MRI * >& set, MRI* mean, int method, double sat)
-  \brief Averages the movable volumes depending on method
-  \param set vector of movable volumes
-  \param mean  output of mean volume
-  \param method  0 = mean, 1 = median, 2 = tukey biweight (testing)
-  \param sat     saturation for tukey biweight
+  \fn MRI* initialAverageSet()
+  \brief Creates initial translation alignment based on centroids and averages the mapped movables
 */
-MRI* MultiRegistration::initialAverageSet(const vector < MRI * >& set,
-                              MRI* mean, int method, double sat)
+bool MultiRegistration::initialAverageSet()
 {
 // the initial average can be any place as long as it is
 // not identical to one of the
@@ -1449,14 +1453,35 @@ MRI* MultiRegistration::initialAverageSet(const vector < MRI * >& set,
 // we have only few images, far apart, maybe the algorithm will not converge
 // or converge very slowly (has not happened yet).
 // therefore we find an initial coarse alignment by using moments
-
-  assert(set.size() > 1);
-  int n = (int) set.size();
-  vector < double >  centroid(3,0);
+// initial ltas are also returned
+  cout << " initialAverageSet based on centroid translation" << flush;
+  assert(mri_mov.size() > 1);
+  int n = (int) mri_mov.size();
+  if ((int)ltas.size() != n)
+  {
+    assert (ltas.size() == 0);
+    ltas.resize(n,NULL);
+  }
+  
+  // compute input centroids and common centroid
+  vector < double >  centroid(3,0.0);
   vector < vector < double > >centroids(n);
   for (int i = 0;i<n;i++)
   {
-    centroids[i] = CostFunctions::centroid(set[i]);
+    centroids[i] = CostFunctions::centroid(mri_mov[i]);
+	  MATRIX * mv2r_temp = MRIgetVoxelToRasXform(mri_mov[i]);
+	  vnl_matrix_fixed < double, 4, 4> tpi_v2r(MyMatrix::convertMATRIX2VNL(mv2r_temp));
+	  MatrixFree(&mv2r_temp);
+    vnl_vector_fixed < double, 4 > ncenter;
+    for (uint ii = 0; ii<3;ii++)
+      ncenter[ii] = centroids[i][ii];
+    ncenter[3] = 1.0;
+    // map to RAS:
+    ncenter = tpi_v2r * ncenter;
+    for (uint ii = 0; ii<3;ii++)
+      centroids[i][ii] = ncenter[ii];
+    
+    //cout << " Centroid [ " << i << " ] = " << centroids[i][0] << " " << centroids[i][1] << " " << centroids[i][2] << endl;
     centroid[0] += centroids[i][0];
     centroid[1] += centroids[i][1];
     centroid[2] += centroids[i][2];
@@ -1464,17 +1489,45 @@ MRI* MultiRegistration::initialAverageSet(const vector < MRI * >& set,
   centroid[0] /= n;
   centroid[1] /= n;
   centroid[2] /= n;
+  //cout << " Centroid : " << centroid[0] << " " << centroid[1] << " " << centroid[2]  << endl;
+  
+  if (!mri_mean) //default:
+  {
+    // take geometry from set[0] and set RAS center at joint center of mass
+    mri_mean = MRIclone(mri_mov[0],NULL);
+    // map average centroid from TPI vox space to mean RAS space:
+	  MATRIX * mv2r_temp = MRIgetVoxelToRasXform(mri_mov[0]);
+	  vnl_matrix_fixed < double, 4, 4> tpi_v2r(MyMatrix::convertMATRIX2VNL(mv2r_temp));
+	  MatrixFree(&mv2r_temp);
+    vnl_vector_fixed < double, 4 > ncenter;
+    for (uint ii = 0; ii<3;ii++)
+      ncenter[ii] = centroid[ii];
+    ncenter[3] = 1.0;
+    // map to RAS:
+    ncenter = tpi_v2r * ncenter;
+    // set new center in geometry
+    for (uint ii = 0; ii<3;ii++)
+      centroid[ii] = ncenter[ii];
+    mri_mean->c_r = ncenter[0];
+    mri_mean->c_a = ncenter[1];
+    mri_mean->c_s = ncenter[2];
+    mri_mean->ras_good_flag = 1;
+    MRIreInitCache(mri_mean);
+  }   
 
-  // map set to mean of centroids
+  // create maps (lta) to centered image
   MATRIX* Mtrans = MatrixIdentity(4,NULL);
-  vector < MRI* > newset(n);
   for (int i = 0;i<n;i++)
   {
     Mtrans->rptr[1][4] = centroid[0]-centroids[i][0];
     Mtrans->rptr[2][4] = centroid[1]-centroids[i][1];
     Mtrans->rptr[3][4] = centroid[2]-centroids[i][2];
-    newset[i] = MRIlinearTransform(set[i],NULL,Mtrans);
+    // set initial ltas as maps to the blurry mean
+    assert (ltas[i] == NULL);
+    ltas[i] = MyMatrix::RASmatrix2LTA(Mtrans,mri_mov[i],mri_mean);
   }
+  // map source to average space and create mri_mean
+  mapAndAverageMov(0);
 
-  return averageSet(newset,mean,method,sat);
+  return true;
 }

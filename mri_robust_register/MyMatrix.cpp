@@ -8,8 +8,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2011/09/21 05:45:26 $
- *    $Revision: 1.24 $
+ *    $Date: 2011/10/07 22:28:51 $
+ *    $Revision: 1.25 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -1911,7 +1911,7 @@ double  MyMatrix::RotMatrixLogNorm(const vnl_matrix_fixed < double, 4, 4 >& m)
 // expects a rotation matrix there
 {
   // assert we have no stretching only rot (and trans)
-  double det = vnl_determinant(m);;
+  double det = vnl_determinant(m);
   //cout << " det: " << det << endl;
   if (fabs(det-1.0) > 0.001)
   {

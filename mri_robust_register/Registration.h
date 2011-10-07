@@ -8,8 +8,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2011/09/17 00:50:40 $
- *    $Revision: 1.47 $
+ *    $Date: 2011/10/07 22:28:51 $
+ *    $Revision: 1.48 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -81,13 +81,14 @@ enum Cost
   Registration(): sat(-1),iscale(false),transonly(false),rigid(true),
       rtype(1),subsamplesize(-1),minsize(-1),maxsize(-1),debug(0),verbose(1),initorient(false),
       inittransform(true),highit(-1),mri_source(NULL),mri_target(NULL),iscaleinit(1.0),
-      iscalefinal(1.0),doubleprec(false),wlimit(0.175),symmetry(true),resample(false),costfun(ROB),
-			mri_weights(NULL), mri_hweights(NULL),mri_indexing(NULL)
+      iscalefinal(1.0),doubleprec(false),wlimit(0.175),symmetry(true),sampletype(SAMPLE_TRILINEAR),
+      resample(false),costfun(ROB),	mri_weights(NULL), mri_hweights(NULL),mri_indexing(NULL)
   {};
   Registration(MRI * s, MRI *t): sat(-1),iscale(false),transonly(false),rigid(true),
       rtype(1),subsamplesize(-1),minsize(-1),maxsize(-1),debug(0),verbose(1),initorient(false),
       inittransform(true),highit(-1),mri_source(MRIcopy(s,NULL)),mri_target(MRIcopy(t,NULL)),
-      iscaleinit(1.0),iscalefinal(1.0),doubleprec(false),wlimit(0.175),symmetry(true),resample(false),costfun(ROB),
+      iscaleinit(1.0),iscalefinal(1.0),doubleprec(false),wlimit(0.175),symmetry(true),
+      sampletype(SAMPLE_TRILINEAR),resample(false),costfun(ROB),
 			mri_weights(NULL),mri_hweights(NULL),mri_indexing(NULL)
   {};
 
@@ -182,6 +183,18 @@ enum Cost
   {
     symmetry = b;
   };
+  void setSampleType(int st)
+  {
+    switch (st)
+    {
+    case SAMPLE_TRILINEAR:
+      break;
+    default:
+      std::cout << "ERROR Registration:setSampleType: " << st << " not supported type!" << std::endl;
+      exit(1);
+    }
+    sampletype = st;
+  }
   void setCost( Cost c)
   {
     costfun = c;
@@ -297,6 +310,7 @@ protected:
   bool doubleprec;
   double wlimit;
   bool symmetry;
+  int sampletype;
 
   bool resample;
   vnl_matrix < double >  Rsrc;

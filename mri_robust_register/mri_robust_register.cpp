@@ -10,8 +10,8 @@
  * Original Author: Martin Reuter, Nov. 4th ,2008
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2011/09/26 20:46:48 $
- *    $Revision: 1.58 $
+ *    $Date: 2011/10/07 22:28:51 $
+ *    $Revision: 1.59 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -62,6 +62,7 @@ extern "C"
 #include "diag.h"
 #include "mrimorph.h"
 #include "version.h"
+#include "transform.h"
 
 #ifdef __cplusplus
 }
@@ -120,11 +121,57 @@ struct Parameters
   int    minsize;
   int    maxsize;
   Registration::Cost cost;
+//  int    bins;
   int    finalsampletype;
 };
 static struct Parameters P =
 {
-  "","","","","","","","","","","",false,false,false,false,false,false,false,false,"",false,5,0.01,SAT,"","",SSAMPLE,0,NULL,NULL,false,false,true,1,-1,false,0.16,false,true,"","",-1,-1,Registration::ROB,SAMPLE_TRILINEAR
+  "",
+  "",
+  "",
+  "",
+  "",
+  "",
+  "",
+  "",
+  "",
+  "",
+  "",
+  false,
+  false,
+  false,
+  false,
+  false,
+  false,
+  false,
+  false,
+  "",
+  false,
+  5,
+  0.01,
+  SAT,
+  "",
+  "",
+  SSAMPLE,
+  0,
+  NULL,
+  NULL,
+  false,
+  false,
+  true,
+  1,
+  -1,
+  false,
+  0.16,
+  false,
+  true,
+  "",
+  "",
+  -1,
+  -1,
+  Registration::ROB,
+//  256,
+  SAMPLE_CUBIC_BSPLINE
 };
 
 
@@ -132,7 +179,7 @@ static void printUsage(void);
 static bool parseCommandLine(int argc, char *argv[],Parameters & P) ;
 static void initRegistration(Registration & R, Parameters & P) ;
 
-static char vcid[] = "$Id: mri_robust_register.cpp,v 1.58 2011/09/26 20:46:48 mreuter Exp $";
+static char vcid[] = "$Id: mri_robust_register.cpp,v 1.59 2011/10/07 22:28:51 mreuter Exp $";
 char *Progname = NULL;
 
 //static MORPH_PARMS  parms ;
@@ -238,6 +285,19 @@ void entro (Parameters & P)
 
 void jointhisto(Parameters & P)
 {
+
+   MRI* mriS = MRIread(P.mov.c_str());
+   MyMRI::MRInorm255(mriS,mriS);
+   MRI* mriT = MRIread(P.dst.c_str());
+   MyMRI::MRInorm255(mriT,mriT);
+   vnl_matrix_fixed < double, 4,4 > M; M.set_identity();
+   JointHisto hm(mriS,mriT,M,M,1,1,1);
+   hm.smooth();
+   hm.save("histo.m","H");
+   //hm.normalize();
+   MRI * weights = hm.locate(mriS,mriT,M,M,1,1,1);
+   MRIwrite(weights,"weights.mgz");
+
 //    int n = 10;
 //    vnl_matrix < double > m(n,n);
 //    int i,j;
@@ -265,20 +325,20 @@ void jointhisto(Parameters & P)
 // 
 // exit(1);
 
-   MRI* mriS = MRIread(P.mov.c_str());
-   MyMRI::MRInorm255(mriS,mriS);
-   std::pair < float, float > mm = CostFunctions::minmax(mriS);
-   cout << " mriS   min: " << mm.first << "   max : " << mm.second << "   mean : " << CostFunctions::mean(mriS) << endl;
-   MRI* mriT = MRIread(P.dst.c_str());
-   MyMRI::MRInorm255(mriT,mriT);
-   mm = CostFunctions::minmax(mriT);
-   cout << " mriT   min: " << mm.first << "   max : " << mm.second << "   mean : " << CostFunctions::mean(mriT) << endl;
-   JointHisto hm(mriS,mriT);
-   //hm.print("H");
-   cout << " NMI : " << hm.computeNMI() << endl;
-   hm.smooth(7);
-   cout << " NMIs: " << hm.computeNMI() << endl;
-
+//    MRI* mriS = MRIread(P.mov.c_str());
+//    MyMRI::MRInorm255(mriS,mriS);
+//    std::pair < float, float > mm = CostFunctions::minmax(mriS);
+//    cout << " mriS   min: " << mm.first << "   max : " << mm.second << "   mean : " << CostFunctions::mean(mriS) << endl;
+//    MRI* mriT = MRIread(P.dst.c_str());
+//    MyMRI::MRInorm255(mriT,mriT);
+//    mm = CostFunctions::minmax(mriT);
+//    cout << " mriT   min: " << mm.first << "   max : " << mm.second << "   mean : " << CostFunctions::mean(mriT) << endl;
+//    JointHisto hm(mriS,mriT);
+//    //hm.print("H");
+//    cout << " NMI : " << hm.computeNMI() << endl;
+//    hm.smooth(7);
+//    cout << " NMIs: " << hm.computeNMI() << endl;
+// 
 
 
 exit(1);
@@ -363,8 +423,154 @@ void gradmag (Parameters & P)
   exit(0);
 }
 
-void testImage(Parameters & P)
-{}
+int		ReadByteImageRawData
+				(
+					float	**Image,	/* output image data */
+					long	*Width,		/* output image width */
+					long	*Height		/* output image height */
+				)
+
+{ /* begin ReadByteImageRawData */
+
+	//char	Filename[256];
+	FILE	*f = (FILE *)NULL;
+	float	*p;
+	unsigned char
+			*Line;
+	long	x, y;
+	int		Error;
+
+	/* interactivity */
+// 	do {
+// 		printf("Give the input image file name (enter ? to cancel):\n");
+// 		printf("--> ");
+// 		scanf("%255s", Filename);
+// 		f = fopen(Filename, "rb");
+// 	} while (strcmp(Filename, "?") && (f == (FILE *)NULL));
+// 	if (!strcmp(Filename, "?")) {
+// 		if (f != (FILE *)NULL) {
+// 			fclose(f);
+// 			printf("Sorry: reserved file name\n");
+// 		}
+// 		printf("Cancel\n");
+// 		return(1);
+// 	}
+// 	do {
+// 		printf("Give the input image width:\n");
+// 		printf("--> ");
+// 		scanf("%ld", Width);
+// 
+// 		printf("Give the input image height:\n");
+// 		printf("--> ");
+// 		scanf("%ld", Height);
+// 	} while ((*Width < 1L) || (*Height < 1L));
+
+  f = fopen("lena.img","rb");
+  *Width = 256;
+  *Height = 256;
+
+	/* allocation of workspace */
+	*Image = (float *)malloc((size_t)(*Width * *Height * (long)sizeof(float)));
+	if (*Image == (float *)NULL) {
+		fclose(f);
+		printf("Allocation of input image failed\n");
+		return(1);
+	}
+	Line = (unsigned char *)malloc((size_t)(*Width * (long)sizeof(unsigned char)));
+	if (Line == (unsigned char *)NULL) {
+		free(*Image);
+		*Image = (float *)NULL;
+		fclose(f);
+		printf("Allocation of buffer failed\n");
+		return(1);
+	}
+
+	/* perform reading in raster fashion */
+	p = *Image;
+	for (y = 0L; y < *Height; y++) {
+		Error = (*Width != (long)fread(Line, sizeof(unsigned char), (size_t)*Width, f));
+		if (Error) {
+			free(Line);
+			free(*Image);
+			*Image = (float *)NULL;
+			fclose(f);
+			printf("File access failed\n");
+			return(1);
+		}
+		for (x = 0L; x < *Width; x++) {
+			*p++ = (float)Line[x];
+		}
+	}
+
+	free(Line);
+	fclose(f);
+	return(0);
+} /* end ReadByteImageRawData */
+
+void testcubic(Parameters & P)
+{
+
+  float	*ImageRasterArray;
+  long	Width, Height;
+  int Error;
+  
+   	Error = ReadByteImageRawData(&ImageRasterArray, &Width, &Height);
+	if (Error) {
+		printf("Failure to import image data\n");
+		exit(1);
+	}
+
+  MRI* img = MRIalloc(Width,Height,1,MRI_FLOAT);
+  int x,y;
+  for (x=0;x<Width;x++)
+  for (y=0;y<Height;y++)
+    MRIsetVoxVal(img,x,y,0,0,ImageRasterArray[y*Height+x]);
+    
+  //MRIwrite(img,"coeff-orig.tif");
+  //exit(1);
+  MRI_BSPLINE * bspline = NULL;
+  bspline = MRItoBSpline(img,NULL,3);
+  MRIwrite(bspline->coeff,"img-coeff.tif");
+  
+  double val;
+  MRI* mri2 = MRIcopy(img,NULL);
+  for (x=0;x<Width;x++)
+  for (y=0;y<Height;y++)
+  {
+     MRIsampleBSpline(bspline, x, y, 0, 0, &val);
+     MRIsetVoxVal(mri2, x, y,0, 0, val) ;
+  }
+  
+   MRIwrite(mri2,"img-id.tif");
+   exit(1);
+
+//   MRI* mri1 = MRIread(P.mov.c_str());
+//   //LTA * lta = LTAread("identity.nofile");
+//   
+//   //MRI* mri2 = LTAtransformInterp(mri1,NULL,lta,SAMPLE_CUBIC_BSPLINE);
+//  // MRIwrite(mri2,"idlta.mgz");
+//  
+//   MRI* mri2 = MRIcopy(mri1,NULL);
+//   
+//   // now manually do it:
+//   MRI_BSPLINE * bspline = NULL;
+//   bspline = MRItoBSpline(mri1,NULL,3);
+//   MRIwrite(bspline->coeff,"coeff.mgz");
+//   
+// 
+//   int r,c,s;
+//   double val;
+//   for (s=0;s<mri1->depth;s++)
+//   for (c=0;c<mri1->height;c++)
+//   for (r=0;r<mri1->width;r++)
+//   {
+//     MRIsampleBSpline(bspline, r, c, s, 0, &val);
+//     MRIsetVoxVal(mri2, r, c,s, 0, val) ;
+//   }
+//   MRIwrite(mri2,"idmy.mgz");
+//   exit(1);
+
+}
 
 int main(int argc, char *argv[])
 {
@@ -401,7 +607,7 @@ int main(int argc, char *argv[])
       exit(1);
     }
 // testSubsamp(P);
- 
+// testcubic(P);
 //entro(P);
 //gradmag(P);
 //jointhisto(P);

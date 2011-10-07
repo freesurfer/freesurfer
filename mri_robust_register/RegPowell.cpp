@@ -8,8 +8,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2011/09/26 21:50:11 $
- *    $Revision: 1.12 $
+ *    $Date: 2011/10/07 22:28:51 $
+ *    $Revision: 1.13 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -128,6 +128,7 @@ double RegPowell::costFunction(const vnl_vector < double >& p)
   //H.print();
   //exit(1);
   
+  //H.clip(0.000001);
   
   H.smooth(7);
   double dd;
@@ -295,9 +296,21 @@ void RegPowell::computeIterativeRegistration( int nmax,double epsit,MRI * mriS, 
   pair < vnl_matrix_fixed < double, 4, 4> , double > fmd(vnl_matrix_fixed < double, 4 , 4> () ,0.0);
 
   // check if mi (inital transform) is passed
-  if (!m.empty()) fmd.first = m;
-  else if (!Minit.empty()) fmd.first = getMinitResampled();
-  else fmd.first = initializeTransform(mriS,mriT) ;
+  if (!m.empty())
+  {
+    fmd.first = m;
+    if (verbose > 1) cout << "     initial M passed ... "  << endl;
+  }
+  else if (!Minit.empty())
+  {
+    fmd.first = getMinitResampled();
+    if (verbose > 1) cout << "     initial M from resample ... "  << endl;
+  }
+  else
+  {
+    fmd.first = initializeTransform(mriS,mriT) ;
+    if (verbose > 1) cout << "     initialize transform M ... "  << endl;
+  }
   vnl_matrix < double > initialM = fmd.first;
 
   // ISCALECHANGE:
@@ -316,6 +329,7 @@ void RegPowell::computeIterativeRegistration( int nmax,double epsit,MRI * mriS, 
     std::cout << "   - initial iscale: " << iscalefinal << std::endl;
     std::cout << "   - initial transform:\n" ;
 		std::cout << fmd.first << std::endl;
+   // std::cout << "   - initial det: " <<vnl_determinant(fmd.first) << endl ;
   }
 
   // decompose initial transform to apply in cost function (if symmetric):
@@ -420,8 +434,8 @@ void RegPowell::computeIterativeRegistration( int nmax,double epsit,MRI * mriS, 
 //      vnl_matlab_print(vcl_cerr,sy,"sy",vnl_matlab_print_format_long); cout << endl;   
 //  exit(1);
 
-//  double min_sse = costFunction(p) ;
-//  cout << " min_sse: " << min_sse << endl;
+  double min_sse = costFunction(p) ;
+  cout << "   - initial cost: " << min_sse << endl;
 //exit(1);
 
 
