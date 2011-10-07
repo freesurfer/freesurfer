@@ -6,24 +6,23 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2010/04/29 21:22:12 $
-#    $Revision: 1.35 $
+#    $Date: 2011/10/07 19:17:55 $
+#    $Revision: 1.49.2.1 $
 #
-# Copyright (C) 2002-2007,
-# The General Hospital Corporation (Boston, MA).
-# All rights reserved.
+# Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
-# Distribution, usage and copying of this software is covered under the
-# terms found in the License Agreement file named 'COPYING' found in the
-# FreeSurfer source code root directory, and duplicated here:
-# https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+# Terms and conditions for use, reproduction, distribution and contribution
+# are found in the 'FreeSurfer Software License Agreement' contained
+# in the file 'LICENSE' found in the FreeSurfer distribution, and here:
 #
-# General inquiries: freesurfer@nmr.mgh.harvard.edu
-# Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+# https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
+#
+# Reporting: freesurfer@nmr.mgh.harvard.edu
+#
 #
 
 #
-set VERSION = '$Id: bbregister,v 1.35 2010/04/29 21:22:12 greve Exp $';
+set VERSION = '$Id: bbregister,v 1.49.2.1 2011/10/07 19:17:55 greve Exp $';
 set inputargs = ($argv);
 
 set subject = ();
@@ -45,6 +44,8 @@ set Brute1Delta = 4;
 set SubSamp1 = 100;
 set DoAbs = 0;
 set SaveCurReg = 1;
+set featdir = ();
+set InitCostFile = ();
 
 set LHOnly = 0;
 set RHOnly = 0;
@@ -57,6 +58,7 @@ set Tol1D = 1e-3;
 set nPowellMax = 36;
 set DOF = 6;
 set FSLDOF = 6;
+set FSLSwapTrans = 0;
 set DoPass1 = 1;
 
 set WMProjAbs = 2;
@@ -66,6 +68,7 @@ set GMProjAbs = ();
 set nSubSamp = 1;
 set Interp = trilinear
 set UseEPIMask = 0;
+set UseCortexLabel = 1;
 
 set RMSFile = ();
 set templateout = ();
@@ -73,6 +76,8 @@ set OutVol = ();
 set fsvol  = brainmask;
 set surfcost = ();
 set surfcon  = ();
+set surfname = "white";
+set MaskLabel = ();
 
 set RandInitMax = ();
 
@@ -87,11 +92,6 @@ set n = `echo $argv | egrep -e -version | wc -l`
 if($n != 0) then
   echo $VERSION
   exit 0;
-endif
-set n = `echo $argv | egrep -e -help | wc -l`
-if($n != 0) then
-  set PrintHelp = 1;
-  goto usage_exit;
 endif
 
 goto parse_args;
@@ -149,7 +149,8 @@ if($#InitReg == 0) then
   if($InitFSL) then
     set cmd = (fslregister --s $subject --mov $regvol --reg $InitReg \
       --niters 1 --maxangle 90 --nobetmov --tmp $tmpdir/fslregister \
-      --dof $FSLDOF)
+      --dof $FSLDOF --fsvol $fsvol)
+    if($FSLSwapTrans) set cmd = ($cmd --allow-swap --trans)
     if($nolog) set cmd = ($cmd --nolog)
     echo $cmd | tee -a $LF
     $cmd |& tee -a $LF
@@ -190,14 +191,16 @@ set Pass1Reg = $tmpdir/bbr.pass1.dat
 if($DoPass1) then
   set cmd = (mri_segreg --mov $template --init-reg $InitReg --out-reg $Pass1Reg\
     --subsamp-brute $SubSamp1 --subsamp $SubSamp1 --tol 1e-4 --tol1d 1e-3 \
-    --brute -$Brute1Max $Brute1Max $Brute1Delta );
+    --brute -$Brute1Max $Brute1Max $Brute1Delta --surf $surfname);
   if($#GMProjFrac) set cmd = ($cmd --gm-proj-frac $GMProjFrac)
   if($#GMProjAbs)  set cmd = ($cmd --gm-proj-abs  $GMProjAbs)
   if("$Contrast" == "-1") set cmd = ($cmd --wm-gt-gm $Slope1);
   if("$Contrast" == "+1") set cmd = ($cmd --gm-gt-wm $Slope1);
+  if($#MaskLabel)  set cmd = ($cmd --label $MaskLabel);
   if($LHOnly) set cmd = ($cmd --lh-only);
   if($RHOnly) set cmd = ($cmd --rh-only);
   if($UseEPIMask) set cmd = ($cmd --mask);
+  if(! $UseCortexLabel) set cmd = ($cmd --no-cortex-label);
   if($#VSM) set cmd = ($cmd --mask --vsm $VSM);
   if($#RandInitMax) then
     # Only for testing
@@ -217,7 +220,7 @@ set cmd = (mri_segreg --mov $template --init-reg $Pass1Reg \
   --out-reg $outreg --brute -0.1 0.1 0.1 --interp $Interp \
   --wm-proj-abs $WMProjAbs --tol $TolF --tol1d $Tol1D\
   --c0 $Offset2 --mincost $MinCostFile --dof $DOF \
-  --nmax $nPowellMax --param $ParamFile)
+  --nmax $nPowellMax --param $ParamFile --surf $surfname);
 if($SaveCurReg) set cmd = ($cmd --cur-reg $tmpdir/reg.curopt.dat)
 if($#GMProjFrac) set cmd = ($cmd --gm-proj-frac $GMProjFrac)
 if($#GMProjAbs)  set cmd = ($cmd --gm-proj-abs  $GMProjAbs)
@@ -225,13 +228,16 @@ if($#nSubSamp) set cmd = ($cmd --nsub $nSubSamp);
 if($LHOnly) set cmd = ($cmd --lh-only);
 if($RHOnly) set cmd = ($cmd --rh-only);
 if($UseEPIMask) set cmd = ($cmd --mask);
+if(! $UseCortexLabel) set cmd = ($cmd --no-cortex-label);
 if($#VSM) set cmd = ($cmd --mask --vsm $VSM);
 if($#OutVol) set cmd = ($cmd --o $OutVol);
+if($#MaskLabel)  set cmd = ($cmd --label $MaskLabel);
 if("$Contrast" == "-1") set cmd = ($cmd --wm-gt-gm $Slope2);
 if("$Contrast" == "+1") set cmd = ($cmd --gm-gt-wm $Slope2);
 if($#surfcost)  set cmd = ($cmd --surf-cost $surfcost);
 if($#surfcon)   set cmd = ($cmd --surf-con  $surfcon);
 if($DoAbs) set cmd = ($cmd --penalty-abs)
+if($#InitCostFile) set cmd = ($cmd --initcost $InitCostFile);
 
 echo $cmd | tee -a $LF
 $cmd |& tee -a $LF
@@ -265,6 +271,15 @@ endif
 if($#outfsl) then
   set cmd = (tkregister2_cmdl --mov $movvol --reg $outreg \
     --noedit --fslregout $outfsl);
+  echo $cmd | tee -a $LF
+  $cmd | tee -a $LF
+  if($status) exit 1;
+endif
+
+if($#featdir) then
+  cp $outreg $featdir/reg/freesurfer/register.dat
+  set reg152 = $featdir/reg/freesurfer/anat2std.register.dat
+  set cmd = (mni152reg --s $subject --o $reg152)
   echo $cmd | tee -a $LF
   $cmd | tee -a $LF
   if($status) exit 1;
@@ -307,9 +322,41 @@ while( $#argv != 0 )
 
   switch($flag)
 
+    case "-h"
+    case "-u"
+    case "-usage"
+    case "--usage"
+    case "-help"
+    case "--help"
+      set PrintHelp = 1;
+      goto usage_exit;
+      breaksw
+
     case "--s":
       if ( $#argv < 1) goto arg1err;
       set subject = $argv[1]; shift;
+      breaksw
+
+    case "--feat":
+      if ( $#argv < 1) goto arg1err;
+      set featdir = $argv[1]; shift;
+      if(! -e $featdir) then
+        echo "ERROR: cannot find $featdir"
+        exit 1;
+      endif
+      set movvol = `stem2fname $featdir/example_func`
+      if($status) then
+        echo "$movvol"
+        exit 1;
+      endif
+      mkdir -p $featdir/reg/freesurfer
+      if($status) exit 1;
+      set outreg = $featdir/reg/freesurfer/anat2exf.register.dat
+      set InitFSL = 1;
+      set InitSPM = 0;
+      set InitHeader = 0;
+      set InitReg = ();
+      set Contrast = +1;
       breaksw
 
     case "--s-from-reg":
@@ -366,6 +413,10 @@ while( $#argv != 0 )
       set InitReg = ();
       breaksw
  
+    case "--fsl-swap-trans":
+      set FSLSwapTrans = 1;
+      breaksw
+
     case "--init-spm":
       set InitFSL = 0;
       set InitSPM = 1;
@@ -417,6 +468,11 @@ while( $#argv != 0 )
     case "--offset2":
       if ( $#argv < 1) goto arg1err;
       set Offset2 = $argv[1]; shift;
+      breaksw
+
+    case "--initcost":
+      if ( $#argv < 1) goto arg1err;
+      set InitCostFile = $argv[1]; shift;
       breaksw
 
     case "--abs":
@@ -494,6 +550,11 @@ while( $#argv != 0 )
     case "--subsamp1":
       if ( $#argv < 1) goto arg1err;
       set SubSamp1 = $argv[1]; shift;
+      breaksw
+
+    case "--surf":
+      if ( $#argv < 1) goto arg1err;
+      set surfname = $argv[1]; shift;
       breaksw
 
     case "--surf-cost":
@@ -600,8 +661,21 @@ while( $#argv != 0 )
       set Interp = trilinear
       breaksw
 
+    case "--label":
+      if($#argv < 1) goto arg1err;
+      set MaskLabel = $argv[1]; shift;
+      if(! -e $MaskLabel) then
+        echo "ERROR: cannot find $MaskLabel"
+        exit 1;
+      endif
+      breaksw
+
     case "--epi-mask":
       set UseEPIMask = 1;
+      breaksw
+
+    case "--no-cortex-label":
+      set UseCortexLabel = 0;
       breaksw
 
     case "--no-save-cur-reg":
@@ -685,6 +759,23 @@ check_params:
     exit 1;
   endif
 
+  if($?BBR_TEST_TOLERANCE) then
+    # This allows a program at a much higher level to set the tolerances.
+    # This is useful in the case where only the execution needs to be
+    # tested (and the output itself is not important). Setting the tolerances
+    # to be high makes BBR run faster.
+    set TolF  = $BBR_TEST_TOLERANCE
+    set Tol1D = $BBR_TEST_TOLERANCE
+    echo ""
+    echo "WARNING: using BBR_TEST_TOLERANCE $BBR_TEST_TOLERANCE"
+    echo ""
+    sleep 2
+  endif
+
+endif
+
+
+
 goto check_params_return;
 ############--------------##################
 
@@ -702,173 +793,18 @@ arg2err:
 
 ############--------------##################
 usage_exit:
-  echo ""
-  echo "bbregister"
-  echo ""
-  echo "Required Arguments:";
-  echo "   --s subject  : FreeSurfer subject name"
-  echo "   --mov volid  : input/movable volume"
-  echo "   --reg register.dat : output registration file"
-  echo ""
-  echo "Initialization Arguments (one required)"
-  echo ""
-  echo "   --init-fsl : initialize the registration with FSL"
-  echo "   --init-spm : initialize the registration with SPM"
-  echo "   --init-header : initialize the registration based on header goemetry"
-  echo "   --init-reg initregfile : explicitly pass registration"
-  echo ""
-  echo "Contrast Arguments (one required)"
-  echo ""
-  echo "   --t1 : assume t1 contrast, ie, WM brighter than GM"
-  echo "   --t2 : assume t2 contrast, ie, GM brighter than WM"
-  echo "   --bold : same as --t2"
-  echo "   --dti  : same as --t2"
-  echo ""
-  echo "Optional Arguments"
-  echo ""
-  echo "   --int intvol : intermediate volume"
-  echo "   --mid-frame : reg to middle frame (not with --frame)"
-  echo "   --frame frameno : reg to frameno (default 0=1st)"
-  echo "   --template-out template : save template (good with --frame)"
-  echo "   --o outvol : resample mov and save as outvol"
-  echo "   --s-from-reg reg : get subject name from regfile"
-  echo "   --rms rmsfile : RMS change in cortical surface position"
-  echo "   --fsl flirt.mtx : output an FSL FLIRT matrix"
-  echo ""
-  echo "   --lh-only : only use left hemi"
-  echo "   --rh-only : only use right hemi"
-  echo "   --slope1 slope1 : cost slope for 1st stage (default is $Slope1)"
-  echo "   --slope2  slope2 : cost slope for 2nd stage (default is $Slope2)"
-  echo "   --offset2 offset2 : cost offset for 2nd stage (default is $Offset2)"
-  echo "   --tol tol : 2nd stage loop tolerance (same as --tolf)"
-  echo "   --tolf  tolf : 2nd stage loop tolerance (same as --tol)"
-  echo "   --tol1d tol1d : 2nd stage 1D tolerance "
-  echo "   --nmax nPowellMax : set max number of iterations (default $nPowellMax)"
-  echo "   --rand-init randmax : randomly change input to 1st stage reg"
-  echo "   --gm-proj-frac frac : default is 0.5"
-  echo "   --gm-proj-abs abs   : use absolute instead of relative"
-  echo "   --wm-proj-abs  dist : 2nd stage, default is 2mm"
-  echo "   --proj-abs  dist : use wm and gm proj abs in 2nd stage"
-  echo "   --subsamp nsub : 2nd stage vertex subsampling, default is 1"
-  echo "   --nearest  : 2nd stage, use nearest neighbor interp (defalt is trilinear)"
-  echo "   --epi-mask : mask out brain edge and B0 regions (1st and 2nd stages)"
-  echo "   --brute1max max     : pass 1 search -max to +max (default $Brute1Max)"
-  echo "   --brute1delta delta : pass 1 search -max to +max step delta (default $Brute1Delta)" 
-  echo "   --subsamp1 nsubsamp  : pass 1 vertex subsampling (default $nSubSamp)"
-  echo "   --no-pass1 : turn off pass 1"
-  echo ""
-  echo "   --surf-cost basename : saves final cost as basename.?h.mgh"
-  echo "   --surf-con  basename : saves final contrast as basename.?h.mgh"
-  echo "   --init-reg-out outinitreg : save initial reg"
-  echo "   --spm-nii : use nifti with spm (requires spm5 or 8)"
-  echo ""
-  echo "   --tmp tmpdir  : temporary dir (implies --nocleanup)"
-  echo "   --nocleanup  : do not delete temporary files"
-  echo "   --version : print version and exit"
-  echo "   --help    : print help and exit"
-  echo ""
 
-  if($PrintHelp) \
-  cat $0 | awk 'BEGIN{prt=0}{if(prt) print $0; if($1 == "BEGINHELP") prt = 1 }'
+if($PrintHelp) then
+  cat $0 | \
+    awk 'BEGIN{prt=0}{if(prt) print $0; if($1 == "BEGINHELP") prt = 1 }'
+else
+  echo "Usage: bbregister --s <subj> --mov <volid> --reg <regfile> --init-<type> --<contrast>"
+  echo "Help:  bbregister --help"
+endif
 
 exit 1;
 
-#---- Everything below here is printed out as part of help -----#
+#---- Everything below is printed out as part of help -----#
+#-- During make install, the output of 'fsPrintHelp bbregister.help.xml' -- #
+#-- is concatenated to this file --#
 BEGINHELP
-
-This program performs within-subject, cross-modal registration using a
-boundary-based cost function. The registration is constrained to be 6
-DOF (rigid). It is required that you have an anatomical scan of the
-subject that has been analyzed in freesurfer.
-
-INPUTS (all required)
-
---s subject 
-
-Subject name as found in $SUBJECTS_DIR.
-
---mov movvol
-
-"Moveable" volume. This is the template for the cross-modal volume. Eg,
-for fMRI, it is the volume used for motion correction. 
-
---reg register.dat
-
-Output FreeSurfer (tkregister-style) registration file (simple text).
-
-INITIALIZATION METHODS (Choose One)
-
---init-fsl
-
-Initialize using FSL FLIRT (requires that FSL be installed)
-
---init-spm
-
-Initialize using SPM spm_coreg (requires that SPM and matlab be installed)
-
---init-header
-
-Assume that the geometry information in the cross-modal and anatomical
-are sufficient to get a close voxel-to-voxel registration. This
-usually is only the case if they were acquired in the same session.
-
---init-reg register.init.dat
-
-Supply an initial registration matrix.
-
-CONTRAST (Choose One)
-
-There are only two types of contrast that bbregister understands:
-  1. Gray matter brighter than white matter (--t2, --bold, --dti)
-  2. White matter brighter than gray matter (--t1)
-
-OTHER ARGUMENTS
-
---int intvol
-
-Supply a volume to use an an intermediate volume when performing
-registration. This is useful for when the cross-modal is volume is a
-partial field-of-view (FoV). If you acquire in the same session a
-whole-head FoV, then pass the whole-head as the intermediate and the
-partial as the moveable.
-
---spm-nii
-
-Use NIFTI format as input to SPM when using --init-spm (spmregister).
-Ordinarily, it uses ANALYZE images to be compatible with older
-versions of SPM, but this has caused some left-right reversals in
-SPM8.
-
-(requires "newer" versions of SPM). 
-Ordinarily, 
-
-
-TOLERANCES
-
-There are three tolerances that can be set:
-1. The 1D minimization tolerance (--tol1d, default 1e-3).
-2. Loop tolerance (--tolf, default 1e-8).
-3. The maximum number of iterations (36).
-
-Be careful making these more stringent as they can cause 
-underflows and NaNs.
-
-
-EXAMPLES:
-
-1. Intialize with FLIRT, view result with tkregister2:
-
-     bbregister --s bert --mov func.nii --init-fsl --reg register.dat
-     tkregister2 --mov func.nii --reg register.dat --surf
-
-2. Intialize with SPM, view result with tkregister2:
-
-     bbregister --s bert --mov func.nii --init-spm --reg register.dat
-     tkregister2 --mov func.nii --reg register.dat --surf
-
-3. Register a partial FoV using whole FoV as intermdediate:
-
-     bbregister --s bert --mov partial.nii --init-fsl \
-       --int whole.nii --reg register.partial.dat
-     tkregister2 --mov partial.nii --reg register.partial.dat --surf
-

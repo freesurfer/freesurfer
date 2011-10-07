@@ -1,0 +1,157 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<!DOCTYPE help [
+<!ENTITY lt "#38;#60;">
+<!ENTITY gt "&#62;">
+<!ENTITY amp "&#38;#38;">
+<!ELEMENT help (name , synopsis , description , arguments+ , outputs* , example* , bugs* , reporting* , see-also*)*>
+<!ELEMENT name (#PCDATA)>
+<!ELEMENT synopsis (#PCDATA)>
+<!ELEMENT description (#PCDATA)>
+<!ELEMENT arguments (positional* , required-flagged* , optional-flagged*)*>
+<!ELEMENT positional (intro* , argument* , explanation*)*>
+<!ELEMENT required-flagged (intro* , argument* , explanation*)*>
+<!ELEMENT optional-flagged (intro* , argument* , explanation*)*>
+<!ELEMENT intro (#PCDATA)>
+<!ELEMENT argument (#PCDATA)>
+<!ELEMENT explanation (#PCDATA)>
+<!ELEMENT outputs (output* , explanation*)>
+<!ELEMENT output (#PCDATA)>
+<!ELEMENT example (#PCDATA)>
+<!ELEMENT bugs (#PCDATA)>
+<!ELEMENT reporting (#PCDATA)>
+<!ELEMENT see-also (#PCDATA)>
+]>
+
+<help>
+	<name>bbregister</name>
+	<synopsis>bbregister --s &lt;subj&gt; --mov &lt;volid&gt; --reg &lt;regfile&gt; \
+&#09;--init-&lt;type&gt; --&lt;contrast&gt;</synopsis>
+	<description>This program performs within-subject, cross-modal registration using a boundary-based cost function. The registration is constrained to be 6 DOF (rigid). It is required that you have an anatomical scan of the subject that has been analyzed in freesurfer.</description>
+  <arguments>
+    <positional><intro>None</intro></positional>
+    <required-flagged>
+      <argument>--s subject</argument>
+      <explanation>FreeSurfer subject name as found in $SUBJECTS_DIR.</explanation>
+      <argument>--mov volid</argument>
+      <explanation>"Moveable" volume. This is the template for the cross-modal volume. Eg, for fMRI, it is the volume used for motion correction.</explanation>
+      <argument>--reg register.dat</argument>
+      <explanation>Output FreeSurfer (tkregister-style) registration file (simple text).</explanation>
+      <intro>Initialization Arguments (one required)</intro>
+      <argument>--init-fsl</argument>
+      <explanation>Initialize using FSL FLIRT (requires that FSL be installed).</explanation>
+      <argument>--init-spm</argument>
+      <explanation>Initialize using SPM spm_coreg (requires that SPM and matlab be installed).</explanation>
+      <argument>--init-header</argument>
+      <explanation>Assume that the geometry information in the cross-modal and anatomical are sufficient to get a close voxel-to-voxel registration. This usually is only the case if they were acquired in the same session.</explanation>
+      <argument>--init-reg initregfile</argument>
+      <explanation>Supply an initial registration matrix.</explanation>
+      <intro>Contrast Arguments (one required)</intro>
+      <argument>--t1</argument>
+      <explanation>Assume t1 contrast, ie, White Matter brighter than Grey Matter</explanation>
+      <argument>--t2</argument>
+      <explanation>Assume t2 contrast, ie, Gray Matter brighter than White Matter</explanation>
+      <argument>--bold</argument>
+      <explanation>Same as --t2</explanation>
+      <argument>--dti</argument>
+      <explanation>Same as --t2</explanation>
+    </required-flagged>
+    <optional-flagged>
+      <argument>--int intvol</argument>
+      <explanation>Supply a volume to use an an intermediate volume when performing registration. This is useful for when the cross-modal is volume is a partial field-of-view (FoV). If you acquire in the same session a whole-head FoV, then pass the whole-head as the intermediate and the partial as the moveable.</explanation>
+      <argument>--mid-frame</argument>
+      <explanation>reg to middle frame (not with --frame)</explanation>
+      <argument>--frame frameno</argument>
+      <explanation>reg to frameno (default 0=1st)</explanation>
+      <argument>--template-out template</argument>
+      <explanation>save template (good with --frame)</explanation>
+      <argument>--o outvol</argument>
+      <explanation>resample mov and save as outvol</explanation>
+      <argument>--s-from-reg reg</argument>
+      <explanation>get subject name from regfile</explanation>
+      <argument>--rms rmsfile</argument>
+      <explanation>RMS change in cortical surface position</explanation>
+      <argument>--fslmat flirt.mtx</argument>
+      <explanation>output an FSL FLIRT matrix</explanation>
+      <argument>--lh-only</argument>
+      <explanation>only use left hemi</explanation>
+      <argument>--rh-only</argument>
+      <explanation>only use right hemi</explanation>
+      <argument>--slope1 slope1</argument>
+      <explanation>cost slope for 1st stage (default is 0.5)</explanation>
+      <argument>--slope2  slope2</argument>
+      <explanation>cost slope for 2nd stage (default is 0.5)</explanation>
+      <argument>--offset2 offset2</argument>
+      <explanation>cost offset for 2nd stage (default is 0)</explanation>
+      <argument>--tol1d tol1d</argument>
+      <explanation>2nd stage 1D tolerance </explanation>
+      <argument>--tol tol</argument>
+      <explanation>2nd stage loop tolerance (same as --tolf)</explanation>
+      <argument>--tolf  tolf</argument>
+      <explanation>2nd stage loop tolerance (same as --tol)</explanation>
+      <intro>Be careful making these more stringent as they can cause underflows and NaNs.</intro>
+      <argument>--nmax nPowellMax</argument>
+      <explanation>set max number of iterations (default 36)</explanation>
+      <argument>--rand-init randmax</argument>
+      <explanation>randomly change input to 1st stage reg</explanation>
+      <argument>--gm-proj-frac frac</argument>
+      <explanation>default is 0.5</explanation>
+      <argument>--gm-proj-abs abs</argument>
+      <explanation>use absolute instead of relative</explanation>
+      <argument>--wm-proj-abs  dist</argument>
+      <explanation>2nd stage, default is 2mm</explanation>
+      <argument>--proj-abs  dist</argument>
+      <explanation>use wm and gm proj abs in 2nd stage</explanation>
+      <argument>--subsamp nsub</argument>
+      <explanation>2nd stage vertex subsampling, default is 1</explanation>
+      <argument>--nearest</argument>
+      <explanation>2nd stage, use nearest neighbor interp (defalt is trilinear)</explanation>
+      <argument>--epi-mask</argument>
+      <explanation>mask out brain edge and B0 regions (1st and 2nd stages)</explanation>
+      <argument>--no-cortex-label</argument>
+      <explanation>Do not use ?h.cortex.label to mask. </explanation>
+      <argument>--label labelfile</argument>
+      <explanation>Use label to mask. </explanation>
+      <argument>--brute1max max</argument>
+      <explanation>pass 1 search -max to +max (default 4)</explanation>
+      <argument>--brute1delta delta</argument>
+      <explanation>pass 1 search -max to +max step delta (default 4)</explanation>
+      <argument>--subsamp1 nsubsamp</argument>
+      <explanation>pass 1 vertex subsampling (default 1)</explanation>
+      <argument>--no-pass1</argument>
+      <explanation>turn off pass 1</explanation>
+      <argument>--surf surfname</argument>
+      <explanation>change surface to surfname from ?h.white </explanation>
+      <argument>--surf-cost basename</argument>
+      <explanation>saves final cost as basename.?h.mgh</explanation>
+      <argument>--surf-con  basename</argument>
+      <explanation>saves final contrast as basename.?h.mgh</explanation>
+      <argument>--init-reg-out outinitreg</argument>
+      <explanation>save initial reg</explanation>
+      <argument>--initcost initcostfile</argument>
+      <explanation>save initial cost</explanation>
+      <argument>--spm-nii</argument>
+      <explanation>Use NIFTI format as input to SPM when using --init-spm (spmregister). Ordinarily, it uses ANALYZE images to be compatible with older versions of SPM, but this has caused some left-right reversals in SPM8.</explanation>
+      <argument>--feat featdir</argument>
+      <explanation>FSL FEAT directory. Sets mov to featdir/example_func, uses --init-fsl, --bold, sets reg to featdir/reg/freesurfer/anat2exf.register.dat. This replaces reg-feat2anat.</explanation>
+      <argument>--tmp tmpdir</argument>
+      <explanation>temporary dir (implies --nocleanup)</explanation>
+      <argument>--nocleanup</argument>
+      <explanation>do not delete temporary files</explanation>
+      <argument>--version</argument>
+      <explanation>print version and exit</explanation>
+      <argument>--help</argument>
+      <explanation>print help and exit</explanation>
+    </optional-flagged>
+  </arguments>
+	<example>Intialize with FLIRT, view result with tkregister2:
+bbregister --s bert --mov func.nii --init-fsl --reg register.dat
+tkregister2 --mov func.nii --reg register.dat --surf </example>
+  <example>Intialize with SPM, view result with tkregister2:
+bbregister --s bert --mov func.nii --init-spm --reg register.dat
+tkregister2 --mov func.nii --reg register.dat --surf</example>
+  <example>Register a partial FoV using whole FoV as intermdediate:
+bbregister --s bert --mov partial.nii --init-fsl --int whole.nii --reg register.partial.dat
+tkregister2 --mov partial.nii --reg register.partial.dat --surf</example>
+  <reporting>Report bugs to &lt;freesurfer@nmr.mgh.harvard.edu&gt;</reporting>
+</help>
+
