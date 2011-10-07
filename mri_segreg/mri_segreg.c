@@ -7,20 +7,18 @@
  * Original Author: Greg Grev
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2010/05/05 17:47:38 $
- *    $Revision: 1.95 $
+ *    $Date: 2011/10/07 19:14:42 $
+ *    $Revision: 1.103.2.1 $
  *
- * Copyright (C) 2007-2009
- * The General Hospital Corporation (Boston, MA).
- * All rights reserved.
+ * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
- * Distribution, usage and copying of this software is covered under the
- * terms found in the License Agreement file named 'COPYING' found in the
- * FreeSurfer source code root directory, and duplicated here:
- * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ * Terms and conditions for use, reproduction, distribution and contribution
+ * are found in the 'FreeSurfer Software License Agreement' contained
+ * in the file 'LICENSE' found in the FreeSurfer distribution, and here:
  *
- * General inquiries: freesurfer@nmr.mgh.harvard.edu
- * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
+ *
+ * Reporting: freesurfer@nmr.mgh.harvard.edu
  *
  */
 
@@ -66,6 +64,7 @@
 
   --mask : mask out expected B0 regions
   --no-mask : do not mask out (default)
+  --no-cortex-label : do not use cortex label
 
   --lh-only : only use left hemisphere
   --rh-only : only use right hemisphere
@@ -109,11 +108,12 @@
   --param   ParamFile
   --rms     RMSDiffFile : saves Tx Ty Tz Ax Ay Az RMSDiff MinCost 
               WMMean CtxMean PctContrast C0 Slope NSubSamp UseMask
+  --surf surfname : use ?h.surfname instead of lh.white
   --surf-cost basename : saves as basename.?h.mgh
   --init-surf-cost basename0 : saves init cost as basename0.?h.mgh
   --surf-cost-diff diffbase : saves final-init cost as diffbase.?h.mgh
   --surf-con basename : saves final contrast as basename.?h.mgh
-
+  --cost-eval file.dat : save costs at each iteration
 
   ENDUSAGE ---------------------------------------------------------------
 */
@@ -216,7 +216,7 @@ double VertexCost(double vctx, double vwm, double slope,
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-"$Id: mri_segreg.c,v 1.95 2010/05/05 17:47:38 greve Exp $";
+"$Id: mri_segreg.c,v 1.103.2.1 2011/10/07 19:14:42 greve Exp $";
 char *Progname = NULL;
 
 int debug = 0, gdiagno = -1;
@@ -259,7 +259,6 @@ double NoiseStd;
 int DoProfile = 0;
 int n1dmin = 3;
 
-int DoPowell = 1;
 int nMaxItersPowell = 36;
 double TolPowell = 1e-8;
 double LinMinTolPowell = 1e-8;
@@ -296,6 +295,9 @@ char *surfconbase=NULL, *lhconfile=NULL, *rhconfile=NULL;
 char *surfcost0base=NULL, *lhcost0file=NULL, *rhcost0file=NULL;
 char *surfcostdiffbase=NULL;
 
+char *TargConLHFile=NULL,*TargConRHFile=NULL;
+MRI *TargConLH=NULL,*TargConRH=NULL;
+
 int UseLH = 1;
 int UseRH = 1;
 
@@ -303,6 +305,7 @@ MATRIX *MrotPre=NULL,*MtransPre=NULL,*MscalePre=NULL,*MshearPre=NULL;
 double TransRandMax = 0;
 double RotRandMax = 0;
 char *MinCostFile=NULL;
+char *InitCostFile=NULL;
 
 int DoRMSDiff = 1; // this is fast, so ok to do automatically
 char *RMSDiffFile = NULL;
@@ -349,7 +352,7 @@ int main(int argc, char **argv) {
   MATRIX *R=NULL, *R00=NULL, *Rdiff=NULL;
   struct timeb  mytimer;
   double secCostTime;
-  FILE *fp, *fpMinCost, *fpRMSDiff, *fpPreOpt=NULL, *fpRelCost, *fpParam;
+  FILE *fp, *fpMinCost, *fpInitCost, *fpRMSDiff, *fpPreOpt=NULL, *fpRelCost, *fpParam;
   double rmsDiffSum, rmsDiffMean=0, rmsDiffMax=0, d;
   double rcost0, rcost;
   VERTEX *v;
@@ -361,13 +364,13 @@ int main(int argc, char **argv) {
 
   make_cmd_version_string
     (argc, argv,
-     "$Id: mri_segreg.c,v 1.95 2010/05/05 17:47:38 greve Exp $",
+     "$Id: mri_segreg.c,v 1.103.2.1 2011/10/07 19:14:42 greve Exp $",
      "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
     (argc, argv,
-     "$Id: mri_segreg.c,v 1.95 2010/05/05 17:47:38 greve Exp $",
+     "$Id: mri_segreg.c,v 1.103.2.1 2011/10/07 19:14:42 greve Exp $",
      "$Name:  $");
   if(nargs && argc - nargs == 1) exit (0);
 
@@ -539,7 +542,7 @@ int main(int argc, char **argv) {
   }
 
   if(DoProfile){
-    printf("Profiling over 100 iterations\n");
+    printf("Profiling over 100 iterations, nsubsamp = %d\n",nsubsamp);
     TimerStart(&mytimer) ;
     for(n=0; n < 100; n++) GetSurfCosts(mov, NULL, R0, R, p, dof, costs);
     secCostTime = TimerStop(&mytimer)/1000.0;
@@ -556,6 +559,7 @@ int main(int argc, char **argv) {
     exit(0);
   }
 
+  GetSurfCosts(mov, NULL, R0, R, p, dof, costs);
   fprintf(fp,"Initial costs ----------------\n");
   fprintf(fp,"Number of surface hits %d\n",(int)costs[0]);  
   fprintf(fp,"WM  Intensity0 %10.4lf +/- %8.4lf\n",costs[1],costs[2]); 
@@ -572,6 +576,12 @@ int main(int argc, char **argv) {
   printf("Pct Contrast  %10.4lf +/- %8.4lf\n",costs[6],costs[3]); 
   printf("Cost %8.4lf\n",costs[7]); 
   printf("RelCost %8.4lf\n",rcost0);
+  if(InitCostFile){
+    fpInitCost = fopen(InitCostFile,"w");
+    //MinCost, WMMean, CtxMean, PctContrast
+    fprintf(fpInitCost,"%lf %lf %lf %lf \n",costs[7],costs[1],costs[4],costs[6]);
+    fclose(fpInitCost);
+  }
 
   if(costs[6] < 0 && PenaltySign < 0) PrintT1Warning = 1;
   if(PrintT1Warning){
@@ -804,14 +814,24 @@ int main(int argc, char **argv) {
     fclose(fpParam);
   }
 
-  printf("Costs at optimum\n");
-  printf("%7d %10.4lf %8.4lf ",
-	 (int)costs[0],costs[1],costs[2]); // WM  n mean std
-  printf("%10.4lf %10.4lf %8.4lf ",
-	 costs[3],costs[4],costs[5]); // CTX n mean std
-  printf("%8.4lf %8.4lf ",costs[6],costs[7]); // t, cost=1/t
-  printf("\n");
-  
+  GetSurfCosts(mov, NULL, R0, R, p, dof, costs);
+  fprintf(fp,"Final costs ----------------\n");
+  fprintf(fp,"Number of surface hits %d\n",(int)costs[0]);  
+  fprintf(fp,"WM  Intensity0 %10.4lf +/- %8.4lf\n",costs[1],costs[2]); 
+  fprintf(fp,"Ctx Intensity0 %10.4lf +/- %8.4lf\n",costs[4],costs[5]); 
+  fprintf(fp,"Pct Contrast0  %10.4lf +/- %8.4lf\n",costs[6],costs[3]); 
+  fprintf(fp,"Cost %8.4lf\n",costs[7]); 
+  fprintf(fp,"RelCost %8.4lf\n",rcost0);
+  fflush(fp);
+
+  printf("Final costs ----------------\n");
+  printf("Number of surface hits %d\n",(int)costs[0]);  
+  printf("WM  Intensity %10.4lf +/- %8.4lf\n",costs[1],costs[2]); 
+  printf("Ctx Intensity %10.4lf +/- %8.4lf\n",costs[4],costs[5]); 
+  printf("Pct Contrast  %10.4lf +/- %8.4lf\n",costs[6],costs[3]); 
+  printf("Cost %8.4lf\n",costs[7]); 
+  printf("RelCost %8.4lf\n",rcost0);
+
   printf("Reg at min cost was \n");
   MatrixPrint(stdout,R);
   printf("\n");
@@ -870,7 +890,7 @@ int main(int argc, char **argv) {
       getVolGeom(anat, &lt->src) ;
       getVolGeom(mov, &lt->dst) ;
       strcpy(lt->dst.fname, movvolfile) ;
-      lta->type = LINEAR_CORONAL_RAS_TO_CORONAL_RAS ;
+      lta->type = REGISTER_DAT ;
       LTAwriteEx(lta, outregfile) ;
       LTAfree(&lta) ;
     }
@@ -1005,10 +1025,9 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--version"))  print_version() ;
     else if (!strcasecmp(option, "--debug"))    debug = 1;
     else if (!strcasecmp(option, "--profile"))  DoProfile = 1;
-    else if (!strcasecmp(option, "--powell"))   DoPowell = 1;
-    else if (!strcasecmp(option, "--no-powell")) DoPowell = 0;
     else if (!strcasecmp(option, "--abs"))       DoAbs = 1;
     else if (!strcasecmp(option, "--no-abs"))    DoAbs = 0;
+    else if (!strcasecmp(option, "--no-cortex-label")) UseCortexLabel = 0;
     else if (!strcasecmp(option, "--brute_trans")){
       if (nargc < 3) argnerr(option,3);
       nargsused = 3;
@@ -1065,6 +1084,10 @@ static int parse_commandline(int argc, char **argv) {
       mask_label = LabelRead(NULL, pargv[0]) ;
       if (mask_label == NULL)
         ErrorExit(ERROR_NOFILE, "%s: could not read label %s", Progname, pargv[0]) ;
+      nargsused = 1;
+    }
+    else if (!strcasecmp(option, "--surf")) {
+      surfname = pargv[0];
       nargsused = 1;
     }
     else if (!strcasecmp(option, "--lh-only")){ UseLH = 1; UseRH = 0;}
@@ -1169,6 +1192,11 @@ static int parse_commandline(int argc, char **argv) {
     else if (istringnmatch(option, "--o",0)) {
       if (nargc < 1) argnerr(option,1);
       outfile = pargv[0];
+      nargsused = 1;
+    } 
+    else if (istringnmatch(option, "--cost-eval",0)) {
+      if (nargc < 1) argnerr(option,1);
+      costfile_powell = pargv[0];
       nargsused = 1;
     } 
     else if (istringnmatch(option, "--relcost",0)) {
@@ -1307,11 +1335,17 @@ static int parse_commandline(int argc, char **argv) {
       PenaltySign = +1;
       sscanf(pargv[0],"%lf",&PenaltySlope);
       nargsused = 1;
-    } else if (istringnmatch(option, "--penalty-abs",0)) {
+    } 
+    else if (istringnmatch(option, "--penalty-abs",0)) {
       // no direction of contrast expected
       PenaltySign = 0;
       nargsused = 1;
-    } else if (istringnmatch(option, "--fwhm",0)) {
+    } 
+    else if (istringnmatch(option, "--ignore-neg",0)) {
+      PenaltySign = -2;
+      nargsused = 1;
+    } 
+    else if (istringnmatch(option, "--fwhm",0)) {
       if (nargc < 1) argnerr(option,1);
       sscanf(pargv[0],"%lf",&fwhm);
       gstd = fwhm/sqrt(log(256.0));
@@ -1409,14 +1443,28 @@ static int parse_commandline(int argc, char **argv) {
       if (nargc < 1) argnerr(option,1);
       sscanf(pargv[0],"%d",&gdiagno);
       nargsused = 1;
-    } else if (istringnmatch(option, "--cost",0)) {
+    } 
+    else if (istringnmatch(option, "--cost",0)) {
       if (nargc < 1) argnerr(option,1);
       SegRegCostFile = pargv[0];
       nargsused = 1;
     } 
+    else if (istringnmatch(option, "--targ-con",0)) {
+      if(nargc < 2) argnerr(option,2);
+      TargConLHFile = pargv[0];
+      TargConRHFile = pargv[1];
+      TargConLH = MRIread(TargConLHFile);
+      TargConRH = MRIread(TargConRHFile);
+      nargsused = 2;
+    } 
     else if (istringnmatch(option, "--mincost",0)) {
       if (nargc < 1) argnerr(option,1);
       MinCostFile = pargv[0];
+      nargsused = 1;
+    } 
+    else if (istringnmatch(option, "--initcost",0)) {
+      if (nargc < 1) argnerr(option,1);
+      InitCostFile = pargv[0];
       nargsused = 1;
     } 
     else if (istringnmatch(option, "--param",0)) {
@@ -1514,6 +1562,7 @@ printf("  --label <label file> : only use the portion of the surface in the labe
 printf("\n");
 printf("  --mask : mask out expected B0 regions\n");
 printf("  --no-mask : do not mask out (default)\n");
+printf("  --no-cortex-label : do not use cortex label\n");
 printf("\n");
 printf("  --lh-only : only use left hemisphere\n");
 printf("  --rh-only : only use right hemisphere\n");
@@ -1554,9 +1603,11 @@ printf("  --1dmin : use brute force 1D minimizations instead of powell\n");
 printf("  --n1dmin n1dmin : number of 1d minimization (default = 3)\n");
 printf("\n");
 printf("  --mincost MinCostFile\n");
+printf("  --initcost InitCostFile\n");
 printf("  --param   ParamFile\n");
 printf("  --rms     RMSDiffFile : saves Tx Ty Tz Ax Ay Az RMSDiff MinCost \n");
 printf("              WMMean CtxMean PctContrast C0 Slope NSubSamp UseMask\n");
+printf("  --surf surfname : use ?h.surfname instead of lh.white\n");
 printf("  --surf-cost basename : saves final cost as basename.?h.mgh\n");
 printf("  --init-surf-cost basename0 : saves init cost as basename0.?h.mgh\n");
 printf("  --surf-cost-diff diffbase : saves final-init cost as diffbase.?h.mgh\n");
@@ -1652,7 +1703,6 @@ static void dump_options(FILE *fp)
   fprintf(fp,"rhcostfile %s\n",rhcostfile);
   fprintf(fp,"interp  %s (%d)\n",interpmethod,interpcode);
   fprintf(fp,"frame  %d\n",frame);
-  fprintf(fp,"DoPowell  %d\n",DoPowell);
   fprintf(fp,"TolPowell %lf\n",TolPowell);
   fprintf(fp,"nMaxItersPowell %d\n",nMaxItersPowell);
   fprintf(fp,"n1dmin  %d\n",n1dmin);
@@ -1772,13 +1822,14 @@ float compute_powell_cost(float *p)
 
   if(costfile_powell != NULL){
     // write costs to file
-    fp = fopen(costfile_powell,"a");
+    if(nCostEvaluations == 0) fp = fopen(costfile_powell,"w");
+    else                      fp = fopen(costfile_powell,"a");
     fprintf(fp,"%4d ",nCostEvaluations);
     fprintf(fp,"%6.3lf %6.3lf %6.3lf ",pp[0],pp[1],pp[2]);
     fprintf(fp,"%6.3lf %6.3lf %6.3lf ",pp[3],pp[4],pp[5]);
     if(dof > 6) fprintf(fp,"sc: %4.3lf %4.3lf %4.3lf ",pp[6],pp[7],pp[8]);
     if(dof > 9) fprintf(fp,"sh: %6.3lf %6.3lf %6.3lf ",pp[9],pp[10],pp[11]);
-    fprintf(fp,"  %8.5lf %8.5lf\n",costs[7],copt);
+    fprintf(fp,"  %8.5lf %8.5lf %7d\n",costs[7],copt,(int)costs[0]);
     //fprintf(fp,"%7d %10.4lf %8.4lf ",
 	//    (int)costs[0],costs[1],costs[2]); // WM  n mean std
     //fprintf(fp,"%10.4lf %10.4lf %8.4lf ",
@@ -2006,6 +2057,10 @@ double VertexCost(double vctx, double vwm, double slope,
   if(sign ==  0) a = -fabs(slope*(d-center)); // not sure this is useful
   if(sign == -1) a = -(slope*(d-center));
   if(sign == +1) a = +(slope*(d-center));
+  if(sign == -2){
+    if(d >= 0) a = -(slope*(d-center));
+    else       a = 0;
+  }
   c = 1+tanh(a);
   *pct = d;
   return(c);
@@ -2028,7 +2083,7 @@ double *GetSurfCosts(MRI *mov, MRI *notused, MATRIX *R0, MATRIX *R,
   extern double PenaltySlope;
   extern int nsubsamp;
   extern int interpcode;
-  double angles[3],d,dsum,dsum2,dstd,dmean,vwm,vctx,c,csum,csum2,cstd,cmean;
+  double angles[3],d,dsum,dsum2,dstd,dmean,vwm,vctx,c,csum,csum2,cstd,cmean,val;
   MATRIX *Mrot=NULL, *Mtrans=NULL, *Mscale=NULL, *Mshear=NULL;
   int nhits,n;
   //FILE *fp;
@@ -2104,8 +2159,7 @@ double *GetSurfCosts(MRI *mov, MRI *notused, MATRIX *R0, MATRIX *R,
   //fp = fopen("tmp.dat","w");
   if(UseLH){
     for(n = 0; n < lhwm->nvertices; n += nsubsamp){
-      if (lhwm->vertices[n].ripflag != 0)
-        continue ;
+      if (lhwm->vertices[n].ripflag != 0) continue ;
       if(lhcostfile || lhcost0file) MRIsetVoxVal(lhcost,n,0,0,0,0.0);
       if(lhconfile)  MRIsetVoxVal(lhcon,n,0,0,0,0.0);
       if(lhCortexLabel && MRIgetVoxVal(lhCortexLabel,n,0,0,0) < 0.5) continue;
@@ -2121,6 +2175,10 @@ double *GetSurfCosts(MRI *mov, MRI *notused, MATRIX *R0, MATRIX *R,
       costs[4] += vctx;
       costs[5] += (vctx*vctx);
       c = VertexCost(vctx, vwm, PenaltySlope, PenaltyCenter, PenaltySign, &d);
+      if(TargConLH){
+	val = MRIgetVoxVal(TargConLH,n,0,0,0);
+	c = (d-val)*(d-val);
+      }
       dsum += d;
       dsum2 += (d*d);
       csum += c;
@@ -2149,6 +2207,10 @@ double *GetSurfCosts(MRI *mov, MRI *notused, MATRIX *R0, MATRIX *R,
       costs[4] += vctx;
       costs[5] += (vctx*vctx);
       c = VertexCost(vctx, vwm, PenaltySlope, PenaltyCenter, PenaltySign, &d);
+      if(TargConRH){
+	val = MRIgetVoxVal(TargConRH,n,0,0,0);
+	c = (d-val)*(d-val);
+      }
       dsum += d;
       dsum2 += (d*d);
       csum += c;
@@ -2175,6 +2237,7 @@ double *GetSurfCosts(MRI *mov, MRI *notused, MATRIX *R0, MATRIX *R,
   costs[4] = costs[4]/nhits; // ctx mean
   costs[6] = dmean; // percent contrast
   costs[7] = cmean;
+  if(nhits == 0) costs[7] = 10.0; 
 
   if(UseLH){
     //MRIfree(&vlhwm);
