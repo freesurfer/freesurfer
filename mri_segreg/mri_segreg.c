@@ -6,9 +6,9 @@
 /*
  * Original Author: Greg Grev
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:24 $
- *    $Revision: 1.103 $
+ *    $Author: greve $
+ *    $Date: 2011/10/07 19:14:17 $
+ *    $Revision: 1.104 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -216,7 +216,7 @@ double VertexCost(double vctx, double vwm, double slope,
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-"$Id: mri_segreg.c,v 1.103 2011/03/02 00:04:24 nicks Exp $";
+"$Id: mri_segreg.c,v 1.104 2011/10/07 19:14:17 greve Exp $";
 char *Progname = NULL;
 
 int debug = 0, gdiagno = -1;
@@ -305,6 +305,7 @@ MATRIX *MrotPre=NULL,*MtransPre=NULL,*MscalePre=NULL,*MshearPre=NULL;
 double TransRandMax = 0;
 double RotRandMax = 0;
 char *MinCostFile=NULL;
+char *InitCostFile=NULL;
 
 int DoRMSDiff = 1; // this is fast, so ok to do automatically
 char *RMSDiffFile = NULL;
@@ -351,7 +352,7 @@ int main(int argc, char **argv) {
   MATRIX *R=NULL, *R00=NULL, *Rdiff=NULL;
   struct timeb  mytimer;
   double secCostTime;
-  FILE *fp, *fpMinCost, *fpRMSDiff, *fpPreOpt=NULL, *fpRelCost, *fpParam;
+  FILE *fp, *fpMinCost, *fpInitCost, *fpRMSDiff, *fpPreOpt=NULL, *fpRelCost, *fpParam;
   double rmsDiffSum, rmsDiffMean=0, rmsDiffMax=0, d;
   double rcost0, rcost;
   VERTEX *v;
@@ -363,13 +364,13 @@ int main(int argc, char **argv) {
 
   make_cmd_version_string
     (argc, argv,
-     "$Id: mri_segreg.c,v 1.103 2011/03/02 00:04:24 nicks Exp $",
+     "$Id: mri_segreg.c,v 1.104 2011/10/07 19:14:17 greve Exp $",
      "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
     (argc, argv,
-     "$Id: mri_segreg.c,v 1.103 2011/03/02 00:04:24 nicks Exp $",
+     "$Id: mri_segreg.c,v 1.104 2011/10/07 19:14:17 greve Exp $",
      "$Name:  $");
   if(nargs && argc - nargs == 1) exit (0);
 
@@ -575,6 +576,12 @@ int main(int argc, char **argv) {
   printf("Pct Contrast  %10.4lf +/- %8.4lf\n",costs[6],costs[3]); 
   printf("Cost %8.4lf\n",costs[7]); 
   printf("RelCost %8.4lf\n",rcost0);
+  if(InitCostFile){
+    fpInitCost = fopen(InitCostFile,"w");
+    //MinCost, WMMean, CtxMean, PctContrast
+    fprintf(fpInitCost,"%lf %lf %lf %lf \n",costs[7],costs[1],costs[4],costs[6]);
+    fclose(fpInitCost);
+  }
 
   if(costs[6] < 0 && PenaltySign < 0) PrintT1Warning = 1;
   if(PrintT1Warning){
@@ -1455,6 +1462,11 @@ static int parse_commandline(int argc, char **argv) {
       MinCostFile = pargv[0];
       nargsused = 1;
     } 
+    else if (istringnmatch(option, "--initcost",0)) {
+      if (nargc < 1) argnerr(option,1);
+      InitCostFile = pargv[0];
+      nargsused = 1;
+    } 
     else if (istringnmatch(option, "--param",0)) {
       if (nargc < 1) argnerr(option,1);
       ParamFile = pargv[0];
@@ -1591,6 +1603,7 @@ printf("  --1dmin : use brute force 1D minimizations instead of powell\n");
 printf("  --n1dmin n1dmin : number of 1d minimization (default = 3)\n");
 printf("\n");
 printf("  --mincost MinCostFile\n");
+printf("  --initcost InitCostFile\n");
 printf("  --param   ParamFile\n");
 printf("  --rms     RMSDiffFile : saves Tx Ty Tz Ax Ay Az RMSDiff MinCost \n");
 printf("              WMMean CtxMean PctContrast C0 Slope NSubSamp UseMask\n");

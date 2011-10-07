@@ -127,6 +127,8 @@
       <explanation>saves final contrast as basename.?h.mgh</explanation>
       <argument>--init-reg-out outinitreg</argument>
       <explanation>save initial reg</explanation>
+      <argument>--initcost initcostfile</argument>
+      <explanation>save initial cost</explanation>
       <argument>--spm-nii</argument>
       <explanation>Use NIFTI format as input to SPM when using --init-spm (spmregister). Ordinarily, it uses ANALYZE images to be compatible with older versions of SPM, but this has caused some left-right reversals in SPM8.</explanation>
       <argument>--feat featdir</argument>
