@@ -9,8 +9,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2011/10/07 01:40:43 $
- *    $Revision: 1.4 $
+ *    $Date: 2011/10/07 12:07:26 $
+ *    $Revision: 1.5 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -235,6 +235,7 @@ expand_mri_to_fit_surface(MRI_SURFACE *mris, MRI *mri)
   dy_dx = x1-x0 ; dy_dy = y1-y0 ; dy_dz = z1-z0 ;
   MRISsurfaceRASToVoxelCached(mris, mri, 0, 0, 1, &x1, &y1, &z1) ;
   dz_dx = x1-x0 ; dz_dy = y1-y0 ; dz_dz = z1-z0 ;
+  xmax=ymax=zmax=xmin=ymin=zmin=0 ;  // for compiler warnings
   for (vno = 0 ; vno < mris->nvertices ; vno++)
   {
     v = &mris->vertices[vno] ;
@@ -294,7 +295,7 @@ main(int argc, char *argv[])
   MRI          *mri = NULL ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_interpolate_warp.c,v 1.4 2011/10/07 01:40:43 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_interpolate_warp.c,v 1.5 2011/10/07 12:07:26 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
   {
     exit (0);
