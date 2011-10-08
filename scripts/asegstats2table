@@ -10,7 +10,7 @@ from fsutils import AsegStatsParser, BadFileError, aseglogger
 
 # Original Version - Douglas Greve, MGH
 # Rewrite - Krish Subramaniam, MGH
-# $Id: asegstats2table,v 1.33 2010/12/23 23:24:16 krish Exp $
+# $Id: asegstats2table,v 1.34 2011/10/08 04:48:35 greve Exp $
 
 # globals
 l = aseglogger
@@ -109,7 +109,7 @@ def options_parse():
     Command Line Options Parser for asegstats2table
     initiate the option parser and return the parsed object
     """
-    parser = optparse.OptionParser(version='$Id: asegstats2table,v 1.33 2010/12/23 23:24:16 krish Exp $', usage=HELPTEXT)
+    parser = optparse.OptionParser(version='$Id: asegstats2table,v 1.34 2011/10/08 04:48:35 greve Exp $', usage=HELPTEXT)
     
     # help text
     h_sub = '(REQUIRED) subject1 <subject2 subject3..>'
@@ -145,7 +145,7 @@ def options_parse():
     parser.add_option('-t', '--tablefile', dest='outputfile',
                       help=h_t)
     parser.add_option('-m', '--meas', dest='meas',
-                      choices=('volume','mean','std'),  default='volume', help=h_meas)
+                      choices=('volume','mean','std','snr'),  default='volume', help=h_meas)
     parser.add_option('--maxsegno', dest='maxsegno',
                        help=h_inp)
     parser.add_option('--segids-from-file', dest='segidsfile', help=h_segsfile)

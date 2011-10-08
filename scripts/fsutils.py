@@ -1,5 +1,5 @@
 # Original author - Krish Subramaniam
-# $Id: fsutils.py,v 1.5 2011/03/24 03:00:11 krish Exp $
+# $Id: fsutils.py,v 1.6 2011/10/08 04:48:35 greve Exp $
 import os
 import logging
 import sys
@@ -92,7 +92,7 @@ Derived from StatsParser
 """
 class AsegStatsParser(StatsParser):
 
-    measure_column_map = {'volume':3, 'mean':5, 'std':6}
+    measure_column_map = {'volume':3, 'mean':5, 'std':6, 'snr':10}
     maxsegno = None
     id_name_map = StableDict()
 
