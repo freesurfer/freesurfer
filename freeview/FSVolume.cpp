@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2011/09/29 18:54:26 $
- *    $Revision: 1.70 $
+ *    $Date: 2011/10/12 19:53:28 $
+ *    $Revision: 1.71 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -1327,6 +1327,7 @@ bool FSVolume::MapMRIToImage( )
     {
       double* rtv = this->GetVoxelToRASMatrix();
       int odim[3] = { m_MRI->width, m_MRI->height, m_MRI->depth };
+      /*;
       if ( fabs( rtv[0] ) > fabs( rtv[4] ) &&
            fabs( rtv[0] ) > fabs( rtv[8] ) )
       {
@@ -1386,8 +1387,99 @@ bool FSVolume::MapMRIToImage( )
         *MATRIX_RELT( m, 3, 4 ) = ( rtv[10] > 0 ? 0 : odim[2] - 1 );
         dim[2] = odim[2];
       }
+      */
+      double n[4] = {0, 0, 0, 1}, ras_orig[4], ras0[4], ras1[4], ras2[4];
+      vtkMatrix4x4::MultiplyPoint(rtv, n, ras_orig);
+      n[0] = 1;
+      vtkMatrix4x4::MultiplyPoint(rtv, n, ras0);
+      n[0] = 0; n[1] = 1;
+      vtkMatrix4x4::MultiplyPoint(rtv, n, ras1);
+      n[1] = 0; n[2] = 1;
+      vtkMatrix4x4::MultiplyPoint(rtv, n, ras2);
+      double delta0[3], delta1[3], delta2[3];
+      for (int i = 0; i < 3; i++)
+      {
+        delta0[i] = ras0[i]-ras_orig[i];
+        delta1[i] = ras1[i]-ras_orig[i];
+        delta2[i] = ras2[i]-ras_orig[i];
+      }
+      if ( fabs( delta0[0] ) >= fabs( delta0[1] ) &&
+           fabs( delta0[0] ) >= fabs( delta0[2] ) )
+      {
+        *MATRIX_RELT( m, 1, 1 ) = ( delta0[0] > 0 ? 1 : -1 );
+        *MATRIX_RELT( m, 1, 4 ) = ( delta0[0] > 0 ? 0 : odim[0] - 1 );
+        dim[0] = odim[0];
+
+        if (fabs(delta1[1]) >= fabs(delta1[2]))
+        {
+          *MATRIX_RELT( m, 2, 2 ) = ( delta1[1] > 0 ? 1 : -1 );
+          *MATRIX_RELT( m, 2, 4 ) = ( delta1[1] > 0 ? 0 : odim[1] - 1 );
+          dim[1] = odim[1];
+          *MATRIX_RELT( m, 3, 3 ) = ( delta2[2] > 0 ? 1 : -1 );
+          *MATRIX_RELT( m, 3, 4 ) = ( delta2[2] > 0 ? 0 : odim[2] - 1 );
+          dim[2] = odim[2];
+        }
+        else
+        {
+          *MATRIX_RELT( m, 3, 2 ) = ( delta1[2] > 0 ? 1 : -1 );
+          *MATRIX_RELT( m, 3, 4 ) = ( delta1[2] > 0 ? 0 : odim[1] - 1 );
+          dim[2] = odim[1];
+          *MATRIX_RELT( m, 2, 3 ) = ( delta2[1] > 0 ? 1 : -1 );
+          *MATRIX_RELT( m, 2, 4 ) = ( delta2[1] > 0 ? 0 : odim[2] - 1 );
+          dim[1] = odim[2];
+        }
+      }
+      else if ( fabs( delta0[1] ) >= fabs( delta0[2] ) )
+      {
+        *MATRIX_RELT( m, 2, 1 ) = ( delta0[1] > 0 ? 1 : -1 );
+        *MATRIX_RELT( m, 2, 4 ) = ( delta0[1] > 0 ? 0 : odim[0] - 1 );
+        dim[1] = odim[0];
+        if (fabs(delta1[0]) >= fabs(delta1[2]))
+        {
+          *MATRIX_RELT( m, 1, 2 ) = ( delta1[0] > 0 ? 1 : -1 );
+          *MATRIX_RELT( m, 1, 4 ) = ( delta1[0] > 0 ? 0 : odim[1] - 1 );
+          dim[0] = odim[1];
+          *MATRIX_RELT( m, 3, 3 ) = ( delta2[2] > 0 ? 1 : -1 );
+          *MATRIX_RELT( m, 3, 4 ) = ( delta2[2] > 0 ? 0 : odim[2] - 1 );
+          dim[2] = odim[2];
+        }
+        else
+        {
+          *MATRIX_RELT( m, 1, 3 ) = ( delta2[0] > 0 ? 1 : -1 );
+          *MATRIX_RELT( m, 1, 4 ) = ( delta2[0] > 0 ? 0 : odim[2] - 1 );
+          dim[0] = odim[2];
+          *MATRIX_RELT( m, 3, 2 ) = ( delta1[2] > 0 ? 1 : -1 );
+          *MATRIX_RELT( m, 3, 4 ) = ( delta1[2] > 0 ? 0 : odim[1] - 1 );
+          dim[2] = odim[1];
+        }
+      }
+      else
+      {
+        *MATRIX_RELT( m, 3, 1 ) = ( delta0[2] > 0 ? 1 : -1 );
+        *MATRIX_RELT( m, 3, 4 ) = ( delta0[2] > 0 ? 0 : odim[0] - 1 );
+        dim[2] = odim[0];
+        if (fabs(delta1[0]) >= fabs(delta1[1]))
+        {
+          *MATRIX_RELT( m, 1, 2 ) = ( delta1[0] > 0 ? 1 : -1 );
+          *MATRIX_RELT( m, 1, 4 ) = ( delta1[0] > 0 ? 0 : odim[1] - 1 );
+          dim[0] = odim[1];
+          *MATRIX_RELT( m, 2, 3 ) = ( delta2[1] > 0 ? 1 : -1 );
+          *MATRIX_RELT( m, 2, 4 ) = ( delta2[1] > 0 ? 0 : odim[2] - 1 );
+          dim[1] = odim[2];
+        }
+        else
+        {
+          *MATRIX_RELT( m, 2, 2 ) = ( delta1[1] > 0 ? 1 : -1 );
+          *MATRIX_RELT( m, 2, 4 ) = ( delta1[1] > 0 ? 0 : odim[1] - 1 );
+          dim[1] = odim[1];
+          *MATRIX_RELT( m, 1, 3 ) = ( delta2[0] > 0 ? 1 : -1 );
+          *MATRIX_RELT( m, 1, 4 ) = ( delta2[0] > 0 ? 0 : odim[2] - 1 );
+          dim[0] = odim[2];
+        }
+      }
 
       *MATRIX_RELT( m, 4, 4 ) = 1;
+
       rasMRI = MRIallocSequence( dim[0], dim[1], dim[2],
                                  m_MRI->type, m_MRI->nframes );
       if ( rasMRI == NULL )
@@ -2293,47 +2385,68 @@ void FSVolume::GetPixelSize( double* pixelSize )
     }
   }
 
-  double* m = GetVoxelToRASMatrix();
+  double* rtv = GetVoxelToRASMatrix();
   pixelSize[0] = m_MRI->xsize;
   pixelSize[1] = m_MRI->ysize;
   pixelSize[2] = m_MRI->zsize;
-  if ( fabs( m[0] ) > fabs( m[4] ) && fabs( m[0] ) > fabs( m[8] ) )
+  double n[4] = {0, 0, 0, 1}, ras_orig[4], ras0[4], ras1[4], ras2[4];
+  vtkMatrix4x4::MultiplyPoint(rtv, n, ras_orig);
+  n[0] = 1;
+  vtkMatrix4x4::MultiplyPoint(rtv, n, ras0);
+  n[0] = 0; n[1] = 1;
+  vtkMatrix4x4::MultiplyPoint(rtv, n, ras1);
+  n[1] = 0; n[2] = 1;
+  vtkMatrix4x4::MultiplyPoint(rtv, n, ras2);
+  double delta0[3], delta1[3], delta2[3];
+  for (int i = 0; i < 3; i++)
   {
-    pixelSize[0] = m_MRI->xsize;
+    delta0[i] = ras0[i]-ras_orig[i];
+    delta1[i] = ras1[i]-ras_orig[i];
+    delta2[i] = ras2[i]-ras_orig[i];
   }
-  else if ( fabs( m[4] ) > fabs( m[8] ) )
+  double vs[3] = { m_MRI->xsize, m_MRI->ysize, m_MRI->zsize };
+  if ( fabs( delta0[0] ) >= fabs( delta0[1] ) &&
+       fabs( delta0[0] ) >= fabs( delta0[2] ) )
   {
-    pixelSize[1] = m_MRI->xsize;
+    pixelSize[0] = vs[0];
+    if (fabs(delta1[1]) >= fabs(delta1[2]))
+    {
+      pixelSize[1] = vs[1];
+      pixelSize[2] = vs[2];
+    }
+    else
+    {
+      pixelSize[2] = vs[1];
+      pixelSize[1] = vs[2];
+    }
+  }
+  else if ( fabs( delta0[1] ) >= fabs( delta0[2] ) )
+  {
+     pixelSize[1] = vs[0];
+    if (fabs(delta1[0]) >= fabs(delta1[2]))
+    {
+      pixelSize[0] = vs[1];
+      pixelSize[2] = vs[2];
+    }
+    else
+    {
+      pixelSize[0] = vs[2];
+      pixelSize[2] = vs[1];
+    }
   }
   else
   {
-    pixelSize[2] = m_MRI->xsize;
-  }
-
-  if ( fabs( m[1] ) > fabs( m[5] ) && fabs( m[1] ) > fabs( m[9] ) )
-  {
-    pixelSize[0] = m_MRI->ysize;
-  }
-  else if ( fabs( m[5] ) > fabs( m[9] ) )
-  {
-    pixelSize[1] = m_MRI->ysize;
-  }
-  else
-  {
-    pixelSize[2] = m_MRI->ysize;
-  }
-
-  if ( fabs( m[2] ) > fabs( m[6] ) && fabs( m[2] ) > fabs( m[10] ) )
-  {
-    pixelSize[0] = m_MRI->zsize;
-  }
-  else if ( fabs( m[6] ) > fabs( m[10] ) )
-  {
-    pixelSize[1] = m_MRI->zsize;
-  }
-  else
-  {
-    pixelSize[2] = m_MRI->zsize;
+    pixelSize[2] = vs[0];
+    if (fabs(delta1[0]) >= fabs(delta1[1]))
+    {
+      pixelSize[0] = vs[1];
+      pixelSize[1] = vs[2];
+    }
+    else
+    {
+      pixelSize[1] = vs[1];
+      pixelSize[0] = vs[2];
+    }
   }
 }
 

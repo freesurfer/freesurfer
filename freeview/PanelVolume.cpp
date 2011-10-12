@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2011/09/29 18:54:26 $
- *    $Revision: 1.70 $
+ *    $Date: 2011/10/12 19:53:29 $
+ *    $Revision: 1.71 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -418,7 +418,8 @@ void PanelVolume::DoUpdateWidgets()
     ui->checkBoxProjectionMap->setChecked( layer->GetProperty()->GetShowProjectionMap());
 
     ui->checkBoxShowOutline->setChecked( layer->GetProperty()->GetShowLabelOutline() );
-  //  ui->checkBoxShowOutline->setVisible( nColorMap == LayerPropertyMRI::LUT );
+    ui->checkBoxShowOutline->setVisible( !layer->IsTypeOf("DTI") );
+    ui->checkBoxProjectionMap->setVisible(!layer->IsTypeOf("DTI") );
 
     //    ui->m_choiceUpSampleMethod->SetSelection( layer->GetProperty()->GetUpSampleMethod() );
     ui->checkBoxShowExistingLabels->setEnabled(!layer->GetAvailableLabels().isEmpty());

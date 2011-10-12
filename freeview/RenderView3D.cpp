@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2011/09/13 16:11:19 $
- *    $Revision: 1.60 $
+ *    $Date: 2011/10/12 19:53:29 $
+ *    $Revision: 1.61 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -172,18 +172,15 @@ void RenderView3D::UpdateSliceFrames()
 
   vtkSmartPointer<vtkPoints> points = vtkSmartPointer<vtkPoints>::New();
   vtkSmartPointer<vtkCellArray> lines = vtkSmartPointer<vtkCellArray>::New();
-  vtkSmartPointer<vtkCellArray> polys = vtkSmartPointer<vtkCellArray>::New();
   points->InsertPoint( 0, slicepos[0], bounds[2], bounds[4] );
   points->InsertPoint( 1, slicepos[0], bounds[2], bounds[5] );
   points->InsertPoint( 2, slicepos[0], bounds[3], bounds[5] );
   points->InsertPoint( 3, slicepos[0], bounds[3], bounds[4] );
   vtkIdType ids[5] = { 0, 1, 2, 3, 0 };
   lines->InsertNextCell( 5, ids );
-  polys->InsertNextCell( 4, ids );
   vtkSmartPointer<vtkPolyData> polydata = vtkSmartPointer<vtkPolyData>::New();
   polydata->SetPoints( points );
   polydata->SetLines( lines );
-//  polydata->SetPolys( polys );
   vtkPolyDataMapper::SafeDownCast(m_actorSliceFrames[0]->GetMapper())->SetInput( polydata );
 
   points = vtkSmartPointer<vtkPoints>::New();
@@ -194,7 +191,6 @@ void RenderView3D::UpdateSliceFrames()
   polydata = vtkSmartPointer<vtkPolyData>::New();
   polydata->SetPoints( points );
   polydata->SetLines( lines );
-//  polydata->SetPolys( polys );
   vtkPolyDataMapper::SafeDownCast(m_actorSliceFrames[1]->GetMapper())->SetInput( polydata );
 
   points = vtkSmartPointer<vtkPoints>::New();
@@ -205,7 +201,6 @@ void RenderView3D::UpdateSliceFrames()
   polydata = vtkSmartPointer<vtkPolyData>::New();
   polydata->SetPoints( points );
   polydata->SetLines( lines );
-//  polydata->SetPolys( polys );
   vtkPolyDataMapper::SafeDownCast(m_actorSliceFrames[2]->GetMapper())->SetInput( polydata );
 
   for ( int i = 0; i < 3; i++ )
