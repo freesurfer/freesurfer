@@ -7,8 +7,8 @@
  * Original Authors: Sebastien Gicquel and Douglas Greve, 06/04/2001
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2011/10/12 15:09:20 $
- *    $Revision: 1.137 $
+ *    $Date: 2011/10/12 19:41:05 $
+ *    $Revision: 1.138 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -103,7 +103,7 @@ MRI * sdcmLoadVolume(const char *dcmfile, int LoadVolume, int nthonly)
   char **SeriesList;
   char *tmpstring,*pc=NULL,*pc2=NULL;
   int Maj, Min, MinMin;
-  double xs,ys,zs,xe,ye,ze,d;
+  double xs,ys,zs,xe,ye,ze,d,MinSliceScaleFactor,val;
   int nnlist, nthdir;
   DTI *dti;
   int TryDTI = 1, DoDTI = 1;
@@ -384,6 +384,13 @@ MRI * sdcmLoadVolume(const char *dcmfile, int LoadVolume, int nthonly)
   /* ------- Go through each file in the Run ---------*/
   global_progress_range[0] = global_progress_range[1];
   global_progress_range[1] += (nend-nstart)/3;
+
+  MinSliceScaleFactor = sdfi_list[0]->SliceScaleFactor;
+  for(nthfile = 0; nthfile < nlist; nthfile ++)
+    if(MinSliceScaleFactor > sdfi_list[nthfile]->SliceScaleFactor)
+      MinSliceScaleFactor = sdfi_list[nthfile]->SliceScaleFactor;
+
+
   for (nthfile = 0; nthfile < nlist; nthfile ++)
   {
 
@@ -419,7 +426,11 @@ MRI * sdcmLoadVolume(const char *dcmfile, int LoadVolume, int nthonly)
         {
           for (col=0; col < ncols; col++)
           {
-            MRISseq_vox(vol,col,row,slice,frame) = (short)nint((*(pixeldata++))/sdfi->SliceScaleFactor);
+	    if(sdfi->UseSliceScaleFactor)
+	      val = 8*MinSliceScaleFactor*(*(pixeldata++))/sdfi->SliceScaleFactor;
+	    else
+	      val = *(pixeldata++);
+            MRISseq_vox(vol,col,row,slice,frame) = (short)nint(val);
           }
         }
       }
@@ -1664,12 +1675,14 @@ SDCMFILEINFO *GetSDCMFileInfo(const char *dcmfile)
   }
   sdcmfi->ImageNo = (int) ustmp;
 
+  sdcmfi->UseSliceScaleFactor=0;
   sdcmfi->SliceScaleFactor = 1;
   if(getenv("FS_NO_SLICE_SCALE_FACTOR") == NULL){
     tag=DCM_MAKETAG(0x20, 0x4000);
     cond=GetString(&object, tag, &strtmp);
     if(cond == DCM_NORMAL) sscanf(strtmp,"%*s %*s %lf",&sdcmfi->SliceScaleFactor);
     //printf("Slice Scale Factor %lf\n",sdcmfi->SliceScaleFactor);
+    sdcmfi->UseSliceScaleFactor=1;
   }
 
   tag=DCM_MAKETAG(0x18, 0x86);
