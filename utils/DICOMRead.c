@@ -6,9 +6,9 @@
 /*
  * Original Authors: Sebastien Gicquel and Douglas Greve, 06/04/2001
  * CVS Revision Info:
- *    $Author: rpwang $
- *    $Date: 2011/07/13 19:44:49 $
- *    $Revision: 1.136 $
+ *    $Author: greve $
+ *    $Date: 2011/10/12 15:09:20 $
+ *    $Revision: 1.137 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -419,7 +419,7 @@ MRI * sdcmLoadVolume(const char *dcmfile, int LoadVolume, int nthonly)
         {
           for (col=0; col < ncols; col++)
           {
-            MRISseq_vox(vol,col,row,slice,frame) = *(pixeldata++);
+            MRISseq_vox(vol,col,row,slice,frame) = (short)nint((*(pixeldata++))/sdfi->SliceScaleFactor);
           }
         }
       }
@@ -1663,6 +1663,14 @@ SDCMFILEINFO *GetSDCMFileInfo(const char *dcmfile)
     sdcmfi->ErrorFlag = 1;
   }
   sdcmfi->ImageNo = (int) ustmp;
+
+  sdcmfi->SliceScaleFactor = 1;
+  if(getenv("FS_NO_SLICE_SCALE_FACTOR") == NULL){
+    tag=DCM_MAKETAG(0x20, 0x4000);
+    cond=GetString(&object, tag, &strtmp);
+    if(cond == DCM_NORMAL) sscanf(strtmp,"%*s %*s %lf",&sdcmfi->SliceScaleFactor);
+    //printf("Slice Scale Factor %lf\n",sdcmfi->SliceScaleFactor);
+  }
 
   tag=DCM_MAKETAG(0x18, 0x86);
   cond=GetUSFromString(&object, tag, &ustmp);
