@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2011/10/12 19:53:28 $
- *    $Revision: 1.71 $
+ *    $Date: 2011/10/12 21:53:46 $
+ *    $Revision: 1.72 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -606,7 +606,7 @@ bool FSVolume::MRIWrite( const QString& filename, int nSampleMethod, bool resamp
     {
       *MATRIX_RELT(m, (i/4)+1, (i%4)+1) = mat->Element[i/4][i%4];
     }
-    if ( resample && MyUtils::IsOblique(mat->Element))
+    if ( resample ) // && MyUtils::IsOblique(mat->Element))
     {
       // find out the output voxel bounds
       float cornerFactor[3];
