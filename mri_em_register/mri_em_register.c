@@ -10,8 +10,8 @@
  * CUDA version : Richard Edgar
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2011/09/26 13:36:03 $
- *    $Revision: 1.92 $
+ *    $Date: 2011/10/12 01:35:00 $
+ *    $Revision: 1.93 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -152,6 +152,7 @@ static int center = 1 ;
 static int nreductions = 1 ;
 static int noscale = 0 ;
 static int noiscale = 0 ;
+static double prior_iscale = -1 ;
 static int num_xforms = 1 ;
 static int transform_loaded = 0 ;
 static char *gca_mean_fname = NULL ;
@@ -204,7 +205,7 @@ main(int argc, char *argv[])
   nargs =
     handle_version_option
     (argc, argv,
-     "$Id: mri_em_register.c,v 1.92 2011/09/26 13:36:03 fischl Exp $",
+     "$Id: mri_em_register.c,v 1.93 2011/10/12 01:35:00 fischl Exp $",
      "$Name:  $");
   if (nargs && argc - nargs == 1)
   {
@@ -1238,71 +1239,63 @@ find_optimal_transform
   *MATRIX_RELT(m_origin, 3, 4) = gca_means[2]*(float)center ;
   *MATRIX_RELT(m_origin, 4, 4) = 1 ;
 
-  if (transform_loaded)
+  if (passno == 0)
   {
-    if (!noiscale)
+    if (noiscale)     // default is noiscale = 0 and thus perform
     {
+      if (prior_iscale > 0)
+	MRIscalarMulFrame(mri, mri, prior_iscale, 0);
+    }
+    else   // perform histogram scaling
+    {
+      if (Gdiag & DIAG_WRITE && write_iterations > 0)
+      {
+	char fname[STRLEN] ;
+	MRI  *mri_aligned ;
+	
+	Glta->xforms[0].m_L = m_L ;
+	mri_aligned = MRIlinearTransform(mri, NULL, m_L) ;
+	GCAcopyDCToMRI(gca, mri_aligned) ;
+	sprintf(fname, "%s_before_intensity.mgz", parms.base_name) ;
+	printf("writing snapshot to %s...\n", fname) ;
+	fflush(stdout);
+	MRIwrite(mri_aligned, fname) ;
+	MRIfree(&mri_aligned) ;
+      }
       GCAhistoScaleImageIntensities(gca, mri, skull == 0) ;
     }
+
     //////////////// diagnostics ////////////////////////////////
     if (Gdiag & DIAG_WRITE && write_iterations > 0)
     {
       char fname[STRLEN] ;
       MRI  *mri_aligned ;
-
+      
       Glta->xforms[0].m_L = m_L ;
       mri_aligned = MRIlinearTransform(mri, NULL, m_L) ;
       GCAcopyDCToMRI(gca, mri_aligned) ;
-      sprintf(fname, "%s_after_intensity.mgz", parms.base_name) ;
+      sprintf(fname, "%s000.mgz", parms.base_name) ;
       printf("writing snapshot to %s...\n", fname) ;
       fflush(stdout);
       MRIwrite(mri_aligned, fname) ;
-      //      MRIwriteImageViews(mri_aligned, fname, IMAGE_SIZE) ;
+      sprintf(fname, "%s000", parms.base_name) ;
+      MRIwriteImageViews(mri_aligned, fname, IMAGE_SIZE) ;
+
+      sprintf(fname, "%s000_fsamples.mgz", parms.base_name) ;
+      GCAtransformAndWriteSamples(gca, mri, gcas, nsamples,
+				  fname, transform) ;
+      sprintf(fname, "%s000_pvals.mgz", parms.base_name) ;
+      GCAtransformAndWriteSamplePvals(gca, mri, gcas, nsamples,
+				      fname, transform) ;
+      sprintf(fname, "%s000_means.mgz", parms.base_name) ;
+      GCAtransformAndWriteSampleMeans
+	(gca, mri, parms.gcas, nsamples, fname, transform) ;
       MRIfree(&mri_aligned) ;
     }
   }
+
   if (passno == 0 && !transform_loaded)   /* only first time*/
   {
-#if 0
-    if (Gdiag & DIAG_WRITE && write_iterations > 0)
-    {
-      char fname[STRLEN] ;
-
-      sprintf(fname, "%s_before_intensity.mgz", parms.base_name) ;
-      printf("writing snapshot to %s...\n", fname) ;
-      fflush(stdout);
-      MRIwrite(mri, fname) ;
-      /*    MRIwriteImageViews(mri, "before_intensity", IMAGE_SIZE) ;*/
-    }
-#endif
-    // default is noiscale = 0 and thus perform
-    if (!noiscale)
-    {
-      GCAhistoScaleImageIntensities(gca, mri, skull==0) ;
-    }
-
-    //////////////// diagnostics ////////////////////////////////
-    if (Gdiag & DIAG_WRITE && write_iterations > 0)
-    {
-      char fname[STRLEN] ;
-
-      Glta->xforms[0].m_L = m_L ;
-      sprintf(fname, "%s_after_intensity.mgz", parms.base_name) ;
-      printf("writing snapshot to %s...\n", fname) ;
-      MRIwrite(mri, fname) ;
-      sprintf(fname, "%s000", parms.base_name) ;
-      MRIwriteImageViews(mri, fname, IMAGE_SIZE) ;
-      sprintf(fname, "%s000_fsamples.mgz", parms.base_name) ;
-      GCAtransformAndWriteSamples(gca, mri, gcas, nsamples,
-                                  fname, transform) ;
-      sprintf(fname, "%s000_pvals.mgz", parms.base_name) ;
-      GCAtransformAndWriteSamplePvals(gca, mri, gcas, nsamples,
-                                      fname, transform) ;
-      sprintf(fname, "%s000_means.mgz", parms.base_name) ;
-      GCAtransformAndWriteSampleMeans
-      (gca, mri, parms.gcas, nsamples, fname, transform) ;
-    }
-
     /////////////////////////////////////////////////////////////
     /* first align centroids */
     if (gca_mean_fname)
@@ -1886,6 +1879,13 @@ get_option(int argc, char *argv[])
   {
     noiscale = 1 ;
     printf("disabling intensity scaling...\n") ;
+  }
+  else if (!stricmp(option, "ISCALE"))
+  {
+    noiscale = 1 ;
+    prior_iscale = atof(argv[2]) ;
+    nargs = 1 ;
+    printf("scaling image intensities by %2.3f\n", prior_iscale) ;
   }
   else if (!strcmp(option, "NUM"))
   {
