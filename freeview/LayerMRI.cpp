@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2011/09/23 16:14:46 $
- *    $Revision: 1.110 $
+ *    $Date: 2011/10/13 21:05:31 $
+ *    $Revision: 1.111 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -202,6 +202,7 @@ void LayerMRI::ConnectProperty()
   connect( this, SIGNAL(SurfaceRegionAdded()), this, SIGNAL(ActorChanged()));
   connect( this, SIGNAL(SurfaceRegionRemoved()), this, SIGNAL(ActorChanged()));
   connect( p, SIGNAL(ProjectionMapShown(bool)), this, SLOT(UpdateProjectionMap()));
+  connect( this, SIGNAL(ActiveFrameChanged(int)), this, SLOT(UpdateContour()));
 }
 
 void LayerMRI::SetResampleToRAS( bool bResample )
@@ -1547,9 +1548,9 @@ void LayerMRI::GetRASCenter( double* rasPt )
 {
   MRI* mri = m_volumeSource->GetMRITarget();
   ::MRIvoxelToWorld( mri,
-                     mri->width / 2 - 0.5,
-                     mri->height / 2 - 0.5,
-                     mri->depth / 2 - 0.5,
+                     mri->width / 2.0 - 0.5,
+                     mri->height / 2.0 - 0.5,
+                     mri->depth / 2.0 - 0.5,
                      &rasPt[0], &rasPt[1], &rasPt[2] );
 }
 

@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2011/10/12 21:53:46 $
- *    $Revision: 1.72 $
+ *    $Date: 2011/10/13 21:05:31 $
+ *    $Revision: 1.73 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -606,6 +606,16 @@ bool FSVolume::MRIWrite( const QString& filename, int nSampleMethod, bool resamp
     {
       *MATRIX_RELT(m, (i/4)+1, (i%4)+1) = mat->Element[i/4][i%4];
     }
+    /*
+    if (!MyUtils::IsOblique(mat->Element))
+    {
+      for ( int i = 0; i < 16; i++ )
+      {
+        if (i < 12 && (i%4) < 3 && fabs(mat->Element[i/4][i%4]) < 1e-5)
+          *MATRIX_RELT(m, (i/4)+1, (i%4)+1) = 0;
+      }
+    }
+    */
     if ( resample ) // && MyUtils::IsOblique(mat->Element))
     {
       // find out the output voxel bounds
@@ -621,9 +631,9 @@ bool FSVolume::MRIWrite( const QString& filename, int nSampleMethod, bool resamp
           for ( cornerFactor[0] = 0; cornerFactor[0] <= 1; cornerFactor[0]++ )
           {
             ::MRIvoxelToWorld( m_MRITemp,
-                               cornerFactor[0]*m_MRITemp->width-0.5,
-                               cornerFactor[1]*m_MRITemp->height-0.5,
-                               cornerFactor[2]*m_MRITemp->depth-0.5,
+                               cornerFactor[0]*(m_MRITemp->width-1),
+                               cornerFactor[1]*(m_MRITemp->height-1),
+                               cornerFactor[2]*(m_MRITemp->depth-1),
                                &RAS[0], &RAS[1], &RAS[2] );
             mat->MultiplyPoint(RAS, RAS);
             ::MRIworldToVoxel( m_MRITemp,
@@ -660,9 +670,9 @@ bool FSVolume::MRIWrite( const QString& filename, int nSampleMethod, bool resamp
       // qDebug() << indexBounds[0] << indexBounds[1] << indexBounds[2] << indexBounds[3] << indexBounds[4] << indexBounds[5];
       // calculate dimension of the converted target volume
       int dim[3];
-      dim[0] = (int)( indexBounds[1] - indexBounds[0] + 0.5 );
-      dim[1] = (int)( indexBounds[3] - indexBounds[2] + 0.5 );
-      dim[2] = (int)( indexBounds[5] - indexBounds[4] + 0.5 );
+      dim[0] = (int)( indexBounds[1] - indexBounds[0] + 1.0 );
+      dim[1] = (int)( indexBounds[3] - indexBounds[2] + 1.0 );
+      dim[2] = (int)( indexBounds[5] - indexBounds[4] + 1.0 );
 
       if (m_bCropToOriginal)
       {
@@ -679,8 +689,9 @@ bool FSVolume::MRIWrite( const QString& filename, int nSampleMethod, bool resamp
       }
 
       MRIcopyHeader( m_MRITemp, mri );
-      /*
+
       // no need to calculate p0
+      /*
       if (!m_bCropToOriginal)
       {
         Real p0[3];
@@ -693,6 +704,14 @@ bool FSVolume::MRIWrite( const QString& filename, int nSampleMethod, bool resamp
       }
       */
 
+      /*
+      MATRIX* M = m;
+      qDebug() << M->rptr[1][1] << " " << M->rptr[1][2] << " " << M->rptr[1][3] << " " << M->rptr[1][4]
+          << M->rptr[2][1] << " " << M->rptr[2][2] << " " << M->rptr[2][3] << " " << M->rptr[2][4]
+          << M->rptr[3][1] << " " << M->rptr[3][2] << " " << M->rptr[3][3] << " " << M->rptr[3][4]
+          << M->rptr[4][1] << " " << M->rptr[4][2] << " " << M->rptr[4][3] << " " << M->rptr[4][4];
+          */
+
       mri = MRIapplyRASlinearTransformInterp( m_MRITemp, mri, m, nSampleMethod );
       if ( !mri )
       {
@@ -702,10 +721,10 @@ bool FSVolume::MRIWrite( const QString& filename, int nSampleMethod, bool resamp
       }
       MRIfree( &m_MRITemp );
       m_MRITemp = mri;
-    }   // oblique
+    }
     else
     {
-      // rotation is not oblique, just modify the header
+      // no resample, just modify the header
       MATRIX* old_v2r = extract_i_to_r(m_MRITemp);
       /*
       Real p0[4] = {0, 0, 0, 1};

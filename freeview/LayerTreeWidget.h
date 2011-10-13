@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2011/04/27 19:52:29 $
- *    $Revision: 1.5 $
+ *    $Date: 2011/10/13 21:05:31 $
+ *    $Revision: 1.6 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -32,10 +32,18 @@ class LayerTreeWidget : public QTreeWidget
 public:
   explicit LayerTreeWidget(QWidget *parent = 0);
 
+  void contextMenuEvent(QContextMenuEvent *e);
+  void mousePressEvent(QMouseEvent *event);
+
 signals:
 
 public slots:
   void ForceUpdate();
+
+  void OnShowAll();
+  void OnHideAll();
+  void OnLockAll();
+  void OnUnlockAll();
 
 protected:
   void drawRow ( QPainter * painter, const QStyleOptionViewItem & option, const QModelIndex & index ) const;

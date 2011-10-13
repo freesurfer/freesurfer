@@ -6,9 +6,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/14 23:44:48 $
- *    $Revision: 1.4 $
+ *    $Author: rpwang $
+ *    $Date: 2011/10/13 21:05:31 $
+ *    $Revision: 1.5 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -30,6 +30,7 @@
 #include "vtkSmartPointer.h"
 #include "vtkActor.h"
 #include "vtkPolyDataMapper.h"
+#include "vtkImageExtractComponents.h"
 #include <QDebug>
 
 ThreadBuildContour::ThreadBuildContour(QObject *parent) :
@@ -65,7 +66,18 @@ void ThreadBuildContour::run()
   vtkActor* actor = vtkActor::New();
   actor->SetMapper( vtkSmartPointer<vtkPolyDataMapper>::New() );
   //  int ext[6] = { 370, 520, 0, 140, 0, 280 };
-  MyVTKUtils::BuildContourActor( m_mri->GetImageData(), dTh1, dTh2, actor, nSmoothFactor, NULL, bExtractAllRegions );
+  if (m_mri->GetNumberOfFrames() == 1)
+  {
+    MyVTKUtils::BuildContourActor( m_mri->GetImageData(), dTh1, dTh2, actor, nSmoothFactor, NULL, bExtractAllRegions );
+  }
+  else
+  {
+    vtkSmartPointer<vtkImageExtractComponents> extract = vtkSmartPointer<vtkImageExtractComponents>::New();
+    extract->SetComponents(m_mri->GetActiveFrame());
+    extract->SetInput(m_mri->GetImageData());
+    extract->Update();
+    MyVTKUtils::BuildContourActor( extract->GetOutput(), dTh1, dTh2, actor, nSmoothFactor, NULL, bExtractAllRegions );
+  }
   m_mri->m_actorContourTemp = actor;
   actor->Delete();
 

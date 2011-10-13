@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2011/04/27 19:52:29 $
- *    $Revision: 1.5 $
+ *    $Date: 2011/10/13 21:05:31 $
+ *    $Revision: 1.6 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -24,6 +24,8 @@
 #include "LayerTreeWidget.h"
 #include "Layer.h"
 #include <QPainter>
+#include <QContextMenuEvent>
+#include <QMenu>
 #include <QDebug>
 
 LayerTreeWidget::LayerTreeWidget(QWidget *parent) :
@@ -51,4 +53,85 @@ void LayerTreeWidget::ForceUpdate()
 {
   this->setDirtyRegion(QRegion(rect()));
   update();
+}
+
+void LayerTreeWidget::mousePressEvent(QMouseEvent *event)
+{
+  if (event->button()== Qt::RightButton)
+    return;
+  else
+    QTreeWidget::mousePressEvent(event);
+}
+
+void LayerTreeWidget::contextMenuEvent(QContextMenuEvent *e)
+{
+  QList<QTreeWidgetItem*> items = this->selectedItems();
+  QList<Layer*> layers;
+  foreach (QTreeWidgetItem* item, items)
+  {
+    layers << qobject_cast<Layer*>( item->data(0, Qt::UserRole ).value<QObject*>() );
+  }
+  if (layers.isEmpty())
+    return;
+
+  QMenu* menu = new QMenu(this);
+  QAction* act = new QAction(layers.size() > 1 ? "Show All" : "Show", this );
+  connect(act, SIGNAL(triggered()), this, SLOT(OnShowAll()));
+  menu->addAction(act);
+  act = new QAction(layers.size() > 1 ? "Hide All" : "Hide", this );
+  connect(act, SIGNAL(triggered()), this, SLOT(OnHideAll()));
+  menu->addAction(act);
+  menu->addSeparator();
+  act = new QAction(layers.size() > 1 ? "Lock All" : "Lock", this );
+  connect(act, SIGNAL(triggered()), this, SLOT(OnLockAll()));
+  menu->addAction(act);
+  act = new QAction(layers.size() > 1 ? "Unlock All" : "Unlock", this );
+  connect(act, SIGNAL(triggered()), this, SLOT(OnUnlockAll()));
+  menu->addAction(act);
+
+  menu->exec(e->globalPos());
+}
+
+void LayerTreeWidget::OnShowAll()
+{
+  QList<QTreeWidgetItem*> items = this->selectedItems();
+  foreach (QTreeWidgetItem* item, items)
+  {
+    Layer* layer = qobject_cast<Layer*>( item->data(0, Qt::UserRole ).value<QObject*>() );
+    if (layer)
+      layer->Show();
+  }
+}
+
+void LayerTreeWidget::OnHideAll()
+{
+  QList<QTreeWidgetItem*> items = this->selectedItems();
+  foreach (QTreeWidgetItem* item, items)
+  {
+    Layer* layer = qobject_cast<Layer*>( item->data(0, Qt::UserRole ).value<QObject*>() );
+    if (layer)
+      layer->Hide();
+  }
+}
+
+void LayerTreeWidget::OnLockAll()
+{
+  QList<QTreeWidgetItem*> items = this->selectedItems();
+  foreach (QTreeWidgetItem* item, items)
+  {
+    Layer* layer = qobject_cast<Layer*>( item->data(0, Qt::UserRole ).value<QObject*>() );
+    if (layer)
+      layer->Lock(true);
+  }
+}
+
+void LayerTreeWidget::OnUnlockAll()
+{
+  QList<QTreeWidgetItem*> items = this->selectedItems();
+  foreach (QTreeWidgetItem* item, items)
+  {
+    Layer* layer = qobject_cast<Layer*>( item->data(0, Qt::UserRole ).value<QObject*>() );
+    if (layer)
+      layer->Lock(false);
+  }
 }

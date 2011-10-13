@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2011/10/12 19:53:29 $
- *    $Revision: 1.71 $
+ *    $Date: 2011/10/13 21:05:31 $
+ *    $Revision: 1.72 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -688,11 +688,22 @@ void PanelVolume::OnLineEditBrushValue( const QString& strg )
 
 void PanelVolume::OnComboColorMap( int nSel )
 {
+  /*
   LayerMRI* layer = GetCurrentLayer<LayerMRI*>();
   if ( layer && nSel >= 0 )
   {
     nSel = ui->comboBoxColorMap->itemData(nSel).toInt();
     layer->GetProperty()->SetColorMap( nSel );
+  }
+  */
+  QList<LayerMRI*> layers = GetSelectedLayers<LayerMRI*>();
+  foreach (LayerMRI* layer, layers)
+  {
+    if (nSel >= 0)
+    {
+      nSel = ui->comboBoxColorMap->itemData(nSel).toInt();
+      layer->GetProperty()->SetColorMap( nSel );
+    }
   }
 }
 

@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2011/04/21 18:43:45 $
- *    $Revision: 1.5 $
+ *    $Date: 2011/10/13 21:05:31 $
+ *    $Revision: 1.6 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -55,6 +55,7 @@ protected:
   void InitializeLayerList( QTreeWidget* treeWidget, LayerCollection* lc );
   void BlockAllSignals( bool bBlock );
   template<typename T> inline T GetCurrentLayer();
+  template<typename T> inline QList<T> GetSelectedLayers();
 
 protected slots:
   void OnIdle();
@@ -94,5 +95,21 @@ template<typename T> T PanelLayer::GetCurrentLayer()
   {
     return NULL;
   }
+}
+
+template<typename T> QList<T> PanelLayer::GetSelectedLayers()
+{
+  QList<T> list;
+  if ( !treeWidgetPrivate )
+  {
+    return list;
+  }
+
+  QList<QTreeWidgetItem*> items = treeWidgetPrivate->selectedItems();
+  foreach (QTreeWidgetItem* item, items)
+  {
+    list << qobject_cast<T>( item->data(0, Qt::UserRole).template value<QObject*>() );
+  }
+  return list;
 }
 #endif // PANELLAYER_H

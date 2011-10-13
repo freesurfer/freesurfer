@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2011/04/27 19:52:29 $
- *    $Revision: 1.6 $
+ *    $Date: 2011/10/13 21:05:31 $
+ *    $Revision: 1.7 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -72,6 +72,7 @@ void PanelLayer::InitializeLayerList( QTreeWidget* treeWidget, LayerCollection* 
   allWidgets = this->widget()->findChildren<QWidget*>();
   allActions = this->findChildren<QAction*>();
   treeWidgetPrivate = treeWidget;
+  treeWidget->setSelectionMode(QAbstractItemView::ExtendedSelection);
   layerCollectionPrivate = cl;
 //    treeWidget->setEditTriggers( QTreeWidget::SelectedClicked );
   connect( cl, SIGNAL(LayerAdded(Layer*)), this, SLOT(OnLayerAdded(Layer*)), Qt::UniqueConnection );

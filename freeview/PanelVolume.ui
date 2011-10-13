@@ -85,6 +85,9 @@
         <property name="editTriggers">
          <set>QAbstractItemView::EditKeyPressed|QAbstractItemView::SelectedClicked</set>
         </property>
+        <property name="selectionMode">
+         <enum>QAbstractItemView::SingleSelection</enum>
+        </property>
         <property name="rootIsDecorated">
          <bool>false</bool>
         </property>
@@ -1170,7 +1173,7 @@
    <slot>OnLineEditBrushValue(QString)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>165</x>
+     <x>153</x>
      <y>970</y>
     </hint>
     <hint type="destinationlabel">
