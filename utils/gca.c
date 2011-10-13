@@ -14,8 +14,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2011/10/06 01:24:08 $
- *    $Revision: 1.303 $
+ *    $Date: 2011/10/13 22:38:56 $
+ *    $Revision: 1.304 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -4366,7 +4366,7 @@ GCAremoveOutlyingSamples(GCA *gca, GCA_SAMPLE *gcas, MRI *mri_inputs,
   if (DIAG_VERBOSE_ON)
     printf("%d outlying samples removed...\n", nremoved) ;
 
-  return(NO_ERROR) ;
+  return(nremoved) ;
 }
 float
 GCAnormalizedLogSampleProbability(GCA *gca, GCA_SAMPLE *gcas,

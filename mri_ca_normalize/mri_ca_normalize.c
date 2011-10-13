@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2011/10/07 20:24:06 $
- *    $Revision: 1.55 $
+ *    $Date: 2011/10/13 22:38:56 $
+ *    $Revision: 1.56 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -150,13 +150,13 @@ main(int argc, char *argv[])
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mri_ca_normalize.c,v 1.55 2011/10/07 20:24:06 fischl Exp $",
+   "$Id: mri_ca_normalize.c,v 1.56 2011/10/13 22:38:56 fischl Exp $",
    "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mri_ca_normalize.c,v 1.55 2011/10/07 20:24:06 fischl Exp $",
+           "$Id: mri_ca_normalize.c,v 1.56 2011/10/13 22:38:56 fischl Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
   {
@@ -561,6 +561,11 @@ main(int argc, char *argv[])
           }
 
         }
+        if (norm_samples == 0)
+        {
+          printf("skipping region %d with no control points detected\n", n) ;
+          continue ;
+        }
         printf("using %d total control points "
                "for intensity normalization...\n", norm_samples) ;
         if (normalized_transformed_sample_fname)
@@ -845,12 +850,12 @@ find_control_points
  MRI *mri_in, TRANSFORM *transform, double min_prior, double ctl_point_pct)
 {
   int        i, j, *ordered_indices, nsamples,
-             xmin, ymin, zmin, xmax, ymax, zmax, xv,yv,zv,
+    xmin, ymin, zmin, xmax, ymax, zmax, xv,yv,zv, nremoved,
              x, y, z, xi, yi, zi, region_samples,
              used_in_region, prior_wsize=5, image_wsize=3, histo_peak, n,
                              nbins ;
   GCA_SAMPLE *gcas, *gcas_region, *gcas_norm ;
-  double     means[MAX_GCA_INPUTS], vars[MAX_GCA_INPUTS], val, nsigma ;
+  double     means[MAX_GCA_INPUTS], vars[MAX_GCA_INPUTS], val, outlying_nsigma = 2, nsigma ;
   HISTOGRAM  *histo, *hsmooth ;
   GC1D       *gc ;
   float      fmin, fmax ;
@@ -993,8 +998,7 @@ find_control_points
         /* compute mean and variance of label within this region */
         for (n = 0 ; n < gca->ninputs ; n++)
         {
-          HISTOclear(histo, histo) ;
-          histo->bin_size = 1 ;
+          HISTOclear(histo, histo) ; HISTOinit(histo, histo->nbins, 0, 255) ; HISTOinit(hsmooth, hsmooth->nbins, 0, 255);
           for (means[n] = vars[n] = 0.0, i = 0 ;
                i < region_samples ;
                i++)
@@ -1112,8 +1116,8 @@ find_control_points
         (*pnorm_samples)++ ;
 #else
 #if 1
-        GCAremoveOutlyingSamples
-        (gca, gcas_region, mri_in, transform, region_samples, 2.0) ;
+        nremoved = GCAremoveOutlyingSamples
+          (gca, gcas_region, mri_in, transform, region_samples, outlying_nsigma) ;
 #endif
         for (used_in_region = i = 0 ; i < region_samples ; i++)
         {
