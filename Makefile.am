@@ -28,6 +28,7 @@ MRISUBDIRS=\
 	mkxsubjreg \
 	rbftest \
 	mri_interpolate \
+	mri_elastic_energy \
 	mri_jacobian \
 	mri_update_gca \
 	mri_compile_edits \

@@ -8,9 +8,9 @@
 # Process this file with autoconf to produce a configure script.
 #
 # CVS Revision Info:
-#    $Author: nicks $
-#    $Date: 2011/10/04 22:07:30 $
-#    $Revision: 1.542 $
+#    $Author: fischl $
+#    $Date: 2011/10/14 23:29:03 $
+#    $Revision: 1.543 $
 #
 ########################################################################
 AC_PREREQ(2.57)
@@ -3448,6 +3448,7 @@ AC_OUTPUT([Makefile
            mri_ms_EM_with_atlas/Makefile
            mri_ms_LDA/Makefile
            mri_ms_fitparms/Makefile
+           mri_elastic_energy/Makefile
            mri_nlfilter/Makefile
            mri_normalize/Makefile
            mri_normalize_tp2/Makefile
