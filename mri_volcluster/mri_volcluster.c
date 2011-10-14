@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2011/03/28 15:30:23 $
- *    $Revision: 1.46 $
+ *    $Date: 2011/10/14 20:46:50 $
+ *    $Revision: 1.47 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -62,6 +62,7 @@
 #include "volcluster.h"
 #include "version.h"
 #include "randomfields.h"
+#include "pdf.h"
 
 static MATRIX *LoadMNITransform(char *regfile, int ncols, int nrows,
                                 int nslices, MATRIX **ppCRS2FSA,
@@ -96,7 +97,7 @@ double round(double); // why is this never defined?!?
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-  "$Id: mri_volcluster.c,v 1.46 2011/03/28 15:30:23 greve Exp $";
+  "$Id: mri_volcluster.c,v 1.47 2011/10/14 20:46:50 greve Exp $";
 char *Progname = NULL;
 
 static char tmpstr[2000];
@@ -192,6 +193,7 @@ char *cmdline, cwd[2000];
 char *segctabfile = NULL;
 COLOR_TABLE *segctab = NULL;
 int Bonferroni = 0;
+int regheader = 0;
 
 /*--------------------------------------------------------------*/
 /*--------------------- MAIN -----------------------------------*/
@@ -208,7 +210,7 @@ int main(int argc, char **argv) {
   nargs =
     handle_version_option
     (argc, argv,
-     "$Id: mri_volcluster.c,v 1.46 2011/03/28 15:30:23 greve Exp $",
+     "$Id: mri_volcluster.c,v 1.47 2011/10/14 20:46:50 greve Exp $",
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -686,6 +688,9 @@ int main(int argc, char **argv) {
     }
   }
 
+  // Delete temp reg file created by --regheader
+  if(regheader) unlink(regfile);
+
   printf("mri_volcluster: done\n");
 
   return(0);
@@ -939,11 +944,33 @@ static int parse_commandline(int argc, char **argv) {
         exit(1);
       }
       nargsused = 1;
-    } else if (!strcmp(option, "--reg")) {
+    } 
+    else if (!strcmp(option, "--reg")) {
       if (nargc < 1) argnerr(option,1);
       regfile = pargv[0];
       nargsused = 1;
-    } else if (!strcmp(option, "--mni152reg")) {
+    } 
+    else if (!strcmp(option, "--regheader")) {
+      if (nargc < 1) argnerr(option,1);
+      FILE *fp;
+      srand48(PDFtodSeed());
+      sprintf(tmpstr,"/tmp/tmp.mri_volcluster.%d.reg.dat",(int)round(drand48()*10000));
+      regfile = strcpyalloc(tmpstr);
+      fp = fopen(regfile,"w");
+      fprintf(fp,"%s\n",pargv[0]);
+      fprintf(fp,"1\n");
+      fprintf(fp,"1\n");
+      fprintf(fp,"1\n");
+      fprintf(fp,"1 0 0 0\n");
+      fprintf(fp,"0 1 0 0\n");
+      fprintf(fp,"0 0 1 0\n");
+      fprintf(fp,"0 0 0 1\n");
+      fprintf(fp,"round\n");
+      fclose(fp);
+      regheader = 1;
+      nargsused = 1;
+    } 
+    else if (!strcmp(option, "--mni152reg")) {
       sprintf(tmpstr,"%s/average/mni152.register.dat",getenv("FREESURFER_HOME"));
       regfile = strcpyalloc(tmpstr);
       nargsused = 0;
@@ -999,6 +1026,7 @@ static void print_usage(void) {
   printf("\n");
   printf("   --reg     register.dat : for reporting talairach coords\n");
   printf("   --mni152reg : input is in mni152 space\n");
+  printf("   --regheader subject : use header registration with subject\n");
   printf("   --fsaverage : assume input is in fsaverage space\n");
   printf("   --frame   frameno <0>\n");
   printf("\n");
