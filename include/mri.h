@@ -7,9 +7,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: mreuter $
- *    $Date: 2011/10/05 21:33:46 $
- *    $Revision: 1.431 $
+ *    $Author: fischl $
+ *    $Date: 2011/10/14 23:29:55 $
+ *    $Revision: 1.432 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -412,6 +412,7 @@ MRI   *MRIpolvMedianRegion(MRI *mri_src, MRI *mri_dst,MRI *mri_polv,int wsize,
                            MRI_REGION *region);
 
 MRI   *MRIlaplacian(MRI *mri_src, MRI *mri_laplacian);
+MRI   *MRIsobelFrame(MRI *mri_src, MRI *mri_grad, MRI *mri_mag, int frame) ;
 MRI   *MRIsobel(MRI *mri_src, MRI *mri_grad, MRI *mri_mag);
 MRI   *MRIxSobel(MRI *mri_src, MRI *mri_x, int frame) ;
 MRI   *MRIxSobelForAllTypes(MRI *mri_src, MRI *mri_x, int frame) ;

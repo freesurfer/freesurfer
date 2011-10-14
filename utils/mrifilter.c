@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: mreuter $
- *    $Date: 2011/09/28 14:53:44 $
- *    $Revision: 1.91 $
+ *    $Author: fischl $
+ *    $Date: 2011/10/14 23:29:55 $
+ *    $Revision: 1.92 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -1105,6 +1105,23 @@ MRI2ndDirectionalDerivative(MRI *mri_src, MRI *mri_deriv,
 
 
   return(mri_deriv) ;
+}
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+------------------------------------------------------*/
+MRI *
+MRIsobelFrame(MRI *mri_src, MRI *mri_grad, MRI *mri_mag, int frame)
+{
+  MRI *mri_frame ;
+
+  mri_frame = MRIcopyFrame(mri_src, NULL, frame, 0) ;
+  mri_grad = MRIsobel(mri_frame, mri_grad, mri_mag) ;
+  MRIfree(&mri_frame) ;
+  return(mri_grad) ;
 }
 /*-----------------------------------------------------
         Parameters:
@@ -2807,13 +2824,13 @@ MRI *MRIgaussianSmooth(MRI *src, float std, int norm, MRI *targ)
   }
 
   /* Smooth the columns */
-  if (Gdiag_no > 0) printf("Smoothing columns\n");
+  if (Gdiag_no > 0 && DIAG_VERBOSE_ON) printf("Smoothing columns\n");
   G  = GaussianMatrix(src->width, std/src->xsize, norm, NULL);
   v  = MatrixAlloc(src->width,1,MATRIX_REAL);
   vg = MatrixAlloc(src->width,1,MATRIX_REAL);
   for (r=0; r < src->height; r++)
   {
-    if (Gdiag_no > 0)
+    if (Gdiag_no > 0 && DIAG_VERBOSE_ON)
     {
       printf("%d ",r);
       if (r%10==9) printf("\n");
@@ -2835,7 +2852,7 @@ MRI *MRIgaussianSmooth(MRI *src, float std, int norm, MRI *targ)
       }
     }
   }
-  if (Gdiag_no > 0) printf("\n");
+  if (Gdiag_no > 0 && DIAG_VERBOSE_ON) printf("\n");
 
   // This is for scaling
   vc = MatrixAlloc(src->width,1,MATRIX_REAL) ;
@@ -2847,13 +2864,13 @@ MRI *MRIgaussianSmooth(MRI *src, float std, int norm, MRI *targ)
   MatrixFree(&vg);
 
   /* Smooth the rows */
-  if (Gdiag_no > 0) printf("Smoothing rows\n");
+  if (Gdiag_no > 0 && DIAG_VERBOSE_ON) printf("Smoothing rows\n");
   G = GaussianMatrix(src->height, std/src->ysize, norm, NULL);
   v  = MatrixAlloc(src->height,1,MATRIX_REAL);
   vg = MatrixAlloc(src->height,1,MATRIX_REAL);
   for (c=0; c < src->width; c++)
   {
-    if (Gdiag_no > 0)
+    if (Gdiag_no > 0 && DIAG_VERBOSE_ON)
     {
       printf("%d ",c);
       if (c%10==9) printf("\n");
@@ -2874,7 +2891,7 @@ MRI *MRIgaussianSmooth(MRI *src, float std, int norm, MRI *targ)
       }
     }
   }
-  if (Gdiag_no > 0) printf("\n");
+  if (Gdiag_no > 0 && DIAG_VERBOSE_ON) printf("\n");
 
   // This is for scaling
   vr = MatrixAlloc(src->height,1,MATRIX_REAL) ;
@@ -2886,13 +2903,13 @@ MRI *MRIgaussianSmooth(MRI *src, float std, int norm, MRI *targ)
   MatrixFree(&vg);
 
   /* Smooth the slices */
-  if (Gdiag_no > 0) printf("Smoothing slices\n");
+  if (Gdiag_no > 0 && DIAG_VERBOSE_ON) printf("Smoothing slices\n");
   G = GaussianMatrix(src->depth, std/src->zsize, norm, NULL);
   v  = MatrixAlloc(src->depth,1,MATRIX_REAL);
   vg = MatrixAlloc(src->depth,1,MATRIX_REAL);
   for (c=0; c < src->width; c++)
   {
-    if (Gdiag_no > 0)
+    if (Gdiag_no > 0 && DIAG_VERBOSE_ON)
     {
       printf("%d ",c);
       if (c%10==9) printf("\n");
@@ -2913,7 +2930,7 @@ MRI *MRIgaussianSmooth(MRI *src, float std, int norm, MRI *targ)
       }
     }
   }
-  if (Gdiag_no > 0) printf("\n");
+  if (Gdiag_no > 0 && DIAG_VERBOSE_ON) printf("\n");
 
   // This is for scaling
   vs = MatrixAlloc(src->depth,1,MATRIX_REAL) ;
@@ -6452,7 +6469,7 @@ MRI *MRIgaussianSmoothNI(MRI *src, double cstd, double rstd, double sstd,
     vg = MatrixAlloc(src->width,1,MATRIX_REAL);
     for (r=0; r < src->height; r++)
     {
-      if (Gdiag_no > 0)
+      if (Gdiag_no > 0 && DIAG_VERBOSE_ON)
       {
         printf("%d ",r);
         if (r%10==9) printf("\n");
@@ -6469,7 +6486,7 @@ MRI *MRIgaussianSmoothNI(MRI *src, double cstd, double rstd, double sstd,
         }
       }
     }
-    if (Gdiag_no > 0) printf("\n");
+    if (Gdiag_no > 0 && DIAG_VERBOSE_ON) printf("\n");
 
     // This is for scaling
     vc = MatrixAlloc(src->width,1,MATRIX_REAL) ;
