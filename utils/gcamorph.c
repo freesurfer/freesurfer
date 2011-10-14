@@ -11,8 +11,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2011/10/06 01:24:08 $
- *    $Revision: 1.253 $
+ *    $Date: 2011/10/14 23:29:28 $
+ *    $Revision: 1.254 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -7709,7 +7709,7 @@ GCAMsetLabelStatus(GCA_MORPH *gcam, int label, int status)
 #define MAX_SAMPLES 100
 
 #define GCAM_FOTS_OUTPUT 0
-#define GCAM_FOTS_TIMERS 1
+#define GCAM_FOTS_TIMERS 0
 
 double
 gcamFindOptimalTimeStep(GCA_MORPH *gcam, GCA_MORPH_PARMS *parms, MRI *mri)
@@ -17245,3 +17245,46 @@ fix_borders(GCA_MORPH *gcam)
 
   return(NO_ERROR) ;
 }
+MRI *
+GCAMestimateLameConstants(GCA_MORPH *gcam)
+{
+  MRI    *mri_lame,*mri_warp, *mri_sobel[3] ;
+  int    x, y, z, dim1, dim2 ;
+  double energy, val1, val2, lambda, mu, rigid_energy, volume_change ;
+
+  lambda = 0.57692 ; mu = 0.38462 ; // matches CVS
+  mri_warp = GCAMwriteWarpToMRI(gcam, NULL) ;
+  mri_lame = MRIallocSequence(mri_warp->width, mri_warp->height, mri_warp->depth, MRI_FLOAT, 3) ;
+  mri_sobel[0] = MRIsobelFrame(mri_warp, NULL, NULL, 0) ;
+  mri_sobel[1] = MRIsobelFrame(mri_warp, NULL, NULL, 1) ;
+  mri_sobel[2] = MRIsobelFrame(mri_warp, NULL, NULL, 2) ;
+
+  for (x = 0 ; x < mri_warp->width ; x++)
+    for (y = 0 ; y < mri_warp->height ; y++)
+      for (z = 0 ; z < mri_warp->depth ; z++)
+      {
+        rigid_energy = volume_change = energy = 0 ;
+        for (dim1 = 0 ; dim1 < 3 ; dim1++)
+          for (dim2 = 0 ; dim2 < 3 ; dim2++)
+          {
+            val1 = MRIgetVoxVal(mri_sobel[dim1], x, y, z, dim1) ;
+            val2 = MRIgetVoxVal(mri_sobel[dim2], x, y, z, dim2) ;
+            rigid_energy += val1*val2 ;
+            
+            val1 = MRIgetVoxVal(mri_sobel[dim1], x, y, z, dim2) ;
+            val2 = MRIgetVoxVal(mri_sobel[dim2], x, y, z, dim1) ;
+            volume_change += SQR(val1 + val2);
+          }
+        energy = rigid_energy * mu/4 + volume_change * lambda/2 ;
+        MRIsetVoxVal(mri_lame, x, y, z, 0, energy) ;
+        MRIsetVoxVal(mri_lame, x, y, z, 1, lambda) ;
+        MRIsetVoxVal(mri_lame, x, y, z, 2, mu) ;
+      }
+
+  for (dim1 = 0 ; dim1 < 3 ; dim1++)
+    MRIfree(&mri_sobel[dim1]) ;
+  MRIfree(&mri_warp) ;
+  MRIcopyVolGeomToMRI(mri_lame, &gcam->atlas) ;
+  return(mri_lame) ;
+}
+

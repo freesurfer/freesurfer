@@ -14,9 +14,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: ayendiki $
- *    $Date: 2011/09/21 00:15:25 $
- *    $Revision: 1.102 $
+ *    $Author: fischl $
+ *    $Date: 2011/10/14 23:29:28 $
+ *    $Revision: 1.103 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -166,6 +166,7 @@ typedef struct
   double l_lsmoothness ;
   double l_distance ;
   double l_expansion ;
+  double l_elastic ;
   double l_label ;
   double l_binary ;
   double l_map ;
@@ -219,6 +220,8 @@ typedef struct
   MRI    *mri_diag2 ;
   double last_sse;
   double min_sigma;
+  double lame_u ;
+  double lame_lambda ;
 }
 GCA_MORPH_PARMS, GMP ;
 
@@ -252,6 +255,8 @@ GCA_MORPH *GCAMalloc( const int width, const int height, const int depth );
 int       GCAMinit(GCA_MORPH *gcam, MRI *mri_image, GCA *gca, 
                    TRANSFORM *transform, int relabel) ;
 int       GCAMinitLookupTables(GCA_MORPH *gcam) ;
+double    GCAMelasticEnergy(GCA_MORPH *gcam) ;
+MRI       *GCAMestimateLameConstants(GCA_MORPH *gcam) ;
 int       GCAMwrite( const GCA_MORPH *gcam, const char *fname );
 int       GCAMwriteInverse(const char *gcamfname, GCA_MORPH *gcam);
 int       GCAMwriteInverseNonTal(const char *gcamfname, GCA_MORPH *gcam);
