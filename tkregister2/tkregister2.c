@@ -8,8 +8,8 @@
  * Original Authors: Martin Sereno and Anders Dale, 1996; Doug Greve, 2002
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2011/10/05 18:27:42 $
- *    $Revision: 1.124 $
+ *    $Date: 2011/10/14 22:56:05 $
+ *    $Revision: 1.125 $
  *
  * Copyright (C) 2002-2011, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA).
@@ -35,7 +35,7 @@
 
 #ifndef lint
 static char vcid[] =
-"$Id: tkregister2.c,v 1.124 2011/10/05 18:27:42 greve Exp $";
+"$Id: tkregister2.c,v 1.125 2011/10/14 22:56:05 greve Exp $";
 #endif /* lint */
 
 #ifdef HAVE_TCL_TK_GL
@@ -449,6 +449,7 @@ char *FREESURFER_HOME=NULL;
 char *tkregister_tcl = NULL;
 char *fstaltarg = "mni305.cor.mgz";
 int SurfRGB[3] = {0,255,0};
+int invLTAOut=0;
 
 /**** ------------------ main() ------------------------------- ****/
 int Register(ClientData clientData,
@@ -1472,6 +1473,9 @@ static int parse_commandline(int argc, char **argv) {
       if(nargc < 1) argnerr(option,1);
       ltaoutfname = pargv[0];
       nargsused = 1;
+    } else if (!strcmp(option, "--ltaout-inv")) {
+      // has no effect without --ltaout
+      invLTAOut = 1;
     } 
     else if (!strcmp(option, "--fslregout")) {
       if (nargc < 1) argnerr(option,1);
@@ -1595,6 +1599,7 @@ static void print_usage(void) {
   printf("   --lta ltafile : Linear Transform Array\n");
   printf("   --lta-inv ltafile : Read in LTA and invert\n");
   printf("   --ltaout ltaoutfile : Output a Linear Transform Array\n");
+  printf("   --ltaout-inv : invert transform in ltaoutfile\n");
   printf("   --feat featdir : check example_func2standard registration\n");
   printf("   --fsfeat featdir : check reg/freesurfer/register.dat registration\n");
   printf("   --identity : use identity as registration matrix\n");
@@ -3826,6 +3831,7 @@ void write_lta(char *fname) {
   extern MRI *mov_vol, *targ_vol0;
   extern MATRIX *RegMat, *Mtc;
   extern char *pname;
+  extern int invLTAOut;
   LTA              *lta ;
   MATRIX *RegMatTmp=NULL;
 
@@ -3833,11 +3839,20 @@ void write_lta(char *fname) {
   lta = LTAalloc(1, NULL) ;
   strcpy(lta->subject, pname) ;
   lta->fscale = fscale_2 ;
-  lta->xforms[0].m_L = MatrixCopy(RegMatTmp, NULL) ;
-  getVolGeom(mov_vol,   &lta->xforms[0].src);
-  getVolGeom(targ_vol0, &lta->xforms[0].dst);
+  if(! invLTAOut) {
+    lta->xforms[0].m_L = MatrixCopy(RegMatTmp, NULL) ;
+    getVolGeom(mov_vol,   &lta->xforms[0].src);
+    getVolGeom(targ_vol0, &lta->xforms[0].dst);
+  } 
+  else {
+    // Note: cannot just run LTAinvert()
+    lta->xforms[0].m_L = MatrixInverse(RegMatTmp, NULL) ;
+    getVolGeom(mov_vol,   &lta->xforms[0].dst);
+    getVolGeom(targ_vol0, &lta->xforms[0].src);
+  }
   lta->type = REGISTER_DAT;
   lta = LTAchangeType(lta, LINEAR_VOX_TO_VOX);
+
   if (LTAwrite(lta, fname) != NO_ERROR)
     printf("register: ### can't create file %s\n",fname);
   LTAfree(&lta) ;
@@ -4883,7 +4898,7 @@ int main(argc, argv)   /* new main */
   nargs =
     handle_version_option
     (argc, argv,
-     "$Id: tkregister2.c,v 1.124 2011/10/05 18:27:42 greve Exp $", "$Name:  $");
+     "$Id: tkregister2.c,v 1.125 2011/10/14 22:56:05 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
