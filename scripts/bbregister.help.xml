@@ -37,6 +37,8 @@
       <argument>--reg register.dat</argument>
       <explanation>Output FreeSurfer (tkregister-style) registration file (simple text).</explanation>
       <intro>Initialization Arguments (one required)</intro>
+      <argument>--init-rr</argument>
+      <explanation>Initialize using NMI as implemented in mri_robust_register.</explanation>
       <argument>--init-fsl</argument>
       <explanation>Initialize using FSL FLIRT (requires that FSL be installed).</explanation>
       <argument>--init-spm</argument>
