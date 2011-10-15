@@ -11,8 +11,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2011/10/14 23:29:28 $
- *    $Revision: 1.254 $
+ *    $Date: 2011/10/15 23:30:08 $
+ *    $Revision: 1.255 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -17254,7 +17254,7 @@ GCAMestimateLameConstants(GCA_MORPH *gcam)
 
   lambda = 0.57692 ; mu = 0.38462 ; // matches CVS
   mri_warp = GCAMwriteWarpToMRI(gcam, NULL) ;
-  mri_lame = MRIallocSequence(mri_warp->width, mri_warp->height, mri_warp->depth, MRI_FLOAT, 3) ;
+  mri_lame = MRIallocSequence(mri_warp->width, mri_warp->height, mri_warp->depth, MRI_FLOAT, 5) ;
   mri_sobel[0] = MRIsobelFrame(mri_warp, NULL, NULL, 0) ;
   mri_sobel[1] = MRIsobelFrame(mri_warp, NULL, NULL, 1) ;
   mri_sobel[2] = MRIsobelFrame(mri_warp, NULL, NULL, 2) ;
@@ -17277,8 +17277,10 @@ GCAMestimateLameConstants(GCA_MORPH *gcam)
           }
         energy = rigid_energy * mu/4 + volume_change * lambda/2 ;
         MRIsetVoxVal(mri_lame, x, y, z, 0, energy) ;
-        MRIsetVoxVal(mri_lame, x, y, z, 1, lambda) ;
-        MRIsetVoxVal(mri_lame, x, y, z, 2, mu) ;
+        MRIsetVoxVal(mri_lame, x, y, z, 1, rigid_energy) ;
+        MRIsetVoxVal(mri_lame, x, y, z, 2, volume_change) ;
+        MRIsetVoxVal(mri_lame, x, y, z, 3, lambda) ;
+        MRIsetVoxVal(mri_lame, x, y, z, 4, mu) ;
       }
 
   for (dim1 = 0 ; dim1 < 3 ; dim1++)
