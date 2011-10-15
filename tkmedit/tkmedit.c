@@ -11,9 +11,9 @@
 /*
  * Original Author: Martin Sereno and Anders Dale, 1996
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/10/05 17:28:47 $
- *    $Revision: 1.345 $
+ *    $Author: fischl $
+ *    $Date: 2011/10/15 15:43:39 $
+ *    $Revision: 1.346 $
  *
  * Copyright (C) 2002-2011, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA).
@@ -35,7 +35,7 @@
 #endif /* HAVE_CONFIG_H */
 #undef VERSION
 
-char *VERSION = "$Revision: 1.345 $";
+char *VERSION = "$Revision: 1.346 $";
 
 #define TCL
 #define TKMEDIT
@@ -122,8 +122,7 @@ int Tix_SafeInit ( Tcl_Interp* interp );
 MATRIX *gm_screen2ras = NULL ;
 MATRIX *gm_ras2screen = NULL ;
 
-char *tkm_ksaErrorStrings [tkm_knNumErrorCodes] =
-{
+char *tkm_ksaErrorStrings [tkm_knNumErrorCodes] = {
   "No error.",
   "A parameter to this function was invalid.",
   "The environment variable FREESURFER_HOME is not defined.",
@@ -179,24 +178,19 @@ char *tkm_ksaErrorStrings [tkm_knNumErrorCodes] =
 #define MATCH_STR(S) (!strcmp(str,S))
 
 #ifdef IRIX
-int __new_cfgetospeed ()
-{
+int __new_cfgetospeed () {
   fprintf( stderr, "__new_cfgetospeed\n" );
 }
-int __new_cfsetospeed ()
-{
+int __new_cfsetospeed () {
   fprintf( stderr, "__new_cfsetospeed\n" );
 }
-int __new_cfsetispeed ()
-{
+int __new_cfsetispeed () {
   fprintf( stderr, "__new_cfsetispeed\n" );
 }
-int __new_tcgetattr ()
-{
+int __new_tcgetattr () {
   fprintf( stderr, "__new_tcgetattr\n" );
 }
-int __new_tcsetattr ()
-{
+int __new_tcsetattr () {
   fprintf( stderr, "__new_tcsetattr\n" );
 }
 #endif
@@ -211,6 +205,9 @@ static int editflag = TRUE;
 static int surflinewidth = 1;
 static int gbScaleUpVolume = FALSE ;
 static int gbForceEnableControlPoints = FALSE;
+static int gbControlPointsChanged = FALSE ;
+static int gbSavingControlPoints = FALSE ;
+
 // int editedimage = FALSE;
 
 
@@ -237,8 +234,7 @@ tkm_tErr SetSubjectHomeDir    ( char* isHomeDir );
 tkm_tErr FindUserHomeDir    ();
 
 /* subdirectories local to subject's home dir */
-char *ksaFileNameSubDirs[tkm_knNumFileNameTypes] =
-{
+char *ksaFileNameSubDirs[tkm_knNumFileNameTypes] = {
   ".", "fmri", "mri", "bem", "surf", "mri",
   "mri/transforms", "label", "mri", "",
   "image/rgb", "tmp", "tmp", "lib/tcl", "touch"
@@ -292,7 +288,7 @@ float FindNearestMRIIdxControlPoint ( xVoxelRef   iAnaIdx,
 void AddMRIIdxControlPoint ( xVoxelRef iMRIIdx, tBoolean ibWriteToFile );
 
 /* Removes ctrl pt from the list and deletes it */
-void DeleteMRIIdxControlPoint ( xVoxelRef iMRIIdx );
+void DeleteMRIIdxControlPoint ( xVoxelRef iMRIIdx, tBoolean  ibWriteToFile  );
 
 /* Function for comparing voxels */
 xList_tCompare CompareVoxels ( void* inVoxelA, void* inVoxelB );
@@ -330,7 +326,7 @@ void   WriteSurfaceValues     ( tkm_tSurfaceType iType,
                                 char*            isFileName );
 
 void GotoSurfaceVertex                    ( Surf_tVertexSet iSurface,
-    int             inVertex );
+                                            int             inVertex );
 void FindNearestSurfaceVertex             ( Surf_tVertexSet iSet );
 void FindNearestInterpolatedSurfaceVertex ( Surf_tVertexSet iSet );
 void AverageSurfaceVertexPositions        ( int             inNumAverages );
@@ -385,8 +381,7 @@ void GraphSelectedRegion ();
    and having values above the func value at the cursor */
 void SelectVoxelsByFuncValue ( FunV_tFindStatsComp iCompare );
 
-typedef struct
-{
+typedef struct {
   tBoolean   mbSelect; /* 1 for select, 0 for deselect */
   int        mnCount;
 }
@@ -400,8 +395,8 @@ tkm_tErr FloodSelect ( xVoxelRef         iSeedAnaIdx,
 
 /* Callback for the flood. */
 Volm_tVisitCommand FloodSelectCallback ( xVoxelRef iMRIIdx,
-    float     iValue,
-    void*     iData );
+                                         float     iValue,
+                                         void*     iData );
 
 // ===========================================================================
 
@@ -467,11 +462,11 @@ void EditAnatomicalVolumeInRangeArray ( tkm_tVolumeType iVolume,
                                         Volm_tValue     inNewValue );
 
 void CloneAnatomicalVolumeInRangeArray ( tkm_tVolumeType iDestVolume,
-    tkm_tVolumeType iSourceVolume,
-    xVoxelRef       iaMRIIdx,
-    int             inCount,
-    Volm_tValue     inLow,
-    Volm_tValue     inHigh );
+                                         tkm_tVolumeType iSourceVolume,
+                                         xVoxelRef       iaMRIIdx,
+                                         int             inCount,
+                                         Volm_tValue     inLow,
+                                         Volm_tValue     inHigh );
 
 void SetAnatomicalVolumeRegion ( tkm_tVolumeType iVolume,
                                  int             iAnaX0,
@@ -485,8 +480,7 @@ void SetAnatomicalVolumeRegion ( tkm_tVolumeType iVolume,
 int EditAnatomicalVolume ( xVoxelRef iMRIIdx, int inValue );
 int EditAuxAnatomicalVolume ( xVoxelRef iMRIIdx, int inValue );
 
-typedef struct
-{
+typedef struct {
   int             mnValue;
   int             mnCount;
   tkm_tVolumeType mVolume;
@@ -501,8 +495,8 @@ tkm_tErr FloodFillAnatomicalVolume ( tkm_tVolumeType iVolume,
                                      float           iDistance );
 /* Callback for the flood. */
 Volm_tVisitCommand FloodFillAnatomicalCallback ( xVoxelRef iMRIIdx,
-    float     iValue,
-    void*     iData );
+                                                 float     iValue,
+                                                 void*     iData );
 void ConvertRASToAnaIdx ( xVoxelRef iRAS,
                           xVoxelRef oAnaIdx );
 
@@ -584,20 +578,19 @@ void SaveSegmentationVolume     ( tkm_tSegType    iVolume,
 /* Uses the ChangedVolume to save a volume with only those label
    values that have been editied in this session. Basically an AND of
    the SegmentationVolume and ChangedVolume. */
-typedef struct
-{
+typedef struct {
   mriVolumeRef mSrcVolume;
   mriVolumeRef mDestVolume;
 }
 tkm_tExportSegmentationParams, *tkm_tExportSegmentationParamsRef;
 tkm_tErr ExportChangedSegmentationVolume ( tkm_tSegType    iVolume,
-    char*           inVolumeDir );
+                                           char*           inVolumeDir );
 
 /* Creates an segmentation from a surface annotation file. Only the
    voxel values that lie on the surface will be filled. */
 tkm_tErr ImportSurfaceAnnotationToSegmentation ( tkm_tSegType iVolume,
-    char*    inAnnotationFileName,
-    char*    inColorFileName );
+                                                 char*    inAnnotationFileName,
+                                                 char*    inColorFileName );
 
 tkm_tErr LoadSegmentationColorTable ( tkm_tSegType iVolume,
                                       char*        inColorFileName );
@@ -650,22 +643,22 @@ static void RecomputeUpdateCallback ( MRI* iMRIValues );
    (there's a float in ipnTarget) then this voxel will be added to the
    selection. */
 Volm_tVisitCommand AddSimilarVoxelToSelection ( xVoxelRef iMRIIdx,
-    float     iValue,
-    void*     ipnTarget );
+                                                float     iValue,
+                                                void*     ipnTarget );
 /* A call back for a visit function. If the two values are equal
    (there's a float in ipnTarget) then this voxel will be added to the
    functional selection so it can later be graphed. */
 Volm_tVisitCommand AddSimilarVoxelToGraphAvg  ( xVoxelRef iMRIIdx,
-    float     iValue,
-    void*     ipnTarget );
+                                                float     iValue,
+                                                void*     ipnTarget );
 
 /* A call back for a visit function. When run on the changed volume by
    ExportChangedSegmentationVolume, for each value that is 1, sets the
    value in the dest volume to the value in the src volume. Uses
    tkm_tExportSegmentationParamsRef. */
 Volm_tVisitCommand SetChangedSegmentationValue ( xVoxelRef iMRIIdx,
-    float     iValue,
-    void*     iData );
+                                                 float     iValue,
+                                                 void*     iData );
 
 /* A callback to an undo entry. Sets the segmentation volume value at
    this index, as well as the changed volume index.  */
@@ -674,8 +667,7 @@ int  EditSegmentation ( tkm_tSegType iVolume,
                         int          inIndex );
 
 /* Calculates the volume of a contiguous label. */
-typedef struct
-{
+typedef struct {
   float mSourceLabel;
   int   mCount;
 }
@@ -698,8 +690,7 @@ void SetSegmentationValues   ( tkm_tSegType iVolume,
                                int          inIndex );
 
 /* Flood fills a segmentation volume with various parameters. */
-typedef struct
-{
+typedef struct {
   tkm_tSegType mTargetVolume;
   int          mnNewSegLabel;
   int          mnCount;
@@ -714,8 +705,8 @@ tkm_tErr FloodFillSegmentation ( tkm_tSegType      iVolume,
                                  float             iDistance );
 /* Callback for the flood. */
 Volm_tVisitCommand FloodFillSegmentationCallback ( xVoxelRef iMRIIdx,
-    float     iValue,
-    void*     iData );
+                                                   float     iValue,
+                                                   void*     iData );
 
 // ===========================================================================
 
@@ -783,8 +774,7 @@ void RestoreUndoList ();
 /* we need a struct for the undo list. this
    is what we add to it and what we get
    back when the list is restored. */
-typedef struct
-{
+typedef struct {
   xVoxelRef        mVoxel;   /* which voxel to set */
   int          mnValue;   /* the value to set it to */
   tUndoActionFunction mFunction; /* the function to call to do it */
@@ -822,8 +812,7 @@ int            gUndoVolumeDimensions[3];
 tBoolean***    gUndoVoxelFlagVolume = NULL;
 Volm_tValue*** gUndoVoxelValueVolume = NULL;
 
-typedef struct
-{
+typedef struct {
   int mRestoreValue;
 }
 UndoVolumeEntry, *UndoVolumeEntryRef;
@@ -1018,8 +1007,7 @@ char *Progname ;
 
 extern char *crypt(const char *, const char *) ;
 /* Licensing */
-void checkLicense(char* dirname)
-{
+void checkLicense(char* dirname) {
   FILE* lfile;
   char* email;
   char* magic;
@@ -1036,21 +1024,17 @@ void checkLicense(char* dirname)
   sprintf(lfilename,"%s/.license",dirname);
 
   lfile = fopen(lfilename,"r");
-  if (lfile)
-  {
+  if (lfile) {
     fscanf(lfile,"%s\n",email);
     fscanf(lfile,"%s\n",magic);
     fscanf(lfile,"%s\n",key);
 
     sprintf(gkey,"%s.%s",email,magic);
-    if (strcmp(key,crypt(gkey,"*C*O*R*T*E*C*H*S*0*1*2*3*"))!=0)
-    {
+    if (strcmp(key,crypt(gkey,"*C*O*R*T*E*C*H*S*0*1*2*3*"))!=0) {
       printf("No valid license key !\n");
       exit(-1);
     }
-  }
-  else
-  {
+  } else {
     printf("License file not found !\n");
     exit(-1);
   }
@@ -1064,8 +1048,7 @@ void checkLicense(char* dirname)
 #endif
 
 
-void ParseCmdLineArgs ( int argc, char *argv[] )
-{
+void ParseCmdLineArgs ( int argc, char *argv[] ) {
 
   tkm_tErr     eResult                    = tkm_tErr_NoErr;
   FunV_tErr    eFunctional                = FunV_tErr_NoError;
@@ -1195,13 +1178,11 @@ void ParseCmdLineArgs ( int argc, char *argv[] )
   DebugAssertThrow( (FunV_tErr_NoError == eFunctional ) );
 
   // Read in env defaults
-  if(getenv("FS_TKFTHRESH"))
-  {
+  if(getenv("FS_TKFTHRESH")){
     sscanf(getenv("FS_TKFTHRESH"),"%f",&min);
     bThresh = TRUE;
   }
-  if(getenv("FS_TKFMAX"))
-  {
+  if(getenv("FS_TKFMAX")){
     sscanf(getenv("FS_TKFMAX"),"%f",&max);
     bMax = TRUE;
   }
@@ -1213,16 +1194,13 @@ void ParseCmdLineArgs ( int argc, char *argv[] )
   nNumProcessedVersionArgs =
     handle_version_option
     (argc, argv,
-     "$Id: tkmedit.c,v 1.345 2011/10/05 17:28:47 nicks Exp $",
+     "$Id: tkmedit.c,v 1.346 2011/10/15 15:43:39 fischl Exp $",
      "$Name:  $");
   if (nNumProcessedVersionArgs && argc - nNumProcessedVersionArgs == 1)
-  {
     exit (0);
-  }
   argc -= nNumProcessedVersionArgs;
 
-  if (argc<2)
-  {
+  if (argc<2) {
 
     printf("usage: tkmedit {[subject image_type]|[-f absolute_path]}\n");
     printf("         [surface_file] \n");
@@ -1328,6 +1306,7 @@ void ParseCmdLineArgs ( int argc, char *argv[] )
            "segmentation \n");
     printf("                                   : overlay (default is 0.3)\n");
     printf("-aseg : load aseg.mgz and standard color table\n");
+    printf("-save-cpts : automatically save control point file after adding or deleting\n") ;
     printf("-aparc+aseg : load aparc+aseg.mgz and standard color table\n");
     printf("-wmparc : load wmparc.mgz and standard color table\n");
     printf("\n");
@@ -1357,24 +1336,20 @@ void ParseCmdLineArgs ( int argc, char *argv[] )
   nCurrentArg = 1;
   bFatalError = FALSE;
   while ( nCurrentArg < argc
-          && FALSE == bFatalError)
-  {
+          && FALSE == bFatalError) {
 
     /* get the arg */
     DebugNote( ("Copying argv[%d]", nCurrentArg) );
     xUtil_strncpy( sArg, argv[nCurrentArg], sizeof(sArg) );
 
     /* check for a option */
-    if ( '-' == sArg[0] )
-    {
+    if ( '-' == sArg[0] ) {
 
-      if ( MATCH( sArg, "-tcl" ) )
-      {
+      if ( MATCH( sArg, "-tcl" ) ) {
 
         /* check for one more. */
         if ( argc > nCurrentArg + 1
-             && '-' != argv[nCurrentArg+1][0] )
-        {
+             && '-' != argv[nCurrentArg+1][0] ) {
 
           /* copy the script name in */
           DebugNote( ("Parsing -tcl option") );
@@ -1386,9 +1361,7 @@ void ParseCmdLineArgs ( int argc, char *argv[] )
 
           nCurrentArg += 2;
 
-        }
-        else
-        {
+        } else {
 
           /* misuse of that option */
           tkm_DisplayError( "Parsing -tcl option",
@@ -1398,15 +1371,12 @@ void ParseCmdLineArgs ( int argc, char *argv[] )
           nCurrentArg ++;
         }
 
-      }
-      else if ( MATCH( sArg, "-bc-main" ) )
-      {
+      } else if ( MATCH( sArg, "-bc-main" ) ) {
 
         /* check for the 2 values following the switch */
         if ( argc > nCurrentArg + 2
              && '-' != argv[nCurrentArg+1][0]
-             && '-' != argv[nCurrentArg+2][0] )
-        {
+             && '-' != argv[nCurrentArg+2][0] ) {
 
           /* get the value */
           DebugNote( ("Parsing -bc-main option") );
@@ -1415,9 +1385,7 @@ void ParseCmdLineArgs ( int argc, char *argv[] )
           bBrightContrastMain = TRUE;
           nCurrentArg +=3 ;
 
-        }
-        else
-        {
+        } else {
 
           /* misuse of that switch */
           tkm_DisplayError( "Parsing -bc-main option",
@@ -1427,51 +1395,40 @@ void ParseCmdLineArgs ( int argc, char *argv[] )
           nCurrentArg += 1;
         }
 
-      }
-      else if (MATCH(sArg, "-bc-main-fsavg"  ) )
-      {
+      } else if (MATCH(sArg, "-bc-main-fsavg"  ) ) {
         DebugNote( ("Parsing -bc-main-fsavg option") );
         fBrightnessMain = .58;
         fContrastMain = 14;
         bBrightContrastMain = TRUE;
         nCurrentArg ++ ;
 
-      }
-      else if (MATCH(sArg, "-scaleup"  ) )
-      {
+      } else if (MATCH(sArg, "-scaleup"  ) ) {
 
         /* set our flag */
         DebugNote( ("Enabling scaleup.") );
         gbScaleUpVolume = bScaleUpVolume = TRUE;
         nCurrentArg ++;
 
-      }
-      else if (MATCH(sArg, "-enablecontrolpoints"  ) )
-      {
+      } else if (MATCH(sArg, "-enablecontrolpoints"  ) ) {
 
         /* set our flag */
         DebugNote( ("Enabling control points..") );
         gbForceEnableControlPoints = TRUE;
         nCurrentArg ++;
 
-      }
-      else if (MATCH(sArg, "-conform"  ) )
-      {
+      } else if (MATCH(sArg, "-conform"  ) ) {
 
         /* set our flag */
         DebugNote( ("Enabling conform.") );
         bConformVolume = TRUE;
         nCurrentArg ++;
 
-      }
-      else if ( MATCH( sArg, "-mm-main" ) )
-      {
+      } else if ( MATCH( sArg, "-mm-main" ) ) {
 
         /* check for the 2 values following the switch */
         if ( argc > nCurrentArg + 2
              && '-' != argv[nCurrentArg+1][0]
-             && '-' != argv[nCurrentArg+2][0] )
-        {
+             && '-' != argv[nCurrentArg+2][0] ) {
 
           /* get the values */
           DebugNote( ("Parsing -mm-main option") );
@@ -1480,9 +1437,7 @@ void ParseCmdLineArgs ( int argc, char *argv[] )
           bColorMain = TRUE;
           nCurrentArg +=3 ;
 
-        }
-        else
-        {
+        } else {
 
           /* misuse of that switch */
 
@@ -1493,15 +1448,12 @@ void ParseCmdLineArgs ( int argc, char *argv[] )
           nCurrentArg += 1;
         }
 
-      }
-      else if ( MATCH( sArg, "-bc-aux" ) )
-      {
+      } else if ( MATCH( sArg, "-bc-aux" ) ) {
 
         /* check for the 2 values following the switch */
         if ( argc > nCurrentArg + 2
              && '-' != argv[nCurrentArg+1][0]
-             && '-' != argv[nCurrentArg+2][0] )
-        {
+             && '-' != argv[nCurrentArg+2][0] ) {
 
           /* get the value */
           DebugNote( ("Parsing -bc-aux option") );
@@ -1510,9 +1462,7 @@ void ParseCmdLineArgs ( int argc, char *argv[] )
           bBrightContrastAux = TRUE;
           nCurrentArg +=3 ;
 
-        }
-        else
-        {
+        } else {
 
           /* misuse of that switch */
           tkm_DisplayError( "Parsing -bc-aux option",
@@ -1522,15 +1472,12 @@ void ParseCmdLineArgs ( int argc, char *argv[] )
           nCurrentArg += 1;
         }
 
-      }
-      else if ( MATCH( sArg, "-mm-aux" ) )
-      {
+      } else if ( MATCH( sArg, "-mm-aux" ) ) {
 
         /* check for the 2 values following the switch */
         if ( argc > nCurrentArg + 2
              && '-' != argv[nCurrentArg+1][0]
-             && '-' != argv[nCurrentArg+2][0] )
-        {
+             && '-' != argv[nCurrentArg+2][0] ) {
 
           /* get the values */
           DebugNote( ("Parsing -mm-aux option") );
@@ -1539,9 +1486,7 @@ void ParseCmdLineArgs ( int argc, char *argv[] )
           bColorAux = TRUE;
           nCurrentArg +=3 ;
 
-        }
-        else
-        {
+        } else {
 
           /* misuse of that switch */
           tkm_DisplayError( "Parsing -mm-aux option",
@@ -1551,61 +1496,56 @@ void ParseCmdLineArgs ( int argc, char *argv[] )
           nCurrentArg += 1;
         }
 
+      } 
+      else if ( MATCH( sArg, "-surfs" ) ) {
+	xUtil_strncpy( sSurface, "lh.white", sizeof(sSurface) );
+	bSurfaceDeclared = TRUE;
+	xUtil_strncpy( sAuxSurface, "rh.white", sizeof(sAuxSurface) );
+	bAuxSurfaceDeclared = TRUE;
+	LoadOrigSurf = 0;
+	nCurrentArg ++;
       }
-      else if ( MATCH( sArg, "-surfs" ) )
-      {
-        xUtil_strncpy( sSurface, "lh.white", sizeof(sSurface) );
-        bSurfaceDeclared = TRUE;
-        xUtil_strncpy( sAuxSurface, "rh.white", sizeof(sAuxSurface) );
-        bAuxSurfaceDeclared = TRUE;
-        LoadOrigSurf = 0;
-        nCurrentArg ++;
-      }
-      else if ( MATCH( sArg, "-defects" ) || MATCH( sArg, "-lh-defects" ) )
-      {
-        xUtil_strncpy( sSurface, "lh.orig", sizeof(sSurface) );//green
-        bSurfaceDeclared = TRUE;
-        xUtil_strncpy( sAuxSurface, "lh.orig.nofix", sizeof(sAuxSurface) );//yellow
-        bAuxSurfaceDeclared = TRUE;
-        LoadOrigSurf = 1;
-        LoadPialSurf = 0;
+      else if ( MATCH( sArg, "-defects" ) || MATCH( sArg, "-lh-defects" ) ) {
+	xUtil_strncpy( sSurface, "lh.orig", sizeof(sSurface) );//green
+	bSurfaceDeclared = TRUE;
+	xUtil_strncpy( sAuxSurface, "lh.orig.nofix", sizeof(sAuxSurface) );//yellow
+	bAuxSurfaceDeclared = TRUE;
+	LoadOrigSurf = 1;
+	LoadPialSurf = 0;
         xUtil_strncpy( sSegmentationPath, "surface.defects.mgz",
                        sizeof(sSegmentationPath) );
         pEnvVar = getenv("FREESURFER_HOME");
         sprintf( sSegmentationColorFile,"%s/DefectLUT.txt", pEnvVar );
         bLoadingSegmentation = TRUE;
-        fSegmentationAlpha = 0.8;
-        bSegmentationAlpha = TRUE;
-        xUtil_strncpy( sAuxVolume,"wm.mgz",sizeof(sAuxVolume) );
-        bLoadingAuxVolume = TRUE;
-        nCurrentArg ++;
+	fSegmentationAlpha = 0.8;
+	bSegmentationAlpha = TRUE;
+	xUtil_strncpy( sAuxVolume,"wm.mgz",sizeof(sAuxVolume) );
+	bLoadingAuxVolume = TRUE;
+	nCurrentArg ++;
       }
-      else if ( MATCH( sArg, "-rh-defects" ) )
-      {
-        xUtil_strncpy( sSurface, "rh.orig", sizeof(sSurface) );//green
-        bSurfaceDeclared = TRUE;
-        xUtil_strncpy( sAuxSurface, "rh.orig.nofix", sizeof(sAuxSurface) );//yellow
-        bAuxSurfaceDeclared = TRUE;
-        LoadOrigSurf = 1;
-        LoadPialSurf = 0;
+      else if ( MATCH( sArg, "-rh-defects" ) ) {
+	xUtil_strncpy( sSurface, "rh.orig", sizeof(sSurface) );//green
+	bSurfaceDeclared = TRUE;
+	xUtil_strncpy( sAuxSurface, "rh.orig.nofix", sizeof(sAuxSurface) );//yellow
+	bAuxSurfaceDeclared = TRUE;
+	LoadOrigSurf = 1;
+	LoadPialSurf = 0;
         xUtil_strncpy( sSegmentationPath, "surface.defects.mgz",
                        sizeof(sSegmentationPath) );
         pEnvVar = getenv("FREESURFER_HOME");
         sprintf( sSegmentationColorFile,"%s/DefectLUT.txt", pEnvVar );
         bLoadingSegmentation = TRUE;
-        fSegmentationAlpha = 0.8;
-        bSegmentationAlpha = TRUE;
-        xUtil_strncpy( sAuxVolume,"wm.mgz",sizeof(sAuxVolume) );
-        bLoadingAuxVolume = TRUE;
-        nCurrentArg ++;
+	fSegmentationAlpha = 0.8;
+	bSegmentationAlpha = TRUE;
+	xUtil_strncpy( sAuxVolume,"wm.mgz",sizeof(sAuxVolume) );
+	bLoadingAuxVolume = TRUE;
+	nCurrentArg ++;
       }
-      else if ( MATCH( sArg, "-aux-surface" ) )
-      {
+      else if ( MATCH( sArg, "-aux-surface" ) ) {
 
         /* make sure there are enough args */
         if ( argc > nCurrentArg + 1 &&
-             '-' != argv[nCurrentArg+1][0] )
-        {
+             '-' != argv[nCurrentArg+1][0] ) {
 
           /* copy arg into a destructible string */
           DebugNote( ("Parsing -aux-surface name") );
@@ -1614,9 +1554,8 @@ void ParseCmdLineArgs ( int argc, char *argv[] )
           bAuxSurfaceDeclared = TRUE;
           nCurrentArg += 2;
 
-        }
-        else
-        {
+        } 
+	else {
 
           /* misuse of that option */
           tkm_DisplayError( "Parsing -aux-surface option",
@@ -1626,14 +1565,11 @@ void ParseCmdLineArgs ( int argc, char *argv[] )
           nCurrentArg ++;
         }
 
-      }
-      else if ( MATCH( sArg, "-surface" ) )
-      {
+      } else if ( MATCH( sArg, "-surface" ) ) {
 
         /* make sure there are enough args */
         if ( argc > nCurrentArg + 1 &&
-             '-' != argv[nCurrentArg+1][0] )
-        {
+             '-' != argv[nCurrentArg+1][0] ) {
 
           /* copy arg into a destructible string */
           DebugNote( ("Parsing -surface name") );
@@ -1642,9 +1578,7 @@ void ParseCmdLineArgs ( int argc, char *argv[] )
           bSurfaceDeclared = TRUE;
           nCurrentArg += 2;
 
-        }
-        else
-        {
+        } else {
 
           /* misuse of that option */
           tkm_DisplayError( "Parsing -surface option",
@@ -1654,15 +1588,12 @@ void ParseCmdLineArgs ( int argc, char *argv[] )
           nCurrentArg ++;
         }
 
-      }
-      else if ( MATCH( sArg, "-annotation" ) )
-      {
+      } else if ( MATCH( sArg, "-annotation" ) ) {
 
         /* make sure there are enough args */
         if ( argc > nCurrentArg + 1 &&
              '-' != argv[nCurrentArg+1][0] &&
-             '-' != argv[nCurrentArg+2][0] )
-        {
+             '-' != argv[nCurrentArg+2][0] ) {
 
           /* copy args */
           DebugNote( ("Parsing -annotation name") );
@@ -1673,9 +1604,7 @@ void ParseCmdLineArgs ( int argc, char *argv[] )
           bLoadingAnnotation = TRUE;
           nCurrentArg += 3;
 
-        }
-        else
-        {
+        } else {
 
           /* misuse of that option */
           tkm_DisplayError( "Parsing -annotation option",
@@ -1686,15 +1615,12 @@ void ParseCmdLineArgs ( int argc, char *argv[] )
           nCurrentArg ++;
         }
 
-      }
-      else if ( MATCH( sArg, "-o" ) )
-      {
+      } else if ( MATCH( sArg, "-o" ) ) {
 
         /* make sure there are enough args */
         if ( argc > nCurrentArg + 2 &&
              '-' != argv[nCurrentArg+1][0] &&
-             '-' != argv[nCurrentArg+2][0] )
-        {
+             '-' != argv[nCurrentArg+2][0] ) {
 
           /* read the overlay path and stem */
           DebugNote( ("Parsing overlay in -o option") );
@@ -1703,9 +1629,7 @@ void ParseCmdLineArgs ( int argc, char *argv[] )
           bLoadingOverlay = TRUE;
           nCurrentArg += 3;
 
-        }
-        else
-        {
+        } else {
 
           /* misuse of that option */
           tkm_DisplayError( "Parsing -o option",
@@ -1717,8 +1641,7 @@ void ParseCmdLineArgs ( int argc, char *argv[] )
 
         /* check for two more. */
         if ( argc > nCurrentArg + 1
-             && '-' != argv[nCurrentArg][0] )
-        {
+             && '-' != argv[nCurrentArg][0] ) {
 
           /* read in time course path and stem. */
           DebugNote( ("Parsing time course in -o option") );
@@ -1726,8 +1649,7 @@ void ParseCmdLineArgs ( int argc, char *argv[] )
                           sizeof(sTimeCourseFileName),
                           "%s/%s",
                           argv[nCurrentArg], argv[nCurrentArg+1] );
-          if (!fio_FileExistsReadable(sTimeCourseFileName))
-          {
+          if (!fio_FileExistsReadable(sTimeCourseFileName)) {
             printf("ERROR: cannot find time course %s\n",sTimeCourseFileName);
             exit(1);
           }
@@ -1735,30 +1657,24 @@ void ParseCmdLineArgs ( int argc, char *argv[] )
           nCurrentArg += 2;
         }
 
-      }
-      else if ( MATCH( sArg, "-overlay" ) || MATCH( sArg, "-ov" ) )
-      {
+      } else if ( MATCH( sArg, "-overlay" ) || MATCH( sArg, "-ov" ) ) {
 
         /* make sure there are enough args */
         if ( argc > nCurrentArg + 1 &&
-             '-' != argv[nCurrentArg+1][0] )
-        {
+             '-' != argv[nCurrentArg+1][0] ) {
 
           /* copy arg into a destructible string */
           DebugNote( ("Parsing -overlay option") );
           xUtil_strncpy( sOverlayFileName, argv[nCurrentArg+1],
                          sizeof(sOverlayFileName) );
-          if (!fio_FileExistsReadable(sOverlayFileName))
-          {
+          if (!fio_FileExistsReadable(sOverlayFileName)) {
             printf("ERROR: cannot find overlay %s\n",sOverlayFileName);
             exit(1);
           }
           bLoadingOverlay = TRUE;
           nCurrentArg += 2;
 
-        }
-        else
-        {
+        } else {
 
           /* misuse of that option */
           tkm_DisplayError( "Parsing -overlay option",
@@ -1768,29 +1684,25 @@ void ParseCmdLineArgs ( int argc, char *argv[] )
           nCurrentArg ++;
         }
 
-      }
+      } 
       else if ( MATCH( sArg, "-overlay-reg" ) || MATCH( sArg, "-orf" ) ||
-                MATCH( sArg, "-oreg" ) || MATCH( sArg, "-ovreg" ) )
-      {
+                  MATCH( sArg, "-oreg" ) || MATCH( sArg, "-ovreg" ) ) {
 
         /* make sure there are enough args */
         if ( argc > nCurrentArg + 1 &&
-             '-' != argv[nCurrentArg+1][0] )
-        {
+             '-' != argv[nCurrentArg+1][0] ) {
 
           /* copy arg  */
           DebugNote( ("Parsing -overlay-reg option") );
           xUtil_strncpy( sOverlayRegistration, argv[nCurrentArg+1],
                          sizeof(sOverlayRegistration) );
-          if (!fio_FileExistsReadable(sOverlayRegistration))
-          {
+          if (!fio_FileExistsReadable(sOverlayRegistration)) {
             printf("ERROR: cannot find overlay reg %s\n",sOverlayRegistration);
             exit(1);
           }
           overlayRegType = FunD_tRegistration_File;
           nCurrentArg += 2;
-          if(bGetSubjectFromReg)
-          {
+          if(bGetSubjectFromReg){
             FILE *fp;
             fp = fopen(sOverlayRegistration,"r");
             fscanf(fp,"%s",sSubject);
@@ -1800,9 +1712,7 @@ void ParseCmdLineArgs ( int argc, char *argv[] )
             eResult = SetSubjectHomeDirFromEnv( sSubject );
             DebugAssertThrow( (tkm_tErr_NoErr == eResult) );
           }
-        }
-        else
-        {
+        } else {
 
           /* misuse of that option */
           tkm_DisplayError( "Parsing -overlay-reg option",
@@ -1812,67 +1722,57 @@ void ParseCmdLineArgs ( int argc, char *argv[] )
           nCurrentArg ++;
         }
 
-      }
+      } 
 
       //---------------------------------------------------------------
-      else if ( MATCH( sArg, "-reg" ) ||
-                MATCH( sArg, "-ovtreg" ) || MATCH( sArg, "-tovreg" ))
-      {
+      else if ( MATCH( sArg, "-reg" ) || 
+		MATCH( sArg, "-ovtreg" ) || MATCH( sArg, "-tovreg" )){
         /* make sure there are enough args */
-        if( !( argc > nCurrentArg + 1 && '-' != argv[nCurrentArg+1][0]) )
-        {
+        if( !( argc > nCurrentArg + 1 && '-' != argv[nCurrentArg+1][0]) ){
           printf("ERROR: Parsing -ovtreg option. Expected an argument.\n");
-          exit(1);
-        }
-        DebugNote( ("Parsing -reg option") );
-        xUtil_strncpy( sOverlayRegistration, argv[nCurrentArg+1],
-                       sizeof(sOverlayRegistration) );
-        if (!fio_FileExistsReadable(sOverlayRegistration))
-        {
-          printf("ERROR: cannot find overlay reg %s\n",sOverlayRegistration);
-          exit(1);
-        }
-        overlayRegType = FunD_tRegistration_File;
-        xUtil_strncpy( sTimeCourseRegistration, argv[nCurrentArg+1],
-                       sizeof(sTimeCourseRegistration) );
-        timecourseRegType = FunD_tRegistration_File;
-        nCurrentArg += 2;
-        if(bGetSubjectFromReg)
-        {
-          FILE *fp;
-          fp = fopen(sOverlayRegistration,"r");
-          fscanf(fp,"%s",sSubject);
-          fclose(fp);
-          printf("Setting subject name to %s\n",sSubject);
-          DebugNote( ("Setting subject home from env") );
-          eResult = SetSubjectHomeDirFromEnv( sSubject );
-          DebugAssertThrow( (tkm_tErr_NoErr == eResult) );
-        }
-      }
+	  exit(1);
+	}
+	DebugNote( ("Parsing -reg option") );
+	xUtil_strncpy( sOverlayRegistration, argv[nCurrentArg+1],
+		       sizeof(sOverlayRegistration) );
+	if (!fio_FileExistsReadable(sOverlayRegistration)) {
+	  printf("ERROR: cannot find overlay reg %s\n",sOverlayRegistration);
+	  exit(1);
+	}
+	overlayRegType = FunD_tRegistration_File;
+	xUtil_strncpy( sTimeCourseRegistration, argv[nCurrentArg+1],
+		       sizeof(sTimeCourseRegistration) );
+	timecourseRegType = FunD_tRegistration_File;
+	nCurrentArg += 2;
+	if(bGetSubjectFromReg){
+	  FILE *fp;
+	  fp = fopen(sOverlayRegistration,"r");
+	  fscanf(fp,"%s",sSubject);
+	  fclose(fp);
+	  printf("Setting subject name to %s\n",sSubject);
+	  DebugNote( ("Setting subject home from env") );
+	  eResult = SetSubjectHomeDirFromEnv( sSubject );
+	  DebugAssertThrow( (tkm_tErr_NoErr == eResult) );
+	}
+      } 
 
-      else if ( MATCH( sArg, "-overlay-reg-find" ) )
-      {
+      else if ( MATCH( sArg, "-overlay-reg-find" ) ) {
 
         /* set our reg type  */
         overlayRegType = FunD_tRegistration_Find;
         nCurrentArg += 1;
 
-      }
-      else if ( MATCH( sArg, "-overlay-reg-identity" ) )
-      {
+      } else if ( MATCH( sArg, "-overlay-reg-identity" ) ) {
 
         /* set our reg type */
         overlayRegType = FunD_tRegistration_Identity;
         nCurrentArg += 1;
 
-      }
-      else if ( MATCH( sArg, "-overlay-offset" ) )
-      {
+      } else if ( MATCH( sArg, "-overlay-offset" ) ) {
 
         /* make sure there are enough args */
         if ( argc > nCurrentArg + 1 &&
-             '-' != argv[nCurrentArg+1][0] )
-        {
+             '-' != argv[nCurrentArg+1][0] ) {
 
           /* copy arg  */
           DebugNote( ("Parsing -overlay-offset option") );
@@ -1881,9 +1781,7 @@ void ParseCmdLineArgs ( int argc, char *argv[] )
                          sizeof(sOverlayOffsetFileName) );
           nCurrentArg += 2;
 
-        }
-        else
-        {
+        } else {
 
           /* misuse of that option */
           tkm_DisplayError( "Parsing -overlay-offset option",
@@ -1893,13 +1791,10 @@ void ParseCmdLineArgs ( int argc, char *argv[] )
           nCurrentArg ++;
         }
 
-      }
-      else if ( MATCH( sArg, "-timecourse" ) || MATCH( sArg, "-t" ) )
-      {
+      } else if ( MATCH( sArg, "-timecourse" ) || MATCH( sArg, "-t" ) ) {
 
         /* make sure there are enough args */
-        if ( argc > nCurrentArg + 1 )
-        {
+        if ( argc > nCurrentArg + 1 ) {
 
           /* copy arg into a destructible string */
           DebugNote( ("Parsing -timecourse option") );
@@ -1908,9 +1803,7 @@ void ParseCmdLineArgs ( int argc, char *argv[] )
           bLoadingTimeCourse = TRUE;
           nCurrentArg += 2;
 
-        }
-        else
-        {
+        } else {
 
           /* misuse of that option */
           tkm_DisplayError( "Parsing -timecourse option",
@@ -1920,22 +1813,18 @@ void ParseCmdLineArgs ( int argc, char *argv[] )
           nCurrentArg ++;
         }
 
-      }
-      else if ( MATCH( sArg, "-timecourse-reg" ) ||
-                MATCH( sArg, "-treg" ) )
-      {
+      } else if ( MATCH( sArg, "-timecourse-reg" ) || 
+                  MATCH( sArg, "-treg" ) ) {
 
         /* make sure there are enough args */
         if ( argc > nCurrentArg + 1 &&
-             '-' != argv[nCurrentArg+1][0] )
-        {
+             '-' != argv[nCurrentArg+1][0] ) {
 
           /* copy arg  */
           DebugNote( ("Parsing -timecourse-reg option") );
           xUtil_strncpy( sTimeCourseRegistration, argv[nCurrentArg+1],
                          sizeof(sTimeCourseRegistration) );
-          if (!fio_FileExistsReadable(sTimeCourseRegistration))
-          {
+          if (!fio_FileExistsReadable(sTimeCourseRegistration)) {
             printf("ERROR: cannot find timecourse reg %s\n",
                    sTimeCourseRegistration);
             exit(1);
@@ -1943,9 +1832,7 @@ void ParseCmdLineArgs ( int argc, char *argv[] )
           timecourseRegType = FunD_tRegistration_File;
           nCurrentArg += 2;
 
-        }
-        else
-        {
+        } else {
 
           /* misuse of that option */
           tkm_DisplayError( "Parsing -timecourse-reg option",
@@ -1955,30 +1842,23 @@ void ParseCmdLineArgs ( int argc, char *argv[] )
           nCurrentArg ++;
         }
 
-      }
-      else if ( MATCH( sArg, "-timecourse-reg-find" ) )
-      {
+      } else if ( MATCH( sArg, "-timecourse-reg-find" ) ) {
 
         /* set our reg type  */
         timecourseRegType = FunD_tRegistration_Find;
         nCurrentArg += 1;
 
-      }
-      else if ( MATCH( sArg, "-timecourse-reg-identity" ) )
-      {
+      } else if ( MATCH( sArg, "-timecourse-reg-identity" ) ) {
 
         /* set our reg type  */
         timecourseRegType = FunD_tRegistration_Identity;
         nCurrentArg += 1;
 
-      }
-      else if ( MATCH( sArg, "-timecourse-offset" ) )
-      {
+      } else if ( MATCH( sArg, "-timecourse-offset" ) ) {
 
         /* make sure there are enough args */
         if ( argc > nCurrentArg + 1 &&
-             '-' != argv[nCurrentArg+1][0] )
-        {
+             '-' != argv[nCurrentArg+1][0] ) {
 
           /* copy arg  */
           DebugNote( ("Parsing -timecourse-offset option") );
@@ -1987,9 +1867,7 @@ void ParseCmdLineArgs ( int argc, char *argv[] )
                          sizeof(sTimeCourseOffsetFileName) );
           nCurrentArg += 2;
 
-        }
-        else
-        {
+        } else {
 
           /* misuse of that option */
           tkm_DisplayError( "Parsing -timecourse-offset option",
@@ -1999,28 +1877,25 @@ void ParseCmdLineArgs ( int argc, char *argv[] )
           nCurrentArg ++;
         }
 
-      }
-      else if ( MATCH( sArg, "-mni152reg" ) )
-      {
-        sprintf(sOverlayRegistration,"%s/average/mni152.register.dat",
-                getenv("FREESURFER_HOME"));
-        sprintf(sTimeCourseRegistration,"%s/average/mni152.register.dat",
-                getenv("FREESURFER_HOME"));
-        overlayRegType = FunD_tRegistration_File;
-        timecourseRegType = FunD_tRegistration_File;
-        nCurrentArg += 1;
-      }
-      else if ( MATCH( sArg, "-register" ) )
-      {
+      } 
+      else if ( MATCH( sArg, "-mni152reg" ) ){
+	sprintf(sOverlayRegistration,"%s/average/mni152.register.dat",
+		getenv("FREESURFER_HOME"));
+	sprintf(sTimeCourseRegistration,"%s/average/mni152.register.dat",
+		getenv("FREESURFER_HOME"));
+	overlayRegType = FunD_tRegistration_File;
+	timecourseRegType = FunD_tRegistration_File;
+	nCurrentArg += 1;
+      } 
+      else if ( MATCH( sArg, "-register" ) ) {
 
         /* set our flag */
         DebugNote( ("Enabling registration.") );
         bEnablingRegistration = TRUE;
         nCurrentArg ++;
 
-      }
-      else if ( MATCH( sArg, "-aseg" ) )
-      {
+      } 
+      else if ( MATCH( sArg, "-aseg" ) ) {
         xUtil_strncpy( sSegmentationPath, "aseg.mgz",
                        sizeof(sSegmentationPath) );
         pEnvVar = getenv("FREESURFER_HOME");
@@ -2028,35 +1903,35 @@ void ParseCmdLineArgs ( int argc, char *argv[] )
         bLoadingSegmentation = TRUE;
         nCurrentArg += 1;
 
-      }
-      else if ( MATCH( sArg, "-aparc+aseg" ) )
-      {
+      } 
+      else if ( MATCH( sArg, "-save-cpts" ) ) {
+	gbSavingControlPoints = TRUE ;
+        nCurrentArg += 1;
+      } 
+      else if ( MATCH( sArg, "-aparc+aseg" ) ) {
         xUtil_strncpy( sSegmentationPath, "aparc+aseg.mgz",
                        sizeof(sSegmentationPath) );
         pEnvVar = getenv("FREESURFER_HOME");
         sprintf( sSegmentationColorFile,"%s/FreeSurferColorLUT.txt", pEnvVar );
         bLoadingSegmentation = TRUE;
         nCurrentArg += 1;
-      }
-      else if ( MATCH( sArg, "-wmparc" ) )
-      {
+      } 
+      else if ( MATCH( sArg, "-wmparc" ) ) {
         xUtil_strncpy( sSegmentationPath, "wmparc.mgz",
                        sizeof(sSegmentationPath) );
         pEnvVar = getenv("FREESURFER_HOME");
         sprintf( sSegmentationColorFile,"%s/FreeSurferColorLUT.txt", pEnvVar );
         bLoadingSegmentation = TRUE;
         nCurrentArg += 1;
-      }
+      } 
       else if ( MATCH( sArg, "-segmentation" ) ||
-                MATCH( sArg, "-seg" ) ||
-                MATCH( sArg, "-parcellation" ) ||
-                MATCH( sArg, "-parc" ) )
-      {
+                  MATCH( sArg, "-seg" ) ||
+                  MATCH( sArg, "-parcellation" ) ||
+                  MATCH( sArg, "-parc" ) ) {
 
         /* make sure there is at least one argument. */
         if ( argc > nCurrentArg + 1 &&
-             '-' != argv[nCurrentArg+1][0] )
-        {
+             '-' != argv[nCurrentArg+1][0] ) {
 
           /* copy the filename */
           DebugNote( ("Parsing -segmentation option") );
@@ -2066,27 +1941,21 @@ void ParseCmdLineArgs ( int argc, char *argv[] )
 
           /* Check for the additional LUT filename. */
           if ( argc > nCurrentArg &&
-               '-' != argv[nCurrentArg][0] )
-          {
+               '-' != argv[nCurrentArg][0] ) {
 
             /* Get the LUT from the command line. */
             xUtil_strncpy( sSegmentationColorFile, argv[nCurrentArg],
                            sizeof(sSegmentationColorFile) );
             nCurrentArg += 1;
 
-          }
-          else
-          {
+          } else {
 
             /* If not, use a default color table name. */
             pEnvVar = getenv("FREESURFER_HOME");
-            if ( NULL != pEnvVar )
-            {
+            if ( NULL != pEnvVar ) {
               sprintf( sSegmentationColorFile,
                        "%s/FreeSurferColorLUT.txt", pEnvVar );
-            }
-            else
-            {
+            } else {
               xUtil_strncpy( sSegmentationColorFile,"./FreeSurferColorLUT.txt",
                              sizeof(sSegmentationColorFile) );
             }
@@ -2094,9 +1963,7 @@ void ParseCmdLineArgs ( int argc, char *argv[] )
 
           bLoadingSegmentation = TRUE;
 
-        }
-        else
-        {
+        } else {
 
           /* misuse of that switch */
           tkm_DisplayError( "Parsing -segmentation/seg option",
@@ -2107,24 +1974,19 @@ void ParseCmdLineArgs ( int argc, char *argv[] )
           nCurrentArg ++;
         }
 
-      }
-      else if (MATCH(sArg, "-seg-conform"  ) )
-      {
+      } else if (MATCH(sArg, "-seg-conform"  ) ) {
 
         /* set our flag */
         DebugNote( ("Enabling seg conform.") );
         bConformSegmentation = TRUE;
         nCurrentArg ++;
 
-      }
-      else if ( MATCH( sArg, "-aux-segmentation" ) ||
-                MATCH( sArg, "-aux-seg" ) )
-      {
+      } else if ( MATCH( sArg, "-aux-segmentation" ) ||
+                  MATCH( sArg, "-aux-seg" ) ) {
 
         /* make sure there is at least one arg */
         if ( argc > nCurrentArg + 1 &&
-             '-' != argv[nCurrentArg+1][0] )
-        {
+             '-' != argv[nCurrentArg+1][0] ) {
 
           /* copy the filename */
           DebugNote( ("Parsing -aux-segmentation option") );
@@ -2134,27 +1996,21 @@ void ParseCmdLineArgs ( int argc, char *argv[] )
 
           /* Check for the additional LUT filename. */
           if ( argc > nCurrentArg &&
-               '-' != argv[nCurrentArg][0] )
-          {
+               '-' != argv[nCurrentArg][0] ) {
 
             /* Get the LUT from the command line. */
             xUtil_strncpy( sAuxSegmentationColorFile, argv[nCurrentArg],
                            sizeof(sAuxSegmentationColorFile) );
             nCurrentArg += 1;
 
-          }
-          else
-          {
+          } else {
 
             /* If not, use a default color table name. */
             pEnvVar = getenv("FREESURFER_HOME");
-            if ( NULL != pEnvVar )
-            {
+            if ( NULL != pEnvVar ) {
               sprintf( sAuxSegmentationColorFile,
                        "%s/FreeSurferColorLUT.txt", pEnvVar );
-            }
-            else
-            {
+            } else {
               xUtil_strncpy( sAuxSegmentationColorFile,
                              "./FreeSurferColorLUT.txt",
                              sizeof(sAuxSegmentationColorFile) );
@@ -2163,9 +2019,7 @@ void ParseCmdLineArgs ( int argc, char *argv[] )
 
           bLoadingAuxSegmentation = TRUE;
 
-        }
-        else
-        {
+        } else {
 
           /* misuse of that switch */
           tkm_DisplayError( "Parsing -aux-segmentation/aux-seg option",
@@ -2176,24 +2030,19 @@ void ParseCmdLineArgs ( int argc, char *argv[] )
           nCurrentArg ++;
         }
 
-      }
-      else if (MATCH(sArg, "-aux-seg-conform"  ) )
-      {
+      } else if (MATCH(sArg, "-aux-seg-conform"  ) ) {
 
         /* set our flag */
         DebugNote( ("Enabling conform.") );
         bConformAuxSegmentation = TRUE;
         nCurrentArg ++;
 
-      }
-      else if ( MATCH( sArg, "-voxel-label" ) )
-      {
+      } else if ( MATCH( sArg, "-voxel-label" ) ) {
 
         /* make sure there are enough args */
         if ( argc > nCurrentArg + 2 &&
              '-' != argv[nCurrentArg+1][0] &&
-             '-' != argv[nCurrentArg+2][0] )
-        {
+             '-' != argv[nCurrentArg+2][0] ) {
 
           /* copy both file names */
           DebugNote( ("Parsing -voxel-label option") );
@@ -2202,9 +2051,7 @@ void ParseCmdLineArgs ( int argc, char *argv[] )
           bLoadingVLI = TRUE;
           nCurrentArg += 3;
 
-        }
-        else
-        {
+        } else {
 
           /* misuse of that switch */
           tkm_DisplayError( "Parsing -voxel-label option",
@@ -2214,13 +2061,10 @@ void ParseCmdLineArgs ( int argc, char *argv[] )
           nCurrentArg ++;
         }
 
-      }
-      else if ( MATCH( sArg, "-f" ) )
-      {
+      } else if ( MATCH( sArg, "-f" ) ) {
 
         /* make sure subject is not already declared */
-        if ( bSubjectDeclared )
-        {
+        if ( bSubjectDeclared ) {
           tkm_DisplayError( "Parsing -f option",
                             "Subject already declared",
                             "The -f option is only to be used if the "
@@ -2229,10 +2073,8 @@ void ParseCmdLineArgs ( int argc, char *argv[] )
           bFatalError = TRUE;
 
           /* check for path */
-        }
-        else if ( argc > nCurrentArg + 1 &&
-                  '-' != argv[nCurrentArg+1][0] )
-        {
+        } else if ( argc > nCurrentArg + 1 &&
+                    '-' != argv[nCurrentArg+1][0] ) {
 
           /* read the path */
           DebugNote( ("Parsing -f option") );
@@ -2248,9 +2090,7 @@ void ParseCmdLineArgs ( int argc, char *argv[] )
              home dir, really */
           gEnableFileNameGuessing = FALSE;
 
-        }
-        else
-        {
+        } else {
 
           /* misuse of that switch */
           tkm_DisplayError( "Parsing -f option",
@@ -2260,14 +2100,12 @@ void ParseCmdLineArgs ( int argc, char *argv[] )
           nCurrentArg ++;
         }
 
-      }
-      else if ( MATCH( sArg, "-fminmax" ) )
-      {
+      } 
+      else if ( MATCH( sArg, "-fminmax" ) ) {
 
         /* check for the value following the switch */
         if ( argc > nCurrentArg + 2 &&
-             '-' != argv[nCurrentArg+1][0] )
-        {
+             '-' != argv[nCurrentArg+1][0] ) {
           /* get the value */
           DebugNote( ("Parsing -fminmax option") );
           min = (FunV_tFunctionalValue) atof( argv[nCurrentArg+1] );
@@ -2275,9 +2113,7 @@ void ParseCmdLineArgs ( int argc, char *argv[] )
           max = (FunV_tFunctionalValue) atof( argv[nCurrentArg+2] );
           bMax = TRUE;
           nCurrentArg +=3 ;
-        }
-        else
-        {
+        } else {
           /* misuse of that switch */
           tkm_DisplayError( "Parsing -fminmax option",
                             "Expected two arguments",
@@ -2285,22 +2121,18 @@ void ParseCmdLineArgs ( int argc, char *argv[] )
           nCurrentArg += 1;
         }
 
-      }
-      else if ( MATCH( sArg, "-fthresh" ) )
-      {
+      } 
+      else if ( MATCH( sArg, "-fthresh" ) ) {
 
         /* check for the value following the switch */
         if ( argc > nCurrentArg + 1 &&
-             '-' != argv[nCurrentArg+1][0] )
-        {
+             '-' != argv[nCurrentArg+1][0] ) {
           /* get the value */
           DebugNote( ("Parsing -fthresh option") );
           min = (FunV_tFunctionalValue) atof( argv[nCurrentArg+1] );
           bThresh = TRUE;
           nCurrentArg +=2 ;
-        }
-        else
-        {
+        } else {
           /* misuse of that switch */
           tkm_DisplayError( "Parsing -fthresh option",
                             "Expected an argument",
@@ -2309,23 +2141,19 @@ void ParseCmdLineArgs ( int argc, char *argv[] )
           nCurrentArg += 1;
         }
 
-      }
-      else if ( MATCH( sArg, "-fmax" ) )
-      {
+      } 
+      else if ( MATCH( sArg, "-fmax" ) ) {
 
         /* check for the value following the switch */
         if ( argc > nCurrentArg + 1 &&
-             '-' != argv[nCurrentArg+1][0] )
-        {
+             '-' != argv[nCurrentArg+1][0] ) {
           /* get the value */
           DebugNote( ("Parsing -fmax option") );
           max = (FunV_tFunctionalValue) atof( argv[nCurrentArg+1] );
           bMax = TRUE;
           bThresh = TRUE;
           nCurrentArg +=2 ;
-        }
-        else
-        {
+        } else {
           /* misuse of that switch */
           tkm_DisplayError( "Parsing -fthresh option",
                             "Expected an argument",
@@ -2334,14 +2162,11 @@ void ParseCmdLineArgs ( int argc, char *argv[] )
           nCurrentArg += 1;
         }
 
-      }
-      else if ( MATCH( sArg, "-fmid" ) )
-      {
+      } else if ( MATCH( sArg, "-fmid" ) ) {
 
         /* check for the value following the switch */
         if ( argc > nCurrentArg + 1 &&
-             '-' != argv[nCurrentArg+1][0] )
-        {
+             '-' != argv[nCurrentArg+1][0] ) {
 
           /* get the value */
           DebugNote( ("Parsing -fmid option") );
@@ -2349,9 +2174,7 @@ void ParseCmdLineArgs ( int argc, char *argv[] )
           bMid = TRUE;
           nCurrentArg +=2 ;
 
-        }
-        else
-        {
+        } else {
 
           /* misuse of that switch */
           tkm_DisplayError( "Parsing -fmid option",
@@ -2361,14 +2184,11 @@ void ParseCmdLineArgs ( int argc, char *argv[] )
           nCurrentArg += 1;
         }
 
-      }
-      else if ( MATCH( sArg, "-fslope" ) )
-      {
+      } else if ( MATCH( sArg, "-fslope" ) ) {
 
         /* check for the value following the switch */
         if ( argc > nCurrentArg + 1 &&
-             '-' != argv[nCurrentArg+1][0] )
-        {
+             '-' != argv[nCurrentArg+1][0] ) {
 
           /* get the value */
           DebugNote( ("Parsing -fslope option") );
@@ -2376,9 +2196,7 @@ void ParseCmdLineArgs ( int argc, char *argv[] )
           bSlope = TRUE;
           nCurrentArg +=2 ;
 
-        }
-        else
-        {
+        } else {
 
           /* misuse of that switch */
           tkm_DisplayError( "Parsing -fslope option",
@@ -2388,22 +2206,17 @@ void ParseCmdLineArgs ( int argc, char *argv[] )
           nCurrentArg += 1;
         }
 
-      }
-      else if ( MATCH( sArg, "-sdir" ) )
-      {
+      } else if ( MATCH( sArg, "-sdir" ) ) {
         /* check for the value following the switch */
         if ( argc > nCurrentArg + 1 &&
-             '-' != argv[nCurrentArg+1][0] )
-        {
+             '-' != argv[nCurrentArg+1][0] ) {
 
           /* get the value */
           DebugNote( ("Parsing -sdir option") );
           gsCommandLineSubjectsDir = argv[nCurrentArg+1] ;
           nCurrentArg +=2 ;
 
-        }
-        else
-        {
+        } else {
 
           /* misuse of that switch */
           tkm_DisplayError( "Parsing -sdir option",
@@ -2412,14 +2225,11 @@ void ParseCmdLineArgs ( int argc, char *argv[] )
                             "dir to use." );
           nCurrentArg += 1;
         }
-      }
-      else if ( MATCH( sArg, "-fsmooth" ) )
-      {
+      } else if ( MATCH( sArg, "-fsmooth" ) ) {
 
         /* check for the value following the switch */
         if ( argc > nCurrentArg + 1 &&
-             '-' != argv[nCurrentArg+1][0] )
-        {
+             '-' != argv[nCurrentArg+1][0] ) {
 
           /* get the value */
           DebugNote( ("Parsing -fsmooth option") );
@@ -2427,9 +2237,7 @@ void ParseCmdLineArgs ( int argc, char *argv[] )
           bSmooth = TRUE;
           nCurrentArg +=2 ;
 
-        }
-        else
-        {
+        } else {
 
           /* misuse of that switch */
           tkm_DisplayError( "Parsing -fsmooth option",
@@ -2440,14 +2248,11 @@ void ParseCmdLineArgs ( int argc, char *argv[] )
           nCurrentArg += 1;
         }
 
-      }
-      else if ( MATCH( sArg, "-revphaseflag" ) )
-      {
+      } else if ( MATCH( sArg, "-revphaseflag" ) ) {
 
         /* check for the value following the switch */
         if ( argc > nCurrentArg + 1
-             && '-' != argv[nCurrentArg+1][0] )
-        {
+             && '-' != argv[nCurrentArg+1][0] ) {
 
           /* get the value */
           DebugNote( ("Parsing -revphaseflag option") );
@@ -2455,9 +2260,7 @@ void ParseCmdLineArgs ( int argc, char *argv[] )
           bRevPhaseFlag = TRUE;
           nCurrentArg +=2 ;
 
-        }
-        else
-        {
+        } else {
 
           /* misuse of that switch */
           tkm_DisplayError( "Parsing -revphaseflag option",
@@ -2467,14 +2270,11 @@ void ParseCmdLineArgs ( int argc, char *argv[] )
           nCurrentArg += 1;
         }
 
-      }
-      else if ( MATCH( sArg, "-truncphaseflag" ) )
-      {
+      } else if ( MATCH( sArg, "-truncphaseflag" ) ) {
 
         /* check for the value following the switch */
         if ( argc > nCurrentArg + 1
-             && '-' != argv[nCurrentArg+1][0] )
-        {
+             && '-' != argv[nCurrentArg+1][0] ) {
 
           /* get the value */
           DebugNote( ("Parsing -truncphaseflag option") );
@@ -2482,9 +2282,7 @@ void ParseCmdLineArgs ( int argc, char *argv[] )
           bTruncPhaseFlag = TRUE;
           nCurrentArg +=2 ;
 
-        }
-        else
-        {
+        } else {
 
           /* misuse of that switch */
           tkm_DisplayError( "Parsing -truncphaseflag option",
@@ -2494,26 +2292,19 @@ void ParseCmdLineArgs ( int argc, char *argv[] )
           nCurrentArg += 1;
         }
 
-      }
-      else if ( MATCH( sArg, "-pial" ))
-      {
+      } else if ( MATCH( sArg, "-pial" )) {
         sPialName =  argv[nCurrentArg+1] ;
         nCurrentArg +=2 ;
-      }
-      else if ( MATCH( sArg, "-orig" ))
-      {
+      } else if ( MATCH( sArg, "-orig" )) {
         sOrigName =  argv[nCurrentArg+1] ;
         nCurrentArg +=2 ;
-      }
-      else if ( MATCH( sArg, "-segmentation-opacity" ) ||
-                MATCH( sArg, "-opacity" ) ||
-                MATCH( sArg, "-roialpha" ) )
-      {
+      } else if ( MATCH( sArg, "-segmentation-opacity" ) ||
+		  MATCH( sArg, "-opacity" ) ||
+                  MATCH( sArg, "-roialpha" ) ) {
 
         /* check for the value following the switch */
         if ( argc > nCurrentArg + 1 &&
-             '-' != argv[nCurrentArg+1][0] )
-        {
+             '-' != argv[nCurrentArg+1][0] ) {
 
           /* get the value */
           DebugNote( ("Parsing -roialpha option") );
@@ -2521,9 +2312,7 @@ void ParseCmdLineArgs ( int argc, char *argv[] )
           bSegmentationAlpha = TRUE;
           nCurrentArg +=2 ;
 
-        }
-        else
-        {
+        } else {
 
           /* misuse of that switch */
           tkm_DisplayError( "Parsing -roialpha option",
@@ -2533,14 +2322,11 @@ void ParseCmdLineArgs ( int argc, char *argv[] )
           nCurrentArg += 1;
         }
 
-      }
-      else if ( MATCH( sArg, "-aux" ) )
-      {
+      } else if ( MATCH( sArg, "-aux" ) ) {
 
         /* check for the value following the switch */
         if ( argc > nCurrentArg + 1
-             && '-' != argv[nCurrentArg+1][0] )
-        {
+             && '-' != argv[nCurrentArg+1][0] ) {
 
           /* read in the aux file name */
           DebugNote( ("Parsing -aux option") );
@@ -2549,9 +2335,7 @@ void ParseCmdLineArgs ( int argc, char *argv[] )
           bLoadingAuxVolume = TRUE;
           nCurrentArg += 2;
 
-        }
-        else
-        {
+        } else {
 
           /* misuse of that switch */
           tkm_DisplayError( "Parsing -aux option",
@@ -2562,23 +2346,18 @@ void ParseCmdLineArgs ( int argc, char *argv[] )
           nCurrentArg += 1;
         }
 
-      }
-      else if (MATCH(sArg, "-aux-conform"  ) )
-      {
+      } else if (MATCH(sArg, "-aux-conform"  ) ) {
 
         /* set our flag */
         DebugNote( ("Enabling aux conform.") );
         bConformAuxVolume = TRUE;
         nCurrentArg ++;
 
-      }
-      else if ( MATCH( sArg, "-main-transform" ) )
-      {
+      } else if ( MATCH( sArg, "-main-transform" ) ) {
 
         /* check for the value following the switch */
         if ( argc > nCurrentArg + 1
-             && '-' != argv[nCurrentArg+1][0] )
-        {
+             && '-' != argv[nCurrentArg+1][0] ) {
 
           /* read in the main transform file name */
           DebugNote( ("Parsing -main-transform option") );
@@ -2587,9 +2366,7 @@ void ParseCmdLineArgs ( int argc, char *argv[] )
           bLoadingMainTransform = TRUE;
           nCurrentArg += 2;
 
-        }
-        else
-        {
+        } else {
 
           /* misuse of that switch */
           tkm_DisplayError( "Parsing -main-transform option",
@@ -2599,14 +2376,11 @@ void ParseCmdLineArgs ( int argc, char *argv[] )
           nCurrentArg += 1;
         }
 
-      }
-      else if ( MATCH( sArg, "-aux-transform" ) )
-      {
+      } else if ( MATCH( sArg, "-aux-transform" ) ) {
 
         /* check for the value following the switch */
         if ( argc > nCurrentArg + 1
-             && '-' != argv[nCurrentArg+1][0] )
-        {
+             && '-' != argv[nCurrentArg+1][0] ) {
 
           /* read in the aux transform file name */
           DebugNote( ("Parsing -aux-transform option") );
@@ -2615,9 +2389,7 @@ void ParseCmdLineArgs ( int argc, char *argv[] )
           bLoadingAuxTransform = TRUE;
           nCurrentArg += 2;
 
-        }
-        else
-        {
+        } else {
 
           /* misuse of that switch */
           tkm_DisplayError( "Parsing -aux-transform option",
@@ -2627,14 +2399,11 @@ void ParseCmdLineArgs ( int argc, char *argv[] )
           nCurrentArg += 1;
         }
 
-      }
-      else if ( MATCH( sArg, "-label" ) )
-      {
+      } else if ( MATCH( sArg, "-label" ) ) {
 
         /* check for the value following the switch */
         if ( argc > nCurrentArg + 1
-             && '-' != argv[nCurrentArg+1][0] )
-        {
+             && '-' != argv[nCurrentArg+1][0] ) {
 
           /* read in the label name */
           DebugNote( ("Parsing -label option") );
@@ -2643,9 +2412,7 @@ void ParseCmdLineArgs ( int argc, char *argv[] )
           bLoadingLabel = TRUE;
           nCurrentArg += 2;
 
-        }
-        else
-        {
+        } else {
 
           /* misuse of that switch */
           tkm_DisplayError( "Parsing -label option",
@@ -2655,14 +2422,11 @@ void ParseCmdLineArgs ( int argc, char *argv[] )
           nCurrentArg += 1;
         }
 
-      }
-      else if ( MATCH( sArg, "-headpts" ) )
-      {
+      } else if ( MATCH( sArg, "-headpts" ) ) {
 
         /* check for the value following the switch */
         if ( argc > nCurrentArg + 1
-             && '-' != argv[nCurrentArg+1][0] )
-        {
+             && '-' != argv[nCurrentArg+1][0] ) {
 
           /* read in the head pts and transform file name */
           DebugNote( ("Parsing -headpts option") );
@@ -2670,32 +2434,25 @@ void ParseCmdLineArgs ( int argc, char *argv[] )
 
           /* if they gave us a transform file as well... */
           if ( argc > nCurrentArg + 2
-               && '-' != argv[nCurrentArg+2][0] )
-          {
+               && '-' != argv[nCurrentArg+2][0] ) {
 
             /* save that */
             DebugNote( ("Parsing transform of -headpts option") );
             xUtil_strncpy( sHeadPtsTransform, argv[nCurrentArg+2],
                            sizeof(sHeadPtsTransform));
             bHaveHeadPtsTransform = TRUE;
-          }
-          else
-          {
+          } else {
             bHaveHeadPtsTransform = FALSE;
           }
 
           bLoadingHeadPts = TRUE;
           nCurrentArg += 3;
 
-        }
-        else if ( MATCH( sArg, "-exit" ) )
-        {
+        } else if ( MATCH( sArg, "-exit" ) ) {
           bExit = TRUE;
           nCurrentArg += 1;
 
-        }
-        else
-        {
+        } else {
 
           /* misuse of that switch */
           tkm_DisplayError( "Parsing -headpts option",
@@ -2706,14 +2463,11 @@ void ParseCmdLineArgs ( int argc, char *argv[] )
           nCurrentArg += 1;
         }
 
-      }
-      else if ( MATCH( sArg, "-overlaycache" ) )
-      {
+      } else if ( MATCH( sArg, "-overlaycache" ) ) {
 
         /* check for the value following the switch */
         if ( argc > nCurrentArg + 1
-             && '-' != argv[nCurrentArg+1][0] )
-        {
+             && '-' != argv[nCurrentArg+1][0] ) {
 
           /* get the value */
           DebugNote( ("Parsing -overlaycache option") );
@@ -2721,9 +2475,7 @@ void ParseCmdLineArgs ( int argc, char *argv[] )
           bUseOverlayCacheFlag = TRUE;
           nCurrentArg +=2 ;
 
-        }
-        else
-        {
+        } else {
 
           /* misuse of that switch */
           tkm_DisplayError( "Parsing -overlaycache option",
@@ -2733,23 +2485,18 @@ void ParseCmdLineArgs ( int argc, char *argv[] )
           nCurrentArg += 1;
         }
 
-      }
-      else if ( MATCH( sArg, "-interface" ) )
-      {
+      } else if ( MATCH( sArg, "-interface" ) ) {
 
         /* check for another value */
         if ( argc > nCurrentArg + 1
-             && '-' != argv[nCurrentArg+1][0] )
-        {
+             && '-' != argv[nCurrentArg+1][0] ) {
 
           /* copy in the interface name */
           DebugNote( ("Parsing -interface option") );
           strcpy( gInterfaceScriptName, argv[nCurrentArg+1] );
           nCurrentArg += 2;
 
-        }
-        else
-        {
+        } else {
 
           /* misuse of that switch */
           tkm_DisplayError( "Parsing -interface option",
@@ -2759,42 +2506,33 @@ void ParseCmdLineArgs ( int argc, char *argv[] )
           nCurrentArg += 1;
         }
 
-      }
-      else if ( MATCH( sArg, "-" ) )
-      {
+      } else if ( MATCH( sArg, "-" ) ) {
 
         /* set no edit mode. */
         DebugNote( ("Parsing - option") );
         bNoEdit = TRUE;
         nCurrentArg += 1;
 
-      }
-      else if ( MATCH( sArg, "-csurf" ) )
-      {
+      } else if ( MATCH( sArg, "-csurf" ) ) {
 
         /* set name of interface to tkmedit_csurf.tcl */
         DebugNote( ("Parsing -csurf option") );
         gbUseCsurfInterface = TRUE;
         nCurrentArg ++;
 
-      }
-      else if ( MATCH( sArg, "-mip" ) )
-      {
+      } else if ( MATCH( sArg, "-mip" ) ) {
 
         /* Set the maximum intensity projection flag */
         DebugNote( ("Parsing -mip option") );
         bMIP = TRUE;
         nCurrentArg ++;
 
-      }
-      else
-      {
+      } else {
 
         /* unrecognized option, build an error message and ignore it. */
         xUtil_snprintf( sError, sizeof(sError),
                         "Option %s not recognized", sArg );
-        if (getenv("TK_EXIT_ON_CMD_ERROR")!=NULL)
-        {
+        if (getenv("TK_EXIT_ON_CMD_ERROR")!=NULL) {
           printf( "\nParsing command line options %s.\n"
                   "This option was not recognized.\n", sError);
           exit(1);
@@ -2807,14 +2545,11 @@ void ParseCmdLineArgs ( int argc, char *argv[] )
       }
 
       /* check for local keyword */
-    }
-    else if ( MATCH( sArg, "local" ) ||
-              MATCH( sArg, "." ) )
-    {
+    } else if ( MATCH( sArg, "local" ) ||
+                MATCH( sArg, "." ) ) {
 
       /* make sure subject is not already declared */
-      if ( bSubjectDeclared )
-      {
+      if ( bSubjectDeclared ) {
         tkm_DisplayError( "Parsing local option",
                           "Subject already declared",
                           "The local option is only to be used if the "
@@ -2822,9 +2557,7 @@ void ParseCmdLineArgs ( int argc, char *argv[] )
                           "subect/image type format." );
         bFatalError = TRUE;
 
-      }
-      else
-      {
+      } else {
 
         /* set local flag */
         DebugNote( ("Parsing local option") );
@@ -2837,22 +2570,17 @@ void ParseCmdLineArgs ( int argc, char *argv[] )
         SetSubjectHomeDir( gsUserHomeDir );
       }
 
-    }
-    else
-    {
+    } else {
 
       /* this is the name/imagedir part. only do it if we haven't
          declared the subject yet. */
-      if ( !bSubjectDeclared )
-      {
+      if ( !bSubjectDeclared ) {
 
         /*make sure we have enough args and they arn't switches */
-        if ( argc > nCurrentArg+1 )
-        {
+        if ( argc > nCurrentArg+1 ) {
 
           /* make sure the next two args arn't switches or local/. args */
-          if ( '-' == argv[nCurrentArg+1][0] )
-          {
+          if ( '-' == argv[nCurrentArg+1][0] ) {
 
             /* image dir is missing. */
             tkm_DisplayError( "Parsing subject and image name",
@@ -2861,9 +2589,7 @@ void ParseCmdLineArgs ( int argc, char *argv[] )
                               "two arguments are expected." );
             bFatalError = TRUE;
 
-          }
-          else
-          {
+          } else {
 
             /* read in subject and image name. */
             DebugNote( ("Parsing subject name") );
@@ -2875,30 +2601,25 @@ void ParseCmdLineArgs ( int argc, char *argv[] )
             bSubjectDeclared = TRUE;
             nCurrentArg += 2;
 
-            if(!MATCH(sSubject,"getreg"))
-            {
+            if(!MATCH(sSubject,"getreg")){
               /* save subject home */
               DebugNote( ("Setting subject home from env") );
               eResult = SetSubjectHomeDirFromEnv( sSubject );
               DebugAssertThrow( (tkm_tErr_NoErr == eResult) );
-              //      printf("Setting subject to %s\n",sSubject);
-              sprintf(tmpstr,"%s/%s",getenv("SUBJECTS_DIR"),sSubject);
-              if(!fio_FileExistsReadable(tmpstr))
-              {
-                printf("ERROR: cannot find subject %s in %s or it is not readable by you\n",
-                       sSubject,getenv("SUBJECTS_DIR"));
-                exit(1);
-              }
-            }
-            else
-            {
+	      //	    printf("Setting subject to %s\n",sSubject);
+	      sprintf(tmpstr,"%s/%s",getenv("SUBJECTS_DIR"),sSubject);
+	      if(!fio_FileExistsReadable(tmpstr)){
+		printf("ERROR: cannot find subject %s in %s or it is not readable by you\n",
+		       sSubject,getenv("SUBJECTS_DIR"));
+		exit(1);
+	      }
+            } else {
               printf("Getting subject from registration file.\n");
               bGetSubjectFromReg = TRUE;
             }
             // Automatically set brightness/contrast for fsaverage
-            // Not needed as of 4/16/08
-            if(0 && !strcmp(sSubject,"fsaverage"))
-            {
+	    // Not needed as of 4/16/08
+            if(0 && !strcmp(sSubject,"fsaverage")){
               fBrightnessMain = .58;
               fContrastMain = 14;
               bBrightContrastMain = TRUE;
@@ -2906,14 +2627,12 @@ void ParseCmdLineArgs ( int argc, char *argv[] )
           }
 
           /* check for a surface. if we have enough args... */
-          if ( argc > nCurrentArg )
-          {
+          if ( argc > nCurrentArg ) {
 
             /* and this one isn't a switch or the local flag... */
             if ( '-' != argv[nCurrentArg][0]
                  && !MATCH( argv[nCurrentArg], "local" )
-                 && !MATCH( argv[nCurrentArg], "." ) )
-            {
+                 && !MATCH( argv[nCurrentArg], "." ) ) {
 
               /* read it as a surface. */
               DebugNote( ("Parsing surface name") );
@@ -2922,9 +2641,7 @@ void ParseCmdLineArgs ( int argc, char *argv[] )
               nCurrentArg ++;
             }
           }
-        }
-        else
-        {
+        } else {
           tkm_DisplayError( "Parsing arguments",
                             "Subject and image not declared",
                             "You must pass a subject name and image type "
@@ -2933,9 +2650,7 @@ void ParseCmdLineArgs ( int argc, char *argv[] )
           bFatalError = TRUE;
         }
 
-      }
-      else
-      {
+      } else {
 
         /* totally unrecognized */
         xUtil_snprintf( sError, sizeof(sError),
@@ -2949,8 +2664,7 @@ void ParseCmdLineArgs ( int argc, char *argv[] )
   }
 
   /* check for fatal error. */
-  if ( bFatalError )
-  {
+  if ( bFatalError ) {
     /* probably have some error messages that didn't get printed cuz
        tcl wasn't loaded yet, so flush them to shell now. */
     PrintCachedTclErrorDlogsToShell();
@@ -2960,8 +2674,7 @@ void ParseCmdLineArgs ( int argc, char *argv[] )
 
   /* if using local directory, copy 'local' in subject name for
      historical reasons. */
-  if ( bLocalImageDir )
-  {
+  if ( bLocalImageDir ) {
     DebugNote( ("Copying local into subject name") );
     xUtil_strncpy( sSubject, "local", sizeof(sSubject) );
     DebugNote( ("Copying empty string into image dir") );
@@ -2969,29 +2682,23 @@ void ParseCmdLineArgs ( int argc, char *argv[] )
   }
 
   /* disable editing */
-  if ( bNoEdit )
-  {
+  if ( bNoEdit ) {
     editflag = FALSE;
   }
 
   /* bleah. if we have the using mri read flag set, load the images from
      the subject name, otherwise use the image dir. */
-  if ( bUsingMRIRead )
-  {
+  if ( bUsingMRIRead ) {
     DebugNote( ("Loading volume %s", sSubject) );
     eResult = LoadVolume( tkm_tVolumeType_Main, sSubject, bConformVolume );
-    if ( tkm_tErr_NoErr != eResult )
-    {
+    if ( tkm_tErr_NoErr != eResult ) {
       PrintCachedTclErrorDlogsToShell();
       exit( 1 );
     }
-  }
-  else
-  {
+  } else {
     DebugNote( ("Loading volume %s", sImageDir) );
     eResult = LoadVolume( tkm_tVolumeType_Main, sImageDir, bConformVolume );
-    if ( tkm_tErr_NoErr != eResult )
-    {
+    if ( tkm_tErr_NoErr != eResult ) {
       PrintCachedTclErrorDlogsToShell();
       exit( 1 );
     }
@@ -2999,8 +2706,7 @@ void ParseCmdLineArgs ( int argc, char *argv[] )
     /* check to see if we don't have a subject */
     Volm_CopySubjectName( gAnatomicalVolume[tkm_tVolumeType_Main],
                           sSubjectTest, sizeof(sSubjectTest) );
-    if ( strcmp( sSubjectTest, "" ) == 0 )
-    {
+    if ( strcmp( sSubjectTest, "" ) == 0 ) {
       /* manually set the subject and image name */
       Volm_SetSubjectName( gAnatomicalVolume[tkm_tVolumeType_Main],
                            sSubject );
@@ -3010,8 +2716,7 @@ void ParseCmdLineArgs ( int argc, char *argv[] )
   }
 
   /* If we're scaling up, do it now. Re-allocate the selection volume too. */
-  if ( bScaleUpVolume )
-  {
+  if ( bScaleUpVolume ) {
     Volm_SetMinVoxelSizeToOne( gAnatomicalVolume[tkm_tVolumeType_Main] );
     Volm_GetMRIIdxToAnaIdxTransform( gAnatomicalVolume[tkm_tVolumeType_Main],
                                      &gMRIIdxToAnaIdxTransform );
@@ -3026,35 +2731,29 @@ void ParseCmdLineArgs ( int argc, char *argv[] )
 
   /* If we got a non-default brightness and contrast or min and max,
      set it now. */
-  if ( bBrightContrastMain )
-  {
+  if ( bBrightContrastMain ) {
     SetVolumeBrightnessAndContrast( tkm_tVolumeType_Main,
                                     fBrightnessMain, fContrastMain );
   }
-  if ( bColorMain )
-  {
+  if ( bColorMain ) {
     SetVolumeColorMinMax( tkm_tVolumeType_Main, fColorMinMain, fColorMaxMain );
   }
 
   /* if reading in an aux image... */
-  if ( bLoadingAuxVolume )
-  {
+  if ( bLoadingAuxVolume ) {
     DebugNote( ("Loading aux volume %s", sAuxVolume) );
     eResult = LoadVolume( tkm_tVolumeType_Aux, sAuxVolume, bConformAuxVolume );
 
     /* If we got a non-default brightness and contrast or min and max,
        set it now. */
-    if ( bBrightContrastAux )
-    {
+    if ( bBrightContrastAux ) {
       SetVolumeBrightnessAndContrast( tkm_tVolumeType_Aux,
                                       fBrightnessAux, fContrastAux );
     }
-    if ( bColorAux )
-    {
+    if ( bColorAux ) {
       SetVolumeColorMinMax( tkm_tVolumeType_Aux, fColorMinAux, fColorMaxAux );
     }
-    if ( bScaleUpVolume )
-    {
+    if ( bScaleUpVolume ) {
       Volm_SetMinVoxelSizeToOne( gAnatomicalVolume[tkm_tVolumeType_Aux] );
       Volm_GetMRIIdxToAnaIdxTransform( gAnatomicalVolume[tkm_tVolumeType_Aux],
                                        &gMRIIdxToAnaIdxTransform );
@@ -3062,50 +2761,41 @@ void ParseCmdLineArgs ( int argc, char *argv[] )
   }
 
   /* load in the display transforms. */
-  if ( bLoadingMainTransform )
-  {
+  if ( bLoadingMainTransform ) {
     DebugNote( ("Loading main display transform %s", sMainTransform) );
     eResult = LoadDisplayTransform( tkm_tVolumeType_Main, sMainTransform );
   }
-  if ( bLoadingAuxTransform )
-  {
+  if ( bLoadingAuxTransform ) {
     DebugNote( ("Loading aux display transform %s", sAuxTransform) );
     eResult = LoadDisplayTransform( tkm_tVolumeType_Aux, sAuxTransform );
   }
 
   /* load surface. trasnsform must be inited first. */
-  if ( bSurfaceDeclared )
-  {
+  if ( bSurfaceDeclared ) {
     DebugNote( ("Loading surface") );
     eResult = LoadSurface( tkm_tSurfaceType_Main, sSurface );
   }
 
   /* load aux surface. */
-  if ( bAuxSurfaceDeclared )
-  {
+  if ( bAuxSurfaceDeclared ) {
     DebugNote( ("Loading aux surface") );
     eResult = LoadSurface( tkm_tSurfaceType_Aux, sAuxSurface );
   }
 
   /* Import an annotation */
-  if ( bLoadingAnnotation )
-  {
+  if ( bLoadingAnnotation ) {
 
-    if ( bSurfaceDeclared )
-    {
+    if ( bSurfaceDeclared ) {
       DebugNote( ("Importing annotation") );
       ImportSurfaceAnnotationToSegmentation( tkm_tSegType_Main,
                                              sAnnotation,
                                              sAnnotationColorTable );
       /* set roi alpha */
-      if ( bSegmentationAlpha )
-      {
+      if ( bSegmentationAlpha ) {
         SetSegmentationAlpha( fSegmentationAlpha );
       }
 
-    }
-    else
-    {
+    } else {
       tkm_DisplayError( "Importing Annotation",
                         "Surface not loaded",
                         "In order to import an annotation, you must also "
@@ -3114,8 +2804,7 @@ void ParseCmdLineArgs ( int argc, char *argv[] )
   }
 
   /* load segmentation */
-  if ( bLoadingSegmentation )
-  {
+  if ( bLoadingSegmentation ) {
     eResult = LoadSegmentationVolume( tkm_tSegType_Main,
                                       sSegmentationPath,
                                       sSegmentationColorFile,
@@ -3123,15 +2812,13 @@ void ParseCmdLineArgs ( int argc, char *argv[] )
     printf( "LoadSegmentationVolume main %s %s\n",
             sSegmentationPath, sSegmentationColorFile );
     /* set roi alpha */
-    if ( bSegmentationAlpha )
-    {
+    if ( bSegmentationAlpha ) {
       SetSegmentationAlpha( fSegmentationAlpha );
     }
   }
 
   /* load aux segmentation */
-  if ( bLoadingAuxSegmentation )
-  {
+  if ( bLoadingAuxSegmentation ) {
     eResult = LoadSegmentationVolume( tkm_tSegType_Aux,
                                       sAuxSegmentationPath,
                                       sAuxSegmentationColorFile,
@@ -3141,40 +2828,32 @@ void ParseCmdLineArgs ( int argc, char *argv[] )
   }
 
   /* load VLIs */
-  if ( bLoadingVLI )
-  {
+  if ( bLoadingVLI ) {
     eResult = LoadVLIs( sVLIFile1, sVLIFile2 );
   }
 
   /* load the label */
-  if ( bLoadingLabel )
-  {
+  if ( bLoadingLabel ) {
     eResult = LoadSelectionFromLabelFile( sLabel );
   }
 
   /* load head pts */
-  if ( bLoadingHeadPts )
-  {
-    if ( bHaveHeadPtsTransform )
-    {
+  if ( bLoadingHeadPts ) {
+    if ( bHaveHeadPtsTransform ) {
       eResult = LoadHeadPts( sHeadPts, sHeadPtsTransform );
-    }
-    else
-    {
+    } else {
       eResult = LoadHeadPts( sHeadPts, NULL );
     }
   }
 
   /* load functional overlay data */
-  if ( bLoadingOverlay )
-  {
+  if ( bLoadingOverlay ) {
 
     /* Check that they specified a reg type. */
-    if ( FunD_tRegistration_None == overlayRegType )
-    {
+    if ( FunD_tRegistration_None == overlayRegType ) {
 
       OutputPrint "INFO: No registration type specified for overlay, "
-      "assuming identity.\n" EndOutputPrint;
+        "assuming identity.\n" EndOutputPrint;
       overlayRegType = FunD_tRegistration_Identity;
     }
 
@@ -3183,22 +2862,19 @@ void ParseCmdLineArgs ( int argc, char *argv[] )
                                      overlayRegType,
                                      sOverlayRegistration );
 
-    if ( eResult == tkm_tErr_NoErr && bSmooth )
-    {
+    if ( eResult == tkm_tErr_NoErr && bSmooth ) {
       eResult = SmoothOverlayData( smoothSigma );
     }
   }
 
   /* load functional time course data */
-  if ( bLoadingTimeCourse )
-  {
+  if ( bLoadingTimeCourse ) {
 
     /* Check that they specified a reg type. */
-    if ( FunD_tRegistration_None == timecourseRegType )
-    {
+    if ( FunD_tRegistration_None == timecourseRegType ) {
 
       OutputPrint "INFO: No registration type specified for time course, "
-      "assuming identity.\n" EndOutputPrint;
+        "assuming identity.\n" EndOutputPrint;
       timecourseRegType = FunD_tRegistration_Identity;
     }
 
@@ -3213,14 +2889,12 @@ void ParseCmdLineArgs ( int argc, char *argv[] )
   FunV_EnableRegistration( gFunctionalVolume, bEnablingRegistration );
 
   /* if regisration is enabled, set conversion method to round. */
-  if ( bEnablingRegistration )
-  {
+  if ( bEnablingRegistration ) {
     FunV_SetConversionMethod( gFunctionalVolume,
                               FunD_tConversionMethod_Round );
   }
 
-  if ( bThresh && bMax && !bSlope && !bMid )
-  {
+  if ( bThresh && bMax && !bSlope && !bMid ) {
     mid = min + (max-min)/2;
     bMid = 1;
     slope = 1/(max-min);
@@ -3228,28 +2902,24 @@ void ParseCmdLineArgs ( int argc, char *argv[] )
   }
 
   /* set functional color scale stuff */
-  if ( bThresh || bMid || bSlope )
-  {
+  if ( bThresh || bMid || bSlope ) {
     DebugNote( ("Setting functional threshold min=%f mid=%f slope=%f\n",
                 min, mid, slope ) );
     eFunctional = FunV_SetThreshold( gFunctionalVolume, min, mid, slope );
   }
-  if ( bTruncPhaseFlag )
-  {
+  if ( bTruncPhaseFlag ) {
     DebugNote( ("Setting trunc phase flag to %d\n", nTruncPhaseFlag) );
     eFunctional = FunV_SetDisplayFlag( gFunctionalVolume,
                                        FunV_tDisplayFlag_Ol_TruncateNegative,
                                        (tBoolean) nTruncPhaseFlag );
   }
-  if ( bRevPhaseFlag )
-  {
+  if ( bRevPhaseFlag ) {
     DebugNote( ("Setting rev phase flag to %d\n", nRevPhaseFlag ) );
     eFunctional = FunV_SetDisplayFlag( gFunctionalVolume,
                                        FunV_tDisplayFlag_Ol_ReversePhase,
                                        (tBoolean) nRevPhaseFlag );
   }
-  if ( bUseOverlayCacheFlag )
-  {
+  if ( bUseOverlayCacheFlag ) {
     DebugNote( ("Setting overlay cache flag to %d\n",
                 nUseOverlayCacheFlag) );
     eFunctional = FunV_UseOverlayCache( gFunctionalVolume,
@@ -3257,8 +2927,7 @@ void ParseCmdLineArgs ( int argc, char *argv[] )
   }
 
   /* Maximum intensity projection. */
-  if ( bMIP )
-  {
+  if ( bMIP ) {
     DebugNote( ("Setting MIP flag on\n") );
     MWin_SetDisplayFlag( gMeditWindow, -1,
                          DspA_tDisplayFlag_MaxIntProj, bMIP );
@@ -3275,8 +2944,7 @@ void ParseCmdLineArgs ( int argc, char *argv[] )
   DebugExitFunction;
 }
 
-void save_rgb( char* fname )
-{
+void save_rgb( char* fname ) {
 
   GLint rowlength, skiprows, skippixels, alignment;
   GLboolean swapbytes, lsbfirst;
@@ -3291,9 +2959,7 @@ void save_rgb( char* fname )
   FILE *fp;
 
   if ( NULL == gMeditWindow )
-  {
     return;
-  }
 
   MWin_GetWindowSize( gMeditWindow,
                       &xloc, &yloc, &width, &height );
@@ -3302,20 +2968,17 @@ void save_rgb( char* fname )
   nNumBytes = sizeof( unsigned short ) * size;
 
   red  = (unsigned short*) malloc( nNumBytes );
-  if ( NULL == red )
-  {
+  if ( NULL == red ) {
     DebugPrint( ( "save_rgb: allocation of red buffer failed.\n" ) );
     goto cleanup;
   }
   green = (unsigned short*) malloc( nNumBytes );
-  if ( NULL == green )
-  {
+  if ( NULL == green ) {
     DebugPrint( ( "save_rgb: allocation of green buffer failed.\n" ) );
     goto cleanup;
   }
   blue  = (unsigned short*) malloc( nNumBytes );
-  if ( NULL == blue )
-  {
+  if ( NULL == blue ) {
     DebugPrint( ( "save_rgb: allocation of blue buffer failed.\n" ) );
     goto cleanup;
   }
@@ -3338,24 +3001,21 @@ void save_rgb( char* fname )
   glReadPixels(0, 0, width, height, GL_RED,
                GL_UNSIGNED_SHORT, (GLvoid *)red);
   eGL = glGetError ();
-  if ( GL_NO_ERROR != eGL )
-  {
+  if ( GL_NO_ERROR != eGL ) {
     DebugPrint( ( "glReadPixels got error %d\n", eGL ) );
     goto cleanup;
   }
   glReadPixels(0, 0, width, height, GL_GREEN,
                GL_UNSIGNED_SHORT, (GLvoid *)green);
   eGL = glGetError ();
-  if ( GL_NO_ERROR != eGL )
-  {
+  if ( GL_NO_ERROR != eGL ) {
     DebugPrint( ( "glReadPixels got error %d\n", eGL ) );
     goto cleanup;
   }
   glReadPixels(0, 0, width, height, GL_BLUE,
                GL_UNSIGNED_SHORT, (GLvoid *)blue);
   eGL = glGetError ();
-  if ( GL_NO_ERROR != eGL )
-  {
+  if ( GL_NO_ERROR != eGL ) {
     DebugPrint( ( "glReadPixels got error %d\n", eGL ) );
     goto cleanup;
   }
@@ -3368,15 +3028,13 @@ void save_rgb( char* fname )
   glPixelStorei(GL_UNPACK_ALIGNMENT, alignment);
 
   fp = fopen(fname,"w");
-  if (fp==NULL)
-  {
+  if (fp==NULL) {
     printf("medit: ### can't create file %s\n",fname);
     return;
   }
   fclose(fp);
   image = iopen(fname,"w",UNCOMPRESSED(1), 3, width, height, 3);
-  for (y = 0 ; y < height; y++)
-  {
+  for (y = 0 ; y < height; y++) {
     r = red + y * width;
     g = green + y * width;
     b = blue + y * width;
@@ -3386,24 +3044,17 @@ void save_rgb( char* fname )
   }
   iclose(image);
 
-cleanup:
+ cleanup:
 
   if ( NULL != red )
-  {
     free( red );
-  }
   if ( NULL != green )
-  {
     free( green );
-  }
   if ( NULL != blue )
-  {
     free( blue );
-  }
 }
 
-void save_tiff (char* fname)
-{
+void save_tiff (char* fname) {
   GLint rowlength, skiprows, skippixels, alignment;
   GLboolean swapbytes, lsbfirst;
   GLubyte* pixel_data = NULL;
@@ -3417,17 +3068,14 @@ void save_tiff (char* fname)
   int x, y, height, width;
 
   if ( NULL == gMeditWindow )
-  {
     return;
-  }
 
   MWin_GetWindowSize( gMeditWindow,
                       &x, &y, &width, &height );
 
   /* Allocate a buffer for pixels. */
   pixel_data = (GLubyte*) malloc (width * height * 3);
-  if (NULL == pixel_data)
-  {
+  if (NULL == pixel_data) {
     DebugPrint(("Couldn't allocate pixel data."));
     goto error;
   }
@@ -3467,16 +3115,14 @@ void save_tiff (char* fname)
 
   /* Handle error now. We can bail safely as we've restored the GL
      context. */
-  if (GL_NO_ERROR != gl_error)
-  {
+  if (GL_NO_ERROR != gl_error) {
     DebugPrint(("Error reading pixels."));
     goto error;
   }
 
   /* Open a TIFF. */
   tiff = TIFFOpen( fname, "w" );
-  if (NULL == tiff)
-  {
+  if (NULL == tiff) {
     DebugPrint(("Couldn't create file."));
     goto error;
   }
@@ -3494,15 +3140,13 @@ void save_tiff (char* fname)
   line_bytes = 3 * width;
   line_buffer = NULL;
   scan_line_size = TIFFScanlineSize (tiff);
-  if (scan_line_size != line_bytes)
-  {
+  if (scan_line_size != line_bytes) {
     fprintf (stderr,"surfer: scan_line_size %d, line_bytes %d\n",
              scan_line_size, (int)line_bytes);
   }
 
   line_buffer = (unsigned char*) _TIFFmalloc( scan_line_size  );
-  if (NULL == line_buffer)
-  {
+  if (NULL == line_buffer) {
     DebugPrint(("Couldn't create tiff storage."));
     goto error;
   }
@@ -3512,37 +3156,29 @@ void save_tiff (char* fname)
   TIFFSetField (tiff, TIFFTAG_ROWSPERSTRIP, strip_size);
 
   /* Write line by line (bottom to top). */
-  for (row = 0; row < height; row++)
-  {
+  for (row = 0; row < height; row++) {
     memmove (line_buffer, &pixel_data[(height-row-1) * line_bytes],
              line_bytes);
     TIFFWriteScanline (tiff, line_buffer, row, 0);
   }
 
   goto cleanup;
-error:
+ error:
 
-cleanup:
+ cleanup:
 
   if (NULL != pixel_data)
-  {
     free (pixel_data);
-  }
 
   /* Close the tiff file and free the line buffer. */
   if (NULL != tiff)
-  {
     TIFFClose (tiff);
-  }
   if (NULL != line_buffer)
-  {
     _TIFFfree (line_buffer);
-  }
 }
 
 
-void GotoSurfaceVertex ( Surf_tVertexSet iSurface, int inVertex )
-{
+void GotoSurfaceVertex ( Surf_tVertexSet iSurface, int inVertex ) {
 
   Surf_tErr eSurface = Surf_tErr_NoErr;
   MWin_tErr eWindow  = MWin_tErr_NoErr;
@@ -3552,51 +3188,42 @@ void GotoSurfaceVertex ( Surf_tVertexSet iSurface, int inVertex )
 
   /* make sure we have a surface. */
   if ( NULL == gSurface[tkm_tSurfaceType_Main] )
-  {
     goto error;
-  }
 
   /* get the vertex */
   eSurface = Surf_GetNthVertex( gSurface[tkm_tSurfaceType_Main],
                                 iSurface, inVertex, &anaIdx,
                                 sDescription );
   if ( Surf_tErr_NoErr != eSurface )
-  {
     goto error;
-  }
 
   /* print the result string */
   Surf_GetSurfaceSetName( iSurface, sSetName );
   OutputPrint "%s vertex index %d:\n\t%s\n",
-  sSetName, inVertex, sDescription EndOutputPrint;
+    sSetName, inVertex, sDescription EndOutputPrint;
 
   /* tell the window to go there. */
   eWindow = MWin_SetCursor ( gMeditWindow, -1, &anaIdx );
   if ( MWin_tErr_NoErr != eWindow )
-  {
     goto error;
-  }
 
   /* zoom around new cursor. */
   eWindow = MWin_SetZoomCenterToCursor ( gMeditWindow, -1 );
   if ( MWin_tErr_NoErr != eWindow )
-  {
     goto error;
-  }
 
   goto cleanup;
 
-error:
+ error:
 
   DebugPrint( ( "Error in GotoSurfaceVertex( %d, %d )\n",
                 (int)iSurface, inVertex ) );
 
-cleanup:
+ cleanup:
   return;
 }
 
-void FindNearestSurfaceVertex ( Surf_tVertexSet iSet )
-{
+void FindNearestSurfaceVertex ( Surf_tVertexSet iSet ) {
 
   Surf_tErr eSurface = Surf_tErr_NoErr;
   MWin_tErr eWindow  = MWin_tErr_NoErr;
@@ -3607,58 +3234,47 @@ void FindNearestSurfaceVertex ( Surf_tVertexSet iSet )
 
   /* make sure we have a surface. */
   if ( NULL == gSurface[tkm_tSurfaceType_Main] )
-  {
     goto error;
-  }
 
   /* get the cursor */
   eWindow = MWin_GetCursor ( gMeditWindow, &cursor );
   if ( MWin_tErr_NoErr != eWindow )
-  {
     goto error;
-  }
 
   /* get the vertex */
   eSurface = Surf_GetClosestVertexVoxel( gSurface[tkm_tSurfaceType_Main],
                                          iSet, &cursor, &anaIdx,
                                          sDescription);
   if ( Surf_tErr_NoErr != eSurface )
-  {
     goto error;
-  }
 
   /* print the result string */
   Surf_GetSurfaceSetName( iSet, sSetName );
   OutputPrint "Nearest %s vertex to %d, %d, %d:\n\t%s\n",
-  sSetName, xVoxl_ExpandInt( &cursor ), sDescription EndOutputPrint;
+    sSetName, xVoxl_ExpandInt( &cursor ), sDescription EndOutputPrint;
 
   /* tell the window to go there. */
   eWindow = MWin_SetCursor ( gMeditWindow, -1, &anaIdx );
   if ( MWin_tErr_NoErr != eWindow )
-  {
     goto error;
-  }
 
   /* zoom around new cursor. */
   eWindow = MWin_SetZoomCenterToCursor ( gMeditWindow, -1 );
   if ( MWin_tErr_NoErr != eWindow )
-  {
     goto error;
-  }
 
   goto cleanup;
 
-error:
+ error:
 
   DebugPrint( ( "Error in FindNearestSurfaceVertex( %d )\n",
                 (int)iSet ) );
 
-cleanup:
+ cleanup:
   return;
 }
 
-void FindNearestInterpolatedSurfaceVertex ( Surf_tVertexSet iSet )
-{
+void FindNearestInterpolatedSurfaceVertex ( Surf_tVertexSet iSet ) {
 
   MWin_tErr eWindow  = MWin_tErr_NoErr;
   xVoxel    cursor;
@@ -3669,99 +3285,81 @@ void FindNearestInterpolatedSurfaceVertex ( Surf_tVertexSet iSet )
 
   /* make sure we have a surface. */
   if ( NULL == gSurface[tkm_tSurfaceType_Main] )
-  {
     goto error;
-  }
 
   /* get the cursor */
   eWindow = MWin_GetCursor ( gMeditWindow, &cursor );
   if ( MWin_tErr_NoErr != eWindow )
-  {
     goto error;
-  }
 
   /* get the verteices */
   eWindow = MWin_GetClosestInterpSurfVoxel( gMeditWindow,
-            tkm_tSurfaceType_Main,
-            iSet, &cursor,
-            &origAnaIdx, &interpAnaIdx,
-            sDescription);
+                                            tkm_tSurfaceType_Main,
+                                            iSet, &cursor,
+                                            &origAnaIdx, &interpAnaIdx,
+                                            sDescription);
   if ( MWin_tErr_NoErr != eWindow )
-  {
     goto error;
-  }
 
   /* print the result string */
   Surf_GetSurfaceSetName( iSet, sSetName );
   OutputPrint "Nearest %s vertex to %d, %d, %d:\n\t%s\n",
-  sSetName, xVoxl_ExpandInt( &cursor ), sDescription EndOutputPrint;
+    sSetName, xVoxl_ExpandInt( &cursor ), sDescription EndOutputPrint;
 
   /* tell the window to go there. */
   eWindow = MWin_SetCursor ( gMeditWindow, -1, &interpAnaIdx );
   if ( MWin_tErr_NoErr != eWindow )
-  {
     goto error;
-  }
 
   /* zoom around new cursor. */
   eWindow = MWin_SetZoomCenterToCursor ( gMeditWindow, -1 );
   if ( MWin_tErr_NoErr != eWindow )
-  {
     goto error;
-  }
 
   goto cleanup;
 
-error:
+ error:
 
   DebugPrint( ( "Error in FindNearestInterpolatedSurfaceVertex( %d )\n",
                 (int)iSet ) );
 
-cleanup:
+ cleanup:
   return;
 }
 
-void AverageSurfaceVertexPositions ( int inNumAverages )
-{
+void AverageSurfaceVertexPositions ( int inNumAverages ) {
 
   Surf_tErr eSurface = Surf_tErr_NoErr;
   MWin_tErr eWindow  = MWin_tErr_NoErr;
 
   /* make sure we have a surface. */
   if ( NULL == gSurface[tkm_tSurfaceType_Main] )
-  {
     goto error;
-  }
 
   /* call the average function. */
   eSurface = Surf_AverageVertexPositions( gSurface[tkm_tSurfaceType_Main],
                                           inNumAverages );
   if ( Surf_tErr_NoErr != eSurface )
-  {
     goto error;
-  }
 
   /* redraw the window. */
   eWindow = MWin_RedrawAll( gMeditWindow );
   if ( MWin_tErr_NoErr != eWindow )
-  {
     goto error;
-  }
 
   goto cleanup;
 
-error:
+ error:
 
   DebugPrint( ( "Error in AverageSurfaceVertexPositions( %d )\n",
                 (int)inNumAverages ) );
 
-cleanup:
+ cleanup:
   return;
 }
 
 void SetUseRealRAS ( tkm_tSurfaceType iType,
-                     tBoolean ibUseRealRAS )
-{
+                     tBoolean ibUseRealRAS ) {
 
 
   gbUseRealRAS = ibUseRealRAS;
@@ -3780,8 +3378,7 @@ void SetUseRealRAS ( tkm_tSurfaceType iType,
 
 
 
-tkm_tErr CalcAndSetSurfaceClientTransformation ( tkm_tSurfaceType iType )
-{
+tkm_tErr CalcAndSetSurfaceClientTransformation ( tkm_tSurfaceType iType ) {
 
   tkm_tErr        eResult          = tkm_tErr_NoErr;
   Trns_tErr       eTrns            = Trns_tErr_NoErr;
@@ -3816,17 +3413,14 @@ tkm_tErr CalcAndSetSurfaceClientTransformation ( tkm_tSurfaceType iType )
   //
   /* If we are using real RAS, we just use the extract_i_to_r
      transform for src->conformed, otherwise use the standard. */
-  if ( gbUseRealRAS )
-  {
+  if ( gbUseRealRAS ) {
 
     tmp1 = MatrixCopy
-           (extract_i_to_r
-            ( gAnatomicalVolume[tkm_tVolumeType_Main]->mpMriValues ),
-            NULL );
+      (extract_i_to_r
+       ( gAnatomicalVolume[tkm_tVolumeType_Main]->mpMriValues ),
+       NULL );
 
-  }
-  else
-  {
+  } else {
 
     Trns_GetBtoRAS(surfaceTransform, &tmp1);
     *MATRIX_RELT(tmp1, 1, 1) = -1;
@@ -3873,18 +3467,14 @@ tkm_tErr CalcAndSetSurfaceClientTransformation ( tkm_tSurfaceType iType )
 
   goto cleanup;
 
-error:
+ error:
 
-cleanup:
+ cleanup:
 
   if ( NULL != tmp1 )
-  {
     MatrixFree(&tmp1);
-  }
   if ( NULL != tmp2 )
-  {
     MatrixFree(&tmp2);
-  }
 
   DebugExitFunction;
 
@@ -3892,8 +3482,7 @@ cleanup:
 }
 
 
-void CopyEditDatFileName ( char* osFileName, int izFileName )
-{
+void CopyEditDatFileName ( char* osFileName, int izFileName ) {
 
   static tBoolean bWarnedLocal = FALSE;
   char*     pLocalEditFile  = NULL;
@@ -3906,30 +3495,26 @@ void CopyEditDatFileName ( char* osFileName, int izFileName )
      normal one. */
   bFoundLocal = FALSE;
   pLocalEditFile = getenv( "FS_SAVE_GOTO_POINT" );
-  if ( NULL != pLocalEditFile )
-  {
+  if ( NULL != pLocalEditFile ) {
 
     Volm_CopySubjectName( gAnatomicalVolume[tkm_tVolumeType_Main],
                           sSubjectName, sizeof( sSubjectName ));
     sprintf( sFileName, "%s-%s", pLocalEditFile, sSubjectName );
 
     fTest = fopen( sFileName, "a" );
-    if ( fTest )
-    {
+    if ( fTest ) {
       bFoundLocal = TRUE;
       fclose( fTest );
 
-      if ( !bWarnedLocal )
-      {
+      if ( !bWarnedLocal ) {
         OutputPrint "tkmedit: Using local edit.dat file %s\n", sFileName
-        EndOutputPrint;
+          EndOutputPrint;
         bWarnedLocal = TRUE;
       }
     }
   }
 
-  if ( !bFoundLocal )
-  {
+  if ( !bFoundLocal ) {
 
     /* Make the normal file name. */
     DebugNote( ("Making file name from edit.dat") );
@@ -3941,8 +3526,7 @@ void CopyEditDatFileName ( char* osFileName, int izFileName )
   strncpy( osFileName, sFileName, izFileName );
 }
 
-void WriteVoxelToEditFile ( xVoxelRef iAnaIdx )
-{
+void WriteVoxelToEditFile ( xVoxelRef iAnaIdx ) {
 
   tkm_tErr  eResult         = tkm_tErr_NoErr;
   Volm_tErr eVolume         = Volm_tErr_NoErr;
@@ -3991,8 +3575,7 @@ void WriteVoxelToEditFile ( xVoxelRef iAnaIdx )
   /* convert to tal and write that. */
   Volm_HasTalTransform( gAnatomicalVolume[tkm_tVolumeType_Main],
                         &bHasTransform );
-  if ( bHasTransform )
-  {
+  if ( bHasTransform ) {
 
     eVolume = Volm_ConvertIdxToTal( gAnatomicalVolume[tkm_tVolumeType_Main],
                                     iAnaIdx, &tal );
@@ -4007,8 +3590,7 @@ void WriteVoxelToEditFile ( xVoxelRef iAnaIdx )
   DebugCatchError( eResult, tkm_tErr_NoErr, tkm_GetErrorString );
   EndDebugCatch;
 
-  if ( NULL != file )
-  {
+  if ( NULL != file ) {
     DebugNote( ("Closing edit file") );
     fclose( file );
   }
@@ -4016,8 +3598,7 @@ void WriteVoxelToEditFile ( xVoxelRef iAnaIdx )
   DebugExitFunction;
 }
 
-void GotoSavedCursor ()
-{
+void GotoSavedCursor () {
 
   char sFileName[tkm_knPathLen] = "";
 
@@ -4033,8 +3614,7 @@ void GotoSavedCursor ()
 
 void GotoAnotherSubjectSavedCursor ( char* isSubjectName ) {}
 
-void ReadCursorFromEditFile ( char* isFileName )
-{
+void ReadCursorFromEditFile ( char* isFileName ) {
 
   tkm_tErr  eResult = tkm_tErr_NoErr;
   Volm_tErr eVolume = Volm_tErr_NoErr;
@@ -4096,8 +3676,7 @@ void ReadCursorFromEditFile ( char* isFileName )
                     sError );
   EndDebugCatch;
 
-  if ( NULL != file )
-  {
+  if ( NULL != file ) {
     DebugNote( ("Closing edit file") );
     fclose( file );
   }
@@ -4105,11 +3684,9 @@ void ReadCursorFromEditFile ( char* isFileName )
   DebugExitFunction;
 }
 
-void UpdateAndRedraw ()
-{
+void UpdateAndRedraw () {
 
-  if ( NULL != gMeditWindow )
-  {
+  if ( NULL != gMeditWindow ) {
     MWin_RedrawAll( gMeditWindow );
   }
 }
@@ -4119,8 +3696,7 @@ void tkm_HandleIdle () {}
 // ================================================================== SURFACES
 
 tkm_tErr LoadSurface ( tkm_tSurfaceType iType,
-                       char*    isName )
-{
+                       char*    isName ) {
 
   tkm_tErr  eResult           = tkm_tErr_NoErr;
   Surf_tErr eSurface          = Surf_tErr_NoErr;
@@ -4146,8 +3722,7 @@ tkm_tErr LoadSurface ( tkm_tSurfaceType iType,
   MakeFileName( isName, tkm_tFileName_Surface, sName, sizeof(sName) );
 
   /* delete existing if we already have it */
-  if ( NULL != gSurface[iType] )
-  {
+  if ( NULL != gSurface[iType] ) {
     Surf_Delete( &gSurface[iType] );
   }
 
@@ -4172,13 +3747,10 @@ tkm_tErr LoadSurface ( tkm_tSurfaceType iType,
      user which they want to use. */
   Surf_UsesRealRAS( gSurface[iType], &bUseRealRAS );
   if ( gbUseRealRAS == bUseRealRAS ||
-       gbSetFirstUseRealRAS )
-  {
+       gbSetFirstUseRealRAS ) {
     SetUseRealRAS( iType, bUseRealRAS );
     gbSetFirstUseRealRAS = TRUE;
-  }
-  else if ( bUseRealRAS != gbUseRealRAS )
-  {
+  } else if ( bUseRealRAS != gbUseRealRAS ) {
     tkm_SendTclCommand( tkm_tTclCommand_DoResolveUseRealRASDlog, "" );
   }
 
@@ -4202,21 +3774,18 @@ tkm_tErr LoadSurface ( tkm_tSurfaceType iType,
   sBaseName = basename( sFileNameCopy );
   if ( strlen(sBaseName) > 2 &&
        (sBaseName[0] == 'l' || sBaseName[0] == 'r') &&
-       sBaseName[1] == 'h' && sBaseName[2] == '.' )
-  {
+       sBaseName[1] == 'h' && sBaseName[2] == '.' ) {
     strncpy( sHemi, sBaseName, 2 );
     sprintf( sTclArgs, "%d %s", (int)iType, sHemi );
     tkm_SendTclCommand( tkm_tTclCommand_UpdateSurfaceHemi, sTclArgs );
   }
 
   /* load other vertex sets. See if they exist first. */
-  if(LoadOrigSurf)
-  {
+  if(LoadOrigSurf){
     DebugNote( ("Loading orig set") );
     LoadSurfaceVertexSet( iType, Surf_tVertexSet_Original, sOrigName );
   }
-  if(LoadPialSurf)
-  {
+  if(LoadPialSurf){
     DebugNote( ("Loading pial set") );
     LoadSurfaceVertexSet( iType, Surf_tVertexSet_Pial, sPialName );
   }
@@ -4240,8 +3809,7 @@ tkm_tErr LoadSurface ( tkm_tSurfaceType iType,
 
 tkm_tErr LoadSurfaceVertexSet ( tkm_tSurfaceType iType,
                                 Surf_tVertexSet   iSet,
-                                char*     isName )
-{
+                                char*     isName ) {
 
   tkm_tErr      eResult  = tkm_tErr_NoErr;
   Surf_tErr      eSurface = Surf_tErr_NoErr;
@@ -4270,8 +3838,7 @@ tkm_tErr LoadSurfaceVertexSet ( tkm_tSurfaceType iType,
   DebugAssertThrowX( (bLoaded),eResult, tkm_tErr_CouldntLoadSurfaceVertexSet );
 
   /* get command and flag to set */
-  switch ( iSet )
-  {
+  switch ( iSet ) {
   case Surf_tVertexSet_Pial:
     flag    = DspA_tDisplayFlag_PialSurface;
     command = tkm_tTclCommand_ShowPialSurfaceViewingOptions;
@@ -4305,8 +3872,7 @@ tkm_tErr LoadSurfaceVertexSet ( tkm_tSurfaceType iType,
   return eResult;
 }
 
-void UnloadSurface ( tkm_tSurfaceType iType )
-{
+void UnloadSurface ( tkm_tSurfaceType iType ) {
 
   tkm_tErr  eResult  = tkm_tErr_NoErr;
   Surf_tErr eSurface = Surf_tErr_NoErr;
@@ -4316,21 +3882,17 @@ void UnloadSurface ( tkm_tSurfaceType iType )
   DebugAssertThrowX( (NULL != gSurface[iType]),
                      eResult, tkm_tErr_InvalidParameter );
   if ( !gSurface[iType] )
-  {
     return;
-  }
 
   /* free the surface. */
   eSurface = Surf_Delete( &gSurface[iType] );
-  if ( Surf_tErr_NoErr != eSurface )
-  {
+  if ( Surf_tErr_NoErr != eSurface ) {
     DebugPrint( ( "Surf error %d in UnloadSurface: %s\n",
                   eSurface, Surf_GetErrorString( eSurface ) ) );
   }
 
   /* if this is our main surface, disable our loading options */
-  if ( tkm_tSurfaceType_Main == iType )
-  {
+  if ( tkm_tSurfaceType_Main == iType ) {
     tkm_SendTclCommand( tkm_tTclCommand_ShowSurfaceLoadingOptions, "0" );
     tkm_SendTclCommand( tkm_tTclCommand_ShowSurfaceViewingOptions, "0" );
     tkm_SendTclCommand(tkm_tTclCommand_ShowPialSurfaceViewingOptions,"0");
@@ -4356,8 +3918,7 @@ void UnloadSurface ( tkm_tSurfaceType iType )
 }
 
 void WriteSurfaceValues ( tkm_tSurfaceType iType,
-                          char*       isFileName )
-{
+                          char*       isFileName ) {
 
   tkm_tErr  eResult  = tkm_tErr_NoErr;
 
@@ -4367,9 +3928,7 @@ void WriteSurfaceValues ( tkm_tSurfaceType iType,
   DebugAssertThrowX( (NULL != gSurface[iType]),
                      eResult, tkm_tErr_InvalidParameter );
   if ( !gSurface[iType] )
-  {
     return;
-  }
 
   /* Write the values for this surface. */
   Surf_WriteValues( gSurface[iType], isFileName );
@@ -4382,8 +3941,7 @@ void WriteSurfaceValues ( tkm_tSurfaceType iType,
 }
 
 tkm_tErr LoadSurfaceAnnotation ( tkm_tSurfaceType iType,
-                                 char*            isName )
-{
+                                 char*            isName ) {
 
   tkm_tErr      eResult  = tkm_tErr_NoErr;
   Surf_tErr     eSurface = Surf_tErr_NoErr;
@@ -4423,8 +3981,7 @@ tkm_tErr LoadSurfaceAnnotation ( tkm_tSurfaceType iType,
 
 int TclCrashHard ( ClientData inClientData,
                    Tcl_Interp* inInterp,
-                   int argc, char* argv[] )
-{
+                   int argc, char* argv[] ) {
 
   char* pBadPtr = 0x0;
   *pBadPtr = 1;
@@ -4434,19 +3991,16 @@ int TclCrashHard ( ClientData inClientData,
 
 int TclTranslateOverlayRegistration ( ClientData inClientData,
                                       Tcl_Interp* inInterp,
-                                      int argc, char* argv[] )
-{
+                                      int argc, char* argv[] ) {
 
-  if ( argc != 3 )
-  {
+  if ( argc != 3 ) {
     Tcl_SetResult ( inInterp,
                     "wrong#args: TranslateOverlayRegisgtration distance x,y,z",
                     TCL_VOLATILE );
     return TCL_ERROR;
   }
 
-  if ( gbAcceptingTclCommands )
-  {
+  if ( gbAcceptingTclCommands ) {
     TranslateOverlayRegisgtration ( atof(argv[1]), argv[2][0] );
   }
 
@@ -4455,19 +4009,16 @@ int TclTranslateOverlayRegistration ( ClientData inClientData,
 
 int TclRotateOverlayRegistration ( ClientData inClientData,
                                    Tcl_Interp* inInterp,
-                                   int argc, char* argv[] )
-{
+                                   int argc, char* argv[] ) {
 
-  if ( argc != 3 )
-  {
+  if ( argc != 3 ) {
     Tcl_SetResult ( inInterp,
                     "wrong # args: RotateOverlayRegistration degrees x,y,z",
                     TCL_VOLATILE );
     return TCL_ERROR;
   }
 
-  if ( gbAcceptingTclCommands )
-  {
+  if ( gbAcceptingTclCommands ) {
     RotateOverlayRegistration ( atof(argv[1]), argv[2][0] );
   }
 
@@ -4476,19 +4027,16 @@ int TclRotateOverlayRegistration ( ClientData inClientData,
 
 int TclScaleOverlayRegistration ( ClientData inClientData,
                                   Tcl_Interp* inInterp,
-                                  int argc, char* argv[] )
-{
+                                  int argc, char* argv[] ) {
 
-  if ( argc != 3 )
-  {
+  if ( argc != 3 ) {
     Tcl_SetResult ( inInterp,
                     "wrong#args: ScaleOverlayRegisgtration distance x,y,z",
                     TCL_VOLATILE );
     return TCL_ERROR;
   }
 
-  if ( gbAcceptingTclCommands )
-  {
+  if ( gbAcceptingTclCommands ) {
     ScaleOverlayRegisgtration ( atof(argv[1]), argv[2][0] );
   }
 
@@ -4496,20 +4044,17 @@ int TclScaleOverlayRegistration ( ClientData inClientData,
 }
 
 int TclLoadHeadPts ( ClientData inClientData, Tcl_Interp* inInterp,
-                     int argc, char* argv[] )
-{
+                     int argc, char* argv[] ) {
 
-  if ( argc != 3 )
-  {
+  if ( argc != 3 ) {
     Tcl_SetResult
-    ( inInterp,
-      "wrong # args: LoadHeadPts points_file transform_file",
-      TCL_VOLATILE );
+      ( inInterp,
+        "wrong # args: LoadHeadPts points_file transform_file",
+        TCL_VOLATILE );
     return TCL_ERROR;
   }
 
-  if ( gbAcceptingTclCommands )
-  {
+  if ( gbAcceptingTclCommands ) {
     LoadHeadPts ( argv[1], argv[2] );
   }
 
@@ -4517,18 +4062,15 @@ int TclLoadHeadPts ( ClientData inClientData, Tcl_Interp* inInterp,
 }
 
 int TclRotateHeadPts ( ClientData inClientData, Tcl_Interp* inInterp,
-                       int argc, char* argv[] )
-{
+                       int argc, char* argv[] ) {
 
-  if ( argc != 3 )
-  {
+  if ( argc != 3 ) {
     Tcl_SetResult ( inInterp, "wrong # args: RotateHeadPts degrees x,y,z",
                     TCL_VOLATILE );
     return TCL_ERROR;
   }
 
-  if ( gbAcceptingTclCommands )
-  {
+  if ( gbAcceptingTclCommands ) {
     RotateHeadPts ( atof(argv[1]), argv[2][0] );
   }
 
@@ -4536,18 +4078,15 @@ int TclRotateHeadPts ( ClientData inClientData, Tcl_Interp* inInterp,
 }
 
 int TclTranslateHeadPts ( ClientData inClientData, Tcl_Interp* inInterp,
-                          int argc, char* argv[] )
-{
+                          int argc, char* argv[] ) {
 
-  if ( argc != 3 )
-  {
+  if ( argc != 3 ) {
     Tcl_SetResult ( inInterp, "wrong # args: TranslateHeadPts distance x,y,z",
                     TCL_VOLATILE );
     return TCL_ERROR;
   }
 
-  if ( gbAcceptingTclCommands )
-  {
+  if ( gbAcceptingTclCommands ) {
     TranslateHeadPts ( atof(argv[1]), argv[2][0] );
   }
 
@@ -4556,18 +4095,15 @@ int TclTranslateHeadPts ( ClientData inClientData, Tcl_Interp* inInterp,
 
 
 int TclRestoreHeadPts ( ClientData inClientData, Tcl_Interp* inInterp,
-                        int argc, char* argv[] )
-{
+                        int argc, char* argv[] ) {
 
-  if ( argc != 1 )
-  {
+  if ( argc != 1 ) {
     Tcl_SetResult ( inInterp, "wrong # args: RestoreHeadPts",
                     TCL_VOLATILE );
     return TCL_ERROR;
   }
 
-  if ( gbAcceptingTclCommands )
-  {
+  if ( gbAcceptingTclCommands ) {
     RestoreHeadPoints();
   }
 
@@ -4576,18 +4112,15 @@ int TclRestoreHeadPts ( ClientData inClientData, Tcl_Interp* inInterp,
 
 int TclWriteHeadPointsTransform ( ClientData inClientData,
                                   Tcl_Interp* inInterp,
-                                  int argc, char* argv[] )
-{
+                                  int argc, char* argv[] ) {
 
-  if ( argc != 1 )
-  {
+  if ( argc != 1 ) {
     Tcl_SetResult ( inInterp, "wrong # args: WriteHeadPointsTransform",
                     TCL_VOLATILE );
     return TCL_ERROR;
   }
 
-  if ( gbAcceptingTclCommands )
-  {
+  if ( gbAcceptingTclCommands ) {
     WriteHeadPointsTransform();
   }
 
@@ -4596,18 +4129,15 @@ int TclWriteHeadPointsTransform ( ClientData inClientData,
 
 int TclWriteHeadPointsFile ( ClientData inClientData,
                              Tcl_Interp* inInterp,
-                             int argc, char* argv[] )
-{
+                             int argc, char* argv[] ) {
 
-  if ( argc != 1 )
-  {
+  if ( argc != 1 ) {
     Tcl_SetResult ( inInterp, "wrong # args: WriteHeadPointsFile",
                     TCL_VOLATILE );
     return TCL_ERROR;
   }
 
-  if ( gbAcceptingTclCommands )
-  {
+  if ( gbAcceptingTclCommands ) {
     WriteHeadPointsFile();
   }
 
@@ -4616,18 +4146,15 @@ int TclWriteHeadPointsFile ( ClientData inClientData,
 
 int TclSetSelectedHeadPointLabel ( ClientData inClientData,
                                    Tcl_Interp* inInterp,
-                                   int argc, char* argv[] )
-{
+                                   int argc, char* argv[] ) {
 
-  if ( argc != 2 )
-  {
+  if ( argc != 2 ) {
     Tcl_SetResult ( inInterp, "wrong # args: SetSelectedHeadPointLabel label",
                     TCL_VOLATILE );
     return TCL_ERROR;
   }
 
-  if ( gbAcceptingTclCommands )
-  {
+  if ( gbAcceptingTclCommands ) {
     SetSelectedHeadPointLabel( argv[1] );
   }
 
@@ -4636,20 +4163,17 @@ int TclSetSelectedHeadPointLabel ( ClientData inClientData,
 
 int TclAlignSelectedHeadPointToMRIIdx ( ClientData inClientData,
                                         Tcl_Interp* inInterp,
-                                        int argc, char* argv[] )
-{
+                                        int argc, char* argv[] ) {
 
   xVoxel MRIIdx;
 
-  if ( argc != 4 )
-  {
+  if ( argc != 4 ) {
     Tcl_SetResult ( inInterp, "wrong # args: AlignSelectedHeadPointToMRIIdx",
                     TCL_VOLATILE );
     return TCL_ERROR;
   }
 
-  if ( gbAcceptingTclCommands )
-  {
+  if ( gbAcceptingTclCommands ) {
     xVoxl_Set( &MRIIdx, atoi( argv[1] ), atoi( argv[2] ), atoi( argv[3] ) );
     AlignSelectedHeadPointToMRIIdx( &MRIIdx );
   }
@@ -4658,23 +4182,19 @@ int TclAlignSelectedHeadPointToMRIIdx ( ClientData inClientData,
 }
 
 int TclLoadGCA ( ClientData inClientData, Tcl_Interp* inInterp,
-                 int argc, char* argv[] )
-{
+                 int argc, char* argv[] ) {
 
-  if ( argc < 3 || argc > 4 )
-  {
+  if ( argc < 3 || argc > 4 ) {
     Tcl_SetResult
-    ( inInterp,
-      "wrong # args: LoadGCA volume_dir transform_file",
-      TCL_VOLATILE );
+      ( inInterp,
+        "wrong # args: LoadGCA volume_dir transform_file",
+        TCL_VOLATILE );
     return TCL_ERROR;
   }
 
-  if ( gbAcceptingTclCommands )
-  {
+  if ( gbAcceptingTclCommands ) {
     LoadGCA ( argv[1], argv[2] );
-    if (argc == 4)
-    {
+    if (argc == 4) {
       printf("mean filtering conditional densities %d times...\n",
              atoi(argv[3])) ;
       GCAmeanFilterConditionalDensities(gGCAVolume, atoi(argv[3])) ;
@@ -4684,38 +4204,32 @@ int TclLoadGCA ( ClientData inClientData, Tcl_Interp* inInterp,
   return TCL_OK;
 }
 int TclLoadGCARenormalization ( ClientData inClientData, Tcl_Interp* inInterp,
-                                int argc, char* argv[] )
-{
+                                int argc, char* argv[] ) {
 
-  if ( argc != 2 )
-  {
+  if ( argc != 2 ) {
     Tcl_SetResult
-    ( inInterp,
-      "wrong # args: LoadGCARenormalization renorm_file",
-      TCL_VOLATILE );
+      ( inInterp,
+        "wrong # args: LoadGCARenormalization renorm_file",
+        TCL_VOLATILE );
     return TCL_ERROR;
   }
 
-  if ( gbAcceptingTclCommands )
-  {
+  if ( gbAcceptingTclCommands ) {
     LoadGCARenormalization(argv[1]) ;
   }
 
   return TCL_OK;
 }
 int TclSaveGCA ( ClientData inClientData, Tcl_Interp* inInterp,
-                 int argc, char* argv[] )
-{
+                 int argc, char* argv[] ) {
 
-  if ( argc != 2 )
-  {
+  if ( argc != 2 ) {
     Tcl_SetResult ( inInterp, "wrong # args: SaveGCA gca_file_name",
                     TCL_VOLATILE );
     return TCL_ERROR;
   }
 
-  if ( gbAcceptingTclCommands )
-  {
+  if ( gbAcceptingTclCommands ) {
     SaveGCA ( argv[1] );
   }
 
@@ -4724,17 +4238,14 @@ int TclSaveGCA ( ClientData inClientData, Tcl_Interp* inInterp,
 
 int TclReadVoxelLabels ( ClientData inClientData,
                          Tcl_Interp* inInterp,
-                         int argc, char* argv[] )
-{
-  if ( argc != 3 )
-  {
+                         int argc, char* argv[] ) {
+  if ( argc != 3 ) {
     Tcl_SetResult ( inInterp, "wrong # args: ReadVoxelLabels vli1 vli2",
                     TCL_VOLATILE );
     return TCL_ERROR;
   }
 
-  if ( gbAcceptingTclCommands )
-  {
+  if ( gbAcceptingTclCommands ) {
     LoadVLIs ( argv[1], argv[2] );
   }
 
@@ -4742,18 +4253,15 @@ int TclReadVoxelLabels ( ClientData inClientData,
 }
 
 int TclSaveRGB ( ClientData inClientData, Tcl_Interp* inInterp,
-                 int argc, char* argv[] )
-{
+                 int argc, char* argv[] ) {
 
-  if ( argc != 2 )
-  {
+  if ( argc != 2 ) {
     Tcl_SetResult ( inInterp, "wrong # args: SaveRGB filename:string",
                     TCL_VOLATILE );
     return TCL_ERROR;
   }
 
-  if ( gbAcceptingTclCommands )
-  {
+  if ( gbAcceptingTclCommands ) {
     save_rgb ( argv[1] );
   }
 
@@ -4761,18 +4269,15 @@ int TclSaveRGB ( ClientData inClientData, Tcl_Interp* inInterp,
 }
 
 int TclSaveTIFF ( ClientData inClientData, Tcl_Interp* inInterp,
-                  int argc, char* argv[] )
-{
+                  int argc, char* argv[] ) {
 
-  if ( argc != 2 )
-  {
+  if ( argc != 2 ) {
     Tcl_SetResult ( inInterp, "wrong # args: SaveTIFF filename:string",
                     TCL_VOLATILE );
     return TCL_ERROR;
   }
 
-  if ( gbAcceptingTclCommands )
-  {
+  if ( gbAcceptingTclCommands ) {
     save_tiff ( argv[1] );
   }
 
@@ -4780,21 +4285,18 @@ int TclSaveTIFF ( ClientData inClientData, Tcl_Interp* inInterp,
 }
 
 int TclThresholdVolume ( ClientData inClientData, Tcl_Interp* inInterp,
-                         int argc, char* argv[] )
-{
+                         int argc, char* argv[] ) {
 
-  if ( argc != 4 )
-  {
+  if ( argc != 4 ) {
     Tcl_SetResult
-    ( inInterp,
-      "wrong # args: ThresholdVolume threshold_value "
-      "{0=below,1=above} new_value",
-      TCL_VOLATILE );
+      ( inInterp,
+        "wrong # args: ThresholdVolume threshold_value "
+        "{0=below,1=above} new_value",
+        TCL_VOLATILE );
     return TCL_ERROR;
   }
 
-  if ( gbAcceptingTclCommands )
-  {
+  if ( gbAcceptingTclCommands ) {
     ThresholdVolume( atoi(argv[1]), atoi(argv[2]), atoi(argv[3]) );
   }
 
@@ -4802,28 +4304,22 @@ int TclThresholdVolume ( ClientData inClientData, Tcl_Interp* inInterp,
 }
 
 int TclFlipVolume ( ClientData inClientData, Tcl_Interp* inInterp,
-                    int argc, char* argv[] )
-{
+                    int argc, char* argv[] ) {
 
-  if ( argc != 4 )
-  {
+  if ( argc != 4 ) {
     Tcl_SetResult ( inInterp,
                     "wrong # args: FlipVolume 1|0 1|0 1|0", TCL_VOLATILE );
     return TCL_ERROR;
   }
 
-  if ( gbAcceptingTclCommands )
-  {
-    if ( atoi(argv[1]) )
-    {
+  if ( gbAcceptingTclCommands ) {
+    if ( atoi(argv[1]) ) {
       FlipVolume( mri_tOrientation_Sagittal );
     }
-    if ( atoi(argv[2]) )
-    {
+    if ( atoi(argv[2]) ) {
       FlipVolume( mri_tOrientation_Horizontal );
     }
-    if ( atoi(argv[3]) )
-    {
+    if ( atoi(argv[3]) ) {
       FlipVolume( mri_tOrientation_Coronal );
     }
   }
@@ -4832,20 +4328,16 @@ int TclFlipVolume ( ClientData inClientData, Tcl_Interp* inInterp,
 }
 
 int TclRotateVolume ( ClientData inClientData, Tcl_Interp* inInterp,
-                      int argc, char* argv[] )
-{
+                      int argc, char* argv[] ) {
 
-  if ( argc != 3 )
-  {
+  if ( argc != 3 ) {
     Tcl_SetResult ( inInterp,
                     "wrong # args: RotateVolume x|y|z degrees", TCL_VOLATILE );
     return TCL_ERROR;
   }
 
-  if ( gbAcceptingTclCommands )
-  {
-    switch ( argv[1][0] )
-    {
+  if ( gbAcceptingTclCommands ) {
+    switch ( argv[1][0] ) {
     case 'x':
       RotateVolume( mri_tOrientation_Sagittal, atof( argv[2] ) );
       break;
@@ -4866,18 +4358,15 @@ int TclRotateVolume ( ClientData inClientData, Tcl_Interp* inInterp,
 }
 
 int TclLoadVolume ( ClientData inClientData, Tcl_Interp* inInterp,
-                    int argc, char* argv[] )
-{
+                    int argc, char* argv[] ) {
 
-  if ( argc != 2 )
-  {
+  if ( argc != 2 ) {
     Tcl_SetResult ( inInterp, "wrong # args: LoadVolume image_name:string",
                     TCL_VOLATILE );
     return TCL_ERROR;
   }
 
-  if ( gbAcceptingTclCommands )
-  {
+  if ( gbAcceptingTclCommands ) {
     LoadVolume( tkm_tVolumeType_Main, argv[1], FALSE );
   }
 
@@ -4885,18 +4374,15 @@ int TclLoadVolume ( ClientData inClientData, Tcl_Interp* inInterp,
 }
 
 int TclLoadAuxVolume ( ClientData inClientData, Tcl_Interp* inInterp,
-                       int argc, char* argv[] )
-{
+                       int argc, char* argv[] ) {
 
-  if ( argc != 2 )
-  {
+  if ( argc != 2 ) {
     Tcl_SetResult ( inInterp, "wrong # args: LoadAuxVolume image_name:string",
                     TCL_VOLATILE );
     return TCL_ERROR;
   }
 
-  if ( gbAcceptingTclCommands )
-  {
+  if ( gbAcceptingTclCommands ) {
     LoadVolume( tkm_tVolumeType_Aux, argv[1], FALSE );
 
     /* show the aux volume */
@@ -4908,18 +4394,15 @@ int TclLoadAuxVolume ( ClientData inClientData, Tcl_Interp* inInterp,
 }
 
 int TclUnloadVolume ( ClientData inClientData, Tcl_Interp* inInterp,
-                      int argc, char* argv[] )
-{
+                      int argc, char* argv[] ) {
 
-  if ( argc != 2 )
-  {
+  if ( argc != 2 ) {
     Tcl_SetResult ( inInterp, "wrong # args: UnloadVolume 1=aux",
                     TCL_VOLATILE );
     return TCL_ERROR;
   }
 
-  if ( gbAcceptingTclCommands )
-  {
+  if ( gbAcceptingTclCommands ) {
     UnloadVolume( atoi(argv[1]) );
   }
 
@@ -4927,18 +4410,15 @@ int TclUnloadVolume ( ClientData inClientData, Tcl_Interp* inInterp,
 }
 
 int TclSaveVolume ( ClientData inClientData, Tcl_Interp* inInterp,
-                    int argc, char* argv[] )
-{
+                    int argc, char* argv[] ) {
 
-  if ( argc != 2 )
-  {
+  if ( argc != 2 ) {
     Tcl_SetResult ( inInterp, "wrong # args: SaveVolume 0=main,1=aux",
                     TCL_VOLATILE );
     return TCL_ERROR;
   }
 
-  if ( gbAcceptingTclCommands )
-  {
+  if ( gbAcceptingTclCommands ) {
     SaveVolume( atoi( argv[1] ), NULL, FALSE );
   }
 
@@ -4946,18 +4426,15 @@ int TclSaveVolume ( ClientData inClientData, Tcl_Interp* inInterp,
 }
 
 int TclSaveVolumeAs ( ClientData inClientData, Tcl_Interp* inInterp,
-                      int argc, char* argv[] )
-{
+                      int argc, char* argv[] ) {
 
-  if ( argc != 3 )
-  {
+  if ( argc != 3 ) {
     Tcl_SetResult ( inInterp, "wrong # args: SaveVolumeAs 0=main,1=aux "
                     "volume_path:string", TCL_VOLATILE );
     return TCL_ERROR;
   }
 
-  if ( gbAcceptingTclCommands )
-  {
+  if ( gbAcceptingTclCommands ) {
     SaveVolume( atoi( argv[1] ), argv[2], TRUE );
   }
 
@@ -4966,30 +4443,25 @@ int TclSaveVolumeAs ( ClientData inClientData, Tcl_Interp* inInterp,
 
 int TclLoadVolumeDisplayTransform ( ClientData inClientData,
                                     Tcl_Interp* inInterp,
-                                    int argc, char* argv[] )
-{
+                                    int argc, char* argv[] ) {
 
   tkm_tVolumeType volume = tkm_tVolumeType_Main;
 
-  if ( argc != 3 )
-  {
+  if ( argc != 3 ) {
     Tcl_SetResult ( inInterp, "wrong # args: LoadVolumeDisplayTransform "
                     "volume transform:string", TCL_VOLATILE );
     return TCL_ERROR;
   }
 
-  if ( gbAcceptingTclCommands )
-  {
+  if ( gbAcceptingTclCommands ) {
 
     /* get a volume index */
     volume = atoi( argv[1] );
 
     /* make sure it's main or aux. if we have that volume, load the
        transform. */
-    if ( volume == tkm_tVolumeType_Main || volume == tkm_tVolumeType_Aux )
-    {
-      if ( NULL != gAnatomicalVolume[ volume ] )
-      {
+    if ( volume == tkm_tVolumeType_Main || volume == tkm_tVolumeType_Aux ) {
+      if ( NULL != gAnatomicalVolume[ volume ] ) {
         LoadDisplayTransform( volume, argv[2] );
       }
     }
@@ -5000,30 +4472,25 @@ int TclLoadVolumeDisplayTransform ( ClientData inClientData,
 
 int TclUnloadVolumeDisplayTransform ( ClientData inClientData,
                                       Tcl_Interp* inInterp,
-                                      int argc, char* argv[] )
-{
+                                      int argc, char* argv[] ) {
 
   tkm_tVolumeType volume = tkm_tVolumeType_Main;
 
-  if ( argc != 2 )
-  {
+  if ( argc != 2 ) {
     Tcl_SetResult ( inInterp, "wrong # args: UnloadVolumeDisplayTransform "
                     "volume", TCL_VOLATILE );
     return TCL_ERROR;
   }
 
-  if ( gbAcceptingTclCommands )
-  {
+  if ( gbAcceptingTclCommands ) {
 
     /* get a volume index */
     volume = atoi( argv[1] );
 
     /* make sure it's main or aux. if we have that volume, unload the
        transform. */
-    if ( volume == tkm_tVolumeType_Main || volume == tkm_tVolumeType_Aux )
-    {
-      if ( NULL != gAnatomicalVolume[ volume ] )
-      {
+    if ( volume == tkm_tVolumeType_Main || volume == tkm_tVolumeType_Aux ) {
+      if ( NULL != gAnatomicalVolume[ volume ] ) {
         UnloadDisplayTransform( volume );
       }
     }
@@ -5033,44 +4500,34 @@ int TclUnloadVolumeDisplayTransform ( ClientData inClientData,
 }
 int TclUnloadGCA ( ClientData inClientData,
                    Tcl_Interp* inInterp,
-                   int argc, char* argv[] )
-{
+                   int argc, char* argv[] ) {
 
-  if ( argc != 1 )
-  {
+  if ( argc != 1 ) {
     Tcl_SetResult ( inInterp, "wrong # args: UnloadGCA", TCL_VOLATILE );
     return TCL_ERROR;
   }
 
-  if ( gbAcceptingTclCommands )
-  {
+  if ( gbAcceptingTclCommands ) {
 
     if (gGCAVolume)
-    {
       GCAfree(&gGCAVolume) ;
-    }
     if (gGCATransform)
-    {
       TransformFree(&gGCATransform) ;
-    }
   }
 
   return TCL_OK;
 }
 
 int TclSnapshotVolume ( ClientData inClientData, Tcl_Interp* inInterp,
-                        int argc, char* argv[] )
-{
+                        int argc, char* argv[] ) {
 
-  if ( argc != 1 )
-  {
+  if ( argc != 1 ) {
     Tcl_SetResult ( inInterp, "wrong # args: SnapshotVolume",
                     TCL_VOLATILE );
     return TCL_ERROR;
   }
 
-  if ( gbAcceptingTclCommands )
-  {
+  if ( gbAcceptingTclCommands ) {
     SnapshotVolume();
   }
 
@@ -5079,18 +4536,15 @@ int TclSnapshotVolume ( ClientData inClientData, Tcl_Interp* inInterp,
 
 int TclRestoreVolumeFromSnapshot ( ClientData inClientData,
                                    Tcl_Interp* inInterp,
-                                   int argc, char* argv[] )
-{
+                                   int argc, char* argv[] ) {
 
-  if ( argc != 1 )
-  {
+  if ( argc != 1 ) {
     Tcl_SetResult ( inInterp, "wrong # args: RestoreVolumeFromSnapshot",
                     TCL_VOLATILE );
     return TCL_ERROR;
   }
 
-  if ( gbAcceptingTclCommands )
-  {
+  if ( gbAcceptingTclCommands ) {
     RestoreVolumeFromSnapshot();
   }
 
@@ -5099,18 +4553,15 @@ int TclRestoreVolumeFromSnapshot ( ClientData inClientData,
 
 int TclClearUndoVolume ( ClientData inClientData,
                          Tcl_Interp* inInterp,
-                         int argc, char* argv[] )
-{
+                         int argc, char* argv[] ) {
 
-  if ( argc != 1 )
-  {
+  if ( argc != 1 ) {
     Tcl_SetResult ( inInterp, "wrong # args: ClearUndoVolume",
                     TCL_VOLATILE );
     return TCL_ERROR;
   }
 
-  if ( gbAcceptingTclCommands )
-  {
+  if ( gbAcceptingTclCommands ) {
     ClearUndoVolume();
   }
 
@@ -5118,33 +4569,28 @@ int TclClearUndoVolume ( ClientData inClientData,
 }
 
 int TclSetVolumeColorScale ( ClientData inClientData, Tcl_Interp* inInterp,
-                             int argc, char* argv[] )
-{
+                             int argc, char* argv[] ) {
 
   tkm_tVolumeType volume = tkm_tVolumeType_Main;
 
-  if ( argc != 6 )
-  {
+  if ( argc != 6 ) {
     Tcl_SetResult
-    ( inInterp,
-      "wrong # args: SetVolumeColorScale volume threshold:"
-      "float squash:float min:float max:float",
-      TCL_VOLATILE );
+      ( inInterp,
+        "wrong # args: SetVolumeColorScale volume threshold:"
+        "float squash:float min:float max:float",
+        TCL_VOLATILE );
     return TCL_ERROR;
   }
 
-  if ( gbAcceptingTclCommands )
-  {
+  if ( gbAcceptingTclCommands ) {
 
     /* get a volume index */
     volume = atoi( argv[1] );
 
     /* make sure it's main or aux. if we have that volume, set the brightness
        and contrast for it. */
-    if ( volume == tkm_tVolumeType_Main || volume == tkm_tVolumeType_Aux )
-    {
-      if ( NULL != gAnatomicalVolume[ volume ] )
-      {
+    if ( volume == tkm_tVolumeType_Main || volume == tkm_tVolumeType_Aux ) {
+      if ( NULL != gAnatomicalVolume[ volume ] ) {
         SetVolumeBrightnessAndContrast( volume,
                                         atof( argv[2] ), atof( argv[3] ));
         SetVolumeColorMinMax( volume, atof( argv[4] ), atof( argv[5] ));
@@ -5157,31 +4603,26 @@ int TclSetVolumeColorScale ( ClientData inClientData, Tcl_Interp* inInterp,
 
 int TclSetVolumeBrightnessContrast ( ClientData inClientData,
                                      Tcl_Interp* inInterp,
-                                     int argc, char* argv[] )
-{
+                                     int argc, char* argv[] ) {
 
   tkm_tVolumeType volume = tkm_tVolumeType_Main;
 
-  if ( argc != 4 )
-  {
+  if ( argc != 4 ) {
     Tcl_SetResult ( inInterp,
                     "wrong # args: SetVolumeBrightnessAndContrast volume "
                     "threshold:float squash:float", TCL_VOLATILE );
     return TCL_ERROR;
   }
 
-  if ( gbAcceptingTclCommands )
-  {
+  if ( gbAcceptingTclCommands ) {
 
     /* get a volume index */
     volume = atoi( argv[1] );
 
     /* make sure it's main or aux. if we have that volume, set the brightness
        and contrast for it. */
-    if ( volume == tkm_tVolumeType_Main || volume == tkm_tVolumeType_Aux )
-    {
-      if ( NULL != gAnatomicalVolume[ volume ] )
-      {
+    if ( volume == tkm_tVolumeType_Main || volume == tkm_tVolumeType_Aux ) {
+      if ( NULL != gAnatomicalVolume[ volume ] ) {
         SetVolumeBrightnessAndContrast( volume,
                                         atof( argv[2] ), atof( argv[3] ));
       }
@@ -5192,30 +4633,25 @@ int TclSetVolumeBrightnessContrast ( ClientData inClientData,
 }
 
 int TclSetVolumeMinMax ( ClientData inClientData, Tcl_Interp* inInterp,
-                         int argc, char* argv[] )
-{
+                         int argc, char* argv[] ) {
 
   tkm_tVolumeType volume = tkm_tVolumeType_Main;
 
-  if ( argc != 4 )
-  {
+  if ( argc != 4 ) {
     Tcl_SetResult ( inInterp, "wrong # args: SetVolumeMinMax volume "
                     "min:float max:float", TCL_VOLATILE );
     return TCL_ERROR;
   }
 
-  if ( gbAcceptingTclCommands )
-  {
+  if ( gbAcceptingTclCommands ) {
 
     /* get a volume index */
     volume = atoi( argv[1] );
 
     /* make sure it's main or aux. if we have that volume, set the brightness
        and contrast for it. */
-    if ( volume == tkm_tVolumeType_Main || volume == tkm_tVolumeType_Aux )
-    {
-      if ( NULL != gAnatomicalVolume[ volume ] )
-      {
+    if ( volume == tkm_tVolumeType_Main || volume == tkm_tVolumeType_Aux ) {
+      if ( NULL != gAnatomicalVolume[ volume ] ) {
         SetVolumeColorMinMax( volume, atof( argv[2] ), atof( argv[3] ));
       }
     }
@@ -5225,22 +4661,19 @@ int TclSetVolumeMinMax ( ClientData inClientData, Tcl_Interp* inInterp,
 }
 
 int TclSetVolumeSampleType ( ClientData inClientData, Tcl_Interp* inInterp,
-                             int argc, char* argv[] )
-{
+                             int argc, char* argv[] ) {
 
   tkm_tVolumeType  volume = tkm_tVolumeType_Main;
   Volm_tSampleType type   = Volm_tSampleType_Nearest;
 
-  if ( argc != 3 )
-  {
+  if ( argc != 3 ) {
     Tcl_SetResult ( inInterp, "wrong # args: SetVolumeSampleType volume "
                     "sampleType:0=nearest,1=trilinear,2=sinc",
                     TCL_VOLATILE );
     return TCL_ERROR;
   }
 
-  if ( gbAcceptingTclCommands )
-  {
+  if ( gbAcceptingTclCommands ) {
 
     /* Get a volume index and sample type. */
     volume = atoi( argv[1] );
@@ -5248,10 +4681,8 @@ int TclSetVolumeSampleType ( ClientData inClientData, Tcl_Interp* inInterp,
 
     /* make sure it's main or aux. if we have that volume, set the brightness
        and contrast for it. */
-    if ( volume == tkm_tVolumeType_Main || volume == tkm_tVolumeType_Aux )
-    {
-      if ( NULL != gAnatomicalVolume[ volume ] )
-      {
+    if ( volume == tkm_tVolumeType_Main || volume == tkm_tVolumeType_Aux ) {
+      if ( NULL != gAnatomicalVolume[ volume ] ) {
         SetVolumeSampleType( volume, type );
       }
     }
@@ -5261,21 +4692,18 @@ int TclSetVolumeSampleType ( ClientData inClientData, Tcl_Interp* inInterp,
 }
 
 int TclSetVolumeResampleMethod ( ClientData inClientData, Tcl_Interp* inInterp,
-                                 int argc, char* argv[] )
-{
+                                 int argc, char* argv[] ) {
 
   tkm_tVolumeType      volume  = tkm_tVolumeType_Main;
   Volm_tResampleMethod method  = Volm_tResampleMethod_RAS;
 
-  if ( argc != 3 )
-  {
+  if ( argc != 3 ) {
     Tcl_SetResult ( inInterp, "wrong # args: SetVolumeResampleMethod volume "
                     "method:0=RAS,1=slice", TCL_VOLATILE );
     return TCL_ERROR;
   }
 
-  if ( gbAcceptingTclCommands )
-  {
+  if ( gbAcceptingTclCommands ) {
 
     /* Get a volume index and sample type. */
     volume = atoi( argv[1] );
@@ -5283,10 +4711,8 @@ int TclSetVolumeResampleMethod ( ClientData inClientData, Tcl_Interp* inInterp,
 
     /* make sure it's main or aux. if we have that volume, set the brightness
        and contrast for it. */
-    if ( volume == tkm_tVolumeType_Main || volume == tkm_tVolumeType_Aux )
-    {
-      if ( NULL != gAnatomicalVolume[ volume ] )
-      {
+    if ( volume == tkm_tVolumeType_Main || volume == tkm_tVolumeType_Aux ) {
+      if ( NULL != gAnatomicalVolume[ volume ] ) {
         SetVolumeResampleMethod( volume, method );
       }
     }
@@ -5296,18 +4722,15 @@ int TclSetVolumeResampleMethod ( ClientData inClientData, Tcl_Interp* inInterp,
 }
 
 int TclSaveLabel ( ClientData inClientData, Tcl_Interp* inInterp,
-                   int argc, char* argv[] )
-{
+                   int argc, char* argv[] ) {
 
-  if ( argc != 2 )
-  {
+  if ( argc != 2 ) {
     Tcl_SetResult ( inInterp, "wrong # args: SaveLabel name:string",
                     TCL_VOLATILE );
     return TCL_ERROR;
   }
 
-  if ( gbAcceptingTclCommands )
-  {
+  if ( gbAcceptingTclCommands ) {
     SaveSelectionToLabelFile ( argv[1] );
   }
 
@@ -5315,18 +4738,15 @@ int TclSaveLabel ( ClientData inClientData, Tcl_Interp* inInterp,
 }
 
 int TclLoadLabel ( ClientData inClientData, Tcl_Interp* inInterp,
-                   int argc, char* argv[] )
-{
+                   int argc, char* argv[] ) {
 
-  if ( argc != 2 )
-  {
+  if ( argc != 2 ) {
     Tcl_SetResult ( inInterp, "wrong # args: LoadLabel name:string",
                     TCL_VOLATILE );
     return TCL_ERROR;
   }
 
-  if ( gbAcceptingTclCommands )
-  {
+  if ( gbAcceptingTclCommands ) {
     LoadSelectionFromLabelFile ( argv[1] );
   }
 
@@ -5334,18 +4754,15 @@ int TclLoadLabel ( ClientData inClientData, Tcl_Interp* inInterp,
 }
 
 int TclGraphSelectedRegion ( ClientData inClientData, Tcl_Interp* inInterp,
-                             int argc, char* argv[] )
-{
+                             int argc, char* argv[] ) {
 
-  if ( argc != 1 )
-  {
+  if ( argc != 1 ) {
     Tcl_SetResult ( inInterp, "wrong # args: GraphSelectedRegion",
                     TCL_VOLATILE );
     return TCL_ERROR;
   }
 
-  if ( gbAcceptingTclCommands )
-  {
+  if ( gbAcceptingTclCommands ) {
     GraphSelectedRegion ();
   }
 
@@ -5353,45 +4770,37 @@ int TclGraphSelectedRegion ( ClientData inClientData, Tcl_Interp* inInterp,
 }
 
 int TclSelectVoxelsByFuncValue ( ClientData inClientData, Tcl_Interp* inInterp,
-                                 int argc, char* argv[] )
-{
+                                 int argc, char* argv[] ) {
 
   FunV_tFindStatsComp compareType;
 
-  if ( argc != 2 )
-  {
+  if ( argc != 2 ) {
     Tcl_SetResult ( inInterp, "wrong # args: SelectVoxelsByFuncValue "
                     "compare_tpye",
                     TCL_VOLATILE );
     return TCL_ERROR;
   }
 
-  if ( gbAcceptingTclCommands )
-  {
+  if ( gbAcceptingTclCommands ) {
     compareType = atoi( argv[1] );
     if ( compareType > FunV_tFindStatsComp_Invalid &&
          compareType < FunV_knNumFindStatsComp )
-    {
       SelectVoxelsByFuncValue( compareType );
-    }
   }
 
   return TCL_OK;
 }
 
 int TclClearSelection ( ClientData inClientData, Tcl_Interp* inInterp,
-                        int argc, char* argv[] )
-{
+                        int argc, char* argv[] ) {
 
-  if ( argc != 1 )
-  {
+  if ( argc != 1 ) {
     Tcl_SetResult ( inInterp, "wrong # args: ClearSelection",
                     TCL_VOLATILE );
     return TCL_ERROR;
   }
 
-  if ( gbAcceptingTclCommands )
-  {
+  if ( gbAcceptingTclCommands ) {
     ClearSelection ();
   }
 
@@ -5401,23 +4810,19 @@ int TclClearSelection ( ClientData inClientData, Tcl_Interp* inInterp,
 
 int TclSetCursorToCenterOfVolume ( ClientData inClientData,
                                    Tcl_Interp* inInterp,
-                                   int argc, char* argv[] )
-{
+                                   int argc, char* argv[] ) {
 
   int volume;
 
-  if ( argc != 2 )
-  {
+  if ( argc != 2 ) {
     Tcl_SetResult ( inInterp, "wrong # args: SetCursorToCenterOfVolume volume",
                     TCL_VOLATILE );
     return TCL_ERROR;
   }
 
-  if ( gbAcceptingTclCommands )
-  {
+  if ( gbAcceptingTclCommands ) {
     volume = atoi( argv[1] );
-    if ( volume == tkm_tVolumeType_Main || volume == tkm_tVolumeType_Aux )
-    {
+    if ( volume == tkm_tVolumeType_Main || volume == tkm_tVolumeType_Aux ) {
       SetCursorToCenterOfVolume( volume );
     }
   }
@@ -5426,20 +4831,17 @@ int TclSetCursorToCenterOfVolume ( ClientData inClientData,
 }
 
 int TclSendCursor ( ClientData inClientData, Tcl_Interp* inInterp,
-                    int argc, char* argv[] )
-{
+                    int argc, char* argv[] ) {
 
   xVoxelRef theCursor = NULL;
 
-  if ( argc != 1 )
-  {
+  if ( argc != 1 ) {
     Tcl_SetResult ( inInterp, "wrong # args: SendCursor",
                     TCL_VOLATILE );
     return TCL_ERROR;
   }
 
-  if ( gbAcceptingTclCommands )
-  {
+  if ( gbAcceptingTclCommands ) {
     xVoxl_New ( &theCursor );
     MWin_GetCursor ( gMeditWindow, theCursor );
     WriteVoxelToEditFile ( theCursor );
@@ -5450,18 +4852,15 @@ int TclSendCursor ( ClientData inClientData, Tcl_Interp* inInterp,
 }
 
 int TclReadCursor ( ClientData inClientData, Tcl_Interp* inInterp,
-                    int argc, char* argv[] )
-{
+                    int argc, char* argv[] ) {
 
-  if ( argc != 1 )
-  {
+  if ( argc != 1 ) {
     Tcl_SetResult ( inInterp, "wrong # args: ReadCursor",
                     TCL_VOLATILE );
     return TCL_ERROR;
   }
 
-  if ( gbAcceptingTclCommands )
-  {
+  if ( gbAcceptingTclCommands ) {
     GotoSavedCursor();
   }
 
@@ -5470,18 +4869,15 @@ int TclReadCursor ( ClientData inClientData, Tcl_Interp* inInterp,
 
 
 int TclUndoLastEdit ( ClientData inClientData, Tcl_Interp* inInterp,
-                      int argc, char* argv[] )
-{
+                      int argc, char* argv[] ) {
 
-  if ( argc != 1 )
-  {
+  if ( argc != 1 ) {
     Tcl_SetResult ( inInterp, "wrong # args: UndoLastEdit",
                     TCL_VOLATILE );
     return TCL_ERROR;
   }
 
-  if ( gbAcceptingTclCommands )
-  {
+  if ( gbAcceptingTclCommands ) {
     RestoreUndoList ();
   }
 
@@ -5489,21 +4885,18 @@ int TclUndoLastEdit ( ClientData inClientData, Tcl_Interp* inInterp,
 }
 
 int TclNewControlPoint ( ClientData inClientData, Tcl_Interp* inInterp,
-                         int argc, char* argv[] )
-{
+                         int argc, char* argv[] ) {
 
   xVoxel cursor;
   xVoxel MRIIdx;
 
-  if ( argc != 1 )
-  {
+  if ( argc != 1 ) {
     Tcl_SetResult ( inInterp, "wrong # args: NewControlPoint",
                     TCL_VOLATILE );
     return TCL_ERROR;
   }
 
-  if ( gbAcceptingTclCommands )
-  {
+  if ( gbAcceptingTclCommands ) {
     MWin_GetCursor ( gMeditWindow, &cursor );
     Volm_ConvertIdxToMRIIdx( gAnatomicalVolume[tkm_tVolumeType_Main],
                              &cursor, &MRIIdx );
@@ -5514,18 +4907,15 @@ int TclNewControlPoint ( ClientData inClientData, Tcl_Interp* inInterp,
 }
 
 int TclWriteControlPointFile ( ClientData inClientData, Tcl_Interp* inInterp,
-                               int argc, char* argv[] )
-{
+                               int argc, char* argv[] ) {
 
-  if ( argc != 1 )
-  {
+  if ( argc != 1 ) {
     Tcl_SetResult ( inInterp, "wrong # args: WriteControlPointFile",
                     TCL_VOLATILE );
     return TCL_ERROR;
   }
 
-  if ( gbAcceptingTclCommands )
-  {
+  if ( gbAcceptingTclCommands ) {
     WriteControlPointFile ();
   }
 
@@ -5533,14 +4923,12 @@ int TclWriteControlPointFile ( ClientData inClientData, Tcl_Interp* inInterp,
 }
 
 int TclLoadMainSurface ( ClientData inClientData, Tcl_Interp* inInterp,
-                         int argc, char* argv[] )
-{
+                         int argc, char* argv[] ) {
 
   tkm_tSurfaceType type        = tkm_tSurfaceType_Main;
   char*       sFileName = NULL;
 
-  switch ( argc )
-  {
+  switch ( argc ) {
   case 2:
     type = tkm_tSurfaceType_Main;
     sFileName = argv[1];
@@ -5556,8 +4944,7 @@ int TclLoadMainSurface ( ClientData inClientData, Tcl_Interp* inInterp,
     return TCL_ERROR;
   }
 
-  if ( gbAcceptingTclCommands )
-  {
+  if ( gbAcceptingTclCommands ) {
     LoadSurface ( type, sFileName );
   }
 
@@ -5565,14 +4952,12 @@ int TclLoadMainSurface ( ClientData inClientData, Tcl_Interp* inInterp,
 }
 
 int TclLoadPialSurface ( ClientData inClientData, Tcl_Interp* inInterp,
-                         int argc, char* argv[] )
-{
+                         int argc, char* argv[] ) {
 
   tkm_tSurfaceType type        = tkm_tSurfaceType_Main;
   char*       sFileName = NULL;
 
-  switch ( argc )
-  {
+  switch ( argc ) {
   case 2:
     type = tkm_tSurfaceType_Main;
     sFileName = argv[1];
@@ -5588,8 +4973,7 @@ int TclLoadPialSurface ( ClientData inClientData, Tcl_Interp* inInterp,
     return TCL_ERROR;
   }
 
-  if ( gbAcceptingTclCommands )
-  {
+  if ( gbAcceptingTclCommands ) {
     LoadSurfaceVertexSet( type, Surf_tVertexSet_Pial, sFileName );
   }
 
@@ -5597,14 +4981,12 @@ int TclLoadPialSurface ( ClientData inClientData, Tcl_Interp* inInterp,
 }
 
 int TclLoadOriginalSurface ( ClientData inClientData, Tcl_Interp* inInterp,
-                             int argc, char* argv[] )
-{
+                             int argc, char* argv[] ) {
 
   tkm_tSurfaceType type        = tkm_tSurfaceType_Main;
   char*       sFileName = NULL;
 
-  switch ( argc )
-  {
+  switch ( argc ) {
   case 2:
     type = tkm_tSurfaceType_Main;
     sFileName = argv[1];
@@ -5620,8 +5002,7 @@ int TclLoadOriginalSurface ( ClientData inClientData, Tcl_Interp* inInterp,
     return TCL_ERROR;
   }
 
-  if ( gbAcceptingTclCommands )
-  {
+  if ( gbAcceptingTclCommands ) {
     LoadSurfaceVertexSet( type, Surf_tVertexSet_Original, sFileName );
   }
 
@@ -5629,13 +5010,11 @@ int TclLoadOriginalSurface ( ClientData inClientData, Tcl_Interp* inInterp,
 }
 
 int TclUnloadSurface ( ClientData inClientData, Tcl_Interp* inInterp,
-                       int argc, char* argv[] )
-{
+                       int argc, char* argv[] ) {
 
   tkm_tSurfaceType type = tkm_tSurfaceType_Main;
 
-  switch ( argc )
-  {
+  switch ( argc ) {
   case 1:
     type = tkm_tSurfaceType_Main;
     break;
@@ -5648,8 +5027,7 @@ int TclUnloadSurface ( ClientData inClientData, Tcl_Interp* inInterp,
     return TCL_ERROR;
   }
 
-  if ( gbAcceptingTclCommands )
-  {
+  if ( gbAcceptingTclCommands ) {
     UnloadSurface ( type );
   }
 
@@ -5657,18 +5035,15 @@ int TclUnloadSurface ( ClientData inClientData, Tcl_Interp* inInterp,
 }
 
 int TclUnloadAllSurfaces ( ClientData inClientData, Tcl_Interp* inInterp,
-                           int argc, char* argv[] )
-{
+                           int argc, char* argv[] ) {
 
-  if ( argc != 1 )
-  {
+  if ( argc != 1 ) {
     Tcl_SetResult ( inInterp, "wrong # args: UnloadAllSurfaces",
                     TCL_VOLATILE );
     return TCL_ERROR;
   }
 
-  if ( gbAcceptingTclCommands )
-  {
+  if ( gbAcceptingTclCommands ) {
     UnloadSurface ( tkm_tSurfaceType_Main );
     UnloadSurface ( tkm_tSurfaceType_Aux );
   }
@@ -5677,20 +5052,17 @@ int TclUnloadAllSurfaces ( ClientData inClientData, Tcl_Interp* inInterp,
 }
 
 int TclLoadSurfaceAnnotation ( ClientData inClientData, Tcl_Interp* inInterp,
-                               int argc, char* argv[] )
-{
+                               int argc, char* argv[] ) {
 
   tkm_tSurfaceType type = tkm_tSurfaceType_Main;
 
-  if ( argc != 3 )
-  {
+  if ( argc != 3 ) {
     Tcl_SetResult ( inInterp, "wrong # args: LoadSurfaceAnnotation "
                     "0=main,1=aux file_name:string", TCL_VOLATILE );
     return TCL_ERROR;
   }
 
-  if ( gbAcceptingTclCommands )
-  {
+  if ( gbAcceptingTclCommands ) {
     type = atoi( argv[1] );
     LoadSurfaceAnnotation( type, argv[2] );
   }
@@ -5700,14 +5072,12 @@ int TclLoadSurfaceAnnotation ( ClientData inClientData, Tcl_Interp* inInterp,
 
 
 int TclWriteSurfaceValues ( ClientData inClientData, Tcl_Interp* inInterp,
-                            int argc, char* argv[] )
-{
+                            int argc, char* argv[] ) {
 
   tkm_tSurfaceType type       = tkm_tSurfaceType_Main;
   char*       sFileName = NULL;
 
-  switch ( argc )
-  {
+  switch ( argc ) {
   case 2:
     type = tkm_tSurfaceType_Main;
     sFileName = argv[1];
@@ -5723,8 +5093,7 @@ int TclWriteSurfaceValues ( ClientData inClientData, Tcl_Interp* inInterp,
     return TCL_ERROR;
   }
 
-  if ( gbAcceptingTclCommands )
-  {
+  if ( gbAcceptingTclCommands ) {
     WriteSurfaceValues ( type, sFileName );
   }
 
@@ -5733,19 +5102,16 @@ int TclWriteSurfaceValues ( ClientData inClientData, Tcl_Interp* inInterp,
 
 
 int TclGotoMainVertex ( ClientData inClientData, Tcl_Interp* inInterp,
-                        int argc, char* argv[] )
-{
+                        int argc, char* argv[] ) {
 
-  if ( argc != 2 )
-  {
+  if ( argc != 2 ) {
     Tcl_SetResult ( inInterp,
                     "wrong # args: GotoMainVertex vertex_num:int",
                     TCL_VOLATILE );
     return TCL_ERROR;
   }
 
-  if ( gbAcceptingTclCommands )
-  {
+  if ( gbAcceptingTclCommands ) {
     GotoSurfaceVertex ( Surf_tVertexSet_Main, atoi( argv[1] ) );
   }
 
@@ -5753,19 +5119,16 @@ int TclGotoMainVertex ( ClientData inClientData, Tcl_Interp* inInterp,
 }
 
 int TclGotoPialVertex ( ClientData inClientData, Tcl_Interp* inInterp,
-                        int argc, char* argv[] )
-{
+                        int argc, char* argv[] ) {
 
-  if ( argc != 2 )
-  {
+  if ( argc != 2 ) {
     Tcl_SetResult ( inInterp,
                     "wrong # args: GotoPialVertex vertex_num:int",
                     TCL_VOLATILE );
     return TCL_ERROR;
   }
 
-  if ( gbAcceptingTclCommands )
-  {
+  if ( gbAcceptingTclCommands ) {
     GotoSurfaceVertex ( Surf_tVertexSet_Pial, atoi( argv[1] ) );
   }
 
@@ -5773,19 +5136,16 @@ int TclGotoPialVertex ( ClientData inClientData, Tcl_Interp* inInterp,
 }
 
 int TclGotoOriginalVertex ( ClientData inClientData, Tcl_Interp* inInterp,
-                            int argc, char* argv[] )
-{
+                            int argc, char* argv[] ) {
 
-  if ( argc != 2 )
-  {
+  if ( argc != 2 ) {
     Tcl_SetResult ( inInterp,
                     "wrong # args: GotoOriginalVertex vertex_num:int",
                     TCL_VOLATILE );
     return TCL_ERROR;
   }
 
-  if ( gbAcceptingTclCommands )
-  {
+  if ( gbAcceptingTclCommands ) {
     GotoSurfaceVertex ( Surf_tVertexSet_Original, atoi( argv[1] ) );
   }
 
@@ -5793,19 +5153,16 @@ int TclGotoOriginalVertex ( ClientData inClientData, Tcl_Interp* inInterp,
 }
 
 int TclShowNearestMainVertex ( ClientData inClientData, Tcl_Interp* inInterp,
-                               int argc, char* argv[] )
-{
+                               int argc, char* argv[] ) {
 
-  if ( argc != 1 )
-  {
+  if ( argc != 1 ) {
     Tcl_SetResult ( inInterp,
                     "wrong # args: ShowNearestMainVertex",
                     TCL_VOLATILE );
     return TCL_ERROR;
   }
 
-  if ( gbAcceptingTclCommands )
-  {
+  if ( gbAcceptingTclCommands ) {
     FindNearestSurfaceVertex ( Surf_tVertexSet_Main );
   }
 
@@ -5814,19 +5171,16 @@ int TclShowNearestMainVertex ( ClientData inClientData, Tcl_Interp* inInterp,
 
 int TclShowNearestOriginalVertex ( ClientData inClientData,
                                    Tcl_Interp* inInterp,
-                                   int argc, char* argv[] )
-{
+                                   int argc, char* argv[] ) {
 
-  if ( argc != 1 )
-  {
+  if ( argc != 1 ) {
     Tcl_SetResult ( inInterp,
                     "wrong # args: ShowNearestOriginalVertex",
                     TCL_VOLATILE );
     return TCL_ERROR;
   }
 
-  if ( gbAcceptingTclCommands )
-  {
+  if ( gbAcceptingTclCommands ) {
     FindNearestSurfaceVertex ( Surf_tVertexSet_Original );
   }
 
@@ -5835,19 +5189,16 @@ int TclShowNearestOriginalVertex ( ClientData inClientData,
 
 int TclShowNearestPialVertex ( ClientData inClientData,
                                Tcl_Interp* inInterp,
-                               int argc, char* argv[] )
-{
+                               int argc, char* argv[] ) {
 
-  if ( argc != 1 )
-  {
+  if ( argc != 1 ) {
     Tcl_SetResult ( inInterp,
                     "wrong # args: ShowNearestPialVertex",
                     TCL_VOLATILE );
     return TCL_ERROR;
   }
 
-  if ( gbAcceptingTclCommands )
-  {
+  if ( gbAcceptingTclCommands ) {
     FindNearestSurfaceVertex ( Surf_tVertexSet_Pial );
   }
 
@@ -5856,20 +5207,17 @@ int TclShowNearestPialVertex ( ClientData inClientData,
 
 
 int TclShowNearestInterpolatedMainVertex ( ClientData inClientData,
-    Tcl_Interp* inInterp,
-    int argc, char* argv[] )
-{
+                                           Tcl_Interp* inInterp,
+                                           int argc, char* argv[] ) {
 
-  if ( argc != 1 )
-  {
+  if ( argc != 1 ) {
     Tcl_SetResult ( inInterp,
                     "wrong # args: ShowNearestInterpolatedMainVertex",
                     TCL_VOLATILE );
     return TCL_ERROR;
   }
 
-  if ( gbAcceptingTclCommands )
-  {
+  if ( gbAcceptingTclCommands ) {
     FindNearestInterpolatedSurfaceVertex ( Surf_tVertexSet_Main );
   }
 
@@ -5877,20 +5225,17 @@ int TclShowNearestInterpolatedMainVertex ( ClientData inClientData,
 }
 
 int TclShowNearestInterpolatedOriginalVertex ( ClientData inClientData,
-    Tcl_Interp* inInterp,
-    int argc, char* argv[] )
-{
+                                               Tcl_Interp* inInterp,
+                                               int argc, char* argv[] ) {
 
-  if ( argc != 1 )
-  {
+  if ( argc != 1 ) {
     Tcl_SetResult ( inInterp,
                     "wrong # args: ShowNearestInterpolatedOriginalVertex",
                     TCL_VOLATILE );
     return TCL_ERROR;
   }
 
-  if ( gbAcceptingTclCommands )
-  {
+  if ( gbAcceptingTclCommands ) {
     FindNearestInterpolatedSurfaceVertex ( Surf_tVertexSet_Original );
   }
 
@@ -5898,20 +5243,17 @@ int TclShowNearestInterpolatedOriginalVertex ( ClientData inClientData,
 }
 
 int TclShowNearestInterpolatedPialVertex ( ClientData inClientData,
-    Tcl_Interp* inInterp,
-    int argc, char* argv[] )
-{
+                                           Tcl_Interp* inInterp,
+                                           int argc, char* argv[] ) {
 
-  if ( argc != 1 )
-  {
+  if ( argc != 1 ) {
     Tcl_SetResult ( inInterp,
                     "wrong # args: ShowNearestInterpolatedPialVertex",
                     TCL_VOLATILE );
     return TCL_ERROR;
   }
 
-  if ( gbAcceptingTclCommands )
-  {
+  if ( gbAcceptingTclCommands ) {
     FindNearestInterpolatedSurfaceVertex ( Surf_tVertexSet_Pial );
   }
 
@@ -5920,18 +5262,15 @@ int TclShowNearestInterpolatedPialVertex ( ClientData inClientData,
 
 int TclAverageSurfaceVertexPositions ( ClientData inClientData,
                                        Tcl_Interp* inInterp,
-                                       int argc, char* argv[] )
-{
+                                       int argc, char* argv[] ) {
 
-  if ( argc != 2)
-  {
+  if ( argc != 2) {
     Tcl_SetResult ( inInterp, "wrong # args: AverageSurfaceVertexPositions "
                     "num_averages", TCL_VOLATILE );
     return TCL_ERROR;
   }
 
-  if ( gbAcceptingTclCommands )
-  {
+  if ( gbAcceptingTclCommands ) {
     AverageSurfaceVertexPositions ( atoi(argv[1]) );
   }
 
@@ -5941,18 +5280,15 @@ int TclAverageSurfaceVertexPositions ( ClientData inClientData,
 
 int TclSetUseRealRAS ( ClientData inClientData,
                        Tcl_Interp* inInterp,
-                       int argc, char* argv[] )
-{
+                       int argc, char* argv[] ) {
 
-  if ( argc != 2)
-  {
+  if ( argc != 2) {
     Tcl_SetResult ( inInterp, "wrong # args: SetUseRealRAS use_real_ras",
                     TCL_VOLATILE );
     return TCL_ERROR;
   }
 
-  if ( gbAcceptingTclCommands )
-  {
+  if ( gbAcceptingTclCommands ) {
     SetUseRealRAS( tkm_tSurfaceType_Main, atoi(argv[1]) );
   }
 
@@ -5962,19 +5298,16 @@ int TclSetUseRealRAS ( ClientData inClientData,
 
 int TclNewSegmentationVolume ( ClientData inClientData,
                                Tcl_Interp* inInterp,
-                               int argc, char* argv[] )
-{
+                               int argc, char* argv[] ) {
 
-  if ( argc != 4 )
-  {
+  if ( argc != 4 ) {
     Tcl_SetResult ( inInterp, "wrong # args: NewSegmentationVolume "
                     "volume:0=main,1=aux from_anatomical:0=main,1=aux "
                     "color_file:string", TCL_VOLATILE );
     return TCL_ERROR;
   }
 
-  if ( gbAcceptingTclCommands )
-  {
+  if ( gbAcceptingTclCommands ) {
     NewSegmentationVolume ( atoi(argv[1]), atoi(argv[2]), argv[3] );
   }
 
@@ -5983,19 +5316,16 @@ int TclNewSegmentationVolume ( ClientData inClientData,
 
 int TclLoadSegmentationVolume ( ClientData inClientData,
                                 Tcl_Interp* inInterp,
-                                int argc, char* argv[] )
-{
+                                int argc, char* argv[] ) {
 
-  if ( argc != 4 )
-  {
+  if ( argc != 4 ) {
     Tcl_SetResult ( inInterp, "wrong # args: LoadSegmentationVolume "
                     "volume:0=main,1=aux directory_and_prefix:string "
                     "color_file:string", TCL_VOLATILE );
     return TCL_ERROR;
   }
 
-  if ( gbAcceptingTclCommands )
-  {
+  if ( gbAcceptingTclCommands ) {
     LoadSegmentationVolume ( atoi(argv[1]), argv[2], argv[3], FALSE );
   }
 
@@ -6004,18 +5334,15 @@ int TclLoadSegmentationVolume ( ClientData inClientData,
 
 int TclRecomputeSegmentation ( ClientData inClientData,
                                Tcl_Interp* inInterp,
-                               int argc, char* argv[] )
-{
+                               int argc, char* argv[] ) {
 
-  if ( argc != 2 )
-  {
+  if ( argc != 2 ) {
     Tcl_SetResult ( inInterp, "wrong # args: RecomputeSegmentation "
                     "volume:0=main,1=aux", TCL_VOLATILE );
     return TCL_ERROR;
   }
 
-  if ( gbAcceptingTclCommands )
-  {
+  if ( gbAcceptingTclCommands ) {
     RecomputeSegmentation( atoi(argv[1]) );
   }
 
@@ -6024,18 +5351,15 @@ int TclRecomputeSegmentation ( ClientData inClientData,
 
 int TclSelectSegLabelAtCursor ( ClientData inClientData,
                                 Tcl_Interp* inInterp,
-                                int argc, char* argv[] )
-{
+                                int argc, char* argv[] ) {
 
-  if ( argc != 2 )
-  {
+  if ( argc != 2 ) {
     Tcl_SetResult ( inInterp, "wrong # args: SelectSegLabelAtCursor "
                     "volume:0=main,1=aux", TCL_VOLATILE );
     return TCL_ERROR;
   }
 
-  if ( gbAcceptingTclCommands )
-  {
+  if ( gbAcceptingTclCommands ) {
     SelectSegLabelAtCursor( atoi(argv[1]) );
   }
 
@@ -6043,12 +5367,10 @@ int TclSelectSegLabelAtCursor ( ClientData inClientData,
 }
 
 int TclImportSurfaceAnnotationToSegmentation ( ClientData inClientData,
-    Tcl_Interp* inInterp,
-    int argc, char* argv[] )
-{
+                                               Tcl_Interp* inInterp,
+                                               int argc, char* argv[] ) {
 
-  if ( argc != 4 )
-  {
+  if ( argc != 4 ) {
     Tcl_SetResult ( inInterp, "wrong # args: "
                     "ImportSurfaceAnnotationToSegmentation "
                     "volume:[main=0,aux=1] annotation:string "
@@ -6056,8 +5378,7 @@ int TclImportSurfaceAnnotationToSegmentation ( ClientData inClientData,
     return TCL_ERROR;
   }
 
-  if ( gbAcceptingTclCommands )
-  {
+  if ( gbAcceptingTclCommands ) {
     ImportSurfaceAnnotationToSegmentation ( atoi(argv[1]), argv[2], argv[3] );
   }
 
@@ -6066,18 +5387,15 @@ int TclImportSurfaceAnnotationToSegmentation ( ClientData inClientData,
 
 int TclSetGCADisplayStatus ( ClientData inClientData,
                              Tcl_Interp* inInterp,
-                             int argc, char* argv[] )
-{
+                             int argc, char* argv[] ) {
 
-  if ( argc != 2 )
-  {
+  if ( argc != 2 ) {
     Tcl_SetResult ( inInterp, "wrong # args: SetGCADisplayStatus new_status",
                     TCL_VOLATILE );
     return TCL_ERROR;
   }
 
-  if ( gbAcceptingTclCommands )
-  {
+  if ( gbAcceptingTclCommands ) {
     gDisplayIntermediateResults = atoi(argv[1]) ;
   }
 
@@ -6086,15 +5404,13 @@ int TclSetGCADisplayStatus ( ClientData inClientData,
 
 int TclRestorePreviousSegmentation ( ClientData inClientData,
                                      Tcl_Interp* inInterp,
-                                     int argc, char* argv[] )
-{
+                                     int argc, char* argv[] ) {
 
   tkm_tErr     eResult   = tkm_tErr_NoErr;
   Volm_tErr    eVolume   = Volm_tErr_NoErr;
   tkm_tSegType volume    = tkm_tSegType_Main;
 
-  if ( argc != 2 )
-  {
+  if ( argc != 2 ) {
     Tcl_SetResult ( inInterp, "wrong # args: RestorePreviousSegmentation "
                     "volume:0=main,1=aux", TCL_VOLATILE );
     return TCL_ERROR;
@@ -6106,8 +5422,7 @@ int TclRestorePreviousSegmentation ( ClientData inClientData,
                      eResult, tkm_tErr_InvalidParameter );
 
   if ( gbAcceptingTclCommands &&
-       NULL != gPreviousSegmentationVolume[volume] )
-  {
+       NULL != gPreviousSegmentationVolume[volume] ) {
 
     /* Delete seg volume. */
     DebugNote( ("Deleting segmentation") );
@@ -6137,26 +5452,20 @@ int TclRestorePreviousSegmentation ( ClientData inClientData,
 
 int TclSaveSegmentationVolume ( ClientData inClientData,
                                 Tcl_Interp* inInterp,
-                                int argc, char* argv[] )
-{
+                                int argc, char* argv[] ) {
 
-  if ( argc != 2 && argc != 3 )
-  {
+  if ( argc != 2 && argc != 3 ) {
     Tcl_SetResult ( inInterp, "wrong # args: SaveSegmentationVolume "
                     "volume:0=main,1=aux [directory:string]", TCL_VOLATILE );
     return TCL_ERROR;
   }
 
-  if ( gbAcceptingTclCommands )
-  {
+  if ( gbAcceptingTclCommands ) {
 
     /* if they gave us a filename, use it, else pass null. */
-    if ( argc == 2 )
-    {
+    if ( argc == 2 ) {
       SaveSegmentationVolume( atoi(argv[1]), NULL, FALSE );
-    }
-    else
-    {
+    } else {
       SaveSegmentationVolume( atoi(argv[1]), argv[2], TRUE );
     }
   }
@@ -6165,19 +5474,16 @@ int TclSaveSegmentationVolume ( ClientData inClientData,
 }
 
 int TclExportChangedSegmentationVolume ( ClientData inClientData,
-    Tcl_Interp* inInterp,
-    int argc, char* argv[] )
-{
+                                         Tcl_Interp* inInterp,
+                                         int argc, char* argv[] ) {
 
-  if ( argc != 3 )
-  {
+  if ( argc != 3 ) {
     Tcl_SetResult ( inInterp, "wrong # args: ExportChangedSegmentationVolume "
                     "volume:0=main,1=aux [directory:string]", TCL_VOLATILE );
     return TCL_ERROR;
   }
 
-  if ( gbAcceptingTclCommands )
-  {
+  if ( gbAcceptingTclCommands ) {
     ExportChangedSegmentationVolume( atoi(argv[1]), argv[2] );
   }
 
@@ -6186,19 +5492,16 @@ int TclExportChangedSegmentationVolume ( ClientData inClientData,
 
 int TclSetSegmentationAlpha ( ClientData inClientData,
                               Tcl_Interp* inInterp,
-                              int argc, char* argv[] )
-{
+                              int argc, char* argv[] ) {
 
-  if ( argc != 2 )
-  {
+  if ( argc != 2 ) {
     Tcl_SetResult ( inInterp,
                     "wrong # args: SetSegmentationAlpha alpha:float",
                     TCL_VOLATILE );
     return TCL_ERROR;
   }
 
-  if ( gbAcceptingTclCommands )
-  {
+  if ( gbAcceptingTclCommands ) {
     SetSegmentationAlpha ( atof(argv[1]) );
   }
 
@@ -6207,42 +5510,36 @@ int TclSetSegmentationAlpha ( ClientData inClientData,
 
 int TclLoadFunctionalOverlay ( ClientData inClientData,
                                Tcl_Interp* inInterp,
-                               int argc, char* argv[] )
-{
+                               int argc, char* argv[] ) {
 
   char sFileName[tkm_knPathLen] = "";
   char* sRegistration = NULL;
   FunD_tRegistrationType regType = FunD_tRegistration_None;
 
-  if ( argc != 2 && argc != 3 && argc != 4 )
-  {
+  if ( argc != 2 && argc != 3 && argc != 4 ) {
     Tcl_SetResult ( inInterp, "wrong # args: LoadFunctionalOverlay "
                     "filename [registrationType [registration]]",
                     TCL_VOLATILE );
     return TCL_ERROR;
   }
 
-  if ( gbAcceptingTclCommands )
-  {
+  if ( gbAcceptingTclCommands ) {
 
     xUtil_strncpy( sFileName, argv[1], sizeof(sFileName) );
     regType = FunD_tRegistration_Identity;
 
-    if ( argc > 2 && argv[2][0] != '\0' )
-    {
+    if ( argc > 2 && argv[2][0] != '\0' ) {
       regType = (FunD_tRegistrationType) atoi( argv[2] );
     }
 
-    if ( argc > 3 && argv[3][0] != '\0' )
-    {
+    if ( argc > 3 && argv[3][0] != '\0' ) {
       sRegistration = (char*) calloc( tkm_knPathLen, sizeof(char) );
       xUtil_strncpy( sRegistration, argv[3], tkm_knPathLen );
     }
 
     LoadFunctionalOverlay( sFileName, NULL, regType, sRegistration );
 
-    if ( NULL != sRegistration )
-    {
+    if ( NULL != sRegistration ) {
       free( sRegistration );
     }
   }
@@ -6252,42 +5549,36 @@ int TclLoadFunctionalOverlay ( ClientData inClientData,
 
 int TclLoadFunctionalTimeCourse ( ClientData inClientData,
                                   Tcl_Interp* inInterp,
-                                  int argc, char* argv[] )
-{
+                                  int argc, char* argv[] ) {
 
   char sFileName[tkm_knPathLen] = "";
   char* sRegistration = NULL;
   FunD_tRegistrationType regType = FunD_tRegistration_None;
 
-  if ( argc != 2 && argc != 3 && argc != 4 )
-  {
+  if ( argc != 2 && argc != 3 && argc != 4 ) {
     Tcl_SetResult ( inInterp, "wrong # args: LoadFunctionalTimeCourse "
                     "filename [registrationType [registration]]",
                     TCL_VOLATILE );
     return TCL_ERROR;
   }
 
-  if ( gbAcceptingTclCommands )
-  {
+  if ( gbAcceptingTclCommands ) {
 
     xUtil_strncpy( sFileName, argv[1], sizeof(sFileName) );
     regType = FunD_tRegistration_Identity;
 
-    if ( argc > 2 && argv[2][0] != '\0' )
-    {
+    if ( argc > 2 && argv[2][0] != '\0' ) {
       regType = (FunD_tRegistrationType) atoi( argv[2] );
     }
 
-    if ( argc > 3 && argv[3][0] != '\0' )
-    {
+    if ( argc > 3 && argv[3][0] != '\0' ) {
       sRegistration = (char*) calloc( tkm_knPathLen, sizeof(char) );
       xUtil_strncpy( sRegistration, argv[3], tkm_knPathLen );
     }
 
     LoadFunctionalTimeCourse( sFileName, NULL, regType, sRegistration );
 
-    if ( NULL != sRegistration )
-    {
+    if ( NULL != sRegistration ) {
       free( sRegistration );
     }
   }
@@ -6296,13 +5587,11 @@ int TclLoadFunctionalTimeCourse ( ClientData inClientData,
 }
 
 int TclLoadDTIVolumes ( ClientData inClientData, Tcl_Interp* inInterp,
-                        int argc, char* argv[] )
-{
+                        int argc, char* argv[] ) {
 
   tkm_tErr eResult = tkm_tErr_NoErr;
 
-  if ( argc != 6 )
-  {
+  if ( argc != 6 ) {
     Tcl_SetResult ( inInterp, "wrong # args: LoadDTIVolumes "
                     "ev_volume_name:string fa_volume_name:string "
                     "red_axis:[0=x,y=1,z=2] "
@@ -6311,8 +5600,7 @@ int TclLoadDTIVolumes ( ClientData inClientData, Tcl_Interp* inInterp,
     return TCL_ERROR;
   }
 
-  if ( gbAcceptingTclCommands )
-  {
+  if ( gbAcceptingTclCommands ) {
     eResult = LoadDTIVolume( argv[1], argv[2],
                              atoi(argv[3]), atoi(argv[4]), atoi(argv[5]) );
   }
@@ -6322,19 +5610,16 @@ int TclLoadDTIVolumes ( ClientData inClientData, Tcl_Interp* inInterp,
 
 int TclSetDTIAlpha ( ClientData inClientData,
                      Tcl_Interp* inInterp,
-                     int argc, char* argv[] )
-{
+                     int argc, char* argv[] ) {
 
-  if ( argc != 2 )
-  {
+  if ( argc != 2 ) {
     Tcl_SetResult ( inInterp,
                     "wrong # args: SetDTIAlpha alpha:float",
                     TCL_VOLATILE );
     return TCL_ERROR;
   }
 
-  if ( gbAcceptingTclCommands )
-  {
+  if ( gbAcceptingTclCommands ) {
     SetDTIAlpha ( atof(argv[1]) );
   }
 
@@ -6342,27 +5627,21 @@ int TclSetDTIAlpha ( ClientData inClientData,
 }
 
 int TclLoadGDF ( ClientData inClientData, Tcl_Interp* inInterp,
-                 int argc, char* argv[] )
-{
+                 int argc, char* argv[] ) {
 
   tkm_tErr eResult = tkm_tErr_NoErr;
 
-  if ( argc != 3 && argc != 4 )
-  {
+  if ( argc != 3 && argc != 4 ) {
     Tcl_SetResult ( inInterp, "wrong # args: LoadGDF filename:string"
                     "registrationType:int [registration:string]",
                     TCL_VOLATILE );
     return TCL_ERROR;
   }
 
-  if ( gbAcceptingTclCommands )
-  {
-    if ( 3 == argc )
-    {
+  if ( gbAcceptingTclCommands ) {
+    if ( 3 == argc ) {
       eResult = LoadGDFHeader( argv[1], atoi(argv[2]), NULL );
-    }
-    else
-    {
+    } else {
       eResult = LoadGDFHeader( argv[1], atoi(argv[2]), argv[3] );
     }
   }
@@ -6371,17 +5650,14 @@ int TclLoadGDF ( ClientData inClientData, Tcl_Interp* inInterp,
 }
 
 int TclGetGDFID ( ClientData inClientData, Tcl_Interp* inInterp,
-                  int argc, char* argv[] )
-{
+                  int argc, char* argv[] ) {
 
-  if ( argc != 1 )
-  {
+  if ( argc != 1 ) {
     Tcl_SetResult ( inInterp, "wrong # args: GetGDFID", TCL_VOLATILE );
     return TCL_ERROR;
   }
 
-  if ( gbAcceptingTclCommands )
-  {
+  if ( gbAcceptingTclCommands ) {
 
     /* Return the GDF ID. */
     Tcl_SetObjResult( inInterp, Tcl_NewIntObj( gGDFID ) );
@@ -6392,19 +5668,16 @@ int TclGetGDFID ( ClientData inClientData, Tcl_Interp* inInterp,
 
 int TclSmoothFunctionalOverlay ( ClientData inClientData,
                                  Tcl_Interp* inInterp,
-                                 int argc, char* argv[] )
-{
+                                 int argc, char* argv[] ) {
 
-  if ( argc != 2 )
-  {
+  if ( argc != 2 ) {
     Tcl_SetResult ( inInterp,
                     "wrong # args: SmoothFunctionalOverlay sigma",
                     TCL_VOLATILE );
     return TCL_ERROR;
   }
 
-  if ( gbAcceptingTclCommands )
-  {
+  if ( gbAcceptingTclCommands ) {
     SmoothOverlayData( atof(argv[1]) );
   }
 
@@ -6412,27 +5685,21 @@ int TclSmoothFunctionalOverlay ( ClientData inClientData,
 }
 
 int TclSetTimerStatus ( ClientData inClientData, Tcl_Interp* inInterp,
-                        int argc, char* argv[] )
-{
+                        int argc, char* argv[] ) {
 
   tBoolean bStatus = FALSE;
 
-  if ( argc != 2 )
-  {
+  if ( argc != 2 ) {
     Tcl_SetResult ( inInterp,
                     "wrong # args: SetTimerStatus 0|1", TCL_VOLATILE );
     return TCL_ERROR;
   }
 
-  if ( gbAcceptingTclCommands )
-  {
+  if ( gbAcceptingTclCommands ) {
     bStatus = (tBoolean) atoi( argv[1] );
-    if ( bStatus && !gbTimerOn )
-    {
+    if ( bStatus && !gbTimerOn ) {
       StartTimer();
-    }
-    else if ( !bStatus && gbTimerOn )
-    {
+    } else if ( !bStatus && gbTimerOn ) {
       StopTimer();
     }
   }
@@ -6441,18 +5708,15 @@ int TclSetTimerStatus ( ClientData inClientData, Tcl_Interp* inInterp,
 }
 
 int TclQuitMedit ( ClientData inClientData, Tcl_Interp* inInterp,
-                   int argc, char* argv[] )
-{
+                   int argc, char* argv[] ) {
 
-  if ( argc != 1 )
-  {
+  if ( argc != 1 ) {
     Tcl_SetResult ( inInterp,
                     "wrong # args: QuitMedit", TCL_VOLATILE );
     return TCL_ERROR;
   }
 
-  if ( gbAcceptingTclCommands )
-  {
+  if ( gbAcceptingTclCommands ) {
     tkm_Quit ();
   }
 
@@ -6461,21 +5725,17 @@ int TclQuitMedit ( ClientData inClientData, Tcl_Interp* inInterp,
 
 int TclRedrawScreen ( ClientData inClientData,
                       Tcl_Interp* inInterp,
-                      int argc, char* argv[] )
-{
+                      int argc, char* argv[] ) {
 
-  if ( argc != 1 )
-  {
+  if ( argc != 1 ) {
     Tcl_SetResult ( inInterp,
                     "wrong # args: RedrawScreen",
                     TCL_VOLATILE );
     return TCL_ERROR;
   }
 
-  if ( gbAcceptingTclCommands )
-  {
-    if ( gMeditWindow != NULL )
-    {
+  if ( gbAcceptingTclCommands ) {
+    if ( gMeditWindow != NULL ) {
       MWin_ForceRedraw( gMeditWindow );
     }
   }
@@ -6485,11 +5745,9 @@ int TclRedrawScreen ( ClientData inClientData,
 
 int TclDebugPrint ( ClientData inClientData,
                     Tcl_Interp* inInterp,
-                    int argc, char* argv[] )
-{
+                    int argc, char* argv[] ) {
 
-  if ( argc != 2 )
-  {
+  if ( argc != 2 ) {
     Tcl_SetResult ( inInterp,
                     "wrong # args: DebugPrint string",
                     TCL_VOLATILE );
@@ -6502,11 +5760,9 @@ int TclDebugPrint ( ClientData inClientData,
 }
 
 int TclStartTimer ( ClientData inClientData, Tcl_Interp* inInterp,
-                    int argc, char* argv[] )
-{
+                    int argc, char* argv[] ) {
 
-  if ( argc != 1 )
-  {
+  if ( argc != 1 ) {
     Tcl_SetResult ( inInterp, "wrong # args: StartTimer", TCL_VOLATILE );
     return TCL_ERROR;
   }
@@ -6517,11 +5773,9 @@ int TclStartTimer ( ClientData inClientData, Tcl_Interp* inInterp,
 }
 
 int TclStopTimer ( ClientData inClientData, Tcl_Interp* inInterp,
-                   int argc, char* argv[] )
-{
+                   int argc, char* argv[] ) {
 
-  if ( argc != 1 )
-  {
+  if ( argc != 1 ) {
     Tcl_SetResult ( inInterp, "wrong # args: StopTimer", TCL_VOLATILE );
     return TCL_ERROR;
   }
@@ -6532,11 +5786,9 @@ int TclStopTimer ( ClientData inClientData, Tcl_Interp* inInterp,
 }
 
 int TclExecuteQueuedScripts ( ClientData inClientData, Tcl_Interp* inInterp,
-                              int argc, char* argv[] )
-{
+                              int argc, char* argv[] ) {
 
-  if ( argc != 1 )
-  {
+  if ( argc != 1 ) {
     Tcl_SetResult ( inInterp, "wrong # args: ExecuteQueuedScripts",
                     TCL_VOLATILE );
     return TCL_ERROR;
@@ -6548,27 +5800,23 @@ int TclExecuteQueuedScripts ( ClientData inClientData, Tcl_Interp* inInterp,
 }
 
 int TclGetSubjectName ( ClientData inClientData, Tcl_Interp* inInterp,
-                        int argc, char* argv[] )
-{
+                        int argc, char* argv[] ) {
 
   Volm_tErr    eVolume          = tkm_tErr_NoErr;
   char      sSubjectName[tkm_knPathLen] = "";
   tkm_tVolumeType volume          = tkm_tVolumeType_Main;
 
-  if ( argc != 2 )
-  {
+  if ( argc != 2 ) {
     Tcl_SetResult ( inInterp, "wrong # args: GetSubjectName 0=main|1=aux",
                     TCL_VOLATILE );
     return TCL_ERROR;
   }
 
-  if ( gbAcceptingTclCommands )
-  {
+  if ( gbAcceptingTclCommands ) {
 
     /* get the volume type and check it */
     volume = (tkm_tVolumeType) atoi(argv[1]);
-    if ( volume != tkm_tVolumeType_Main && volume != tkm_tVolumeType_Aux )
-    {
+    if ( volume != tkm_tVolumeType_Main && volume != tkm_tVolumeType_Aux ) {
       Tcl_SetResult ( inInterp, "wrong # args: GetSubjectName 0=main|1=aux",
                       TCL_VOLATILE );
       return TCL_ERROR;
@@ -6577,8 +5825,7 @@ int TclGetSubjectName ( ClientData inClientData, Tcl_Interp* inInterp,
     /* get the subject name */
     eVolume = Volm_CopySubjectName( gAnatomicalVolume[volume], sSubjectName,
                                     sizeof( sSubjectName ));
-    if ( Volm_tErr_NoErr != eVolume )
-    {
+    if ( Volm_tErr_NoErr != eVolume ) {
       Tcl_SetResult ( inInterp, "Couldn't get volume name. Is volume loaded?",
                       TCL_VOLATILE );
       return TCL_ERROR;
@@ -6592,27 +5839,23 @@ int TclGetSubjectName ( ClientData inClientData, Tcl_Interp* inInterp,
 }
 
 int TclGetSubjectDir ( ClientData inClientData, Tcl_Interp* inInterp,
-                       int argc, char* argv[] )
-{
+                       int argc, char* argv[] ) {
 
   Volm_tErr    eVolume          = tkm_tErr_NoErr;
   char      sSubjectDir[tkm_knPathLen]  = "";
   tkm_tVolumeType volume          = tkm_tVolumeType_Main;
 
-  if ( argc != 2 )
-  {
+  if ( argc != 2 ) {
     Tcl_SetResult ( inInterp, "wrong # args: GetSubjectDir 0=main|1=aux",
                     TCL_VOLATILE );
     return TCL_ERROR;
   }
 
-  if ( gbAcceptingTclCommands )
-  {
+  if ( gbAcceptingTclCommands ) {
 
     /* get the volume type and check it */
     volume = (tkm_tVolumeType) atoi(argv[1]);
-    if ( volume != tkm_tVolumeType_Main && volume != tkm_tVolumeType_Aux )
-    {
+    if ( volume != tkm_tVolumeType_Main && volume != tkm_tVolumeType_Aux ) {
       Tcl_SetResult ( inInterp, "wrong # args: GetSubjectDir 0=main|1=aux",
                       TCL_VOLATILE );
       return TCL_ERROR;
@@ -6621,12 +5864,11 @@ int TclGetSubjectDir ( ClientData inClientData, Tcl_Interp* inInterp,
     /* get the source dir */
     eVolume = Volm_CopySourceDir( gAnatomicalVolume[volume], sSubjectDir,
                                   sizeof( sSubjectDir ));
-    if ( Volm_tErr_NoErr != eVolume )
-    {
+    if ( Volm_tErr_NoErr != eVolume ) {
       Tcl_SetResult
-      ( inInterp,
-        "Couldn't get volume directory. Is volume loaded?",
-        TCL_VOLATILE );
+        ( inInterp,
+          "Couldn't get volume directory. Is volume loaded?",
+          TCL_VOLATILE );
       return TCL_ERROR;
     }
 
@@ -6650,8 +5892,7 @@ static Tcl_Interp *interp;
 static Tcl_DString command;
 static int tty;
 
-int main ( int argc, char** argv )
-{
+int main ( int argc, char** argv ) {
 
   tkm_tErr   eResult                           = tkm_tErr_NoErr;
   x3Lst_tErr e3DList                           = x3Lst_tErr_NoErr;
@@ -6697,17 +5938,16 @@ int main ( int argc, char** argv )
   /* write the time started, progam name, and arguments to the debug output */
   time( &theTime );
   DebugPrint( ( "tkmedit started: %s\n\t", ctime( &theTime ) ) );
-  for ( nArg = 0; nArg < argc; nArg++ )
-  {
+  for ( nArg = 0; nArg < argc; nArg++ ) {
     DebugPrint( ( "%s ", argv[nArg] ) );
   }
   DebugPrint( ( "\n\n" ) );
   DebugPrint
-  (
     (
-      "$Id: tkmedit.c,v 1.345 2011/10/05 17:28:47 nicks Exp $ $Name:  $\n"
-    )
-  );
+      (
+        "$Id: tkmedit.c,v 1.346 2011/10/15 15:43:39 fischl Exp $ $Name:  $\n"
+        )
+      );
 
   /* init glut */
   DebugNote( ("Initializing glut") );
@@ -6774,14 +6014,12 @@ int main ( int argc, char** argv )
   tkm_SendTclCommand( tkm_tTclCommand_ShowGDFOptions, "0" );
 
   /* init variables */
-  for ( volume = 0; volume < tkm_knNumVolumeTypes; volume++ )
-  {
+  for ( volume = 0; volume < tkm_knNumVolumeTypes; volume++ ) {
     gAnatomicalVolume[volume] = NULL;
     SetVolumeDirty( volume, FALSE );
   }
 
-  for ( volume = 0; volume < tkm_knNumSegTypes; volume++ )
-  {
+  for ( volume = 0; volume < tkm_knNumSegTypes; volume++ ) {
     gPreviousSegmentationVolume[volume] = NULL;
     gSegmentationVolume[volume] = NULL;
     gSegmentationChangedVolume[volume] = NULL;
@@ -6807,21 +6045,17 @@ int main ( int argc, char** argv )
   bFoundInterface = FALSE;
 
   /* did they request one? */
-  if ( !MATCH( gInterfaceScriptName, "" ) )
-  {
+  if ( !MATCH( gInterfaceScriptName, "" ) ) {
 
     /* try to open it. */
     xUtil_strncpy( sInterfaceFileName, gInterfaceScriptName,
                    sizeof(sInterfaceFileName) );
     DebugNote( ( "Trying to open %s\n", sInterfaceFileName ) );
     pFile = fopen ( sInterfaceFileName,"r" );
-    if ( NULL != pFile )
-    {
+    if ( NULL != pFile ) {
       bFoundInterface = TRUE;
       fclose( pFile );
-    }
-    else
-    {
+    } else {
       tkm_DisplayError( "Opening specified interface file",
                         "No valid file found",
                         "Tkmedit couldn't find or open the interface file "
@@ -6830,25 +6064,20 @@ int main ( int argc, char** argv )
     }
   }
 
-  if ( !bFoundInterface )
-  {
+  if ( !bFoundInterface ) {
 
     /* next, look in TKMEDIT_SCRIPTS_DIR */
     DebugNote( ("Getting TKMEDIT_SCRIPTS_DIR env var") );
     pEnvVar = getenv("TKMEDIT_SCRIPTS_DIR");
-    if ( NULL != pEnvVar)
-    {
+    if ( NULL != pEnvVar) {
       xUtil_snprintf( sInterfaceFileName, sizeof(sInterfaceFileName),
                       "%s/tkmedit.tcl", pEnvVar);
       DebugNote( ( "Trying to open %s", sInterfaceFileName ) );
       pFile = fopen( sInterfaceFileName,"r" );
-      if ( NULL != pFile )
-      {
+      if ( NULL != pFile ) {
         bFoundInterface = TRUE;
         fclose( pFile );
-      }
-      else
-      {
+      } else {
         tkm_DisplayError( "Opening interface file in TKMEDIT_SCRIPTS_DIR",
                           "No valid file found",
                           "Tkmedit couldn't find or open the interface file "
@@ -6859,39 +6088,35 @@ int main ( int argc, char** argv )
   }
 
 
-  if ( !bFoundInterface )
-  {
+  if ( !bFoundInterface ) {
 
     /* look in the local directory */
     DebugNote( ("Trying local tkmedit.tcl") );
     xUtil_strncpy( sInterfaceFileName, "tkmedit.tcl",
                    sizeof(sInterfaceFileName) );
     pFile = fopen( sInterfaceFileName, "r" );
-    if ( NULL != pFile )
-    {
+    if ( NULL != pFile ) {
       bFoundInterface = TRUE;
       fclose( pFile );
     }
   }
 
-  if ( !bFoundInterface )
-  {
+  if ( !bFoundInterface ) {
 
     /* finally try in FREESURFER_HOME/tktools.
        make sure we have FREESURFER_HOME
        defined */
     DebugNote( ("Getting FREESURFER_HOME env var") );
     pEnvVar = getenv("FREESURFER_HOME");
-    if ( NULL == pEnvVar)
-    {
+    if ( NULL == pEnvVar) {
       tkm_DisplayError
-      ( "Trying to find interface file",
-        "No valid file found",
-        "Tkmedit couldn't find a valid interface file "
-        "(tkmedit.tcl). Normally this is in the directory "
-        "specified in the FREESURFER_HOME varible, but this was "
-        "not set in your environment. Tkmedit needs this "
-        "file to run." );
+        ( "Trying to find interface file",
+          "No valid file found",
+          "Tkmedit couldn't find a valid interface file "
+          "(tkmedit.tcl). Normally this is in the directory "
+          "specified in the FREESURFER_HOME varible, but this was "
+          "not set in your environment. Tkmedit needs this "
+          "file to run." );
       PrintCachedTclErrorDlogsToShell();
       exit( 1 );
     }
@@ -6900,24 +6125,22 @@ int main ( int argc, char** argv )
                     "%s/tktools/%s", pEnvVar, "tkmedit.tcl");
     DebugNote( ( "Trying to open %s", sInterfaceFileName ) );
     pFile = fopen( sInterfaceFileName,"r" );
-    if ( NULL != pFile )
-    {
+    if ( NULL != pFile ) {
       bFoundInterface = TRUE;
       fclose( pFile );
     }
   }
 
   /* if file still not found bail out. */
-  if ( !bFoundInterface )
-  {
+  if ( !bFoundInterface ) {
     tkm_DisplayError
-    ( "Trying to find interface file",
-      "No valid file found",
-      "Tkmedit couldn't find a valid interface file. "
-      "Normally this is in the directory specified in "
-      "the FREESURFER_HOME varible, but it can also be in the same "
-      "directory as tkmedit. Tkmedit needs this file to "
-      "run. Try reinstalling your distribution." );
+      ( "Trying to find interface file",
+        "No valid file found",
+        "Tkmedit couldn't find a valid interface file. "
+        "Normally this is in the directory specified in "
+        "the FREESURFER_HOME varible, but it can also be in the same "
+        "directory as tkmedit. Tkmedit needs this file to "
+        "run. Try reinstalling your distribution." );
     PrintCachedTclErrorDlogsToShell();
     exit( 1 );
   }
@@ -6953,8 +6176,7 @@ int main ( int argc, char** argv )
 
   /* read tcl/tk internal startup scripts */
   eTcl = Tcl_Init( interp );
-  if ( TCL_OK != eTcl )
-  {
+  if ( TCL_OK != eTcl ) {
     DebugPrint( ("Tcl_Init returned %d: %s\n", (int)eTcl, interp->result) );
     tkm_DisplayError( "Initializing Tcl",
                       "Error initializing Tcl",
@@ -6965,8 +6187,7 @@ int main ( int argc, char** argv )
     DebugAssertThrowX( (TCL_OK == eTcl), eResult, tkm_tErr_CouldntInitTcl );
   }
   eTcl = Tk_Init( interp );
-  if ( TCL_OK != eTcl )
-  {
+  if ( TCL_OK != eTcl ) {
     DebugPrint( ("Tk_Init returned %d: %s\n", (int)eTcl, interp->result) );
     tkm_DisplayError( "Initializing Tk",
                       "Error initializing Tk",
@@ -6980,20 +6201,17 @@ int main ( int argc, char** argv )
   ////////// do the following only for RedHat Enterprise Linux
 #if NEEDS_ITCL_ITK
   eTcl = Itcl_Init(interp);
-  if ( TCL_OK != eTcl )
-  {
+  if ( TCL_OK != eTcl ) {
     DebugPrint( ("Itlc_Init returned %d: %s\n", (int)eTcl, interp->result) );
   }
   eTcl = Itk_Init(interp);
-  if ( TCL_OK != eTcl )
-  {
+  if ( TCL_OK != eTcl ) {
     DebugPrint( ("Itk_Init returned %d: %s\n", (int)eTcl, interp->result) );
   }
 #endif
   ///////////////////////////////////////////////////////////////////
   eTcl = Tix_Init( interp );
-  if ( TCL_OK != eTcl )
-  {
+  if ( TCL_OK != eTcl ) {
     DebugPrint( ("Tix_Init returned %d: %s\n", (int)eTcl, interp->result) );
     tkm_DisplayError( "Initializing Tix",
                       "Error initializing Tix",
@@ -7004,8 +6222,7 @@ int main ( int argc, char** argv )
     DebugAssertThrowX( (TCL_OK == eTcl), eResult, tkm_tErr_CouldntInitTix );
   }
   eTcl = Blt_Init( interp );
-  if ( TCL_OK != eTcl )
-  {
+  if ( TCL_OK != eTcl ) {
     DebugPrint( ("Blt_Init returned %d: %s\n", (int)eTcl, interp->result) );
     tkm_DisplayError( "Initializing BLT",
                       "Error initializing BLT",
@@ -7024,8 +6241,7 @@ int main ( int argc, char** argv )
 
   /* Initialize our Fsgdf functions. This is in fsgdf_wrap.c */
   eTcl = Fsgdf_Init( interp );
-  if ( TCL_OK != eTcl )
-  {
+  if ( TCL_OK != eTcl ) {
     DebugPrint( ("Fsgdf_Init returned %d: %s\n", (int)eTcl, interp->result) );
     tkm_DisplayError( "Initializing FSGDF",
                       "Error initializing FGSDF",
@@ -7040,20 +6256,17 @@ int main ( int argc, char** argv )
 
 #if SET_TCL_ENV_VAR
   /* restore env vars */
-  if ( bChangedEnvVar )
-  {
+  if ( bChangedEnvVar ) {
     sprintf( sTclEnvVar, "%s=%s", "TCL_LIBRARY", sSavedTclLib );
-    if ( putenv( sTclEnvVar ) )
-    {
+    if ( putenv( sTclEnvVar ) ) {
       OutputPrint "ERROR: Couldn't restore TCL_LIBRARY env var.\n"
-      EndOutputPrint;
+        EndOutputPrint;
       exit( 1 );
     }
     sprintf( sTkEnvVar, "%s=%s", "TK_LIBRARY", sSavedTkLib );
-    if ( putenv( sTkEnvVar ) )
-    {
+    if ( putenv( sTkEnvVar ) ) {
       OutputPrint "ERROR: Couldn't restore TCL_LIBRARY env var.\n"
-      EndOutputPrint;
+        EndOutputPrint;
       exit( 1 );
     }
   }
@@ -7438,8 +6651,7 @@ int main ( int argc, char** argv )
   /* parse the interface file */
   DebugNote( ("Parsing %s", sInterfaceFileName) );
   eTcl = Tcl_EvalFile( interp, sInterfaceFileName );
-  if ( *interp->result != 0 )
-  {
+  if ( *interp->result != 0 ) {
     DebugPrint( ( "Error reading %s\n\t%s\n",
                   sInterfaceFileName, interp->result ) );
     tkm_DisplayError( "Parsing interface file",
@@ -7456,10 +6668,7 @@ int main ( int argc, char** argv )
 #ifndef Windows_NT
   Tk_CreateFileHandler(0, TK_READABLE, StdinProc, (ClientData) 0);
 #endif // Windows_NT
-  if (tty)
-  {
-    Prompt(interp, 0);
-  }
+  if (tty) Prompt(interp, 0);
   fflush(stdout);
   Tcl_DStringInit(&command);
   Tcl_ResetResult(interp);
@@ -7467,15 +6676,13 @@ int main ( int argc, char** argv )
   /* finish initializing functional volume */
   DebugNote( ("Initializing graph window") );
   eFunctional = FunV_InitGraphWindow( gFunctionalVolume, interp );
-  if ( FunV_tErr_NoError != eFunctional )
-  {
+  if ( FunV_tErr_NoError != eFunctional ) {
     exit( 1 );
   }
 
   DebugNote( ("Registering functional Tcl commands") );
   eFunctional = FunV_RegisterTclCommands( gFunctionalVolume, interp );
-  if ( FunV_tErr_NoError != eFunctional )
-  {
+  if ( FunV_tErr_NoError != eFunctional ) {
     exit( 1 );
   }
 
@@ -7502,8 +6709,7 @@ int main ( int argc, char** argv )
 
   /* send the brightness and contrast to the tcl window. */
   SendVolumeColorScaleUpdate( tkm_tVolumeType_Main );
-  if ( NULL != gAnatomicalVolume[tkm_tVolumeType_Aux] )
-  {
+  if ( NULL != gAnatomicalVolume[tkm_tVolumeType_Aux] ) {
     SendVolumeColorScaleUpdate( tkm_tVolumeType_Aux );
   }
 
@@ -7516,22 +6722,19 @@ int main ( int argc, char** argv )
   SetDTIAlpha( gfDTIAlpha );
 
   /* if using csurf interface, call the func that hides a bunch of stuff. */
-  if ( gbUseCsurfInterface )
-  {
+  if ( gbUseCsurfInterface ) {
     DebugNote( ("Enabling csurf version of interface") );
     tkm_SendTclCommand( tkm_tTclCommand_CsurfInterface, "" );
   }
 
   /* if the tktimer autostart environment variable is declared,
      automatically start the timer here. */
-  if ( getenv( ksTkTimerAutoStartEnvVar ) )
-  {
+  if ( getenv( ksTkTimerAutoStartEnvVar ) ) {
     StartTimer();
   }
 
   /* never returns */
-  if (bExit)
-  {
+  if (bExit) {
     DebugNote( ("exiting as user requests") );
     exit(0) ;
   }
@@ -7549,15 +6752,13 @@ int main ( int argc, char** argv )
   return 0;
 }
 
-void tkm_Quit ()
-{
+void tkm_Quit () {
 
   DebugEnterFunction( ("tkm_Quit()") );
 
   /* if the tktimer autostart environment variable is declared,
      automatically stop the timer here. */
-  if ( getenv( ksTkTimerAutoStartEnvVar ) )
-  {
+  if ( getenv( ksTkTimerAutoStartEnvVar ) ) {
     StopTimer();
   }
   /* delete window */
@@ -7565,14 +6766,12 @@ void tkm_Quit ()
   MWin_Delete( &gMeditWindow );
 
   /* delete everything we allocated before */
-  if ( NULL != gGCAVolume )
-  {
+  if ( NULL != gGCAVolume ) {
     DebugNote( ("Deleting GCA.") );
     DeleteGCA();
   }
 
-  if ( NULL != gVLI1 || NULL != gVLI2 )
-  {
+  if ( NULL != gVLI1 || NULL != gVLI2 ) {
     DebugNote( ("Deleting VLIs.") );
     DeleteVLIs();
   }
@@ -7583,8 +6782,7 @@ void tkm_Quit ()
   DebugNote( ("Deleting selection module.") );
   DeleteSelectionModule ();
 
-  if ( NULL != gControlPointList )
-  {
+  if ( NULL != gControlPointList ) {
     DebugNote( ("Deleting control point list.") );
     x3Lst_Delete( &gControlPointList );
   }
@@ -7611,8 +6809,7 @@ void tkm_Quit ()
 
 tkm_tErr LoadGDFHeader ( char* isFSGDHeader,
                          int iRegistrationType,
-                         char* isRegistrationName )
-{
+                         char* isRegistrationName ) {
   MRI* gdInfo = NULL;
   char sTclCommand[tkm_knTclCmdLen];
   char* psTclResult = NULL;
@@ -7629,22 +6826,19 @@ tkm_tErr LoadGDFHeader ( char* isFSGDHeader,
 
   sprintf( sTclCommand, "FsgdfPlot_Read %s", isFSGDHeader );
   psTclResult = SendTCLCommand( sTclCommand );
-  if ( NULL == psTclResult )
-  {
+  if ( NULL == psTclResult ) {
     printf( "tkmedit: ERROR: Couldn't read %s\n", isFSGDHeader );
     return tkm_tErr_CouldntLoadGDF;
   }
 
   strncpy( sTclResult, psTclResult, sizeof(sTclResult) );
   cRead = sscanf( sTclResult, "%d", &gGDFID );
-  if ( 1 != cRead )
-  {
+  if ( 1 != cRead ) {
     printf( "tkmedit: ERROR: Couldn't read GDFID from \"%s\"\n", sTclResult );
     return tkm_tErr_CouldntLoadGDF;
   }
 
-  if ( gGDFID < 0 )
-  {
+  if ( gGDFID < 0 ) {
     printf( "tkmedit: ERROR: FsgdfPlot_Read returned ID %d\n", gGDFID );
     gGDFID = -1;
     return tkm_tErr_CouldntLoadGDF;
@@ -7652,8 +6846,7 @@ tkm_tErr LoadGDFHeader ( char* isFSGDHeader,
 
   sprintf( sTclCommand, "FsgdfPlot_ShowWindow %d", gGDFID );
   psTclResult = SendTCLCommand( sTclCommand );
-  if ( NULL == psTclResult )
-  {
+  if ( NULL == psTclResult ) {
     return tkm_tErr_CouldntLoadGDF;
   }
 
@@ -7668,8 +6861,7 @@ tkm_tErr LoadGDFHeader ( char* isFSGDHeader,
                      iRegistrationType,
                      isRegistrationName,
                      &gMRIIdxToGDFIdxTransform );
-  if ( NULL == gMRIIdxToGDFIdxTransform )
-  {
+  if ( NULL == gMRIIdxToGDFIdxTransform ) {
     printf( "tkmedit: ERROR: Couldn't create GDF transform\n" );
     return tkm_tErr_CouldntLoadGDF;
   }
@@ -7682,64 +6874,50 @@ tkm_tErr LoadGDFHeader ( char* isFSGDHeader,
   return tkm_tErr_NoErr;
 }
 
-tkm_tErr GDFPlotMRIIdx ( xVoxelRef iMRIIdx )
-{
+tkm_tErr GDFPlotMRIIdx ( xVoxelRef iMRIIdx ) {
 
   tkm_tErr eResult = tkm_tErr_NoErr;
 
   if ( gGDFID < 0 )
-  {
     return tkm_tErr_NoErr;
-  }
 
   /* Just being a list, add this single point, and end the list. */
   eResult = BeginGDFPointList();
   if ( tkm_tErr_NoErr != eResult )
-  {
     return eResult;
-  }
 
   eResult = AddGDFPlotMRIIdx( iMRIIdx );
   if ( tkm_tErr_NoErr != eResult )
-  {
     return eResult;
-  }
 
   eResult = EndGDFPointList();
   if ( tkm_tErr_NoErr != eResult )
-  {
     return eResult;
-  }
 
   return tkm_tErr_NoErr;
 }
 
-tkm_tErr BeginGDFPointList ()
-{
+tkm_tErr BeginGDFPointList () {
 
   char sTclCommand[tkm_knTclCmdLen];
   char* psTclResult = NULL;
 
   if ( gGDFID < 0 )
-  {
     return tkm_tErr_NoErr;
-  }
 
   /*
     FsgdfPlot_BeginPointList $gGDFID
   */
   sprintf( sTclCommand, "FsgdfPlot_BeginPointList %d", gGDFID );
   psTclResult = SendTCLCommand( sTclCommand );
-  if ( NULL == psTclResult )
-  {
+  if ( NULL == psTclResult ) {
     return tkm_tErr_ErrorAccessingGDF;
   }
 
   return tkm_tErr_NoErr;
 }
 
-tkm_tErr AddGDFPlotMRIIdx ( xVoxelRef iMRIIdx )
-{
+tkm_tErr AddGDFPlotMRIIdx ( xVoxelRef iMRIIdx ) {
 
   char sTclCommand[tkm_knTclCmdLen];
   char* psTclResult = NULL;
@@ -7747,14 +6925,11 @@ tkm_tErr AddGDFPlotMRIIdx ( xVoxelRef iMRIIdx )
   xVoxel gdfIdx;
 
   if ( gGDFID < 0 )
-  {
     return tkm_tErr_NoErr;
-  }
 
   /* Transform the point to a GDF index. */
   eTrns = Trns_ConvertAtoB( gMRIIdxToGDFIdxTransform, iMRIIdx, &gdfIdx );
-  if ( Trns_tErr_NoErr != eTrns )
-  {
+  if ( Trns_tErr_NoErr != eTrns ) {
     printf( "tkmedit: ERROR: Couldn't convert MRI idx %d, %d, %d\n",
             xVoxl_ExpandInt( iMRIIdx ) );
     return tkm_tErr_ErrorAccessingGDF;
@@ -7766,45 +6941,37 @@ tkm_tErr AddGDFPlotMRIIdx ( xVoxelRef iMRIIdx )
   sprintf( sTclCommand, "FsgdfPlot_AddPoint %d %d %d %d",
            gGDFID, xVoxl_ExpandInt( &gdfIdx ) );
   psTclResult = SendTCLCommand( sTclCommand );
-  if ( NULL == psTclResult )
-  {
+  if ( NULL == psTclResult ) {
     return tkm_tErr_ErrorAccessingGDF;
   }
 
   return tkm_tErr_NoErr;
 }
 
-tkm_tErr EndGDFPointList ()
-{
+tkm_tErr EndGDFPointList () {
 
   char sTclCommand[tkm_knTclCmdLen];
   char* psTclResult = NULL;
 
   if ( gGDFID < 0 )
-  {
     return tkm_tErr_NoErr;
-  }
 
   /*
     FsgdfPlot_EndPointList $gGDFID
   */
   sprintf( sTclCommand, "FsgdfPlot_EndPointList %d", gGDFID );
   psTclResult = SendTCLCommand( sTclCommand );
-  if ( NULL == psTclResult )
-  {
+  if ( NULL == psTclResult ) {
     return tkm_tErr_ErrorAccessingGDF;
   }
 
   return tkm_tErr_NoErr;
 }
 
-void tkm_SelectGDFMRIIdx ( xVoxelRef iMRIIdx )
-{
+void tkm_SelectGDFMRIIdx ( xVoxelRef iMRIIdx ) {
 
   if ( gGDFID < 0 )
-  {
     return;
-  }
 
   GDFPlotMRIIdx( iMRIIdx );
 }
@@ -7812,8 +6979,8 @@ void tkm_SelectGDFMRIIdx ( xVoxelRef iMRIIdx )
 #ifndef Windows_NT
 /*=== from TkMain.c ===================================================*/
 static void StdinProc(clientData, mask)
-ClientData clientData;
-int mask;
+  ClientData clientData;
+  int mask;
 {
 #define BUFFER_SIZE 4000
   char input[BUFFER_SIZE+1];
@@ -7823,36 +6990,24 @@ int mask;
   int tcl_interactive = 0;
 
   count = read(fileno(stdin), input, BUFFER_SIZE);
-  if (count <= 0)
-  {
-    if (!gotPartial)
-    {
-      if (tty)
-      {
+  if (count <= 0) {
+    if (!gotPartial) {
+      if (tty) {
         Tcl_Eval(interp, "exit");
         exit(1);
-      }
-      else
-      {
+      } else     {
         Tk_DeleteFileHandler(0);
       }
       return;
-    }
-    else
-    {
-      count = 0;
-    }
+    } else count = 0;
   }
   cmd = Tcl_DStringAppend(&command, input, count);
-  if (count != 0)
-  {
-    if ((input[count-1] != '\n') && (input[count-1] != ';'))
-    {
+  if (count != 0) {
+    if ((input[count-1] != '\n') && (input[count-1] != ';')) {
       gotPartial = 1;
       goto prompt;
     }
-    if (!Tcl_CommandComplete(cmd))
-    {
+    if (!Tcl_CommandComplete(cmd)) {
       gotPartial = 1;
       goto prompt;
     }
@@ -7871,20 +7026,13 @@ int mask;
                                      "tcl_interactive",
                                      TCL_GLOBAL_ONLY);
     if (!ints || sscanf(ints,"%d",&tcl_interactive) != 1)
-    {
       tcl_interactive = 0;
-    }
   }
   if (*interp->result != 0)
     if ((code != TCL_OK) || (tty) || (tcl_interactive) )
-    {
       puts(interp->result);
-    }
-prompt:
-  if (tty)
-  {
-    Prompt(interp, gotPartial);
-  }
+ prompt:
+  if (tty) Prompt(interp, gotPartial);
   fflush(stdout);
   Tcl_ResetResult(interp);
 }
@@ -7892,29 +7040,23 @@ prompt:
 
 /*=== from TkMain.c ===================================================*/
 static void Prompt(interp, partial)
-Tcl_Interp *interp;
-int partial;
+  Tcl_Interp *interp;
+  int partial;
 {
   char *promptCmd;
   int code;
 
   promptCmd = (char*) Tcl_GetVar
-              (interp,
-               partial ? "tcl_prompt2" : "tcl_prompt1",
-               TCL_GLOBAL_ONLY);
-  if (promptCmd == NULL)
-  {
-defaultPrompt:
+    (interp,
+     partial ? "tcl_prompt2" : "tcl_prompt1",
+     TCL_GLOBAL_ONLY);
+  if (promptCmd == NULL) {
+  defaultPrompt:
     if (!partial)
-    {
       fputs("% ", stdout);
-    }
-  }
-  else
-  {
+  } else {
     code = Tcl_Eval(interp, promptCmd);
-    if (code != TCL_OK)
-    {
+    if (code != TCL_OK) {
       Tcl_AddErrorInfo(interp,
                        "\n     (script that generates prompt)");
       fprintf(stderr, "%s\n", interp->result);
@@ -7925,8 +7067,7 @@ defaultPrompt:
 
 /* ================================================ Control point utilities */
 
-tkm_tErr InitControlPointList ()
-{
+tkm_tErr InitControlPointList () {
 
   tkm_tErr   eResult = tkm_tErr_NoErr;
   x3Lst_tErr e3DList = xUndL_tErr_NoErr;
@@ -7934,8 +7075,7 @@ tkm_tErr InitControlPointList ()
   DebugEnterFunction( ("InitControlPointList") );
 
   /* Free existing list. */
-  if ( NULL != gControlPointList )
-  {
+  if ( NULL != gControlPointList ) {
     x3Lst_Delete( &gControlPointList );
   }
 
@@ -7956,8 +7096,7 @@ tkm_tErr InitControlPointList ()
   return eResult;
 }
 
-void ReadControlPointFile ()
-{
+void ReadControlPointFile () {
 
   tkm_tErr  eResult           = tkm_tErr_NoErr;
   Volm_tErr eVolume           = Volm_tErr_NoErr;
@@ -7972,8 +7111,7 @@ void ReadControlPointFile ()
   DebugEnterFunction( ("ProcessControlPointFile ()") );
 
   /* Only load control points for conformed volumes. */
-  if ( !mriConformed( gAnatomicalVolume[tkm_tVolumeType_Main]->mpMriValues ) )
-  {
+  if ( !mriConformed( gAnatomicalVolume[tkm_tVolumeType_Main]->mpMriValues ) ) {
     DebugGotoCleanup;
   }
 
@@ -7989,8 +7127,7 @@ void ReadControlPointFile ()
 
   /* If the file doesn't exist, quietly return. */
   DebugNote( ("Checking if %s exists", sFileName) );
-  if ( !FileExists( sFileName ) )
-  {
+  if ( !FileExists( sFileName ) ) {
     DebugQuietThrow();
   }
 
@@ -8003,8 +7140,7 @@ void ReadControlPointFile ()
 
   /* Parse the points. For each one, transform it from real RAS or
      tkReg RAS to MRI index, and add the control point. */
-  for ( nPoint = 0; nPoint < nNumControlPoints; nPoint++ )
-  {
+  for ( nPoint = 0; nPoint < nNumControlPoints; nPoint++ ) {
 
     /* Transform from ras to voxel */
     xVoxl_SetFloat( &ras,
@@ -8012,15 +7148,12 @@ void ReadControlPointFile ()
                     pControlPoints[nPoint].y,
                     pControlPoints[nPoint].z );
 
-    if ( bUseRealRAS )
-    {
+    if ( bUseRealRAS ) {
       DebugNote( ("Converting control point from RAS to MRI Idx") );
       eVolume =
         Volm_ConvertRASToMRIIdx( gAnatomicalVolume[tkm_tVolumeType_Main],
                                  &ras, &MRIIdx );
-    }
-    else
-    {
+    } else {
       DebugNote( ("Converting control point from surface RAS to MRI Idx") );
       eVolume =
         Volm_ConvertSurfaceRASToMRIIdx(gAnatomicalVolume[tkm_tVolumeType_Main],
@@ -8038,16 +7171,14 @@ void ReadControlPointFile ()
   DebugCatchError( eResult, tkm_tErr_NoErr, tkm_GetErrorString );
   EndDebugCatch;
 
-  if ( NULL != pControlPoints )
-  {
+  if ( NULL != pControlPoints ) {
     free( pControlPoints );
   }
 
   DebugExitFunction;
 }
 
-void WriteControlPointFile ()
-{
+void WriteControlPointFile () {
 
   tkm_tErr   eResult                  = tkm_tErr_NoErr;
   Volm_tErr  eVolume                  = Volm_tErr_NoErr;
@@ -8067,8 +7198,7 @@ void WriteControlPointFile ()
   DebugEnterFunction( ("WriteControlPointFile()") );
 
   /* Only do control points for conformed volumes. */
-  if ( !mriConformed( gAnatomicalVolume[tkm_tVolumeType_Main]->mpMriValues ) )
-  {
+  if ( !mriConformed( gAnatomicalVolume[tkm_tVolumeType_Main]->mpMriValues ) ) {
     tkm_DisplayError( "Can't Write Control Points",
                       "Volume is not conformed",
                       "You are editing a non-conformed volume, and tkmedit "
@@ -8090,10 +7220,8 @@ void WriteControlPointFile ()
   /* If the file name we got is ./control.dat, it means we couldn't
      find a home directory for the subject and the file will be saved
      locally. Warn the user of this. */
-  if ( 0 == strcmp( sFileName, "./control.dat" ))
-  {
-    if ( !gbGuessWarningSent )
-    {
+  if ( 0 == strcmp( sFileName, "./control.dat" )) {
+    if ( !gbGuessWarningSent ) {
       gbGuessWarningSent = TRUE;
       tkm_DisplayError( "No Home Directory",
                         "Couldn't guess home directory",
@@ -8110,8 +7238,7 @@ void WriteControlPointFile ()
 
   /* Get the ctrl pts in the list... */
   x3Lst_GetPlaneSize( gControlPointList, &nPlaneSize );
-  for ( nPlane = 0; nPlane < nPlaneSize; nPlane++ )
-  {
+  for ( nPlane = 0; nPlane < nPlaneSize; nPlane++ ) {
 
     /* Get the list for this x value. */
     DebugNote( ("Getting items in x plane %d\n", nPlane) );
@@ -8134,8 +7261,7 @@ void WriteControlPointFile ()
 
   /* Get the ctrl pts in the list... */
   nPoint = 0;
-  for ( nPlane = 0; nPlane < nPlaneSize; nPlane++ )
-  {
+  for ( nPlane = 0; nPlane < nPlaneSize; nPlane++ ) {
 
     /* Get the list for this x value. */
     DebugNote( ("Getting items in x plane %d\n", nPlane) );
@@ -8147,22 +7273,17 @@ void WriteControlPointFile ()
     eList = xList_ResetPosition( list );
     void* pvoid = (void*) &MRIIdx;
     while ( (eList = xList_NextFromPos( list, (void**)pvoid ))
-            != xList_tErr_EndOfList )
-    {
+            != xList_tErr_EndOfList ) {
 
-      if ( MRIIdx )
-      {
+      if ( MRIIdx ) {
 
         /* Transform to ras space. */
-        if ( gbUseRealRAS )
-        {
+        if ( gbUseRealRAS ) {
           DebugNote( ("Transforming MRI Idx to RAS") );
           eVolume =
             Volm_ConvertMRIIdxToRAS(gAnatomicalVolume[tkm_tVolumeType_Main],
                                     MRIIdx, &ras );
-        }
-        else
-        {
+        } else {
           DebugNote( ("Transforming MRI Idx to surface RAS") );
           eVolume =
             Volm_ConvertMRIIdxToSurfaceRAS
@@ -8194,8 +7315,7 @@ void WriteControlPointFile ()
   DebugCatchError( eResult, tkm_tErr_NoErr, tkm_GetErrorString );
   EndDebugCatch;
 
-  if ( NULL != pControlPoints )
-  {
+  if ( NULL != pControlPoints ) {
     free( pControlPoints );
   }
 
@@ -8204,8 +7324,7 @@ void WriteControlPointFile ()
 
 float FindNearestMRIIdxControlPoint ( xVoxelRef        iMRIIdx,
                                       mri_tOrientation inPlane,
-                                      xVoxelRef*       opCtrlPt )
-{
+                                      xVoxelRef*       opCtrlPt ) {
 
   tBoolean      bFound           = FALSE;
   float         fDistance        = 0;
@@ -8226,8 +7345,7 @@ float FindNearestMRIIdxControlPoint ( xVoxelRef        iMRIIdx,
   DebugAssertThrow( (NULL != opCtrlPt) );
 
   /* Only do control points for conformed volumes. */
-  if ( !mriConformed( gAnatomicalVolume[tkm_tVolumeType_Main]->mpMriValues ) )
-  {
+  if ( !mriConformed( gAnatomicalVolume[tkm_tVolumeType_Main]->mpMriValues ) ) {
     DebugGotoCleanup;
   }
 
@@ -8235,8 +7353,7 @@ float FindNearestMRIIdxControlPoint ( xVoxelRef        iMRIIdx,
   DebugAssertThrow( (NULL != gControlPointList ) );
 
   /* Get the list to search in */
-  switch ( inPlane )
-  {
+  switch ( inPlane ) {
   case mri_tOrientation_Coronal:
     DebugNote( ("Getting items in z plane %d", xVoxl_GetZ(iMRIIdx)) );
     e3DList =
@@ -8258,8 +7375,7 @@ float FindNearestMRIIdxControlPoint ( xVoxelRef        iMRIIdx,
   DebugAssertThrow( (x3Lst_tErr_NoErr == e3DList) );
 
   /* If we got a list... */
-  if ( NULL != list )
-  {
+  if ( NULL != list ) {
 
     /* Start with a large distance */
     fClosestDistance = pow( kControlPointSpaceDimension, 3 );
@@ -8269,11 +7385,9 @@ float FindNearestMRIIdxControlPoint ( xVoxelRef        iMRIIdx,
     eList = xList_ResetPosition( list );
     void* pvoid = (void*) &MRIIdx;
     while ( (eList = xList_NextFromPos( list, (void**)pvoid ))
-            != xList_tErr_EndOfList )
-    {
+            != xList_tErr_EndOfList ) {
 
-      if ( MRIIdx )
-      {
+      if ( MRIIdx ) {
 
         /* Get the distance to the clicked voxel... */
         fDistance = sqrt(((xVoxl_GetX(iMRIIdx) - xVoxl_GetX(MRIIdx)) *
@@ -8284,8 +7398,7 @@ float FindNearestMRIIdxControlPoint ( xVoxelRef        iMRIIdx,
                           (xVoxl_GetZ(iMRIIdx) - xVoxl_GetZ(MRIIdx))) );
 
         /* If it's less than our max, mark the distance and copy the vox */
-        if ( fDistance < fClosestDistance )
-        {
+        if ( fDistance < fClosestDistance ) {
           fClosestDistance = fDistance;
           closestMRIIdx = MRIIdx;
           bFound = TRUE;
@@ -8297,8 +7410,7 @@ float FindNearestMRIIdxControlPoint ( xVoxelRef        iMRIIdx,
     DebugAssertThrow( (xList_tErr_EndOfList == eList) );
 
     /* If we found a voxel */
-    if ( bFound )
-    {
+    if ( bFound ) {
 
       /* Return it. */
       *opCtrlPt = closestMRIIdx;
@@ -8317,8 +7429,7 @@ float FindNearestMRIIdxControlPoint ( xVoxelRef        iMRIIdx,
 }
 
 void AddMRIIdxControlPoint ( xVoxelRef iMRIIdx,
-                             tBoolean  ibWriteToFile )
-{
+                             tBoolean  ibWriteToFile ) {
 
   x3Lst_tErr e3DList = x3Lst_tErr_NoErr;
   xVoxelRef  MRIIdx  = NULL;
@@ -8330,8 +7441,7 @@ void AddMRIIdxControlPoint ( xVoxelRef iMRIIdx,
   DebugAssertThrow( (NULL != iMRIIdx) );
 
   /* Only do control points for conformed volumes. */
-  if ( !mriConformed( gAnatomicalVolume[tkm_tVolumeType_Main]->mpMriValues ) )
-  {
+  if ( !mriConformed( gAnatomicalVolume[tkm_tVolumeType_Main]->mpMriValues ) ) {
     DebugGotoCleanup;
   }
 
@@ -8351,10 +7461,11 @@ void AddMRIIdxControlPoint ( xVoxelRef iMRIIdx,
 
   /* write it to the control point file. */
   if ( ibWriteToFile )
-  {
     WriteControlPointFile();
-  }
+  else
+    gbControlPointsChanged = TRUE ;
 
+//  tkm_SendTclCommand( tkm_tTclCommand_UpdateVolumeDirty, gbControlPointsChanged ?  "1":"0" );
   DebugCatch;
   DebugCatchError( e3DList, x3Lst_tErr_NoErr, x3Lst_GetErrorString );
   EndDebugCatch;
@@ -8362,8 +7473,8 @@ void AddMRIIdxControlPoint ( xVoxelRef iMRIIdx,
   DebugExitFunction;
 }
 
-void DeleteMRIIdxControlPoint ( xVoxelRef iMRIIdx )
-{
+void DeleteMRIIdxControlPoint ( xVoxelRef iMRIIdx,
+                             tBoolean  ibWriteToFile ) {
 
   x3Lst_tErr e3DList = x3Lst_tErr_NoErr;
   xVoxelRef  MRIIdx  = NULL;
@@ -8374,8 +7485,7 @@ void DeleteMRIIdxControlPoint ( xVoxelRef iMRIIdx )
   DebugAssertThrow( (NULL != iMRIIdx) );
 
   /* Only do control points for conformed volumes. */
-  if ( !mriConformed( gAnatomicalVolume[tkm_tVolumeType_Main]->mpMriValues ) )
-  {
+  if ( !mriConformed( gAnatomicalVolume[tkm_tVolumeType_Main]->mpMriValues ) ) {
     DebugGotoCleanup;
   }
 
@@ -8394,8 +7504,10 @@ void DeleteMRIIdxControlPoint ( xVoxelRef iMRIIdx )
   xVoxl_Delete( &MRIIdx );
 
   /* write it to the control point file. */
-//  if ( ibWriteToFile )
-  WriteControlPointFile();
+  if ( ibWriteToFile )
+    WriteControlPointFile();
+  else
+    gbControlPointsChanged = TRUE ;
 
   DebugCatch;
   DebugCatchError( e3DList, x3Lst_tErr_NoErr, x3Lst_GetErrorString );
@@ -8408,8 +7520,7 @@ void DeleteMRIIdxControlPoint ( xVoxelRef iMRIIdx )
 
 // ========================================================= SELECTING REGIONS
 
-tkm_tErr InitSelectionModule ()
-{
+tkm_tErr InitSelectionModule () {
 
   gSelectionVolume           = NULL;
   gSelectionVolumeXDimension = 0;
@@ -8421,13 +7532,11 @@ tkm_tErr InitSelectionModule ()
   return tkm_tErr_NoErr;
 }
 
-void DeleteSelectionModule ()
-{
+void DeleteSelectionModule () {
 
   DebugEnterFunction( ("DeleteSelectionModule()") );
 
-  if ( NULL != gSelectionVolume )
-  {
+  if ( NULL != gSelectionVolume ) {
 
     DebugNote( ( "Deleting selection volume.\n" ) );
     free( gSelectionVolume );
@@ -8436,8 +7545,7 @@ void DeleteSelectionModule ()
   DebugExitFunction;
 }
 
-tkm_tErr AllocateSelectionVolume ()
-{
+tkm_tErr AllocateSelectionVolume () {
 
   tkm_tErr   eResult  = tkm_tErr_NoErr;
   Volm_tErr  eVolume  = Volm_tErr_NoErr;
@@ -8449,9 +7557,7 @@ tkm_tErr AllocateSelectionVolume ()
 
   /* If the volume already exists, delete it. */
   if ( NULL != gSelectionVolume )
-  {
     Volm_Delete( &gSelectionVolume );
-  }
 
   /* Clone the anatomical. */
   DebugNote( ("Cloning anatomical") );
@@ -8466,8 +7572,7 @@ tkm_tErr AllocateSelectionVolume ()
                      eResult, tkm_tErr_ErrorAccessingVolume );
 
   /* Initialize the selection list. */
-  if ( NULL == gSelectionList )
-  {
+  if ( NULL == gSelectionList ) {
     DebugNote( ("Making selection list") );
     eList = xList_New( &gSelectionList );
     DebugAssertThrowX( (xList_tErr_NoErr == eList),
@@ -8487,28 +7592,24 @@ tkm_tErr AllocateSelectionVolume ()
   return eResult;
 }
 
-void AddVoxelsToSelection ( xVoxelRef iaMRIIdx, int inCount )
-{
+void AddVoxelsToSelection ( xVoxelRef iaMRIIdx, int inCount ) {
 
   int        nVoxel  = 0;
   Volm_tErr  eVolume = Volm_tErr_NoErr;
   float      value   = 0;
   xVoxelRef  newVoxel = NULL;
 
-  if ( NULL == gSelectionVolume )
-  {
+  if ( NULL == gSelectionVolume ) {
     AllocateSelectionVolume();
   }
 
   /* For each voxel we got... */
-  for ( nVoxel = 0; nVoxel < inCount; nVoxel++ )
-  {
+  for ( nVoxel = 0; nVoxel < inCount; nVoxel++ ) {
 
     /* Set this location in the selection volume to 1 */
     eVolume = Volm_GetValueAtMRIIdx( gSelectionVolume,
                                      &iaMRIIdx[nVoxel], &value );
-    if ( fabs( 0.0 - value) < 0.00001)
-    {
+    if ( fabs( 0.0 - value) < 0.00001) {
 
       Volm_SetValueAtMRIIdx( gSelectionVolume, &iaMRIIdx[nVoxel], 1.0 );
       /* Add it to the list as well. */
@@ -8522,8 +7623,7 @@ void AddVoxelsToSelection ( xVoxelRef iaMRIIdx, int inCount )
   }
 }
 
-void RemoveVoxelsFromSelection ( xVoxelRef iaMRIIdx, int inCount )
-{
+void RemoveVoxelsFromSelection ( xVoxelRef iaMRIIdx, int inCount ) {
 
   int        nVoxel     = 0;
   Volm_tErr  eVolume    = Volm_tErr_NoErr;
@@ -8532,30 +7632,23 @@ void RemoveVoxelsFromSelection ( xVoxelRef iaMRIIdx, int inCount )
   xList_tErr eList      = xList_tErr_NoErr;
 
   if ( NULL == gSelectionVolume )
-  {
     return;
-  }
-  for ( nVoxel = 0; nVoxel < inCount; nVoxel++ )
-  {
+  for ( nVoxel = 0; nVoxel < inCount; nVoxel++ ) {
 
     /* Set this location in the selection volume to 0 */
     eVolume = Volm_GetValueAtMRIIdx( gSelectionVolume,
                                      &iaMRIIdx[nVoxel], &value );
-    if ( fabs(1.0 - value) < 0.00001 )
-    {
+    if ( fabs(1.0 - value) < 0.00001 ) {
       Volm_SetValueAtMRIIdx( gSelectionVolume, &iaMRIIdx[nVoxel], 0 );
 
       /* Find and remove it from the list. */
       eList = xList_ResetPosition( gSelectionList );
       void* pvoid = (void*) &delVoxel;
       while ( xList_tErr_NoErr ==
-              (eList = xList_NextFromPos( gSelectionList,
-                                          (void**)pvoid )))
-      {
-        if ( NULL != delVoxel )
-        {
-          if ( xVoxl_IsEqualInt( delVoxel, &iaMRIIdx[nVoxel] ) )
-          {
+              (eList = xList_NextFromPos( gSelectionList, 
+                                          (void**)pvoid ))) {
+	  if ( NULL != delVoxel ) {
+          if ( xVoxl_IsEqualInt( delVoxel, &iaMRIIdx[nVoxel] ) ) {
             void* pvoidVoxel = (void*) &delVoxel;
             xList_RemoveItem( gSelectionList, (void**)pvoidVoxel );
             xVoxl_Delete( &delVoxel );
@@ -8572,16 +7665,13 @@ void RemoveVoxelsFromSelection ( xVoxelRef iaMRIIdx, int inCount )
   }
 }
 
-void ClearSelection ()
-{
+void ClearSelection () {
 
   xVoxelRef  delVoxel = NULL;
   xList_tErr eList    = xList_tErr_NoErr;
 
   if ( NULL == gSelectionVolume )
-  {
     return;
-  }
 
   DebugNote( ("Setting selection volume to 0") );
   Volm_SetAllValues( gSelectionVolume, 0 );
@@ -8590,10 +7680,8 @@ void ClearSelection ()
   DebugNote( ("Clearing selection list") );
   void* pvoid = (void*) &delVoxel;
   while ( xList_tErr_NoErr ==
-          (eList = xList_PopItem( gSelectionList, (void**)pvoid )))
-  {
-    if ( NULL != delVoxel )
-    {
+          (eList = xList_PopItem( gSelectionList, (void**)pvoid ))) {
+    if ( NULL != delVoxel ) {
       xVoxl_Delete( &delVoxel );
     }
   }
@@ -8602,8 +7690,7 @@ void ClearSelection ()
   gSelectionCount = 0;
 }
 
-void SaveSelectionToLabelFile ( char * isFileName )
-{
+void SaveSelectionToLabelFile ( char * isFileName ) {
 
   tkm_tErr      eResult                  = tkm_tErr_NoErr;
   Volm_tErr     eVolume                  = Volm_tErr_NoErr;
@@ -8647,22 +7734,17 @@ void SaveSelectionToLabelFile ( char * isFileName )
   eList = xList_ResetPosition( gSelectionList );
   void* pvoid = (void*) &MRIIdx;
   while ( xList_tErr_NoErr ==
-          (eList = xList_NextFromPos( gSelectionList, (void**)pvoid )))
-  {
+          (eList = xList_NextFromPos( gSelectionList, (void**)pvoid ))) {
 
-    if ( NULL != MRIIdx )
-    {
+    if ( NULL != MRIIdx ) {
 
       /* convert mri idx to surface ras. note we may use surface ras
          here because it ignores c_ras, which is what label files
          should to surfacebe comptaible with tksurfer.  */
-      if ( gbUseRealRAS )
-      {
+      if ( gbUseRealRAS ) {
         eVolume =
           Volm_ConvertMRIIdxToRAS( gSelectionVolume, MRIIdx, &ras );
-      }
-      else
-      {
+      } else {
         eVolume =
           Volm_ConvertMRIIdxToSurfaceRAS( gSelectionVolume, MRIIdx, &ras );
       }
@@ -8703,8 +7785,7 @@ void SaveSelectionToLabelFile ( char * isFileName )
   DebugCatchError( eResult, tkm_tErr_NoErr, tkm_GetErrorString );
   EndDebugCatch;
 
-  if ( NULL != pLabel )
-  {
+  if ( NULL != pLabel ) {
     DebugNote( ("Deleting label") );
     LabelFree( &pLabel );
   }
@@ -8712,8 +7793,7 @@ void SaveSelectionToLabelFile ( char * isFileName )
   DebugExitFunction;
 }
 
-tkm_tErr LoadSelectionFromLabelFile ( char* isFileName )
-{
+tkm_tErr LoadSelectionFromLabelFile ( char* isFileName ) {
 
   tkm_tErr      eResult         = tkm_tErr_NoErr;
   Volm_tErr     eVolume         = Volm_tErr_NoErr;
@@ -8741,26 +7821,21 @@ tkm_tErr LoadSelectionFromLabelFile ( char* isFileName )
 
   /* for each vertex in there... */
   nNumVoxels = pLabel->max_points;
-  for ( nVoxel = 0; nVoxel < nNumVoxels; nVoxel++ )
-  {
+  for ( nVoxel = 0; nVoxel < nNumVoxels; nVoxel++ ) {
 
     /* get the vertex. */
     pVertex = &(pLabel->lv[nVoxel]);
 
     /* only process verticies that arn't deleted. */
-    if ( !(pVertex->deleted) )
-    {
+    if ( !(pVertex->deleted) ) {
 
       /* transform from ras to voxel. note we may use surface ras
          here, see note in SaveSelectionToLabelFile. */
       xVoxl_SetFloat( &ras, pVertex->x, pVertex->y, pVertex->z );
-      if ( gbUseRealRAS )
-      {
+      if ( gbUseRealRAS ) {
         eVolume =
           Volm_ConvertRASToMRIIdx( gSelectionVolume, &ras, &MRIIdx );
-      }
-      else
-      {
+      } else {
         eVolume =
           Volm_ConvertSurfaceRASToMRIIdx( gSelectionVolume, &ras, &MRIIdx );
       }
@@ -8786,8 +7861,7 @@ tkm_tErr LoadSelectionFromLabelFile ( char* isFileName )
                     "wasn't valid or the file wasn't found." );
   EndDebugCatch;
 
-  if ( NULL != pLabel )
-  {
+  if ( NULL != pLabel ) {
     DebugNote( ("Deleting label") );
     LabelFree( &pLabel );
   }
@@ -8797,8 +7871,7 @@ tkm_tErr LoadSelectionFromLabelFile ( char* isFileName )
   return eResult;
 }
 
-void GraphSelectedRegion ()
-{
+void GraphSelectedRegion () {
 
   FunV_tErr  eFunctional = FunV_tErr_NoError;
   int        nDimensionX = 0;
@@ -8815,21 +7888,17 @@ void GraphSelectedRegion ()
   // clear the functional display list.
   eFunctional = FunV_BeginSelectionRange( gFunctionalVolume );
   if ( FunV_tErr_NoError != eFunctional )
-  {
     goto error;
-  }
 
   /* Look for selected voxels. */
   Volm_GetDimensions( gSelectionVolume, &nDimensionX,
                       &nDimensionY, &nDimensionZ );
   xVoxl_Set( &idx, 0, 0, 0 );
   while ( xVoxl_IncrementUntilLimits( &idx, nDimensionX-1,
-                                      nDimensionY-1, nDimensionZ-1 ))
-  {
+                                      nDimensionY-1, nDimensionZ-1 )) {
 
     Volm_GetValueAtIdxUnsafe( gSelectionVolume, &idx, &value );
-    if ( 0 != value )
-    {
+    if ( 0 != value ) {
 
       /* add it to the functional display list. */
       Volm_ConvertIdxToMRIIdx( gAnatomicalVolume[tkm_tVolumeType_Main],
@@ -8837,23 +7906,18 @@ void GraphSelectedRegion ()
       eFunctional =
         FunV_AddMRIIdxToSelectionRange( gFunctionalVolume, &MRIIdx );
       if ( FunV_tErr_NoError != eFunctional )
-      {
         goto error;
-      }
     }
   }
 
   /* finish the list */
   eFunctional = FunV_EndSelectionRange( gFunctionalVolume );
   if ( FunV_tErr_NoError != eFunctional )
-  {
     goto error;
-  }
 
   DebugCatch;
 
-  if ( eFunctional != FunV_tErr_NoError )
-  {
+  if ( eFunctional != FunV_tErr_NoError ) {
     DebugPrint( ( "FunV error %d in GraphSelectedRegion.\n", eFunctional ) );
     OutputPrint "Error graphing selection.\n" EndOutputPrint;
   }
@@ -8863,8 +7927,7 @@ void GraphSelectedRegion ()
   DebugExitFunction;
 }
 
-void SelectVoxelsByFuncValue ( FunV_tFindStatsComp iCompare )
-{
+void SelectVoxelsByFuncValue ( FunV_tFindStatsComp iCompare ) {
 
   xVoxel cursor;
 
@@ -8872,9 +7935,7 @@ void SelectVoxelsByFuncValue ( FunV_tFindStatsComp iCompare )
 
   if ( NULL == gMeditWindow ||
        NULL == gFunctionalVolume )
-  {
     return;
-  }
 
   /* get cursor */
   DebugNote( ("Getting cursor") );
@@ -8893,8 +7954,7 @@ tkm_tErr FloodSelect ( xVoxelRef         iSeedAnaIdx,
                        tkm_tVolumeTarget iSrc,
                        float             iFuzzy,
                        float             iDistance,
-                       tBoolean          ibSelect )
-{
+                       tBoolean          ibSelect ) {
 
   tkm_tErr                    eResult      = tkm_tErr_NoErr;
   Volm_tFloodParams           params;
@@ -8935,14 +7995,12 @@ tkm_tErr FloodSelect ( xVoxelRef         iSeedAnaIdx,
      anatomical volume, check to see if it exists first. For the
      segmentation targets, set the fuzzinees to 0, since it doesn't
      really apply to label values. */
-  switch ( iSrc )
-  {
+  switch ( iSrc ) {
   case tkm_tVolumeTarget_MainAna:
     sourceVolume = gAnatomicalVolume[tkm_tVolumeType_Main];
     break;
   case tkm_tVolumeTarget_AuxAna:
-    if ( NULL == gAnatomicalVolume[tkm_tVolumeType_Aux] )
-    {
+    if ( NULL == gAnatomicalVolume[tkm_tVolumeType_Aux] ) {
       strcpy( sTclArguments,
               "\"Cannot use aux volume as source if it is not loaded.\"" );
       tkm_SendTclCommand( tkm_tTclCommand_ErrorDlog, sTclArguments );
@@ -8951,8 +8009,7 @@ tkm_tErr FloodSelect ( xVoxelRef         iSeedAnaIdx,
     sourceVolume = gAnatomicalVolume[tkm_tVolumeType_Aux];
     break;
   case tkm_tVolumeTarget_MainSeg:
-    if ( NULL == gSegmentationVolume[tkm_tSegType_Main] )
-    {
+    if ( NULL == gSegmentationVolume[tkm_tSegType_Main] ) {
       strcpy( sTclArguments,
               "\"Cannot use segmentation as source if it is not loaded.\"" );
       tkm_SendTclCommand( tkm_tTclCommand_ErrorDlog, sTclArguments );
@@ -8962,11 +8019,10 @@ tkm_tErr FloodSelect ( xVoxelRef         iSeedAnaIdx,
     params.mfFuzziness = 0;
     break;
   case tkm_tVolumeTarget_AuxSeg:
-    if ( NULL == gSegmentationVolume[tkm_tSegType_Aux] )
-    {
+    if ( NULL == gSegmentationVolume[tkm_tSegType_Aux] ) {
       strcpy
-      ( sTclArguments,
-        "\"Cannot use aux segmentation as source if it is not loaded.\"" );
+        ( sTclArguments,
+          "\"Cannot use aux segmentation as source if it is not loaded.\"" );
       tkm_SendTclCommand( tkm_tTclCommand_ErrorDlog, sTclArguments );
       goto cleanup;
     }
@@ -8989,8 +8045,7 @@ tkm_tErr FloodSelect ( xVoxelRef         iSeedAnaIdx,
 
   /* If we selected more than 1000 voxels, we printed a message and
      started printing update dots. Now close off the message. */
-  if ( callbackData.mnCount > 1000 )
-  {
+  if ( callbackData.mnCount > 1000 ) {
     printf( "done. %d voxels selected. \n", callbackData.mnCount );
   }
 
@@ -9009,9 +8064,8 @@ tkm_tErr FloodSelect ( xVoxelRef         iSeedAnaIdx,
 }
 
 Volm_tVisitCommand FloodSelectCallback ( xVoxelRef iMRIIdx,
-    float     iValue,
-    void*     iData )
-{
+                                         float     iValue,
+                                         void*     iData ) {
 
   tkm_tFloodSelectCallbackData* callbackData;
 
@@ -9020,30 +8074,24 @@ Volm_tVisitCommand FloodSelectCallback ( xVoxelRef iMRIIdx,
   /* Incremenet our count. If it's over 1000, print a message saying
      the user can cancel and start printing update dots. */
   callbackData->mnCount++;
-  if ( callbackData->mnCount == 1000 )
-  {
+  if ( callbackData->mnCount == 1000 ) {
     printf( "Selecting (press ctrl-c to cancel) " );
   }
   if ( callbackData->mnCount > 1000 &&
-       callbackData->mnCount % 100 == 0 )
-  {
+       callbackData->mnCount % 100 == 0 ) {
     printf( "." );
     fflush( stdout );
   }
 
   /* Check the user cancel. If they canceled, stop. */
-  if ( xUtil_DidUserCancel() )
-  {
+  if ( xUtil_DidUserCancel() ) {
     return Volm_tVisitComm_Stop;
   }
 
   /* Select or deselect this voxel. */
-  if ( callbackData->mbSelect )
-  {
+  if ( callbackData->mbSelect ) {
     AddVoxelsToSelection( iMRIIdx, 1 );
-  }
-  else
-  {
+  } else {
     RemoveVoxelsFromSelection( iMRIIdx, 1 );
   }
 
@@ -9055,8 +8103,7 @@ Volm_tVisitCommand FloodSelectCallback ( xVoxelRef iMRIIdx,
 
 // ============================================================= FILENAME MGMT
 
-tkm_tErr SetSubjectHomeDirFromEnv ( char* isSubject )
-{
+tkm_tErr SetSubjectHomeDirFromEnv ( char* isSubject ) {
 
   tkm_tErr eResult        = tkm_tErr_NoErr;
   char*     sEnvVar        = NULL;
@@ -9065,13 +8112,9 @@ tkm_tErr SetSubjectHomeDirFromEnv ( char* isSubject )
                        isSubject) );
 
   if (NULL != gsCommandLineSubjectsDir)
-  {
     sEnvVar = gsCommandLineSubjectsDir ;
-  }
   else
-  {
     sEnvVar = getenv( "SUBJECTS_DIR" );
-  }
   DebugAssertThrowX( (NULL != sEnvVar),
                      eResult, tkm_tErr_SUBJECTSDIRNotDefined );
 
@@ -9081,7 +8124,7 @@ tkm_tErr SetSubjectHomeDirFromEnv ( char* isSubject )
 
   /* send tcl update */
   tkm_SendTclCommand
-  ( tkm_tTclCommand_UpdateSubjectDirectory, gsSubjectHomeDir );
+    ( tkm_tTclCommand_UpdateSubjectDirectory, gsSubjectHomeDir );
 
   DebugPrint( ("Set subject home dir to %s\n", gsSubjectHomeDir) );
 
@@ -9094,8 +8137,7 @@ tkm_tErr SetSubjectHomeDirFromEnv ( char* isSubject )
   return eResult;
 }
 
-tkm_tErr SetSubjectHomeDir ( char* isHomeDir )
-{
+tkm_tErr SetSubjectHomeDir ( char* isHomeDir ) {
 
   DebugEnterFunction( ("SetSubjectHomeDir( isHomeDir=%s )",
                        isHomeDir) );
@@ -9108,8 +8150,7 @@ tkm_tErr SetSubjectHomeDir ( char* isHomeDir )
   return tkm_tErr_NoErr;
 }
 
-tkm_tErr FindUserHomeDir ()
-{
+tkm_tErr FindUserHomeDir () {
 
   tkm_tErr eResult        = tkm_tErr_NoErr;
   char*     psCurrentWorkingDir = NULL;
@@ -9144,8 +8185,7 @@ tkm_tErr FindUserHomeDir ()
 void MakeFileName ( char*     isInput,
                     tkm_tFileName  iType,
                     char*         osCompleteFileName,
-                    int         inDestSize )
-{
+                    int         inDestSize ) {
 
   char sFileName[tkm_knPathLen] = "";
 
@@ -9155,29 +8195,23 @@ void MakeFileName ( char*     isInput,
 
   /* if null, return nothing */
   if ( NULL == isInput )
-  {
     return;
-  }
 
   /* look at the first character */
-  switch ( isInput[0] )
-  {
+  switch ( isInput[0] ) {
 
     /* tilde, attach the subject home dir. */
   case '~':
 
     /* look at the second char. if it's a / or null use this subject. */
     if ( isInput[1] == '/' ||
-         isInput[1] == '\0' )
-    {
+         isInput[1] == '\0' ) {
 
       xUtil_snprintf( sFileName, sizeof(sFileName),
                       "%s%s", gsSubjectHomeDir, &(isInput[1]) );
 
       /* if it's not, treat the part after it as the subject name */
-    }
-    else
-    {
+    } else {
       xUtil_snprintf( sFileName, sizeof(sFileName),
                       "%s/../%s", gsSubjectHomeDir, &(isInput[1]) );
     }
@@ -9188,14 +8222,11 @@ void MakeFileName ( char*     isInput,
        the cwd, if the latter, prepend the cwd and a slash. */
   case '.':
 
-    if ( isInput[1] == '.' )
-    {
+    if ( isInput[1] == '.' ) {
       /* ../ -> cwd/filename */
       xUtil_snprintf( sFileName, sizeof(sFileName),
                       "%s/%s", gsUserHomeDir, isInput );
-    }
-    else
-    {
+    } else {
       /* ./ -> cwdfilename[1] */
       xUtil_snprintf( sFileName, sizeof(sFileName),
                       "%s%s", gsUserHomeDir, &(isInput[1]) );
@@ -9209,21 +8240,15 @@ void MakeFileName ( char*     isInput,
 
     /* else, prepend subject home, then sub dir, then rest of file name. */
   default:
-    if ( gEnableFileNameGuessing )
-    {
-      if ( iType != tkm_tFileName_PWD )
-      {
+    if ( gEnableFileNameGuessing ) {
+      if ( iType != tkm_tFileName_PWD ) {
         xUtil_snprintf( sFileName, sizeof(sFileName),
                         "%s/%s/%s", gsSubjectHomeDir,
                         ksaFileNameSubDirs[iType], isInput );
-      }
-      else
-      {
+      } else {
         xUtil_snprintf(sFileName,sizeof(sFileName), "./%s", isInput);
       }
-    }
-    else
-    {
+    } else {
       xUtil_snprintf(sFileName,sizeof(sFileName), "./%s", isInput);
       /* xUtil_strncpy( sFileName, isInput, sizeof(sFileName) ); */
     }
@@ -9240,20 +8265,17 @@ void MakeFileName ( char*     isInput,
 
 /* ===================================================== General utilities */
 
-void SetTclInterp ( Tcl_Interp * inInterp )
-{
+void SetTclInterp ( Tcl_Interp * inInterp ) {
 
   gTclInterp = inInterp;
 }
 
-Tcl_Interp * GetTclInterp ()
-{
+Tcl_Interp * GetTclInterp () {
 
   return gTclInterp;
 }
 
-char* SendTCLCommand ( char * inCommand )
-{
+char* SendTCLCommand ( char * inCommand ) {
 
   int rTcl;
   Tcl_Interp * theInterp;
@@ -9264,29 +8286,23 @@ char* SendTCLCommand ( char * inCommand )
   // get the interp and send the command.
   theInterp = GetTclInterp ();
 
-  if ( NULL != theInterp )
-  {
+  if ( NULL != theInterp ) {
 
     rTcl = Tcl_Eval( theInterp, inCommand );
     sTclResult = (char *)Tcl_GetStringResult( theInterp );
 
     // print any error msgs.
-    if ( TCL_OK != rTcl )
-    {
+    if ( TCL_OK != rTcl ) {
       DebugPrint( ( "Cmd: %s\n", inCommand ) );
       DebugPrint( ( "\tCommand did not return OK.\n" ) );
       DebugPrint( ( "\tResult: %s\n", theInterp->result ) );
     }
 
-  }
-  else
-  {
+  } else {
 
-    if ( NULL == gCachedTclCommands )
-    {
+    if ( NULL == gCachedTclCommands ) {
       eList = xGArr_New( &gCachedTclCommands, sizeof( sTclCmd ), 20 );
-      if ( xGArr_tErr_NoErr != eList )
-      {
+      if ( xGArr_tErr_NoErr != eList ) {
         DebugPrint( ( "Couldn't allocate list: couldn't cache %s\n",
                       inCommand ) );
         return NULL;
@@ -9296,8 +8312,7 @@ char* SendTCLCommand ( char * inCommand )
     /* cache the command so we can send it later */
     strcpy( sTclCmd, inCommand );
     eList = xGArr_Add( gCachedTclCommands, sTclCmd );
-    if ( xGArr_tErr_NoErr != eList )
-    {
+    if ( xGArr_tErr_NoErr != eList ) {
       DebugPrint( ( "Couldn't cache %s\n", inCommand ) );
     }
   }
@@ -9305,40 +8320,33 @@ char* SendTCLCommand ( char * inCommand )
   return sTclResult;
 }
 
-void SendCachedTclCommands ()
-{
+void SendCachedTclCommands () {
 
   char sTclCmd[tkm_knTclCmdLen];
   xGArr_tErr eList = xGArr_tErr_NoErr;
 
   if ( NULL == gCachedTclCommands )
-  {
     return;
-  }
 
   /* send all our cached commands */
   eList = xGArr_ResetIterator( gCachedTclCommands );
   if ( xGArr_tErr_NoErr != eList )
-  {
     goto error;
-  }
   while ( (eList = xGArr_NextItem( gCachedTclCommands, (void*)&sTclCmd ))
-          == xGArr_tErr_NoErr )
-  {
+          == xGArr_tErr_NoErr ) {
 
     SendTCLCommand( sTclCmd );
   }
 
   goto cleanup;
-error:
+ error:
 
   /* print error message */
-  if ( xGArr_tErr_NoErr != eList )
-  {
+  if ( xGArr_tErr_NoErr != eList ) {
     DebugPrint( ("Error %d in SendTCLCommand: %s\n",
                  eList, xGArr_GetErrorString(eList) ) );
   }
-cleanup:
+ cleanup:
 
   xGArr_Delete( &gCachedTclCommands );
 }
@@ -9349,8 +8357,7 @@ cleanup:
 
 tkm_tErr LoadVolume ( tkm_tVolumeType iType,
                       char*           isName,
-                      tBoolean        ibConform )
-{
+                      tBoolean        ibConform ) {
 
   tkm_tErr             eResult                        = tkm_tErr_NoErr;
   Volm_tErr            eVolume                        = Volm_tErr_NoErr;
@@ -9380,9 +8387,7 @@ tkm_tErr LoadVolume ( tkm_tVolumeType iType,
   DebugNote( ("Looking for COR- at end of file name") );
   pEnd = strstr( sPath, "/COR-" );
   if ( NULL != pEnd )
-  {
     *pEnd = '\0';
-  }
 
   /* load the volume */
   DebugNote( ("Creating volume") );
@@ -9396,15 +8401,13 @@ tkm_tErr LoadVolume ( tkm_tVolumeType iType,
                      eResult, tkm_tErr_CouldntReadVolume );
 
   /* Conform if desired. */
-  if ( ibConform )
-  {
+  if ( ibConform ) {
     Volm_Conform( newVolume );
   }
 
   /* If this is the aux volume, make sure it is the same size as the
      main volume. */
-  if ( tkm_tVolumeType_Aux == iType )
-  {
+  if ( tkm_tVolumeType_Aux == iType ) {
     Volm_GetDimensions( gAnatomicalVolume[tkm_tVolumeType_Main],
                         &mainDimensions[0], &mainDimensions[1],
                         &mainDimensions[2] );
@@ -9417,8 +8420,7 @@ tkm_tErr LoadVolume ( tkm_tVolumeType iType,
                        eResult, tkm_tErr_MainAuxVolumesDifferentSize );
   }
 
-  if ( gbScaleUpVolume )
-  {
+  if ( gbScaleUpVolume ) {
     Volm_SetMinVoxelSizeToOne( newVolume );
     Volm_GetMRIIdxToAnaIdxTransform( newVolume,
                                      &gMRIIdxToAnaIdxTransform );
@@ -9426,8 +8428,7 @@ tkm_tErr LoadVolume ( tkm_tVolumeType iType,
 
   /* if the volume exists, get the brightness and contrast to restore
      later, and delete the volume */
-  if ( NULL != gAnatomicalVolume[iType] )
-  {
+  if ( NULL != gAnatomicalVolume[iType] ) {
     Volm_GetBrightnessAndContrast( gAnatomicalVolume[iType],
                                    &fBrightness, &fContrast );
     UnloadDisplayTransform( iType );
@@ -9438,15 +8439,12 @@ tkm_tErr LoadVolume ( tkm_tVolumeType iType,
   gAnatomicalVolume[iType] = newVolume;
 
   /* show the tal coords and hide the ras coords */
-  if (NULL != gAnatomicalVolume[iType]->mpMriValues->linear_transform)
-  {
+  if (NULL != gAnatomicalVolume[iType]->mpMriValues->linear_transform) {
     DebugNote( ("Showing Tal coords") );
     tkm_SendTclCommand( tkm_tTclCommand_ShowTalCoords, "1" );
     DebugNote( ("Hiding RAS coords") );
     tkm_SendTclCommand( tkm_tTclCommand_ShowRASCoords, "0" );
-  }
-  else
-  {
+  } else {
     DebugNote( ("Hiding Tal coords") );
     tkm_SendTclCommand( tkm_tTclCommand_ShowTalCoords, "0" );
     DebugNote( ("Showing RAS coords") );
@@ -9478,8 +8476,7 @@ tkm_tErr LoadVolume ( tkm_tVolumeType iType,
   /* If this is the main volume, we need to initialize new control
      point and selection stuff, because they are based on the
      dimensions of the main volume. Also set them in the window. */
-  if ( tkm_tVolumeType_Main == iType )
-  {
+  if ( tkm_tVolumeType_Main == iType ) {
     DebugNote( ("Initializing control point list") );
     eResult = InitControlPointList();
     DebugAssertThrow( (eResult == tkm_tErr_NoErr) );
@@ -9502,11 +8499,9 @@ tkm_tErr LoadVolume ( tkm_tVolumeType iType,
   }
 
   /* set data in window */
-  if ( NULL != gMeditWindow )
-  {
+  if ( NULL != gMeditWindow ) {
     DebugNote( ("Setting volume in main window") );
-    switch ( iType )
-    {
+    switch ( iType ) {
     case tkm_tVolumeType_Main:
       eWindow = MWin_SetVolume( gMeditWindow, -1,
                                 gAnatomicalVolume[iType],
@@ -9548,12 +8543,9 @@ tkm_tErr LoadVolume ( tkm_tVolumeType iType,
        gAnatomicalVolume[iType]->mpMriValues->y_s == -1.0 &&
        gAnatomicalVolume[iType]->mpMriValues->z_r ==  0.0 &&
        gAnatomicalVolume[iType]->mpMriValues->z_a ==  1.0 &&
-       gAnatomicalVolume[iType]->mpMriValues->z_s ==  0.0 )
-  {
+       gAnatomicalVolume[iType]->mpMriValues->z_s ==  0.0 ) {
     MWin_SetDisplayFlag( gMeditWindow, -1, DspA_tDisplayFlag_Axes, TRUE );
-  }
-  else
-  {
+  } else {
     MWin_SetDisplayFlag( gMeditWindow, -1, DspA_tDisplayFlag_Axes, FALSE );
   }
 
@@ -9573,8 +8565,7 @@ tkm_tErr LoadVolume ( tkm_tVolumeType iType,
      overrided this, enable them. */
   xUtil_snprintf( sTclArguments, sizeof(sTclArguments), "%d",
                   mriConformed( gAnatomicalVolume[iType]->mpMriValues ) );
-  if( gbForceEnableControlPoints )
-  {
+  if( gbForceEnableControlPoints ) {
     xUtil_strncpy( sTclArguments, "1", sizeof(sTclArguments) );
   }
   tkm_SendTclCommand( tkm_tTclCommand_UpdateVolumeIsConformed,
@@ -9602,8 +8593,7 @@ tkm_tErr LoadVolume ( tkm_tVolumeType iType,
 }
 
 
-tkm_tErr UnloadVolume ( tkm_tVolumeType iType )
-{
+tkm_tErr UnloadVolume ( tkm_tVolumeType iType ) {
 
   tkm_tErr  eResult = tkm_tErr_NoErr;
 
@@ -9617,8 +8607,7 @@ tkm_tErr UnloadVolume ( tkm_tVolumeType iType )
                      eResult, tkm_tErr_InvalidParameter );
 
 
-  switch ( iType )
-  {
+  switch ( iType ) {
   case tkm_tVolumeType_Aux:
     tkm_SendTclCommand( tkm_tTclCommand_ShowAuxVolumeOptions, "0" );
     tkm_SendTclCommand( tkm_tTclCommand_ShowAuxVolumeDirtyOptions, "0" );
@@ -9632,8 +8621,7 @@ tkm_tErr UnloadVolume ( tkm_tVolumeType iType )
   }
 
   /* If the volume exists, delete it */
-  if ( NULL != gAnatomicalVolume[iType] )
-  {
+  if ( NULL != gAnatomicalVolume[iType] ) {
     UnloadDisplayTransform( iType );
     Volm_Delete( &gAnatomicalVolume[iType] );
   }
@@ -9648,8 +8636,7 @@ tkm_tErr UnloadVolume ( tkm_tVolumeType iType )
 }
 
 tkm_tErr LoadDisplayTransform ( tkm_tVolumeType iVolume,
-                                char*    isFileName )
-{
+                                char*    isFileName ) {
 
   tkm_tErr  eResult           = tkm_tErr_NoErr;
   Volm_tErr eVolume           = Volm_tErr_NoErr;
@@ -9665,8 +8652,7 @@ tkm_tErr LoadDisplayTransform ( tkm_tVolumeType iVolume,
                 sFileName, sizeof(sFileName) );
 
   /* load the transform into our volume if we have it. */
-  if ( NULL != gAnatomicalVolume[iVolume] )
-  {
+  if ( NULL != gAnatomicalVolume[iVolume] ) {
     eVolume = Volm_LoadDisplayTransform( gAnatomicalVolume[iVolume],
                                          sFileName );
     DebugAssertThrowX( (Volm_tErr_NoErr == eVolume ),
@@ -9674,8 +8660,7 @@ tkm_tErr LoadDisplayTransform ( tkm_tVolumeType iVolume,
   }
 
   /* enable the menu options */
-  switch ( iVolume )
-  {
+  switch ( iVolume ) {
   case tkm_tVolumeType_Main:
     tkm_SendTclCommand( tkm_tTclCommand_ShowMainTransformLoadedOptions, "1" );
     break;
@@ -9688,9 +8673,7 @@ tkm_tErr LoadDisplayTransform ( tkm_tVolumeType iVolume,
 
   /* big redraw */
   if ( NULL != gMeditWindow )
-  {
     MWin_RedrawAll( gMeditWindow );
-  }
 
   DebugCatch;
   DebugCatchError( eResult, tkm_tErr_NoErr, tkm_GetErrorString );
@@ -9708,8 +8691,7 @@ tkm_tErr LoadDisplayTransform ( tkm_tVolumeType iVolume,
   return eResult;
 }
 
-tkm_tErr UnloadDisplayTransform ( tkm_tVolumeType iVolume )
-{
+tkm_tErr UnloadDisplayTransform ( tkm_tVolumeType iVolume ) {
 
   tkm_tErr  eResult = tkm_tErr_NoErr;
   Volm_tErr eVolume = Volm_tErr_NoErr;
@@ -9717,16 +8699,14 @@ tkm_tErr UnloadDisplayTransform ( tkm_tVolumeType iVolume )
   DebugEnterFunction( ("UnloadDisplayTransform( iVolume=%d )", (int)iVolume) );
 
   /* unload the transform in the volume if we have it */
-  if ( NULL != gAnatomicalVolume[iVolume] )
-  {
+  if ( NULL != gAnatomicalVolume[iVolume] ) {
     eVolume = Volm_UnloadDisplayTransform( gAnatomicalVolume[iVolume] );
     DebugAssertThrowX( (Volm_tErr_NoErr == eVolume ),
                        eResult, tkm_tErr_ErrorAccessingVolume );
   }
 
   /* disable the menu options */
-  switch ( iVolume )
-  {
+  switch ( iVolume ) {
   case tkm_tVolumeType_Main:
     tkm_SendTclCommand( tkm_tTclCommand_ShowMainTransformLoadedOptions, "0" );
     break;
@@ -9739,9 +8719,7 @@ tkm_tErr UnloadDisplayTransform ( tkm_tVolumeType iVolume )
 
   /* big redraw */
   if ( NULL != gMeditWindow )
-  {
     MWin_RedrawAll( gMeditWindow );
-  }
 
   DebugCatch;
   DebugCatchError( eResult, tkm_tErr_NoErr, tkm_GetErrorString );
@@ -9754,8 +8732,7 @@ tkm_tErr UnloadDisplayTransform ( tkm_tVolumeType iVolume )
 
 tkm_tErr SaveVolume ( tkm_tVolumeType iVolume,
                       char*           isPath,
-                      tBoolean        ibSetFileName)
-{
+                      tBoolean        ibSetFileName) {
 
   tkm_tErr  eResult         = tkm_tErr_NoErr;
   Volm_tErr eVolume         = Volm_tErr_NoErr;
@@ -9770,13 +8747,10 @@ tkm_tErr SaveVolume ( tkm_tVolumeType iVolume,
                        iVolume, isPath) );
 
   if ( NULL == gAnatomicalVolume[iVolume] )
-  {
     DebugGotoCleanup;
-  }
 
   /* if we have editing disabled, return */
-  if ( !editflag )
-  {
+  if ( !editflag ) {
     tkm_DisplayError( "Saving Volume",
                       "Couldn't save volume",
                       "This session was started in read-only mode. You cannot "
@@ -9786,15 +8760,13 @@ tkm_tErr SaveVolume ( tkm_tVolumeType iVolume,
 
   /* if we haven't been edited, return */
   eResult = IsVolumeDirty( iVolume, &bDirty );
-  if ( !bDirty )
-  {
+  if ( !bDirty ) {
     DebugPrint( ("SaveVolume called when volume is clean!\n") );
     DebugGotoCleanup;
   }
 
   /* make a file name */
-  if ( NULL != isPath )
-  {
+  if ( NULL != isPath ) {
     DebugNote( ("Making file name from %s", isPath) );
     MakeFileName( isPath, tkm_tFileName_Volume, sFileName, sizeof(sFileName) );
     psFileName = sFileName;
@@ -9802,8 +8774,7 @@ tkm_tErr SaveVolume ( tkm_tVolumeType iVolume,
 
   /* write the main anatomical volume */
   eVolume = Volm_Save( gAnatomicalVolume[iVolume], psFileName, ibSetFileName );
-  if ( Volm_tErr_NoErr != eVolume )
-  {
+  if ( Volm_tErr_NoErr != eVolume ) {
     tkm_DisplayError( "Saving Volume",
                       "Couldn't save volume",
                       "The files could not be written. Check to make sure the "
@@ -9826,8 +8797,7 @@ tkm_tErr SaveVolume ( tkm_tVolumeType iVolume,
   sprintf( sTouchFileName, "%s.tkmedit.touch", sTouchFileName );
 
   fTouch = fopen( sTouchFileName, "w" );
-  if ( fTouch )
-  {
+  if ( fTouch ) {
     fclose( fTouch );
   }
 
@@ -9840,8 +8810,7 @@ tkm_tErr SaveVolume ( tkm_tVolumeType iVolume,
   return eResult;
 }
 
-void SnapshotVolume ()
-{
+void SnapshotVolume () {
 
   tkm_tErr  eResult = tkm_tErr_NoErr;
   Volm_tErr eVolume = Volm_tErr_NoErr;
@@ -9861,8 +8830,7 @@ void SnapshotVolume ()
   DebugExitFunction;
 }
 
-void RestoreVolumeFromSnapshot ()
-{
+void RestoreVolumeFromSnapshot () {
 
   tkm_tErr  eResult = tkm_tErr_NoErr;
   Volm_tErr eVolume = Volm_tErr_NoErr;
@@ -9885,8 +8853,7 @@ void RestoreVolumeFromSnapshot ()
   DebugExitFunction;
 }
 
-tkm_tErr SetVolumeDirty ( tkm_tVolumeType iVolume, tBoolean ibDirty )
-{
+tkm_tErr SetVolumeDirty ( tkm_tVolumeType iVolume, tBoolean ibDirty ) {
 
   tkm_tErr eResult = tkm_tErr_NoErr;
 
@@ -9899,8 +8866,7 @@ tkm_tErr SetVolumeDirty ( tkm_tVolumeType iVolume, tBoolean ibDirty )
   gbAnatomicalVolumeDirty[iVolume] = ibDirty;
 
   /* updatex tcl */
-  switch ( iVolume )
-  {
+  switch ( iVolume ) {
   case tkm_tVolumeType_Main:
     tkm_SendTclCommand( tkm_tTclCommand_ShowVolumeDirtyOptions,
                         ibDirty?"1":"0" );
@@ -9924,8 +8890,7 @@ tkm_tErr SetVolumeDirty ( tkm_tVolumeType iVolume, tBoolean ibDirty )
   return eResult;
 }
 
-tkm_tErr IsVolumeDirty ( tkm_tVolumeType iVolume, tBoolean* obDirty )
-{
+tkm_tErr IsVolumeDirty ( tkm_tVolumeType iVolume, tBoolean* obDirty ) {
 
   tkm_tErr eResult = tkm_tErr_NoErr;
 
@@ -9948,8 +8913,7 @@ tkm_tErr IsVolumeDirty ( tkm_tVolumeType iVolume, tBoolean* obDirty )
 
 void SetVolumeBrightnessAndContrast ( tkm_tVolumeType iVolume,
                                       float           ifBrightness,
-                                      float           ifContrast )
-{
+                                      float           ifContrast ) {
 
   tkm_tErr  eResult         = tkm_tErr_NoErr;
   Volm_tErr eVolume         = Volm_tErr_NoErr;
@@ -9968,8 +8932,8 @@ void SetVolumeBrightnessAndContrast ( tkm_tVolumeType iVolume,
   /* set the b/c in the volume. */
   DebugNote( ("Setting brightness and contrast") );
   eVolume = Volm_SetBrightnessAndContrast( gAnatomicalVolume[iVolume],
-            gfaBrightness[iVolume],
-            gfaContrast[iVolume] );
+                                           gfaBrightness[iVolume],
+                                           gfaContrast[iVolume] );
   DebugAssertThrowX( (Volm_tErr_NoErr == eVolume),
                      eResult, tkm_tErr_ErrorAccessingVolume );
 
@@ -9988,8 +8952,7 @@ void SetVolumeBrightnessAndContrast ( tkm_tVolumeType iVolume,
 
 void SetVolumeColorMinMax ( tkm_tVolumeType iVolume,
                             float           ifMin,
-                            float           ifMax )
-{
+                            float           ifMax ) {
 
   tkm_tErr  eResult         = tkm_tErr_NoErr;
   Volm_tErr eVolume         = Volm_tErr_NoErr;
@@ -10027,8 +8990,7 @@ void SetVolumeColorMinMax ( tkm_tVolumeType iVolume,
 }
 
 void SetVolumeSampleType  ( tkm_tVolumeType  iVolume,
-                            Volm_tSampleType iType )
-{
+                            Volm_tSampleType iType ) {
 
   tkm_tErr  eResult         = tkm_tErr_NoErr;
   Volm_tErr eVolume         = Volm_tErr_NoErr;
@@ -10062,8 +9024,7 @@ void SetVolumeSampleType  ( tkm_tVolumeType  iVolume,
 }
 
 void SetVolumeResampleMethod  ( tkm_tVolumeType      iVolume,
-                                Volm_tResampleMethod iMethod )
-{
+                                Volm_tResampleMethod iMethod ) {
 
   tkm_tErr  eResult         = tkm_tErr_NoErr;
   Volm_tErr eVolume         = Volm_tErr_NoErr;
@@ -10082,8 +9043,7 @@ void SetVolumeResampleMethod  ( tkm_tVolumeType      iVolume,
                      eResult, tkm_tErr_ErrorAccessingVolume );
 
   /* If this is the main volume, also set the selection volume. */
-  if ( tkm_tVolumeType_Main == iVolume )
-  {
+  if ( tkm_tVolumeType_Main == iVolume ) {
     DebugNote( ("Setting resample method in selection volume") );
     eVolume = Volm_SetResampleMethod( gSelectionVolume, iMethod );
     DebugAssertThrowX( (Volm_tErr_NoErr == eVolume),
@@ -10106,8 +9066,7 @@ void SetVolumeResampleMethod  ( tkm_tVolumeType      iVolume,
   DebugExitFunction;
 }
 
-void SendVolumeColorScaleUpdate ( tkm_tVolumeType iVolume )
-{
+void SendVolumeColorScaleUpdate ( tkm_tVolumeType iVolume ) {
 
   tkm_tErr  eResult         = tkm_tErr_NoErr;
   char      sTclArguments[tkm_knTclCmdLen] = "";
@@ -10132,8 +9091,7 @@ void SendVolumeColorScaleUpdate ( tkm_tVolumeType iVolume )
   DebugExitFunction;
 }
 
-void SetCursorToCenterOfVolume ( tkm_tVolumeType iVolume )
-{
+void SetCursorToCenterOfVolume ( tkm_tVolumeType iVolume ) {
 
   xVoxel    anaIdx;
   tkm_tErr  eResult = tkm_tErr_NoErr;
@@ -10178,8 +9136,7 @@ void SetCursorToCenterOfVolume ( tkm_tVolumeType iVolume )
 
 void ThresholdVolume ( int    inLevel,
                        tBoolean   ibAbove,
-                       int        inNewLevel )
-{
+                       int        inNewLevel ) {
 
   tkm_tErr  eResult = tkm_tErr_NoErr;
   Volm_tErr eVolume = Volm_tErr_NoErr;
@@ -10208,8 +9165,7 @@ void ThresholdVolume ( int    inLevel,
   DebugExitFunction;
 }
 
-void FlipVolume ( mri_tOrientation  iAxis )
-{
+void FlipVolume ( mri_tOrientation  iAxis ) {
 
   tkm_tErr  eResult = tkm_tErr_NoErr;
   Volm_tErr eVolume = Volm_tErr_NoErr;
@@ -10236,8 +9192,7 @@ void FlipVolume ( mri_tOrientation  iAxis )
 }
 
 void RotateVolume ( mri_tOrientation  iAxis,
-                    float      ifDegrees )
-{
+                    float      ifDegrees ) {
 
   tkm_tErr  eResult = tkm_tErr_NoErr;
   Volm_tErr eVolume = Volm_tErr_NoErr;
@@ -10270,20 +9225,17 @@ void EditAnatomicalVolumeInRangeArray ( tkm_tVolumeType iVolume,
                                         int             inCount,
                                         Volm_tValue     inLow,
                                         Volm_tValue     inHigh,
-                                        Volm_tValue     inNewValue )
-{
+                                        Volm_tValue     inNewValue ) {
 
   int          nVoxel   = 0;
   float        value    = 0;
 
-  if ( NULL == gAnatomicalVolume[iVolume] )
-  {
+  if ( NULL == gAnatomicalVolume[iVolume] ) {
     return;
   }
 
   /* for each voxel we got... */
-  for ( nVoxel = 0; nVoxel < inCount; nVoxel++ )
-  {
+  for ( nVoxel = 0; nVoxel < inCount; nVoxel++ ) {
 
     /* get the value at this point. */
     Volm_GetValueAtMRIIdx( gAnatomicalVolume[iVolume],
@@ -10291,14 +9243,12 @@ void EditAnatomicalVolumeInRangeArray ( tkm_tVolumeType iVolume,
 
     /* if it's in the range and it's a different value... */
     if ( value >= inLow && value <= inHigh &&
-         value != inNewValue )
-    {
+         value != inNewValue ) {
 
       Volm_SetValueAtMRIIdx( gAnatomicalVolume[iVolume],
                              &(iaMRIIdx[nVoxel]), inNewValue );
 
-      switch ( iVolume )
-      {
+      switch ( iVolume ) {
       case tkm_tVolumeType_Main:
         /* if this is an edit on the main volume, add it to the undo list
            using the EditAnatomicalVolume function and also add it to the
@@ -10326,26 +9276,23 @@ void EditAnatomicalVolumeInRangeArray ( tkm_tVolumeType iVolume,
 }
 
 void CloneAnatomicalVolumeInRangeArray ( tkm_tVolumeType iDestVolume,
-    tkm_tVolumeType iSourceVolume,
-    xVoxelRef       iaMRIIdx,
-    int             inCount,
-    Volm_tValue     inLow,
-    Volm_tValue     inHigh )
-{
+                                         tkm_tVolumeType iSourceVolume,
+                                         xVoxelRef       iaMRIIdx,
+                                         int             inCount,
+                                         Volm_tValue     inLow,
+                                         Volm_tValue     inHigh ) {
 
   int          nVoxel   = 0;
   float        sourceValue    = 0;
   float        value    = 0;
 
   if ( NULL == gAnatomicalVolume[iDestVolume] ||
-       NULL == gAnatomicalVolume[iSourceVolume] )
-  {
+       NULL == gAnatomicalVolume[iSourceVolume] ) {
     return;
   }
 
   /* for each voxel we got... */
-  for ( nVoxel = 0; nVoxel < inCount; nVoxel++ )
-  {
+  for ( nVoxel = 0; nVoxel < inCount; nVoxel++ ) {
 
     /* get the value at this point. */
     Volm_GetValueAtMRIIdx( gAnatomicalVolume[iDestVolume],
@@ -10357,14 +9304,12 @@ void CloneAnatomicalVolumeInRangeArray ( tkm_tVolumeType iDestVolume,
 
     /* if it's in the range and it's a different value... */
     if ( value >= inLow && value <= inHigh &&
-         value != sourceValue )
-    {
+         value != sourceValue ) {
 
       Volm_SetValueAtMRIIdx( gAnatomicalVolume[iDestVolume],
                              &(iaMRIIdx[nVoxel]), sourceValue );
 
-      switch ( iDestVolume )
-      {
+      switch ( iDestVolume ) {
       case tkm_tVolumeType_Main:
         /* if this is an edit on the main volume, add it to the undo list
            using the EditAnatomicalVolume function and also add it to the
@@ -10398,8 +9343,7 @@ void SetAnatomicalVolumeRegion ( tkm_tVolumeType iVolume,
                                  int             iMRIIdxY1,
                                  int             iMRIIdxZ0,
                                  int             iMRIIdxZ1,
-                                 float           iNewValue )
-{
+                                 float           iNewValue ) {
 
   tkm_tErr   eResult = tkm_tErr_NoErr;
   Volm_tErr  eVolume = Volm_tErr_NoErr;
@@ -10438,12 +9382,11 @@ void SetAnatomicalVolumeRegion ( tkm_tVolumeType iVolume,
   DebugNote( ("Setting volume values") );
   xVoxl_Copy( &curMRIIdx, &beginMRIIdx );
   while ( xVoxl_IncrementWithMinsUntilLimits( &curMRIIdx,
-          xVoxl_GetX(&beginMRIIdx),
-          xVoxl_GetY(&beginMRIIdx),
-          xVoxl_GetX(&endMRIIdx),
-          xVoxl_GetY(&endMRIIdx),
-          xVoxl_GetZ(&endMRIIdx) ) )
-  {
+                                              xVoxl_GetX(&beginMRIIdx),
+                                              xVoxl_GetY(&beginMRIIdx),
+                                              xVoxl_GetX(&endMRIIdx),
+                                              xVoxl_GetY(&endMRIIdx),
+                                              xVoxl_GetZ(&endMRIIdx) ) ) {
     Volm_SetValueAtMRIIdx_( gAnatomicalVolume[iVolume], &
                             curMRIIdx, iNewValue );
   }
@@ -10458,8 +9401,7 @@ void SetAnatomicalVolumeRegion ( tkm_tVolumeType iVolume,
   DebugExitFunction;
 }
 
-int EditAnatomicalVolume ( xVoxelRef iMRIIdx, int inValue )
-{
+int EditAnatomicalVolume ( xVoxelRef iMRIIdx, int inValue ) {
 
   tkm_tErr    eResult = tkm_tErr_NoErr;
   Volm_tErr   eVolume = Volm_tErr_NoErr;
@@ -10481,8 +9423,7 @@ int EditAnatomicalVolume ( xVoxelRef iMRIIdx, int inValue )
 
   /* resend the min/max values if necessary. */
   if ( inValue < gfaAnaColorMin[tkm_tVolumeType_Main] ||
-       inValue > gfaAnaColorMax[tkm_tVolumeType_Main] )
-  {
+       inValue > gfaAnaColorMax[tkm_tVolumeType_Main] ) {
 
     Volm_GetValueMinMax( gAnatomicalVolume[tkm_tVolumeType_Main],
                          &gfaAnaColorMin[tkm_tVolumeType_Main],
@@ -10506,8 +9447,7 @@ int EditAnatomicalVolume ( xVoxelRef iMRIIdx, int inValue )
   return (int)value;
 }
 
-int EditAuxAnatomicalVolume ( xVoxelRef iMRIIdx, int inValue )
-{
+int EditAuxAnatomicalVolume ( xVoxelRef iMRIIdx, int inValue ) {
 
   tkm_tErr    eResult = tkm_tErr_NoErr;
   Volm_tErr   eVolume = Volm_tErr_NoErr;
@@ -10529,8 +9469,7 @@ int EditAuxAnatomicalVolume ( xVoxelRef iMRIIdx, int inValue )
 
   /* resend the min/max values if necessary. */
   if ( inValue < gfaAnaColorMin[tkm_tVolumeType_Aux] ||
-       inValue > gfaAnaColorMax[tkm_tVolumeType_Aux] )
-  {
+       inValue > gfaAnaColorMax[tkm_tVolumeType_Aux] ) {
 
     Volm_GetValueMinMax( gAnatomicalVolume[tkm_tVolumeType_Aux],
                          &gfaAnaColorMin[tkm_tVolumeType_Aux],
@@ -10558,8 +9497,7 @@ tkm_tErr FloodFillAnatomicalVolume ( tkm_tVolumeType iVolume,
                                      int             inValue,
                                      tBoolean        ib3D,
                                      float           iFuzzy,
-                                     float           iDistance )
-{
+                                     float           iDistance ) {
 
   tkm_tErr                    eResult      = tkm_tErr_NoErr;
   Volm_tFloodParams           params;
@@ -10608,8 +9546,7 @@ tkm_tErr FloodFillAnatomicalVolume ( tkm_tVolumeType iVolume,
 
   /* If we filled more than 1000 voxels, we printed a message and
      started printing update dots. Now close off the message. */
-  if ( callbackData.mnCount > 1000 )
-  {
+  if ( callbackData.mnCount > 1000 ) {
     printf( "done. %d voxels filled. \n", callbackData.mnCount );
   }
 
@@ -10628,15 +9565,13 @@ tkm_tErr FloodFillAnatomicalVolume ( tkm_tVolumeType iVolume,
 }
 
 Volm_tVisitCommand FloodFillAnatomicalCallback ( xVoxelRef iMRIIdx,
-    float     iValue,
-    void*     iData )
-{
+                                                 float     iValue,
+                                                 void*     iData ) {
   tkm_tFloodFillAnatomicalCallbackData* callbackData;
 
   /* Grab our callback data and edit the volume. */
   callbackData = (tkm_tFloodFillAnatomicalCallbackData*)iData;
-  if ( tkm_tVolumeType_Main == callbackData->mVolume )
-  {
+  if ( tkm_tVolumeType_Main == callbackData->mVolume ) {
 
     EditAnatomicalVolume( iMRIIdx, callbackData->mnValue );
 
@@ -10647,9 +9582,7 @@ Volm_tVisitCommand FloodFillAnatomicalCallback ( xVoxelRef iMRIIdx,
 
     AddMRIIdxAndValueToUndoVolume( iMRIIdx, iValue );
 
-  }
-  else
-  {
+  } else {
 
     EditAuxAnatomicalVolume( iMRIIdx, callbackData->mnValue );
 
@@ -10661,20 +9594,17 @@ Volm_tVisitCommand FloodFillAnatomicalCallback ( xVoxelRef iMRIIdx,
   /* Incremenet our count. If it's over 1000, print a message saying
      the user can cancel and start printing update dots. */
   callbackData->mnCount++;
-  if ( callbackData->mnCount == 1000 )
-  {
+  if ( callbackData->mnCount == 1000 ) {
     printf( "Filling (press ctrl-c to cancel) " );
   }
   if ( callbackData->mnCount > 1000 &&
-       callbackData->mnCount % 100 == 0 )
-  {
+       callbackData->mnCount % 100 == 0 ) {
     printf( "." );
     fflush( stdout );
   }
 
   /* Check the user cancel. If they canceled, stop. */
-  if ( xUtil_DidUserCancel() )
-  {
+  if ( xUtil_DidUserCancel() ) {
     return Volm_tVisitComm_Stop;
   }
 
@@ -10683,16 +9613,14 @@ Volm_tVisitCommand FloodFillAnatomicalCallback ( xVoxelRef iMRIIdx,
 
 
 void ConvertRASToAnaIdx ( xVoxelRef iRAS,
-                          xVoxelRef oAnaIdx )
-{
+                          xVoxelRef oAnaIdx ) {
 
   Volm_ConvertRASToIdx( gAnatomicalVolume[tkm_tVolumeType_Main],
                         iRAS, oAnaIdx );
 }
 
 void ConvertAnaIdxToRAS ( xVoxelRef iAnaIdx,
-                          xVoxelRef oRAS )
-{
+                          xVoxelRef oRAS ) {
 
   Volm_ConvertIdxToRAS( gAnatomicalVolume[tkm_tVolumeType_Main],
                         iAnaIdx, oRAS );
@@ -10702,8 +9630,7 @@ void ConvertAnaIdxToRAS ( xVoxelRef iAnaIdx,
 tkm_tErr LoadFunctionalOverlay( char* isFileName,
                                 char* isOffsetFileName,
                                 FunD_tRegistrationType iRegType,
-                                char* isRegistrationFileName )
-{
+                                char* isRegistrationFileName ) {
 
   tkm_tErr  eResult                               = tkm_tErr_NoErr;
   char      sFileName[tkm_knPathLen]              = "";
@@ -10725,27 +9652,21 @@ tkm_tErr LoadFunctionalOverlay( char* isFileName,
   MakeFileName( isFileName, tkm_tFileName_PWD,
                 sFileName, sizeof(sFileName) );
 
-  if ( NULL != isOffsetFileName )
-  {
+  if ( NULL != isOffsetFileName ) {
     DebugNote( ("Making file name from %s", isOffsetFileName) );
     MakeFileName( isOffsetFileName, tkm_tFileName_PWD,
                   sOffsetFileName, sizeof(sOffsetFileName) );
     psOffsetFileName = sOffsetFileName;
-  }
-  else
-  {
+  } else {
     psOffsetFileName = NULL;
   }
 
-  if ( NULL != isRegistrationFileName )
-  {
+  if ( NULL != isRegistrationFileName ) {
     DebugNote( ("Making file name from %s", isRegistrationFileName) );
     MakeFileName( isRegistrationFileName, tkm_tFileName_PWD,
                   sRegistrationFileName, sizeof(sRegistrationFileName) );
     psRegistrationFileName = sRegistrationFileName;
-  }
-  else
-  {
+  } else {
     psRegistrationFileName = NULL;
   }
 
@@ -10762,8 +9683,7 @@ tkm_tErr LoadFunctionalOverlay( char* isFileName,
   MWin_SetDisplayFlag( gMeditWindow, -1, DspA_tDisplayFlag_FunctionalOverlay,
                        TRUE );
 
-  if ( gMeditWindow )
-  {
+  if ( gMeditWindow ) {
     tkm_SendTclCommand( tkm_tTclCommand_ShowFuncOverlayOptions, "1" );
   }
 
@@ -10789,8 +9709,7 @@ tkm_tErr LoadFunctionalOverlay( char* isFileName,
 tkm_tErr LoadFunctionalTimeCourse( char* isFileName,
                                    char* isOffsetFileName,
                                    FunD_tRegistrationType iRegType,
-                                   char* isRegistrationFileName )
-{
+                                   char* isRegistrationFileName ) {
 
   tkm_tErr  eResult                               = tkm_tErr_NoErr;
   char      sFileName[tkm_knPathLen]              = "";
@@ -10812,27 +9731,21 @@ tkm_tErr LoadFunctionalTimeCourse( char* isFileName,
   MakeFileName( isFileName, tkm_tFileName_PWD,
                 sFileName, sizeof(sFileName) );
 
-  if ( NULL != isOffsetFileName )
-  {
+  if ( NULL != isOffsetFileName ) {
     DebugNote( ("Making file name from %s", isOffsetFileName) );
     MakeFileName( isOffsetFileName, tkm_tFileName_PWD,
                   sOffsetFileName, sizeof(sOffsetFileName) );
     psOffsetFileName = sOffsetFileName;
-  }
-  else
-  {
+  } else {
     psOffsetFileName = NULL;
   }
 
-  if ( NULL != isRegistrationFileName )
-  {
+  if ( NULL != isRegistrationFileName ) {
     DebugNote( ("Making file name from %s", isRegistrationFileName) );
     MakeFileName( isRegistrationFileName, tkm_tFileName_PWD,
                   sRegistrationFileName, sizeof(sRegistrationFileName) );
     psRegistrationFileName = sRegistrationFileName;
-  }
-  else
-  {
+  } else {
     psRegistrationFileName = NULL;
   }
 
@@ -10870,8 +9783,7 @@ tkm_tErr LoadFunctionalTimeCourse( char* isFileName,
 }
 
 
-tkm_tErr SmoothOverlayData ( float ifSigma )
-{
+tkm_tErr SmoothOverlayData ( float ifSigma ) {
 
   tkm_tErr  eResult            = tkm_tErr_NoErr;
   FunV_tErr eFunctional            = FunV_tErr_NoError;
@@ -10907,8 +9819,7 @@ tkm_tErr SmoothOverlayData ( float ifSigma )
 
 
 void RotateOverlayRegistration ( float ifDegrees,
-                                 char  isAxis )
-{
+                                 char  isAxis ) {
 
   mri_tOrientation orientation;
   xVoxel     cursor;
@@ -10917,11 +9828,9 @@ void RotateOverlayRegistration ( float ifDegrees,
 
   MWin_GetCursor( gMeditWindow, &cursor );
 
-  switch ( isAxis )
-  {
+  switch ( isAxis ) {
   case 'x':
-    switch ( orientation )
-    {
+    switch ( orientation ) {
     case mri_tOrientation_Coronal:
       FunV_RotateOverlayRegistration( gFunctionalVolume,
                                       ifDegrees, tAxis_X, &cursor );
@@ -10940,8 +9849,7 @@ void RotateOverlayRegistration ( float ifDegrees,
     }
     break;
   case 'y':
-    switch ( orientation )
-    {
+    switch ( orientation ) {
     case mri_tOrientation_Coronal:
       FunV_RotateOverlayRegistration( gFunctionalVolume,
                                       ifDegrees, tAxis_Z, &cursor );
@@ -10960,8 +9868,7 @@ void RotateOverlayRegistration ( float ifDegrees,
     }
     break;
   case 'z':
-    switch ( orientation )
-    {
+    switch ( orientation ) {
     case mri_tOrientation_Coronal:
       FunV_RotateOverlayRegistration( gFunctionalVolume,
                                       -ifDegrees, tAxis_Y, &cursor );
@@ -10983,24 +9890,21 @@ void RotateOverlayRegistration ( float ifDegrees,
 
   UpdateAndRedraw();
 
-cleanup:
+ cleanup:
   return;
 
 }
 
 void TranslateOverlayRegisgtration ( float ifDistance,
-                                     char  isDirection )
-{
+                                     char  isDirection ) {
 
   mri_tOrientation orientation;
 
   MWin_GetOrientation ( gMeditWindow, &orientation );
 
-  switch ( isDirection )
-  {
+  switch ( isDirection ) {
   case 'x':
-    switch ( orientation )
-    {
+    switch ( orientation ) {
     case mri_tOrientation_Coronal:
       FunV_TranslateOverlayRegistration( gFunctionalVolume,
                                          ifDistance, tAxis_X );
@@ -11019,8 +9923,7 @@ void TranslateOverlayRegisgtration ( float ifDistance,
     }
     break;
   case 'y':
-    switch ( orientation )
-    {
+    switch ( orientation ) {
     case mri_tOrientation_Coronal:
       FunV_TranslateOverlayRegistration( gFunctionalVolume,
                                          ifDistance, tAxis_Z );
@@ -11039,8 +9942,7 @@ void TranslateOverlayRegisgtration ( float ifDistance,
     }
     break;
   case 'z':
-    switch ( orientation )
-    {
+    switch ( orientation ) {
     case mri_tOrientation_Coronal:
       FunV_TranslateOverlayRegistration( gFunctionalVolume,
                                          -ifDistance, tAxis_Y );
@@ -11062,24 +9964,21 @@ void TranslateOverlayRegisgtration ( float ifDistance,
 
   UpdateAndRedraw();
 
-cleanup:
+ cleanup:
   return;
 
 }
 
 void ScaleOverlayRegisgtration ( float ifFactor,
-                                 char  isDirection )
-{
+                                 char  isDirection ) {
 
   mri_tOrientation orientation;
 
   MWin_GetOrientation ( gMeditWindow, &orientation );
 
-  switch ( isDirection )
-  {
+  switch ( isDirection ) {
   case 'x':
-    switch ( orientation )
-    {
+    switch ( orientation ) {
     case mri_tOrientation_Coronal:
       FunV_ScaleOverlayRegistration( gFunctionalVolume,
                                      ifFactor, tAxis_X );
@@ -11098,8 +9997,7 @@ void ScaleOverlayRegisgtration ( float ifFactor,
     }
     break;
   case 'y':
-    switch ( orientation )
-    {
+    switch ( orientation ) {
     case mri_tOrientation_Coronal:
       FunV_ScaleOverlayRegistration( gFunctionalVolume,
                                      ifFactor, tAxis_Z );
@@ -11118,8 +10016,7 @@ void ScaleOverlayRegisgtration ( float ifFactor,
     }
     break;
   case 'z':
-    switch ( orientation )
-    {
+    switch ( orientation ) {
     case mri_tOrientation_Coronal:
       FunV_ScaleOverlayRegistration( gFunctionalVolume,
                                      ifFactor, tAxis_Y );
@@ -11143,7 +10040,7 @@ void ScaleOverlayRegisgtration ( float ifFactor,
 
   UpdateAndRedraw();
 
-cleanup:
+ cleanup:
   return;
 
 }
@@ -11154,8 +10051,7 @@ cleanup:
 
 tkm_tErr NewSegmentationVolume ( tkm_tSegType    iVolume,
                                  tkm_tVolumeType iFromVolume,
-                                 char*           isColorFileName )
-{
+                                 char*           isColorFileName ) {
 
   tkm_tErr     eResult                      = tkm_tErr_NoErr;
   Volm_tErr    eVolume                      = Volm_tErr_NoErr;
@@ -11187,8 +10083,7 @@ tkm_tErr NewSegmentationVolume ( tkm_tSegType    iVolume,
                      eResult, tkm_tErr_ErrorAccessingSegmentationVolume );
 
   /* Scale up if we need to. */
-  if ( gbScaleUpVolume )
-  {
+  if ( gbScaleUpVolume ) {
     DebugNote( ("Setting min voxel size on new seg volume to 1") );
     eVolume = Volm_SetMinVoxelSizeToOne( newVolume );
     DebugAssertThrowX( (Volm_tErr_NoErr == eVolume),
@@ -11224,8 +10119,7 @@ tkm_tErr NewSegmentationVolume ( tkm_tSegType    iVolume,
 
 
   /* free existing segmentations if present. */
-  if ( NULL != gSegmentationVolume[iVolume] )
-  {
+  if ( NULL != gSegmentationVolume[iVolume] ) {
     DebugNote( ("Deleting existing roi group") );
     eVolume = Volm_Delete( &gSegmentationVolume[iVolume] );
     DebugAssertThrowX( (Volm_tErr_NoErr == eVolume),
@@ -11243,15 +10137,11 @@ tkm_tErr NewSegmentationVolume ( tkm_tSegType    iVolume,
   gSegmentationChangedVolume[iVolume] = newChangedVolume;
 
   /* enable our segmentation options and set segmentation volume in window */
-  if ( gMeditWindow )
-  {
-    if ( tkm_tSegType_Main == iVolume )
-    {
+  if ( gMeditWindow ) {
+    if ( tkm_tSegType_Main == iVolume ) {
       DebugNote( ("Enabling segmentation options in interface") );
       tkm_SendTclCommand( tkm_tTclCommand_ShowSegmentationOptions, "1" );
-    }
-    else
-    {
+    } else {
       DebugNote( ("Enabling ayx segmentation options in interface") );
       tkm_SendTclCommand( tkm_tTclCommand_ShowAuxSegmentationOptions, "1" );
     }
@@ -11267,19 +10157,16 @@ tkm_tErr NewSegmentationVolume ( tkm_tSegType    iVolume,
   DebugCatchError( eResult, tkm_tErr_NoErr || tkm_tErr_CouldntLoadColorTable,
                    tkm_GetErrorString );
 
-  if ( eResult != tkm_tErr_CouldntLoadColorTable )
-  {
+  if ( eResult != tkm_tErr_CouldntLoadColorTable ) {
     xUtil_snprintf( sError, sizeof(sError), "Creating Segmentation" );
     tkm_DisplayError( sError, tkm_GetErrorString(eResult),
                       "Tkmedit couldn't create a segmentation." );
   }
 
-  if ( NULL != newVolume )
-  {
+  if ( NULL != newVolume ) {
     Volm_Delete( &newVolume );
   }
-  if ( NULL != newChangedVolume )
-  {
+  if ( NULL != newChangedVolume ) {
     Volm_Delete( &newChangedVolume );
   }
 
@@ -11293,8 +10180,7 @@ tkm_tErr NewSegmentationVolume ( tkm_tSegType    iVolume,
 tkm_tErr LoadSegmentationVolume ( tkm_tSegType iVolume,
                                   char*        isVolumeDirWithPrefix,
                                   char*        isColorFileName,
-                                  tBoolean     ibConform )
-{
+                                  tBoolean     ibConform ) {
 
   tkm_tErr     eResult         = tkm_tErr_NoErr;
   Volm_tErr    eVolume         = Volm_tErr_NoErr;
@@ -11329,23 +10215,21 @@ tkm_tErr LoadSegmentationVolume ( tkm_tSegType iVolume,
   eVolume = Volm_ImportData( newVolume, sSegmentationFileName );
   DebugAssertThrowX( (Volm_tErr_NoErr == eVolume),
                      eResult, tkm_tErr_CouldntLoadSegmentation );
-  if ( gbScaleUpVolume )
-  {
+  if ( gbScaleUpVolume ) {
     Volm_SetMinVoxelSizeToOne( newVolume );
   }
 
   /* Conform if desired. */
-  if ( ibConform )
-  {
+  if ( ibConform ) {
     Volm_Conform( newVolume );
   }
 
-  if (newVolume->mpMriValues->ct != NULL)   // ctab embedded in volume
+  if (newVolume->mpMriValues->ct != NULL) // ctab embedded in volume
   {
     gColorTable[iVolume] = newVolume->mpMriValues->ct ;
     SendColorTableInformationToTcl( iVolume );
   }
-  else     /* Try to load the color table. */
+  else /* Try to load the color table. */
   {
     DebugNote( ("Loading color table.") );
     eResult = LoadSegmentationColorTable( iVolume, isColorFileName );
@@ -11366,8 +10250,7 @@ tkm_tErr LoadSegmentationVolume ( tkm_tSegType iVolume,
                      eResult, tkm_tErr_ErrorAccessingSegmentationVolume );
 
   /* free existing roi group if present. */
-  if ( NULL != gSegmentationVolume[iVolume] )
-  {
+  if ( NULL != gSegmentationVolume[iVolume] ) {
     DebugNote( ("Deleting existing roi group") );
     eVolume = Volm_Delete( &gSegmentationVolume[iVolume] );
     DebugAssertThrowX( (Volm_tErr_NoErr == eVolume),
@@ -11384,15 +10267,11 @@ tkm_tErr LoadSegmentationVolume ( tkm_tSegType iVolume,
   gSegmentationChangedVolume[iVolume] = newChangedVolume;
 
   /* enable our segmentation options and set segmentation volume in window */
-  if ( gMeditWindow )
-  {
-    if ( tkm_tSegType_Main == iVolume )
-    {
+  if ( gMeditWindow ) {
+    if ( tkm_tSegType_Main == iVolume ) {
       DebugNote( ("Enabling segmentation options in interface") );
       tkm_SendTclCommand( tkm_tTclCommand_ShowSegmentationOptions, "1" );
-    }
-    else
-    {
+    } else {
       DebugNote( ("Enabling ayx segmentation options in interface") );
       tkm_SendTclCommand( tkm_tTclCommand_ShowAuxSegmentationOptions, "1" );
     }
@@ -11408,8 +10287,7 @@ tkm_tErr LoadSegmentationVolume ( tkm_tSegType iVolume,
   DebugCatchError( eResult, tkm_tErr_NoErr || tkm_tErr_CouldntLoadColorTable,
                    tkm_GetErrorString );
 
-  if ( eResult != tkm_tErr_CouldntLoadColorTable )
-  {
+  if ( eResult != tkm_tErr_CouldntLoadColorTable ) {
     xUtil_snprintf( sError, sizeof(sError),
                     "Loading Segmentation %s", isVolumeDirWithPrefix );
     tkm_DisplayError( sError,
@@ -11419,12 +10297,10 @@ tkm_tErr LoadSegmentationVolume ( tkm_tSegType iVolume,
                       "volume wasn't a valid COR volume directory." );
   }
 
-  if ( NULL != newVolume )
-  {
+  if ( NULL != newVolume ) {
     Volm_Delete( &newVolume );
   }
-  if ( NULL != newChangedVolume )
-  {
+  if ( NULL != newChangedVolume ) {
     Volm_Delete( &newChangedVolume );
   }
 
@@ -11437,8 +10313,7 @@ tkm_tErr LoadSegmentationVolume ( tkm_tSegType iVolume,
 
 void SaveSegmentationVolume ( tkm_tSegType iVolume,
                               char*        isFileName,
-                              tBoolean     ibSetFileName )
-{
+                              tBoolean     ibSetFileName ) {
 
   tkm_tErr  eResult         = tkm_tErr_NoErr;
   char      sError[tkm_knErrStringLen] = "";
@@ -11455,14 +10330,11 @@ void SaveSegmentationVolume ( tkm_tSegType iVolume,
                      eResult, tkm_tErr_ErrorAccessingSegmentationVolume );
 
   /* make a file name if they gave us one. */
-  if ( NULL != isFileName )
-  {
+  if ( NULL != isFileName ) {
     MakeFileName( isFileName, tkm_tFileName_Segmentation,
                   sSegmentationFileName, sizeof(sSegmentationFileName) );
     psSegmentationFileName = sSegmentationFileName;
-  }
-  else
-  {
+  } else {
     psSegmentationFileName = NULL;
   }
 
@@ -11478,8 +10350,7 @@ void SaveSegmentationVolume ( tkm_tSegType iVolume,
   DebugCatch;
   DebugCatchError( eResult, tkm_tErr_NoErr, tkm_GetErrorString );
 
-  if ( eResult != tkm_tErr_CouldntLoadColorTable )
-  {
+  if ( eResult != tkm_tErr_CouldntLoadColorTable ) {
     xUtil_snprintf( sError, sizeof(sError),
                     "Saving Segmentation %s", isFileName );
     tkm_DisplayError( sError,
@@ -11496,8 +10367,7 @@ void SaveSegmentationVolume ( tkm_tSegType iVolume,
 }
 
 tkm_tErr ExportChangedSegmentationVolume ( tkm_tSegType iVolume,
-    char*        isVolumeDir )
-{
+                                           char*        isVolumeDir ) {
 
   tkm_tErr                      eResult                    = tkm_tErr_NoErr;
   Volm_tErr                     eVolume                    = Volm_tErr_NoErr;
@@ -11518,8 +10388,7 @@ tkm_tErr ExportChangedSegmentationVolume ( tkm_tSegType iVolume,
                      eResult, tkm_tErr_ErrorAccessingSegmentationVolume );
 
   /* make a file name. */
-  if ( NULL != isVolumeDir )
-  {
+  if ( NULL != isVolumeDir ) {
     MakeFileName( isVolumeDir, tkm_tFileName_Segmentation,
                   sSegmentationFileName, sizeof(sSegmentationFileName) );
   }
@@ -11571,9 +10440,8 @@ tkm_tErr ExportChangedSegmentationVolume ( tkm_tSegType iVolume,
 }
 
 tkm_tErr ImportSurfaceAnnotationToSegmentation ( tkm_tSegType iVolume,
-    char*   isAnnotationFileName,
-    char*   isColorFileName )
-{
+                                                 char*   isAnnotationFileName,
+                                                 char*   isColorFileName ) {
 
   tkm_tErr     eResult                 = tkm_tErr_NoErr;
   Surf_tErr    eSurface                = Surf_tErr_NoErr;
@@ -11664,15 +10532,13 @@ tkm_tErr ImportSurfaceAnnotationToSegmentation ( tkm_tSegType iVolume,
      present. If so... */
   Surf_IsInternalColorTablePresent( gSurface[tkm_tSurfaceType_Main],
                                     &bInternalTable );
-  if ( bInternalTable )
-  {
+  if ( bInternalTable ) {
 
     /* Make a new color table from the embedded one. If we got
        it... */
     eSurface = Surf_NewColorTableFromInternal( gSurface[tkm_tSurfaceType_Main],
-               &colorTable );
-    if ( Surf_tErr_NoErr == eSurface )
-    {
+                                               &colorTable );
+    if ( Surf_tErr_NoErr == eSurface ) {
 
       /* Replace our existing color table with it. */
       CTABfree( &gColorTable[iVolume] );
@@ -11691,13 +10557,11 @@ tkm_tErr ImportSurfaceAnnotationToSegmentation ( tkm_tSegType iVolume,
      index. Get the orig coords from the vertex and set the
      segmentation value at those coords to the index we got. */
   fprintf( stdout, "Converting annotation..." );
-  for ( nVertex = 0; nVertex < mris->nvertices; nVertex++ )
-  {
+  for ( nVertex = 0; nVertex < mris->nvertices; nVertex++ ) {
     pVertex = &mris->vertices[nVertex];
 
     /* Get the color and then the index. */
-    if ( 0 != pVertex->annotation )
-    {
+    if ( 0 != pVertex->annotation ) {
       MRISAnnotToRGB( pVertex->annotation, nRed, nGreen, nBlue );
       CTABfindRGBi( gColorTable[iVolume], nRed, nGreen, nBlue, &nStructure );
 
@@ -11716,19 +10580,15 @@ tkm_tErr ImportSurfaceAnnotationToSegmentation ( tkm_tSegType iVolume,
       dy /= len;
       dz /= len;
 
-      for ( d = 0 ; d <= len; d = d+0.1 )
-      {
+      for ( d = 0 ; d <= len; d = d+0.1 ) {
         xVoxl_SetFloat( &surfRAS,
                         pVertex->x + (d * dx),
                         pVertex->y + (d * dy),
                         pVertex->z + (d * dz) );
-        if ( gbUseRealRAS )
-        {
+        if ( gbUseRealRAS ) {
           eVolume =
             Volm_ConvertRASToMRIIdx( newVolume, &surfRAS, &MRIIdx );
-        }
-        else
-        {
+        } else {
           eVolume =
             Volm_ConvertSurfaceRASToMRIIdx( newVolume, &surfRAS, &MRIIdx );
         }
@@ -11736,8 +10596,7 @@ tkm_tErr ImportSurfaceAnnotationToSegmentation ( tkm_tSegType iVolume,
           Volm_SetValueAtMRIIdx( newVolume, &MRIIdx, (float)nStructure );
       }
     }
-    if ( !(nVertex % 1000) )
-    {
+    if ( !(nVertex % 1000) ) {
       fprintf( stdout, "\rConverting annotation... %.2f%% done",
                ((float)nVertex / (float)mris->nvertices) * 100.0 );
       fflush( stdout );
@@ -11747,8 +10606,7 @@ tkm_tErr ImportSurfaceAnnotationToSegmentation ( tkm_tSegType iVolume,
 
 
   /* free existing segmentations if present. */
-  if ( NULL != gSegmentationVolume[iVolume] )
-  {
+  if ( NULL != gSegmentationVolume[iVolume] ) {
     DebugNote( ("Deleting existing roi group") );
     eVolume = Volm_Delete( &gSegmentationVolume[iVolume] );
     DebugAssertThrowX( (Volm_tErr_NoErr == eVolume),
@@ -11765,15 +10623,11 @@ tkm_tErr ImportSurfaceAnnotationToSegmentation ( tkm_tSegType iVolume,
   gSegmentationChangedVolume[iVolume] = newChangedVolume;
 
   /* enable our segmentation options and set segmentation volume in window */
-  if ( gMeditWindow )
-  {
-    if ( tkm_tSegType_Main == iVolume )
-    {
+  if ( gMeditWindow ) {
+    if ( tkm_tSegType_Main == iVolume ) {
       DebugNote( ("Enabling segmentation options in interface") );
       tkm_SendTclCommand( tkm_tTclCommand_ShowSegmentationOptions, "1" );
-    }
-    else
-    {
+    } else {
       DebugNote( ("Enabling ayx segmentation options in interface") );
       tkm_SendTclCommand( tkm_tTclCommand_ShowAuxSegmentationOptions, "1" );
     }
@@ -11789,8 +10643,7 @@ tkm_tErr ImportSurfaceAnnotationToSegmentation ( tkm_tSegType iVolume,
   DebugCatchError( eResult, tkm_tErr_NoErr || tkm_tErr_CouldntLoadColorTable,
                    tkm_GetErrorString );
 
-  if ( eResult != tkm_tErr_CouldntLoadColorTable )
-  {
+  if ( eResult != tkm_tErr_CouldntLoadColorTable ) {
 
     xUtil_snprintf( sError, sizeof(sError),
                     "Loading Annotation %s", isAnnotationFileName );
@@ -11808,8 +10661,7 @@ tkm_tErr ImportSurfaceAnnotationToSegmentation ( tkm_tSegType iVolume,
 }
 
 tkm_tErr LoadSegmentationColorTable ( tkm_tSegType iVolume,
-                                      char*        isColorFileName )
-{
+                                      char*        isColorFileName ) {
 
   tkm_tErr  eResult         = tkm_tErr_NoErr;
   char      sColorFileName[tkm_knPathLen]   = "";
@@ -11852,8 +10704,7 @@ tkm_tErr LoadSegmentationColorTable ( tkm_tSegType iVolume,
   return eResult;
 }
 
-tkm_tErr SendColorTableInformationToTcl ( tkm_tSegType iVolume )
-{
+tkm_tErr SendColorTableInformationToTcl ( tkm_tSegType iVolume ) {
 
   tkm_tErr  eResult                        = tkm_tErr_NoErr;
   int       eCTAB                          = 0;
@@ -11879,15 +10730,12 @@ tkm_tErr SendColorTableInformationToTcl ( tkm_tSegType iVolume )
 
   /* Iterate over all the entries, but only get names for the valid
      ones. */
-  for ( nEntry = 0; nEntry < nNumEntries; nEntry++ )
-  {
+  for ( nEntry = 0; nEntry < nNumEntries; nEntry++ ) {
 
     /* If not valid, skip it. */
     CTABisEntryValid( gColorTable[iVolume], nEntry, &bValid );
     if (!bValid)
-    {
       continue;
-    }
 
     DebugNote( ("Getting label for entry %d/%d", nEntry, nNumEntries) );
     eCTAB =
@@ -11895,9 +10743,7 @@ tkm_tErr SendColorTableInformationToTcl ( tkm_tSegType iVolume )
     DebugAssertThrowX( (NO_ERROR == eCTAB),
                        eResult, tkm_tErr_Unrecoverable );
     if ( strcmp( sLabel, "" ) == 0 )
-    {
       xUtil_strncpy( sLabel, "None", sizeof(sLabel) );
-    }
 
     DebugNote( ("Making tcl command") );
     xUtil_snprintf( sTclArguments, sizeof(sTclArguments),
@@ -11922,18 +10768,15 @@ tkm_tErr SendColorTableInformationToTcl ( tkm_tSegType iVolume )
 }
 
 
-void SetSegmentationAlpha ( float ifAlpha )
-{
+void SetSegmentationAlpha ( float ifAlpha ) {
 
   char sTclArguments[STRLEN] = "";
 
-  if ( ifAlpha >= 0 && ifAlpha <= 1.0 )
-  {
+  if ( ifAlpha >= 0 && ifAlpha <= 1.0 ) {
 
     gfSegmentationAlpha = ifAlpha;
 
-    if ( NULL != gMeditWindow )
-    {
+    if ( NULL != gMeditWindow ) {
       MWin_SetSegmentationAlpha( gMeditWindow, -1, ifAlpha );
       UpdateAndRedraw ();
     }
@@ -11949,8 +10792,7 @@ void SetSegmentationAlpha ( float ifAlpha )
 void GetSegmentationColorAtVoxel ( tkm_tSegType iVolume,
                                    xVoxelRef    iMRIIdx,
                                    xColor3fRef  iBaseColor,
-                                   xColor3fRef  oColor )
-{
+                                   xColor3fRef  oColor ) {
 
   int        nIndex       = 0;
   int        eCTAB        = NO_ERROR;
@@ -11964,8 +10806,7 @@ void GetSegmentationColorAtVoxel ( tkm_tSegType iVolume,
   GetSegLabel( iVolume, iMRIIdx, &nIndex, NULL );
 
   /* If 0, just use the base color */
-  if ( 0 == nIndex )
-  {
+  if ( 0 == nIndex ) {
     *oColor = *iBaseColor;
     goto cleanup;
   }
@@ -11974,37 +10815,34 @@ void GetSegmentationColorAtVoxel ( tkm_tSegType iVolume,
   eCTAB = CTABrgbaAtIndexf( gColorTable[iVolume], nIndex,
                             &fRed, &fGreen, &fBlue, &fAlpha );
   if ( NO_ERROR != eCTAB )
-  {
     goto error;
-  }
 
   fFinalAlpha = gfSegmentationAlpha * fAlpha;
 
   /* blend them */
   oColor->mfRed = (fFinalAlpha * fRed) +
-                  (float)((1.0-fFinalAlpha) * iBaseColor->mfRed);
+    (float)((1.0-fFinalAlpha) * iBaseColor->mfRed);
   oColor->mfGreen = (fFinalAlpha * fGreen) +
-                    (float)((1.0-fFinalAlpha) * iBaseColor->mfGreen);
+    (float)((1.0-fFinalAlpha) * iBaseColor->mfGreen);
   oColor->mfBlue = (fFinalAlpha * fBlue) +
-                   (float)((1.0-fFinalAlpha) * iBaseColor->mfBlue);
+    (float)((1.0-fFinalAlpha) * iBaseColor->mfBlue);
 
   goto cleanup;
 
-error:
+ error:
 
   DebugPrint( ( "Error in GetSegmentationColor.\n" ) );
 
   *oColor = *iBaseColor;
 
-cleanup:
+ cleanup:
   return;
 }
 
 void GetSegLabel ( tkm_tSegType iVolume,
                    xVoxelRef    iMRIIdx,
                    int*         onIndex,
-                   char*        osLabel )
-{
+                   char*        osLabel ) {
 
   int         eCTAB        = NO_ERROR;
   Volm_tErr   eVolume      = Volm_tErr_NoErr;
@@ -12014,27 +10852,19 @@ void GetSegLabel ( tkm_tSegType iVolume,
   /* get the voxel at this location */
   eVolume =
     Volm_GetValueAtMRIIdx( gSegmentationVolume[iVolume], iMRIIdx, &fValue );
-  if ( Volm_tErr_NoErr == eVolume )
-  {
+  if ( Volm_tErr_NoErr == eVolume ) {
     index = (int)fValue;
-  }
-  else
-  {
+  } else {
     index = 0;
   }
 
   /* get the label out of the table and return it and in the index */
-  if ( NULL != osLabel )
-  {
-    if ( 0 == index )
-    {
+  if ( NULL != osLabel ) {
+    if ( 0 == index ) {
       strcpy( osLabel, "None" );
-    }
-    else
-    {
+    } else {
       eCTAB = CTABcopyName( gColorTable[iVolume], index, osLabel, 256 );
-      if ( NO_ERROR != eCTAB )
-      {
+      if ( NO_ERROR != eCTAB ) {
         /* pass an out of bounds notice. */
         strcpy( osLabel, "Out of bounds." );
       }
@@ -12042,35 +10872,29 @@ void GetSegLabel ( tkm_tSegType iVolume,
   }
 
   /* return the index */
-  if ( NULL != onIndex )
-  {
+  if ( NULL != onIndex ) {
     *onIndex = index;
   }
 
   goto cleanup;
 
   goto error;
-error:
+ error:
 
   DebugPrint( ( "Error in GetSegmentationColor.\n" ) );
 
   if ( NULL != onIndex )
-  {
     *onIndex = -1;
-  }
   if ( NULL != osLabel )
-  {
     strcpy( osLabel, "None" );
-  }
 
-cleanup:
+ cleanup:
   return;
 }
 
 Volm_tVisitCommand AddSimilarVoxelToSelection ( xVoxelRef iMRIIdx,
-    float     iValue,
-    void*     ipnTarget )
-{
+                                                float     iValue,
+                                                void*     ipnTarget ) {
   int nIndex = 0;
   int nTargetIndex = 0;
 
@@ -12078,25 +10902,21 @@ Volm_tVisitCommand AddSimilarVoxelToSelection ( xVoxelRef iMRIIdx,
   nTargetIndex = *(int*)ipnTarget;
 
   if ( nIndex == nTargetIndex )
-  {
     AddVoxelsToSelection( iMRIIdx, 1 );
-  }
 
   return Volm_tVisitComm_Continue;
 }
 
 Volm_tVisitCommand AddSimilarVoxelToGraphAvg ( xVoxelRef iMRIIdx,
-    float     iValue,
-    void*     ipnTarget )
-{
+                                               float     iValue,
+                                               void*     ipnTarget ) {
   int    nIndex       = 0;
   int    nTargetIndex = 0;
 
   nIndex = (int) iValue;
   nTargetIndex = *(int*)ipnTarget;
 
-  if ( nIndex == nTargetIndex )
-  {
+  if ( nIndex == nTargetIndex ) {
     FunV_AddMRIIdxToSelectionRange( gFunctionalVolume, iMRIIdx );
   }
 
@@ -12104,15 +10924,13 @@ Volm_tVisitCommand AddSimilarVoxelToGraphAvg ( xVoxelRef iMRIIdx,
 }
 
 Volm_tVisitCommand SetChangedSegmentationValue ( xVoxelRef iMRIIdx,
-    float     iValue,
-    void*     iData )
-{
+                                                 float     iValue,
+                                                 void*     iData ) {
 
   tkm_tExportSegmentationParamsRef params = NULL;
   float                            value;
 
-  if ( iValue )
-  {
+  if ( iValue ) {
 
     params = (tkm_tExportSegmentationParamsRef)iData;
 
@@ -12126,8 +10944,7 @@ Volm_tVisitCommand SetChangedSegmentationValue ( xVoxelRef iMRIIdx,
 }
 
 
-tkm_tErr SelectSegLabelAtCursor ( tkm_tSegType iVolume )
-{
+tkm_tErr SelectSegLabelAtCursor ( tkm_tSegType iVolume ) {
 
   tkm_tErr  eResult     = tkm_tErr_NoErr;
   Volm_tErr eVolume     = Volm_tErr_NoErr;
@@ -12168,8 +10985,7 @@ tkm_tErr SelectSegLabelAtCursor ( tkm_tSegType iVolume )
 }
 
 tkm_tErr SelectSegLabel ( tkm_tSegType iVolume,
-                          int          inIndex )
-{
+                          int          inIndex ) {
 
   tkm_tErr  eResult     = tkm_tErr_NoErr;
   Volm_tErr eVolume     = Volm_tErr_NoErr;
@@ -12214,8 +11030,7 @@ tkm_tErr SelectSegLabel ( tkm_tSegType iVolume,
 }
 
 tkm_tErr GraphSegLabel ( tkm_tSegType iVolume,
-                         int          inIndex )
-{
+                         int          inIndex ) {
 
   tkm_tErr  eResult        = tkm_tErr_NoErr;
   Volm_tErr eVolume        = Volm_tErr_NoErr;
@@ -12261,9 +11076,7 @@ tkm_tErr GraphSegLabel ( tkm_tSegType iVolume,
   /* set the graph window */
   CTABcopyName( gColorTable[iVolume], inIndex, sLabel, sizeof(sLabel) );
   if ( sLabel[0] != 0 )
-  {
     FunV_SetLocationString( gFunctionalVolume, sLabel );
-  }
 
   UpdateAndRedraw ();
 
@@ -12277,20 +11090,17 @@ tkm_tErr GraphSegLabel ( tkm_tSegType iVolume,
 }
 
 static void
-RecomputeUpdateCallback( MRI* iMRIValues )
-{
+RecomputeUpdateCallback( MRI* iMRIValues ) {
 
   MRIcopy( iMRIValues,
            gSegmentationVolume[gRecaluclatingSegemention]->mpMriValues );
-  if ( gbAcceptingTclCommands && gDisplayIntermediateResults )
-  {
+  if ( gbAcceptingTclCommands && gDisplayIntermediateResults ) {
     UpdateAndRedraw() ;
     MWin_ForceRedraw( gMeditWindow ) ;
   }
 }
 
-void RecomputeSegmentation ( tkm_tSegType iVolume )
-{
+void RecomputeSegmentation ( tkm_tSegType iVolume ) {
 
   tkm_tErr     eResult   = tkm_tErr_NoErr;
   Volm_tErr    eVolume   = Volm_tErr_NoErr;
@@ -12304,8 +11114,7 @@ void RecomputeSegmentation ( tkm_tSegType iVolume )
                      eResult, tkm_tErr_GCANotLoaded );
 
   /* Delete the old backup if it exists. */
-  if ( NULL != gPreviousSegmentationVolume[iVolume] )
-  {
+  if ( NULL != gPreviousSegmentationVolume[iVolume] ) {
     DebugNote( ("Deleting old backup segmentation") );
     eVolume = Volm_Delete( &gPreviousSegmentationVolume[iVolume] );
     DebugAssertThrowX( (Volm_tErr_NoErr == eVolume), eVolume,
@@ -12322,13 +11131,13 @@ void RecomputeSegmentation ( tkm_tSegType iVolume )
   /* Reclassify using the update function declared above. */
   gRecaluclatingSegemention = iVolume;
   GCAreclassifyUsingGibbsPriors
-  (
-    gAnatomicalVolume[tkm_tVolumeType_Main]->mpMriValues,
-    gGCAVolume,
-    gSegmentationVolume[iVolume]->mpMriValues,
-    gGCATransform, 10,
-    gSegmentationChangedVolume[iVolume]->mpMriValues, 1,
-    RecomputeUpdateCallback);
+    (
+      gAnatomicalVolume[tkm_tVolumeType_Main]->mpMriValues,
+      gGCAVolume,
+      gSegmentationVolume[iVolume]->mpMriValues,
+      gGCATransform, 10,
+      gSegmentationChangedVolume[iVolume]->mpMriValues, 1,
+      RecomputeUpdateCallback);
 
   UpdateAndRedraw() ;
 
@@ -12342,8 +11151,7 @@ void RecomputeSegmentation ( tkm_tSegType iVolume )
 
 int EditSegmentation ( tkm_tSegType iVolume,
                        xVoxelRef    iMRIIdx,
-                       int          inIndex )
-{
+                       int          inIndex ) {
 
   float       fOldValue = 0;
   static int  nVolumeIndexBugs = 0;
@@ -12354,18 +11162,15 @@ int EditSegmentation ( tkm_tSegType iVolume,
   /* For some reason, David was getting random bugs where iVolume
      would be way out of bounds. I'm trying to track this down while
      still letting him work. */
-  if ( iVolume != tkm_tSegType_Main )
-  {
+  if ( iVolume != tkm_tSegType_Main ) {
     nVolumeIndexBugs++;
-    if ( nVolumeIndexBugs == 1 )
-    {
+    if ( nVolumeIndexBugs == 1 ) {
       fprintf( stderr,
                "ATTENTION: Please send the .xdebug_tkmedit file\n"
                "           to freesurfer@nmr.mgh.harvard.edu\n"
                "           when you're done.\n");
     }
-    if ( nVolumeIndexBugs < 5 )
-    {
+    if ( nVolumeIndexBugs < 5 ) {
       xDbg_Printf( "EditSegmentation: iVolume was %d. Stack:\n", iVolume );
       xDbg_PrintStack ();
     }
@@ -12391,8 +11196,7 @@ int EditSegmentation ( tkm_tSegType iVolume,
 
 void CalcSegLabelVolume ( tkm_tSegType iVolume,
                           xVoxelRef    iMRIIdx,
-                          int*         oCount )
-{
+                          int*         oCount ) {
 
   tkm_tErr  eResult = tkm_tErr_NoErr;
   Volm_tErr eVolume = Volm_tErr_NoErr;
@@ -12447,16 +11251,14 @@ void CalcSegLabelVolume ( tkm_tSegType iVolume,
 
 Volm_tVisitCommand SumSimilarValues ( xVoxelRef iMRIIdx,
                                       float     iValue,
-                                      void*     iData )
-{
+                                      void*     iData ) {
 
   tkm_tSumSimilarSegmentationParams*  params = NULL;
 
   params = (tkm_tSumSimilarSegmentationParams*)iData;
 
   /* If the values are the same, increment the count. */
-  if ( FEQUAL( iValue, params->mSourceLabel ) )
-  {
+  if ( FEQUAL( iValue, params->mSourceLabel ) ) {
     params->mCount++;
   }
 
@@ -12466,8 +11268,7 @@ Volm_tVisitCommand SumSimilarValues ( xVoxelRef iMRIIdx,
 
 void SetSegmentationValue ( tkm_tSegType iVolume,
                             xVoxelRef    iMRIIdx,
-                            int          inIndex )
-{
+                            int          inIndex ) {
 
   DebugEnterFunction( ("SetSegmentationValue( iVolume=%d, iMRIIdx=%p "
                        "inIndex=%d )", iVolume, iMRIIdx, inIndex) );
@@ -12481,8 +11282,7 @@ void SetSegmentationValue ( tkm_tSegType iVolume,
 void SetSegmentationValues ( tkm_tSegType iVolume,
                              xVoxelRef    iaMRIIdx,
                              int          inCount,
-                             int          inIndex )
-{
+                             int          inIndex ) {
 
   int nVoxel = 0;
 
@@ -12490,8 +11290,7 @@ void SetSegmentationValues ( tkm_tSegType iVolume,
                        "inCount=%d, inIndex=%d )", iVolume, iaMRIIdx,
                        inCount, inIndex) );
 
-  for ( nVoxel = 0; nVoxel < inCount; nVoxel++ )
-  {
+  for ( nVoxel = 0; nVoxel < inCount; nVoxel++ ) {
     EditSegmentation( iVolume, &(iaMRIIdx[nVoxel]), inIndex );
   }
 
@@ -12505,8 +11304,7 @@ tkm_tErr FloodFillSegmentation ( tkm_tSegType      iVolume,
                                  tBoolean          ib3D,
                                  tkm_tVolumeTarget iSrc,
                                  float             iFuzzy,
-                                 float             iDistance )
-{
+                                 float             iDistance ) {
 
   tkm_tErr                    eResult      = tkm_tErr_NoErr;
   Volm_tFloodParams           params;
@@ -12545,14 +11343,12 @@ tkm_tErr FloodFillSegmentation ( tkm_tSegType      iVolume,
      anatomical volume, check to see if it exists first. For the
      segmentation targets, set the fuzzinees to 0, since it doesn't
      really apply to label values. */
-  switch ( iSrc )
-  {
+  switch ( iSrc ) {
   case tkm_tVolumeTarget_MainAna:
     sourceVolume = gAnatomicalVolume[tkm_tVolumeType_Main];
     break;
   case tkm_tVolumeTarget_AuxAna:
-    if ( NULL == gAnatomicalVolume[tkm_tVolumeType_Aux] )
-    {
+    if ( NULL == gAnatomicalVolume[tkm_tVolumeType_Aux] ) {
       strcpy( sTclArguments,
               "\"Cannot use aux volume as source if it is not loaded.\"" );
       tkm_SendTclCommand( tkm_tTclCommand_ErrorDlog, sTclArguments );
@@ -12561,8 +11357,7 @@ tkm_tErr FloodFillSegmentation ( tkm_tSegType      iVolume,
     sourceVolume = gAnatomicalVolume[tkm_tVolumeType_Aux];
     break;
   case tkm_tVolumeTarget_MainSeg:
-    if ( NULL == gSegmentationVolume[tkm_tSegType_Main] )
-    {
+    if ( NULL == gSegmentationVolume[tkm_tSegType_Main] ) {
       strcpy( sTclArguments,
               "\"Cannot use segmentation as source if it is not loaded.\"" );
       tkm_SendTclCommand( tkm_tTclCommand_ErrorDlog, sTclArguments );
@@ -12572,11 +11367,10 @@ tkm_tErr FloodFillSegmentation ( tkm_tSegType      iVolume,
     params.mfFuzziness = 0;
     break;
   case tkm_tVolumeTarget_AuxSeg:
-    if ( NULL == gSegmentationVolume[tkm_tSegType_Aux] )
-    {
+    if ( NULL == gSegmentationVolume[tkm_tSegType_Aux] ) {
       strcpy
-      ( sTclArguments,
-        "\"Cannot use aux segmentation as source if it is not loaded.\"" );
+        ( sTclArguments,
+          "\"Cannot use aux segmentation as source if it is not loaded.\"" );
       tkm_SendTclCommand( tkm_tTclCommand_ErrorDlog, sTclArguments );
       goto cleanup;
     }
@@ -12599,8 +11393,7 @@ tkm_tErr FloodFillSegmentation ( tkm_tSegType      iVolume,
 
   /* If we selected more than 1000 voxels, we printed a message and
      started printing update dots. Now close off the message. */
-  if ( callbackData.mnCount > 1000 )
-  {
+  if ( callbackData.mnCount > 1000 ) {
     printf( "done. %d voxels filled. \n", callbackData.mnCount );
   }
 
@@ -12619,9 +11412,8 @@ tkm_tErr FloodFillSegmentation ( tkm_tSegType      iVolume,
 }
 
 Volm_tVisitCommand FloodFillSegmentationCallback ( xVoxelRef iAnaIdx,
-    float     iValue,
-    void*     iData )
-{
+                                                   float     iValue,
+                                                   void*     iData ) {
   tkm_tFloodFillCallbackData* callbackData;
 
   /* Grab our callback data and edit the segmentation. */
@@ -12632,20 +11424,17 @@ Volm_tVisitCommand FloodFillSegmentationCallback ( xVoxelRef iAnaIdx,
   /* Incremenet our count. If it's over 1000, print a message saying
      the user can cancel and start printing update dots. */
   callbackData->mnCount++;
-  if ( callbackData->mnCount == 1000 )
-  {
+  if ( callbackData->mnCount == 1000 ) {
     printf( "Filling (press ctrl-c to cancel) " );
   }
   if ( callbackData->mnCount > 1000 &&
-       callbackData->mnCount % 100 == 0 )
-  {
+       callbackData->mnCount % 100 == 0 ) {
     printf( "." );
     fflush( stdout );
   }
 
   /* Check the user cancel. If they canceled, stop. */
-  if ( xUtil_DidUserCancel() )
-  {
+  if ( xUtil_DidUserCancel() ) {
     return Volm_tVisitComm_Stop;
   }
 
@@ -12654,8 +11443,7 @@ Volm_tVisitCommand FloodFillSegmentationCallback ( xVoxelRef iAnaIdx,
 
 
 void SwapSegmentationAndVolume ( mriVolumeRef   iGroup,
-                                 mriVolumeRef    iVolume )
-{
+                                 mriVolumeRef    iVolume ) {
 
   printf( "UNSUPPORTED\n" );
 }
@@ -12666,8 +11454,7 @@ tkm_tErr LoadDTIVolume ( char*              isNameEV,
                          char*              isNameFA,
                          tAxis              iRedAxis,
                          tAxis              iGreenAxis,
-                         tAxis              iBlueAxis )
-{
+                         tAxis              iBlueAxis ) {
 
   tkm_tErr     eResult = tkm_tErr_NoErr;
   Volm_tErr    eVolm = Volm_tErr_NoErr;
@@ -12707,8 +11494,7 @@ tkm_tErr LoadDTIVolume ( char*              isNameEV,
   /* First try loading it with just this name. */
   DebugNote( ("Importing data %s", isNameEV) );
   eVolm = Volm_ImportData( EVVolume, isNameEV );
-  if ( Volm_tErr_NoErr != eVolm )
-  {
+  if ( Volm_tErr_NoErr != eVolm ) {
 
     /* Try it again with a BFLOAT hint. */
     DebugNote( ("Copying BFLOAT hint to string") );
@@ -12716,8 +11502,7 @@ tkm_tErr LoadDTIVolume ( char*              isNameEV,
 
     DebugNote( ("Importing data %s", sNameWithHint) );
     eVolm = Volm_ImportData( EVVolume, sNameWithHint );
-    if ( Volm_tErr_NoErr != eVolm )
-    {
+    if ( Volm_tErr_NoErr != eVolm ) {
 
       /* Try it again with a BSHORT hint. */
       DebugNote( ("Copying BSHORT hint to string") );
@@ -12740,16 +11525,14 @@ tkm_tErr LoadDTIVolume ( char*              isNameEV,
 
   DebugNote( ("Importing data %s", isNameFA) );
   eVolm = Volm_ImportData( FAVolume, isNameFA );
-  if ( Volm_tErr_NoErr != eVolm )
-  {
+  if ( Volm_tErr_NoErr != eVolm ) {
 
     DebugNote( ("Copying BFLOAT hint to string") );
     sprintf( sNameWithHint, "%s@BFLOAT", isNameFA );
 
     DebugNote( ("Importing data %s", sNameWithHint) );
     eVolm = Volm_ImportData( FAVolume, sNameWithHint );
-    if ( Volm_tErr_NoErr != eVolm )
-    {
+    if ( Volm_tErr_NoErr != eVolm ) {
 
       DebugNote( ("Copying BSHORT hint to string") );
       sprintf( sNameWithHint, "%s@BSHORT", isNameFA );
@@ -12771,8 +11554,7 @@ tkm_tErr LoadDTIVolume ( char*              isNameEV,
   /* Now go through the EV volume and assign the processed color value
      scaled by the FA value. (r,g,b) = min(FA,1) * (evx,evy,evz) */
   xVoxl_Set( &EVIdx, 0, 0, 0 );
-  do
-  {
+  do {
 
     /* We're going by the MRI index of the FA volume because it's most
        likely smaller than the screen bounds (256^3) and will be much
@@ -12783,21 +11565,18 @@ tkm_tErr LoadDTIVolume ( char*              isNameEV,
 
     Volm_GetValueAtIdxUnsafe( FAVolume, &screenIdx, &FAValue );
 
-    for ( nFrame = 0; nFrame < 3; nFrame++ )
-    {
+    for ( nFrame = 0; nFrame < 3; nFrame++ ) {
       Volm_GetValueAtIdxFrameUnsafe( EVVolume, &screenIdx, nFrame, &EVValue );
       Volm_SetValueAtIdxFrame( EVVolume, &screenIdx, nFrame,
                                EVValue * MIN( 1, FAValue) );
     }
 
-    if ( xVoxl_GetY( &EVIdx ) == 0 )
-    {
+    if ( xVoxl_GetY( &EVIdx ) == 0 ) {
       fprintf( stdout, "\rProcessing DTI volumes: %.2f%% done",
                (xVoxl_GetFloatZ( &EVIdx ) / (float)zEVZ) * 100.0 );
     }
 
-  }
-  while ( xVoxl_IncrementUntilLimits( &EVIdx, zEVX, zEVY, zEVZ ) );
+  } while ( xVoxl_IncrementUntilLimits( &EVIdx, zEVX, zEVY, zEVZ ) );
 
   fprintf( stdout, "\rProcessing DTI volumes: 100%% done.         \n" );
 
@@ -12805,8 +11584,7 @@ tkm_tErr LoadDTIVolume ( char*              isNameEV,
   Volm_Delete( &FAVolume );
 
   /* If we already have DTI volumes, delete it. */
-  if ( NULL != gDTIVolume )
-  {
+  if ( NULL != gDTIVolume ) {
     Volm_Delete( &gDTIVolume );
   }
 
@@ -12814,8 +11592,7 @@ tkm_tErr LoadDTIVolume ( char*              isNameEV,
   gDTIVolume = EVVolume;
 
   /* Set it in the window. */
-  if ( NULL != gMeditWindow )
-  {
+  if ( NULL != gMeditWindow ) {
     DebugNote( ("Setting DTI volume in main window") );
     MWin_SetDTIVolume( gMeditWindow, -1, gDTIVolume );
   }
@@ -12825,8 +11602,7 @@ tkm_tErr LoadDTIVolume ( char*              isNameEV,
   gaDTIAxisForComponent[xColr_tComponent_Green] = iGreenAxis;
   gaDTIAxisForComponent[xColr_tComponent_Blue] = iBlueAxis;
 
-  if ( NULL != gMeditWindow )
-  {
+  if ( NULL != gMeditWindow ) {
     DebugNote( ("Setting DTI axis -> component in main window") );
     MWin_SetDTIAxisForComponent( gMeditWindow, -1,
                                  gaDTIAxisForComponent[xColr_tComponent_Red],
@@ -12858,18 +11634,15 @@ tkm_tErr LoadDTIVolume ( char*              isNameEV,
   return eResult;
 }
 
-void SetDTIAlpha ( float ifAlpha )
-{
+void SetDTIAlpha ( float ifAlpha ) {
 
   char sTclArguments[STRLEN] = "";
 
-  if ( ifAlpha >= 0 && ifAlpha <= 1.0 )
-  {
+  if ( ifAlpha >= 0 && ifAlpha <= 1.0 ) {
 
     gfDTIAlpha = ifAlpha;
 
-    if ( NULL != gMeditWindow )
-    {
+    if ( NULL != gMeditWindow ) {
       MWin_SetDTIAlpha( gMeditWindow, -1, ifAlpha );
       UpdateAndRedraw ();
     }
@@ -12884,8 +11657,7 @@ void SetDTIAlpha ( float ifAlpha )
 
 // ============================================================== EDITING UNDO
 
-tkm_tErr InitUndoList ()
-{
+tkm_tErr InitUndoList () {
 
   tkm_tErr   eResult = tkm_tErr_NoErr;
   xUndL_tErr eList   = xUndL_tErr_NoErr;
@@ -12914,15 +11686,13 @@ tkm_tErr InitUndoList ()
   return eResult;
 }
 
-void DeleteUndoList ()
-{
+void DeleteUndoList () {
 
   xUndL_tErr eList = xUndL_tErr_NoErr;
 
   /* delete the list */
   eList = xUndL_Delete( &gUndoList );
-  if ( xUndL_tErr_NoErr != eList )
-  {
+  if ( xUndL_tErr_NoErr != eList ) {
     DebugPrint( ( "DeleteUndoList(): Error in xUndL_Delete %d: %s\n",
                   eList, xUndL_GetErrorString( eList ) ) );
   }
@@ -12931,8 +11701,7 @@ void DeleteUndoList ()
 void NewUndoEntry ( UndoEntryRef*  opEntry,
                     tUndoActionFunction iFunction,
                     xVoxelRef      iVoxel,
-                    int        inValue )
-{
+                    int        inValue ) {
 
   UndoEntryRef this = NULL;
 
@@ -12940,8 +11709,7 @@ void NewUndoEntry ( UndoEntryRef*  opEntry,
 
   /* allocate the entry */
   this = (UndoEntryRef) malloc( sizeof(UndoEntry) );
-  if ( NULL == this )
-  {
+  if ( NULL == this ) {
     DebugPrint( ( "NewUndoEntry(): Error allocating entry.\n" ) );
     return;
   }
@@ -12958,21 +11726,18 @@ void NewUndoEntry ( UndoEntryRef*  opEntry,
   *opEntry = this;
 }
 
-void DeleteUndoEntry ( UndoEntryRef* ioEntry )
-{
+void DeleteUndoEntry ( UndoEntryRef* ioEntry ) {
 
   UndoEntryRef this = NULL;
 
   /* see if we have an entry */
-  if ( NULL == ioEntry )
-  {
+  if ( NULL == ioEntry ) {
     DebugPrint( ( "DeleteUndoEntry(): NULL parameter.\n" ) );
     return;
   }
 
   this = *ioEntry;
-  if ( NULL == this )
-  {
+  if ( NULL == this ) {
     DebugPrint( ( "DeleteUndoEntry(): Got NULL entry.\n" ) );
     return;
   }
@@ -12986,11 +11751,9 @@ void DeleteUndoEntry ( UndoEntryRef* ioEntry )
   *ioEntry = NULL;
 }
 
-void PrintUndoEntry ( UndoEntryRef this )
-{
+void PrintUndoEntry ( UndoEntryRef this ) {
 
-  if ( NULL == this )
-  {
+  if ( NULL == this ) {
     DebugPrint( ( "PrintUndoEntry(): Got NULL entry.\n" ) );
     return;
   }
@@ -13000,15 +11763,13 @@ void PrintUndoEntry ( UndoEntryRef this )
 
 }
 
-void ClearUndoList ()
-{
+void ClearUndoList () {
 
   xUndL_tErr eList = xUndL_tErr_NoErr;
 
   /* clear the list */
   eList = xUndL_Clear( gUndoList );
-  if ( xUndL_tErr_NoErr != eList )
-  {
+  if ( xUndL_tErr_NoErr != eList ) {
     DebugPrint( ( "ClearUndoList(): Error in xUndL_Clear %d: %s\n",
                   eList, xUndL_GetErrorString( eList ) ) );
   }
@@ -13017,38 +11778,33 @@ void ClearUndoList ()
 
 void AddVoxelAndValueToUndoList ( tUndoActionFunction iFunction,
                                   xVoxelRef        iVoxel,
-                                  int          inValue )
-{
+                                  int          inValue ) {
 
   UndoEntryRef entry = NULL;
   xUndL_tErr   eList = xUndL_tErr_NoErr;
 
   /* make the entry */
   NewUndoEntry( &entry, iFunction, iVoxel, inValue );
-  if ( NULL == entry )
-  {
+  if ( NULL == entry ) {
     DebugPrint( ( "AddVoxelAndValueToUndoList(): Couldn't create entry.\n" ) );
     return;
   }
 
   /* add the entry */
   eList = xUndL_AddEntry( gUndoList, entry );
-  if ( xUndL_tErr_NoErr != eList )
-  {
+  if ( xUndL_tErr_NoErr != eList ) {
     DebugPrint( ( "AddVoxelAndValueToUndoList(): Error in xUndL_AddEntry "
                   "%d: %s\n", eList, xUndL_GetErrorString( eList ) ) );
   }
 }
 
-void RestoreUndoList ()
-{
+void RestoreUndoList () {
 
   xUndL_tErr eList = xUndL_tErr_NoErr;
 
   /* restore the list */
   eList = xUndL_Restore( gUndoList );
-  if ( xUndL_tErr_NoErr != eList )
-  {
+  if ( xUndL_tErr_NoErr != eList ) {
     DebugPrint( ( "RestoreUndoList(): Error in xUndL_Restore %d: %s\n",
                   eList, xUndL_GetErrorString( eList ) ) );
   }
@@ -13061,11 +11817,9 @@ void RestoreUndoList ()
   UpdateAndRedraw();
 }
 
-void DeleteUndoEntryWrapper ( xUndL_tEntryPtr* ipEntryToDelete )
-{
+void DeleteUndoEntryWrapper ( xUndL_tEntryPtr* ipEntryToDelete ) {
 
-  if ( NULL == *ipEntryToDelete )
-  {
+  if ( NULL == *ipEntryToDelete ) {
     DebugPrint( ( "DeleteUndoEntryWrapper(): Got null entry.\n" ) );
     return;
   }
@@ -13076,8 +11830,7 @@ void DeleteUndoEntryWrapper ( xUndL_tEntryPtr* ipEntryToDelete )
 }
 
 void UndoActionWrapper ( xUndL_tEntryPtr  iUndoneEntry,
-                         xUndL_tEntryPtr* opNewEntry )
-{
+                         xUndL_tEntryPtr* opNewEntry ) {
 
   UndoEntryRef entryToUndo = NULL;
   UndoEntryRef undoneEntry = NULL;
@@ -13090,8 +11843,7 @@ void UndoActionWrapper ( xUndL_tEntryPtr  iUndoneEntry,
 
   /* get the entry and check it */
   entryToUndo = (UndoEntryRef)iUndoneEntry;
-  if ( NULL == entryToUndo )
-  {
+  if ( NULL == entryToUndo ) {
     DebugPrint( ( "UndoActionWrapper(): Got null entry.\n" ) );
     return;
   }
@@ -13108,16 +11860,14 @@ void UndoActionWrapper ( xUndL_tEntryPtr  iUndoneEntry,
   *opNewEntry = undoneEntry;
 }
 
-void PrintEntryWrapper ( xUndL_tEntryPtr iEntry )
-{
+void PrintEntryWrapper ( xUndL_tEntryPtr iEntry ) {
 
   PrintUndoEntry( (UndoEntryRef)iEntry );
 }
 
 /* =========================================================== UNDO VOLUME */
 
-tkm_tErr InitUndoVolume ()
-{
+tkm_tErr InitUndoVolume () {
 
   tkm_tErr   eResult = tkm_tErr_NoErr;
   Volm_tErr  eVolume = Volm_tErr_NoErr;
@@ -13129,9 +11879,7 @@ tkm_tErr InitUndoVolume ()
   /* delete the volume if it exists */
   if ( NULL != gUndoVoxelValueVolume ||
        NULL != gUndoVoxelFlagVolume )
-  {
     DeleteUndoVolume();
-  }
 
   /* Get dimensions of the main MRI. */
   eVolume = Volm_GetDimensions( gAnatomicalVolume[tkm_tVolumeType_Main],
@@ -13147,14 +11895,12 @@ tkm_tErr InitUndoVolume ()
     (tBoolean***) calloc( gUndoVolumeDimensions[2], sizeof(tBoolean**) );
   DebugAssertThrowX( (NULL != gUndoVoxelFlagVolume),
                      eResult, tkm_tErr_CouldntAllocate );
-  for ( nZ = 0; nZ < gUndoVolumeDimensions[2]; nZ++ )
-  {
+  for ( nZ = 0; nZ < gUndoVolumeDimensions[2]; nZ++ ) {
     gUndoVoxelFlagVolume[nZ] =
       (tBoolean**) calloc( gUndoVolumeDimensions[1], sizeof(tBoolean*) );
     DebugAssertThrowX( (NULL != gUndoVoxelFlagVolume[nZ]),
                        eResult, tkm_tErr_CouldntAllocate );
-    for ( nY = 0; nY < gUndoVolumeDimensions[1]; nY++ )
-    {
+    for ( nY = 0; nY < gUndoVolumeDimensions[1]; nY++ ) {
       gUndoVoxelFlagVolume[nZ][nY] =
         (tBoolean*) calloc( gUndoVolumeDimensions[0], sizeof(tBoolean) );
       DebugAssertThrowX( (NULL != gUndoVoxelFlagVolume[nZ][nY]),
@@ -13168,14 +11914,12 @@ tkm_tErr InitUndoVolume ()
     (Volm_tValue***) calloc( gUndoVolumeDimensions[2], sizeof(Volm_tValue**) );
   DebugAssertThrowX( (NULL != gUndoVoxelValueVolume),
                      eResult, tkm_tErr_CouldntAllocate );
-  for ( nZ = 0; nZ < gUndoVolumeDimensions[2]; nZ++ )
-  {
+  for ( nZ = 0; nZ < gUndoVolumeDimensions[2]; nZ++ ) {
     gUndoVoxelValueVolume[nZ] =
       (Volm_tValue**) calloc( gUndoVolumeDimensions[1], sizeof(Volm_tValue*) );
     DebugAssertThrowX( (NULL != gUndoVoxelValueVolume[nZ]),
                        eResult, tkm_tErr_CouldntAllocate );
-    for ( nY = 0; nY < gUndoVolumeDimensions[1]; nY++ )
-    {
+    for ( nY = 0; nY < gUndoVolumeDimensions[1]; nY++ ) {
       gUndoVoxelValueVolume[nZ][nY] =
         (Volm_tValue*) calloc( gUndoVolumeDimensions[0], sizeof(Volm_tValue) );
       DebugAssertThrowX( (NULL != gUndoVoxelValueVolume[nZ][nY]),
@@ -13192,21 +11936,17 @@ tkm_tErr InitUndoVolume ()
   return eResult;
 }
 
-void DeleteUndoVolume ()
-{
+void DeleteUndoVolume () {
 
   int       nZ      = 0;
   int       nY      = 0;
 
   DebugEnterFunction( ("DeleteUndoVolume()") );
 
-  if ( NULL != gUndoVoxelValueVolume )
-  {
+  if ( NULL != gUndoVoxelValueVolume ) {
     DebugNote( ("Deleting gUndoVoxelValueVolume") );
-    for ( nZ = 0; nZ < gUndoVolumeDimensions[2]; nZ++ )
-    {
-      for ( nY = 0; nY < gUndoVolumeDimensions[1]; nY++ )
-      {
+    for ( nZ = 0; nZ < gUndoVolumeDimensions[2]; nZ++ ) {
+      for ( nY = 0; nY < gUndoVolumeDimensions[1]; nY++ ) {
         free( gUndoVoxelValueVolume[nZ][nY] );
       }
       free( gUndoVoxelValueVolume[nZ] );
@@ -13215,13 +11955,10 @@ void DeleteUndoVolume ()
     gUndoVoxelValueVolume = NULL;
   }
 
-  if ( NULL != gUndoVoxelFlagVolume )
-  {
+  if ( NULL != gUndoVoxelFlagVolume ) {
     DebugNote( ("Deleting gUndoVoxelFlagVolume") );
-    for ( nZ = 0; nZ < gUndoVolumeDimensions[2]; nZ++ )
-    {
-      for ( nY = 0; nY < gUndoVolumeDimensions[1]; nY++ )
-      {
+    for ( nZ = 0; nZ < gUndoVolumeDimensions[2]; nZ++ ) {
+      for ( nY = 0; nY < gUndoVolumeDimensions[1]; nY++ ) {
         free( gUndoVoxelFlagVolume[nZ][nY] );
       }
       free( gUndoVoxelFlagVolume[nZ] );
@@ -13234,8 +11971,7 @@ void DeleteUndoVolume ()
 }
 
 void AddMRIIdxAndValueToUndoVolume ( xVoxelRef    iMRIIdx,
-                                     Volm_tValue  iValue )
-{
+                                     Volm_tValue  iValue ) {
 
   tkm_tErr eResult = tkm_tErr_NoErr;
 
@@ -13264,8 +12000,7 @@ void AddMRIIdxAndValueToUndoVolume ( xVoxelRef    iMRIIdx,
   DebugExitFunction;
 }
 
-tBoolean IsMRIIdxInUndoVolume ( xVoxelRef iMRIIdx )
-{
+tBoolean IsMRIIdxInUndoVolume ( xVoxelRef iMRIIdx ) {
 
   tkm_tErr eResult     = tkm_tErr_NoErr;
   tBoolean bIsInVolume = FALSE;
@@ -13294,8 +12029,7 @@ tBoolean IsMRIIdxInUndoVolume ( xVoxelRef iMRIIdx )
   return bIsInVolume;
 }
 
-void RestoreUndoVolumeAroundMRIIdx ( xVoxelRef iMRIIdx )
-{
+void RestoreUndoVolumeAroundMRIIdx ( xVoxelRef iMRIIdx ) {
 
   tkm_tErr  eResult = tkm_tErr_NoErr;
   Volm_tErr eVolume = Volm_tErr_NoErr;
@@ -13318,13 +12052,12 @@ void RestoreUndoVolumeAroundMRIIdx ( xVoxelRef iMRIIdx )
 
 
   /* if this voxel is in the volume... */
-  if ( gUndoVoxelFlagVolume[xVoxl_GetZ(iMRIIdx)][xVoxl_GetY(iMRIIdx)][xVoxl_GetX(iMRIIdx)] )
-  {
+  if ( gUndoVoxelFlagVolume[xVoxl_GetZ(iMRIIdx)][xVoxl_GetY(iMRIIdx)][xVoxl_GetX(iMRIIdx)] ) {
 
     /* Restore the value */
     Volm_SetValueAtMRIIdx_
-    ( gAnatomicalVolume[tkm_tVolumeType_Main], iMRIIdx,
-      (Volm_tValue)gUndoVoxelValueVolume[xVoxl_GetZ(iMRIIdx)][xVoxl_GetY(iMRIIdx)][xVoxl_GetX(iMRIIdx)] );
+      ( gAnatomicalVolume[tkm_tVolumeType_Main], iMRIIdx,
+        (Volm_tValue)gUndoVoxelValueVolume[xVoxl_GetZ(iMRIIdx)][xVoxl_GetY(iMRIIdx)][xVoxl_GetX(iMRIIdx)] );
 
     /* "Remove" it from the volume. */
     gUndoVoxelFlagVolume[xVoxl_GetZ(iMRIIdx)][xVoxl_GetY(iMRIIdx)][xVoxl_GetX(iMRIIdx)] = FALSE;
@@ -13332,14 +12065,12 @@ void RestoreUndoVolumeAroundMRIIdx ( xVoxelRef iMRIIdx )
     /* Try restoring surrounding voxels as well. */
     for ( nZ = xVoxl_GetZ(iMRIIdx)-1; nZ <= xVoxl_GetZ(iMRIIdx)+1; nZ++ )
       for ( nY = xVoxl_GetY(iMRIIdx)-1; nY <= xVoxl_GetY(iMRIIdx)+1; nY++ )
-        for ( nX = xVoxl_GetX(iMRIIdx)-1; nX <= xVoxl_GetX(iMRIIdx)+1; nX++ )
-        {
+        for ( nX = xVoxl_GetX(iMRIIdx)-1; nX <= xVoxl_GetX(iMRIIdx)+1; nX++ ) {
           xVoxl_Set( &MRIIdx, nX, nY, nZ );
           eVolume =
             Volm_VerifyMRIIdx_( gAnatomicalVolume[tkm_tVolumeType_Main],
                                 &MRIIdx);
-          if ( Volm_tErr_NoErr == eVolume )
-          {
+          if ( Volm_tErr_NoErr == eVolume ) {
             RestoreUndoVolumeAroundMRIIdx( &MRIIdx );
           }
         }
@@ -13354,8 +12085,7 @@ void RestoreUndoVolumeAroundMRIIdx ( xVoxelRef iMRIIdx )
   DebugExitFunction;
 }
 
-void ClearUndoVolume ()
-{
+void ClearUndoVolume () {
 
   tkm_tErr  eResult = tkm_tErr_NoErr;
   int       nX      = 0;
@@ -13371,12 +12101,9 @@ void ClearUndoVolume ()
 
   /* Set all the flags to FALSE. */
   DebugNote( ("Setting flags in gUndoVoxelFlagVolume to false") );
-  for ( nZ = 0; nZ < gUndoVolumeDimensions[2]; nZ++ )
-  {
-    for ( nY = 0; nY < gUndoVolumeDimensions[1]; nY++ )
-    {
-      for ( nX = 0; nX < gUndoVolumeDimensions[0]; nX++ )
-      {
+  for ( nZ = 0; nZ < gUndoVolumeDimensions[2]; nZ++ ) {
+    for ( nY = 0; nY < gUndoVolumeDimensions[1]; nY++ ) {
+      for ( nX = 0; nX < gUndoVolumeDimensions[0]; nX++ ) {
         gUndoVoxelFlagVolume[nZ][nY][nX] = FALSE;
       }
     }
@@ -13392,8 +12119,7 @@ void ClearUndoVolume ()
 /* ============================================================ HEAD POINTS */
 
 tkm_tErr LoadHeadPts ( char* isHeadPtsFile,
-                       char* isTransformFile )
-{
+                       char* isTransformFile ) {
 
   tkm_tErr  eResult        = tkm_tErr_NoErr;
   HPtL_tErr eHeadPts        = HPtL_tErr_NoErr;
@@ -13411,15 +12137,12 @@ tkm_tErr LoadHeadPts ( char* isHeadPtsFile,
   DebugNote( ("Making file name from %s", isHeadPtsFile) );
   MakeFileName( isHeadPtsFile, tkm_tFileName_HeadPoints,
                 sHeadPtsFile, sizeof(sHeadPtsFile) );
-  if ( NULL != isTransformFile )
-  {
+  if ( NULL != isTransformFile ) {
     DebugNote( ("Making file name from %s", isTransformFile) );
     MakeFileName( isTransformFile, tkm_tFileName_HeadPoints,
                   sTransformFile, sizeof(sTransformFile) );
     spTransformFileArg = sTransformFile;
-  }
-  else
-  {
+  } else {
     spTransformFileArg = NULL;
   }
 
@@ -13459,14 +12182,12 @@ tkm_tErr LoadHeadPts ( char* isHeadPtsFile,
                     "found. " );
   EndDebugCatch;
 
-  if( NULL != anaIdxToRASTransform )
-  {
+  if( NULL != anaIdxToRASTransform ) {
     DebugNote( ("Freeing anaIdxToRASTransform") );
     MatrixFree( &anaIdxToRASTransform );
   }
 
-  if( NULL != RAStoAnaIdxTransform )
-  {
+  if( NULL != RAStoAnaIdxTransform ) {
     DebugNote( ("Freeing RAStoAnaIdxTransform") );
     MatrixFree( &RAStoAnaIdxTransform );
   }
@@ -13476,14 +12197,12 @@ tkm_tErr LoadHeadPts ( char* isHeadPtsFile,
   return eResult;
 }
 
-void RestoreHeadPoints ()
-{
+void RestoreHeadPoints () {
 
   HPtL_tErr eHeadPts  = HPtL_tErr_NoErr;
 
   eHeadPts = HPtL_RestoreTransform( gHeadPoints );
-  if ( HPtL_tErr_NoErr != eHeadPts )
-  {
+  if ( HPtL_tErr_NoErr != eHeadPts ) {
     DebugPrint( ( "HPtL error %d in RestoreHeadPoints: %s\n",
                   eHeadPts, HPtL_GetErrorString( eHeadPts ) ) );
     goto cleanup;
@@ -13491,18 +12210,16 @@ void RestoreHeadPoints ()
 
   UpdateAndRedraw();
 
-cleanup:
+ cleanup:
   return;
 }
 
-void WriteHeadPointsTransform ()
-{
+void WriteHeadPointsTransform () {
 
   HPtL_tErr eHeadPts  = HPtL_tErr_NoErr;
 
   eHeadPts = HPtL_WriteTransform( gHeadPoints, NULL );
-  if ( HPtL_tErr_NoErr != eHeadPts )
-  {
+  if ( HPtL_tErr_NoErr != eHeadPts ) {
     DebugPrint( ( "HPtL error %d in WriteHeadPointsTransform: %s\n",
                   eHeadPts, HPtL_GetErrorString( eHeadPts ) ) );
     goto cleanup;
@@ -13510,18 +12227,16 @@ void WriteHeadPointsTransform ()
 
   OutputPrint "Wrote head points transform.\n" EndOutputPrint;
 
-cleanup:
+ cleanup:
   return;
 }
 
-void WriteHeadPointsFile ()
-{
+void WriteHeadPointsFile () {
 
   HPtL_tErr eHeadPts  = HPtL_tErr_NoErr;
 
   eHeadPts = HPtL_WriteHeadPointFile( gHeadPoints, NULL );
-  if ( HPtL_tErr_NoErr != eHeadPts )
-  {
+  if ( HPtL_tErr_NoErr != eHeadPts ) {
     DebugPrint( ( "HPtL error %d in WriteHeadPointsFile: %s\n",
                   eHeadPts, HPtL_GetErrorString( eHeadPts ) ) );
     goto cleanup;
@@ -13529,24 +12244,21 @@ void WriteHeadPointsFile ()
 
   OutputPrint "Wrote head points file.\n" EndOutputPrint;
 
-cleanup:
+ cleanup:
   return;
 }
 
 void RotateHeadPts ( float ifDegrees,
-                     char  isAxis )
-{
+                     char  isAxis ) {
 
   mri_tOrientation orientation;
 
   /* get the orientation */
   MWin_GetOrientation ( gMeditWindow, &orientation );
 
-  switch ( isAxis )
-  {
+  switch ( isAxis ) {
   case 'x':
-    switch ( orientation )
-    {
+    switch ( orientation ) {
     case mri_tOrientation_Coronal:
       HPtL_Rotate( gHeadPoints, ifDegrees, tAxis_X );
       break;
@@ -13562,8 +12274,7 @@ void RotateHeadPts ( float ifDegrees,
     }
     break;
   case 'y':
-    switch ( orientation )
-    {
+    switch ( orientation ) {
     case mri_tOrientation_Coronal:
       HPtL_Rotate( gHeadPoints, ifDegrees, tAxis_Z );
       break;
@@ -13579,8 +12290,7 @@ void RotateHeadPts ( float ifDegrees,
     }
     break;
   case 'z':
-    switch ( orientation )
-    {
+    switch ( orientation ) {
     case mri_tOrientation_Coronal:
       HPtL_Rotate( gHeadPoints, -ifDegrees, tAxis_Y );
       break;
@@ -13599,24 +12309,21 @@ void RotateHeadPts ( float ifDegrees,
 
   UpdateAndRedraw();
 
-cleanup:
+ cleanup:
   return;
 }
 
 void TranslateHeadPts ( float ifDistance,
-                        char  isDirection )
-{
+                        char  isDirection ) {
 
   mri_tOrientation orientation;
 
   /* get the orientation */
   MWin_GetOrientation ( gMeditWindow, &orientation );
 
-  switch ( isDirection )
-  {
+  switch ( isDirection ) {
   case 'x':
-    switch ( orientation )
-    {
+    switch ( orientation ) {
     case mri_tOrientation_Coronal:
       HPtL_Translate( gHeadPoints, ifDistance, tAxis_X );
       break;
@@ -13632,8 +12339,7 @@ void TranslateHeadPts ( float ifDistance,
     }
     break;
   case 'y':
-    switch ( orientation )
-    {
+    switch ( orientation ) {
     case mri_tOrientation_Coronal:
       HPtL_Translate( gHeadPoints, ifDistance, tAxis_Z );
       break;
@@ -13649,8 +12355,7 @@ void TranslateHeadPts ( float ifDistance,
     }
     break;
   case 'z':
-    switch ( orientation )
-    {
+    switch ( orientation ) {
     case mri_tOrientation_Coronal:
       HPtL_Translate( gHeadPoints, -ifDistance, tAxis_Y );
       break;
@@ -13669,32 +12374,26 @@ void TranslateHeadPts ( float ifDistance,
 
   UpdateAndRedraw();
 
-cleanup:
+ cleanup:
   return;
 }
 
-void SetSelectedHeadPointLabel ( char* isNewLabel )
-{
+void SetSelectedHeadPointLabel ( char* isNewLabel ) {
 
   HPtL_tHeadPointRef pHeadPoint = NULL;
   MWin_tErr       eWindow  = MWin_tErr_NoErr;
 
   /* check label */
   if ( NULL == isNewLabel )
-  {
     goto error;
-  }
 
   /* get the point from the window */
   eWindow = MWin_GetSelectedHeadPt( gMeditWindow, &pHeadPoint );
   if ( MWin_tErr_NoErr != eWindow )
-  {
     goto error;
-  }
 
   /* if we got one... */
-  if ( NULL != pHeadPoint )
-  {
+  if ( NULL != pHeadPoint ) {
 
     /* set the name */
     strcpy( pHeadPoint->msLabel, isNewLabel );
@@ -13702,21 +12401,19 @@ void SetSelectedHeadPointLabel ( char* isNewLabel )
 
   goto cleanup;
 
-error:
+ error:
 
-  if ( MWin_tErr_NoErr != eWindow )
-  {
+  if ( MWin_tErr_NoErr != eWindow ) {
     DebugPrint( ( "MWin error %d in SetSelectedHeadPointLabel: %s\n",
                   eWindow, MWin_GetErrorString( eWindow ) ) );
   }
 
-cleanup:
+ cleanup:
 
   return;
 }
 
-void AlignSelectedHeadPointToMRIIdx ( xVoxelRef iMRIIdx )
-{
+void AlignSelectedHeadPointToMRIIdx ( xVoxelRef iMRIIdx ) {
 
   HPtL_tHeadPointRef pHeadPoint = NULL;
   MWin_tErr       eWindow  = MWin_tErr_NoErr;
@@ -13725,21 +12422,16 @@ void AlignSelectedHeadPointToMRIIdx ( xVoxelRef iMRIIdx )
   /* get the point from the window */
   eWindow = MWin_GetSelectedHeadPt( gMeditWindow, &pHeadPoint );
   if ( MWin_tErr_NoErr != eWindow )
-  {
     goto error;
-  }
 
   /* if we got one... */
-  if ( NULL != pHeadPoint )
-  {
+  if ( NULL != pHeadPoint ) {
 
     /* align to it */
     eHeadPts = HPtL_AlignPointToClientVoxel( gHeadPoints,
-               pHeadPoint, iMRIIdx );
+                                             pHeadPoint, iMRIIdx );
     if ( HPtL_tErr_NoErr != eHeadPts )
-    {
       goto error;
-    }
 
     /* redraw */
     UpdateAndRedraw();
@@ -13747,29 +12439,26 @@ void AlignSelectedHeadPointToMRIIdx ( xVoxelRef iMRIIdx )
 
   goto cleanup;
 
-error:
+ error:
 
-  if ( MWin_tErr_NoErr != eWindow )
-  {
+  if ( MWin_tErr_NoErr != eWindow ) {
     DebugPrint( ( "MWin error %d in AlignSelectedHeadPointToMRIIdx: %s\n",
                   eWindow, MWin_GetErrorString( eWindow ) ) );
   }
 
-  if (  HPtL_tErr_NoErr != eHeadPts )
-  {
+  if (  HPtL_tErr_NoErr != eHeadPts ) {
     DebugPrint( ( "HPtL error %d in AlignSelectedHeadPointToMRIIdx: %s\n",
                   eWindow, HPtL_GetErrorString( eHeadPts ) ) );
   }
 
-cleanup:
+ cleanup:
 
   return;
 }
 
 /* ===================================================================== GCA */
 
-tkm_tErr LoadGCA ( char* isGCAFileName, char* isTransformFileName )
-{
+tkm_tErr LoadGCA ( char* isGCAFileName, char* isTransformFileName ) {
 
   tkm_tErr  eResult        = tkm_tErr_NoErr;
   char      sGCAFileName[tkm_knPathLen]    = "";
@@ -13808,7 +12497,7 @@ tkm_tErr LoadGCA ( char* isGCAFileName, char* isTransformFileName )
   }
 
   TransformInvert
-  (trans, gAnatomicalVolume[tkm_tVolumeType_Main]->mpMriValues) ;
+    (trans, gAnatomicalVolume[tkm_tVolumeType_Main]->mpMriValues) ;
 
   /* set globals */
   gGCAVolume  = gca;
@@ -13833,13 +12522,11 @@ tkm_tErr LoadGCA ( char* isGCAFileName, char* isTransformFileName )
   EndDebugCatch;
 
   if ( NULL != gca )
-  {
     GCAfree( &gca );
-  }
 #if 0
   GCAhistoScaleImageIntensities
-  (gGCAVolume,
-   gAnatomicalVolume[tkm_tVolumeType_Main]->mpMriValues) ;
+    (gGCAVolume,
+     gAnatomicalVolume[tkm_tVolumeType_Main]->mpMriValues) ;
 #endif
 
   DebugExitFunction;
@@ -13847,8 +12534,7 @@ tkm_tErr LoadGCA ( char* isGCAFileName, char* isTransformFileName )
   return eResult;
 }
 
-tkm_tErr SaveGCA ( char* isGCAFileName )
-{
+tkm_tErr SaveGCA ( char* isGCAFileName ) {
 
   tkm_tErr  eResult        = tkm_tErr_NoErr;
   char      sGCAFileName[tkm_knPathLen]    = "";
@@ -13885,21 +12571,16 @@ tkm_tErr SaveGCA ( char* isGCAFileName )
   return eResult;
 }
 
-tkm_tErr DeleteGCA ()
-{
+tkm_tErr DeleteGCA () {
 
   tkm_tErr eResult = tkm_tErr_NoErr;
 
   DebugEnterFunction( ("DeleteGCA ()") );
 
   if ( NULL != gGCAVolume )
-  {
     GCAfree( &gGCAVolume );
-  }
   if ( NULL != gGCATransform )
-  {
     TransformFree( &gGCATransform );
-  }
 
   DebugExitFunction;
 
@@ -13910,8 +12591,7 @@ tkm_tErr DeleteGCA ()
 
 /* ===================================================================== VLI */
 
-tkm_tErr LoadVLIs ( char* isFileName1, char* isFileName2 )
-{
+tkm_tErr LoadVLIs ( char* isFileName1, char* isFileName2 ) {
 
   tkm_tErr  eResult        = tkm_tErr_NoErr;
   char      sFileName1[tkm_knPathLen] = "";
@@ -13966,21 +12646,16 @@ tkm_tErr LoadVLIs ( char* isFileName1, char* isFileName2 )
   return eResult;
 }
 
-tkm_tErr DeleteVLIs ()
-{
+tkm_tErr DeleteVLIs () {
 
   tkm_tErr eResult = tkm_tErr_NoErr;
 
   DebugEnterFunction( ("DeleteVLIs ()") );
 
   if ( NULL != gVLI1 )
-  {
     VLfree( &gVLI1 );
-  }
   if ( NULL != gVLI2 )
-  {
     VLfree( &gVLI2 );
-  }
 
   DebugExitFunction;
 
@@ -13992,8 +12667,7 @@ tkm_tErr DeleteVLIs ()
 
 /* =================================================================== TIMER */
 
-tkm_tErr StartTimer ()
-{
+tkm_tErr StartTimer () {
 
   tkm_tErr    eResult = tkm_tErr_NoErr;
   int      eSystem = 0;
@@ -14021,8 +12695,7 @@ tkm_tErr StartTimer ()
   return eResult;
 }
 
-tkm_tErr StopTimer ()
-{
+tkm_tErr StopTimer () {
 
   tkm_tErr    eResult = tkm_tErr_NoErr;
   int      eSystem = 0;
@@ -14059,8 +12732,7 @@ tkm_tErr StopTimer ()
 
   /* look for the file name override from the environment variable. */
   psFileName = getenv( ksTkTimerDataFileEnvVar );
-  if ( NULL != psFileName )
-  {
+  if ( NULL != psFileName ) {
     xUtil_strncpy( gsTkTimerFileName, psFileName, sizeof(gsTkTimerFileName) );
   }
 
@@ -14068,16 +12740,12 @@ tkm_tErr StopTimer ()
   nNumEntries = 0;
   DebugNote( ("Opening file %s for counting", gsTkTimerFileName) );
   file = fopen( gsTkTimerFileName, "r" );
-  if ( NULL != file )
-  {
-    while ( !feof( file ) )
-    {
+  if ( NULL != file ) {
+    while ( !feof( file ) ) {
       DebugNote( ("Looking for string and number in file") );
       eSystem = fscanf( file, "%*s %*d" );
       if ( EOF != eSystem )
-      {
         nNumEntries ++;
-      }
     }
     DebugNote( ("Closing file") );
     fclose( file );
@@ -14091,8 +12759,7 @@ tkm_tErr StopTimer ()
   DebugNote( ("Allocating storage for %d names", nNumEntries) );
   asNames = (char**) calloc( nNumEntries, sizeof(char*) );
   DebugAssertThrowX( (NULL != asNames), eResult, tkm_tErr_CouldntAllocate );
-  for ( nCurEntry = 0; nCurEntry < nNumEntries; nCurEntry++ )
-  {
+  for ( nCurEntry = 0; nCurEntry < nNumEntries; nCurEntry++ ) {
     DebugNote( ("Allocating name string %d", nCurEntry) );
     asNames[nCurEntry] = (char*) malloc( sizeof(char) * tkm_knNameLen );
     DebugAssertThrowX( (NULL != asNames[nCurEntry]),
@@ -14103,15 +12770,12 @@ tkm_tErr StopTimer ()
   nCurEntry = 0;
   DebugNote( ("Opening file %s for reading", gsTkTimerFileName) );
   file = fopen( gsTkTimerFileName, "r" );
-  if ( NULL != file )
-  {
-    while ( !feof( file ) )
-    {
+  if ( NULL != file ) {
+    while ( !feof( file ) ) {
       DebugNote( ("Getting line %d", nCurEntry) );
       eSystem = fscanf( file, "%s %d",
                         asNames[nCurEntry], &(anTimes[nCurEntry]) );
-      if ( 2 == eSystem )
-      {
+      if ( 2 == eSystem ) {
         nCurEntry ++;
       }
     }
@@ -14123,11 +12787,9 @@ tkm_tErr StopTimer ()
   /* look for the entry with this subject name. if we find it, add the
      elapsed time to the time entry. */
   bFound = FALSE;
-  for ( nCurEntry = 0; nCurEntry < nNumEntries; nCurEntry++ )
-  {
+  for ( nCurEntry = 0; nCurEntry < nNumEntries; nCurEntry++ ) {
     DebugNote( ("Looking for %s in entry %d", sSubjectName, nCurEntry) );
-    if ( strcmp( asNames[nCurEntry], sSubjectName ) == 0 )
-    {
+    if ( strcmp( asNames[nCurEntry], sSubjectName ) == 0 ) {
       anTimes[nCurEntry] += nElapsedTime;
       bFound = TRUE;
       break;
@@ -14139,13 +12801,11 @@ tkm_tErr StopTimer ()
   DebugNote( ("Opening file %s for writing", gsTkTimerFileName) );
   file = fopen( gsTkTimerFileName, "w" );
   DebugAssertThrowX( (NULL != file), eResult, tkm_tErr_CouldntWriteFile );
-  for ( nCurEntry = 0; nCurEntry < nNumEntries; nCurEntry++ )
-  {
+  for ( nCurEntry = 0; nCurEntry < nNumEntries; nCurEntry++ ) {
     DebugNote( ("Writing entry %d to file", nCurEntry) );
     fprintf( file, "%s %d\n", asNames[nCurEntry], anTimes[nCurEntry] );
   }
-  if ( !bFound )
-  {
+  if ( !bFound ) {
     DebugNote( ("Writing new entry to file") );
     fprintf( file, "%s %d\n", sSubjectName, nElapsedTime );
   }
@@ -14167,23 +12827,19 @@ tkm_tErr StopTimer ()
                     "since that's where the file will be made." );
   EndDebugCatch;
 
-  if ( NULL != asNames )
-  {
-    for ( nCurEntry = 0; nCurEntry < nNumEntries; nCurEntry++ )
-    {
+  if ( NULL != asNames ) {
+    for ( nCurEntry = 0; nCurEntry < nNumEntries; nCurEntry++ ) {
       DebugNote( ("Freeing name %d", nCurEntry) );
       free( asNames[nCurEntry] );
     }
     DebugNote( ("Freeing name array") );
     free( asNames );
   }
-  if ( NULL != anTimes )
-  {
+  if ( NULL != anTimes ) {
     DebugNote( ("Freeing times array") );
     free( anTimes );
   }
-  if ( NULL != file )
-  {
+  if ( NULL != file ) {
     DebugNote( ("Closing file") );
     fclose( file );
   }
@@ -14194,36 +12850,31 @@ tkm_tErr StopTimer ()
 
 /* ============================================================ ACCESS FUNCS */
 
-void tkm_MakeProgressBar ( char* isName, char* isDesc )
-{
+void tkm_MakeProgressBar ( char* isName, char* isDesc ) {
 
   fprintf( stdout, "%s: %s\n", isName, isDesc );
   fflush( stdout );
 }
 
-void tkm_UpdateProgressBar ( char* isName, float ifPercent )
-{
+void tkm_UpdateProgressBar ( char* isName, float ifPercent ) {
 
   fprintf( stdout, "\r%s: %.2f%% done        ", isName, ifPercent );
   fflush( stdout );
 }
 
-void tkm_FinishProgressBar ( char* isName )
-{
+void tkm_FinishProgressBar ( char* isName ) {
 
   fprintf( stdout, "\r%s: 100%% done       \n", isName );
   fflush( stdout );
 }
 
-void tkm_DisplayMessage ( char* isMessage )
-{
+void tkm_DisplayMessage ( char* isMessage ) {
 
   fprintf( stdout, "%s", isMessage );
   fflush( stdout );
 }
 
-void tkm_DisplayError ( char* isAction, char* isError, char* isDesc )
-{
+void tkm_DisplayError ( char* isAction, char* isError, char* isDesc ) {
 
   char sTclArguments[tkm_knTclCmdLen];
 
@@ -14240,8 +12891,7 @@ void tkm_DisplayError ( char* isAction, char* isError, char* isDesc )
   DebugExitFunction;
 }
 
-void tkm_DisplayAlert ( char* isAction, char* isMsg, char* isDesc )
-{
+void tkm_DisplayAlert ( char* isAction, char* isMsg, char* isDesc ) {
 
   fprintf( stdout, "ALERT: %s\n        %s\n   %s\n",
            isAction, isMsg, isDesc );
@@ -14253,28 +12903,24 @@ void tkm_DisplayAlert ( char* isAction, char* isMsg, char* isDesc )
 void tkm_MakeFileName ( char*         isInput,
                         tkm_tFileName iType,
                         char*         osCompleteFileName,
-                        int           inDestSize )
-{
+                        int           inDestSize ) {
 
   MakeFileName( isInput, iType, osCompleteFileName, inDestSize );
 }
 
-void tkm_MakeControlPoint ( xVoxelRef iMRIIdx )
-{
+void tkm_MakeControlPoint ( xVoxelRef iMRIIdx ) {
 
-  if ( NULL == iMRIIdx )
-  {
+  if ( NULL == iMRIIdx ) {
     DebugPrint( ( "tkm_MakeControlPoint(): Passed NULL voxel.\n" ) );
     return;
   }
 
-  AddMRIIdxControlPoint( iMRIIdx, TRUE );
+  AddMRIIdxControlPoint( iMRIIdx, gbSavingControlPoints );
 }
 
 void tkm_RemoveControlPointWithinDist ( xVoxelRef        iMRIIdx,
                                         mri_tOrientation iPlane,
-                                        int              inDistance )
-{
+                                        int              inDistance ) {
 
   float         fDistance = 0;
   xVoxelRef     pCtrlPt   = NULL;
@@ -14285,16 +12931,14 @@ void tkm_RemoveControlPointWithinDist ( xVoxelRef        iMRIIdx,
   /* if we found one and it's in range... */
   if ( NULL != pCtrlPt &&
        fDistance >= 0.0 &&
-       fDistance <= (float)inDistance )
-  {
+       fDistance <= (float)inDistance ) {
 
     /* delete it */
-    DeleteMRIIdxControlPoint( pCtrlPt );
+    DeleteMRIIdxControlPoint( pCtrlPt, gbSavingControlPoints );
   }
 }
 
-void tkm_WriteControlFile ()
-{
+void tkm_WriteControlFile () {
 
   WriteControlPointFile( );
 }
@@ -14303,8 +12947,7 @@ void tkm_EditAnatomicalVolumeInRange( tkm_tVolumeType  iVolume,
                                       xVoxelRef        inVolumeVox,
                                       Volm_tValue      inLow,
                                       Volm_tValue      inHigh,
-                                      Volm_tValue      inNewValue )
-{
+                                      Volm_tValue      inNewValue ) {
 
   EditAnatomicalVolumeInRangeArray( iVolume, inVolumeVox, 1,
                                     inLow, inHigh, inNewValue );
@@ -14312,12 +12955,11 @@ void tkm_EditAnatomicalVolumeInRange( tkm_tVolumeType  iVolume,
 }
 
 void tkm_EditAnatomicalVolumeInRangeArray( tkm_tVolumeType  iVolume,
-    xVoxelRef        iaVolumeVox,
-    int              inCount,
-    Volm_tValue      inLow,
-    Volm_tValue      inHigh,
-    Volm_tValue      inNewValue )
-{
+                                           xVoxelRef        iaVolumeVox,
+                                           int              inCount,
+                                           Volm_tValue      inLow,
+                                           Volm_tValue      inHigh,
+                                           Volm_tValue      inNewValue ) {
 
   EditAnatomicalVolumeInRangeArray( iVolume, iaVolumeVox, inCount,
                                     inLow, inHigh, inNewValue );
@@ -14325,12 +12967,11 @@ void tkm_EditAnatomicalVolumeInRangeArray( tkm_tVolumeType  iVolume,
 }
 
 void tkm_CloneAnatomicalVolumeInRangeArray( tkm_tVolumeType  iDestVolume,
-    tkm_tVolumeType  iSourceVolume,
-    xVoxelRef        iaVolumeVox,
-    int              inCount,
-    Volm_tValue      inLow,
-    Volm_tValue      inHigh )
-{
+                                            tkm_tVolumeType  iSourceVolume,
+                                            xVoxelRef        iaVolumeVox,
+                                            int              inCount,
+                                            Volm_tValue      inLow,
+                                            Volm_tValue      inHigh ) {
 
   CloneAnatomicalVolumeInRangeArray( iDestVolume, iSourceVolume,
                                      iaVolumeVox, inCount,
@@ -14343,16 +12984,14 @@ void tkm_FloodFillAnatomicalVolume ( tkm_tSegType    iVolume,
                                      int             inIndex,
                                      tBoolean        ib3D,
                                      float           iFuzzy,
-                                     float           iDistance )
-{
+                                     float           iDistance ) {
 
   FloodFillAnatomicalVolume( iVolume, iAnaIdx, inIndex, ib3D,
                              iFuzzy, iDistance );
 }
 
 void tkm_SetVolumeBrightnessContrast ( tkm_tVolumeType iVolume,
-                                       float ifBrightness, float ifContrast )
-{
+                                       float ifBrightness, float ifContrast ) {
 
   SetVolumeBrightnessAndContrast( iVolume, ifBrightness, ifContrast );
 }
@@ -14364,8 +13003,7 @@ void tkm_SetAnatomicalVolumeRegion ( tkm_tVolumeType iVolume,
                                      int             iAnaY1,
                                      int             iAnaZ0,
                                      int             iAnaZ1,
-                                     float           iNewValue )
-{
+                                     float           iNewValue ) {
 
   SetAnatomicalVolumeRegion( iVolume,
                              iAnaX0, iAnaX1,
@@ -14374,38 +13012,32 @@ void tkm_SetAnatomicalVolumeRegion ( tkm_tVolumeType iVolume,
                              iNewValue );
 }
 
-void tkm_SelectVoxel ( xVoxelRef iAnaIdx )
-{
+void tkm_SelectVoxel ( xVoxelRef iAnaIdx ) {
 
   AddVoxelsToSelection ( iAnaIdx, 1 );
 }
 
-void tkm_SelectVoxelArray ( xVoxelRef iaAnaIdx, int inCount )
-{
+void tkm_SelectVoxelArray ( xVoxelRef iaAnaIdx, int inCount ) {
 
   AddVoxelsToSelection ( iaAnaIdx, inCount );
 }
 
-void tkm_DeselectVoxel ( xVoxelRef iAnaIdx )
-{
+void tkm_DeselectVoxel ( xVoxelRef iAnaIdx ) {
 
   RemoveVoxelsFromSelection( iAnaIdx, 1 );
 }
 
-void tkm_DeselectVoxelArray ( xVoxelRef iaAnaIdx, int inCount )
-{
+void tkm_DeselectVoxelArray ( xVoxelRef iaAnaIdx, int inCount ) {
 
   RemoveVoxelsFromSelection( iaAnaIdx, inCount );
 }
 
-void tkm_ClearSelection ()
-{
+void tkm_ClearSelection () {
 
   ClearSelection ();
 }
 
-tBoolean tkm_IsSelectionPresent ()
-{
+tBoolean tkm_IsSelectionPresent () {
 
   return (gSelectionCount > 0);
 }
@@ -14415,38 +13047,32 @@ void tkm_FloodSelect ( xVoxelRef         iSeedAnaIdx,
                        tkm_tVolumeTarget iSrc,
                        float             iFuzzy,
                        float             iDistance,
-                       tBoolean          ibSelect )
-{
+                       tBoolean          ibSelect ) {
 
   FloodSelect( iSeedAnaIdx, ib3D, iSrc, iFuzzy, iDistance, ibSelect );
 }
 
-void tkm_ClearUndoList ()
-{
+void tkm_ClearUndoList () {
 
   ClearUndoList ();
 }
 
-void tkm_RestoreUndoList ()
-{
+void tkm_RestoreUndoList () {
 
   RestoreUndoList ();
 }
 
-void tkm_ClearUndoVolume ()
-{
+void tkm_ClearUndoVolume () {
 
   ClearUndoVolume();
 }
 
-void tkm_RestoreUndoVolumeAroundMRIIdx ( xVoxelRef iMRIIdx )
-{
+void tkm_RestoreUndoVolumeAroundMRIIdx ( xVoxelRef iMRIIdx ) {
 
   RestoreUndoVolumeAroundMRIIdx( iMRIIdx );
 }
 
-tBoolean tkm_IsMRIIdxInUndoVolume ( xVoxelRef iMRIIdx )
-{
+tBoolean tkm_IsMRIIdxInUndoVolume ( xVoxelRef iMRIIdx ) {
 
   return IsMRIIdxInUndoVolume( iMRIIdx );
 }
@@ -14454,18 +13080,15 @@ tBoolean tkm_IsMRIIdxInUndoVolume ( xVoxelRef iMRIIdx )
 void tkm_GetHeadPoint ( xVoxelRef           iMRIIdx,
                         mri_tOrientation    iOrientation,
                         tBoolean            ibFlat,
-                        HPtL_tHeadPointRef* opPoint )
-{
+                        HPtL_tHeadPointRef* opPoint ) {
 
   HPtL_tErr eHeadPts = HPtL_tErr_NoErr;
   HPtL_tHeadPointRef pPoint = NULL;
   HPtL_tIterationPlane plane = HPtL_tIterationPlane_X;
 
-  if ( gHeadPoints )
-  {
+  if ( gHeadPoints ) {
 
-    switch ( iOrientation )
-    {
+    switch ( iOrientation ) {
     case mri_tOrientation_Coronal:
       plane = HPtL_tIterationPlane_Z;
       break;
@@ -14480,25 +13103,18 @@ void tkm_GetHeadPoint ( xVoxelRef           iMRIIdx,
       break;
     }
 
-    if ( ibFlat )
-    {
+    if ( ibFlat ) {
       eHeadPts = HPtL_FindFlattenedNearestPoint( gHeadPoints, plane,
-                 iMRIIdx, &pPoint );
-    }
-    else
-    {
+                                                 iMRIIdx, &pPoint );
+    } else {
       eHeadPts = HPtL_FindNearestPoint( gHeadPoints, plane,
                                         1.0, iMRIIdx, &pPoint );
     }
     if ( HPtL_tErr_NoErr != eHeadPts )
-    {
       goto error;
-    }
 
     if ( NULL == pPoint )
-    {
       goto error;
-    }
 
     *opPoint = pPoint;
 
@@ -14506,36 +13122,30 @@ void tkm_GetHeadPoint ( xVoxelRef           iMRIIdx,
 
   goto cleanup;
 
-error:
+ error:
 
   *opPoint = NULL;
 
-cleanup:
+ cleanup:
   return;
 }
 
-void tkm_WriteVoxelToEditFile ( xVoxelRef inVolumeVox )
-{
+void tkm_WriteVoxelToEditFile ( xVoxelRef inVolumeVox ) {
 
   WriteVoxelToEditFile ( inVolumeVox );
 }
 
-void tkm_ReadCursorFromEditFile ()
-{
+void tkm_ReadCursorFromEditFile () {
 
   GotoSavedCursor();
 }
 
 void tkm_GetAnatomicalVolume ( tkm_tVolumeType iVolume,
-                               mriVolumeRef*   opVolume )
-{
+                               mriVolumeRef*   opVolume ) {
 
-  if ( iVolume >= 0 && iVolume < tkm_knNumVolumeTypes )
-  {
+  if ( iVolume >= 0 && iVolume < tkm_knNumVolumeTypes ) {
     *opVolume = gAnatomicalVolume[iVolume];
-  }
-  else
-  {
+  } else {
     opVolume = NULL;
   }
 }
@@ -14543,8 +13153,7 @@ void tkm_GetAnatomicalVolume ( tkm_tVolumeType iVolume,
 void tkm_GetSegmentationColorAtVoxel ( tkm_tSegType iVolume,
                                        xVoxelRef    inVoxel,
                                        xColor3fRef  iBaseColor,
-                                       xColor3fRef  oColor )
-{
+                                       xColor3fRef  oColor ) {
 
   GetSegmentationColorAtVoxel( iVolume, inVoxel, iBaseColor, oColor );
 }
@@ -14552,24 +13161,21 @@ void tkm_GetSegmentationColorAtVoxel ( tkm_tSegType iVolume,
 void tkm_GetSegLabel ( tkm_tSegType iVolume,
                        xVoxelRef    inVoxel,
                        int*         onIndex,
-                       char*        osLabel )
-{
+                       char*        osLabel ) {
 
   GetSegLabel( iVolume, inVoxel, onIndex, osLabel );
 }
 
 void tkm_CalcSegLabelVolume ( tkm_tSegType iVolume,
                               xVoxelRef    iMRIIdx,
-                              int*         onVolume )
-{
+                              int*         onVolume ) {
 
   CalcSegLabelVolume( iVolume, iMRIIdx, onVolume );
 }
 
 void tkm_EditSegmentation ( tkm_tSegType iVolume,
                             xVoxelRef    iMRIIdx,
-                            int          inIndex )
-{
+                            int          inIndex ) {
 
   DebugEnterFunction( ("tkm_EditSegmentation( iVolume=%d, iMRIIdx=%p, "
                        "inIndex=%d )", iVolume, iMRIIdx, inIndex) );
@@ -14582,8 +13188,7 @@ void tkm_EditSegmentation ( tkm_tSegType iVolume,
 void tkm_EditSegmentationArray ( tkm_tSegType iVolume,
                                  xVoxelRef    iaMRIIdx,
                                  int          inCount,
-                                 int          inIndex )
-{
+                                 int          inIndex ) {
 
   DebugEnterFunction( ("tkm_EditSegmentationArray( iVolume=%d, iaMRIIdx=%p "
                        "inCount=%d, inIndex=%d )", iVolume, iaMRIIdx,
@@ -14601,19 +13206,16 @@ void tkm_FloodFillSegmentation ( tkm_tSegType      iVolume,
                                  tBoolean          ib3D,
                                  tkm_tVolumeTarget iSrc,
                                  float             iFuzzy,
-                                 float             iDistance )
-{
+                                 float             iDistance ) {
 
   FloodFillSegmentation( iVolume, iAnaIdx, inIndex, ib3D, iSrc,
                          iFuzzy, iDistance );
 }
 
 void tkm_SetSurfaceDistance    ( xVoxelRef iAnaIdx,
-                                 float     ifDistance )
-{
+                                 float     ifDistance ) {
 
-  if ( NULL == gSurface[tkm_tSurfaceType_Main] )
-  {
+  if ( NULL == gSurface[tkm_tSurfaceType_Main] ) {
     return;
   }
 
@@ -14626,11 +13228,9 @@ void tkm_SetSurfaceDistance    ( xVoxelRef iAnaIdx,
 
 void tkm_SetMRIValueInSurface ( xVoxelRef        iAnaIdx,
                                 Surf_tVertexSet  iVertexSet,
-                                float            ifValue )
-{
+                                float            ifValue ) {
 
-  if ( NULL == gSurface[tkm_tSurfaceType_Main] )
-  {
+  if ( NULL == gSurface[tkm_tSurfaceType_Main] ) {
     return;
   }
 
@@ -14641,25 +13241,21 @@ void tkm_SetMRIValueInSurface ( xVoxelRef        iAnaIdx,
                        iAnaIdx, ifValue );
 }
 
-void tkm_ShowNearestSurfaceVertex ( Surf_tVertexSet iVertexSet )
-{
+void tkm_ShowNearestSurfaceVertex ( Surf_tVertexSet iVertexSet ) {
 
-  if ( iVertexSet < 0 || iVertexSet >= Surf_knNumVertexSets )
-  {
+  if ( iVertexSet < 0 || iVertexSet >= Surf_knNumVertexSets ) {
     return;
   }
 
   FindNearestSurfaceVertex( iVertexSet );
 }
 
-tBoolean tkm_UseRealRAS ()
-{
+tBoolean tkm_UseRealRAS () {
 
   return gbUseRealRAS;
 }
 
-char *kTclCommands [tkm_knNumTclCommands] =
-{
+char *kTclCommands [tkm_knNumTclCommands] = {
 
   "UpdateLinkedCursorFlag",
   "UpdateVolumeCursor",
@@ -14762,38 +13358,32 @@ char *kTclCommands [tkm_knNumTclCommands] =
 };
 
 void tkm_SendTclCommand ( tkm_tTclCommand inCommand,
-                          char* inArguments )
-{
+                          char* inArguments ) {
 
   char theCommand[1024];
 
   if ( inCommand < 0
        || inCommand >= tkm_knNumTclCommands )
-  {
     return;
-  }
 
   sprintf ( theCommand, "%s %s", kTclCommands[inCommand], inArguments );
   //  DebugPrint( ( "[] %s\n", theCommand ) );
   SendTCLCommand ( theCommand );
 }
 
-char* tkm_GetErrorString ( tkm_tErr ieCode )
-{
+char* tkm_GetErrorString ( tkm_tErr ieCode ) {
 
   tkm_tErr eCode = ieCode;
 
   if ( ieCode <= tkm_tErr_InvalidErrorCode ||
-       ieCode >= tkm_knNumErrorCodes )
-  {
+       ieCode >= tkm_knNumErrorCodes ) {
     eCode = tkm_tErr_InvalidErrorCode;
   }
 
   return tkm_ksaErrorStrings [eCode];
 }
 
-void PrintCachedTclErrorDlogsToShell ()
-{
+void PrintCachedTclErrorDlogsToShell () {
 
 #ifndef Solaris
 #ifndef IRIX
@@ -14810,17 +13400,13 @@ void PrintCachedTclErrorDlogsToShell ()
   /* send all our cached commands */
   eList = xGArr_ResetIterator( gCachedTclCommands );
   if ( xGArr_tErr_NoErr != eList )
-  {
     goto error;
-  }
   while ( (eList = xGArr_NextItem( gCachedTclCommands, (void*)&sTclCmd ))
-          == xGArr_tErr_NoErr )
-  {
+          == xGArr_tErr_NoErr ) {
 
     /* if this is an error command */
     if ( strstr( sTclCmd,
-                 kTclCommands[tkm_tTclCommand_ErrorDlog] ) != NULL )
-    {
+                 kTclCommands[tkm_tTclCommand_ErrorDlog] ) != NULL ) {
 
       /* get the command, go to the first space, copy that into a
          string, and print it to the shell. we parse out the parts of
@@ -14828,40 +13414,34 @@ void PrintCachedTclErrorDlogsToShell ()
       strcpy( sCommand, sTclCmd );
 
       pTitle = strchr( sCommand, (int)'\"' );
-      if ( NULL != pTitle )
-      {
+      if ( NULL != pTitle ) {
 
         pTitle++;
 
         pTmp = strchr( pTitle, (int)'\"' );
-        if ( NULL != pTmp )
-        {
+        if ( NULL != pTmp ) {
 
           *pTmp = '\0';
           pTmp++;
 
           pWhile = strchr( pTmp, (int)'\"' );
-          if ( NULL != pWhile )
-          {
+          if ( NULL != pWhile ) {
 
             pWhile++;
 
             pTmp = strchr( pWhile, (int)'\"' );
-            if ( NULL != pTmp )
-            {
+            if ( NULL != pTmp ) {
 
               *pTmp = '\0';
               pTmp++;
 
               pMessage = strchr( pTmp, (int)'\"' );
-              if ( NULL != pMessage )
-              {
+              if ( NULL != pMessage ) {
 
                 pMessage++;
 
                 pTmp = strchr( pMessage, (int)'\"' );
-                if ( NULL != pTmp )
-                {
+                if ( NULL != pTmp ) {
 
                   *pTmp = '\0';
                   pTmp++;
@@ -14880,23 +13460,21 @@ void PrintCachedTclErrorDlogsToShell ()
   }
 
   goto cleanup;
-error:
+ error:
 
   /* print error message */
-  if ( xGArr_tErr_NoErr != eList )
-  {
+  if ( xGArr_tErr_NoErr != eList ) {
     DebugPrint( ("Error %d in PrintCachedTclErrorDlogsToShell: %s\n",
                  eList, xGArr_GetErrorString(eList) ) );
   }
-cleanup:
+ cleanup:
 
   return;
 #endif
 #endif
 }
 
-tkm_tErr EnqueueScript ( char* isFileName )
-{
+tkm_tErr EnqueueScript ( char* isFileName ) {
 
   tkm_tErr eResult = tkm_tErr_NoErr;
 
@@ -14923,8 +13501,7 @@ tkm_tErr EnqueueScript ( char* isFileName )
   return eResult;
 }
 
-tkm_tErr ExecuteQueuedScripts ()
-{
+tkm_tErr ExecuteQueuedScripts () {
 
   tkm_tErr eResult          = tkm_tErr_NoErr;
   int     eTcl            = TCL_OK;
@@ -14933,26 +13510,22 @@ tkm_tErr ExecuteQueuedScripts ()
 
   DebugEnterFunction( ("ExecuteQueuedScripts ()") );
 
-  for ( nScript = 0; nScript < gnNumCachedScripts; nScript++ )
-  {
+  for ( nScript = 0; nScript < gnNumCachedScripts; nScript++ ) {
 
     DebugAssertThrowX( (gsCachedScriptNames[nScript] != NULL),
                        eResult, tkm_tErr_InvalidScriptName );
 
     DebugNote( ("Parsing script file %s", gsCachedScriptNames[nScript]) );
     eTcl = Tcl_EvalFile( interp, gsCachedScriptNames[nScript] );
-    if ( eTcl != TCL_OK )
-    {
+    if ( eTcl != TCL_OK ) {
       xUtil_snprintf( sError, sizeof(sError), "%s", interp->result );
       tkm_DisplayError( "Parsing script file",
                         sError,
                         "This error was encountered while running the "
                         "script specified with the -tcl option." );
-    }
-    else
-    {
+    } else {
       OutputPrint "Executed script file %s successfully.\n",
-      gsCachedScriptNames[nScript] EndOutputPrint;
+        gsCachedScriptNames[nScript] EndOutputPrint;
     }
   }
 
@@ -14965,8 +13538,7 @@ tkm_tErr ExecuteQueuedScripts ()
   return eResult;
 }
 
-void HandleSegfault ( int nSignal )
-{
+void HandleSegfault ( int nSignal ) {
 
   tBoolean bDirty = FALSE;
 
@@ -14977,8 +13549,7 @@ void HandleSegfault ( int nSignal )
   printf( "  :\n" );
 
   IsVolumeDirty( tkm_tVolumeType_Main, &bDirty );
-  if ( bDirty )
-  {
+  if ( bDirty ) {
     printf( "    : Attempting to save main volume to /tmp directory...\n" );
     SaveVolume( tkm_tVolumeType_Main, "/tmp", FALSE );
     printf( "    : Data was saved to /tmp.\n" );
@@ -14997,8 +13568,7 @@ void HandleSegfault ( int nSignal )
 
 
 
-xList_tCompare CompareVoxels ( void* inVoxelA, void* inVoxelB )
-{
+xList_tCompare CompareVoxels ( void* inVoxelA, void* inVoxelB ) {
 
   xList_tCompare eResult = xList_tCompare_GreaterThan;
   xVoxelRef   voxelA   = NULL;
@@ -15007,12 +13577,9 @@ xList_tCompare CompareVoxels ( void* inVoxelA, void* inVoxelB )
   voxelA = (xVoxelRef) inVoxelA;
   voxelB = (xVoxelRef) inVoxelB;
 
-  if ( xVoxl_IsEqualInt( voxelA, voxelB ) )
-  {
+  if ( xVoxl_IsEqualInt( voxelA, voxelB ) ) {
     eResult = xList_tCompare_Match;
-  }
-  else
-  {
+  } else {
     eResult = xList_tCompare_GreaterThan;
   }
 
@@ -15020,17 +13587,14 @@ xList_tCompare CompareVoxels ( void* inVoxelA, void* inVoxelB )
 }
 
 tkm_tErr
-LoadGCARenormalization(char *renormalization_fname)
-{
+LoadGCARenormalization(char *renormalization_fname) {
   FILE   *fp ;
   int   *labels, nlines, i ;
   float   *intensities, f1, f2 ;
   char   *cp, line[STRLEN] ;
 
   if (!gGCAVolume)
-  {
     return(tkm_tErr_NoErr) ;
-  }
 
 
   fp = fopen(renormalization_fname, "r") ;
@@ -15040,8 +13604,7 @@ LoadGCARenormalization(char *renormalization_fname)
 
   cp = fgetl(line, 199, fp) ;
   nlines = 0 ;
-  while (cp)
-  {
+  while (cp) {
     nlines++ ;
     cp = fgetl(line, 199, fp) ;
   }
@@ -15050,8 +13613,7 @@ LoadGCARenormalization(char *renormalization_fname)
   labels = (int *)calloc(nlines, sizeof(int)) ;
   intensities = (float *)calloc(nlines, sizeof(float)) ;
   cp = fgetl(line, 199, fp) ;
-  for (i = 0 ; i < nlines ; i++)
-  {
+  for (i = 0 ; i < nlines ; i++) {
     sscanf(cp, "%e  %e", &f1, &f2) ;
     labels[i] = (int)f1 ;
     intensities[i] = f2 ;
