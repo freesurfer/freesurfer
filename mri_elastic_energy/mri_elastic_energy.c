@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2011/10/15 14:50:37 $
- *    $Revision: 1.1 $
+ *    $Date: 2011/10/16 17:00:35 $
+ *    $Revision: 1.2 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -61,7 +61,7 @@ main(int argc, char *argv[]) {
   MRI          *mri_lame ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_elastic_energy.c,v 1.1 2011/10/15 14:50:37 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_elastic_energy.c,v 1.2 2011/10/16 17:00:35 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -94,7 +94,7 @@ main(int argc, char *argv[]) {
   seconds = nint((float)msec/1000.0f) ;
   minutes = seconds / 60 ;
   seconds = seconds % 60 ;
-  fprintf(stderr, "inverse operator application took %d minutes"
+  fprintf(stderr, "elastic energy calculation took %d minutes"
           " and %d seconds.\n", minutes, seconds) ;
   exit(0) ;
   return(0) ;
@@ -133,12 +133,14 @@ get_option(int argc, char *argv[]) {
 ----------------------------------------------------------------------*/
 static void
 usage_exit(int code) {
-  printf("usage: %s [options] <inverse operator> <EEG/MEG data file>",
+  printf("usage: %s [options] <input .m3z> <output energy volume>",
          Progname) ;
-  printf(
-    "\tf <f low> <f hi> - apply specified filter (not implemented yet)\n"
-  );
-  printf("\tn - noise-sensitivity normalize inverse (default=1)") ;
+  printf("\tthe output energy has 5 frames - \n") ;
+  printf("\t(0) total elastic potential energy\n") ;
+  printf("\t(1) rigid energy\n") ;
+  printf("\t(2) volume change energy\n") ;
+  printf("\t(3) lambda (first Lame parameter, bulk modulus)\n") ;
+  printf("\t(3) mu (second Lame parameter, sheer modulus))\n") ;
   exit(code) ;
 }
 
