@@ -1,5 +1,5 @@
 #!/bin/tcsh -f
-set VERSION = '$Id: mri_glmfit-sim,v 1.40 2011/08/09 17:12:36 greve Exp $';
+set VERSION = '$Id: mri_glmfit-sim,v 1.41 2011/10/17 16:39:35 greve Exp $';
 
 set inputargs = ($argv);
 
@@ -110,6 +110,7 @@ set glmfitcmd0 = `cat $glmfitlog | awk '{if($1 == "cmdline") print $0}'`
 set glmfitcmd = ($glmfitcmd0);
 echo $glmfitcmd
 set gd2mtx = dods
+set UseTable = 0;
 set label = ();
 while($#glmfitcmd)
   set flag = $glmfitcmd[1]; shift glmfitcmd;
@@ -139,6 +140,7 @@ while($#glmfitcmd)
     # Probably never gets here
     set PermForce = 1;
     breaksw
+  case "--table"
   case "--y"
     set y = $glmfitcmd[1]; shift glmfitcmd;
     if(! -e $y) then
@@ -151,6 +153,7 @@ while($#glmfitcmd)
         endif
       endif
     endif
+    if("$flag" == "--table") set UseTable = 1;
     breaksw
   case "--wls"
     set wls = $glmfitcwd/$glmfitcmd[1]; shift glmfitcmd;
@@ -356,9 +359,11 @@ if($DoSim) then
     set jpad = `printf j%03d $nthJob`
     echo "$nthJob/$nJobs `date`" | tee -a $LF
 
-    set cmd = (mri_glmfit --y $y $clist2 --mask $mask)
+    set cmd = (mri_glmfit $clist2 --mask $mask)
     set cmd = ($cmd --sim $nulltype $nSimPerJob $thresh \
        $glmdir/csd/$csdbase.$jpad)
+    if(! $UseTable) set cmd = ($cmd --y $y)
+    if($UseTable)   set cmd = ($cmd --table $y)
     set cmd = ($cmd --sim-sign $simsign --fwhm $fwhm)
     if($#fsgd) set cmd = ($cmd --fsgd $fsgd $gd2mtx)
     if($#X)    set cmd = ($cmd --X $X)
@@ -482,6 +487,7 @@ endif
 
 # -------------- now run clustering -------------------- #
 foreach conname ($conlist)
+  if($UseTable) continue;
 
   set csdlist = ();
   if(! $UseGRF) then
