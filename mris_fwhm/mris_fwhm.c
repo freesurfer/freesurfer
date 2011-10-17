@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2011/08/17 17:02:55 $
- *    $Revision: 1.33 $
+ *    $Date: 2011/10/17 14:36:59 $
+ *    $Revision: 1.34 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -148,7 +148,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mris_fwhm.c,v 1.33 2011/08/17 17:02:55 greve Exp $";
+static char vcid[] = "$Id: mris_fwhm.c,v 1.34 2011/10/17 14:36:59 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -210,12 +210,6 @@ int main(int argc, char *argv[]) {
   cmdline = argv2cmdline(argc,argv);
   uname(&uts);
   getcwd(cwd,2000);
-
-  SUBJECTS_DIR = getenv("SUBJECTS_DIR");
-  if(SUBJECTS_DIR == NULL) {
-    printf("ERROR: SUBJECTS_DIR not defined in environment\n");
-    exit(1);
-  }
 
   Progname = argv[0] ;
   argc --;
@@ -715,6 +709,11 @@ static void check_options(void) {
   if(X == NULL && DetrendOrder < 0 && DoDetrend) DetrendOrder = 0;
   if(SmoothOnly && outpath == 0){
     printf("ERROR: must spec output with --smooth-only\n");
+    exit(1);
+  }
+  SUBJECTS_DIR = getenv("SUBJECTS_DIR");
+  if(SUBJECTS_DIR == NULL) {
+    printf("ERROR: SUBJECTS_DIR not defined in environment\n");
     exit(1);
   }
   if(UseCortexLabel){
