@@ -7,8 +7,8 @@
  * Original Authors: Sebastien Gicquel and Douglas Greve, 06/04/2001
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2011/10/12 19:41:05 $
- *    $Revision: 1.138 $
+ *    $Date: 2011/10/17 17:33:20 $
+ *    $Revision: 1.139 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -385,11 +385,12 @@ MRI * sdcmLoadVolume(const char *dcmfile, int LoadVolume, int nthonly)
   global_progress_range[0] = global_progress_range[1];
   global_progress_range[1] += (nend-nstart)/3;
 
+  printf("UseSliceScaleFactor %d\n",sdfi_list[0]->UseSliceScaleFactor);
   MinSliceScaleFactor = sdfi_list[0]->SliceScaleFactor;
   for(nthfile = 0; nthfile < nlist; nthfile ++)
     if(MinSliceScaleFactor > sdfi_list[nthfile]->SliceScaleFactor)
       MinSliceScaleFactor = sdfi_list[nthfile]->SliceScaleFactor;
-
+  
 
   for (nthfile = 0; nthfile < nlist; nthfile ++)
   {
@@ -1680,9 +1681,11 @@ SDCMFILEINFO *GetSDCMFileInfo(const char *dcmfile)
   if(getenv("FS_NO_SLICE_SCALE_FACTOR") == NULL){
     tag=DCM_MAKETAG(0x20, 0x4000);
     cond=GetString(&object, tag, &strtmp);
-    if(cond == DCM_NORMAL) sscanf(strtmp,"%*s %*s %lf",&sdcmfi->SliceScaleFactor);
-    //printf("Slice Scale Factor %lf\n",sdcmfi->SliceScaleFactor);
-    sdcmfi->UseSliceScaleFactor=1;
+    if(cond == DCM_NORMAL) {
+      sscanf(strtmp,"%*s %*s %lf",&sdcmfi->SliceScaleFactor);
+      //printf("Slice Scale Factor %lf\n",sdcmfi->SliceScaleFactor);
+      sdcmfi->UseSliceScaleFactor=1;
+    }
   }
 
   tag=DCM_MAKETAG(0x18, 0x86);
