@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2011/10/12 19:53:29 $
- *    $Revision: 1.61 $
+ *    $Date: 2011/10/17 17:37:51 $
+ *    $Revision: 1.62 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -1004,16 +1004,16 @@ void RenderView3D::UpdateScalarBar()
 
 void RenderView3D::TriggerContextMenu( QMouseEvent* event )
 {
-  QMenu menu;
-  menu.addAction(MainWindow::GetMainWindow()->ui->actionShowSlices);
-  menu.addAction(MainWindow::GetMainWindow()->ui->actionShowSliceFrames);
+  QMenu* menu = new QMenu(this);
+  menu->addAction(MainWindow::GetMainWindow()->ui->actionShowSlices);
+  menu->addAction(MainWindow::GetMainWindow()->ui->actionShowSliceFrames);
   bool bShowBar = this->GetShowScalarBar();
   QList<Layer*> layers = MainWindow::GetMainWindow()->GetLayers("Surface");
   layers << MainWindow::GetMainWindow()->GetLayers("MRI");
   layers << MainWindow::GetMainWindow()->GetLayers("PointSet");
   if (!layers.isEmpty())
   {
-    QMenu* menu2 = menu.addMenu("Show Color Bar");
+    QMenu* menu2 = menu->addMenu("Show Color Bar");
     QActionGroup* ag = new QActionGroup(this);
     ag->setExclusive(true);
     foreach (Layer* layer, layers)
@@ -1027,5 +1027,5 @@ void RenderView3D::TriggerContextMenu( QMouseEvent* event )
     }
     connect(ag, SIGNAL(triggered(QAction*)), this, SLOT(SetScalarBarLayer(QAction*)));
   }
-  menu.exec(event->globalPos());
+  menu->exec(event->globalPos());
 }

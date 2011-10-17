@@ -1046,9 +1046,6 @@
    <property name="text">
     <string>Show Label Stats...</string>
    </property>
-   <property name="shortcut">
-    <string>Alt+T</string>
-   </property>
   </action>
   <action name="actionQuickReference">
    <property name="text">

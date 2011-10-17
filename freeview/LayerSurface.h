@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2011/08/03 20:18:54 $
- *    $Revision: 1.45 $
+ *    $Date: 2011/10/17 17:37:51 $
+ *    $Revision: 1.46 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -197,6 +197,7 @@ public:
 
   void RepositionSurface( LayerMRI* mri, int nVertex, double value, int size, double sigma );
   void RepositionSurface( LayerMRI* mri, int nVertex, double* pos, int size, double sigma );
+  void RepositionVertex( int nVertex, double* pos);
 
   void Undo();
   bool HasUndo();
