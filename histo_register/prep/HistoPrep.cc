@@ -7,6 +7,7 @@
 #include <sbl/image/ImageDraw.h>
 #include <sbl/image/ImageRegister.h>
 #include <sbl/other/Plot.h>
+#include "prep/VolumeFile.h"
 using namespace sbl;
 namespace hb {
 
@@ -208,10 +209,11 @@ void extractRegion( const ImageColorU &input, ImageGrayU &mask, int xCheck, int 
 			output800.data( x, y ) = output.r( x, y );
 		}
 	}
-	createDir( outputPath + "/gray" );
-	outputFileName = outputPath + "/gray/" + sprintF( "%03d", id ) + "_700.tif";
+	createDir( outputPath + "/gray700" );
+	outputFileName = outputPath + "/gray700/" + sprintF( "%03d", id ) + "_700.png";
 	saveImage( output700, outputFileName );
-	outputFileName = outputPath + "/gray/" + sprintF( "%03d", id ) + "_800.tif";
+	createDir( outputPath + "/gray800" );
+	outputFileName = outputPath + "/gray800/" + sprintF( "%03d", id ) + "_800.png";
 	saveImage( output800, outputFileName );
 }
 
@@ -294,6 +296,32 @@ void prepareHistologyImages( Config &conf ) {
 }
 
 
+// create an unregistered histology volume
+void createHistologyVolume( Config &conf ) {
+    String inputPath = addDataPath( conf.readString( "inputPath", "histo/split/gray800" ) );
+    String outputPath = addDataPath( conf.readString( "outputPath", "histo/" ) );
+    float xSpacing = conf.readFloat( "xSpacing", 1 );
+    float ySpacing = conf.readFloat( "ySpacing", 1 );
+    float zSpacing = conf.readFloat( "zSpacing", 2 );
+    
+    // create mapping file
+    Array<String> fileList = dirFileList( inputPath, "", ".png" );
+    String outputMapFileName = outputPath + "/splitVolMap.txt";
+    File file( outputMapFileName, FILE_WRITE, FILE_TEXT );
+    if (file.openSuccess()) {
+      file.writeF( "mgz_index, histo_slice_index\n" );
+      for (int i = 0; i < fileList.count(); i++) {
+	int hSliceIndex = fileList[ i ].leftOfFirst( '.' ).toInt();
+	file.writeF( "%d, %d\n", i, hSliceIndex );
+      }
+    }
+
+    // create mgz file
+    String outputVolumeFileName = outputPath + "/splitVol.mgz";
+    convertImagesToMghFile( inputPath, outputVolumeFileName, xSpacing, ySpacing, zSpacing );
+}
+
+
 //-------------------------------------------
 // INIT / CLEAN-UP
 //-------------------------------------------
@@ -302,6 +330,7 @@ void prepareHistologyImages( Config &conf ) {
 // register commands, etc. defined in this module
 void initHistoPrep() {
 	registerCommand( "hprep", prepareHistologyImages );
+	registerCommand( "hvol", createHistologyVolume );
 }
 
 
