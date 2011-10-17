@@ -1,5 +1,5 @@
 #!/bin/tcsh -f
-set VERSION = '$Id: mri_glmfit-sim,v 1.41 2011/10/17 16:39:35 greve Exp $';
+set VERSION = '$Id: mri_glmfit-sim,v 1.42 2011/10/17 16:44:42 greve Exp $';
 
 set inputargs = ($argv);
 
@@ -68,12 +68,6 @@ endif
 set glmfitlog = $glmdir/mri_glmfit.log
 if(! -e $glmfitlog) then
   echo "ERROR: cannot find $glmfitlog"
-  exit 1;
-endif
-
-set mask = `stem2fname $glmdir/mask`
-if($status) then
-  echo "$mask"
   exit 1;
 endif
 
@@ -209,6 +203,16 @@ while($#glmfitcmd)
     breaksw 
   endsw
 end
+
+set mask = ();
+if(! $UseTable) then
+  set mask = `stem2fname $glmdir/mask`
+  if($status) then
+    echo "$mask"
+    exit 1;
+  endif
+endif
+
 
 if($UseGRF && $anattype != volume) then
   echo "ERROR: can only use --grf with volume"
@@ -359,10 +363,10 @@ if($DoSim) then
     set jpad = `printf j%03d $nthJob`
     echo "$nthJob/$nJobs `date`" | tee -a $LF
 
-    set cmd = (mri_glmfit $clist2 --mask $mask)
+    set cmd = (mri_glmfit $clist2)
     set cmd = ($cmd --sim $nulltype $nSimPerJob $thresh \
        $glmdir/csd/$csdbase.$jpad)
-    if(! $UseTable) set cmd = ($cmd --y $y)
+    if(! $UseTable) set cmd = ($cmd --y $y --mask $mask)
     if($UseTable)   set cmd = ($cmd --table $y)
     set cmd = ($cmd --sim-sign $simsign --fwhm $fwhm)
     if($#fsgd) set cmd = ($cmd --fsgd $fsgd $gd2mtx)
