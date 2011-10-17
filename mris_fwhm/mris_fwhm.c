@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2011/05/05 18:42:17 $
- *    $Revision: 1.30.2.1 $
+ *    $Date: 2011/10/17 14:38:21 $
+ *    $Revision: 1.30.2.2 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -148,7 +148,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mris_fwhm.c,v 1.30.2.1 2011/05/05 18:42:17 greve Exp $";
+static char vcid[] = "$Id: mris_fwhm.c,v 1.30.2.2 2011/10/17 14:38:21 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -184,6 +184,7 @@ MATRIX *X=NULL;
 int DetrendOrder = -1;
 int DoDetrend = 1;
 int SmoothOnly = 0;
+int DoSqr = 0; // take square of input before smoothing
 
 char *ar1fname = NULL;
 
@@ -209,12 +210,6 @@ int main(int argc, char *argv[]) {
   cmdline = argv2cmdline(argc,argv);
   uname(&uts);
   getcwd(cwd,2000);
-
-  SUBJECTS_DIR = getenv("SUBJECTS_DIR");
-  if(SUBJECTS_DIR == NULL) {
-    printf("ERROR: SUBJECTS_DIR not defined in environment\n");
-    exit(1);
-  }
 
   Progname = argv[0] ;
   argc --;
@@ -284,6 +279,11 @@ int main(int argc, char *argv[]) {
   } else {
     printf("Synthesizing %d frames, Seed = %d\n",nframes,SynthSeed);
     InVals = MRIrandn(surf->nvertices, 1, 1, nframes,0, 1, NULL);
+  }
+
+  if(DoSqr){
+    printf("Computing square of input\n");
+    MRIsquare(InVals,NULL,InVals);
   }
 
   if(labelpath) {
@@ -433,6 +433,7 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--synth")) synth = 1;
     else if (!strcasecmp(option, "--nosynth")) synth = 0;
     else if (!strcasecmp(option, "--no-detrend")) DoDetrend = 0;
+    else if (!strcasecmp(option, "--sqr")) DoSqr = 1;
     else if (!strcasecmp(option, "--smooth-only")) {
       DoDetrend = 0;
       SmoothOnly = 1;
@@ -569,6 +570,7 @@ static void print_usage(void) {
   printf("   --detrend order : polynomial detrending (default 0)\n");
   printf("   --smooth-only : only smooth (implies --no-detrend)\n");
   printf("   --no-detrend : turn of poly detrending \n");
+  printf("   --sqr : compute square of input before smoothing\n");
   printf("   --sum sumfile\n");
   printf("   --dat datfile (only contains fwhm)\n");
   printf("   --ar1 ar1vol : save spatial ar1 as an overlay\n");
@@ -707,6 +709,11 @@ static void check_options(void) {
   if(X == NULL && DetrendOrder < 0 && DoDetrend) DetrendOrder = 0;
   if(SmoothOnly && outpath == 0){
     printf("ERROR: must spec output with --smooth-only\n");
+    exit(1);
+  }
+  SUBJECTS_DIR = getenv("SUBJECTS_DIR");
+  if(SUBJECTS_DIR == NULL) {
+    printf("ERROR: SUBJECTS_DIR not defined in environment\n");
     exit(1);
   }
   if(UseCortexLabel){
