@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2011/08/31 00:39:35 $
-#    $Revision: 1.379.2.21 $
+#    $Date: 2011/10/17 21:03:38 $
+#    $Revision: 1.379.2.22 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -26,7 +26,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.379.2.21 2011/08/31 00:39:35 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.379.2.22 2011/10/17 21:03:38 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -5773,8 +5773,8 @@ usage_exit:
   echo "  -rh-crs C R S : col, row, slice of seed point for right hemisphere, used in fill"
   echo "  -nofill        : do not use the automatic subcort seg to fill"
   echo "  -watershed cmd : control skull stripping/watershed program"
-  echo "  -wsless : decrease watershed threshold (shrinks skull surface)"
-  echo "  -wsmore : increase watershed threshold (expands skull surface)"
+  echo "  -wsless : decrease watershed threshold (leaves less skull, but can strip more brain)"
+  echo "  -wsmore : increase watershed threshold (leaves more skull, but can strip less brain)"
   echo "  -wsatlas : use atlas when skull stripping"
   echo "  -no-wsatlas : do not use atlas when skull stripping"
   echo "  -no-wsgcaatlas : do not use GCA atlas when skull stripping"
