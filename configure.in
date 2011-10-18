@@ -9,8 +9,8 @@
 #
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2011/10/04 18:16:55 $
-#    $Revision: 1.519.2.14 $
+#    $Date: 2011/10/18 15:44:29 $
+#    $Revision: 1.519.2.15 $
 #
 ########################################################################
 AC_PREREQ(2.57)
@@ -1986,7 +1986,16 @@ m4_include([m4/autotroll.m4])
 AT_WITH_QT([opengl])
 # support for --without-qt:
 AM_CONDITIONAL(ENABLE_QT_APPS, ! test "$QT_PATH" = "no")
-
+# hack: make sure our QT_LIBS overrides /usr/lib64 native Qt install
+# this is problematic on Centos6, where qt 4.6.3 is installed, but
+# we (at the NMR Center) want to use v4.7.1 in /usr/pubsw/packages/qt
+# and link-time errors (problem with 'detach_grow') appear if
+# qt 4.6.3 attempts to link because it is in /usr/lib64. this forces
+# an override:
+if test ! "x$QT_LIBS" = "x"; then
+  QTLIBS=`echo $QT_LIBS | awk '{print $1}'`
+  LDFLAGS="$QTLIBS $LDFLAGS"
+fi
 
 #################################################################
 # If on a Mac, make scuba and qdec, bundles (Qt apps)
@@ -3007,10 +3016,10 @@ AC_SUBST(VTK_METAIO_LIB)
 if test ! "x$tcltk_apps" = "xNO"; then
   ################## Tcl
   # check tcl8.5
-#  AC_CHECK_LIB([tcl8.5],[Tcl_Init],
-#    [LIB_TCL=-ltcl8.5],
+  AC_CHECK_LIB([tcl8.5],[Tcl_Init],
+    [LIB_TCL=-ltcl8.5],
   # check tcl8.4
-#    [
+    [
     AC_CHECK_LIB([tcl8.4],[Tcl_Init],
       [LIB_TCL=-ltcl8.4],
   # check tcl8.3
@@ -3034,7 +3043,7 @@ Check config.log. Set LDFLAGS or --with-tcl-dir.])
           ])
         ])
       ])
-#    ])
+    ])
   AC_SUBST(LIB_TCL)
 
   #################### Tk needs X11 (or Aqua)
@@ -3042,10 +3051,10 @@ Check config.log. Set LDFLAGS or --with-tcl-dir.])
   CPPFLAGS="$GL_CFLAGS $CPPFLAGS"
   LDFLAGS="$X_LIBS $LDFLAGS"
   # check tk8.5
-#  AC_CHECK_LIB([tk8.5],[Tk_Init],
-#    [LIB_TK=-ltk8.5],
+  AC_CHECK_LIB([tk8.5],[Tk_Init],
+    [LIB_TK=-ltk8.5],
   # check tk8.4
-#    [
+    [
     AC_CHECK_LIB([tk8.4],[Tk_Init],
       [LIB_TK=-ltk8.4],
   # check tk8.3
@@ -3066,7 +3075,7 @@ Check config.log. Set LDFLAGS or --with-tcl-dir.])
           ])
         ])
       ])
-#    ])
+    ])
   AC_SUBST(LIB_TK)
 
   ##################### Tix
@@ -3105,8 +3114,8 @@ Check config.log. Set LDFLAGS or --with-tcl-dir.])
   AC_SUBST(LIB_TIX)
 
   ######## BLT (we cannot build BLT in Aqua) must use X11
-  AC_CHECK_LIB([BltExt30 -lBltCore30 $LIB_BLT_JPEG],[Blt_Init],
-    [LIB_BLT="-lBltExt30 -lBltCore30"],
+  AC_CHECK_LIB([BLT25 $LIB_BLT_JPEG],[Blt_Init],
+    [LIB_BLT=-lBLT25],
     [
     AC_CHECK_LIB([BLT $LIB_BLT_JPEG],[Blt_Init],
       [LIB_BLT=-lBLT],
