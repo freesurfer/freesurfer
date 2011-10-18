@@ -10,8 +10,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2011/08/30 21:33:13 $
- *    $Revision: 1.28 $
+ *    $Date: 2011/10/18 20:07:05 $
+ *    $Revision: 1.29 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -26,7 +26,7 @@
  */
 
 
-// $Id: mri_binarize.c,v 1.28 2011/08/30 21:33:13 greve Exp $
+// $Id: mri_binarize.c,v 1.29 2011/10/18 20:07:05 greve Exp $
 
 /*
   BEGINHELP
@@ -180,7 +180,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_binarize.c,v 1.28 2011/08/30 21:33:13 greve Exp $";
+static char vcid[] = "$Id: mri_binarize.c,v 1.29 2011/10/18 20:07:05 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -489,7 +489,7 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--wm")){
       MatchValues[0] =  2;
       MatchValues[1] = 41;
-      MatchValues[2] = 82;
+      MatchValues[2] = 77;
       MatchValues[3] = 251;
       MatchValues[4] = 252;
       MatchValues[5] = 253;
@@ -515,7 +515,7 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--wm+vcsf")){
       MatchValues[0] =  2;
       MatchValues[1] = 41;
-      MatchValues[2] = 82;
+      MatchValues[2] = 77;
       MatchValues[3] = 251;
       MatchValues[4] = 252;
       MatchValues[5] = 253;
@@ -681,7 +681,7 @@ static void print_usage(void) {
   printf("   --rmin rmin  : compute min based on rmin*globalmean\n");
   printf("   --rmax rmax  : compute max based on rmax*globalmean\n");
   printf("   --match matchval <matchval2 ...>  : match instead of threshold\n");
-  printf("   --wm : set match vals to 2 and 41 (aseg for cerebral WM)\n");
+  printf("   --wm : set match vals to 2, 41, 77, 251-255 (aseg for cerebral WM)\n");
   printf("   --ventricles : set match vals those for aseg ventricles+choroid (not 4th)\n");
   printf("   --wm+vcsf : WM and ventricular CSF, including choroid (not 4th)\n");
   printf("   --subcort-gm : subcortical gray matter\n");
