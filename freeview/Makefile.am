@@ -135,6 +135,7 @@ BUILT_SOURCES = \
   moc_WidgetTimeCoursePlot.cpp \
   moc_LayerMRIWorkerThread.cpp \
   moc_DialogLabelStats.cpp \
+  moc_VolumeFilterWorkerThread.cpp \
   qrc_freeview.cpp
 
 freeview_SOURCES = $(BUILT_SOURCES) \
@@ -393,7 +394,9 @@ freeview_SOURCES = $(BUILT_SOURCES) \
   LayerMRIWorkerThread.cpp \
   LayerMRIWorkerThread.h \
   DialogLabelStats.cpp \
-  DialogLabelStats.h
+  DialogLabelStats.h \
+  VolumeFilterWorkerThread.cpp \
+  VolumeFilterWorkerThread.h
 
 if HAVE_MAC_OSX
 AM_CXXFLAGS=\
