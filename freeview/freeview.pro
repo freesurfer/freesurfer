@@ -128,7 +128,8 @@ SOURCES += \
     WindowTimeCourse.cpp \
     WidgetTimeCoursePlot.cpp \
     LayerMRIWorkerThread.cpp \
-    DialogLabelStats.cpp
+    DialogLabelStats.cpp \
+    VolumeFilterWorkerThread.cpp
 
 HEADERS  += \
     Annotation2D.h \
@@ -246,7 +247,8 @@ HEADERS  += \
     WindowTimeCourse.h \
     WidgetTimeCoursePlot.h \
     LayerMRIWorkerThread.h \
-    DialogLabelStats.h
+    DialogLabelStats.h \
+    VolumeFilterWorkerThread.h
 
 FORMS    += MainWindow.ui \
     PanelVolume.ui \

@@ -6,9 +6,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/14 23:44:48 $
- *    $Revision: 1.6 $
+ *    $Author: rpwang $
+ *    $Date: 2011/10/18 18:13:24 $
+ *    $Revision: 1.7 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -28,6 +28,12 @@
 #include "LayerMRI.h"
 #include <vtkImageData.h>
 #include <vtkImageMedian3D.h>
+#include "ProgressCallback.h"
+
+extern "C"
+{
+#include "utils.h"
+}
 
 VolumeFilterConvolve::VolumeFilterConvolve( LayerMRI* input, LayerMRI* output, QObject* parent ) :
   VolumeFilter( input, output, parent ),
@@ -37,6 +43,7 @@ VolumeFilterConvolve::VolumeFilterConvolve( LayerMRI* input, LayerMRI* output, Q
 
 bool VolumeFilterConvolve::Execute()
 {
+  ::SetProgressCallback(ProgressCallback, 0, 50);
   MRI* mri_src = CreateMRIFromVolume( m_volumeInput );
   MRI* mri_g = MRIgaussian1d( m_dSigma, m_nKernelSize );
   if ( !mri_src || !mri_g )
@@ -44,12 +51,14 @@ bool VolumeFilterConvolve::Execute()
     return false;
   }
 
+  ::SetProgressCallback(ProgressCallback, 50, 60);
   MRI* mri_dest = MRIconvolveGaussian( mri_src, NULL, mri_g );
   if ( !mri_dest )
   {
     return false;
   }
 
+  ::SetProgressCallback(ProgressCallback, 60, 100);
   MapMRIToVolume( mri_dest, m_volumeOutput );
   MRIfree( &mri_src );
   MRIfree( &mri_g );

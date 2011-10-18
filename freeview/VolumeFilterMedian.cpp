@@ -6,9 +6,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/14 23:44:48 $
- *    $Revision: 1.6 $
+ *    $Author: rpwang $
+ *    $Date: 2011/10/18 18:13:24 $
+ *    $Revision: 1.7 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -35,6 +35,7 @@ VolumeFilterMedian::VolumeFilterMedian( LayerMRI* input, LayerMRI* output, QObje
 
 bool VolumeFilterMedian::Execute()
 {
+  TriggerFakeProgress(100);
   vtkSmartPointer<vtkImageMedian3D> filter = vtkSmartPointer<vtkImageMedian3D>::New();
   filter->SetKernelSize( m_nKernelSize, m_nKernelSize, m_nKernelSize );
   filter->SetInput( m_volumeInput->GetImageData() );

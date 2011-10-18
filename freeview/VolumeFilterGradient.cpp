@@ -6,9 +6,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/14 23:44:48 $
- *    $Revision: 1.8 $
+ *    $Author: rpwang $
+ *    $Date: 2011/10/18 18:13:24 $
+ *    $Revision: 1.9 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -45,6 +45,7 @@ VolumeFilterGradient::VolumeFilterGradient( LayerMRI* input, LayerMRI* output, Q
 
 bool VolumeFilterGradient::Execute()
 {
+  TriggerFakeProgress(50);
   vtkSmartPointer<vtkImageGradientMagnitude> grad = vtkSmartPointer<vtkImageGradientMagnitude>::New();
   grad->SetDimensionality( 3 );
   grad->HandleBoundariesOn();

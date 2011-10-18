@@ -6,9 +6,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/14 23:44:48 $
- *    $Revision: 1.8 $
+ *    $Author: rpwang $
+ *    $Date: 2011/10/18 18:13:24 $
+ *    $Revision: 1.9 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -27,6 +27,12 @@
 #include "LayerMRI.h"
 #include <vtkImageData.h>
 #include <vtkImageMedian3D.h>
+#include "ProgressCallback.h"
+
+extern "C"
+{
+#include "utils.h"
+}
 
 VolumeFilterMean::VolumeFilterMean( LayerMRI* input, LayerMRI* output, QObject* parent ) :
   VolumeFilter( input, output, parent )
@@ -35,6 +41,7 @@ VolumeFilterMean::VolumeFilterMean( LayerMRI* input, LayerMRI* output, QObject* 
 
 bool VolumeFilterMean::Execute()
 {
+  ::SetProgressCallback(ProgressCallback, 0, 40);
   MRI* mri_src = CreateMRIFromVolume( m_volumeInput );
   if ( !mri_src )
   {
@@ -48,7 +55,9 @@ bool VolumeFilterMean::Execute()
     return false;
   }
 
+  ::SetProgressCallback(ProgressCallback, 40, 70);
   MRImean( mri_src, mri_dest, m_nKernelSize );
+  ::SetProgressCallback(ProgressCallback, 70, 100);
   MapMRIToVolume( mri_dest, m_volumeOutput );
   MRIfree( &mri_src );
   MRIfree( &mri_dest );

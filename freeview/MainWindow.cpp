@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2011/09/29 18:54:26 $
- *    $Revision: 1.186 $
+ *    $Date: 2011/10/18 18:13:24 $
+ *    $Revision: 1.187 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -84,6 +84,7 @@
 #include "DialogRepositionSurface.h"
 #include "WindowTimeCourse.h"
 #include "DialogLabelStats.h"
+#include "VolumeFilterWorkerThread.h"
 
 MainWindow::MainWindow( QWidget *parent, MyCmdLineParser* cmdParser ) :
   QMainWindow( parent ),
@@ -332,6 +333,13 @@ MainWindow::MainWindow( QWidget *parent, MyCmdLineParser* cmdParser ) :
           ui->treeWidgetMouseInfo, SLOT(OnMousePositionChanged()), Qt::QueuedConnection);
   connect(ui->treeWidgetMouseInfo, SIGNAL(RASChangeTriggered(double,double,double)),
           m_layerCollections["MRI"], SLOT(SetMouseRASPosition(double,double,double)));
+
+  m_threadVolumeFilter = new VolumeFilterWorkerThread(this);
+  connect(m_threadVolumeFilter, SIGNAL(Finished(VolumeFilter*)),
+          this, SLOT(OnVolumeFilterFinished(VolumeFilter*)));
+  connect( m_threadVolumeFilter, SIGNAL(Progress(int)), m_statusBar, SLOT(SetProgress(int)));
+  connect( m_threadVolumeFilter, SIGNAL(started()), m_statusBar, SLOT(ShowProgress()));
+  connect( m_threadVolumeFilter, SIGNAL(finished()), m_statusBar, SLOT(HideProgress()));
 
   this->LoadSettings();
 
@@ -939,7 +947,8 @@ void MainWindow::AddScript(const QString & command)
 
 void MainWindow::OnIdle()
 {
-  if ( !IsBusy() && !m_bScriptRunning && !m_scripts.isEmpty() )
+  bool bBusy = IsBusy();
+  if ( !bBusy && !m_bScriptRunning && !m_scripts.isEmpty() )
   {
     RunScript();
   }
@@ -987,7 +996,6 @@ void MainWindow::OnIdle()
     ui->actionRedo->setEnabled( false );
   }
 
-  bool bBusy = IsBusy();
   LayerMRI* layerVolume       = (LayerMRI*)GetActiveLayer( "MRI");
   LayerSurface* layerSurface  = (LayerSurface*)GetActiveLayer( "Surface");
   LayerROI* layerROI  = (LayerROI*)GetActiveLayer( "ROI");
@@ -1107,7 +1115,7 @@ void MainWindow::OnIdle()
 
 bool MainWindow::IsBusy()
 {
-  return m_threadIOWorker->isRunning() || m_bProcessing;
+  return m_threadIOWorker->isRunning() || m_bProcessing || m_threadVolumeFilter->isRunning();
 }
 
 void MainWindow::RequestRedraw()
@@ -4686,9 +4694,8 @@ void MainWindow::OnVolumeFilterMean()
     if ( dlg.exec() == QDialog::Accepted )
     {
       filter->SetKernelSize( dlg.GetKernelSize() );
-      filter->Update();
+      m_threadVolumeFilter->ExecuteFilter(filter);
     }
-    delete filter;
   }
 }
 
@@ -4704,9 +4711,8 @@ void MainWindow::OnVolumeFilterMedian()
     if ( dlg.exec() == QDialog::Accepted )
     {
       filter->SetKernelSize( dlg.GetKernelSize() );
-      filter->Update();
+      m_threadVolumeFilter->ExecuteFilter(filter);
     }
-    delete filter;
   }
 }
 
@@ -4723,9 +4729,8 @@ void MainWindow::OnVolumeFilterConvolve()
     {
       filter->SetKernelSize( dlg.GetKernelSize() );
       filter->SetSigma( dlg.GetSigma() );
-      filter->Update();
+      m_threadVolumeFilter->ExecuteFilter(filter);
     }
-    delete filter;
   }
 }
 
@@ -4742,10 +4747,9 @@ void MainWindow::OnVolumeFilterGradient()
     {
       filter->SetSmoothing(dlg.GetSmoothing());
       filter->SetStandardDeviation(dlg.GetSD());
-      filter->Update();
+      m_threadVolumeFilter->ExecuteFilter(filter);
       mri->ResetWindowLevel();
     }
-    delete filter;
   }
 }
 
@@ -4755,10 +4759,14 @@ void MainWindow::OnVolumeFilterSobel()
   if ( mri )
   {
     VolumeFilterSobel* filter = new VolumeFilterSobel( mri, mri );
-    filter->Update();
+    m_threadVolumeFilter->ExecuteFilter(filter);
     mri->ResetWindowLevel();
-    delete filter;
   }
+}
+
+void MainWindow::OnVolumeFilterFinished(VolumeFilter *filter)
+{
+  if (filter)filter->deleteLater();
 }
 
 void MainWindow::OnResetView()

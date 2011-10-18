@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2011/09/22 16:08:45 $
- *    $Revision: 1.105 $
+ *    $Date: 2011/10/18 18:13:24 $
+ *    $Revision: 1.106 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -55,6 +55,8 @@ class DialogRepositionSurface;
 class QMessageBox;
 class WindowTimeCourse;
 class DialogLabelStats;
+class VolumeFilterWorkerThread;
+class VolumeFilter;
 
 #define MAX_RECENT_FILES    10
 
@@ -377,6 +379,8 @@ protected slots:
 
   void ReassureGeometry();
 
+  void OnVolumeFilterFinished(VolumeFilter* filter);
+
 private:
   bool DoParseCommand(bool bAutoQuit);
   void SaveSettings();
@@ -432,6 +436,8 @@ private:
   TermWidget*           m_term;
   WindowTimeCourse*     m_wndTimeCourse;
   DialogLabelStats*     m_dlgLabelStats;
+
+  VolumeFilterWorkerThread* m_threadVolumeFilter;
 
   SettingsScreenshot    m_settingsScreenshot;
   QVariantMap           m_settings;
