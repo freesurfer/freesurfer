@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2011/10/14 23:29:55 $
- *    $Revision: 1.92 $
+ *    $Author: rpwang $
+ *    $Date: 2011/10/18 18:12:27 $
+ *    $Revision: 1.93 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -2247,6 +2247,7 @@ MRImean(MRI *mri_src, MRI *mri_dst, int wsize)
           }
         }
       }
+      exec_progress_callback(z, depth, 0, 1);
     }
   }
 #endif
@@ -2745,15 +2746,24 @@ MRIconvolveGaussian(MRI *mri_src, MRI *mri_dst, MRI *mri_gaussian)
   else
     mri_tmp = NULL ;
 
+  int nstart = global_progress_range[0];
+  int nend = global_progress_range[1];
+  int nstep = (nstart-nend) / mri_src->nframes;
   mtmp1 = NULL ;
   for (frame = 0 ; frame < mri_src->nframes ; frame++)
   {
+    global_progress_range[1] =  global_progress_range[0] + nstep/3;
     mtmp1 = MRIcopyFrame(mri_src, mtmp1, frame, 0) ;
     MRIconvolve1d(mri_src, mtmp1, kernel, klen, MRI_WIDTH, frame, 0) ;
+    global_progress_range[0] += nstep/3;
+    global_progress_range[1] += nstep/3;
     MRIconvolve1d(mtmp1, mri_dst, kernel, klen, MRI_HEIGHT, 0, frame) ;
+    global_progress_range[0] += nstep/3;
+    global_progress_range[1] += nstep/3;
     MRIconvolve1d(mri_dst, mtmp1, kernel, klen, MRI_DEPTH, frame, 0) ;
 
     MRIcopyFrame(mtmp1, mri_dst, 0, frame) ;    /* convert it back to UCHAR */
+    global_progress_range[0] = global_progress_range[1];
   }
 
   MRIfree(&mtmp1) ;
@@ -3410,6 +3420,7 @@ MRIconvolve1d(MRI *mri_src, MRI *mri_dst, float *k, int len, int axis,
             *foutPix++ = total ;
           }
         }
+        exec_progress_callback(z, depth, 0, 1);
       }
       break ;
     case MRI_HEIGHT:
@@ -3431,6 +3442,7 @@ MRIconvolve1d(MRI *mri_src, MRI *mri_dst, float *k, int len, int axis,
             *foutPix++ = total ;
           }
         }
+        exec_progress_callback(z, depth, 0, 1);
       }
       break ;
     case MRI_DEPTH:
@@ -3450,6 +3462,7 @@ MRIconvolve1d(MRI *mri_src, MRI *mri_dst, float *k, int len, int axis,
             *foutPix++ = total ;
           }
         }
+        exec_progress_callback(z, depth, 0, 1);
       }
       break ;
     }
@@ -3476,6 +3489,7 @@ MRIconvolve1d(MRI *mri_src, MRI *mri_dst, float *k, int len, int axis,
             *foutPix++ = total ;
           }
         }
+        exec_progress_callback(z, depth, 0, 1);
       }
       break ;
     case MRI_HEIGHT:
@@ -3498,6 +3512,7 @@ MRIconvolve1d(MRI *mri_src, MRI *mri_dst, float *k, int len, int axis,
             *foutPix++ = total ;
           }
         }
+        exec_progress_callback(z, depth, 0, 1);
       }
       break ;
     case MRI_DEPTH:
@@ -3517,6 +3532,7 @@ MRIconvolve1d(MRI *mri_src, MRI *mri_dst, float *k, int len, int axis,
             *foutPix++ = total ;
           }
         }
+        exec_progress_callback(z, depth, 0, 1);
       }
       break ;
     }
@@ -3543,6 +3559,7 @@ MRIconvolve1d(MRI *mri_src, MRI *mri_dst, float *k, int len, int axis,
             *foutPix++ = total ;
           }
         }
+        exec_progress_callback(z, depth, 0, 1);
       }
       break ;
     case MRI_HEIGHT:
@@ -3565,6 +3582,7 @@ MRIconvolve1d(MRI *mri_src, MRI *mri_dst, float *k, int len, int axis,
             *foutPix++ = total ;
           }
         }
+        exec_progress_callback(z, depth, 0, 1);
       }
       break ;
     case MRI_DEPTH:
@@ -3585,6 +3603,7 @@ MRIconvolve1d(MRI *mri_src, MRI *mri_dst, float *k, int len, int axis,
             *foutPix++ = total ;
           }
         }
+        exec_progress_callback(z, depth, 0, 1);
       }
       break ;
     }
