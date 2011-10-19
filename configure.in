@@ -9,8 +9,8 @@
 #
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2011/10/19 00:41:48 $
-#    $Revision: 1.546 $
+#    $Date: 2011/10/19 14:32:16 $
+#    $Revision: 1.547 $
 #
 ########################################################################
 AC_PREREQ(2.57)
@@ -569,6 +569,7 @@ AC_SUBST(FCLIBS)
 AC_MSG_NOTICE(OS is $OS)
 
 AM_CONDITIONAL(HAVE_MAC_OSX, test "x$OS" = "xDarwin" )
+
 ################################################################
 # gfortran
 ################################################################
@@ -576,7 +577,7 @@ AM_CONDITIONAL(HAVE_MAC_OSX, test "x$OS" = "xDarwin" )
 LIB_GFORTRAN=""
 # but the Mac doesnt need libgfortran!  furthermore, its not installed
 # by default, so dont use it on the Mac!
-# NOTE! OS is was just defined, so dont move this section
+# NOTE! OS was just defined, so dont move this section
 if test ! "$OS" = "Darwin"; then
   AC_CHECK_LIB([gfortran], [_gfortran_compare_string],\
                            [LIB_GFORTRAN="-lgfortran"],[])
@@ -2911,15 +2912,17 @@ else
     AC_SUBST(BOOST_LIBS)
     AC_MSG_RESULT([found '$BOOST_PO_LIB'])
     AM_CONDITIONAL(HAVE_BOOST_LIBS, ! test "x$BOOST_PO_LIB" = "xNO")
-  else if test -e /usr/lib64/libboost_program_options.so ; then
-    # note: centos 6 doesnt have the .a lib, so the shared is used instead
-    BOOST_PO_LIB=-lboost_program_options
-    BOOST_LIB=/usr/lib64
-    BOOST_LIBS=-L/usr/lib64
-    AC_SUBST(BOOST_LIB)
-    AC_SUBST(BOOST_LIBS)
-    AC_MSG_RESULT([found '$BOOST_PO_LIB'])
-    AM_CONDITIONAL(HAVE_BOOST_LIBS, ! test "x$BOOST_PO_LIB" = "xNO")
+  else 
+    if test -e /usr/lib64/libboost_program_options.so ; then
+      # note: centos 6 doesnt have the .a lib, so the shared is used instead
+      BOOST_PO_LIB=-lboost_program_options
+      BOOST_LIB=/usr/lib64
+      BOOST_LIBS=-L/usr/lib64
+      AC_SUBST(BOOST_LIB)
+      AC_SUBST(BOOST_LIBS)
+      AC_MSG_RESULT([found '$BOOST_PO_LIB'])
+      AM_CONDITIONAL(HAVE_BOOST_LIBS, ! test "x$BOOST_PO_LIB" = "xNO")
+    fi
   fi
 fi
 AC_SUBST(BOOST_PO_LIB)
