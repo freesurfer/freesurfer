@@ -9,9 +9,9 @@
 /*
  * Original Author: Bruce Fischl, 4/9/97
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2011/10/06 11:47:20 $
- *    $Revision: 1.106 $
+ *    $Author: greve $
+ *    $Date: 2011/10/19 21:01:28 $
+ *    $Revision: 1.107 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -1751,9 +1751,9 @@ MRIbuildBiasImage(MRI *mri_src, MRI *mri_ctrl, MRI *mri_bias, float sigma)
 
   mri_kernel = MRIgaussian1d(sigma, -1) ;
   mri_bias = MRIclone(mri_src, NULL) ;
-  fprintf(stderr, "building Voronoi diagram...\n") ;
+  printf("building Voronoi diagram...\n") ;
   MRIbuildVoronoiDiagram(mri_src, mri_ctrl, mri_bias) ;
-  fprintf(stderr, "performing soap bubble smoothing...\n") ;
+  printf("performing soap bubble smoothing, sigma = %g...\n",sigma) ;
 #if 1
   MRIconvolveGaussian(mri_bias, mri_bias, mri_kernel) ;
   if (mri_src->xsize > 0.9) /* replace smoothed bias
