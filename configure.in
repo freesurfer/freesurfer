@@ -9,8 +9,8 @@
 #
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2011/10/19 00:40:05 $
-#    $Revision: 1.545 $
+#    $Date: 2011/10/19 00:41:48 $
+#    $Revision: 1.546 $
 #
 ########################################################################
 AC_PREREQ(2.57)
@@ -2920,7 +2920,6 @@ else
     AC_SUBST(BOOST_LIBS)
     AC_MSG_RESULT([found '$BOOST_PO_LIB'])
     AM_CONDITIONAL(HAVE_BOOST_LIBS, ! test "x$BOOST_PO_LIB" = "xNO")
-  fi
   fi
 fi
 AC_SUBST(BOOST_PO_LIB)
