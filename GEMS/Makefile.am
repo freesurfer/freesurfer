@@ -575,6 +575,7 @@ kvlApplyTransform_LDADD=$(LIBS_ITK) \
 kvlApplyTransform_LDFLAGS= $(OS_LDFLAGS)
 
 if HAVE_FLTK_LIBS
+if HAVE_VTK_LIBS
 noinst_LIBRARIES+=libkvlAtlas3DGUI.a
 libkvlAtlas3DGUI_a_SOURCES = vtkFlRenderWindowInteractor.cxx \
 						kvlImageViewer.cxx
@@ -909,6 +910,7 @@ EXTRA_DIST=\
 	kvlAtlasMeshRasterizor.txx \
 	vnl_kvl_qr.txx
 
+endif
 endif
 endif
 
