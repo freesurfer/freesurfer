@@ -9,8 +9,8 @@
 #
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2011/10/19 14:33:09 $
-#    $Revision: 1.519.2.17 $
+#    $Date: 2011/10/19 20:32:46 $
+#    $Revision: 1.519.2.18 $
 #
 ########################################################################
 AC_PREREQ(2.57)
@@ -1349,7 +1349,7 @@ AC_SUBST(FLTK_LIB)
 AC_SUBST(FLTK_DIR)
 
 #AM_CONDITIONAL(ENABLE_GEMS, [test "x$enable_gems" = "xyes"])
-AM_CONDITIONAL(HAVE_FLTK_LIBS, ! test "x$ac_FLTK_dir" = "xNO")
+AM_CONDITIONAL(HAVE_FLTK_LIBS, ! test "x$ac_fltk_dir" = "xNO")
 
 ################################################################
 # PETSc
