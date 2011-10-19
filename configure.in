@@ -9,8 +9,8 @@
 #
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2011/10/18 15:44:29 $
-#    $Revision: 1.519.2.15 $
+#    $Date: 2011/10/19 00:42:06 $
+#    $Revision: 1.519.2.16 $
 #
 ########################################################################
 AC_PREREQ(2.57)
@@ -2881,6 +2881,15 @@ else
   fi
   if test -e /usr/lib64/libboost_program_options.a ; then
     BOOST_PO_LIB=/usr/lib64/libboost_program_options.a
+    BOOST_LIB=/usr/lib64
+    BOOST_LIBS=-L/usr/lib64
+    AC_SUBST(BOOST_LIB)
+    AC_SUBST(BOOST_LIBS)
+    AC_MSG_RESULT([found '$BOOST_PO_LIB'])
+    AM_CONDITIONAL(HAVE_BOOST_LIBS, ! test "x$BOOST_PO_LIB" = "xNO")
+  else if test -e /usr/lib64/libboost_program_options.so ; then
+    # note: centos 6 doesnt have the .a lib, so the shared is used instead
+    BOOST_PO_LIB=-lboost_program_options
     BOOST_LIB=/usr/lib64
     BOOST_LIBS=-L/usr/lib64
     AC_SUBST(BOOST_LIB)
