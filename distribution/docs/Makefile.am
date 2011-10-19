@@ -21,7 +21,8 @@ foo_DATA=\
 	license.nrrdio.txt \
 	license.nifti.txt \
 	license.gifti.txt \
-	license.cuda.txt
+	license.cuda.txt \
+	license.lapack.txt
 
 poodir=$(prefix)/tktools
 poo_DATA=license.cortechs.txt

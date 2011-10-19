@@ -47,6 +47,11 @@ Parts of this software are based on the VXL software. The original license
 terms of the VXL software distribution is included in the file 
 </dev/distribution/>docs/license.vxl.txt
 
+LAPACK/BLAS.
+Parts of this software are based on the LAPACK software. The original license 
+terms of the LAPACK software distribution is included in the file 
+</dev/distribution/>docs/license.lapack.txt
+
 MINC.
 Parts of this software are based on the MINC software. The original license 
 terms of the MINC software distribution is included in the file 
