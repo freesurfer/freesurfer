@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2011/10/13 21:05:31 $
- *    $Revision: 1.111 $
+ *    $Date: 2011/10/20 21:22:40 $
+ *    $Revision: 1.112 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -1063,6 +1063,7 @@ void LayerMRI::SetActiveFrame( int nFrame )
   if ( nFrame != m_nActiveFrame && nFrame >= 0 && nFrame < this->GetNumberOfFrames() )
   {
     m_nActiveFrame = nFrame;
+    GetProperty()->SetActiveFrame(nFrame);
     UpdateColorMap();
     emit ActiveFrameChanged( nFrame );
     emit ActorUpdated();

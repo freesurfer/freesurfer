@@ -11,8 +11,8 @@
  * Reimplemented by: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2011/07/21 19:30:09 $
- *    $Revision: 1.6 $
+ *    $Date: 2011/10/20 21:22:40 $
+ *    $Revision: 1.7 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -297,6 +297,13 @@ public:
     return m_bShowProjectionMap;
   }
 
+  bool GetRememberFrameSettings()
+  {
+    return m_bRememberFrameSettings;
+  }
+
+  void SetActiveFrame(int nFrame);
+
 public slots:
   void SetOpacity( double opacity );
   void SetUpSampleMethod( int nUpSampleMethod );
@@ -324,6 +331,7 @@ public slots:
     SetContourColor(c.redF(), c.greenF(), c.blueF());
   }
   void SetShowProjectionMap(bool bShow);
+  void SetRememberFrameSettings(bool bFlag);
 
 signals:
   void ColorMapChanged();
@@ -389,6 +397,9 @@ private:
   double  mWindowRange[2];
   double  mLevelRange[2];
 
+  bool    m_bRememberFrameSettings;
+  QVariantMap m_frameSettings;
+
   // LUT drawing.
   COLOR_TABLE* mFreeSurferCTAB;
 
@@ -417,6 +428,7 @@ private:
   // ---------------------------------------------------------------------
 
   FSVolume*   mSource;
+  int     m_nActiveFrame;
   QString mfnVolume;
   //ETX
 

@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2011/10/13 21:05:31 $
- *    $Revision: 1.72 $
+ *    $Date: 2011/10/20 21:22:40 $
+ *    $Revision: 1.73 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -101,7 +101,9 @@ PanelVolume::PanelVolume(QWidget *parent) :
 
   m_widgetlistFrame << ui->sliderFrame
                     << ui->spinBoxFrame
-                    << ui->labelFrame;
+                    << ui->labelFrame
+                    << ui->checkBoxRememberFrame
+                    << ui->labelRememberFrame;
 
   m_widgetlistVector << ui->labelInversion
                      << ui->comboBoxInversion
@@ -221,6 +223,7 @@ void PanelVolume::ConnectLayer( Layer* layer_in )
   connect( ui->checkBoxUseColorMap, SIGNAL(toggled(bool)), p, SLOT(SetContourUseImageColorMap(bool)) );
   connect( ui->checkBoxShowInfo, SIGNAL(toggled(bool)), p, SLOT(SetShowInfo(bool)) );
   connect( ui->colorPickerContour, SIGNAL(colorChanged(QColor)), p, SLOT(SetContourColor(QColor)));
+  connect( ui->checkBoxRememberFrame, SIGNAL(toggled(bool)), p, SLOT(SetRememberFrameSettings(bool)));
 }
 
 void PanelVolume::DoIdle()
@@ -379,6 +382,7 @@ void PanelVolume::DoUpdateWidgets()
     {
       ui->sliderFrame->setRange( 1, nFrames );
       ui->spinBoxFrame->setRange( 1, nFrames );
+      ui->checkBoxRememberFrame->setChecked(layer->GetProperty()->GetRememberFrameSettings());
     }
     ui->sliderFrame->setValue( layer->GetActiveFrame() + 1 );
     ChangeSpinBoxValue( ui->spinBoxFrame, layer->GetActiveFrame() + 1 );

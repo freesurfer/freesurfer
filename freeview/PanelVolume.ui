@@ -28,7 +28,7 @@
      <x>0</x>
      <y>0</y>
      <width>308</width>
-     <height>1538</height>
+     <height>1632</height>
     </rect>
    </property>
    <layout class="QVBoxLayout" name="verticalLayout">
@@ -166,28 +166,28 @@
         </item>
        </layout>
       </item>
-      <item row="2" column="1">
+      <item row="3" column="1">
        <widget class="QCheckBox" name="checkBoxDisplayVector">
         <property name="text">
          <string>Display as vectors</string>
         </property>
        </widget>
       </item>
-      <item row="3" column="1">
+      <item row="4" column="1">
        <widget class="QCheckBox" name="checkBoxDisplayTensor">
         <property name="text">
          <string>Display as tensors</string>
         </property>
        </widget>
       </item>
-      <item row="4" column="0">
+      <item row="5" column="0">
        <widget class="QLabel" name="labelRenderObject">
         <property name="text">
          <string>Render</string>
         </property>
        </widget>
       </item>
-      <item row="4" column="1">
+      <item row="5" column="1">
        <widget class="QComboBox" name="comboBoxRenderObject">
         <item>
          <property name="text">
@@ -201,14 +201,14 @@
         </item>
        </widget>
       </item>
-      <item row="5" column="0">
+      <item row="6" column="0">
        <widget class="QLabel" name="labelInversion">
         <property name="text">
          <string>Inversion</string>
         </property>
        </widget>
       </item>
-      <item row="5" column="1">
+      <item row="6" column="1">
        <widget class="QComboBox" name="comboBoxInversion">
         <item>
          <property name="text">
@@ -232,14 +232,14 @@
         </item>
        </widget>
       </item>
-      <item row="6" column="0">
+      <item row="7" column="0">
        <widget class="QLabel" name="labelMask">
         <property name="text">
          <string>Mask</string>
         </property>
        </widget>
       </item>
-      <item row="6" column="1">
+      <item row="7" column="1">
        <widget class="QComboBox" name="comboBoxMask">
         <item>
          <property name="text">
@@ -248,14 +248,14 @@
         </item>
        </widget>
       </item>
-      <item row="7" column="0">
+      <item row="8" column="0">
        <widget class="QLabel" name="labelOpacity">
         <property name="text">
          <string>Opacity</string>
         </property>
        </widget>
       </item>
-      <item row="7" column="1">
+      <item row="8" column="1">
        <layout class="QHBoxLayout" name="horizontalLayout_2">
         <item>
          <widget class="QSlider" name="sliderOpacity">
@@ -285,28 +285,28 @@
         </item>
        </layout>
       </item>
-      <item row="8" column="1">
+      <item row="9" column="1">
        <widget class="QCheckBox" name="checkBoxSmooth">
         <property name="text">
          <string>Smooth display</string>
         </property>
        </widget>
       </item>
-      <item row="9" column="1">
+      <item row="10" column="1">
        <widget class="QCheckBox" name="checkBoxUpsample">
         <property name="text">
          <string>Upsample display</string>
         </property>
        </widget>
       </item>
-      <item row="10" column="0">
+      <item row="11" column="0">
        <widget class="QLabel" name="labelColorMap">
         <property name="text">
          <string>Color map</string>
         </property>
        </widget>
       </item>
-      <item row="10" column="1">
+      <item row="11" column="1">
        <widget class="QComboBox" name="comboBoxColorMap">
         <item>
          <property name="text">
@@ -340,24 +340,24 @@
         </item>
        </widget>
       </item>
-      <item row="11" column="0">
+      <item row="12" column="0">
        <widget class="QLabel" name="labelLookUpTable">
         <property name="text">
          <string>Lookup table</string>
         </property>
        </widget>
       </item>
-      <item row="11" column="1">
+      <item row="12" column="1">
        <widget class="QComboBox" name="comboBoxLookUpTable"/>
       </item>
-      <item row="12" column="0">
+      <item row="13" column="0">
        <widget class="QLabel" name="labelDirectionCode">
         <property name="text">
          <string>Color code</string>
         </property>
        </widget>
       </item>
-      <item row="12" column="1">
+      <item row="13" column="1">
        <widget class="QComboBox" name="comboBoxDirectionCode">
         <item>
          <property name="text">
@@ -391,14 +391,14 @@
         </item>
        </widget>
       </item>
-      <item row="13" column="0">
+      <item row="14" column="0">
        <widget class="QLabel" name="labelWindow">
         <property name="text">
          <string>Window</string>
         </property>
        </widget>
       </item>
-      <item row="13" column="1">
+      <item row="14" column="1">
        <layout class="QHBoxLayout" name="horizontalLayout_6">
         <item>
          <widget class="QSlider" name="sliderWindow">
@@ -428,14 +428,14 @@
         </item>
        </layout>
       </item>
-      <item row="14" column="0">
+      <item row="15" column="0">
        <widget class="QLabel" name="labelLevel">
         <property name="text">
          <string>Level</string>
         </property>
        </widget>
       </item>
-      <item row="14" column="1">
+      <item row="15" column="1">
        <layout class="QHBoxLayout" name="horizontalLayout_10">
         <item>
          <widget class="QSlider" name="sliderLevel">
@@ -465,14 +465,14 @@
         </item>
        </layout>
       </item>
-      <item row="15" column="0">
+      <item row="16" column="0">
        <widget class="QLabel" name="labelMin">
         <property name="text">
          <string>Min</string>
         </property>
        </widget>
       </item>
-      <item row="15" column="1">
+      <item row="16" column="1">
        <layout class="QHBoxLayout" name="horizontalLayout_9">
         <item>
          <widget class="QSlider" name="sliderMin">
@@ -502,14 +502,14 @@
         </item>
        </layout>
       </item>
-      <item row="16" column="0">
+      <item row="17" column="0">
        <widget class="QLabel" name="labelMid">
         <property name="text">
          <string>Mid</string>
         </property>
        </widget>
       </item>
-      <item row="16" column="1">
+      <item row="17" column="1">
        <layout class="QHBoxLayout" name="horizontalLayout_7">
         <item>
          <widget class="QSlider" name="sliderMid">
@@ -539,7 +539,7 @@
         </item>
        </layout>
       </item>
-      <item row="17" column="1">
+      <item row="18" column="1">
        <layout class="QHBoxLayout" name="horizontalLayout_11">
         <item>
          <widget class="QSlider" name="sliderMax">
@@ -569,14 +569,14 @@
         </item>
        </layout>
       </item>
-      <item row="18" column="0">
+      <item row="19" column="0">
        <widget class="QLabel" name="labelOffset">
         <property name="text">
          <string>Offset</string>
         </property>
        </widget>
       </item>
-      <item row="18" column="1">
+      <item row="19" column="1">
        <layout class="QHBoxLayout" name="horizontalLayout_14">
         <item>
          <widget class="QSlider" name="sliderOffset">
@@ -606,7 +606,7 @@
         </item>
        </layout>
       </item>
-      <item row="19" column="1">
+      <item row="20" column="1">
        <layout class="QGridLayout" name="gridLayout">
         <item row="0" column="0">
          <widget class="QCheckBox" name="checkBoxTruncate">
@@ -651,14 +651,14 @@
         </item>
        </layout>
       </item>
-      <item row="20" column="0">
+      <item row="21" column="0">
        <widget class="QLabel" name="labelBrushValue">
         <property name="text">
          <string>Brush value</string>
         </property>
        </widget>
       </item>
-      <item row="20" column="1">
+      <item row="21" column="1">
        <layout class="QHBoxLayout" name="horizontalLayout_17">
         <item>
          <widget class="QLineEdit" name="lineEditBrushValue">
@@ -707,12 +707,45 @@
         </item>
        </layout>
       </item>
-      <item row="17" column="0">
+      <item row="18" column="0">
        <widget class="QLabel" name="labelMax">
         <property name="text">
          <string>Max</string>
         </property>
        </widget>
+      </item>
+      <item row="2" column="1">
+       <layout class="QVBoxLayout" name="verticalLayout_2">
+        <property name="spacing">
+         <number>0</number>
+        </property>
+        <item>
+         <widget class="QCheckBox" name="checkBoxRememberFrame">
+          <property name="text">
+           <string>Remember each frame's</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QLabel" name="labelRememberFrame">
+          <property name="sizePolicy">
+           <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+            <horstretch>1</horstretch>
+            <verstretch>0</verstretch>
+           </sizepolicy>
+          </property>
+          <property name="text">
+           <string>threshold settings</string>
+          </property>
+          <property name="wordWrap">
+           <bool>true</bool>
+          </property>
+          <property name="indent">
+           <number>21</number>
+          </property>
+         </widget>
+        </item>
+       </layout>
       </item>
      </layout>
     </item>
