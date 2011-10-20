@@ -250,7 +250,7 @@ void Blood::ReadStreamlines(const char *TrainListFile,
       mRoi2.push_back(MRIread(fname.c_str()));
     }
 
-    if (!mTestMask)	{	// Get size of reference volume from ROIs
+    if (!mTestMask) {		// Get size of reference volume from ROIs
       if (!mRoi1.empty()) {
         mNx = mRoi1[0]->width;
         mNy = mRoi1[0]->height;
@@ -262,6 +262,7 @@ void Blood::ReadStreamlines(const char *TrainListFile,
         mNz = mRoi2[0]->depth;
       }
     }
+
     fname = *idir + TrainTrkFile;
     if (!trkreader.Open(fname.c_str(), &trkheader)) {
       cout << "WARN: Could not open " << fname << " for reading" << endl;
