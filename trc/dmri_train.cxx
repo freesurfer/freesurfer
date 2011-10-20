@@ -7,9 +7,9 @@
 /*
  * Original Author: Anastasia Yendiki
  * CVS Revision Info:
- *    $Author: ayendiki $
- *    $Date: 2011/05/20 23:37:37 $
- *    $Revision: 1.6 $
+ *    $Author: lzollei $
+ *    $Date: 2011/10/20 15:02:44 $
+ *    $Revision: 1.7 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -111,11 +111,13 @@ int main(int argc, char **argv) {
   dump_options(stdout);
 
   if (excludeStr)
-    if (outDir)
-      sprintf(excfile, "%s/%s_cpts_all.bad.txt", outDir, outBase[0]);
-    else
-      sprintf(excfile, "%s_cpts_all.bad.txt", outBase[0]);
-    
+    {
+      if (outDir)
+	sprintf(excfile, "%s/%s_cpts_all.bad.txt", outDir, outBase[0]);
+      else
+	sprintf(excfile, "%s_cpts_all.bad.txt", outBase[0]);
+    }
+  
   Blood myblood(trainListFile, trainTrkList[0],
                 nroi1 ? trainRoi1List[0] : 0, nroi2 ? trainRoi2List[0] : 0,
                 trainAsegFile, trainMaskFile, nlab ? trainMaskLabel[0] : 0,
@@ -125,11 +127,13 @@ int main(int argc, char **argv) {
   for (int itrk = 0; itrk < ntrk; itrk++) {
     if (itrk > 0) {
       if (excludeStr)
-        if (outDir)
-          sprintf(excfile, "%s/%s_cpts_all.bad.txt", outDir, outBase[itrk]);
-        else
-          sprintf(excfile, "%s_cpts_all.bad.txt", outBase[itrk]);
-    
+	{
+	  if (outDir)
+	    sprintf(excfile, "%s/%s_cpts_all.bad.txt", outDir, outBase[itrk]);
+	  else
+	    sprintf(excfile, "%s_cpts_all.bad.txt", outBase[itrk]);
+	}
+      
       myblood.ReadStreamlines(trainListFile, trainTrkList[itrk],
                               nroi1 ? trainRoi1List[itrk] : 0,
                               nroi2 ? trainRoi2List[itrk] : 0,
