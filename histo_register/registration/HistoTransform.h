@@ -2,6 +2,7 @@
 #define _HISTO_TRANSFORM_H_
 #include <sbl/math/Geometry.h>
 #include <sbl/image/MotionField.h>
+#include <sbl/image/ImageTransform.h>
 #include "registration/CorresField3D.h"
 namespace hb {
 
@@ -29,10 +30,10 @@ public:
 	void computeInverses();
 
 	/// project a point from histology coordinates to MR coordinates
-	Point3 projectForward( Point3 point, bool smallHistoCoords, bool verbose ) const;
+	Point3 projectForward( Point3 point, bool useMrTransform, bool smallHistoCoords, bool verbose ) const;
 
 	/// project a point from MR coordinates to histology coordinates
-	Point3 projectBackward( Point3 point, bool smallHistoCoords, bool verbose ) const;
+	Point3 projectBackward( Point3 point, bool useMrTransform, bool smallHistoCoords, bool verbose ) const;
 
 private:
 
@@ -52,6 +53,8 @@ private:
 	Array<CorresField3D> m_cfSeqInv;
 
 	// non-linear slice transform
+	Array<ImageTransform> m_histoTransform;
+	Array<ImageTransform> m_histoTransformInv;
 	Array<MotionField> m_mfHisto;
 	Array<MotionField> m_mfHistoInv;
 	VectorI m_histoSliceIndex;

@@ -113,6 +113,11 @@ void registerHistologySlice( int hIndex, int blockOffset,
 	aptr<ImageGrayU> hMaskLinear = transform->mapBackward( *hMask, mWidth, mHeight, 0 );
 	aptr<ImageGrayU> hNormLinear = transform->mapBackward( *hNorm, mWidth, mHeight, 0 );
 	aptr<ImageGrayU> hImageLinear = transform->mapBackward( *hImage, mWidth, mHeight, 255 );
+	String transformFileName = outputPath + sprintF( "/transform_%d.dat", hSliceIndex );
+	File transformFile( transformFileName, FILE_WRITE, FILE_BINARY );
+	if (transformFile.openSuccess()) {
+		transform->save( transformFile );
+	}
 
 	// compute optical flow
 	aptr<MotionField> mf;

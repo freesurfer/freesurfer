@@ -45,6 +45,17 @@ bool HistoTransform::load( const String &mrRawPath, const String &mrRegLinPath,
 		int sliceIndex = mfFileList[ i ].rightOfLast( '_' ).leftOfLast( '.' ).toInt();
 		m_histoSliceIndex.append( sliceIndex );
 
+		// load the histo image transform
+		fileName = histoRegPath + sprintF( "/transform_%d.dat", sliceIndex );
+		File transformFile( fileName, FILE_READ, FILE_BINARY );
+		if (transformFile.openSuccess()) {
+			aptr<ImageTransform> transform( new ImageTransform( transformFile ) );
+			m_histoTransform.append( transform.release() );
+		} else {
+			warning( "unable to load histo transform file: %s", fileName.c_str() );
+			return false;
+		}
+
 		// load the full-size histo image (after split)
 		fileName = histoSplitPath + sprintF( "/%d.png", sliceIndex );
 		aptr<ImageGrayU> image = sbl::load<ImageGrayU>( fileName ); // fix(faster): we could get the image dimensions without loading the entire image
@@ -99,8 +110,10 @@ void HistoTransform::computeInverses() {
 	// compute inverse of non-linear volume transform
 	m_cfSeqInv = invert( m_cfSeq );
 
-	// computer inverse of non-linear slice transforms
+	// computer inverse of linear and non-linear slice transforms
 	for (int i = 0; i < m_mfHisto.count(); i++) {
+
+		// invert motion field
 		int width = m_mfHisto[ i ].width(), height = m_mfHisto[ i ].height();
 		float uMin = 0, uMean = 0, uMax = 0, vMin = 0, vMean = 0, vMax = 0;
 		motionFieldStats( m_mfHisto[ i ], uMin, vMin, uMean, vMean, uMax, vMax );
@@ -112,13 +125,16 @@ void HistoTransform::computeInverses() {
 		motionFieldStats( *mfInv, uMin, vMin, uMean, vMean, uMax, vMax );
 		m_mfHistoInv.append( mfInv.release() );
 		disp( 1, "%d of %d, %5.3f / %5.3f / %5.3f, %5.3f / %5.3f / %5.3f", i, m_mfHisto.count(), uMin, uMean, uMax, vMin, vMean, vMax );
+
+		// invert linear transform
+		m_histoTransformInv.append( m_histoTransform[ i ].inverse().release() );
 	}
 	disp( 1, "done computing inverses" );
 }
 
 
 /// project a point from histology coordinates to MR coordinates
-Point3 HistoTransform::projectForward( Point3 point, bool smallHistoCoords, bool verbose ) const {
+Point3 HistoTransform::projectForward( Point3 point, bool useMrTransform, bool smallHistoCoords, bool verbose ) const {
 	if (verbose) disp( 1, "init: %3.1f, %3.1f, %3.1f", point.x, point.y, point.z );
 
 	// get histo index
@@ -138,10 +154,18 @@ Point3 HistoTransform::projectForward( Point3 point, bool smallHistoCoords, bool
 	}
 	if (verbose) disp( 1, "after histo shrink: %3.1f, %3.1f, %3.1f", point.x, point.y, point.z );
 
+	// map according to linear image transform
+	double xNew = m_histoTransformInv[ mfIndex ].xTransform( (float) point.x, (float) point.y );
+	double yNew = m_histoTransformInv[ mfIndex ].yTransform( (float) point.x, (float) point.y );
+	point.x = xNew;
+	point.y = yNew;
+	if (verbose) disp( 1, "after histo linear: %3.1f, %3.1f, %3.1f", point.x, point.y, point.z );
+
 	// map according to flow
-	const MotionField &mf = m_mfHisto[ mfIndex ];
+	const MotionField &mf = m_mfHistoInv[ mfIndex ];
 	if (mf.inBounds( (float) point.x, (float) point.y ) == false) {
-		warning( "projected out of motion field: %f, %f", point.x, point.y );
+		if (verbose)
+			warning( "projected out of motion field: %f, %f", point.x, point.y );
 		point.x = 0;
 		point.y = 0;
 		point.z = 0; 
@@ -163,7 +187,8 @@ Point3 HistoTransform::projectForward( Point3 point, bool smallHistoCoords, bool
 	int zInt = round( (float) point.z );
 	int cfWidth = m_cfSeq[ 0 ].width(), cfHeight = m_cfSeq[ 0 ].height();
 	if (xInt < 0 || xInt >= cfWidth || yInt < 0 || yInt >= cfHeight || zInt < 0 || zInt >= m_cfSeq.count()) {
-		warning( "projected out of corres volume: %d, %d, %d", xInt, yInt, zInt );
+		if (verbose)
+			warning( "projected out of corres volume: %d, %d, %d", xInt, yInt, zInt );
 		point.x = 0;
 		point.y = 0;
 		point.z = 0; 
@@ -179,19 +204,23 @@ Point3 HistoTransform::projectForward( Point3 point, bool smallHistoCoords, bool
 	if (verbose) disp( 1, "after reg lin: %3.1f, %3.1f, %3.1f", point.x, point.y, point.z );
 
 	// apply MR transform
-	point = m_mrTransform.transform( point );
-	if (verbose) disp( 1, "after MR: %3.1f, %3.1f, %3.1f", point.x, point.y, point.z );
+	if (useMrTransform) {
+		point = m_mrTransform.transform( point );
+		if (verbose) disp( 1, "after MR: %3.1f, %3.1f, %3.1f", point.x, point.y, point.z );
+	}
 	return point;
 }
 
 
 /// project a point from MR coordinates to histology coordinates
-Point3 HistoTransform::projectBackward( Point3 point, bool smallHistoCoords, bool verbose ) const {
+Point3 HistoTransform::projectBackward( Point3 point, bool useMrTransform, bool smallHistoCoords, bool verbose ) const {
 	if (verbose) disp( 1, "init: %3.1f, %3.1f, %3.1f", point.x, point.y, point.z );
 
 	// apply MR transform
-	point = m_mrTransformInv.transform( point );
-	if (verbose) disp( 1, "after MR inv: %3.1f, %3.1f, %3.1f", point.x, point.y, point.z );
+	if (useMrTransform) {
+		point = m_mrTransformInv.transform( point );
+		if (verbose) disp( 1, "after MR inv: %3.1f, %3.1f, %3.1f", point.x, point.y, point.z );
+	}
 
 	// apply linear transform
 	point = m_regLinTransformInv.transform( point );
@@ -227,9 +256,10 @@ Point3 HistoTransform::projectBackward( Point3 point, bool smallHistoCoords, boo
 		point.z = 0; 
 		return point;
 	}	
-	const MotionField &mfInv = m_mfHistoInv[ mfIndex ];
+	const MotionField &mfInv = m_mfHisto[ mfIndex ];
 	if (mfInv.inBounds( (float) point.x, (float) point.y ) == false) {
-		warning( "projected out of motion field: %f, %f", point.x, point.y );
+		if (verbose)
+			warning( "projected out of motion field: %f, %f", point.x, point.y );
 		point.x = 0;
 		point.y = 0;
 		point.z = 0; 
@@ -240,6 +270,13 @@ Point3 HistoTransform::projectBackward( Point3 point, bool smallHistoCoords, boo
 	point.x += u;
 	point.y += v;	
 	if (verbose) disp( 1, "after mf inv: %3.1f, %3.1f, %3.1f", point.x, point.y, point.z );
+
+	// map according to linear image transform
+	double xNew = m_histoTransform[ mfIndex ].xTransform( (float) point.x, (float) point.y );
+	double yNew = m_histoTransform[ mfIndex ].yTransform( (float) point.x, (float) point.y );
+	point.x = xNew;
+	point.y = yNew;
+	if (verbose) disp( 1, "after histo linear inv: %3.1f, %3.1f, %3.1f", point.x, point.y, point.z );
 
 	// expand x, y coordinates from block-face size to histo size
 	if (smallHistoCoords == false) {
@@ -318,11 +355,11 @@ void projectPoints( Config &conf ) {
 
 			// project histo coord to MR coord
 			if (projectForward) {
-				point = histoTransform.projectForward( point, smallHistoCoords, false );
+				point = histoTransform.projectForward( point, true, smallHistoCoords, false );
 
 			// project MR coord to histo coord
 			} else {
-				point = histoTransform.projectBackward( point, smallHistoCoords, false );
+				point = histoTransform.projectBackward( point, true, smallHistoCoords, false );
 			}
 
 			// write output line
@@ -396,12 +433,12 @@ void testProjectPoints( Config &conf ) {
 					point.x = x;
 					point.y = y;
 					point.z = hSliceIndex;
-					Point3 forPoint = histoTransform.projectForward( point, false, verbose );
+					Point3 forPoint = histoTransform.projectForward( point, true, false, verbose );
 					if (forPoint.x == 0 && forPoint.y == 0 && forPoint.z == 0) {
 						badCount++;
 						continue;
 					}
-					Point3 backPoint = histoTransform.projectBackward( forPoint, false, verbose );
+					Point3 backPoint = histoTransform.projectBackward( forPoint, true, false, verbose );
 					if (backPoint.x == 0 && backPoint.y == 0 && backPoint.z == 0) {
 						badCount++;
 						continue;
@@ -434,6 +471,96 @@ void testProjectPoints( Config &conf ) {
 }
 
 
+/// this command projects an MR volume (e.g. labels) into histology space using nearest neighbor interpolation
+void projectVolume( Config &conf ) {
+
+	// get command parameters
+	String mrRawPath = addDataPath( conf.readString( "mrRawPath", "mri/rawFlash20" ) );
+	String mrRegLinPath = addDataPath( conf.readString( "mrRegLinPath", "mri/regLin" ) );
+	String mrRegPath = addDataPath( conf.readString( "mrRegPath", "mri/reg" ) );
+	String histoSplitPath = addDataPath( conf.readString( "histoSplitPath", "histo/split" ) );
+	String histoRegPath = addDataPath( conf.readString( "histoRegPath", "histo/reg" ) );
+	String inputPath = addDataPath( conf.readString( "inputPath", "mri/label" ) );
+	String outputPath = addDataPath( conf.readString( "outputPath", "mri/labelProj" ) );
+
+	// load transformation data
+	HistoTransform histoTransform;
+	if (histoTransform.load( mrRawPath, mrRegLinPath, mrRegPath, histoSplitPath, histoRegPath ) == false) {
+		return; // don't need to print warning; loadTransform will do that
+	}
+	histoTransform.computeInverses();
+
+	// check for user cancel
+	if (checkCommandEvents())
+		return;
+	
+	// make sure output path exists
+	createDir( outputPath );
+
+	// get list of input (post-prep) histo images
+	Array<String> hFileList = dirFileList( histoSplitPath, "", ".png" );
+	if (hFileList.count() == 0) {
+		warning( "unable to find .png files at: %s", histoSplitPath.c_str() );
+		return;
+	}
+
+	// load MR volume
+	Array<String> mFileList = dirFileList( inputPath, "", ".png" );
+	if (mFileList.count() == 0) {
+		warning( "unable to find .png files at: %s", inputPath.c_str() );
+		return;
+	}
+	Array<ImageGrayU> mrVolume;
+	for (int i = 0; i < mFileList.count(); i++) {
+		String fileName = inputPath + "/" + mFileList[ i ];
+		aptr<ImageGrayU> mrSlice = load<ImageGrayU>( fileName );		
+		mrVolume.append( mrSlice.release() );
+	}
+
+	// load first histo image to get dimensions
+	int hWidth = 0, hHeight = 0;
+	aptr<ImageGrayU> hImage = load<ImageGrayU>( histoSplitPath + "/" + hFileList[ 0 ] );		
+	hWidth = hImage->width();
+	hHeight = hImage->height();
+	hImage.reset();
+
+	// loop over histo images, generating an MR projection image for each one
+	for (int i = 0; i < hFileList.count(); i++) {
+		int hSliceIndex = hFileList[ i ].leftOfLast( '.' ).toInt();
+		aptr<ImageGrayU> projImage( new ImageGrayU( hWidth, hHeight ) );
+		projImage->clear( 0 );
+		for (int y = 0; y < hHeight; y++) {
+			for (int x = 0; x < hWidth; x++) {
+				Point3 point;
+				point.x = x;
+				point.y = y;
+				point.z = hSliceIndex;
+				bool verbose = false;
+				if (x == hWidth / 2 && y == hHeight / 2 && i == hFileList.count() / 2)
+					verbose = true;
+				Point3 mrPoint = histoTransform.projectForward( point, false, false, verbose );
+				if (mrPoint.x || mrPoint.y || mrPoint.z) {
+					int xMrInt = sbl::round( mrPoint.x );
+					int yMrInt = sbl::round( mrPoint.y );
+					int zMrInt = sbl::round( mrPoint.z );
+					if (zMrInt >= 0 && zMrInt < mrVolume.count()) {
+						ImageGrayU &mrSlice = mrVolume[ zMrInt ];
+						if (mrSlice.inBounds( xMrInt, yMrInt )) {
+							projImage->data( x, y ) = mrSlice.data( xMrInt, yMrInt );
+						}
+					}
+				}
+			}
+		}
+		saveImage( *projImage, outputPath + "/" + hFileList[ i ] );
+
+		// check for user cancel
+		if (checkCommandEvents())
+			break;
+	}
+}
+
+
 //-------------------------------------------
 // INIT / CLEAN-UP
 //-------------------------------------------
@@ -442,6 +569,7 @@ void testProjectPoints( Config &conf ) {
 // register commands, etc. defined in this module
 void initHistoTransform() {
 	registerCommand( "hproj", projectPoints );
+	registerCommand( "hprojvol", projectVolume );
 	registerCommand( "hprojtest", testProjectPoints );
 }
 

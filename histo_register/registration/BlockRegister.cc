@@ -417,6 +417,13 @@ void registerBlockToMrOnePass( Config &conf ) {
 	createDir( outputPath );
 	createDir( outputPath + "/vis" );
 
+	// make sure output directories are empty
+	disp( 1, "removing existing images from output path: %s", outputPath.c_str() );
+	String command = sprintF( "rm -f %s/*.png", outputPath.c_str() );
+	system( command.c_str() );
+	command = sprintF( "rm -f %s/vis/*.png", outputPath.c_str() );
+	system( command.c_str() );
+
 	// data used for registration
 	BlockRegisterData brd( outputPath, blockSlicePerMrSlice, 0, 0 );
 
