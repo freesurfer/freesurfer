@@ -59,8 +59,19 @@ void registerHistologySlice( int hIndex, int blockOffset,
 
 	// load histo input file
 	String hFileName = hPath + "/" + hFileList[ hIndex ];
-	aptr<ImageGrayU> hImage = load<ImageGrayU>( hFileName );
-	int hWidth = hImage->width(), hHeight = hImage->height();
+  // here load histo as gray image (probably averaging channels)
+	//aptr<ImageGrayU> hImage = load<ImageGrayU>( hFileName );
+	//int hWidth = hImage->width(), hHeight = hImage->height();
+  // here only use one channel (green):
+  aptr<ImageColorU> hImageColor = load<ImageColorU>( hFileName );
+  int hWidth = hImageColor->width(), hHeight = hImageColor->height();
+  aptr<ImageGrayU> hImage( new ImageGrayU( hWidth, hHeight ) );
+  for (int y = 0; y < hHeight; y++) {
+    for (int x = 0; x < hWidth; x++) {
+      hImage->data( x, y ) = hImageColor->g( x, y );
+    }
+  }
+  
 	aptr<ImageGrayU> hMask = threshold( *hImage, 254, true );
 	int hSliceIndex = hFileList[ hIndex ].leftOfLast( '.' ).toInt();
 
