@@ -6,7 +6,7 @@ noinst_LIBRARIES=libsbl.a
 
 libsbl_a_CXXFLAGS=-I$(top_srcdir)/histo_register/SimpleBaseLib/include/ \
 	$(OPENCV_CXXFLAGS) 
-libsbl_a_CPPFLAGS=-DUSE_OPENCV -DUSE_ZLIB
+libsbl_a_CPPFLAGS=-DUSE_OPENCV -DUSE_ZLIB -DUSE_CDT
 libsbl_a_SOURCES=\
 	src/system/Timer.cc \
 	src/system/FileSystem.cc \
@@ -54,7 +54,8 @@ libsbl_a_SOURCES=\
 	src/image/ImageTransform.cc \
 	src/image/Image.cc \
 	src/image/ImageSeqUtil.cc \
-	src/image/ImageUtil.cc
+	src/image/ImageUtil.cc \
+  external/CDT/CDT.cc
 
 EXTRA_DIST=\
 	external/CDT/CDT.h \
