@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2011/10/18 18:13:24 $
- *    $Revision: 1.187 $
+ *    $Date: 2011/10/24 18:49:40 $
+ *    $Revision: 1.188 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -5193,4 +5193,21 @@ void MainWindow::SaveSurfaceAs()
 void MainWindow::OnShowLabelStats()
 {
   m_dlgLabelStats->show();
+}
+
+void MainWindow::OnSaveIsoSurface()
+{
+  QString fn = QFileDialog::getSaveFileName(this, "Save IsoSurface As",
+                                            m_strLastDir, "VTK files (*.vtk)");
+  if (fn.isEmpty())
+    return;
+
+  LayerMRI* mri = qobject_cast<LayerMRI*>(GetActiveLayer("MRI"));
+  if (mri && mri->GetProperty()->GetShowAsContour())
+  {
+    if (!mri->SaveIsoSurface(fn))
+    {
+      QMessageBox::warning(this, "Error", QString("Could not save iso surface to %1.").arg(fn));
+    }
+  }
 }

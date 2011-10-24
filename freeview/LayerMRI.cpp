@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2011/10/20 21:22:40 $
- *    $Revision: 1.112 $
+ *    $Date: 2011/10/24 18:49:40 $
+ *    $Revision: 1.113 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -2593,4 +2593,18 @@ void LayerMRI::OnAvailableLabels(const IntList &vals)
 {
   this->m_nAvailableLabels = vals;
   emit LabelStatsReady();
+}
+
+bool LayerMRI::SaveIsoSurface(const QString &fn)
+{
+  vtkSmartPointer<vtkPolyDataWriter> writer = vtkSmartPointer<vtkPolyDataWriter>::New();
+  vtkPolyData* polydata = vtkPolyData::SafeDownCast(m_actorContour->GetMapper()->GetInput());
+  if (polydata)
+  {
+    writer->SetInput( polydata );
+    writer->SetFileName( qPrintable(fn) );
+    return writer->Write();
+  }
+  else
+    return false;
 }

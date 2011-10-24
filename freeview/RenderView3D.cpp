@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2011/10/24 16:09:09 $
- *    $Revision: 1.63 $
+ *    $Date: 2011/10/24 18:49:40 $
+ *    $Revision: 1.64 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -1008,9 +1008,10 @@ void RenderView3D::TriggerContextMenu( QMouseEvent* event )
   menu->addAction(MainWindow::GetMainWindow()->ui->actionShowSlices);
   menu->addAction(MainWindow::GetMainWindow()->ui->actionShowSliceFrames);
   bool bShowBar = this->GetShowScalarBar();
-  QList<Layer*> layers = MainWindow::GetMainWindow()->GetLayers("Surface");
-  layers << MainWindow::GetMainWindow()->GetLayers("MRI");
-  layers << MainWindow::GetMainWindow()->GetLayers("PointSet");
+  MainWindow* mainwnd = MainWindow::GetMainWindow();
+  QList<Layer*> layers = mainwnd->GetLayers("Surface");
+  layers << mainwnd->GetLayers("MRI");
+  layers << mainwnd->GetLayers("PointSet");
   if (!layers.isEmpty())
   {
     QMenu* menu2 = menu->addMenu("Show Color Bar");
@@ -1026,6 +1027,14 @@ void RenderView3D::TriggerContextMenu( QMouseEvent* event )
       ag->addAction(act);
     }
     connect(ag, SIGNAL(triggered(QAction*)), this, SLOT(SetScalarBarLayer(QAction*)));
+  }
+  LayerMRI* mri = qobject_cast<LayerMRI*>(mainwnd->GetActiveLayer("MRI"));
+  if (mri && mri->GetProperty()->GetShowAsContour())
+  {
+    menu->addSeparator();
+    QAction* act = new QAction("Save IsoSurface As...", this);
+    menu->addAction(act);
+    connect(act, SIGNAL(triggered()), mainwnd, SLOT(OnSaveIsoSurface()));
   }
   menu->exec(event->globalPos());
 }
