@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2011/10/17 17:37:51 $
- *    $Revision: 1.62 $
+ *    $Date: 2011/10/24 16:09:09 $
+ *    $Revision: 1.63 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -1015,7 +1015,7 @@ void RenderView3D::TriggerContextMenu( QMouseEvent* event )
   {
     QMenu* menu2 = menu->addMenu("Show Color Bar");
     QActionGroup* ag = new QActionGroup(this);
-    ag->setExclusive(true);
+    ag->setExclusive(false);
     foreach (Layer* layer, layers)
     {
       QAction* act = new QAction(layer->GetName(), this);

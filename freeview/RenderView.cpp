@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2011/09/12 20:38:23 $
- *    $Revision: 1.42 $
+ *    $Date: 2011/10/24 16:09:09 $
+ *    $Revision: 1.43 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -473,7 +473,12 @@ void RenderView::SetScalarBarLayer(QAction *act)
 {
   Layer* layer = qobject_cast<Layer*>(act->data().value<QObject*>());
   if (layer)
-    SetScalarBarLayer(layer);
+  {
+    if (act->isChecked())
+      SetScalarBarLayer(layer);
+    else
+      ShowScalarBar(false);
+  }
 }
 
 bool RenderView::SaveScreenShot(const QString& filename, bool bAntiAliasing, int nMag)
