@@ -45,8 +45,8 @@
  * Original Author: Doug Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2011/05/04 16:28:33 $
- *    $Revision: 1.50.2.1 $
+ *    $Date: 2011/10/24 19:57:03 $
+ *    $Revision: 1.50.2.2 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -502,7 +502,7 @@ static FSGD *gdfReadV1(char *gdfname) {
       continue;
     }
     /*----------------- Variables Line ---------------------*/
-    if (!strcasecmp(tag,"Variables")) {
+    if (!strcasecmp(tag,"Variables") || !strcasecmp(tag,"Variable")) {
       if (gd->nvariables != 0) {
         printf("ERROR: gdfReadV1: multiple 'Variables' lines found\n");
         goto formaterror;
