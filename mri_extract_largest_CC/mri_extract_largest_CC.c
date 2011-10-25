@@ -8,8 +8,8 @@
  * Original Author: Florent Segonne
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2011/09/21 14:58:22 $
- *    $Revision: 1.7 $
+ *    $Date: 2011/10/25 14:09:07 $
+ *    $Revision: 1.8 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -41,7 +41,7 @@
 #include "proto.h"
 #include "fio.h"
 #include "version.h"
-#include "subroutines.h"
+#include "connectcomp.h"
 #include "mrisurf.h"
 
 static int lh_label = LH_LABEL ;
@@ -69,7 +69,7 @@ int main(int argc, char *argv[]) {
 
   Progname = argv[0];
 
-  nargs = handle_version_option (argc, argv, "$Id: mri_extract_largest_CC.c,v 1.7 2011/09/21 14:58:22 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_extract_largest_CC.c,v 1.8 2011/10/25 14:09:07 fischl Exp $", "$Name:  $");
   argc -= nargs ;
   if (1 == argc)
     usage (0);
