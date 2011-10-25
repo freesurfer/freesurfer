@@ -8,8 +8,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2011/10/14 23:29:55 $
- *    $Revision: 1.432 $
+ *    $Date: 2011/10/25 14:14:05 $
+ *    $Revision: 1.433 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -411,6 +411,7 @@ MRI   *MRIpolvMeanRegion(MRI *mri_src, MRI *mri_dst, MRI *mri_polv, int wsize,
 MRI   *MRIpolvMedianRegion(MRI *mri_src, MRI *mri_dst,MRI *mri_polv,int wsize,
                            MRI_REGION *region);
 
+MRI   *MRIdivergence(MRI *mri_src, MRI *mri_divergence) ;
 MRI   *MRIlaplacian(MRI *mri_src, MRI *mri_laplacian);
 MRI   *MRIsobelFrame(MRI *mri_src, MRI *mri_grad, MRI *mri_mag, int frame) ;
 MRI   *MRIsobel(MRI *mri_src, MRI *mri_grad, MRI *mri_mag);
@@ -558,6 +559,7 @@ MRI   *MRIerodeRegion(MRI *mri_src, MRI *mri_dst,int wsize,MRI_REGION *region);
 MRI   *MRIdilate(MRI *mri_src, MRI *mri_dst) ;
 MRI   *MRIdilateUchar(MRI *mri_src, MRI *mri_dst) ;
 MRI   *MRIopen(MRI *mri_src, MRI *mri_dst) ;
+MRI   *MRIopenN(MRI *mri_src, MRI *mri_dst, int order) ;
 MRI   *MRIclose(MRI *mri_src, MRI *mri_dst) ;
 /* the following use 4 (or 6 in 3-D) connectivity */
 MRI   *MRIerode6(MRI *mri_src, MRI *mri_dst) ;
@@ -948,6 +950,7 @@ MRI   *MRImaskZero(MRI *mri_src, MRI *mri_mask, MRI *mri_dst) ;
 MRI   *MRImaskDifferentGeometry(MRI *mri_src, MRI *mri_mask, MRI *mri_dst,
                                 int mask, float out_val) ;
 MRI *MRImaskInvert(MRI *mask, MRI *outmask);
+
 int MRInMask(MRI *mask);
 MRI *MRIframeBinarize(MRI *mri, double thresh, MRI *mask);
 
