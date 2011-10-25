@@ -14,8 +14,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2011/10/13 22:38:56 $
- *    $Revision: 1.304 $
+ *    $Date: 2011/10/25 14:19:22 $
+ *    $Revision: 1.305 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -234,7 +234,7 @@ static GC1D *gcaFindHighestPriorGC(GCA *gca, int x, int y, int z,int label,
                                    int wsize) ;
 #endif
 
-static int mriFillRegion(MRI *mri, int x,int y,int z,float fill_val,int whalf);
+static int mriFillRegion(MRI *mri, int x,int y,int z,int frame,float fill_val,int whalf);
 static int gcaFindMaxPriors(GCA *gca, float *max_priors) ;
 static int gcaFindIntensityBounds(GCA *gca, float *pmin, float *pmax) ;
 static int dump_gcan(GCA *gca,
@@ -4539,7 +4539,7 @@ GCAcomputeLogSampleProbability(GCA *gca,
 #endif
   fflush(stdout) ;
 
-  return((float)total_log_p) ;
+  return((float)total_log_p/nsamples) ;
 }
 
 float
@@ -5713,7 +5713,7 @@ GCAfindStableSamples(GCA *gca,
                   if (MRIvox(mri_filled, xv, yv, zv) == 0)
                   {
                     mriFillRegion(mri_filled,
-                                  xv, yv, zv, 1,
+                                  xv, yv, zv, 0, 1,
                                   MIN_UNKNOWN_DIST) ;
                     /* MRIvox(mri_filled, xv, yv, zv) = 1 ;*/
                     nzeros++ ;
@@ -5902,7 +5902,7 @@ GCAfindExteriorSamples(GCA *gca,
               //              if (MRIvox(mri_filled, xv, yv, zv) == 0)
               {
                 mriFillRegion(mri_filled,
-                              xv, yv, zv, 1,
+                              xv, yv, zv, 0, 1,
                               MIN_UNKNOWN_DIST) ;
                 /* MRIvox(mri_filled, xv, yv, zv) = 1 ;*/
                 nzeros++ ;
@@ -6585,7 +6585,7 @@ GCAtransformAndWriteSamplePvals(GCA *gca, MRI *mri,
       }
       if (!DZERO(pval_total))
         pval /= pval_total ;
-      mriFillRegion(mri_dst, xv, yv, zv, pval, 0) ;
+      mriFillRegion(mri_dst, xv, yv, zv, 0, pval, 0) ;
 
       if (gcas[n].x == Gx && gcas[n].y == Gy && gcas[n].z == Gz)
         DiagBreak() ;
@@ -6616,11 +6616,11 @@ GCAtransformAndWriteSampleMeans(GCA *gca, MRI *mri,
                                 GCA_SAMPLE *gcas,int nsamples,
                                 const char *fname,TRANSFORM *transform)
 {
-  int       n, xv, yv, zv ;
+  int       n, xv, yv, zv, f ;
   MRI       *mri_dst ;
   GCA_PRIOR *gcap ;
 
-  mri_dst = MRIalloc(mri->width, mri->height, mri->depth, MRI_FLOAT) ;
+  mri_dst = MRIallocSequence(mri->width, mri->height, mri->depth, MRI_FLOAT, gca->ninputs) ;
   MRIcopyHeader(mri, mri_dst);
 
   TransformInvert(transform, mri) ;
@@ -6633,7 +6633,8 @@ GCAtransformAndWriteSampleMeans(GCA *gca, MRI *mri,
                                &xv, &yv, &zv))
     {
       gcap = &gca->priors[gcas[n].xp][gcas[n].yp][gcas[n].zp];
-      mriFillRegion(mri_dst, xv, yv, zv, gcas[n].means[0], 0) ;
+      for (f = 0 ; f < gca->ninputs ; f++)
+	mriFillRegion(mri_dst, xv, yv, zv, f, gcas[n].means[f], 0) ;
 
       if (gcas[n].x == Gx && gcas[n].y == Gy && gcas[n].z == Gz)
         DiagBreak() ;
@@ -6684,7 +6685,7 @@ GCAtransformAndWriteSamples(GCA *gca, MRI *mri, GCA_SAMPLE *gcas,
       else
         label = 0 ;  /* Left undetermined - visible */
 
-      mriFillRegion(mri_dst, xv, yv, zv, label, 0) ;
+      mriFillRegion(mri_dst, xv, yv, zv, 0, label, 0) ;
 
       if (gcas[n].x == Gx && gcas[n].y == Gy && gcas[n].z == Gz)
         DiagBreak() ;
@@ -6712,7 +6713,7 @@ GCAtransformAndWriteSamples(GCA *gca, MRI *mri, GCA_SAMPLE *gcas,
 }
 
 static int
-mriFillRegion(MRI *mri, int x, int y, int z, float fill_val, int whalf)
+mriFillRegion(MRI *mri, int x, int y, int z, int frame, float fill_val, int whalf)
 {
   int   xi, xk, yi, yk, zi, zk ;
 
@@ -6725,8 +6726,7 @@ mriFillRegion(MRI *mri, int x, int y, int z, float fill_val, int whalf)
       for (zk = -whalf ; zk <= whalf ; zk++)
       {
         zi = mri->zi[z+zk] ;
-        MRIsetVoxVal(mri, xi, yi, zi, 0, fill_val) ;
-        //        MRIvox(mri, xi, yi, zi) = fill_val ;
+        MRIsetVoxVal(mri, xi, yi, zi, frame, fill_val) ;
       }
     }
   }
