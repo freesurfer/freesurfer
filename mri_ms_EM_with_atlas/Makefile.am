@@ -7,9 +7,7 @@ AM_CXXFLAGS=-I$(top_srcdir)/include -I$(top_srcdir)/include/dicom
 
 bin_PROGRAMS = mri_ms_EM_with_atlas
 mri_ms_EM_with_atlas_SOURCES=mri_ms_EM_with_atlas.c \
-	myutils.c myutil.h \
-	PoissonSolver.c PoissonSolver.h \
-	subroutines.c subroutines.h
+	PoissonSolver.c PoissonSolver.h 
 mri_ms_EM_with_atlas_LDADD= $(addprefix $(top_builddir)/, $(LIBS_MGH))
 mri_ms_EM_with_atlas_LDFLAGS=$(OS_LDFLAGS)
 
