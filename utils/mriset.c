@@ -8,9 +8,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: mreuter $
- *    $Date: 2011/09/25 16:42:56 $
- *    $Revision: 1.79 $
+ *    $Author: fischl $
+ *    $Date: 2011/10/25 14:13:50 $
+ *    $Revision: 1.80 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -1727,6 +1727,22 @@ MRIdilate(MRI *mri_src, MRI *mri_dst)
   }
   return(mri_dst) ;
 }
+MRI *
+MRIopenN(MRI *mri_src, MRI *mri_dst, int order)
+{
+  MRI *mri_tmp ;
+  int i ;
+
+  mri_tmp = MRIerode(mri_src, NULL) ;
+  for (i = 1 ; i < order ; i++)
+    MRIerode(mri_tmp, mri_tmp) ;
+  mri_dst = MRIdilate(mri_tmp, mri_dst) ;
+  for (i = 1 ; i < order ; i++)
+    MRIdilate(mri_dst, mri_dst) ;
+
+  MRIfree(&mri_tmp) ;
+  return(mri_dst) ;
+}
 /*-----------------------------------------------------
   Parameters:
 
@@ -3435,6 +3451,18 @@ MRIlabelInVolume(MRI *mri_src, int label)
 				if ((int)MRIgetVoxVal(mri_src, x, y, z, 0) == label)
 					return(1) ;
 	return(0) ;
+}
+int
+MRIlabeledVoxels(MRI *mri_src, int label)
+{
+	int x, y, z, num ;
+
+	for (num = 0, x = 0 ; x < mri_src->width ; x++)
+		for (y = 0 ; y < mri_src->height ; y++)
+			for (z = 0 ; z < mri_src->depth ; z++)
+				if ((int)MRIgetVoxVal(mri_src, x, y, z, 0) == label)
+					num++ ;
+	return(num) ;
 }
 
 /*!
