@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: rge21 $
- *    $Date: 2011/05/05 20:10:41 $
- *    $Revision: 1.37 $
+ *    $Author: fischl $
+ *    $Date: 2011/10/25 13:52:29 $
+ *    $Revision: 1.38 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -34,6 +34,7 @@ extern "C" {
 #include "mri.h"
 #include "mriTransform.h"
 #include "mrisurf.h"
+#include "connectcomp.h"
 
 MRI *mri_load_bvolume(char *bfstem);
 int  mri_save_as_bvolume(MRI *vol, char *stem, int svendian, int svtype);
@@ -105,6 +106,8 @@ int MRIsegFrameAvg(MRI *seg, int segid, MRI *mri, double *favg);
 int MRIsegStats(MRI *seg, int segid, MRI *mri,int frame,
                 float *min, float *max, float *range,
                 float *mean, float *std);
+
+MRI *MRImask_with_T2_and_aparc_aseg(MRI *mri_src, MRI *mri_dst, MRI *mri_T2, MRI *mri_aparc_aseg, float T2_thresh, int mm_from_exterior) ;
 
 
 #if defined(__cplusplus)
