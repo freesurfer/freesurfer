@@ -9,9 +9,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/16 21:23:49 $
- *    $Revision: 1.118 $
+ *    $Author: fischl $
+ *    $Date: 2011/10/25 14:09:58 $
+ *    $Revision: 1.119 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -51,11 +51,11 @@
 #include "tags.h"
 #include "transform.h"
 #include "talairachex.h"
-#include "subroutines.h"
+#include "connectcomp.h"
 #include "mrisegment.h"
 
 static char vcid[] =
-  "$Id: mri_fill.c,v 1.118 2011/03/16 21:23:49 nicks Exp $";
+  "$Id: mri_fill.c,v 1.119 2011/10/25 14:09:58 fischl Exp $";
 
 /*-------------------------------------------------------------------
   CONSTANTS
@@ -2019,7 +2019,7 @@ main(int argc, char *argv[])
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mri_fill.c,v 1.118 2011/03/16 21:23:49 nicks Exp $", "$Name:  $",
+   "$Id: mri_fill.c,v 1.119 2011/10/25 14:09:58 fischl Exp $", "$Name:  $",
    cmdline);
 
   // Gdiag = 0xFFFFFFFF;
@@ -2027,7 +2027,7 @@ main(int argc, char *argv[])
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mri_fill.c,v 1.118 2011/03/16 21:23:49 nicks Exp $",
+           "$Id: mri_fill.c,v 1.119 2011/10/25 14:09:58 fischl Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
   {
@@ -6955,6 +6955,8 @@ MRI *fill_with_aseg(MRI *mri_img, MRI *mri_seg)
     for (y=0; y< height; y++)
       for (x=0; x < width; x++)
       {
+	if (x == Gx && y == Gy && z == Gz)
+	  DiagBreak() ;
         if (MRIgetVoxVal(mri_img, x, y, z, 0) < WM_MIN_VAL)
         {
           continue;
