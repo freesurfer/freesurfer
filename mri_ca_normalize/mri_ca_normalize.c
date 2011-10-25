@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2011/10/13 22:38:56 $
- *    $Revision: 1.56 $
+ *    $Date: 2011/10/25 13:53:08 $
+ *    $Revision: 1.57 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -41,7 +41,9 @@
 #include "cma.h"
 #include "mrinorm.h"
 #include "version.h"
+#include "mri2.h"
 
+#define MM_FROM_EXTERIOR  5  // distance into brain mask to go when erasing super bright CSF voxels
 
 char *Progname ;
 
@@ -63,6 +65,9 @@ static int remove_rh = 0 ;
 
 static int file_only = 0 ;
 static char *normalized_transformed_sample_fname = NULL ;
+static char *T2_mask_fname = NULL ;
+static double T2_thresh = 0 ;
+static char *aparc_aseg_fname = NULL ;
 static char *mask_fname = NULL ;
 static char *sample_fname = NULL ;
 static char *ctl_point_fname = NULL ;
@@ -79,6 +84,9 @@ static int copy_ctrl_points_to_volume(GCA_SAMPLE *gcas, int nsamples,
 static GCA_SAMPLE *copy_ctrl_points_from_volume(GCA *gca,TRANSFORM *transform,
     int *pnsamples, MRI *mri_ctrl,
     int frame) ;
+
+static MRI  *mri_aseg = NULL ;
+static float aseg_thresh = 0 ;
 
 static char *seg_fname = NULL ;
 static char *long_seg_fname = NULL ;
@@ -150,13 +158,13 @@ main(int argc, char *argv[])
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mri_ca_normalize.c,v 1.56 2011/10/13 22:38:56 fischl Exp $",
+   "$Id: mri_ca_normalize.c,v 1.57 2011/10/25 13:53:08 fischl Exp $",
    "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mri_ca_normalize.c,v 1.56 2011/10/13 22:38:56 fischl Exp $",
+           "$Id: mri_ca_normalize.c,v 1.57 2011/10/25 13:53:08 fischl Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
   {
@@ -372,8 +380,25 @@ main(int argc, char *argv[])
       MRImask(mri_tmp, mri_mask, mri_tmp, 0, 0) ;
       MRIfree(&mri_mask) ;
     }
-    MRIcopyFrame(mri_tmp, mri_in, 0, input) ;
-    MRIfree(&mri_tmp) ;
+    if (T2_mask_fname)
+    {
+      MRI *mri_T2, *mri_aparc_aseg ;
+
+      mri_T2 = MRIread(T2_mask_fname) ;
+      if (!mri_T2)
+	ErrorExit(ERROR_NOFILE, "%s: could not open T2 mask volume %s.\n",
+		  Progname, mask_fname) ;
+      if (aparc_aseg_fname)   // use T2 and aparc+aseg to remove non-brain stuff
+      {
+ 	mri_aparc_aseg = MRIread(aparc_aseg_fname) ;
+	if (mri_aparc_aseg == NULL)
+	  ErrorExit(ERROR_NOFILE, "%s: could not open aparc+aseg volume %s.\n",
+		    Progname, aparc_aseg_fname) ;
+      }
+
+      MRImask_with_T2_and_aparc_aseg(mri_tmp, mri_tmp, mri_T2, mri_aparc_aseg, T2_thresh, MM_FROM_EXTERIOR) ;
+      MRIfree(&mri_T2) ; MRIfree(&mri_aparc_aseg) ;
+    }
   }
   MRIaddCommandLine(mri_in, cmdline) ;
 
@@ -474,11 +499,14 @@ main(int argc, char *argv[])
     }
   }
 
-  if (seg_fname)   /* use segmentation volume to drive normalization */
+  if (seg_fname || mri_aseg)   /* use segmentation volume to drive normalization */
   {
     MRI *mri_seg ;
     int  structs[MAX_CMA_LABELS], nstructs ;
-    mri_seg = MRIread(seg_fname) ;
+    if (mri_aseg)
+      mri_seg = mri_aseg ;
+    else
+      mri_seg = MRIread(seg_fname) ;
     if (!mri_seg)
       ErrorExit
       (ERROR_NOFILE,
@@ -495,7 +523,8 @@ main(int argc, char *argv[])
     MRIfree(&mri_norm) ;
     MRIfree(&mri_seg) ;
   }
-  else
+
+  if (seg_fname == NULL)  // only run this if using an aseg in the previous block, not a manual one (i.e. -aseg)
   {
     int j ;
 
@@ -662,11 +691,38 @@ get_option(int argc, char *argv[])
   {
     usage_exit(0) ;
   }
+  else if (!stricmp(option, "T2MASK"))
+  {
+    T2_mask_fname = argv[2] ;
+    T2_thresh = atof(argv[3]) ;
+    nargs = 2 ;
+    printf("using T2 volume %s thresholded at %f to mask input volume...\n", 
+	   T2_mask_fname, T2_thresh) ;
+  }
+  else if (!stricmp(option, "AMASK"))
+  {
+    aparc_aseg_fname = argv[2] ;
+    T2_mask_fname = argv[3] ;
+    T2_thresh = atof(argv[4]) ;
+    nargs = 3 ;
+    printf("using aparc+aseg vol %s and T2 volume %s thresholded at %f to mask input volume...\n", 
+	   aparc_aseg_fname, T2_mask_fname, T2_thresh) ;
+  }
   else if (!strcmp(option, "MASK"))
   {
     mask_fname = argv[2] ;
     nargs = 1 ;
     printf("using MR volume %s to mask input volume...\n", mask_fname) ;
+  }
+  else if (!strcmp(option, "ASEG"))
+  {
+    mri_aseg = MRIread(argv[2]) ;
+    if (mri_aseg == NULL)
+      ErrorExit(ERROR_NOFILE, "%s: could not read aseg volume from %s", Progname, argv[2]) ;
+    aseg_thresh = atof(argv[3]) ;
+    nargs = 2 ;
+    printf("using top %2.2f%% of white matter aseg volume %s to do first pass normalization...\n", 
+	   aseg_thresh*100, argv[2]) ;
   }
   else if (!strcmp(option, "SEG"))
   {
