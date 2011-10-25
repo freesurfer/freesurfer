@@ -6,9 +6,9 @@
 /*
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
- *    $Author: mreuter $
- *    $Date: 2011/09/30 00:27:50 $
- *    $Revision: 1.75 $
+ *    $Author: fischl $
+ *    $Date: 2011/10/25 13:52:38 $
+ *    $Revision: 1.76 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -3434,5 +3434,64 @@ int MRIsegFrameAvg(MRI *seg, int segid, MRI *mri, double *favg)
     }
 
   return(nvoxels);
+}
+
+MRI *
+MRImask_with_T2_and_aparc_aseg(MRI *mri_src, MRI *mri_dst, MRI *mri_T2, MRI *mri_aparc_aseg, float T2_thresh, int mm_from_exterior)
+{
+  int    x, y, z, nremoved, i ;
+  MRI    *mri_bright, *mri_mask , *mri_tmp = NULL;
+
+  mri_mask = MRIbinarize(mri_T2, NULL, T2_thresh, 255, 0) ;
+  mri_bright = MRIcopy(mri_mask, NULL) ;
+
+
+  if (mri_aparc_aseg)   // use T2 and aparc+aseg to remove non-brain stuff
+  {
+    MRIbinarize(mri_aparc_aseg, mri_aparc_aseg, 1, 0, 255) ;
+    MRIdilate(mri_aparc_aseg, mri_aparc_aseg) ;
+    MRInot(mri_aparc_aseg, mri_aparc_aseg) ;  // background now on, foreground off
+    GetLargestCC6(mri_aparc_aseg) ;                 // remove disconnected background components
+    MRIand(mri_mask, mri_aparc_aseg, mri_mask, 1) ;
+    MRIopenN(mri_mask, mri_mask, 3) ;   // third order open will remove thin chains of bright T2 that are in the interior
+  }
+  else  // just use T2
+  {
+    GetLargestCC6(mri_mask) ;
+  }
+
+
+  MRInot(mri_mask, mri_mask) ;   // 0 now means mask it out and 1 means retain it
+  for (i = nremoved = 0 ; i < mm_from_exterior ; i++)
+  {
+    mri_tmp =  MRIcopy(mri_mask, mri_tmp) ;
+    for (x = 0 ; x < mri_mask->width ;  x++)
+      for (y = 0 ; y < mri_mask->height ;  y++)
+	for (z = 0 ; z < mri_mask->depth ;  z++)
+	{
+	  if (x == Gx && y == Gy && z == Gz)
+	    DiagBreak() ;
+	  if (MRIgetVoxVal(mri_mask, x, y, z, 0) == 0)  // already in the mask
+	    continue ;
+	  if (MRIgetVoxVal(mri_T2, x, y, z, 0) >= T2_thresh)  // bright in the T2
+	  {
+	    if (MRIneighborsOff(mri_mask, x, y, z, 1) > 0)   // touching the existing mask
+	    {
+	      if (x == Gx && y == Gy && z == Gz)
+		DiagBreak() ;
+	      MRIsetVoxVal(mri_tmp, x, y, z, 0, 0) ;   // add this voxel to the mask
+	      nremoved++ ;
+	    }
+	  }
+	}
+
+    printf("%d T2-bright exterior voxels removed\n", nremoved) ;
+    MRIcopy(mri_tmp, mri_mask) ;
+  }
+
+
+  mri_dst = MRImask(mri_dst, mri_mask, mri_dst, 0, 0) ;  // if mask == 0, then set dst as 0
+  MRIfree(&mri_bright) ;  MRIfree(&mri_mask) ; MRIfree(&mri_tmp) ;
+  return(mri_dst) ;
 }
 

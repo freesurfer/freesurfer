@@ -79,6 +79,7 @@ libutils_main_SOURCES=\
 	cma.c \
 	cmdargs.c \
 	colortab.c \
+	connectcomp.c \
 	corio.c \
 	cpputils.cpp \
 	ctrpoints.c \
