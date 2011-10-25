@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: rpwang $
- *    $Date: 2011/10/18 18:12:27 $
- *    $Revision: 1.93 $
+ *    $Author: fischl $
+ *    $Date: 2011/10/25 14:17:51 $
+ *    $Revision: 1.94 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -937,33 +937,60 @@ MRIzSobelRegion(MRI *mri_src, MRI *mri_z, int frame, MRI_REGION *region)
 }
 #endif
 
+MRI *
+MRIdivergence(MRI *mri_src, MRI *mri_divergence)
+{
+  MRI *mri_sobel ;
+  int x, y, z ;
+  double dU_dx, dU_dy, dU_dz ;
+
+  mri_divergence = MRIalloc(mri_src->width, mri_src->height, mri_src->depth, MRI_FLOAT) ;
+  MRIcopyHeader(mri_src, mri_divergence) ;
+  mri_sobel = MRIsobel(mri_src, NULL, NULL) ;
+  for (x = 0 ; x < mri_src->width ; x++)
+    for (y = 0 ; y < mri_src->height ; y++)
+      for (z = 0 ; z < mri_src->depth ; z++)
+      {
+	dU_dx = MRIgetVoxVal(mri_sobel, x, y, z, 0) ;
+	dU_dy = MRIgetVoxVal(mri_sobel, x, y, z, 1) ;
+	dU_dz = MRIgetVoxVal(mri_sobel, x, y, z, 2) ;
+	MRIsetVoxVal(mri_divergence, x, y, z, 0, dU_dx+dU_dy+dU_dz) ;
+      }
+    
+  MRIfree(&mri_sobel) ;
+
+  return(mri_divergence) ;
+}
+
+
 // compute the laplacian of the input volume (6-connected)
 MRI *
 MRIlaplacian(MRI *mri_src, MRI *mri_laplacian)
 {
-  int   x, y, z ;
+  int   x, y, z, f ;
   float lap ;
 
   if (mri_laplacian == NULL)
     mri_laplacian = MRIcloneDifferentType(mri_src, MRI_FLOAT) ;
 
-  for (x = 0 ; x < mri_src->width ; x++)
-  {
-    for (y = 0 ; y < mri_src->height ; y++)
+  for (f = 0 ; f < mri_src->nframes ; f++)
+    for (x = 0 ; x < mri_src->width ; x++)
     {
-      for (z = 0 ; z < mri_src->depth ; z++)
+      for (y = 0 ; y < mri_src->height ; y++)
       {
-        lap = -6*MRIgetVoxVal(mri_src, x, y, z, 0) ;
-        lap += MRIgetVoxVal(mri_src, mri_src->xi[x-1], y, z, 0) ;
-        lap += MRIgetVoxVal(mri_src, mri_src->xi[x+1], y, z, 0) ;
-        lap += MRIgetVoxVal(mri_src, x, mri_src->yi[y-1], z, 0) ;
-        lap += MRIgetVoxVal(mri_src, x, mri_src->yi[y+1], z, 0) ;
-        lap += MRIgetVoxVal(mri_src, x, y, mri_src->zi[z-1], 0) ;
-        lap += MRIgetVoxVal(mri_src, x, y, mri_src->zi[z+1], 0) ;
-        MRIsetVoxVal(mri_laplacian, x, y, z, 0, lap) ;
+	for (z = 0 ; z < mri_src->depth ; z++)
+	{
+	  lap = -6*MRIgetVoxVal(mri_src, x, y, z, 0) ;
+	  lap += MRIgetVoxVal(mri_src, mri_src->xi[x-1], y, z, f) ;
+	  lap += MRIgetVoxVal(mri_src, mri_src->xi[x+1], y, z, f) ;
+	  lap += MRIgetVoxVal(mri_src, x, mri_src->yi[y-1], z, f) ;
+	  lap += MRIgetVoxVal(mri_src, x, mri_src->yi[y+1], z, f) ;
+	  lap += MRIgetVoxVal(mri_src, x, y, mri_src->zi[z-1], f) ;
+	  lap += MRIgetVoxVal(mri_src, x, y, mri_src->zi[z+1], f) ;
+	  MRIsetVoxVal(mri_laplacian, x, y, z, f, lap) ;
+	}
       }
     }
-  }
 
   return(mri_laplacian) ;
 }
