@@ -202,6 +202,7 @@ MFILES=\
 	fast_mri_struct.m \
 	fast_mrivolstruct.m \
 	fast_mshift.m \
+	fast_nirs2oxy.m \
 	fast_normcovmtx.m \
 	fast_norm_con.m \
 	fast_npernull.m \
@@ -233,6 +234,7 @@ MFILES=\
 	fast_read_curv.m \
 	fast_read_wfile.m \
 	fast_rescalefactor.m \
+	fast_retroicor.m \
 	fast_rfm2nrho1.m \
 	fast_rmzerocols.m \
 	fast_rphacf.m \
