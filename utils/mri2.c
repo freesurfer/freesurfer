@@ -7,8 +7,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2011/10/25 13:52:38 $
- *    $Revision: 1.76 $
+ *    $Date: 2011/10/25 18:30:37 $
+ *    $Revision: 1.77 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -3462,6 +3462,7 @@ MRImask_with_T2_and_aparc_aseg(MRI *mri_src, MRI *mri_dst, MRI *mri_T2, MRI *mri
 
 
   MRInot(mri_mask, mri_mask) ;   // 0 now means mask it out and 1 means retain it
+
   for (i = nremoved = 0 ; i < mm_from_exterior ; i++)
   {
     mri_tmp =  MRIcopy(mri_mask, mri_tmp) ;
@@ -3472,6 +3473,8 @@ MRImask_with_T2_and_aparc_aseg(MRI *mri_src, MRI *mri_dst, MRI *mri_T2, MRI *mri
 	  if (x == Gx && y == Gy && z == Gz)
 	    DiagBreak() ;
 	  if (MRIgetVoxVal(mri_mask, x, y, z, 0) == 0)  // already in the mask
+	    continue ;
+	  if (MRIgetVoxVal(mri_aparc_aseg, x, y, z, 0) == 0)  // too close to brain
 	    continue ;
 	  if (MRIgetVoxVal(mri_T2, x, y, z, 0) >= T2_thresh)  // bright in the T2
 	  {
