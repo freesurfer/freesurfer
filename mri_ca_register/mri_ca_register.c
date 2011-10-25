@@ -24,8 +24,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2011/03/02 14:27:40 $
- *    $Revision: 1.78 $
+ *    $Date: 2011/10/25 13:53:04 $
+ *    $Revision: 1.79 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -62,12 +62,14 @@
 #include "mrisegment.h"
 #include "version.h"
 #include "mri_ca_register.help.xml.h"
+#include "mri2.h"
 
 #ifdef FS_CUDA
 #include "devicemanagement.h"
 #endif
 #include "gcamorphtestutils.h"
 
+extern int gcam_write_grad ; // defined in gcamorph.c for diags
 static int remove_cerebellum = 0 ;
 static int remove_lh = 0 ;
 static int remove_rh = 0 ;
@@ -89,12 +91,17 @@ static int insert_whalf[MAX_INSERTIONS] ;
 
 static int avgs = 0 ;  /* for smoothing conditional densities */
 static int read_lta = 0 ;
+static char *T2_mask_fname = NULL ;
+static double T2_thresh = 0 ;
+static char *aparc_aseg_fname = NULL ;
 static char *mask_fname = NULL ;
 static char *norm_fname = NULL ;
 static int renormalize = 0 ;
 static int renormalize_new = 0 ;
 static int renormalize_align = 0 ;
 static int renormalize_align_after = 0 ;
+
+static int  renorm_with_histos = 0 ;
 
 static char *long_reg_fname = NULL ;
 //static int inverted_xform = 0 ;
@@ -150,6 +157,7 @@ static int handle_expanded_ventricles = 0;
 
 static int do_secondpass_renorm = 0;
 
+#define MM_FROM_EXTERIOR  5  // distance into brain mask to go when erasing super bright CSF voxels
 /*
    command line consists of three inputs:
 
@@ -221,7 +229,7 @@ main(int argc, char *argv[])
 
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mri_ca_register.c,v 1.78 2011/03/02 14:27:40 fischl Exp $",
+           "$Id: mri_ca_register.c,v 1.79 2011/10/25 13:53:04 fischl Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
   {
@@ -291,6 +299,25 @@ main(int argc, char *argv[])
       MRImask(mri_tmp, mri_mask, mri_tmp, 0, 0) ;
       MRIfree(&mri_mask) ;
     }
+    if (T2_mask_fname)
+    {
+      MRI *mri_T2, *mri_aparc_aseg ;
+
+      mri_T2 = MRIread(T2_mask_fname) ;
+      if (!mri_T2)
+	ErrorExit(ERROR_NOFILE, "%s: could not open T2 mask volume %s.\n",
+		  Progname, mask_fname) ;
+      if (aparc_aseg_fname)   // use T2 and aparc+aseg to remove non-brain stuff
+      {
+ 	mri_aparc_aseg = MRIread(aparc_aseg_fname) ;
+	if (mri_aparc_aseg == NULL)
+	  ErrorExit(ERROR_NOFILE, "%s: could not open aparc+aseg volume %s.\n",
+		    Progname, aparc_aseg_fname) ;
+      }
+
+      MRImask_with_T2_and_aparc_aseg(mri_tmp, mri_tmp, mri_T2, mri_aparc_aseg, T2_thresh, MM_FROM_EXTERIOR) ;
+      MRIfree(&mri_T2) ; MRIfree(&mri_aparc_aseg) ;
+    }
     if (alpha > 0)
     {
       mri_tmp->flip_angle = alpha ;
@@ -330,6 +357,14 @@ main(int argc, char *argv[])
   if (remove_rh)
   {
     GCAremoveHemi(gca, 0) ;  // for exvivo contrast
+  }
+  if (remove_cerebellum)
+  {
+    GCAremoveLabel(gca, Brain_Stem) ;
+    GCAremoveLabel(gca, Left_Cerebellum_Cortex) ;
+    GCAremoveLabel(gca, Left_Cerebellum_White_Matter) ;
+    GCAremoveLabel(gca, Right_Cerebellum_White_Matter) ;
+    GCAremoveLabel(gca, Right_Cerebellum_Cortex) ;
   }
   /////////////////////////////////////////////////////////////////
   // Remapping GCA
@@ -764,6 +799,33 @@ main(int argc, char *argv[])
     }
   }
   GCAMmarkNegativeNodesInvalid(gcam) ;
+  if (renorm_with_histos)
+  {
+    GCAmapRenormalizeWithHistograms
+      (gcam->gca, mri_inputs, transform,parms.log_fp, parms.base_name,
+       label_scales,label_offsets,label_peaks,label_computed) ;
+    if (parms.write_iterations != 0 && 0)
+    {
+      char fname[STRLEN] ;
+      MRI  *mri_gca, *mri_tmp ;
+      mri_gca = MRIclone(mri_inputs, NULL) ;
+      GCAMbuildMostLikelyVolume(gcam, mri_gca) ;
+      if (mri_gca->nframes > 1)
+      {
+        printf("careg: extracting %dth frame\n", mri_gca->nframes-1) ;
+        mri_tmp = MRIcopyFrame(mri_gca, NULL, mri_gca->nframes-1, 0) ;
+        MRIfree(&mri_gca) ;
+        mri_gca = mri_tmp ;
+      }
+      sprintf(fname, "%s_target_after_histo", parms.base_name) ;
+      MRIwriteImageViews(mri_gca, fname, IMAGE_SIZE) ;
+      sprintf(fname, "%s_target_after_histo.mgz", parms.base_name) ;
+      printf("writing target volume to %s...\n", fname) ;
+      MRIwrite(mri_gca, fname) ;
+      MRIfree(&mri_gca) ;
+    }
+  }
+
 
   ///////////////////////////////////////////////////////////////////
   // -wm option (default = 0)
@@ -1314,6 +1376,12 @@ get_option(int argc, char *argv[])
     remove_rh = 1  ;
     printf("removing right hemisphere labels\n") ;
   }
+  else if (!stricmp(option, "write_grad"))
+  {
+    gcam_write_grad = 1 ;
+    Gdiag |= DIAG_WRITE ;
+    printf("writing gradients each iteration\n") ;
+  }
   else if (!stricmp(option, "RH"))
   {
     remove_lh = 1  ;
@@ -1501,6 +1569,23 @@ get_option(int argc, char *argv[])
     mask_fname = argv[2] ;
     nargs = 1 ;
     printf("using MR volume %s to mask input volume...\n", mask_fname) ;
+  }
+  else if (!stricmp(option, "T2MASK"))
+  {
+    T2_mask_fname = argv[2] ;
+    T2_thresh = atof(argv[3]) ;
+    nargs = 2 ;
+    printf("using T2 volume %s thresholded at %f to mask input volume...\n", 
+	   T2_mask_fname, T2_thresh) ;
+  }
+  else if (!stricmp(option, "AMASK"))
+  {
+    aparc_aseg_fname = argv[2] ;
+    T2_mask_fname = argv[3] ;
+    T2_thresh = atof(argv[4]) ;
+    nargs = 3 ;
+    printf("using aparc+aseg vol %s and T2 volume %s thresholded at %f to mask input volume...\n", 
+	   aparc_aseg_fname, T2_mask_fname, T2_thresh) ;
   }
   else if (!stricmp(option, "DIAG"))
   {
@@ -1779,6 +1864,17 @@ get_option(int argc, char *argv[])
   else if (!stricmp(option, "invert-and-save"))
   {
     printf("Loading, Inverting, Saving, Exiting ...\n");
+    err = GCAMwriteInverse(argv[2],NULL);
+    exit(err);
+  }
+  else if (!stricmp(option, "histo-norm"))
+  {
+    printf("using prior subject histograms for initial GCA renormalization\n") ;
+    renorm_with_histos = 1 ;
+  }
+  else if (!stricmp(option, ""))
+  {
+    printf("using histogram matching of prior subjects for initial gca renormalization\n") ;
     err = GCAMwriteInverse(argv[2],NULL);
     exit(err);
   }
