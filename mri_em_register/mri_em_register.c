@@ -10,8 +10,8 @@
  * CUDA version : Richard Edgar
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2011/10/12 01:35:00 $
- *    $Revision: 1.93 $
+ *    $Date: 2011/10/25 13:53:06 $
+ *    $Revision: 1.94 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -43,6 +43,8 @@
 #include "cma.h"
 #include "mrinorm.h"
 #include "version.h"
+#include "mri2.h"
+#include "connectcomp.h"
 
 #include "emregisterutils.h"
 #include "findtranslation.h"
@@ -52,6 +54,8 @@
 #include "em_register_cuda.h"
 #define FAST_TRANSFORM 0
 #endif // FS_CUDA
+
+#define MM_FROM_EXTERIOR  5  // distance into brain mask to go when erasing super bright CSF voxels
 
 static int clamp_set = 0 ;
 static double Gclamp = 6 ;   // robust threshold - everything less likely than -Gclamp will be set to -Gclamp
@@ -94,6 +98,9 @@ static double find_optimal_linear_xform
 char         *Progname ;
 static MORPH_PARMS  parms ;
 
+static char *T2_mask_fname = NULL ;
+static double T2_thresh = 0 ;
+static char *aparc_aseg_fname = NULL ;
 static char *mask_fname = NULL ;
 static char *norm_fname = NULL ;
 
@@ -205,7 +212,7 @@ main(int argc, char *argv[])
   nargs =
     handle_version_option
     (argc, argv,
-     "$Id: mri_em_register.c,v 1.93 2011/10/12 01:35:00 fischl Exp $",
+     "$Id: mri_em_register.c,v 1.94 2011/10/25 13:53:06 fischl Exp $",
      "$Name:  $");
   if (nargs && argc - nargs == 1)
   {
@@ -397,7 +404,26 @@ main(int argc, char *argv[])
         sprintf(fname, "%s_masked.mgz", parms.base_name) ;
         fflush(stdout);
         MRIwrite(mri_tmp, fname) ;
-  }
+      }
+    }
+    if (T2_mask_fname)
+    {
+      MRI *mri_T2, *mri_aparc_aseg ;
+
+      mri_T2 = MRIread(T2_mask_fname) ;
+      if (!mri_T2)
+	ErrorExit(ERROR_NOFILE, "%s: could not open T2 mask volume %s.\n",
+		  Progname, mask_fname) ;
+      if (aparc_aseg_fname)   // use T2 and aparc+aseg to remove non-brain stuff
+      {
+ 	mri_aparc_aseg = MRIread(aparc_aseg_fname) ;
+	if (mri_aparc_aseg == NULL)
+	  ErrorExit(ERROR_NOFILE, "%s: could not open aparc+aseg volume %s.\n",
+		    Progname, aparc_aseg_fname) ;
+      }
+
+      MRImask_with_T2_and_aparc_aseg(mri_tmp, mri_tmp, mri_T2, mri_aparc_aseg, T2_thresh, MM_FROM_EXTERIOR) ;
+      MRIfree(&mri_T2) ; MRIfree(&mri_aparc_aseg) ;
     }
     if (i == 0)
     {
@@ -1686,6 +1712,23 @@ get_option(int argc, char *argv[])
 
     ninsertions++ ;
     nargs = 6 ;
+  }
+  else if (!stricmp(option, "T2MASK"))
+  {
+    T2_mask_fname = argv[2] ;
+    T2_thresh = atof(argv[3]) ;
+    nargs = 2 ;
+    printf("using T2 volume %s thresholded at %f to mask input volume...\n", 
+	   T2_mask_fname, T2_thresh) ;
+  }
+  else if (!stricmp(option, "AMASK"))
+  {
+    aparc_aseg_fname = argv[2] ;
+    T2_mask_fname = argv[3] ;
+    T2_thresh = atof(argv[4]) ;
+    nargs = 3 ;
+    printf("using aparc+aseg vol %s and T2 volume %s thresholded at %f to mask input volume...\n", 
+	   aparc_aseg_fname, T2_mask_fname, T2_thresh) ;
   }
   else if (!strcmp(option, "MASK"))
   {
