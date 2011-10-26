@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2011/03/23 21:36:51 $
- *    $Revision: 1.5 $
+ *    $Date: 2011/10/26 16:15:44 $
+ *    $Revision: 1.6 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -79,6 +79,7 @@
 #include <vtkImageGaussianSmooth.h>
 #include <vtkImageClip.h>
 #include <vtkDijkstraImageGeodesicPath.h>
+#include <vtkCleanPolyData.h>
 #include <QFileInfo>
 
 bool MyVTKUtils::VTKScreenCapture( vtkRenderWindow* renderWnd,
@@ -346,10 +347,12 @@ bool MyVTKUtils::BuildContourActor( vtkImageData* data_in,
     normals->SetInputConnection( smoother->GetOutputPort() );
 //    normals->SetInput( polydata );
     normals->SetFeatureAngle( 90 );
-    vtkSmartPointer<vtkStripper> stripper = vtkSmartPointer<vtkStripper>::New();
+    vtkSmartPointer<vtkTriangleFilter> stripper = vtkSmartPointer<vtkTriangleFilter>::New();
     stripper->SetInputConnection( normals->GetOutputPort() );
+    vtkSmartPointer<vtkCleanPolyData> cleaner = vtkSmartPointer<vtkCleanPolyData>::New();
+    cleaner->SetInputConnection(stripper->GetOutputPort());
     vtkPolyDataMapper* mapper = vtkPolyDataMapper::SafeDownCast( actor_out->GetMapper() );
-    mapper->SetInputConnection( stripper->GetOutputPort() );
+    mapper->SetInputConnection( cleaner->GetOutputPort() );
     mapper->ScalarVisibilityOn();
   }
 

@@ -1,5 +1,6 @@
 #include "VolumeFilterWorkerThread.h"
 #include "VolumeFilter.h"
+#include <QApplication>
 
 VolumeFilterWorkerThread::VolumeFilterWorkerThread(QObject *parent) :
     QThread(parent), m_filter(NULL)
@@ -16,8 +17,10 @@ void VolumeFilterWorkerThread::ExecuteFilter(VolumeFilter *filter)
 
 void VolumeFilterWorkerThread::run()
 {
+  connect(qApp, SIGNAL(GlobalProgress(int)), this, SIGNAL(Progress(int)), Qt::UniqueConnection);
   if (m_filter)
     m_filter->Update();
+  disconnect(qApp, SIGNAL(GlobalProgress(int)), this, SIGNAL(Progress(int)));
 }
 
 void VolumeFilterWorkerThread::OnFinished()

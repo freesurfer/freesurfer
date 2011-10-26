@@ -294,7 +294,7 @@ LIBS += \
     -lvtkRendering -lvtkftgl -lvtkWidgets -lvtkHybrid -lvtkIO -lvtkDICOMParser
 
 QMAKE_CXXFLAGS += -Wno-deprecated -DUNICODE -D_FILE_OFFSET_BITS=64 -D_LARGE_FILES \
-                                  -Wno-write-strings  #-DDEVELOPMENT
+                                  -Wno-write-strings  -DDEVELOPMENT
 
 # set this to your local dev directory
 FREESURFER_DEV_DIR = /homes/5/rpwang/freesurfer/dev

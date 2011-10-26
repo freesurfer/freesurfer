@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2011/10/24 18:49:40 $
- *    $Revision: 1.188 $
+ *    $Date: 2011/10/26 16:15:44 $
+ *    $Revision: 1.189 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -321,7 +321,7 @@ MainWindow::MainWindow( QWidget *parent, MyCmdLineParser* cmdParser ) :
   connect( m_threadIOWorker, SIGNAL(Finished(Layer*, int )), this, SLOT(OnIOFinished(Layer*, int)), Qt::QueuedConnection );
   connect( m_threadIOWorker, SIGNAL(started()), this, SLOT(SetProcessing()));
 
-  connect( qApp, SIGNAL(GlobalProgress(int)), m_statusBar, SLOT(SetProgress(int)) );
+  connect( m_threadIOWorker, SIGNAL(Progress(int)), m_statusBar, SLOT(SetProgress(int)) );
   connect( m_threadIOWorker, SIGNAL(started()), m_statusBar, SLOT(ShowProgress()));
   connect( m_threadIOWorker, SIGNAL(finished()), m_statusBar, SLOT(HideProgress()));
 

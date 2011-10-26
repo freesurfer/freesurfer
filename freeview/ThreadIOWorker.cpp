@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2011/08/02 15:58:25 $
- *    $Revision: 1.6 $
+ *    $Date: 2011/10/26 16:15:44 $
+ *    $Revision: 1.7 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -28,6 +28,7 @@
 #include "LayerPLabel.h"
 #include "LayerTrack.h"
 #include "LayerVolumeTrack.h"
+#include <QApplication>
 
 ThreadIOWorker::ThreadIOWorker(QObject *parent) :
   QThread(parent),
@@ -87,6 +88,7 @@ void ThreadIOWorker::LoadTrack( Layer* layer, const QVariantMap& args)
 
 void ThreadIOWorker::run()
 {
+  connect(qApp, SIGNAL(GlobalProgress(int)), this, SIGNAL(Progress(int)), Qt::UniqueConnection);
   if ( m_nJobType == JT_LoadVolume )
   {
     if (m_layer->IsTypeOf("DTI"))
@@ -227,7 +229,7 @@ void ThreadIOWorker::run()
     {
       return;
     }
-    connect(layer, SIGNAL(Progress(int)), this, SIGNAL(Progress(int)));
+    connect(layer, SIGNAL(Progress(int)), this, SIGNAL(Progress(int)), Qt::UniqueConnection);
     if ( !layer->LoadTrackFromFile() )
     {
       emit Error( m_layer, m_nJobType );
@@ -237,4 +239,5 @@ void ThreadIOWorker::run()
       emit Finished( m_layer, m_nJobType );
     }
   }
+  disconnect(qApp, SIGNAL(GlobalProgress(int)), this, SIGNAL(Progress(int)));
 }
