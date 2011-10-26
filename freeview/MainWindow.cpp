@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2011/10/26 16:15:44 $
- *    $Revision: 1.189 $
+ *    $Date: 2011/10/26 16:39:38 $
+ *    $Revision: 1.190 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -4106,7 +4106,7 @@ void MainWindow::OnIOFinished( Layer* layer, int jobtype )
 
     m_strLastDir = QFileInfo( layer->GetFileName() ).canonicalPath();
     SetCurrentFile( layer->GetFileName(), 0 );
-    ui->tabWidgetControlPanel->setCurrentWidget( ui->tabVolume );
+//    ui->tabWidgetControlPanel->setCurrentWidget( ui->tabVolume );
   }
   else if ( jobtype == ThreadIOWorker::JT_SaveVolume && layer->IsTypeOf( "MRI" ) )
   {
@@ -4152,7 +4152,7 @@ void MainWindow::OnIOFinished( Layer* layer, int jobtype )
 
     m_strLastDir = QFileInfo( layer->GetFileName() ).canonicalPath();
     SetCurrentFile( layer->GetFileName(), 1 );
-    ui->tabWidgetControlPanel->setCurrentWidget( ui->tabSurface );
+//    ui->tabWidgetControlPanel->setCurrentWidget( ui->tabSurface );
     if (UpdateSurfaceCorrelation((LayerSurface*)layer) )
     {
       emit SlicePositionChanged();
@@ -4170,7 +4170,7 @@ void MainWindow::OnIOFinished( Layer* layer, int jobtype )
     LayerTrack* track = qobject_cast<LayerTrack*>( layer );
     lc_track->AddLayer( track );
     m_strLastDir = QFileInfo( layer->GetFileName() ).canonicalPath();
-    ui->tabWidgetControlPanel->setCurrentWidget( ui->tabTrack );
+//    ui->tabWidgetControlPanel->setCurrentWidget( ui->tabTrack );
   }
   m_bProcessing = false;
 
