@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2011/10/27 16:18:07 $
- *    $Revision: 1.191 $
+ *    $Date: 2011/10/27 16:30:16 $
+ *    $Revision: 1.192 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -4072,7 +4072,7 @@ void MainWindow::OnIOFinished( Layer* layer, int jobtype )
       mri->GetWorldSize( wsize );
       for ( int i = 0; i < 4; i++ )
       {
-        m_views[i]->SetWorldCoordinateInfo( worigin, wsize, false );
+        m_views[i]->SetWorldCoordinateInfo( worigin, wsize, lc_surface->IsEmpty() );
       }
       if ( lc_surface->IsEmpty() )
       {
