@@ -146,13 +146,6 @@
         </item>
        </layout>
       </item>
-      <item row="2" column="0">
-       <widget class="QLabel" name="labelColor">
-        <property name="text">
-         <string>Color</string>
-        </property>
-       </widget>
-      </item>
       <item row="6" column="0">
        <widget class="QLabel" name="labelSplineColor">
         <property name="text">
@@ -417,11 +410,52 @@
         </property>
        </widget>
       </item>
-      <item row="7" column="1">
-       <widget class="QtColorPicker" name="colorpickerSplineColor" native="true"/>
-      </item>
       <item row="2" column="1">
-       <widget class="QtColorPicker" name="colorpickerPointColor" native="true"/>
+       <layout class="QHBoxLayout" name="horizontalLayout_3">
+        <item>
+         <widget class="QtColorPicker" name="colorpickerPointColor" native="true"/>
+        </item>
+        <item>
+         <spacer name="horizontalSpacer_3">
+          <property name="orientation">
+           <enum>Qt::Horizontal</enum>
+          </property>
+          <property name="sizeHint" stdset="0">
+           <size>
+            <width>0</width>
+            <height>0</height>
+           </size>
+          </property>
+         </spacer>
+        </item>
+       </layout>
+      </item>
+      <item row="2" column="0">
+       <widget class="QLabel" name="labelColor_2">
+        <property name="text">
+         <string>Color</string>
+        </property>
+       </widget>
+      </item>
+      <item row="7" column="1">
+       <layout class="QHBoxLayout" name="horizontalLayout_4">
+        <item>
+         <widget class="QtColorPicker" name="colorpickerSplineColor" native="true"/>
+        </item>
+        <item>
+         <spacer name="horizontalSpacer_4">
+          <property name="orientation">
+           <enum>Qt::Horizontal</enum>
+          </property>
+          <property name="sizeHint" stdset="0">
+           <size>
+            <width>40</width>
+            <height>20</height>
+           </size>
+          </property>
+         </spacer>
+        </item>
+       </layout>
       </item>
      </layout>
     </item>
@@ -448,8 +482,8 @@
    <header>qtcolorpicker.h</header>
    <container>1</container>
    <slots>
-    <signal>currentColorChanged(QColor)</signal>
     <signal>colorChanged(QColor)</signal>
+    <signal>currentColorChanged(QColor)</signal>
    </slots>
   </customwidget>
   <customwidget>

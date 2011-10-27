@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2011/10/24 18:49:40 $
- *    $Revision: 1.107 $
+ *    $Date: 2011/10/27 19:05:23 $
+ *    $Revision: 1.108 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -243,7 +243,7 @@ protected:
                         const QString& fn_target = "",
                         bool bAllSurfaces = false );
   void LoadPVolumeFiles( const QStringList& filenames, const QString& prefix, const QString& lut );
-  void LoadROIFile( const QString& fn, const QString& ref_vol );
+  void LoadROIFile( const QString& fn, const QString& ref_vol, const QColor& color = Qt::yellow );
   void LoadWayPointsFile        ( const QString& fn );
   void LoadControlPointsFile    ( const QString& fn );
   void LoadTrackFile            ( const QString& fn );
@@ -392,6 +392,8 @@ private:
   void ToggleShowLayer(const QString& type );
   bool UpdateSurfaceCorrelation(LayerSurface* layer);
   void ShowNonModalMessage(const QString& title, const QString& msg);
+
+  QColor ParseColorInput(const QString& cmd);
 
   int m_nViewLayout;
   int m_nMainView;

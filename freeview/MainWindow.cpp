@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2011/10/27 16:30:16 $
- *    $Revision: 1.192 $
+ *    $Date: 2011/10/27 19:05:22 $
+ *    $Revision: 1.193 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -56,6 +56,7 @@
 #include "LayerPointSet.h"
 #include "LayerPropertySurface.h"
 #include "LayerPropertyPointSet.h"
+#include "LayerPropertyROI.h"
 #include "FSPointSet.h"
 #include "DialogLoadPointSet.h"
 #include "DialogTransformVolume.h"
@@ -1906,32 +1907,7 @@ void MainWindow::CommandSetIsoSurfaceColor(const QStringList &cmd)
   LayerMRI* mri = (LayerMRI*)GetLayerCollection( "MRI" )->GetActiveLayer();
   if ( mri )
   {
-    QColor color( cmd[1] );
-    if ( !color.isValid() )
-    {
-      int rgb[3];
-      QStringList rgb_strs = cmd[1].split(",");
-      rgb_strs << "n/a" << "n/a";
-      bool bOK;
-      rgb[0] = rgb_strs[0].toInt(&bOK);
-      if (bOK)
-      {
-        rgb[1] = rgb_strs[1].toInt(&bOK);
-      }
-      if (bOK)
-      {
-        rgb[2] = rgb_strs[2].toInt(&bOK);
-      }
-      if ( !bOK )
-      {
-        cerr << "Invalid color name or value " << qPrintable(cmd[1]) << ".\n";
-      }
-      else
-      {
-        color.setRgb(rgb[0], rgb[1], rgb[2]);
-      }
-    }
-
+    QColor color = ParseColorInput( cmd[1] );
     if ( color.isValid() )
     {
       mri->GetProperty()->SetContourColor( color.redF(), color.greenF(), color.blueF() );
@@ -2072,6 +2048,7 @@ void MainWindow::CommandLoadROI( const QStringList& cmd )
   QStringList options = cmd[1].split(":");
   QString fn = options[0];
   QString ref;
+  QColor color = Qt::yellow;
   for ( int i = 1; i < options.size(); i++ )
   {
     QString strg = options[i];
@@ -2084,6 +2061,12 @@ void MainWindow::CommandLoadROI( const QStringList& cmd )
       {
         ref = argu;
       }
+      else if (option == "color")
+      {
+        color = ParseColorInput(argu);
+        if (!color.isValid())
+          color = Qt::yellow;
+      }
       else
       {
         cerr << "Unrecognized sub-option flag '" << strg.toAscii().constData() << "'.\n";
@@ -2091,7 +2074,7 @@ void MainWindow::CommandLoadROI( const QStringList& cmd )
     }
   }
 
-  LoadROIFile( fn, ref );
+  LoadROIFile( fn, ref, color );
 }
 
 void MainWindow::CommandLoadTrack(const QStringList &cmd)
@@ -2361,38 +2344,38 @@ void MainWindow::CommandSetSurfaceOverlayMethod( const QStringList& cmd )
   }
 }
 
+QColor MainWindow::ParseColorInput(const QString &strg)
+{
+  QColor color( strg );
+  if ( !color.isValid() )
+  {
+    int rgb[3];
+    QStringList rgb_strs = strg.split(",");
+    rgb_strs << "n/a" << "n/a";
+    bool bOK;
+    rgb[0] = rgb_strs[0].toInt(&bOK);
+    if (bOK)
+    {
+      rgb[1] = rgb_strs[1].toInt(&bOK);
+    }
+    if (bOK)
+    {
+      rgb[2] = rgb_strs[2].toInt(&bOK);
+    }
+    if ( bOK )
+    {
+      color.setRgb(rgb[0], rgb[1], rgb[2]);
+    }
+  }
+  return color;
+}
 
 void MainWindow::CommandSetSurfaceColor( const QStringList& cmd )
 {
   LayerSurface* surf = (LayerSurface*)GetLayerCollection( "Surface" )->GetActiveLayer();
   if ( surf && cmd[1] != "null" )
   {
-    QColor color( cmd[1] );
-    if ( !color.isValid() )
-    {
-      int rgb[3];
-      QStringList rgb_strs = cmd[1].split(",");
-      rgb_strs << "n/a" << "n/a";
-      bool bOK;
-      rgb[0] = rgb_strs[0].toInt(&bOK);
-      if (bOK)
-      {
-        rgb[1] = rgb_strs[1].toInt(&bOK);
-      }
-      if (bOK)
-      {
-        rgb[2] = rgb_strs[2].toInt(&bOK);
-      }
-      if ( !bOK )
-      {
-        cerr << "Invalid color name or value " << cmd[1].toAscii().constData() << ".\n";
-      }
-      else
-      {
-        color.setRgb(rgb[0], rgb[1], rgb[2]);
-      }
-    }
-
+    QColor color = ParseColorInput( cmd[1] );
     if ( color.isValid() )
     {
       surf->GetProperty()->SetBinaryColor( color.redF(), color.greenF(), color.blueF() );
@@ -2409,32 +2392,7 @@ void MainWindow::CommandSetSurfaceEdgeColor( const QStringList& cmd )
   LayerSurface* surf = (LayerSurface*)GetLayerCollection( "Surface" )->GetActiveLayer();
   if ( surf && cmd[1] != "null" )
   {
-    QColor color( cmd[1] );
-    if ( !color.isValid() )
-    {
-      int rgb[3];
-      QStringList rgb_strs = cmd[1].split(",");
-      rgb_strs << "n/a" << "n/a";
-      bool bOK;
-      rgb[0] = rgb_strs[0].toInt(&bOK);
-      if (bOK)
-      {
-        rgb[1] = rgb_strs[1].toInt(&bOK);
-      }
-      if (bOK)
-      {
-        rgb[2] = rgb_strs[2].toInt(&bOK);
-      }
-      if ( !bOK )
-      {
-        cerr << "Invalid color name or value " << cmd[1].toAscii().constData() << ".\n";
-      }
-      else
-      {
-        color.setRgb( rgb[0], rgb[1], rgb[2] );
-      }
-    }
-
+    QColor color = ParseColorInput( cmd[1] );
     if ( color.isValid() )
     {
       surf->GetProperty()->SetEdgeColor( color.redF(), color.greenF(), color.blueF() );
@@ -2675,32 +2633,7 @@ void MainWindow::CommandSetPointSetColor( const QStringList& cmd )
   {
     if ( cmd[1] != "null" )
     {
-      QColor color( cmd[1] );
-      if ( !color.isValid() )
-      {
-        int rgb[3];
-        QStringList rgb_strs = cmd[1].split(",");
-        rgb_strs << "n/a" << "n/a";
-        bool bOK;
-        rgb[0] = rgb_strs[0].toInt(&bOK);
-        if (bOK)
-        {
-          rgb[1] = rgb_strs[1].toInt(&bOK);
-        }
-        if (bOK)
-        {
-          rgb[2] = rgb_strs[2].toInt(&bOK);
-        }
-        if ( !bOK )
-        {
-          cerr << "Invalid color name or value " << cmd[1].toAscii().constData() << ".\n";
-        }
-        else
-        {
-          color.setRgb( rgb[0], rgb[1], rgb[2] );
-        }
-      }
-
+      QColor color = ParseColorInput( cmd[1] );
       if ( color.isValid() )
       {
         wp->GetProperty()->SetColor( color.redF(), color.greenF(), color.blueF() );
@@ -2713,32 +2646,7 @@ void MainWindow::CommandSetPointSetColor( const QStringList& cmd )
 
     if ( cmd.size() > 2 && cmd[2] != "null" )
     {
-      QColor color( cmd[2] );
-      if ( !color.isValid() )
-      {
-        int rgb[3];
-        QStringList rgb_strs = cmd[2].split(",");
-        rgb_strs << "n/a" << "n/a";
-        bool bOK;
-        rgb[0] = rgb_strs[0].toInt(&bOK);
-        if (bOK)
-        {
-          rgb[1] = rgb_strs[1].toInt(&bOK);
-        }
-        if (bOK)
-        {
-          rgb[2] = rgb_strs[2].toInt(&bOK);
-        }
-        if ( !bOK )
-        {
-          cerr << "Invalid color name or value " << cmd[2].toAscii().constData() << ".\n";
-        }
-        else
-        {
-          color.setRgb( rgb[0], rgb[1], rgb[2] );
-        }
-      }
-
+      QColor color = ParseColorInput( cmd[2] );
       if ( color.isValid() )
       {
         wp->GetProperty()->SetSplineColor( color.redF(), color.greenF(), color.blueF() );
@@ -3661,13 +3569,13 @@ void MainWindow::OnLoadROI()
   }
 }
 
-void MainWindow::LoadROIFile( const QString& fn, const QString& ref_vol )
+void MainWindow::LoadROIFile( const QString& fn, const QString& ref_vol, const QColor& color )
 {
   LayerMRI* ref = NULL;
   LayerCollection* col_mri = GetLayerCollection( "MRI" );
   if ( ref_vol.isEmpty() )
   {
-    cout << "No template volume given, using current volume as template for ROI " << fn.toAscii().constData() << ".\n";
+ //   cout << "No template volume given, using current volume as template for ROI " << fn.toAscii().constData() << ".\n";
     ref = (LayerMRI*)col_mri->GetActiveLayer();
   }
   else
@@ -3694,7 +3602,8 @@ void MainWindow::LoadROIFile( const QString& fn, const QString& ref_vol )
     }
   }
   LayerROI* roi = new LayerROI( ref );
-  roi->SetName( QFileInfo(fn).baseName()  );
+  roi->SetName( QFileInfo(fn).completeBaseName()  );
+  roi->GetProperty()->SetColor(color);
   if ( roi->LoadROIFromFile( fn ) )
   {
     LayerCollection* col_roi = GetLayerCollection( "ROI" );
@@ -3708,7 +3617,7 @@ void MainWindow::LoadROIFile( const QString& fn, const QString& ref_vol )
     col_roi->AddLayer( roi );
 
     m_strLastDir = QFileInfo( fn ).canonicalPath();
-    ui->tabWidgetControlPanel->setCurrentWidget( ui->tabROI );
+  //  ui->tabWidgetControlPanel->setCurrentWidget( ui->tabROI );
   }
   else
   {
@@ -3833,7 +3742,7 @@ void MainWindow::LoadPointSetFile( const QString& fn, int type )
 
     m_strLastDir = QFileInfo( fn ).canonicalPath();
 
-    ui->tabWidgetControlPanel->setCurrentWidget( ui->tabPointSet );
+  //  ui->tabWidgetControlPanel->setCurrentWidget( ui->tabPointSet );
   }
   else
   {
