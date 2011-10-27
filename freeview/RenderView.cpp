@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2011/10/24 16:09:09 $
- *    $Revision: 1.43 $
+ *    $Date: 2011/10/27 16:18:07 $
+ *    $Revision: 1.44 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -265,14 +265,15 @@ void RenderView::keyReleaseEvent( QKeyEvent* event )
   }
 }
 
-void RenderView::SetWorldCoordinateInfo( const double* origin, const double* size )
+void RenderView::SetWorldCoordinateInfo( const double* origin, const double* size, bool bResetView )
 {
   for ( int i = 0; i < 3; i++ )
   {
     m_dWorldOrigin[i] = origin[i];
     m_dWorldSize[i] = size[i];
   }
-  UpdateViewByWorldCoordinate();
+  if (bResetView)
+    UpdateViewByWorldCoordinate();
 }
 
 void RenderView::ViewportToWorld( double x, double y, double& world_x, double& world_y, double& world_z )

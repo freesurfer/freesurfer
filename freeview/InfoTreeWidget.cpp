@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2011/07/29 18:36:49 $
- *    $Revision: 1.6 $
+ *    $Date: 2011/10/27 16:18:07 $
+ *    $Revision: 1.7 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -112,7 +112,16 @@ void InfoTreeWidget::UpdateAll()
    //   double dvalue = layer->GetVoxelValue( m_dRAS );
       double dvalue = layer->GetVoxelValueByOriginalIndex(nIndex[0], nIndex[1], nIndex[2]);
       QString editable = QString("%1, %2, %3").arg(nIndex[0]).arg(nIndex[1]).arg(nIndex[2]);
-      QString strg = QString("%1 \t[%2]").arg(dvalue).arg(editable);
+      QString valueStrg = QString("%1").arg(dvalue);
+      if (layer->GetNumberOfFrames() > 1 && layer->GetNumberOfFrames() <= 4)
+      {
+        QList<double> values = layer->GetVoxelValueByOriginalIndexAllFrames(nIndex[0], nIndex[1], nIndex[2]);
+        QStringList strgs;
+        foreach (double value, values)
+          strgs << QString("%1").arg(value);
+        valueStrg = strgs.join(", ");
+      }
+      QString strg = QString("%1 \t[%2]").arg(valueStrg).arg(editable);
       QString labelStrg;
       if (layer->IsTypeOf("PLabel"))
       {

@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2011/10/24 18:49:40 $
- *    $Revision: 1.72 $
+ *    $Date: 2011/10/27 16:18:07 $
+ *    $Revision: 1.73 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -92,7 +92,8 @@ public:
   void SetSlicePositionToWorldCenter();
 
   virtual double GetVoxelValue( double* pos );
-  virtual double GetVoxelValueByOriginalIndex( int i, int j, int k, int frame = -1 );
+  double GetVoxelValueByOriginalIndex( int i, int j, int k, int frame = -1 );
+  QList<double> GetVoxelValueByOriginalIndexAllFrames(int i, int j, int k);
 
   virtual QString GetLabelName( double value );
 

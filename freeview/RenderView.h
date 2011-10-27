@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2011/09/12 20:38:23 $
- *    $Revision: 1.32 $
+ *    $Date: 2011/10/27 16:18:07 $
+ *    $Revision: 1.33 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -46,7 +46,7 @@ public:
 
   enum InteractionMode { IM_Navigate = 0, IM_Measure, IM_VoxelEdit, IM_ROIEdit, IM_PointSetEdit, IM_VolumeCrop };
 
-  void SetWorldCoordinateInfo( const double* origin, const double* size );
+  void SetWorldCoordinateInfo( const double* origin, const double* size, bool bResetView = true );
   virtual void UpdateViewByWorldCoordinate() {}
 
   int GetInteractionMode();

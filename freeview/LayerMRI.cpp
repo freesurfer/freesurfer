@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2011/10/24 18:49:40 $
- *    $Revision: 1.113 $
+ *    $Date: 2011/10/27 16:18:07 $
+ *    $Revision: 1.114 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -982,6 +982,14 @@ double LayerMRI::GetVoxelValueByOriginalIndex( int i, int j, int k, int frame )
   if (frame < 0)
     frame = m_nActiveFrame;
   return m_volumeSource->GetVoxelValue( i, j, k, frame );
+}
+
+QList<double> LayerMRI::GetVoxelValueByOriginalIndexAllFrames(int i, int j, int k)
+{
+  QList<double> list;
+  for (int frame = 0; frame < GetNumberOfFrames(); frame++)
+    list << m_volumeSource->GetVoxelValue( i, j, k, frame );
+  return list;
 }
 
 void LayerMRI::SetModified()
