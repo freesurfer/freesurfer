@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2011/09/27 18:31:46 $
- *    $Revision: 1.700 $
+ *    $Author: greve $
+ *    $Date: 2011/10/27 18:36:25 $
+ *    $Revision: 1.701 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -735,7 +735,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void)
 {
-  return("$Id: mrisurf.c,v 1.700 2011/09/27 18:31:46 fischl Exp $");
+  return("$Id: mrisurf.c,v 1.701 2011/10/27 18:36:25 greve Exp $");
 }
 
 /*-----------------------------------------------------
@@ -62703,6 +62703,12 @@ MRI *MRISlabel2Mask(MRIS *surf, LABEL *lb, MRI *mask)
   for (n=0; n < lb->n_points; n++)
   {
     vtxno = lb->lv[n].vno;
+    if(vtxno >= surf->nvertices){
+      printf("ERROR: MRISlabel2Mask(): label vertex %d is >= nvertices %d\n",
+	     vtxno, surf->nvertices);
+      fflush(stdout);
+      return(NULL);
+    }
     MRIsetVoxVal(mask, vtxno,0,0,0, 1);
   }
   return(mask);
