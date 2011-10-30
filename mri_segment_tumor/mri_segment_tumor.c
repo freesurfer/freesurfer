@@ -8,8 +8,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2011/10/30 16:22:22 $
- *    $Revision: 1.1 $
+ *    $Date: 2011/10/30 23:26:16 $
+ *    $Revision: 1.2 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -33,7 +33,7 @@
 */
 
 
-// $Id: mri_segment_tumor.c,v 1.1 2011/10/30 16:22:22 fischl Exp $
+// $Id: mri_segment_tumor.c,v 1.2 2011/10/30 23:26:16 fischl Exp $
 
 /*
   BEGINHELP
@@ -67,7 +67,7 @@
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_segment_tumor.c,v 1.1 2011/10/30 16:22:22 fischl Exp $";
+static char vcid[] = "$Id: mri_segment_tumor.c,v 1.2 2011/10/30 23:26:16 fischl Exp $";
 char *Progname = NULL;
 //char *cmdline, cwd[2000];
 //struct utsname uts;
@@ -132,7 +132,7 @@ int main(int argc, char *argv[])
 {
   char      **av ;
   int       nargs, ac, i, ninputs ;
-  MRI       *mri_in, *mri_tmp, *mri_labeled ;
+  MRI       *mri_in = NULL, *mri_tmp, *mri_labeled ;
   GCA       *gca ;
   TRANSFORM *xform ;
 
