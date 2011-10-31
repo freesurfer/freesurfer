@@ -8,8 +8,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2011/10/30 23:26:16 $
- *    $Revision: 1.2 $
+ *    $Date: 2011/10/31 18:30:41 $
+ *    $Revision: 1.3 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -33,7 +33,7 @@
 */
 
 
-// $Id: mri_segment_tumor.c,v 1.2 2011/10/30 23:26:16 fischl Exp $
+// $Id: mri_segment_tumor.c,v 1.3 2011/10/31 18:30:41 fischl Exp $
 
 /*
   BEGINHELP
@@ -67,7 +67,7 @@
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_segment_tumor.c,v 1.2 2011/10/30 23:26:16 fischl Exp $";
+static char vcid[] = "$Id: mri_segment_tumor.c,v 1.3 2011/10/31 18:30:41 fischl Exp $";
 char *Progname = NULL;
 //char *cmdline, cwd[2000];
 //struct utsname uts;
@@ -87,6 +87,13 @@ GCAsegmentTumor(GCA* gca, TRANSFORM  *transform, MRI *mri_inputs, MRI *mri_dst, 
   GCA_PRIOR       *gcap ;
   GC1D            *gc ;
   float           vals[MAX_GCA_INPUTS], mdist, min_mdist ;
+  MRI             *mri_mask ;
+
+  mri_mask = MRIalloc(mri_inputs->width, mri_inputs->height, mri_inputs->depth, mri_inputs->type) ;
+  MRIcopyHeader(mri_inputs, mri_mask) ;
+  MRIsetVoxelsWithValue(mri_inputs, mri_mask, 0, 1) ;
+  MRIdilate(mri_mask, mri_mask) ;
+  
 
   if (mri_dst == NULL)
   {
@@ -100,6 +107,8 @@ GCAsegmentTumor(GCA* gca, TRANSFORM  *transform, MRI *mri_inputs, MRI *mri_dst, 
     {
       for (z = 0 ; z < mri_inputs->depth ; z++)
       {
+	if (MRIgetVoxVal(mri_mask, x, y, z, 0))
+	  continue ;
         if (x == Gx && y == Gy && z == Gz)
           DiagBreak() ;
         if (!GCAsourceVoxelToNode(gca, mri_inputs,
@@ -108,8 +117,17 @@ GCAsegmentTumor(GCA* gca, TRANSFORM  *transform, MRI *mri_inputs, MRI *mri_dst, 
           load_vals(mri_inputs, x, y, z, vals, gca->ninputs);
           gcan = &gca->nodes[xn][yn][zn] ;
           gcap = getGCAP(gca, mri_inputs, transform, x, y, z) ;
+          MRIsetVoxVal(mri_dst, x, y, z, 0, 0) ;
           if (gcap==NULL)
             continue;
+	  for (n = 0 ; n < gca->ninputs ; n++)
+	    if (!FZERO(vals[n]))
+	      break ;
+	  if (n == gca->ninputs) // all inputs are 0 - set output to 0
+	    continue ;
+	  if (gcan->nlabels == 0)
+	    continue ;
+
           min_mdist = 10000 ;
           for (label = 1, n = 0 ; n < gcan->nlabels ; n++)
           {
@@ -120,11 +138,13 @@ GCAsegmentTumor(GCA* gca, TRANSFORM  *transform, MRI *mri_inputs, MRI *mri_dst, 
             if (mdist < min_mdist)
               min_mdist = mdist ;
           }
+
           MRIsetVoxVal(mri_dst, x, y, z, 0, min_mdist) ;
         }
       }
     }
   }
+  MRIfree(&mri_mask) ;
   return(mri_dst) ;
 }
 /*---------------------------------------------------------------*/
@@ -146,8 +166,10 @@ int main(int argc, char *argv[])
   //  getcwd(cwd,2000);
 
   Progname = argv[0] ;
+#if 0
   argc --;
   argv++;
+#endif
   ErrorInit(NULL, NULL, NULL) ;
   DiagInit(NULL, NULL, NULL) ;
 
@@ -162,15 +184,14 @@ int main(int argc, char *argv[])
   if (argc < 5)
     usage_exit(1) ;
 
-  ninputs = argc - 3 ;
-  printf("reading %d inputs (argc = %d)\n", ninputs, argc) ;
+  ninputs = argc - 4 ;
 
   for (i = 0 ; i < ninputs ; i++)
   {
-    printf("reading input %d: %s\n", i, argv[i]) ;
-    mri_tmp = MRIread(argv[i]) ;
+    printf("reading input %d: %s\n", i, argv[i+1]) ;
+    mri_tmp = MRIread(argv[i+1]) ;
     if (mri_tmp == NULL)
-      ErrorExit(ERROR_NOFILE, "%s: could not read input volume %s", Progname, argv[i]) ;
+      ErrorExit(ERROR_NOFILE, "%s: could not read input volume %s", Progname, argv[i+1]) ;
     if (i == 0)
     {
       mri_in = MRIallocSequence(mri_tmp->width, mri_tmp->height, mri_tmp->depth, mri_tmp->type, ninputs) ;
@@ -179,17 +200,17 @@ int main(int argc, char *argv[])
     MRIcopyFrame(mri_tmp, mri_in, 0, i) ;
     MRIfree(&mri_tmp) ;
   }
-  printf("reading gca from %s\n",argv[ninputs]) ;fflush(stdout) ;
-  gca = GCAread(argv[ninputs]) ;
+  printf("reading gca from %s\n",argv[ninputs+1]) ;fflush(stdout) ;
+  gca = GCAread(argv[ninputs+1]) ;
   if (gca == NULL)
-    ErrorExit(ERROR_NOFILE, "%s: could not read gca from %s", Progname, argv[ninputs]) ;
-  xform = TransformRead(argv[1+ninputs]) ;
+    ErrorExit(ERROR_NOFILE, "%s: could not read gca from %s", Progname, argv[ninputs+1]) ;
+  xform = TransformRead(argv[2+ninputs]) ;
   if (xform == NULL)
-    ErrorExit(ERROR_NOFILE, "%s: could not read transform from %s", Progname, argv[1+ninputs]) ;
+    ErrorExit(ERROR_NOFILE, "%s: could not read transform from %s", Progname, argv[2+ninputs]) ;
 
   mri_labeled = GCAsegmentTumor(gca, xform, mri_in, NULL, mthresh) ;
-  printf("writing labeled tumor to %s\n", argv[2+ninputs]) ;
-  MRIwrite(mri_labeled, argv[2+ninputs]) ;
+  printf("writing labeled tumor to %s\n", argv[3+ninputs]) ;
+  MRIwrite(mri_labeled, argv[3+ninputs]) ;
   return 0;
 }
 /* ------ Doxygen markup starts on the line below ---- */
@@ -206,7 +227,15 @@ get_option(int argc, char *argv[]) {
   char *option ;
 
   option = argv[1] + 1 ;            /* past '-' */
-  switch (toupper(*option)) {
+  if (!stricmp(option, "debug_voxel"))
+  {
+    Gx = atoi(argv[2]) ;
+    Gy = atoi(argv[3]) ;
+    Gz = atoi(argv[4]) ;
+    nargs = 3 ;
+    printf("debugging voxel (%d, %d, %d)\n", Gx, Gy, Gz) ;
+  } 
+  else switch (toupper(*option)) {
   case '?':
   case 'U':
     usage_exit(0) ;
