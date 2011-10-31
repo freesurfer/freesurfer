@@ -9,8 +9,8 @@
 #
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2011/10/31 17:51:54 $
-#    $Revision: 1.519.2.19 $
+#    $Date: 2011/10/31 19:45:29 $
+#    $Revision: 1.519.2.20 $
 #
 ########################################################################
 AC_PREREQ(2.57)
@@ -739,7 +739,7 @@ AC_ARG_ENABLE(fermi-gpu,
 AM_CONDITIONAL(HAVE_FERMI_GPU, test "x$ac_have_fermi_gpu" = "xyes")
 
 # setup nvcc flags (default is for tesla-class, --enable-fermi-gpu overrides)
-NVIDIA_ARCH="sm_10"
+NVIDIA_ARCH="sm_11"
 if test x$ac_have_fermi_gpu = xyes
 then
   NVIDIA_ARCH="sm_20"
