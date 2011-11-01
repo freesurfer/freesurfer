@@ -7,9 +7,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:18 $
- *    $Revision: 1.25 $
+ *    $Author: lzollei $
+ *    $Date: 2011/11/01 13:16:21 $
+ *    $Revision: 1.26 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -31,9 +31,9 @@
 // Nov. 9th ,2000
 // 
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: nicks $
-// Revision Date  : $Date: 2011/03/02 00:04:18 $
-// Revision       : $Revision: 1.25 $
+// Revision Author: $Author: lzollei $
+// Revision Date  : $Date: 2011/11/01 13:16:21 $
+// Revision       : $Revision: 1.26 $
 //
 ////////////////////////////////////////////////////////////////////
 
@@ -267,10 +267,11 @@ main(int argc, char *argv[])
       if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
 	write_snapshot(mri_target, mri_source, m_L, &mp, 0, 1, "linear_init");
 
-      lta->xforms[0].m_L = m_L ;
+      lta->xforms[0].m_L = m_L;
       printf("initializing GCAM with vox->vox matrix:\n") ;
       MatrixPrint(stdout, m_L) ;
       gcam = GCAMcreateFromIntensityImage(mri_source, mri_target, transform) ;
+      printf("after GCAMcreateFromIntensityImage\n") ;
 #if 0
       gcam->gca = gcaAllocMax(1, 1, 1, 
 			      mri_target->width, mri_target->height, 
@@ -448,9 +449,9 @@ main(int argc, char *argv[])
       MRIfree(&mri_aligned) ;
     }
   printf("writing warp vector field to %s\n", out_fname) ;
-  GCAMvoxToRas(gcam) ;
+  //GCAMvoxToRas(gcam) ; 
   GCAMwrite(gcam, out_fname) ;
-  GCAMrasToVox(gcam, mri_source) ;
+  //GCAMrasToVox(gcam, mri_source) ;
 
   msec = TimerStop(&start) ;
   seconds = nint((float)msec/1000.0f) ;
@@ -526,7 +527,7 @@ get_option(int argc, char *argv[])
   else if (!stricmp(option, "MOMENTUM") || !stricmp(option, "FIXED"))
     {
       mp.integration_type = GCAM_INTEGRATE_FIXED ;
-      printf("using optimal time-step integration\n") ;
+      printf("using fixed time-step integration\n") ;
     }
   else if (!stricmp(option, "distance"))
     {
@@ -748,7 +749,8 @@ get_option(int argc, char *argv[])
       break ;
     case 'W':
       mp.write_iterations = atoi(argv[2]) ;
-      Gdiag |= DIAG_WRITE ;
+      if (mp.write_iterations > 0) 
+	Gdiag |= DIAG_WRITE ;
       nargs = 1 ;
       printf("setting write iterations = %d\n", mp.write_iterations) ;
       break ;
