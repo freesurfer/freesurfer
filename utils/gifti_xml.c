@@ -2166,6 +2166,26 @@ static int decode_ascii(gxml_data * xd, char * cdata, int cdlen, int type,
             if(xd->verb > 6) fputc('\n', stderr);
             break;
         }
+        case NIFTI_TYPE_COMPLEX64: {
+            /* there are 2 pieces to each complex, so read and insert 1 at a
+               time, and increment 'vals' only after each second piece */
+            static int piece = 0;
+            float * ptr = (float *)dptr;
+            p1 = cdata;
+            prev = p1;
+            while( (vals < 0 || vals < *nvals) && p1 ) {
+                dval = strtod(p1, &p2); /* try to read next value */
+                if( p1 == p2 ) break;   /* nothing read, terminate loop */
+                prev = p1;              /* store old success ptr */
+                p1 = p2;                /* move to next posn */
+                ptr[2*vals+piece] = dval; /* assign new value  */
+                if(xd->verb>6) fprintf(stderr,"  v %f (%f)", ptr[2*vals],dval);
+                if( piece == 1 ) vals++; /* have a complete data value */
+                piece = 1-piece;
+            }
+            if(xd->verb > 6) fputc('\n', stderr);
+            break;
+        }
         case NIFTI_TYPE_FLOAT64: {
             double * ptr = (double *)dptr;
             p1 = cdata;
@@ -2178,6 +2198,28 @@ static int decode_ascii(gxml_data * xd, char * cdata, int cdlen, int type,
                 ptr[vals] = dval;       /* assign new value  */
                 if(xd->verb>6)fprintf(stderr,"  v %f (%f)",ptr[vals],dval);
                 vals++;                 /* count new value   */
+            }
+            if(xd->verb > 6) fputc('\n', stderr);
+            break;
+        }
+        case NIFTI_TYPE_RGB24: {
+            /* there are 3 pieces to each RGB24, so read and insert 1 at a
+               time, and increment 'vals' only after each third piece */
+            static int piece = 0;
+            unsigned char * ptr = (unsigned char *)dptr;
+            p1 = cdata;
+            prev = p1;
+            /* vals could be < 0, but we must care for promotion to size_t */
+            while( (vals < 0 || vals < *nvals) && p1 ) {
+                lval = strtol(p1, &p2, 10);   /* try to read next value */
+                if( p1 == p2 ) break;   /* nothing read, terminate loop */
+                prev = p1;              /* store old success ptr */
+                p1 = p2;                /* move to next posn */
+                ptr[3*vals+piece] = lval; /* assign new value  */
+                if(xd->verb>6)
+                    fprintf(stderr,"  v %u (%ld)", ptr[3*vals],lval);
+                if( piece == 2 ) vals++; /* have a complete data value */
+                piece = (piece + 1) % 3;
             }
             if(xd->verb > 6) fputc('\n', stderr);
             break;
@@ -2228,6 +2270,26 @@ static int decode_ascii(gxml_data * xd, char * cdata, int cdlen, int type,
                 ptr[vals] = llval;      /* assign new value  */
                 if(xd->verb>6)fprintf(stderr,"  v %lld (%lld)",ptr[vals],llval);
                 vals++;                 /* count new value   */
+            }
+            if(xd->verb > 6) fputc('\n', stderr);
+            break;
+        }
+        case NIFTI_TYPE_COMPLEX128: {
+            /* there are 2 pieces to each complex, so read and insert 1 at a
+               time, and increment 'vals' only after each second piece */
+            static int piece = 0;
+            double * ptr = (double *)dptr;
+            p1 = cdata;
+            prev = p1;
+            while( (vals < 0 || vals < *nvals) && p1 ) {
+                dval = strtod(p1, &p2); /* try to read next value */
+                if( p1 == p2 ) break;   /* nothing read, terminate loop */
+                prev = p1;              /* store old success ptr */
+                p1 = p2;                /* move to next posn */
+                ptr[2*vals+piece] = dval; /* assign new value  */
+                if(xd->verb>6) fprintf(stderr,"  v %f (%f)", ptr[2*vals],dval);
+                if( piece == 1 ) vals++; /* have a complete data value */
+                piece = 1-piece;
             }
             if(xd->verb > 6) fputc('\n', stderr);
             break;
@@ -2836,7 +2898,7 @@ static int ewrite_data_line(void * data, int type, long long row,
             break;
         }
         case NIFTI_TYPE_COMPLEX64: {
-            float * ptr = (float *)data + row * cols;
+            float * ptr = (float *)data + row * 2 * cols;
             for(c = 0; c < 2*cols; c+=2)fprintf(fp, "%f %f   ",ptr[c],ptr[c+1]);
             break;
         }
@@ -2846,7 +2908,7 @@ static int ewrite_data_line(void * data, int type, long long row,
             break;
         }
         case NIFTI_TYPE_RGB24: {
-            unsigned char * ptr = (unsigned char *)data + row * cols;
+            unsigned char * ptr = (unsigned char *)data + row * 3 * cols;
             for( c = 0; c < 3*cols; c+=3 )
                 fprintf(fp, "%u %u %u   ", ptr[c], ptr[c+1], ptr[c+2]);
             break;
@@ -2882,12 +2944,12 @@ static int ewrite_data_line(void * data, int type, long long row,
             break;
         }
         case NIFTI_TYPE_COMPLEX128: {
-            double * ptr = (double *)data + row * cols;
+            double * ptr = (double *)data + row * 2 * cols;
             for(c = 0; c < 2*cols; c+=2)fprintf(fp, "%f %f   ",ptr[c],ptr[c+1]);
             break;
         }
         case NIFTI_TYPE_COMPLEX256: {
-            long double * ptr = (long double *)data + row * cols;
+            long double * ptr = (long double *)data + row * 2 * cols;
             for(c = 0; c<2*cols; c+=2)fprintf(fp, "%Lf %Lf   ",ptr[c],ptr[c+1]);
             break;
         }

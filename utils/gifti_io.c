@@ -129,6 +129,9 @@ static char * gifti_history[] =
   "     - both Index and Key work on read, Key is written out\n"
   "1.09 28 June, 2010: verify that num_dim is not too big\n",
   "     - the most significant dimension cannot be 1 (req by N Schmansky)\n"
+  "1.10 19 October, 2011: \n",
+  "     - can read/write ascii COMPLEX64, COMPLEX128, RGB24\n"
+  "       (requested by H Breman, J Mulders, N Schmansky)\n"
 };
 
 static char gifti_version[] = "gifti library version 1.09, 28 June, 2010";
@@ -205,10 +208,7 @@ static gifti_intent_ele gifti_intent_list[] = {
     { NIFTI_INTENT_NODE_INDEX,       "NIFTI_INTENT_NODE_INDEX"  },
     { NIFTI_INTENT_RGB_VECTOR,       "NIFTI_INTENT_RGB_VECTOR"  },
     { NIFTI_INTENT_RGBA_VECTOR,      "NIFTI_INTENT_RGBA_VECTOR" },
-    { NIFTI_INTENT_SHAPE,            "NIFTI_INTENT_SHAPE"       },
-    { NIFTI_INTENT_RETINOTOPY_POLAR, "NIFTI_INTENT_RETINOTOPY_POLAR" },
-    { NIFTI_INTENT_RETINOTOPY_ECCENTRICITY, "NIFTI_INTENT_RETINOTOPY_ECCENTRICITY" },
-    { NIFTI_INTENT_RETINOTOPY_FIELD_SIGN, "NIFTI_INTENT_RETINOTOPY_FIELD_SIGN" }
+    { NIFTI_INTENT_SHAPE,            "NIFTI_INTENT_SHAPE"       }
 };
 
 /*! this should match GIFTI_ENCODING_* */
