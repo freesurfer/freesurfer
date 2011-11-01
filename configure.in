@@ -8,9 +8,9 @@
 # Process this file with autoconf to produce a configure script.
 #
 # CVS Revision Info:
-#    $Author: fischl $
-#    $Date: 2011/10/30 16:22:22 $
-#    $Revision: 1.549 $
+#    $Author: lzollei $
+#    $Date: 2011/11/01 14:23:07 $
+#    $Revision: 1.550 $
 #
 ########################################################################
 AC_PREREQ(2.57)
@@ -3330,10 +3330,12 @@ AC_OUTPUT([Makefile
            distribution/fsl-extra/Makefile
            dmri_poistats/Makefile
            dmri_tensoreig/Makefile
+           dti_tensor2logeuc/Makefile
            dngtester/Makefile
            dummy/Makefile
            expat/Makefile
            fem_elastic/Makefile
+           fem_elastic_noBoost/Makefile
            fsfast/Makefile
            fsfast/bin/Makefile
            fsfast/docs/Makefile
@@ -3402,7 +3404,9 @@ AC_OUTPUT([Makefile
            mri_compute_overlap/Makefile
            mri_compute_seg_overlap/Makefile
            mri_concat/Makefile
+           mri_concatenate_gcam/Makefile
            mri_concatenate_lta/Makefile
+           mri_congeal/Makefile
            mri_convert/Makefile
            mri_convert_mdh/Makefile
            mri_copy_values/Makefile
@@ -3431,6 +3435,9 @@ AC_OUTPUT([Makefile
            mri_glmfit/Makefile
            mri_head/Makefile
            mri_hires_register/Makefile
+           mri_nl_mi_align/Makefile
+           mri_nl_diff_align/Makefile
+           mri_otl/Makefile
            mri_histo_eq/Makefile
            mri_histo_normalize/Makefile
            histo_fix_topology/Makefile
@@ -3449,6 +3456,7 @@ AC_OUTPUT([Makefile
            mri_label_volume/Makefile
            mri_linear_register/Makefile
            mri_compute_structure_transforms/Makefile
+           mri_conn_nl_align/Makefile
            mri_make_bem_surfaces/Makefile
            mri_make_density_map/Makefile
            mri_make_register/Makefile

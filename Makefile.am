@@ -7,7 +7,9 @@ foo_DATA=LICENSE NOTICE README AUTHORS INSTALL COPYING
 
 DMRISUBDIRS=\
 	dmri_poistats \
-  dmri_tensoreig  
+        dti_tensor2logeuc \
+        dmri_tensoreig  \
+        mri_nl_diff_align
 
 GLSUBDIRS=\
 	glut \
@@ -58,6 +60,8 @@ MRISUBDIRS=\
 	mri_cnr \
 	mri_compute_overlap \
 	mri_concat \
+	mri_concatenate_gcam \
+        mri_congeal \
 	mri_convert \
 	mri_convert_mdh \
 	mri_copy_values \
@@ -113,6 +117,7 @@ MRISUBDIRS=\
 	mri_multiscale_segment \
 	mri_nlfilter \
 	mri_normalize \
+        mri_otl \
 	mri_partial_ribbon \
 	mri_paint \
 	mri_parselabel \
@@ -305,6 +310,7 @@ MISCDIRS=\
 	images \
 	dummy \
 	fem_elastic \
+	fem_elastic_noBoost \
 	hiam_make_surfaces\
 	hiam_make_template\
 	hiam_register
@@ -343,6 +349,7 @@ SUBDIRS=\
 	$(STATSDIRS) \
 	$(MISCDIRS) \
 	$(DMRISUBDIRS) \
+        mri_conn_nl_align \
 	fsfast \
 	matlab \
 	scuba \
