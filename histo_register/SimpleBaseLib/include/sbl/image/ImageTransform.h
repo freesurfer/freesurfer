@@ -41,7 +41,8 @@ template <typename ImageType> aptr<ImageType> flipVert( const ImageType &input )
 
 
 /// flip image horizontally (about vertical axis)
-aptr<ImageGrayU> flipHoriz( const ImageGrayU &input );
+template <typename ImageType> aptr<ImageType> flipHoriz( const ImageType &input );
+//aptr<ImageGrayU> flipHoriz( const ImageGrayU &input );
 
 
 /// rotate image 180 degrees

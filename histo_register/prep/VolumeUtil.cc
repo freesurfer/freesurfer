@@ -86,10 +86,17 @@ void rotateVolume( Config &conf ) {
 
 	// loop over input files
 	Array<String> fileList = dirFileList( inputPath, "", ".png" );
+  if (fileList.count() == 0)
+	  fileList = dirFileList( inputPath, "", ".PNG" );
+  if (fileList.count() == 0)
+	  fileList = dirFileList( inputPath, "", ".jpg" );
+  if (fileList.count() == 0)
+	  fileList = dirFileList( inputPath, "", ".JPG" );
+    
 	for (int i = 0; i < fileList.count(); i++) {
 
 		// load input file
-		aptr<ImageGrayU> image = load<ImageGrayU>( inputPath + "/" + fileList[ i ] );
+		aptr<ImageColorU> image = load<ImageColorU>( inputPath + "/" + fileList[ i ] );
 
 		// rotate as requested
 		if (rotateAngleDegrees == 90) {
@@ -117,6 +124,35 @@ void rotateVolume( Config &conf ) {
 	}
 }
 
+/// flop a set of images (horizontal flip)
+void flopVolume( Config &conf ) {
+
+	// get command parameters
+	// note: ok if inputPath is same as outputPath
+	String inputPath = addDataPath( conf.readString( "inputPath" ) );
+	String outputPath = addDataPath( conf.readString( "outputPath" ) );
+
+	// make sure output path exists
+	createDir( outputPath );
+
+	// loop over input files
+	Array<String> fileList = dirFileList( inputPath, "", ".png" );
+	for (int i = 0; i < fileList.count(); i++) {
+
+		// load input file
+		aptr<ImageColorU> image = load<ImageColorU>( inputPath + "/" + fileList[ i ] );
+
+	  // rotate by specified angle
+		image = flipHoriz( *image );
+		
+		// save output file
+		saveImage( *image, outputPath + "/" + fileList[ i ] );
+
+		// check for user cancel
+		if (checkCommandEvents())
+			break;
+	}
+}
 
 //-------------------------------------------
 // INIT / CLEAN-UP
@@ -127,6 +163,7 @@ void rotateVolume( Config &conf ) {
 void initVolumeUtil() {
 	registerCommand( "vcross", generateVolumeCrossSections );
 	registerCommand( "vrotate", rotateVolume );
+	registerCommand( "vflop", flopVolume );
 }
 
 

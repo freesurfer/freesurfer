@@ -125,19 +125,32 @@ template aptr<ImageGrayU> flipVert( const ImageGrayU &input );
 template aptr<ImageGrayF> flipVert( const ImageGrayF &input );
 template aptr<ImageColorU> flipVert( const ImageColorU &input );
 
-
 /// flip image horizontally (about vertical axis)
-// fix(clean): use opencv and templates
-aptr<ImageGrayU> flipHoriz( const ImageGrayU &input ) {
-    aptr<ImageGrayU> output( new ImageGrayU( input.width(), input.height() ) );
-    int width = input.width(), height = input.height();
-    for (int y = 0; y < height; y++) {
-        for (int x = 0; x < width; x++) {
-            output->data( x, y ) = input.data( width - x - 1, y );
-        }
-    }
+template <typename ImageType> aptr<ImageType> flipHoriz( const ImageType &input ) {
+    aptr<ImageType> output( new ImageType( input.width(), input.height() ) );
+#ifdef USE_OPENCV
+    cvFlip(input.iplImage(), output->iplImage(), 1);
+#else
+    fatalError( "not implemented" );
+#endif
     return output;
 }
+template aptr<ImageGrayU> flipHoriz( const ImageGrayU &input );
+template aptr<ImageGrayF> flipHoriz( const ImageGrayF &input );
+template aptr<ImageColorU> flipHoriz( const ImageColorU &input );
+
+// /// flip image horizontally (about vertical axis)
+// // fix(clean): use opencv and templates
+// aptr<ImageGrayU> flipHoriz( const ImageGrayU &input ) {
+//     aptr<ImageGrayU> output( new ImageGrayU( input.width(), input.height() ) );
+//     int width = input.width(), height = input.height();
+//     for (int y = 0; y < height; y++) {
+//         for (int x = 0; x < width; x++) {
+//             output->data( x, y ) = input.data( width - x - 1, y );
+//         }
+//     }
+//     return output;
+// }
 
 
 /// rotate image 180 degrees
