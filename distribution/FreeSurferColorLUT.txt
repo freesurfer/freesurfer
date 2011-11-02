@@ -1,4 +1,4 @@
-#$Id: FreeSurferColorLUT.txt,v 1.77 2011/09/08 23:23:03 lzollei Exp $
+#$Id: FreeSurferColorLUT.txt,v 1.78 2011/11/02 15:57:01 lzollei Exp $
 
 #No. Label Name:                            R   G   B   A
 
@@ -165,6 +165,8 @@
 166 Posterior-fossa                         14  48  255 0
 167 Scalp                                   166 42  42  0
 168 Hematoma                                121 18  134 0
+169 Left-Basal-Ganglia                      236 13  126 0
+170 Right-Basal-Ganglia                     236 13  126 0
 
 # Label names and colors for Brainstem consituents
 # No.  Label Name:                          R   G   B   A
