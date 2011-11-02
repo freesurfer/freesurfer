@@ -1,4 +1,4 @@
-#$Id: FreeSurferColorLUT.txt,v 1.78 2011/11/02 15:57:01 lzollei Exp $
+#$Id: FreeSurferColorLUT.txt,v 1.79 2011/11/02 20:36:49 rpwang Exp $
 
 #No. Label Name:                            R   G   B   A
 
@@ -215,6 +215,7 @@
 223 Cerebral_White_Matter_Edge              226 0   0   0
 224 Background                              100 100 100 0
 225 Ectorhinal                              197 150 250 0
+226 HP_tail                                 170 170 255 0
 
 250 Fornix                                  255 0   0   0
 251 CC_Posterior                            0   0   64  0
