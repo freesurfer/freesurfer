@@ -398,6 +398,11 @@ freeview_SOURCES = $(BUILT_SOURCES) \
   VolumeFilterWorkerThread.cpp \
   VolumeFilterWorkerThread.h
 
+qrc_freeview.cpp: freeview.qrc
+	cp -v $(top_srcdir)/distribution/FreeSurferColorLUT.txt resource/
+	$(RCC) $<  -o $@
+
+
 if HAVE_MAC_OSX
 AM_CXXFLAGS=\
 	-fno-strict-aliasing \
