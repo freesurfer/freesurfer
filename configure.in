@@ -9,8 +9,8 @@
 #
 # CVS Revision Info:
 #    $Author: lzollei $
-#    $Date: 2011/11/03 12:26:22 $
-#    $Revision: 1.551 $
+#    $Date: 2011/11/03 12:45:17 $
+#    $Revision: 1.552 $
 #
 ########################################################################
 AC_PREREQ(2.57)
@@ -3432,7 +3432,6 @@ AC_OUTPUT([Makefile
            mri_glmfit/Makefile
            mri_head/Makefile
            mri_hires_register/Makefile
-           mri_nl_mi_align/Makefile
            mri_otl/Makefile
            mri_histo_eq/Makefile
            mri_histo_normalize/Makefile
