@@ -14,9 +14,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2011/10/14 23:29:28 $
- *    $Revision: 1.103 $
+ *    $Author: lzollei $
+ *    $Date: 2011/11/04 02:30:41 $
+ *    $Revision: 1.104 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -247,9 +247,7 @@ MRI_SUBCORTCONN ;
 
 GCA_MORPH *GCAMupsample2(GCA_MORPH *gcam) ;
 int       GCAMcopy(GCA_MORPH *gcamsrc, GCA_MORPH *gcamdst) ;
-  //GCA_MORPH *GCAMconcatenate(GCA_MORPH *gcam1, GCA_MORPH *gcam2, 
-  //			     GCA_MORPH *gcamcomp) ;
-  int GCAMconcatenate(GCA_MORPH *gcam1, GCA_MORPH *gcam2);
+int GCAMconcatenate(GCA_MORPH *gcam1, GCA_MORPH *gcam2, GCA_MORPH *gcam_comp);
 GCA_MORPH *GCAMalloc( const int width, const int height, const int depth );
 
 int       GCAMinit(GCA_MORPH *gcam, MRI *mri_image, GCA *gca, 
@@ -278,8 +276,8 @@ MRI       *GCAMmorphToAtlasWithDensityCorrection(MRI *mri_src,
                                                  MRI *mri_morphed, int frame) ;
 MRI       *GCAMmorphToAtlas(MRI *mri_src, 
                             GCA_MORPH *gcam, MRI *mri_dst, int frame, int sample_type) ;
-MRI       *GCAMmorphToAtlasLZ(MRI *mri_src, 
-			      GCA_MORPH *gcam, MRI *mri_dst, int frame, int sample_type) ; //, MRI *template) ;
+MRI       *GCAMmorphToAtlasToMNI(MRI *mri_src, GCA_MORPH *gcam, GCA_MORPH *MNIgcam, 
+			    MRI *mri_dst, int frame, int sample_type) ;
 MRI       *GCAMmorphToAtlasType(MRI *mri_src, 
                                 GCA_MORPH *gcam, 
                                 MRI *mri_dst, int frame, int interp_type) ;
@@ -324,6 +322,7 @@ MRI       *GCAMbuildMostLikelyVolume(GCA_MORPH *gcam, MRI *mri) ;
 MRI       *GCAMbuildLabelVolume(GCA_MORPH *gcam, MRI *mri) ;
 MRI       *GCAMbuildVolume(GCA_MORPH *gcam, MRI *mri) ;
 int       GCAMinvert(GCA_MORPH *gcam, MRI *mri) ;
+GCA_MORPH* GCAMfillInverse(GCA_MORPH* gcam);
 int       GCAMfreeInverse(GCA_MORPH *gcam) ;
 int       GCAMcomputeMaxPriorLabels(GCA_MORPH *gcam) ;
 int       GCAMcomputeOriginalProperties(GCA_MORPH *gcam) ;
