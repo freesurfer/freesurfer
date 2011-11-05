@@ -10,9 +10,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2011/10/15 23:30:08 $
- *    $Revision: 1.255 $
+ *    $Author: lzollei $
+ *    $Date: 2011/11/05 04:52:34 $
+ *    $Revision: 1.256 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -1083,7 +1083,7 @@ GCAMregister(GCA_MORPH *gcam, MRI *mri, GCA_MORPH_PARMS *parms)
             FileNameRemoveExtension(fname_only, fname_only) ;
             FileNamePath(parms->write_fname, path) ;
             sprintf(fname, "%s/%s_level%d.m3z", path,fname_only,level);
-            strcpy(fname, parms->write_fname) ;
+            // strcpy(fname, parms->write_fname) ;
             printf("writing results of level to %s...\n", fname) ;
             //            GCAMvoxToRas(gcam) ;
             GCAMwrite(gcam, fname) ;
@@ -4384,6 +4384,7 @@ GCAMmorphToAtlas(MRI *mri_src, GCA_MORPH *gcam, MRI *mri_morphed, int frame, int
         out_of_gcam = GCAMsampleMorph(gcam, 
                                       (float)x, (float)y, (float)z, 
                                       &xd, &yd, &zd);
+
         if (!out_of_gcam)
         {
           // Should not divide by src thick. If anything, 
@@ -4409,6 +4410,7 @@ GCAMmorphToAtlas(MRI *mri_src, GCA_MORPH *gcam, MRI *mri_morphed, int frame, int
               else
                 MRIsampleVolumeFrameType(mri_src, xd, yd, zd, 
                                          frame, sample_type, &val) ;
+	      printf("Within GCAMmorphToAtlas: (%d, %d, %d): (%f, %f, %f): %f \n", x, y, z, xd, yd, zd, val) ;
             }
             else
               val = 0.0 ;
@@ -17290,3 +17292,158 @@ GCAMestimateLameConstants(GCA_MORPH *gcam)
   return(mri_lame) ;
 }
 
+int
+GCAMconcatenate(GCA_MORPH *gcam1, GCA_MORPH *gcam2, GCA_MORPH *gcam_composed)
+{
+
+  // printf("Entering GCAMconcatenate \n") ;
+
+  // x, y, z are the col, row, and slice (and xyz) in the gcam/target volume
+  int x, y, z, width, height, depth;
+  int out_of_gcam1, out_of_gcam2;
+  float xd, yd, zd, xdd, ydd, zdd ;
+  GCA_MORPH_NODE  *gcamn;
+  if (gcam1->width != gcam2->width || gcam1->height != gcam2->height || gcam1->depth != gcam2->depth)
+    ErrorExit(ERROR_BADPARM, "GCAMconcatenate: the morphs to be concatenated need to be of the same size!\n") ;
+  
+  if(! gcam_composed)
+    {
+      printf("Allocating gcam...(%d, %d, %d)\n", gcam1->width, gcam1->height, gcam1->depth);
+      gcam_composed = GCAMalloc(gcam1->width, gcam1->height, gcam1->depth) ;
+    }
+
+  // get geometry information
+  gcam_composed->image = gcam1->image;
+  
+  width  = gcam_composed->width ;
+  height = gcam_composed->height ;
+  depth  = gcam_composed->depth ;
+  for (x = 0 ; x < width ; x++)
+  {
+    for (y = 0 ; y < height ; y++)
+    {
+      for (z = 0 ; z < depth ; z++)
+      {
+        if (x == Gx && y == Gy && z == Gz)
+          DiagBreak() ;
+
+        // Should not divide by src thick
+        //out_of_gcam = GCAMsampleMorph(gcam, (float)x*mri_src->thick,
+        //   (float)y*mri_src->thick,
+        //   (float)z*mri_src->thick,
+        //   &xd, &yd, &zd);
+
+        // Convert target-crs to input-crs
+        out_of_gcam2 = GCAMsampleMorph(gcam2, 
+				       (float)x, (float)y, (float)z, 
+				       &xd, &yd, &zd);
+
+	if (!out_of_gcam2)
+        {
+	  out_of_gcam1 = GCAMsampleMorph(gcam1, 
+					 (float)xd, (float)yd, (float)zd, 
+					 &xdd, &ydd, &zdd);
+	  if (!out_of_gcam1)
+	    {
+
+	      gcamn = &gcam_composed->nodes[x][y][z] ;
+              if (nint(xdd) == Gx && nint(ydd) == Gy && nint(zdd) == Gz)
+                DiagBreak() ;
+	      
+	      if (xdd > -1 && ydd > -1 && zdd > 0 &&
+		  xdd < gcam1->image.width && 
+		  ydd < gcam1->image.height && 
+		  zdd < gcam1->image.depth)
+		{
+		  // printf("Within gcam1 and gcam2: (%d, %d, %d): (%f, %f, %f), (%f, %f, %f) \n", x, y, z, xd, yd, zd, xdd, ydd, zdd) ;
+		  gcamn->origx =  xdd;
+		  gcamn->origy =  ydd;
+		  gcamn->origz =  zdd;
+		  
+		  gcamn->x =  xdd;
+		  gcamn->y =  ydd;
+		  gcamn->z =  zdd;
+		  
+		  gcamn->xn =  xdd;
+		  gcamn->yn =  ydd;
+		  gcamn->zn =  zdd;
+		}
+	      
+	    }
+	}
+      }
+    }
+  }
+  
+  // printf("Exiting GCAMconcatenate \n") ;
+  return(NO_ERROR) ;
+}
+
+// >>>>>>>>>>>>>>>>>>
+
+GCA_MORPH *
+GCAMfillInverse(GCA_MORPH* gcam)
+{
+  MRI  *mri;
+  char tmpstr[2000];
+  int width, height, depth;
+  int x, y, z;
+  GCA_MORPH_NODE  *gcamn;
+  GCA_MORPH* inv_gcam;
+  
+  printf("Allocating inv_gcam...(%d, %d, %d)\n", gcam->width, gcam->height, gcam->depth);
+  inv_gcam = GCAMalloc(gcam->width, gcam->height, gcam->depth) ;
+
+  sprintf(tmpstr, "%s", (gcam->image).fname);
+  mri = MRIreadHeader(tmpstr,MRI_VOLUME_TYPE_UNKNOWN);
+  if (mri==NULL)
+    {
+      printf("ERROR: reading %s\n",tmpstr);
+      return(NULL);
+    }
+  if (( gcam->mri_xind == NULL) ||  ( gcam->mri_yind == NULL)  || ( gcam->mri_zind == NULL) )
+    {
+      // Must invert explicitly
+      printf("GCAMfillInverse: Must invert gcam explicitely! \n");
+      GCAMinvert(gcam, mri);
+    }
+
+  ////////
+  width  = inv_gcam->width ;
+  height = inv_gcam->height ;
+  depth  = inv_gcam->depth ;
+
+  if (!inv_gcam) {
+      inv_gcam = GCAMalloc(gcam->width, gcam->height, gcam->depth) ; // NOTE: forces same moving and target coordinate spaces!!
+      inv_gcam->image = gcam->atlas; 
+      inv_gcam->atlas = gcam->image; 
+    }
+
+  for (x = 0 ; x < width ; x++)
+  {
+    for (y = 0 ; y < height ; y++)
+    {
+      for (z = 0 ; z < depth ; z++)
+      {
+        if (x == Gx && y == Gy && z == Gz)
+          DiagBreak() ;
+
+	gcamn = &inv_gcam->nodes[x][y][z] ;
+	// missing: all the checks
+
+	gcamn->origx =  MRIgetVoxVal(gcam->mri_xind, x, y, z, 0) ;
+	gcamn->origy =  MRIgetVoxVal(gcam->mri_yind, x, y, z, 0) ;
+	gcamn->origz =  MRIgetVoxVal(gcam->mri_zind, x, y, z, 0) ;
+
+	gcamn->x =  MRIgetVoxVal(gcam->mri_xind, x, y, z, 0) ;
+	gcamn->y =  MRIgetVoxVal(gcam->mri_yind, x, y, z, 0) ;
+	gcamn->z =  MRIgetVoxVal(gcam->mri_zind, x, y, z, 0) ;
+
+	gcamn->xn =  MRIgetVoxVal(gcam->mri_xind, x, y, z, 0) ;
+	gcamn->yn =  MRIgetVoxVal(gcam->mri_yind, x, y, z, 0) ;
+	gcamn->zn =  MRIgetVoxVal(gcam->mri_zind, x, y, z, 0) ;
+      }
+    }
+  }
+  return(inv_gcam) ;
+}
