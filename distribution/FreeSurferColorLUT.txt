@@ -1,4 +1,4 @@
-#$Id: FreeSurferColorLUT.txt,v 1.79 2011/11/02 20:36:49 rpwang Exp $
+#$Id: FreeSurferColorLUT.txt,v 1.80 2011/11/05 20:43:58 nicks Exp $
 
 #No. Label Name:                            R   G   B   A
 
@@ -165,8 +165,8 @@
 166 Posterior-fossa                         14  48  255 0
 167 Scalp                                   166 42  42  0
 168 Hematoma                                121 18  134 0
-169 Left-Basal-Ganglia                      236 13  126 0
-170 Right-Basal-Ganglia                     236 13  126 0
+169 Left-Basal-Ganglia                      236 13  127 0
+176 Right-Basal-Ganglia                     236 13  126 0
 
 # Label names and colors for Brainstem consituents
 # No.  Label Name:                          R   G   B   A
@@ -177,6 +177,7 @@
 174 Pons                                    119 159 100 0
 175 Medulla                                 119 159 200 0
 
+#176 Right-Basal-Ganglia   found in babies/children section above
 
 180 Left-Cortical-Dysplasia                 73  61  139 0
 181 Right-Cortical-Dysplasia                73  62  139 0
