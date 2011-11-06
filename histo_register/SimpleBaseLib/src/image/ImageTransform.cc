@@ -58,8 +58,8 @@ template <typename ImageType> aptr<ImageType> resize( const ImageType &input, in
 #endif
     return output;
 }
-template aptr<ImageGrayU> resize( const ImageGrayU &input, int newWidth, int newHeight, bool filter );
-template aptr<ImageGrayF> resize( const ImageGrayF &input, int newWidth, int newHeight, bool filter );
+template aptr<ImageGrayU>  resize( const ImageGrayU  &input, int newWidth, int newHeight, bool filter );
+template aptr<ImageGrayF>  resize( const ImageGrayF  &input, int newWidth, int newHeight, bool filter );
 template aptr<ImageColorU> resize( const ImageColorU &input, int newWidth, int newHeight, bool filter );
 
 
@@ -82,8 +82,8 @@ template <typename ImageType> aptr<ImageType> shiftScale( const ImageType &input
 #endif
     return output;
 }
-template aptr<ImageGrayU> shiftScale( const ImageGrayU &input, float xOffset, float yOffset, float xScale, float yScale, int outputWidth, int outputHeight );
-template aptr<ImageGrayF> shiftScale( const ImageGrayF &input, float xOffset, float yOffset, float xScale, float yScale, int outputWidth, int outputHeight );
+template aptr<ImageGrayU>  shiftScale( const ImageGrayU  &input, float xOffset, float yOffset, float xScale, float yScale, int outputWidth, int outputHeight );
+template aptr<ImageGrayF>  shiftScale( const ImageGrayF  &input, float xOffset, float yOffset, float xScale, float yScale, int outputWidth, int outputHeight );
 template aptr<ImageColorU> shiftScale( const ImageColorU &input, float xOffset, float yOffset, float xScale, float yScale, int outputWidth, int outputHeight );
 
 
@@ -106,8 +106,8 @@ template <typename ImageType> aptr<ImageType> warpAffine( const ImageType &input
 #endif
     return output;
 }
-template aptr<ImageGrayU> warpAffine( const ImageGrayU &input, float xOffset, float yOffset, float x1, float y1, float x2, float y2, int outputWidth, int outputHeight, int fillColor );
-template aptr<ImageGrayF> warpAffine( const ImageGrayF &input, float xOffset, float yOffset, float x1, float y1, float x2, float y2, int outputWidth, int outputHeight, int fillColor );
+template aptr<ImageGrayU>  warpAffine( const ImageGrayU  &input, float xOffset, float yOffset, float x1, float y1, float x2, float y2, int outputWidth, int outputHeight, int fillColor );
+template aptr<ImageGrayF>  warpAffine( const ImageGrayF  &input, float xOffset, float yOffset, float x1, float y1, float x2, float y2, int outputWidth, int outputHeight, int fillColor );
 template aptr<ImageColorU> warpAffine( const ImageColorU &input, float xOffset, float yOffset, float x1, float y1, float x2, float y2, int outputWidth, int outputHeight, int fillColor );
 
 
@@ -121,8 +121,8 @@ template <typename ImageType> aptr<ImageType> flipVert( const ImageType &input )
 #endif
     return output;
 }
-template aptr<ImageGrayU> flipVert( const ImageGrayU &input );
-template aptr<ImageGrayF> flipVert( const ImageGrayF &input );
+template aptr<ImageGrayU>  flipVert( const ImageGrayU  &input );
+template aptr<ImageGrayF>  flipVert( const ImageGrayF  &input );
 template aptr<ImageColorU> flipVert( const ImageColorU &input );
 
 /// flip image horizontally (about vertical axis)
@@ -135,8 +135,8 @@ template <typename ImageType> aptr<ImageType> flipHoriz( const ImageType &input 
 #endif
     return output;
 }
-template aptr<ImageGrayU> flipHoriz( const ImageGrayU &input );
-template aptr<ImageGrayF> flipHoriz( const ImageGrayF &input );
+template aptr<ImageGrayU>  flipHoriz( const ImageGrayU  &input );
+template aptr<ImageGrayF>  flipHoriz( const ImageGrayF  &input );
 template aptr<ImageColorU> flipHoriz( const ImageColorU &input );
 
 // /// flip image horizontally (about vertical axis)
@@ -154,52 +154,68 @@ template aptr<ImageColorU> flipHoriz( const ImageColorU &input );
 
 
 /// rotate image 180 degrees
-// fix(clean): use opencv and templates
-aptr<ImageGrayU> rotate180( const ImageGrayU &input ) {
-    aptr<ImageGrayU> output( new ImageGrayU( input.width(), input.height() ) );
-    int width = input.width(), height = input.height();
+// fix(clean): use opencv
+template <typename ImageType> aptr<ImageType> rotate180( const ImageType &input ) {
+    aptr<ImageType> output( new ImageType( input.width(), input.height() ) );
+    int width = input.width(), height = input.height(), cc = input.channelCount();
     for (int y = 0; y < height; y++) {
         for (int x = 0; x < width; x++) {
-            output->data( x, y ) = input.data( width - x - 1, height - y - 1 );
+            for (int c = 0; c< cc ; c++) {
+                output->data( x, y, c ) = input.data( width - x - 1, height - y - 1, c );
+            }
         }
     }
     return output;
 }
+template aptr<ImageGrayU>  rotate180( const ImageGrayU  &input );
+template aptr<ImageGrayF>  rotate180( const ImageGrayF  &input );
+template aptr<ImageColorU> rotate180( const ImageColorU &input );
 
 
 /// rotate 90 degrees (counter-clockwise)
-// fix(clean): use opencv and templates
-aptr<ImageGrayU> rotate90( ImageGrayU &input ) {
+// fix(clean): use opencv
+template <typename ImageType> aptr<ImageType> rotate90( const ImageType &input ) {
     int newWidth = input.height();
     int newHeight = input.width();
-    aptr<ImageGrayU> output( new ImageGrayU( newWidth, newHeight ) );
+    int cc = input.channelCount();
+    aptr<ImageType> output( new ImageType( newWidth, newHeight ) );
     for (int y = 0; y < newHeight; y++) {
         for (int x = 0; x < newWidth; x++) {
-            output->data( x, y ) = input.data( y, newWidth - x );
+            for (int c = 0; c< cc ; c++) {
+                output->data( x, y, c ) = input.data( y, newWidth - x , c );
+            }
         }
     }
     return output;
 }
+template aptr<ImageGrayU>  rotate90( const ImageGrayU  &input );
+template aptr<ImageGrayF>  rotate90( const ImageGrayF  &input );
+template aptr<ImageColorU> rotate90( const ImageColorU &input );
 
 
 /// rotate 270 degrees (counter-clockwise)
-// fix(clean): use opencv and templates
-aptr<ImageGrayU> rotate270( ImageGrayU &input ) {
+// fix(clean): use opencv
+template <typename ImageType> aptr<ImageType> rotate270( const ImageType &input ) {
     int newWidth = input.height();
     int newHeight = input.width();
-    aptr<ImageGrayU> output( new ImageGrayU( newWidth, newHeight ) );
+    int cc = input.channelCount();
+    aptr<ImageType> output( new ImageType( newWidth, newHeight ) );
     for (int y = 0; y < newHeight; y++) {
         for (int x = 0; x < newWidth; x++) {
-            output->data( x, y ) = input.data( newHeight - y, x );
+            for (int c = 0; c< cc ; c++) {
+                output->data( x, y, c ) = input.data( newHeight - y, x , c );
+            }
         }
     }
     return output;
 }
+template aptr<ImageGrayU>  rotate270( const ImageGrayU  &input );
+template aptr<ImageGrayF>  rotate270( const ImageGrayF  &input );
+template aptr<ImageColorU> rotate270( const ImageColorU &input );
 
 
 /// rotate arbitrary amount (counter-clockwise)
-// fix(clean): use templates
-aptr<ImageGrayU> rotate( ImageGrayU &input, float angleDegrees, int fillColor ) {
+template <typename ImageType> aptr<ImageType> rotate( const ImageType &input, float angleDegrees, int fillColor ) {
     int width = input.width(), height = input.height();
     float theta = angleDegrees * 3.14159f / 180.0f;
     float c = cosf( theta );
@@ -218,9 +234,12 @@ aptr<ImageGrayU> rotate( ImageGrayU &input, float angleDegrees, int fillColor ) 
         outputWidth = height;
         outputHeight = width;
     }
-    aptr<ImageGrayU> output = warpAffine( input, xOffset, yOffset, x1, y1, x2, y2, outputWidth, outputHeight, fillColor );
+    aptr<ImageType> output = warpAffine( input, xOffset, yOffset, x1, y1, x2, y2, outputWidth, outputHeight, fillColor );
     return output;
 }
+template aptr<ImageGrayU>  rotate( const ImageGrayU  &input, float angleDegrees, int fillColor );
+template aptr<ImageGrayF>  rotate( const ImageGrayF  &input, float angleDegrees, int fillColor );
+template aptr<ImageColorU> rotate( const ImageColorU &input, float angleDegrees, int fillColor );
 
 
 //-------------------------------------------

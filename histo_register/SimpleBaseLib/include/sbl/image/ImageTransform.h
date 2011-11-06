@@ -46,19 +46,22 @@ template <typename ImageType> aptr<ImageType> flipHoriz( const ImageType &input 
 
 
 /// rotate image 180 degrees
-aptr<ImageGrayU> rotate180( const ImageGrayU &input );
-
+//aptr<ImageGrayU> rotate180( const ImageGrayU &input );
+template <typename ImageType> aptr<ImageType> rotate180( const ImageType &input );
 
 /// rotate 90 degrees (counter-clockwise)
-aptr<ImageGrayU> rotate90( ImageGrayU &input );
+//aptr<ImageGrayU> rotate90( ImageGrayU &input );
+template <typename ImageType> aptr<ImageType> rotate90( const ImageType &input );
 
 
 /// rotate 270 degrees (counter-clockwise)
-aptr<ImageGrayU> rotate270( ImageGrayU &input );
+//aptr<ImageGrayU> rotate270( ImageGrayU &input );
+template <typename ImageType> aptr<ImageType> rotate270( const ImageType &input );
 
 
 /// rotate arbitrary amount (counter-clockwise)
-aptr<ImageGrayU> rotate( ImageGrayU &input, float angleDegrees, int fillColor );
+//aptr<ImageGrayU> rotate( ImageGrayU &input, float angleDegrees, int fillColor );
+template <typename ImageType> aptr<ImageType> rotate( const ImageType &input, float angleDegrees, int fillColor  );
 
 
 //-------------------------------------------

@@ -109,7 +109,7 @@ void rotateVolume( Config &conf ) {
 
 			// if unspecified, get fill value from image corner
 			if (fillValue == -1) 
-				fillValue = image->data( 0, 0 );
+				fillValue = image->data( 0, 0, 0 );
 
 			// rotate by specified angle
 			image = rotate( *image, (float) rotateAngleDegrees, fillValue );
