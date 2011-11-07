@@ -11,8 +11,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: lzollei $
- *    $Date: 2011/11/05 04:52:34 $
- *    $Revision: 1.256 $
+ *    $Date: 2011/11/07 13:16:45 $
+ *    $Revision: 1.257 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -4410,7 +4410,7 @@ GCAMmorphToAtlas(MRI *mri_src, GCA_MORPH *gcam, MRI *mri_morphed, int frame, int
               else
                 MRIsampleVolumeFrameType(mri_src, xd, yd, zd, 
                                          frame, sample_type, &val) ;
-	      printf("Within GCAMmorphToAtlas: (%d, %d, %d): (%f, %f, %f): %f \n", x, y, z, xd, yd, zd, val) ;
+	      // printf("Within GCAMmorphToAtlas: (%d, %d, %d): (%f, %f, %f): %f \n", x, y, z, xd, yd, zd, val) ;
             }
             else
               val = 0.0 ;
