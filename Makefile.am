@@ -113,7 +113,7 @@ MRISUBDIRS=\
 	mri_multiscale_segment \
 	mri_nlfilter \
 	mri_normalize \
-        mri_otl \
+	mri_otl \
 	mri_partial_ribbon \
 	mri_paint \
 	mri_parselabel \
@@ -178,6 +178,8 @@ MRISUBDIRS=\
 	mri_apply_inu_correction \
 	talairach_afd \
 	talairach_avi
+
+#	mri_edit_seg_with_ribbons
 
 MRISSUBDIRS=\
 	label_area \
