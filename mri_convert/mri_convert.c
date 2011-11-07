@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl (Apr 16, 1997)
  * CVS Revision Info:
- *    $Author: mreuter $
- *    $Date: 2011/10/05 21:35:02 $
- *    $Revision: 1.185 $
+ *    $Author: greve $
+ *    $Date: 2011/11/07 21:21:04 $
+ *    $Revision: 1.186 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -182,6 +182,7 @@ int main(int argc, char *argv[])
   char cmdline[STRLEN] ;
   int sphinx_flag = FALSE;
   int LeftRightReverse = FALSE;
+  int LeftRightReversePix = FALSE;
   int FlipCols = FALSE;
   int SliceReverse = FALSE;
   int SliceBias  = FALSE;
@@ -189,7 +190,7 @@ int main(int argc, char *argv[])
   char AutoAlignFile[STRLEN];
   MATRIX *AutoAlign = NULL;
   MATRIX *cras = NULL, *vmid = NULL;
-  int ascii_flag = FALSE, c=0,r=0,s=0,f=0,c2=0;
+  int ascii_flag = FALSE, c=0,r=0,s=0,f=0,c2=0,r2=0,s2=0;
   int InStatTableFlag=0;
   int OutStatTableFlag=0;
 
@@ -198,7 +199,7 @@ int main(int argc, char *argv[])
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mri_convert.c,v 1.185 2011/10/05 21:35:02 mreuter Exp $",
+   "$Id: mri_convert.c,v 1.186 2011/11/07 21:21:04 greve Exp $",
    "$Name:  $",
    cmdline);
 
@@ -318,7 +319,7 @@ int main(int argc, char *argv[])
     handle_version_option
     (
       argc, argv,
-      "$Id: mri_convert.c,v 1.185 2011/10/05 21:35:02 mreuter Exp $",
+      "$Id: mri_convert.c,v 1.186 2011/11/07 21:21:04 greve Exp $",
       "$Name:  $"
     );
   if (nargs && argc - nargs == 1)
@@ -350,6 +351,10 @@ int main(int argc, char *argv[])
     else if(strcmp(argv[i], "--left-right-reverse") == 0)
     {
       LeftRightReverse = 1;
+    }
+    else if(strcmp(argv[i], "--left-right-reverse-pix") == 0)
+    {
+      LeftRightReversePix = 1;
     }
     else if(strcmp(argv[i], "--flip-cols") == 0)
     {
@@ -1624,7 +1629,7 @@ int main(int argc, char *argv[])
             "= --zero_ge_z_offset option ignored.\n");
   }
 
-  printf("$Id: mri_convert.c,v 1.185 2011/10/05 21:35:02 mreuter Exp $\n");
+  printf("$Id: mri_convert.c,v 1.186 2011/11/07 21:21:04 greve Exp $\n");
   printf("reading from %s...\n", in_name_only);
 
   if (in_volume_type == OTL_FILE)
@@ -1885,6 +1890,65 @@ int main(int argc, char *argv[])
     MatrixFree(&T);
     MatrixFree(&vmid);
     MatrixFree(&cras);
+  }
+
+  if(LeftRightReversePix)
+  {
+    // Performs a left-right reversal of the pixels by finding the
+    // dimension that is most left-right oriented and reversing
+    // the order of the pixels. The geometry itself is not
+    // changed. 
+    printf("WARNING: applying left-right reversal to the input pixels\n"
+           "without changing geometry. This will likely make \n"
+           "the volume geometry WRONG, so make sure you know what you  \n"
+           "are doing.\n");
+
+    MRIdircosToOrientationString(mri,ostr);
+    mri2 = MRIcopy(mri,NULL);
+    if(ostr[0] == 'L' || ostr[0] == 'R'){
+      printf("  Reversing pixels for the columns\n");
+      for(c=0; c < mri->width; c++){
+	c2 = mri->width - c - 1;
+	for(r=0; r < mri->height; r++){
+	  for(s=0; s < mri->depth; s++){
+	    for(f=0; f < mri->nframes; f++){
+	      v = MRIgetVoxVal(mri,c,r,s,f);
+	      MRIsetVoxVal(mri2,c2,r,s,f,v);
+	    }
+	  }
+	}
+      }
+    }
+    if(ostr[1] == 'L' || ostr[1] == 'R') {
+      printf("  Reversing pixels for the rows\n");
+      for(c=0; c < mri->width; c++){
+	for(r=0; r < mri->height; r++){
+	  r2 = mri->height - r - 1;
+	  for(s=0; s < mri->depth; s++){
+	    for(f=0; f < mri->nframes; f++){
+	      v = MRIgetVoxVal(mri,c,r,s,f);
+	      MRIsetVoxVal(mri2,c,r2,s,f,v);
+	    }
+	  }
+	}
+      }
+    }
+    if(ostr[2] == 'L' || ostr[2] == 'R') {
+      printf("  Reversing pixels for the slices\n");
+      for(c=0; c < mri->width; c++){
+	for(r=0; r < mri->height; r++){
+	  for(s=0; s < mri->depth; s++){
+	    s2 = mri->depth - s - 1;
+	    for(f=0; f < mri->nframes; f++){
+	      v = MRIgetVoxVal(mri,c,r,s,f);
+	      MRIsetVoxVal(mri2,c,r,s2,f,v);
+	    }
+	  }
+	}
+      }
+    }
+    MRIfree(&mri);
+    mri = mri2;
   }
 
   if(FlipCols)
