@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2011/10/17 21:03:30 $
-#    $Revision: 1.401 $
+#    $Date: 2011/11/07 20:47:53 $
+#    $Revision: 1.402 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -26,7 +26,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.401 2011/10/17 21:03:30 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.402 2011/11/07 20:47:53 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -1346,6 +1346,7 @@ talairach:
     |& tee -a $LF |& tee -a $CF
   echo "#@# Talairach `date`" |& tee -a $SF |& tee -a $LF |& tee -a $CF
   cd $subjdir/mri > /dev/null
+  $PWD |& tee -a $LF
   set xfm = transforms/talairach.xfm
   set xfma = transforms/talairach.auto.xfm
   if ($longitudinal) then
@@ -1360,11 +1361,23 @@ talairach:
     set cmd = (cp $longbasedir/mri/$tal_xfm $subjdir/mri/$xfma)
   else
     # default processing:
-    set tal_input = orig.mgz
     if ($DoTalairachUseNu) then
       # note that this only works if nu exists
       # this is used as an alternative if tal is giving bad results
       set tal_input = nu.mgz
+    else
+      # default: run one pass of nu_correct, as its been found that scans
+      # with strong bias fields can cause talairach_avi to fail.  note that
+      # this orig_nu gets deleted, as it doesnt do as much correction as
+      # the nuintensitycor stage (which does more passes and uses talairach.xfm
+      # to find the wm ball so as to do histogramming).
+      set tal_input = orig_nu.mgz
+      set cmd = (mri_nu_correct.mni \
+        --n 1 --proto-iters 1000 --distance 50 --no-rescale \
+        --i orig.mgz --o orig_nu.mgz)
+      echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+      if($RunIt) $fs_time $cmd >& orig_nu.log
+      if($status) goto error_exit;
     endif
     if ($UseMincMritotal) then
       # use the MINC mritotal utility
@@ -1381,10 +1394,12 @@ talairach:
       set cmd = ($cmd $xopts)
     endif
   endif
-  $PWD |& tee -a $LF
   echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
   if($RunIt) $fs_time $cmd |& tee -a $LF
   if($status) goto error_exit;
+  if (-e orig_nu.mgz) then
+    rm -vf orig_nu.mgz orig_nu.log
+  endif
 
   if( -e $xfm && ! $DoCleanTal) then
     echo "\nINFO: $xfm already exists!" \
