@@ -11,9 +11,9 @@
 /*
  * Original Author: Rudolph Pienaar
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2011/09/08 19:56:39 $
- *    $Revision: 1.45 $
+ *    $Author: mreuter $
+ *    $Date: 2011/11/08 18:39:29 $
+ *    $Revision: 1.46 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -62,7 +62,7 @@
 #define  START_i        3
 
 static const char vcid[] =
-  "$Id: mris_calc.c,v 1.45 2011/09/08 19:56:39 greve Exp $";
+  "$Id: mris_calc.c,v 1.46 2011/11/08 18:39:29 mreuter Exp $";
 double fn_sign(float af_A);
 
 // ----------------------------------------------------------------------------
@@ -1362,7 +1362,7 @@ main(
   init();
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mris_calc.c,v 1.45 2011/09/08 19:56:39 greve Exp $",
+           "$Id: mris_calc.c,v 1.46 2011/11/08 18:39:29 mreuter Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
   {
@@ -2000,11 +2000,15 @@ CURV_arrayProgress_print(
     fprintf(G_FP, " [");
     fflush(G_FP);
   }
-  if(acurrent%fivePerc == fivePerc-1)
+  else if(fivePerc>0)
   {
-    fprintf(G_FP, "#");
-    fflush(G_FP);
+    if (acurrent%fivePerc == fivePerc-1)
+    {
+      fprintf(G_FP, "#");
+      fflush(G_FP);
+    }
   }
+  
   if(acurrent == asize-1)
   {
     fprintf(G_FP, "] ");
