@@ -12,8 +12,8 @@
  * Original Authors: Florent Segonne & Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2011/03/16 21:23:49 $
- *    $Revision: 1.96 $
+ *    $Date: 2011/11/08 22:17:40 $
+ *    $Revision: 1.97 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -27,7 +27,7 @@
  *
  */
 
-const char *MRI_WATERSHED_VERSION = "$Revision: 1.96 $";
+const char *MRI_WATERSHED_VERSION = "$Revision: 1.97 $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -838,7 +838,7 @@ int main(int argc, char *argv[])
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mri_watershed.cpp,v 1.96 2011/03/16 21:23:49 nicks Exp $",
+   "$Id: mri_watershed.cpp,v 1.97 2011/11/08 22:17:40 nicks Exp $",
    "$Name:  $",
    cmdline);
 
@@ -851,7 +851,7 @@ int main(int argc, char *argv[])
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mri_watershed.cpp,v 1.96 2011/03/16 21:23:49 nicks Exp $",
+           "$Id: mri_watershed.cpp,v 1.97 2011/11/08 22:17:40 nicks Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
   {
@@ -5445,12 +5445,21 @@ void local_params(STRIP_PARMS *parms,MRI_variables *MRI_var)
     }
     // set the TRANSITION_intensity[j] to be at the weighted average
     // assuming the height of GM_intensity and CSF_intensity are the same
-    MRI_var->TRANSITION_intensity[j]=
-      MRI_var->CSF_intens[j]
-      + (MRI_var->GM_intensity[j] - MRI_var->CSF_intens[j])
-      * (MRI_var->CSF_MAX[j] - MRI_var->CSF_intens[j])
-      / (MRI_var->CSF_MAX[j] + MRI_var->GM_intensity[j] -
-         MRI_var->GM_MIN[j] - MRI_var->CSF_intens[j]);
+    int denom = (MRI_var->CSF_MAX[j] + MRI_var->GM_intensity[j] -
+                 MRI_var->GM_MIN[j] - MRI_var->CSF_intens[j]);
+    if (DZERO(denom) || !finite(denom))
+    {
+      fprintf(stdout, "\n Problem with MRI_var->TRANSITION_intensity\n");
+      MRI_var->TRANSITION_intensity[j]= 0;
+    }
+    else
+    {
+      MRI_var->TRANSITION_intensity[j]=
+        MRI_var->CSF_intens[j]
+        + (MRI_var->GM_intensity[j] - MRI_var->CSF_intens[j])
+        * (MRI_var->CSF_MAX[j] - MRI_var->CSF_intens[j])
+        / denom;
+    }
 
     fprintf(stdout,
             "\n  %s  \n  before analyzing :    %d,      %d,        %d,   %d",
@@ -5773,7 +5782,7 @@ void analyseCSF(unsigned long CSF_percent[6][256],
     int new_max = int(-b/a);
     if (new_max < 0 || new_max >= 256)
     {
-      fprintf(stdout, "\n Problem with the least square "
+      fprintf(stdout, "\n (2) Problem with the least square "
               "interpolation for CSF_MAX");
       // don't change the value
     }
@@ -5977,11 +5986,11 @@ void analyseGM(unsigned long CSF_percent[6][256],
     MRI_var->GM_MIN[i]=int(MAX(0,-b/a));
   }
 #ifndef __OPTIMIZE__
-  int j;
-  fprintf(stdout,"\ngmnumber lead for :GLOBAL Rc Lc Rb Lb OTHER ");
-  for (j=0; j<6; j++)
-    fprintf(stdout, "\n    GM_intensity = %d, GM_MIN = %d\n",
-            MRI_var->GM_intensity[i], MRI_var->GM_MIN[i]);
+//  int j;
+//  fprintf(stdout,"\ngmnumber lead for :GLOBAL Rc Lc Rb Lb OTHER ");
+//  for (j=0; j<6; j++)
+//    fprintf(stdout, "\n    GM_intensity = %d, GM_MIN = %d\n",
+//            MRI_var->GM_intensity[i], MRI_var->GM_MIN[i]);
 #endif
 
   // if the original fails, we use these values
@@ -6046,7 +6055,7 @@ void analyseGM(unsigned long CSF_percent[6][256],
   a=(n*Sxy-Sy*Sx)/(n*Sxx-Sx*Sx);
   b=-(a*Sx-Sy)/n;
   if (DZERO(a) || !finite(a))
-    fprintf(stdout, "\n Problem with the least square "
+    fprintf(stdout, "\n (2) Problem with the least square "
             "interpolation in GM_MIN calculation.");
   else
   {
