@@ -15,8 +15,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2011/09/06 22:18:30 $
- *    $Revision: 1.57 $
+ *    $Date: 2011/11/08 18:57:46 $
+ *    $Revision: 1.58 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -61,7 +61,7 @@ static void dump_options(FILE *fp);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_concat.c,v 1.57 2011/09/06 22:18:30 greve Exp $";
+static char vcid[] = "$Id: mri_concat.c,v 1.58 2011/11/08 18:57:46 greve Exp $";
 char *Progname = NULL;
 int debug = 0;
 #define NInMAX 400000
@@ -987,14 +987,9 @@ static int parse_commandline(int argc, char **argv)
       maskfile = pargv[0];
       nargsused = 1;
     }
-    else if ( !strcmp(option, "--mul") )
-    {
-      if (nargc < 1)
-      {
-        argnerr(option,1);
-      }
-      if(! isdigit(pargv[0][0]))
-      {
+    else if ( !strcmp(option, "--mul") ){
+      if (nargc < 1)argnerr(option,1);
+      if(! isdigit(pargv[0][0]) && pargv[0][0] != '-' && pargv[0][0] != '+'){
         printf("ERROR: value passed to the --mul flag must be a number\n");
         printf("       If you want to multiply two images, use fscalc\n");
         exit(1);
@@ -1003,14 +998,9 @@ static int parse_commandline(int argc, char **argv)
       DoMultiply = 1;
       nargsused = 1;
     }
-    else if ( !strcmp(option, "--add") )
-    {
-      if (nargc < 1)
-      {
-        argnerr(option,1);
-      }
-      if(! isdigit(pargv[0][0]))
-      {
+    else if ( !strcmp(option, "--add") ) {
+      if (nargc < 1) argnerr(option,1);
+      if(! isdigit(pargv[0][0]) && pargv[0][0] != '-' && pargv[0][0] != '+'){
         printf("ERROR: value passed to the --add flag must be a number\n");
         printf("       If you want to add two images, use --sum or fscalc\n");
         exit(1);
