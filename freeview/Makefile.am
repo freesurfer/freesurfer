@@ -396,7 +396,8 @@ freeview_SOURCES = $(BUILT_SOURCES) \
   DialogLabelStats.cpp \
   DialogLabelStats.h \
   VolumeFilterWorkerThread.cpp \
-  VolumeFilterWorkerThread.h
+  VolumeFilterWorkerThread.h \
+	freeview.qrc
 
 qrc_freeview.cpp: freeview.qrc
 	cp -v $(top_srcdir)/distribution/FreeSurferColorLUT.txt resource/
