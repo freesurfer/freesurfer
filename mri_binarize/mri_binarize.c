@@ -10,8 +10,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2011/10/18 20:07:05 $
- *    $Revision: 1.29 $
+ *    $Date: 2011/11/08 19:28:23 $
+ *    $Revision: 1.30 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -26,7 +26,7 @@
  */
 
 
-// $Id: mri_binarize.c,v 1.29 2011/10/18 20:07:05 greve Exp $
+// $Id: mri_binarize.c,v 1.30 2011/11/08 19:28:23 greve Exp $
 
 /*
   BEGINHELP
@@ -180,7 +180,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_binarize.c,v 1.29 2011/10/18 20:07:05 greve Exp $";
+static char vcid[] = "$Id: mri_binarize.c,v 1.30 2011/11/08 19:28:23 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -436,7 +436,7 @@ int main(int argc, char *argv[]) {
   }
 
   // Save output
-  MRIwrite(OutVol,OutVolFile);
+  if(OutVolFile) MRIwrite(OutVol,OutVolFile);
 
   if(CountFile){
     fp = fopen(CountFile,"w");
@@ -825,8 +825,8 @@ static void check_options(void) {
     printf("ERROR: must specify input volume\n");
     exit(1);
   }
-  if (OutVolFile == NULL) {
-    printf("ERROR: must specify output volume\n");
+  if(OutVolFile == NULL && CountFile == NULL) {
+    printf("ERROR: must specify output volume or output count file\n");
     exit(1);
   }
   if(MinThreshSet == 0  && MaxThreshSet == 0 &&
