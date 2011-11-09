@@ -5,9 +5,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: mreuter $
-#    $Date: 2011/03/16 16:32:11 $
-#    $Revision: 1.11 $
+#    $Author: greve $
+#    $Date: 2011/11/09 21:10:58 $
+#    $Revision: 1.12 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -22,13 +22,14 @@
 #
 
 #
-set VERSION = '$Id: pctsurfcon,v 1.11 2011/03/16 16:32:11 mreuter Exp $';
+set VERSION = '$Id: pctsurfcon,v 1.12 2011/11/09 21:10:58 greve Exp $';
 set inputargs = ($argv);
 
 set subject = ();
 set fsvol = rawavg;
 set mov = ();
 set reg = ();
+set UseMask = 1;
 
 set DoLH = 1;
 set DoRH = 1;
@@ -104,6 +105,7 @@ foreach hemi ($hemilist)
     --projdist -$WMProjAbs --o $wm)
   if($#reg == 0) set cmd = ($cmd --regheader $subject);
   if($#reg != 0) set cmd = ($cmd --reg $reg);
+  if($UseMask) set cmd = ($cmd --cortex);
   echo $cmd
   $cmd
   if($status) exit 1;
@@ -116,6 +118,7 @@ foreach hemi ($hemilist)
   if($#GMProjAbs) set cmd = ($cmd --projdist $GMProjAbs)
   if($#reg == 0) set cmd = ($cmd --regheader $subject);
   if($#reg != 0) set cmd = ($cmd --reg $reg);
+  if($UseMask) set cmd = ($cmd --cortex);
   echo $cmd
   $cmd
   if($status) exit 1;
@@ -189,6 +192,10 @@ while( $#argv != 0 )
     case "--b":
       if ( $#argv < 1) goto arg1err;
       set OutBase = $argv[1]; shift;
+      breaksw
+
+    case "--no-mask":
+      set UseMask = 0;
       breaksw
 
     case "--lh-only":
@@ -324,6 +331,7 @@ usage_exit:
   echo "  --gm-proj-abs  dist : GM projection distance (default is to use frac)"
   echo "  --wm-proj-abs  dist : WM projection distance (default is $WMProjAbs mm)"
   echo "  --neg : compute G-W instead of W-G"
+  echo "  --no-mask : do not mask out non-cortical regions"
   echo ""
   echo "Even more arguments"
   echo ""
