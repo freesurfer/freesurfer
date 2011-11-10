@@ -10,8 +10,8 @@
  * Original Author: Doug Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2011/05/25 20:21:45 $
- *    $Revision: 1.27 $
+ *    $Date: 2011/11/10 16:00:57 $
+ *    $Revision: 1.28 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -51,7 +51,7 @@ static int sclustCompare(const void *a, const void *b);
   ---------------------------------------------------------------*/
 const char *sculstSrcVersion(void)
 {
-  return("$Id: surfcluster.c,v 1.27 2011/05/25 20:21:45 greve Exp $");
+  return("$Id: surfcluster.c,v 1.28 2011/11/10 16:00:57 greve Exp $");
 }
 
 /* ------------------------------------------------------------
@@ -566,7 +566,7 @@ SCS *sclustPruneByCWPval(SCS *ClusterList, int nclusters,
   // Construct a new SCS with pruned clusters
   nth = 0;
   for(n=0; n < nclusters; n++)
-    if(ClusterList[n].pval_clusterwise < cwpvalthresh) nth++;
+    if(ClusterList[n].pval_clusterwise <= cwpvalthresh) nth++;
   *nPruned = nth;
 
   scs = (SCS *) calloc(*nPruned, sizeof(SCS));
