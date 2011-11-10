@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2011/11/10 21:26:40 $
-#    $Revision: 1.379.2.25 $
+#    $Date: 2011/11/10 21:40:16 $
+#    $Revision: 1.379.2.26 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -26,7 +26,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.379.2.25 2011/11/10 21:26:40 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.379.2.26 2011/11/10 21:40:16 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -1588,6 +1588,7 @@ if($DoNormalization) then
       echo "Recompute intensity norm to create $longbaseid ctrl_vol.mgz" \
         |& tee -a $LF
       set cmd = (mri_normalize)
+      if($#Norm3dIters)  set cmd = ($cmd -n $Norm3dIters)
       if($IsMPRAGE)      set cmd = ($cmd -mprage)
       if($IsWashuMPRAGE) set cmd = ($cmd -washu_mprage)
       set cmd = ($cmd \
@@ -2308,6 +2309,7 @@ if($DoNormalization2) then
   set xopts = `fsr-getxopts mri_normalize $XOptsFile`;
   set cmd = (mri_normalize);
   if($UseControlPoints)   set cmd = ($cmd -f $ControlPointsFile)
+  if($#Norm3dIters)       set cmd = ($cmd -n $Norm3dIters)
   if($IsMPRAGE)           set cmd = ($cmd -mprage)
   if($IsWashuMPRAGE)      set cmd = ($cmd -washu_mprage)
   if($ConformMin)         set cmd = ($cmd -noconform)
