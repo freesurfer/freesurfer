@@ -5,31 +5,31 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: greve $
-#    $Date: 2009/11/11 18:31:40 $
-#    $Revision: 1.7 $
+#    $Author: nicks $
+#    $Date: 2011/11/10 20:37:10 $
+#    $Revision: 1.11.2.1 $
 #
-# Copyright (C) 2002-2007,
-# The General Hospital Corporation (Boston, MA).
-# All rights reserved.
+# Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
-# Distribution, usage and copying of this software is covered under the
-# terms found in the License Agreement file named 'COPYING' found in the
-# FreeSurfer source code root directory, and duplicated here:
-# https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+# Terms and conditions for use, reproduction, distribution and contribution
+# are found in the 'FreeSurfer Software License Agreement' contained
+# in the file 'LICENSE' found in the FreeSurfer distribution, and here:
 #
-# General inquiries: freesurfer@nmr.mgh.harvard.edu
-# Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+# https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
+#
+# Reporting: freesurfer@nmr.mgh.harvard.edu
+#
 #
 
 #
-set VERSION = '$Id: pctsurfcon,v 1.7 2009/11/11 18:31:40 greve Exp $';
+set VERSION = '$Id: pctsurfcon,v 1.11.2.1 2011/11/10 20:37:10 nicks Exp $';
 set inputargs = ($argv);
 
 set subject = ();
 set fsvol = rawavg;
 set mov = ();
 set reg = ();
+set UseMask = 1;
 
 set DoLH = 1;
 set DoRH = 1;
@@ -39,11 +39,11 @@ set Reshape = (--noreshape);
 
 set GMProjFrac = ();
 set GMProjAbs = ();
-set WMProjAbs = 2;
+set WMProjAbs = 1;
 
 set Interp = trilinear
 set OutBase = w-g.pct;
-set ConSign = +100;
+set ConSign = 100;
 
 set debug = 0;
 set tmpdir = ();
@@ -105,6 +105,7 @@ foreach hemi ($hemilist)
     --projdist -$WMProjAbs --o $wm)
   if($#reg == 0) set cmd = ($cmd --regheader $subject);
   if($#reg != 0) set cmd = ($cmd --reg $reg);
+  if($UseMask) set cmd = ($cmd --cortex);
   echo $cmd
   $cmd
   if($status) exit 1;
@@ -117,6 +118,7 @@ foreach hemi ($hemilist)
   if($#GMProjAbs) set cmd = ($cmd --projdist $GMProjAbs)
   if($#reg == 0) set cmd = ($cmd --regheader $subject);
   if($#reg != 0) set cmd = ($cmd --reg $reg);
+  if($UseMask) set cmd = ($cmd --cortex);
   echo $cmd
   $cmd
   if($status) exit 1;
@@ -192,6 +194,10 @@ while( $#argv != 0 )
       set OutBase = $argv[1]; shift;
       breaksw
 
+    case "--no-mask":
+      set UseMask = 0;
+      breaksw
+
     case "--lh-only":
     case "--no-rh":
       set DoRH = 0;
@@ -231,7 +237,7 @@ while( $#argv != 0 )
       breaksw
 
     case "--pos":
-      set ConSign = +100;
+      set ConSign = 100;
       breaksw
 
     case "--tmp":
@@ -289,7 +295,7 @@ check_params:
     exit 1;
   endif
 
-  if($#GMProjFrac == 0 && $#GMProjAbs == 0) set GMProjFrac = 0.5;
+  if($#GMProjFrac == 0 && $#GMProjAbs == 0) set GMProjFrac = 0.3;
 
 goto check_params_return;
 ############--------------##################
@@ -321,10 +327,11 @@ usage_exit:
   echo "  --b outbase : use outbase instead of $OutBase (?h.$OutBase.mgh)"
   echo "  --lh-only, --no-rh : compute lh only"
   echo "  --rh-only, --no-lh : compute rh only"
-  echo "  --gm-proj-frac frac : GM projection fraction (default, 0.5)"
+  echo "  --gm-proj-frac frac : GM projection fraction (default, 0.3)"
   echo "  --gm-proj-abs  dist : GM projection distance (default is to use frac)"
   echo "  --wm-proj-abs  dist : WM projection distance (default is $WMProjAbs mm)"
   echo "  --neg : compute G-W instead of W-G"
+  echo "  --no-mask : do not mask out non-cortical regions"
   echo ""
   echo "Even more arguments"
   echo ""
@@ -349,8 +356,8 @@ matter. The computation is:
    pct = ---------
          0.5*(W+G)
 
-The white matter is sampled 2mm below the white surface. This distance
-is changeable with --wm-proj-abs. The gray matter is sampled half the
+The white matter is sampled 1mm below the white surface. This distance
+is changeable with --wm-proj-abs. The gray matter is sampled 30% the
 thickness into the cortex. This fraction is changeable with
 --gm-proj-frac. The volume that is sampled is rawavg.mgz, but this
 can be changed with --fsvol.
@@ -359,7 +366,8 @@ The output is stored in the surf dir of the given subject as
 ?h.w-g.pct.mgh. This can be changed to ?h.outbase.mgh with 
 --o outbase.
 
-Note: no attempt is made to zero out the non-cortex region.
+Note: the non-cortex region is zeroed-out by default. This can be
+overridden with the --no-mask flag.
 
 Example:
 
