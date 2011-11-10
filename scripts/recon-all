@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2011/11/07 20:47:53 $
-#    $Revision: 1.402 $
+#    $Date: 2011/11/10 20:34:32 $
+#    $Revision: 1.403 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -26,7 +26,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.402 2011/11/07 20:47:53 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.403 2011/11/10 20:34:32 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -134,7 +134,7 @@ set NoNormMGZ = 0; # set to 1 when -nosubcortseg or -noaseg flag is used,
                    # which causes norm.mgz not to used during inorm2 step
 set NoWMSA = 0;      # if 1, then -nowmsa flag is added to mri_ca_label
 set DoQdecCache = 0; # if 1, then create smoothed fsaverage surface files
-set measurelist = ( thickness area area.pial volume curv sulc white.K white.H jacobian_white  )
+set measurelist = ( thickness area area.pial volume curv sulc white.K white.H jacobian_white w-g.pct.mgh )
                      # ^ these are the files smoothed by DoQdecCache (-qcache)
 set UserMeasureList = 0; # if 1, then 'measurelist' gets additional -measure args
 set measuredir = (); # for specifying an alternate path to measure files
@@ -268,6 +268,7 @@ set DoMorphRGB       = 0;
 set DoWhiteSurfs     = 0;
 set DoCortParc       = 0;
 set DoPialSurfs      = 0;
+set DoPctSurfCon     = 0;
 set DoSurfVolume     = 0;
 set DoCortParc2      = 0;
 set DoParcStats      = 0;
@@ -3063,6 +3064,24 @@ foreach hemi ($hemilist)
     echo $cmd > $touchdir/$hemi.surfvolume.touch
   endif
 
+  # ---------- WM/GM Contrast (pctsurfcon) ---------------------------
+  if($DoPctSurfCon) then
+    echo "#-----------------------------------------" \
+      |& tee -a $LF |& tee -a $CF
+    echo "#@# WM/GM Contrast $hemi `date`" \
+      |& tee -a $SF |& tee -a $LF |& tee -a $CF
+    cd $subjdir/scripts > /dev/null
+    set xopts = `fsr-getxopts pctsurfcon $XOptsFile`;
+    set cmd = (pctsurfcon --s $subjid)
+    if($hemi == lh) set cmd = ($cmd --lh-only)
+    if($hemi == rh) set cmd = ($cmd --rh-only)
+    $PWD |& tee -a $LF
+    echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+    if($RunIt) $fs_time $cmd |& tee -a $LF
+    if($status) goto error_exit;
+    echo $cmd > $touchdir/$hemi.pctsurfcon.touch
+  endif
+
   # ---------- Surface Anatomical Stats ---------------------------
   if($DoParcStats) then
     echo "#-----------------------------------------" \
@@ -4542,6 +4561,14 @@ while( $#argv != 0 )
       set DoPialSurfs = 0;
       breaksw
 
+    case "-pctsurfcon":
+      set DoPctSurfCon = 1;
+      breaksw
+    case "-nopctsurfcon":
+    case "-no-pctsurfcon":
+      set DoPctSurfCon = 0;
+      breaksw
+
     case "-cortparc":
       set DoCortParc = 1;
       breaksw
@@ -4731,6 +4758,7 @@ while( $#argv != 0 )
       set DoJacobianWhite  = 1;
       set DoCortParc       = 1;
       set DoPialSurfs      = 1;
+      set DoPctSurfCon     = 1;
       set DoParcStats      = 1;
       set DoCortParc2      = 1;
       set DoParcStats2     = 1;
@@ -4775,6 +4803,7 @@ while( $#argv != 0 )
       set DoSmooth2        = 1;
       set DoInflate2       = 1;
       set DoWhiteSurfs     = 1;
+      set DoCurvStats      = 1;
       breaksw
 
     case "-autorecon2-volonly":
@@ -4873,6 +4902,7 @@ while( $#argv != 0 )
       set DoJacobianWhite  = 1;
       set DoCortParc       = 1;
       set DoPialSurfs      = 1;
+      set DoPctSurfCon     = 1;
       set DoParcStats      = 1;
       set DoCortParc2      = 1;
       set DoParcStats2     = 1;
@@ -4886,6 +4916,7 @@ while( $#argv != 0 )
       set DoJacobianWhite  = 1;
       set DoCortParc       = 1;
       set DoPialSurfs      = 1;
+      set DoPctSurfCon     = 1;
       set DoParcStats      = 1;
       set DoCortParc2      = 1;
       set DoParcStats2     = 1;
@@ -4922,6 +4953,7 @@ while( $#argv != 0 )
       set DoJacobianWhite  = 1;
       set DoCortParc       = 1;
       set DoPialSurfs      = 1;
+      set DoPctSurfCon     = 1;
       set DoParcStats      = 1;
       set DoCortParc2      = 1;
       set DoParcStats2     = 1;
@@ -5668,7 +5700,8 @@ check_params:
      ! $DoMakefile && ! $DoAsegStatsDiff && ! $DoAparcStatsDiff && \
      ! $DoSurfVolume && ! $DoASegMerge && ! $DoCurvStats && ! $DoLabelV1 && \
      ! $DoCreateBaseSubj && ! $DoBaLabels && ! $DoShowEdits && \
-     ! $DoLabelExvivoEC && ! $DoSurfSegEdit && ! $DoPialSurfs && ! $DoGEMS) then
+     ! $DoLabelExvivoEC && ! $DoSurfSegEdit && ! $DoPialSurfs && \
+     ! $DoGEMS && ! $DoPctSurfCon ) then
      echo "ERROR: nothing to do"
      exit 1;
   endif
@@ -5736,7 +5769,7 @@ usage_exit:
   echo "  -autorecon2-wm : process stages 15-23"
   echo "  -autorecon2-inflate1 : 6-18"
   echo "  -autorecon2-perhemi : tess, sm1, inf1, q, fix, sm2, inf2, finalsurf, ribbon"
-  echo "  -autorecon3    : process stages 24-31"
+  echo "  -autorecon3    : process stages 24-34"
   echo "                     if edits made to correct pial, then run -autorecon2-pial"
   echo "  -hemi ?h       : just do lh or rh (default is to do both)"
   echo ""
@@ -5774,9 +5807,10 @@ usage_exit:
   echo "    28. Cortical Parcellation (Labeling)"
   echo "    29. Cortical Parcellation Statistics"
   echo "    30. Pial Surfs"
-  echo "    31. Cortical Ribbon Mask"
-  echo "    32. Cortical Parcellation mapped to ASeg"
-  echo "    33  Brodmann and exvio EC labels"
+  echo "    31. WM/GM Contrast"
+  echo "    32. Cortical Ribbon Mask"
+  echo "    33. Cortical Parcellation mapped to ASeg"
+  echo "    34  Brodmann and exvio EC labels"
   echo ""
   echo " Step-wise Directives"
   echo "  See -help"
@@ -6576,9 +6610,24 @@ Calls mris_make_surfaces.  See also "Final Surfaces".
 
 Final Surfaces (-<no>finalsurfs)
 
-!!! DEPRECATED !!! This flag is intended only to emulate the old-style single-run
+!!! DEPRECATED !!! This flag is intended to emulate the old-style single-run
 mris_make_surfaces, where the white and pial surfaces are created at the same
 time without aid from the cortical parcellation data.
+
+WM/GM Contrast (-<no>pctsurfcon)
+
+Computes the vertex-by-vertex percent contrast between white and gray matter.
+The computation is:
+
+         100*(W-G)
+   pct = ---------
+         0.5*(W+G)
+
+The white matter is sampled 1mm below the white surface. The gray matter is
+sampled 30% the thickness into the cortex. The volume that is sampled is
+rawavg.mgz.  The output is stored in the surf dir of the given subject as
+?h.w-g.pct.mgh.  Non-cortical regions (medial wall) are zeroed.
+A stats file named ?h.w-g.pct.stats is also computed.
 
 Surface Volume (-surfvolume)
 
