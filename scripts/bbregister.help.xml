@@ -74,6 +74,8 @@
       <explanation>RMS change in cortical surface position</explanation>
       <argument>--fslmat flirt.mtx</argument>
       <explanation>output an FSL FLIRT matrix</explanation>
+      <argument>--lta output.lta</argument>
+      <explanation>output an LTA registration matrix (This flag can be used along with or instead of --reg!) </explanation>
       <argument>--lh-only</argument>
       <explanation>only use left hemi</explanation>
       <argument>--rh-only</argument>
