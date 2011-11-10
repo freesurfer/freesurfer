@@ -12,7 +12,7 @@ function r = mri_surfrft_jlbr(yfile,glmdir,vwthresh,sgn,subject,hemi)
 % yfile -- input data. This is the file passed to mri_glmfit with
 %   the --y option.
 % glmdir -- GLM directory (argument to the --glmdir option). 
-% vwthresh -- voxel-wise threshold (ie, the cluster-forming threshold)
+% vwthresh -- voxel-wise p-value threshold (ie, the cluster-forming threshold)
 % sgn -- sign of the contrast (+1 or -1, default is +1)
 % subject - subject whose surface the analysis is done on. This
 %   will be read from the GLMDIR by default.
@@ -27,16 +27,14 @@ function r = mri_surfrft_jlbr(yfile,glmdir,vwthresh,sgn,subject,hemi)
 % Limitations: does not work with per-voxel regressors, weighted-least
 % squares, fixed effects, or multi-variate contrasts.
 %
-% $Id: mri_surfrft_jlbr.m,v 1.3 2011/06/22 14:14:47 greve Exp $
+% $Id: mri_surfrft_jlbr.m,v 1.4 2011/11/10 19:07:32 greve Exp $
 
-%
-% MRIread.m
 %
 % Original Author: Jorge Louis Bernal-Rusiel and Douglas Greve
 % CVS Revision Info:
 %    $Author: greve $
-%    $Date: 2011/06/22 14:14:47 $
-%    $Revision: 1.3 $
+%    $Date: 2011/11/10 19:07:32 $
+%    $Revision: 1.4 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -135,6 +133,16 @@ for nthcon = 1:ncon
   mri.vol = fast_mat2vol(-log10(pval.P)*sgn,mri.volsize);
   fname = sprintf('%s/%s/sig.vw.%s.mgh',glmdir,conname,sgnstring);  
   MRIwrite(mri,fname);
+
+  fname = sprintf('%s/%s/sig.cw.%s.dat',glmdir,conname,sgnstring);
+  fp = fopen(fname,'w');
+  fprintf(fp,'# vwthresh %g\n',vwthresh);
+  nclusters = length(clus.P);
+  for nthcluster = 1:nclusters
+    fprintf(fp,'%2d %7.6f %5d\n',nthcluster,clus.P(nthcluster),clus.nverts(nthcluster));
+  end
+  fclose(fp);
+  
 end
 
 
