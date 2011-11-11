@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2011/11/10 21:40:28 $
-#    $Revision: 1.405 $
+#    $Date: 2011/11/11 21:04:23 $
+#    $Revision: 1.406 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -26,7 +26,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.405 2011/11/10 21:40:28 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.406 2011/11/11 21:04:23 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -5625,6 +5625,7 @@ check_params:
     exit(1);
   endif
 
+  mkdir -p $subjdir/scripts
   set XOptsPreExist = $subjdir/scripts/expert-options
   if(-e $XOptsPreExist) then
     # There is a pre-existing xopts file
