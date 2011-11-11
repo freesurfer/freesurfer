@@ -1,5 +1,5 @@
 #!/bin/tcsh -f
-set VERSION = '$Id: mri_glmfit-sim,v 1.42 2011/10/17 16:44:42 greve Exp $';
+set VERSION = '$Id: mri_glmfit-sim,v 1.43 2011/11/11 20:13:25 greve Exp $';
 
 set inputargs = ($argv);
 
@@ -192,6 +192,7 @@ while($#glmfitcmd)
   case "--yffxvar"
   case "--ffxdof"
   case "--ffxdofdat"
+  case "--exclude-frame"
     shift glmfitcmd;
     breaksw
   default
@@ -372,7 +373,7 @@ if($DoSim) then
     if($#fsgd) set cmd = ($cmd --fsgd $fsgd $gd2mtx)
     if($#X)    set cmd = ($cmd --X $X)
     if($#wls)  set cmd = ($cmd --wls $wls)
-    if($#label) set cmd = ($cmd --label $label)
+    #if($#label) set cmd = ($cmd --label $label)
     if($PermForce) set cmd = ($cmd --perm-force)
     if($anattype == surface) set cmd = ($cmd --surf $subject $hemi $surf);
     if($#Seed) set cmd = ($cmd --seed $Seed);
