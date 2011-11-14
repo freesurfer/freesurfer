@@ -79,6 +79,8 @@ example* , bugs* , reporting* , references* , see-also*)*>
       <explanation>Overwrite / recompute CVS-related volumetric morphs that might have been computed prior to the current CVS run (default is 0).</explanation>
 
       <intro>Others</intro>
+      <argument>--m3d</argument>
+      <explanation>Use m3d instead of m3z in order to represent the registration morphs (and to avoid potential gzip errors).</explanation>
       <argument>--nolog</argument>
       <explanation>Do not produce a log file (default is 0).</explanation>
       <argument>--version</argument>

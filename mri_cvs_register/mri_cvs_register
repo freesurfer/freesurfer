@@ -16,7 +16,7 @@
 # Edited : 08-24-2011: added new logfile that should be easier to read for the user
 
 set inputargs = ($argv);
-set VERSION = '$Id: mri_cvs_register,v 1.34 2011/11/04 03:14:49 lzollei Exp $';
+set VERSION = '$Id: mri_cvs_register,v 1.35 2011/11/14 17:26:28 lzollei Exp $';
 
 set movingid = ();
 set templateid = ();
@@ -24,6 +24,7 @@ set templateid = ();
 set cleanup = 1;
 set keepelreg = 0;
 set keepallm3z = 0;
+set usem3d = 0;
 set nolog = 0;
 set UseAseg = 1;
 set PrintHelp = 0;
@@ -104,6 +105,15 @@ echo "*** Initializing the mri_cvs_register run" >> $sLF
 set voltype = norm
 set annotfile = aparc.annot
 set cvsdir =  $FREESURFER_HOME/bin
+
+# NOTE: allow saving morphs using m3d, so that gzip errors are eliminated
+if ($usem3d) then
+  set morphsuffix = m3d
+else 
+  set morphsuffix = m3z
+endif
+echo Using $morphsuffix type morph files. |& tee -a $LF
+echo Using $morphsuffix type morph files. |& tee -a $sLF
 
 ### REGISTRATION: STEP 1: #CVS_step1.csh
 ###     preprocessing: to get mean and Gaussian curvature files (.H, .K) if they do not exist
@@ -338,7 +348,7 @@ echo "*** Ready for volumetric registration (CVS: Step 3)" >> $sLF
 if ($UseAseg) then
   set voltype = aseg
   set input = ${elasticmorph:r}  # INPUT morph from CVS_step2
-  set nl_regresult = nlalign-${voltype}.m3z
+  set nl_regresult = nlalign-${voltype}.${morphsuffix}
   set options = (-passes 3 -z 1 -aseg -dtrans 1 -apply 1 -sigma .25 -fixed -dt 0.25 -m 0.25 -intensity 0.0 -T $cvsdir/id.xfm )
   if !(-e $outdir/${input}_${voltype}.mgz) then 
     echo 'ERROR: What happened? The ' $outdir/${input}_${voltype}.mgz ' file does not exist!'
@@ -366,9 +376,9 @@ if ($UseAseg) then
     if($status) exit 1;
   endif  
 
-  if (!(-e $outdir/${combined:r}.m3z) || $CleanElReg || $CleanVolReg) then
+  if (!(-e $outdir/${combined:r}.${morphsuffix}) || $CleanElReg || $CleanVolReg) then
     set cmd = (exportGcam --fixed $tmri/$voltype.mgz --moving $mmri/$voltype.mgz \
-                          --morph $outdir/$combined --out_gcam $outdir/${combined:r}.m3z)			  
+                          --morph $outdir/$combined --out_gcam $outdir/${combined:r}.${morphsuffix})			  
 
     echo $cmd |& tee -a $LF
     echo $cmd |& tee -a $sLF
@@ -380,7 +390,7 @@ if ($UseAseg) then
   # apply the gcam morph to aseg so  that 1 less interpolation is applied
   set outputfilename = step1_CVSmorphed_to${templateid}_${voltype}.mgz 
   if (!(-e $outdir/$outputfilename) || $CleanElReg || $CleanVolReg) then
-    set cmd = ( mri_vol2vol --targ $tmri/$voltype.mgz --m3z $outdir/${combined:r}.m3z --noDefM3zPath \
+    set cmd = ( mri_vol2vol --targ $tmri/$voltype.mgz --m3z $outdir/${combined:r}.${morphsuffix} --noDefM3zPath \
                             --mov $mmri/${voltype}.mgz --o $outdir/$outputfilename \
                             --interp nearest --no-save-reg )
     echo $cmd |& tee -a $LF
@@ -400,7 +410,7 @@ if ($UseAseg) then
   set voltype  = norm
   set outputfilename = step1_CVSmorphed_to${templateid}_${voltype}.mgz 
   if (!(-e $outdir/$outputfilename) || $CleanElReg || $CleanVolReg) then
-    set cmd = ( mri_vol2vol --targ $tmri/$voltype.mgz --m3z $outdir/${combined:r}.m3z --noDefM3zPath \
+    set cmd = ( mri_vol2vol --targ $tmri/$voltype.mgz --m3z $outdir/${combined:r}.${morphsuffix} --noDefM3zPath \
                             --mov $mmri/${voltype}.mgz --o $outdir/$outputfilename \
                             --interp trilin --no-save-reg )
     echo $cmd |& tee -a $LF
@@ -429,8 +439,8 @@ if !(-e $outdir/${input} ) then
   exit 1;
 endif
 
-if (!(-e $outdir/nlalign-$prefix${voltype}.m3z) || $CleanVolReg) then 
-  set nl_regresult = nlalign-$prefix${voltype}.m3z
+if (!(-e $outdir/nlalign-$prefix${voltype}.${morphsuffix}) || $CleanVolReg) then 
+  set nl_regresult = nlalign-$prefix${voltype}.${morphsuffix}
   set options = (-apply 1 -z 1 -sigma 2 -dt 0.0001 -intensity 0.1 -T $cvsdir/id.xfm  )
   set cmd = (mri_nl_align $options $outdir/${input} $tmri/$voltype.mgz $outdir/${nl_regresult})
   echo $cmd |& tee -a $LF
@@ -451,9 +461,9 @@ if (!(-e $outdir/combined_to${templateid}_elreg_$prefix$voltype.tm3d  ) || $Clea
   if($status) exit 1;
 endif
 
-if (!(-e $outdir/combined_to${templateid}_elreg_$prefix$voltype.m3z  ) || $CleanElReg || $CleanVolReg) then 
+if (!(-e $outdir/combined_to${templateid}_elreg_$prefix$voltype.${morphsuffix}  ) || $CleanElReg || $CleanVolReg) then 
   set cmd = (exportGcam --fixed $tmri/$voltype.mgz --moving $mmri/$voltype.mgz \
-                        --morph $outdir/$combined --out_gcam $outdir/${combined:r}.m3z)
+                        --morph $outdir/$combined --out_gcam $outdir/${combined:r}.${morphsuffix})
   echo $cmd |& tee -a $LF
   echo $cmd |& tee -a $sLF
   $cmd |& tee -a $LF
@@ -479,7 +489,7 @@ endif
 set voltype = norm
 set finaloutputfilename = final_CVSmorphed_to${templateid}_${voltype}.mgz
 if (!(-e  $outdir/$finaloutputfilename ) || $CleanElReg || $CleanVolReg) then 
-  set cmd = (mri_vol2vol --targ $tmri/$voltype.mgz --m3z $outdir/${combined:r}.m3z --noDefM3zPath \
+  set cmd = (mri_vol2vol --targ $tmri/$voltype.mgz --m3z $outdir/${combined:r}.${morphsuffix} --noDefM3zPath \
 		       --mov $mmri/${voltype}.mgz --o $outdir/$finaloutputfilename --no-save-reg)
   echo $cmd |& tee -a $LF
   echo $cmd |& tee -a $sLF
@@ -500,7 +510,7 @@ set finaloutputfilename = final_CVSmorphed_to${templateid}_${voltype}.mgz
 if (!(-e  $outdir/$finaloutputfilename ) || $CleanElReg || $CleanVolReg) then 
 #  set cmd = ( applyMorph --template $tmri/$voltype.mgz --transform $outdir/$combined \
 #                         vol $mmri/$voltype.mgz $outdir/${combined:r}_${voltype}.mgz nearest )
-  set cmd = ( mri_vol2vol  --targ $tmri/$voltype.mgz --m3z $outdir/${combined:r}.m3z --noDefM3zPath \
+  set cmd = ( mri_vol2vol  --targ $tmri/$voltype.mgz --m3z $outdir/${combined:r}.${morphsuffix} --noDefM3zPath \
                            --mov $mmri/${voltype}.mgz --o $outdir/$finaloutputfilename \
                            --interp nearest --no-save-reg )
   echo $cmd |& tee -a $LF
@@ -516,7 +526,7 @@ echo " "
 endif #--step3
 
 # rename final morph for easier identification
-set cmd = (mv $outdir/${combined:r}.m3z $outdir/final_CVSmorph_to$templateid.m3z)
+set cmd = (mv $outdir/${combined:r}.${morphsuffix} $outdir/final_CVSmorph_to$templateid.${morphsuffix})
 echo $cmd |& tee -a $LF
 echo $cmd |& tee -a $sLF
 $cmd |& tee -a $LF
@@ -524,7 +534,7 @@ if($status) exit 1;
 
 # unless otherwise indicated by keepallm3z param, deleting partial m3z morph files (too much space requirement!) 
 if (!($keepallm3z)) then 
-    set cmd = ( rm -f $outdir/nlalign*m3z $outdir/combined*m3z)
+    set cmd = ( rm -f $outdir/nlalign*.${morphsuffix} $outdir/combined*.${morphsuffix})
     echo $cmd |& tee -a $LF
     echo $cmd |& tee -a $sLF
     $cmd |& tee -a $LF
@@ -595,6 +605,10 @@ while( $#argv != 0 )
 
     case "--noaseg":
       set UseAseg = 0;
+      breaksw
+
+    case "--m3d":
+      set usem3d = 1;
       breaksw
 
     case "--nocleanup":
