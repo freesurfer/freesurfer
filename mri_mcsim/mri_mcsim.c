@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:23 $
- *    $Revision: 1.17 $
+ *    $Author: greve $
+ *    $Date: 2011/11/14 04:39:03 $
+ *    $Revision: 1.18 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -66,7 +66,7 @@ static void dump_options(FILE *fp);
 int SaveOutput(void);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_mcsim.c,v 1.17 2011/03/02 00:04:23 nicks Exp $";
+static char vcid[] = "$Id: mri_mcsim.c,v 1.18 2011/11/14 04:39:03 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -102,7 +102,7 @@ MRIS *surf;
 char tmpstr[2000],*signstr=NULL;
 int msecTime, nmask, nthRep;
 int *nSmoothsList;
-
+double fwhmmax=30;
 
 /*---------------------------------------------------------------*/
 int main(int argc, char *argv[]) {
@@ -514,6 +514,11 @@ static int parse_commandline(int argc, char **argv) {
       nFWHMList++;
       nargsused = 1;
     } 
+    else if (!strcasecmp(option, "--fwhm-max")) {
+      if (nargc < 1) CMDargNErr(option,1);
+      sscanf(pargv[0],"%lf",&fwhmmax);
+      nargsused = 1;
+    } 
     else {
       fprintf(stderr,"ERROR: Option %s unknown\n",option);
       if (CMDsingleDash(option))
@@ -539,6 +544,7 @@ static void print_usage(void) {
   printf("   --surface subjectname hemi\n");
   printf("   --nreps nrepetitions\n");
   printf("   --fwhm FWHM <--fwhm FWHM ...>\n");
+  printf("   --fwhm-max FWHMMax : sim with fwhm=1:FWHMMax (default %g)\n",fwhmmax);
   printf("   \n");
   printf("   --avgvtxarea : report cluster area based on average vtx area\n");
   printf("   --seed randomseed : default is to choose based on ToD\n");
@@ -596,7 +602,7 @@ static void check_options(void) {
   if(nFWHMList == 0){
     double fwhm;
     nFWHMList = 0;
-    for(fwhm = 1; fwhm <= 30; fwhm++){
+    for(fwhm = 1; fwhm <= fwhmmax; fwhm++){
       FWHMList[nFWHMList] = fwhm;
       nFWHMList++;
     }
@@ -635,6 +641,7 @@ static void dump_options(FILE *fp) {
   fprintf(fp,"OutTop  %s\n",OutTop);
   fprintf(fp,"CSDBase  %s\n",csdbase);
   fprintf(fp,"nreps    %d\n",nRepetitions);
+  fprintf(fp,"fwhmmax  %g\n",fhwmmax);
   fprintf(fp,"subject  %s\n",subject);
   fprintf(fp,"hemi     %s\n",hemi);
   if(MaskFile) fprintf(fp,"mask     %s\n",MaskFile);
