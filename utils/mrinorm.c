@@ -9,9 +9,9 @@
 /*
  * Original Author: Bruce Fischl, 4/9/97
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2011/10/19 21:01:28 $
- *    $Revision: 1.107 $
+ *    $Author: fischl $
+ *    $Date: 2011/11/14 20:09:35 $
+ *    $Revision: 1.108 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -62,10 +62,11 @@
 static float find_tissue_intensities(MRI *mri_src, MRI *mri_ctrl,
                                      float *pwm, float *pgm, float *pcsf) ;
 static int remove_gray_matter_control_points(MRI *mri_ctrl, MRI *mri_src,
-    float wm_target,
-    float intensity_above,
-    float intensity_below,
-    int scan_type) ;
+					     float wm_target,
+					     float intensity_above,
+					     float intensity_below,
+					     int scan_type,
+					     MRI *mri_not_control) ;
 static float csf_in_window(MRI *mri, int x0,int y0,int z0,
                            float max_dist,float csf);
 #if 0
@@ -844,7 +845,7 @@ MRInormalize(MRI *mri_src, MRI *mri_dst, MNI *mni)
 MRI *
 MRInormFindControlPoints(MRI *mri_src, int wm_target, float intensity_above,
                          float intensity_below, MRI *mri_ctrl, int which,
-                         int scan_type)
+                         int scan_type, MRI *mri_not_control)
 {
   int     width, height, depth, x, y, z, xk, yk, zk, xi, yi, zi;
   int     *pxi, *pyi, *pzi, ctrl, nctrl, nfilled, too_low, total_filled;
@@ -885,13 +886,13 @@ MRInormFindControlPoints(MRI *mri_src, int wm_target, float intensity_above,
     MRInormFindControlPointsInWindow
     (mri_src, wm_target,
      1.5*intensity_above-pass*5, 1.5*intensity_below+pass*5,
-     mri_ctrl, 3.0, "", &nctrl, scan_type) ;
+     mri_ctrl, 3.0, "", &nctrl, scan_type, mri_not_control) ;
     pass++ ;
   }
   while (nctrl < 10) ;
   MRInormFindControlPointsInWindow(mri_src, wm_target, intensity_above,
                                    intensity_below, mri_ctrl, 2.0, "", &n,
-                                   scan_type) ;
+                                   scan_type, mri_not_control) ;
   nctrl += n ;
 
   /* use these control points as an anchor to estimate wm peak and the
@@ -906,7 +907,7 @@ MRInormFindControlPoints(MRI *mri_src, int wm_target, float intensity_above,
     MRInormFindControlPointsInWindow
     (mri_src, wm_target,
      1.5*intensity_above+5*pass, 1.5*intensity_below+5*pass,
-     mri_ctrl, 3.0, "", &nctrl, scan_type) ;
+     mri_ctrl, 3.0, "", &nctrl, scan_type, mri_not_control) ;
     pass++ ;
   }
   while (nctrl < 10) ;
@@ -918,7 +919,7 @@ MRInormFindControlPoints(MRI *mri_src, int wm_target, float intensity_above,
   low_thresh = MAX(wm_target-1.5*intensity_below, low_thresh) ;
   MRInormFindControlPointsInWindow(mri_src, wm_target, intensity_above,
                                    wm_target-low_thresh, mri_ctrl,
-                                   2.0, "", &n, scan_type) ;
+                                   2.0, "", &n, scan_type, mri_not_control) ;
   if (Gx >= 0)
     printf("after 5x5x5 - (%d, %d, %d) is %sa control point\n",
            Gx, Gy, Gz, MRIvox(mri_ctrl, Gx, Gy,Gz) ? "" : "NOT ") ;
@@ -940,6 +941,8 @@ MRInormFindControlPoints(MRI *mri_src, int wm_target, float intensity_above,
       for (x = 0 ; x < width ; x++)
       {
         val0 = MRIgetVoxVal(mri_src, x, y, z, 0) ;
+	if (mri_not_control && MRIgetVoxVal(mri_not_control, x, y, z, 0) > 0)
+	  continue ;   // not allowed to be a control point
         if (val0 >= low_thresh && val0 <= hi_thresh)
         {
 #ifdef WSIZE
@@ -993,6 +996,8 @@ MRInormFindControlPoints(MRI *mri_src, int wm_target, float intensity_above,
       {
         if (MRIvox(mri_ctrl, x, y, z))  /* already a control point */
           continue ;
+	if (mri_not_control && MRIgetVoxVal(mri_not_control, x, y, z, 0) > 0)
+	  continue ;   // not allowed to be a control point
         val0 = MRIgetVoxVal(mri_src, x, y, z, 0) ;
         if (val0 >= low_thresh && val0 <= hi_thresh)
         {
@@ -1070,6 +1075,8 @@ MRInormFindControlPoints(MRI *mri_src, int wm_target, float intensity_above,
           val0 = MRIgetVoxVal(mri_src, x, y, z, 0) ;
           ctrl = MRIvox(mri_ctrl, x, y, z) ;
           too_low = 0 ;
+	  if (mri_not_control && MRIgetVoxVal(mri_not_control, x, y, z, 0) > 0)
+	    continue ;   // not allowed to be a control point
           if (val0 >= low_thresh && val0 <= hi_thresh && !ctrl)
           {
             n = 0 ;
@@ -1181,6 +1188,8 @@ MRInormFindControlPoints(MRI *mri_src, int wm_target, float intensity_above,
             val0 = MRIgetVoxVal(mri_src, x, y, z, 0) ;
             ctrl = MRIvox(mri_ctrl, x, y, z) ;
             too_low = 0 ;
+	    if (mri_not_control && MRIgetVoxVal(mri_not_control, x, y, z, 0) > 0)
+	      continue ;   // not allowed to be a control point
             if (val0 >= low_thresh && val0 <= hi_thresh && !ctrl)
             {
               if (x == Gx && y == Gy && z == Gz)
@@ -1469,7 +1478,7 @@ MRInormFindControlPoints(MRI *mri_src, int wm_target, float intensity_above,
 MRI *
 MRInormGentlyFindControlPoints(MRI *mri_src, int wm_target,
                                float intensity_above,
-                               float intensity_below, MRI *mri_ctrl)
+                               float intensity_below, MRI *mri_ctrl, MRI *mri_not_control)
 {
   int     width, height, depth, x, y, z, xk, yk, zk, xi, yi, zi;
   int     *pxi, *pyi, *pzi, ctrl, nctrl, val0, val, whalf = 0 ;
@@ -1510,6 +1519,8 @@ MRInormGentlyFindControlPoints(MRI *mri_src, int wm_target,
           continue ;  // caller specified this as a control point
         }
         val0 = MRIgetVoxVal(mri_src, x, y, z, 0) ;
+	if (mri_not_control && MRIgetVoxVal(mri_not_control, x, y, z, 0) > 0)
+	  continue ;   // not allowed to be a control point
         if (val0 >= low_thresh && val0 <= hi_thresh)
         {
 #ifdef WSIZE
@@ -1564,6 +1575,8 @@ MRInormGentlyFindControlPoints(MRI *mri_src, int wm_target,
       {
         if ((int)MRIgetVoxVal(mri_ctrl, x, y, z, 0))/*already a controlpoint*/
           continue ;
+	if (mri_not_control && MRIgetVoxVal(mri_not_control, x, y, z, 0) > 0)
+	  continue ;   // not allowed to be a control point
         val0 = MRIgetVoxVal(mri_src, x, y, z, 0) ;
         if (val0 >= low_thresh && val0 <= hi_thresh)
         {
@@ -1633,7 +1646,8 @@ MRInormFindControlPointsInWindow(MRI *mri_src,
                                  float whalf_mm,
                                  const char *debug_str,
                                  int *pnctrl,
-                                 int  scan_type)
+                                 int  scan_type,
+                                 MRI  *mri_not_control)
 {
   int  width, height, depth, x, y, z, xk, yk, zk, xi, yi, zi, *pxi, *pyi;
   int  *pzi, ctrl, nctrl, val0, val, whalf;
@@ -1668,6 +1682,8 @@ MRInormFindControlPointsInWindow(MRI *mri_src,
       {
         if (MRIvox(mri_ctrl, x, y, z) > 0) /* already a control point */
           continue ;
+	if (mri_not_control && MRIgetVoxVal(mri_not_control, x, y, z, 0) > 0)
+	  continue ;
         val0 = MRIgetVoxVal(mri_src, x, y, z, 0) ;
         if (val0 >= low_thresh && val0 <= hi_thresh)
         {
@@ -1793,7 +1809,7 @@ MRI *
 MRI3dNormalize(MRI *mri_orig, MRI *mri_src, int wm_target, MRI *mri_norm,
                float intensity_above,
                float intensity_below,
-               int only_file, int prune, float bias_sigma, int scan_type)
+               int only_file, int prune, float bias_sigma, int scan_type, MRI *mri_not_control)
 {
   int     width, height, depth, x, y, z, src, bias, n ;
   float   norm ;
@@ -1810,13 +1826,14 @@ MRI3dNormalize(MRI *mri_orig, MRI *mri_src, int wm_target, MRI *mri_norm,
     mri_norm = MRIcopy(mri_src, NULL) ;
   mri_src = MRIcopy(mri_src, NULL) ;  /* make a copy of it */
 
+  
   for (n = 2 ; n < 3 ; n++)
   {
     if (!only_file)
       mri_ctrl = MRInormFindControlPoints(mri_src, wm_target,
                                           intensity_above,
                                           intensity_below, NULL, n,
-                                          scan_type);
+                                          scan_type, mri_not_control);
     else
     {
       int nctrl ;
@@ -1849,7 +1866,7 @@ MRI3dNormalize(MRI *mri_orig, MRI *mri_src, int wm_target, MRI *mri_norm,
       remove_gray_matter_control_points(mri_ctrl, mri_orig,
                                         wm_target,
                                         intensity_above, intensity_below,
-                                        scan_type) ;
+                                        scan_type, mri_not_control) ;
 
 #if 0
     if (n == 0)
@@ -1933,7 +1950,8 @@ MRI3dGentleNormalize(MRI *mri_src,
                      float intensity_above,
                      float intensity_below,
                      int only_file,
-                     float bias_sigma)
+                     float bias_sigma,
+                     MRI *mri_not_control)
 {
   int     width, height, depth, x, y, z, src, bias, free_bias ;
   float   norm ;
@@ -1953,8 +1971,8 @@ MRI3dGentleNormalize(MRI *mri_src,
     free_bias = 1 ;
     if (!only_file)
       mri_ctrl = MRInormGentlyFindControlPoints(mri_src, wm_target,
-                 intensity_above,
-                 intensity_below, NULL);
+						intensity_above,
+						intensity_below, NULL, mri_not_control);
     else
     {
       int nctrl ;
@@ -3950,7 +3968,8 @@ remove_gray_matter_control_points(MRI *mri_ctrl,
                                   float wm_target,
                                   float intensity_above,
                                   float intensity_below,
-                                  int   scan_type)
+                                  int   scan_type,
+				  MRI *mri_not_control)
 {
   MRI    *mri_ctrl_outside, *mri_ctrl_inside, *mri_tmp = NULL ;
   int    n, x, y, z, xi, yi, zi, xk, yk, zk;
@@ -3990,7 +4009,7 @@ remove_gray_matter_control_points(MRI *mri_ctrl,
                     intensity_above,
                     intensity_below,
                     NULL,3, NULL, NULL,
-                    scan_type) ;
+						     scan_type, NULL) ;
   MRIbinarize(mri_ctrl_inside, mri_ctrl_inside, 1,
               CONTROL_NONE, CONTROL_MARKED) ;
 
@@ -4003,7 +4022,7 @@ remove_gray_matter_control_points(MRI *mri_ctrl,
                                    wm_target,
                                    intensity_above,
                                    intensity_below,
-                                   mri_ctrl_inside) ;
+                                   mri_ctrl_inside, NULL) ;
 
 #ifdef WSIZE
 #undef WSIZE

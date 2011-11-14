@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2011/10/06 01:24:14 $
- *    $Revision: 1.32 $
+ *    $Date: 2011/11/14 20:09:27 $
+ *    $Revision: 1.33 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -113,19 +113,19 @@ int MRInormCheckPeaks(MNI *mni, float *inputs, float *outputs, int npeaks) ;
 
 MRI *MRInormFindControlPoints(MRI *mri_src, int wm_target,
                               float intensity_above, float intensity_below,
-                              MRI *mri_ctrl, int which, int scan_type) ;
+                              MRI *mri_ctrl, int which, int scan_type, MRI *mri_not_control) ;
 MRI *MRInormalizeHighSignalLowStd(MRI *mri_src, MRI *mri_dst, float bias_sigma, float wm_target) ;
 MRI *MRInormFindHighSignalLowStdControlPoints(MRI *mri_src, MRI *mri_ctrl) ;
 MRI *MRInormGentlyFindControlPoints(MRI *mri_src, int wm_target,
                                     float intensity_above,
-                                    float intensity_below, MRI *mri_ctrl) ;
+                                    float intensity_below, MRI *mri_ctrl, MRI *mri_not_control) ;
 MRI *MRIbuildBiasImage(MRI *mri_src,MRI *mri_ctrl, MRI *mri_bias, float sigma);
 MRI *MRI3dNormalize(MRI *mri_orig, MRI *mri_src, int wm_target, MRI *mri_norm,
                     float intensity_above, float intensity_below,
-                    int only_file, int prune, float sigma, int scan_type);
+                    int only_file, int prune, float sigma, int scan_type, MRI *mri_not_control);
 MRI *MRI3dGentleNormalize(MRI *mri_src, MRI *mri_bias, int wm_target,
                           MRI *mri_norm, float intensity_above,
-                          float intensity_below, int only_file, float bias_sigma);
+                          float intensity_below, int only_file, float bias_sigma, MRI *mri_not_control);
 MRI *MRIbuildVoronoiDiagram(MRI *mri_src, MRI *mri_ctrl, MRI *mri_dst);
 MRI *MRIsoapBubble(MRI *mri_src, MRI *mri_ctrl, MRI *mri_dst,int niter, float min_change);
 MRI *MRIsoapBubbleExpand(MRI *mri_src, MRI *mri_ctrl, MRI *mri_dst,int niter);
@@ -138,7 +138,7 @@ MRI *MRInormFindControlPointsInWindow(MRI *mri_src, int wm_target,
                                       float intensity_above,
                                       float intensity_below, MRI *mri_ctrl,
                                       float whalf_mm,const char *debug_str,
-                                      int *pnctrl, int scan_type);
+                                      int *pnctrl, int scan_type, MRI *mri_not_control);
 MRI *MRIapplyBiasCorrection(MRI *mri_in, MRI *mri_bias, MRI *mri_out) ;
 
 #endif
