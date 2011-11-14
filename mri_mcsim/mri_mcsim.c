@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2011/11/14 04:39:03 $
- *    $Revision: 1.18 $
+ *    $Date: 2011/11/14 04:40:05 $
+ *    $Revision: 1.19 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -66,7 +66,7 @@ static void dump_options(FILE *fp);
 int SaveOutput(void);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_mcsim.c,v 1.18 2011/11/14 04:39:03 greve Exp $";
+static char vcid[] = "$Id: mri_mcsim.c,v 1.19 2011/11/14 04:40:05 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -641,7 +641,7 @@ static void dump_options(FILE *fp) {
   fprintf(fp,"OutTop  %s\n",OutTop);
   fprintf(fp,"CSDBase  %s\n",csdbase);
   fprintf(fp,"nreps    %d\n",nRepetitions);
-  fprintf(fp,"fwhmmax  %g\n",fhwmmax);
+  fprintf(fp,"fwhmmax  %g\n",fwhmmax);
   fprintf(fp,"subject  %s\n",subject);
   fprintf(fp,"hemi     %s\n",hemi);
   if(MaskFile) fprintf(fp,"mask     %s\n",MaskFile);
