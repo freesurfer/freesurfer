@@ -12,9 +12,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2011/10/19 21:01:44 $
- *    $Revision: 1.75 $
+ *    $Author: fischl $
+ *    $Date: 2011/11/14 20:09:13 $
+ *    $Revision: 1.76 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -119,6 +119,8 @@ static int file_only = 0 ;
 static char *surface_fname = NULL ;
 static TRANSFORM *surface_xform ;
 static char *surface_xform_fname = NULL ;
+static float grad_thresh = -1 ;
+static MRI *mri_not_control = NULL;
 
 int
 main(int argc, char *argv[])
@@ -134,14 +136,14 @@ main(int argc, char *argv[])
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mri_normalize.c,v 1.75 2011/10/19 21:01:44 greve Exp $",
+   "$Id: mri_normalize.c,v 1.76 2011/11/14 20:09:13 fischl Exp $",
    "$Name:  $",
    cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mri_normalize.c,v 1.75 2011/10/19 21:01:44 greve Exp $",
+           "$Id: mri_normalize.c,v 1.76 2011/11/14 20:09:13 fischl Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
   {
@@ -192,7 +194,7 @@ main(int argc, char *argv[])
                              NULL,
                              intensity_above,
                              intensity_below/2,1,
-                             bias_sigma);
+                             bias_sigma, mri_not_control);
     }
     mris = MRISread(surface_fname) ;
     if (mris == NULL)
@@ -375,6 +377,29 @@ main(int argc, char *argv[])
     //    exit(0) ;
   } // end if(long_flag)
 
+  if (grad_thresh > 0)
+  {
+    float thresh ;
+    MRI   *mri_mag, *mri_grad, *mri_smooth ;
+    MRI *mri_kernel = MRIgaussian1d(.5, -1) ;
+
+    mri_not_control = MRIcloneDifferentType(mri_src, MRI_UCHAR) ;
+    switch (scan_type)
+    {
+    case MRI_MGH_MPRAGE: thresh = 15 ; break ;
+    case MRI_WASHU_MPRAGE: thresh = 20 ; break ;
+    case MRI_UNKNOWN:
+    default: thresh = 12 ; break ;
+    }
+    mri_smooth = MRIconvolveGaussian(mri_src, NULL, mri_kernel) ;
+    thresh = grad_thresh ;
+    mri_mag = MRIcloneDifferentType(mri_src, MRI_FLOAT) ;
+    mri_grad = MRIsobel(mri_smooth, NULL, mri_mag) ;
+    MRIwrite(mri_mag, "m.mgz") ;
+    MRIbinarize(mri_mag, mri_not_control, thresh, 0, 1) ;
+    MRIwrite(mri_not_control, "nc.mgz") ;
+    MRIfree(&mri_mag) ; MRIfree(&mri_grad) ; MRIfree(&mri_smooth) ; MRIfree(&mri_kernel) ;
+  }
 #if 0
 #if 0
   if ((mri_src->type != MRI_UCHAR) ||
@@ -433,7 +458,7 @@ main(int argc, char *argv[])
                              NULL,
                              intensity_above,
                              intensity_below/2,1,
-                             bias_sigma);
+                             bias_sigma, mri_not_control);
     else mri_dst = MRIcopy(mri_src, NULL) ;
   }
   fflush(stdout);fflush(stderr);
@@ -589,7 +614,7 @@ main(int argc, char *argv[])
     MRI3dGentleNormalize(mri_dst, NULL, DEFAULT_DESIRED_WHITE_MATTER_VALUE,
                          mri_dst,
                          intensity_above, intensity_below/2,
-                         file_only, bias_sigma);
+                         file_only, bias_sigma, mri_not_control);
 
   mri_orig = MRIcopy(mri_dst, NULL) ;
   printf("\n");
@@ -604,12 +629,12 @@ main(int argc, char *argv[])
       MRI3dGentleNormalize(mri_dst, NULL, DEFAULT_DESIRED_WHITE_MATTER_VALUE,
                            mri_dst,
                            intensity_above/2, intensity_below/2,
-                           file_only, bias_sigma);
+                           file_only, bias_sigma, mri_not_control);
     else
       MRI3dNormalize(mri_orig, mri_dst, DEFAULT_DESIRED_WHITE_MATTER_VALUE,
                      mri_dst,
                      intensity_above, intensity_below,
-                     file_only, prune, bias_sigma, scan_type);
+                     file_only, prune, bias_sigma, scan_type, mri_not_control);
   }
   printf( "Done iterating ---------------------------------\n");
 
@@ -666,6 +691,12 @@ get_option(int argc, char *argv[])
     mask_fname = argv[2] ;
     nargs = 1 ;
     printf("using MR volume %s to mask input volume...\n", mask_fname) ;
+  }
+  else if (!stricmp(option, "GRAD"))
+  {
+    grad_thresh = atof(argv[2]) ;
+    nargs = 1 ;
+    printf("using gradient volume thresholded at %2.1f to prevent control points from crossing edges...\n", grad_thresh) ;
   }
   else if (!stricmp(option, "MASK_SIGMA"))
   {
