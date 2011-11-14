@@ -6,9 +6,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/14 23:44:47 $
- *    $Revision: 1.4 $
+ *    $Author: rpwang $
+ *    $Date: 2011/11/14 16:30:24 $
+ *    $Revision: 1.5 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -33,7 +33,7 @@ class FSTrack : public TrackData
   Q_OBJECT
 public:
   FSTrack(FSVolume* ref = 0, QObject *parent = 0);
-  bool LoadFromFile(const QString &filename);
+  bool LoadFromFile(const QString &filename, const QString& ref_fn = QString());
 
 signals:
 

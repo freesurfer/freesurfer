@@ -6,9 +6,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/14 23:44:47 $
- *    $Revision: 1.4 $
+ *    $Author: rpwang $
+ *    $Date: 2011/11/14 16:30:24 $
+ *    $Revision: 1.5 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -25,7 +25,6 @@
 #include "FSTrack.h"
 #include "LayerMRI.h"
 #include "FSVolume.h"
-#include "TrackGroup.h"
 #include "LayerPropertyTrack.h"
 #include <QFileInfo>
 #include <QDebug>
@@ -69,6 +68,8 @@ bool LayerTrack::LoadTrackFromFile()
   }
   SetName(QFileInfo(m_sFilename).completeBaseName());
 
+  RebuildActors();
+
   return true;
 }
 
@@ -93,6 +94,11 @@ bool LayerTrack::IsVisible()
 }
 
 void LayerTrack::OnSlicePositionChanged(int nPlane)
+{
+
+}
+
+void LayerTrack::RebuildActors()
 {
 
 }

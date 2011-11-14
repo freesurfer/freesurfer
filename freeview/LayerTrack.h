@@ -6,9 +6,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/14 23:44:47 $
- *    $Revision: 1.4 $
+ *    $Author: rpwang $
+ *    $Date: 2011/11/14 16:30:24 $
+ *    $Revision: 1.5 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -28,7 +28,7 @@
 
 class FSTrack;
 class LayerMRI;
-class TrackGroup;
+class vtkActor;
 class LayerPropertyTrack;
 
 class LayerTrack : public Layer
@@ -52,15 +52,19 @@ public:
   {
     return (LayerPropertyTrack*)mProperty;
   }
+
 signals:
   void Progress(int n);
+
+public slots:
+  void RebuildActors();
 
 protected:
   virtual void OnSlicePositionChanged(int nPlane);
 
   FSTrack*    m_trackData;
   LayerMRI*   m_layerMRIRef;
-  QList<TrackGroup*>  m_trackGroups;
+  QList<vtkActor*>  m_actors;
 };
 
 #endif // LAYERTRACK_H
