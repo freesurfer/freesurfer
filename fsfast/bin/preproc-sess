@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2011/03/23 18:08:42 $
-#    $Revision: 1.47 $
+#    $Date: 2011/11/14 17:41:35 $
+#    $Revision: 1.48 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -27,7 +27,7 @@
 # This creates fmcpr.sm5, then
 # mkanalysis-sess -native -funcstem fmcpr.sm5 ...
 
-set VERSION = '$Id: preproc-sess,v 1.47 2011/03/23 18:08:42 greve Exp $';
+set VERSION = '$Id: preproc-sess,v 1.48 2011/11/14 17:41:35 greve Exp $';
 
 set inputargs = ($argv);
 set DateStr = "`date '+%y%m%d%H%M'`"
@@ -251,6 +251,8 @@ foreach sess ($SessList)
     if($nolog)      set cmd = ($cmd -nolog);
     if($UpdateOnly) set cmd = ($cmd -update);
     if($UseB0DC)    set cmd = ($cmd -b0dc)
+    if($PerRun)   set cmd = ($cmd -per-run)
+    if($PerSess) set cmd = ($cmd -per-session)
     echo "$sessid To Surface -----------------------------" |& tee -a $LF
     echo $cmd |& tee -a $LF
     $cmd |& tee -a $LF
@@ -268,6 +270,8 @@ foreach sess ($SessList)
     if($UseB0DC)    set cmd = ($cmd -b0dc)
     if($ApplySubCortMask)   set cmd = ($cmd -subcort-mask)
     if(! $ApplySubCortMask) set cmd = ($cmd -no-subcort-mask)
+    if($PerRun)   set cmd = ($cmd -per-run)
+    if($PerSess) set cmd = ($cmd -per-session)
     echo "$sessid To MNI305 -----------------------------" |& tee -a $LF
     echo $cmd |& tee -a $LF
     $cmd |& tee -a $LF
