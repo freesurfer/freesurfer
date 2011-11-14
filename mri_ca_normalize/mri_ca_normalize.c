@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2011/10/26 13:08:09 $
- *    $Revision: 1.58 $
+ *    $Date: 2011/11/14 20:13:39 $
+ *    $Revision: 1.59 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -147,7 +147,7 @@ int
 main(int argc, char *argv[])
 {
   char         *gca_fname, *in_fname, *out_fname, **av, *xform_fname ;
-  MRI          *mri_in, *mri_norm = NULL, *mri_tmp, *mri_ctrl = NULL ;
+  MRI          *mri_in = NULL, *mri_norm = NULL, *mri_tmp, *mri_ctrl = NULL ;
   GCA          *gca ;
   int          ac, nargs, nsamples, msec, minutes, seconds;
   int          i, struct_samples, norm_samples = 0, n, input, ninputs ;
@@ -158,13 +158,13 @@ main(int argc, char *argv[])
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mri_ca_normalize.c,v 1.58 2011/10/26 13:08:09 fischl Exp $",
+   "$Id: mri_ca_normalize.c,v 1.59 2011/11/14 20:13:39 fischl Exp $",
    "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mri_ca_normalize.c,v 1.58 2011/10/26 13:08:09 fischl Exp $",
+           "$Id: mri_ca_normalize.c,v 1.59 2011/11/14 20:13:39 fischl Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
   {
@@ -332,7 +332,7 @@ main(int argc, char *argv[])
       ErrorExit(ERROR_NOFILE, "%s: could not read input MR volume from %s",
                 Progname, in_fname) ;
     MRImakePositive(mri_tmp, mri_tmp) ;
-    if (mri_tmp->type != MRI_UCHAR && mri_in->type == MRI_UCHAR)  // scale it down to fit
+    if (mri_tmp->type != MRI_UCHAR && mri_in && mri_in->type == MRI_UCHAR)  // scale it down to fit
     {
       MRI *mri_changed = MRIchangeType(mri_tmp, MRI_UCHAR, 0, 255, 0) ;
       MRIfree(&mri_tmp) ; mri_tmp = mri_changed ;
@@ -1578,7 +1578,7 @@ normalize_from_segmentation_volume
     mri_dst = normalizeChannelFromLabel(mri_src, mri_dst, mri_bin, fas, i);
   }
 
-  MRInormGentlyFindControlPoints(mri_dst, 110, 20, 10, mri_bin) ;
+  MRInormGentlyFindControlPoints(mri_dst, 110, 20, 10, mri_bin, NULL) ;
   // remove control points that don't agree with the seg
   for (x = 0 ; x < mri_dst->width ; x++)
     for (y = 0 ; y < mri_dst->height ; y++)
