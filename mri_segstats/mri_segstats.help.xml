@@ -133,6 +133,8 @@ white surface. This is more accurate than from the aseg. The aseg values for the
       <intro>Average waveform options</intro>
       <argument>--avgwf textfile</argument>
       <explanation>For each segmentation, compute an average waveform across all the voxels in the segmentation (excluding voxels masked out). The results are saved in an ascii text file with number of rows equal to the number of frames and number of columns equal to the number of segmentations reported plus 2. The first row is -1 -1 then all of the segid numbers. After that, the first two columns are: (1) 0-based frame number and (2) 0-based frame number times TR.</explanation>
+      <argument>--sumwf textfile</argument>
+      <explanation>Same as --avgwf but computes the sum instead of average</explanation>
       <argument>--avgwfvol mrivol</argument>
       <explanation>Same as --avgwf except that the resulting waveforms are stored in a binary mri volume format (eg, analyze, nifti, mgh, etc) with number of columns equal to the number segmentations, number of rows = slices = 1, and the number of frames equal that of the input volume. This may be more convenient than saving as an ascii text file.</explanation>
       <argument>--sfavg textfile</argument>

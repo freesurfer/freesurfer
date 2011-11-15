@@ -11,9 +11,9 @@
 /*
  * Original Author: Dougas N Greve
  * CVS Revision Info:
- *    $Author: rge21 $
- *    $Date: 2011/04/27 19:09:01 $
- *    $Revision: 1.77 $
+ *    $Author: greve $
+ *    $Date: 2011/11/15 17:36:50 $
+ *    $Revision: 1.78 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -102,7 +102,6 @@ typedef struct
 }
 STATSUMENTRY;
 
-int MRIsegFrameAvg(MRI *seg, int segid, MRI *mri, double *favg);
 int MRIsegCount(MRI *seg, int id, int frame);
 int MRIsegStats(MRI *seg, int segid, MRI *mri,  int frame,
                 float *min, float *max, float *range,
@@ -114,7 +113,7 @@ int DumpStatSumTable(STATSUMENTRY *StatSumTable, int nsegid);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-  "$Id: mri_segstats.c,v 1.77 2011/04/27 19:09:01 rge21 Exp $";
+  "$Id: mri_segstats.c,v 1.78 2011/11/15 17:36:50 greve Exp $";
 char *Progname = NULL, *SUBJECTS_DIR = NULL, *FREESURFER_HOME=NULL;
 char *SegVolFile = NULL;
 char *InVolFile = NULL;
@@ -131,6 +130,7 @@ char *FrameAvgFile = NULL;
 char *FrameAvgVolFile = NULL;
 char *SpatFrameAvgFile = NULL;
 int DoFrameAvg = 0;
+int DoFrameSum = 0;
 int frame = 0;
 int synth = 0;
 int debug = 0;
@@ -204,7 +204,7 @@ char *cmdline, cwd[2000];
 int main(int argc, char **argv)
 {
   int nargs, n, nx, n0, skip, nhits, f, nsegidrep, id, ind, nthsegid;
-  int c,r,s,err,DoContinue;
+  int c,r,s,err,DoContinue,nvox;
   float voxelvolume,vol;
   float min, max, range, mean, std, snr;
   FILE *fp;
@@ -1405,28 +1405,21 @@ int main(int argc, char **argv)
 
   // Average input across space to create a waveform
   // for each segmentation
-  if (DoFrameAvg)
-  {
+  if (DoFrameAvg){
     printf("Computing spatial average of each frame\n");
     favg = (double **) calloc(sizeof(double *),nsegid);
     for (n=0; n < nsegid; n++)
-    {
       favg[n] = (double *) calloc(sizeof(double),invol->nframes);
-    }
     favgmn = (double *) calloc(sizeof(double *),nsegid);
-    for (n=0; n < nsegid; n++)
-    {
+    for (n=0; n < nsegid; n++) {
       printf("%3d",n);
-      if (n%20 == 19)
-      {
-        printf("\n");
-      }
+      if (n%20 == 19) printf("\n");
       fflush(stdout);
-      MRIsegFrameAvg(seg, StatSumTable[n].id, invol, favg[n]);
+      nvox = MRIsegFrameAvg(seg, StatSumTable[n].id, invol, favg[n]);
       favgmn[n] = 0.0;
-      for(f=0; f < invol->nframes; f++)
-      {
-        favgmn[n] += favg[n][f];
+      for(f=0; f < invol->nframes; f++) {
+	if(DoFrameSum) favg[n][f] *= nvox; // Undo spatial average
+	favgmn[n] += favg[n][f];
       }
       favgmn[n] /= invol->nframes;
     }
@@ -1434,12 +1427,10 @@ int main(int argc, char **argv)
 
     // Save mean over space and frames in simple text file
     // Each seg on a separate line
-    if(SpatFrameAvgFile)
-    {
+    if(SpatFrameAvgFile) {
       printf("Writing to %s\n",SpatFrameAvgFile);
       fp = fopen(SpatFrameAvgFile,"w");
-      for (n=0; n < nsegid; n++)
-      {
+      for (n=0; n < nsegid; n++){
         fprintf(fp,"%g\n",favgmn[n]);
         printf("%d %g\n",n,favgmn[n]);
       }
@@ -1447,20 +1438,15 @@ int main(int argc, char **argv)
     }
 
     // Save as a simple text file
-    if(FrameAvgFile)
-    {
+    if(FrameAvgFile) {
       printf("Writing to %s\n",FrameAvgFile);
       fp = fopen(FrameAvgFile,"w");
       //fprintf(fp,"-1 -1 ");
       //for (n=0; n < nsegid; n++) fprintf(fp,"%4d ", StatSumTable[n].id);
       //fprintf(fp,"\n");
-      for (f=0; f < invol->nframes; f++)
-      {
+      for (f=0; f < invol->nframes; f++){
         //fprintf(fp,"%3d %7.3f ",f,f*invol->tr/1000);
-        for (n=0; n < nsegid; n++)
-        {
-          fprintf(fp,"%g ",favg[n][f]);
-        }
+        for (n=0; n < nsegid; n++) fprintf(fp,"%g ",favg[n][f]);
         fprintf(fp,"\n");
       }
       fclose(fp);
@@ -1471,12 +1457,9 @@ int main(int argc, char **argv)
     {
       printf("Writing to %s\n",FrameAvgVolFile);
       famri = MRIallocSequence(nsegid,1,1,MRI_FLOAT,invol->nframes);
-      for (f=0; f < invol->nframes; f++)
-      {
+      for (f=0; f < invol->nframes; f++){
         for (n=0; n < nsegid; n++)
-        {
           MRIsetVoxVal(famri,n,0,0,f,(float)favg[n][f]);
-        }
       }
       MRIwrite(famri,FrameAvgVolFile);
     }
@@ -1844,6 +1827,14 @@ static int parse_commandline(int argc, char **argv)
       }
       FrameAvgFile = pargv[0];
       DoFrameAvg = 1;
+      nargsused = 1;
+    }
+    else if ( !strcmp(option, "--sumwf") )
+    {
+      if (nargc < 1) argnerr(option,1);
+      FrameAvgFile = pargv[0];
+      DoFrameAvg = 1;
+      DoFrameSum = 1;
       nargsused = 1;
     }
     else if ( !strcmp(option, "--sfavg") )
