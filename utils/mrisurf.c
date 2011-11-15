@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2011/10/27 18:36:25 $
- *    $Revision: 1.701 $
+ *    $Author: jonp $
+ *    $Date: 2011/11/15 01:00:13 $
+ *    $Revision: 1.702 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -735,7 +735,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void)
 {
-  return("$Id: mrisurf.c,v 1.701 2011/10/27 18:36:25 greve Exp $");
+  return("$Id: mrisurf.c,v 1.702 2011/11/15 01:00:13 jonp Exp $");
 }
 
 /*-----------------------------------------------------
@@ -23584,6 +23584,41 @@ MRISwriteWhiteNormals(MRI_SURFACE *mris, const char *fname)
     MRIsetVoxVal(mri, vno, 0, 0, 0, v->wnx) ;
     MRIsetVoxVal(mri, vno, 0, 0, 1, v->wny) ;
     MRIsetVoxVal(mri, vno, 0, 0, 2, v->wnz) ;
+  }
+  MRIwrite(mri, fname) ;
+  MRIfree(&mri) ;
+  return(NO_ERROR) ;
+}
+/*-----------------------------------------------------
+  Description: write the principal curvature directions
+  ------------------------------------------------------*/
+int
+MRISwritePrincipalDirection(MRI_SURFACE *mris, int dir_index, const char *fname)
+{
+  int     vno ;
+  VERTEX  *v ;
+  MRI     *mri ;
+
+  mri = MRIallocSequence(mris->nvertices, 1, 1, MRI_FLOAT, 3) ;
+  if (mri == NULL)
+    ErrorReturn(ERROR_NOFILE, (ERROR_NOFILE, "MRISwritePrincipalDirections(%s): could not allocate volume", fname)) ;
+
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    v = &mris->vertices[vno] ;
+    
+    if ( dir_index == 1 )
+      {
+	MRIsetVoxVal(mri, vno, 0, 0, 0, v->e1x) ;
+	MRIsetVoxVal(mri, vno, 0, 0, 1, v->e1y) ;
+	MRIsetVoxVal(mri, vno, 0, 0, 2, v->e1z) ;
+      }
+    else
+      {
+	MRIsetVoxVal(mri, vno, 0, 0, 0, v->e2x) ;
+	MRIsetVoxVal(mri, vno, 0, 0, 1, v->e2y) ;
+	MRIsetVoxVal(mri, vno, 0, 0, 2, v->e2z) ;
+      }
   }
   MRIwrite(mri, fname) ;
   MRIfree(&mri) ;
