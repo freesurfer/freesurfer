@@ -8,9 +8,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:42 $
- *    $Revision: 1.28 $
+ *    $Author: greve $
+ *    $Date: 2011/11/16 22:16:50 $
+ *    $Revision: 1.29 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -691,7 +691,9 @@ int MRISmergeAnnotations(MRIS *mris, int nparcs, char **parcnames, char *newparc
   \brief Constructs a 'segmentation' MRI from an annotation. The
   segmentation index is the annotation ID + base. See mri_annnotation2label 
   for more details on setting the base. The returned
-  MRI is a volume-encoded surface.   
+  MRI is a volume-encoded surface. If an annotation is not found in
+  the color table, it is given a value equal to the base (assumes
+  base is "unknown").
 */
 MRI *MRISannot2seg(MRIS *surf, int base)
 {
@@ -704,6 +706,7 @@ MRI *MRISannot2seg(MRIS *surf, int base)
     annot = surf->vertices[k].annotation;
     if(surf->ct)  CTABfindAnnotation(surf->ct, annot, &annotid);
     else          annotid = annotation_to_index(annot);
+    if(annotid == -1) annotid = 0; // Assume base is unknown
     MRIsetVoxVal(seg,k,0,0,0, annotid + base);
   }
   return(seg);
