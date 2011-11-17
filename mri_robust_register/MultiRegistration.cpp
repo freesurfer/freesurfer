@@ -14,8 +14,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2011/10/07 22:28:51 $
- *    $Revision: 1.38 $
+ *    $Date: 2011/11/17 02:55:15 $
+ *    $Revision: 1.39 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -805,7 +805,8 @@ bool MultiRegistration::initialXforms(int tpi, bool fixtp, int maxres, int itera
   // Register everything to tpi TP
 //  vector < Registration > Rv(nin);
   vector < std::pair <vnl_matrix_fixed < double, 4, 4> , double> > Md(nin);
-	vector < double >  centroid;
+//	vector < double >  centroid;
+  vnl_vector_fixed < double, 4 > centroid;
 
   //Md[0].first = MatrixIdentity(4,NULL);
   Md[0].first.set_identity();
@@ -836,6 +837,7 @@ bool MultiRegistration::initialXforms(int tpi, bool fixtp, int maxres, int itera
 		// only do this once (when i==1) is enough
 		// the centroid is the voxel coord where the moment based centroid is located
 		if (i==1) centroid = R.getCentroidT();
+    centroid += R.getCentroidSinT();
 
 //    ostringstream oss2;
 //    oss2 << "tp" << j+1;    
@@ -866,7 +868,8 @@ bool MultiRegistration::initialXforms(int tpi, bool fixtp, int maxres, int itera
 //       MRIfree(&warped);     
 //     }
   } // end for loop (initial registration to inittp)
-	
+	centroid = (1.0/nin) * centroid;
+  
   // copy results in correct order back to global members
 	// lta (transforms) and intensities:
 	assert(ltas.size() == mri_mov.size());
@@ -969,14 +972,18 @@ bool MultiRegistration::initialXforms(int tpi, bool fixtp, int maxres, int itera
 
   //average
   meant = (1.0/nin) * meant;
+//vnl_matlab_print(vcl_cout,meant,"meant",vnl_matlab_print_format_long);std::cout << std::endl;
 	//cout << "meant: "<< endl << meant << endl;
 	
 //	meanr = MyMatrix::GeometricMean(rotinv,nin);
   // Project meanr back to SO(3) via polar decomposition:	
   meanr = (1.0/nin) *meanr;
+//vnl_matlab_print(vcl_cout,meanr,"meanr",vnl_matlab_print_format_long);std::cout << std::endl;
 	vnl_matrix < double > PolR(3,3), PolS(3,3);
 	MyMatrix::PolarDecomposition(meanr,PolR,PolS);
 	meanr=PolR;
+//vnl_matlab_print(vcl_cout,meanr,"meanr2",vnl_matlab_print_format_long);std::cout << std::endl;
+
 // 	//cout << "meanr: " << endl << meanr << endl;  
 //   // project meanr back to SO(3) (using polar decomposition)
 //   vnl_svd < double > svd_decomp(meanr);
@@ -1008,10 +1015,7 @@ bool MultiRegistration::initialXforms(int tpi, bool fixtp, int maxres, int itera
 	MATRIX * mv2r_temp = MRIgetVoxelToRasXform(mri_mov[tpi]);
 	vnl_matrix_fixed < double, 4, 4> tpi_v2r(MyMatrix::convertMATRIX2VNL(mv2r_temp));
 	MatrixFree(&mv2r_temp);
-	vnl_vector_fixed < double, 4 > ncenter;
-	for (uint ii = 0; ii<3;ii++)
-	   ncenter[ii] = centroid[ii];
-  ncenter[3] = 1.0;
+	vnl_vector_fixed < double, 4 > ncenter=centroid;
 	//cout << "ncenter: " << ncenter << endl;
 	// map to RAS:
 	ncenter = tpi_v2r * ncenter;
@@ -1020,9 +1024,10 @@ bool MultiRegistration::initialXforms(int tpi, bool fixtp, int maxres, int itera
 	ncenter = Mm * ncenter;
 	//cout << "ncenter mean: " << ncenter << endl;
   // set new center in geometry
-	template_geo->c_r = ncenter[0];
-	template_geo->c_a = ncenter[1];
-	template_geo->c_s = ncenter[2];
+//vnl_matlab_print(vcl_cout,ncenter,"ncenter",vnl_matlab_print_format_long);std::cout << std::endl;
+ 	template_geo->c_r = ncenter[0];
+ 	template_geo->c_a = ncenter[1];
+ 	template_geo->c_s = ncenter[2];
   template_geo->ras_good_flag = 1;
   MRIreInitCache(template_geo);
 	
@@ -1037,6 +1042,7 @@ bool MultiRegistration::initialXforms(int tpi, bool fixtp, int maxres, int itera
     // from right to left, first mras[j] (aligns to T1)
     // then do the mean rot and move to mean location
     M = Mm * mras[i];
+//vnl_matlab_print(vcl_cout,M,"M",vnl_matlab_print_format_long);std::cout << std::endl;
 		
 // 			{
 // 			  vnl_matrix < double > R(3,3),S(3,3),A(3,3),I(3,3);
@@ -1072,6 +1078,7 @@ bool MultiRegistration::initialXforms(int tpi, bool fixtp, int maxres, int itera
     if (rigid) // map back to Rotation (RAS2RAS->VOX2VOX introduces scaling!)
     {
       vnl_matrix < double > MM(MyMatrix::convertMATRIX2VNL(ltas[j]->xforms[0].m_L));
+//vnl_matlab_print(vcl_cout,MM,"MM",vnl_matlab_print_format_long);std::cout << std::endl;
 			vnl_matrix < double > R(3,3),S(3,3),A(3,3),I(3,3);
 			I.set_identity();
 			MM.extract(A);
@@ -1098,6 +1105,7 @@ bool MultiRegistration::initialXforms(int tpi, bool fixtp, int maxres, int itera
       
 			MM.update(R);
 			MM.set_row(3,0.0); MM[3][3] = 1.0;
+//vnl_matlab_print(vcl_cout,MM,"MM2",vnl_matlab_print_format_long);std::cout << std::endl;
 			ltas[j]->xforms[0].m_L = MyMatrix::convertVNL2MATRIX(MM,ltas[j]->xforms[0].m_L);
 
     }
