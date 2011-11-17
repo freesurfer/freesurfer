@@ -8,8 +8,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2011/09/26 20:46:47 $
- *    $Revision: 1.9 $
+ *    $Date: 2011/11/17 02:58:19 $
+ *    $Revision: 1.10 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -70,8 +70,8 @@ private:
 	
 	// these are not really used any longer (maybe delete)?
   static MRI * getPartial(MRI* mriS, int dir);
-  static MRI * getBlur2(MRI* mri);
-  static bool  getPartials2(MRI* mri, MRI* & outfx, MRI* & outfy, MRI* &outfz, MRI* &outblur);
+//  static MRI * getBlur2(MRI* mri);
+//  static bool  getPartials2(MRI* mri, MRI* & outfx, MRI* & outfy, MRI* &outfz, MRI* &outblur);
   static MRI * convolute(MRI * mri, MRI * filter, int dir);
 
 	static bool isConform(MRI *mri);

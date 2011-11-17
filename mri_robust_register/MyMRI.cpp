@@ -8,8 +8,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2011/09/26 20:46:47 $
- *    $Revision: 1.11 $
+ *    $Date: 2011/11/17 02:58:19 $
+ *    $Revision: 1.12 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -483,28 +483,29 @@ bool MyMRI::getPartials(MRI* mri, MRI* & outfx, MRI* & outfy, MRI* &outfz, MRI* 
   return true;
 }
 
-MRI * MyMRI::getBlur2(MRI* mri)
-{
-  MRI* outblur = MRIgaussianSmooth(mri, 1, 1,NULL);
-//  mri_kernel = MRIgaussian1d(1, -1) ;
-// MRI* outblur = MRIconvolveGaussian(mri, NULL, mri_kernel);
-//  MRIfree(&mri_kernel);
-  return outblur;
-}
-
-bool MyMRI::getPartials2(MRI* mri, MRI* & outfx, MRI* & outfy, MRI* &outfz, MRI* &outblur)
-{
-
-  assert(outfx == NULL && outfy == NULL && outfz == NULL && outblur == NULL );
-
-  outblur = getBlur2(mri);
-  outfx   = MRIxDerivative(outblur,NULL);
-  outfy   = MRIyDerivative(outblur,NULL);
-  outfz   = MRIzDerivative(outblur,NULL);
-
-  return true;
-}
-
+// MRI * MyMRI::getBlur2(MRI* mri)
+// {
+// // warning gaussianSmooth does not separate convolution and is slower:
+//   MRI* outblur = MRIgaussianSmooth(mri, 1, 1,NULL);
+// //  mri_kernel = MRIgaussian1d(1, -1) ;
+// // MRI* outblur = MRIconvolveGaussian(mri, NULL, mri_kernel);
+// //  MRIfree(&mri_kernel);
+//   return outblur;
+// }
+// 
+// bool MyMRI::getPartials2(MRI* mri, MRI* & outfx, MRI* & outfy, MRI* &outfz, MRI* &outblur)
+// {
+// 
+//   assert(outfx == NULL && outfy == NULL && outfz == NULL && outblur == NULL );
+// 
+//   outblur = getBlur2(mri);
+//   outfx   = MRIxDerivative(outblur,NULL);
+//   outfy   = MRIyDerivative(outblur,NULL);
+//   outfz   = MRIzDerivative(outblur,NULL);
+// 
+//   return true;
+// }
+// 
 
 
 std::vector < int >  MyMRI::findRightSize(MRI *mri, float conform_size, bool conform)
@@ -516,15 +517,15 @@ std::vector < int >  MyMRI::findRightSize(MRI *mri, float conform_size, bool con
   double fwidth, fheight, fdepth, fmax;
   int conform_width;
 
-  xsize = mri->xsize;
-  ysize = mri->ysize;
-  zsize = mri->zsize;
+  xsize = fabs(mri->xsize);
+  ysize = fabs(mri->ysize);
+  zsize = fabs(mri->zsize);
 
   // now decide the conformed_width
   // calculate the size in mm for all three directions
-  fwidth  = mri->xsize*mri->width;
-  fheight = mri->ysize*mri->height;
-  fdepth  = mri->zsize*mri->depth;
+  fwidth  = fabs(mri->xsize)*mri->width;
+  fheight = fabs(mri->ysize)*mri->height;
+  fdepth  = fabs(mri->zsize)*mri->depth;
   
   vector < int > ret(3);
   double eps = 0.0001; // to prevent ceil(2.0*64 / 2.0) = ceil(64.000000000001) = 65
