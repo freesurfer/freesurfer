@@ -10,8 +10,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2011/03/29 14:16:43 $
- *    $Revision: 1.14 $
+ *    $Date: 2011/11/17 02:56:18 $
+ *    $Revision: 1.15 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -76,7 +76,10 @@ public:
   static vnl_matrix < double >  MatrixSqrt(const vnl_matrix < double >& m);
 	//! Matrix Square Root (splitting off the translation)
   static vnl_matrix < double >  MatrixSqrtAffine(const vnl_matrix < double >& m);
-	
+
+	static vnl_matrix_fixed < double, 4, 4 > getRot(int i, int j, int k);
+  static vnl_matrix_fixed < double, 4, 4 > getRot(int i);
+
 //	//! Geometric mean
 //	static vnl_matrix < double > GeometricMean(const std::vector < vnl_matrix < double > > &vm, int n=-1);
 	

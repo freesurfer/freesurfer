@@ -8,8 +8,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2011/10/07 22:28:51 $
- *    $Revision: 1.25 $
+ *    $Date: 2011/11/17 02:56:18 $
+ *    $Revision: 1.26 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -40,6 +40,9 @@
 #include <vnl/vnl_complexify.h>
 #include <vcl_iostream.h>
 #include <vnl/vnl_matlab_print.h>
+
+
+#define sign(x) (( x > 0 ) - ( x < 0 ))
 
 using namespace std;
 
@@ -2060,6 +2063,67 @@ vnl_matrix_fixed < double , 4 , 4 >  MyMatrix::getMfromRT(
   }
 	return m;
 }
+
+vnl_matrix_fixed < double, 4, 4 > MyMatrix::getRot(int i, int j, int k)
+// i,j,k permutations of 1,2,3 (possibly signed, so that det = 1)
+// returns rotation matrix with 1 (or -1 based on sign) in the 
+// row specified by i,j,k for each column respectively.
+{
+
+  vnl_matrix_fixed < double , 4 , 4> M(0.0);
+  M[3][3] = 1.0;
+  
+  if ( abs(i)+abs(j)+abs(k) != 6)
+  {
+    cout << "MyMatrix::getRot( " << i << " , " << j << " , "  << k << " ) ERROR: pass permutation of 1 2 3" << endl;
+    exit(1);
+  }
+  if ( i*j*k < 0 )
+  {
+    cout  << "MyMatrix::getRot( " << i << " , " << j << " , "  << k << " ) ERROR: determinant negative" << endl;
+    exit(1);
+  }
+
+  M[i-1][0] = sign(i);
+  M[j-1][1] = sign(j);
+  M[k-1][2] = sign(k);
+  
+  return M;
+
+}
+
+vnl_matrix_fixed < double, 4, 4 > MyMatrix::getRot(int i)
+// parametrizes all 24 possible rotations (multiples of 90 degrees in all directions)
+// so i = 0..23
+{
+
+  int j = i/4; // 0..5
+  int k = i%4; // 0..3
+  
+  int a=1,b=2,c=3;
+  
+  switch (j)
+  {
+   // case 0: a=1; b=2; c=3; break;
+    case 1: a=1; b=3; c=2; break;
+    case 2: a=2; b=1; c=3; break;
+    case 3: a=2; b=3; c=1; break;
+    case 4: a=3; b=1; c=2; break;
+    case 5: a=3; b=2; c=1; break;
+  }  
+  
+  switch (k)
+  {
+    //case 0: a= a; b= b; c= c; break;
+    case 1: a= a; b=-b; c=-c; break;
+    case 2: a=-a; b= b; c=-c; break;
+    case 3: a=-a; b=-b; c= c; break;
+  }
+  
+  return getRot(a,b,c);
+  
+}
+
 
 LTA* MyMatrix::VOXmatrix2LTA(const vnl_matrix_fixed < double, 4 , 4 >& m, MRI* src, MRI* dst)
 {
