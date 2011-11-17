@@ -8,8 +8,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2011/10/07 22:28:51 $
- *    $Revision: 1.48 $
+ *    $Date: 2011/11/17 02:53:36 $
+ *    $Revision: 1.49 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -240,8 +240,11 @@ enum Cost
 //  double computeSatEstimate (int reslevel, int n,double epsit, MRI * mriS=NULL, MRI* mriT=NULL, MATRIX* mi=NULL, double scaleinit=1.0 );
 
   // return centroid (of input, not of resampled internal version)
-  std::vector < double > getCentroidS();
-  std::vector < double > getCentroidT();
+  //std::vector < double > getCentroidS();
+  //std::vector < double > getCentroidT();
+  vnl_vector_fixed < double, 4 > getCentroidS();
+  vnl_vector_fixed < double, 4 > getCentroidT();
+  vnl_vector_fixed < double, 4 > getCentroidSinT();
 	
 
 protected:
@@ -256,6 +259,7 @@ protected:
   // IterativeRegistrationHelper
   virtual void computeIterativeRegistration(int n,double epsit,MRI * mriS, MRI* mriT, const vnl_matrix < double > &Minit, double iscaleinit);	
 	template < class T > void iterativeRegistrationHelper( int nmax,double epsit, MRI * mriS, MRI* mriT, const vnl_matrix < double >& m, double scaleinit);
+  bool flipInputs();
   bool reorientSource();
 
   //conversion

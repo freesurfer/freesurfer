@@ -8,8 +8,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2011/10/07 22:28:51 $
- *    $Revision: 1.75 $
+ *    $Date: 2011/11/17 02:53:36 $
+ *    $Revision: 1.76 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -3317,6 +3317,78 @@ int Registration::init_scaling(MRI *mri_in, MRI *mri_ref, MATRIX *m_L)
   return(NO_ERROR) ;
 }
 
+bool Registration::flipInputs()
+// flips inputs to have positive voxel sizes
+// important in some cases where input voxel sizes are negative
+// based on weird RAS coordinates?
+// adjust resample matrices
+{
+  bool flipped = false;
+  int x = 1;
+  int y = 2;
+  int z = 3;
+  if (mri_source->xsize < 0) x = -1;
+  if (mri_source->ysize < 0) y = -2;
+  if (mri_source->zsize < 0) z = -3;
+  if (x<0 || y<0 || z<0)
+  {
+    cout << "   Flipping axes in movable ( " << x << " " << y << " " << z <<" ) ..." << endl; 
+    resample = true;
+    flipped = true;
+    //swap stuff:
+    MRI* mri_temp = mri_source;
+    mri_source = MRIreorder(mri_temp, NULL, x,y,z);
+     
+    MATRIX *v2v = MRIgetVoxelToVoxelXform(mri_source,mri_temp);
+    vnl_matrix_fixed <double,4,4> Sreorderinv = MyMatrix::convertMATRIX2VNL(v2v);
+    MatrixFree(&v2v);
+    MRIfree(&mri_temp);
+   
+    if (debug)
+	  {
+	    string fn = getName() + "-mriS-flipped.mgz"; 
+      cout << "   Writing flipped source as " << fn << endl;
+      MRIwrite(mri_source,fn.c_str());
+    }
+
+    // adjust reslice matrix of source          
+    // Rsrc points from resliced/reordered back to original input
+    Rsrc = Rsrc*Sreorderinv;     
+  
+  }
+  
+  if (mri_target->xsize < 0) x = -1;
+  if (mri_target->ysize < 0) y = -2;
+  if (mri_target->zsize < 0) z = -3;
+  if (x<0 || y<0 || z<0)
+  {
+    cout << "   Flipping axes in dest ( " << x << " " << y << " " << z <<" ) ..." << endl; 
+    resample = true;
+    flipped = true;
+    //swap stuff:
+    MRI* mri_temp = mri_target;
+    mri_target = MRIreorder(mri_temp, NULL, x,y,z);
+     
+    MATRIX *v2v = MRIgetVoxelToVoxelXform(mri_target,mri_temp);
+    vnl_matrix_fixed <double,4,4> Treorderinv = MyMatrix::convertMATRIX2VNL(v2v);
+    MatrixFree(&v2v);
+    MRIfree(&mri_temp);
+   
+    if (debug)
+	  {
+	    string fn = getName() + "-mriT-flipped.mgz"; 
+      cout << "   Writing flipped dest as " << fn << endl;
+      MRIwrite(mri_target,fn.c_str());
+    }
+
+    // adjust reslice matrix of source          
+    // Rsrc points from resliced/reordered back to original input
+    Rtrg = Rtrg*Treorderinv;     
+  
+  }
+  return flipped;
+}
+
 bool Registration::reorientSource()
 // potentially changes mri_Source and the resample matrix
   // flip and reorder axis of source based on RAS alignment or ixform:
@@ -3378,7 +3450,7 @@ bool Registration::reorientSource()
      return false;
   }
     
-  cout << "   Reordering axes ..." << endl; 
+  cout << "   Reordering axes in mov to better fit dst... ( " << xd << " " << yd << " " << zd <<" )" << endl; 
   resample = true;
   
   //swap stuff:
@@ -3436,16 +3508,16 @@ void Registration::setSourceAndTarget (MRI * s,MRI * t, bool keeptype)
      cout << "   Types differ, will adjust type internally ..." << endl;
      keeptype = false;
   }
-
+  
 	// we will make images isotropic
 
   // get smallest dimension
-  double mins = s->xsize;
-  if (s->ysize < mins) mins = s->ysize;
-  if (s->zsize < mins) mins = s->zsize;
-  double mint = t->xsize;
-  if (t->ysize < mint) mint = t->ysize;
-  if (t->zsize < mint) mint = t->zsize;
+  double mins = fabs(s->xsize);
+  if (fabs(s->ysize) < mins) mins = fabs(s->ysize);
+  if (fabs(s->zsize) < mins) mins = fabs(s->zsize);
+  double mint = fabs(t->xsize);
+  if (fabs(t->ysize) < mint) mint = fabs(t->ysize);
+  if (fabs(t->zsize) < mint) mint = fabs(t->zsize);
   // select the larger of the smallest sides
   double isosize = mins;
   if ( mint > mins ) isosize = mint;
@@ -3831,7 +3903,36 @@ Registration::makeIsotropic(MRI *mri, MRI *out, double vsize, int xdim, int ydim
 
 }
 
-std::vector < double > Registration::getCentroidS()
+// std::vector < double > Registration::getCentroidS()
+// // map centroid back to original space
+// {
+// 	vnl_vector_fixed < double, 4 > ncenter;
+// 	for (uint ii = 0; ii<3;ii++)
+// 	   ncenter[ii] = centroidS[ii];
+//   ncenter[3] = 1.0;
+// 	ncenter = Rsrc * ncenter;
+//   vector < double > cs (3);
+// 	for (uint ii = 0; ii<3;ii++)
+// 	   cs[ii] = ncenter[ii];
+// 	
+//   return cs;
+// }
+// 
+// std::vector < double > Registration::getCentroidT()
+// // map centroid back to original space
+// {
+// 	vnl_vector_fixed < double, 4 > ncenter;
+// 	for (uint ii = 0; ii<3;ii++)
+// 	   ncenter[ii] = centroidT[ii];
+//   ncenter[3] = 1.0;
+// 	ncenter = Rtrg * ncenter;
+//   vector < double > ct (3);
+// 	for (uint ii = 0; ii<3;ii++)
+// 	   ct[ii] = ncenter[ii];
+//   return ct;
+// }
+
+vnl_vector_fixed < double, 4 >  Registration::getCentroidS()
 // map centroid back to original space
 {
 	vnl_vector_fixed < double, 4 > ncenter;
@@ -3839,14 +3940,10 @@ std::vector < double > Registration::getCentroidS()
 	   ncenter[ii] = centroidS[ii];
   ncenter[3] = 1.0;
 	ncenter = Rsrc * ncenter;
-  vector < double > cs (3);
-	for (uint ii = 0; ii<3;ii++)
-	   cs[ii] = ncenter[ii];
-	
-  return cs;
+  return ncenter;
 }
 
-std::vector < double > Registration::getCentroidT()
+vnl_vector_fixed < double, 4 > Registration::getCentroidT()
 // map centroid back to original space
 {
 	vnl_vector_fixed < double, 4 > ncenter;
@@ -3854,10 +3951,16 @@ std::vector < double > Registration::getCentroidT()
 	   ncenter[ii] = centroidT[ii];
   ncenter[3] = 1.0;
 	ncenter = Rtrg * ncenter;
-  vector < double > ct (3);
-	for (uint ii = 0; ii<3;ii++)
-	   ct[ii] = ncenter[ii];
-  return ct;
+  return ncenter;
+}
+
+vnl_vector_fixed < double, 4 > Registration::getCentroidSinT()
+// map source centroid to target space
+// only makes sense to call this after registration
+{
+  vnl_vector_fixed < double, 4 > ncenter=getCentroidS();
+  vnl_matrix_fixed <double, 4, 4> v2v=getFinalVox2Vox();
+  return v2v*ncenter;
 }
 
 vnl_matrix_fixed <double, 4, 4> Registration::getFinalVox2Vox()
@@ -4086,3 +4189,18 @@ void Registration::mapToNewSpace(const vnl_matrix_fixed<double , 4, 4>& M, doubl
     }
 
 }
+
+// void Registration::testRotations()
+// {
+// 
+//   int i;
+//   std::vector < double > cost(24);
+//   
+//   for (i=0;i<24;i++)
+//   {
+//   
+//   
+//   
+//   }
+// 
+// }
