@@ -10,9 +10,9 @@
 /*
  * Original Author: Douglas Greve
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/16 21:23:49 $
- *    $Revision: 1.90 $
+ *    $Author: greve $
+ *    $Date: 2011/11/17 21:29:19 $
+ *    $Revision: 1.91 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -348,7 +348,7 @@ MATRIX *MRIleftRightRevMatrix(MRI *mri);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_surf2surf.c,v 1.90 2011/03/16 21:23:49 nicks Exp $";
+static char vcid[] = "$Id: mri_surf2surf.c,v 1.91 2011/11/17 21:29:19 greve Exp $";
 char *Progname = NULL;
 
 char *srcsurfregfile = NULL;
@@ -450,6 +450,9 @@ int ConvGaussian = 0;
 int UseDualHemi = 0; // Assume ?h.?h.surfreg file name, source only
 MRI *RegTarg = NULL;
 
+char *SrcSurfRegPath = NULL;
+char *TrgSurfRegPath = NULL;
+
 /*---------------------------------------------------------------------------*/
 int main(int argc, char **argv)
 {
@@ -471,7 +474,7 @@ int main(int argc, char **argv)
   /* rkt: check for and handle version tag */
   nargs = handle_version_option (
     argc, argv,
-    "$Id: mri_surf2surf.c,v 1.90 2011/03/16 21:23:49 nicks Exp $",
+    "$Id: mri_surf2surf.c,v 1.91 2011/11/17 21:29:19 greve Exp $",
     "$Name:  $");
   if (nargs && argc - nargs == 1) {
     exit (0);
@@ -512,20 +515,22 @@ int main(int argc, char **argv)
     if (SrcIcoOrder == -1) {
       SrcIcoOrder = GetICOOrderFromValFile(srcvalfile,srctypestring);
     }
-    sprintf(fname,"%s/lib/bem/ic%d.tri",FREESURFER_HOME,SrcIcoOrder);
+    //sprintf(fname,"%s/lib/bem/ic%d.tri",FREESURFER_HOME,SrcIcoOrder);
     SrcSurfReg = ReadIcoByOrder(SrcIcoOrder, IcoRadius);
     printf("Source Ico Order = %d\n",SrcIcoOrder);
   } else {
     // Set source reg depending on whether hemis are same or diff
-    // Changed to this on 11/30/97
-    if(!strcmp(srchemi,trghemi) && UseDualHemi == 0) { // hemis are the same
-      sprintf(fname,"%s/%s/surf/%s.%s",
-              SUBJECTS_DIR,srcsubject,srchemi,srcsurfregfile);
-    } else // hemis are the different
-      sprintf(fname,"%s/%s/surf/%s.%s.%s",SUBJECTS_DIR,
-              srcsubject,srchemi,trghemi,srcsurfregfile);
-    printf("Reading source surface reg %s\n",fname);
-    SrcSurfReg = MRISread(fname) ;
+    if(SrcSurfRegPath == NULL){
+      if(!strcmp(srchemi,trghemi) && UseDualHemi == 0) { // hemis are the same
+	sprintf(fname,"%s/%s/surf/%s.%s",
+		SUBJECTS_DIR,srcsubject,srchemi,srcsurfregfile);
+      } else // hemis are the different
+	sprintf(fname,"%s/%s/surf/%s.%s.%s",SUBJECTS_DIR,
+		srcsubject,srchemi,trghemi,srcsurfregfile);
+      SrcSurfRegPath = fname;
+    } 
+    printf("Reading source surface reg %s\n",SrcSurfRegPath);
+    SrcSurfReg = MRISread(SrcSurfRegPath);
     if (cavtx > 0)
       printf("cavtx = %d, srcsurfregfile: %g, %g, %g\n",cavtx,
              SrcSurfReg->vertices[cavtx].x,
@@ -831,20 +836,24 @@ int main(int argc, char **argv)
   }
 
   if(strcmp(srcsubject,trgsubject) || strcmp(srchemi,trghemi) ||
-      strcmp(srcsurfregfile,trgsurfregfile)) {
+     strcmp(srcsurfregfile,trgsurfregfile) || 
+     (!strcmp(srcsubject,"ico") && !strcmp(trgsubject,"ico") && SrcIcoOrder != TrgIcoOrder)){
     /* ------- Source and Target Subjects or Hemis are different ------ */
     /* ------- Load the registration surface for target subject ------- */
     if (!strcmp(trgsubject,"ico")) {
       sprintf(fname,"%s/lib/bem/ic%d.tri",FREESURFER_HOME,TrgIcoOrder);
       TrgSurfReg = ReadIcoByOrder(TrgIcoOrder, IcoRadius);
       reshapefactor = 6;
+      printf("Target Ico Order = %d\n",TrgIcoOrder);
     } else {
       // Use same target regardless of whether hemis are the same or diff
-      // Changed to this on 11/30/97
-      sprintf(fname,"%s/%s/surf/%s.%s",
-              SUBJECTS_DIR,trgsubject,trghemi,trgsurfregfile);
-      printf("Reading target surface reg %s\n",fname);
-      TrgSurfReg = MRISread(fname) ;
+      if(TrgSurfRegPath == NULL){
+	sprintf(fname,"%s/%s/surf/%s.%s",
+		SUBJECTS_DIR,trgsubject,trghemi,trgsurfregfile);
+	TrgSurfRegPath = fname;
+      }
+      printf("Reading target surface reg %s\n",TrgSurfRegPath);
+      TrgSurfReg = MRISread(TrgSurfRegPath);
     }
     if (!TrgSurfReg)
       ErrorExit(ERROR_NOFILE, "%s: could not read surface %s",
