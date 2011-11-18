@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2011/11/14 20:13:39 $
- *    $Revision: 1.59 $
+ *    $Date: 2011/11/18 01:33:20 $
+ *    $Revision: 1.60 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -158,13 +158,13 @@ main(int argc, char *argv[])
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mri_ca_normalize.c,v 1.59 2011/11/14 20:13:39 fischl Exp $",
+   "$Id: mri_ca_normalize.c,v 1.60 2011/11/18 01:33:20 fischl Exp $",
    "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mri_ca_normalize.c,v 1.59 2011/11/14 20:13:39 fischl Exp $",
+           "$Id: mri_ca_normalize.c,v 1.60 2011/11/18 01:33:20 fischl Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
   {
@@ -247,6 +247,9 @@ main(int argc, char *argv[])
       ErrorExit(ERROR_NOFILE, "%s: could not open GCA %s.\n",
                 Progname, gca_fname) ;
     printf("reading transform from '%s'...\n", xform_fname) ;
+    if (gca->ninputs != ninputs)
+      ErrorExit(ERROR_BADPARM, "gca has %d frames, but %d inputs specified\n",
+             gca->ninputs,ninputs) ;
     fflush(stdout) ;
     transform = TransformRead(xform_fname) ;
     if (!transform)
