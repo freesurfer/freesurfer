@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2011/08/18 21:31:45 $
- *    $Revision: 1.26 $
+ *    $Date: 2011/11/19 17:34:36 $
+ *    $Revision: 1.27 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -251,7 +251,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_fwhm.c,v 1.26 2011/08/18 21:31:45 greve Exp $";
+static char vcid[] = "$Id: mri_fwhm.c,v 1.27 2011/11/19 17:34:36 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -372,7 +372,11 @@ int main(int argc, char *argv[]) {
   if (maskpath) {
     printf("Loading mask %s\n",maskpath);
     mask = MRIread(maskpath);
-    if (mask==NULL) exit(1);
+    if(mask==NULL) exit(1);
+    if(MRIdimMismatch(mask,InVals,0)){
+      printf("ERROR: dimension mismatch between mask and input\n");
+      exit(1);
+    }
     MRIbinarize2(mask, mask, maskthresh, 0, 1);
   }
   if (automask) {
