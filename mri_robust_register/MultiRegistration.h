@@ -14,8 +14,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2011/10/07 22:28:51 $
- *    $Revision: 1.15 $
+ *    $Date: 2011/11/21 20:59:11 $
+ *    $Revision: 1.16 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -151,9 +151,10 @@ public:
     {
     case SAMPLE_TRILINEAR:
     case SAMPLE_CUBIC_BSPLINE:
+    case SAMPLE_NEAREST:
       break;
     default:
-      std::cout << "ERROR Registration:setSampleType: " << st << " not supported type!" << std::endl;
+      std::cout << "ERROR MultiRegistration:setSampleType: " << st << " not supported type!" << std::endl;
       exit(1);
     }
     sampletype = st;
