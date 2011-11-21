@@ -58,6 +58,8 @@ The summary file is an ascii file in which the segmentation statistics are repor
       <explanation>Create a segmentation from hemi.parc.annot. If parc is aparc or aparc.a2005s, then the segmentation numbers will match those in $FREESURFER_HOME/FreeSurferColorLUT.txt (and so aparc+aseg.mgz). The numbering can also be altered with --segbase. If an input is used, it must be a surface ovelay with the same dimension as the parcellation. This functionality makes mri_segstats partially redundant with mris_anatomical_stats.</explanation>
       <argument>--slabel subject hemi label</argument>
       <explanation>Create a segmentation from the given surface label. The points in the label are given a value of 1; 0 for outside.</explanation>
+      <argument>--label-thresh threshold</argument>
+      <explanation>Select only those label points that have a stat value greater than threshold</explanation>
       <argument>--sum file</argument>
       <explanation>ASCII file in which summary statistics are saved. See SUMMARY FILE below for more information.</explanation>
     </required-flagged>

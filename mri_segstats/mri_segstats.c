@@ -12,8 +12,8 @@
  * Original Author: Dougas N Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2011/11/15 17:36:50 $
- *    $Revision: 1.78 $
+ *    $Date: 2011/11/21 16:44:38 $
+ *    $Revision: 1.79 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -113,7 +113,7 @@ int DumpStatSumTable(STATSUMENTRY *StatSumTable, int nsegid);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-  "$Id: mri_segstats.c,v 1.78 2011/11/15 17:36:50 greve Exp $";
+  "$Id: mri_segstats.c,v 1.79 2011/11/21 16:44:38 greve Exp $";
 char *Progname = NULL, *SUBJECTS_DIR = NULL, *FREESURFER_HOME=NULL;
 char *SegVolFile = NULL;
 char *InVolFile = NULL;
@@ -192,6 +192,8 @@ int  segbase = -1000;
 int DoSquare = 0;
 int DoSquareRoot = 0;
 char *LabelFile = NULL;
+double LabelThresh = 0;
+int UseLabelThresh = 0;
 
 int DoMultiply = 0;
 double MultVal = 0;
@@ -422,20 +424,15 @@ int main(int argc, char **argv)
   else
   {
     printf("Constructing seg from label\n");
+    if(UseLabelThresh) printf(" Label Threshold = %g\n",LabelThresh);
     label = LabelRead(NULL, LabelFile);
-    if(label == NULL)
-    {
-      exit(1);
-    }
+    if(label == NULL) exit(1);
     sprintf(tmpstr,"%s/%s/surf/%s.white",SUBJECTS_DIR,subject,hemi);
     mris = MRISread(tmpstr);
-    if (mris==NULL)
-    {
-      exit(1);
-    }
+    if (mris==NULL) exit(1);
     seg = MRIalloc(mris->nvertices,1,1,MRI_INT);
-    for (n = 0; n < label->n_points; n++)
-    {
+    for (n = 0; n < label->n_points; n++){
+      if(UseLabelThresh && label->lv[n].stat < LabelThresh) continue;
       MRIsetVoxVal(seg,label->lv[n].vno,0,0,0, 1);
     }
   }
@@ -1904,18 +1901,20 @@ static int parse_commandline(int argc, char **argv)
       annot   = pargv[2];
       nargsused = 3;
     }
-    else if (!strcmp(option, "--slabel"))
-    {
-      if (nargc < 3)
-      {
-        argnerr(option,1);
-      }
+    else if (!strcmp(option, "--slabel")) {
+      if(nargc < 3) argnerr(option,3);
       subject = pargv[0];
       hemi    = pargv[1];
       LabelFile = pargv[2];
       ExclSegId = 0;
       DoExclSegId = 1;
       nargsused = 3;
+    }
+    else if (!strcmp(option, "--label-thresh")) {
+      if(nargc < 1) argnerr(option,1);
+      sscanf(pargv[0],"%lf",&LabelThresh);
+      UseLabelThresh = 1;
+      nargsused = 1;
     }
     else if (!strcmp(option, "--segbase"))
     {
