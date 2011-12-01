@@ -9,8 +9,8 @@
 #
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2011/11/07 18:04:24 $
-#    $Revision: 1.553 $
+#    $Date: 2011/12/01 18:15:33 $
+#    $Revision: 1.554 $
 #
 ########################################################################
 AC_PREREQ(2.57)
@@ -2035,6 +2035,15 @@ if test "x$target_vendor" = "xapple" ; then
   QDEC_BUNDLE_TARGET="qdec_bundle"
 fi
 AC_SUBST(QDEC_BUNDLE_TARGET)
+
+# default is to NOT build scuba/scuba2, --enable-scuba enables building
+ac_build_scuba=no
+AC_ARG_ENABLE(scuba,
+ [  --enable-scuba          enable build of scuba and scuba2],
+ [ ac_build_scuba=yes
+   AC_MSG_NOTICE(Building scuba and scuba2)
+ ])
+AM_CONDITIONAL(BUILD_SCUBA, test "x$ac_build_scuba" = "xyes")
 
 
 ################################################################

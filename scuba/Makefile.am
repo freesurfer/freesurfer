@@ -2,6 +2,8 @@
 # Makefile.am for scuba
 #
 
+if BUILD_SCUBA
+
 if USE_LOCAL_TIFF
 TIFFCFLAGS=-I$(top_srcdir)/tiff
 LIBTIFF=$(top_builddir)/tiff/libtiff.a
@@ -365,3 +367,6 @@ endif
 # release' target.
 EXCLUDE_FILES=
 include $(top_srcdir)/Makefile.extra
+
+# BUILD_SCUBA:
+endif

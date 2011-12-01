@@ -1,3 +1,5 @@
+if BUILD_SCUBA
+
 AM_CPPFLAGS=-I$(top_srcdir)/include
 
 AM_CXXFLAGS=-Wno-deprecated -I$(top_srcdir)/include \
@@ -294,3 +296,6 @@ EXTRA_DIST=ScubaIcons.txt ScubaIcons.txt ScubaLibInit.data \
 # release' target.
 EXCLUDE_FILES=
 include $(top_srcdir)/Makefile.extra
+
+# BUILD_SCUBA
+endif
