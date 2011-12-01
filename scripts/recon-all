@@ -7,9 +7,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: nicks $
-#    $Date: 2011/11/11 21:04:23 $
-#    $Revision: 1.406 $
+#    $Author: mreuter $
+#    $Date: 2011/12/01 13:41:26 $
+#    $Revision: 1.407 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -26,7 +26,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.406 2011/11/11 21:04:23 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.407 2011/12/01 13:41:26 mreuter Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -918,10 +918,12 @@ if ($DoCreateBaseInput && $DoCreateBaseSubj) then
   set lta1forms=();
   set ltaAforms=();
   set headInVols=(); 
+  set rawInVols=();
   foreach s ($BaseSubjsList)
     if($RunIt) echo "${s}" >> ${BaseSubjsListFname};
     set normInVols = ($normInVols ${SUBJECTS_DIR}/${s}/mri/norm.mgz)
     set headInVols = ($headInVols ${SUBJECTS_DIR}/${s}/mri/T1.mgz)
+    set rawInVols = ($rawInVols ${SUBJECTS_DIR}/${s}/mri/rawavg.mgz)
     set subjInVols = ($subjInVols ${SUBJECTS_DIR}/${s}/mri/${BaseSubjInvol})
     set ltaname = ${s}_to_${subjid}.lta
     set ltaXforms = ($ltaXforms ${subjdir}/mri/transforms/${ltaname})
@@ -976,17 +978,31 @@ if ($DoCreateBaseInput && $DoCreateBaseSubj) then
     endif  
   endif
   
-  # create the 'mean/median' input volume:
+  # create the 'mean/median' input (orig) volume:
   set cmd = (mri_robust_template --mov ${subjInVols})
   set cmd = ($cmd --average ${robust_template_avg_arg})
   set cmd = ($cmd --ixforms ${ltaXforms})
   set cmd = ($cmd --noit)
-  set cmd = ($cmd --template ${subjdir}/mri/orig/001.mgz)
+  set cmd = ($cmd --template ${subjdir}/mri/orig.mgz)
   echo "\n $cmd \n" |& tee -a $LF |& tee -a $CF
   if($RunIt) then
     $fs_time $cmd |& tee -a $LF
     if($status) goto error_exit;
   endif
+  
+  # create the 'mean/median' rawavg volume
+  # (here we assume same RAS space for rawavg and orig)
+  set cmd = (mri_robust_template --mov ${rawInVols})
+  set cmd = ($cmd --average ${robust_template_avg_arg})
+  set cmd = ($cmd --ixforms ${ltaXforms})
+  set cmd = ($cmd --noit)
+  set cmd = ($cmd --template ${subjdir}/mri/rawavg.mgz)
+  echo "\n $cmd \n" |& tee -a $LF |& tee -a $CF
+  if($RunIt) then
+    $fs_time $cmd |& tee -a $LF
+    if($status) goto error_exit;
+  endif
+
   # now create the inverse transforms
   cd $subjdir/mri/transforms > /dev/null
   $PWD |& tee -a $LF
@@ -1028,12 +1044,22 @@ if($DoMotionCor) then
     # use orig/00?.mgz from cross:
     set CrossList = `ls ${SUBJECTS_DIR}/${tpNid}/mri/orig/[0-9][0-9][0-9].mgz`;
     set origvol = $subjdir/mri/orig.mgz
+    set rawvol  = $subjdir/mri/rawavg.mgz
 
     if($#CrossList == 1) then
       # if only single input, directly resample to base space
       set cmd = (mri_convert -at $tpNtobase_regfile -odt uchar)
+      set cmd = ($cmd -rt cubic)
       set cmd = ($cmd ${SUBJECTS_DIR}/${tpNid}/mri/orig/001.mgz)
       set cmd = ($cmd ${origvol})
+      echo "\n $cmd \n" |& tee -a $LF |& tee -a $CF
+      if($RunIt) $fs_time $cmd |& tee -a $LF
+      if($status) goto error_exit;
+      # also create rawavg (usually float) image
+      set cmd = (mri_convert -at $tpNtobase_regfile )
+      set cmd = ($cmd -rt cubic)
+      set cmd = ($cmd ${SUBJECTS_DIR}/${tpNid}/mri/orig/001.mgz)
+      set cmd = ($cmd ${rawvol})
       echo "\n $cmd \n" |& tee -a $LF |& tee -a $CF
       if($RunIt) $fs_time $cmd |& tee -a $LF
       if($status) goto error_exit;
@@ -1157,15 +1183,15 @@ if($DoMotionCor) then
       set cmd = ($cmd --iscalein ${LongIscales})
     endif
     set cmd = ($cmd --noit)
-    set cmd = ($cmd --template ${origvol})
+    set cmd = ($cmd --template ${rawvol})
     echo "\n $cmd \n" |& tee -a $LF |& tee -a $CF
     if($RunIt) then
       $fs_time $cmd |& tee -a $LF
       if($status) goto error_exit;
     endif
 
-    # make sure it is uchar:
-    set cmd = (mri_convert -odt uchar ${origvol} ${origvol})
+    # make sure orig is uchar:
+    set cmd = (mri_convert -odt uchar ${rawvol} ${origvol})
     echo "\n $cmd \n" |& tee -a $LF |& tee -a $CF
     if($RunIt) then
       $fs_time $cmd |& tee -a $LF
@@ -1176,6 +1202,14 @@ if($DoMotionCor) then
 
   endif #longitudinal
 
+  # base processing (we do not need to do anything,
+  #   as rawavg and orig should be there)
+  if ($DoCreateBaseSubj) then
+    set origvol = $subjdir/mri/orig.mgz
+    goto motioncor_post_process
+  endif
+  
+  
   # default processing:
   set cmd = ();
 
@@ -1292,6 +1326,7 @@ if($DoMotionCor) then
   # At this point, rawavg.mgz exists. Use it to create orig.mgz,
   # conform to COR FOV but keep mgz format.
   set cmd = (mri_convert $rawavg $origvol)
+  set cmd = ($cmd -rt cubic)
   if($ConformMin) then
     set cmd = ($cmd --conform_min)
   else
