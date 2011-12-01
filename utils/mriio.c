@@ -8,9 +8,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: mreuter $
- *    $Date: 2011/10/05 21:34:34 $
- *    $Revision: 1.395 $
+ *    $Author: lzollei $
+ *    $Date: 2011/12/01 22:02:14 $
+ *    $Revision: 1.396 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -282,7 +282,14 @@ int getSliceDirection(MRI *mri)
 {
   int direction = MRI_UNDEFINED;
 
-  if (isCloseToOne(mri->x_r) && 
+  if (!strcmp(MRIsliceDirectionName(mri),"coronal"))
+    direction = MRI_CORONAL;
+  else if (!strcmp(MRIsliceDirectionName(mri),"sagittal"))
+    direction = MRI_SAGITTAL;
+  else if (!strcmp(MRIsliceDirectionName(mri),"axial"))
+    direction = MRI_AXIAL;
+
+  /*  if (isCloseToOne(mri->x_r) && 
       isCloseToOne(mri->y_s) && 
       isCloseToOne(mri->z_a))
     direction = MRI_CORONAL;
@@ -293,7 +300,7 @@ int getSliceDirection(MRI *mri)
   else if (isCloseToOne(mri->x_r) && 
            isCloseToOne(mri->y_a) && 
            isCloseToOne( mri->z_s))
-    direction = MRI_HORIZONTAL;
+	   direction = MRI_HORIZONTAL;*/
   return direction;
 }
 
