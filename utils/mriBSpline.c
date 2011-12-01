@@ -15,8 +15,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2011/09/30 23:50:46 $
- *    $Revision: 1.8 $
+ *    $Date: 2011/12/01 12:50:51 $
+ *    $Revision: 1.9 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -2182,7 +2182,7 @@ LTAtransformBSpline(const MRI_BSPLINE *bspline, MRI *mri_dst, LTA *lta)
   MATRIX *r2i = 0;
   MATRIX *i2r = 0;
   MATRIX *tmp = 0;
-  MATRIX *v2v = 0;
+  //MATRIX *v2v = 0;
   MRI *resMRI = 0;
 
   if (lta->num_xforms == 1)
@@ -2218,6 +2218,10 @@ LTAtransformBSpline(const MRI_BSPLINE *bspline, MRI *mri_dst, LTA *lta)
     //  However, using v2v, you need the information from dst
     //  since
     //          src->dst'  = r2i(dst')* i2r(dst) * v2v
+    //
+    //  Similarly src geometry can be different, therefore we convert
+    //  any passed v2v lta into r2r first and apply it on possible different
+    //  image geometries src and dst.  
     //
     ////////////////////////////////////////////////////////////////////////
 
@@ -2289,7 +2293,46 @@ LTAtransformBSpline(const MRI_BSPLINE *bspline, MRI *mri_dst, LTA *lta)
     }
     else if (lta->type == LINEAR_VOX_TO_VOX)// vox-to-vox
     {
+      // convert to ras_to_ras using xforms from lta if available
+      // this strips geometry information and allows to use the 
+      // lta on volumes with different geometries
+      // if lta geomery information is missing (should not happen)
+      // we use the geometry from the passed source and target image
       if (lta->xforms[0].dst.valid)
+      {
+        i2r = vg_i_to_r(&lta->xforms[0].dst); // allocated
+      }
+      else
+      {
+        fprintf(stderr, "INFO: LTA dst geometry information missing!\n"
+                "      We assume that the dst volume passed is the\n"
+                "      same as the dst for the transform.\n");
+        i2r = extract_i_to_r(mri_dst);
+      }
+      tmp = MatrixMultiply(i2r,lta->xforms[0].m_L, NULL);
+      if (lta->xforms[0].src.valid)
+      {
+        r2i = vg_r_to_i(&lta->xforms[0].src); // allocated
+      }
+      else
+      {
+        fprintf(stderr, "INFO: LTA src geometry information missing!\n"
+                "      We assume that the src volume passed is the\n"
+                "      same as the src for the transform.\n");
+        r2i = extract_r_to_i(bspline->coeff);
+      }
+      tmp = MatrixMultiply(tmp,r2i,tmp);
+      
+      resMRI = MRIapplyRASlinearTransformBSpline(bspline,
+                                                mri_dst,
+                                                tmp);
+      MatrixFree(&i2r);
+      MatrixFree(&r2i);
+      MatrixFree(&tmp);
+      return resMRI;
+      
+      // old code only treated different dst not different src geometries
+      /*if (lta->xforms[0].dst.valid)
       {
         i2r = vg_i_to_r(&lta->xforms[0].dst); // allocated
         r2i = extract_r_to_i(mri_dst);
@@ -2312,7 +2355,7 @@ LTAtransformBSpline(const MRI_BSPLINE *bspline, MRI *mri_dst, LTA *lta)
                 "given is the same as the dst for the transform\n");
         return(MRIlinearTransformBSpline(bspline, mri_dst,
                                         lta->xforms[0].m_L)) ;
-      }
+      }*/
     }
     else if (lta->type == LINEAR_PHYSVOX_TO_PHYSVOX)
     {
