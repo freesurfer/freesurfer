@@ -9,8 +9,8 @@
 #
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2011/10/31 19:45:29 $
-#    $Revision: 1.519.2.20 $
+#    $Date: 2011/12/01 18:39:11 $
+#    $Revision: 1.519.2.21 $
 #
 ########################################################################
 AC_PREREQ(2.57)
@@ -579,7 +579,7 @@ AM_CONDITIONAL(HAVE_MAC_OSX, test "x$OS" = "xDarwin" )
 LIB_GFORTRAN=""
 # but the Mac doesnt need libgfortran!  furthermore, its not installed
 # by default, so dont use it on the Mac!
-# NOTE! OS is was just defined, so dont move this section
+# NOTE! OS was just defined, so dont move this section
 if test ! "$OS" = "Darwin"; then
   AC_CHECK_LIB([gfortran], [_gfortran_compare_string],\
                            [LIB_GFORTRAN="-lgfortran"],[])
@@ -626,6 +626,33 @@ AC_ARG_ENABLE(openmp,
  ])
 AM_CONDITIONAL(HAVE_OPENMP, test "x$ac_have_openmp" = "xyes")
 
+##############################################################
+# OpenCV
+##############################################################
+AC_ARG_WITH([opencv],
+   [  --with-opencv=PATH         prefix where opencv is installed])
+
+use_opencv="no"
+if test -n "$with_opencv"; then
+  OPENCV_DIR="$with_opencv"
+else
+  if test -e /usr/pubsw/packages/opencv/current ; then
+    OPENCV_DIR="/usr/pubsw/packages/opencv/current"
+  fi
+fi
+if( test ! "x$OPENCV_DIR" = "xno" ) then
+  use_opencv="yes"
+  LIB_OPENCV=""
+  OPENCV_CXXFLAGS="-I$OPENCV_DIR/include"
+  OPENCV_LIBS="-L$OPENCV_DIR/lib -lm -lopencv_core -lopencv_imgproc -lopencv_highgui -lopencv_ml"
+fi
+
+AC_SUBST(OPENCV_CXXFLAGS)
+AC_SUBST(OPENCV_LIBS)
+AC_SUBST(OPENCV_DIR)
+
+# if --without-opencv was specified, disable opencv build
+AM_CONDITIONAL(BUILDOPENCV, test x$use_opencv = xyes)
 
 ##############################################################
 # OPENCL enabling - added by Dan Ginsburg
@@ -2011,6 +2038,15 @@ if test "x$target_vendor" = "xapple" ; then
 fi
 AC_SUBST(QDEC_BUNDLE_TARGET)
 
+# default is to NOT build scuba/scuba2, --enable-scuba enables building
+ac_build_scuba=no
+AC_ARG_ENABLE(scuba,
+ [  --enable-scuba          enable build of scuba and scuba2],
+ [ ac_build_scuba=yes
+   AC_MSG_NOTICE(Building scuba and scuba2)
+ ])
+AM_CONDITIONAL(BUILD_SCUBA, test "x$ac_build_scuba" = "xyes")
+
 
 ################################################################
 # CPPUNIT
@@ -2887,8 +2923,8 @@ else
     AC_SUBST(BOOST_LIBS)
     AC_MSG_RESULT([found '$BOOST_PO_LIB'])
     AM_CONDITIONAL(HAVE_BOOST_LIBS, ! test "x$BOOST_PO_LIB" = "xNO")
-  else
-     if test -e /usr/lib64/libboost_program_options.so ; then
+  else 
+    if test -e /usr/lib64/libboost_program_options.so ; then
       # note: centos 6 doesnt have the .a lib, so the shared is used instead
       BOOST_PO_LIB=-lboost_program_options
       BOOST_LIB=/usr/lib64
