@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: jonp $
- *    $Date: 2011/11/15 01:00:13 $
- *    $Revision: 1.702 $
+ *    $Author: greve $
+ *    $Date: 2011/12/02 16:56:31 $
+ *    $Revision: 1.703 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -735,7 +735,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void)
 {
-  return("$Id: mrisurf.c,v 1.702 2011/11/15 01:00:13 jonp Exp $");
+  return("$Id: mrisurf.c,v 1.703 2011/12/02 16:56:31 greve Exp $");
 }
 
 /*-----------------------------------------------------
@@ -66043,11 +66043,8 @@ double MRIScomputeWhiteVolume(MRI_SURFACE *mris, MRI *mri_aseg, double resolutio
   VECTOR *v1, *v2 ;
   double   val ;
 
+  // Create a volume with everything inside the surface set to 1
   mri_filled = MRISfillInterior(mris, resolution, NULL) ;
-  // This cras adjustment is now done in MRISfillInterior() DNG 7/8/08
-  //mri_filled->c_r += mri_aseg->c_r ;
-  //mri_filled->c_a += mri_aseg->c_a ;
-  //mri_filled->c_s += mri_aseg->c_s ;
   if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
     MRIwrite(mri_filled, "f.mgz") ;
   m_vox2vox = MRIgetVoxelToVoxelXform(mri_filled, mri_aseg) ;
@@ -66055,17 +66052,15 @@ double MRIScomputeWhiteVolume(MRI_SURFACE *mris, MRI *mri_aseg, double resolutio
   VECTOR_ELT(v1, 4) = 1.0 ; VECTOR_ELT(v2, 4) = 1.0 ;
   vox_volume = mri_filled->xsize * mri_filled->ysize * mri_filled->zsize ;
 
-  for (x = 0 ; x < mri_filled->width ; x++)
-  {
+  for (x = 0 ; x < mri_filled->width ; x++) {
     V3_X(v1) = x ;
-    for (y = 0 ; y < mri_filled->height ; y++)
-    {
+    for (y = 0 ; y < mri_filled->height ; y++) {
       V3_Y(v1) = y ;
-      for (z = 0 ; z < mri_filled->depth ; z++)
-      {
+      for (z = 0 ; z < mri_filled->depth ; z++) {
+	// Exclude voxel if not inside the surface
         val = MRIgetVoxVal(mri_filled, x, y, z, 0) ;
-        if (FZERO(val))
-          continue ;
+        if (FZERO(val)) continue ;
+
         if (x == Gx && y == Gy && z == Gz)
           DiagBreak() ;
         V3_Z(v1) = z ;
@@ -66084,6 +66079,7 @@ double MRIScomputeWhiteVolume(MRI_SURFACE *mris, MRI *mri_aseg, double resolutio
           DiagBreak() ;
         switch (label)
         {
+        // Note: {Left,Right}_Cerebral_Cortex are here to catch voxels on the edge
         case Left_Cerebral_Cortex:
         case Right_Cerebral_Cortex:
         case Left_Cerebral_White_Matter:
