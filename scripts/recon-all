@@ -7,9 +7,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: mreuter $
-#    $Date: 2011/12/01 13:41:26 $
-#    $Revision: 1.407 $
+#    $Author: nicks $
+#    $Date: 2011/12/02 00:14:23 $
+#    $Revision: 1.408 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -26,7 +26,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.407 2011/12/01 13:41:26 mreuter Exp $';
+set VERSION = '$Id: recon-all,v 1.408 2011/12/02 00:14:23 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -6049,6 +6049,7 @@ Run times are approximate for an AMD Opteron 64bit 2.5GHz processor:
   -<no>gcareg             8 min
   -<no>canorm             1 min
   -<no>careg             10 hours
+  -<no>careginv           1 min
   -<no>rmneck             3 min
   -<no>skull-lta          9 min
   -<no>calabel           30 min
