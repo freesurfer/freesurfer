@@ -277,6 +277,8 @@
     <addaction name="actionSavePointSet"/>
     <addaction name="actionSavePointSetAs"/>
     <addaction name="separator"/>
+    <addaction name="actionLoadTrack"/>
+    <addaction name="separator"/>
     <addaction name="actionSaveScreenshot"/>
     <addaction name="actionSaveMovieFrames"/>
     <addaction name="separator"/>

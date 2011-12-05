@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2011/11/14 16:30:24 $
- *    $Revision: 1.5 $
+ *    $Date: 2011/12/05 20:03:33 $
+ *    $Revision: 1.6 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -25,11 +25,15 @@
 #define LAYERTRACK_H
 
 #include "Layer.h"
+#include <QColor>
 
 class FSTrack;
 class LayerMRI;
 class vtkActor;
+class vtkPoints;
+class vtkCellArray;
 class LayerPropertyTrack;
+class vtkUnsignedCharArray;
 
 class LayerTrack : public Layer
 {
@@ -53,14 +57,20 @@ public:
     return (LayerPropertyTrack*)mProperty;
   }
 
+  virtual void SetVisible( bool bVisible = true );
+
 signals:
   void Progress(int n);
 
 public slots:
   void RebuildActors();
+  void UpdateColor(bool emitSignal = true);
 
 protected:
   virtual void OnSlicePositionChanged(int nPlane);
+
+  vtkActor* ConstructActor(vtkPoints* points, vtkCellArray* lines, vtkUnsignedCharArray* scalars);
+  void VectorToColor(float* pt1, float* pt2, float* c_out, int nMappingType);
 
   FSTrack*    m_trackData;
   LayerMRI*   m_layerMRIRef;

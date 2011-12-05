@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2011/11/14 16:30:23 $
- *    $Revision: 1.5 $
+ *    $Date: 2011/12/05 20:03:33 $
+ *    $Revision: 1.6 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -65,13 +65,53 @@ bool FSTrack::LoadFromFile(const QString &filename, const QString &ref_fn)
   {
     for (int j = 0; j < m_tracks[i].nNum; j++)
     {
-      pt[0] = m_tracks[i].fPts[j*3];
-      pt[1] = m_tracks[i].fPts[j*3+1];
-      pt[2] = m_tracks[i].fPts[j*3+2];
-      vtkMatrix4x4::MultiplyPoint(mat, pt, m_tracks[i].fPts + j*3);
+      pt[0] = m_tracks[i].fPts[j*3]/m_dVoxelSize[0];
+      pt[1] = m_tracks[i].fPts[j*3+1]/m_dVoxelSize[1];
+      pt[2] = m_tracks[i].fPts[j*3+2]/m_dVoxelSize[2];
+      vtkMatrix4x4::MultiplyPoint(mat, pt, pt);
+      m_tracks[i].fPts[j*3]   = pt[0];
+      m_tracks[i].fPts[j*3+1] = pt[1];
+      m_tracks[i].fPts[j*3+2] = pt[2];
       if (m_volumeRef)
         m_volumeRef->RASToTarget(m_tracks[i].fPts + j*3, m_tracks[i].fPts + j*3);
     }
   }
+
+  m_dRASBounds[0] = m_dRASBounds[2] = m_dRASBounds[4] = 1e10;
+  m_dRASBounds[1] = m_dRASBounds[3] = m_dRASBounds[5] = -1e10;
+  for (int i = 0; i <=1; i++)
+  {
+    for (int j = 0; j <= 1; j++)
+    {
+      for (int k = 0; k <= 1; k++)
+      {
+        pt[0] = i*m_nDim[0];
+        pt[1] = j*m_nDim[1];
+        pt[2] = k*m_nDim[2];
+        vtkMatrix4x4::MultiplyPoint(mat, pt, pt);
+        if (pt[0] < m_dRASBounds[0])
+          m_dRASBounds[0] = pt[0];
+        else if (pt[0] > m_dRASBounds[1])
+          m_dRASBounds[1] = pt[0];
+
+        if (pt[1] < m_dRASBounds[2])
+          m_dRASBounds[2] = pt[1];
+        else if (pt[1] > m_dRASBounds[3])
+          m_dRASBounds[3] = pt[1];
+
+        if (pt[2] < m_dRASBounds[4])
+          m_dRASBounds[4] = pt[2];
+        else if (pt[2] > m_dRASBounds[5])
+          m_dRASBounds[5] = pt[2];
+      }
+    }
+  }
+
   return true;
+}
+
+void FSTrack::GetRASBounds(double bounds[])
+{
+  for (int i = 0; i < 6; i++)
+    bounds[i] = m_dRASBounds[i];
 }

@@ -6,9 +6,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/14 23:44:48 $
- *    $Revision: 1.4 $
+ *    $Author: rpwang $
+ *    $Date: 2011/12/05 20:03:33 $
+ *    $Revision: 1.5 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -25,6 +25,7 @@
 #define PANELTRACK_H
 
 #include "PanelLayer.h"
+#include <QList>
 
 namespace Ui
 {
@@ -46,6 +47,9 @@ protected:
 
 private:
   Ui::PanelTrack *ui;
+
+  QList<QWidget*> m_widgetlistDirectionalColor;
+  QList<QWidget*> m_widgetlistSolidColor;
 };
 
 #endif // PANELTRACK_H

@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2011/10/24 18:49:40 $
- *    $Revision: 1.64 $
+ *    $Date: 2011/12/05 20:03:33 $
+ *    $Revision: 1.65 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -64,6 +64,9 @@
 
 RenderView3D::RenderView3D( QWidget* parent ) : RenderView( parent )
 {
+  this->GetRenderWindow()->GetInteractor()->SetDesiredUpdateRate(30);
+  this->GetRenderWindow()->GetInteractor()->SetStillUpdateRate(0.01);
+
   vtkCellPicker* picker = vtkCellPicker::New();
   picker->SetTolerance( 0.0005 );
   picker->PickFromListOn();
@@ -265,6 +268,7 @@ void RenderView3D::RefreshAllActors(bool bForScreenShot)
   mainwnd->GetLayerCollection( "ROI" )->Append3DProps( m_renderer, b );
   mainwnd->GetLayerCollection( "Surface" )->Append3DProps( m_renderer, b );
   mainwnd->GetLayerCollection( "PointSet" )->Append3DProps( m_renderer, b );
+  mainwnd->GetLayerCollection( "Track" )->Append3DProps( m_renderer, b );
   mainwnd->GetLayerCollection( "Supplement" )->Append3DProps( m_renderer, b );
 
   if (!mainwnd->IsEmpty())

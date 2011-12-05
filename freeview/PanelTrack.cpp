@@ -6,9 +6,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/14 23:44:48 $
- *    $Revision: 1.4 $
+ *    $Author: rpwang $
+ *    $Date: 2011/12/05 20:03:33 $
+ *    $Revision: 1.5 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -28,6 +28,7 @@
 #include "LayerTrack.h"
 #include "MyUtils.h"
 #include "LayerCollection.h"
+#include "LayerPropertyTrack.h"
 
 PanelTrack::PanelTrack(QWidget *parent) :
   PanelLayer(parent),
@@ -43,6 +44,13 @@ PanelTrack::PanelTrack(QWidget *parent) :
 
   LayerCollection* lc = mainwnd->GetLayerCollection("Track");
   PanelLayer::InitializeLayerList( ui->treeWidgetLayers, lc );
+
+  m_widgetlistDirectionalColor << ui->labelDirectionScheme
+                                << ui->comboBoxDirectionScheme
+                                << ui->labelDirectionMapping
+                                << ui->comboBoxDirectionMapping;
+  m_widgetlistSolidColor << ui->labelSolidColor
+                          << ui->colorPickerSolidColor;
 }
 
 PanelTrack::~PanelTrack()
@@ -59,6 +67,13 @@ void PanelTrack::ConnectLayer(Layer *layer_in)
   {
     return;
   }
+  LayerPropertyTrack* p = layer->GetProperty();
+  connect(p, SIGNAL(PropertyChanged()), this, SLOT(UpdateWidgets()), Qt::UniqueConnection );
+  connect(ui->comboBoxColorCode, SIGNAL(currentIndexChanged(int)), p, SLOT(SetColorCode(int)) );
+  connect(ui->comboBoxDirectionScheme, SIGNAL(currentIndexChanged(int)), p, SLOT(SetDirectionScheme(int)));
+  connect(ui->comboBoxDirectionMapping, SIGNAL(currentIndexChanged(int)), p, SLOT(SetDirectionMapping(int)));
+  connect(ui->colorPickerSolidColor, SIGNAL(colorChanged(QColor)), p, SLOT(SetSolidColor(QColor)));
+  connect(ui->comboBoxRenderRep, SIGNAL(currentIndexChanged(int)), p, SLOT(SetRenderRep(int)));
 }
 
 void PanelTrack::DoUpdateWidgets()
@@ -88,7 +103,14 @@ void PanelTrack::DoUpdateWidgets()
   {
     ui->lineEditFileName->setText( MyUtils::Win32PathProof(layer->GetFileName()) );
     ui->lineEditFileName->setCursorPosition( ui->lineEditFileName->text().size() );
+    ui->comboBoxColorCode->setCurrentIndex(layer->GetProperty()->GetColorCode());
+    ui->comboBoxDirectionMapping->setCurrentIndex(layer->GetProperty()->GetDirectionMapping());
+    ui->comboBoxDirectionScheme->setCurrentIndex(layer->GetProperty()->GetDirectionScheme());
+    ui->colorPickerSolidColor->setCurrentColor(layer->GetProperty()->GetSolidColor());
+    ui->comboBoxRenderRep->setCurrentIndex(layer->GetProperty()->GetRenderRep());
   }
+  ShowWidgets(m_widgetlistDirectionalColor, layer && layer->GetProperty()->GetColorCode() == LayerPropertyTrack::Directional);
+  ShowWidgets(m_widgetlistSolidColor, layer && layer->GetProperty()->GetColorCode() == LayerPropertyTrack::SolidColor);
   ui->labelFileName->setEnabled( layer );
   ui->lineEditFileName->setEnabled( layer );
 

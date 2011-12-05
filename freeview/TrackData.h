@@ -6,9 +6,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/14 23:44:48 $
- *    $Revision: 1.4 $
+ *    $Author: rpwang $
+ *    $Date: 2011/12/05 20:03:33 $
+ *    $Revision: 1.5 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -31,6 +31,8 @@
 
 class TrackData : public QObject
 {
+  friend class LayerTrack;
+
   Q_OBJECT
 public:
   TrackData(QObject *parent = 0);

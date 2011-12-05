@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2011/10/27 19:05:22 $
- *    $Revision: 1.193 $
+ *    $Date: 2011/12/05 20:03:33 $
+ *    $Revision: 1.194 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -119,7 +119,7 @@ MainWindow::MainWindow( QWidget *parent, MyCmdLineParser* cmdParser ) :
 
   ui->setupUi(this);
 #ifndef DEVELOPMENT
-  ui->tabWidgetControlPanel->removeTab(ui->tabWidgetControlPanel->indexOf(ui->tabTrack));
+//  ui->tabWidgetControlPanel->removeTab(ui->tabWidgetControlPanel->indexOf(ui->tabTrack));
 #endif
 
   this->addAction(ui->actionIncreaseOpacity);
@@ -751,10 +751,10 @@ bool MainWindow::DoParseCommand(bool bAutoQuit)
     }
   }
 
-  nRepeats = m_cmdParser->GetNumberOfRepeats( "track" );
+  nRepeats = m_cmdParser->GetNumberOfRepeats( "t" );
   for ( int n = 0; n < nRepeats; n++ )
   {
-    m_cmdParser->Found( "track", &sa, n );
+    m_cmdParser->Found( "t", &sa, n );
     for (int i = 0; i < sa.size(); i++ )
     {
       this->AddScript( QString("loadtrack ") + sa[i] );
@@ -1001,6 +1001,7 @@ void MainWindow::OnIdle()
   LayerSurface* layerSurface  = (LayerSurface*)GetActiveLayer( "Surface");
   LayerROI* layerROI  = (LayerROI*)GetActiveLayer( "ROI");
   LayerPointSet* layerPointSet  = (LayerPointSet*)GetActiveLayer( "PointSet");
+  LayerTrack* layerTrack  = (LayerTrack*)GetActiveLayer( "Track");
   LayerCollection* lc = GetCurrentLayerCollection();
   bool bHasLayer = !IsEmpty();
   ui->actionVoxelEdit       ->setEnabled( layerVolume && layerVolume->IsEditable() );
@@ -1012,7 +1013,8 @@ void MainWindow::OnIdle()
   ui->actionClosePointSet   ->setEnabled( !bBusy && layerPointSet );
   ui->actionCloseROI        ->setEnabled( !bBusy && layerROI );
   ui->actionCloseSurface    ->setEnabled( !bBusy && layerSurface );
-  ui->actionCloseVolume     ->setEnabled( !bBusy && layerVolume );
+  ui->actionCloseVolume     ->setEnabled( !bBusy && layerVolume ); 
+  ui->actionCloseTrack      ->setEnabled( !bBusy && layerTrack );
   ui->actionCreateOptimalCombinedVolume->setEnabled( GetLayerCollection("MRI")->GetNumberOfLayers() > 1 );
   ui->actionCycleLayer      ->setEnabled( lc && lc->GetNumberOfLayers() > 1 );
   ui->actionReverseCycleLayer      ->setEnabled( lc && lc->GetNumberOfLayers() > 1 );
@@ -3293,9 +3295,12 @@ void MainWindow::LoadVolumeFile( const QString& filename,
 {
   QFileInfo fi(filename);
   bool bResample = bResample_in;
-  if ( GetLayerCollection( "MRI")->IsEmpty() && !GetLayerCollection( "Surface" )->IsEmpty() )
+  if ( GetLayerCollection( "MRI")->IsEmpty())
   {
-    bResample = true;
+    if (!GetLayerCollection( "Surface" )->IsEmpty() || !GetLayerCollection("Track")->IsEmpty())
+    {
+      bResample = true;
+    }
   }
 
   m_bResampleToRAS = bResample;
@@ -3885,7 +3890,7 @@ void MainWindow::OnLoadTrack()
 void MainWindow::LoadTrackFile(const QString &fn)
 {
   LayerTrack* layer = new LayerTrack( m_layerVolumeRef );
-  layer->SetFileName( fn );
+  layer->SetFileName( QFileInfo(fn).absoluteFilePath() );
   m_threadIOWorker->LoadTrack( layer );
 }
 
@@ -4081,6 +4086,17 @@ void MainWindow::OnIOFinished( Layer* layer, int jobtype )
     lc_track->AddLayer( track );
     m_strLastDir = QFileInfo( layer->GetFileName() ).canonicalPath();
 //    ui->tabWidgetControlPanel->setCurrentWidget( ui->tabTrack );
+    if (lc_surface->IsEmpty() && lc_mri->IsEmpty())
+    {
+      double worigin[3], wsize[3];
+      track->GetWorldOrigin( worigin );
+      track->GetWorldSize( wsize );
+      for ( int i = 0; i < 4; i++ )
+      {
+        m_views[i]->SetWorldCoordinateInfo( worigin, wsize, true );
+      }
+      m_views[3]->ResetCameraClippingRange();
+    }
   }
   m_bProcessing = false;
 
