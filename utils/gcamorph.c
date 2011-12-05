@@ -11,8 +11,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: lzollei $
- *    $Date: 2011/11/07 13:16:45 $
- *    $Revision: 1.257 $
+ *    $Date: 2011/12/05 19:46:42 $
+ *    $Revision: 1.258 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -321,7 +321,7 @@ static int Galigned = 0 ;
 #define MIN_NODE_DIST    (1)
 #define MIN_NODE_DIST_SQ (MIN_NODE_DIST*MIN_NODE_DIST)
 
-void GCAMwriteGeom( const GCA_MORPH *gcam, FILE *fp )
+/*void GCAMwriteGeom( const GCA_MORPH *gcam, FILE *fp )
 {
   char buf[512];
 
@@ -371,9 +371,61 @@ void GCAMwriteGeom( const GCA_MORPH *gcam, FILE *fp )
   memset(buf, 0, 512*sizeof(char));
   strcpy(buf, gcam->atlas.fname);
   fwrite(buf, sizeof(char), 512, fp);
+}*/
+
+void GCAMwriteGeom( const GCA_MORPH *gcam, znzFile file )
+{
+  char buf[512];
+
+  // src volume info
+  znzwriteInt(gcam->image.valid, file);
+  znzwriteInt(gcam->image.width, file);
+  znzwriteInt(gcam->image.height, file);
+  znzwriteInt(gcam->image.depth, file);
+  znzwriteFloat(gcam->image.xsize, file) ;
+  znzwriteFloat(gcam->image.ysize, file) ;
+  znzwriteFloat(gcam->image.zsize, file) ;
+  znzwriteFloat(gcam->image.x_r, file) ;
+  znzwriteFloat(gcam->image.x_a, file) ;
+  znzwriteFloat(gcam->image.x_s, file) ;
+  znzwriteFloat(gcam->image.y_r, file) ;
+  znzwriteFloat(gcam->image.y_a, file) ;
+  znzwriteFloat(gcam->image.y_s, file) ;
+  znzwriteFloat(gcam->image.z_r, file) ;
+  znzwriteFloat(gcam->image.z_a, file) ;
+  znzwriteFloat(gcam->image.z_s, file) ;
+  znzwriteFloat(gcam->image.c_r, file) ;
+  znzwriteFloat(gcam->image.c_a, file) ;
+  znzwriteFloat(gcam->image.c_s, file) ;
+  memset(buf, 0, 512*sizeof(char));
+  strcpy(buf, gcam->image.fname);
+  znzwrite(buf, sizeof(char), 512, file);
+  // dst volume info
+  znzwriteInt(gcam->atlas.valid, file);
+  znzwriteInt(gcam->atlas.width, file);
+  znzwriteInt(gcam->atlas.height, file);
+  znzwriteInt(gcam->atlas.depth, file);
+  znzwriteFloat(gcam->atlas.xsize, file) ;
+  znzwriteFloat(gcam->atlas.ysize, file) ;
+  znzwriteFloat(gcam->atlas.zsize, file) ;
+  znzwriteFloat(gcam->atlas.x_r, file) ;
+  znzwriteFloat(gcam->atlas.x_a, file) ;
+  znzwriteFloat(gcam->atlas.x_s, file) ;
+  znzwriteFloat(gcam->atlas.y_r, file) ;
+  znzwriteFloat(gcam->atlas.y_a, file) ;
+  znzwriteFloat(gcam->atlas.y_s, file) ;
+  znzwriteFloat(gcam->atlas.z_r, file) ;
+  znzwriteFloat(gcam->atlas.z_a, file) ;
+  znzwriteFloat(gcam->atlas.z_s, file) ;
+  znzwriteFloat(gcam->atlas.c_r, file) ;
+  znzwriteFloat(gcam->atlas.c_a, file) ;
+  znzwriteFloat(gcam->atlas.c_s, file) ;
+  memset(buf, 0, 512*sizeof(char));
+  strcpy(buf, gcam->atlas.fname);
+  znzwrite(buf, sizeof(char), 512, file);
 }
 
-void GCAMreadGeom(GCA_MORPH *gcam, FILE *fp)
+/*void GCAMreadGeom(GCA_MORPH *gcam, FILE *fp)
 {
   // src volume info
   gcam->image.valid = freadInt(fp);
@@ -419,12 +471,61 @@ void GCAMreadGeom(GCA_MORPH *gcam, FILE *fp)
   gcam->atlas.c_s = freadFloat(fp) ;
   memset(gcam->atlas.fname, 0, 512*sizeof(char));
   fread(gcam->atlas.fname, sizeof(char), 512, fp);
+  }*/
+
+void GCAMreadGeom(GCA_MORPH *gcam, znzFile file)
+{
+  // src volume info
+  gcam->image.valid = znzreadInt(file);
+  gcam->image.width = znzreadInt(file);
+  gcam->image.height = znzreadInt(file);
+  gcam->image.depth = znzreadInt(file);
+  gcam->image.xsize = znzreadFloat(file) ;
+  gcam->image.ysize = znzreadFloat(file) ;
+  gcam->image.zsize = znzreadFloat(file) ;
+  gcam->image.x_r = znzreadFloat(file) ;
+  gcam->image.x_a = znzreadFloat(file) ;
+  gcam->image.x_s = znzreadFloat(file) ;
+  gcam->image.y_r = znzreadFloat(file) ;
+  gcam->image.y_a = znzreadFloat(file) ;
+  gcam->image.y_s = znzreadFloat(file) ;
+  gcam->image.z_r = znzreadFloat(file) ;
+  gcam->image.z_a = znzreadFloat(file) ;
+  gcam->image.z_s = znzreadFloat(file) ;
+  gcam->image.c_r = znzreadFloat(file) ;
+  gcam->image.c_a = znzreadFloat(file) ;
+  gcam->image.c_s = znzreadFloat(file) ;
+  memset(gcam->image.fname, 0, 512*sizeof(char));
+  znzread(gcam->image.fname, sizeof(char), 512, file);
+  // dst volume info
+  gcam->atlas.valid = znzreadInt(file);
+  gcam->atlas.width = znzreadInt(file);
+  gcam->atlas.height = znzreadInt(file);
+  gcam->atlas.depth = znzreadInt(file);
+  gcam->atlas.xsize = znzreadFloat(file) ;
+  gcam->atlas.ysize = znzreadFloat(file) ;
+  gcam->atlas.zsize = znzreadFloat(file) ;
+  gcam->atlas.x_r = znzreadFloat(file) ;
+  gcam->atlas.x_a = znzreadFloat(file) ;
+  gcam->atlas.x_s = znzreadFloat(file) ;
+  gcam->atlas.y_r = znzreadFloat(file) ;
+  gcam->atlas.y_a = znzreadFloat(file) ;
+  gcam->atlas.y_s = znzreadFloat(file) ;
+  gcam->atlas.z_r = znzreadFloat(file) ;
+  gcam->atlas.z_a = znzreadFloat(file) ;
+  gcam->atlas.z_s = znzreadFloat(file) ;
+  gcam->atlas.c_r = znzreadFloat(file) ;
+  gcam->atlas.c_a = znzreadFloat(file) ;
+  gcam->atlas.c_s = znzreadFloat(file) ;
+  memset(gcam->atlas.fname, 0, 512*sizeof(char));
+  znzread(gcam->atlas.fname, sizeof(char), 512, file);
 }
 
-// declare function pointer
-static int (*myclose)(FILE *stream);
 
-int
+// declare function pointer
+//static int (*myclose)(FILE *stream);
+
+/*int
 GCAMwrite( const GCA_MORPH *gcam, const char *fname )
 {
   FILE            *fp=0 ;
@@ -528,6 +629,88 @@ GCAMwrite( const GCA_MORPH *gcam, const char *fname )
 
   // fclose(fp) ;
   myclose(fp);
+
+  return(NO_ERROR) ;
+}*/
+
+int
+GCAMwrite( const GCA_MORPH *gcam, const char *fname )
+{
+  znzFile         file;
+  //FILE            *fp=0 ;
+  int             x, y, z ;
+  GCA_MORPH_NODE  *gcamn ;
+  int gzipped = 0;
+
+  printf("GCAMwrite\n");
+
+  if (strstr(fname, ".m3z"))
+  {
+    //    printf("GCAMwrite:: m3z loop\n");
+    gzipped = 1;
+  }
+
+  file = znzopen(fname, "wb", gzipped) ;
+  if (znz_isnull(file))
+    {
+      errno = 0;
+      ErrorReturn(ERROR_BADPARM,(ERROR_BADPARM,"GCAMwrite(%s): could not open file",fname)) ;
+    }
+  
+  znzwriteFloat(GCAM_VERSION, file) ;
+  znzwriteInt(gcam->width, file) ;
+  znzwriteInt(gcam->height, file) ;
+  znzwriteInt(gcam->depth, file) ;
+  znzwriteInt(gcam->spacing, file) ;
+  znzwriteFloat(gcam->exp_k, file) ;
+
+  for (x = 0 ; x < gcam->width ; x++)
+  {
+    for (y = 0 ; y < gcam->height ; y++)
+    {
+      for (z = 0 ; z < gcam->depth ; z++)
+      {
+        gcamn = &gcam->nodes[x][y][z] ;
+        znzwriteFloat(gcamn->origx, file) ;
+        znzwriteFloat(gcamn->origy, file) ;
+        znzwriteFloat(gcamn->origz, file) ;
+
+        znzwriteFloat(gcamn->x, file) ;
+        znzwriteFloat(gcamn->y, file) ;
+        znzwriteFloat(gcamn->z, file) ;
+
+        znzwriteInt(gcamn->xn, file) ;
+        znzwriteInt(gcamn->yn, file) ;
+        znzwriteInt(gcamn->zn, file) ;
+      }
+    }
+  }
+  znzwriteInt(TAG_GCAMORPH_GEOM, file);
+  GCAMwriteGeom(gcam, file);
+
+  znzwriteInt(TAG_GCAMORPH_TYPE, file) ;
+  znzwriteInt(gcam->type, file) ;
+
+  znzwriteInt(TAG_GCAMORPH_LABELS, file) ;
+  for (x = 0 ; x < gcam->width ; x++)
+  {
+    for (y = 0 ; y < gcam->height ; y++)
+    {
+      for (z = 0 ; z < gcam->depth ; z++)
+      {
+        gcamn = &gcam->nodes[x][y][z] ;
+        znzwriteInt(gcamn->label, file) ;
+      }
+    }
+  }
+  if (gcam->m_affine)
+  {
+    znzwriteInt(TAG_MGH_XFORM, file) ;
+    //MatrixAsciiWriteInto(file, gcam->m_affine) ;
+    znzWriteMatrix(file, gcam->m_affine);
+  }
+
+  znzclose(file);
 
   return(NO_ERROR) ;
 }
@@ -1179,8 +1362,8 @@ GCAMregister(GCA_MORPH *gcam, MRI *mri, GCA_MORPH_PARMS *parms)
   return(NO_ERROR) ;
 }
 
-GCA_MORPH *
-GCAMread(const char *fname)
+/*GCA_MORPH *
+  GCAMread(const char *fname)
 {
   GCA_MORPH       *gcam ;
   FILE            *fp ;
@@ -1211,23 +1394,23 @@ GCAMread(const char *fname)
     printf("%s\n",command);
     fp = popen(command, "r");
     if (errno)
-    {
+     {
       pclose(fp);
-      errno = 0;
-      ErrorReturn(NULL, (ERROR_BADPARM,
-                         "GCAMread: encountered error executing: '%s'",
-                         command)) ;
-    }
-  }
+       errno = 0;
+       ErrorReturn(NULL, (ERROR_BADPARM,
+                          "GCAMread: encountered error executing: '%s'",
+                          command)) ;
+    } 
+  } 
   else
-  {
-    myclose=fclose;
+  { 
+     myclose=fclose;
     fp = fopen(fname, "rb") ;
-  }
+  } 
   if (!fp)
-    ErrorReturn(NULL, (ERROR_BADPARM, "GCAMread(%s): could not open file",
-                       fname)) ;
-
+     ErrorReturn(NULL, (ERROR_BADPARM, "GCAMread(%s): could not open file",
+                        fname)) ;
+ 
   version = freadFloat(fp) ;
   if (version != GCAM_VERSION)
   {
@@ -1326,6 +1509,135 @@ GCAMread(const char *fname)
   }
   // fclose(fp) ;
   myclose(fp);
+
+  GCAMcomputeOriginalProperties(gcam) ;
+  gcamComputeMetricProperties(gcam) ;
+  GCAMcopyNodePositions(gcam, ORIGINAL_POSITIONS, SAVED_ORIGINAL_POSITIONS) ;
+  return(gcam) ;
+}*/
+
+GCA_MORPH *
+GCAMread(const char *fname)
+{
+  GCA_MORPH       *gcam ;
+  //  FILE            *fp ;
+  znzFile file;
+  int             x, y, z, width, height, depth ;
+  GCA_MORPH_NODE  *gcamn ;
+  float           version ;
+  int             tag;
+  int gzipped = 0;
+
+  if (!fio_FileExistsReadable(fname))
+    {
+      printf("ERROR: cannot find or read %s\n",fname);
+      return(NULL);
+    }
+  
+  if (strstr(fname, ".m3z"))
+    {
+      gzipped = 1;
+    }
+
+  file = znzopen(fname, "rb", gzipped);
+  
+  if (znz_isnull(file))
+    ErrorReturn(NULL, (ERROR_BADPARM, "GCAMread(%s): could not open file", fname)) ;
+  
+  version = znzreadFloat(file) ;
+  if (version != GCAM_VERSION)
+    {
+      znzclose(file);
+      ErrorReturn(NULL,(ERROR_BADFILE, "GCAMread(%s): invalid version # %2.3f\n", fname, version)) ;
+    }
+  width  = znzreadInt(file) ;
+  height = znzreadInt(file) ;
+  depth  = znzreadInt(file) ;
+  gcam   = GCAMalloc(width, height, depth) ;
+  
+  gcam->spacing = znzreadInt(file) ;
+  gcam->exp_k   = znzreadFloat(file) ;
+  
+  for (x = 0 ; x < width ; x++)
+    {
+      for (y = 0 ; y < height ; y++)
+	{
+	  for (z = 0 ; z < depth ; z++)
+	    {
+	      gcamn = &gcam->nodes[x][y][z] ;
+	      gcamn->origx = znzreadFloat(file) ;
+	      gcamn->origy = znzreadFloat(file) ;
+	      gcamn->origz = znzreadFloat(file) ;
+	      
+	      gcamn->x = znzreadFloat(file) ;
+	      gcamn->y = znzreadFloat(file) ;
+	      gcamn->z = znzreadFloat(file) ;
+	      
+	      gcamn->xn = znzreadInt(file) ;
+	      gcamn->yn = znzreadInt(file) ;
+	      gcamn->zn = znzreadInt(file) ;
+	      
+	      // if all the positions are zero, then this is not a valid point
+	      // mark invalid = 1
+	      if (FZERO(gcamn->origx) && FZERO(gcamn->origy) && FZERO(gcamn->origz)
+		  && FZERO(gcamn->x) && FZERO(gcamn->y) && FZERO(gcamn->z))
+		gcamn->invalid = GCAM_POSITION_INVALID ;
+	      else
+		gcamn->invalid = GCAM_VALID ;
+	    }
+	}
+    }
+  gcam->det = 1 ;
+  gcam->image.valid = 0; // make src invalid
+  gcam->atlas.valid = 0; // makd dst invalid
+  while (znzreadIntEx(&tag, file))
+    {
+      switch (tag)
+	{
+	case TAG_GCAMORPH_LABELS:
+	  if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
+	    printf("reading labels out of gcam file...\n") ;
+	  gcam->status = GCAM_LABELED ;
+	  for (x = 0 ; x < width ; x++)
+	    {
+	      for (y = 0 ; y < height ; y++)
+		{
+		  for (z = 0 ; z < depth ; z++)
+		    {
+		      gcamn = &gcam->nodes[x][y][z] ;
+		      gcamn->label = znzreadInt(file) ;
+		      if (gcamn->label != 0)
+			DiagBreak() ;
+		    }
+		}
+	    }
+	  break ;
+	case TAG_GCAMORPH_GEOM:
+	  GCAMreadGeom(gcam, file);
+	  if ((Gdiag & DIAG_SHOW) && DIAG_VERBOSE_ON)
+	    {
+	      fprintf(stderr, "GCAMORPH_GEOM tag found.  Reading src and dst information.\n");
+	      fprintf(stderr, "src geometry:\n");
+	      writeVolGeom(stderr, &gcam->image);
+	      fprintf(stderr, "dst geometry:\n");
+	      writeVolGeom(stderr, &gcam->atlas);
+	    }
+	  break ;
+	case TAG_GCAMORPH_TYPE:
+	  gcam->type = znzreadInt(file) ;
+	  if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
+	    printf("gcam->type = %s\n", gcam->type == GCAM_VOX ? "vox" : "ras") ;
+	  break ;
+	case TAG_MGH_XFORM:
+	  //gcam->m_affine = MatrixAsciiReadFrom(fp, NULL) ;
+	  gcam->m_affine = znzReadMatrix(file) ;
+	  gcam->det = MatrixDeterminant(gcam->m_affine) ;
+	  break ;
+	}
+    }
+  // fclose(fp) ;
+  //myclose(fp);
+  znzclose(file);
 
   GCAMcomputeOriginalProperties(gcam) ;
   gcamComputeMetricProperties(gcam) ;
@@ -11096,6 +11408,8 @@ mri_tmp->c_s = gcam->atlas.c_s ;
   ymin = mri_tmp->height ;
   zmin = mri_tmp->depth ;
   xmax = ymax = zmax = 0 ;
+  // LZ
+  printf("(gcam->width, gcam->height, gcam->depth) = (%d, %d, %d)\n",  gcam->width,gcam->height,gcam->depth ) ;
   for (x = 0 ; x < gcam->width ; x++)
   {
     for (y = 0 ; y < gcam->height ; y++)
@@ -11127,6 +11441,8 @@ mri_tmp->c_s = gcam->atlas.c_s ;
         xd = nint(xr) ;
         yd = nint(yr) ;
         zd = nint(zr) ;
+	// LZ
+	printf("(xd, yd, zd) = (%d, %d, %d)\n", xd, yd, zd) ;
 
         if (xd < 0 || yd < 0 || zd < 0)
           DiagBreak() ;
@@ -11136,14 +11452,17 @@ mri_tmp->c_s = gcam->atlas.c_s ;
         xmax = MAX(xmax, xd) ;
         ymax = MAX(ymax, yd) ;
         zmax = MAX(zmax, zd) ;
+	printf("(xmin, ymin, zmin) = (%d, %d, %d); (xmax, ymax, zmax) = (%d, %d, %d);\n", xmin, ymin, zmin, xmax, ymax, zmax) ;
         if (xd >= 0 && yd >= 0 && zd >= 0 &&
             xd < mri_tmp->width && yd < mri_tmp->height && zd < mri_tmp->depth)
           MRIsetVoxVal(mri_tmp, xd, yd, zd, 0, label) ;  // for debugging
       }
     }
   }
-  if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
-    MRIwrite(mri_tmp, "tmp1.mgz") ;
+  //LZ
+  //if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
+  MRIwrite(mri_tmp, "tmp1.mgz") ;
+
   pad = MAX(-xmin, MAX(-ymin, -zmin)) ;
   pad = MAX(pad, (xmax-mri_tmp->width)+1) ;
   pad = MAX(pad, (ymax-mri_tmp->height)+1) ;
@@ -11151,6 +11470,7 @@ mri_tmp->c_s = gcam->atlas.c_s ;
   pad = MAX(1,pad) ;
   printf("padding by %d voxels\n", pad) ;
   mri_tmp2 = MRIextractRegionAndPad(mri_tmp, NULL, NULL, pad) ;
+  printf("Left MRIextractRegionAndPad\n") ;
   MRIfree(&mri_tmp) ;
   MatrixFree(&m_morphed_ras2vox) ;
   m_morphed_ras2vox = MRIgetRasToVoxelXform(mri_tmp2) ;
@@ -11161,6 +11481,10 @@ mri_tmp->c_s = gcam->atlas.c_s ;
   ymin = mri_tmp2->height ;
   zmin = mri_tmp2->depth ;
   xmax = ymax = zmax = 0 ;
+  //LZ
+  printf("BEFORE loop: (gcam->width, gcam->height, gcam->depth) = (%d, %d, %d); \n", gcam->width, gcam->height, gcam->depth) ;
+  printf("BEFORE loop: (Gx, Gy, Gz) = (%d, %d, %d); \n", Gx, Gy, Gz) ;
+  printf("BEFORE loop: (mri->width, mri->height , mri->depth) = (%d, %d, %d); \n", mri->width, mri->height , mri->depth) ;
   for (x = 0 ; x < gcam->width ; x++)
   {
     for (y = 0 ; y < gcam->height ; y++)
@@ -11179,7 +11503,12 @@ mri_tmp->c_s = gcam->atlas.c_s ;
         else
           label = gcamn->label ;
         if (label == 0)
-          continue ;
+	//if(0)
+	  {
+	    //LZ
+	    //printf("Zero label\n");
+	    continue ;
+	  }
         V3_X(v1) = gcamn->x ;
         V3_Y(v1) = gcamn->y ;
         V3_Z(v1) = gcamn->z ;
@@ -11199,6 +11528,8 @@ mri_tmp->c_s = gcam->atlas.c_s ;
         xmax = MAX(xmax, xd) ;
         ymax = MAX(ymax, yd) ;
         zmax = MAX(zmax, zd) ;
+        //LZ
+        //printf("computing: (%d, %d, %d) --> (%d, %d, %d)\n", xmin, ymin, zmin, xmax, ymax, zmax) ;
         if (xmin < -100 || ymin < -100 || zmin < -100)
           DiagBreak() ;
         if (xd >= 0 && yd >= 0 && zd >= 0 &&
@@ -11207,9 +11538,11 @@ mri_tmp->c_s = gcam->atlas.c_s ;
       }
     }
   }
-
-  if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
-    MRIwrite(mri_tmp2, "tmp2.mgz") ;
+  // LZ
+  printf("AFTER loop\n");
+  //LZA
+  //if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
+  MRIwrite(mri_tmp2, "tmp2.mgz") ;
   if (xmin < -100)
     DiagBreak() ;
   printf("bounding box: (%d, %d, %d) --> (%d, %d, %d)\n", xmin, ymin, zmin, xmax, ymax, zmax) ;
@@ -17302,7 +17635,7 @@ GCAMconcatenate(GCA_MORPH *gcam1, GCA_MORPH *gcam2, GCA_MORPH *gcam_composed)
   int x, y, z, width, height, depth;
   int out_of_gcam1, out_of_gcam2;
   float xd, yd, zd, xdd, ydd, zdd ;
-  GCA_MORPH_NODE  *gcamn;
+  GCA_MORPH_NODE  *gcamn, *gcam1n;
   if (gcam1->width != gcam2->width || gcam1->height != gcam2->height || gcam1->depth != gcam2->depth)
     ErrorExit(ERROR_BADPARM, "GCAMconcatenate: the morphs to be concatenated need to be of the same size!\n") ;
   
@@ -17347,6 +17680,7 @@ GCAMconcatenate(GCA_MORPH *gcam1, GCA_MORPH *gcam2, GCA_MORPH *gcam_composed)
 	    {
 
 	      gcamn = &gcam_composed->nodes[x][y][z] ;
+	      gcam1n = &gcam2->nodes[x][y][z] ;
               if (nint(xdd) == Gx && nint(ydd) == Gy && nint(zdd) == Gz)
                 DiagBreak() ;
 	      
@@ -17356,6 +17690,10 @@ GCAMconcatenate(GCA_MORPH *gcam1, GCA_MORPH *gcam2, GCA_MORPH *gcam_composed)
 		  zdd < gcam1->image.depth)
 		{
 		  // printf("Within gcam1 and gcam2: (%d, %d, %d): (%f, %f, %f), (%f, %f, %f) \n", x, y, z, xd, yd, zd, xdd, ydd, zdd) ;
+		  // LZ here		  
+		  //printf("LABEL in concat: gcam1n->label\n");
+		  gcamn->label = gcam1n->label;
+
 		  gcamn->origx =  xdd;
 		  gcamn->origy =  ydd;
 		  gcamn->origz =  zdd;
@@ -17388,12 +17726,15 @@ GCAMfillInverse(GCA_MORPH* gcam)
   char tmpstr[2000];
   int width, height, depth;
   int x, y, z;
-  GCA_MORPH_NODE  *gcamn;
+  GCA_MORPH_NODE  *gcamn, *invgcamn;
   GCA_MORPH* inv_gcam;
-  
-  printf("Allocating inv_gcam...(%d, %d, %d)\n", gcam->width, gcam->height, gcam->depth);
-  inv_gcam = GCAMalloc(gcam->width, gcam->height, gcam->depth) ;
 
+  
+  printf("Allocating inv_gcam...(%d, %d, %d)\n", gcam->width, gcam->height, gcam->depth);  
+  inv_gcam = GCAMalloc(gcam->width, gcam->height, gcam->depth) ; // NOTE: forces same moving and target coordinate spaces!!
+  inv_gcam->image = gcam->atlas; 
+  inv_gcam->atlas = gcam->image; 
+  
   sprintf(tmpstr, "%s", (gcam->image).fname);
   mri = MRIreadHeader(tmpstr,MRI_VOLUME_TYPE_UNKNOWN);
   if (mri==NULL)
@@ -17413,12 +17754,7 @@ GCAMfillInverse(GCA_MORPH* gcam)
   height = inv_gcam->height ;
   depth  = inv_gcam->depth ;
 
-  if (!inv_gcam) {
-      inv_gcam = GCAMalloc(gcam->width, gcam->height, gcam->depth) ; // NOTE: forces same moving and target coordinate spaces!!
-      inv_gcam->image = gcam->atlas; 
-      inv_gcam->atlas = gcam->image; 
-    }
-
+  
   for (x = 0 ; x < width ; x++)
   {
     for (y = 0 ; y < height ; y++)
@@ -17428,20 +17764,24 @@ GCAMfillInverse(GCA_MORPH* gcam)
         if (x == Gx && y == Gy && z == Gz)
           DiagBreak() ;
 
-	gcamn = &inv_gcam->nodes[x][y][z] ;
+	gcamn = &gcam->nodes[x][y][z] ;
+	invgcamn = &inv_gcam->nodes[x][y][z] ;
 	// missing: all the checks
 
-	gcamn->origx =  MRIgetVoxVal(gcam->mri_xind, x, y, z, 0) ;
-	gcamn->origy =  MRIgetVoxVal(gcam->mri_yind, x, y, z, 0) ;
-	gcamn->origz =  MRIgetVoxVal(gcam->mri_zind, x, y, z, 0) ;
+	invgcamn->origx =  MRIgetVoxVal(gcam->mri_xind, x, y, z, 0) ;
+	invgcamn->origy =  MRIgetVoxVal(gcam->mri_yind, x, y, z, 0) ;
+	invgcamn->origz =  MRIgetVoxVal(gcam->mri_zind, x, y, z, 0) ;
 
-	gcamn->x =  MRIgetVoxVal(gcam->mri_xind, x, y, z, 0) ;
-	gcamn->y =  MRIgetVoxVal(gcam->mri_yind, x, y, z, 0) ;
-	gcamn->z =  MRIgetVoxVal(gcam->mri_zind, x, y, z, 0) ;
+	invgcamn->x =  MRIgetVoxVal(gcam->mri_xind, x, y, z, 0) ;
+	invgcamn->y =  MRIgetVoxVal(gcam->mri_yind, x, y, z, 0) ;
+	invgcamn->z =  MRIgetVoxVal(gcam->mri_zind, x, y, z, 0) ;
 
-	gcamn->xn =  MRIgetVoxVal(gcam->mri_xind, x, y, z, 0) ;
-	gcamn->yn =  MRIgetVoxVal(gcam->mri_yind, x, y, z, 0) ;
-	gcamn->zn =  MRIgetVoxVal(gcam->mri_zind, x, y, z, 0) ;
+	invgcamn->xn =  MRIgetVoxVal(gcam->mri_xind, x, y, z, 0) ;
+	invgcamn->yn =  MRIgetVoxVal(gcam->mri_yind, x, y, z, 0) ;
+	invgcamn->zn =  MRIgetVoxVal(gcam->mri_zind, x, y, z, 0) ;
+
+	// LZ: Is that right?
+	invgcamn->label = gcamn->label;
       }
     }
   }
