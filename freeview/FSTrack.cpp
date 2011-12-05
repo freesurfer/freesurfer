@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2011/12/05 20:03:33 $
- *    $Revision: 1.6 $
+ *    $Date: 2011/12/05 21:16:57 $
+ *    $Revision: 1.7 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -65,15 +65,15 @@ bool FSTrack::LoadFromFile(const QString &filename, const QString &ref_fn)
   {
     for (int j = 0; j < m_tracks[i].nNum; j++)
     {
-      pt[0] = m_tracks[i].fPts[j*3]/m_dVoxelSize[0];
-      pt[1] = m_tracks[i].fPts[j*3+1]/m_dVoxelSize[1];
-      pt[2] = m_tracks[i].fPts[j*3+2]/m_dVoxelSize[2];
+      pt[0] = m_tracks[i].fPts[j*3]/m_dVoxelSize[0]-0.5;
+      pt[1] = m_tracks[i].fPts[j*3+1]/m_dVoxelSize[1]-0.5;
+      pt[2] = m_tracks[i].fPts[j*3+2]/m_dVoxelSize[2]-0.5;
       vtkMatrix4x4::MultiplyPoint(mat, pt, pt);
+      if (m_volumeRef)
+        m_volumeRef->RASToTarget(pt, pt);
       m_tracks[i].fPts[j*3]   = pt[0];
       m_tracks[i].fPts[j*3+1] = pt[1];
       m_tracks[i].fPts[j*3+2] = pt[2];
-      if (m_volumeRef)
-        m_volumeRef->RASToTarget(m_tracks[i].fPts + j*3, m_tracks[i].fPts + j*3);
     }
   }
 

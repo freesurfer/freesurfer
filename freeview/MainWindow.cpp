@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2011/12/05 20:03:33 $
- *    $Revision: 1.194 $
+ *    $Date: 2011/12/05 21:16:57 $
+ *    $Revision: 1.195 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -3953,12 +3953,12 @@ void MainWindow::OnCloseSurface()
 
 void MainWindow::OnIOError( Layer* layer, int jobtype )
 {
-  QString msg = "Failed to load ";
+  QString msg = QString("Failed to load %1 ").arg(layer->GetEndType());
   if (jobtype != ThreadIOWorker::JT_LoadSurfaceOverlay)
   {
     if ( jobtype == ThreadIOWorker::JT_SaveVolume )
     {
-      msg = "Failed to save ";
+      msg = "Failed to save volume to ";
     }
     QMessageBox::warning( this, "Error", msg + layer->GetFileName() );
     delete layer;

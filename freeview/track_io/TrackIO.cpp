@@ -6,9 +6,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/13 23:04:19 $
- *    $Revision: 1.2 $
+ *    $Author: rpwang $
+ *    $Date: 2011/12/05 21:16:57 $
+ *    $Revision: 1.3 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -130,7 +130,7 @@ bool CTrackIO::Close()
 CTrackReader::CTrackReader()
 {
   m_bByteSwap = false;
-  m_bAllowOldFormat = true;
+  m_bAllowOldFormat = false;
 }
 
 
