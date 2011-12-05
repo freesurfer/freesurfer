@@ -13,9 +13,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2011/10/25 14:19:22 $
- *    $Revision: 1.305 $
+ *    $Author: lzollei $
+ *    $Date: 2011/12/05 20:05:39 $
+ *    $Revision: 1.306 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -56,6 +56,8 @@
 #include "affine.h"
 
 #include "chronometer.h"
+
+#include "znzlib.h"
 
 #if WITH_DMALLOC
 #include <dmalloc.h>
@@ -2323,9 +2325,9 @@ GCAtrain(GCA *gca, MRI *mri_inputs, MRI *mri_labels,
 }
 
 // declare function pointer
-static int (*myclose)(FILE *stream);
+//static int (*myclose)(FILE *stream);
 
-int
+/*int
 GCAwrite(GCA *gca, const char *fname)
 {
   FILE      *fp ;
@@ -2380,7 +2382,7 @@ GCAwrite(GCA *gca, const char *fname)
       for (z = 0 ; z < gca->node_depth ; z++)
       {
         if (x == 139 && y == 103 && z == 139)
-          /* wm should be pallidum */
+          // wm should be pallidum
           DiagBreak() ;
         gcan = &gca->nodes[x][y][z] ;
         fwriteInt(gcan->nlabels, fp) ;
@@ -2419,7 +2421,7 @@ GCAwrite(GCA *gca, const char *fname)
       for (z = 0 ; z < gca->prior_depth ; z++)
       {
         if (x == 139 && y == 103 && z == 139)
-          /* wm should be pallidum */
+          // wm should be pallidum 
           DiagBreak() ;
         gcap = &gca->priors[x][y][z] ;
         if (gcap==NULL)
@@ -2440,9 +2442,9 @@ GCAwrite(GCA *gca, const char *fname)
   {
     int  n ;
 
-    fwriteInt(FILE_TAG, fp) ;  /* beginning of tagged section */
+    fwriteInt(FILE_TAG, fp) ;  // beginning of tagged section 
 
-    /* all tags are format: <int: tag> <int: num> <parm> <parm> .... */
+    // all tags are format: <int: tag> <int: num> <parm> <parm> .... 
     fwriteInt(TAG_GCA_TYPE, fp) ;
     fwriteInt(1, fp) ;
     fwriteInt(gca->type, fp) ;
@@ -2450,7 +2452,7 @@ GCAwrite(GCA *gca, const char *fname)
     if (gca->type == GCA_FLASH)
     {
       fwriteInt(TAG_PARAMETERS, fp) ;
-      fwriteInt(3, fp) ;   /* currently only storing 3 parameters */
+      fwriteInt(3, fp) ;   // currently only storing 3 parameters 
       for (n = 0 ; n < gca->ninputs ; n++)
       {
         fwriteFloat(gca->TRs[n], fp) ;
@@ -2492,9 +2494,189 @@ GCAwrite(GCA *gca, const char *fname)
   myclose(fp);
 
   return(NO_ERROR) ;
+}*/
+
+int
+GCAwrite(GCA *gca, const char *fname)
+{
+  znzFile file;
+  //FILE      *fp ;
+  int       x, y, z, n, i, j ;
+  GCA_NODE  *gcan ;
+  GCA_PRIOR *gcap ;
+  GC1D      *gc ;
+  int gzipped = 0;
+
+  if (strstr(fname, ".gcz"))
+  {
+    gzipped = 1;
+    /*    char command[STRLEN];
+    myclose = pclose;
+    strcpy(command, "gzip -f -c > ");
+    strcat(command, fname);
+    fp = popen(command, "w");
+    if (errno)
+    {
+      pclose(fp);
+      errno = 0;
+      ErrorReturn(ERROR_BADPARM,
+                  (ERROR_BADPARM,
+                   "GCAwrite(%s): gzip encountered error",
+                   fname)) ;
+		   }*/
+  }
+  /*else
+  {
+    myclose = fclose;
+    fp  = fopen(fname, "wb") ;
+  }
+  if (!fp)
+    ErrorReturn(ERROR_NOFILE,
+                (ERROR_NOFILE,
+		"GCAwrite: could not open GCA %s for writing",fname)) ;*/
+
+  file = znzopen(fname, "wb", gzipped) ;
+  if (znz_isnull(file))
+    {
+      errno = 0;
+      ErrorReturn(ERROR_BADPARM,(ERROR_BADPARM,"GCAwrite(%s): could not open file",fname)) ;
+    }
+
+  znzwriteFloat(GCA_INT_VERSION, file) ;
+  znzwriteFloat(gca->prior_spacing, file) ;
+  znzwriteFloat(gca->node_spacing, file) ;
+  znzwriteInt(gca->prior_width,file);
+  znzwriteInt(gca->prior_height,file);
+  znzwriteInt(gca->prior_depth,file);
+  znzwriteInt(gca->node_width,file);
+  znzwriteInt(gca->node_height,file);
+  znzwriteInt(gca->node_depth,file);
+  znzwriteInt(gca->ninputs,file) ;
+  znzwriteInt(gca->flags, file) ;
+
+  for (x = 0 ; x < gca->node_width ; x++)
+  {
+    for (y = 0 ; y < gca->node_height ; y++)
+    {
+      for (z = 0 ; z < gca->node_depth ; z++)
+      {
+        if (x == 139 && y == 103 && z == 139)
+          /* wm should be pallidum */
+          DiagBreak() ;
+        gcan = &gca->nodes[x][y][z] ;
+        znzwriteInt(gcan->nlabels, file) ;
+        znzwriteInt(gcan->total_training, file) ;
+        for (n = 0 ; n < gcan->nlabels ; n++)
+        {
+          int  r, c ;
+          gc = &gcan->gcs[n] ;
+					znzwriteInt(gcan->labels[n], file) ;
+          for (r = 0 ; r < gca->ninputs ; r++)
+            znzwriteFloat(gc->means[r], file) ;
+          for (r = i = 0 ; r < gca->ninputs ; r++)
+            for (c = r ;  c < gca->ninputs ; c++, i++)
+              znzwriteFloat(gc->covars[i], file) ;
+
+          if (gca->flags & GCA_NO_MRF)
+            continue ;
+          for (i = 0 ; i < GIBBS_NEIGHBORS ; i++)
+          {
+            znzwriteInt(gc->nlabels[i], file) ;
+            for (j = 0 ; j < gc->nlabels[i] ; j++)
+            {
+              znzwriteInt((int)gc->labels[i][j], file) ;
+              znzwriteFloat(gc->label_priors[i][j], file) ;
+            }
+          }
+        }
+      }
+    }
+  }
+
+  for (x = 0 ; x < gca->prior_width ; x++)
+  {
+    for (y = 0 ; y < gca->prior_height ; y++)
+    {
+      for (z = 0 ; z < gca->prior_depth ; z++)
+      {
+        if (x == 139 && y == 103 && z == 139)
+          /* wm should be pallidum */
+          DiagBreak() ;
+        gcap = &gca->priors[x][y][z] ;
+        if (gcap==NULL)
+          continue;
+        znzwriteInt(gcap->nlabels, file) ;
+        znzwriteInt(gcap->total_training, file) ;
+        for (n = 0 ; n < gcap->nlabels ; n++)
+        {
+					znzwriteInt((int)gcap->labels[n], file) ;
+          znzwriteFloat(gcap->priors[n], file) ;
+        }
+      }
+    }
+  }
+
+  // if (gca->type == GCA_FLASH || gca->type == GCA_PARAM)
+  // always write gca->type
+  {
+    int  n ;
+
+    znzwriteInt(FILE_TAG, file) ;  /* beginning of tagged section */
+
+    /* all tags are format: <int: tag> <int: num> <parm> <parm> .... */
+    znzwriteInt(TAG_GCA_TYPE, file) ;
+    znzwriteInt(1, file) ;
+    znzwriteInt(gca->type, file) ;
+
+    if (gca->type == GCA_FLASH)
+    {
+      znzwriteInt(TAG_PARAMETERS, file) ;
+      znzwriteInt(3, file) ;   /* currently only storing 3 parameters */
+      for (n = 0 ; n < gca->ninputs ; n++)
+      {
+        znzwriteFloat(gca->TRs[n], file) ;
+        znzwriteFloat(gca->FAs[n], file) ;
+        znzwriteFloat(gca->TEs[n], file) ;
+      }
+    }
+  }
+
+  if (gca->ct)
+  {
+    if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
+      printf("writing colortable into GCA file...\n") ;
+    znzwriteInt(TAG_GCA_COLORTABLE, file) ;
+    znzCTABwriteIntoBinary(gca->ct, file);
+  }
+  // write direction cosine information
+  znzwriteInt(TAG_GCA_DIRCOS, file);
+  znzwriteFloat(gca->x_r, file);
+  znzwriteFloat(gca->x_a, file);
+  znzwriteFloat(gca->x_s, file);
+  znzwriteFloat(gca->y_r, file);
+  znzwriteFloat(gca->y_a, file);
+  znzwriteFloat(gca->y_s, file);
+  znzwriteFloat(gca->z_r, file);
+  znzwriteFloat(gca->z_a, file);
+  znzwriteFloat(gca->z_s, file);
+  znzwriteFloat(gca->c_r, file);
+  znzwriteFloat(gca->c_a, file);
+  znzwriteFloat(gca->c_s, file);
+  znzwriteInt(gca->width, file);
+  znzwriteInt(gca->height, file);
+  znzwriteInt(gca->depth, file);
+  znzwriteFloat(gca->xsize, file);
+  znzwriteFloat(gca->ysize, file);
+  znzwriteFloat(gca->zsize, file);
+
+  // fclose(fp) ;
+  // myclose(fp);
+  znzclose(file);
+
+  return(NO_ERROR) ;
 }
 
-GCA *
+/*GCA *
 GCAread(const char *fname)
 {
   FILE      *fp ;
@@ -2616,7 +2798,7 @@ GCAread(const char *fname)
               gc->nlabels[i] = freadInt(fp) ;
 
 #if 1
-              /* allocate new ones */
+              // allocate new ones 
               gc->label_priors[i] =
                 (float *)calloc(gc->nlabels[i],sizeof(float));
               if (!gc->label_priors[i])
@@ -2643,8 +2825,8 @@ GCAread(const char *fname)
       }
     }
   }
-  else   /* current version - stores priors at different
-                            resolution than densities */
+  else   // current version - stores priors at different
+  //                 resolution than densities
   {
     if (!FEQUAL(version, GCA_UCHAR_VERSION) &&
 				!FEQUAL(version, GCA_INT_VERSION))
@@ -2731,7 +2913,7 @@ GCAread(const char *fname)
             {
               gc->nlabels[i] = freadInt(fp) ;
 
-              /* allocate new ones */
+              // allocate new ones
               gc->label_priors[i] =
                 (float *)calloc(gc->nlabels[i],sizeof(float));
               if (!gc->label_priors[i])
@@ -2840,19 +3022,19 @@ GCAread(const char *fname)
     int  n, nparms ;
 
     // tag = freadInt(fp) ;
-    if (tag == FILE_TAG) /* beginning of tagged section */
+    if (tag == FILE_TAG) // beginning of tagged section
     {
       // while (!feof(fp))
       while (freadIntEx(&tag, fp))
       {
-        /* all tags are format:
-           <int: tag> <int: num> <parm> <parm> .... */
+      // all tags are format:
+        //   <int: tag> <int: num> <parm> <parm> .... 
         // tag = freadInt(fp) ;
         switch (tag)
         {
         case TAG_GCA_COLORTABLE:
-          /* We have a color table, read it with CTABreadFromBinary. If it
-             fails, it will print its own error message. */
+	// We have a color table, read it with CTABreadFromBinary. If it
+	//   fails, it will print its own error message. 
           fprintf(stdout, "reading colortable from GCA file...\n") ;
           gca->ct = CTABreadFromBinary (fp);
           if (NULL != gca->ct)
@@ -2861,7 +3043,7 @@ GCAread(const char *fname)
                     gca->ct->nentries, gca->ct->fname);
           break ;
         case TAG_GCA_TYPE:
-          freadInt(fp) ;   /* skip num=1 */
+	freadInt(fp) ;   // skip num=1 
           gca->type = freadInt(fp) ;
           if (DIAG_VERBOSE_ON) switch (gca->type)
             {
@@ -2882,7 +3064,7 @@ GCAread(const char *fname)
           break ;
         case TAG_PARAMETERS:
           nparms = freadInt(fp) ;
-          /* how many MR parameters are stored */
+          // how many MR parameters are stored
           printf("reading %d MR parameters out of GCA header...\n",
                  nparms) ;
           for (n = 0 ; n < gca->ninputs ; n++)
@@ -2945,7 +3127,482 @@ GCAread(const char *fname)
   myclose(fp);
 
   return(gca) ;
+}*/
+
+
+GCA *
+GCAread(const char *fname)
+{
+  //FILE      *fp ;
+  znzFile file;
+  int       x, y, z, n, i, j ;
+  GCA       *gca ;
+  GCA_NODE  *gcan ;
+  GCA_PRIOR *gcap ;
+  GC1D      *gc ;
+  float     version, node_spacing, prior_spacing ;
+  int       node_width, node_height, node_depth,
+  prior_width, prior_height, prior_depth,
+  ninputs, flags ;
+  int       tag;
+  int gzipped = 0;
+  int tempZNZ;
+
+  if (strstr(fname, ".gcz"))
+  {
+    gzipped = 1;
+    /*    char command[STRLEN];
+    myclose = pclose;
+#if defined(Darwin) || defined(SunOS)
+    // zcat on Max OS always appends and assumes a .Z extention,
+    // whereas we want .gcz
+    strcpy(command, "gunzip -c ");
+#else
+    strcpy(command, "zcat ");
+#endif
+    strcat(command, fname);
+    errno = 0;
+    fp = popen(command, "r");
+    if (errno)
+    {
+      pclose(fp);
+      errno = 0;
+      ErrorReturn(NULL, (ERROR_BADPARM,
+                         "GCAread: encountered error executing: '%s'",
+                         command)) ;
+			 }*/
+  }
+  /*else
+  {
+    myclose = fclose;
+    fp  = fopen(fname, "rb") ;
+  }
+  if (!fp)
+    ErrorReturn(NULL,
+                (ERROR_NOFILE,
+		"GCAread: could not open GCA %s for reading",fname)) ;*/
+
+  file = znzopen(fname, "rb", gzipped);
+  if (znz_isnull(file))
+    ErrorReturn(NULL, (ERROR_BADPARM, "GCAread(%s): could not open file", fname)) ;
+
+  if (!znzreadFloatEx(&version, file))
+    ErrorReturn(NULL, (ERROR_BADPARM,"GCAread(%s): could not read file",
+                       fname)) ;
+
+  if (version < GCA_UCHAR_VERSION)
+  {
+    node_spacing = znzreadFloat(file) ;
+    node_width = znzreadInt(file);
+    node_height = znzreadInt(file);
+    node_depth = znzreadInt(file);
+    ninputs = znzreadInt(file) ;
+    if (version == 3.0)
+      flags = znzreadInt(file) ;
+    else
+      flags = 0 ;
+
+    gca = gcaAllocMax(ninputs, node_spacing, \
+                      node_spacing, node_spacing*node_width,
+                      node_spacing*node_height, \
+                      node_spacing*node_depth, 0, flags) ;
+    if (!gca)
+      ErrorReturn(NULL, (Gerror, NULL)) ;
+
+    for (x = 0 ; x < gca->node_width ; x++)
+    {
+      for (y = 0 ; y < gca->node_height ; y++)
+      {
+        for (z = 0 ; z < gca->node_depth ; z++)
+        {
+          if (x == 28 && y == 39 && z == 39)
+            DiagBreak() ;
+          gcan = &gca->nodes[x][y][z] ;
+          gcan->nlabels = znzreadInt(file) ;
+          gcan->total_training = znzreadInt(file) ;
+          if (gcan->nlabels)
+          {
+            gcan->labels = \
+                           (unsigned short *)calloc(gcan->nlabels,
+                                                   sizeof(unsigned short)) ;
+            if (!gcan->labels)
+              ErrorExit(ERROR_NOMEMORY,
+                        "GCAread(%s): could not allocate %d "
+                        "labels @ (%d,%d,%d)",
+                        fname, gcan->nlabels, x, y, z) ;
+            gcan->gcs = alloc_gcs(gcan->nlabels,
+                                  flags, gca->ninputs) ;
+            if (!gcan->gcs)
+              ErrorExit(ERROR_NOMEMORY,
+                        "GCAread(%s); could not allocated %d gcs "
+                        "@ (%d,%d,%d)",
+                        fname, gcan->nlabels, x, y, z) ;
+          }
+          else // no labels assigned to this node
+          {
+            gcan->labels = 0;
+            gcan->gcs = 0;
+          }
+          for (n = 0 ; n < gcan->nlabels ; n++)
+          {
+            int r, c;
+            gc = &gcan->gcs[n] ;
+            znzread1(&tempZNZ, file); 
+	    gcan->labels[n] = (unsigned short)tempZNZ;
+            for (r = 0 ; r < gca->ninputs ; r++)
+              gc->means[r] = znzreadFloat(file) ;
+            for (i = r = 0 ; r < gca->ninputs ; r++)
+              for (c = r ; c < gca->ninputs ; c++, i++)
+                gc->covars[i] = znzreadFloat(file) ;
+            if (gca->flags & GCA_NO_MRF)
+              continue ;
+            for (i = 0 ; i < GIBBS_NEIGHBORS ; i++)
+            {
+              gc->nlabels[i] = znzreadInt(file) ;
+
+#if 1
+              /* allocate new ones */
+              gc->label_priors[i] =
+                (float *)calloc(gc->nlabels[i],sizeof(float));
+              if (!gc->label_priors[i])
+                ErrorExit(ERROR_NOMEMORY, "GCAread(%s): "
+                          "couldn't expand gcs to %d",
+                          fname,gc->nlabels) ;
+              gc->labels[i] =
+                (unsigned short *)calloc(gc->nlabels[i], \
+                                        sizeof(unsigned short)) ;
+              if (!gc->labels)
+                ErrorExit(ERROR_NOMEMORY,
+                          "GCAread(%s): couldn't expand "
+                          "labels to %d",
+                          fname, gc->nlabels[i]) ;
+#endif
+              for (j = 0 ; j < gc->nlabels[i] ; j++)
+              {
+                gc->labels[i][j] = (unsigned short)znzreadInt(file) ;
+                gc->label_priors[i][j] = znzreadFloat(file) ;
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+  else   /* current version - stores priors at different
+                            resolution than densities */
+  {
+    if (!FEQUAL(version, GCA_UCHAR_VERSION) &&
+				!FEQUAL(version, GCA_INT_VERSION))
+    {
+      // fclose(fp) ;
+      //myclose(fp);
+      znzclose(file);
+      ErrorReturn(NULL, (ERROR_BADFILE,
+                         "GCAread(%s), version #%2.1f found, "
+                         "%2.1f expected",
+                         fname, version, GCA_INT_VERSION)) ;
+    }
+    prior_spacing = znzreadFloat(file) ;
+    node_spacing = znzreadFloat(file) ;
+    prior_width = znzreadInt(file);
+    prior_height = znzreadInt(file);
+    prior_depth = znzreadInt(file);
+    node_width = znzreadInt(file);
+    node_height = znzreadInt(file);
+    node_depth = znzreadInt(file);
+    ninputs = znzreadInt(file) ;
+    flags = znzreadInt(file) ;
+
+    gca = gcaAllocMax(ninputs, prior_spacing, node_spacing,
+                      node_spacing*node_width,
+                      node_spacing*node_height,
+                      node_spacing*node_depth, 0, flags) ;
+    if (!gca)
+      ErrorReturn(NULL, (Gdiag, NULL)) ;
+
+    for (x = 0 ; x < gca->node_width ; x++)
+    {
+      for (y = 0 ; y < gca->node_height ; y++)
+      {
+        for (z = 0 ; z < gca->node_depth ; z++)
+        {
+          if (x == Ggca_x && y == Ggca_y && z == Ggca_z)
+            DiagBreak() ;
+          gcan = &gca->nodes[x][y][z] ;
+          gcan->nlabels = znzreadInt(file) ;
+          gcan->total_training = znzreadInt(file) ;
+          if (gcan->nlabels)
+          {
+            gcan->labels =
+              (unsigned short *)calloc(gcan->nlabels,
+                                      sizeof(unsigned short)) ;
+            if (!gcan->labels)
+              ErrorExit(ERROR_NOMEMORY, "GCAread(%s): could not "
+                        "allocate %d "
+                        "labels @ (%d,%d,%d)",
+                        fname, gcan->nlabels, x, y, z) ;
+            gcan->gcs = alloc_gcs(gcan->nlabels,
+                                  flags,
+                                  gca->ninputs) ;
+            if (!gcan->gcs)
+              ErrorExit(ERROR_NOMEMORY,
+                        "GCAread(%s); could not allocated %d gcs "
+                        "@ (%d,%d,%d)",
+                        fname, gcan->nlabels, x, y, z) ;
+          }
+          else // no labels at this node
+          {
+            gcan->labels = 0;
+            gcan->gcs = 0;
+          }
+          for (n = 0 ; n < gcan->nlabels ; n++)
+          {
+            int  r, c ;
+
+            gc = &gcan->gcs[n] ;
+
+	    if (version == GCA_UCHAR_VERSION)
+	      {
+		//gcan->labels[n] = (unsigned short)znzread1(file) ;
+		znzread1(&tempZNZ, file); 
+		gcan->labels[n] = (unsigned short)tempZNZ;
+	      }
+	    else
+	      {
+		gcan->labels[n] = (unsigned short)znzreadInt(file) ;
+	      }
+	    
+            for (r = 0 ; r < gca->ninputs ; r++)
+              gc->means[r] = znzreadFloat(file) ;
+            for (i = r = 0 ; r < gca->ninputs ; r++)
+              for (c = r ; c < gca->ninputs ; c++, i++)
+                gc->covars[i] = znzreadFloat(file) ;
+            if (gca->flags & GCA_NO_MRF)
+              continue ;
+            for (i = 0 ; i < GIBBS_NEIGHBORS ; i++)
+            {
+              gc->nlabels[i] = znzreadInt(file) ;
+
+              /* allocate new ones */
+              gc->label_priors[i] =
+                (float *)calloc(gc->nlabels[i],sizeof(float));
+              if (!gc->label_priors[i])
+                ErrorExit(ERROR_NOMEMORY, "GCAread(%s): "
+                          "couldn't expand gcs to %d",
+                          fname,gc->nlabels) ;
+              gc->labels[i] =
+                (unsigned short *)calloc(gc->nlabels[i], \
+                                        sizeof(unsigned short)) ;
+              if (!gc->labels)
+                ErrorExit(ERROR_NOMEMORY,
+                          "GCAread(%s): couldn't expand "
+                          "labels to %d",
+                          fname, gc->nlabels[i]) ;
+              for (j = 0 ; j < gc->nlabels[i] ; j++)
+              {
+                gc->labels[i][j] = (unsigned short)znzreadInt(file) ;
+                gc->label_priors[i][j] = znzreadFloat(file) ;
+              }
+            }
+          }
+        }
+      }
+    }
+
+    for (x = 0 ; x < gca->prior_width ; x++)
+    {
+      for (y = 0 ; y < gca->prior_height ; y++)
+      {
+        for (z = 0 ; z < gca->prior_depth ; z++)
+        {
+          if (x == Ggca_x && y == Ggca_y && z == Ggca_z)
+            DiagBreak() ;
+          gcap = &gca->priors[x][y][z] ;
+          if (gcap==NULL)
+            continue;
+          gcap->nlabels = znzreadInt(file) ;
+          gcap->total_training = znzreadInt(file) ;
+          if (gcap->nlabels)
+          {
+            gcap->labels =
+              (unsigned short *)calloc(gcap->nlabels, \
+                                      sizeof(unsigned short)) ;
+            if (!gcap->labels)
+              ErrorExit(ERROR_NOMEMORY, "GCAread(%s): could not "
+                        "allocate %d "
+                        "labels @ (%d,%d,%d)",
+                        fname, gcap->nlabels, x, y, z) ;
+            gcap->priors = (float *)calloc(gcap->nlabels,
+                                           sizeof(float)) ;
+            if (!gcap->priors)
+              ErrorExit(ERROR_NOMEMORY, "GCAread(%s): could "
+                        "not allocate %d "
+                        "priors @ (%d,%d,%d)",
+                        fname, gcap->nlabels, x, y, z) ;
+          }
+          else // no labels assigned to this priors
+          {
+            gcap->labels = 0;
+            gcap->priors = 0;
+          }
+          for (n = 0 ; n < gcap->nlabels ; n++)
+          {
+	    if (version == GCA_UCHAR_VERSION)
+	      {
+		znzread1(&tempZNZ, file); 
+		gcap->labels[n] = (unsigned short)tempZNZ;
+	      }
+	    else
+	      gcap->labels[n] = (unsigned short)znzreadInt(file) ;
+            gcap->priors[n] = znzreadFloat(file) ;
+          }
+        }
+      }
+    }
+  }
+
+  for (x = 0 ; x < gca->node_width ; x++)
+  {
+    for (y = 0 ; y < gca->node_height ; y++)
+    {
+      for (z = 0 ; z < gca->node_depth ; z++)
+      {
+        int xp, yp, zp ;
+
+        if (x == Ggca_x && y == Ggca_y && z == Ggca_z)
+          DiagBreak() ;
+        gcan = &gca->nodes[x][y][z] ;
+        if (gcaNodeToPrior(gca, x, y, z, &xp, &yp, &zp)==NO_ERROR)
+        {
+          gcap = &gca->priors[xp][yp][zp] ;
+          if (gcap==NULL)
+            continue;
+          for (n = 0 ; n < gcan->nlabels ; n++)
+          {
+            gc = &gcan->gcs[n] ;
+            gc->ntraining =
+              gcan->total_training * getPrior(gcap,gcan->labels[n]) ;
+          }
+        }
+      }
+    }
+  }
+
+  // if (!feof(fp))  // this does not work ;-)
+  // feof(fp) check does not work, since feof is not signaled until you read
+  while (znzreadIntEx(&tag, file))
+  {
+    int  n, nparms ;
+
+    // tag = znzreadInt(fp) ;
+    if (tag == FILE_TAG) /* beginning of tagged section */
+    {
+      // while (!feof(fp))
+      while (znzreadIntEx(&tag, file))
+      {
+        /* all tags are format:
+           <int: tag> <int: num> <parm> <parm> .... */
+        // tag = znzreadInt(fp) ;
+        switch (tag)
+        {
+        case TAG_GCA_COLORTABLE:
+          /* We have a color table, read it with CTABreadFromBinary. If it
+             fails, it will print its own error message. */
+          fprintf(stdout, "reading colortable from GCA file...\n") ;
+          gca->ct = znzCTABreadFromBinary (file);
+          if (NULL != gca->ct)
+            fprintf(stdout, 
+                    "colortable with %d entries read (originally %s)\n",
+                    gca->ct->nentries, gca->ct->fname);
+          break ;
+        case TAG_GCA_TYPE:
+          znzreadInt(file) ;   /* skip num=1 */
+          gca->type = znzreadInt(file) ;
+          if (DIAG_VERBOSE_ON) switch (gca->type)
+            {
+            case GCA_NORMAL:
+              printf("setting gca type = Normal gca type\n");
+              break;
+            case GCA_PARAM:
+              printf("setting gca type = T1/PD gca type\n");
+              break;
+            case GCA_FLASH:
+              printf("setting gca type = FLASH gca type\n");
+              break;
+            default:
+              printf("setting gca type = Unknown\n");
+              gca->type=GCA_UNKNOWN;
+              break;
+            }
+          break ;
+        case TAG_PARAMETERS:
+          nparms = znzreadInt(file) ;
+          /* how many MR parameters are stored */
+          printf("reading %d MR parameters out of GCA header...\n",
+                 nparms) ;
+          for (n = 0 ; n < gca->ninputs ; n++)
+          {
+            gca->TRs[n] = znzreadFloat(file) ;
+            gca->FAs[n] = znzreadFloat(file) ;
+            gca->TEs[n] = znzreadFloat(file) ;
+            printf("input %d: TR=%2.1f msec, FA=%2.1f deg, "
+                   "TE=%2.1f msec\n",
+                   n,
+                   gca->TRs[n],
+                   DEGREES(gca->FAs[n]), gca->TEs[n]) ;
+          }
+          break ;
+        case TAG_GCA_DIRCOS:
+          gca->x_r = znzreadFloat(file);
+          gca->x_a = znzreadFloat(file);
+          gca->x_s = znzreadFloat(file);
+          gca->y_r = znzreadFloat(file);
+          gca->y_a = znzreadFloat(file);
+          gca->y_s = znzreadFloat(file);
+          gca->z_r = znzreadFloat(file);
+          gca->z_a = znzreadFloat(file);
+          gca->z_s = znzreadFloat(file);
+          gca->c_r = znzreadFloat(file);
+          gca->c_a = znzreadFloat(file);
+          gca->c_s = znzreadFloat(file);
+          gca->width = znzreadInt(file);
+          gca->height = znzreadInt(file);
+          gca->depth = znzreadInt(file);
+          gca->xsize = znzreadFloat(file);
+          gca->ysize = znzreadFloat(file);
+          gca->zsize = znzreadFloat(file);
+
+          if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
+          {
+            printf("Direction cosines read:\n");
+            printf(" x_r = % .4f, y_r = % .4f, z_r = % .4f\n",
+                   gca->x_r, gca->y_r, gca->z_r);
+            printf(" x_a = % .4f, y_a = % .4f, z_a = % .4f\n",
+                   gca->x_a, gca->y_a, gca->z_a);
+            printf(" x_s = % .4f, y_s = % .4f, z_s = % .4f\n",
+                   gca->x_s, gca->y_s, gca->z_s);
+            printf(" c_r = % .4f, c_a = % .4f, c_s = % .4f\n",
+                   gca->c_r, gca->c_a, gca->c_s);
+          }
+          break;
+        default:
+          ErrorPrintf(ERROR_BADFILE,
+                      "GCAread(%s): unknown tag %x\n", fname, tag) ;
+          break ;
+        }
+      }
+    }
+  }
+
+  GCAsetup(gca);
+
+  // fclose(fp) ;
+  //myclose(fp);
+  znzclose(file);
+
+  return(gca) ;
 }
+
 
 static int
 GCAupdatePrior(GCA *gca, MRI *mri, int xn, int yn, int zn, int label)
