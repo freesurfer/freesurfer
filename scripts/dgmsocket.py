@@ -15,7 +15,10 @@
 #
 # 25 March 2006
 # o Initial development implementation
-
+#
+# 06 December 2011
+# o Clean-up the socket communication
+#
 import socket
 
 class C_dgmsocket :
@@ -69,7 +72,7 @@ class C_dgmsocket :
 		self.core_construct()
 		self.mstr_remoteHost	= astr_hostname
 		self.m_port 		= a_port
-		self.m_dgmsocket 	= socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-		self.m_dgmsocket.connect( (astr_hostname, a_port) )
+		self.m_dgmsocket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 	def tx(self, str_payload):
-		self.m_dgmsocket.send(str_payload)
+		self.m_dgmsocket.sendto(str_payload, (self.mstr_remoteHost, self.m_port))
+
