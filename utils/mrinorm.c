@@ -9,9 +9,9 @@
 /*
  * Original Author: Bruce Fischl, 4/9/97
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2011/11/14 20:09:35 $
- *    $Revision: 1.108 $
+ *    $Author: greve $
+ *    $Date: 2011/12/07 18:00:07 $
+ *    $Revision: 1.109 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -2429,8 +2429,7 @@ mriBuildVoronoiDiagramUchar(MRI *mri_src, MRI *mri_ctrl, MRI *mri_dst)
   float   scale ;
   //char tmpstr[128];
 
-  if (mri_src->type != MRI_UCHAR || 
-      mri_dst->type != MRI_UCHAR)
+  if(mri_src->type != MRI_UCHAR || (mri_dst && mri_dst->type != MRI_UCHAR))
     ErrorExit(ERROR_UNSUPPORTED,
               "mriBuildVoronoiDiagramUchar: incorrect input type(s)") ;
 
