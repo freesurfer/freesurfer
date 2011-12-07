@@ -13,8 +13,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2011/11/14 20:09:13 $
- *    $Revision: 1.76 $
+ *    $Date: 2011/12/07 23:18:28 $
+ *    $Revision: 1.77 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -136,14 +136,14 @@ main(int argc, char *argv[])
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mri_normalize.c,v 1.76 2011/11/14 20:09:13 fischl Exp $",
+   "$Id: mri_normalize.c,v 1.77 2011/12/07 23:18:28 fischl Exp $",
    "$Name:  $",
    cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mri_normalize.c,v 1.76 2011/11/14 20:09:13 fischl Exp $",
+           "$Id: mri_normalize.c,v 1.77 2011/12/07 23:18:28 fischl Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
   {
@@ -196,6 +196,8 @@ main(int argc, char *argv[])
                              intensity_below/2,1,
                              bias_sigma, mri_not_control);
     }
+    else
+      mri_dst = MRIcopy(mri_src, NULL) ;
     mris = MRISread(surface_fname) ;
     if (mris == NULL)
     {
