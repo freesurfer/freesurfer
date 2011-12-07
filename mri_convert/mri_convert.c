@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl (Apr 16, 1997)
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2011/11/07 21:21:04 $
- *    $Revision: 1.186 $
+ *    $Date: 2011/12/07 21:06:16 $
+ *    $Revision: 1.187 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -119,8 +119,8 @@ int main(int argc, char *argv[])
   float in_flip_angle = 0;
   float magnitude;
   float i_dot_j, i_dot_k, j_dot_k;
-  float in_center[3], out_center[3];
-  int in_center_flag, out_center_flag;
+  float in_center[3], out_center[3], delta_in_center[3];
+  int in_center_flag, out_center_flag, delta_in_center_flag;
   int out_data_type;
   char out_data_type_string[STRLEN];
   int out_n_i, out_n_j, out_n_k;
@@ -199,7 +199,7 @@ int main(int argc, char *argv[])
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mri_convert.c,v 1.186 2011/11/07 21:21:04 greve Exp $",
+   "$Id: mri_convert.c,v 1.187 2011/12/07 21:06:16 greve Exp $",
    "$Name:  $",
    cmdline);
 
@@ -278,6 +278,7 @@ int main(int argc, char *argv[])
   in_i_direction_flag = in_j_direction_flag = in_k_direction_flag = FALSE;
   out_i_direction_flag = out_j_direction_flag = out_k_direction_flag = FALSE;
   in_center_flag = FALSE;
+  delta_in_center_flag = FALSE;
   out_center_flag = FALSE;
   out_data_type = -1;
   out_n_i_flag = out_n_j_flag = out_n_k_flag = FALSE;
@@ -319,7 +320,7 @@ int main(int argc, char *argv[])
     handle_version_option
     (
       argc, argv,
-      "$Id: mri_convert.c,v 1.186 2011/11/07 21:21:04 greve Exp $",
+      "$Id: mri_convert.c,v 1.187 2011/12/07 21:06:16 greve Exp $",
       "$Name:  $"
     );
   if (nargs && argc - nargs == 1)
@@ -830,6 +831,12 @@ int main(int argc, char *argv[])
     {
       get_floats(argc, argv, &i, in_center, 3);
       in_center_flag = TRUE;
+    }
+    else if(strcmp(argv[i], "-dic") == 0 ||
+            strcmp(argv[i], "--delta_in_center") == 0)
+    {
+      get_floats(argc, argv, &i, delta_in_center, 3);
+      delta_in_center_flag = TRUE;
     }
     else if(strcmp(argv[i], "-oc") == 0 ||
             strcmp(argv[i], "--out_center") == 0)
@@ -1629,7 +1636,7 @@ int main(int argc, char *argv[])
             "= --zero_ge_z_offset option ignored.\n");
   }
 
-  printf("$Id: mri_convert.c,v 1.186 2011/11/07 21:21:04 greve Exp $\n");
+  printf("$Id: mri_convert.c,v 1.187 2011/12/07 21:06:16 greve Exp $\n");
   printf("reading from %s...\n", in_name_only);
 
   if (in_volume_type == OTL_FILE)
@@ -2153,6 +2160,12 @@ int main(int argc, char *argv[])
     mri->c_r = in_center[0];
     mri->c_a = in_center[1];
     mri->c_s = in_center[2];
+  }
+  if (delta_in_center_flag)
+  {
+    mri->c_r += delta_in_center[0];
+    mri->c_a += delta_in_center[1];
+    mri->c_s += delta_in_center[2];
   }
   if (subject_name[0] != '\0')
   {
