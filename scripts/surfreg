@@ -1,7 +1,7 @@
 #!/bin/tcsh -f
 # thalseg
 
-set VERSION = '$Id: surfreg,v 1.1 2011/06/01 15:52:06 greve Exp $';
+set VERSION = '$Id: surfreg,v 1.2 2011/12/07 05:11:26 greve Exp $';
 
 set subject = ();
 set hemilist  = ();
@@ -153,20 +153,28 @@ if($#subject == 0) then
 endif
 set sd = $SUBJECTS_DIR/$subject
 if(! -e $sd) then
-   echo "ERROR: cannot find $subject in $SUBJECTS_DIR"
-   exit 1;
+  echo "ERROR: cannot find $subject in $SUBJECTS_DIR"
+  exit 1;
 endif
 
 if($#hemilist == 0 && ! $DoXHemi) set hemilist = (lh rh)
 if($#hemilist == 0 && $DoXHemi)   set hemilist = (lh)
 
 foreach hemi ($hemilist)
-  set AvgTif = $SUBJECTS_DIR/$target/$hemi.reg.template.tif
+  if($target == fsaverage) then
+    set AvgCurvTifPath = "${FREESURFER_HOME}/average"
+    set AvgCurvTif = average.curvature.filled.buckner40.tif
+    set AvgTif = ${AvgCurvTifPath}/$hemi.${AvgCurvTif}
+    set outreg = $sd/surf/$hemi.sphere.reg    
+  else
+    set AvgTif = $SUBJECTS_DIR/$target/$hemi.reg.template.tif
+    set outreg = $sd/surf/$hemi.$target.sphere.reg
+  endif
+
   if(! -e $AvgTif) then
     echo "ERROR: cannot find $AvgTif"
     exit 1;
   endif
-  set outreg = $sd/surf/$hemi.$target.sphere.reg
   if($DoXHemi)  set outreg = $sd/xhemi/surf/$hemi.$target.sphere.reg
   if(-e $outreg) then
     echo "ERROR: output already exists $outreg"
