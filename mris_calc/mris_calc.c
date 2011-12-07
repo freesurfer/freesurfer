@@ -11,9 +11,9 @@
 /*
  * Original Author: Rudolph Pienaar
  * CVS Revision Info:
- *    $Author: mreuter $
- *    $Date: 2011/11/08 18:39:29 $
- *    $Revision: 1.46 $
+ *    $Author: greve $
+ *    $Date: 2011/12/07 17:13:37 $
+ *    $Revision: 1.47 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -41,6 +41,7 @@
 
 #include <getopt.h>
 #include <stdarg.h>
+#include <float.h>
 
 #include "macros.h"
 #include "error.h"
@@ -62,7 +63,7 @@
 #define  START_i        3
 
 static const char vcid[] =
-  "$Id: mris_calc.c,v 1.46 2011/11/08 18:39:29 mreuter Exp $";
+  "$Id: mris_calc.c,v 1.47 2011/12/07 17:13:37 greve Exp $";
 double fn_sign(float af_A);
 
 // ----------------------------------------------------------------------------
@@ -122,6 +123,7 @@ typedef enum _operation
   e_add,
   e_pow,
   e_sub,
+  e_pctdiff,
   e_sqd,
   e_sqr,
   e_not,
@@ -169,6 +171,7 @@ const char* Gppch_operation[] =
   "add",
   "pow",
   "subtract",
+  "pctdiff",
   "square difference",
   "square",
   "square root"
@@ -310,6 +313,10 @@ double fn_pow(float af_A, float af_B)
 double fn_sub(float af_A, float af_B)
 {
   return (af_A - af_B);
+}
+double fn_pctdiff(float af_A, float af_B)
+{
+  return (100*(af_A - af_B)/( (af_A + af_B + FLT_MIN)/2) );
 }
 double fn_sqd(float af_A, float af_B)
 {
@@ -1362,7 +1369,7 @@ main(
   init();
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mris_calc.c,v 1.46 2011/11/08 18:39:29 mreuter Exp $",
+           "$Id: mris_calc.c,v 1.47 2011/12/07 17:13:37 greve Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
   {
@@ -1578,6 +1585,10 @@ operation_lookup(
   else if(!strcmp(apch_operation, "sub"))
   {
     e_op    = e_sub;
+  }
+  else if(!strcmp(apch_operation, "pctdiff"))
+  {
+    e_op    = e_pctdiff;
   }
   else if(!strcmp(apch_operation, "sqd"))
   {
@@ -2050,6 +2061,7 @@ b_outCurvFile_write(e_operation e_op)
     e_op == e_pow           ||
     e_op == e_add           ||
     e_op == e_sub           ||
+    e_op == e_pctdiff       ||
     e_op == e_sqd           ||
     e_op == e_sqr           ||
     e_op == e_sqrt          ||
@@ -2154,6 +2166,9 @@ CURV_process(void)
     break;
   case  e_sub:
     CURV_functionRunABC(fn_sub);
+    break;
+  case  e_pctdiff:
+    CURV_functionRunABC(fn_pctdiff);
     break;
   case  e_set:
     CURV_functionRunABC(fn_set);
