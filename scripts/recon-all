@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2011/12/02 10:47:46 $
-#    $Revision: 1.409 $
+#    $Date: 2011/12/07 17:46:30 $
+#    $Revision: 1.410 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -26,7 +26,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.409 2011/12/02 10:47:46 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.410 2011/12/07 17:46:30 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -4915,7 +4915,6 @@ while( $#argv != 0 )
       set DoInflate1       = 1;
       set DoQSphere        = 1;
       set DoFix            = 1;
-      set DoMaskBFS        = 1;
       set DoWhiteSurfs     = 1;
       set DoSmooth2        = 1;
       set DoInflate2       = 1;
@@ -4923,8 +4922,6 @@ while( $#argv != 0 )
       set DoCurvStats      = 1;
       breaksw
 
-    case "-autorecon2-pial":
-    case "-autorecon3-pial":
     case "-autorecon-pial":
       set DoMaskBFS        = 1;
       set DoWhiteSurfs     = 1;
@@ -5813,7 +5810,7 @@ usage_exit:
   echo "  -autorecon2-inflate1 : 6-18"
   echo "  -autorecon2-perhemi : tess, sm1, inf1, q, fix, sm2, inf2, finalsurf, ribbon"
   echo "  -autorecon3    : process stages 24-34"
-  echo "                     if edits made to correct pial, then run -autorecon2-pial"
+  echo "                     if edits made to correct pial, then run -autorecon-pial"
   echo "  -hemi ?h       : just do lh or rh (default is to do both)"
   echo ""
   echo "  Autorecon Processing Stages (see -autorecon# flags above):"
@@ -6018,8 +6015,6 @@ Deprecated.  Same as -autorecon2, as control points affect subcortical.
 Fill through make white surfaces. Used after editing wm volume after running
 -autorecon2.
 
--autorecon2-pial
--autorecon3-pial
 -autorecon-pial
 
 Makes final surfaces (white and pial). Used after editing brain.finalsurfs
