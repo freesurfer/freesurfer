@@ -6,9 +6,9 @@
 /*
  * Original Author: Doug Greve
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:31 $
- *    $Revision: 1.18 $
+ *    $Author: greve $
+ *    $Date: 2011/12/07 20:58:33 $
+ *    $Revision: 1.19 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -111,7 +111,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mris_diff.c,v 1.18 2011/03/02 00:04:31 nicks Exp $";
+static char vcid[] = "$Id: mris_diff.c,v 1.19 2011/12/07 20:58:33 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 static int debug=0;
@@ -124,6 +124,8 @@ static char *curvname=NULL, *aparcname=NULL,*aparc2name=NULL, *surfname=NULL;
 static char *surf1path=NULL, *surf2path=NULL;
 static char *out_fname ;
 static char tmpstr[2000];
+static char *xyzRMSFile=NULL;
+static char *angleRMSFile=NULL;
 
 static MRIS *surf1, *surf2;
 
@@ -146,7 +148,7 @@ int main(int argc, char *argv[]) {
   int nthface, annot1, annot2;
   VERTEX *vtx1, *vtx2;
   FACE *face1, *face2;
-  float diff, maxdiff;
+  float diff, maxdiff, rms;
 
   nargs = handle_version_option (argc, argv, vcid, "$Name:  $");
   if (nargs && argc - nargs == 1) exit (0);
@@ -245,8 +247,40 @@ int main(int argc, char *argv[]) {
     exit(0);
   }
 
-  maxdiff=0;
+  if(xyzRMSFile){
+    printf("Computing xyz RMS\n");
+    MRI *xyzRMS;
+    xyzRMS = MRIalloc(surf1->nvertices,1,1,MRI_FLOAT) ;    
+    for (nthvtx=0; nthvtx < surf1->nvertices; nthvtx++) {
+      vtx1 = &(surf1->vertices[nthvtx]);
+      vtx2 = &(surf2->vertices[nthvtx]);
+      rms = sqrt(pow(vtx1->x-vtx2->x,2) + pow(vtx1->y-vtx2->y,2) + pow(vtx1->z-vtx2->z,2));
+      MRIsetVoxVal(xyzRMS,nthvtx,0,0,0,rms);
+    }
+    MRIwrite(xyzRMS,xyzRMSFile);
+    exit(0);
+  }
 
+  if(angleRMSFile){
+    printf("Computing angle RMS\n");
+    MRI *angleRMS;
+    double dot, radius1, radius2;
+    angleRMS = MRIalloc(surf1->nvertices,1,1,MRI_FLOAT) ;    
+    for (nthvtx=0; nthvtx < surf1->nvertices; nthvtx++) {
+      vtx1 = &(surf1->vertices[nthvtx]);
+      vtx2 = &(surf2->vertices[nthvtx]);
+      radius1 = sqrt(vtx1->x*vtx1->x + vtx1->y*vtx1->y + vtx1->z*vtx1->z);
+      radius2 = sqrt(vtx2->x*vtx2->x + vtx2->y*vtx2->y + vtx2->z*vtx2->z);
+      dot = (vtx1->x*vtx2->x + vtx1->y*vtx2->y + vtx1->z*vtx2->z)/(radius1*radius2);
+      //printf("%6.2f %6.2f %6.2f  %6.2f %6.2f %6.2f  %6.2f %6.2f  %5.4f\n",
+      // vtx1->x,vtx1->y,vtx1->z, vtx2->x,vtx2->y,vtx2->z, radius1, radius2, acos(dot)*180/M_PI);
+      MRIsetVoxVal(angleRMS,nthvtx,0,0,0,acos(dot)*180/M_PI);
+    }
+    MRIwrite(angleRMS,angleRMSFile);
+    exit(0);
+  }
+
+  maxdiff=0;
   //------------------------------------------------------------
   if (CheckSurf) {
     printf("Comparing surfaces\n");
@@ -513,11 +547,23 @@ static int parse_commandline(int argc, char **argv) {
       ComputeNormalDist = 1;
       out_fname = pargv[0];
       nargsused = 1;
-    } else if (!strcasecmp(option, "--s1")) {
+    } 
+    else if (!strcasecmp(option, "--xyz-rms")) {
+      if (nargc < 1) CMDargNErr(option,1);
+      xyzRMSFile = pargv[0];
+      nargsused = 1;
+    } 
+    else if (!strcasecmp(option, "--angle-rms")) {
+      if (nargc < 1) CMDargNErr(option,1);
+      angleRMSFile = pargv[0];
+      nargsused = 1;
+    } 
+    else if (!strcasecmp(option, "--s1")) {
       if (nargc < 1) CMDargNErr(option,1);
       subject1 = pargv[0];
       nargsused = 1;
-    } else if (!strcasecmp(option, "--s2")) {
+    } 
+    else if (!strcasecmp(option, "--s2")) {
       if (nargc < 1) CMDargNErr(option,1);
       subject2 = pargv[0];
       nargsused = 1;
@@ -605,6 +651,8 @@ static void print_usage(void) {
   printf("\n");
   printf("   --no-check-xyz  : do not check vertex xyz\n");
   printf("   --no-check-nxyz : do not check vertex normals\n");
+  printf("   --xyz-rms xyzrmsfile : compute and save rms diff between xyz\n");
+  printf("   --angle-rms anglermsfile : compute angle on sphere between xyz\n");
   printf("\n");
   printf("   --debug       turn on debugging\n");
   printf("   --checkopts   don't run anything, just check options and exit\n");
