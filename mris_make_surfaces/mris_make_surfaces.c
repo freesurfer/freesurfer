@@ -12,8 +12,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2011/12/08 00:48:58 $
- *    $Revision: 1.129 $
+ *    $Date: 2011/12/08 15:01:24 $
+ *    $Revision: 1.130 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -52,7 +52,7 @@
 #include "label.h"
 
 static char vcid[] =
-  "$Id: mris_make_surfaces.c,v 1.129 2011/12/08 00:48:58 fischl Exp $";
+  "$Id: mris_make_surfaces.c,v 1.130 2011/12/08 15:01:24 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -142,7 +142,7 @@ static float pial_target_offset = 0 ;
 static float white_target_offset = 0 ;
 
 static MRI *mri_cover_seg = NULL ;
-static char *aseg_name = "aseg.mgz" ;
+static char *aseg_name = "aseg" ;
 static char *aparc_name = "aparc" ;  // for midline and cortex label
 static MRI *mri_aseg = NULL;
 static int add = 0 ;
@@ -243,13 +243,13 @@ main(int argc, char *argv[])
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mris_make_surfaces.c,v 1.129 2011/12/08 00:48:58 fischl Exp $",
+   "$Id: mris_make_surfaces.c,v 1.130 2011/12/08 15:01:24 fischl Exp $",
    "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mris_make_surfaces.c,v 1.129 2011/12/08 00:48:58 fischl Exp $",
+           "$Id: mris_make_surfaces.c,v 1.130 2011/12/08 15:01:24 fischl Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
   {
@@ -864,6 +864,9 @@ main(int argc, char *argv[])
   {
     char fname[STRLEN] ;
     sprintf(fname, "%s/%s/mri/%s", sdir, sname, aseg_name) ;
+    if (MGZ)
+      strcat(fname, ".mgz");
+
     fprintf(stderr, "reading volume %s...\n", fname) ;
     mri_aseg = MRIread(fname) ;
     if (mri_aseg == NULL)
@@ -2494,7 +2497,7 @@ int
 MRIsmoothBrightWM(MRI *mri_T1, MRI *mri_wm)
 {
   int     width, height, depth, x, y, z, nthresholded ;
-  BUFTYPE *pT1, *pwm, val, wm ;
+  BUFTYPE *pwm, val, wm ;
 
   width = mri_T1->width ;
   height = mri_T1->height ;
@@ -2505,11 +2508,10 @@ MRIsmoothBrightWM(MRI *mri_T1, MRI *mri_wm)
   {
     for (y = 0 ; y < height ; y++)
     {
-      pT1 = &MRIvox(mri_T1, 0, y, z) ;
       pwm = &MRIvox(mri_wm, 0, y, z) ;
       for (x = 0 ; x < width ; x++)
       {
-        val = *pT1 ;
+        val = MRIgetVoxVal(mri_T1, x, y, z, 0) ;
         wm = *pwm++ ;
         if (wm >= WM_MIN_VAL)  /* labeled as white */
         {
@@ -2519,7 +2521,7 @@ MRIsmoothBrightWM(MRI *mri_T1, MRI *mri_wm)
             val = DEFAULT_DESIRED_WHITE_MATTER_VALUE ;
           }
         }
-        *pT1++ = val ;
+	MRIsetVoxVal(mri_T1, x, y, z, 0, val) ;
       }
     }
   }
@@ -2533,7 +2535,7 @@ MRIfindBrightNonWM(MRI *mri_T1, MRI *mri_wm)
 {
   int     width, height, depth, x, y, z, nlabeled, nwhite,
           xk, yk, zk, xi, yi, zi;
-  BUFTYPE *pT1, *pwm, val, wm ;
+  BUFTYPE *pwm, val, wm ;
   MRI     *mri_labeled, *mri_tmp ;
 
   mri_labeled = MRIclone(mri_T1, NULL) ;
@@ -2545,11 +2547,10 @@ MRIfindBrightNonWM(MRI *mri_T1, MRI *mri_wm)
   {
     for (y = 0 ; y < height ; y++)
     {
-      pT1 = &MRIvox(mri_T1, 0, y, z) ;
       pwm = &MRIvox(mri_wm, 0, y, z) ;
       for (x = 0 ; x < width ; x++)
       {
-        val = *pT1++ ;
+        val = MRIgetVoxVal(mri_T1, x, y, z, 0) ;
         wm = *pwm++ ;
 
         if (x == Gx && y == Gy && z == Gz)  /* T1=127 */
