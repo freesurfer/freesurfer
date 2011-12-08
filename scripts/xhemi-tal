@@ -1,0 +1,244 @@
+#!/bin/tcsh -f
+
+#
+# xhemi-tal
+#
+# Computes the talairach.xfm for xhemi (see xhemireg) based
+# on the original (unflipped) talairach.xfm
+#
+# Original Author: Doug Greve
+# CVS Revision Info:
+#    $Author: greve $
+#    $Date: 2011/12/08 04:02:40 $
+#    $Revision: 1.1 $
+#
+# Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+#
+# Terms and conditions for use, reproduction, distribution and contribution
+# are found in the 'FreeSurfer Software License Agreement' contained
+# in the file 'LICENSE' found in the FreeSurfer distribution, and here:
+#
+# https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
+#
+# Reporting: freesurfer@nmr.mgh.harvard.edu
+#
+
+set VERSION = '$Id: xhemi-tal,v 1.1 2011/12/08 04:02:40 greve Exp $';
+
+set subject = ();
+set tmpdir = ();
+set cleanup = 1;
+set LF = ();
+
+set inputargs = ($argv);
+set PrintHelp = 0;
+if($#argv == 0) goto usage_exit;
+set n = `echo $argv | grep -e -help | wc -l` 
+if($n != 0) then
+  set PrintHelp = 1;
+  goto usage_exit;
+endif
+set n = `echo $argv | grep -e -version | wc -l` 
+if($n != 0) then
+  echo $VERSION
+  exit 0;
+endif
+goto parse_args;
+parse_args_return:
+goto check_params;
+check_params_return:
+
+set StartTime = `date`;
+set tSecStart = `date '+%s'`;
+
+set sd = $SUBJECTS_DIR/$subject
+set outdir = $sd/xhemi/mri/transforms
+mkdir -p $outdir
+if($#tmpdir == 0) then
+  if(-e /scratch)   set tmpdir = /scratch/tmpdir.xhemi-tal.$$
+  if(! -e /scratch) set tmpdir = $outdir/tmpdir.xhemi-tal.$$
+endif
+mkdir -p $tmpdir
+
+# Set up log file
+if($#LF == 0) set LF = $outdir/xhemi-tal.log
+if($LF != /dev/null) rm -f $LF
+echo "Log file for xhemi-tal" >> $LF
+date  | tee -a $LF
+echo "" | tee -a $LF
+echo "setenv SUBJECTS_DIR $SUBJECTS_DIR" | tee -a $LF
+echo "cd `pwd`"  | tee -a $LF
+echo $0 $inputargs | tee -a $LF
+echo "" | tee -a $LF
+cat $FREESURFER_HOME/build-stamp.txt | tee -a $LF
+echo $VERSION | tee -a $LF
+uname -a  | tee -a $LF
+
+#========================================================
+
+set orig = $sd/mri/orig.mgz
+set N = $tmpdir/N.fsl
+set cmd = (mri_info --o $N --vox2ras $orig)
+echo $cmd
+$cmd | tee -a $LF
+if($status) exit 1;
+
+set T = $tmpdir/T.fsl
+set cmd = (mri_info --o $T --vox2ras-tkr $orig)
+echo $cmd
+$cmd | tee -a $LF
+if($status) exit 1;
+
+set V = $tmpdir/V.fsl
+rm -f $V
+echo "-1 0 0 1" >> $V
+echo " 0 1 0 0" >> $V
+echo " 0 0 1 0" >> $V
+echo " 0 0 0 1" >> $V
+
+set talxfm = $sd/mri/transforms/talairach.xfm
+set X = $tmpdir/X.fsl
+tail -n 3 $talxfm | sed 's/;//g' > $X
+echo "0 0 0 1" >> $X
+
+set Xxhemi = $tmpdir/Xxhemi.fsl
+set cmd = (mri_matrix_multiply -fsl -om $Xxhemi \
+  -im $X -im $N -iim $T -iim $V -im $T -iim $N)
+echo $cmd
+$cmd | tee -a $LF
+if($status) exit 1;
+
+echo ""
+cat $Xxhemi | tee -a $LF
+echo ""
+
+set talxfmxhemi = $sd/xhemi/mri/transforms/talairach.xfm
+rm -f $talxfmxhemi
+echo "MNI Transform File"  >> $talxfmxhemi
+echo "% xhemi-tal" >> $talxfmxhemi
+echo "" >> $talxfmxhemi
+echo "Transform_Type = Linear;" >> $talxfmxhemi
+echo "Linear_Transform = " >> $talxfmxhemi
+cat tmp/Xxhemi.fsl | \
+  awk '{if(NR==1 || NR==2) print $0;if(NR==3) print $0";"}' \
+  >> $talxfmxhemi
+#========================================================
+
+# Cleanup
+if($cleanup) rm -rf $tmpdir
+
+# Done
+echo " " |& tee -a $LF
+set tSecEnd = `date '+%s'`;
+@ tSecRun = $tSecEnd - $tSecStart;
+echo "Started at $StartTime " |& tee -a $LF
+echo "Ended   at `date`" |& tee -a $LF
+echo "Xhemi-Tal-Run-Time-Sec $tSecRun" |& tee -a $LF
+echo " " |& tee -a $LF
+echo "xhemi-tal Done" |& tee -a $LF
+exit 0
+
+###############################################
+
+############--------------##################
+parse_args:
+set cmdline = ($argv);
+while( $#argv != 0 )
+
+  set flag = $argv[1]; shift;
+  
+  switch($flag)
+
+    case "--s":
+      if($#argv < 1) goto arg1err;
+      set subject = $argv[1]; shift;
+      breaksw
+
+    case "--log":
+      if($#argv < 1) goto arg1err;
+      set LF = $argv[1]; shift;
+      breaksw
+
+    case "--nolog":
+    case "--no-log":
+      set LF = /dev/null
+      breaksw
+
+    case "--tmp":
+    case "--tmpdir":
+      if($#argv < 1) goto arg1err;
+      set tmpdir = $argv[1]; shift;
+      set cleanup = 0;
+      breaksw
+
+    case "--nocleanup":
+      set cleanup = 0;
+      breaksw
+
+    case "--cleanup":
+      set cleanup = 1;
+      breaksw
+
+    case "--debug":
+      set verbose = 1;
+      set echo = 1;
+      breaksw
+
+    default:
+      echo ERROR: Flag $flag unrecognized. 
+      echo $cmdline
+      exit 1
+      breaksw
+  endsw
+
+end
+
+goto parse_args_return;
+############--------------##################
+
+############--------------##################
+check_params:
+
+if($#subject == 0) then
+  echo "ERROR: must spec subject"
+  exit 1;
+endif
+if(! -e $SUBJECTS_DIR/$subject) then
+  echo "ERROR: cannot find $subject"
+  exit 1;
+endif
+if(! -e $SUBJECTS_DIR/$subject/xhemi) then
+  echo "ERROR: cannot find $subject/xhemi"
+  echo "Run xhemireg "
+  exit 1;
+endif
+
+goto check_params_return;
+############--------------##################
+
+############--------------##################
+arg1err:
+  echo "ERROR: flag $flag requires one argument"
+  exit 1
+############--------------##################
+arg2err:
+  echo "ERROR: flag $flag requires two arguments"
+  exit 1
+############--------------##################
+
+############--------------##################
+usage_exit:
+  echo ""
+  echo "xhemi-tal --s subject"
+  echo ""
+
+  if(! $PrintHelp) exit 1;
+  echo $VERSION
+  cat $0 | awk 'BEGIN{prt=0}{if(prt) print $0; if($1 == "BEGINHELP") prt = 1 }'
+exit 1;
+
+#---- Everything below here is printed out as part of help -----#
+BEGINHELP
+
+Computes the talairach.xfm for xhemi (see xhemireg) based on the
+original (unflipped) talairach.xfm
