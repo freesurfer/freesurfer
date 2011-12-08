@@ -223,6 +223,7 @@ wfilemask \
 wm-anat-snr \
 xfmrot \
 xhemireg \
+xhemi-tal \
 xsanatreg
 
 tcldir = $(prefix)/lib/tcl
