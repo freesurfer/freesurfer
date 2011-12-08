@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:30 $
- *    $Revision: 1.39 $
+ *    $Author: greve $
+ *    $Date: 2011/12/08 20:42:03 $
+ *    $Revision: 1.40 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -45,7 +45,7 @@
 
 //------------------------------------------------------------------------
 static char vcid[] =
-"$Id: mris_convert.c,v 1.39 2011/03/02 00:04:30 nicks Exp $";
+"$Id: mris_convert.c,v 1.40 2011/12/08 20:42:03 greve Exp $";
 
 /*-------------------------------- CONSTANTS -----------------------------*/
 // this mini colortable is used when .label file gets converted to gifti
@@ -120,7 +120,7 @@ main(int argc, char *argv[]) {
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
     (argc, argv,
-     "$Id: mris_convert.c,v 1.39 2011/03/02 00:04:30 nicks Exp $",
+     "$Id: mris_convert.c,v 1.40 2011/12/08 20:42:03 greve Exp $",
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -475,8 +475,19 @@ main(int argc, char *argv[]) {
     MRISfree(&mris3);
   }
   else {
-    // default output: 
-    MRISwrite(mris, out_fname) ;
+    if(MRISfileNameType(out_fname) == MRIS_VOLUME_FILE){
+      printf("Saving surface xyz %s as a volume format\n",out_fname);
+      MRI *vol = MRIallocSequence(mris->nvertices, 1, 1, MRI_FLOAT, 3);
+      MRIScopyMRI(mris,vol,0,"x");
+      MRIScopyMRI(mris,vol,1,"y");
+      MRIScopyMRI(mris,vol,2,"z");
+      MRIwrite(vol,out_fname);
+      MRIfree(&vol);
+    } else {
+      // default output: 
+      printf("Saving %s as a surface\n",out_fname);
+      MRISwrite(mris, out_fname) ;
+    }
   }
 
   MRISfree(&mris) ;

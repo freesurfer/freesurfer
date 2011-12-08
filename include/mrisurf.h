@@ -8,9 +8,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2011/12/08 15:02:39 $
- *    $Revision: 1.358 $
+ *    $Author: greve $
+ *    $Date: 2011/12/08 20:42:02 $
+ *    $Revision: 1.359 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -1487,6 +1487,7 @@ MRI   *MRISpartialfloodoutside(MRI *mri_src,
 #define MRIS_STL_FILE                  6
 #define MRIS_GIFTI_FILE                7
 #define MRIS_ANNOT_FILE                8
+#define MRIS_VOLUME_FILE               9
 
 
 #define IS_QUADRANGULAR(mris)                   \

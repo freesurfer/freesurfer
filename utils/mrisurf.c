@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2011/12/08 15:02:18 $
- *    $Revision: 1.704 $
+ *    $Author: greve $
+ *    $Date: 2011/12/08 20:42:02 $
+ *    $Revision: 1.705 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -62,6 +62,7 @@
 #include "topology/topo_parms.h"
 #include "cma.h"
 #include "gifti_local.h"
+#include "mri_identify.h"
 
 #define DMALLOC 0
 
@@ -735,7 +736,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void)
 {
-  return("$Id: mrisurf.c,v 1.704 2011/12/08 15:02:18 fischl Exp $");
+  return("$Id: mrisurf.c,v 1.705 2011/12/08 20:42:02 greve Exp $");
 }
 
 /*-----------------------------------------------------
@@ -23403,7 +23404,14 @@ int
 MRISfileNameType(const char *fname)
 {
   int   type ;
-  char  *dot, ext[STRLEN], str[STRLEN] ;
+  char  *dot, ext[STRLEN], str[STRLEN], *idext ;
+
+  // First check whether it is a volume format
+  idext = IDextensionFromName(fname);
+  if(idext != NULL){
+    free(idext);
+    return(MRIS_VOLUME_FILE);
+  }
 
   FileNameOnly(fname, str) ;/* remove path */
 
@@ -32607,7 +32615,7 @@ MRIScomputeGraySurfaceValues(MRI_SURFACE *mris,MRI *mri_brain,MRI *mri_smooth,
 int   MRISreverseCoords(MRI_SURFACE *mris, int which_direction, int reverse_face_order, int which_coords) 
 {
   int    vno ;
-  float  x, y, z ;
+  float  x=0, y=0, z=0 ;
   VERTEX *v ;
 
   for (vno = 0 ; vno < mris->nvertices ; vno++)
