@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2011/12/02 16:56:31 $
- *    $Revision: 1.703 $
+ *    $Author: fischl $
+ *    $Date: 2011/12/08 15:02:18 $
+ *    $Revision: 1.704 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -735,7 +735,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void)
 {
-  return("$Id: mrisurf.c,v 1.703 2011/12/02 16:56:31 greve Exp $");
+  return("$Id: mrisurf.c,v 1.704 2011/12/08 15:02:18 fischl Exp $");
 }
 
 /*-----------------------------------------------------
@@ -5904,6 +5904,8 @@ MRISregister(MRI_SURFACE *mris, MRI_SP *mrisp_template,
             MRISwrite(mris, fname) ;
           }
           MRISsaveVertexPositions(mris, TMP2_VERTICES) ;
+	  if (parms->niterations == 0)  // only rigid
+	    break ;
         }
       }
 
@@ -5919,6 +5921,8 @@ MRISregister(MRI_SURFACE *mris, MRI_SP *mrisp_template,
       }
       mrisIntegrationEpoch(mris, parms, parms->n_averages) ;
     }
+    if (parms->niterations == 0)  // only rigid
+      break ;
     if (sno == 0) // doing inflated - was fairly rigid - restore orig values
     {
       /* only small adjustments needed after 1st time around */
@@ -5931,16 +5935,19 @@ MRISregister(MRI_SURFACE *mris, MRI_SP *mrisp_template,
     }
   }
 
-  parms->tol /= 10 ;  /* remove everything possible pretty much */
-  if (Gdiag & DIAG_SHOW)
-    fprintf(stdout, "\nRemoving remaining folds...\n") ;
-  if (Gdiag & DIAG_WRITE)
-    fprintf(parms->fp, "removing remaining folds...\n") ;
 #if 1
-  parms->l_nlarea *= 100  ; parms->n_averages = 64 ;  // don't let averaging effect too much of surface
-  parms->l_parea /= 100 ;
-  parms->l_spring /= 100 ; parms->l_corr /= 100 ; parms->l_dist /= 100;
-  mrisIntegrationEpoch(mris, parms, parms->n_averages) ;
+  if (mris->neg_area > 0)
+  {
+    parms->tol /= 10 ;  /* remove everything possible pretty much */
+    if (Gdiag & DIAG_SHOW)
+      fprintf(stdout, "\nRemoving remaining folds...\n") ;
+    if (Gdiag & DIAG_WRITE)
+      fprintf(parms->fp, "removing remaining folds...\n") ;
+    parms->l_nlarea *= 100  ; parms->n_averages = 64 ;  // don't let averaging effect too much of surface
+    parms->l_parea /= 100 ;
+    parms->l_spring /= 100 ; parms->l_corr /= 100 ; parms->l_dist /= 100;
+    mrisIntegrationEpoch(mris, parms, parms->n_averages) ;
+  }
 #else
   parms->l_nlarea = 1 ;
   parms->l_corr /= 10.0 ;
@@ -28601,8 +28608,10 @@ MRISpositionSurface(MRI_SURFACE *mris, MRI *mri_brain, MRI *mri_smooth,
   last_sse = sse = MRIScomputeSSE(mris, parms) ;
   if (DZERO(parms->l_intensity) && gMRISexternalRMS != NULL && parms->l_external > 0)
     last_rms = rms = (*gMRISexternalRMS)(mris, parms) ;
+#if 0
   else
     last_rms = rms = 10*sqrt(sse/MRISvalidVertices(mris)) ;
+#endif
   if (Gdiag & DIAG_SHOW)
     fprintf(stdout, "%3.3d: dt: %2.4f, sse=%2.1f, rms=%2.2f\n",
             0, 0.0f, (float)sse, (float)rms);
@@ -32587,6 +32596,57 @@ MRIScomputeGraySurfaceValues(MRI_SURFACE *mris,MRI *mri_brain,MRI *mri_smooth,
   MRISclearMarks(mris) ;
   /*  MRISaverageVals(mris, 3) ;*/
   fprintf(stdout, "mean pial surface=%2.1f, %d missing\n", mean_gray,nmissing);
+  return(NO_ERROR) ;
+}
+/*-----------------------------------------------------*/
+/*!
+  \fn int MRISreverseCoords(MRI_SURFACE *mris, int which_reverse, int reverse_face_order, int which_coords)
+  \brief Reverse sign of one of the dimensions of the surface coords.
+  If reversing X, the order of the verticies is also reversed.
+*/
+int   MRISreverseCoords(MRI_SURFACE *mris, int which_direction, int reverse_face_order, int which_coords) 
+{
+  int    vno ;
+  float  x, y, z ;
+  VERTEX *v ;
+
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    v = &mris->vertices[vno] ;
+    if (v->ripflag)
+      continue ;
+    switch (which_coords)
+    {
+    case CURRENT_VERTICES:    x = v->x ;     y = v->y ;     z = v->z ; break ;
+    case CANONICAL_VERTICES:  x = v->cx ;    y = v->cy ;    z = v->cz ; break ;
+    case ORIGINAL_VERTICES:   x = v->origx ; y = v->origy ; z = v->origz ; break ;
+    default: ErrorExit(ERROR_UNSUPPORTED, "MRISreverseCoords: unsupported which_vertices %d", which_coords) ;
+    }
+
+    switch (which_direction)
+    {
+    default:
+    case REVERSE_X:
+      x = -x ;
+      break ;
+    case REVERSE_Y:
+      y = -y ;
+      break ;
+    case REVERSE_Z:
+      z = -z ;
+      break ;
+    }
+    switch (which_coords)
+    {
+    case CURRENT_VERTICES:   v->x     = x ; v->y     = y ; v->z     = z ; break ;
+    case CANONICAL_VERTICES: v->cx    = x ; v->cy    = y ; v->cz    = z ; break ;
+    case ORIGINAL_VERTICES:  v->origx = x ; v->origy = y ; v->origz = z ; break ;
+    default: ErrorExit(ERROR_UNSUPPORTED, "MRISreverseCoords: unsupported which_vertices %d", which_coords) ;
+    }
+  }
+  if(which_direction == REVERSE_X && reverse_face_order)   // swap order of faces
+    MRISreverseFaceOrder(mris);
+
   return(NO_ERROR) ;
 }
 /*-----------------------------------------------------*/
@@ -69394,6 +69454,141 @@ MRISlogOdds(MRI_SURFACE *mris, LABEL *area, double slope)
       p = 0 ;
     p = exp(-p*slope) ;
     v->val = p ;
+  }
+  return(NO_ERROR) ;
+}
+int
+MRISextractVertexCoords(MRI_SURFACE *mris, float *locations[3], int which)
+{
+  int     vno, nvertices ;
+  VERTEX  *v ;
+
+  nvertices = mris->nvertices ;
+  for (vno = 0 ; vno < nvertices ; vno++)
+  {
+    v = &mris->vertices[vno] ;
+    switch (which)
+    {
+    case TARGET_VERTICES:
+      locations[0][vno] = v->targx ;
+      locations[1][vno] = v->targy ;
+      locations[2][vno] = v->targz ;
+      break ;
+    case WHITE_VERTICES:
+      locations[0][vno] = v->whitex ;
+      locations[1][vno] = v->whitey ;
+      locations[2][vno] = v->whitez ;
+      break ;
+    case LAYERIV_VERTICES:
+      locations[0][vno] = v->l4x ;
+      locations[1][vno] = v->l4y ;
+      locations[2][vno] = v->l4z ;
+      break ;
+    case PIAL_VERTICES:
+      locations[0][vno] = v->pialx ;
+      locations[1][vno] = v->pialy ;
+      locations[2][vno] = v->pialz ;
+      break ;
+    case INFLATED_VERTICES:
+      locations[0][vno] = v->infx ;
+      locations[1][vno] = v->infy ;
+      locations[2][vno] = v->infz ;
+      break ;
+    case FLATTENED_VERTICES:
+      locations[0][vno] = v->fx ;
+      locations[1][vno] = v->fy ;
+      locations[2][vno] = v->fz ;
+      break ;
+    case CANONICAL_VERTICES:
+      locations[0][vno] = v->cx ;
+      locations[1][vno] = v->cy ;
+      locations[2][vno] = v->cz ;
+      break ;
+    case ORIGINAL_VERTICES:
+      locations[0][vno] = v->origx ;
+      locations[1][vno] = v->origy ;
+      locations[2][vno] = v->origz ;
+      break ;
+    case TMP2_VERTICES:
+      locations[0][vno] = v->tx2 ;
+      locations[1][vno] = v->ty2 ;
+      locations[2][vno] = v->tz2 ;
+      break ;
+    default:
+    case TMP_VERTICES:
+      locations[0][vno] = v->tx ;
+      locations[1][vno] = v->ty ;
+      locations[2][vno] = v->tz ;
+      break ;
+    }
+  }
+  return(NO_ERROR) ;
+}
+
+int
+MRISimportVertexCoords(MRI_SURFACE *mris, float *locations[3], int which) 
+{
+  int     vno, nvertices ;
+  VERTEX  *v ;
+
+  nvertices = mris->nvertices ;
+  for (vno = 0 ; vno < nvertices ; vno++)
+  {
+    v = &mris->vertices[vno] ;
+    switch (which)
+    {
+    case LAYERIV_VERTICES:
+      v->l4x = locations[0][vno] ;
+      v->l4y = locations[1][vno] ;
+      v->l4z = locations[2][vno] ;
+      break ;
+    case TARGET_VERTICES:
+      v->targx = locations[0][vno] ;
+      v->targy = locations[1][vno] ;
+      v->targz = locations[2][vno] ;
+      break ;
+    case WHITE_VERTICES:
+      v->whitex = locations[0][vno] ;
+      v->whitey = locations[1][vno] ;
+      v->whitez = locations[2][vno] ;
+      break ;
+    case PIAL_VERTICES:
+      v->pialx = locations[0][vno] ;
+      v->pialy = locations[1][vno] ;
+      v->pialz = locations[2][vno] ;
+      break ;
+    case INFLATED_VERTICES:
+      v->infx = locations[0][vno] ;
+      v->infy = locations[1][vno] ;
+      v->infz = locations[2][vno] ;
+      break ;
+    case FLATTENED_VERTICES:
+      v->fx = locations[0][vno] ;
+      v->fy = locations[1][vno] ;
+      v->fz = locations[2][vno] ;
+      break ;
+    case CANONICAL_VERTICES:
+      v->cx = locations[0][vno] ;
+      v->cy = locations[1][vno] ;
+      v->cz = locations[2][vno] ;
+      break ;
+    case ORIGINAL_VERTICES:
+      v->origx = locations[0][vno] ;
+      v->origy = locations[1][vno] ;
+      v->origz = locations[2][vno] ;
+      break ;
+    case TMP2_VERTICES:
+      v->tx2 = locations[0][vno] ;
+      v->ty2 = locations[1][vno] ;
+      v->tz2 = locations[2][vno] ;
+      break ;
+    default:
+    case TMP_VERTICES:
+      v->tx = locations[0][vno] ;
+      v->ty = locations[1][vno] ;
+      v->tz = locations[2][vno] ;
+      break ;
+    }
   }
   return(NO_ERROR) ;
 }
