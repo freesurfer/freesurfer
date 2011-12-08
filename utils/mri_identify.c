@@ -6,9 +6,9 @@
 /*
  * Original Author: Christian Haselgrove
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2011/12/08 15:04:53 $
- *    $Revision: 1.72 $
+ *    $Author: greve $
+ *    $Date: 2011/12/08 21:34:09 $
+ *    $Revision: 1.73 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -223,7 +223,7 @@ int mri_identify(const char *fname_passed)
 {
 
   char fname[STRLEN];
-  int type;
+  int type=0;
   char *ext;
 
   // Before coming in here, @ and # have been processed
