@@ -10,9 +10,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: lzollei $
- *    $Date: 2011/12/05 19:46:42 $
- *    $Revision: 1.258 $
+ *    $Author: fischl $
+ *    $Date: 2011/12/08 15:04:22 $
+ *    $Revision: 1.259 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -287,6 +287,8 @@ double gcamDistanceEnergy(GCA_MORPH *gcam, MRI *mri) ;
 int gcamLSmoothnessTerm(GCA_MORPH *gcam, 
                                MRI *mri, 
                                double l_smoothness) ;
+int gcamElasticTerm( const GCA_MORPH *gcam, GCA_MORPH_PARMS *parms ) ;
+double gcamElasticEnergy( const GCA_MORPH *gcam, GCA_MORPH_PARMS *parms ) ;
 double gcamLSmoothnessEnergy(GCA_MORPH *gcam, MRI *mri) ;
 
 int gcamSpringTerm(GCA_MORPH *gcam, 
@@ -995,7 +997,7 @@ GCAMregister(GCA_MORPH *gcam, MRI *mri, GCA_MORPH_PARMS *parms)
     orig_relabel, start_t = 0, passno ;
   MRI    *mri_smooth = NULL, *mri_kernel ;
   double base_sigma, pct_change, rms, last_rms = 0.0, label_dist,
-    orig_dt,l_smooth, start_rms=0.0, l_orig_smooth ;
+    orig_dt,l_smooth, start_rms=0.0, l_orig_smooth, l_elastic, l_orig_elastic ;
 
   if (FZERO(parms->min_sigma))
     parms->min_sigma = 0.4 ;
@@ -1120,6 +1122,7 @@ GCAMregister(GCA_MORPH *gcam, MRI *mri, GCA_MORPH_PARMS *parms)
   navgs = parms->navgs ;
   orig_dt = parms->dt ;
   l_orig_smooth = l_smooth = parms->l_smoothness;
+  l_orig_elastic = l_elastic = parms->l_elastic;
   if (DZERO(parms->exp_k))
     parms->exp_k = EXP_K ;
   if (parms->levels < 0)
@@ -1180,16 +1183,24 @@ GCAMregister(GCA_MORPH *gcam, MRI *mri, GCA_MORPH_PARMS *parms)
       }
       parms->relabel = (parms->relabel_avgs >= parms->navgs) ;
       parms->sigma = base_sigma ;
-#if 0
-      parms->l_smoothness = l_smooth / (sqrt(parms->navgs)+1) ;
-#else
-      if (DZERO(parms->l_binary ) && 
-          DZERO(parms->l_area_intensity) && parms->scale_smoothness)
-        parms->l_smoothness = l_smooth / ((parms->navgs)+1) ;
+      if (FZERO(parms->l_smoothness) && !FZERO(parms->l_elastic))
+      {
+	parms->l_elastic = l_elastic ;
+	printf("setting elastic coefficient to %2.3f\n", parms->l_elastic);
+      }
       else
-        parms->l_smoothness = l_smooth ;
+      {
+#if 0
+	parms->l_smoothness = l_smooth / (sqrt(parms->navgs)+1) ;
+#else
+	if (DZERO(parms->l_binary ) && 
+	    DZERO(parms->l_area_intensity) && parms->scale_smoothness)
+	  parms->l_smoothness = l_smooth / ((parms->navgs)+1) ;
+	else
+	  parms->l_smoothness = l_smooth ;
 #endif
-      printf("setting smoothness coefficient to %2.3f\n", parms->l_smoothness);
+	printf("setting smoothness coefficient to %2.3f\n", parms->l_smoothness);
+      }
       for (l2 = 0 ; l2 < parms->levels ; l2++)  // different sigma levels
       {
         if (mri)
@@ -1338,6 +1349,9 @@ GCAMregister(GCA_MORPH *gcam, MRI *mri, GCA_MORPH_PARMS *parms)
       parms->l_smoothness /= 4 ;
       parms->l_distance /= 4 ;
       l_smooth /= 4 ;
+      parms->l_distance /= 4 ;
+      parms->l_elastic /= 4 ;  // relax elasticity slower as we want to find the solution with maximal elasticity
+      l_elastic /= 4 ;
     }
     if (parms->navgs < parms->min_avgs)
       break ;
@@ -1355,6 +1369,7 @@ GCAMregister(GCA_MORPH *gcam, MRI *mri, GCA_MORPH_PARMS *parms)
 
   parms->relabel = orig_relabel ;
   parms->l_smoothness = l_orig_smooth ;
+  parms->l_elastic = l_orig_elastic ;
   parms->navgs = navgs ;
   parms->dt = orig_dt ;
   if (parms->mri_dist_map && !DZERO(parms->l_dtrans))
@@ -1650,7 +1665,7 @@ GCA_MORPH *
 GCAMalloc( const int width, const int height, const int depth )
 {
   GCA_MORPH  *gcam ;
-  int        x, y ;
+  int        x, y, z ;
 
   gcam = (GCA_MORPH *)calloc(1, sizeof(GCA_MORPH)) ;
   if (!gcam)
@@ -1701,6 +1716,15 @@ GCAMalloc( const int width, const int height, const int depth )
       if (!gcam->nodes[x][y])
         ErrorExit(ERROR_NOMEMORY,
                   "GCAMalloc: could not allocate %d,%dth *",x,y);
+      for (z = 0 ; z < gcam->depth ; z++)
+      {
+	gcam->nodes[x][y][z].origx = x ;
+	gcam->nodes[x][y][z].origy = y ;
+	gcam->nodes[x][y][z].origz = z ;
+	gcam->nodes[x][y][z].x = x ;
+	gcam->nodes[x][y][z].y = y ;
+	gcam->nodes[x][y][z].z = z ;
+      }
     }
 #endif
   }
@@ -4912,6 +4936,8 @@ log_integration_parms(FILE *fp, GCA_MORPH_PARMS *parms)
   else
     strcpy(host_name, "unknown") ;
 
+  if (!DZERO(parms->l_elastic))
+    fprintf(fp,"l_elastic=%2.2f, lambda=%2.2f, mu=%2.2f ", parms->l_elastic, parms->lame_lambda, parms->lame_mu) ;
   if (!DZERO(parms->l_binary))
     fprintf(fp,"l_binary=%2.2f ", parms->l_binary) ;
   if (!DZERO(parms->l_dtrans))
@@ -5187,6 +5213,11 @@ GCAMregisterLevel(GCA_MORPH *gcam, MRI *mri, MRI *mri_smooth,
     {
       GCAMwrite(gcam, "test.m3z") ;
     }
+    if (parms->uncompress/* && which == GCAM_INTEGRATE_OPTIMAL*/)
+    {
+      gcamRemoveCompressedNodes(gcam, mri, parms, parms->ratio_thresh) ;
+    }
+
     if (gcam->neg > 0 && parms->noneg == True)
     {
       int i = 0 ;
@@ -5229,11 +5260,6 @@ GCAMregisterLevel(GCA_MORPH *gcam, MRI *mri, MRI *mri_smooth,
     min_dt = parms->dt ;
 
     gcamRemoveNegativeNodes(gcam, mri, parms) ;
-    if (parms->uncompress/* && which == GCAM_INTEGRATE_OPTIMAL*/)
-    {
-      gcamRemoveCompressedNodes(gcam, mri, parms, parms->ratio_thresh) ;
-    }
-
     if (gcam->neg > 0)   // couldn't unfold everything
     {
       printf("---------- unfolding failed - restoring original position --------------------\n");
@@ -5976,7 +6002,7 @@ gcamComputeSSE(GCA_MORPH *gcam, MRI *mri, GCA_MORPH_PARMS *parms)
 {
   double sse;
 
-  
+  double elastic_sse ;
   double ms_sse, l_sse, s_sse, ls_sse, j_sse, d_sse, a_sse;
   double nvox, label_sse, map_sse, dtrans_sse;
   double binary_sse, area_intensity_sse, spring_sse, exp_sse;
@@ -6030,10 +6056,14 @@ gcamComputeSSE(GCA_MORPH *gcam, MRI *mri, GCA_MORPH_PARMS *parms)
     ls_sse = parms->l_lsmoothness * gcamLSmoothnessEnergy(gcam, mri) ;
   if (!DZERO(parms->l_spring))
     spring_sse = parms->l_spring * gcamSpringEnergy(gcam, parms->ratio_thresh);
+  if (!DZERO(parms->l_elastic))
+    elastic_sse = parms->l_elastic * gcamElasticEnergy(gcam, parms);
 
   if (Gdiag & DIAG_SHOW)
   {
     printf("\t");
+    if (!DZERO(parms->l_elastic))
+      printf("elastic_sse = %2.2f ", elastic_sse/nvox) ;
     if (!DZERO(parms->l_map))
       printf("map_sse = %2.2f ", map_sse/nvox) ;
     if (!DZERO(parms->l_spring))
@@ -6062,7 +6092,7 @@ gcamComputeSSE(GCA_MORPH *gcam, MRI *mri, GCA_MORPH_PARMS *parms)
   }
   sse =
     spring_sse+area_intensity_sse+binary_sse+l_sse + ms_sse + 
-    s_sse + j_sse + d_sse + a_sse + label_sse + map_sse + exp_sse + dtrans_sse ;
+    s_sse + j_sse + d_sse + a_sse + label_sse + map_sse + exp_sse + dtrans_sse + elastic_sse ;
   return(sse) ;
 }
 
@@ -6092,12 +6122,21 @@ gcamComputeGradient
   gcamLogLikelihoodTerm(gcam, mri, mri_smooth, parms->l_log_likelihood)  ;
   gcamMultiscaleTerm(gcam, mri, mri_smooth, parms->l_multiscale)  ;
   gcamDistanceTerm(gcam, mri, parms->l_distance)  ;
+  gcamElasticTerm(gcam, parms)  ;
   gcamAreaSmoothnessTerm(gcam, mri_smooth, parms->l_area_smoothness)  ;
   gcamAreaTerm(gcam, parms->l_area)  ;
   gcamSmoothnessTerm(gcam, mri, parms->l_smoothness)  ;
   gcamLSmoothnessTerm(gcam, mri, parms->l_lsmoothness)  ;
   gcamSpringTerm(gcam, parms->l_spring, parms->ratio_thresh)  ;
   //  gcamInvalidSpringTerm(gcam, 1.0)  ;
+  //
+  gcamJacobianTerm(gcam, mri, parms->l_jacobian,parms->ratio_thresh)  ;
+  // The following appears to be a null operation, based on current #ifdefs
+  gcamLimitGradientMagnitude(gcam, parms, mri) ;
+
+
+  if (i == Gdiag_no)
+    DiagBreak() ;
   if (parms->write_iterations > 0 && \
       (Gdiag & DIAG_WRITE) && \
       getenv("GCAM_YGRAD") != NULL && \
@@ -6117,12 +6156,6 @@ gcamComputeGradient
     MRIfree(&mri_grad) ;
 
   }
-
-  //
-  gcamJacobianTerm(gcam, mri, parms->l_jacobian,parms->ratio_thresh)  ;
-  // The following appears to be a null operation, based on current #ifdefs
-  gcamLimitGradientMagnitude(gcam, parms, mri) ;
-
 
   if ((Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON) || (gcam_write_grad && i<10) || (gcam_write_grad>1))
   {
@@ -6446,6 +6479,94 @@ gcamSmoothnessTerm( GCA_MORPH *gcam,
 
 
 #define GCAM_SMOOTHNESS_OUTPUT 0
+
+double
+gcamElasticEnergy( const GCA_MORPH *gcam, GCA_MORPH_PARMS *parms )
+{
+  MRI    *mri_warp, *mri_sobel[3] ;
+  int    x, y, z, dim1, dim2 ;
+  double energy, val1, val2, lambda, mu, rigid_energy, volume_change, svals[3][3] ;
+
+  if (FZERO(parms->l_elastic))
+    return(0.0) ;
+  lambda = 0.57692 ; mu = 0.38462 ; // matches CVS
+  mri_warp = GCAMwriteWarpToMRI(gcam, NULL) ;
+  mri_sobel[0] = MRIsobelFrame(mri_warp, NULL, NULL, 0) ;
+  mri_sobel[1] = MRIsobelFrame(mri_warp, NULL, NULL, 1) ;
+  mri_sobel[2] = MRIsobelFrame(mri_warp, NULL, NULL, 2) ;
+
+  for (energy = 0.0, x = 0 ; x < mri_warp->width ; x++)
+    for (y = 0 ; y < mri_warp->height ; y++)
+      for (z = 0 ; z < mri_warp->depth ; z++)
+      {
+        for (dim1 = 0 ; dim1 < 3 ; dim1++)
+	  for (dim2 = 0 ; dim2 < 3 ; dim2++)
+	  svals[dim1][dim2] = MRIgetVoxVal(mri_sobel[dim1], x, y, z, dim2) ;
+
+        rigid_energy = volume_change = 0 ;
+        for (dim1 = 0 ; dim1 < 3 ; dim1++)
+          for (dim2 = 0 ; dim2 < 3 ; dim2++)
+          {
+            val1 = svals[dim1][dim1] ;
+            val2 = svals[dim2][dim2] ;
+            rigid_energy += val1*val2 ;
+            
+            val1 = svals[dim1][dim2] ;
+            val2 = svals[dim2][dim1] ;
+            volume_change += SQR(val1 + val2);
+          }
+        energy += rigid_energy * mu/4 + volume_change * lambda/2 ;
+      }
+
+  for (dim1 = 0 ; dim1 < 3 ; dim1++)
+    MRIfree(&mri_sobel[dim1]) ;
+  MRIfree(&mri_warp) ;
+  return(energy) ;
+}
+
+int
+gcamElasticTerm( const GCA_MORPH *gcam, GCA_MORPH_PARMS *parms )
+{
+  MRI    *mri_warp, *mri_tmp, *mri_divergence, *mri_laplacian, *mri_grad, *mri_kernel ;
+  int    x, y, z, dim ;
+  double val1, val2, grad[3], lambda, mu ;
+  GCA_MORPH_NODE  *gcamn ;
+
+  mri_kernel = MRIgaussian1d(parms->sigma, 100) ;
+  lambda = parms->lame_lambda ; mu = parms->lame_mu ; // matches CVS
+  mri_warp = GCAMwriteWarpToMRI(gcam, NULL) ;
+
+  mri_tmp = MRIdivergence(mri_warp, NULL) ;
+  mri_divergence = MRIconvolveGaussian(mri_tmp, NULL, mri_kernel) ;
+  MRIfree(&mri_tmp) ;
+  mri_grad = MRIsobel(mri_divergence, NULL, NULL) ;      // gradient of the divergence
+  MRIfree(&mri_divergence) ;
+  mri_tmp = MRIlaplacian(mri_warp, NULL) ;
+  mri_laplacian = MRIconvolveGaussian(mri_tmp, NULL, mri_kernel) ;
+  MRIfree(&mri_kernel) ;
+
+  for (x = 0 ; x < mri_warp->width ; x++)
+    for (y = 0 ; y < mri_warp->height ; y++)
+      for (z = 0 ; z < mri_warp->depth ; z++)
+      {
+	gcamn = &gcam->nodes[x][y][z] ;
+        for (dim = 0 ; dim < 3 ; dim++)
+	{
+	  val1 = MRIgetVoxVal(mri_grad, x, y, z, dim) ;
+	  val2 = MRIgetVoxVal(mri_laplacian, x, y, z, dim) ;
+	  grad[dim] = val1 * (lambda + mu) + val2 * mu ;
+	}
+	if (x == Gx && y == Gy && z == Gz)
+	  printf("node(%d, %d, %d), elastic term = (%2.2f, %2.2f, %2.2f)\n",
+		 x, y, z, parms->l_elastic * grad[0], parms->l_elastic * grad[1], parms->l_elastic * grad[2]) ;
+	gcamn->dx += parms->l_elastic * grad[0] ;
+	gcamn->dy += parms->l_elastic * grad[1] ;
+	gcamn->dz += parms->l_elastic * grad[2] ;
+      }
+
+  MRIfree(&mri_warp) ; MRIfree(&mri_laplacian) ; MRIfree(&mri_grad) ;
+  return(NO_ERROR) ;
+}
 
 double
 gcamSmoothnessEnergy( const GCA_MORPH *gcam, const MRI *mri )
@@ -9672,7 +9793,7 @@ gcamRemoveCompressedNodes(GCA_MORPH *gcam, MRI *mri, GCA_MORPH_PARMS *parms,
 {
   GCA_MORPH_PARMS saved_parms = *parms ;
   double          min_dt, orig_dt, rms, last_rms, pct_change, max_grad, lattice_spacing ;
-  int             old_compressed, new_compressed, i, delta, integration_type, done, nsmall, good_step, nfixed = 0 ;
+  int             old_compressed, new_compressed, i, delta, integration_type, done, nsmall, good_step, nfixed = 0, start_neg ;
 
   new_compressed = GCAMcountCompressedNodes(gcam, compression_ratio) ;
   if (new_compressed <= 0)
@@ -9680,7 +9801,7 @@ gcamRemoveCompressedNodes(GCA_MORPH *gcam, MRI *mri, GCA_MORPH_PARMS *parms,
 
   parms->l_distance = parms->l_log_likelihood = parms->l_spring = parms->l_multiscale =
                         parms->l_area_intensity = parms->l_expansion = parms->l_area_smoothness =
-                                                    parms->l_binary = parms->l_area = parms->l_smoothness = parms->l_label = 0.0 ;
+                                                    parms->l_binary = parms->l_area = parms->l_elastic = parms->l_smoothness = parms->l_label = 0.0 ;
   parms->navgs = 0 ;
   parms->l_area = 0.0 ;
   parms->l_jacobian = 1 ;
@@ -9691,6 +9812,7 @@ gcamRemoveCompressedNodes(GCA_MORPH *gcam, MRI *mri, GCA_MORPH_PARMS *parms,
   integration_type = GCAM_INTEGRATE_OPTIMAL ;      // start with optimal
   parms->navgs = 0 ;
   parms->dt = orig_dt = 1e-6 ;
+  start_neg = gcam->neg ;
 
   last_rms = rms = GCAMcomputeRMS(gcam, mri, parms) ;
   printf(" starting rms=%2.5f, compressed=%d, removing compressions in lattice....\n", rms, new_compressed) ;
@@ -9733,7 +9855,7 @@ gcamRemoveCompressedNodes(GCA_MORPH *gcam, MRI *mri, GCA_MORPH_PARMS *parms,
     last_rms = rms ;
     rms = GCAMcomputeRMS(gcam, mri, parms) ;
     new_compressed = GCAMcountCompressedNodes(gcam, compression_ratio) ;
-    if (gcam->neg > 0 && parms->noneg == True)
+    if (gcam->neg > 0 && start_neg == 0 && parms->noneg == True)
     {
       gcamUndoGradient(gcam) ;
       rms = last_rms ;
@@ -9819,7 +9941,7 @@ gcamRemoveNegativeNodes(GCA_MORPH *gcam, MRI *mri, GCA_MORPH_PARMS *parms)
     return(NO_ERROR) ;
   parms->noneg = 0 ;
   parms->l_distance = parms->l_log_likelihood = parms->l_binary = parms->l_multiscale =
-                        parms->l_spring = parms->l_area = parms->l_smoothness = parms->l_label = 0.0 ;
+                        parms->l_spring = parms->l_area = parms->l_elastic = parms->l_smoothness = parms->l_label = 0.0 ;
   parms->navgs = 0 ;
   parms->l_area = 0.0 ;
   parms->l_jacobian = 1 ;
@@ -13484,7 +13606,7 @@ GCAMreinitWithLTA(GCA_MORPH *gcam, LTA *lta, MRI *mri, GCA_MORPH_PARMS *parms)
     parms->log_fp = NULL ;
 
   *lin_parms = *parms ;
-  lin_parms->l_smoothness = 
+  lin_parms->l_smoothness = lin_parms->l_elastic =
     lin_parms->l_expansion = lin_parms->l_distance =
     lin_parms->l_lsmoothness = lin_parms->l_spring = 0.0 ;
   m_avg = MatrixCopy(lta->xforms[0].m_L, NULL) ;
@@ -17787,3 +17909,108 @@ GCAMfillInverse(GCA_MORPH* gcam)
   }
   return(inv_gcam) ;
 }
+GCA_MORPH *
+GCAMdownsample2(GCA_MORPH *gcam) 
+{
+  int            xs, ys, zs, xd, yd, zd, labels[MAX_CMA_LABEL+1], l, max_l, max_count ;
+  GCA_MORPH_NODE *gcamn_src, *gcamn_dst ;
+  GCA_MORPH      *gcam_dst ;
+  
+  gcam_dst = GCAMalloc(gcam->width/2, gcam->height/2, gcam->depth/2) ;
+  *(&gcam_dst->image) = *(&gcam->image) ;
+  *(&gcam_dst->atlas) = *(&gcam->atlas) ;
+  gcam_dst->spacing = 2*gcam->spacing ;
+  gcam_dst->ninputs = gcam->ninputs ;
+  gcam_dst->gca = gcam->gca ;
+  gcam_dst->status = gcam->status ;
+  gcam_dst->type = gcam->type ;
+  gcam_dst->m_affine = gcam->m_affine ;
+  gcam_dst->det = gcam->det ;
+
+  for (xd = 0 ; xd < gcam_dst->width ; xd++)
+  {
+    for (yd = 0 ; yd < gcam_dst->height ; yd++)
+    {
+      for (zd = 0 ; zd < gcam_dst->depth ; zd++)
+      {
+	gcamn_dst = &gcam->nodes[xd][yd][zd] ;
+	memset(labels, 0, sizeof(labels)) ;
+	
+	for (xs = xd*2 ; xs <= xd*2+1 ; xs++)
+	  for (ys = yd*2 ; ys <= yd*2+1 ; ys++)
+	    for (zs = zd*2 ; zs <= zd*2+1 ; zs++)
+	    {
+	      gcamn_src = &gcam->nodes[xs][ys][zs] ;
+	      labels[gcamn_src->label]++ ;
+
+	      gcamn_dst->x += gcamn_src->x ;
+	      gcamn_dst->y += gcamn_src->y ;
+	      gcamn_dst->z += gcamn_src->z ;
+
+	      gcamn_dst->origx += gcamn_src->origx ;
+	      gcamn_dst->origy += gcamn_src->origy ;
+	      gcamn_dst->origz += gcamn_src->origz ;
+
+	      gcamn_dst->xs2 += gcamn_src->xs2 ;
+	      gcamn_dst->ys2 += gcamn_src->ys2 ;
+	      gcamn_dst->zs2 += gcamn_src->zs2 ;
+
+	      gcamn_dst->xs += gcamn_src->xs ;
+	      gcamn_dst->ys += gcamn_src->ys ;
+	      gcamn_dst->zs += gcamn_src->zs ;
+
+	      gcamn_dst->xn += gcamn_src->xn ;
+	      gcamn_dst->yn += gcamn_src->yn ;
+	      gcamn_dst->zn += gcamn_src->zn ;
+
+	      gcamn_dst->saved_origx += gcamn_src->saved_origx ;
+	      gcamn_dst->saved_origy += gcamn_src->saved_origy ;
+	      gcamn_dst->saved_origz += gcamn_src->saved_origz ;
+	      
+	      gcamn_dst->prior += gcamn_src->prior ;
+	      gcamn_dst->area += gcamn_src->area ;
+	      gcamn_dst->area1 += gcamn_src->area1 ;
+	      gcamn_dst->area2 += gcamn_src->area2 ;
+	      gcamn_dst->orig_area1 += gcamn_src->orig_area1 ;
+	      gcamn_dst->orig_area2 += gcamn_src->orig_area2 ;
+	      if (gcamn_src->invalid)
+		gcamn_dst->invalid = 1 ;
+	      if (gcamn_src->status > 0)
+		gcamn_dst->status = gcamn_src->status ;
+	    }
+	
+	gcamn_dst->x /= 8 ;
+	gcamn_dst->y /= 8 ;
+	gcamn_dst->z /= 8 ;
+
+	gcamn_dst->origx /= 8 ;
+	gcamn_dst->origy /= 8 ;
+	gcamn_dst->origz /= 8 ;
+
+	gcamn_dst->xs2 /= 8 ;
+	gcamn_dst->ys2 /= 8 ;
+	gcamn_dst->zs2 /= 8 ;
+
+	gcamn_dst->xs /= 8 ;
+	gcamn_dst->ys /= 8 ;
+	gcamn_dst->zs /= 8 ;
+
+	gcamn_dst->xn /= 8 ;
+	gcamn_dst->yn /= 8 ;
+	gcamn_dst->zn /= 8 ;
+
+
+	max_count = labels[0] ; max_l = 0 ;
+	for (l = 1 ; l <= MAX_CMA_LABELS ; l++)
+	  if (labels[l] > max_count)
+	  {
+	    max_count = labels[l] ;
+	    max_l = l ;
+	  }
+	gcamn_dst->label = max_l ;
+      }
+    }
+  }
+  return(gcam_dst) ;
+}
+
