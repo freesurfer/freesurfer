@@ -16,7 +16,7 @@
 #  Dont convert volumes in mri/orig
 #
 
-set VERSION = '$Id: xhemireg,v 1.15 2011/12/07 04:43:20 greve Exp $';
+set VERSION = '$Id: xhemireg,v 1.16 2011/12/08 04:32:02 greve Exp $';
 
 set subject = ();
 set srchemilist = ();
@@ -35,6 +35,7 @@ set ovlist = (curv sulc area area.mid area.pial area.mid volume curv.pial \
 set surflist = (orig white pial smoothwm inflated sphere)
 set annotlist = (aparc BA aparc.a2009s)
 set labellist = (cortex)
+set DoCenter = 1; # for inflated and sphere
 
 # For cortical registration, as found in $AvgCurvTifPath/$hemi.$AvgCurvTif
 set AvgCurvTifPath = "$FREESURFER_HOME/average"
@@ -94,6 +95,27 @@ foreach srchemi ($srchemilist)
 
   # Convert volumes, create LR registration
   if($nthhemi == 1) then
+    # Create LR registration
+    date | tee -a $LF
+    set reg = $outdir/lrrev.register.dat
+    rm -f $reg
+    echo "subject-unknown" >> $reg
+    echo "1" >> $reg
+    echo "1" >> $reg
+    echo "1" >> $reg
+    echo "-1 0 0 1" >> $reg
+    echo " 0 1 0 0" >> $reg
+    echo " 0 0 1 0" >> $reg
+    echo " 0 0 0 1" >> $reg
+    echo "round" >> $reg
+
+    # Recompute talairach registration
+    set cmd = (xhemi-tal --s $subject)
+    date | tee -a $LF
+    echo $cmd  | tee -a $LF
+    $cmd | tee -a $LF
+    if($status) exit 1;
+
     # Convert volumes
     date | tee -a $LF
     foreach vol ($vollist )
@@ -105,29 +127,14 @@ foreach srchemi ($srchemilist)
            exit 1;
         endif
       endif
-      set cmd = (mri_convert $invol $outdir/mri/$vol.mgz \
-        --left-right-reverse)
+      set cmd = (mri_vol2vol --mov $invol --targ $invol \
+        --reg $reg --o $outdir/mri/$vol.mgz --keep-precision \
+        --no-save-reg)
       echo $cmd  | tee -a $LF
       $cmd | tee -a $LF
       if($status) exit 1;
     end
 
-    # Recompute talairach registration
-    set cmd = (recon-all -sb $xsubject -talairach)
-    date | tee -a $LF
-    echo $cmd  | tee -a $LF
-    $cmd | tee -a $LF
-    if($status) exit 1;
-
-    # Create LR registration
-    date | tee -a $LF
-    set reg = $outdir/lrrev.register.dat
-    set cmd = (tkregister2_cmdl --targ mri/orig.mgz \
-           --mov $outdir/mri/orig.mgz \
-           --reg $reg --regheader --noedit)
-    echo $cmd | tee -a $LF
-    $cmd | tee -a $LF
-    if($status) exit 1;
   endif
 
   # Convert Surfaces (apply LR registration)
@@ -136,6 +143,7 @@ foreach srchemi ($srchemilist)
     set cmd = (mri_surf2surf --s $subject --sval-xyz $surf \
      --hemi $srchemi --tval-xyz --tval $outdir/surf/$trghemi.$surf \
      --reg $reg)
+    if($DoCenter && ($surf == inflated || $surf == sphere)) set cmd = ($cmd --center)
     echo $cmd  | tee -a $LF
     $cmd | tee -a $LF
     if($status) exit 1;
@@ -144,14 +152,14 @@ foreach srchemi ($srchemilist)
   # Copy overlays (curvs, thicknesses, etc)
   foreach ov ($ovlist )
     if(! -e surf/$srchemi.$ov) continue;
-    date | tee -a $LF
     set cmd = (cp surf/$srchemi.$ov $outdir/surf/$trghemi.$ov)
     echo $cmd >> $LF
     $cmd | tee -a $LF
     if($status) exit 1;
   end
 
-  # Copy labels (no need to convert)
+  # Copy labels (no need to convert, just swap lh rh)
+  # May need to convert
   foreach label ($labellist )
     set srclabel = label/$srchemi.$label.label
     if(! -e $srclabel) continue;
@@ -160,18 +168,17 @@ foreach srchemi ($srchemilist)
     if($status) exit 1;
   end
 
-  # Copy annotations
+  # Copy annotations (just swap lh rh)
   foreach annot ($annotlist)
     set fname = label/$srchemi.$annot.annot
     if(! -e $fname) continue;
-    date | tee -a $LF
     set cmd = (cp $fname $outdir/label/$trghemi.$annot.annot)
     echo $cmd  | tee -a $LF
     $cmd | tee -a $LF
     if($status) exit 1;
   end
 
-  # Surface-based registration 
+  # Perform Surface-based registration to fsaverage
   if($DoReg) then
     set cmd = (recon-all -sb $xsubject -hemi $trghemi -surfreg)
     date | tee -a $LF
@@ -240,6 +247,14 @@ while( $#argv != 0 )
       set DoReg = 1;
       breaksw
 
+    case "--center":
+      set DoCenter = 1;
+      breaksw
+
+    case "--no-center":
+      set DoCenter = 0;
+      breaksw
+
     case "--debug":
       set verbose = 1;
       set echo = 1;
@@ -298,6 +313,7 @@ usage_exit:
   echo "   --reg       : perform reg to create sphere.reg"
   echo "   --rh : srchemi = rh (map from right to left) "
   echo "   --o outdir  : output dir (subject/xhemireg.hemi by def)"
+  echo "   --no-center : do not center inflated and sphere"
   echo "   --version   : print version and exit"
   echo "   --help      : print help and exit"
   echo ""
