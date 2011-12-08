@@ -8,9 +8,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: jonp $
- *    $Date: 2011/11/15 01:00:22 $
- *    $Revision: 1.357 $
+ *    $Author: fischl $
+ *    $Date: 2011/12/08 15:02:39 $
+ *    $Revision: 1.358 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -1125,6 +1125,7 @@ int   MRIScopyFixedValFlagsToMarks(MRI_SURFACE *mris) ;
 int   MRISclearAnnotations(MRI_SURFACE *mris) ;
 int   MRISsetMarks(MRI_SURFACE *mris, int mark) ;
 int   MRISsequentialAverageVertexPositions(MRI_SURFACE *mris, int navgs) ;
+int   MRISreverseCoords(MRI_SURFACE *mris, int which_direction, int reverse_face_order, int which_coords) ;
 int   MRISreverse(MRI_SURFACE *mris, int which, int reverse_face_order) ;
 int   MRISreverseFaceOrder(MRIS *mris);
 int   MRISdisturbOriginalDistances(MRI_SURFACE *mris, double max_pct) ;
@@ -1379,6 +1380,8 @@ int MRISsetSulcFileName(const char *sulc_name) ;
 int MRISsetInflatedFileName(char *inflated_name) ;
 int MRISsetRegistrationSigmas(float *sigmas, int nsigmas) ;
 
+int MRISextractVertexCoords(MRI_SURFACE *mris, float *locations[3], int which_vertices) ;
+int MRISimporttVertexCoords(MRI_SURFACE *mris, float *locations[3], int which_vertices) ;
 int MRISextractCurvatureVector(MRI_SURFACE *mris, float *curvs) ;
 int MRISextractCurvatureDoubleVector(MRI_SURFACE *mris, double *curvs) ;
 #define MRISexportCurvatureVector  MRISextractCurvatureVector
