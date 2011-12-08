@@ -10,9 +10,9 @@
 /*
  * Original Author: Doug Greve
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2011/10/03 19:36:13 $
- *    $Revision: 1.75 $
+ *    $Author: greve $
+ *    $Date: 2011/12/08 03:23:08 $
+ *    $Revision: 1.76 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -62,6 +62,7 @@ mri_vol2vol
   --interp interptype : interpolation trilin or nearest (def is trilin)
 
   --precision precisionid : output precision (def is float)
+  --keep-precision  : set output precision to that of input
   --kernel            : save the trilinear interpolation kernel instead
 
   --no-resample : do not resample, just change vox2ras matrix
@@ -215,6 +216,8 @@ cubic, trilin and nearest. trilin is the default. Can also use
 
 Set output precision to precisionid. Legal values are uchar, short,
 int, long, and float. Default is float.
+
+--keep-precision  : set output precision to that of input
 
 --kernel
 
@@ -476,7 +479,7 @@ MATRIX *LoadRfsl(char *fname);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_vol2vol.c,v 1.75 2011/10/03 19:36:13 fischl Exp $";
+static char vcid[] = "$Id: mri_vol2vol.c,v 1.76 2011/12/08 03:23:08 greve Exp $";
 char *Progname = NULL;
 
 int debug = 0, gdiagno = -1;
@@ -579,6 +582,7 @@ char *vsmvolfile=NULL;
 
 int defM3zPath = 1; // use deafult path to the m3z file
 int TargMNI152 = 0;
+int keepprecision = 0;
 
 /*---------------------------------------------------------------*/
 int main(int argc, char **argv) {
@@ -596,12 +600,12 @@ int main(int argc, char **argv) {
 
 
   make_cmd_version_string(argc, argv,
-                          "$Id: mri_vol2vol.c,v 1.75 2011/10/03 19:36:13 fischl Exp $",
+                          "$Id: mri_vol2vol.c,v 1.76 2011/12/08 03:23:08 greve Exp $",
                           "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option(argc, argv,
-                                "$Id: mri_vol2vol.c,v 1.75 2011/10/03 19:36:13 fischl Exp $",
+                                "$Id: mri_vol2vol.c,v 1.76 2011/12/08 03:23:08 greve Exp $",
                                 "$Name:  $");
   if(nargs && argc - nargs == 1) exit (0);
 
@@ -1318,7 +1322,11 @@ static int parse_commandline(int argc, char **argv) {
         exit(1);
       }
       nargsused = 1;
-    } else if (!strcasecmp(option, "--seed")) {
+    } 
+    else if (istringnmatch(option, "--keep-precision",0)) {
+      keepprecision = 1;
+    } 
+    else if (!strcasecmp(option, "--seed")) {
       if (nargc < 1) CMDargNErr(option,1);
       sscanf(pargv[0],"%d",&SynthSeed);
       synth = 1;
@@ -1424,6 +1432,7 @@ printf("  --cubic             : cubic B-Spline interpolation\n");
 printf("  --interp interptype : interpolation cubic, trilin, nearest (def is trilin)\n");
 printf("\n");
 printf("  --precision precisionid : output precision (def is float)\n");
+printf("  --keep-precision  : set output precision to that of input\n");
 printf("  --kernel            : save the trilinear interpolation kernel instead\n");
 printf("\n");
 printf("  --no-resample : do not resample, just change vox2ras matrix\n");
@@ -1526,6 +1535,8 @@ printf("movvol space (and so will have the same geometry as the movvol). By\n");
 printf("default, the output volume will be float, but this can be changed\n");
 printf("with --precision. By default, the interpolation will be done with\n");
 printf("trilinear, but this can be changed with --interp.\n");
+printf("\n");
+printf("  --keep-precision  : set output precision to that of input\n");
 printf("\n");
 printf("--tal\n");
 printf("\n");
@@ -1800,6 +1811,13 @@ static void check_options(void) {
   if(fstal && regheader){
     printf("ERROR: cannot use --tal and --regheader\n");
     exit(1);
+  }
+  if(keepprecision){
+    mov = MRIreadHeader(movvolfile,MRI_VOLUME_TYPE_UNKNOWN);
+    if(mov==NULL) exit(1);
+    precisioncode = mov->type;
+    precision = MRIprecisionString(precisioncode);
+    MRIfree(&mov);
   }
   if(TargMNI152){
     if(regfile == NULL){
