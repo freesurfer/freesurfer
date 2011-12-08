@@ -14,9 +14,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:23 $
- *    $Revision: 1.16 $
+ *    $Author: fischl $
+ *    $Date: 2011/12/08 00:49:06 $
+ *    $Revision: 1.17 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -48,7 +48,7 @@
 #include "version.h"
 #include "transform.h"
 
-static char vcid[] = "$Id: mri_mask.c,v 1.16 2011/03/02 00:04:23 nicks Exp $";
+static char vcid[] = "$Id: mri_mask.c,v 1.17 2011/12/08 00:49:06 fischl Exp $";
 
 void usage(int exit_val);
 
@@ -86,7 +86,7 @@ int main(int argc, char *argv[])
     handle_version_option
     (
       argc, argv,
-      "$Id: mri_mask.c,v 1.16 2011/03/02 00:04:23 nicks Exp $", "$Name:  $"
+      "$Id: mri_mask.c,v 1.17 2011/12/08 00:49:06 fischl Exp $", "$Name:  $"
     );
   if (nargs && argc - nargs == 1)
   {
@@ -120,7 +120,7 @@ int main(int argc, char *argv[])
   mri_mask = MRIread(argv[2]) ;
   if (!mri_mask)
     ErrorExit(ERROR_BADPARM, "%s: could not read mask volume %s",
-              Progname, argv[1]) ;
+              Progname, argv[2]) ;
 
   if(mri_src->width != mri_mask->width)
   {
