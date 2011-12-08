@@ -14,9 +14,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: lzollei $
- *    $Date: 2011/11/04 02:30:41 $
- *    $Revision: 1.104 $
+ *    $Author: fischl $
+ *    $Date: 2011/12/08 15:03:12 $
+ *    $Revision: 1.105 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -220,9 +220,20 @@ typedef struct
   MRI    *mri_diag2 ;
   double last_sse;
   double min_sigma;
-  double lame_u ;
+  double lame_mu ;
   double lame_lambda ;
+/*
+  E = Young's Modulus
+  v = Poisson Ratio
+  mu = G = shear modulus
+lambda = E v / ((1+v) (1-2v))
+mu = G = E / (2 ( 1+v))
+
+ */
 }
+
+
+
 GCA_MORPH_PARMS, GMP ;
 
 
@@ -248,6 +259,7 @@ MRI_SUBCORTCONN ;
 GCA_MORPH *GCAMupsample2(GCA_MORPH *gcam) ;
 int       GCAMcopy(GCA_MORPH *gcamsrc, GCA_MORPH *gcamdst) ;
 int GCAMconcatenate(GCA_MORPH *gcam1, GCA_MORPH *gcam2, GCA_MORPH *gcam_comp);
+GCA_MORPH *GCAMdownsample2(GCA_MORPH *gcam) ;
 GCA_MORPH *GCAMalloc( const int width, const int height, const int depth );
 
 int       GCAMinit(GCA_MORPH *gcam, MRI *mri_image, GCA *gca, 
