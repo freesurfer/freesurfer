@@ -7,9 +7,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: lzollei $
- *    $Date: 2011/11/01 13:16:21 $
- *    $Revision: 1.26 $
+ *    $Author: fischl $
+ *    $Date: 2011/12/08 19:31:54 $
+ *    $Revision: 1.27 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -31,9 +31,9 @@
 // Nov. 9th ,2000
 // 
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: lzollei $
-// Revision Date  : $Date: 2011/11/01 13:16:21 $
-// Revision       : $Revision: 1.26 $
+// Revision Author: $Author: fischl $
+// Revision Date  : $Date: 2011/12/08 19:31:54 $
+// Revision       : $Revision: 1.27 $
 //
 ////////////////////////////////////////////////////////////////////
 
@@ -127,6 +127,12 @@ main(int argc, char *argv[])
   mp.momentum = 0.9 ;
   if (FZERO(mp.l_smoothness))
     mp.l_smoothness = 2 ;
+
+  // elastic stuff
+  mp.lame_mu = 0.38462 ; mp.lame_lambda = 0.57692 ;
+  mp.l_smoothness = 0 ;
+  mp.l_elastic = 1 ;
+
   mp.sigma = 8 ;
   mp.relabel_avgs = -1 ;
   mp.navgs = 256 ;
@@ -492,6 +498,18 @@ get_option(int argc, char *argv[])
       mp.integration_type = GCAM_INTEGRATE_OPTIMAL ;
       printf("using optimal time-step integration\n") ;
     }
+  else if (!stricmp(option, "mu"))
+    {
+      mp.lame_mu = atof(argv[2]) ;
+      nargs = 1 ;
+      printf("setting Lame mu = %2.3f\n", mp.lame_mu) ;
+    }
+  else if (!stricmp(option, "lambda"))
+    {
+      mp.lame_lambda = atof(argv[2]) ;
+      nargs = 1 ;
+      printf("setting Lame lambda = %2.3f\n", mp.lame_lambda) ;
+    }
   else if (!stricmp(option, "NONEG")) {
     mp.noneg = atoi(argv[2]) ;
     nargs = 1 ;
@@ -694,6 +712,11 @@ get_option(int argc, char *argv[])
       mp.l_smoothness = atof(argv[2]) ;
       nargs = 1 ;
       printf("using l_smoothness = %2.3f\n", mp.l_smoothness) ;
+      break ;
+    case 'E':
+      mp.l_elastic = atof(argv[2]) ;
+      nargs = 1 ;
+      printf("using l_elastic = %2.3f\n", mp.l_elastic) ;
       break ;
     case 'T':
       printf("reading transform from %s...\n", argv[2]) ;
