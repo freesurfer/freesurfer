@@ -12,8 +12,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2011/10/03 16:06:07 $
- *    $Revision: 1.128 $
+ *    $Date: 2011/12/08 00:48:58 $
+ *    $Revision: 1.129 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -52,7 +52,7 @@
 #include "label.h"
 
 static char vcid[] =
-  "$Id: mris_make_surfaces.c,v 1.128 2011/10/03 16:06:07 fischl Exp $";
+  "$Id: mris_make_surfaces.c,v 1.129 2011/12/08 00:48:58 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -125,6 +125,8 @@ static int smoothwm = 0 ;
 static int white_only = 0 ;
 static int overlay = 0 ;
 static int inverted_contrast = 0 ;
+static char *filled_name = "filled" ;
+static char *wm_name = "wm" ;
 static int auto_detect_stats = 1 ;
 static char *dura_echo_name = NULL ;
 static int nechos = 0 ;
@@ -241,13 +243,13 @@ main(int argc, char *argv[])
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mris_make_surfaces.c,v 1.128 2011/10/03 16:06:07 fischl Exp $",
+   "$Id: mris_make_surfaces.c,v 1.129 2011/12/08 00:48:58 fischl Exp $",
    "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mris_make_surfaces.c,v 1.128 2011/10/03 16:06:07 fischl Exp $",
+           "$Id: mris_make_surfaces.c,v 1.129 2011/12/08 00:48:58 fischl Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
   {
@@ -333,7 +335,7 @@ main(int argc, char *argv[])
   sprintf(fname, "%s/%s/surf/mris_make_surfaces.%s.mrisurf.c.version",
           sdir, sname, hemi) ;
 
-  sprintf(fname, "%s/%s/mri/filled", sdir, sname) ;
+  sprintf(fname, "%s/%s/mri/%s", sdir, sname, filled_name) ;
   if (MGZ)
   {
     strcat(fname, ".mgz");
@@ -344,7 +346,7 @@ main(int argc, char *argv[])
     ErrorExit(ERROR_NOFILE, "%s: could not read input volume %s",
               Progname, fname) ;
   ////////////////////////////// we can handle only conformed volumes
-  setMRIforSurface(mri_filled);
+//  setMRIforSurface(mri_filled);
 
   if (!stricmp(hemi, "lh"))
   {
@@ -369,7 +371,7 @@ main(int argc, char *argv[])
     ErrorExit(ERROR_NOFILE, "%s: could not read input volume %s",
               Progname, fname) ;
   /////////////////////////////////////////
-  setMRIforSurface(mri_T1);
+//  setMRIforSurface(mri_T1);
 
   if (white_fname != NULL)
   {
@@ -394,7 +396,7 @@ main(int argc, char *argv[])
       mri_T1_white = mri_tmp ; // swap
     }
 
-    setMRIforSurface(mri_T1_white);
+//    setMRIforSurface(mri_T1_white);
   }
 
   if (xform_fname)
@@ -471,7 +473,7 @@ main(int argc, char *argv[])
     }
   }
 
-  sprintf(fname, "%s/%s/mri/wm", sdir, sname) ;
+  sprintf(fname, "%s/%s/mri/%s", sdir, sname, wm_name) ;
   if (MGZ)
   {
     strcat(fname, ".mgz");
@@ -490,7 +492,7 @@ main(int argc, char *argv[])
     mri_wm = mri_tmp ;
   }
   //////////////////////////////////////////
-  setMRIforSurface(mri_wm);
+//  setMRIforSurface(mri_wm);
 
   MRIsmoothBrightWM(mri_T1, mri_wm) ;
   mri_labeled = MRIfindBrightNonWM(mri_T1, mri_wm) ;
@@ -2054,6 +2056,18 @@ get_option(int argc, char *argv[])
     smoothwm = atoi(argv[2]) ;
     fprintf(stderr, "writing smoothed (%d iterations) wm surface\n",
             smoothwm) ;
+    nargs = 1 ;
+  }
+  else if (!stricmp(option, "filled"))
+  {
+    filled_name = (argv[2]) ;
+    fprintf(stderr, "using %s as filled name\n", filled_name) ;
+    nargs = 1 ;
+  }
+  else if (!stricmp(option, "wm"))
+  {
+    wm_name = (argv[2]) ;
+    fprintf(stderr, "using %s as filled name\n", wm_name) ;
     nargs = 1 ;
   }
   else if (!stricmp(option, "ngray"))
