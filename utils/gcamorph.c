@@ -10,9 +10,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2011/12/08 15:04:22 $
- *    $Revision: 1.259 $
+ *    $Author: greve $
+ *    $Date: 2011/12/08 21:20:07 $
+ *    $Revision: 1.260 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -6002,7 +6002,7 @@ gcamComputeSSE(GCA_MORPH *gcam, MRI *mri, GCA_MORPH_PARMS *parms)
 {
   double sse;
 
-  double elastic_sse ;
+  double elastic_sse=0 ;
   double ms_sse, l_sse, s_sse, ls_sse, j_sse, d_sse, a_sse;
   double nvox, label_sse, map_sse, dtrans_sse;
   double binary_sse, area_intensity_sse, spring_sse, exp_sse;
