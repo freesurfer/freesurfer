@@ -9,8 +9,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2011/12/08 04:02:40 $
-#    $Revision: 1.1 $
+#    $Date: 2011/12/08 04:30:14 $
+#    $Revision: 1.2 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -23,7 +23,7 @@
 # Reporting: freesurfer@nmr.mgh.harvard.edu
 #
 
-set VERSION = '$Id: xhemi-tal,v 1.1 2011/12/08 04:02:40 greve Exp $';
+set VERSION = '$Id: xhemi-tal,v 1.2 2011/12/08 04:30:14 greve Exp $';
 
 set subject = ();
 set tmpdir = ();
@@ -119,9 +119,14 @@ echo "% xhemi-tal" >> $talxfmxhemi
 echo "" >> $talxfmxhemi
 echo "Transform_Type = Linear;" >> $talxfmxhemi
 echo "Linear_Transform = " >> $talxfmxhemi
-cat tmp/Xxhemi.fsl | \
+cat $tmpdir/Xxhemi.fsl | \
   awk '{if(NR==1 || NR==2) print $0;if(NR==3) print $0";"}' \
   >> $talxfmxhemi
+
+echo "" | tee -a $LF
+cat $talxfmxhemi | tee -a $LF
+echo "" | tee -a $LF
+
 #========================================================
 
 # Cleanup
