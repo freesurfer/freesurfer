@@ -14,8 +14,8 @@
  * Original Author: Douglas N Greve
  * CVS Revision Info:
  *    $Author: lzollei $
- *    $Date: 2011/12/01 16:30:33 $
- *    $Revision: 1.205 $
+ *    $Date: 2011/12/09 17:00:02 $
+ *    $Revision: 1.206 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -555,7 +555,7 @@ static int SmoothSurfOrVol(MRIS *surf, MRI *mri, MRI *mask, double SmthLevel);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-"$Id: mri_glmfit.c,v 1.205 2011/12/01 16:30:33 lzollei Exp $";
+"$Id: mri_glmfit.c,v 1.206 2011/12/09 17:00:02 lzollei Exp $";
 const char *Progname = "mri_glmfit";
 
 int SynthSeed = -1;
@@ -1093,6 +1093,7 @@ int main(int argc, char **argv) {
     if(usedti){
       // NOTE: for DWI volumes
       MRI* firstFrameVol;
+      prune_thr = 50; // needs to be larger than 0 to get meaningful mask!
       firstFrameVol = MRIcopyFrame(mriglm->y,NULL, 0, 0);
       mriglm->mask = MRIframeBinarize(firstFrameVol,prune_thr,mriglm->mask);
       MRIfree(&firstFrameVol);
