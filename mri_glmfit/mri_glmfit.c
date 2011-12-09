@@ -13,9 +13,9 @@
 /*
  * Original Author: Douglas N Greve
  * CVS Revision Info:
- *    $Author: lzollei $
- *    $Date: 2011/12/09 17:10:43 $
- *    $Revision: 1.207 $
+ *    $Author: greve $
+ *    $Date: 2011/12/09 17:44:38 $
+ *    $Revision: 1.208 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -555,7 +555,7 @@ static int SmoothSurfOrVol(MRIS *surf, MRI *mri, MRI *mask, double SmthLevel);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-"$Id: mri_glmfit.c,v 1.207 2011/12/09 17:10:43 lzollei Exp $";
+"$Id: mri_glmfit.c,v 1.208 2011/12/09 17:44:38 greve Exp $";
 const char *Progname = "mri_glmfit";
 
 int SynthSeed = -1;
@@ -1113,6 +1113,12 @@ int main(int argc, char **argv) {
   if (mriglm->mask) {
     nmask = MRInMask(mriglm->mask);
     printf("Found %d voxels in mask\n",nmask);
+    if(nmask == 0){
+      printf("ERROR: no voxels found in the mask\n");
+      if(prunemask)
+	printf("  make sure at least one voxel has a non-zero value for each input\n");
+      exit(1);
+    }
     if (!DontSave) {
       sprintf(tmpstr,"%s/mask.%s",GLMDir,format);
       printf("Saving mask to %s\n",tmpstr);
