@@ -6,9 +6,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/14 23:44:47 $
- *    $Revision: 1.22 $
+ *    $Author: rpwang $
+ *    $Date: 2011/12/09 21:25:56 $
+ *    $Revision: 1.23 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -284,7 +284,7 @@ bool LayerVolumeBase::FloodFillByRAS( double* ras, int nPlane, bool bAdd, char* 
     n[i] = ( int )( ( ras[i] - origin[i] ) / voxel_size[i] + 0.5 );
   }
 
-  if ( FloodFillByIndex( n, nPlane, bAdd, mask_out ) )
+  if ( FloodFillByIndex( n, nPlane, bAdd, true, mask_out ) )
   {
     if ( !mask_out )
     {
@@ -300,7 +300,7 @@ bool LayerVolumeBase::FloodFillByRAS( double* ras, int nPlane, bool bAdd, char* 
 }
 
 // when mask_out is not null, do not fill the actual image data. instead, fill the mask_out buffer
-bool LayerVolumeBase::FloodFillByIndex( int* n, int nPlane, bool bAdd, char* mask_out )
+bool LayerVolumeBase::FloodFillByIndex( int* n, int nPlane, bool bAdd, bool ignore_overflow, char* mask_out )
 {
   int* nDim = m_imageData->GetDimensions();
   int nx = 0, ny = 0, x = 0, y = 0;
@@ -422,7 +422,14 @@ bool LayerVolumeBase::FloodFillByIndex( int* n, int nPlane, bool bAdd, char* mas
   }
 
   MyUtils::FloodFill( mask, x, y, 0, 0, nx-1, ny-1, 2, 0 );
-
+  if (!ignore_overflow)
+  {
+    if (mask[0][0] == 2 && mask[ny-1][nx=1] == 2)
+    {
+      MyUtils::FreeMatrix( mask, ny );
+      return false;
+    }
+  }
   int ncnt;
   switch ( nPlane )
   {

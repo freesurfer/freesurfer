@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2011/12/05 21:16:57 $
- *    $Revision: 1.195 $
+ *    $Date: 2011/12/09 21:25:56 $
+ *    $Revision: 1.196 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -1097,6 +1097,9 @@ void MainWindow::OnIdle()
     m_actionRecentSurfaces[i]->setEnabled( !bBusy );
   }
 
+  bool bMeasureWindowVisible = m_toolWindowMeasure->isVisible();
+  bool bEditWindowVisible = m_toolWindowEdit->isVisible();
+  bool bROIEditWindowVisible = m_toolWindowROIEdit->isVisible();
   m_toolWindowMeasure->setVisible( nMode == RenderView::IM_Measure );
   m_toolWindowEdit->setVisible( nMode == RenderView::IM_VoxelEdit );
   m_toolWindowROIEdit->setVisible( nMode == RenderView::IM_ROIEdit );
@@ -1114,6 +1117,13 @@ void MainWindow::OnIdle()
   ui->actionTimeCourse->setEnabled(layerVolume && layerVolume->GetNumberOfFrames() > 1);
   if (ui->actionTimeCourse->isEnabled())
     ui->actionTimeCourse->setChecked(m_wndTimeCourse->isVisible());
+
+  if ((!bEditWindowVisible && m_toolWindowEdit->isVisible()) ||
+      (!bMeasureWindowVisible && m_toolWindowMeasure->isVisible()) ||
+      (!bROIEditWindowVisible && m_toolWindowROIEdit->isVisible()))
+  {
+    QTimer::singleShot(50, this, SLOT(SlotActivateWindow()));
+  }
 }
 
 bool MainWindow::IsBusy()

@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2011/10/17 17:37:51 $
- *    $Revision: 1.54 $
+ *    $Date: 2011/12/09 21:25:56 $
+ *    $Revision: 1.55 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -51,6 +51,8 @@
 #include "MyUtils.h"
 #include <QFileInfo>
 #include <QDebug>
+#include <QDir>
+
 extern "C"
 {
 #include "mri_identify.h"
@@ -248,8 +250,9 @@ bool FSSurface::MRISRead( const QString& filename,
     LoadVectors ( vector_filename );
   }
 
-  LoadCurvature();
-// cout << "MRISread finished\n";
+  QFileInfo fi(filename);
+  if (QFileInfo(fi.absoluteDir(), fi.completeBaseName() + ".curv").exists())
+    LoadCurvature();
 
   return true;
 }

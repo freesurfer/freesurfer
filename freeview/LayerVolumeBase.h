@@ -6,9 +6,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/14 23:44:47 $
- *    $Revision: 1.18 $
+ *    $Author: rpwang $
+ *    $Date: 2011/12/09 21:25:56 $
+ *    $Revision: 1.19 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -111,7 +111,7 @@ signals:
 protected:
   bool SetVoxelByIndex( int* n, int nPlane, bool bAdd = true ); // true is to add, false is to remove
   bool SetVoxelByIndex( int* n1, int* n2, int nPlane, bool bAdd = true );
-  bool FloodFillByIndex( int* n, int nPlane, bool bAdd = true, char* mask_out = false );
+  bool FloodFillByIndex( int* n, int nPlane, bool bAdd = true, bool ignore_overflow = true, char* mask_out = false );
   bool SetLiveWireByIndex( int* n1, int* n2, int nPlane );
 
   bool GetConnectedToOld( vtkImageData* img, int nFrame, int* n, int nPlane );

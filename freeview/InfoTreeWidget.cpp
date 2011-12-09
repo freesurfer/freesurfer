@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2011/10/27 16:18:07 $
- *    $Revision: 1.7 $
+ *    $Date: 2011/12/09 21:25:56 $
+ *    $Revision: 1.8 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -109,8 +109,11 @@ void InfoTreeWidget::UpdateAll()
       QTreeWidgetItem* item = new QTreeWidgetItem(this);
       item->setText(0, layer->GetName());
       layer->RASToOriginalIndex( ras, nIndex );
-   //   double dvalue = layer->GetVoxelValue( m_dRAS );
-      double dvalue = layer->GetVoxelValueByOriginalIndex(nIndex[0], nIndex[1], nIndex[2]);
+      double dvalue;
+      if (layer->IsModified())
+        dvalue = layer->GetVoxelValue( m_dRAS );
+      else
+        dvalue = layer->GetVoxelValueByOriginalIndex(nIndex[0], nIndex[1], nIndex[2]);
       QString editable = QString("%1, %2, %3").arg(nIndex[0]).arg(nIndex[1]).arg(nIndex[2]);
       QString valueStrg = QString("%1").arg(dvalue);
       if (layer->GetNumberOfFrames() > 1 && layer->GetNumberOfFrames() <= 4)
