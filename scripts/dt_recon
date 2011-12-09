@@ -2,7 +2,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: dt_recon,v 1.16 2011/12/02 22:54:39 lzollei Exp $';
+set VERSION = '$Id: dt_recon,v 1.17 2011/12/09 15:54:06 lzollei Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -108,7 +108,9 @@ if($DoEddyCorrect) then
   set ectmp = $OutDir/ectmp
   mkdir -p $ectmp
   pushd $ectmp > /dev/null
-  set cmd = (eddy_correct $f $fec $ECRefTP) 
+  set cmd = (eddy_correct $f ${fec:r} $ECRefTP) 
+  set cmd = ($cmd; mri_convert ${fec:r} $fec)
+  set cmd = ($cmd; rm -f ${fec:r})
   #set cmd = (cp $f $fec)
   echo "cd `pwd`" |  tee -a $LF
   echo $cmd       |  tee -a $LF 
