@@ -8,9 +8,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/14 23:44:46 $
- *    $Revision: 1.14 $
+ *    $Author: rpwang $
+ *    $Date: 2011/12/09 22:09:05 $
+ *    $Revision: 1.15 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -36,6 +36,7 @@ BrushProperty::BrushProperty (QObject* parent) : QObject(parent),
   m_bEnableDrawRange( false ),
   m_bEnableExcludeRange( false ),
   m_bDrawConnectedOnly( false ),
+  m_bFill3D(false),
   m_layerRef( NULL )
 {
   m_dDrawRange[0] = 0;

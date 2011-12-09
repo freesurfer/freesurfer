@@ -6,9 +6,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/14 23:44:47 $
- *    $Revision: 1.23 $
+ *    $Author: rpwang $
+ *    $Date: 2011/12/09 22:09:05 $
+ *    $Revision: 1.24 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -82,37 +82,40 @@ bool Interactor2DVolumeEdit::ProcessMouseDownEvent( QMouseEvent* event, RenderVi
     {
       m_nMousePosX = event->x();
       m_nMousePosY = event->y();
+      bool bFill3D = (LayerMRI*)MainWindow::GetMainWindow()->GetBrushProperty()->GetFill3D();
 
       double ras[3];
       view->MousePositionToRAS( m_nMousePosX, m_nMousePosY, ras );
       bool bCondition = !(event->modifiers() & Qt::ShiftModifier) && !(event->buttons() & Qt::RightButton);
       if ( m_nAction == EM_Freehand ) //&& ( event->ControlDown() ) )
       {
-        mri->SaveForUndo( view->GetViewPlane() );
         if ( event->modifiers() & CONTROL_MODIFIER )
         {
-          mri->FloodFillByRAS( ras, view->GetViewPlane(), bCondition );
+          mri->SaveForUndo( bFill3D ? -1 : view->GetViewPlane());
+          mri->FloodFillByRAS( ras, view->GetViewPlane(), bCondition, bFill3D );
         }
         else
         {
+          mri->SaveForUndo( view->GetViewPlane() );
           m_bEditing = true;
           mri->SetVoxelByRAS( ras, view->GetViewPlane(),bCondition );
         }
       }
       else if ( m_nAction == EM_Fill ) //&& ( event->ControlDown() ) )
       {
-        mri->SaveForUndo( view->GetViewPlane() );
-        mri->FloodFillByRAS( ras, view->GetViewPlane(), bCondition );
+        mri->SaveForUndo(bFill3D ? -1 : view->GetViewPlane());
+        mri->FloodFillByRAS( ras, view->GetViewPlane(), bCondition, bFill3D );
       }
       else if ( m_nAction == EM_Polyline || m_nAction == EM_Livewire )
       {
-        mri->SaveForUndo( view->GetViewPlane() );
         if ( event->modifiers() & CONTROL_MODIFIER )
         {
-          mri->FloodFillByRAS( ras, view->GetViewPlane(), bCondition );
+          mri->SaveForUndo(bFill3D ? -1 : view->GetViewPlane());
+          mri->FloodFillByRAS( ras, view->GetViewPlane(), bCondition, bFill3D );
         }
         else
         {
+          mri->SaveForUndo( view->GetViewPlane() );
           m_bEditing = true;
           double ras2[3];
           view->GetCursor2D()->ClearInterpolationPoints();
@@ -146,8 +149,8 @@ bool Interactor2DVolumeEdit::ProcessMouseDownEvent( QMouseEvent* event, RenderVi
       {
         if ( event->modifiers() & CONTROL_MODIFIER )
         {
-          mri->SaveForUndo( view->GetViewPlane() );
-          mri->FloodFillByRAS( ras, view->GetViewPlane(), bCondition );
+          mri->SaveForUndo(bFill3D ? -1 : view->GetViewPlane());
+          mri->FloodFillByRAS( ras, view->GetViewPlane(), bCondition, bFill3D );
         }
         else
         {

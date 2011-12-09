@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2011/03/16 22:07:51 $
- *    $Revision: 1.30 $
+ *    $Date: 2011/12/09 22:09:06 $
+ *    $Revision: 1.31 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -65,6 +65,7 @@ ToolWindowEdit::ToolWindowEdit(QWidget *parent) :
   connect(ui->checkBoxConstrain, SIGNAL(toggled(bool)), bp, SLOT(SetDrawConnectedOnly(bool)));
   connect(ui->checkBoxDrawRange, SIGNAL(toggled(bool)), bp, SLOT(SetDrawRangeEnabled(bool)));
   connect(ui->checkBoxExcludeRange, SIGNAL(toggled(bool)), bp, SLOT(SetExcludeRangeEnabled(bool)));
+  connect(ui->checkBoxFill3D, SIGNAL(toggled(bool)), bp, SLOT(SetFill3D(bool)));
   connect(mainwnd->GetLayerCollection("MRI"), SIGNAL(LayerAdded(Layer*)), this, SLOT(UpdateWidgets()));
   connect(mainwnd->GetLayerCollection("MRI"), SIGNAL(LayerRemoved(Layer*)), this, SLOT(UpdateWidgets()));
   for (int i = 0; i < 3; i++)

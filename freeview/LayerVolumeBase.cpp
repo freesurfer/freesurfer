@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2011/12/09 21:25:56 $
- *    $Revision: 1.23 $
+ *    $Date: 2011/12/09 22:09:05 $
+ *    $Revision: 1.24 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -274,28 +274,51 @@ bool LayerVolumeBase::SetVoxelByIndex( int* n1, int* n2, int nPlane, bool bAdd )
   return true;
 }
 
-bool LayerVolumeBase::FloodFillByRAS( double* ras, int nPlane, bool bAdd, char* mask_out )
+bool LayerVolumeBase::FloodFillByRAS( double* ras, int nPlane, bool bAdd, bool b3D, char* mask_out )
 {
   int n[3];
   double* origin = m_imageData->GetOrigin();
   double* voxel_size = m_imageData->GetSpacing();
+  int* dim = m_imageData->GetDimensions();
   for ( int i = 0; i < 3; i++ )
   {
     n[i] = ( int )( ( ras[i] - origin[i] ) / voxel_size[i] + 0.5 );
   }
 
-  if ( FloodFillByIndex( n, nPlane, bAdd, true, mask_out ) )
+  if (!b3D)
   {
-    if ( !mask_out )
+    if ( FloodFillByIndex( n, nPlane, bAdd, true, mask_out ) )
     {
-      SetModified();
+      if ( !mask_out )
+      {
+        SetModified();
+      }
+      emit ActorUpdated();
+      return true;
     }
-    emit ActorUpdated();
-    return true;
+    else
+    {
+      return false;
+    }
   }
   else
   {
-    return false;
+    int n0[3] = { n[0], n[1], n[2]};
+    for (int i = n0[nPlane]; i < dim[nPlane]; i++)
+    {
+      n[nPlane] = i;
+      if (!FloodFillByIndex( n, nPlane, bAdd, false))
+        break;
+    }
+    for (int i = n0[nPlane]-1; i >= 0; i--)
+    {
+      n[nPlane] = i;
+      if (!FloodFillByIndex( n, nPlane, bAdd, false))
+        break;
+    }
+    SetModified();
+    emit ActorUpdated();
+    return true;
   }
 }
 
