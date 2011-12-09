@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2010/07/26 15:35:44 $
-#    $Revision: 1.55 $
+#    $Date: 2011/12/09 20:06:47 $
+#    $Revision: 1.57.2.1 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: selxavg3-sess,v 1.55 2010/07/26 15:35:44 greve Exp $'
+set VERSION = '$Id: selxavg3-sess,v 1.57.2.1 2011/12/09 20:06:47 greve Exp $'
 
 set inputargs = ($argv);
 set DateStr = "`date '+%y%m%d%H%M%S'`"
@@ -94,6 +94,7 @@ if($#analysis) then
   # analysis, not flac file
   set analysisname = $analysis
   set fsd = `getana -a $analysis -t fsd`;
+  set PerSession = `getana -a $analysis -t IsPerSession`
   set IsNative = `getana -a $analysis -t IsNative`
   set IsSurface = `getana -a $analysis -t IsSurface`
   if($IsSurface) then
@@ -148,6 +149,10 @@ date          >> $LF
 set StartTime = `date`;
 
 if($SaveRes || $SaveResUnwhitened) set MatlabSaveRes = 1;
+
+# Dont run preproc if funcstem specified
+set funcstemspec  = `getana -a $analysis -t funcstem-specified`
+if($funcstemspec) set DoPreProc = 0;
 
 ### Preprocess each session ####
 if($DoPreProc) then
@@ -270,6 +275,8 @@ foreach sess ($SessList)
   endif
 
   echo "%--------------------------------" >> $MLF
+  echo "sxa3pwd = '`pwd`'">> $MLF
+  echo "sxa3cmd = '$0 $inputargs'">> $MLF
   echo "which fast_selxavg3"               >> $MLF
   echo "okfile         = '$okfile';"       >> $MLF
   echo "if(fast_fileexists(okfile)) delete(okfile); end" >> $MLF
@@ -366,6 +373,10 @@ while( $#argv != 0 )
     case "-analysis":
     case "-a":
       if ( $#argv == 0) goto arg1err;
+      if($#analysis) then
+        echo "ERROR: you have specified the analysis twice"
+        exit 1
+      endif
       set analysis = $argv[1]; shift;
       set analysis = `basename $analysis`; # remove trailing /
       breaksw
@@ -524,6 +535,10 @@ check_params:
   if($#analysis != 0) then 
     if(! -d $analysis ) then
       echo "ERROR: analysis $analysis does not exist, see mkanalysis-sess"
+      exit 1;
+    endif
+    if(! -e $analysis/analysis.info ) then
+      echo "ERROR: analysis $analysis/analysis.info does not exist, see mkanalysis-sess"
       exit 1;
     endif
   endif

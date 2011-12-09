@@ -5,8 +5,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2010/04/28 20:16:25 $
-#    $Revision: 1.3 $
+#    $Date: 2011/12/09 20:06:46 $
+#    $Revision: 1.6.2.1 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -22,7 +22,7 @@
 # Bug reports: analysis-bugs@nmr.mgh.harvard.edu
 #
 
-set VERSION = '$Id: getana,v 1.3 2010/04/28 20:16:25 greve Exp $';
+set VERSION = '$Id: getana,v 1.6.2.1 2011/12/09 20:06:46 greve Exp $';
 
 set analysis = ();
 set tag = ();
@@ -70,9 +70,16 @@ switch ($tag)
     if($fwhm == 0) set result = $stcstem
     breaksw;
 
+  case "funcstem-specified":
+    # Determine whether funcstem was explicitly specified
+    set result = `cat $info | awk '{if($1 == "funcstem") print $2}' | wc -l`;
+    breaksw;
+
   case "funcstem":
     set result = `cat $info | awk '{if($1 == "funcstem") print $2}'`
+    # If funcstem specified explicilty, just return
     if($#result != 0) breaksw;
+    # Here, compute funcstem from preproc parameters
     set smstem = `getana -a $analysis -t smstem`
     set expkey  = `getana -a $analysis -t expkey`
     if($#expkey) set expkey = ".$expkey"
@@ -109,6 +116,17 @@ switch ($tag)
 
   case "TR":
     set result = `cat $info | awk '{if($1 == "TR") print $2}'`
+    breaksw;
+
+  case "ACFBins":
+  case "acfbins":
+    set result = `cat $info | awk '{if($1 == "acfbins") print $2}'`
+    breaksw;
+
+  case "whiten":
+    set ACFBins = `cat $info | awk '{if($1 == "acfbins") print $2}'`
+    if($ACFBins > 0)  set result = 1;
+    if($ACFBins == 0) set result = 0;
     breaksw;
 
   case "RawFWHM":
@@ -162,16 +180,19 @@ switch ($tag)
     breaksw;
 
   case "IsPerSession":
+    set result = (`cat $info | awk '{if($1 == "PerSession") print $2" "$3" "$4}'`)
+    if($#result == 0) set result = 0;
+    breaksw;
+
+  case "IsPerRun":
+    set IsPerSession = `getana -a $analysis -t IsPerSession`
+    set result = ! $IsPerSession
+    breaksw;
+
   case "IsNative":
     set tmp = (`cat $info | awk '{if($1 == "RawSpace") print $2" "$3" "$4}'`)
     set result = 0;
     if($tmp[2] == native) set result = 1;
-    breaksw;
-
-  case "IsPerRun":
-    set tmp = (`cat $info | awk '{if($1 == "RawSpace") print $2" "$3" "$4}'`)
-    set result = 0;
-    if($tmp[2] != native) set result = 1;
     breaksw;
 
   case "stc":
@@ -182,6 +203,16 @@ switch ($tag)
   case "expkey":
   case "ExpKey":
     set result = `cat $info | awk '{if($1 == "ExpKey") print $2}'`
+    breaksw;
+
+  case "UseB0DC":
+    set result = `cat $info | awk '{if($1 == "UseB0DC") print $2}'`
+    breaksw;
+
+  case "scm":
+  case "ApplySubCortMask":
+    set result = `cat $info | awk '{if($1 == "ApplySubCortMask") print $2}'`
+    if($#result == 0) set result = 1;
     breaksw;
 
   case "inorm":

@@ -7,8 +7,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2011/03/22 16:58:57 $
-#    $Revision: 1.64.2.1 $
+#    $Date: 2011/12/09 20:06:46 $
+#    $Revision: 1.64.2.2 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 # Bug reports: analysis-bugs@nmr.mgh.harvard.edu
 #
 
-set VERSION = '$Id: mkanalysis-sess,v 1.64.2.1 2011/03/22 16:58:57 greve Exp $';
+set VERSION = '$Id: mkanalysis-sess,v 1.64.2.2 2011/12/09 20:06:46 greve Exp $';
 
 set analysis = ();
 set TR = ();
@@ -81,6 +81,8 @@ set RegDOF = 6;
 set DoMCExtReg = 0;
 set HeteroGCor = 0;
 set UseB0DC = 0;
+set ApplySubCortMask = 1;
+set PerSession = 1;
 
 set force = 0;
 
@@ -132,6 +134,7 @@ echo "fsd $fsd" | tee -a $flac
 if($#RunListFile) echo "runlistfile $RunListFile" | tee -a $flac
 echo "TR $TR" | tee -a $flac
 echo "RegDOF $RegDOF" | tee -a $flac
+echo "PerSession $PerSession" | tee -a $flac
 if($RawSpace == native)      echo "RawSpace volume native" | tee -a $flac
 if($RawSpace == mni305)      echo "RawSpace volume mni305 $RawRes" | tee -a $flac
 if($RawSpaceType == surface) echo "RawSpace surface $RawSpace $RawHemi" | tee -a $flac
@@ -140,6 +143,7 @@ echo "RawFWHM $RawFWHM" | tee -a $flac
 if($#RawSTC) echo "RawSTC $RawSTC" | tee -a $flac
 if($#ExpKey) echo "ExpKey $ExpKey" | tee -a $flac
 echo "UseB0DC $UseB0DC" | tee -a $flac
+echo "ApplySubCortMask $ApplySubCortMask" | tee -a $flac
 echo "inorm $RescaleTarget" | tee -a $flac
 # -- Noise and drift modeling, temporal filtering ------
 echo "acfbins $ACFBins" | tee -a $flac
@@ -190,7 +194,7 @@ if($#TaskRegList) then
 endif
 # ------------ Nuisance External Regressors -----------------
 if($DoMCExtReg) then
-  if($RawSpace == native) then
+  if($RawSpace == native || $PerSession) then
     set NuisRegList  = ($NuisRegList mcextreg);
   else
     set NuisRegList  = ($NuisRegList mcprextreg);
@@ -473,7 +477,26 @@ while( $#argv != 0 )
       set mcstem = fmcpr
       breaksw
 
+    case "-subcort-mask":
+    case "-subcort":
+      set ApplySubCortMask = 1;
+      breaksw
+    case "-no-subcort-mask":
+    case "-no-subcort":
+      set ApplySubCortMask = 0;
+      breaksw
+
+    case "-per-run":
+      set PerSession = 0;
+      breaksw
+
+    case "-per-session":
+      set PerSession = 1;
+      set mcstem = fmc
+      breaksw
+
     case "-native":
+      set PerSession = 1;
       set RawSpaceType = volume
       set RawSpace = native
       set mcstem = fmc
@@ -783,6 +806,7 @@ usage_exit:
   echo "   -fsv3-whiten   : perform whitening like FreeSurfer Version 3 (and -no-)"
   echo ""
   echo "Other Optional Arguments"
+  echo "  -per-session : to be used when you run preproc-sess -per-session"
   echo "  -runlistfile filename : file with list of runs to include in analysis"
   echo "  -funcstem stem  : override default"
   echo "  -mask  maskid : use masks/maskid to compute autocor and whitening"
@@ -1036,7 +1060,6 @@ Turn off temporal whitening.
 
 OTHER OPTIONS
 
-
 -fsd FSD 
  
 Functional subdirectory (FSD). This is the folder under the sessions 
@@ -1044,11 +1067,13 @@ directory in which the runs of raw functional data will be found
 (default is bold). 
  
 -funcstem stem 
- 
-This is the bshort/bfloat stem of the functional volume to process. This 
-volume must exist in each functional run. By default, the stem is f. 
-If the -motioncor flag is included, then the stem fmc is used (this is 
-the default output of mc-sess). 
+
+This is the stem of the functional volume to process. This volume must
+exist in each functional run. By default, the stem is f.  If the
+-motioncor flag is included, then the stem fmc is used (this is the
+default output of mc-sess).
+
+-per-session : to be used when you run preproc-sess -per-session
  
 -runlistfile filename (Shortcut: -rlf) 
 
