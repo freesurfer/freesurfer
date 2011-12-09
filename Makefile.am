@@ -254,6 +254,7 @@ MRISSUBDIRS=\
 	mris_diff \
 	mris_distance_to_label \
 	mris_register \
+	mris_left_right_register \
 	mris_congeal \
 	mris_resample \
 	mris_sample_label \
