@@ -5,9 +5,9 @@
 /*
  * Original Author: Fischl, B.
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:20 $
- *    $Revision: 1.10 $
+ *    $Author: fischl $
+ *    $Date: 2011/12/10 22:47:57 $
+ *    $Revision: 1.11 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -71,7 +71,7 @@ main(int argc, char *argv[])
   MRI       *mri, *mri_jacobian, *mri_area, *mri_orig_area ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_jacobian.c,v 1.10 2011/03/02 00:04:20 nicks Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_jacobian.c,v 1.11 2011/12/10 22:47:57 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -138,7 +138,7 @@ main(int argc, char *argv[])
       MRIscalarMul(mri_orig_area, mri_orig_area, 1/det) ;
     }
   
-  if (! FZERO(sigma) == 0)
+  if (! FZERO(sigma))
     {
       MRI *mri_kernel, *mri_smooth ;
       mri_kernel = MRIgaussian1d(sigma, 100) ;
