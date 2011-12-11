@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2011/12/08 20:42:02 $
- *    $Revision: 1.705 $
+ *    $Date: 2011/12/11 21:47:41 $
+ *    $Revision: 1.706 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -569,8 +569,8 @@ static int   mrisStoreCurrentGradient(MRI_SURFACE *mris) ;
 static int   mrisFindPoles(MRIS *mris) ;
 static int   mrisComputeEllipsoidProperties(MRI_SURFACE *mris) ;
 #endif
-static int   mrisLogIntegrationParms(FILE *fp, MRI_SURFACE *mris,
-                                     INTEGRATION_PARMS *parms) ;
+int   mrisLogIntegrationParms(FILE *fp, MRI_SURFACE *mris,
+			      INTEGRATION_PARMS *parms) ;
 static int   mrisLogStatus(MRI_SURFACE *mris, INTEGRATION_PARMS *parms,
                            FILE *fp, float dt, float old_sse) ;
 static int   mrisWriteSnapshots(MRI_SURFACE *mris, INTEGRATION_PARMS *parms,
@@ -736,7 +736,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void)
 {
-  return("$Id: mrisurf.c,v 1.705 2011/12/08 20:42:02 greve Exp $");
+  return("$Id: mrisurf.c,v 1.706 2011/12/11 21:47:41 greve Exp $");
 }
 
 /*-----------------------------------------------------
@@ -5606,6 +5606,14 @@ MRISregister(MRI_SURFACE *mris, MRI_SP *mrisp_template,
   int first = 1 ;
   INTEGRATION_PARMS saved_parms ;
 
+  printf("MRISregister() -------\n");
+  printf("max_passes = %d \n",max_passes);
+  printf("min_degrees = %f \n",min_degrees);
+  printf("max_degrees = %f \n",max_degrees);
+  printf("nangles = %d \n",nangles);
+  mrisLogIntegrationParms(stdout, mris, parms) ;
+  printf("--------------------\n");
+
   saved_parms = *parms ;
 
   if (IS_QUADRANGULAR(mris))
@@ -5974,6 +5982,7 @@ MRISregister(MRI_SURFACE *mris, MRI_SP *mrisp_template,
   start_t = parms->start_t ;
   *parms = *(&saved_parms) ;
   parms->start_t = start_t ;
+  printf("MRISregister() retrun, current seed %ld\n",getRandomSeed());
   return(NO_ERROR) ;
 }
 
@@ -6519,6 +6528,10 @@ MRISunfold(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int max_passes)
   double  starting_sse, ending_sse, l_area, pct_error ;
   struct  timeb start ;
 
+  printf("MRISunfold() max_passes = %d -------\n",max_passes);
+  mrisLogIntegrationParms(stdout, mris, parms) ;
+  printf("--------------------\n");
+
   use_nl_area = (!FZERO(parms->l_nlarea));
 
   if (IS_QUADRANGULAR(mris))
@@ -6680,6 +6693,7 @@ MRISunfold(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int max_passes)
       parms->tol = 0.5 ;
       if (niter > 30)
         parms->niterations = 30 ;
+      printf("  mrisRemoveNegativeArea()\n");
       mrisRemoveNegativeArea(mris, parms,
                              base_averages, MAX_NEG_AREA_PCT, 2);
       parms->niterations = niter ;
@@ -6813,6 +6827,7 @@ MRISunfold(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int max_passes)
     fclose(parms->fp) ;
     parms->fp = NULL ;
   }
+  printf("MRISunfold() return, current seed %ld\n",getRandomSeed());
 
   return(mris) ;
 }
@@ -19066,7 +19081,7 @@ mrisComputeNonlinearDistanceTerm(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
 
   Description
   ------------------------------------------------------*/
-static int
+int
 mrisLogIntegrationParms(FILE *fp, MRI_SURFACE *mris,INTEGRATION_PARMS *parms)
 {
   char  *cp, host_name[STRLEN] ;
@@ -19179,6 +19194,7 @@ mrisLogIntegrationParms(FILE *fp, MRI_SURFACE *mris,INTEGRATION_PARMS *parms)
 #endif
   if (parms->desired_rms_height > 0.0)
     fprintf(fp, "desired rms height=%2.3f", parms->desired_rms_height) ;
+  fprintf(fp,"randomSeed %ld\n",getRandomSeed());
   fprintf(fp, "\n") ;
   fflush(fp) ;
   return(NO_ERROR) ;

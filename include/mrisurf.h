@@ -9,8 +9,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2011/12/08 20:42:02 $
- *    $Revision: 1.359 $
+ *    $Date: 2011/12/11 21:47:41 $
+ *    $Revision: 1.360 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -764,6 +764,8 @@ MRI_SURFACE  *MRISalloc(int nvertices, int nfaces) ;
 int          MRISfreeDists(MRI_SURFACE *mris) ;
 int          MRISfree(MRI_SURFACE **pmris) ;
 int   MRISintegrate(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int n_avgs);
+int   mrisLogIntegrationParms(FILE *fp, MRI_SURFACE *mris,
+			      INTEGRATION_PARMS *parms) ;
 MRI_SURFACE  *MRISprojectOntoSphere(MRI_SURFACE *mris_src,
                                     MRI_SURFACE *mris_dst, double r) ;
 MRI_SURFACE  *MRISprojectOntoEllipsoid(MRI_SURFACE *mris_src,
