@@ -7,9 +7,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: rpwang $
- *    $Date: 2011/06/17 02:37:48 $
- *    $Revision: 1.80 $
+ *    $Author: greve $
+ *    $Date: 2011/12/11 21:39:42 $
+ *    $Revision: 1.81 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -83,6 +83,11 @@ setRandomSeed(long seed)
   OpenRan1(&idum);
 
   return(NO_ERROR) ;
+}
+
+long getRandomSeed(void)
+{
+  return(idum);
 }
 
 double
