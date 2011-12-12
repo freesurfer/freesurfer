@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:08 $
- *    $Revision: 1.5 $
+ *    $Author: greve $
+ *    $Date: 2011/12/12 03:28:32 $
+ *    $Revision: 1.6 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -39,7 +39,7 @@
 #include "macros.h"
 #include "timer.h"
 
-static char vcid[] = "$Id: hiam_register.c,v 1.5 2011/03/02 00:04:08 nicks Exp $";
+static char vcid[] = "$Id: hiam_register.c,v 1.6 2011/12/12 03:28:32 greve Exp $";
 
 
 static float sigmas[] = {
@@ -66,7 +66,7 @@ static void print_version(void) ;
 static int  compute_area_ratios(MRI_SURFACE *mris) ;
 
 static int  mrisRegister(MRI_SURFACE *mris, MRI_SP *mrisp_template, INTEGRATION_PARMS *parms, int max_passes) ;
-static int  mrisLogIntegrationParms(FILE *fp, MRI_SURFACE *mris,INTEGRATION_PARMS *parms);
+static int  mrisLogIntegrationParms2(FILE *fp, MRI_SURFACE *mris,INTEGRATION_PARMS *parms);
 static int  mrisClearMomentum(MRI_SURFACE *mris);
 static int  mrisIntegrationEpoch(MRI_SURFACE *mris, INTEGRATION_PARMS *parms,int base_averages);
 
@@ -486,10 +486,10 @@ mrisRegister(MRI_SURFACE *mris, MRI_SP *mrisp_template,
         ErrorExit(ERROR_NOFILE, "%s: could not open log file %s",
                   Progname, fname) ;
     }
-    mrisLogIntegrationParms(parms->fp, mris,parms) ;
+    mrisLogIntegrationParms2(parms->fp, mris,parms) ;
   }
   if (Gdiag & DIAG_SHOW)
-    mrisLogIntegrationParms(stderr, mris,parms) ;
+    mrisLogIntegrationParms2(stderr, mris,parms) ;
 
   MRISuseMeanCurvature(mris) ;
   MRISnormalizeCurvature(mris, which_norm) ;
@@ -549,9 +549,9 @@ mrisRegister(MRI_SURFACE *mris, MRI_SP *mrisp_template,
       parms->tol *= 2.0f ;
       parms->l_corr /= 20.0f ;  /* should be more adaptive */
       if (Gdiag & DIAG_WRITE)
-        mrisLogIntegrationParms(parms->fp, mris, parms) ;
+        mrisLogIntegrationParms2(parms->fp, mris, parms) ;
       if (Gdiag & DIAG_SHOW)
-        mrisLogIntegrationParms(stderr, mris, parms) ;
+        mrisLogIntegrationParms2(stderr, mris, parms) ;
     } else
       if (!first) /* don't do curvature alignment */
         break ;   /* finished */
@@ -705,9 +705,9 @@ mrisIntegrationEpoch(MRI_SURFACE *mris, INTEGRATION_PARMS *parms,int base_averag
   }
 
   if (Gdiag & DIAG_SHOW)
-    mrisLogIntegrationParms(stderr, mris, parms) ;
+    mrisLogIntegrationParms2(stderr, mris, parms) ;
   if (Gdiag & DIAG_WRITE)
-    mrisLogIntegrationParms(parms->fp, mris, parms) ;
+    mrisLogIntegrationParms2(parms->fp, mris, parms) ;
   if (!FZERO(*pdenom)) {
     ratio = *pnum / *pdenom ;
     if (Gdiag & DIAG_SHOW)
@@ -793,7 +793,7 @@ mrisClearMomentum(MRI_SURFACE *mris) {
 }
 
 static int
-mrisLogIntegrationParms(FILE *fp, MRI_SURFACE *mris,INTEGRATION_PARMS *parms) {
+mrisLogIntegrationParms2(FILE *fp, MRI_SURFACE *mris,INTEGRATION_PARMS *parms) {
   char  *cp, host_name[STRLEN] ;
 
   if (!fp)
