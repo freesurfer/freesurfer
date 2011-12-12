@@ -10,8 +10,8 @@
  * Original Author: Martin Reuter, Nov. 4th ,2008
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2011/10/07 22:28:51 $
- *    $Revision: 1.59 $
+ *    $Date: 2011/12/12 22:15:52 $
+ *    $Revision: 1.60 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -179,7 +179,7 @@ static void printUsage(void);
 static bool parseCommandLine(int argc, char *argv[],Parameters & P) ;
 static void initRegistration(Registration & R, Parameters & P) ;
 
-static char vcid[] = "$Id: mri_robust_register.cpp,v 1.59 2011/10/07 22:28:51 mreuter Exp $";
+static char vcid[] = "$Id: mri_robust_register.cpp,v 1.60 2011/12/12 22:15:52 mreuter Exp $";
 char *Progname = NULL;
 
 //static MORPH_PARMS  parms ;
@@ -917,13 +917,25 @@ int main(int argc, char *argv[])
     // write out images in half way space
     if (P.halfmov != "" || P.halfdst != "" || P.halfweights != "" || P.halfdstlta != "" || P.halfmovlta != "")
     {
-      cout << endl;
+     cout << endl;
+      
+     if (! P.symmetry )
+     {
+       cout << "ERROR: no half way space created (symmetry was switched off)!" << endl;
+     }
+     else if (!R.getHalfWayGeom())
+     {
+       cout << "ERROR: no half way space created (not implemented for this cost function)!" << endl;
+     }
+     else
+     {
+      
       cout << "Creating half way data ..." << endl;
       std::pair < vnl_matrix_fixed < double, 4, 4>, vnl_matrix_fixed < double, 4, 4> > maps2weights = R.getHalfWayMaps();
       vnl_matlab_print(vcl_cerr,maps2weights.first,"movhw",vnl_matlab_print_format_long);std::cerr << std::endl;
       vnl_matlab_print(vcl_cerr,maps2weights.second,"dsthw",vnl_matlab_print_format_long);std::cerr << std::endl;
       
-      MRI * mri_weights = R.getWeights();
+      MRI * mri_hwgeom = R.getHalfWayGeom();
 
       LTA * m2hwlta = LTAalloc(1,P.mri_mov);
       LTA * d2hwlta = LTAalloc(1,P.mri_dst);
@@ -931,9 +943,9 @@ int main(int argc, char *argv[])
       {
         // cout << "converting VOX to RAS and saving RAS2RAS..." << endl ;
         // (use geometry of destination space for half-way)
-        m2hwlta->xforms[0].m_L = MRIvoxelXformToRasXform (P.mri_mov, mri_weights, MyMatrix::convertVNL2MATRIX(maps2weights.first), m2hwlta->xforms[0].m_L) ;
+        m2hwlta->xforms[0].m_L = MRIvoxelXformToRasXform (P.mri_mov, mri_hwgeom, MyMatrix::convertVNL2MATRIX(maps2weights.first), m2hwlta->xforms[0].m_L) ;
         m2hwlta->type = LINEAR_RAS_TO_RAS ;
-        d2hwlta->xforms[0].m_L = MRIvoxelXformToRasXform (P.mri_dst, mri_weights, MyMatrix::convertVNL2MATRIX(maps2weights.second), d2hwlta->xforms[0].m_L) ;
+        d2hwlta->xforms[0].m_L = MRIvoxelXformToRasXform (P.mri_dst, mri_hwgeom, MyMatrix::convertVNL2MATRIX(maps2weights.second), d2hwlta->xforms[0].m_L) ;
         d2hwlta->type = LINEAR_RAS_TO_RAS ;
       }
       else // vox to vox
@@ -948,9 +960,9 @@ int main(int argc, char *argv[])
       }
       // add src and dst info (use mri_weights as target geometry in both cases)
       getVolGeom(P.mri_mov, &m2hwlta->xforms[0].src);
-      getVolGeom(mri_weights, &m2hwlta->xforms[0].dst);
+      getVolGeom(mri_hwgeom, &m2hwlta->xforms[0].dst);
       getVolGeom(P.mri_dst, &d2hwlta->xforms[0].src);
-      getVolGeom(mri_weights, &d2hwlta->xforms[0].dst);
+      getVolGeom(mri_hwgeom, &d2hwlta->xforms[0].dst);
 
       // write lta to half way
       if (P.halfmovlta != "")
@@ -982,7 +994,7 @@ int main(int argc, char *argv[])
 
         if (P.debug)
         {
-          MRIiterator mw(mri_weights);
+          MRIiterator mw(R.getWeights());
           MRIiterator ms(mri_Swarp);
           double meanw1=0, meanw0=0, mean = 0, meanw = 0, countw = 0;
           int countw1=0,countw0=0,count=0;
@@ -1030,11 +1042,10 @@ int main(int argc, char *argv[])
         MRI* mri_Twarp = LTAtransformInterp(P.mri_dst,NULL, d2hwlta,P.finalsampletype);
         MRIcopyPulseParameters(P.mri_dst,mri_Twarp);
         MRIwrite(mri_Twarp,P.halfdst.c_str());
-        MRI * mri_weights = R.getWeights();
 
         if (P.debug)
         {
-          MRIiterator mw(mri_weights);
+          MRIiterator mw(R.getWeights());
           MRIiterator ms(mri_Twarp);
           double meanw1=0, meanw0=0, mean = 0, meanw = 0, countw = 0;
           int countw1=0,countw0=0,count=0;
@@ -1067,7 +1078,7 @@ int main(int argc, char *argv[])
       }
       if (P.halfweights != "")
       {
-        //MRI * mri_weights = R.getWeights();
+        MRI * mri_weights = R.getWeights();
         if (mri_weights != NULL)
         {
           cout << " saving half-way weights ..." << endl;
@@ -1085,6 +1096,7 @@ int main(int argc, char *argv[])
           cout << "Warning: no weights have been computed! Maybe you ran with --leastsquares??" << endl;
         }
       }
+     }
     }
 
     if (P.debug >0)

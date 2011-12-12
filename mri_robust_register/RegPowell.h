@@ -8,8 +8,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2011/09/26 21:50:11 $
- *    $Revision: 1.7 $
+ *    $Date: 2011/12/12 22:15:52 $
+ *    $Revision: 1.8 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -63,6 +63,14 @@ public:
   virtual void computeIterativeRegistration( int n,double epsit,MRI * mriS, MRI* mriT, const vnl_matrix < double > &Minit, double iscaleinit);
   //static float costFunction(float p[] );
   static double costFunction(const vnl_vector<double> & p);
+  MRI * getWeights()
+  {
+    return NULL;
+  };
+  MRI * getHalfWayGeom()
+  {
+    return tcf;
+  };
 
 protected:
 

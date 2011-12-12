@@ -8,8 +8,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2011/11/17 02:53:36 $
- *    $Revision: 1.49 $
+ *    $Date: 2011/12/12 22:15:52 $
+ *    $Revision: 1.50 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -215,6 +215,10 @@ enum Cost
   MRI * getHWeights()
   {
     return mri_hweights;
+  };
+  MRI * getHalfWayGeom()
+  {
+    return mri_weights;
   };
   std::pair <vnl_matrix_fixed< double, 4, 4 > , vnl_matrix_fixed < double, 4, 4 > > getHalfWayMaps();
 
