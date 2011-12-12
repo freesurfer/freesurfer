@@ -10,9 +10,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2011/12/08 21:20:07 $
- *    $Revision: 1.260 $
+ *    $Author: fischl $
+ *    $Date: 2011/12/12 12:57:56 $
+ *    $Revision: 1.261 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -1747,6 +1747,27 @@ GCAMinitVolGeom(GCAM *gcam, MRI *mri_image, MRI *mri_atlas)
 }
 
 int
+GCAMpreserveLabelMetricProperties(GCA_MORPH *gcam, LABEL *area, MRI *mri)
+{
+  int              n, xv, yv, zv ;
+  GCA_MORPH_NODE   *gcamn ;
+  double           xvd, yvd, zvd ;
+  LABEL_VERTEX     *lv ;
+  
+  for (n = 0 ; n < area->n_points ; n++)
+  {
+    lv = &area->lv[n] ;
+    MRIsurfaceRASToVoxel(mri, lv->x, lv->y, lv->z, &xvd, &yvd, &zvd) ;
+    xv = nint(xvd) ; yv = nint(yvd) ; zv = nint(zvd) ;
+    if (xv == Gx && yv == Gy && zv == Gz)
+      DiagBreak() ;
+    gcamn = &gcam->nodes[xv][yv][zv] ;
+    gcamn->status &= ~(GCAM_IGNORE_DISTANCES) ;
+    gcamn->status |= GCAM_DISCOUNT_LIKELIHOOD ;
+  }
+  return(NO_ERROR) ;
+}
+int
 GCAMinit(GCA_MORPH *gcam, 
          MRI *mri_image, GCA *gca, 
          TRANSFORM *transform, 
@@ -2362,9 +2383,15 @@ gcamLikelihoodTerm(GCA_MORPH *gcam, MRI *mri, MRI *mri_smooth,
         dx = -MRIgetVoxDx(mri_nbhd, half_len, half_len, half_len, 0) ;
         dy = -MRIgetVoxDy(mri_nbhd, half_len, half_len, half_len, 0) ;
         dz = -MRIgetVoxDz(mri_nbhd, half_len, half_len, half_len, 0) ;
+	if (gcamn->status & GCAM_DISCOUNT_LIKELIHOOD)
+	{
+	  dx *= .1 ; dy *= .1 ; dz *= .1 ;
+	}
+
         gcamn->dx += l_likelihood*dx ;
         gcamn->dy += l_likelihood*dy ;
         gcamn->dz += l_likelihood*dz ;
+	
         if (x == Gx && y == Gy && z == Gz)
           printf("l_like: node(%d,%d,%d): dp=(%2.2f,%2.2f,%2.2f), "
                  "node %2.2f+-%2.2f\n",
@@ -2579,7 +2606,8 @@ gcamDistanceTerm(GCA_MORPH *gcam, MRI *mri, double l_distance)
           DiagBreak() ;
         gcamn = &gcam->nodes[x][y][z] ;
 
-        if (gcamn->invalid == GCAM_POSITION_INVALID)
+        if ((gcamn->invalid == GCAM_POSITION_INVALID) ||
+	    (gcamn->status & GCAM_IGNORE_DISTANCES))
           continue;
 
         num = 0 ;
@@ -2666,7 +2694,8 @@ gcamDistanceEnergy(GCA_MORPH *gcam, MRI *mri)
           DiagBreak() ;
         gcamn = &gcam->nodes[x][y][z] ;
 
-        if (gcamn->invalid == GCAM_POSITION_INVALID)
+        if ((gcamn->invalid == GCAM_POSITION_INVALID) ||
+	    (gcamn->status & GCAM_IGNORE_DISTANCES))
           continue;
 
         num = 0 ;
@@ -6532,6 +6561,9 @@ gcamElasticTerm( const GCA_MORPH *gcam, GCA_MORPH_PARMS *parms )
   double val1, val2, grad[3], lambda, mu ;
   GCA_MORPH_NODE  *gcamn ;
 
+  if (DZERO(parms->l_elastic))
+    return(NO_ERROR) ;
+
   mri_kernel = MRIgaussian1d(parms->sigma, 100) ;
   lambda = parms->lame_lambda ; mu = parms->lame_mu ; // matches CVS
   mri_warp = GCAMwriteWarpToMRI(gcam, NULL) ;
@@ -6543,7 +6575,7 @@ gcamElasticTerm( const GCA_MORPH *gcam, GCA_MORPH_PARMS *parms )
   MRIfree(&mri_divergence) ;
   mri_tmp = MRIlaplacian(mri_warp, NULL) ;
   mri_laplacian = MRIconvolveGaussian(mri_tmp, NULL, mri_kernel) ;
-  MRIfree(&mri_kernel) ;
+  MRIfree(&mri_kernel) ; MRIfree(&mri_tmp) ;
 
   for (x = 0 ; x < mri_warp->width ; x++)
     for (y = 0 ; y < mri_warp->height ; y++)
@@ -11557,14 +11589,12 @@ mri_tmp->c_s = gcam->atlas.c_s ;
 
         /* xform from target volume to morphed volume */
         MatrixMultiply(m_vox2vox, v1, v2) ;   /* v2 is now morphed voxel coord */
-        xr = V3_X(v2) ;
-        yr = V3_Y(v2) ;
-        zr = V3_Z(v2) ;
-        xd = nint(xr) ;
-        yd = nint(yr) ;
-        zd = nint(zr) ;
+        xr = V3_X(v2) ; yr = V3_Y(v2) ; zr = V3_Z(v2) ;
+        xd = nint(xr) ; yd = nint(yr) ; zd = nint(zr) ;
+
 	// LZ
-	printf("(xd, yd, zd) = (%d, %d, %d)\n", xd, yd, zd) ;
+	if (x == Gx && y == Gy && z == Gz)
+	  printf("(xd, yd, zd) = (%d, %d, %d)\n", xd, yd, zd) ;
 
         if (xd < 0 || yd < 0 || zd < 0)
           DiagBreak() ;
@@ -11574,7 +11604,8 @@ mri_tmp->c_s = gcam->atlas.c_s ;
         xmax = MAX(xmax, xd) ;
         ymax = MAX(ymax, yd) ;
         zmax = MAX(zmax, zd) ;
-	printf("(xmin, ymin, zmin) = (%d, %d, %d); (xmax, ymax, zmax) = (%d, %d, %d);\n", xmin, ymin, zmin, xmax, ymax, zmax) ;
+	if (x == Gx && y == Gy && z == Gz)
+	  printf("(xmin, ymin, zmin) = (%d, %d, %d); (xmax, ymax, zmax) = (%d, %d, %d);\n", xmin, ymin, zmin, xmax, ymax, zmax) ;
         if (xd >= 0 && yd >= 0 && zd >= 0 &&
             xd < mri_tmp->width && yd < mri_tmp->height && zd < mri_tmp->depth)
           MRIsetVoxVal(mri_tmp, xd, yd, zd, 0, label) ;  // for debugging
