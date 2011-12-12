@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2011/12/07 17:46:30 $
-#    $Revision: 1.410 $
+#    $Date: 2011/12/12 17:05:06 $
+#    $Revision: 1.411 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -26,7 +26,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.410 2011/12/07 17:46:30 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.411 2011/12/12 17:05:06 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -92,8 +92,12 @@ set DoGcut = 0;         # 1=run mri_gcut after mri_watershed
 set NuIterations = 2;   # Number of iterations for nu intensity correction
 set ConformMin = 0;     # 1=conformed to min dimension
 set HiRes = 0;          # 1=hires option (conformed to min dimension)
-set Norm3dIters = ();   # passed as -n to mri_normalize
-set NormMaxGrad = 1;    # passed as -g to mri_normalize (input: -normmaxgrad)
+set Norm3dIters = ();   # passed as -n to *both* mri_normalize runs
+set NormMaxGrad = 1;    # passed as -g to *both* mri_normalize runs
+set Norm1_b = ();       # passed as -b to the *first* mri_normalize only
+set Norm1_n = ();       # passed as -n to the *first* mri_normalize only
+set Norm2_b = ();       # passed as -b to the *second* mri_normalize only
+set Norm2_n = ();       # passed as -n to the *second* mri_normalize only
 set WMSeg_wlo = ();  # from -seg-ghi and -seg-wlo, passed to mri_segment
 set WMSeg_ghi = ();  #                             and mris_make_surfaces
 set FixWithGA = 1;   # for topology fixer
@@ -1624,6 +1628,8 @@ if($DoNormalization) then
         |& tee -a $LF
       set cmd = (mri_normalize)
       if($#Norm3dIters)  set cmd = ($cmd -n $Norm3dIters)
+      if($#Norm1_b)      set cmd = ($cmd -b $Norm1_b)
+      if($#Norm1_n)      set cmd = ($cmd -n $Norm1_n)
       if($IsMPRAGE)      set cmd = ($cmd -mprage)
       if($IsWashuMPRAGE) set cmd = ($cmd -washu_mprage)
       set cmd = ($cmd \
@@ -1655,6 +1661,8 @@ if($DoNormalization) then
     set cmd = (mri_normalize -g $NormMaxGrad);
     if($UseControlPoints) set cmd = ($cmd -f $ControlPointsFile)
     if($#Norm3dIters)     set cmd = ($cmd -n $Norm3dIters)
+    if($#Norm1_b)         set cmd = ($cmd -b $Norm1_b)
+    if($#Norm1_n)         set cmd = ($cmd -n $Norm1_n)
     if($IsMPRAGE)         set cmd = ($cmd -mprage)
     if($IsWashuMPRAGE)    set cmd = ($cmd -washu_mprage)
     if($ConformMin)       set cmd = ($cmd -noconform)
@@ -2345,6 +2353,8 @@ if($DoNormalization2) then
   set cmd = (mri_normalize);
   if($UseControlPoints)   set cmd = ($cmd -f $ControlPointsFile)
   if($#Norm3dIters)       set cmd = ($cmd -n $Norm3dIters)
+  if($#Norm2_b)           set cmd = ($cmd -b $Norm2_b)
+  if($#Norm2_n)           set cmd = ($cmd -n $Norm2_n)
   if($IsMPRAGE)           set cmd = ($cmd -mprage)
   if($IsWashuMPRAGE)      set cmd = ($cmd -washu_mprage)
   if($ConformMin)         set cmd = ($cmd -noconform)
@@ -4106,6 +4116,9 @@ while( $#argv != 0 )
       set DoNuMakeUchar = 0;
       breaksw
 
+    # note: norm3diters and normmaxgrads is applied to both runs of 
+    # mri_normalize.  use -norm1-b, -norm1-n, -norm2-b, -norm2-n to 
+    # distinguish -b and -n of the two mri_normalize runs
     case "-norm3diters":
       if ( $#argv < 1) goto arg1err;
       set Norm3dIters = $argv[1]; shift;
@@ -4114,6 +4127,22 @@ while( $#argv != 0 )
     case "-normmaxgrad":
       if ( $#argv < 1) goto arg1err;
       set NormMaxGrad = $argv[1]; shift;
+      breaksw
+    case "-norm1-b":
+      if ( $#argv < 1) goto arg1err;
+      set Norm1_b = $argv[1]; shift;
+      breaksw
+    case "-norm1-n":
+      if ( $#argv < 1) goto arg1err;
+      set Norm1_n = $argv[1]; shift;
+      breaksw
+    case "-norm2-b":
+      if ( $#argv < 1) goto arg1err;
+      set Norm2_b = $argv[1]; shift;
+      breaksw
+    case "-norm2-n":
+      if ( $#argv < 1) goto arg1err;
+      set Norm2_n = $argv[1]; shift;
       breaksw
 
     case "-normalization":
@@ -5873,6 +5902,14 @@ usage_exit:
   echo "                    correction (default is $NuIterations)"
   echo "  -norm3diters niters : number of 3d iterations for mri_normalize"
   echo "  -normmaxgrad maxgrad : max grad (-g) for mri_normalize. Default is 1."
+  echo "  -norm1-b N : in the _first_ usage of mri_normalize, use control "
+  echo "               point with intensity N below target (default=10.0) "
+  echo "  -norm2-b N : in the _second_ usage of mri_normalize, use control "
+  echo "               point with intensity N below target (default=10.0) "
+  echo "  -norm1-n N : in the _first_ usage of mri_normalize, do N number "
+  echo "               of iterations"
+  echo "  -norm2-n N : in the _second_ usage of mri_normalize, do N number "
+  echo "               of iterations"
   echo "  -cm           : conform volumes to the min voxel size "
   echo "  -no-fix-with-ga : do not use genetic algorithm when fixing topology"
   echo "  -fix-diag-only  : topology fixer runs until ?h.defect_labels files"
@@ -6178,11 +6215,30 @@ Default is 2.
 
 -norm3diters niters
 
-Use niters 3d normalization iterations (passes as -n to mri_normalize).
+Use niters 3d normalization iterations (passes as -n to _both_ runs of
+mri_normalize).
 
 -normmaxgrad maxgrad
 
-Passes "-g maxgrad" to mri_normalize. Max grad default is 1.
+Passes "-g maxgrad" to _both_ runs of mri_normalize. Max grad default is 1.
+
+-norm1-b N
+
+In the _first_ usage of mri_normalize (during creation of T1.mgz), use 
+control point with intensity N below target (default=10.0)
+
+-norm1-n N
+
+In the _first_ usage of mri_normalize, do N number of iterations
+
+-norm2-b N
+
+In the _second_ usage of mri_normalize (during creation of brain.mgz), use 
+control point with intensity N below target (default=10.0)
+
+-norm2-n N
+
+In the _second_ usage of mri_normalize, do N number of iterations
 
 -noaseg
 
