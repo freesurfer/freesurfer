@@ -15,8 +15,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2011/12/08 15:03:12 $
- *    $Revision: 1.105 $
+ *    $Date: 2011/12/12 12:58:34 $
+ *    $Revision: 1.106 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -36,6 +36,7 @@
 #include "mri.h"
 #include "gca.h"
 #include "transform.h"
+#include "label.h"
 
 #if defined(__cplusplus)
 extern "C" {
@@ -358,7 +359,10 @@ int GCAMresetLabelNodeStatus(GCA_MORPH *gcam)  ;
 #define GCAM_BINARY_ZERO           0x0004
 #define GCAM_NEVER_USE_LIKELIHOOD  0x0008
 #define GCAM_TARGET_DEFINED        0x0010
+#define GCAM_IGNORE_DISTANCES      0x0020
+#define GCAM_DISCOUNT_LIKELIHOOD   0x0040
 
+int GCAMpreserveLabelMetricProperties(GCA_MORPH *gcam, LABEL *area, MRI *mri) ;
 int GCAMresetLikelihoodStatus(GCA_MORPH *gcam) ;
 int GCAMsetLabelStatus(GCA_MORPH *gcam, int label, int status) ;
 int GCAMsetStatus(GCA_MORPH *gcam, int status) ;
