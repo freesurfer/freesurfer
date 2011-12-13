@@ -7,8 +7,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2011/12/09 20:03:03 $
-#    $Revision: 1.67 $
+#    $Date: 2011/12/13 23:36:26 $
+#    $Revision: 1.68 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 # Bug reports: analysis-bugs@nmr.mgh.harvard.edu
 #
 
-set VERSION = '$Id: mkanalysis-sess,v 1.67 2011/12/09 20:03:03 greve Exp $';
+set VERSION = '$Id: mkanalysis-sess,v 1.68 2011/12/13 23:36:26 greve Exp $';
 
 set analysis = ();
 set TR = ();
@@ -82,7 +82,7 @@ set DoMCExtReg = 0;
 set HeteroGCor = 0;
 set UseB0DC = 0;
 set ApplySubCortMask = 1;
-set PerSession = 1;
+set PerSession = 0;
 
 set force = 0;
 
