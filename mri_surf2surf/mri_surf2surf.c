@@ -11,8 +11,8 @@
  * Original Author: Douglas Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2011/11/17 21:34:48 $
- *    $Revision: 1.92 $
+ *    $Date: 2011/12/13 23:02:07 $
+ *    $Revision: 1.93 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -348,7 +348,7 @@ MATRIX *MRIleftRightRevMatrix(MRI *mri);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_surf2surf.c,v 1.92 2011/11/17 21:34:48 greve Exp $";
+static char vcid[] = "$Id: mri_surf2surf.c,v 1.93 2011/12/13 23:02:07 greve Exp $";
 char *Progname = NULL;
 
 char *srcsurfregfile = NULL;
@@ -471,7 +471,7 @@ int main(int argc, char **argv)
   /* rkt: check for and handle version tag */
   nargs = handle_version_option (
     argc, argv,
-    "$Id: mri_surf2surf.c,v 1.92 2011/11/17 21:34:48 greve Exp $",
+    "$Id: mri_surf2surf.c,v 1.93 2011/12/13 23:02:07 greve Exp $",
     "$Name:  $");
   if (nargs && argc - nargs == 1) {
     exit (0);
@@ -515,15 +515,24 @@ int main(int argc, char **argv)
     sprintf(fname,"%s/lib/bem/ic%d.tri",FREESURFER_HOME,SrcIcoOrder);
     SrcSurfReg = ReadIcoByOrder(SrcIcoOrder, IcoRadius);
     printf("Source Ico Order = %d\n",SrcIcoOrder);
-  } else {
+  } 
+  else {
     // Set source reg depending on whether hemis are same or diff
     // Changed to this on 11/30/97
-    if(!strcmp(srchemi,trghemi) && UseDualHemi == 0) { // hemis are the same
+    if(!strcmp(srchemi,trghemi) && UseDualHemi == 0) { 
+      // hemis are the same
       sprintf(fname,"%s/%s/surf/%s.%s",
               SUBJECTS_DIR,srcsubject,srchemi,srcsurfregfile);
-    } else // hemis are the different
-      sprintf(fname,"%s/%s/surf/%s.%s.%s",SUBJECTS_DIR,
-              srcsubject,srchemi,trghemi,srcsurfregfile);
+    } 
+    else {
+      // hemis are the different
+      if(UseDualHemi)
+	sprintf(fname,"%s/%s/surf/%s.%s.%s",SUBJECTS_DIR,
+		srcsubject,srchemi,trghemi,srcsurfregfile);
+      else
+	sprintf(fname,"%s/%s/surf/%s.%s",
+		SUBJECTS_DIR,srcsubject,srchemi,srcsurfregfile);
+    }
     printf("Reading source surface reg %s\n",fname);
     SrcSurfReg = MRISread(fname) ;
     if (cavtx > 0)
@@ -1929,6 +1938,7 @@ static void dump_options(FILE *fp)
   fprintf(fp,"label-src  = %s\n",LabelFile_Input);
   fprintf(fp,"label-trg  = %s\n",LabelFile);
   fprintf(fp,"OKToRevFaceOrder  = %d\n",OKToRevFaceOrder);
+  fprintf(fp,"UseDualHemi = %d\n",UseDualHemi);
 
   return;
 }
