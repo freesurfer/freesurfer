@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2011/12/11 21:47:41 $
- *    $Revision: 1.706 $
+ *    $Author: fischl $
+ *    $Date: 2011/12/13 20:07:33 $
+ *    $Revision: 1.707 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -736,7 +736,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void)
 {
-  return("$Id: mrisurf.c,v 1.706 2011/12/11 21:47:41 greve Exp $");
+  return("$Id: mrisurf.c,v 1.707 2011/12/13 20:07:33 fischl Exp $");
 }
 
 /*-----------------------------------------------------
@@ -10965,7 +10965,7 @@ MRISwriteCurvature(MRI_SURFACE *mris, const char *sname)
   {
     FileNamePath(mris->fname, path) ;
     cp = strchr(sname, '.') ;
-    if (!cp)
+    if (!cp || ((cp-sname) != 2) || *(cp-1) != 'h' || ((*(cp-2)!='l'&&*(cp-2)!='r')))
       sprintf(fname, "%s/%s.%s", path, hemi, sname) ;
     else
       sprintf(fname, "%s/%s", path, sname) ;
@@ -10974,8 +10974,8 @@ MRISwriteCurvature(MRI_SURFACE *mris, const char *sname)
   {
     FileNamePath(sname, path) ;
     FileNameOnly(sname, name) ;
-    cp = strchr(sname, '.') ;
-    if (!cp)
+    cp = strchr(name, '.') ;
+    if (!cp || ((cp-name) != 2) || *(cp-1) != 'h' || ((*(cp-2)!='l'&&*(cp-2)!='r')))
       sprintf(fname, "%s/%s.%s", path, hemi, name) ;
     else
       sprintf(fname, "%s/%s", path, name) ;
@@ -37003,7 +37003,7 @@ MRISexpandSurface(MRI_SURFACE *mris,
       {
         for (n = parms->start_t ; n < parms->start_t+niter ; n++)
         {
-          printf("\rstep %d of %d     ", n+1, orig_start_t+nrounds*niter) ;
+          printf("\rstep %d of %d     ", n+1-(surf_no*niter*nrounds), orig_start_t+nrounds*niter) ;
           fflush(stdout) ;
           MRIScomputeMetricProperties(mris) ;
           if (!(parms->flags & IPFLAG_NO_SELF_INT_TEST))
