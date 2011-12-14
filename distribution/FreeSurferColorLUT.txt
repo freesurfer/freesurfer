@@ -1,4 +1,4 @@
-#$Id: FreeSurferColorLUT.txt,v 1.80 2011/11/05 20:43:58 nicks Exp $
+#$Id: FreeSurferColorLUT.txt,v 1.81 2011/12/14 19:40:29 rpwang Exp $
 
 #No. Label Name:                            R   G   B   A
 
@@ -200,7 +200,7 @@
 207 CA2                                     128 128 255 0
 208 CA3                                     0   128 0   0
 209 CA4                                     196 160 128 0
-210 GC-DG                                   32  200 255 0
+210 GC-ML-DG                                   32  200 255 0
 211 HATA                                    128 255 128 0
 212 fimbria                                 204 153 204 0
 213 lateral_ventricle                       121 17  136 0
