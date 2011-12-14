@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2011/10/17 17:37:51 $
- *    $Revision: 1.46 $
+ *    $Date: 2011/12/14 17:13:44 $
+ *    $Revision: 1.47 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -28,6 +28,7 @@
 
 #include "LayerEditable.h"
 #include "vtkSmartPointer.h"
+#include <QList>
 
 class vtkImageReslice;
 class vtkImageMapToColors;
@@ -283,13 +284,13 @@ protected:
   vtkSmartPointer<vtkActor>   m_vertexActor;
   vtkSmartPointer<vtkActor>   m_wireframeActor;
 
-  std::vector<SurfaceOverlay*>    m_overlays;
+  QList<SurfaceOverlay*>    m_overlays;
   int         m_nActiveOverlay;
 
-  std::vector<SurfaceAnnotation*> m_annotations;
+  QList<SurfaceAnnotation*> m_annotations;
   int         m_nActiveAnnotation;
 
-  std::vector<SurfaceLabel*>      m_labels;
+  QList<SurfaceLabel*>      m_labels;
   int         m_nActiveLabel;
 
   SurfaceROI*           m_roi;

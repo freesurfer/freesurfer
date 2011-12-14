@@ -6,9 +6,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/14 23:44:47 $
- *    $Revision: 1.9 $
+ *    $Author: rpwang $
+ *    $Date: 2011/12/14 17:13:44 $
+ *    $Revision: 1.10 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -166,7 +166,7 @@ void Interactor3DMeasure::UpdateCursor( QEvent* event, QWidget* wnd )
   }
   else if ( event->type() == QEvent::KeyPress )
   {
-    QKeyEvent* e = ( QKeyEvent* )&event;
+    QKeyEvent* e = ( QKeyEvent* )event;
     if ( e->key() == CONTROL_KEY && !(e->modifiers() & Qt::ShiftModifier) )
     {
       wnd->setCursor( CursorFactory::CursorContour );

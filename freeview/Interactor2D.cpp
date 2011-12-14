@@ -6,9 +6,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/14 23:44:47 $
- *    $Revision: 1.28 $
+ *    $Author: rpwang $
+ *    $Date: 2011/12/14 17:13:44 $
+ *    $Revision: 1.29 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -161,13 +161,16 @@ bool Interactor2D::ProcessMouseMoveEvent( QMouseEvent* event, RenderView* render
 
   if ( m_bChangeSlice )
   {
+    /*
     double* voxelSize = mainwnd->GetLayerCollection( "MRI" )->GetWorldVoxelSize();
     int nPlane = view->GetViewPlane();
     double dPixelPer = -0.20;
+
     double dPosDiff =  ( ( (int)( dPixelPer * ( posY - m_nDownPosY ) ) ) / dPixelPer -
                          ( (int)( dPixelPer * ( m_nMousePosY - m_nDownPosY ) ) ) / dPixelPer )
                        * dPixelPer * voxelSize[nPlane];
-    //  if ( lcm->OffsetSlicePosition( nPlane, dPosDiff ) )
+    if ( lcm->OffsetSlicePosition( nPlane, dPosDiff ) )
+    */
     {
       m_nMousePosX = posX;
       m_nMousePosY = posY;

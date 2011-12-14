@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2011/10/20 21:22:40 $
- *    $Revision: 1.73 $
+ *    $Date: 2011/12/14 17:13:45 $
+ *    $Revision: 1.74 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -964,8 +964,8 @@ void PanelVolume::OnSliderContourSmooth(int nval)
 void PanelVolume::OnContourValueChanged()
 {
   bool bOK;
-  double fMin, fMax;
-  int nSmooth;
+  double fMin, fMax = 0;
+  int nSmooth = 20;
   fMin = ui->lineEditContourThresholdLow->text().trimmed().toDouble(&bOK);
   if (bOK)
   {

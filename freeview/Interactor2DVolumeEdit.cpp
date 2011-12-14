@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2011/12/09 22:09:05 $
- *    $Revision: 1.24 $
+ *    $Date: 2011/12/14 17:13:44 $
+ *    $Revision: 1.25 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -269,10 +269,6 @@ bool Interactor2DVolumeEdit::ProcessMouseUpEvent( QMouseEvent* event, RenderView
     {
       m_bEditing = false;
     }
-
-    LayerCollection* lc = MainWindow::GetMainWindow()->GetLayerCollection( m_strLayerTypeName );
-    LayerVolumeBase* mri = ( LayerVolumeBase* )lc->GetActiveLayer();
-//   mri->SendBroadcast( "LayerEdited", mri );
 
     return false;
   }

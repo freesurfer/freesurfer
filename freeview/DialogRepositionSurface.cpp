@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2011/10/17 17:37:51 $
- *    $Revision: 1.3 $
+ *    $Date: 2011/12/14 17:13:44 $
+ *    $Revision: 1.4 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -181,8 +181,6 @@ void DialogRepositionSurface::OnUndo( )
 bool DialogRepositionSurface::ValidateAll()
 {
   QString name;
-  long nval;
-  double dval;
   bool ok;
   if (ui->tabWidget->currentIndex() == 0)
   {

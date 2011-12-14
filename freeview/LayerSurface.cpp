@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2011/10/17 17:37:51 $
- *    $Revision: 1.66 $
+ *    $Date: 2011/12/14 17:13:44 $
+ *    $Revision: 1.67 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -633,7 +633,7 @@ void LayerSurface::Append3DProps( vtkRenderer* renderer, bool* bSliceVisibility 
   renderer->AddViewProp( m_vertexActor );
   renderer->AddViewProp( m_wireframeActor );
 
-  for (size_t i = 0; i < m_labels.size(); i++)
+  for (int i = 0; i < m_labels.size(); i++)
     renderer->AddViewProp(m_labels[i]->GetOutlineActor());
 
   m_roi->AppendProps(renderer);
@@ -739,7 +739,7 @@ void LayerSurface::SetVisible( bool bVisible )
     m_vectorActor2D[i]->SetVisibility( nVectorVisibility );
   }
 
-  for (size_t i = 0; i < m_labels.size(); i++)
+  for (int i = 0; i < m_labels.size(); i++)
   {
     m_labels[i]->GetOutlineActor()->VisibilityOff();
   }
@@ -979,7 +979,7 @@ void LayerSurface::SetActiveOverlay( int nOverlay )
 
 void LayerSurface::SetActiveOverlay( const QString& name )
 {
-  for ( size_t i = 0; i < m_overlays.size(); i++ )
+  for ( int i = 0; i < m_overlays.size(); i++ )
   {
     if ( m_overlays[i]->GetName() == name )
     {
@@ -996,7 +996,7 @@ int LayerSurface::GetNumberOfOverlays()
 
 SurfaceOverlay* LayerSurface::GetOverlay( const QString& name )
 {
-  for ( size_t i = 0; i < m_overlays.size(); i++ )
+  for ( int i = 0; i < m_overlays.size(); i++ )
   {
     if ( m_overlays[i]->GetName() == name )
     {
@@ -1026,7 +1026,7 @@ SurfaceOverlay* LayerSurface::GetActiveOverlay()
 
 SurfaceOverlay* LayerSurface::GetCorrelationOverlay()
 {
-  for (size_t i = 0; i < m_overlays.size(); i++)
+  for (int i = 0; i < m_overlays.size(); i++)
   {
     if ( m_overlays[i]->HasCorrelationData())
       return m_overlays[i];
@@ -1212,7 +1212,7 @@ void LayerSurface::SetActiveAnnotation( int n )
 
 void LayerSurface::SetActiveAnnotation( const QString& name )
 {
-  for ( size_t i = 0; i < m_annotations.size(); i++ )
+  for ( int i = 0; i < m_annotations.size(); i++ )
   {
     if ( m_annotations[i]->GetName() == name )
     {
@@ -1229,7 +1229,7 @@ int LayerSurface::GetNumberOfAnnotations()
 
 SurfaceAnnotation* LayerSurface::GetAnnotation( const QString& name )
 {
-  for ( size_t i = 0; i < m_annotations.size(); i++ )
+  for ( int i = 0; i < m_annotations.size(); i++ )
   {
     if ( m_annotations[i]->GetName() == name )
     {
@@ -1380,7 +1380,7 @@ void LayerSurface::UpdateActorPositions()
   m_vertexActor->SetPosition( pos );
   m_wireframeActor->SetPosition( pos );
 
-  for (size_t i = 0; i < m_labels.size(); i++)
+  for (int i = 0; i < m_labels.size(); i++)
   {
     m_labels[i]->GetOutlineActor()->SetPosition(pos);
   }
@@ -1421,7 +1421,7 @@ void LayerSurface::SetActiveLabel( int n )
   {
     m_nActiveLabel = n;
     UpdateColorMap();
-    for (size_t i = 0; i < m_labels.size(); i++)
+    for (int i = 0; i < m_labels.size(); i++)
     {
       m_labels[i]->GetOutlineActor()->VisibilityOff();
     }
@@ -1434,7 +1434,7 @@ void LayerSurface::SetActiveLabel( int n )
 
 void LayerSurface::MapLabels( unsigned char* data, int nVertexCount )
 {
-  for ( size_t i = 0; i < m_labels.size(); i++ )
+  for ( int i = 0; i < m_labels.size(); i++ )
   {
     if (i == m_nActiveLabel)
       m_labels[i]->MapLabel( data, nVertexCount );

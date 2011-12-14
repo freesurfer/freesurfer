@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2011/12/09 21:25:56 $
- *    $Revision: 1.196 $
+ *    $Date: 2011/12/14 17:13:44 $
+ *    $Revision: 1.197 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -2358,7 +2358,14 @@ void MainWindow::CommandSetSurfaceOverlayMethod( const QStringList& cmd )
 
 QColor MainWindow::ParseColorInput(const QString &strg)
 {
-  QColor color( strg );
+  QColor color;
+  if (!strg.contains(','))
+  {
+    if (strg.indexOf("light", 0, Qt::CaseInsensitive) == 0)
+      color = QColor(strg.mid(5)).lighter();
+    else
+      color = QColor( strg );
+  }
   if ( !color.isValid() )
   {
     int rgb[3];
