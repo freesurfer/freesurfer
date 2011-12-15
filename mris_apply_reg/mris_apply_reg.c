@@ -1,15 +1,15 @@
 /**
  * @file  mris_apply_reg.c
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief Applies multiple surface registrations
  *
  * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2011/12/15 17:48:08 $
- *    $Revision: 1.1 $
+ *    $Date: 2011/12/15 19:02:36 $
+ *    $Revision: 1.2 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -33,7 +33,7 @@
 */
 
 
-// $Id: mris_apply_reg.c,v 1.1 2011/12/15 17:48:08 greve Exp $
+// $Id: mris_apply_reg.c,v 1.2 2011/12/15 19:02:36 greve Exp $
 
 /*
   BEGINHELP
@@ -60,6 +60,10 @@
 #include "cmdargs.h"
 #include "error.h"
 #include "diag.h"
+#include "mrisurf.h"
+#include "resample.h"
+#include "pdf.h"
+
 
 static int  parse_commandline(int argc, char **argv);
 static void check_options(void);
@@ -70,19 +74,29 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mris_apply_reg.c,v 1.1 2011/12/15 17:48:08 greve Exp $";
+static char vcid[] = "$Id: mris_apply_reg.c,v 1.2 2011/12/15 19:02:36 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
 int checkoptsonly=0;
 struct utsname uts;
 
-char *TempVolFile=NULL;
-char *subject, *hemi, *SUBJECTS_DIR;
+char *SrcValFile=NULL;
+char *TrgValFile=NULL;
+char *SurfRegFile[100];
+int ReverseMapFlag = 1;
+int DoJac = 0;
+int UseHash = 1;
+int nsurfs = 0;
+int DoSynthRand = 0;
+int DoSynthOnes = 0;
+int SynthSeed = -1;
 
 /*---------------------------------------------------------------*/
 int main(int argc, char *argv[]) {
-  int nargs;
+  int nargs,n;
+  MRIS *SurfReg[100];
+  MRI *SrcVal, *TrgVal;
 
   nargs = handle_version_option (argc, argv, vcid, "$Name:  $");
   if (nargs && argc - nargs == 1) exit (0);
@@ -102,12 +116,36 @@ int main(int argc, char *argv[]) {
   if (checkoptsonly) return(0);
   dump_options(stdout);
 
-  SUBJECTS_DIR = getenv("SUBJECTS_DIR");
-  if (SUBJECTS_DIR == NULL) {
-    printf("ERROR: SUBJECTS_DIR not defined in environment\n");
-    exit(1);
+  printf("Loading %s\n",SrcValFile);
+  SrcVal = MRIread(SrcValFile);
+  if(SrcVal==NULL) exit(1);
+
+  if(DoSynthRand) {
+    if (SynthSeed < 0) SynthSeed = PDFtodSeed();
+    printf("INFO: synthesizing, seed = %d\n",SynthSeed);
+    srand48(SynthSeed);
+    MRIrandn(SrcVal->width, SrcVal->height, SrcVal->depth,
+             SrcVal->nframes,0, 1, SrcVal);
+  }
+  if(DoSynthOnes != 0) {
+    printf("INFO: filling input with all 1s\n");
+    MRIconst(SrcVal->width, SrcVal->height, SrcVal->depth,
+             SrcVal->nframes, 1, SrcVal);
   }
 
+  for(n=0; n<nsurfs;n++){
+    printf("%d Loading %s\n",n+1,SurfRegFile[n]);
+    SurfReg[n] = MRISread(SurfRegFile[n]);
+    if(SurfReg[n]==NULL) exit(1);
+  }
+
+  TrgVal = MRISapplyReg(SrcVal, SurfReg, nsurfs,ReverseMapFlag,DoJac,UseHash);
+  if(TrgVal == NULL) exit(1);
+
+  printf("Writing %s\n",TrgValFile);
+  MRIwrite(TrgVal,TrgValFile);
+  
+  printf("mris_apply_reg done\n");
   return 0;
 }
 /*------------------------------------------------------------*/
@@ -135,12 +173,40 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--debug"))   debug = 1;
     else if (!strcasecmp(option, "--checkopts"))   checkoptsonly = 1;
     else if (!strcasecmp(option, "--nocheckopts")) checkoptsonly = 0;
+    else if (!strcasecmp(option, "--norev")) ReverseMapFlag = 0;
+    else if (!strcasecmp(option, "--no-rev")) ReverseMapFlag = 0;
+    else if (!strcasecmp(option, "--nnf")) ReverseMapFlag = 0;
+    else if (!strcasecmp(option, "--nnfr")) ReverseMapFlag = 1;
+    else if (!strcasecmp(option, "--no-hash")) UseHash = 0;
+    else if (!strcasecmp(option, "--jac")) DoJac = 1;
+    else if (!strcasecmp(option, "--no-jac")) DoJac = 0;
+    else if (!strcasecmp(option, "--randn")) DoSynthRand = 1;
+    else if (!strcasecmp(option, "--ones")) DoSynthOnes = 1;
 
-    else if (!strcasecmp(option, "--temp-vol")) {
+    else if (!strcasecmp(option, "--src") || !strcasecmp(option, "--sval")) {
       if (nargc < 1) CMDargNErr(option,1);
-      TempVolFile = pargv[0];
+      SrcValFile = pargv[0];
+      if(!fio_FileExistsReadable(SrcValFile)){
+	printf("ERROR: %s does not exist or is not readable by you\n",SrcValFile);
+	exit(1);
+      }
       nargsused = 1;
-    } else {
+    } 
+    else if (!strcasecmp(option, "--trg") || !strcasecmp(option, "--tval") 
+	     || !strcasecmp(option, "--o")) {
+      if (nargc < 1) CMDargNErr(option,1);
+      TrgValFile = pargv[0];
+      nargsused = 1;
+    } 
+    else if (!strcasecmp(option, "--streg")) {
+      if (nargc < 2) CMDargNErr(option,2);
+      SurfRegFile[nsurfs] = pargv[0];
+      nsurfs++;
+      SurfRegFile[nsurfs] = pargv[1];
+      nsurfs++;
+      nargsused = 2;
+    } 
+    else {
       fprintf(stderr,"ERROR: Option %s unknown\n",option);
       if (CMDsingleDash(option))
         fprintf(stderr,"       Did you really mean -%s ?\n",option);
@@ -151,14 +217,24 @@ static int parse_commandline(int argc, char **argv) {
   }
   return(0);
 }
+/*--------------------------------------------------------------*/
 static void usage_exit(void) {
   print_usage() ;
   exit(1) ;
 }
+/*--------------------------------------------------------------*/
 static void print_usage(void) {
   printf("USAGE: %s \n",Progname) ;
   printf("\n");
-  printf("   --sval svalfile \n");
+  printf("   --src srcvalfile : source values\n");
+  printf("   --trg trgvalfile : output target values (--o)\n");
+  printf("   --streg srcreg1 trgreg1 : source and target reg files\n");
+  printf("     --streg srcreg2 trgreg2 : source and target reg files ...\n");
+  printf("\n");
+  printf("   --jac : use jacobian correction\n");
+  printf("   --no-rev : do not do reverse mapping\n");
+  printf("   --randn : replace input with WGN\n");
+  printf("   --ones  : replace input with ones\n");
   printf("\n");
   printf("   --debug     turn on debugging\n");
   printf("   --checkopts don't run anything, just check options and exit\n");
@@ -168,18 +244,41 @@ static void print_usage(void) {
   printf("%s\n", vcid) ;
   printf("\n");
 }
+/*--------------------------------------------------------------*/
 static void print_help(void) {
   print_usage() ;
   printf("WARNING: this program is not yet tested!\n");
   exit(1) ;
 }
+/*--------------------------------------------------------------*/
 static void print_version(void) {
   printf("%s\n", vcid) ;
   exit(1) ;
 }
+/*--------------------------------------------------------------*/
 static void check_options(void) {
+  int n;
+  if(SrcValFile == NULL){
+    printf("ERROR: need to specify source value file\n");
+    exit(1);
+  }
+  if(TrgValFile == NULL){
+    printf("ERROR: need to specify target value file\n");
+    exit(1);
+  }
+  if(nsurfs == 0){
+    printf("ERROR: must specify at least one source:target registration pair\n");
+    exit(1);
+  }
+  for(n=0; n<nsurfs;n++){
+    if(!fio_FileExistsReadable(SurfRegFile[n])){
+      printf("ERROR: %s does not exist or is not readable by you\n",SurfRegFile[n]);
+      exit(1);
+    }
+  }
   return;
 }
+/*--------------------------------------------------------------*/
 static void dump_options(FILE *fp) {
   fprintf(fp,"\n");
   fprintf(fp,"%s\n",vcid);
@@ -189,6 +288,10 @@ static void dump_options(FILE *fp) {
   fprintf(fp,"hostname %s\n",uts.nodename);
   fprintf(fp,"machine  %s\n",uts.machine);
   fprintf(fp,"user     %s\n",VERuser());
-
+  fprintf(fp,"srcvalfile  %s\n",SrcValFile);
+  fprintf(fp,"trgvalfile  %s\n",TrgValFile);
+  fprintf(fp,"nsurfs  %d\n",nsurfs);
+  fprintf(fp,"jac  %d\n",DoJac);
+  fprintf(fp,"revmap  %d\n",ReverseMapFlag);
   return;
 }
