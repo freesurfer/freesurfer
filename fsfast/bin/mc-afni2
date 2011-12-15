@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2011/03/28 20:38:31 $
-#    $Revision: 1.6.4.1 $
+#    $Date: 2011/12/15 20:41:21 $
+#    $Revision: 1.6.4.2 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: mc-afni2,v 1.6.4.1 2011/03/28 20:38:31 greve Exp $';
+set VERSION = '$Id: mc-afni2,v 1.6.4.2 2011/12/15 20:41:21 greve Exp $';
 
 set invol = ();
 set outvol = ();
@@ -35,6 +35,9 @@ set nolog = 0;
 set tmpdir = ();
 set cleanup = 1;
 set PrintHelp = 0;
+
+# Prevent 3dvolreg from trying to check for updates
+setenv AFNI_VERSION_CHECK NO
 
 set cmdargs = ($argv);
 if($#argv == 0)  goto usage_exit;
