@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<!DOCTYPE help [
+<!ENTITY lt "#38;#60;">
+<!ENTITY gt "&#62;">
+<!ENTITY amp "&#38;#38;">
+<!ELEMENT help (name , synopsis , description , arguments+ , outputs* , example* , bugs* , reporting* , see-also*)*>
+<!ELEMENT name (#PCDATA)>
+<!ELEMENT synopsis (#PCDATA)>
+<!ELEMENT description (#PCDATA)>
+<!ELEMENT arguments (positional* , required-flagged* , optional-flagged*)*>
+<!ELEMENT positional (intro* , argument* , explanation*)*>
+<!ELEMENT required-flagged (intro* , argument* , explanation*)*>
+<!ELEMENT optional-flagged (intro* , argument* , explanation*)*>
+<!ELEMENT intro (#PCDATA)>
+<!ELEMENT argument (#PCDATA)>
+<!ELEMENT explanation (#PCDATA)>
+<!ELEMENT outputs (output* , explanation*)>
+<!ELEMENT output (#PCDATA)>
+<!ELEMENT example (#PCDATA)>
+<!ELEMENT bugs (#PCDATA)>
+<!ELEMENT reporting (#PCDATA)>
+<!ELEMENT see-also (#PCDATA)>
+]>
+
+<help>
+  <name>mris_apply_reg</name>
+  <synopsis>mris_apply_reg [options] &lt;in volume&gt; &lt;out volume&gt;</synopsis>
+  <description> mris_apply_reg applys surface registration.
+</description>
+  <arguments>
+    <required-flagged>
+      <intro>None</intro>
+      <argument>--src srcvalfile</argument>
+      <explanation> Input file that supplies the source values to convert</explanation>
+    </required-flagged>
+    <optional-flagged>
+      <intro>CONVERTING TO SPM-ANALYZE FORMAT</intro>
+      <intro>Converting to SPM-Analyze format can be done in two ways, depending upon whether a single frame or multiple frames are desired. For a single frame, simply specify the output file name with a .img extension, and mri_convert will save the first frame into the file. For multiple frames, specify the base as the output file name and add --out_type spm. This will save each frame as baseXXX.img where XXX is the three-digit, zero-padded frame number. Frame numbers begin at one. By default, the width the of zero padding is 3. This can be controlled with --in_nspmzeropad N where N is the new width.</intro>
+      <argument>--ascii</argument>
+      <explanation>save output as ascii. This will be a data file with a single column of data. The fastest dimension will be col, then row,then slice, then frame.</explanation>
+    </optional-flagged>
+  </arguments>
+  <outputs>
+    <output>outvolume</output>
+    <explanation>output volume</explanation>
+  </outputs>
+  <example>APPLYING TRANSFORMS (INCLUDING TALAIRACH)
+The volume can </example>
+  <bugs>None</bugs>
+  <reporting>Report bugs to &lt;freesurfer@nmr.mgh.harvard.edu&gt;</reporting>
+  <see-also>mris_convert</see-also>
+</help>
+

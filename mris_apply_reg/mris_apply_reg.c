@@ -8,8 +8,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2011/12/15 19:02:36 $
- *    $Revision: 1.2 $
+ *    $Date: 2011/12/15 22:34:25 $
+ *    $Revision: 1.3 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -33,7 +33,7 @@
 */
 
 
-// $Id: mris_apply_reg.c,v 1.2 2011/12/15 19:02:36 greve Exp $
+// $Id: mris_apply_reg.c,v 1.3 2011/12/15 22:34:25 greve Exp $
 
 /*
   BEGINHELP
@@ -72,9 +72,11 @@ static void usage_exit(void);
 static void print_help(void) ;
 static void print_version(void) ;
 static void dump_options(FILE *fp);
+void usage_message(FILE *stream);
+void usage(FILE *stream);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mris_apply_reg.c,v 1.2 2011/12/15 19:02:36 greve Exp $";
+static char vcid[] = "$Id: mris_apply_reg.c,v 1.3 2011/12/15 22:34:25 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -248,6 +250,7 @@ static void print_usage(void) {
 static void print_help(void) {
   print_usage() ;
   printf("WARNING: this program is not yet tested!\n");
+  usage(stdout);
   exit(1) ;
 }
 /*--------------------------------------------------------------*/
@@ -295,3 +298,11 @@ static void dump_options(FILE *fp) {
   fprintf(fp,"revmap  %d\n",ReverseMapFlag);
   return;
 }
+
+#include "mris_apply_reg.help.xml.h"
+void usage(FILE *stream)
+{
+  outputHelpXml(mris_apply_reg_help_xml,mris_apply_reg_help_xml_len);
+} /* end usage() */
+
+/* EOF */
