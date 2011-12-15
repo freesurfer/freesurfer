@@ -11,8 +11,8 @@
  * Original Author: Douglas Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2011/12/13 23:02:07 $
- *    $Revision: 1.93 $
+ *    $Date: 2011/12/15 17:31:37 $
+ *    $Revision: 1.94 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -348,7 +348,7 @@ MATRIX *MRIleftRightRevMatrix(MRI *mri);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_surf2surf.c,v 1.93 2011/12/13 23:02:07 greve Exp $";
+static char vcid[] = "$Id: mri_surf2surf.c,v 1.94 2011/12/15 17:31:37 greve Exp $";
 char *Progname = NULL;
 
 char *srcsurfregfile = NULL;
@@ -449,6 +449,7 @@ int ConvGaussian = 0;
 
 int UseDualHemi = 0; // Assume ?h.?h.surfreg file name, source only
 MRI *RegTarg = NULL;
+int UseOldSurf2Surf = 1;
 
 /*---------------------------------------------------------------------------*/
 int main(int argc, char **argv)
@@ -471,7 +472,7 @@ int main(int argc, char **argv)
   /* rkt: check for and handle version tag */
   nargs = handle_version_option (
     argc, argv,
-    "$Id: mri_surf2surf.c,v 1.93 2011/12/13 23:02:07 greve Exp $",
+    "$Id: mri_surf2surf.c,v 1.94 2011/12/15 17:31:37 greve Exp $",
     "$Name:  $");
   if (nargs && argc - nargs == 1) {
     exit (0);
@@ -869,99 +870,109 @@ int main(int argc, char **argv)
 
     /*-------------------------------------------------------------*/
     /* Map the values from the surface to surface */
-    if (!jac) {
-      printf("Mapping Source Volume onto Source Subject Surface\n");
-      TrgVals = surf2surf_nnfr(SrcVals, SrcSurfReg,TrgSurfReg,
-                               &SrcHits,&SrcDist,&TrgHits,&TrgDist,
-                               ReverseMapFlag,UseHash);
-    } else {
-      printf("Mapping Source Volume onto Source Subject Surface "
-             "with Jacobian Correction\n");
-      TrgVals = surf2surf_nnfr_jac(SrcVals, SrcSurfReg,TrgSurfReg,
-                                   &SrcHits,&SrcDist,&TrgHits,&TrgDist,
-                                   ReverseMapFlag,UseHash);
-    }
-
-    /* Compute some stats on the mapping number of srcvtx mapping to a
-       target vtx*/
-    nTrg121 = 0;
-    MnTrgMultiHits = 0.0;
-    for (tvtx = 0; tvtx < TrgSurfReg->nvertices; tvtx++) {
-      n = MRIFseq_vox(TrgHits,tvtx,0,0,0);
-      if (n == 1) {
-        nTrg121++;
+    if(UseOldSurf2Surf){
+      printf("Using surf2surf_nnfr()\n");
+      if (!jac) {
+	printf("Mapping Source Volume onto Source Subject Surface\n");
+	TrgVals = surf2surf_nnfr(SrcVals, SrcSurfReg,TrgSurfReg,
+				 &SrcHits,&SrcDist,&TrgHits,&TrgDist,
+				 ReverseMapFlag,UseHash);
       } else {
-        MnTrgMultiHits += n;
+	printf("Mapping Source Volume onto Source Subject Surface "
+	       "with Jacobian Correction\n");
+	TrgVals = surf2surf_nnfr_jac(SrcVals, SrcSurfReg,TrgSurfReg,
+				     &SrcHits,&SrcDist,&TrgHits,&TrgDist,
+				     ReverseMapFlag,UseHash);
       }
-    }
-    nTrgMulti = TrgSurfReg->nvertices - nTrg121;
-    if (nTrgMulti > 0) {
-      MnTrgMultiHits = (MnTrgMultiHits/nTrgMulti);
-    } else {
-      MnTrgMultiHits = 0;
-    }
-    printf("nTrg121 = %5d, nTrgMulti = %5d, MnTrgMultiHits = %g\n",
-           nTrg121,nTrgMulti,MnTrgMultiHits);
-
-    /* Compute some stats on the mapping number of trgvtxs mapped from a
-       source vtx*/
-    nSrc121 = 0;
-    nSrcLost = 0;
-    MnSrcMultiHits = 0.0;
-    for (svtx = 0; svtx < SrcSurfReg->nvertices; svtx++) {
-      n = MRIFseq_vox(SrcHits,svtx,0,0,0);
-      if (n == 1) {
-        nSrc121++;
-      } else if (n == 0) {
-        nSrcLost++;
+      /* Compute some stats on the mapping number of srcvtx mapping to a
+	 target vtx*/
+      nTrg121 = 0;
+      MnTrgMultiHits = 0.0;
+      for (tvtx = 0; tvtx < TrgSurfReg->nvertices; tvtx++) {
+	n = MRIFseq_vox(TrgHits,tvtx,0,0,0);
+	if (n == 1) {
+	  nTrg121++;
+	} else {
+	  MnTrgMultiHits += n;
+	}
+      }
+      nTrgMulti = TrgSurfReg->nvertices - nTrg121;
+      if (nTrgMulti > 0) {
+	MnTrgMultiHits = (MnTrgMultiHits/nTrgMulti);
       } else {
-        MnSrcMultiHits += n;
+	MnTrgMultiHits = 0;
+      }
+      printf("nTrg121 = %5d, nTrgMulti = %5d, MnTrgMultiHits = %g\n",
+	     nTrg121,nTrgMulti,MnTrgMultiHits);
+      
+      /* Compute some stats on the mapping number of trgvtxs mapped from a
+	 source vtx*/
+      nSrc121 = 0;
+      nSrcLost = 0;
+      MnSrcMultiHits = 0.0;
+      for (svtx = 0; svtx < SrcSurfReg->nvertices; svtx++) {
+	n = MRIFseq_vox(SrcHits,svtx,0,0,0);
+	if (n == 1) {
+	  nSrc121++;
+	} else if (n == 0) {
+	  nSrcLost++;
+	} else {
+	  MnSrcMultiHits += n;
+	}
+      }
+      nSrcMulti = SrcSurfReg->nvertices - nSrc121;
+      if (nSrcMulti > 0) {
+	MnSrcMultiHits = (MnSrcMultiHits/nSrcMulti);
+      } else {
+	MnSrcMultiHits = 0;
+      }
+      
+      printf("nSrc121 = %5d, nSrcLost = %5d, nSrcMulti = %5d, "
+	     "MnSrcMultiHits = %g\n", nSrc121,nSrcLost,nSrcMulti,
+	     MnSrcMultiHits);
+      
+      /* save the Source Hits into a .w file */
+      if (SrcHitFile != NULL) {
+	printf("INFO: saving source hits to %s\n",SrcHitFile);
+	MRIScopyMRI(SrcSurfReg, SrcHits, 0, "val");
+	//for(vtx = 0; vtx < SrcSurfReg->nvertices; vtx++)
+	//SrcSurfReg->vertices[vtx].val = MRIFseq_vox(SrcHits,vtx,0,0,0) ;
+	MRISwriteValues(SrcSurfReg, SrcHitFile) ;
+      }
+      /* save the Source Distance into a .w file */
+      if (SrcDistFile != NULL) {
+	printf("INFO: saving source distance to %s\n",SrcDistFile);
+	MRIScopyMRI(SrcSurfReg, SrcDist, 0, "val");
+	MRISwriteValues(SrcSurfReg, SrcDistFile) ;
+	//for(vtx = 0; vtx < SrcSurfReg->nvertices; vtx++)
+	//SrcSurfReg->vertices[vtx].val = MRIFseq_vox(SrcDist,vtx,0,0,0) ;
+      }
+      /* save the Target Hits into a .w file */
+      if (TrgHitFile != NULL) {
+	printf("INFO: saving target hits to %s\n",TrgHitFile);
+	MRIScopyMRI(TrgSurfReg, TrgHits, 0, "val");
+	MRISwriteValues(TrgSurfReg, TrgHitFile) ;
+	//for(vtx = 0; vtx < TrgSurfReg->nvertices; vtx++)
+	//TrgSurfReg->vertices[vtx].val = MRIFseq_vox(TrgHits,vtx,0,0,0) ;
+      }
+      /* save the Target Hits into a .w file */
+      if (TrgDistFile != NULL) {
+	printf("INFO: saving target distance to %s\n",TrgDistFile);
+	err = MRIwrite(TrgDist,TrgDistFile);
+	if(err) {
+	  printf("ERROR: writing %s\n",TrgDistFile);
+	  exit(1);
+	}
       }
     }
-    nSrcMulti = SrcSurfReg->nvertices - nSrc121;
-    if (nSrcMulti > 0) {
-      MnSrcMultiHits = (MnSrcMultiHits/nSrcMulti);
-    } else {
-      MnSrcMultiHits = 0;
+    else {
+      printf("Using MRISapplyReg()\n");
+      MRIS *SurfRegList[2];
+      SurfRegList[0] = SrcSurfReg;
+      SurfRegList[1] = TrgSurfReg;
+      TrgVals = MRISapplyReg(SrcVals, SurfRegList, 2, ReverseMapFlag,jac,UseHash);
     }
 
-    printf("nSrc121 = %5d, nSrcLost = %5d, nSrcMulti = %5d, "
-           "MnSrcMultiHits = %g\n", nSrc121,nSrcLost,nSrcMulti,
-           MnSrcMultiHits);
-
-    /* save the Source Hits into a .w file */
-    if (SrcHitFile != NULL) {
-      printf("INFO: saving source hits to %s\n",SrcHitFile);
-      MRIScopyMRI(SrcSurfReg, SrcHits, 0, "val");
-      //for(vtx = 0; vtx < SrcSurfReg->nvertices; vtx++)
-      //SrcSurfReg->vertices[vtx].val = MRIFseq_vox(SrcHits,vtx,0,0,0) ;
-      MRISwriteValues(SrcSurfReg, SrcHitFile) ;
-    }
-    /* save the Source Distance into a .w file */
-    if (SrcDistFile != NULL) {
-      printf("INFO: saving source distance to %s\n",SrcDistFile);
-      MRIScopyMRI(SrcSurfReg, SrcDist, 0, "val");
-      MRISwriteValues(SrcSurfReg, SrcDistFile) ;
-      //for(vtx = 0; vtx < SrcSurfReg->nvertices; vtx++)
-      //SrcSurfReg->vertices[vtx].val = MRIFseq_vox(SrcDist,vtx,0,0,0) ;
-    }
-    /* save the Target Hits into a .w file */
-    if (TrgHitFile != NULL) {
-      printf("INFO: saving target hits to %s\n",TrgHitFile);
-      MRIScopyMRI(TrgSurfReg, TrgHits, 0, "val");
-      MRISwriteValues(TrgSurfReg, TrgHitFile) ;
-      //for(vtx = 0; vtx < TrgSurfReg->nvertices; vtx++)
-      //TrgSurfReg->vertices[vtx].val = MRIFseq_vox(TrgHits,vtx,0,0,0) ;
-    }
-    /* save the Target Hits into a .w file */
-    if (TrgDistFile != NULL) {
-      printf("INFO: saving target distance to %s\n",TrgDistFile);
-      err = MRIwrite(TrgDist,TrgDistFile);
-      if(err) {
-        printf("ERROR: writing %s\n",TrgDistFile);
-        exit(1);
-      }
-    }
   } else {
     /* --- Source and Target Subjects are the same --- */
     printf("INFO: trgsubject = srcsubject\n");
@@ -1140,7 +1151,10 @@ static int parse_commandline(int argc, char **argv)
 
     else if (!strcasecmp(option, "--debug")) {
       debug = 1;
-    } else if (!strcasecmp(option, "--usehash")) {
+    } 
+    else if (!strcasecmp(option, "--old"))UseOldSurf2Surf = 1;
+    else if (!strcasecmp(option, "--new")) UseOldSurf2Surf = 0;
+    else if (!strcasecmp(option, "--usehash")) {
       UseHash = 1;
     } else if (!strcasecmp(option, "--hash")) {
       UseHash = 1;
