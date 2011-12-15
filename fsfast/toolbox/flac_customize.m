@@ -16,9 +16,9 @@ function flacnew = flac_customize(flac)
 %
 % Original Author: Doug Greve
 % CVS Revision Info:
-%    $Author: nicks $
-%    $Date: 2011/03/02 00:04:05 $
-%    $Revision: 1.54 $
+%    $Author: greve $
+%    $Date: 2011/12/15 16:34:04 $
+%    $Revision: 1.55 $
 %
 % Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 %
@@ -95,7 +95,7 @@ flacnew.ntp = mri.nframes;
 flacnew.funcfspec = fstem;
 
 % MC parameters
-if(strcmp(flac.RawSpace,'native'))
+if(flac.PerSession)
   fname = sprintf('%s/fmc.mcdat',runpath);
 else
   fname = sprintf('%s/fmcpr.mcdat',runpath);
@@ -381,11 +381,11 @@ flacnew.resfspec = sprintf('%s/%s/%s/%s/res',flacnew.sess,...
 			    flacnew.fsd,flacnew.name,...
 			    flacnew.runlist(flacnew.nthrun,:));
 
-if(strcmp(flac.RawSpace,'native'))
+maskstem = flac_funcstem(flac,1);
+if(flac.PerSession)
   flacnew.maskfspec = sprintf('%s/%s/masks/%s',flacnew.sess,...
-		      flacnew.fsd,flacnew.mask);
+		      flacnew.fsd,maskstem);
 else
-  maskstem = flac_funcstem(flac,1);
   flacnew.maskfspec = sprintf('%s/masks/%s',runpath,maskstem);
 end
 
