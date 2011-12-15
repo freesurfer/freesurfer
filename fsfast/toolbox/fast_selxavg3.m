@@ -1,6 +1,6 @@
 % fast_selxavg3.m
 %
-% $Id: fast_selxavg3.m,v 1.102 2011/08/29 17:40:55 greve Exp $
+% $Id: fast_selxavg3.m,v 1.103 2011/12/15 16:33:20 greve Exp $
 
 
 %
@@ -9,8 +9,8 @@
 % Original Author: Doug Greve
 % CVS Revision Info:
 %    $Author: greve $
-%    $Date: 2011/08/29 17:40:55 $
-%    $Revision: 1.102 $
+%    $Date: 2011/12/15 16:33:20 $
+%    $Revision: 1.103 $
 %
 % Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 %
@@ -31,7 +31,7 @@ fprintf('%s\n',sess);
 
 
 fprintf('-------------------------\n');
-fprintf('$Id: fast_selxavg3.m,v 1.102 2011/08/29 17:40:55 greve Exp $\n');
+fprintf('$Id: fast_selxavg3.m,v 1.103 2011/12/15 16:33:20 greve Exp $\n');
 which fast_selxavg3
 which fast_ldanaflac
 which MRIread
@@ -58,7 +58,7 @@ if(isempty(flac0))
   if(~monly) quit; end
   return; 
 end
-flac0.sxaversion = '$Id: fast_selxavg3.m,v 1.102 2011/08/29 17:40:55 greve Exp $';
+flac0.sxaversion = '$Id: fast_selxavg3.m,v 1.103 2011/12/15 16:33:20 greve Exp $';
 
 flac0.sess = sess;
 flac0.nthrun = 1;
@@ -122,7 +122,7 @@ for nthouter = outer_runlist
   end
 
   % Load the brain mask
-  if(strcmp(flac0.RawSpace,'native'))
+  if(flac0.PerSession)
     % Native space
     if(~isempty(flac0.maskfspec))
       mask = MRIread(flac0.maskfspec);
