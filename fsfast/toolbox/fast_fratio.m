@@ -1,5 +1,5 @@
-function [F, Fsig, ces, edof] = fast_fratio(beta,X,rvar,C,Sn,dof2max,edofuse)
-% [F, Fsig, ces] = fast_fratio(beta,X,rvar,C,<Sn>,<dof2max>,<edofuse>)
+function [F, Fsig, ces, cesvar, edof] = fast_fratio(beta,X,rvar,C,Sn,dof2max,edofuse)
+% [F, Fsig, ces, cesvar] = fast_fratio(beta,X,rvar,C,<Sn>,<dof2max>,<edofuse>)
 %
 % Sn is the covariance matrix of the noise AFTER any filtering.
 % edofuse is the DOF to use instead of that computed form the
@@ -19,9 +19,9 @@ function [F, Fsig, ces, edof] = fast_fratio(beta,X,rvar,C,Sn,dof2max,edofuse)
 %
 % Original Author: Doug Greve
 % CVS Revision Info:
-%    $Author: nicks $
-%    $Date: 2011/03/02 00:04:04 $
-%    $Revision: 1.9 $
+%    $Author: greve $
+%    $Date: 2011/12/15 16:34:46 $
+%    $Revision: 1.10 $
 %
 % Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 %
@@ -35,7 +35,7 @@ function [F, Fsig, ces, edof] = fast_fratio(beta,X,rvar,C,Sn,dof2max,edofuse)
 %
 
 if(nargin < 4 | nargin > 7)
-  fprintf('[F, Fsig, ces, edof] = fast_fratio(beta,X,rvar,C,<Sn>,<dof2max>,<edofuse>)\n');
+  fprintf('[F, Fsig, ces, cesvar, edof] = fast_fratio(beta,X,rvar,C,<Sn>,<dof2max>,<edofuse>)\n');
   return;
 end
 
@@ -70,6 +70,8 @@ J = size(C,1);
 nv = size(beta,2);
 dof1 = J;
 dof2 = edof;
+
+if(J==1) cesvar = rvar./cescvm; end
 
 indz  = find(rvar == 0);
 indnz = find(rvar ~= 0);
