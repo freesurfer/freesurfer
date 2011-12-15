@@ -205,6 +205,7 @@ MRISSUBDIRS=\
 	mris_add_template \
 	mris_anatomical_stats \
 	mris_annot_to_segmentation \
+	mris_apply_reg \
 	mris_aseg_distance \
 	mris_average_curvature \
 	mris_ca_label \

@@ -8,9 +8,9 @@
 # Process this file with autoconf to produce a configure script.
 #
 # CVS Revision Info:
-#    $Author: fischl $
-#    $Date: 2011/12/09 22:03:43 $
-#    $Revision: 1.555 $
+#    $Author: greve $
+#    $Date: 2011/12/15 17:46:40 $
+#    $Revision: 1.556 $
 #
 ########################################################################
 AC_PREREQ(2.57)
@@ -3547,6 +3547,7 @@ AC_OUTPUT([Makefile
            mris_fbirn_annot/Makefile
            mris_anatomical_stats/Makefile
            mris_annot_to_segmentation/Makefile
+           mris_apply_reg/Makefile
            mris_average_curvature/Makefile
            mris_ca_label/Makefile
            mris_divide_parcellation/Makefile
