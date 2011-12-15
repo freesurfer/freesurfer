@@ -13,6 +13,10 @@ function showfigxy(varargin)
 %    showfigxy('crosshaircolor','newcolor') 
 % where newcolor is a single letter color spec accepted by plot.
 %
+% Can also run:
+%    showfigxy('init',vol) 
+% To get values from vol instead of figure image
+%
 % Note: this will take over keyboard and mousing callbacks!
 %
 %
@@ -24,9 +28,9 @@ function showfigxy(varargin)
 %
 % Original Author: Doug Greve
 % CVS Revision Info:
-%    $Author: nicks $
-%    $Date: 2011/03/02 00:04:07 $
-%    $Revision: 1.9 $
+%    $Author: greve $
+%    $Date: 2011/12/15 16:35:09 $
+%    $Revision: 1.10 $
 %
 % Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 %
@@ -52,6 +56,7 @@ if(~strcmp(event,'init'))  hfig = gcf; end
 if(strcmp(event,'init') & nargin ~= 2)
   hfig = gcf; 
 end
+hfig = gcf; 
 
 %--------------------------------------------------------------%
 switch(event)
@@ -74,6 +79,8 @@ switch(event)
   ud.yzoom = 0;
   ud.usecrosshair = 1;
   ud.crosshaircolor = 'g';
+  ud.v = [];
+  if(nargin == 2) ud.v = varargin{2}; end
   ud = drawcrosshair(ud);
   set(hfig,'UserData',ud);
   
@@ -172,8 +179,11 @@ return;
 
 %---------------------------------------------------------%
 function setxystring(hfig,type)
-  img = isimage;
   ud = get(hfig,'UserData');
+  if(~isempty(ud.v)) img = ud.v;
+  else               img = isimage;
+  end
+  
   if(strcmp(type,'cur'))
     x = ud.curxy(1); 
     y = ud.curxy(2);
