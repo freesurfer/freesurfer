@@ -40,9 +40,9 @@
 /*
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
- *    $Author: rge21 $
- *    $Date: 2011/05/05 20:10:44 $
- *    $Revision: 1.38 $
+ *    $Author: greve $
+ *    $Date: 2011/12/15 17:29:52 $
+ *    $Revision: 1.39 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -882,8 +882,216 @@ MRI *vol2surf_linear(MRI *SrcVol,
   return(TrgVol);
 }
 
+/*!
+\fn MRI *MRISapplyReg(MRI *SrcSurfVals, MRI_SURFACE **SurfReg, int nsurfs,
+		  int ReverseMapFlag, int DoJac, int UseHash)
+\brief Applies one or more surface registrations with or without jacobian correction. 
+This should be used as a replacement for surf2surf_nnfr and surf2surf_nnfr_jac
+(it gives identical results).
+\param MRI *SrcSurfVals - Inputs
+\param MRIS **SurfReg - array of surface reg pairs, src1-trg1:src2-trg2:... where 
+trg1 and src2 are from the same anatomy.
+\param int nsurfs - total number of surfs in SurfReg
+\param int ReverseMapFlag - perform reverse mapping
+\param int DoJac - perform jacobian correction (conserves sum(SrcVals))
+\param int UseHash - use hash table (no reason not to, much faster).
+*/
+MRI *MRISapplyReg(MRI *SrcSurfVals, MRI_SURFACE **SurfReg, int nsurfs,
+		  int ReverseMapFlag, int DoJac, int UseHash)
+{
+  MRI *TrgSurfVals = NULL;
+  MRI_SURFACE *SrcSurfReg, *TrgSurfReg;
+  int svtx=0, tvtx, tvtxN, svtxN=0, f, n, nrevhits,nSrcLost;
+  int npairs, kS, kT, nhits, nunmapped;
+  VERTEX *v;
+  float dmin;
+  MHT **Hash=NULL;
+  MRI *SrcHits, *TrgHits;
+
+  npairs = nsurfs/2;
+  printf("MRISapplyReg: nsurfs = %d, revmap=%d, jac=%d,  hash=%d\n",
+	 nsurfs,ReverseMapFlag,DoJac,UseHash);
+
+  SrcSurfReg = SurfReg[0];
+  TrgSurfReg = SurfReg[nsurfs-1];
+
+  /* check dimension consistency */
+  if (SrcSurfVals->width != SrcSurfReg->nvertices){
+    printf("MRISapplyReg: Vals and Reg dimension mismatch\n");
+    printf("nVals = %d, nReg %d\n",SrcSurfVals->width,
+            SrcSurfReg->nvertices);
+    return(NULL);
+  }
+  for(n=0; n < npairs-1; n++){
+    kS = 2*n+1;
+    kT = kS+1;
+    if(SurfReg[kT]->nvertices != SurfReg[kS]->nvertices){
+      printf("MRISapplyReg: Reg dimension mismatch %d, %d\n",kT,kS);
+      printf("targ = %d, next source = %d\n",SurfReg[kT]->nvertices,SurfReg[kS]->nvertices);
+    return(NULL);
+    }
+  }
+
+  /* allocate a "volume" to hold the output */
+  TrgSurfVals = MRIallocSequence(TrgSurfReg->nvertices,1,1,
+                                 MRI_FLOAT,SrcSurfVals->nframes);
+  if(TrgSurfVals == NULL) return(NULL);
+  MRIcopyHeader(SrcSurfVals,TrgSurfVals);
+
+  /* number of source vertices mapped to each target vertex */
+  TrgHits = MRIallocSequence(TrgSurfReg->nvertices,1,1,MRI_FLOAT,1);
+  if(TrgHits == NULL) return(NULL);
+  MRIcopyHeader(SrcSurfVals,TrgHits);
+
+  /* number of target vertices mapped to by each source vertex */
+  SrcHits = MRIallocSequence(SrcSurfReg->nvertices,1,1,MRI_FLOAT,1);
+  if (SrcHits == NULL) return(NULL);
+  MRIcopyHeader(SrcSurfVals,SrcHits);
+
+  if(UseHash){
+    printf("MRISapplyReg: building hash tables (res=16).\n");
+    Hash = (MHT **)calloc(sizeof(MHT*),nsurfs);
+    for(n=0; n < nsurfs; n++){
+      Hash[n] = (MHT *)calloc(sizeof(MHT),1);
+      Hash[n] = MHTfillVertexTableRes(SurfReg[n], NULL,CURRENT_VERTICES,16);
+    }
+  }
+
+  if(DoJac){
+    // If using jacobian correction, get a list of the number of times
+    // that a give source vertex gets sampled.
+    for (tvtx = 0; tvtx < TrgSurfReg->nvertices; tvtx++){
+      // Compute the source vertex that corresponds to this target vertex
+      tvtxN = tvtx;
+      for(n=npairs-1; n >= 0; n--){
+	kS = 2*n;
+	kT = kS + 1;
+	v = &(SurfReg[kT]->vertices[tvtxN]);
+	/* find closest source vertex */
+	if (UseHash) svtx = MHTfindClosestVertexNo(Hash[kS],SurfReg[kS],v,&dmin);
+	else         svtx = MRISfindClosestVertex(SurfReg[kS],v->x,v->y,v->z,&dmin);
+	tvtxN = svtx;
+      }
+      /* update the number of hits and distance */
+      MRIFseq_vox((SrcHits),svtx,0,0,0) ++;
+      MRIFseq_vox((TrgHits),tvtx,0,0,0) ++;
+    }
+  }
+
+  /* Go through the forwad loop (finding closest srcvtx to each trgvtx).
+  This maps each target vertex to a source vertex */
+  printf("MRISapplyReg: Forward Loop (%d)\n",TrgSurfReg->nvertices);
+  nunmapped = 0;
+  for (tvtx = 0; tvtx < TrgSurfReg->nvertices; tvtx++){
+    if (!UseHash){
+      if (tvtx%100 == 0){printf("%5d ",tvtx);fflush(stdout);}
+      if(tvtx%1000 == 999){printf("\n");fflush(stdout);}
+    }
+
+    // Compute the source vertex that corresponds to this target vertex
+    tvtxN = tvtx;
+    for(n=npairs-1; n >= 0; n--){
+      kS = 2*n;
+      kT = kS + 1;
+      //printf("%5d %5d %d %d %d\n",tvtx,tvtxN,n,kS,kT);
+      v = &(SurfReg[kT]->vertices[tvtxN]);
+      /* find closest source vertex */
+      if (UseHash) svtx = MHTfindClosestVertexNo(Hash[kS],SurfReg[kS],v,&dmin);
+      else         svtx = MRISfindClosestVertex(SurfReg[kS],v->x,v->y,v->z,&dmin);
+      if(svtx < 0){ /* this can only happen with MHT */
+	nunmapped ++;
+	printf("Unmapped: %3d svtx = %6d, %6.2f %6.2f %6.2f\n",
+	       nunmapped,svtx,v->x,v->y,v->z);
+	continue;
+      }
+      tvtxN = svtx;
+    }
+
+    if(! DoJac){
+      /* update the number of hits */
+      MRIFseq_vox(SrcHits,svtx,0,0,0) ++;
+      MRIFseq_vox(TrgHits,tvtx,0,0,0) ++;
+      nhits = 1;
+    } 
+    else nhits = MRIgetVoxVal(SrcHits,svtx,0,0,0);
+
+    /* accumulate mapped values for each frame */
+    for (f=0; f < SrcSurfVals->nframes; f++)
+      MRIFseq_vox(TrgSurfVals,tvtx,0,0,f) += (MRIFseq_vox(SrcSurfVals,svtx,0,0,f)/nhits);
+  }
+
+  /*---------------------------------------------------------------
+  Go through the reverse loop (finding closest trgvtx to each srcvtx
+  unmapped by the forward loop). This assures that each source vertex
+  is represented in the map */
+  if(ReverseMapFlag){
+    printf("MRISapplyReg: Reverse Loop (%d)\n",SrcSurfReg->nvertices);
+    nrevhits = 0;
+    for (svtx = 0; svtx < SrcSurfReg->nvertices; svtx++) {
+      if(MRIFseq_vox((SrcHits),svtx,0,0,0) != 0) continue;
+      nrevhits ++;
+
+      // Compute the target vertex that corresponds to this source vertex
+      svtxN = svtx;
+      for(n=0; n < npairs; n++){
+	kS = 2*n;
+	kT = kS + 1;
+	//printf("%5d %5d %d %d %d\n",svtx,svtxN,n,kS,kT);
+	v = &(SurfReg[kS]->vertices[svtxN]);
+	/* find closest target vertex */
+	if (UseHash) tvtx = MHTfindClosestVertexNo(Hash[kT],SurfReg[kT],v,&dmin);
+	else         tvtx = MRISfindClosestVertex(SurfReg[kT],v->x,v->y,v->z,&dmin);
+        if(tvtx < 0){/* this can only happen with MHT */
+          nunmapped ++;
+          printf("Unmapped: %3d svtx = %6d, %6.2f %6.2f %6.2f\n",
+                 nunmapped,svtx,v->x,v->y,v->z);
+          continue;
+        }
+	svtxN = tvtx;
+      }
+      
+      /* update the number of hits */
+      MRIFseq_vox((SrcHits),svtx,0,0,0) ++;
+      MRIFseq_vox((TrgHits),tvtx,0,0,0) ++;
+      /* accumulate mapped values for each frame */
+      for (f=0; f < SrcSurfVals->nframes; f++)
+	MRIFseq_vox(TrgSurfVals,tvtx,0,0,f) += MRIFseq_vox(SrcSurfVals,svtx,0,0,f);
+    }
+    printf("  Reverse Loop had %d hits\n",nrevhits);
+  }
+  
+  /*---------------------------------------------------------------
+  Finally, divide the value at each target vertex by the number
+  of source vertices mapping into it */
+  if(! DoJac){
+    printf("MRISapplyReg: Dividing by number of hits (%d)\n",TrgSurfReg->nvertices);
+    for (tvtx = 0; tvtx < TrgSurfReg->nvertices; tvtx++) {
+      n = MRIFseq_vox((TrgHits),tvtx,0,0,0);
+      if (n > 1){
+	for (f=0; f < SrcSurfVals->nframes; f++)
+	  MRIFseq_vox(TrgSurfVals,tvtx,0,0,f) /= n;
+      }
+    }
+  }
+
+  /* Count lost sources */
+  nSrcLost = 0;
+  for (svtx = 0; svtx < SrcSurfReg->nvertices; svtx++){
+    n = MRIFseq_vox((SrcHits),svtx,0,0,0);
+    if (n == 0)nSrcLost ++;
+  }
+  printf("MRISapplyReg: nSrcLost = %d\n",nSrcLost);
+
+  MRIfree(&SrcHits);
+  MRIfree(&TrgHits);
+  if (UseHash) for(n=0; n < nsurfs; n++) MHTfree(&Hash[n]);
+  return(TrgSurfVals);
+}
+
 /*----------------------------------------------------------------
-  MRI *surf2surf_nnfr() - resample values on one surface to another
+  MRI *surf2surf_nnfr() - NOTE: use MRISapplyReg instead!
+
+  resample values on one surface to another
   using nearest-neighbor forward/reverse (nnfr) method. If the
   ReverseMapFlag=0, the reverse loop is not implemented. The forward
   loop assures that each target vertex is mapped to a source vertex.
@@ -1097,7 +1305,8 @@ MRI *surf2surf_nnfr(MRI *SrcSurfVals, MRI_SURFACE *SrcSurfReg,
 }
 
 /*----------------------------------------------------------------
-  surf2surf_nnfr_jac() - this operates basically the same as
+  surf2surf_nnfr_jac() - NOTE: use MRISapplyReg instead!
+  this operates basically the same as
   surf2surf_nnfr with the exception that the sum of values
   across the target vertices should equal that of the source
   (thus it is a kind of jacobian correction). This is good

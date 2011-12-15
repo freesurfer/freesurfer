@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: rge21 $
- *    $Date: 2011/05/05 20:10:41 $
- *    $Revision: 1.18 $
+ *    $Author: greve $
+ *    $Date: 2011/12/15 17:29:52 $
+ *    $Revision: 1.19 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -116,6 +116,8 @@ MRI *vol2surf_linear(MRI *SrcVol,
                      int InterpMethod, int float2int, MRI *SrcHitVol,
                      int ProjDistFlag, int nskip);
 
+MRI *MRISapplyReg(MRI *SrcSurfVals, MRI_SURFACE **SurfReg, int nsurfs,
+		  int ReverseMapFlag, int DoJac, int UseHash);
 MRI *surf2surf_nnfr(MRI *SrcSurfVals, MRI_SURFACE *SrcSurfReg,
                     MRI_SURFACE *TrgSurfReg, MRI **SrcHits,
                     MRI **SrcDist, MRI **TrgHits, MRI **TrgDist,
