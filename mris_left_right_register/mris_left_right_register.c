@@ -8,9 +8,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2011/12/09 22:04:02 $
- *    $Revision: 1.1 $
+ *    $Author: greve $
+ *    $Date: 2011/12/16 20:49:37 $
+ *    $Revision: 1.2 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -44,7 +44,7 @@
 #include "gcsa.h"
 
 static char vcid[] =
-  "$Id: mris_left_right_register.c,v 1.1 2011/12/09 22:04:02 fischl Exp $";
+  "$Id: mris_left_right_register.c,v 1.2 2011/12/16 20:49:37 greve Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -121,7 +121,7 @@ int
 main(int argc, char *argv[])
 {
   char         **av, *lh_surf_fname, *rh_surf_fname, *out_fname, fname[STRLEN],*cp ;
-  int          ac, nargs, msec, sno, niter, h, i ;
+  int          ac, nargs, msec, sno, h, i ;
   MRI_SURFACE  *mris_lh, *mris_rh, *mris_template, *mris_mov ;
   MRI_SP       *mrisp_template ;
   float        *lh_coords[3], *rh_coords[3], **coords ;
@@ -131,14 +131,14 @@ main(int argc, char *argv[])
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mris_left_right_register.c,v 1.1 2011/12/09 22:04:02 fischl Exp $",
+   "$Id: mris_left_right_register.c,v 1.2 2011/12/16 20:49:37 greve Exp $",
    "$Name:  $",
    cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mris_left_right_register.c,v 1.1 2011/12/09 22:04:02 fischl Exp $",
+           "$Id: mris_left_right_register.c,v 1.2 2011/12/16 20:49:37 greve Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
   {
@@ -162,7 +162,7 @@ main(int argc, char *argv[])
   parms.l_corr = 1.0f ;
   parms.l_nlarea = 1 ;
   parms.l_pcorr = 0.0f ;
-  parms.niterations = 25 ;
+  parms.niterations = 100 ;
   parms.n_averages = 1024 ;   // used to be 256
   parms.first_pass_averages = 1024*16 ;  // only used in first pass
   parms.write_iterations = 100 ;
@@ -315,13 +315,13 @@ main(int argc, char *argv[])
       MRIStoParameterization(mris_template, mrisp_template, scale, sno*IMAGES_PER_SURFACE) ;
       MRISPsetFrameVal(mrisp_template, sno*IMAGES_PER_SURFACE+1, 1.0) ;
     }
-    niter = parms.niterations ; parms.niterations = 0 ;  // only rigid
+    //niter = parms.niterations ; parms.niterations = 0 ;  // only rigid
     MRISregister(mris_mov, mrisp_template,
 		 &parms, max_passes,
 		 min_degrees, max_degrees, nangles) ;
     MRISextractVertexCoords(mris_mov, coords, CURRENT_VERTICES) ;
     MRISrestoreVertexPositions(mris_mov, CANONICAL_VERTICES) ;
-    parms.niterations = niter ;
+    //parms.niterations = niter ;
     parms.start_t = 0 ;
   }
 
