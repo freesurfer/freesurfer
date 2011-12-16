@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2011/12/13 20:07:33 $
- *    $Revision: 1.707 $
+ *    $Author: greve $
+ *    $Date: 2011/12/16 23:36:59 $
+ *    $Revision: 1.708 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -569,8 +569,6 @@ static int   mrisStoreCurrentGradient(MRI_SURFACE *mris) ;
 static int   mrisFindPoles(MRIS *mris) ;
 static int   mrisComputeEllipsoidProperties(MRI_SURFACE *mris) ;
 #endif
-int   mrisLogIntegrationParms(FILE *fp, MRI_SURFACE *mris,
-			      INTEGRATION_PARMS *parms) ;
 static int   mrisLogStatus(MRI_SURFACE *mris, INTEGRATION_PARMS *parms,
                            FILE *fp, float dt, float old_sse) ;
 static int   mrisWriteSnapshots(MRI_SURFACE *mris, INTEGRATION_PARMS *parms,
@@ -736,7 +734,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void)
 {
-  return("$Id: mrisurf.c,v 1.707 2011/12/13 20:07:33 fischl Exp $");
+  return("$Id: mrisurf.c,v 1.708 2011/12/16 23:36:59 greve Exp $");
 }
 
 /*-----------------------------------------------------
@@ -2547,6 +2545,10 @@ MRISsampleDistances(MRI_SURFACE *mris, int *nbrs, int max_nbhd)
   old_v[MAX_V], min_angle, angle ;
   VECTOR       *v1, *v2 ;
 
+  printf("Starting MRISsampleDistances %d ------ ()\n",max_nbhd);
+  for (i = 0; i < max_nbhd ; i++) printf("%d %d\n",i,nbrs[i]);
+  printf("randSeed %ld",getRandSeed());
+
   v1 = VectorAlloc(3, MATRIX_REAL) ;
   v2 = VectorAlloc(3, MATRIX_REAL) ;
 
@@ -2841,6 +2843,9 @@ MRISsampleDistances(MRI_SURFACE *mris, int *nbrs, int max_nbhd)
   VectorFree(&v2) ;
   if (Gdiag & DIAG_HEARTBEAT)
     fprintf(stdout, " done.\n") ;
+  printf("randSeed %ld",getRandSeed());
+  printf("MRISsampleDistances(): done\n");
+
   return(NO_ERROR) ;
 }
 #endif
@@ -5982,7 +5987,8 @@ MRISregister(MRI_SURFACE *mris, MRI_SP *mrisp_template,
   start_t = parms->start_t ;
   *parms = *(&saved_parms) ;
   parms->start_t = start_t ;
-  printf("MRISregister() retrun, current seed %ld\n",getRandomSeed());
+  printf("MRISregister() return, current seed %ld\n",getRandomSeed());
+  fflush(stdout);
   return(NO_ERROR) ;
 }
 
@@ -6828,6 +6834,7 @@ MRISunfold(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int max_passes)
     parms->fp = NULL ;
   }
   printf("MRISunfold() return, current seed %ld\n",getRandomSeed());
+  fflush(stdout);
 
   return(mris) ;
 }
@@ -15253,14 +15260,10 @@ MRISuseGaussianCurvature(MRI_SURFACE *mris)
   return(NO_ERROR) ;
 }
 /*-----------------------------------------------------
-  Parameters:
-
-  Returns value:
-
-  Description
+  int MRISuseMeanCurvature(MRI_SURFACE *mris)
+  Set vertex->curv = vertex->H ;
   ------------------------------------------------------*/
-int
-MRISuseMeanCurvature(MRI_SURFACE *mris)
+int MRISuseMeanCurvature(MRI_SURFACE *mris)
 {
   int    vno ;
   VERTEX *vertex ;
@@ -19074,13 +19077,7 @@ mrisComputeNonlinearDistanceTerm(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
 }
 
 
-/*-----------------------------------------------------
-  Parameters:
-
-  Returns value:
-
-  Description
-  ------------------------------------------------------*/
+/*-----------------------------------------------------*/
 int
 mrisLogIntegrationParms(FILE *fp, MRI_SURFACE *mris,INTEGRATION_PARMS *parms)
 {
@@ -19194,6 +19191,25 @@ mrisLogIntegrationParms(FILE *fp, MRI_SURFACE *mris,INTEGRATION_PARMS *parms)
 #endif
   if (parms->desired_rms_height > 0.0)
     fprintf(fp, "desired rms height=%2.3f", parms->desired_rms_height) ;
+  fprintf(fp,"complete_dist_mat %d\n",parms->complete_dist_mat);
+  fprintf(fp,"rms %g\n",parms->rms);
+  fprintf(fp,"smooth_averages %d\n",parms->smooth_averages);
+  fprintf(fp,"remove_neg %d\n",parms->remove_neg);
+  fprintf(fp,"ico_order %d\n",parms->ico_order);
+  fprintf(fp,"which_surface %d\n",parms->which_surface);
+  fprintf(fp,"target_radius %f\n",parms->target_radius);
+  fprintf(fp,"nfields %d\n",parms->nfields);
+  fprintf(fp,"scale %lf\n",parms->scale);
+  fprintf(fp,"desired_rms_height %lf\n",parms->desired_rms_height);
+  fprintf(fp,"momentum %lf\n",parms->momentum);
+  fprintf(fp,"nbhd_size %d\n",parms->nbhd_size);
+  fprintf(fp,"max_nbrs %d\n",parms->max_nbrs);
+  fprintf(fp,"niterations %d\n",parms->niterations);
+  fprintf(fp,"nsurfaces %d\n",parms->nsurfaces);
+  fprintf(fp,"SURFACES %d\n",(int)(SURFACES));
+  fprintf(fp,"flags %d (%x)\n",parms->flags,parms->flags);
+  fprintf(fp,"mris->nsize %d\n",mris->nsize);
+  fprintf(fp,"mris->hemisphere %d\n",mris->hemisphere);
   fprintf(fp,"randomSeed %ld\n",getRandomSeed());
   fprintf(fp, "\n") ;
   fflush(fp) ;
@@ -25960,14 +25976,13 @@ MRISzeroMeanCurvature(MRI_SURFACE *mris)
   return(NO_ERROR) ;
 }
 /*-----------------------------------------------------
-  Parameters:
-
-  Returns value:
-
-  Description
+int MRISnormalizeCurvature(MRI_SURFACE *mris, int which_norm)
+Normalize the curvatures so they have unit standard deviation.
+which_norm can be NORM_MEDIAN or NORM_MEAN. NORM_MEAN results
+in the usual stddev computation. NORM_MEDIAN uses the median
+instead of the mean for the stddev computation.
   ------------------------------------------------------*/
-int
-MRISnormalizeCurvature(MRI_SURFACE *mris, int which_norm)
+int MRISnormalizeCurvature(MRI_SURFACE *mris, int which_norm)
 {
   double    mean, var, std, median ;
   int       vno, vtotal ;
@@ -26248,14 +26263,10 @@ MRISmaxFilterCurvatures(MRI_SURFACE *mris, int niter)
   return(NO_ERROR) ;
 }
 /*-----------------------------------------------------
-  Parameters:
-
-  Returns value:
-
-  Description
-  ------------------------------------------------------*/
-int
-MRISaverageCurvatures(MRI_SURFACE *mris, int navgs)
+int MRISaverageCurvatures(MRI_SURFACE *mris, int navgs)
+Performs navgs steps of iterative spatial smoothing on curv.
+------------------------------------------------------*/
+int MRISaverageCurvatures(MRI_SURFACE *mris, int navgs)
 {
   int    i, vno, vnb, *pnb, vnum ;
   float  curv, num ;
