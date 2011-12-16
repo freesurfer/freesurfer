@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2011/12/09 21:25:57 $
- *    $Revision: 1.109 $
+ *    $Date: 2011/12/16 18:26:29 $
+ *    $Revision: 1.110 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -102,6 +102,7 @@ public:
 
   LayerCollection* GetLayerCollection( const QString& strType );
   Layer* GetActiveLayer( const QString& strType );
+  Layer* GetTopVisibleLayer( const QString& strType );
   QList<Layer*> GetLayers( const QString& strType );
 
   LayerCollection* GetCurrentLayerCollection();

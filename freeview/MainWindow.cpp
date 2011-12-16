@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2011/12/14 17:13:44 $
- *    $Revision: 1.197 $
+ *    $Date: 2011/12/16 18:26:29 $
+ *    $Revision: 1.198 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -195,8 +195,10 @@ MainWindow::MainWindow( QWidget *parent, MyCmdLineParser* cmdParser ) :
   m_dlgRepositionSurface->hide();
   connect(m_layerCollections["Surface"], SIGNAL(LayerModified()),
           m_dlgRepositionSurface, SLOT(UpdateUI()));
-  connect(ui->view3D, SIGNAL(SurfaceVertexClicked()),
-          m_dlgRepositionSurface, SLOT(OnSurfaceVertexClicked()));
+//  connect(ui->view3D, SIGNAL(SurfaceVertexClicked()),
+//          m_dlgRepositionSurface, SLOT(OnSurfaceVertexClicked()));
+  connect(this, SIGNAL(SlicePositionChanged()),
+          m_dlgRepositionSurface, SLOT(OnSlicePositionChanged()), Qt::QueuedConnection);
 
   m_wndTimeCourse = new WindowTimeCourse(this);
   m_wndTimeCourse->hide();
@@ -3020,6 +3022,17 @@ LayerCollection* MainWindow::GetLayerCollection( const QString& strType )
 Layer* MainWindow::GetActiveLayer( const QString& strType )
 {
   return GetLayerCollection( strType )->GetActiveLayer();
+}
+
+Layer* MainWindow::GetTopVisibleLayer(const QString &strType)
+{
+  QList<Layer*> layers = GetLayers(strType);
+  foreach (Layer* layer, layers)
+  {
+    if (layer->IsVisible())
+      return layer;
+  }
+  return NULL;
 }
 
 QList<Layer*> MainWindow::GetLayers(const QString &strType)

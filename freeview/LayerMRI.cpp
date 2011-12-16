@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2011/10/27 16:18:07 $
- *    $Revision: 1.114 $
+ *    $Date: 2011/12/16 18:26:29 $
+ *    $Revision: 1.115 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -982,6 +982,26 @@ double LayerMRI::GetVoxelValueByOriginalIndex( int i, int j, int k, int frame )
   if (frame < 0)
     frame = m_nActiveFrame;
   return m_volumeSource->GetVoxelValue( i, j, k, frame );
+}
+
+// trilinear interpolated value
+double LayerMRI::GetSampledVoxelValueByRAS(double* ras, int frame)
+{
+  if (frame < 0)
+    frame = m_nActiveFrame;
+  MRI* mri = m_volumeSource->GetMRI();
+  float fx, fy, fz;
+  m_volumeSource->RASToOriginalIndex(ras[0], ras[1], ras[2], fx, fy, fz);
+  double val = -1;
+  if (GetNumberOfFrames() > 1)
+  {
+    float fval;
+    MRIsampleSeqVolume(mri, fx, fy, fz, &fval, frame, frame);
+    val = fval;
+  }
+  else
+    MRIsampleVolume(mri, fx, fy, fz, &val);
+  return val;
 }
 
 QList<double> LayerMRI::GetVoxelValueByOriginalIndexAllFrames(int i, int j, int k)

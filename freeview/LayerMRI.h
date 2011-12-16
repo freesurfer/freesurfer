@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2011/10/27 16:18:07 $
- *    $Revision: 1.73 $
+ *    $Date: 2011/12/16 18:26:29 $
+ *    $Revision: 1.74 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -94,6 +94,7 @@ public:
   virtual double GetVoxelValue( double* pos );
   double GetVoxelValueByOriginalIndex( int i, int j, int k, int frame = -1 );
   QList<double> GetVoxelValueByOriginalIndexAllFrames(int i, int j, int k);
+  double GetSampledVoxelValueByRAS(double* ras, int frame = -1);
 
   virtual QString GetLabelName( double value );
 

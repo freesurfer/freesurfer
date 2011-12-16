@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2011/12/14 17:13:44 $
- *    $Revision: 1.4 $
+ *    $Date: 2011/12/16 18:26:29 $
+ *    $Revision: 1.5 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -249,6 +249,37 @@ void DialogRepositionSurface::OnSurfaceVertexClicked()
       OnCoordinateTypeChanged();
     }
   }
+}
+
+void DialogRepositionSurface::OnSlicePositionChanged()
+{
+  LayerSurface* surf = (LayerSurface*)MainWindow::GetMainWindow()->GetActiveLayer( "Surface" );
+  LayerMRI* mri = (LayerMRI*)MainWindow::GetMainWindow()->GetTopVisibleLayer("MRI");
+  bool bUpdate = false;
+  if (surf)
+  {
+    int nVertex = surf->GetVertexIndexAtTarget( surf->GetSlicePosition(), NULL );
+    if ( nVertex >= 0 )
+    {
+      ui->lineEditVertex->setText( QString::number(nVertex) );
+      ui->lineEditVertex2->setText(QString::number(nVertex) );
+      bUpdate = true;
+    }
+  }
+  if (mri)
+  {
+    double ras[3];
+    mri->GetSlicePosition(ras);
+    mri->RemapPositionToRealRAS(ras, ras);
+    double val = mri->GetSampledVoxelValueByRAS(ras);
+    if (val >= 0)
+    {
+      ui->lineEditTarget->setText(QString::number(val, 'f', 2));
+      bUpdate = true;
+    }
+  }
+  if (bUpdate)
+    OnCoordinateTypeChanged();
 }
 
 void DialogRepositionSurface::OnCoordinateTypeChanged()
