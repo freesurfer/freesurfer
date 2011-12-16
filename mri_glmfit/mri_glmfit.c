@@ -14,8 +14,8 @@
  * Original Author: Douglas N Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2011/12/09 17:44:38 $
- *    $Revision: 1.208 $
+ *    $Date: 2011/12/16 19:02:28 $
+ *    $Revision: 1.209 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -555,7 +555,7 @@ static int SmoothSurfOrVol(MRIS *surf, MRI *mri, MRI *mask, double SmthLevel);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-"$Id: mri_glmfit.c,v 1.208 2011/12/09 17:44:38 greve Exp $";
+"$Id: mri_glmfit.c,v 1.209 2011/12/16 19:02:28 greve Exp $";
 const char *Progname = "mri_glmfit";
 
 int SynthSeed = -1;
@@ -1262,7 +1262,7 @@ int main(int argc, char **argv) {
   mriglm->glm->ncontrasts = nContrasts;
   if(nContrasts > 0) {
     for(n=0; n < nContrasts; n++) {
-      if (! useasl && ! useqa) {
+      if (! useasl && ! useqa  && fsgd->nContrasts == 0) {
         // Get its name
         mriglm->glm->Cname[n] =
           fio_basename(CFile[n],".mat"); //strip .mat
@@ -1287,6 +1287,10 @@ int main(int argc, char **argv) {
 	  }
 	  mriglm->glm->UseGamma0[n] = 1;
         }
+      }
+      if(fsgd->nContrasts != 0) {
+        mriglm->glm->C[n] = MatrixCopy(fsgd->C[n],NULL);
+        mriglm->glm->Cname[n] = strcpyalloc(fsgd->ContrastName[n]);
       }
       // Check it's dimension
       if (mriglm->glm->C[n]->cols != mriglm->nregtot) {
@@ -2964,6 +2968,11 @@ static void check_options(void) {
   }
 
   if(OneSampleGroupMean || usedti || useasl || useqa) NoContrastsOK = 1;
+  if(fsgdfile && fsgd->nContrasts != 0 && nContrasts != 0){
+    printf("ERROR: cannot have contrasts in FSGD and on the command-line\n");
+    exit(1);
+  }
+  if(fsgdfile && fsgd->nContrasts != 0) nContrasts = fsgd->nContrasts;
 
   if(nContrasts == 0 && ! NoContrastsOK) {
     printf("ERROR: no contrasts specified.\n");

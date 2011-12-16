@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2011/05/04 16:26:55 $
- *    $Revision: 1.24 $
+ *    $Date: 2011/12/16 19:02:28 $
+ *    $Revision: 1.25 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -81,12 +81,16 @@ typedef struct
   double ClassVarMeans[FSGDF_NCLASSES_MAX][FSGDF_NVARS_MAX];
   char DesignMatFile[1000]; /* actual matlab4 mat file */
   char DesignMatMethod[100]; /* creation method */
+  char gd2mtx_method[5];  //dods or doss
   MATRIX *X, *T; /* design matrix, T = inv(X'*X)*X' */
   MRI *data;
   double ResFWHM;
   int LogY; // indicates whether nat log of y was used
   int DeMean; // remove mean from continuous variables
   int ReScale; // divide continuous variables by stddev
+  int nContrasts;
+  char *ContrastName[50];
+  MATRIX *C[50];
 }
 GROUPDESCRIPTOR, FSGD;
 

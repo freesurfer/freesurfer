@@ -45,8 +45,8 @@
  * Original Author: Doug Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2011/10/24 19:56:52 $
- *    $Revision: 1.52 $
+ *    $Date: 2011/12/16 19:02:28 $
+ *    $Revision: 1.53 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -189,6 +189,8 @@ static int gdfPrintV1(FILE *fp, FSGD *gd) {
     fprintf(fp,"PlotFile %s\n",gd->datafile);
   if (strlen(gd->DesignMatFile) > 0)
     fprintf(fp,"DesignMatFile %s %s\n",gd->DesignMatFile,gd->DesignMatMethod);
+  if(!strcasecmp(gd->DesignMatMethod,"DODS") || !strcasecmp(gd->DesignMatMethod,"DOSS"))
+    fprintf(fp,"%s\n",gd->DesignMatMethod);
   fprintf(fp,"DeMeanFlag %d\n",gd->DeMean);
   fprintf(fp,"ReScaleFlag %d\n",gd->ReScale);
   fprintf(fp,"ResidualFWHM %lf\n",gd->ResFWHM);
@@ -216,6 +218,15 @@ static int gdfPrintV1(FILE *fp, FSGD *gd) {
     for (n=0; n < gd->nvariables; n++)
       fprintf(fp,"%s ",gd->varlabel[n]);
     fprintf(fp,"\n");
+  }
+
+  if(gd->nContrasts > 0) {
+    for (n=0; n < gd->nContrasts; n++){
+      fprintf(fp,"Contrast %s ",gd->ContrastName[n]);
+      for(m=0; m < gd->C[n]->cols; m++)
+	fprintf(fp,"%g ",gd->C[n]->rptr[1][m+1]);
+      fprintf(fp,"\n");
+    }
   }
 
   if (gd->ninputs > 0) {
@@ -378,9 +389,7 @@ static FSGD *gdfReadV1(char *gdfname) {
   FSGD *gd;
   FSENV *env;
   FILE *fp;
-  char tag[1000];
-  char tmpstr[1000];
-  char class_name[100];
+  char *cp, tag[1000], tmpstr[1000], class_name[100];
   int version,r,n,m,err;
   double d;
 
@@ -499,6 +508,37 @@ static FSGD *gdfReadV1(char *gdfname) {
       if (r == 2) sscanf(tmpstr,"%s %s",gd->classmarker[gd->nclasses],
                          gd->classcolor[gd->nclasses]);
       gd->nclasses ++;
+      continue;
+    }
+    /*----------- Matrix Creation Method */
+    if(!strcasecmp(tag,"DODS")){
+      strcpy(gd->gd2mtx_method,"DODS");
+      strcpy(gd->DesignMatMethod,"DODS");
+      continue;
+    }
+    if(!strcasecmp(tag,"DOSS")){
+      strcpy(gd->gd2mtx_method,"DOSS");
+      strcpy(gd->DesignMatMethod,"DOSS");
+      continue;
+    }
+    /*---------------- Contrast ------------------------*/
+    if(!strcasecmp(tag,"Contrast")){
+      r = fscanf(fp,"%s",tmpstr);
+      gd->ContrastName[gd->nContrasts] = strcpyalloc(tmpstr);
+      if (r==EOF) goto formaterror;
+      fgets(tmpstr,1000,fp);
+      r = gdfCountItemsInString(tmpstr);
+      if(r<1) {
+	printf("ERROR: Contrast, not enough items, %s\n",tmpstr);
+        goto formaterror;
+      }
+      gd->C[gd->nContrasts] = MatrixAlloc(1,r,MATRIX_REAL);
+      for(n=0; n < r; n++){
+	cp = gdfGetNthItemFromString(tmpstr, n);
+	sscanf(cp,"%f",&(gd->C[gd->nContrasts]->rptr[1][n+1]));
+	free(cp);
+      }
+      gd->nContrasts++;
       continue;
     }
     /*----------------- Variables Line ---------------------*/
