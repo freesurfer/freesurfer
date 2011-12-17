@@ -1,7 +1,7 @@
 #!/bin/tcsh -f
 # thalseg
 
-set VERSION = '$Id: surfreg,v 1.3 2011/12/16 23:41:45 greve Exp $';
+set VERSION = '$Id: surfreg,v 1.4 2011/12/17 21:50:39 greve Exp $';
 
 set subject = ();
 set hemilist  = ();
@@ -74,7 +74,6 @@ foreach hemi ($hemilist)
     if($status) exit 1;
   endif
 
-  set AvgTif = $SUBJECTS_DIR/$target/$hemi.reg.template.tif
   set outreg = $sd/surf/$hemi.$target.sphere.reg
   set cmd = (mris_register -curv $sph)
   if($UseNoNeg) set cmd = ($cmd -remove_negative 1)
@@ -181,16 +180,17 @@ foreach hemi ($hemilist)
     set AvgCurvTif = average.curvature.filled.buckner40.tif
     set AvgTif = ${AvgCurvTifPath}/$hemi.${AvgCurvTif}
     set outreg = $sd/surf/$hemi.sphere.reg    
+    if($DoXHemi)  set outreg = $sd/xhemi/surf/$hemi.sphere.reg
   else
     set AvgTif = $SUBJECTS_DIR/$target/$hemi.reg.template.tif
     set outreg = $sd/surf/$hemi.$target.sphere.reg
+    if($DoXHemi)  set outreg = $sd/xhemi/surf/$hemi.$target.sphere.reg
   endif
 
   if(! -e $AvgTif) then
     echo "ERROR: cannot find $AvgTif"
     exit 1;
   endif
-  if($DoXHemi)  set outreg = $sd/xhemi/surf/$hemi.$target.sphere.reg
   if(-e $outreg) then
     echo "ERROR: output already exists $outreg"
     exit 1;
