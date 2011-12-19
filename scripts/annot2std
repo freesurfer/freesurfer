@@ -1,0 +1,459 @@
+#!/bin/tcsh -f
+
+# annot2std
+#
+# script to create an average annotation in standard space
+#
+# Original Author: Doug Greve
+# CVS Revision Info:
+#    $Author: greve $
+#    $Date: 2011/12/19 23:21:44 $
+#    $Revision: 1.1 $
+#
+# Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+#
+# Terms and conditions for use, reproduction, distribution and contribution
+# are found in the 'FreeSurfer Software License Agreement' contained
+# in the file 'LICENSE' found in the FreeSurfer distribution, and here:
+#
+# https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
+#
+# Reporting: freesurfer@nmr.mgh.harvard.edu
+#
+#
+
+
+set VERSION = '$Id: annot2std,v 1.1 2011/12/19 23:21:44 greve Exp $';
+
+set target = fsaverage;
+set subjlist = ();
+set inannot = ();
+set outannot = ();
+set srcsurfreg = sphere.reg
+set trgsurfreg = sphere.reg
+set hemi = ();
+set DoXHemi = 0;
+set Overwrite = 0;
+set segvote = ();
+set segstack = ();
+
+set tmpdir = ();
+set cleanup = 1;
+set LF = ();
+
+set inputargs = ($argv);
+set PrintHelp = 0;
+
+if($#argv == 0) goto usage_exit;
+set n = `echo $argv | grep -e -help | wc -l` 
+if($n != 0) then
+  set PrintHelp = 1;
+  goto usage_exit;
+endif
+set n = `echo $argv | grep -e -version | wc -l` 
+if($n != 0) then
+  echo $VERSION
+  exit 0;
+endif
+goto parse_args;
+parse_args_return:
+goto check_params;
+check_params_return:
+
+set StartTime = `date`;
+set tSecStart = `date '+%s'`;
+
+# Set output to full path or else it goes into the target subject label dir
+set outannot = `getfullpath $outannot`
+
+set outdir = `dirname $outannot`
+mkdir -p $outdir
+pushd $outdir > /dev/null
+set outdir = `pwd`;
+popd > /dev/null
+
+if($#tmpdir == 0) then
+  if(-e /scratch)   set tmpdir = /scratch/tmpdir.annot2std.$$
+  if(! -e /scratch) set tmpdir = $outdir/tmpdir.annot2std.$$
+endif
+mkdir -p $tmpdir
+
+# Set up log file
+if($#LF == 0) set LF = $outannot.log
+if($LF != /dev/null) rm -f $LF
+echo "Log file for annot2std" >> $LF
+date  | tee -a $LF
+echo "" | tee -a $LF
+echo "setenv SUBJECTS_DIR $SUBJECTS_DIR" | tee -a $LF
+echo "cd `pwd`"  | tee -a $LF
+echo $0 $inputargs | tee -a $LF
+echo "" | tee -a $LF
+cat $FREESURFER_HOME/build-stamp.txt | tee -a $LF
+echo $VERSION | tee -a $LF
+uname -a  | tee -a $LF
+
+#========================================================
+@ nthsubject = 0;
+set segstdlist = ()
+foreach subject ($subjlist)
+  @ nthsubject = $nthsubject + 1;
+  echo "#@# $nthsubject/$#subjlist $subject `date`" | tee -a $LF
+
+  # Convert annotation into a segmentation
+  set fname = $SUBJECTS_DIR/$subject/label/$hemi.$inannot.annot
+  set seg = $tmpdir/seg.$nthsubject.$subject.mgh
+  set ctab = $tmpdir/seg.$nthsubject.$subject.ctab
+  set cmd = (mri_annotation2label --subject $subject --hemi $hemi \
+    --seg $seg --ctab $ctab --annotation $inannot)
+  echo $cmd | tee -a $LF
+  $cmd | tee -a $LF
+  if($status) exit 1;
+  if($nthsubject == 1) set ctab1 = $ctab
+
+  # Map segmentation into standard space
+  set segstd = $tmpdir/seg.$nthsubject.$subject.std.mgh
+  set cmd = (mri_surf2surf --mapmethod nnf --hemi $hemi \
+    --srcsubject $subject --srcsurfreg $srcsurfreg --sval $seg \
+    --trgsubject $target  --trgsurfreg $trgsurfreg --tval $segstd)
+  echo $cmd | tee -a $LF
+  $cmd | tee -a $LF
+  if($status) exit 1;
+  set segstdlist = ($segstdlist $segstd )
+
+  if($DoXHemi) then
+    # Convert annotation into a segmentation
+    set fname = $SUBJECTS_DIR/$subject/xhemi/label/$hemi.$inannot.annot
+    set seg = $tmpdir/seg.$nthsubject.$subject.xhemi.mgh
+    set ctab = $tmpdir/seg.$nthsubject.$subject.xhemi.ctab
+    set cmd = (mri_annotation2label --subject $subject/xhemi --hemi $hemi \
+      --seg $seg --ctab $ctab --annotation $inannot)
+    echo $cmd | tee -a $LF
+    $cmd | tee -a $LF
+    if($status) exit 1;
+    if($nthsubject == 1) set ctab1 = $ctab
+
+    # Map segmentation into standard space
+    set segstd = $tmpdir/seg.$nthsubject.$subject.xhemi.std.mgh
+    set cmd = (mri_surf2surf --mapmethod nnf --srchemi $hemi \
+      --srcsubject $subject/xhemi --srcsurfreg $srcsurfreg --sval $seg \
+      --trgsubject $target  --trgsurfreg $trgsurfreg --tval $segstd --trghemi $hemi)
+    echo $cmd | tee -a $LF
+    $cmd | tee -a $LF
+    if($status) exit 1;
+    set segstdlist = ($segstdlist $segstd )
+  endif
+
+end
+
+# Vote for best segmentation
+if($#segvote == 0) set segvote = $tmpdir/seg.vote.mgh
+set cmd = (mri_concat $segstdlist --vote --o $segvote)
+echo $cmd | tee -a $LF
+$cmd | tee -a $LF
+if($status) exit 1;
+
+# Get probabilities
+set p = $outannot.p.mgh
+set cmd = (mri_convert --frame 1 $segvote $p)
+echo $cmd | tee -a $LF
+$cmd | tee -a $LF
+if($status) exit 1;
+
+if(! $cleanup || $#segstack) then
+  # This is a concat of all the segs, good for debugging
+  if($#segstack == 0) set segstack = $tmpdir/seg.stack.mgh
+  set cmd = (mri_concat $segstdlist --o $segstack)
+  echo $cmd | tee -a $LF
+  $cmd | tee -a $LF
+  if($status) exit 1;
+endif
+
+# Create the final annotation
+# Note: using the first ctab here may fail if there are parcellations in
+# the segmentation that do not appear in the ctab
+set cmd = (mris_seg2annot --seg $segvote --ctab $ctab1 --s $target \
+  --hemi $hemi --o $outannot)
+echo $cmd | tee -a $LF
+$cmd | tee -a $LF
+if($status) exit 1;
+
+#========================================================
+
+# Cleanup
+if($cleanup) rm -rf $tmpdir
+
+# Done
+echo " " |& tee -a $LF
+set tSecEnd = `date '+%s'`;
+@ tSecRun = $tSecEnd - $tSecStart;
+echo "Started at $StartTime " |& tee -a $LF
+echo "Ended   at `date`" |& tee -a $LF
+echo "Annot2std-Run-Time-Sec $tSecRun" |& tee -a $LF
+echo " " |& tee -a $LF
+echo "annot2std Done" |& tee -a $LF
+exit 0
+
+###############################################
+
+############--------------##################
+parse_args:
+set cmdline = ($argv);
+while( $#argv != 0 )
+
+  set flag = $argv[1]; shift;
+  
+  switch($flag)
+
+    case "--o":
+      if($#argv < 1) goto arg1err;
+      set outannot = $argv[1]; shift;
+      breaksw
+
+    case "--seg":
+      if($#argv < 1) goto arg1err;
+      set segvote = $argv[1]; shift;
+      breaksw
+
+    case "--stack":
+      if($#argv < 1) goto arg1err;
+      set segstack = $argv[1]; shift;
+      breaksw
+
+    case "--annot":
+    case "--a":
+      if($#argv < 1) goto arg1err;
+      set inannot = $argv[1]; shift;
+      breaksw
+    case "--aparc":
+      set inannot = aparc;
+      breaksw
+    case "--aparc.a2009s":
+    case "--a2009s":
+      set inannot = aparc.a2009s;
+      breaksw
+
+    case "--subject":
+    case "--s":
+      if($#argv < 1) goto arg1err;
+      set subjlist = ($subjlist $argv[1]); shift;
+      breaksw
+
+    case "--f":
+      if($#argv < 1) goto arg1err;
+      set subjlistfile = $argv[1]; shift;
+      if(! -e $subjlistfile) then
+        echo "ERROR: cannot find $subjlistfile";
+        exit 1;
+      endif
+      set subjlist = ($subjlist `cat $subjlistfile`);
+      breaksw
+
+    case "--fsgd":
+      if ( $#argv == 0) goto arg1err;
+      set fsgdf = $argv[1]; shift;
+      if(! -e $fsgdf) then
+        echo "ERROR: cannot find $fsgdf";
+        exit 1;
+      endif
+      set sl = `cat $fsgdf | awk '{if($1 == "Input") print $2}'`;
+      set subjlist = ($subjlist $sl);
+      breaksw
+
+    case "--lh":
+      set hemi = lh
+      breaksw
+
+    case "--rh":
+      set hemi = rh
+      breaksw
+
+    case "--xhemi":
+      set DoXHemi = 1;
+      set target = fsaverage_sym
+      set srcsurfreg = fsaverage_sym.sphere.reg
+      breaksw
+
+    case "--surfreg":
+      if($#argv < 1) goto arg1err;
+      set srcsurfreg = $argv[1];shift;
+      set trgsurfreg = $srcsurfreg;
+      breaksw
+
+    case "--srcsurfreg":
+      if($#argv < 1) goto arg1err;
+      set srcsurfreg = $argv[1];shift;
+      breaksw
+
+    case "--trgsurfreg":
+      if($#argv < 1) goto arg1err;
+      set trgsurfreg = $argv[1];shift;
+      breaksw
+
+    case "--log":
+      if($#argv < 1) goto arg1err;
+      set LF = $argv[1]; shift;
+      breaksw
+
+    case "--t":
+      if($#argv < 1) goto arg1err;
+      set target = $argv[1]; shift;
+      breaksw
+
+    case "--nolog":
+    case "--no-log":
+      set LF = /dev/null
+      breaksw
+
+    case "--tmp":
+    case "--tmpdir":
+      if($#argv < 1) goto arg1err;
+      set tmpdir = $argv[1]; shift;
+      set cleanup = 0;
+      breaksw
+
+    case "--overwrite":
+    case "--force":
+      set Overwrite = 1;
+      breaksw
+
+    case "--nocleanup":
+      set cleanup = 0;
+      breaksw
+
+    case "--cleanup":
+      set cleanup = 1;
+      breaksw
+
+    case "--debug":
+      set verbose = 1;
+      set echo = 1;
+      breaksw
+
+    default:
+      echo ERROR: Flag $flag unrecognized. 
+      echo $cmdline
+      exit 1
+      breaksw
+  endsw
+
+end
+
+goto parse_args_return;
+############--------------##################
+
+############--------------##################
+check_params:
+
+if($#inannot == 0) then
+  echo "ERROR: must spec input annot"
+  exit 1;
+endif
+if($#outannot == 0) then
+  echo "ERROR: must spec output annot"
+  exit 1;
+endif
+if(-e $outannot && ! $Overwrite) then
+  echo "ERROR: $outannot already exists."
+  echo "Choose another name, delete it, or run with --overwrite"
+  exit 1;
+endif
+if($#hemi == 0) then
+  echo "ERROR: must spec output hemi"
+  exit 1;
+endif
+if($#subjlist == 0) then
+  echo "ERROR: must spec subjects"
+  exit 1;
+endif
+if(! -e $SUBJECTS_DIR/$target) then
+  echo "ERROR: cannot find $target in $SUBJECTS_DIR"
+  exit 1;
+endif
+foreach subject ($subjlist)
+  set fname = $SUBJECTS_DIR/$subject/label/$hemi.$inannot.annot
+  if(! -e $fname) then
+    echo "ERROR: cannot find $fname"
+    exit 1;
+  endif
+  if($DoXHemi) then
+    set fname = $SUBJECTS_DIR/$subject/xhemi/label/$hemi.$inannot.annot
+    if(! -e $fname) then
+      echo "ERROR: cannot find $fname"
+      exit 1;
+    endif
+  endif
+end
+
+goto check_params_return;
+############--------------##################
+
+############--------------##################
+arg1err:
+  echo "ERROR: flag $flag requires one argument"
+  exit 1
+############--------------##################
+arg2err:
+  echo "ERROR: flag $flag requires two arguments"
+  exit 1
+############--------------##################
+
+############--------------##################
+usage_exit:
+  echo ""
+  echo "annot2std "
+  echo ""
+  echo "  --o outannotpath : full output path (also creates outannotpath.p.mgh)"
+  echo ""
+  echo "  --s subj1 <--s subj2 ... --s subjN>"
+  echo "  --fsgd fsgdfile"
+  echo "  --f subjectlistfile"
+  echo ""
+  echo "  --lh or --rh (but not both)"
+  echo ""
+  echo "  --t target : target subject (fsaverage or fsaverage_sym for --xhemi)"
+  echo "  --xhemi (for interhemispheric analysis)"
+  echo "  --surfreg surfreg (default is sphere.reg)"
+  echo "  --srcsurfreg srcsurfreg (default is sphere.reg)"
+  echo "  --trgsurfreg trgsurfreg (default is sphere.reg)"
+  echo ""
+  echo "  --a annotname : input annot (?h.annotname.annot)"
+  echo "    --aparc : annotname=aparc"
+  echo "    --a2009s : annotname=aparc.a2009s"
+  echo ""
+  echo " Good for debuggin'"
+  echo "  --seg outseg.mgh : save output as a surface segmentation (2 frames, 2nd=p)"
+  echo "  --stack segstack : stack of individual annots as segmentation"
+  echo ""
+  echo "  --help"
+  echo "  --version"
+  echo ""
+
+  if(! $PrintHelp) exit 1;
+  echo $VERSION
+  cat $0 | awk 'BEGIN{prt=0}{if(prt) print $0; if($1 == "BEGINHELP") prt = 1 }'
+exit 1;
+
+#---- Everything below here is printed out as part of help -----#
+BEGINHELP
+
+Creates an average annotation in a standard space based on
+transforming the annotations of the individual subjects to the
+standard space through the surface registration. A vote is taken at
+each vertex in standard space to determine which label will represent
+that vertex.
+
+The other output outannotpath.p.mgh gives a value between 0 and 1
+indicating the fraction of inputs that were assigned to the winning
+label.
+
+EXAMPLE
+
+annot2std --f b40.slist.dat --lh --aparc --o lh.aparc.std.annot 
+
+This will create lh.aparc.std.annot and lh.aparc.std.annot.p.mgh
+
+tksurfer fsaverage lh inflated -annot ./lh.aparc.std.annot -ov lh.aparc.std.annot.p.mgh -fminmax .01 1
+
+
+
+
