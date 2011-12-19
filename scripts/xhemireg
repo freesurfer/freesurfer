@@ -16,7 +16,7 @@
 #  Dont convert volumes in mri/orig
 #
 
-set VERSION = '$Id: xhemireg,v 1.18 2011/12/17 20:47:12 greve Exp $';
+set VERSION = '$Id: xhemireg,v 1.19 2011/12/19 03:21:33 greve Exp $';
 
 set subject = ();
 set srchemilist = ();
@@ -31,7 +31,7 @@ set DoAllVol = 0;
 set vollist = (orig brainmask norm)
 set vollist = ($vollist rawavg wm brain.finalsurfs aseg aparc+aseg T1 brain nu)
 set ovlist = (curv sulc area volume thickness inflated.H inflated.K)
-set ovlist = (area.pial area.mid curv.pial avg_curv   lh.jacobian_white)
+set ovlist = ($ovlist area.pial area.mid curv.pial avg_curv   lh.jacobian_white)
 set surflist = (orig white pial smoothwm inflated sphere)
 set annotlist = ()
 set annotlist = ($annotlist aparc BA aparc.a2009s)
