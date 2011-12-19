@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2011/12/16 23:36:59 $
- *    $Revision: 1.708 $
+ *    $Date: 2011/12/19 04:36:20 $
+ *    $Revision: 1.709 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -734,7 +734,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void)
 {
-  return("$Id: mrisurf.c,v 1.708 2011/12/16 23:36:59 greve Exp $");
+  return("$Id: mrisurf.c,v 1.709 2011/12/19 04:36:20 greve Exp $");
 }
 
 /*-----------------------------------------------------
@@ -5689,6 +5689,7 @@ MRISregister(MRI_SURFACE *mris, MRI_SP *mrisp_template,
       sprintf(fname, "%s.%s",
               mris->hemisphere == RIGHT_HEMISPHERE ? "rh":"lh",
               curvature_names[sno]) ;
+      printf("%d Reading %s\n",sno,fname);
       if (MRISreadCurvatureFile(mris, fname) != NO_ERROR)
         ErrorExit(Gerror, "%s: could not read curvature file '%s'\n",
                   "MRISregister", fname) ;
@@ -5698,6 +5699,7 @@ MRISregister(MRI_SURFACE *mris, MRI_SP *mrisp_template,
     {
       sprintf(fname, "%s", surface_names[sno]) ;
       MRISsaveVertexPositions(mris, TMP_VERTICES) ;
+      printf("%d Reading %s\n",sno,fname);
       if (MRISreadVertexPositions(mris, fname) != NO_ERROR)
         ErrorExit(ERROR_NOFILE, "%s: could not read surface file %s",
                   "MRISregister", fname) ;
@@ -19208,6 +19210,9 @@ mrisLogIntegrationParms(FILE *fp, MRI_SURFACE *mris,INTEGRATION_PARMS *parms)
   fprintf(fp,"nsurfaces %d\n",parms->nsurfaces);
   fprintf(fp,"SURFACES %d\n",(int)(SURFACES));
   fprintf(fp,"flags %d (%x)\n",parms->flags,parms->flags);
+  fprintf(fp,"use curv %d\n",(parms->flags & IP_USE_CURVATURE));
+  fprintf(fp,"no sulc %d\n",(parms->flags & IP_NO_SULC));
+  fprintf(fp,"no rigid align %d\n",(parms->flags & IP_NO_RIGID_ALIGN));
   fprintf(fp,"mris->nsize %d\n",mris->nsize);
   fprintf(fp,"mris->hemisphere %d\n",mris->hemisphere);
   fprintf(fp,"randomSeed %ld\n",getRandomSeed());
