@@ -15,8 +15,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2011/11/08 18:57:46 $
- *    $Revision: 1.58 $
+ *    $Date: 2011/12/19 20:58:28 $
+ *    $Revision: 1.59 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -61,7 +61,7 @@ static void dump_options(FILE *fp);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_concat.c,v 1.58 2011/11/08 18:57:46 greve Exp $";
+static char vcid[] = "$Id: mri_concat.c,v 1.59 2011/12/19 20:58:28 greve Exp $";
 char *Progname = NULL;
 int debug = 0;
 #define NInMAX 400000
@@ -446,50 +446,26 @@ int main(int argc, char **argv)
             v1 = MRIgetVoxVal(mriout,c,r,s,f);
             v2 = MRIgetVoxVal(mriout,c,r,s,f+1);
             v = 0;
-            if(DoPairedAvg)
-            {
-              v = (v1+v2)/2.0;
-            }
-            if(DoPairedSum)
-            {
-              v = (v1+v2);
-            }
-            if(DoPairedDiff)
-            {
-              v = v1-v2;  // difference
-            }
-            if(DoPairedDiffNorm)
-            {
+            if(DoPairedAvg) v = (v1+v2)/2.0;
+            if(DoPairedSum) v = (v1+v2);
+            if(DoPairedDiff) v = v1-v2;  // difference
+            if(DoPairedDiffNorm){
               v = v1-v2; // difference
               vavg = (v1+v2)/2.0;
-              if (vavg != 0.0)
-              {
-                v = v/vavg;
-              }
+              if (vavg != 0.0) v = v/vavg;
+	      else             v = 0;
             }
             if(DoPairedDiffNorm1)
             {
               v = v1-v2; // difference
-              if (v1 != 0.0)
-              {
-                v = v/v1;
-              }
-              else
-              {
-                v = 0;
-              }
+              if (v1 != 0.0) v = v/v1;
+              else           v = 0;
             }
             if(DoPairedDiffNorm2)
             {
               v = v1-v2; // difference
-              if (v2 != 0.0)
-              {
-                v = v/v2;
-              }
-              else
-              {
-                v = 0;
-              }
+              if (v2 != 0.0) v = v/v2;
+              else v = 0;
             }
             MRIsetVoxVal(mritmp,c,r,s,fout,v);
             fout++;
