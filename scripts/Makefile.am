@@ -3,6 +3,7 @@
 #
 
 dist_bin_SCRIPTS = \
+annot2std \
 aparc2feat \
 aseg2feat \
 aparcstats2table \
