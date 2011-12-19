@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2011/12/19 04:36:20 $
- *    $Revision: 1.709 $
+ *    $Author: fischl $
+ *    $Date: 2011/12/19 22:59:49 $
+ *    $Revision: 1.710 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -734,7 +734,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void)
 {
-  return("$Id: mrisurf.c,v 1.709 2011/12/19 04:36:20 greve Exp $");
+  return("$Id: mrisurf.c,v 1.710 2011/12/19 22:59:49 fischl Exp $");
 }
 
 /*-----------------------------------------------------
@@ -31247,6 +31247,7 @@ MRIScomputeWhiteSurfaceValues
 #endif
 #endif
 
+#define MAX_SAMPLES 1000
 int
 MRIScomputeBorderValues(MRI_SURFACE *mris,MRI *mri_brain,
                         MRI *mri_smooth, double inside_hi, double border_hi,
@@ -31263,9 +31264,9 @@ MRIScomputeBorderValues(MRI_SURFACE *mris,MRI *mri_brain,
       min_val_dist, orig_dist, dx, dy, dz, previous_mag, next_mag ;
   int  total_vertices, vno, nmissing = 0, nout = 0, nin = 0, nfound = 0,
     nalways_missing = 0, local_max_found,
-    ngrad_max, ngrad, nmin, num_changed=0 ;
-  float   mean_border, mean_in, mean_out, dist,
-  nx, ny, nz, mean_dist, step_size ;
+    ngrad_max, ngrad, nmin, num_changed=0, i ;
+  float   mean_border, mean_in, mean_out, dist, nx, ny, nz, mean_dist, step_size,
+    dists[MAX_SAMPLES], mri[MAX_SAMPLES], dm[MAX_SAMPLES] ;
   double  current_sigma ;
   VERTEX  *v ;
   FILE    *fp = NULL ;
@@ -31346,6 +31347,25 @@ MRIScomputeBorderValues(MRI_SURFACE *mris,MRI *mri_brain,
         }
       }
       inward_dist = dist+step_size/2 ;
+
+      if (DIAG_VERBOSE_ON && mri_brain->xsize < .95 && mag >= 0.0)  // refine inward_dist for hires volumes
+      {
+	for (dist = inward_dist ; dist > -max_thickness ; dist -= step_size/2)
+	{
+	  x = v->x + v->nx*dist ; y = v->y + v->ny*dist ; z = v->z + v->nz*dist ;
+	  MRISsurfaceRASToVoxelCached(mris, mri_brain, x, y, z, &xw, &yw, &zw) ;
+	  MRIsampleVolume(mri_brain, xw, yw, zw, &val) ;
+
+	  x = v->x + v->nx*(dist+step_size/2) ; y = v->y + v->ny*(dist+step_size/2) ; 
+	  z = v->z + v->nz*(dist+step_size/2) ;
+	  MRISsurfaceRASToVoxelCached(mris, mri_brain, x, y, z, &xw, &yw, &zw) ;
+	  MRIsampleVolume(mri_brain, xw, yw, zw, &next_val) ;
+	  if (next_val < val)  // found max inwards intensity
+	    break ;
+	}
+	inward_dist = dist ;
+      }
+
       for (dist = 0 ; dist < max_thickness ; dist += step_size)
       {
         dx = v->x-v->origx ;
@@ -31407,8 +31427,13 @@ MRIScomputeBorderValues(MRI_SURFACE *mris,MRI *mri_brain,
     min_val = 10000.0 ;
     min_val_dist = 0.0f ;
     local_max_found = 0 ;
-    for (dist = inward_dist ; dist <= outward_dist ; dist += STEP_SIZE)
+    for (i = 0, dist = inward_dist ; dist <= outward_dist ; dist += STEP_SIZE)
     {
+      x = v->x + v->nx*dist ; y = v->y + v->ny*dist ; z = v->z + v->nz*dist ;
+      MRISsurfaceRASToVoxelCached(mris, mri_brain, x, y, z, &xw, &yw, &zw) ;
+      MRIsampleVolume(mri_brain, xw, yw, zw, &val) ;
+      dists[i] = dist; mri[i] = val ; i++ ;
+
 #if 1
       x = v->x + v->nx*(dist-STEP_SIZE) ;
       y = v->y + v->ny*(dist-STEP_SIZE) ;
@@ -31470,8 +31495,11 @@ MRIScomputeBorderValues(MRI_SURFACE *mris,MRI *mri_brain,
         y = v->y + v->ny*dist;
         z = v->z + v->nz*dist;
         MRISsurfaceRASToVoxelCached(mris, mri_brain, x, y, z, &xw, &yw, &zw) ;
-        MRIsampleVolumeDerivativeScale
-        (mri_tmp, xw, yw, zw, nx, ny, nz,&mag,sigma);
+        MRIsampleVolumeDerivativeScale(mri_tmp, xw, yw, zw, nx, ny, nz,&mag,sigma);
+	// only for hires volumes - if intensities are increasing don't keep going - in gm
+	if (which == GRAY_WHITE && mri_brain->xsize < .95 &&
+	    val > previous_val && next_val > val)
+	  break ;
         if (which == GRAY_CSF)
         {
           /*
@@ -31567,6 +31595,64 @@ MRIScomputeBorderValues(MRI_SURFACE *mris,MRI *mri_brain,
 
     if (vno == Gdiag_no)
       fclose(fp) ;
+    if (mri_brain->xsize < .95)
+    {
+#ifdef WSIZE
+#undef WSIZE
+#endif
+#define WSIZE 7
+      int  len = i, i1, whalf = WSIZE, num ;
+      float max_mri, peak, outside ;
+
+      if (vno == Gdiag_no)
+	DiagBreak() ;
+      {
+	int n ;
+	for (n = 0 ; n < v->vnum ; n++)
+	  if (v->v[n] == Gdiag_no)
+	    DiagBreak() ;
+      }
+      max_mri = 0 ;
+      for (i = 0 ; i < len ; i++)
+      {
+	if (mri[i] > max_mri)
+	  max_mri = mri[i] ;
+	if (i < len-1 && i > 0)
+	  dm[i] = mri[i+1] - mri[i-1] ;
+	else
+	  dm[i] = 0 ;
+      }
+
+      if (max_mag_val > 0 && max_mri/(1.15) > max_mag_val)
+      {
+	for (i = 0 ; i < len ; i++)
+	{	
+	  if (dm[i] > 0)
+	    continue ;
+	  peak = dm[i] ;
+	  for (num = 0, outside = 0.0, i1 = MAX(0,i-whalf) ; i1 <= MIN(i+whalf,len-1) ; i1++)
+	  {
+	    outside += dm[i1] ;
+	    num++ ;
+	    if (dm[i1] < dm[i])
+	      break ;   // not a local maxima in the negative direction
+	  }
+	  outside /= num ;
+	  if (i1 > i+whalf)  // found a local maximum
+	    break ;
+	}
+	if (i < len-whalf && peak/outside > 1.5)   // it was a local max - set the target to here
+	{
+	  if (vno == Gdiag_no)
+	    printf("v %d: resetting target to local max at %2.2f: I=%d, peak=%2.2f, outside=%2.2f, ratio=%2.2f\n",	
+		   vno, dists[i], (int)mri[i], peak, outside, peak/outside) ;
+	  max_mag_val = mri[i] ;
+	  max_mag = fabs(dm[i]) ;
+	  max_mag_dist = dists[i] ;
+	}
+      }
+    }
+
 
     if (which == GRAY_CSF && local_max_found == 0 && max_mag_dist > 0)
     {
