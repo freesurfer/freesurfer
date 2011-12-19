@@ -8,9 +8,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/05/25 17:49:42 $
- *    $Revision: 1.59 $
+ *    $Author: greve $
+ *    $Date: 2011/12/19 22:47:35 $
+ *    $Revision: 1.60 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -519,6 +519,7 @@ double SupraTentorialVolCorrection(MRI *aseg, MRI *ribbon);
 int insert_ribbon_into_aseg(MRI *mri_src_aseg, MRI *mri_aseg,
                             MRI_SURFACE *mris_white, MRI_SURFACE *mris_pial,
                             int hemi) ;
+MRI *MRIlrswapAseg(MRI *aseg);
 
 
 #if defined(__cplusplus)
