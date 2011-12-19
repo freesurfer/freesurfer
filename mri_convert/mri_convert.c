@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl (Apr 16, 1997)
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2011/12/07 21:06:16 $
- *    $Revision: 1.187 $
+ *    $Date: 2011/12/19 22:59:15 $
+ *    $Revision: 1.188 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -42,6 +42,7 @@
 #include "fmriutils.h"
 #include "stats.h"
 #include "fsgdf.h"
+#include "cma.h"
 
 
 /* ----- determines tolerance of non-orthogonal basis vectors ----- */
@@ -183,6 +184,7 @@ int main(int argc, char *argv[])
   int sphinx_flag = FALSE;
   int LeftRightReverse = FALSE;
   int LeftRightReversePix = FALSE;
+  int LeftRightSwapLabel = FALSE;
   int FlipCols = FALSE;
   int SliceReverse = FALSE;
   int SliceBias  = FALSE;
@@ -199,7 +201,7 @@ int main(int argc, char *argv[])
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mri_convert.c,v 1.187 2011/12/07 21:06:16 greve Exp $",
+   "$Id: mri_convert.c,v 1.188 2011/12/19 22:59:15 greve Exp $",
    "$Name:  $",
    cmdline);
 
@@ -320,7 +322,7 @@ int main(int argc, char *argv[])
     handle_version_option
     (
       argc, argv,
-      "$Id: mri_convert.c,v 1.187 2011/12/07 21:06:16 greve Exp $",
+      "$Id: mri_convert.c,v 1.188 2011/12/19 22:59:15 greve Exp $",
       "$Name:  $"
     );
   if (nargs && argc - nargs == 1)
@@ -356,6 +358,10 @@ int main(int argc, char *argv[])
     else if(strcmp(argv[i], "--left-right-reverse-pix") == 0)
     {
       LeftRightReversePix = 1;
+    }
+    else if(strcmp(argv[i], "--left-right-swap-label") == 0)
+    {
+      LeftRightSwapLabel = 1;
     }
     else if(strcmp(argv[i], "--flip-cols") == 0)
     {
@@ -1636,7 +1642,7 @@ int main(int argc, char *argv[])
             "= --zero_ge_z_offset option ignored.\n");
   }
 
-  printf("$Id: mri_convert.c,v 1.187 2011/12/07 21:06:16 greve Exp $\n");
+  printf("$Id: mri_convert.c,v 1.188 2011/12/19 22:59:15 greve Exp $\n");
   printf("reading from %s...\n", in_name_only);
 
   if (in_volume_type == OTL_FILE)
@@ -1897,6 +1903,14 @@ int main(int argc, char *argv[])
     MatrixFree(&T);
     MatrixFree(&vmid);
     MatrixFree(&cras);
+  }
+
+  if(LeftRightSwapLabel){
+    printf("Performing left-right swap of labels\n");
+    // Good for aseg, aparc+aseg, wmparc, etc. Does not change geometry
+    mri2 = MRIlrswapAseg(mri);
+    MRIfree(&mri);
+    mri = mri2;
   }
 
   if(LeftRightReversePix)
