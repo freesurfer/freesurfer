@@ -9,8 +9,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2011/10/25 14:13:50 $
- *    $Revision: 1.80 $
+ *    $Date: 2011/12/19 23:00:18 $
+ *    $Revision: 1.81 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -4054,5 +4054,28 @@ double MRIpercentThresh(MRI *mri, MRI *mask, int frame, double pct)
   //printf("nlist %d, npct = %d, pct=%g, thresh %g\n",nlist,npct,pct,thresh);
   free(vlist);
   return(thresh);
+}
+
+MRI *
+MRIminAbs(MRI *mri_src1, MRI *mri_src2, MRI *mri_dst)
+{
+  int   x, y, z, f ;
+  float val1, val2 ;
+
+  if (mri_dst == NULL)
+    mri_dst = MRIclone(mri_src1, NULL) ;
+
+  for (f = 0 ; f < mri_dst->nframes ; f++)
+    for (x = 0 ; x < mri_dst->width ; x++)
+      for (y = 0 ; y < mri_dst->height ; y++)
+	for (z = 0 ; z < mri_dst->depth ; z++)
+	{
+	  val1 = MRIgetVoxVal(mri_src1, x, y, z, f) ;
+	  val2 = MRIgetVoxVal(mri_src2, x, y, z, f) ;
+	  if (abs(val2) < abs(val1))
+	    val1 = val2 ;
+	  MRIsetVoxVal(mri_dst, x, y, z, f, val1) ;
+	}
+  return(mri_dst) ;
 }
 
