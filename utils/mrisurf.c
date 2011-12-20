@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2011/12/20 00:14:01 $
- *    $Revision: 1.711 $
+ *    $Date: 2011/12/20 13:40:50 $
+ *    $Revision: 1.712 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -734,7 +734,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void)
 {
-  return("$Id: mrisurf.c,v 1.711 2011/12/20 00:14:01 fischl Exp $");
+  return("$Id: mrisurf.c,v 1.712 2011/12/20 13:40:50 fischl Exp $");
 }
 
 /*-----------------------------------------------------
@@ -31602,7 +31602,7 @@ MRIScomputeBorderValues(MRI_SURFACE *mris,MRI *mri_brain,
 #endif
 #define WSIZE 7
       int  len = i, i1, whalf = WSIZE, num ;
-      float max_mri, peak = 0, outside ;
+      float max_mri, peak = 0, outside = 1 ;
 
       if (vno == Gdiag_no)
 	DiagBreak() ;
