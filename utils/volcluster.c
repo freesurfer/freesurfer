@@ -8,8 +8,8 @@
  * Original Author: Doug Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2011/03/28 15:30:23 $
- *    $Revision: 1.51 $
+ *    $Date: 2011/12/21 19:09:18 $
+ *    $Revision: 1.52 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -46,7 +46,7 @@
   ---------------------------------------------------------------*/
 const char *vclustSrcVersion(void)
 {
-  return("$Id: volcluster.c,v 1.51 2011/03/28 15:30:23 greve Exp $");
+  return("$Id: volcluster.c,v 1.52 2011/12/21 19:09:18 greve Exp $");
 }
 
 static int ConvertCRS2XYZ(int col, int row, int slc, MATRIX *CRS2XYZ,
@@ -1567,6 +1567,9 @@ int CSDallocData(CLUSTER_SIM_DATA *csd)
 {
   csd->nClusters = (int *) calloc(csd->nreps, sizeof(int));
   csd->MaxClusterSize = (double *) calloc(csd->nreps, sizeof(double));
+  csd->MaxClusterSizeVtx = (double *) calloc(csd->nreps, sizeof(double));
+  csd->MaxClusterWeightVtx = (double *) calloc(csd->nreps, sizeof(double));
+  csd->MaxClusterWeightArea = (double *) calloc(csd->nreps, sizeof(double));
   csd->MaxSig  = (double *) calloc(csd->nreps, sizeof(double));
   csd->MaxStat = (double *) calloc(csd->nreps, sizeof(double));
   return(0);
@@ -1588,6 +1591,18 @@ int CSDfreeData(CLUSTER_SIM_DATA *csd)
   {
     free(csd->MaxClusterSize);
     csd->MaxClusterSize=NULL;
+  }
+  if (csd->MaxClusterSizeVtx){
+    free(csd->MaxClusterSizeVtx);
+    csd->MaxClusterSizeVtx=NULL;
+  }
+  if (csd->MaxClusterWeightVtx){
+    free(csd->MaxClusterWeightVtx);
+    csd->MaxClusterWeightVtx=NULL;
+  }
+  if (csd->MaxClusterWeightArea){
+    free(csd->MaxClusterWeightArea);
+    csd->MaxClusterWeightArea=NULL;
   }
   if (csd->MaxSig)
   {
@@ -1641,6 +1656,9 @@ CSD *CSDcopy(CSD *csd, CSD *csdcopy)
   {
     csdcopy->nClusters[nthrep]      = csd->nClusters[nthrep];
     csdcopy->MaxClusterSize[nthrep] = csd->MaxClusterSize[nthrep];
+    csdcopy->MaxClusterSizeVtx[nthrep] = csd->MaxClusterSizeVtx[nthrep];
+    csdcopy->MaxClusterWeightVtx[nthrep] = csd->MaxClusterWeightVtx[nthrep];
+    csdcopy->MaxClusterWeightArea[nthrep] = csd->MaxClusterWeightArea[nthrep];
     csdcopy->MaxSig[nthrep]         = csd->MaxSig[nthrep];
     csdcopy->MaxStat[nthrep]        = csd->MaxStat[nthrep];
   }
@@ -1744,6 +1762,9 @@ CSD *CSDmerge(CSD *csd1, CSD *csd2)
   for (nthrep1 = 0; nthrep1 < csd1->nreps; nthrep1++)  {
     csd->nClusters[nthrep]      = csd1->nClusters[nthrep1];
     csd->MaxClusterSize[nthrep] = csd1->MaxClusterSize[nthrep1];
+    csd->MaxClusterSizeVtx[nthrep]    = csd1->MaxClusterSizeVtx[nthrep1];
+    csd->MaxClusterWeightVtx[nthrep]  = csd1->MaxClusterWeightVtx[nthrep1];
+    csd->MaxClusterWeightArea[nthrep] = csd1->MaxClusterWeightArea[nthrep1];
     csd->MaxSig[nthrep]         = csd1->MaxSig[nthrep1];
     csd->MaxStat[nthrep]        = csd1->MaxStat[nthrep1];
     nthrep++;
@@ -1752,6 +1773,9 @@ CSD *CSDmerge(CSD *csd1, CSD *csd2)
   {
     csd->nClusters[nthrep]      = csd2->nClusters[nthrep2];
     csd->MaxClusterSize[nthrep] = csd2->MaxClusterSize[nthrep2];
+    csd->MaxClusterSizeVtx[nthrep]    = csd2->MaxClusterSizeVtx[nthrep1];
+    csd->MaxClusterWeightVtx[nthrep]  = csd2->MaxClusterWeightVtx[nthrep1];
+    csd->MaxClusterWeightArea[nthrep] = csd2->MaxClusterWeightArea[nthrep1];
     csd->MaxSig[nthrep]         = csd2->MaxSig[nthrep2];
     csd->MaxStat[nthrep]        = csd2->MaxStat[nthrep2];
     nthrep++;
@@ -1830,6 +1854,25 @@ int CSDprint(FILE *fp, CLUSTER_SIM_DATA *csd)
     fprintf(fp,"%7d       %3d      %g          %g     %g\n",nthrep,
             csd->nClusters[nthrep],csd->MaxClusterSize[nthrep],
             csd->MaxSig[nthrep],csd->MaxStat[nthrep]);
+  }
+  return(0);
+}
+/*--------------------------------------------------------------
+  CSDprintWeight() - prints a CSD to the given stream (with nvtx and weight)
+  --------------------------------------------------------------*/
+int CSDprintWeight(FILE *fp, CLUSTER_SIM_DATA *csd)
+{
+  int nthrep;
+  CSDprintHeader(fp,csd);
+  fprintf(fp,"# LoopNo nClusters MaxClustSize         MaxSig      MaxStat ");
+  fprintf(fp,"MaxClustSizeVtx    MaxClustWeightVtx\n");
+  for (nthrep = 0; nthrep < csd->nreps; nthrep++)
+  {
+    fprintf(fp,"%7d       %3d      %g          %g     %g         %d           %g\n",
+	    nthrep,
+            csd->nClusters[nthrep],csd->MaxClusterSize[nthrep],
+            csd->MaxSig[nthrep],csd->MaxStat[nthrep],
+	    (int)csd->MaxClusterSizeVtx[nthrep],csd->MaxClusterWeightVtx[nthrep]);
   }
   return(0);
 }
