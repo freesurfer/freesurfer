@@ -16,7 +16,7 @@
 #  Dont convert volumes in mri/orig
 #
 
-set VERSION = '$Id: xhemireg,v 1.19 2011/12/19 03:21:33 greve Exp $';
+set VERSION = '$Id: xhemireg,v 1.20 2011/12/21 15:42:21 greve Exp $';
 
 set subject = ();
 set srchemilist = ();
@@ -28,15 +28,18 @@ set DoReg = 0;
 set PrintHelp = 0;
 set outdir = ();
 set DoAllVol = 0;
-set vollist = (orig brainmask norm)
-set vollist = ($vollist rawavg wm brain.finalsurfs aseg aparc+aseg T1 brain nu)
-set ovlist = (curv sulc area volume thickness inflated.H inflated.K)
-set ovlist = ($ovlist area.pial area.mid curv.pial avg_curv   lh.jacobian_white)
-set surflist = (orig white pial smoothwm inflated sphere)
+set DoTal = 1;
+
+# Not all of the lists below are really needed.
+set vollist = (orig brainmask norm aseg aparc+aseg)
+#set vollist = ($vollist rawavg wm brain.finalsurfs T1 brain nu)
+set ovlist = (curv sulc area volume thickness inflated.H )
+set ovlist = ($ovlist area.pial area.mid curv.pial inflated.K)
+set surflist = (orig white pial smoothwm sphere)
+set surflist = ($surflist inflated)
 set annotlist = ()
 set annotlist = ($annotlist aparc BA aparc.a2009s)
 set labellist = (cortex)
-set DoTal = 1;
 
 # For cortical registration, as found in $AvgCurvTifPath/$hemi.$AvgCurvTif
 set AvgCurvTifPath = "$FREESURFER_HOME/average"
@@ -141,6 +144,16 @@ foreach srchemi ($srchemilist)
       echo $cmd  | tee -a $LF
       $cmd | tee -a $LF
       if($status) exit 1;
+
+      # Left-Right Reverse label codes for segmentations
+      if($vol == aseg || $vol == aparc+aseg || $vol == wmparc || \
+         $vol == aparc.a2009s+aseg) then
+        set cmd = (mri_convert $outdir/mri/$vol.mgz $outdir/mri/$vol.mgz --left-right-swap-label)
+        echo $cmd  | tee -a $LF
+        $cmd | tee -a $LF
+        if($status) exit 1;
+      endif
+
     end
 
     # Recompute talairach registration
