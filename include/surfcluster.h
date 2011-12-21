@@ -10,8 +10,8 @@
  * Original Author: Doug Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2011/05/25 20:21:45 $
- *    $Revision: 1.16 $
+ *    $Date: 2011/12/21 18:18:42 $
+ *    $Revision: 1.17 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -46,8 +46,10 @@ extern int FixSurfClusterArea;
 typedef struct
 {
   int   clusterno;
-  int   nmembers;
+  int   nmembers; //  number of vertices;
   float area;
+  float weightvtx;  // vertex weighted weight
+  float weightarea; // area   weighted weight
   float maxval;
   int   vtxmaxval;
   float x,y,z;
@@ -66,6 +68,7 @@ SCS *sclustMapSurfClusters(MRI_SURFACE *Surf, float thmin, float thmax,
 int sclustGrowSurfCluster(int ClustNo, int SeedVtx, MRI_SURFACE *Surf,
                           float thmin, float thmax, int thsign);
 float sclustSurfaceArea(int ClusterNo, MRI_SURFACE *Surf, int *nvtxs) ;
+float sclustWeight(int ClusterNo, MRI_SURFACE *Surf, MRI *mri, int UseArea);
 float sclustSurfaceMax(int ClusterNo, MRI_SURFACE *Surf, int *vtxmax) ;
 int sclustSurfaceCentroid(const int ClusterNo, const MRI_SURFACE *Surf, double *xyz);
 float sclustZeroSurfaceClusterNo(int ClusterNo, MRI_SURFACE *Surf);

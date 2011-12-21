@@ -10,8 +10,8 @@
  * Original Author: Doug Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2011/11/10 16:00:57 $
- *    $Revision: 1.28 $
+ *    $Date: 2011/12/21 18:18:42 $
+ *    $Revision: 1.29 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -51,7 +51,7 @@ static int sclustCompare(const void *a, const void *b);
   ---------------------------------------------------------------*/
 const char *sculstSrcVersion(void)
 {
-  return("$Id: surfcluster.c,v 1.28 2011/11/10 16:00:57 greve Exp $");
+  return("$Id: surfcluster.c,v 1.29 2011/12/21 18:18:42 greve Exp $");
 }
 
 /* ------------------------------------------------------------
@@ -223,6 +223,36 @@ float sclustSurfaceArea(int ClusterNo, MRI_SURFACE *Surf, int *nvtxs)
 
   return(ClusterArea);
 }
+/*----------------------------------------------------------------
+  float sclustWeight() - computes the cluster "weight", defined as
+  the sum of the values in the cluster. If mri != NULL, the value
+  is obtained from the mri structure. If mri==NULL, the the val
+  field in Surf is used. If UseArea==1, then the value at a vertex
+  is weighted by the area at the vertex.
+  ----------------------------------------------------------------*/
+float sclustWeight(int ClusterNo, MRI_SURFACE *Surf, MRI *mri, int UseArea)
+{
+  int vtx, vtx_clusterno;
+  double ClusterWeight,h,vtxarea;
+
+  ClusterWeight = 0.0;
+  for (vtx = 0; vtx < Surf->nvertices; vtx++){
+    vtx_clusterno = Surf->vertices[vtx].undefval;
+    if(vtx_clusterno != ClusterNo) continue;
+    if(mri == NULL)  h = Surf->vertices[vtx].val;
+    else             h = MRIgetVoxVal(mri,vtx,0,0,0);
+    if(UseArea){
+      if(! Surf->group_avg_vtxarea_loaded) vtxarea = Surf->vertices[vtx].area;
+      else                                 vtxarea = Surf->vertices[vtx].group_avg_area;
+      if(Surf->group_avg_surface_area > 0 && ! Surf->group_avg_vtxarea_loaded)
+	 vtxarea *= (Surf->group_avg_surface_area/Surf->total_area);
+      h *= vtxarea;
+    }
+    ClusterWeight += h;
+  }
+  return(ClusterWeight);
+}
+
 /*----------------------------------------------------------------
   sclustSurfaceMax() - returns the maximum intensity value of
   inside a given cluster and the vertex at which it occured.
@@ -399,6 +429,8 @@ SCS *SurfClusterSummary(MRI_SURFACE *Surf, MATRIX *T, int *nClusters)
   {
     scs[n].clusterno = n+1;
     scs[n].area   = sclustSurfaceArea(n+1, Surf, &scs[n].nmembers);
+    scs[n].weightvtx  = sclustWeight(n+1, Surf, NULL, 0);
+    scs[n].weightarea = sclustWeight(n+1, Surf, NULL, 1);
     scs[n].maxval = sclustSurfaceMax(n+1,  Surf, &scs[n].vtxmaxval);
     scs[n].x = Surf->vertices[scs[n].vtxmaxval].x;
     scs[n].y = Surf->vertices[scs[n].vtxmaxval].y;
