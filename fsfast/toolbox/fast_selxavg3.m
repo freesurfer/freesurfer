@@ -1,6 +1,6 @@
 % fast_selxavg3.m
 %
-% $Id: fast_selxavg3.m,v 1.103 2011/12/15 16:33:20 greve Exp $
+% $Id: fast_selxavg3.m,v 1.104 2011/12/21 16:28:02 greve Exp $
 
 
 %
@@ -9,8 +9,8 @@
 % Original Author: Doug Greve
 % CVS Revision Info:
 %    $Author: greve $
-%    $Date: 2011/12/15 16:33:20 $
-%    $Revision: 1.103 $
+%    $Date: 2011/12/21 16:28:02 $
+%    $Revision: 1.104 $
 %
 % Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 %
@@ -31,7 +31,7 @@ fprintf('%s\n',sess);
 
 
 fprintf('-------------------------\n');
-fprintf('$Id: fast_selxavg3.m,v 1.103 2011/12/15 16:33:20 greve Exp $\n');
+fprintf('$Id: fast_selxavg3.m,v 1.104 2011/12/21 16:28:02 greve Exp $\n');
 which fast_selxavg3
 which fast_ldanaflac
 which MRIread
@@ -58,7 +58,7 @@ if(isempty(flac0))
   if(~monly) quit; end
   return; 
 end
-flac0.sxaversion = '$Id: fast_selxavg3.m,v 1.103 2011/12/15 16:33:20 greve Exp $';
+flac0.sxaversion = '$Id: fast_selxavg3.m,v 1.104 2011/12/21 16:28:02 greve Exp $';
 
 flac0.sess = sess;
 flac0.nthrun = 1;
@@ -958,7 +958,7 @@ if(DoContrasts)
     end
     pmat = FTest(dof1, dof2, Fmat);
     ind = find(pmat == 0); pmat(ind) = 1;
-    fsigmat = -log10(pmat);
+    fsigmat = -log10(pmat + eps(0));
 
     % Contrast output
     outcondir = sprintf('%s/%s',outanadir,conname);
