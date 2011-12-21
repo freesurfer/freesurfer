@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2011/11/14 04:40:05 $
- *    $Revision: 1.19 $
+ *    $Date: 2011/12/21 19:12:02 $
+ *    $Revision: 1.20 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -66,7 +66,7 @@ static void dump_options(FILE *fp);
 int SaveOutput(void);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_mcsim.c,v 1.19 2011/11/14 04:40:05 greve Exp $";
+static char vcid[] = "$Id: mri_mcsim.c,v 1.20 2011/12/21 19:12:02 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -103,6 +103,7 @@ char tmpstr[2000],*signstr=NULL;
 int msecTime, nmask, nthRep;
 int *nSmoothsList;
 double fwhmmax=30;
+int SaveWeight=0;
 
 /*---------------------------------------------------------------*/
 int main(int argc, char *argv[]) {
@@ -114,7 +115,7 @@ int main(int argc, char *argv[]) {
   MRI *z, *zabs=NULL, *sig=NULL, *p=NULL;
   int FreeMask = 0;
   int nthSign, nthFWHM, nthThresh;
-  double sigmax, zmax, threshadj, csize, csizeavg, searchspace,avgvtxarea;
+  double sigmax, zmax, threshadj, csize, csizeavg, cweightvtx, searchspace,avgvtxarea;
   int csizen;
   int nClusters, cmax,rmax,smax;
   SURFCLUSTERSUM *SurfClustList;
@@ -184,6 +185,13 @@ int main(int argc, char *argv[]) {
   printf("Loading %s\n",tmpstr);
   surf = MRISread(tmpstr);
   if(!surf) return(1);
+
+  printf("group_avg_surface_area %g\n",surf->group_avg_surface_area);
+  printf("group_avg_vtxarea_loaded %d\n",surf->group_avg_vtxarea_loaded);
+  if(fpLog){
+    fprintf(fpLog,"group_avg_surface_area %g\n",surf->group_avg_surface_area);
+    fprintf(fpLog,"group_avg_vtxarea_loaded %d\n",surf->group_avg_vtxarea_loaded);
+  }
 
   // Handle masking
   if(LabelFile){
@@ -347,6 +355,7 @@ int main(int argc, char *argv[]) {
 	  // Number of vertices of cluster with max number of vertices. 
 	  // Note: this may be a different cluster from above!
 	  csizen = sclustMaxClusterCount(SurfClustList, nClusters);
+	  cweightvtx = sclustMaxClusterWeightVtx(SurfClustList, nClusters, csd->threshsign);
 	  // Area of this cluster based on average vertex area. This just scales
 	  // the number of vertices.
 	  csizeavg = csizen * avgvtxarea;
@@ -354,6 +363,8 @@ int main(int argc, char *argv[]) {
 	  // Store results
 	  csd->nClusters[nthRep] = nClusters;
 	  csd->MaxClusterSize[nthRep] = csize;
+	  csd->MaxClusterSizeVtx[nthRep] = csizen;
+	  csd->MaxClusterWeightVtx[nthRep] = cweightvtx;
 	  csd->MaxSig[nthRep] = sigmax;
 	  csd->MaxStat[nthRep] = zmax;
 	} // Sign
@@ -414,6 +425,7 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--debug"))   debug = 1;
     else if (!strcasecmp(option, "--checkopts"))   checkoptsonly = 1;
     else if (!strcasecmp(option, "--nocheckopts")) checkoptsonly = 0;
+    else if (!strcasecmp(option, "--save-weight")) SaveWeight = 1;
     else if (!strcasecmp(option, "--test")){
       double fwhm;
       nFWHMList = 0;
@@ -644,6 +656,8 @@ static void dump_options(FILE *fp) {
   fprintf(fp,"fwhmmax  %g\n",fwhmmax);
   fprintf(fp,"subject  %s\n",subject);
   fprintf(fp,"hemi     %s\n",hemi);
+  fprintf(fp,"surfname %s\n",surfname);
+  fprintf(fp,"FixVertexAreaFlag %d\n",MRISgetFixVertexAreaValue());
   if(MaskFile) fprintf(fp,"mask     %s\n",MaskFile);
   fprintf(fp,"UseAvgVtxArea %d\n",UseAvgVtxArea);
   fprintf(fp,"SaveFile %s\n",SaveFile);
@@ -683,9 +697,11 @@ int SaveOutput(void)
 	fprintf(fp,"# nvertices-search %d\n",nmask);
 	if(mask) fprintf(fp,"# masking 1\n");
 	else     fprintf(fp,"# masking 0\n");
+	//fprintf(fp,"# FWHM %g\n",FWHMList[nthFWHM]);
 	fprintf(fp,"# SmoothLevel %d\n",nSmoothsList[nthFWHM]);
 	fprintf(fp,"# UseAvgVtxArea %d\n",UseAvgVtxArea);
-	CSDprint(fp, csd);
+	if(!SaveWeight) CSDprint(fp, csd);
+	else CSDprintWeight(fp, csd);
 	fclose(fp);
       }
     }
