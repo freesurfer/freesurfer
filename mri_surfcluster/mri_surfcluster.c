@@ -7,8 +7,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2011/05/25 20:21:45 $
- *    $Revision: 1.53 $
+ *    $Date: 2011/12/21 18:19:02 $
+ *    $Revision: 1.54 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -67,7 +67,7 @@ static int  stringmatch(char *str1, char *str2);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_surfcluster.c,v 1.53 2011/05/25 20:21:45 greve Exp $";
+static char vcid[] = "$Id: mri_surfcluster.c,v 1.54 2011/12/21 18:19:02 greve Exp $";
 char *Progname = NULL;
 
 char *subjectdir = NULL;
@@ -178,7 +178,7 @@ int main(int argc, char **argv) {
   double cmaxsize;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_surfcluster.c,v 1.53 2011/05/25 20:21:45 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_surfcluster.c,v 1.54 2011/12/21 18:19:02 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -512,6 +512,8 @@ int main(int argc, char **argv) {
     fprintf(fp,"# srcsubj %s\n",srcsubjid);
     fprintf(fp,"# hemi %s\n",hemi);
     fprintf(fp,"# surface %s\n",srcsurfid);
+    fprintf(fp,"# group_avg_surface_area %g\n",srcsurf->group_avg_surface_area);
+    fprintf(fp,"# group_avg_vtxarea_loaded %d\n",srcsurf->group_avg_vtxarea_loaded);
     if (annotname) fprintf(fp,"# annot %s\n",annotname);
     fprintf(fp,"# SUBJECTS_DIR %s\n",subjectsdir);
 
@@ -557,7 +559,7 @@ int main(int argc, char **argv) {
 
     if(csd != NULL)  fprintf(fp,"   CWP    CWPLow    CWPHi");
     else if(fwhm > 0) fprintf(fp,"  GRFCWP");
-    fprintf(fp,"   NVtxs");
+    fprintf(fp,"   NVtxs    WghtVtx");
     if (annotname != NULL)  fprintf(fp,"   Annot");
     fprintf(fp,"\n");
 
@@ -576,7 +578,7 @@ int main(int argc, char **argv) {
                 scs[n].pval_clusterwise_low,scs[n].pval_clusterwise_hi);
       else if (fwhm > 0)
 	fprintf(fp,"  %7.5lf",scs[n].pval_clusterwise);
-      fprintf(fp,"  %4d",scs[n].nmembers);
+      fprintf(fp,"  %5d  %10.2f",scs[n].nmembers,scs[n].weightvtx);
       if (annotname != NULL)
         fprintf(fp,"  %s",
                 annotation_to_name(srcsurf->vertices[scs[n].vtxmaxval].annotation,
@@ -1199,7 +1201,7 @@ static void print_help(void) {
     "summary file is shown below.\n"
     "\n"
     "Cluster Growing Summary (mri_surfcluster)\n"
-    "$Id: mri_surfcluster.c,v 1.53 2011/05/25 20:21:45 greve Exp $\n"
+    "$Id: mri_surfcluster.c,v 1.54 2011/12/21 18:19:02 greve Exp $\n"
     "Input :      minsig-0-lh.w\n"
     "Frame Number:      0\n"
     "Minimum Threshold: 5\n"
