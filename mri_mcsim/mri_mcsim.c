@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2011/12/21 19:12:02 $
- *    $Revision: 1.20 $
+ *    $Date: 2011/12/22 17:53:27 $
+ *    $Revision: 1.21 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -66,7 +66,7 @@ static void dump_options(FILE *fp);
 int SaveOutput(void);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_mcsim.c,v 1.20 2011/12/21 19:12:02 greve Exp $";
+static char vcid[] = "$Id: mri_mcsim.c,v 1.21 2011/12/22 17:53:27 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -271,6 +271,12 @@ int main(int argc, char *argv[]) {
     }
   }
 
+  sprintf(tmpstr,"%s/fwhm2niters.dat",OutTop);
+  fp = fopen(tmpstr,"w");
+  for(nthFWHM=0; nthFWHM < nFWHMList; nthFWHM++)
+    fprintf(fp,"%5.1f %4d\n",FWHMList[nthFWHM],nSmoothsList[nthFWHM]);
+  fclose(fp);
+
   // Alloc the z map
   z = MRIallocSequence(surf->nvertices, 1,1, MRI_FLOAT, 1);
 
@@ -403,7 +409,7 @@ int main(int argc, char *argv[]) {
 }
 /* --------------------------------------------- */
 static int parse_commandline(int argc, char **argv) {
-  int  nargc , nargsused;
+  int  nargc , nargsused, nth;
   char **pargv, *option ;
   double fwhm;
 
@@ -521,10 +527,14 @@ static int parse_commandline(int argc, char **argv) {
     } 
     else if (!strcasecmp(option, "--fwhm")) {
       if (nargc < 1) CMDargNErr(option,1);
-      sscanf(pargv[0],"%lf",&fwhm);
-      FWHMList[nFWHMList] = fwhm;
-      nFWHMList++;
-      nargsused = 1;
+      nth = 0;
+      while(CMDnthIsArg(nargc, pargv, nth) ){
+	sscanf(pargv[nth],"%lf",&fwhm);
+	FWHMList[nFWHMList] = fwhm;
+	nFWHMList++;
+	nth++;
+      }
+      nargsused = nth;
     } 
     else if (!strcasecmp(option, "--fwhm-max")) {
       if (nargc < 1) CMDargNErr(option,1);
@@ -555,7 +565,7 @@ static void print_usage(void) {
   printf("   --base csdbase\n");
   printf("   --surface subjectname hemi\n");
   printf("   --nreps nrepetitions\n");
-  printf("   --fwhm FWHM <--fwhm FWHM ...>\n");
+  printf("   --fwhm FWHM <FWHM2 FWHM3 ...>\n");
   printf("   --fwhm-max FWHMMax : sim with fwhm=1:FWHMMax (default %g)\n",fwhmmax);
   printf("   \n");
   printf("   --avgvtxarea : report cluster area based on average vtx area\n");
