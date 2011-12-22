@@ -1,7 +1,7 @@
 #!/bin/tcsh -f
 # thalseg
 
-set VERSION = '$Id: surfreg,v 1.5 2011/12/18 04:06:59 greve Exp $';
+set VERSION = '$Id: surfreg,v 1.6 2011/12/22 00:50:22 greve Exp $';
 
 set subject = ();
 set hemilist  = ();
@@ -50,6 +50,7 @@ echo "cd `pwd`"  | tee -a $LF
 echo $0 $inputargs | tee -a $LF
 echo "" | tee -a $LF
 uname -a  | tee -a $LF
+set tSecStart = `date '+%s'`;
 
 if($DoXHemi) then
   if(! -e $sd/lrrev.register.dat) then
@@ -78,9 +79,16 @@ foreach hemi ($hemilist)
   if($UseNoNeg) set cmd = ($cmd -remove_negative 1)
   set cmd = ($cmd $AvgTif $outreg)
   echo "#CMD# $cmd"|& tee -a $LF
-  $cmd |& tee -a $LF
+  #$cmd |& tee -a $LF
   if($status) exit 1;
 end
+
+# Compute how long it took
+set tSecEnd = `date '+%s'`;
+@ tSecRun = $tSecEnd - $tSecStart;
+set tmpstr = ($hemilist)
+if($#hemilist == 2) set tmpstr = lhrh
+echo "surfreg-Run-Time-Sec $subject $tmpstr $tSecRun" |& tee -a $LF
 
 date  | tee -a $LF
 echo "surfreg done" | tee -a $LF
