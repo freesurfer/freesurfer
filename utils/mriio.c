@@ -8,9 +8,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: lzollei $
- *    $Date: 2011/12/01 22:02:14 $
- *    $Revision: 1.396 $
+ *    $Author: fischl $
+ *    $Date: 2011/12/23 18:56:51 $
+ *    $Revision: 1.397 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -1390,6 +1390,8 @@ MRIwriteFrame(MRI *mri, const char *fname, int frame)
 {
   MRI *mri_tmp ;
 
+  if (frame >= mri->nframes)
+    ErrorExit(ERROR_BADPARM, "MRIwriteFrame(%d) - frame out of bounds (%d)",frame,mri->nframes) ;
   mri_tmp =  MRIcopyFrame(mri, NULL, frame, 0) ;
   MRIwrite(mri_tmp, fname) ;
   MRIfree(&mri_tmp) ;
