@@ -10,8 +10,8 @@
  * Original Author: Doug Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2011/12/21 18:18:42 $
- *    $Revision: 1.29 $
+ *    $Date: 2011/12/23 16:32:31 $
+ *    $Revision: 1.30 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -51,7 +51,7 @@ static int sclustCompare(const void *a, const void *b);
   ---------------------------------------------------------------*/
 const char *sculstSrcVersion(void)
 {
-  return("$Id: surfcluster.c,v 1.29 2011/12/21 18:18:42 greve Exp $");
+  return("$Id: surfcluster.c,v 1.30 2011/12/23 16:32:31 greve Exp $");
 }
 
 /* ------------------------------------------------------------
@@ -585,6 +585,28 @@ int sclustMaxClusterCount(SURFCLUSTERSUM *scs, int nClusters)
   for (n=0; n<nClusters; n++)
     if (maxcount < scs[n].nmembers) maxcount = scs[n].nmembers;
   return(maxcount);
+}
+
+/*-------------------------------------------------------------------
+  sclustMaxClusterWeightVtx() - returns the weightvtx of the cluster 
+  with the maximum weightvtx.
+  -------------------------------------------------------------------*/
+float sclustMaxClusterWeightVtx(SURFCLUSTERSUM *scs, int nClusters, int thsign)
+{
+  int n;
+  float maxw, w;
+
+  if (nClusters==0) return(0);
+
+  if(thsign == 0)  maxw = 0;
+  else             maxw = -thsign*10e10;
+  for (n=0; n<nClusters; n++){
+    w = scs[n].weightvtx;
+    if(thsign ==  0 && fabs(maxw) < fabs(w)) maxw = w;
+    if(thsign == +1 && maxw < w)             maxw = w;
+    if(thsign == -1 && maxw > w)             maxw = w;
+  }
+  return(maxw);
 }
 
 /*---------------------------------------------------------------*/
