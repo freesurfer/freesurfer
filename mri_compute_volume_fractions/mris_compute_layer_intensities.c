@@ -1,5 +1,5 @@
 /**
- * @file  mri_compute_layer_fraction.c
+ * @file  mris_compute_layer_intensities.c
  * @brief compute the % of gm layers 1-6, wm and CSF in each voxel in a volume
  *
  * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2011/12/26 16:12:30 $
- *    $Revision: 1.1 $
+ *    $Date: 2011/12/27 18:43:06 $
+ *    $Revision: 1.2 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -58,10 +58,10 @@
 
 #define NLAYERS        6
 #define NLABELS        9
+#define MAX_LAYERS     50
 
 static int nlayers = NLAYERS ;
 static char *LAMINAR_NAME = "gwdist";
-static char *aseg_name = "aseg" ;
 
 static char *subject_name = NULL ;
 static char *hemi = "lh" ;
@@ -71,30 +71,22 @@ static int get_option(int argc, char *argv[]) ;
 char *Progname ;
 static void usage_exit(int code) ;
 
-static int cortex_only = 1 ;
-static char sdir[STRLEN] = "" ;
-static double resolution = .5 ;
-MRI *add_aseg_structures_outside_ribbon(MRI *mri_src, MRI *mri_aseg, 
-                                        MRI *mri_dst,
-                                       int wm_val, int gm_val, int csf_val) ;
-int MRIcomputePartialVolumeFractions(MRI *mri_src, MATRIX *m_vox2vox, 
-                                     MRI *mri_seg, MRI *mri_fractions) ;
+static int Gwhalf = 3 ;
+static MRI *compute_layer_intensities(MRI *mri_intensities, MRI *mri_volume_fractions, MRI_SURFACE **mris, int nlayers, int whalf0, MRI *mri_layer_intensities) ;
+
 int
 main(int argc, char *argv[]) 
 {
-  char   **av, fname[STRLEN] ;
-  int    ac, nargs, i ;
-  char   *subject, *reg_fname, *in_fname, *out_fname, *cp ;
-  int    msec, minutes, seconds, nvox, float2int, layer ;
+  char   **av ;
+  int    ac, nargs ;
+  int    msec, minutes, seconds, i ;
   struct timeb start ;
-  MRI_SURFACE *mris;
-  MRI         *mri_aseg, *mri_layers, *mri_tmp, *mri_in,
-    *mri_interior_bottom, *mri_interior_top, *mri_fractions ;
-  MATRIX      *m_regdat ;
-  float       intensity, betplaneres, inplaneres ;
+  MRI_SURFACE *mris[MAX_LAYERS];
+  char        fname[STRLEN] ;
+  MRI         *mri_intensities, *mri_volume_fractions, *mri_layer_intensities ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_compute_layer_intensities.c,v 1.1 2011/12/26 16:12:30 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_compute_layer_intensities.c,v 1.2 2011/12/27 18:43:06 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -107,154 +99,39 @@ main(int argc, char *argv[])
     argc -= nargs ;
     argv += nargs ;
   }
-  printf("arg = %d\n", argc) ;
 
-  if (argc < 4)
+  if (argc < 5)
     usage_exit(1) ;
-  if (!strlen(sdir)) {
-    cp = getenv("SUBJECTS_DIR") ;
-    if (!cp)
-      ErrorExit(ERROR_BADPARM,
-                "%s: SUBJECTS_DIR not defined in environment.\n", Progname) ;
-    strcpy(sdir, cp) ;
-  }
-  reg_fname = argv[1] ; in_fname = argv[2] ;
-  out_fname = argv[3] ; Progname = argv[0] ;
+  Progname = argv[0] ;
   ErrorInit(NULL, NULL, NULL) ;
   DiagInit(NULL, NULL, NULL) ;
 
   TimerStart(&start) ;
 
-  printf("reading registration file %s\n", reg_fname) ;
-  if (stricmp(reg_fname, "identity.nofile") == 0)
-  {
-    printf("using identity transform\n") ;
-    m_regdat = MatrixIdentity(4, NULL) ;
-    inplaneres = betplaneres = intensity = 1 ;
-    float2int = 0 ;
-    subject = "unknown" ;
-  }
-  else
-  {
-    regio_read_register(reg_fname, &subject, &inplaneres,
-                        &betplaneres, &intensity,  &m_regdat,
-                        &float2int);
-
-    m_regdat = regio_read_registermat(reg_fname) ;
-    if (m_regdat == NULL)
-      ErrorExit(ERROR_NOFILE, "%s: could not load registration file from %s", Progname,reg_fname) ;
-  }
-
-  if (subject_name)
-    subject = subject_name ;   // specified on command line
-  sprintf(fname, "%s/%s/mri/%s", sdir, subject, aseg_name) ;
-  printf("reading volume %s\n", fname) ;
-  mri_aseg = MRIread(fname) ;
-  if (mri_aseg == NULL)
-    ErrorExit(ERROR_NOFILE, "%s: could not load aseg volume from %s", Progname,fname) ;
-
-  nvox = (int)ceil(256/resolution);  
-  mri_layers = MRIalloc(nvox, nvox, nvox, MRI_UCHAR) ;
-  MRIsetResolution(mri_layers, resolution, resolution, resolution) ;
-  mri_layers->xstart = -resolution*mri_layers->width/2.0 ;
-  mri_layers->xend = resolution*mri_layers->width/2.0 ;
-  mri_layers->ystart = -resolution*mri_layers->height/2.0 ;
-  mri_layers->yend = resolution*mri_layers->height/2.0 ;
-  mri_layers->zstart = -resolution*mri_layers->depth/2.0 ;
-  mri_layers->zend = resolution*mri_layers->depth/2 ;
-  mri_layers->c_r = mri_aseg->c_r ; mri_layers->c_a = mri_aseg->c_a ; 
-  mri_layers->c_s = mri_aseg->c_s ;
-  MRIreInitCache(mri_layers) ; 
-
-  printf("reading laminar surfaces from %s.?\n", LAMINAR_NAME) ;
+  mri_intensities = MRIread(argv[1]) ;
+  if (mri_intensities == NULL)
+    ErrorExit(ERROR_NOFILE, "%s: could not load intensity volume from %s", Progname, argv[1]) ;
+  mri_volume_fractions = MRIread(argv[2]) ;
+  if (mri_volume_fractions == NULL)
+    ErrorExit(ERROR_NOFILE, "%s: could not load volume fractions from %s", Progname, argv[2]) ;
   for (i = 0 ; i <= nlayers ; i++)
   {
-    sprintf(fname, "%s/%s/surf/%s.%s.%d", sdir, subject,hemi,LAMINAR_NAME,i) ;
-    if (FileExists(fname) == 0)
-      sprintf(fname, "%s/%s/surf/%s.%s%3.3d", sdir, subject,hemi,LAMINAR_NAME,i) ;
-    printf("reading surface %s\n", fname) ;
-    mris = MRISread(fname) ;
-    if (mris == NULL)
-      ErrorExit(ERROR_NOFILE, "%s: could not load %s surface %d from %s", 
-                Progname,hemi, fname) ;
-
-    mri_interior_top = MRIclone(mri_layers, NULL) ;
-    MRISfillInterior(mris, resolution, mri_interior_top) ;
-
-    if (Gdiag & DIAG_WRITE)
-    {
-      sprintf(fname, "top%d.mgz", i) ;
-      printf("writing layer %d interior to %s\n", i, fname) ;
-      MRIwrite(mri_interior_top, fname) ;
-    }
-    if (i == 0)  // fill white matter
-    {
-      mri_tmp = MRIclone(mri_interior_top, NULL) ;
-      MRIreplaceValuesOnly(mri_interior_top, mri_tmp, 1, WM_VAL) ;
-      MRIcopyLabel(mri_tmp, mri_layers, WM_VAL) ;
-      MRIfree(&mri_tmp) ;
-    }
-    else  // fill cortical layer
-    {
-      mri_tmp = MRInot(mri_interior_bottom, NULL) ;
-      MRIfree(&mri_interior_bottom) ;
-      MRIand(mri_interior_top, mri_tmp, mri_tmp, 1) ;
-      layer = nlayers-(i-1) ;
-      MRIreplaceValuesOnly(mri_tmp, mri_tmp, 1, layer) ; // layer #
-      MRIcopyLabel(mri_tmp, mri_layers, layer) ;
-      MRIfree(&mri_tmp) ;
-    }
-    if (Gdiag & DIAG_WRITE)
-    {
-      sprintf(fname, "layer%d.mgz", i) ;
-      printf("writing layer %d to %s\n", i, fname) ;
-      MRIwrite(mri_layers, fname) ;
-    }
-    mri_interior_bottom = mri_interior_top ;
+    sprintf(fname, "%s%d", argv[3], i) ;
+    printf("reading laminar surface %s\n", fname) ;
+    mris[i] = MRISread(fname) ;
+    if (mris[i] == NULL)
+      ErrorExit(ERROR_NOFILE, "%s: could not load surface from %s", Progname, fname) ;
   }
-
-  MRIfree(&mri_interior_bottom) ;
-  MRIreplaceValuesOnly(mri_layers, mri_layers, 0, CSF_VAL) ;
-  printf("reading movable volume %s\n", in_fname) ;
-  mri_in = MRIread(in_fname) ;
-  if (mri_in == NULL)
-    ErrorExit(ERROR_NOFILE, "%s: could not load input volume from %s", Progname,in_fname) ;
   
-  {
-    MATRIX *m_conformed_to_epi_vox2vox, *m_seg_to_conformed_vox2vox,
-      *m_seg_to_epi_vox2vox ;
-    
-    m_conformed_to_epi_vox2vox = 
-      MRIvoxToVoxFromTkRegMtx(mri_in, mri_aseg, m_regdat);
-    m_seg_to_conformed_vox2vox = 
-      MRIgetVoxelToVoxelXform(mri_layers, mri_aseg) ;
-    
-    m_seg_to_epi_vox2vox = 
-      MatrixMultiply(m_conformed_to_epi_vox2vox,m_seg_to_conformed_vox2vox,NULL);
-    
-    printf("seg to EPI vox2vox matrix:\n") ;
-    MatrixPrint(Gstdout, m_seg_to_epi_vox2vox) ;
-    mri_fractions = 
-      MRIallocSequence(mri_in->width, mri_in->height, mri_in->depth,
-                       MRI_FLOAT, NLABELS) ;
-    MRIcopyHeader(mri_in, mri_fractions) ;
-    MRIfree(&mri_aseg) ;
-    printf("computing partial volume fractions...\n") ;
-    MRIcomputePartialVolumeFractions(mri_in, m_seg_to_epi_vox2vox, mri_layers, 
-                                     mri_fractions) ;
-    MatrixFree(&m_regdat) ; MatrixFree(&m_conformed_to_epi_vox2vox) ; 
-    MatrixFree(&m_seg_to_conformed_vox2vox);
-  }
-
-  sprintf(fname, "%s.layers.mgz", out_fname) ;
-  printf("writing layer labeling to %s\n", out_fname) ;
-  MRIwrite(mri_fractions, out_fname) ;
+  mri_layer_intensities = compute_layer_intensities(mri_intensities, mri_volume_fractions, mris, nlayers, Gwhalf, NULL) ;
+  printf("writing layer intensities to %s\n", argv[4]) ;
+  MRIwrite(mri_layer_intensities, argv[4]) ;
 
   msec = TimerStop(&start) ;
   seconds = nint((float)msec/1000.0f) ;
   minutes = seconds / 60 ;
   seconds = seconds % 60 ;
-  printf("volume fraction calculation took %d minutes"
+  printf("layer intensities calculation took %d minutes"
           " and %d seconds.\n", minutes, seconds) ;
   exit(0) ;
   return(0) ;
@@ -270,20 +147,12 @@ get_option(int argc, char *argv[]) {
   char *option ;
 
   option = argv[1] + 1 ;            /* past '-' */
-  if (!stricmp(option, "SDIR")) {
-    strcpy(sdir, argv[2]) ;
-    printf("using %s as SUBJECTS_DIR...\n", sdir) ;
-    nargs = 1 ;
-
-  } else if (!stricmp(option, "DEBUG_VOXEL")) {
+  if (!stricmp(option, "DEBUG_VOXEL")) {
     Gx = atoi(argv[2]) ;
     Gy = atoi(argv[3]) ;
     Gz = atoi(argv[4]) ;
     printf("debugging voxel (%d, %d, %d)\n", Gx, Gy, Gz) ;
     nargs = 3 ;
-  } else if (!stricmp(option, "cortex")) {
-    printf("limitting gm val to cortex\n") ;
-    cortex_only = 1 ;
   } else if (!stricmp(option, "nlayers")) {
     nlayers = atoi(argv[2]) ;
     nargs = 1 ;
@@ -292,9 +161,16 @@ get_option(int argc, char *argv[]) {
     hemi = option ;
     printf("processing %s hemisphere\n", hemi) ;
   } else switch (toupper(*option)) {
+  case 'V':
+    Gdiag_no = atoi(argv[2]) ;
+    nargs = 1 ;
+    printf("debugging vertex %d\n", Gdiag_no) ;
+    break ;
   case 'W':
-    Gdiag |= DIAG_WRITE ;
-    printf("turning on write diagnostics\n") ;
+    Gwhalf = atoi(argv[2]) ;
+    printf("using half window size = %d\n", Gwhalf) ;
+    nargs = 1 ;
+    break ;
     break ;
   case 'N':
     LAMINAR_NAME = argv[2] ;
@@ -305,16 +181,6 @@ get_option(int argc, char *argv[]) {
     subject_name = argv[2] ;
     nargs = 1 ;
     printf("overriding subject name in .dat file with %s\n", subject_name) ;
-    break ;
-  case 'A':
-    aseg_name = argv[2] ;
-    nargs = 1 ;
-    printf("using aseg named %s\n", aseg_name) ;
-    break ;
-  case 'R':
-    resolution = atof(argv[2]) ;
-    printf("setting resolution = %2.3f\n", resolution) ;
-    nargs = 1 ;
     break ;
   case '?':
   case 'U':
@@ -335,176 +201,147 @@ get_option(int argc, char *argv[]) {
 ----------------------------------------------------------------------*/
 static void
 usage_exit(int code) {
-  printf("usage: %s [options] <reg file> <input volume> <output stem>\n",
+  printf("usage: %s [options] <input intensity volume> <layer volume fractions file> <input surface> <output overlay>\n",
          Progname) ;
-  printf("  -SDIR SUBJECTS_DIR \n");
   printf(
          "\t\n");
   exit(code) ;
 }
 
-int
-MRIcomputePartialVolumeFractions(MRI *mri_src, MATRIX *m_vox2vox, 
-                                 MRI *mri_seg, MRI *mri_fractions)
+static MRI *
+compute_layer_intensities(MRI *mri_intensities, MRI *mri_volume_fractions, MRI_SURFACE **mris, int nlayers, int whalf0, MRI *mri_layer_intensities)
 {
-  int    x, y, z, xs, ys, zs, label ;
-  VECTOR *v1, *v2 ;
-  MRI    *mri_counts ;
-  float  val, count ;
-  MATRIX *m_inv ;
+  MATRIX  *mF, *mL, *mI, *mFinv ;
+  int     whalf, vno, n, t1, t2, nvals, xvi, yvi, zvi, n1, max_vals ;
+  VERTEX  *v ;
+  double  step, xs, ys, zs, xv, yv, zv ;
+  MRI     *mri_visited ;
 
-  m_inv = MatrixInverse(m_vox2vox, NULL) ;
-  if (m_inv == NULL)
+  step = mri_intensities->xsize/2 ;
+  if (mri_layer_intensities == NULL)
+    mri_layer_intensities = MRIallocSequence(mris[0]->nvertices, 1, 1, MRI_FLOAT, nlayers) ;
+
+  mri_visited = MRIcloneDifferentType(mri_intensities, MRI_UCHAR) ;
+  for (n = 0 ; n <= nlayers ; n++)
   {
-    MatrixPrint(stdout, m_vox2vox) ;
-    ErrorExit(ERROR_BADPARM, "MRIcomputePartialVolumeFractions: non-invertible vox2vox matrix");
+    MRISsetNeighborhoodSize(mris[n],3);
+    MRIScomputeSecondFundamentalForm(mris[n]) ;
   }
-  mri_counts = MRIcloneDifferentType(mri_src, MRI_INT) ;
 
-  v1 = VectorAlloc(4, MATRIX_REAL) ;
-  v2 = VectorAlloc(4, MATRIX_REAL) ;
-  VECTOR_ELT(v1, 4) = 1.0 ; VECTOR_ELT(v2, 4) = 1.0 ;
-  for (x = 0 ; x < mri_seg->width ; x++)
+  mL = MatrixAlloc(nlayers+2, 1, MATRIX_REAL) ;
+  for (vno = 0 ; vno < mris[0]->nvertices ; vno++)
   {
-    V3_X(v1) = x ;
-    for (y = 0 ; y < mri_seg->height ; y++)
+    if (vno == Gdiag_no)
+      DiagBreak() ;
+
+    whalf = whalf0 ;
+    do
     {
-      V3_Y(v1) = y ;
-      for (z = 0 ; z < mri_seg->depth ; z++)
+      // find how many unique vals are within whalf
+      for (max_vals = 0, n = 0 ; n < nlayers ; n++)  // in normal direction
       {
-        if (x == Gx && y == Gy && z == Gz)
-          DiagBreak() ;
-        V3_Z(v1) = z ;
-        MatrixMultiply(m_vox2vox, v1, v2) ;
-        xs = nint(V3_X(v2)) ; ys = nint(V3_Y(v2)) ; zs = nint(V3_Z(v2)) ;
-        if (xs == Gx && ys == Gy && zs == Gz)
-          DiagBreak() ;
-        if (xs >= 0 && ys >= 0 && zs >= 0 &&
-            xs < mri_src->width && ys < mri_src->height && zs < mri_src->depth)
-        {
-          val = MRIgetVoxVal(mri_counts, xs, ys, zs, 0) ;
-          if (val > 0)
-            DiagBreak() ;
-          MRIsetVoxVal(mri_counts, xs, ys, zs, 0, val+1) ;
-
-          label = MRIgetVoxVal(mri_seg, x, y, z, 0) ;
-          if (label >= 0 && label < mri_fractions->nframes)
-          {
-            val = MRIgetVoxVal(mri_fractions, xs, ys, zs, label) ;
-            MRIsetVoxVal(mri_fractions, xs, ys, zs, label, val+1) ;
-          }
-          else
-            DiagBreak() ;
-        }
+	v = &mris[n]->vertices[vno] ;
+	
+	for (t1 = -whalf ; t1 <= whalf ; t1++)    // in tangent plane
+	  for (t2 = -whalf ; t2 <= whalf ; t2++)
+	  {
+	    xs = v->x + step*t1*v->e1x + step*t2*v->e2x;
+	    ys = v->y + step*t1*v->e1y + step*t2*v->e2y;
+	    zs = v->z + step*t1*v->e1z + step*t2*v->e2z;
+	    MRISsurfaceRASToVoxelCached(mris[n], mri_intensities, xs, ys, zs, &xv,&yv,&zv) ;
+	    if (MRIindexNotInVolume(mri_intensities, xv, yv, zv) != 0)
+	      continue ;
+	    xvi = nint(xv) ; yvi = nint(yv) ; zvi = nint(zv) ;
+	    if (MRIgetVoxVal(mri_visited, xvi, yvi, zvi, 0) == 0)
+	    {
+	      max_vals++ ;
+	      MRIsetVoxVal(mri_visited, xvi, yvi, zvi, 0, 1) ;
+	    }
+	  }
       }
-    }
+
+      if (max_vals == 0)
+	continue ;
+      mF = MatrixAlloc(max_vals, nlayers+2, MATRIX_REAL) ;
+      mI = MatrixAlloc(max_vals, 1, MATRIX_REAL) ;
+
+      // unmark the vertices
+      for (n = 0 ; n <= nlayers ; n++)  // in normal direction
+      {
+	v = &mris[n]->vertices[vno] ;
+	
+	for (t1 = -whalf ; t1 <= whalf ; t1++)    // in tangent plane
+	  for (t2 = -whalf ; t2 <= whalf ; t2++)
+	  {
+	    xs = v->x + step*t1*v->e1x + step*t2*v->e2x;
+	    ys = v->y + step*t1*v->e1y + step*t2*v->e2y;
+	    zs = v->z + step*t1*v->e1z + step*t2*v->e2z;
+	    MRISsurfaceRASToVoxelCached(mris[n], mri_intensities, xs, ys, zs, &xv,&yv,&zv) ;
+	    if (MRIindexNotInVolume(mri_intensities, xv, yv, zv) != 0)
+	      continue ;
+	    xvi = nint(xv) ; yvi = nint(yv) ; zvi = nint(zv) ;
+	    MRIsetVoxVal(mri_visited, xvi, yvi, zvi, 0, 0) ;
+	  }
+      }
+      // build the matrices
+      for (nvals = 0, n = 0 ; n <= nlayers ; n++)  // in normal direction
+      {
+	v = &mris[n]->vertices[vno] ;
+	
+	for (t1 = -whalf ; t1 <= whalf ; t1++)    // in tangent plane
+	  for (t2 = -whalf ; t2 <= whalf ; t2++)
+	  {
+	    xs = v->x + step*t1*v->e1x + step*t2*v->e2x;
+	    ys = v->y + step*t1*v->e1y + step*t2*v->e2y;
+	    zs = v->z + step*t1*v->e1z + step*t2*v->e2z;
+	    MRISsurfaceRASToVoxelCached(mris[n], mri_intensities, xs, ys, zs, &xv,&yv,&zv) ;
+	    if (MRIindexNotInVolume(mri_intensities, xv, yv, zv) != 0)
+	      continue ;
+	    xvi = nint(xv) ; yvi = nint(yv) ; zvi = nint(zv) ;
+	    if (nvals >= max_vals)
+	      continue ;
+	    if (MRIgetVoxVal(mri_visited, xvi, yvi, zvi, 0) == 0)
+	    {
+	      MRIsetVoxVal(mri_visited, xvi, yvi, zvi, 0, 1) ;
+	      *MATRIX_RELT(mI, nvals+1, 1) = MRIgetVoxVal(mri_intensities, xvi, yvi, zvi, 0) ;
+	      for (n1 = 0 ; n1 < nlayers ; n1++)
+		*MATRIX_RELT(mF, nvals+1, n1+1) = MRIgetVoxVal(mri_volume_fractions, xvi, yvi, zvi, nlayers-n1) ;
+	      // add wm and csf estimates
+	      *MATRIX_RELT(mF, nvals+1, nlayers+1) = MRIgetVoxVal(mri_volume_fractions, xvi, yvi, zvi, nlayers+1) ;
+	      *MATRIX_RELT(mF, nvals+1, nlayers+2) = MRIgetVoxVal(mri_volume_fractions, xvi, yvi, zvi, nlayers+2) ;
+	      nvals++ ;
+	    }
+	  }
+      }
+      // unmark the vertices
+      for (n = 0 ; n <= nlayers ; n++)  // in normal direction
+      {
+	v = &mris[n]->vertices[vno] ;
+	
+	for (t1 = -whalf ; t1 <= whalf ; t1++)    // in tangent plane
+	  for (t2 = -whalf ; t2 <= whalf ; t2++)
+	  {
+	    xs = v->x + step*t1*v->e1x + step*t2*v->e2x;
+	    ys = v->y + step*t1*v->e1y + step*t2*v->e2y;
+	    zs = v->z + step*t1*v->e1z + step*t1*v->e2z;
+	    MRISsurfaceRASToVoxelCached(mris[n], mri_intensities, xs, ys, zs, &xv,&yv,&zv) ;
+	    if (MRIindexNotInVolume(mri_intensities, xv, yv, zv) != 0)
+	      continue ;
+	    xvi = nint(xv) ; yvi = nint(yv) ; zvi = nint(zv) ;
+	    MRIsetVoxVal(mri_visited, xvi, yvi, zvi, 0, 0) ;
+	  }
+      }
+      mFinv = MatrixPseudoInverse(mF, NULL) ;
+      MatrixMultiply(mFinv, mI, mL) ;
+      for (n = 0 ; n < nlayers ; n++) // fill in outputs
+	MRIsetVoxVal(mri_layer_intensities, vno, 0, 0, n, *MATRIX_RELT(mL, n+1, 1)) ;
+
+      MatrixFree(&mF) ; MatrixFree(&mI) ; MatrixFree(&mFinv) ;
+    } while (whalf == 0) ;
   }
 
-  for (x = 0 ; x < mri_src->width ; x++)
-    for (y = 0 ; y < mri_src->height ; y++)
-      for (z = 0 ; z < mri_src->depth ; z++)
-      {
-        count = MRIgetVoxVal(mri_counts, x, y, z, 0) ;
-        if (count >= 1)
-        {
-          for (label = 0 ; label < mri_fractions->nframes ; label++)
-          {
-            if (x == Gx && y == Gy && z == Gz)
-              DiagBreak() ;
-            val = MRIgetVoxVal(mri_fractions, x, y, z, label) ;
-            MRIsetVoxVal(mri_fractions, x, y, z, label, val/count) ;
-          }
-        }
-        else  // sample in other direction
-        {
-          V3_X(v1) = x ; V3_Y(v1) = y ; V3_Z(v1) = z ;
-          MatrixMultiply(m_inv, v1, v2) ;
-          MatrixMultiply(m_inv, v1, v2) ;
-          xs = nint(V3_X(v2)) ; ys = nint(V3_Y(v2)) ; zs = nint(V3_Z(v2)) ;
-          if (xs >= 0 && ys >= 0 && zs >= 0 &&
-              xs < mri_seg->width && ys < mri_seg->height && zs < mri_seg->depth)
-          {
-            label = MRIgetVoxVal(mri_seg, xs, ys, zs, 0) ;
-            if (label >= 0 && label < mri_fractions->nframes)
-              MRIsetVoxVal(mri_fractions, x, y, z, label, 1) ;
-            else
-              DiagBreak() ;
-          }
-        }
-      }
-  VectorFree(&v1) ; VectorFree(&v2) ;
-  MRIfree(&mri_counts) ; MatrixFree(&m_inv) ;
-  
-  return(NO_ERROR) ;
+  MatrixFree(&mL) ;
+  MRIfree(&mri_intensities) ;
+  return(mri_layer_intensities) ;
 }
-MRI *
-add_aseg_structures_outside_ribbon(MRI *mri_src, MRI *mri_aseg, MRI *mri_dst,
-                                   int wm_val, int gm_val, int csf_val)
-{
-  VECTOR *v1, *v2 ;
-  MATRIX *m_vox2vox ;
-  int    x, y, z, xa, ya, za, label ;
 
-  if (mri_dst == NULL)
-    mri_dst = MRIcopy(mri_src, NULL) ;
-  v1 = VectorAlloc(4, MATRIX_REAL) ;
-  v2 = VectorAlloc(4, MATRIX_REAL) ;
-  VECTOR_ELT(v1, 4) = 1.0 ; VECTOR_ELT(v2, 4) = 1.0 ;
-  m_vox2vox = MRIgetVoxelToVoxelXform(mri_src, mri_aseg) ;
-
-
-  for (x = 0 ; x < mri_dst->width ; x++)
-  {
-    V3_X(v1) = x ;
-    for (y = 0 ; y < mri_dst->height ; y++)
-    {
-      V3_Y(v1) = y ;
-      for (z = 0 ; z < mri_dst->depth ; z++)
-      {
-        if (x == Gx && y == Gy && z == Gz)
-          DiagBreak() ;
-        label = nint(MRIgetVoxVal(mri_dst, x, y, z, 0)) ;
-        if (label != 0)  // already labeled, skip it
-          continue ;
-        V3_Z(v1) = z ;
-        MatrixMultiply(m_vox2vox, v1, v2) ;
-        xa = (int)(nint(V3_X(v2))) ;
-        ya = (int)(nint(V3_Y(v2))) ;
-        za = (int)(nint(V3_Z(v2))) ;
-        if (xa < 0 || ya < 0 || za < 0 ||
-            xa >= mri_aseg->width || ya >= mri_aseg->height || za >= mri_aseg->depth)
-          continue ;
-        if (xa == Gx && ya == Gy && za == Gz)
-          DiagBreak() ;
-        label = nint(MRIgetVoxVal(mri_aseg, xa, ya, za, 0)) ;
-        switch (label)
-        {
-        case Left_Cerebellum_White_Matter:
-        case Right_Cerebellum_White_Matter:
-        case Brain_Stem:
-          MRIsetVoxVal(mri_dst, x, y, z, 0, wm_val) ;
-          break ;
-        case Left_Cerebellum_Cortex:
-        case Right_Cerebellum_Cortex:
-          MRIsetVoxVal(mri_dst, x, y, z, 0, gm_val) ;
-          break ;
-        case Left_Pallidum:
-        case Right_Pallidum:
-        case Left_Thalamus_Proper:
-        case Right_Thalamus_Proper:
-        case Right_Putamen:
-        case Left_Putamen:
-        case Left_Accumbens_area:
-        case Right_Accumbens_area:  // remove them from cortex
-          MRIsetVoxVal(mri_dst, x, y, z, 0, gm_val) ;
-          break ;
-        default:
-          break ;
-        }
-      }
-    }
-  }
-
-  VectorFree(&v1) ; VectorFree(&v2) ; MatrixFree(&m_vox2vox) ;
-  return(mri_dst) ;
-}
