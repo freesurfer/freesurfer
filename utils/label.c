@@ -8,9 +8,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/04/27 13:58:23 $
- *    $Revision: 1.102 $
+ *    $Author: fischl $
+ *    $Date: 2011/12/30 20:06:45 $
+ *    $Revision: 1.103 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -1820,7 +1820,7 @@ LabelFillUnassignedVertices(MRI_SURFACE *mris, LABEL *area, int coords)
   vx = vy = vz = -1;
 
   MRIScomputeVertexSpacingStats(mris, NULL, NULL, &max_spacing,
-                                NULL,&max_vno, CURRENT_VERTICES);
+                                NULL,&max_vno, coords);
 
   for (i = n = 0 ; n < area->n_points ; n++)
   {
@@ -3142,6 +3142,22 @@ LabelCentroid(LABEL *area, MRI_SURFACE *mris, double *px, double *py, double *pz
   *px = xc / num ;
   *py = yc / num ;
   *pz = zc / num ;
+  return(NO_ERROR) ;
+}
+
+int
+LabelFillVolume(MRI *mri, LABEL *area, int fillval)
+{
+  int           n ;
+  double        xv, yv, zv ;
+  LABEL_VERTEX  *lv ;
+
+  for (n = 0 ; n < area->n_points ; n++)
+  {
+    lv = &area->lv[n] ;
+    MRIsurfaceRASToVoxel(mri, lv->x, lv->y, lv->z, &xv, &yv, &zv) ;
+    MRIsetVoxVal(mri, nint(xv), nint(yv), nint(zv), 0, fillval) ;
+  }
   return(NO_ERROR) ;
 }
 
