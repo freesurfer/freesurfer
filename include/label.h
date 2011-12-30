@@ -9,9 +9,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:09 $
- *    $Revision: 1.48 $
+ *    $Author: fischl $
+ *    $Date: 2011/12/30 20:06:50 $
+ *    $Revision: 1.49 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -123,6 +123,7 @@ int   LabelCopyStatsToSurface(LABEL *area, MRI_SURFACE *mris, int which) ;
 LABEL *LabelFillHoles(LABEL *area_src, MRI_SURFACE *mris, int coords) ;
 LABEL *LabelFillHolesWithOrig(LABEL *area_src, MRI_SURFACE *mris) ;
 LABEL *LabelfromASeg(MRI *aseg, int segcode);
+int   LabelFillVolume(MRI *mri, LABEL *label, int fillval) ;
 
 MATRIX *LabelFitXYZ(LABEL *label, int order);
 LABEL *LabelBoundary(LABEL *label, MRIS *surf);
