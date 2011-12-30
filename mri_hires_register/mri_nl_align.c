@@ -8,8 +8,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2011/12/08 19:31:54 $
- *    $Revision: 1.27 $
+ *    $Date: 2011/12/30 19:56:55 $
+ *    $Revision: 1.28 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -32,8 +32,8 @@
 // 
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2011/12/08 19:31:54 $
-// Revision       : $Revision: 1.27 $
+// Revision Date  : $Date: 2011/12/30 19:56:55 $
+// Revision       : $Revision: 1.28 $
 //
 ////////////////////////////////////////////////////////////////////
 
@@ -64,6 +64,8 @@
 #define PADVOX   1
 
 
+static char *label_ignore_name = NULL ;
+static char *label_dist_name = NULL ;
 static int apply_transform = 1 ;
 static int erosions = 0;
 static float scale_values = 1.0 ;
@@ -130,8 +132,10 @@ main(int argc, char *argv[])
 
   // elastic stuff
   mp.lame_mu = 0.38462 ; mp.lame_lambda = 0.57692 ;
+#if 0
   mp.l_smoothness = 0 ;
-  mp.l_elastic = 1 ;
+  mp.l_elastic = 0 ;
+#endif
 
   mp.sigma = 8 ;
   mp.relabel_avgs = -1 ;
@@ -228,6 +232,27 @@ main(int argc, char *argv[])
       }
 #endif
     }
+  if (label_ignore_name)
+  {
+    char path[STRLEN], fname[STRLEN] ;
+    LABEL *area ;
+    FileNamePath(mri_target->fname, path) ;
+    sprintf(fname, "%s/%s", path, label_ignore_name) ;
+    area = LabelRead(NULL, fname) ;
+    if (area == NULL)
+      ErrorExit(ERROR_NOFILE, "%s: could not load label from %s", Progname, fname) ;
+    LabelFillVolume(mri_target, area, 0) ;
+    LabelFree(&area) ;
+#if 0
+    FileNamePath(mri_source->fname, path) ;
+    sprintf(fname, "%s/%s", path, label_ignore_name) ;
+    area = LabelRead(NULL, fname) ;
+    if (area == NULL)
+      ErrorExit(ERROR_NOFILE, "%s: could not load label from %s", Progname, fname) ;
+    LabelFillVolume(mri_source, area, 0) ;
+    LabelFree(&area) ;
+#endif
+  }
   mri_orig_source = MRIcopy(mri_source, NULL) ;
 
   mp.max_grad = 0.3*mri_source->xsize ;
@@ -285,6 +310,21 @@ main(int argc, char *argv[])
 			      0, 0) ;
 #endif
       GCAMinitVolGeom(gcam, mri_source, mri_target) ;
+      if (label_dist_name)
+      {
+	char path[STRLEN], fname[STRLEN] ;
+	LABEL *area ;
+	
+	FileNamePath(mri_target->fname, path) ;
+	sprintf(fname, "%s/%s", path, label_dist_name) ;
+	area = LabelRead(NULL, fname) ;
+	if (area == NULL)
+	  ErrorExit(ERROR_NOFILE, "%s: could not load label from %s", Progname, fname) ;
+	GCAMsetStatus(gcam, GCAM_IGNORE_DISTANCES) ;
+	mp.l_distance = 1 ;
+	GCAMpreserveLabelMetricProperties(gcam, area, mri_target) ;
+	LabelFree(&area) ;
+      }
       if (use_aseg)
 	{
 	  if (ribbon_name)
@@ -374,6 +414,21 @@ main(int argc, char *argv[])
       printf("using previously create gcam...\n") ;
       gcam = (GCA_MORPH *)(transform->xform) ;
       GCAMrasToVox(gcam, mri_source) ;
+      if (label_dist_name)
+      {
+	char path[STRLEN], fname[STRLEN] ;
+	LABEL *area ;
+	
+	FileNamePath(mri_target->fname, path) ;
+	sprintf(fname, "%s/%s", path, label_dist_name) ;
+	area = LabelRead(NULL, fname) ;
+	if (area == NULL)
+	  ErrorExit(ERROR_NOFILE, "%s: could not load label from %s", Progname, fname) ;
+	GCAMsetStatus(gcam, GCAM_IGNORE_DISTANCES) ;
+	mp.l_distance = 100;
+	GCAMpreserveLabelMetricProperties(gcam, area, mri_target) ;
+	LabelFree(&area) ;
+      }
       if (use_aseg)
 	{
 	  GCAMinitLabels(gcam, mri_target) ;
@@ -524,6 +579,16 @@ get_option(int argc, char *argv[])
       {
 	match_mean_intensity = match_peak_intensity_ratio = 0 ;
       }
+  }
+  else if (!stricmp(option, "label"))  {
+    label_ignore_name = argv[2] ;
+    nargs = 1 ;
+    printf("ignoring voxels in label %s\n", label_ignore_name) ;
+  }
+  else if (!stricmp(option, "label_dist"))  {
+    label_dist_name = argv[2] ;
+    nargs = 1 ;
+    printf("preserving metric properties in label %s\n", label_dist_name) ;
   }
   else if (!stricmp(option, "aseg"))  {
     match_mean_intensity = match_peak_intensity_ratio = 0 ;
