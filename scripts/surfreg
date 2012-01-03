@@ -1,7 +1,7 @@
 #!/bin/tcsh -f
 # thalseg
 
-set VERSION = '$Id: surfreg,v 1.8 2012/01/02 23:34:24 greve Exp $';
+set VERSION = '$Id: surfreg,v 1.9 2012/01/03 17:47:50 greve Exp $';
 
 set subject = ();
 set hemilist  = ();
@@ -92,9 +92,11 @@ end
 # Compute how long it took
 set tSecEnd = `date '+%s'`;
 @ tSecRun = $tSecEnd - $tSecStart;
+set tRunHours = `echo $tSecRun/3600|bc -l`
+set tRunHours = `printf %5.2f $tRunHours`
 set tmpstr = ($hemilist)
 if($#hemilist == 2) set tmpstr = lhrh
-echo "surfreg-Run-Time-Sec $subject $tmpstr $tSecRun" |& tee -a $LF
+echo "surfreg-Run-Time-Hours $subject $tmpstr $DoXHemi $tRunHours" |& tee -a $LF
 
 date  | tee -a $LF
 echo "surfreg done" | tee -a $LF
@@ -204,8 +206,8 @@ if(! -e $sd) then
   exit 1;
 endif
 if($#OutSurf == 0) then
-  if($target == fsaverage) set InitSurf = sphere.reg
-  if($target != fsaverage) set InitSurf = $target.sphere.reg  
+  if($target == fsaverage) set OutSurf = sphere.reg
+  if($target != fsaverage) set OutSurf = $target.sphere.reg  
 endif
 if($#InitSurf == 0) set InitSurf = sphere
 
