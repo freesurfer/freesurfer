@@ -10,8 +10,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2011/08/09 17:13:21 $
-#    $Revision: 1.55 $
+#    $Date: 2012/01/03 00:24:56 $
+#    $Revision: 1.56 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -28,7 +28,7 @@
 # uncomment this to increase number of allowable open files to maximum:
 #limit descriptors unlimited
 
-set VERSION = '$Id: make_average_surface,v 1.55 2011/08/09 17:13:21 greve Exp $';
+set VERSION = '$Id: make_average_surface,v 1.56 2012/01/03 00:24:56 greve Exp $';
 setenv FIX_VERTEX_AREA
 
 set PrintHelp = 0;
@@ -92,13 +92,12 @@ set LF = ${ddir}/scripts/make_average_surface.log
 if(-e $LF) mv $LF $LF.bak
 
 echo "" | tee -a $LF
-echo $0 | tee -a $LF
-echo $inputargs | tee -a $LF
+echo "setenv SUBJECTS_DIR $SUBJECTS_DIR" | tee -a $LF
+echo $0 $inputargs | tee -a $LF
 echo "" | tee -a $LF
 echo $VERSION | tee -a $LF
 date | tee -a $LF
 pwd | tee -a $LF
-echo "setenv SUBJECTS_DIR $SUBJECTS_DIR" | tee -a $LF
 echo "output ddir is $sdout" | tee -a $LF
 id | tee -a $LF
 
@@ -141,14 +140,12 @@ endif
 
 set tmp_subjects = ( $SUBJECTS )
 
+cd $sdout/${average_subject}
+
 #------------------------------------------------------------
+# Make the lh and rh template first so that other jobs can be started
 foreach hemi ($hemilist)
-
   echo ""  | tee -a $LF
-  echo ""  | tee -a $LF
-
-  cd $sdout/${average_subject}
-
   # ------------------------------------------------------------------
   echo "#@# Making $hemi registration template ---------"  | tee -a $LF
   set atlas = $hemi.reg.template.tif
@@ -158,9 +155,13 @@ foreach hemi ($hemilist)
   echo $cmd | tee -a $LF
   $cmd |& tee -a $LF
   if($status) exit(1);
+end
 
+#------------------------------------------------------------
+# Now do everything else
+foreach hemi ($hemilist)
   if($DoTemplateOnly) continue;
-
+  echo ""  | tee -a $LF
   #--------------------------------------------------------------
   # Do we really want to do this?
   echo "#@# Making $hemi annotation ---------------------"  | tee -a $LF
