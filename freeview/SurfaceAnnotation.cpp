@@ -11,8 +11,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2011/08/03 20:18:54 $
- *    $Revision: 1.16 $
+ *    $Date: 2012/01/04 17:23:20 $
+ *    $Revision: 1.17 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -83,15 +83,6 @@ void SurfaceAnnotation::Reset()
   m_nCenterVertices = NULL;
 }
 
-/*
-void SurfaceAnnotation::DoListenToMessage ( std::string const iMessage, void* iData, void* sender )
-{
-  if ( iMessage == "ColorMapChanged" )
-  {
-    this->SendBroadcast( "AnnotationChanged", this );
-  }
-}
-*/
 
 bool SurfaceAnnotation::LoadAnnotation( const QString& fn )
 {

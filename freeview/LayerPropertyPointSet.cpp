@@ -11,8 +11,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2011/09/13 16:11:19 $
- *    $Revision: 1.6 $
+ *    $Date: 2012/01/04 17:23:20 $
+ *    $Revision: 1.7 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -290,16 +290,7 @@ double LayerPropertyPointSet::GetScalarMaxValue()
 
   return max;
 }
-/*
-void LayerPropertyPointSet::DoListenToMessage ( std::string const iMessage,
-               void* iData, void* sender )
-{
-  if ( iMessage == "LayerObjectDeleted" && iData == m_layerScalar )
-  {
-    m_layerScalar = NULL;
-  }
-}
-*/
+
 bool LayerPropertyPointSet::LoadScalarsFromFile( const QString& filename )
 {
   QFile file(filename);

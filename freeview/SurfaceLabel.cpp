@@ -10,9 +10,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/05/25 20:20:44 $
- *    $Revision: 1.8 $
+ *    $Author: rpwang $
+ *    $Date: 2012/01/04 17:23:20 $
+ *    $Revision: 1.9 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -69,15 +69,6 @@ SurfaceLabel::~SurfaceLabel ()
   }
 }
 
-/*
-void SurfaceLabel::DoListenToMessage ( std::string const iMessage, void* iData, void* sender )
-{
-  if ( iMessage == "ColorMapChanged" )
-  {
-    this->SendBroadcast( "OverlayChanged", this );
-  }
-}
-*/
 
 QString SurfaceLabel::GetName()
 {

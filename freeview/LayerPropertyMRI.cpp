@@ -12,8 +12,8 @@
  * Reimplemented by: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2011/10/20 21:22:40 $
- *    $Revision: 1.9 $
+ *    $Date: 2012/01/04 17:23:20 $
+ *    $Revision: 1.10 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -1073,7 +1073,6 @@ void LayerPropertyMRI::SetClearZero( bool bClear )
   if ( mbClearZero != bClear )
   {
     mbClearZero = bClear;
-    // this->SendBroadcast( "ClearZeroChanged", this );
     this->OnColorMapChanged();
   }
 }

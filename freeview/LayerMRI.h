@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2011/12/16 18:26:29 $
- *    $Revision: 1.74 $
+ *    $Date: 2012/01/04 17:23:20 $
+ *    $Revision: 1.75 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -100,9 +100,6 @@ public:
 
   void RASToOriginalIndex( const double* pos, int* n );
   void OriginalIndexToRAS( const int* n, double* pos );
-
-
-//  virtual void DoListenToMessage ( std::string const iMessage, void* iData, void* sender );
 
   virtual void SetVisible( bool bVisible = true );
   virtual bool IsVisible();

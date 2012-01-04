@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2011/12/09 21:25:56 $
- *    $Revision: 1.8 $
+ *    $Date: 2012/01/04 17:23:20 $
+ *    $Revision: 1.9 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -40,6 +40,7 @@
 #include <QMouseEvent>
 #include <QShowEvent>
 #include <QDebug>
+#include <QMenu>
 
 InfoTreeWidget::InfoTreeWidget(QWidget* parent) :
   QTreeWidget(parent)
@@ -363,5 +364,37 @@ void InfoTreeWidget::UpdateTrackVolumeAnnotation(Layer *layer, const QVariantMap
         item->setText(1, QString("%1 \t%2").arg(info["label"].toInt()).arg(info["name"].toString()));
       }
     }
+  }
+}
+
+void InfoTreeWidget::contextMenuEvent(QContextMenuEvent * e)
+{
+  QList<Layer*> layers = MainWindow::GetMainWindow()->GetLayerCollection( "MRI" )->GetLayers();
+  layers += MainWindow::GetMainWindow()->GetLayerCollection( "Surface" )->GetLayers();
+
+  if ( layers.isEmpty())
+    return;
+
+  QMenu* menu = new QMenu;
+  foreach (Layer* layer, layers)
+  {
+    QAction* act = new QAction(layer->GetName(), this);
+    act->setCheckable(true);
+    act->setChecked(layer->GetProperty()->GetShowInfo());
+    act->setData(qVariantFromValue(qobject_cast<QObject*>(layer)));
+    connect(act, SIGNAL(toggled(bool)), this, SLOT(OnToggleShowInfo(bool)));
+    menu->addAction(act);
+  }
+  menu->exec(e->globalPos());
+}
+
+void InfoTreeWidget::OnToggleShowInfo(bool bShow)
+{
+  QAction* act = qobject_cast<QAction*>(sender());
+  if (act)
+  {
+    Layer* layer = qobject_cast<Layer*>(qVariantValue<QObject*>(act->data()));
+    if (layer)
+      layer->GetProperty()->SetShowInfo(bShow);
   }
 }

@@ -6,9 +6,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/14 23:44:47 $
- *    $Revision: 1.4 $
+ *    $Author: rpwang $
+ *    $Date: 2012/01/04 17:23:20 $
+ *    $Revision: 1.5 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -584,52 +584,6 @@ void LayerPointSet::UpdatePoint( double* ras, int nIndex, bool rebuildActor )
     RebuildActors();
   }
 }
-
-/*
-void LayerPointSet::DoListenToMessage( std::string const iMessage, void* iData, void* sender )
-{
-  if ( iMessage == "ColorMapChanged" )
-  {
-    this->UpdateColorMap();
-    this->SendBroadcast( "LayerActorUpdated", this );
-  }
-  else if ( iMessage == "OpacityChanged" )
-  {
-    this->UpdateOpacity();
-    this->SendBroadcast( "LayerActorUpdated", this );
-  }
-  else if ( iMessage == "RadiusChanged" )
-  {
-    this->RebuildActors();
-    this->SendBroadcast( "LayerActorUpdated", this );
-  }
-  else if ( iMessage == "ScalarLayerChanged" )
-  {
-    this->RebuildActors();
-    this->SendBroadcast( "LayerActorUpdated", this );
-  }
-  else if ( iMessage == "ScalarSetChanged" )
-  {
-    this->RebuildActors();
-    this->SendBroadcast( "LayerActorUpdated", this );
-  }
-  else if ( iMessage == "SplineVisibilityChanged" )
-  {
-    this->SetVisible( IsVisible() );
-    this->RebuildActors();
-    this->SendBroadcast( "LayerActorUpdated", this );
-  }
-  else if ( iMessage == "SnapToVoxelCenterChanged" )
-  {
-    for ( size_t i = 0; i < m_points.size(); i++ )
-      UpdatePoint( m_points[i].pt, i, false );
-    this->RebuildActors();
-    this->SendBroadcast( "LayerActorUpdated", this );
-  }
-
-  LayerEditable::DoListenToMessage( iMessage, iData, sender );
-}
-*/
 
 void LayerPointSet::UpdateSnapToVoxelCenter()
 {
