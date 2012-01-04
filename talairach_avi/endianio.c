@@ -7,10 +7,10 @@
  * 
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2007/08/04 04:15:50 $
- *    $Revision: 1.3 $
+ *    $Date: 2012/01/04 03:17:25 $
+ *    $Revision: 1.3.6.1 $
  *
- * Copyright 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007
+ * Copyright 1999 - 2011
  * Washington University, Mallinckrodt Institute of Radiology.
  * All Rights Reserved.
  *
@@ -33,7 +33,7 @@
 
 #define MAXL		256
 
-static char rcsid[] = "$Id: endianio.c,v 1.3 2007/08/04 04:15:50 nicks Exp $";
+static char rcsid[] = "$Id: endianio.c,v 1.3.6.1 2012/01/04 03:17:25 nicks Exp $";
 void endianio_rcs (void) {printf ("%s\n", rcsid);}
 
 void swab2 (char *a) {
@@ -194,7 +194,7 @@ int gwrite (char *imgt, size_t bytes, int n, FILE *fp, char control) {
 void load_4dfp_frame (char *fileroot, int *imgdim, int frame, int isbig, float *fimg) {
 	FILE		*fp;
 	static char	subr[] = "load_4dfp_frame";
-	char		filespc[MAXL];
+	char		filespc[4*MAXL];
 	int		vdim, i, swab_flag;
 
 	vdim = imgdim[0]*imgdim[1]*imgdim[2];
@@ -211,12 +211,12 @@ void load_4dfp_frame (char *fileroot, int *imgdim, int frame, int isbig, float *
 int get_4dfp_dimoe (char *fileroot, int *imgdim, float *voxsiz, int *orient, int *isbig) {
 	IFH		ifh;
 	static char	subr[] = "get_4dfp_dimoe";
-	char		filespc[MAXL];
+	char		filespc[4*MAXL];
 	int		i, k, status;
 	char		*TCS[3] = {"T", "C", "S"};
 
 	getroot (fileroot, filespc);
-	if ((i = strlen (filespc)) + 10 > MAXL) {
+	if ((i = strlen (filespc)) + 10 > 4*MAXL) {
 		fprintf (stdout, "%s: %s filename too long\n", subr, fileroot);
 		return -1;
 	}
@@ -244,11 +244,11 @@ int get_4dfp_dimoe (char *fileroot, int *imgdim, float *voxsiz, int *orient, int
 int get_4dfp_dimoe_quiet (char *fileroot, int *imgdim, float *voxsiz, int *orient, int *isbig) {
 	IFH		ifh;
 	static char	subr[] = "get_4dfp_dimoe_quiet";
-	char		filespc[MAXL];
+	char		filespc[4*MAXL];
 	int		i, k, status;
 
 	getroot (fileroot, filespc);
-	if ((i = strlen (filespc)) + 10 > MAXL) {
+	if ((i = strlen (filespc)) + 10 > 4*MAXL) {
 		fprintf (stderr, "%s: %s filename too long\n", subr, fileroot);
 		return -1;
 	}
