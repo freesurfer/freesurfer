@@ -1,7 +1,7 @@
 #!/bin/tcsh -f
 # thalseg
 
-set VERSION = '$Id: surfreg,v 1.9 2012/01/03 17:47:50 greve Exp $';
+set VERSION = '$Id: surfreg,v 1.10 2012/01/04 22:27:28 greve Exp $';
 
 set subject = ();
 set hemilist  = ();
@@ -73,10 +73,8 @@ foreach hemi ($hemilist)
     set AvgCurvTifPath = "${FREESURFER_HOME}/average"
     set AvgCurvTif = average.curvature.filled.buckner40.tif
     set AvgTif = ${AvgCurvTifPath}/$hemi.${AvgCurvTif}
-    if($DoXHemi)  set outreg = $sd/xhemi/surf/$hemi.sphere.reg
   else
     set AvgTif = $SUBJECTS_DIR/$target/$hemi.reg.template.tif
-    if($DoXHemi)  set outreg = $sd/xhemi/surf/$hemi.$target.sphere.reg
   endif
   set outreg = $sd/surf/$hemi.$OutSurf
   set InitSurfPath = $sd/surf/$hemi.$InitSurf
@@ -205,6 +203,8 @@ if(! -e $sd) then
   echo "ERROR: cannot find $subject in $SUBJECTS_DIR"
   exit 1;
 endif
+if($DoXHemi) set sd = $SUBJECTS_DIR/$subject/xhemi
+
 if($#OutSurf == 0) then
   if($target == fsaverage) set OutSurf = sphere.reg
   if($target != fsaverage) set OutSurf = $target.sphere.reg  
@@ -219,10 +219,8 @@ foreach hemi ($hemilist)
     set AvgCurvTifPath = "${FREESURFER_HOME}/average"
     set AvgCurvTif = average.curvature.filled.buckner40.tif
     set AvgTif = ${AvgCurvTifPath}/$hemi.${AvgCurvTif}
-    if($DoXHemi)  set outreg = $sd/xhemi/surf/$hemi.sphere.reg
   else
     set AvgTif = $SUBJECTS_DIR/$target/$hemi.reg.template.tif
-    if($DoXHemi)  set outreg = $sd/xhemi/surf/$hemi.$target.sphere.reg
   endif
   if(! -e $AvgTif) then
     echo "ERROR: cannot find $AvgTif"
