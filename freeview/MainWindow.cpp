@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2011/12/16 18:26:29 $
- *    $Revision: 1.198 $
+ *    $Date: 2012/01/04 21:20:21 $
+ *    $Revision: 1.199 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -197,8 +197,10 @@ MainWindow::MainWindow( QWidget *parent, MyCmdLineParser* cmdParser ) :
           m_dlgRepositionSurface, SLOT(UpdateUI()));
 //  connect(ui->view3D, SIGNAL(SurfaceVertexClicked()),
 //          m_dlgRepositionSurface, SLOT(OnSurfaceVertexClicked()));
-  connect(this, SIGNAL(SlicePositionChanged()),
-          m_dlgRepositionSurface, SLOT(OnSlicePositionChanged()), Qt::QueuedConnection);
+  connect(this, SIGNAL(SurfaceRepositionVertexChanged()),
+          m_dlgRepositionSurface, SLOT(UpdateVertex()), Qt::QueuedConnection);
+  connect(this, SIGNAL(SurfaceRepositionIntensityChanged()),
+          m_dlgRepositionSurface, SLOT(UpdateIntensity()), Qt::QueuedConnection);
 
   m_wndTimeCourse = new WindowTimeCourse(this);
   m_wndTimeCourse->hide();
@@ -5166,4 +5168,9 @@ void MainWindow::OnSaveIsoSurface()
       QMessageBox::warning(this, "Error", QString("Could not save iso surface to %1.").arg(fn));
     }
   }
+}
+
+bool MainWindow::IsRepositioningSurface()
+{
+  return this->m_dlgRepositionSurface->isVisible();
 }

@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2011/12/16 18:26:29 $
- *    $Revision: 1.5 $
+ *    $Date: 2012/01/04 21:20:20 $
+ *    $Revision: 1.6 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -251,11 +251,9 @@ void DialogRepositionSurface::OnSurfaceVertexClicked()
   }
 }
 
-void DialogRepositionSurface::OnSlicePositionChanged()
+void DialogRepositionSurface::UpdateVertex()
 {
   LayerSurface* surf = (LayerSurface*)MainWindow::GetMainWindow()->GetActiveLayer( "Surface" );
-  LayerMRI* mri = (LayerMRI*)MainWindow::GetMainWindow()->GetTopVisibleLayer("MRI");
-  bool bUpdate = false;
   if (surf)
   {
     int nVertex = surf->GetVertexIndexAtTarget( surf->GetSlicePosition(), NULL );
@@ -263,9 +261,14 @@ void DialogRepositionSurface::OnSlicePositionChanged()
     {
       ui->lineEditVertex->setText( QString::number(nVertex) );
       ui->lineEditVertex2->setText(QString::number(nVertex) );
-      bUpdate = true;
+      OnCoordinateTypeChanged();
     }
   }
+}
+
+void DialogRepositionSurface::UpdateIntensity()
+{
+  LayerMRI* mri = (LayerMRI*)MainWindow::GetMainWindow()->GetTopVisibleLayer("MRI");
   if (mri)
   {
     double ras[3];
@@ -275,11 +278,9 @@ void DialogRepositionSurface::OnSlicePositionChanged()
     if (val >= 0)
     {
       ui->lineEditTarget->setText(QString::number(val, 'f', 2));
-      bUpdate = true;
+      OnCoordinateTypeChanged();
     }
   }
-  if (bUpdate)
-    OnCoordinateTypeChanged();
 }
 
 void DialogRepositionSurface::OnCoordinateTypeChanged()

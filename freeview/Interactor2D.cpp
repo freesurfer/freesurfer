@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2011/12/14 17:13:44 $
- *    $Revision: 1.29 $
+ *    $Date: 2012/01/04 21:20:21 $
+ *    $Revision: 1.30 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -31,6 +31,7 @@
 #include "LayerMRI.h"
 #include <vtkRenderer.h>
 #include <QDebug>
+#include <QTimer>
 
 Interactor2D::Interactor2D( QObject* parent ) : Interactor( parent ),
   m_nMousePosX( -1 ),
@@ -53,6 +54,7 @@ bool Interactor2D::ProcessMouseDownEvent( QMouseEvent* event, RenderView* render
 
   view->UpdateAnnotation();
 
+  MainWindow* mainwnd = MainWindow::GetMainWindow();
   if ( ( event->modifiers() & CONTROL_MODIFIER ) &&  !( event->modifiers() & Qt::ShiftModifier ) )
   {
     if ( event->button() == Qt::LeftButton )
@@ -76,7 +78,8 @@ bool Interactor2D::ProcessMouseDownEvent( QMouseEvent* event, RenderView* render
     m_nDownPosX = m_nMousePosX;
     m_nDownPosY = m_nMousePosY;
 
-    if ( !( event->modifiers() & CONTROL_MODIFIER ) &&  ( event->modifiers() & Qt::ShiftModifier ) )
+    if ( !( event->modifiers() & CONTROL_MODIFIER ) &&  ( event->modifiers() & Qt::ShiftModifier ) &&
+         !mainwnd->IsRepositioningSurface())
     {
       m_bWindowLevel = true;
     }
@@ -85,6 +88,14 @@ bool Interactor2D::ProcessMouseDownEvent( QMouseEvent* event, RenderView* render
       m_bMovingCursor = true;
       view->UpdateCursorRASPosition( m_nMousePosX, m_nMousePosY );
       view->RequestRedraw();
+      if (mainwnd->IsRepositioningSurface())
+      {
+        if ( event->modifiers() & CONTROL_MODIFIER &&
+          event->modifiers() & Qt::ShiftModifier)
+          QTimer::singleShot(0, mainwnd, SIGNAL(SurfaceRepositionIntensityChanged()));
+        else if (event->modifiers() & Qt::ShiftModifier)
+          QTimer::singleShot(0, mainwnd, SIGNAL(SurfaceRepositionVertexChanged()));
+      }
     }
   }
   else if ( event->button() == Qt::MidButton && ( event->modifiers() & Qt::ShiftModifier ) )

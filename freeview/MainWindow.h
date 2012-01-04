@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2011/12/16 18:26:29 $
- *    $Revision: 1.110 $
+ *    $Date: 2012/01/04 21:20:21 $
+ *    $Revision: 1.111 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -186,10 +186,14 @@ public:
 
   Layer* GetSupplementLayer(const QString& type);
 
+  bool IsRepositioningSurface();
+
 Q_SIGNALS:
   void MainViewChanged( int n );
   void ViewLayoutChanged( int n );
   void SlicePositionChanged();
+  void SurfaceRepositionVertexChanged();
+  void SurfaceRepositionIntensityChanged();
 
 public slots:
   void SetMode( int nMode );
