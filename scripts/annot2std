@@ -7,8 +7,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2011/12/19 23:21:44 $
-#    $Revision: 1.1 $
+#    $Date: 2012/01/05 18:41:21 $
+#    $Revision: 1.2 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -23,14 +23,14 @@
 #
 
 
-set VERSION = '$Id: annot2std,v 1.1 2011/12/19 23:21:44 greve Exp $';
+set VERSION = '$Id: annot2std,v 1.2 2012/01/05 18:41:21 greve Exp $';
 
-set target = fsaverage;
+set target = ();
 set subjlist = ();
 set inannot = ();
 set outannot = ();
-set srcsurfreg = sphere.reg
-set trgsurfreg = sphere.reg
+set srcsurfreg = ();
+set trgsurfreg = ();
 set hemi = ();
 set DoXHemi = 0;
 set Overwrite = 0;
@@ -269,8 +269,6 @@ while( $#argv != 0 )
 
     case "--xhemi":
       set DoXHemi = 1;
-      set target = fsaverage_sym
-      set srcsurfreg = fsaverage_sym.sphere.reg
       breaksw
 
     case "--surfreg":
@@ -365,18 +363,38 @@ if($#subjlist == 0) then
   echo "ERROR: must spec subjects"
   exit 1;
 endif
+if($#target == 0) then
+  echo "ERROR: must spec target subject"
+  exit 1;
+endif
 if(! -e $SUBJECTS_DIR/$target) then
   echo "ERROR: cannot find $target in $SUBJECTS_DIR"
   exit 1;
 endif
+if($target != fsaverage && $#srcsurfreg == 0) then
+  echo "ERROR: must spec source surf reg when target is not fsaverage"
+  exit 1;
+endif
+if($#srcsurfreg == 0) set srcsurfreg = sphere.reg
+if($#trgsurfreg == 0) set trgsurfreg = sphere.reg
 foreach subject ($subjlist)
   set fname = $SUBJECTS_DIR/$subject/label/$hemi.$inannot.annot
   if(! -e $fname) then
     echo "ERROR: cannot find $fname"
     exit 1;
   endif
+  set fname = $SUBJECTS_DIR/$subject/surf/$hemi.$srcsurfreg
+  if(! -e $fname) then
+    echo "ERROR: cannot find $fname"
+    exit 1;
+  endif
   if($DoXHemi) then
     set fname = $SUBJECTS_DIR/$subject/xhemi/label/$hemi.$inannot.annot
+    if(! -e $fname) then
+      echo "ERROR: cannot find $fname"
+      exit 1;
+    endif
+    set fname = $SUBJECTS_DIR/$subject/xhemi/surf/$hemi.$srcsurfreg
     if(! -e $fname) then
       echo "ERROR: cannot find $fname"
       exit 1;
@@ -407,10 +425,10 @@ usage_exit:
   echo "  --s subj1 <--s subj2 ... --s subjN>"
   echo "  --fsgd fsgdfile"
   echo "  --f subjectlistfile"
+  echo "  --t target : target subject (eg, fsaverage)"
   echo ""
   echo "  --lh or --rh (but not both)"
   echo ""
-  echo "  --t target : target subject (fsaverage or fsaverage_sym for --xhemi)"
   echo "  --xhemi (for interhemispheric analysis)"
   echo "  --surfreg surfreg (default is sphere.reg)"
   echo "  --srcsurfreg srcsurfreg (default is sphere.reg)"
@@ -448,7 +466,7 @@ label.
 
 EXAMPLE
 
-annot2std --f b40.slist.dat --lh --aparc --o lh.aparc.std.annot 
+annot2std --f b40.slist.dat --lh --aparc --o lh.aparc.std.annot --t fsaverage
 
 This will create lh.aparc.std.annot and lh.aparc.std.annot.p.mgh
 
