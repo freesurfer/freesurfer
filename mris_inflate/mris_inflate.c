@@ -11,9 +11,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:32 $
- *    $Revision: 1.43 $
+ *    $Author: greve $
+ *    $Date: 2012/01/05 18:36:17 $
+ *    $Revision: 1.44 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -49,7 +49,7 @@
 #endif // FS_CUDA
 
 static char vcid[] =
-  "$Id: mris_inflate.c,v 1.43 2011/03/02 00:04:32 nicks Exp $";
+  "$Id: mris_inflate.c,v 1.44 2012/01/05 18:36:17 greve Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -88,7 +88,7 @@ main(int argc, char *argv[])
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mris_inflate.c,v 1.43 2011/03/02 00:04:32 nicks Exp $",
+   "$Id: mris_inflate.c,v 1.44 2012/01/05 18:36:17 greve Exp $",
    "$Name:  $", cmdline);
 
 #ifdef FS_CUDA
@@ -99,7 +99,7 @@ main(int argc, char *argv[])
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mris_inflate.c,v 1.43 2011/03/02 00:04:32 nicks Exp $",
+           "$Id: mris_inflate.c,v 1.44 2012/01/05 18:36:17 greve Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
   {
@@ -169,11 +169,10 @@ main(int argc, char *argv[])
     }
   }
 
-  if (!SaveSulc)
-  {
-    printf("Not saving sulc\n");
-  }
+  if (!SaveSulc) printf("Not saving sulc\n");
 
+  printf("Reading %s\n",in_fname) ;
+  fflush(stdout);
   mris = MRISread(in_fname) ;
   if (!mris)
     ErrorExit(ERROR_NOFILE, "%s: could not read surface file %s",
