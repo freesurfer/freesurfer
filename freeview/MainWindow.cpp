@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2012/01/04 21:20:21 $
- *    $Revision: 1.199 $
+ *    $Date: 2012/01/05 18:14:15 $
+ *    $Revision: 1.200 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -2365,10 +2365,20 @@ QColor MainWindow::ParseColorInput(const QString &strg)
   QColor color;
   if (!strg.contains(','))
   {
-    if (strg.indexOf("light", 0, Qt::CaseInsensitive) == 0)
-      color = QColor(strg.mid(5)).lighter();
-    else
-      color = QColor( strg );
+    if (QColor::isValidColor(strg))
+      color = QColor(strg);
+    else if (strg.indexOf("light", 0, Qt::CaseInsensitive) == 0)
+    {
+      QString name = strg.mid(5);
+      if (QColor::isValidColor(name))
+        color = QColor(name).lighter();
+    }
+    else if (strg.indexOf("dark", 0, Qt::CaseInsensitive) == 0)
+    {
+      QString name = strg.mid(4);
+      if (QColor::isValidColor(name))
+        color = QColor(name).darker();
+    }
   }
   if ( !color.isValid() )
   {
