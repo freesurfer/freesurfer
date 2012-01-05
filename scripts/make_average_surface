@@ -10,8 +10,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2012/01/03 00:24:56 $
-#    $Revision: 1.56 $
+#    $Date: 2012/01/05 21:19:15 $
+#    $Revision: 1.57 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -28,7 +28,7 @@
 # uncomment this to increase number of allowable open files to maximum:
 #limit descriptors unlimited
 
-set VERSION = '$Id: make_average_surface,v 1.56 2012/01/03 00:24:56 greve Exp $';
+set VERSION = '$Id: make_average_surface,v 1.57 2012/01/05 21:19:15 greve Exp $';
 setenv FIX_VERTEX_AREA
 
 set PrintHelp = 0;
@@ -51,6 +51,7 @@ set DoXHemi = 0;
 set topdir = ();
 set DoTemplateOnly = 0;
 set hemilist = ();
+set measlist = (sulc curv thickness area volume inflated.H)
 
 # these should match latest declarations in recon-all
 set DESIKAN_GCS = curvature.buckner40.filled.desikan_killiany.2010-03-25.gcs
@@ -87,6 +88,7 @@ mkdir -p ${ddir} \
         ${ddir}/scripts \
         ${ddir}/label \
         ${ddir}/stats
+cd $sdout/${average_subject}
 
 set LF = ${ddir}/scripts/make_average_surface.log
 if(-e $LF) mv $LF $LF.bak
@@ -100,6 +102,8 @@ date | tee -a $LF
 pwd | tee -a $LF
 echo "output ddir is $sdout" | tee -a $LF
 id | tee -a $LF
+
+set tSecStart = `date '+%s'`;
 
 #
 # Begin script guts...
@@ -129,6 +133,15 @@ echo $cmd | tee -a $LF
 $cmd  | tee -a $LF
 if($status) exit 1;
 
+# Create a file with the list of subjects (will not include xhemi)
+set subjlistfile = /tmp/subjlistfile.$$
+rm -f $subjlistfile
+foreach s ($SUBJECTS)
+  echo $s >> $subjlistfile
+end
+cp $subjlistfile list.subjects.txt
+set subjlistfile = $SUBJECTS_DIR/$average_subject/list.subjects.txt
+
 # Include cross-hemi registration
 if($DoXHemi) then
   set tmp = ();
@@ -138,10 +151,6 @@ if($DoXHemi) then
   set SUBJECTS = ($tmp);
 endif
 
-set tmp_subjects = ( $SUBJECTS )
-
-cd $sdout/${average_subject}
-
 #------------------------------------------------------------
 # Make the lh and rh template first so that other jobs can be started
 foreach hemi ($hemilist)
@@ -150,7 +159,7 @@ foreach hemi ($hemilist)
   echo "#@# Making $hemi registration template ---------"  | tee -a $LF
   set atlas = $hemi.reg.template.tif
   set cmd = (mris_make_template -norot -annot aparc \
-             $hemi $sphere_reg $tmp_subjects $atlas)
+             $hemi $sphere_reg $SUBJECTS $atlas)
   pwd | tee -a $LF
   echo $cmd | tee -a $LF
   $cmd |& tee -a $LF
@@ -161,43 +170,18 @@ end
 # Now do everything else
 foreach hemi ($hemilist)
   if($DoTemplateOnly) continue;
+
   echo ""  | tee -a $LF
-  #--------------------------------------------------------------
-  # Do we really want to do this?
-  echo "#@# Making $hemi annotation ---------------------"  | tee -a $LF
-  date  | tee -a $LF
-  set GCS     = $DESIKAN_GCS
-  set CPAtlas = $hemi.$GCS
-  set annot = label/$hemi.aparc.annot
-  set cmd = (mris_ca_label -ml-annot $CPAtlas $ico_no $annot)
-  echo $cmd  | tee -a $LF
-  pwd | tee -a $LF
-  $cmd |& tee -a $LF
-  if($status) then
-    echo "ERROR: mris_ca_label failed"  | tee -a $LF
-    exit 1;
-  endif
-
-  set GCS     = $DESTRIEUX_GCS
-  set CPAtlas = $hemi.$GCS
-  set annot   = label/$hemi.aparc.a2009s.annot
-  set cmd = (mris_ca_label -ml-annot $CPAtlas $ico_no $annot)
-  echo $cmd  | tee -a $LF
-  pwd | tee -a $LF
-  $cmd |& tee -a $LF
-  if($status) then
-    echo "ERROR: mris_ca_label failed"  | tee -a $LF
-    exit 1;
-  endif
+  cd $sdout/$average_subject
 
   #--------------------------------------------------------------
-  foreach s (orig white pial inflated)
+  foreach s (white pial orig)
     echo "#@# Making average $hemi.$s surface ---------------------"  | tee -a $LF
     date  | tee -a $LF
     set cmd = (mris_make_average_surface $XFORM_FLAG \
                 -i $ico_no -o $s -sdir-out $sdout\
                 ${hemi} \
-                ${s}_avg ${sphere_reg} \
+                ${s} ${sphere_reg} \
                 ${average_subject} \
                 $SUBJECTS )
     pwd  | tee -a $LF
@@ -209,96 +193,67 @@ foreach hemi ($hemilist)
     endif
     echo ""  | tee -a $LF
     echo ""  | tee -a $LF
-  end
-  # mris_make_average_surface creates its own sphere.reg, so copy over it with ico
-  mv surf/${hemi}.${sphere_reg} surf/${hemi}.${sphere_reg}.avg
+  end # loop over surfaces
+
+  #--------------------------------------------------------------
+  # Create sphere and sphere.reg
+  # mris_make_average_surface creates its own sphere.reg, 
+  # so delete it and copy ico
+  rm -f surf/$hemi.$sphere_reg
   if($ico_no == 7) then
     # for historical reasons, use ?h.sphere.reg for ico7
-    cp ${FREESURFER_HOME}/average/surf/${hemi}.sphere.reg surf/${hemi}.${sphere_reg}
-    cp ${FREESURFER_HOME}/average/surf/${hemi}.sphere.reg surf/${hemi}.sphere.reg
+    set icoreg = ${FREESURFER_HOME}/average/surf/${hemi}.sphere.reg 
   else
-    cp ${FREESURFER_HOME}/average/surf/${hemi}.sphere.ico$ico_no.reg surf/${hemi}.${sphere_reg}
-    cp ${FREESURFER_HOME}/average/surf/${hemi}.sphere.ico$ico_no.reg surf/${hemi}.sphere.reg
+    set icoreg = ${FREESURFER_HOME}/average/surf/${hemi}.sphere.ico$ico_no.reg 
+  endif
+  cp $icoreg surf/$hemi.sphere
+  # Create a link to sphere.reg (want to do this? or reg to fsaverage?)
+  if($UseSymLink) then
+    cd surf
+    ln -s  $hemi.sphere $hemi.sphere.reg
+    ln -s  $hemi.sphere $hemi.$average_subject.sphere.reg
+    cd ..
+  else
+    cp  surf/$hemi.sphere surf/$hemi.sphere.reg
+    cp  surf/$hemi.sphere surf/$hemi.$average_subject.sphere.reg
   endif
   echo "---------------------------------------------------"  | tee -a $LF
   echo "" | tee -a $LF
-  echo "" | tee -a $LF
-  echo "" | tee -a $LF
-
-  #--------------------------------------------------------------
-  foreach c (sulc curv thickness)
-    echo "#@# Making average $hemi.$c ----------------------" | tee -a $LF
-    date
-    set cmd = (mris_average_curvature \
-                -o ${average_subject} \
-                $c \
-                ${hemi} \
-                ${sphere_reg} \
-                $SUBJECTS \
-                $sdout/${average_subject}/surf/${hemi}.avg_${c})
-    pwd | tee -a $LF
-    echo $cmd | tee -a $LF
-    $cmd |& tee -a $LF
-    if($status) then
-      echo "mris_average_curvature failed" | tee -a $LF
-      exit 1;
-    endif
-    echo "" | tee -a $LF
-    echo "" | tee -a $LF
-
-    if(0 && $UseSymLink) then
-      pushd $sdout/$average_subject/surf/
-      ln -s -f $hemi.avg_$c $hemi.$c
-      popd
-    else
-      cp $sdout/$average_subject/surf/$hemi.avg_$c \
-         $sdout/$average_subject/surf/$hemi.$c
-    endif
-
-  end
-  echo "---------------------------------------------------" | tee -a $LF
-  echo "" | tee -a $LF
-  echo "" | tee -a $LF
-  echo ""
 
   #--------------------------------------------------------------
   echo "#@# Smoothing, inflating, etc $hemi ----------------" | tee -a $LF
   cd $sdout/${average_subject}/surf
-  pwd     | tee -a $LF
+  pwd | tee -a $LF
 
-  # This writes out ?h.area and ?h.curv. Want area, not curv.
-  set cmd = (mris_smooth -n 5 ./${hemi}.white_avg ./${hemi}.smoothwm)
+  # Smooth white to get smoothwm (should average the indiv smoothwms?)
+  set cmd = (mris_smooth -nw -n 5 ./${hemi}.white ./${hemi}.smoothwm)
   echo $cmd |& tee -a $LF
   $cmd | tee -a $LF
+  if($status) exit 1;
   echo "" | tee -a $LF
-  rm $hemi.curv
-  cp $hemi.avg_curv $hemi.curv
 
-  set niters = "";
+  # Inflate the smoothwm
+  set niters = "-n 15";
   if($ico_no <= 5) set niters = "-n 2";
-  set cmd = (mris_inflate -no-save-sulc $niters ./${hemi}.smoothwm ./${hemi}.inflated)
+  set cmd = (mris_inflate -dist .01 -f .001 -no-save-sulc $niters ./${hemi}.smoothwm ./${hemi}.inflated)
   echo $cmd |& tee -a $LF
   $cmd | tee -a $LF
+  if($status) exit 1;
   echo "" | tee -a $LF
 
-  set cmd = (mris_curvature -a 10 -w ./${hemi}.white_avg)
-  echo $cmd |& tee -a $LF
-  $cmd | tee -a $LF
-  echo "" | tee -a $LF
+  cd $sdout/$average_subject
 
-  if($UseSymLink) then
-    ln -s -f ${hemi}.${sphere_reg} ${hemi}.sphere
-    ln -s -f ${hemi}.orig_avg  ${hemi}.orig
-    ln -s -f ${hemi}.white_avg ${hemi}.white
-    ln -s -f ${hemi}.pial_avg  ${hemi}.pial
-  else
-    cp -f ${hemi}.${sphere_reg} ${hemi}.sphere
-    cp -f ${hemi}.orig_avg  ${hemi}.orig
-    cp -f ${hemi}.white_avg ${hemi}.white
-    cp -f ${hemi}.pial_avg  ${hemi}.pial
-  endif
+  # Create average annot
+  foreach annot (aparc aparc.a2009s)
+    set cmd = (annot2std --o label/$hemi.$annot.annot --$hemi \
+      --f $subjlistfile --t $average_subject --a $annot \
+      --srcsurfreg $sphere_reg --trgsurfreg sphere.reg)
+    if($DoXHemi) set cmd = ($cmd --xhemi)
+    echo $cmd | tee -a $LF
+    $cmd |& tee -a $LF
+    if($status) exit 1
+  end
 
-  # -----------------------------------------------------
   # Create cortex label from Christophe's medial wall
   set annot = $ddir/label/$hemi.aparc.a2009s.annot
   if(! -e $annot) then
@@ -315,7 +270,13 @@ foreach hemi ($hemilist)
   echo $cmd |& tee -a $LF
   $cmd |& tee -a $LF
   if($status) exit 1;
-  mv $tmpdir/$hemi.Medial_wall.label $ddir/label; # Move medial wall
+  set MW = $tmpdir/$hemi.Unknown.label
+  if(! -e $MW) set MW = $tmpdir/$hemi.Medial_wall.label
+  if(! -e $MW) then
+    echo "ERROR: cannot find $hemi.Unknown.label or $hemi.Medial_wall.label"
+    exit 1;
+  endif
+  mv $MW $ddir/label/$hemi.Medial_wall.label # Move medial wall out of dir
   # Create the cortex label with all the remaining labels
   set ctxlabel = $ddir/label/$hemi.cortex.label
   set cmd = (mri_mergelabels -o $ctxlabel -d $tmpdir)
@@ -323,34 +284,50 @@ foreach hemi ($hemilist)
   $cmd |& tee -a $LF
   if($status) exit 1;
   rm -rf $tmpdir; # Cleanup
-  # -------- done creating cortex label -----------------
 
-end
-
-if(! $DoTemplateOnly) then
-  #--------------------------------------------------------------
-  # Now create the average area surface
-  set subjlistfile = /tmp/subjlist.$$
-  rm -f $subjlistfile
-  echo $SUBJECTS > $subjlistfile
-  foreach hemi ($hemilist)
-    foreach surf (orig white pial)
-      set avgarea = $hemi.$surf.avg.area.mgh
-      set cmd = (mris_preproc --out $avgarea  --f $subjlistfile)
-      set cmd = ($cmd --target $average_subject --hemi $hemi)
-      set cmd = ($cmd --area $surf --mean --surfreg $sphere_reg)
-      pwd | tee -a $LF
-      echo $cmd | tee -a $LF
-      $cmd |& tee -a $LF
-      if($status) exit (1)
-    end
-  end
-endif
+  # Create average surface measures
+  foreach meas ($measlist)
+    set measout = $ddir/surf/stack.$hemi.$meas.mgh
+    set cmd = (mris_preproc --out $measout  --f $subjlistfile \
+    --target $average_subject --hemi $hemi --meas $meas \
+    --srcsurfreg $sphere_reg --log $ddir/scripts/mris_preproc.$hemi.$meas.log)
+    if($DoXHemi) set cmd = ($cmd --xhemi)
+    echo $cmd | tee -a $LF
+    $cmd |& tee -a $LF
+    if($status) exit 1
+    # Compute average across subject
+    set avgmeas = $ddir/surf/$hemi.$meas.avg.mgh
+    if($meas == area) set avgmeas = $ddir/surf/$hemi.avg.white.area.mgh; # backcompat
+    set cmd = (mri_concat $measout --mean --o $avgmeas)
+    echo $cmd | tee -a $LF
+    $cmd |& tee -a $LF
+    if($status) exit 1
+    # Compute std across subject
+    set stdmeas = $ddir/surf/std.$hemi.$meas.mgh
+    set cmd = (mri_concat $measout --std --o $stdmeas)
+    echo $cmd | tee -a $LF
+    $cmd |& tee -a $LF
+    if($status) exit 1
+    # Convert avg to curv
+    set tval = $ddir/surf/$hemi.$meas
+    set cmd = (mri_surf2surf --sval $avgmeas --s $average_subject \
+     --tval $tval --trg_type curv --hemi $hemi)
+    pwd | tee -a $LF
+    echo $cmd | tee -a $LF
+    $cmd |& tee -a $LF
+    if($status) exit 1
+    # Delete temporary stuff
+    if($meas != area) rm $avgmeas 
+  end # meas
+end # hemi
 
 echo "---------------------------------------------------" | tee -a $LF
 echo "" | tee -a $LF
-echo "" | tee -a $LF
-echo "" | tee -a $LF
+set tSecEnd = `date '+%s'`;
+@ tSecRun = $tSecEnd - $tSecStart;
+set tRunHours = `echo $tSecRun/3600|bc -l`
+set tRunHours = `printf %5.2f $tRunHours`
+echo "make_average_surface-Run-Time-Hours $tRunHours" |& tee -a $LF
 date | tee -a $LF
 echo "make_average_surface done" | tee -a $LF
 echo ""
@@ -381,6 +358,7 @@ while( $#argv != 0 )
       echo $VERSION
       exit 0;
 
+    case "--s":
     case "--subjects":
       if ( $#argv == 0) goto arg1moreerr;
       set SUBJECTS = $argv[1]; shift;
@@ -464,6 +442,16 @@ while( $#argv != 0 )
       endif
       if ( $#argv == 0) goto arg1err;
       set ico_no = $argv[1]; shift;
+      breaksw
+
+    case "--meas"
+      if ( $getting_subjects ) then
+        # got em all, from --subjects variable arg loop
+        set getting_subjects = 0;
+        shift;
+      endif
+      if($#argv < 1) goto arg1err;
+      set measlist = ($measlist $argv[1]); shift;
       breaksw
 
     case "--symlink":
