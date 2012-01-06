@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2011/12/20 13:40:50 $
- *    $Revision: 1.712 $
+ *    $Author: greve $
+ *    $Date: 2012/01/06 21:51:43 $
+ *    $Revision: 1.713 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -734,7 +734,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void)
 {
-  return("$Id: mrisurf.c,v 1.712 2011/12/20 13:40:50 fischl Exp $");
+  return("$Id: mrisurf.c,v 1.713 2012/01/06 21:51:43 greve Exp $");
 }
 
 /*-----------------------------------------------------
@@ -9152,20 +9152,23 @@ MRISupdateEllipsoidSurface(MRI_SURFACE *mris)
 
 
 /*-----------------------------------------------------
-  Parameters:
-
-  Returns value:
-
-  Description
+  MRISaverageGradients() - spatially smooths gradients (dx,dy,dz)
+  using num_avgs nearest-neighbor averages. See also 
+  MRISaverageGradientsFast()
   ------------------------------------------------------*/
-int
-MRISaverageGradients(MRI_SURFACE *mris, int num_avgs)
+int MRISaverageGradients(MRI_SURFACE *mris, int num_avgs)
 {
   int    i, vno, vnb, *pnb, vnum ;
   float  dx, dy, dz, num, sigma ;
   VERTEX *v;
   const VERTEX *vn ;
   MRI_SP *mrisp, *mrisp_blur ;
+
+  if(getenv("AVERAGE_GRADIENTS_FAST") != NULL){
+    printf("Info: using MRISaverageGradientsFast()\n");
+    i=MRISaverageGradientsFast(mris,num_avgs);
+    return(i);
+  }
 
   if (num_avgs <= 0)
     return(NO_ERROR) ;
@@ -9190,8 +9193,7 @@ MRISaverageGradients(MRI_SURFACE *mris, int num_avgs)
     for (vno = 0 ; vno < mris->nvertices ; vno++)
     {
       v = &mris->vertices[vno] ;
-      if (v->ripflag)
-        continue ;
+      if (v->ripflag) continue ;
       dx = v->dx ;
       dy = v->dy ;
       dz = v->dz ;
@@ -9201,28 +9203,11 @@ MRISaverageGradients(MRI_SURFACE *mris, int num_avgs)
       for (num = 0.0f, vnb = 0 ; vnb < vnum ; vnb++)
       {
         vn = &mris->vertices[*pnb++] ; /* neighboring vertex pointer */
-        if (vn->ripflag)
-          continue ;
+        if (vn->ripflag) continue ;
         num++ ;
         dx += vn->dx ;
         dy += vn->dy ;
         dz += vn->dz ;
-
-#ifdef INCLUDE_DIAG
-        if (!devFinite(dx) || !devFinite(dy) || !devFinite(dz))
-          DiagBreak() ;
-#endif
-#if 0
-        if (vno == Gdiag_no)
-        {
-          float dot ;
-          dot = vn->dx*v->dx + vn->dy*v->dy + vn->dz*v->dz ;
-          if (dot < 0)
-            fprintf(stdout,
-                    "vn %d: dot = %2.3f, dx = (%2.3f, %2.3f, %2.3f)\n",
-                    v->v[vnb], dot, vn->dx, vn->dy, vn->dz) ;
-        }
-#endif
       }
       num++ ;
       v->tdx = dx / num ;
@@ -9232,12 +9217,7 @@ MRISaverageGradients(MRI_SURFACE *mris, int num_avgs)
     for (vno = 0 ; vno < mris->nvertices ; vno++)
     {
       v = &mris->vertices[vno] ;
-      if (v->ripflag)
-        continue ;
-#ifdef INCLUDE_DIAG
-      if (!devFinite(v->tdx) || !devFinite(v->tdy) || !devFinite(v->tdz))
-        DiagBreak() ;
-#endif
+      if (v->ripflag)  continue ;
       v->dx = v->tdx ;
       v->dy = v->tdy ;
       v->dz = v->tdz ;
@@ -9254,6 +9234,221 @@ MRISaverageGradients(MRI_SURFACE *mris, int num_avgs)
       DiagBreak() ;
   }
   return(NO_ERROR) ;
+}
+/*-----------------------------------------------------
+  MRISaverageGradientsFast() - spatially smooths gradients (dx,dy,dz)
+  using num_avgs nearest-neighbor averages. This is a faster version
+  of MRISaverageGradients(). Should be about 40% faster. It also gives
+  identical results as can be verified with MRISaverageGradientsFastCheck().
+  ------------------------------------------------------*/
+int MRISaverageGradientsFast(MRI_SURFACE *mris, int num_avgs)
+{
+  int    vno, vnb, *pnb, num, nthavg ;
+  VERTEX *v, *vn ;
+  float **pdx,**pdy,**pdz, sumdx, sumdy, sumdz;
+  float **pdx0,**pdy0,**pdz0;
+  float *tdx, *tdy, *tdz, *tdx0, *tdy0, *tdz0;
+  int *nNbrs, *nNbrs0, *rip, *rip0, nNbrsMax;
+
+  nNbrsMax = 12; // Should measure this, but overalloc does not hurt
+
+  // Alloc arrays. If there are ripped vertices, then only rip 
+  // needs nvertices elements
+  pdx = (float **) calloc(mris->nvertices*nNbrsMax,sizeof(float *));
+  pdy = (float **) calloc(mris->nvertices*nNbrsMax,sizeof(float *));
+  pdz = (float **) calloc(mris->nvertices*nNbrsMax,sizeof(float *));
+  tdx = (float *) calloc(mris->nvertices,sizeof(float));
+  tdy = (float *) calloc(mris->nvertices,sizeof(float));
+  tdz = (float *) calloc(mris->nvertices,sizeof(float));
+  nNbrs = (int *) calloc(mris->nvertices,sizeof(int));
+  rip = (int *) calloc(mris->nvertices,sizeof(int));
+
+  pdx0 = pdx;
+  pdy0 = pdy;
+  pdz0 = pdz;
+  tdx0 = tdx;
+  tdy0 = tdy;
+  tdz0 = tdz;
+  rip0 = rip;
+  nNbrs0 = nNbrs;
+
+  // Set up pointers
+  for (vno = 0 ; vno < mris->nvertices ; vno++){
+    v = &mris->vertices[vno] ;
+    if(v->ripflag) {
+      rip[vno] = 1;
+      continue ;
+    }
+    rip[vno] = 0;
+    *pdx++ = &(v->dx);
+    *pdy++ = &(v->dy);
+    *pdz++ = &(v->dz);
+    pnb = v->v;
+    num = 1;
+    for (vnb = 0 ; vnb < v->vnum ; vnb++) {
+      vn = &mris->vertices[*pnb++] ; /* neighboring vertex pointer */
+      if(vn->ripflag) continue ;
+      *pdx++ = &(vn->dx);
+      *pdy++ = &(vn->dy);
+      *pdz++ = &(vn->dz);
+      num++ ;
+    }
+    *nNbrs++ = num;
+  }
+
+  //Loop through the iterations
+  for(nthavg = 0; nthavg < num_avgs; nthavg++){
+    // Init pointers for this iteration
+    pdx = pdx0;
+    pdy = pdy0;
+    pdz = pdz0;
+    rip = rip0;
+    nNbrs = nNbrs0;
+    tdx = tdx0;
+    tdy = tdy0;
+    tdz = tdz0;
+    // Loop through vertices, average nearest neighbors
+    for (vno = 0 ; vno < mris->nvertices ; vno++){
+      if(*rip++) continue ;
+      sumdx = *(*pdx++);
+      sumdy = *(*pdy++);
+      sumdz = *(*pdz++);
+      for(vnb = 0 ; vnb < (*nNbrs)-1 ; vnb++) {
+	sumdx += *(*pdx++);
+	sumdy += *(*pdy++);
+	sumdz += *(*pdz++);
+      }
+      *tdx++ = sumdx/(*nNbrs);
+      *tdy++ = sumdy/(*nNbrs);
+      *tdz++ = sumdz/(*nNbrs);
+      nNbrs++;
+    }
+    // Load up for the next round
+    rip = rip0;
+    tdx = tdx0;
+    tdy = tdy0;
+    tdz = tdz0;
+    for (vno = 0 ; vno < mris->nvertices ; vno++){
+      if(*rip++) continue ;
+      v = &mris->vertices[vno] ;
+      v->dx = *tdx++;
+      v->dy = *tdy++;
+      v->dz = *tdz++;
+    }
+  }
+
+  rip = rip0;
+  for (vno = 0 ; vno < mris->nvertices ; vno++){
+    if(*rip++) continue ;
+    v = &mris->vertices[vno] ;
+    v->tdx = v->dx;
+    v->tdy = v->dy;
+    v->tdz = v->dz;
+  }
+
+  free(pdx0);
+  free(pdy0);
+  free(pdz0);
+  free(tdx0);
+  free(tdy0);
+  free(tdz0);
+  free(rip0);
+  free(nNbrs0);
+
+  return(NO_ERROR) ;
+}
+/*--------------------------------------------------------*/
+int MRISaverageGradientsFastCheck(int num_avgs)
+{
+  char tmpstr[2000], *AGF;
+  MRIS *mrisA, *mrisB;
+  int k,msec,nerrs;
+  struct timeb mytimer;
+  float e;
+
+  // Make sure to turn off override (restored later)
+  AGF = getenv("AVERAGE_GRADIENTS_FAST");
+  unsetenv("AVERAGE_GRADIENTS_FAST");
+
+  printf("MRISaverageGradientsFastCheck() num_avgs = %d\n",num_avgs);
+  
+  sprintf(tmpstr,"%s/subjects/fsaverage/surf/lh.white",getenv("FREESURFER_HOME"));
+  printf("Reading surface %s\n",tmpstr);
+  mrisA = MRISread(tmpstr);
+  mrisB = MRISclone(mrisA);
+
+  printf("Init\n");
+  for(k=0; k<mrisA->nvertices; k++){
+    mrisA->vertices[k].dx = drand48();
+    mrisA->vertices[k].dy = drand48();
+    mrisA->vertices[k].dz = drand48();
+    mrisA->vertices[k].tdx = 0;
+    mrisA->vertices[k].tdy = 0;
+    mrisA->vertices[k].tdz = 0;
+    mrisB->vertices[k].dx = mrisA->vertices[k].dx;
+    mrisB->vertices[k].dy = mrisA->vertices[k].dy;
+    mrisB->vertices[k].dz = mrisA->vertices[k].dz;
+    mrisB->vertices[k].tdx = 0;
+    mrisB->vertices[k].tdy = 0;
+    mrisB->vertices[k].tdz = 0;
+  }
+  // Make sure at least 1 is ripped
+  printf("ripping vertex 100\n");
+  mrisA->vertices[100].ripflag = 1; 
+  mrisB->vertices[100].ripflag = 1; 
+
+  printf("Running Original Version\n");
+  TimerStart(&mytimer) ;
+  MRISaverageGradients(mrisA, num_avgs);
+  msec = TimerStop(&mytimer) ;
+  printf("Original %6.2f min\n",msec/(1000*60.0));
+
+  printf("Running Fast Version\n");
+  TimerStart(&mytimer) ;
+  MRISaverageGradientsFast(mrisB, num_avgs);
+  msec = TimerStop(&mytimer) ;
+  printf("Fast %6.2f min\n",msec/(1000*60.0));
+
+  printf("Checking for differences\n");
+  nerrs = 0;
+  for(k=0; k<mrisA->nvertices; k++){
+    e = fabs(mrisA->vertices[k].dx - mrisB->vertices[k].dx);
+    if(e > .0000001){
+      printf("ERROR: dx v=%d, e=%g, %g %g\n",k,e,mrisA->vertices[k].dx,mrisB->vertices[k].dx);
+      nerrs++;
+    }
+    e = fabs(mrisA->vertices[k].dy - mrisB->vertices[k].dy);
+    if(e > .0000001){
+      printf("ERROR: dy v=%d, e=%g, %g %g\n",k,e,mrisA->vertices[k].dy,mrisB->vertices[k].dy);
+      nerrs++;
+    }
+    e = fabs(mrisA->vertices[k].dz - mrisB->vertices[k].dz);
+    if(e > .0000001){
+      printf("ERROR: dz v=%d, e=%g, %g %g\n",k,e,mrisA->vertices[k].dz,mrisB->vertices[k].dz);
+      nerrs++;
+    }
+    e = fabs(mrisA->vertices[k].tdx - mrisB->vertices[k].tdx);
+    if(e > .0000001){
+      printf("ERROR: tdx v=%d, e=%g, %g %g\n",k,e,mrisA->vertices[k].tdx,mrisB->vertices[k].tdx);
+      nerrs++;
+    }
+    e = fabs(mrisA->vertices[k].tdy - mrisB->vertices[k].tdy);
+    if(e > .0000001){
+      printf("ERROR: tdy v=%d, e=%g, %g %g\n",k,e,mrisA->vertices[k].tdy,mrisB->vertices[k].tdy);
+      nerrs++;
+    }
+    e = fabs(mrisA->vertices[k].tdz - mrisB->vertices[k].tdz);
+    if(e > .0000001){
+      printf("ERROR: tdz v=%d, e=%g, %g %g\n",k,e,mrisA->vertices[k].tdz,mrisB->vertices[k].tdz);
+      nerrs++;
+    }
+  }
+  printf("Found %d differences\n",nerrs);
+
+  MRISfree(&mrisA);
+  MRISfree(&mrisB);
+  setenv("AVERAGE_GRADIENTS_FAST",AGF,1);
+  return(nerrs);
 }
 
 
@@ -27308,7 +27503,11 @@ MRISrigidBodyAlignGlobal(MRI_SURFACE *mris, INTEGRATION_PARMS *parms,
 {
   double   alpha, beta, gamma, degrees, delta, mina, minb, ming,
   sse, min_sse, ext_sse ;
-  int      old_status = mris->status, old_norm ;
+  int      old_status = mris->status, old_norm, msec;
+  struct timeb  mytimer;
+
+  printf("Starting MRISrigidBodyAlignGlobal()\n");
+  TimerStart(&mytimer) ;
 
   old_norm = parms->abs_norm ;
   parms->abs_norm = 1 ;
@@ -27379,21 +27578,25 @@ MRISrigidBodyAlignGlobal(MRI_SURFACE *mris, INTEGRATION_PARMS *parms,
                     DEGREES(gamma), (float)DEGREES(mina),
                     (float)DEGREES(minb), (float)DEGREES(ming),(float)min_sse);
 #endif
-        }
-      }
-    }
+        } // gamma
+      } // beta
+    } // alpha
 
     if (Gdiag & DIAG_SHOW) {
       fprintf(stdout, "\n") ;
     }
 
     if (!FZERO(mina) || !FZERO(minb) || !FZERO(ming) ) {
+      // Apply the rotation to get to the minimum. This sets up for the next
+      // degree iteration over a smaller area.
       MRISrotate(mris, mris, mina, minb, ming) ;
       sse = mrisComputeCorrelationError(mris, parms, 1) ;  /* was 0 !!!! */
       if (gMRISexternalSSE) {
         sse += (*gMRISexternalSSE)(mris, parms) ;
       }
-
+      printf("  d=%4.2f min @ (%2.2f, %2.2f, %2.2f) sse = %2.1f\n",(float)DEGREES(degrees),
+	   (float)DEGREES(mina),(float)DEGREES(minb), (float)DEGREES(ming),(float)min_sse);
+      fflush(stdout);
       if (Gdiag & DIAG_SHOW) {
         fprintf(stdout, "min sse = %2.2f at (%2.2f, %2.2f, %2.2f)\n",
                 sse, (float)DEGREES(mina), (float)DEGREES(minb),
@@ -27420,10 +27623,13 @@ MRISrigidBodyAlignGlobal(MRI_SURFACE *mris, INTEGRATION_PARMS *parms,
         mrisLogStatus(mris, parms, stdout, 0.0f, -1) ;
       }
     }
-  }
+  } // degrees
 
   mris->status = old_status ;
   parms->abs_norm = old_norm ;
+
+  msec = TimerStop(&mytimer) ;
+  printf("MRISrigidBodyAlignGlobal() done %6.2f min\n",msec/(1000*60.0));
 
   return(NO_ERROR) ;
 }
@@ -62532,6 +62738,15 @@ int MRIScopyMRI(MRIS *Surf, MRI *Src, int Frame, char *Field)
         else if (!strcmp(Field,"nx")) Surf->vertices[vtx].nx = val;
         else if (!strcmp(Field,"ny")) Surf->vertices[vtx].ny = val;
         else if (!strcmp(Field,"nz")) Surf->vertices[vtx].nz = val;
+        else if (!strcmp(Field,"tx")) Surf->vertices[vtx].tx = val;
+        else if (!strcmp(Field,"ty")) Surf->vertices[vtx].ty = val;
+        else if (!strcmp(Field,"tz")) Surf->vertices[vtx].tz = val;
+        else if (!strcmp(Field,"dx")) Surf->vertices[vtx].dx = val;
+        else if (!strcmp(Field,"dy")) Surf->vertices[vtx].dy = val;
+        else if (!strcmp(Field,"dz")) Surf->vertices[vtx].dz = val;
+        else if (!strcmp(Field,"tdx")) Surf->vertices[vtx].tdx = val;
+        else if (!strcmp(Field,"tdy")) Surf->vertices[vtx].tdy = val;
+        else if (!strcmp(Field,"tdz")) Surf->vertices[vtx].tdz = val;
         else
         {
           printf("ERROR: MRIScopyMRI(): Field %s not supported\n",Field);
@@ -62627,6 +62842,15 @@ MRI *MRIcopyMRIS(MRI *mri, MRIS *surf, int Frame, char *Field)
         else if (!strcmp(Field,"nx")) val = surf->vertices[vtx].nx;
         else if (!strcmp(Field,"ny")) val = surf->vertices[vtx].ny;
         else if (!strcmp(Field,"nz")) val = surf->vertices[vtx].nz;
+        else if (!strcmp(Field,"tx")) val = surf->vertices[vtx].tx;
+        else if (!strcmp(Field,"ty")) val = surf->vertices[vtx].ty;
+        else if (!strcmp(Field,"tz")) val = surf->vertices[vtx].tz;
+        else if (!strcmp(Field,"tdx")) val = surf->vertices[vtx].tdx;
+        else if (!strcmp(Field,"tdy")) val = surf->vertices[vtx].tdy;
+        else if (!strcmp(Field,"tdz")) val = surf->vertices[vtx].tdz;
+        else if (!strcmp(Field,"dx")) val = surf->vertices[vtx].dx;
+        else if (!strcmp(Field,"dy")) val = surf->vertices[vtx].dy;
+        else if (!strcmp(Field,"dz")) val = surf->vertices[vtx].dz;
         else
         {
           printf("ERROR: MRIScopyMRI(): Field %s not supported\n",Field);
@@ -62700,7 +62924,7 @@ MRI *MRISsmoothMRI(MRIS *Surf,
   TimerStart(&mytimer) ;
   SrcTmp = MRIcopy(Src,NULL);
   for (nthstep = 0; nthstep < nSmoothSteps; nthstep ++){
-    if (Gdiag_no > 0){
+    if (Gdiag_no > 1){
       msecTime = TimerStop(&mytimer) ;
       printf("Step = %d, tsec = %g\n",nthstep,msecTime/1000.0);
       fflush(stdout);

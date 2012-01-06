@@ -9,8 +9,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2011/12/11 21:47:41 $
- *    $Revision: 1.360 $
+ *    $Date: 2012/01/06 21:51:43 $
+ *    $Revision: 1.361 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -1732,8 +1732,12 @@ int MRISsegmentAnnotated(MRI_SURFACE *mris,
                          LABEL ***plabel_array,
                          int *pnlabels,
                          float min_label_area) ;
+
 int MRISaverageGradients(MRI_SURFACE *mris, int num_avgs) ;
- int MRISnormalTermWithGaussianCurvature(MRI_SURFACE *mris,double l_lambda) ;
+int MRISaverageGradientsFast(MRI_SURFACE *mris, int num_avgs);
+int MRISaverageGradientsFastCheck(int num_avgs);
+
+int MRISnormalTermWithGaussianCurvature(MRI_SURFACE *mris,double l_lambda) ;
 int MRISnormalSpringTermWithGaussianCurvature(MRI_SURFACE *mris,
                                               double gaussian_norm,
                                               double l_spring) ;
