@@ -361,7 +361,7 @@ void convertImagesToMghFile( const String &inputPath, const String &outputFileNa
 	writeFloatSwap( file, 0 ); // xs
 	writeFloatSwap( file, 0 ); // yr
 	writeFloatSwap( file, 0 ); // ya
-	writeFloatSwap( file, -1 ); // ys
+	writeFloatSwap( file, 1 ); // ys
 	writeFloatSwap( file, 0 ); // zr
 	writeFloatSwap( file, -1 ); // za
 	writeFloatSwap( file, 0 ); // zs
