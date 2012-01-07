@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2012/01/06 21:51:43 $
- *    $Revision: 1.713 $
+ *    $Date: 2012/01/07 00:08:28 $
+ *    $Revision: 1.714 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -734,7 +734,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void)
 {
-  return("$Id: mrisurf.c,v 1.713 2012/01/06 21:51:43 greve Exp $");
+  return("$Id: mrisurf.c,v 1.714 2012/01/07 00:08:28 greve Exp $");
 }
 
 /*-----------------------------------------------------
@@ -9164,11 +9164,10 @@ int MRISaverageGradients(MRI_SURFACE *mris, int num_avgs)
   const VERTEX *vn ;
   MRI_SP *mrisp, *mrisp_blur ;
 
-  if(getenv("AVERAGE_GRADIENTS_FAST") != NULL){
-    printf("Info: using MRISaverageGradientsFast()\n");
-    i=MRISaverageGradientsFast(mris,num_avgs);
-    return(i);
-  }
+  i=MRISaverageGradientsFast(mris,num_avgs);
+  return(i);
+  // Below is not used
+  
 
   if (num_avgs <= 0)
     return(NO_ERROR) ;
@@ -27594,8 +27593,10 @@ MRISrigidBodyAlignGlobal(MRI_SURFACE *mris, INTEGRATION_PARMS *parms,
       if (gMRISexternalSSE) {
         sse += (*gMRISexternalSSE)(mris, parms) ;
       }
-      printf("  d=%4.2f min @ (%2.2f, %2.2f, %2.2f) sse = %2.1f\n",(float)DEGREES(degrees),
-	   (float)DEGREES(mina),(float)DEGREES(minb), (float)DEGREES(ming),(float)min_sse);
+      msec = TimerStop(&mytimer) ;
+      printf("  d=%4.2f min @ (%2.2f, %2.2f, %2.2f) sse = %2.1f, tmin=%6.4f\n",
+	     (float)DEGREES(degrees),(float)DEGREES(mina),(float)DEGREES(minb), 
+	     (float)DEGREES(ming),(float)min_sse,msec/(1000*60.0));
       fflush(stdout);
       if (Gdiag & DIAG_SHOW) {
         fprintf(stdout, "min sse = %2.2f at (%2.2f, %2.2f, %2.2f)\n",
