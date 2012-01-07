@@ -337,7 +337,7 @@ void createRegistrationVolumes( Config &conf ) {
 	// get command parameters
 	String blockCropPath = addDataPath( conf.readString( "blockCropPath", "blockface/crop" ) );
 	String blockSegPath = addDataPath( conf.readString( "blockSegPath", "blockface/seg" ) );
-	String mrRawPath = addDataPath( conf.readString( "mrRegLinPath", "mri/rawFlash20" ) );
+	String mrRawPath = addDataPath( conf.readString( "mrRawPath", "mri/rawFlash20" ) );
 	String mrRegLinPath = addDataPath( conf.readString( "mrRegLinPath", "mri/regLin" ) );
 	String mrRegPath = addDataPath( conf.readString( "mrRegPath", "mri/reg" ) );
 	String histoRegPath = addDataPath( conf.readString( "histoRegPath", "histo/reg" ) );
