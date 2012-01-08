@@ -113,17 +113,9 @@ void saveAxisTransform( const String &outputPath, bool xySwap, bool xzSwap, bool
 
 
 /// convert an mgh/mgz file to a set of images
-void convertMghFileToImages( Config &conf ) {
-	
-	// get command parameters
-	String fileName = addDataPath( conf.readString( "fileName" ) );
-	String outputPath = addDataPath( conf.readString( "outputPath" ) );
-	bool xySwap = conf.readBool( "xySwap", true );
-	bool xzSwap = conf.readBool( "xzSwap", false );
-	bool yzSwap = conf.readBool( "yzSwap", true );
-	bool xFlip = conf.readBool( "xFlip", false );
-	bool yFlip = conf.readBool( "yFlip", true );
-	bool zFlip = conf.readBool( "zFlip", false );
+void convertMghFileToImages( const String &fileName, const String &outputPath, 
+							 bool xySwap, bool xzSwap, bool yzSwap, 
+							 bool xFlip, bool yFlip, bool zFlip, bool autoScaleValues ) {
 
 	// open the file
 	File file( fileName, FILE_READ, fileName.endsWith( "gz" ) ? FILE_GZIP_BINARY : FILE_BINARY );
@@ -161,7 +153,7 @@ void convertMghFileToImages( Config &conf ) {
 	float cs = readFloatSwap( file );
 
 	// display header
-  disp( 1, "filename: %s",fileName.c_str() );
+	disp( 1, "filename: %s", fileName.c_str() );
 	disp( 1, "version: %d", version );
 	disp( 1, "width: %d", width );
 	disp( 1, "height: %d", height );
@@ -205,49 +197,54 @@ void convertMghFileToImages( Config &conf ) {
 	disp( 1, "output size: %d, %d, %d", xOutSize, yOutSize, zOutSize );
 
 	// first pass: get value bounds
-	disp( 1, "first pass" );
-	VectorF vSample;
-	int index = 0;
-	for (int z = 0; z < depth; z++) {
-		status( "        %d of %d", z + 1, depth );
-		for (int y = 0; y < height; y++) {
-			for (int x = 0; x < width; x++) {
+	float vMin = 0, vMax = 0;
+	if (autoScaleValues) {
+		disp( 1, "first pass" );
+		VectorF vSample;
+		int index = 0;
+		for (int z = 0; z < depth; z++) {
+			status( "        %d of %d", z + 1, depth );
+			for (int y = 0; y < height; y++) {
+				for (int x = 0; x < width; x++) {
 
-				// read a value
-				float v = 0;
-				if (type == 1) {
-					v = (float) readIntSwap( file );
-				} else if (type == 4) {
-					v = (float) readShortSwap( file );
-				} else {
-					v = readFloatSwap( file );
+					// read a value
+					float v = 0;
+					if (type == 1) {
+						v = (float) readIntSwap( file );
+					} else if (type == 4) {
+						v = (float) readShortSwap( file );
+					} else {
+						v = readFloatSwap( file );
+					}
+
+					// store a subset of the vluaes
+					index++;
+					if ((index % 37) == 0)
+						vSample.append( v );
 				}
-
-				// store a subset of the vluaes
-				index++;
-				if ((index % 37) == 0)
-					vSample.append( v );
 			}
+
+			// check for user cancel
+			if (checkCommandEvents())
+				break;
 		}
+		status( "\n" );
 
 		// check for user cancel
 		if (checkCommandEvents())
-			break;
+			return;
+
+		// get bounds using percentiles
+		int len = vSample.length();
+		VectorI sortInd = sortIndex( vSample );
+		vMin = vSample[ sortInd[ round( len * 0.001f ) ] ];
+		vMax = vSample[ sortInd[ round( len * 0.999f ) ] ];
+	//	float vMin = vSample.min();
+	//	float vMax = vSample.max();
+		disp( 1, "sample count: %d, vMin: %f, vMax: %f", len, vMin, vMax );
+	} else {
+		disp( 1, "auto scale values disabled; skipping first pass" );
 	}
-	status( "\n" );
-
-	// check for user cancel
-	if (checkCommandEvents())
-		return;
-
-	// get bounds using percentiles
-	int len = vSample.length();
-	VectorI sortInd = sortIndex( vSample );
-	float vMin = vSample[ sortInd[ round( len * 0.001f ) ] ];
-	float vMax = vSample[ sortInd[ round( len * 0.999f ) ] ];
-//	float vMin = vSample.min();
-//	float vMax = vSample.max();
-	disp( 1, "sample count: %d, vMin: %f, vMax: %f", len, vMin, vMax );
 
 	// rewind to data
 	file.seek( 284, false );
@@ -260,20 +257,30 @@ void convertMghFileToImages( Config &conf ) {
 		status( "        %d of %d", z + 1, depth );
 		for (int y = 0; y < height; y++) {
 			for (int x = 0; x < width; x++) {
+				int vInt = 0;
 
-				// read value
-				float v = 0;
-				if (type == 1) {
-					v = (float) readIntSwap( file );
-				} else if (type == 4) {
-					v = (float) readShortSwap( file );
+				// read and apply scaling determined in first pass
+				if (autoScaleValues) {
+					float v = 0;
+					if (type == 1) {
+						v = (float) readIntSwap( file );
+					} else if (type == 4) {
+						v = (float) readShortSwap( file );
+					} else {
+						v = readFloatSwap( file );
+					}
+					v = (v - vMin) / (vMax - vMin) * 255.0f;
+					vInt = bound( round( v ), 0, 255 );
 				} else {
-					v = readFloatSwap( file );
+					if (type == 1) {
+						vInt = readIntSwap( file );
+					} else if (type == 4) {
+						vInt = readShortSwap( file );
+					} else {
+						vInt = sbl::round( readFloatSwap( file ) );
+					}
+					vInt = bound( vInt, 0, 255 );
 				}
-
-				// map the value
-				v = (v - vMin) / (vMax - vMin) * 255.0f;
-				int vInt = bound( round( v ), 0, 255 );
 
 				// compute output coordinates
 				int xOut = x;
@@ -361,7 +368,7 @@ void convertImagesToMghFile( const String &inputPath, const String &outputFileNa
 	writeFloatSwap( file, 0 ); // xs
 	writeFloatSwap( file, 0 ); // yr
 	writeFloatSwap( file, 0 ); // ya
-	writeFloatSwap( file, 1 ); // ys
+	writeFloatSwap( file, -1 ); // ys
 	writeFloatSwap( file, 0 ); // zr
 	writeFloatSwap( file, -1 ); // za
 	writeFloatSwap( file, 0 ); // zs
@@ -390,6 +397,26 @@ void convertImagesToMghFile( const String &inputPath, const String &outputFileNa
 			}
 		}
 	}
+}
+
+
+//-------------------------------------------
+// COMMANDS
+//-------------------------------------------
+
+
+/// convert an mgh/mgz file to a set of images
+void convertMghFileToImages( Config &conf ) {
+	String fileName = addDataPath( conf.readString( "fileName" ) );
+	String outputPath = addDataPath( conf.readString( "outputPath" ) );
+	bool xySwap = conf.readBool( "xySwap", true );
+	bool xzSwap = conf.readBool( "xzSwap", false );
+	bool yzSwap = conf.readBool( "yzSwap", true );
+	bool xFlip = conf.readBool( "xFlip", false );
+	bool yFlip = conf.readBool( "yFlip", true );
+	bool zFlip = conf.readBool( "zFlip", false );
+	bool autoScaleValues = conf.readBool( "autoScaleValues", true );
+	convertMghFileToImages( fileName, outputPath, xySwap, xzSwap, yzSwap, xFlip, yFlip, zFlip, autoScaleValues );
 }
 
 
