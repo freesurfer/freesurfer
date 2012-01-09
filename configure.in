@@ -8,9 +8,9 @@
 # Process this file with autoconf to produce a configure script.
 #
 # CVS Revision Info:
-#    $Author: greve $
-#    $Date: 2011/12/15 17:46:40 $
-#    $Revision: 1.556 $
+#    $Author: nicks $
+#    $Date: 2012/01/09 19:43:25 $
+#    $Revision: 1.557 $
 #
 ########################################################################
 AC_PREREQ(2.57)
@@ -1632,23 +1632,24 @@ AM_CONDITIONAL(HAVE_ANN_LIBS, ! test "x$ac_ann_libraries" = "xNO")
 
 
 ############################################################
-# Catch-all flag to enable OpenGL, Tcl/Tk, ITK and KWW apps
+# Catch-all flag to disable OpenGL, Tcl/Tk, ITK and KWW apps
 ############################################################
 tcltk_apps="NO"
 itk_apps="NO"
 kww_apps="NO"
 AC_ARG_ENABLE(all-apps,
- [  --enable-all-apps       enable building Tcl/Tk, ITK, VTK/KWWidgets, wxWidgets and OpenGL-based apps],
- [ tcltk_apps="yes"
-   itk_apps="yes"
-   kww_apps="yes"
-   wxw_apps="yes"
-   need_opengl="yes"
+ [  --disable-all-apps      disable building Tcl/Tk, ITK, VTK/KWWidgets, wxWidgets and OpenGL-based apps],
+ [ tcltk_apps="NO"
+   itk_apps="NO"
+   vtk_apps="NO"
+   kww_apps="NO"
+   wxw_apps="NO"
+   need_opengl="NO"
  ])
 
 AC_ARG_ENABLE(gl-apps,
- [  --enable-gl-apps        enable building OpenGL-based apps],
- [ need_opengl="yes"
+ [  --disable-gl-apps       disable building OpenGL-based apps],
+ [ need_opengl="NO"
  ])
 
 
@@ -1705,8 +1706,8 @@ if test ! "$ac_tcl_libraries" = "NO"; then
 fi
 
 AC_ARG_ENABLE(tcltk-apps,
- [  --enable-tcltk-apps     enable building Tcl/Tk-based apps],
- [ tcltk_apps="yes"
+ [  --disable-tcltk-apps    disable building Tcl/Tk-based apps],
+ [ tcltk_apps="NO"
  ])
 
 if test "$tcltk_apps" = "yes"; then
@@ -1741,9 +1742,9 @@ if test "x$TIXWISH" = "x"; then
 fi
 # and check
 if test "x$TIXWISH" = "x"; then
-if test ! "x$tcltk_apps" = "xNO"; then
-  AC_MSG_RESULT([INFO: tixwish not found. Use --with-tixwish=... to specify])
-fi
+  if test "x$tcltk_apps" = "xyes"; then
+    AC_MSG_RESULT([INFO: tixwish not found. Use --with-tixwish=... to specify])
+  fi
 fi
 
 AC_SUBST(TIXWISH)
@@ -2355,8 +2356,8 @@ if test ! "$ac_kwwidgets_libraries" = "NO"; then
 fi
 
 AC_ARG_ENABLE(kww-apps,
- [  --enable-kww-apps       enable building KWWidgets-based apps],
- [ kww_apps="yes"
+ [  --disable-kww-apps      disable building KWWidgets-based apps],
+ [ kww_apps="NO"
  ])
 
 if test "$kww_apps" = "yes"; then
@@ -2445,8 +2446,8 @@ if test ! "x$WXWIDGETS_DIR" = "x"; then
 fi
 
 AC_ARG_ENABLE(wxw-apps,
- [  --enable-wxw-apps       enable building wxWidgets-based apps],
- [ wxw_apps="yes"
+ [  --disable-wxw-apps      disable building wxWidgets-based apps],
+ [ wxw_apps="NO"
  ])
 
 if test "$wxw_apps" = "yes"; then
@@ -2541,7 +2542,7 @@ AC_ARG_WITH(itk-libraries,
 
 # if --without-itk-dir was specified:
 if test "x$ITK_DIR" = "xno"; then
-   itk_apps="no"
+   itk_apps="NO"
 fi
 
 if test "x$ITK_DIR" = "x"; then
@@ -2571,8 +2572,8 @@ if test ! "$ac_itk_libraries" = "NO"; then
 fi
 
 AC_ARG_ENABLE(itk-apps,
- [  --enable-itk-apps       enable building ITK-based apps],
- [ itk_apps="yes"
+ [  --disable-itk-apps      disable building ITK-based apps],
+ [ itk_apps="NO"
  ])
 
 if test "$itk_apps" = "yes"; then
@@ -3058,7 +3059,7 @@ AC_SUBST(VTK_METAIO_LIB)
 #
 # check tcl/tk/tix/blt only if tcl/tk apps are enabled
 #
-if test ! "x$tcltk_apps" = "xNO"; then
+if test "x$tcltk_apps" = "xyes"; then
   ################## Tcl
   # check tcl8.5
   AC_CHECK_LIB([tcl8.5],[Tcl_Init],
@@ -3273,7 +3274,7 @@ AC_SUBST(LIBS)
 # check whether needs Itcl_Init() and Itk_Init()
 # except when using Tcl8.4, which doesn't contain Itcl_Init or Itk_Init
 ########################################################################
-if test ! "x$tcltk_apps" = "xNO"; then
+if test "x$tcltk_apps" = "xyes"; then
   if ! test "$LIB_TCL" = "-ltcl8.5"; then
     if ! test "$LIB_TCL" = "-ltcl8.4"; then
       if ! test "$LIB_TCL" = "-ltcl83"; then
