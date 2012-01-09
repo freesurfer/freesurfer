@@ -9,8 +9,8 @@
 #
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2012/01/09 19:43:25 $
-#    $Revision: 1.557 $
+#    $Date: 2012/01/09 21:42:00 $
+#    $Revision: 1.558 $
 #
 ########################################################################
 AC_PREREQ(2.57)
@@ -631,6 +631,7 @@ AC_ARG_WITH([opencv],
    [  --with-opencv=PATH         prefix where opencv is installed])
 
 use_opencv="no"
+OPENCV_DIR="no"
 if test -n "$with_opencv"; then
   OPENCV_DIR="$with_opencv"
 else
@@ -2008,10 +2009,11 @@ AC_DEFINE([XML_CONTEXT_BYTES], 1024,
 ################################################################
 # Qt
 ################################################################
+QT_PATH=""
 m4_include([m4/autotroll.m4])
 AT_WITH_QT([opengl])
 # support for --without-qt:
-AM_CONDITIONAL(ENABLE_QT_APPS, ! test "$QT_PATH" = "no")
+AM_CONDITIONAL(ENABLE_QT_APPS, ! test "x$QT_PATH" = "x")
 # hack: make sure our QT_LIBS overrides /usr/lib64 native Qt install
 # this is problematic on Centos6, where qt 4.6.3 is installed, but
 # we (at the NMR Center) want to use v4.7.1 in /usr/pubsw/packages/qt
