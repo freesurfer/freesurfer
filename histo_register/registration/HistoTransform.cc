@@ -58,6 +58,8 @@ bool HistoTransform::loadHToB( const String &mrRawPath, const String &mrRegLinPa
 
 		// load the full-size histo image (after split)
 		fileName = histoSplitPath + sprintF( "/%d.png", sliceIndex );
+		if (fileExists( fileName ) == false)
+			fileName = histoSplitPath + sprintF( "/%04d.png", sliceIndex );
 		aptr<ImageGrayU> image = sbl::load<ImageGrayU>( fileName ); // fix(faster): we could get the image dimensions without loading the entire image
 		int width = image->width(), height = image->height();
 		m_histoShrinkX.append( (double) mfWidth / (double) width );
@@ -681,6 +683,8 @@ void projectHistoToBlockFace( Config &conf ) {
 		if (point.x || point.y || point.z) {
 			int histoIndex = sbl::round( point.z );
 			String hFileName = inputPath + sprintF( "/%d.png", histoIndex );
+			if (fileExists( hFileName ) == false)
+				hFileName = inputPath + sprintF( "/%04d.png", histoIndex );
 			if (fileExists( hFileName )) {
 			
 				// load histo image
