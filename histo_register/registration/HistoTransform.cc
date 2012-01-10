@@ -711,7 +711,7 @@ void projectHistoToBlockFace( Config &conf ) {
 		}
 
 		// save image (block-face coordinates)
-		String outputFileName = outputPath + sprintF( "/%d.png", bIndex );
+		String outputFileName = outputPath + sprintF( "/%04d.png", bIndex );
 		saveImage( outputImage, outputFileName );
 
 		// check for user cancel
@@ -805,7 +805,7 @@ void projectMriToBlockFace( Config &conf ) {
 		}
 
 		// save image (block-face coordinates)
-		String outputFileName = outputPath + sprintF( "/%d.png", bIndex );
+		String outputFileName = outputPath + sprintF( "/%04d.png", bIndex );
 		saveImage( outputImage, outputFileName );
 
 		// check for user cancel

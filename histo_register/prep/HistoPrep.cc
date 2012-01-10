@@ -351,7 +351,7 @@ void convertHistologyVolumeIntoImages( Config &conf ) {
 			int mgzIndex = parts[ 0 ].strip().toInt();
 			int histoIndex = parts[ 1 ].strip().toInt();
 			String oldFileName = outputPath + sprintF( "/%04d.png", mgzIndex );
-			String newFileName = outputPath + sprintF( "/_%d.png", histoIndex );
+			String newFileName = outputPath + sprintF( "/_%04d.png", histoIndex );
 			disp( 1, "rename: %d -> %d", mgzIndex, histoIndex /*oldFileName.c_str(), newFileName.c_str()*/ );
 			moveFile( oldFileName, newFileName );
 		}
