@@ -326,7 +326,7 @@ void convertMghFileToImages( const String &fileName, const String &outputPath,
 
 
 /// convert a set of images to an mgz file
-void convertImagesToMghFile( const String &inputPath, const String &outputFileName, float xSpacing, float ySpacing, float zSpacing, int width, int height ) {
+void convertImagesToMghFile( const String &inputPath, const String &outputFileName, float xSpacing, float ySpacing, float zSpacing, int width, int height, int valueScaleFactor ) {
 
 	// open the output MGZ file
 	File file( outputFileName, FILE_WRITE, FILE_GZIP_BINARY );
@@ -392,7 +392,7 @@ void convertImagesToMghFile( const String &inputPath, const String &outputFileNa
 		// write the data
 		for (int y = 0; y < height; y++) {
 			for (int x = 0; x < width; x++) {
-				short val = input->data( x, y ) * 16;
+				short val = input->data( x, y ) * valueScaleFactor;
 				writeShortSwap( file, val );
 			}
 		}
@@ -427,7 +427,8 @@ void convertImagesToMghFile( Config &conf ) {
 	float xSpacing = conf.readFloat( "xSpacing", 0.1f );
 	float ySpacing = conf.readFloat( "ySpacing", 0.1f );
 	float zSpacing = conf.readFloat( "zSpacing", 0.1f );
-	convertImagesToMghFile( inputPath, outputFileName, xSpacing, ySpacing, zSpacing, 0, 0 );
+	int valueScaleFactor = conf.readInt( "valueScaleFactor", 16 );
+	convertImagesToMghFile( inputPath, outputFileName, xSpacing, ySpacing, zSpacing, 0, 0, valueScaleFactor );
 }
 
 

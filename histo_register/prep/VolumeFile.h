@@ -21,7 +21,9 @@ void convertMghFileToImages( const String &fileName, const String &outputPath,
 
 
 /// convert a set of images to an mgz file
-void convertImagesToMghFile( const String &inputPath, const String &outputFileName, float xSpacing, float ySpacing, float zSpacing, int width = 0, int height = 0 );
+void convertImagesToMghFile( const String &inputPath, const String &outputFileName, 
+							 float xSpacing, float ySpacing, float zSpacing, 
+							 int width = 0, int height = 0, int valueScaleFactor = 0 );
 
 
 /// convert an mgh/mgz file to a set of images
