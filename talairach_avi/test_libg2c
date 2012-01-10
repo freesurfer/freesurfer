@@ -4,6 +4,9 @@
 # lib is not found on most installations (and there is no reason to distribute
 # it if we can avoid it).
 
+# check for an enviro var to skip
+if ( $?SKIP_LIBG2C_TEST ) exit 77
+
 set OS=`uname -s`
 
 set grepstatus=1
