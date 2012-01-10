@@ -12,8 +12,8 @@
  * Original Author: Dougas N Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2011/11/21 16:44:38 $
- *    $Revision: 1.79 $
+ *    $Date: 2012/01/10 22:30:05 $
+ *    $Revision: 1.80 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -113,7 +113,7 @@ int DumpStatSumTable(STATSUMENTRY *StatSumTable, int nsegid);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-  "$Id: mri_segstats.c,v 1.79 2011/11/21 16:44:38 greve Exp $";
+  "$Id: mri_segstats.c,v 1.80 2012/01/10 22:30:05 greve Exp $";
 char *Progname = NULL, *SUBJECTS_DIR = NULL, *FREESURFER_HOME=NULL;
 char *SegVolFile = NULL;
 char *InVolFile = NULL;
@@ -364,23 +364,17 @@ int main(int argc, char **argv)
       }
     }
   }
-  else if(annot)
-  {
+  else if(annot){
     printf("Constructing seg from annotation\n");
     sprintf(tmpstr,"%s/%s/surf/%s.white",SUBJECTS_DIR,subject,hemi);
     mris = MRISread(tmpstr);
-    if (mris==NULL)
-    {
-      exit(1);
-    }
+    if (mris==NULL) exit(1);
     sprintf(tmpstr,"%s/%s/label/%s.%s.annot",SUBJECTS_DIR,subject,hemi,annot);
     err = MRISreadAnnotation(mris, tmpstr);
-    if (err)
-    {
-      exit(1);
-    }
-    if(segbase == -1000)
-    {
+    if(err) err = MRISreadAnnotation(mris, annot); // assume annot is full path
+    if (err) exit(1);
+
+    if(segbase == -1000){
       // segbase has not been set with --segbase
       if(!strcmp(annot,"aparc"))
       {
@@ -2001,8 +1995,7 @@ static void argnerr(char *option, int n)
 static void check_options(void)
 {
   if (SegVolFile == NULL && annot == NULL && LabelFile == NULL &&
-      DoETIVonly == 0 && DoOldETIVonly == 0)
-  {
+      DoETIVonly == 0 && DoOldETIVonly == 0){
     printf("ERROR: must specify a segmentation volume\n");
     exit(1);
   }
