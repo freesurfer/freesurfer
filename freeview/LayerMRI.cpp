@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2011/12/16 18:26:29 $
- *    $Revision: 1.115 $
+ *    $Date: 2012/01/10 17:46:15 $
+ *    $Revision: 1.116 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -359,8 +359,13 @@ bool LayerMRI::SaveVolume()
   }
 
   ::SetProgressCallback(ProgressCallback, 60, 100);
+  int nSampleMethod = SAMPLE_NEAREST;
+  if (mReslice[0]->GetInterpolationMode() == VTK_RESLICE_LINEAR )
+    nSampleMethod = SAMPLE_TRILINEAR;
+  else if (mReslice[0]->GetInterpolationMode() == VTK_RESLICE_CUBIC )
+    nSampleMethod = SAMPLE_CUBIC_BSPLINE;
   bool bSaved = m_volumeSource->MRIWrite( m_sFilename.toAscii().data(),
-                                          (mReslice[0]->GetInterpolationMode() == VTK_RESLICE_NEAREST ? SAMPLE_NEAREST : SAMPLE_TRILINEAR ),
+                                          nSampleMethod,
                                           m_bWriteResampled);
   m_bModified = !bSaved;
 
@@ -387,17 +392,10 @@ void LayerMRI::DoRestore()
 
 void LayerMRI::DoTransform(double *m, int sample_method)
 {
-  for ( int i = 0; i < 3; i++ )
-  {
-    if ( GetProperty()->GetColorMap() == LayerPropertyMRI::LUT || sample_method == SAMPLE_NEAREST )
-    {
-      mReslice[i]->SetInterpolationModeToNearestNeighbor();
-    }
-    else
-    {
-      mReslice[i]->SetInterpolationModeToLinear();
-    }
-  }
+  if ( GetProperty()->GetColorMap() == LayerPropertyMRI::LUT || sample_method == SAMPLE_NEAREST )
+    GetProperty()->SetResliceInterpolation(SAMPLE_NEAREST);
+  else
+    GetProperty()->SetResliceInterpolation(sample_method);
 
   vtkSmartPointer<vtkTransform> slice_tr = vtkTransform::SafeDownCast( mReslice[0]->GetResliceTransform() );
   vtkSmartPointer<vtkMatrix4x4> mat = vtkSmartPointer<vtkMatrix4x4>::New();
@@ -428,17 +426,10 @@ void LayerMRI::DoTransform(double *m, int sample_method)
 
 bool LayerMRI::DoRotate( std::vector<RotationElement>& rotations )
 {
-  for ( int i = 0; i < 3; i++ )
-  {
-    if ( GetProperty()->GetColorMap() == LayerPropertyMRI::LUT || rotations[0].SampleMethod == SAMPLE_NEAREST )
-    {
-      mReslice[i]->SetInterpolationModeToNearestNeighbor();
-    }
-    else
-    {
-      mReslice[i]->SetInterpolationModeToLinear();
-    }
-  }
+  if ( GetProperty()->GetColorMap() == LayerPropertyMRI::LUT || rotations[0].SampleMethod == SAMPLE_NEAREST )
+    GetProperty()->SetResliceInterpolation(SAMPLE_NEAREST);
+  else
+    GetProperty()->SetResliceInterpolation(rotations[0].SampleMethod);
 
   vtkSmartPointer<vtkTransform> slice_tr = vtkTransform::SafeDownCast( mReslice[0]->GetResliceTransform() );
   // also record transformation in RAS space
@@ -492,17 +483,11 @@ void LayerMRI::DoTranslate( double* offset )
 
 void LayerMRI::DoScale( double* scale, int nSampleMethod )
 {
-  for ( int i = 0; i < 3; i++ )
-  {
-    if ( GetProperty()->GetColorMap() == LayerPropertyMRI::LUT || nSampleMethod == SAMPLE_NEAREST )
-    {
-      mReslice[i]->SetInterpolationModeToNearestNeighbor();
-    }
-    else
-    {
-      mReslice[i]->SetInterpolationModeToLinear();
-    }
-  }
+  if ( GetProperty()->GetColorMap() == LayerPropertyMRI::LUT || nSampleMethod == SAMPLE_NEAREST )
+    GetProperty()->SetResliceInterpolation(SAMPLE_NEAREST);
+  else
+    GetProperty()->SetResliceInterpolation(nSampleMethod);
+
   vtkSmartPointer<vtkTransform> slice_tr = vtkTransform::SafeDownCast( mReslice[0]->GetResliceTransform() );
   vtkTransform* ras_tr = m_volumeSource->GetTransform();
   double cpt[3], target_cpt[3];
@@ -1906,10 +1891,16 @@ void LayerMRI::UpdateUpSampleMethod()
       mResample[i]->SetInterpolationModeToNearestNeighbor();
     }
     break;
-  case LayerPropertyMRI::UM_BiLinear:
+  case LayerPropertyMRI::UM_Linear:
     for ( int i = 0; i < 3; i++ )
     {
       mResample[i]->SetInterpolationModeToLinear();
+    }
+    break;
+  case LayerPropertyMRI::UM_Cubic:
+    for ( int i = 0; i < 3; i++ )
+    {
+      mResample[i]->SetInterpolationModeToCubic();
     }
     break;
   default:

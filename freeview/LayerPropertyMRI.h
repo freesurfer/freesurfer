@@ -11,8 +11,8 @@
  * Reimplemented by: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2011/10/20 21:22:40 $
- *    $Revision: 1.7 $
+ *    $Date: 2012/01/10 17:46:15 $
+ *    $Revision: 1.8 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -78,7 +78,7 @@ public:
 
   enum UpSampleMethod
   {
-    UM_None = 0, UM_NearestNeighbor, UM_BiLinear
+    UM_None = 0, UM_NearestNeighbor, UM_Linear, UM_Cubic
   };
 
   QVariantMap GetSettings();

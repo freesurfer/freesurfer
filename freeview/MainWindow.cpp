@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2012/01/05 18:14:15 $
- *    $Revision: 1.200 $
+ *    $Date: 2012/01/10 17:46:15 $
+ *    $Revision: 1.201 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -630,6 +630,10 @@ bool MainWindow::DoParseCommand(bool bAutoQuit)
   if ( m_cmdParser->Found( "trilinear" ) )
   {
     this->SetDefaultSampleMethod( SAMPLE_TRILINEAR );
+  }
+  if ( m_cmdParser->Found( "cubic" ) )
+  {
+    this->SetDefaultSampleMethod( SAMPLE_CUBIC_BSPLINE );
   }
   if ( m_cmdParser->Found( "conform" ) )
   {
@@ -1511,6 +1515,10 @@ void MainWindow::CommandLoadVolume( const QStringList& sa )
         else if ( subArgu.toLower() == "trilinear" )
         {
           nSampleMethod = SAMPLE_TRILINEAR;
+        }
+        else if ( subArgu.toLower() == "cubic" )
+        {
+          nSampleMethod = SAMPLE_CUBIC_BSPLINE;
         }
       }
       else if ( subOption == "opacity" )
@@ -3305,10 +3313,10 @@ void MainWindow::OnLoadVolume()
         fn += ":reg=" + reg_fn;
       }
 
-      if ( dlg.GetSampleMethod() != SAMPLE_NEAREST )
-      {
+      if ( dlg.GetSampleMethod() == SAMPLE_TRILINEAR )
         fn += ":sample=trilinear";
-      }
+      else if (dlg.GetSampleMethod() == SAMPLE_CUBIC_BSPLINE)
+        fn += ":sample=cubic";
 
       fn += ":colormap=" + dlg.GetColorMap();
       if ( dlg.GetColorMap() == "lut" )
