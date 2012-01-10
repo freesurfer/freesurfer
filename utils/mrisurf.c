@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2012/01/07 00:08:28 $
- *    $Revision: 1.714 $
+ *    $Date: 2012/01/10 16:36:05 $
+ *    $Revision: 1.715 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -734,7 +734,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void)
 {
-  return("$Id: mrisurf.c,v 1.714 2012/01/07 00:08:28 greve Exp $");
+  return("$Id: mrisurf.c,v 1.715 2012/01/10 16:36:05 greve Exp $");
 }
 
 /*-----------------------------------------------------
@@ -9163,12 +9163,18 @@ int MRISaverageGradients(MRI_SURFACE *mris, int num_avgs)
   VERTEX *v;
   const VERTEX *vn ;
   MRI_SP *mrisp, *mrisp_blur ;
+  char *UFSS;
 
-  i=MRISaverageGradientsFast(mris,num_avgs);
-  return(i);
-  // Below is not used
-  
+  // Must explicity "setenv USE_FAST_SURF_SMOOTHER 0" to turn off fast
+  UFSS = getenv("USE_FAST_SURF_SMOOTHER");
+  if(!UFSS) UFSS = "1";
+  if(strcmp(UFSS,"0")){
+    i=MRISaverageGradientsFast(mris,num_avgs);
+    return(i);
+  }
+  if(Gdiag_no > 0) printf("MRISaverageGradients()\n");
 
+  // Below is not used if using Fast
   if (num_avgs <= 0)
     return(NO_ERROR) ;
 
@@ -9249,10 +9255,11 @@ int MRISaverageGradientsFast(MRI_SURFACE *mris, int num_avgs)
   float *tdx, *tdy, *tdz, *tdx0, *tdy0, *tdz0;
   int *nNbrs, *nNbrs0, *rip, *rip0, nNbrsMax;
 
-  nNbrsMax = 12; // Should measure this, but overalloc does not hurt
+  if(Gdiag_no > 0) printf("MRISaverageGradientsFast()\n");
 
   // Alloc arrays. If there are ripped vertices, then only rip 
   // needs nvertices elements
+  nNbrsMax = 12; // Should measure this, but overalloc does not hurt
   pdx = (float **) calloc(mris->nvertices*nNbrsMax,sizeof(float *));
   pdy = (float **) calloc(mris->nvertices*nNbrsMax,sizeof(float *));
   pdz = (float **) calloc(mris->nvertices*nNbrsMax,sizeof(float *));
@@ -9359,15 +9366,15 @@ int MRISaverageGradientsFast(MRI_SURFACE *mris, int num_avgs)
 /*--------------------------------------------------------*/
 int MRISaverageGradientsFastCheck(int num_avgs)
 {
-  char tmpstr[2000], *AGF;
+  char tmpstr[2000], *UFSS;
   MRIS *mrisA, *mrisB;
   int k,msec,nerrs;
   struct timeb mytimer;
   float e;
 
   // Make sure to turn off override (restored later)
-  AGF = getenv("AVERAGE_GRADIENTS_FAST");
-  unsetenv("AVERAGE_GRADIENTS_FAST");
+  UFSS = getenv("USE_FAST_SURF_SMOOTHER");
+  setenv("USE_FAST_SURF_SMOOTHER","0",1);
 
   printf("MRISaverageGradientsFastCheck() num_avgs = %d\n",num_avgs);
   
@@ -9446,7 +9453,7 @@ int MRISaverageGradientsFastCheck(int num_avgs)
 
   MRISfree(&mrisA);
   MRISfree(&mrisB);
-  setenv("AVERAGE_GRADIENTS_FAST",AGF,1);
+  setenv("USE_FAST_SURF_SMOOTHER",UFSS,1);
   return(nerrs);
 }
 
@@ -62874,7 +62881,7 @@ MRI *MRIcopyMRIS(MRI *mri, MRIS *surf, int Frame, char *Field)
   of cols, rows, and slices as long as the product equals nvertices.
   Does not smooth data from ripped vertices into unripped vertices
   (but does go the other way). Same for mask. If mask is NULL, it
-  is ignored.
+  is ignored. See also MRISsmoothMRIFast()
   -------------------------------------------------------------------*/
 MRI *MRISsmoothMRI(MRIS *Surf,
                    MRI *Src,
@@ -62888,6 +62895,16 @@ MRI *MRISsmoothMRI(MRIS *Surf,
   MRI *SrcTmp;
   struct timeb  mytimer;
   int msecTime;
+  char *UFSS;
+
+  // Must explicity "setenv USE_FAST_SURF_SMOOTHER 0" to turn off fast
+  UFSS = getenv("USE_FAST_SURF_SMOOTHER");
+  if(!UFSS) UFSS = "1";
+  if(strcmp(UFSS,"0")){
+    Targ = MRISsmoothMRIFast(Surf,Src,nSmoothSteps,BinMask,Targ);
+    return(Targ);
+  }
+  if(Gdiag_no > 0) printf("MRISsmoothMRI()\n");
 
   nvox = Src->width * Src->height * Src->depth;
   if (Surf->nvertices != nvox){
@@ -62980,6 +62997,219 @@ MRI *MRISsmoothMRI(MRIS *Surf,
   MRIScrsLUTFree(crslut);
   return(Targ);
 }
+/*-------------------------------------------------------------------
+  MRISsmoothMRIFast() - faster version of MRISsmoothMRI(). Smooths
+  values on the surface when the surface values are stored in an
+  MRI_VOLUME structure with the number of spatial voxels equal to the
+  number of nvertices on the surface. Can handle multiple frames. Can
+  be performed in-place. If Targ is NULL, it will automatically
+  allocate a new MRI structure. Note that the input MRI struct does
+  not have to have any particular configuration of cols, rows, and
+  slices as long as the product equals nvertices.  Does not smooth
+  data from ripped vertices into unripped vertices (but does go the
+  other way). Same for mask. The mask is inclusive, so voxels with
+  mask=1 are included. If mask is NULL, it is ignored. Gives identical
+  results as MRISsmoothMRI(); see MRISsmoothMRIFastCheck().
+  -------------------------------------------------------------------*/
+MRI *MRISsmoothMRIFast(MRIS *Surf, MRI *Src, int nSmoothSteps, MRI *IncMask,  MRI *Targ)
+{
+  int nnbrs, nthstep, frame, vno, nthnbr, num, nvox, nbrvno;
+  MRI *SrcTmp;
+  struct timeb  mytimer;
+  int msecTime;
+  int *nNbrs, *nNbrs0, *rip, *rip0, nNbrsMax;
+  float **pF, **pF0, *tF, *tF0, sumF;
+  VERTEX *v, *vn;
+
+  if(Gdiag_no > 0) printf("MRISsmoothMRIFast()\n");
+
+  nvox = Src->width * Src->height * Src->depth;
+  if (Surf->nvertices != nvox){
+    printf("ERROR: MRISsmoothMRIFast(): Surf/Src dimension mismatch\n");
+    return(NULL);
+  }
+  if(Targ == NULL){
+    Targ = MRIallocSequence(Src->width, Src->height, Src->depth,
+                            MRI_FLOAT, Src->nframes);
+    if (Targ==NULL){
+      printf("ERROR: MRISsmoothMRIFast(): could not alloc\n");
+      return(NULL);
+    }
+    MRIcopyHeader(Src,Targ);
+  }
+  if(MRIdimMismatch(Src,Targ,1)){
+    printf("ERROR: MRISsmoothFast(): output dimension mismatch\n");
+    return(NULL);
+  }
+  if(Targ->type != MRI_FLOAT){
+    printf("ERROR: MRISsmoothFast(): structure passed is not MRI_FLOAT\n");
+    return(NULL);
+  }
+
+  // Alloc arrays. If there are ripped vertices, then only rip 
+  // needs nvertices elements
+  nNbrsMax = 12; // Should measure this, but overalloc does not hurt
+  pF = (float **) calloc(Surf->nvertices*nNbrsMax,sizeof(float *));
+  tF = (float *)  calloc(Surf->nvertices,sizeof(float));
+  nNbrs = (int *) calloc(Surf->nvertices,sizeof(int));
+  rip = (int *) calloc(Surf->nvertices,sizeof(int));
+
+  pF0 = pF;
+  tF0 = tF;
+  rip0 = rip;
+  nNbrs0 = nNbrs;
+
+  TimerStart(&mytimer) ;
+  SrcTmp = MRIcopy(Src,NULL);
+
+  // Loop through frames
+  for (frame = 0; frame < Src->nframes; frame ++){
+
+    // Set up pointers for this frame
+    pF = pF0;
+    rip = rip0;
+    nNbrs = nNbrs0;
+    for (vno = 0 ; vno < Surf->nvertices ; vno++){
+      v = &Surf->vertices[vno] ;
+      if(IncMask && MRIgetVoxVal(IncMask,vno,0,0,0) < 0.5){
+	// Mask is inclusive, so look for out of mask
+	// should exclude rips here too? Original does not.
+	rip[vno] = 1;
+	MRIFseq_vox(SrcTmp,vno,0,0,frame) = 0;
+	MRIFseq_vox(Targ,vno,0,0,frame) = 0;
+	continue ;
+      }
+      rip[vno] = 0;
+      *pF++ = (float *)(&(MRIFseq_vox(SrcTmp,vno,0,0,frame)));
+      nnbrs = Surf->vertices[vno].vnum;
+      num = 1;
+      for (nthnbr = 0 ; nthnbr < nnbrs ; nthnbr++) {
+	nbrvno = Surf->vertices[vno].v[nthnbr];
+	vn = &Surf->vertices[nbrvno] ;
+	if(vn->ripflag) continue ;
+	if(IncMask && MRIgetVoxVal(IncMask,nbrvno,0,0,0) < 0.5) continue ;
+	*pF++ = (float *)(&(MRIFseq_vox(SrcTmp,nbrvno,0,0,frame)));
+	num++ ;
+      }
+      *nNbrs++ = num; // num takes into account all rips/masks
+    }
+
+    // Step through the iterations
+    for(nthstep = 0; nthstep < nSmoothSteps; nthstep++){
+      // Init pointers for this iteration
+      pF  = pF0;
+      rip = rip0;
+      tF  = tF0;
+      nNbrs = nNbrs0;
+      // Loop through vertices, average nearest neighbors
+      for (vno = 0 ; vno < Surf->nvertices ; vno++){
+	if(*rip++) continue ;
+	sumF = *(*pF++);
+	for(nthnbr = 0 ; nthnbr < (*nNbrs)-1 ; nthnbr++) sumF += *(*pF++);
+	*tF++ = sumF/(*nNbrs);
+	nNbrs++;
+      }
+      // Load up for the next step
+      rip = rip0;
+      tF  = tF0;
+      for (vno = 0 ; vno < Surf->nvertices ; vno++){
+	if(*rip++) continue ;
+	MRIsetVoxVal(SrcTmp,vno,0,0,frame, *tF++);
+      }
+    }
+
+  }/* end loop over frame */
+
+  // Copy to the output
+  MRIcopy(SrcTmp,Targ);
+
+  msecTime = TimerStop(&mytimer) ;
+  if(Gdiag_no > 0){
+    printf("MRISsmoothFast() nsteps = %d, tsec = %g\n",nSmoothSteps,msecTime/1000.0);
+    fflush(stdout);
+  }
+
+  MRIfree(&SrcTmp);
+  free(pF0);
+  free(tF0);
+  free(rip0);
+  free(nNbrs0);
+
+  return(Targ);
+}
+
+int MRISsmoothMRIFastCheck(int nSmoothSteps)
+{
+  char tmpstr[2000], *UFSS;
+  MRIS *mris;
+  MRI *src, *mri1, *mri2, *mask;
+  int k,nerrs,c,r,s,f, cmax, rmax, smax, fmax;
+  float val1, val2, diff,maxdiff;
+
+  // Make sure to turn off override (restored later)
+  UFSS = getenv("USE_FAST_SURF_SMOOTHER");
+  setenv("USE_FAST_SURF_SMOOTHER","0",1);
+
+  printf("MRISsmoothMRIFastCheck() nSmoothSteps = %d\n",nSmoothSteps);
+  
+  sprintf(tmpstr,"%s/subjects/fsaverage/surf/lh.white",getenv("FREESURFER_HOME"));
+  printf("Reading surface %s\n",tmpstr);
+  mris = MRISread(tmpstr);
+  if(mris == NULL){
+    printf("ERROR: could not read %s\n",tmpstr);
+    return(-1);
+  }
+
+  // Use 3 frames
+  src = MRIrandn(mris->nvertices, 1, 1, 3, .5, 1, NULL);
+
+  // Create mask
+  mask = MRIconst(mris->nvertices, 1, 1, 1, 1.0, NULL);
+  for(k=0; k < mris->nvertices-1; k++){
+    MRIsetVoxVal(mask,k,0,0,0, 0.0); // turn off mask
+    mris->vertices[k+1].ripflag = 1; // rip a few
+  }
+
+  printf("Running slow smoother\n");
+  mri1 = MRISsmoothMRI(mris, src, nSmoothSteps, mask, NULL);
+  printf("Running fast smoother\n");
+  mri2 = MRISsmoothMRIFast(mris, src, nSmoothSteps, mask, NULL);
+
+  printf("Checking differences\n");
+  nerrs = 0;
+  cmax = 0;  rmax = 0;   smax = 0;  fmax = 0;
+  maxdiff = 0.0;
+  for (c=0; c < src->width; c++) {
+    for (r=0; r < src->height; r++) {
+      for (s=0; s < src->depth; s++) {
+	for (f=0; f < src->nframes; f++) {
+	  val1 = MRIgetVoxVal(mri1,c,r,s,f);
+	  val2 = MRIgetVoxVal(mri2,c,r,s,f);
+	  diff = val1-val2;
+	  if(fabs(maxdiff) < fabs(diff)) {
+	    maxdiff = diff;
+	    cmax = c;
+	    rmax = r;
+	    smax = s;
+	    fmax = f;
+	  }
+	  if(!FZERO(diff)) nerrs++;
+	}
+      }
+    }
+  }
+  printf("nerrs = %d, maxdiff %f at %d %d %d %d\n",nerrs, maxdiff,cmax,rmax,smax,fmax);
+
+  setenv("USE_FAST_SURF_SMOOTHER",UFSS,1);
+
+  return(nerrs);
+}
+
+
+
+
+
+
 /*-----------------------------------------------------------------------
   MRISar1() - computes spatial AR1 at each vertex by averaging the AR1s
   within the neighborhood of a vertex. Note: does not try to take into
