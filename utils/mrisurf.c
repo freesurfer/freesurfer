@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2012/01/10 16:36:05 $
- *    $Revision: 1.715 $
+ *    $Author: fischl $
+ *    $Date: 2012/01/11 21:39:23 $
+ *    $Revision: 1.716 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -561,7 +561,6 @@ static double mrisComputeAverageHeight(MRI_SURFACE *mris) ;
 
 static int   mrisComputeSethianCurvatureTerm(MRI_SURFACE *mris,
     INTEGRATION_PARMS *parms) ;
-static int   mrisSmoothCurvatures(MRI_SURFACE *mris, int niterations) ;
 static int   mrisSmoothNormals(MRI_SURFACE *mris, int niterations) ;
 static int   mrisComputeCurvatureGradientTerm(MRI_SURFACE *mris,
     INTEGRATION_PARMS *parms) ;
@@ -734,7 +733,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void)
 {
-  return("$Id: mrisurf.c,v 1.715 2012/01/10 16:36:05 greve Exp $");
+  return("$Id: mrisurf.c,v 1.716 2012/01/11 21:39:23 fischl Exp $");
 }
 
 /*-----------------------------------------------------
@@ -17025,8 +17024,6 @@ mrisLabelVertices(MRI_SURFACE *mris, float cx, float cy, float cz, int label,
   return(NO_ERROR) ;
 }
 
-
-#if 0
 /*-----------------------------------------------------
   Parameters:
 
@@ -17042,8 +17039,8 @@ static float kernel[] =
   {
     K_A, 0.25f, 0.25f-K_A/2.0f
   } ;
-static int
-mrisSmoothCurvatures(MRI_SURFACE *mris, int niterations)
+int
+MRISsmoothCurvatures(MRI_SURFACE *mris, int niterations)
 {
   int     vno, i, vn ;
   double  g, H, norm ;
@@ -17081,7 +17078,7 @@ mrisSmoothCurvatures(MRI_SURFACE *mris, int niterations)
   return(NO_ERROR) ;
 }
 
-
+#if 0
 /*-----------------------------------------------------
   Parameters:
 
@@ -31562,7 +31559,7 @@ MRIScomputeBorderValues(MRI_SURFACE *mris,MRI *mri_brain,
       }
       inward_dist = dist+step_size/2 ;
 
-      if (DIAG_VERBOSE_ON && mri_brain->xsize < .95 && mag >= 0.0)  // refine inward_dist for hires volumes
+      if (DIAG_VERBOSE_ON && mri_brain->xsize < 1.95 && mag >= 0.0)  // refine inward_dist for hires volumes
       {
 	for (dist = inward_dist ; dist > -max_thickness ; dist -= step_size/2)
 	{
@@ -31711,7 +31708,7 @@ MRIScomputeBorderValues(MRI_SURFACE *mris,MRI *mri_brain,
         MRISsurfaceRASToVoxelCached(mris, mri_brain, x, y, z, &xw, &yw, &zw) ;
         MRIsampleVolumeDerivativeScale(mri_tmp, xw, yw, zw, nx, ny, nz,&mag,sigma);
 	// only for hires volumes - if intensities are increasing don't keep going - in gm
-	if (which == GRAY_WHITE && mri_brain->xsize < .95 &&
+	if (which == GRAY_WHITE && mri_brain->xsize < 1.95 &&
 	    val > previous_val && next_val > val)
 	  break ;
         if (which == GRAY_CSF)
@@ -31809,7 +31806,7 @@ MRIScomputeBorderValues(MRI_SURFACE *mris,MRI *mri_brain,
 
     if (vno == Gdiag_no)
       fclose(fp) ;
-    if (mri_brain->xsize < .95)
+    if (mri_brain->xsize < 1.95)
     {
 #ifdef WSIZE
 #undef WSIZE
@@ -36938,6 +36935,9 @@ MRIScomputeVertexSpacingStats(MRI_SURFACE *mris, double *psigma,
         ErrorExit(ERROR_BADPARM, "MRIScomputeVertexSpacingStats: unsupported vertex set %d",
                   which_vertices) ;
         dist = 0 ;
+        break ;
+      case ORIGINAL_VERTICES:
+        dist = sqrt(SQR(vn->origx - v->origx) + SQR(vn->origy - v->origy) + SQR(vn->origz - v->origz));
         break ;
       case CURRENT_VERTICES:
         dist = sqrt(SQR(vn->x - v->x) + SQR(vn->y - v->y) + SQR(vn->z - v->z));
