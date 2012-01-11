@@ -10,8 +10,8 @@
  * Original Author: Doug Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2011/12/22 02:54:11 $
- *    $Revision: 1.18 $
+ *    $Date: 2012/01/11 21:53:17 $
+ *    $Revision: 1.19 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -77,6 +77,7 @@ float sclustSetSurfaceValToClusterNo(MRI_SURFACE *Surf);
 float sclustSetSurfaceValToCWP(MRI_SURFACE *Surf, SCS *scs);
 float sclustCountClusters(MRI_SURFACE *Surf);
 SCS *SurfClusterSummary(MRI_SURFACE *Surf, MATRIX *T, int *nClusters);
+SCS *SurfClusterSummaryFast(MRI_SURFACE *Surf, MATRIX *T, int *nClusters);
 int DumpSurfClusterSum(FILE *fp, SCS *scs, int nClusters);
 SCS *SortSurfClusterSum(SCS *scs, int nClusters);
 int sclustReMap(MRI_SURFACE *Surf, int nClusters, SCS *scs_sorted);
