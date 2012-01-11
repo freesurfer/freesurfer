@@ -69,7 +69,8 @@ int main( int argc, char *argv[] ) {
 
 	// otherwise run default start-up script
 	} else {
-		runScript( dataPath() + "histo_register_script.txt" );
+    execCommand( "cmdlist", false );
+		//runScript( dataPath() + "histo_register_script.txt" );
 	}
 
 	// clean up
