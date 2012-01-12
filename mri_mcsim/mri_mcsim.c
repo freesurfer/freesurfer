@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2011/12/22 17:53:27 $
- *    $Revision: 1.21 $
+ *    $Date: 2012/01/12 17:39:46 $
+ *    $Revision: 1.22 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -66,7 +66,7 @@ static void dump_options(FILE *fp);
 int SaveOutput(void);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_mcsim.c,v 1.21 2011/12/22 17:53:27 greve Exp $";
+static char vcid[] = "$Id: mri_mcsim.c,v 1.22 2012/01/12 17:39:46 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -100,14 +100,14 @@ CSD *csdList[100][100][3], *csd;
 MRI *mask=NULL;
 MRIS *surf;
 char tmpstr[2000],*signstr=NULL;
-int msecTime, nmask, nthRep;
+int msecTime, nmask, nmaskout, nthRep;
 int *nSmoothsList;
 double fwhmmax=30;
 int SaveWeight=0;
 
 /*---------------------------------------------------------------*/
 int main(int argc, char *argv[]) {
-  int nargs, n, err;
+  int nargs, n, err,k, *maskoutvtxno;
   char tmpstr[2000], *signstr=NULL,*SUBJECTS_DIR, fname[2000];
   //char *OutDir = NULL;
   RFS *rfs;
@@ -122,6 +122,7 @@ int main(int argc, char *argv[]) {
   struct timeb  mytimer;
   LABEL *clabel;
   FILE *fp, *fpLog=NULL;
+  float **ppVal, **ppSig, **ppVal0, **ppSig0, **ppZ, **ppZ0;
 
   nargs = handle_version_option (argc, argv, vcid, "$Name:  $");
   if (nargs && argc - nargs == 1) exit (0);
@@ -233,6 +234,17 @@ int main(int argc, char *argv[]) {
     nmask++;
   }
   printf("Found %d voxels in mask\n",nmask);
+
+  // Make a list of vertex numbers
+  maskoutvtxno = (int *) calloc(nmask,sizeof(int));
+  nmaskout = 0;
+  for(n=0; n < surf->nvertices; n++){
+    if(mask && MRIgetVoxVal(mask,n,0,0,0) > 0.5) continue;
+    maskoutvtxno[nmaskout] = n;
+    nmaskout++;
+  }
+  printf("Found %d voxels in mask\n",nmask);
+
   if(surf->group_avg_surface_area > 0)
     searchspace *= (surf->group_avg_surface_area/surf->total_area);
   printf("search space %g mm2\n",searchspace);
@@ -277,8 +289,9 @@ int main(int argc, char *argv[]) {
     fprintf(fp,"%5.1f %4d\n",FWHMList[nthFWHM],nSmoothsList[nthFWHM]);
   fclose(fp);
 
-  // Alloc the z map
-  z = MRIallocSequence(surf->nvertices, 1,1, MRI_FLOAT, 1);
+  // Alloc the z and sig maps
+  z   = MRIallocSequence(surf->nvertices, 1,1, MRI_FLOAT, 1);
+  sig = MRIallocSequence(surf->nvertices, 1,1, MRI_FLOAT, 1);
 
   // Set up the random field specification
   rfs = RFspecInit(SynthSeed,NULL);
@@ -296,13 +309,26 @@ int main(int argc, char *argv[]) {
   for(n=0; n < nFWHMList; n++) printf("%5.2f ",FWHMList[n]);
   printf("\n");
 
+  // Set up pointer to the val field
+  ppVal = (float **) calloc(surf->nvertices,sizeof(float *));
+  ppVal0 = ppVal;
+  ppSig = (float **) calloc(surf->nvertices,sizeof(float *));
+  ppSig0 = ppSig;
+  ppZ = (float **) calloc(surf->nvertices,sizeof(float *));
+  ppZ0 = ppZ;
+  for(k=0; k < surf->nvertices; k++){
+    ppVal[k] = &(surf->vertices[k].val);
+    ppSig[k] = &(MRIFseq_vox(sig,k,0,0,0));
+    ppZ[k] = &(MRIFseq_vox(z,k,0,0,0));
+  }
+
   // Start the simulation loop
   printf("\n\nStarting Simulation over %d Repetitions\n",nRepetitions);
   if(fpLog) fprintf(fpLog,"\n\nStarting Simulation over %d Repetitions\n",nRepetitions);
   TimerStart(&mytimer) ;
   for(nthRep = 0; nthRep < nRepetitions; nthRep++){
     msecTime = TimerStop(&mytimer) ;
-    printf("%5d %7.1f ",nthRep,(msecTime/1000.0)/60);
+    printf("%5d %7.2f ",nthRep,(msecTime/1000.0)/60);
     if(fpLog) {
       fprintf(fpLog,"%5d %7.1f ",nthRep,(msecTime/1000.0)/60);
       fflush(fpLog);
@@ -321,7 +347,7 @@ int main(int argc, char *argv[]) {
       nSmoothsDelta = nSmoothsList[nthFWHM] - nSmoothsPrev;
       nSmoothsPrev = nSmoothsList[nthFWHM];
       // Incrementally smooth z
-      MRISsmoothMRI(surf, z, nSmoothsDelta, mask, z); // smooth z
+      MRISsmoothMRIFastFrame(surf, z, 0, nSmoothsDelta, mask);
       // Rescale
       RFrescale(z,rfs,mask,z);
       // Slightly tortured way to get the right p-values because
@@ -333,27 +359,41 @@ int main(int argc, char *argv[]) {
       // Next, mult pvals by 2 to get two-sided bet 0 and 1
       MRIscalarMul(p,p,2.0);
       sig = MRIlog10(p,NULL,sig,1); // sig = -log10(p)
-      for(nthThresh = 0; nthThresh < nThreshList; nthThresh++){
-	for(nthSign = 0; nthSign < nSignList; nthSign++){
+
+      for(nthSign = 0; nthSign < nSignList; nthSign++){
+	csd = csdList[nthFWHM][0][nthSign]; // just need csd->threshsign
+
+	// If test is not ABS then apply the sign
+	if(csd->threshsign != 0) MRIsetSign(sig,z,0);
+
+	// Get the max stats
+	sigmax = MRIframeMax(sig,0,mask,csd->threshsign,
+			     &cmax,&rmax,&smax);
+	zmax = MRIgetVoxVal(z,cmax,rmax,smax,0);
+	if(csd->threshsign == 0){
+	  zmax = fabs(zmax);
+	  sigmax = fabs(sigmax);
+	}
+	// Mask
+	if(mask) {
+	  //MRImask(sig,mask,sig,0.0,0.0); // a little slow
+	  for(k=0; k < nmaskout; k++) MRIsetVoxVal(sig, maskoutvtxno[k],0,0,0, 0.0);
+	}
+
+	// Copy sig to vertexval
+	//MRIScopyMRI(surf, sig, 0, "val"); // MRIScopyMRI() is a little slow
+	ppVal = ppVal0;
+	ppSig = ppSig0;
+	for(k=0; k < surf->nvertices; k++) *(*ppVal++) = *(*ppSig++);
+
+	for(nthThresh = 0; nthThresh < nThreshList; nthThresh++){
 	  csd = csdList[nthFWHM][nthThresh][nthSign];
 
-	  // If test is not ABS then apply the sign
-	  if(csd->threshsign != 0) MRIsetSign(sig,z,0);
-	  // Get the max stats
-	  sigmax = MRIframeMax(sig,0,mask,csd->threshsign,
-			       &cmax,&rmax,&smax);
-	  zmax = MRIgetVoxVal(z,cmax,rmax,smax,0);
-	  if(csd->threshsign == 0){
-	    zmax = fabs(zmax);
-	    sigmax = fabs(sigmax);
-	  }
-	  // Mask
-	  if(mask) MRImask(sig,mask,sig,0.0,0.0);
-
 	  // Surface clustering
-	  MRIScopyMRI(surf, sig, 0, "val");
+	  // Set the threshold
 	  if(csd->threshsign == 0) threshadj = csd->thresh;
 	  else threshadj = csd->thresh - log10(2.0); // one-sided test
+	  // Compute clusters
 	  SurfClustList = sclustMapSurfClusters(surf,threshadj,-1,csd->threshsign,
 						0,&nClusters,NULL);
 	  // Actual area of cluster with max area
@@ -672,6 +712,7 @@ static void dump_options(FILE *fp) {
   fprintf(fp,"UseAvgVtxArea %d\n",UseAvgVtxArea);
   fprintf(fp,"SaveFile %s\n",SaveFile);
   fprintf(fp,"StopFile %s\n",StopFile);
+  fprintf(fp,"UFSS %s\n",getenv("USE_FAST_SURF_SMOOTHER"));
   fflush(fp);
   return;
 }
@@ -718,3 +759,4 @@ int SaveOutput(void)
   }
   return(0);
 }
+
