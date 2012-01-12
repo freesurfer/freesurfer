@@ -10,8 +10,8 @@
  * Original Author: Doug Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2012/01/11 21:53:16 $
- *    $Revision: 1.31 $
+ *    $Date: 2012/01/12 17:39:02 $
+ *    $Revision: 1.32 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -52,7 +52,7 @@ static int sclustCompare(const void *a, const void *b);
   ---------------------------------------------------------------*/
 const char *sculstSrcVersion(void)
 {
-  return("$Id: surfcluster.c,v 1.31 2012/01/11 21:53:16 greve Exp $");
+  return("$Id: surfcluster.c,v 1.32 2012/01/12 17:39:02 greve Exp $");
 }
 
 /* ------------------------------------------------------------
@@ -421,6 +421,7 @@ SCS *SurfClusterSummaryFast(MRI_SURFACE *Surf, MATRIX *T, int *nClusters)
   struct timeb  mytimer;
   int msecTime;
   double *weightvtx, *weightarea; // to be consistent with orig code
+  VERTEX *v;
 
   if(Gdiag_no > 0) printf("SurfClusterSummaryFast()\n");
 
@@ -438,12 +439,13 @@ SCS *SurfClusterSummaryFast(MRI_SURFACE *Surf, MATRIX *T, int *nClusters)
   weightarea = (double *) calloc(*nClusters, sizeof(double));
 
   for(vtx=0; vtx < Surf->nvertices; vtx++){
-    clusterno = Surf->vertices[vtx].undefval;
-    if(clusterno ==0) continue;
-    vtxval = Surf->vertices[vtx].val;
+    v = &(Surf->vertices[vtx]);
+    clusterno = v->undefval;
+    if(clusterno == 0) continue;
 
     n = clusterno-1;
     scs[n].nmembers ++;
+    vtxval = v->val;
 
     // Initialize
     if(scs[n].nmembers == 1){
@@ -456,8 +458,8 @@ SCS *SurfClusterSummaryFast(MRI_SURFACE *Surf, MATRIX *T, int *nClusters)
       scs[n].cz = 0.0;
     }
 
-    if(! Surf->group_avg_vtxarea_loaded) vtxarea = Surf->vertices[vtx].area;
-    else                                 vtxarea = Surf->vertices[vtx].group_avg_area;
+    if(! Surf->group_avg_vtxarea_loaded) vtxarea = v->area;
+    else                                 vtxarea = v->group_avg_area;
     scs[n].area += vtxarea;
     
     if(fabs(vtxval) > fabs(scs[n].maxval)){
@@ -466,9 +468,9 @@ SCS *SurfClusterSummaryFast(MRI_SURFACE *Surf, MATRIX *T, int *nClusters)
     }
     weightvtx[n]  += vtxval;
     weightarea[n] += (vtxval*vtxarea);
-    scs[n].cx += Surf->vertices[vtx].x;
-    scs[n].cy += Surf->vertices[vtx].y;
-    scs[n].cz += Surf->vertices[vtx].z;
+    scs[n].cx += v->x;
+    scs[n].cy += v->y;
+    scs[n].cz += v->z;
   } // end loop over vertices
 
   for (n = 0; n < *nClusters ; n++){
@@ -621,6 +623,26 @@ SCS *SortSurfClusterSum(SCS *scs, int nClusters)
   is the cluster id that corresponds to the original cluster id.
   ----------------------------------------------------------------*/
 int sclustReMap(MRI_SURFACE *Surf, int nClusters, SCS *scs_sorted)
+{
+  int vtx, c;
+  int *Orig2Sorted;
+
+  Orig2Sorted = (int *)calloc(nClusters,sizeof(int));
+
+  for (c=1; c <= nClusters; c++){
+    Orig2Sorted[c-1] = scs_sorted[c-1].clusterno;
+    //printf("new = %3d old = %3d\n",c,scs_sorted[c-1].clusterno);
+  }
+
+  for (vtx = 0; vtx < Surf->nvertices; vtx++)
+    Surf->vertices[vtx].undefval = Orig2Sorted[Surf->vertices[vtx].undefval-1];
+
+  free(Orig2Sorted);
+
+  return(0);
+}
+/* Older, slower version of sclustReMap()*/
+int sclustReMap0(MRI_SURFACE *Surf, int nClusters, SCS *scs_sorted)
 {
   int vtx, vtx_clusterno, c;
 
