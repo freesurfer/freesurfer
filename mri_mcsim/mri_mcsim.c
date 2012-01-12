@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2012/01/12 17:39:46 $
- *    $Revision: 1.22 $
+ *    $Date: 2012/01/12 18:06:00 $
+ *    $Revision: 1.23 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -66,7 +66,7 @@ static void dump_options(FILE *fp);
 int SaveOutput(void);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_mcsim.c,v 1.22 2012/01/12 17:39:46 greve Exp $";
+static char vcid[] = "$Id: mri_mcsim.c,v 1.23 2012/01/12 18:06:00 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -329,6 +329,7 @@ int main(int argc, char *argv[]) {
   for(nthRep = 0; nthRep < nRepetitions; nthRep++){
     msecTime = TimerStop(&mytimer) ;
     printf("%5d %7.2f ",nthRep,(msecTime/1000.0)/60);
+    fflush(stdout);
     if(fpLog) {
       fprintf(fpLog,"%5d %7.1f ",nthRep,(msecTime/1000.0)/60);
       fflush(fpLog);
@@ -340,6 +341,7 @@ int main(int argc, char *argv[]) {
     // Loop through FWHMs
     for(nthFWHM=0; nthFWHM < nFWHMList; nthFWHM++){
       printf("%d ",nthFWHM);
+      fflush(stdout);
       if(fpLog) {
 	fprintf(fpLog,"%d ",nthFWHM);
 	fflush(fpLog);
