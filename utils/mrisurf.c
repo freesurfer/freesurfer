@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2012/01/12 17:41:00 $
- *    $Revision: 1.717 $
+ *    $Author: fischl $
+ *    $Date: 2012/01/12 21:08:14 $
+ *    $Revision: 1.718 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -733,7 +733,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void)
 {
-  return("$Id: mrisurf.c,v 1.717 2012/01/12 17:41:00 greve Exp $");
+  return("$Id: mrisurf.c,v 1.718 2012/01/12 21:08:14 fischl Exp $");
 }
 
 /*-----------------------------------------------------
@@ -36947,6 +36947,9 @@ MRIScomputeVertexSpacingStats(MRI_SURFACE *mris, double *psigma,
         dist = sqrt(SQR(vn->px - v->px) + SQR(vn->py - v->py) + SQR(vn->pz - v->pz));
         break ;
 #endif
+      case WHITE_VERTICES:
+        dist = sqrt(SQR(vn->whitex-v->whitex) + SQR(vn->whitey-v->whitey) + SQR(vn->whitez-v->whitez));
+        break ;
       case PIAL_VERTICES:
         dist = sqrt(SQR(vn->pialx-v->pialx) + SQR(vn->pialy-v->pialy) + SQR(vn->pialz-v->pialz));
         break ;
