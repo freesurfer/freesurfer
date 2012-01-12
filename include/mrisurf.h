@@ -9,8 +9,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2012/01/10 16:36:06 $
- *    $Revision: 1.362 $
+ *    $Date: 2012/01/12 17:41:00 $
+ *    $Revision: 1.363 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -1580,6 +1580,8 @@ MRI *MRIcopyMRIS(MRI *mri, MRIS *surf, int Frame, char *Field);
 MRI *MRISsmoothMRI(MRIS *Surf, MRI *Src, int nSmoothSteps, MRI *IncMask, MRI *Targ);
 MRI *MRISsmoothMRIFast(MRIS *Surf, MRI *Src, int nSmoothSteps, MRI *IncMask,  MRI *Targ);
 int MRISsmoothMRIFastCheck(int nSmoothSteps);
+int MRISsmoothMRIFastFrame(MRIS *Surf, MRI *Src, int frame, int nSmoothSteps, MRI *IncMask);
+
 
 int  MRISclearFlags(MRI_SURFACE *mris, int flags) ;
 int  MRISsetCurvature(MRI_SURFACE *mris, float val) ;

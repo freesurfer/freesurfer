@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2012/01/11 21:39:23 $
- *    $Revision: 1.716 $
+ *    $Author: greve $
+ *    $Date: 2012/01/12 17:41:00 $
+ *    $Revision: 1.717 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -733,7 +733,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void)
 {
-  return("$Id: mrisurf.c,v 1.716 2012/01/11 21:39:23 fischl Exp $");
+  return("$Id: mrisurf.c,v 1.717 2012/01/12 17:41:00 greve Exp $");
 }
 
 /*-----------------------------------------------------
@@ -63137,7 +63137,124 @@ MRI *MRISsmoothMRIFast(MRIS *Surf, MRI *Src, int nSmoothSteps, MRI *IncMask,  MR
 
   return(Targ);
 }
+/*------------------------------------------------------------------
+  MRISsmoothMRIFastFrame() same as MRISsmoothMRIFast() but operates
+  on a single frame. This allows the pointers to be cached in
+  a static data structure.
+  ------------------------------------------------------------------*/
+int MRISsmoothMRIFastFrame(MRIS *Surf, MRI *Src, int frame, int nSmoothSteps, MRI *IncMask)
+{
+  int nnbrs, nthstep, vno, nthnbr, num, nvox, nbrvno;
+  struct timeb  mytimer;
+  int msecTime;
+  float sumF;
+  VERTEX *v, *vn;
+  static MRIS *SurfInit = NULL;
+  static MRI *SrcInit = NULL;
+  static int DoInit=1, frameInit=0, *nNbrs=NULL, *nNbrs0=NULL, *rip=NULL, *rip0=NULL, nNbrsMax=0;
+  static float **pF=NULL, **pF0=NULL, *tF=NULL, *tF0=NULL;
 
+  if(Gdiag_no > 0) printf("MRISsmoothMRIFast2()\n");
+
+  if(DoInit){
+    if(Gdiag_no > 0) printf("MRISsmoothMRIFast2() Init\n");
+    nvox = Src->width * Src->height * Src->depth;
+    if (Surf->nvertices != nvox){
+      printf("ERROR: MRISsmoothMRIFast2(): Surf/Src dimension mismatch\n");
+      return(1);
+    }
+    // Alloc arrays. If there are ripped vertices, then only rip 
+    // needs nvertices elements
+    nNbrsMax = 12; // Should measure this, but overalloc does not hurt
+    pF = (float **) calloc(Surf->nvertices*nNbrsMax,sizeof(float *));
+    tF = (float *)  calloc(Surf->nvertices,sizeof(float));
+    nNbrs = (int *) calloc(Surf->nvertices,sizeof(int));
+    rip = (int *) calloc(Surf->nvertices,sizeof(int));
+    pF0 = pF;
+    tF0 = tF;
+    rip0 = rip;
+    nNbrs0 = nNbrs;
+    SrcInit = Src;
+    SurfInit = Surf;
+    frameInit = frame;
+    DoInit = 0;
+  }
+  if(Src != SrcInit){
+    printf("ERROR: Src and SrcInit do not agree\n");
+    exit(1);
+  }
+  if(Surf != SurfInit){
+    printf("ERROR: Surf and SurfInit do not agree\n");
+    exit(1);
+  }
+  if(frame != frameInit){
+    printf("ERROR: frame and frameInit do not agree\n");
+    exit(1);
+  }
+
+  TimerStart(&mytimer) ;
+
+  // Set up pointers for this call
+  pF = pF0;
+  rip = rip0;
+  nNbrs = nNbrs0;
+  for (vno = 0 ; vno < Surf->nvertices ; vno++){
+    v = &Surf->vertices[vno] ;
+    if(IncMask && MRIgetVoxVal(IncMask,vno,0,0,0) < 0.5){
+      // Mask is inclusive, so look for out of mask
+      // should exclude rips here too? Original does not.
+      rip[vno] = 1;
+      MRIFseq_vox(Src,vno,0,0,frame) = 0;
+      continue ;
+    }
+    rip[vno] = 0;
+    *pF++ = (float *)(&(MRIFseq_vox(Src,vno,0,0,frame)));
+    nnbrs = Surf->vertices[vno].vnum;
+    num = 1;
+    for (nthnbr = 0 ; nthnbr < nnbrs ; nthnbr++) {
+      nbrvno = Surf->vertices[vno].v[nthnbr];
+      vn = &Surf->vertices[nbrvno] ;
+      if(vn->ripflag) continue ;
+      if(IncMask && MRIgetVoxVal(IncMask,nbrvno,0,0,0) < 0.5) continue ;
+      *pF++ = (float *)(&(MRIFseq_vox(Src,nbrvno,0,0,frame)));
+      num++ ;
+    }
+    *nNbrs++ = num; // num takes into account all rips/masks
+  }
+
+  // Step through the iterations
+  for(nthstep = 0; nthstep < nSmoothSteps; nthstep++){
+    // Init pointers for this iteration
+    pF  = pF0;
+    rip = rip0;
+    tF  = tF0;
+    nNbrs = nNbrs0;
+    // Loop through vertices, average nearest neighbors
+    for (vno = 0 ; vno < Surf->nvertices ; vno++){
+      if(*rip++) continue ;
+      sumF = *(*pF++);
+      for(nthnbr = 0 ; nthnbr < (*nNbrs)-1 ; nthnbr++) sumF += *(*pF++);
+      *tF++ = sumF/(*nNbrs);
+      nNbrs++;
+    }
+    // Load up for the next step
+    rip = rip0;
+    tF  = tF0;
+    for (vno = 0 ; vno < Surf->nvertices ; vno++){
+      if(*rip++) continue ;
+      MRIsetVoxVal(Src,vno,0,0,frame, *tF++);
+    }
+  }
+
+  msecTime = TimerStop(&mytimer) ;
+  if(Gdiag_no > 0){
+    printf("MRISsmoothFast2() nsteps = %d, tsec = %g\n",nSmoothSteps,msecTime/1000.0);
+    fflush(stdout);
+  }
+
+  return(0);
+}
+/*--------------------------------------------------------------*/
 int MRISsmoothMRIFastCheck(int nSmoothSteps)
 {
   char tmpstr[2000], *UFSS;
