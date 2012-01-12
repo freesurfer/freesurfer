@@ -9,9 +9,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: nicks $
-#    $Date: 2011/03/02 20:16:39 $
-#    $Revision: 1.20 $
+#    $Author: greve $
+#    $Date: 2012/01/12 19:00:53 $
+#    $Revision: 1.21 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -28,7 +28,7 @@
 # uncomment this to increase number of allowable open files:
 #limit descriptors unlimited
 
-set VERSION = '$Id: make_average_subject,v 1.20 2011/03/02 20:16:39 nicks Exp $'
+set VERSION = '$Id: make_average_subject,v 1.21 2012/01/12 19:00:53 greve Exp $'
 set PrintHelp = 0;
 set sdout = ();
 set average_subject = average;
@@ -88,6 +88,13 @@ if($DoVolumes) then
     echo "ERROR: make_average_volume"
     exit 1;
   endif
+endif
+
+if($DoSurfaces && $DoVolumes) then
+  set cmd = (recon-all -s $average_subject -cortribbon -aparc2aseg)
+  echo $cmd
+  $cmd
+  if($status) exit 1;
 endif
 
 exit 0
