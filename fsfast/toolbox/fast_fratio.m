@@ -20,8 +20,8 @@ function [F, Fsig, ces, cesvar, edof] = fast_fratio(beta,X,rvar,C,Sn,dof2max,edo
 % Original Author: Doug Greve
 % CVS Revision Info:
 %    $Author: greve $
-%    $Date: 2011/12/15 16:34:46 $
-%    $Revision: 1.10 $
+%    $Date: 2012/01/13 23:56:04 $
+%    $Revision: 1.11 $
 %
 % Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 %
@@ -73,12 +73,18 @@ dof2 = edof;
 
 if(J==1) cesvar = rvar./cescvm; end
 
-indz  = find(rvar == 0);
-indnz = find(rvar ~= 0);
-if(~isempty(indz))
-  beta = beta(:,indnz);
-  rvar = rvar(:,indnz);
+if(nv > 1)
+  indz  = find(rvar == 0);
+  indnz = find(rvar ~= 0);
+  if(~isempty(indz))
+    beta = beta(:,indnz);
+    rvar = rvar(:,indnz);
+  end
+else
+  indz = [];
+  indnz = 1;
 end
+
 
 % Contast Effect Size
 ces = C*beta;
