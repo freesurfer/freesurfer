@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2012/01/12 18:06:00 $
- *    $Revision: 1.23 $
+ *    $Date: 2012/01/13 23:42:10 $
+ *    $Revision: 1.24 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -66,7 +66,7 @@ static void dump_options(FILE *fp);
 int SaveOutput(void);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_mcsim.c,v 1.23 2012/01/12 18:06:00 greve Exp $";
+static char vcid[] = "$Id: mri_mcsim.c,v 1.24 2012/01/13 23:42:10 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -236,7 +236,7 @@ int main(int argc, char *argv[]) {
   printf("Found %d voxels in mask\n",nmask);
 
   // Make a list of vertex numbers
-  maskoutvtxno = (int *) calloc(nmask,sizeof(int));
+  maskoutvtxno = (int *) calloc(surf->nvertices-nmask,sizeof(int));
   nmaskout = 0;
   for(n=0; n < surf->nvertices; n++){
     if(mask && MRIgetVoxVal(mask,n,0,0,0) > 0.5) continue;
