@@ -10,8 +10,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2012/01/05 21:19:15 $
-#    $Revision: 1.57 $
+#    $Date: 2012/01/15 22:58:00 $
+#    $Revision: 1.58 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -28,7 +28,7 @@
 # uncomment this to increase number of allowable open files to maximum:
 #limit descriptors unlimited
 
-set VERSION = '$Id: make_average_surface,v 1.57 2012/01/05 21:19:15 greve Exp $';
+set VERSION = '$Id: make_average_surface,v 1.58 2012/01/15 22:58:00 greve Exp $';
 setenv FIX_VERTEX_AREA
 
 set PrintHelp = 0;
@@ -297,7 +297,7 @@ foreach hemi ($hemilist)
     if($status) exit 1
     # Compute average across subject
     set avgmeas = $ddir/surf/$hemi.$meas.avg.mgh
-    if($meas == area) set avgmeas = $ddir/surf/$hemi.avg.white.area.mgh; # backcompat
+    if($meas == area) set avgmeas = $ddir/surf/$hemi.white.avg.area.mgh; # backcompat
     set cmd = (mri_concat $measout --mean --o $avgmeas)
     echo $cmd | tee -a $LF
     $cmd |& tee -a $LF
