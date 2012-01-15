@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl (Apr 16, 1997)
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2011/12/19 22:59:15 $
- *    $Revision: 1.188 $
+ *    $Author: jonp $
+ *    $Date: 2012/01/15 20:47:14 $
+ *    $Revision: 1.189 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -35,7 +35,6 @@
 #include "mri_identify.h"
 #include "gcamorph.h"
 #include "DICOMRead.h"
-#include "unwarpGradientNonlinearity.h"
 #include "version.h"
 #include "utils.h"
 #include "macros.h"
@@ -70,7 +69,6 @@ int SplitFrames=0;
 int main(int argc, char *argv[])
 {
   int nargs = 0;
-  MRI *mri_unwarped;
   MRI *mri, *mri2, *template, *mri_in_like;
   int i,err=0;
   int reorder_vals[3];
@@ -201,7 +199,7 @@ int main(int argc, char *argv[])
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mri_convert.c,v 1.188 2011/12/19 22:59:15 greve Exp $",
+   "$Id: mri_convert.c,v 1.189 2012/01/15 20:47:14 jonp Exp $",
    "$Name:  $",
    cmdline);
 
@@ -322,7 +320,7 @@ int main(int argc, char *argv[])
     handle_version_option
     (
       argc, argv,
-      "$Id: mri_convert.c,v 1.188 2011/12/19 22:59:15 greve Exp $",
+      "$Id: mri_convert.c,v 1.189 2012/01/15 20:47:14 jonp Exp $",
       "$Name:  $"
     );
   if (nargs && argc - nargs == 1)
@@ -1143,91 +1141,6 @@ int main(int argc, char *argv[])
     {
       mriio_set_gdf_crop_flag(TRUE);
     }
-    else if (strcmp(argv[i], "--unwarp_gradient_nonlinearity") == 0)
-    {
-      /* !@# start */
-      unwarp_flag = 1;
-
-      /* Determine gradient type: sonata or allegra */
-      get_string(argc, argv, &i, unwarp_gradientType);
-      if ( (strcmp(unwarp_gradientType, "sonata")  != 0) &&
-           (strcmp(unwarp_gradientType, "allegra") != 0) &&
-           (strcmp(unwarp_gradientType, "GE") != 0) )
-      {
-        fprintf(stderr, "\n%s: must specify gradient type "
-                "('sonata' or 'allegra' or 'GE')\n", Progname);
-        usage_message(stdout);
-        exit(1);
-      }
-
-      /* Determine whether or not to do a partial unwarp */
-      get_string(argc, argv, &i, unwarp_partialUnwarp);
-      if ( (strcmp(unwarp_partialUnwarp, "fullUnwarp") != 0) &&
-           (strcmp(unwarp_partialUnwarp, "through-plane")  != 0) )
-      {
-        fprintf(stderr, "\n%s: must specify unwarping type "
-                "('fullUnwarp' or 'through-plane')\n", Progname);
-        usage_message(stdout);
-        exit(1);
-      }
-
-      /* Determine whether or not to do jacobian correction */
-      get_string(argc, argv, &i, unwarp_jacobianCorrection);
-      if ( (strcmp(unwarp_jacobianCorrection, "JacobianCorrection")  != 0) &&
-           (strcmp(unwarp_jacobianCorrection, "noJacobianCorrection") != 0) )
-      {
-        fprintf(stderr, "\n%s: must specify intensity correction type "
-                "('JacobianCorrection' or 'noJacobianCorrection')\n",
-                Progname);
-        usage_message(stdout);
-        exit(1);
-      }
-
-      /* Determine interpolation type: linear or sinc */
-      get_string(argc, argv, &i, unwarp_interpType);
-      if ( (strcmp(unwarp_interpType, "linear") != 0) &&
-           (strcmp(unwarp_interpType, "sinc")   != 0) )
-      {
-        fprintf(stderr, "\n%s: must specify interpolation type "
-                "('linear' or 'sinc')\n", Progname);
-        usage_message(stdout);
-        exit(1);
-      }
-
-      /* Get the HW for sinc interpolation (if linear interpolation,
-         this integer value is not used) */
-      get_ints(argc, argv, &i, &unwarp_sincInterpHW, 1);
-
-      /* OPTIONS THAT THERE ARE NO PLANS TO SUPPORT */
-      /* Jacobian correction with through-plane only correction */
-      if ( (strcmp(unwarp_jacobianCorrection, "JacobianCorrection") == 0) &&
-           (strcmp(unwarp_partialUnwarp, "through-plane") == 0) )
-      {
-        fprintf(stderr, "\n%s: Jacobian correction not valid for "
-                "'through-plane' only unwarping)\n", Progname);
-        exit(1);
-      }
-
-      /* OPTIONS NOT CURRENTLY SUPPORTED (BUT W/ PLANS TO SUPPORT) */
-      /* 1) GE unwarping not supported until we have offset data */
-      if ( strcmp(unwarp_gradientType, "GE") == 0 )
-      {
-        fprintf(stderr, "\n%s: unwarping data from GE scanners not "
-                "supported at present.\n", Progname);
-        exit(1);
-      }
-
-      /* 2) for GE: through-plane correction requires rewarping the
-         in-plane unwarped image, which requires map inversion */
-      if ( strcmp(unwarp_partialUnwarp, "through-plane") == 0 )
-      {
-        fprintf(stderr, "\n%s: through-plane only unwarping not "
-                "supported at present.\n", Progname);
-        exit(1);
-      }
-      /* !@# end */
-
-    }
     else if ((strcmp(argv[i], "-u") == 0)
              || (strcmp(argv[i], "--usage") == 0)
              || (strcmp(argv[i], "--help") == 0)
@@ -1642,7 +1555,7 @@ int main(int argc, char *argv[])
             "= --zero_ge_z_offset option ignored.\n");
   }
 
-  printf("$Id: mri_convert.c,v 1.188 2011/12/19 22:59:15 greve Exp $\n");
+  printf("$Id: mri_convert.c,v 1.189 2012/01/15 20:47:14 jonp Exp $\n");
   printf("reading from %s...\n", in_name_only);
 
   if (in_volume_type == OTL_FILE)
@@ -2033,22 +1946,6 @@ int main(int argc, char *argv[])
   if (zero_ge_z_offset_flag) //E/
   {
     mri->c_s = 0.0;
-  }
-
-  if (unwarp_flag)
-  {
-    /* if unwarp_flag is true, unwarp the distortions due
-       to gradient coil nonlinearities */
-    printf("INFO: unwarping ... ");
-    mri_unwarped = unwarpGradientNonlinearity(mri,
-                   unwarp_gradientType,
-                   unwarp_partialUnwarp,
-                   unwarp_jacobianCorrection,
-                   unwarp_interpType,
-                   unwarp_sincInterpHW);
-    MRIfree(&mri);
-    mri = mri_unwarped;
-    printf("done \n ");
   }
 
   printf("TR=%2.2f, TE=%2.2f, TI=%2.2f, flip angle=%2.2f\n",
