@@ -99,6 +99,7 @@ freesurfer/fsl/doc
 freesurfer/fsl/refdoc
 freesurfer/fsl/tcl
 freesurfer/grad_unwarp_tables
+freesurfer/gradient_nonlin_unwarp
 freesurfer/average/HPMarch022005_ras.mgz
 freesurfer/average/RB40_talairach_2005_12_30.gca
 freesurfer/average/RB40_talairach_with_skull_2005_12_30.gca
