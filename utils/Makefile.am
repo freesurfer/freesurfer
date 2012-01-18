@@ -210,7 +210,6 @@ libutils_main_SOURCES=\
 	transform.c \
 	tritri.c \
 	tukey.c \
-	unwarpGradientNonlinearity.c \
 	utils.c \
 	version.c \
 	vlabels.c \

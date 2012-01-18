@@ -241,7 +241,6 @@ EXTRA_DIST=\
 	tritri.h \
 	tukey.h \
 	typedefs.h \
-	unwarpGradientNonlinearity.h \
 	utils.h \
 	utilsmath.h \
 	version.h \
