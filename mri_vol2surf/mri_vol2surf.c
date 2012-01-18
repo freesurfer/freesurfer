@@ -26,9 +26,9 @@
 /*
  * Original Author: Doug Greve
  * CVS Revision Info:
- *    $Author: jonp $
- *    $Date: 2011/03/05 01:11:14 $
- *    $Revision: 1.63 $
+ *    $Author: greve $
+ *    $Date: 2012/01/18 22:45:47 $
+ *    $Revision: 1.64 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -82,7 +82,7 @@ static int  singledash(char *flag);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] = 
-"$Id: mri_vol2surf.c,v 1.63 2011/03/05 01:11:14 jonp Exp $";
+"$Id: mri_vol2surf.c,v 1.64 2012/01/18 22:45:47 greve Exp $";
 
 char *Progname = NULL;
 
@@ -177,6 +177,7 @@ static float fwhm = 0, gstd = 0;
 static float surf_fwhm = 0, surf_gstd = 0;
 
 static int  srcsynth = 0;
+int srcsynthindex = 0;
 static long seed = -1; /* < 0 for auto */
 static char *seedfile = NULL;
 
@@ -216,7 +217,7 @@ int main(int argc, char **argv) {
   /* rkt: check for and handle version tag */
   nargs = handle_version_option 
     (argc, argv, 
-     "$Id: mri_vol2surf.c,v 1.63 2011/03/05 01:11:14 jonp Exp $", 
+     "$Id: mri_vol2surf.c,v 1.64 2012/01/18 22:45:47 greve Exp $", 
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -251,7 +252,7 @@ int main(int argc, char **argv) {
   }
   printf("INFO: float2int code = %d\n",float2int);
 
-  if (srcsynth == 0) {
+  if(srcsynth == 0 && srcsynthindex == 0) {
     /* Load the Source Volume */
     SrcVol =  MRIreadType(srcvolid,srctype);
     if (SrcVol == NULL) {
@@ -263,7 +264,8 @@ int main(int argc, char **argv) {
       SrcVol = MRISeqchangeType(SrcVol,MRI_FLOAT,0,0,0);
     }
     printf("Done loading volume\n");
-  } else {
+  }
+  if(srcsynth){
     /* Synth the Source Volume */
     printf("Synthesizing, seed = %ld\n",seed);
     srand48(seed);
@@ -278,6 +280,14 @@ int main(int argc, char **argv) {
     MRIcopyHeader(mritmp, SrcVol);
     SrcVol->type = MRI_FLOAT;
     MRIfree(&mritmp);
+  } else {
+    printf("Synthesizing with index\n");
+    mritmp = MRIreadType(srcvolid,srctype);
+    if (mritmp == NULL) {
+      printf("ERROR: could not read %s as type %d\n",srcvolid,srctype);
+      exit(1);
+    }
+    SrcVol = MRIindexNo(mritmp,NULL);
   }
 
   if (!regheader) {
@@ -1032,6 +1042,10 @@ static int parse_commandline(int argc, char **argv) {
       sscanf(pargv[0],"%ld",&seed);
       srcsynth = 1;
       nargsused = 1;
+    } else if (!strcmp(option, "--srcsynth-index")) {
+      srcsynthindex = 1;
+      interpmethod_string = "nearest";
+      interpmethod = interpolation_code(interpmethod_string);
     } else if (!strcmp(option, "--seedfile")) {
       if (nargc < 1) argnerr(option,1);
       seedfile = pargv[0];
@@ -1109,6 +1123,7 @@ static void print_usage(void) {
   printf("   --scale scale : multiply all intensities by scale.\n");
   printf("   --v vertex no : debug mapping of vertex.\n");
   printf("   --srcsynth seed : synthesize source volume\n");
+  printf("   --srcsynth-index : synthesize source volume with volume index no\n");
   printf("   --seedfile fname : save synth seed to fname\n");
   printf("   --sd SUBJECTS_DIR \n");
   printf("   --help      print out information on how to use this program\n");
