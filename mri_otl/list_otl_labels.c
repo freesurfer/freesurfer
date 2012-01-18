@@ -11,7 +11,6 @@
 #include "mri_identify.h"
 #include "gcamorph.h"
 #include "DICOMRead.h"
-#include "unwarpGradientNonlinearity.h"
 #include "version.h"
 #include "utils.h"
 #include "macros.h"
