@@ -9,8 +9,8 @@
 #
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2012/01/09 21:42:00 $
-#    $Revision: 1.558 $
+#    $Date: 2012/01/18 21:57:32 $
+#    $Revision: 1.559 $
 #
 ########################################################################
 AC_PREREQ(2.57)
@@ -3354,6 +3354,8 @@ AC_OUTPUT([Makefile
            fslutils/Makefile
            glut/Makefile
            gpu_utils/Makefile
+           gradient_nonlin_unwarp/Makefile
+           gradient_nonlin_unwarp/gradient_coil_files/Makefile
            opencl_algorithms/Makefile
            hiam_make_surfaces/Makefile
            hiam_register/Makefile

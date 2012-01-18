@@ -7,7 +7,7 @@ foo_DATA=LICENSE NOTICE README AUTHORS INSTALL COPYING
 
 DMRISUBDIRS=\
 	dmri_poistats \
-        dmri_tensoreig  
+  dmri_tensoreig  
 
 GLSUBDIRS=\
 	glut \
@@ -312,7 +312,8 @@ MISCDIRS=\
 	fem_elastic \
 	hiam_make_surfaces\
 	hiam_make_template\
-	hiam_register
+	hiam_register \
+	gradient_nonlin_unwarp
 
 # ordering is important here for proper 'make check' and 'make distcheck' function
 SUBDIRS=\
