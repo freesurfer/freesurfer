@@ -27,8 +27,8 @@
  * Original Author: Doug Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2012/01/18 22:45:47 $
- *    $Revision: 1.64 $
+ *    $Date: 2012/01/19 16:49:58 $
+ *    $Revision: 1.65 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -82,7 +82,7 @@ static int  singledash(char *flag);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] = 
-"$Id: mri_vol2surf.c,v 1.64 2012/01/18 22:45:47 greve Exp $";
+"$Id: mri_vol2surf.c,v 1.65 2012/01/19 16:49:58 greve Exp $";
 
 char *Progname = NULL;
 
@@ -217,7 +217,7 @@ int main(int argc, char **argv) {
   /* rkt: check for and handle version tag */
   nargs = handle_version_option 
     (argc, argv, 
-     "$Id: mri_vol2surf.c,v 1.64 2012/01/18 22:45:47 greve Exp $", 
+     "$Id: mri_vol2surf.c,v 1.65 2012/01/19 16:49:58 greve Exp $", 
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -280,7 +280,8 @@ int main(int argc, char **argv) {
     MRIcopyHeader(mritmp, SrcVol);
     SrcVol->type = MRI_FLOAT;
     MRIfree(&mritmp);
-  } else {
+  }
+  if(srcsynthindex){
     printf("Synthesizing with index\n");
     mritmp = MRIreadType(srcvolid,srctype);
     if (mritmp == NULL) {
