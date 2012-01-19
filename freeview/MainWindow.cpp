@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2012/01/10 17:46:15 $
- *    $Revision: 1.201 $
+ *    $Date: 2012/01/19 20:35:06 $
+ *    $Revision: 1.202 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -3419,7 +3419,7 @@ void MainWindow::OnNewVolume()
   if ( dlg.exec() == QDialog::Accepted )
   {
     LayerMRI* layer_new = new LayerMRI( dlg.GetTemplate() );
-    if ( !layer_new->Create( dlg.GetTemplate(), dlg.GetCopyVoxel(), dlg.GetDataType(), dlg.GetDummyOption() ) )
+    if ( !layer_new->Create( dlg.GetTemplate(), dlg.GetCopyVoxel(), dlg.GetDataType(), dlg.GetVoxelDataOption() ) )
     {
       QMessageBox::warning( this, "Error", "Can not create new volume." );
       delete layer_new;

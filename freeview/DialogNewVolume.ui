@@ -120,25 +120,39 @@
     <widget class="QComboBox" name="comboBoxTemplate"/>
    </item>
    <item>
-    <widget class="QCheckBox" name="checkBoxCopyData">
-     <property name="text">
-      <string>Copy voxel data from template</string>
+    <layout class="QGridLayout" name="gridLayout">
+     <property name="topMargin">
+      <number>0</number>
      </property>
-    </widget>
-   </item>
-   <item>
-    <widget class="QCheckBox" name="checkBoxDummySphere">
-     <property name="text">
-      <string>Dummy Sphere</string>
-     </property>
-    </widget>
-   </item>
-   <item>
-    <widget class="QCheckBox" name="checkBoxDummyCube">
-     <property name="text">
-      <string>Dummy Cube</string>
-     </property>
-    </widget>
+     <item row="0" column="0" colspan="2">
+      <widget class="QCheckBox" name="checkBoxCopyData">
+       <property name="text">
+        <string>Copy voxel data from template</string>
+       </property>
+      </widget>
+     </item>
+     <item row="2" column="0">
+      <widget class="QCheckBox" name="checkBoxDummySphere">
+       <property name="text">
+        <string>Dummy Sphere</string>
+       </property>
+      </widget>
+     </item>
+     <item row="2" column="1">
+      <widget class="QCheckBox" name="checkBoxDummyCube">
+       <property name="text">
+        <string>Dummy Cube</string>
+       </property>
+      </widget>
+     </item>
+     <item row="1" column="0" colspan="2">
+      <widget class="QCheckBox" name="checkBoxMask">
+       <property name="text">
+        <string>Create as mask</string>
+       </property>
+      </widget>
+     </item>
+    </layout>
    </item>
    <item>
     <spacer name="verticalSpacer">
@@ -238,8 +252,8 @@
    <slot>OnToggleVoxelDataOption(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>116</x>
-     <y>235</y>
+     <x>132</x>
+     <y>275</y>
     </hint>
     <hint type="destinationlabel">
      <x>433</x>
@@ -254,12 +268,44 @@
    <slot>OnToggleVoxelDataOption(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>116</x>
-     <y>264</y>
+     <x>267</x>
+     <y>275</y>
     </hint>
     <hint type="destinationlabel">
      <x>261</x>
      <y>390</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>checkBoxMask</sender>
+   <signal>toggled(bool)</signal>
+   <receiver>DialogNewVolume</receiver>
+   <slot>OnToggleVoxelDataOption(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>72</x>
+     <y>236</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>70</x>
+     <y>360</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>checkBoxMask</sender>
+   <signal>toggled(bool)</signal>
+   <receiver>DialogNewVolume</receiver>
+   <slot>OnToggleMask(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>53</x>
+     <y>236</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>67</x>
+     <y>495</y>
     </hint>
    </hints>
   </connection>
@@ -268,5 +314,6 @@
   <slot>OnOK()</slot>
   <slot>OnToggleCopyVoxelData(bool)</slot>
   <slot>OnToggleVoxelDataOption(bool)</slot>
+  <slot>OnToggleMask(bool)</slot>
  </slots>
 </ui>

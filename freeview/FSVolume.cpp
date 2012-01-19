@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2011/10/13 21:05:31 $
- *    $Revision: 1.73 $
+ *    $Date: 2012/01/19 20:35:05 $
+ *    $Revision: 1.74 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -893,7 +893,8 @@ bool FSVolume::MRIWrite()
   return MRIWrite( m_MRI->fname );
 }
 
-bool FSVolume::UpdateMRIFromImage( vtkImageData* rasImage, bool resampleToOriginal )
+// if data_type < 0, use source data type
+bool FSVolume::UpdateMRIFromImage( vtkImageData* rasImage, bool resampleToOriginal, int data_type )
 {
   int nProgressStep = 5;
 
@@ -907,7 +908,7 @@ bool FSVolume::UpdateMRIFromImage( vtkImageData* rasImage, bool resampleToOrigin
   MRI* mri = MRIallocSequence( m_MRITarget->width,
                                m_MRITarget->height,
                                m_MRITarget->depth,
-                               m_MRITarget->type,
+                               data_type >= 0 ? data_type : m_MRITarget->type,
                                m_MRI->nframes );
   if ( mri == NULL )
   {
@@ -994,7 +995,7 @@ bool FSVolume::UpdateMRIFromImage( vtkImageData* rasImage, bool resampleToOrigin
     m_MRITemp = MRIallocSequence( m_MRI->width,
                                   m_MRI->height,
                                   m_MRI->depth,
-                                  m_MRI->type,
+                                  data_type >= 0 ? data_type : m_MRI->type,
                                   m_MRI->nframes );
     if ( m_MRITemp == NULL )
     {

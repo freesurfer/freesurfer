@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2011/06/30 18:19:25 $
- *    $Revision: 1.36 $
+ *    $Date: 2012/01/19 20:35:05 $
+ *    $Revision: 1.37 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -66,7 +66,7 @@ public:
   double GetVoxelValue( int i, int j, int k, int frame );
 
   bool UpdateMRIFromImage( vtkImageData* rasImage,
-                           bool resampleToOriginal = true );
+                           bool resampleToOriginal = true, int data_type = -1 );
 
   vtkImageData* GetImageOutput();
 

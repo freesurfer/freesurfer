@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2012/01/10 17:46:15 $
- *    $Revision: 1.116 $
+ *    $Date: 2012/01/19 20:35:05 $
+ *    $Revision: 1.117 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -58,6 +58,7 @@
 #include "vtkImageResample.h"
 #include "vtkPolyDataWriter.h"
 #include "vtkMath.h"
+#include "vtkImageThreshold.h"
 #include "MyUtils.h"
 #include "FSVolume.h"
 #include "LayerPropertyMRI.h"
@@ -257,7 +258,7 @@ bool LayerMRI::LoadVolumeFromFile( )
   return true;
 }
 
-bool LayerMRI::Create( LayerMRI* mri, bool bCopyVoxelData, int data_type, int dummy_option )
+bool LayerMRI::Create( LayerMRI* mri, bool bCopyVoxelData, int data_type, int voxel_option )
 {
   if ( m_volumeSource )
   {
@@ -284,7 +285,7 @@ bool LayerMRI::Create( LayerMRI* mri, bool bCopyVoxelData, int data_type, int du
     int* dim = m_imageData->GetDimensions();
     int len = qMin(dim[0], qMin(dim[1], dim[2]))/3;
     int len2 = len*len;
-    if (dummy_option == 0)    // sphere
+    if (voxel_option == 0)    // sphere
     {
       int c[3] = {dim[0]/2, dim[1]/2, dim[2]/2};
       double val = 100;
@@ -300,7 +301,7 @@ bool LayerMRI::Create( LayerMRI* mri, bool bCopyVoxelData, int data_type, int du
         }
       }
     }
-    else if (dummy_option == 1)  // cube
+    else if (voxel_option == 1)  // cube
     {
       int c[3] = {dim[0]/2, dim[1]/2, dim[2]/2};
       double val = 100;
@@ -315,6 +316,36 @@ bool LayerMRI::Create( LayerMRI* mri, bool bCopyVoxelData, int data_type, int du
         }
       }
     }
+    else if (voxel_option == 2) // mask
+    {
+      double w = mri->GetProperty()->GetWindow(),
+             l = mri->GetProperty()->GetLevel();
+      /*
+      double dMin = l - w/2, dMax = l + w/2;
+      for (int i = 0; i < dim[0]; i++)
+      {
+        for (int j = 0; j < dim[1]; j++)
+        {
+          for (int k = 0; k < dim[2]; k++)
+          {
+            double val = m_imageDataRef->GetScalarComponentAsDouble(i, j, k, mri->GetActiveFrame());
+            if (val >= dMin && val <= dMax)
+              m_imageData->SetScalarComponentFromDouble(i, j, k, 0, 1);
+          }
+        }
+      }
+      */
+      vtkSmartPointer<vtkImageThreshold> threshold = vtkSmartPointer<vtkImageThreshold>::New();
+      threshold->ThresholdByUpper(l-w/2);
+      threshold->SetInValue(1);
+      threshold->SetOutValue(0);
+      threshold->ReplaceInOn();
+      threshold->ReplaceOutOn();
+      threshold->SetOutputScalarType(m_imageData->GetScalarType());
+      threshold->SetInput(m_imageDataRef);
+      threshold->Update();
+      m_imageData->DeepCopy(threshold->GetOutput());
+    }
 
     InitializeActors();
 
@@ -326,6 +357,11 @@ bool LayerMRI::Create( LayerMRI* mri, bool bCopyVoxelData, int data_type, int du
     {
       GetProperty()->CopySettings( mri->GetProperty() );
       SetModified();
+    }
+    else if (voxel_option == 2) // mask
+    {
+      SetModified();
+      GetProperty()->SetWindowLevel(0, 0.5);
     }
   }
 

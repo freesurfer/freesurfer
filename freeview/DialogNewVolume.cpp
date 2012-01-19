@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2011/04/26 19:21:51 $
- *    $Revision: 1.17 $
+ *    $Date: 2012/01/19 20:35:05 $
+ *    $Revision: 1.18 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -111,6 +111,12 @@ void DialogNewVolume::OnToggleCopyVoxelData(bool bCopy)
   ui->comboBoxDataType->setDisabled(bCopy);
 }
 
+void DialogNewVolume::OnToggleMask(bool bMask)
+{
+  if (bMask)
+    ui->comboBoxDataType->setCurrentIndex(0);
+}
+
 void DialogNewVolume::OnToggleVoxelDataOption(bool bChecked)
 {
   if (bChecked)
@@ -121,14 +127,18 @@ void DialogNewVolume::OnToggleVoxelDataOption(bool bChecked)
       ui->checkBoxDummyCube->setChecked(false);
     if (sender() != ui->checkBoxDummySphere)
       ui->checkBoxDummySphere->setChecked(false);
+    if (sender() != ui->checkBoxMask)
+      ui->checkBoxMask->setChecked(false);
   }
 }
 
-int DialogNewVolume::GetDummyOption()
+int DialogNewVolume::GetVoxelDataOption()
 {
   if (ui->checkBoxDummySphere->isChecked())
     return 0;
-  if (ui->checkBoxDummyCube->isChecked())
+  else if (ui->checkBoxDummyCube->isChecked())
     return 1;
+  else if (ui->checkBoxMask->isChecked())
+    return 2;
   return -1;
 }
