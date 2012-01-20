@@ -12,8 +12,8 @@
  * Original Author: Dougas N Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2012/01/10 22:30:05 $
- *    $Revision: 1.80 $
+ *    $Date: 2012/01/20 22:17:36 $
+ *    $Revision: 1.81 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -113,7 +113,7 @@ int DumpStatSumTable(STATSUMENTRY *StatSumTable, int nsegid);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-  "$Id: mri_segstats.c,v 1.80 2012/01/10 22:30:05 greve Exp $";
+  "$Id: mri_segstats.c,v 1.81 2012/01/20 22:17:36 greve Exp $";
 char *Progname = NULL, *SUBJECTS_DIR = NULL, *FREESURFER_HOME=NULL;
 char *SegVolFile = NULL;
 char *InVolFile = NULL;
@@ -370,8 +370,13 @@ int main(int argc, char **argv)
     mris = MRISread(tmpstr);
     if (mris==NULL) exit(1);
     sprintf(tmpstr,"%s/%s/label/%s.%s.annot",SUBJECTS_DIR,subject,hemi,annot);
+    printf("\nReading annotation\n");
     err = MRISreadAnnotation(mris, tmpstr);
-    if(err) err = MRISreadAnnotation(mris, annot); // assume annot is full path
+    if(err) {
+      printf(" ... trying local annot\n");
+      err = MRISreadAnnotation(mris, annot); // assume annot is full path
+      if(! err) printf(" Successfully read local annot\n\n");
+    }
     if (err) exit(1);
 
     if(segbase == -1000){
