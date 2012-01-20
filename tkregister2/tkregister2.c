@@ -8,8 +8,8 @@
  * Original Authors: Martin Sereno and Anders Dale, 1996; Doug Greve, 2002
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2011/10/14 22:56:05 $
- *    $Revision: 1.125 $
+ *    $Date: 2012/01/20 21:00:37 $
+ *    $Revision: 1.126 $
  *
  * Copyright (C) 2002-2011, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA).
@@ -35,7 +35,7 @@
 
 #ifndef lint
 static char vcid[] =
-"$Id: tkregister2.c,v 1.125 2011/10/14 22:56:05 greve Exp $";
+"$Id: tkregister2.c,v 1.126 2012/01/20 21:00:37 greve Exp $";
 #endif /* lint */
 
 #ifdef HAVE_TCL_TK_GL
@@ -2160,6 +2160,10 @@ static void check_options(void) {
   }
   if (subjectid == NULL && fstal) {
     printf("ERROR: must spec subjectid with --fstal\n");
+    exit(1);
+  }
+  if (mkheaderreg && fstal) {
+    printf("ERROR: cannot spec both --regheader and --fstal\n");
     exit(1);
   }
   if (xfmfname != NULL && fslregfname != NULL) {
@@ -4898,7 +4902,7 @@ int main(argc, argv)   /* new main */
   nargs =
     handle_version_option
     (argc, argv,
-     "$Id: tkregister2.c,v 1.125 2011/10/14 22:56:05 greve Exp $", "$Name:  $");
+     "$Id: tkregister2.c,v 1.126 2012/01/20 21:00:37 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
