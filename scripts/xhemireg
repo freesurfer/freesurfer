@@ -16,7 +16,7 @@
 #  Dont convert volumes in mri/orig
 #
 
-set VERSION = '$Id: xhemireg,v 1.21 2012/01/13 16:46:48 greve Exp $';
+set VERSION = '$Id: xhemireg,v 1.22 2012/01/20 20:12:32 greve Exp $';
 
 set subject = ();
 set srchemilist = ();
@@ -30,8 +30,8 @@ set outdir = ();
 set DoAllVol = 0;
 set DoTal = 1;
 
-# Not all of the lists below are really needed.
-set vollist = (orig T1 brainmask norm aseg aparc+aseg)
+# Not all of the lists below are really needed (orig T1 brain needed by make_ave_vol)
+set vollist = (orig T1 brain brainmask norm aseg aparc+aseg)
 # Note: T1 is needed by mris_make_average_surface
 set ovlist = (curv sulc area volume thickness inflated.H )
 set ovlist = ($ovlist area.pial area.mid curv.pial inflated.K)
