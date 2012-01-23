@@ -7,8 +7,8 @@
  * Original Authors: Sebastien Gicquel and Douglas Greve, 06/04/2001
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2011/11/15 16:59:36 $
- *    $Revision: 1.140 $
+ *    $Date: 2012/01/23 22:20:58 $
+ *    $Revision: 1.141 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -4602,6 +4602,7 @@ MRI *DICOMRead2(const char *dcmfile, int LoadVolume)
   int nfiles, nframes,nslices, r, c, s, f, err;
   int ndcmfiles, nthfile, mritype=0,nvox;
   unsigned short *v16=NULL;
+  unsigned char  *v08=NULL;
   DCM_ELEMENT *element;
   double r0, a0,  s0;
   MRI *mri;
@@ -4625,7 +4626,7 @@ MRI *DICOMRead2(const char *dcmfile, int LoadVolume)
   // Get info from the reference file
   GetDICOMInfo(dcmfile, &RefDCMInfo, FALSE, 1);
   printf("Ref Series No = %d\n",RefDCMInfo.SeriesNumber);
-  if (RefDCMInfo.BitsAllocated != 16)
+  if(RefDCMInfo.BitsAllocated != 16 && RefDCMInfo.BitsAllocated != 8)
   {
     printf("ERROR: bits = %d not supported.\n",RefDCMInfo.BitsAllocated);
     printf("Send email to freesurfer@nmr.mgh.harvard.edu\n");
@@ -4793,7 +4794,8 @@ MRI *DICOMRead2(const char *dcmfile, int LoadVolume)
 
   printf("Loading pixel data\n");
   nvox = RefDCMInfo.Columns * RefDCMInfo.Rows;
-  if (RefDCMInfo.BitsAllocated == 16)
+
+  if(RefDCMInfo.BitsAllocated == 16|| RefDCMInfo.BitsAllocated == 8)
   {
     nthfile = 0;
     for (s=0; s < nslices; s++)
@@ -4808,12 +4810,12 @@ MRI *DICOMRead2(const char *dcmfile, int LoadVolume)
                  dcminfo[nthfile]->FileName);
           MRIfree(&mri);
         }
+        v08 = (unsigned char *)(element->d.string);
         v16 = (unsigned short *)(element->d.string);
-        for (r=0; r < RefDCMInfo.Rows; r++)
-        {
-          for (c=0; c < RefDCMInfo.Columns; c++)
-          {
-            MRISseq_vox(mri,c,r,s,f) = *(v16++);
+        for (r=0; r < RefDCMInfo.Rows; r++) {
+          for (c=0; c < RefDCMInfo.Columns; c++) {
+            if(RefDCMInfo.BitsAllocated ==  8) MRISseq_vox(mri,c,r,s,f) = *(v08++);
+            if(RefDCMInfo.BitsAllocated == 16) MRISseq_vox(mri,c,r,s,f) = *(v16++);
           }
         }
         FreeElementData(element);
