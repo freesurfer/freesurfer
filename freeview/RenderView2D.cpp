@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2011/09/13 16:11:19 $
- *    $Revision: 1.49 $
+ *    $Date: 2012/01/23 20:41:52 $
+ *    $Revision: 1.50 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -322,7 +322,7 @@ void RenderView2D::StopSelection()
 
 Region2D* RenderView2D::GetRegion( int nX, int nY, int* index_out )
 {
-  for ( int i = 0; i < m_regions.size(); i++ )
+  for ( int i = m_regions.size()-1; i >= 0; i-- )
   {
     if ( m_regions[i]->Contains( nX, nY, index_out ) )
     {
@@ -495,7 +495,15 @@ void RenderView2D::TriggerContextMenu( QMouseEvent* event )
   QMenu menu;
   bool bShowBar = this->GetShowScalarBar();
   QList<Layer*> layers = MainWindow::GetMainWindow()->GetLayers("MRI");
-  if (layers.size() > 1)
+  Region2D* reg = GetRegion(event->x(), event->y());
+  if (reg)
+  {
+    QAction* act = new QAction("Duplicate", this);
+    act->setData(QVariant::fromValue((QObject*)reg));
+    connect(act, SIGNAL(triggered()), this, SLOT(OnDuplicateRegion()));
+    menu.addAction(act);
+  }
+  else if (layers.size() > 1)
   {
     QMenu* menu2 = menu.addMenu("Show Color Bar");
     QActionGroup* ag = new QActionGroup(this);
@@ -510,6 +518,25 @@ void RenderView2D::TriggerContextMenu( QMouseEvent* event )
       ag->addAction(act);
     }
     connect(ag, SIGNAL(triggered(QAction*)), this, SLOT(SetScalarBarLayer(QAction*)));
+  }
+  if (!menu.actions().isEmpty())
     menu.exec(event->globalPos());
+}
+
+void RenderView2D::OnDuplicateRegion()
+{
+  QAction* act = qobject_cast<QAction*>(sender());
+  if (!act)
+    return;
+
+  Region2D* reg = qobject_cast<Region2D*>(qVariantValue<QObject*>(act->data()));
+  if (reg)
+  {
+    reg = reg->Duplicate(this);
+    if (reg)
+    {
+      reg->Offset(5, 5);
+      AddRegion(reg);
+    }
   }
 }

@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2012/01/19 20:35:06 $
- *    $Revision: 1.202 $
+ *    $Date: 2012/01/23 20:41:52 $
+ *    $Revision: 1.203 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -235,6 +235,14 @@ MainWindow::MainWindow( QWidget *parent, MyCmdLineParser* cmdParser ) :
                  m_views[j], SLOT(UpdateAnnotation()) );
         connect( m_layerCollections[keys[i]], SIGNAL(LayerRemoved(Layer*)),
                  m_views[j], SLOT(UpdateAnnotation()) );
+        connect( m_layerCollections[keys[i]], SIGNAL(LayerAdded(Layer*)),
+                 m_views[j], SLOT(Update2DOverlay()) );
+        connect( m_layerCollections[keys[i]], SIGNAL(LayerRemoved(Layer*)),
+                 m_views[j], SLOT(Update2DOverlay()) );
+        connect( m_layerCollections[keys[i]], SIGNAL(LayerMoved(Layer*)),
+                 m_views[j], SLOT(Update2DOverlay()) );
+        connect( m_layerCollections[keys[i]], SIGNAL(LayerVisibilityChanged()),
+                 m_views[j], SLOT(Update2DOverlay()) );
       }
       // 3D view only
       else
@@ -3702,6 +3710,35 @@ void MainWindow::OnSaveROI()
                                        AutoSelectLastDir( "label" ),
                                        "Label files (*)");
   }
+
+  if ( !fn.isEmpty() )
+  {
+    if ( QFileInfo(fn).suffix() != "label" )
+    {
+      fn += ".label";
+    }
+    layer_roi->SetFileName( fn );
+    layer_roi->ResetModified();
+    layer_roi->SaveROI();
+  }
+}
+
+void MainWindow::OnSaveROIAs()
+{
+  LayerCollection* col_roi = GetLayerCollection( "ROI" );
+  LayerROI* layer_roi = ( LayerROI* )col_roi->GetActiveLayer();
+  if ( !layer_roi )
+  {
+    return;
+  }
+  else if ( !layer_roi->IsVisible() )
+  {
+    QMessageBox::warning( this, "Error", "Current ROI layer is not visible. Please turn it on before saving.");
+    return;
+  }
+  QString fn = QFileDialog::getSaveFileName( this, "Select label file",
+                                       AutoSelectLastDir( "label" ),
+                                       "Label files (*)");
 
   if ( !fn.isEmpty() )
   {

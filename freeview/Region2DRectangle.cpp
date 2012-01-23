@@ -6,9 +6,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/14 23:44:48 $
- *    $Revision: 1.11 $
+ *    $Author: rpwang $
+ *    $Date: 2012/01/23 20:41:52 $
+ *    $Revision: 1.12 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -37,6 +37,7 @@
 #include <vtkTextActor.h>
 #include <vtkTextProperty.h>
 #include "LayerMRI.h"
+#include <QDebug>
 
 Region2DRectangle::Region2DRectangle( RenderView2D* view ) :
   Region2D( view )
@@ -346,4 +347,43 @@ void Region2DRectangle::UpdateSlicePosition( int nPlane, double pos )
   }
 
   Region2D::UpdateSlicePosition( nPlane, pos );
+}
+
+QString Region2DRectangle::DataToString()
+{
+  QString strg = "FreeView:Region2DRectangle:";
+  for (int i = 0; i < 4; i++)
+    strg += QString("%1,%2,%3,").arg(m_dPt[i][0]).arg(m_dPt[i][1]).arg(m_dPt[i][2]);
+  strg.chop(1);
+  return strg;
+}
+
+Region2D* Region2DRectangle::ObjectFromString(RenderView2D* view, const QString& text)
+{
+  QString head = "FreeView:Region2DRectangle:";
+  if (text.indexOf(head) != 0)
+    return NULL;
+
+  QStringList list = text.mid(head.size()).split(",");
+  if (list.size() < 12)
+    return NULL;
+
+  double dval[12];
+  bool bOK = true;
+  dval[0] = list[0].toDouble(&bOK);
+  int i = 1;
+  while( bOK && i < 12 )
+  {
+    dval[i] = list[i].toDouble(&bOK);
+    i++;
+  }
+  Region2DRectangle* reg = NULL;
+  if (bOK)
+  {
+    reg = new Region2DRectangle(view);
+    for (int i = 0; i < 12; i++)
+      reg->m_dPt[i/3][i%3] = dval[i];
+    reg->Update();
+  }
+  return reg;
 }

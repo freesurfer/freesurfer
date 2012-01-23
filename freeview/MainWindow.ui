@@ -2337,6 +2337,22 @@
     </hint>
    </hints>
   </connection>
+  <connection>
+   <sender>actionSaveROIAs</sender>
+   <signal>triggered()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>OnSaveROIAs()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>606</x>
+     <y>435</y>
+    </hint>
+   </hints>
+  </connection>
  </connections>
  <slots>
   <slot>OnLoadVolume()</slot>
@@ -2400,5 +2416,6 @@
   <slot>OnCreateIntensityProjectionMap()</slot>
   <slot>OnRepositionSurface()</slot>
   <slot>OnShowLabelStats()</slot>
+  <slot>OnSaveROIAs()</slot>
  </slots>
 </ui>

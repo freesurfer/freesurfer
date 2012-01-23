@@ -6,9 +6,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/14 23:44:48 $
- *    $Revision: 1.8 $
+ *    $Author: rpwang $
+ *    $Date: 2012/01/23 20:41:52 $
+ *    $Revision: 1.9 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -356,4 +356,50 @@ void Region2DPolyline::UpdateSlicePosition( int nPlane, double pos )
   }
 
   Region2D::UpdateSlicePosition( nPlane, pos );
+}
+
+QString Region2DPolyline::DataToString()
+{
+  QString strg = "FreeView:Region2DPolyline:";
+  foreach (WorldPoint wp, m_worldPts)
+  {
+    strg += QString("%1,%2,%3,").arg(wp.pos[0]).arg(wp.pos[1]).arg(wp.pos[2]);
+  }
+  strg.chop(1);
+  return strg;
+}
+
+Region2D* Region2DPolyline::ObjectFromString(RenderView2D *view, const QString &text)
+{
+  QString head = "FreeView:Region2DPolyline:";
+  if (text.indexOf(head) != 0)
+    return NULL;
+
+  QStringList list = text.mid(head.size()).split(",");
+  if (list.size() < 3)
+    return NULL;
+
+  QList<double> dvals;
+  foreach (QString s, list)
+  {
+    bool bOK;
+    dvals << s.toDouble(&bOK);
+    if (!bOK)
+      return NULL;
+  }
+
+  QList<WorldPoint> pts;
+  for (int i = 0; i < dvals.size(); i+=3)
+  {
+    WorldPoint wp;
+    wp.pos[0] = dvals[i];
+    wp.pos[1] = dvals[i+1];
+    wp.pos[2] = dvals[i+2];
+    pts <<  wp;
+  }
+  Region2DPolyline* reg = new Region2DPolyline(view);
+  reg->m_worldPts = pts;
+  reg->Update();
+
+  return reg;
 }

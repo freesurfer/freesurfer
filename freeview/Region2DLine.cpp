@@ -6,9 +6,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/14 23:44:48 $
- *    $Revision: 1.11 $
+ *    $Author: rpwang $
+ *    $Date: 2012/01/23 20:41:52 $
+ *    $Revision: 1.12 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -273,4 +273,45 @@ void Region2DLine::UpdateSlicePosition( int nPlane, double pos )
   m_dPt1[nPlane] = pos;
   m_dPt2[nPlane] = pos;
   Region2D::UpdateSlicePosition( nPlane, pos );
+}
+
+QString Region2DLine::DataToString()
+{
+  return QString("FreeView:Region2DLine:%1,%2,%3,%4,%5,%6")
+          .arg(m_dPt1[0]).arg(m_dPt1[1]).arg(m_dPt1[2])
+          .arg(m_dPt2[0]).arg(m_dPt2[1]).arg(m_dPt2[2]);
+}
+
+Region2D* Region2DLine::ObjectFromString(RenderView2D* view, const QString& text)
+{
+  QString head = "FreeView:Region2DLine:";
+  if (text.indexOf(head) != 0)
+    return NULL;
+
+  QStringList list = text.mid(head.size()).split(",");
+  if (list.size() < 6)
+    return NULL;
+
+  double dval[6];
+  bool bOK = true;
+  dval[0] = list[0].toDouble(&bOK);
+  int i = 1;
+  while( bOK && i < 6 )
+  {
+    dval[i] = list[i].toDouble(&bOK);
+    i++;
+  }
+  Region2DLine* reg = NULL;
+  if (bOK)
+  {
+    reg = new Region2DLine(view);
+    reg->m_dPt1[0] = dval[0];
+    reg->m_dPt1[1] = dval[1];
+    reg->m_dPt1[2] = dval[2];
+    reg->m_dPt2[0] = dval[3];
+    reg->m_dPt2[1] = dval[4];
+    reg->m_dPt2[2] = dval[5];
+    reg->Update();
+  }
+  return reg;
 }
