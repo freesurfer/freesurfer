@@ -13,8 +13,8 @@
  * Original Author: Rudolph Pienaar
  * CVS Revision Info:
  *    $Author: rudolph $
- *    $Date: 2011/05/31 18:18:49 $
- *    $Revision: 1.11 $
+ *    $Date: 2012/01/23 17:24:08 $
+ *    $Revision: 1.12 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -51,6 +51,8 @@ extern  "C" {
 #endif
 
 #include "env.h"
+#include "C_mpmOverlay.h"
+#include "general.h"
 
 #include "oclDijkstraKernel.h"
 
@@ -58,6 +60,7 @@ extern  "C" {
 using namespace std;
 
 const int       MPMSTACKDEPTH     = 64;
+
 
 class C_mpmProg {
 
@@ -264,6 +267,13 @@ class C_mpmProg_autodijk : public C_mpmProg {
 
   protected:
 
+    C_mpmOverlay*       mpOverlayDistance;      // A pointer to a 'distance'
+                                                //+ mpmOverlay used to determine
+                                                //+ anti-polar point.
+    C_mpmOverlay*       mpOverlayOrig;          // A pointer to the "original"
+                                                //+ overlay created in the
+                                                //+ base environment.
+
     int         mvertex_polar;
     int         mvertex_start;
     int         mvertex_step;
@@ -271,6 +281,13 @@ class C_mpmProg_autodijk : public C_mpmProg {
     int         mvertex_total;
     int         m_costFunctionIndex;
     bool        mb_surfaceRipClear;
+    bool        mb_worldMap;                    // If true, generate a 'world
+                                                //+ map' by looping exhaustively
+                                                //+ over the entire surface and
+                                                //+ only recording the cost 
+                                                //+ value at the vertex index
+                                                //+ "furthest" from each start
+                                                //+ vertex.
     bool        mb_performExhaustive;           // If true, perform cost
                                                 //+ calculations from polar
                                                 //+ to every other vertex in
@@ -283,8 +300,25 @@ class C_mpmProg_autodijk : public C_mpmProg {
     int         mprogressIter;                  // Number of iterations to
                                                 //+ loop before showing
                                                 //+ progress to stdout
-    float*      mpf_cost;                       // Cost as calculated by
-                                                //+ autodijk
+    float*      mpf_cost;                       // Cost array as calculated by
+                                                //+ by single call of autodijk.
+                                                //+ In cases where multiple 
+                                                //+ calls are performed as part
+                                                //+ of larger analysis, costs
+                                                //+ might change. To keep
+                                                //+ costs persistent, use the
+                                                //+ mpf_persistent array.
+    float*      mpf_persistent;                 // An array used to store values
+                                                //+ that need to be persistent
+                                                //+ across a whole autodijk run.
+    float*      mpf_fileSaveData;               // The save routine saves data
+                                                //+ pointed to by this routine.
+                                                //+ Typically pointer is managed
+                                                //+ internally and should not
+                                                //+ be manipulated outside this
+                                                //+ class.
+    bool        mb_simpleStatsShow;             // If true, output some very
+                                                //+ simple stats
     string      mstr_costFileName;              // Parsed from the environment
                                                 //+ structure
     string      mstr_costFullPath;              // Full path to cost file                                            
@@ -335,6 +369,10 @@ class C_mpmProg_autodijk : public C_mpmProg {
     int         vertexEnd_get() {
             return(mvertex_end);
     };
+
+    void        worldMap_set(int avalue);
+    bool        worldMap_shouldCreate();
+
     void        progressIter_set(int avalue) {
             mprogressIter       = avalue;
     };
@@ -343,6 +381,7 @@ class C_mpmProg_autodijk : public C_mpmProg {
     };
     void        print(void);
 
+    int         vertexCosts_pack(e_stats& a_stats);
     //
     // Functional block
     //

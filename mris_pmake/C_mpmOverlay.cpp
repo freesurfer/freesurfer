@@ -16,8 +16,8 @@
  * Original Author: Rudolph Pienaar
  * CVS Revision Info:
  *    $Author: rudolph $
- *    $Date: 2011/05/31 18:18:49 $
- *    $Revision: 1.3 $
+ *    $Date: 2012/01/23 17:24:08 $
+ *    $Revision: 1.4 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -46,6 +46,7 @@
 
 extern 	bool     	Gb_stdout;
 extern  stringstream 	Gsout;
+extern  const int       STRBUF;
 
 //
 //\\\---
@@ -326,6 +327,61 @@ C_mpmOverlay::costVector_write(string astr_fileName)
     return true;
 }
 
+/*!
+  \fn CURV_fileRead(char* apch_curvFileName, int* ap_vectorSize, float* apf_curv)
+  \brief Read a FreeSurfer curvature file into a float array
+  \param apch_curvFileName The name of a FreeSurfer curvature file.
+  \param apf_curv Array containing the curvature values.
+  \return If curvature file is successfully read, return e_OK. If file could not be opened, return e_READACCESSERROR. If file not a curvature format file, return e_WRONGMAGICNUMBER.
+*/
+#define   NEW_VERSION_MAGIC_NUMBER  16777215
+e_FILEACCESS
+C_mpmOverlay::CURV_fileRead(
+        string  astr_curvFileName,
+        float*  apf_curv[],
+        int*    api_size
+)
+{
+  FILE*         FP_curv;
+  int           vnum;
+  int           nvertices, nfaces, nvalsPerVertex;
+  int           i;
+  char          pch_readMessage[STRBUF];
+  float*        pf_data           = NULL;
+
+  if((FP_curv = fopen(astr_curvFileName.c_str(), "r")) == NULL)
+  {
+    return(e_READACCESSERROR);
+  }
+  fread3(&vnum, FP_curv);
+  if(vnum == NEW_VERSION_MAGIC_NUMBER)
+  {
+    nvertices = freadInt(FP_curv);
+    nfaces  = freadInt(FP_curv);
+    nvalsPerVertex = freadInt(FP_curv);
+    pf_data   = (float*) malloc(nvertices * sizeof(float));
+    sprintf(pch_readMessage, 
+            "Reading %s (vertices: %d, faces: %d, valsPerVertex: %d)", 
+            astr_curvFileName.c_str(),
+            nvertices, nfaces, nvalsPerVertex);
+    for(i=0; i<nvertices; i++)
+    {
+      CURV_arrayProgress_print(nvertices, i, pch_readMessage);
+      pf_data[i]  = freadFloat(FP_curv);
+    }
+  }
+  else
+  {
+    return(e_WRONGMAGICNUMBER);
+  }
+  /*    ErrorExit(ERROR_BADPARM,
+                "\n%s: curvature file '%s' has wrong magic number.\n",
+                G_pch_progname, apch_curvFileName);*/
+  *apf_curv     = pf_data;
+  *api_size     = nvertices;
+  fclose(FP_curv);
+  return(e_OK);
+}
 
 //
 //\\\***
@@ -561,7 +617,7 @@ C_mpmOverlay_FScurvs::costEdge_calc(int i, int j) {
 
 //
 //\\\***
-// C_   mpmOverlay_distance definitions ****>>>>
+// C_mpmOverlay_distance definitions ****>>>>
 /////***
 //
 
@@ -658,5 +714,128 @@ C_mpmOverlay_distance::costEdge_calc(int i, int j) {
     debug_pop();
     return(f_cost);
 }
+
+//
+//\\\***
+// C_mpmOverlay_curvature definitions ****>>>>
+/////***
+//
+
+void
+C_mpmOverlay_curvature::costWeightVector_init(void) {
+    //
+    // ARGS
+    //
+    // DESC
+    // Initialize the cost weight vector for this class
+    //
+    // POSTCONDITIONS
+    // 	o Both weight vectors are initialized to '1'.
+    //
+    // HISTORY
+    // April 2011
+    // o Initial design and coding.
+    //
+
+    mv_costWeight.clear();
+    mv_costWeightDel.clear();
+    mv_costWeight.push_back(1.);
+    mv_costWeightDel.push_back(1.);
+}
+
+C_mpmOverlay_curvature::C_mpmOverlay_curvature(
+        s_env*          aps_env,
+        string          astr_curvFileStem,
+        string          astr_costWeightFile) : C_mpmOverlay(aps_env)
+{
+    //
+    // ARGS
+    //  aps_env                 in      program environment object
+    //  astr_curvFileStem       in      curvature file to read
+    //  astr_costWeightFile     in      name of cost weights file
+    //
+    // DESC
+    // Basically a thin "fall-through" constructor to the base
+    // class.
+    //
+    // PRECONDITIONS
+    // o aps_env must be fully instantiated.
+    //
+    // POSTCONDITIONS
+    // o Curvature file contents is read into internal vector/array.
+    //    
+    // HISTORY
+    // 19 January 2012
+    // o Initial design and coding.
+    //
+
+    int size    = 0;
+
+    debug_push("C_mpmOverlay_curvature");
+    mstr_obj	           = "C_mpmOverlay_curvature";
+    mstr_costWeightFile    = "M_weights_distance.mat";
+
+    if(!astr_costWeightFile.length())
+        mstr_costWeightFile = astr_costWeightFile;
+
+    if(!costVector_read()) {
+	costWeightVector_init();
+	costVector_write();
+    }
+
+    // Size of overlay arrays
+    mv_size     = aps_env->pMS_curvature->nvertices;
+    mb_created  = true;
+
+    CURV_fileRead(astr_curvFileStem, &mpf_curvatureData, &size);
+    if(size != mv_size)
+        error("Element mismatch between curvature overlay and internal mesh",
+               10);
+    arr_stats(mes_curvStats, mpf_curvatureData, mv_size);
+    debug_pop();
+}
+
+C_mpmOverlay_curvature::~C_mpmOverlay_curvature() {
+    //
+    // Destructor
+    //
+
+}
+
+float
+C_mpmOverlay_curvature::costEdge_calc(int i, int j) {
+    //
+    // Return the cost in moving from vertex 'i' to vertex 'j'.
+    // In this overlay, this is simply the curvature between
+    // the two vertices; taken in this case as the curvature
+    // of vertex 'j'.
+    //
+    // NOTE:
+    // o <j> is an absolute index!
+    // o For dijkstra calculations, costs *MUST* be positive, thus
+    //   in the case of signed curvatures, the minimum curvature
+    //   needs to be subtracted from the actual curvature value.
+    //
+
+    float       wc              = mv_costWeight[0];
+    float       f_curvI         = 0.;
+    float       f_curvJ         = 0.;
+    float       f_cost          = 0.;
+    float       f_curvAve       = 0.;
+
+    debug_push ("costEdge_calc (...)");
+
+    f_curvI     = (mpf_curvatureData[i] - mes_curvStats.f_min) * wc;
+    f_curvJ     = (mpf_curvatureData[j] - mes_curvStats.f_min) * wc;
+    f_curvAve   = (f_curvI + f_curvJ) / 2;
+    f_cost      = f_curvAve;
+
+    if(f_cost <0) printf("Negative cost! I = %f, J = %f, Min = %f\n\n",
+            f_curvI, f_curvJ, mes_curvStats.f_min);
+
+    debug_pop();
+    return(f_cost);
+}
+
 
 /* eof */

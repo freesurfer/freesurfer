@@ -6,9 +6,9 @@
 /*
  * Original Author: Rudolph Pienaar / Christian Haselgrove
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/02/27 21:18:07 $
- *    $Revision: 1.6 $
+ *    $Author: rudolph $
+ *    $Date: 2012/01/23 17:24:08 $
+ *    $Revision: 1.7 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -64,6 +64,7 @@ static struct option const longopts[] = {
     {"mpmArgs",         required_argument,      NULL, 'M'},
     {"useAbsCurvs",     no_argument,            NULL, 'a'},
     {"mpmOverlay",	required_argument,	NULL, 'O'},
+    {"mpmOverlayArgs",	required_argument,	NULL, 'V'},
     {NULL, 0, NULL, 0}
 };
 

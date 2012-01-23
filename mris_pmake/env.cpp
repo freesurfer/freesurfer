@@ -12,8 +12,8 @@
  * Original Author: Rudolph Pienaar / Christian Haselgrove
  * CVS Revision Info:
  *    $Author: rudolph $
- *    $Date: 2011/05/31 18:18:49 $
- *    $Revision: 1.27 $
+ *    $Date: 2012/01/23 17:24:08 $
+ *    $Revision: 1.28 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -349,7 +349,7 @@ s_env_nullify(
     st_env.b_costHistoryPreserve    = false;
     st_env.costFunc_do              = NULL;
 
-    // Define the cost functions for human readable setting / getting
+    // Define the legacy cost functions for human readable setting / getting
     st_env.totalNumFunctions        = 4;
     st_env.ecf_current              = e_default;
     st_env.pstr_functionName        = new string[st_env.totalNumFunctions];
@@ -368,6 +368,7 @@ s_env_nullify(
     st_env.b_mpmProgUse             = false;
     st_env.empmProg_current         = emp_NOP;
     st_env.vstr_mpmProgName.clear();
+    st_env.vstr_mpmProgName.push_back("NULL");
     st_env.vstr_mpmProgName.push_back("NOP");
     st_env.vstr_mpmProgName.push_back("pathFind");
     st_env.vstr_mpmProgName.push_back("autodijk");
@@ -381,11 +382,14 @@ s_env_nullify(
     st_env.totalmpmOverlays	    = (int) empmoverlay;
     st_env.empmOverlay_current	    = emo_NOP;
     st_env.vstr_mpmOverlayName.clear();
+    st_env.vstr_mpmOverlayName.push_back("LEGACY");
+    st_env.vstr_mpmOverlayName.push_back("NULL");
     st_env.vstr_mpmOverlayName.push_back("NOP");
     st_env.vstr_mpmOverlayName.push_back("unity");
-    st_env.vstr_mpmOverlayName.push_back("distance");
     st_env.vstr_mpmOverlayName.push_back("euclidean");
+    st_env.vstr_mpmOverlayName.push_back("distance");
     st_env.vstr_mpmOverlayName.push_back("fscurvs");
+    st_env.vstr_mpmOverlayName.push_back("curvature");
     st_env.totalmpmOverlays	    = st_env.vstr_mpmOverlayName.size();
     st_env.pCmpmOverlay		    = NULL; // Not yet created!
 
@@ -818,6 +822,8 @@ s_env_optionsFile_write(
         O->pprintf("\n# mpmOverlay\n");
         O->pcolprintf("mpmOverlayID",          " = %d\n",
                         st_env.empmOverlay_current);
+        O->pcolprintf("mpmOverlayArgs",        " = %s\n",
+                        st_env.str_mpmOverlayArgs.c_str());
         O->pprintf("\n# Debugging -- change at your own risk!\n");
         O->pcolprintf("b_mpmProgUse",		" = %d\n",
                         st_env.b_mpmProgUse);
@@ -886,6 +892,7 @@ s_env_scan(
   string        str_sysMsgFileName      = "";
   string        str_resultMsgFileName   = "";
   string        str_mpmArgs             = "-x";
+  string        str_mpmOverlayArgs      = "-x";
 
   bool          b_useAbsCurvs           = true;
   bool          b_labelFile_save        = true;
@@ -1049,20 +1056,22 @@ s_env_scan(
   if (cso_options.scanFor("b_mpmProgUse",       &str_value))
       b_mpmProgUse      = atoi(str_value.c_str());
   if (cso_options.scanFor("b_mpmOverlayUse",	&str_value))
-      b_mpmOverlayUse      = atoi(str_value.c_str());
+      b_mpmOverlayUse   = atoi(str_value.c_str());
   if (cso_options.scanFor("mpmProgID",          &str_value))
       mpmProgID         = atoi(str_value.c_str());
   if (cso_options.scanFor("mpmArgs",            &str_value))
       str_mpmArgs       = str_value;
+  if (cso_options.scanFor("mpmOverlayArgs",     &str_value))
+      str_mpmOverlayArgs= str_value;
   if (cso_options.scanFor("b_exitOnDone",       &str_value))
       b_exitOnDone      = atoi(str_value.c_str());
   if (cso_options.scanFor("b_costPathSave",     &str_value))
       b_costPathSave    = atoi(str_value.c_str());
 
-    if (cso_options.scanFor("mpmOverlayID",	&str_value))
-	mpmOverlayID	= atoi(str_value.c_str());
-    else
-	error_exit("scanning user options",
+  if (cso_options.scanFor("mpmOverlayID",	&str_value))
+      mpmOverlayID	= atoi(str_value.c_str());
+  else
+      error_exit("scanning user options",
 	    	   "I couldn't find mpmOverlayID",
 	    	   54);
     
@@ -1212,6 +1221,8 @@ s_env_scan(
 
     // mpmOverlay
     st_env.empmOverlay_current		= (e_MPMOVERLAY) mpmOverlayID;
+    st_env.b_mpmOverlayUse              = b_mpmOverlayUse;
+    st_env.str_mpmOverlayArgs           = str_mpmOverlayArgs;
     
     if(    !st_env.str_hemi.length()
         || !st_env.str_subject.length()
@@ -1541,19 +1552,19 @@ s_env_mpmProgSetIndex(
           if(apst_env->str_mpmArgs != "-x") {
             C_scanopt                   cso_mpm(apst_env->str_mpmArgs, ",",
                                                 e_EquLink, "", ":");
-            string      str_startVertex = "0";
-	    string	str_endVertex	= "0";
-            int         startVertex     = 0;
-	    int		endVertex	= apst_env->pMS_curvature->nvertices;
+            string      str_vertexStart = "0";
+	    string	str_vertexEnd	= "0";
+            int         vertexStart     = 0;
+	    int		vertexEnd	= apst_env->pMS_curvature->nvertices;
             C_mpmProg_pathFind* pC_pathFind	= NULL;
             pC_pathFind_cast(apst_env->pCmpmProg, pC_pathFind);
-            if(cso_mpm.scanFor("startVertex", &str_startVertex)) {
-                startVertex     = atoi(str_startVertex.c_str());
-                pC_pathFind->vertexStart_set(startVertex);
+            if(cso_mpm.scanFor("vertexStart", &str_vertexStart)) {
+                vertexStart     = atoi(str_vertexStart.c_str());
+                pC_pathFind->vertexStart_set(vertexStart);
             }
-            if(cso_mpm.scanFor("endVertex", &str_endVertex)) {
-                endVertex     = atoi(str_endVertex.c_str());
-                pC_pathFind->vertexEnd_set(endVertex);
+            if(cso_mpm.scanFor("vertexEnd", &str_vertexEnd)) {
+                vertexEnd     = atoi(str_vertexEnd.c_str());
+                pC_pathFind->vertexEnd_set(vertexEnd);
             }
 	    s_env_optionsFile_write(*apst_env);
           }
@@ -1564,18 +1575,24 @@ s_env_mpmProgSetIndex(
 	  apst_env->pCmpmProg	    	= new C_mpmProg_autodijk(apst_env);
 	if(aindex == emp_autodijk_fast)
           apst_env->pCmpmProg		= new C_mpmProg_autodijk_fast(apst_env);
-          // Check for any command-line spec'd args for the 'autodijk' mpmProg:
-          if(apst_env->str_mpmArgs != "-x") {
+        // Check for any command-line spec'd args for the 'autodijk' mpmProg:
+        if(apst_env->str_mpmArgs != "-x") {
             C_scanopt                   cso_mpm(apst_env->str_mpmArgs, ",",
                                                 e_EquLink, "", ":");
-            string      str_polarVertex         = "0";
+            string      str_vertexPolar         = "0";
             string      str_costCurvStem        = "";
-            int         polarVertex             = 0;
+            string      str_worldMapCreate      = "";
+            bool        b_worldMapCreate        = false;
+            int         vertexPolar             = 0;
             C_mpmProg_autodijk* pC_autodijk     = NULL;
             pC_autodijk_cast(apst_env->pCmpmProg, pC_autodijk);
-            if(cso_mpm.scanFor("vertexPolar", &str_polarVertex)) {
-                polarVertex     = atoi(str_polarVertex.c_str());
-                pC_autodijk->vertexPolar_set(polarVertex);
+            if(cso_mpm.scanFor("vertexPolar", &str_vertexPolar)) {
+                vertexPolar     = atoi(str_vertexPolar.c_str());
+                pC_autodijk->vertexPolar_set(vertexPolar);
+            }
+            if(cso_mpm.scanFor("worldMapCreate", &str_worldMapCreate)) {
+                b_worldMapCreate = atoi(str_worldMapCreate.c_str());
+                pC_autodijk->worldMap_set(b_worldMapCreate);
             }
             if(cso_mpm.scanFor("costCurvStem", &str_costCurvStem)) {
                 apst_env->str_costCurvFile = apst_env->str_hemi + "." +
@@ -1606,9 +1623,10 @@ s_env_mpmOverlaySetIndex(
     s_env*      apst_env,
     int         aindex
 ) {
-    int   ret     = -1;
-    int   lw      = apst_env->lw;
-    int   rw      = apst_env->rw;
+    int         ret                     = -1;
+    int         lw                      = apst_env->lw;
+    int         rw                      = apst_env->rw;
+    string      str_curvatureFile       = "-x";
 
     if(apst_env->pCmpmOverlay) {
 	e_MPMOVERLAY e_overlay = apst_env->empmOverlay_current;
@@ -1638,6 +1656,21 @@ s_env_mpmOverlaySetIndex(
       case emo_euclidean:
         break;
       case emo_fscurvs:
+        break;
+      case emo_curvature:
+        // Check for any overlay args, specifically the name of the curv file
+        if(apst_env->str_mpmOverlayArgs != "-x") {
+            C_scanopt                   cso_mpm(apst_env->str_mpmOverlayArgs, 
+                                                ",",
+                                                e_EquLink, "", ":");
+            if(!cso_mpm.scanFor("curvatureFile", &str_curvatureFile)) {
+                error_exit ("checking for curvature file to read",
+                            "it seems no file was specified",
+                            10);
+            }
+        }
+        apst_env->pCmpmOverlay  = new C_mpmOverlay_curvature(apst_env,
+                                                             str_curvatureFile);
         break;
       default:
         apst_env->empmOverlay_current   = (e_MPMOVERLAY) 0;

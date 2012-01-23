@@ -14,9 +14,9 @@
 /*
  * Original Author: Rudolph Pienaar
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/02/27 21:18:07 $
- *    $Revision: 1.6 $
+ *    $Author: rudolph $
+ *    $Date: 2012/01/23 17:24:08 $
+ *    $Revision: 1.7 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -214,6 +214,7 @@ class C_SMessage {
     // miscellaneous block - the main functionality provided by
     // this class
     //
+    int         printf(         const char*             format, ...);
     int         lprintf(        const char*             format, ...);
     int         colprintf(
                                 const char*             pch_lstr,

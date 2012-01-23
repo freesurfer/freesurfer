@@ -13,8 +13,8 @@
  * Original Author: Rudolph Pienaar
  * CVS Revision Info:
  *    $Author: rudolph $
- *    $Date: 2011/05/31 18:18:49 $
- *    $Revision: 1.16 $
+ *    $Date: 2012/01/23 17:24:08 $
+ *    $Revision: 1.17 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -482,7 +482,12 @@ C_mpmProg_autodijk::C_mpmProg_autodijk(
     m_costFunctionIndex         = 0;
     mb_performExhaustive        = false;
     mb_surfaceRipClear          = false;
+    mb_worldMap                 = false;
+    mb_simpleStatsShow          = true;
     mprogressIter               = 100;
+
+    mpOverlayDistance           = NULL;
+    mpOverlayOrig               = mps_env->pCmpmOverlay;
 
     s_env_activeSurfaceSetIndex(mps_env, 0);
     mstr_costFileName   = mps_env->str_costCurvFile;
@@ -490,9 +495,15 @@ C_mpmProg_autodijk::C_mpmProg_autodijk(
     mvertex_end         = mps_env->pMS_curvature->nvertices;
     mvertex_total       = mvertex_end;
     mpf_cost            = new float[mvertex_total];
-    for(int i=0; i<mvertex_end; i++)
-        mpf_cost[i]     = 0.0;
+    mpf_persistent      = new float[mvertex_total];
+    for(int i=0; i<mvertex_end; i++) {
+        mpf_cost[i]             = 0.0;
+        mpf_persistent[i]       = 0.0;
+    }
 
+    // By default, the mpf_fileSaveData points to the mpf_cost
+    mpf_fileSaveData = mpf_cost;
+    
     debug_pop();
 }
 
@@ -502,8 +513,31 @@ C_mpmProg_autodijk::~C_mpmProg_autodijk() {
     //
 
     delete [] mpf_cost;
-
+    delete [] mpf_persistent;
+    if(mpOverlayDistance) delete mpOverlayDistance;
 }
+
+void
+C_mpmProg_autodijk::worldMap_set(int avalue) {
+    /*
+     * This method controls the runtime behavior of the autodijkstra
+     * mpmProg.
+     * 
+     */
+    mb_worldMap         = avalue;
+    if(mb_worldMap) {
+        // Delete any existing distance overlays
+        if(mpOverlayDistance) delete mpOverlayDistance;
+        // and create a new distance overlay
+        mpOverlayDistance = new C_mpmOverlay_distance(mps_env);
+    }
+}
+
+bool 
+C_mpmProg_autodijk::worldMap_shouldCreate() {
+   return(mb_worldMap);
+}
+
 
 /*!
   \fn C_mpmProg_autodijk::CURV_fileWrite()
@@ -526,7 +560,7 @@ C_mpmProg_autodijk::CURV_fileWrite()
   sprintf(pch_readMessage, "Writing %s", mstr_costFileName.c_str());
   for(i=0; i<mvertex_total; i++) {
     CURV_arrayProgress_print(mvertex_total, i, pch_readMessage);
-    fwriteFloat(mpf_cost[i], FP_curv);
+    fwriteFloat(mpf_fileSaveData[i], FP_curv);
   }
   fclose(FP_curv);
   return(e_OK);
@@ -557,18 +591,22 @@ C_mpmProg_autodijk::cost_compute(
     // Sets the main environment and then calls a dijkstra
     // computation.
     //
+    // HISTORY
+    // 19 January 2012
+    // o Removed call to 'surface_ripMark()' -- autodijk's have no "paths".
+    //   
 
     int         ok;
     float       f_cost  = 0.0;
     static int  calls   = -1;
-
+    
     mps_env->startVertex = a_start;
     mps_env->endVertex   = a_end;
 
     calls++;
     if(!(calls % mprogressIter)) {
         mps_env->pcsm_stdout->colprintf(
-                            "path and dijkstra cost", "[ %d -> %d/%d = ",
+                            "start->end = cost", "[ %d -> %d/%d = ",
                             mps_env->startVertex,
                             mps_env->endVertex,
                             mvertex_total);
@@ -577,18 +615,37 @@ C_mpmProg_autodijk::cost_compute(
                               //+ the path in the MRIS structure.
 
     if(!ok) {
-        fprintf(stderr, " fail ]\n");
-        fprintf(stderr, "dijkstra failure, returning to system.\n");
+        mps_env->pcsm_stdout->printf(" fail ]\n");
+        mps_env->pcsm_stdout->printf("dijkstra failure, returning to system.\n");
         exit(1);
     }
-    f_cost      = surface_ripMark(*mps_env);
+    //f_cost      = surface_ripMark(*mps_env);
     if(!(calls % mprogressIter)) {
-        if(Gb_stdout) printf(" %f ]\n", f_cost);
+        mps_env->pcsm_stdout->printf(" %f ]\n", f_cost);
     }
     if(mb_surfaceRipClear) {
+        // WARNING! This destroys the cost values and paths stored in the mesh!
         surface_ripClear(*mps_env, mb_surfaceRipClear);
     }
     return f_cost;
+}
+
+int 
+C_mpmProg_autodijk::vertexCosts_pack(e_stats& a_stats) {
+    /*
+     * Pack the cost values stored in the FreeSurfer mesh into 
+     * an array.
+     */
+    a_stats.f_max           =  0.0;
+    a_stats.indexMax            = -1;
+    for(int v = 0; v < mvertex_end; v++) {
+        mpf_cost[v]     = mps_env->pMS_active->vertices[v].val;
+        if(a_stats.f_max < mpf_cost[v]) {
+            a_stats.f_max   = mpf_cost[v];
+            a_stats.indexMax    = v;
+        }
+    }
+    return true;
 }
 
 int
@@ -598,10 +655,28 @@ C_mpmProg_autodijk::run() {
     // Main entry to the actual 'run' core of the mpmProg
     //
 
-    float       f_cost  = 0.0;
-    int         ret     = 1;
+    float       f_cost                  =  0.0;
+    float       f_valueAtFurthest       = 0.0;
+    int         ret                     =  1;
+    e_stats     estats;
+
+    e_MPMPROG	        e_prog          = mps_env->empmProg_current;
+    e_MPMOVERLAY        e_overlay       = mps_env->empmOverlay_current;
 
     debug_push("run");
+        
+    mps_env->pcsm_stdout->colprintf("mpmProg (ID)", "[ %s (%d) ]\n",
+                            mps_env->vstr_mpmProgName[e_prog].c_str(),
+                            mps_env->empmProg_current);
+    mps_env->pcsm_stdout->colprintf("mpmArgs", "[ %s ]\n",
+                            mps_env->str_mpmArgs.c_str());
+    mps_env->pcsm_stdout->colprintf("mpmOverlay bool", "[ %d ]\n",
+                            mps_env->b_mpmOverlayUse);
+    mps_env->pcsm_stdout->colprintf("mpmOverlay (ID)", "[ %s (%d) ]\n",
+                            mps_env->vstr_mpmOverlayName[e_overlay].c_str(),
+                            mps_env->empmOverlay_current);
+    mps_env->pcsm_stdout->colprintf("mpmOverlayArgs", "[ %s ]\n",
+                            mps_env->str_mpmOverlayArgs.c_str());
 
     if(mb_performExhaustive) {
       // Calculate the costs from polar to every other vertex in
@@ -613,12 +688,39 @@ C_mpmProg_autodijk::run() {
           f_cost        = cost_compute(mvertex_polar, v);
           mpf_cost[v]   = f_cost;
       }
+    } else if(mb_worldMap) {
+        mps_env->pcsm_stdout->lprintf("Computing World Map...\n");
+        for(int v = mvertex_start; v < mvertex_end; v++) {
+            // First we need to find the anti-pole for current 'v'
+            // by setting the env overlay to the distance object, 
+            // performing a single sweep from 'v' to 'v' and then
+            // finding the highest "cost" which corresponds to the vertex at
+            // furthest distance from 'v' on the mesh.
+            mps_env->pCmpmOverlay = mpOverlayDistance;
+            f_cost      = cost_compute(v, v);
+            vertexCosts_pack(estats);
+            // Now set the env overlay back to the original, and recompute
+            mps_env->pCmpmOverlay = mpOverlayOrig;
+            f_cost      = cost_compute(v, v);
+            // For this run, we only store the single cost value from the 
+            // maxIndex vertex from the distance overlay
+            f_valueAtFurthest = mps_env->pMS_active->vertices[estats.indexMax].val;
+            mpf_persistent[v] = f_valueAtFurthest;
+        }
+        // Now, set the save pointer to the correct data to save
+        mpf_fileSaveData = mpf_persistent;
     } else {
       f_cost            = cost_compute(mvertex_polar, mvertex_polar);
-      for(int v = 0; v < mvertex_end; v++)
-        mpf_cost[v]     = mps_env->pMS_active->vertices[v].val;
+      vertexCosts_pack(estats);
+    }
+    if(mb_simpleStatsShow) {
+        mps_env->pcsm_stdout->colprintf("max(cost) @ index",
+                                        "[ %f : %d ]\n",
+                                        estats.f_max,
+                                        estats.indexMax);
     }
     // Write the cost curv file
+    // NOTE: This saves the data pointed to by mpf_fileSaveData!
     if((ret=CURV_fileWrite()) != e_OK)
         error("I could not save the cost curv file.");
 

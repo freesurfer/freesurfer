@@ -12,8 +12,8 @@
  * Original Author: Rudolph Pienaar / Christian Haselgrove
  * CVS Revision Info:
  *    $Author: rudolph $
- *    $Date: 2011/05/31 18:18:49 $
- *    $Revision: 1.17 $
+ *    $Date: 2012/01/23 17:24:08 $
+ *    $Revision: 1.18 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -165,26 +165,29 @@ typedef enum _e_MODULE {
 	e_mpmProg, e_mpmOverlay, emodule
 } e_MODULE;
 
+// String names for these are defined in env.cpp using 'push_back()'
 typedef enum _e_mpmProg {
-    emp_NULL 		= -1, 
-    emp_NOP 		= 0,
-    emp_pathFind	= 1,
-    emp_autodijk 	= 2, 
-    emp_autodijk_fast 	= 3,
+    emp_NULL 		= 0, 
+    emp_NOP 		= 1,
+    emp_pathFind	= 2,
+    emp_autodijk 	= 3, 
+    emp_autodijk_fast 	= 4,
     empmprog
 } e_MPMPROG;
 
 // enum typedef for mpmOverlays
 // ordering should be same as e_COSTFUNCTION
+// String names for these are defined in env.cpp using 'push_back()'
 typedef enum _e_mpmOverlay {
-    emo_LEGACY          = -2,   // LEGACY overlay -- toggles cost calc to legacy
+    emo_LEGACY          = 0,    // LEGACY overlay -- toggles cost calc to legacy
                                 // engine.
-    emo_NULL 		= -1,	// NULL overlay -- for debugging
-    emo_NOP		= 0,	// NOP overlay -- for debugging 
-    emo_unity		= 1,	// returns '1' for each internode distance	
-    emo_euclidean	= 2,	// returns distance between nodes (calculated)
-    emo_distance	= 3,	// returns distance between nodes (read)
-    emo_fscurvs		= 4,	// returns weighted cost function of curvs
+    emo_NULL 		= 1,	// NULL overlay -- for debugging
+    emo_NOP		= 2,	// NOP overlay -- for debugging 
+    emo_unity		= 3,	// returns '1' for each internode distance	
+    emo_euclidean	= 4,	// returns distance between nodes (calculated)
+    emo_distance	= 5,	// returns distance between nodes (read)
+    emo_fscurvs		= 6,	// returns weighted cost function of curvs
+    emo_curvature       = 7,    // returns curvature between nodes
     empmoverlay
 } e_MPMOVERLAY;
 

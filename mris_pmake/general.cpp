@@ -6,9 +6,9 @@
 /*
  * Original Author: Rudolph Pienaar / Christian Haselgrove
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/02/27 21:18:07 $
- *    $Revision: 1.9 $
+ *    $Author: rudolph $
+ *    $Date: 2012/01/23 17:24:08 $
+ *    $Revision: 1.10 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -33,6 +33,28 @@
 extern char     *Progname;
 extern string   G_SELF;
 extern bool     Gb_stdout;
+
+int
+arr_stats(e_stats& a_stats, float* arr, int asize) {
+    /*
+     * Perform some simple stats on a passed array
+     */
+    a_stats.f_max       =  0.0;
+    a_stats.indexMax    = -1;
+    a_stats.f_min       = 0.0;
+    a_stats.indexMin    = -1;
+    for(int v = 0; v < asize; v++) {
+        if(a_stats.f_max < arr[v]) {
+            a_stats.f_max       = arr[v];
+            a_stats.indexMax    = v;
+        }
+        if(a_stats.f_min > arr[v]) {
+            a_stats.f_min       = arr[v];
+            a_stats.indexMin    = v;
+        }
+    }
+    return true;
+}
 
 void
 lprintf(int lw, const char* format, ...) {

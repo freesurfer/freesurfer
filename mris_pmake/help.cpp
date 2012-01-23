@@ -7,8 +7,8 @@
  * Original Author: Rudolph Pienaar / Christian Haselgrove
  * CVS Revision Info:
  *    $Author: rudolph $
- *    $Date: 2011/05/31 18:18:49 $
- *    $Revision: 1.15 $
+ *    $Date: 2012/01/23 17:24:08 $
+ *    $Revision: 1.16 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -151,6 +151,11 @@ mpmOverlay_check(
     b_validMpmOverlay           = true;
     st_env.empmOverlay_current  = emo_fscurvs;
   }
+  if(str_mpmOverlay == "curvature")
+  {
+    b_validMpmOverlay           = true;
+    st_env.empmOverlay_current  = emo_curvature;
+  }
 
   return b_validMpmOverlay;
 }
@@ -186,6 +191,7 @@ commandLineOptions_process(
   string      str_mpmProg                     = "";
   string      str_mpmArgs                     = "-x";
   string      str_mpmOverlay         	      = "";
+  string      str_mpmOverlayArgs              = "-x";
 
   string      str_mainSurfaceFileName         = "inflated";
   string      str_auxSurfaceFileName          = "smoothwm";
@@ -269,6 +275,10 @@ commandLineOptions_process(
       st_env.b_mpmOverlayUse            = true;
       b_optionsFileUse                  = false;
       break;
+    case 'V':
+      str_mpmOverlayArgs                = optarg;
+      b_optionsFileUse                = false;
+      break;
     default:
       cout << "?? getopt returned character code " << opt << endl;
     }
@@ -307,6 +317,7 @@ commandLineOptions_process(
                  "I didn't recognize the <mpmOverlay>.",
                  20);
     }
+    st_env.str_mpmOverlayArgs               = str_mpmOverlayArgs;
     s_env_optionsFile_write(st_env);
 
     str_asynchComms                         = "HUP";

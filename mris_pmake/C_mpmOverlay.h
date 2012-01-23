@@ -16,8 +16,8 @@
  * Original Author: Rudolph Pienaar
  * CVS Revision Info:
  *    $Author: rudolph $
- *    $Date: 2011/05/31 18:18:49 $
- *    $Revision: 1.3 $
+ *    $Date: 2012/01/23 17:24:08 $
+ *    $Revision: 1.4 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -59,7 +59,8 @@ extern  "C" {
 
 using namespace std;
 
-const int       MPMOVERLAYSTACKDEPTH     = 64;
+const int       MPMOVERLAYSTACKDEPTH    = 64;
+const int       STRBUF                  = 65536;
 
 // enum typedef for the overlays relevant to FreeSurfer
 typedef enum _e_overlay {
@@ -210,7 +211,11 @@ class C_mpmOverlay {
     bool		costVector_write(string astr_fileName = "");
     virtual float	costEdge_calc(int i, int j)	= 0;
     string  		curvFileName_get( EOVERLAY ae_overlay);
-
+    e_FILEACCESS        CURV_fileRead(
+                                string    astr_curvFileName,
+                                float*    apf_curv[],
+                                int*      api_size
+                                );
 };
 
 //
@@ -259,7 +264,7 @@ class C_mpmOverlay_unity : public C_mpmOverlay {
 };
 
 //
-// An "distance" subclass -- returns a (weighted) distance between
+// A "distance" subclass -- returns a (weighted) distance between
 // two vertices by look up in the FreeSurfer mesh.
 //
 class C_mpmOverlay_distance : public C_mpmOverlay {
@@ -310,6 +315,37 @@ class C_mpmOverlay_FScurvs : public C_mpmOverlay {
     virtual float		costEdge_calc(int i, int j);
 };
 
+//
+// An overlay subclass that reads in the complete set of FreeSurfer 
+// curvature/thickness files
+//
+class C_mpmOverlay_curvature : public C_mpmOverlay {
+
+	//
+	// This class reads in a single "curvature" type file and
+        // uses these for edge weights.
+        //
+
+  protected:
+    int		mv_size;
+    float*      mpf_curvatureData;
+    e_stats     mes_curvStats;
+
+  public:
+    C_mpmOverlay_curvature(s_env* aps_env, string astr_curvFileStem, 
+                           string astr_costWeightFile = "");
+    ~C_mpmOverlay_curvature(void);
+
+    //
+    // Access block
+    //
+
+    //
+    // Functional block
+    //
+    void			costWeightVector_init(void);
+    virtual float		costEdge_calc(int i, int j);
+};
 
 
 #endif //__C_MPMOVERLAY_H__

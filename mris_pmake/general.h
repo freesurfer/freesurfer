@@ -6,9 +6,9 @@
 /*
  * Original Author: Rudolph Pienaar / Christian Haselgrove
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/02/27 21:18:07 $
- *    $Revision: 1.8 $
+ *    $Author: rudolph $
+ *    $Date: 2012/01/23 17:24:08 $
+ *    $Revision: 1.9 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -56,6 +56,15 @@ using namespace std;
        cout << " ";    \
    cout << (msg); cout << endl;
 
+// A simple structure to hold some statistical information
+typedef struct _e_stats {
+    float       f_max;
+    int         indexMax;
+    float       f_min;
+    int         indexMin;
+} e_stats;
+
+
 typedef enum {
   e_gaussian, e_mean
 } e_CURVATURE;
@@ -80,6 +89,9 @@ void    colprintf(int lw, int rw,
                     const char* pch_lstr, const char* format, ...);
 char*   colsprintf(int lw, int rw, char* pch_buffer,
                     const char* pch_lstr, const char* format, ...);
+
+int
+arr_stats(e_stats& a_stats, float* arr, int asize);
 
 /// A *very* simple structure to handle some recurring 3D vector operations.
 /// It would make more sense to use a CMatrix class, but that is perhaps
