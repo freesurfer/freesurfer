@@ -16,8 +16,8 @@
  * Original Author: Doug Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2011/06/01 15:12:51 $
- *    $Revision: 1.35 $
+ *    $Date: 2012/01/23 22:15:19 $
+ *    $Revision: 1.36 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -63,7 +63,7 @@
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_probedicom.c,v 1.35 2011/06/01 15:12:51 greve Exp $";
+static char vcid[] = "$Id: mri_probedicom.c,v 1.36 2012/01/23 22:15:19 greve Exp $";
 char *Progname = NULL;
 
 static int  parse_commandline(int argc, char **argv);
@@ -144,7 +144,7 @@ int main(int argc, char **argv) {
   int n,nvoxs;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_probedicom.c,v 1.35 2011/06/01 15:12:51 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_probedicom.c,v 1.36 2012/01/23 22:15:19 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -265,6 +265,7 @@ int main(int argc, char **argv) {
     else{
       if(! GetMax){
 	if(outputbfile) {
+	  // Not sure if this will fail with 8bit
 	  sprintf(tmpstr,"%s.hdr",outputfile);
 	  ncols = GetDimLength(dicomfile,0);
 	  nrows = GetDimLength(dicomfile,1);
@@ -286,6 +287,7 @@ int main(int argc, char **argv) {
 	ncols = GetDimLength(dicomfile,0);
 	nrows = GetDimLength(dicomfile,1);
 	nvoxs = nrows*ncols;
+	// This will still fail with 8bit
 	pixeldata = (short *) element.d.string;
 	maxpixel = pixeldata[0];
 	minpixel = pixeldata[0];
@@ -1442,9 +1444,11 @@ int RenderImage(int argc, char **argv) {
   DCM_TAG tag;
   unsigned int rtnLength;
   void * Ctx = NULL;
-  short * pixeldata;
+  short *pixeldata, *pS;
   short minpixel, maxpixel;
   int nvoxs,nthvox;
+  DICOMInfo RefDCMInfo;
+  unsigned char *pC;
 
   ncols = GetDimLength(dicomfile,0);
   nrows = GetDimLength(dicomfile,1);
@@ -1468,10 +1472,17 @@ int RenderImage(int argc, char **argv) {
     exit(1);
   }
 
-  pixeldata = (short *) element.d.string;
+  // Get info about the number of bits
+  GetDICOMInfo(dicomfile, &RefDCMInfo, FALSE, 1);
+
+  pixeldata = (short *) calloc(nvoxs,sizeof(short));
   maxpixel = pixeldata[0];
   minpixel = pixeldata[0];
+  pC = (unsigned char *)element.d.string;
+  pS = (short *)element.d.string;
   for (n=0;n<nvoxs;n++) {
+    if(RefDCMInfo.BitsAllocated ==  8) pixeldata[n] = (short)(*pC++);
+    if(RefDCMInfo.BitsAllocated == 16) pixeldata[n] = (short)(*pS++);
     if (maxpixel < pixeldata[n]) maxpixel = pixeldata[n];
     if (minpixel > pixeldata[n]) minpixel = pixeldata[n];
   }
