@@ -41,8 +41,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2011/12/15 17:29:52 $
- *    $Revision: 1.39 $
+ *    $Date: 2012/01/25 00:34:17 $
+ *    $Revision: 1.40 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -1185,15 +1185,12 @@ MRI *surf2surf_nnfr(MRI *SrcSurfVals, MRI_SURFACE *SrcSurfReg,
   printf("Surf2Surf: Forward Loop (%d)\n",TrgSurfReg->nvertices);
   for (tvtx = 0; tvtx < TrgSurfReg->nvertices; tvtx++)
   {
-    if (!UseHash)
-    {
-      if (tvtx%100 == 0)
-      {
+    if (!UseHash){
+      if (tvtx%100 == 0) {
         printf("%5d ",tvtx);
         fflush(stdout);
       }
-      if (tvtx%1000 == 999)
-      {
+      if (tvtx%1000 == 999){
         printf("\n");
         fflush(stdout);
       }
@@ -1356,29 +1353,21 @@ MRI *surf2surf_nnfr_jac(MRI *SrcSurfVals, MRI_SURFACE *SrcSurfReg,
   if (*SrcDist == NULL) return(NULL);
 
   /* build hash tables */
-  if (UseHash)
-  {
-    printf("surf2surf_nnfr: building source hash (res=16).\n");
+  if (UseHash){
+    printf("surf2surf_nnfr_jac: building source hash (res=16).\n");
     SrcHash = MHTfillVertexTableRes(SrcSurfReg, NULL,CURRENT_VERTICES,16);
   }
 
   // First forward loop just counts the number of hits for each src
-  printf("Surf2Surf: 1st Forward Loop (%d)\n",TrgSurfReg->nvertices);
+  printf("Surf2SurfJac: 1st Forward Loop (%d)\n",TrgSurfReg->nvertices);
   nunmapped = 0;
-  for (tvtx = 0; tvtx < TrgSurfReg->nvertices; tvtx++)
-  {
+  for (tvtx = 0; tvtx < TrgSurfReg->nvertices; tvtx++){
     /* find closest source vertex */
     v = &(TrgSurfReg->vertices[tvtx]);
-    if (UseHash) svtx = MHTfindClosestVertexNo(SrcHash,SrcSurfReg,v,&dmin);
+    if(UseHash) svtx = MHTfindClosestVertexNo(SrcHash,SrcSurfReg,v,&dmin);
     else        svtx = MRISfindClosestVertex(SrcSurfReg,v->x,v->y,v->z,&dmin);
-
-    if (svtx < 0)
-    {/* this can only happen with MHT */
-      nunmapped ++;
-      printf("Unmapped: %3d tvtx = %6d, %6.2f %6.2f %6.2f\n",
-             nunmapped,tvtx,v->x,v->y,v->z);
-      continue;
-    }
+    /* hash table failed, so use brute force */
+    if(svtx < 0) svtx = MRISfindClosestVertex(SrcSurfReg,v->x,v->y,v->z,&dmin);
 
     /* update the number of hits and distance */
     MRIFseq_vox((*SrcHits),svtx,0,0,0) ++;  // This is what this loop is for
@@ -1386,28 +1375,20 @@ MRI *surf2surf_nnfr_jac(MRI *SrcSurfVals, MRI_SURFACE *SrcSurfReg,
     MRIFseq_vox((*SrcDist),svtx,0,0,0) += dmin;
     MRIFseq_vox((*TrgDist),tvtx,0,0,0) += dmin;
   }
-  printf("\n");
 
   // Second forward loop accumulates
-  for (tvtx = 0; tvtx < TrgSurfReg->nvertices; tvtx++)
-  {
+  printf("Surf2SurfJac: 2nd Forward Loop (%d)\n",TrgSurfReg->nvertices);
+  for (tvtx = 0; tvtx < TrgSurfReg->nvertices; tvtx++) {
     /* find closest source vertex */
     v = &(TrgSurfReg->vertices[tvtx]);
-    if (UseHash) svtx = MHTfindClosestVertexNo(SrcHash,SrcSurfReg,v,&dmin);
+    if(UseHash) svtx = MHTfindClosestVertexNo(SrcHash,SrcSurfReg,v,&dmin);
     else        svtx = MRISfindClosestVertex(SrcSurfReg,v->x,v->y,v->z,&dmin);
-
-    if (svtx < 0)
-    {/* this can only happen with MHT */
-      nunmapped ++;
-      printf("Unmapped: %3d tvtx = %6d, %6.2f %6.2f %6.2f\n",
-             nunmapped,tvtx,v->x,v->y,v->z);
-      continue;
-    }
+    /* hash table failed, so use bruce force */
+    if(svtx < 0) svtx = MRISfindClosestVertex(SrcSurfReg,v->x,v->y,v->z,&dmin);
 
     nhits = MRIFseq_vox((*SrcHits),svtx,0,0,0);
     /* Now accumulate mapped values for each frame */
-    for (f=0; f < SrcSurfVals->nframes; f++)
-    {
+    for (f=0; f < SrcSurfVals->nframes; f++){
       srcval = MRIFseq_vox(SrcSurfVals,svtx,0,0,f);
       srcval /= nhits;// divide by number of hits
       MRIFseq_vox(TrgSurfVals,tvtx,0,0,f) += srcval;
@@ -1426,7 +1407,7 @@ MRI *surf2surf_nnfr_jac(MRI *SrcSurfVals, MRI_SURFACE *SrcSurfReg,
       printf("surf2surf_nnfr: building target hash (res=16).\n");
       TrgHash = MHTfillVertexTableRes(TrgSurfReg, NULL,CURRENT_VERTICES,16);
     }
-    printf("Surf2Surf: Reverse Loop (%d)\n",SrcSurfReg->nvertices);
+    printf("Surf2SurfJac: Reverse Loop (%d)\n",SrcSurfReg->nvertices);
     nrevhits = 0;
     for (svtx = 0; svtx < SrcSurfReg->nvertices; svtx++)
     {
@@ -1437,13 +1418,8 @@ MRI *surf2surf_nnfr_jac(MRI *SrcSurfVals, MRI_SURFACE *SrcSurfReg,
         v = &(SrcSurfReg->vertices[svtx]);
         if (UseHash) tvtx = MHTfindClosestVertexNo(TrgHash,TrgSurfReg,v,&dmin);
         else        tvtx = MRISfindClosestVertex(TrgSurfReg,v->x,v->y,v->z,&dmin);
-        if (tvtx < 0)
-        {/* this can only happen with MHT */
-          nunmapped ++;
-          printf("Unmapped: %3d svtx = %6d, %6.2f %6.2f %6.2f\n",
-                 nunmapped,svtx,v->x,v->y,v->z);
-          continue;
-        }
+	/* Hash table failed, so use brute force */
+        if(tvtx < 0) tvtx = MRISfindClosestVertex(TrgSurfReg,v->x,v->y,v->z,&dmin);
         /* update the number of hits and distance */
         MRIFseq_vox((*SrcHits),svtx,0,0,0) ++;
         MRIFseq_vox((*TrgHits),tvtx,0,0,0) ++;
@@ -1459,23 +1435,22 @@ MRI *surf2surf_nnfr_jac(MRI *SrcSurfVals, MRI_SURFACE *SrcSurfReg,
     printf("Reverse Loop had %d hits\n",nrevhits);
   }
 
-  // Do NOT normalize target vertices with multiple src verteces
+  // Do NOT normalize target vertices with multiple src vertices
 
   /* go through the source loop to average the distance */
   nSrcLost = 0;
-  for (svtx = 0; svtx < SrcSurfReg->nvertices; svtx++)
-  {
+  for (svtx = 0; svtx < SrcSurfReg->nvertices; svtx++)  {
     n = MRIFseq_vox((*SrcHits),svtx,0,0,0);
     if (n == 1) continue;
     if (n > 1) MRIFseq_vox((*SrcDist),svtx,0,0,0) /= n;
-    else
-    {/* unmapped */
+    else {/* unmapped */
       MRIFseq_vox((*SrcDist),svtx,0,0,0) = -10;
       nSrcLost ++;
     }
   }
-
   printf("INFO: nSrcLost = %d\n",nSrcLost);
+  printf("surf2surf_nnfr_jac() done\n");
+  fflush(stdout);
 
   return(TrgSurfVals);
 }
