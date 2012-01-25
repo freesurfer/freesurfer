@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2012/01/12 21:08:14 $
- *    $Revision: 1.718 $
+ *    $Author: greve $
+ *    $Date: 2012/01/25 18:53:50 $
+ *    $Revision: 1.719 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -733,7 +733,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void)
 {
-  return("$Id: mrisurf.c,v 1.718 2012/01/12 21:08:14 fischl Exp $");
+  return("$Id: mrisurf.c,v 1.719 2012/01/25 18:53:50 greve Exp $");
 }
 
 /*-----------------------------------------------------
@@ -993,11 +993,9 @@ MRI_SURFACE *MRISreadOverAlloc(const char *fname, double pct_over)
         {
         case TAG_GROUP_AVG_SURFACE_AREA:
           mris->group_avg_surface_area = freadFloat(fp) ;
-#if 0
           fprintf(stdout,
                   "reading group avg surface area %2.0f cm^2 from file\n",
                   mris->group_avg_surface_area/100.0) ;
-#endif
           break ;
         case TAG_OLD_SURF_GEOM:
           readVolGeom(fp, &mris->vg);
@@ -1174,6 +1172,7 @@ MRI_SURFACE *MRISreadOverAlloc(const char *fname, double pct_over)
 
   // Check whether there is an area file for group average
   sprintf(tmpstr,"%s.avg.area.mgh",fname);
+  printf("Trying to read average area %s\n",tmpstr);
   if (fio_FileExistsReadable(tmpstr))
   {
     if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
@@ -1191,6 +1190,8 @@ MRI_SURFACE *MRISreadOverAlloc(const char *fname, double pct_over)
     mris->group_avg_vtxarea_loaded=1;
   }
   else mris->group_avg_vtxarea_loaded=0;
+  printf("Average area loaded %d\n",mris->group_avg_vtxarea_loaded);
+
 
   return(mris) ;
 }
@@ -68397,47 +68398,66 @@ MRISsurfaceRASToVoxel(MRI_SURFACE *mris, MRI *mri, double r, double a, double s,
   MatrixFree(&m_ras2vox) ; MatrixFree(&m_sras2ras) ; MatrixFree(&m_sras2vox);
   return(NO_ERROR) ;
 }
-// note that this is *NOT* safe for parallel implementations
-int
-MRISsurfaceRASToVoxelCached(MRI_SURFACE *mris, MRI *mri, double r, double a, double s,
-                      double *px, double *py, double *pz)
+
+
+/*!
+  \fn int MRISsurfaceRASToVoxelCached(MRI_SURFACE *mris, MRI *mri, 
+				double r, double a, double s,
+				double *px, double *py, double *pz)
+  \brief Computes voxel coordinates of a given surface RAS. Not safe
+    for parallel applications because it caches intermediate data. Note: 
+    surfaceRAS is the same as tkRegRAS
+  \param mris - surface (only used to get MRI struct)
+  \param mri - defines target voxel space
+  \param r, a, s - surface coordinates
+  \param px, py, pz - pointers to col, rowl, and slice in mri (output)
+*/
+int MRISsurfaceRASToVoxelCached(MRI_SURFACE *mris, MRI *mri, 
+				double r, double a, double s,
+				double *px, double *py, double *pz)
 {
   static VECTOR *v1 = NULL, *v2  ;
 
-  if (v1 == NULL)  // only allocate vectors once
-  {
+  if (v1 == NULL){  // only allocate vectors once
     v1 = VectorAlloc(4, MATRIX_REAL) ;
     v2 = VectorAlloc(4, MATRIX_REAL) ;
     VECTOR_ELT(v1, 4) = 1.0 ; VECTOR_ELT(v2, 4) = 1.0 ;
   }
 
-  if (MRIcompareHeaders(mris->mri_sras2vox, mri))  // a different volume then previously used
-  {
-    if (mris->m_sras2vox)
-      MatrixFree(&mris->m_sras2vox) ;  // free it so it will be recomputed
-    if (mris->mri_sras2vox)
-      MRIfree(&mris->mri_sras2vox) ;
+  if(MRIcompareHeaders(mris->mri_sras2vox, mri)){  // a different volume then previously used
+    if(mris->m_sras2vox)    MatrixFree(&mris->m_sras2vox) ;  // free it so it will be recomputed
+    if(mris->mri_sras2vox)  MRIfree(&mris->mri_sras2vox) ;
+    // Header of MRI whose voxel coordinates are going to be computed
     mris->mri_sras2vox = MRIcopyHeader(mri, NULL) ;
   }
-  if (mris->m_sras2vox == NULL)  // recompute surface ras to vox transform
-  {
+
+  // recompute surface ras to vox transform
+  if(mris->m_sras2vox == NULL){ 
+    // Get surface ras to scanner ras
     MRI *mri_tmp ;
     MATRIX *m_sras2ras, *m_ras2vox ;
-
-    if (mris->vg.valid)
-    {
+    if(mris->vg.valid){
+      // Use VOL_GEOM struct (MRI) that is internal to MRIS if valid
+      // (this is usually that of orig.mgz) Good for freeview, but for
+      // this to work, the passed mri must share a scanner RAS with
+      // mris->vg.
       mri_tmp = MRIallocHeader(mris->vg.width, mris->vg.height, mris->vg.depth, MRI_UCHAR,1) ;
       MRIcopyVolGeomToMRI(mri_tmp, &mris->vg) ;
-      m_sras2ras =  RASFromSurfaceRAS_(mri_tmp) ;
+      m_sras2ras =  RASFromSurfaceRAS_(mri_tmp) ; 
       MRIfree(&mri_tmp) ;
     }
-    else
+    else{
+      // Use geometry from MRI struct passed with function
+      // Function should reduce to inv(Vox2TkRegRAS)*SurfRAS
       m_sras2ras =  RASFromSurfaceRAS_(mri) ;
-
+    }
+    // Scanner RAS to Vox for passed MRI
     m_ras2vox = MRIgetRasToVoxelXform(mri) ;
+    // SurfRAS2Vox = ScanRAS-To-Vox * SurfRAS-To-ScanRAS
     mris->m_sras2vox = MatrixMultiply(m_ras2vox, m_sras2ras, NULL) ;
     MatrixFree(&m_sras2ras) ; MatrixFree(&m_ras2vox) ;
   }
+
   V3_X(v1) = r ;  V3_Y(v1) = a ; V3_Z(v1) = s ;
   MatrixMultiply(mris->m_sras2vox, v1, v2) ;
   *px = V3_X(v2) ; *py = V3_Y(v2) ; *pz = V3_Z(v2) ;
