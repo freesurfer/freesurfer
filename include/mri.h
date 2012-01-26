@@ -7,9 +7,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2011/12/19 23:00:33 $
- *    $Revision: 1.435 $
+ *    $Author: greve $
+ *    $Date: 2012/01/26 23:16:24 $
+ *    $Revision: 1.436 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -215,6 +215,9 @@ MATRIX *MRItkreg2FSL(MRI *ref, MRI *mov, MATRIX *tkRegMat);  // tkreg2fsl
 MATRIX *MtxCRS1toCRS0(MATRIX *Q);
 int MRIp0ToCRAS(MRI *mri, double r0, double a0, double s0);
 MATRIX *MRIfixTkReg(MRI *mov, MATRIX *R);
+MATRIX *MRImatrixOfDirectionCosines(MRI *mri, MATRIX *Mdc);
+MATRIX *MRImatrixOfVoxelSizes(MRI *mri, MATRIX *D);
+MATRIX *MRImatrixOfTranslations(MRI *mri, MATRIX *P0);
 
 int MRIhfs2Sphinx(MRI *mri);
 

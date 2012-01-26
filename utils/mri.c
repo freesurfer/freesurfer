@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2011/10/06 01:24:08 $
- *    $Revision: 1.506 $
+ *    $Author: greve $
+ *    $Date: 2012/01/26 23:16:24 $
+ *    $Revision: 1.507 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -23,7 +23,7 @@
  */
 
 extern const char* Progname;
-const char *MRI_C_VERSION = "$Revision: 1.506 $";
+const char *MRI_C_VERSION = "$Revision: 1.507 $";
 
 
 /*-----------------------------------------------------
@@ -215,6 +215,55 @@ MATRIX *MRIxfmCRS2XYZ( const MRI *mri, int base)
   MatrixFree(&PxyzOffset);
 
   return(m);
+}
+/*!
+  \fn MATRIX *MRImatrixOfDirectionCosines(MRI *mri, MATRIX *Mdc)
+  \brief Fills Mdc with direction cosines
+*/
+MATRIX *MRImatrixOfDirectionCosines(MRI *mri, MATRIX *Mdc)
+{
+  if(Mdc == NULL) Mdc = MatrixZero(4,4,NULL);
+  Mdc->rptr[1][1] = mri->x_r;
+  Mdc->rptr[2][1] = mri->x_a;
+  Mdc->rptr[3][1] = mri->x_s;
+  Mdc->rptr[1][2] = mri->y_r;
+  Mdc->rptr[2][2] = mri->y_a;
+  Mdc->rptr[3][2] = mri->y_s;
+  Mdc->rptr[1][3] = mri->z_r;
+  Mdc->rptr[2][3] = mri->z_a;
+  Mdc->rptr[3][3] = mri->z_s;
+  Mdc->rptr[4][4] = 1;
+  return(Mdc);
+}
+/*!
+  \fn MATRIX *MRImatrixOfVoxelSizes(MRI *mri, MATRIX *D)
+  \brief Creaetes diagonal matrix D with voxel sizes on diagonal
+*/
+MATRIX *MRImatrixOfVoxelSizes(MRI *mri, MATRIX *D)
+{
+  if(D == NULL) D = MatrixZero(4,4,NULL);
+  D->rptr[1][1] = mri->xsize;
+  D->rptr[2][2] = mri->ysize;
+  D->rptr[3][3] = mri->zsize;
+  D->rptr[4][4] = 1;
+  return(D);
+}
+/*!
+  \fn MATRIX *MRImatrixOfTranslations(MRI *mri, MATRIX *P0)
+  \brief Creates 4x4 matrix which implements the translation
+*/
+MATRIX *MRImatrixOfTranslations(MRI *mri, MATRIX *P0)
+{
+  MATRIX *Vox2ScannerRAS;
+  int k;
+  if(P0 == NULL) P0 = MatrixZero(4,4,NULL);
+  Vox2ScannerRAS = MRIxfmCRS2XYZ(mri,0);
+  for(k=1; k<=4; k++) {
+    P0->rptr[k][4] = Vox2ScannerRAS->rptr[k][4];
+    P0->rptr[k][k] = 1;
+  }
+  MatrixFree(&Vox2ScannerRAS);
+  return(P0);
 }
 /*--------------------------------------------------------------------------
   extract_i_to_r() - computes scanner vox2ras. On 2/27/06, this was replaced
@@ -7921,12 +7970,9 @@ MRIextractValues(MRI *mri_src, MRI *mri_dst, float min_val, float max_val)
 
   return(mri_dst) ;
 }
+
+
 /*-----------------------------------------------------
-  Parameters:
-
-  Returns value:
-
-  Description
   Wrapper around MRIupsampleN for N=2
   ------------------------------------------------------*/
 MRI *
@@ -7935,127 +7981,67 @@ MRIupsample2(MRI *mri_src, MRI *mri_dst)
   return(MRIupsampleN(mri_src, mri_dst, 2)) ;
 }
 /*-----------------------------------------------------
-  Parameters:
-
-  Returns value:
-
-  Description
   Upsample volume by integer factor. No error checking, upsample
   factor must be valid. (Generalization of original routine
   'MRIupsample2'.)
   ------------------------------------------------------*/
-MRI *
-MRIupsampleN(MRI *mri_src, MRI *mri_dst, int N)
+MRI *MRIupsampleN(MRI *mri_src, MRI *mri_dst, int N)
 {
-  int     width, depth, height, x, y, z ;
-  BUFTYPE *pdst ;
-  short   *psdst ;
-  float   *pfdst ;
-  MATRIX  *m_vox2ras, *m_scale, *m_tmp ;
+  int     width, depth, height, x, y, z, f ;
+  double val;
 
-  if (mri_dst && mri_src->type != mri_dst->type)
-    ErrorReturn
-    (NULL,
-     (ERROR_UNSUPPORTED, "MRIupsampleN: source and dst must be same type"));
-
-  width = N*mri_src->width ;
+  width  = N*mri_src->width ;
   height = N*mri_src->height ;
-  depth = N*mri_src->depth ;
+  depth  = N*mri_src->depth ;
 
-  if (!mri_dst)
-  {
-    //    double c_r, c_a, c_s;
-  
-    mri_dst = MRIalloc(width, height, depth, mri_src->type) ;
+  if (!mri_dst) {
+    mri_dst = MRIallocSequence(width, height, depth, mri_src->type, mri_src->nframes) ;
     MRIcopyHeader(mri_src, mri_dst) ;
-    MRIsetResolution(mri_dst,
-                     mri_src->xsize/N, mri_src->ysize/N, mri_src->zsize/N) ;
-    mri_dst->xstart = mri_src->xstart ;
-    mri_dst->ystart = mri_src->ystart ;
-    mri_dst->zstart = mri_src->zstart ;
-    mri_dst->xend = mri_src->xend ;
-    mri_dst->yend = mri_src->yend ;
-    mri_dst->zend = mri_src->zend ;
-    m_vox2ras = MRIgetVoxelToRasXform(mri_src) ;
-    m_scale = MatrixIdentity(4, NULL) ;
-    *MATRIX_RELT(m_scale, 1,1) = 1.0/N ; 
-    *MATRIX_RELT(m_scale, 2,2) = 1.0/N ; 
-    *MATRIX_RELT(m_scale, 3,3) = 1.0/N ;
-    m_tmp = MatrixMultiply(m_vox2ras, m_scale, NULL) ;
-    MatrixFree(&m_vox2ras) ; MatrixFree(&m_scale) ; m_vox2ras = m_tmp ;
-    MRIsetVoxelToRasXform(mri_dst, m_vox2ras) ;
-    MatrixFree(&m_vox2ras) ;
-    m_vox2ras = MRIgetVoxelToRasXform(mri_dst) ;
-    MatrixFree(&m_vox2ras) ;
-#if 0
-    MRIcalcCRASforSampledVolume(mri_src, mri_dst, &c_r, &c_a, &c_s);
-    mri_dst->c_a = c_a;
-    mri_dst->c_s = c_s;
-    mri_dst->c_r = c_r;
-#endif
   }
 
-  for (z = 0 ; z < depth ; z++)
-  {
-    for (y = 0 ; y < height ; y++)
-    {
-      switch (mri_src->type)
-      {
-      case MRI_UCHAR:
-        pdst = &MRIvox(mri_dst, 0, y, z) ;
-        for (x = 0 ; x < width ; x++)
-          *pdst++ = MRIvox(mri_src, x/N, y/N, z/N) ;
-        break ;
-      case MRI_SHORT:
-        psdst = &MRISvox(mri_dst, 0, y, z) ;
-        for (x = 0 ; x < width ; x++)
-          *psdst++ = MRISvox(mri_src, x/N, y/N, z/N) ;
-        break ;
-      case MRI_FLOAT:
-        pfdst = &MRIFvox(mri_dst, 0, y, z) ;
-        for (x = 0 ; x < width ; x++)
-          *pfdst++ = MRIFvox(mri_src, x/N, y/N, z/N) ;
-        break ;
-      default:
-        ErrorReturn
-        (NULL,
-         (ERROR_UNSUPPORTED,
-          "MRIupsampleN: unsupported src type %d", mri_src->type)) ;
-      }
-
-    }
-  }
-
+  // Recompute geometry for finer resolution
+  // Only the xsize changes
+  mri_dst->xsize = mri_src->xsize/N;
+  mri_dst->ysize = mri_src->ysize/N;
+  mri_dst->zsize = mri_src->zsize/N;
+  mri_dst->x_r = mri_src->x_r;
+  mri_dst->x_a = mri_src->x_a;
+  mri_dst->x_s = mri_src->x_s;
+  mri_dst->y_r = mri_src->y_r;
+  mri_dst->y_a = mri_src->y_a;
+  mri_dst->y_s = mri_src->y_s;
+  mri_dst->z_r = mri_src->z_r;
+  mri_dst->z_a = mri_src->z_a;
+  mri_dst->z_s = mri_src->z_s;
+  mri_dst->c_r = mri_src->c_r;
+  mri_dst->c_a = mri_src->c_a;
+  mri_dst->c_s = mri_src->c_s;
+  mri_dst->xstart = mri_src->xstart;
+  mri_dst->ystart = mri_src->ystart;
+  mri_dst->zstart = mri_src->zstart;
+  mri_dst->xend = mri_src->xend;
+  mri_dst->yend = mri_src->yend;
+  mri_dst->zend = mri_src->zend;
   mri_dst->imnr0 = mri_src->imnr0 ;
   mri_dst->imnr1 = mri_src->imnr0 + mri_dst->depth - 1 ;
 
-  mri_dst->xsize = mri_src->xsize/N ;
-  mri_dst->ysize = mri_src->ysize/N ;
-  mri_dst->zsize = mri_src->zsize/N ;
-
-  // adjust cras
-  //printf("COMPUTING new CRAS\n") ;
-  VECTOR* C = VectorAlloc(4, MATRIX_REAL);
-  // here divide by 2.0 (because also  odd images get fully upsampled)
-  VECTOR_ELT(C,1) = mri_src->width/2.0-(N-1)*0.5/N;
-  VECTOR_ELT(C,2) = mri_src->height/2.0-(N-1)*0.5/N;
-  VECTOR_ELT(C,3) = mri_src->depth/2.0-(N-1)*0.5/N;
-  VECTOR_ELT(C,4) = 1.0;
-  MATRIX* V2R     = extract_i_to_r(mri_src);
-  MATRIX* P       = MatrixMultiply(V2R,C,NULL);
-  mri_dst->c_r    = P->rptr[1][1];
-  mri_dst->c_a    = P->rptr[2][1];
-  mri_dst->c_s    = P->rptr[3][1];
-  MatrixFree(&P);
-  MatrixFree(&V2R);
-  VectorFree(&C);
-
+  for (z = 0 ; z < depth ; z++) {
+    for (y = 0 ; y < height ; y++) {
+      for (x = 0 ; x < width ; x++) {
+	for(f = 0; f < mri_src->nframes; f++){
+	  val = MRIgetVoxVal(mri_src, x/N, y/N, z/N, f);
+	  MRIsetVoxVal(mri_dst,x,y,z,f,val);
+	}
+      }
+    }
+  }
   MRIreInitCache(mri_dst) ;
 
   return(mri_dst) ;
 }
-MRI *
-MRIdownsample2LabeledVolume(MRI *mri_src, MRI *mri_dst)
+
+
+MRI *MRIdownsample2LabeledVolume(MRI *mri_src, MRI *mri_dst)
 {
   int     width, depth, height, x, y, z, x1, y1, z1, counts[256], label,
   max_count, out_label ;
