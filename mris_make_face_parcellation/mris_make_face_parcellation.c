@@ -9,9 +9,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:33 $
- *    $Revision: 1.16 $
+ *    $Author: fischl $
+ *    $Date: 2012/01/26 13:47:13 $
+ *    $Revision: 1.17 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -48,7 +48,7 @@
 
 #define MAX_PARCEL_VERTICES 10000
 static char vcid[] =
-  "$Id: mris_make_face_parcellation.c,v 1.16 2011/03/02 00:04:33 nicks Exp $";
+  "$Id: mris_make_face_parcellation.c,v 1.17 2012/01/26 13:47:13 fischl Exp $";
 
 typedef struct
 {
@@ -188,7 +188,7 @@ main(int argc, char *argv[]) {
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mris_make_face_parcellation.c,v 1.16 2011/03/02 00:04:33 nicks Exp $",
+   "$Id: mris_make_face_parcellation.c,v 1.17 2012/01/26 13:47:13 fischl Exp $",
    "$Name:  $", cmdline);
 
   setRandomSeed(1L) ;
@@ -196,7 +196,7 @@ main(int argc, char *argv[]) {
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
     (argc, argv,
-     "$Id: mris_make_face_parcellation.c,v 1.16 2011/03/02 00:04:33 nicks Exp $",
+     "$Id: mris_make_face_parcellation.c,v 1.17 2012/01/26 13:47:13 fischl Exp $",
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -227,8 +227,13 @@ main(int argc, char *argv[]) {
   if (!mris)
     ErrorExit(ERROR_NOFILE, "%s: could not read surface file %s",
               Progname, in_fname) ;
+#if 0
   if (MRISreadCanonicalCoordinates(mris,"sphere") != NO_ERROR)
     ErrorExit(ERROR_BADPARM, "%s: could not read spherical coordinates", Progname) ;
+#else
+  MRISsaveVertexPositions(mris, CANONICAL_VERTICES) ;
+#endif
+
   MRISresetNeighborhoodSize(mris, 3) ; // reset current size to 1-nbrs
   mris_ico = MRISread(ico_fname) ;
   if (!mris_ico)
