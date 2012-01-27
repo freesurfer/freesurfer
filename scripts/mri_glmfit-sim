@@ -1,5 +1,5 @@
 #!/bin/tcsh -f
-set VERSION = '$Id: mri_glmfit-sim,v 1.43 2011/11/11 20:13:25 greve Exp $';
+set VERSION = '$Id: mri_glmfit-sim,v 1.44 2012/01/27 21:03:02 greve Exp $';
 
 set inputargs = ($argv);
 
@@ -126,6 +126,7 @@ while($#glmfitcmd)
     shift glmfitcmd;
     if($#glmfitcmd > 0) then
       if($glmfitcmd[1] == doss) set gd2mtx = doss
+    endif
     breaksw
   case "--label"
     set label = $glmfitcmd[1]; shift glmfitcmd;
@@ -238,6 +239,11 @@ if($#subject != 0) then
 endif
 
 # Get a list of contrasts, etc
+set FSGDhasCon = 0;
+if(-e $glmdir/y.fsgd) then
+  # check whether contrasts were specified in the FSGD
+  set FSGDhasCon = `cat $glmdir/y.fsgd | awk '{if($1 == "Contrast") print 1}' | wc -l`
+endif
 if($#tmpdir == 0) set tmpdir = $glmdir/tmp.mri_glmfit-sim-$$
 mkdir -p $tmpdir
 set clist = ($glmdir/*/C.dat)
@@ -253,7 +259,8 @@ foreach c ($clist)
   set conlist = ($conlist $conname);
   set confile = $tmpdir/$conname.mtx
   cp $c $confile
-  set clist2 = ($clist2 --C $confile);
+  # If Cons in the FSGD, dont spec on glmfit cmd line
+  if($FSGDhasCon == 0)  set clist2 = ($clist2 --C $confile);
 
   # Make sure sig is there
   set sig = `stem2fname $glmdir/$conname/sig`
@@ -378,7 +385,8 @@ if($DoSim) then
     if($anattype == surface) set cmd = ($cmd --surf $subject $hemi $surf);
     if($#Seed) set cmd = ($cmd --seed $Seed);
     if($UseUniformPDF) set cmd = ($cmd --uniform $UniformPDFMin $UniformPDFMax);
-    if($DiagCluster) set cmd = ($cmd --diag-cluster)
+    if($DiagCluster) set cmd = ($cmd --diag-cluster --debug)
+    if($?verbose) set cmd = ($cmd --debug)
     if($DoPoll) then
       set DoneFile = $PollDir/done.$csdbase.$jpad
       rm -f $DoneFile
