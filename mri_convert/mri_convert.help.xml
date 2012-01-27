@@ -59,6 +59,8 @@ Supply the orientation information in the form of an orientation string  (ostrin
       <explanation>print statistics on output volume</explanation>
       <argument>-im, --in_matrix</argument>
       <argument>-om, --out_matrix</argument>
+      <argument>--upsample N &lt;size&gt;</argument>
+      <explanation>Reduce voxel size by a factor of N in all dimensions</explanation>
       <argument>-iis, --in_i_size &lt;size&gt;</argument>
       <argument>-ijs, --in_j_size &lt;size&gt;</argument>
       <argument>-iks, --in_k_size &lt;size&gt;</argument>

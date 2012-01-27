@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl (Apr 16, 1997)
  * CVS Revision Info:
- *    $Author: jonp $
- *    $Date: 2012/01/15 20:47:14 $
- *    $Revision: 1.189 $
+ *    $Author: greve $
+ *    $Date: 2012/01/27 18:34:05 $
+ *    $Revision: 1.190 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -193,13 +193,14 @@ int main(int argc, char *argv[])
   int ascii_flag = FALSE, c=0,r=0,s=0,f=0,c2=0,r2=0,s2=0;
   int InStatTableFlag=0;
   int OutStatTableFlag=0;
+  int UpsampleFlag=0, UpsampleFactor=0;
 
   ErrorInit(NULL, NULL, NULL) ;
   DiagInit(NULL, NULL, NULL) ;
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mri_convert.c,v 1.189 2012/01/15 20:47:14 jonp Exp $",
+   "$Id: mri_convert.c,v 1.190 2012/01/27 18:34:05 greve Exp $",
    "$Name:  $",
    cmdline);
 
@@ -320,7 +321,7 @@ int main(int argc, char *argv[])
     handle_version_option
     (
       argc, argv,
-      "$Id: mri_convert.c,v 1.189 2012/01/15 20:47:14 jonp Exp $",
+      "$Id: mri_convert.c,v 1.190 2012/01/27 18:34:05 greve Exp $",
       "$Name:  $"
     );
   if (nargs && argc - nargs == 1)
@@ -562,6 +563,11 @@ int main(int argc, char *argv[])
       invert_transform_flag = TRUE;
     }
     ///////////////////////////////////////////////////////////
+    else if (strcmp(argv[i], "--upsample") == 0 )
+    {
+      get_ints(argc, argv, &i, &UpsampleFactor, 1);
+      UpsampleFlag = 1;
+    }
     else if(strcmp(argv[i], "-iis") == 0 ||
             strcmp(argv[i], "--in_i_size") == 0)
     {
@@ -1555,7 +1561,7 @@ int main(int argc, char *argv[])
             "= --zero_ge_z_offset option ignored.\n");
   }
 
-  printf("$Id: mri_convert.c,v 1.189 2012/01/15 20:47:14 jonp Exp $\n");
+  printf("$Id: mri_convert.c,v 1.190 2012/01/27 18:34:05 greve Exp $\n");
   printf("reading from %s...\n", in_name_only);
 
   if (in_volume_type == OTL_FILE)
@@ -1739,6 +1745,13 @@ int main(int argc, char *argv[])
       MRIfree(&mri_in_like);
     }
     exit(1);
+  }
+
+  if(UpsampleFlag){
+    printf("UpsampleFactor = %d\n",UpsampleFactor);
+    mritmp = MRIupsampleN(mri, NULL, UpsampleFactor);
+    MRIfree(&mri);
+    mri = mritmp;
   }
 
   if(slice_crop_flag)
