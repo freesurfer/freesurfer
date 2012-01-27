@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2012/01/26 23:16:24 $
- *    $Revision: 1.507 $
+ *    $Date: 2012/01/27 18:25:32 $
+ *    $Revision: 1.508 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -23,7 +23,7 @@
  */
 
 extern const char* Progname;
-const char *MRI_C_VERSION = "$Revision: 1.507 $";
+const char *MRI_C_VERSION = "$Revision: 1.508 $";
 
 
 /*-----------------------------------------------------
@@ -145,6 +145,8 @@ static long mris_alloced = 0 ;
   PxyzCenter = the X, Y, and Z at the center of the volume and does
   exist in the header as mri->c_r, mri->c_a, and mri->c_s,
   respectively.
+
+  Note: coordinates are at the center of the voxel.
 
   Note: to compute the matrix with respect to the first voxel being
   at CRS 1,1,1 instead of 0,0,0, then set base = 1. This is
@@ -7981,14 +7983,15 @@ MRIupsample2(MRI *mri_src, MRI *mri_dst)
   return(MRIupsampleN(mri_src, mri_dst, 2)) ;
 }
 /*-----------------------------------------------------
+  MRI *MRIupsampleN(MRI *mri_src, MRI *mri_dst, int N)
   Upsample volume by integer factor. No error checking, upsample
-  factor must be valid. (Generalization of original routine
-  'MRIupsample2'.)
+  factor must be valid.
   ------------------------------------------------------*/
 MRI *MRIupsampleN(MRI *mri_src, MRI *mri_dst, int N)
 {
   int     width, depth, height, x, y, z, f ;
   double val;
+  MATRIX *Vox2RAS,*CRS0,*RAS0;
 
   width  = N*mri_src->width ;
   height = N*mri_src->height ;
@@ -8000,7 +8003,7 @@ MRI *MRIupsampleN(MRI *mri_src, MRI *mri_dst, int N)
   }
 
   // Recompute geometry for finer resolution
-  // Only the xsize changes
+  // Only the xsize and cras change
   mri_dst->xsize = mri_src->xsize/N;
   mri_dst->ysize = mri_src->ysize/N;
   mri_dst->zsize = mri_src->zsize/N;
@@ -8013,9 +8016,6 @@ MRI *MRIupsampleN(MRI *mri_src, MRI *mri_dst, int N)
   mri_dst->z_r = mri_src->z_r;
   mri_dst->z_a = mri_src->z_a;
   mri_dst->z_s = mri_src->z_s;
-  mri_dst->c_r = mri_src->c_r;
-  mri_dst->c_a = mri_src->c_a;
-  mri_dst->c_s = mri_src->c_s;
   mri_dst->xstart = mri_src->xstart;
   mri_dst->ystart = mri_src->ystart;
   mri_dst->zstart = mri_src->zstart;
@@ -8024,6 +8024,21 @@ MRI *MRIupsampleN(MRI *mri_src, MRI *mri_dst, int N)
   mri_dst->zend = mri_src->zend;
   mri_dst->imnr0 = mri_src->imnr0 ;
   mri_dst->imnr1 = mri_src->imnr0 + mri_dst->depth - 1 ;
+
+  // Computes CRAS based on location of the 1st voxel in upsampled space
+  // The new location is 1/Nth of a voxel from the corner. The RAS of
+  // a voxel is at the center of the voxel (unfortunately)
+  Vox2RAS = MRIxfmCRS2XYZ(mri_src,0); // scanner vox2ras of source mri
+  CRS0 = MatrixZero(4,1,NULL);
+  CRS0->rptr[1][1] = -1.0/N;
+  CRS0->rptr[2][1] = -1.0/N;
+  CRS0->rptr[3][1] = -1.0/N;
+  CRS0->rptr[4][1] =  1.0;
+  RAS0 = MatrixMultiply(Vox2RAS,CRS0,NULL);
+  MRIp0ToCRAS(mri_dst, RAS0->rptr[1][1],RAS0->rptr[2][1],RAS0->rptr[3][1]);
+  MatrixFree(&Vox2RAS);
+  MatrixFree(&CRS0);
+  MatrixFree(&RAS0);
 
   for (z = 0 ; z < depth ; z++) {
     for (y = 0 ; y < height ; y++) {
