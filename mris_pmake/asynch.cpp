@@ -8,9 +8,9 @@
 /*
  * Original Author:  Rudolph Pienaar / Christian Haselgrove
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/02/27 21:18:07 $
- *    $Revision: 1.15 $
+ *    $Author: rudolph $
+ *    $Date: 2012/01/29 22:33:28 $
+ *    $Revision: 1.16 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -447,7 +447,7 @@ asynchEvent_processENV(
         return false;
       Gsout.str("");
       Gsout << "Setting surfaceSulcal to \t\t\t\t\t[ " << str_modifier << " ]" << endl;
-      if (!s_env_surfaceSulcal_set(st_env, str_modifier))
+      if (!s_env_secondarySurface_setCurvature(st_env, str_modifier))
         error_exit("Setting surfaceSulcal", "Some error occurred", 1);
       ULOUT(Gsout.str());
     }
@@ -803,10 +803,10 @@ asynchEvent_processLABEL(
       return false;
     int vertex  = atoi(str_modifier.c_str());
     if (str_object          == "workingSurface") {
-      label_singleVertexSet(st_env.pMS_curvature, vertex,
+      label_singleVertexSet(st_env.pMS_primary, vertex,
                             vertex_ripFlagMark, pv_mark);
-    } else if (str_object   == "auxSurface") {
-      label_singleVertexSet(st_env.pMS_auxSurface, vertex,
+    } else if (str_object   == "secondarySurface") {
+      label_singleVertexSet(st_env.pMS_secondary, vertex,
                             vertex_ripFlagMark, pv_mark);
     } else if (str_object   == "activeSurface") {
       label_singleVertexSet(st_env.pMS_active, vertex,
@@ -825,10 +825,10 @@ asynchEvent_processLABEL(
     if (relDirSpec_test(str_modifier))
       str_fileSpec = st_env.str_workingDir + str_modifier;
     if (str_object          == "workingSurface") {
-      label_coreLoad(st_env.pMS_curvature, str_fileSpec,
+      label_coreLoad(st_env.pMS_primary, str_fileSpec,
                      vertex_ripFlagMark, pv_mark);
-    } else if (str_object   == "auxSurface") {
-      label_coreLoad(st_env.pMS_auxSurface, str_fileSpec,
+    } else if (str_object   == "secondarySurface") {
+      label_coreLoad(st_env.pMS_secondary, str_fileSpec,
                      vertex_ripFlagMark, pv_mark);
     } else if (str_object   == "activeSurface") {
       label_coreLoad(st_env.pMS_active, str_fileSpec,
@@ -844,10 +844,10 @@ asynchEvent_processLABEL(
     if (relDirSpec_test(str_modifier))
       str_fileSpec = st_env.str_workingDir + str_modifier;
     if (str_object          == "workingSurface") {
-      label_coreSave(st_env.pMS_curvature, str_fileSpec,
+      label_coreSave(st_env.pMS_primary, str_fileSpec,
                      vertex_ripFlagIsTrue, pv_void);
-    } else if (str_object   == "auxSurface") {
-      label_coreSave(st_env.pMS_auxSurface, str_fileSpec,
+    } else if (str_object   == "secondarySurface") {
+      label_coreSave(st_env.pMS_secondary, str_fileSpec,
                      vertex_ripFlagIsTrue, pv_void);
     } else if (str_object   == "activeSurface") {
       label_coreSave(st_env.pMS_active, str_fileSpec,
@@ -864,7 +864,7 @@ asynchEvent_processLABEL(
       string  str_fileName   = str_modifier;
       bool b_terminalsFound = false;
       deque<int> que_terminal;
-      b_terminalsFound = label_terminalsFind(st_env.pMS_curvature,
+      b_terminalsFound = label_terminalsFind(st_env.pMS_primary,
                                              str_fileName, que_terminal);
       if (!b_terminalsFound) {
         nULOUT("\t\t\t\t\t[ none found ]\n");

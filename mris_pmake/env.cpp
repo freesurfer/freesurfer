@@ -12,8 +12,8 @@
  * Original Author: Rudolph Pienaar / Christian Haselgrove
  * CVS Revision Info:
  *    $Author: rudolph $
- *    $Date: 2012/01/23 17:24:08 $
- *    $Revision: 1.28 $
+ *    $Date: 2012/01/29 22:33:28 $
+ *    $Revision: 1.29 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -339,9 +339,9 @@ s_env_nullify(
     st_env.plyDepth                 = 0;
 
     st_env.pMS_active               = NULL;
-    st_env.pMS_auxSurface           = NULL;
-    st_env.pMS_curvature            = NULL;
-    st_env.pMS_sulcal               = NULL;
+    st_env.pMS_secondary            = NULL;
+    st_env.pMS_primary              = NULL;
+    st_env.pMS_auxillary            = NULL;
 
     st_env.b_useAbsCurvs            = false;
     st_env.b_surfacesKeepInSync     = false;
@@ -645,10 +645,10 @@ s_env_defaultsSet(
     st_env.startVertex                  = 0;
     st_env.endVertex                    = 0;
 
-    st_env.str_mainSurfaceFileName      = "";
-    st_env.str_auxSurfaceFileName       = "";
-    st_env.str_mainCurvatureFileName    = "";
-    st_env.str_auxCurvatureFileName     = "";
+    st_env.str_primarySurfaceFileName      = "";
+    st_env.str_secondarySurfaceFileName       = "";
+    st_env.str_primaryCurvatureFileName    = "";
+    st_env.str_secondaryCurvatureFileName     = "";
 
     st_env.b_patchFile_save             = false;
     st_env.b_labelFile_save             = true;
@@ -729,16 +729,19 @@ s_env_optionsFile_write(
 
         O->pprintf("\n#\n# auto-generated optionsFile\n#\n\n");
 
-        O->pprintf("\n# Input surfaces and curvature functions\n");
+        O->pprintf("\n# Input surfaces and embedded curvature overlays\n");
         O->pcolprintf("surfaceFile",        " = %s\n",
-                        st_env.str_mainSurfaceFileName.c_str());
-        O->pcolprintf("auxSurfaceFile",     " = %s\n",
-                        st_env.str_auxSurfaceFileName.c_str());
-        O->pcolprintf("curvatureFile",      " = %s\n",
-                        st_env.str_mainCurvatureFileName.c_str());
-        O->pcolprintf("sulcalHeightFile",   " = %s\n",
-                        st_env.str_auxCurvatureFileName.c_str());
-        O->pprintf("\n# Start and End vertices\n\n");
+                        st_env.str_primarySurfaceFileName.c_str());
+        if(st_env.b_secondarySurface)
+            O->pcolprintf("secondarySurfaceFile",     " = %s\n",
+                        st_env.str_secondarySurfaceFileName.c_str());
+        if(st_env.b_primaryCurvature)
+            O->pcolprintf("primaryCurvature",      " = %s\n",
+                        st_env.str_primaryCurvatureFileName.c_str());
+        if(st_env.b_secondaryCurvature)
+            O->pcolprintf("secondaryCurvature",   " = %s\n",
+                        st_env.str_secondaryCurvatureFileName.c_str());
+        O->pprintf("\n# Start and End vertices\n");
         O->pcolprintf("startVertex",        " = %d\n",
                         st_env.startVertex);
         O->pcolprintf("endVertex",          " = %d\n",
@@ -873,17 +876,20 @@ s_env_scan(
   // 29 October 2009
   // o Added 'b_useAbsCurvs'.
   // 
+  // 23 January 2012
+  // o Secondary surface and curvature reads filtered...
+  //
 
   static int    calls                   = 0;
 
-  static MRIS*  pMS_curvature           = NULL;
+  static MRIS*  pMS_primary             = NULL;
   static MRIS*  pMS_auxSurface          = NULL;
-  static MRIS*  pMS_sulcal              = NULL;
+  static MRIS*  pMS_secondary           = NULL;
   string        str_value               = "";
   string        str_surfaceFileName     = "";
   string        str_auxSurfaceFileName  = "";
   string        str_curvatureFileName   = "";
-  string        str_sulcalFileName      = "";
+  string        str_secondaryCurvatureFile      = "";
   string        str_patchFileName       = "";
   string        str_labelFileName       = "";
   string        str_labelFileNameOS     = "";
@@ -916,7 +922,7 @@ s_env_scan(
   static string str_surfaceFileNameOld      = "";
   static string str_auxSurfaceFileNameOld   = "";
   static string str_curvatureFileNameOld    = "";
-  static string str_sulcalFileNameOld       = "";
+  static string str_secondaryCurvatureFileOld       = "";
   static string str_userMsgFileNameOld      = "";
   static string str_sysMsgFileNameOld       = "";
   static string str_resultMsgFileNameOld    = "";
@@ -944,24 +950,21 @@ s_env_scan(
     error_exit("scanning user options",
                "I couldn't find surfaceFile.",
                20);
-  if (cso_options.scanFor("auxSurfaceFile", &str_value))
-    str_auxSurfaceFileName =  str_value;
-  else
-    error_exit("scanning user options",
-               "I couldn't find auxSurfaceFile.",
-               21);
-  if (cso_options.scanFor("curvatureFile", &str_value))
-    str_curvatureFileName =  str_value;
-  else
-    error_exit("scanning user options",
-               "I couldn't find curvatureFile.",
-               22);
-  if (cso_options.scanFor("sulcalHeightFile", &str_value))
-    str_sulcalFileName =  str_value;
-  else
-    error_exit("scanning user options",
-               "I couldn't find sulcalHeightFile.",
-               23);
+  if (cso_options.scanFor("secondarySurfaceFile", &str_value)) {
+    str_auxSurfaceFileName      =  str_value;
+    st_env.b_secondarySurface   = true;
+  } else
+      st_env.b_secondarySurface = false;
+  if (cso_options.scanFor("curvatureFile", &str_value)) {
+      str_curvatureFileName     =  str_value;
+      st_env.b_primaryCurvature = true;
+  } else
+      st_env.b_primaryCurvature = false;
+  if (cso_options.scanFor("secondaryCurvature", &str_value)) {
+    str_secondaryCurvatureFile          =  str_value;
+    st_env.b_secondaryCurvature = true;
+  } else
+    st_env.b_secondaryCurvature = false;
   if (cso_options.scanFor("patchFile", &str_value))
     str_patchFileName =  str_value;
   else
@@ -1120,46 +1123,41 @@ s_env_scan(
   string str_surfaceFileNameAbs;
   string str_auxSurfaceFileNameAbs;
   string str_curvatureFileNameAbs;
-  string str_sulcalFileNameAbs;
+  string str_secondaryCurvatureFileAbs;
 
   if (str_surfaceFileName  != str_surfaceFileNameOld) {
     str_rel2absDirSpec_change(str_surfaceFileName, str_surfaceFileNameAbs);
     str_rel2absDirSpec_change(str_auxSurfaceFileName, str_auxSurfaceFileNameAbs);
     //cout << "-->" << str_surfaceFileNameAbs << endl;
     //cout << "-->" << str_auxSurfaceFileNameAbs << endl;
-    ULOUT("Reading surface for primary curvature...");
-    pMS_curvature  = MRISread( (char*)str_surfaceFileNameAbs.c_str());
-    if(!pMS_curvature) {
+    ULOUT("Reading primary surface mesh...");
+    pMS_primary  = MRISread( (char*)str_surfaceFileNameAbs.c_str());
+    if(!pMS_primary) {
         nULOUT("\t\t\t[ failure ]\n");
         error_exit("reading the primary surface,",
                 "I couldn't access the file. Does it exist? Are permissions OK?",
                  30);
     }
     nULOUT("\t\t\t[ ok ]\n");
-    ULOUT("Reading surface for primary sulcal...");
-    pMS_sulcal   = MRISread( (char*)str_surfaceFileNameAbs.c_str());
-    if(!pMS_sulcal) {
-        nULOUT("\t\t\t[ failure ]\n");
-        error_exit("reading the secondary surface,",
-                "I couldn't access the file. Does it exist? Are permissions OK?",
-                 30);
+    if(st_env.b_secondarySurface) {
+        ULOUT("Reading secondary surface mesh...");
+        pMS_secondary   = MRISread( (char*)str_surfaceFileNameAbs.c_str());
+        if(!pMS_secondary) {
+            nULOUT("\t\t\t[ failure ]\n");
+            error_exit("reading the secondary surface,",
+                    "I couldn't access the file. Does it exist? Are permissions OK?",
+                     30);
+        }
+        nULOUT("\t\t\t\t[ ok ]\n");
     }
-    nULOUT("\t\t\t\t[ ok ]\n");
-    ULOUT("Reading surface for auxillary curvature...");
-    pMS_auxSurface  = MRISread( (char*)str_auxSurfaceFileNameAbs.c_str());
-    if(!pMS_auxSurface) {
-        nULOUT("\t\t\t[ failure ]\n");
-        error_exit("reading the auxillary surface,",
-                "I couldn't access the file. Does it exist? Are permissions OK?",
-                 30);
-    }
-    nULOUT("\t\t\t[ ok ]\n");
   }
-  if (str_curvatureFileName  != str_curvatureFileNameOld) {
-    str_rel2absDirSpec_change(str_curvatureFileName, str_curvatureFileNameAbs);
+  if (str_curvatureFileName  != str_curvatureFileNameOld &&
+          st_env.b_primaryCurvature) {
+    str_rel2absDirSpec_change(str_curvatureFileName,
+            str_curvatureFileNameAbs);
     //cout << "-->" << str_curvatureFileNameAbs << endl;
     ULOUT("Mapping curvature texture on primary surface...");
-    if(MRISreadCurvature(pMS_curvature,
+    if(MRISreadCurvature(pMS_primary,
         (char*)str_curvatureFileNameAbs.c_str()) != NO_ERROR) {
         nULOUT("\t\t\t[ failure ]\n");
         error_exit("reading the primary curvature file,",
@@ -1167,16 +1165,15 @@ s_env_scan(
                  30);
     }
     nULOUT("\t\t\t[ ok ]\n");
-    ULOUT("Mapping curvature texture on auxillary surface...");
-    MRISreadCurvature(pMS_auxSurface,  (char*)str_curvatureFileNameAbs.c_str());
-    nULOUT("\t\t[ ok ]\n");
   }
-  if (str_sulcalFileName  != str_sulcalFileNameOld) {
-    str_rel2absDirSpec_change(str_sulcalFileName, str_sulcalFileNameAbs);
-    //cout << "-->" << str_sulcalFileNameAbs << endl;
-    ULOUT("Mapping sulcal texture on primary surface...");
-    if(MRISreadCurvature(pMS_sulcal,
-        (char*)str_sulcalFileNameAbs.c_str()) != NO_ERROR) {
+  if (str_secondaryCurvatureFile  != str_secondaryCurvatureFileOld &&
+          st_env.b_secondaryCurvature) {
+    str_rel2absDirSpec_change(str_secondaryCurvatureFile,
+            str_secondaryCurvatureFileAbs);
+    //cout << "-->" << str_secondaryCurvatureFileAbs << endl;
+    ULOUT("Mapping secondary texture on secondary surface...");
+    if(MRISreadCurvature(pMS_secondary,
+        (char*)str_secondaryCurvatureFileAbs.c_str()) != NO_ERROR) {
         nULOUT("\t\t\t[ failure ]\n");
         error_exit("reading the secondary curvature file,",
                 "I couldn't access the file. Does it exist? Are permissions OK?",
@@ -1200,14 +1197,12 @@ s_env_scan(
     st_env.b_costPathSave               = b_costPathSave;
 
     //    if(!calls) {
-    st_env.pMS_active                   = pMS_curvature;
-    st_env.pMS_auxSurface               = pMS_auxSurface;
-    st_env.pMS_sulcal                   = pMS_sulcal;
-    st_env.pMS_curvature                = pMS_curvature;
+    st_env.pMS_primary                  = pMS_primary;
+    st_env.pMS_active                   = pMS_primary;
 
     str_surfaceFileNameOld              = str_surfaceFileName;
     str_curvatureFileNameOld            = str_curvatureFileName;
-    str_sulcalFileNameOld               = str_sulcalFileName;
+    str_secondaryCurvatureFileOld       = str_secondaryCurvatureFile;
     str_userMsgFileNameOld              = str_userMsgFileName;
     str_sysMsgFileNameOld               = str_sysMsgFileName;
     //    }
@@ -1226,7 +1221,7 @@ s_env_scan(
     
     if(    !st_env.str_hemi.length()
         || !st_env.str_subject.length()
-        || !st_env.str_mainSurfaceFileName.length()) {
+        || !st_env.str_primarySurfaceFileName.length()) {
         // Parse the surface text to extract the hemisphere 
         //+ and subject name
         vector<string>                  v_dir;
@@ -1273,17 +1268,13 @@ s_env_surfaceFile_set(
   // o Initial design and coding.
   //
 
-  if (st_env.pMS_curvature) {
-    MRISfree(&st_env.pMS_curvature);
-    MRISfree(&st_env.pMS_sulcal);
+  if (st_env.pMS_primary) {
+    MRISfree(&st_env.pMS_primary);
   }
-  ULOUT("Reading surface for primary curvature...");
-  st_env.pMS_curvature  = MRISread( (char*)astr_fileName.c_str());
+  ULOUT("Reading primary surface...");
+  st_env.pMS_primary  = MRISread( (char*)astr_fileName.c_str());
   nULOUT("\t\t\t[ ok ]\n");
-  ULOUT("Reading surface for primary sulcal...");
-  st_env.pMS_sulcal  = MRISread( (char*)astr_fileName.c_str());
-  nULOUT("\t\t\t\t[ ok ]\n");
-  st_env.pMS_active   = st_env.pMS_curvature;
+  st_env.pMS_active   = st_env.pMS_primary;
 
   return true;
 }
@@ -1307,11 +1298,11 @@ s_env_surfaceCurvature_set(
   // o Initial design and coding.
   //
 
-  if (!st_env.pMS_curvature)
+  if (!st_env.pMS_primary)
     return false;
 
   ULOUT("Mapping curvature texture on primary surface...");
-  MRISreadCurvature(st_env.pMS_curvature,
+  MRISreadCurvature(st_env.pMS_primary,
                     (char*)astr_fileName.c_str());
   nULOUT("\t\t\t[ ok ]\n");
 
@@ -1319,7 +1310,7 @@ s_env_surfaceCurvature_set(
 }
 
 bool
-s_env_surfaceSulcal_set(
+s_env_secondarySurface_setCurvature(
   s_env&   st_env,
   string   astr_fileName
 ) {
@@ -1337,11 +1328,11 @@ s_env_surfaceSulcal_set(
   // o Initial design and coding.
   //
 
-  if (!st_env.pMS_sulcal)
+  if (!st_env.pMS_secondary)
     return false;
 
-  ULOUT("Mapping sulcal texture on primary surface...");
-  MRISreadCurvature(st_env.pMS_sulcal,
+  ULOUT("Mapping curvature texture on secondary surface...");
+  MRISreadCurvature(st_env.pMS_secondary,
                     (char*)astr_fileName.c_str());
   nULOUT("\t\t\t[ ok ]\n");
 
@@ -1367,11 +1358,11 @@ s_env_auxSurfaceCurvature_set(
   // o Initial design and coding.
   //
 
-  if (!st_env.pMS_auxSurface)
+  if (!st_env.pMS_secondary)
     return false;
 
   ULOUT("Mapping curvature texture on auxillary surface...");
-  MRISreadCurvature(st_env.pMS_auxSurface,
+  MRISreadCurvature(st_env.pMS_secondary,
                     (char*)astr_fileName.c_str());
   nULOUT("\t\t\t[ ok ]\n");
 
@@ -1399,10 +1390,10 @@ s_env_auxSurfaceFile_set(
   // o Initial design and coding.
   //
 
-  if (st_env.pMS_auxSurface)
-    MRISfree(&st_env.pMS_auxSurface);
+  if (st_env.pMS_secondary)
+    MRISfree(&st_env.pMS_secondary);
   ULOUT("Reading surface for auxillary curvature...");
-  st_env.pMS_auxSurface = MRISread( (char*)astr_fileName.c_str());
+  st_env.pMS_secondary = MRISread( (char*)astr_fileName.c_str());
   nULOUT("\t\t\t[ ok ]\n");
 
   return true;
@@ -1503,19 +1494,19 @@ s_env_activeSurfaceSetIndex(
 ) {
   switch (aindex) {
   case 0:
-    apst_env->pMS_active = apst_env->pMS_curvature;
+    apst_env->pMS_active = apst_env->pMS_primary;
     apst_env->esf_active = e_workingCurvature;
     break;
   case 1:
-    apst_env->pMS_active = apst_env->pMS_sulcal;
+    apst_env->pMS_active = apst_env->pMS_auxillary;
     apst_env->esf_active = e_workingSulcal;
     break;
   case 2:
-    apst_env->pMS_active = apst_env->pMS_auxSurface;
+    apst_env->pMS_active = apst_env->pMS_secondary;
     apst_env->esf_active = e_auxillary;
     break;
   default:
-    apst_env->pMS_active = apst_env->pMS_curvature;
+    apst_env->pMS_active = apst_env->pMS_primary;
     apst_env->esf_active = e_workingCurvature;
     break;
   }
@@ -1555,7 +1546,7 @@ s_env_mpmProgSetIndex(
             string      str_vertexStart = "0";
 	    string	str_vertexEnd	= "0";
             int         vertexStart     = 0;
-	    int		vertexEnd	= apst_env->pMS_curvature->nvertices;
+	    int		vertexEnd	= apst_env->pMS_primary->nvertices;
             C_mpmProg_pathFind* pC_pathFind	= NULL;
             pC_pathFind_cast(apst_env->pCmpmProg, pC_pathFind);
             if(cso_mpm.scanFor("vertexStart", &str_vertexStart)) {
@@ -1663,7 +1654,7 @@ s_env_mpmOverlaySetIndex(
             C_scanopt                   cso_mpm(apst_env->str_mpmOverlayArgs, 
                                                 ",",
                                                 e_EquLink, "", ":");
-            if(!cso_mpm.scanFor("curvatureFile", &str_curvatureFile)) {
+            if(!cso_mpm.scanFor("primaryCurvature", &str_curvatureFile)) {
                 error_exit ("checking for curvature file to read",
                             "it seems no file was specified",
                             10);
@@ -1820,7 +1811,7 @@ costFunc_defaultDetermine(
     VERTEX*       v_n;
     float         dist, ave_curv, curv, max_height, max_curv, cost;
     s_weights*    pSTw = st_env.pSTw;
-    MRIS*         surf = st_env.pMS_curvature;
+    MRIS*         surf = st_env.pMS_primary;
 
     v_c = &surf->vertices[vno_c];
     if (b_relNextReference) {
@@ -1851,9 +1842,9 @@ costFunc_defaultDetermine(
     static int    calls = 0;
 
     if (!calls) {
-        V3_e.f_x = st_env.pMS_curvature->vertices[st_env.endVertex].x;
-        V3_e.f_y = st_env.pMS_curvature->vertices[st_env.endVertex].y;
-        V3_e.f_z = st_env.pMS_curvature->vertices[st_env.endVertex].z;
+        V3_e.f_x = st_env.pMS_primary->vertices[st_env.endVertex].x;
+        V3_e.f_y = st_env.pMS_primary->vertices[st_env.endVertex].y;
+        V3_e.f_z = st_env.pMS_primary->vertices[st_env.endVertex].z;
     }
     calls++;
 
@@ -1895,7 +1886,7 @@ costFunc_defaultDetermine(
     pst_iterInfo->iter           = calls;
     pst_iterInfo->f_distance     = dist;
     pst_iterInfo->f_curvature    = ave_curv;
-    pst_iterInfo->f_sulcalHeight = st_env.pMS_sulcal->vertices[vno_c].curv;
+    pst_iterInfo->f_sulcalHeight = st_env.pMS_secondary->vertices[vno_c].curv;
     pst_iterInfo->f_dir          = f_dir;
 
     // Initial testing revealed that 'wdch' was particularly sensitive to *=10,
@@ -1915,13 +1906,13 @@ costFunc_defaultDetermine(
         wdch    *= st_env.pSTDw->Dwdch;
     }
 
-    max_height  = (st_env.pMS_sulcal->max_curv);
-    max_curv    = (st_env.pMS_curvature->max_curv);
+    max_height  = (st_env.pMS_secondary->max_curv);
+    max_curv    = (st_env.pMS_primary->max_curv);
     if(st_env.b_useAbsCurvs) {
         f_height        = fabs(f_height);
         curv            = fabs(ave_curv);
     } else {
-        f_height        = max_height - st_env.pMS_sulcal->vertices[vno_c].curv;
+        f_height        = max_height - st_env.pMS_secondary->vertices[vno_c].curv;
         curv            = max_curv   - ave_curv;
     }
     // cost   = dist + 20.0 * dist * curv;
@@ -1987,7 +1978,7 @@ costFunc_distanceReturn(
     s_weights*  	pSTw        = st_env.pSTw;
     float       	wd          = pSTw->wd;
     VERTEX*     	v_c         = NULL;
-    MRIS*    		surf        = st_env.pMS_curvature;
+    MRIS*    		surf        = st_env.pMS_primary;
     const char*       	pch_proc    = "costFunc_distanceReturn(...)";
     char        	pch_txt[65536];
     static bool 	b_warned    = false;
@@ -2046,7 +2037,7 @@ costFunc_EuclideanReturn(
 
     VERTEX*     v_c         = NULL;
     VERTEX*     v_n         = NULL;
-    MRIS*       surf        = st_env.pMS_curvature;
+    MRIS*       surf        = st_env.pMS_primary;
     static int  calls       = 0;
     const char*       pch_proc    = "costFunc_EuclideanReturn(...)";
     char        pch_txt[65536];

@@ -8,9 +8,9 @@
 /*
  * Original Author: Rudolph Pienaar / Christian Haselgrove
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/02/27 21:18:07 $
- *    $Revision: 1.4 $
+ *    $Author: rudolph $
+ *    $Date: 2012/01/29 22:33:28 $
+ *    $Revision: 1.5 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -231,15 +231,15 @@ label_workingSurface_loadFrom(
     //
 
     string      str_labelFileName;
-    MRIS*       pMS_curvature;
+    MRIS*       pMS_primary;
 
     bool        b_clearWholeSurface = true;
     surface_ripClear(st_env, b_clearWholeSurface);
 
     str_labelFileName   = st_env.str_workingDir + st_env.str_labelFileName;
-    pMS_curvature       = st_env.pMS_curvature;
+    pMS_primary         = st_env.pMS_primary;
     ULOUT(str_labelFileName);
-    label_coreLoad(pMS_curvature, str_labelFileName, vertex_labelMark, apv_marker);
+    label_coreLoad(pMS_primary, str_labelFileName, vertex_labelMark, apv_marker);
     nULOUT("\t\t\t\t[ ok ]");
 }
 
@@ -344,7 +344,7 @@ label_ply_save(
 }
 
 void
-label_auxSurface_saveTo(
+label_secondarySurface_saveTo(
     s_env&      st_env,
     bool        (*vertex_satisfyTestCondition)
     (VERTEX*    pvertex,
@@ -366,11 +366,11 @@ label_auxSurface_saveTo(
     //
 
     string        str_labelFileName;
-    MRIS*         pMS_auxSurface;
+    MRIS*         pMS_secondarySurface;
 
     str_labelFileName   = st_env.str_workingDir + st_env.str_labelFileNameOS;
-    pMS_auxSurface      = st_env.pMS_auxSurface;
-    label_coreSave(pMS_auxSurface, str_labelFileName,
+    pMS_secondarySurface= st_env.pMS_secondary;
+    label_coreSave(pMS_secondarySurface, str_labelFileName,
                  vertex_satisfyTestCondition, apv_fromCaller);
 }
 
@@ -397,11 +397,11 @@ label_workingSurface_saveTo(
     //
 
     string      str_labelFileName;
-    MRIS*       pMS_curvature;
+    MRIS*       pMS_primary;
 
     str_labelFileName   = st_env.str_workingDir + st_env.str_labelFileName;
-    pMS_curvature       = st_env.pMS_curvature;
-    label_coreSave(pMS_curvature, str_labelFileName,
+    pMS_primary         = st_env.pMS_primary;
+    label_coreSave(pMS_primary, str_labelFileName,
                  vertex_satisfyTestCondition, apv_fromCaller);
 }
 

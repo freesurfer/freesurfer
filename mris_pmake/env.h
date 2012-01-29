@@ -12,8 +12,8 @@
  * Original Author: Rudolph Pienaar / Christian Haselgrove
  * CVS Revision Info:
  *    $Author: rudolph $
- *    $Date: 2012/01/23 17:24:08 $
- *    $Revision: 1.18 $
+ *    $Date: 2012/01/29 22:33:28 $
+ *    $Revision: 1.19 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -267,13 +267,19 @@ typedef struct _env {
                                             // process
     string        str_subject;
     string        str_hemi;
-    string        str_mainSurfaceFileName;
-    string        str_auxSurfaceFileName;
-    string        str_mainCurvatureFileName;
-    string        str_auxCurvatureFileName;
-    MRIS*         pMS_curvature;            // (inflated) curvature surface
-    MRIS*         pMS_sulcal;               // (inflated) sulcal height surface
-    MRIS*         pMS_auxSurface;           // auxillary (optional) surface
+
+    MRIS*         pMS_primary;              // primary surface
+    string        str_primarySurfaceFileName;
+    string        str_primaryCurvatureFileName;
+    bool          b_primaryCurvature;
+
+    MRIS*         pMS_secondary;            // secondary (optional) surface
+    string        str_secondarySurfaceFileName;
+    bool          b_secondarySurface;
+    string        str_secondaryCurvatureFileName;
+    bool          b_secondaryCurvature;
+
+    MRIS*         pMS_auxillary;            // auxillary surface
 
     bool          b_surfacesKeepInSync;     // flag: behavioural /
                                             //+ conditional. Evaluate
@@ -421,7 +427,7 @@ bool s_env_surfaceCurvature_set(
     string      astr_fileName
 );
 
-bool s_env_surfaceSulcal_set(
+bool s_env_secondarySurface_setCurvature(
     s_env&      st_env,
     string      astr_fileName
 );

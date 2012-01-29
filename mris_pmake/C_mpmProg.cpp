@@ -13,8 +13,8 @@
  * Original Author: Rudolph Pienaar
  * CVS Revision Info:
  *    $Author: rudolph $
- *    $Date: 2012/01/23 17:24:08 $
- *    $Revision: 1.17 $
+ *    $Date: 2012/01/29 22:33:28 $
+ *    $Revision: 1.18 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -300,7 +300,7 @@ C_mpmProg_pathFind::C_mpmProg_pathFind(
     mb_surfaceRipClear          = false;
 
     s_env_activeSurfaceSetIndex(mps_env, 0);
-    mvertex_total		= mps_env->pMS_curvature->nvertices;
+    mvertex_total		= mps_env->pMS_primary->nvertices;
 
     if(	amvertex_start >= mvertex_total	||
         amvertex_start < 0 )
@@ -410,7 +410,7 @@ C_mpmProg_pathFind::run() {
     if (mps_env->b_patchFile_save) {
         str_patchFQName =  mps_env->str_workingDir +
         		   mps_env->str_patchFileName;
-        if (MRISwritePatch(mps_env->pMS_curvature,
+        if (MRISwritePatch(mps_env->pMS_primary,
                                (char*) str_patchFQName.c_str()) != NO_ERROR)
         	exit(1);
 	pULOUT(colsprintf(mps_env->lw, mps_env->rw, pch_buffer, 
@@ -422,8 +422,8 @@ C_mpmProg_pathFind::run() {
         void* pv_void = NULL;
         label_workingSurface_saveTo(*mps_env, vertex_ripFlagIsTrue, pv_void);
         if (mps_env->b_surfacesKeepInSync) {
-            surface_workingToAux_ripTrueCopy(*mps_env);
-            label_auxSurface_saveTo(*mps_env, vertex_ripFlagIsTrue, pv_void);
+            surface_primaryToSecondary_ripTrueCopy(*mps_env);
+            label_secondarySurface_saveTo(*mps_env, vertex_ripFlagIsTrue, pv_void);
         }
 	pULOUT(colsprintf(mps_env->lw, mps_env->rw, pch_buffer, 
         	"Labeling and saving all target vertices...", " [ ok ]\n"));
@@ -492,7 +492,7 @@ C_mpmProg_autodijk::C_mpmProg_autodijk(
     s_env_activeSurfaceSetIndex(mps_env, 0);
     mstr_costFileName   = mps_env->str_costCurvFile;
     mstr_costFullPath   = mps_env->str_workingDir + "/" + mstr_costFileName;
-    mvertex_end         = mps_env->pMS_curvature->nvertices;
+    mvertex_end         = mps_env->pMS_primary->nvertices;
     mvertex_total       = mvertex_end;
     mpf_cost            = new float[mvertex_total];
     mpf_persistent      = new float[mvertex_total];
@@ -555,7 +555,7 @@ C_mpmProg_autodijk::CURV_fileWrite()
     return(e_WRITEACCESSERROR);
   fwrite3(NEW_VERSION_MAGIC_NUMBER, FP_curv);
   fwriteInt(mvertex_total, FP_curv);
-  fwriteInt(mps_env->pMS_curvature->nfaces, FP_curv);
+  fwriteInt(mps_env->pMS_primary->nfaces, FP_curv);
   fwriteInt((int)1, FP_curv);
   sprintf(pch_readMessage, "Writing %s", mstr_costFileName.c_str());
   for(i=0; i<mvertex_total; i++) {
@@ -664,7 +664,10 @@ C_mpmProg_autodijk::run() {
     e_MPMOVERLAY        e_overlay       = mps_env->empmOverlay_current;
 
     debug_push("run");
-        
+
+    estats.f_max        = 0.0;
+    estats.indexMax     = -1;
+
     mps_env->pcsm_stdout->colprintf("mpmProg (ID)", "[ %s (%d) ]\n",
                             mps_env->vstr_mpmProgName[e_prog].c_str(),
                             mps_env->empmProg_current);

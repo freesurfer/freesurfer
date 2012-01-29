@@ -8,9 +8,9 @@
 /*
  * Original Author: Rudolph Pienaar / Christian Haselgrove
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/02/27 21:18:07 $
- *    $Revision: 1.4 $
+ *    $Author: rudolph $
+ *    $Date: 2012/01/29 22:33:28 $
+ *    $Revision: 1.5 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -156,7 +156,7 @@ surface_averageIntegratedCurveArea_do(
 /// \param  st_env  the problem environment
 /// \return (void)
 void
-surface_workingToAux_ripTrueCopy(
+surface_primaryToSecondary_ripTrueCopy(
   s_env&  st_env
 );
 

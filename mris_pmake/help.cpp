@@ -7,8 +7,8 @@
  * Original Author: Rudolph Pienaar / Christian Haselgrove
  * CVS Revision Info:
  *    $Author: rudolph $
- *    $Date: 2012/01/23 17:24:08 $
- *    $Revision: 1.16 $
+ *    $Date: 2012/01/29 22:33:28 $
+ *    $Revision: 1.17 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -198,6 +198,11 @@ commandLineOptions_process(
   string      str_mainCurvatureFileName       = "smoothwm.H.crv";
   string      str_auxCurvatureFileName        = "sulc";
 
+  st_env.b_primaryCurvature                   = false;
+  st_env.b_secondarySurface                   = false;
+  st_env.b_secondaryCurvature                 = false;
+
+
   if( (pch_subjectsDir = getenv("SUBJECTS_DIR")) == NULL)
     error_exit("processing environment,",
                "it seems that the SUBJECTS_DIR env variable is not set.", 10);
@@ -252,14 +257,17 @@ commandLineOptions_process(
     case 't':
       str_auxSurfaceFileName          = optarg;
       b_optionsFileUse                = false;
+      st_env.b_secondarySurface       = true;
       break;
     case 'c':
       str_mainCurvatureFileName       = optarg;
       b_optionsFileUse                = false;
+      st_env.b_primaryCurvature       = true;
       break;
     case 'd':
       str_auxCurvatureFileName        = optarg;
       b_optionsFileUse                = false;
+      st_env.b_secondaryCurvature     = true;
       break;
     case 'm':
       str_mpmProg                     = optarg;
@@ -290,10 +298,14 @@ commandLineOptions_process(
   {
     s_env_defaultsSet(st_env);
     st_env.b_useAbsCurvs                = b_useAbsCurvs;
-    st_env.str_mainSurfaceFileName      = str_p+str_hemi+"."+str_mainSurfaceFileName;
-    st_env.str_auxSurfaceFileName       = str_p+str_hemi+"."+str_auxSurfaceFileName;
-    st_env.str_mainCurvatureFileName    = str_p+str_hemi+"."+str_mainCurvatureFileName;
-    st_env.str_auxCurvatureFileName     = str_p+str_hemi+"."+str_auxCurvatureFileName;
+    st_env.str_primarySurfaceFileName   = str_p + str_hemi + "." +
+            str_mainSurfaceFileName;
+    st_env.str_secondarySurfaceFileName = str_p + str_hemi + "." +
+            str_auxSurfaceFileName;
+    st_env.str_primaryCurvatureFileName = str_p + str_hemi + "." +
+            str_mainCurvatureFileName;
+    st_env.str_secondaryCurvatureFileName = str_p+str_hemi + "." +
+            str_auxCurvatureFileName;
     if(!mpmProg_check (st_env, str_mpmProg))
     {
       s_env_mpmPrint(st_env,

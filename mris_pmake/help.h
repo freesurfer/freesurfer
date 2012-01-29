@@ -7,8 +7,8 @@
  * Original Author: Rudolph Pienaar / Christian Haselgrove
  * CVS Revision Info:
  *    $Author: rudolph $
- *    $Date: 2012/01/23 17:24:08 $
- *    $Revision: 1.7 $
+ *    $Date: 2012/01/29 22:33:28 $
+ *    $Revision: 1.8 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -44,7 +44,7 @@ extern  "C" {
 #ifdef __cplusplus
 }
 #endif
-
+#include <unistd.h>
 #include <string>
 using namespace std;
 
@@ -56,9 +56,9 @@ static struct option const longopts[] = {
     {"version",         no_argument,            NULL, 'v'},
     {"subject",         required_argument,      NULL, 'S'},
     {"hemi",            required_argument,      NULL, 'h'},
-    {"surface0",        required_argument,      NULL, 's'},
+    {"surface",         required_argument,      NULL, 's'},
     {"surface1",        required_argument,      NULL, 't'},
-    {"curv0",           required_argument,      NULL, 'c'},
+    {"curv",            required_argument,      NULL, 'c'},
     {"curv1",           required_argument,      NULL, 'd'},
     {"mpmProg",         required_argument,      NULL, 'm'},
     {"mpmArgs",         required_argument,      NULL, 'M'},

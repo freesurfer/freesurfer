@@ -8,9 +8,9 @@
 /*
  * Original Author: Rudolph Pienaar / Christian Haselgrove
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/02/27 21:18:07 $
- *    $Revision: 1.2 $
+ *    $Author: rudolph $
+ *    $Date: 2012/01/29 22:33:28 $
+ *    $Revision: 1.3 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -196,7 +196,7 @@ label_ply_save(
 ///      (*vertex_satisfyTestCondition)()
 /// \return    (void)
 void
-label_auxSurface_saveTo(
+label_secondarySurface_saveTo(
   s_env&   st_env,
   bool   (*vertex_satisfyTestCondition)
   (VERTEX* pvertex,

@@ -7,9 +7,9 @@
 /*
  * Original Author: Rudolph Pienaar / Christian Haselgrove
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/02/27 21:18:07 $
- *    $Revision: 1.8 $
+ *    $Author: rudolph $
+ *    $Date: 2012/01/29 22:33:28 $
+ *    $Revision: 1.9 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -189,7 +189,7 @@ int dijkstra(
   // condition, otherwise the while() will terminate after one loop.
   while ( vno_c!=vno_f || !totalLoops) {
     totalLoops++;
-    if(totalLoops >= st_env.pMS_curvature->nvertices-1) {
+    if(totalLoops >= st_env.pMS_primary->nvertices-1) {
       // If this condition is true, we have processed all available vertices
       // in the mesh -- typically only occurs if the startVertex == endVertex
       // and is used for 'autodijk' type calculations.

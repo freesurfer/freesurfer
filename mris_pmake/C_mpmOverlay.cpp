@@ -16,8 +16,8 @@
  * Original Author: Rudolph Pienaar
  * CVS Revision Info:
  *    $Author: rudolph $
- *    $Date: 2012/01/23 17:24:08 $
- *    $Revision: 1.4 $
+ *    $Date: 2012/01/29 22:33:28 $
+ *    $Revision: 1.5 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -570,7 +570,7 @@ C_mpmOverlay_FScurvs::C_mpmOverlay_FScurvs(
     }
 
     // Size of overlay arrays
-    mv_size	= aps_env->pMS_curvature->nvertices;
+    mv_size	= aps_env->pMS_primary->nvertices;
     mb_created	= true;
 
     debug_pop();
@@ -784,7 +784,7 @@ C_mpmOverlay_curvature::C_mpmOverlay_curvature(
     }
 
     // Size of overlay arrays
-    mv_size     = aps_env->pMS_curvature->nvertices;
+    mv_size     = aps_env->pMS_primary->nvertices;
     mb_created  = true;
 
     CURV_fileRead(astr_curvFileStem, &mpf_curvatureData, &size);
