@@ -10,8 +10,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2012/01/30 16:40:16 $
- *    $Revision: 1.6 $
+ *    $Date: 2012/01/30 16:50:25 $
+ *    $Revision: 1.7 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -80,7 +80,7 @@ main(int argc, char *argv[]) {
   float       intensity, betplaneres, inplaneres ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_compute_volume_fractions.c,v 1.6 2012/01/30 16:40:16 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_compute_volume_fractions.c,v 1.7 2012/01/30 16:50:25 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -93,8 +93,6 @@ main(int argc, char *argv[]) {
     argc -= nargs ;
     argv += nargs ;
   }
-  printf("arg = %d\n", argc) ;
-
   if (argc < 4)
     usage_exit(1) ;
   if (!strlen(sdir)) {
