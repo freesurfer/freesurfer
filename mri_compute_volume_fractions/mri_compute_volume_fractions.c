@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:14 $
- *    $Revision: 1.4 $
+ *    $Author: fischl $
+ *    $Date: 2012/01/30 16:39:01 $
+ *    $Revision: 1.5 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -55,29 +55,30 @@ static int get_option(int argc, char *argv[]) ;
 char *Progname ;
 static void usage_exit(int code) ;
 
-static int gm_val = GM_VAL ;
-static int cortex_only = 0 ;
+static char *subject = NULL ;
 static char sdir[STRLEN] = "" ;
 static double resolution = .5 ;
 MRI *add_aseg_structures_outside_ribbon(MRI *mri_src, MRI *mri_aseg, MRI *mri_dst,
                                        int wm_val, int gm_val, int csf_val) ;
 int MRIcomputePartialVolumeFractions(MRI *mri_src, MATRIX *m_vox2vox, 
-                                     MRI *mri_seg, MRI *mri_wm, MRI *mri_gm, MRI *mri_csf,
-                                     int wm_val, int gm_val, int csf_val) ;
+                                     MRI *mri_seg, MRI *mri_wm, MRI *mri_subcort_gm, MRI *mri_cortex, 
+				     MRI *mri_csf,
+                                     int wm_val, int subcort_gm_val, int cortex_val, int csf_val) ;
 int
 main(int argc, char *argv[]) {
   char   **av, fname[STRLEN] ;
   int    ac, nargs ;
-  char   *subject, *reg_fname, *in_fname, *out_stem, *cp ;
+  char   *reg_fname, *in_fname, *out_stem, *cp ;
   int    msec, minutes, seconds, nvox, float2int ;
   struct timeb start ;
   MRI_SURFACE *mris_lh_white, *mris_rh_white, *mris_lh_pial, *mris_rh_pial ;
-  MRI         *mri_aseg, *mri_seg, *mri_pial, *mri_tmp, *mri_ribbon, *mri_in, *mri_gm, *mri_wm, *mri_csf ;
+  MRI         *mri_aseg, *mri_seg, *mri_pial, *mri_tmp, *mri_ribbon, *mri_in, *mri_cortex, 
+    *mri_subcort_gm, *mri_wm, *mri_csf ;
   MATRIX      *m_regdat ;
   float       intensity, betplaneres, inplaneres ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_compute_volume_fractions.c,v 1.4 2011/03/02 00:04:14 nicks Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_compute_volume_fractions.c,v 1.5 2012/01/30 16:39:01 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -108,15 +109,30 @@ main(int argc, char *argv[]) {
 
   TimerStart(&start) ;
 
-  printf("reading registration file %s\n", reg_fname) ;
-  regio_read_register(reg_fname, &subject, &inplaneres,
+  if (stricmp(reg_fname, "identity.nofile") == 0)
+  {
+    printf("using identity transform\n") ;
+    m_regdat = NULL ;
+    inplaneres = betplaneres = intensity = 1 ;
+    float2int = 0 ;
+    if (subject == NULL)
+      subject = "unknown" ;
+  }
+  else
+  {
+    char *saved_subject = subject ;
+    printf("reading registration file %s\n", reg_fname) ;
+    regio_read_register(reg_fname, &subject, &inplaneres,
                         &betplaneres, &intensity,  &m_regdat,
                         &float2int);
-
-  m_regdat = regio_read_registermat(reg_fname) ;
-  if (m_regdat == NULL)
-    ErrorExit(ERROR_NOFILE, "%s: could not load registration file from %s", Progname,reg_fname) ;
-
+    
+    if (saved_subject)  // specified on cmdline
+      subject = saved_subject ;
+    m_regdat = regio_read_registermat(reg_fname) ;
+    if (m_regdat == NULL)
+      ErrorExit(ERROR_NOFILE, "%s: could not load registration file from %s", Progname,reg_fname) ;
+  }
+    
   sprintf(fname, "%s/%s/surf/lh.white", sdir, subject) ;
   printf("reading surface %s\n", fname) ;
   mris_lh_white = MRISread(fname) ;
@@ -174,19 +190,15 @@ main(int argc, char *argv[]) {
   MRIcopyLabel(mri_tmp, mri_pial, 1) ;
   MRIclear(mri_tmp) ;
   printf("filling interior of lh white matter surface...\n") ;
-  if (cortex_only)
-    gm_val = WM_VAL ;
   MRISfillWhiteMatterInterior(mris_lh_white, mri_aseg, mri_seg, resolution,
-                              WM_VAL, gm_val, CSF_VAL);
+                              WM_VAL, SUBCORT_GM_VAL, CSF_VAL);
   printf("filling interior of rh white matter surface...\n") ;
   MRISfillWhiteMatterInterior(mris_rh_white, mri_aseg, mri_tmp, resolution,
-                              WM_VAL, gm_val, CSF_VAL);
+                              WM_VAL, SUBCORT_GM_VAL, CSF_VAL);
   MRIcopyLabel(mri_tmp, mri_seg, WM_VAL) ;
-  MRIcopyLabel(mri_tmp, mri_seg, gm_val) ;
+  MRIcopyLabel(mri_tmp, mri_seg, SUBCORT_GM_VAL) ;
   MRIcopyLabel(mri_tmp, mri_seg, CSF_VAL) ;
   MRIfree(&mri_tmp) ;
-  if (cortex_only)
-    MRIreplaceValuesOnly(mri_seg, mri_seg, GM_VAL, SUBCORT_GM_VAL) ;
   
   mri_ribbon = MRInot(mri_seg, NULL) ;
   MRIcopyLabel(mri_seg, mri_pial, CSF_VAL) ;
@@ -195,40 +207,47 @@ main(int argc, char *argv[]) {
   MRIbinarize(mri_ribbon, mri_ribbon, 1, 0, GM_VAL) ;
   MRIcopyLabel(mri_ribbon, mri_seg, GM_VAL) ;
   MRIreplaceValuesOnly(mri_seg, mri_seg, CSF_VAL, 0) ;
-  if (cortex_only)
-    add_aseg_structures_outside_ribbon(mri_seg, mri_aseg, mri_seg, WM_VAL, SUBCORT_GM_VAL, CSF_VAL) ;
-  else
-    add_aseg_structures_outside_ribbon(mri_seg, mri_aseg, mri_seg, WM_VAL, GM_VAL, CSF_VAL) ;
+  add_aseg_structures_outside_ribbon(mri_seg, mri_aseg, mri_seg, WM_VAL, SUBCORT_GM_VAL, CSF_VAL) ;
 
 
   {
     MATRIX *m_conformed_to_epi_vox2vox, *m_seg_to_conformed_vox2vox,
            *m_seg_to_epi_vox2vox ;
 
-    m_conformed_to_epi_vox2vox = MRIvoxToVoxFromTkRegMtx(mri_in, mri_aseg, m_regdat);
-    m_seg_to_conformed_vox2vox = MRIgetVoxelToVoxelXform(mri_seg, mri_aseg) ;
+    if (m_regdat == NULL)    // assume identity transform
+      m_seg_to_epi_vox2vox = MRIgetVoxelToVoxelXform(mri_seg, mri_in) ;
+    else
+    {
+      m_conformed_to_epi_vox2vox = MRIvoxToVoxFromTkRegMtx(mri_in, mri_aseg, m_regdat);
+      m_seg_to_conformed_vox2vox = MRIgetVoxelToVoxelXform(mri_seg, mri_aseg) ;
+      
+      m_seg_to_epi_vox2vox = MatrixMultiply(m_conformed_to_epi_vox2vox, m_seg_to_conformed_vox2vox, NULL) ;
+      MatrixFree(&m_regdat) ; MatrixFree(&m_conformed_to_epi_vox2vox) ; 
+      MatrixFree(&m_seg_to_conformed_vox2vox);
 
-    m_seg_to_epi_vox2vox = MatrixMultiply(m_conformed_to_epi_vox2vox, m_seg_to_conformed_vox2vox, NULL) ;
-
+    }
     printf("seg to EPI vox2vox matrix:\n") ;
     MatrixPrint(Gstdout, m_seg_to_epi_vox2vox) ;
-    mri_gm = MRIcloneDifferentType(mri_in, MRI_FLOAT) ;
+    mri_cortex = MRIcloneDifferentType(mri_in, MRI_FLOAT) ;
+    mri_subcort_gm = MRIcloneDifferentType(mri_in, MRI_FLOAT) ;
     mri_wm = MRIcloneDifferentType(mri_in, MRI_FLOAT) ;
     mri_csf = MRIcloneDifferentType(mri_in, MRI_FLOAT) ;
     printf("computing partial volume fractions...\n") ;
-    MRIcomputePartialVolumeFractions(mri_in, m_seg_to_epi_vox2vox, mri_seg, mri_wm, mri_gm, mri_csf,
-                                     WM_VAL, GM_VAL, 0) ;
-    MatrixFree(&m_regdat) ; MatrixFree(&m_conformed_to_epi_vox2vox) ; 
-    MatrixFree(&m_seg_to_conformed_vox2vox);
+    MRIcomputePartialVolumeFractions(mri_in, m_seg_to_epi_vox2vox, mri_seg, mri_wm, mri_subcort_gm, mri_cortex, mri_csf,
+                                     WM_VAL, SUBCORT_GM_VAL, GM_VAL, 0) ;
   }
   
   sprintf(fname, "%s.wm.mgz", out_stem) ;
   printf("writing wm %% to %s\n", fname) ;
   MRIwrite(mri_wm, fname) ;
 
-  sprintf(fname, "%s.gm.mgz", out_stem) ;
-  printf("writing gm %% to %s\n", fname) ;
-  MRIwrite(mri_gm, fname) ;
+  sprintf(fname, "%s.subcort_gm.mgz", out_stem) ;
+  printf("writing subcortical gm %% to %s\n", fname) ;
+  MRIwrite(mri_subcort_gm, fname) ;
+
+  sprintf(fname, "%s.cortex.mgz", out_stem) ;
+  printf("writing cortical gm %% to %s\n", fname) ;
+  MRIwrite(mri_cortex, fname) ;
   
   sprintf(fname, "%s.csf.mgz", out_stem) ;
   printf("writing csf %% to %s\n", fname) ;
@@ -265,17 +284,20 @@ get_option(int argc, char *argv[]) {
     Gz = atoi(argv[4]) ;
     printf("debugging voxel (%d, %d, %d)\n", Gx, Gy, Gz) ;
     nargs = 3 ;
-  } else if (!stricmp(option, "cortex")) {
-    printf("limitting gm val to cortex\n") ;
-    cortex_only = 1 ;
   } else switch (toupper(*option)) {
   case 'R':
     resolution = atof(argv[2]) ;
     printf("setting resolution = %2.3f\n", resolution) ;
     nargs = 1 ;
     break ;
+  case 'S':
+    subject = argv[2] ;
+    printf("overriding subject name in register.dat with %s\n", subject) ;
+    nargs = 1 ;
+    break ;
   case '?':
   case 'U':
+  case 'H':
     usage_exit(0) ;
     break ;
   default:
@@ -296,8 +318,9 @@ usage_exit(int code) {
   printf("usage: %s [options] <reg file> <input volume> <output stem>\n",
          Progname) ;
   printf("  -SDIR SUBJECTS_DIR \n");
-  printf(
-         "\t\n");
+  printf("  -s    subject:  override entry of register.dat file\n") ;
+  printf("  -r    resolution:  set resolution of internal volume for filling ribbon (def=0.5)\n") ;
+  printf("\n");
   exit(code) ;
 }
 
@@ -307,8 +330,9 @@ usage_exit(int code) {
 
 int
 MRIcomputePartialVolumeFractions(MRI *mri_src, MATRIX *m_vox2vox, 
-                                 MRI *mri_seg, MRI *mri_wm, MRI *mri_gm, MRI *mri_csf,
-                                 int wm_val, int gm_val, int csf_val)
+                                 MRI *mri_seg, MRI *mri_wm, MRI *mri_subcort_gm, MRI *mri_cortex,
+				 MRI *mri_csf,
+                                 int wm_val, int subcort_gm_val, int cortex_val, int csf_val)
 {
   int    x, y, z, xs, ys, zs, label ;
   VECTOR *v1, *v2 ;
@@ -357,10 +381,15 @@ MRIcomputePartialVolumeFractions(MRI *mri_src, MATRIX *m_vox2vox,
             val = MRIgetVoxVal(mri_wm, xs, ys, zs, 0) ;
             MRIsetVoxVal(mri_wm, xs, ys, zs, 0, val+1) ;
           }
-          else if (label == gm_val)
+          else if (label == subcort_gm_val)
           {
-            val = MRIgetVoxVal(mri_gm, xs, ys, zs, 0) ;
-            MRIsetVoxVal(mri_gm, xs, ys, zs, 0, val+1) ;
+            val = MRIgetVoxVal(mri_subcort_gm, xs, ys, zs, 0) ;
+            MRIsetVoxVal(mri_subcort_gm, xs, ys, zs, 0, val+1) ;
+          }
+          else if (label == cortex_val)
+          {
+            val = MRIgetVoxVal(mri_cortex, xs, ys, zs, 0) ;
+            MRIsetVoxVal(mri_cortex, xs, ys, zs, 0, val+1) ;
           }
           else
             DiagBreak() ;
@@ -380,8 +409,10 @@ MRIcomputePartialVolumeFractions(MRI *mri_src, MATRIX *m_vox2vox,
             DiagBreak() ;
           val = MRIgetVoxVal(mri_wm, x, y, z, 0) ;
           MRIsetVoxVal(mri_wm, x, y, z, 0, val/count) ;
-          val = MRIgetVoxVal(mri_gm, x, y, z, 0) ;
-          MRIsetVoxVal(mri_gm, x, y, z, 0, val/count) ;
+          val = MRIgetVoxVal(mri_subcort_gm, x, y, z, 0) ;
+          MRIsetVoxVal(mri_subcort_gm, x, y, z, 0, val/count) ;
+          val = MRIgetVoxVal(mri_cortex, x, y, z, 0) ;
+          MRIsetVoxVal(mri_cortex, x, y, z, 0, val/count) ;
           val = MRIgetVoxVal(mri_csf, x, y, z, 0) ;
           MRIsetVoxVal(mri_csf, x, y, z, 0, val/count) ;
         }
@@ -399,8 +430,10 @@ MRIcomputePartialVolumeFractions(MRI *mri_src, MATRIX *m_vox2vox,
               MRIsetVoxVal(mri_csf, x, y, z, 0, 1) ;
             else if (label == wm_val)
               MRIsetVoxVal(mri_wm, x, y, z, 0, 1) ;
-            else if (label == gm_val)
-              MRIsetVoxVal(mri_gm, x, y, z, 0, 1) ;
+            else if (label == subcort_gm_val)
+              MRIsetVoxVal(mri_subcort_gm, x, y, z, 0, 1) ;
+            else if (cortex_val)
+              MRIsetVoxVal(mri_cortex, x, y, z, 0, 1) ;
             else
               DiagBreak() ;
           }
@@ -417,7 +450,7 @@ add_aseg_structures_outside_ribbon(MRI *mri_src, MRI *mri_aseg, MRI *mri_dst,
 {
   VECTOR *v1, *v2 ;
   MATRIX *m_vox2vox ;
-  int    x, y, z, xa, ya, za, label ;
+  int    x, y, z, xa, ya, za, seg_label, aseg_label ;
 
   if (mri_dst == NULL)
     mri_dst = MRIcopy(mri_src, NULL) ;
@@ -437,9 +470,7 @@ add_aseg_structures_outside_ribbon(MRI *mri_src, MRI *mri_aseg, MRI *mri_dst,
       {
         if (x == Gx && y == Gy && z == Gz)
           DiagBreak() ;
-        label = nint(MRIgetVoxVal(mri_dst, x, y, z, 0)) ;
-        if (label != 0)  // already labeled, skip it
-          continue ;
+        seg_label = nint(MRIgetVoxVal(mri_dst, x, y, z, 0)) ;
         V3_Z(v1) = z ;
         MatrixMultiply(m_vox2vox, v1, v2) ;
         xa = (int)(nint(V3_X(v2))) ;
@@ -450,24 +481,30 @@ add_aseg_structures_outside_ribbon(MRI *mri_src, MRI *mri_aseg, MRI *mri_dst,
           continue ;
         if (xa == Gx && ya == Gy && za == Gz)
           DiagBreak() ;
-        label = nint(MRIgetVoxVal(mri_aseg, xa, ya, za, 0)) ;
-        switch (label)
+        aseg_label = nint(MRIgetVoxVal(mri_aseg, xa, ya, za, 0)) ;
+        if (seg_label != 0 && !IS_MTL(aseg_label))  // already labeled and not amyg/hippo, skip it
+          continue ;
+        switch (aseg_label)
         {
         case Left_Cerebellum_White_Matter:
         case Right_Cerebellum_White_Matter:
         case Brain_Stem:
           MRIsetVoxVal(mri_dst, x, y, z, 0, wm_val) ;
           break ;
+	case Left_Hippocampus:
+	case Right_Hippocampus:
+	case Left_Amygdala:
+	case Right_Amygdala:
         case Left_Cerebellum_Cortex:
         case Right_Cerebellum_Cortex:
-          MRIsetVoxVal(mri_dst, x, y, z, 0, gm_val) ;
-          break ;
         case Left_Pallidum:
         case Right_Pallidum:
         case Left_Thalamus_Proper:
         case Right_Thalamus_Proper:
         case Right_Putamen:
         case Left_Putamen:
+        case Right_Caudate:
+        case Left_Caudate:
         case Left_Accumbens_area:
         case Right_Accumbens_area:  // remove them from cortex
           MRIsetVoxVal(mri_dst, x, y, z, 0, gm_val) ;
