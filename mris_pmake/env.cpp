@@ -12,8 +12,8 @@
  * Original Author: Rudolph Pienaar / Christian Haselgrove
  * CVS Revision Info:
  *    $Author: rudolph $
- *    $Date: 2012/01/29 22:33:28 $
- *    $Revision: 1.29 $
+ *    $Date: 2012/01/30 15:00:45 $
+ *    $Revision: 1.30 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -883,7 +883,6 @@ s_env_scan(
   static int    calls                   = 0;
 
   static MRIS*  pMS_primary             = NULL;
-  static MRIS*  pMS_auxSurface          = NULL;
   static MRIS*  pMS_secondary           = NULL;
   string        str_value               = "";
   string        str_surfaceFileName     = "";

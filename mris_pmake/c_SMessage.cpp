@@ -15,8 +15,8 @@
  * Original Author: Rudolph Pienaar
  * CVS Revision Info:
  *    $Author: rudolph $
- *    $Date: 2012/01/23 17:24:08 $
- *    $Revision: 1.12 $
+ *    $Date: 2012/01/30 15:00:45 $
+ *    $Revision: 1.13 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -532,10 +532,11 @@ C_SMessage::syslog_prepend() {
     stringstream        sstream("");
     string              str_hostname("");
     char                pch_buffer[65536];
-    int                 ret                     = 0;
+    //int                 ret                     = 0;
 
     try {
-        ret = gethostname(pch_buffer, 65536);
+        //ret = gethostname(pch_buffer, 65536);
+        gethostname(pch_buffer, 65536);
         str_hostname = pch_buffer;
     } catch (...) {
         str_hostname = "";
