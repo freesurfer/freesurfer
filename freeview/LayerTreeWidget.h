@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2011/10/13 21:05:31 $
- *    $Revision: 1.6 $
+ *    $Date: 2012/01/30 20:57:05 $
+ *    $Revision: 1.7 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -44,6 +44,9 @@ public slots:
   void OnHideAll();
   void OnLockAll();
   void OnUnlockAll();
+  void OnShowAllInfo();
+  void OnHideAllInfo();
+  void OnSetColorMap();
 
 protected:
   void drawRow ( QPainter * painter, const QStyleOptionViewItem & option, const QModelIndex & index ) const;

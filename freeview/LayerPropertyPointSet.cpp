@@ -11,8 +11,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2012/01/04 17:23:20 $
- *    $Revision: 1.7 $
+ *    $Date: 2012/01/30 20:57:05 $
+ *    $Revision: 1.8 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -296,6 +296,7 @@ bool LayerPropertyPointSet::LoadScalarsFromFile( const QString& filename )
   QFile file(filename);
   if (!file.open(QIODevice::ReadOnly | QIODevice::Text))
   {
+    cerr << qPrintable(file.errorString()) << "\n";;
     return false;
   }
 

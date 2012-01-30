@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2012/01/23 20:41:52 $
- *    $Revision: 1.203 $
+ *    $Date: 2012/01/30 20:57:05 $
+ *    $Revision: 1.204 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -3911,6 +3911,11 @@ void MainWindow::OnSavePointSet()
     if (layer->Save())
     {
       layer->ResetModified();
+    }
+    else
+    {
+      QMessageBox::warning( this, "Error", "Could not save point set. Check console for more information.");
+      return;
     }
   }
 }

@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2011/08/11 15:47:43 $
- *    $Revision: 1.6 $
+ *    $Date: 2012/01/30 20:57:05 $
+ *    $Revision: 1.7 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -86,6 +86,7 @@ bool FSPointSet::ReadAsControlPoints( const QString& filename )
   QFile file( filename );
   if (!file.open(QIODevice::ReadOnly | QIODevice::Text))
   {
+    cerr << qPrintable(file.errorString()) << "\n";;
     return false;
   }
 
@@ -147,6 +148,11 @@ bool FSPointSet::WriteAsControlPoints( const QString& filename )
   QFile file( filename );
   if (!file.open(QIODevice::WriteOnly | QIODevice::Text))
   {
+    QString strg = file.errorString();
+    if (strg.isEmpty())
+      cerr << "Can not open file for writing\n";
+    else
+      cerr << qPrintable(strg) << "\n";;
     return false;
   }
 
