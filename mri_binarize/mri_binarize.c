@@ -10,8 +10,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2011/11/08 19:28:23 $
- *    $Revision: 1.30 $
+ *    $Date: 2012/01/31 17:30:42 $
+ *    $Revision: 1.31 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -26,7 +26,7 @@
  */
 
 
-// $Id: mri_binarize.c,v 1.30 2011/11/08 19:28:23 greve Exp $
+// $Id: mri_binarize.c,v 1.31 2012/01/31 17:30:42 greve Exp $
 
 /*
   BEGINHELP
@@ -180,7 +180,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_binarize.c,v 1.30 2011/11/08 19:28:23 greve Exp $";
+static char vcid[] = "$Id: mri_binarize.c,v 1.31 2012/01/31 17:30:42 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -486,51 +486,90 @@ static int parse_commandline(int argc, char **argv) {
       ZeroSliceEdges = 1;
     }
     else if (!strcasecmp(option, "--zero-slice-edges")) ZeroSliceEdges = 1;
-    else if (!strcasecmp(option, "--wm")){
-      MatchValues[0] =  2;
-      MatchValues[1] = 41;
-      MatchValues[2] = 77;
-      MatchValues[3] = 251;
-      MatchValues[4] = 252;
-      MatchValues[5] = 253;
-      MatchValues[6] = 254;
-      MatchValues[7] = 255;
-      nMatch = 8;
+    else if (!strcasecmp(option, "--ctx-wm") || !strcasecmp(option, "--wm")){
+      MatchValues[nMatch++] =  2;
+      MatchValues[nMatch++] = 41;
+      MatchValues[nMatch++] = 77;
+      MatchValues[nMatch++] = 251;
+      MatchValues[nMatch++] = 252;
+      MatchValues[nMatch++] = 253;
+      MatchValues[nMatch++] = 254;
+      MatchValues[nMatch++] = 255;
+      DoMatch = 1;
+    }
+    else if (!strcasecmp(option, "--all-wm")){
+      MatchValues[nMatch++] =  2;
+      MatchValues[nMatch++] = 41;
+      MatchValues[nMatch++] = 77;
+      MatchValues[nMatch++] = 251;
+      MatchValues[nMatch++] = 252;
+      MatchValues[nMatch++] = 253;
+      MatchValues[nMatch++] = 254;
+      MatchValues[nMatch++] = 255;
+      MatchValues[nMatch++] =  7; // Cerebellar WM
+      MatchValues[nMatch++] = 46; // Cerebellar WM
       DoMatch = 1;
     }
     else if (!strcasecmp(option, "--ventricles")){
-      MatchValues[0] =  4; // Left-Lateral-Ventricle
-      MatchValues[1] =  5; // Left-Inf-Lat-Vent
-      MatchValues[2] = 14; // 3rd-Ventricle
-      MatchValues[3] = 43; // Right-Lateral-Ventricle
-      MatchValues[4] = 44; // Right-Inf-Lat-Vent
-      MatchValues[5] = 72; // 5th-Ventricle
-      MatchValues[6] = 31; // Left-choroid-plexus 
-      MatchValues[7] = 63; // Right-choroid-plexus 
-      //MatchValues[3] = 15; // 4th-Ventricle 
-      nMatch = 8;
+      MatchValues[nMatch++] =  4; // Left-Lateral-Ventricle
+      MatchValues[nMatch++] =  5; // Left-Inf-Lat-Vent
+      MatchValues[nMatch++] = 14; // 3rd-Ventricle
+      MatchValues[nMatch++] = 43; // Right-Lateral-Ventricle
+      MatchValues[nMatch++] = 44; // Right-Inf-Lat-Vent
+      MatchValues[nMatch++] = 72; // 5th-Ventricle
+      MatchValues[nMatch++] = 31; // Left-choroid-plexus 
+      MatchValues[nMatch++] = 63; // Right-choroid-plexus 
+      //MatchValues[nMatch++] = 15; // 4th-Ventricle. Good to include?
       DoMatch = 1;
     }
 
     else if (!strcasecmp(option, "--wm+vcsf")){
-      MatchValues[0] =  2;
-      MatchValues[1] = 41;
-      MatchValues[2] = 77;
-      MatchValues[3] = 251;
-      MatchValues[4] = 252;
-      MatchValues[5] = 253;
-      MatchValues[6] = 254;
-      MatchValues[7] = 255;
-      MatchValues[8] =  4; // Left-Lateral-Ventricle
-      MatchValues[9] =  5; // Left-Inf-Lat-Vent
-      MatchValues[10] = 14; // 3rd-Ventricle
-      MatchValues[11] = 43; // Right-Lateral-Ventricle
-      MatchValues[12] = 44; // Right-Inf-Lat-Vent
-      MatchValues[13] = 72; // 5th-Ventricle
-      MatchValues[14] = 31; // Left-choroid-plexus 
-      MatchValues[15] = 63; // Right-choroid-plexus 
-      nMatch = 16;
+      MatchValues[nMatch++] =  2;
+      MatchValues[nMatch++] = 41;
+      MatchValues[nMatch++] = 77;
+      MatchValues[nMatch++] = 251;
+      MatchValues[nMatch++] = 252;
+      MatchValues[nMatch++] = 253;
+      MatchValues[nMatch++] = 254;
+      MatchValues[nMatch++] = 255;
+      MatchValues[nMatch++] =  7; // Cerebellar WM
+      MatchValues[nMatch++] = 46; // Cerebellar WM
+      MatchValues[nMatch++] =  4; // Left-Lateral-Ventricle
+      MatchValues[nMatch++] =  5; // Left-Inf-Lat-Vent
+      MatchValues[nMatch++] = 14; // 3rd-Ventricle
+      MatchValues[nMatch++] = 43; // Right-Lateral-Ventricle
+      MatchValues[nMatch++] = 44; // Right-Inf-Lat-Vent
+      MatchValues[nMatch++] = 72; // 5th-Ventricle
+      MatchValues[nMatch++] = 31; // Left-choroid-plexus 
+      MatchValues[nMatch++] = 63; // Right-choroid-plexus 
+      //MatchValues[nMatch++] = 15; // 4th-Ventricle. Good to include?
       DoMatch = 1;
+    }
+    else if (!strcasecmp(option, "--gm")) {
+      MatchValues[nMatch++] =  2;
+      MatchValues[nMatch++] = 41;
+      MatchValues[nMatch++] = 77;
+      MatchValues[nMatch++] = 251;
+      MatchValues[nMatch++] = 252;
+      MatchValues[nMatch++] = 253;
+      MatchValues[nMatch++] = 254;
+      MatchValues[nMatch++] = 255;
+      MatchValues[nMatch++] =  7; // Cerebellar WM
+      MatchValues[nMatch++] = 46; // Cerebellar WM
+      MatchValues[nMatch++] =  4; // Left-Lateral-Ventricle
+      MatchValues[nMatch++] =  5; // Left-Inf-Lat-Vent
+      MatchValues[nMatch++] = 14; // 3rd-Ventricle
+      MatchValues[nMatch++] = 43; // Right-Lateral-Ventricle
+      MatchValues[nMatch++] = 44; // Right-Inf-Lat-Vent
+      MatchValues[nMatch++] = 15; // 4th-Ventricle 
+      MatchValues[nMatch++] = 72; // 5th-Ventricle
+      MatchValues[nMatch++] = 31; // Left-choroid-plexus 
+      MatchValues[nMatch++] = 63; // Right-choroid-plexus 
+      MatchValues[nMatch++] =  0; // Background
+      DoMatch = 1;
+      // Invert the matches above
+      BinVal = 0;
+      BinValNot = 1;
     }
 
     else if (!strcasecmp(option, "--i")) {
@@ -681,9 +720,11 @@ static void print_usage(void) {
   printf("   --rmin rmin  : compute min based on rmin*globalmean\n");
   printf("   --rmax rmax  : compute max based on rmax*globalmean\n");
   printf("   --match matchval <matchval2 ...>  : match instead of threshold\n");
-  printf("   --wm : set match vals to 2, 41, 77, 251-255 (aseg for cerebral WM)\n");
+  printf("   --ctx-wm : set match vals to 2, 41, 77, 251-255 (aseg for cerebral WM)\n");
+  printf("   --all-wm : set match vals to 2, 41, 77, 251-255, 7, and 46, (aseg for all WM)\n");
   printf("   --ventricles : set match vals those for aseg ventricles+choroid (not 4th)\n");
   printf("   --wm+vcsf : WM and ventricular CSF, including choroid (not 4th)\n");
+  printf("   --gm : match for all WM and VCSF and background, then invert\n");
   printf("   --subcort-gm : subcortical gray matter\n");
   printf("   \n");
   printf("   --o outvol : output volume \n");
