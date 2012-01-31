@@ -12,8 +12,8 @@
  * Original Author: Martin Sereno and Anders Dale, 1996
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2012/01/31 19:29:32 $
- *    $Revision: 1.353 $
+ *    $Date: 2012/01/31 19:30:36 $
+ *    $Revision: 1.354 $
  *
  * Copyright (C) 2002-2011, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA).
@@ -19482,6 +19482,7 @@ print_help_tksurfer(void)
   printf("-overlay          <filename> : load an overlay volume\n");
   printf("-overlay-reg      <filename> : use a file for the overlay registration\n");
   printf("-overlay-reg-find            : look in the data directory for a register.dat\n");
+  printf("-fsgd <gd fname> <overlay fname> : load an FSGD file and an overlay volume\n");
   printf("                             : file\n");
   printf("-overlay-reg-identity        : calculate an identity transform for registration\n");
   printf("-mni152reg : for use with average subject when overlay is mni152\n");
@@ -21548,7 +21549,7 @@ int main(int argc, char *argv[])   /* new main */
   nargs =
     handle_version_option
     (argc, argv,
-     "$Id: tksurfer.c,v 1.353 2012/01/31 19:29:32 fischl Exp $", "$Name:  $");
+     "$Id: tksurfer.c,v 1.354 2012/01/31 19:30:36 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
