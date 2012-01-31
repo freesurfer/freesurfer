@@ -1,5 +1,5 @@
 #!/bin/tcsh -f
-set VERSION = '$Id: mri_glmfit-sim,v 1.44 2012/01/27 21:03:02 greve Exp $';
+set VERSION = '$Id: mri_glmfit-sim,v 1.45 2012/01/31 18:53:03 greve Exp $';
 
 set inputargs = ($argv);
 
@@ -485,7 +485,7 @@ endif #DoSim
 if($DoPBSubmit) then
   # pbsubmit the surfcluster part
   set cmd = (mri_glmfit-sim --glmdir $glmdir  --tmp $tmpdir)
-  set cmd = ($cmd --sim-sign $simsign --no-sim $csdbase)
+  set cmd = ($cmd --sim-sign $simsign --no-sim $csdbase --cwpvalthresh $cwpvalthresh)
   set cmd = ($cmd --log $LF)
   echo "------------------------------------------------" | tee -a $LF
   echo $cmd  | tee -a $LF
@@ -755,6 +755,7 @@ while( $#argv != 0 )
       breaksw
 
     case "--cwpvalthresh":
+    case "--cwp":
       if($#argv < 1) goto arg1err;
       set cwpvalthresh = $argv[1]; shift;
       breaksw
@@ -859,7 +860,7 @@ usage_exit:
   echo " --grf threshold sign : -log10(p) and pos or neg (volumes only)"
   echo ""
   echo " --sim nulltype nsim threshold csdbase"
-  echo " --sim-sign sign : <abs>,pos,neg"
+  echo " --sim-sign sign : abs,pos,neg"
   echo ""
   echo " --2spaces : additional Bonferroni correction across 2 spaces (eg, lh, rh)"
   echo " --3spaces : additional Bonferroni correction across 3 spaces (eg, lh, rh, mni305)"
@@ -936,7 +937,10 @@ To use this program:
 6. Select the threshold sign (--sim-sign). This is the sign of the
    threshold used to create the clusters for cluster-wise correction
    of multiple comparisons. Options are abs (unsigned), pos
-   (positive), and neg (negative).
+   (positive), and neg (negative). If you have an a priori hypothesis
+   (eg, group1 > group2), then choose positive. If you don not know
+   the sign, then use abs. Choosing a sign will yield stronger results
+   (ie, smaller p-values), but you will lose the other sign.
 
 Now run the command:
 
