@@ -8,9 +8,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2011/12/19 22:47:35 $
- *    $Revision: 1.60 $
+ *    $Author: fischl $
+ *    $Date: 2012/01/31 00:17:42 $
+ *    $Revision: 1.61 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -344,6 +344,7 @@ extern "C" {
 
 #define IS_HIPPO(l) (((l) == Left_Hippocampus) || ((l) == Right_Hippocampus))
 #define IS_AMYGDALA(l) (((l) == Left_Amygdala) || ((l) == Right_Amygdala))
+#define IS_MTL(l)   (IS_HIPPO(l) || IS_AMYGDALA(l))
 #define IS_CORTEX(l) (((l) == Left_Cerebral_Cortex) || \
                       ((l) == Right_Cerebral_Cortex))
 #define IS_LAT_VENT(l) (((l) == Left_Lateral_Ventricle) || \
