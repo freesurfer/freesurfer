@@ -9,8 +9,8 @@
 #
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2012/01/18 21:57:32 $
-#    $Revision: 1.559 $
+#    $Date: 2012/01/31 23:03:58 $
+#    $Revision: 1.560 $
 #
 ########################################################################
 AC_PREREQ(2.57)
@@ -197,15 +197,24 @@ AC_PROG_F77
 if test "x$F77" = "x"; then
 	AC_MSG_ERROR([FATAL: A Fortran 77 compiler is required!])
 fi
-# hack: when building with gcc 4.4.*, AC_PROC_LIBTOOL creates
-# a libtool which when run gives CDPATH errors. the workaround
-# is to use the libtool on the system.
+
+# check for gcc 4.4.*, which supports openmp, and requires some special
+# handling in regards to AC_PROC_LIBTOOL
+ac_have_gcc_44="no"
 if test "${CC}" = "gcc"; then
   gcc --version | head -n 1 | awk '{print $2 $3}' | grep "(GCC)4.4." >& /dev/null
   if test "$?" = "0"; then
-    AC_MSG_NOTICE(Copying /usr/bin/libtool overtop the PROG_LIBTOOL)
-    cp /usr/bin/libtool .
+    AC_MSG_NOTICE(Have gcc 4.4)
+    ac_have_gcc_44="yes"
   fi
+fi
+
+# hack: when building with gcc 4.4.*, AC_PROC_LIBTOOL creates
+# a libtool which when run gives CDPATH errors. the workaround
+# is to use the libtool on the system.
+if test "$ac_have_gcc_44" = "yes"; then
+  AC_MSG_NOTICE(Copying /usr/bin/libtool overtop the PROG_LIBTOOL)
+  cp /usr/bin/libtool .
 fi
 
 ################################################################
@@ -490,7 +499,12 @@ case "${target}" in
  DYNAMIC_LIB_EXT=".so"
  SHARED_CFLAGS="-fPIC"
  SHARED_LDFLAGS="-shared"
- CPPFLAGS="-g -O3 -msse2 -mfpmath=sse $WALL $WERROR"
+ if test "$ac_have_gcc_44" = "yes"; then
+   # if using gcc 4.4, include extra SSE 4 optimization flags
+   CPPFLAGS="-g -O3 -ftree-vectorize -msse4.1 -mfpmath=sse $WALL $WERROR"
+ else
+   CPPFLAGS="-g -O3 -msse2 -mfpmath=sse $WALL $WERROR"
+ fi
  FFLAGS="-g -O3 -msse2 -mfpmath=sse"
  ac_have_sse_mathfun=yes
  TEEM_32BIT=0
@@ -622,7 +636,14 @@ AC_ARG_ENABLE(openmp,
      CPPFLAGS="-D_OPENMP -fopenmp $CPPFLAGS"
    fi  
  ])
+# gcc 4.4 supports openmp, so enable it by default (no harm in doing so)
+if test "$ac_have_gcc_44" = "yes"; then
+  ac_have_openmp=yes
+  CPPFLAGS="$CPPFLAGS -fopenmp"
+  AC_MSG_NOTICE(Using OpenMP with gcc 4.4)
+fi
 AM_CONDITIONAL(HAVE_OPENMP, test "x$ac_have_openmp" = "xyes")
+
 
 ##############################################################
 # OpenCV
