@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2011/12/12 17:07:48 $
-#    $Revision: 1.379.2.31 $
+#    $Date: 2012/01/31 22:34:18 $
+#    $Revision: 1.379.2.32 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -26,7 +26,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.379.2.31 2011/12/12 17:07:48 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.379.2.32 2012/01/31 22:34:18 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -788,7 +788,7 @@ if($DoShowEdits) then
 
   # expert opts
   if($#XOptsFile != 0) then
-    if (-e $XOptsFile)) then
+    if (-e $XOptsFile) then
       @ edit_count = $edit_count + 1;
       echo "Expert options declared in file $XOptsFile" |& tee -a $LF
     endif
