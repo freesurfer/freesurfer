@@ -11,9 +11,9 @@
 /*
  * Original Author: Martin Sereno and Anders Dale, 1996
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/10/05 20:46:39 $
- *    $Revision: 1.352 $
+ *    $Author: fischl $
+ *    $Date: 2012/01/31 19:29:32 $
+ *    $Revision: 1.353 $
  *
  * Copyright (C) 2002-2011, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA).
@@ -115,6 +115,7 @@ MRI *mrismask = NULL;
 double mrismaskthresh = -1;
 char *mrismaskfile = NULL;
 
+static char *mask_cortex_name = NULL ;
 static GCSA *Ggcsa = NULL ;
 #define QUAD_FILE_MAGIC_NUMBER      (-1 & 0x00ffffff)
 #define TRIANGLE_FILE_MAGIC_NUMBER  (-2 & 0x00ffffff)
@@ -2191,6 +2192,7 @@ int  main(int argc,char *argv[])
   char path[MAX_DIR_DEPTH][NAME_LENGTH];
   int  nargs = 0;
   char *functional_fnames[100], *patch_name = NULL, *overlayannotfname = NULL;
+  char *fsgd_fnames[100] ;
   int  noverlays = 0 ;
   /* begin rkt */
   FunD_tRegistrationType overlay_reg_type = FunD_tRegistration_Identity;
@@ -2213,7 +2215,8 @@ int  main(int argc,char *argv[])
   int load_sulc = FALSE;
   int overlayannotflag = FALSE; 
   char annotation_fname[NAME_LENGTH] = "";
-  char label_fname[NAME_LENGTH] = "";
+  char *label_fnames[100] ;
+  int  nlabels=0 ;
 
   int setlateralview = FALSE;
   int setmedialview = FALSE;
@@ -2255,6 +2258,28 @@ int  main(int argc,char *argv[])
       nargs = 2 ;
       functional_fnames[noverlays] = argv[i+1] ;
       if (!fio_FileExistsReadable(functional_fnames[noverlays]))
+      {
+        printf("ERROR: cannot find %s\n",functional_fnames[noverlays]);
+        exit(1);
+      }
+      fsgd_fnames[noverlays] = NULL ;
+      load_curv = TRUE;
+      noverlays++ ;
+      forcegraycurvatureflag = TRUE;
+      labl_draw_style = LABL_STYLE_OUTLINE;
+    }
+    else if (!stricmp(argv[i], "-fsgd") || !stricmp(argv[i], "-gdf") ||
+        !stricmp(argv[i], "-gd") || !stricmp(argv[i], "-fsgdf"))
+    {
+      nargs = 3 ;
+      fsgd_fnames[noverlays] = argv[i+1] ;
+      functional_fnames[noverlays] = argv[i+2] ;
+      if (!fio_FileExistsReadable(functional_fnames[noverlays]))
+      {
+        printf("ERROR: cannot find %s\n",functional_fnames[noverlays]);
+        exit(1);
+      }
+      if (!fio_FileExistsReadable(fsgd_fnames[noverlays]))
       {
         printf("ERROR: cannot find %s\n",functional_fnames[noverlays]);
         exit(1);
@@ -2311,6 +2336,12 @@ int  main(int argc,char *argv[])
     {
       nargs = 1 ;
       overlay_reg_type = FunD_tRegistration_Identity;
+    }
+    else if (!stricmp(argv[i], "-mask_cortex"))
+    {
+      nargs = 2 ;
+      mask_cortex_name = argv[i+1] ;
+      printf("masking cortex label %s\n", mask_cortex_name) ;
     }
     else if ( !stricmp(argv[i], "-mni152reg" ) ){
       sprintf(overlay_reg,"%s/average/mni152.register.dat",
@@ -2630,7 +2661,16 @@ int  main(int argc,char *argv[])
     {
       nargs = 2 ;
       load_label = TRUE ;
-      strncpy (label_fname, argv[i+1], sizeof(label_fname));
+      label_fnames[nlabels] = argv[i+1] ;
+#if 0
+      if (!fio_FileExistsReadable(label_fnames[nlabels]))
+      {
+        printf("ERROR: cannot find %s\n",label_fnames[nlabels]);
+        exit(1);
+      }
+#endif
+      load_curv = TRUE;
+      nlabels++ ;
     }
     else if (!stricmp(argv[i], "-label-outline"))
     {
@@ -2955,6 +2995,12 @@ int  main(int argc,char *argv[])
         sclv_read_from_volume(functional_fname, overlay_reg_type,
                               overlay_reg, i);
       }
+      if (fsgd_fnames[i])
+      {
+	sprintf(tcl_cmd, "GDF_Load %s\n", fsgd_fnames[i]) ;
+	send_tcl_command (tcl_cmd);
+//	gdfs[i] = gdfRead(fsgd_fnames[i], 1) ;
+      }
     }
     overlayflag = TRUE ;
     colscale = HEAT_SCALE ;
@@ -3043,6 +3089,8 @@ int  main(int argc,char *argv[])
 
   /* end rkt */
 
+  if (mask_cortex_name)
+    mask_label(mask_cortex_name) ;
   if (tclscriptflag)
   {
     /* tksurfer tcl script */
@@ -3114,10 +3162,15 @@ int  main(int argc,char *argv[])
   }
 
   if (load_label)
-  {
-    err = labl_load (label_fname);
-    if (err && getenv("TK_EXIT_ON_CMD_ERROR")!=NULL) exit(1);
-  }
+    {
+      int  i ;
+      for (i = 0 ; i < nlabels ; i++)
+	{
+	  printf("loading label %s\n", label_fnames[i]) ;
+	  err = labl_load (label_fnames[i]);
+	  if (err && getenv("TK_EXIT_ON_CMD_ERROR")!=NULL) exit(1);
+	}
+    }
 
   sclv_send_current_field_info ();  // sends fmid/fthresh to gui
   return(0) ;
@@ -12555,6 +12608,10 @@ Laplacian(MRI_SURFACE *mris, int vno, double *plx, double *ply, double *plz)
   *plx = lx ; *ply = ly ; *plz = lz ;
   return ;
 }
+#define K_bp   0.1
+#define Lambda .63
+#define Mu     -.67236
+
 void
 taubin_smooth(MRI_SURFACE *mris, int niter, double mu, double lambda)
 {
@@ -21491,7 +21548,7 @@ int main(int argc, char *argv[])   /* new main */
   nargs =
     handle_version_option
     (argc, argv,
-     "$Id: tksurfer.c,v 1.352 2011/10/05 20:46:39 nicks Exp $", "$Name:  $");
+     "$Id: tksurfer.c,v 1.353 2012/01/31 19:29:32 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -23637,6 +23694,7 @@ print_vertex_data(int vno, FILE *fp, float dmin)
     fprintf(fp, "pial     %6.2f %6.2f %6.2f\n",v->pialx,v->pialy,v->pialz);
     fprintf(fp, "white    %6.2f %6.2f %6.2f\n",v->whitex,v->whitey,v->whitez);
     fprintf(fp, "inflated %6.2f %6.2f %6.2f\n",v->infx,v->infy,v->infz);
+    fprintf(fp, "flat     %6.2f %6.2f %6.2f\n",v->fx,v->fy,v->fz);
     fprintf(fp, "normals  %6.2f %6.2f %6.2f\n",v->nx,v->ny,v->nz);
     fprintf(fp, "nneighbors  %d\n",v->vtotal);
     fprintf(fp, "ripflag     %d\n",v->ripflag);
