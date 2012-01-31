@@ -10,8 +10,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2012/01/30 16:50:25 $
- *    $Revision: 1.7 $
+ *    $Date: 2012/01/31 13:52:43 $
+ *    $Revision: 1.8 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -80,7 +80,7 @@ main(int argc, char *argv[]) {
   float       intensity, betplaneres, inplaneres ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_compute_volume_fractions.c,v 1.7 2012/01/30 16:50:25 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_compute_volume_fractions.c,v 1.8 2012/01/31 13:52:43 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -228,10 +228,11 @@ main(int argc, char *argv[]) {
     }
     printf("seg to EPI vox2vox matrix:\n") ;
     MatrixPrint(Gstdout, m_seg_to_epi_vox2vox) ;
-    mri_cortex = MRIcloneDifferentType(mri_in, MRI_FLOAT) ;
-    mri_subcort_gm = MRIcloneDifferentType(mri_in, MRI_FLOAT) ;
-    mri_wm = MRIcloneDifferentType(mri_in, MRI_FLOAT) ;
-    mri_csf = MRIcloneDifferentType(mri_in, MRI_FLOAT) ;
+    mri_cortex = MRIalloc(mri_in->width, mri_in->height, mri_in->depth, MRI_FLOAT) ;
+    MRIcopyHeader(mri_in, mri_cortex) ;
+    mri_subcort_gm = MRIclone(mri_cortex, NULL) ;
+    mri_wm = MRIclone(mri_cortex, NULL) ;
+    mri_csf = MRIclone(mri_cortex, NULL) ;
     printf("computing partial volume fractions...\n") ;
     MRIcomputePartialVolumeFractions(mri_in, m_seg_to_epi_vox2vox, mri_seg, mri_wm, mri_subcort_gm, mri_cortex, mri_csf,
                                      WM_VAL, SUBCORT_GM_VAL, GM_VAL, 0) ;
