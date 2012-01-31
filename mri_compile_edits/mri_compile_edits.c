@@ -9,19 +9,18 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2010/03/16 23:52:58 $
- *    $Revision: 1.5 $
+ *    $Date: 2012/01/31 23:37:49 $
+ *    $Revision: 1.6.2.1 $
  *
- * Copyright (C) 2010,
- * The General Hospital Corporation (Boston, MA).
- * All rights reserved.
+ * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
- * Distribution, usage and copying of this software is covered under the
- * terms found in the License Agreement file named 'COPYING' found in the
- * FreeSurfer source code root directory, and duplicated here:
- * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ * Terms and conditions for use, reproduction, distribution and contribution
+ * are found in the 'FreeSurfer Software License Agreement' contained
+ * in the file 'LICENSE' found in the FreeSurfer distribution, and here:
  *
- * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
+ *
+ * Reporting: freesurfer@nmr.mgh.harvard.edu
  *
  */
 
@@ -70,6 +69,7 @@ main(int argc, char *argv[])
   char         *subject, *cp, mdir[STRLEN], *out_fname, *name ;
   int          r, g, b, nedits = 0 ;
   MRI          *mri=NULL, *mri_edits=NULL, *mri_aseg_auto=NULL;
+  FILE         *ctfp;
 
   // default output file name:
   out_fname = strcpyalloc("edits.mgz");
@@ -77,7 +77,7 @@ main(int argc, char *argv[])
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
     (argc, argv,
-     "$Id: mri_compile_edits.c,v 1.5 2010/03/16 23:52:58 nicks Exp $",
+     "$Id: mri_compile_edits.c,v 1.6.2.1 2012/01/31 23:37:49 nicks Exp $",
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -290,6 +290,11 @@ main(int argc, char *argv[])
         b = 128 ;
         break ;
       default:
+        name = "Unknown" ;
+        r = 0 ;
+        g = 0 ;
+        b = 0 ;
+        break ;
         continue ;
       }
 
@@ -317,8 +322,26 @@ main(int argc, char *argv[])
     printf("%d mri_compile_edits_found, saving results to %s\n",
            nedits, out_fname) ;
     MRIwrite(mri_edits, out_fname);
+    if (mri_edits->ct)
+    {
+      sprintf(fname, "%s/mri_compile_edits_LUT", mdir) ;
+      printf("Colortable saved to %s :\n",fname);
+      CTABprintASCII(mri_edits->ct,stdout);
+      ctfp = fopen(fname,"w");
+      CTABprintASCII(mri_edits->ct,ctfp);
+      fclose(ctfp);
+    }
+
     printf("Edits can be viewed with command:\n");
-    printf("tkmedit %s T1.mgz -segmentation %s\n",subject,out_fname);
+    if (mri_edits->ct)
+    {
+      printf("tkmedit %s T1.mgz -segmentation %s %s\n",
+             subject,out_fname,fname);
+    }
+    else
+    {
+      printf("tkmedit %s T1.mgz -segmentation %s\n",subject,out_fname);
+    }
   }
   else
   {
