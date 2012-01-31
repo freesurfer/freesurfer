@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2012/01/30 20:57:05 $
- *    $Revision: 1.7 $
+ *    $Date: 2012/01/31 20:13:55 $
+ *    $Revision: 1.8 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -46,16 +46,11 @@ FSPointSet::~FSPointSet()
 
 bool FSPointSet::IsLabelFormat( const QString& filename )
 {
-  LABEL* label = ::LabelRead( NULL, qPrintable(filename) );
-  if ( label == NULL )
-  {
+  QFile file(filename);
+  if (!file.open(QIODevice::ReadOnly | QIODevice::Text))
     return false;
-  }
-  else
-  {
-    ::LabelFree( &label );
-    return true;
-  }
+
+  return file.readAll().contains("ascii label");
 }
 
 bool FSPointSet::ReadAsLabel( const QString& filename )
