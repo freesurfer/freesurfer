@@ -6,9 +6,9 @@
 /*
  * Original Authors: Sebastien Gicquel and Douglas Greve, 06/04/2001
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2012/01/23 22:20:58 $
- *    $Revision: 1.141 $
+ *    $Author: fischl $
+ *    $Date: 2012/02/01 15:57:06 $
+ *    $Revision: 1.142 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -4749,6 +4749,26 @@ MRI *DICOMRead2(const char *dcmfile, int LoadVolume)
   mri->xsize   = RefDCMInfo.xsize;
   mri->ysize   = RefDCMInfo.ysize;
   mri->zsize   = RefDCMInfo.SliceThickness;
+
+  if (getenv("FS_FIX_DICOMS"))
+  {
+    if (FZERO(mri->xsize))
+    {
+      mri->xsize = 1 ;
+      fprintf(stderr, "!!!!!!! DICOMread: mri->xsize == 0 - setting to 1 !!!!!!!\n");
+    }
+    if (FZERO(mri->ysize))
+    {
+      mri->ysize = 1 ;
+      fprintf(stderr, "!!!!!!! DICOMread: mri->ysize == 0 - setting to 1 !!!!!!!\n");
+    }
+    if (FZERO(mri->zsize))
+    {
+      mri->zsize = 1 ;
+      fprintf(stderr, "!!!!!!! DICOMread: mri->zsize == 0 - setting to 1 !!!!!!!\n");
+    }
+  }
+
   mri->x_r     = -RefDCMInfo.Vc[0];
   mri->x_a     = -RefDCMInfo.Vc[1];
   mri->x_s     = +RefDCMInfo.Vc[2];
@@ -4758,6 +4778,30 @@ MRI *DICOMRead2(const char *dcmfile, int LoadVolume)
   mri->z_r     = -RefDCMInfo.Vs[0];
   mri->z_a     = -RefDCMInfo.Vs[1];
   mri->z_s     = +RefDCMInfo.Vs[2];
+  if (getenv("FS_FIX_DICOMS"))
+  {
+    MATRIX *m ;
+    MRIreInitCache(mri);
+    m = MRIgetRasToVoxelXform(mri) ;
+    if (m == NULL)
+    {
+      fprintf(stderr, "!!!!!DICOMread: vox2ras not invertible!!!!!!\n") ;
+      mri->x_r     = 1 ; mri->x_a     = 0 ; mri->x_s     = 0 ;
+      mri->y_r     = 0 ; mri->y_a     = 1 ; mri->y_s     = 0 ;
+      mri->z_r     = 0 ; mri->z_a     = 0 ; mri->z_s     = 1 ;
+      MRIreInitCache(mri);
+    }
+    m = MRIgetVoxelToRasXform(mri) ;
+    if (m == NULL)
+    {
+      fprintf(stderr, "!!!!!DICOMread: ras2vox not invertible!!!!!!\n") ;
+      mri->x_r     = 1 ; mri->x_a     = 0 ; mri->x_s     = 0 ;
+      mri->y_r     = 0 ; mri->y_a     = 1 ; mri->y_s     = 0 ;
+      mri->z_r     = 0 ; mri->z_a     = 0 ; mri->z_s     = 1 ;
+      MRIreInitCache(mri);
+    }
+  }
+
 
   // Phase Enc Direction
   if(RefDCMInfo.PhEncDir == NULL) mri->pedir = strcpyalloc("UNKNOWN");
@@ -4973,6 +5017,12 @@ int DCMSliceDir(DICOMInfo **dcmfi_list, int nlist)
   // series, which should preserve slice order.
   printf("Vs: %g %g %g\n",d[0],d[1],d[2]);
   dlength = sqrt(d[0]*d[0] + d[1]*d[1] + d[2]*d[2]);
+  if (FZERO(dlength) && (getenv("FS_FIX_DICOMS")))
+  {
+    d[0] = 1.0 ;
+    fprintf(stderr, "!!!!!DICOMread: warning, direction cosines all zero!!!!!!!!\n") ;
+    dlength = 1 ;
+  }
   for (c=0; c < 3; c++) d[c] /= dlength;
 
   printf("Vs: %g %g %g\n",d[0],d[1],d[2]);
