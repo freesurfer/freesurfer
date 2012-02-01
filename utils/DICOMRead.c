@@ -7,8 +7,8 @@
  * Original Authors: Sebastien Gicquel and Douglas Greve, 06/04/2001
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2012/02/01 15:57:06 $
- *    $Revision: 1.142 $
+ *    $Date: 2012/02/01 15:58:31 $
+ *    $Revision: 1.143 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -4786,18 +4786,18 @@ MRI *DICOMRead2(const char *dcmfile, int LoadVolume)
     if (m == NULL)
     {
       fprintf(stderr, "!!!!!DICOMread: vox2ras not invertible!!!!!!\n") ;
-      mri->x_r     = 1 ; mri->x_a     = 0 ; mri->x_s     = 0 ;
-      mri->y_r     = 0 ; mri->y_a     = 1 ; mri->y_s     = 0 ;
-      mri->z_r     = 0 ; mri->z_a     = 0 ; mri->z_s     = 1 ;
+      mri->x_r     = -1 ; mri->x_a     = 0 ;  mri->x_s     = 0 ;
+      mri->y_r     = 0 ;  mri->y_a     = -1 ; mri->y_s     = 0 ;
+      mri->z_r     = 0 ;  mri->z_a     = 0 ;  mri->z_s     = -1 ;
       MRIreInitCache(mri);
     }
     m = MRIgetVoxelToRasXform(mri) ;
     if (m == NULL)
     {
       fprintf(stderr, "!!!!!DICOMread: ras2vox not invertible!!!!!!\n") ;
-      mri->x_r     = 1 ; mri->x_a     = 0 ; mri->x_s     = 0 ;
-      mri->y_r     = 0 ; mri->y_a     = 1 ; mri->y_s     = 0 ;
-      mri->z_r     = 0 ; mri->z_a     = 0 ; mri->z_s     = 1 ;
+      mri->x_r     = -1 ; mri->x_a     = 0 ;  mri->x_s     = 0 ;
+      mri->y_r     = 0 ;  mri->y_a     = -1 ; mri->y_s     = 0 ;
+      mri->z_r     = 0 ;  mri->z_a     = 0 ;  mri->z_s     = -1 ;
       MRIreInitCache(mri);
     }
   }
