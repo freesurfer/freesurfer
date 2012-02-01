@@ -7,11 +7,11 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2011/05/16 21:39:28 $
- *    $Revision: 1.76.2.2 $
+ *    $Author: nicks $
+ *    $Date: 2012/02/01 18:27:43 $
+ *    $Revision: 1.76.2.3 $
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -23,7 +23,7 @@
  *
  */
 
-char *MRI_INFO_VERSION = "$Revision: 1.76.2.2 $";
+char *MRI_INFO_VERSION = "$Revision: 1.76.2.3 $";
 
 #include <stdio.h>
 #include <sys/stat.h>
@@ -57,7 +57,8 @@ static void usage_exit(void);
 static void print_help(void) ;
 static void print_version(void) ;
 
-static char vcid[] = "$Id: mri_info.c,v 1.76.2.2 2011/05/16 21:39:28 greve Exp $";
+static char vcid[] =
+  "$Id: mri_info.c,v 1.76.2.3 2012/02/01 18:27:43 nicks Exp $";
 
 char *Progname ;
 static char *inputlist[100];
@@ -100,6 +101,7 @@ static int PrintSliceDirection = 0;
 static int PrintCRAS = 0;
 static int PrintP0 = 0;
 static int PrintEntropy = 0;
+static int PrintStats = 0;
 static int PrintVoxel = 0;
 static int PrintAutoAlign = 0;
 static int PrintCmds = 0;
@@ -113,13 +115,16 @@ static char *intypestr=NULL;
 
 
 /***-------------------------------------------------------****/
-int main(int argc, char *argv[]) {
+int main(int argc, char *argv[])
+{
   int nargs, index;
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option (argc, argv, vcid, "$Name:  $");
   if (nargs && argc - nargs == 1)
+  {
     exit (0);
+  }
   argc -= nargs;
 
   Progname = argv[0] ;
@@ -127,115 +132,293 @@ int main(int argc, char *argv[]) {
   argv++;
   ErrorInit(NULL, NULL, NULL) ;
   DiagInit(NULL, NULL, NULL) ;
-  if (argc == 0) usage_exit();
+  if (argc == 0)
+  {
+    usage_exit();
+  }
 
   parse_commandline(argc, argv);
   check_options();
 
-  if (PrintToFile) {
+  if (PrintToFile)
+  {
     fpout = fopen(outfile,"w");
-    if (fpout == NULL) {
+    if (fpout == NULL)
+    {
       printf("ERROR: could not open %s\n",outfile);
       exit(1);
     }
-  } else fpout = stdout;
+  }
+  else
+  {
+    fpout = stdout;
+  }
 
-  for (index=0;index<nthinput;index++) {
-    if (debug) printf("%d %s ----- \n",index,inputlist[index]);
+  for (index=0; index<nthinput; index++)
+  {
+    if (debug)
+    {
+      printf("%d %s ----- \n",index,inputlist[index]);
+    }
     do_file(inputlist[index]);
   }
-  if (PrintToFile) fclose(fpout);
+  if (PrintToFile)
+  {
+    fclose(fpout);
+  }
 
   exit(0);
 
 } /* end main() */
 
 /* ------------------------------------------------------------------ */
-static int parse_commandline(int argc, char **argv) {
+static int parse_commandline(int argc, char **argv)
+{
   int  nargc , nargsused;
   char **pargv, *option ;
 
-  if (argc < 1) usage_exit();
+  if (argc < 1)
+  {
+    usage_exit();
+  }
 
   nargc = argc;
   pargv = argv;
-  while (nargc > 0) {
-
+  while (nargc > 0)
+  {
     option = pargv[0];
-    if (debug) printf("%d %s\n",nargc,option);
+    if (debug)
+    {
+      printf("%d %s\n",nargc,option);
+    }
     nargc -= 1;
     pargv += 1;
 
     nargsused = 0;
 
-    if (!strcasecmp(option, "--help"))  print_help() ;
-    else if (!strcasecmp(option, "--version")) print_version() ;
-    else if (!strcasecmp(option, "--debug"))   debug = 1;
-    else if (!strcasecmp(option, "--tr"))   PrintTR = 1;
-    else if (!strcasecmp(option, "--te"))   PrintTE = 1;
-    else if (!strcasecmp(option, "--ti"))   PrintTI = 1;
-    else if (!strcasecmp(option, "--fa"))   PrintFlipAngle = 1;
-    else if (!strcasecmp(option, "--fad"))   PrintFlipAngleDeg = 1;
-    else if (!strcasecmp(option, "--flip_angle"))   PrintFlipAngle = 1;
-    else if (!strcasecmp(option, "--pedir"))   PrintPEDir = 1;
-
-    else if (!strcasecmp(option, "--cres"))    PrintCRes = 1;
-    else if (!strcasecmp(option, "--xsize"))   PrintCRes = 1;
-    else if (!strcasecmp(option, "--rres"))    PrintRRes = 1;
-    else if (!strcasecmp(option, "--ysize"))   PrintCRes = 1;
-    else if (!strcasecmp(option, "--sres"))    PrintSRes = 1;
-    else if (!strcasecmp(option, "--zsize"))   PrintCRes = 1;
-    else if (!strcasecmp(option, "--voxvol"))  PrintVoxVol = 1;
-    else if (!strcasecmp(option, "--type"))    PrintType = 1;
-    else if (!strcasecmp(option, "--conformed")) PrintConformed = 1;
-
-    else if (!strcasecmp(option, "--ncols"))     PrintNCols = 1;
-    else if (!strcasecmp(option, "--width"))     PrintNCols = 1;
-    else if (!strcasecmp(option, "--nrows"))     PrintNRows = 1;
-    else if (!strcasecmp(option, "--height"))    PrintNRows = 1;
-    else if (!strcasecmp(option, "--nslices"))   PrintNSlices = 1;
-    else if (!strcasecmp(option, "--depth"))     PrintNSlices = 1;
-    else if (!strcasecmp(option, "--dim"))       PrintDim = 1;
-    else if (!strcasecmp(option, "--res"))       PrintRes = 1;
-    else if (!strcasecmp(option, "--dof"))       PrintDOF = 1;
-
-    else if (!strcasecmp(option, "--cdc"))       PrintColDC = 1;
-    else if (!strcasecmp(option, "--rdc"))       PrintRowDC = 1;
-    else if (!strcasecmp(option, "--sdc"))       PrintSliceDC = 1;
-    else if (!strcasecmp(option, "--vox2ras"))   PrintVox2RAS = 1;
-    else if (!strcasecmp(option, "--ras2vox"))   PrintRAS2Vox = 1;
-    else if (!strcasecmp(option, "--vox2ras-tkr")) PrintVox2RAStkr = 1;
-    else if (!strcasecmp(option, "--ras2vox-tkr")) PrintRAS2Voxtkr = 1;
-    else if (!strcasecmp(option, "--vox2ras-fsl")) PrintVox2RASfsl = 1;
-    else if (!strcasecmp(option, "--tkr2scanner")) PrintTkr2Scanner = 1;
-    else if (!strcasecmp(option, "--scanner2tkr")) PrintScanner2Tkr = 1;
-    else if (!strcasecmp(option, "--ras_good"))   PrintRASGood = 1;
-    else if (!strcasecmp(option, "--cras"))      PrintCRAS = 1;
-    else if (!strcasecmp(option, "--p0"))        PrintP0 = 1;
-
-    else if (!strcasecmp(option, "--det"))     PrintDet = 1;
-
-    else if (!strcasecmp(option, "--nframes"))   PrintNFrames = 1;
-    else if (!strcasecmp(option, "--mid-frame"))   PrintMidFrame = 1;
-    else if (!strcasecmp(option, "--format")) PrintFormat = 1;
-    else if (!strcasecmp(option, "--orientation")) PrintOrientation = 1;
-    else if (!strcasecmp(option, "--slicedirection")) PrintSliceDirection = 1;
-    else if (!strcasecmp(option, "--autoalign")) PrintAutoAlign = 1;
-    else if (!strcasecmp(option, "--entropy")) PrintEntropy = 1;
-    else if (!strcasecmp(option, "--cmds")) PrintCmds = 1;
-    else if (!strcasecmp(option, "--o")) {
+    if (!strcasecmp(option, "--help"))
+    {
+      print_help() ;
+    }
+    else if (!strcasecmp(option, "--version"))
+    {
+      print_version() ;
+    }
+    else if (!strcasecmp(option, "--debug"))
+    {
+      debug = 1;
+    }
+    else if (!strcasecmp(option, "--tr"))
+    {
+      PrintTR = 1;
+    }
+    else if (!strcasecmp(option, "--te"))
+    {
+      PrintTE = 1;
+    }
+    else if (!strcasecmp(option, "--ti"))
+    {
+      PrintTI = 1;
+    }
+    else if (!strcasecmp(option, "--fa"))
+    {
+      PrintFlipAngle = 1;
+    }
+    else if (!strcasecmp(option, "--fad"))
+    {
+      PrintFlipAngleDeg = 1;
+    }
+    else if (!strcasecmp(option, "--flip_angle"))
+    {
+      PrintFlipAngle = 1;
+    }
+    else if (!strcasecmp(option, "--pedir"))
+    {
+      PrintPEDir = 1;
+    }
+    else if (!strcasecmp(option, "--cres"))
+    {
+      PrintCRes = 1;
+    }
+    else if (!strcasecmp(option, "--xsize"))
+    {
+      PrintCRes = 1;
+    }
+    else if (!strcasecmp(option, "--rres"))
+    {
+      PrintRRes = 1;
+    }
+    else if (!strcasecmp(option, "--ysize"))
+    {
+      PrintCRes = 1;
+    }
+    else if (!strcasecmp(option, "--sres"))
+    {
+      PrintSRes = 1;
+    }
+    else if (!strcasecmp(option, "--zsize"))
+    {
+      PrintCRes = 1;
+    }
+    else if (!strcasecmp(option, "--voxvol"))
+    {
+      PrintVoxVol = 1;
+    }
+    else if (!strcasecmp(option, "--type"))
+    {
+      PrintType = 1;
+    }
+    else if (!strcasecmp(option, "--conformed"))
+    {
+      PrintConformed = 1;
+    }
+    else if (!strcasecmp(option, "--ncols"))
+    {
+      PrintNCols = 1;
+    }
+    else if (!strcasecmp(option, "--width"))
+    {
+      PrintNCols = 1;
+    }
+    else if (!strcasecmp(option, "--nrows"))
+    {
+      PrintNRows = 1;
+    }
+    else if (!strcasecmp(option, "--height"))
+    {
+      PrintNRows = 1;
+    }
+    else if (!strcasecmp(option, "--nslices"))
+    {
+      PrintNSlices = 1;
+    }
+    else if (!strcasecmp(option, "--depth"))
+    {
+      PrintNSlices = 1;
+    }
+    else if (!strcasecmp(option, "--dim"))
+    {
+      PrintDim = 1;
+    }
+    else if (!strcasecmp(option, "--res"))
+    {
+      PrintRes = 1;
+    }
+    else if (!strcasecmp(option, "--dof"))
+    {
+      PrintDOF = 1;
+    }
+    else if (!strcasecmp(option, "--cdc"))
+    {
+      PrintColDC = 1;
+    }
+    else if (!strcasecmp(option, "--rdc"))
+    {
+      PrintRowDC = 1;
+    }
+    else if (!strcasecmp(option, "--sdc"))
+    {
+      PrintSliceDC = 1;
+    }
+    else if (!strcasecmp(option, "--vox2ras"))
+    {
+      PrintVox2RAS = 1;
+    }
+    else if (!strcasecmp(option, "--ras2vox"))
+    {
+      PrintRAS2Vox = 1;
+    }
+    else if (!strcasecmp(option, "--vox2ras-tkr"))
+    {
+      PrintVox2RAStkr = 1;
+    }
+    else if (!strcasecmp(option, "--ras2vox-tkr"))
+    {
+      PrintRAS2Voxtkr = 1;
+    }
+    else if (!strcasecmp(option, "--vox2ras-fsl"))
+    {
+      PrintVox2RASfsl = 1;
+    }
+    else if (!strcasecmp(option, "--tkr2scanner"))
+    {
+      PrintTkr2Scanner = 1;
+    }
+    else if (!strcasecmp(option, "--scanner2tkr"))
+    {
+      PrintScanner2Tkr = 1;
+    }
+    else if (!strcasecmp(option, "--ras_good"))
+    {
+      PrintRASGood = 1;
+    }
+    else if (!strcasecmp(option, "--cras"))
+    {
+      PrintCRAS = 1;
+    }
+    else if (!strcasecmp(option, "--p0"))
+    {
+      PrintP0 = 1;
+    }
+    else if (!strcasecmp(option, "--det"))
+    {
+      PrintDet = 1;
+    }
+    else if (!strcasecmp(option, "--nframes"))
+    {
+      PrintNFrames = 1;
+    }
+    else if (!strcasecmp(option, "--mid-frame"))
+    {
+      PrintMidFrame = 1;
+    }
+    else if (!strcasecmp(option, "--format"))
+    {
+      PrintFormat = 1;
+    }
+    else if (!strcasecmp(option, "--orientation"))
+    {
+      PrintOrientation = 1;
+    }
+    else if (!strcasecmp(option, "--slicedirection"))
+    {
+      PrintSliceDirection = 1;
+    }
+    else if (!strcasecmp(option, "--autoalign"))
+    {
+      PrintAutoAlign = 1;
+    }
+    else if (!strcasecmp(option, "--entropy"))
+    {
+      PrintEntropy = 1;
+    }
+    else if (!strcasecmp(option, "--stats"))
+    {
+      PrintStats = 1;
+    }
+    else if (!strcasecmp(option, "--cmds"))
+    {
+      PrintCmds = 1;
+    }
+    else if (!strcasecmp(option, "--o"))
+    {
       PrintToFile = 1;
       outfile = pargv[0];
       nargc --;
       pargv ++;
-    } else if (!strcasecmp(option, "-it") || 
-               !strcasecmp(option, "--in_type")) {
+    }
+    else if (!strcasecmp(option, "-it") ||
+             !strcasecmp(option, "--in_type"))
+    {
       intypestr = pargv[0];
       intype = string_to_type(intypestr);
       nargc --;
       pargv ++;
-    } else if (!strcasecmp(option, "--voxel")) {
-      if (nargc < 3) {
+    }
+    else if (!strcasecmp(option, "--voxel"))
+    {
+      if (nargc < 3)
+      {
         CMDargNErr(option, 3);
         exit(1);
       }
@@ -243,11 +426,15 @@ static int parse_commandline(int argc, char **argv) {
       sscanf(pargv[0],"%d",&VoxelCRS[0]);
       sscanf(pargv[1],"%d",&VoxelCRS[1]);
       sscanf(pargv[2],"%d",&VoxelCRS[2]);
-      if (Gdiag_no > 1) 
+      if (Gdiag_no > 1)
+      {
         printf("%d %d %d\n",VoxelCRS[0],VoxelCRS[1],VoxelCRS[2]);
+      }
       nargc -= 3;
       pargv += 3;
-    } else {
+    }
+    else
+    {
       // Must be an input volume
       inputlist[nthinput] = option;
       nthinput++;
@@ -258,7 +445,8 @@ static int parse_commandline(int argc, char **argv) {
   return(0);
 }
 /* --------------------------------------------- */
-static void print_usage(void) {
+static void print_usage(void)
+{
   printf("USAGE: %s fname1 <fname2> <options> \n",Progname) ;
   printf("\n");
   printf("   --conformed : print whether a volume is conformed stdout\n");
@@ -309,7 +497,8 @@ static void print_usage(void) {
   //printf("   --svol svol.img (structural volume)\n");
 }
 /* --------------------------------------------- */
-static void print_help(void) {
+static void print_help(void)
+{
   print_usage() ;
   printf(
     "\n"
@@ -326,46 +515,61 @@ static void print_help(void) {
   exit(1) ;
 }
 /* --------------------------------------------- */
-static void print_version(void) {
+static void print_version(void)
+{
   printf("%s\n", vcid) ;
   exit(1) ;
 }
 /* --------------------------------------------- */
-static void check_options(void) {
-  if (nthinput == 0) {
+static void check_options(void)
+{
+  if (nthinput == 0)
+  {
     printf("ERROR: no input volume supplied\n");
     exit(1);
   }
   return;
 }
 /* ------------------------------------------------------ */
-static void usage_exit(void) {
+static void usage_exit(void)
+{
   print_usage() ;
   exit(1) ;
 }
 
 /***-------------------------------------------------------****/
-int PrettyMatrixPrint(MATRIX *mat) {
+int PrettyMatrixPrint(MATRIX *mat)
+{
   int row;
 
   if (mat == NULL)
+  {
     ErrorReturn(ERROR_BADPARM,(ERROR_BADPARM, "mat = NULL!")) ;
+  }
 
   if (mat->type != MATRIX_REAL)
+  {
     ErrorReturn(ERROR_BADPARM,(ERROR_BADPARM, "mat is not Real type")) ;
+  }
 
   if (mat->rows != 4 || mat->cols != 4)
+  {
     ErrorReturn(ERROR_BADPARM,(ERROR_BADPARM, "mat is not of 4 x 4")) ;
+  }
 
   for (row=1; row < 5; ++row)
+  {
     printf("              %8.4f %8.4f %8.4f %10.4f\n",
            mat->rptr[row][1], mat->rptr[row][2],
            mat->rptr[row][3], mat->rptr[row][4]);
+  }
+
   return (NO_ERROR);
 }
 
 /***-------------------------------------------------------****/
-static void do_file(char *fname) {
+static void do_file(char *fname)
+{
   MRI *mri ;
   MATRIX *m, *minv, *m2, *m2inv, *p ;
   int r,c,s,f;
@@ -374,13 +578,16 @@ static void do_file(char *fname) {
   ostr[4] = '\0';
 
   if (!(strstr(fname, ".m3d") == 0 && strstr(fname, ".m3z") == 0
-        && strstr(fname, ".M3D") == 0 && strstr(fname, ".M3Z") == 0)
-     ) {
+     && strstr(fname, ".M3D") == 0 && strstr(fname, ".M3Z") == 0))
+  {
     fprintf(fpout,"Input file is a 3D morph.\n");
 
     gcam = NULL;
     gcam = GCAMread(fname);
-    if (!gcam) return;
+    if (!gcam)
+    {
+      return;
+    }
     fprintf(fpout,"3D morph source geometry:\n");
     vg_print(&gcam->image);
     fprintf(fpout,"3D morph atlas geometry:\n");
@@ -389,29 +596,44 @@ static void do_file(char *fname) {
     return;
   }
 
-  if (PrintFormat) {
+  if (PrintFormat)
+  {
     fprintf(fpout,"%s\n", type_to_string(mri_identify(fname)));
     return;
   }
-  if (!PrintVoxel && !PrintEntropy)  mri = MRIreadHeader(fname, intype) ;
-  else             mri = MRIread(fname);
-  if(!mri) exit(1); // should exit with error here
+  if (!PrintVoxel && !PrintEntropy && !PrintStats)
+  {
+    mri = MRIreadHeader(fname, intype) ;
+  }
+  else
+  {
+    mri = MRIread(fname);
+  }
+  if(!mri)
+  {
+    exit(1);  // should exit with error here
+  }
 
-  if (PrintTR) {
+  if (PrintTR)
+  {
     fprintf(fpout,"%g\n",mri->tr);
     return;
   }
-  if (PrintTE) {
+  if (PrintTE)
+  {
     fprintf(fpout,"%g\n",mri->te);
     return;
   }
-  if (PrintConformed) {
+  if (PrintConformed)
+  {
     fprintf(fpout,"%s\n",mriConformed(mri) ? "yes" : "no");
     return;
   }
 
-  if (PrintType) {
-    switch (mri->type) {
+  if (PrintType)
+  {
+    switch (mri->type)
+    {
     case MRI_UCHAR:
       fprintf(fpout,"uchar\n") ;
       break ;
@@ -435,104 +657,137 @@ static void do_file(char *fname) {
     }
     return;
   }
-  if (PrintTI) {
+  if (PrintTI)
+  {
     fprintf(fpout,"%g\n",mri->ti);
     return;
   }
 
-  if (PrintFlipAngle) {
+  if (PrintFlipAngle)
+  {
     fprintf(fpout,"%g\n",mri->flip_angle);
     return;
   }
-  if (PrintFlipAngleDeg) {
+  if (PrintFlipAngleDeg)
+  {
     fprintf(fpout,"%g\n",DEGREES(mri->flip_angle));
     return;
   }
-  if(PrintPEDir) {
-    if(mri->pedir) fprintf(fpout,"%s\n",mri->pedir);
-    else           fprintf(fpout,"UNKNOWN\n");
+  if(PrintPEDir)
+  {
+    if(mri->pedir)
+    {
+      fprintf(fpout,"%s\n",mri->pedir);
+    }
+    else
+    {
+      fprintf(fpout,"UNKNOWN\n");
+    }
     return;
   }
-  if (PrintCRes) {
+  if (PrintCRes)
+  {
     fprintf(fpout,"%g\n",mri->xsize);
     return;
   }
-  if (PrintRRes) {
+  if (PrintRRes)
+  {
     fprintf(fpout,"%g\n",mri->ysize);
     return;
   }
-  if (PrintSRes) {
+  if (PrintSRes)
+  {
     fprintf(fpout,"%g\n",mri->zsize);
     return;
   }
-  if (PrintVoxVol) {
+  if (PrintVoxVol)
+  {
     fprintf(fpout,"%g\n",mri->xsize*mri->ysize*mri->zsize);
     return;
   }
-  if (PrintNCols) {
+  if (PrintNCols)
+  {
     fprintf(fpout,"%d\n",mri->width);
     return;
   }
-  if (PrintNRows) {
+  if (PrintNRows)
+  {
     fprintf(fpout,"%d\n",mri->height);
     return;
   }
-  if (PrintNSlices) {
+  if (PrintNSlices)
+  {
     fprintf(fpout,"%d\n",mri->depth);
     return;
   }
-  if (PrintDim) {
-    fprintf(fpout,"%d %d %d %d\n",mri->width,mri->height,mri->depth,mri->nframes);
+  if (PrintDim)
+  {
+    fprintf(fpout,"%d %d %d %d\n",
+            mri->width,mri->height,mri->depth,mri->nframes);
     return;
   }
-  if (PrintRes) {
-    fprintf(fpout,"%5.3f %5.3f %5.3f %5.3f\n",mri->xsize,mri->ysize,mri->zsize,mri->tr);
+  if (PrintRes)
+  {
+    fprintf(fpout,"%5.3f %5.3f %5.3f %5.3f\n",
+            mri->xsize,mri->ysize,mri->zsize,mri->tr);
     return;
   }
-  if (PrintDOF) {
+  if (PrintDOF)
+  {
     fprintf(fpout,"%d\n",mri->dof);
     return;
   }
-  if (PrintNFrames) {
+  if (PrintNFrames)
+  {
     fprintf(fpout,"%d\n",mri->nframes);
     return;
   }
-  if (PrintMidFrame) {
+  if (PrintMidFrame)
+  {
     fprintf(fpout,"%d\n",nint(mri->nframes/2));
     return;
   }
-  if (PrintColDC) {
+  if (PrintColDC)
+  {
     fprintf(fpout,"%g %g %g\n",mri->x_r,mri->x_a,mri->x_s);
     return;
   }
-  if (PrintRowDC) {
+  if (PrintRowDC)
+  {
     fprintf(fpout,"%g %g %g\n",mri->y_r,mri->y_a,mri->y_s);
     return;
   }
-  if (PrintSliceDC) {
+  if (PrintSliceDC)
+  {
     fprintf(fpout,"%g %g %g\n",mri->z_r,mri->z_a,mri->z_s);
     return;
   }
-  if (PrintCRAS) {
+  if (PrintCRAS)
+  {
     fprintf(fpout,"%g %g %g\n",mri->c_r,mri->c_a,mri->c_s);
     return;
   }
-  if (PrintP0) {
+  if (PrintP0)
+  {
     m = MRIgetVoxelToRasXform(mri) ;
     fprintf(fpout,"%g %g %g\n",m->rptr[1][4],m->rptr[2][4],m->rptr[3][4]);
     MatrixFree(&m) ;
     return;
   }
-  if (PrintDet) {
+  if (PrintDet)
+  {
     m = MRIgetVoxelToRasXform(mri) ;
     fprintf(fpout,"%g\n",MatrixDeterminant(m));
     MatrixFree(&m) ;
     return;
   }
-  if (PrintVox2RAS) {
+  if (PrintVox2RAS)
+  {
     m = MRIgetVoxelToRasXform(mri) ;
-    for (r=1; r<=4; r++) {
-      for (c=1; c<=4; c++) {
+    for (r=1; r<=4; r++)
+    {
+      for (c=1; c<=4; c++)
+      {
         fprintf(fpout,"%10.5f ",m->rptr[r][c]);
       }
       fprintf(fpout,"\n");
@@ -540,15 +795,19 @@ static void do_file(char *fname) {
     MatrixFree(&m) ;
     return;
   }
-  if (PrintRASGood) {
+  if (PrintRASGood)
+  {
     fprintf(fpout,"%d\n",mri->ras_good_flag);
     return;
   }
-  if (PrintRAS2Vox) {
+  if (PrintRAS2Vox)
+  {
     m = MRIgetVoxelToRasXform(mri) ;
     minv = MatrixInverse(m,NULL);
-    for (r=1; r<=4; r++) {
-      for (c=1; c<=4; c++) {
+    for (r=1; r<=4; r++)
+    {
+      for (c=1; c<=4; c++)
+      {
         fprintf(fpout,"%10.5f ",minv->rptr[r][c]);
       }
       fprintf(fpout,"\n");
@@ -557,10 +816,13 @@ static void do_file(char *fname) {
     MatrixFree(&minv) ;
     return;
   }
-  if (PrintVox2RAStkr) {
+  if (PrintVox2RAStkr)
+  {
     m = MRIxfmCRS2XYZtkreg(mri);
-    for (r=1; r<=4; r++) {
-      for (c=1; c<=4; c++) {
+    for (r=1; r<=4; r++)
+    {
+      for (c=1; c<=4; c++)
+      {
         fprintf(fpout,"%10.5f ",m->rptr[r][c]);
       }
       fprintf(fpout,"\n");
@@ -568,11 +830,14 @@ static void do_file(char *fname) {
     MatrixFree(&m) ;
     return;
   }
-  if (PrintRAS2Voxtkr) {
+  if (PrintRAS2Voxtkr)
+  {
     m = MRIxfmCRS2XYZtkreg(mri);
     m = MatrixInverse(m,m);
-    for (r=1; r<=4; r++) {
-      for (c=1; c<=4; c++) {
+    for (r=1; r<=4; r++)
+    {
+      for (c=1; c<=4; c++)
+      {
         fprintf(fpout,"%10.5f ",m->rptr[r][c]);
       }
       fprintf(fpout,"\n");
@@ -580,13 +845,16 @@ static void do_file(char *fname) {
     MatrixFree(&m) ;
     return;
   }
-  if (PrintTkr2Scanner) {
+  if (PrintTkr2Scanner)
+  {
     m = MRIxfmCRS2XYZ(mri,0);
     m2 = MRIxfmCRS2XYZtkreg(mri);
     m2inv = MatrixInverse(m2,NULL);
     p = MatrixMultiply(m,m2inv,NULL);
-    for (r=1; r<=4; r++) {
-      for (c=1; c<=4; c++) {
+    for (r=1; r<=4; r++)
+    {
+      for (c=1; c<=4; c++)
+      {
         fprintf(fpout,"%10.5f ",p->rptr[r][c]);
       }
       fprintf(fpout,"\n");
@@ -597,10 +865,13 @@ static void do_file(char *fname) {
     MatrixFree(&p) ;
     return;
   }
-  if(PrintScanner2Tkr) {
+  if(PrintScanner2Tkr)
+  {
     p = surfaceRASFromRAS_(mri);
-    for (r=1; r<=4; r++) {
-      for (c=1; c<=4; c++) {
+    for (r=1; r<=4; r++)
+    {
+      for (c=1; c<=4; c++)
+      {
         fprintf(fpout,"%10.5f ",p->rptr[r][c]);
       }
       fprintf(fpout,"\n");
@@ -608,10 +879,13 @@ static void do_file(char *fname) {
     MatrixFree(&p) ;
     return;
   }
-  if (PrintVox2RASfsl) {
+  if (PrintVox2RASfsl)
+  {
     m = MRIxfmCRS2XYZfsl(mri);
-    for (r=1; r<=4; r++) {
-      for (c=1; c<=4; c++) {
+    for (r=1; r<=4; r++)
+    {
+      for (c=1; c<=4; c++)
+      {
         fprintf(fpout,"%10.5f ",m->rptr[r][c]);
       }
       fprintf(fpout,"\n");
@@ -619,43 +893,89 @@ static void do_file(char *fname) {
     MatrixFree(&m) ;
     return;
   }
-  if (PrintOrientation) {
+  if (PrintOrientation)
+  {
     MRIdircosToOrientationString(mri,ostr);
     fprintf(fpout,"%s\n",ostr);
     return;
   }
-  if (PrintSliceDirection) {
+  if (PrintSliceDirection)
+  {
     fprintf(fpout,"%s\n",MRIsliceDirectionName(mri));
     return;
   }
-  if (PrintAutoAlign) {
-    if(mri->AutoAlign == NULL){
+  if (PrintAutoAlign)
+  {
+    if(mri->AutoAlign == NULL)
+    {
       fprintf(fpout,"No auto align matrix present\n");
       return;
     }
     MatrixPrintFmt(fpout,"%10f",mri->AutoAlign);
     return;
   }
-	if (PrintEntropy) {
-	  HISTOGRAM * h = MRIhistogram(mri, 256) ;
-		double e = HISTOgetEntropy(h);
+  if (PrintEntropy)
+  {
+    HISTOGRAM * h = MRIhistogram(mri, 256) ;
+    double e = HISTOgetEntropy(h);
     fprintf(fpout,"%f\n",e);
-		HISTOfree(&h);
-		return;
-	}
-  if (PrintVoxel) {
+    HISTOfree(&h);
+    return;
+  }
+  if (PrintStats)
+  {
+    int w = mri->width;
+    int h = mri->height;
+    int d = mri->depth;
+    int x,y,z;
+    double min;
+    double max;
+    double mean;
+    double val;
+    for (f = 0; f<mri->nframes; f++)
+    {
+      min = MRIgetVoxVal(mri,0,0,0,f);
+      max = MRIgetVoxVal(mri,0,0,0,f);
+      mean = 0.0;
+      for (z = 0; z<d; z++)
+        for (y = 0; y<h; y++)
+          for (x = 0; x<w; x++)
+          {
+            val = MRIgetVoxVal(mri,x,y,z,f);
+            mean += val;
+            if (val < min)
+            {
+              min = val;
+            }
+            if (val > max)
+            {
+              max = val;
+            }
+          }
+      mean/=(d*h*w); //bad way but no time to do it better now...
+      fprintf(fpout,"frame %i:  min %f  max %f  mean %f\n",f,min,max,mean);
+    }
+    return;
+
+  }
+  if (PrintVoxel)
+  {
     c = VoxelCRS[0];
     r = VoxelCRS[1];
     s = VoxelCRS[2];
     for (f=0; f<mri->nframes; f++)
+    {
       fprintf(fpout,"%f\n",MRIgetVoxVal(mri,c,r,s,f));
+    }
     return;
   }
-  if (PrintCmds) {
+  if (PrintCmds)
+  {
     int i;
     //if (mri->ncmds) printf("\nCommand history (provenance):\n");
     printf("\n");
-    for (i=0; i < mri->ncmds; i++) {
+    for (i=0; i < mri->ncmds; i++)
+    {
       printf("%s\n\n",mri->cmdlines[i]);
     }
     return;
@@ -666,11 +986,15 @@ static void do_file(char *fname) {
   // and thus I have to call it again
   printf("          type: %s\n", type_to_string(mri_identify(fname)));
   if (mri->nframes > 1)
+  {
     printf("    dimensions: %d x %d x %d x %d\n",
            mri->width, mri->height, mri->depth, mri->nframes) ;
+  }
   else
+  {
     printf("    dimensions: %d x %d x %d\n",
            mri->width, mri->height, mri->depth) ;
+  }
   printf("   voxel sizes: %6.4f, %6.4f, %6.4f\n",
          mri->xsize, mri->ysize, mri->zsize) ;
   printf("          type: %s (%d)\n",
@@ -699,8 +1023,14 @@ static void do_file(char *fname) {
          "flip angle: %2.2f degrees\n",
          mri->tr, mri->te, mri->ti, DEGREES(mri->flip_angle)) ;
   printf("       nframes: %d\n", mri->nframes) ;
-  if(mri->pedir) printf("       PhEncDir: %s\n", mri->pedir);
-  else           printf("       PhEncDir: UNKNOWN\n");
+  if(mri->pedir)
+  {
+    printf("       PhEncDir: %s\n", mri->pedir);
+  }
+  else
+  {
+    printf("       PhEncDir: UNKNOWN\n");
+  }
   printf("ras xform %spresent\n", mri->ras_good_flag ? "" : "not ") ;
   printf("    xform info: x_r = %8.4f, y_r = %8.4f, z_r = %8.4f, "
          "c_r = %10.4f\n",
@@ -713,13 +1043,19 @@ static void do_file(char *fname) {
          mri->x_s, mri->y_s, mri->z_s, mri->c_s);
 
   if (fio_IsDirectory(fname))
+  {
     printf("\ntalairach xfm : %s\n", mri->transform_fname);
-  else {
+  }
+  else
+  {
     char *ext = 0;
     ext = fio_extension(fname);
-    if (ext) {
+    if (ext)
+    {
       if (strcmp(ext, "mgz") == 0 || strcmp(ext, "mgh")==0)
+      {
         printf("\ntalairach xfm : %s\n", mri->transform_fname);
+      }
       free(ext);
     }
   }
@@ -736,8 +1072,13 @@ static void do_file(char *fname) {
   PrettyMatrixPrint(m);
   MatrixFree(&m);
 
+  // embedded colortable info:
   if (mri->ct)
+  {
     CTABprintASCII(mri->ct, stdout) ;
+  }
+
+  // multi-frame info:
   {
     int i ;
     for (i = 0 ; i < mri->nframes ; i++)
@@ -754,23 +1095,40 @@ static void do_file(char *fname) {
           (!FZERO(frame->flip)) ||
           (frame->label != 0) ||
           (!FZERO(frame->thresh)))
+      {
         frame_valid = 1 ;
+      }
 
       if (frame_valid == 0)
+      {
         continue ;
+      }
       printf("frame %d info:\n", i) ;
       if (frame->type != 0)
+      {
         printf("\ttype = %d\n", frame->type) ;
+      }
       if (!FZERO(frame->TE))
+      {
         printf("\tTE = %2.1fms\n", frame->TE) ;
+      }
       if (!FZERO(frame->TR))
+      {
         printf("\tTR = %2.1fms\n", frame->TR) ;
+      }
       if (!FZERO(frame->flip))
+      {
         printf("\tflip angle = %2.1f deg\n", DEGREES(frame->flip)) ;
+      }
       if (frame->label != 0)
-        printf("\tlabel = %s (%d)\n", cma_label_to_name(frame->label), frame->label) ;
+      {
+        printf("\tlabel = %s (%d)\n",
+               cma_label_to_name(frame->label), frame->label) ;
+      }
       if (!FZERO(frame->thresh))
+      {
         printf("\tthresh = %2.1f\n", frame->thresh) ;
+      }
     }
   }
 
