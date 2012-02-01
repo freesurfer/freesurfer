@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2012/01/25 18:53:50 $
- *    $Revision: 1.719 $
+ *    $Date: 2012/02/01 18:08:54 $
+ *    $Revision: 1.720 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -733,7 +733,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void)
 {
-  return("$Id: mrisurf.c,v 1.719 2012/01/25 18:53:50 greve Exp $");
+  return("$Id: mrisurf.c,v 1.720 2012/02/01 18:08:54 greve Exp $");
 }
 
 /*-----------------------------------------------------
@@ -1172,16 +1172,11 @@ MRI_SURFACE *MRISreadOverAlloc(const char *fname, double pct_over)
 
   // Check whether there is an area file for group average
   sprintf(tmpstr,"%s.avg.area.mgh",fname);
-  printf("Trying to read average area %s\n",tmpstr);
-  if (fio_FileExistsReadable(tmpstr))
-  {
-    if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
-    {
-      fprintf(stdout,"Reading in average area %s\n",tmpstr);
-    }
+  if(Gdiag_no > 0) printf("Trying to read average area %s\n",tmpstr);
+  if (fio_FileExistsReadable(tmpstr)){
+    printf("Reading in average area %s\n",tmpstr);
     mri = MRIread(tmpstr);
-    if (!mri)
-    {
+    if (!mri){
       printf("ERROR: reading in average area %s\n",tmpstr);
       return(NULL);
     }
@@ -1190,8 +1185,7 @@ MRI_SURFACE *MRISreadOverAlloc(const char *fname, double pct_over)
     mris->group_avg_vtxarea_loaded=1;
   }
   else mris->group_avg_vtxarea_loaded=0;
-  printf("Average area loaded %d\n",mris->group_avg_vtxarea_loaded);
-
+  if(Gdiag_no > 0) printf("Average area loaded %d\n",mris->group_avg_vtxarea_loaded);
 
   return(mris) ;
 }
