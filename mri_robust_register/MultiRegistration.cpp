@@ -14,8 +14,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2011/11/17 02:55:15 $
- *    $Revision: 1.39 $
+ *    $Date: 2012/02/06 23:05:25 $
+ *    $Revision: 1.40 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -109,9 +109,9 @@ unsigned int MultiRegistration::getSeed()
       if (xdown >= 0 ) seed+= MRIvox(mri_mov[i],xdown,y,z);
       if (ydown >= 0 ) seed+= MRIvox(mri_mov[i],x,ydown,z);
       if (zdown >= 0 ) seed+= MRIvox(mri_mov[i],x,y,zdown);
-      if (xdown < mri_mov[i]->width ) seed+= MRIvox(mri_mov[i],xup,y,z);
-      if (ydown < mri_mov[i]->height) seed+= MRIvox(mri_mov[i],x,yup,z);
-      if (zdown < mri_mov[i]->depth ) seed+= MRIvox(mri_mov[i],x,y,zup);
+      if (xup < mri_mov[i]->width ) seed+= MRIvox(mri_mov[i],xup,y,z);
+      if (yup < mri_mov[i]->height) seed+= MRIvox(mri_mov[i],x,yup,z);
+      if (zup < mri_mov[i]->depth ) seed+= MRIvox(mri_mov[i],x,y,zup);
       
     }
   }
