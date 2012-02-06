@@ -8,9 +8,9 @@
 # Process this file with autoconf to produce a configure script.
 #
 # CVS Revision Info:
-#    $Author: nicks $
-#    $Date: 2012/01/31 23:03:58 $
-#    $Revision: 1.560 $
+#    $Author: krish $
+#    $Date: 2012/02/06 21:03:59 $
+#    $Revision: 1.561 $
 #
 ########################################################################
 AC_PREREQ(2.57)
@@ -3365,6 +3365,7 @@ AC_OUTPUT([Makefile
            dmri_tensoreig/Makefile
            dngtester/Makefile
            dummy/Makefile
+           dummy_qt/Makefile
            expat/Makefile
            fem_elastic/Makefile
            fsfast/Makefile

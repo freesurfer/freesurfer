@@ -309,6 +309,7 @@ MISCDIRS=\
 	test_makevol \
 	images \
 	dummy \
+	dummy_qt \
 	fem_elastic \
 	hiam_make_surfaces\
 	hiam_make_template\

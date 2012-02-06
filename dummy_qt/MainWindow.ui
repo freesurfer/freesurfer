@@ -1,0 +1,236 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>MainWindow</class>
+ <widget class="QMainWindow" name="MainWindow">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>347</width>
+    <height>312</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>mri_convert</string>
+  </property>
+  <widget class="QWidget" name="centralWidget">
+   <layout class="QVBoxLayout" name="verticalLayout">
+    <item>
+     <layout class="QGridLayout" name="gridLayout">
+      <item row="0" column="0">
+       <widget class="QLabel" name="label">
+        <property name="text">
+         <string>Input</string>
+        </property>
+       </widget>
+      </item>
+      <item row="0" column="1">
+       <widget class="QLineEdit" name="lineEditInput"/>
+      </item>
+      <item row="0" column="2">
+       <widget class="QToolButton" name="toolButtonInput">
+        <property name="text">
+         <string>Open</string>
+        </property>
+        <property name="icon">
+         <iconset resource="dummy_qt.qrc">
+          <normaloff>:/images/file_open_16.png</normaloff>:/images/file_open_16.png</iconset>
+        </property>
+       </widget>
+      </item>
+      <item row="1" column="0">
+       <widget class="QLabel" name="label_2">
+        <property name="text">
+         <string>Output</string>
+        </property>
+       </widget>
+      </item>
+      <item row="1" column="1">
+       <widget class="QLineEdit" name="lineEditOutput"/>
+      </item>
+      <item row="1" column="2">
+       <widget class="QToolButton" name="toolButtonOutput">
+        <property name="text">
+         <string>Open</string>
+        </property>
+        <property name="icon">
+         <iconset resource="dummy_qt.qrc">
+          <normaloff>:/images/file_open_16.png</normaloff>:/images/file_open_16.png</iconset>
+        </property>
+       </widget>
+      </item>
+     </layout>
+    </item>
+    <item>
+     <spacer name="verticalSpacer">
+      <property name="orientation">
+       <enum>Qt::Vertical</enum>
+      </property>
+      <property name="sizeType">
+       <enum>QSizePolicy::Fixed</enum>
+      </property>
+      <property name="sizeHint" stdset="0">
+       <size>
+        <width>20</width>
+        <height>10</height>
+       </size>
+      </property>
+     </spacer>
+    </item>
+    <item>
+     <layout class="QHBoxLayout" name="horizontalLayout">
+      <item>
+       <widget class="QPushButton" name="pushButtonRun">
+        <property name="enabled">
+         <bool>false</bool>
+        </property>
+        <property name="text">
+         <string>Run</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <spacer name="horizontalSpacer">
+        <property name="orientation">
+         <enum>Qt::Horizontal</enum>
+        </property>
+        <property name="sizeHint" stdset="0">
+         <size>
+          <width>40</width>
+          <height>20</height>
+         </size>
+        </property>
+       </spacer>
+      </item>
+      <item>
+       <widget class="QPushButton" name="pushButtonAbort">
+        <property name="enabled">
+         <bool>false</bool>
+        </property>
+        <property name="text">
+         <string>Abort</string>
+        </property>
+       </widget>
+      </item>
+     </layout>
+    </item>
+    <item>
+     <widget class="QTextEdit" name="textEditLog">
+      <property name="readOnly">
+       <bool>true</bool>
+      </property>
+     </widget>
+    </item>
+   </layout>
+  </widget>
+ </widget>
+ <layoutdefault spacing="6" margin="11"/>
+ <resources>
+  <include location="dummy_qt.qrc"/>
+ </resources>
+ <connections>
+  <connection>
+   <sender>toolButtonInput</sender>
+   <signal>clicked()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>OnButtonOpenInput()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>324</x>
+     <y>26</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>493</x>
+     <y>28</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>toolButtonOutput</sender>
+   <signal>clicked()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>OnButtonOpenOutput()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>332</x>
+     <y>67</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>463</x>
+     <y>84</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>pushButtonRun</sender>
+   <signal>clicked()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>OnButtonRun()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>58</x>
+     <y>111</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>-8</x>
+     <y>127</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>pushButtonAbort</sender>
+   <signal>clicked()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>OnButtonAbort()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>313</x>
+     <y>113</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>637</x>
+     <y>178</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>lineEditInput</sender>
+   <signal>textChanged(QString)</signal>
+   <receiver>MainWindow</receiver>
+   <slot>UpdateStatus()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>137</x>
+     <y>26</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>122</x>
+     <y>383</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>lineEditOutput</sender>
+   <signal>textChanged(QString)</signal>
+   <receiver>MainWindow</receiver>
+   <slot>UpdateStatus()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>186</x>
+     <y>71</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>213</x>
+     <y>443</y>
+    </hint>
+   </hints>
+  </connection>
+ </connections>
+ <slots>
+  <slot>OnButtonOpenInput()</slot>
+  <slot>OnButtonOpenOutput()</slot>
+  <slot>OnButtonRun()</slot>
+  <slot>OnButtonAbort()</slot>
+  <slot>UpdateStatus()</slot>
+ </slots>
+</ui>
