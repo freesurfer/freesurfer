@@ -26,6 +26,7 @@ freesurfer/bin/recon-all-nmr
 freesurfer/bin/recon-all-dev
 freesurfer/bin/dngtester
 freesurfer/bin/dummy
+freesurfer/bin/dummy_qt
 freesurfer/bin/plotter
 freesurfer/bin/plotter.app
 freesurfer/bin/paint
