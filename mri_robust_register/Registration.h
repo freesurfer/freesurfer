@@ -8,8 +8,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2011/12/12 22:15:52 $
- *    $Revision: 1.50 $
+ *    $Date: 2012/02/06 23:05:55 $
+ *    $Revision: 1.51 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -512,6 +512,8 @@ void Registration::iterativeRegistrationHelper( int nmax,double epsit, MRI * mri
 	
   } // end while loop
   
+  // adjust converged (don't tell the outside about intensiy problems)
+  converged = (diff <= epsit);
   
   if (mri_hweights) MRIfree(&mri_hweights);
   if (costfun == ROB)
