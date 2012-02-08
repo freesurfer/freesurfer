@@ -9,10 +9,10 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2012/01/31 23:37:03 $
- *    $Revision: 1.7 $
+ *    $Date: 2012/02/08 20:33:17 $
+ *    $Revision: 1.8 $
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -54,11 +54,10 @@ static char sdir[STRLEN] = "";
 #define EDIT_WM_ON            2
 #define EDIT_BRAIN_OFF        3
 #define EDIT_BRAIN_ON         4
-#define EDIT_BRAINMASK_OFF    5
-#define EDIT_BRAINMASK_ON     6
-#define EDIT_FINALSURFS_OFF   7
-#define EDIT_FINALSURFS_ON    8
-#define EDIT_ASEG_CHANGED     9
+#define EDIT_BM_CHANGED       5 // brainmask.mgz changed
+#define EDIT_FINALSURFS_OFF   6
+#define EDIT_FINALSURFS_ON    7
+#define EDIT_ASEG_CHANGED     8
 #define CTAB_ENTRIES          EDIT_ASEG_CHANGED+1
 
 int
@@ -68,7 +67,7 @@ main(int argc, char *argv[])
   int          ac, nargs, i ;
   char         *subject, *cp, mdir[STRLEN], *out_fname, *name ;
   int          r, g, b, nedits = 0 ;
-  MRI          *mri=NULL, *mri_edits=NULL, *mri_aseg_auto=NULL;
+  MRI          *mri=NULL,*mri_edits=NULL,*mri_aseg_auto=NULL,*mri_bm_auto=NULL;
   FILE         *ctfp;
 
   // default output file name:
@@ -77,7 +76,7 @@ main(int argc, char *argv[])
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
     (argc, argv,
-     "$Id: mri_compile_edits.c,v 1.7 2012/01/31 23:37:03 nicks Exp $",
+     "$Id: mri_compile_edits.c,v 1.8 2012/02/08 20:33:17 nicks Exp $",
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -129,13 +128,15 @@ main(int argc, char *argv[])
                                       mri_edits,
                                       WM_EDITED_OFF_VAL,
                                       EDIT_BRAIN_OFF) ;
-    edits += MRIsetVoxelsWithValue(mri,
-                                   mri_edits,
-                                   WM_EDITED_ON_VAL,
-                                   EDIT_BRAIN_ON) ;
+    if (edits) printf("Found %d OFF edits in brain.mgz\n",edits);
+    nedits += edits;
+    edits = MRIsetVoxelsWithValue(mri,
+                                  mri_edits,
+                                  WM_EDITED_ON_VAL,
+                                  EDIT_BRAIN_ON) ;
+    if (edits) printf("Found %d ON edits in brain.mgz\n",edits);
     nedits += edits;
     MRIfree(&mri) ;
-    if (edits) printf("Found %d edits in brain.mgz\n",edits);
     fflush(stdout);
   }
 
@@ -151,12 +152,14 @@ main(int argc, char *argv[])
                                       mri_edits,
                                       WM_EDITED_OFF_VAL,
                                       EDIT_WM_OFF) ;
-    edits += MRIsetVoxelsWithValue(mri, mri_edits,
-                                   WM_EDITED_ON_VAL,
-                                   EDIT_WM_ON) ;
+    if (edits) printf("Found %d OFF edits in wm.mgz\n",edits);
+    nedits += edits;
+    edits = MRIsetVoxelsWithValue(mri, mri_edits,
+                                  WM_EDITED_ON_VAL,
+                                  EDIT_WM_ON) ;
+    if (edits) printf("Found %d ON edits in wm.mgz\n",edits);
     nedits += edits;
     MRIfree(&mri) ;
-    if (edits) printf("Found %d edits in wm.mgz\n",edits);
     fflush(stdout);
   }
 
@@ -168,17 +171,20 @@ main(int argc, char *argv[])
   if (mri)
   {
     if(NULL == mri_edits) mri_edits = MRIclone(mri, NULL) ;
-    int edits = MRIsetVoxelsWithValue(mri,
-                                      mri_edits,
-                                      WM_EDITED_OFF_VAL,
-                                      EDIT_BRAINMASK_OFF) ;
-    edits += MRIsetVoxelsWithValue(mri, mri_edits,
-                                   WM_EDITED_ON_VAL,
-                                   EDIT_BRAINMASK_ON) ;
-    nedits += edits;
-    MRIfree(&mri) ;
-    if (edits) printf("Found %d edits in brainmask.mgz\n",edits);
-    fflush(stdout);
+    sprintf(fname, "%s/brainmask.auto.mgz", mdir) ;
+    mri_bm_auto = MRIread(fname) ;
+    if (mri_bm_auto)
+    {
+      int edits = MRIsetDifferentVoxelsWithValue(mri,
+                                                 mri_bm_auto,
+                                                 mri_edits,
+                                                 EDIT_BM_CHANGED);
+      nedits += edits;
+      MRIfree(&mri) ;
+      MRIfree(&mri_bm_auto) ;
+      if (edits) printf("Found %d edits in brainmask.mgz\n",edits);
+      fflush(stdout);
+    }
   }
 
   /*
@@ -193,13 +199,15 @@ main(int argc, char *argv[])
                                       mri_edits,
                                       WM_EDITED_OFF_VAL,
                                       EDIT_FINALSURFS_OFF) ;
-    edits += MRIsetVoxelsWithValue(mri,
-                                   mri_edits,
-                                   WM_EDITED_ON_VAL,
-                                   EDIT_FINALSURFS_ON) ;
+    if (edits) printf("Found %d OFF edits in brain.finalsurfs.mgz\n",edits);
+    nedits += edits;
+    edits = MRIsetVoxelsWithValue(mri,
+                                  mri_edits,
+                                  WM_EDITED_ON_VAL,
+                                  EDIT_FINALSURFS_ON) ;
+    if (edits) printf("Found %d ON edits in brain.finalsurfs.mgz\n",edits);
     nedits += edits;
     MRIfree(&mri) ;
-    if (edits) printf("Found %d edits in brain.finalsurfs.mgz\n",edits);
     fflush(stdout);
   }
 
@@ -259,17 +267,11 @@ main(int argc, char *argv[])
         g = 255 ;
         b = 0 ;
         break ;
-      case EDIT_BRAINMASK_OFF:
-        name = "brainmask-OFF" ;
+      case EDIT_BM_CHANGED:
+        name = "brainmask-CHANGED" ;
         r = 0 ;
         g = 64 ;
         b = 255 ;
-        break ;
-      case EDIT_BRAINMASK_ON:
-        name = "brainmask-ON" ;
-        r = 255 ;
-        g = 26 ;
-        b = 0 ;
         break ;
       case EDIT_FINALSURFS_OFF:
         name = "brain.finalsurf-OFF" ;
