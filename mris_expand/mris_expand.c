@@ -9,8 +9,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2011/12/13 19:43:19 $
- *    $Revision: 1.14 $
+ *    $Date: 2012/02/08 22:34:43 $
+ *    $Revision: 1.15 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -74,7 +74,7 @@ main(int argc, char *argv[])
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
     (argc, argv,
-     "$Id: mris_expand.c,v 1.14 2011/12/13 19:43:19 fischl Exp $",
+     "$Id: mris_expand.c,v 1.15 2012/02/08 22:34:43 fischl Exp $",
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -137,8 +137,11 @@ main(int argc, char *argv[])
   if (navgs > 0)
     MRISaverageVertexPositions(mris, navgs) ;
 #endif
-  printf("writing expanded surface to %s...\n", out_fname) ;
-  MRISwrite(mris, out_fname) ;
+  if (nsurfaces == 1)
+  {
+    printf("writing expanded surface to %s...\n", out_fname) ;
+    MRISwrite(mris, out_fname) ;
+  }
 
   msec = TimerStop(&start) ;
   seconds = nint((float)msec/1000.0f) ;
