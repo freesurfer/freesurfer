@@ -11,8 +11,8 @@
  * Original Author: Douglas Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2011/12/15 17:31:37 $
- *    $Revision: 1.94 $
+ *    $Date: 2012/02/08 20:44:33 $
+ *    $Revision: 1.95 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -278,6 +278,7 @@ ENDHELP
 #include <stdlib.h>
 #include <math.h>
 #include <string.h>
+#include <unistd.h>
 
 #include "mri.h"
 #include "icosahedron.h"
@@ -348,7 +349,7 @@ MATRIX *MRIleftRightRevMatrix(MRI *mri);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_surf2surf.c,v 1.94 2011/12/15 17:31:37 greve Exp $";
+static char vcid[] = "$Id: mri_surf2surf.c,v 1.95 2012/02/08 20:44:33 greve Exp $";
 char *Progname = NULL;
 
 char *srcsurfregfile = NULL;
@@ -369,7 +370,7 @@ int SrcIcoOrder = -1;
 
 int UseSurfSrc=0; // Get source values from surface, eg, xyz
 char *SurfSrcName=NULL;
-MRI_SURFACE *SurfSrc;
+MRI_SURFACE *SurfSrc, *SurfTrg;
 MATRIX *XFM=NULL, *XFMSubtract=NULL;
 #define SURF_SRC_XYZ     1
 #define SURF_SRC_TAL_XYZ 2
@@ -450,6 +451,10 @@ int ConvGaussian = 0;
 int UseDualHemi = 0; // Assume ?h.?h.surfreg file name, source only
 MRI *RegTarg = NULL;
 int UseOldSurf2Surf = 1;
+char *PatchFile=NULL, *SurfTargName=NULL;
+int nPatchDil=0;
+struct utsname uts;
+char *cmdline, cwd[2000];
 
 /*---------------------------------------------------------------------------*/
 int main(int argc, char **argv)
@@ -472,12 +477,13 @@ int main(int argc, char **argv)
   /* rkt: check for and handle version tag */
   nargs = handle_version_option (
     argc, argv,
-    "$Id: mri_surf2surf.c,v 1.94 2011/12/15 17:31:37 greve Exp $",
+    "$Id: mri_surf2surf.c,v 1.95 2012/02/08 20:44:33 greve Exp $",
     "$Name:  $");
-  if (nargs && argc - nargs == 1) {
-    exit (0);
-  }
+  if (nargs && argc - nargs == 1) exit (0);
   argc -= nargs;
+  cmdline = argv2cmdline(argc,argv);
+  uname(&uts);
+  getcwd(cwd,2000);
 
   Progname = argv[0] ;
   argc --;
@@ -489,9 +495,7 @@ int main(int argc, char **argv)
   //MRISwrite(SrcSurfReg,"lh.ico7");
   //exit(1);
 
-  if (argc == 0) {
-    usage_exit();
-  }
+  if (argc == 0) usage_exit();
 
   SUBJECTS_DIR = getenv("SUBJECTS_DIR");
   if (SUBJECTS_DIR==NULL) {
@@ -567,9 +571,8 @@ int main(int argc, char **argv)
     if (fio_FileExistsReadable(srcvalfile)) {
       memset(fname,0,strlen(srcvalfile)+1);
       memmove(fname,srcvalfile,strlen(srcvalfile));
-    } else
-      sprintf(fname,"%s/%s/surf/%s.%s",
-              SUBJECTS_DIR,srcsubject,srchemi,srcvalfile);
+    } 
+    else sprintf(fname,"%s/%s/surf/%s.%s",SUBJECTS_DIR,srcsubject,srchemi,srcvalfile);
     printf("Reading curvature file %s\n",fname);
     if (MRISreadCurvatureFile(SrcSurfReg, fname) != 0) {
       printf("ERROR: reading curvature file\n");
@@ -579,14 +582,23 @@ int main(int argc, char **argv)
   } else if (!strcmp(srctypestring,"paint") || !strcmp(srctypestring,"w")) {
     MRISreadValues(SrcSurfReg,srcvalfile);
     SrcVals = MRIcopyMRIS(NULL, SrcSurfReg, 0, "val");
-  } else if (UseSurfSrc) {
-    sprintf(fname,"%s/%s/surf/%s.%s",
-            SUBJECTS_DIR,srcsubject,srchemi,SurfSrcName);
+  } 
+  else if (UseSurfSrc) {
+    if(PatchFile) SurfSrcName = srcsurfregfile;
+    sprintf(fname,"%s/%s/surf/%s.%s",SUBJECTS_DIR,srcsubject,srchemi,SurfSrcName);
     printf("Reading surface file %s\n",fname);
     SurfSrc = MRISread(fname);
-    if (SurfSrc==NULL) {
-      exit(1);
+    if(SurfSrc==NULL)  exit(1);
+
+    if(PatchFile){
+      if(fio_FileExistsReadable(PatchFile)) strcpy(fname,PatchFile);
+      else
+	sprintf(fname,"%s/%s/surf/%s.%s",SUBJECTS_DIR,srcsubject,srchemi,PatchFile);
+      printf("Reading source patch file %s\n",fname);
+      err = MRISreadPatch(SurfSrc,fname);
+      if(err) exit(1);
     }
+
     MRIScomputeMetricProperties(SurfSrc);
     if(UseSurfSrc == SURF_SRC_XYZ || UseSurfSrc == SURF_SRC_TAL_XYZ) {
       if(DoProj) {
@@ -717,11 +729,10 @@ int main(int argc, char **argv)
       SrcVals = MRISannotIndex2Seg(SurfSrc);
       ctab = CTABdeepCopy(SurfSrc->ct);
     }
-    if (UseSurfSrc == SURF_SRC_RIP) {
-      SrcVals = MRIcopyMRIS(NULL, SurfSrc, 0, "ripflag");
-    }
+    if(UseSurfSrc == SURF_SRC_RIP) SrcVals = MRIcopyMRIS(NULL, SurfSrc, 0, "ripflag");
     MRISfree(&SurfSrc);
-  } else { /* Use MRIreadType */
+  } 
+  else { /* Use MRIreadType */
     SrcVals =  MRIreadType(srcvalfile,srctype);
     if (SrcVals == NULL) {
       printf("ERROR: could not read %s as type %d\n",srcvalfile,srctype);
@@ -1038,10 +1049,12 @@ int main(int argc, char **argv)
     printf("Saving as paint format\n");
     MRIScopyMRI(TrgSurfReg, TrgVals, framesave, "val");
     MRISwriteValues(TrgSurfReg,trgvalfile);
-  } else if (!strcmp(trgtypestring,"curv")) {
+  } 
+  else if (!strcmp(trgtypestring,"curv")) {
     MRIScopyMRI(TrgSurfReg, TrgVals, framesave, "curv");
     MRISwriteCurvature(TrgSurfReg,trgvalfile);
-  } else if (UseSurfTarg) {
+  } 
+  else if (UseSurfTarg) {
     MRIScopyMRI(TrgSurfReg,TrgVals,0,"x");
     MRIScopyMRI(TrgSurfReg,TrgVals,1,"y");
     MRIScopyMRI(TrgSurfReg,TrgVals,2,"z");
@@ -1053,7 +1066,8 @@ int main(int argc, char **argv)
       getVolGeom(RegTarg, &TrgSurfReg->vg);
     }
     MRISwrite(TrgSurfReg, trgvalfile);
-  } else if (UseSurfSrc == SURF_SRC_ANNOT) {
+  } 
+  else if (UseSurfSrc == SURF_SRC_ANNOT) {
     printf("Converting to target annot\n");
     err = MRISseg2annot(TrgSurfReg,TrgVals,ctab);
     if (err) {
@@ -1061,7 +1075,30 @@ int main(int argc, char **argv)
     }
     printf("Saving to target annot %s\n",trgvalfile);
     MRISwriteAnnotation(TrgSurfReg, trgvalfile);
-  } else {
+  } 
+  else if(PatchFile){
+    sprintf(fname,"%s/%s/surf/%s.%s",SUBJECTS_DIR,trgsubject,trghemi,SurfTargName);
+    printf("Reading surface file for output patch %s\n",fname);
+    SurfTrg = MRISread(fname);
+    if(SurfTrg==NULL)  exit(1);
+    printf("Ripping patch\n");
+    for(tvtx = 0; tvtx < SurfTrg->nvertices; tvtx++){
+      if(MRIgetVoxVal(TrgVals,tvtx,0,0,0) < 0.000001) continue;
+      SurfTrg->vertices[tvtx].ripflag = 1;
+    }
+    printf("Dilating %d\n",nPatchDil);
+    MRISdilateRipped(SurfTrg, nPatchDil);
+    MRISripFaces(SurfTrg);
+    SurfTrg->patch = 1 ;
+    SurfTrg->status = MRIS_CUT ;
+    for (tvtx = 0 ; tvtx < SurfTrg->nvertices ; tvtx++)
+      if (SurfTrg->vertices[tvtx].num == 0 || SurfTrg->vertices[tvtx].vnum == 0)
+	SurfTrg->vertices[tvtx].ripflag = 1 ;
+    MRISupdateSurface(SurfTrg);
+    printf("Writing patch to %s\n", trgvalfile);
+    MRISwritePatch(SurfTrg, trgvalfile);
+  }
+  else {
     if (reshape) {
       if(reshapefactor == 0) {
         if(TrgSurfReg->nvertices == 163842) {
@@ -1225,7 +1262,18 @@ static int parse_commandline(int argc, char **argv)
       SurfSrcName = pargv[0];
       UseSurfSrc = SURF_SRC_XYZ;
       nargsused = 1;
-    } else if (!strcmp(option, "--projabs")) {
+    } 
+    else if (!strcmp(option, "--patch")) {
+      if(nargc < 3) argnerr(option,3);
+      PatchFile = pargv[0];
+      SurfTargName = pargv[1];
+      sscanf(pargv[2],"%d",&nPatchDil);
+      UseSurfSrc = SURF_SRC_RIP;
+      //UseSurfTarg = 1;
+      mapmethod = "nnfr";
+      nargsused = 3;
+    } 
+    else if (!strcmp(option, "--projabs")) {
       if(nargc < 2) {
         argnerr(option,2);
       }
@@ -1492,7 +1540,8 @@ static int parse_commandline(int argc, char **argv)
       }
       sscanf(pargv[0],"%d",&TrgIcoOrder);
       nargsused = 1;
-    } else if (!strcmp(option, "--trgsurfval")  || !strcmp(option, "--tval")) {
+    } else if (!strcmp(option, "--trgsurfval")  || !strcmp(option, "--tval") ||
+	       !strcmp(option, "--trgval")) {
       if (nargc < 1) {
         argnerr(option,1);
       }
@@ -1639,6 +1688,7 @@ static void print_usage(void)
   printf("   --sval-area surfname : use vertex area of surfname as input \n");
   printf("   --sval-annot annotfile : map annotation \n");
   printf("   --sval-nxyz surfname : use surface normals of surfname as input \n");
+  printf("   --patch srcpatchfile targsurf ndilations\n");
   printf("   --sfmt   source format\n");
   printf("   --reg register.dat <volgeom> : apply register.dat to sval-xyz\n");
   printf("   --reg-inv register.dat <volgeom> : apply inv(register.dat) to sval-xyz\n");
@@ -1720,6 +1770,14 @@ static void print_help(void)
   printf("    the talairach transform from srcsubject/mri/transforms/talairach.xfm.\n");
   printf("    --sval-area extracts the vertex area. --sval-nxyz extracts the surface\n");
   printf("    normals at each vertex. See also --tval-xyz.\n");
+  printf("\n");
+  printf("  --patch srcpatchfile targsurf ndilations\n");
+  printf("\n");
+  printf("    Convert a patch. The srcpatchfile is the source patch. It will be rendered on\n");
+  printf("    the target surface. ndilations is the number of times the rips are dilated\n");
+  printf("    to account for missing rips due to sample error. Suggest use 1. Eg,\n");
+  printf("       mri_surf2surf --srcsubject fsaverage --trgsubject yoursubject \n");
+  printf("         --hemi lh --trgval yoursubject/surf/lh.cortex.patch.3d white 1\n");
   printf("\n");
   printf("  --projfrac surfname frac\n");
   printf("  --projabs  surfname dist\n");
@@ -1936,6 +1994,17 @@ static void print_help(void)
 /* --------------------------------------------- */
 static void dump_options(FILE *fp)
 {
+  fprintf(fp,"\n");
+  fprintf(fp,"%s\n",vcid);
+  fprintf(fp,"\n");
+  fprintf(fp,"setenv SUBJECTS_DIR %s\n",getenv("SUBJECTS_DIR"));
+  fprintf(fp,"cd %s\n",cwd);
+  fprintf(fp,"%s\n",cmdline);
+  fprintf(fp,"\n");
+  fprintf(fp,"sysname  %s\n",uts.sysname);
+  fprintf(fp,"hostname %s\n",uts.nodename);
+  fprintf(fp,"machine  %s\n",uts.machine);
+  fprintf(fp,"user     %s\n",VERuser());
   fprintf(fp,"srcsubject = %s\n",srcsubject);
   fprintf(fp,"srcval     = %s\n",srcvalfile);
   fprintf(fp,"srctype    = %s\n",srctypestring);
@@ -1979,12 +2048,12 @@ static void check_options(void)
     fprintf(stdout,"ERROR: no source subject specified\n");
     exit(1);
   }
-  if (srcvalfile == NULL && UseSurfSrc == 0) {
+  if (srcvalfile == NULL && UseSurfSrc == 0 && PatchFile == NULL) {
     fprintf(stdout,"A source value path must be supplied\n");
     exit(1);
   }
 
-  if (UseSurfSrc == 0) {
+  if(UseSurfSrc == 0 && PatchFile == NULL) {
     if ( strcasecmp(srctypestring,"w") != 0 &&
          strcasecmp(srctypestring,"curv") != 0 &&
          strcasecmp(srctypestring,"paint") != 0 ) {
@@ -2012,7 +2081,7 @@ static void check_options(void)
     exit(1);
   }
 
-  if (UseSurfTarg == 0 && UseSurfSrc != SURF_SRC_ANNOT && RMSDatFile == NULL) {
+  if (UseSurfTarg == 0 && UseSurfSrc != SURF_SRC_ANNOT && RMSDatFile == NULL && PatchFile == NULL) {
     if ( strcasecmp(trgtypestring,"w") != 0 &&
          strcasecmp(trgtypestring,"curv") != 0 &&
          strcasecmp(trgtypestring,"paint") != 0 ) {
@@ -2024,9 +2093,10 @@ static void check_options(void)
         }
       }
     }
-  } else {
+  } 
+  else {
     if (UseSurfSrc != SURF_SRC_XYZ && UseSurfSrc != SURF_SRC_TAL_XYZ &&
-        UseSurfSrc != SURF_SRC_ANNOT) {
+        UseSurfSrc != SURF_SRC_ANNOT && PatchFile == NULL) {
       printf("ERROR: must use --sval-xyz or --sval-tal-xyz with --tval-xyz\n");
       exit(1);
     }
