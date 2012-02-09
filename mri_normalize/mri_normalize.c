@@ -13,8 +13,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2011/12/19 23:01:23 $
- *    $Revision: 1.78 $
+ *    $Date: 2012/02/09 21:24:24 $
+ *    $Revision: 1.79 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -143,14 +143,14 @@ main(int argc, char *argv[])
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mri_normalize.c,v 1.78 2011/12/19 23:01:23 fischl Exp $",
+   "$Id: mri_normalize.c,v 1.79 2012/02/09 21:24:24 fischl Exp $",
    "$Name:  $",
    cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mri_normalize.c,v 1.78 2011/12/19 23:01:23 fischl Exp $",
+           "$Id: mri_normalize.c,v 1.79 2012/02/09 21:24:24 fischl Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
   {
@@ -311,7 +311,6 @@ main(int argc, char *argv[])
       MRIwrite(mri_ctrl, "c.mgz");
     }
     MRIeraseBorderPlanes(mri_ctrl, 4) ;
-    remove_surface_outliers(mri_ctrl, mri_dist, mri_dst, mri_ctrl) ;
     if (aseg_fname)
     {
       mri_aseg = MRIread(aseg_fname) ;
@@ -320,6 +319,8 @@ main(int argc, char *argv[])
       remove_nonwm_voxels(mri_ctrl, mri_aseg, mri_ctrl) ;
       MRIfree(&mri_aseg) ;
     }
+    else
+      remove_surface_outliers(mri_ctrl, mri_dist, mri_dst, mri_ctrl) ;
     mri_bias = MRIbuildBiasImage(mri_dst, mri_ctrl, NULL, 0.0) ;
     if (mri_dist)
       MRIfree(&mri_dist) ;
@@ -737,7 +738,7 @@ get_option(int argc, char *argv[])
   }
   else if (!stricmp(option, "nonmax_suppress"))
   {
-    nonmax_suppress = atoi(argv[1]) ;
+    nonmax_suppress = atoi(argv[2]) ;
     printf( "%s nonmaximum suppression\n", nonmax_suppress ? "using" : "disabling") ;
     nargs = 1 ;
   }
@@ -793,8 +794,8 @@ get_option(int argc, char *argv[])
   {
     min_dist = atof(argv[2]) ;
     nargs = 1 ;
-    printf("retaining nonmaximum suppressed points that are at least %2.3fmm from the boundary\n",
-           min_dist) ;
+    printf("retaining %s points that are at least %2.3fmm from the boundary\n",
+           nonmax_suppress ? " nonmaximum suppressed" : "", min_dist) ;
   }
   else if (!stricmp(option, "INTERIOR"))
   {
@@ -1452,16 +1453,20 @@ remove_surface_outliers(MRI *mri_ctrl_src, MRI *mri_dist, MRI *mri_src,
           continue ;  // not a control point
         }
         val = MRIgetVoxVal(mri_src, x, y, z, 0) ;
+#if 1
         if (val < 80 || val > 130)
         {
           MRIsetVoxVal(mri_ctrl_dst, x, y, z, 0, 0) ;  // remove it as a control point
           MRIsetVoxVal(mri_outlier, x, y, z, 0, 1) ;   // diagnostics
           continue ;
         }
+#endif
+#if 1
         if (val > 100 || val < 120)
         {
           continue ;  // not an outlier
         }
+#endif
         h = MRIhistogramVoxel(mri_src, 0, NULL, x, y, z, wsize, mri_dist, mri_src->xsize) ;
         HISTOsoapBubbleZeros(h, h, 100) ;
         hs = HISTOsmooth(h, NULL, .5);
@@ -1495,15 +1500,27 @@ remove_surface_outliers(MRI *mri_ctrl_src, MRI *mri_dist, MRI *mri_src,
 static int
 remove_nonwm_voxels(MRI *mri_ctrl_src, MRI *mri_aseg, MRI *mri_ctrl_dst)
 {
-  int   x, y, z, label, removed = 0 ;
+  int   x, y, z, label, removed = 0, xa, ya, za ;
+  MATRIX *m_vox_to_vox ;
+  VECTOR *v_src, *v_dst ;
 
-  for (x = 0 ; x < mri_aseg->width ; x++)
-    for (y = 0 ; y < mri_aseg->height ; y++)
-      for (z = 0 ; z < mri_aseg->depth ; z++)
+  m_vox_to_vox = MRIgetVoxelToVoxelXform(mri_ctrl_src, mri_aseg) ;
+  v_src = VectorAlloc(4,1) ;
+  v_dst = VectorAlloc(4,1) ;
+  VECTOR_ELT(v_src, 4) = VECTOR_ELT(v_dst,4) = 1 ;
+  
+  for (x = 0 ; x < mri_ctrl_src->width ; x++)
+    for (y = 0 ; y < mri_ctrl_src->height ; y++)
+      for (z = 0 ; z < mri_ctrl_src->depth ; z++)
       {
+	if (x == Gx && y == Gy && z == Gz)
+	  DiagBreak() ;
 	if (MRIgetVoxVal(mri_ctrl_src, x, y, z, 0) == 0)
 	  continue ;
-	label = MRIgetVoxVal(mri_aseg, x, y, z, 0) ;
+	V3_X(v_src) = x ; V3_Y(v_src) = y ; V3_Z(v_src) = z ;
+	MatrixMultiply(m_vox_to_vox, v_src, v_dst) ;
+	xa = nint(V3_X(v_dst)) ; ya = nint(V3_Y(v_dst)) ; za = nint(V3_Z(v_dst));
+	label = MRIgetVoxVal(mri_aseg, xa, ya, za, 0) ;
 	switch (label)
 	{
 	case Left_Thalamus_Proper:
@@ -1530,6 +1547,7 @@ remove_nonwm_voxels(MRI *mri_ctrl_src, MRI *mri_aseg, MRI *mri_ctrl_dst)
 	case Unknown:
 	  removed++ ;
 	  MRIsetVoxVal(mri_ctrl_dst, x, y, z, 0, CONTROL_NONE) ;
+	  break ;
 	default:
 	  MRIsetVoxVal(mri_ctrl_dst, x, y, z, 0, CONTROL_MARKED) ;
 	  break ;
