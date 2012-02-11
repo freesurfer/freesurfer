@@ -11,8 +11,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2011/08/26 20:13:47 $
-#    $Revision: 1.62 $
+#    $Date: 2012/02/11 04:21:51 $
+#    $Revision: 1.63 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -29,7 +29,7 @@
 #
 setenv FIX_VERTEX_AREA
 
-set VERSION = '$Id: mris_preproc,v 1.62 2011/08/26 20:13:47 greve Exp $';
+set VERSION = '$Id: mris_preproc,v 1.63 2012/02/11 04:21:51 greve Exp $';
 
 set PrintHelp = 0;
 set subjlist = ();
@@ -419,6 +419,13 @@ while( $#argv != 0 )
       set sval = area;
       set srcsurf = 1;
       set jac = 1;
+      breaksw
+
+    case "--tal-xyz":
+      if($#argv < 1) goto arg1err;
+      set svalsurf = $argv[1]; shift;
+      set sval = tal-xyz
+      set srcsurf = 1;
       breaksw
 
     case "--jac":
@@ -991,6 +998,7 @@ usage_exit:
   echo "  --is surfmeasfile <--is surfmeasfile> "
   echo "  --srcfmt fmt : source format"
   echo "  --surfdir dirname    : alternative directory (instead of surf)"
+  echo "  --tal-xyz surfname : output xyz in mni305 for each subject"
   echo ""
   echo "  --iv volmeasfile reg <--iv volmeasfile reg>"
   echo "  --projfrac frac : projection fraction for vol2surf"
@@ -1082,10 +1090,11 @@ Use hemi for source and target surfaces. hemi can be lh or rh.
 Use subject/surf/hemi.surfmeasure as input. For use with --s, --fsgd,
 or --f.  Implies --srcfmt curv.
 
---area surfname
+--tal-xyz surfname
 
-Extract vertex area from subject/surf/hemi.surfname to use as input. For use
-with --s, --fsgd, or --f.  surfname does not include hemi. Eg, white, pial.
+Extract vertex mni305 xyz from subject/surf/hemi.surfname to use as
+input. For use with --s, --fsgd, or --f.  surfname does not include
+hemi. Eg, white, pial. Creates 3 frames for each input subject.
 
 --s subjN
 
