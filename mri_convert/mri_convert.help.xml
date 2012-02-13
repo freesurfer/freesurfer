@@ -111,7 +111,6 @@ Supply the orientation information in the form of an orientation string  (ostrin
       <explanation>angle in radians </explanation>
       <argument>--autoalign mtxfile </argument>
       <explanation>text file with autoalign matrix </explanation>
-      <argument>--unwarp_gradient_nonlinearity &lt;sonata|allegra|GE&gt; &lt;fullUnwarp|through-plane&gt; &lt;JacobianCorrection|noJacobianCorrection&gt; &lt;linear|sinc&gt; &lt;sincInterpHW&gt;</argument>
       <intro>APPLYING TRANSFORMS (INCLUDING TALAIRACH) </intro>
       <argument>--apply_transform xfmfile (-T or -at) </argument>
       <explanation>apply tranform given by xfm or m3z files </explanation> 
