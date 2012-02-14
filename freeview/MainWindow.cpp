@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2012/01/30 20:57:05 $
- *    $Revision: 1.204 $
+ *    $Date: 2012/02/14 19:20:17 $
+ *    $Revision: 1.205 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -965,6 +965,8 @@ void MainWindow::AddScript(const QString & command)
 void MainWindow::OnIdle()
 {
   bool bBusy = IsBusy();
+//  qDebug() << "busy: " << bBusy << "  script_running: " << m_bScriptRunning
+ //     << "  script empty: " << m_scripts.isEmpty();
   if ( !bBusy && !m_bScriptRunning && !m_scripts.isEmpty() )
   {
     RunScript();
@@ -1168,191 +1170,192 @@ void MainWindow::RunScript()
   QStringList sa = m_scripts[0].split(" ", QString::SkipEmptyParts);
   m_scripts.removeAt(0);
   m_bScriptRunning = true;
-  if (sa[0] == "loadcommand")
+  QString cmd = sa[0].toLower();
+  if (cmd == "loadcommand")
   {
     CommandLoadCommand(sa);
   }
-  else if ( sa[0] == "hidelayer" )
+  else if ( cmd == "hidelayer" )
   {
     CommandHideLayer(sa);
   }
-  else if ( sa[0] == "unloadlayer" )
+  else if ( cmd == "unloadlayer" )
   {
     CommandUnloadLayer(sa);
   }
-  else if ( sa[0] == "loadvolume" )
+  else if ( cmd == "loadvolume" )
   {
     CommandLoadVolume( sa );
   }
-  else if ( sa[0] == "loaddti" )
+  else if ( cmd == "loaddti" )
   {
     CommandLoadDTI( sa );
   }
-  else if ( sa[0] == "loadtrackvolume" || sa[0] == "loadvolumetrack")
+  else if ( cmd == "loadtrackvolume" || cmd == "loadvolumetrack")
   {
     CommandLoadVolumeTrack( sa );
   }
-  else if ( sa[0] == "loadsurface" )
+  else if ( cmd == "loadsurface" )
   {
     CommandLoadSurface( sa );
   }
-  else if ( sa[0] == "loadsurfacevector" )
+  else if ( cmd == "loadsurfacevector" )
   {
     CommandLoadSurfaceVector( sa );
   }
-  else if ( sa[0] == "loadsurfacecurvature" )
+  else if ( cmd == "loadsurfacecurvature" )
   {
     CommandLoadSurfaceCurvature( sa );
   }
-  else if ( sa[0] == "loadsurfaceoverlay" )
+  else if ( cmd == "loadsurfaceoverlay" )
   {
     CommandLoadSurfaceOverlay( sa );
   }
-  else if ( sa[0] == "loadsurfaceannotation" )
+  else if ( cmd == "loadsurfaceannotation" )
   {
     CommandLoadSurfaceAnnotation( sa );
   }
-  else if ( sa[0] == "loadsurfacelabel" )
+  else if ( cmd == "loadsurfacelabel" )
   {
     CommandLoadSurfaceLabel( sa );
   }
-  else if ( sa[0] == "loadconnectivity" )
+  else if ( cmd == "loadconnectivity" )
   {
     CommandLoadConnectivityData( sa );
   }
-  else if ( sa[0] == "loadroi" || sa[0] == "loadlabel" )
+  else if ( cmd == "loadroi" || sa[0] == "loadlabel" )
   {
     CommandLoadROI( sa );
   }
-  else if ( sa[0] == "loadwaypoints" )
+  else if ( cmd == "loadwaypoints" )
   {
     CommandLoadWayPoints( sa );
   }
-  else if ( sa[0] == "loadcontrolpoints" )
+  else if ( cmd == "loadcontrolpoints" )
   {
     CommandLoadControlPoints( sa );
   }
-  else if ( sa[0] == "loadpvolumes" )
+  else if ( cmd == "loadpvolumes" )
   {
     CommandLoadPVolumes( sa );
   }
-  else if ( sa[0] == "loadtrack")
+  else if ( cmd == "loadtrack")
   {
     CommandLoadTrack(sa);
   }
-  else if ( sa[0] == "screencapture" )
+  else if ( cmd == "screencapture" )
   {
     CommandScreenCapture( sa );
   }
-  else if ( sa[0] == "quit" || sa[0] == "exit" )
+  else if ( cmd == "quit" || cmd == "exit" )
   {
     close();
   }
-  else if ( sa[0] == "setviewport" )
+  else if ( cmd == "setviewport" )
   {
     CommandSetViewport( sa );
   }
-  else if ( sa[0] == "setviewsize" )
+  else if ( cmd == "setviewsize" )
   {
     CommandSetViewSize( sa );
   }
-  else if ( sa[0] == "zoom" )
+  else if ( cmd == "zoom" )
   {
     CommandZoom( sa );
   }
-  else if ( sa[0] == "setcamera")
+  else if ( cmd == "setcamera")
   {
     CommandSetCamera(sa);
   }
-  else if ( sa[0] == "ras" )
+  else if ( cmd == "ras" )
   {
     CommandSetRAS( sa );
   }
-  else if ( sa[0] == "slice" )
+  else if ( cmd == "slice" )
   {
     CommandSetSlice( sa );
   }
-  else if ( sa[0] == "setcolormap" )
+  else if ( cmd == "setcolormap" )
   {
     CommandSetColorMap( sa );
   }
-  else if ( sa[0] == "setheatscaleoptions" )
+  else if ( cmd == "setheatscaleoptions" )
   {
     CommandSetHeadScaleOptions( sa );
   }
-  else if ( sa[0] == "setlut" )
+  else if ( cmd == "setlut" )
   {
     CommandSetLUT( sa );
   }
-  else if ( sa[0] == "setopacity" )
+  else if ( cmd == "setopacity" )
   {
     CommandSetOpacity( sa );
   }
-  else if ( sa[0] == "setdisplayisosurface" )
+  else if ( cmd == "setdisplayisosurface" )
   {
     CommandSetDisplayIsoSurface( sa );
   }
-  else if ( sa[0] == "setisosurfacecolor" )
+  else if ( cmd == "setisosurfacecolor" )
   {
     CommandSetIsoSurfaceColor( sa );
   }
-  else if ( sa[0] == "loadisosurfaceregion" )
+  else if ( cmd == "loadisosurfaceregion" )
   {
     CommandLoadIsoSurfaceRegion( sa );
   }
-  else if ( sa[0] == "setsurfaceoverlaymethod" )
+  else if ( cmd == "setsurfaceoverlaymethod" )
   {
     CommandSetSurfaceOverlayMethod( sa );
   }
-  else if ( sa[0] == "setsurfaceoffset" )
+  else if ( cmd == "setsurfaceoffset" )
   {
     CommandSetSurfaceOffset( sa );
   }
-  else if ( sa[0] == "setPointSetcolor" )
+  else if ( cmd == "setpointsetcolor" )
   {
     CommandSetPointSetColor( sa );
   }
-  else if ( sa[0] == "setPointSetradius" )
+  else if ( cmd == "setpointsetradius" )
   {
     CommandSetPointSetRadius( sa );
   }
-  else if ( sa[0] == "setdisplayvector" )
+  else if ( cmd == "setdisplayvector" )
   {
     CommandSetDisplayVector( sa );
   }
-  else if ( sa[0] == "setdisplaytensor" )
+  else if ( cmd == "setdisplaytensor" )
   {
     CommandSetDisplayTensor( sa );
   }
-  else if ( sa[0] == "setsurfacecolor" )
+  else if ( cmd == "setsurfacecolor" )
   {
     CommandSetSurfaceColor( sa );
   }
-  else if ( sa[0] == "setsurfaceedgecolor" )
+  else if ( cmd == "setsurfaceedgecolor" )
   {
     CommandSetSurfaceEdgeColor( sa );
   }
-  else if ( sa[0] == "setsurfaceedgethickness" )
+  else if ( cmd == "setsurfaceedgethickness" )
   {
     CommandSetSurfaceEdgeThickness( sa );
   }
-  else if ( sa[0] == "setsurfacelabeloutline" )
+  else if ( cmd == "setsurfacelabeloutline" )
   {
     CommandSetSurfaceLabelOutline( sa );
   }
-  else if ( sa[0] == "setlayername" )
+  else if ( cmd == "setlayername" )
   {
     CommandSetLayerName( sa );
   }
-  else if ( sa[0] == "locklayer" )
+  else if ( cmd == "locklayer" )
   {
     CommandLockLayer( sa );
   }
-  else if ( sa[0] == "showlayer" )
+  else if ( cmd == "showlayer" )
   {
     CommandShowLayer( sa );
   }
-  else if ( sa[0] == "gotolabel" || sa[1] == "gotostructure")
+  else if ( cmd == "gotolabel" || cmd == "gotostructure")
   {
     CommandGotoLabel( sa );
   }
@@ -2676,13 +2679,14 @@ void MainWindow::CommandLoadControlPoints( const QStringList& cmd )
 }
 
 void MainWindow::CommandSetPointSetColor( const QStringList& cmd )
-{
+{;
   LayerPointSet* wp = (LayerPointSet*)GetLayerCollection( "PointSet" )->GetActiveLayer();
   if ( wp )
   {
     if ( cmd[1] != "null" )
     {
       QColor color = ParseColorInput( cmd[1] );
+
       if ( color.isValid() )
       {
         wp->GetProperty()->SetColor( color.redF(), color.greenF(), color.blueF() );
@@ -3426,7 +3430,14 @@ void MainWindow::OnNewVolume()
   dlg.SetVolumeName( "New Volume");
   if ( dlg.exec() == QDialog::Accepted )
   {
-    LayerMRI* layer_new = new LayerMRI( dlg.GetTemplate() );
+    LayerMRI* layer_template = dlg.GetTemplate();
+    if (layer_template->IsTransformed())
+    {
+      QMessageBox::information(this, "Warning",
+                               "New volume is constructed on template that has been rotated/transformed. It is recommended that you save the transformed volume and reload it before creating new volumes.");
+    }
+    LayerMRI* layer_new = new LayerMRI( layer_template );
+
     if ( !layer_new->Create( dlg.GetTemplate(), dlg.GetCopyVoxel(), dlg.GetDataType(), dlg.GetVoxelDataOption() ) )
     {
       QMessageBox::warning( this, "Error", "Can not create new volume." );

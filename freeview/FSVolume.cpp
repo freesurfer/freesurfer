@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2012/01/30 20:57:05 $
- *    $Revision: 1.75 $
+ *    $Date: 2012/02/14 19:20:17 $
+ *    $Revision: 1.76 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -397,6 +397,7 @@ bool FSVolume::Create( FSVolume* src_vol, bool bCopyVoxelData, int data_type )
                             src_vol->m_MRI->height,
                             src_vol->m_MRI->depth,
                             data_type, 1 );
+
   if ( NULL == m_MRI )
   {
     cerr << "Could not allocate new mri volume.\n";
@@ -427,6 +428,7 @@ bool FSVolume::Create( FSVolume* src_vol, bool bCopyVoxelData, int data_type )
     MRIcopyHeader( src_vol->m_MRI, m_MRI );
   }
 
+  qDebug() << m_MRI;
   if ( m_imageData == NULL )
   {
     m_imageData = vtkSmartPointer<vtkImageData>::New();

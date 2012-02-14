@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2012/01/10 17:46:16 $
- *    $Revision: 1.17 $
+ *    $Date: 2012/02/14 19:20:17 $
+ *    $Revision: 1.18 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -33,6 +33,7 @@
 #include "vtkObject.h"
 #include <stdio.h>
 #include <stdlib.h>
+#include "error.h"
 
 char* Progname;
 
@@ -59,9 +60,16 @@ void myMessageOutput(QtMsgType type, const char *msg)
   }
 }
 
+void my_error_exit(int ecode)
+{
+  // do nothing
+}
+
 int main(int argc, char *argv[])
 {
-  Progname = argv[0]; 
+  Progname = argv[0];  
+  ErrorSetExitFunc(my_error_exit);
+
   putenv((char*)"SURFER_FRONTDOOR=");
   qInstallMsgHandler(myMessageOutput);
 
