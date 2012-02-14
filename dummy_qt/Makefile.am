@@ -34,7 +34,6 @@ dummy_qt_CPPFLAGS = $(QT_CPPFLAGS) $(AM_CPPFLAGS)
 dummy_qt_LDFLAGS  = $(QT_LDFLAGS) $(OS_LDFLAGS) -framework Cocoa -framework IOKit
 dummy_qt_LDADD    = $(QT_LIBS)  \
         $(addprefix $(top_builddir)/, $(LIBS_MGH)) 
-   
 
 # need to create a bundle for Macs
 install-exec-hook:dummy_qt
@@ -68,11 +67,11 @@ AM_CXXFLAGS=\
 	-fno-strict-aliasing \
 	-Wno-deprecated \
 	-Wno-unused \
-   	-Wno-uninitialized \
-  	-Wno-return-type \
-   	-Wno-reorder \
-   	-Wno-sign-compare \
-   	-I$(top_srcdir)/include \
+	-Wno-uninitialized \
+	-Wno-return-type \
+	-Wno-reorder \
+	-Wno-sign-compare \
+	-I$(top_srcdir)/include \
 	$(GL_CFLAGS) 
 
 
@@ -102,3 +101,5 @@ uninstall-hook:
 	rm -f $(DESTDIR)$(bindir)/dummy_qt.bin
 endif
 endif
+
+EXTRA_DIST=MainWindow.ui MainWindow.h dummy_qt.pro
