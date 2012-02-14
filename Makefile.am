@@ -152,6 +152,7 @@ MRISUBDIRS=\
 	mri_segstats \
 	mri_stats2seg \
 	mri_vol2surf \
+	mri_warp_convert \
 	mri_watershed \
 	mri_wmfilter \
 	mri_xvolavg \
