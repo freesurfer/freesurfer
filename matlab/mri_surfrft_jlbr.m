@@ -27,14 +27,14 @@ function r = mri_surfrft_jlbr(yfile,glmdir,vwthresh,sgn,subject,hemi)
 % Limitations: does not work with per-voxel regressors, weighted-least
 % squares, fixed effects, or multi-variate contrasts.
 %
-% $Id: mri_surfrft_jlbr.m,v 1.4 2011/11/10 19:07:32 greve Exp $
+% $Id: mri_surfrft_jlbr.m,v 1.5 2012/02/15 16:29:59 greve Exp $
 
 %
 % Original Author: Jorge Louis Bernal-Rusiel and Douglas Greve
 % CVS Revision Info:
 %    $Author: greve $
-%    $Date: 2011/11/10 19:07:32 $
-%    $Revision: 1.4 $
+%    $Date: 2012/02/15 16:29:59 $
+%    $Revision: 1.5 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -99,15 +99,19 @@ tX = term(X,'X');
 slm = SurfStatLinMod(y, tX, surf,1,.01,0.1);
 slm.k = 1;
 
-% edg=SurfStatEdg(surf);
-% ntp = size(X,1);
-% nX  = size(X,2);
-% R = eye(ntp) - X*inv(X'*X)*X';
-% yr = R*y;
-% ysse = sum(yr.^2);
-% yrn = yr./repmat(sqrt(ysse),[ntp 1]);
-% d = yrn(:,edg(:,1))-yrn(:,edg(:,2));
-% resl = sum(d.^2);
+% pairs of connected vtxnos (does not excl mask so nans are
+% present)
+if(0)
+edg=SurfStatEdg(surf); 
+ntp = size(X,1);
+nX  = size(X,2);
+R = eye(ntp) - X*inv(X'*X)*X';
+yr = R*y;
+ysse = sum(yr.^2); % residual
+yrn = yr./repmat(sqrt(ysse),[ntp 1]); % voxel-norm resid
+d = yrn(:,edg(:,1))-yrn(:,edg(:,2)); % norm resid diff bet pairs
+resl = sum(d.^2); % resel size
+end
 
 % Get a list of contrasts
 flist = dir(glmdir);
@@ -126,7 +130,9 @@ for nthcon = 1:ncon
   cdat = sprintf('%s/%s/C.dat',glmdir,conname);  
   C = sgn*load(cdat);
   slmC = SurfStatT(slm, C);
+
   [pval peak clus] = SurfStatP(slmC, mask, vwthresh);
+
   mri.vol = fast_mat2vol(-log10(pval.C)*sgn,mri.volsize);
   fname = sprintf('%s/%s/sig.cw.%s.mgh',glmdir,conname,sgnstring);  
   MRIwrite(mri,fname);
@@ -143,6 +149,10 @@ for nthcon = 1:ncon
   end
   fclose(fp);
   
+  % This gives same t as KJW
+  %[beta rvar] = fast_glmfit(y,X);
+  %[F, Fsig, ces, cesvar] = fast_fratio(beta,X,rvar,C);
+  %t = sqrt(F).*sign(ces);
 end
 
 
