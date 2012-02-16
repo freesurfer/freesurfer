@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2010/07/23 22:58:20 $
-#    $Revision: 1.20 $
+#    $Date: 2012/02/16 16:46:59 $
+#    $Revision: 1.21 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: mkbrainmask-sess,v 1.20 2010/07/23 22:58:20 greve Exp $'
+set VERSION = '$Id: mkbrainmask-sess,v 1.21 2012/02/16 16:46:59 greve Exp $'
 
 set cmdargs = ($argv);
 
@@ -32,6 +32,7 @@ set funcstem = f; # stem of functional volume
 set thresh = 0.1;
 set ndilations = 1;
 set nerodes = 0;
+set ne3erodes = 3; # 3 may be too many for some reduced FoVs
 set maskstem = brain;
 set maskdir = masks;
 set nolog     = 0;
@@ -163,7 +164,7 @@ foreach sess ($SessList)
       if($status) exit 1;
       # Create a second mask eroded by 3 to compute the mean
       set cmd = (mri_binarize --i $mask --min 0.5 \
-       --zero-edges --erode 3 --o $maske3)
+       --zero-edges --erode $ne3erodes --o $maske3)
       echo $cmd | tee -a $LF
       $cmd | tee -a $LF
       if($status) exit 1;
@@ -231,14 +232,21 @@ while( $#argv != 0 )
       set thresh = $argv[1]; shift;
       breaksw
 
+    case "-ndilates":
     case "-ndil":
       if ( $#argv == 0) goto arg1err;
       set ndilations = $argv[1]; shift;
       breaksw
 
+    case "-nerodes":
     case "-nero":
       if ( $#argv == 0) goto arg1err;
       set nerodes = $argv[1]; shift;
+      breaksw
+
+    case "-ne3erodes":
+      if ( $#argv == 0) goto arg1err;
+      set ne3erodes = $argv[1]; shift;
       breaksw
 
     case "-fmt":
@@ -329,8 +337,9 @@ usage_exit:
   echo "   -thresh  threshold : fraction of global mean to separate ($thresh)"
   echo "                        brain and air (default is .1)"
   echo "   -fsd   funcsubdir  : functional subdirectory (default: bold)"
-  echo "   -ndil ndialations  : dialate (ie, expand) the mask (def is 1)"
-  echo "   -nero nerodes      : erodes (ie, contracts) the mask"
+  echo "   -ndilates ndialations  : dialate (ie, expand) the mask (def is 1)"
+  echo "   -nerodes   nerodes      : erodes (ie, contracts) the mask"
+  echo "   -ne3erodes ne3erodes    : erodes (ie, contracts) the e3 mask (default is 3)"
   echo "   -maskstem stem     : stem of binary mask (stored in fsd/masks/stem)"
   echo "                        default is brain"
   echo "   -head : flag to set parameters to cover the whole head instead"
