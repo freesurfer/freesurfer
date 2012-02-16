@@ -41,8 +41,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2012/01/25 00:34:17 $
- *    $Revision: 1.40 $
+ *    $Date: 2012/02/16 19:01:00 $
+ *    $Revision: 1.41 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -996,13 +996,10 @@ MRI *MRISapplyReg(MRI *SrcSurfVals, MRI_SURFACE **SurfReg, int nsurfs,
       //printf("%5d %5d %d %d %d\n",tvtx,tvtxN,n,kS,kT);
       v = &(SurfReg[kT]->vertices[tvtxN]);
       /* find closest source vertex */
-      if (UseHash) svtx = MHTfindClosestVertexNo(Hash[kS],SurfReg[kS],v,&dmin);
-      else         svtx = MRISfindClosestVertex(SurfReg[kS],v->x,v->y,v->z,&dmin);
-      if(svtx < 0){ /* this can only happen with MHT */
-	nunmapped ++;
-	printf("Unmapped: %3d svtx = %6d, %6.2f %6.2f %6.2f\n",
-	       nunmapped,svtx,v->x,v->y,v->z);
-	continue;
+      if(UseHash) svtx = MHTfindClosestVertexNo(Hash[kS],SurfReg[kS],v,&dmin);
+      if(~UseHash || svtx < 0){
+	if(svtx < 0) printf("Target vertex %d of pair %d unmapped in hash, using brute force\n",tvtxN,n);
+	svtx = MRISfindClosestVertex(SurfReg[kS],v->x,v->y,v->z,&dmin);
       }
       tvtxN = svtx;
     }
@@ -1040,13 +1037,10 @@ MRI *MRISapplyReg(MRI *SrcSurfVals, MRI_SURFACE **SurfReg, int nsurfs,
 	v = &(SurfReg[kS]->vertices[svtxN]);
 	/* find closest target vertex */
 	if (UseHash) tvtx = MHTfindClosestVertexNo(Hash[kT],SurfReg[kT],v,&dmin);
-	else         tvtx = MRISfindClosestVertex(SurfReg[kT],v->x,v->y,v->z,&dmin);
-        if(tvtx < 0){/* this can only happen with MHT */
-          nunmapped ++;
-          printf("Unmapped: %3d svtx = %6d, %6.2f %6.2f %6.2f\n",
-                 nunmapped,svtx,v->x,v->y,v->z);
-          continue;
-        }
+	if(~UseHash || tvtx < 0){
+	  if(tvtx < 0) printf("Source vertex %d of pair %d unmapped in hash, using brute force\n",svtxN,n);
+	  tvtx = MRISfindClosestVertex(SurfReg[kT],v->x,v->y,v->z,&dmin);
+	}
 	svtxN = tvtx;
       }
       
