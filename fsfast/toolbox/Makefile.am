@@ -217,6 +217,7 @@ MFILES=\
 	fast_par2Xtask.m \
 	fast_parabfit.m \
 	fast_pixrep.m \
+	fast_polyorder.m \
 	fast_polytrendmtx.m \
 	fast_polyzacf_fit.m \
 	fast_prayleigh.m \
