@@ -5,11 +5,11 @@
  * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2012/01/31 20:57:51 $
- *    $Revision: 1.3 $
+ *    $Date: 2012/02/20 01:38:53 $
+ *    $Revision: 1.4 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -54,6 +54,8 @@
 static int nlayers = NLAYERS ;
 static char *LAMINAR_NAME = "gwdist";
 
+static double vfrac_thresh = -1 ;
+
 static char *subject_name = NULL ;
 static char *hemi = "lh" ;
 int main(int argc, char *argv[]) ;
@@ -66,6 +68,10 @@ static int Gwhalf = 3 ;
 static MRI *compute_layer_intensities(MRI *mri_intensities, MRI *mri_volume_fractions, 
 				      MRI_SURFACE **mris, int nlayers, int whalf0, MRI *mri_layer_intensities,
 				      int curv_bins) ;
+static MRI *compute_thresholded_layer_intensities(MRI *mri_intensities, MRI *mri_volume_fractions, 
+						  MRI_SURFACE **mris, int nlayers, int whalf0, 
+						  MRI *mri_layer_intensities,
+						  int curv_bins, double vfrac_thresh) ;
 
 static int curv_bins = 0 ;
 int
@@ -80,7 +86,7 @@ main(int argc, char *argv[])
   MRI         *mri_intensities, *mri_volume_fractions, *mri_layer_intensities ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_compute_layer_intensities.c,v 1.3 2012/01/31 20:57:51 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_compute_layer_intensities.c,v 1.4 2012/02/20 01:38:53 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -118,9 +124,20 @@ main(int argc, char *argv[])
     if (mris[i] == NULL)
       ErrorExit(ERROR_NOFILE, "%s: could not load surface from %s", Progname, fname) ;
   }
-  
-  mri_layer_intensities = compute_layer_intensities(mri_intensities, mri_volume_fractions, mris, nlayers, 
-						    Gwhalf, NULL, curv_bins) ;
+
+  if (vfrac_thresh > 0)
+  mri_layer_intensities = 
+    compute_thresholded_layer_intensities(mri_intensities, mri_volume_fractions, mris, nlayers, 
+					  Gwhalf, NULL, curv_bins, vfrac_thresh) ;
+  else
+    mri_layer_intensities = compute_layer_intensities(mri_intensities, mri_volume_fractions, mris, nlayers, 
+						      Gwhalf, NULL, curv_bins) ;
+  {
+    sprintf(fname, "wsize.mgz") ;
+    printf("writing half window sizes to %s\n", fname) ;
+    MRISwriteValues(mris[0], fname) ;
+  }
+
   printf("writing layer intensities to %s\n", argv[4]) ;
   MRIwrite(mri_layer_intensities, argv[4]) ;
 
@@ -154,6 +171,11 @@ get_option(int argc, char *argv[]) {
     nlayers = atoi(argv[2]) ;
     nargs = 1 ;
     printf("using %d input layers for laminar analysis\n", nlayers) ;
+  } else if (!stricmp(option, "thresh")) {
+    vfrac_thresh = atof(argv[2]) ;
+    nargs = 1 ;
+    printf("only using voxels with at least %2.2f volume fraction to estimate intensities\n",
+	   vfrac_thresh) ;
   } else if (!stricmp(option, "curv")) {
     curv_bins = atoi(argv[2]) ;
     nargs = 1 ;
@@ -216,12 +238,26 @@ compute_layer_intensities(MRI *mri_intensities, MRI *mri_volume_fractions, MRI_S
 			  int whalf0, MRI *mri_layer_intensities, int curv_bins)
 {
   MATRIX  *mF, *mL, *mI, *mFinv ;
-  int     whalf, vno, n, t1, t2, nvals, xvi, yvi, zvi, n1, found_vals, min_vals_needed, out_of_fov ;
+  int     whalf, vno, n, nd, t1, t2, nvals, xvi, yvi, zvi, n1, out_of_fov ;
   VERTEX  *v ;
-  double  step, xs, ys, zs, xv, yv, zv ;
+  double  step, xs, ys, zs, xv, yv, zv, vfrac, nx, ny, nz ;
   MRI     *mri_visited, *mri_curv_bins ;
-  double  bin_size, Hmin ;
-  int     bin0, bin ;
+  double  bin_size, Hmin, whalf_total = 0, val, vfrac_thresh ;
+  int     bin0, bin, found_layer[MAX_LAYERS], estimable, nwindows = 0 ;
+
+/*
+  try to find voxels with a lot of each layer, but the more layers there are the less likely we are to be able
+  to do so. The higher res the data the higher the threshold should be (as the more likely we are to be able
+  to find voxels with a lot of one layer.
+  xsize = 1,  nlayers = 2 --> vfrac = .75
+  xsize = .5,  nlayers = 2 --> vfrac = 1
+  xsize = .5, nlayers = 6 --> vfrac = .667
+  xsize = .5, nlayers = 12 --> vfrac = .583
+*/
+
+  vfrac_thresh = .4 + .5*1/(mri_intensities->xsize*nlayers) ;
+  if (vfrac_thresh > .995)
+    vfrac_thresh = .995 ;
 
   step = mri_intensities->xsize/4 ;
   if (mri_layer_intensities == NULL)
@@ -277,15 +313,15 @@ compute_layer_intensities(MRI *mri_intensities, MRI *mri_volume_fractions, MRI_S
       for (y = 0 ; y < mri_curv_bins->height ; y++)
 	for (z = 0 ; z < mri_curv_bins->depth ; z++)
 	{
-	  for (found_vals = 0, n = 0 ; n <= nlayers ; n++)  // in normal direction
+	  for (nvals = 0, n = 0 ; n <= nlayers ; n++)  // in normal direction
 	  {
 	    if (MRIgetVoxVal(mri_volume_fractions, x, y, z, n) > 0)
 	    {
-	      found_vals++ ;
+	      nvals++ ;
 	      break ;
 	    }
 	  }
-	  if (found_vals == 0)
+	  if (nvals == 0)
 	  {
 	    DiagBreak() ;
 	    MRIsetVoxVal(mri_curv_bins, x, y, z, 0, -10000) ;
@@ -301,8 +337,10 @@ compute_layer_intensities(MRI *mri_intensities, MRI *mri_volume_fractions, MRI_S
   else
     bin_size = 0 ;
 
+#define MAX_VALS 2000
+  mF = MatrixAlloc(MAX_VALS, nlayers+2, MATRIX_REAL) ;
+  mI = MatrixAlloc(MAX_VALS, 1, MATRIX_REAL) ;
   mL = MatrixAlloc(nlayers+2, 1, MATRIX_REAL) ; // wm+nlayers+csf+ (subcortical gray maybe)
-  min_vals_needed = (nlayers+2)*(nlayers+2)*2 ; // only about two nonzero fractions/entry
   for (vno = 0 ; vno < mris[0]->nvertices ; vno++)
   {
     if ((vno % 500) == 0)
@@ -329,159 +367,302 @@ compute_layer_intensities(MRI *mri_intensities, MRI *mri_volume_fractions, MRI_S
     out_of_fov = 0 ;
     do
     {
-      // find how many unique vals are within whalf
-      for (found_vals = 0, n = 0 ; n <= nlayers ; n++)  // in normal direction
+      // build the matrices
+      memset(found_layer, 0, sizeof(found_layer)) ;
+      for (nvals = 0, n = 0 ; nvals < MAX_VALS && n <= nlayers ; n++)  // in normal direction
+      {
+	for (t1 = -whalf ; nvals < MAX_VALS && t1 <= whalf ; t1++)    // in tangent plane
+	{
+	  for (t2 = -whalf ; nvals < MAX_VALS && t2 <= whalf ; t2++)
+	  {
+	    xs = v->x + step*t1*v->e1x + step*t2*v->e2x;
+	    ys = v->y + step*t1*v->e1y + step*t2*v->e2y;
+	    zs = v->z + step*t1*v->e1z + step*t2*v->e2z;
+	    MRISsurfaceRASToVoxelCached(mris[n], mri_intensities, xs, ys, zs, &xv,&yv,&zv) ;
+	    if (MRIindexNotInVolume(mri_intensities, xv, yv, zv) != 0)
+	    {
+	      out_of_fov = 1 ;
+	      break ;
+	    }
+	    xvi = nint(xv) ; yvi = nint(yv) ; zvi = nint(zv) ;
+	    bin = MRIgetVoxVal(mri_curv_bins, xvi, yvi, zvi, 0) ;
+	    if (bin != bin0)  
+	      continue ;  // not the same curvature
+	    if (MRIgetVoxVal(mri_visited, xvi, yvi, zvi, 0) == 0)  // new voxel found
+	    {
+	      MRIsetVoxVal(mri_visited, xvi, yvi, zvi, 0, 1) ;
+	      val = MRIgetVoxVal(mri_intensities, xvi, yvi, zvi, 0) ; 
+	      if (val < 0)
+		DiagBreak() ;
+	      *MATRIX_RELT(mI, nvals+1, 1) = val ;
+	      for (n1 = 0 ; n1 <= nlayers+1 ; n1++)
+	      {
+		vfrac = MRIgetVoxVal(mri_volume_fractions, xvi, yvi, zvi, n1) ;
+		if (vfrac >= vfrac_thresh)
+		  found_layer[n1] = 1 ;
+		*MATRIX_RELT(mF, nvals+1, n1+1) = vfrac ;
+	      }
+	      // add wm and csf estimates
+	      *MATRIX_RELT(mF, nvals+1, 1) = MRIgetVoxVal(mri_volume_fractions, xvi, yvi, zvi, 0) ; // wm
+	      *MATRIX_RELT(mF, nvals+1, nlayers+2) = MRIgetVoxVal(mri_volume_fractions, xvi, yvi, zvi, nlayers+1) ;//csf
+	      nvals++ ;
+	    }
+	  }
+	}
+      }
+/*
+  now go whalf into the wm and whalf outside the last surface to get good estimates of WM and CSF
+*/
+      for (n = 0 ; nvals < MAX_VALS && n <= nlayers ; n += nlayers)
+      {
+	v = &mris[n]->vertices[vno] ;
+	if (n == 0)  // look inwards from inside surface
+	{
+	  nx = -v->nx ; ny = -v->ny ; nz = -v->nz ;
+	}
+	else   // look outwards from outside surface
+	{
+	  nx = v->nx ; ny = v->ny ; nz = v->nz ;
+	}
+
+	for (nd = 0 ; nvals < MAX_VALS && nd <= whalf ; nd++)
+	{
+	  for (t1 = -whalf ; nvals < MAX_VALS && t1 <= whalf ; t1++)    // in tangent plane
+	  {
+	    for (t2 = -whalf ; nvals < MAX_VALS && t2 <= whalf ; t2++)
+	    {
+	      xs = v->x + step*t1*v->e1x + step*t2*v->e2x + nd*step*nx;
+	      ys = v->y + step*t1*v->e1y + step*t2*v->e2y + nd*step*ny;
+	      zs = v->z + step*t1*v->e1z + step*t2*v->e2z + nd*step*nz;
+	      MRISsurfaceRASToVoxelCached(mris[nlayers], mri_intensities, xs, ys, zs, &xv,&yv,&zv) ;
+	      if (MRIindexNotInVolume(mri_intensities, xv, yv, zv) != 0)
+	      {
+		out_of_fov = 1 ;
+		break ;
+	      }
+	      xvi = nint(xv) ; yvi = nint(yv) ; zvi = nint(zv) ;
+	      bin = MRIgetVoxVal(mri_curv_bins, xvi, yvi, zvi, 0) ;
+	      if (bin != bin0)  
+		continue ;  // not the same curvature
+	      if (MRIgetVoxVal(mri_visited, xvi, yvi, zvi, 0) == 0)  // new voxel found
+	      {
+		MRIsetVoxVal(mri_visited, xvi, yvi, zvi, 0, 1) ;
+		val = MRIgetVoxVal(mri_intensities, xvi, yvi, zvi, 0) ;
+		if (val < 0)
+		  DiagBreak() ;
+		*MATRIX_RELT(mI, nvals+1, 1) = val ;
+		for (n1 = 0 ; n1 <= nlayers+1 ; n1++)
+		{
+		  vfrac = MRIgetVoxVal(mri_volume_fractions, xvi, yvi, zvi, n1) ;
+		  if (vfrac >= vfrac_thresh)
+		    found_layer[n1] = 1 ;
+		  *MATRIX_RELT(mF, nvals+1, n1+1) = vfrac ;
+		}
+		nvals++ ;
+	      }
+	    }
+	  }
+	}
+      }
+
+      if (vno == Gdiag_no)
+	DiagBreak() ;
+      mF->rows = nvals ; mI->rows = nvals ;  // temporary - will be reset below (avoids allocating frequently)
+      MRIclear(mri_visited) ;
+      for (estimable = 1, n1 = 0 ; n1 <= nlayers+1 ; n1++)
+	if (found_layer[n1] == 0)
+	{
+	  estimable = 0 ;
+	  break ;
+	}
+      if (estimable)
+      {
+	if (MatrixNSConditionNumber(mF) > 100000) // can't reliably estimate parameters
+	  estimable = 0 ;
+	else  // matrix is well-conditioned and we have found voxels with majority of each layer
+	{
+	  mFinv = MatrixPseudoInverse(mF, NULL) ;
+	  if (mFinv == NULL)  // shouldn't happen since we check condition # above
+	    estimable = 0 ;
+	  else   // inversion ok - compute parameter estimates
+	  {
+	    MatrixMultiply(mFinv, mI, mL) ;
+	    for (n = 0 ; n <= nlayers+1 ; n++) // fill in outputs
+	    {
+	      val = *MATRIX_RELT(mL, n+1, 1) ;
+	      if (val < 0 || val > 150)
+		DiagBreak() ;
+	      MRIsetVoxVal(mri_layer_intensities, vno, 0, 0, n, val) ;
+	    }
+	    MatrixFree(&mFinv) ;
+	  }
+	}
+      }
+      whalf++ ;  // if couldn't estimate inverse use a bigger neighborhood and more data
+      mF->rows = MAX_VALS ; mI->rows = MAX_VALS ;
+      if (whalf > 10*(whalf0+1)/step || (!estimable && nvals >= MAX_VALS-1))
+	break ;  // failed to find enough vals
+    } while (!estimable) ;      // most values are 0 - make sure we have enough to estimate
+    if (estimable)
+    {
+      whalf_total += (step*whalf) ; nwindows++ ;
+      mris[0]->vertices[vno].val = whalf/step ;
+    }
+
+    mF->rows = MAX_VALS ; mI->rows = MAX_VALS ;  // in case loop was broken out of
+  }
+
+  printf("%d vertices estimated, average window size = %2.1fmm\n", nwindows, whalf_total/nwindows) ;
+  MatrixFree(&mF) ; MatrixFree(&mI) ; 
+  MatrixFree(&mL) ;
+  return(mri_layer_intensities) ;
+}
+
+static MRI *
+compute_thresholded_layer_intensities(MRI *mri_intensities, MRI *mri_volume_fractions, 
+				      MRI_SURFACE **mris, int nlayers, 
+				      int whalf0, MRI *mri_layer_intensities, int curv_bins,
+				      double vfrac_thresh)
+{
+  int     whalf, vno, n, t1, t2, xvi, yvi, zvi, n1, out_of_fov, num_found[MAX_LAYERS], xv0, yv0, zv0 ;
+  VERTEX  *v ;
+  double  step, xs, ys, zs, xv, yv, zv, vfrac ;
+  MRI     *mri_curv_bins ;
+  double  bin_size, Hmin, val ;
+  int     bin0, bin ;
+
+  step = mri_intensities->xsize/4 ;
+  if (mri_layer_intensities == NULL)
+    mri_layer_intensities = MRIallocSequence(mris[0]->nvertices, 1, 1, MRI_FLOAT, nlayers+2) ;
+
+  for (n = 0 ; n <= nlayers ; n++)
+  {
+    MRISsaveVertexPositions(mris[n], TMP_VERTICES) ;
+    MRISaverageVertexPositions(mris[n], 5) ;
+    MRISsetNeighborhoodSize(mris[n],3);
+    MRIScomputeSecondFundamentalForm(mris[n]) ;
+    MRISsmoothCurvatures(mris[n], 5) ;
+    MRISrestoreVertexPositions(mris[n], TMP_VERTICES) ;
+  }
+  mri_curv_bins = MRIcloneDifferentType(mri_intensities, MRI_UCHAR) ;
+  if (curv_bins > 1)
+  {
+    MRI     *mri_ctrl ;
+
+    mri_ctrl = MRIclone(mri_curv_bins, NULL) ;
+    printf("constructing %d curvature bins\n", curv_bins) ;
+    Hmin = mris[0]->Hmin ;
+    bin_size = (mris[0]->Hmax - mris[0]->Hmin) / (float)(curv_bins-1) ;
+    for (vno = 0 ; vno < mris[0]->nvertices ; vno++)
+    {
+      v = &mris[0]->vertices[vno] ;
+      bin = nint((v->H - Hmin) / bin_size) ;
+      bin = v->H < -CURV_THRESH ? 1 : (v->H > CURV_THRESH ? 3 : 2) ;
+      for (n = 0 ; n <= nlayers ; n++)
       {
 	v = &mris[n]->vertices[vno] ;
 	MRISsurfaceRASToVoxelCached(mris[n], mri_intensities, v->x, v->y, v->z, &xv,&yv,&zv) ;
 	if (MRIindexNotInVolume(mri_intensities, xv, yv, zv) != 0)
-	{
-	  out_of_fov = 1 ;
-	  break ;
-	}
-	
-	for (t1 = -whalf ; t1 <= whalf ; t1++)    // in tangent plane
-	  for (t2 = -whalf ; t2 <= whalf ; t2++)
-	  {
-	    xs = v->x + step*t1*v->e1x + step*t2*v->e2x;
-	    ys = v->y + step*t1*v->e1y + step*t2*v->e2y;
-	    zs = v->z + step*t1*v->e1z + step*t2*v->e2z;
-	    MRISsurfaceRASToVoxelCached(mris[n], mri_intensities, xs, ys, zs, &xv,&yv,&zv) ;
-	    if (MRIindexNotInVolume(mri_intensities, xv, yv, zv) != 0)
-	      continue ;
-	    xvi = nint(xv) ; yvi = nint(yv) ; zvi = nint(zv) ;
-	    if (xvi == Gx && yvi == Gy && zvi == Gz)
-	      DiagBreak() ;
-	    if (MRIgetVoxVal(mri_visited, xvi, yvi, zvi, 0) == 0)
-	    {
-	      bin = MRIgetVoxVal(mri_curv_bins, xvi, yvi, zvi, 0) ;
-	      if (bin == bin0)
-	      {
-		found_vals++ ;
-		MRIsetVoxVal(mri_visited, xvi, yvi, zvi, 0, 1) ;
-	      }
-	    }
-	  }
+	  continue ;
+	xvi = nint(xv) ; yvi = nint(yv) ; zvi = nint(zv) ;
+	MRIsetVoxVal(mri_ctrl, xvi, yvi, zvi, 0, CONTROL_MARKED) ;
+	MRIsetVoxVal(mri_curv_bins, xvi, yvi, zvi, 0, bin) ;
       }
-      if (out_of_fov)
+    }
+    if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
+    {
+      MRIwrite(mri_ctrl, "ctrl.mgz") ;
+      MRIwrite(mri_curv_bins, "cbins.mgz") ;
+    }
+    MRIbuildVoronoiDiagram(mri_curv_bins, mri_ctrl, mri_curv_bins);
+    if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
+    {
+      MRIwrite(mri_curv_bins, "cbins.mgz") ;
+    }
+    MRIfree(&mri_ctrl) ;
+  }
+  else
+    bin_size = 0 ;
+
+  for (vno = 0 ; vno < mris[0]->nvertices ; vno++)
+  {
+    if ((vno % 500) == 0)
+      printf("processing vno %d of %d (%2.1f%%)\n", vno, mris[0]->nvertices, 100.0f*vno/mris[0]->nvertices) ;
+    v = &mris[0]->vertices[vno] ;
+    if (vno == Gdiag_no)
+      DiagBreak() ;
+    if (FEQUAL(mris[0]->vertices[vno].x, mris[nlayers]->vertices[vno].x) &&
+	FEQUAL(mris[0]->vertices[vno].y, mris[nlayers]->vertices[vno].y) &&
+	FEQUAL(mris[0]->vertices[vno].z, mris[nlayers]->vertices[vno].z))
+    {
+      DiagBreak() ;
+      continue ;   // pial and white in same place - vertex is not cortical and can't be estimated
+    }
+    if (bin_size == 0)
+      bin0 = 0 ;
+    else
+    {
+      bin0 = (v->H - Hmin) / (bin_size-1) ;
+      bin0 = v->H < -CURV_THRESH ? 1 : (v->H > CURV_THRESH ? 3 : 2) ;
+    }
+
+    whalf = whalf0/step ;
+    out_of_fov = 0 ;
+
+    // look for supra-threshold volume fraction voxels
+    memset(num_found, 0, sizeof(num_found)) ;
+    for ( n = 0 ; n <= nlayers ; n++)  // in normal direction
+    {
+      v = &mris[n]->vertices[vno] ;
+      MRISsurfaceRASToVoxelCached(mris[n], mri_intensities, v->x, v->y, v->z, &xv,&yv,&zv) ;
+      xv0 = nint(xv) ; yv0 = nint(yv) ; zv0 = nint(zv) ;
+      if ((MRIindexNotInVolume(mri_intensities, xv, yv, zv) != 0) ||
+	  MRIindexNotInVolume(mri_intensities, xv0, yv0, zv0) != 0)
+      {
+	out_of_fov = 1 ;
 	break ;
-
-      if (found_vals == 0)
-      {
-	whalf += 1/step ;
-	MRIclear(mri_visited) ;
-	continue ;
       }
-      mF = MatrixAlloc(found_vals, nlayers+2, MATRIX_REAL) ;
-      mI = MatrixAlloc(found_vals, 1, MATRIX_REAL) ;
-
-      // unmark the vertices
-      for (n = 0 ; n <= nlayers ; n++)  // in normal direction
-      {
-	v = &mris[n]->vertices[vno] ;
-	
-	for (t1 = -whalf ; t1 <= whalf ; t1++)    // in tangent plane
-	  for (t2 = -whalf ; t2 <= whalf ; t2++)
+      
+      for (t1 = -whalf ; t1 <= whalf ; t1++)    // in tangent plane
+	for (t2 = -whalf ; t2 <= whalf ; t2++)
+	{
+	  xs = v->x + step*t1*v->e1x + step*t2*v->e2x;
+	  ys = v->y + step*t1*v->e1y + step*t2*v->e2y;
+	  zs = v->z + step*t1*v->e1z + step*t2*v->e2z;
+	  MRISsurfaceRASToVoxelCached(mris[n], mri_intensities, xs, ys, zs, &xv,&yv,&zv) ;
+	  if (MRIindexNotInVolume(mri_intensities, xv, yv, zv) != 0)
+	    continue ;
+	  xvi = nint(xv) ; yvi = nint(yv) ; zvi = nint(zv) ;
+	  if (xvi == Gx && yvi == Gy && zvi == Gz)
+	    DiagBreak() ;
+	  bin = MRIgetVoxVal(mri_curv_bins, xvi, yvi, zvi, 0) ;
+	  if (bin != bin0)
+	    continue ;
+	  for (n1 = 0 ; n1 <= nlayers ; n1++) // see if any are above threshold
 	  {
-	    xs = v->x + step*t1*v->e1x + step*t2*v->e2x;
-	    ys = v->y + step*t1*v->e1y + step*t2*v->e2y;
-	    zs = v->z + step*t1*v->e1z + step*t2*v->e2z;
-	    MRISsurfaceRASToVoxelCached(mris[n], mri_intensities, xs, ys, zs, &xv,&yv,&zv) ;
-	    if (MRIindexNotInVolume(mri_intensities, xv, yv, zv) != 0)
-	      continue ;
-	    xvi = nint(xv) ; yvi = nint(yv) ; zvi = nint(zv) ;
-	    MRIsetVoxVal(mri_visited, xvi, yvi, zvi, 0, 0) ;
-	  }
-      }
-      // build the matrices
-      for (nvals = 0, n = 0 ; n <= nlayers ; n++)  // in normal direction
-      {
-	v = &mris[n]->vertices[vno] ;
-	
-	for (t1 = -whalf ; t1 <= whalf ; t1++)    // in tangent plane
-	  for (t2 = -whalf ; t2 <= whalf ; t2++)
-	  {
-	    xs = v->x + step*t1*v->e1x + step*t2*v->e2x;
-	    ys = v->y + step*t1*v->e1y + step*t2*v->e2y;
-	    zs = v->z + step*t1*v->e1z + step*t2*v->e2z;
-	    MRISsurfaceRASToVoxelCached(mris[n], mri_intensities, xs, ys, zs, &xv,&yv,&zv) ;
-	    if (MRIindexNotInVolume(mri_intensities, xv, yv, zv) != 0)
-	      continue ;
-	    xvi = nint(xv) ; yvi = nint(yv) ; zvi = nint(zv) ;
-	    if (nvals >= found_vals)
-	      continue ;
-	    bin = MRIgetVoxVal(mri_curv_bins, xvi, yvi, zvi, 0) ;
-	    if (bin != bin0)
-	      continue ;
-	    if (MRIgetVoxVal(mri_visited, xvi, yvi, zvi, 0) == 0)
+	    vfrac = MRIgetVoxVal(mri_volume_fractions, xvi, yvi, zvi, n1) ;
+	    if (vfrac > vfrac_thresh)
 	    {
-	      MRIsetVoxVal(mri_visited, xvi, yvi, zvi, 0, 1) ;
-	      *MATRIX_RELT(mI, nvals+1, 1) = MRIgetVoxVal(mri_intensities, xvi, yvi, zvi, 0) ;
-	      for (n1 = 1 ; n1 <= nlayers ; n1++)
-		*MATRIX_RELT(mF, nvals+1, n1+1) = MRIgetVoxVal(mri_volume_fractions, xvi, yvi, zvi, n1) ;
-	      // add wm and csf estimates
-	      *MATRIX_RELT(mF, nvals+1, 1) = MRIgetVoxVal(mri_volume_fractions, xvi, yvi, zvi, 0) ; // wm
-	      *MATRIX_RELT(mF, nvals+1, nlayers+2) = MRIgetVoxVal(mri_volume_fractions, xvi, yvi, zvi, nlayers+1) ;//csf
-	      for (n1 = 1 ; n1 <= mF->cols ; n1++)
-		if (*MATRIX_RELT(mF, nvals+1, n1) > 0)
-		  break ;
-	      if (n1 > mF->cols)
-		DiagBreak() ;
-	      else
-		nvals++ ;
+	      num_found[n1]++ ;
+	      val = MRIgetVoxVal(mri_layer_intensities, vno, 0, 0, n1) ;
+	      val += MRIgetVoxVal(mri_intensities, xv0, yv0, zv0, 0) ;
+	      MRIsetVoxVal(mri_layer_intensities, vno, 0, 0, n1, val) ;
 	    }
 	  }
-      }
-      // unmark the vertices
-      for (n = 0 ; n <= nlayers ; n++)  // in normal direction
-      {
-	v = &mris[n]->vertices[vno] ;
-	
-	for (t1 = -whalf ; t1 <= whalf ; t1++)    // in tangent plane
-	  for (t2 = -whalf ; t2 <= whalf ; t2++)
-	  {
-	    xs = v->x + step*t1*v->e1x + step*t2*v->e2x;
-	    ys = v->y + step*t1*v->e1y + step*t2*v->e2y;
-	    zs = v->z + step*t1*v->e1z + step*t1*v->e2z;
-	    MRISsurfaceRASToVoxelCached(mris[n], mri_intensities, xs, ys, zs, &xv,&yv,&zv) ;
-	    if (MRIindexNotInVolume(mri_intensities, xv, yv, zv) != 0)
-	      continue ;
-	    xvi = nint(xv) ; yvi = nint(yv) ; zvi = nint(zv) ;
-	    MRIsetVoxVal(mri_visited, xvi, yvi, zvi, 0, 0) ;
-	  }
-      }
-      if (MatrixNSConditionNumber(mF) > 100000)
-      {
-	found_vals = 0 ;
-	DiagBreak() ;
-      }
-      if (found_vals >= min_vals_needed && 
-	  MatrixNSConditionNumber(mF) < 100000)  // enough to reliably estimate parameters
-      {
-	mFinv = MatrixPseudoInverse(mF, NULL) ;
-	if (mFinv == NULL)
-	{
-	  DiagBreak() ;
-	  found_vals = 0 ;
 	}
-	else
-	{
-	  MatrixMultiply(mFinv, mI, mL) ;
-	  for (n = 0 ; n <= nlayers+1 ; n++) // fill in outputs
-	    MRIsetVoxVal(mri_layer_intensities, vno, 0, 0, n, *MATRIX_RELT(mL, n+1, 1)) ;
-	  MatrixFree(&mFinv) ;
-	}
+    }
+    for (n = 0 ; n <= nlayers+1 ; n++) // fill in outputs
+    {
+      if (num_found[n] == 0)
+	MRIsetVoxVal(mri_layer_intensities, vno, 0, 0, n, -1) ;
+      else
+      {
+	val = MRIgetVoxVal(mri_layer_intensities, vno, 0, 0, n) ;
+	MRIsetVoxVal(mri_layer_intensities, vno, 0, 0, n, val/num_found[n]) ;
       }
-      MatrixFree(&mF) ; MatrixFree(&mI) ; 
-      whalf += 1/step ;
-      if (whalf > 10*whalf0/step)
-	break ;  // failed to find enough vals
-      MRIclear(mri_visited) ;
-    } while (found_vals < min_vals_needed) ;  // most values are 0 - make sure we have enough to estimate
+    }
   }
 
-  MatrixFree(&mL) ;
-  MRIfree(&mri_intensities) ;
   return(mri_layer_intensities) ;
 }
 
