@@ -9,9 +9,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2011/04/14 11:36:06 $
- *    $Revision: 1.97 $
+ *    $Author: greve $
+ *    $Date: 2012/02/21 21:04:20 $
+ *    $Revision: 1.98 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -30,6 +30,9 @@
 #include <stdlib.h>
 #include <math.h>
 #include <ctype.h>
+#include <sys/utsname.h>
+#include <unistd.h>
+
 
 #include "mri.h"
 #include "macros.h"
@@ -175,9 +178,10 @@ extern int gca_write_iterations ;
 static int expand_flag = FALSE ;
 static int expand_ventricle_flag = FALSE ;
 static int conform_flag = FALSE ;
+struct utsname uts;
+char *cmdline2, cwd[2000];
 
-int
-main(int argc, char *argv[])
+int main(int argc, char *argv[])
 {
   char         **av ;
   int          ac, nargs, extra ;
@@ -192,19 +196,31 @@ main(int argc, char *argv[])
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mri_ca_label.c,v 1.97 2011/04/14 11:36:06 fischl Exp $",
+   "$Id: mri_ca_label.c,v 1.98 2012/02/21 21:04:20 greve Exp $",
    "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mri_ca_label.c,v 1.97 2011/04/14 11:36:06 fischl Exp $",
+           "$Id: mri_ca_label.c,v 1.98 2012/02/21 21:04:20 greve Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
   {
     exit (0);
   }
   argc -= nargs;
+  cmdline2 = argv2cmdline(argc,argv);
+  uname(&uts);
+  getcwd(cwd,2000);
+  printf("sysname  %s\n",uts.sysname);
+  printf("hostname %s\n",uts.nodename);
+  printf("machine  %s\n",uts.machine);
+  printf("\n");
+  printf("setenv SUBJECTS_DIR %s\n",getenv("SUBJECTS_DIR"));
+  printf("cd %s\n",cwd);
+  printf("%s\n",cmdline2);
+  printf("\n");
+  fflush(stdout);  fflush(stderr);
 
   setRandomSeed(-1L) ;
   Progname = argv[0] ;
@@ -269,6 +285,7 @@ main(int argc, char *argv[])
   /*  fprintf(stderr,
       "mri_inputs read: xform %s\n", mri_inputs->transform_fname) ;*/
   printf("reading classifier array from %s...\n", gca_fname) ;
+  fflush(stdout);  fflush(stderr);
   gca = GCAread(gca_fname) ;
   if (!gca)
     ErrorExit(ERROR_NOFILE, "%s: could not read classifier array from %s",
@@ -311,6 +328,7 @@ main(int argc, char *argv[])
   {
     in_fname = argv[1+input] ;
     printf("reading input volume from %s...\n", in_fname) ;
+    fflush(stdout);  fflush(stderr);
     mri_tmp = MRIread(in_fname) ;
     if (!mri_tmp)
       ErrorExit(ERROR_NOFILE, "%s: could not read input MR volume from %s",
@@ -379,6 +397,7 @@ main(int argc, char *argv[])
     MRIfree(&mri_tmp) ;
   }
   MRIaddCommandLine(mri_inputs, cmdline) ;
+  fflush(stdout);  fflush(stderr);
 
   // -example fname  option
   if (example_T1)
@@ -455,6 +474,7 @@ main(int argc, char *argv[])
     free(labels) ;
     free(intensities) ;
   }
+  fflush(stdout);  fflush(stderr);
   //
   if (gca->type == GCA_FLASH)
   {
@@ -669,6 +689,7 @@ main(int argc, char *argv[])
       MRIwrite(mri_inputs, "heq.mgz") ;
     }
   }
+  fflush(stdout);  fflush(stderr);
 
   GCAfixSingularCovarianceMatrices(gca) ;
   if (read_fname != NULL && reg_fname == NULL)  /* use given segmentation */
@@ -1152,6 +1173,11 @@ get_option(int argc, char *argv[])
     wm_fname = argv[2] ;
     nargs = 1 ;
     printf("inserting white matter segmentation from %s...\n", wm_fname) ;
+  }
+  else if (!stricmp(option, "SD"))
+  {
+    setenv("SUBJECTS_DIR",argv[2],1) ;
+    nargs = 1 ;
   }
   else if (!stricmp(option, "-HELP")||!stricmp(option, "-USAGE"))
   {
