@@ -8,8 +8,8 @@
 # Original Author: Anastasia Yendiki
 # CVS Revision Info:
 #    $Author: ayendiki $
-#    $Date: 2011/09/02 19:19:22 $
-#    $Revision: 1.35 $
+#    $Date: 2012/02/22 19:13:18 $
+#    $Revision: 1.36 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -25,7 +25,7 @@
 
 umask 002
 
-set VERSION = '$Id: trac-all,v 1.35 2011/09/02 19:19:22 ayendiki Exp $'
+set VERSION = '$Id: trac-all,v 1.36 2012/02/22 19:13:18 ayendiki Exp $'
 set ProgName = `basename $0`
 set inputargs = ($argv)
 
@@ -152,6 +152,7 @@ set nsample = 5000
 set nupdate = 0
 set nkeep = 5
 set doinitprop = 0
+set overwrite = 1
 set trcdir = $FREESURFER_HOME/bin
 
 # Parse command line arguments
@@ -430,6 +431,7 @@ foreach isubj ($runlist)
   echo "set nupdate = ($nupdate)"					>> $RCF
   echo "set nkeep = ($nkeep)"						>> $RCF
   echo "set doinitprop = ($doinitprop)"					>> $RCF
+  echo "set overwrite = ($overwrite)"					>> $RCF
   echo "set trcdir = ($trcdir)"						>> $RCF
 
   set dmdirlist = ($dmdirlist $dtdir/dmri)

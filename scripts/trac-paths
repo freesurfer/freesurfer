@@ -8,8 +8,8 @@
 # Original Author: Anastasia Yendiki
 # CVS Revision Info:
 #    $Author: ayendiki $
-#    $Date: 2011/09/22 21:45:51 $
-#    $Revision: 1.27 $
+#    $Date: 2012/02/22 19:13:18 $
+#    $Revision: 1.28 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -25,7 +25,7 @@
 
 umask 002
 
-set VERSION = '$Id: trac-paths,v 1.27 2011/09/22 21:45:51 ayendiki Exp $'
+set VERSION = '$Id: trac-paths,v 1.28 2012/02/22 19:13:18 ayendiki Exp $'
 set ProgName = `basename $0`
 set inputargs = ($argv)
 
@@ -245,10 +245,21 @@ foreach ntrain ($ntrainlist)
         set sdplist = \
           `printf "$labdir/diff/%s_${avgmode}_cpts_${ncpts}_std.txt " $pathlist`
 
-        # Clean up pre-existing directories
-        foreach dname ($outlist)
-          rm -rf $dname
-        end
+        if ($overwrite) then		# Clean up pre-existing directories
+          foreach dname ($outlist)
+            rm -rf $dname
+          end
+        else				# Rename pre-existing directories
+          foreach dname ($outlist)
+            if (-e $dname) then
+              @ vno = 0
+              while (-e $dname.v$vno)
+                @ vno = $vno + 1
+              end
+              mv $dname $dname.v$vno
+            endif
+          end
+        endif
 
         set brainmask = $labdir/diff/lowb_brain_mask.nii.gz
 
