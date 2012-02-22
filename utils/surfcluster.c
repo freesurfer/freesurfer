@@ -10,8 +10,8 @@
  * Original Author: Doug Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2012/01/12 17:39:02 $
- *    $Revision: 1.32 $
+ *    $Date: 2012/02/22 21:07:38 $
+ *    $Revision: 1.33 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -52,7 +52,7 @@ static int sclustCompare(const void *a, const void *b);
   ---------------------------------------------------------------*/
 const char *sculstSrcVersion(void)
 {
-  return("$Id: surfcluster.c,v 1.32 2012/01/12 17:39:02 greve Exp $");
+  return("$Id: surfcluster.c,v 1.33 2012/02/22 21:07:38 greve Exp $");
 }
 
 /* ------------------------------------------------------------
@@ -624,18 +624,22 @@ SCS *SortSurfClusterSum(SCS *scs, int nClusters)
   ----------------------------------------------------------------*/
 int sclustReMap(MRI_SURFACE *Surf, int nClusters, SCS *scs_sorted)
 {
-  int vtx, c;
+  int vtx, c, cOld;
   int *Orig2Sorted;
 
   Orig2Sorted = (int *)calloc(nClusters,sizeof(int));
 
   for (c=1; c <= nClusters; c++){
-    Orig2Sorted[c-1] = scs_sorted[c-1].clusterno;
+    cOld = scs_sorted[c-1].clusterno;
+    Orig2Sorted[cOld-1] = c;
     //printf("new = %3d old = %3d\n",c,scs_sorted[c-1].clusterno);
   }
 
   for (vtx = 0; vtx < Surf->nvertices; vtx++)
     Surf->vertices[vtx].undefval = Orig2Sorted[Surf->vertices[vtx].undefval-1];
+
+  // Change cluster numbers in table
+  for (c=1; c <= nClusters; c++) scs_sorted[c-1].clusterno = c;
 
   free(Orig2Sorted);
 
