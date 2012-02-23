@@ -9,8 +9,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2011/12/19 22:47:35 $
- *    $Revision: 1.10 $
+ *    $Date: 2012/02/23 23:01:22 $
+ *    $Revision: 1.11 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -573,8 +573,9 @@ double SupraTentorialVolCorrection(MRI *aseg, MRI *ribbon)
 
 	// If this voxel is inside the pial, then skip it because it
 	// will be part of the surface-based volume measure
+	// This was the location of a bug found by Mike Harms.
 	RibbonVal = MRIgetVoxVal(ribbon,c,r,s,0);
-	if(RibbonVal == 0) continue;
+	if(RibbonVal > 0) continue;
 
 	// If it gets here, it means that the voxel was not within
 	// the pial surface. It could be in a structure that should
@@ -603,6 +604,10 @@ double SupraTentorialVolCorrection(MRI *aseg, MRI *ribbon)
 	if(SegId == CC_Anterior) vol += VoxSize;
 	if(SegId == Left_VentralDC) vol += VoxSize;
 	if(SegId == Right_VentralDC) vol += VoxSize;
+	if(SegId == Left_Hippocampus) vol += VoxSize;
+	if(SegId == Right_Hippocampus) vol += VoxSize;
+	if(SegId == Left_Amygdala) vol += VoxSize;
+	if(SegId == Right_Amygdala) vol += VoxSize;
 
 	// These are unlikely to have the pial surface cut through
 	// them, but no harm to include them
@@ -612,10 +617,6 @@ double SupraTentorialVolCorrection(MRI *aseg, MRI *ribbon)
 	if(SegId == Right_Putamen ) vol += VoxSize;
 	if(SegId == Left_Pallidum) vol += VoxSize;
 	if(SegId == Right_Pallidum) vol += VoxSize;
-	if(SegId == Left_Hippocampus) vol += VoxSize;
-	if(SegId == Right_Hippocampus) vol += VoxSize;
-	if(SegId == Left_Amygdala) vol += VoxSize;
-	if(SegId == Right_Amygdala) vol += VoxSize;
 	if(SegId == Left_Accumbens_area) vol += VoxSize;
 	if(SegId == Right_Accumbens_area) vol += VoxSize;
       }
