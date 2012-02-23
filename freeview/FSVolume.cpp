@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2012/02/14 19:20:17 $
- *    $Revision: 1.76 $
+ *    $Date: 2012/02/23 19:51:27 $
+ *    $Revision: 1.77 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -428,7 +428,6 @@ bool FSVolume::Create( FSVolume* src_vol, bool bCopyVoxelData, int data_type )
     MRIcopyHeader( src_vol->m_MRI, m_MRI );
   }
 
-  qDebug() << m_MRI;
   if ( m_imageData == NULL )
   {
     m_imageData = vtkSmartPointer<vtkImageData>::New();
@@ -499,7 +498,8 @@ bool FSVolume::Create( FSVolume* src_vol, bool bCopyVoxelData, int data_type )
     m_strOrientation[i] = src_vol->m_strOrientation[i];
   }
 
-  m_transform->DeepCopy( src_vol->m_transform );
+  // Do not copy transform
+//  m_transform->DeepCopy( src_vol->m_transform );
 
   return true;
 }
@@ -602,6 +602,15 @@ bool FSVolume::MRIWrite( const QString& filename, int nSampleMethod, bool resamp
   // check if transformation needed
   vtkMatrix4x4* mat = m_transform->GetMatrix();
   bool bTransformed = false;
+  bool bRefTransformed = false;
+  if (MyUtils::IsIdentity( mat->Element ))
+  {
+    if (m_volumeRef)
+    {
+      mat = m_volumeRef->m_transform->GetMatrix();
+      bRefTransformed = true;
+    }
+  }
   if ( !MyUtils::IsIdentity( mat->Element ) )
   {
     MATRIX* m = MatrixAlloc( 4, 4, MATRIX_REAL );
@@ -670,7 +679,7 @@ bool FSVolume::MRIWrite( const QString& filename, int nSampleMethod, bool resamp
           }
         }
       }
-      // qDebug() << indexBounds[0] << indexBounds[1] << indexBounds[2] << indexBounds[3] << indexBounds[4] << indexBounds[5];
+
       // calculate dimension of the converted target volume
       int dim[3];
       dim[0] = (int)( indexBounds[1] - indexBounds[0] + 1.0 );
@@ -714,8 +723,9 @@ bool FSVolume::MRIWrite( const QString& filename, int nSampleMethod, bool resamp
           << M->rptr[3][1] << " " << M->rptr[3][2] << " " << M->rptr[3][3] << " " << M->rptr[3][4]
           << M->rptr[4][1] << " " << M->rptr[4][2] << " " << M->rptr[4][3] << " " << M->rptr[4][4];
           */
-
-      mri = MRIapplyRASlinearTransformInterp( m_MRITemp, mri, m, nSampleMethod );
+      MATRIX* mi = MatrixIdentity(4, NULL);
+      mri = MRIapplyRASlinearTransformInterp( m_MRITemp, mri, bRefTransformed?mi:m, nSampleMethod );
+      MatrixFree(&mi);
       if ( !mri )
       {
         MatrixFree( &m );
@@ -2667,5 +2677,4 @@ void FSVolume::SetCroppingBounds( double* bounds )
 
   m_bCrop = true;
 }
-
 

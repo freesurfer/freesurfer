@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2012/02/14 19:20:17 $
- *    $Revision: 1.205 $
+ *    $Date: 2012/02/23 19:51:28 $
+ *    $Revision: 1.206 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -3433,8 +3433,8 @@ void MainWindow::OnNewVolume()
     LayerMRI* layer_template = dlg.GetTemplate();
     if (layer_template->IsTransformed())
     {
-      QMessageBox::information(this, "Warning",
-                               "New volume is constructed on template that has been rotated/transformed. It is recommended that you save the transformed volume and reload it before creating new volumes.");
+   //   QMessageBox::information(this, "Warning",
+   //                            "New volume is constructed on template that has been rotated/transformed. It is recommended that you save the transformed volume and reload it before creating new volumes.");
     }
     LayerMRI* layer_new = new LayerMRI( layer_template );
 
