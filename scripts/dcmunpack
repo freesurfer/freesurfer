@@ -2,7 +2,7 @@
 # dcmunpack
 # 
 
-set VERSION = '$Id: dcmunpack,v 1.14 2011/04/06 18:21:55 greve Exp $';
+set VERSION = '$Id: dcmunpack,v 1.15 2012/02/23 23:46:58 greve Exp $';
 
 set SeriesInfo = ();
 
@@ -76,6 +76,9 @@ echo "$inputargs" >> $LF
 echo $VERSION >> $LF
 uname -a >> $LF
 date >> $LF
+
+set StartTime = `date`;
+set tSecStart = `date '+%s'`;
 
 # Print out a summary
 echo "---------------------------------------" | tee -a $LF
@@ -218,7 +221,7 @@ foreach series ($SeriesNos)
   set max = ();
   if($GetMax) set max = (`mri_probedicom --i $f --max`)
   set descr = (`mri_probedicom --i $f --t 8 103e | sed 's/ //g' | sed 's/\///g' | sed 's/(//g' | sed 's/)//g'`)
-  echo $r[2] $descr $r[5-11] $max | tee -a $SeriesInfo
+  echo $r[2] "$descr" $r[5-11] $max | tee -a $SeriesInfo
 end
 
 # If no runs have been specified, then just exit
@@ -323,6 +326,14 @@ foreach run ($RunNos)
   endif
 
 end
+
+set tSecEnd = `date '+%s'`;
+@ tSecRun = $tSecEnd - $tSecStart;
+set tRunMins = `echo $tSecRun/60|bc -l`
+set tRunMins = `printf %5.2f $tRunMins`
+echo "Started at $StartTime " |& tee -a $LF
+echo "Ended   at `date`" |& tee -a $LF
+echo "dcmunpack-Run-Time-Min $tRunMins" |& tee -a $LF
 
 echo "" | tee -a $LF
 echo "" | tee -a $LF
