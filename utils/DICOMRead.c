@@ -6,9 +6,9 @@
 /*
  * Original Authors: Sebastien Gicquel and Douglas Greve, 06/04/2001
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2012/02/01 15:58:31 $
- *    $Revision: 1.143 $
+ *    $Author: greve $
+ *    $Date: 2012/02/24 18:53:42 $
+ *    $Revision: 1.144 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -3641,8 +3641,9 @@ CONDITION GetDICOMInfo(const char *fname,
   dcminfo->FileName[strlen(fname)]='\0';
 
   // transfer syntax UID (data format identifier, ie, raw or JPEG compressed)
-  // see http://www.psychology.nottingham.ac.uk/staff/cr1/dicom.html
-  // for a nice discussion on this element.
+  // It can be converted to non-jpeg with
+  // setenv DCMDICTPATH /usr/pubsw/packages/dcmtk/current/share/dcmtk/dicom.dic
+  // dcmdjpeg +te jpgdicom newdicom
   tag=DCM_MAKETAG(0x2, 0x10);
   cond=GetString(object, tag, &dcminfo->TransferSyntaxUID);
   if (cond != DCM_NORMAL)
@@ -3658,6 +3659,9 @@ CONDITION GetDICOMInfo(const char *fname,
     IsTagPresent[DCM_TransferSyntaxUID]=true;
 
   // JPEG compressed data is *not* supported by freesurfer.
+  // It can be converted to non-jpeg with
+  // setenv DCMDICTPATH /usr/pubsw/packages/dcmtk/current/share/dcmtk/dicom.dic
+  // dcmdjpeg +te jpgdicom newdicom
   strncpy(uid_buf,dcminfo->TransferSyntaxUID,sizeof(uid_buf));
   uid_buf[strlen(jpegCompressed_UID)]=0;
   if (strcmp(uid_buf,jpegCompressed_UID)==0)
@@ -4827,14 +4831,17 @@ MRI *DICOMRead2(const char *dcmfile, int LoadVolume)
     return(mri);
   }
 
+  printf("TransferSyntaxUID: --%s--\n",dcminfo[0]->TransferSyntaxUID);
   if(strcmp(dcminfo[0]->TransferSyntaxUID,"1.2.840.10008.1.2.4.70")==0)
   {
     printf("ERROR: the pixel data cannot be loaded as it is JPEG compressed.\n");
     printf("       (Transfer Syntax UID: %s)\n",dcminfo[0]->TransferSyntaxUID);
+    // It can be converted to non-jpeg with
+    // setenv DCMDICTPATH /usr/pubsw/packages/dcmtk/current/share/dcmtk/dicom.dic
+    // dcmdjpeg +te jpgdicom newdicom
+    printf("jpegUID:           --%s--\n",jpegCompressed_UID);
     exit(1);
   }
-  printf("TransferSyntaxUID: --%s--\n",dcminfo[0]->TransferSyntaxUID);
-  printf("jpegUID:           --%s--\n",jpegCompressed_UID);
 
   printf("Loading pixel data\n");
   nvox = RefDCMInfo.Columns * RefDCMInfo.Rows;
