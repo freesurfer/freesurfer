@@ -287,6 +287,20 @@ void Spline::WriteVolume(const char *VolumeFile, const bool ShowControls) {
   MRIwrite(mVolume, VolumeFile);
 }
 
+void Spline::WriteAllPoints(const char *TextFile) {
+  ofstream outfile(TextFile, ios::app);
+  if (!outfile) {
+    cout << "ERROR: Could not open " << TextFile << " for writing" << endl;
+    exit(1);
+  }
+
+  cout << "Writing coordinates along spline to " << TextFile << endl;
+
+  for (vector<int>::const_iterator ipt = mAllPoints.begin();
+                                   ipt < mAllPoints.end(); ipt += 3)
+    outfile << ipt[0] << " " << ipt[1] << " " << ipt[2] << endl;
+}
+
 void Spline::WriteValues(vector<MRI *> &ValueVolumes, const char *TextFile) {
   ofstream outfile(TextFile, ios::app);
   if (!outfile) {
