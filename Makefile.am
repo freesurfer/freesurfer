@@ -283,6 +283,7 @@ MRISSUBDIRS=\
 	mris_w_to_curv \
 	mris_volmask \
 	mris_volume \
+	mris_warp \
 	mris_thickness_diff \
 	mris_ms_surface_CNR \
 	mris_surface_stats

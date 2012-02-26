@@ -9,8 +9,8 @@
 #
 # CVS Revision Info:
 #    $Author: jonp $
-#    $Date: 2012/02/14 16:57:09 $
-#    $Revision: 1.562 $
+#    $Date: 2012/02/26 23:44:22 $
+#    $Revision: 1.563 $
 #
 ########################################################################
 AC_PREREQ(2.57)
@@ -3659,6 +3659,7 @@ AC_OUTPUT([Makefile
            mris_translate_annotation/Makefile
            mris_twoclass/Makefile
            mris_volume/Makefile
+           mris_warp/Makefile
            mris_volmask/Makefile
            mris_w_to_curv/Makefile
            mrisp_paint/Makefile
