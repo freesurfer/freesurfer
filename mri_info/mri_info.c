@@ -7,9 +7,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2012/02/01 18:27:19 $
- *    $Revision: 1.81 $
+ *    $Author: greve $
+ *    $Date: 2012/02/27 19:07:26 $
+ *    $Revision: 1.82 $
  *
  * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -23,7 +23,7 @@
  *
  */
 
-char *MRI_INFO_VERSION = "$Revision: 1.81 $";
+char *MRI_INFO_VERSION = "$Revision: 1.82 $";
 
 #include <stdio.h>
 #include <sys/stat.h>
@@ -58,7 +58,7 @@ static void print_help(void) ;
 static void print_version(void) ;
 
 static char vcid[] =
-  "$Id: mri_info.c,v 1.81 2012/02/01 18:27:19 nicks Exp $";
+  "$Id: mri_info.c,v 1.82 2012/02/27 19:07:26 greve Exp $";
 
 char *Progname ;
 static char *inputlist[100];
@@ -112,7 +112,7 @@ static char *outfile = NULL;
 static int debug = 0;
 static int intype=MRI_VOLUME_TYPE_UNKNOWN;
 static char *intypestr=NULL;
-
+int ZeroCRAS = 0;
 
 /***-------------------------------------------------------****/
 int main(int argc, char *argv[])
@@ -203,6 +203,10 @@ static int parse_commandline(int argc, char **argv)
     else if (!strcasecmp(option, "--version"))
     {
       print_version() ;
+    }
+    else if (!strcasecmp(option, "--zero-cras"))
+    {
+      ZeroCRAS = 1;
     }
     else if (!strcasecmp(option, "--debug"))
     {
@@ -477,6 +481,7 @@ static void print_usage(void)
   printf("   --scanner2tkr : print scannerRAS-to-tkrRAS matrix \n");
   printf("   --ras_good : print the ras_good_flag\n");
   printf("   --cras : print the RAS at the 'center' of the volume\n");
+  printf("   --zero-cras : zero the center ras\n");
   printf("   --p0 : print the RAS at voxel (0,0,0)\n");
   printf("   --det : print the determinant of the vox2ras matrix\n");
   printf("   --dof : print the dof stored in the header\n");
@@ -612,6 +617,12 @@ static void do_file(char *fname)
   if(!mri)
   {
     exit(1);  // should exit with error here
+  }
+
+  if(ZeroCRAS){
+    mri->c_r = 0;
+    mri->c_a = 0;
+    mri->c_s = 0;
   }
 
   if (PrintTR)
