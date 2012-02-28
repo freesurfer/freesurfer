@@ -10,8 +10,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2012/01/31 17:30:42 $
- *    $Revision: 1.31 $
+ *    $Date: 2012/02/28 02:20:53 $
+ *    $Revision: 1.32 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -26,7 +26,7 @@
  */
 
 
-// $Id: mri_binarize.c,v 1.31 2012/01/31 17:30:42 greve Exp $
+// $Id: mri_binarize.c,v 1.32 2012/02/28 02:20:53 greve Exp $
 
 /*
   BEGINHELP
@@ -180,7 +180,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_binarize.c,v 1.31 2012/01/31 17:30:42 greve Exp $";
+static char vcid[] = "$Id: mri_binarize.c,v 1.32 2012/02/28 02:20:53 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -200,6 +200,7 @@ char *CountFile = NULL;
 int BinVal=1;
 int BinValNot=0;
 int frame=0;
+int DoFrameLoop=1;
 int DoAbs=0;
 int DoNeg=0;
 int ZeroColEdges = 0;
@@ -228,6 +229,7 @@ double TopPercent = -1;
 /*---------------------------------------------------------------*/
 int main(int argc, char *argv[]) {
   int nargs, c, r, s, nhits, InMask, n, mriType,nvox;
+  int fstart, fend, nframes;
   double val,maskval,mergeval,gmean,gstd,gmax,voxvol;
   FILE *fp;
 
@@ -290,7 +292,6 @@ int main(int argc, char *argv[]) {
     }
   }
 
-
   // Load the merge volume (if needed)
   if (MergeVolFile) {
     MergeVol = MRIread(MergeVolFile);
@@ -334,10 +335,21 @@ int main(int argc, char *argv[]) {
     printf("  Threshold set to %g\n",MinThresh);
   }
 
+  if(DoFrameLoop){
+    fstart = 0;
+    fend = InVol->nframes-1;
+  }
+  else {
+    fstart = frame;
+    fend = frame;
+  }
+  nframes = fend - fstart + 1;
+  printf("fstart = %d, fend = %d, nframes = %d\n",fstart,fend,nframes);
+
   // Prepare the output volume
   mriType = MRI_INT;
   if (mriTypeUchar) mriType = MRI_UCHAR;
-  OutVol = MRIalloc(InVol->width,InVol->height,InVol->depth,mriType);
+  OutVol = MRIallocSequence(InVol->width,InVol->height,InVol->depth,mriType,nframes);
   if (OutVol == NULL) exit(1);
   MRIcopyHeader(InVol, OutVol);
 
@@ -345,61 +357,63 @@ int main(int argc, char *argv[]) {
   mergeval = BinValNot;
   InMask = 1;
   nhits = 0;
-  for (c=0; c < InVol->width; c++) {
-    for (r=0; r < InVol->height; r++) {
-      for (s=0; s < InVol->depth; s++) {
-	if(MergeVol) mergeval = MRIgetVoxVal(MergeVol,c,r,s,0);
+  for(frame = fstart; frame <= fend; frame++){
+    for (c=0; c < InVol->width; c++) {
+      for (r=0; r < InVol->height; r++) {
+	for (s=0; s < InVol->depth; s++) {
+	  if(MergeVol) mergeval = MRIgetVoxVal(MergeVol,c,r,s,frame);
 
-	// Skip if on the edge
-	if( (ZeroColEdges &&   (c == 0 || c == InVol->width-1))  ||
-	    (ZeroRowEdges &&   (r == 0 || r == InVol->height-1)) ||
-	    (ZeroSliceEdges && (s == 0 || s == InVol->depth-1)) ){
-	  MRIsetVoxVal(OutVol,c,r,s,0,mergeval);
-	  continue;
-	}
-
-	// Skip if not in the mask
-        if(MaskVol) {
-          maskval = MRIgetVoxVal(MaskVol,c,r,s,0);
-          if(maskval < MaskThresh){
-	    MRIsetVoxVal(OutVol,c,r,s,0,mergeval);
-            continue;
+	  // Skip if on the edge
+	  if( (ZeroColEdges &&   (c == 0 || c == InVol->width-1))  ||
+	      (ZeroRowEdges &&   (r == 0 || r == InVol->height-1)) ||
+	      (ZeroSliceEdges && (s == 0 || s == InVol->depth-1)) ){
+	    MRIsetVoxVal(OutVol,c,r,s,frame,mergeval);
+	    continue;
 	  }
-        }
 
-	// Get the value at this voxel
-        val = MRIgetVoxVal(InVol,c,r,s,frame);
-
-	if(DoMatch){
-	  // Check for a match
-	  Matched = 0;
-	  for(n=0; n < nMatch; n++){
-	    if(fabs(val - MatchValues[n]) < 2*FLT_MIN){
-	      MRIsetVoxVal(OutVol,c,r,s,0,BinVal);
-	      Matched = 1;
-	      nhits ++;
-	      break;
+	  // Skip if not in the mask
+	  if(MaskVol) {
+	    maskval = MRIgetVoxVal(MaskVol,c,r,s,0);
+	    if(maskval < MaskThresh){
+	      MRIsetVoxVal(OutVol,c,r,s,frame,mergeval);
+	      continue;
 	    }
 	  }
-	  if(!Matched) MRIsetVoxVal(OutVol,c,r,s,0,mergeval);
-	}
-	else{
-	  // Determine whether it is in range
-	  if((MinThreshSet && (val < MinThresh)) ||
-	     (MaxThreshSet && (val > MaxThresh))){
-	    // It is NOT in the Range
-	    MRIsetVoxVal(OutVol,c,r,s,0,mergeval);
-	  }
-	  else {
-	    // It is in the Range
-	    MRIsetVoxVal(OutVol,c,r,s,0,BinVal);
-	    nhits ++;
-	  }
-        }
 
-      } // slice
-    } // row
-  } // col
+	  // Get the value at this voxel
+	  val = MRIgetVoxVal(InVol,c,r,s,frame);
+
+	  if(DoMatch){
+	    // Check for a match
+	    Matched = 0;
+	    for(n=0; n < nMatch; n++){
+	      if(fabs(val - MatchValues[n]) < 2*FLT_MIN){
+		MRIsetVoxVal(OutVol,c,r,s,frame,BinVal);
+		Matched = 1;
+		nhits ++;
+		break;
+	      }
+	    }
+	    if(!Matched) MRIsetVoxVal(OutVol,c,r,s,frame,mergeval);
+	  }
+	  else{
+	    // Determine whether it is in range
+	    if((MinThreshSet && (val < MinThresh)) ||
+	       (MaxThreshSet && (val > MaxThresh))){
+	      // It is NOT in the Range
+	      MRIsetVoxVal(OutVol,c,r,s,frame,mergeval);
+	    }
+	    else {
+	      // It is in the Range
+	      MRIsetVoxVal(OutVol,c,r,s,frame,BinVal);
+	      nhits ++;
+	    }
+	  }
+	  
+	} // slice
+      } // row
+    } // col
+  } // frame
 
   printf("Found %d values in range\n",nhits);
 
@@ -415,9 +429,8 @@ int main(int argc, char *argv[]) {
     printf("Eroding %d voxels in 2d\n",nErode2d);
     for(n=0; n<nErode2d; n++) MRIerode2D(OutVol,OutVol);
   }
-
   
-  printf("Counting number of voxels\n");
+  printf("Counting number of voxels in first frame\n");
   nhits = 0;
   for (c=0; c < OutVol->width; c++) {
     for (r=0; r < OutVol->height; r++) {
@@ -668,13 +681,16 @@ static int parse_commandline(int argc, char **argv) {
       if (nargc < 1) CMDargNErr(option,1);
       sscanf(pargv[0],"%d",&frame);
       nargsused = 1;
+      DoFrameLoop = 0;
     } 
     else if (!strcasecmp(option, "--frame-sum")) {
       DoFrameSum = 1;
+      DoFrameLoop = 0;
     } 
     else if (!strcasecmp(option, "--frame-and")) {
       DoFrameAnd = 1;
       MinThreshSet = 1;
+      DoFrameLoop = 0;
     } 
     else if (!strcasecmp(option, "--dilate")) {
       if (nargc < 1) CMDargNErr(option,1);
@@ -813,7 +829,7 @@ printf("values. binvalnot only applies when a merge volume is NOT specified.\n")
 printf("\n");
 printf("--frame frameno\n");
 printf("\n");
-printf("Use give frame of the input. 0-based. Default is 0.\n");
+printf("Use give frame of the input. 0-based. Default is to do all.\n");
 printf("\n");
 printf("--frame-sum\n");
 printf("\n");
