@@ -9,11 +9,11 @@
 /*
  * Original Author: jonathan polimeni
  * CVS Revision Info:
- *    $Author: jonp $
- *    $Date: 2012/02/28 19:15:00 $
- *    $Revision: 1.2 $
+ *    $Author: nicks $
+ *    $Date: 2012/02/29 15:59:46 $
+ *    $Revision: 1.3 $
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -64,7 +64,7 @@ MATRIX* mris_warp__TkReg2vox(MRI_SURFACE *);
 static int debug = 0;
 
 static char vcid[] =
-  "$Id: mris_warp.c,v 1.2 2012/02/28 19:15:00 jonp Exp $";
+  "$Id: mris_warp.c,v 1.3 2012/02/29 15:59:46 nicks Exp $";
 
 
 static char *hemi    = NULL;
@@ -84,13 +84,7 @@ int FLAG__abs = 0;
 //static char *outtypestring = NULL;
 static int  outtype = MRI_VOLUME_TYPE_UNKNOWN;
 
-
-
-
-char *basename( char *path );
-
-char*
-basename (char* path)
+char *basename (char* path)
 {
   char *ptr = strrchr (path, '/');
   return ptr ? ptr + 1 : (char*)path;
@@ -114,7 +108,8 @@ static MRI *overlay;
 
 
 
-int main(int argc, char *argv[]) {
+int main(int argc, char *argv[])
+{
 
   int          nargs = 0;
   int          err;
@@ -127,13 +122,12 @@ int main(int argc, char *argv[]) {
 
   float ipr, bpr, intensity;
 
-
   MATRIX       *p_vox, *p_ras, *surfaceRAS;
 
   GCA_MORPH    *gcam1, *gcam2 ;
 
 
-  //  nargs = handle_version_option (argc, argv, "$Id: mris_warp.c,v 1.2 2012/02/28 19:15:00 jonp Exp $", "$Name:  $");
+  //  nargs = handle_version_option (argc, argv, "$Id: mris_warp.c,v 1.3 2012/02/29 15:59:46 nicks Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
   {
     exit (0);
@@ -149,12 +143,15 @@ int main(int argc, char *argv[]) {
   argc--;
   argv++;
 
-  if (argc == 0) usage_exit();
+  if (argc == 0)
+  {
+    usage_exit();
+  }
 
   parse_commandline(argc, argv);
 
 
-  //==-------------------------------------------------------------------------------------------
+  //==--------------------------------------------------------------
   // 0) read in a surface and optionally a registration matrix
 
 
@@ -166,14 +163,20 @@ int main(int argc, char *argv[]) {
   // read in M0_vox2ras matrix as Dsrc
   err = regio_read_register(reg_filename, &srcsubject, &ipr, &bpr,
                             &intensity, &Dsrc, &float2int_src);
-  if ( err ) exit(1);
+  if ( err )
+  {
+    exit(1);
+  }
 
   printf("subject is '%s'\n", srcsubject);
 
 
   mris = MRISread(surf_filename) ;
   if (!mris)
-    ErrorExit(ERROR_NOFILE, "%s: could not read surface %s", Progname, surf_filename) ;
+  {
+    ErrorExit(ERROR_NOFILE, "%s: could not read surface %s", 
+              Progname, surf_filename) ;
+  }
 
   // check input surface for intersections
   {
@@ -188,34 +191,41 @@ int main(int argc, char *argv[]) {
 
 
     for (fno = 0 ; fno < mris->nfaces ; fno++)
+    {
+      if (MHTdoesFaceIntersect(mht, mris, fno))
       {
-        if (MHTdoesFaceIntersect(mht, mris, fno))
-          {
-            count_input++; 
-	    //printf("%d\n", fno);
-          }
+        count_input++;
+        //printf("%d\n", fno);
       }
-    printf("%d intersections found in INPUT surface at a grid resolution of %2.2f mm\n", count_input, grid);
+    }
+    printf("%d intersections found in INPUT surface at a "
+           "grid resolution of %2.2f mm\n", count_input, grid);
     MHTfree(&mht) ;
   }
 
-  //==-------------------------------------------------------------------------------------------
-  // 1) read in a volume warp, i.e., an M3Z file, OR a surface warp, i.e., an N x 1 x 1 x 3 MGZ
+  //==-----------------------------------------------------------
+  // 1) read in a volume warp, i.e., an M3Z file, 
+  // OR a surface warp, i.e., an N x 1 x 1 x 3 MGZ
 
 
-  printf("reading %s -- assuming ABSOLUTE position convention\n", deformvol_filename);
+  printf("reading %s -- assuming ABSOLUTE position convention\n", 
+         deformvol_filename);
   mri = MRIread(deformvol_filename) ;
   if (mri == NULL)
-    ErrorExit(ERROR_NOFILE, "%s: could not read warp volume %s\n", Progname, deformvol_filename);
+  {
+    ErrorExit(ERROR_NOFILE, "%s: could not read warp volume %s\n",
+              Progname, deformvol_filename);
+  }
 
 
-  // NOTE: mri_convert expects M3Z files that are specified in the RELATIVE position convention
+// NOTE: mri_convert expects M3Z files that are specified in the
+//  RELATIVE position convention
 //  printf("reading %s\n", m3z_filename);
 //  gcam2 = GCAMread(m3z_filename) ;
 //  if (gcam2 == NULL) return(1);
 
 
-  //==-------------------------------------------------------------------------------------------
+  //==---------------------------------------------------------------
   // 2) if it is a volume warp, find values on surface based on
   //    registration similar to mri_vol2surf
 
@@ -242,17 +252,15 @@ int main(int argc, char *argv[]) {
   // TODO: provide user command line option to specify this
   interpmethod = interpolation_code("trilinear");
 
-  // TODO: provide user command line option to specify this 
+  // TODO: provide user command line option to specify this
   // (although not sure that they would want to change this)
   ProjFrac = 0.0;
   ProjDistFlag = 0;
 
   unsigned short int bIsAbsoluteDeform = 1;
-  
+
   //* flip volume and scale
   mris_warp__check_deformation(&mri, bIsAbsoluteDeform);
-
-
 
   // TODO: provide user command line option to specify this
   outtype = MRI_GZIPPED;
@@ -264,20 +272,24 @@ int main(int argc, char *argv[]) {
                     mris, ProjFrac, interpmethod, float2int, SrcHitVol,
                     ProjDistFlag, 1);
 
-
   int nsrchits, c, r, s;
 
   /* count the number of source voxels hit */
   nsrchits = 0;
-  for (c=0; c < SrcHitVol->width; c++) {
-    for (r=0; r < SrcHitVol->height; r++) {
-      for (s=0; s < SrcHitVol->depth; s++) {
-        if (MRIFseq_vox(SrcHitVol,c,r,s,0) > 0.5) nsrchits++;
+  for (c=0; c < SrcHitVol->width; c++)
+  {
+    for (r=0; r < SrcHitVol->height; r++)
+    {
+      for (s=0; s < SrcHitVol->depth; s++)
+      {
+        if (MRIFseq_vox(SrcHitVol,c,r,s,0) > 0.5)
+        {
+          nsrchits++;
+        }
       }
     }
   }
   printf("number of source voxels hit = %d\n",nsrchits);
-
 
 
   // TODO: provide user command line option to specify this
@@ -286,7 +298,6 @@ int main(int argc, char *argv[]) {
 //    printf("ERROR: saving \n");
 //    exit(1);
 //  }
-
 
   gcam1 = GCAMalloc(mri->width, mri->height, mri->depth) ;
   GCAMinitVolGeom(gcam1, mri, mri) ;
@@ -297,38 +308,37 @@ int main(int argc, char *argv[]) {
   GCAMreadWarpFromMRI(gcam1, mri) ;
 #endif
 
-
   GCAMfree(&gcam1);
 
-  if ( 0 )  GCAMfree(&gcam2);
-
-
+  if ( 0 )
+  {
+    GCAMfree(&gcam2);
+  }
 
   // to trace where the gcam is scaled by the voxel size...
 #if 0
   GCA_MORPH_NODE  *gcamn ;
 
   gcamn = &gcam->nodes[0][0][0] ;
-  printf("g ox oy oz: %2.2f %2.2f %2.2f\ng x y z: %2.2f %2.2f %2.2f\ng nx ny nz: %2.2f %2.2f %2.2f\n",
-         gcamn->origx, gcamn->origy, gcamn->origz, gcamn->x, gcamn->y, gcamn->z, gcamn->xn, gcamn->yn, gcamn->zn);
+  printf("g ox oy oz: %2.2f %2.2f %2.2f\ng x y z: %2.2f %2.2f %2.2f\n"
+         "g nx ny nz: %2.2f %2.2f %2.2f\n",
+         gcamn->origx, gcamn->origy, gcamn->origz, 
+         gcamn->x, gcamn->y, gcamn->z, 
+         gcamn->xn, gcamn->yn, gcamn->zn);
 #endif
 
-
-
-  //==-------------------------------------------------------------------------------------------
-  // 3) reposition surface by replacing RAS XYZ coordinates with those based on warp
+  //==---------------------------------------------------------
+  // 3) reposition surface by replacing RAS XYZ coordinates with 
+  // those based on warp
 
   //    question: how to extrapolate if volume too small?
-
 
   MATRIX* iM = NULL;
 
   iM = mris_warp__TkReg2vox(mris);
 
-
   p_vox = MatrixAlloc(4, 1, MATRIX_REAL);
   *MATRIX_RELT(p_vox, 4, 1) = 1;
-
 
   // TODO: identify vertices that are outside of deformation volume
   // (whose positions will take the value '0') and leave these vertices
@@ -338,43 +348,51 @@ int main(int argc, char *argv[]) {
   VERTEX   *v ;
 
   for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    v = &mris->vertices[vno] ;
+    if (v->ripflag)
     {
-      v = &mris->vertices[vno] ;
-      if (v->ripflag)
-        continue ;
-      if (vno == Gdiag_no)
-        DiagBreak() ;
-
-      *MATRIX_RELT(p_vox, 1, 1) = MRIgetVoxVal(overlay,vno,0,0,0);
-      *MATRIX_RELT(p_vox, 2, 1) = MRIgetVoxVal(overlay,vno,0,0,1);
-      *MATRIX_RELT(p_vox, 3, 1) = MRIgetVoxVal(overlay,vno,0,0,2);
-
-      p_ras = MatrixMultiply(vox2ras, p_vox, NULL);
-
-      // do not need register.dat matrix here
-      surfaceRAS = MatrixMultiply(iM, p_ras, NULL);
-
-      for(f=0; f < 3; f++)
-        {
-          MRIsetVoxVal(overlay,vno,0,0,f, surfaceRAS->rptr[f+1][1]);
-        }
-
-
-      // for debugging
-      if ( 0 && vno == 0 )
-        {
-          printf("vx: %2.2f, vy: %2.2f, vz: %2.2f; \npx: %2.2f, py: %2.2f, pz: %2.2f; \npx: %2.2f, py: %2.2f, pz: %2.2f; \nqx: %2.2f, qy: %2.2f, qz: %2.2f\n",
-                 v->x, v->y, v->z,
-                 p_vox->rptr[1][1], p_vox->rptr[2][1], p_vox->rptr[3][1],
-                 p_ras->rptr[1][1], p_ras->rptr[2][1], p_ras->rptr[3][1],
-                 surfaceRAS->rptr[1][1], surfaceRAS->rptr[2][1], surfaceRAS->rptr[3][1]);
-        }
-
-      v->x = surfaceRAS->rptr[1][1];
-      v->y = surfaceRAS->rptr[2][1];
-      v->z = surfaceRAS->rptr[3][1];
-
+      continue ;
     }
+    if (vno == Gdiag_no)
+    {
+      DiagBreak() ;
+    }
+
+    *MATRIX_RELT(p_vox, 1, 1) = MRIgetVoxVal(overlay,vno,0,0,0);
+    *MATRIX_RELT(p_vox, 2, 1) = MRIgetVoxVal(overlay,vno,0,0,1);
+    *MATRIX_RELT(p_vox, 3, 1) = MRIgetVoxVal(overlay,vno,0,0,2);
+
+    p_ras = MatrixMultiply(vox2ras, p_vox, NULL);
+
+    // do not need register.dat matrix here
+    surfaceRAS = MatrixMultiply(iM, p_ras, NULL);
+
+    for(f=0; f < 3; f++)
+    {
+      MRIsetVoxVal(overlay,vno,0,0,f, surfaceRAS->rptr[f+1][1]);
+    }
+
+    // for debugging
+    if ( 0 && vno == 0 )
+    {
+      printf("vx: %2.2f, vy: %2.2f, vz: %2.2f; \n"
+             "px: %2.2f, py: %2.2f, pz: %2.2f; \n"
+             "px: %2.2f, py: %2.2f, pz: %2.2f; \n"
+             "qx: %2.2f, qy: %2.2f, qz: %2.2f\n",
+             v->x, v->y, v->z,
+             p_vox->rptr[1][1], p_vox->rptr[2][1], p_vox->rptr[3][1],
+             p_ras->rptr[1][1], p_ras->rptr[2][1], p_ras->rptr[3][1],
+             surfaceRAS->rptr[1][1], 
+             surfaceRAS->rptr[2][1], 
+             surfaceRAS->rptr[3][1]);
+    }
+
+    v->x = surfaceRAS->rptr[1][1];
+    v->y = surfaceRAS->rptr[2][1];
+    v->z = surfaceRAS->rptr[3][1];
+
+  }
 
   MatrixFree(&p_vox);
   MatrixFree(&p_ras);
@@ -382,7 +400,8 @@ int main(int argc, char *argv[]) {
 
 
   err = MRIwriteType(overlay,"overlay_warp.mgz",outtype);
-  if(err){
+  if(err)
+  {
     printf("ERROR: saving \n");
     exit(1);
   }
@@ -392,14 +411,17 @@ int main(int argc, char *argv[]) {
   MRISwrite(mris, warpsurf_filename);
 
 
-  //==-------------------------------------------------------------------------------------------
+  //==-------------------------------------------------------------------
   // 4) check quality of output surface ( mrisurf.c:IsMRISselfIntersecting )
 
   MRI *TrgVol = NULL;
 
   /* allocate a "volume" to hold the output */
   TrgVol = MRIallocSequence(mris->nvertices,1,1,MRI_FLOAT,1);
-  if (TrgVol == NULL) printf("error\n");
+  if (TrgVol == NULL)
+  {
+    printf("error\n");
+  }
   MRIcopyHeader(mri,TrgVol);
   // Dims here are meaningless, but setting to 1 means "volume" will be
   // number of vertices.
@@ -414,32 +436,31 @@ int main(int argc, char *argv[]) {
     int fno ;
     float grid = 1.0;
 
-    // 
+    //
     mht = MHTfillTableAtResolution(mris, NULL, CURRENT_VERTICES, grid);
 
     for (fno = 0 ; fno < mris->nfaces ; fno++)
+    {
+      // wrapper around "mhtDoesFaceVoxelListIntersect", which seems
+      // to test whether multiple faces intersect a 1mm "hash bin"
+
+      // TODO: explore alternate methods for detecting
+      // intersections, e.g., tri_tri_inter() of tetgen, or
+
+      if (MHTdoesFaceIntersect(mht, mris, fno))
       {
-	// wrapper around "mhtDoesFaceVoxelListIntersect", which seems
-	// to test whether multiple faces intersect a 1mm "hash bin"
+        count++;
+        //            printf("%d\n", fno);
 
-	// TODO: explore alternate methods for detecting
-	// intersections, e.g., tri_tri_inter() of tetgen, or
-
-        if (MHTdoesFaceIntersect(mht, mris, fno))
-          {
-            count++;
-	    //            printf("%d\n", fno);
-	    
-	    //                                        r s f v
-            MRIsetVoxVal(TrgVol,mris->faces[fno].v[0],0,0,0,1);
-            MRIsetVoxVal(TrgVol,mris->faces[fno].v[1],0,0,0,1);
-            MRIsetVoxVal(TrgVol,mris->faces[fno].v[2],0,0,0,1);
-
-          }
-
+        //                                        r s f v
+        MRIsetVoxVal(TrgVol,mris->faces[fno].v[0],0,0,0,1);
+        MRIsetVoxVal(TrgVol,mris->faces[fno].v[1],0,0,0,1);
+        MRIsetVoxVal(TrgVol,mris->faces[fno].v[2],0,0,0,1);
       }
+    }
 
-    printf("%d intersections found in WARPED surface at a grid resolution of %2.2f mm\n", count, grid);
+    printf("%d intersections found in WARPED surface at a grid "
+           "resolution of %2.2f mm\n", count, grid);
     MHTfree(&mht) ;
   }
 
@@ -450,109 +471,152 @@ int main(int argc, char *argv[]) {
 //    exit(1);
 //  }
 
-  if ( count ) printf("surface intersections found: %d\n", count);
+  if ( count )
+  {
+    printf("surface intersections found: %d\n", count);
+  }
 
   MRIfree(&mri);
   MRISfree(&mris);
-
 
   msec = TimerStop(&start) ;
   seconds = nint((float)msec/1000.0f) ;
   minutes = seconds / 60 ;
   seconds = seconds % 60 ;
-  fprintf(stderr, "%s took %d minutes and %d seconds.\n", Progname, minutes, seconds) ;
+  fprintf(stderr, "%s took %d minutes and %d seconds.\n", 
+          Progname, minutes, seconds) ;
 
   exit(0);
   return(0);
 }
 
+
 /* --------------------------------------------- */
-static int parse_commandline(int argc, char **argv) {
+static int parse_commandline(int argc, char **argv)
+{
   int  nargc , nargsused;
   char **pargv, *option ;
 
-  if (argc < 1) usage_exit();
+  if (argc < 1)
+  {
+    usage_exit();
+  }
 
   nargc = argc;
   pargv = argv;
-  while (nargc > 0) {
-
+  while (nargc > 0)
+  {
     option = pargv[0];
-    if (debug) printf("%d %s\n",nargc,option);
+    if (debug)
+    {
+      printf("%d %s\n",nargc,option);
+    }
     nargc -= 1;
     pargv += 1;
 
     nargsused = 0;
 
-    if (!strcasecmp(option, "--help"))  print_help() ;
-
-    else if (!strcasecmp(option, "--version")) print_version() ;
-
-    else if (!strcasecmp(option, "--debug"))   debug = 1;
+    if (!strcasecmp(option, "--help"))
+    {
+      print_help() ;
+    }
+    else if (!strcasecmp(option, "--version"))
+    {
+      print_version() ;
+    }
+    else if (!strcasecmp(option, "--debug"))
+    {
+      debug = 1;
+    }
 
     /*--------------*/
 
     else if (!strcasecmp(option, "--deformvol"))
+    {
+      if (nargc < 1)
       {
-        if (nargc < 1) argnerr(option,1);
-        deformvol_filename = pargv[0];
-        nargsused = 1;
+        argnerr(option,1);
       }
+      deformvol_filename = pargv[0];
+      nargsused = 1;
+    }
     else if (!strcasecmp(option, "--m3z"))
+    {
+      if (nargc < 1)
       {
-        if (nargc < 1) argnerr(option,1);
-        m3z_filename = pargv[0];
-        nargsused = 1;
+        argnerr(option,1);
       }
+      m3z_filename = pargv[0];
+      nargsused = 1;
+    }
     else if (!strcasecmp(option, "--deformsurf"))
+    {
+      if (nargc < 1)
       {
-        if (nargc < 1) argnerr(option,1);
-        deformsurf_filename = pargv[0];
-        nargsused = 1;
+        argnerr(option,1);
       }
+      deformsurf_filename = pargv[0];
+      nargsused = 1;
+    }
     else if (!strcasecmp(option, "--out"))
+    {
+      if (nargc < 1)
       {
-        if (nargc < 1) argnerr(option,1);
-        warpsurf_filename = pargv[0];
-        nargsused = 1;
+        argnerr(option,1);
       }
+      warpsurf_filename = pargv[0];
+      nargsused = 1;
+    }
     else if (!strcasecmp(option, "--rel"))
-      {
-        FLAG__abs = 0;
-        nargsused = 0;
-      }
+    {
+      FLAG__abs = 0;
+      nargsused = 0;
+    }
     else if (!strcasecmp(option, "--abs"))
-      {
-        FLAG__abs = 1;
-        nargsused = 0;
-      }
+    {
+      FLAG__abs = 1;
+      nargsused = 0;
+    }
     else if (!strcasecmp(option, "--reg"))
+    {
+      if (nargc < 1)
       {
-        if (nargc < 1) argnerr(option,1);
-        reg_filename = pargv[0];
-        nargsused = 1;
+        argnerr(option,1);
       }
+      reg_filename = pargv[0];
+      nargsused = 1;
+    }
     else if (!strcasecmp(option, "--regheader"))
+    {
+      printf("currently unsupported\n");
+      exit(1);
+      return(1);
+    }
+
+
+    else if (!strcmp(option, "--surf"))
+    {
+      if (nargc < 1)
       {
-        printf("currently unsupported\n");
-        exit(1);
-        return(1);
+        argnerr(option,1);
       }
-
-
-    else if (!strcmp(option, "--surf")) {
-      if (nargc < 1) argnerr(option,1);
       surf_filename = pargv[0];
-      if( !strcmp(surf_filename, "inflated") ) {
-        printf("\nWARNING: do you really want to warp the *inflated* surface?\n\n");
+      if( !strcmp(surf_filename, "inflated") )
+      {
+        printf("\nWARNING: do you really want to warp the "
+               "*inflated* surface?\n\n");
         exit(1);
       }
       nargsused = 1;
-    } else if ( !strcmp(option, "--hemi") ) {
-      if (nargc < 1) argnerr(option,1);
+    }
+    else if ( !strcmp(option, "--hemi") )
+    {
+      if (nargc < 1)
+      {
+        argnerr(option,1);
+      }
       hemi = pargv[0];
       nargsused = 1;
-
     }
 
     nargc -= nargsused;
@@ -561,23 +625,33 @@ static int parse_commandline(int argc, char **argv) {
   return(0);
 }
 
+
 /* --------------------------------------------- */
-static void argnerr(char *option, int n) {
+static void argnerr(char *option, int n)
+{
   if (n==1)
+  {
     fprintf(stderr,"ERROR: %s flag needs %d argument\n",option,n);
+  }
   else
+  {
     fprintf(stderr,"ERROR: %s flag needs %d arguments\n",option,n);
+  }
   exit(-1);
 }
 
+
 /* --------------------------------------------- */
-static void usage_exit(void) {
+static void usage_exit(void)
+{
   print_usage() ;
   exit(1) ;
 }
 
+
 /* --------------------------------------------- */
-static void print_usage(void) {
+static void print_usage(void)
+{
   printf("USAGE: %s \n",Progname) ;
   printf("\n");
   printf("   --deformvol <filename>   volume containing deformation\n");
@@ -590,7 +664,7 @@ static void print_usage(void) {
   printf("   --surf <filename>        surface file to warp\n");
   printf("   --out <filename>         name for output surface (if does not contain '/'\n");
   printf("                            outputs to same directory as input surface)\n");
-  printf("\n");		   
+  printf("\n");
   printf("   --help        print out information on how to use this program\n");
   printf("   --version     print out version and exit\n");
   printf("\n");
@@ -599,24 +673,28 @@ static void print_usage(void) {
 }
 
 /* --------------------------------------------- */
-static void print_help(void) {
+static void print_help(void)
+{
   print_usage() ;
 
   printf(
-         "This program will warp a surface using a specified deformation field.\n"
-         ) ;
+    "This program will warp a surface using a specified deformation field.\n"
+  ) ;
 
   exit(1) ;
 }
 
 /* --------------------------------------------- */
-static void print_version(void) {
+static void print_version(void)
+{
   printf("%s\n", vcid) ;
   exit(1) ;
 }
 
 /* --------------------------------------------- */
-static int mris_warp__check_deformation(MRI **pmri, unsigned short int bIsAbsoluteDeform) {
+static int mris_warp__check_deformation(MRI **pmri, 
+                                        unsigned short int bIsAbsoluteDeform)
+{
   /*
    * FSL uses a hybrid convention for the deformations produced by
    * their warp tools. the deformation can be in an absolute or
@@ -626,7 +704,7 @@ static int mris_warp__check_deformation(MRI **pmri, unsigned short int bIsAbsolu
    * spatial-based coordinates.
    *
    * this function returns a deformation as absolute positions in
-   * index-based coordinates and that 
+   * index-based coordinates and that
    */
 
   MATRIX    *m;
@@ -639,7 +717,6 @@ static int mris_warp__check_deformation(MRI **pmri, unsigned short int bIsAbsolu
 
   printf("%s\n", __func__);
 
-
   mri = *pmri;
 
   m = MRIgetVoxelToRasXform(mri) ;
@@ -649,49 +726,54 @@ static int mris_warp__check_deformation(MRI **pmri, unsigned short int bIsAbsolu
   // flipped
 
   det = MatrixDeterminant(m);
-  
+
   if ( det > 0 )
-    {
-      fprintf(stdout, "non-negative Jacobian determinant -- converting to radiological ordering\n");
-    }
+  {
+    fprintf(stdout, "non-negative Jacobian determinant -- "
+            "converting to radiological ordering\n");
+  }
 
   mri2 = MRIcopy(mri,NULL);
   for(c=0; c < mri->width; c++)
+  {
+    for(r=0; r < mri->height; r++)
     {
-      for(r=0; r < mri->height; r++)
+      for(s=0; s < mri->depth; s++)
+      {
+
+        val = MRIgetVoxVal(mri,c,r,s,0) / mri->xsize;
+        if ( !bIsAbsoluteDeform )
         {
-          for(s=0; s < mri->depth; s++)
-            {
-
-              val = MRIgetVoxVal(mri,c,r,s,0) / mri->xsize;
-	      if ( !bIsAbsoluteDeform )
-		{
-		  // make relative -- not yet implemented
-		}
-
-              // only flip first frame (by subtracting shift from width)
-              if ( det > 0 )
-                MRIsetVoxVal(mri2,c,r,s,0,mri->width-val-1);
-              else
-                MRIsetVoxVal(mri2,c,r,s,0,val);
-
-              val = MRIgetVoxVal(mri,c,r,s,1) / mri->ysize;
-	      if ( !bIsAbsoluteDeform )
-		{
-		  // make relative -- not yet implemented
-		}
-              MRIsetVoxVal(mri2,c,r,s,1,val);
-
-              val = MRIgetVoxVal(mri,c,r,s,2) / mri->zsize;
-	      if ( !bIsAbsoluteDeform )
-		{
-		  // make relative -- not yet implemented
-		}
-              MRIsetVoxVal(mri2,c,r,s,2,val);
-
-            }
+          // make relative -- not yet implemented
         }
+
+        // only flip first frame (by subtracting shift from width)
+        if ( det > 0 )
+        {
+          MRIsetVoxVal(mri2,c,r,s,0,mri->width-val-1);
+        }
+        else
+        {
+          MRIsetVoxVal(mri2,c,r,s,0,val);
+        }
+
+        val = MRIgetVoxVal(mri,c,r,s,1) / mri->ysize;
+        if ( !bIsAbsoluteDeform )
+        {
+          // make relative -- not yet implemented
+        }
+        MRIsetVoxVal(mri2,c,r,s,1,val);
+
+        val = MRIgetVoxVal(mri,c,r,s,2) / mri->zsize;
+        if ( !bIsAbsoluteDeform )
+        {
+          // make relative -- not yet implemented
+        }
+
+        MRIsetVoxVal(mri2,c,r,s,2,val);
+      }
     }
+  }
 
   MRIfree(&mri);
   *pmri = mri2;
@@ -708,26 +790,30 @@ MATRIX* mris_warp__TkReg2vox(MRI_SURFACE *mris)
   MATRIX *iM = NULL;
 
   if ( mris->vg.valid )
-    {
-      MRI* tmp = MRIallocHeader(mris->vg.width, mris->vg.height, mris->vg.depth, MRI_UCHAR, 1);
+  {
+    MRI* tmp = MRIallocHeader(mris->vg.width,
+                              mris->vg.height, 
+                              mris->vg.depth,
+                              MRI_UCHAR,
+                              1);
 
-      useVolGeomToMRI(&mris->vg, tmp);
-      MATRIX* vox2rasScanner = MRIxfmCRS2XYZ(tmp, 0);
-      MATRIX* vo2rasTkReg = MRIxfmCRS2XYZtkreg(tmp);
-      MATRIX* vox2rasTkReg_inv = MatrixInverse( vo2rasTkReg, NULL );
-      MATRIX* M = MatrixMultiply( vox2rasScanner, vox2rasTkReg_inv, NULL );
-      iM = MatrixInverse( M, NULL );
+    useVolGeomToMRI(&mris->vg, tmp);
+    MATRIX* vox2rasScanner = MRIxfmCRS2XYZ(tmp, 0);
+    MATRIX* vo2rasTkReg = MRIxfmCRS2XYZtkreg(tmp);
+    MATRIX* vox2rasTkReg_inv = MatrixInverse( vo2rasTkReg, NULL );
+    MATRIX* M = MatrixMultiply( vox2rasScanner, vox2rasTkReg_inv, NULL );
+    iM = MatrixInverse( M, NULL );
 
-      MRIfree( &tmp );
-      MatrixFree( &vox2rasScanner );
-      MatrixFree( &vo2rasTkReg );
-      MatrixFree( &vox2rasTkReg_inv );
-      MatrixFree( &M );
-    }
+    MRIfree( &tmp );
+    MatrixFree( &vox2rasScanner );
+    MatrixFree( &vo2rasTkReg );
+    MatrixFree( &vox2rasTkReg_inv );
+    MatrixFree( &M );
+  }
   else
+  {
     return NULL;
-  
-  return iM;
-  
-}
+  }
 
+  return iM;
+}
