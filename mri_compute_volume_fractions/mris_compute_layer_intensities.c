@@ -8,8 +8,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2012/02/20 01:38:53 $
- *    $Revision: 1.4 $
+ *    $Date: 2012/03/01 18:49:59 $
+ *    $Revision: 1.5 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -86,7 +86,7 @@ main(int argc, char *argv[])
   MRI         *mri_intensities, *mri_volume_fractions, *mri_layer_intensities ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_compute_layer_intensities.c,v 1.4 2012/02/20 01:38:53 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_compute_layer_intensities.c,v 1.5 2012/03/01 18:49:59 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -425,7 +425,7 @@ compute_layer_intensities(MRI *mri_intensities, MRI *mri_volume_fractions, MRI_S
 	  nx = v->nx ; ny = v->ny ; nz = v->nz ;
 	}
 
-	for (nd = 0 ; nvals < MAX_VALS && nd <= whalf ; nd++)
+	for (nd = -1 ; nvals < MAX_VALS && nd <= whalf+1 ; nd++)
 	{
 	  for (t1 = -whalf ; nvals < MAX_VALS && t1 <= whalf ; t1++)    // in tangent plane
 	  {
@@ -526,10 +526,10 @@ compute_thresholded_layer_intensities(MRI *mri_intensities, MRI *mri_volume_frac
 {
   int     whalf, vno, n, t1, t2, xvi, yvi, zvi, n1, out_of_fov, num_found[MAX_LAYERS], xv0, yv0, zv0 ;
   VERTEX  *v ;
-  double  step, xs, ys, zs, xv, yv, zv, vfrac ;
+  double  step, xs, ys, zs, xv, yv, zv, vfrac, nx, ny, nz ;
   MRI     *mri_curv_bins ;
   double  bin_size, Hmin, val ;
-  int     bin0, bin ;
+  int     bin0, bin, nd ;
 
   step = mri_intensities->xsize/4 ;
   if (mri_layer_intensities == NULL)
@@ -651,6 +651,61 @@ compute_thresholded_layer_intensities(MRI *mri_intensities, MRI *mri_volume_frac
 	  }
 	}
     }
+/*
+  now go whalf into the wm and whalf outside the last surface to get good estimates of WM and CSF
+*/
+    if (num_found[0] == 0)
+      DiagBreak() ;
+    for (n = 0 ; n <= nlayers ; n += nlayers)
+    {
+      v = &mris[n]->vertices[vno] ;
+      if (n == 0)  // look inwards from inside surface
+      {
+	nx = -v->nx ; ny = -v->ny ; nz = -v->nz ;
+      }
+      else   // look outwards from outside surface
+      {
+	nx = v->nx ; ny = v->ny ; nz = v->nz ;
+      }
+      
+      for (nd = -1 ; nd <= whalf+1 ; nd++)
+      {
+	for (t1 = -whalf ; t1 <= whalf ; t1++)    // in tangent plane
+	{
+	  for (t2 = -whalf ; t2 <= whalf ; t2++)
+	  {
+	    xs = v->x + step*t1*v->e1x + step*t2*v->e2x + nd*step*nx;
+	    ys = v->y + step*t1*v->e1y + step*t2*v->e2y + nd*step*ny;
+	    zs = v->z + step*t1*v->e1z + step*t2*v->e2z + nd*step*nz;
+	    MRISsurfaceRASToVoxelCached(mris[nlayers], mri_intensities, xs, ys, zs, &xv,&yv,&zv) ;
+	    if (MRIindexNotInVolume(mri_intensities, xv, yv, zv) != 0)
+	    {
+	      out_of_fov = 1 ;
+	      break ;
+	    }
+	    xvi = nint(xv) ; yvi = nint(yv) ; zvi = nint(zv) ;
+	    bin = MRIgetVoxVal(mri_curv_bins, xvi, yvi, zvi, 0) ;
+	    if (bin != bin0)  
+	      continue ;  // not the same curvature
+	    val = MRIgetVoxVal(mri_intensities, xvi, yvi, zvi, 0) ;
+	    if (val < 0)
+	      DiagBreak() ;
+	    for (n1 = 0 ; n1 <= nlayers+1 ; n1++)
+	    {
+	      vfrac = MRIgetVoxVal(mri_volume_fractions, xvi, yvi, zvi, n1) ;
+	      if (vfrac >= vfrac_thresh)
+	      {
+		num_found[n1]++ ;
+		val = MRIgetVoxVal(mri_layer_intensities, vno, 0, 0, n1) ;
+		val += MRIgetVoxVal(mri_intensities, xv0, yv0, zv0, 0) ;
+		MRIsetVoxVal(mri_layer_intensities, vno, 0, 0, n1, val) ;
+	      }
+	    }
+	  }
+	}
+      }
+    }
+
     for (n = 0 ; n <= nlayers+1 ; n++) // fill in outputs
     {
       if (num_found[n] == 0)
