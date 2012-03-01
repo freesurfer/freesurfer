@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2011/11/18 01:33:20 $
- *    $Revision: 1.60 $
+ *    $Date: 2012/03/01 18:49:31 $
+ *    $Revision: 1.61 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -158,13 +158,13 @@ main(int argc, char *argv[])
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mri_ca_normalize.c,v 1.60 2011/11/18 01:33:20 fischl Exp $",
+   "$Id: mri_ca_normalize.c,v 1.61 2012/03/01 18:49:31 fischl Exp $",
    "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mri_ca_normalize.c,v 1.60 2011/11/18 01:33:20 fischl Exp $",
+           "$Id: mri_ca_normalize.c,v 1.61 2012/03/01 18:49:31 fischl Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
   {
@@ -195,7 +195,7 @@ main(int argc, char *argv[])
      Progname) ;
 
   ninputs = (argc - 2) / 2 ;
-  printf("reading %d input volume%ss\n", ninputs, ninputs > 1 ? "s" : "") ;
+  printf("reading %d input volume%s\n", ninputs, ninputs > 1 ? "s" : "") ;
   in_fname = argv[1] ;
   gca_fname = argv[1+ninputs] ;
   xform_fname = argv[2+ninputs] ;
