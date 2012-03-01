@@ -9,9 +9,9 @@
 /*
  * Original Author: Bruce Fischl, 4/9/97
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2011/12/07 18:00:07 $
- *    $Revision: 1.109 $
+ *    $Author: fischl $
+ *    $Date: 2012/03/01 17:36:44 $
+ *    $Revision: 1.110 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -3106,7 +3106,7 @@ mriSoapBubbleFloat(MRI *mri_src, MRI *mri_ctrl, MRI *mri_dst,int niter, float mi
       MRIcopy(mri_tmp, mri_dst) ;
       x1 = MAX(x1-1, 0) ; y1 = MAX(y1-1, 0) ; z1 = MAX(z1-1, 0) ;
       x2 = MIN(x2+1,width-1); y2 = MIN(y2+1,height-1); z2 = MIN(z2+1, depth-1);
-      if (Gdiag & DIAG_SHOW)
+      if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
 	printf("iter %d: max change %f\n", i, max_change) ;
       if (max_change < min_change)
 	break ;
