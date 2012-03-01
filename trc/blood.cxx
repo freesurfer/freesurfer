@@ -1055,7 +1055,7 @@ void Blood::ComputePriors() {
     ComputeCurvaturePrior(true);
   }
 
-  for (int itry = 1; itry < mNumStrEnds; itry++) {
+  for (int itry = 1; itry <= mNumStrEnds; itry++) {
     bool retry = false;
 
     mCenterStreamline.clear();
