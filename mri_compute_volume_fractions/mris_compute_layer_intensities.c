@@ -8,8 +8,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2012/03/01 18:49:59 $
- *    $Revision: 1.5 $
+ *    $Date: 2012/03/02 00:29:21 $
+ *    $Revision: 1.6 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -86,7 +86,7 @@ main(int argc, char *argv[])
   MRI         *mri_intensities, *mri_volume_fractions, *mri_layer_intensities ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_compute_layer_intensities.c,v 1.5 2012/03/01 18:49:59 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_compute_layer_intensities.c,v 1.6 2012/03/02 00:29:21 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -659,6 +659,8 @@ compute_thresholded_layer_intensities(MRI *mri_intensities, MRI *mri_volume_frac
     for (n = 0 ; n <= nlayers ; n += nlayers)
     {
       v = &mris[n]->vertices[vno] ;
+      MRISsurfaceRASToVoxelCached(mris[n], mri_intensities, v->x, v->y, v->z, &xv,&yv,&zv) ;
+      xv0 = nint(xv) ; yv0 = nint(yv) ; zv0 = nint(zv) ;
       if (n == 0)  // look inwards from inside surface
       {
 	nx = -v->nx ; ny = -v->ny ; nz = -v->nz ;
