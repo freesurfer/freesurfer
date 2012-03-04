@@ -187,6 +187,7 @@ libutils_main_SOURCES=\
 	pdf.c \
 	pgmstubs.c \
 	prime.c \
+	Progname.c \
 	queue.c \
 	randomfields.c \
 	rbf.c \
@@ -196,6 +197,7 @@ libutils_main_SOURCES=\
 	resample.c \
 	rescale.c \
 	retinotopy.c \
+	rforest.c \
 	selxavgio.c \
 	sig.c \
 	signa.c \
