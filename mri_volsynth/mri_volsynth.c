@@ -7,8 +7,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2011/08/26 17:01:20 $
- *    $Revision: 1.49 $
+ *    $Date: 2012/03/05 21:43:49 $
+ *    $Revision: 1.50 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -63,7 +63,7 @@ static int  isflag(char *flag);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-"$Id: mri_volsynth.c,v 1.49 2011/08/26 17:01:20 greve Exp $";
+"$Id: mri_volsynth.c,v 1.50 2012/03/05 21:43:49 greve Exp $";
 
 char *Progname = NULL;
 
@@ -122,6 +122,7 @@ int NewVoxSizeSpeced=0;
 int DoHSC=0; // force noise to be heteroscedastic
 double HSCMin=0, HSCMax=0;
 int DoTNorm=0;
+int DoAbs=0;
 MRI *fMRIhsynth(MRI *res, MRI *mask, int DoTNorm);
 
 /*---------------------------------------------------------------*/
@@ -454,6 +455,11 @@ int main(int argc, char **argv)
     }
   }
 
+  if(DoAbs){
+    printf("Computing absolute value\n");
+    MRIabs(mri,mri);
+  }
+
   if(!NoOutput){
     printf("Saving\n");
     if(!DoCurv)  MRIwriteAnyFormat(mri,volid,volfmt,-1,NULL);
@@ -500,6 +506,7 @@ static int parse_commandline(int argc, char **argv) {
     if (!strcasecmp(option, "--help"))           print_help() ;
     else if (!strcasecmp(option, "--version"))   print_version() ;
     else if (!strcasecmp(option, "--debug"))     debug = 1;
+    else if (!strcasecmp(option, "--abs"))       DoAbs = 1;
     else if (!strcasecmp(option, "--nogmnnorm")) gmnnorm = 0;
     else if (!strcasecmp(option, "--rescale"))   rescale=1;
     else if (!strcasecmp(option, "--norescale")) rescale=0;
@@ -766,6 +773,7 @@ static void print_usage(void) {
   printf("   --val-b value : set ValB (default 0)\n");
   printf("   --radius voxradius : radius (in voxels) for sphere\n");
   printf("   --hsc min max : multiply each frame by a random number bet min and max\n");
+  printf("   --abs : compute absolute value\n");
   printf("\n");
   printf(" Other arguments\n");
   printf("   --spike tp : set all values at time point tp to 1e9\n");
@@ -872,6 +880,7 @@ static void dump_options(FILE *fp) {
   fprintf(fp,"pdf   %s\n",pdfname);
   fprintf(fp,"SpikeTP %d\n",SpikeTP);
   fprintf(fp,"DoCurv %d\n",DoCurv);
+  fprintf(fp,"DoAbs  %d\n",DoAbs);
   printf("Diagnostic Level %d\n",Gdiag_no);
 
   return;
