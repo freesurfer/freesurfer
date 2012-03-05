@@ -8,8 +8,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2012/03/04 21:51:07 $
- *    $Revision: 1.1 $
+ *    $Date: 2012/03/05 16:03:19 $
+ *    $Revision: 1.2 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -33,14 +33,16 @@ typedef struct node
   int    *class_counts ;       // the number of each class at this node ;
   int    feature ;
   double thresh ;
-  int    *training_set ;      // the training set remaining at this node
   int    depth ;
   int    total_counts ;       // sum of all the class_counts
+  int    ntraining ;
+  int    *training_set ;      // the training subject that are used in this node
 } NODE ;
 
 typedef struct
 {
-  int *feature_list ;  // 1 if the feature is used by this class, 0 otherwise
+  int  *feature_list ;  // list of indices into feature vector
+  int  nfeatures ;
   NODE root ;
   int  depth ;
   int  nleaves ;
@@ -62,11 +64,13 @@ typedef struct
   double **training_data ;
   int    ntraining ;
   int    nsteps ;         // # of steps to take in threshold search
+  double feature_overlap ;// the fraction of features that each tree contains
 } RANDOM_FOREST, RF ;
 
 RANDOM_FOREST *RFalloc(int ntrees, int nfeatures, int nclasses, int max_depth,
                        char **class_names) ;
-int  RFtrain(RANDOM_FOREST *rf, int *training_classes, double **training_data,int ntraining);
+RANDOM_FOREST *RFread(char *fname) ;
+int  RFtrain(RANDOM_FOREST *rf, double feature_overlap, int *training_classes, double **training_data,int ntraining);
 int  RFwrite(RANDOM_FOREST *rf, char *fname) ;
 int  RFclassify(RANDOM_FOREST *rf, double *feature, int true_class) ;
 
