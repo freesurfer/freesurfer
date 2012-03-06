@@ -14,8 +14,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2012/02/06 23:05:25 $
- *    $Revision: 1.40 $
+ *    $Date: 2012/03/06 19:54:02 $
+ *    $Revision: 1.41 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -271,7 +271,7 @@ bool MultiRegistration::mapAndAverageMov(int itdebug)
   assert (ltas.size() == nin);
   assert (intensities.size() == nin);
 	
-  cout << "warping movs and creating initial template..." << endl;
+  cout << "mapping movs and creating initial template..." << endl;
   if (iscale) cout << " allow intensity scaling" << endl;
   for (unsigned int i = 0;i<nin;i++)
   {  
@@ -1236,6 +1236,11 @@ bool MultiRegistration::writeWarps(const std::vector <  std::string >& nwarps)
 {
    assert (nwarps.size() == mri_warps.size());
 	 int error = 0;
+   //vnl_vector < double > ls (nwarps.size());
+   //vnl_vector < double > lsa (nwarps.size(),0.0);
+   //double lsavg = 0.0;
+   //double lsavga = 0.0;
+   //int count = 0;
    for (unsigned int i = 0;i<nwarps.size();i++)
 	 {
 	    if (! mri_warps[i] ) 
@@ -1244,7 +1249,19 @@ bool MultiRegistration::writeWarps(const std::vector <  std::string >& nwarps)
 				 return false;
 			}
 		  error += MRIwrite(mri_warps[i],nwarps[i].c_str()) ;
+      //ls[i] = CostFunctions::leastSquares(mri_warps[i],mri_mean);
+      //for (unsigned int j = i+1;j<nwarps.size();j++)
+      //{
+      //  lsa[i] += CostFunctions::tukeyBiweight(mri_warps[i],mri_warps[j]);
+      //  count++;
+      //}
+      //lsavga += lsa[i];
+      //lsavg += ls[i];
 	 }
+   //vnl_matlab_print(vcl_cout,ls,"tb",vnl_matlab_print_format_long);
+   //cout << endl;
+   //cout << " tbavg: " << lsavg/nwarps.size() << endl;
+   //cout << " tbavga: " << lsavga/count << endl;
 	 return (error == 0);
 }
 

@@ -10,8 +10,8 @@
  * Original Author: Martin Reuter, Nov. 4th ,2008
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2011/12/12 22:15:52 $
- *    $Revision: 1.60 $
+ *    $Date: 2012/03/06 19:54:03 $
+ *    $Revision: 1.61 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -163,7 +163,7 @@ static struct Parameters P =
   -1,
   false,
   0.16,
-  false,
+  true,
   true,
   "",
   "",
@@ -179,7 +179,7 @@ static void printUsage(void);
 static bool parseCommandLine(int argc, char *argv[],Parameters & P) ;
 static void initRegistration(Registration & R, Parameters & P) ;
 
-static char vcid[] = "$Id: mri_robust_register.cpp,v 1.60 2011/12/12 22:15:52 mreuter Exp $";
+static char vcid[] = "$Id: mri_robust_register.cpp,v 1.61 2012/03/06 19:54:03 mreuter Exp $";
 char *Progname = NULL;
 
 //static MORPH_PARMS  parms ;
@@ -906,7 +906,11 @@ int main(int argc, char *argv[])
 //       MRIfree(&wtarg);
 //       //MatrixFree(&hinv);
         cout << "... overlay the weights:" <<endl;
-        cout << "  tkmedit -f "<< P.dst <<" -aux "<< P.warpout << " -overlay " << P.weightsout <<endl;
+        if (P.warpout != "")
+          cout << "  freeview -v "<< P.dst <<" " << P.warpout << " " << P.weightsout<<":colormap=heat" << endl;
+        else if (P.norlout != "")
+          cout << "  freeview -v "<< P.dst <<" " << P.norlout  << " " << P.weightsout<<":colormap=heat"<< endl;
+//        cout << "  tkmedit -f "<< P.dst <<" -aux "<< P.warpout << " -overlay " << P.weightsout <<endl;
       }
       else
       {
@@ -1108,8 +1112,8 @@ int main(int argc, char *argv[])
     }
 
     cout << endl;
-    cout << "To check transform, run:" << endl;
-    cout << "  tkregister2 --mov "<< P.mov <<" --targ " << P.dst <<" --lta " << P.lta << " --reg " << R.getName() << ".reg" << endl;
+  //  cout << "To check transform, run:" << endl;
+  //  cout << "  tkregister2 --mov "<< P.mov <<" --targ " << P.dst <<" --lta " << P.lta << " --reg " << R.getName() << ".reg" << endl;
 
 
 
@@ -1918,9 +1922,9 @@ static int parseNextCommand(int argc, char *argv[], Parameters & P)
   }
   else if (!strcmp(option, "ONEMINUSW") )
   {
-    P.oneminusweights = true;
+    P.oneminusweights = false;
     nargs = 0 ;
-    cout << "--oneminusw: Will output 1-weights!" << endl;
+    cout << "--oneminusw: Will output 1-weights (zero=outlier), as in earlier versions!" << endl;
   }
   else if (!strcmp(option, "NOSYM") )
   {

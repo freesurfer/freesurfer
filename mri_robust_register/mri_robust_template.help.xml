@@ -53,6 +53,8 @@ Important Note: For best performance the input images should all have the same i
       <explanation>output images: map and resample each input to template</explanation>
       <argument>--weights &lt;weights1.mgz&gt; ...</argument>
       <explanation>output weights (outliers) in target space</explanation>
+      <argument>--oneminusw</argument>
+      <explanation>weights (outlier) map will be inverted (0=outlier), as in earlier versions</explanation>
       <argument>--average &lt;#&gt;</argument>
       <explanation>construct template from: 0 Mean, 1 Median (default)</explanation>
       <argument>--inittp &lt;#&gt;</argument>

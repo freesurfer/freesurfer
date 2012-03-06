@@ -59,7 +59,9 @@ If most of the brain is labeled outlier, try to set the saturation to a higher v
       <argument>--mapmovhdr &lt;aligned.mgz&gt; </argument>
       <explanation>output image: movable aligned to destination (no resampling, only adjusting header vox2ras)</explanation>
       <argument>--weights &lt;weights.mgz&gt; </argument>
-      <explanation>output weights (outliers) in destination space</explanation>
+      <explanation>output weights (outliers) map in destination space (1=outlier)</explanation>
+      <argument>--oneminusw</argument>
+      <explanation>weights (outlier) map will be inverted (0=outlier), as in earlier versions</explanation>
 			<argument>--iscale </argument>
 			<explanation>estimate intensity scale factor (default no).
 Highly recommended for unnormalized images!</explanation>

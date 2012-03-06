@@ -10,8 +10,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2011/12/01 12:47:40 $
- *    $Revision: 1.40 $
+ *    $Date: 2012/03/06 19:54:03 $
+ *    $Revision: 1.41 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -156,7 +156,7 @@ static struct Parameters P =
   false,
   "",
   false,
-  false,
+  true,
   vector < string >(0),
   vector < string >(0),
   SAMPLE_CUBIC_BSPLINE,
@@ -169,7 +169,7 @@ static void printUsage(void);
 static bool parseCommandLine(int argc, char *argv[],Parameters & P) ;
 
 static char vcid[] =
-  "$Id: mri_robust_template.cpp,v 1.40 2011/12/01 12:47:40 mreuter Exp $";
+  "$Id: mri_robust_template.cpp,v 1.41 2012/03/06 19:54:03 mreuter Exp $";
 char *Progname = NULL;
 
 int getRandomNumber(int start, int end, unsigned int & seed)
@@ -717,9 +717,9 @@ static int parseNextCommand(int argc, char *argv[], Parameters & P)
   }
   else if (!strcmp(option, "ONEMINUSW") )
   {
-    P.oneminusweights = true;
+    P.oneminusweights = false;
     nargs = 0 ;
-    cout << "--oneminusw: Will output 1-weights!" << endl;
+    cout << "--oneminusw: Will output 1-weights (zero=outlier), as in earlier versions!" << endl;
   }
   else if (!strcmp(option, "SEED") )
   {

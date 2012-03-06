@@ -9,8 +9,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2011/09/13 03:08:25 $
- *    $Revision: 1.17 $
+ *    $Date: 2012/03/06 19:54:02 $
+ *    $Revision: 1.18 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -203,21 +203,32 @@ double CostFunctions::tukeyBiweight(MRI * i1, MRI * i2,double sat)
     {
       //cout << "it1: " << *it1 << " it2: " << *it2 << endl;
       diff[cc] = (*it1) - (*it2);
+      //if (isnan(diff[cc])) cout << "it1: " << *it1 << " it2: " << *it2 << endl;
+      ////if (diff[cc] != 0.0) cout << "it1: " << *it1 << " it2: " << *it2 << endl;
       cc++;
       it2++;
     }
 
   }
 
-
+  // the problem with looking at the sigma of the difference is
+  // a) that it can be zero (since most voxels are in the background and
+  // using uchar makes them and also most differences zero)
+  // b) for uchar images it can switch from from 0 to 1 to 2
+  // producing jumps in the cost function
+  // more thought needs to go into this in the future
+  exit (1);
+  
   float sigma = RobustGaussian<float>::mad(diff,n);
-
+  //if (sigma == 0.0)
+   sigma = 1.4826;
+  cout << "sigma: " << sigma << endl;
   double d = 0;
   for (int i=0;i<n;i++)
     d += rhoTukeyBiweight(diff[i]/sigma,sat);
 
   free(diff);
-  //cout << " d: " << d << endl;
+  cout << " d: " << d << endl;
   return d;
 }
 
