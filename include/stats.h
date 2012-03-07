@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: mreuter $
- *    $Date: 2011/03/21 23:36:07 $
- *    $Revision: 1.20 $
+ *    $Author: fischl $
+ *    $Date: 2012/03/07 18:00:29 $
+ *    $Revision: 1.21 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -164,4 +164,22 @@ STAT_TABLE *InitStatTableFromMRI(MRI* mri_in, const char* tablefile);
 int PrintStatTable(FILE *fp, STAT_TABLE *st);
 int WriteStatTable(const char *fname, STAT_TABLE *st);
 
+typedef struct
+{
+  int    label ;
+  int    nvoxels ;
+  double volume ;
+  char   *name ;
+  double int_mean ;
+  double int_std ;
+  double int_min ;
+  double int_max ;
+} FS_STAT ;
+typedef struct 
+{
+  int     nlabels ;
+  FS_STAT *labels ;
+} FS_STATS ;
+
+FS_STATS *FSstatsRead(char *fname) ;
 #endif
