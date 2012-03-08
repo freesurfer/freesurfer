@@ -1,15 +1,16 @@
 /**
  * @file  mris_classify_thickness.c
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief Use a random forest classifier to classify thickness patterns
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ * read in thickness vectors that have been mapped to a common coordinate sytem (e.g. fsaverage5)
+ * then use them to train and optionally apply a classifier (random forest at the moment)
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:29 $
- *    $Revision: 1.8 $
+ *    $Author: fischl $
+ *    $Date: 2012/03/08 13:30:17 $
+ *    $Revision: 1.9 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -29,6 +30,9 @@
 #include <string.h>
 #include <math.h>
 #include <ctype.h>
+#include <fcntl.h>
+#include <sys/stat.h>
+#include <unistd.h>
 
 
 #include "timer.h"
@@ -43,8 +47,11 @@
 #include "mrishash.h"
 #include "sig.h"
 #include "version.h"
+#include "rforest.h"
+#include "cma.h"
+#include "stats.h"
 
-static char vcid[] = "$Id: mris_classify_thickness.c,v 1.8 2011/03/02 00:04:29 nicks Exp $";
+static char vcid[] = "$Id: mris_classify_thickness.c,v 1.9 2012/03/08 13:30:17 fischl Exp $";
 
 
 /*-------------------------------- CONSTANTS -----------------------------*/
@@ -61,6 +68,7 @@ static void print_usage(void) ;
 static void print_help(void) ;
 static void print_version(void) ;
 
+#if 0
 static int write_vertex_data(char *fname, int index, float **v, int num) ;
 static int  *cvector_sort(float *vbest_snr, int nvertices) ;
 
@@ -90,10 +98,7 @@ static int   cvector_compute_t_test(float *c1_mean, float *c1_var,
                                     float *c2_mean, float *c2_var,
                                     int num_class1, int num_class2,
                                     float *pvals, int num) ;
-#if 0
 static double    cvector_len(float *v, int num) ;
-#endif
-static int    cvector_copy(float *v1, float *v2, int num) ;
 static double cvector_compute_dist_free_snr(float **c1_thickness,
     int num_class1,
     float **c2_thickness,
@@ -105,13 +110,11 @@ static double cvector_compute_snr(float *c1_mean, float *c2_mean,
                                   float bonferroni);
 
 
-#if 0
 static int   cvector_subtract(float *v1, float *v2, float *vdst, int num) ;
 static int   cvector_mark_low_prob_vertices(float *pvals, float pthresh,
     MRI_SURFACE *mris) ;
-#endif
 
-static float *cvector_alloc(int num) ;
+static int    cvector_copy(float *v1, float *v2, int num) ;
 static int   cvector_clear(float *v, int num) ;
 static int   cvector_add_variances(float *c1_var, float *c2_var,
                                    int num_class1, int num_class2,
@@ -121,6 +124,8 @@ static int   cvector_multiply_variances(float *c1_var, float *c2_var,
                                         float *total_var, int nvertices) ;
 static int   cvector_track_best_snr(float *vsnr, float *vbest_snr,
                                     float *vbest_avgs, int avgs, int num) ;
+static float *cvector_alloc(int num) ;
+#endif
 
 
 
@@ -131,12 +136,14 @@ char *Progname ;
 static int nsort = -1 ;
 static int use_buggy_snr = 0 ;
 static char *write_dir = NULL ;
-static char *read_dir = NULL ;
 static int compute_stats = 0 ;
 
 static int write_flag = 0 ;
 static char *output_subject = NULL ;
 static char *test_subject = NULL ;
+static int test_class = -1 ;
+static char *test_log_fname = NULL ;
+
 static char *label_name = NULL ;
 static char *prefix = "" ;
 
@@ -151,17 +158,325 @@ static float fthresh = 5.0 ;
 static int min_labels = MIN_LABELS ;
 
 static int bonferroni = 0 ;
+static char subjects_dir[STRLEN] = "";
+
+static int ntrees = 10 ;
+static double feature_fraction = .5 ;
+static double training_fraction = .5 ;
+static int max_depth = 10 ;
+static int nsteps = 20 ;
+static char *class_names[] = { "control", "AD" } ;
+static char *rf_write_name = NULL ;
+#define MAX_ASEG_LABELS 1000
+static int naseg = 0 ;
+static int aseg_labels[MAX_ASEG_LABELS] ;
+static char *aseg_name = "aseg.stats" ;
 
 /*-------------------------------- FUNCTIONS ----------------------------*/
+
+#if 1
+
 
 int
 main(int argc, char *argv[]) {
   MRI_SURFACE  *mris ;
-  char         **av, *curv_name, *surf_name, *hemi, fname[STRLEN],
-  *cp, *subject_name, subjects_dir[STRLEN],
-  **c1_subjects, **c2_subjects ;
+  char         **av, *thickness_name, *surf_name, *hemi, fname[STRLEN],
+    *cp, *subject_name,
+    **c1_subjects, **c2_subjects ;
+  int          ac, nargs, n, num_class1, num_class2, i, nvertices,correct, h;
+  LABEL        *area ;
+  FILE         *fp = NULL ;
+  struct timeb start ;
+  int          msec, minutes, seconds, *training_class, class, nfeatures, offset ;
+  RANDOM_FOREST *rf ;
+  double       **training_data ;
+
+  /* rkt: check for and handle version tag */
+  nargs = handle_version_option (argc, argv, "$Id: mris_classify_thickness.c,v 1.9 2012/03/08 13:30:17 fischl Exp $", "$Name:  $");
+  if (nargs && argc - nargs == 1)
+    exit (0);
+  argc -= nargs;
+
+  if (write_flag && DIAG_VERBOSE_ON)
+    fp = fopen("scalespace.dat", "w") ;
+
+  Progname = argv[0] ;
+  ErrorInit(NULL, NULL, NULL) ;
+  DiagInit(NULL, NULL, NULL) ;
+
+  ac = argc ;
+  av = argv ;
+  for ( ; argc > 1 && ISOPTION(*argv[1]) ; argc--, argv++) {
+    nargs = get_option(argc, argv) ;
+    argc -= nargs ;
+    argv += nargs ;
+  }
+
+  TimerStart(&start) ;
+
+  /* subject_name surface curvature */
+  if (argc < 6)
+    usage_exit() ;
+  if (output_subject == NULL)
+    ErrorExit(ERROR_BADPARM,
+              "output subject must be specified with -o <subject name>");
+
+  if (strlen(subjects_dir) == 0)  // not specified on cmdline
+  {
+    cp = getenv("SUBJECTS_DIR") ;
+    if (!cp)
+      ErrorExit(ERROR_BADPARM, "%s: SUBJECTS_DIR not defined in environment",
+		Progname) ;
+    
+    strcpy(subjects_dir, cp) ;
+  }
+
+  surf_name = argv[1] ;
+  thickness_name = argv[2] ;
+
+#define ARGV_OFFSET 3
+
+
+  /* first determine the number of subjects in each class */
+  num_class1 = 0 ;
+  n = ARGV_OFFSET ;
+  do {
+    num_class1++ ;
+      n++ ;
+      if (argv[n] == NULL || n >= argc)
+	ErrorExit(ERROR_BADPARM, "%s: must spectify ':' between class lists",
+		  Progname) ;
+  } while (argv[n][0] != ':') ;
+  
+  /* find  # of vertices in output subject surface */
+  hemi = "lh" ;
+  sprintf(fname, "%s/%s/surf/%s.%s",
+          subjects_dir,output_subject,hemi,surf_name);
+  mris = MRISread(fname) ;
+  if (!mris)
+    ErrorExit(ERROR_NOFILE, "%s: could not read surface file %s",
+              Progname, fname) ;
+  nvertices = mris->nvertices ; 
+  nfeatures = 2*nvertices+naseg ;  // each hemi
+
+  num_class2 = 0 ;
+  n++ ; /* skip ':' */
+  if (n >= argc)
+    ErrorExit(ERROR_BADPARM, "%s: class2 list empty", Progname) ;
+  do {
+    num_class2++ ;
+    n++ ;
+    if (n >= argc)
+      break ;
+  } while (argv[n] != NULL) ;
+
+  fprintf(stderr, "%d subjects in class 1, %d subjects in class 2\n",
+          num_class1, num_class2) ;
+
+  training_data = (double **)calloc(num_class1+num_class2, sizeof(double*));
+  training_class = (int *)calloc(num_class1+num_class2, sizeof(int));
+  c1_subjects = (char **)calloc(num_class1, sizeof(char *)) ;
+  c2_subjects = (char **)calloc(num_class2, sizeof(char *)) ;
+  for (n = 0 ; n < num_class1 ; n++) {
+    training_data[n] = (double *)calloc(nfeatures, sizeof(double)) ;
+    training_class[n] = 0 ;
+    c1_subjects[n] = argv[ARGV_OFFSET+n] ;
+    strcpy(c1_subjects[n], argv[ARGV_OFFSET+n]) ;
+    /*    fprintf(stderr, "class1[%d] - %s\n", n, c1_subjects[n]) ;*/
+  }
+  i = n+1+ARGV_OFFSET ;  /* starting index */
+  for (n = 0 ; n < num_class2 ; n++) {
+    training_data[n+num_class1] = (double *)calloc(nfeatures, sizeof(double)) ;
+    training_class[n+num_class1] = 1 ;
+    c2_subjects[n] = argv[i+n] ;
+    strcpy(c2_subjects[n], argv[i+n]) ;
+    /*    fprintf(stderr, "class2[%d] - %s\n", n, c2_subjects[n]) ;*/
+  }
+
+  if (label_name) {
+    area = LabelRead(output_subject, label_name) ;
+    if (!area)
+      ErrorExit(ERROR_NOFILE, "%s: could not read label %s", Progname,
+                label_name) ;
+  } else
+    area = NULL ;
+
+  /* real all the thicknesses in */
+  for (n = 0 ; n < num_class1+num_class2 ; n++) {
+    subject_name = n < num_class1 ? c1_subjects[n]:c2_subjects[n-num_class1];
+    fprintf(stderr, "reading subject %d of %d: %s\n",
+	    n+1, num_class1+num_class2, subject_name) ;
+    for (h = 0 ; h <= 1 ; h++)
+    {
+      if (h == 0)
+      {
+	offset = 0 ;
+	hemi = "lh" ;
+      }
+      else
+      {
+	offset = nvertices ;
+	hemi = "rh" ;
+      }
+      if (strchr(thickness_name, '/') != NULL)
+	  strcpy(fname, thickness_name) ;  /* full path specified */
+      else
+	  sprintf(fname,"%s/%s/surf/%s.%s",
+		  subjects_dir,subject_name,hemi,thickness_name);
+      if (MRISreadCurvatureFile(mris, fname) != NO_ERROR)
+	ErrorExit(Gerror,"%s: could no read curvature file %s",Progname,fname);
+      if (area)
+	MRISmaskNotLabel(mris, area) ;
+      MRISextractCurvatureVectorDouble(mris, training_data[n], offset) ;
+    }
+    if (naseg > 0)
+    {
+      int      a, t ;
+      FS_STATS *aseg_stats ;
+      
+      sprintf(fname,"%s/%s/stats/%s", subjects_dir,subject_name, aseg_name);
+      aseg_stats = FSstatsRead(fname) ;
+      for (a = 0 ; a < naseg ; a++)
+      {
+	for (t = 0 ; t < aseg_stats->nlabels ; t++)
+	  if (aseg_stats->labels[t].label == aseg_labels[a])
+	    break ;
+	if (t >= aseg_stats->nlabels)
+	  ErrorExit(ERROR_BADPARM, "%s: could not find aseg label %s (%d) in stats file",
+		    Progname, cma_label_to_name(aseg_labels[a]), aseg_labels[a]) ;
+	training_data[n][2*nvertices+a] = aseg_stats->labels[t].volume ;
+      }
+    }
+  }
+
+
+  rf = RFalloc(ntrees, nfeatures, 2, max_depth, class_names, nsteps) ;
+  RFtrain(rf, feature_fraction, training_fraction, training_class, training_data, num_class1+num_class2) ; 
+  if (training_fraction < 1)
+  {
+    int correct ;
+    correct = RFcomputeOutOfBagCorrect(rf, training_class, training_data, num_class1+num_class2) ; 
+    printf("out of bag accuracy = %d of %d = %2.1f%%\n", 
+	   correct, num_class1+num_class2, 100.0*correct/(num_class1+num_class2)) ;
+  }
+  if (rf_write_name)
+  {
+#if 0
+    RANDOM_FOREST *rf2 ;
+    double pval ;
+#endif
+    RFwrite(rf, rf_write_name) ;
+#if 0
+    rf2 = RFread(rf_write_name) ;
+    DiagBreak() ;
+    for (correct = n = 0 ; n < num_class1+num_class2 ; n++) 
+    {
+      class = RFclassify(rf2, training_data[n], &pval, n < num_class1 ? 0 : 1) ;
+      if (class == training_class[n])
+	correct++ ;
+    }
+    printf("%d of %d correct (%2.1f%%)\n", correct, num_class1+num_class2,
+	   100.0*(double)correct/(num_class1+num_class2)) ;
+#endif
+  }
+
+  for (correct = n = 0 ; n < num_class1+num_class2 ; n++) 
+  {
+    class = RFclassify(rf, training_data[n], NULL, n < num_class1 ? 0 : 1) ;
+    if (class == training_class[n])
+      correct++ ;
+  }
+  printf("%d of %d correct (%2.1f%%)\n", correct, num_class1+num_class2,
+	 100.0*(double)correct/(num_class1+num_class2)) ;
+
+  if (test_subject) 
+  {
+    char   line[MAX_LINE_LEN] ;
+    double pval, *test_thickness ; ;
+    struct flock fl;
+    int    fd;
+    
+    test_thickness = (double *)calloc(nfeatures, sizeof(double)) ;
+    fprintf(stderr, "reading subject %s\n", test_subject) ;
+    for (h = 0 ; h <= 1 ; h++)
+    {
+      if (h == 0)
+      {
+	offset = 0 ;
+	hemi = "lh" ;
+      }
+      else
+      {
+	offset = nvertices ;
+	hemi = "rh" ;
+      }
+      if (strchr(thickness_name, '/') != NULL)
+	strcpy(fname, thickness_name) ;  /* full path specified */
+      else
+	sprintf(fname,"%s/%s/surf/lh.%s",subjects_dir,test_subject,thickness_name);
+      if (MRISreadCurvatureFile(mris, fname) != NO_ERROR)
+	ErrorExit(Gerror,"%s: could no read curvature file %s",Progname,fname);
+      
+      if (area)
+	MRISmaskNotLabel(mris, area) ;
+      MRISextractCurvatureVectorDouble(mris, test_thickness, offset) ;
+    }
+    if (naseg > 0)
+    {
+      int      a, t ;
+      FS_STATS *aseg_stats ;
+      
+      sprintf(fname,"%s/%s/stats/%s", subjects_dir,test_subject, aseg_name);
+      aseg_stats = FSstatsRead(fname) ;
+      for (a = 0 ; a < naseg ; a++)
+      {
+	for (t = 0 ; t < aseg_stats->nlabels ; t++)
+	  if (aseg_stats->labels[t].label == aseg_labels[a])
+	    break ;
+	if (t >= aseg_stats->nlabels)
+	  ErrorExit(ERROR_BADPARM, "%s: could not find aseg label %s (%d) in stats file",
+		    Progname, cma_label_to_name(aseg_labels[a]), aseg_labels[a]) ;
+	test_thickness[2*nvertices+a] = aseg_stats->labels[t].volume ;
+      }
+    }
+    class = RFclassify(rf, test_thickness, &pval, test_class) ;
+
+    fl.l_type   = F_WRLCK;  /* F_RDLCK, F_WRLCK, F_UNLCK    */
+    fl.l_whence = SEEK_SET; /* SEEK_SET, SEEK_CUR, SEEK_END */
+    fl.l_start  = 0;        /* Offset from l_whence         */
+    fl.l_len    = 0;        /* length, 0 = to EOF           */
+    fl.l_pid    = getpid(); /* our PID                      */
+    fd = open(test_log_fname, O_WRONLY|O_APPEND|O_CREAT, S_IRWXU|S_IRWXG);
+    if (fd < 0)
+      ErrorExit(ERROR_NOFILE, "%s: could not open test log file %s", Progname, test_log_fname);
+
+    fcntl(fd, F_SETLKW, &fl);  /* F_GETLK, F_SETLK, F_SETLKW */
+    sprintf(line, "%s %s %d %d %lf\n", test_subject, hemi, class, test_class, pval) ;
+    write(fd, line, (strlen(line))*sizeof(char)) ;
+    fl.l_type   = F_UNLCK;  /* tell it to unlock the region */
+    fcntl(fd, F_SETLK, &fl); /* set the region to unlocked */
+    close(fd) ;
+  }
+
+  msec = TimerStop(&start) ;
+  seconds = nint((float)msec/1000.0f) ;
+  minutes = seconds / 60 ;
+  seconds = seconds % 60 ;
+  fprintf(stderr, "classification took %d minutes and %d seconds.\n",
+          minutes, seconds) ;
+  exit(0) ;
+  return(0) ;  /* for ansi */
+}
+
+#else
+int
+main(int argc, char *argv[]) {
+  MRI_SURFACE  *mris ;
+  char         **av, *thickness_name, *surf_name, *hemi, fname[STRLEN],
+               *cp, *subject_name, subjects_dir[STRLEN],
+               **c1_subjects, **c2_subjects ;
   int          ac, nargs, n, num_class1, num_class2, i, nvertices,
-  avgs, max_snr_avgs, nlabels = 0, done ;
+               avgs, max_snr_avgs, nlabels = 0, done ;
   float        **c1_thickness, **c2_thickness, *curvs, *total_mean,
   *c1_mean, *c2_mean,
   *class_mean, *c1_var, *c2_var, *class_var,*pvals,
@@ -180,7 +495,7 @@ main(int argc, char *argv[]) {
   double       label_avg ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_classify_thickness.c,v 1.8 2011/03/02 00:04:29 nicks Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_classify_thickness.c,v 1.9 2012/03/08 13:30:17 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -218,7 +533,7 @@ main(int argc, char *argv[]) {
 
   hemi = argv[1] ;
   surf_name = argv[2] ;
-  curv_name = argv[3] ;
+  thickness_name = argv[3] ;
 
 #define ARGV_OFFSET 4
 
@@ -372,11 +687,11 @@ main(int argc, char *argv[]) {
         ErrorExit(ERROR_NOFILE, "%s: could not read surface file %s",
                   Progname, fname) ;
       MRISsaveVertexPositions(mris, CANONICAL_VERTICES) ;
-      if (strchr(curv_name, '/') != NULL)
-        strcpy(fname, curv_name) ;  /* full path specified */
+      if (strchr(thickness_name, '/') != NULL)
+        strcpy(fname, thickness_name) ;  /* full path specified */
       else
         sprintf(fname,"%s/%s/surf/%s.%s",
-                subjects_dir,subject_name,hemi,curv_name);
+                subjects_dir,subject_name,hemi,thickness_name);
       if (MRISreadCurvatureFile(mris, fname) != NO_ERROR)
         ErrorExit(Gerror,"%s: could no read curvature file %s",Progname,fname);
       mrisp = MRIStoParameterization(mris, NULL, 1, 0) ;
@@ -772,11 +1087,11 @@ main(int argc, char *argv[]) {
       ErrorExit(ERROR_NOFILE, "%s: could not read surface file %s",
                 Progname, fname) ;
     MRISsaveVertexPositions(mris, CANONICAL_VERTICES) ;
-    if (strchr(curv_name, '/') != NULL)
-      strcpy(fname, curv_name) ;  /* full path specified */
+    if (strchr(thickness_name, '/') != NULL)
+      strcpy(fname, thickness_name) ;  /* full path specified */
     else
       sprintf(fname,"%s/%s/surf/%s.%s",
-              subjects_dir,test_subject,hemi,curv_name);
+              subjects_dir,test_subject,hemi,thickness_name);
     if (MRISreadCurvatureFile(mris, fname) != NO_ERROR)
       ErrorExit(Gerror,"%s: could no read curvature file %s",Progname,fname);
     mrisp = MRIStoParameterization(mris, NULL, 1, 0) ;
@@ -871,7 +1186,7 @@ main(int argc, char *argv[]) {
   exit(0) ;
   return(0) ;  /* for ansi */
 }
-
+#endif
 /*----------------------------------------------------------------------
             Parameters:
 
@@ -889,7 +1204,34 @@ get_option(int argc, char *argv[]) {
     print_version() ;
   else if (!stricmp(option, "test")) {
     test_subject = argv[2] ;
-    fprintf(stderr, "writing test.dat for subject %s\n", test_subject) ;
+    test_class = atoi(argv[3]) ;
+    test_log_fname = argv[4] ;
+    fprintf(stderr, "writing subject %s class %d classification to %s\n", test_subject, test_class,test_log_fname) ;
+    nargs = 3 ;
+  } else if (!stricmp(option, "aseg")) {
+    if (naseg >= MAX_ASEG_LABELS)
+      ErrorExit(ERROR_NOMEMORY, "%s: too many aseg labels specified (%d)", Progname, naseg) ;
+    aseg_labels[naseg] = atoi(argv[2]) ;
+    printf("using aseg label %s (%d) volume as a feature\n" , cma_label_to_name(aseg_labels[naseg]), aseg_labels[naseg]) ;
+    nargs = 1 ;
+    naseg++ ;
+  } else if (!stricmp(option, "aseg_name")) {
+    aseg_name = argv[2] ;
+    printf("using aseg %s\n", aseg_name) ;
+    nargs = 1 ;
+  } else if (!stricmp(option, "feature_fraction")) {
+    feature_fraction = atof(argv[2]) ;
+    if (feature_fraction <= 0 || feature_fraction > 1)
+      ErrorExit(ERROR_BADPARM, "%s: feature_fraction (%f) must be in [0 1]\n",
+		Progname, feature_fraction) ;
+    printf("using feature overlap %2.1f%%\n", 100.0*feature_fraction) ;
+    nargs = 1 ;
+  } else if (!stricmp(option, "training_fraction")) {
+    training_fraction = atof(argv[2]) ;
+    if (training_fraction <= 0 || training_fraction > 1)
+      ErrorExit(ERROR_BADPARM, "%s: training_fraction (%f) must be in [0 1]\n",
+		Progname, training_fraction) ;
+    printf("using training overlap %2.1f%%\n", 100.0*training_fraction) ;
     nargs = 1 ;
   } else if (!stricmp(option, "avgs")) {
     max_avgs = atoi(argv[2]) ;
@@ -901,16 +1243,23 @@ get_option(int argc, char *argv[]) {
     min_labels = atoi(argv[2]) ;
     fprintf(stderr, "min labels set to %d\n", min_labels) ;
     nargs = 1 ;
+  } else if (!stricmp(option, "sdir")) {
+    strcpy(subjects_dir, argv[2]) ;
+    nargs = 1 ;
+  } else if (!stricmp(option, "ntrees")) {
+    ntrees = atoi(argv[2]) ;
+    nargs = 1 ;
+  } else if (!stricmp(option, "max_depth")) {
+    max_depth = atoi(argv[2]) ;
+    nargs = 1 ;
+  } else if (!stricmp(option, "nsteps")) {
+    nsteps = atoi(argv[2]) ;
+    nargs = 1 ;
   } else if (!stricmp(option, "wt") || !stricmp(option, "write")) {
     write_dir = argv[2] ;
     nargs = 1 ;
     fprintf(stderr,"writing out optimal thickness vectors into directory %s\n",
             write_dir) ;
-  } else if (!stricmp(option, "rt") || !stricmp(option, "read")) {
-    read_dir = argv[2] ;
-    nargs = 1 ;
-    fprintf(stderr,"reading optimal thickness vectors from directory %s\n",
-            read_dir) ;
   } else if (!stricmp(option, "stats")) {
     compute_stats = 1 ;
     fprintf(stderr, "computing multi-scale p values...\n") ;
@@ -952,7 +1301,9 @@ get_option(int argc, char *argv[]) {
       fprintf(stderr, "using F snr threshold of %2.2f...\n", fthresh) ;
       break ;
     case 'W':
-      write_flag = 1 ;
+      rf_write_name = argv[2] ;
+      nargs = 1 ;
+      printf("writing random forest to %s\n", rf_write_name) ;
       break ;
     case 'O':
       output_subject = argv[2] ;
@@ -991,7 +1342,7 @@ static void
 print_usage(void) {
   fprintf(stderr,
           "usage: %s -o <output subject> [options] \n"
-          "\t<hemi> <surf> <curv> \n\t<c1_subject1> <c1_subject2>... : \n"
+          "\t<surf> <thickness name> \n\t<c1_subject1> <c1_subject2>... : \n"
           "\t<c2_subject1> <c2_subject2>...\n",
           Progname) ;
   fprintf(stderr, "where surf must be a spherical surface suitable for "
@@ -1018,6 +1369,7 @@ print_version(void) {
 }
 
 
+#if 0
 static int
 cvector_compute_variance(float *var,float *mean,int norm,int num) {
   int   i ;
@@ -1076,7 +1428,6 @@ cvector_compute_t_test(float *c1_mean, float *c1_var,
 }
 
 
-#if 0
 static int
 cvector_subtract(float *v1, float *v2, float *vdst, int num) {
   int   i ;
@@ -1098,7 +1449,6 @@ cvector_mark_low_prob_vertices(float *pvals, float pthresh, MRI_SURFACE *mris) {
   fprintf(stderr, "%d vertices p < %2.2e\n", num, pthresh) ;
   return(NO_ERROR) ;
 }
-#endif
 
 static double
 cvector_compute_dist_free_snr(float **c1_thickness, int num_class1,
@@ -1168,7 +1518,6 @@ cvector_compute_snr(float *c1_mean, float *c2_mean, float *vvar, float *snr,
   *pi = max_i ;
   return(max_snr) ;
 }
-#if 0
 static double
 cvector_len(float *v, int num) {
   int    i ;
@@ -1179,16 +1528,6 @@ cvector_len(float *v, int num) {
   len /= (double)num ;
   len = sqrt(len) ;
   return(len) ;
-}
-#endif
-static float *
-cvector_alloc(int num) {
-  float *v ;
-
-  v = (float *)calloc(num, sizeof(float)) ;
-  if (!v)
-    ErrorExit(ERROR_NOMEMORY, "cvector_alloc(%d): calloc failed", num) ;
-  return(v) ;
 }
 
 static int
@@ -1420,3 +1759,13 @@ write_vertex_data(char *fname, int index, float **v, int nclass) {
   fclose(fp) ;
   return(NO_ERROR) ;
 }
+static float *
+cvector_alloc(int num) {
+  float *v ;
+
+  v = (float *)calloc(num, sizeof(float)) ;
+  if (!v)
+    ErrorExit(ERROR_NOMEMORY, "cvector_alloc(%d): calloc failed", num) ;
+  return(v) ;
+}
+#endif
