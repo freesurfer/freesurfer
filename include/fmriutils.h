@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:09 $
- *    $Revision: 1.42 $
+ *    $Author: greve $
+ *    $Date: 2012/03/08 23:12:50 $
+ *    $Revision: 1.43 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -130,5 +130,6 @@ MATRIX *fMRItoMatrix(MRI *fmri, MATRIX *M);
 int fMRIfromMatrix(MATRIX *M, MRI *fmri);
 MRI *fMRIspatialCorMatrix(MRI *fmri);
 MRI *fMRIdistance(MRI *mri, MRI *mask);
+MRI *fMRIcumSum(MRI *inmri, MRI *mask, MRI *outmri);
 
 #endif

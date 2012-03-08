@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2011/05/05 15:28:03 $
- *    $Revision: 1.68 $
+ *    $Date: 2012/03/08 23:12:51 $
+ *    $Revision: 1.69 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -28,7 +28,7 @@
   \file fmriutils.c
   \brief Multi-frame utilities
 
-  $Id: fmriutils.c,v 1.68 2011/05/05 15:28:03 greve Exp $
+  $Id: fmriutils.c,v 1.69 2012/03/08 23:12:51 greve Exp $
 
   Things to do:
   1. Add flag to turn use of weight on and off
@@ -60,7 +60,7 @@ double round(double x);
 // Return the CVS version of this file.
 const char *fMRISrcVersion(void)
 {
-  return("$Id: fmriutils.c,v 1.68 2011/05/05 15:28:03 greve Exp $");
+  return("$Id: fmriutils.c,v 1.69 2012/03/08 23:12:51 greve Exp $");
 }
 
 
@@ -2771,4 +2771,47 @@ MRI *fMRIdistance(MRI *mri, MRI *mask)
     }
   }
   return(d);
+}
+
+
+/*!
+  \fn MRI *fMRIcumSum(MRI *inmri, MRI *mask, MRI *outmri)
+  \brief Computes cumulative sum over frames.
+*/
+MRI *fMRIcumSum(MRI *inmri, MRI *mask, MRI *outmri)
+{
+  int c,r,s,f;
+  double val;
+
+  if (outmri==NULL){
+    outmri = MRIallocSequence(inmri->width, inmri->height, inmri->depth,
+                              MRI_FLOAT, inmri->nframes);
+    if (outmri==NULL){
+      printf("ERROR: fMRIcumSum(): could not alloc\n");
+      return(NULL);
+    }
+    MRIcopyHeader(inmri,outmri);
+  }
+  else {
+    if (outmri->width  != inmri->width || outmri->height != inmri->height ||
+        outmri->depth  != inmri->depth || outmri->nframes != outmri->nframes) {
+      printf("ERROR: fMRIcumSum(): output dimension mismatch\n");
+      return(NULL);
+    }
+    // Should check mask here too
+  }
+
+  for (s=0; s < outmri->depth; s++) {
+    for (r=0; r < outmri->height; r++) {
+      for (c=0; c < outmri->width; c++) {
+	if(mask && MRIgetVoxVal(mask, c, r, s, 0) < 0.5) continue;
+	val = 0;
+	for(f=0; f < outmri->nframes; f++){
+	  val += MRIgetVoxVal(inmri, c, r, s, f);
+	  MRIsetVoxVal(outmri,c, r, s, f, val);
+	}
+      }
+    }
+  }
+  return(outmri);
 }
