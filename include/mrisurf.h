@@ -9,8 +9,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2012/02/01 00:12:42 $
- *    $Revision: 1.364 $
+ *    $Date: 2012/03/08 13:49:53 $
+ *    $Revision: 1.365 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -1387,11 +1387,13 @@ int MRISextractVertexCoords(MRI_SURFACE *mris, float *locations[3], int which_ve
 int MRISimporttVertexCoords(MRI_SURFACE *mris, float *locations[3], int which_vertices) ;
 int MRISextractCurvatureVector(MRI_SURFACE *mris, float *curvs) ;
 int MRISextractCurvatureDoubleVector(MRI_SURFACE *mris, double *curvs) ;
+int MRISextractCurvatureVectorDouble(MRI_SURFACE *mris, double *curvs, int offset) ;
 #define MRISexportCurvatureVector  MRISextractCurvatureVector
 
 int MRISimportCurvatureVector(MRI_SURFACE *mris, float *curvs) ;
 int MRISimportValVector(MRI_SURFACE *mris, float *vals) ;
 int MRISexportValVector(MRI_SURFACE *mris, float *vals) ;
+int MRISexportValVectorDouble(MRI_SURFACE *mris, double *vals, int offset) ;
 int MRISimportValFromMatrixColumn(MRI_SURFACE *mris, MATRIX *m, int col) ;
 
 
