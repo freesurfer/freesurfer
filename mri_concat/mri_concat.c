@@ -15,8 +15,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2011/12/19 20:58:28 $
- *    $Revision: 1.59 $
+ *    $Date: 2012/03/08 23:33:59 $
+ *    $Revision: 1.60 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -61,7 +61,7 @@ static void dump_options(FILE *fp);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_concat.c,v 1.59 2011/12/19 20:58:28 greve Exp $";
+static char vcid[] = "$Id: mri_concat.c,v 1.60 2012/03/08 23:33:59 greve Exp $";
 char *Progname = NULL;
 int debug = 0;
 #define NInMAX 400000
@@ -125,6 +125,7 @@ int DoPrune = 0;
 MRI *PruneMask = NULL;
 
 int DoRMS = 0; // compute root-mean-square on multi-frame input
+int DoCumSum = 0;
 
 /*--------------------------------------------------*/
 int main(int argc, char **argv)
@@ -600,6 +601,11 @@ int main(int argc, char **argv)
     MRIaddConst(mriout, AddVal, mriout);
   }
 
+  if(DoCumSum){
+    printf("Computing cumulative sum\n");
+    fMRIcumSum(mriout, mask, mriout);
+  }
+
   if(DoSCM)
   {
     printf("Computing spatial correlation matrix (%d)\n",mriout->nframes);
@@ -873,6 +879,7 @@ static int parse_commandline(int argc, char **argv)
     {
       DoCombine = 1;
     }
+    else if (!strcasecmp(option, "--cumsum")) DoCumSum = 1;
     else if (!strcasecmp(option, "--rms"))
     {
       DoRMS = 1;
