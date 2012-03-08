@@ -8,8 +8,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2012/03/05 16:03:11 $
- *    $Revision: 1.2 $
+ *    $Date: 2012/03/08 13:29:49 $
+ *    $Revision: 1.3 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -42,7 +42,7 @@
 static double entropy(int *class_counts, int nclasses) ;
 
 RANDOM_FOREST *
-RFalloc(int ntrees, int nfeatures, int nclasses, int max_depth, char **class_names) 
+RFalloc(int ntrees, int nfeatures, int nclasses, int max_depth, char **class_names, int nsteps) 
 {
   RANDOM_FOREST *rf ;
   TREE          *tree ;
@@ -55,7 +55,7 @@ RFalloc(int ntrees, int nfeatures, int nclasses, int max_depth, char **class_nam
 
   rf->ntrees = ntrees ; rf->nfeatures = nfeatures ; rf->nclasses = nclasses ;
   rf->max_depth = max_depth ;
-  rf->nsteps = 100 ;
+  rf->nsteps = nsteps ;
   rf->class_names = (char **)calloc(rf->nclasses, sizeof(rf->class_names[0])) ;
   if (rf->class_names == NULL)
     ErrorExit(ERROR_NOMEMORY, "RFalloc(%d, %d, %d, %d): could not allocate class names",
@@ -111,30 +111,30 @@ compute_permutation(int num, int *vec)
 }
 
 static double
-compute_info_gain(RF *rf, NODE *parent, NODE *left, NODE *right, double **training_data, int ntraining, int fno, double thresh) 
+compute_info_gain(RF *rf, TREE *tree, NODE *parent, NODE *left, NODE *right, double **training_data, int fno, double thresh) 
 {
   double entropy_before, entropy_after, w1, w2 ;
   int    i ;
   NODE   *node ;
 
   entropy_before = entropy(parent->class_counts, rf->nclasses) ;
-  memset(left->training_set, 0, rf->ntraining*sizeof(left->training_set[0])) ;
   memset(left->class_counts, 0, rf->nclasses*sizeof(left->class_counts[0])) ;
   memset(right->class_counts, 0, rf->nclasses*sizeof(right->class_counts[0])) ;
+  memset(left->training_set, 0, rf->ntraining*sizeof(left->training_set[0])) ;
   memset(right->training_set, 0, rf->ntraining*sizeof(right->training_set[0])) ;
   left->total_counts = right->total_counts = 0 ;
-  for (i = 0 ; i < ntraining ; i++)
+  for (i = 0 ; i < rf->ntraining ; i++)
   {
-    if (parent->training_set[i])  
+    if (parent->training_set[i])   // use this dataset for training
     {
       if (training_data[i][fno] < thresh)
         node = left ;
       else
         node = right ;
       
-      node->training_set[i] = 1 ;
       node->class_counts[rf->training_classes[i]]++ ;
       node->total_counts++ ;
+      node->training_set[i] = 1 ;
     }
   }
   w1 = (double)left->total_counts / parent->total_counts ;
@@ -146,7 +146,7 @@ compute_info_gain(RF *rf, NODE *parent, NODE *left, NODE *right, double **traini
 }
 
 static double
-find_optimal_threshold(RF *rf, NODE *parent, NODE *left, NODE *right, double **training_data, int ntraining, int fno, int *training_set, double *pinfo_gain)
+find_optimal_threshold(RF *rf, TREE *tree, NODE *parent, NODE *left, NODE *right, double **training_data, int ntraining, int fno, double *pinfo_gain)
 {
   double step, thresh, best_thresh, info_gain, best_info_gain ;
 
@@ -155,7 +155,7 @@ find_optimal_threshold(RF *rf, NODE *parent, NODE *left, NODE *right, double **t
   best_info_gain = -1e10; best_thresh = 0 ;
   for (thresh = rf->feature_min[fno] ; thresh < rf->feature_max[fno] ; thresh += step)
   {
-    info_gain = compute_info_gain(rf, parent, left, right, training_data, ntraining, fno,thresh) ;
+    info_gain = compute_info_gain(rf, tree, parent, left, right, training_data, fno,thresh) ;
     if (info_gain > best_info_gain && left->total_counts>0 && right->total_counts>0)
     {
       best_info_gain = info_gain ;
@@ -176,8 +176,8 @@ find_optimal_feature_and_threshold(RANDOM_FOREST *rf, TREE *tree, NODE *parent, 
   for (f = 0 ; f < tree->nfeatures ; f++)
   {
     fno = tree->feature_list[f] ;
-    thresh = find_optimal_threshold(rf, parent, left, right, rf->training_data, rf->ntraining,
-                                    fno, parent->training_set, &info_gain);
+    thresh = find_optimal_threshold(rf, tree, parent, left, right, rf->training_data, rf->ntraining,
+                                    fno, &info_gain);
     if (info_gain > best_info_gain)
     {
       best_info_gain = info_gain ;
@@ -185,8 +185,7 @@ find_optimal_feature_and_threshold(RANDOM_FOREST *rf, TREE *tree, NODE *parent, 
       best_thresh = thresh ;
     }
   }
-  info_gain = compute_info_gain(rf, parent, left, right, training_data, rf->ntraining, 
-                                best_f,best_thresh) ;
+  info_gain = compute_info_gain(rf, tree, parent, left, right, training_data, best_f,best_thresh) ;
   parent->thresh = best_thresh ;
   parent->feature = best_f ;
   return(NO_ERROR) ;
@@ -204,7 +203,8 @@ rfAllocateNode(int ntraining, int depth, int nclasses)
     ErrorExit(ERROR_NOMEMORY, "RFtrain: could not allocate node class counts") ;
   node->training_set = (int *)calloc(ntraining, sizeof(node->training_set[0])) ;
   if (node->training_set == NULL)
-    ErrorExit(ERROR_NOMEMORY, "RFtrain: could not allocate node training set") ;
+    ErrorExit(ERROR_NOMEMORY, "RFtrain: could not allocate node training_set") ;
+  node->ntraining = ntraining ;
   node->depth = depth ;
   return(node) ;
 }
@@ -270,7 +270,6 @@ rfTrainTree(RANDOM_FOREST *rf, TREE *tree, int *training_classes, double **train
   int    done = 0, n ;
   double total_entropy ;
 
-  tree->ntraining = ntraining ;
   do
   {
     done = rfTrainNode(rf, tree, &tree->root, training_classes, training_data, rf->ntraining);
@@ -283,21 +282,23 @@ rfTrainTree(RANDOM_FOREST *rf, TREE *tree, int *training_classes, double **train
   return(NO_ERROR) ;
 }
 int
-RFtrain(RANDOM_FOREST *rf, double feature_overlap, int *training_classes, double **training_data, int ntraining_total)
+RFtrain(RANDOM_FOREST *rf, double feature_fraction, double training_fraction, int *training_classes, double **training_data, int ntraining)
 {
-  int    n, i, nfeatures, *feature_permutation, *training_permutation, f, ntraining,index ;
+  int    n, i, nfeatures_per_tree, *feature_permutation, *training_permutation, f, index, start_no, end_no,
+         ntraining_per_tree ;
   TREE   *tree ;
 
-  rf->ntraining = ntraining_total ;
+  rf->ntraining = ntraining ;
   rf->training_data = training_data ;
   rf->training_classes = training_classes ;
-  rf->feature_overlap = feature_overlap ;
+  rf->feature_fraction = feature_fraction ;
+  rf->training_fraction = training_fraction ;
 
   for (f = 0 ; f < rf->nfeatures ; f++)
   {
     rf->feature_min[f] = 1e20 ;
     rf->feature_max[f] = -1e20 ;
-    for (i = 0 ; i < ntraining_total ; i++)
+    for (i = 0 ; i < ntraining ; i++)
     {
       if (training_data[i][f] < rf->feature_min[f])
         rf->feature_min[f] = training_data[i][f] ;
@@ -309,39 +310,51 @@ RFtrain(RANDOM_FOREST *rf, double feature_overlap, int *training_classes, double
   feature_permutation = calloc(rf->nfeatures, sizeof(int)) ;
   if (feature_permutation == NULL)
     ErrorExit(ERROR_NOMEMORY, "could not allocate feature permutation vector");
-  training_permutation = calloc(ntraining_total, sizeof(int)) ;
+  training_permutation = calloc(ntraining, sizeof(int)) ;
   if (training_permutation == NULL)
     ErrorExit(ERROR_NOMEMORY, "could not allocate feature permutation vector");
+
+  nfeatures_per_tree = nint((double)rf->nfeatures * feature_fraction) ;
+  ntraining_per_tree = nint((double)rf->ntraining * training_fraction) ;
+
+  compute_permutation(rf->nfeatures, feature_permutation) ;
+  compute_permutation(ntraining, training_permutation) ;
   for (n = 0 ; n < rf->ntrees ; n++)  // train each tree
   {
     tree = &rf->trees[n] ;
-    tree->root.training_set = calloc(rf->ntraining, sizeof(tree->root.training_set[0])) ;
-    if (tree->root.training_set == NULL)
-      ErrorExit(ERROR_NOMEMORY, "RFtrain(%d): could not allocate root %d training set",
-                ntraining_total, n) ;
+
     // randomize what features this tree will use
-    nfeatures = MIN(rf->nfeatures, feature_overlap*rf->nfeatures) ;
-    compute_permutation(rf->nfeatures, feature_permutation) ;
-    tree->feature_list = (int *)calloc(nfeatures, sizeof(tree->feature_list[0]));
+    tree->feature_list = (int *)calloc(nfeatures_per_tree, sizeof(tree->feature_list[0]));
     if (tree->feature_list == NULL)
       ErrorExit(ERROR_NOMEMORY, "RFtrain: could not allocate feature list %d (%d)",
-                n,nfeatures) ;
-    tree->nfeatures = nfeatures ;
-    for (i = 0 ; i < nfeatures ; i++)
-      tree->feature_list[i] = feature_permutation[i] ;
+                n,nfeatures_per_tree) ;
+    tree->nfeatures = nfeatures_per_tree ;
+    if (rf->ntrees > 1)
+      start_no = nint(n*((double)(rf->nfeatures-nfeatures_per_tree))/(rf->ntrees-1.0)) ;
+    else
+      start_no = 0 ; // only 1 tree
+    end_no = MIN(rf->nfeatures-1, start_no+nfeatures_per_tree-1) ;
+    for (i = start_no  ; i <= end_no  ; i++)
+      tree->feature_list[i-start_no] = feature_permutation[i] ;
+    
 
     // randomize what training data this tree will use
-    ntraining = MIN(ntraining_total, 2.0*ntraining_total / rf->ntrees) ;
-    ntraining = ntraining_total ; // disable randomness in training set
-    compute_permutation(ntraining_total, training_permutation) ;
+    tree->root.training_set = (int *)calloc(ntraining, sizeof(tree->root.training_set[0])) ;
+    if (tree->root.training_set == NULL)
+      ErrorExit(ERROR_NOMEMORY, "RFtrain: could not allocate root training set") ;
     tree->root.total_counts = 0 ;
-    for (i = 0 ; i < ntraining ; i++)
+    tree->root.ntraining = ntraining ;
+    if (rf->ntrees > 1)
+      start_no = nint(n*((double)(rf->ntraining-ntraining_per_tree))/(rf->ntrees-1.0)) ;
+    else
+      start_no = 0 ; // only 1 tree
+    end_no = MIN(rf->ntraining-1, start_no+ntraining_per_tree-1) ;
+    for (i = start_no  ; i <= end_no  ; i++)
     {
       index = training_permutation[i] ;
-      index = i ;  // disable randomness in training set
       tree->root.class_counts[training_classes[index]]++ ;
-      tree->root.training_set[index] = 1 ;
       tree->root.total_counts++ ;
+      tree->root.training_set[index] = 1 ;
     }
 
     printf("tree %d: initial entropy = %f\n", n, 
@@ -399,8 +412,7 @@ rfWriteTree(RANDOM_FOREST *rf, TREE *tree, FILE *fp)
 
   fprintf(fp, "TREE %d %d %d\n", tree->depth, tree->nleaves, tree->nfeatures) ;
   for (f = 0 ; f < tree->nfeatures ; f++)
-    fprintf(fp, "%d ", tree->feature_list[f]) ;
-  fprintf(fp, "\n") ;
+    fprintf(fp, "%d %d\n", f, tree->feature_list[f]) ;
   rfWriteNode(rf, &tree->root, fp) ;
   fprintf(fp, "TREE: END\n") ;
   return(NO_ERROR) ;
@@ -408,7 +420,7 @@ rfWriteTree(RANDOM_FOREST *rf, TREE *tree, FILE *fp)
 static int
 rfReadNode(RANDOM_FOREST *rf, NODE *node, FILE *fp)
 {
-  int   c, n, leaf ;
+  int   c, leaf, n ;
   char  line[MAX_LINE_LEN], *cp ;
 
   cp = fgetl(line, MAX_LINE_LEN, fp) ;
@@ -421,6 +433,7 @@ rfReadNode(RANDOM_FOREST *rf, NODE *node, FILE *fp)
     cp = strtok(NULL, " ") ;
   }
 
+  node->training_set = (int *)calloc(rf->ntraining, sizeof(node->training_set[0])) ;
   cp = fgetl(line, MAX_LINE_LEN, fp) ;
   cp = strtok(line, " ") ;
   for (n = 0 ; n < rf->ntraining ; n++)
@@ -428,8 +441,7 @@ rfReadNode(RANDOM_FOREST *rf, NODE *node, FILE *fp)
     sscanf(cp, "%d ", &node->training_set[n]) ;
     cp = strtok(NULL, " ") ;
   }
-
-  cp = fgetl(line, MAX_LINE_LEN, fp) ;
+  cp = fgetl(line, MAX_LINE_LEN, fp) ;  // NODE: END line
   if (leaf == 0)  // read the next pair of nodes
   {
     node->left = rfAllocateNode(rf->ntraining, node->depth+1, rf->nclasses) ;
@@ -443,7 +455,7 @@ static int
 rfReadTree(RANDOM_FOREST *rf, TREE *tree, FILE *fp)
 {
   int   f ;
-  char  line[10*MAX_LINE_LEN], *cp ;
+  char  line[MAX_LINE_LEN], *cp ;
 
   cp = fgetl(line, MAX_LINE_LEN, fp) ;
   sscanf(cp, "TREE %d %d %d\n", &tree->depth, &tree->nleaves, &tree->nfeatures) ;
@@ -451,21 +463,14 @@ rfReadTree(RANDOM_FOREST *rf, TREE *tree, FILE *fp)
   if (tree->feature_list == NULL)
     ErrorExit(ERROR_NOMEMORY, "rfReadTree: could not allocate feature list  (%d)",
 	      tree->nfeatures) ;
-  cp = fgetl(line, 10*MAX_LINE_LEN, fp) ;   // feature list
-  if (strlen(cp) >= 10*MAX_LINE_LEN-1)
-    ErrorExit(ERROR_UNSUPPORTED, "rfReadTree: max line len exceeded - cannot read tree") ;
-  cp = strtok(line, " ") ;
   for (f = 0 ; f < tree->nfeatures ; f++)
   {
-    sscanf(cp, "%d ", &tree->feature_list[f]) ;
-    cp = strtok(NULL, " ") ;
-    if ( f == 836)
-      DiagBreak() ;
-    if (cp == NULL)
-      DiagBreak() ;
+    cp = fgetl(line, MAX_LINE_LEN, fp) ;
+    sscanf(cp, "%*d %d", &tree->feature_list[f]) ;
   }
-  tree->root.training_set = (int *)calloc(rf->ntraining, sizeof(tree->root.training_set[0])) ;
+
   rfReadNode(rf, &tree->root, fp) ;
+  cp = fgetl(line, MAX_LINE_LEN, fp) ;   // TREE: END line
   rfFindLeaves(tree) ;
   return(NO_ERROR) ;
 }
@@ -480,7 +485,7 @@ RFwrite(RANDOM_FOREST *rf, char *fname)
     ErrorReturn(ERROR_NOFILE, (ERROR_NOFILE, "RFwrite(%s): could not open file",fname));
 
   fprintf(fp, "%d %d %d %d %d %d %lf\n", 
-          rf->nfeatures, rf->nclasses, rf->ntrees, rf->max_depth, rf->ntraining,rf->nsteps,rf->feature_overlap) ;
+          rf->nfeatures, rf->nclasses, rf->ntrees, rf->max_depth, rf->ntraining,rf->nsteps,rf->feature_fraction) ;
   for (c = 0 ; c < rf->nclasses ; c++)
     fprintf(fp, "%s\n", rf->class_names[c]) ;
 
@@ -507,30 +512,104 @@ rfFindLeaf(RF *rf, NODE *node, double *feature)
 }
 
 int
-RFclassify(RANDOM_FOREST *rf, double *feature, int true_class)
+RFcomputeOutOfBagCorrect(RANDOM_FOREST *rf, int *training_classes, double **training_data,int ntraining)
 {
-  int max_class = -1, n, c, class_counts[MAX_CLASSES], max_count, total_count ;
-  NODE *node ;
+  int    max_class = -1, n, c, class_counts[MAX_CLASSES], max_count, total_count, i, correct ;
+  NODE   *node ;
+  TREE   *tree ;
+
+  memset(class_counts, 0, sizeof(class_counts)) ;
+
+  for (correct = i = 0 ; i < ntraining ; i++)
+  {
+    for (n = 0 ; n < rf->ntrees ; n++)
+    {
+      tree = &rf->trees[n] ;
+      if (tree->root.training_set[i])  
+	continue ;  // this tree was trained on this data - don't use it for accuracy estimation
+
+      node = rfFindLeaf(rf, &rf->trees[n].root, training_data[i]) ;
+      for (c = 0 ; c < rf->nclasses ; c++)
+	class_counts[c] += node->class_counts[c] ;
+      if (DIAG_VERBOSE_ON)
+	for (c = 0 ; c < rf->trees[n].nleaves ; c++)  // diagnostic
+	  if (node == rf->trees[n].leaves[c])
+	    printf("tree %d: leaf %d\n", n, c) ;
+    }
+    
+    for (total_count = max_count = c = 0 ; c < rf->nclasses ; c++)
+    {
+      total_count += class_counts[c] ;
+      if (class_counts[c] > max_count)
+      {
+	max_count = class_counts[c] ;
+	max_class = c ;
+      }
+    }
+
+    if (training_classes[i] == max_class)
+      correct++ ;
+
+#if 0
+    if (DIAG_VERBOSE_ON)
+    {
+      for (c = 0 ; c < rf->nclasses ; c++)
+      {
+	if (true_class >= 0)
+	{
+	  if (c == max_class)
+	  {
+	    printf("%s: p = %2.2f ", 
+		   rf->class_names[c], 100*(double)class_counts[c]/total_count) ;
+	    if (c==true_class)
+	      printf("CORRECT\n") ;
+	    else
+	      printf("(true = %s, p = %2.1f)\n",
+		     rf->class_names[true_class], 
+		     100*(double)class_counts[true_class]/total_count) ;
+	  }
+	}
+	else
+	  printf("%s: p = %2.2f %s\n", 
+		 rf->class_names[c], 100*(double)class_counts[c]/total_count, 
+		 c==max_class?"MAX":"") ;
+      }
+    }
+#endif
+  }
+
+  return(correct) ;
+}
+
+int
+RFclassify(RANDOM_FOREST *rf, double *feature, double *p_pval, int true_class)
+{
+  int    max_class = -1, n, c ;
+  NODE   *node ;
+  double max_count, class_counts[MAX_CLASSES] ;
 
   memset(class_counts, 0, sizeof(class_counts)) ;
   for (n = 0 ; n < rf->ntrees ; n++)
   {
     node = rfFindLeaf(rf, &rf->trees[n].root, feature) ;
     for (c = 0 ; c < rf->nclasses ; c++)
-      class_counts[c] += node->class_counts[c] ;
+      class_counts[c] += (double)node->class_counts[c]/node->total_counts ;
+
     if (DIAG_VERBOSE_ON)
       for (c = 0 ; c < rf->trees[n].nleaves ; c++)  // diagnostic
 	if (node == rf->trees[n].leaves[c])
 	  printf("tree %d: leaf %d\n", n, c) ;
   }
 
-  for (total_count = max_count = c = 0 ; c < rf->nclasses ; c++)
+  for (max_count = c = 0 ; c < rf->nclasses ; c++)
   {
-    total_count += class_counts[c] ;
+    class_counts[c] /= rf->ntrees ;
     if (class_counts[c] > max_count)
     {
       max_count = class_counts[c] ;
       max_class = c ;
+      if (p_pval)
+	*p_pval = (double)class_counts[c] ;
     }
   }
 
@@ -540,20 +619,16 @@ RFclassify(RANDOM_FOREST *rf, double *feature, int true_class)
     {
       if (c == max_class)
       {
-        printf("%s: p = %2.2f ", 
-               rf->class_names[c], 100*(double)class_counts[c]/total_count) ;
+        printf("%s: p = %2.2f ", rf->class_names[c], 100.0*class_counts[c]) ;
         if (c==true_class)
           printf("CORRECT\n") ;
         else
-          printf("(true = %s, p = %2.1f)\n",
-                 rf->class_names[true_class], 
-                 100*(double)class_counts[true_class]/total_count) ;
+          printf("(true = %s, p = %2.1f)\n", rf->class_names[true_class], 100.0*class_counts[true_class]) ;
       }
     }
     else
       printf("%s: p = %2.2f %s\n", 
-             rf->class_names[c], 100*(double)class_counts[c]/total_count, 
-             c==max_class?"MAX":"") ;
+             rf->class_names[c], 100*(double)class_counts[c], c==max_class?"MAX":"") ;
 
   }
   return(max_class) ;
@@ -566,7 +641,7 @@ RFread(char *fname)
   int    nfeatures, nclasses, ntrees, max_depth, ntraining, nsteps, c, n, f ;
   char   line[MAX_LINE_LEN], *cp, *class_names[MAX_CLASSES] ;
   FILE   *fp ;
-  double feature_overlap ;
+  double feature_fraction ;
 
   fp = fopen(fname, "r") ;
   if (fp == NULL)
@@ -574,15 +649,15 @@ RFread(char *fname)
 
   cp = fgetl(line, MAX_LINE_LEN, fp) ;
   sscanf(cp, "%d %d %d %d %d %d %lf", 
-         &nfeatures, &nclasses, &ntrees, &max_depth, &ntraining,&nsteps, &feature_overlap) ;
+         &nfeatures, &nclasses, &ntrees, &max_depth, &ntraining,&nsteps, &feature_fraction) ;
   for (c = 0 ; c < nclasses ; c++)
   {
     cp = fgetl(line, MAX_LINE_LEN, fp) ;
     class_names[c] = (char *)calloc(strlen(cp)+1, sizeof(char)) ;
     strcpy(class_names[c], cp) ;
   }
-  rf = RFalloc(ntrees, nfeatures, nclasses, max_depth, class_names) ;
-  rf->feature_overlap = feature_overlap ;
+  rf = RFalloc(ntrees, nfeatures, nclasses, max_depth, class_names, nsteps) ;
+  rf->feature_fraction = feature_fraction ;
   rf->ntraining = ntraining ;
 
   rf->feature_min = (double *)calloc(rf->nfeatures, sizeof(rf->feature_min[0])) ;
