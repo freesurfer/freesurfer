@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2012/02/01 18:08:54 $
- *    $Revision: 1.720 $
+ *    $Author: fischl $
+ *    $Date: 2012/03/08 13:49:42 $
+ *    $Revision: 1.721 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -733,7 +733,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void)
 {
-  return("$Id: mrisurf.c,v 1.720 2012/02/01 18:08:54 greve Exp $");
+  return("$Id: mrisurf.c,v 1.721 2012/03/08 13:49:42 fischl Exp $");
 }
 
 /*-----------------------------------------------------
@@ -60861,6 +60861,16 @@ MRISextractCurvatureVector(MRI_SURFACE *mris, float *curvs)
   return(NO_ERROR) ;
 }
 int
+  MRISextractCurvatureVectorDouble(MRI_SURFACE *mris, double *curvs, int offset)
+{
+  int     vno ;
+
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+    curvs[vno+offset] = (double)mris->vertices[vno].curv ;
+
+  return(NO_ERROR) ;
+}
+int
 MRISextractCurvatureDoubleVector(MRI_SURFACE *mris, double *curvs)
 {
   int     vno ;
@@ -60908,6 +60918,16 @@ MRISexportValVector(MRI_SURFACE *mris, float *vals)
 
   for (vno = 0 ; vno < mris->nvertices ; vno++)
     vals[vno] = mris->vertices[vno].val ;
+
+  return(NO_ERROR) ;
+}
+int
+MRISexportValVectorDouble(MRI_SURFACE *mris, double *vals, int offset)
+{
+  int     vno ;
+
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+    vals[vno+offset] = (double)mris->vertices[vno].val ;
 
   return(NO_ERROR) ;
 }
