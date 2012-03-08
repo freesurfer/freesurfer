@@ -10,8 +10,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2012/02/28 02:20:53 $
- *    $Revision: 1.32 $
+ *    $Date: 2012/03/08 23:37:33 $
+ *    $Revision: 1.33 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -26,7 +26,7 @@
  */
 
 
-// $Id: mri_binarize.c,v 1.32 2012/02/28 02:20:53 greve Exp $
+// $Id: mri_binarize.c,v 1.33 2012/03/08 23:37:33 greve Exp $
 
 /*
   BEGINHELP
@@ -180,7 +180,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_binarize.c,v 1.32 2012/02/28 02:20:53 greve Exp $";
+static char vcid[] = "$Id: mri_binarize.c,v 1.33 2012/03/08 23:37:33 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -388,24 +388,24 @@ int main(int argc, char *argv[]) {
 	    Matched = 0;
 	    for(n=0; n < nMatch; n++){
 	      if(fabs(val - MatchValues[n]) < 2*FLT_MIN){
-		MRIsetVoxVal(OutVol,c,r,s,frame,BinVal);
+		MRIsetVoxVal(OutVol,c,r,s,frame-fstart,BinVal);
 		Matched = 1;
 		nhits ++;
 		break;
 	      }
 	    }
-	    if(!Matched) MRIsetVoxVal(OutVol,c,r,s,frame,mergeval);
+	    if(!Matched) MRIsetVoxVal(OutVol,c,r,s,frame-fstart,mergeval);
 	  }
 	  else{
 	    // Determine whether it is in range
 	    if((MinThreshSet && (val < MinThresh)) ||
 	       (MaxThreshSet && (val > MaxThresh))){
 	      // It is NOT in the Range
-	      MRIsetVoxVal(OutVol,c,r,s,frame,mergeval);
+	      MRIsetVoxVal(OutVol,c,r,s,frame-fstart,mergeval);
 	    }
 	    else {
 	      // It is in the Range
-	      MRIsetVoxVal(OutVol,c,r,s,frame,BinVal);
+	      MRIsetVoxVal(OutVol,c,r,s,frame-fstart,BinVal);
 	      nhits ++;
 	    }
 	  }
