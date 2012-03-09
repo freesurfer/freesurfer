@@ -20,9 +20,9 @@ function [tbl, rowid, colid] = fast_ldtable(tablefile)
 %
 % Original Author: Doug Greve
 % CVS Revision Info:
-%    $Author: nicks $
-%    $Date: 2011/03/02 00:04:04 $
-%    $Revision: 1.4 $
+%    $Author: greve $
+%    $Date: 2012/03/09 21:21:33 $
+%    $Revision: 1.5 $
 %
 % Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 %
@@ -59,6 +59,37 @@ if(tline == -1)
 end
 colid = splitstring(tline);
 colid = colid(2:end,:);
+
+if(1)
+  % This is a much faster version
+  fclose(fid);
+  ncols = single(size(colid,1))+1;
+  s = textread(tablefile,'%s','commentstyle','shell');
+  ntot = size(s,1);
+  nrows = round(ntot/ncols);
+  if(ntot ~= nrows*ncols)
+    fprintf('ERROR: %s, ntot=%d, ncols=%d, nrows=%d\n',ntot,ncols,nrows);
+    return;
+  end
+  tbl = zeros(nrows-1,ncols-1);
+  rowid = '';
+  nth = 0;
+  for nthrow = 1:nrows
+    for nthcol = 1:ncols
+      nth = nth + 1;
+      if(nthrow == 1) continue; end
+      if(nthcol == 1) 
+	rowid = strvcat(rowid,char(s(nth)));
+      else
+	tbl(nthrow-1,nthcol-1) = sscanf(char(s(nth)),'%f');
+      end
+    end
+  end
+  return;
+end
+
+% Below is the old slow code
+% It will not reach this point unless the if(1) above is changed to if(0)
 
 %----------- Loop through all the lines ----------------------%
 nthrow = 1;
