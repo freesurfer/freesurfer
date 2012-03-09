@@ -1,5 +1,5 @@
 # Original author - Krish Subramaniam
-# $Id: fsutils.py,v 1.6 2011/10/08 04:48:35 greve Exp $
+# $Id: fsutils.py,v 1.7 2012/03/09 00:53:09 mreuter Exp $
 import os
 import logging
 import sys
@@ -213,6 +213,14 @@ class AparcStatsParser(StatsParser):
             if measure == 'area':
                 beg_struct_tuple = (
                     ('# Measure Cortex, WhiteSurfArea,', 'WhiteSurfArea'),
+                )
+                for start, structn in beg_struct_tuple:
+                    if line.startswith(start):
+                        strlst = line.split(',')
+                        self.parc_measure_map[structn] = float( strlst[3])
+            if measure == 'thickness':
+                beg_struct_tuple = (
+                    ('# Measure Cortex, MeanThickness,', 'MeanThickness'),
                 )
                 for start, structn in beg_struct_tuple:
                     if line.startswith(start):
