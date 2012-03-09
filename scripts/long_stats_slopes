@@ -9,8 +9,8 @@
 # Original Author: Martin Reuter
 # CVS Revision Info:
 #    $Author: mreuter $
-#    $Date: 2011/08/30 22:34:06 $
-#    $Revision: 1.16 $
+#    $Date: 2012/03/09 00:52:43 $
+#    $Revision: 1.17 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -189,7 +189,7 @@ def options_parse():
     Command Line Options Parser for long_mris_slopes
     initiate the option parser and return the parsed object
     """
-    parser = optparse.OptionParser(version='$Id: long_stats_slopes,v 1.16 2011/08/30 22:34:06 mreuter Exp $', usage=HELPTEXT)
+    parser = optparse.OptionParser(version='$Id: long_stats_slopes,v 1.17 2012/03/09 00:52:43 mreuter Exp $', usage=HELPTEXT)
     
     # help text
     h_qdec      = '(REQUIRED) qdec table file specifying the subjects and time points'
@@ -212,6 +212,7 @@ def options_parse():
     h_outstack  = 'filename to store stacked measure file <template>/stats/<OUT_STACK> (default: long.<stats>.<meas>-stack.dat)'
 
     h_time      = 'variable name for time column variable (e.g. age) in qdec table'    
+    h_generictime = 'time points are ordered in qdec file, assume time=1,2,3...'    
     
     h_stack_avg = 'full filename to stack temporal average tables (default no stacking)'
     h_stack_rate= 'full filename to stack rate tables (default no stacking)'
@@ -238,6 +239,7 @@ def options_parse():
     
     # parameters:
     parser.add_option('--time', dest='time', help=h_time)
+    parser.add_option('--generic-time', action='store_true', dest='generic_time', help=h_generictime, default=False)
     
     # overwrite default output names:
     parser.add_option('--out-avg'  , dest='out_avg'  , help=h_out_avg)
@@ -368,22 +370,24 @@ if __name__=="__main__":
     except BadFileError, e:
         print 'ERROR: qdec table '+str(e)+' not found!'
         sys.exit(1)
-    
-    
+        
     # make sure we have a long table containing the bases
     if qdectable.cross:
         print '\nERROR: qdec table '+options.qdec+' is cross sectional\n       (2nd column not \'fsid-base\')!\n'
         sys.exit(1)
         
+    # use the first column by default for time variable
+    varidx = 1
+    
     # get other variables:
     variables=qdectable.variables
     if len(variables) < 1:
-        print '\nERROR: qdec table '+options.qdec+' needs 3rd column with time value,'
-        print '       e.g. age or time since baseline scan ...!\n'
-        sys.exit(1)
-        
-    # use the first column by default for time variable
-    varidx = 1
+        varidx = -1
+        if not options.generic_time:
+            print '\nERROR: qdec table '+options.qdec+' needs 3rd column with time value,'
+            print '       e.g. age or time since baseline scan ...!\n'
+            print '       Or pass --generic-time assuming tps are ordered 1,2,3...\n'
+            sys.exit(1)        
         
     # if time variable is passed on command line, make sure it is part of variables
     if not options.time is None:
@@ -449,7 +453,10 @@ if __name__=="__main__":
             tpids = [entry[0] for entry in tplist]
         else:
             tpids = [entry[0]+'.long.'+subjectid for entry in tplist]
-        times = [float(entry[varidx]) for entry in tplist]
+        if varidx > 0:
+            times = [float(entry[varidx]) for entry in tplist]
+        else:
+            times = [float(x) for x in range(1,len(tplist)+1)]
         num   = len(times)
         meant = sum(times) / num
         print '\n\nINFO: '+str(num)+' TPs in '+subjectid+' , mean age: '+str(meant)+'\n'
