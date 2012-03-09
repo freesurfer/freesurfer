@@ -1,0 +1,80 @@
+#!/bin/csh -f
+
+#
+# make_upright
+#
+# Registers head/brian image to the left/right reversed into midspace
+#   to make the image upright and straight
+#
+# Original Author: Martin Reuter
+# CVS Revision Info:
+#    $Author: mreuter $
+#    $Date: 2012/03/09 00:43:54 $
+#    $Revision: 1.1 $
+#
+# Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+#
+# Terms and conditions for use, reproduction, distribution and contribution
+# are found in the 'FreeSurfer Software License Agreement' contained
+# in the file 'LICENSE' found in the FreeSurfer distribution, and here:
+#
+# https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
+#
+# Reporting: freesurfer@nmr.mgh.harvard.edu
+#
+#
+
+
+set VERSION = '$Id: make_upright,v 1.1 2012/03/09 00:43:54 mreuter Exp $';
+
+
+if ( $#argv < 3 ) then
+	echo 
+	echo "   Usage: make_upright input.mgz output.mgz map.lta"
+  echo  
+  echo "   Description: "
+  echo "    Registers input the the left/right reversed version using "
+  echo "    mri_robust_register and making use of the half-way space, resulting"
+  echo "    in an upright, forward facing head position"
+  echo  
+  echo "   Reference:"
+  echo "    Highly Accurate Inverse Consistent Registration: A Robust Approach, M."
+  echo "    Reuter, H.D. Rosas, B. Fischl.  NeuroImage 53(4):1181-1196, 2010."
+  echo "    DOI-Link http://dx.doi.org/10.1016/j.neuroimage.2010.07.020 "
+  echo "    Pre-Print http://reuter.mit.edu/papers/reuter-robreg10.pdf "
+	echo
+  echo $VERSION
+  echo
+	exit 1;
+endif
+
+set infile   = $argv[1]
+set outfile  = $argv[2]
+set maplta   = $argv[3]
+set tmpdir   = `mktemp -d -p ./`
+set reverse  = $tmpdir/tmp_reverse.mgz
+set ltalr    = $tmpdir/tmp_reverse.lta
+set hweights = $tmpdir/tmp_reverse_hweights.mgz
+set hdst     = $tmpdir/tmp_reverse_hdst.mgz
+
+set cmd = "mri_convert --left-right-reverse-pix $infile $reverse"
+#echo $cmd
+eval $cmd
+
+set cmd = "mri_robust_register \
+  --mov $infile \
+  --dst $reverse --satit \
+  --lta $ltalr \
+  --halfmov $outfile \
+  --halfmovlta $maplta" # \
+#  --halfdst $hdst \
+#  --halfweights $hweights " 
+echo $cmd
+eval $cmd
+
+rm -rf $tmpdir
+
+echo "make_upright done"
+echo
+
+
