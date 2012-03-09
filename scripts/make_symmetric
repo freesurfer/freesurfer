@@ -9,8 +9,8 @@
 # Original Author: Martin Reuter
 # CVS Revision Info:
 #    $Author: mreuter $
-#    $Date: 2012/03/09 00:43:54 $
-#    $Revision: 1.1 $
+#    $Date: 2012/03/09 01:02:24 $
+#    $Revision: 1.2 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -24,7 +24,7 @@
 #
 #
 
-set VERSION = '$Id: make_symmetric,v 1.1 2012/03/09 00:43:54 mreuter Exp $';
+set VERSION = '$Id: make_symmetric,v 1.2 2012/03/09 01:02:24 mreuter Exp $';
 
 
 if ( $#argv < 4 ) then
@@ -54,6 +54,7 @@ set infile   = $argv[2]
 set outfile  = $argv[3]
 set maplta   = $argv[4]
 set tmpupright = `mktemp -p ./`
+rm $tmpupright
 set tmpupright = ${tmpupright}.mgz
 
 set cmd = "make_upright $infile $tmpupright $maplta"
