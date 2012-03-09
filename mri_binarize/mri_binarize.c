@@ -10,8 +10,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2012/03/08 23:37:33 $
- *    $Revision: 1.33 $
+ *    $Date: 2012/03/09 00:33:25 $
+ *    $Revision: 1.34 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -26,7 +26,7 @@
  */
 
 
-// $Id: mri_binarize.c,v 1.33 2012/03/08 23:37:33 greve Exp $
+// $Id: mri_binarize.c,v 1.34 2012/03/09 00:33:25 greve Exp $
 
 /*
   BEGINHELP
@@ -180,7 +180,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_binarize.c,v 1.33 2012/03/08 23:37:33 greve Exp $";
+static char vcid[] = "$Id: mri_binarize.c,v 1.34 2012/03/09 00:33:25 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -375,7 +375,7 @@ int main(int argc, char *argv[]) {
 	  if(MaskVol) {
 	    maskval = MRIgetVoxVal(MaskVol,c,r,s,0);
 	    if(maskval < MaskThresh){
-	      MRIsetVoxVal(OutVol,c,r,s,frame,mergeval);
+	      MRIsetVoxVal(OutVol,c,r,s,frame-fstart,mergeval);
 	      continue;
 	    }
 	  }
