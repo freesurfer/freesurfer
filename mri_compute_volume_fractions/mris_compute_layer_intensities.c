@@ -8,8 +8,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2012/03/02 00:29:21 $
- *    $Revision: 1.6 $
+ *    $Date: 2012/03/10 02:17:57 $
+ *    $Revision: 1.7 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -86,7 +86,7 @@ main(int argc, char *argv[])
   MRI         *mri_intensities, *mri_volume_fractions, *mri_layer_intensities ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_compute_layer_intensities.c,v 1.6 2012/03/02 00:29:21 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_compute_layer_intensities.c,v 1.7 2012/03/10 02:17:57 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -245,6 +245,7 @@ compute_layer_intensities(MRI *mri_intensities, MRI *mri_volume_fractions, MRI_S
   double  bin_size, Hmin, whalf_total = 0, val, vfrac_thresh ;
   int     bin0, bin, found_layer[MAX_LAYERS], estimable, nwindows = 0 ;
 
+  printf("computing partial volume corrected layer intensities\n") ;
 /*
   try to find voxels with a lot of each layer, but the more layers there are the less likely we are to be able
   to do so. The higher res the data the higher the threshold should be (as the more likely we are to be able
@@ -401,6 +402,9 @@ compute_layer_intensities(MRI *mri_intensities, MRI *mri_volume_fractions, MRI_S
 		if (vfrac >= vfrac_thresh)
 		  found_layer[n1] = 1 ;
 		*MATRIX_RELT(mF, nvals+1, n1+1) = vfrac ;
+		if (vno == Gdiag_no)
+		  printf("layer %d v %d: val %d with fraction %f found at (%d, %d, %d)\n",
+			 n1, vno, (int)val, vfrac, xvi, yvi, zvi) ;
 	      }
 	      // add wm and csf estimates
 	      *MATRIX_RELT(mF, nvals+1, 1) = MRIgetVoxVal(mri_volume_fractions, xvi, yvi, zvi, 0) ; // wm
@@ -492,6 +496,8 @@ compute_layer_intensities(MRI *mri_intensities, MRI *mri_volume_fractions, MRI_S
 	      val = *MATRIX_RELT(mL, n+1, 1) ;
 	      if (val < 0 || val > 150)
 		DiagBreak() ;
+	      if (vno == Gdiag_no)
+		printf("v %d layer %d: %2.1f\n", vno, n, val) ;
 	      MRIsetVoxVal(mri_layer_intensities, vno, 0, 0, n, val) ;
 	    }
 	    MatrixFree(&mFinv) ;
@@ -530,11 +536,14 @@ compute_thresholded_layer_intensities(MRI *mri_intensities, MRI *mri_volume_frac
   MRI     *mri_curv_bins ;
   double  bin_size, Hmin, val ;
   int     bin0, bin, nd ;
+  MRI     *mri_visited ;
 
+  printf("computing thresholded layer intensities\n") ;
   step = mri_intensities->xsize/4 ;
   if (mri_layer_intensities == NULL)
     mri_layer_intensities = MRIallocSequence(mris[0]->nvertices, 1, 1, MRI_FLOAT, nlayers+2) ;
 
+  mri_visited = MRIcloneDifferentType(mri_volume_fractions, MRI_UCHAR) ;
   for (n = 0 ; n <= nlayers ; n++)
   {
     MRISsaveVertexPositions(mris[n], TMP_VERTICES) ;
@@ -586,6 +595,7 @@ compute_thresholded_layer_intensities(MRI *mri_intensities, MRI *mri_volume_frac
 
   for (vno = 0 ; vno < mris[0]->nvertices ; vno++)
   {
+    MRIclear(mri_visited) ;
     if ((vno % 500) == 0)
       printf("processing vno %d of %d (%2.1f%%)\n", vno, mris[0]->nvertices, 100.0f*vno/mris[0]->nvertices) ;
     v = &mris[0]->vertices[vno] ;
@@ -638,15 +648,25 @@ compute_thresholded_layer_intensities(MRI *mri_intensities, MRI *mri_volume_frac
 	  bin = MRIgetVoxVal(mri_curv_bins, xvi, yvi, zvi, 0) ;
 	  if (bin != bin0)
 	    continue ;
+	  if (MRIgetVoxVal(mri_visited, xvi, yvi, zvi, 0) > 0)
+	    continue ;
+	  MRIsetVoxVal(mri_visited, xvi, yvi, zvi, 0, 1) ;
+
 	  for (n1 = 0 ; n1 <= nlayers ; n1++) // see if any are above threshold
 	  {
 	    vfrac = MRIgetVoxVal(mri_volume_fractions, xvi, yvi, zvi, n1) ;
 	    if (vfrac > vfrac_thresh)
 	    {
+	      float vnew ;
+
 	      num_found[n1]++ ;
 	      val = MRIgetVoxVal(mri_layer_intensities, vno, 0, 0, n1) ;
-	      val += MRIgetVoxVal(mri_intensities, xv0, yv0, zv0, 0) ;
-	      MRIsetVoxVal(mri_layer_intensities, vno, 0, 0, n1, val) ;
+	      vnew = MRIgetVoxVal(mri_intensities, xvi, yvi, zvi, 0) ;
+	      if (vno == Gdiag_no)
+		printf("layer %d, v %d: val %d with fraction %f found at (%d, %d, %d)\n",
+		       n1, vno, (int)vnew, vfrac, xvi, yvi, zvi) ;
+	      
+	      MRIsetVoxVal(mri_layer_intensities, vno, 0, 0, n1, val+vnew) ;
 	    }
 	  }
 	}
@@ -689,6 +709,9 @@ compute_thresholded_layer_intensities(MRI *mri_intensities, MRI *mri_volume_frac
 	    bin = MRIgetVoxVal(mri_curv_bins, xvi, yvi, zvi, 0) ;
 	    if (bin != bin0)  
 	      continue ;  // not the same curvature
+	    if (MRIgetVoxVal(mri_visited, xvi, yvi, zvi, 0) > 0)
+	      continue ;
+	    MRIsetVoxVal(mri_visited, xvi, yvi, zvi, 0, 1) ;
 	    val = MRIgetVoxVal(mri_intensities, xvi, yvi, zvi, 0) ;
 	    if (val < 0)
 	      DiagBreak() ;
@@ -699,7 +722,7 @@ compute_thresholded_layer_intensities(MRI *mri_intensities, MRI *mri_volume_frac
 	      {
 		num_found[n1]++ ;
 		val = MRIgetVoxVal(mri_layer_intensities, vno, 0, 0, n1) ;
-		val += MRIgetVoxVal(mri_intensities, xv0, yv0, zv0, 0) ;
+		val += MRIgetVoxVal(mri_intensities, xvi, yvi, zvi, 0) ;
 		MRIsetVoxVal(mri_layer_intensities, vno, 0, 0, n1, val) ;
 	      }
 	    }
@@ -716,10 +739,14 @@ compute_thresholded_layer_intensities(MRI *mri_intensities, MRI *mri_volume_frac
       {
 	val = MRIgetVoxVal(mri_layer_intensities, vno, 0, 0, n) ;
 	MRIsetVoxVal(mri_layer_intensities, vno, 0, 0, n, val/num_found[n]) ;
+	if (vno == Gdiag_no)
+	  printf("v %d, layer %d: %2.1f (%d found)\n", vno, n, val/num_found[n], 
+		 num_found[n]) ;
       }
     }
   }
 
+  MRIfree(&mri_visited) ;
   return(mri_layer_intensities) ;
 }
 
