@@ -94,12 +94,6 @@ install: install-fooDATA
 	mv $(top_builddir)/distribution/average/fsaverage \
 		$(DESTDIR)$(prefix)/subjects
 	chmod -R 775 $(DESTDIR)$(prefix)/subjects/fsaverage
-	rm -Rf $(DESTDIR)$(prefix)/subjects/fsaverage_sym
-	rm -Rf $(top_builddir)/distribution/average/fsaverage_sym
-	gunzip -c $(top_srcdir)/distribution/average/fsaverage_sym.tar.gz | tar xvf -
-	mv $(top_builddir)/distribution/average/fsaverage_sym \
-		$(DESTDIR)$(prefix)/subjects
-	chmod -R 775 $(DESTDIR)$(prefix)/subjects/fsaverage_sym
 	rm -Rf $(DESTDIR)$(prefix)/subjects/V1_average
 	rm -Rf $(top_builddir)/distribution/average/V1_average
 	gunzip -c $(top_srcdir)/distribution/average/V1_average.tar.gz | tar xvf -
