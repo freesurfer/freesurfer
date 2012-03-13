@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2011/12/14 17:13:45 $
- *    $Revision: 1.74 $
+ *    $Date: 2012/03/13 21:32:06 $
+ *    $Revision: 1.75 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -713,8 +713,8 @@ void PanelVolume::OnComboColorMap( int nSel )
 
 void PanelVolume::OnComboLookupTable( int nSel )
 {
-  LayerMRI* layer = GetCurrentLayer<LayerMRI*>();
-  if ( layer )
+  QList<LayerMRI*> layers = GetSelectedLayers<LayerMRI*>();
+  foreach (LayerMRI* layer, layers)
   {
     if ( nSel == ui->comboBoxLookUpTable->count()-1 )
     {
@@ -742,8 +742,8 @@ void PanelVolume::OnCheckShowContour(bool bShow)
 
 void PanelVolume::OnSliderOpacity( int nVal )
 {
-  LayerMRI* layer = GetCurrentLayer<LayerMRI*>();
-  if ( layer )
+  QList<LayerMRI*> layers = GetSelectedLayers<LayerMRI*>();
+  foreach (LayerMRI* layer, layers)
   {
     layer->GetProperty()->SetOpacity( nVal/100.0 );
   }
@@ -751,8 +751,8 @@ void PanelVolume::OnSliderOpacity( int nVal )
 
 void PanelVolume::OnSliderWindow( int nVal )
 {
-  LayerMRI* layer = GetCurrentLayer<LayerMRI*>();
-  if ( layer )
+  QList<LayerMRI*> layers = GetSelectedLayers<LayerMRI*>();
+  foreach (LayerMRI* layer, layers)
   {
     double* r = layer->GetProperty()->GetWindowRange();
     layer->GetProperty()->SetWindow( nVal / 100.0 * ( r[1] - r[0] ) + r[0] );
@@ -761,8 +761,8 @@ void PanelVolume::OnSliderWindow( int nVal )
 
 void PanelVolume::OnSliderLevel( int nVal )
 {
-  LayerMRI* layer = GetCurrentLayer<LayerMRI*>();
-  if ( layer )
+  QList<LayerMRI*> layers = GetSelectedLayers<LayerMRI*>();
+  foreach (LayerMRI* layer, layers)
   {
     double* r = layer->GetProperty()->GetLevelRange();
     layer->GetProperty()->SetLevel( nVal / 100.0 * ( r[1] - r[0] ) + r[0] );
@@ -771,8 +771,8 @@ void PanelVolume::OnSliderLevel( int nVal )
 
 void PanelVolume::OnSliderMin( int nVal )
 {
-  LayerMRI* layer = GetCurrentLayer<LayerMRI*>();
-  if ( layer )
+  QList<LayerMRI*> layers = GetSelectedLayers<LayerMRI*>();
+  foreach (LayerMRI* layer, layers)
   {
     double fMin = layer->GetProperty()->GetMinValue();
     double fMax = layer->GetProperty()->GetMaxValue();
@@ -798,8 +798,8 @@ void PanelVolume::OnSliderMin( int nVal )
 
 void PanelVolume::OnSliderMid( int nVal )
 {
-  LayerMRI* layer = GetCurrentLayer<LayerMRI*>();
-  if ( layer )
+  QList<LayerMRI*> layers = GetSelectedLayers<LayerMRI*>();
+  foreach (LayerMRI* layer, layers)
   {
     double fMin = layer->GetProperty()->GetMinValue();
     double fMax = layer->GetProperty()->GetMaxValue();
@@ -809,8 +809,8 @@ void PanelVolume::OnSliderMid( int nVal )
 
 void PanelVolume::OnSliderMax( int nVal )
 {
-  LayerMRI* layer = GetCurrentLayer<LayerMRI*>();
-  if ( layer )
+  QList<LayerMRI*> layers = GetSelectedLayers<LayerMRI*>();
+  foreach (LayerMRI* layer, layers)
   {
     double fMin = layer->GetProperty()->GetMinValue();
     double fMax = layer->GetProperty()->GetMaxValue();
@@ -836,8 +836,8 @@ void PanelVolume::OnSliderMax( int nVal )
 
 void PanelVolume::OnSliderOffset( int nVal )
 {
-  LayerMRI* layer = GetCurrentLayer<LayerMRI*>();
-  if ( layer )
+  QList<LayerMRI*> layers = GetSelectedLayers<LayerMRI*>();
+  foreach (LayerMRI* layer, layers)
   {
     double fMax = layer->GetProperty()->GetMaxValue();
     layer->GetProperty()->SetHeatScaleOffset( nVal / 100.0 * ( fMax + fMax ) - fMax );
@@ -846,113 +846,137 @@ void PanelVolume::OnSliderOffset( int nVal )
 
 void PanelVolume::OnLineEditWindow( const QString& text )
 {
-  LayerMRI* layer = GetCurrentLayer<LayerMRI*>();
-  bool bOK;
-  double dVal = text.toDouble( &bOK );
-  if ( layer && bOK && layer->GetProperty()->GetWindow() != dVal )
+  QList<LayerMRI*> layers = GetSelectedLayers<LayerMRI*>();
+  foreach (LayerMRI* layer, layers)
   {
-    layer->GetProperty()->SetWindow( dVal );
+    bool bOK;
+    double dVal = text.toDouble( &bOK );
+    if (bOK && layer->GetProperty()->GetWindow() != dVal )
+    {
+      layer->GetProperty()->SetWindow( dVal );
+    }
   }
 }
 
 void PanelVolume::OnLineEditLevel( const QString& text )
 {
-  LayerMRI* layer = GetCurrentLayer<LayerMRI*>();
-  bool bOK;
-  double dVal = text.toDouble( &bOK );
-  if ( layer && bOK && layer->GetProperty()->GetLevel() != dVal )
+  QList<LayerMRI*> layers = GetSelectedLayers<LayerMRI*>();
+  foreach (LayerMRI* layer, layers)
   {
-    layer->GetProperty()->SetLevel( dVal );
+    bool bOK;
+    double dVal = text.toDouble( &bOK );
+    if ( bOK && layer->GetProperty()->GetLevel() != dVal )
+    {
+      layer->GetProperty()->SetLevel( dVal );
+    }
   }
 }
 
 void PanelVolume::OnLineEditMin( const QString& text )
 {
-  LayerMRI* layer = GetCurrentLayer<LayerMRI*>();
-  bool bOK;
-  double dVal = text.toDouble( &bOK );
-  if ( layer && bOK )
+  QList<LayerMRI*> layers = GetSelectedLayers<LayerMRI*>();
+  foreach (LayerMRI* layer, layers)
   {
-    switch ( layer->GetProperty()->GetColorMap() )
+    bool bOK;
+    double dVal = text.toDouble( &bOK );
+    if ( layer && bOK )
     {
-    case LayerPropertyMRI::Grayscale:
-      layer->GetProperty()->SetMinGrayscaleWindow( dVal );
-      break;
-    case LayerPropertyMRI::Heat:
-      layer->GetProperty()->SetHeatScaleMinThreshold( dVal );
-      break;
-    default:
-      layer->GetProperty()->SetMinGenericThreshold( dVal );
-      break;
+      switch ( layer->GetProperty()->GetColorMap() )
+      {
+      case LayerPropertyMRI::Grayscale:
+        layer->GetProperty()->SetMinGrayscaleWindow( dVal );
+        break;
+      case LayerPropertyMRI::Heat:
+        layer->GetProperty()->SetHeatScaleMinThreshold( dVal );
+        break;
+      default:
+        layer->GetProperty()->SetMinGenericThreshold( dVal );
+        break;
+      }
     }
   }
 }
 
 void PanelVolume::OnLineEditMid( const QString& text )
 {
-  LayerMRI* layer = GetCurrentLayer<LayerMRI*>();
-  bool bOK;
-  double dVal = text.toDouble( &bOK );
-  if ( layer && bOK && layer->GetProperty()->GetHeatScaleMidThreshold() != dVal )
+  QList<LayerMRI*> layers = GetSelectedLayers<LayerMRI*>();
+  foreach (LayerMRI* layer, layers)
   {
-    layer->GetProperty()->SetHeatScaleMidThreshold( dVal );
+    bool bOK;
+    double dVal = text.toDouble( &bOK );
+    if ( layer && bOK && layer->GetProperty()->GetHeatScaleMidThreshold() != dVal )
+    {
+      layer->GetProperty()->SetHeatScaleMidThreshold( dVal );
+    }
   }
 }
 
 void PanelVolume::OnLineEditMax( const QString& text )
 {
-  LayerMRI* layer = GetCurrentLayer<LayerMRI*>();
-  bool bOK;
-  double dVal = text.toDouble( &bOK );
-  if ( layer && bOK )
+  QList<LayerMRI*> layers = GetSelectedLayers<LayerMRI*>();
+  foreach (LayerMRI* layer, layers)
   {
-    switch ( layer->GetProperty()->GetColorMap() )
+    bool bOK;
+    double dVal = text.toDouble( &bOK );
+    if ( layer && bOK )
     {
-    case LayerPropertyMRI::Grayscale:
-      layer->GetProperty()->SetMaxGrayscaleWindow( dVal );
-      break;
-    case LayerPropertyMRI::Heat:
-      layer->GetProperty()->SetHeatScaleMaxThreshold( dVal );
-      break;
-    default:
-      layer->GetProperty()->SetMaxGenericThreshold( dVal );
-      break;
+      switch ( layer->GetProperty()->GetColorMap() )
+      {
+      case LayerPropertyMRI::Grayscale:
+        layer->GetProperty()->SetMaxGrayscaleWindow( dVal );
+        break;
+      case LayerPropertyMRI::Heat:
+        layer->GetProperty()->SetHeatScaleMaxThreshold( dVal );
+        break;
+      default:
+        layer->GetProperty()->SetMaxGenericThreshold( dVal );
+        break;
+      }
     }
   }
 }
 
 void PanelVolume::OnLineEditOffset( const QString& text )
 {
-  LayerMRI* layer = GetCurrentLayer<LayerMRI*>();
-  bool bOK;
-  double dVal = text.toDouble( &bOK );
-  if ( layer && bOK && layer->GetProperty()->GetHeatScaleOffset() != dVal )
+  QList<LayerMRI*> layers = GetSelectedLayers<LayerMRI*>();
+  foreach (LayerMRI* layer, layers)
   {
-    layer->GetProperty()->SetHeatScaleOffset( dVal );
+    bool bOK;
+    double dVal = text.toDouble( &bOK );
+    if ( layer && bOK && layer->GetProperty()->GetHeatScaleOffset() != dVal )
+    {
+      layer->GetProperty()->SetHeatScaleOffset( dVal );
+    }
   }
 }
 
 void PanelVolume::OnSliderContourMin(int nval)
 {
-  LayerMRI* layer = GetCurrentLayer<LayerMRI*>();
-  if ( layer )
+  QList<LayerMRI*> layers = GetSelectedLayers<LayerMRI*>();
+  foreach (LayerMRI* layer, layers)
   {
-    double fMin = layer->GetProperty()->GetMinValue();
-    double fMax = layer->GetProperty()->GetMaxValue();
-    ChangeLineEditNumber( ui->lineEditContourThresholdLow,
-                          nval / 100.0 * ( fMax - fMin ) + fMin );
+    if ( layer )
+    {
+      double fMin = layer->GetProperty()->GetMinValue();
+      double fMax = layer->GetProperty()->GetMaxValue();
+      ChangeLineEditNumber( ui->lineEditContourThresholdLow,
+                            nval / 100.0 * ( fMax - fMin ) + fMin );
+    }
   }
 }
 
 void PanelVolume::OnSliderContourMax(int nval)
 {
-  LayerMRI* layer = GetCurrentLayer<LayerMRI*>();
-  if ( layer )
+  QList<LayerMRI*> layers = GetSelectedLayers<LayerMRI*>();
+  foreach (LayerMRI* layer, layers)
   {
-    double fMin = layer->GetProperty()->GetMinValue();
-    double fMax = layer->GetProperty()->GetMaxValue();
-    ChangeLineEditNumber( ui->lineEditContourThresholdHigh,
-                          nval / 100.0 * ( fMax - fMin ) + fMin );
+    if ( layer )
+    {
+      double fMin = layer->GetProperty()->GetMinValue();
+      double fMax = layer->GetProperty()->GetMaxValue();
+      ChangeLineEditNumber( ui->lineEditContourThresholdHigh,
+                            nval / 100.0 * ( fMax - fMin ) + fMin );
+    }
   }
 }
 
@@ -975,17 +999,20 @@ void PanelVolume::OnContourValueChanged()
   {
     nSmooth = ui->lineEditContourSmoothIteration->text().trimmed().toInt(&bOK);
   }
-  LayerMRI* layer = GetCurrentLayer<LayerMRI*>();
-  if (layer && bOK)
+  QList<LayerMRI*> layers = GetSelectedLayers<LayerMRI*>();
+  foreach (LayerMRI* layer, layers)
   {
-    if (sender() == ui->lineEditContourSmoothIteration ||
-        sender() == ui->sliderContourSmoothIteration )
+    if (layer && bOK)
     {
-      layer->GetProperty()->SetContourSmoothIterations(nSmooth);
-    }
-    else
-    {
-      layer->GetProperty()->SetContourThreshold(fMin, fMax);
+      if (sender() == ui->lineEditContourSmoothIteration ||
+          sender() == ui->sliderContourSmoothIteration )
+      {
+        layer->GetProperty()->SetContourSmoothIterations(nSmooth);
+      }
+      else
+      {
+        layer->GetProperty()->SetContourThreshold(fMin, fMax);
+      }
     }
   }
 }
@@ -1011,13 +1038,16 @@ void PanelVolume::OnContourSave()
 
 void PanelVolume::OnSliderTrackVolumeMin(int nval)
 {
-  LayerMRI* layer = GetCurrentLayer<LayerMRI*>();
-  if ( layer && layer->IsTypeOf("VolumeTrack"))
+  QList<LayerMRI*> layers = GetSelectedLayers<LayerMRI*>();
+  foreach (LayerMRI* layer, layers)
   {
-    double fMin = layer->GetProperty()->GetMinValue();
-    double fMax = layer->GetProperty()->GetMaxValue()/4;
-    ChangeLineEditNumber( ui->lineEditTrackVolumeThresholdLow,
-                          nval / 100.0 * ( fMax - fMin ) + fMin );
+    if ( layer && layer->IsTypeOf("VolumeTrack"))
+    {
+      double fMin = layer->GetProperty()->GetMinValue();
+      double fMax = layer->GetProperty()->GetMaxValue()/4;
+      ChangeLineEditNumber( ui->lineEditTrackVolumeThresholdLow,
+                            nval / 100.0 * ( fMax - fMin ) + fMin );
+    }
   }
 }
 
@@ -1096,7 +1126,9 @@ void PanelVolume::OnPasteSettingsToAll()
         map[strgs[i]] = val;
       }
     }
-    QList<Layer*> layers = MainWindow::GetMainWindow()->GetLayerCollection("MRI")->GetLayers();
+    QList<Layer*> layers = GetSelectedLayers<Layer*>();
+    if (layers.isEmpty())
+      layers = MainWindow::GetMainWindow()->GetLayerCollection("MRI")->GetLayers();
     for (int i = 0; i < layers.size(); i++)
     {
       ((LayerMRI*)layers[i])->GetProperty()->RestoreSettings(map);

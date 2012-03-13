@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2012/01/19 20:35:06 $
- *    $Revision: 1.76 $
+ *    $Date: 2012/03/13 21:32:06 $
+ *    $Revision: 1.77 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -169,6 +169,8 @@ public:
 
   bool GetVoxelsOnLine( const double* pt0, const double* pt1, int nPlane, int*& indice_out, double*& value_out, int* cnt_out );
 
+  bool GetVoxelStats(QList<int>& indices, double* mean_out, double* sd_out = NULL);
+
   void ResetWindowLevel();
 
   int GetDataType();
@@ -177,7 +179,8 @@ public:
 
   void SnapToVoxelCenter( const double* pt_in, double* pt_out );
 
-  void GetCurrentLabelStats( int nPlane, float* label_out, int* count_out, float* area_out );
+  void GetCurrentLabelStats( int nPlane, float* label_out, int* count_out, float* area_out,
+                             LayerMRI* underlying_mri = NULL, double* mean_out = NULL, double* sd_out = NULL );
 
   vtkImageData* GetSliceImageData( int nPlane );
 

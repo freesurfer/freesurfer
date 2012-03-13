@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2012/01/30 20:57:05 $
- *    $Revision: 1.7 $
+ *    $Date: 2012/03/13 21:32:06 $
+ *    $Revision: 1.8 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -25,6 +25,8 @@
 #define LAYERTREEWIDGET_H
 
 #include <QTreeWidget>
+
+class Layer;
 
 class LayerTreeWidget : public QTreeWidget
 {

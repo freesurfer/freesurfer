@@ -11,8 +11,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2012/01/04 17:23:20 $
- *    $Revision: 1.9 $
+ *    $Date: 2012/03/13 21:32:06 $
+ *    $Revision: 1.10 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -134,16 +134,57 @@ bool SurfaceLabel::LoadLabel( const QString& filename )
         {
           if (mris->vertices[v->v[m]].marked == 0)
           {
-            vertices << m_label->lv[n].vno;
+            if (!vertices.contains(m_label->lv[n].vno))
+              vertices << m_label->lv[n].vno;
             break;
           }
         }
       }
     }
-    QList<int> indices;
-    indices << vertices[0];
-    indices = this->DoConnectEdgeVertices(indices, vertices);
-    vtkSmartPointer<vtkPolyData> polydata = MakeEdgePolyData(indices, vertices);
+    vtkSmartPointer<vtkCellArray> lines = vtkSmartPointer<vtkCellArray>::New();
+    vtkSmartPointer<vtkPoints> points = vtkSmartPointer<vtkPoints>::New();
+    QList<int> neighbor_count;
+    for (int i = 0; i < vertices.size(); i++)
+    {
+      v = &mris->vertices[vertices[i]];
+      double pt[3] = { v->x, v->y, v->z };
+      m_surface->GetTargetAtSurfaceRAS(pt, pt);
+      points->InsertNextPoint(pt);
+      int n = 0;
+      for (int m = 0; m < v->vnum; m++)
+      {
+        if (vertices.contains(v->v[m]))
+          n++;
+      }
+      neighbor_count << n;
+    }
+    QList< QPair<int, int> > pairs;
+    for (int i = 0; i < vertices.size(); i++)
+    {
+      v = &mris->vertices[vertices[i]];
+      for (int m = 0; m < v->vnum; m++)
+      {
+        int n = vertices.indexOf(v->v[m]);
+        if (n >= 0)
+        {
+        //  if (neighbor_count[i] < 3 || neighbor_count[n] < 3)
+          QPair<int, int> p(i, n);
+          if (i > n)
+            p = QPair<int, int>(n, i);
+          if (!pairs.contains(p))
+          {
+            lines->InsertNextCell(2);
+            lines->InsertCellPoint(i);
+            lines->InsertCellPoint(n);
+            pairs << p;
+          }
+        }
+      }
+    }
+
+    vtkSmartPointer<vtkPolyData> polydata = vtkSmartPointer<vtkPolyData>::New();
+    polydata->SetPoints(points);
+    polydata->SetLines(lines);
     vtkSmartPointer<vtkPolyDataMapper> mapper = vtkSmartPointer<vtkPolyDataMapper>::New();
     mapper->SetInput( polydata);
     m_actorOutline->SetMapper( mapper );

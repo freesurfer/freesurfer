@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2011/08/03 20:18:54 $
- *    $Revision: 1.44 $
+ *    $Date: 2012/03/13 21:32:06 $
+ *    $Revision: 1.45 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -311,8 +311,8 @@ void PanelSurface::DoUpdateWidgets()
 
 void PanelSurface::OnChangeSurfaceType( QAction* act )
 {
-  LayerSurface* layer = GetCurrentLayer<LayerSurface*>();
-  if ( layer )
+  QList<LayerSurface*> layers = GetSelectedLayers<LayerSurface*>();
+  foreach (LayerSurface* layer, layers)
   {
     layer->SetActiveSurface( act->data().toInt() );
   }
@@ -320,8 +320,8 @@ void PanelSurface::OnChangeSurfaceType( QAction* act )
 
 void PanelSurface::OnSliderOpacity( int nVal )
 {
-  LayerSurface* layer = GetCurrentLayer<LayerSurface*>();
-  if ( layer )
+  QList<LayerSurface*> layers = GetSelectedLayers<LayerSurface*>();
+  foreach (LayerSurface* layer, layers)
   {
     layer->GetProperty()->SetOpacity( nVal / 100.0 );
   }
@@ -329,8 +329,8 @@ void PanelSurface::OnSliderOpacity( int nVal )
 
 void PanelSurface::OnSliderMidPoint( int nVal )
 {
-  LayerSurface* layer = GetCurrentLayer<LayerSurface*>();
-  if ( layer )
+  QList<LayerSurface*> layers = GetSelectedLayers<LayerSurface*>();
+  foreach (LayerSurface* layer, layers)
   {
     double range[2];
     layer->GetCurvatureRange( range );
@@ -340,8 +340,8 @@ void PanelSurface::OnSliderMidPoint( int nVal )
 
 void PanelSurface::OnSliderSlope( int nVal )
 {
-  LayerSurface* layer = GetCurrentLayer<LayerSurface*>();
-  if ( layer )
+  QList<LayerSurface*> layers = GetSelectedLayers<LayerSurface*>();
+  foreach (LayerSurface* layer, layers)
   {
     double fMin = 0;
     double fMax = 100;
@@ -351,8 +351,8 @@ void PanelSurface::OnSliderSlope( int nVal )
 
 void PanelSurface::OnComboCurvature( int nSel )
 {
-  LayerSurface* layer = GetCurrentLayer<LayerSurface*>();
-  if ( layer )
+  QList<LayerSurface*> layers = GetSelectedLayers<LayerSurface*>();
+  foreach (LayerSurface* layer, layers)
   {
     if ( nSel < 3 )
     {
@@ -368,23 +368,29 @@ void PanelSurface::OnComboCurvature( int nSel )
 
 void PanelSurface::OnLineEditMidPoint( const QString& text )
 {
-  LayerSurface* layer = GetCurrentLayer<LayerSurface*>();
-  bool bOK;
-  double dval = text.toDouble( &bOK );
-  if ( layer && dval && dval != layer->GetProperty()->GetThresholdMidPoint() )
+  QList<LayerSurface*> layers = GetSelectedLayers<LayerSurface*>();
+  foreach (LayerSurface* layer, layers)
   {
-    layer->GetProperty()->SetThresholdMidPoint( dval );
+    bool bOK;
+    double dval = text.toDouble( &bOK );
+    if ( layer && dval && dval != layer->GetProperty()->GetThresholdMidPoint() )
+    {
+      layer->GetProperty()->SetThresholdMidPoint( dval );
+    }
   }
 }
 
 void PanelSurface::OnLineEditSlope( const QString& text )
 {
-  LayerSurface* layer = GetCurrentLayer<LayerSurface*>();
-  bool bOK;
-  double dval = text.toDouble( &bOK );
-  if ( layer && dval && dval != layer->GetProperty()->GetThresholdSlope() )
+  QList<LayerSurface*> layers = GetSelectedLayers<LayerSurface*>();
+  foreach (LayerSurface* layer, layers)
   {
-    layer->GetProperty()->SetThresholdSlope( dval );
+    bool bOK;
+    double dval = text.toDouble( &bOK );
+    if ( layer && dval && dval != layer->GetProperty()->GetThresholdSlope() )
+    {
+      layer->GetProperty()->SetThresholdSlope( dval );
+    }
   }
 }
 
@@ -470,8 +476,8 @@ void PanelSurface::OnButtonConfigureOverlay()
 
 void PanelSurface::OnEditPositionOffset()
 {
-  LayerSurface* surf = GetCurrentLayer<LayerSurface*>();
-  if ( surf )
+  QList<LayerSurface*> layers = GetSelectedLayers<LayerSurface*>();
+  foreach (LayerSurface* layer, layers)
   {
     QStringList args = ui->lineEditPositionOffset->text().trimmed().split(" ", QString::SkipEmptyParts);
     args << "n/a" << "n/a" << "n/a";
@@ -488,7 +494,7 @@ void PanelSurface::OnEditPositionOffset()
     }
     if (bOK)
     {
-      surf->GetProperty()->SetPosition( pos );
+      layer->GetProperty()->SetPosition( pos );
     }
     else
     {

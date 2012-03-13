@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2011/10/13 21:05:31 $
- *    $Revision: 1.6 $
+ *    $Date: 2012/03/13 21:32:06 $
+ *    $Revision: 1.7 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -66,6 +66,7 @@ protected slots:
   void OnActiveLayerChanged( Layer* layer );
   void OnItemChanged( QTreeWidgetItem* item );
   void OnCurrentItemChanged( QTreeWidgetItem* item );
+  void OnItemSelectionChanged();
   void OnItemDoubleClicked(const QModelIndex& index);
   void OnLayerNameChanged();
 

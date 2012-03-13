@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2011/11/14 16:30:24 $
- *    $Revision: 1.8 $
+ *    $Date: 2012/03/13 21:32:06 $
+ *    $Revision: 1.9 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -33,6 +33,7 @@
 #include <QSpinBox>
 #include <QDoubleSpinBox>
 #include <QDebug>
+#include "LayerTreeWidget.h"
 
 PanelLayer::PanelLayer(QWidget *parent) :
   QScrollArea(parent),
@@ -83,7 +84,9 @@ void PanelLayer::InitializeLayerList( QTreeWidget* treeWidget, LayerCollection* 
   connect( cl, SIGNAL(LayerNameChanged()), this, SLOT(OnLayerNameChanged()), Qt::UniqueConnection );
   connect( cl, SIGNAL(LayerVisibilityChanged()), this, SLOT(UpdateWidgets()), Qt::UniqueConnection );
   connect( treeWidget, SIGNAL(currentItemChanged(QTreeWidgetItem*,QTreeWidgetItem*)),
-           this, SLOT(OnCurrentItemChanged(QTreeWidgetItem*)) );
+           this, SLOT(OnCurrentItemChanged(QTreeWidgetItem*)), Qt::UniqueConnection );
+  connect( treeWidget, SIGNAL(itemSelectionChanged()), this,
+           SLOT(OnItemSelectionChanged()));
   connect( treeWidget, SIGNAL(currentItemChanged(QTreeWidgetItem*,QTreeWidgetItem*)),
            this, SLOT(UpdateWidgets()));
   connect( treeWidget, SIGNAL(itemChanged(QTreeWidgetItem*,int)), this, SLOT(OnItemChanged(QTreeWidgetItem*)) );
@@ -190,6 +193,7 @@ void PanelLayer::OnCurrentItemChanged(QTreeWidgetItem *item)
     if (layer)
     {
       layerCollectionPrivate->SetActiveLayer( layer );
+      /*
       // first disconnect all previous layer connections
       for ( int i = 0; i < layerCollectionPrivate->GetNumberOfLayers(); i++ )
       {
@@ -201,10 +205,42 @@ void PanelLayer::OnCurrentItemChanged(QTreeWidgetItem *item)
           allWidgets[j]->disconnect( layerCollectionPrivate->GetLayer( i )->GetProperty() );
         }
       }
-      ConnectLayer( layer );
+      qDebug()<< "current item changed";
+      QList<Layer*> layers = this->GetSelectedLayers<Layer*>();
+      if (!layers.isEmpty())
+      {
+        foreach (Layer* l, layers)
+          ConnectLayer(l);
+      }
+      else
+        ConnectLayer( layer );
+        */
     }
   }
 }
+
+void PanelLayer::OnItemSelectionChanged()
+{
+  // first disconnect all previous layer connections
+  for ( int i = 0; i < layerCollectionPrivate->GetNumberOfLayers(); i++ )
+  {
+        for ( int j = 0; j < allWidgets.size(); j++ )
+        {
+          layerCollectionPrivate->GetLayer( i )->disconnect( this );
+          layerCollectionPrivate->GetLayer( i )->GetProperty()->disconnect( this );
+          allWidgets[j]->disconnect( layerCollectionPrivate->GetLayer( i ) );
+          allWidgets[j]->disconnect( layerCollectionPrivate->GetLayer( i )->GetProperty() );
+        }
+  }
+
+  QList<Layer*> layers = this->GetSelectedLayers<Layer*>();
+  if (!layers.isEmpty())
+  {
+    foreach (Layer* l, layers)
+      ConnectLayer(l);
+  }
+}
+
 
 void PanelLayer::OnItemChanged( QTreeWidgetItem* item )
 {
