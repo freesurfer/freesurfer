@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2011/05/05 15:28:03 $
- *    $Revision: 1.75 $
+ *    $Date: 2012/03/14 17:14:48 $
+ *    $Revision: 1.76 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -85,6 +85,7 @@ MATRIX  *MatrixRightPseudoInverse(MATRIX *m, MATRIX *m_pseudo_inv) ;
 #define MatrixLeftPseudoInverse MatrixPseudoInverse
 MATRIX  *MatrixAlloc( const int rows, const int cols, const int type);
 int     MatrixFree(MATRIX **pmat) ;
+MATRIX  *MatrixMultiplyD( const MATRIX *m1, const MATRIX *m2, MATRIX *m3); // use this one
 MATRIX  *MatrixMultiply( const MATRIX *m1, const MATRIX *m2, MATRIX *m3) ;
 MATRIX  *MatrixCopy( const MATRIX *mIn, MATRIX *mOut );
 int     MatrixWriteTxt(const char *fname, MATRIX *mat) ;

@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2011/05/05 15:28:02 $
- *    $Revision: 1.126 $
+ *    $Date: 2012/03/14 17:14:48 $
+ *    $Revision: 1.127 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -389,8 +389,148 @@ MatrixFree(MATRIX **pmat)
 }
 
 
-MATRIX *
-MatrixMultiply( const MATRIX *m1, const MATRIX *m2, MATRIX *m3)
+/*!
+  \fn MATRIX *MatrixMultiplyD( const MATRIX *m1, const MATRIX *m2, MATRIX *m3)
+  \brief Multiplies two matrices. The accumulation is done with double,
+   which is more accurate than MatrixMultiplyD() which uses float.
+*/
+MATRIX *MatrixMultiplyD( const MATRIX *m1, const MATRIX *m2, MATRIX *m3)
+{
+  int   col, row, i, rows, cols, m1_cols ;
+  float *r3 ;
+  register float *r1, *r2 ;
+  register double val;
+  MATRIX   *m_tmp1 = NULL, *m_tmp2 = NULL ;
+
+  if (!m1)
+    ErrorExit(ERROR_BADPARM,
+              "MatrixMultiply: m1 is null!\n") ;
+  if (!m2)
+    ErrorExit(ERROR_BADPARM,
+              "MatrixMultiply: m2 is null!\n") ;
+
+  if (m1->cols != m2->rows)
+    ErrorReturn(NULL,
+                (ERROR_BADPARM,
+                 "MatrixMultiply: m1 cols %d does not match m2 rows %d\n",
+                 m1->cols, m2->rows)) ;
+
+  if (!m3)
+  {
+    /* twitzel also did something here */
+    if ((m1->type == MATRIX_COMPLEX) || (m2->type == MATRIX_COMPLEX))
+      m3 = MatrixAlloc(m1->rows, m2->cols, MATRIX_COMPLEX);
+    else
+      m3 = MatrixAlloc(m1->rows, m2->cols, m1->type) ;
+    if (!m3)
+      return(NULL) ;
+  }
+  else if ((m3->rows != m1->rows) || (m3->cols != m2->cols))
+    ErrorReturn(NULL,
+                (ERROR_BADPARM,
+                 "MatrixMultiply: (%d x %d) * (%d x %d) != (%d x %d)\n",
+                 m1->rows, m1->cols, m2->rows, m2->cols, m3->rows, m3->cols)) ;
+
+  if (m3 == m2)
+  {
+    m_tmp1 = MatrixCopy(m2, NULL) ;
+    m2 = m_tmp1 ;
+  }
+  if (m3 == m1)
+  {
+    m_tmp2 = MatrixCopy(m1, NULL) ;
+    m1 = m_tmp2 ;
+  }
+  /*  MatrixClear(m3) ;*/
+  cols = m3->cols ;
+  rows = m3->rows ;
+  m1_cols = m1->cols ;
+
+  /* twitzel modified here */
+  if((m1->type == MATRIX_REAL) && (m2->type == MATRIX_REAL)) {
+    for(row = 1 ; row <= rows ; row++)  {
+      r3 = &m3->rptr[row][1] ;
+      for (col = 1 ; col <= cols ; col++){
+        val = 0.0 ;
+        r1 = &m1->rptr[row][1] ;
+        r2 = &m2->rptr[1][col] ;
+        for (i = 1 ; i <= m1_cols ; i++, r2 += cols)
+          val += *r1++ * *r2 ;
+        *r3++ = val ;
+      }
+    }
+  }
+  else if ((m1->type == MATRIX_COMPLEX) && (m2->type == MATRIX_COMPLEX))
+  {
+    for (row = 1 ; row <= rows ; row++)
+    {
+      for (col = 1 ; col <= cols ; col++)
+      {
+        for (i = 1 ; i <= m1->cols ; i++)
+        {
+          double a, b, c, d ;  /* a + ib and c + id */
+
+          a = MATRIX_CELT_REAL(m1,row,i) ;
+          b = MATRIX_CELT_IMAG(m1,row,i) ;
+          c = MATRIX_CELT_REAL(m2,i,col) ;
+          d = MATRIX_CELT_IMAG(m2,i,col) ;
+          MATRIX_CELT_REAL(m3,row,col) += a*c - b*d ;
+          MATRIX_CELT_IMAG(m3,row,col) += a*d + b*c ;
+        }
+      }
+    }
+  }
+  else if ((m1->type == MATRIX_REAL) && (m2->type == MATRIX_COMPLEX))
+  {
+    for (row = 1 ; row <= rows ; row++)
+    {
+      for (col = 1 ; col <= cols ; col++)
+      {
+        for (i = 1 ; i <= m1->cols ; i++)
+        {
+          double a, c, d ;  /* a + ib and c + id and b=0 here*/
+
+          a = *MATRIX_RELT(m1,row,i);
+          c = MATRIX_CELT_REAL(m2,i,col);
+          d = MATRIX_CELT_IMAG(m2,i,col);
+          MATRIX_CELT_REAL(m3,row,col) += a*c;
+          MATRIX_CELT_IMAG(m3,row,col) += a*d;
+        }
+      }
+    }
+  }
+  else if ((m1->type == MATRIX_COMPLEX) && (m2->type == MATRIX_REAL))
+  {
+    for (row = 1 ; row <= rows ; row++)
+    {
+      for (col = 1 ; col <= cols ; col++)
+      {
+        for (i = 1 ; i <= m1->cols ; i++)
+        {
+          double a, b, c ;  /* a + ib and c + id and d=0 here*/
+
+          a = MATRIX_CELT_REAL(m1,row,i);
+          b = MATRIX_CELT_IMAG(m1,row,i);
+          c = *MATRIX_RELT(m2,i,col);
+          MATRIX_CELT_REAL(m3,row,col) += a*c;
+          MATRIX_CELT_IMAG(m3,row,col) += b*c;
+        }
+      }
+    }
+  }
+  if (m_tmp1)
+    MatrixFree(&m_tmp1) ;
+  if (m_tmp2)
+    MatrixFree(&m_tmp2) ;
+  return(m3) ;
+}
+
+/*!
+  \fn MATRIX *MatrixMultiply( const MATRIX *m1, const MATRIX *m2, MATRIX *m3)
+  \brief Multiplies two matrices. The accumulation is done with float. 
+   Consider using MatrixMultiplyD() which uses double.
+*/
+MATRIX *MatrixMultiply( const MATRIX *m1, const MATRIX *m2, MATRIX *m3)
 {
   int   col, row, i, rows, cols, m1_cols ;
   float *r3 ;
