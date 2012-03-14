@@ -12,8 +12,8 @@
  * Reimplemented by: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2012/01/04 17:23:20 $
- *    $Revision: 1.10 $
+ *    $Date: 2012/03/14 16:58:21 $
+ *    $Revision: 1.11 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -41,6 +41,7 @@
 #include <QtGlobal>
 #include <QSettings>
 #include <QVariantMap>
+#include <QDebug>
 
 //using namespace std;
 

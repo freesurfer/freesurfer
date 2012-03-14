@@ -6,9 +6,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/14 23:44:47 $
- *    $Revision: 1.18 $
+ *    $Author: rpwang $
+ *    $Date: 2012/03/14 16:58:21 $
+ *    $Revision: 1.19 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -181,6 +181,9 @@ COLOR_TABLE* LUTDataHolder::LoadColorTable( const QString& filename )
   // if so, reload the lut file and update the lut data. do not create new entry in the lut list
   if ( ct )
   {
+    // ignore that, do not reload
+    return ct;
+
     int nId = -1;
     for ( int i = 0; i < GetCount(); i++ )
     {

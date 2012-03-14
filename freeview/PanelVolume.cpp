@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2012/03/13 21:32:06 $
- *    $Revision: 1.75 $
+ *    $Date: 2012/03/14 16:58:22 $
+ *    $Revision: 1.76 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -309,6 +309,7 @@ void PanelVolume::DoUpdateWidgets()
     }
     ui->comboBoxLookUpTable->addItem( "Load lookup table..." );
     int nSel = m_luts->GetIndex( layer->GetProperty()->GetLUTCTAB() );
+//    qDebug() << layer->GetProperty()->GetLUTCTAB() << nSel;
     ui->comboBoxLookUpTable->setCurrentIndex( nSel >= 0 ? nSel : m_luts->GetCount() );
 
     ChangeLineEditNumber( ui->lineEditBrushValue, layer->GetFillValue() );

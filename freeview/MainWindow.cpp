@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2012/02/23 19:51:28 $
- *    $Revision: 1.206 $
+ *    $Date: 2012/03/14 16:58:22 $
+ *    $Revision: 1.207 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -1876,7 +1876,6 @@ void MainWindow::CommandSetLUT( const QStringList& sa )
   if ( mri )
   {
     COLOR_TABLE* ct = m_luts->LoadColorTable( sa[1] );
-
     if ( ct )
     {
       mri->GetProperty()->SetLUTCTAB( ct );
