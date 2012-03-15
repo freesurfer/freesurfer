@@ -20,9 +20,9 @@
 /*
  * Original Author: Doug Greve
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:13 $
- *    $Revision: 1.41 $
+ *    $Author: lzollei $
+ *    $Date: 2012/03/15 20:27:46 $
+ *    $Revision: 1.42 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -74,7 +74,7 @@ int CCSegment(MRI *seg, int segid, int segidunknown);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-  "$Id: mri_aparc2aseg.c,v 1.41 2011/03/02 00:04:13 nicks Exp $";
+  "$Id: mri_aparc2aseg.c,v 1.42 2012/03/15 20:27:46 lzollei Exp $";
 char *Progname = NULL;
 static char *SUBJECTS_DIR = NULL;
 static char *subject = NULL;
@@ -104,6 +104,7 @@ static int RipUnknown = 0;
 static char tmpstr[2000];
 static char annotfile[1000];
 static char *annotname = "aparc";
+static char *asegname = "aseg";
 static int baseoffset = 0;
 static float hashres = 16;
 
@@ -328,10 +329,10 @@ int main(int argc, char **argv)
   rhpial_hash = MHTfillVertexTableRes(rhpial, NULL,CURRENT_VERTICES,hashres);
 
   /* ------ Load ASeg ------ */
-  sprintf(tmpstr,"%s/%s/mri/aseg.mgz",SUBJECTS_DIR,subject);
+  sprintf(tmpstr,"%s/%s/mri/%s.mgz",SUBJECTS_DIR,subject,asegname);
   if (!fio_FileExistsReadable(tmpstr))
   {
-    sprintf(tmpstr,"%s/%s/mri/aseg.mgh",SUBJECTS_DIR,subject);
+    sprintf(tmpstr,"%s/%s/mri/%s.mgh",SUBJECTS_DIR,subject,asegname);
     if (!fio_FileExistsReadable(tmpstr))
     {
       sprintf(tmpstr,"%s/%s/mri/aseg/COR-.info",SUBJECTS_DIR,subject);
@@ -897,6 +898,15 @@ static int parse_commandline(int argc, char **argv)
     {
       annotname = "aparc.a2009s";
       baseoffset = 10100;
+    }
+   else if (!strcmp(option, "--aseg"))
+    {
+      if (nargc < 1)
+      {
+        argnerr(option,1);
+      }
+      asegname = pargv[0];
+      nargsused = 1;
     }
     else if (!strcmp(option, "--annot"))
     {
