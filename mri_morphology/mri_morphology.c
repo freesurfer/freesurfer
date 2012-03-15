@@ -8,9 +8,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2011/09/30 13:21:24 $
- *    $Revision: 1.14 $
+ *    $Author: lzollei $
+ *    $Date: 2012/03/15 18:31:07 $
+ *    $Revision: 1.15 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -76,7 +76,7 @@ main(int argc, char *argv[]) {
   struct timeb start ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_morphology.c,v 1.14 2011/09/30 13:21:24 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_morphology.c,v 1.15 2012/03/15 18:31:07 lzollei Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -116,8 +116,6 @@ main(int argc, char *argv[]) {
     operation = ERODE_THRESH ;
   else  if (!stricmp(argv[2], "dilate_thresh"))
     operation = DILATE_THRESH ;
-  else  if (!stricmp(argv[2], "open"))
-    operation = OPEN ;
   else  if (!stricmp(argv[2], "mode"))
     operation = OPEN ;
   else  if (!stricmp(argv[2], "erode_bottom"))
@@ -331,7 +329,7 @@ get_option(int argc, char *argv[]) {
 static void
 usage_exit(int code) {
   printf("usage: %s [options] <volume> <operation> <# iter> <out volume>\n", Progname) ;
-  printf("\twhere <operation> can be [open,close,dilate,erode,mode]\n");
+  printf("\twhere <operation> can be [open,close,dilate,erode,mode,fill_holes,erode_bottom,dilate_thresh,erode_thresh]\n");
   printf("\tvalid options are:\n") ;
   printf("\t-l <label>  only apply operations to <label> instead of all nonzero voxels\n") ;
   exit(code) ;
