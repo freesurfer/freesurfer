@@ -9,8 +9,8 @@
 #
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2012/03/17 20:44:40 $
-#    $Revision: 1.564 $
+#    $Date: 2012/03/17 22:22:15 $
+#    $Revision: 1.565 $
 #
 ########################################################################
 AC_PREREQ(2.57)
@@ -639,7 +639,8 @@ AC_ARG_ENABLE(openmp,
 # gcc 4.4 supports openmp, so enable it by default (no harm in doing so)
 if test "$ac_have_gcc_44" = "yes"; then
   ac_have_openmp=yes
-  CPPFLAGS="$CPPFLAGS -fopenmp"
+  CPPFLAGS="$CPPFLAGS -fopenmp -DHAVE_OPENMP"
+  LDFLAGS="$LDFLAGS -fopenmp"
   AC_MSG_NOTICE(Using OpenMP with gcc 4.4)
 fi
 AM_CONDITIONAL(HAVE_OPENMP, test "x$ac_have_openmp" = "xyes")

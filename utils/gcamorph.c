@@ -11,8 +11,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2012/03/17 20:44:41 $
- *    $Revision: 1.262 $
+ *    $Date: 2012/03/17 22:22:16 $
+ *    $Revision: 1.263 $
  *
  * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -2135,12 +2135,12 @@ gcamLogLikelihoodTerm( GCA_MORPH *gcam,
   printf( "%s: On GPU\n", __FUNCTION__ );
   gcamLogLikelihoodTermGPU( gcam, mri, mri_smooth, l_log_likelihood );
 #else
-  int             x, y, z, n /*,label*/ ;
+  int             x=0, y=0, z=0, n=0 /*,label*/ ;
   int             i;
-  int             nthreads, tid;
-  double            dx, dy, dz, norm;
+  int             nthreads=1, tid=0;
+  double          dx=0.0, dy=0.0, dz=0.0, norm=0.0;
   float           vals[_MAX_FS_THREADS][MAX_GCA_INPUTS] ;
-  GCA_MORPH_NODE  *gcamn ;
+  GCA_MORPH_NODE  *gcamn=NULL ;
   MATRIX          *m_delI[_MAX_FS_THREADS], *m_inv_cov[_MAX_FS_THREADS] ;
   VECTOR          *v_means[_MAX_FS_THREADS], *v_grad[_MAX_FS_THREADS] ;
 
@@ -2463,11 +2463,11 @@ gcamLogLikelihoodEnergy( const GCA_MORPH *gcam, MRI *mri)
   }
 #endif
 
-  double          sse = 0.0;
+  double sse = 0.0;
 
 #ifndef GCAM_LLENERGY_GPU
-  double error ;
-  int             x, y, z;
+  double error=0.0 ;
+  int x=0, y=0, z=0;
 #endif
 
 #if DEBUG_LL_SSE
@@ -2477,7 +2477,7 @@ gcamLogLikelihoodEnergy( const GCA_MORPH *gcam, MRI *mri)
  
 
 #if DEBUG_LL_SSE
-  double            max_increase = 0, increase ;
+  double max_increase = 0, increase ;
   if (last_sse == NULL)
   {
     last_sse = (float ***)calloc(gcam->width, sizeof(float*)) ;
@@ -2792,11 +2792,12 @@ gcamJacobianTerm(GCA_MORPH *gcam, const MRI *mri,
   printf( "%s: On GPU\n", __FUNCTION__ );
   gcamJacobianTermGPU( gcam, l_jacobian, jac_scale );
 #else
-  int            i, j, k, num /*, xi, yi, zi, xk, yk, zk = 0*/; 
-  int            n_omp_threads;
-  double         dx, dy, dz, norm, orig_area, ratio, max_norm ;
+  int            i=0, j=0, k=0, num /*, xi, yi, zi, xk, yk, zk = 0*/; 
+  int            n_omp_threads=1;
+  double         dx=0.0, dy=0.0, dz=0.0, norm=0.0;
+  double         orig_area=0.0, ratio=0.0, max_norm ;
   double         mn[_MAX_FS_THREADS]; /* _MAX_FS_THREADS is in utils.h */
-  GCA_MORPH_NODE *gcamn ;
+  GCA_MORPH_NODE *gcamn=NULL ;
 
 
   if (DZERO(l_jacobian))
@@ -2869,7 +2870,7 @@ gcamJacobianTerm(GCA_MORPH *gcam, const MRI *mri,
   n_omp_threads = 1;
 #endif
 
-  int tid;
+  int tid=0;
 	for (i=0;i<_MAX_FS_THREADS;i++)
 		mn[i] = 0.0;
 
@@ -3839,11 +3840,11 @@ gcamComputeMetricProperties(GCA_MORPH *gcam)
 #if SHOW_EXEC_LOC
   printf( "%s: CPU call\n", __FUNCTION__ );
 #endif
-  double         area1, area2 ;
-  int            i, j, k, width, height, depth, num, neg ;
-  int            nthreads,tid;
+  double         area1=0.0, area2=0.0 ;
+  int            i=0, j=0, k=0, width, height, depth, num=0, neg=0 ;
+  int            nthreads=1,tid=0;
   int  		 gcam_neg_counter[_MAX_FS_THREADS], Ginvalid_counter[_MAX_FS_THREADS];
-  GCA_MORPH_NODE *gcamn, *gcamni, *gcamnj, *gcamnk ;
+  GCA_MORPH_NODE *gcamn=NULL, *gcamni=NULL, *gcamnj=NULL, *gcamnk=NULL ;
   VECTOR         *v_i[_MAX_FS_THREADS], *v_j[_MAX_FS_THREADS], *v_k[_MAX_FS_THREADS] ;
 
   // Ginvalid has file scope and static storage.....
@@ -4233,9 +4234,9 @@ gcamJacobianEnergy( const GCA_MORPH *gcam, MRI *mri)
 #if SHOW_EXEC_LOC
   printf( "%s: CPU call\n", __FUNCTION__ );
 #endif
-  double          delta, ratio, exponent, thick ;
-  int             i, j, k, width, height, depth ;
-  GCA_MORPH_NODE *gcamn ;
+  double          delta=0.0, ratio=0.0, exponent=0.0, thick ;
+  int             i=0, j=0, k=0, width, height, depth ;
+  GCA_MORPH_NODE *gcamn=NULL ;
 
   thick = mri ? mri->thick : 1.0 ;
   width = gcam->width ;
@@ -6517,9 +6518,11 @@ gcamSmoothnessTerm( GCA_MORPH *gcam,
   printf( "%s: On GPU\n", __FUNCTION__ );
   gcamSmoothnessTermGPU( gcam, l_smoothness );
 #else
-  double          vx, vy, vz, vnx, vny, vnz, dx, dy, dz ;
-  int             x, y, z, xk, yk, zk, xn, yn, zn, width, height, depth, num ;
-  GCA_MORPH_NODE  *gcamn, *gcamn_nbr ;
+  double          vx=0.0, vy=0.0, vz=0.0, vnx=0.0, vny=0.0, vnz=0.0;
+  double          dx=0.0, dy=0.0, dz=0.0 ;
+  int             x=0, y=0, z=0, xk=0, yk=0, zk=0, xn=0, yn=0, zn=0 ;
+  int             width, height, depth, num=0 ;
+  GCA_MORPH_NODE  *gcamn=NULL, *gcamn_nbr=NULL ;
 
   if (DZERO(l_smoothness))
     return(NO_ERROR) ;
@@ -6747,9 +6750,11 @@ gcamSmoothnessEnergy( const GCA_MORPH *gcam, const MRI *mri )
 #if SHOW_EXEC_LOC
   printf( "%s: CPU call\n", __FUNCTION__ );
 #endif
-  double vx, vy, vz, vnx, vny, vnz, error, node_sse, dx, dy, dz ;
-  int x, y, z, xk, yk, zk, xn, yn, zn, width, height, depth, num ;
-  const GCA_MORPH_NODE  *gcamn, *gcamn_nbr ;
+  double vx=0, vy=0, vz=0, vnx=0, vny=0, vnz=0, error=0, node_sse=0;
+  double dx=0, dy=0, dz=0 ;
+  int x=0, y=0, z=0, xk=0, yk=0, zk=0, xn=0, yn=0, zn=0 ;
+  int width=0, height=0, depth=0, num=0 ;
+  const GCA_MORPH_NODE  *gcamn=NULL, *gcamn_nbr=NULL ;
 
   width = gcam->width ;
   height = gcam->height ;
@@ -9560,14 +9565,15 @@ gcamLabelTerm( GCA_MORPH *gcam, const MRI *mri,
 int
 gcamMapTerm(GCA_MORPH *gcam, MRI *mri, MRI *mri_smooth, double l_map)
 {
-  int             x, y, z, n, xn[_MAX_FS_THREADS], yn[_MAX_FS_THREADS], zn[_MAX_FS_THREADS], i ;
+  int             x=0, y=0, z=0, n=0, i=0 ;
+  int     xn[_MAX_FS_THREADS], yn[_MAX_FS_THREADS], zn[_MAX_FS_THREADS];
   int             tid;
-  double          node_prob, prob, dx, dy, dz, norm ;
+  double          node_prob=0.0, prob=0.0, dx=0.0, dy=0.0, dz=0.0, norm=0.0 ;
   float           vals[_MAX_FS_THREADS][MAX_GCA_INPUTS] ;
-  GCA_MORPH_NODE  *gcamn ;
-  GCA_PRIOR       *gcap ;
-  GCA_NODE        *gcan ;
-  GC1D            *gc ;
+  GCA_MORPH_NODE  *gcamn=NULL ;
+  GCA_PRIOR       *gcap=NULL ;
+  GCA_NODE        *gcan=NULL ;
+  GC1D            *gc=NULL ;
   MATRIX          *m_delI[_MAX_FS_THREADS], *m_inv_cov[_MAX_FS_THREADS] ;
   VECTOR          *v_means[_MAX_FS_THREADS], *v_grad[_MAX_FS_THREADS] ;
 

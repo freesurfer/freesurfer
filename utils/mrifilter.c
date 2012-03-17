@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2012/03/17 20:44:41 $
- *    $Revision: 1.95 $
+ *    $Date: 2012/03/17 22:22:16 $
+ *    $Revision: 1.96 $
  *
  * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -3382,10 +3382,10 @@ MRIconvolve1d(MRI *mri_src, MRI *mri_dst, float *k, int len, int axis,
 {
   int width, height, depth;
 #ifndef FS_CUDA
-  int           x, y, z,  halflen, *xi, *yi, *zi ;
-  register int  i ;
-  BUFTYPE       *inBase ;
-  float         *ki, total, *inBase_f, *foutPix, val ;
+  int           x=0, y=0, z=0,  halflen, *xi, *yi, *zi ;
+  register int  i=0 ;
+  BUFTYPE       *inBase=NULL ;
+  float         *ki=NULL, total=0, *inBase_f=NULL, *foutPix=NULL, val=0 ;
 #endif
 
   width = mri_src->width ;
