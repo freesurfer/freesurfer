@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2011/12/11 21:39:41 $
- *    $Revision: 1.46 $
+ *    $Author: nicks $
+ *    $Date: 2012/03/17 20:44:41 $
+ *    $Revision: 1.47 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -36,6 +36,8 @@ extern "C" {
 #define HIPS_FILE     1
 #define LIST_FILE     2
 #define UNKNOWN_FILE  3
+
+#define _MAX_FS_THREADS 64 
 
 double randomNumber(double low, double hi) ;
 int    setRandomSeed(long seed) ;

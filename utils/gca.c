@@ -13,11 +13,11 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: lzollei $
- *    $Date: 2011/12/05 20:05:39 $
- *    $Revision: 1.306 $
+ *    $Author: nicks $
+ *    $Date: 2012/03/17 20:44:41 $
+ *    $Revision: 1.307 $
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -33,6 +33,9 @@
 #include <stdlib.h>
 #include <math.h>
 #include <errno.h>
+#ifdef HAVE_OPENMP
+#include <omp.h>
+#endif
 
 #include "mri.h"
 #include "tags.h"
@@ -15601,12 +15604,17 @@ set_covariance_matrix(GC1D *gc, MATRIX *m_cov, int ninputs)
 MATRIX *
 load_inverse_covariance_matrix(GC1D *gc, MATRIX *m_inv_cov, int ninputs)
 {
-  static MATRIX *m_cov = NULL ;
+  static MATRIX *m_cov[_MAX_FS_THREADS] = {NULL} ;
+#ifdef HAVE_OPENMP
+  int tid = omp_get_thread_num();
+#else
+  int tid = 0;
+#endif
 
-  if (m_cov && (m_cov->rows != ninputs || m_cov->cols != ninputs))
-    MatrixFree(&m_cov) ;
-  m_cov = load_covariance_matrix(gc, m_cov, ninputs) ;
-  m_inv_cov = MatrixInverse(m_cov, m_inv_cov) ;
+  if (m_cov[tid] && (m_cov[tid]->rows != ninputs || m_cov[tid]->cols != ninputs))
+    MatrixFree(&m_cov[tid]) ;
+  m_cov[tid] = load_covariance_matrix(gc, m_cov[tid], ninputs) ;
+  m_inv_cov = MatrixInverse(m_cov[tid], m_inv_cov) ;
 #if 0
   if (m_inv_cov == NULL)
     ErrorPrintf(ERROR_BADPARM,

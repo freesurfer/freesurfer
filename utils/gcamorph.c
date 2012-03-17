@@ -10,11 +10,11 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2011/12/12 12:57:56 $
- *    $Revision: 1.261 $
+ *    $Author: nicks $
+ *    $Date: 2012/03/17 20:44:41 $
+ *    $Revision: 1.262 $
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -73,6 +73,9 @@
 #include <stdlib.h>
 #include <math.h>
 #include <errno.h>
+#ifdef HAVE_OPENMP
+#include <omp.h>
+#endif
 
 #include "error.h"
 #include "fio.h"
@@ -2133,11 +2136,13 @@ gcamLogLikelihoodTerm( GCA_MORPH *gcam,
   gcamLogLikelihoodTermGPU( gcam, mri, mri_smooth, l_log_likelihood );
 #else
   int             x, y, z, n /*,label*/ ;
+  int             i;
+  int             nthreads, tid;
   double            dx, dy, dz, norm;
-  float           vals[MAX_GCA_INPUTS] ;
+  float           vals[_MAX_FS_THREADS][MAX_GCA_INPUTS] ;
   GCA_MORPH_NODE  *gcamn ;
-  MATRIX          *m_delI, *m_inv_cov ;
-  VECTOR          *v_means, *v_grad ;
+  MATRIX          *m_delI[_MAX_FS_THREADS], *m_inv_cov[_MAX_FS_THREADS] ;
+  VECTOR          *v_means[_MAX_FS_THREADS], *v_grad[_MAX_FS_THREADS] ;
 
   if (DZERO(l_log_likelihood))
     return(NO_ERROR) ;
@@ -2164,13 +2169,32 @@ gcamLogLikelihoodTerm( GCA_MORPH *gcam,
   nCalls++;
 #endif
 
+#ifdef HAVE_OPENMP
+#pragma omp parallel 
+  {
+    nthreads = omp_get_num_threads();
+  }
+#else
+  nthreads = 1;
+#endif
 
-  m_delI = MatrixAlloc(3, gcam->ninputs, MATRIX_REAL) ;
-  m_inv_cov = MatrixAlloc(gcam->ninputs, gcam->ninputs, MATRIX_REAL) ;
-  v_means = VectorAlloc(gcam->ninputs, 1) ;
-  v_grad = VectorAlloc(3, MATRIX_REAL) ;
+  for (i=0;i<nthreads;i++) {
+     m_delI[i] = MatrixAlloc(3, gcam->ninputs, MATRIX_REAL) ;
+     m_inv_cov[i] = MatrixAlloc(gcam->ninputs, gcam->ninputs, MATRIX_REAL) ;
+     v_means[i] = VectorAlloc(gcam->ninputs, 1) ;
+     v_grad[i] = VectorAlloc(3, MATRIX_REAL) ;
+  }
+
+#ifdef HAVE_OPENMP
+#pragma omp parallel for firstprivate(tid,y,z,gcamn,n,norm,dx,dy,dz,vals,m_delI,m_inv_cov,v_means,v_grad) shared(gcam,mri,Gx,Gy,Gz,Gvx,Gvy,Gvz) schedule(static,1)
+#endif
 
   for (x = 0 ; x < gcam->width ; x++) {
+#ifdef HAVE_OPENMP
+	tid = omp_get_thread_num();
+#else
+  tid = 0;
+#endif
     for (y = 0 ; y < gcam->height ; y++) {
       for (z = 0 ; z < gcam->depth ; z++) {
       
@@ -2202,14 +2226,14 @@ gcamLogLikelihoodTerm( GCA_MORPH *gcam,
           continue;
 	}
 
-        load_vals(mri, gcamn->x, gcamn->y, gcamn->z, vals, gcam->ninputs);
+        load_vals(mri, gcamn->x, gcamn->y, gcamn->z, vals[tid], gcam->ninputs);
 	
         if (!gcamn->gc)
         {
-          MatrixClear(v_means) ;
-          MatrixIdentity(gcam->ninputs, m_inv_cov) ;
+          MatrixClear(v_means[tid]) ;
+          MatrixIdentity(gcam->ninputs, m_inv_cov[tid]) ;
           MatrixScalarMul
-            (m_inv_cov, 1.0/(MIN_VAR), m_inv_cov) ; /* variance=4 is min */
+            (m_inv_cov[tid], 1.0/(MIN_VAR), m_inv_cov[tid]) ; /* variance=4 is min */
         }
         else
         {
@@ -2224,8 +2248,8 @@ gcamLogLikelihoodTerm( GCA_MORPH *gcam,
               continue ;
           }
 #endif
-          load_mean_vector(gcamn->gc, v_means, gcam->ninputs) ;
-          load_inverse_covariance_matrix(gcamn->gc, m_inv_cov, gcam->ninputs) ;
+          load_mean_vector(gcamn->gc, v_means[tid], gcam->ninputs) ;
+          load_inverse_covariance_matrix(gcamn->gc, m_inv_cov[tid], gcam->ninputs) ;
         }
 
         for (n = 0 ; n < gcam->ninputs ; n++)
@@ -2239,21 +2263,21 @@ gcamLogLikelihoodTerm( GCA_MORPH *gcam,
             dy /= norm ;
             dz /= norm ;
           }
-          *MATRIX_RELT(m_delI, 1, n+1) = dx ;
-          *MATRIX_RELT(m_delI, 2, n+1) = dy ;
-          *MATRIX_RELT(m_delI, 3, n+1) = dz ;
-          VECTOR_ELT(v_means, n+1) -= vals[n] ;
+          *MATRIX_RELT(m_delI[tid], 1, n+1) = dx ;
+          *MATRIX_RELT(m_delI[tid], 2, n+1) = dy ;
+          *MATRIX_RELT(m_delI[tid], 3, n+1) = dz ;
+          VECTOR_ELT(v_means[tid], n+1) -= vals[tid][n] ;
 #define MAX_ERROR 1000
-          if (fabs(VECTOR_ELT(v_means, n+1)) > MAX_ERROR)
-            VECTOR_ELT(v_means, n+1) =
-              MAX_ERROR * FSIGN(VECTOR_ELT(v_means, n+1)) ;
+          if (fabs(VECTOR_ELT(v_means[tid], n+1)) > MAX_ERROR)
+            VECTOR_ELT(v_means[tid], n+1) =
+              MAX_ERROR * FSIGN(VECTOR_ELT(v_means[tid], n+1)) ;
         }
 
-        MatrixMultiply(m_inv_cov, v_means, v_means) ;
+        MatrixMultiply(m_inv_cov[tid], v_means[tid], v_means[tid]) ;
 
         if (IS_UNKNOWN(gcamn->label))
         {
-          if (zero_vals(vals, gcam->ninputs))
+          if (zero_vals(vals[tid], gcam->ninputs))
           {
             if (Gx == x && Gy == y && Gz == z)
               printf("discounting unknown label at (%d, %d, %d) "
@@ -2261,9 +2285,9 @@ gcamLogLikelihoodTerm( GCA_MORPH *gcam,
                      x, y, z) ;
             /* probably difference in skull stripping (vessels present or 
                absent) - don't let it dominate */
-            if (VECTOR_ELT(v_means,1) > .5)  /* don't let it be more 
+            if (VECTOR_ELT(v_means[tid],1) > .5)  /* don't let it be more 
                                                 than 1/2 stds away */
-              VECTOR_ELT(v_means,1) = .5 ;
+              VECTOR_ELT(v_means[tid],1) = .5 ;
           }
 #if 0
           else
@@ -2272,11 +2296,11 @@ gcamLogLikelihoodTerm( GCA_MORPH *gcam,
               VECTOR_ELT(v_means,1) = 2 ;
 #endif
         }
-        MatrixMultiply(m_delI, v_means, v_grad) ;
+        MatrixMultiply(m_delI[tid], v_means[tid], v_grad[tid]) ;
 
-        gcamn->dx += l_log_likelihood*V3_X(v_grad) ;
-        gcamn->dy += l_log_likelihood*V3_Y(v_grad) ;
-        gcamn->dz += l_log_likelihood*V3_Z(v_grad) ;
+        gcamn->dx += l_log_likelihood*V3_X(v_grad[tid]) ;
+        gcamn->dy += l_log_likelihood*V3_Y(v_grad[tid]) ;
+        gcamn->dz += l_log_likelihood*V3_Z(v_grad[tid]) ;
 
         if (x == Gx && y == Gy && z == Gz) {
           printf
@@ -2287,16 +2311,18 @@ gcamLogLikelihoodTerm( GCA_MORPH *gcam,
              gcamn->gc ? gcamn->gc->means[0] : 0.0,
              gcamn->gc ? sqrt(covariance_determinant
                               (gcamn->gc, 
-                               gcam->ninputs)) : 0.0, vals[0]) ;
+                               gcam->ninputs)) : 0.0, vals[tid][0]) ;
 	}
       }
     }
   }
 
-  MatrixFree(&m_delI) ;
-  MatrixFree(&m_inv_cov) ;
-  VectorFree(&v_means) ;
-  VectorFree(&v_grad) ;
+  for (i=0;i<nthreads;i++) {
+     MatrixFree(&m_delI[i]) ;
+     MatrixFree(&m_inv_cov[i]) ;
+     VectorFree(&v_means[i]) ;
+     VectorFree(&v_grad[i]) ;
+  }
 #endif
   return(NO_ERROR) ;
 }
@@ -2442,7 +2468,6 @@ gcamLogLikelihoodEnergy( const GCA_MORPH *gcam, MRI *mri)
 #ifndef GCAM_LLENERGY_GPU
   double error ;
   int             x, y, z;
-  float            vals[MAX_GCA_INPUTS] ;
 #endif
 
 #if DEBUG_LL_SSE
@@ -2482,8 +2507,12 @@ gcamLogLikelihoodEnergy( const GCA_MORPH *gcam, MRI *mri)
 #if SHOW_EXEC_LOC
   printf( "%s: CPU call\n", __FUNCTION__ );
 #endif
+#ifdef HAVE_OPENMP
+#pragma omp parallel for reduction (+:sse) firstprivate(y,z,error) shared(gcam,mri) schedule(static,1)
+#endif
   for (x = 0 ; x < gcam->width ; x++) {
     for (y = 0 ; y < gcam->height ; y++) {
+      float vals[MAX_GCA_INPUTS];
       for (z = 0 ; z < gcam->depth ; z++) {
 
 	// Debugging breakpoint
@@ -2492,7 +2521,7 @@ gcamLogLikelihoodEnergy( const GCA_MORPH *gcam, MRI *mri)
 	}
 	
 	// Shorthand way of accessing current node
-        const GCA_MORPH_NODE* const gcamn = &gcam->nodes[x][y][z] ;
+        const GCA_MORPH_NODE* /* const */ gcamn = &gcam->nodes[x][y][z] ;
 
 	// Don't operate on invalid nodes
         if (gcamn->invalid == GCAM_POSITION_INVALID) {
@@ -2763,21 +2792,26 @@ gcamJacobianTerm(GCA_MORPH *gcam, const MRI *mri,
   printf( "%s: On GPU\n", __FUNCTION__ );
   gcamJacobianTermGPU( gcam, l_jacobian, jac_scale );
 #else
-  int            i, j, k, num /*, xi, yi, zi, xk, yk, zk = 0*/ ;
+  int            i, j, k, num /*, xi, yi, zi, xk, yk, zk = 0*/; 
+  int            n_omp_threads;
   double         dx, dy, dz, norm, orig_area, ratio, max_norm ;
+  double         mn[_MAX_FS_THREADS]; /* _MAX_FS_THREADS is in utils.h */
   GCA_MORPH_NODE *gcamn ;
 
 
   if (DZERO(l_jacobian))
     return(NO_ERROR) ;
 
-
-  for (num = i = 0 ; i < gcam->width ; i++)
+  num = 0;
+#ifdef HAVE_OPENMP
+#pragma omp parallel for reduction (+:num) firstprivate (j,k,gcamn,ratio,orig_area,ratio_thresh) shared(gcam) schedule(static,1)
+#endif
+  for (i = 0 ; i < gcam->width ; i++)
   {
     for (j = 0 ; j < gcam->height ; j++)
     {
       for (k = 0 ; k < gcam->depth ; k++)
-      {
+      { 
         gcamn = &gcam->nodes[i][j][k] ;
 
         if (gcamn->invalid == GCAM_POSITION_INVALID)
@@ -2790,7 +2824,7 @@ gcamJacobianTerm(GCA_MORPH *gcam, const MRI *mri,
         ratio = gcamn->area / orig_area ;
         if (ratio < ratio_thresh)
         {
-          num++ ;
+           num++ ;
 #if 0
           for (xk = -1 ; xk <= 1 ; xk++)
           {
@@ -2808,14 +2842,14 @@ gcamJacobianTerm(GCA_MORPH *gcam, const MRI *mri,
                 if (zi < 0) zi = 0 ;
                 if (zi >= gcam->depth) zi = gcam->depth-1 ;
                 gcamn = &gcam->nodes[xi][yi][zi] ;
-                /*
-                 gcamn->dx = gcamn->dy = gcamn->dz = 0 ;
-                */
+                /*  
+                     gcamn->dx = gcamn->dy = gcamn->dz = 0 ;
+                */ 
               }
             }
           }
 #endif
-        }
+        } 
       }
     }
   }
@@ -2825,6 +2859,23 @@ gcamJacobianTerm(GCA_MORPH *gcam, const MRI *mri,
   }
 
   max_norm = 0.0 ;
+
+#ifdef HAVE_OPENMP
+#pragma omp parallel
+  {
+    n_omp_threads = omp_get_num_threads();
+  }
+#else
+  n_omp_threads = 1;
+#endif
+
+  int tid;
+	for (i=0;i<_MAX_FS_THREADS;i++)
+		mn[i] = 0.0;
+
+#ifdef HAVE_OPENMP
+#pragma omp parallel for firstprivate (j,k,gcamn,dx,dy,dz,norm,tid,mn) shared(gcam) schedule(static,1)
+#endif
   for (i = 0 ; i < gcam->width ; i++)
   {
     for (j = 0 ; j < gcam->height ; j++)
@@ -2836,12 +2887,23 @@ gcamJacobianTerm(GCA_MORPH *gcam, const MRI *mri,
         dy = gcamn->dy ;
         dz = gcamn->dz ;
         norm = sqrt(dx*dx + dy*dy + dz*dz) ;
-        if (norm > max_norm)
-          max_norm = norm ;
+#ifdef HAVE_OPENMP
+        tid = omp_get_thread_num(); 
+#else
+        tid = 0;
+#endif
+        if (norm > mn[tid])
+          mn[tid] = norm ;
       }
     }
   }
 
+	for (i = 0; i<n_omp_threads; i++)
+	  if (mn[tid] > max_norm) max_norm = mn[tid];
+
+#ifdef HAVE_OPENMP
+#pragma omp parallel for firstprivate(j,k,gcamn,dx,dy,dz,norm) shared(gcam,mri,l_jacobian,Gx,Gy,Gz,max_norm)  schedule(static,1)
+#endif
   for (i = 0 ; i < gcam->width ; i++)
   {
     for (j = 0 ; j < gcam->height ; j++)
@@ -3112,40 +3174,50 @@ gcamJacobianTermAtNode( GCA_MORPH *gcam, const MRI *mri,
 {
   GCA_MORPH_NODE *gcamn, *gcamni, *gcamnj, *gcamnk ;
   float          delta, ratio ;
-  int            n, width, height, depth, num, invert ;
-  static VECTOR  *v_i = NULL, *v_j, *v_k, *v_j_x_k, *v_i_x_j,*v_k_x_i,*v_grad,
-                        *v_tmp ;
+  int            n, width, height, depth, invert ;
+  /* these are all thread local variables */
+  /* _MAX_FS_THREADS is defined in utils.h */
+  static VECTOR  *v_i[_MAX_FS_THREADS] = {NULL}, *v_j[_MAX_FS_THREADS], *v_k[_MAX_FS_THREADS], *v_j_x_k[_MAX_FS_THREADS], *v_i_x_j[_MAX_FS_THREADS],*v_k_x_i[_MAX_FS_THREADS],*v_grad[_MAX_FS_THREADS],
+                        *v_tmp[_MAX_FS_THREADS] ;
   double         exponent, orig_area, area ;
 
   *pdx = *pdy = *pdz = 0 ;
   if (DZERO(l_jacobian))
     return(NO_ERROR) ;
 
+#ifdef HAVE_OPENMP
+  int tid = omp_get_thread_num(); 
+#else
+  int tid = 0;
+#endif
+
   width = gcam->width ;
   height = gcam->height ;
   depth = gcam->depth ;
-  if (!v_i)   /* initialize */
+
+  if (!v_i[tid])   /* initialize */
     {
+	/*printf("tid  doing VectorAlloc = %d\n", tid);*/
       /*
 	Note that, while the positions are all stored as
 	double in the GCA_MORPH_NODE, matrices always
 	hold float (or complex float) data.
       */
-    v_i = VectorAlloc(3, MATRIX_REAL) ;
-    v_j = VectorAlloc(3, MATRIX_REAL) ;
-    v_k = VectorAlloc(3, MATRIX_REAL) ;
-    v_grad = VectorAlloc(3, MATRIX_REAL) ;
-    v_j_x_k = VectorAlloc(3, MATRIX_REAL) ;
-    v_i_x_j = VectorAlloc(3, MATRIX_REAL) ;
-    v_k_x_i = VectorAlloc(3, MATRIX_REAL) ;
-    v_tmp = VectorAlloc(3, MATRIX_REAL) ;
+    v_i[tid] = VectorAlloc(3, MATRIX_REAL) ;
+    v_j[tid] = VectorAlloc(3, MATRIX_REAL) ;
+    v_k[tid] = VectorAlloc(3, MATRIX_REAL) ;
+    v_grad[tid] = VectorAlloc(3, MATRIX_REAL) ;
+    v_j_x_k[tid] = VectorAlloc(3, MATRIX_REAL) ;
+    v_i_x_j[tid] = VectorAlloc(3, MATRIX_REAL) ;
+    v_k_x_i[tid] = VectorAlloc(3, MATRIX_REAL) ;
+    v_tmp[tid] = VectorAlloc(3, MATRIX_REAL) ;
   }
   else
   {
-    V3_CLEAR(v_grad) ;
+    V3_CLEAR(v_grad[tid]) ;
   }
 
-  for (num = n = 0 ; n < AREA_NEIGHBORS ; n++)
+  for (n = 0 ; n < AREA_NEIGHBORS ; n++)
   {
     /* assign gcamn pointers to appropriate nodes */
     invert = 1 ;
@@ -3247,7 +3319,7 @@ gcamJacobianTermAtNode( GCA_MORPH *gcam, const MRI *mri,
       DiagBreak() ;
     }
 
-    num++ ;
+    /* num++ ; why is this here?? chc */
 
     /* compute cross products and area delta */
     /*
@@ -3256,9 +3328,9 @@ gcamJacobianTermAtNode( GCA_MORPH *gcam, const MRI *mri,
       will be performed in double, but the result
       then stored in single precision
     */
-    GCAMN_SUB(gcamni, gcamn, v_i) ;
-    GCAMN_SUB(gcamnj, gcamn, v_j) ;
-    GCAMN_SUB(gcamnk, gcamn, v_k) ;
+    GCAMN_SUB(gcamni, gcamn, v_i[tid]) ;
+    GCAMN_SUB(gcamnj, gcamn, v_j[tid]) ;
+    GCAMN_SUB(gcamnk, gcamn, v_k[tid]) ;
 
     ratio = area / orig_area ;
     if (ratio < 0.1 && ratio > 0)
@@ -3288,35 +3360,35 @@ gcamJacobianTermAtNode( GCA_MORPH *gcam, const MRI *mri,
     default:
     case 4:
     case 0:    /* first do central node */
-      V3_CROSS_PRODUCT(v_j, v_k, v_j_x_k) ;
-      V3_CROSS_PRODUCT(v_k, v_i, v_k_x_i) ;
-      V3_CROSS_PRODUCT(v_i, v_j, v_i_x_j) ;
-      V3_ADD(v_i_x_j, v_j_x_k, v_tmp) ;
-      V3_ADD(v_k_x_i, v_tmp, v_tmp) ;
-      V3_SCALAR_MUL(v_tmp, -delta, v_tmp) ;
+      V3_CROSS_PRODUCT(v_j[tid], v_k[tid], v_j_x_k[tid]) ;
+      V3_CROSS_PRODUCT(v_k[tid], v_i[tid], v_k_x_i[tid]) ;
+      V3_CROSS_PRODUCT(v_i[tid], v_j[tid], v_i_x_j[tid]) ;
+      V3_ADD(v_i_x_j[tid], v_j_x_k[tid], v_tmp[tid]) ;
+      V3_ADD(v_k_x_i[tid], v_tmp[tid], v_tmp[tid]) ;
+      V3_SCALAR_MUL(v_tmp[tid], -delta, v_tmp[tid]) ;
       break ;
     case 5:       /*  i+1 */
     case 1:       /*  i-1 */
-      V3_CROSS_PRODUCT(v_j, v_k, v_j_x_k) ;
-      V3_SCALAR_MUL(v_j_x_k, delta, v_tmp) ;
+      V3_CROSS_PRODUCT(v_j[tid], v_k[tid], v_j_x_k[tid]) ;
+      V3_SCALAR_MUL(v_j_x_k[tid], delta, v_tmp[tid]) ;
       break ;
     case 6:      /* j+1 */
     case 2:      /* j-1 */
-      V3_CROSS_PRODUCT(v_k, v_i, v_k_x_i) ;
-      V3_SCALAR_MUL(v_k_x_i, delta, v_tmp) ;
+      V3_CROSS_PRODUCT(v_k[tid], v_i[tid], v_k_x_i[tid]) ;
+      V3_SCALAR_MUL(v_k_x_i[tid], delta, v_tmp[tid]) ;
       break ;
     case 7:      /* k+1 */
     case 3:      /* k-1 */
-      V3_CROSS_PRODUCT(v_i, v_j, v_i_x_j) ;
-      V3_SCALAR_MUL(v_i_x_j, delta, v_tmp) ;
+      V3_CROSS_PRODUCT(v_i[tid], v_j[tid], v_i_x_j[tid]) ;
+      V3_SCALAR_MUL(v_i_x_j[tid], delta, v_tmp[tid]) ;
       break ;
     }
-    V3_ADD(v_tmp, v_grad, v_grad) ;
+    V3_ADD(v_tmp[tid], v_grad[tid], v_grad[tid]) ;
   }
 
-  *pdx = l_jacobian*V3_X(v_grad) ;
-  *pdy = l_jacobian*V3_Y(v_grad) ;
-  *pdz = l_jacobian*V3_Z(v_grad) ;
+  *pdx = l_jacobian*V3_X(v_grad[tid]) ;
+  *pdy = l_jacobian*V3_Y(v_grad[tid]) ;
+  *pdz = l_jacobian*V3_Z(v_grad[tid]) ;
 
   if (fabs(*pdx) > 0.02 || fabs(*pdy) > 0.02 || fabs(*pdz) > 0.02)
     DiagBreak() ;
@@ -3769,21 +3841,45 @@ gcamComputeMetricProperties(GCA_MORPH *gcam)
 #endif
   double         area1, area2 ;
   int            i, j, k, width, height, depth, num, neg ;
+  int            nthreads,tid;
+  int  		 gcam_neg_counter[_MAX_FS_THREADS], Ginvalid_counter[_MAX_FS_THREADS];
   GCA_MORPH_NODE *gcamn, *gcamni, *gcamnj, *gcamnk ;
-  VECTOR         *v_i, *v_j, *v_k ;
+  VECTOR         *v_i[_MAX_FS_THREADS], *v_j[_MAX_FS_THREADS], *v_k[_MAX_FS_THREADS] ;
 
   // Ginvalid has file scope and static storage.....
   Ginvalid = 0 ;
+#ifdef HAVE_OPENMP
+#pragma omp parallel
+  {
+    nthreads = omp_get_num_threads(); 
+  }
+#else
+  nthreads = 1;
+#endif
 
-  v_i = VectorAlloc(3, MATRIX_REAL) ;
-  v_j = VectorAlloc(3, MATRIX_REAL) ;
-  v_k = VectorAlloc(3, MATRIX_REAL) ;
+	for (i=0;i<nthreads;i++)
+	{  
+  		v_i[i] = VectorAlloc(3, MATRIX_REAL) ;
+  		v_j[i] = VectorAlloc(3, MATRIX_REAL) ;
+  		v_k[i]  = VectorAlloc(3, MATRIX_REAL) ;
+  		gcam_neg_counter[i] = 0;
+  		Ginvalid_counter[i] = 0;
+	}
   width = gcam->width ;
   height = gcam->height ;
   depth = gcam->depth ;
   gcam->neg = 0 ;
+
+#ifdef HAVE_OPENMP
+#pragma omp parallel for firstprivate (tid,j,k,gcamn,neg,num,gcamni,gcamnj,gcamnk,area1,area2) shared(gcam,Gx,Gy,Gz,v_i,v_j,v_k,gcam_neg_counter,Ginvalid_counter) schedule(static,1)
+#endif
   for (i = 0 ; i < width ; i++)
   {
+#ifdef HAVE_OPENMP
+	tid = omp_get_thread_num();
+#else
+  tid = 0;
+#endif
     for (j = 0 ; j < height ; j++)
     {
       for (k = 0 ; k < depth ; k++)
@@ -3796,7 +3892,8 @@ gcamComputeMetricProperties(GCA_MORPH *gcam)
         // Test to see if current location is valid
         if (gcamn->invalid == GCAM_POSITION_INVALID)
         {
-          Ginvalid++ ;
+          /* Ginvalid++ ; */
+	  Ginvalid_counter[tid] ++;
           continue;
         }
         
@@ -3817,11 +3914,11 @@ gcamComputeMetricProperties(GCA_MORPH *gcam)
           {
             
             num++ ;
-            GCAMN_SUB(gcamni, gcamn, v_i) ;
-            GCAMN_SUB(gcamnj, gcamn, v_j) ;
-            GCAMN_SUB(gcamnk, gcamn, v_k) ;
+            GCAMN_SUB(gcamni, gcamn, v_i[tid]) ;
+            GCAMN_SUB(gcamnj, gcamn, v_j[tid]) ;
+            GCAMN_SUB(gcamnk, gcamn, v_k[tid]) ;
             // (v_j (x) v_k) (.) v_i (volume)
-            area1 = VectorTripleProduct(v_j, v_k, v_i) ;
+            area1 = VectorTripleProduct(v_j[tid], v_k[tid], v_i[tid]) ;
             if (area1 <= 0)
             {
               neg = 1 ;
@@ -3853,11 +3950,11 @@ gcamComputeMetricProperties(GCA_MORPH *gcam)
           {
             /* invert v_i so that coordinate system is right-handed */
             num++ ;
-            GCAMN_SUB(gcamn, gcamni, v_i) ; // Note args swapped compared to above
-            GCAMN_SUB(gcamnj, gcamn, v_j) ;
-            GCAMN_SUB(gcamnk, gcamn, v_k) ;
+            GCAMN_SUB(gcamn, gcamni, v_i[tid]) ; // Note args swapped compared to above
+            GCAMN_SUB(gcamnj, gcamn, v_j[tid]) ;
+            GCAMN_SUB(gcamnk, gcamn, v_k[tid]) ;
             // add two volume
-            area2 = VectorTripleProduct(v_j, v_k, v_i);
+            area2 = VectorTripleProduct(v_j[tid], v_k[tid], v_i[tid]);
             
             // Store the 'left' Jacobean determinant
             gcamn->area2 = area2 ;
@@ -3902,22 +3999,32 @@ gcamComputeMetricProperties(GCA_MORPH *gcam)
             printf("node (%d, %d, %d), label %s (%d) - NEGATIVE!\n",
                    i, j, k, cma_label_to_name(gcamn->label), gcamn->label) ;
           }
-          gcam->neg++ ;
+          /* gcam->neg++ ; */
+	gcam_neg_counter[tid] ++;
         }
         
         // Add to count of invalid locations
         if (gcamn->invalid) {
-          Ginvalid++ ;
+          /* Ginvalid++ ; */
+	  Ginvalid_counter[tid] ++;
         }
       }
     }
   }
 
-  VectorFree(&v_i) ;
-  VectorFree(&v_j) ;
-  VectorFree(&v_k) ;
+for (i=0;i<nthreads;i++)
+{
+  VectorFree(&v_i[i]) ;
+  VectorFree(&v_j[i]) ;
+  VectorFree(&v_k[i]) ;
+}
 
 #endif
+
+  for (i = 0; i<nthreads;i++) {
+	gcam->neg += gcam_neg_counter[i];
+	Ginvalid += Ginvalid_counter[i];
+	}
 
 #if GCAM_CMP_OUTPUT
 #if 0
@@ -4136,7 +4243,11 @@ gcamJacobianEnergy( const GCA_MORPH *gcam, MRI *mri)
   depth = gcam->depth ;
 
   // Note sse initialised to zero here
-  for (sse = 0.0, i = 0 ; i < width ; i++)
+  sse = 0.0f;
+#ifdef HAVE_OPENMP
+#pragma omp parallel for firstprivate(j,k,gcamn,ratio,exponent,delta) shared(width,height,depth,gcam) reduction(+:sse) schedule(static,1)
+#endif
+  for (i = 0 ; i < width ; i++)
   {
     for (j = 0 ; j < height ; j++)
     {
@@ -6415,6 +6526,9 @@ gcamSmoothnessTerm( GCA_MORPH *gcam,
   width = gcam->width ;
   height = gcam->height ;
   depth = gcam->depth ;
+#ifdef HAVE_OPENMP
+#pragma omp parallel for firstprivate (y,z,gcamn,vx,vy,vz,dx,dy,dz,num,xk,xn,yk,yn,zk,zn,gcamn_nbr,vnx,vny,vnz) shared(gcam,Gx,Gy,Gz) schedule(static,1)
+#endif
   for (x = 0 ; x < gcam->width ; x++) {
     for (y = 0 ; y < gcam->height ; y++) {
       for (z = 0 ; z < gcam->depth ; z++) {
@@ -6641,6 +6755,9 @@ gcamSmoothnessEnergy( const GCA_MORPH *gcam, const MRI *mri )
   height = gcam->height ;
   depth = gcam->depth ;
 
+#ifdef HAVE_OPENMP
+#pragma omp parallel for firstprivate(y,z,vx,vy,vz,vnx,vny,vnz,error,node_sse,dx,dy,dz,xk,yk,zk,xn,yn,zn,num,gcamn,gcamn_nbr) reduction(+:sse) shared(gcam,Gx,Gy,Gz) schedule(static,1)
+#endif
   // Loop over all voxels
   for (x = 0 ; x < gcam->width ; x++ ) {
     for (y = 0 ; y < gcam->height ; y++ ) {
@@ -9443,27 +9560,38 @@ gcamLabelTerm( GCA_MORPH *gcam, const MRI *mri,
 int
 gcamMapTerm(GCA_MORPH *gcam, MRI *mri, MRI *mri_smooth, double l_map)
 {
-  int             x, y, z, n, xn, yn, zn, i ;
+  int             x, y, z, n, xn[_MAX_FS_THREADS], yn[_MAX_FS_THREADS], zn[_MAX_FS_THREADS], i ;
+  int             tid;
   double          node_prob, prob, dx, dy, dz, norm ;
-  float           vals[MAX_GCA_INPUTS] ;
+  float           vals[_MAX_FS_THREADS][MAX_GCA_INPUTS] ;
   GCA_MORPH_NODE  *gcamn ;
   GCA_PRIOR       *gcap ;
   GCA_NODE        *gcan ;
   GC1D            *gc ;
-  MATRIX          *m_delI, *m_inv_cov ;
-  VECTOR          *v_means, *v_grad ;
+  MATRIX          *m_delI[_MAX_FS_THREADS], *m_inv_cov[_MAX_FS_THREADS] ;
+  VECTOR          *v_means[_MAX_FS_THREADS], *v_grad[_MAX_FS_THREADS] ;
 
   if (DZERO(l_map))
     return(0) ;
   // 3 x ninputs
-  m_delI = MatrixAlloc(3, gcam->ninputs, MATRIX_REAL) ;
-  // ninputs x ninputs
-  m_inv_cov = MatrixAlloc(gcam->ninputs, gcam->ninputs, MATRIX_REAL) ;
-  // ninputs x 1
-  v_means = VectorAlloc(gcam->ninputs, 1) ;
-  // 3 x 1
-  v_grad = VectorAlloc(3, MATRIX_REAL) ;
+#ifdef HAVE_OPENMP
+#pragma omp parallel
+  tid = omp_get_thread_num();
+#else
+  tid = 0;
+#endif
 
+  m_delI[tid] = MatrixAlloc(3, gcam->ninputs, MATRIX_REAL) ;
+  // ninputs x ninputs
+  m_inv_cov[tid] = MatrixAlloc(gcam->ninputs, gcam->ninputs, MATRIX_REAL) ;
+  // ninputs x 1
+  v_means[tid] = VectorAlloc(gcam->ninputs, 1) ;
+  // 3 x 1
+  v_grad[tid] = VectorAlloc(3, MATRIX_REAL) ;
+
+#ifdef HAVE_OPENMP
+#pragma omp parallel for firstprivate(tid,i,y,z,gcamn,gcan,gcap,n,norm,dx,dy,dz,gc,node_prob,prob) shared (gcam,Gx,Gy,Gz,mri_smooth,l_map) schedule(static,1)
+#endif
   for (x = 0 ; x < gcam->width ; x++)
     for (y = 0 ; y < gcam->height ; y++)
       for (z = 0 ; z < gcam->depth ; z++)
@@ -9479,12 +9607,12 @@ gcamMapTerm(GCA_MORPH *gcam, MRI *mri, MRI *mri_smooth, double l_map)
         if (gcamn->status & (GCAM_IGNORE_LIKELIHOOD|GCAM_NEVER_USE_LIKELIHOOD))
           continue ;
         /////////////////////
-        if (!GCApriorToNode(gcam->gca, x, y, z, &xn, &yn, &zn))
+        if (!GCApriorToNode(gcam->gca, x, y, z, &xn[tid], &yn[tid], &zn[tid]))
         {
-          gcan = &gcam->gca->nodes[xn][yn][zn] ;
+          gcan = &gcam->gca->nodes[xn[tid]][yn[tid]][zn[tid]] ;
           gcap = &gcam->gca->priors[x][y][z] ;
           // get the values from mri
-          load_vals(mri, gcamn->x, gcamn->y, gcamn->z, vals, gcam->ninputs) ;
+          load_vals(mri, gcamn->x, gcamn->y, gcamn->z, vals[tid], gcam->ninputs) ;
 
           for (n = 0 ; n < gcam->ninputs ; n++)
           {
@@ -9500,9 +9628,9 @@ gcamMapTerm(GCA_MORPH *gcam, MRI *mri, MRI *mri_smooth, double l_map)
               dz /= norm ;
             }
             // store   3 x ninputs
-            *MATRIX_RELT(m_delI, 1, n+1) = dx ;
-            *MATRIX_RELT(m_delI, 2, n+1) = dy ;
-            *MATRIX_RELT(m_delI, 3, n+1) = dz ;
+            *MATRIX_RELT(m_delI[tid], 1, n+1) = dx ;
+            *MATRIX_RELT(m_delI[tid], 2, n+1) = dy ;
+            *MATRIX_RELT(m_delI[tid], 3, n+1) = dz ;
           }
 
           if (x == Gx && y == Gy && z == Gz && (Gdiag & DIAG_SHOW))
@@ -9511,31 +9639,31 @@ gcamMapTerm(GCA_MORPH *gcam, MRI *mri, MRI *mri_smooth, double l_map)
           dx = dy = dz = 0.0f ;
           for (node_prob = 0.0, n = 0 ; n < gcap->nlabels ; n++)
           {
-            gc = GCAfindGC(gcam->gca, xn, yn, zn, gcap->labels[n]) ;
+            gc = GCAfindGC(gcam->gca, xn[tid], yn[tid], zn[tid], gcap->labels[n]) ;
             if (!gc)
               continue ;
             // mean
-            load_mean_vector(gc, v_means, gcam->ninputs) ;
+            load_mean_vector(gc, v_means[tid], gcam->ninputs) ;
             // inv_cov
-            load_inverse_covariance_matrix(gc, m_inv_cov, gcam->ninputs) ;
+            load_inverse_covariance_matrix(gc, m_inv_cov[tid], gcam->ninputs) ;
             // get prob
-            prob = GCAcomputeConditionalDensity(gc, vals, gcam->ninputs, gcap->labels[n]) ;
+            prob = GCAcomputeConditionalDensity(gc, vals[tid], gcam->ninputs, gcap->labels[n]) ;
             // v_mean = mean - vals
             for (i = 0 ; i < gcam->ninputs ; i++)
-              VECTOR_ELT(v_means, i+1) -= vals[i] ;
+              VECTOR_ELT(v_means[tid], i+1) -= vals[tid][i] ;
             // v_mean = inv_cov * (mean - vals)
-            MatrixMultiply(m_inv_cov, v_means, v_means) ;
+            MatrixMultiply(m_inv_cov[tid], v_means[tid], v_means[tid]) ;
             // v_grad = delI * inv_cov * (mean - value)
-            MatrixMultiply(m_delI, v_means, v_grad) ;
+            MatrixMultiply(m_delI[tid], v_means[tid], v_grad[tid]) ;
 
             if (x == Gx && y == Gy && z == Gz && (Gdiag & DIAG_SHOW))
               printf("l_map: node(%d,%d,%d), label %s: p=%2.3f (%2.3f), D=(%2.1f,%2.1f,%2.1f)\n",
                      x, y, z, cma_label_to_name(gcap->labels[n]), prob, gcap->priors[n],
-                     prob*V3_X(v_grad), prob*V3_Y(v_grad), prob*V3_Z(v_grad)) ;
+                     prob*V3_X(v_grad[tid]), prob*V3_Y(v_grad[tid]), prob*V3_Z(v_grad[tid])) ;
 
-            dx += prob*V3_X(v_grad) ;
-            dy += prob*V3_Y(v_grad) ;
-            dz += prob*V3_Z(v_grad) ;
+            dx += prob*V3_X(v_grad[tid]) ;
+            dy += prob*V3_Y(v_grad[tid]) ;
+            dz += prob*V3_Z(v_grad[tid]) ;
 
             node_prob += prob ;
           }
@@ -9556,10 +9684,10 @@ gcamMapTerm(GCA_MORPH *gcam, MRI *mri, MRI *mri_smooth, double l_map)
         } //!GCA
       }
 
-  MatrixFree(&m_delI) ;
-  MatrixFree(&m_inv_cov) ;
-  VectorFree(&v_means) ;
-  VectorFree(&v_grad) ;
+  MatrixFree(&m_delI[tid]) ;
+  MatrixFree(&m_inv_cov[tid]) ;
+  VectorFree(&v_means[tid]) ;
+  VectorFree(&v_grad[tid]) ;
   return(NO_ERROR) ;
 }
 

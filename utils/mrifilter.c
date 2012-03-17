@@ -6,11 +6,11 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2011/10/25 14:17:51 $
- *    $Revision: 1.94 $
+ *    $Author: nicks $
+ *    $Date: 2012/03/17 20:44:41 $
+ *    $Revision: 1.95 $
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -3431,6 +3431,9 @@ MRIconvolve1d(MRI *mri_src, MRI *mri_dst, float *k, int len, int axis,
     switch (axis)
     {
     case MRI_WIDTH:
+#ifdef HAVE_OPENMP
+#pragma omp parallel for firstprivate(y,x,inBase,foutPix,ki,i,total) shared(depth,height,width,len,halflen,mri_src,mri_dst,src_frame,dst_frame,xi,yi,zi) schedule(static,1)
+#endif
       for (z = 0 ; z < depth ; z++)
       {
         for (y = 0 ; y < height ; y++)
@@ -3451,6 +3454,9 @@ MRIconvolve1d(MRI *mri_src, MRI *mri_dst, float *k, int len, int axis,
       }
       break ;
     case MRI_HEIGHT:
+#ifdef HAVE_OPENMP
+#pragma omp parallel for firstprivate(y,x,foutPix,ki,i,total) shared(depth,height,width,len,halflen,mri_dst,src_frame,dst_frame,xi,yi,zi) schedule(static,1)
+#endif
       for (z = 0 ; z < depth ; z++)
       {
         for (y = 0 ; y < height ; y++)
@@ -3473,6 +3479,9 @@ MRIconvolve1d(MRI *mri_src, MRI *mri_dst, float *k, int len, int axis,
       }
       break ;
     case MRI_DEPTH:
+#ifdef HAVE_OPENMP
+#pragma omp parallel for firstprivate(y,x,foutPix,ki,i,total) shared(depth,height,width,len,halflen,mri_dst,src_frame,dst_frame,xi,yi,zi) schedule(static,1)
+#endif
       for (z = 0 ; z < depth ; z++)
       {
         for (y = 0 ; y < height ; y++)
@@ -3498,6 +3507,9 @@ MRIconvolve1d(MRI *mri_src, MRI *mri_dst, float *k, int len, int axis,
     switch (axis)
     {
     case MRI_WIDTH:
+#ifdef HAVE_OPENMP
+#pragma omp parallel for firstprivate(y,x,inBase_f,foutPix,ki,i,total) shared(depth,height,width,len,halflen,mri_dst,src_frame,dst_frame,xi,yi,zi) schedule(static,1)
+#endif
       for (z = 0 ; z < depth ; z++)
       {
         for (y = 0 ; y < height ; y++)
@@ -3520,6 +3532,9 @@ MRIconvolve1d(MRI *mri_src, MRI *mri_dst, float *k, int len, int axis,
       }
       break ;
     case MRI_HEIGHT:
+#ifdef HAVE_OPENMP
+#pragma omp parallel for firstprivate(y,x,foutPix,ki,i,total) shared(depth,height,width,len,halflen,mri_dst,src_frame,dst_frame,xi,yi,zi) schedule(static,1)
+#endif
       for (z = 0 ; z < depth ; z++)
       {
         for (y = 0 ; y < height ; y++)
@@ -3543,6 +3558,9 @@ MRIconvolve1d(MRI *mri_src, MRI *mri_dst, float *k, int len, int axis,
       }
       break ;
     case MRI_DEPTH:
+#ifdef HAVE_OPENMP
+#pragma omp parallel for firstprivate(y,x,foutPix,ki,i,total) shared(depth,height,width,len,halflen,mri_dst,src_frame,dst_frame,xi,yi,zi) schedule(static,1)
+#endif
       for (z = 0 ; z < depth ; z++)
       {
         for (y = 0 ; y < height ; y++)
@@ -3568,6 +3586,9 @@ MRIconvolve1d(MRI *mri_src, MRI *mri_dst, float *k, int len, int axis,
     switch (axis)
     {
     case MRI_WIDTH:
+#ifdef HAVE_OPENMP
+#pragma omp parallel for firstprivate(y,x,foutPix,ki,i,val,total) shared(depth,height,width,len,halflen,mri_dst,src_frame,dst_frame,xi,yi,zi) schedule(static,1)
+#endif
       for (z = 0 ; z < depth ; z++)
       {
         for (y = 0 ; y < height ; y++)
@@ -3590,6 +3611,9 @@ MRIconvolve1d(MRI *mri_src, MRI *mri_dst, float *k, int len, int axis,
       }
       break ;
     case MRI_HEIGHT:
+#ifdef HAVE_OPENMP
+#pragma omp parallel for firstprivate(y,x,foutPix,ki,i,val,total) shared(depth,height,width,len,halflen,mri_dst,src_frame,dst_frame,xi,yi,zi) schedule(static,1)
+#endif
       for (z = 0 ; z < depth ; z++)
       {
         for (y = 0 ; y < height ; y++)
@@ -3613,6 +3637,9 @@ MRIconvolve1d(MRI *mri_src, MRI *mri_dst, float *k, int len, int axis,
       }
       break ;
     case MRI_DEPTH:
+#ifdef HAVE_OPENMP
+#pragma omp parallel for firstprivate(y,x,foutPix,ki,i,val,total) shared(depth,height,width,len,halflen,mri_dst,src_frame,dst_frame,xi,yi,zi) schedule(static,1)
+#endif
       for (z = 0 ; z < depth ; z++)
       {
         for (y = 0 ; y < height ; y++)

@@ -23,11 +23,11 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2011/10/25 13:53:04 $
- *    $Revision: 1.79 $
+ *    $Author: nicks $
+ *    $Date: 2012/03/17 20:44:41 $
+ *    $Revision: 1.80 $
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -44,6 +44,9 @@
 #include <stdio.h>
 #include <string.h>
 #include <ctype.h>
+#ifdef HAVE_OPENMP
+#include <omp.h>
+#endif
 
 #include "mri.h"
 #include "matrix.h"
@@ -178,6 +181,7 @@ main(int argc, char *argv[])
   GCA          *gca /*, *gca_tmp, *gca_reduced*/ ;
   int          ac, nargs, ninputs, input, extra = 0 ;
   int          msec, hours, minutes, seconds /*, iter*/ ;
+  int          n_omp_threads;
   struct timeb start ;
   GCA_MORPH    *gcam ;
 
@@ -229,7 +233,7 @@ main(int argc, char *argv[])
 
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mri_ca_register.c,v 1.79 2011/10/25 13:53:04 fischl Exp $",
+           "$Id: mri_ca_register.c,v 1.80 2012/03/17 20:44:41 nicks Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
   {
@@ -262,6 +266,17 @@ main(int argc, char *argv[])
   strcpy(parms.base_name, fname) ;
   //  Gdiag |= DIAG_WRITE ;
   printf("logging results to %s.log\n", parms.base_name) ;
+
+#ifdef HAVE_OPENMP
+#pragma omp parallel
+  { 
+    n_omp_threads = omp_get_num_threads(); 
+  }
+  printf("\n\n ======= NUMBER OF OPENMP THREADS = %d ======= \n",
+         n_omp_threads);
+#else
+  n_omp_threads = 1;
+#endif
 
   TimerStart(&start) ;
 
