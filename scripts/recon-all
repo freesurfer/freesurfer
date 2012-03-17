@@ -8,10 +8,10 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2012/01/31 22:33:55 $
-#    $Revision: 1.412 $
+#    $Date: 2012/03/17 23:47:17 $
+#    $Revision: 1.413 $
 #
-# Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+# Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
 #
 # Terms and conditions for use, reproduction, distribution and contribution
 # are found in the 'FreeSurfer Software License Agreement' contained
@@ -26,7 +26,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.412 2012/01/31 22:33:55 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.413 2012/03/17 23:47:17 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -167,6 +167,7 @@ set PialNoAparc = 0; # if 1 (-pial-noaparc), then add -noaparc flag to
 set DoNuMakeUchar = 1; # if 1, then run mri_nu_correct.mni using talairach.xfm
                        # to run mri_make_uchar to correct histogram problem
 set DoTalairachUseNu = 0; # if 1, use nu.mgz as input to talairach stage
+setenv OMP_NUM_THREADS 1 # -openmp <num_threads> allows specifying more threads
 
 # Longitudinal processing:
 set longitudinal = 0;    # if 1, will run the longitudinal scheme
@@ -5411,6 +5412,10 @@ while( $#argv != 0 )
       source $FREESURFER_HOME/bin/cuda_setup
       breaksw;
   
+    case "-openmp":
+      setenv OMP_NUM_THREADS $argv[1]; shift;
+      breaksw;
+
     # hippocampal subfield processing
     case "-hippo-subfields":
       set DoGEMS = 1;
