@@ -9,9 +9,9 @@
 /*
  * Original Authors: Kevin Teich and Nick Schmansky
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2011/03/16 17:31:48 $
- *    $Revision: 1.28 $
+ *    $Author: nicks $
+ *    $Date: 2012/03/17 20:35:07 $
+ *    $Revision: 1.29 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -181,6 +181,26 @@ static double gifti_get_DA_value_2D (giiDataArray* da, int row, int col)
                        (da->data) + (dim0_index*dims_1) + dim1_index);
     else
       return (double)*((float*)
+                       (da->data) + dim0_index + (dim1_index*dims_0));
+    break;
+  }
+  case NIFTI_TYPE_FLOAT64:
+  {
+    if ( GIFTI_IND_ORD_ROW_MAJOR == da->ind_ord )
+      return (double)*((double*)
+                       (da->data) + (dim0_index*dims_1) + dim1_index);
+    else
+      return (double)*((double*)
+                       (da->data) + dim0_index + (dim1_index*dims_0));
+    break;
+  }
+  case NIFTI_TYPE_COMPLEX64:
+  {
+    if ( GIFTI_IND_ORD_ROW_MAJOR == da->ind_ord )
+      return (double)*((double*)
+                       (da->data) + (dim0_index*dims_1) + dim1_index);
+    else
+      return (double)*((double*)
                        (da->data) + dim0_index + (dim1_index*dims_0));
     break;
   }
@@ -1084,43 +1104,58 @@ MRI *MRISreadGiftiAsMRI(const char *fname, int read_volume)
 
   /* check for overlay data */
   giiDataArray* scalars = NULL;
-  int da_num = 0;
   int frame_count = 0;
   long long num_vertices = -1;
   long long num_cols = 0;
-  do
+  #define INTENT_CODE_MAX_IDX 3
+  int intent_code[INTENT_CODE_MAX_IDX] = 
+    {NIFTI_INTENT_TIME_SERIES,
+     NIFTI_INTENT_SHAPE,
+     NIFTI_INTENT_NONE};
+  int intent_code_idx = 0;
+  // search all DAs for time series, then shape, then none.
+  // if time series found, check all DAs to make sure all the same size.
+  for (intent_code_idx = 0; intent_code_idx < INTENT_CODE_MAX_IDX;
+       intent_code_idx++)
   {
-    scalars = gifti_find_DA (image, NIFTI_INTENT_TIME_SERIES, da_num);
-    if (NULL == scalars)
+    int da_num = 0;
+    do
     {
-      if (++da_num >= image->numDA) break;
-      else continue;
-    }
-    frame_count++;
-    long long nvertices=0, ncols=0;
-    gifti_DA_rows_cols (scalars, &nvertices, &ncols);
-    if (num_vertices == -1)
-    {
-      num_vertices=nvertices;
-      num_cols=ncols;
-    }
-    else
-    {
-      if (num_vertices <= 0 ||
-          num_vertices != nvertices ||
-          ncols != 1)
+      scalars = gifti_find_DA (image, intent_code[intent_code_idx], da_num);
+      if (NULL == scalars)
       {
-        fprintf 
-          (stderr,
-           "MRISreadGiftiAsMRI: malformed time-series data array in file "
-           "%s: nvertices=%d ncols=%d expected num_vertices=%d\n",
-           fname, (int)nvertices, (int)num_cols, (int)num_vertices);
-        gifti_free_image (image);
-        return NULL;
+        if (++da_num >= image->numDA) break;
+        else continue;
       }
-    }
-    if (++da_num >= image->numDA) break;
-  } while ( scalars );
+      frame_count++;
+      long long nvertices=0, ncols=0;
+      gifti_DA_rows_cols (scalars, &nvertices, &ncols);
+      if (num_vertices == -1)
+      {
+        num_vertices=nvertices;
+        num_cols=ncols;
+      }
+      else
+      {
+        if (num_vertices <= 0 ||
+            num_vertices != nvertices ||
+            ncols != 1)
+        {
+          fprintf 
+            (stderr,
+             "MRISreadGiftiAsMRI: malformed time-series data array in file "
+             "%s: nvertices=%d ncols=%d expected num_vertices=%d\n",
+             fname, (int)nvertices, (int)num_cols, (int)num_vertices);
+          gifti_free_image (image);
+          return NULL;
+        }
+      }
+      if (++da_num >= image->numDA) break;
+      if (intent_code[intent_code_idx] != NIFTI_INTENT_TIME_SERIES) break;
+    } while ( scalars );
+
+    if (scalars) break; // found some data, no need to check other intents
+  }
 
   if (frame_count == 0)
   {
@@ -1144,9 +1179,10 @@ MRI *MRISreadGiftiAsMRI(const char *fname, int read_volume)
   /* Copy in each scalar frame to 'volume' frame. */
   mri =  MRIallocSequence(num_vertices,1,1,MRI_FLOAT,frame_count);
   frame_count = 0;
+  int da_num;
   for (da_num = 0; da_num < image->numDA; da_num++)
   {
-    scalars = gifti_find_DA (image, NIFTI_INTENT_TIME_SERIES, da_num);
+    scalars = gifti_find_DA (image, intent_code[intent_code_idx], da_num);
     if (NULL == scalars) continue;
     int vno;
     for (vno = 0; vno < num_vertices; vno++)
