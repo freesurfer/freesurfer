@@ -9,8 +9,8 @@
 #
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2012/03/17 22:22:15 $
-#    $Revision: 1.565 $
+#    $Date: 2012/03/19 00:49:01 $
+#    $Revision: 1.566 $
 #
 ########################################################################
 AC_PREREQ(2.57)
@@ -3278,8 +3278,8 @@ $ITK_LIBS $EXPAT_LIBS"
 # The order is important here. When adding or removing a lib, be sure
 # to test the link line to make sure you don't need to adjust the
 # order.
-#LIBS="-lz -lm $LIB_CRYPT -ldl -lpthread $LIBS"
-LIBS="-lz -lm $LIB_CRYPT -lpthread -luuid -lblas -lXmu -llapack $LIBS"
+LIBS="-lz -lm $LIB_CRYPT -ldl -lpthread $LIBS"
+#LIBS="-lz -lm $LIB_CRYPT -lpthread -luuid -lblas -lXmu -llapack $LIBS"
 LIBS="$LIBS $LIB_JPEG"
 LIBS="$LIBS $LIB_TIFF"
 LIBS="$LIBS $LIB_EXPAT"
