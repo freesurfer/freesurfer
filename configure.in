@@ -9,8 +9,8 @@
 #
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2012/03/19 00:49:01 $
-#    $Revision: 1.566 $
+#    $Date: 2012/03/20 16:43:21 $
+#    $Revision: 1.567 $
 #
 ########################################################################
 AC_PREREQ(2.57)
@@ -499,12 +499,8 @@ case "${target}" in
  DYNAMIC_LIB_EXT=".so"
  SHARED_CFLAGS="-fPIC"
  SHARED_LDFLAGS="-shared"
- if test "$ac_have_gcc_44" = "yes"; then
-   # if using gcc 4.4, include extra SSE 4 optimization flags
-   CPPFLAGS="-g -O3 -ftree-vectorize -msse4.1 -mfpmath=sse $WALL $WERROR"
- else
-   CPPFLAGS="-g -O3 -msse2 -mfpmath=sse $WALL $WERROR"
- fi
+ # note: gcc 4.4 flags -ftree-vectorize -msse4.1 dont help over just -msse2
+ CPPFLAGS="-g -O3 -msse2 -mfpmath=sse $WALL $WERROR"
  FFLAGS="-g -O3 -msse2 -mfpmath=sse"
  ac_have_sse_mathfun=yes
  TEEM_32BIT=0
