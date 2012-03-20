@@ -7,9 +7,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2011/12/11 21:39:42 $
- *    $Revision: 1.81 $
+ *    $Author: fischl $
+ *    $Date: 2012/03/20 19:25:07 $
+ *    $Revision: 1.82 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -1628,4 +1628,21 @@ void exec_progress_callback(int slice, int total_slices, int frame, int total_fr
   if (progress_callback)
     progress_callback(global_progress_range[0] +
                       (global_progress_range[1]-global_progress_range[0])*(slice+total_slices*frame)/(total_slices*total_frames));
+}
+int
+compute_permutation(int num, int *vec) 
+{
+  int n, index, tmp ;
+
+  for (n = 0 ; n < num ; n++)
+    vec[n] = n ;
+
+  for (n = 0 ; n < num ; n++)
+  {  
+    index = (int)randomNumber(0.0, (double)(num-0.0001)) ;
+    tmp = vec[index] ;
+    vec[index] = vec[n] ;
+    vec[n] = tmp ;
+  }
+  return(NO_ERROR) ;
 }
