@@ -9,8 +9,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2012/01/25 15:20:14 $
- *    $Revision: 1.398 $
+ *    $Date: 2012/03/21 13:14:34 $
+ *    $Revision: 1.399 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -12719,7 +12719,7 @@ mghRead(const char *fname, int read_volume, int frame)
         break ;
 
       case TAG_CMDLINE:
-        if (mri->ncmds > MAX_CMDS)
+        if (mri->ncmds >= MAX_CMDS)
           ErrorExit(ERROR_NOMEMORY,
                     "mghRead(%s): too many commands (%d) in file",
                     fname,mri->ncmds);
