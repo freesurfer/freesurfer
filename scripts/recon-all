@@ -7,9 +7,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: nicks $
-#    $Date: 2012/03/17 23:47:17 $
-#    $Revision: 1.413 $
+#    $Author: mreuter $
+#    $Date: 2012/03/21 20:43:24 $
+#    $Revision: 1.414 $
 #
 # Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -26,7 +26,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.413 2012/03/17 23:47:17 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.414 2012/03/21 20:43:24 mreuter Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -935,78 +935,109 @@ if ($DoCreateBaseInput && $DoCreateBaseSubj) then
     set lta1forms = ($lta1forms ${subjdir}/mri/transforms/${s}_to_${subjid}_norm.lta)
     set ltaAforms = ($ltaAforms ${subjdir}/mri/transforms/${s}_to_${subjid}_affine.lta)    
   end
-  # create the 'mean/median' norm volume:
-  set cmd = (mri_robust_template --mov ${normInVols})
-  if ($DoAffineBase) then
-    # this is only initial rigid reg
-    set cmd = ($cmd --lta ${lta1forms})
-    set cmd = ($cmd --template ${subjdir}/mri/norm1_template.mgz)
-  else
-    # this is final rigid reg
-    set cmd = ($cmd --lta ${ltaXforms})
-    set cmd = ($cmd --template ${subjdir}/mri/norm_template.mgz)
-  endif
-  set cmd = ($cmd --average ${robust_template_avg_arg})
-  set cmd = ($cmd --sat 4.685 )
-  echo "\n $cmd \n" |& tee -a $LF |& tee -a $CF
-  if($RunIt) then
-    $fs_time $cmd |& tee -a $LF
-    if($status) goto error_exit;
-  endif
   
-  if ($DoAffineBase) then
-    # use registration on norm.mgz to initialize affine reg on full head imgs:
-    set cmd = (mri_robust_template --mov ${headInVols})
-    set cmd = ($cmd --lta ${ltaAforms})
-    set cmd = ($cmd --average ${robust_template_avg_arg})
-    set cmd = ($cmd --template ${subjdir}/mri/head_template.mgz)
-    set cmd = ($cmd --sat 4.685 )
-    set cmd = ($cmd --ixforms ${lta1forms})
-    set cmd = ($cmd --affine)
-    echo "\n $cmd \n" |& tee -a $LF |& tee -a $CF
-    if($RunIt) then
-      $fs_time $cmd |& tee -a $LF
-      if($status) goto error_exit;
-    endif
-    # use affine reg to init rigid reg on norm,.mgz (fine tuning)
-    # not sure if it is really necessary
-    set cmd = (mri_robust_template --mov ${normInVols})
-    set cmd = ($cmd --lta ${ltaXforms})
-    set cmd = ($cmd --average ${robust_template_avg_arg})
-    set cmd = ($cmd --template ${subjdir}/mri/norm_template.mgz)
-    set cmd = ($cmd --sat 4.685 )
-    set cmd = ($cmd --ixforms ${ltaAforms})
+  if ($#BaseSubjsList == 1) then
+    # if only a single time point, create fake 'base' by making the image upright
+    # this assures that also subjects with a single time point get processes as the other
+    # subjects in the longitudinal stream
+
+    # 1. make the norm upright (base space)
+    set cmd = ( make_upright $normInVols[1] ${subjdir}/mri/norm_template.mgz $ltaXforms[1] )
     echo "\n $cmd \n" |& tee -a $LF |& tee -a $CF
     if($RunIt) then
       $fs_time $cmd |& tee -a $LF
       if($status) goto error_exit;
     endif  
-  endif
-  
-  # create the 'mean/median' input (orig) volume:
-  set cmd = (mri_robust_template --mov ${subjInVols})
-  set cmd = ($cmd --average ${robust_template_avg_arg})
-  set cmd = ($cmd --ixforms ${ltaXforms})
-  set cmd = ($cmd --noit)
-  set cmd = ($cmd --template ${subjdir}/mri/orig.mgz)
-  echo "\n $cmd \n" |& tee -a $LF |& tee -a $CF
-  if($RunIt) then
-    $fs_time $cmd |& tee -a $LF
-    if($status) goto error_exit;
-  endif
-  
-  # create the 'mean/median' rawavg volume
-  # (here we assume same RAS space for rawavg and orig)
-  set cmd = (mri_robust_template --mov ${rawInVols})
-  set cmd = ($cmd --average ${robust_template_avg_arg})
-  set cmd = ($cmd --ixforms ${ltaXforms})
-  set cmd = ($cmd --noit)
-  set cmd = ($cmd --template ${subjdir}/mri/rawavg.mgz)
-  echo "\n $cmd \n" |& tee -a $LF |& tee -a $CF
-  if($RunIt) then
-    $fs_time $cmd |& tee -a $LF
-    if($status) goto error_exit;
-  endif
+    # 2. create the upright orig volume
+    set cmd = ( mri_convert -rt cubic -at $ltaXforms[1] $subjInVols[1] ${subjdir}/mri/orig.mgz )
+    echo "\n $cmd \n" |& tee -a $LF |& tee -a $CF
+    if($RunIt) then
+      $fs_time $cmd |& tee -a $LF
+      if($status) goto error_exit;
+    endif  
+    # 3. create the upright rawavg volume
+    set cmd = ( mri_convert -rt cubic -at $ltaXforms[1] $rawInVols[1] ${subjdir}/mri/rawavg.mgz )
+    echo "\n $cmd \n" |& tee -a $LF |& tee -a $CF
+    if($RunIt) then
+      $fs_time $cmd |& tee -a $LF
+      if($status) goto error_exit;
+    endif  
+    
+  else #more than 1 time point:
+    
+    # create the 'mean/median' norm volume:
+    set cmd = (mri_robust_template --mov ${normInVols})
+    if ($DoAffineBase) then
+      # this is only initial rigid reg
+      set cmd = ($cmd --lta ${lta1forms})
+      set cmd = ($cmd --template ${subjdir}/mri/norm1_template.mgz)
+    else
+      # this is final rigid reg
+      set cmd = ($cmd --lta ${ltaXforms})
+      set cmd = ($cmd --template ${subjdir}/mri/norm_template.mgz)
+    endif
+    set cmd = ($cmd --average ${robust_template_avg_arg})
+    set cmd = ($cmd --sat 4.685 )
+    echo "\n $cmd \n" |& tee -a $LF |& tee -a $CF
+    if($RunIt) then
+      $fs_time $cmd |& tee -a $LF
+      if($status) goto error_exit;
+    endif
+
+    if ($DoAffineBase) then
+      # use registration on norm.mgz to initialize affine reg on full head imgs:
+      set cmd = (mri_robust_template --mov ${headInVols})
+      set cmd = ($cmd --lta ${ltaAforms})
+      set cmd = ($cmd --average ${robust_template_avg_arg})
+      set cmd = ($cmd --template ${subjdir}/mri/head_template.mgz)
+      set cmd = ($cmd --sat 4.685 )
+      set cmd = ($cmd --ixforms ${lta1forms})
+      set cmd = ($cmd --affine)
+      echo "\n $cmd \n" |& tee -a $LF |& tee -a $CF
+      if($RunIt) then
+        $fs_time $cmd |& tee -a $LF
+        if($status) goto error_exit;
+      endif
+      # use affine reg to init rigid reg on norm,.mgz (fine tuning)
+      # not sure if it is really necessary
+      set cmd = (mri_robust_template --mov ${normInVols})
+      set cmd = ($cmd --lta ${ltaXforms})
+      set cmd = ($cmd --average ${robust_template_avg_arg})
+      set cmd = ($cmd --template ${subjdir}/mri/norm_template.mgz)
+      set cmd = ($cmd --sat 4.685 )
+      set cmd = ($cmd --ixforms ${ltaAforms})
+      echo "\n $cmd \n" |& tee -a $LF |& tee -a $CF
+      if($RunIt) then
+        $fs_time $cmd |& tee -a $LF
+        if($status) goto error_exit;
+      endif  
+    endif
+
+    # create the 'mean/median' input (orig) volume:
+    set cmd = (mri_robust_template --mov ${subjInVols})
+    set cmd = ($cmd --average ${robust_template_avg_arg})
+    set cmd = ($cmd --ixforms ${ltaXforms})
+    set cmd = ($cmd --noit)
+    set cmd = ($cmd --template ${subjdir}/mri/orig.mgz)
+    echo "\n $cmd \n" |& tee -a $LF |& tee -a $CF
+    if($RunIt) then
+      $fs_time $cmd |& tee -a $LF
+      if($status) goto error_exit;
+    endif
+
+    # create the 'mean/median' rawavg volume
+    # (here we assume same RAS space for rawavg and orig)
+    set cmd = (mri_robust_template --mov ${rawInVols})
+    set cmd = ($cmd --average ${robust_template_avg_arg})
+    set cmd = ($cmd --ixforms ${ltaXforms})
+    set cmd = ($cmd --noit)
+    set cmd = ($cmd --template ${subjdir}/mri/rawavg.mgz)
+    echo "\n $cmd \n" |& tee -a $LF |& tee -a $CF
+    if($RunIt) then
+      $fs_time $cmd |& tee -a $LF
+      if($status) goto error_exit;
+    endif
+  endif # more than one time point
 
   # now create the inverse transforms
   cd $subjdir/mri/transforms > /dev/null
@@ -1725,18 +1756,30 @@ skullstrip:
       set ltaname = ${s}_to_${subjid}.lta
       set ltaXforms = ($ltaXforms ${subjdir}/mri/transforms/${ltaname})
     end
-    # map all brainmask with nearest neighbor and average 0=mean=logicalOR:
-    set cmd = (mri_robust_template --mov ${bmInVols})
-    set cmd = ($cmd --average 0)
-    set cmd = ($cmd --ixforms ${ltaXforms})
-    set cmd = ($cmd --noit)
-    set cmd = ($cmd --finalnearest)
-    set cmd = ($cmd --template brainmask_template.mgz)
-    echo "\n $cmd \n" |& tee -a $LF |& tee -a $CF
-    if($RunIt) then
-      $fs_time $cmd |& tee -a $LF
-      if($status) goto error_exit;
-    endif
+    
+    if ($#bmInVols == 1) then
+      # only a single time point in base
+      set cmd = (mri_convert -at $ltaXforms[1] -rt nearest $bmInVols[1] brainmask_template.mgz )
+      echo "\n $cmd \n" |& tee -a $LF |& tee -a $CF
+      if($RunIt) then
+        $fs_time $cmd |& tee -a $LF
+        if($status) goto error_exit;
+      endif
+    else
+      # map all brainmask with nearest neighbor and average 0=mean=logicalOR:
+      set cmd = (mri_robust_template --mov ${bmInVols})
+      set cmd = ($cmd --average 0)
+      set cmd = ($cmd --ixforms ${ltaXforms})
+      set cmd = ($cmd --noit)
+      set cmd = ($cmd --finalnearest)
+      set cmd = ($cmd --template brainmask_template.mgz)
+      echo "\n $cmd \n" |& tee -a $LF |& tee -a $CF
+      if($RunIt) then
+        $fs_time $cmd |& tee -a $LF
+        if($status) goto error_exit;
+      endif
+    endif # more than 1 tp
+    
     # create brainmask.auto by applying brainmask_template to T1
     # first apply mask and keep deletion edits (1)
     set cmd = (mri_mask -keep_mask_deletion_edits)
@@ -6764,7 +6807,7 @@ LONGITUDINAL PROCESSING
 
 The longitudinal processing scheme aims to incorporate the subject-wise
 correlation of longitudinal data into the processing stream in order to
-increase sensitivity and repeatability, see [14][15]. Care is taken to
+increase sensitivity and repeatability, see [14-16]. Care is taken to
 avoid introduction of asymmetry-induced bias.
 
 Here is a summary of the longitudinal workflow, where tpN refers to the
@@ -6989,3 +7032,7 @@ NeuroImage (2010). http://dx.doi.org/10.1016/j.neuroimage.2010.07.020
 [15] Martin Reuter, Bruce Fischl.
 Avoiding Asymmetry-Induced Bias in Longitudinal Image Processing.
 NeuroImage (2011). http://dx.doi.org/10.1016/j.neuroimage.2011.02.076
+
+[16] Martin Reuter, Nicholas J Schmasnky, H Diana Rosas, Bruce Fischl.
+Within-Subject Template Estimation for Unbiased Longitudinal Image Analysis.
+NeuroImage (2012). http://dx.doi.org/10.1016/j.neuroimage.2012.02.084
