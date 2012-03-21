@@ -8,8 +8,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2012/03/21 12:06:49 $
- *    $Revision: 1.6 $
+ *    $Date: 2012/03/21 23:35:33 $
+ *    $Revision: 1.7 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -202,7 +202,7 @@ find_optimal_feature_and_threshold(RANDOM_FOREST *rf, TREE *tree, NODE *parent, 
   double  info_gain, best_info_gain, thresh, best_thresh ;
   int     f, best_f, fno, nsteps;
 
-  best_info_gain = -1 ; best_f = -1 ; best_thresh = 0 ;
+  info_gain = best_info_gain = -1 ; best_f = -1 ; best_thresh = 0 ;
   for (f = 0 ; f < tree->nfeatures ; f++)
   {
     fno = tree->feature_list[f] ;
@@ -449,6 +449,10 @@ RFtrain(RANDOM_FOREST *rf, double feature_fraction, double training_fraction, in
     for (i = start_no  ; i <= end_no  ; i++)
     {
       index = training_permutation[i] ;
+      if (training_classes[index] < 0 || training_classes[index] >= rf->nclasses)
+	ErrorReturn(ERROR_BADPARM, 
+		    (ERROR_BADPARM, "RFtrain: class at index %d = %d: out of bounds (%d)",
+		     index, training_classes[index], rf->nclasses)) ;
       tree->root.class_counts[training_classes[index]]++ ;
       tree->root.training_set[tree->root.total_counts] = index ;
       tree->root.total_counts++ ;
@@ -587,6 +591,8 @@ rfReadNode(RANDOM_FOREST *rf, NODE *node, FILE *fp)
   cp = strtok(line, " ") ;
   for (node->total_counts = 0, c = 0 ; c < rf->nclasses ; c++)
   {
+    if (cp == NULL)
+      ErrorExit(ERROR_BADFILE, "could not read class counts") ;
     sscanf(cp, "%d ", &node->class_counts[c]) ;
     cp = strtok(NULL, " ") ;
     node->total_counts += node->class_counts[c] ;
@@ -598,6 +604,8 @@ rfReadNode(RANDOM_FOREST *rf, NODE *node, FILE *fp)
   cp = strtok(line, " ") ;
   for (n = 0 ; n < node->total_counts ; n++)
   {
+    if (cp == NULL)
+      ErrorExit(ERROR_BADFILE, "could not read training set") ;
     sscanf(cp, "%d ", &node->training_set[n]) ;
     cp = strtok(NULL, " ") ;
   }
