@@ -8,8 +8,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2012/03/08 13:30:09 $
- *    $Revision: 1.3 $
+ *    $Date: 2012/03/21 00:56:52 $
+ *    $Revision: 1.4 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -25,7 +25,19 @@
 
 
 #ifndef RFOREST_H
+#define RFOREST_H
 
+
+typedef struct
+{
+  int    ntrees ;
+  int    nfeatures ;
+  int    nclasses ;
+  int    max_depth ;
+  int    nsteps ;
+  double training_fraction ;
+  double feature_fraction ;
+} RFOREST_PARMS, RF_PARMS ;
 
 typedef struct node
 {
@@ -35,8 +47,7 @@ typedef struct node
   double thresh ;
   int    depth ;
   int    total_counts ;       // sum of all the class_counts
-  int    ntraining ;
-  int    *training_set ;      // 1 if a given training example was used for this node
+  int    *training_set ;      // list of training set indices (total_counts of them)
 } NODE ;
 
 typedef struct
@@ -46,6 +57,7 @@ typedef struct
   NODE root ;
   int  depth ;
   int  nleaves ;
+  int  max_leaves ;
   NODE **leaves ;
 } TREE ;
 
@@ -70,10 +82,14 @@ typedef struct
 RANDOM_FOREST *RFalloc(int ntrees, int nfeatures, int nclasses, int max_depth,
                        char **class_names, int nsteps) ;
 RANDOM_FOREST *RFread(char *fname) ;
-int  RFtrain(RANDOM_FOREST *rf, double feature_overlap, double training_overlap, int *training_classes, double **training_data,int ntraining);
+RANDOM_FOREST *RFreadFrom(FILE *fp) ;
+int  RFtrain(RANDOM_FOREST *rf, double feature_fraction, double training_fraction, int *training_classes, double **training_data,int ntraining);
 int  RFwrite(RANDOM_FOREST *rf, char *fname) ;
+int  RFwriteInto(RANDOM_FOREST *rf, FILE *fp) ;
 int  RFclassify(RANDOM_FOREST *rf, double *feature, double *p_pval, int true_class) ;
 int  RFcomputeOutOfBagCorrect(RANDOM_FOREST *rf, int *training_classes, double **training_data,int ntraining);
+int  RFtrainTree(RANDOM_FOREST *rf, int tno, int *training_classes, double **training_data, int ntraining);
+int  RFsetNumberOfClasses(RANDOM_FOREST *rf, int nlabels) ;
 
 
 #endif
