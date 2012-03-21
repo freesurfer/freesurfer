@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl (Apr 16, 1997)
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2012/03/09 00:42:42 $
- *    $Revision: 1.191 $
+ *    $Date: 2012/03/21 20:54:29 $
+ *    $Revision: 1.192 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -203,7 +203,7 @@ int main(int argc, char *argv[])
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mri_convert.c,v 1.191 2012/03/09 00:42:42 mreuter Exp $",
+   "$Id: mri_convert.c,v 1.192 2012/03/21 20:54:29 mreuter Exp $",
    "$Name:  $",
    cmdline);
 
@@ -324,7 +324,7 @@ int main(int argc, char *argv[])
     handle_version_option
     (
       argc, argv,
-      "$Id: mri_convert.c,v 1.191 2012/03/09 00:42:42 mreuter Exp $",
+      "$Id: mri_convert.c,v 1.192 2012/03/21 20:54:29 mreuter Exp $",
       "$Name:  $"
     );
   if (nargs && argc - nargs == 1)
@@ -1575,7 +1575,7 @@ int main(int argc, char *argv[])
             "= --zero_ge_z_offset option ignored.\n");
   }
 
-  printf("$Id: mri_convert.c,v 1.191 2012/03/09 00:42:42 mreuter Exp $\n");
+  printf("$Id: mri_convert.c,v 1.192 2012/03/21 20:54:29 mreuter Exp $\n");
   printf("reading from %s...\n", in_name_only);
 
   if (in_volume_type == OTL_FILE)
@@ -1923,6 +1923,7 @@ int main(int argc, char *argv[])
            "see make_upright.\n",LeftRightMirrorHemi);
 
     MRIdircosToOrientationString(mri,ostr);
+    printf("  Orientation string: %s\n",ostr);
     mri2 = MRIcopy(mri,NULL);
     if(ostr[0] == 'L' || ostr[0] == 'R'){
       printf("  Mirror pixels for the columns\n");
@@ -1945,7 +1946,7 @@ int main(int argc, char *argv[])
     if(ostr[1] == 'L' || ostr[1] == 'R') {
       printf("  Mirror pixels for the rows\n");
       for(c=0; c < mri->width; c++){
-        for(r=0; r < mri->height; r++){
+        for(r=0; r < mri->height/2; r++){
           r1 = r;
           if (ostr[1] == toupper(LeftRightMirrorHemi[0])) {
             r1 = mri->height -r -1;
@@ -1964,7 +1965,7 @@ int main(int argc, char *argv[])
       printf("  Mirror pixels for the slices\n");
       for(c=0; c < mri->width; c++){
         for(r=0; r < mri->height; r++){
-          for(s=0; s < mri->depth; s++){
+          for(s=0; s < mri->depth/2; s++){
             s1 = s;
             if (ostr[2] == toupper(LeftRightMirrorHemi[0])) {
               s1 = mri->depth -s -1;
