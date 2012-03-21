@@ -8,8 +8,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2012/01/31 23:17:56 $
- *    $Revision: 1.2 $
+ *    $Date: 2012/03/21 20:43:40 $
+ *    $Revision: 1.3 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -57,6 +57,7 @@ static int nlayers = NLAYERS ;
 static char *LAMINAR_NAME = "gwdist";
 static char *aseg_name = "aseg.mgz" ;
 
+static int noaseg = 0 ;
 static char *subject_name = NULL ;
 static char *hemi = "lh" ;
 int main(int argc, char *argv[]) ;
@@ -88,7 +89,7 @@ main(int argc, char *argv[])
   float       intensity, betplaneres, inplaneres ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_compute_layer_fractions.c,v 1.2 2012/01/31 23:17:56 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_compute_layer_fractions.c,v 1.3 2012/03/21 20:43:40 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -160,6 +161,8 @@ main(int argc, char *argv[])
   mri_layers->c_s = mri_aseg->c_s ;
 #else
   mri_in = MRIreadHeader(in_fname, MRI_VOLUME_TYPE_UNKNOWN) ;
+  if (mri_in == NULL)
+    ErrorExit(ERROR_NOFILE, "%s: could not load input volume from %s", Progname,in_fname) ;
   width = (int)ceil(mri_in->width * (mri_in->xsize/resolution));  
   height = (int)ceil(mri_in->height * (mri_in->ysize/resolution));  
   depth = (int)ceil(mri_in->depth * (mri_in->zsize/resolution));  
@@ -227,7 +230,9 @@ main(int argc, char *argv[])
 
   MRIfree(&mri_interior_bottom) ;
   MRIreplaceValuesOnly(mri_layers, mri_layers, 0, CSF_VAL+1) ;
-  add_aseg_structures_outside_ribbon(mri_layers, mri_aseg, mri_layers, WM_VAL, SUBCORT_GM_VAL+1, CSF_VAL+1) ;
+  if (noaseg == 0)
+    add_aseg_structures_outside_ribbon(mri_layers, mri_aseg, mri_layers, 
+				       WM_VAL, SUBCORT_GM_VAL+1, CSF_VAL+1) ;
   printf("reading movable volume %s\n", in_fname) ;
   mri_in = MRIread(in_fname) ;
   if (mri_in == NULL)
@@ -303,6 +308,9 @@ get_option(int argc, char *argv[]) {
   } else if (!stricmp(option, "cortex")) {
     printf("limitting gm val to cortex\n") ;
     cortex_only = 1 ;
+  } else if (!stricmp(option, "noaseg")) {
+    noaseg = 1 ;
+    printf("not computing subcortical components\n") ;
   } else if (!stricmp(option, "nlayers")) {
     nlayers = atoi(argv[2]) ;
     nargs = 1 ;
