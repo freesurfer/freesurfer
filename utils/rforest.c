@@ -8,8 +8,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2012/03/21 00:56:37 $
- *    $Revision: 1.5 $
+ *    $Date: 2012/03/21 12:06:49 $
+ *    $Revision: 1.6 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -46,7 +46,7 @@ RFalloc(int ntrees, int nfeatures, int nclasses, int max_depth, char **class_nam
 {
   RANDOM_FOREST *rf ;
   TREE          *tree ;
-  int           n, c ;
+  int           n, c = 0 ;
 
   rf = calloc(1, sizeof(RANDOM_FOREST)) ;
   if (rf == NULL)
