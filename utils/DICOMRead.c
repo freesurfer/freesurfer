@@ -7,8 +7,8 @@
  * Original Authors: Sebastien Gicquel and Douglas Greve, 06/04/2001
  * CVS Revision Info:
  *    $Author: twitzel $
- *    $Date: 2012/03/22 21:25:29 $
- *    $Revision: 1.145 $
+ *    $Date: 2012/03/22 22:31:54 $
+ *    $Revision: 1.146 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -554,7 +554,7 @@ MRI * sdcmLoadVolume(const char *dcmfile, int LoadVolume, int nthonly)
 /*
   Note: This is a complete copy of sdcmLoadVolume, but applying both the autoscale to each 
         frame (even for MOSAIC) and also resulting in a float volume, to avoid reduction 
-        of dynamic range by the cast to float. This is what is needed for autoscaled diffusion
+        of dynamic range by the cast to short. This is what is needed for autoscaled diffusion
         data. TW 03/22/2012
 
 */
@@ -575,7 +575,7 @@ MRI * sdcmLoadVolumeAutoScale(const char *dcmfile, int LoadVolume, int nthonly)
   char **SeriesList;
   char *tmpstring,*pc=NULL,*pc2=NULL;
   int Maj, Min, MinMin;
-  double xs,ys,zs,xe,ye,ze,d,MinSliceScaleFactor,val;
+  double xs,ys,zs,xe,ye,ze,d,val;
   int nnlist, nthdir;
   DTI *dti;
   int TryDTI = 1, DoDTI = 1;
@@ -608,6 +608,8 @@ MRI * sdcmLoadVolumeAutoScale(const char *dcmfile, int LoadVolume, int nthonly)
     return(NULL);
   }
 
+  fprintf(stderr,"WARNING: YOU ARE USING A BETA AUTOSCALE VERSION !\n");
+  
   //for(nnlist=0; nnlist<nlist; nnlist++) fprintf(stdout,"%3d  %s\n",
   //nnlist,SeriesList[nnlist]);
   //fflush(stdout);
