@@ -6,9 +6,9 @@
 /*
  * Original Author: Sebastien Gicquel and Douglas Greve, 06/04/2001
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2011/10/12 19:41:05 $
- *    $Revision: 1.31 $
+ *    $Author: twitzel $
+ *    $Date: 2012/03/22 21:26:04 $
+ *    $Revision: 1.32 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -295,6 +295,7 @@ int sdfiCountFilesInRun(int RunNo, SDCMFILEINFO **sdfi_list, int nlist);
 int *sdfiRunFileList(const char *dcmfile, SDCMFILEINFO **sdfi_list,
                      int nlist, int *NRunList);
 MRI * sdcmLoadVolume(const char *dcmfile, int LoadVolume, int nthonly);
+MRI * sdcmLoadVolumeAutoScale(const char *dcmfile, int LoadVolume, int nthonly);
 int sdfiVolCenter(SDCMFILEINFO *sdfi);
 int sdfiFixImagePosition(SDCMFILEINFO *sdfi);
 int sdfiSameSlicePos(SDCMFILEINFO *sdfi1, SDCMFILEINFO *sdfi2);
