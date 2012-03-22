@@ -6,9 +6,9 @@
 /*
  * Original Authors: Sebastien Gicquel and Douglas Greve, 06/04/2001
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2012/02/24 18:53:42 $
- *    $Revision: 1.144 $
+ *    $Author: twitzel $
+ *    $Date: 2012/03/22 21:25:29 $
+ *    $Revision: 1.145 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -550,6 +550,484 @@ MRI * sdcmLoadVolume(const char *dcmfile, int LoadVolume, int nthonly)
 
   return(vol);
 }
+
+/*
+  Note: This is a complete copy of sdcmLoadVolume, but applying both the autoscale to each 
+        frame (even for MOSAIC) and also resulting in a float volume, to avoid reduction 
+        of dynamic range by the cast to float. This is what is needed for autoscaled diffusion
+        data. TW 03/22/2012
+
+*/
+MRI * sdcmLoadVolumeAutoScale(const char *dcmfile, int LoadVolume, int nthonly)
+{
+  SDCMFILEINFO *sdfi;
+  DCM_ELEMENT *element;
+  SDCMFILEINFO **sdfi_list;
+  int nthfile;
+  int nlist;
+  int ncols, nrows, nslices, nframes;
+  int nmoscols, nmosrows;
+  int mosrow, moscol, mosindex;
+  int err,OutOfBounds,IsMosaic;
+  int row, col, slice, frame;
+  unsigned short *pixeldata;
+  MRI *vol, *voltmp;
+  char **SeriesList;
+  char *tmpstring,*pc=NULL,*pc2=NULL;
+  int Maj, Min, MinMin;
+  double xs,ys,zs,xe,ye,ze,d,MinSliceScaleFactor,val;
+  int nnlist, nthdir;
+  DTI *dti;
+  int TryDTI = 1, DoDTI = 1;
+  extern int sliceDirCosPresent; // set when no ascii header
+
+  xs=ys=zs=xe=ye=ze=d=0.; /* to avoid compiler warnings */
+  slice = 0;
+  frame = 0; /* to avoid compiler warnings */
+
+  sliceDirCosPresent = 0; // assume not present
+
+  /* split progress to 3 parts */
+  int nstart = global_progress_range[0];
+  int nend = global_progress_range[1];
+  global_progress_range[1] = nstart + (nend-nstart)/3;
+  if (SDCMListFile != NULL)
+    SeriesList = ReadSiemensSeries(SDCMListFile, &nlist, dcmfile);
+  else
+    SeriesList = ScanSiemensSeries(dcmfile,&nlist);
+
+  if (SeriesList == NULL)
+  {
+    fprintf(stderr,"ERROR: could not find any files (SeriesList==NULL)\n");
+    return(NULL);
+  }
+
+  if (nlist == 0)
+  {
+    fprintf(stderr,"ERROR: could not find any files (nlist==0)\n");
+    return(NULL);
+  }
+
+  //for(nnlist=0; nnlist<nlist; nnlist++) fprintf(stdout,"%3d  %s\n",
+  //nnlist,SeriesList[nnlist]);
+  //fflush(stdout);
+
+  global_progress_range[0] = global_progress_range[1];
+  global_progress_range[1] += (nend-nstart)/3;
+  printf("INFO: loading series header info.\n");
+  sdfi_list = LoadSiemensSeriesInfo(SeriesList, nlist);
+
+  // free memory
+  nnlist = nlist;
+  while (nnlist--) free(SeriesList[nnlist]);
+  free(SeriesList);
+
+  printf("INFO: sorting.\n");
+  SortSDCMFileInfo(sdfi_list,nlist);
+
+  sdfiAssignRunNo2(sdfi_list, nlist);
+
+  /* First File in the Run */
+  if(nthonly < 0) sdfi = sdfi_list[0];
+  else            sdfi = sdfi_list[nthonly];
+
+  /* There are some Siemens files don't have the slice dircos
+     because they dont have ascii header (anonymization?).
+     If this happens on a mosiac, then you cannot unpack it.
+     For non-mosaics, recompute the slice dircos based on
+     the image position of the first and last file. Note:
+     slice dircos may be used to sort the files in the first
+     place, but this should work either way.
+  */
+  if (sliceDirCosPresent == 0)
+  {
+    printf("\n");
+    printf("WARNING: file %s does not contain a Siemens ASCII header\n"
+           "has this file been anonymized?\n",sdfi_list[0]->FileName);
+    if (sdfi_list[0]->IsMosaic)
+    {
+      printf("ERROR: cannot unpack mosiacs without ASCII header\n");
+      exit(1);
+    }
+    printf("Proceeding as best as I can ... \n");
+    printf("\n");
+    xs = sdfi_list[0]->ImgPos[0];
+    ys = sdfi_list[0]->ImgPos[1];
+    zs = sdfi_list[0]->ImgPos[2];
+    xe = sdfi_list[nlist-1]->ImgPos[0];
+    ye = sdfi_list[nlist-1]->ImgPos[1];
+    ze = sdfi_list[nlist-1]->ImgPos[2];
+    d = sqrt( (xe-xs)*(xe-xs) + (ye-ys)*(ye-ys) + (ze-zs)*(ze-zs) );
+    sdfi->Vs[0] = (xe-xs)/d;
+    sdfi->Vs[1] = (ye-ys)/d;
+    sdfi->Vs[2] = (ze-zs)/d;
+    // Note: no need to change to RAS because ImagePos is already RAS
+  }
+  sdfiFixImagePosition(sdfi);
+  sdfiVolCenter(sdfi);
+
+  /* for easy access */
+  ncols    = sdfi->VolDim[0];
+  nrows    = sdfi->VolDim[1];
+  nslices  = sdfi->VolDim[2];
+  nframes  = sdfi->NFrames;
+  IsMosaic = sdfi->IsMosaic;
+
+  // verify nthframe is within the range
+  if (nthonly >= 0)
+  {
+    if (nthonly > nframes-1)
+    {
+      printf("ERROR: only has %d frames (%d - %d) but called for %d\n",
+             nframes, 0, nframes-1, nthonly);
+      fflush(stdout);
+      return(NULL);
+    }
+  }
+
+  printf("INFO: (%3d %3d %3d), nframes = %d, ismosaic=%d\n",
+         ncols,nrows,nslices,nframes,IsMosaic);
+  fflush(stdout);
+
+  /** Allocate an MRI structure **/
+  if (LoadVolume)
+  {
+    if (nthonly < 0)
+      vol = MRIallocSequence(ncols,nrows,nslices,MRI_FLOAT,nframes);
+    else
+      vol = MRIallocSequence(ncols,nrows,nslices,MRI_FLOAT,1);
+    if (vol==NULL)
+    {
+      fprintf(stderr,"ERROR: could not alloc MRI volume\n");
+      fflush(stderr);
+      return(NULL);
+    }
+  }
+  else
+  {
+    vol = MRIallocHeader(ncols,nrows,nslices,MRI_FLOAT,nframes);
+    if (vol==NULL)
+    {
+      fprintf(stderr,"ERROR: could not alloc MRI header \n");
+      fflush(stderr);
+      return(NULL);
+    }
+  }
+
+  /* set the various paramters for the mri structure */
+  vol->xsize = sdfi->VolRes[0]; /* x = col */
+  vol->ysize = sdfi->VolRes[1]; /* y = row */
+  vol->zsize = sdfi->VolRes[2]; /* z = slice */
+  vol->x_r   = sdfi->Vc[0];
+  vol->x_a   = sdfi->Vc[1];
+  vol->x_s   = sdfi->Vc[2];
+  vol->y_r   = sdfi->Vr[0];
+  vol->y_a   = sdfi->Vr[1];
+  vol->y_s   = sdfi->Vr[2];
+  vol->z_r   = sdfi->Vs[0];
+  vol->z_a   = sdfi->Vs[1];
+  vol->z_s   = sdfi->Vs[2];
+  vol->c_r   = sdfi->VolCenter[0];
+  vol->c_a   = sdfi->VolCenter[1];
+  vol->c_s   = sdfi->VolCenter[2];
+  vol->ras_good_flag = 1;
+  vol->te    = sdfi->EchoTime;
+  vol->ti    = sdfi->InversionTime;
+  vol->flip_angle  = sdfi->FlipAngle;
+  if (! sdfi->IsMosaic )    vol->tr    = sdfi->RepetitionTime;
+  else  {
+    /* The TR definition will depend upon the software version */
+    tmpstring = sdcmExtractNumarisVer(sdfi->NumarisVer, &Maj, &Min, &MinMin);
+    if(tmpstring != NULL){
+      printf("Numaris Version: %s Maj = %d, Min=%d, MinMin = %d \n",
+	     sdfi->NumarisVer, Maj, Min, MinMin);
+    }
+    if(tmpstring != NULL && (Min == 1 && MinMin <= 6) && Maj < 4){
+      // This should only be run for pretty old data. I've lost
+      // track as to which versions should do this. With Maj<4,
+      // I'm pretty sure that this section of code will never
+      // be run.  It might need to be run with version 4VA16
+      // and earlier.
+      printf("Computing TR with number of slices\n");
+      vol->tr = sdfi->RepetitionTime * (sdfi->VolDim[2]);
+    }
+    else vol->tr  = sdfi->RepetitionTime;
+    /* Need to add any gap (eg, as in a hammer sequence */
+    printf("Repetition Time = %g, TR = %g ms\n",
+           sdfi->RepetitionTime,vol->tr);
+    if(tmpstring != NULL) free(tmpstring);
+  }
+
+  // Phase Enc Direction
+  if(sdfi->PhEncDir == NULL) vol->pedir = strcpyalloc("UNKNOWN");
+  else {
+    vol->pedir = strcpyalloc(sdfi->PhEncDir);
+    str_toupper(vol->pedir);
+  }
+  printf("PE Dir %s %s\n",sdfi->PhEncDir,vol->pedir);
+  fflush(stdout);
+
+  // Load the AutoAlign Matrix, if one is there
+  vol->AutoAlign = sdcmAutoAlignMatrix(dcmfile);
+
+  // Load DTI bvecs/bvals, if you can. If the procedure fails for some reason
+  // you can setenv UNPACK_MGH_DTI 0.
+  pc  = SiemensAsciiTag(dcmfile,"sDiffusion.lDiffDirections",0);
+  pc2 = SiemensAsciiTag(dcmfile,"sWiPMemBlock.alFree[8]",0);
+  if(pc != NULL && pc2 != NULL){
+    printf("This looks like an MGH DTI volume\n");
+    if(getenv("UNPACK_MGH_DTI") != NULL) sscanf(getenv("UNPACK_MGH_DTI"),"%d",&TryDTI);
+    else TryDTI = 1;
+    if(TryDTI) DoDTI = 1;
+    else DoDTI = 0;
+    if(! DoDTI) printf("  but not getting bvec info because UNPACK_MGH_DTI is 0\n");
+  } else DoDTI = 0;
+  if(DoDTI && ! sdfi->IsMosaic){
+    printf("DTI is in non-moasic form, so cannot extract bvals/bvects\n");
+    DoDTI = 0;
+  }
+  if(DoDTI){
+    printf("MGH DTI SeqPack Info\n");
+    // Get b Values from header, based on sequence name. 
+    // Problem: nthfile = nthvolume when mosaics are used, but not for non-mosaics. 
+    vol->bvals = MatrixAlloc(nframes,1,MATRIX_REAL);
+    for (nthfile = 0; nthfile < nlist; nthfile ++){
+      // Go thru all the files in order to get all the directions
+      sdfi = sdfi_list[nthfile];
+      DTIparsePulseSeqName(sdfi->PulseSequence, 
+			   &sdfi->bValue, &sdfi->nthDirection);
+      nthdir = sdfi->nthDirection;
+      vol->bvals->rptr[nthfile+1][1] = sdfi->bValue;
+      printf("%d %s %lf %d\n",nthfile,sdfi->PulseSequence,
+	     sdfi->bValue, sdfi->nthDirection);
+    }
+    // Have to get vectors from archive
+    dti = DTIstructFromSiemensAscii(dcmfile);
+    if(dti == NULL){
+      printf("There was an error when tyring to load the gradient directions\n");
+      printf("If you 'setenv UNPACK_MGH_DTI 0', it will not attempt to load\n");
+      printf("the gradients\n");
+      exit(1);
+    }
+    //vol->bvals = MatrixCopy(dti->bValue,NULL);
+    vol->bvecs = MatrixCopy(dti->GradDir,NULL);
+    DTIfree(&dti);
+  }
+  if(pc)  free(pc);
+  if(pc2) free(pc2);
+
+
+  /* Return now if we're not loading pixel data */
+  if (!LoadVolume)
+  {
+    /* restore progress range */
+    global_progress_range[0] = nstart;
+    global_progress_range[1] = nend;
+    return(vol);
+  }
+
+  if(strcmp(sdfi->TransferSyntaxUID,"1.2.840.10008.1.2.4.70")==0)
+  {
+    printf("ERROR: the pixel data cannot be loaded as it is JPEG compressed.\n");
+    printf("       (Transfer Syntax UID: %s)\n",sdfi->TransferSyntaxUID);
+    exit(1);
+  }
+
+  /* Dump info about the first file to stdout */
+  DumpSDCMFileInfo(stdout,sdfi);
+  // verification of number of files vs. slices
+  if (nlist > nslices*nframes)
+  {
+    fprintf(stderr, "ERROR: nlist (%d) > nslices (%d) x frames (%d)\n",
+            nlist, nslices, nframes);
+    fprintf(stderr, "ERROR: dump file list into fileinfo.txt.\n");
+    fprintf(stderr, "ERROR: check for consistency\n");
+    {
+      FILE *fp;
+      int i;
+      fp = fopen("./fileinfo.txt", "w");
+      for (i=0; i < nlist;++i)
+        DumpSDCMFileInfo(fp, sdfi_list[i]);
+      fclose(fp);
+    }
+    fprintf(stderr, "ERROR: set nlist = nslices*nframes.\n");
+    nlist = nslices*nframes;
+  }
+  /* ------- Go through each file in the Run ---------*/
+  global_progress_range[0] = global_progress_range[1];
+  global_progress_range[1] += (nend-nstart)/3;
+
+  /*
+  printf("UseSliceScaleFactor %d (slice 0: %g)\n",sdfi_list[0]->UseSliceScaleFactor,
+	 sdfi_list[0]->SliceScaleFactor);
+  MinSliceScaleFactor = sdfi_list[0]->SliceScaleFactor;
+  for(nthfile = 0; nthfile < nlist; nthfile ++)
+    if(MinSliceScaleFactor > sdfi_list[nthfile]->SliceScaleFactor)
+      MinSliceScaleFactor = sdfi_list[nthfile]->SliceScaleFactor;
+  */
+
+  for (nthfile = 0; nthfile < nlist; nthfile ++)
+  {
+    float ascale_factor = 1.0;
+    
+    sdfi = sdfi_list[nthfile];
+
+    /* TW get the autoscale parameter here */
+    element = GetElementFromFile(sdfi->FileName,0x0020,0x4000);
+    if(strncmp(element->d.string,"Scale Factor:",strlen("Scale Factor:")) == 0) {
+      ascale_factor = (float)strtod(&(element->d.string[strlen("Scale Factor:")+1]), NULL);
+    }
+    
+    /* Get the pixel data */
+    element = GetElementFromFile(sdfi->FileName,0x7FE0,0x10);
+    if (element == NULL)
+    {
+      fprintf(stderr,"ERROR: reading pixel data from %s\n",sdfi->FileName);
+      MRIfree(&vol);
+    }
+    pixeldata = (unsigned short *)(element->d.string);
+
+    if (!IsMosaic)
+    {/*---------------------------------------------*/
+      /* It's not a mosaic -- load rows and cols from pixel data */
+      if (nthfile == 0)
+      {
+        frame = 0;
+        slice = 0;
+      }
+      if (Gdiag_no > 0)
+      {
+        printf("%3d %3d %3d    %s   %6.1f %6.1f %6.1f\n",
+               nthfile,slice,frame,sdfi->FileName,
+               sdfi->ImgPos[0],sdfi->ImgPos[1],sdfi->ImgPos[2]);
+        fflush(stdout);
+      }
+      if (nthonly <0)
+      {
+        for (row=0; row < nrows; row++)
+        {
+          for (col=0; col < ncols; col++)
+          {
+            val = *(pixeldata++);
+            MRIFseq_vox(vol,col,row,slice,frame) = (float)(val)/ascale_factor;
+          }
+        }
+      }
+      // only copy a particular frame
+      else if (frame == nthonly)
+      {
+        for (row=0; row < nrows; row++)
+        {
+          for (col=0; col < ncols; col++)
+          {
+            MRIFvox(vol,col,row,slice) = (float)(*(pixeldata++))/ascale_factor;
+          }
+        }
+      }
+      frame ++;
+      if (frame >= nframes)
+      {
+        frame = 0;
+        slice ++;
+      }
+    }
+    else
+    {/*---------------------------------------------*/
+      /* It is a mosaic -- load entire volume for this frame from pixel data */
+      frame = nthfile;
+      nmoscols = sdfi->NImageCols;
+      nmosrows = sdfi->NImageRows;
+      for (row=0; row < nrows; row++)
+      {
+        for (col=0; col < ncols; col++)
+        {
+          for (slice=0; slice < nslices; slice++)
+          {
+            /* compute the mosaic col and row from the volume
+               col, row , and slice */
+            err = VolSS2MosSS(col, row, slice,
+                              ncols, nrows,
+                              nmoscols, nmosrows,
+                              &moscol, &mosrow, &OutOfBounds);
+            if (err || OutOfBounds)
+            {
+              FreeElementData(element);
+              free(element);
+              MRIfree(&vol);
+              exit(1);
+            }
+            /* Compute the linear index into the block of pixel data */
+            mosindex = moscol + mosrow * nmoscols;
+            MRIFseq_vox(vol,col,row,slice,frame) = (float)(*(pixeldata + mosindex))/ascale_factor;
+          }
+        }
+      }
+    }
+
+    FreeElementData(element);
+    free(element);
+    exec_progress_callback(nthfile, nlist, 0, 1);
+  }/* for nthfile */
+
+  /* Determine whether Siemens has reversed the slice order prior to
+     packing into mosaic. This makes it inconsistent with the geometry
+     in the dicom. If so, reverse it back without changing the geometry.
+     Note that this does not have anything to do with the order in which
+     the slices were acquired. However, if you assume a certain acquistion
+     slice order model, it will be wrong unless this reversal is done.  */
+  if (sdfiIsSliceOrderReversed(sdfi_list[0]))
+  {
+    printf("INFO: detected a Siemens slice order reversal in mosaic, so\n");
+    printf("      I'm going to reverse them back "
+           "to their 'original' order.\n");
+    voltmp = MRIreverseSliceOrder(vol,NULL);
+    MRIfree(&vol);
+    vol = voltmp;
+  }
+  else
+  {
+    printf("INFO: no Siemens slice order reversal detected (good!). \n");
+  }
+
+  while (nlist--)
+  {
+    // free strings
+    if (sdfi_list[nlist]->FileName != NULL)
+      free(sdfi_list[nlist]->FileName);
+    if (sdfi_list[nlist]->StudyDate != NULL)
+      free(sdfi_list[nlist]->StudyDate);
+    if (sdfi_list[nlist]->StudyTime != NULL)
+      free(sdfi_list[nlist]->StudyTime);
+    if (sdfi_list[nlist]->PatientName != NULL)
+      free(sdfi_list[nlist]->PatientName);
+    if (sdfi_list[nlist]->SeriesTime != NULL)
+      free(sdfi_list[nlist]->SeriesTime);
+    if (sdfi_list[nlist]->AcquisitionTime != NULL)
+      free(sdfi_list[nlist]->AcquisitionTime);
+    if (sdfi_list[nlist]->ScannerModel != NULL)
+      free(sdfi_list[nlist]->ScannerModel);
+    if (sdfi_list[nlist]->NumarisVer != NULL)
+      free(sdfi_list[nlist]->NumarisVer);
+    if (sdfi_list[nlist]->PulseSequence != NULL)
+      free(sdfi_list[nlist]->PulseSequence);
+    if (sdfi_list[nlist]->ProtocolName != NULL)
+      free(sdfi_list[nlist]->ProtocolName);
+    if (sdfi_list[nlist]->PhEncDir != NULL)
+      free(sdfi_list[nlist]->PhEncDir);
+    if (sdfi_list[nlist]->TransferSyntaxUID != NULL)
+      free(sdfi_list[nlist]->TransferSyntaxUID);
+    // free struct
+    free(sdfi_list[nlist]);
+  }
+  free(sdfi_list);
+
+  /* restore progress range */
+  global_progress_range[0] = nstart;
+  global_progress_range[1] = nend;
+
+  return(vol);
+}
+
 /*!/
   \fn MATRIX *sdcmAutoAlignMatrix(const char *dcmfile)
   \brief Extracts the Auto Align Matrix from the Siemens ascii header.
