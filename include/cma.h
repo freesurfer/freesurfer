@@ -8,9 +8,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/05/02 20:04:25 $
- *    $Revision: 1.55.2.2 $
+ *    $Author: mreuter $
+ *    $Date: 2012/03/26 23:39:27 $
+ *    $Revision: 1.55.2.3 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -484,9 +484,10 @@ double SupraTentorialVolCorrection(MRI *aseg, MRI *ribbon);
 #define IS_CLASS(l,c) (c == CSF_CLASS ? IS_CSF_CLASS(l) : c == GM_CLASS ? IS_GRAY_CLASS(l) : IS_WHITE_CLASS(l))
 
 #include "mrisurf.h"
-int insert_ribbon_into_aseg(MRI *mri_src_aseg, MRI *mri_aseg, 
-                            MRI_SURFACE *mris_white, MRI_SURFACE *mris_pial, 
+int insert_ribbon_into_aseg(MRI *mri_src_aseg, MRI *mri_aseg,
+                            MRI_SURFACE *mris_white, MRI_SURFACE *mris_pial,
                             int hemi) ;
+MRI *MRIlrswapAseg(MRI *aseg);
 
 
 #if defined(__cplusplus)

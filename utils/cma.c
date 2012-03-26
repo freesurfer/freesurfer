@@ -8,9 +8,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2012/02/23 23:02:40 $
- *    $Revision: 1.9.2.1 $
+ *    $Author: mreuter $
+ *    $Date: 2012/03/26 23:39:21 $
+ *    $Revision: 1.9.2.2 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -624,9 +624,127 @@ double SupraTentorialVolCorrection(MRI *aseg, MRI *ribbon)
   return(vol);
 }
 
+/*!
+\fn MRI *MRIlrswapAseg(MRI *aseg)
+\brief Performs a left-right swap of segmentation labels. Should handle
+aseg, aparc+aseg, aparc.a2009s+aseg, and wmparc. If these
+segmentations change, then this program (written on 12/19/2011) may
+fail. It only changes the voxel values and has no effect on the
+volume geometry.
+\param aseg - segmentation
+*/
+MRI *MRIlrswapAseg(MRI *aseg)
+{
+  MRI *asegswap ;
+  int c,r,s,id,id2;
 
+  asegswap = MRIclone(aseg,NULL);
 
-
-
+  for(c=0; c < aseg->width; c++){
+    for(r=0; r < aseg->height; r++){
+      for(s=0; s < aseg->depth; s++){
+	id = MRIgetVoxVal(aseg,c,r,s,0);
+	id2 = id;
+	if(id > 999){
+	  // This should handle the cortical and wmparc labels in aparc+aseg, etc
+	  if(id >=  1000 && id <  1999) id2 = id + 1000;
+	  if(id >=  2000 && id <  2999) id2 = id - 1000;
+	  if(id >=  3000 && id <  3999) id2 = id + 1000;
+	  if(id >=  4000 && id <  4999) id2 = id - 1000;
+	  if(id >= 11100 && id < 11999) id2 = id + 1000;
+	  if(id >= 12100 && id < 12999) id2 = id - 1000;
+	  if(id >= 13100 && id < 13999) id2 = id + 1000;
+	  if(id >= 14100 && id < 14999) id2 = id - 1000;
+	  if(id == 5001) id2 = 5002;
+	  if(id == 5002) id2 = 5001;
+	  MRIsetVoxVal(asegswap,c,r,s,0,id2);
+	  continue;
+	}
+	// This should handle all the subcortical stuff
+	switch(id){
+	case Left_Cerebral_White_Matter: id2 = Right_Cerebral_White_Matter; break;
+	case Left_Cerebral_Exterior: id2 = Right_Cerebral_Exterior; break;
+	case Left_Cerebral_Cortex: id2 = Right_Cerebral_Cortex; break;
+	case Left_Lateral_Ventricle: id2 = Right_Lateral_Ventricle; break;
+	case Left_Inf_Lat_Vent: id2 = Right_Inf_Lat_Vent; break;
+	case Left_Cerebellum_Exterior: id2 = Right_Cerebellum_Exterior; break;
+	case Left_Cerebellum_White_Matter: id2 = Right_Cerebellum_White_Matter; break;
+	case Left_Cerebellum_Cortex: id2 = Right_Cerebellum_Cortex; break;
+	case Left_Thalamus: id2 = Right_Thalamus; break;
+	case Left_Thalamus_Proper: id2 = Right_Thalamus_Proper; break;
+	case Left_Caudate: id2 = Right_Caudate; break;
+	case Left_Putamen: id2 = Right_Putamen; break;
+	case Left_Pallidum: id2 = Right_Pallidum; break;
+	case Left_Hippocampus: id2 = Right_Hippocampus; break;
+	case Left_Amygdala: id2 = Right_Amygdala; break;
+	case Left_Insula: id2 = Right_Insula; break;
+	case Left_Operculum: id2 = Right_Operculum; break;
+	case Left_Lesion: id2 = Right_Lesion; break;
+	case Left_Accumbens_area: id2 = Right_Accumbens_area; break;
+	case Left_Substancia_Nigra: id2 = Right_Substancia_Nigra; break;
+	case Left_VentralDC: id2 = Right_VentralDC; break;
+	case Left_undetermined: id2 = Right_undetermined; break;
+	case Left_vessel: id2 = Right_vessel; break;
+	case Left_choroid_plexus: id2 = Right_choroid_plexus; break;
+	case Left_F3orb: id2 = Right_F3orb; break;
+	case Left_lOg: id2 = Right_lOg; break;
+	case Left_aOg: id2 = Right_aOg; break;
+	case Left_mOg: id2 = Right_mOg; break;
+	case Left_pOg: id2 = Right_pOg; break;
+	case Left_Stellate: id2 = Right_Stellate; break;
+	case Left_Porg: id2 = Right_Porg; break;
+	case Left_Aorg: id2 = Right_Aorg; break;
+	case Left_Interior: id2 = Right_Interior; break;
+	case Left_Lateral_Ventricles: id2 = Right_Lateral_Ventricles; break;
+	case Left_WM_hypointensities: id2 = Right_WM_hypointensities; break;
+	case Left_non_WM_hypointensities: id2 = Right_non_WM_hypointensities; break;
+	case Left_F1: id2 = Right_F1; break;
+	case Left_Amygdala_Anterior: id2 = Right_Amygdala_Anterior; break;
+	case Right_Cerebral_Exterior: id2 = Left_Cerebral_Exterior; break;
+	case Right_Cerebral_White_Matter: id2 = Left_Cerebral_White_Matter; break;
+	case Right_Cerebral_Cortex: id2 = Left_Cerebral_Cortex; break;
+	case Right_Lateral_Ventricle: id2 = Left_Lateral_Ventricle; break;
+	case Right_Inf_Lat_Vent: id2 = Left_Inf_Lat_Vent; break;
+	case Right_Cerebellum_Exterior: id2 = Left_Cerebellum_Exterior; break;
+	case Right_Cerebellum_White_Matter: id2 = Left_Cerebellum_White_Matter; break;
+	case Right_Cerebellum_Cortex: id2 = Left_Cerebellum_Cortex; break;
+	case Right_Thalamus: id2 = Left_Thalamus; break;
+	case Right_Thalamus_Proper: id2 = Left_Thalamus_Proper; break;
+	case Right_Caudate: id2 = Left_Caudate; break;
+	case Right_Putamen: id2 = Left_Putamen; break;
+	case Right_Pallidum: id2 = Left_Pallidum; break;
+	case Right_Hippocampus: id2 = Left_Hippocampus; break;
+	case Right_Amygdala: id2 = Left_Amygdala; break;
+	case Right_Insula: id2 = Left_Insula; break;
+	case Right_Operculum: id2 = Left_Operculum; break;
+	case Right_Lesion: id2 = Left_Lesion; break;
+	case Right_Accumbens_area: id2 = Left_Accumbens_area; break;
+	case Right_Substancia_Nigra: id2 = Left_Substancia_Nigra; break;
+	case Right_VentralDC: id2 = Left_VentralDC; break;
+	case Right_undetermined: id2 = Left_undetermined; break;
+	case Right_vessel: id2 = Left_vessel; break;
+	case Right_choroid_plexus: id2 = Left_choroid_plexus; break;
+	case Right_F3orb: id2 = Left_F3orb; break;
+	case Right_lOg: id2 = Left_lOg; break;
+	case Right_aOg: id2 = Left_aOg; break;
+	case Right_mOg: id2 = Left_mOg; break;
+	case Right_pOg: id2 = Left_pOg; break;
+	case Right_Stellate: id2 = Left_Stellate; break;
+	case Right_Porg: id2 = Left_Porg; break;
+	case Right_Aorg: id2 = Left_Aorg; break;
+	case Right_Interior: id2 = Left_Interior; break;
+	case Right_Lateral_Ventricles: id2 = Left_Lateral_Ventricles; break;
+	case Right_WM_hypointensities: id2 = Left_WM_hypointensities; break;
+	case Right_non_WM_hypointensities: id2 = Left_non_WM_hypointensities; break;
+	case Right_F1: id2 = Left_F1; break;
+	case Right_Amygdala_Anterior: id2 = Left_Amygdala_Anterior; break;
+	default: break;
+	}
+	MRIsetVoxVal(asegswap,c,r,s,0,id2);
+      }
+    }
+  }
+  return(asegswap);
+}
 
 /* eof */
