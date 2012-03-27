@@ -26,7 +26,6 @@ freesurfer/bin/recon-all-nmr
 freesurfer/bin/recon-all-dev
 freesurfer/bin/dngtester
 freesurfer/bin/dummy
-freesurfer/bin/dummy_qt
 freesurfer/bin/plotter
 freesurfer/bin/plotter.app
 freesurfer/bin/paint
@@ -100,7 +99,18 @@ freesurfer/fsl/doc
 freesurfer/fsl/refdoc
 freesurfer/fsl/tcl
 freesurfer/grad_unwarp_tables
-freesurfer/gradient_nonlin_unwarp
+freesurfer/gradient_nonlin_unwarp/gradient_coil_files/coeff_AC44.grad
+freesurfer/gradient_nonlin_unwarp/gradient_coil_files/coeff_AC84.grad
+freesurfer/gradient_nonlin_unwarp/gradient_coil_files/coeff_AC84.gwt
+freesurfer/gradient_nonlin_unwarp/gradient_coil_files/coeff_AC84.mat
+freesurfer/gradient_nonlin_unwarp/gradient_coil_files/coeff_AC88.grad
+freesurfer/gradient_nonlin_unwarp/gradient_coil_files/coeff_AS05.grad
+freesurfer/gradient_nonlin_unwarp/gradient_coil_files/coeff_AS092.grad
+freesurfer/gradient_nonlin_unwarp/gradient_coil_files/coeff_AS302.grad
+freesurfer/gradient_nonlin_unwarp/gradient_coil_files/coeff_GC99.grad
+freesurfer/gradient_nonlin_unwarp/gradient_coil_files/coeff_SC72.grad
+freesurfer/gradient_nonlin_unwarp/gradient_coil_files/coeff_Sonata.grad
+freesurfer/gradient_nonlin_unwarp/gradient_coil_files/sc72_pt1_kufu_feldmessung.xls
 freesurfer/average/HPMarch022005_ras.mgz
 freesurfer/average/RB40_talairach_2005_12_30.gca
 freesurfer/average/RB40_talairach_with_skull_2005_12_30.gca

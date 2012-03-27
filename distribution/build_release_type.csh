@@ -1,6 +1,6 @@
 #!/bin/tcsh -f
 
-set ID='$Id: build_release_type.csh,v 1.143 2011/06/14 17:54:36 nicks Exp $'
+set ID='$Id: build_release_type.csh,v 1.144 2012/03/27 18:36:02 nicks Exp $'
 
 unsetenv echo
 if ($?SET_ECHO_1) set echo=1
@@ -26,7 +26,10 @@ set FAILURE_MAIL_LIST=(\
     greve@nmr.mgh.harvard.edu \
     krish@nmr.mgh.harvard.edu \
     rpwang@nmr.mgh.harvard.edu \
-    koen@nmr.mgh.harvard.edu)
+    mreuter@nmr.mgh.harvard.edu \
+    koen@nmr.mgh.harvard.edu \
+    lzollei@nmr.mgh.harvard.edu \
+    rudolph@nmr.mgh.harvard.edu)
 #set FAILURE_MAIL_LIST=(nicks@nmr.mgh.harvard.edu)
 #if ("$HOSTNAME" == "hima") then
 #  set FAILURE_MAIL_LIST=(nicks@nmr.mgh.harvard.edu krish@nmr.mgh.harvard.edu)
@@ -38,6 +41,9 @@ if ("$HOSTNAME" == "mist") then
   set FAILURE_MAIL_LIST=(nicks@nmr.mgh.harvard.edu krish@nmr.mgh.harvard.edu)
 endif
 if ("$HOSTNAME" == "storm") then
+  set FAILURE_MAIL_LIST=(nicks@nmr.mgh.harvard.edu)
+endif
+if ("$HOSTNAME" == "monster") then
   set FAILURE_MAIL_LIST=(nicks@nmr.mgh.harvard.edu)
 endif
 
@@ -63,10 +69,15 @@ setenv SPACE_FS /space/freesurfer
 setenv LOCAL_FS /usr/local/freesurfer
 # if /space/freesurfer is down, or if there is a need to install
 # outside of /usr/local/freesurfer, 
-# then the var USE_SPACE_MINERVA can be set
-if ($?USE_SPACE_MINERVA) then
-  setenv SPACE_FS /space/minerva/1/users/nicks
-  setenv LOCAL_FS /space/minerva/1/users/nicks/build/install/${HOSTNAME}
+# then these can override
+if ("$HOSTNAME" == "monster") then
+  setenv USE_LOCAL_FS /autofs/cluster/freesurfer/centos6_x86_64
+endif
+if ($?USE_SPACE_FS) then
+  setenv SPACE_FS $USE_SPACE_FS
+endif
+if ($?USE_LOCAL_FS) then
+  setenv LOCAL_FS $USE_LOCAL_FS
 endif
 
 setenv BUILD_HOSTNAME_DIR      ${SPACE_FS}/build/$HOSTNAME
