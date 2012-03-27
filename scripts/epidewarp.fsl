@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2011/08/09 16:03:10 $
-#    $Revision: 1.43 $
+#    $Date: 2012/03/27 18:54:33 $
+#    $Revision: 1.44 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -26,7 +26,7 @@
 # epidewarp.fsl
 #
 
-set VERSION = '$Id: epidewarp.fsl,v 1.43 2011/08/09 16:03:10 greve Exp $'
+set VERSION = '$Id: epidewarp.fsl,v 1.44 2012/03/27 18:54:33 greve Exp $'
 set inputargs = ($argv);
 
 set KeepMean = 0;
@@ -385,7 +385,7 @@ if(! $#vsmmag) set vsmmag = $tmpdir/vsmmag.$ext
 set magdw = $tmpdir/magdw.$ext # To be thrown away
 set cmd = (fugue -i $mag -u $magdw -p $ph2 \
     --dwell=$esp --asym=$tediff --mask=$mask --saveshift=$vsmmag);
-if($#sigmamm && $sigmamm > 0) set cmd = ($cmd --smooth2=$sigmamm);
+if($#sigmamm) set cmd = ($cmd --smooth2=$sigmamm);
 echo $cmd |& tee -a $LF
 $cmd |& tee -a $LF
 if($status) exit 1;
