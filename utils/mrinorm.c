@@ -10,8 +10,8 @@
  * Original Author: Bruce Fischl, 4/9/97
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2012/03/01 17:36:44 $
- *    $Revision: 1.110 $
+ *    $Date: 2012/03/27 22:19:29 $
+ *    $Revision: 1.111 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -126,12 +126,13 @@ MRI *
 MRIsplineNormalize(MRI *mri_src,MRI *mri_dst, MRI **pmri_field,
                    float *inputs,float *outputs, int npoints)
 {
-  int       width, height, depth, x, y, z, i, dval ;
-  BUFTYPE   *psrc, *pdst, sval, *pfield = NULL ;
+  int       width, height, depth, x, y, z, i ;
+  BUFTYPE   *pfield = NULL ;
   float     outputs_2[MAX_SPLINE_POINTS], frac ;
   MRI       *mri_field = NULL ;
   double    d ;
   char      *cp ;
+  float     val, dval ;
 
   if (mri_src->type == MRI_SHORT)
     return(mriSplineNormalizeShort(mri_src, mri_dst, pmri_field, inputs,
@@ -175,17 +176,18 @@ MRIsplineNormalize(MRI *mri_src,MRI *mri_dst, MRI **pmri_field,
 
     for (z = 0 ; z < depth ; z++)
     {
-      psrc = &MRIvox(mri_src, 0, y, z) ;
-      pdst = &MRIvox(mri_dst, 0, y, z) ;
       for (x = 0 ; x < width ; x++)
       {
-        sval = *psrc++ ;
-        dval = nint((float)sval * frac + randomNumber(0.0,d)) ;
-        if (dval > 255)
-          dval = 255 ;
-        else if (dval < 0)
-          dval = 0 ;
-        *pdst++ = (BUFTYPE)dval ;
+        val = MRIgetVoxVal(mri_src, x, y, z, 0) ;
+        dval = nint((float)val * frac + randomNumber(0.0,d)) ;
+	if (mri_dst->type == MRI_UCHAR)
+	{
+	  if (dval > 255)
+	    dval = 255 ;
+	  else if (dval < 0)
+	    dval = 0 ;
+	}
+	MRIsetVoxVal(mri_dst, x, y, z, 0, dval) ;
       }
     }
   }
