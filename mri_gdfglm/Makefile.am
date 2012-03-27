@@ -9,7 +9,7 @@ bin_PROGRAMS = mri_gdfglm
 
 mri_gdfglm_SOURCES=mri_gdfglm.c $(top_srcdir)/fsgdf/fsgdf.c
 
-mri_gdfglm_LDADD=$(addprefix $(top_builddir)/, $(LIBS_MGH)) -luuid
+mri_gdfglm_LDADD=$(addprefix $(top_builddir)/, $(LIBS_MGH))
 
 mri_gdfglm_LDFLAGS=$(OS_LDFLAGS)
 
