@@ -1,6 +1,6 @@
 #!/bin/tcsh -f
 
-set ID='$Id: create_targz.csh,v 1.30 2011/05/03 20:35:09 nicks Exp $'
+set ID='$Id: create_targz.csh,v 1.31 2012/03/27 18:36:51 nicks Exp $'
 
 unsetenv echo
 if ($?SET_ECHO_1) set echo=1
@@ -27,7 +27,12 @@ if ($?USE_SPACE_MINERVA) then
   setenv LOCAL_FS /space/minerva/1/users/nicks/build/install/${HOSTNAME}
 endif
 
-if ("$PLATFORM" == "centos5_x86_64") then
+if ("$PLATFORM" == "centos6_x86_64") then
+    if ("${HOSTNAME}" != "monster" ) then
+        echo "must run on machine monster"
+        exit 1
+    endif
+else if ("$PLATFORM" == "centos5_x86_64") then
     if ("${HOSTNAME}" != "swan" ) then
         echo "must run on machine swan"
         exit 1
