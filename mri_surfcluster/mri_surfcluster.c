@@ -7,8 +7,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2011/12/21 18:19:02 $
- *    $Revision: 1.54 $
+ *    $Date: 2012/03/27 21:47:01 $
+ *    $Revision: 1.55 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -67,7 +67,7 @@ static int  stringmatch(char *str1, char *str2);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_surfcluster.c,v 1.54 2011/12/21 18:19:02 greve Exp $";
+static char vcid[] = "$Id: mri_surfcluster.c,v 1.55 2012/03/27 21:47:01 greve Exp $";
 char *Progname = NULL;
 
 char *subjectdir = NULL;
@@ -178,7 +178,7 @@ int main(int argc, char **argv) {
   double cmaxsize;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_surfcluster.c,v 1.54 2011/12/21 18:19:02 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_surfcluster.c,v 1.55 2012/03/27 21:47:01 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -957,7 +957,6 @@ static void print_usage(void) {
   printf("   --in infile : source of surface values \n");
   printf("\n");
   printf("   --thmin  threshold : minimum intensity threshold\n");
-  printf("   --thmax  threshold : maximum intensity threshold\n");
   printf("   --sign   sign      : <abs> or pos/neg for one-sided tests\n");
   printf("   --no-adjust  : do not adjust thresh for one-tailed tests\n");
   printf("   --fdr FDR  : set thmin with False Discovery Rate\n");
@@ -994,6 +993,7 @@ static void print_usage(void) {
   printf("   --xfm xfmfile     : talairach transform (def is talairach.xfm) \n");
   printf("   --<no>fixmni      : <do not> fix MNI talairach coordinates\n");
   printf("   --sd subjects_dir : (default is env SUBJECTS_DIR)\n");
+  printf("   --thmax  threshold : maximum intensity threshold (only use if you know what you are doing)\n");
   //  printf("   --synth synthfunc : uniform,loguniform,gaussian\n");
   printf("   --no-fix-vertex-area : turn off fixing of vertex area (for back comapt only)\n");
   printf("   --help : answers to ALL your questions\n");
@@ -1201,7 +1201,7 @@ static void print_help(void) {
     "summary file is shown below.\n"
     "\n"
     "Cluster Growing Summary (mri_surfcluster)\n"
-    "$Id: mri_surfcluster.c,v 1.54 2011/12/21 18:19:02 greve Exp $\n"
+    "$Id: mri_surfcluster.c,v 1.55 2012/03/27 21:47:01 greve Exp $\n"
     "Input :      minsig-0-lh.w\n"
     "Frame Number:      0\n"
     "Minimum Threshold: 5\n"
