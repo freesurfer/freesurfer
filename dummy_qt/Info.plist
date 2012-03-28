@@ -11,6 +11,6 @@
 	<key>CFBundleVersion</key>                 <string>'latest trunk'</string>
 	<key>CFBundleShortVersionString</key>      <string>'latest trunk'</string>
 	
-	<key>CFBundleName</key>                    <string>dummy_qt.app</string>
+  <key>CFBundleName</key>                    <string>DummyQt.app</string>
 </dict>
 </plist>
