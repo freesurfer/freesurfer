@@ -14,8 +14,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2012/03/06 19:54:02 $
- *    $Revision: 1.41 $
+ *    $Date: 2012/03/29 20:08:02 $
+ *    $Revision: 1.42 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -128,47 +128,84 @@ int MultiRegistration::loadMovables(const std::vector < std::string > pmov)
 
   assert (mri_mov.size () == 0);
   int n = (int) pmov.size();
-  assert(n>1);
-  mri_mov.resize(n);
-  mri_bsplines.resize(n,NULL);
   mov = pmov; // copy of input filenames
-  vector < double > msize (pmov.size());
-  for (int i = 0;i<n; i++)
+  if (n == 1 ) // try read 4D volume
   {
-    cout << "reading source '"<<mov[i]<<"'..." << endl;
-
-    mri_mov[i] = MRIread(mov[i].c_str()) ;
-    if (!mri_mov[i])
+    cout << "trying to read 4D source '"<<mov[0]<<"'..." << endl;
+    MRI *mri4d = MRIread(mov[0].c_str());
+    if (!mri4d)
     {
       ErrorExit(ERROR_NOFILE, "MultiRegistration::loadMovables: could not open input volume %s.\n",
-                mov[i].c_str()) ;
+                mov[0].c_str()) ;
     }
-    if (mri_mov[i]->nframes != 1)
+    n = mri4d->nframes;
+    cout << " Input has " << n << " frames." << endl;
+    if (n==1)
     {
-      ErrorExit(ERROR_NOFILE, "MultiRegistration::loadMovables: only pass single frame MRI %s.\n",
-          mov[i].c_str()) ;	
+      cerr<< "ERROR: only single 3D volume passed!" << endl;
+      cerr<< "    Pass several inputs, or 4D input volume" << endl;
+      exit(1);
     }
-    msize[i] = mri_mov[i]->xsize;
-    if (mri_mov[i]->ysize < msize[i]) msize[i] = mri_mov[i]->ysize ;
-    if (mri_mov[i]->zsize < msize[i]) msize[i] = mri_mov[i]->zsize ;	
-    
-    if (sampletype == SAMPLE_CUBIC_BSPLINE)
+    mov.resize(n);
+    mri_mov.resize(n);
+    mri_bsplines.resize(n,NULL);
+    for (int i = 0;i<n;i++)
     {
-      cout << "converting source '"<<mov[i]<<"' to bspline ..." << endl;
-      mri_bsplines[i] = MRItoBSpline (mri_mov[i],	mri_bsplines[i], 3);
-    }
-    
+      mri_mov[i] = MRIcopyFrame(mri4d,NULL,i,0);
+      if (sampletype == SAMPLE_CUBIC_BSPLINE)
+      {
+        cout << "converting source frame "<<i<<" to bspline ..." << endl;
+        mri_bsplines[i] = MRItoBSpline (mri_mov[i],	mri_bsplines[i], 3);
+      }
+      ostringstream oss;
+      oss << "Frame_" << i;
+      mov[i] = oss.str();
+    }  
+    MRIfree(&mri4d);
   }
-  float EPS = 0.001;
-  for (int i = 1;i<n;i++)
+  else //several inputs;
   {
-    if (fabs(mri_mov[i]->xsize-mri_mov[0]->xsize) > EPS || fabs(mri_mov[i]->ysize-mri_mov[0]->ysize) > EPS || fabs(mri_mov[i]->zsize-mri_mov[0]->zsize) > EPS)
+    assert(n>1);
+    mri_mov.resize(n);
+    mri_bsplines.resize(n,NULL);
+    vector < double > msize (pmov.size());
+    for (int i = 0;i<n; i++)
     {
-      cerr << "ERROR: MultiRegistration::loadMovables: images have different voxel sizes.\n";
-      cerr << "  Currently not supported, maybe first make conform?\n";
-      cerr << "  Debug info: size(" << i << ") = " << mri_mov[i]->xsize << ", " << mri_mov[i]->ysize << ", " << mri_mov[i]->zsize << "   size(0) = " << mri_mov[0]->xsize << ", " << mri_mov[0]->ysize << ", " << mri_mov[0]->zsize << endl;
-      ErrorExit(ERROR_BADFILE, "MultiRegistration::loadMovables: voxel size is different %s.\n",
-                mov[i].c_str()) ;	 
+      cout << "reading source '"<<mov[i]<<"'..." << endl;
+
+      mri_mov[i] = MRIread(mov[i].c_str()) ;
+      if (!mri_mov[i])
+      {
+        ErrorExit(ERROR_NOFILE, "MultiRegistration::loadMovables: could not open input volume %s.\n",
+                  mov[i].c_str()) ;
+      }
+      if (mri_mov[i]->nframes != 1)
+      {
+        ErrorExit(ERROR_NOFILE, "MultiRegistration::loadMovables: only pass single frame MRI %s.\n",
+            mov[i].c_str()) ;	
+      }
+      msize[i] = mri_mov[i]->xsize;
+      if (mri_mov[i]->ysize < msize[i]) msize[i] = mri_mov[i]->ysize ;
+      if (mri_mov[i]->zsize < msize[i]) msize[i] = mri_mov[i]->zsize ;	
+    
+      if (sampletype == SAMPLE_CUBIC_BSPLINE)
+      {
+        cout << "converting source '"<<mov[i]<<"' to bspline ..." << endl;
+        mri_bsplines[i] = MRItoBSpline (mri_mov[i],	mri_bsplines[i], 3);
+      }
+      
+    }
+    float EPS = 0.001;
+    for (int i = 1;i<n;i++)
+    {
+      if (fabs(mri_mov[i]->xsize-mri_mov[0]->xsize) > EPS || fabs(mri_mov[i]->ysize-mri_mov[0]->ysize) > EPS || fabs(mri_mov[i]->zsize-mri_mov[0]->zsize) > EPS)
+      {
+        cerr << "ERROR: MultiRegistration::loadMovables: images have different voxel sizes.\n";
+        cerr << "  Currently not supported, maybe first make conform?\n";
+        cerr << "  Debug info: size(" << i << ") = " << mri_mov[i]->xsize << ", " << mri_mov[i]->ysize << ", " << mri_mov[i]->zsize << "   size(0) = " << mri_mov[0]->xsize << ", " << mri_mov[0]->ysize << ", " << mri_mov[0]->zsize << endl;
+        ErrorExit(ERROR_BADFILE, "MultiRegistration::loadMovables: voxel size is different %s.\n",
+                  mov[i].c_str()) ;	 
+      }
     }
   }
   
@@ -177,7 +214,7 @@ int MultiRegistration::loadMovables(const std::vector < std::string > pmov)
   ltas.resize(n,NULL);
   if (robust) mri_weights.resize(n,NULL);
 
-  return mov.size();
+  return mri_mov.size();
 }
 
 int MultiRegistration::loadLTAs(const std::vector < std::string > nltas)
@@ -1234,18 +1271,44 @@ bool MultiRegistration::writeLTAs(const std::vector < std::string > & nltas, boo
 
 bool MultiRegistration::writeWarps(const std::vector <  std::string >& nwarps)
 {
-   assert (nwarps.size() == mri_warps.size());
+   assert (nwarps.size() == mri_warps.size() || nwarps.size() == 1);
 	 int error = 0;
    //vnl_vector < double > ls (nwarps.size());
    //vnl_vector < double > lsa (nwarps.size(),0.0);
    //double lsavg = 0.0;
    //double lsavga = 0.0;
    //int count = 0;
-   for (unsigned int i = 0;i<nwarps.size();i++)
-	 {
+   
+  if (nwarps.size() ==1)
+  {
+    cout << " Writing single output (4D volume) ..." << endl;
+	  if (! mri_warps[0] ) 
+    {
+      cout << " ERROR: Warps do not exist! Skipping output." << endl;
+      return false;
+    } 
+      
+    MRI * mri4d = MRIallocSequence(mri_warps[0]->width, mri_warps[0]->height, mri_warps[0]->depth, mri_warps[0]->type, mri_warps.size());
+
+    for (unsigned int i = 0;i<mri_warps.size();i++)
+    {
 	    if (! mri_warps[i] ) 
 			{
-			   cout << " ERROR: No warps exist! Skipping output." << endl;
+			   cout << " ERROR: Warp " << i <<" does not exist! Skipping output." << endl;
+				 return false;
+      }
+      MRIcopyFrame(mri_warps[i],mri4d,0,i);
+    }
+    error = MRIwrite(mri4d,nwarps[0].c_str());
+    MRIfree(&mri4d); 
+  }
+  else // write individually
+  {
+    for (unsigned int i = 0;i<nwarps.size();i++)
+	  {
+	    if (! mri_warps[i] ) 
+			{
+			   cout << " ERROR: Warp " << i <<" does not exist! Skipping output." << endl;
 				 return false;
 			}
 		  error += MRIwrite(mri_warps[i],nwarps[i].c_str()) ;
@@ -1257,12 +1320,13 @@ bool MultiRegistration::writeWarps(const std::vector <  std::string >& nwarps)
       //}
       //lsavga += lsa[i];
       //lsavg += ls[i];
-	 }
-   //vnl_matlab_print(vcl_cout,ls,"tb",vnl_matlab_print_format_long);
-   //cout << endl;
-   //cout << " tbavg: " << lsavg/nwarps.size() << endl;
-   //cout << " tbavga: " << lsavga/count << endl;
-	 return (error == 0);
+	  }
+    //vnl_matlab_print(vcl_cout,ls,"tb",vnl_matlab_print_format_long);
+    //cout << endl;
+    //cout << " tbavg: " << lsavg/nwarps.size() << endl;
+    //cout << " tbavga: " << lsavga/count << endl;
+  }
+	return (error == 0);
 }
 
 bool MultiRegistration::writeIntensities(const std::vector < std::string >& nintens)

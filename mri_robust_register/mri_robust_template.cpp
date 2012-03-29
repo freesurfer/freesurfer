@@ -10,8 +10,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2012/03/06 19:54:03 $
- *    $Revision: 1.41 $
+ *    $Date: 2012/03/29 20:08:02 $
+ *    $Revision: 1.42 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -169,7 +169,7 @@ static void printUsage(void);
 static bool parseCommandLine(int argc, char *argv[],Parameters & P) ;
 
 static char vcid[] =
-  "$Id: mri_robust_template.cpp,v 1.41 2012/03/06 19:54:03 mreuter Exp $";
+  "$Id: mri_robust_template.cpp,v 1.42 2012/03/29 20:08:02 mreuter Exp $";
 char *Progname = NULL;
 
 int getRandomNumber(int start, int end, unsigned int & seed)
@@ -260,19 +260,21 @@ int main(int argc, char *argv[])
   MR.setHighit(P.highit);
 
   // init MultiRegistration and load movables
-  int nin = (int) P.mov.size();
-  assert (P.mov.size() >1);
-  assert (MR.loadMovables(P.mov)==nin);
+  //int nnin = (int) P.mov.size();
+  //assert (P.mov.size() >1);
+  //assert (MR.loadMovables(P.mov)==nin);
+  int nin = MR.loadMovables(P.mov);
+  assert ( nin > 1);
 
   // load initial ltas if set:
-  assert (P.iltas.size () == 0 || P.iltas.size() == P.mov.size());
+  assert (P.iltas.size () == 0 || P.iltas.size() == P.mov.size() || (int)P.iltas.size() == nin);
   if (P.iltas.size() > 0)
   {
     assert(MR.loadLTAs(P.iltas)==nin);
   }
 
   // load initial iscales if set:
-  assert (P.iscalein.size () == 0 || P.iscalein.size() == P.mov.size());
+  assert (P.iscalein.size () == 0 || (int)P.iscalein.size() == nin);
   if (P.iscalein.size() > 0)
   {
     assert(MR.loadIntensities(P.iscalein)==nin);
@@ -772,10 +774,10 @@ static bool parseCommandLine(int argc, char *argv[], Parameters & P)
 
   bool ntest = true;
   
-  if (P.mov.size() < 2 )
+  if (P.mov.size() < 1 )
   {
     ntest = false;
-    cerr << "ERROR: Specify at least 2 inputs with --mov !"
+    cerr << "ERROR: Specify at least 2 inputs with --mov (or one 4D input)!"
          << endl;
     exit(1); 
   }  
