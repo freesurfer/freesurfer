@@ -43,7 +43,7 @@ install-exec-hook:dummy_qt
 	mkdir -p $(DESTDIR)$(bindir)/DummyQt.app/Contents/Resources
 	mkdir -p $(DESTDIR)$(bindir)/DummyQt.app/Contents/Resources/English.lproj
 #       mkdir -p $(DESTDIR)$(bindir)/DummyQt.app/Contents/Frameworks
-  cp $(top_builddir)/dummy_qt/Info.plist $(DESTDIR)$(bindir)/DummyQt.app/Contents
+	cp $(top_builddir)/dummy_qt/Info.plist $(DESTDIR)$(bindir)/DummyQt.app/Contents
 	echo -n 'APPL????' > $(DESTDIR)$(bindir)/DummyQt.app/Contents/PkgInfo
 	cp $(top_builddir)/dummy_qt/dummy_qt $(DESTDIR)$(bindir)/DummyQt.app/Contents/MacOS/dummy_qt.bin
 	echo "#!/bin/tcsh -ef" > $(DESTDIR)$(bindir)/dummy_qt
