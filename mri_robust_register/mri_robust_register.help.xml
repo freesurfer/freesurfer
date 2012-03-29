@@ -71,6 +71,8 @@ Highly recommended for unnormalized images!</explanation>
 			<explanation>initial input text file for iscale value (probably you want to also activate --iscale to estimate final value?)</explanation>
 			<argument>--transonly</argument>
 			<explanation>find 3 parameter translation only</explanation>
+			<argument>--affine</argument>
+			<explanation>find 12 parameter affine transform</explanation>
 			<argument>--ixform lta</argument>
 			<explanation>use initial transform lta on source ('id'=identity).
 Default: align centers of mass</explanation>
@@ -112,12 +114,7 @@ Use MI, NMI (recommended), ECC, NCC or SCR for registering cross modality.</expl
 			<explanation>subsample if dim &gt; # on all axes (default no subsampling)</explanation>
       <argument>--floattype</argument>
       <explanation>convert images to float internally (default: keep input type)</explanation> 
-      <argument>--doubleprec</argument>
-      <explanation>double precision (instead of float) for images internally (large memory usage!!!)</explanation>
-      <argument>--finalsampletype</argument>
-      <explanation>resample method for output images: linear (tri-linear), cubic (B-Spline, default)</explanation>
-      
-			
+      			
 			<argument>--maskmov &lt;mask.mgz&gt;</argument>
 			<explanation>mask mov image with mask.mgz</explanation>
 			<argument>--maskdst &lt;mask.mgz&gt;</argument>
