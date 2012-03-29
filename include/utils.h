@@ -6,11 +6,11 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2012/03/20 19:25:12 $
- *    $Revision: 1.48 $
+ *    $Author: nicks $
+ *    $Date: 2012/03/29 20:28:07 $
+ *    $Revision: 1.49 $
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -37,7 +37,8 @@ extern "C" {
 #define LIST_FILE     2
 #define UNKNOWN_FILE  3
 
-#define _MAX_FS_THREADS 64 
+// defines the maximum number of threads used in OpenMP code
+#define _MAX_FS_THREADS 128 
 
 double randomNumber(double low, double hi) ;
 int    setRandomSeed(long seed) ;
