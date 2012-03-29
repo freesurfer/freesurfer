@@ -383,6 +383,8 @@
     <addaction name="actionGoToPoint"/>
     <addaction name="separator"/>
     <addaction name="actionShowLabelStats"/>
+    <addaction name="separator"/>
+    <addaction name="actionPlot"/>
    </widget>
    <widget class="QMenu" name="menuHelp">
     <property name="title">
@@ -1253,6 +1255,14 @@
    </property>
    <property name="toolTip">
     <string>View Time Course</string>
+   </property>
+  </action>
+  <action name="actionPlot">
+   <property name="text">
+    <string>Plot FSGD Data...</string>
+   </property>
+   <property name="toolTip">
+    <string>Plot FSGD Data</string>
    </property>
   </action>
  </widget>
@@ -2353,6 +2363,22 @@
     </hint>
    </hints>
   </connection>
+  <connection>
+   <sender>actionPlot</sender>
+   <signal>triggered()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>OnPlot()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>606</x>
+     <y>435</y>
+    </hint>
+   </hints>
+  </connection>
  </connections>
  <slots>
   <slot>OnLoadVolume()</slot>
@@ -2417,5 +2443,6 @@
   <slot>OnRepositionSurface()</slot>
   <slot>OnShowLabelStats()</slot>
   <slot>OnSaveROIAs()</slot>
+  <slot>OnPlot()</slot>
  </slots>
 </ui>

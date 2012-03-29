@@ -38,6 +38,7 @@ BUILT_SOURCES = \
   ui_DialogRepositionSurface.h \
   ui_WindowTimeCourse.h \
   ui_DialogLabelStats.h \
+  ui_WindowGroupPlot.h \
 	qtcolorpicker.moc \
 	moc_BrushProperty.cpp \
 	moc_CommandEdit.cpp \
@@ -136,6 +137,9 @@ BUILT_SOURCES = \
   moc_LayerMRIWorkerThread.cpp \
   moc_DialogLabelStats.cpp \
   moc_VolumeFilterWorkerThread.cpp \
+  moc_FSGroupDescriptor.cpp \
+  moc_WindowGroupPlot.cpp \
+  moc_WidgetGroupPlot.cpp \
   qrc_freeview.cpp
 
 freeview_SOURCES = $(BUILT_SOURCES) \
@@ -397,6 +401,9 @@ freeview_SOURCES = $(BUILT_SOURCES) \
   DialogLabelStats.h \
   VolumeFilterWorkerThread.cpp \
   VolumeFilterWorkerThread.h \
+  FSGroupDescriptor.cpp \
+  WindowGroupPlot.cpp \
+  WidgetGroupPlot.cpp \
 	freeview.qrc
 
 qrc_freeview.cpp: freeview.qrc

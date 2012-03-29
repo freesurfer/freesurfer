@@ -129,7 +129,10 @@ SOURCES += \
     WidgetTimeCoursePlot.cpp \
     LayerMRIWorkerThread.cpp \
     DialogLabelStats.cpp \
-    VolumeFilterWorkerThread.cpp
+    VolumeFilterWorkerThread.cpp \
+    FSGroupDescriptor.cpp \
+    WindowGroupPlot.cpp \
+    WidgetGroupPlot.cpp
 
 HEADERS  += \
     Annotation2D.h \
@@ -248,7 +251,10 @@ HEADERS  += \
     WidgetTimeCoursePlot.h \
     LayerMRIWorkerThread.h \
     DialogLabelStats.h \
-    VolumeFilterWorkerThread.h
+    VolumeFilterWorkerThread.h \
+    FSGroupDescriptor.h \
+    WindowGroupPlot.h \
+    WidgetGroupPlot.h
 
 FORMS    += MainWindow.ui \
     PanelVolume.ui \
@@ -282,7 +288,8 @@ FORMS    += MainWindow.ui \
     DialogReplaceLabel.ui \
     DialogRepositionSurface.ui \
     WindowTimeCourse.ui \
-    DialogLabelStats.ui
+    DialogLabelStats.ui \
+    WindowGroupPlot.ui
 
 RESOURCES += \
     freeview.qrc

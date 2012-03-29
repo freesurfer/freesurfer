@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2012/01/23 20:41:52 $
- *    $Revision: 1.112 $
+ *    $Date: 2012/03/29 20:35:50 $
+ *    $Revision: 1.113 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -54,6 +54,7 @@ class DialogWriteMovieFrames;
 class DialogRepositionSurface;
 class QMessageBox;
 class WindowTimeCourse;
+class WindowGroupPlot;
 class DialogLabelStats;
 class VolumeFilterWorkerThread;
 class VolumeFilter;
@@ -370,6 +371,7 @@ protected slots:
   void OnRepositionSurface();
   void OnShowLabelStats();
   void OnSaveIsoSurface();
+  void OnPlot();
 
   void OnActiveLayerChanged(Layer*);
 
@@ -449,6 +451,7 @@ private:
   FloatingStatusBar*    m_statusBar;
   TermWidget*           m_term;
   WindowTimeCourse*     m_wndTimeCourse;
+  WindowGroupPlot*      m_wndGroupPlot;
   DialogLabelStats*     m_dlgLabelStats;
 
   VolumeFilterWorkerThread* m_threadVolumeFilter;

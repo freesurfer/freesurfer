@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2012/03/14 16:58:22 $
- *    $Revision: 1.207 $
+ *    $Date: 2012/03/29 20:35:50 $
+ *    $Revision: 1.208 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -86,6 +86,8 @@
 #include "WindowTimeCourse.h"
 #include "DialogLabelStats.h"
 #include "VolumeFilterWorkerThread.h"
+#include "FSGroupDescriptor.h"
+#include "WindowGroupPlot.h"
 
 MainWindow::MainWindow( QWidget *parent, MyCmdLineParser* cmdParser ) :
   QMainWindow( parent ),
@@ -207,6 +209,9 @@ MainWindow::MainWindow( QWidget *parent, MyCmdLineParser* cmdParser ) :
   connect(this, SIGNAL(SlicePositionChanged()), m_wndTimeCourse, SLOT(UpdateData()));
   connect(ui->actionTimeCourse, SIGNAL(toggled(bool)),
           m_wndTimeCourse, SLOT(setVisible(bool)));
+
+  m_wndGroupPlot = new WindowGroupPlot(this);
+  m_wndGroupPlot->hide();
 
   m_dlgLabelStats = new DialogLabelStats(this);
   m_dlgLabelStats->hide();
@@ -5243,4 +5248,23 @@ void MainWindow::OnSaveIsoSurface()
 bool MainWindow::IsRepositioningSurface()
 {
   return this->m_dlgRepositionSurface->isVisible();
+}
+
+void MainWindow::OnPlot()
+{
+  QString fn = QFileDialog::getOpenFileName(this, "Select FSGD File", m_strLastDir,
+                                            "FSGD files (*.fsgd)");
+  if (fn.isEmpty())
+    return;
+
+  FSGroupDescriptor* fsgd = new FSGroupDescriptor(this);
+  if (!fsgd->Read(fn))
+  {
+    QMessageBox::warning(this, "Error", "Failed to load FSGD file.");
+    return;
+  }
+
+  this->m_wndGroupPlot->SetFsgdData(fsgd);
+  this->m_wndGroupPlot->show();
+  m_strLastDir = QFileInfo(fn).absolutePath();
 }
