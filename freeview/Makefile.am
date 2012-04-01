@@ -402,8 +402,11 @@ freeview_SOURCES = $(BUILT_SOURCES) \
   VolumeFilterWorkerThread.cpp \
   VolumeFilterWorkerThread.h \
   FSGroupDescriptor.cpp \
+  FSGroupDescriptor.h \
   WindowGroupPlot.cpp \
+  WindowGroupPlot.h \
   WidgetGroupPlot.cpp \
+  WidgetGroupPlot.h \
 	freeview.qrc
 
 qrc_freeview.cpp: freeview.qrc
