@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:10 $
- *    $Revision: 1.4 $
+ *    $Author: segonne $
+ *    $Date: 2012/04/01 10:16:11 $
+ *    $Revision: 1.5 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -138,7 +138,7 @@ class HeapCompare : std::binary_function<int,int,bool>
   int _Run(int &stopping_face);
   void _InitDefect();
   int _ExtractFirstLoop(Loop& loop, int init_fn1, int init_fn2);
-  void _FindFacePath(Loop &loop,int init_fn1,int init_fn2);
+  int _FindFacePath(Loop &loop,int init_fn1,int init_fn2);
   int _FindCommonVertex(int init_fn1,int init_fn2);
   int _FindNextFace(int next_fn,int vno);
   int _ExtractSecondLoop(Loop& loop, int init_fn);

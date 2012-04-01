@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:56 $
- *    $Revision: 1.5 $
+ *    $Author: segonne $
+ *    $Date: 2012/04/01 10:16:58 $
+ *    $Revision: 1.6 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -408,6 +408,7 @@ int FastLoop::_CheckAdjacency(int fn) {
 
 //extract a loop starting from the two faces init_fn1 and init_fn2
 //these two faces are adjacent through a vertex
+// return 0 if fails to find path
 int FastLoop::_ExtractFirstLoop(Loop &loop, int init_fn1, int init_fn2) {
   int final_fn1=-1,final_fn2=-1;
 
@@ -433,6 +434,8 @@ int FastLoop::_ExtractFirstLoop(Loop &loop, int init_fn1, int init_fn2) {
     if (fn==facedata[fn].fmFather) {
       //  surface->WriteFile("pp2.3d",1);
       //exit(-1);
+	  cout << "ExtractFirstLoop: father same as son..." << endl;	
+	  return 0;	
       ErrorExit("ExtractFirstLoop: father same as son...");
     }
     fn=facedata[fn].fmFather;
@@ -537,20 +540,24 @@ int FastLoop::_ExtractFirstLoop(Loop &loop, int init_fn1, int init_fn2) {
 #endif
 
   //finally find path in between init_fn1 and init_fn2
-  _FindFacePath(loop,init_fn1,init_fn2);
+  if(!_FindFacePath(loop,init_fn1,init_fn2)){
+	return 0;		
+  }
 #if PRINT_ERROR_MODE
   cout << "second: ";
   loop.Print();
 #endif
 
   // and final_fn1 and final_fn2
-  _FindFacePath(loop,final_fn1,final_fn2);
+  if(!_FindFacePath(loop,final_fn1,final_fn2)){
+	return 0;
+  }
 #if PRINT_ERROR_MODE
   cout << "third: ";
   loop.Print();
 #endif
 
-  return 0;
+  return 1;
 }
 
 // find the only vertex that is common to init_fn1 and init_fn2
@@ -583,7 +590,8 @@ int FastLoop::_FindNextFace(int next_fn,int vno) {
 
 // find a path of faces in between two faces
 // that have one single common vertex
-void FastLoop::_FindFacePath(Loop &loop, int init_fn1,int init_fn2) {
+// return 0 if fails to find path
+int FastLoop::_FindFacePath(Loop &loop, int init_fn1,int init_fn2) {
   /////////////////////////
   // Initialization
 
@@ -619,8 +627,11 @@ void FastLoop::_FindFacePath(Loop &loop, int init_fn1,int init_fn2) {
   }
   //find the common vertex
   int vno = _FindCommonVertex(init_fn1,init_fn2);
-  if (vno==-1) ErrorExit("_FindFacePath: could not find the common vertex! ");
-
+  if (vno==-1){
+   cout << "_FindFacePath: could not find the common vertex! " << endl;
+   return 0;
+   ErrorExit("_FindFacePath: could not find the common vertex! ");
+  }
   int fnum = surface->vertices[vno].fnum;
 
   //////////////////////////////////
@@ -684,6 +695,8 @@ void FastLoop::_FindFacePath(Loop &loop, int init_fn1,int init_fn2) {
       delete [] PathFaces[0];
       delete [] PathFaces[1];
       //surface->WriteFile("./test.3d",1);
+	  cout << "_FindFacePath: could not find path!" << endl;
+	  return 0;
       ErrorExit("_FindFacePath: could not find path!");
     };
     if (!nfaces[0]) which_path = 1;
@@ -697,6 +710,7 @@ void FastLoop::_FindFacePath(Loop &loop, int init_fn1,int init_fn2) {
 
   delete [] PathFaces[0];
   delete [] PathFaces[1];
+  return 1;
 }
 
 //extract a loop starting from the two adjacent faces final_face[i] (i=0 & i=1)
@@ -991,6 +1005,7 @@ void FastLoop::SetDefectList(int nfaces, int *list_of_faces) {
   }
 }
 
+// return NULL if fails to find loop
 Loop* FastLoop::FindLoop(int seed) {
 #if PRINT_ERROR_MODE
   cout << endl << "seed point is : " << seed << " ";
@@ -1079,7 +1094,10 @@ Loop* FastLoop::FindLoop(int seed) {
         cout << "Found only One Single Loop!!!!" << endl;
 #endif
         Loop *loops = new Loop[2];
-        _ExtractFirstLoop(loops[0],conflicting_face,stopping_face);
+		if(!_ExtractFirstLoop(loops[0],conflicting_face,stopping_face)){
+			delete[] loops;
+			return NULL;
+		}
 #if PRINT_ERROR_MODE
         loops[0].Print();
 #endif
@@ -1100,7 +1118,10 @@ Loop* FastLoop::FindLoop(int seed) {
 #endif
   //extracting path
   Loop *loops = new Loop[2];
-  _ExtractFirstLoop(loops[0],conflicting_face,stopping_face);
+  if(!_ExtractFirstLoop(loops[0],conflicting_face,stopping_face)){
+	delete [] loops;
+	return NULL;
+  }
 #if PRINT_ERROR_MODE
   loops[0].Print();
 #endif
