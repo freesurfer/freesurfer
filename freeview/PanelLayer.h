@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2011/05/13 15:04:32 $
- *    $Revision: 1.4.2.2 $
+ *    $Date: 2012/04/03 21:07:22 $
+ *    $Revision: 1.4.2.3 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -55,6 +55,7 @@ protected:
   void InitializeLayerList( QTreeWidget* treeWidget, LayerCollection* lc );
   void BlockAllSignals( bool bBlock );
   template<typename T> inline T GetCurrentLayer();
+  template<typename T> inline QList<T> GetSelectedLayers();
 
 protected slots:
   void OnIdle();
@@ -65,6 +66,7 @@ protected slots:
   void OnActiveLayerChanged( Layer* layer );
   void OnItemChanged( QTreeWidgetItem* item );
   void OnCurrentItemChanged( QTreeWidgetItem* item );
+  void OnItemSelectionChanged();
   void OnItemDoubleClicked(const QModelIndex& index);
   void OnLayerNameChanged();
 
@@ -94,5 +96,21 @@ template<typename T> T PanelLayer::GetCurrentLayer()
   {
     return NULL;
   }
+}
+
+template<typename T> QList<T> PanelLayer::GetSelectedLayers()
+{
+  QList<T> list;
+  if ( !treeWidgetPrivate )
+  {
+    return list;
+  }
+
+  QList<QTreeWidgetItem*> items = treeWidgetPrivate->selectedItems();
+  foreach (QTreeWidgetItem* item, items)
+  {
+    list << qobject_cast<T>( item->data(0, Qt::UserRole).template value<QObject*>() );
+  }
+  return list;
 }
 #endif // PANELLAYER_H

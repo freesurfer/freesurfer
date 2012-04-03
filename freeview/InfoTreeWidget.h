@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2011/05/13 15:04:32 $
- *    $Revision: 1.4.2.3 $
+ *    $Date: 2012/04/03 21:07:21 $
+ *    $Revision: 1.4.2.4 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -36,6 +36,7 @@ class InfoTreeWidget : public QTreeWidget
   Q_OBJECT
 public:
   InfoTreeWidget(QWidget* parent = 0);
+  void contextMenuEvent(QContextMenuEvent *);
 
 signals:
   void RASChangeTriggered(double x, double y, double z);
@@ -49,6 +50,7 @@ protected slots:
   void OnCursorPositionChanged();
   void OnItemClicked(QTreeWidgetItem * item, int column);
   void OnEditFinished();
+  void OnToggleShowInfo(bool bShow);
 
 protected:
   void showEvent(QShowEvent *);

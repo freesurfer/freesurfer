@@ -1,0 +1,937 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>ToolWindowEdit</class>
+ <widget class="QWidget" name="ToolWindowEdit">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>326</width>
+    <height>629</height>
+   </rect>
+  </property>
+  <property name="sizePolicy">
+   <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+    <horstretch>0</horstretch>
+    <verstretch>0</verstretch>
+   </sizepolicy>
+  </property>
+  <property name="windowTitle">
+   <string>Voxel Edit</string>
+  </property>
+  <layout class="QVBoxLayout" name="verticalLayoutMain">
+   <property name="spacing">
+    <number>0</number>
+   </property>
+   <property name="sizeConstraint">
+    <enum>QLayout::SetFixedSize</enum>
+   </property>
+   <property name="margin">
+    <number>0</number>
+   </property>
+   <item>
+    <widget class="QToolBar" name="toolBar">
+     <property name="iconSize">
+      <size>
+       <width>24</width>
+       <height>24</height>
+      </size>
+     </property>
+     <addaction name="actionFreeHand"/>
+     <addaction name="actionPolyLine"/>
+     <addaction name="actionLiveWire"/>
+     <addaction name="actionFill"/>
+     <addaction name="actionContour"/>
+     <addaction name="actionColorPicker"/>
+     <addaction name="separator"/>
+     <addaction name="actionReplaceLabel"/>
+    </widget>
+   </item>
+   <item>
+    <widget class="Line" name="line">
+     <property name="orientation">
+      <enum>Qt::Horizontal</enum>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <layout class="QVBoxLayout" name="verticalLayout">
+     <property name="spacing">
+      <number>7</number>
+     </property>
+     <property name="sizeConstraint">
+      <enum>QLayout::SetFixedSize</enum>
+     </property>
+     <property name="leftMargin">
+      <number>9</number>
+     </property>
+     <property name="topMargin">
+      <number>5</number>
+     </property>
+     <property name="rightMargin">
+      <number>9</number>
+     </property>
+     <property name="bottomMargin">
+      <number>5</number>
+     </property>
+     <item>
+      <layout class="QGridLayout" name="gridLayout">
+       <property name="spacing">
+        <number>6</number>
+       </property>
+       <item row="0" column="0">
+        <widget class="QLabel" name="labelBrushSize">
+         <property name="text">
+          <string>Brush size</string>
+         </property>
+        </widget>
+       </item>
+       <item row="0" column="1">
+        <widget class="QSpinBox" name="spinBoxBrushSize">
+         <property name="minimum">
+          <number>1</number>
+         </property>
+         <property name="maximum">
+          <number>512</number>
+         </property>
+        </widget>
+       </item>
+       <item row="0" column="2" colspan="3">
+        <spacer name="horizontalSpacer">
+         <property name="orientation">
+          <enum>Qt::Horizontal</enum>
+         </property>
+         <property name="sizeHint" stdset="0">
+          <size>
+           <width>0</width>
+           <height>0</height>
+          </size>
+         </property>
+        </spacer>
+       </item>
+       <item row="1" column="0">
+        <widget class="QLabel" name="labelReference">
+         <property name="text">
+          <string>Reference</string>
+         </property>
+        </widget>
+       </item>
+       <item row="1" column="1" colspan="3">
+        <widget class="QComboBox" name="comboBoxReference">
+         <property name="sizePolicy">
+          <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+           <horstretch>1</horstretch>
+           <verstretch>0</verstretch>
+          </sizepolicy>
+         </property>
+         <property name="maximumSize">
+          <size>
+           <width>200</width>
+           <height>16777215</height>
+          </size>
+         </property>
+        </widget>
+       </item>
+       <item row="2" column="0">
+        <widget class="QLabel" name="labelTolerance">
+         <property name="text">
+          <string>Tolerance</string>
+         </property>
+        </widget>
+       </item>
+       <item row="3" column="0">
+        <widget class="QLabel" name="labelContourValue">
+         <property name="text">
+          <string>Contour value</string>
+         </property>
+        </widget>
+       </item>
+       <item row="3" column="1">
+        <widget class="QLineEdit" name="lineEditContourValue">
+         <property name="minimumSize">
+          <size>
+           <width>0</width>
+           <height>0</height>
+          </size>
+         </property>
+         <property name="maximumSize">
+          <size>
+           <width>80</width>
+           <height>16777215</height>
+          </size>
+         </property>
+         <property name="baseSize">
+          <size>
+           <width>0</width>
+           <height>0</height>
+          </size>
+         </property>
+        </widget>
+       </item>
+       <item row="2" column="1">
+        <widget class="QSpinBox" name="spinBoxTolerance">
+         <property name="suffix">
+          <string>%</string>
+         </property>
+        </widget>
+       </item>
+       <item row="2" column="3">
+        <spacer name="horizontalSpacer_2">
+         <property name="orientation">
+          <enum>Qt::Horizontal</enum>
+         </property>
+         <property name="sizeHint" stdset="0">
+          <size>
+           <width>0</width>
+           <height>0</height>
+          </size>
+         </property>
+        </spacer>
+       </item>
+       <item row="3" column="3">
+        <spacer name="horizontalSpacer_3">
+         <property name="orientation">
+          <enum>Qt::Horizontal</enum>
+         </property>
+         <property name="sizeHint" stdset="0">
+          <size>
+           <width>0</width>
+           <height>0</height>
+          </size>
+         </property>
+        </spacer>
+       </item>
+      </layout>
+     </item>
+     <item>
+      <widget class="QCheckBox" name="checkBoxConstrain">
+       <property name="text">
+        <string>Constrain drawings to only voxels that are 
+connected to old labels</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QCheckBox" name="checkBoxDrawRange">
+       <property name="text">
+        <string>Only draw on pixels in the range of</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <layout class="QHBoxLayout" name="horizontalLayout">
+       <item>
+        <widget class="QLabel" name="labelDrawRangeLow">
+         <property name="enabled">
+          <bool>false</bool>
+         </property>
+         <property name="text">
+          <string>Low</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QLineEdit" name="lineEditDrawRangeLow">
+         <property name="enabled">
+          <bool>false</bool>
+         </property>
+         <property name="maximumSize">
+          <size>
+           <width>60</width>
+           <height>16777215</height>
+          </size>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <spacer name="horizontalSpacer_8">
+         <property name="orientation">
+          <enum>Qt::Horizontal</enum>
+         </property>
+         <property name="sizeType">
+          <enum>QSizePolicy::Fixed</enum>
+         </property>
+         <property name="sizeHint" stdset="0">
+          <size>
+           <width>10</width>
+           <height>0</height>
+          </size>
+         </property>
+        </spacer>
+       </item>
+       <item>
+        <widget class="QLabel" name="labelDrawRangeHigh">
+         <property name="enabled">
+          <bool>false</bool>
+         </property>
+         <property name="text">
+          <string>high</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QLineEdit" name="lineEditDrawRangeHigh">
+         <property name="enabled">
+          <bool>false</bool>
+         </property>
+         <property name="maximumSize">
+          <size>
+           <width>60</width>
+           <height>16777215</height>
+          </size>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <spacer name="horizontalSpacer_5">
+         <property name="orientation">
+          <enum>Qt::Horizontal</enum>
+         </property>
+         <property name="sizeHint" stdset="0">
+          <size>
+           <width>0</width>
+           <height>0</height>
+          </size>
+         </property>
+        </spacer>
+       </item>
+      </layout>
+     </item>
+     <item>
+      <widget class="QCheckBox" name="checkBoxExcludeRange">
+       <property name="text">
+        <string>Do not draw on pixels in the range of</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <layout class="QHBoxLayout" name="horizontalLayout_2">
+       <item>
+        <widget class="QLabel" name="labelExcludeRangeLow">
+         <property name="enabled">
+          <bool>false</bool>
+         </property>
+         <property name="text">
+          <string>Low</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QLineEdit" name="lineEditExcludeRangeLow">
+         <property name="enabled">
+          <bool>false</bool>
+         </property>
+         <property name="maximumSize">
+          <size>
+           <width>60</width>
+           <height>16777215</height>
+          </size>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <spacer name="horizontalSpacer_9">
+         <property name="orientation">
+          <enum>Qt::Horizontal</enum>
+         </property>
+         <property name="sizeType">
+          <enum>QSizePolicy::Fixed</enum>
+         </property>
+         <property name="sizeHint" stdset="0">
+          <size>
+           <width>10</width>
+           <height>0</height>
+          </size>
+         </property>
+        </spacer>
+       </item>
+       <item>
+        <widget class="QLabel" name="labelExcludeRangeHigh">
+         <property name="enabled">
+          <bool>false</bool>
+         </property>
+         <property name="text">
+          <string>high</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QLineEdit" name="lineEditExcludeRangeHigh">
+         <property name="enabled">
+          <bool>false</bool>
+         </property>
+         <property name="maximumSize">
+          <size>
+           <width>60</width>
+           <height>16777215</height>
+          </size>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <spacer name="horizontalSpacer_6">
+         <property name="orientation">
+          <enum>Qt::Horizontal</enum>
+         </property>
+         <property name="sizeHint" stdset="0">
+          <size>
+           <width>0</width>
+           <height>0</height>
+          </size>
+         </property>
+        </spacer>
+       </item>
+      </layout>
+     </item>
+     <item>
+      <widget class="QCheckBox" name="checkBoxSmooth">
+       <property name="text">
+        <string>Apply Gaussian smoothing</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <layout class="QHBoxLayout" name="horizontalLayout_3">
+       <item>
+        <widget class="QLabel" name="labelSD">
+         <property name="enabled">
+          <bool>false</bool>
+         </property>
+         <property name="text">
+          <string>Standard deviation</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QLineEdit" name="lineEditSD">
+         <property name="enabled">
+          <bool>false</bool>
+         </property>
+         <property name="maximumSize">
+          <size>
+           <width>60</width>
+           <height>16777215</height>
+          </size>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <spacer name="horizontalSpacer_7">
+         <property name="orientation">
+          <enum>Qt::Horizontal</enum>
+         </property>
+         <property name="sizeHint" stdset="0">
+          <size>
+           <width>0</width>
+           <height>0</height>
+          </size>
+         </property>
+        </spacer>
+       </item>
+      </layout>
+     </item>
+     <item>
+      <layout class="QHBoxLayout" name="horizontalLayout_4">
+       <item>
+        <widget class="QLabel" name="labelContourColor">
+         <property name="text">
+          <string>Contour color</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QtColorPicker" name="colorPickerContour" native="true">
+         <property name="minimumSize">
+          <size>
+           <width>60</width>
+           <height>0</height>
+          </size>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <spacer name="horizontalSpacer_4">
+         <property name="orientation">
+          <enum>Qt::Horizontal</enum>
+         </property>
+         <property name="sizeHint" stdset="0">
+          <size>
+           <width>0</width>
+           <height>0</height>
+          </size>
+         </property>
+        </spacer>
+       </item>
+      </layout>
+     </item>
+     <item>
+      <widget class="QCheckBox" name="checkBoxFill3D">
+       <property name="text">
+        <string>Flood fill multiple slices at a time</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <spacer name="verticalSpacer_2">
+       <property name="orientation">
+        <enum>Qt::Vertical</enum>
+       </property>
+       <property name="sizeType">
+        <enum>QSizePolicy::Fixed</enum>
+       </property>
+       <property name="sizeHint" stdset="0">
+        <size>
+         <width>5</width>
+         <height>3</height>
+        </size>
+       </property>
+      </spacer>
+     </item>
+     <item>
+      <widget class="QLabel" name="labelTips">
+       <property name="text">
+        <string>Tips:
+Ctrl + Alt + Left button to adjust contour.
+Left button to add pixels to contour.
+Shift + Left button to break contour.
+Ctrl + Left button to fill isolated contour.
+Shift + Ctrl + Left button to move cursor.
+Alt + H to show/hide contour.
+Alt + L to turn on/off label outline display mode.</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <spacer name="verticalSpacer">
+       <property name="orientation">
+        <enum>Qt::Vertical</enum>
+       </property>
+       <property name="sizeHint" stdset="0">
+        <size>
+         <width>0</width>
+         <height>5</height>
+        </size>
+       </property>
+      </spacer>
+     </item>
+    </layout>
+   </item>
+  </layout>
+  <action name="actionFreeHand">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="icon">
+    <iconset resource="freeview.qrc">
+     <normaloff>:/resource/icons/voxel_draw_freehand.png</normaloff>:/resource/icons/voxel_draw_freehand.png</iconset>
+   </property>
+   <property name="text">
+    <string>FreeHand</string>
+   </property>
+   <property name="toolTip">
+    <string>Freehand</string>
+   </property>
+  </action>
+  <action name="actionPolyLine">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="icon">
+    <iconset resource="freeview.qrc">
+     <normaloff>:/resource/icons/voxel_draw_polyline.png</normaloff>:/resource/icons/voxel_draw_polyline.png</iconset>
+   </property>
+   <property name="text">
+    <string>PolyLine</string>
+   </property>
+   <property name="toolTip">
+    <string>Polyline</string>
+   </property>
+  </action>
+  <action name="actionLiveWire">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="icon">
+    <iconset resource="freeview.qrc">
+     <normaloff>:/resource/icons/voxel_draw_livewire.png</normaloff>:/resource/icons/voxel_draw_livewire.png</iconset>
+   </property>
+   <property name="text">
+    <string>LiveWire</string>
+   </property>
+   <property name="toolTip">
+    <string>Live wire</string>
+   </property>
+  </action>
+  <action name="actionFill">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="icon">
+    <iconset resource="freeview.qrc">
+     <normaloff>:/resource/icons/voxel_draw_fill.png</normaloff>:/resource/icons/voxel_draw_fill.png</iconset>
+   </property>
+   <property name="text">
+    <string>Fill</string>
+   </property>
+   <property name="toolTip">
+    <string>Flood Fill</string>
+   </property>
+  </action>
+  <action name="actionContour">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="icon">
+    <iconset resource="freeview.qrc">
+     <normaloff>:/resource/icons/voxel_draw_contour.png</normaloff>:/resource/icons/voxel_draw_contour.png</iconset>
+   </property>
+   <property name="text">
+    <string>Contour</string>
+   </property>
+   <property name="toolTip">
+    <string>Contour</string>
+   </property>
+  </action>
+  <action name="actionColorPicker">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="icon">
+    <iconset resource="freeview.qrc">
+     <normaloff>:/resource/icons/voxel_draw_colorpicker.png</normaloff>:/resource/icons/voxel_draw_colorpicker.png</iconset>
+   </property>
+   <property name="text">
+    <string>ColorPicker</string>
+   </property>
+   <property name="toolTip">
+    <string>Color picker</string>
+   </property>
+  </action>
+  <action name="actionReplaceLabel">
+   <property name="icon">
+    <iconset resource="freeview.qrc">
+     <normaloff>:/resource/icons/voxel_draw_replace_color.png</normaloff>:/resource/icons/voxel_draw_replace_color.png</iconset>
+   </property>
+   <property name="text">
+    <string>Replace Label</string>
+   </property>
+   <property name="toolTip">
+    <string>Replace Label</string>
+   </property>
+  </action>
+ </widget>
+ <customwidgets>
+  <customwidget>
+   <class>QtColorPicker</class>
+   <extends>QWidget</extends>
+   <header>qtcolorpicker.h</header>
+   <container>1</container>
+   <slots>
+    <signal>colorChanged(QColor)</signal>
+    <signal>currentColorChanged(QColor)</signal>
+   </slots>
+  </customwidget>
+ </customwidgets>
+ <resources>
+  <include location="freeview.qrc"/>
+ </resources>
+ <connections>
+  <connection>
+   <sender>checkBoxDrawRange</sender>
+   <signal>toggled(bool)</signal>
+   <receiver>labelDrawRangeLow</receiver>
+   <slot>setEnabled(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>81</x>
+     <y>249</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>24</x>
+     <y>264</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>checkBoxDrawRange</sender>
+   <signal>toggled(bool)</signal>
+   <receiver>lineEditDrawRangeHigh</receiver>
+   <slot>setEnabled(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>261</x>
+     <y>238</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>204</x>
+     <y>271</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>checkBoxDrawRange</sender>
+   <signal>toggled(bool)</signal>
+   <receiver>lineEditDrawRangeLow</receiver>
+   <slot>setEnabled(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>137</x>
+     <y>239</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>86</x>
+     <y>267</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>checkBoxDrawRange</sender>
+   <signal>toggled(bool)</signal>
+   <receiver>labelDrawRangeHigh</receiver>
+   <slot>setEnabled(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>195</x>
+     <y>238</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>144</x>
+     <y>273</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>checkBoxExcludeRange</sender>
+   <signal>toggled(bool)</signal>
+   <receiver>lineEditExcludeRangeLow</receiver>
+   <slot>setEnabled(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>114</x>
+     <y>298</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>89</x>
+     <y>326</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>checkBoxExcludeRange</sender>
+   <signal>toggled(bool)</signal>
+   <receiver>labelExcludeRangeLow</receiver>
+   <slot>setEnabled(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>31</x>
+     <y>298</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>29</x>
+     <y>349</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>checkBoxExcludeRange</sender>
+   <signal>toggled(bool)</signal>
+   <receiver>labelExcludeRangeHigh</receiver>
+   <slot>setEnabled(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>157</x>
+     <y>299</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>140</x>
+     <y>323</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>checkBoxSmooth</sender>
+   <signal>toggled(bool)</signal>
+   <receiver>labelSD</receiver>
+   <slot>setEnabled(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>122</x>
+     <y>379</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>106</x>
+     <y>414</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>checkBoxExcludeRange</sender>
+   <signal>toggled(bool)</signal>
+   <receiver>lineEditExcludeRangeHigh</receiver>
+   <slot>setEnabled(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>248</x>
+     <y>302</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>202</x>
+     <y>329</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>checkBoxSmooth</sender>
+   <signal>toggled(bool)</signal>
+   <receiver>lineEditSD</receiver>
+   <slot>setEnabled(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>214</x>
+     <y>358</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>194</x>
+     <y>414</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>comboBoxReference</sender>
+   <signal>currentIndexChanged(int)</signal>
+   <receiver>ToolWindowEdit</receiver>
+   <slot>OnComboReference(int)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>189</x>
+     <y>98</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>431</x>
+     <y>129</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>lineEditContourValue</sender>
+   <signal>textEdited(QString)</signal>
+   <receiver>ToolWindowEdit</receiver>
+   <slot>OnLineEditContourValue(QString)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>160</x>
+     <y>156</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>442</x>
+     <y>161</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>lineEditDrawRangeLow</sender>
+   <signal>textEdited(QString)</signal>
+   <receiver>ToolWindowEdit</receiver>
+   <slot>OnDrawRangeChanged(QString)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>79</x>
+     <y>277</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>427</x>
+     <y>336</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>lineEditDrawRangeHigh</sender>
+   <signal>textEdited(QString)</signal>
+   <receiver>ToolWindowEdit</receiver>
+   <slot>OnDrawRangeChanged(QString)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>201</x>
+     <y>260</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>324</x>
+     <y>272</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>lineEditExcludeRangeLow</sender>
+   <signal>textEdited(QString)</signal>
+   <receiver>ToolWindowEdit</receiver>
+   <slot>OnExcludeRangeChanged(QString)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>75</x>
+     <y>342</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>365</x>
+     <y>353</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>lineEditExcludeRangeHigh</sender>
+   <signal>textEdited(QString)</signal>
+   <receiver>ToolWindowEdit</receiver>
+   <slot>OnExcludeRangeChanged(QString)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>186</x>
+     <y>341</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>344</x>
+     <y>384</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>lineEditSD</sender>
+   <signal>textEdited(QString)</signal>
+   <receiver>ToolWindowEdit</receiver>
+   <slot>OnLineEditSmoothSD(QString)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>157</x>
+     <y>395</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>381</x>
+     <y>435</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>actionReplaceLabel</sender>
+   <signal>triggered()</signal>
+   <receiver>ToolWindowEdit</receiver>
+   <slot>OnReplaceLabel()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>161</x>
+     <y>294</y>
+    </hint>
+   </hints>
+  </connection>
+ </connections>
+ <slots>
+  <slot>OnSpinBrushSize(int)</slot>
+  <slot>OnComboReference(int)</slot>
+  <slot>OnLineEditContourValue(QString)</slot>
+  <slot>OnDrawRangeChanged(QString)</slot>
+  <slot>OnExcludeRangeChanged(QString)</slot>
+  <slot>OnLineEditSmoothSD(QString)</slot>
+  <slot>OnReplaceLabel()</slot>
+ </slots>
+</ui>

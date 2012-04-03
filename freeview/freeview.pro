@@ -120,7 +120,19 @@ SOURCES += \
     DialogSaveVolume.cpp \
     DialogReplaceLabel.cpp \
     LayerVolumeTrack.cpp \
-    LayerLandmarks.cpp
+    LayerLandmarks.cpp \
+    SurfaceROI.cpp \
+    ProgressCallback.cpp \
+    MainApplication.cpp \
+    DialogRepositionSurface.cpp \
+    WindowTimeCourse.cpp \
+    WidgetTimeCoursePlot.cpp \
+    LayerMRIWorkerThread.cpp \
+    DialogLabelStats.cpp \
+    VolumeFilterWorkerThread.cpp \
+    FSGroupDescriptor.cpp \
+    WindowGroupPlot.cpp \
+    WidgetGroupPlot.cpp
 
 HEADERS  += \
     Annotation2D.h \
@@ -230,7 +242,19 @@ HEADERS  += \
     DialogSaveVolume.h \
     DialogReplaceLabel.h \
     LayerVolumeTrack.h \
-    LayerLandmarks.h
+    LayerLandmarks.h \
+    SurfaceROI.h \
+    ProgressCallback.h \
+    MainApplication.h \
+    DialogRepositionSurface.h \
+    WindowTimeCourse.h \
+    WidgetTimeCoursePlot.h \
+    LayerMRIWorkerThread.h \
+    DialogLabelStats.h \
+    VolumeFilterWorkerThread.h \
+    FSGroupDescriptor.h \
+    WindowGroupPlot.h \
+    WidgetGroupPlot.h
 
 FORMS    += MainWindow.ui \
     PanelVolume.ui \
@@ -261,7 +285,11 @@ FORMS    += MainWindow.ui \
     PanelTrack.ui \
     DialogSavePointSet.ui \
     DialogSaveVolume.ui \
-    DialogReplaceLabel.ui
+    DialogReplaceLabel.ui \
+    DialogRepositionSurface.ui \
+    WindowTimeCourse.ui \
+    DialogLabelStats.ui \
+    WindowGroupPlot.ui
 
 RESOURCES += \
     freeview.qrc
@@ -273,7 +301,7 @@ LIBS += \
     -lvtkRendering -lvtkftgl -lvtkWidgets -lvtkHybrid -lvtkIO -lvtkDICOMParser
 
 QMAKE_CXXFLAGS += -Wno-deprecated -DUNICODE -D_FILE_OFFSET_BITS=64 -D_LARGE_FILES \
-                                  -Wno-write-strings  #-DDEVELOPMENT
+                                  -Wno-write-strings  -DDEVELOPMENT
 
 # set this to your local dev directory
 FREESURFER_DEV_DIR = /homes/5/rpwang/freesurfer/dev

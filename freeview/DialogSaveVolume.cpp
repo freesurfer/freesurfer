@@ -1,14 +1,14 @@
 /**
  * @file  DialogSaveVolume.cpp
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief Dialog to save volume
  *
  */
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2011/05/13 15:04:31 $
- *    $Revision: 1.4.2.3 $
+ *    $Date: 2012/04/03 21:07:21 $
+ *    $Revision: 1.4.2.4 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -48,6 +48,13 @@ QString DialogSaveVolume::GetFileName()
 bool DialogSaveVolume::GetResample()
 {
   return !ui->checkBoxNoResample->isChecked();
+}
+
+bool DialogSaveVolume::GetCrop()
+{
+  if (ui->checkBoxNoResample->isChecked())
+    return false;
+  return ui->checkBoxCrop->isChecked();
 }
 
 void DialogSaveVolume::OnOK()

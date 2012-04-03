@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2011/05/13 15:04:31 $
- *    $Revision: 1.4.2.2 $
+ *    $Date: 2012/04/03 21:07:21 $
+ *    $Revision: 1.4.2.3 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -33,7 +33,7 @@
 #include <QDebug>
 
 FSPointSet::FSPointSet( QObject* parent ) : QObject( parent ),
-  m_label( NULL )
+  m_label( NULL ), m_bRealRAS(true)
 {}
 
 FSPointSet::~FSPointSet()
@@ -46,16 +46,11 @@ FSPointSet::~FSPointSet()
 
 bool FSPointSet::IsLabelFormat( const QString& filename )
 {
-  LABEL* label = ::LabelRead( NULL, qPrintable(filename) );
-  if ( label == NULL )
-  {
+  QFile file(filename);
+  if (!file.open(QIODevice::ReadOnly | QIODevice::Text))
     return false;
-  }
-  else
-  {
-    ::LabelFree( &label );
-    return true;
-  }
+
+  return file.readAll().contains("ascii label");
 }
 
 bool FSPointSet::ReadAsLabel( const QString& filename )
@@ -86,6 +81,7 @@ bool FSPointSet::ReadAsControlPoints( const QString& filename )
   QFile file( filename );
   if (!file.open(QIODevice::ReadOnly | QIODevice::Text))
   {
+    cerr << qPrintable(file.errorString()) << "\n";;
     return false;
   }
 
@@ -108,6 +104,9 @@ bool FSPointSet::ReadAsControlPoints( const QString& filename )
       }
       nCount ++;
     }
+    else if (subs.size() > 1 &&
+             subs[0].toLower() == "userealras" && subs[1] == "0")
+      m_bRealRAS = false;
   }
 
   m_label = ::LabelAlloc( nCount, NULL, (char*)"" );
@@ -144,6 +143,11 @@ bool FSPointSet::WriteAsControlPoints( const QString& filename )
   QFile file( filename );
   if (!file.open(QIODevice::WriteOnly | QIODevice::Text))
   {
+    QString strg = file.errorString();
+    if (strg.isEmpty())
+      cerr << "Can not open file for writing\n";
+    else
+      cerr << qPrintable(strg) << "\n";;
     return false;
   }
 
@@ -207,6 +211,10 @@ void FSPointSet::LabelToPointSet( PointSet& points_out, FSVolume* ref_vol )
     wp.pt[1] = m_label->lv[i].y;
     wp.pt[2] = m_label->lv[i].z;
     wp.value = m_label->lv[i].stat;
+    if ( !m_bRealRAS )
+    {
+      ref_vol->TkRegToNativeRAS( wp.pt, wp.pt );
+    }
     ref_vol->NativeRASToRAS( wp.pt, wp.pt );
     ref_vol->RASToTarget( wp.pt, wp.pt );
     points_out.push_back( wp );
