@@ -27,8 +27,8 @@
  * Original Author: Doug Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2012/01/19 16:49:58 $
- *    $Revision: 1.65 $
+ *    $Date: 2012/04/03 16:47:32 $
+ *    $Revision: 1.66 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -82,7 +82,7 @@ static int  singledash(char *flag);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] = 
-"$Id: mri_vol2surf.c,v 1.65 2012/01/19 16:49:58 greve Exp $";
+"$Id: mri_vol2surf.c,v 1.66 2012/04/03 16:47:32 greve Exp $";
 
 char *Progname = NULL;
 
@@ -217,7 +217,7 @@ int main(int argc, char **argv) {
   /* rkt: check for and handle version tag */
   nargs = handle_version_option 
     (argc, argv, 
-     "$Id: mri_vol2surf.c,v 1.65 2012/01/19 16:49:58 greve Exp $", 
+     "$Id: mri_vol2surf.c,v 1.66 2012/04/03 16:47:32 greve Exp $", 
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -1085,8 +1085,10 @@ static void print_usage(void) {
   printf("   --surf-fwhm fwhm : smooth output surface (mm)\n");
   printf("\n");
   printf("   --trgsubject target subject (if different than reg)\n");
-  printf("   --hemi       hemisphere (lh or rh) \n");
-  printf("   --surf       target surface (white) \n");
+  printf("   --hemi hemisphere (lh or rh) \n");
+  printf("   --surf target surface (default = white) DO NOT USE 'inflated' \n");
+  printf("      If you want to display on the inflated, sample it on \n");
+  printf("      the white surface, then display it on any surface, including inflated\n");
   printf("   --srcsubject source subject (override that in reg)\n");
   printf("\n");
   printf(" Options for use with --trgsubject\n");
@@ -1221,8 +1223,11 @@ static void print_help(void) {
     "  --hemi hemisphere : lh = left hemisphere, rh = right hemisphere\n"
     "\n"
     "  --surf surfacename : the surface on which to resample. The default is\n"
-    "    white. It will look for "
+    "  white. It will look for "
     "$SUBJECTS_DIR/subjectname/surf/?h.surfacename\n"
+    "  DO NOT specify 'inflated'. If you want to display on the inflated surface,\n"
+    "  or any other surface, specify 'white' here then display it on any surface,\n"
+    "  including the inflated surface.\n"
     "\n"
     "  --surfreg intersubject registration surface : default (sphere.reg).\n"
     "    This is a representation of a subject's cortical surface after it\n"
