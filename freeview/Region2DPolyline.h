@@ -7,20 +7,19 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/04/06 18:23:10 $
- *    $Revision: 1.1 $
+ *    $Date: 2012/04/06 19:15:30 $
+ *    $Revision: 1.6.2.1 $
  *
- * Copyright (C) 2008-2009,
- * The General Hospital Corporation (Boston, MA).
- * All rights reserved.
+ * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
- * Distribution, usage and copying of this software is covered under the
- * terms found in the License Agreement file named 'COPYING' found in the
- * FreeSurfer source code root directory, and duplicated here:
- * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ * Terms and conditions for use, reproduction, distribution and contribution
+ * are found in the 'FreeSurfer Software License Agreement' contained
+ * in the file 'LICENSE' found in the FreeSurfer distribution, and here:
  *
- * General inquiries: freesurfer@nmr.mgh.harvard.edu
- * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
+ *
+ * Reporting: freesurfer@nmr.mgh.harvard.edu
+ *
  *
  */
 
@@ -28,9 +27,7 @@
 #define Region2DPolyline_h
 
 #include "Region2D.h"
-#include <wx/wx.h>
-#include <string>
-#include <vector>
+#include <QList>
 #include "vtkSmartPointer.h"
 
 class vtkActor2D;
@@ -45,44 +42,50 @@ public:
   virtual ~Region2DPolyline();
 
   void AddPoint( int x, int y );
-  
+
   void Offset( int x, int y );
-  
+
   bool Contains( int x, int y, int* nIndexOut = NULL );
   void UpdatePoint( int nIndex, int nX, int nY );
-  
+
   void AppendProp( vtkRenderer* renderer );
-  
+
   void Show( bool bshow = true );
   void Highlight( bool bHighlight = true );
-  
+
   void Update();
   void UpdateStats();
-  
+
   void UpdateSlicePosition( int nPlane, double pos );
-  
+
   void GetWorldPoint( int nIndex, double* pt );
-  
+
   void RemoveLastPoint();
 
+  QString DataToString();
+
+  Region2D* ObjectFromString(RenderView2D* view, const QString& text);
+
 protected:
-  void UpdateWorldCoords();  
-  
+  void UpdateWorldCoords();
+
   vtkSmartPointer<vtkActor2D>   m_actorPolyline;
   vtkSmartPointer<vtkActor2D>   m_actorPoints;
   vtkSmartPointer<vtkTextActor> m_actorText;
-  
-  struct ScreenPoint {
+
+  struct ScreenPoint
+  {
     int pos[2];
   };
-  
-  struct WorldPoint {
+
+  struct WorldPoint
+  {
     double pos[3];
   };
-  
-  std::vector<ScreenPoint>   m_screenPts;       // 2D points
-  std::vector<WorldPoint>    m_worldPts;
-  
+
+  QList<ScreenPoint>   m_screenPts;       // 2D points
+  QList<WorldPoint>    m_worldPts;
+
   bool    m_bSpline;
 };
 

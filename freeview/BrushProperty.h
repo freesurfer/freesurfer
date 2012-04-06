@@ -9,20 +9,19 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/06/17 20:41:17 $
- *    $Revision: 1.7 $
+ *    $Date: 2012/04/06 19:15:28 $
+ *    $Revision: 1.12.2.1 $
  *
- * Copyright (C) 2008-2009,
- * The General Hospital Corporation (Boston, MA).
- * All rights reserved.
+ * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
- * Distribution, usage and copying of this software is covered under the
- * terms found in the License Agreement file named 'COPYING' found in the
- * FreeSurfer source code root directory, and duplicated here:
- * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ * Terms and conditions for use, reproduction, distribution and contribution
+ * are found in the 'FreeSurfer Software License Agreement' contained
+ * in the file 'LICENSE' found in the FreeSurfer distribution, and here:
  *
- * General inquiries: freesurfer@nmr.mgh.harvard.edu
- * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
+ *
+ * Reporting: freesurfer@nmr.mgh.harvard.edu
+ *
  *
  */
 
@@ -30,40 +29,55 @@
 #ifndef BrushProperty_h
 #define BrushProperty_h
 
+#include <QObject>
+
 class LayerVolumeBase;
+class Layer;
 
-class BrushProperty
+class BrushProperty : public QObject
 {
+  Q_OBJECT
 public:
-
-  BrushProperty ();
+  BrushProperty(QObject* parent=0);
   virtual ~BrushProperty ();
 
   int  GetBrushSize();
-  void SetBrushSize( int nSize );
 
   int  GetBrushTolerance();
-  void  SetBrushTolerance( int nTolerance );
 
   LayerVolumeBase*  GetReferenceLayer();
-  void     SetReferenceLayer( LayerVolumeBase* layer );
 
   double* GetDrawRange();
   void  SetDrawRange( double* range );
   void  SetDrawRange( double low, double high );
 
   bool GetDrawRangeEnabled();
-  void SetDrawRangeEnabled( bool bEnable );
 
   double* GetExcludeRange();
   void SetExcludeRange( double* range );
   void  SetExcludeRange( double low, double high );
 
   bool GetExcludeRangeEnabled();
-  void SetExcludeRangeEnabled( bool bEnable );
 
   bool GetDrawConnectedOnly();
+
+  bool GetFill3D()
+  {
+    return m_bFill3D;
+  }
+
+public slots:
+  void SetBrushSize( int nSize );
+  void SetBrushTolerance( int nTolerance );
+  void SetReferenceLayer( LayerVolumeBase* layer );
+  void SetDrawRangeEnabled( bool bEnable );
+  void SetExcludeRangeEnabled( bool bEnable );
   void SetDrawConnectedOnly( bool bEnable );
+  void OnLayerRemoved(Layer* layer);
+  void SetFill3D(bool bVal)
+  {
+    m_bFill3D = bVal;
+  }
 
 protected:
   int  m_nBrushSize;
@@ -73,6 +87,7 @@ protected:
   double m_dExcludeRange[2];
   bool m_bEnableExcludeRange;
   bool m_bDrawConnectedOnly;
+  bool  m_bFill3D;
 
   LayerVolumeBase* m_layerRef;
 };

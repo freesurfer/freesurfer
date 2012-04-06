@@ -1,152 +1,119 @@
 /**
  * @file  RenderView.h
- * @brief View class for rendering.
+ * @brief View class for rendering 2D and 3D actors
  *
  */
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/06/21 21:57:09 $
- *    $Revision: 1.23 $
+ *    $Date: 2012/04/06 19:15:30 $
+ *    $Revision: 1.30.2.1 $
  *
- * Copyright (C) 2008-2009,
- * The General Hospital Corporation (Boston, MA).
- * All rights reserved.
+ * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
- * Distribution, usage and copying of this software is covered under the
- * terms found in the License Agreement file named 'COPYING' found in the
- * FreeSurfer source code root directory, and duplicated here:
- * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ * Terms and conditions for use, reproduction, distribution and contribution
+ * are found in the 'FreeSurfer Software License Agreement' contained
+ * in the file 'LICENSE' found in the FreeSurfer distribution, and here:
  *
- * General inquiries: freesurfer@nmr.mgh.harvard.edu
- * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
+ *
+ * Reporting: freesurfer@nmr.mgh.harvard.edu
  *
  */
+#ifndef RENDERVIEW_H
+#define RENDERVIEW_H
 
-#ifndef RenderView_h
-#define RenderView_h
+#include "GenericRenderView.h"
+#include "vtkSmartPointer.h"
+#include <QPointer>
 
-#include "wxVTKRenderWindowInteractor.h"
-#include "Listener.h"
-#include "Broadcaster.h"
-
-class vtkRenderer;
-class vtkRenderWindow;
-class vtkActor2D;
-class LayerCollection;
 class Interactor;
+class QEvent;
+class QMouseEvent;
+class QKeyEvent;
+class QWheelEvent;
+class QFocusEvent;
+class vtkActor2D;
 class vtkScalarBarActor;
+class Layer;
 
-class VTK_RENDERING_EXPORT RenderView : public wxVTKRenderWindowInteractor, public Listener, public Broadcaster
+class RenderView : public GenericRenderView
 {
-  DECLARE_DYNAMIC_CLASS( RenderView )
-
+  Q_OBJECT
 public:
-  RenderView();
-  RenderView( wxWindow *parent, int id );
-  virtual ~RenderView();
+  RenderView( QWidget* parent = NULL );
 
-  enum InteractionMode { IM_Navigate = 0, IM_Measure, IM_VoxelEdit, IM_ROIEdit, IM_WayPointsEdit, IM_VolumeCrop };
-  
-  static RenderView * New();
-  void PrintSelf( ostream& os, vtkIndent indent );
+  enum InteractionMode { IM_Navigate = 0, IM_Measure, IM_VoxelEdit, IM_ROIEdit, IM_PointSetEdit, IM_VolumeCrop };
 
-  void OnSetFocus  ( wxFocusEvent& event);
-  void OnKillFocus ( wxFocusEvent& event );
-  void OnButtonDown ( wxMouseEvent& event );
-  void OnButtonUp  ( wxMouseEvent& event );
-  void OnMouseMove ( wxMouseEvent& event );
-  void OnMouseWheel ( wxMouseEvent& event );
-  void OnMouseEnter ( wxMouseEvent& event );
-  void OnMouseLeave ( wxMouseEvent& event );
-  void OnKeyDown  ( wxKeyEvent& event );
-  void OnKeyUp  ( wxKeyEvent& event );
-  void OnSize   ( wxSizeEvent& event );
-
-  void SetWorldCoordinateInfo( const double* origin, const double* size );
-  
-  void GetWorldBound( double* bound );
-  
-  virtual void UpdateViewByWorldCoordinate()
-  {}
-
-  virtual void RefreshAllActors()
-  {}
-
-  virtual void TriggerContextMenu( const wxPoint& pos )
-  {}
-
-  virtual void DoListenToMessage( std::string const iMessage, void* iData, void* sender );
-
-  void ViewportToWorld( double x, double y, double& world_x, double& world_y, double& world_z );
-  void NormalizedViewportToWorld( double x, double y, double& world_x, double& world_y, double& world_z );
-  void WorldToViewport( double world_x, double world_y, double world_z, double& x, double& y, double& z );
-  void WorldToScreen( double world_x, double world_y, double world_z, int& x, int& y ); 
-  void ScreenToWorld( int x, int y, int z, double& world_x, double& world_y, double& world_z );
+  void SetWorldCoordinateInfo( const double* origin, const double* size, bool bResetView = true );
+  virtual void UpdateViewByWorldCoordinate() {}
 
   int GetInteractionMode();
   virtual void SetInteractionMode( int nMode );
 
   int GetAction();
-  void SetAction( int nAction );
-
-  wxColour GetBackgroundColor() const;
-  void SetBackgroundColor( const wxColour& color );
-
-  virtual void MoveUp();
-  virtual void MoveDown();
-  virtual void MoveLeft();
-  virtual void MoveRight();
-  
-  void Zoom( double dFactor );
-
-  void NeedRedraw( bool bForce = false );
-
-  void ResetView();
-
-  vtkRenderer* GetRenderer()
-  {
-    return m_renderer;
-  }
-
-  bool SaveScreenshot( const wxString& fn, int nMagnification = 1, bool bAntiAliasing = false );
-
-  virtual void PreScreenshot()
-  {}
-  virtual void PostScreenshot()
-  {}
-
-  void ShowScalarBar( bool bShow );
-  bool GetShowScalarBar();
 
   void SetFocusFrameColor( double r, double g, double b );
-  
+
+  void ViewportToWorld( double x, double y, double& world_x, double& world_y, double& world_z );
+  void NormalizedViewportToWorld( double x, double y, double& world_x, double& world_y, double& world_z );
+  void WorldToViewport( double world_x, double world_y, double world_z, double& x, double& y, double& z );
+  void WorldToScreen( double world_x, double world_y, double world_z, int& x, int& y );
+  void ScreenToWorld( int x, int y, int z, double& world_x, double& world_y, double& world_z );
+
+  virtual void focusInEvent     ( QFocusEvent* event);
+  virtual void focusOutEvent    ( QFocusEvent* event );
+  virtual void mousePressEvent  ( QMouseEvent* event );
+  virtual void mouseReleaseEvent  ( QMouseEvent* event );
+  virtual void mouseMoveEvent   ( QMouseEvent* event );
+  virtual void wheelEvent       ( QWheelEvent* event );
+  virtual void enterEvent       ( QEvent* event );
+  virtual void leaveEvent       ( QEvent* event );
+  virtual void keyPressEvent    ( QKeyEvent* event );
+  virtual void keyReleaseEvent  ( QKeyEvent* event );
+
+  bool GetShowScalarBar();
   virtual void UpdateScalarBar();
 
-protected:
-  void InitializeRenderView();
-  virtual void OnInternalIdle();
+  bool SaveScreenShot(const QString& filename, bool bAntiAliasing, int nMag = 1);
+
+  virtual void TriggerContextMenu( QMouseEvent* event ) {}
+
+public slots:
+  void RequestRedraw( bool bForce = false );
+  void MoveUp();
+  void MoveDown();
+  void MoveLeft();
+  void MoveRight();
+  void Zoom( double factor );
+  void Reset();
+  void SetAction( int nAction );
+  void ShowScalarBar( bool bShow );
+  void SetScalarBarLayer( Layer* layer );
+  void SetScalarBarLayer( QAction* act );
 
 protected:
-  vtkRenderer*        m_renderer;
-  vtkRenderWindow*    m_renderWindow;
-  vtkActor2D*         m_actorFocusFrame;
-  vtkScalarBarActor*  m_actorScalarBar;
+  virtual void paintEvent(QPaintEvent *event);
 
-  double        m_dWorldOrigin[3];
-  double        m_dWorldSize[3];
+protected slots:
+  virtual void OnIdle();
+  virtual void OnSlicePositionChanged()
+  {
+    RequestRedraw();
+  }
+
+protected:
+  bool    m_bNeedRedraw;
+  double  m_dWorldOrigin[3];
+  double  m_dWorldSize[3];
 
   Interactor*   m_interactor;
   int           m_nInteractionMode;
 
-  int           m_nRedrawCount;
-
-  // any class wishing to process wxWindows events must use this macro
-  DECLARE_EVENT_TABLE()
-
+  vtkSmartPointer<vtkActor2D>   m_actorFocusFrame;
+  vtkSmartPointer<vtkScalarBarActor>  m_actorScalarBar;
+  QPointer<Layer>        m_layerScalarBar;
 };
 
-#endif
-
-
+#endif // RENDERVIEW_H

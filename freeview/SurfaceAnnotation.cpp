@@ -10,42 +10,48 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2010/02/28 22:51:48 $
- *    $Revision: 1.8 $
+ *    $Author: rpwang $
+ *    $Date: 2012/04/06 19:15:30 $
+ *    $Revision: 1.14.2.1 $
  *
- * Copyright (C) 2007-2009,
- * The General Hospital Corporation (Boston, MA).
- * All rights reserved.
+ * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
- * Distribution, usage and copying of this software is covered under the
- * terms found in the License Agreement file named 'COPYING' found in the
- * FreeSurfer source code root directory, and duplicated here:
- * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ * Terms and conditions for use, reproduction, distribution and contribution
+ * are found in the 'FreeSurfer Software License Agreement' contained
+ * in the file 'LICENSE' found in the FreeSurfer distribution, and here:
  *
- * General inquiries: freesurfer@nmr.mgh.harvard.edu
- * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
+ *
+ * Reporting: freesurfer@nmr.mgh.harvard.edu
+ *
  *
  */
 
 
-#include <assert.h>
 #include "SurfaceAnnotation.h"
 #include "vtkLookupTable.h"
 #include "vtkRGBAColorTransferFunction.h"
 #include "vtkMath.h"
 #include "LayerSurface.h"
-//#include "SurfaceAnnotationProperties.h"
 #include "FSSurface.h"
-#include <wx/filename.h>
+#include <QFileInfo>
+#include <vtkActor.h>
+#include <vtkAppendPolyData.h>
+#include <vtkCellArray.h>
+#include <vtkPolyData.h>
+#include <vtkPolyDataMapper.h>
+#include <vtkProperty.h>
+#include <QDebug>
 
 SurfaceAnnotation::SurfaceAnnotation ( LayerSurface* surf ) :
-    Broadcaster( "SurfaceAnnotation" ),
-    Listener( "SurfaceAnnotation" ),
-    m_nIndices( NULL ),
-    m_nCenterVertices( NULL ),
-    m_lut( NULL ),
-    m_surface( surf )
+  QObject( surf ),
+  m_nIndices( NULL ),
+  m_nOutlineIndices(NULL),
+  m_nCenterVertices( NULL ),
+  m_lut( NULL ),
+  m_surface( surf ),
+  m_bShowOutline(false),
+  m_dOpacity(1.0)
 {
 }
 
@@ -57,37 +63,37 @@ SurfaceAnnotation::~SurfaceAnnotation ()
 void SurfaceAnnotation::Reset()
 {
   if ( m_nIndices )
+  {
     delete[] m_nIndices;
-  
-  if ( m_lut )
-    CTABfree( &m_lut );
-  
+  }
+
   if ( m_nCenterVertices )
+  {
     delete[] m_nCenterVertices;
-   
+  }
+
+  if ( m_nOutlineIndices )
+  {
+    delete[] m_nOutlineIndices;
+  }
+
   m_nIndices = NULL;
+  m_nOutlineIndices = NULL;
   m_lut = NULL;
   m_nCenterVertices = NULL;
 }
 
-void SurfaceAnnotation::DoListenToMessage ( std::string const iMessage, void* iData, void* sender )
-{
-  if ( iMessage == "ColorMapChanged" )
-  {
-    this->SendBroadcast( "AnnotationChanged", this );
-  }
-}
 
-bool SurfaceAnnotation::LoadAnnotation( const char* fn )
+bool SurfaceAnnotation::LoadAnnotation( const QString& fn )
 {
   if ( m_surface )
   {
     MRIS* mris = m_surface->GetSourceSurface()->GetMRIS();
     m_nIndices = NULL;
 
-    if ( MRISreadAnnotation( mris, fn ) != 0 )
+    if ( MRISreadAnnotation( mris, fn.toAscii().data() ) != 0 )
     {
-      cerr << "Could not load annotation from file " << fn << endl;
+      cerr << "Could not load annotation from file " << qPrintable(fn) << ".\n";
       return false;
     }
     else
@@ -95,14 +101,14 @@ bool SurfaceAnnotation::LoadAnnotation( const char* fn )
       Reset();
       m_lut = mris->ct;
       m_nIndexSize = mris->nvertices;
-      m_nIndices = new int[m_nIndexSize]; 
-      CTABgetNumberOfValidEntries( m_lut, &m_nAnnotations ); 
-      m_nCenterVertices = new int[m_nAnnotations]; 
+      m_nIndices = new int[m_nIndexSize];
+      CTABgetNumberOfValidEntries( m_lut, &m_nAnnotations );
+      m_nCenterVertices = new int[m_nAnnotations];
       for ( int i = 0; i < m_nAnnotations; i++ )
       {
         m_nCenterVertices[i] = -1;
-      }      
-      
+      }
+
       // convert annotations to lookup table indices
       // also find the "center vertex"
       double** pts = new double*[m_nAnnotations];
@@ -113,14 +119,14 @@ bool SurfaceAnnotation::LoadAnnotation( const char* fn )
         pts[i] = new double[3];
         memset( pts[i], 0, sizeof( double ) * 3 );
       }
-      
+
       int n;
       for ( int i = 0; i < m_nIndexSize; i++ )
       {
         if ( CTABfindAnnotation( m_lut, mris->vertices[i].annotation, &n ) == 0 )
         {
           m_nIndices[i] = n;
-          
+
           if ( mris->vertices[i].ripflag == 0 &&
                m_nIndices[i] != -1 )
           {
@@ -132,9 +138,11 @@ bool SurfaceAnnotation::LoadAnnotation( const char* fn )
           }
         }
         else
+        {
           m_nIndices[i] = -1;
-      }  
-      
+        }
+      }
+
       for ( int i = 0; i < m_nAnnotations; i++ )
       {
         if ( vcount[i] > 0 )
@@ -142,18 +150,59 @@ bool SurfaceAnnotation::LoadAnnotation( const char* fn )
           pts[i][0] /= vcount[i];
           pts[i][1] /= vcount[i];
           pts[i][2] /= vcount[i];
-          
+
           int nVertex = m_surface->GetSourceSurface()->FindVertexAtSurfaceRAS( pts[i], NULL );
           if ( nVertex >=0 && m_nIndices[nVertex] == i )
+          {
             m_nCenterVertices[i] = nVertex;
+          }
         }
       }
-      
+
       delete[] vcount;
       for ( int i = 0; i < m_nAnnotations; i++ )
+      {
         delete[] pts[i];
+      }
       delete[] pts;
-      
+
+      // build outline indices, not work yet
+      m_nOutlineIndices = new int[m_nIndexSize];
+      memcpy(m_nOutlineIndices, m_nIndices, sizeof(int)*m_nIndexSize);
+      vtkSmartPointer<vtkAppendPolyData> append = vtkSmartPointer<vtkAppendPolyData>::New();
+      for (int i = 0; i < m_nAnnotations; i++)
+      {
+        if (true)
+        {
+          VERTEX *v;
+          MRISclearMarks(mris);
+          LABEL* label = MRISannotation_to_label(mris, i);
+          if (label)
+          {
+            LabelMarkSurface(label, mris);
+            for (int n = 0 ; n < label->n_points ; n++)
+            {
+              if (label->lv[n].vno >= 0)
+              {
+                m_nOutlineIndices[label->lv[n].vno] = -1;
+                v = &mris->vertices[label->lv[n].vno] ;
+                if (v->ripflag)
+                  continue;
+
+                for (int m = 0 ; m < v->vnum ; m++)
+                {
+                  if (mris->vertices[v->v[m]].marked == 0)
+                  {
+                    m_nOutlineIndices[v->v[m]] = m_nIndices[v->v[m]];
+                  }
+                }
+              }
+            }
+
+            LabelFree(&label);
+          }
+        }
+      }
       return true;
     }
   }
@@ -165,12 +214,12 @@ void SurfaceAnnotation::GetAnnotationPoint( int nIndex, double* pt_out )
   m_surface->GetTargetAtVertex( m_nCenterVertices[nIndex], pt_out );
 }
 
-const char* SurfaceAnnotation::GetName()
+QString SurfaceAnnotation::GetName()
 {
-  return m_strName.c_str();
+  return m_strName;
 }
 
-void SurfaceAnnotation::SetName( const char* name )
+void SurfaceAnnotation::SetName( const QString& name )
 {
   m_strName = name;
 }
@@ -180,25 +229,27 @@ int SurfaceAnnotation::GetIndexAtVertex( int nVertex )
   return m_nIndices[nVertex];
 }
 
-std::string SurfaceAnnotation::GetAnnotationNameAtVertex( int nVertex )
+QString SurfaceAnnotation::GetAnnotationNameAtVertex( int nVertex )
 {
   return GetAnnotationNameAtIndex( m_nIndices[nVertex] );
 }
 
-std::string SurfaceAnnotation::GetAnnotationNameAtIndex( int nIndex )
+QString SurfaceAnnotation::GetAnnotationNameAtIndex( int nIndex )
 {
   char name[128];
   int nValid = 0;
   int nTotalCount = 0;
   CTABgetNumberOfTotalEntries( m_lut, &nTotalCount );
   if ( nIndex < nTotalCount )
+  {
     CTABisEntryValid( m_lut, nIndex, &nValid );
+  }
   if ( nValid && CTABcopyName( m_lut, nIndex, name, 128 ) == 0 )
   {
     return name;
   }
-  
-  return ""; 
+
+  return "";
 }
 
 void SurfaceAnnotation::GetAnnotationColorAtIndex( int nIndex, int* rgb )
@@ -207,7 +258,32 @@ void SurfaceAnnotation::GetAnnotationColorAtIndex( int nIndex, int* rgb )
   int nTotalCount = 0;
   CTABgetNumberOfTotalEntries( m_lut, &nTotalCount );
   if ( nIndex < nTotalCount )
+  {
     CTABisEntryValid( m_lut, nIndex, &nValid );
+  }
   if ( nValid )
+  {
     CTABrgbAtIndexi( m_lut, nIndex, rgb, rgb+1, rgb+2 );
+  }
+}
+
+void SurfaceAnnotation::SetShowOutline(bool bOutline)
+{
+  this->m_bShowOutline = bOutline;
+}
+
+void SurfaceAnnotation::MapAnnotationColor( unsigned char* colordata )
+{
+  int c[4];
+  int* indices = (m_bShowOutline ? m_nOutlineIndices : m_nIndices);
+  for ( int i = 0; i < m_nIndexSize; i++ )
+  {
+    if (indices[i] >= 0)
+    {
+      CTABrgbAtIndexi( m_lut, indices[i], c, c+1, c+2 );
+      colordata[i*4] = ( int )( colordata[i*4] * ( 1 - m_dOpacity ) + c[0] * m_dOpacity );
+      colordata[i*4+1] = ( int )( colordata[i*4+1] * ( 1 - m_dOpacity ) + c[1] * m_dOpacity );
+      colordata[i*4+2] = ( int )( colordata[i*4+2] * ( 1 - m_dOpacity ) + c[2] * m_dOpacity );
+    }
+  }
 }

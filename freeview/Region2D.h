@@ -7,73 +7,84 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/02/19 01:46:01 $
- *    $Revision: 1.4 $
+ *    $Date: 2012/04/06 19:15:30 $
+ *    $Revision: 1.9.2.1 $
  *
- * Copyright (C) 2008-2009,
- * The General Hospital Corporation (Boston, MA).
- * All rights reserved.
+ * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
- * Distribution, usage and copying of this software is covered under the
- * terms found in the License Agreement file named 'COPYING' found in the
- * FreeSurfer source code root directory, and duplicated here:
- * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ * Terms and conditions for use, reproduction, distribution and contribution
+ * are found in the 'FreeSurfer Software License Agreement' contained
+ * in the file 'LICENSE' found in the FreeSurfer distribution, and here:
  *
- * General inquiries: freesurfer@nmr.mgh.harvard.edu
- * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
+ *
+ * Reporting: freesurfer@nmr.mgh.harvard.edu
+ *
  *
  */
 
 #ifndef Region2D_h
 #define Region2D_h
 
-#include <wx/wx.h>
-#include "Broadcaster.h"
-#include "Listener.h"
+#include <QObject>
+#include <QStringList>
 
 class RenderView2D;
 class vtkRenderer;
 
-class Region2D : public Broadcaster, public Listener
+class Region2D : public QObject
 {
+  Q_OBJECT
 public:
   Region2D( RenderView2D* view );
   virtual ~Region2D();
 
   virtual void Offset( int nX, int nY ) = 0;
-  
+
   virtual void UpdatePoint( int nIndex, int nX, int nY ) = 0;
-  
-  virtual bool Contains( int nX, int nY, int* nPointIndex = NULL ) = 0; 
-  
+
+  virtual bool Contains( int nX, int nY, int* nPointIndex = NULL ) = 0;
+
   virtual void Highlight( bool bHighlight = true ) {}
-  
+
   virtual void AppendProp( vtkRenderer* renderer ) = 0;
-  
+
   virtual void Show( bool bshow );
-  
+
   virtual void Update() {}
-  
+
   virtual void UpdateStats();
-  
+
   virtual void UpdateSlicePosition( int nPlane, double pos );
-  
+
   virtual void GetWorldPoint( int nIndex, double* pt ) = 0;
-  
-  wxString GetShortStats()
+
+  virtual QString DataToString() = 0;
+
+  virtual Region2D* ObjectFromString(RenderView2D* view, const QString& text) = 0;
+
+  Region2D* Duplicate(RenderView2D* view = NULL)
+  {
+    return ObjectFromString((view?view:m_view), DataToString());
+  }
+
+  QString GetShortStats()
   {
     return m_strShortStats;
   }
-  
-  wxArrayString GetLongStats()
+
+  QStringList GetLongStats()
   {
     return m_strsLongStats;
   }
 
+signals:
+  void StatsUpdated();
+
 protected:
   RenderView2D* m_view;
-  wxString      m_strShortStats;
-  wxArrayString m_strsLongStats;
+  QString       m_strShortStats;
+  QStringList   m_strsLongStats;
 };
 
 #endif

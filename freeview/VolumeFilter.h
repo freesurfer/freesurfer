@@ -1,37 +1,33 @@
 /**
  * @file  VolumeFilter.h
- * @brief Base VolumeFilter class. 
+ * @brief Base VolumeFilter class.
  *
  */
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/03/26 19:04:05 $
- *    $Revision: 1.2 $
+ *    $Date: 2012/04/06 19:15:31 $
+ *    $Revision: 1.7.2.1 $
  *
- * Copyright (C) 2008-2009,
- * The General Hospital Corporation (Boston, MA).
- * All rights reserved.
+ * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
- * Distribution, usage and copying of this software is covered under the
- * terms found in the License Agreement file named 'COPYING' found in the
- * FreeSurfer source code root directory, and duplicated here:
- * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ * Terms and conditions for use, reproduction, distribution and contribution
+ * are found in the 'FreeSurfer Software License Agreement' contained
+ * in the file 'LICENSE' found in the FreeSurfer distribution, and here:
  *
- * General inquiries: freesurfer@nmr.mgh.harvard.edu
- * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
+ *
+ * Reporting: freesurfer@nmr.mgh.harvard.edu
+ *
  *
  */
 
 #ifndef VolumeFilter_h
 #define VolumeFilter_h
 
-#include "Listener.h"
-#include "Broadcaster.h"
+#include <QObject>
 #include "CommonDataStruct.h"
-#include <string>
-#include <vector>
 
 extern "C"
 {
@@ -39,43 +35,58 @@ extern "C"
 }
 
 class LayerMRI;
+class QTimer;
 
-class VolumeFilter : public Listener, public Broadcaster
+class VolumeFilter : public QObject
 {
+  Q_OBJECT
 public:
-  VolumeFilter( LayerMRI* input = 0, LayerMRI* output = 0 );
+  VolumeFilter( LayerMRI* input = 0, LayerMRI* output = 0, QObject* parent = 0 );
   virtual ~VolumeFilter();
 
   bool Update();
-  
-  virtual void DoListenToMessage ( std::string const iMessage, void* iData, void* sender );
-  
+
   bool ReadyToUpdate();
-  
+
   void SetInputOutputVolumes( LayerMRI* input, LayerMRI* output );
-  
+
   MRI* CreateMRIFromVolume( LayerMRI* layer );
-  
+
   void MapMRIToVolume( MRI* mri, LayerMRI* layer );
-  
+
   int GetKernelSize()
   {
     return m_nKernelSize;
   }
-  
+
   void SetKernelSize( int nKernelSize )
   {
     m_nKernelSize = nKernelSize;
   }
-  
-  virtual std::string GetName() = 0;
-  
+
+  LayerMRI* GetVolumeInput()
+  {
+    return m_volumeInput;
+  }
+
+  virtual QString GetName() = 0;
+
+signals:
+  void Progress(int n);
+
+protected slots:
+  void OnLayerObjectDeleted();
+  void OnTimeout();
+  void TriggerFakeProgress(int interval);
+
 protected:
   virtual bool Execute() = 0;
 
   int         m_nKernelSize;
   LayerMRI*   m_volumeInput;
   LayerMRI*   m_volumeOutput;
+  int         m_nTimerCount;
+  QTimer*     m_timerProgress;
 };
 
 #endif

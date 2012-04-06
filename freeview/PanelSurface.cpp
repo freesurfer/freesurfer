@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2011/05/13 15:04:32 $
- *    $Revision: 1.39.2.1 $
+ *    $Date: 2012/04/06 19:15:30 $
+ *    $Revision: 1.39.2.2 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -69,7 +69,8 @@ PanelSurface::PanelSurface(QWidget *parent) :
                 << ui->labelMeshColor;
 
   m_widgetsLabel << ui->colorpickerLabelColor
-                 << ui->labelLabelColor;
+                 << ui->labelLabelColor
+                 << ui->checkBoxLabelOutline;
 
   ui->actionSurfaceMain->setData( FSSurface::SurfaceMain );
   ui->actionSurfaceInflated->setData( FSSurface::SurfaceInflated );
@@ -116,8 +117,6 @@ void PanelSurface::ConnectLayer( Layer* layer_in )
            this, SLOT(UpdateWidgets()), Qt::UniqueConnection );
   connect( layer, SIGNAL(SurfaceLabelAdded(SurfaceLabel*)),
            this, SLOT(UpdateWidgets()), Qt::UniqueConnection );
-  connect( layer, SIGNAL(SurfaceAnnotationAdded(SurfaceAnnotation*)),
-           this, SLOT(UpdateWidgets()), Qt::UniqueConnection );
   connect( layer, SIGNAL(SurfaceCurvatureLoaded()), this, SLOT(UpdateWidgets()) );
   connect( layer, SIGNAL(SurfaceVectorLoaded()), this, SLOT(UpdateWidgets()) );
   connect( layer, SIGNAL(SurfaceOverlayAdded(SurfaceOverlay*)), this, SLOT(UpdateWidgets()) );
@@ -134,6 +133,8 @@ void PanelSurface::ConnectLayer( Layer* layer_in )
   connect( ui->spinBoxVectorPointSize, SIGNAL(valueChanged(int)), p, SLOT(SetVectorPointSize(int)) );
   connect( ui->spinBoxVertexPointSize, SIGNAL(valueChanged(int)), p, SLOT(SetVertexPointSize(int)) );
   connect( ui->colorpickerLabelColor, SIGNAL(colorChanged(QColor)), layer, SLOT(SetActiveLabelColor(QColor)));
+  connect( ui->checkBoxLabelOutline, SIGNAL(toggled(bool)), layer, SLOT(SetActiveLabelOutline(bool)));
+  connect( ui->checkBoxAnnotationOutline, SIGNAL(toggled(bool)), layer, SLOT(SetActiveAnnotationOutline(bool)));
 }
 
 void PanelSurface::DoIdle()
@@ -288,6 +289,11 @@ void PanelSurface::DoUpdateWidgets()
   {
     double* rgb = layer->GetActiveLabel()->GetColor();
     ui->colorpickerLabelColor->setCurrentColor( QColor( (int)(rgb[0]*255), (int)(rgb[1]*255), (int)(rgb[2]*255) ) );
+    ui->checkBoxLabelOutline->setChecked(layer->GetActiveLabel()->GetShowOutline());
+  }
+  if ( layer && layer->GetActiveAnnotation() )
+  {
+    ui->checkBoxAnnotationOutline->setChecked(layer->GetActiveAnnotation()->GetShowOutline());
   }
 
   int nCurvatureMap = layer ? layer->GetProperty()->GetCurvatureMap() : 0;
@@ -297,6 +303,7 @@ void PanelSurface::DoUpdateWidgets()
   ShowWidgets( m_widgetsVertex,   ui->checkBoxShowVertices->isChecked() );
   ShowWidgets( m_widgetsMesh,     layer && layer->GetProperty()->GetSurfaceRenderMode() != LayerPropertySurface::SM_Surface );
   ShowWidgets( m_widgetsLabel,    layer && layer->GetActiveLabelIndex() >= 0 );
+  ui->checkBoxAnnotationOutline->setVisible(layer && layer->GetActiveAnnotation());
   ui->colorpickerSurfaceColor->setEnabled( layer ); // && nCurvatureMap != LayerPropertySurface::CM_Threshold );
 
   BlockAllSignals( false );
@@ -304,8 +311,8 @@ void PanelSurface::DoUpdateWidgets()
 
 void PanelSurface::OnChangeSurfaceType( QAction* act )
 {
-  LayerSurface* layer = GetCurrentLayer<LayerSurface*>();
-  if ( layer )
+  QList<LayerSurface*> layers = GetSelectedLayers<LayerSurface*>();
+  foreach (LayerSurface* layer, layers)
   {
     layer->SetActiveSurface( act->data().toInt() );
   }
@@ -313,8 +320,8 @@ void PanelSurface::OnChangeSurfaceType( QAction* act )
 
 void PanelSurface::OnSliderOpacity( int nVal )
 {
-  LayerSurface* layer = GetCurrentLayer<LayerSurface*>();
-  if ( layer )
+  QList<LayerSurface*> layers = GetSelectedLayers<LayerSurface*>();
+  foreach (LayerSurface* layer, layers)
   {
     layer->GetProperty()->SetOpacity( nVal / 100.0 );
   }
@@ -322,8 +329,8 @@ void PanelSurface::OnSliderOpacity( int nVal )
 
 void PanelSurface::OnSliderMidPoint( int nVal )
 {
-  LayerSurface* layer = GetCurrentLayer<LayerSurface*>();
-  if ( layer )
+  QList<LayerSurface*> layers = GetSelectedLayers<LayerSurface*>();
+  foreach (LayerSurface* layer, layers)
   {
     double range[2];
     layer->GetCurvatureRange( range );
@@ -333,8 +340,8 @@ void PanelSurface::OnSliderMidPoint( int nVal )
 
 void PanelSurface::OnSliderSlope( int nVal )
 {
-  LayerSurface* layer = GetCurrentLayer<LayerSurface*>();
-  if ( layer )
+  QList<LayerSurface*> layers = GetSelectedLayers<LayerSurface*>();
+  foreach (LayerSurface* layer, layers)
   {
     double fMin = 0;
     double fMax = 100;
@@ -344,8 +351,8 @@ void PanelSurface::OnSliderSlope( int nVal )
 
 void PanelSurface::OnComboCurvature( int nSel )
 {
-  LayerSurface* layer = GetCurrentLayer<LayerSurface*>();
-  if ( layer )
+  QList<LayerSurface*> layers = GetSelectedLayers<LayerSurface*>();
+  foreach (LayerSurface* layer, layers)
   {
     if ( nSel < 3 )
     {
@@ -361,23 +368,29 @@ void PanelSurface::OnComboCurvature( int nSel )
 
 void PanelSurface::OnLineEditMidPoint( const QString& text )
 {
-  LayerSurface* layer = GetCurrentLayer<LayerSurface*>();
-  bool bOK;
-  double dval = text.toDouble( &bOK );
-  if ( layer && dval && dval != layer->GetProperty()->GetThresholdMidPoint() )
+  QList<LayerSurface*> layers = GetSelectedLayers<LayerSurface*>();
+  foreach (LayerSurface* layer, layers)
   {
-    layer->GetProperty()->SetThresholdMidPoint( dval );
+    bool bOK;
+    double dval = text.toDouble( &bOK );
+    if ( layer && dval && dval != layer->GetProperty()->GetThresholdMidPoint() )
+    {
+      layer->GetProperty()->SetThresholdMidPoint( dval );
+    }
   }
 }
 
 void PanelSurface::OnLineEditSlope( const QString& text )
 {
-  LayerSurface* layer = GetCurrentLayer<LayerSurface*>();
-  bool bOK;
-  double dval = text.toDouble( &bOK );
-  if ( layer && dval && dval != layer->GetProperty()->GetThresholdSlope() )
+  QList<LayerSurface*> layers = GetSelectedLayers<LayerSurface*>();
+  foreach (LayerSurface* layer, layers)
   {
-    layer->GetProperty()->SetThresholdSlope( dval );
+    bool bOK;
+    double dval = text.toDouble( &bOK );
+    if ( layer && dval && dval != layer->GetProperty()->GetThresholdSlope() )
+    {
+      layer->GetProperty()->SetThresholdSlope( dval );
+    }
   }
 }
 
@@ -463,8 +476,8 @@ void PanelSurface::OnButtonConfigureOverlay()
 
 void PanelSurface::OnEditPositionOffset()
 {
-  LayerSurface* surf = GetCurrentLayer<LayerSurface*>();
-  if ( surf )
+  QList<LayerSurface*> layers = GetSelectedLayers<LayerSurface*>();
+  foreach (LayerSurface* layer, layers)
   {
     QStringList args = ui->lineEditPositionOffset->text().trimmed().split(" ", QString::SkipEmptyParts);
     args << "n/a" << "n/a" << "n/a";
@@ -481,7 +494,7 @@ void PanelSurface::OnEditPositionOffset()
     }
     if (bOK)
     {
-      surf->GetProperty()->SetPosition( pos );
+      layer->GetProperty()->SetPosition( pos );
     }
     else
     {

@@ -35,6 +35,10 @@ BUILT_SOURCES = \
 	ui_DialogSavePointSet.h \
 	ui_DialogSaveVolume.h \
   ui_DialogReplaceLabel.h \
+  ui_DialogRepositionSurface.h \
+  ui_WindowTimeCourse.h \
+  ui_DialogLabelStats.h \
+  ui_WindowGroupPlot.h \
 	qtcolorpicker.moc \
 	moc_BrushProperty.cpp \
 	moc_CommandEdit.cpp \
@@ -125,6 +129,17 @@ BUILT_SOURCES = \
   moc_DialogReplaceLabel.cpp \
   moc_LayerVolumeTrack.cpp \
   moc_LayerLandmarks.cpp \
+  moc_SurfaceROI.cpp \
+  moc_MainApplication.cpp \
+  moc_DialogRepositionSurface.cpp \
+  moc_WindowTimeCourse.cpp \
+  moc_WidgetTimeCoursePlot.cpp \
+  moc_LayerMRIWorkerThread.cpp \
+  moc_DialogLabelStats.cpp \
+  moc_VolumeFilterWorkerThread.cpp \
+  moc_FSGroupDescriptor.cpp \
+  moc_WindowGroupPlot.cpp \
+  moc_WidgetGroupPlot.cpp \
   qrc_freeview.cpp
 
 freeview_SOURCES = $(BUILT_SOURCES) \
@@ -367,7 +382,37 @@ freeview_SOURCES = $(BUILT_SOURCES) \
   LayerVolumeTrack.cpp \
   LayerVolumeTrack.h \
   LayerLandmarks.cpp \
-  LayerLandmarks.h
+  LayerLandmarks.h \
+  SurfaceROI.cpp \
+  SurfaceROI.h \
+  MainApplication.cpp \
+  MainApplication.h \
+  ProgressCallback.cpp \
+  ProgressCallback.h \
+  DialogRepositionSurface.cpp \
+  DialogRepositionSurface.h \
+  WindowTimeCourse.cpp \
+  WindowTimeCourse.h \
+  WidgetTimeCoursePlot.cpp \
+  WidgetTimeCoursePlot.h \
+  LayerMRIWorkerThread.cpp \
+  LayerMRIWorkerThread.h \
+  DialogLabelStats.cpp \
+  DialogLabelStats.h \
+  VolumeFilterWorkerThread.cpp \
+  VolumeFilterWorkerThread.h \
+  FSGroupDescriptor.cpp \
+  FSGroupDescriptor.h \
+  WindowGroupPlot.cpp \
+  WindowGroupPlot.h \
+  WidgetGroupPlot.cpp \
+  WidgetGroupPlot.h \
+	freeview.qrc
+
+qrc_freeview.cpp: freeview.qrc
+	cp -v $(top_srcdir)/distribution/FreeSurferColorLUT.txt resource/
+	$(RCC) $<  -o $@
+
 
 if HAVE_MAC_OSX
 AM_CXXFLAGS=\
@@ -391,7 +436,7 @@ freeview_CXXFLAGS = $(QT_CXXFLAGS) $(AM_CXXFLAGS)
 freeview_CPPFLAGS = $(QT_CPPFLAGS) $(AM_CPPFLAGS)
 freeview_LDFLAGS	= $(QT_LDFLAGS) $(OS_LDFLAGS) \
 	-framework Cocoa -framework IOKit
-freeview_LDADD		= $(QT_LIBS)	\
+freeview_LDADD		= $(QT_LIBS) \
 	$(addprefix $(top_builddir)/, $(LIBS_MGH)) \
 	$(top_builddir)/vtkfsio/libvtkfsio.a \
 	$(top_builddir)/vtkutils/libvtkutils.a \

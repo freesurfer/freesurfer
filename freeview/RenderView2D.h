@@ -1,14 +1,14 @@
 /**
  * @file  RenderView2D.h
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief 2D slice view
  *
  */
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2011/05/13 15:04:33 $
- *    $Revision: 1.26.2.4 $
+ *    $Date: 2012/04/06 19:15:30 $
+ *    $Revision: 1.26.2.5 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -104,6 +104,8 @@ public:
     return m_interactorNavigate;
   }
 
+  void TriggerContextMenu( QMouseEvent* event );
+
 public slots:
   void RefreshAllActors(bool bForScreenShot = false);
   void StopSelection();
@@ -119,6 +121,7 @@ signals:
 protected slots:
   virtual void OnSlicePositionChanged();
   void SyncZoomTo(RenderView2D* view);
+  void OnDuplicateRegion();
 
 protected:
   virtual void resizeEvent(QResizeEvent *event);

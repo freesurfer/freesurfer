@@ -10,29 +10,27 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/03/23 18:31:10 $
- *    $Revision: 1.1 $
+ *    $Date: 2012/04/06 19:15:30 $
+ *    $Revision: 1.6.2.1 $
  *
- * Copyright (C) 2007-2009,
- * The General Hospital Corporation (Boston, MA).
- * All rights reserved.
+ * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
- * Distribution, usage and copying of this software is covered under the
- * terms found in the License Agreement file named 'COPYING' found in the
- * FreeSurfer source code root directory, and duplicated here:
- * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ * Terms and conditions for use, reproduction, distribution and contribution
+ * are found in the 'FreeSurfer Software License Agreement' contained
+ * in the file 'LICENSE' found in the FreeSurfer distribution, and here:
  *
- * General inquiries: freesurfer@nmr.mgh.harvard.edu
- * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
+ *
+ * Reporting: freesurfer@nmr.mgh.harvard.edu
+ *
  *
  */
 
 #ifndef SurfaceLabel_h
 #define SurfaceLabel_h
 
-#include "Broadcaster.h"
-#include "Listener.h"
-#include <string>
+#include <QObject>
+#include <vtkSmartPointer.h>
 
 extern "C"
 {
@@ -40,40 +38,56 @@ extern "C"
 }
 
 class LayerSurface;
+class vtkActor;
+class vtkPolyData;
 
-class SurfaceLabel  : public Broadcaster, public Listener
+class SurfaceLabel  : public QObject
 {
-  friend class SurfaceLabelProperties;
+  Q_OBJECT
 public:
   SurfaceLabel ( LayerSurface* surf );
   ~SurfaceLabel ();
 
 //  void SetSurface( LayerSurface* surf );
-  
-  const char* GetName();
-  
-  void SetName( const char* name );
-  
-  bool LoadLabel( const char* filename );
-  
+
+  QString GetName();
+
+  void SetName( const QString& name );
+
+  bool LoadLabel( const QString& filename );
+
   void SetColor( double r, double g, double b );
-  
+
   double* GetColor()
   {
     return m_rgbColor;
   }
-  
+
   void MapLabel( unsigned char* colordata, int nVertexCount );
-  
-protected:
-  virtual void DoListenToMessage ( std::string const iMessage, void* iData, void* sender );
-  
+
+  bool GetShowOutline()
+  {
+    return m_bShowOutline;
+  }
+
+  void SetShowOutline(bool bOutline);
+
+  vtkActor* GetOutlineActor();
+
+Q_SIGNALS:
+  void SurfaceLabelChanged();
+
 private:
-  LABEL*        m_label;  
-  std::string   m_strName;
+  QList<int> DoConnectEdgeVertices(const QList<int>& indices_in, const QList<int>& vertices);
+  vtkPolyData* MakeEdgePolyData(const QList<int>& indices_in, const QList<int>& vertices);
+
+  LABEL*        m_label;
+  QString       m_strName;
   LayerSurface* m_surface;
   double        m_rgbColor[3];
   bool          m_bTkReg;
+  bool          m_bShowOutline;
+  vtkSmartPointer<vtkActor> m_actorOutline;
 };
 
 #endif

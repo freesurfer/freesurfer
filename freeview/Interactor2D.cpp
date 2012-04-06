@@ -7,20 +7,19 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/12/21 21:26:44 $
- *    $Revision: 1.22 $
+ *    $Date: 2012/04/06 19:15:29 $
+ *    $Revision: 1.28.2.1 $
  *
- * Copyright (C) 2008-2009,
- * The General Hospital Corporation (Boston, MA).
- * All rights reserved.
+ * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
- * Distribution, usage and copying of this software is covered under the
- * terms found in the License Agreement file named 'COPYING' found in the
- * FreeSurfer source code root directory, and duplicated here:
- * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ * Terms and conditions for use, reproduction, distribution and contribution
+ * are found in the 'FreeSurfer Software License Agreement' contained
+ * in the file 'LICENSE' found in the FreeSurfer distribution, and here:
  *
- * General inquiries: freesurfer@nmr.mgh.harvard.edu
- * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
+ *
+ * Reporting: freesurfer@nmr.mgh.harvard.edu
+ *
  *
  */
 
@@ -28,52 +27,59 @@
 #include "RenderView2D.h"
 #include "MainWindow.h"
 #include "LayerCollection.h"
-#include "LayerCollectionManager.h"
-#include "LayerPropertiesMRI.h"
+#include "LayerPropertyMRI.h"
 #include "LayerMRI.h"
 #include <vtkRenderer.h>
+#include <QDebug>
+#include <QTimer>
 
-Interactor2D::Interactor2D() : Interactor(),
-    m_nMousePosX( -1 ),
-    m_nMousePosY( -1 ),
-    m_bWindowLevel( false ),
-    m_bChangeSlice( false ),
-    m_bMovingCursor( false ),
-    m_bSelecting( false )
+Interactor2D::Interactor2D( QObject* parent ) : Interactor( parent ),
+  m_nMousePosX( -1 ),
+  m_nMousePosY( -1 ),
+  m_bWindowLevel( false ),
+  m_bChangeSlice( false ),
+  m_bMovingCursor( false ),
+  m_bSelecting( false )
 {}
 
 Interactor2D::~Interactor2D()
 {}
 
-bool Interactor2D::ProcessMouseDownEvent( wxMouseEvent& event, RenderView* renderview )
+bool Interactor2D::ProcessMouseDownEvent( QMouseEvent* event, RenderView* renderview )
 {
   RenderView2D* view = ( RenderView2D* )renderview;
 
-  m_nMousePosX = event.GetX();
-  m_nMousePosY = event.GetY();
+  m_nMousePosX = event->x();
+  m_nMousePosY = event->y();
 
   view->UpdateAnnotation();
 
-  if ( event.ControlDown() && !event.ShiftDown() )
+  MainWindow* mainwnd = MainWindow::GetMainWindow();
+  if ( ( event->modifiers() & CONTROL_MODIFIER ) &&  !( event->modifiers() & Qt::ShiftModifier ) )
   {
-    if ( event.LeftDown() )
+    if ( event->button() == Qt::LeftButton )
     {
-      view->ZoomAtCursor( m_nMousePosX, m_nMousePosY, true );
+#ifndef Q_WS_MAC
+      view->ZoomAtCursor( m_nMousePosX, m_nMousePosY, 2.0 );    // zoom in
+#endif
       return false;
     }
-    else if ( event.RightDown() )
+    else if ( event->button() == Qt::RightButton )
     {
-      view->ZoomAtCursor( m_nMousePosX, m_nMousePosY, false );
+#ifndef Q_WS_MAC
+      view->ZoomAtCursor( m_nMousePosX, m_nMousePosY, 0.5 );    // zoom out
+#endif
       return false;
     }
   }
 
-  if ( event.LeftDown() )
+  if ( event->button() == Qt::LeftButton )
   {
     m_nDownPosX = m_nMousePosX;
     m_nDownPosY = m_nMousePosY;
 
-    if ( event.ShiftDown() && !event.ControlDown() )
+    if ( !( event->modifiers() & CONTROL_MODIFIER ) &&  ( event->modifiers() & Qt::ShiftModifier ) &&
+         !mainwnd->IsRepositioningSurface())
     {
       m_bWindowLevel = true;
     }
@@ -81,18 +87,38 @@ bool Interactor2D::ProcessMouseDownEvent( wxMouseEvent& event, RenderView* rende
     {
       m_bMovingCursor = true;
       view->UpdateCursorRASPosition( m_nMousePosX, m_nMousePosY );
-      view->NeedRedraw();
+      view->RequestRedraw();
+      if (mainwnd->IsRepositioningSurface())
+      {
+        if ( event->modifiers() & CONTROL_MODIFIER &&
+          event->modifiers() & Qt::ShiftModifier)
+          QTimer::singleShot(0, mainwnd, SIGNAL(SurfaceRepositionIntensityChanged()));
+        else if (event->modifiers() & Qt::ShiftModifier)
+          QTimer::singleShot(0, mainwnd, SIGNAL(SurfaceRepositionVertexChanged()));
+      }
     }
   }
-  else if ( event.MiddleDown() && event.ShiftDown() )
+  else if ( event->button() == Qt::MidButton && ( event->modifiers() & Qt::ShiftModifier ) )
   {
-      m_bSelecting = true;
-      view->StartSelection( m_nMousePosX, m_nMousePosY );
+    m_bSelecting = true;
+    view->StartSelection( m_nMousePosX, m_nMousePosY );
   }
-  else if ( event.RightDown() && event.ShiftDown() && !event.ControlDown() )
+  else if ( event->button() == Qt::RightButton &&
+            !( event->modifiers() & CONTROL_MODIFIER ) &&
+            ( event->modifiers() & Qt::ShiftModifier ) )
   {
     m_bWindowLevel = true;
   }
+#ifdef Q_WS_MAC
+  else if ( event->button() == Qt::RightButton &&
+            ( event->modifiers() & CONTROL_MODIFIER ) &&
+            ( event->modifiers() & Qt::ShiftModifier ) )
+  {
+    m_bMovingCursor = true;
+    view->UpdateCursorRASPosition( m_nMousePosX, m_nMousePosY );
+    view->RequestRedraw();
+  }
+#endif
   else
   {
     return Interactor::ProcessMouseDownEvent( event, renderview ); // pass down the event
@@ -101,18 +127,18 @@ bool Interactor2D::ProcessMouseDownEvent( wxMouseEvent& event, RenderView* rende
   return false; // do not pass down the event
 }
 
-bool Interactor2D::ProcessMouseUpEvent( wxMouseEvent& event, RenderView* renderview )
+bool Interactor2D::ProcessMouseUpEvent( QMouseEvent* event, RenderView* renderview )
 {
   RenderView2D* view = ( RenderView2D* )renderview;
 
   if ( m_bSelecting )
   {
     view->StopSelection();
-    view->NeedRedraw();
+    view->RequestRedraw();
   }
-  
-  m_nMousePosX = event.GetX();
-  m_nMousePosY = event.GetY();
+
+  m_nMousePosX = event->x();
+  m_nMousePosY = event->y();
   m_bWindowLevel = false;
   m_bChangeSlice = false;
   m_bMovingCursor = false;
@@ -121,7 +147,7 @@ bool Interactor2D::ProcessMouseUpEvent( wxMouseEvent& event, RenderView* renderv
   view->UpdateAnnotation();
   view->Update2DOverlay();
 
-  if ( event.LeftUp() )
+  if ( event->button() == Qt::LeftButton )
   {
     return false;
   }
@@ -131,28 +157,31 @@ bool Interactor2D::ProcessMouseUpEvent( wxMouseEvent& event, RenderView* renderv
   }
 }
 
-bool Interactor2D::ProcessMouseMoveEvent( wxMouseEvent& event, RenderView* renderview )
+bool Interactor2D::ProcessMouseMoveEvent( QMouseEvent* event, RenderView* renderview )
 {
   RenderView2D* view = ( RenderView2D* )renderview;
 
-  LayerCollectionManager* lcm = MainWindow::GetMainWindowPointer()->GetLayerCollectionManager();
-  if ( !lcm->HasAnyLayer() )
+  MainWindow* mainwnd = MainWindow::GetMainWindow();
+  if ( mainwnd->IsEmpty() )
   {
     return Interactor::ProcessMouseMoveEvent( event, renderview );
   }
 
-  int posX = event.GetX();
-  int posY = event.GetY();
+  int posX = event->x();
+  int posY = event->y();
 
   if ( m_bChangeSlice )
   {
-    double* voxelSize = lcm->GetLayerCollection( "MRI" )->GetWorldVoxelSize();
+    /*
+    double* voxelSize = mainwnd->GetLayerCollection( "MRI" )->GetWorldVoxelSize();
     int nPlane = view->GetViewPlane();
     double dPixelPer = -0.20;
+
     double dPosDiff =  ( ( (int)( dPixelPer * ( posY - m_nDownPosY ) ) ) / dPixelPer -
                          ( (int)( dPixelPer * ( m_nMousePosY - m_nDownPosY ) ) ) / dPixelPer )
                        * dPixelPer * voxelSize[nPlane];
     if ( lcm->OffsetSlicePosition( nPlane, dPosDiff ) )
+    */
     {
       m_nMousePosX = posX;
       m_nMousePosY = posY;
@@ -161,17 +190,27 @@ bool Interactor2D::ProcessMouseMoveEvent( wxMouseEvent& event, RenderView* rende
   else if ( m_bMovingCursor )
   {
     view->UpdateCursorRASPosition( posX, posY );
-    view->NeedRedraw();
+    view->RequestRedraw();
   }
   else if ( m_bWindowLevel )
   {
-    std::vector<Layer*> layers = lcm->GetLayerCollection( "MRI" )->GetLayers();
-    LayerMRI* layer = NULL;
-    for ( size_t i = 0; i < layers.size(); i++ )
+    QList<Layer*> layers = mainwnd->GetLayerCollection( "MRI" )->GetLayers();
+    LayerMRI* layer = (LayerMRI*)mainwnd->GetActiveLayer("MRI");
+    if (layer && layer->GetProperty()->GetColorMap() == LayerPropertyMRI::LUT)
+    {
+      layer = NULL;
+    }
+    for ( int i = 0; i < layers.size(); i++ )
     {
       layer = ( LayerMRI*)layers[i];
-      if ( layer->IsVisible() && layer->GetProperties()->GetColorMap() == LayerPropertiesMRI::Grayscale )
+      if ( layer->IsVisible() && layer->GetProperty()->GetColorMap() != LayerPropertyMRI::LUT )
+      {
         break;
+      }
+      else
+      {
+        layer = NULL;
+      }
     }
     if ( layer )
     {
@@ -179,35 +218,64 @@ bool Interactor2D::ProcessMouseMoveEvent( wxMouseEvent& event, RenderView* rende
       double scaleY = 0.002;
       double w = ( posX - m_nMousePosX ) * scaleX;
       double l = ( posY - m_nMousePosY ) * scaleY;
-      double scaleOverall = layer->GetProperties()->GetMaxValue() -
-                            layer->GetProperties()->GetMinValue();
+      double scaleOverall = layer->GetProperty()->GetMaxValue() -
+                            layer->GetProperty()->GetMinValue();
       w *= scaleOverall;
       l *= scaleOverall;
-      w += layer->GetProperties()->GetWindow();
-      l += layer->GetProperties()->GetLevel();
-      if ( w < 0 )
-        w = 0;
-      layer->GetProperties()->SetWindowLevel( w, l );
+      switch ( layer->GetProperty()->GetColorMap() )
+      {
+      case LayerPropertyMRI::Grayscale:
+        w += layer->GetProperty()->GetWindow();
+        l += layer->GetProperty()->GetLevel();
+        if ( w < 0 )
+        {
+          w = 0;
+        }
+        layer->GetProperty()->SetWindowLevel(w, l);
+        break;
+      case LayerPropertyMRI::Heat:
+        w += layer->GetProperty()->GetHeatScaleMaxThreshold() - layer->GetProperty()->GetHeatScaleMinThreshold();
+        l += (layer->GetProperty()->GetHeatScaleMaxThreshold() + layer->GetProperty()->GetHeatScaleMinThreshold())/2;
+        if ( w < 0 )
+        {
+          w = 0;
+        }
+        layer->GetProperty()->SetHeatScale( l-w/2, l, l+w/2 );
+        break;
+      default:
+        w += layer->GetProperty()->GetMaxGenericThreshold() - layer->GetProperty()->GetMinGenericThreshold();
+        l += (layer->GetProperty()->GetMaxGenericThreshold() + layer->GetProperty()->GetMinGenericThreshold())/2;
+        if ( w < 0 )
+        {
+          w = 0;
+        }
+        layer->GetProperty()->SetMinMaxGenericThreshold( l-w/2, l+w/2 );
+        break;
+      }
     }
     m_nMousePosX = posX;
     m_nMousePosY = posY;
   }
   else if ( m_bSelecting )
   {
-    view->UpdateSelection( posX, posY );   
-    view->NeedRedraw();
+    view->UpdateSelection( posX, posY );
+    view->RequestRedraw();
   }
   else
   {
-    if ( event.MiddleIsDown() || event.RightIsDown() )
+    if ( event->buttons() & Qt::MidButton || event->buttons() & Qt::RightButton )
     {
       view->UpdateAnnotation();
       view->Update2DOverlay();
-      if ( event.RightIsDown() )
-        view->SendBroadcast( "Zooming", view );
+      if ( event->buttons() & Qt::RightButton )
+      {
+        view->EmitZooming();
+      }
     }
     else
+    {
       view->UpdateMouseRASPosition( posX, posY );
+    }
 
     return Interactor::ProcessMouseMoveEvent( event, renderview );
   }
@@ -215,70 +283,71 @@ bool Interactor2D::ProcessMouseMoveEvent( wxMouseEvent& event, RenderView* rende
   return false;
 }
 
-void Interactor2D::ProcessPostMouseWheelEvent( wxMouseEvent& event, RenderView* renderview )
+void Interactor2D::ProcessPostMouseWheelEvent( QWheelEvent* event, RenderView* renderview )
 {
   RenderView2D* view = ( RenderView2D* )renderview;
   view->UpdateAnnotation();
   view->Update2DOverlay();
-  view->NeedRedraw();
-  view->SendBroadcast( "Zooming", view );
+  view->RequestRedraw();
+  view->EmitZooming();
 
   Interactor::ProcessPostMouseWheelEvent( event, renderview );
 }
 
-void Interactor2D::ProcessPostMouseMoveEvent( wxMouseEvent& event, RenderView* renderview )
+void Interactor2D::ProcessPostMouseMoveEvent( QMouseEvent* event, RenderView* renderview )
 {
   RenderView2D* view = ( RenderView2D* )renderview;
-  if ( event.RightIsDown() )
+  if ( event->buttons() & Qt::RightButton )
   {
     view->Update2DOverlay();
-    view->NeedRedraw();
+    view->RequestRedraw();
   }
 
   Interactor::ProcessPostMouseMoveEvent( event, renderview );
 }
 
-bool Interactor2D::ProcessKeyDownEvent( wxKeyEvent& event, RenderView* renderview )
+bool Interactor2D::ProcessKeyDownEvent( QKeyEvent* event, RenderView* renderview )
 {
   RenderView2D* view = ( RenderView2D* )renderview;
 
-  LayerCollectionManager* lcm = MainWindow::GetMainWindowPointer()->GetLayerCollectionManager();
-  if ( !lcm->HasAnyLayer() )
+  if ( MainWindow::GetMainWindow()->IsEmpty() )
   {
     return Interactor::ProcessKeyDownEvent( event, renderview );
   }
 
-  int nKeyCode = event.GetKeyCode();
-  if ( nKeyCode == WXK_PAGEUP )
+  int nKeyCode = event->key();
+  if ( nKeyCode == Qt::Key_PageUp )
   {
     view->MoveSlice( 1 );
   }
-  else if ( nKeyCode == WXK_PAGEDOWN)
+  else if ( nKeyCode == Qt::Key_PageDown )
   {
     view->MoveSlice( -1 );
   }
-  else if ( nKeyCode == WXK_UP )
+  else if ( nKeyCode == Qt::Key_Up )
   {
     view->MoveUp();
   }
-  else if ( nKeyCode == WXK_DOWN )
+  else if ( nKeyCode == Qt::Key_Down )
   {
     view->MoveDown();
   }
-  else if ( nKeyCode == WXK_LEFT )
+  else if ( nKeyCode == Qt::Key_Left )
   {
     view->MoveLeft();
   }
-  else if ( nKeyCode == WXK_RIGHT )
+  else if ( nKeyCode == Qt::Key_Right )
   {
     view->MoveRight();
   }
-  else if ( nKeyCode == '3' /*|| nKeyCode == 'W' || nKeyCode == 'S'*/ || nKeyCode == 'R' || nKeyCode == 'F' )
+  else if ( nKeyCode == Qt::Key_3 /*|| nKeyCode == 'W' || nKeyCode == 'S'*/ || nKeyCode == Qt::Key_R || nKeyCode == Qt::Key_F )
   {
     // do nothing, just intercept these vtk default keycodes
   }
   else
+  {
     return Interactor::ProcessKeyDownEvent( event, view );
+  }
 
   return false;
 }

@@ -6,21 +6,19 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: ayendiki $
- *    $Date: 2010/07/23 21:07:45 $
- *    $Revision: 1.38 $
+ *    $Author: rpwang $
+ *    $Date: 2012/04/06 19:15:36 $
+ *    $Revision: 1.44.2.1 $
  *
- * Copyright (C) 2002-2007,
- * The General Hospital Corporation (Boston, MA). 
- * All rights reserved.
+ * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
  *
- * Distribution, usage and copying of this software is covered under the
- * terms found in the License Agreement file named 'COPYING' found in the
- * FreeSurfer source code root directory, and duplicated here:
- * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ * Terms and conditions for use, reproduction, distribution and contribution
+ * are found in the 'FreeSurfer Software License Agreement' contained
+ * in the file 'LICENSE' found in the FreeSurfer distribution, and here:
  *
- * General inquiries: freesurfer@nmr.mgh.harvard.edu
- * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
+ *
+ * Reporting: freesurfer@nmr.mgh.harvard.edu
  *
  */
 
@@ -39,8 +37,12 @@ extern "C" {
 #define LIST_FILE     2
 #define UNKNOWN_FILE  3
 
+// defines the maximum number of threads used in OpenMP code
+#define _MAX_FS_THREADS 128 
+
 double randomNumber(double low, double hi) ;
 int    setRandomSeed(long seed) ;
+long getRandomSeed(void);
 double normAngle(double angle) ;
 float  deltaAngle(float angle1, float angle2) ;
 double calcDeltaPhi(double phi1, double phi2) ;
@@ -113,6 +115,18 @@ float mad(float a[], int n);
 
 /* define nint as a function now */
 int nint( double f );
+
+/* Outputs the help files (found in utils/fsPrintHelp.c) */
+int outputHelpXml(const unsigned char *text, unsigned int size);
+
+/* Set progress callback */
+extern void (*progress_callback)(int progress);
+extern int global_progress_range[2];
+void SetProgressCallback(void (*callback)(int), int start, int end);
+void exec_progress_callback(int slice, int total_slices, int frame, int total_frames);
+
+
+int compute_permutation(int num, int *vec)  ;
 
 #if defined(__cplusplus)
 };

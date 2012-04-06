@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2011/05/13 15:04:31 $
- *    $Revision: 1.49.2.2 $
+ *    $Date: 2012/04/06 19:15:28 $
+ *    $Revision: 1.49.2.3 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -51,6 +51,8 @@
 #include "MyUtils.h"
 #include <QFileInfo>
 #include <QDebug>
+#include <QDir>
+
 extern "C"
 {
 #include "mri_identify.h"
@@ -150,13 +152,12 @@ bool FSSurface::MRISRead( const QString& filename,
       cerr << "Can not load patch file " << qPrintable(patch_filename) << "\n";
     }
   }
+
   // Get some info from the MRIS. This can either come from the volume
   // geometry data embedded in the surface; this is done for newer
   // surfaces. Or it can come from the source information in the
   // transform. We use it to get the RAS center offset for the
   // surface->RAS transform.
-
-
   m_SurfaceToRASMatrix[0] = 1;
   m_SurfaceToRASMatrix[1] = 0;
   m_SurfaceToRASMatrix[2] = 0;
@@ -249,8 +250,9 @@ bool FSSurface::MRISRead( const QString& filename,
     LoadVectors ( vector_filename );
   }
 
-  LoadCurvature();
-// cout << "MRISread finished\n";
+  QFileInfo fi(filename);
+  if (QFileInfo(fi.absoluteDir(), fi.completeBaseName() + ".curv").exists())
+    LoadCurvature();
 
   return true;
 }
@@ -634,6 +636,17 @@ void FSSurface::UpdatePolyData( MRIS* mris,
     normal[0] = mris->vertices[vno].nx;
     normal[1] = mris->vertices[vno].ny;
     normal[2] = mris->vertices[vno].nz;
+    float orig[3] = { 0, 0, 0 };
+    this->ConvertSurfaceToRAS( orig, orig );
+    this->ConvertSurfaceToRAS( normal, normal );
+    if ( m_volumeRef )
+    {
+      m_volumeRef->RASToTarget( orig, orig );
+      m_volumeRef->RASToTarget( normal, normal );
+    }
+    for (int i = 0; i < 3; i++)
+      normal[i] = normal[i] - orig[i];
+    vtkMath::Normalize(normal);
     newNormals->InsertNextTuple( normal );
 
     if ( polydata_verts )
@@ -1148,6 +1161,7 @@ void FSSurface::ComputeNormals()
   float norm[3],snorm[3];
 
   for (k=0; k<mris->nfaces; k++)
+  {
     if (mris->faces[k].ripflag)
     {
       f = &mris->faces[k];
@@ -1156,10 +1170,12 @@ void FSSurface::ComputeNormals()
         mris->vertices[f->v[n]].border = TRUE;
       }
     }
+  }
   for (k=0; k<mris->nvertices; k++)
+  {
+    v = &mris->vertices[k];
     if (!mris->vertices[k].ripflag)
     {
-      v = &mris->vertices[k];
       snorm[0]=snorm[1]=snorm[2]=0;
       v->area = 0;
       for (n=0; n<v->num; n++)
@@ -1183,6 +1199,7 @@ void FSSurface::ComputeNormals()
       v->ny = snorm[1];
       v->nz = snorm[2];
     }
+  }
 }
 
 void FSSurface::ConvertSurfaceToRAS ( float iX, float iY, float iZ,
@@ -1533,6 +1550,19 @@ void FSSurface::Reposition( FSVolume *volume, int target_vno, double* coord, int
 {
   MRISsaveVertexPositions( m_MRIS, INFLATED_VERTICES );
   MRISrepositionSurfaceToCoordinate( m_MRIS, volume->GetMRI(), target_vno, coord[0], coord[1], coord[2], nsize, sigma );
+  SaveVertices( m_MRIS, m_nActiveSurface );
+  ComputeNormals();
+  SaveNormals( m_MRIS, m_nActiveSurface );
+  UpdateVerticesAndNormals();
+}
+
+void FSSurface::RepositionVertex(int vno, double *coord)
+{
+  MRISsaveVertexPositions( m_MRIS, INFLATED_VERTICES );
+  VERTEX *v = &m_MRIS->vertices[vno];
+  v->x = coord[0];
+  v->y = coord[1];
+  v->z = coord[2];
   SaveVertices( m_MRIS, m_nActiveSurface );
   ComputeNormals();
   SaveNormals( m_MRIS, m_nActiveSurface );

@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/08/31 00:14:53 $
- *    $Revision: 1.486.2.3 $
+ *    $Author: rpwang $
+ *    $Date: 2012/04/06 19:15:37 $
+ *    $Revision: 1.486.2.4 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -23,7 +23,7 @@
  */
 
 extern const char* Progname;
-const char *MRI_C_VERSION = "$Revision: 1.486.2.3 $";
+const char *MRI_C_VERSION = "$Revision: 1.486.2.4 $";
 
 
 /*-----------------------------------------------------
@@ -55,6 +55,7 @@ const char *MRI_C_VERSION = "$Revision: 1.486.2.3 $";
 #include "talairachex.h"
 #include "voxlist.h"
 #include "fastmarching.h"
+#include "mriBSpline.h"
 
 extern int errno;
 
@@ -63,6 +64,36 @@ extern int errno;
   -------------------------------------------------------*/
 
 #define DEBUG_POINT(x,y,z)  (((x==8&&y==9) || (x==9&&y==8)) &&((z)==15))
+
+
+#ifndef UCHAR_MIN
+#define UCHAR_MIN  0.0
+#endif
+#ifndef UCHAR_MAX
+#define UCHAR_MAX  255.0
+#endif
+#ifndef SHORT_MIN
+#define SHORT_MIN  -32768.0
+#endif
+#ifndef SHORT_MAX
+#define SHORT_MAX  32767.0
+#endif
+#ifndef INT_MIN
+#define INT_MIN    -2147483648.0
+#endif
+#ifndef INT_MAX
+#define INT_MAX    2147483647.0
+#endif
+#ifndef LONG_MIN
+#define LONG_MIN   -2147483648.0
+#endif
+#ifndef LONG_MAX
+#define LONG_MAX   2147483647.0
+#endif
+
+#define N_HIST_BINS 1000
+
+
 
 /*-----------------------------------------------------
   STATIC DATA
@@ -115,6 +146,8 @@ static long mris_alloced = 0 ;
   exist in the header as mri->c_r, mri->c_a, and mri->c_s,
   respectively.
 
+  Note: coordinates are at the center of the voxel.
+
   Note: to compute the matrix with respect to the first voxel being
   at CRS 1,1,1 instead of 0,0,0, then set base = 1. This is
   necessary with SPM matrices.
@@ -124,7 +157,7 @@ static long mris_alloced = 0 ;
 
   Note: MRIgetVoxelToRasXform is #defined to be extract_i_to_r().
   ----------------------------------------------------------------*/
-MATRIX *MRIxfmCRS2XYZ(MRI *mri, int base)
+MATRIX *MRIxfmCRS2XYZ( const MRI *mri, int base)
 {
   MATRIX *m;
   MATRIX *Pcrs, *PxyzOffset;
@@ -185,6 +218,55 @@ MATRIX *MRIxfmCRS2XYZ(MRI *mri, int base)
 
   return(m);
 }
+/*!
+  \fn MATRIX *MRImatrixOfDirectionCosines(MRI *mri, MATRIX *Mdc)
+  \brief Fills Mdc with direction cosines
+*/
+MATRIX *MRImatrixOfDirectionCosines(MRI *mri, MATRIX *Mdc)
+{
+  if(Mdc == NULL) Mdc = MatrixZero(4,4,NULL);
+  Mdc->rptr[1][1] = mri->x_r;
+  Mdc->rptr[2][1] = mri->x_a;
+  Mdc->rptr[3][1] = mri->x_s;
+  Mdc->rptr[1][2] = mri->y_r;
+  Mdc->rptr[2][2] = mri->y_a;
+  Mdc->rptr[3][2] = mri->y_s;
+  Mdc->rptr[1][3] = mri->z_r;
+  Mdc->rptr[2][3] = mri->z_a;
+  Mdc->rptr[3][3] = mri->z_s;
+  Mdc->rptr[4][4] = 1;
+  return(Mdc);
+}
+/*!
+  \fn MATRIX *MRImatrixOfVoxelSizes(MRI *mri, MATRIX *D)
+  \brief Creaetes diagonal matrix D with voxel sizes on diagonal
+*/
+MATRIX *MRImatrixOfVoxelSizes(MRI *mri, MATRIX *D)
+{
+  if(D == NULL) D = MatrixZero(4,4,NULL);
+  D->rptr[1][1] = mri->xsize;
+  D->rptr[2][2] = mri->ysize;
+  D->rptr[3][3] = mri->zsize;
+  D->rptr[4][4] = 1;
+  return(D);
+}
+/*!
+  \fn MATRIX *MRImatrixOfTranslations(MRI *mri, MATRIX *P0)
+  \brief Creates 4x4 matrix which implements the translation
+*/
+MATRIX *MRImatrixOfTranslations(MRI *mri, MATRIX *P0)
+{
+  MATRIX *Vox2ScannerRAS;
+  int k;
+  if(P0 == NULL) P0 = MatrixZero(4,4,NULL);
+  Vox2ScannerRAS = MRIxfmCRS2XYZ(mri,0);
+  for(k=1; k<=4; k++) {
+    P0->rptr[k][4] = Vox2ScannerRAS->rptr[k][4];
+    P0->rptr[k][k] = 1;
+  }
+  MatrixFree(&Vox2ScannerRAS);
+  return(P0);
+}
 /*--------------------------------------------------------------------------
   extract_i_to_r() - computes scanner vox2ras. On 2/27/06, this was replaced
   with a simple call to MRIxfmCRS2XYZ(). The original code is below (but
@@ -192,7 +274,7 @@ MATRIX *MRIxfmCRS2XYZ(MRI *mri, int base)
   non-zero voxels base correctly (eg, SPM expects vox2ras to be 1-based).
   Note: MRIgetVoxelToRasXform is #defined to be extract_i_to_r().
   ---------------------------------------------------------------------------*/
-MATRIX *extract_i_to_r(MRI *mri)
+MATRIX *extract_i_to_r(const MRI *mri)
 {
   MATRIX *m;
   m = MRIxfmCRS2XYZ(mri, 0);
@@ -202,7 +284,7 @@ MATRIX *extract_i_to_r(MRI *mri)
   extract_r_to_i() - computes scanner ras2vox. See also extract_i_to_r()
   and MRIxfmCRS2XYZ()
   ---------------------------------------------------------------------*/
-MATRIX *extract_r_to_i(MRI *mri)
+MATRIX *extract_r_to_i(const MRI *mri)
 {
   MATRIX *m_ras_to_voxel, *m_voxel_to_ras ;
   m_voxel_to_ras = extract_i_to_r(mri) ;
@@ -305,7 +387,7 @@ int MRIsetVox2RASFromMatrixUnitTest(MRI *mri)
   arbitrary, they must be applied consistently. See also:
   surfaceRASFromVoxel_ and voxelFromSurfaceRAS_.
   -------------------------------------------------------------*/
-MATRIX *MRIxfmCRS2XYZtkreg(MRI *mri)
+MATRIX *MRIxfmCRS2XYZtkreg( const MRI *mri)
 {
   MRI *tmp;
   MATRIX *K;
@@ -1192,6 +1274,28 @@ inline float MRIgetVoxVal(const MRI *mri, int c, int r, int s, int f)
 inline int MRIsetVoxVal(MRI *mri, int c, int r, int s, int f, float voxval)
 {
   static void *p=NULL;
+  
+  //clipping
+  switch (mri->type)
+  {
+  case MRI_UCHAR:
+    if (voxval < UCHAR_MIN) voxval = UCHAR_MIN;
+    if (voxval > UCHAR_MAX) voxval = UCHAR_MAX;
+    break;
+  case MRI_SHORT:
+    if (voxval < SHORT_MIN) voxval = SHORT_MIN;
+    if (voxval > SHORT_MAX) voxval = SHORT_MAX;
+    break;
+  case MRI_INT:
+    if (voxval < INT_MIN) voxval = INT_MIN;
+    if (voxval > INT_MAX) voxval = INT_MAX;
+    break;
+  case MRI_LONG:
+    if (voxval < LONG_MIN) voxval = LONG_MIN;
+    if (voxval > LONG_MAX) voxval = LONG_MAX;
+    break;
+  }  
+  
   if (mri->ischunked)
   {
     p = mri->chunk + c + r*mri->bytes_per_row +
@@ -1255,7 +1359,7 @@ int MRIinterpCode(char *InterpString)
   if (!strncasecmp(InterpString,"sinc",3))
     return(SAMPLE_SINC);
   if (!strncasecmp(InterpString,"cubic",3))
-    return(SAMPLE_CUBIC);
+    return(SAMPLE_CUBIC_BSPLINE);
 
   return(-1);
 }
@@ -1277,7 +1381,7 @@ char * MRIinterpString(int InterpCode)
   case SAMPLE_SINC:
     return("sinc");
     break ;
-  case SAMPLE_CUBIC:
+  case SAMPLE_CUBIC_BSPLINE:
     return("cubic");
     break ;
   }
@@ -3559,6 +3663,26 @@ MRIextract(MRI *mri_src, MRI *mri_dst, int x0, int y0, int z0,
 {
   return(MRIextractInto(mri_src, mri_dst, x0, y0, z0, dx, dy, dz, 0, 0, 0)) ;
 }
+MRI *
+MRIcopyFrames(MRI *mri_src, MRI *mri_dst, int src_start_frame, int src_end_frame, int dst_start_frame)
+{
+  int  fno, offset ;
+
+  if (mri_dst == NULL)
+  {
+    mri_dst = MRIallocSequence(mri_src->width, mri_src->height, mri_src->depth, mri_src->type,
+          src_end_frame-src_start_frame+1) ;
+    MRIcopyHeader(mri_src, mri_dst) ;
+  }
+
+  offset = dst_start_frame-src_start_frame ;
+
+  for (fno = src_start_frame ; fno <= src_end_frame ; fno++)
+  {
+    MRIcopyFrame(mri_src, mri_dst, fno, fno+offset) ;
+  }
+  return(mri_dst) ;
+}
 /*-----------------------------------------------------
   Parameters:
 
@@ -3684,6 +3808,7 @@ MRIextractInto(MRI *mri_src, MRI *mri_dst, int x0, int y0, int z0,
   {
   default:
     ErrorExit(ERROR_UNSUPPORTED, "MRIextractInto: unsupported source type %d", mri_src->type) ;
+    return NULL;
     break ;
   case MRI_FLOAT:
     bytes *= sizeof(float) ;
@@ -3710,6 +3835,7 @@ MRIextractInto(MRI *mri_src, MRI *mri_dst, int x0, int y0, int z0,
         {
         default:
           ErrorExit(ERROR_UNSUPPORTED, "MRIextractInto: unsupported source type %d", mri_src->type) ;
+          return NULL;
           break ;
         case MRI_UCHAR:
           memmove(&MRIseq_vox(mri_dst, x1, yd, zd,frame),
@@ -5894,19 +6020,28 @@ MRIallocIndices(MRI *mri)
   depth = mri->depth ;
   mri->xi = (int *)calloc(width+2*MAX_INDEX, sizeof(int)) ;
   if (!mri->xi)
+  {
     ErrorExit(ERROR_NO_MEMORY,
               "MRIallocIndices: could not allocate %d elt index array",
               width+2*MAX_INDEX) ;
+    return ERROR_NO_MEMORY;
+  }
   mri->yi = (int *)calloc(height+2*MAX_INDEX, sizeof(int)) ;
   if (!mri->yi)
+  {
     ErrorExit(ERROR_NO_MEMORY,
               "MRIallocIndices: could not allocate %d elt index array",
               height+2*MAX_INDEX) ;
+    return ERROR_NO_MEMORY;
+  }
   mri->zi = (int *)calloc(depth+2*MAX_INDEX, sizeof(int)) ;
   if (!mri->zi)
+  {
     ErrorExit(ERROR_NO_MEMORY,
               "MRIallocIndices: could not allocate %d elt index array",
               depth+2*MAX_INDEX) ;
+    return ERROR_NO_MEMORY;
+  }
 
   /*
     indexing into these arrays returns valid pixel indices from
@@ -5981,8 +6116,11 @@ MRI *MRIallocChunk(int width, int height, int depth, int type, int nframes)
   mri->outside_val = 0 ;
   mri->slices = (BUFTYPE ***)calloc(depth*nframes, sizeof(BUFTYPE **)) ;
   if (!mri->slices)
+  {
     ErrorExit(ERROR_NO_MEMORY,
               "MRIalloc: could not allocate %d slices\n", mri->depth) ;
+    return NULL;
+  }
 
   p = mri->chunk;
   for (slice = 0 ; slice < depth*nframes ; slice++)
@@ -5990,11 +6128,14 @@ MRI *MRIallocChunk(int width, int height, int depth, int type, int nframes)
     /* allocate pointer to array of rows */
     mri->slices[slice] = (BUFTYPE **)calloc(mri->height, sizeof(BUFTYPE *)) ;
     if (!mri->slices[slice])
+    {
       ErrorExit
       (ERROR_NO_MEMORY,
        "MRIallocChunk(%d, %d, %d): could not allocate "
        "%d bytes for %dth slice\n",
        height, width, depth, mri->height*sizeof(BUFTYPE *), slice) ;
+      return NULL;
+    }
     /* Instead of allocating each row, just point to the
        correct location in the chunk. */
     for (row = 0 ; row < mri->height ; row++)
@@ -6050,25 +6191,34 @@ MRI *MRIallocSequence(int width, int height, int depth, int type, int nframes)
   mri->outside_val = 0 ;
   mri->frames = (MRI_FRAME *)calloc(nframes, sizeof(MRI_FRAME)) ;
   if (!mri->frames)
+  {
     ErrorExit(ERROR_NO_MEMORY,
               "MRIalloc: could not allocate %d frames\n", nframes) ;
+    return NULL;
+  }
   for (i = 0 ; i < mri->nframes ; i++)
     mri->frames[i].m_ras2vox = MatrixAlloc(4,4, MATRIX_REAL) ;
   mri->slices = (BUFTYPE ***)calloc(depth*nframes, sizeof(BUFTYPE **)) ;
   if (!mri->slices)
+  {
     ErrorExit(ERROR_NO_MEMORY,
               "MRIalloc: could not allocate %d slices\n", mri->depth) ;
+    return NULL;
+  }
 
   for (slice = 0 ; slice < depth*nframes ; slice++)
   {
     /* allocate pointer to array of rows */
     mri->slices[slice] = (BUFTYPE **)calloc(mri->height, sizeof(BUFTYPE *)) ;
     if (!mri->slices[slice])
+    {
       ErrorExit
       (ERROR_NO_MEMORY,
        "MRIalloc(%d, %d, %d): could not allocate "
        "%d bytes for %dth slice\n",
        height, width, depth, mri->height*sizeof(BUFTYPE *), slice) ;
+      return NULL;
+    }
 
 #if USE_ELECTRIC_FENCE
     switch (mri->type)
@@ -6102,11 +6252,14 @@ MRI *MRIallocSequence(int width, int height, int depth, int type, int nframes)
     bpp /= 8 ;
     buf = (BUFTYPE *)calloc((mri->width*mri->height*bpp), 1) ;
     if (buf == NULL)
+    {
       ErrorExit
       (ERROR_NO_MEMORY,
        "MRIalloc(%d, %d, %d): could not allocate "
        "%d bytes for %dth slice\n",
        height, width, depth, (mri->width*mri->height*bpp), slice) ;
+      return NULL;
+    }
     for (row = 0 ; row < mri->height ; row++)
     {
       mri->slices[slice][row] = buf+(row*mri->width*bpp) ;
@@ -6174,14 +6327,22 @@ MRI *MRIallocHeader(int width, int height, int depth, int type, int nframes)
 
   mri = (MRI *)calloc(1, sizeof(MRI)) ;
   if (!mri)
+  {
     ErrorExit(ERROR_NO_MEMORY, "MRIalloc: could not allocate MRI\n") ;
+    return NULL;
+  }
 
+  // Note: changes here may need to be reflected in MRISeqchangeType()
   mri->frames = (MRI_FRAME *)calloc(nframes, sizeof(MRI_FRAME)) ;
   if (!mri->frames)
+  {
     ErrorExit(ERROR_NO_MEMORY,
               "MRIalloc: could not allocate %d frame\n", nframes) ;
+    return NULL;
+  }
   for (i = 0 ; i < mri->nframes ; i++)
     mri->frames[i].m_ras2vox = MatrixAlloc(4,4, MATRIX_REAL) ;
+
   mri->imnr0 = 1 ;
   mri->imnr1 = depth;
   mri->fov = width ;
@@ -7280,7 +7441,7 @@ MRItoImageView(MRI *mri, IMAGE *I, int slice, int view, int frame)
 {
   int      width, height, depth, x, y, yp, w, h, d,
   xm, ym, zm, format ;
-  float    fmin, fmax ;
+  float    fmin, fmax, frac ;
   double     val ;
   int src_slice_direction;
   int xsign, ysign;
@@ -7311,6 +7472,7 @@ MRItoImageView(MRI *mri, IMAGE *I, int slice, int view, int frame)
   height = mri->height ;
   depth = mri->depth ;
 
+  frac = .6 ;
   switch (src_slice_direction)
   {
   case MRI_CORONAL: // x direction can be -R or R,
@@ -7321,6 +7483,7 @@ MRItoImageView(MRI *mri, IMAGE *I, int slice, int view, int frame)
     switch (view)
     {
     case MRI_CORONAL:
+      frac = .4 ;
       w = width;
       h = height;
       d = depth;
@@ -7361,6 +7524,7 @@ MRItoImageView(MRI *mri, IMAGE *I, int slice, int view, int frame)
     case MRI_SAGITTAL:
       w = width;
       h = height;
+      frac = .4 ;
       d = depth;
       xsign = (mri->x_a > 0) ? 1 : -1;
       ysign = (mri->y_s > 0) ? -1 : 1;
@@ -7398,6 +7562,7 @@ MRItoImageView(MRI *mri, IMAGE *I, int slice, int view, int frame)
     case MRI_HORIZONTAL:
       w = width;
       h = height;
+      frac = .4 ;
       d = depth;
       xsign = (mri->x_r > 0) ? -1 : 1;
       ysign = (mri->y_a > 0) ?  1 : -1;
@@ -7412,7 +7577,7 @@ MRItoImageView(MRI *mri, IMAGE *I, int slice, int view, int frame)
       slice, view, src_slice_direction)) ;
   }
   if (slice < 0)
-    slice = nint(6.0*d/10.0) ;
+    slice = nint(frac*d) ;
   else if (slice >= d)
     ErrorReturn(NULL, (ERROR_BADPARM, "MRItoImageView: bad slice %d\n",slice));
     
@@ -7694,6 +7859,7 @@ ImageToMRI(IMAGE *I)
   default:
     ErrorExit
     (ERROR_BADPARM, "IMAGE type = %d not supported\n", I->pixel_format);
+    return NULL;
     break;
   }
   // allocate memory
@@ -7842,12 +8008,9 @@ MRIextractValues(MRI *mri_src, MRI *mri_dst, float min_val, float max_val)
 
   return(mri_dst) ;
 }
+
+
 /*-----------------------------------------------------
-  Parameters:
-
-  Returns value:
-
-  Description
   Wrapper around MRIupsampleN for N=2
   ------------------------------------------------------*/
 MRI *
@@ -7856,110 +8019,80 @@ MRIupsample2(MRI *mri_src, MRI *mri_dst)
   return(MRIupsampleN(mri_src, mri_dst, 2)) ;
 }
 /*-----------------------------------------------------
-  Parameters:
-
-  Returns value:
-
-  Description
+  MRI *MRIupsampleN(MRI *mri_src, MRI *mri_dst, int N)
   Upsample volume by integer factor. No error checking, upsample
-  factor must be valid. (Generalization of original routine
-  'MRIupsample2'.)
+  factor must be valid.
   ------------------------------------------------------*/
-MRI *
-MRIupsampleN(MRI *mri_src, MRI *mri_dst, int N)
+MRI *MRIupsampleN(MRI *mri_src, MRI *mri_dst, int N)
 {
-  int     width, depth, height, x, y, z ;
-  BUFTYPE *pdst ;
-  short   *psdst ;
-  float   *pfdst ;
-  MATRIX  *m_vox2ras, *m_scale, *m_tmp ;
+  int     width, depth, height, x, y, z, f ;
+  double val;
+  MATRIX *Vox2RAS,*CRS0,*RAS0;
 
-  if (mri_dst && mri_src->type != mri_dst->type)
-    ErrorReturn
-    (NULL,
-     (ERROR_UNSUPPORTED, "MRIupsampleN: source and dst must be same type"));
-
-  width = N*mri_src->width ;
+  width  = N*mri_src->width ;
   height = N*mri_src->height ;
-  depth = N*mri_src->depth ;
+  depth  = N*mri_src->depth ;
 
-  if (!mri_dst)
-  {
-    //    double c_r, c_a, c_s;
-  
-    mri_dst = MRIalloc(width, height, depth, mri_src->type) ;
+  if (!mri_dst) {
+    mri_dst = MRIallocSequence(width, height, depth, mri_src->type, mri_src->nframes) ;
     MRIcopyHeader(mri_src, mri_dst) ;
-    MRIsetResolution(mri_dst,
-                     mri_src->xsize/N, mri_src->ysize/N, mri_src->zsize/N) ;
-    mri_dst->xstart = mri_src->xstart ;
-    mri_dst->ystart = mri_src->ystart ;
-    mri_dst->zstart = mri_src->zstart ;
-    mri_dst->xend = mri_src->xend ;
-    mri_dst->yend = mri_src->yend ;
-    mri_dst->zend = mri_src->zend ;
-    m_vox2ras = MRIgetVoxelToRasXform(mri_src) ;
-    m_scale = MatrixIdentity(4, NULL) ;
-    *MATRIX_RELT(m_scale, 1,1) = 1.0/N ; 
-    *MATRIX_RELT(m_scale, 2,2) = 1.0/N ; 
-    *MATRIX_RELT(m_scale, 3,3) = 1.0/N ;
-    m_tmp = MatrixMultiply(m_vox2ras, m_scale, NULL) ;
-    MatrixFree(&m_vox2ras) ; MatrixFree(&m_scale) ; m_vox2ras = m_tmp ;
-    MRIsetVoxelToRasXform(mri_dst, m_vox2ras) ;
-    MatrixFree(&m_vox2ras) ;
-    m_vox2ras = MRIgetVoxelToRasXform(mri_dst) ;
-    MatrixFree(&m_vox2ras) ;
-#if 0
-    MRIcalcCRASforSampledVolume(mri_src, mri_dst, &c_r, &c_a, &c_s);
-    mri_dst->c_a = c_a;
-    mri_dst->c_s = c_s;
-    mri_dst->c_r = c_r;
-#endif
   }
 
-  for (z = 0 ; z < depth ; z++)
-  {
-    for (y = 0 ; y < height ; y++)
-    {
-      switch (mri_src->type)
-      {
-      case MRI_UCHAR:
-        pdst = &MRIvox(mri_dst, 0, y, z) ;
-        for (x = 0 ; x < width ; x++)
-          *pdst++ = MRIvox(mri_src, x/N, y/N, z/N) ;
-        break ;
-      case MRI_SHORT:
-        psdst = &MRISvox(mri_dst, 0, y, z) ;
-        for (x = 0 ; x < width ; x++)
-          *psdst++ = MRISvox(mri_src, x/N, y/N, z/N) ;
-        break ;
-      case MRI_FLOAT:
-        pfdst = &MRIFvox(mri_dst, 0, y, z) ;
-        for (x = 0 ; x < width ; x++)
-          *pfdst++ = MRIFvox(mri_src, x/N, y/N, z/N) ;
-        break ;
-      default:
-        ErrorReturn
-        (NULL,
-         (ERROR_UNSUPPORTED,
-          "MRIupsampleN: unsupported src type %d", mri_src->type)) ;
-      }
-
-    }
-  }
-
+  // Recompute geometry for finer resolution
+  // Only the xsize and cras change
+  mri_dst->xsize = mri_src->xsize/N;
+  mri_dst->ysize = mri_src->ysize/N;
+  mri_dst->zsize = mri_src->zsize/N;
+  mri_dst->x_r = mri_src->x_r;
+  mri_dst->x_a = mri_src->x_a;
+  mri_dst->x_s = mri_src->x_s;
+  mri_dst->y_r = mri_src->y_r;
+  mri_dst->y_a = mri_src->y_a;
+  mri_dst->y_s = mri_src->y_s;
+  mri_dst->z_r = mri_src->z_r;
+  mri_dst->z_a = mri_src->z_a;
+  mri_dst->z_s = mri_src->z_s;
+  mri_dst->xstart = mri_src->xstart;
+  mri_dst->ystart = mri_src->ystart;
+  mri_dst->zstart = mri_src->zstart;
+  mri_dst->xend = mri_src->xend;
+  mri_dst->yend = mri_src->yend;
+  mri_dst->zend = mri_src->zend;
   mri_dst->imnr0 = mri_src->imnr0 ;
   mri_dst->imnr1 = mri_src->imnr0 + mri_dst->depth - 1 ;
 
-  mri_dst->xsize = mri_src->xsize/N ;
-  mri_dst->ysize = mri_src->ysize/N ;
-  mri_dst->zsize = mri_src->zsize/N ;
+  // Computes CRAS based on location of the 1st voxel in upsampled space
+  // The new location is 1/Nth of a voxel from the corner. The RAS of
+  // a voxel is at the center of the voxel (unfortunately)
+  Vox2RAS = MRIxfmCRS2XYZ(mri_src,0); // scanner vox2ras of source mri
+  CRS0 = MatrixZero(4,1,NULL);
+  CRS0->rptr[1][1] = -1.0/N;
+  CRS0->rptr[2][1] = -1.0/N;
+  CRS0->rptr[3][1] = -1.0/N;
+  CRS0->rptr[4][1] =  1.0;
+  RAS0 = MatrixMultiply(Vox2RAS,CRS0,NULL);
+  MRIp0ToCRAS(mri_dst, RAS0->rptr[1][1],RAS0->rptr[2][1],RAS0->rptr[3][1]);
+  MatrixFree(&Vox2RAS);
+  MatrixFree(&CRS0);
+  MatrixFree(&RAS0);
 
+  for (z = 0 ; z < depth ; z++) {
+    for (y = 0 ; y < height ; y++) {
+      for (x = 0 ; x < width ; x++) {
+	for(f = 0; f < mri_src->nframes; f++){
+	  val = MRIgetVoxVal(mri_src, x/N, y/N, z/N, f);
+	  MRIsetVoxVal(mri_dst,x,y,z,f,val);
+	}
+      }
+    }
+  }
   MRIreInitCache(mri_dst) ;
 
   return(mri_dst) ;
 }
-MRI *
-MRIdownsample2LabeledVolume(MRI *mri_src, MRI *mri_dst)
+
+
+MRI *MRIdownsample2LabeledVolume(MRI *mri_src, MRI *mri_dst)
 {
   int     width, depth, height, x, y, z, x1, y1, z1, counts[256], label,
   max_count, out_label ;
@@ -8022,8 +8155,26 @@ MRIdownsample2LabeledVolume(MRI *mri_src, MRI *mri_dst)
   mri_dst->xsize = mri_src->xsize*2 ;
   mri_dst->ysize = mri_src->ysize*2 ;
   mri_dst->zsize = mri_src->zsize*2 ;
+  mri_dst->thick = mri_src->thick*2 ;
+  mri_dst->ps    = mri_src->ps*2 ;
 
-  mri_dst->ras_good_flag = 0;
+  VECTOR* C = VectorAlloc(4, MATRIX_REAL);
+  VECTOR_ELT(C,1) = mri_src->width/2+0.5;
+  VECTOR_ELT(C,2) = mri_src->height/2+0.5;
+  VECTOR_ELT(C,3) = mri_src->depth/2+0.5;
+  VECTOR_ELT(C,4) = 1.0;
+  MATRIX* V2R     = extract_i_to_r(mri_src);
+  MATRIX* P       = MatrixMultiply(V2R,C,NULL);
+  mri_dst->c_r    = P->rptr[1][1];
+  mri_dst->c_a    = P->rptr[2][1];
+  mri_dst->c_s    = P->rptr[3][1];
+  MatrixFree(&P);
+  MatrixFree(&V2R);
+  VectorFree(&C);
+  
+  MRIreInitCache(mri_dst) ;
+
+  //mri_dst->ras_good_flag = 0;
 
   return(mri_dst) ;
 }
@@ -8049,9 +8200,9 @@ MRIdownsample2(MRI *mri_src, MRI *mri_dst)
      (ERROR_UNSUPPORTED,
       "MRIdownsample2: source and dst must be same type"));
 
-  width = mri_src->width/2 ;
+  width  = mri_src->width/2 ;
   height = mri_src->height/2 ;
-  depth = mri_src->depth/2 ;
+  depth  = mri_src->depth/2 ;
 
   if (!mri_dst)
   {
@@ -8118,8 +8269,26 @@ MRIdownsample2(MRI *mri_src, MRI *mri_dst)
   mri_dst->ysize = mri_src->ysize*2 ;
   mri_dst->zsize = mri_src->zsize*2 ;
   mri_dst->thick = mri_src->thick*2 ;
-  mri_dst->ps = mri_src->ps*2 ;
+  mri_dst->ps    = mri_src->ps*2 ;
+  
+  // adjust cras
+  //printf("COMPUTING new CRAS\n") ;
+  VECTOR* C = VectorAlloc(4, MATRIX_REAL);
+  VECTOR_ELT(C,1) = mri_src->width/2+0.5;
+  VECTOR_ELT(C,2) = mri_src->height/2+0.5;
+  VECTOR_ELT(C,3) = mri_src->depth/2+0.5;
+  VECTOR_ELT(C,4) = 1.0;
+  MATRIX* V2R     = extract_i_to_r(mri_src);
+  MATRIX* P       = MatrixMultiply(V2R,C,NULL);
+  mri_dst->c_r    = P->rptr[1][1];
+  mri_dst->c_a    = P->rptr[2][1];
+  mri_dst->c_s    = P->rptr[3][1];
+  MatrixFree(&P);
+  MatrixFree(&V2R);
+  VectorFree(&C);
+  
   MRIreInitCache(mri_dst) ;
+  //printf("CRAS new: %2.3f %2.3f %2.3f\n",mri_dst->c_r,mri_dst->c_a,mri_dst->c_s);
 
   //  mri_dst->ras_good_flag = 0;
 
@@ -9559,9 +9728,9 @@ MRIsampleLabeledVolume(MRI *mri,
   Description
   ------------------------------------------------------*/
 int
-MRIsampleVolumeType(MRI *mri,
-                    double x, double y, double z,
-                    double *pval, int type)
+MRIsampleVolumeType( const MRI *mri,
+                     double x, double y, double z,
+                     double *pval, int type)
 {
   int   xv, yv, zv ;
   int OutOfBounds;
@@ -9653,6 +9822,12 @@ MRIsampleVolumeFrameType
     break ;
   case SAMPLE_TRILINEAR:
     return(MRIsampleVolumeFrame(mri, x, y, z, frame, pval)) ;
+  case SAMPLE_CUBIC_BSPLINE:
+    ErrorReturn
+    (ERROR_UNSUPPORTED,
+     (ERROR_UNSUPPORTED,
+      "MRIsampleVolumeFrameType(%d): First create coeff image and then use it to sample (see mriBSpline).",
+      type));    
   case SAMPLE_SINC:
     ErrorReturn
     (ERROR_UNSUPPORTED,
@@ -9660,6 +9835,11 @@ MRIsampleVolumeFrameType
       "MRIsampleVolumeFrameType(%d): unsupported interpolation type",
       type));
   default: break;
+    ErrorReturn
+    (ERROR_UNSUPPORTED,
+     (ERROR_UNSUPPORTED,
+      "MRIsampleVolumeFrameType(%d): unsupported interpolation type",
+      type));
     /*E* add SAMPLE_CUBIC here? */
     /*    return(MRIsincSampleVolume(mri, x, y, z, 5, pval)) ;*/
   }
@@ -9825,7 +10005,7 @@ MRIinterpolateIntoVolumeFrame(MRI *mri, double x, double y, double z, int frame,
   multi-frame.
   -------------------------------------------------------------------*/
 int
-MRIsampleVolume(MRI *mri, double x, double y, double z, double *pval)
+MRIsampleVolume( const MRI *mri, double x, double y, double z, double *pval)
 {
   int  OutOfBounds;
   int  xm, xp, ym, yp, zm, zp, width, height, depth ;
@@ -9941,8 +10121,8 @@ MRIsampleVolume(MRI *mri, double x, double y, double z, double *pval)
   sampled at the same time (this can be important in time-sensitive
   applications).
   -------------------------------------------------------------------*/
-int MRIsampleSeqVolume(MRI *mri, double x, double y, double z, float *valvect,
-                       int firstframe, int lastframe)
+int MRIsampleSeqVolume( const MRI *mri, double x, double y, double z, float *valvect,
+                        int firstframe, int lastframe )
 {
   int  OutOfBounds;
   int  f,xm, xp, ym, yp, zm, zp, width, height, depth ;
@@ -10076,6 +10256,11 @@ int MRIsampleSeqVolumeType(MRI *mri, double x, double y, double z, float *valvec
       {
 	printf("Sinc interpolation is not implemented yet on multi-frame data. Going ahead with tri-linear") ;
 	return(MRIsampleSeqVolume(mri, x, y, z, valvect, firstframe, lastframe)) ;
+      }
+    case SAMPLE_CUBIC_BSPLINE:
+      {
+	printf("Cubic Bspline interpolation not implemented here. Needs to be done by calling function!") ;
+	exit(1);
       }
     }
 
@@ -10312,7 +10497,8 @@ localeval(double x, int iter)
 
   ------------------------------------------------------*/
 int
-MRIcubicSampleVolume(MRI *mri, double x, double y, double z, double *pval)
+MRIcubicSampleVolume( const MRI *mri,
+                      double x, double y, double z, double *pval )
 {
   int  OutOfBounds;
   int  width, height, depth ;
@@ -10587,9 +10773,9 @@ double ham_sinc(double x,double fullwidth)
 
 /*-------------------------------------------------------------------------*/
 int
-MRIsincSampleVolume(MRI *mri,
-                    double x, double y, double z,
-                    int hw, double *pval)
+MRIsincSampleVolume( const MRI *mri,
+                     double x, double y, double z,
+                     int hw, double *pval )
 {
   int  OutOfBounds;
   int  width, height, depth ;
@@ -11711,10 +11897,9 @@ MRIlinearTransformInterp(MRI *mri_src, MRI *mri_dst, MATRIX *mA,
 
   if (InterpMethod != SAMPLE_NEAREST &&
       InterpMethod != SAMPLE_TRILINEAR &&
-      InterpMethod != SAMPLE_CUBIC &&
-      InterpMethod != SAMPLE_SINC )
+      InterpMethod != SAMPLE_CUBIC_BSPLINE )
   {
-    printf("ERROR: MRIlinearTransformInterp: unrecoginzed interpolation "
+    printf("ERROR: MRIlinearTransformInterp: unrecognized or unsupported interpolation "
            "method %d\n",InterpMethod);
   }
 
@@ -11728,9 +11913,13 @@ MRIlinearTransformInterp(MRI *mri_src, MRI *mri_dst, MATRIX *mA,
   else
     MRIclear(mri_dst) ;
 
-  width = mri_dst->width ;
+  MRI_BSPLINE * bspline = NULL;
+  if (InterpMethod == SAMPLE_CUBIC_BSPLINE)
+    bspline = MRItoBSpline(mri_src,NULL,3);
+
+  width  = mri_dst->width ;
   height = mri_dst->height ;
-  depth = mri_dst->depth ;
+  depth  = mri_dst->depth ;
   v_X = VectorAlloc(4, MATRIX_REAL) ;  /* input (src) coordinates */
   v_Y = VectorAlloc(4, MATRIX_REAL) ;  /* transformed (dst) coordinates */
 
@@ -11767,10 +11956,19 @@ MRIlinearTransformInterp(MRI *mri_src, MRI *mri_dst, MATRIX *mA,
         //MRIsampleVolume(mri_src, x1, x2, x3, &val);
         for (frame = 0 ; frame < mri_src->nframes ; frame++)
         {
-          MRIsampleVolumeFrameType(mri_src, x1, x2, x3, 
-                                   frame, InterpMethod, &val);
+          if (InterpMethod == SAMPLE_CUBIC_BSPLINE)
+            // recommended to externally call this and keep mri_coeff
+            // if image is resampled often (e.g. in registration algo)
+            MRIsampleBSpline(bspline, x1, x2, x3, frame, &val);
+          else
+            MRIsampleVolumeFrameType(mri_src, x1, x2, x3, 
+                                     frame, InterpMethod, &val);
+
+          // will clip the val according to mri_dst type:
           MRIsetVoxVal(mri_dst, y1, y2, y3, frame, val) ;
+
 #if 0
+          // if this gets ever enabled, don't forget to clip val to type...
           switch (mri_dst->type)
           {
           case MRI_UCHAR:
@@ -11797,7 +11995,7 @@ MRIlinearTransformInterp(MRI *mri_src, MRI *mri_dst, MATRIX *mA,
       }
     }
   }
-
+  if (bspline) MRIfreeBSpline(&bspline);
   MatrixFree(&v_X) ;
   MatrixFree(&mAinv) ;
   MatrixFree(&v_Y) ;
@@ -11825,7 +12023,10 @@ MRIconcatenateFrames(MRI *mri_frame1, MRI *mri_frame2, MRI *mri_dst)
     MRIcopyHeader(mri_frame1, mri_dst) ;
   }
   if (!mri_dst)
+  {
     ErrorExit(ERROR_NOMEMORY, "MRIconcatenateFrames: could not alloc dst") ;
+    return NULL;
+  }
 
 
   for (z = 0 ; z < depth ; z++)
@@ -11861,7 +12062,10 @@ MRIcopyFrame(MRI *mri_src, MRI *mri_dst, int src_frame, int dst_frame)
     mri_dst =
       MRIallocSequence(width, height, depth, mri_src->type, dst_frame+1) ;
   if (!mri_dst)
+  {
     ErrorExit(ERROR_NOMEMORY, "MRIcopyFrame: could not alloc dst") ;
+    return NULL;
+  }
 
   if (mri_src->type != mri_dst->type)
     ErrorReturn(NULL,(ERROR_UNSUPPORTED,
@@ -12083,32 +12287,6 @@ MRImeanFrameThresh(MRI *mri, int frame, float thresh)
   return(mean) ;
 }
 
-#ifndef UCHAR_MIN
-#define UCHAR_MIN  0.0
-#endif
-#ifndef UCHAR_MAX
-#define UCHAR_MAX  255.0
-#endif
-#ifndef SHORT_MIN
-#define SHORT_MIN  -32768.0
-#endif
-#ifndef SHORT_MAX
-#define SHORT_MAX  32767.0
-#endif
-#ifndef INT_MIN
-#define INT_MIN    -2147483648.0
-#endif
-#ifndef INT_MAX
-#define INT_MAX    2147483647.0
-#endif
-#ifndef LONG_MIN
-#define LONG_MIN   -2147483648.0
-#endif
-#ifndef LONG_MAX
-#define LONG_MAX   2147483647.0
-#endif
-
-#define N_HIST_BINS 1000
 
 /*--------------------------------------------------------------
   MRISeqchangeType() - changes the data type for a 3D or 4D volume.
@@ -12147,6 +12325,7 @@ MRI *MRISeqchangeType(MRI *vol, int dest_type, float f_low,
   /* Change mri dimensions back to original */
   mri->depth = nslices;
   mri->nframes = nframes;
+
   // Alloc MRI_FRAME. This needs to be updated when MRI_FRAME items are added
   mri->frames = (MRI_FRAME *)calloc(mri->nframes, sizeof(MRI_FRAME)) ;
   for (i = 0 ; i < mri->nframes ; i++)
@@ -12619,6 +12798,11 @@ MRI *MRIresampleFill
 
   *MATRIX_RELT(dp, 4, 1) = 1.0;
 
+  MRI_BSPLINE * bspline = NULL;
+  if (resample_type == SAMPLE_CUBIC_BSPLINE)
+    bspline = MRItoBSpline(src,NULL,3);
+  
+
   for (nframe = 0; nframe < template_vol->nframes; nframe++)
   {
     for (di = 0;di < template_vol->width;di++)
@@ -12671,6 +12855,11 @@ MRI *MRIresampleFill
           else if (resample_type == SAMPLE_CUBIC)
           {
             MRIcubicSampleVolumeFrame(src, si_ff, sj_ff, sk_ff, nframe, &pval);
+            val = (float)pval;
+          }
+          else if (resample_type == SAMPLE_CUBIC_BSPLINE)
+          {
+            MRIsampleBSpline(bspline, si_ff, sj_ff, sk_ff, nframe, &pval);
             val = (float)pval;
           }
           else
@@ -13062,15 +13251,33 @@ MRI *MRIresampleFill
           }
 
           if (dest->type == MRI_UCHAR)
+          {
+            if (val < UCHAR_MIN) val = UCHAR_MIN;
+            if (val > UCHAR_MAX) val = UCHAR_MAX;
             MRIseq_vox(dest, di, dj, dk, nframe) = (unsigned char)nint(val);
+          }
           if (dest->type == MRI_SHORT)
+          {
+            if (val < SHORT_MIN) val = SHORT_MIN;
+            if (val > SHORT_MAX) val = SHORT_MAX;
             MRISseq_vox(dest, di, dj, dk, nframe) = (short)nint(val);
+          }
           if (dest->type == MRI_INT)
+          {
+            if (val < INT_MIN) val = INT_MIN;
+            if (val > INT_MAX) val = INT_MAX;
             MRIIseq_vox(dest, di, dj, dk, nframe) = (int)nint(val);
+          }
           if (dest->type == MRI_LONG)
+          {
+            if (val < LONG_MIN) val = LONG_MIN;
+            if (val > LONG_MAX) val = LONG_MAX;
             MRILseq_vox(dest, di, dj, dk, nframe) = (long)nint(val);
+          }
           if (dest->type == MRI_FLOAT)
+          {
             MRIFseq_vox(dest, di, dj, dk, nframe) = (float)val;
+          }
 
         }
       }
@@ -13142,7 +13349,7 @@ MRI *MRIresampleFill
     MatrixFree(&m_old_voxel_to_ras) ;
   }
 
-
+  if (bspline) MRIfreeBSpline(&bspline);
   MatrixFree(&dp);
   MatrixFree(&sp);
   MatrixFree(&m);
@@ -14671,6 +14878,37 @@ MRInormalizeSequence(MRI *mri, float target)
   return(NO_ERROR) ;
 }
 
+double 
+MRIstdInLabel(MRI *mri_src, MRI *mri_labeled, MRI *mri_mean, int label)
+{
+  int  x, y, z, nvox, l ;
+  double mean, var = 0.0 ;
+  float  val ;
+
+  nvox = 0 ;
+  for (x = 0 ; x < mri_src->width ; x++)
+  {
+    for (y = 0 ; y < mri_src->height ; y++)
+    {
+      for (z = 0 ; z < mri_src->depth ; z++)
+      {
+        l = nint(MRIgetVoxVal(mri_labeled, x, y, z, 0)) ;
+        if (l == label)
+        {
+          val = MRIgetVoxVal(mri_src, x, y, z, 0) ;
+          mean = MRIgetVoxVal(mri_mean, x, y, z, 0) ;
+          val -= mean ;
+          var += (val*val) ;
+          nvox++ ;
+        }
+      }
+    }
+  }
+  if (!nvox)
+    nvox = 1 ;
+  return(sqrt(var/nvox)) ;
+}
+
 double
 MRImeanInLabel(MRI *mri_src, MRI *mri_labeled, int label)
 {
@@ -15569,7 +15807,10 @@ MRI *MRITransformedCentered(MRI *src, MRI *orig_dst, LTA *lta)
   dst = MRIcopy(src, NULL);
 
   if (lta->num_xforms > 1)
+  {
     ErrorExit(ERROR_BADPARM, "The LTA contains more than one transforms.");
+    return NULL;
+  }
 
   // first verify the consistency of the transform stored geometry vs. argument
   if (tran->dst.valid == 1)
@@ -15659,9 +15900,12 @@ MRI *MRITransformedCentered(MRI *src, MRI *orig_dst, LTA *lta)
   }
 
   if (lta->type != LINEAR_VOX_TO_VOX)
+  {
     ErrorExit
     (ERROR_BADPARM,
      "The LTA does not contain LINEASR_RAS_TO_RAS nor LINEAR_VOX_TO_VOX.");
+    return NULL;
+  }
   //
   //      src   -->   RAS
   //       |           |
@@ -16301,8 +16545,8 @@ MRIextractRegionAndPad(MRI *mri_src, MRI *mri_dst, MRI_REGION *region, int pad)
     box.dz = mri_src->depth ;
   }
   mri_dst =
-    MRIalloc
-    (region->dx+2*pad, region->dy+2*pad, region->dz+2*pad, mri_src->type) ;
+    MRIallocSequence
+    (region->dx+2*pad, region->dy+2*pad, region->dz+2*pad, mri_src->type,mri_src->nframes) ;
   MRIcopyHeader(mri_src, mri_dst) ;
   mri_tmp = MRIextractInto(mri_src, NULL, region->x, region->y, region->z,
                            region->dx, region->dy, region->dz, 0, 0, 0) ;
@@ -16464,10 +16708,13 @@ double MRIestimateTIV(char* theLtaFile,
   atlas_lta = LTAreadEx(theLtaFile);
 
   if (atlas_lta == NULL)
+  {
     ErrorExit
     (ERROR_NOFILE,
      "%s: could not open atlas transform file %s",
      Progname, theLtaFile) ;
+    return 0;
+  }
 
   atlas_det = MatrixDeterminant(atlas_lta->xforms[0].m_L) ;
 
@@ -16852,9 +17099,12 @@ MRIhistogramLabels(MRI *mri, int *counts, int max_label)
   if (counts == NULL)
     counts = (int *)calloc(max_label+1, sizeof(*counts)) ;
   if (counts == NULL)
+  {
     ErrorExit(ERROR_NOMEMORY, 
               "MRIhistogramLabels: could not allocate %d counts",
               max_label+1) ;
+    return NULL;
+  }
   for (x = 0 ; x < mri->width ; x++)
     for (y = 0 ; y < mri->height ; y++)
       for (z = 0 ; z < mri->depth ; z++)
@@ -17136,7 +17386,10 @@ MRIorderIndices(MRI *mri, short *x_indices, short *y_indices, short *z_indices)
 
   sort_voxels = (SORT_VOXEL *)calloc(nindices, sizeof(SORT_VOXEL)) ;
   if (!sort_voxels)
+  {
     ErrorExit(ERROR_NOMEMORY,"MRIorderIndices: could not allocate sort table");
+    return ERROR_NOMEMORY;
+  }
 
   for (index = x = 0 ; x < width ; x++)
   {
@@ -17289,6 +17542,7 @@ MRIfindSliceWithMostStructure(MRI *mri_aseg, int slice_direction, int label)
     {
     default:
       ErrorExit(ERROR_UNSUPPORTED, "MRIfindSliceWithMostStructure: unknown slice direction %d", slice_direction);
+      return -1;
     case MRI_CORONAL:    vox = cor_vox[i] ; break ; 
     case MRI_SAGITTAL:   vox = sag_vox[i] ; break ; 
     case MRI_HORIZONTAL: vox = hor_vox[i] ; break ; 
@@ -17301,7 +17555,6 @@ MRIfindSliceWithMostStructure(MRI *mri_aseg, int slice_direction, int label)
   }
   return(max_slice) ;
 }
-
 double
 MRIrmsDiff(MRI *mri1, MRI *mri2)
 {
@@ -17348,10 +17601,11 @@ void MRIrms(MRI *in, MRI *out)
         for (x = 0 ; x < width ; x++)
         {
           double vin = MRIgetVoxVal(in,x,y,z,f);
-          double vout = MRIgetVoxVal(out,x,y,z,0);
-          if (f == 0)
+          double vout = 0; // output summation
+          if (f != 0)
           {
-            vout = 0; // zero the output on first frame
+            // after first frame, output gets summed
+            vout = MRIgetVoxVal(out,x,y,z,0);
           }
           double v = (vin*vin) + vout; // square and sum
           if (f == (nframes - 1)) // if last frame, div and sqrt

@@ -8,20 +8,18 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/02/10 21:07:55 $
- *    $Revision: 1.75 $
+ *    $Date: 2012/04/06 19:15:37 $
+ *    $Revision: 1.79.2.1 $
  *
- * Copyright (C) 2002-2007,
- * The General Hospital Corporation (Boston, MA). 
- * All rights reserved.
+ * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
- * Distribution, usage and copying of this software is covered under the
- * terms found in the License Agreement file named 'COPYING' found in the
- * FreeSurfer source code root directory, and duplicated here:
- * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ * Terms and conditions for use, reproduction, distribution and contribution
+ * are found in the 'FreeSurfer Software License Agreement' contained
+ * in the file 'LICENSE' found in the FreeSurfer distribution, and here:
  *
- * General inquiries: freesurfer@nmr.mgh.harvard.edu
- * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
+ *
+ * Reporting: freesurfer@nmr.mgh.harvard.edu
  *
  */
 
@@ -43,7 +41,6 @@
 #include <unistd.h>
 #include <time.h> /* msvc (dng) */
 
-
 /* This should be in ctype.h, but the compiler complains */
 #ifndef Darwin
 #ifndef isblank
@@ -60,29 +57,7 @@ int isblank (int c);
 #include "mghendian.h"
 #include "numerics.h"
 
-/*------------------------------------------------------------------------
-  CONSTANTS
-  ------------------------------------------------------------------------*/
 
-/*------------------------------------------------------------------------
-  STRUCTURES
-  ------------------------------------------------------------------------*/
-
-/*------------------------------------------------------------------------
-  GLOBAL DATA
-  ------------------------------------------------------------------------*/
-
-/*------------------------------------------------------------------------
-  STATIC DATA
-  ------------------------------------------------------------------------*/
-
-/*------------------------------------------------------------------------
-  STATIC PROTOTYPES
-  ------------------------------------------------------------------------*/
-
-/*------------------------------------------------------------------------
-  FUNCTIONS
-  ------------------------------------------------------------------------*/
 /*------------------------------------------------------------------------
   Parameters:
 
@@ -108,6 +83,11 @@ setRandomSeed(long seed)
   OpenRan1(&idum);
 
   return(NO_ERROR) ;
+}
+
+long getRandomSeed(void)
+{
+  return(idum);
 }
 
 double
@@ -1612,4 +1592,57 @@ float mad(float a[], int n)
 int nint( double f )
 {
   return (f<0?((int)(f-0.5)):((int)(f+0.5)));
+}
+
+
+
+void (*progress_callback)(int) = 0;
+int global_progress_range[2] = {0, 100};
+
+/*---------------------------------------------------------------------------
+// Function SetProgressCallback:
+//       set call back function to respond to progress change
+//
+//       input start and end as the range of progress
+//       default is 0 and 100
+//
+ ---------------------------------------------------------------------------*/
+void SetProgressCallback(void (*callback)(int), int start, int end)
+{
+  progress_callback = callback;
+  global_progress_range[0] = start;
+  global_progress_range[1] = end;
+}
+
+/*---------------------------------------------------------------------------
+// Function exec_progress_callback:
+//       convenient function to call progress callback function
+//       and set current progress
+//
+//       In case of single frame volume, set frame to 0 and
+//       total_frames to 1
+//
+ ---------------------------------------------------------------------------*/
+void exec_progress_callback(int slice, int total_slices, int frame, int total_frames)
+{
+  if (progress_callback)
+    progress_callback(global_progress_range[0] +
+                      (global_progress_range[1]-global_progress_range[0])*(slice+total_slices*frame)/(total_slices*total_frames));
+}
+int
+compute_permutation(int num, int *vec) 
+{
+  int n, index, tmp ;
+
+  for (n = 0 ; n < num ; n++)
+    vec[n] = n ;
+
+  for (n = 0 ; n < num ; n++)
+  {  
+    index = (int)randomNumber(0.0, (double)(num-0.0001)) ;
+    tmp = vec[index] ;
+    vec[index] = vec[n] ;
+    vec[n] = tmp ;
+  }
+  return(NO_ERROR) ;
 }

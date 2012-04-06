@@ -54,7 +54,7 @@ AM_CPPFLAGS=\
   -I$(top_srcdir)/xml2 \
 	$(NRRDIO_CPPFLAGS) $(JPEG_THINGS) $(TIFF_THINGS) $(EXPAT_THINGS) \
 	$(ITK_THINGS) $(NIFTI_THINGS) $(GLUT_THINGS) \
-	$(GL_CFLAGS) $(VXL_CFLAGS) -DHAVE_ZLIB
+	$(GL_CFLAGS) $(VXL_CFLAGS) $(CUDA_CFLAGS) -DHAVE_ZLIB
 
 AM_LDFLAGS=
 
@@ -67,6 +67,7 @@ libutils_main_SOURCES=\
 	annotation.c \
 	art1.c \
 	artmap.c \
+	aseg_edit_svm.c \
 	backprop.c \
 	bfileio.c \
 	box.c \
@@ -78,6 +79,7 @@ libutils_main_SOURCES=\
 	cma.c \
 	cmdargs.c \
 	colortab.c \
+	connectcomp.c \
 	corio.c \
 	cpputils.cpp \
 	ctrpoints.c \
@@ -101,6 +103,7 @@ libutils_main_SOURCES=\
 	fmriutils.c \
 	fsenv.c \
 	fsglm.c \
+	fsPrintHelp.c \
 	gcaboundary.c \
 	gca.c \
 	gcamorph.c \
@@ -147,6 +150,7 @@ libutils_main_SOURCES=\
 	mosaic.c \
 	mri2.c \
 	mri.c \
+  mriBSpline.c \
 	mriclass.c \
 	mri_conform.c \
 	mricurv.c \
@@ -183,6 +187,7 @@ libutils_main_SOURCES=\
 	pdf.c \
 	pgmstubs.c \
 	prime.c \
+	Progname.c \
 	queue.c \
 	randomfields.c \
 	rbf.c \
@@ -192,6 +197,7 @@ libutils_main_SOURCES=\
 	resample.c \
 	rescale.c \
 	retinotopy.c \
+	rforest.c \
 	selxavgio.c \
 	sig.c \
 	signa.c \
@@ -206,7 +212,6 @@ libutils_main_SOURCES=\
 	transform.c \
 	tritri.c \
 	tukey.c \
-	unwarpGradientNonlinearity.c \
 	utils.c \
 	version.c \
 	vlabels.c \
@@ -232,8 +237,11 @@ libutils_main_SOURCES=\
 	mriio_nrrd.c \
 	mriio_nrrd_itk.cpp \
 	numerics.cpp \
-        chronometerpp.cpp\
-        gcamorphtestutils.cpp
+	chronometerpp.cpp\
+	gcamorphtestutils.cpp\
+	gcautils.cpp\
+	gcalinearnode.cpp\
+	gcalinearprior.cpp
 
 libutils_cephes_SOURCES=\
 	$(srcdir)/$(cephes_dir)/bdtr.c \
@@ -276,13 +284,11 @@ libutils_nrrdio_SOURCES=\
 	$(srcdir)/$(NrrdIO_dir)/parseNrrd.c \
 	$(srcdir)/$(NrrdIO_dir)/encoding.c \
 	$(srcdir)/$(NrrdIO_dir)/encodingGzip.c \
-	$(srcdir)/$(NrrdIO_dir)/qnanhibit.c \
 	$(srcdir)/$(NrrdIO_dir)/encodingHex.c \
 	$(srcdir)/$(NrrdIO_dir)/read.c \
 	$(srcdir)/$(NrrdIO_dir)/encodingRaw.c \
 	$(srcdir)/$(NrrdIO_dir)/reorder.c \
 	$(srcdir)/$(NrrdIO_dir)/endianAir.c \
-	$(srcdir)/$(NrrdIO_dir)/sampleIO.c \
 	$(srcdir)/$(NrrdIO_dir)/endianNrrd.c \
 	$(srcdir)/$(NrrdIO_dir)/sane.c \
 	$(srcdir)/$(NrrdIO_dir)/enum.c \
@@ -309,21 +315,35 @@ if BUILDCUDA
 # rules for building cuda files
 NVCCINCLUDES = -I$(top_srcdir)/include $(MNI_CFLAGS)
 
+if HAVE_FERMI_GPU
+# Fermi flags:
+NVCC_ARCH = -DGCAMORPH_ON_GPU
+CUDA_GCA_CFLAGS = -DGCAMORPH_ON_GPU
+AM_CXXFLAGS = -DGCAMORPH_ON_GPU -DFS_CUDA -DCUDA_FORCE_SYNC -DCUDA_SHOW_TIMINGS
+else
+# Tesla flags (default):
+NVCC_ARCH = 
+CUDA_GCA_CFLAGS = 
+endif
+
 G++FLAGS = -Wall -Wextra -Weffc++
 
-#NVCCFLAGS += $(patsubst -%, --compiler-options -%, $(G++FLAGS) )
-#NVCCFLAGS += -Xopencc "-Wall"
-
-CUDA_DEPS = ../include/volumegpu.hpp\
-            ../include/volumegpu_impl.hpp\
-            ../include/mriframegpu.hpp\
-            ../include/gcamorphgpu.hpp\
-            ../include/mriconvolve_cuda.hpp\
-            ../include/mrimean_cuda.hpp\
-            ../include/gcamorphenergy.hpp
+CUDA_DEPS = $(top_srcdir)/include/volumegpu.hpp\
+            $(top_srcdir)/include/volumegpu_impl.hpp\
+            $(top_srcdir)/include/mriframegpu.hpp\
+            $(top_srcdir)/include/gcamorphgpu.hpp\
+            $(top_srcdir)/include/mriconvolve_cuda.hpp\
+            $(top_srcdir)/include/mrimean_cuda.hpp\
+            $(top_srcdir)/include/gcamorphenergy.hpp\
+            $(top_srcdir)/include/gcamorphtermgpu.hpp\
+            $(top_srcdir)/include/fixedmap.hpp\
+            $(top_srcdir)/include/vecvolgpu.hpp\
+            $(top_srcdir)/include/ctfactory.hpp
 
 .cu.o:
-	$(NVCC) -o $@ -c $< $(NVCCFLAGS) $(NVCCINCLUDES) -DFS_CUDA -DCUDA_FORCE_SYNC -DCUDA_SHOW_TIMINGS -DGCAMORPH_ON_GPU
+	$(NVCC) -o $@ -c $< $(NVCCFLAGS) $(NVCCINCLUDES) $(NVCC_ARCH) \
+		-DFS_CUDA -DCUDA_FORCE_SYNC -DCUDA_SHOW_TIMINGS \
+                --compiler-options -O3
 
 noinst_LIBRARIES += libutils_cuda.a
 
@@ -343,9 +363,17 @@ libutils_cuda_a_SOURCES=\
         gcamorphgpu.cu\
         gcamorphenergygpu.cu\
         gcamfots_cuda.cu\
-        gcamorphtermgpu.cu
+        gcamorphtermgpu.cu\
+        gcamorphcpu.cpp\
+        gcamcomputegradient_cuda.cu\
+        gcamregisterlevel_cuda.cu\
+        gcamregisterpipeline_cuda.cu\
+        mrilabels_cuda.cu\
+        gcanodegpu.cu\
+        gcapriorgpu.cu\
+        vecvolgpu.cu
 
-libutils_cuda_a_CFLAGS=-DFS_CUDA $(CUDA_CFLAGS) -DGCAMORPH_ON_GPU
+libutils_cuda_a_CFLAGS=-DFS_CUDA $(CUDA_CFLAGS) $(CUDA_GCA_CFLAGS)
 
 # We have some templating dependencies
 mriframegpu_cuda.o: $(CUDA_DEPS)
@@ -354,13 +382,15 @@ mrimean_cuda.o: $(CUDA_DEPS)
 mrivol2vol_cuda.o: $(CUDA_DEPS)
 affinegpu.o: $(CUDA_DEPS)
 gcasgpu.o: $(CUDA_DEPS)
-gcamorphgpu.o: $(CUDA_DEPS) ../include/volumegpucompare.hpp
-cudatypeutils.o: ../include/cudatypeutils.hpp
+gcamorphgpu.o: $(CUDA_DEPS) $(top_srcdir)/include/volumegpucompare.hpp
+cudatypeutils.o: $(top_srcdir)/include/cudatypeutils.hpp
 gcamorphenergygpu.o: $(CUDA_DEPS)
-gcamorphtermgpu.o: $(CUDA_DEPS)
-
-
-
+gcamorphtermgpu.o: $(CUDA_DEPS)  $(top_srcdir)/include/volumecpu.hpp
+gcamorphcpu.o: $(top_srcdir)/include/gcamorphcpu.hpp $(CUDA_DEPS)
+mrilabels_cuda.o: $(CUDA_DEPS) $(top_srcdir)/include/mrilabels_cuda.hpp
+gcanodegpu.o: $(CUDA_DEPS) $(top_srcdir)/include/gcanodegpu.hpp $(top_srcdir)/include/gcalinearnode.hpp
+gcapriorgpu.o: $(CUDA_DEPS) $(top_srcdir)/include/gcapriorgpu.hpp $(top_srcdir)/include/gcalinearprior.hpp
+gcamregisterlevel_cuda.o : $(CUDA_DEPS) $(top_srcdir)/include/gcamremovenegativenodes_cuda.hpp
 
 CALLDEPTH ?= -1
 
@@ -382,14 +412,30 @@ endif
 
 
 
-bin_PROGRAMS=gifti_tool gifti_test
+bin_PROGRAMS=gifti_tool gifti_test fsPrintHelp xmlToHtml
+
 gifti_tool_SOURCES=gifti_tool.c gifti_tool.h \
 	gifti_io.c gifti_xml.c nifti1_io.c znzlib.c
 gifti_tool_LDADD=$(top_builddir)/expat/libexpat.a -lz -lm $(LIBS_NIFTI)
+
 gifti_test_SOURCES=gifti_test.c gifti_test.h gifti_io.c gifti_xml.c \
 	nifti1_io.c znzlib.c
 gifti_test_LDADD=$(top_builddir)/expat/libexpat.a -lz $(LIBS_NIFTI)
 
+fsPrintHelp_SOURCES=fsPrintHelp.c
+fsPrintHelp_CFLAGS=-DBUILD_MAIN
+fsPrintHelp_LDADD=$(top_builddir)/xml2/libxml2.a -lz
+fsPrintHelp_LDFLAGS=$(OS_LDFLAGS)
+
+xmlToHtml_SOURCES=xmlToHtml.c
+xmlToHtml_LDADD=$(top_builddir)/xml2/libxml2.a -lz
+
+install-exec-hook:
+	cp $(DESTDIR)$(bindir)/fsPrintHelp $(DESTDIR)$(bindir)/fshelp
+	cp $(DESTDIR)$(bindir)/fsPrintHelp $(DESTDIR)$(bindir)/fsman
+
+uninstall-hook:
+	rm -f $(DESTDIR)$(bindir)/fs*
 
 if USE_SSE_MATHFUN
 check_PROGRAMS = sse_mathfun_test
@@ -400,7 +446,7 @@ TESTS = sse_mathfun_test
 endif
 
 
-EXTRA_DIST=$(srcdir)/$(NrrdIO_dir)/copyright.NrrdIO
+EXTRA_DIST=$(srcdir)/$(NrrdIO_dir)/copyright.NrrdIO $(CUDA_DEPS)
 
 # Our release target. Include files to be excluded here. They will be
 # found and removed after 'make install' is run during the 'make

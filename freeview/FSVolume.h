@@ -7,30 +7,31 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/07/21 19:00:06 $
- *    $Revision: 1.30 $
+ *    $Date: 2012/04/06 19:15:28 $
+ *    $Revision: 1.35.2.1 $
  *
- * Copyright (C) 2008-2009,
- * The General Hospital Corporation (Boston, MA).
- * All rights reserved.
+ * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
- * Distribution, usage and copying of this software is covered under the
- * terms found in the License Agreement file named 'COPYING' found in the
- * FreeSurfer source code root directory, and duplicated here:
- * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ * Terms and conditions for use, reproduction, distribution and contribution
+ * are found in the 'FreeSurfer Software License Agreement' contained
+ * in the file 'LICENSE' found in the FreeSurfer distribution, and here:
  *
- * General inquiries: freesurfer@nmr.mgh.harvard.edu
- * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
+ *
+ * Reporting: freesurfer@nmr.mgh.harvard.edu
+ *
  *
  */
 
 #ifndef FSVolume_h
 #define FSVolume_h
 
+#include <QObject>
 #include "vtkSmartPointer.h"
 #include "vtkImageData.h"
 #include "vtkMatrix4x4.h"
 #include "CommonDataStruct.h"
+#include <vector>
 
 extern "C"
 {
@@ -38,23 +39,22 @@ extern "C"
 #include "colortab.h"
 }
 
-class wxWindow;
-class wxCommandEvent;
 class vtkTransform;
 
-class FSVolume
+class FSVolume : public QObject
 {
+  Q_OBJECT
 public:
-  FSVolume( FSVolume* ref );
+  FSVolume( FSVolume* ref, QObject* parent = NULL );
   virtual ~FSVolume();
 
   bool Create( FSVolume* src, bool bCopyVoxelData, int data_type );
 
-  bool MRIRead( const char* filename, const char* reg_filename, wxWindow* wnd, wxCommandEvent& event );
-  bool MRIWrite( const char* filename, int nSampleMethod = SAMPLE_NEAREST );
+  bool MRIRead( const QString& filename, const QString& reg_filename );
+  bool MRIWrite( const QString& filename, int nSampleMethod = SAMPLE_NEAREST, bool resample = true );
   bool MRIWrite();
-  bool SaveRegistration( const char* filename );
-  bool Restore( const char* filename, const char* reg_filename, wxWindow* wnd, wxCommandEvent& event );
+  bool SaveRegistration( const QString& filename );
+  bool Restore( const QString& filename, const QString& reg_filename );
 
   int OriginalIndexToRAS( float iIdxX, float iIdxY, float iIdxZ,
                           float& oRASX, float& oRASY, float& oRASZ );
@@ -62,11 +62,11 @@ public:
                            float& oIdxX, float& oIdxY, float& oIdxZ );
   int RASToOriginalIndex ( float iRASX, float iRASY, float iRASZ,
                            int& oIdxX, int& oIdxY, int& oIdxZ );
-  
+
   double GetVoxelValue( int i, int j, int k, int frame );
-  
-  bool UpdateMRIFromImage( vtkImageData* rasImage, wxWindow* wnd, wxCommandEvent& event, 
-                           bool resampleToOriginal = true );
+
+  bool UpdateMRIFromImage( vtkImageData* rasImage,
+                           bool resampleToOriginal = true, int data_type = -1 );
 
   vtkImageData* GetImageOutput();
 
@@ -121,7 +121,7 @@ public:
   void RASToTargetIndex( const double* pos_in, int* index_out );
 
   void RASToNativeRAS( const double* pos_in, double* pos_out ); // when there is registration/transformation involved,
-                                                                // ras is not native ras!
+  // ras is not native ras!
   void NativeRASToRAS( const double* pos_in, double* pos_out );
 
   void TkRegToNativeRAS( const double* pos_in, double* pos_out );
@@ -152,44 +152,52 @@ public:
     return m_MRIOrigTarget != NULL;
   }
 
-  bool Rotate( std::vector<RotationElement>& rotations, wxWindow* wnd, wxCommandEvent& event, int nSampleMethod = -1 );
-  
+  bool Rotate( std::vector<RotationElement>& rotations, int nSampleMethod = -1 );
+
   int GetInterpolationMethod()
   {
     return m_nInterpolationMethod;
   }
-  
+
   void SetInterpolationMethod( int nMethod );
 
   int GetDataType();
-  
+
   MATRIX* GetTargetToRASMatrix();
-  
+
   COLOR_TABLE*  GetEmbeddedColorTable()
   {
     return m_ctabEmbedded;
   }
-  
-  const char* GetOrientationString()
+
+  QString GetOrientationString()
   {
     return m_strOrientation;
   }
-  
+
   void SetCroppingBounds( double* bound );
-  
+
   vtkTransform* GetTransform();
-  
+
   void SetConform( bool bConform );
-  
+
+  // for saving only
+  void SetCropToOriginal(bool bCrop)
+  {
+    m_bCropToOriginal = bCrop;
+  }
+
+Q_SIGNALS:
+  void ProgressChanged( int n );
+
 protected:
-  bool LoadMRI( const char* filename, const char* reg_filename, wxWindow* wnd, wxCommandEvent& event );
-  bool LoadRegistrationMatrix( const char* filename );
-  bool MapMRIToImage( wxWindow* wnd, wxCommandEvent& event );
-  void CopyMRIDataToImage( MRI* mri, vtkImageData* image, wxWindow* wnd, wxCommandEvent& event );
+  bool LoadMRI( const QString& filename, const QString& reg_filename );
+  bool LoadRegistrationMatrix( const QString& filename );
+  bool MapMRIToImage( );
+  void CopyMRIDataToImage( MRI* mri, vtkImageData* image );
   void CopyMatricesFromMRI();
-  bool CreateImage( MRI* mri, wxWindow* wnd, wxCommandEvent& event );
-  bool ResizeRotatedImage( MRI* mri, MRI* refTarget, vtkImageData* refImageData, double* rasPoint,
-                    wxWindow* wnd, wxCommandEvent& event );
+  bool CreateImage( MRI* mri );
+  bool ResizeRotatedImage( MRI* mri, MRI* refTarget, vtkImageData* refImageData, double* rasPoint );
   void UpdateRASToRASMatrix();
   MRI* CreateTargetMRI( MRI* src, MRI* refTarget, bool AllocatePixel = true, bool bConform = false );
 
@@ -203,9 +211,9 @@ protected:
   MRI*      m_MRIRef;         // reference target space, can also serve as the registration target. header only
   MRI*      m_MRIOrigTarget;  // orignal target space, header only
   MRI*      m_MRITemp;        // temp mri for saving
-  MATRIX*   m_matReg;   
+  MATRIX*   m_matReg;
   COLOR_TABLE*  m_ctabEmbedded;
-  
+
   FSVolume* m_volumeRef;
 
   double    m_RASToVoxelMatrix[16];
@@ -223,13 +231,14 @@ protected:
   // RAS bounds.
   bool      m_bBoundsCacheDirty;
   float     m_RASBounds[6];
-  
+
   int       m_nInterpolationMethod;
   bool      m_bConform;
   char      m_strOrientation[4];
-  
+
   double    m_dBounds[6];
   bool      m_bCrop;
+  bool      m_bCropToOriginal;
 };
 
 #endif

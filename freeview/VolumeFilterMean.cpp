@@ -1,60 +1,67 @@
 /**
  * @file  VolumeFilterMean.cpp
- * @brief Base VolumeFilterMean class. 
+ * @brief Base VolumeFilterMean class.
  *
  */
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/04/06 18:23:10 $
- *    $Revision: 1.3 $
+ *    $Date: 2012/04/06 19:15:31 $
+ *    $Revision: 1.8.2.1 $
  *
- * Copyright (C) 2008-2009,
- * The General Hospital Corporation (Boston, MA).
- * All rights reserved.
+ * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
- * Distribution, usage and copying of this software is covered under the
- * terms found in the License Agreement file named 'COPYING' found in the
- * FreeSurfer source code root directory, and duplicated here:
- * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ * Terms and conditions for use, reproduction, distribution and contribution
+ * are found in the 'FreeSurfer Software License Agreement' contained
+ * in the file 'LICENSE' found in the FreeSurfer distribution, and here:
  *
- * General inquiries: freesurfer@nmr.mgh.harvard.edu
- * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
+ *
+ * Reporting: freesurfer@nmr.mgh.harvard.edu
+ *
  *
  */
 
 #include "VolumeFilterMean.h"
-#include <math.h>
 #include "LayerMRI.h"
 #include <vtkImageData.h>
 #include <vtkImageMedian3D.h>
+#include "ProgressCallback.h"
 
-VolumeFilterMean::VolumeFilterMean( LayerMRI* input, LayerMRI* output ) : 
-    VolumeFilter( input, output )
+extern "C"
 {
+#include "utils.h"
 }
 
-VolumeFilterMean::~VolumeFilterMean()
+VolumeFilterMean::VolumeFilterMean( LayerMRI* input, LayerMRI* output, QObject* parent ) :
+  VolumeFilter( input, output, parent )
 {
 }
 
 bool VolumeFilterMean::Execute()
 {
+  ::SetProgressCallback(ProgressCallback, 0, 40);
   MRI* mri_src = CreateMRIFromVolume( m_volumeInput );
-  if ( !mri_src ) 
+  if ( !mri_src )
+  {
     return false;
-  
+  }
+
   // clone the src first because MRImean does not keep the src data type if let it do it!
   MRI* mri_dest = MRIclone( mri_src, NULL ) ;
   if ( !mri_dest )
+  {
     return false;
-  
+  }
+
+  ::SetProgressCallback(ProgressCallback, 40, 70);
   MRImean( mri_src, mri_dest, m_nKernelSize );
+  ::SetProgressCallback(ProgressCallback, 70, 100);
   MapMRIToVolume( mri_dest, m_volumeOutput );
   MRIfree( &mri_src );
   MRIfree( &mri_dest );
-  
+
   return true;
 }
 

@@ -7,141 +7,89 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/03/23 18:31:10 $
- *    $Revision: 1.14 $
+ *    $Date: 2012/04/06 19:15:28 $
+ *    $Revision: 1.19.2.1 $
  *
- * Copyright (C) 2008-2009,
- * The General Hospital Corporation (Boston, MA).
- * All rights reserved.
+ * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
- * Distribution, usage and copying of this software is covered under the
- * terms found in the License Agreement file named 'COPYING' found in the
- * FreeSurfer source code root directory, and duplicated here:
- * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ * Terms and conditions for use, reproduction, distribution and contribution
+ * are found in the 'FreeSurfer Software License Agreement' contained
+ * in the file 'LICENSE' found in the FreeSurfer distribution, and here:
  *
- * General inquiries: freesurfer@nmr.mgh.harvard.edu
- * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
+ *
+ * Reporting: freesurfer@nmr.mgh.harvard.edu
+ *
  *
  */
 
 
-#include <wx/wx.h>
-#include <wx/ffile.h>
 #include "FSLabel.h"
 #include <stdexcept>
 #include "vtkImageData.h"
 #include "FSVolume.h"
+#include <QFile>
+#include <QTextStream>
 #include <vector>
 
 using namespace std;
 
-FSLabel::FSLabel() :
-    m_label( NULL ),
-    m_bTkReg( true )
+FSLabel::FSLabel( QObject* parent ) : QObject( parent ),
+  m_label( NULL ),
+  m_bTkReg( true )
 {}
 
 FSLabel::~FSLabel()
 {
   if ( m_label )
+  {
     ::LabelFree( &m_label );
+  }
 }
 
-bool FSLabel::LabelRead( const char* filename )
+bool FSLabel::LabelRead( const QString& filename )
 {
   if ( m_label )
+  {
     ::LabelFree( &m_label );
+  }
 
-  char* fn = strdup( filename );
-  m_label = ::LabelRead( NULL, fn );
-  free( fn );
-
+  m_label = ::LabelRead( NULL, filename.toAscii().data() );
   if ( m_label == NULL )
   {
-    cerr << "LabelRead failed";
+    cerr << "LabelRead failed\n";
     return false;
   }
 
-  wxFFile file( wxString::FromAscii(filename) );
-  wxString strg;
-  if ( file.ReadAll( &strg ) )
+  QFile file( filename );
+  if (!file.open(QIODevice::ReadOnly | QIODevice::Text))
   {
-    if ( strg.Find( _("vox2ras=") ) >= 0 && 
-	 strg.Find( _("vox2ras=TkReg") ) < 0 )
+    cerr << qPrintable(file.errorString()) << "\n";
+    return false;
+  }
+
+  QTextStream in(&file);
+  while (!in.atEnd())
+  {
+    QString line = in.readLine();
+    if ( line.contains( "vox2ras=" ) &&
+         !line.contains( "vox2ras=TkReg" ) )
+    {
       m_bTkReg = false;
+      break;
+    }
   }
 
   return true;
 }
 
-/*
-void FSLabel::UpdateLabelFromImage( vtkImageData* rasImage, 
-                                    FSVolume* ref_vol, 
-				    wxWindow* wnd, 
-				    wxCommandEvent& event )
-{
- if ( m_label )
-  ::LabelFree( &m_label );
-
- int nCount = 0;
- int* dim = rasImage->GetDimensions();
- double* orig = rasImage->GetOrigin();
- double* vs = rasImage->GetSpacing();
- vector<float> values;
- float fvalue;
- int nProgressStep = ( 90 - event.GetInt() ) / 5;
- double pos[3];
- cout << "update label begins" << endl;
- // SLOWWWW
- for ( int i = 0; i < dim[0]; i++ )
- {
-  for ( int j = 0; j < dim[1]; j++ )
-  {
-   for ( int k = 0; k < dim[2]; k++ )
-   {
-    fvalue = rasImage->GetScalarComponentAsFloat( i, j, k, 0 );
-    if ( fvalue != 0 )
-    {
-     pos[0] = i * vs[0] + orig[0];
-     pos[1] = j * vs[1] + orig[1];
-     pos[2] = k * vs[2] + orig[2];
-     ref_vol->TargetToRAS( pos, pos );
-     values.push_back( pos[0] );
-     values.push_back( pos[1] );
-     values.push_back( pos[2] );
-     values.push_back( fvalue );
-     nCount ++;
-    }
-   }
-  }
-  if ( dim[0] >= 5 && i%(dim[0]/5) == 0 )
-  {
-   event.SetInt( event.GetInt() + nProgressStep );
-   wxPostEvent( wnd, event );
-  }
- }
- cout << "update label ends" << endl;
- m_label = ::LabelAlloc( nCount, NULL, "" );
- m_label->n_points = nCount;
- for ( int i = 0; i < nCount; i++ )
- {
-  m_label->lv[i].x = values[i*4];
-  m_label->lv[i].y = values[i*4+1];
-  m_label->lv[i].z = values[i*4+2];
-  m_label->lv[i].vno = -1;
-  m_label->lv[i].deleted = false;
-  m_label->lv[i].stat = 1;
- }
-}
-*/
-
-
-void FSLabel::UpdateLabelFromImage( vtkImageData* rasImage, 
-				    FSVolume* ref_vol, 
-				    wxWindow* wnd, 
-				    wxCommandEvent& event )
+void FSLabel::UpdateLabelFromImage( vtkImageData* rasImage,
+                                    FSVolume* ref_vol )
 {
   if ( m_label )
+  {
     ::LabelFree( &m_label );
+  }
 
   int nCount = 0;
   int* dim = rasImage->GetDimensions();
@@ -291,23 +239,25 @@ void FSLabel::UpdateRASImage( vtkImageData* rasImage, FSVolume* ref_vol )
 {
   if ( !m_label )
   {
-    cerr << "Label is empty" << endl;
+    cerr << "Label is empty\n";
     return;
   }
 
   int n[3];
   double pos[3];
   int* dim = rasImage->GetDimensions();
-  memset( rasImage->GetScalarPointer(), 
-	  0, 
-	  dim[0] * dim[1] * dim[2] * rasImage->GetScalarSize() );
+  memset( rasImage->GetScalarPointer(),
+          0,
+          dim[0] * dim[1] * dim[2] * rasImage->GetScalarSize() );
   for ( int i = 0; i < m_label->n_points; i++ )
   {
     pos[0] = m_label->lv[i].x;
     pos[1] = m_label->lv[i].y;
     pos[2] = m_label->lv[i].z;
     if ( m_bTkReg )
+    {
       ref_vol->TkRegToNativeRAS( pos, pos );
+    }
     ref_vol->NativeRASToRAS( pos, pos );
     ref_vol->RASToTargetIndex( pos, n );
     if ( n[0] >= 0 && n[0] < dim[0] && n[1] >= 0 && n[1] < dim[1] &&
@@ -318,15 +268,13 @@ void FSLabel::UpdateRASImage( vtkImageData* rasImage, FSVolume* ref_vol )
   }
 }
 
-bool FSLabel::LabelWrite( const char* filename )
+bool FSLabel::LabelWrite( const QString& filename )
 {
-  char* fn = strdup( filename );
-  int err = ::LabelWrite( m_label, fn );
-  free( fn );
+  int err = ::LabelWrite( m_label, filename.toAscii().data() );
 
   if ( err != 0 )
   {
-    cerr << "LabelWrite failed" << endl;
+    cerr << "LabelWrite failed\n";
   }
 
   return err == 0;
