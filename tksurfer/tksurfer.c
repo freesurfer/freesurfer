@@ -12,8 +12,8 @@
  * Original Author: Martin Sereno and Anders Dale, 1996
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2012/01/31 19:30:36 $
- *    $Revision: 1.354 $
+ *    $Date: 2012/04/09 18:55:56 $
+ *    $Revision: 1.355 $
  *
  * Copyright (C) 2002-2011, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA).
@@ -2164,6 +2164,7 @@ int save_tiff (char* fname);
    name has been defined, etc. Same code exists in tkmedit to ensure
    the same names are generated. */
 void copy_edit_dat_file_name (char* fname, int len);
+static   char *gd_fnames[100] ;
 
 /* end rkt */
 
@@ -2192,7 +2193,6 @@ int  main(int argc,char *argv[])
   char path[MAX_DIR_DEPTH][NAME_LENGTH];
   int  nargs = 0;
   char *functional_fnames[100], *patch_name = NULL, *overlayannotfname = NULL;
-  char *fsgd_fnames[100] ;
   int  noverlays = 0 ;
   /* begin rkt */
   FunD_tRegistrationType overlay_reg_type = FunD_tRegistration_Identity;
@@ -2262,7 +2262,7 @@ int  main(int argc,char *argv[])
         printf("ERROR: cannot find %s\n",functional_fnames[noverlays]);
         exit(1);
       }
-      fsgd_fnames[noverlays] = NULL ;
+      gd_fnames[noverlays] = NULL ;
       load_curv = TRUE;
       noverlays++ ;
       forcegraycurvatureflag = TRUE;
@@ -2272,16 +2272,16 @@ int  main(int argc,char *argv[])
         !stricmp(argv[i], "-gd") || !stricmp(argv[i], "-fsgdf"))
     {
       nargs = 3 ;
-      fsgd_fnames[noverlays] = argv[i+1] ;
+      gd_fnames[noverlays] = argv[i+1] ;
       functional_fnames[noverlays] = argv[i+2] ;
       if (!fio_FileExistsReadable(functional_fnames[noverlays]))
       {
         printf("ERROR: cannot find %s\n",functional_fnames[noverlays]);
         exit(1);
       }
-      if (!fio_FileExistsReadable(fsgd_fnames[noverlays]))
+      if (!fio_FileExistsReadable(gd_fnames[noverlays]))
       {
-        printf("ERROR: cannot find %s\n",functional_fnames[noverlays]);
+        printf("ERROR: cannot find %s\n",gd_fnames[noverlays]);
         exit(1);
       }
       load_curv = TRUE;
@@ -2995,11 +2995,11 @@ int  main(int argc,char *argv[])
         sclv_read_from_volume(functional_fname, overlay_reg_type,
                               overlay_reg, i);
       }
-      if (fsgd_fnames[i])
+      if (gd_fnames[i])
       {
-	sprintf(tcl_cmd, "GDF_Load %s\n", fsgd_fnames[i]) ;
+	sprintf(tcl_cmd, "GDF_Load %s\n", gd_fnames[i]) ;
 	send_tcl_command (tcl_cmd);
-//	gdfs[i] = gdfRead(fsgd_fnames[i], 1) ;
+//	gdfs[i] = gdfRead(gd_fnames[i], 1) ;
       }
     }
     overlayflag = TRUE ;
@@ -21549,7 +21549,7 @@ int main(int argc, char *argv[])   /* new main */
   nargs =
     handle_version_option
     (argc, argv,
-     "$Id: tksurfer.c,v 1.354 2012/01/31 19:30:36 fischl Exp $", "$Name:  $");
+     "$Id: tksurfer.c,v 1.355 2012/04/09 18:55:56 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -26214,6 +26214,14 @@ int sclv_set_current_field (int field)
                  "sclv_set_current_field: field was out of bounds: %d)",
                  field));
 
+  if (gd_fnames[field])
+  {
+    char tcl_cmd[STRLEN];
+    sprintf(tcl_cmd, "GDF_Load %s\n", gd_fnames[field]) ;
+    send_tcl_command (tcl_cmd);
+//	gdfs[i] = gdfRead(fsgd_fnames[i], 1) ;
+  }
+
   /* save the current threshold */
   sclv_field_info[sclv_current_field].fthresh = fthresh;
   sclv_field_info[sclv_current_field].fmid = fmid;
@@ -27469,6 +27477,9 @@ int labl_load (char* fname)
   int label_index;
   char name[NAME_LENGTH];
   int unassigned;
+
+  if (white_surf_loaded == 0)
+    read_white_vertex_coordinates() ;
 
   if (NULL == fname)
     return (ERROR_BADPARM);
