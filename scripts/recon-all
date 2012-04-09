@@ -7,11 +7,11 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: mreuter $
-#    $Date: 2012/03/26 23:43:07 $
-#    $Revision: 1.379.2.33 $
+#    $Author: nicks $
+#    $Date: 2012/04/09 18:12:39 $
+#    $Revision: 1.379.2.34 $
 #
-# Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+# Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
 #
 # Terms and conditions for use, reproduction, distribution and contribution
 # are found in the 'FreeSurfer Software License Agreement' contained
@@ -26,7 +26,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.379.2.33 2012/03/26 23:43:07 mreuter Exp $';
+set VERSION = '$Id: recon-all,v 1.379.2.34 2012/04/09 18:12:39 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -167,6 +167,7 @@ set PialNoAparc = 0; # if 1 (-pial-noaparc), then add -noaparc flag to
 set DoNuMakeUchar = 1; # if 1, then run mri_nu_correct.mni using talairach.xfm
                        # to run mri_make_uchar to correct histogram problem
 set DoTalairachUseNu = 0; # if 1, use nu.mgz as input to talairach stage
+setenv OMP_NUM_THREADS 1 # -openmp <num_threads> allows specifying more threads
 
 # Longitudinal processing:
 set longitudinal = 0;    # if 1, will run the longitudinal scheme
@@ -4888,7 +4889,6 @@ while( $#argv != 0 )
       breaksw
 
     case "-autorecon2":
-    case "-autorecon2-cp":
       set DoGCAReg         = 1;
       set DoCARegInv       = 1;
       set DoRemoveNeck     = 1;
@@ -4960,6 +4960,7 @@ while( $#argv != 0 )
       set DoInflate1       = 1;
       breaksw
 
+    case "-autorecon2-cp":
     case "-autorecon2-noaseg":
       set DoNormalization2 = 1;
       set DoSegmentation   = 1;
@@ -5451,6 +5452,10 @@ while( $#argv != 0 )
       source $FREESURFER_HOME/bin/cuda_setup
       breaksw;
   
+    case "-openmp":
+      setenv OMP_NUM_THREADS $argv[1]; shift;
+      breaksw;
+
     # hippocampal subfield processing
     case "-hippo-subfields":
       set DoGEMS = 1;
@@ -5874,7 +5879,7 @@ usage_exit:
   echo "                     a. if wm edit was required, then run -autorecon2-wm"
   echo "                     b. if control points added, then run -autorecon2-cp"
   echo "                     c. proceed to run -autorecon3"
-  echo "  -autorecon2-cp : process stages 6-23 (uses -f w/ mri_normalize, -keep w/ mri_seg)"
+  echo "  -autorecon2-cp : process stages 12-23 (uses -f w/ mri_normalize, -keep w/ mri_seg)"
   echo "  -autorecon2-wm : process stages 15-23"
   echo "  -autorecon2-inflate1 : 6-18"
   echo "  -autorecon2-perhemi : tess, sm1, inf1, q, fix, sm2, inf2, finalsurf, ribbon"
@@ -6085,7 +6090,7 @@ Subcortical segmentation through make white surfaces.
 
 -autorecon2-cp
 
-Deprecated.  Same as -autorecon2, as control points affect subcortical.
+Normalization2 through make final surfaces.
 
 -autorecon2-wm
 
@@ -6606,8 +6611,8 @@ Normalization2 (-<no>normalization)
 Performs a second (major) intensity correction using only the brain
 volume as the input (so that it has to be done after the skull strip).
 Intensity normalization works better when the skull has been removed.
-Creates a new brain.mgz volume. If -noaseg flag is used, then aseg.mgz
-is not used by mri_normalize.
+Creates a new brain.mgz volume. The -autorecon2-cp stage begins here.
+If -noaseg flag is used, then aseg.mgz is not used by mri_normalize.
 
 WM Segmentation (-<no>segmentation)
 
