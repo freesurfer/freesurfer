@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl (Apr 16, 1997)
  * CVS Revision Info:
- *    $Author: mreuter $
- *    $Date: 2012/03/21 20:54:29 $
- *    $Revision: 1.192 $
+ *    $Author: greve $
+ *    $Date: 2012/04/10 19:21:43 $
+ *    $Revision: 1.193 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -156,6 +156,7 @@ int main(int argc, char *argv[])
   int fill_parcellation_flag;
   int read_parcellation_volume_flag;
   int zero_outlines_flag;
+  int erode_seg_flag, n_erode_seg;
   int read_otl_flags;
   int color_file_flag;
   char color_file_name[STRLEN];
@@ -203,7 +204,7 @@ int main(int argc, char *argv[])
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mri_convert.c,v 1.192 2012/03/21 20:54:29 mreuter Exp $",
+   "$Id: mri_convert.c,v 1.193 2012/04/10 19:21:43 greve Exp $",
    "$Name:  $",
    cmdline);
 
@@ -324,7 +325,7 @@ int main(int argc, char *argv[])
     handle_version_option
     (
       argc, argv,
-      "$Id: mri_convert.c,v 1.192 2012/03/21 20:54:29 mreuter Exp $",
+      "$Id: mri_convert.c,v 1.193 2012/04/10 19:21:43 greve Exp $",
       "$Name:  $"
     );
   if (nargs && argc - nargs == 1)
@@ -1074,6 +1075,11 @@ int main(int argc, char *argv[])
       get_ints(argc, argv, &i, &frame, 1);
       frame_flag = TRUE;
     }
+    else if(strcmp(argv[i], "--erode-seg") == 0)
+    {
+      get_ints(argc, argv, &i, &n_erode_seg, 1);
+      erode_seg_flag = TRUE;
+    }
     else if(strcmp(argv[i], "--cutends") == 0)
     {
       get_ints(argc, argv, &i, &ncutends, 1);
@@ -1575,7 +1581,7 @@ int main(int argc, char *argv[])
             "= --zero_ge_z_offset option ignored.\n");
   }
 
-  printf("$Id: mri_convert.c,v 1.192 2012/03/21 20:54:29 mreuter Exp $\n");
+  printf("$Id: mri_convert.c,v 1.193 2012/04/10 19:21:43 greve Exp $\n");
   printf("reading from %s...\n", in_name_only);
 
   if (in_volume_type == OTL_FILE)
@@ -2968,6 +2974,14 @@ int main(int argc, char *argv[])
   if (out_stats_flag)
   {
     MRIprintStats(mri, stdout);
+  }
+
+  if(erode_seg_flag == TRUE){
+    printf("Eroding segmentation %d\n",n_erode_seg);
+    mri2 = MRIerodeSegmentation(mri, NULL,n_erode_seg,0);
+    if (mri2 == NULL) exit(1);
+    MRIfree(&mri);
+    mri = mri2;
   }
 
   if(frame_flag == TRUE)

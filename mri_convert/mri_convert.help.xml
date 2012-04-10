@@ -229,6 +229,8 @@ if the input/output has extension .nii.gz, then compressed is used</explanation>
       <argument>--split </argument>
       <explanation>split output frames into separate output files.</explanation>
       <explanation>Example: mri_convert a.nii b.nii --split will create b0000.nii b0001.nii b0002.nii ... </explanation>
+      <argument>--erode-seg Nerodes</argument>
+      <explanation>Erode segmentation boundaries Nerode times (based on 6 nearest neighbors)</explanation>
       <argument>-f,  --frame frameno</argument>
       <explanation>keep only 0-based frame number</explanation> 
       <argument>--mid-frame</argument>
