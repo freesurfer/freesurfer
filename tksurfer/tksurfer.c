@@ -12,8 +12,8 @@
  * Original Author: Martin Sereno and Anders Dale, 1996
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2012/04/09 18:55:56 $
- *    $Revision: 1.355 $
+ *    $Date: 2012/04/10 13:54:50 $
+ *    $Revision: 1.356 $
  *
  * Copyright (C) 2002-2011, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA).
@@ -111,6 +111,7 @@ static int zero_mean = 0 ;
 MRI_SURFACE *mris = NULL, *mris2 = NULL ;
 static char *sdir = NULL ;
 static char *sphere_reg ;
+static char *sphere_reg_contra ;
 MRI *mrismask = NULL;
 double mrismaskthresh = -1;
 char *mrismaskfile = NULL;
@@ -491,6 +492,7 @@ char *xffname;     /* $home/name/mri/transforms/TALAIRACH_FNAME */
 char *orig_suffix = "orig" ;
 char *white_suffix = "white" ;
 char *sphere_reg_suffix = "sphere.reg" ;
+char *sphere_reg_contra_suffix = "sphere.left_right" ;
 
 FILE *fpvalfile;              /* mult frames */
 int openvalfileflag = FALSE;
@@ -1092,6 +1094,7 @@ void send_spherical_point(char *subject_name,char *canon_name,
                           char *orig_fname);
 void send_contralateral_point(char *canon_name, char *orig_name) ;
 void send_to_subject(char *subject_name) ;
+void send_to_other_hemi(void) ;
 static void resend_to_subject(void) ;
 void invert_surface(void) ;
 void read_ellipsoid_vertex_coordinates(char *fname,float a,float b,float c) ;
@@ -8285,41 +8288,46 @@ send_spherical_point(char *subject_name, char *canon_name, char *orig_name)
   fclose(fp);
 }
 void
+send_to_other_hemi(void) 
+{
+  send_contralateral_point(sphere_reg_contra, white_suffix) ;
+}
+
+void
 send_contralateral_point(char *canon_name, char *orig_name)
 {
   float           x, y, z, dx, dy, dz, dist, min_dist ;
   SMALL_VERTEX    *sv ;
   VERTEX          *v ;
-  char            fname[STRLEN] ;
+  char            fname[STRLEN], *ohemi ;
   SMALL_SURFACE   *mriss ;
   int             vno, min_vno ;
   FILE            *fp ;
+
+  if (strcmp(stem, "lh") == 0)
+    ohemi = "rh" ;
+  else
+    ohemi = "lh" ;
 
   if (selection < 0)
   {
     printf("must select a vertex.\n") ;
     return ;
   }
-  if (canonsurfloaded == FALSE)
-  {
-    if (DIAG_VERBOSE_ON)
-      printf("reading canonical vertex positions from %s...\n", canon_name) ;
-    MRISsaveVertexPositions(mris, TMP_VERTICES) ;
-    if (MRISreadVertexPositions(mris, canon_name) != NO_ERROR)
-    {
-      canonsurffailed = TRUE ;
-      return ;
-    }
-    MRISsaveVertexPositions(mris, CANONICAL_VERTICES) ;
-    MRISrestoreVertexPositions(mris, TMP_VERTICES) ;
-    canonsurfloaded = TRUE ;
-  }
 
-  sprintf(fname, "%s/%s/surf/%s", subjectsdir, pname, canon_name) ;
-  if (DIAG_VERBOSE_ON)
-    printf("reading spherical coordinates for subject %s from %s...\n",
-           pname, fname) ;
+  // read in left/right canonical vertices and save current and current canonical
+  sprintf(fname, "%s/%s/surf/%s.%s", subjectsdir, pname, stem, canon_name) ;
+  printf("reading canonical vertex positions from %s...\n", fname) ;
+  MRISsaveVertexPositions(mris, TMP_VERTICES) ;
+  MRISrestoreVertexPositions(mris, CANONICAL_VERTICES) ;
+  MRISsaveVertexPositions(mris, TMP2_VERTICES) ;
+  if (MRISreadVertexPositions(mris, fname) != NO_ERROR)
+    return ;
+  MRISsaveVertexPositions(mris, CANONICAL_VERTICES) ;
+  MRISrestoreVertexPositions(mris, TMP_VERTICES) ;
 
+  sprintf(fname, "%s/%s/surf/%s.%s", subjectsdir, pname, ohemi, canon_name) ;
+  printf("reading contralateral canonical vertex positions from %s...\n", fname) ;
   mriss = MRISSread(fname) ;
   if (!mriss)
   {
@@ -8328,17 +8336,13 @@ send_contralateral_point(char *canon_name, char *orig_name)
   }
 
   v = &mris->vertices[selection] ;
-  x = v->cx ;
-  y = v->cy ;
-  z = v->cz ;
+  x = v->cx ; y = v->cy ; z = v->cz ;
   min_dist = 1000000.0f ;
   min_vno = -1 ;
   for (vno = 0 ; vno < mriss->nvertices ; vno++)
   {
     sv = &mriss->vertices[vno] ;
-    dx = sv->x - x ;
-    dy = sv->y - y ;
-    dz = sv->z - z ;
+    dx = sv->x - x ; dy = sv->y - y ; dz = sv->z - z ;
     dist = sqrt(dx*dx + dy*dy + dz*dz) ;
     if (dist < min_dist)
     {
@@ -8350,10 +8354,8 @@ send_contralateral_point(char *canon_name, char *orig_name)
 
   printf("closest vertex %d is %2.1f mm distant.\n", min_vno, min_dist) ;
 
-  sprintf(fname, "%s/%s/surf/%s", subjectsdir, pname, orig_name) ;
-  if (DIAG_VERBOSE_ON)
-    printf("reading original coordinates for subject %s from %s...\n",
-           pname, fname) ;
+  sprintf(fname, "%s/%s/surf/%s.%s", subjectsdir, pname, ohemi, orig_name) ;
+  printf("reading original coordinates from %s...\n", fname) ;
 
   mriss = MRISSread(fname) ;
   if (!mriss)
@@ -8393,6 +8395,9 @@ send_contralateral_point(char *canon_name, char *orig_name)
   fprintf(fp,"%f %f %f\n",x_tal,y_tal,z_tal);
 #endif
   fclose(fp);
+  MRISrestoreVertexPositions(mris, TMP2_VERTICES) ;  // restore old canonical
+  MRISsaveVertexPositions(mris, CANONICAL_VERTICES) ;
+  MRISrestoreVertexPositions(mris, TMP_VERTICES) ;  // restore old current
 }
 /*--------------------------------------------------------- */
 int read_white_vertex_coordinates(void)
@@ -19344,6 +19349,7 @@ make_filenames(char *lsubjectsdir,char *lsrname,char *lpname,char *lstem,
                char *lext)
 {
   /* malloc for tcl */
+  sphere_reg_contra = (char *)malloc(NAME_LENGTH*sizeof(char));
   sphere_reg = (char *)malloc(NAME_LENGTH*sizeof(char));
   subjectsdir = (char *)malloc(NAME_LENGTH*sizeof(char));
   srname = (char *)malloc(NAME_LENGTH*sizeof(char));
@@ -19392,6 +19398,7 @@ make_filenames(char *lsubjectsdir,char *lsrname,char *lpname,char *lstem,
   tf2name[0]=0;
 
   /* make default names */
+  strcpy(sphere_reg_contra, sphere_reg_contra_suffix) ;
   strcpy(sphere_reg, sphere_reg_suffix) ;
   strcpy(subjectsdir,lsubjectsdir);
   strcpy(srname,lsrname);
@@ -19748,6 +19755,8 @@ int W_read_white_vertex_coordinates  PARM;
 
 int W_read_canon_vertex_coordinates  PARM;
 int W_send_spherical_point  PARM;
+int W_send_contralateral_point  PARM;
+int W_send_to_subject  PARM;
 int W_send_to_subject  PARM;
 int W_resend_to_subject  PARM;
 int W_drawcb  PARM;
@@ -20613,10 +20622,20 @@ int                  W_send_spherical_point  WBEGIN
 ERR(4,"Wrong # args: send_spherical_point <subject> <sphere> <orig>")
 send_spherical_point(argv[1], argv[2], argv[3]);
 WEND
+int                  W_send_contralateral_point  WBEGIN
+
+ERR(3,"Wrong # args: send_contralateral_point <left/right surface> <orig surface>")
+send_contralateral_point(argv[1], argv[2]);
+WEND
 
 int                  W_send_to_subject  WBEGIN
 ERR(2,"Wrong # args: send_to_subject <subject name>")
 send_to_subject(argv[1]);
+WEND
+
+int                  W_send_to_other_hemi  WBEGIN
+ERR(1,"Wrong # args: send_to_other_hemi")
+send_to_other_hemi();
 WEND
 
 int                  W_resend_to_subject  WBEGIN
@@ -21549,7 +21568,7 @@ int main(int argc, char *argv[])   /* new main */
   nargs =
     handle_version_option
     (argc, argv,
-     "$Id: tksurfer.c,v 1.355 2012/04/09 18:55:56 fischl Exp $", "$Name:  $");
+     "$Id: tksurfer.c,v 1.356 2012/04/10 13:54:50 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -22121,8 +22140,12 @@ int main(int argc, char *argv[])   /* new main */
                     (Tcl_CmdProc*) W_read_canon_vertex_coordinates, REND);
   Tcl_CreateCommand(interp, "send_spherical_point",
                     (Tcl_CmdProc*) W_send_spherical_point, REND);
+  Tcl_CreateCommand(interp, "send_contralateral_point",
+                    (Tcl_CmdProc*) W_send_contralateral_point, REND);
   Tcl_CreateCommand(interp, "send_to_subject",
                     (Tcl_CmdProc*) W_send_to_subject, REND);
+  Tcl_CreateCommand(interp, "send_to_other_hemi",
+                    (Tcl_CmdProc*) W_send_to_other_hemi, REND);
   Tcl_CreateCommand(interp, "resend_to_subject",
                     (Tcl_CmdProc*) W_resend_to_subject, REND);
   Tcl_CreateCommand(interp, "drawcb",
@@ -22640,6 +22663,7 @@ int main(int argc, char *argv[])   /* new main */
 
   /*=======================================================================*/
   /***** link global malloc'ed STRING vars */
+  Tcl_LinkVar(interp,"spherereg_contra",        (char *)&sphere_reg_contra,TCL_LINK_STRING);
   Tcl_LinkVar(interp,"spherereg",        (char *)&sphere_reg,TCL_LINK_STRING);
   Tcl_LinkVar(interp,"home",        (char *)&subjectsdir,TCL_LINK_STRING);
   Tcl_LinkVar(interp,"subject",     (char *)&pname,TCL_LINK_STRING);
