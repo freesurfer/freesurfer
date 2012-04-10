@@ -12,8 +12,8 @@
  * Original Author: Dougas N Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2012/04/10 19:25:56 $
- *    $Revision: 1.82 $
+ *    $Date: 2012/04/10 19:33:57 $
+ *    $Revision: 1.83 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -114,7 +114,7 @@ int DumpStatSumTable(STATSUMENTRY *StatSumTable, int nsegid);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-  "$Id: mri_segstats.c,v 1.82 2012/04/10 19:25:56 greve Exp $";
+  "$Id: mri_segstats.c,v 1.83 2012/04/10 19:33:57 greve Exp $";
 char *Progname = NULL, *SUBJECTS_DIR = NULL, *FREESURFER_HOME=NULL;
 char *SegVolFile = NULL;
 char *InVolFile = NULL;
@@ -143,6 +143,7 @@ int nsegid, *segidlist;
 int NonEmptyOnly = 1;
 int UserSegIdList[1000];
 int nUserSegIdList = 0;
+int nErodeSeg=0;
 int DoExclSegId = 0, nExcl = 0, ExclSegIdList[1000], ExclSegId;
 int DoExclCtxGMWM= 0;
 int DoSurfCtxVol = 0;
@@ -337,6 +338,12 @@ int main(int argc, char **argv)
     if (seg == NULL){
       printf("ERROR: loading %s\n",SegVolFile);
       exit(1);
+    }
+    if(nErodeSeg){
+      printf("Eroding seg %d times\n",nErodeSeg);
+      tmp = MRIerodeSegmentation(seg, NULL, 1, 0);
+      MRIfree(&seg);
+      seg = tmp;
     }
     if(DoVox){
       printf("Replacing seg with a single voxel at %d %d %d\n",
@@ -1618,6 +1625,11 @@ static int parse_commandline(int argc, char **argv)
         argnerr(option,1);
       }
       SegVolFile = pargv[0];
+      nargsused = 1;
+    }
+    else if (!strcmp(option, "--seg-erode")){
+      if (nargc < 1) argnerr(option,1);
+      sscanf(pargv[0],"%d",&nErodeSeg);
       nargsused = 1;
     }
     else if ( !strcmp(option, "--vox") )

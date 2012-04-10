@@ -68,6 +68,8 @@ The summary file is an ascii file in which the segmentation statistics are repor
       <explanation>Use pvvol to compensate for partial voluming. This should result in more accurate volumes. Usually, this is only done when computing anatomical statistics. Usually, the mri/norm.mgz volume is used. Not with --annot.</explanation>
       <argument>--i invol</argument>
       <explanation>Input volume from which to compute more statistics, including min, max, range, average, and standard deviation as measured spatially across each segmentation. The input volume must be the same size and dimension as the segmentation volume.</explanation>
+      <argument>--seg-erode Nerodes</argument>
+      <explanation>Erode segmentation boundaries by Nerodes.</explanation>
       <argument>--frame frame</argument>
       <explanation>Report statistics of the input volume at the 0-based frame number. Frame is 0 by default.</explanation>
       <argument>--sqr</argument>
