@@ -8,9 +8,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2011/12/19 23:00:18 $
- *    $Revision: 1.81 $
+ *    $Author: greve $
+ *    $Date: 2012/04/10 19:11:29 $
+ *    $Revision: 1.82 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -926,6 +926,74 @@ MRI * MRIerode2D(MRI *mri_src, MRI *mri_dst)
   }
   return(mri_dst) ;
 }
+/*!
+  \fn MRI *MRIerodeSegmentation(MRI *seg, MRI *out, int nErodes, int nDiffThresh)
+  \brief Erodes the boundaries of a segmentation (ie, sets value=0) if the number
+  of nearest neighbor voxels that are different than the center is greater than
+  nDiffThresh. "Nearest neighbor" is defined as the 6 nearest neighbors. If
+  nErodes>1, then it calls itself recursively.
+*/
+MRI *MRIerodeSegmentation(MRI *seg, MRI *out, int nErodes, int nDiffThresh)
+{
+  int c,r,s,dc,dr,ds,segid0,segidD, n, nDiff;
+  MRI *seg2=NULL;
+
+  if(seg == out){
+    printf("ERROR: MRIerodeSegmentation(): cannot be done in-place\n");
+    return(NULL);
+  }
+  if(!out) out = MRIallocSequence(seg->width, seg->height, seg->depth,seg->type, 1);
+  if(MRIdimMismatch(seg, out, 0)){
+    printf("ERROR: MRIerodeSegmentation(): seg/out dim mismatch\n");
+    return(NULL);
+  }
+  out = MRIcopy(seg,out);
+
+  n = nErodes;
+  seg2 = MRIcopy(seg,seg2);
+  while(n != 1) {
+    out = MRIerodeSegmentation(seg2, out, 1, nDiffThresh);
+    seg2 = MRIcopy(out,seg2);
+    n--;
+  }
+
+  for(c=0; c < seg->width; c++){
+    for(r=0; r < seg->height; r++){
+      for(s=0; s < seg->depth; s++){
+	if(c==0 || c==seg->width-1 ||
+	   r==0 || r==seg->height-1 ||
+	   s==0 || s==seg->depth-1){
+	  MRIsetVoxVal(out,c,r,s,0, 0);
+	  continue;
+	}
+	segid0 = MRIgetVoxVal(seg2,c,r,s,0);
+	nDiff = 0;
+	for(dc=-1; dc <= 1; dc++){
+	  segidD = MRIgetVoxVal(seg2,c+dc,r,s,0);
+	  if(segidD != segid0) nDiff++;
+	}
+	for(dr=-1; dr <= 1; dr++){
+	  segidD = MRIgetVoxVal(seg2,c,r+dr,s,0);
+	  if(segidD != segid0) nDiff++;
+	}
+	for(ds=-1; ds <= 1; ds++){
+	  segidD = MRIgetVoxVal(seg2,c,r,s+ds,0);
+	  if(segidD != segid0) nDiff++;
+	}
+	if(nDiff > nDiffThresh) segid0 = 0;
+	MRIsetVoxVal(out,c,r,s,0, segid0);
+      }
+    }
+  }
+  return(out);
+}
+
+
+
+
+
+
+
 /*-----------------------------------------------------
   Parameters:
 

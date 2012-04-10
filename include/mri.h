@@ -8,8 +8,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2012/01/26 23:16:24 $
- *    $Revision: 1.436 $
+ *    $Date: 2012/04/10 19:11:29 $
+ *    $Revision: 1.437 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -559,6 +559,7 @@ MRI   *MRIdilateThresh(MRI *mri_src, MRI *mri_intensity, double thresh,
 MRI   *MRIerodeZero(MRI *mri_src, MRI *mri_dst) ;
 MRI   *MRIerode2D(MRI *mri_src, MRI *mri_dst);
 MRI   *MRIerodeRegion(MRI *mri_src, MRI *mri_dst,int wsize,MRI_REGION *region);
+MRI   *MRIerodeSegmentation(MRI *seg, MRI *out, int nErodes, int nDiffThresh);
 MRI   *MRIdilate(MRI *mri_src, MRI *mri_dst) ;
 MRI   *MRIdilateUchar(MRI *mri_src, MRI *mri_dst) ;
 MRI   *MRIopen(MRI *mri_src, MRI *mri_dst) ;
