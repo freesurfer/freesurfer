@@ -12,8 +12,8 @@
  * Original Author: Dougas N Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2012/01/20 22:17:36 $
- *    $Revision: 1.81 $
+ *    $Date: 2012/04/10 19:25:56 $
+ *    $Revision: 1.82 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -60,6 +60,7 @@
 #include <stdlib.h>
 #include <math.h>
 #include <sys/utsname.h>
+#include <unistd.h>
 
 #include "macros.h"
 #include "mrisurf.h"
@@ -113,7 +114,7 @@ int DumpStatSumTable(STATSUMENTRY *StatSumTable, int nsegid);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-  "$Id: mri_segstats.c,v 1.81 2012/01/20 22:17:36 greve Exp $";
+  "$Id: mri_segstats.c,v 1.82 2012/04/10 19:25:56 greve Exp $";
 char *Progname = NULL, *SUBJECTS_DIR = NULL, *FREESURFER_HOME=NULL;
 char *SegVolFile = NULL;
 char *InVolFile = NULL;
@@ -299,11 +300,9 @@ int main(int argc, char **argv)
     atlas_icv = MRIestimateTIV(tmpstr,etiv_scale_factor,&determinant);
     printf("atlas_icv (eTIV) = %d mm^3    (det: %3f )\n",
            (int)atlas_icv,determinant);
-    if (DoETIVonly || DoOldETIVonly)
-    {
-      exit(0);
-    }
+    if (DoETIVonly || DoOldETIVonly) exit(0);
   }
+  fflush(stdout);
 
   /* Make sure we can open the output summary table file*/
   if(StatTableFile)
@@ -317,32 +316,29 @@ int main(int argc, char **argv)
       exit(1);
     }
     fclose(fp);
+    unlink(StatTableFile); // delete
   }
 
   /* Make sure we can open the output frame average file*/
-  if (FrameAvgFile != NULL)
-  {
+  if(FrameAvgFile != NULL) {
     fp = fopen(FrameAvgFile,"w");
-    if (fp == NULL)
-    {
+    if (fp == NULL){
       printf("ERROR: could not open %s for writing\n",FrameAvgFile);
       exit(1);
     }
     fclose(fp);
+    unlink(FrameAvgFile); // delete
   }
 
   /* Load the segmentation */
-  if (SegVolFile)
-  {
+  if (SegVolFile){
     printf("Loading %s\n",SegVolFile);
     seg = MRIread(SegVolFile);
-    if (seg == NULL)
-    {
+    if (seg == NULL){
       printf("ERROR: loading %s\n",SegVolFile);
       exit(1);
     }
-    if(DoVox)
-    {
+    if(DoVox){
       printf("Replacing seg with a single voxel at %d %d %d\n",
              Vox[0],Vox[1],Vox[2]);
       for(c=0; c < seg->width; c++)
