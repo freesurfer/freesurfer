@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:10 $
- *    $Revision: 1.42 $
+ *    $Author: fischl $
+ *    $Date: 2012/04/11 01:01:07 $
+ *    $Revision: 1.43 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -37,7 +37,7 @@
 #define NCLASSES                           6
 #define GAUSSIAN_NCLASSES                  NCLASSES
 #define BACKGROUND                         0
-#define CSF                                BACKGROUND
+#define CLASS_CSF                          BACKGROUND
 #define GREY_MATTER                        1
 #define GRAY_MATTER                        GREY_MATTER
 #define THIN_STRANDS                       2

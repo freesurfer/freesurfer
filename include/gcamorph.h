@@ -15,8 +15,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2011/12/12 12:58:34 $
- *    $Revision: 1.106 $
+ *    $Date: 2012/04/11 01:01:07 $
+ *    $Revision: 1.107 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -42,8 +42,9 @@
 extern "C" {
 #endif
 
-#define GCAM_UNLABELED   0
-#define GCAM_LABELED     1
+#define GCAM_UNLABELED                   0x0000
+#define GCAM_LABELED                     0x0001
+#define GCAM_PRESERVE_METRIC_PROPERTIES  0x0002
 
 #define EXP_K            20.0
 #define GCAM_RAS         1

@@ -9,8 +9,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2012/01/31 00:17:42 $
- *    $Revision: 1.61 $
+ *    $Date: 2012/04/11 01:01:07 $
+ *    $Revision: 1.62 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -123,8 +123,13 @@ extern "C" {
 #define Left_F1                       83
 #define Right_F1                      84
 #define Optic_Chiasm                  85
+#define Left_future_WMSA              86
+#define Right_future_WMSA             87
+#define non_WM_hypointensities        80
 #define Left_Amygdala_Anterior        96
 #define Right_Amygdala_Anterior       97
+
+#define IS_FUTURE_WMSA(l) (((l) == Left_future_WMSA) || ((l) == Right_future_WMSA))
 
 /*
  * no brain labels after this please unless you fix the IS_BRAIN macro
@@ -333,7 +338,8 @@ extern "C" {
 #define IS_BRAIN(label)  (!IS_UNKNOWN(label) && label < Dura)
 
 #define IS_WM(label) (((label) == Left_Cerebral_White_Matter) || ((label) == Right_Cerebral_White_Matter) || ((label) == Left_Temporal_Cerebral_White_Matter) || ((label) == Right_Temporal_Cerebral_White_Matter))
-#define IS_HYPO(label) (((label) == WM_hypointensities)  || ((label) == Left_WM_hypointensities)  || ((label) == Right_WM_hypointensities))
+#define IS_HYPO(label) (((label) == WM_hypointensities)  || ((label) == Left_WM_hypointensities)  || ((label) == Right_WM_hypointensities) || ((label) == Right_future_WMSA) || ((label) == Left_future_WMSA))
+#define IS_WMSA(label) IS_HYPO(label)
 #define IS_WMH(label) (IS_WM(label) || IS_HYPO(label))
 #define IS_THALAMUS(label)  (((label) == Left_Thalamus) || ((label) == Left_Thalamus_Proper) || ((label) == Right_Thalamus) || ((label) == Right_Thalamus_Proper))
 #define IS_GM(label) (((label) == Left_Cerebral_Cortex) || ((label) == Right_Cerebral_Cortex))
