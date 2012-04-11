@@ -197,6 +197,7 @@ libutils_main_SOURCES=\
 	resample.c \
 	rescale.c \
 	retinotopy.c \
+	rfa.c \
 	rforest.c \
 	selxavgio.c \
 	sig.c \
