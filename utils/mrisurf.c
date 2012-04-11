@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2012/04/11 00:57:20 $
- *    $Revision: 1.722 $
+ *    $Date: 2012/04/11 22:11:20 $
+ *    $Revision: 1.723 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -733,7 +733,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void)
 {
-  return("$Id: mrisurf.c,v 1.722 2012/04/11 00:57:20 fischl Exp $");
+  return("$Id: mrisurf.c,v 1.723 2012/04/11 22:11:20 fischl Exp $");
 }
 
 /*-----------------------------------------------------
@@ -13302,6 +13302,8 @@ MRISwritePatch(MRI_SURFACE *mris, const char *fname)
     return(MRISwritePatchAscii(mris, fname)) ;
   else if (type == MRIS_GEO_TRIANGLE_FILE) // extension is GEO
     return(MRISwriteGeo(mris, fname)) ;
+  else if (type == MRIS_STL_FILE)
+    return(MRISwriteSTL(mris, fname)) ;
 
   // binary file write
   // count number of points
@@ -24518,7 +24520,7 @@ MRISwritePatchAscii(MRI_SURFACE *mris, const char *fname)
 
   Description: write ascii STL (stereolithography) format
   ------------------------------------------------------*/
-int MRISwriteSTL(MRI_SURFACE *mris, char *fname)
+int MRISwriteSTL(MRI_SURFACE *mris, const char *fname)
 {
   int     vno, fno;
   VERTEX  *v ;
