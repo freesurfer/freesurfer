@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:10 $
- *    $Revision: 1.68 $
+ *    $Author: fischl $
+ *    $Date: 2012/04/11 00:54:47 $
+ *    $Revision: 1.69 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -250,6 +250,9 @@ int TransformSampleDirection(TRANSFORM *transform, float x0, float y0, float z0,
 
 int TransformRas2Vox(TRANSFORM *transform, MRI *mri_src, MRI *mri_dst);
 int TransformVox2Ras(TRANSFORM *transform, MRI *mri_src, MRI *mri_dst);
+int TransformSourceVoxelToAtlas( TRANSFORM *transform, MRI *mri, 
+				 int xv, int yv, int zv,
+				 double *px, double *py, double *pz ) ;
 
 MATRIX *MRIangles2RotMat(double *angles);
 double *SegRegCost(MRI *regseg, MRI *f, double *costs);
