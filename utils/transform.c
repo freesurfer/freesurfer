@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: mreuter $
- *    $Date: 2011/12/01 12:50:50 $
- *    $Revision: 1.154 $
+ *    $Author: fischl $
+ *    $Date: 2012/04/11 00:54:36 $
+ *    $Revision: 1.155 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -46,6 +46,7 @@
 #include "mri_circulars.h"
 #include "resample.h"
 #include "registerio.h"
+#include "talairachex.h"
 
 extern const char* Progname;
 
@@ -768,6 +769,11 @@ LTAtransformInterp(MRI *mri_src, MRI *mri_dst, LTA *lta, int interp)
   //MATRIX *v2v = 0;
   MRI *resMRI = 0;
 
+  if (lta->type == REGISTER_DAT)
+  {
+    printf("warning: changing input transform type from REGISTER_DAT to VOX_TO_VOX\n");
+    LTAchangeType(lta, LINEAR_VOX_TO_VOX) ;
+  }
   if (lta->num_xforms == 1)
   {
     /////////////////////////////////////////////////////////////////////////
@@ -2177,6 +2183,7 @@ TransformSample(TRANSFORM *transform,
   LTA             *lta ;
   GCA_MORPH       *gcam ;
   int errCode = NO_ERROR, xi, yi, zi;
+  double          xd, yd, zd ;
 
   *px = *py = *pz = 0 ;
   if (transform->type == MORPH_3D_TYPE)
@@ -2206,10 +2213,13 @@ TransformSample(TRANSFORM *transform,
     yi = nint(yv) ;
     zi = nint(zv) ;
 
-    xt = nint(MRIgetVoxVal(gcam->mri_xind, xi, yi, zi, 0))*gcam->spacing ;
-    yt = nint(MRIgetVoxVal(gcam->mri_yind, xi, yi, zi, 0))*gcam->spacing ;
-    zt = nint(MRIgetVoxVal(gcam->mri_zind, xi, yi, zi, 0))*gcam->spacing ;
-
+    xt = nint(MRIgetVoxVal(gcam->mri_xind, xi, yi, zi, 0)*gcam->spacing) ;
+    yt = nint(MRIgetVoxVal(gcam->mri_yind, xi, yi, zi, 0)*gcam->spacing) ;
+    zt = nint(MRIgetVoxVal(gcam->mri_zind, xi, yi, zi, 0)*gcam->spacing) ;
+    MRIsampleVolume(gcam->mri_xind, xv, yv, zv, &xd) ;
+    MRIsampleVolume(gcam->mri_yind, xv, yv, zv, &yd) ;
+    MRIsampleVolume(gcam->mri_zind, xv, yv, zv, &zd) ;
+    xt = (float)xd*gcam->spacing ; yt = (float)yd*gcam->spacing ; zt = (float)zd*gcam->spacing ;
   }
   else
   {
@@ -4567,3 +4577,32 @@ TransformCompose(TRANSFORM *t_src, MATRIX *m_left, MATRIX *m_right, TRANSFORM *t
   return(t_dst) ;
 }
 
+int
+TransformSourceVoxelToAtlas( TRANSFORM *transform, MRI *mri, 
+			     int xv, int yv, int zv,
+			     double *px, double *py, double *pz )
+{
+  float   xt, yt, zt ;
+  LTA *lta;
+
+  if (transform->type != MORPH_3D_TYPE)
+  {
+    if (transform->type == LINEAR_VOX_TO_VOX)
+    {
+      lta = (LTA *) transform->xform;
+      // transform point to talairach volume point
+      TransformWithMatrix(lta->xforms[0].m_L,
+                          xv, yv, zv, px, py, pz);
+      // TransformSample(transform, xv, yv, zv, &xt, &yt, &zt) ;
+    }
+    else
+      ErrorExit(ERROR_BADPARM,
+                "RFAsourceVoxelToNode: needs vox-to-vox transform") ;
+  }
+  else // morph 3d type can go directly from source to template
+  {
+    TransformSample(transform, xv, yv, zv, &xt, &yt, &zt);
+    *px = (double)xt ; *py = (double)yt ; *pz = (double)zt ;
+  }
+  return (NO_ERROR) ;
+}
