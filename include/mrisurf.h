@@ -9,8 +9,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2012/04/11 00:57:26 $
- *    $Revision: 1.366 $
+ *    $Date: 2012/04/11 22:11:37 $
+ *    $Revision: 1.367 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -726,7 +726,7 @@ int          MRISwriteVTK(MRI_SURFACE *mris,const  char *fname);
 int          MRISwriteCurvVTK(MRI_SURFACE *mris, const char *fname);
 int          MRISwriteGeo(MRI_SURFACE *mris,const  char *fname) ;
 int          MRISwriteICO(MRI_SURFACE *mris,const  char *fname) ;
-int          MRISwriteSTL(MRI_SURFACE *mris, char *fname) ;
+int          MRISwriteSTL(MRI_SURFACE *mris, const char *fname) ;
 int          MRISwritePatchAscii(MRI_SURFACE *mris,const  char *fname) ;
 int          MRISwriteDists(MRI_SURFACE *mris,const  char *fname) ;
 int          MRISwriteCurvature(MRI_SURFACE *mris,const  char *fname) ;
