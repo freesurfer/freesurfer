@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2012/03/29 20:28:07 $
- *    $Revision: 1.49 $
+ *    $Author: fischl $
+ *    $Date: 2012/04/11 00:53:35 $
+ *    $Revision: 1.50 $
  *
  * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -126,7 +126,7 @@ void SetProgressCallback(void (*callback)(int), int start, int end);
 void exec_progress_callback(int slice, int total_slices, int frame, int total_frames);
 
 
-int compute_permutation(int num, int *vec)  ;
+int  *compute_permutation(int num, int *vec)  ;
 
 #if defined(__cplusplus)
 };
