@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2012/03/08 13:49:42 $
- *    $Revision: 1.721 $
+ *    $Date: 2012/04/11 00:57:20 $
+ *    $Revision: 1.722 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -733,7 +733,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void)
 {
-  return("$Id: mrisurf.c,v 1.721 2012/03/08 13:49:42 fischl Exp $");
+  return("$Id: mrisurf.c,v 1.722 2012/04/11 00:57:20 fischl Exp $");
 }
 
 /*-----------------------------------------------------
@@ -5688,6 +5688,8 @@ MRISregister(MRI_SURFACE *mris, MRI_SP *mrisp_template,
         ErrorExit(Gerror, "%s: could not read curvature file '%s'\n",
                   "MRISregister", fname) ;
       MRISnormalizeCurvature(mris, parms->which_norm) ;
+      if (parms->trinarize_thresh > 0)
+	MRIStrinarizeCurvature(mris, parms->trinarize_thresh) ;
     }
     else                       /* compute curvature of surface */
     {
@@ -70327,3 +70329,25 @@ MRISimportVertexCoords(MRI_SURFACE *mris, float *locations[3], int which)
   }
   return(NO_ERROR) ;
 }
+
+int
+MRIStrinarizeCurvature(MRI_SURFACE *mris, float trinarize_thresh)
+{
+  int    vno ;
+  VERTEX *v ;
+
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    v = &mris->vertices[vno] ;
+    if (v->ripflag)
+      continue ;
+    if (v->curv < -trinarize_thresh)
+      v->curv = -1 ;
+    else if (v->curv > trinarize_thresh)
+      v->curv = 1 ;
+    else
+      v->curv = 0 ;
+  }
+  return(NO_ERROR) ;
+}
+
