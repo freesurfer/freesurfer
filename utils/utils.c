@@ -8,8 +8,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2012/03/20 19:25:07 $
- *    $Revision: 1.82 $
+ *    $Date: 2012/04/11 00:53:28 $
+ *    $Revision: 1.83 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -1629,10 +1629,15 @@ void exec_progress_callback(int slice, int total_slices, int frame, int total_fr
     progress_callback(global_progress_range[0] +
                       (global_progress_range[1]-global_progress_range[0])*(slice+total_slices*frame)/(total_slices*total_frames));
 }
-int
+int *
 compute_permutation(int num, int *vec) 
 {
   int n, index, tmp ;
+
+  if (vec == NULL)
+    vec = (int *)calloc(num, sizeof(vec[0])) ;
+  if (vec == NULL)
+    ErrorExit(ERROR_NOMEMORY, "compute_permutation(%d): calloc failed", num) ;
 
   for (n = 0 ; n < num ; n++)
     vec[n] = n ;
@@ -1644,5 +1649,5 @@ compute_permutation(int num, int *vec)
     vec[index] = vec[n] ;
     vec[n] = tmp ;
   }
-  return(NO_ERROR) ;
+  return(vec) ;
 }
