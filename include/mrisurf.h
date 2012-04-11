@@ -9,8 +9,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2012/03/08 13:49:53 $
- *    $Revision: 1.365 $
+ *    $Date: 2012/04/11 00:57:26 $
+ *    $Revision: 1.366 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -565,6 +565,7 @@ typedef struct
   MRI          *mri_vno ;
   MRI          *mri_template ;
   int          which_surface ;
+  float        trinarize_thresh;   // for trinarizing curvature in registration
 }
 INTEGRATION_PARMS ;
 
@@ -2036,4 +2037,6 @@ MRI *MRIScomputeFlattenedVolume(MRI_SURFACE *mris,
                                 int smooth_iters,
                                 double wm_dist,
                                 double outside_dist);
+int MRIStrinarizeCurvature(MRI_SURFACE *mris, float binarize_thresh) ;
+
 #endif // MRISURF_H
