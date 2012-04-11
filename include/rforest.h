@@ -8,8 +8,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2012/03/21 00:56:52 $
- *    $Revision: 1.4 $
+ *    $Date: 2012/04/11 00:56:39 $
+ *    $Revision: 1.5 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -37,6 +37,8 @@ typedef struct
   int    nsteps ;
   double training_fraction ;
   double feature_fraction ;
+  double min_step_size ;
+  int    max_steps ;
 } RFOREST_PARMS, RF_PARMS ;
 
 typedef struct node
@@ -77,6 +79,9 @@ typedef struct
   int    nsteps ;           // # of steps to take in threshold search
   double feature_fraction ;  // the fraction of features that each tree contains
   double training_fraction ; // the fraction of training data that each tree contains
+  double min_step_size ;
+  int    max_steps ;
+  char   **feature_names ;   // for diags
 } RANDOM_FOREST, RF ;
 
 RANDOM_FOREST *RFalloc(int ntrees, int nfeatures, int nclasses, int max_depth,
