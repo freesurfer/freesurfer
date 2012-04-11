@@ -9,9 +9,9 @@
 /*
  * Original Author: Graham Wideman, based on code by Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:47 $
- *    $Revision: 1.51 $
+ *    $Author: fischl $
+ *    $Date: 2012/04/11 01:00:12 $
+ *    $Revision: 1.52 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -249,6 +249,8 @@ MRIS_HASH_TABLE * MHTfillTableAtResolution(
     f = &mris->faces[fno] ;
     if (f->ripflag)
       continue ;
+    if (fno == Gdiag_no)
+      DiagBreak() ;
     mhtFaceToMHT(mht, mris, fno, 1) ;
   }
 
