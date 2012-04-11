@@ -782,16 +782,6 @@
              </widget>
             </item>
             <item>
-             <widget class="QRadioButton" name="radioButtonCubic">
-              <property name="text">
-               <string>Cubic</string>
-              </property>
-              <property name="checked">
-               <bool>false</bool>
-              </property>
-             </widget>
-            </item>
-            <item>
              <spacer name="horizontalSpacer_2">
               <property name="orientation">
                <enum>Qt::Horizontal</enum>
@@ -1340,8 +1330,8 @@
    <slot>OnApply()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>96</x>
-     <y>685</y>
+     <x>85</x>
+     <y>656</y>
     </hint>
     <hint type="destinationlabel">
      <x>462</x>
@@ -1629,7 +1619,7 @@
    <hints>
     <hint type="sourcelabel">
      <x>300</x>
-     <y>399</y>
+     <y>371</y>
     </hint>
     <hint type="destinationlabel">
      <x>637</x>
@@ -1660,8 +1650,8 @@
    <slot>OnButtonLandmarkPick()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>152</x>
-     <y>399</y>
+     <x>126</x>
+     <y>360</y>
     </hint>
     <hint type="destinationlabel">
      <x>611</x>
@@ -1676,8 +1666,8 @@
    <slot>UpdateLandmarkColors()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>61</x>
-     <y>399</y>
+     <x>62</x>
+     <y>370</y>
     </hint>
     <hint type="destinationlabel">
      <x>278</x>
@@ -1692,8 +1682,8 @@
    <slot>UpdateLandmarkColors()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>209</x>
-     <y>399</y>
+     <x>220</x>
+     <y>370</y>
     </hint>
     <hint type="destinationlabel">
      <x>278</x>
@@ -1708,8 +1698,8 @@
    <slot>UpdateLandmarkColors()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>61</x>
-     <y>432</y>
+     <x>62</x>
+     <y>403</y>
     </hint>
     <hint type="destinationlabel">
      <x>278</x>
@@ -1740,8 +1730,8 @@
    <slot>OnButtonLandmarkPick()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>300</x>
-     <y>432</y>
+     <x>278</x>
+     <y>403</y>
     </hint>
     <hint type="destinationlabel">
      <x>278</x>
@@ -1756,60 +1746,12 @@
    <slot>UpdateLandmarkColors()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>209</x>
-     <y>432</y>
+     <x>224</x>
+     <y>403</y>
     </hint>
     <hint type="destinationlabel">
      <x>278</x>
      <y>417</y>
-    </hint>
-   </hints>
-  </connection>
-  <connection>
-   <sender>radioButtonNearestNeighbor</sender>
-   <signal>toggled(bool)</signal>
-   <receiver>DialogTransformVolume</receiver>
-   <slot>OnSampleMethodChanged()</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>118</x>
-     <y>589</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>588</x>
-     <y>653</y>
-    </hint>
-   </hints>
-  </connection>
-  <connection>
-   <sender>radioButtonTrilinear</sender>
-   <signal>toggled(bool)</signal>
-   <receiver>DialogTransformVolume</receiver>
-   <slot>OnSampleMethodChanged()</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>229</x>
-     <y>586</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>571</x>
-     <y>564</y>
-    </hint>
-   </hints>
-  </connection>
-  <connection>
-   <sender>radioButtonCubic</sender>
-   <signal>toggled(bool)</signal>
-   <receiver>DialogTransformVolume</receiver>
-   <slot>OnSampleMethodChanged()</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>303</x>
-     <y>588</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>675</x>
-     <y>617</y>
     </hint>
    </hints>
   </connection>
@@ -1835,6 +1777,5 @@
   <slot>OnButtonLandmarkPick()</slot>
   <slot>UpdateLandmarkColors()</slot>
   <slot>OnRadioButtonLandmark(bool)</slot>
-  <slot>OnSampleMethodChanged()</slot>
  </slots>
 </ui>

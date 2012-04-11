@@ -1,14 +1,14 @@
 /**
  * @file  RenderView2D.cpp
- * @brief 2D slice view
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
  *
  */
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2012/04/06 19:15:30 $
- *    $Revision: 1.44.2.5 $
+ *    $Date: 2012/04/11 19:46:20 $
+ *    $Revision: 1.44.2.6 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -43,8 +43,6 @@
 #include "Region2DRectangle.h"
 #include "Cursor2D.h"
 #include "MyUtils.h"
-#include <QActionGroup>
-#include <QMenu>
 #include <QDebug>
 
 RenderView2D::RenderView2D( QWidget* parent ) : RenderView( parent )
@@ -187,7 +185,7 @@ void RenderView2D::UpdateViewByWorldCoordinate()
     break;
   }
 //  m_renderer->ResetCameraClippingRange();
-  cam->SetParallelScale( qMax( qMax(m_dWorldSize[0], m_dWorldSize[1]), m_dWorldSize[2])/2 );
+  cam->SetParallelScale( qMax( qMax(m_dWorldSize[0], m_dWorldSize[1]), m_dWorldSize[2]) );
 }
 
 void RenderView2D::UpdateAnnotation()
@@ -322,7 +320,7 @@ void RenderView2D::StopSelection()
 
 Region2D* RenderView2D::GetRegion( int nX, int nY, int* index_out )
 {
-  for ( int i = m_regions.size()-1; i >= 0; i-- )
+  for ( int i = 0; i < m_regions.size(); i++ )
   {
     if ( m_regions[i]->Contains( nX, nY, index_out ) )
     {
@@ -488,55 +486,4 @@ bool RenderView2D::SetSliceNumber( int nNum )
   MainWindow::GetMainWindow()->SetSlicePosition( pos );
   lc_mri->SetCursorRASPosition( pos );
   return true;
-}
-
-void RenderView2D::TriggerContextMenu( QMouseEvent* event )
-{
-  QMenu menu;
-  bool bShowBar = this->GetShowScalarBar();
-  QList<Layer*> layers = MainWindow::GetMainWindow()->GetLayers("MRI");
-  Region2D* reg = GetRegion(event->x(), event->y());
-  if (reg)
-  {
-    QAction* act = new QAction("Duplicate", this);
-    act->setData(QVariant::fromValue((QObject*)reg));
-    connect(act, SIGNAL(triggered()), this, SLOT(OnDuplicateRegion()));
-    menu.addAction(act);
-  }
-  else if (layers.size() > 1)
-  {
-    QMenu* menu2 = menu.addMenu("Show Color Bar");
-    QActionGroup* ag = new QActionGroup(this);
-    ag->setExclusive(true);
-    foreach (Layer* layer, layers)
-    {
-      QAction* act = new QAction(layer->GetName(), this);
-      act->setCheckable(true);
-      act->setChecked(bShowBar && layer == m_layerScalarBar);
-      act->setData(QVariant::fromValue((QObject*)layer));
-      menu2->addAction(act);
-      ag->addAction(act);
-    }
-    connect(ag, SIGNAL(triggered(QAction*)), this, SLOT(SetScalarBarLayer(QAction*)));
-  }
-  if (!menu.actions().isEmpty())
-    menu.exec(event->globalPos());
-}
-
-void RenderView2D::OnDuplicateRegion()
-{
-  QAction* act = qobject_cast<QAction*>(sender());
-  if (!act)
-    return;
-
-  Region2D* reg = qobject_cast<Region2D*>(qVariantValue<QObject*>(act->data()));
-  if (reg)
-  {
-    reg = reg->Duplicate(this);
-    if (reg)
-    {
-      reg->Offset(5, 5);
-      AddRegion(reg);
-    }
-  }
 }

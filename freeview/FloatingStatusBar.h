@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2012/04/06 19:15:29 $
- *    $Revision: 1.4.2.2 $
+ *    $Date: 2012/04/11 19:46:19 $
+ *    $Revision: 1.4.2.3 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -45,15 +45,6 @@ public slots:
   void ShowProgress();
   void HideProgress();
   void Reposition();
-  void StartTimer()
-  {
-    m_timer->start();
-  }
-
-  void StopTimer()
-  {
-    m_timer->stop();
-  }
 
 private slots:
   void OnProgressTimer();

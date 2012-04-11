@@ -1,14 +1,14 @@
 /**
  * @file  DialogSaveVolume.h
- * @brief Dialog to save volume
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
  *
  */
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2012/04/06 19:15:28 $
- *    $Revision: 1.4.2.2 $
+ *    $Date: 2012/04/11 19:46:18 $
+ *    $Revision: 1.4.2.3 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -42,7 +42,6 @@ public:
   QString GetFileName();
 
   bool GetResample();
-  bool GetCrop();
 
 protected slots:
   void OnOK();

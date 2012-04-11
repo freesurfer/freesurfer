@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2012/04/06 19:15:28 $
- *    $Revision: 1.35.2.1 $
+ *    $Date: 2012/04/11 19:46:19 $
+ *    $Revision: 1.35.2.2 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -66,7 +66,7 @@ public:
   double GetVoxelValue( int i, int j, int k, int frame );
 
   bool UpdateMRIFromImage( vtkImageData* rasImage,
-                           bool resampleToOriginal = true, int data_type = -1 );
+                           bool resampleToOriginal = true );
 
   vtkImageData* GetImageOutput();
 
@@ -181,12 +181,6 @@ public:
 
   void SetConform( bool bConform );
 
-  // for saving only
-  void SetCropToOriginal(bool bCrop)
-  {
-    m_bCropToOriginal = bCrop;
-  }
-
 Q_SIGNALS:
   void ProgressChanged( int n );
 
@@ -238,7 +232,6 @@ protected:
 
   double    m_dBounds[6];
   bool      m_bCrop;
-  bool      m_bCropToOriginal;
 };
 
 #endif

@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2012/04/06 19:15:28 $
- *    $Revision: 1.11.2.5 $
+ *    $Date: 2012/04/11 19:46:18 $
+ *    $Revision: 1.11.2.6 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -26,7 +26,6 @@
 #include "MainWindow.h"
 #include "LayerCollection.h"
 #include "LayerMRI.h"
-#include "LayerPropertyMRI.h"
 #include "LayerLandmarks.h"
 #include "RenderView.h"
 #include "vtkMatrix4x4.h"
@@ -289,10 +288,6 @@ void DialogTransformVolume::DoRotate()
     {
       re.SampleMethod = SAMPLE_NEAREST;
     }
-    else if (ui->radioButtonCubic->isChecked())
-    {
-      re.SampleMethod = SAMPLE_CUBIC_BSPLINE;
-    }
     if (ui->radioButtonRotateManual->isChecked())
     {
       if ( ui->radioButtonAroundCursor->isChecked() )
@@ -390,20 +385,6 @@ void DialogTransformVolume::OnActiveLayerChanged()
   LayerMRI* layer = (LayerMRI* )MainWindow::GetMainWindow()->GetActiveLayer( "MRI" );
   LayerLandmarks* landmarks = (LayerLandmarks*)MainWindow::GetMainWindow()->GetSupplementLayer( "Landmarks" );
   landmarks->SetMRIRef(layer);
-}
-
-void DialogTransformVolume::OnSampleMethodChanged()
-{
-  LayerMRI* layer = (LayerMRI* )MainWindow::GetMainWindow()->GetActiveLayer( "MRI" );
-  if (layer)
-  {
-    int nMethod = SAMPLE_NEAREST;
-    if (ui->radioButtonTrilinear->isChecked())
-      nMethod = SAMPLE_TRILINEAR;
-    else if (ui->radioButtonCubic->isChecked())
-      nMethod = SAMPLE_CUBIC_BSPLINE;
-    layer->GetProperty()->SetResliceInterpolation(nMethod);
-  }
 }
 
 

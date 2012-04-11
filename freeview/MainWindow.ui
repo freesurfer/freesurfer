@@ -277,8 +277,6 @@
     <addaction name="actionSavePointSet"/>
     <addaction name="actionSavePointSetAs"/>
     <addaction name="separator"/>
-    <addaction name="actionLoadTrack"/>
-    <addaction name="separator"/>
     <addaction name="actionSaveScreenshot"/>
     <addaction name="actionSaveMovieFrames"/>
     <addaction name="separator"/>
@@ -328,7 +326,6 @@
     <addaction name="separator"/>
     <addaction name="actionShowCoordinateAnnotation"/>
     <addaction name="actionShowColorScale"/>
-    <addaction name="actionTimeCourse"/>
     <addaction name="actionToggleCursorVisibility"/>
     <addaction name="actionShowSlices"/>
     <addaction name="actionShowSliceFrames"/>
@@ -364,7 +361,7 @@
     </property>
     <widget class="QMenu" name="menuVolume_Fiilter">
      <property name="title">
-      <string>Volume Filter</string>
+      <string>Volume Fiilter</string>
      </property>
      <addaction name="actionVolumeFilterMean"/>
      <addaction name="actionVolumeFilterMedian"/>
@@ -383,8 +380,6 @@
     <addaction name="actionGoToPoint"/>
     <addaction name="separator"/>
     <addaction name="actionShowLabelStats"/>
-    <addaction name="separator"/>
-    <addaction name="actionPlot"/>
    </widget>
    <widget class="QMenu" name="menuHelp">
     <property name="title">
@@ -430,6 +425,7 @@
    <addaction name="actionRedo"/>
    <addaction name="separator"/>
    <addaction name="actionShowControlPanel"/>
+   <addaction name="actionShowCommandConsole"/>
    <addaction name="separator"/>
    <addaction name="actionLayout1x1"/>
    <addaction name="actionLayout2x2"/>
@@ -443,7 +439,6 @@
    <addaction name="separator"/>
    <addaction name="actionShowCoordinateAnnotation"/>
    <addaction name="actionShowColorScale"/>
-   <addaction name="actionTimeCourse"/>
    <addaction name="separator"/>
    <addaction name="actionSaveScreenshot"/>
    <addaction name="separator"/>
@@ -1050,6 +1045,9 @@
    <property name="text">
     <string>Show Label Stats...</string>
    </property>
+   <property name="shortcut">
+    <string>Alt+T</string>
+   </property>
   </action>
   <action name="actionQuickReference">
    <property name="text">
@@ -1232,37 +1230,6 @@
    </property>
    <property name="shortcut">
     <string>Alt+A</string>
-   </property>
-  </action>
-  <action name="actionIntensityProject">
-   <property name="text">
-    <string>Create Intensity Projection Map</string>
-   </property>
-  </action>
-  <action name="actionTimeCourse">
-   <property name="checkable">
-    <bool>true</bool>
-   </property>
-   <property name="checked">
-    <bool>true</bool>
-   </property>
-   <property name="icon">
-    <iconset resource="freeview.qrc">
-     <normaloff>:/resource/icons/view_time_course.png</normaloff>:/resource/icons/view_time_course.png</iconset>
-   </property>
-   <property name="text">
-    <string>Show Time Course</string>
-   </property>
-   <property name="toolTip">
-    <string>View Time Course</string>
-   </property>
-  </action>
-  <action name="actionPlot">
-   <property name="text">
-    <string>Plot FSGD Data...</string>
-   </property>
-   <property name="toolTip">
-    <string>Plot FSGD Data</string>
    </property>
   </action>
  </widget>
@@ -2315,70 +2282,6 @@
     </hint>
    </hints>
   </connection>
-  <connection>
-   <sender>actionRepositionSurface</sender>
-   <signal>triggered()</signal>
-   <receiver>MainWindow</receiver>
-   <slot>OnRepositionSurface()</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>-1</x>
-     <y>-1</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>606</x>
-     <y>435</y>
-    </hint>
-   </hints>
-  </connection>
-  <connection>
-   <sender>actionShowLabelStats</sender>
-   <signal>triggered()</signal>
-   <receiver>MainWindow</receiver>
-   <slot>OnShowLabelStats()</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>-1</x>
-     <y>-1</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>606</x>
-     <y>435</y>
-    </hint>
-   </hints>
-  </connection>
-  <connection>
-   <sender>actionSaveROIAs</sender>
-   <signal>triggered()</signal>
-   <receiver>MainWindow</receiver>
-   <slot>OnSaveROIAs()</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>-1</x>
-     <y>-1</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>606</x>
-     <y>435</y>
-    </hint>
-   </hints>
-  </connection>
-  <connection>
-   <sender>actionPlot</sender>
-   <signal>triggered()</signal>
-   <receiver>MainWindow</receiver>
-   <slot>OnPlot()</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>-1</x>
-     <y>-1</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>606</x>
-     <y>435</y>
-    </hint>
-   </hints>
-  </connection>
  </connections>
  <slots>
   <slot>OnLoadVolume()</slot>
@@ -2439,10 +2342,5 @@
   <slot>OnIncreaseOpacity()</slot>
   <slot>OnDecreaseOpacity()</slot>
   <slot>OnToggleCursorVisibility(bool)</slot>
-  <slot>OnCreateIntensityProjectionMap()</slot>
-  <slot>OnRepositionSurface()</slot>
-  <slot>OnShowLabelStats()</slot>
-  <slot>OnSaveROIAs()</slot>
-  <slot>OnPlot()</slot>
  </slots>
 </ui>

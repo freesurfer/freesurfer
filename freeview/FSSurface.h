@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2012/04/06 19:15:28 $
- *    $Revision: 1.32.2.3 $
+ *    $Date: 2012/04/11 19:46:18 $
+ *    $Revision: 1.32.2.4 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -186,8 +186,6 @@ public:
   void Reposition( FSVolume* volume, int target_vnos, double target_val, int nsize, double sigma );
 
   void Reposition( FSVolume* volume, int target_vnos, double* coord, int nsize, double sigma );
-
-  void RepositionVertex( int vno, double* coord );
 
   void UndoReposition();
 

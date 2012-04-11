@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>326</width>
-    <height>629</height>
+    <width>323</width>
+    <height>590</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -92,7 +92,7 @@
           <number>1</number>
          </property>
          <property name="maximum">
-          <number>512</number>
+          <number>100</number>
          </property>
         </widget>
        </item>
@@ -465,29 +465,6 @@ connected to old labels</string>
       </layout>
      </item>
      <item>
-      <widget class="QCheckBox" name="checkBoxFill3D">
-       <property name="text">
-        <string>Flood fill multiple slices at a time</string>
-       </property>
-      </widget>
-     </item>
-     <item>
-      <spacer name="verticalSpacer_2">
-       <property name="orientation">
-        <enum>Qt::Vertical</enum>
-       </property>
-       <property name="sizeType">
-        <enum>QSizePolicy::Fixed</enum>
-       </property>
-       <property name="sizeHint" stdset="0">
-        <size>
-         <width>5</width>
-         <height>3</height>
-        </size>
-       </property>
-      </spacer>
-     </item>
-     <item>
       <widget class="QLabel" name="labelTips">
        <property name="text">
         <string>Tips:
@@ -574,7 +551,7 @@ Alt + L to turn on/off label outline display mode.</string>
     <string>Fill</string>
    </property>
    <property name="toolTip">
-    <string>Flood Fill</string>
+    <string>Fill</string>
    </property>
   </action>
   <action name="actionContour">

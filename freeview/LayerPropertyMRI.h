@@ -11,8 +11,8 @@
  * Reimplemented by: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2012/04/06 19:15:29 $
- *    $Revision: 1.4.2.2 $
+ *    $Date: 2012/04/11 19:46:19 $
+ *    $Revision: 1.4.2.3 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -78,11 +78,10 @@ public:
 
   enum UpSampleMethod
   {
-    UM_None = 0, UM_NearestNeighbor, UM_Linear, UM_Cubic
+    UM_None = 0, UM_NearestNeighbor, UM_BiLinear
   };
 
   QVariantMap GetSettings();
-  QVariantMap GetActiveSettings();
   void CopySettings  ( const LayerPropertyMRI* p );
   void RestoreSettings(const QVariantMap& map);
   void RestoreSettings( const QString& filename );
@@ -292,18 +291,6 @@ public:
     return m_nContourSmoothIterations;
   }
 
-  bool GetShowProjectionMap()
-  {
-    return m_bShowProjectionMap;
-  }
-
-  bool GetRememberFrameSettings()
-  {
-    return m_bRememberFrameSettings;
-  }
-
-  void SetActiveFrame(int nFrame);
-
 public slots:
   void SetOpacity( double opacity );
   void SetUpSampleMethod( int nUpSampleMethod );
@@ -330,8 +317,6 @@ public slots:
   {
     SetContourColor(c.redF(), c.greenF(), c.blueF());
   }
-  void SetShowProjectionMap(bool bShow);
-  void SetRememberFrameSettings(bool bFlag);
 
 signals:
   void ColorMapChanged();
@@ -346,7 +331,6 @@ signals:
   void ContourSmoothIterationChanged( int );
   void LabelOutlineChanged( bool bOutline );
   void UpSampleMethodChanged( int nMethod );
-  void ProjectionMapShown(bool bShown);
 
 private:
 
@@ -397,9 +381,6 @@ private:
   double  mWindowRange[2];
   double  mLevelRange[2];
 
-  bool    m_bRememberFrameSettings;
-  QVariantMap m_frameSettings;
-
   // LUT drawing.
   COLOR_TABLE* mFreeSurferCTAB;
 
@@ -423,12 +404,9 @@ private:
   bool    m_bShowLabelOutline;
   int     m_nUpSampleMethod;
 
-  bool    m_bShowProjectionMap;
-
   // ---------------------------------------------------------------------
 
   FSVolume*   mSource;
-  int     m_nActiveFrame;
   QString mfnVolume;
   //ETX
 

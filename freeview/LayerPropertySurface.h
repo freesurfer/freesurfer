@@ -10,8 +10,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2012/04/06 19:15:29 $
- *    $Revision: 1.4.2.2 $
+ *    $Date: 2012/04/11 19:46:19 $
+ *    $Revision: 1.4.2.3 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -178,7 +178,6 @@ Q_SIGNALS:
   void MeshRenderChanged();
   void ColorMapChanged();
   void PositionChanged();
-  void PositionChanged(double dx, double dy, double dz);
 
 private:
   void SetColorMapChanged();

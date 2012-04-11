@@ -1,14 +1,14 @@
 /**
  * @file  RenderView.cpp
- * @brief View class for rendering 2D and 3D actors
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
  *
  */
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2012/04/06 19:15:30 $
- *    $Revision: 1.40.2.1 $
+ *    $Date: 2012/04/11 19:46:20 $
+ *    $Revision: 1.40.2.2 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -26,11 +26,6 @@
 #include "MainWindow.h"
 #include "LayerMRI.h"
 #include "LayerPropertyMRI.h"
-#include "LayerPointSet.h"
-#include "LayerPropertyPointSet.h"
-#include "LayerSurface.h"
-#include "SurfaceOverlay.h"
-#include "SurfaceOverlayProperty.h"
 #include <QTimer>
 #include <QApplication>
 #include "MyVTKUtils.h"
@@ -45,9 +40,7 @@
 #include "vtkMath.h"
 #include "vtkScalarBarActor.h"
 #include "vtkLookupTable.h"
-#include "vtkRGBAColorTransferFunction.h"
 #include <QPainter>
-#include <QAction>
 
 #define SCALE_FACTOR  200
 
@@ -265,15 +258,14 @@ void RenderView::keyReleaseEvent( QKeyEvent* event )
   }
 }
 
-void RenderView::SetWorldCoordinateInfo( const double* origin, const double* size, bool bResetView )
+void RenderView::SetWorldCoordinateInfo( const double* origin, const double* size )
 {
   for ( int i = 0; i < 3; i++ )
   {
     m_dWorldOrigin[i] = origin[i];
     m_dWorldSize[i] = size[i];
   }
-  if (bResetView)
-    UpdateViewByWorldCoordinate();
+  UpdateViewByWorldCoordinate();
 }
 
 void RenderView::ViewportToWorld( double x, double y, double& world_x, double& world_y, double& world_z )
@@ -424,61 +416,10 @@ bool RenderView::GetShowScalarBar()
 
 void RenderView::UpdateScalarBar()
 {
-  if (m_layerScalarBar.isNull())
+  LayerMRI* mri = (LayerMRI*)MainWindow::GetMainWindow()->GetActiveLayer( "MRI" );
+  if ( mri )
   {
-    QList<Layer*> layers = MainWindow::GetMainWindow()->GetLayers("MRI");
-    foreach (Layer* layer, layers)
-    {
-      LayerMRI* mri = qobject_cast<LayerMRI*>(layer);
-      if (mri && mri->GetProperty()->GetColorMap() != LayerPropertyMRI::LUT)
-      {
-        m_actorScalarBar->SetLookupTable( mri->GetProperty()->GetActiveLookupTable() );
-        m_layerScalarBar = mri;
-        break;
-      }
-    }
-  }
-  else
-  {
-    if (m_layerScalarBar->IsTypeOf("MRI"))
-    {
-      LayerMRI* mri = qobject_cast<LayerMRI*>(m_layerScalarBar);
-      m_actorScalarBar->SetLookupTable( mri->GetProperty()->GetActiveLookupTable() );
-    }
-    else if (m_layerScalarBar->IsTypeOf("PointSet"))
-    {
-      LayerPointSet* ps = qobject_cast<LayerPointSet*>(m_layerScalarBar);
-      if (ps->GetProperty()->GetColorMap() == LayerPropertyPointSet::HeatScale)
-      {
-        m_actorScalarBar->SetLookupTable(ps->GetProperty()->GetHeatScaleLUT());
-      }
-    }
-    else if (m_layerScalarBar->IsTypeOf("Surface"))
-    {
-      LayerSurface* surf = qobject_cast<LayerSurface*>(m_layerScalarBar);
-      if (surf->GetActiveOverlay())
-        m_actorScalarBar->SetLookupTable( surf->GetActiveOverlay()->GetProperty()->GetLookupTable() );
-    }
-  }
-}
-
-void RenderView::SetScalarBarLayer(Layer *layer)
-{
-  m_layerScalarBar = layer;
-  UpdateScalarBar();
-  if (!GetShowScalarBar())
-    ShowScalarBar(true);
-}
-
-void RenderView::SetScalarBarLayer(QAction *act)
-{
-  Layer* layer = qobject_cast<Layer*>(act->data().value<QObject*>());
-  if (layer)
-  {
-    if (act->isChecked())
-      SetScalarBarLayer(layer);
-    else
-      ShowScalarBar(false);
+    m_actorScalarBar->SetLookupTable( mri->GetProperty()->GetActiveLookupTable() );
   }
 }
 

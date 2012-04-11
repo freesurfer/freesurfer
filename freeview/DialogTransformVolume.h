@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2012/04/06 19:15:28 $
- *    $Revision: 1.10.2.5 $
+ *    $Date: 2012/04/11 19:46:18 $
+ *    $Revision: 1.10.2.6 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -75,8 +75,6 @@ protected slots:
   void OnLineEditScaleX(const QString& text);
   void OnLineEditScaleY(const QString& text);
   void OnLineEditScaleZ(const QString& text);
-
-  void OnSampleMethodChanged();
 
   void OnActiveLayerChanged();
 

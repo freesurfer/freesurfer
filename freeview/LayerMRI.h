@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2012/04/06 19:15:29 $
- *    $Revision: 1.61.2.6 $
+ *    $Date: 2012/04/11 19:46:19 $
+ *    $Revision: 1.61.2.7 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -57,11 +57,6 @@ class BuildContourThread;
 class Contour2D;
 class SurfaceRegion;
 class SurfaceRegionGroups;
-class LayerMRIWorkerThread;
-
-#ifndef IntList
-typedef QList<int> IntList;
-#endif
 
 class LayerMRI : public LayerVolumeBase
 {
@@ -80,7 +75,7 @@ public:
   }
 
   bool LoadVolumeFromFile();
-  bool Create( LayerMRI* mri, bool bCopyVoxel, int data_type = -1, int voxel_option = -1 );
+  bool Create( LayerMRI* mri, bool bCopyVoxel, int data_type = -1, int dummy_option = -1 );
 
   virtual void Append2DProps( vtkRenderer* renderer, int nPlane );
   virtual void Append3DProps( vtkRenderer* renderer, bool* bPlaneVisibility = NULL );
@@ -92,14 +87,15 @@ public:
   void SetSlicePositionToWorldCenter();
 
   virtual double GetVoxelValue( double* pos );
-  double GetVoxelValueByOriginalIndex( int i, int j, int k, int frame = -1 );
-  QList<double> GetVoxelValueByOriginalIndexAllFrames(int i, int j, int k);
-  double GetSampledVoxelValueByRAS(double* ras, int frame = -1);
+  virtual double GetVoxelValueByOriginalIndex( int i, int j, int k );
 
   virtual QString GetLabelName( double value );
 
   void RASToOriginalIndex( const double* pos, int* n );
   void OriginalIndexToRAS( const int* n, double* pos );
+
+
+//  virtual void DoListenToMessage ( std::string const iMessage, void* iData, void* sender );
 
   virtual void SetVisible( bool bVisible = true );
   virtual bool IsVisible();
@@ -169,8 +165,6 @@ public:
 
   bool GetVoxelsOnLine( const double* pt0, const double* pt1, int nPlane, int*& indice_out, double*& value_out, int* cnt_out );
 
-  bool GetVoxelStats(QList<int>& indices, double* mean_out, double* sd_out = NULL);
-
   void ResetWindowLevel();
 
   int GetDataType();
@@ -179,8 +173,7 @@ public:
 
   void SnapToVoxelCenter( const double* pt_in, double* pt_out );
 
-  void GetCurrentLabelStats( int nPlane, float* label_out, int* count_out, float* area_out,
-                             LayerMRI* underlying_mri = NULL, double* mean_out = NULL, double* sd_out = NULL );
+  void GetCurrentLabelStats( int nPlane, float* label_out, int* count_out, float* area_out );
 
   vtkImageData* GetSliceImageData( int nPlane );
 
@@ -216,8 +209,6 @@ public:
   bool LoadSurfaceRegions( const QString& fn );
 
   QString GetOrientationString();
-
-  void SetCropToOriginal(bool bCropToOriginal);
 
   void SetCroppingBounds( double* bounds );
 
@@ -261,15 +252,6 @@ public:
     return m_nGotoLabelSlice;
   }
 
-  double GetTR();
-
-  QList<int> GetAvailableLabels()
-  {
-    return m_nAvailableLabels;
-  }
-
-  bool SaveIsoSurface(const QString& fn);
-
 public slots:
   void SetActiveFrame( int nFrame );
   void SetActiveFrameOneBase( int nFrame )
@@ -285,7 +267,6 @@ Q_SIGNALS:
   void SurfaceRegionUpdated();
   void SurfaceRegionRemoved();
   void IsoSurfaceUpdated();
-  void LabelStatsReady();
 
 protected slots:
   void UpdateDisplayMode();
@@ -305,14 +286,11 @@ protected slots:
 
   void UpdateLabelOutline();
   void UpdateUpSampleMethod();
-  void UpdateProjectionMap();
 
   void UpdateTensorActor();
   virtual void UpdateColorMap();
 
   void OnContourThreadFinished(int thread_id);
-
-  void OnAvailableLabels(const IntList& vals);
 
 protected:
   virtual void DoTransform(double *mat, int sample_method);
@@ -341,7 +319,6 @@ protected:
   // Pipeline ------------------------------------------------------------
   vtkSmartPointer<vtkImageReslice>      mReslice[3];
   vtkSmartPointer<vtkImageMapToColors>  mColorMap[3];
-  vtkSmartPointer<vtkImageMapToColors>  mColorMapMaxProjection[3];
   vtkSmartPointer<vtkSimpleLabelEdgeFilter>   mEdgeFilter[3];
   vtkSmartPointer<vtkImageResample>     mResample[3];
 
@@ -358,8 +335,6 @@ protected:
 
   vtkActor*       m_glyphActor2D[3];
   vtkActor*       m_glyphActor3D[3];
-
-  vtkImageActor*  m_projectionMapActor[3];
 
   struct SegmentationActor
   {
@@ -388,11 +363,7 @@ protected:
 private:
   double**    private_buf1_3x3;
   double**    private_buf2_3x3;
-
-  LayerMRIWorkerThread* m_worker;
-  QList<int>  m_nAvailableLabels;
 };
-
 
 #endif
 

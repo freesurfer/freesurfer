@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2012/04/06 19:15:29 $
- *    $Revision: 1.29.2.1 $
+ *    $Date: 2012/04/11 19:46:19 $
+ *    $Revision: 1.29.2.2 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -32,7 +32,6 @@
 #include "LayerMRI.h"
 #include "CursorFactory.h"
 #include "VolumeCropper.h"
-#include "SurfaceROI.h"
 #include <vtkRenderer.h>
 
 Interactor3D::Interactor3D(QObject* parent) :
@@ -40,8 +39,7 @@ Interactor3D::Interactor3D(QObject* parent) :
   m_nMousePosX( -1 ),
   m_nMousePosY( -1 ),
   m_bWindowLevel( false ),
-  m_bMoveSlice( false ),
-  m_surfaceROI( NULL )
+  m_bMoveSlice( false )
 {}
 
 Interactor3D::~Interactor3D()
@@ -64,12 +62,6 @@ bool Interactor3D::ProcessMouseDownEvent( QMouseEvent* event, RenderView* render
   {
     m_bMoveSlice = true;
   }
-  else if ( event->button() == Qt::LeftButton && event->modifiers() & CONTROL_MODIFIER )
-  {
-    m_surfaceROI = view->InitializeSurfaceROI(event->x(), event->y());
-    if (m_surfaceROI)
-      return false;   // intercept the event, do not pass down
-  }
   else
   {
     return Interactor::ProcessMouseDownEvent( event, renderview ); // pass down the event
@@ -82,12 +74,7 @@ bool Interactor3D::ProcessMouseUpEvent( QMouseEvent* event, RenderView* rendervi
 {
   RenderView3D* view = ( RenderView3D* )renderview;
 
-  if (m_surfaceROI)
-  {
-    m_surfaceROI->Close();
-    view->RequestRedraw();
-  }
-  else if ( event->x() == m_nMousePosX && event->y() == m_nMousePosY )
+  if ( event->x() == m_nMousePosX && event->y() == m_nMousePosY )
   {
     if ( event->button() == Qt::LeftButton )
     {
@@ -103,8 +90,6 @@ bool Interactor3D::ProcessMouseUpEvent( QMouseEvent* event, RenderView* rendervi
 
   m_bWindowLevel = false;
   m_bMoveSlice = false;
-
-  m_surfaceROI = NULL;
 
   return Interactor::ProcessMouseUpEvent( event, renderview );
 }
@@ -147,10 +132,6 @@ bool Interactor3D::ProcessMouseMoveEvent( QMouseEvent* event, RenderView* render
   else if ( m_bMoveSlice )
   {
     view->MoveSliceToScreenCoord( posX, posY );
-  }
-  else if (m_surfaceROI)
-  {
-    view->AddSurfaceROIPoint(posX, posY );
   }
   else
   {

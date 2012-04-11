@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2012/04/06 19:15:28 $
- *    $Revision: 1.26.2.4 $
+ *    $Date: 2012/04/11 19:46:18 $
+ *    $Revision: 1.26.2.5 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -31,11 +31,6 @@
 #include <QFileInfo>
 #include <QFileDialog>
 #include <QMessageBox>
-
-extern "C"
-{
-#include "mri.h"
-}
 
 DialogLoadVolume::DialogLoadVolume(QWidget *parent) :
   QDialog(parent),
@@ -167,14 +162,12 @@ int DialogLoadVolume::GetSampleMethod()
 {
   if ( ui->radioNearest->isChecked() )
   {
-    return SAMPLE_NEAREST;
-  }
-  else if (ui->radioTrilinear->isChecked())
-  {
-    return SAMPLE_TRILINEAR;
+    return 0;
   }
   else
-    return SAMPLE_CUBIC_BSPLINE;
+  {
+    return 1;
+  }
 }
 
 QString DialogLoadVolume::GetColorMap()

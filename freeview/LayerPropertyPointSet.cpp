@@ -11,8 +11,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2012/04/06 19:15:29 $
- *    $Revision: 1.4.2.2 $
+ *    $Date: 2012/04/11 19:46:19 $
+ *    $Revision: 1.4.2.3 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -97,13 +97,11 @@ void LayerPropertyPointSet::SetColorMapChanged ()
     break;
   case HeatScale:
     m_lutHeatScale->RemoveAllPoints();
-    /*
     m_lutHeatScale->AddRGBAPoint( -m_dHeatScaleMax + m_dHeatScaleOffset, 0, 1, 1, 1 );
     m_lutHeatScale->AddRGBAPoint( -m_dHeatScaleMid + m_dHeatScaleOffset, 0, 0, 1, 1 );
     m_lutHeatScale->AddRGBAPoint( -m_dHeatScaleMin + m_dHeatScaleOffset, 0, 0, 1, 0 );
-    */
-    m_lutHeatScale->AddRGBAPoint(  m_dHeatScaleMin + m_dHeatScaleOffset, 1, 0, 0, 1 );
-    m_lutHeatScale->AddRGBAPoint(  m_dHeatScaleMid + m_dHeatScaleOffset, 1, 0.5, 0, 1 );
+    m_lutHeatScale->AddRGBAPoint(  m_dHeatScaleMin + m_dHeatScaleOffset, 1, 0, 0, 0 );
+    m_lutHeatScale->AddRGBAPoint(  m_dHeatScaleMid + m_dHeatScaleOffset, 1, 0, 0, 1 );
     m_lutHeatScale->AddRGBAPoint(  m_dHeatScaleMax + m_dHeatScaleOffset, 1, 1, 0, 1 );
     /* mHeatScaleTable->AddRGBAPoint(  mHeatScaleMinThreshold, 0, 0, 0, 0 );
      mHeatScaleTable->AddRGBAPoint(  mHeatScaleMinThreshold+0.0001, 0, 0, 0, 1 );
@@ -290,13 +288,21 @@ double LayerPropertyPointSet::GetScalarMaxValue()
 
   return max;
 }
-
+/*
+void LayerPropertyPointSet::DoListenToMessage ( std::string const iMessage,
+               void* iData, void* sender )
+{
+  if ( iMessage == "LayerObjectDeleted" && iData == m_layerScalar )
+  {
+    m_layerScalar = NULL;
+  }
+}
+*/
 bool LayerPropertyPointSet::LoadScalarsFromFile( const QString& filename )
 {
   QFile file(filename);
   if (!file.open(QIODevice::ReadOnly | QIODevice::Text))
   {
-    cerr << qPrintable(file.errorString()) << "\n";;
     return false;
   }
 

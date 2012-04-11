@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2012/04/06 19:15:29 $
- *    $Revision: 1.4.2.2 $
+ *    $Date: 2012/04/11 19:46:19 $
+ *    $Revision: 1.4.2.3 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -24,79 +24,7 @@
 #include "LayerPropertyTrack.h"
 
 LayerPropertyTrack::LayerPropertyTrack(QObject* parent) :
-  LayerProperty(parent),
-  m_nColorCode(Directional),
-  m_nDirectionScheme(EndPoints),
-  m_nDirectionMapping(RGB),
-  m_color(Qt::yellow),
-  m_nRenderRep(Line),
-  m_dTubeRadius(0.2),
-  m_nNumberOfSides(5)
+  LayerProperty(parent)
 {
-  connect(this, SIGNAL(ColorCodeChanged(int)), this, SIGNAL(PropertyChanged()));
-  connect(this, SIGNAL(DirectionSchemeChanged(int)), this, SIGNAL(PropertyChanged()));
-  connect(this, SIGNAL(DirectionMappingChanged(int)), this, SIGNAL(PropertyChanged()));
-  connect(this, SIGNAL(SolidColorChanged(QColor)), this, SIGNAL(PropertyChanged()));
-  connect(this, SIGNAL(RenderRepChanged()), this, SIGNAL(PropertyChanged()));
-}
-
-void LayerPropertyTrack::SetColorCode(int nCode)
-{
-  if (m_nColorCode != nCode)
-  {
-    m_nColorCode = nCode;
-    emit ColorCodeChanged(nCode);
-  }
-}
-
-void LayerPropertyTrack::SetDirectionScheme(int nVal)
-{
-  if (m_nDirectionScheme != nVal)
-  {
-    m_nDirectionScheme = nVal;
-    emit DirectionSchemeChanged(nVal);
-  }
-}
-
-void LayerPropertyTrack::SetDirectionMapping(int nVal)
-{
-  if (m_nDirectionMapping != nVal)
-  {
-    m_nDirectionMapping = nVal;
-    emit DirectionMappingChanged(nVal);
-  }
-}
-
-void LayerPropertyTrack::SetSolidColor(const QColor &c)
-{
-  if (m_color != c)
-  {
-    m_color = c;
-    emit SolidColorChanged(c);
-  }
-}
-
-void LayerPropertyTrack::SetRenderRep(int nVal)
-{
-  m_nRenderRep = nVal;
-  emit RenderRepChanged();
-}
-
-void LayerPropertyTrack::SetTubeRadius(double dVal)
-{
-  if (dVal != m_dTubeRadius)
-  {
-    m_dTubeRadius = dVal;
-    SetRenderRep(m_nRenderRep);
-  }
-}
-
-void LayerPropertyTrack::SetNumberOfSides(int nVal)
-{
-  if (nVal != m_nNumberOfSides)
-  {
-    m_nNumberOfSides = nVal;
-    SetRenderRep(m_nRenderRep);
-  }
 }
 

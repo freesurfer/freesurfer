@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2012/04/06 19:15:29 $
- *    $Revision: 1.40.2.3 $
+ *    $Date: 2012/04/11 19:46:19 $
+ *    $Revision: 1.40.2.4 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -28,7 +28,6 @@
 
 #include "LayerEditable.h"
 #include "vtkSmartPointer.h"
-#include <QList>
 
 class vtkImageReslice;
 class vtkImageMapToColors;
@@ -48,7 +47,6 @@ class LayerMRI;
 class SurfaceOverlay;
 class SurfaceAnnotation;
 class SurfaceLabel;
-class SurfaceROI;
 
 class LayerSurface : public LayerEditable
 {
@@ -151,8 +149,6 @@ public:
 
   void SetActiveOverlay( const QString& name );
 
-  SurfaceOverlay* GetCorrelationOverlay();
-
   void CopyCorrelationOverlay(LayerSurface* surf);
 
   // annotation functions
@@ -198,7 +194,6 @@ public:
 
   void RepositionSurface( LayerMRI* mri, int nVertex, double value, int size, double sigma );
   void RepositionSurface( LayerMRI* mri, int nVertex, double* pos, int size, double sigma );
-  void RepositionVertex( int nVertex, double* pos);
 
   void Undo();
   bool HasUndo();
@@ -210,11 +205,6 @@ public:
 
   int GetNumberOfVertices();
 
-  SurfaceROI* GetSurfaceROI()
-  {
-    return m_roi;
-  }
-
 public slots:
   void SetActiveSurface( int nSurfaceType );
   void UpdateOverlay( bool bAskRedraw = true );
@@ -222,11 +212,7 @@ public slots:
   {
     m_bLoadAll = bLoadAll;
   }
-
   void SetActiveLabelColor(const QColor& c);
-  void SetActiveLabelOutline(bool bOutline);
-
-  void SetActiveAnnotationOutline(bool bOutline);
 
 Q_SIGNALS:
   void SurfaceAnnotationAdded( SurfaceAnnotation* );
@@ -249,7 +235,6 @@ protected slots:
   void UpdateVertexRender();
   void UpdateMeshRender();
   void UpdateActorPositions();
-  void UpdateROIPosition(double dx, double dy, double dz);
   void UpdateVectorActor2D();
 
 protected:
@@ -284,16 +269,14 @@ protected:
   vtkSmartPointer<vtkActor>   m_vertexActor;
   vtkSmartPointer<vtkActor>   m_wireframeActor;
 
-  QList<SurfaceOverlay*>    m_overlays;
+  std::vector<SurfaceOverlay*>    m_overlays;
   int         m_nActiveOverlay;
 
-  QList<SurfaceAnnotation*> m_annotations;
+  std::vector<SurfaceAnnotation*> m_annotations;
   int         m_nActiveAnnotation;
 
-  QList<SurfaceLabel*>      m_labels;
+  std::vector<SurfaceLabel*>      m_labels;
   int         m_nActiveLabel;
-
-  SurfaceROI*           m_roi;
 
   bool        m_bUndoable;
   bool        m_bVector2DPendingUpdate;

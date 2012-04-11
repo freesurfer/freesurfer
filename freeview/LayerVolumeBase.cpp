@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2012/04/06 19:15:29 $
- *    $Revision: 1.22.2.1 $
+ *    $Date: 2012/04/11 19:46:19 $
+ *    $Revision: 1.22.2.2 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -274,56 +274,33 @@ bool LayerVolumeBase::SetVoxelByIndex( int* n1, int* n2, int nPlane, bool bAdd )
   return true;
 }
 
-bool LayerVolumeBase::FloodFillByRAS( double* ras, int nPlane, bool bAdd, bool b3D, char* mask_out )
+bool LayerVolumeBase::FloodFillByRAS( double* ras, int nPlane, bool bAdd, char* mask_out )
 {
   int n[3];
   double* origin = m_imageData->GetOrigin();
   double* voxel_size = m_imageData->GetSpacing();
-  int* dim = m_imageData->GetDimensions();
   for ( int i = 0; i < 3; i++ )
   {
     n[i] = ( int )( ( ras[i] - origin[i] ) / voxel_size[i] + 0.5 );
   }
 
-  if (!b3D)
+  if ( FloodFillByIndex( n, nPlane, bAdd, mask_out ) )
   {
-    if ( FloodFillByIndex( n, nPlane, bAdd, true, mask_out ) )
+    if ( !mask_out )
     {
-      if ( !mask_out )
-      {
-        SetModified();
-      }
-      emit ActorUpdated();
-      return true;
+      SetModified();
     }
-    else
-    {
-      return false;
-    }
+    emit ActorUpdated();
+    return true;
   }
   else
   {
-    int n0[3] = { n[0], n[1], n[2]};
-    for (int i = n0[nPlane]; i < dim[nPlane]; i++)
-    {
-      n[nPlane] = i;
-      if (!FloodFillByIndex( n, nPlane, bAdd, false))
-        break;
-    }
-    for (int i = n0[nPlane]-1; i >= 0; i--)
-    {
-      n[nPlane] = i;
-      if (!FloodFillByIndex( n, nPlane, bAdd, false))
-        break;
-    }
-    SetModified();
-    emit ActorUpdated();
-    return true;
+    return false;
   }
 }
 
 // when mask_out is not null, do not fill the actual image data. instead, fill the mask_out buffer
-bool LayerVolumeBase::FloodFillByIndex( int* n, int nPlane, bool bAdd, bool ignore_overflow, char* mask_out )
+bool LayerVolumeBase::FloodFillByIndex( int* n, int nPlane, bool bAdd, char* mask_out )
 {
   int* nDim = m_imageData->GetDimensions();
   int nx = 0, ny = 0, x = 0, y = 0;
@@ -445,14 +422,7 @@ bool LayerVolumeBase::FloodFillByIndex( int* n, int nPlane, bool bAdd, bool igno
   }
 
   MyUtils::FloodFill( mask, x, y, 0, 0, nx-1, ny-1, 2, 0 );
-  if (!ignore_overflow)
-  {
-    if (mask[0][0] == 2 && mask[ny-1][nx=1] == 2)
-    {
-      MyUtils::FreeMatrix( mask, ny );
-      return false;
-    }
-  }
+
   int ncnt;
   switch ( nPlane )
   {

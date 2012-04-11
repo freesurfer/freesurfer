@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2012/04/06 19:15:29 $
- *    $Revision: 1.28.2.1 $
+ *    $Date: 2012/04/11 19:46:19 $
+ *    $Revision: 1.28.2.2 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -31,7 +31,6 @@
 #include "LayerMRI.h"
 #include <vtkRenderer.h>
 #include <QDebug>
-#include <QTimer>
 
 Interactor2D::Interactor2D( QObject* parent ) : Interactor( parent ),
   m_nMousePosX( -1 ),
@@ -54,7 +53,6 @@ bool Interactor2D::ProcessMouseDownEvent( QMouseEvent* event, RenderView* render
 
   view->UpdateAnnotation();
 
-  MainWindow* mainwnd = MainWindow::GetMainWindow();
   if ( ( event->modifiers() & CONTROL_MODIFIER ) &&  !( event->modifiers() & Qt::ShiftModifier ) )
   {
     if ( event->button() == Qt::LeftButton )
@@ -78,8 +76,7 @@ bool Interactor2D::ProcessMouseDownEvent( QMouseEvent* event, RenderView* render
     m_nDownPosX = m_nMousePosX;
     m_nDownPosY = m_nMousePosY;
 
-    if ( !( event->modifiers() & CONTROL_MODIFIER ) &&  ( event->modifiers() & Qt::ShiftModifier ) &&
-         !mainwnd->IsRepositioningSurface())
+    if ( !( event->modifiers() & CONTROL_MODIFIER ) &&  ( event->modifiers() & Qt::ShiftModifier ) )
     {
       m_bWindowLevel = true;
     }
@@ -88,14 +85,6 @@ bool Interactor2D::ProcessMouseDownEvent( QMouseEvent* event, RenderView* render
       m_bMovingCursor = true;
       view->UpdateCursorRASPosition( m_nMousePosX, m_nMousePosY );
       view->RequestRedraw();
-      if (mainwnd->IsRepositioningSurface())
-      {
-        if ( event->modifiers() & CONTROL_MODIFIER &&
-          event->modifiers() & Qt::ShiftModifier)
-          QTimer::singleShot(0, mainwnd, SIGNAL(SurfaceRepositionIntensityChanged()));
-        else if (event->modifiers() & Qt::ShiftModifier)
-          QTimer::singleShot(0, mainwnd, SIGNAL(SurfaceRepositionVertexChanged()));
-      }
     }
   }
   else if ( event->button() == Qt::MidButton && ( event->modifiers() & Qt::ShiftModifier ) )
@@ -172,16 +161,13 @@ bool Interactor2D::ProcessMouseMoveEvent( QMouseEvent* event, RenderView* render
 
   if ( m_bChangeSlice )
   {
-    /*
     double* voxelSize = mainwnd->GetLayerCollection( "MRI" )->GetWorldVoxelSize();
     int nPlane = view->GetViewPlane();
     double dPixelPer = -0.20;
-
     double dPosDiff =  ( ( (int)( dPixelPer * ( posY - m_nDownPosY ) ) ) / dPixelPer -
                          ( (int)( dPixelPer * ( m_nMousePosY - m_nDownPosY ) ) ) / dPixelPer )
                        * dPixelPer * voxelSize[nPlane];
-    if ( lcm->OffsetSlicePosition( nPlane, dPosDiff ) )
-    */
+    //  if ( lcm->OffsetSlicePosition( nPlane, dPosDiff ) )
     {
       m_nMousePosX = posX;
       m_nMousePosY = posY;

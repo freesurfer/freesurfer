@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2012/04/06 19:15:28 $
- *    $Revision: 1.19.2.1 $
+ *    $Date: 2012/04/11 19:46:18 $
+ *    $Revision: 1.19.2.2 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -64,7 +64,6 @@ bool FSLabel::LabelRead( const QString& filename )
   QFile file( filename );
   if (!file.open(QIODevice::ReadOnly | QIODevice::Text))
   {
-    cerr << qPrintable(file.errorString()) << "\n";
     return false;
   }
 

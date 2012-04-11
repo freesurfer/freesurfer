@@ -9,8 +9,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2012/04/06 19:15:28 $
- *    $Revision: 1.12.2.1 $
+ *    $Date: 2012/04/11 19:46:18 $
+ *    $Revision: 1.12.2.2 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -61,11 +61,6 @@ public:
 
   bool GetDrawConnectedOnly();
 
-  bool GetFill3D()
-  {
-    return m_bFill3D;
-  }
-
 public slots:
   void SetBrushSize( int nSize );
   void SetBrushTolerance( int nTolerance );
@@ -74,10 +69,6 @@ public slots:
   void SetExcludeRangeEnabled( bool bEnable );
   void SetDrawConnectedOnly( bool bEnable );
   void OnLayerRemoved(Layer* layer);
-  void SetFill3D(bool bVal)
-  {
-    m_bFill3D = bVal;
-  }
 
 protected:
   int  m_nBrushSize;
@@ -87,7 +78,6 @@ protected:
   double m_dExcludeRange[2];
   bool m_bEnableExcludeRange;
   bool m_bDrawConnectedOnly;
-  bool  m_bFill3D;
 
   LayerVolumeBase* m_layerRef;
 };

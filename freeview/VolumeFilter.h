@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2012/04/06 19:15:31 $
- *    $Revision: 1.7.2.1 $
+ *    $Date: 2012/04/11 19:46:21 $
+ *    $Revision: 1.7.2.2 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -35,7 +35,6 @@ extern "C"
 }
 
 class LayerMRI;
-class QTimer;
 
 class VolumeFilter : public QObject
 {
@@ -64,20 +63,10 @@ public:
     m_nKernelSize = nKernelSize;
   }
 
-  LayerMRI* GetVolumeInput()
-  {
-    return m_volumeInput;
-  }
-
   virtual QString GetName() = 0;
-
-signals:
-  void Progress(int n);
 
 protected slots:
   void OnLayerObjectDeleted();
-  void OnTimeout();
-  void TriggerFakeProgress(int interval);
 
 protected:
   virtual bool Execute() = 0;
@@ -85,8 +74,6 @@ protected:
   int         m_nKernelSize;
   LayerMRI*   m_volumeInput;
   LayerMRI*   m_volumeOutput;
-  int         m_nTimerCount;
-  QTimer*     m_timerProgress;
 };
 
 #endif

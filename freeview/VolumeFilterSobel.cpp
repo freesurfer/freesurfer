@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2012/04/06 19:15:31 $
- *    $Revision: 1.4.2.2 $
+ *    $Date: 2012/04/11 19:46:21 $
+ *    $Revision: 1.4.2.3 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -43,7 +43,6 @@ VolumeFilterSobel::VolumeFilterSobel( LayerMRI* input, LayerMRI* output, QObject
 
 bool VolumeFilterSobel::Execute()
 {
-  TriggerFakeProgress(50);
   vtkSmartPointer<vtkImageSobel3D> filter = vtkSmartPointer<vtkImageSobel3D>::New();
   filter->SetInput( m_volumeInput->GetImageData() );
   vtkSmartPointer<vtkImageMagnitude> mag = vtkSmartPointer<vtkImageMagnitude>::New();

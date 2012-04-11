@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2012/04/06 19:15:30 $
- *    $Revision: 1.6.2.1 $
+ *    $Date: 2012/04/11 19:46:20 $
+ *    $Revision: 1.6.2.2 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -27,7 +27,7 @@
 #define Region2DPolyline_h
 
 #include "Region2D.h"
-#include <QList>
+#include <vector>
 #include "vtkSmartPointer.h"
 
 class vtkActor2D;
@@ -62,10 +62,6 @@ public:
 
   void RemoveLastPoint();
 
-  QString DataToString();
-
-  Region2D* ObjectFromString(RenderView2D* view, const QString& text);
-
 protected:
   void UpdateWorldCoords();
 
@@ -83,8 +79,8 @@ protected:
     double pos[3];
   };
 
-  QList<ScreenPoint>   m_screenPts;       // 2D points
-  QList<WorldPoint>    m_worldPts;
+  std::vector<ScreenPoint>   m_screenPts;       // 2D points
+  std::vector<WorldPoint>    m_worldPts;
 
   bool    m_bSpline;
 };

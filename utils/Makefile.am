@@ -79,7 +79,6 @@ libutils_main_SOURCES=\
 	cma.c \
 	cmdargs.c \
 	colortab.c \
-	connectcomp.c \
 	corio.c \
 	cpputils.cpp \
 	ctrpoints.c \
@@ -150,7 +149,6 @@ libutils_main_SOURCES=\
 	mosaic.c \
 	mri2.c \
 	mri.c \
-  mriBSpline.c \
 	mriclass.c \
 	mri_conform.c \
 	mricurv.c \
@@ -187,7 +185,6 @@ libutils_main_SOURCES=\
 	pdf.c \
 	pgmstubs.c \
 	prime.c \
-	Progname.c \
 	queue.c \
 	randomfields.c \
 	rbf.c \
@@ -197,7 +194,6 @@ libutils_main_SOURCES=\
 	resample.c \
 	rescale.c \
 	retinotopy.c \
-	rforest.c \
 	selxavgio.c \
 	sig.c \
 	signa.c \
@@ -212,6 +208,7 @@ libutils_main_SOURCES=\
 	transform.c \
 	tritri.c \
 	tukey.c \
+	unwarpGradientNonlinearity.c \
 	utils.c \
 	version.c \
 	vlabels.c \

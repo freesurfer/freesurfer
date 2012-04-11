@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2012/04/06 19:15:30 $
- *    $Revision: 1.90.2.6 $
+ *    $Date: 2012/04/11 19:46:20 $
+ *    $Revision: 1.90.2.7 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -35,6 +35,7 @@ class LayerCollection;
 class LayerMRI;
 class BrushProperty;
 class RenderView;
+class QProgressBar;
 class LUTDataHolder;
 class ThreadIOWorker;
 class VolumeCropper;
@@ -51,13 +52,7 @@ class TermWidget;
 class MyCmdLineParser;
 class LayerSurface;
 class DialogWriteMovieFrames;
-class DialogRepositionSurface;
 class QMessageBox;
-class WindowTimeCourse;
-class WindowGroupPlot;
-class DialogLabelStats;
-class VolumeFilterWorkerThread;
-class VolumeFilter;
 
 #define MAX_RECENT_FILES    10
 
@@ -103,8 +98,6 @@ public:
 
   LayerCollection* GetLayerCollection( const QString& strType );
   Layer* GetActiveLayer( const QString& strType );
-  Layer* GetTopVisibleLayer( const QString& strType );
-  QList<Layer*> GetLayers( const QString& strType );
 
   LayerCollection* GetCurrentLayerCollection();
   bool SetSlicePosition( int nPlane, double dPos, bool bRoundToGrid = true );
@@ -130,11 +123,6 @@ public:
   void SetDefaultSampleMethod( int nMethod )
   {
     m_nDefaultSampleMethod = nMethod;
-  }
-
-  void SetDefaultColorMapType(const QString& colormap)
-  {
-    m_strDefaultColorMapType = colormap;
   }
 
   void SetDefaultConform( bool bConform )
@@ -187,14 +175,10 @@ public:
 
   Layer* GetSupplementLayer(const QString& type);
 
-  bool IsRepositioningSurface();
-
 Q_SIGNALS:
   void MainViewChanged( int n );
   void ViewLayoutChanged( int n );
   void SlicePositionChanged();
-  void SurfaceRepositionVertexChanged();
-  void SurfaceRepositionIntensityChanged();
 
 public slots:
   void SetMode( int nMode );
@@ -218,11 +202,6 @@ public slots:
   void ShowAllLayers();
   void HideAllLayers();
   bool ParseCommand(const QString& cmd, bool bAutoQuit = false);
-
-  void SetProgress(int n);
-
-  void SaveSurface();
-  void SaveSurfaceAs();
 
 protected:
   void closeEvent   ( QCloseEvent * event );
@@ -249,7 +228,7 @@ protected:
                         const QString& fn_target = "",
                         bool bAllSurfaces = false );
   void LoadPVolumeFiles( const QStringList& filenames, const QString& prefix, const QString& lut );
-  void LoadROIFile( const QString& fn, const QString& ref_vol, const QColor& color = Qt::yellow );
+  void LoadROIFile( const QString& fn, const QString& ref_vol );
   void LoadWayPointsFile        ( const QString& fn );
   void LoadControlPointsFile    ( const QString& fn );
   void LoadTrackFile            ( const QString& fn );
@@ -258,8 +237,6 @@ protected:
 
   void RunScript();
   void CommandLoadCommand( const QStringList& sa );
-  void CommandHideLayer( const QStringList& sa);
-  void CommandUnloadLayer( const QStringList& sa);
   void CommandLoadVolume( const QStringList& sa );
   void CommandLoadDTI           ( const QStringList& cmd );
   void CommandLoadVolumeTrack   ( const QStringList& cmd );
@@ -290,7 +267,6 @@ protected:
   void CommandSetSurfaceEdgeColor ( const QStringList& cmd );
   void CommandSetSurfaceEdgeThickness ( const QStringList& cmd );
   void CommandSetSurfaceOffset  ( const QStringList& cmd );
-  void CommandSetSurfaceLabelOutline   ( const QStringList& cmd );
   void CommandSetPointSetColor ( const QStringList& cmd );
   void CommandSetPointSetRadius( const QStringList& cmd );
   void CommandSetDisplayVector  ( const QStringList& cmd );
@@ -322,7 +298,6 @@ protected slots:
   void OnNewROI();
   void OnLoadROI();
   void OnSaveROI();
-  void OnSaveROIAs();
   void OnCloseROI();
   void OnNewPointSet();
   void OnLoadPointSet();
@@ -368,10 +343,6 @@ protected slots:
   void OnIncreaseOpacity();
   void OnDecreaseOpacity();
   void OnToggleCursorVisibility(bool bShow);
-  void OnRepositionSurface();
-  void OnShowLabelStats();
-  void OnSaveIsoSurface();
-  void OnPlot();
 
   void OnActiveLayerChanged(Layer*);
 
@@ -388,13 +359,6 @@ protected slots:
 
   void ReassureGeometry();
 
-  void OnVolumeFilterFinished(VolumeFilter* filter);
-
-  void SlotActivateWindow()
-  {
-    this->activateWindow();
-  }
-
 private:
   bool DoParseCommand(bool bAutoQuit);
   void SaveSettings();
@@ -405,8 +369,6 @@ private:
   void ToggleShowLayer(const QString& type );
   bool UpdateSurfaceCorrelation(LayerSurface* layer);
   void ShowNonModalMessage(const QString& title, const QString& msg);
-
-  QColor ParseColorInput(const QString& cmd);
 
   int m_nViewLayout;
   int m_nMainView;
@@ -422,7 +384,6 @@ private:
   bool              m_bResampleToRAS;
   int               m_nDefaultSampleMethod;
   bool              m_bDefaultConform;
-  QString           m_strDefaultColorMapType;
   LayerMRI*         m_layerVolumeRef;
   LUTDataHolder*    m_luts;
   ThreadIOWorker*   m_threadIOWorker;
@@ -446,15 +407,9 @@ private:
   DialogSaveScreenshot* m_dlgSaveScreenshot;
   DialogWriteMovieFrames*   m_dlgWriteMovieFrames;
   DialogPreferences*    m_dlgPreferences;
-  DialogRepositionSurface*  m_dlgRepositionSurface;
   WindowQuickReference* m_wndQuickRef;
   FloatingStatusBar*    m_statusBar;
-  TermWidget*           m_term;
-  WindowTimeCourse*     m_wndTimeCourse;
-  WindowGroupPlot*      m_wndGroupPlot;
-  DialogLabelStats*     m_dlgLabelStats;
-
-  VolumeFilterWorkerThread* m_threadVolumeFilter;
+  TermWidget*          m_term;
 
   SettingsScreenshot    m_settingsScreenshot;
   QVariantMap           m_settings;

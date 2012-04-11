@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2012/04/06 19:15:30 $
- *    $Revision: 1.37.2.4 $
+ *    $Date: 2012/04/11 19:46:20 $
+ *    $Revision: 1.37.2.5 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -83,8 +83,6 @@ protected slots:
 
   void OnActiveFrameChanged(int nFrame);
 
-  void OnShowExistingLabelsOnly(bool b);
-
 protected:
   void PopulateColorTable( COLOR_TABLE* ctab );
   void DoUpdateWidgets();
@@ -111,7 +109,6 @@ private:
   LUTDataHolder* m_luts;
 
   COLOR_TABLE*  m_curCTAB;
-  bool          m_bShowExistingLabelsOnly;
 };
 
 #endif // PANELVOLUME_H
