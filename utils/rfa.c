@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2012/04/11 00:56:28 $
- *    $Revision: 1.1 $
+ *    $Date: 2012/04/11 13:46:49 $
+ *    $Revision: 1.2 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -319,6 +319,7 @@ RFAupdateTraining(RFA *rfa, RFA_PARMS *parms)
   TRANSFORM *transform ;
   RF_NODE   *node ;
 
+  x = y = z = 0 ; // silly compiler warning
   ntraining_sets = parms->training_index % parms->training_size ;
   start = parms->training_index - ntraining_sets ;
   if (start < 0 || ntraining_sets <= 0)
