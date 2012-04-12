@@ -8,8 +8,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2012/04/11 23:17:50 $
- *    $Revision: 1.21 $
+ *    $Date: 2012/04/12 12:52:20 $
+ *    $Revision: 1.22 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -122,7 +122,7 @@ main(int argc, char *argv[]) {
   double    accuracy ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_train.c,v 1.21 2012/04/11 23:17:50 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_train.c,v 1.22 2012/04/12 12:52:20 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -179,7 +179,8 @@ main(int argc, char *argv[]) {
 	      rf->max_depth,
 	      rf->ntrees,
 	      accuracy) ;
-      write(fd, line, (strlen(line))*sizeof(char)) ;
+      if (write(fd, line, (strlen(line))*sizeof(char)) < (strlen(line))*sizeof(char))
+        ErrorPrintf(ERROR_NOFILE, "%s: could not write %d bytes to %s", Progname, (strlen(line))*sizeof(char));
       fl.l_type   = F_UNLCK;  /* tell it to unlock the region */
       fcntl(fd, F_SETLK, &fl); /* set the region to unlocked */
       close(fd) ;
@@ -734,7 +735,7 @@ classify_subjects(RANDOM_FOREST *rf, char *subject_list_file, int wsize, int nlo
 
 	  if (x0 == Gx && y0 == Gy && z0 == Gz)
 	    DiagBreak() ;
-	  for (nzero = l = 0 ; l < nlong-1 ; l++)
+	  for (label = nzero = l = 0 ; l < nlong-1 ; l++)
 	  {
 	    label = MRIgetVoxVal(mri_aseg[l], x0, y0, z0, 0) ;
 	    if (!IS_WHITE_MATTER(label) && !IS_HYPO(label))
@@ -753,29 +754,29 @@ classify_subjects(RANDOM_FOREST *rf, char *subject_list_file, int wsize, int nlo
 	  for (t = 0, xk = -whalf ; xk <= whalf ; xk++)
 	    for (yk = -whalf ; yk <= whalf ; yk++)
 	      for (zk = -whalf ; zk <= whalf ; zk++)
-		for (v = 0 ; v < nvols ; v++)
-		{
-		  float val ;
-		  {
-		    for (l = 0 ; l < nlong-1 ; l++)
-		    {
-		      mri_int = mri_intensity[l][v] ;
-		      x = mri_int->xi[x0+xk] ;
-		      y = mri_int->yi[y0+yk] ;
-		      z = mri_int->zi[z0+zk] ;
-		      val = MRIgetVoxVal(mri_int,x,y,z,0) ;
-		      *MATRIX_RELT(mX, l+1, 1) = val ;
-		      *MATRIX_RELT(mX, l+1, 2) = 1 ;
-		      feature_vec[t++] = val ;
-		    }
-		    if (nlong>2)
-		    {
-		      mXpinv = MatrixPseudoInverse(mX, mXpinv) ;
-		      vP = MatrixMultiply(mXpinv, vY, vP) ;
-		      feature_vec[t++] = VECTOR_ELT(vP, 1) ;
-		    }
-		  }
-		}
+          for (v = 0 ; v < nvols ; v++)
+          {
+            float val ;
+            {
+              for (l = 0 ; l < nlong-1 ; l++)
+              {
+                mri_int = mri_intensity[l][v] ;
+                x = mri_int->xi[x0+xk] ;
+                y = mri_int->yi[y0+yk] ;
+                z = mri_int->zi[z0+zk] ;
+                val = MRIgetVoxVal(mri_int,x,y,z,0) ;
+                *MATRIX_RELT(mX, l+1, 1) = val ;
+                *MATRIX_RELT(mX, l+1, 2) = 1 ;
+                feature_vec[t++] = val ;
+              }
+              if (nlong>2)
+              {
+                mXpinv = MatrixPseudoInverse(mX, mXpinv) ;
+                vP = MatrixMultiply(mXpinv, vY, vP) ;
+                feature_vec[t++] = VECTOR_ELT(vP, 1) ;
+              }
+            }
+          }
 	  if (x0 == Gx && y0 == Gy && z0 == Gz)
 	    DiagBreak() ;
 	  class = RFclassify(rf, feature_vec, &pval, -1)+1 ;
@@ -785,13 +786,13 @@ classify_subjects(RANDOM_FOREST *rf, char *subject_list_file, int wsize, int nlo
 	  else
 	    class = MRIgetVoxVal(mri_aseg[nlong-2], x, y, z, 0) ;
 #endif
-	  MRIsetVoxVal(mri_labeled, x, y, z, 0, class) ;
+	  MRIsetVoxVal(mri_labeled, x0, y0, z0, 0, class) ;
 	}
     for (l = 0 ; l < nlong-1 ; l++)
     {
       MRIfree(&mri_aseg[l]) ;
       for (v = 0 ; v < nvols ; v++)
-	MRIfree(&mri_intensity[l][v]) ;
+        MRIfree(&mri_intensity[l][v]) ;
     }
     sprintf(fname, "%s/%s%s.%s_base/mri/%s", sdir, 
 	    subject,long_names[0],subject,classify_name);
