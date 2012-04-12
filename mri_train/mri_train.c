@@ -8,8 +8,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2012/04/12 12:52:20 $
- *    $Revision: 1.22 $
+ *    $Date: 2012/04/12 23:18:57 $
+ *    $Revision: 1.23 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -119,10 +119,10 @@ main(int argc, char *argv[]) {
   RANDOM_FOREST *rf ;
   char    *training_file_name, *output_file_name, *cp ;
   int     nargs, error, i ;
-  double    accuracy ;
+  double    accuracy =0 ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_train.c,v 1.22 2012/04/12 12:52:20 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_train.c,v 1.23 2012/04/12 23:18:57 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
