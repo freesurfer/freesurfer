@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2012/01/27 18:25:32 $
- *    $Revision: 1.508 $
+ *    $Date: 2012/04/12 19:30:56 $
+ *    $Revision: 1.509 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -23,7 +23,7 @@
  */
 
 extern const char* Progname;
-const char *MRI_C_VERSION = "$Revision: 1.508 $";
+const char *MRI_C_VERSION = "$Revision: 1.509 $";
 
 
 /*-----------------------------------------------------
@@ -3679,7 +3679,8 @@ MRIcopyFrames(MRI *mri_src, MRI *mri_dst, int src_start_frame, int src_end_frame
 
   for (fno = src_start_frame ; fno <= src_end_frame ; fno++)
   {
-    MRIcopyFrame(mri_src, mri_dst, fno, fno+offset) ;
+    mri_dst = MRIcopyFrame(mri_src, mri_dst, fno, fno+offset) ;
+    if(mri_dst == NULL) return(NULL);
   }
   return(mri_dst) ;
 }
