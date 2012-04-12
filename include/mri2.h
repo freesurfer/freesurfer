@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2011/10/25 13:52:29 $
- *    $Revision: 1.38 $
+ *    $Author: greve $
+ *    $Date: 2012/04/12 19:31:50 $
+ *    $Revision: 1.39 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -108,6 +108,7 @@ int MRIsegStats(MRI *seg, int segid, MRI *mri,int frame,
                 float *mean, float *std);
 
 MRI *MRImask_with_T2_and_aparc_aseg(MRI *mri_src, MRI *mri_dst, MRI *mri_T2, MRI *mri_aparc_aseg, float T2_thresh, int mm_from_exterior) ;
+int *MRIsegmentationList(MRI *seg, int *pListLength);
 
 
 #if defined(__cplusplus)

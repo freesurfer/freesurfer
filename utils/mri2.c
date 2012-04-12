@@ -6,9 +6,9 @@
 /*
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2011/10/25 18:30:37 $
- *    $Revision: 1.77 $
+ *    $Author: greve $
+ *    $Date: 2012/04/12 19:31:50 $
+ *    $Revision: 1.78 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -3498,3 +3498,31 @@ MRImask_with_T2_and_aparc_aseg(MRI *mri_src, MRI *mri_dst, MRI *mri_T2, MRI *mri
   return(mri_dst) ;
 }
 
+/* ----------------------------------------------------------*/
+/*!
+  \fn int *MRIsegmentationList(MRI *seg, int *pListLength)
+  \brief Extracts a list of unique segmentation IDs from the volume. 
+    Includes 0.
+*/
+int *MRIsegmentationList(MRI *seg, int *pListLength)
+{
+  int c,r,s,n,nvox;
+  int *list, *voxlist;
+
+  nvox = seg->width*seg->height*seg->depth;
+  voxlist = (int *) calloc(nvox,sizeof(int));
+  n = 0;
+  for(s=0; s < seg->depth; s++){
+    for(c=0; c < seg->width; c++){
+      for(r=0; r < seg->height; r++){
+	voxlist[n] = MRIgetVoxVal(seg,c,r,s,0);
+	n++;
+      }
+    }
+  }
+  list = unqiue_int_list(voxlist, nvox, pListLength);
+  printf("MRIsegmentationList(): found %d unique segmentations\n", *pListLength);
+  if(Gdiag_no > 0) for(n=0; n<*pListLength; n++)  printf("%2d %5d\n",n,list[n]);
+  free(voxlist);
+  return(list);
+}
