@@ -1,6 +1,6 @@
 #!/bin/sh
 
-# bedpostx_seychelles
+# bedpostx_mgh
 # (This script was modified from FSL's bedpostx by Anastasia Yendiki)
 
 #   Copyright (C) 2004 University of Oxford
@@ -79,38 +79,56 @@ fi
 
 Usage() {
     echo ""
-    echo "Usage: bedpostx_seychelles <subject directory> [options] ..."
+    echo "Usage: bedpostx_mgh <subject directory> [options] ..."
     echo ""
     echo "expects to find bvals and bvecs in subject directory"
     echo "expects to find data and nodif_brain_mask in subject directory"
-    echo "options:"
+    echo "options (old syntax)"
     echo "-n (number of fibres per voxel, default 2)"
     echo "-w (ARD weight, more weight means less secondary fibres per voxel, default 1)"
     echo "-b (burnin period, default 1000)"
     echo "-j (number of jumps, default 1250)"
     echo "-s (sample every, default 25)"
     echo ""
+    echo ""
+    echo "ALTERNATIVELY: you can pass on xfibres options onto directly bedpostx"
+    echo " For example:  bedpostx <subject directory> --noard --cnonlinear"
+    echo " Type 'xfibres --help' for a list of available options "
+    echo " Default options will be bedpostx default (see above), and not xfibres default."
+    echo ""
+    echo "Note: Use EITHER old OR new syntax."
+    echo ""
     echo "This is a modified version of FSL's bedpostx that is compatible with"
-    echo "the PBS queueing system running on seychelles and can be used by"
-    echo "Martinos Center users to parallelize computation."
+    echo "the PBS queueing system running on launchpad/seychelles and can be"
+    echo "used by Martinos Center users to parallelize computation."
     echo ""
     echo "This script runs the exact same algorithm as bedpostx, but it submits"
     echo "the processing for each slice as a separate PBS job. Thus, bedpostx"
-    echo "and bedpostx_seychelles will give you the same result, but the former"
-    echo "will do it in days and the latter in hours."
+    echo "and bedpostx_mgh will give you the same result, but the former will"
+    echo "do it in days and the latter in hours."
     echo ""
     echo "Command line options and the structure of the input directory are the"
     echo "same as for the original bedpostx."
     echo ""
-    echo "Do not submit bedpostx_seychelles as a job on seychelles. Run it"
-    echo "directly at the seychelles prompt and it will submit the jobs for you."
-    echo "Note that this will generate a large number of jobs, so don't launch"
-    echo "it on more than one data set at the same time. You may get some PBS"
-    echo "emails about jobs being held that you have to release - you can ignore"
-    echo "these emails as the script will take care of that."
-    echo ""
+    echo "Do not submit bedpostx_mgh as a job on launchpad/seychelles. Run it"
+    echo "directly at the launchpad/seychelles prompt and it will submit the"
+    echo "jobs for you. Note that this will generate a large number of jobs, so"
+    echo "don't launch it on more than one data set at the same time. You may"
+    echo "get some PBS emails about jobs being held that you have to release -"
+    echo "you can ignore these emails as the script will take care of that."
     exit 1
 }
+
+# Find FSL version (AY)
+fslver=(`cat $FSLDIR/etc/fslversion | sed 's/\./ /g'`)
+if [ -z ${fslver[1]} ]; then fslver[1]=0; fi
+if [ -z ${fslver[2]} ]; then fslver[2]=0; fi
+
+# For version 4.1.9 or newer, use new order of bedpostx_single_slice arguments
+if [ ${fslver[0]} -lt 4 ] || [ ${fslver[1]} -lt 1 ] || [ ${fslver[2]} -lt 9 ];
+then usenew=0;
+else usenew=1;
+fi
 
 make_absolute(){
     dir=$1;
@@ -127,14 +145,6 @@ make_absolute(){
 
 [ "$1" = "" ] && Usage
 
-# Go through multiple subjects
-for subjdir ; do
-
-subjdir=`make_absolute $subjdir`
-subjdir=`echo $subjdir | sed 's/\/$/$/g'`
-
-echo subjectdir is $subjdir
-
 #parse option arguments
 nfibres=2
 fudge=1
@@ -142,19 +152,35 @@ burnin=1000
 njumps=1250
 sampleevery=25
 model=1
-while [ ! -z "$2" ]
+
+while [ ! -z "$1" ]
 do
-  case "$2" in
-      -n) nfibres=$3;shift;;
-      -w) fudge=$3;shift;;
-      -b) burnin=$3;shift;;
-      -j) njumps=$3;shift;;
-      -s) sampleevery=$3;shift;;
-      -model) model=$3;shift;;
-      *) break;;
-  esac
+  if [ -d "$1" ]; then		# Allow multiple input directories (AY)
+    dirlist="$dirlist $1"
+  else
+    case "$1" in
+        -n) nfibres=$2;shift;;
+        -w) fudge=$2;shift;;
+        -b) burnin=$2;shift;;
+        -j) njumps=$2;shift;;
+        -s) sampleevery=$2;shift;;
+        -model) model=$2;shift;;
+        *) break;;
+    esac
+  fi
   shift
 done
+opts="--nf=$nfibres --fudge=$fudge --bi=$burnin --nj=$njumps --se=$sampleevery --model=$model"
+defopts="--cnonlinear"
+opts="$opts $defopts $*"
+
+# Process multiple input directories, queue them up serially (AY)
+for subjdir in $dirlist; do
+
+subjdir=`make_absolute $subjdir`
+subjdir=`echo $subjdir | sed 's/\/$/$/g'`
+
+echo subjectdir is $subjdir
 
 #check that all required files exist
 
@@ -194,9 +220,9 @@ mkdir -p ${subjdir}.bedpostX/xfms
 mailto=`whoami`@fmrib.ox.ac.uk
 echo Queuing preprocessing stages
 if [ "x$mergeid" = "x" ] ; then
-    preprocid=`${BPDIR}/fsl_sub_seychelles -T 60 -m a -N bedpostx_pre -l ${subjdir}.bedpostX/logs ${FSLDIR}/bin/bedpostx_preproc.sh ${subjdir}`
+    preprocid=`${BPDIR}/fsl_sub_mgh -T 60 -m a -N bedpostx_pre -l ${subjdir}.bedpostX/logs ${FSLDIR}/bin/bedpostx_preproc.sh ${subjdir}`
 else
-    preprocid=`${BPDIR}/fsl_sub_seychelles -j $mergeid -T 60 -m a -N bedpostx_pre -l ${subjdir}.bedpostX/logs ${FSLDIR}/bin/bedpostx_preproc.sh ${subjdir}`
+    preprocid=`${BPDIR}/fsl_sub_mgh -j $mergeid -T 60 -m a -N bedpostx_pre -l ${subjdir}.bedpostX/logs ${FSLDIR}/bin/bedpostx_preproc.sh ${subjdir}`
 fi
 
 echo Queuing parallel processing stage
@@ -267,16 +293,21 @@ do
     if [ `$FSLDIR/bin/imtest ${subjdir}.bedpostX/diff_slices/data_slice_$slicezp/dyads1` -eq 1 ];then
 	echo "slice $slice has already been processed"
     else
-	echo "${FSLDIR}/bin/bedpostx_single_slice.sh $subjdir $nfibres $fudge $burnin $njumps $sampleevery $model $slice" \
-	    >> ${subjdir}.bedpostX/commands.txt
+	if [ $usenew -eq 1 ]; then
+	  echo "${FSLDIR}/bin/bedpostx_single_slice.sh $subjdir $slice $opts" \
+	      >> ${subjdir}.bedpostX/commands.txt
+	else
+	  echo "${FSLDIR}/bin/bedpostx_single_slice.sh $subjdir $nfibres $fudge $burnin $njumps $sampleevery $model $slice" \
+	      >> ${subjdir}.bedpostX/commands.txt
+	fi
     fi
     slice=$(($slice + 1))
 done
 
-bedpostid=`${BPDIR}/fsl_sub_seychelles -j $preprocid -l ${subjdir}.bedpostX/logs -m a -N bedpostx -t ${subjdir}.bedpostX/commands.txt`
+bedpostid=`${BPDIR}/fsl_sub_mgh -j $preprocid -l ${subjdir}.bedpostX/logs -m a -N bedpostx -t ${subjdir}.bedpostX/commands.txt`
 
 echo Queuing post processing stage
-mergeid=`${BPDIR}/fsl_sub_seychelles -j $bedpostid -T 60 -m ae -N bedpostx_post -l ${subjdir}.bedpostX/logs ${FSLDIR}/bin/bedpostx_postproc.sh $subjdir`
+mergeid=`${BPDIR}/fsl_sub_mgh -j $bedpostid -T 60 -m ae -N bedpostx_post -l ${subjdir}.bedpostX/logs ${FSLDIR}/bin/bedpostx_postproc.sh $subjdir`
 
 [ "x$SGE_ROOT" = "x" ] && [ ! -d /pbs ] && kill $monitorpid
 
@@ -370,6 +401,6 @@ EOC
     echo
 fi
 
-# Go through multiple subjects
+# Process multiple input directories, queue them up serially (AY)
 done
 

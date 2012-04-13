@@ -1,6 +1,6 @@
 #!/bin/sh
 
-# fsl_sub_seychelles
+# fsl_sub_mgh
 # (This script was modified from FSL's fsl_sub by Anastasia Yendiki)
 
 # Copyright (C) 2007 University of Oxford
@@ -98,7 +98,7 @@ if [ "x$SGE_ROOT" = "x" ] ; then
 	. /usr/local/share/sge/default/common/settings.sh
     elif [ -f /usr/local/sge/default/common/settings.sh ] ; then
 	. /usr/local/sge/default/common/settings.sh
-    elif [ -d /pbs ] ; then
+    elif [ -d /pbs ] ; then		# Specific to Martinos clusters (AY)
 	METHOD=PBS
 	if [ "x$MYPBSQUEUE" = "x" ] && [ `hostname` = "seychelles" ] ; then
 	    MYPBSQUEUE=private
@@ -157,7 +157,7 @@ usage ()
 
 $command V1.0beta - wrapper for job control system such as SGE
 
-Usage: fsl_sub_seychelles [options] <command>
+Usage: fsl_sub_mgh [options] <command>
 
 $command gzip *.img *.hdr
 $command -q short.q gzip *.img *.hdr
@@ -180,9 +180,9 @@ $command -a darwin regscript rawdata outputdir ...
   -s <shell-path>       Change the PBS shell option, see pbsubmit for details
 
   This is a modified version of FSL's fsl_sub that is compatible with
-  the PBS queueing system running on seychelles. The above command line options
-  work with SGE, but they may not all work with PBS. This modified version is
-  only intended to work with bedpostx_seychelles.
+  the PBS queueing system running on launchpad/seychelles. The above command
+  line options work with SGE, but they may not all work with PBS. This modified
+  version is only intended to work with bedpostx_mgh.
 EOF
 
   exit 1
@@ -213,7 +213,7 @@ queue=long.q
 mailto=`whoami`@fmrib.ox.ac.uk
 MailOpts="as"
 
-if [ $METHOD == PBS ] ; then 
+if [ $METHOD == PBS ] ; then		# (AY)
     queue=$MYPBSQUEUE
     mailto=`whoami`
     MailOpts="abe"
@@ -260,7 +260,7 @@ while [ $1 != -- ] ; do
   case $1 in
     -T)
       map_qname $2
-      if [ $METHOD == PBS ] ; then 
+      if [ $METHOD == PBS ] ; then 	# (AY)
         queue=$MYPBSQUEUE
       fi
       shift;;
@@ -379,7 +379,7 @@ EOF
 
 ###########################################################################
 # The following has been modified from "SGE)" above to submit jobs
-# to the Martinos Center cluster using PBS. Proceed at own peril.
+# to the Martinos Center cluster using PBS. Proceed at own peril. (AY)
 ###########################################################################
 
     PBS)
@@ -435,18 +435,20 @@ EOF
 		pbs_hold_last="$pbs_hold_last $jobid"
 		let k=k+1
 	    done
-	    # Check for jobs that are held and release them:
-	    # Jobs are held if the jobs they depend on do not exist
-	    # (e.g., in bedpostx, when a single-slice job happens to
-	    # be submitted after the preprocessing job has already ended)
-	    user=`whoami`
-	    heldjobs=`qstat -u $user | grep -w H | awk -v FS=. '{print $1}'`
-	    qrls $heldjobs
 	    # Return colon-separated list of job IDs:
 	    # This will allow the list to be passed as a single argument
 	    # to a potential next call of fsl_sub (e.g. $bedpostid in bedpostx).
 	    echo $pbs_hold_last | sed -e "s/ /:/g"
 	fi
+	# Check for jobs that are held and release them:
+	# Jobs are held if the jobs they depend on do not exist
+	# (e.g., in bedpostx, when a single-slice job happens to
+	# be submitted after the preprocessing job has already ended)
+	user=`whoami`
+	heldjobs=(`qstat -u $user | grep -w H | awk -v FS=. '{print $1}'`)
+	if [ ! -z $heldjobs ] ; then
+	    qrls ${heldjobs[*]}
+        fi
 	;;
 
 ###########################################################################
