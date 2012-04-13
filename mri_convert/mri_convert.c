@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl (Apr 16, 1997)
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2012/04/10 19:21:43 $
- *    $Revision: 1.193 $
+ *    $Date: 2012/04/13 03:44:23 $
+ *    $Revision: 1.194 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -156,7 +156,7 @@ int main(int argc, char *argv[])
   int fill_parcellation_flag;
   int read_parcellation_volume_flag;
   int zero_outlines_flag;
-  int erode_seg_flag, n_erode_seg;
+  int erode_seg_flag=FALSE, n_erode_seg;
   int read_otl_flags;
   int color_file_flag;
   char color_file_name[STRLEN];
@@ -204,7 +204,7 @@ int main(int argc, char *argv[])
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mri_convert.c,v 1.193 2012/04/10 19:21:43 greve Exp $",
+   "$Id: mri_convert.c,v 1.194 2012/04/13 03:44:23 greve Exp $",
    "$Name:  $",
    cmdline);
 
@@ -325,7 +325,7 @@ int main(int argc, char *argv[])
     handle_version_option
     (
       argc, argv,
-      "$Id: mri_convert.c,v 1.193 2012/04/10 19:21:43 greve Exp $",
+      "$Id: mri_convert.c,v 1.194 2012/04/13 03:44:23 greve Exp $",
       "$Name:  $"
     );
   if (nargs && argc - nargs == 1)
@@ -1581,7 +1581,7 @@ int main(int argc, char *argv[])
             "= --zero_ge_z_offset option ignored.\n");
   }
 
-  printf("$Id: mri_convert.c,v 1.193 2012/04/10 19:21:43 greve Exp $\n");
+  printf("$Id: mri_convert.c,v 1.194 2012/04/13 03:44:23 greve Exp $\n");
   printf("reading from %s...\n", in_name_only);
 
   if (in_volume_type == OTL_FILE)
