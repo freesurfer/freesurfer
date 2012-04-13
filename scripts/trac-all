@@ -8,8 +8,8 @@
 # Original Author: Anastasia Yendiki
 # CVS Revision Info:
 #    $Author: ayendiki $
-#    $Date: 2012/02/22 19:13:18 $
-#    $Revision: 1.36 $
+#    $Date: 2012/04/13 21:44:21 $
+#    $Revision: 1.37 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -25,7 +25,7 @@
 
 umask 002
 
-set VERSION = '$Id: trac-all,v 1.36 2012/02/22 19:13:18 ayendiki Exp $'
+set VERSION = '$Id: trac-all,v 1.37 2012/04/13 21:44:21 ayendiki Exp $'
 set ProgName = `basename $0`
 set inputargs = ($argv)
 
@@ -480,7 +480,7 @@ foreach isubj ($runlist)
         |& tee -a $LF
       echo "WARN: It is recommended to run this step on a cluster" \
         |& tee -a $LF
-      set cmd = (bedpostx_seychelles $dtdir/dmri)
+      set cmd = (bedpostx_mgh $dtdir/dmri)
       echo $cmd |& tee -a $LF |& tee -a $CF
       if ($RunIt) then
         $cmd |& tee -a $LF
@@ -513,11 +513,11 @@ if ($onpbs && $RunIt) then
       if ($hname == seychelles)	setenv MYPBSARCH "bigmem:ppn=2"
     endif
     echo Queueing pre-processing
-    set preid = `fsl_sub_seychelles \
+    set preid = `fsl_sub_mgh \
                  -l $pbslogdir/log -m a -N trcpre -t $submitfile`
   else if ($dobedpost) then
     if (! $?MYPBSWAIT) setenv MYPBSWAIT 0
-    bedpostx_seychelles $dmdirlist
+    bedpostx_mgh $dmdirlist
   else if ($dopaths) then
     if (! $?MYPBSWAIT) setenv MYPBSWAIT 30
     if ($doregcvs) then
@@ -525,7 +525,7 @@ if ($onpbs && $RunIt) then
       if ($hname == seychelles)	setenv MYPBSARCH "bigmem:ppn=2"
     endif
     echo Queueing path reconstruction
-    set trcid = `fsl_sub_seychelles \
+    set trcid = `fsl_sub_mgh \
                  -l $pbslogdir/log -m a -N trc -t $submitfile`
   endif
 endif
