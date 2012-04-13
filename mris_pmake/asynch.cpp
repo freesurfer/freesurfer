@@ -9,8 +9,8 @@
  * Original Author:  Rudolph Pienaar / Christian Haselgrove
  * CVS Revision Info:
  *    $Author: rudolph $
- *    $Date: 2012/01/29 22:33:28 $
- *    $Revision: 1.16 $
+ *    $Date: 2012/04/13 21:20:38 $
+ *    $Revision: 1.17 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -609,6 +609,19 @@ pC_pathFind_cast(
     return pC_mpmProg_pathFind;
 }
 
+C_mpmProg_ROI*
+pC_ROI_cast(
+    C_mpmProg*                  pmpm,
+    C_mpmProg_ROI*&             pC_mpmProg_ROI
+) {
+    pC_mpmProg_ROI              = dynamic_cast<C_mpmProg_ROI*>(pmpm);
+    if(!pC_mpmProg_ROI) {
+        cout << "The embedded mpmProg is not of type 'ROI'" << endl;
+    }
+    return pC_mpmProg_ROI;
+}
+
+
 bool
 asynchEvent_processMPMPROG(
     s_env&      st_env,
@@ -634,6 +647,7 @@ asynchEvent_processMPMPROG(
     C_mpmProg_NOP*              pC_NOP          = NULL;
     C_mpmProg_pathFind*		pC_pathFind 	= NULL;
     C_mpmProg_autodijk*         pC_autodijk     = NULL;
+    C_mpmProg_ROI*              pC_ROI          = NULL;
     switch(st_env.empmProg_current) {
 	case emp_NULL: break;
         case emp_NOP:
@@ -673,6 +687,17 @@ asynchEvent_processMPMPROG(
                         pC_autodijk->surfaceRipClear_get());
             }
 	 break;
+        case emp_ROI:
+            if( (pC_ROI_cast(st_env.pCmpmProg, pC_ROI))==NULL)
+                return false;
+            if (str_verb == "get" || str_verb == "list") {
+                colprintf(lw, rw, "Radius", "[ %f ]\n",
+                        pC_ROI->radius_get());
+                colprintf(lw, rw, "Number of ROI vertex seeds:",
+                        "[ %d ]\n",
+                        pC_ROI->v_vertex_get().size());
+            }
+        break;
 	case empmprog: break;
       }
     }
@@ -886,14 +911,14 @@ asynchEvent_processLABEL(
   if (str_object == "ply") {
     if (str_verb == "get") {
       CW(lw, "ply depth");
-      CWn(rw, st_env.plyDepth);
+      CWn(rw, s_env_plyDepth_get(st_env));
     } else if (str_verb == "set") {
       if (!str_modifier.length())
         return false;
       Gsout.str("");
       val = atoi(str_modifier.c_str());
       Gsout << "Setting ply depth to \t\t\t\t\t\t[ " << val << " ]" << endl;
-      st_env.plyDepth =  val;
+      s_env_plyDepth_set(st_env, val);
       ULOUT(Gsout.str());
     } else if (str_verb == "do") {
       ULOUT("Performing ply search");

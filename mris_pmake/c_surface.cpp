@@ -9,8 +9,8 @@
  * Original Author: Rudolph Pienaar / Christian Haselgrove
  * CVS Revision Info:
  *    $Author: rudolph $
- *    $Date: 2012/01/29 22:33:28 $
- *    $Revision: 1.13 $
+ *    $Date: 2012/04/13 21:20:38 $
+ *    $Revision: 1.14 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -33,18 +33,19 @@
 
 void
 surface_vertexFunction_do(
-  s_env&   st_env,
-  bool   (*vertex_satisfyTestCondition)
-  (VERTEX* pvertex,
-   void*  pv_extra),
-  void*   apv_conditional,
-  void   (*vertex_function)
-  (VERTEX* pvertex,
-   void*  pv_extra),
-  void*   apv_functional
+      s_env&            st_env,
+      bool              (*vertex_satisfyTestCondition)
+                              (VERTEX*  pvertex,
+                               void*    pv_extra),
+      void*             apv_conditional,
+      void              (*vertex_function)
+                              (VERTEX*  pvertex,
+                               void*    pv_extra),
+      void*             apv_functional
 ) {
-  int  i;
-  VERTEX* pvertex;
+
+    int         i;
+    VERTEX*     pvertex;
 
   for (i = 0;i < st_env.pMS_active->nvertices;i++) {
     pvertex = &st_env.pMS_active->vertices[i];

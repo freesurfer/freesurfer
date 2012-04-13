@@ -9,8 +9,8 @@
  * Original Author: Rudolph Pienaar / Christian Haselgrove
  * CVS Revision Info:
  *    $Author: rudolph $
- *    $Date: 2012/01/29 22:33:28 $
- *    $Revision: 1.5 $
+ *    $Date: 2012/04/13 21:20:38 $
+ *    $Revision: 1.6 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -190,8 +190,8 @@ surface_ripMark(
 /// \return (void)
 void
 surface_ripClear(
-  s_env&   st_env,
-  bool   b_wholeSurfaceForce = false
+  s_env&        st_env,
+  bool          b_wholeSurfaceForce = false
 );
 
 

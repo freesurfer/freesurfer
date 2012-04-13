@@ -12,8 +12,8 @@
  * Original Author: Rudolph Pienaar / Christian Haselgrove
  * CVS Revision Info:
  *    $Author: rudolph $
- *    $Date: 2012/01/30 15:00:45 $
- *    $Revision: 1.30 $
+ *    $Date: 2012/04/13 21:20:38 $
+ *    $Revision: 1.31 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -280,6 +280,94 @@ s_Dweights_setAll(
     asw.Dwdir   = af;
 }
 
+float
+s_env_plyDepth_get(
+    s_env&   ast_env
+) {
+    //
+    // DESC
+    //  The 'plyDepth' is a parameter used by the ROI
+    //  mpmProg, corresponding to the 'f_radius' member
+    //  variable. Getting the plyDepth via a function
+    //  call is safer since the env.plyDepth will be
+    //  depreciated. Moreover, the env.plyDepth is not
+    //  synch'ed with the mpmProg.
+    //
+
+    C_mpmProg_ROI*      pC_ROI;
+    if(!pC_ROI_cast(ast_env.pCmpmProg, pC_ROI))
+        error_exit( "setting plyDepth",
+                    "internal mpmProg is not of type ROI",
+                    20);
+    return pC_ROI->radius_get();
+}
+
+void
+s_env_plyDepth_set(
+    s_env&      ast_env,
+    float       af_val
+) {
+    //
+    // DESC
+    //  The 'plyDepth' is a parameter used by the ROI
+    //  mpmProg, corresponding to the 'f_radius' member
+    //  variable. Setting the plyDepth via a function
+    //  call is safer since the env.plyDepth will be
+    //  depreciated. Moreover, the env.plyDepth is not
+    //  synch'ed with the mpmProg.
+    //
+
+    C_mpmProg_ROI*      pC_ROI;
+    if(!pC_ROI_cast(ast_env.pCmpmProg, pC_ROI))
+        error_exit( "setting plyDepth",
+                    "internal mpmProg is not of type ROI",
+                    20);
+    pC_ROI->radius_set(af_val);
+}
+
+float
+s_env_plyIncrement_get(
+    s_env&   ast_env
+) {
+    //
+    // DESC
+    //  The 'plyIncrement' is a parameter used by the ROI
+    //  mpmProg, and used when creating "staggered" label
+    //  saves. Each successive label save includes points
+    //  corresponding to an additional <af_val> shell about
+    //  a previous label.
+    //
+
+    C_mpmProg_ROI*      pC_ROI;
+    if(!pC_ROI_cast(ast_env.pCmpmProg, pC_ROI))
+        error_exit( "setting plyDepth",
+                    "internal mpmProg is not of type ROI",
+                    20);
+    return pC_ROI->plyIncrement_get();
+}
+
+void
+s_env_plyIncrement_set(
+    s_env&      ast_env,
+    float       af_val
+) {
+    //
+    // DESC
+    //  The 'plyIncrement' is a parameter used by the ROI
+    //  mpmProg, and used when creating "staggered" label
+    //  saves. Each successive label save includes points
+    //  corresponding to an additional <af_val> shell about
+    //  a previous label.
+    //
+
+    C_mpmProg_ROI*      pC_ROI;
+    if(!pC_ROI_cast(ast_env.pCmpmProg, pC_ROI))
+        error_exit( "setting plyDepth",
+                    "internal mpmProg is not of type ROI",
+                    20);
+    pC_ROI->plyIncrement_set(af_val);
+}
+
 void
 s_env_nullify(
     s_env&  st_env) {
@@ -373,6 +461,7 @@ s_env_nullify(
     st_env.vstr_mpmProgName.push_back("pathFind");
     st_env.vstr_mpmProgName.push_back("autodijk");
     st_env.vstr_mpmProgName.push_back("autodijk_fast");
+    st_env.vstr_mpmProgName.push_back("ROI");
     st_env.totalmpmProgs	    = st_env.vstr_mpmProgName.size();
     st_env.pCmpmProg                = NULL; // Not yet created!
     // autodijk
@@ -1516,9 +1605,9 @@ s_env_mpmProgSetIndex(
     s_env*      apst_env,
     int         aindex
 ) {
-    int   ret     = -1;
-    int   lw      = apst_env->lw;
-    int   rw      = apst_env->rw;
+    int         ret             = -1;
+    int         lw              = apst_env->lw;
+    int         rw              = apst_env->rw;
 
     apst_env->b_mpmProgUse	= true;
     if(apst_env->pCmpmProg) {
@@ -1594,6 +1683,38 @@ s_env_mpmProgSetIndex(
             }
           }
         break;
+      case emp_ROI:
+          apst_env->pCmpmProg             = new C_mpmProg_ROI(apst_env);
+            // Check for any command-line spec'd args for the 'pathFind' mpmProg:
+            if(apst_env->str_mpmArgs != "-x") {
+              C_scanopt                   cso_mpm(apst_env->str_mpmArgs, ",",
+                                                  e_EquLink, "", ":");
+              float       f_radius              = 0.0;
+              bool        b_saveStaggered       = false;
+              string      str_option            = "";
+              C_mpmProg_ROI* pC_ROI             = NULL;
+              pC_ROI_cast(apst_env->pCmpmProg, pC_ROI);
+              if(cso_mpm.scanFor("radius", &str_option)) {
+                  f_radius              = atof(str_option.c_str());
+                  pC_ROI->radius_set(f_radius);
+              }
+              if(cso_mpm.scanFor("vertexFile", &str_option)) {
+                  if(!pC_ROI->vertexFile_load(str_option))
+                      error_exit("reading the vertexFile",
+                                  "a file access error occurred", 10);
+              }
+              if(cso_mpm.scanFor("labelFile", &str_option)) {
+                  if(!pC_ROI->labelFile_load(str_option))
+                      error_exit("reading the labelFile",
+                                  "a file access error occurred", 10);
+              }
+              if(cso_mpm.scanFor("plySaveStaggered", &str_option)) {
+                  b_saveStaggered       = atoi(str_option.c_str());
+                  pC_ROI->plySaveStaggered_set(b_saveStaggered);
+              }
+              s_env_optionsFile_write(*apst_env);
+            }
+          break;
     default:
         apst_env->empmProg_current      = (e_MPMPROG) 0;
 	apst_env->pCmpmProg		= new C_mpmProg_NOP(apst_env);

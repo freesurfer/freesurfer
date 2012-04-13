@@ -12,8 +12,8 @@
  * Original Author: Rudolph Pienaar / Christian Haselgrove
  * CVS Revision Info:
  *    $Author: rudolph $
- *    $Date: 2012/01/29 22:33:28 $
- *    $Revision: 1.19 $
+ *    $Date: 2012/04/13 21:20:38 $
+ *    $Revision: 1.20 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -166,18 +166,34 @@ typedef enum _e_MODULE {
 } e_MODULE;
 
 // String names for these are defined in env.cpp using 'push_back()'
+// To add new modules:
+//      o Create the index here
+//      o Edit the s_env_mpmProgSetIndex(...)
+//
+// Internal module name check on passed command line args:
+//      o help::mpmProg_check()
+
 typedef enum _e_mpmProg {
     emp_NULL 		= 0, 
     emp_NOP 		= 1,
     emp_pathFind	= 2,
     emp_autodijk 	= 3, 
     emp_autodijk_fast 	= 4,
+    emp_ROI             = 5,
     empmprog
 } e_MPMPROG;
 
 // enum typedef for mpmOverlays
 // ordering should be same as e_COSTFUNCTION
+//
 // String names for these are defined in env.cpp using 'push_back()'
+//      o env::s_env_nullify()
+//
+// Add case handling to:
+//      o asynch:asynchEvent_processMRMPROG()
+//      o env::s_env_mpmProgSetIndex()
+//      o help::mpmOverlay_check()
+//
 typedef enum _e_mpmOverlay {
     emo_LEGACY          = 0,    // LEGACY overlay -- toggles cost calc to legacy
                                 // engine.
@@ -416,6 +432,25 @@ void s_env_b_surfacesClear_set(
     s_env&      ast_env,
     bool        b_val
 );
+
+float s_env_plyDepth_get(
+    s_env&   ast_env
+);
+
+void s_env_plyDepth_set(
+    s_env&      ast_env,
+    float       af_val
+);
+
+float s_env_plyIncrement_get(
+    s_env&   ast_env
+);
+
+void s_env_plyIncrement_set(
+    s_env&      ast_env,
+    float       af_val
+);
+
 
 bool s_env_surfaceFile_set(
     s_env&      st_env,

@@ -13,8 +13,8 @@
  * Original Author: Rudolph Pienaar
  * CVS Revision Info:
  *    $Author: rudolph $
- *    $Date: 2012/01/23 17:24:08 $
- *    $Revision: 1.12 $
+ *    $Date: 2012/04/13 21:20:38 $
+ *    $Revision: 1.13 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -436,14 +436,20 @@ class C_mpmProg_ROI : public C_mpmProg {
 
   protected:
 
-    int         mvertex_center;
-    float       mf_radius;
-    bool        mb_surfaceRipClear;
-      
+    float               mf_radius;
+    float               mf_plyIncrement;
+    bool                mb_surfaceRipClear;
+    vector<int>         mv_vertex;
+    string              mstr_vertexFile;
+    string              mstr_labelFile;
+    string              mstr_outputStem;
+    bool                mb_ROIsInSeparateLabels;
+    bool                mb_saveStaggered;
+
   public:
     C_mpmProg_ROI(
         s_env* 		aps_env, 
-        int 		amvertex_center = 0, 
+        string          astr_vertexFile = "",
         float 		af_radius       = 10);
     ~C_mpmProg_ROI(void);
 
@@ -456,12 +462,40 @@ class C_mpmProg_ROI : public C_mpmProg {
     int         surfaceRipClear_get() {
             return(mb_surfaceRipClear);
     };
-    void        vertexCenter_set(int avalue) {
-            mvertex_center       	= avalue;
+
+    void        plySaveStaggered_set(bool avalue) {
+            mb_saveStaggered  = avalue;
     };
-    int         vertexCenter_get() {
-            return(mvertex_center);
+    int         plySaveStaggered_get() {
+            return(mb_saveStaggered);
     };
+
+
+    void        radius_set(float af_value) {
+            mf_radius   = af_value;
+    };
+    float       radius_get() {
+            return mf_radius;
+    };
+
+    void        plyIncrement_set(float af_value) {
+            mf_plyIncrement   = af_value;
+    };
+    float       plyIncrement_get() {
+            return mf_plyIncrement;
+    };
+
+    vector<int> v_vertex_get() {
+            return mv_vertex;
+    };
+
+    int         vertexFile_load(        string  astr_fileName);
+    int         labelFile_load(         string  astr_fileName);
+    int         labelFile_save(         string  astr_fileName);
+    int         label_savePly(          string  astr_filePrefix,
+                                        bool    ab_staggered    = false,
+                                        float   af_plyIncrement = 1.0);
+
     void        print(void);
 
     //

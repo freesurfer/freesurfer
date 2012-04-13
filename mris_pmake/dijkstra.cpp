@@ -8,8 +8,8 @@
  * Original Author: Rudolph Pienaar / Christian Haselgrove
  * CVS Revision Info:
  *    $Author: rudolph $
- *    $Date: 2012/01/29 22:33:28 $
- *    $Revision: 1.9 $
+ *    $Date: 2012/04/13 21:20:38 $
+ *    $Revision: 1.10 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -199,10 +199,10 @@ int dijkstra(
     
     /* set vno_c (find min) */
     if (d_list == NULL) {
-      ErrorPrintf(ERROR_BADPARM, "dijkstra(): out of vertices");
-      colprintf(st_env.lw, st_env.rw, "start:stop", "[ %d:%d ]\n",
-                st_env.startVertex,
-                st_env.endVertex);
+//      ErrorPrintf(ERROR_BADPARM, "dijkstra(): out of vertices");
+//      colprintf(st_env.lw, st_env.rw, "start:stop", "[ %d:%d ]\n",
+//                st_env.startVertex,
+//                st_env.endVertex);
       goto error;
     }
 

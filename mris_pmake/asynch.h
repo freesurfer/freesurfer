@@ -7,9 +7,9 @@
 /*
  * Original Author: Rudolph Pienaar / Christian Haselgrove
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/02/27 21:18:07 $
- *    $Revision: 1.4 $
+ *    $Author: rudolph $
+ *    $Date: 2012/04/13 21:20:38 $
+ *    $Revision: 1.5 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -166,6 +166,13 @@ pC_pathFind_cast(
     C_mpmProg*                  pmpm,
     C_mpmProg_pathFind*&        pC_mpmProg_pathFind
 );
+
+C_mpmProg_ROI*
+pC_ROI_cast(
+    C_mpmProg*                  pmpm,
+    C_mpmProg_ROI*&             pC_mpmProg_ROI
+);
+
 
 #endif //__ASYNCH_H__
 

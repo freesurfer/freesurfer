@@ -1,4 +1,4 @@
-/**
+/*
  * @file  C_mpmProg.cpp
  * @brief The internal 'program' API.
  *
@@ -13,8 +13,8 @@
  * Original Author: Rudolph Pienaar
  * CVS Revision Info:
  *    $Author: rudolph $
- *    $Date: 2012/01/29 22:33:28 $
- *    $Revision: 1.18 $
+ *    $Date: 2012/04/13 21:20:38 $
+ *    $Revision: 1.19 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -35,7 +35,10 @@
 #include "c_surface.h"
 #include "c_label.h"
 #include "c_vertex.h"
+#include "fio.h"
+
 #include "unistd.h"
+#include <libgen.h>
 
 #include <sstream>
 
@@ -878,7 +881,7 @@ int C_mpmProg_autodijk_fast::run()
 
 C_mpmProg_ROI::C_mpmProg_ROI(
     s_env*      aps_env, 
-    int 	amvertex_center, 
+    string      astr_vertexFile,
     float 	af_radius) : C_mpmProg(aps_env)
 {
     //
@@ -899,10 +902,166 @@ C_mpmProg_ROI::C_mpmProg_ROI(
     debug_push("C_mpmProg_ROI");
     mstr_obj	        = "C_mpmProg_ROI";
 
-    mvertex_center      = amvertex_center;
+    if(astr_vertexFile.length())
+        vertexFile_load(astr_vertexFile);
+
     mf_radius           = af_radius;
+    mf_plyIncrement     = 1.0;
+    mb_surfaceRipClear  = true;
 
     debug_pop();
+}
+
+int
+C_mpmProg_ROI::labelFile_load(
+        string                  astr_fileName
+) {
+    //
+    // ARGS
+    // astr_fileName            string          label file to read
+    //
+    // DESC
+    //  This method reads the contents of the <astr_fileName>, ripping
+    //  each vertex index in the internal mesh -- in so doing defining
+    //  a 'label' on the mesh.
+    //
+    // Loading a label file typically implies that *all* the labelled
+    // vertices together create a single ROI, and a single ROI generated
+    // output file is created (cf vertexFile_load()).
+    //
+    // PRECONDITIONS
+    //  o <astr_fileName> is a FreeSurfer Label file.
+    //
+    // POSTCONDITIONS
+    //  o For each vertex index in the label file, the mesh vertex
+    //    has its ripflag set to TRUE.
+    //  o Vertex indices are also stored in the internal vertex vector.
+    //
+
+    MRIS*       pmesh           = NULL;
+    LABEL*      pLBL            = NULL;
+    string      lstr_ext        = ".";
+    int         i               = 0;
+    char        ch_mark         = TRUE;
+    char*       pch_mark        = &ch_mark;
+    void*       pv_mark         = (void*) pch_mark;
+
+    mstr_labelFile              = astr_fileName;
+    lstr_ext                    += fio_extension(mstr_labelFile.c_str());
+    mstr_outputStem             = fio_basename(mstr_labelFile.c_str(),
+                                  lstr_ext.c_str());
+    pmesh                       = mps_env->pMS_primary;
+    // Mark the mesh
+    label_coreLoad(pmesh, astr_fileName, vertex_ripFlagMark, pv_mark);
+
+    // and store the "rip"ed vertices -- this actually opens
+    // the label file again...
+    if(mv_vertex.size()) {
+        mv_vertex.clear();
+    }
+    pLBL = LabelRead((char*)"", (char*) astr_fileName.c_str());
+    for (i = 0; i < pLBL->n_points; i++) {
+      mv_vertex.push_back(pLBL->lv[i].vno);
+    }
+    LabelFree(&pLBL);
+
+    mb_ROIsInSeparateLabels = false;
+    return true;
+}
+
+int
+C_mpmProg_ROI::label_savePly(
+        string                  astr_filePrefix,
+        bool                    ab_staggered,
+        float                   af_plyIncrement
+) {
+    mf_plyIncrement     = af_plyIncrement;
+    mb_saveStaggered    = ab_staggered;
+    label_ply_save(*mps_env, astr_filePrefix, mb_saveStaggered);
+    return true;
+}
+
+int
+C_mpmProg_ROI::labelFile_save(
+        string                  astr_fileName
+) {
+
+    MRIS*       pmesh           = NULL;
+
+    pmesh       = mps_env->pMS_primary;
+    label_coreSave(pmesh, astr_fileName, vertex_ripFlagIsTrue,
+            (void*) (char)TRUE);
+    return true;
+}
+
+int
+C_mpmProg_ROI::vertexFile_load(string astr_fileName)
+{
+    //
+    // ARGS
+    // astr_fileName            string          file to read
+    //
+    // DESC
+    //  This method reads the contents of the <astr_fileName> into the
+    //  internal list vertex vector list.
+    //
+    //  The text filename a simple line-delimited list of vertex indices:
+    //
+    //          v1
+    //          v2
+    //          ...
+    //          vn
+    //
+    // Passing a vertex file typically implies that each vertex
+    // is the seed of a single ROI that should be saved to its
+    // own output file.
+    //
+    // PRECONDITIONS
+    //  o <astr_fileName> must exist and MUST be Nx1
+    //
+    // POSTCONDITIONS
+    //  o The internal mv_vertex is initialized.
+    //  o Returns the actual number of indices read from file.
+    //  o Vertex ripflag is NOT set.
+    //
+
+    int         vertex          = -1;
+    int         readCount       = 0;
+    string      lstr_ext        = ".";
+    MRIS*       mesh            = NULL;
+
+
+    mesh = mps_env->pMS_primary;
+
+    // First turn off any "rip" marks on the surface
+    for(vertex = 0; vertex < mesh->nvertices; vertex++)
+        mesh->vertices[vertex].ripflag = FALSE;
+
+    if(!astr_fileName.length())
+        astr_fileName           = mstr_vertexFile;
+    else
+        mstr_vertexFile         = astr_fileName;
+
+    lstr_ext                    += fio_extension(mstr_vertexFile.c_str());
+    mstr_outputStem             = fio_basename(mstr_vertexFile.c_str(),
+                                  lstr_ext.c_str());
+
+    ifstream    ifs_vertex(astr_fileName.c_str());
+    if(!ifs_vertex) return false;
+
+    if(mv_vertex.size()) {
+        mv_vertex.clear();
+    }
+
+    while(!ifs_vertex.eof()) {
+        readCount++;
+        ifs_vertex >> vertex;
+        mv_vertex.push_back(vertex);
+    }
+
+    mb_ROIsInSeparateLabels = true;
+
+    return readCount;
 }
 
 C_mpmProg_ROI::~C_mpmProg_ROI() {
@@ -919,10 +1078,51 @@ C_mpmProg_ROI::run() {
     // Main entry to the actual 'run' core of the mpmProg
     //
 
-    int         ret     = 1;
+    int         ret                     = 1;
+    bool        b_origHistoryFlag       = mps_env->b_costHistoryPreserve;
+    bool        b_surfaceCostVoid       = false;
+    unsigned int i                       = 0;
+    int         j                       = 0;
+    mps_env->b_costHistoryPreserve      = true;
+    MRIS*       pmesh                   = mps_env->pMS_active;
 
     debug_push("run");
 
+    if(!mb_ROIsInSeparateLabels) {
+        for (i=0; i<(unsigned int)pmesh->nvertices; i++) {
+            if (pmesh->vertices[i].ripflag == TRUE) {
+                b_surfaceCostVoid       = !j++;
+                mps_env->startVertex    = i;
+                mps_env->endVertex      = i;
+                ret = dijkstra(*mps_env, mf_radius, b_surfaceCostVoid);
+            }
+        }
+        mps_env->b_costHistoryPreserve = b_origHistoryFlag;
+        Gsout.str(std::string());
+        Gsout << "-r" << mf_radius << ".label";
+        label_savePly(mstr_outputStem + Gsout.str(),
+                      mb_saveStaggered, mf_plyIncrement);
+        // For the "single" label file output, the surface clearing
+        // is dependent on the mb_surfaceRipClear flag.
+        if(mb_surfaceRipClear) {
+            // WARNING! This destroys the cost values and paths
+            // stored in the mesh!
+            surface_ripClear(*mps_env, mb_surfaceRipClear);
+        }
+    } else {
+        for(i=0; i<mv_vertex.size(); i++) {
+            mps_env->startVertex        = mv_vertex[i];
+            mps_env->endVertex          = mv_vertex[i];
+            ret = dijkstra(*mps_env, mf_radius, b_surfaceCostVoid);
+            Gsout.str(std::string());
+            Gsout << "-v" << mv_vertex[i] << "-r" << mf_radius << ".label";
+            label_savePly(mstr_outputStem + Gsout.str(),
+                          mb_saveStaggered, mf_plyIncrement);
+            // In the case of separate label files, clear the surface
+            // of rips after each save.
+            surface_ripClear(*mps_env, true);
+        }
+    }
 
     debug_pop();
     return ret;
