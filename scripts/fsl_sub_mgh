@@ -98,7 +98,7 @@ if [ "x$SGE_ROOT" = "x" ] ; then
 	. /usr/local/share/sge/default/common/settings.sh
     elif [ -f /usr/local/sge/default/common/settings.sh ] ; then
 	. /usr/local/sge/default/common/settings.sh
-    elif [ -d /pbs ] ; then		# Specific to Martinos clusters (AY)
+    elif [ -d /pbs ] && [ -z $PBS_JOBID ] ; then	# Specific to PBS cluster (AY)
 	METHOD=PBS
 	if [ "x$MYPBSQUEUE" = "x" ] && [ `hostname` = "seychelles" ] ; then
 	    MYPBSQUEUE=private

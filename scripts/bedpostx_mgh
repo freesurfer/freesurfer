@@ -77,6 +77,14 @@ if [ "x$SGE_ROOT" = "x" ] ; then
     fi
 fi
 
+# Check if this is being run on PBS but isn't a job itself (AY)
+if [ -d /pbs ] && [ -z $PBS_JOBID ] ; then
+    dopbsjobs=1;
+else
+    dopbsjobs=0;
+fi
+
+
 Usage() {
     echo ""
     echo "Usage: bedpostx_mgh <subject directory> [options] ..."
@@ -228,7 +236,7 @@ fi
 echo Queuing parallel processing stage
 nslices=`${FSLDIR}/bin/fslval ${subjdir}/data dim3`
 [ -f ${subjdir}.bedpostX/commands.txt ] && rm ${subjdir}.bedpostX/commands.txt
-if [ "x$SGE_ROOT" = "x" ] && [ ! -d /pbs ]; then
+if [ "x$SGE_ROOT" = "x" ] && [ $dopbsjobs -eq 0 ]; then
 
 # 
 # Need to set off a backgrounded monitoring task
@@ -309,7 +317,7 @@ bedpostid=`${BPDIR}/fsl_sub_mgh -j $preprocid -l ${subjdir}.bedpostX/logs -m a -
 echo Queuing post processing stage
 mergeid=`${BPDIR}/fsl_sub_mgh -j $bedpostid -T 60 -m ae -N bedpostx_post -l ${subjdir}.bedpostX/logs ${FSLDIR}/bin/bedpostx_postproc.sh $subjdir`
 
-[ "x$SGE_ROOT" = "x" ] && [ ! -d /pbs ] && kill $monitorpid
+[ "x$SGE_ROOT" = "x" ] && [ $dopbsjobs -eq 0 ] && kill $monitorpid
 
 if [ "x$SGE_ROOT" != "x" ]; then
     echo
@@ -351,7 +359,7 @@ EOC
     echo
     echo You will get an email at the end of the post-processing stage.
     echo
-elif [ -d /pbs ] ; then
+elif [ $dopbsjobs -eq 1 ] ; then
     echo
     echo Type ${subjdir}.bedpostX/monitor on `hostname` to show progress.
     cat <<EOM > ${subjdir}.bedpostX/monitor
