@@ -8,8 +8,8 @@
 # Original Author: Anastasia Yendiki
 # CVS Revision Info:
 #    $Author: ayendiki $
-#    $Date: 2012/04/13 21:44:21 $
-#    $Revision: 1.37 $
+#    $Date: 2012/04/14 00:02:57 $
+#    $Revision: 1.38 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -25,16 +25,16 @@
 
 umask 002
 
-set VERSION = '$Id: trac-all,v 1.37 2012/04/13 21:44:21 ayendiki Exp $'
+set VERSION = '$Id: trac-all,v 1.38 2012/04/14 00:02:57 ayendiki Exp $'
 set ProgName = `basename $0`
 set inputargs = ($argv)
 
 if ($?PBS_JOBID) then
-  echo "ERROR: Do not submit $ProgName as a job with pbsubmit or qsub."
-  echo "ERROR: Run it directly on the command line."
-  echo "ERROR: If run on the cluster, $ProgName will submit the jobs for you."
-  echo "ERROR: Each subject listed in your dmrirc will be submitted as a job."
-  exit 1
+  echo "WARN: The intended usage of $ProgName is not to submit it as a job."
+  echo "WARN: It is to be run directly on the command line."
+  echo "WARN: If run on the cluster, $ProgName will submit the jobs for you."
+  echo "WARN: Each subject listed in your dmrirc will be submitted as a job."
+  echo "WARN: If run on a single node, it will run everything serially."
 endif
 
 set onpbs = 0
