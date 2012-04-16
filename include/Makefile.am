@@ -217,6 +217,7 @@ EXTRA_DIST=\
 	resample.h \
 	rescale.h \
 	retinotopy.h \
+	rfa.h \
 	rforest.h \
 	rgb_image.h \
 	rgb_utils.h \
