@@ -76,6 +76,7 @@ MRISUBDIRS=\
 	mri_extract_label \
 	mri_fieldsign \
 	mri_fill \
+	mri_fit_bias \
 	mri_fwhm \
 	mri_gca_ambiguous \
 	mri_head \

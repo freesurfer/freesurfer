@@ -8,9 +8,9 @@
 # Process this file with autoconf to produce a configure script.
 #
 # CVS Revision Info:
-#    $Author: nicks $
-#    $Date: 2012/03/20 16:43:21 $
-#    $Revision: 1.567 $
+#    $Author: greve $
+#    $Date: 2012/04/17 19:04:24 $
+#    $Revision: 1.568 $
 #
 ########################################################################
 AC_PREREQ(2.57)
@@ -3458,6 +3458,7 @@ AC_OUTPUT([Makefile
            mri_extract_largest_CC/Makefile
            mri_fieldsign/Makefile
            mri_fill/Makefile
+           mri_fit_bias/Makefile
            mri_fslmat_to_lta/Makefile
            mri_fwhm/Makefile
            mri_gca_ambiguous/Makefile
