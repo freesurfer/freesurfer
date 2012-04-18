@@ -8,8 +8,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2012/04/17 19:04:24 $
- *    $Revision: 1.1 $
+ *    $Date: 2012/04/18 19:14:50 $
+ *    $Revision: 1.2 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -56,7 +56,7 @@ static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 MRI *MRIpolyfitBiasField(MRI *vol2, int order2, MRI *seg2, MRI *bias2);
 
-static char vcid[] = "$Id: mri_fit_bias.c,v 1.1 2012/04/17 19:04:24 greve Exp $";
+static char vcid[] = "$Id: mri_fit_bias.c,v 1.2 2012/04/18 19:14:50 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -274,7 +274,7 @@ static void dump_options(FILE *fp) {
 /*----------------------------------------------------*/
 MRI *MRIpolyfitBiasField(MRI *vol, int order, MRI *seg, MRI *bias)
 {
-  int c,r,s, nseg, nX, *segids, nsegids,z,k,segid,*tmplist,nthseg, npoly;
+  int c,r,s, nseg, nX, *segids, nsegids,z,k,segid,*tmplist,nthseg, npoly=3;
   MATRIX *X, *y, *Xt, *XtX, *iXtX, *Xty, *beta;
   double dc,dr,ds,val;
   double nchalf,nrhalf,nshalf;
