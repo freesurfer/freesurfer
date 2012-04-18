@@ -8,8 +8,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2012/04/10 19:11:29 $
- *    $Revision: 1.437 $
+ *    $Date: 2012/04/18 20:11:21 $
+ *    $Revision: 1.438 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -56,6 +56,10 @@ extern "C" {
 #define MRI_TENSOR  6
 #define MRI_FLOAT_COMPLEX  7
 #define MRI_DOUBLE_COMPLEX  8
+
+#define NEAREST_NEIGHBOR_FACE   1
+#define NEAREST_NEIGHBOR_EDGE   2
+#define NEAREST_NEIGHBOR_CORNER 3
 
 #define MAX_CMDS 1000
 
@@ -549,6 +553,7 @@ MRI   *MRIcomputeFrameVectorL1Length(MRI *mri_src, MRI *mri_dst);
 /* morphology */
 MRI   *MRImorph(MRI *mri_src, MRI *mri_dst, int which) ;
 MRI   *MRIerode(MRI *mri_src, MRI *mri_dst) ;
+MRI   *MRIerodeNN(MRI *in, MRI *out, int NNDef);
 MRI   *MRIerodeLabels(MRI *mri_src, MRI *mri_dst) ;
 MRI   *MRIerodeThresh(MRI *mri_src, MRI *mri_intensity, double thresh, 
                       MRI *mri_dst) ;

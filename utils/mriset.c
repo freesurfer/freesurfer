@@ -9,8 +9,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2012/04/10 19:11:29 $
- *    $Revision: 1.82 $
+ *    $Date: 2012/04/18 20:11:21 $
+ *    $Revision: 1.83 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -396,6 +396,68 @@ MRImorph(MRI *mri_src, MRI *mri_dst, int which)
   }
   return(mri_dst) ;
 }
+/*!
+  \fn MRI *MRIerodeNN(MRI *in, MRI *out, int NNDef)
+  \brief Erodes a mask by one voxel if any of the nearest neighbors of 
+  a voxel are non-zero. Nearest neighbor can be defined in one of three ways:
+  NEAREST_NEIGHBOR_FACE, NEAREST_NEIGHBOR_EDGE, NEAREST_NEIGHBOR_CORNER
+  When called with CORNER, this should give the same result as MRIerode().
+*/
+MRI *MRIerodeNN(MRI *in, MRI *out, int NNDef)
+{
+  int c,r,s,dc,dr,ds;
+  double valmin, val;
+
+  if(in == out){
+    printf("ERROR: MRIerodeNN(): cannot be done in-place\n");
+    return(NULL);
+  }
+  if(!out) {
+    out = MRIallocSequence(in->width, in->height, in->depth,in->type, 1);
+    MRIcopyHeader(in,out);
+  }
+  if(MRIdimMismatch(in, out, 0)){
+    printf("ERROR: MRIerodeNN(): seg/out dim mismatch\n");
+    return(NULL);
+  }
+  MRIsetValues(out, 0);
+
+  for(c=0; c < in->width; c++){
+    for(r=0; r < in->height; r++){
+      for(s=0; s < in->depth; s++){
+	// If this voxel is already 0, just skip it
+	valmin = MRIgetVoxVal(in,c,r,s,0);
+
+	// Check neighboring voxels
+	for(dc=-1; dc <= 1; dc++){
+	  for(dr=-1; dr <= 1; dr++){
+	    for(ds=-1; ds <= 1; ds++){
+	      if(c+dc<0 || c+dc>in->width-1 ||
+		 r+dr<0 || r+dr>in->height-1 ||
+		 s+ds<0 || s+ds>in->depth-1){
+		continue;
+	      }
+	      if(NNDef == NEAREST_NEIGHBOR_FACE)
+		if(abs(dc)+abs(dr)+abs(ds) > 1) continue;
+	      if(NNDef == NEAREST_NEIGHBOR_EDGE)
+		if(abs(dc)+abs(dr)+abs(ds) > 2) continue;
+	      val = MRIgetVoxVal(in,c+dc,r+dr,s+ds,0);
+	      if(val < valmin) valmin = val;
+	    }
+	  }
+	}
+	MRIsetVoxVal(out,c,r,s,0, valmin);
+      }
+    }
+  }
+  return(out);
+}
+
+
+
+
+
+
 /*-----------------------------------------------------*/
 MRI * MRIerode(MRI *mri_src, MRI *mri_dst)
 {

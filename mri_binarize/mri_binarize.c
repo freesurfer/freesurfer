@@ -10,8 +10,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2012/03/09 00:33:25 $
- *    $Revision: 1.34 $
+ *    $Date: 2012/04/18 20:11:22 $
+ *    $Revision: 1.35 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -26,7 +26,7 @@
  */
 
 
-// $Id: mri_binarize.c,v 1.34 2012/03/09 00:33:25 greve Exp $
+// $Id: mri_binarize.c,v 1.35 2012/04/18 20:11:22 greve Exp $
 
 /*
   BEGINHELP
@@ -170,7 +170,6 @@ double round(double x);
 #include "randomfields.h"
 #include "cma.h"
 
-
 static int  parse_commandline(int argc, char **argv);
 static void check_options(void);
 static void print_usage(void) ;
@@ -180,7 +179,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_binarize.c,v 1.34 2012/03/09 00:33:25 greve Exp $";
+static char vcid[] = "$Id: mri_binarize.c,v 1.35 2012/04/18 20:11:22 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -226,12 +225,15 @@ int DoFrameAnd = 0;
 int DoPercent = 0;
 double TopPercent = -1;
 
+int nErodeNN=0, NNType=0;
+
 /*---------------------------------------------------------------*/
 int main(int argc, char *argv[]) {
   int nargs, c, r, s, nhits, InMask, n, mriType,nvox;
   int fstart, fend, nframes;
   double val,maskval,mergeval,gmean,gstd,gmax,voxvol;
   FILE *fp;
+  MRI *mritmp;
 
   nargs = handle_version_option (argc, argv, vcid, "$Name:  $");
   if (nargs && argc - nargs == 1) exit (0);
@@ -428,6 +430,15 @@ int main(int argc, char *argv[]) {
   if(nErode2d > 0){
     printf("Eroding %d voxels in 2d\n",nErode2d);
     for(n=0; n<nErode2d; n++) MRIerode2D(OutVol,OutVol);
+  }
+  if(nErodeNN > 0){
+    printf("Eroding %d voxels using %d\n",nErodeNN,NNType);
+    mritmp = NULL;
+    for(n=0; n<nErodeNN; n++) {
+      mritmp = MRIerodeNN(OutVol,mritmp,NNType);
+      MRIcopy(mritmp,OutVol);
+    }
+    MRIfree(&mritmp);
   }
   
   printf("Counting number of voxels in first frame\n");
@@ -696,11 +707,31 @@ static int parse_commandline(int argc, char **argv) {
       if (nargc < 1) CMDargNErr(option,1);
       sscanf(pargv[0],"%d",&nDilate3d);
       nargsused = 1;
-    } else if (!strcasecmp(option, "--erode")) {
+    } 
+    else if (!strcasecmp(option, "--erode-face")) {
+      if (nargc < 1) CMDargNErr(option,1);
+      sscanf(pargv[0],"%d",&nErodeNN);
+      NNType = NEAREST_NEIGHBOR_FACE;
+      nargsused = 1;
+    } 
+    else if (!strcasecmp(option, "--erode-edge")) {
+      if (nargc < 1) CMDargNErr(option,1);
+      sscanf(pargv[0],"%d",&nErodeNN);
+      NNType = NEAREST_NEIGHBOR_EDGE;
+      nargsused = 1;
+    } 
+    else if (!strcasecmp(option, "--erode-corner")) {
+      if (nargc < 1) CMDargNErr(option,1);
+      sscanf(pargv[0],"%d",&nErodeNN);
+      NNType = NEAREST_NEIGHBOR_CORNER;
+      nargsused = 1;
+    } 
+    else if (!strcasecmp(option, "--erode")) {
       if (nargc < 1) CMDargNErr(option,1);
       sscanf(pargv[0],"%d",&nErode3d);
       nargsused = 1;
-    } else if (!strcasecmp(option, "--erode2d")) {
+    } 
+    else if (!strcasecmp(option, "--erode2d")) {
       if (nargc < 1) CMDargNErr(option,1);
       sscanf(pargv[0],"%d",&nErode2d);
       nargsused = 1;
@@ -762,6 +793,9 @@ static void print_usage(void) {
   printf("   --dilate ndilate: dilate binarization in 3D\n");
   printf("   --erode  nerode: erode binarization in 3D (after any dilation)\n");
   printf("   --erode2d nerode2d: erode binarization in 2D (after any 3D erosion)\n");
+  printf("   --erode-face   nerode: erode binarization using 'face' nearest neighbors\n");
+  printf("   --erode-edge   nerode: erode binarization using 'edge' nearest neighbors\n");
+  printf("   --erode-corner nerode: erode binarization using 'corner' nearest neighbors (same as --erode)\n");
   printf("\n");
   printf("   --debug     turn on debugging\n");
   printf("   --checkopts don't run anything, just check options and exit\n");
@@ -958,7 +992,3 @@ static void dump_options(FILE *fp) {
   }
   return;
 }
-
-
-
-
