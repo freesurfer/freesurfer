@@ -3,7 +3,11 @@ function [means covar] = gc_train(data,datacid);
 % Estimates gaussian classifier parameters from a training set.
 % See also gc_synth_params, gc_synth_data, gc_classify
 %
-% $Id: gc_train.m,v 1.1 2011/09/19 21:32:43 greve Exp $
+% data  - nData x nVariates
+% means - nClasses x nVariates
+% covar - nVariates x nVariates x nClasses
+%
+% $Id: gc_train.m,v 1.2 2012/04/20 16:05:15 greve Exp $
 
 cids = unique(datacid);
 nClasses = length(cids);
