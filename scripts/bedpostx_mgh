@@ -370,7 +370,7 @@ while [ \$finished -eq 0 ] ; do
     nfin=0
     for job in \`cat \$logdir/joblist | awk '{print \$2}'\` ; do
         status=\`jobinfo \$job | grep Exit | awk '{print \$3}'\`
-        if [ "\$status" == 0 ] ; then let nfin=nfin+1; fi
+        if [ "\$status" -eq 0 ] ; then let nfin=nfin+1; fi
     done
     if [ \$nfin -eq $nslices ] ; then
         finished=1

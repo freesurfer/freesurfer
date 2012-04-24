@@ -213,7 +213,7 @@ queue=long.q
 mailto=`whoami`@fmrib.ox.ac.uk
 MailOpts="as"
 
-if [ $METHOD == PBS ] ; then		# (AY)
+if [ $METHOD = PBS ] ; then		# (AY)
     queue=$MYPBSQUEUE
     mailto=`whoami`
     MailOpts="abe"
@@ -260,7 +260,7 @@ while [ $1 != -- ] ; do
   case $1 in
     -T)
       map_qname $2
-      if [ $METHOD == PBS ] ; then 	# (AY)
+      if [ $METHOD = PBS ] ; then 	# (AY)
         queue=$MYPBSQUEUE
       fi
       shift;;
@@ -318,7 +318,7 @@ shift
 # Don't change the following (but keep scrolling down!)
 ###########################################################################
 
-if [ "x$JobName" == x ] ; then 
+if [ "x$JobName" = x ] ; then 
     if [ "x$taskfile" != x ] ; then
 	JobName=`basename $taskfile`
     else
@@ -348,7 +348,7 @@ case $METHOD in
 ###########################################################################
 
     SGE)
-	if [ "x$tasks" == "x" ] ; then
+	if [ "x$tasks" = "x" ] ; then
 	    if [ $scriptmode -ne 1 ] ; then
 		sge_command="qsub -V -cwd -shell n -b y -r y -q $queue -M $mailto -N $JobName -m $MailOpts $LogOpts $sge_arch $sge_hold"
 	    else
@@ -384,7 +384,7 @@ EOF
 
     PBS)
         mailto=`whoami`
-	if [ "x$tasks" == "x" ] ; then
+	if [ "x$tasks" = "x" ] ; then
 	    if [ $scriptmode -ne 1 ] ; then
 		qsubopts="-V -r y -q $queue -M $mailto -m $MailOpts"
 		qsubopts="$qsubopts -N $JobName"
@@ -457,7 +457,7 @@ EOF
 ###########################################################################
 
     NONE)
-	if [ "x$tasks" == "x" ] ; then
+	if [ "x$tasks" = "x" ] ; then
 	    if [ $verbose -eq 1 ] ; then 
 		echo executing: $@ >&2
 	    fi
