@@ -9,8 +9,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2011/12/30 20:06:45 $
- *    $Revision: 1.103 $
+ *    $Date: 2012/04/24 17:51:55 $
+ *    $Revision: 1.104 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -2444,6 +2444,8 @@ LabelFillHoles(LABEL *area_src, MRI_SURFACE *mris, int coords)
 
   vx = vy = vz = -1;
   mri = MRIalloc(256,256,256,MRI_UCHAR) ;
+  
+  useVolGeomToMRI(&mris->vg, mri);
   area_dst = LabelAlloc(mris->nvertices, mris->subject_name, area_src->name) ;
   LabelCopy(area_src, area_dst) ;
   LabelFillUnassignedVertices(mris, area_dst, coords) ;
