@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:55 $
- *    $Revision: 1.21 $
+ *    $Author: fischl $
+ *    $Date: 2012/04/25 00:54:39 $
+ *    $Revision: 1.22 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -33,6 +33,7 @@
 #include "voxlist.h"
 #include "macros.h"
 #include "proto.h"
+#include "label.h"
 
 extern const char* Progname;
 
@@ -292,6 +293,19 @@ VLSTfree(VOXEL_LIST **pvl)
   free(vl->xi) ;
   free(vl->yi) ;
   free(vl->zi) ;
+  free(vl->xd) ;
+  free(vl->yd) ;
+  free(vl->zd) ;
+  free(vl->vsrc) ;
+  free(vl->vdst) ;
+  if (vl->t)
+    free(vl->t) ;
+  if (vl->mx)
+    free(vl->mx) ;
+  if (vl->my)
+    free(vl->my) ;
+  if (vl->mz)
+    free(vl->mz) ;
   free(vl) ;
   return(NO_ERROR) ;
 }
@@ -646,6 +660,7 @@ VLSTalloc(int nvox)
   vl->yi = (int *)calloc(nvox, sizeof(int)) ;
   vl->zi = (int *)calloc(nvox, sizeof(int)) ;
   vl->nvox = nvox ;
+  vl->max_vox = nvox ;
   if (vl->xi == NULL ||
       vl->yi == NULL ||
       vl->zi == NULL ||
@@ -661,8 +676,23 @@ VOXEL_LIST *
 VLSTcopy(VOXEL_LIST *vl_src, VOXEL_LIST *vl_dst, int start_index, int num)
 {
   int  i ;
+
   if (vl_dst == NULL)
     vl_dst = VLSTalloc(num) ;
+
+  vl_dst->type = vl_src->type ;
+
+  if (vl_src->mx)
+    vl_dst->mx = (float *)calloc(num, sizeof(float)) ;
+  if (vl_src->my)
+    vl_dst->my = (float *)calloc(num, sizeof(float)) ;
+  if (vl_src->mz)
+    vl_dst->mz = (float *)calloc(num, sizeof(float)) ;
+  if (vl_src->t)
+    vl_dst->t = (float *)calloc(num, sizeof(float)) ;
+
+  if (vl_dst->t == NULL || vl_dst->mx == NULL ||  vl_dst->my == NULL ||  vl_dst->mz == NULL)
+    ErrorExit(ERROR_NOMEMORY, "VLSTcopy: could not allocate %d-len slope arrays", num) ;
 
   for (i = 0 ; i < num ; i++)
   {
@@ -679,4 +709,228 @@ VLSTcopy(VOXEL_LIST *vl_src, VOXEL_LIST *vl_dst, int start_index, int num)
   }
 
   return(vl_dst) ;
+}
+int
+VLSTaddUnique(VOXEL_LIST *vl, int x, int y, int z, float xd, float yd, float zd)
+{
+  if (VLSTinList(vl, x, y, z))
+    return(0) ;
+  VLSTadd(vl, x, y, z, xd, yd, zd) ;
+  return(1) ;
+}
+int
+VLSTadd(VOXEL_LIST *vl, int x, int y, int z, float xd, float yd, float zd)
+{
+  vl->xi[vl->nvox] = x ;
+  vl->yi[vl->nvox] = y ;
+  vl->zi[vl->nvox] = z ;
+  vl->xd[vl->nvox] = xd ;
+  vl->yd[vl->nvox] = yd ;
+  vl->zd[vl->nvox] = zd ;
+  vl->nvox++ ;
+  return(NO_ERROR) ;
+}
+
+int
+VLSTinList(VOXEL_LIST *vl, int x, int y, int z)
+{
+  int n ;
+
+  for (n = 0 ; n < vl->nvox ; n++)
+    if (vl->xi[n] == x && vl->yi[n] == y && vl->zi[n] == z)
+      return(1) ;
+  return(0) ;
+}
+
+VOXEL_LIST *
+VLSTsplineFit(VOXEL_LIST *vl, int num_control)
+{
+  VOXEL_LIST *vl_spline ;
+  int        k, i, km1, kp1 ;
+  float      len, total_len, dx, dy, dz, tx, ty, tz ;
+
+  if (num_control > vl->nvox)
+    ErrorReturn(NULL, (ERROR_BADPARM, "VLSTsplineFit: input vl has %d points, not enough for %d control points",
+		       vl->nvox, num_control)) ;
+
+  vl_spline = VLSTalloc(num_control) ;
+  vl_spline->type = VOXLIST_SPLINE ;
+  vl_spline->mx = (float *)calloc(num_control, sizeof(float)) ;
+  vl_spline->my = (float *)calloc(num_control, sizeof(float)) ;
+  vl_spline->mz = (float *)calloc(num_control, sizeof(float)) ;
+  vl_spline->t = (float *)calloc(num_control, sizeof(float)) ;
+  if (vl_spline->t == NULL || vl_spline->mx == NULL ||  vl_spline->my == NULL ||  vl_spline->mz == NULL)
+    ErrorExit(ERROR_NOMEMORY, "VLSTsplineFit: could not allocate %d-len slope arrays", num_control) ;
+
+  for (k = 0 ; k < num_control ; k++)
+  {
+    i = nint((float)k*(float)(vl->nvox-1)/(float)(num_control-1)) ;
+
+    vl_spline->xi[k] = vl->xi[i]  ;
+    vl_spline->yi[k] = vl->yi[i]  ;
+    vl_spline->zi[k] = vl->zi[i]  ;
+    vl_spline->vsrc[k] = vl->vsrc[i]  ;
+    vl_spline->vdst[k] = vl->vdst[i]  ;
+    vl_spline->xd[k] = vl->xd[i]  ;
+    vl_spline->yd[k] = vl->yd[i]  ;
+    vl_spline->zd[k] = vl->zd[i]  ;
+  }
+
+  // compute total length of control point line segments
+  for (total_len = k = 0 ; k < num_control-1 ; k++)
+  {
+    dx = vl_spline->xd[k+1] - vl_spline->xd[k] ;
+    dy = vl_spline->yd[k+1] - vl_spline->yd[k] ;
+    dz = vl_spline->zd[k+1] - vl_spline->zd[k] ;
+    len = sqrt(dx*dx + dy*dy + dz*dz) ;
+    total_len += len ;
+  }
+
+  // compute parameterization
+  vl_spline->t[0] = 0 ; vl_spline->t[num_control-1] = 1 ;
+  for (k = 1 ; k < num_control-1 ; k++)
+  {
+    dx = vl_spline->xd[k] - vl_spline->xd[k-1] ;
+    dy = vl_spline->yd[k] - vl_spline->yd[k-1] ;
+    dz = vl_spline->zd[k] - vl_spline->zd[k-1] ;
+    len = sqrt(dx*dx + dy*dy + dz*dz) ;
+    vl_spline->t[k] = len/total_len ;
+  }
+
+  // compute slopes
+  for (len = k = 0 ; k < num_control ; k++)
+  {
+    if (k == 0)
+      km1 = 0 ;
+    else
+      km1 = k-1 ;
+    if (k == num_control-1)
+      kp1 = num_control-1 ;
+    else
+      kp1 = k+1 ;
+
+    dx = vl_spline->xd[kp1] - vl_spline->xd[km1] ;
+    dy = vl_spline->yd[kp1] - vl_spline->yd[km1] ;
+    dz = vl_spline->zd[kp1] - vl_spline->zd[km1] ;
+    tx = vl_spline->t[kp1] - vl_spline->t[km1] ;
+    ty = vl_spline->t[kp1] - vl_spline->t[km1] ;
+    tz = vl_spline->t[kp1] - vl_spline->t[km1] ;
+    tx = ty = tz = 2 ;
+
+    vl_spline->mx[k] = dx / tx ;
+    vl_spline->my[k] = dy / ty ;
+    vl_spline->mz[k] = dz / tz ;
+  }
+
+  return(vl_spline) ;
+}
+int
+VLSTwriteLabel(VOXEL_LIST *vl, char *fname, MRI_SURFACE *mris, MRI *mri)
+{
+  LABEL *area = VLSTtoLabel(vl, mris, mri) ;
+  LabelWrite(area, fname) ;
+  LabelFree(&area) ;
+  return(NO_ERROR) ;
+}
+LABEL *
+VLSTtoLabel(VOXEL_LIST *vl, MRI_SURFACE *mris, MRI *mri)
+{
+  int  n ;
+  LABEL *area = LabelAlloc(vl->nvox, NULL, "") ;
+  double xs, ys, zs ;
+
+  for (n = 0 ; n < vl->nvox ; n++)
+  {
+    MRISsurfaceRASFromVoxel(mris, mri, (double)vl->xd[n], (double)vl->yd[n], (double)vl->zd[n], &xs, &ys, &zs) ;
+    area->lv[n].x = xs ;
+    area->lv[n].y = ys ;
+    area->lv[n].z = zs ;
+  }
+  area->n_points = vl->nvox ;
+
+  return(area) ;
+}
+
+
+VOXEL_LIST *
+VLSTinterpolate(VOXEL_LIST *vl, float spacing)
+{
+  int         k, nvox, km1, kp1 ;
+  VOXEL_LIST  *vl_interp ;
+  float       x_k, y_k, z_k, x_kp1, y_kp1, z_kp1, x, y, z, t, dx, dy, dz, mx_k, my_k, mz_k, mx_kp1, my_kp1, mz_kp1, len ;
+
+
+  // compute slopes, and # of points in interpolated spline
+  for (k = nvox = 0 ; k < vl->nvox-1 ; k++)
+  {
+    if (k == 0)
+      km1 = 0 ;
+    else
+      km1 = k-1 ;
+    if (k == vl->nvox-1)
+      kp1 = vl->nvox-1 ;
+    else
+      kp1 = k+1 ;
+
+    dx = vl->xd[kp1] - vl->xd[km1] ;
+    dy = vl->yd[kp1] - vl->yd[km1] ;
+    dz = vl->zd[kp1] - vl->zd[km1] ;
+
+    vl->mx[k] = dx / 2 ;
+    vl->my[k] = dy / 2 ;
+    vl->mz[k] = dz / 2 ;
+
+    x_k = vl->xd[k] ; y_k = vl->yd[k] ; z_k = vl->zd[k] ;
+    x_kp1 = vl->xd[k+1] ; y_kp1 = vl->yd[k+1] ; z_kp1 = vl->zd[k+1] ;
+    dx = x_kp1-x_k ; dy = y_kp1-y_k ; dz = z_kp1-z_k ;
+    len = sqrt(dx*dx + dy*dy + dz*dz) ;
+    if (FZERO(len))
+      continue ;
+    nvox += ceil(len/spacing)+1 ;
+  }
+
+  vl_interp = VLSTalloc(nvox) ;
+  vl_interp->nvox = 0 ;
+  for (k = nvox = 0 ; k < vl->nvox-1 ; k++)
+  {
+    x_k = vl->xd[k] ; y_k = vl->yd[k] ; z_k = vl->zd[k] ;
+    x_kp1 = vl->xd[k+1] ; y_kp1 = vl->yd[k+1] ; z_kp1 = vl->zd[k+1] ;
+    dx = x_kp1-x_k ; dy = y_kp1-y_k ; dz = z_kp1-z_k ;
+    len = sqrt(dx*dx + dy*dy + dz*dz) ;
+    if (FZERO(len))
+      continue ;
+    mx_k = vl->mx[k] ; my_k = vl->my[k] ; mz_k = vl->mz[k] ;
+    mx_kp1 = vl->mx[k+1] ; my_kp1 = vl->my[k+1] ; mz_kp1 = vl->mz[k+1] ;
+    for (t = 0 ; t <= 1.0 ; t += spacing/len)
+    {
+      x = h00(t)*x_k + h10(t)*mx_k + h01(t)*x_kp1 + h11(t)*mx_kp1 ;
+      y = h00(t)*y_k + h10(t)*my_k + h01(t)*y_kp1 + h11(t)*my_kp1 ;
+      z = h00(t)*z_k + h10(t)*mz_k + h01(t)*z_kp1 + h11(t)*mz_kp1 ;
+      VLSTadd(vl_interp, nint(x), nint(y), nint(z), x, y, z) ;
+      if (nint(x) == Gx && nint(y) == Gy && nint(z) == Gz)
+	DiagBreak() ;
+    }
+  }
+
+  return(vl_interp) ;
+}
+
+
+MRI *
+VLSTwriteOrderToMRI(VOXEL_LIST *vl, MRI *mri)
+{
+  int n ;
+
+  if (mri == NULL)
+  {
+    if (vl->mri == NULL)
+      ErrorExit(ERROR_BADPARM, "VLSTwriteOrderToMRI: mri must be specified as parameter or in vl->mri");
+
+    mri = MRIclone(vl->mri, NULL) ;
+  }
+
+  for (n = 0 ; n < vl->nvox ; n++)
+    MRIsetVoxVal(mri, vl->xi[n], vl->yi[n], vl->zi[n], 0, n+1) ;
+
+  return(mri) ;
 }
