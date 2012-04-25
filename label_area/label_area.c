@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:11 $
- *    $Revision: 1.8 $
+ *    $Author: fischl $
+ *    $Date: 2012/04/25 13:37:44 $
+ *    $Revision: 1.9 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -47,25 +47,25 @@ char *Progname ;
 
 static int verbose = 0 ;
 
-
-#define NAME_LEN      100
+static char *surf_name = "white" ;
+static float thresh = 0 ;
 
 static float compute_label_area(MRI_SURFACE *mris, char *subject_name,
-                                char *area_name) ;
+                                char *area_name, float thresh) ;
 
-static char subjects_dir[NAME_LEN] = "" ;
+static char subjects_dir[STRLEN] = "" ;
 
 
 
 int
 main(int argc, char *argv[]) {
   int          ac, nargs, i ;
-  char         **av, *cp, surf_name[100], *hemi, *subject_name, *area_name ;
+  char         **av, *cp, surf_fname[STRLEN], *hemi, *subject_name, *area_name ;
   MRI_SURFACE  *mris ;
   float        area ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: label_area.c,v 1.8 2011/03/02 00:04:11 nicks Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: label_area.c,v 1.9 2012/04/25 13:37:44 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -93,12 +93,12 @@ main(int argc, char *argv[]) {
   if (!cp)
     ErrorExit(ERROR_BADPARM, "no subjects directory in environment.\n") ;
   strcpy(subjects_dir, cp) ;
-  sprintf(surf_name,"%s/%s/surf/%s.smoothwm",subjects_dir,subject_name,hemi);
-  fprintf(stderr, "reading %s...\n", surf_name) ;
-  mris = MRISread(surf_name) ;
+  sprintf(surf_fname,"%s/%s/surf/%s.%s",subjects_dir,subject_name,hemi, surf_name);
+  fprintf(stderr, "reading %s...\n", surf_fname) ;
+  mris = MRISread(surf_fname) ;
   if (!mris)
     ErrorExit(ERROR_NOFILE, "%s: could not read surface file %s\n",
-              surf_name) ;
+              surf_fname) ;
   MRIScomputeMetricProperties(mris) ;
 
   /*  read in the area names */
@@ -106,7 +106,7 @@ main(int argc, char *argv[]) {
     area_name = argv[i] ;
     if (verbose > 3)  /* never */
       fprintf(stderr, "reading area %s\n", area_name) ;
-    area = compute_label_area(mris, subject_name, area_name) ;
+    area = compute_label_area(mris, subject_name, area_name, thresh) ;
     if (mris->group_avg_surface_area > 0) {
       MRIScomputeMetricProperties(mris) ;
       printf("adjusting for group surface area %2.2f (%2.0f / %2.0f)\n",
@@ -136,6 +136,16 @@ get_option(int argc, char *argv[]) {
 
   option = argv[1] + 1 ;            /* past '-' */
   switch (toupper(*option)) {
+  case 'S':
+    surf_name = argv[2] ;
+    printf("using metric properties from surface %s\n", surf_name) ;
+    nargs = 1 ;
+    break ;
+  case 'T':
+    thresh = atof(argv[2]) ;
+    printf("thresholding label stat field at %f\n", thresh) ;
+    nargs = 1 ;
+    break ;
   case 'V':
     verbose = !verbose ;
     break ;
@@ -170,11 +180,11 @@ load_transform(char *subject_name, General_transform *transform) {
 #endif
 
 static float
-compute_label_area(MRI_SURFACE *mris, char *subject_name, char *area_name) {
+compute_label_area(MRI_SURFACE *mris, char *subject_name, char *area_name, float thresh) {
   int      nlines, vno ;
   char     *cp, line[200], fname[200] ;
   FILE     *fp ;
-  float    total_area ;
+  float    total_area, stat ;
   VERTEX  *v ;
 
   sprintf(fname, "%s/%s/label/%s.label",subjects_dir,subject_name,area_name);
@@ -193,10 +203,12 @@ compute_label_area(MRI_SURFACE *mris, char *subject_name, char *area_name) {
   nlines = 0 ;
   total_area = 0.0f ;
   while ((cp = fgetl(line, 199, fp)) != NULL) {
-    if (sscanf(cp, "%d %*f %*f %*f", &vno) != 1)
+    if (sscanf(cp, "%d %*f %*f %*f %f", &vno, &stat) != 2)
       ErrorExit(ERROR_BADFILE, "%s: could not parse %dth line in %s",
                 Progname, nlines, fname) ;
 
+    if (stat < thresh)
+      continue ;
     v = &mris->vertices[vno] ;
     total_area += v->area ;
     nlines++ ;
@@ -211,6 +223,9 @@ compute_label_area(MRI_SURFACE *mris, char *subject_name, char *area_name) {
 
 static void
 print_usage(void) {
-  printf("usage: %s <hemi> <subject name> <label file name>...\n",Progname);
+  printf("usage: %s [options] <hemi> <subject name> <label file name>...\n",Progname);
+  printf("\twhere [options] can be:\n") ;
+  printf("\tS <surface name>    use a surface other than 'white' for metric properties\n") ;
+  printf("\tT <threshold>       only compute surface area for label vertices above thresh\n");
   exit(1) ;
 }
