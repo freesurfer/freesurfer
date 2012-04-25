@@ -16,7 +16,7 @@
 # Edited : 08-24-2011: added new logfile that should be easier to read for the user
 
 set inputargs = ($argv);
-set VERSION = '$Id: mri_cvs_register,v 1.35 2011/11/14 17:26:28 lzollei Exp $';
+set VERSION = '$Id: mri_cvs_register,v 1.36 2012/04/25 13:44:55 lzollei Exp $';
 
 set movingid = ();
 set templateid = ();
@@ -36,6 +36,9 @@ set BothHemis = 1
 set CleanSurfReg = 0
 set CleanElReg = 0
 set CleanVolReg = 0
+
+set FStemplate = cvs_avg35
+set usingFStemplate = 0
 
 # Parsing and checking the input arguments
 if($#argv == 0) goto usage_exit;
@@ -83,24 +86,27 @@ else
 endif
 
 echo "Logfile for mri_cvs_register" >> $LF
-date |& tee -a $LF
-echo $inputargs |& tee -a $LF
-echo $VERSION |& tee -a $LF
-hostname |& tee -a $LF
-uname -a |& tee -a $LF
 echo "Summary logfile for mri_cvs_register" >> $sLF
-date |& tee -a $sLF
-echo $inputargs |& tee -a $sLF
-echo $VERSION |& tee -a $sLF
-hostname |& tee -a $sLF
-uname -a |& tee -a $sLF
+set tmpMsg = `date`
+echo $tmpMsg |& tee -a $LF
+echo $tmpMsg >> $sLF
+echo $inputargs |& tee -a $LF
+echo $inputargs >> $sLF
+echo $VERSION |& tee -a $LF
+echo $VERSION >> $sLF
+set tmpMsg = `hostname`
+echo $tmpMsg |& tee -a $LF
+echo $tmpMsg >> $sLF
+set tmpMsg = `uname -a`
+echo $tmpMsg |& tee -a $LF
+echo $tmpMsg >> $sLF
 
 ############--------------##################
 
 # setenv LD_LIBRARY_PATH $ITK_DIR
 # setenv PATH {$PATH}:/usr/pubsw/packages/petsc/current/bin
 
-echo "*** Initializing the mri_cvs_register run" >> $sLF
+echo "Initializing the mri_cvs_register run" >> $sLF
 
 set voltype = norm
 set annotfile = aparc.annot
@@ -112,13 +118,18 @@ if ($usem3d) then
 else 
   set morphsuffix = m3z
 endif
-echo Using $morphsuffix type morph files. |& tee -a $LF
-echo Using $morphsuffix type morph files. |& tee -a $sLF
+if ($DoAllSteps || $OnlyStep3) then
+  set tmpMsg =  "Using $morphsuffix type morph files."
+  echo $tmpmsg |& tee -a $LF
+  echo $tmpmsg >> $sLF
+endif
 
 ### REGISTRATION: STEP 1: #CVS_step1.csh
 ###     preprocessing: to get mean and Gaussian curvature files (.H, .K) if they do not exist
 
 if ($DoAllSteps || $OnlyStep1) then 
+
+set Step1StartTime = `date +%s`;
 
 set movingsurfdir   = $SUBJECTS_DIR/$movingid/surf 
 set templatesurfdir = $TEMPLATE_DIR/$templateid/surf
@@ -132,8 +143,8 @@ if ($BothHemis) then
     pushd $movingsurfdir
     foreach hemi (lh rh)
       set cmd = (mris_curvature -w -distances 10 10 $hemi.inflated)
-      echo $cmd |& tee -a $LF
-      echo $cmd |& tee -a $sLF
+      echo $cmd >> $LF
+      echo $cmd >> $sLF
       $cmd |& tee -a $LF
       if($status) exit 1;  
     end
@@ -145,8 +156,8 @@ if ($BothHemis) then
     pushd $templatesurfdir
     foreach hemi (lh rh)
       set cmd = (mris_curvature -w -distances 10 10 $hemi.inflated)
-      echo $cmd |& tee -a $LF
-      echo $cmd |& tee -a $sLF
+      echo $cmd >> $LF
+      echo $cmd >> $sLF
       $cmd |& tee -a $LF
       if($status) exit 1;  
     end
@@ -158,8 +169,8 @@ else
     echo $movingid ': at least one mean and/or Gaussian curvature file is missing (.H, .K)'
     pushd $movingsurfdir
     set cmd = (mris_curvature -w -distances 10 10 $hemi.inflated)
-    echo $cmd |& tee -a $LF
-    echo $cmd |& tee -a $sLF
+    echo $cmd >> $LF
+    echo $cmd >> $sLF
     $cmd |& tee -a $LF
     if($status) exit 1;  
     popd
@@ -169,8 +180,8 @@ else
     echo $templateid ': at least one mean and/or Gaussian curvature file is missing (.H, .K)'
     pushd $templatesurfdir
     set cmd = (mris_curvature -w -distances 10 10 $hemi.inflated)
-    echo $cmd |& tee -a $LF
-    echo $cmd |& tee -a $sLF
+    echo $cmd >> $LF
+    echo $cmd >> $sLF
     $cmd |& tee -a $LF
     if($status) exit 1;  
     popd
@@ -181,7 +192,7 @@ endif #BothHemis
 ###     spherical registration (note: this step assumes existence of
 ###     the ?h.aparc.annot, ?h.white and ?h.pial files)
 
-echo "*** Ready for spherical registration (CVS: Step 1)" >> $sLF
+echo "Ready for spherical registration (CVS: Step 1)" >> $sLF
 
 ## Check whether the necessary files in label and surf exist
 if ($BothHemis) then
@@ -218,8 +229,8 @@ if ($BothHemis) then
     if (!(-e $movingsurfdir/$hemi.cvs.to$templateid.sphere.reg) || $CleanSurfReg) then
       # the spherical registration does not yet exist
       set cmd = (mris_register -1 -dist 1.0 -inflated $movingsurfdir/$hemi.sphere $templatesurfdir/$hemi.sphere $movingsurfdir/$hemi.cvs.to$templateid.sphere.reg)
-      echo $cmd |& tee -a $LF
-      echo $cmd |& tee -a $sLF
+      echo $cmd >> $LF
+      echo $cmd >> $sLF
       $cmd |& tee -a $LF
       if($status) exit 1;
     endif
@@ -228,8 +239,8 @@ else
   if (!(-e $movingsurfdir/$hemi.cvs.to$templateid.sphere.reg) || $CleanSurfReg) then
     # the spherical registration does not yet exist
     set cmd = (mris_register -1 -dist 1.0 -inflated $movingsurfdir/$hemi.sphere $templatesurfdir/$hemi.sphere $movingsurfdir/$hemi.cvs.to$templateid.sphere.reg)
-    echo $cmd |& tee -a $LF
-    echo $cmd |& tee -a $sLF
+    echo $cmd >> $LF
+    echo $cmd >> $sLF
     $cmd |& tee -a $LF
     if($status) exit 1;
   endif
@@ -241,8 +252,8 @@ if ($BothHemis) then
     foreach surf (white pial)
       if (!(-e $outdir/$hemi.resample.$surf) || $CleanSurfReg) then 
         set cmd = (mris_resample --atlas_reg $templatesurfdir/$hemi.sphere --annot_in $movinglabeldir/$hemi.$annotfile --annot_out $outdir/$hemi.resample.$annotfile --subject_surf $movingsurfdir/$hemi.$surf --subject_reg $movingsurfdir/$hemi.cvs.to$templateid.sphere.reg --out $outdir/$hemi.resample.$surf)     
-        echo $cmd |& tee -a $LF
-        echo $cmd |& tee -a $sLF
+        echo $cmd >> $LF
+        echo $cmd >> $sLF
         $cmd |& tee -a $LF
         if($status) exit 1;
       endif
@@ -252,20 +263,25 @@ else
   foreach surf (white pial)
     if (!(-e $outdir/$hemi.resample.$surf) || $CleanSurfReg) then 
       set cmd = (mris_resample --atlas_reg $templatesurfdir/$hemi.sphere --annot_in $movinglabeldir/$hemi.$annotfile --annot_out $outdir/$hemi.resample.$annotfile --subject_surf $movingsurfdir/$hemi.$surf --subject_reg $movingsurfdir/$hemi.cvs.to$templateid.sphere.reg --out $outdir/$hemi.resample.$surf)     
-      echo $cmd |& tee -a $LF
-      echo $cmd |& tee -a $sLF
+      echo $cmd >> $LF
+      echo $cmd >> $sLF
       $cmd |& tee -a $LF
       if($status) exit 1;
     endif
   end  # (white, pial)
 endif #BothHemis
 
+set Step1EndTime = `date +%s`;
+
+@ Step1DiffTime = $Step1EndTime - $Step1StartTime
+set tmpTimeMsg = "mri_cvs_register: Step 1 (spherical registration) took $Step1DiffTime seconds"
+echo $tmpTimeMsg |& tee -a $sLF
+echo $tmpTimeMsg >> $LF
+
 endif # --step1
 
 ### REGISTRATION: STEP 2: # CVS_step2.csh
 ###     elastic registartion
-
-echo "*** Ready for elastic registration (CVS: Step 2)" >> $sLF
 
 setenv FREESURFER_HOME_BIN $FREESURFER_HOME/bin
 setenv VOLTYPE $voltype
@@ -282,12 +298,19 @@ set elasticmorph = ${out_root}_to$templateid.tm3d
 
 if ($DoAllSteps || $OnlyStep2) then 
 
+echo "Ready for elastic registration (CVS: Step 2)" >> $sLF
+set Step2StartTime = `date +%s`;
+
 ## Run the elastic registration
 # pushd $cvsdir
 if (!(-e $outdir/$elasticmorph) || $CleanElReg) then
  set elasticoptions = (-lin_res 20 -ksp_rtol 1.0e-9 -penalty_weight 1000 -fem_steps 17 -elt_vol_range 5.0,10.0 \
                        -log_summary -topology_old -compress -pc_type jacobi -ksp_type preonly \
-                       -ksp_view -ksp_converged_reason -poisson .3 -young 1000)
+                       -ksp_view -ksp_converged_reason -poisson .3)
+ if (!($usingFStemplate)) then 
+   set elasticoptions = ($elasticoptions -young 1000) # otherwise default is 10
+ endif
+
  
  if ($BothHemis) then
   set cmd = (surf2vol -fixed_mri $tmri/$voltype.mgz -moving_mri $mmri/$voltype.mgz  \
@@ -300,8 +323,8 @@ if (!(-e $outdir/$elasticmorph) || $CleanElReg) then
                       $elasticoptions -cache_transform $outdir/transform.txt \
                       -out $outdir/${elasticmorph:r}.mgz -out_surf $outdir/surf-mfc_to$templateid \
                       -out_mesh $outdir/${elasticmorph:r})
-  echo $cmd |& tee -a $LF
-  echo $cmd |& tee -a $sLF
+  echo $cmd >> $LF
+  echo $cmd >> $sLF
   $cmd |& tee -a $LF
   if($status) exit 1;
  else
@@ -312,17 +335,26 @@ if (!(-e $outdir/$elasticmorph) || $CleanElReg) then
                       $elasticoptions -cache_transform $outdir/transform.txt \
                       -out $outdir/${elasticmorph:r}.mgz -out_surf $outdir/surf-mfc_to$templateid \
                       -out_mesh $outdir/${elasticmorph:r})
-  echo $cmd |& tee -a $LF
-  echo $cmd |& tee -a $sLF
+  echo $cmd >> $LF
+  echo $cmd >> $sLF
   $cmd |& tee -a $LF
   if($status) exit 1;
  endif
 endif
 # popd
 
+set Step2EndTime = `date +%s`;
+
+@ Step2DiffTime = $Step2EndTime - $Step2StartTime
+set tmpTimeMsg = "mri_cvs_register: Step 2 (elastic registration) took $Step2DiffTime seconds"
+echo $tmpTimeMsg |& tee -a $sLF
+echo $tmpTimeMsg >> $LF
+
 endif #--step2
 
 if ($DoAllSteps || $OnlyStep3) then 
+
+set Step3StartTime = `date +%s`;
 
 ## Apply results of elastic registration to aseg 
 
@@ -330,8 +362,8 @@ if ($UseAseg) then
   set voltype = aseg
   if (!(-e $outdir/${elasticmorph:r}_${voltype}.mgz) || $CleanSurfReg) then 
     set cmd = (applyMorph --template $tmri/$voltype.mgz --transform $outdir/${elasticmorph} vol $mmri/$voltype.mgz $outdir/${elasticmorph:r}_${voltype}.mgz nearest)
-    echo $cmd |& tee -a $LF
-    echo $cmd |& tee -a $sLF
+    echo $cmd >> $LF
+    echo $cmd >> $sLF
     $cmd |& tee -a $LF
     if($status) exit 1;
   endif
@@ -343,7 +375,7 @@ endif
 ###        (UseAseg==0) only intensity-based
 ###        (UseAseg==1) aseg + intensity-based
 
-echo "*** Ready for volumetric registration (CVS: Step 3)" >> $sLF
+echo "Ready for volumetric registration (CVS: Step 3)" >> $sLF
 
 if ($UseAseg) then
   set voltype = aseg
@@ -356,9 +388,9 @@ if ($UseAseg) then
   endif
 ## Run the non-linear registration based on the aseg volumes.
   if (!(-e $outdir/${nl_regresult}) || $CleanVolReg) then
-    set cmd = (mri_nl_align $options $outdir/${input}_${voltype}.mgz $tmri/$voltype.mgz $outdir/${nl_regresult})
-    echo $cmd |& tee -a $LF
-    echo $cmd |& tee -a $sLF
+    set cmd = (~/my_fs/dev/mri_hires_register/mri_nl_align $options $outdir/${input}_${voltype}.mgz $tmri/$voltype.mgz $outdir/${nl_regresult})
+    echo $cmd >> $LF
+    echo $cmd >> $sLF
     $cmd |& tee -a $LF
     if($status) exit 1;
   endif
@@ -370,8 +402,8 @@ if ($UseAseg) then
     set cmd = ( createMorph --out $outdir/$combined --template $tmri/$voltype.mgz \
                             --subject $mmri/$voltype.mgz --in gcam $outdir/${nl_regresult} \
                             morph $outdir/${input}.tm3d )  
-    echo $cmd |& tee -a $LF
-    echo $cmd |& tee -a $sLF
+    echo $cmd >> $LF
+    echo $cmd >> $sLF
     $cmd |& tee -a $LF
     if($status) exit 1;
   endif  
@@ -380,8 +412,8 @@ if ($UseAseg) then
     set cmd = (exportGcam --fixed $tmri/$voltype.mgz --moving $mmri/$voltype.mgz \
                           --morph $outdir/$combined --out_gcam $outdir/${combined:r}.${morphsuffix})			  
 
-    echo $cmd |& tee -a $LF
-    echo $cmd |& tee -a $sLF
+    echo $cmd >> $LF
+    echo $cmd >> $sLF
     $cmd |& tee -a $LF
     if($status) exit 1;
 
@@ -393,19 +425,19 @@ if ($UseAseg) then
     set cmd = ( mri_vol2vol --targ $tmri/$voltype.mgz --m3z $outdir/${combined:r}.${morphsuffix} --noDefM3zPath \
                             --mov $mmri/${voltype}.mgz --o $outdir/$outputfilename \
                             --interp nearest --no-save-reg )
-    echo $cmd |& tee -a $LF
-    echo $cmd |& tee -a $sLF
+    echo $cmd >> $LF
+    echo $cmd >> $sLF
     $cmd |& tee -a $LF
     if($status) exit 1;
   endif
 
-  if (-e  $outdir/$outputfilename ) then
-    set cmd = (rm -f $outdir/${nl_regresult:r}.mgz)
-    echo $cmd |& tee -a $LF
-    echo $cmd |& tee -a $sLF
-    $cmd |& tee -a $LF
-    if($status) exit 1;
-  endif
+  #if (-e  $outdir/$outputfilename ) then
+  #  set cmd = (rm -f $outdir/${nl_regresult:r}.mgz)
+  #  echo $cmd >> $LF
+  #  echo $cmd >> $sLF
+  #  $cmd |& tee -a $LF
+  #  if($status) exit 1;
+  #endif
 
   set voltype  = norm
   set outputfilename = step1_CVSmorphed_to${templateid}_${voltype}.mgz 
@@ -413,8 +445,8 @@ if ($UseAseg) then
     set cmd = ( mri_vol2vol --targ $tmri/$voltype.mgz --m3z $outdir/${combined:r}.${morphsuffix} --noDefM3zPath \
                             --mov $mmri/${voltype}.mgz --o $outdir/$outputfilename \
                             --interp trilin --no-save-reg )
-    echo $cmd |& tee -a $LF
-    echo $cmd |& tee -a $sLF
+    echo $cmd >> $LF
+    echo $cmd >> $sLF
     $cmd |& tee -a $LF
     if($status) exit 1;
   endif
@@ -442,9 +474,9 @@ endif
 if (!(-e $outdir/nlalign-$prefix${voltype}.${morphsuffix}) || $CleanVolReg) then 
   set nl_regresult = nlalign-$prefix${voltype}.${morphsuffix}
   set options = (-apply 1 -z 1 -sigma 2 -dt 0.0001 -intensity 0.1 -T $cvsdir/id.xfm  )
-  set cmd = (mri_nl_align $options $outdir/${input} $tmri/$voltype.mgz $outdir/${nl_regresult})
-  echo $cmd |& tee -a $LF
-  echo $cmd |& tee -a $sLF
+  set cmd = (~/my_fs/dev/mri_hires_register/mri_nl_align $options $outdir/${input} $tmri/$voltype.mgz $outdir/${nl_regresult})
+  echo $cmd >> $LF
+  echo $cmd >> $sLF
   $cmd |& tee -a $LF
   if($status) exit 1;
 endif
@@ -455,8 +487,8 @@ if (!(-e $outdir/combined_to${templateid}_elreg_$prefix$voltype.tm3d  ) || $Clea
   set cmd = ( createMorph --out $outdir/$combined --template $tmri/$voltype.mgz \
                           --subject $mmri/$voltype.mgz --in gcam $outdir/${nl_regresult} \
                           morph $outdir/$basemorph ) 
-  echo $cmd |& tee -a $LF
-  echo $cmd |& tee -a $sLF
+  echo $cmd >> $LF
+  echo $cmd >> $sLF
   $cmd |& tee -a $LF
   if($status) exit 1;
 endif
@@ -464,8 +496,8 @@ endif
 if (!(-e $outdir/combined_to${templateid}_elreg_$prefix$voltype.${morphsuffix}  ) || $CleanElReg || $CleanVolReg) then 
   set cmd = (exportGcam --fixed $tmri/$voltype.mgz --moving $mmri/$voltype.mgz \
                         --morph $outdir/$combined --out_gcam $outdir/${combined:r}.${morphsuffix})
-  echo $cmd |& tee -a $LF
-  echo $cmd |& tee -a $sLF
+  echo $cmd >> $LF
+  echo $cmd >> $sLF
   $cmd |& tee -a $LF
   if($status) exit 1;
 endif
@@ -478,8 +510,8 @@ if ($cleanup) then # deleting tm3d file!
     set filesToDelete = $outdir/$combined
   endif
   set cmd = ( rm -f $filesToDelete)
-  echo $cmd |& tee -a $LF
-  echo $cmd |& tee -a $sLF
+  echo $cmd >> $LF
+  echo $cmd >> $sLF
   $cmd |& tee -a $LF
   if($status) exit 1;
 endif
@@ -491,19 +523,19 @@ set finaloutputfilename = final_CVSmorphed_to${templateid}_${voltype}.mgz
 if (!(-e  $outdir/$finaloutputfilename ) || $CleanElReg || $CleanVolReg) then 
   set cmd = (mri_vol2vol --targ $tmri/$voltype.mgz --m3z $outdir/${combined:r}.${morphsuffix} --noDefM3zPath \
 		       --mov $mmri/${voltype}.mgz --o $outdir/$finaloutputfilename --no-save-reg)
-  echo $cmd |& tee -a $LF
-  echo $cmd |& tee -a $sLF
+  echo $cmd >> $LF
+  echo $cmd >> $sLF
   $cmd |& tee -a $LF
   if($status) exit 1;
 endif
 
-if (-e  $outdir/$finaloutputfilename ) then
-  set cmd = (rm -f $outdir/${nl_regresult:r}.mgz)
-  echo $cmd |& tee -a $LF
-  echo $cmd |& tee -a $sLF
-  $cmd |& tee -a $LF
-  if($status) exit 1; 
-endif
+#if (-e  $outdir/$finaloutputfilename ) then
+#  set cmd = (rm -f $outdir/${nl_regresult:r}.mgz)
+#  echo $cmd >> $LF
+#  echo $cmd >> $sLF
+#  $cmd |& tee -a $LF
+#  if($status) exit 1; 
+#endif
 set oldfinaloutputfilename = $finaloutputfilename
 set voltype = aseg
 set finaloutputfilename = final_CVSmorphed_to${templateid}_${voltype}.mgz
@@ -513,30 +545,48 @@ if (!(-e  $outdir/$finaloutputfilename ) || $CleanElReg || $CleanVolReg) then
   set cmd = ( mri_vol2vol  --targ $tmri/$voltype.mgz --m3z $outdir/${combined:r}.${morphsuffix} --noDefM3zPath \
                            --mov $mmri/${voltype}.mgz --o $outdir/$finaloutputfilename \
                            --interp nearest --no-save-reg )
-  echo $cmd |& tee -a $LF
-  echo $cmd |& tee -a $sLF
+  echo $cmd >> $LF
+  echo $cmd >> $sLF
   $cmd |& tee -a $LF
   if($status) exit 1;
 endif
+
+set Step3EndTime = `date +%s`;
+
+@ Step3DiffTime = $Step3EndTime - $Step3StartTime
+set tmpTimeMsg = "mri_cvs_register: Step 3 (volumetric registration) took $Step3DiffTime seconds"
+echo $tmpTimeMsg |& tee -a $sLF
+echo $tmpTimeMsg >> $LF
+
+endif #--step3
+
+if ($OnlyStep3 || $DoAllSteps) then
 
 echo "To check results, run:"
 echo "freeview -v $outdir/${oldfinaloutputfilename}  $tmri/norm.mgz $outdir/${finaloutputfilename}:colormap=lut $tmri/aseg.mgz:colormap=lut"
 echo " "
 
-endif #--step3
-
 # rename final morph for easier identification
 set cmd = (mv $outdir/${combined:r}.${morphsuffix} $outdir/final_CVSmorph_to$templateid.${morphsuffix})
-echo $cmd |& tee -a $LF
-echo $cmd |& tee -a $sLF
+echo $cmd >> $LF
+echo $cmd >> $sLF
 $cmd |& tee -a $LF
 if($status) exit 1;
+
+# delete intermediate files unless specifically wanted
+if ($CleanElReg || $CleanVolReg) then 
+  set cmd = (rm -f $outdir/step1_CVSmorphed*mgz $outdir/${elasticmorph:r}*.mgz)
+  echo $cmd >> $LF
+  echo $cmd >> $sLF
+  $cmd |& tee -a $LF
+  if($status) exit 1;
+endif
 
 # unless otherwise indicated by keepallm3z param, deleting partial m3z morph files (too much space requirement!) 
 if (!($keepallm3z)) then 
     set cmd = ( rm -f $outdir/nlalign*.${morphsuffix} $outdir/combined*.${morphsuffix})
-    echo $cmd |& tee -a $LF
-    echo $cmd |& tee -a $sLF
+    echo $cmd >> $LF
+    echo $cmd >> $sLF
     $cmd |& tee -a $LF
     if($status) exit 1;
 endif
@@ -544,27 +594,33 @@ endif
 # unless otherwise indicated by keepelreg param, deleting elreg.tm3d file (too much space requirement!) 
 if (!($keepelreg)) then 
     set cmd = ( rm -f $outdir/$elasticmorph)
-    echo $cmd |& tee -a $LF
-    echo $cmd |& tee -a $sLF
+    echo $cmd >> $LF
+    echo $cmd >> $sLF
     $cmd |& tee -a $LF
     if($status) exit 1;
 endif
+endif
 
-echo "*** Finished with the cvs-registration pipeline." >> $sLF
+# final time keepinng and logging...
+set tmpMsg = "Finished with the cvs-registration pipeline."
+echo $tmpMsg |& tee -a $sLF
+echo $tmpMsg >> $LF
 echo " " |& tee -a $sLF
-echo "Started at $StartTime " |& tee -a $sLF
-echo "Ended   at `date`" |& tee -a $sLF
+echo " " >> $LF
+set tmpTimeMsg = "Started at $StartTime " 
+echo $tmpTimeMsg |& tee -a $sLF
+echo $tmpTimeMsg >> $LF
+set tmpTimeMsg = "Ended   at `date`"
+echo $tmpTimeMsg |& tee -a $sLF
+echo $tmpTimeMsg >> $LF
 echo " " |& tee -a $sLF
-echo "mri_cvs_register Done" |& tee -a $sLF
+echo " " >> $LF
+set tmpMsg = "mri_cvs_register Done" 
+echo $tmpMsg |& tee -a $sLF
+echo $tmpMsg >> $LF
 echo " "
 
-echo " " |& tee -a $LF
-echo "Started at $StartTime " |& tee -a $LF
-echo "Ended   at `date`" |& tee -a $LF
-echo " " |& tee -a $LF
-echo "mri_cvs_register Done" |& tee -a $LF
-echo " "
-
+# exit
 exit 0;
 
 ############--------------##################
@@ -696,13 +752,17 @@ check_params:
   if($#templateid == 0) then
     unsetenv $TEMPLATE_DIR
     setenv TEMPLATE_DIR $FREESURFER_HOME/subjects/
-    set templateid = cvs_avg35
+    set templateid = $FStemplate
     echo "Using the CVS template as registration target..."
   endif
 
   if($templateid == $movingid) then
     echo "ERROR: the moving and the template subjects need to be different!"
     exit 1;
+  endif
+
+  if($templateid == $FStemplate) then
+    set usingFStemplate = 1;
   endif
 
 goto check_params_return;
