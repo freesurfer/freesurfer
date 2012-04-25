@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2012/03/29 20:35:50 $
- *    $Revision: 1.1 $
+ *    $Date: 2012/04/25 00:04:02 $
+ *    $Revision: 1.2 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -123,11 +123,11 @@ void WidgetGroupPlot::paintEvent(QPaintEvent *e)
     double dSpacing = rc_plot.width() / (data.size()-1+2);
     QPointF* pts = new QPointF[data.size()];
     QString tooltip_strg;
+    bool bHit = false;
     for (int i = 0; i < data.size(); i++)
     {
       pts[i] = QPointF(dSpacing + rc_plot.left() + dSpacing*i,
                        rc_plot.bottom() - (data[i]-dMin)/(dMax-dMin)*rc_plot.height());
-      bool bHit = false;
       QColor c = classes[m_fsgd->m_data[i].class_id].color;
       if (m_nPlotType == Histogram)
       {
@@ -141,8 +141,12 @@ void WidgetGroupPlot::paintEvent(QPaintEvent *e)
       }
       else if (m_nPlotType == Point)
       {
-        bHit = ((pts[i].x()-m_ptCurrent.x())*(pts[i].x()-m_ptCurrent.x()) +
-               (pts[i].y()-m_ptCurrent.y())*(pts[i].y()-m_ptCurrent.y()) < DISTANCE_THRESHOLD2);
+        if (!bHit)
+          bHit = ((pts[i].x()-m_ptCurrent.x())*(pts[i].x()-m_ptCurrent.x()) +
+                 (pts[i].y()-m_ptCurrent.y())*(pts[i].y()-m_ptCurrent.y()) < DISTANCE_THRESHOLD2);
+        else
+          bHit = false;
+
         DrawMarker(&p, pts[i], classes[m_fsgd->m_data[i].class_id].marker.toLower(),
                    bHit?c.lighter():c);
       }
@@ -289,12 +293,12 @@ void WidgetGroupPlot::DrawMarker(QPainter *p, const QPointF &pt, const QString &
     p->setBrush(Qt::NoBrush);
     p->drawEllipse(pt, r, r);
   }
-  else if (marker == "plus" || marker == "cross")
+  else if (marker == "plus")
   {
     p->drawLine(pt-QPointF(r, 0), pt+QPointF(r, 0));
     p->drawLine(pt-QPointF(0, r), pt+QPointF(0, r));
   }
-  else if (marker == "dot")
+  else if (marker == "dot" || marker == "point")
   {
     p->setRenderHint(QPainter::Antialiasing);
     p->setBrush(c);
@@ -328,6 +332,19 @@ void WidgetGroupPlot::DrawMarker(QPainter *p, const QPointF &pt, const QString &
     pts[3] = pt + QPointF(-r/2, 0);
     p->setBrush(Qt::NoBrush);
     p->drawPolygon(pts, 4);
+  }
+  else if (marker == "cross")
+  {
+    r -= 1;
+    p->drawLine(pt-QPointF(r, r), pt+QPointF(r, r));
+    p->drawLine(pt-QPointF(r, -r), pt+QPointF(r, -r));
+  }
+  else if (marker == "asterisk")
+  {
+    double d = r*0.866;
+    p->drawLine(pt-QPointF(d, r/2), pt+QPointF(d, r/2));
+    p->drawLine(pt-QPointF(d, -r/2), pt+QPointF(d, -r/2));
+    p->drawLine(pt-QPointF(0, r), pt+QPointF(0, r));
   }
   p->restore();
 }

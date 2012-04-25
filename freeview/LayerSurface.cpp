@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2011/12/14 17:13:44 $
- *    $Revision: 1.67 $
+ *    $Date: 2012/04/25 00:04:02 $
+ *    $Revision: 1.68 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -58,6 +58,7 @@
 #include "SurfaceOverlayProperty.h"
 #include "MyUtils.h"
 #include "SurfaceOverlay.h"
+#include "SurfaceSpline.h"
 
 LayerSurface::LayerSurface( LayerMRI* ref, QObject* parent ) : LayerEditable( parent ),
   m_surfaceSource( NULL ),
@@ -68,7 +69,8 @@ LayerSurface::LayerSurface( LayerMRI* ref, QObject* parent ) : LayerEditable( pa
   m_nActiveLabel( -1 ),
   m_bUndoable( false ),
   m_bVector2DPendingUpdate( true ),
-  m_bLoadAll(false)
+  m_bLoadAll(false),
+  m_spline(NULL)
 {
   m_strTypeNames.push_back( "Surface" );
 
@@ -402,6 +404,24 @@ bool LayerSurface::LoadLabelFromFile( const QString& filename )
   return true;
 }
 
+bool LayerSurface::LoadSplineFromFile(const QString &filename)
+{
+  if (m_spline)
+    delete m_spline;
+
+  m_spline = new SurfaceSpline(this);
+  if (!m_spline->Load(filename))
+  {
+    delete m_spline;
+    m_spline = NULL;
+    return false;
+  }
+
+  emit Modified();
+  emit ActorChanged();
+  return true;
+}
+
 
 void LayerSurface::InitializeSurface()
 {
@@ -616,6 +636,8 @@ void LayerSurface::Append2DProps( vtkRenderer* renderer, int nPlane )
 {
   renderer->AddViewProp( m_sliceActor2D[nPlane] );
   renderer->AddViewProp( m_vectorActor2D[nPlane] );
+  if (m_spline)
+    renderer->AddViewProp( m_spline->GetActor2D(nPlane));
 }
 
 void LayerSurface::Append3DProps( vtkRenderer* renderer, bool* bSliceVisibility )
@@ -632,6 +654,8 @@ void LayerSurface::Append3DProps( vtkRenderer* renderer, bool* bSliceVisibility 
   renderer->AddViewProp( m_vectorActor );
   renderer->AddViewProp( m_vertexActor );
   renderer->AddViewProp( m_wireframeActor );
+  if (m_spline)
+    renderer->AddViewProp( m_spline->GetActor());
 
   for (int i = 0; i < m_labels.size(); i++)
     renderer->AddViewProp(m_labels[i]->GetOutlineActor());
@@ -712,6 +736,12 @@ void LayerSurface::OnSlicePositionChanged( int nPlane )
   {
     m_bVector2DPendingUpdate = true;
   }
+
+  if (m_spline)
+  {
+    int nVertex = this->GetVertexIndexAtTarget(m_dSlicePosition, NULL);
+    m_spline->SetActiveVertex(nVertex);
+  }
 }
 
 void LayerSurface::SetVisible( bool bVisible )
@@ -746,6 +776,8 @@ void LayerSurface::SetVisible( bool bVisible )
 
   if (bVisible && m_nActiveLabel >= 0 && m_labels[m_nActiveLabel]->GetShowOutline())
     m_labels[m_nActiveLabel]->GetOutlineActor()->VisibilityOn();
+
+  m_spline->SetVisible(bVisible);
 
   LayerEditable::SetVisible(bVisible);
 }

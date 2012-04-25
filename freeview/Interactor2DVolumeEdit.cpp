@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2011/12/14 17:13:44 $
- *    $Revision: 1.25 $
+ *    $Date: 2012/04/25 00:04:02 $
+ *    $Revision: 1.26 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -68,15 +68,15 @@ bool Interactor2DVolumeEdit::ProcessMouseDownEvent( QMouseEvent* event, RenderVi
     LayerVolumeBase* mri = ( LayerVolumeBase* )lc->GetActiveLayer();
     if ( (!mri || !mri->IsVisible()) ) //&& ( event->ControlDown() || m_nAction == EM_Polyline ) )
     {
-      emit Error( "LayerNotVisible", mri );
+      emit Error( "Layer Not Visible", mri );
     }
     else if ( !mri->IsEditable() ) //&& ( event->ControlDown() || m_nAction == EM_Polyline ) )
     {
-      emit Error( "LayerNotEditable", mri );
+      emit Error( "Layer Not Editable", mri );
     }
     else if ( m_strLayerTypeName == "MRI" && ((LayerMRI*)mri)->IsTransformed() )
     {
-      emit Error( "LayerNotEditableForTransformation", mri );
+      emit Error( "Layer Not Editable For Transformation", mri );
     }
     else
     {
@@ -166,7 +166,7 @@ bool Interactor2DVolumeEdit::ProcessMouseDownEvent( QMouseEvent* event, RenderVi
         LayerMRI* mri_ref = (LayerMRI*)MainWindow::GetMainWindow()->GetBrushProperty()->GetReferenceLayer();
         if ( !mri_ref )
         {
-          emit Error( "LayerReferenceNotSet" );
+          emit Error( "Reference Layer Not Set" );
           return false;
         }
 

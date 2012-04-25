@@ -140,6 +140,7 @@ BUILT_SOURCES = \
   moc_FSGroupDescriptor.cpp \
   moc_WindowGroupPlot.cpp \
   moc_WidgetGroupPlot.cpp \
+  moc_SurfaceSpline.cpp \
   qrc_freeview.cpp
 
 freeview_SOURCES = $(BUILT_SOURCES) \
@@ -407,6 +408,8 @@ freeview_SOURCES = $(BUILT_SOURCES) \
   WindowGroupPlot.h \
   WidgetGroupPlot.cpp \
   WidgetGroupPlot.h \
+  SurfaceSpline.cpp \
+  SurfaceSpline.h \
 	freeview.qrc
 
 qrc_freeview.cpp: freeview.qrc

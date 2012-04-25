@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2011/12/14 17:13:44 $
- *    $Revision: 1.47 $
+ *    $Date: 2012/04/25 00:04:02 $
+ *    $Revision: 1.48 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -49,6 +49,7 @@ class SurfaceOverlay;
 class SurfaceAnnotation;
 class SurfaceLabel;
 class SurfaceROI;
+class SurfaceSpline;
 
 class LayerSurface : public LayerEditable
 {
@@ -65,6 +66,7 @@ public:
   bool LoadCorrelationFromFile( const QString& filename );
   bool LoadAnnotationFromFile( const QString& filename );
   bool LoadLabelFromFile( const QString& filename );
+  bool LoadSplineFromFile(const QString& filename);
 
   void Append2DProps( vtkRenderer* renderer, int nPlane );
   void Append3DProps( vtkRenderer* renderer, bool* bSliceVisibility = NULL );
@@ -294,6 +296,7 @@ protected:
   int         m_nActiveLabel;
 
   SurfaceROI*           m_roi;
+  SurfaceSpline*        m_spline;
 
   bool        m_bUndoable;
   bool        m_bVector2DPendingUpdate;

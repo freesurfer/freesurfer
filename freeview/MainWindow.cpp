@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2012/03/29 20:35:50 $
- *    $Revision: 1.208 $
+ *    $Date: 2012/04/25 00:04:02 $
+ *    $Revision: 1.209 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -1224,6 +1224,10 @@ void MainWindow::RunScript()
   {
     CommandLoadSurfaceLabel( sa );
   }
+  else if ( cmd == "loadsurfacespline")
+  {
+    CommandLoadSurfaceSpline( sa );
+  }
   else if ( cmd == "loadconnectivity" )
   {
     CommandLoadConnectivityData( sa );
@@ -2245,6 +2249,10 @@ void MainWindow::CommandLoadSurface( const QStringList& cmd )
           m_scripts.insert(0, QString("loadsurfacevector ")+vector_fns[i]);
         }
       }
+      else if (subOption == "spline")
+      {
+        m_scripts.insert(0, QString("loadsurfacespline ")+subArgu);
+      }
       else if ( subOption == "patch" )
       {
         if ( subArgu.contains( "/" ) )
@@ -2570,6 +2578,11 @@ void MainWindow::CommandLoadSurfaceAnnotation( const QStringList& cmd )
 void MainWindow::CommandLoadSurfaceLabel( const QStringList& cmd )
 {
   LoadSurfaceLabelFile( cmd[1] );
+}
+
+void MainWindow::CommandLoadSurfaceSpline(const QStringList &cmd)
+{
+  LoadSurfaceSplineFile( cmd[1]);
 }
 
 void MainWindow::CommandLoadWayPoints( const QStringList& cmd )
@@ -4463,6 +4476,15 @@ void MainWindow::LoadSurfaceLabelFile( const QString& filename )
   }
 }
 
+void MainWindow::LoadSurfaceSplineFile(const QString &filename)
+{
+  LayerSurface* layer = ( LayerSurface* )GetLayerCollection( "Surface" )->GetActiveLayer();
+  if ( layer )
+  {
+    layer->LoadSplineFromFile( filename );
+  }
+}
+
 void MainWindow::LoadSurfaceVector()
 {
   QString filename = QFileDialog::getOpenFileName( this, "Select surface vector file",
@@ -5253,7 +5275,7 @@ bool MainWindow::IsRepositioningSurface()
 void MainWindow::OnPlot()
 {
   QString fn = QFileDialog::getOpenFileName(this, "Select FSGD File", m_strLastDir,
-                                            "FSGD files (*.fsgd)");
+                                            "FSGD files (*.fsgd);;All files (*)");
   if (fn.isEmpty())
     return;
 

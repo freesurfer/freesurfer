@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2012/01/23 20:41:52 $
- *    $Revision: 1.50 $
+ *    $Date: 2012/04/25 00:04:02 $
+ *    $Revision: 1.51 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -44,6 +44,7 @@
 #include "Cursor2D.h"
 #include "MyUtils.h"
 #include <QActionGroup>
+#include <QMessageBox>
 #include <QMenu>
 #include <QDebug>
 
@@ -63,6 +64,10 @@ RenderView2D::RenderView2D( QWidget* parent ) : RenderView( parent )
   m_interactorROIEdit = new Interactor2DROIEdit( this );
   m_interactorPointSetEdit = new Interactor2DPointSetEdit( this );
   m_interactorVolumeCrop = new Interactor2DVolumeCrop( this );
+  connect(m_interactorMeasure, SIGNAL(Error(QString)), this, SLOT(OnInteractorError(QString)));
+  connect(m_interactorVoxelEdit, SIGNAL(Error(QString)), this, SLOT(OnInteractorError(QString)));
+  connect(m_interactorROIEdit, SIGNAL(Error(QString)), this, SLOT(OnInteractorError(QString)));
+  connect(m_interactorPointSetEdit, SIGNAL(Error(QString)), this, SLOT(OnInteractorError(QString)));
   SetInteractionMode( IM_Navigate );
 }
 
@@ -539,4 +544,9 @@ void RenderView2D::OnDuplicateRegion()
       AddRegion(reg);
     }
   }
+}
+
+void RenderView2D::OnInteractorError(const QString &msg)
+{
+  QMessageBox::warning(this, "Error", msg);
 }

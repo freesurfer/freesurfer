@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2012/03/29 20:35:50 $
- *    $Revision: 1.1 $
+ *    $Date: 2012/04/25 00:04:02 $
+ *    $Revision: 1.2 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -98,7 +98,7 @@ bool FSGroupDescriptor::Read( const QString& filename )
   QList<QColor> stockColors;
   stockColors << Qt::blue << Qt::red << Qt::green << Qt::yellow << Qt::cyan;
   QStringList stockMarkers;
-  stockMarkers << "plus" << "circle" << "dot" << "triangle" << "rectangle" << "diamond";
+  stockMarkers << "plus" << "circle" << "point" << "cross" << "asterisk" << "triangle" << "rectangle" << "diamond" ;
   for (int i = 0; i < m_fsgd->nclasses; i++)
   {
     FSGDClass gdc;

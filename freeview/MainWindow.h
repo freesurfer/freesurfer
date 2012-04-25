@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2012/03/29 20:35:50 $
- *    $Revision: 1.113 $
+ *    $Date: 2012/04/25 00:04:02 $
+ *    $Revision: 1.114 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -126,6 +126,7 @@ public:
   void LoadSurfaceAnnotationFile( const QString& filename );
   void LoadSurfaceLabelFile( const QString& filename );
   void LoadSurfaceVectorFile( const QString& filename );
+  void LoadSurfaceSplineFile( const QString& filename );
 
   void SetDefaultSampleMethod( int nMethod )
   {
@@ -271,6 +272,7 @@ protected:
   void CommandLoadSurfaceOverlay( const QStringList& cmd );
   void CommandLoadSurfaceAnnotation ( const QStringList& cmd );
   void CommandLoadSurfaceLabel  ( const QStringList& cmd );
+  void CommandLoadSurfaceSpline ( const QStringList& cmd );
   void CommandLoadConnectivityData  ( const QStringList& cmd );
   void CommandLoadWayPoints     ( const QStringList& cmd );
   void CommandLoadControlPoints ( const QStringList& cmd );

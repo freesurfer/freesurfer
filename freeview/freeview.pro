@@ -132,7 +132,8 @@ SOURCES += \
     VolumeFilterWorkerThread.cpp \
     FSGroupDescriptor.cpp \
     WindowGroupPlot.cpp \
-    WidgetGroupPlot.cpp
+    WidgetGroupPlot.cpp \
+    SurfaceSpline.cpp
 
 HEADERS  += \
     Annotation2D.h \
@@ -254,7 +255,8 @@ HEADERS  += \
     VolumeFilterWorkerThread.h \
     FSGroupDescriptor.h \
     WindowGroupPlot.h \
-    WidgetGroupPlot.h
+    WidgetGroupPlot.h \
+    SurfaceSpline.h
 
 FORMS    += MainWindow.ui \
     PanelVolume.ui \

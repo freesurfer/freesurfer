@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2012/01/23 20:41:52 $
- *    $Revision: 1.30 $
+ *    $Date: 2012/04/25 00:04:02 $
+ *    $Revision: 1.31 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -122,6 +122,7 @@ protected slots:
   virtual void OnSlicePositionChanged();
   void SyncZoomTo(RenderView2D* view);
   void OnDuplicateRegion();
+  void OnInteractorError(const QString& msg);
 
 protected:
   virtual void resizeEvent(QResizeEvent *event);
