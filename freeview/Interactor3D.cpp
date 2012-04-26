@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2011/05/17 14:20:14 $
- *    $Revision: 1.30 $
+ *    $Date: 2012/04/26 16:48:38 $
+ *    $Revision: 1.31 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -208,6 +208,11 @@ bool Interactor3D::ProcessKeyDownEvent( QKeyEvent* event, RenderView* renderview
   else if ( nKeyCode == Qt::Key_Delete )
   {
     view->DeleteCurrentSelectRegion();
+  }
+  else if ( nKeyCode == Qt::Key_S && (event->modifiers() & Qt::AltModifier) &&
+            (event->modifiers() & Qt::ControlModifier))
+  {
+    MainWindow::GetMainWindow()->ToggleSplinePicking();
   }
   else
   {

@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2012/04/26 02:38:43 $
- *    $Revision: 1.115 $
+ *    $Date: 2012/04/26 16:48:38 $
+ *    $Revision: 1.116 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -190,6 +190,11 @@ public:
 
   bool IsRepositioningSurface();
 
+  bool GetSplinePicking()
+  {
+    return m_bSplinePicking;
+  }
+
 Q_SIGNALS:
   void MainViewChanged( int n );
   void ViewLayoutChanged( int n );
@@ -225,6 +230,8 @@ public slots:
 
   void SaveSurface();
   void SaveSurfaceAs();
+
+  void ToggleSplinePicking();
 
 protected:
   void closeEvent   ( QCloseEvent * event );
@@ -398,6 +405,7 @@ protected slots:
     this->activateWindow();
   }
 
+
 private:
   bool DoParseCommand(bool bAutoQuit);
   void SaveSettings();
@@ -438,6 +446,8 @@ private:
 
   QStringList       m_scripts;
   bool              m_bScriptRunning;
+
+  bool              m_bSplinePicking;
 
   MyCmdLineParser*  m_cmdParser;
 

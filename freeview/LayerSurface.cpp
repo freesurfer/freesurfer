@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2012/04/26 02:38:43 $
- *    $Revision: 1.69 $
+ *    $Date: 2012/04/26 16:48:38 $
+ *    $Revision: 1.70 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -24,6 +24,7 @@
  */
 
 #include <QSharedPointer>
+#include "MainWindow.h"
 #include "LayerSurface.h"
 #include "vtkRenderer.h"
 #include "vtkImageActor.h"
@@ -733,7 +734,7 @@ void LayerSurface::OnSlicePositionChanged( int nPlane )
     m_bVector2DPendingUpdate = true;
   }
 
-  if (m_spline)
+  if (m_spline && MainWindow::GetMainWindow()->GetSplinePicking())
   {
     int nVertex = this->GetVertexIndexAtTarget(m_dSlicePosition, NULL);
     m_spline->SetActiveVertex(nVertex);

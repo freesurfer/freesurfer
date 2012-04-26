@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2012/04/26 02:38:43 $
- *    $Revision: 1.210 $
+ *    $Date: 2012/04/26 16:48:38 $
+ *    $Revision: 1.211 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -99,6 +99,7 @@ MainWindow::MainWindow( QWidget *parent, MyCmdLineParser* cmdParser ) :
   m_layerVolumeRef( NULL ),
   m_bScriptRunning(false),
   m_bProcessing(false),
+  m_bSplinePicking(true),
   m_cmdParser(cmdParser)
 {
   // must create layer collections first before setupui()
@@ -5300,4 +5301,10 @@ void MainWindow::OnPlot()
   this->m_wndGroupPlot->SetFsgdData(fsgd);
   this->m_wndGroupPlot->show();
   m_strLastDir = QFileInfo(fn).absolutePath();
+}
+
+void MainWindow::ToggleSplinePicking()
+{
+  m_bSplinePicking = !m_bSplinePicking;
+  qDebug() << QString("Surface spline picking %1").arg(m_bSplinePicking?"enabled":"disabled");
 }
