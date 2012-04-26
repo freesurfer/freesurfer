@@ -172,26 +172,40 @@ void SurfaceSpline::RebuildActors()
     }
     for (int n = 0; n < 3; n++)
     {
-      vtkSmartPointer<vtkPoints> slice_points = vtkSmartPointer<vtkPoints>::New();
+      vtkSmartPointer<vtkPolyData> polydata = vtkSmartPointer<vtkPolyData>::New();
+      polydata->SetPoints(points);
+      polydata->SetLines(lines);
+      vtkSmartPointer<vtkSplineFilter> spline = vtkSmartPointer<vtkSplineFilter>::New();
+      spline->SetInput(polydata);
+      spline->Update();
+      vtkPolyData* spline_poly = spline->GetOutput();
+      vtkPoints* spline_points = spline_poly->GetPoints();
+      vtkSmartPointer<vtkPoints> ctrl_points = vtkSmartPointer<vtkPoints>::New();
       for (int i = 0; i < points->GetNumberOfPoints(); i++)
       {
         double pt[3];
         points->GetPoint(i, pt);
         if (m_bProjection)
           pt[n] = slice_pos[n];
-        slice_points->InsertNextPoint(pt);
+        ctrl_points->InsertNextPoint(pt);
       }
-      vtkSmartPointer<vtkPolyData> polydata = vtkSmartPointer<vtkPolyData>::New();
-      polydata->SetPoints(slice_points);
-      polydata->SetLines(lines);
-      vtkSmartPointer<vtkSplineFilter> spline = vtkSmartPointer<vtkSplineFilter>::New();
-      spline->SetInput(polydata);
+      if (m_bProjection)
+      {
+        for (int i = 0; i < spline_points->GetNumberOfPoints(); i++)
+        {
+          double pt[3];
+          spline_points->GetPoint(i, pt);
+          pt[n] = slice_pos[n];
+          spline_points->SetPoint(i, pt);
+        }
+      }
+
       vtkSmartPointer<vtkTubeFilter> tube = vtkSmartPointer<vtkTubeFilter>::New();
-      tube->SetInput(spline->GetOutput());
+      tube->SetInput(spline_poly);
       tube->SetNumberOfSides(8);
       tube->SetRadius(0.25);
       mapper2d[n]->SetInput(tube->GetOutput());
-      BuildSphereActor(m_actor2DSpheres[n], slice_points);
+      BuildSphereActor(m_actor2DSpheres[n], ctrl_points);
     }
   }
 
