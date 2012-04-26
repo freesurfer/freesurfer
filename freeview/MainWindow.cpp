@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2012/04/25 00:04:02 $
- *    $Revision: 1.209 $
+ *    $Date: 2012/04/26 02:38:43 $
+ *    $Revision: 1.210 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -4473,6 +4473,17 @@ void MainWindow::LoadSurfaceLabelFile( const QString& filename )
   if ( layer )
   {
     layer->LoadLabelFromFile( filename );
+  }
+}
+
+void MainWindow::LoadSurfaceSpline()
+{
+  QString filename = QFileDialog::getOpenFileName( this, "Select surface spline file",
+                     AutoSelectLastDir( "surf" ),
+                     "All files (*)");
+  if ( !filename.isEmpty() )
+  {
+    this->LoadSurfaceSplineFile( filename );
   }
 }
 

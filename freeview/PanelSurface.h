@@ -6,9 +6,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/14 23:44:48 $
- *    $Revision: 1.26 $
+ *    $Author: rpwang $
+ *    $Date: 2012/04/26 02:38:43 $
+ *    $Revision: 1.27 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -60,6 +60,7 @@ protected slots:
   void OnComboAnnotation( int nSel );
   void OnComboLabel( int nSel );
   void OnComboVector( int nSel );
+  void OnComboSpline(int nSel );
   void OnButtonConfigureOverlay();
   void OnEditPositionOffset();
 
@@ -72,6 +73,7 @@ private:
   QList<QWidget*>  m_widgetsVertex;
   QList<QWidget*>  m_widgetsMesh;
   QList<QWidget*>  m_widgetsLabel;
+  QList<QWidget*>  m_widgetsSpline;
 
   WindowConfigureOverlay* m_wndConfigureOverlay;
 };

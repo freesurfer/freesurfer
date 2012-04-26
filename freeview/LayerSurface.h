@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2012/04/25 00:04:02 $
- *    $Revision: 1.48 $
+ *    $Date: 2012/04/26 02:38:43 $
+ *    $Revision: 1.49 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -194,6 +194,11 @@ public:
   LayerMRI* GetRefVolume()
   {
     return m_volumeRef;
+  }
+
+  SurfaceSpline* GetSpline()
+  {
+    return m_spline;
   }
 
   int GetHemisphere();

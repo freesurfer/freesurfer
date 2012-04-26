@@ -24,8 +24,8 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>332</width>
-     <height>1030</height>
+     <width>314</width>
+     <height>1032</height>
     </rect>
    </property>
    <layout class="QVBoxLayout" name="verticalLayout">
@@ -633,14 +633,14 @@
         </item>
        </layout>
       </item>
-      <item row="22" column="0">
+      <item row="25" column="0">
        <widget class="QLabel" name="labelPositionOffset">
         <property name="text">
          <string>Position offset</string>
         </property>
        </widget>
       </item>
-      <item row="22" column="1">
+      <item row="25" column="1">
        <widget class="QLineEdit" name="lineEditPositionOffset"/>
       </item>
       <item row="14" column="1">
@@ -666,6 +666,53 @@
          </spacer>
         </item>
        </layout>
+      </item>
+      <item row="22" column="0">
+       <widget class="QLabel" name="label">
+        <property name="text">
+         <string>Spline display</string>
+        </property>
+       </widget>
+      </item>
+      <item row="22" column="1">
+       <widget class="QComboBox" name="comboBoxSplineDisplay"/>
+      </item>
+      <item row="23" column="0">
+       <widget class="QLabel" name="labelSplineColor">
+        <property name="text">
+         <string>Color</string>
+        </property>
+        <property name="alignment">
+         <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+        </property>
+       </widget>
+      </item>
+      <item row="23" column="1">
+       <layout class="QHBoxLayout" name="horizontalLayout23_2">
+        <item>
+         <widget class="QtColorPicker" name="colorpickerSplineColor" native="true"/>
+        </item>
+        <item>
+         <spacer name="horizontalSpacer_25">
+          <property name="orientation">
+           <enum>Qt::Horizontal</enum>
+          </property>
+          <property name="sizeHint" stdset="0">
+           <size>
+            <width>0</width>
+            <height>0</height>
+           </size>
+          </property>
+         </spacer>
+        </item>
+       </layout>
+      </item>
+      <item row="24" column="1">
+       <widget class="QCheckBox" name="checkBoxSplineProjection">
+        <property name="text">
+         <string>Project on 2D view</string>
+        </property>
+       </widget>
       </item>
      </layout>
     </item>
@@ -810,7 +857,7 @@
    <slot>OnSliderOpacity(int)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>263</x>
+     <x>245</x>
      <y>251</y>
     </hint>
     <hint type="destinationlabel">
@@ -842,7 +889,7 @@
    <slot>OnSliderMidPoint(int)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>231</x>
+     <x>225</x>
      <y>494</y>
     </hint>
     <hint type="destinationlabel">
@@ -858,7 +905,7 @@
    <slot>OnSliderSlope(int)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>243</x>
+     <x>225</x>
      <y>529</y>
     </hint>
     <hint type="destinationlabel">
@@ -874,7 +921,7 @@
    <slot>OnLineEditMidPoint(QString)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>324</x>
+     <x>306</x>
      <y>497</y>
     </hint>
     <hint type="destinationlabel">
@@ -890,7 +937,7 @@
    <slot>OnLineEditSlope(QString)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>324</x>
+     <x>306</x>
      <y>532</y>
     </hint>
     <hint type="destinationlabel">
@@ -922,7 +969,7 @@
    <slot>OnButtonConfigureOverlay()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>325</x>
+     <x>307</x>
      <y>599</y>
     </hint>
     <hint type="destinationlabel">
@@ -954,7 +1001,7 @@
    <slot>OnComboLabel(int)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>308</x>
+     <x>307</x>
      <y>695</y>
     </hint>
     <hint type="destinationlabel">
@@ -986,12 +1033,28 @@
    <slot>OnEditPositionOffset()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>240</x>
-     <y>883</y>
+     <x>307</x>
+     <y>991</y>
     </hint>
     <hint type="destinationlabel">
      <x>486</x>
      <y>946</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>comboBoxSplineDisplay</sender>
+   <signal>currentIndexChanged(int)</signal>
+   <receiver>PanelSurface</receiver>
+   <slot>OnComboSpline(int)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>228</x>
+     <y>890</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>398</x>
+     <y>889</y>
     </hint>
    </hints>
   </connection>
@@ -1009,5 +1072,6 @@
   <slot>OnComboLabel(int)</slot>
   <slot>OnComboVector(int)</slot>
   <slot>OnEditPositionOffset()</slot>
+  <slot>OnComboSpline(int)</slot>
  </slots>
 </ui>

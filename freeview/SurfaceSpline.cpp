@@ -12,23 +12,26 @@
 #include "vtkProperty.h"
 #include <QDebug>
 #include "FSSurface.h"
+#include <QFileInfo>
+#include "vtkRenderer.h"
+#include <vtkAppendPolyData.h>
+#include <vtkSphereSource.h>
 
 SurfaceSpline::SurfaceSpline(LayerSurface *parent) :
     QObject(parent),
     m_mri(NULL),
-    m_nActiveVertex(-1)
+    m_mriSurf(NULL),
+    m_nActiveVertex(-1),
+    m_bProjection(true)
 {
   m_actor = vtkSmartPointer<vtkActor>::New();
-  m_actor->GetProperty()->SetColor(1.0, 0.5, 0);
+  m_actorSpheres = vtkSmartPointer<vtkActor>::New();
   for (int i = 0; i < 3; i++)
   {
     m_actor2D[i] = vtkSmartPointer<vtkActor>::New();
-    m_actor2D[i]->GetProperty()->SetColor(1.0, 0.5, 0);
+    m_actor2DSpheres[i] = vtkSmartPointer<vtkActor>::New();
   }
-
-  MRIS* mris = parent->GetSourceSurface()->GetMRIS();
-  m_mriSurf = MRIallocHeader(mris->vg.width, mris->vg.height, mris->vg.depth, MRI_UCHAR, 1);
-  useVolGeomToMRI(&mris->vg, m_mriSurf);
+  SetColor(QColor(255, 128, 0));
 }
 
 SurfaceSpline::~SurfaceSpline()
@@ -41,6 +44,16 @@ SurfaceSpline::~SurfaceSpline()
 
 bool SurfaceSpline::Load(const QString &filename)
 {
+  if (m_mri)
+    ::MRIfree(&m_mri);
+
+  if (!m_mriSurf)
+  {
+    MRIS* mris = qobject_cast<LayerSurface*>(parent())->GetSourceSurface()->GetMRIS();
+    m_mriSurf = MRIallocHeader(mris->vg.width, mris->vg.height, mris->vg.depth, MRI_UCHAR, 1);
+    useVolGeomToMRI(&mris->vg, m_mriSurf);
+  }
+
   m_mri = ::MRIread( filename.toAscii().data() );      // could be long process
 
   if ( m_mri == NULL )
@@ -48,17 +61,22 @@ bool SurfaceSpline::Load(const QString &filename)
     return false;
   }
 
+  m_strName = QFileInfo(filename).completeBaseName();
+  RebuildActors();
+
   return true;
 }
 
-vtkActor* SurfaceSpline::GetActor()
+void SurfaceSpline::AppendProp2D(vtkRenderer *ren, int nPlane)
 {
-  return m_actor;
+  ren->AddViewProp(m_actor2D[nPlane]);
+  ren->AddViewProp(m_actor2DSpheres[nPlane]);
 }
 
-vtkActor* SurfaceSpline::GetActor2D(int nPlane)
+void SurfaceSpline::AppendProp3D(vtkRenderer *ren)
 {
-  return m_actor2D[nPlane];
+  ren->AddViewProp(m_actor);
+  ren->AddViewProp(m_actorSpheres);
 }
 
 void SurfaceSpline::SetActiveVertex(int n)
@@ -67,17 +85,45 @@ void SurfaceSpline::SetActiveVertex(int n)
   RebuildActors();
 }
 
+void SurfaceSpline::SetProjection(bool bProjection)
+{
+  m_bProjection = bProjection;
+  RebuildActors();
+}
+
+void SurfaceSpline::BuildSphereActor(vtkActor* actor, vtkPoints* pts)
+{
+  vtkSmartPointer<vtkAppendPolyData> append = vtkSmartPointer<vtkAppendPolyData>::New();
+  for ( int i = 0; i < pts->GetNumberOfPoints(); i++ )
+  {
+    vtkSmartPointer<vtkSphereSource> sphere = vtkSmartPointer<vtkSphereSource>::New();
+    double pt[3];
+    pts->GetPoint(i, pt);
+    sphere->SetCenter( pt );
+    sphere->SetRadius( 0.625 );
+    sphere->SetThetaResolution( 10 );
+    sphere->SetPhiResolution( 20 );
+    append->AddInput( sphere->GetOutput() );
+  }
+  vtkSmartPointer<vtkPolyDataMapper> mapper = vtkSmartPointer<vtkPolyDataMapper>::New();
+  mapper->SetInput( append->GetOutput() );
+  actor->SetMapper(mapper);
+}
+
+
 void SurfaceSpline::RebuildActors()
 {
   if (!m_mri)
     return;
   vtkSmartPointer<vtkPolyDataMapper> mapper = vtkSmartPointer<vtkPolyDataMapper>::New();
   m_actor->SetMapper(mapper);
+  m_actorSpheres->SetMapper(vtkSmartPointer<vtkPolyDataMapper>::New());
   vtkSmartPointer<vtkPolyDataMapper> mapper2d[3];
   for (int i = 0; i < 3; i++)
   {
     mapper2d[i] = vtkSmartPointer<vtkPolyDataMapper>::New();
     m_actor2D[i]->SetMapper(mapper2d[i]);
+    m_actor2DSpheres[i]->SetMapper(vtkSmartPointer<vtkPolyDataMapper>::New());
   }
 
   LayerSurface* surf = qobject_cast<LayerSurface*>(parent());
@@ -89,7 +135,6 @@ void SurfaceSpline::RebuildActors()
     vtkSmartPointer<vtkPoints> points = vtkSmartPointer<vtkPoints>::New();
     vtkSmartPointer<vtkCellArray> lines = vtkSmartPointer<vtkCellArray>::New();
     lines->InsertNextCell(m_mri->height);
-    qDebug() << m_mri->height;
     double pos[3];
     for (int i = 0; i < m_mri->height; i++)
     {
@@ -97,8 +142,11 @@ void SurfaceSpline::RebuildActors()
       Real y = ::MRIgetVoxVal(m_mri, m_nActiveVertex, i, 1, 0);
       Real z = ::MRIgetVoxVal(m_mri, m_nActiveVertex, i, 2, 0);
       if (i == 0 && x == 0 && y == 0 && z == 0)
+      {
+        emit SplineChanged();
         return;
-      qDebug() << x << y << z;
+      }
+    //  qDebug() << x << y << z;
       ::MRIvoxelToWorld( m_mriSurf, x, y, z, &x, &y, &z );
       pos[0] = x; pos[1] = y; pos[2] = z;
       if (mri)
@@ -120,6 +168,7 @@ void SurfaceSpline::RebuildActors()
       tube->SetNumberOfSides(8);
       tube->SetRadius(0.25);
       mapper->SetInput(tube->GetOutput());
+      BuildSphereActor(m_actorSpheres, points);
     }
     for (int n = 0; n < 3; n++)
     {
@@ -128,7 +177,8 @@ void SurfaceSpline::RebuildActors()
       {
         double pt[3];
         points->GetPoint(i, pt);
-        pt[n] = slice_pos[n];
+        if (m_bProjection)
+          pt[n] = slice_pos[n];
         slice_points->InsertNextPoint(pt);
       }
       vtkSmartPointer<vtkPolyData> polydata = vtkSmartPointer<vtkPolyData>::New();
@@ -141,8 +191,11 @@ void SurfaceSpline::RebuildActors()
       tube->SetNumberOfSides(8);
       tube->SetRadius(0.25);
       mapper2d[n]->SetInput(tube->GetOutput());
+      BuildSphereActor(m_actor2DSpheres[n], slice_points);
     }
   }
+
+  emit SplineChanged();
 }
 
 void SurfaceSpline::SetVisible(bool visible)
@@ -150,4 +203,25 @@ void SurfaceSpline::SetVisible(bool visible)
   m_actor->SetVisibility(visible);
   for (int i = 0; i < 3; i++)
     m_actor2D[i]->SetVisibility(visible);
+
+  emit SplineChanged();
+}
+
+bool SurfaceSpline::IsVisible()
+{
+  return m_actor->GetVisibility();
+}
+
+void SurfaceSpline::SetColor(const QColor &c)
+{
+  m_color = c;
+  QColor c2 = c.lighter();
+  m_actor->GetProperty()->SetColor(c.redF(), c.greenF(), c.blueF());
+  m_actorSpheres->GetProperty()->SetColor(c2.redF(), c2.greenF(), c2.blueF());
+  for (int i = 0; i < 3; i++)
+  {
+    m_actor2D[i]->GetProperty()->SetColor(c.redF(), c.greenF(), c.blueF());
+    m_actor2DSpheres[i]->GetProperty()->SetColor(c2.redF(), c2.greenF(), c2.blueF());
+  }
+  emit SplineChanged();
 }

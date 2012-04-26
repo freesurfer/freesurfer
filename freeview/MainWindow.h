@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2012/04/25 00:04:02 $
- *    $Revision: 1.114 $
+ *    $Date: 2012/04/26 02:38:43 $
+ *    $Revision: 1.115 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -206,6 +206,7 @@ public slots:
   void LoadSurfaceAnnotation();
   void LoadSurfaceLabel();
   void LoadSurfaceVector();
+  void LoadSurfaceSpline();
   void LoadLUT();
   void RequestRedraw();
   void SaveVolumeAs();

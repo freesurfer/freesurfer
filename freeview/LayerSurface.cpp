@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2012/04/25 00:04:02 $
- *    $Revision: 1.68 $
+ *    $Date: 2012/04/26 02:38:43 $
+ *    $Revision: 1.69 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -113,6 +113,9 @@ LayerSurface::LayerSurface( LayerMRI* ref, QObject* parent ) : LayerEditable( pa
   m_wireframeActor->VisibilityOff();
 
   m_roi = new SurfaceROI(this);
+
+  m_spline = new SurfaceSpline(this);
+  connect(m_spline, SIGNAL(SplineChanged()), this, SIGNAL(ActorChanged()));
 
   LayerPropertySurface* p = GetProperty();
   connect( p, SIGNAL(ColorMapChanged()), this, SLOT(UpdateColorMap()) ),
@@ -406,19 +409,11 @@ bool LayerSurface::LoadLabelFromFile( const QString& filename )
 
 bool LayerSurface::LoadSplineFromFile(const QString &filename)
 {
-  if (m_spline)
-    delete m_spline;
-
-  m_spline = new SurfaceSpline(this);
   if (!m_spline->Load(filename))
   {
-    delete m_spline;
-    m_spline = NULL;
     return false;
   }
 
-  emit Modified();
-  emit ActorChanged();
   return true;
 }
 
@@ -637,7 +632,7 @@ void LayerSurface::Append2DProps( vtkRenderer* renderer, int nPlane )
   renderer->AddViewProp( m_sliceActor2D[nPlane] );
   renderer->AddViewProp( m_vectorActor2D[nPlane] );
   if (m_spline)
-    renderer->AddViewProp( m_spline->GetActor2D(nPlane));
+    m_spline->AppendProp2D(renderer, nPlane);
 }
 
 void LayerSurface::Append3DProps( vtkRenderer* renderer, bool* bSliceVisibility )
@@ -654,8 +649,9 @@ void LayerSurface::Append3DProps( vtkRenderer* renderer, bool* bSliceVisibility 
   renderer->AddViewProp( m_vectorActor );
   renderer->AddViewProp( m_vertexActor );
   renderer->AddViewProp( m_wireframeActor );
+
   if (m_spline)
-    renderer->AddViewProp( m_spline->GetActor());
+    m_spline->AppendProp3D(renderer);
 
   for (int i = 0; i < m_labels.size(); i++)
     renderer->AddViewProp(m_labels[i]->GetOutlineActor());
