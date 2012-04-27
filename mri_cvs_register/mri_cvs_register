@@ -16,7 +16,7 @@
 # Edited : 08-24-2011: added new logfile that should be easier to read for the user
 
 set inputargs = ($argv);
-set VERSION = '$Id: mri_cvs_register,v 1.36 2012/04/25 13:44:55 lzollei Exp $';
+set VERSION = '$Id: mri_cvs_register,v 1.37 2012/04/27 21:27:52 lzollei Exp $';
 
 set movingid = ();
 set templateid = ();
@@ -120,8 +120,8 @@ else
 endif
 if ($DoAllSteps || $OnlyStep3) then
   set tmpMsg =  "Using $morphsuffix type morph files."
-  echo $tmpmsg |& tee -a $LF
-  echo $tmpmsg >> $sLF
+  echo $tmpMsg |& tee -a $LF
+  echo $tmpMsg >> $sLF
 endif
 
 ### REGISTRATION: STEP 1: #CVS_step1.csh
@@ -388,7 +388,7 @@ if ($UseAseg) then
   endif
 ## Run the non-linear registration based on the aseg volumes.
   if (!(-e $outdir/${nl_regresult}) || $CleanVolReg) then
-    set cmd = (~/my_fs/dev/mri_hires_register/mri_nl_align $options $outdir/${input}_${voltype}.mgz $tmri/$voltype.mgz $outdir/${nl_regresult})
+    set cmd = (mri_nl_align $options $outdir/${input}_${voltype}.mgz $tmri/$voltype.mgz $outdir/${nl_regresult})
     echo $cmd >> $LF
     echo $cmd >> $sLF
     $cmd |& tee -a $LF
@@ -474,7 +474,7 @@ endif
 if (!(-e $outdir/nlalign-$prefix${voltype}.${morphsuffix}) || $CleanVolReg) then 
   set nl_regresult = nlalign-$prefix${voltype}.${morphsuffix}
   set options = (-apply 1 -z 1 -sigma 2 -dt 0.0001 -intensity 0.1 -T $cvsdir/id.xfm  )
-  set cmd = (~/my_fs/dev/mri_hires_register/mri_nl_align $options $outdir/${input} $tmri/$voltype.mgz $outdir/${nl_regresult})
+  set cmd = (mri_nl_align $options $outdir/${input} $tmri/$voltype.mgz $outdir/${nl_regresult})
   echo $cmd >> $LF
   echo $cmd >> $sLF
   $cmd |& tee -a $LF
