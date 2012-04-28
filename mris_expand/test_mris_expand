@@ -8,8 +8,8 @@
 # Original Author: Nick Schmansky
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2011/05/02 21:09:57 $
-#    $Revision: 1.6.4.1 $
+#    $Date: 2012/04/28 20:48:09 $
+#    $Revision: 1.6.4.2 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -24,7 +24,7 @@
 # General inquiries: freesurfer@nmr.mgh.harvard.edu
 #
 
-set VERSION='$Id: test_mris_expand,v 1.6.4.1 2011/05/02 21:09:57 nicks Exp $'
+set VERSION='$Id: test_mris_expand,v 1.6.4.2 2012/04/28 20:48:09 nicks Exp $'
 
 umask 002
 
@@ -60,6 +60,8 @@ endif
 #
 
 set REF_SURF=(lh.expected-midgray)
+# PowerPC gives different results
+if ("`uname -p`" == "powerpc") set REF_SURF=(lh.expected-midgray-ppc)
 set TST_SURF=(lh.midgray)
 set cmd=(../mris_diff/mris_diff --debug \
           --thresh 0.5 --no-check-nxyz \
