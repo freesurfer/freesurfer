@@ -215,8 +215,12 @@ void SurfaceSpline::RebuildActors()
 void SurfaceSpline::SetVisible(bool visible)
 {
   m_actor->SetVisibility(visible);
+  m_actorSpheres->SetVisibility(visible);
   for (int i = 0; i < 3; i++)
+  {
     m_actor2D[i]->SetVisibility(visible);
+    m_actor2DSpheres[i]->SetVisibility(visible);
+  }
 
   emit SplineChanged();
 }

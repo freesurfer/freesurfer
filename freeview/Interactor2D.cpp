@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2012/04/26 16:48:38 $
- *    $Revision: 1.31 $
+ *    $Date: 2012/04/29 01:24:34 $
+ *    $Revision: 1.32 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -345,7 +345,7 @@ bool Interactor2D::ProcessKeyDownEvent( QKeyEvent* event, RenderView* renderview
     // do nothing, just intercept these vtk default keycodes
   }
   else if ( nKeyCode == Qt::Key_S && (event->modifiers() & Qt::AltModifier) &&
-            (event->modifiers() & Qt::ControlModifier))
+            (event->modifiers() & CONTROL_MODIFIER))
   {
     MainWindow::GetMainWindow()->ToggleSplinePicking();
   }
