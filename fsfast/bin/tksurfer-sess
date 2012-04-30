@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2012/04/30 14:27:25 $
-#    $Revision: 1.18 $
+#    $Date: 2012/04/30 14:39:49 $
+#    $Revision: 1.19 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: tksurfer-sess,v 1.18 2012/04/30 14:27:25 greve Exp $'
+set VERSION = '$Id: tksurfer-sess,v 1.19 2012/04/30 14:39:49 greve Exp $'
 set inputargs = ($argv);
 set analysis      = ();
 set contrastlist   = ();
@@ -603,6 +603,7 @@ usage_exit:
   echo "   -no-aparc : do not show automatic parcellation"
   echo "   -fthresh fthresh : threshold for color overlay"
   echo "   -fmax    fmax    : saturation threshold for color overlay"
+  echo "   -interp method : interpolation for volume analyses"
   echo "   -fwhm fwhm : surface smooth by fwhm (only necessary for volume analyses)"
   echo "   -tcl script.tcl  : run tksurfer with tcl script"
   echo ""
