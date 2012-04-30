@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2011/04/05 22:24:37 $
-#    $Revision: 1.17 $
+#    $Date: 2012/04/30 14:27:25 $
+#    $Revision: 1.18 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: tksurfer-sess,v 1.17 2011/04/05 22:24:37 greve Exp $'
+set VERSION = '$Id: tksurfer-sess,v 1.18 2012/04/30 14:27:25 greve Exp $'
 set inputargs = ($argv);
 set analysis      = ();
 set contrastlist   = ();
@@ -38,6 +38,7 @@ set fthresh = 2;
 set fmax    = 4;
 set DoAllContrasts = 0;
 set TCL = ();
+set FWHM = ();
 
 set Delink = 0;
 set UseVol2Surf = 1;
@@ -197,6 +198,7 @@ foreach sess ($SessList)
       --interp $Interp --cortex)
     if($RawSpace == native)    set cmd0 = ($cmd0 --reg $reg)
     if($RawSpace == mni305) set cmd0 = ($cmd0 --regheader $srcsubject)
+    if($#FWHM) set cmd0 = ($cmd0 --surf-fwhm $FWHM)
     # run vol2surf on the maps
     set mov = $mapconcatfile
     set out = $sess/$mapfsd/$mapanalysis/$hemi.tksconcat.mgh
@@ -355,6 +357,11 @@ while( $#argv != 0 )
     case "-map":
       if($#argv == 0) goto arg1err;
       set map = $argv[1]; shift;
+      breaksw
+
+    case "-fwhm":
+      if ( $#argv == 0) goto arg1err;
+      set FWHM = $argv[1]; shift;
       breaksw
 
     case "-fthresh":
@@ -596,6 +603,7 @@ usage_exit:
   echo "   -no-aparc : do not show automatic parcellation"
   echo "   -fthresh fthresh : threshold for color overlay"
   echo "   -fmax    fmax    : saturation threshold for color overlay"
+  echo "   -fwhm fwhm : surface smooth by fwhm (only necessary for volume analyses)"
   echo "   -tcl script.tcl  : run tksurfer with tcl script"
   echo ""
   echo "   -d  sessdir  ..."
