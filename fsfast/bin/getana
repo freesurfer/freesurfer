@@ -5,8 +5,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2011/12/15 16:29:57 $
-#    $Revision: 1.9 $
+#    $Date: 2012/04/30 14:27:57 $
+#    $Revision: 1.10 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -22,7 +22,7 @@
 # Bug reports: analysis-bugs@nmr.mgh.harvard.edu
 #
 
-set VERSION = '$Id: getana,v 1.9 2011/12/15 16:29:57 greve Exp $';
+set VERSION = '$Id: getana,v 1.10 2012/04/30 14:27:57 greve Exp $';
 
 set analysis = ();
 set tag = ();
@@ -66,8 +66,9 @@ switch ($tag)
   case "smstem":
     set stcstem = `getana -a $analysis -t stcstem`
     set fwhm   = `getana -a $analysis -t RawFWHM`
-    if($fwhm != 0) set result = $stcstem.sm$fwhm
-    if($fwhm == 0) set result = $stcstem
+    #if($fwhm != 0) set result = $stcstem.sm$fwhm
+    #if($fwhm == 0) set result = $stcstem
+    set result = $stcstem.sm$fwhm
     breaksw;
 
   case "funcstem-specified":
