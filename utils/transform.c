@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2012/04/11 00:54:36 $
- *    $Revision: 1.155 $
+ *    $Author: mreuter $
+ *    $Date: 2012/04/30 16:12:18 $
+ *    $Revision: 1.156 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -115,6 +115,11 @@ void initVolGeom(VOL_GEOM *vg)
 
 void getVolGeom(const MRI *src, VOL_GEOM *dst)
 {
+  if (!src)
+    ErrorExit(ERROR_BADPARM, "must have a valid MRI (src)");
+  if (!dst)
+    ErrorExit(ERROR_BADPARM, "must have a valid VOL_GEOM (dst)");
+
   dst->valid = 1;
   dst->width = src->width;
   dst->height = src->height;
@@ -139,8 +144,10 @@ void getVolGeom(const MRI *src, VOL_GEOM *dst)
 
 void useVolGeomToMRI(const VOL_GEOM *src, MRI *dst)
 {
+  if (!src)
+    ErrorExit(ERROR_BADPARM, "must have a valid VOL_GEOM (src)");
   if (!dst)
-    ErrorExit(ERROR_BADPARM, "must have a valid MRI");
+    ErrorExit(ERROR_BADPARM, "must have a valid MRI (dst)");
 
   dst->ras_good_flag = 1;
   dst->width = src->width;
