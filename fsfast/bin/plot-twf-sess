@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2010/08/05 15:44:16 $
-#    $Revision: 1.13 $
+#    $Date: 2012/04/30 15:29:28 $
+#    $Revision: 1.14 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: plot-twf-sess,v 1.13 2010/08/05 15:44:16 greve Exp $';
+set VERSION = '$Id: plot-twf-sess,v 1.14 2012/04/30 15:29:28 greve Exp $';
 
 set inputargs = ($argv);
 set DateStr = "`date '+%y%m%d%H%M'`"
@@ -427,6 +427,7 @@ usage_exit:
   echo "Arguments for showing some standard waveforms";
   echo "   -funcstem stem : put before -mc and -meantwf (default: fmc)"
   echo "   -mc : show vector motion"
+  echo "   -mc-per-session : show vector motion (session-wise)"
   echo "   -meantwf : show mean in-brain temporal waveform"
   echo ""
   echo "Session Arguments (Required)"
