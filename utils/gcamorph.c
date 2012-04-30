@@ -11,8 +11,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2012/03/17 22:22:16 $
- *    $Revision: 1.263 $
+ *    $Date: 2012/04/30 18:29:15 $
+ *    $Revision: 1.264 $
  *
  * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -4020,12 +4020,12 @@ for (i=0;i<nthreads;i++)
   VectorFree(&v_k[i]) ;
 }
 
-#endif
-
   for (i = 0; i<nthreads;i++) {
 	gcam->neg += gcam_neg_counter[i];
 	Ginvalid += Ginvalid_counter[i];
 	}
+
+#endif
 
 #if GCAM_CMP_OUTPUT
 #if 0
