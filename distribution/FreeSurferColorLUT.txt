@@ -1,4 +1,4 @@
-#$Id: FreeSurferColorLUT.txt,v 1.81 2011/12/14 19:40:29 rpwang Exp $
+#$Id: FreeSurferColorLUT.txt,v 1.82 2012/04/30 21:26:24 nicks Exp $
 
 #No. Label Name:                            R   G   B   A
 
@@ -299,6 +299,10 @@
 437 Visual_V5_b                             227 45  100 0
 438 Visual_VP_l                             227 45  100 0
 439 Visual_VP_r                             227 45  100 0
+
+# wm lesions
+498 wmsa                                    143 188 143 0
+499 other_wmsa                              255 248 220 0
 
 # HiRes Hippocampus labeling
 500 right_CA2_3                             17  85  136 0
