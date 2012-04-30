@@ -1,4 +1,4 @@
-#$Id: FreeSurferColorLUT.txt,v 1.70.2.2 2011/05/25 19:09:57 nicks Exp $
+#$Id: FreeSurferColorLUT.txt,v 1.70.2.3 2012/04/30 21:28:41 nicks Exp $
 
 #No. Label Name:                            R   G   B   A
 
@@ -114,7 +114,7 @@
 
 118 Epidermis                               255 20  147 0
 119 Conn-Tissue                             205 179 139 0
-120 SC-Fat/Muscle                           238 238 209 0
+120 SC-Fat-Muscle                           238 238 209 0
 121 Cranium                                 200 200 200 0
 122 CSF-SA                                  74  255 74  0
 123 Muscle                                  238 0   0   0
@@ -130,8 +130,8 @@
 133 Nasal-Structures                        238 174 238 0
 134 Globe                                   255 0   0   0
 135 Teeth                                   72  61  139 0
-136 Left-Caudate/Putamen                    21  39  132 0
-137 Right-Caudate/Putamen                   21  39  132 0
+136 Left-Caudate-Putamen                    21  39  132 0
+137 Right-Caudate-Putamen                   21  39  132 0
 138 Left-Claustrum                          65  135 20  0
 139 Right-Claustrum                         65  135 20  0
 140 Cornea                                  134 4   160 0
@@ -143,9 +143,9 @@
 147 Inner-Table                             70  130 181 0
 148 Periosteum                              139 121 94  0
 149 Endosteum                               224 224 224 0
-150 R/C/S                                   255 0   0   0
+150 R-C-S                                   255 0   0   0
 151 Iris                                    205 205 0   0
-152 SC-Adipose/Muscle                       238 238 209 0
+152 SC-Adipose-Muscle                       238 238 209 0
 153 SC-Tissue                               139 121 94  0
 154 Orbital-Adipose                         238 59  59  0
 
@@ -165,16 +165,19 @@
 166 Posterior-fossa                         14  48  255 0
 167 Scalp                                   166 42  42  0
 168 Hematoma                                121 18  134 0
+169 Left-Basal-Ganglia                      236 13  127 0
+176 Right-Basal-Ganglia                     236 13  126 0
 
 # Label names and colors for Brainstem consituents
 # No.  Label Name:                          R   G   B   A
-170  brainstem                              119 159 176 0
-171  DCG                                    119 0   176 0
-172  Vermis                                 119 100 176 0
-173  Midbrain                               119 200 176 0
-174  Pons                                   119 159 100 0
-175  Medulla                                119 159 200 0
+170 brainstem                               119 159 176 0
+171 DCG                                     119 0   176 0
+172 Vermis                                  119 100 176 0
+173 Midbrain                                119 200 176 0
+174 Pons                                    119 159 100 0
+175 Medulla                                 119 159 200 0
 
+#176 Right-Basal-Ganglia   found in babies/children section above
 
 180 Left-Cortical-Dysplasia                 73  61  139 0
 181 Right-Cortical-Dysplasia                73  62  139 0
@@ -197,7 +200,7 @@
 207 CA2                                     128 128 255 0
 208 CA3                                     0   128 0   0
 209 CA4                                     196 160 128 0
-210 GC-DG                                   32  200 255 0
+210 GC-ML-DG                                   32  200 255 0
 211 HATA                                    128 255 128 0
 212 fimbria                                 204 153 204 0
 213 lateral_ventricle                       121 17  136 0
@@ -213,6 +216,7 @@
 223 Cerebral_White_Matter_Edge              226 0   0   0
 224 Background                              100 100 100 0
 225 Ectorhinal                              197 150 250 0
+226 HP_tail                                 170 170 255 0
 
 250 Fornix                                  255 0   0   0
 251 CC_Posterior                            0   0   64  0
@@ -296,6 +300,10 @@
 438 Visual_VP_l                             227 45  100 0
 439 Visual_VP_r                             227 45  100 0
 
+# wm lesions
+498 wmsa                                    143 188 143 0
+499 other_wmsa                              255 248 220 0
+
 # HiRes Hippocampus labeling
 500 right_CA2_3                             17  85  136 0
 501 right_alveus                            119 187 102 0
@@ -318,6 +326,39 @@
 558 left_fornix                             20  100 201 0
 
 600 Tumor                                   254 254 254 0
+
+
+# Cerebellar parcellation labels from SUIT (matches labels in cma.h)
+#No. Label Name:                            R   G   B   A
+601  Cbm_Left_I_IV                          70  130 180 0
+602  Cbm_Right_I_IV                         245 245 245 0
+603  Cbm_Left_V                             205 62  78  0
+604  Cbm_Right_V                            120 18  134 0
+605  Cbm_Left_VI                            196 58  250 0
+606  Cbm_Vermis_VI                          0   148 0   0
+607  Cbm_Right_VI                           220 248 164 0
+608  Cbm_Left_CrusI                         230 148 34  0
+609  Cbm_Vermis_CrusI                       0   118 14  0
+610  Cbm_Right_CrusI                        0   118 14  0
+611  Cbm_Left_CrusII                        122 186 220 0
+612  Cbm_Vermis_CrusII                      236 13  176 0
+613  Cbm_Right_CrusII 12                    48  255 0
+614  Cbm_Left_VIIb                          204 182 142 0
+615  Cbm_Vermis_VIIb                        42  204 164 0
+616  Cbm_Right_VIIb                         119 159 176 0
+617  Cbm_Left_VIIIa                         220 216 20  0
+618  Cbm_Vermis_VIIIa                       103 255 255 0
+619  Cbm_Right_VIIIa                        80  196 98  0
+620  Cbm_Left_VIIIb                         60  58  210 0
+621  Cbm_Vermis_VIIIb                       60  58  210 0
+622  Cbm_Right_VIIIb                        60  58  210 0
+623  Cbm_Left_IX                            60  58  210 0
+624  Cbm_Vermis_IX                          60  60  60  0
+625  Cbm_Right_IX                           255 165 0   0
+626  Cbm_Left_X                             255 165 0   0
+627  Cbm_Vermis_X                           0   255 127 0
+628  Cbm_Right_X                            165 42  42  0
+
 
 701 CSF-FSL-FAST                            120 18  134 0
 702 GrayMatter-FSL-FAST                     205 62  78  0
@@ -1185,7 +1226,7 @@
 13173  wm_lh_S_temporal_inf                    21 180 180   0
 13174  wm_lh_S_temporal_sup                   223 220  60   0
 13175  wm_lh_S_temporal_transverse            221  60  60   0
- 
+
 14100  wm_rh_Unknown                            0   0   0   0
 14101  wm_rh_G_and_S_frontomargin              23 220  60   0
 14102  wm_rh_G_and_S_occipital_inf             23  60 180   0
@@ -1262,3 +1303,4 @@
 14173  wm_rh_S_temporal_inf                    21 180 180   0
 14174  wm_rh_S_temporal_sup                   223 220  60   0
 14175  wm_rh_S_temporal_transverse            221  60  60   0
+
