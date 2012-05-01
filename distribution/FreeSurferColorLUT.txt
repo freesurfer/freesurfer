@@ -1,4 +1,4 @@
-#$Id: FreeSurferColorLUT.txt,v 1.70.2.3 2012/04/30 21:28:41 nicks Exp $
+#$Id: FreeSurferColorLUT.txt,v 1.70.2.4 2012/05/01 18:31:16 nicks Exp $
 
 #No. Label Name:                            R   G   B   A
 
@@ -984,6 +984,31 @@
 8012  Thalamus-pulvinar                                 12  46  250 0
 8013  Thalamus-lateral-geniculate                       203 182 143 0
 8014  Thalamus-medial-geniculate                        42  204 167 0
+
+#
+# Labels for thalamus parcellation using probabilistic tractography. See:
+# Functional--Anatomical Validation and Individual Variation of Diffusion
+# Tractography-based Segmentation of the Human Thalamus; Cerebral Cortex
+# January 2005;15:31--39, doi:10.1093/cercor/bhh105, Advance Access
+# publication July 6, 2004
+#
+
+#No.    Label Name:                         R   G   B   A
+9000    ctx-lh-prefrontal                   30  5   30  0
+9001    ctx-lh-primary-motor                30  100 45  0
+9002    ctx-lh-premotor                     130 100 165 0
+9003    ctx-lh-temporal                     105 25  5   0
+9004    ctx-lh-posterior-parietal           125 70  55  0
+9005    ctx-lh-prim-sec-somatosensory       225 20  105 0
+9006    ctx-lh-occipital                    225 20  15  0
+
+9500    ctx-rh-prefrontal                   30  55  30  0
+9501    ctx-rh-primary-motor                30  150 45  0
+9502    ctx-rh-premotor                     130 150 165 0
+9503    ctx-rh-temporal                     105 75  5   0
+9504    ctx-rh-posterior-parietal           125 120 55  0
+9505    ctx-rh-prim-sec-somatosensory       225 70  105 0
+9506    ctx-rh-occipital                    225 70  15  0
 
 # Below is the color table for the cortical labels of the seg volume
 # created by mri_aparc2aseg (with --a2009s flag) in which the aseg
