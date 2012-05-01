@@ -332,6 +332,8 @@
     <addaction name="actionToggleCursorVisibility"/>
     <addaction name="actionShowSlices"/>
     <addaction name="actionShowSliceFrames"/>
+    <addaction name="separator"/>
+    <addaction name="actionToggleSurfaceSpline"/>
    </widget>
    <widget class="QMenu" name="menuLayer">
     <property name="title">
@@ -1263,6 +1265,20 @@
    </property>
    <property name="toolTip">
     <string>Plot FSGD Data</string>
+   </property>
+  </action>
+  <action name="actionToggleSurfaceSpline">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>Enable Surface Spline</string>
+   </property>
+   <property name="toolTip">
+    <string>Surface Spline Picking</string>
+   </property>
+   <property name="shortcut">
+    <string>Alt+Shift+S</string>
    </property>
   </action>
  </widget>
@@ -2379,6 +2395,22 @@
     </hint>
    </hints>
   </connection>
+  <connection>
+   <sender>actionToggleSurfaceSpline</sender>
+   <signal>toggled(bool)</signal>
+   <receiver>MainWindow</receiver>
+   <slot>SetSplinePicking(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>606</x>
+     <y>435</y>
+    </hint>
+   </hints>
+  </connection>
  </connections>
  <slots>
   <slot>OnLoadVolume()</slot>
@@ -2444,5 +2476,6 @@
   <slot>OnShowLabelStats()</slot>
   <slot>OnSaveROIAs()</slot>
   <slot>OnPlot()</slot>
+  <slot>SetSplinePicking(bool)</slot>
  </slots>
 </ui>

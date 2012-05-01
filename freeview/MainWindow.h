@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2012/04/26 16:48:38 $
- *    $Revision: 1.116 $
+ *    $Date: 2012/05/01 16:35:36 $
+ *    $Revision: 1.117 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -232,6 +232,7 @@ public slots:
   void SaveSurfaceAs();
 
   void ToggleSplinePicking();
+  void SetSplinePicking(bool b);
 
 protected:
   void closeEvent   ( QCloseEvent * event );

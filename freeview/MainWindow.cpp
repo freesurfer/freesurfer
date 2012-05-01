@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2012/04/26 16:48:38 $
- *    $Revision: 1.211 $
+ *    $Date: 2012/05/01 16:35:36 $
+ *    $Revision: 1.212 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -1141,6 +1141,9 @@ void MainWindow::OnIdle()
   ui->actionTimeCourse->setEnabled(layerVolume && layerVolume->GetNumberOfFrames() > 1);
   if (ui->actionTimeCourse->isEnabled())
     ui->actionTimeCourse->setChecked(m_wndTimeCourse->isVisible());
+
+  ui->actionToggleSurfaceSpline->setEnabled(layerSurface);
+  ui->actionToggleSurfaceSpline->setChecked(this->m_bSplinePicking);
 
   if ((!bEditWindowVisible && m_toolWindowEdit->isVisible()) ||
       (!bMeasureWindowVisible && m_toolWindowMeasure->isVisible()) ||
@@ -5307,4 +5310,10 @@ void MainWindow::ToggleSplinePicking()
 {
   m_bSplinePicking = !m_bSplinePicking;
   qDebug() << QString("Surface spline picking %1").arg(m_bSplinePicking?"enabled":"disabled");
+}
+
+void MainWindow::SetSplinePicking(bool b)
+{
+  if (b != m_bSplinePicking)
+    ToggleSplinePicking();
 }

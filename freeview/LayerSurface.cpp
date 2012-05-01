@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2012/04/26 16:48:38 $
- *    $Revision: 1.70 $
+ *    $Date: 2012/05/01 16:35:36 $
+ *    $Revision: 1.71 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -1179,7 +1179,8 @@ void LayerSurface::UpdateOverlay( bool bAskRedraw )
           polydataWireframe->GetPointData()->AddArray( array );
         }
         unsigned char* data = new unsigned char[ nCount*4 ];
-        GetProperty()->GetCurvatureLUT()->MapScalarsThroughTable( polydata->GetPointData()->GetScalars("Curvature"), data, VTK_RGBA );
+        if (polydata->GetPointData()->GetScalars("Curvature"))
+          GetProperty()->GetCurvatureLUT()->MapScalarsThroughTable( polydata->GetPointData()->GetScalars("Curvature"), data, VTK_RGBA );
         MapLabels( data, nCount );
         for ( int i = 0; i < nCount; i++ )
         {
@@ -1365,7 +1366,8 @@ void LayerSurface::UpdateMeshRender()
   switch ( GetProperty()->GetMeshColorMap() )
   {
   case LayerPropertySurface::MC_Surface:
-    polydataWireframe->GetPointData()->SetActiveScalars( polydata->GetPointData()->GetScalars()->GetName() );
+    if (polydata->GetPointData()->GetScalars())
+      polydataWireframe->GetPointData()->SetActiveScalars( polydata->GetPointData()->GetScalars()->GetName() );
     mapperWireframe->SetLookupTable( mapper->GetLookupTable() );
     break;
   case LayerPropertySurface::MC_Curvature:
