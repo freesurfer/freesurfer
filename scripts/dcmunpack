@@ -2,7 +2,7 @@
 # dcmunpack
 # 
 
-set VERSION = '$Id: dcmunpack,v 1.15 2012/02/23 23:46:58 greve Exp $';
+set VERSION = '$Id: dcmunpack,v 1.16 2012/05/01 18:55:17 greve Exp $';
 
 set SeriesInfo = ();
 
@@ -18,6 +18,8 @@ set DoConvert = 1;
 set DoCopy = 0;
 set OnePerDir = 0;
 set MGHDCM = 0;
+set Key = ();
+set DoBase = 0;
 
 set RunNos = ();
 set SubDirs = ();
@@ -49,10 +51,8 @@ if($n != 0) then
   echo $VERSION
   exit 0;
 endif
-
 goto parse_args;
 parse_args_return:
-
 goto check_params;
 check_params_return:
 
@@ -70,10 +70,12 @@ if($#LF == 0) then
 endif
 
 # Start populating the log file
-echo $0 >> $LF
-ls -l $0 >> $LF
-echo "$inputargs" >> $LF
+echo ""| tee -a $LF
+echo "cd `pwd`" | tee -a $LF
+echo "$0 $inputargs"| tee -a $LF
+echo ""| tee -a $LF
 echo $VERSION >> $LF
+ls -l $0 | tee -a $LF
 uname -a >> $LF
 date >> $LF
 
@@ -221,7 +223,9 @@ foreach series ($SeriesNos)
   set max = ();
   if($GetMax) set max = (`mri_probedicom --i $f --max`)
   set descr = (`mri_probedicom --i $f --t 8 103e | sed 's/ //g' | sed 's/\///g' | sed 's/(//g' | sed 's/)//g'`)
-  echo $r[2] "$descr" $r[5-11] $max | tee -a $SeriesInfo
+  set fname = $r[11];
+  if($DoBase) set fname = `basename $f`
+  echo $Key $r[2] "$descr" $r[5-10] $fname $max | tee -a $SeriesInfo
 end
 
 # If no runs have been specified, then just exit
@@ -372,6 +376,15 @@ while( $#argv != 0 )
     case "-ext":
       if($#argv < 1) goto arg1err;
       set SrcExt = "$argv[1]"; shift;
+      breaksw
+
+    case "-key":
+      if($#argv < 1) goto arg1err;
+      set Key = "$argv[1]"; shift;
+      breaksw
+
+    case "-base":
+      set DoBase = 1;
       breaksw
 
     case "-src":
@@ -662,6 +675,8 @@ usage_exit:
   echo "   -copy-only"
   echo "   -no-convert : do not convert to output format"
   echo "   -max : print out max in given dicom file"
+  echo "   -base : report filename without path"
+  echo "   -key keystring : put keystring before each run line (good for searching)"
   echo ""
   echo "   -fips project site birnid visit"
   echo "   -fips-run run paradigm <<nskip> ndrop>"
