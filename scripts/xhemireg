@@ -16,7 +16,7 @@
 #  Dont convert volumes in mri/orig
 #
 
-set VERSION = '$Id: xhemireg,v 1.12.4.2 2011/12/07 04:44:33 greve Exp $';
+set VERSION = '$Id: xhemireg,v 1.12.4.3 2012/05/02 21:28:58 greve Exp $';
 
 set subject = ();
 set srchemilist = ();
@@ -28,12 +28,17 @@ set DoReg = 0;
 set PrintHelp = 0;
 set outdir = ();
 set DoAllVol = 0;
-set vollist = (orig aseg aparc+aseg T1 brain brainmask nu norm)
-set vollist = ($vollist rawavg wm brain.finalsurfs)
-set ovlist = (curv sulc area area.mid area.pial area.mid volume curv.pial \
-       avg_curv inflated.H inflated.K thickness lh.jacobian_white)
-set surflist = (orig white pial smoothwm inflated sphere)
-set annotlist = (aparc BA aparc.a2009s)
+set DoTal = 1;
+
+# Not all of the lists below are really needed (orig T1 brain needed by make_ave_vol)
+set vollist = (orig T1 brain brainmask norm aseg aparc+aseg)
+# Note: T1 is needed by mris_make_average_surface
+set ovlist = (curv sulc area volume thickness inflated.H )
+set ovlist = ($ovlist area.pial area.mid curv.pial inflated.K)
+set surflist = (orig white pial smoothwm sphere)
+set surflist = ($surflist inflated)
+set annotlist = ()
+set annotlist = ($annotlist aparc BA aparc.a2009s)
 set labellist = (cortex)
 
 # For cortical registration, as found in $AvgCurvTifPath/$hemi.$AvgCurvTif
@@ -94,7 +99,35 @@ foreach srchemi ($srchemilist)
 
   # Convert volumes, create LR registration
   if($nthhemi == 1) then
-    # Convert volumes
+    # Create LR registration
+    date | tee -a $LF
+
+    # This is the same as --left-right-reverse-pix
+    set reg = $outdir/lrrev.register.dat
+    rm -f $reg
+    echo "subject-unknown" >> $reg
+    echo "1" >> $reg
+    echo "1" >> $reg
+    echo "1" >> $reg
+    echo "-1 0 0 1" >> $reg
+    echo " 0 1 0 0" >> $reg
+    echo " 0 0 1 0" >> $reg
+    echo " 0 0 0 1" >> $reg
+    echo "round" >> $reg
+
+    set regpure = $outdir/lrrev.pure.register.dat
+    rm -f $regpure
+    echo "subject-unknown" >> $regpure
+    echo "1" >> $regpure
+    echo "1" >> $regpure
+    echo "1" >> $regpure
+    echo "-1 0 0 0" >> $regpure
+    echo " 0 1 0 0" >> $regpure
+    echo " 0 0 1 0" >> $regpure
+    echo " 0 0 0 1" >> $regpure
+    echo "round" >> $regpure
+
+    # Convert volumes. aseg will be wrong -- need to swap labels too
     date | tee -a $LF
     foreach vol ($vollist )
       set invol = mri/$vol.mgz
@@ -105,37 +138,46 @@ foreach srchemi ($srchemilist)
            exit 1;
         endif
       endif
-      set cmd = (mri_convert $invol $outdir/mri/$vol.mgz \
-        --left-right-reverse)
+      set cmd = (mri_vol2vol --mov $invol --targ $invol \
+        --reg $reg --o $outdir/mri/$vol.mgz --keep-precision \
+        --no-save-reg)
       echo $cmd  | tee -a $LF
       $cmd | tee -a $LF
       if($status) exit 1;
+
+      # Left-Right Reverse label codes for segmentations
+      if($vol == aseg || $vol == aparc+aseg || $vol == wmparc || \
+         $vol == aparc.a2009s+aseg) then
+        set cmd = (mri_convert $outdir/mri/$vol.mgz $outdir/mri/$vol.mgz --left-right-swap-label)
+        echo $cmd  | tee -a $LF
+        $cmd | tee -a $LF
+        if($status) exit 1;
+      endif
+
     end
 
     # Recompute talairach registration
-    set cmd = (recon-all -sb $xsubject -talairach)
-    date | tee -a $LF
-    echo $cmd  | tee -a $LF
-    $cmd | tee -a $LF
-    if($status) exit 1;
+    if($DoTal) then
+      set cmd = (recon-all -sb $subject/xhemi -talairach)
+      date | tee -a $LF
+      echo $cmd  | tee -a $LF
+      $cmd | tee -a $LF
+      if($status) exit 1;
+      #set cmd = (xhemi-tal --s $subject)
+    endif
 
-    # Create LR registration
-    date | tee -a $LF
-    set reg = $outdir/lrrev.register.dat
-    set cmd = (tkregister2_cmdl --targ mri/orig.mgz \
-           --mov $outdir/mri/orig.mgz \
-           --reg $reg --regheader --noedit)
-    echo $cmd | tee -a $LF
-    $cmd | tee -a $LF
-    if($status) exit 1;
-  endif
+  endif # nthhemi == 1
 
   # Convert Surfaces (apply LR registration)
   foreach surf ($surflist)
     date | tee -a $LF
     set cmd = (mri_surf2surf --s $subject --sval-xyz $surf \
-     --hemi $srchemi --tval-xyz --tval $outdir/surf/$trghemi.$surf \
-     --reg $reg)
+     --hemi $srchemi --tval-xyz --tval $outdir/surf/$trghemi.$surf)
+    if($surf == inflated || $surf == sphere) then
+      set cmd = ($cmd --reg $regpure)
+    else
+      set cmd = ($cmd --reg $reg)
+    endif
     echo $cmd  | tee -a $LF
     $cmd | tee -a $LF
     if($status) exit 1;
@@ -144,14 +186,14 @@ foreach srchemi ($srchemilist)
   # Copy overlays (curvs, thicknesses, etc)
   foreach ov ($ovlist )
     if(! -e surf/$srchemi.$ov) continue;
-    date | tee -a $LF
     set cmd = (cp surf/$srchemi.$ov $outdir/surf/$trghemi.$ov)
     echo $cmd >> $LF
     $cmd | tee -a $LF
     if($status) exit 1;
   end
 
-  # Copy labels (no need to convert)
+  # Copy labels (no need to convert, just swap lh rh)
+  # May need to convert if xyz ever used.
   foreach label ($labellist )
     set srclabel = label/$srchemi.$label.label
     if(! -e $srclabel) continue;
@@ -160,18 +202,17 @@ foreach srchemi ($srchemilist)
     if($status) exit 1;
   end
 
-  # Copy annotations
+  # Copy annotations (just swap lh rh)
   foreach annot ($annotlist)
     set fname = label/$srchemi.$annot.annot
     if(! -e $fname) continue;
-    date | tee -a $LF
     set cmd = (cp $fname $outdir/label/$trghemi.$annot.annot)
     echo $cmd  | tee -a $LF
     $cmd | tee -a $LF
     if($status) exit 1;
   end
 
-  # Surface-based registration 
+  # Perform Surface-based registration to fsaverage
   if($DoReg) then
     set cmd = (recon-all -sb $xsubject -hemi $trghemi -surfreg)
     date | tee -a $LF
@@ -179,6 +220,8 @@ foreach srchemi ($srchemilist)
     $cmd | tee -a $LF
     if($status) exit 1;
   endif
+
+  echo "done hemi $srchemi"  | tee -a $LF
 
 end # Loop over srchemi
 
@@ -240,6 +283,10 @@ while( $#argv != 0 )
       set DoReg = 1;
       breaksw
 
+    case "--no-tal":
+      set DoTal = 0;
+      breaksw
+
     case "--debug":
       set verbose = 1;
       set echo = 1;
@@ -298,6 +345,7 @@ usage_exit:
   echo "   --reg       : perform reg to create sphere.reg"
   echo "   --rh : srchemi = rh (map from right to left) "
   echo "   --o outdir  : output dir (subject/xhemireg.hemi by def)"
+  echo "   --no-tal    : do not perform talairach registration"
   echo "   --version   : print version and exit"
   echo "   --help      : print help and exit"
   echo ""
