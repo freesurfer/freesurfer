@@ -10,21 +10,19 @@
 /*
  * Original Author: Doug Greve
  * CVS Revision Info:
- *    $Author: rge21 $
- *    $Date: 2010/06/02 14:45:27 $
- *    $Revision: 1.63 $
+ *    $Author: greve $
+ *    $Date: 2012/05/02 21:27:41 $
+ *    $Revision: 1.69.2.1 $
  *
- * Copyright (C) 2002-2008,
- * The General Hospital Corporation (Boston, MA). 
- * All rights reserved.
+ * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
- * Distribution, usage and copying of this software is covered under the
- * terms found in the License Agreement file named 'COPYING' found in the
- * FreeSurfer source code root directory, and duplicated here:
- * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ * Terms and conditions for use, reproduction, distribution and contribution
+ * are found in the 'FreeSurfer Software License Agreement' contained
+ * in the file 'LICENSE' found in the FreeSurfer distribution, and here:
  *
- * General inquiries: freesurfer@nmr.mgh.harvard.edu
- * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
+ *
+ * Reporting: freesurfer@nmr.mgh.harvard.edu
  *
  */
 
@@ -464,7 +462,7 @@ MATRIX *LoadRfsl(char *fname);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_vol2vol.c,v 1.63 2010/06/02 14:45:27 rge21 Exp $";
+static char vcid[] = "$Id: mri_vol2vol.c,v 1.69.2.1 2012/05/02 21:27:41 greve Exp $";
 char *Progname = NULL;
 
 int debug = 0, gdiagno = -1;
@@ -560,6 +558,9 @@ int useold = 1;
 MRI *vsm = NULL;
 char *vsmvolfile=NULL;
 
+int defM3zPath = 1; // use deafult path to the m3z file
+int keepprecision = 0;
+
 /*---------------------------------------------------------------*/
 int main(int argc, char **argv) {
   char regfile0[1000];
@@ -576,12 +577,12 @@ int main(int argc, char **argv) {
 
 
   make_cmd_version_string(argc, argv,
-                          "$Id: mri_vol2vol.c,v 1.63 2010/06/02 14:45:27 rge21 Exp $",
+                          "$Id: mri_vol2vol.c,v 1.69.2.1 2012/05/02 21:27:41 greve Exp $",
                           "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option(argc, argv,
-                                "$Id: mri_vol2vol.c,v 1.63 2010/06/02 14:45:27 rge21 Exp $",
+                                "$Id: mri_vol2vol.c,v 1.69.2.1 2012/05/02 21:27:41 greve Exp $",
                                 "$Name:  $");
   if(nargs && argc - nargs == 1) exit (0);
 
@@ -886,8 +887,12 @@ int main(int argc, char **argv) {
     Rtransform->xform = (void *)TransformRegDat2LTA(template, mov, R);
 
     printf("Reading gcam\n");
-    sprintf(gcamfile,"%s/%s/mri/transforms/%s",
-	    SUBJECTS_DIR,subject,m3zfile);
+    if (defM3zPath)
+      sprintf(gcamfile,"%s/%s/mri/transforms/%s",
+	      SUBJECTS_DIR,subject,m3zfile);
+    else
+      sprintf(gcamfile,"%s", m3zfile);
+
     if(! InvertMorph){
       //mri_vol2vol --mov orig.mgz --morph --s subject --o orig.morphed.mgz
       gcam = GCAMread(gcamfile);
@@ -903,17 +908,21 @@ int main(int argc, char **argv) {
       if(gcam == NULL) exit(1);
       printf("Applying reg to gcam\n");
       GCAMapplyTransform(gcam, Rtransform);  //voxel2voxel
-      if(in->type != MRI_UCHAR){
+      if (0) { //(in->type != MRI_UCHAR){
 	printf("Changing type to uchar\n");
 	tmpmri = MRISeqchangeType(in, MRI_UCHAR, 0 , 255, 1);
 	MRIfree(&in);
 	in = tmpmri;
       }
       printf("Applying inverse morph to input\n");
-      out = GCAMmorphFromAtlas(in, gcam, NULL, SAMPLE_TRILINEAR);
+      gcam->gca = gcaAllocMax(1, 1, 1,
+			      in->width, in->height,
+			      in->depth,
+			      0, 0) ;
+      out = GCAMmorphFromAtlas(in, gcam, NULL, interpcode);
     }
     if(out == NULL) exit(1);
-
+    
     if(0){
     printf("Extracting region\n");
     region.x = 51;
@@ -960,8 +969,6 @@ int main(int argc, char **argv) {
     exit(1);
   }
 
-  sprintf(regfile0,"%s.reg",outvolfile);
-  printf("INFO: writing registration matrix to %s\n",regfile0);
   if(fstal) {
     R = Rtal;
     subject_outreg = "fsaverage";
@@ -974,6 +981,8 @@ int main(int argc, char **argv) {
   }
 
   if(SaveReg) {
+    sprintf(regfile0,"%s.reg",outvolfile);
+    printf("INFO: wAriting registration matrix to %s\n",regfile0);
     regio_write_register(regfile0,subject_outreg,out->xsize,
                          out->zsize,1,R,FLT2INT_ROUND);
     printf("To check registration, run:\n");
@@ -1049,11 +1058,15 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--inv-morph")) {
       DoMorph = 1;
       InvertMorph = 1;
-      fstarg = 1;
+      invert = 1;
     } else if (istringnmatch(option, "--m3z",0)) {
       if (nargc < 1) argnerr(option,1);
-      m3zfile = pargv[0];
+      m3zfile = pargv[0]; DoMorph = 1;
       nargsused = 1;
+    } else if (istringnmatch(option, "--noDefM3zPath",0)) {
+      defM3zPath = 0; // use the m3z file as it is; no assumed location
+      R = MatrixIdentity(4,NULL); // as subjid is not neccesary any more
+      printf("Using the m3z file as it is; no assumed location.\n");
     } else if (istringnmatch(option, "--mov",0)) {
       if (nargc < 1) argnerr(option,1);
       movvolfile = pargv[0];
@@ -1180,7 +1193,11 @@ static int parse_commandline(int argc, char **argv) {
         exit(1);
       }
       nargsused = 1;
-    } else if (!strcasecmp(option, "--seed")) {
+    } 
+    else if (istringnmatch(option, "--keep-precision",0)) {
+      keepprecision = 1;
+    } 
+    else if (!strcasecmp(option, "--seed")) {
       if (nargc < 1) CMDargNErr(option,1);
       sscanf(pargv[0],"%d",&SynthSeed);
       synth = 1;
@@ -1269,6 +1286,10 @@ printf("  --s subject         : set matrix = identity and use subject for any te
 printf("\n");
 printf("  --inv               : sample from targ to mov\n");
 printf("\n");
+printf("  --m3z               : the non-linear warp to be applied\n");
+printf("  --noDefM3zPath      : do not use the default non-linear morph path; look at --m3z\n");
+printf("  --inv-morph         : invert the non-linear warp to be applied\n");
+printf("\n");
 printf("  --tal               : map to a sub FOV of MNI305 (with --reg only)\n");
 printf("  --talres resolution : set voxel size 1mm or 2mm (def is 1)\n");
 printf("  --talxfm xfmfile    : default is talairach.xfm (looks in mri/transforms)\n");
@@ -1284,6 +1305,7 @@ printf("  --nearest           : nearest neighbor interpolation\n");
 printf("  --interp interptype : interpolation trilin or nearest (def is trilin)\n");
 printf("\n");
 printf("  --precision precisionid : output precision (def is float)\n");
+printf("  --keep-precision  : set output precision to that of input\n");
 printf("  --kernel            : save the trilinear interpolation kernel instead\n");
 printf("\n");
 printf("  --no-resample : do not resample, just change vox2ras matrix\n");
@@ -1337,6 +1359,25 @@ printf("This simple text file contains the freesurfer registration matrix. It\n"
 printf("is the same as the file passed to and generated by tkregister2 with\n");
 printf("the --reg flag. If --tal or --fstarg is specified, then the subject\n");
 printf("is obtained from the regfile.\n");
+printf("\n");
+printf("--m3z morph.m3z\n");
+printf("\n");
+printf("This is the morph to be applied to the volume. Unless the morph is in \n");
+printf("mri/transforms (eg.: for talairach.m3z computed by reconall), you will\n");
+printf("need to specify the full path to this morph and use the --noDefM3zPath\n");
+printf("flag.\n");
+printf("\n");
+printf("--noDefM3zPath\n");
+printf("\n");
+printf("To be used with the m3z flag. Instructs the code not to look for the m3z\n");
+printf("morph in the default location (SUBJECTS_DIR/subj/mri/transforms), but \n");
+printf("instead just use the path indicated in --m3z.\n");
+printf("\n");
+printf("--inv-morph\n");
+printf("\n");
+printf("Compute and use the inverse of the non-linear morph to resample the \n");
+printf("input volume. To be used by --m3z. \n");
+
 printf("\n");
 printf("--fsl register.fsl\n");
 printf("\n");
@@ -1645,7 +1686,13 @@ static void check_options(void) {
       exit(1);
     }
   }
-
+  if(keepprecision){
+    mov = MRIreadHeader(movvolfile,MRI_VOLUME_TYPE_UNKNOWN);
+    if(mov==NULL) exit(1);
+    precisioncode = mov->type;
+    precision = MRIprecisionString(precisioncode);
+    MRIfree(&mov);
+  }
   if(!fstal && !DoCrop && !fstarg && targvolfile == NULL) {
     printf("ERROR: No targ volume supplied.\n");
     exit(1);
