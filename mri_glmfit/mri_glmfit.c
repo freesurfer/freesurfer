@@ -14,8 +14,8 @@
  * Original Author: Douglas N Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2012/01/10 21:28:52 $
- *    $Revision: 1.210 $
+ *    $Date: 2012/05/02 20:12:51 $
+ *    $Revision: 1.211 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -555,7 +555,7 @@ static int SmoothSurfOrVol(MRIS *surf, MRI *mri, MRI *mask, double SmthLevel);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-"$Id: mri_glmfit.c,v 1.210 2012/01/10 21:28:52 greve Exp $";
+"$Id: mri_glmfit.c,v 1.211 2012/05/02 20:12:51 greve Exp $";
 const char *Progname = "mri_glmfit";
 
 int SynthSeed = -1;
@@ -1524,8 +1524,9 @@ int main(int argc, char **argv) {
 	  if(debug) printf("%2d %d %5.1f  %d %2d %5.1f\n",nthsim,nthThresh,
 		 csd->thresh,nthSign,tSimSign,TimerStop(&mytimer)/1000.0);
 
-	  // Go through each contrast
-	  for (n=0; n < mriglm->glm->ncontrasts; n++) {
+	  // Go through each contrast. Only works for 1 contrast!
+	  //for (n=0; n < mriglm->glm->ncontrasts; n++) {
+	  for (n=0; n < 1; n++) {
 	    // Change sign to abs for F-tests
 	    csd->threshsign = tSimSign;
 	    if(mriglm->glm->C[n]->rows > 1) csd->threshsign = 0;
@@ -1623,7 +1624,7 @@ int main(int argc, char **argv) {
 	    }
 	    else
 	      sprintf(tmpstr,"%s-%s.csd",simbase,mriglm->glm->Cname[n]);
-	    //printf("csd %s \n",tmpstr);
+	    if(debug) printf("csd %s \n",tmpstr);
 	    fflush(stdout);
 	    fp = fopen(tmpstr,"w");
 	    if (fp == NULL) {
@@ -1648,6 +1649,7 @@ int main(int argc, char **argv) {
 	    csd->MaxStat[nthsim] = Fmax;
 	    CSDprint(fp, csd);
 	    fclose(fp);
+	    if(debug) CSDprint(stdout, csd);
 
 	    if(DiagCluster) {
 	      sprintf(tmpstr,"./%s-sig.%s",mriglm->glm->Cname[n],format);
@@ -2117,10 +2119,17 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcmp(option, "--no-fix-vertex-area")) {
       printf("Turning off fixing of vertex area\n");
       MRISsetFixVertexAreaValue(0);
-    } else if (!strcasecmp(option, "--diag")) {
+    } 
+    else if (!strcasecmp(option, "--diag")) {
       if (nargc < 1) CMDargNErr(option,1);
       sscanf(pargv[0],"%d",&Gdiag_no);
       nargsused = 1;
+    } 
+    else if (!strcasecmp(option, "--diag-show")) {
+      Gdiag = (Gdiag & DIAG_SHOW);
+    } 
+    else if (!strcasecmp(option, "--diag-verbose")) {
+      Gdiag = (Gdiag & DIAG_VERBOSE);
     } 
     else if (!strcasecmp(option, "--sim")) {
       if (nargc < 4) CMDargNErr(option,4);
