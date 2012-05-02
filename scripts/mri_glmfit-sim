@@ -1,5 +1,5 @@
 #!/bin/tcsh -f
-set VERSION = '$Id: mri_glmfit-sim,v 1.36.2.3 2011/05/25 20:23:08 greve Exp $';
+set VERSION = '$Id: mri_glmfit-sim,v 1.36.2.4 2012/05/02 20:52:35 greve Exp $';
 
 set inputargs = ($argv);
 
@@ -130,6 +130,7 @@ while($#glmfitcmd)
     shift glmfitcmd;
     if($#glmfitcmd > 0) then
       if($glmfitcmd[1] == doss) set gd2mtx = doss
+    endif
     breaksw
   case "--label"
     set label = $glmfitcmd[1]; shift glmfitcmd;
