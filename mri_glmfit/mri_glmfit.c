@@ -14,8 +14,8 @@
  * Original Author: Douglas N Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2011/05/05 20:54:25 $
- *    $Revision: 1.196.2.6 $
+ *    $Date: 2012/05/02 21:06:53 $
+ *    $Revision: 1.196.2.7 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -555,7 +555,7 @@ static int SmoothSurfOrVol(MRIS *surf, MRI *mri, MRI *mask, double SmthLevel);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-"$Id: mri_glmfit.c,v 1.196.2.6 2011/05/05 20:54:25 greve Exp $";
+"$Id: mri_glmfit.c,v 1.196.2.7 2012/05/02 21:06:53 greve Exp $";
 const char *Progname = "mri_glmfit";
 
 int SynthSeed = -1;
@@ -663,6 +663,7 @@ float prune_thr = FLT_MIN;
 
 DTI *dti;
 int usedti = 0;
+int usepruning = 0;
 MRI *lowb, *tensor, *evals, *evec1, *evec2, *evec3;
 MRI  *fa, *ra, *vr, *adc, *dwi, *dwisynth,*dwires,*dwirvar;
 MRI  *ivc, *k, *pk;
@@ -709,7 +710,7 @@ int  nThreshList = 5, nthThresh;
 float ThreshList[5] = {1.3,  2.0,  2.3,  3.0, 3.3};
 int  nSignList = 3, nthSign;
 int SignList[3] = {-1,0,1};
-CSD *csdList[5][3];
+CSD *csdList[5][3][20];
 
 int nRandExclude=0,  *ExcludeFrames=NULL, nExclude=0;
 MATRIX *MatrixExcludeFrames(MATRIX *Src, int *ExcludeFrames, int nExclude);
@@ -1088,10 +1089,11 @@ int main(int argc, char **argv) {
     mriglm->mask = mritmp;
   }
   if(prunemask) {
-    printf("Pruning voxels by thr: %f\n", prune_thr);
     if(usedti){
       // NOTE: for DWI volumes
       MRI* firstFrameVol;
+      if (!usepruning) 
+	prune_thr = 50; // needs to be larger than 0 to get meaningful mask!
       firstFrameVol = MRIcopyFrame(mriglm->y,NULL, 0, 0);
       mriglm->mask = MRIframeBinarize(firstFrameVol,prune_thr,mriglm->mask);
       MRIfree(&firstFrameVol);
@@ -1099,6 +1101,7 @@ int main(int argc, char **argv) {
     else{
       mriglm->mask = MRIframeBinarize(mriglm->y,FLT_MIN,mriglm->mask);
     }
+    printf("Pruning voxels by thr: %f\n", prune_thr);
   }
 
   if (mriglm->mask && maskinv)
@@ -1437,13 +1440,23 @@ int main(int argc, char **argv) {
     }
     printf("thresh = %g, threshadj = %g \n",csd->thresh,csd->thresh-log10(2.0));
 
+    if(!DoSimThreshLoop){
+      nThreshList = 1;
+      ThreshList[0] = csd->thresh;
+      nSignList = 1;
+      SignList[0] = tSimSign;
+      DoSimThreshLoop = 1;
+    }
+
     if(DoSimThreshLoop){
       for(nthThresh = 0; nthThresh < nThreshList; nthThresh++){
 	for(nthSign = 0; nthSign < nSignList; nthSign++){
-	  csdList[nthThresh][nthSign] = CSDcopy(csd,NULL);
-	  csdList[nthThresh][nthSign]->thresh = ThreshList[nthThresh];
-	  csdList[nthThresh][nthSign]->threshsign = SignList[nthSign];
-	  csdList[nthThresh][nthSign]->seed = csd->seed;
+	  for (n=0; n < mriglm->glm->ncontrasts; n++) {
+	    csdList[nthThresh][nthSign][n] = CSDcopy(csd,NULL);
+	    csdList[nthThresh][nthSign][n]->thresh = ThreshList[nthThresh];
+	    csdList[nthThresh][nthSign][n]->threshsign = SignList[nthSign];
+	    csdList[nthThresh][nthSign][n]->seed = csd->seed;
+	  }
 	}
       }
     }
@@ -1494,24 +1507,17 @@ int main(int argc, char **argv) {
         }
       }
 
-      //--------------------------------------------------
-      if(DoSimThreshLoop == 0){
-	nThreshList = 1;
-	nSignList = 1;
-      }
-
       for(nthThresh = 0; nthThresh < nThreshList; nthThresh++){
 	for(nthSign = 0; nthSign < nSignList; nthSign++){
-	  if(DoSimThreshLoop) {
-	    csd = csdList[nthThresh][nthSign];
-	    tSimSign = SignList[nthSign];
-	  }
-
-	  if(debug) printf("%2d %d %5.1f  %d %2d %5.1f\n",nthsim,nthThresh,
-		 csd->thresh,nthSign,tSimSign,TimerStop(&mytimer)/1000.0);
-
 	  // Go through each contrast
 	  for (n=0; n < mriglm->glm->ncontrasts; n++) {
+	    if(DoSimThreshLoop) {
+	      csd = csdList[nthThresh][nthSign][n];
+	      tSimSign = SignList[nthSign];
+	    }
+	    if(debug) printf("%2d %d %5.1f  %d %2d %5.1f\n",nthsim,nthThresh,
+			     csd->thresh,nthSign,tSimSign,TimerStop(&mytimer)/1000.0);
+
 	    // Change sign to abs for F-tests
 	    csd->threshsign = tSimSign;
 	    if(mriglm->glm->C[n]->rows > 1) csd->threshsign = 0;
@@ -1599,7 +1605,7 @@ int main(int argc, char **argv) {
 	    // long and assures output can be used immediately regardless
 	    // of whether the job terminated properly or not
 	    strcpy(csd->contrast,mriglm->glm->Cname[n]);
-	    if(DoSimThreshLoop){
+	    if(DoSimThreshLoop && (nThreshList > 1 || nSignList > 1) ){
 	      if(round(csd->threshsign) ==  0) tmpstr2 = "abs"; 
 	      if(round(csd->threshsign) == +1) tmpstr2 = "pos"; 
 	      if(round(csd->threshsign) == -1) tmpstr2 = "neg"; 
@@ -2070,6 +2076,7 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--prune_thr")){
       if (nargc < 1) CMDargNErr(option,1);
       sscanf(pargv[0],"%f",&prune_thr); 
+      usepruning = 1;
       nargsused = 1;
     }
     else if (!strcasecmp(option, "--nii")) format = "nii";
