@@ -45,8 +45,8 @@
  * Original Author: Doug Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2011/12/16 19:02:28 $
- *    $Revision: 1.53 $
+ *    $Date: 2012/05/03 21:12:12 $
+ *    $Revision: 1.54 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -222,10 +222,19 @@ static int gdfPrintV1(FILE *fp, FSGD *gd) {
 
   if(gd->nContrasts > 0) {
     for (n=0; n < gd->nContrasts; n++){
-      fprintf(fp,"Contrast %s ",gd->ContrastName[n]);
-      for(m=0; m < gd->C[n]->cols; m++)
-	fprintf(fp,"%g ",gd->C[n]->rptr[1][m+1]);
-      fprintf(fp,"\n");
+      if(!gd->IsFContrast[n]){
+	fprintf(fp,"Contrast %s ",gd->ContrastName[n]);
+	for(m=0; m < gd->C[n]->cols; m++)
+	  fprintf(fp,"%g ",gd->C[n]->rptr[1][m+1]);
+	fprintf(fp,"\n");
+      }
+      if(gd->IsFContrast[n]){
+	fprintf(fp,"FContrast %s ",gd->ContrastName[n]);
+	for(m=0; m < gd->FContrastNSub[n]; m++)
+	  fprintf(fp,"%s ",gd->FContrastSub[n][m]);
+	fprintf(fp,"\n");
+	MatrixPrint(stdout,gd->C[n]);
+      }
     }
   }
 
@@ -390,7 +399,7 @@ static FSGD *gdfReadV1(char *gdfname) {
   FSENV *env;
   FILE *fp;
   char *cp, tag[1000], tmpstr[1000], class_name[100];
-  int version,r,n,m,err;
+  int version,r,n,m,k,err,ncols,c;
   double d;
 
   env = FSENVgetenv();
@@ -524,8 +533,9 @@ static FSGD *gdfReadV1(char *gdfname) {
     /*---------------- Contrast ------------------------*/
     if(!strcasecmp(tag,"Contrast")){
       r = fscanf(fp,"%s",tmpstr);
-      gd->ContrastName[gd->nContrasts] = strcpyalloc(tmpstr);
       if (r==EOF) goto formaterror;
+      gd->ContrastName[gd->nContrasts] = strcpyalloc(tmpstr);
+      gd->IsFContrast[gd->nContrasts] = 0;
       fgets(tmpstr,1000,fp);
       r = gdfCountItemsInString(tmpstr);
       if(r<1) {
@@ -536,6 +546,28 @@ static FSGD *gdfReadV1(char *gdfname) {
       for(n=0; n < r; n++){
 	cp = gdfGetNthItemFromString(tmpstr, n);
 	sscanf(cp,"%f",&(gd->C[gd->nContrasts]->rptr[1][n+1]));
+	free(cp);
+      }
+      gd->nContrasts++;
+      continue;
+    }
+    /*---------------- FContrast ------------------------*/
+    if(!strcasecmp(tag,"FContrast")){
+      r = fscanf(fp,"%s",tmpstr);
+      if (r==EOF) goto formaterror;
+      gd->IsFContrast[gd->nContrasts] = 1;
+      gd->ContrastName[gd->nContrasts] = strcpyalloc(tmpstr);
+      fgets(tmpstr,1000,fp);
+      r = gdfCountItemsInString(tmpstr);
+      if(r<0) {
+	printf("ERROR: FContrast, not enough items, %s\n",tmpstr);
+        goto formaterror;
+      }
+      gd->FContrastNSub[gd->nContrasts] = r;
+      gd->FContrastSub[gd->nContrasts] = (char **)calloc(r,sizeof(char*));
+      for(n=0; n < r; n++){
+	cp = gdfGetNthItemFromString(tmpstr, n);
+	gd->FContrastSub[gd->nContrasts][n] = strcpyalloc(cp);
 	free(cp);
       }
       gd->nContrasts++;
@@ -679,6 +711,44 @@ static FSGD *gdfReadV1(char *gdfname) {
            gd->defvarlabel);
     sprintf(tag,"DefaultVariable");
     goto formaterror;
+  }
+
+  // Convert FContrast spec to contrast matrix
+  for(n=0; n < gd->nContrasts; n++){
+    if(!gd->IsFContrast[n]) continue;
+    ncols = -1;
+    for(m = 0; m < gd->FContrastNSub[n]; m++){
+      err = 1;
+      for(k=0; k < gd->nContrasts; k++){
+	if(! strcmp(gd->FContrastSub[n][m],gd->ContrastName[k])){
+	  if(gd->IsFContrast[k]){
+	    printf("ERROR: FContrast %s references another FContrast %s\n",
+		   gd->ContrastName[n],gd->FContrastSub[n][m]);
+	    goto formaterror;
+	  }
+	  if(ncols == -1) ncols = gd->C[k]->cols;
+	  if(gd->C[k]->cols != ncols){
+	    printf("ERROR: Contrasts have conflicting numbers of columns\n");
+	    goto formaterror;
+	  }
+	  err = 0;
+	  break;
+	}
+      }
+      if(err){
+	printf("ERROR: cannot find contrast %s needed for FContrast %s\n",
+	       gd->FContrastSub[n][m],gd->ContrastName[n]);
+	goto formaterror;
+      }
+    }
+    gd->C[n] = MatrixAlloc(gd->FContrastNSub[n],ncols,MATRIX_REAL);
+    for(m = 0; m < gd->FContrastNSub[n]; m++){
+      for(k=0; k < gd->nContrasts; k++){
+	if(strcmp(gd->FContrastSub[n][m],gd->ContrastName[k])) continue;
+	for(c=0; c < ncols; c++)
+	  gd->C[n]->rptr[m+1][c+1] = gd->C[k]->rptr[1][c+1];
+      }
+    }
   }
 
   if (gd->DeMean == -1 && gd->nvariables > 0) {

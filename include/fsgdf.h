@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2011/12/16 19:02:28 $
- *    $Revision: 1.25 $
+ *    $Date: 2012/05/03 21:12:12 $
+ *    $Revision: 1.26 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -90,6 +90,9 @@ typedef struct
   int ReScale; // divide continuous variables by stddev
   int nContrasts;
   char *ContrastName[50];
+  int FContrastNSub[50];
+  char **FContrastSub[50];
+  int IsFContrast[50];
   MATRIX *C[50];
 }
 GROUPDESCRIPTOR, FSGD;
