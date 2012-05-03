@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2012/05/03 19:50:00 $
- *    $Revision: 1.56 $
+ *    $Date: 2012/05/03 20:50:17 $
+ *    $Revision: 1.57 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -196,19 +196,24 @@ bool FSSurface::MRISRead( const QString& filename,
     useVolGeomToMRI(&m_MRIS->vg, tmp);
     MATRIX* vox2rasScanner = MRIxfmCRS2XYZ(tmp, 0);
     MATRIX* vo2rasTkReg = MRIxfmCRS2XYZtkreg(tmp);
-    MATRIX* vox2rasTkReg_inv = MatrixInverse( vo2rasTkReg, NULL );
-    MATRIX* M = MatrixMultiply( vox2rasScanner, vox2rasTkReg_inv, NULL );
-    for ( int i = 0; i < 16; i++ )
+    if (vo2rasTkReg)
     {
-      m_SurfaceToRASMatrix[i] =
-        (double) *MATRIX_RELT( M, (i/4)+1, (i%4)+1 );
+      MATRIX* vox2rasTkReg_inv = MatrixInverse( vo2rasTkReg, NULL );
+      MATRIX* M = MatrixMultiply( vox2rasScanner, vox2rasTkReg_inv, NULL );
+      for ( int i = 0; i < 16; i++ )
+      {
+        m_SurfaceToRASMatrix[i] =
+          (double) *MATRIX_RELT( M, (i/4)+1, (i%4)+1 );
+      }
+      MatrixFree( &vox2rasTkReg_inv );
+      MatrixFree( &M );
+      m_bValidVolumeGeometry = true;
     }
+    else
+      cout << "Warning: MatrixInverse failed." << endl;
     MRIfree( &tmp );
     MatrixFree( &vox2rasScanner );
     MatrixFree( &vo2rasTkReg );
-    MatrixFree( &vox2rasTkReg_inv );
-    MatrixFree( &M );
-    m_bValidVolumeGeometry = true;
   }
 
   // Make our transform object and set the matrix.
