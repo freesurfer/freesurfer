@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2012/03/13 21:32:06 $
- *    $Revision: 1.118 $
+ *    $Date: 2012/05/03 19:50:01 $
+ *    $Revision: 1.119 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -458,6 +458,77 @@ void LayerMRI::DoTransform(double *m, int sample_method)
   MatrixFree(&t2ras);
   for ( int i = 0; i < 3; i++ )
     mReslice[i]->Modified();
+}
+
+void LayerMRI::DoTransform(int sample_method)
+{
+  vtkTransform* slice_tr = vtkTransform::SafeDownCast( mReslice[0]->GetResliceTransform() );
+  // also record transformation in RAS space
+  vtkTransform* ras_tr = m_volumeSource->GetTransform();
+  slice_tr->Identity();
+  ras_tr->Identity();
+
+  double pos[3];
+  if (m_bRotateAroundCenter)
+  {
+    pos[0] = m_dWorldOrigin[0] + m_dWorldSize[0]/2;
+    pos[1] = m_dWorldOrigin[1] + m_dWorldSize[1]/2;
+    pos[2] = m_dWorldOrigin[2] + m_dWorldSize[2]/2;
+  }
+  else
+  {
+    pos[0] = m_dSlicePosition[0];
+    pos[1] = m_dSlicePosition[1];
+    pos[2] = m_dSlicePosition[2];
+  }
+
+  // rotate
+  for ( int i = 0; i < 3; i++ )
+  {
+    double v[3] = { 0, 0, 0 };
+    v[i] = 1;
+    double dTargetPoint[3] = { pos[0], pos[1], pos[2] };
+    double ras[3];
+    this->TargetToRAS(pos, ras);
+
+    slice_tr->Translate( dTargetPoint[0], dTargetPoint[1], dTargetPoint[2] );
+    slice_tr->RotateWXYZ( -m_dRotate[i], v );
+    slice_tr->Translate( -dTargetPoint[0], -dTargetPoint[1], -dTargetPoint[2] );
+
+    // record transformation in RAS space
+    ras_tr->Translate( -ras[0], -ras[1], -ras[2] );
+    double vp[3];
+    vp[0] = dTargetPoint[0] + v[0];
+    vp[1] = dTargetPoint[1] + v[1];
+    vp[2] = dTargetPoint[2] + v[2];
+    TargetToRAS( vp, vp );
+    v[0] = vp[0] - ras[0];
+    v[1] = vp[1] - ras[1];
+    v[2] = vp[2] - ras[2];
+    ras_tr->RotateWXYZ( m_dRotate[i], v );
+    ras_tr->Translate( ras );
+  }
+
+  // translate
+  slice_tr->Translate( -m_dTranslate[0], -m_dTranslate[1], -m_dTranslate[2] );
+  ras_tr->Translate( m_dTranslate );
+
+  // scale
+  double cpt[3], target_cpt[3];
+  GetRASCenter( cpt );
+  RASToTarget( cpt, target_cpt );
+  slice_tr->Translate( target_cpt[0], target_cpt[1], target_cpt[2] );
+  slice_tr->Scale( 1.0/m_dScale[0], 1.0/m_dScale[1], 1.0/m_dScale[2] );
+  slice_tr->Translate( -target_cpt[0], -target_cpt[1], -target_cpt[2] );
+
+  ras_tr->Translate( -cpt[0], -cpt[1], -cpt[2] );
+  ras_tr->Scale( m_dScale );
+  ras_tr->Translate( cpt[0], cpt[1], cpt[2] );
+
+  for ( int i = 0; i < 3; i++ )
+  {
+    mReslice[i]->Modified();
+  }
 }
 
 bool LayerMRI::DoRotate( std::vector<RotationElement>& rotations )

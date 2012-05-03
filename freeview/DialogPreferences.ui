@@ -9,7 +9,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>386</width>
+    <width>401</width>
     <height>464</height>
    </rect>
   </property>
@@ -206,6 +206,12 @@
         <property name="text">
          <string>Use Command key as equivalent Ctrl key on Linux</string>
         </property>
+        <property name="iconSize">
+         <size>
+          <width>16</width>
+          <height>16</height>
+         </size>
+        </property>
        </widget>
       </item>
       <item>
@@ -253,6 +259,7 @@
    <header>qtcolorpicker.h</header>
    <container>1</container>
    <slots>
+    <signal>colorChanged(QColor)</signal>
     <signal>currentColorChanged(QColor)</signal>
    </slots>
   </customwidget>

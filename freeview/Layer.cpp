@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2011/03/21 21:27:40 $
- *    $Revision: 1.24 $
+ *    $Date: 2012/05/03 19:50:01 $
+ *    $Revision: 1.25 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -46,6 +46,7 @@ Layer::Layer( QObject* parent ) : QObject( parent )
     m_dWorldSize[i] = 0;
     m_dTranslate[i] = 0;
     m_dScale[i] = 1;
+    m_dRotate[i] = 0;
   }
   m_bLocked = false;
   mProperty = NULL;
@@ -275,7 +276,40 @@ void Layer::Restore()
   {
     m_dTranslate[i] = 0;
     m_dScale[i] = 1;
+    m_dRotate[i] = 0;
   }
 
+  emit Transformed();
+}
+
+void Layer::SetRotate(double *rotate, bool bAroundCenter)
+{
+  m_dRotate[0] = rotate[0];
+  m_dRotate[1] = rotate[1];
+  m_dRotate[2] = rotate[2];
+  m_bRotateAroundCenter = bAroundCenter;
+
+  UpdateTransform();
+}
+
+void Layer::SetTranslate(double *offset)
+{
+  m_dTranslate[0] = offset[0];
+  m_dTranslate[1] = offset[1];
+  m_dTranslate[2] = offset[2];
+  UpdateTransform();
+}
+
+void Layer::SetScale(double *scale)
+{
+  m_dScale[0] = scale[0];
+  m_dScale[1] = scale[1];
+  m_dScale[2] = scale[2];
+  UpdateTransform();
+}
+
+void Layer::UpdateTransform(int sample_method)
+{
+  DoTransform(sample_method);
   emit Transformed();
 }

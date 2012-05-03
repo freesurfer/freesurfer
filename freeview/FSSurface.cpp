@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2011/12/09 21:25:56 $
- *    $Revision: 1.55 $
+ *    $Date: 2012/05/03 19:50:00 $
+ *    $Revision: 1.56 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -351,6 +351,17 @@ bool FSSurface::LoadOverlay( const QString& filename )
   {
     cerr << "could not read overlay data from " << qPrintable(filename) << "\n";
     return false;
+
+    /*
+    // failed first attempt, try load as volume
+    MRI* mri = MRIread(filename.toAscii().data());
+    if (!mri)
+    {
+      cerr << "could not read overlay data from " << qPrintable(filename) << "\n";
+      return false;
+    }
+    MRIfree(&mri);
+    */
   }
   else
   {

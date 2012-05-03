@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2012/03/13 21:32:06 $
- *    $Revision: 1.77 $
+ *    $Date: 2012/05/03 19:50:01 $
+ *    $Revision: 1.78 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -320,6 +320,7 @@ protected:
   virtual void DoTranslate( double* offset );
   virtual void DoScale( double* rscale, int nSampleMethod );
   virtual void DoRestore();
+  virtual void DoTransform(int sample_method);
 
   void InitializeVolume();
   void InitializeActors();
