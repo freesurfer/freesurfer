@@ -5,9 +5,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: mreuter $
-#    $Date: 2011/09/21 16:42:28 $
-#    $Revision: 1.40 $
+#    $Author: greve $
+#    $Date: 2012/05/04 19:52:54 $
+#    $Revision: 1.41 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -22,7 +22,7 @@
 #
 
 #
-set VERSION = '$Id: spmregister,v 1.40 2011/09/21 16:42:28 mreuter Exp $';
+set VERSION = '$Id: spmregister,v 1.41 2012/05/04 19:52:54 greve Exp $';
 set inputargs = ($argv);
 
 set subjid = ();
@@ -196,7 +196,6 @@ if($DOF == 12) set params = ($params 1 1 1 0 0 0);
 
 #--------------------------------------------------------#
 tee $MLF <<EOF
-
 monly   = $monly;
 targvol = '$refvolimg';
 srcvol  = '$movvolimg';
@@ -270,11 +269,13 @@ disp('determining coregistration parameters...')
 tic;
 try
   x  = spm_coreg$DNG(VG.fname,VF.fname,defaults.coreg.estimate);
-catch
+catch ME
   fprintf('ERROR: spm_coreg\n');
+  ME
   fp = fopen(errfile,'a');
-  fprintf(fp,'ERROR: spm_coreg\n');
+  fprintf(fp,'ERROR: spm_coreg (catch)\n');
   fprintf(fp,'%s\n',which('spm_coreg'));
+  fprintf(fp,'%s\n',ME.message);
   fclose(fp);
   return; quit;
 end
@@ -282,7 +283,7 @@ if(isempty(x))
   fprintf('ERROR: spm_coreg\n');
   if(~monly) 
     fp = fopen(errfile,'a');
-    fprintf(fp,'ERROR: spm_coreg\n');
+    fprintf(fp,'ERROR: spm_coreg, x is empty\n');
     fclose(fp);
     return; quit; 
   end
@@ -333,6 +334,7 @@ cat $MLF | $matlab -nosplash -display iconic -nodesktop |& tee -a $LF
 if(-e $errfile) then
   echo "ERROR: matlab exited with errors" |& tee -a $LF
   cat $errfile |& tee -a $LF
+  echo "ERROR: spmregister exited with errors" |& tee -a $LF
   exit 1;
 endif
 
@@ -539,6 +541,7 @@ while( $#argv != 0 )
       set OutVol = $argv[1]; shift;
       breaksw
 
+    case "--tmpdir":
     case "--tmp":
       if ( $#argv < 1) goto arg1err;
       set tmpdir = $argv[1]; shift;
