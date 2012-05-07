@@ -9,8 +9,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2012/04/24 17:51:55 $
- *    $Revision: 1.104 $
+ *    $Date: 2012/05/07 14:35:32 $
+ *    $Revision: 1.105 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -131,7 +131,7 @@ LABEL *LabelRead(const char *subject_name, const char *label_name)
 
   //  printf("%s %s\n",label_name0,fname);
 
-  strcpy(area->name, label_name) ;
+  strncpy(area->name, label_name, STRLEN-1) ;
 
   /* read in the file */
   errno = 0 ;
@@ -848,7 +848,7 @@ LabelAlloc(int max_points, char *subject_name, char *label_name)
   {
     if (label_name)
     {
-      strcpy(area->name, label_name) ;
+      strncpy(area->name, label_name, STRLEN-1) ;
     }
   }
   strcpy(area->space, "");
