@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2012/04/09 18:12:39 $
-#    $Revision: 1.379.2.34 $
+#    $Date: 2012/05/07 18:05:04 $
+#    $Revision: 1.379.2.35 $
 #
 # Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -26,7 +26,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.379.2.34 2012/04/09 18:12:39 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.379.2.35 2012/05/07 18:05:04 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -2345,7 +2345,7 @@ if($DoCALabel) then
   # Run mri_cc to create aseg.auto.mgz
   set xopts = `fsr-getxopts mri_cc $XOptsFile`;
   set cmd = (mri_cc -aseg aseg.auto_noCCseg.mgz -o aseg.auto.mgz \
-    -lta ${subjdir}/mri/transforms/cc_up.lta $subjid $xopts);
+    -lta ${subjdir}/mri/transforms/cc_up.lta $xopts $subjid);
   echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
   if($RunIt) $fs_time $cmd |& tee -a $LF
   if($status) goto error_exit;
