@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2012/04/25 00:54:57 $
- *    $Revision: 1.13 $
+ *    $Date: 2012/05/07 16:33:05 $
+ *    $Revision: 1.14 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -63,6 +63,7 @@ typedef struct
 }
 VOXEL_LIST, VOXLIST ;
 
+VOXEL_LIST *VLSTfromMRI(MRI *mri, int vno) ;
 VOXEL_LIST *VLSTalloc(int nvox) ;
 VOXEL_LIST *VLSTcopy(VOXEL_LIST *vl_src, VOXEL_LIST *vl_dst, int start_index, int num) ;
 MRI         *VLSTtoMri(VOXEL_LIST *vl, MRI *mri) ;
@@ -104,6 +105,10 @@ MRI         *VLSTwriteOrderToMRI(VOXEL_LIST *vl, MRI *mri) ;
 
 VOXEL_LIST  *VLSTsplineFit(VOXEL_LIST *vl, int num_control) ;
 VOXEL_LIST  *VLSTinterpolate(VOXEL_LIST *vl, float spacing) ;
+int         VLSTinterpolateIntoVolume(VOXEL_LIST *vl, MRI *mri) ;
+double      VLSTcomputeEntropy(VOXEL_LIST *vl, MRI *mri, int num) ;
+int         VLSTinterpolateSplineIntoVolume(VOXEL_LIST *vl, MRI *mri, double spacing, VOXEL_LIST *vl_total) ;
+VOXEL_LIST  *VLSTcopyInto(VOXEL_LIST *vl_src, VOXEL_LIST *vl_dst, int start_dst_index, int num);
 
 #if defined(__cplusplus)
 };
