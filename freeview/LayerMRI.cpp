@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2012/05/03 19:50:01 $
- *    $Revision: 1.119 $
+ *    $Date: 2012/05/07 22:08:34 $
+ *    $Revision: 1.120 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -663,6 +663,7 @@ void LayerMRI::InitializeActors()
 
     // This will change to select a different slice.
     mReslice[i]->SetResliceAxesOrigin( 0, 0, 0 );
+    mReslice[i]->SetInterpolationModeToNearestNeighbor();
 
     //
     // Image to colors using color table.
@@ -744,7 +745,18 @@ void LayerMRI::UpdateResliceInterpolation ()
   {
     if ( mReslice[i].GetPointer() )
     {
-      mReslice[i]->SetInterpolationMode( GetProperty()->GetResliceInterpolation() );
+      switch (GetProperty()->GetResliceInterpolation())
+      {
+      case SAMPLE_NEAREST:
+        mReslice[i]->SetInterpolationModeToNearestNeighbor();
+        break;
+      case SAMPLE_TRILINEAR:
+        mReslice[i]->SetInterpolationModeToLinear();
+        break;
+      case SAMPLE_CUBIC_BSPLINE:
+        mReslice[i]->SetInterpolationModeToCubic();
+        break;
+      }
     }
   }
   emit ActorUpdated();

@@ -1151,6 +1151,9 @@
           <property name="text">
            <string>Nearest Neighbor</string>
           </property>
+          <property name="checked">
+           <bool>true</bool>
+          </property>
          </widget>
         </item>
         <item>
@@ -1159,7 +1162,7 @@
            <string>Trilinear</string>
           </property>
           <property name="checked">
-           <bool>true</bool>
+           <bool>false</bool>
           </property>
          </widget>
         </item>
