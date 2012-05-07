@@ -10,8 +10,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2011/12/30 20:06:50 $
- *    $Revision: 1.49 $
+ *    $Date: 2012/05/07 14:35:45 $
+ *    $Revision: 1.50 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -30,6 +30,7 @@
 
 #include "minc_volume_io.h"
 #include "matrix.h"
+#include "const.h"
 
 typedef struct
 {
@@ -46,7 +47,7 @@ typedef struct
 {
   int    max_points ;         /* # of points allocated */
   int    n_points ;           /* # of points in area */
-  char   name[100] ;          /* name of label file */
+  char   name[STRLEN] ;       /* name of label file */
   char   subject_name[100] ;  /* name of subject */
   LV     *lv ;                /* labeled vertices */
   General_transform transform ;   /* the next two are from this struct */
