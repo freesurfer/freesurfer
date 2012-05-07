@@ -1,4 +1,4 @@
-#$Id: FreeSurferColorLUT.txt,v 1.70.2.4 2012/05/01 18:31:16 nicks Exp $
+#$Id: FreeSurferColorLUT.txt,v 1.70.2.5 2012/05/07 18:27:57 nicks Exp $
 
 #No. Label Name:                            R   G   B   A
 
@@ -77,8 +77,7 @@
 72  5th-Ventricle                           120 190 150 0
 73  Left-Interior                           122 135 50  0
 74  Right-Interior                          122 135 50  0
-75  Left-Lateral-Ventricles                 120 18  134 0
-76  Right-Lateral-Ventricles                120 18  134 0
+# 75/76 removed. duplicates of 4/43
 77  WM-hypointensities                      200 70  255 0
 78  Left-WM-hypointensities                 255 148 10  0
 79  Right-WM-hypointensities                255 148 10  0
