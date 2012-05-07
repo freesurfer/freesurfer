@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2012/04/25 00:54:39 $
- *    $Revision: 1.22 $
+ *    $Date: 2012/05/07 16:32:57 $
+ *    $Revision: 1.23 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -673,12 +673,16 @@ VLSTalloc(int nvox)
   return(vl) ;
 }
 VOXEL_LIST *
-VLSTcopy(VOXEL_LIST *vl_src, VOXEL_LIST *vl_dst, int start_index, int num)
+VLSTcopy(VOXEL_LIST *vl_src, VOXEL_LIST *vl_dst, int start_src_index, int num)
 {
   int  i ;
 
   if (vl_dst == NULL)
     vl_dst = VLSTalloc(num) ;
+
+  if (vl_dst->max_vox < num)
+    ErrorExit(ERROR_NOMEMORY, "VLSTcopy: destination voxlist not big enough (%d, but must be %d)",
+	      vl_dst->max_vox, start_src_index+num) ;
 
   vl_dst->type = vl_src->type ;
 
@@ -691,23 +695,69 @@ VLSTcopy(VOXEL_LIST *vl_src, VOXEL_LIST *vl_dst, int start_index, int num)
   if (vl_src->t)
     vl_dst->t = (float *)calloc(num, sizeof(float)) ;
 
-  if (vl_dst->t == NULL || vl_dst->mx == NULL ||  vl_dst->my == NULL ||  vl_dst->mz == NULL)
+  if (vl_src->mx && (vl_dst->t == NULL || vl_dst->mx == NULL ||  vl_dst->my == NULL ||  vl_dst->mz == NULL))
     ErrorExit(ERROR_NOMEMORY, "VLSTcopy: could not allocate %d-len slope arrays", num) ;
 
   for (i = 0 ; i < num ; i++)
   {
-    vl_dst->xi[i] = vl_src->xi[i+start_index] ;
-    vl_dst->yi[i] = vl_src->yi[i+start_index] ;
-    vl_dst->zi[i] = vl_src->zi[i+start_index] ;
+    vl_dst->xi[i] = vl_src->xi[i+start_src_index] ;
+    vl_dst->yi[i] = vl_src->yi[i+start_src_index] ;
+    vl_dst->zi[i] = vl_src->zi[i+start_src_index] ;
 
-    vl_dst->xd[i] = vl_src->xd[i+start_index] ;
-    vl_dst->yd[i] = vl_src->yd[i+start_index] ;
-    vl_dst->zd[i] = vl_src->zd[i+start_index] ;
+    vl_dst->xd[i] = vl_src->xd[i+start_src_index] ;
+    vl_dst->yd[i] = vl_src->yd[i+start_src_index] ;
+    vl_dst->zd[i] = vl_src->zd[i+start_src_index] ;
 
-    vl_dst->vsrc[i] = vl_src->vsrc[i+start_index] ;
-    vl_dst->vdst[i] = vl_src->vdst[i+start_index] ;
+    vl_dst->vsrc[i] = vl_src->vsrc[i+start_src_index] ;
+    vl_dst->vdst[i] = vl_src->vdst[i+start_src_index] ;
   }
 
+  if (vl_dst->nvox < num)
+    vl_dst->nvox = num ;
+  return(vl_dst) ;
+}
+VOXEL_LIST *
+VLSTcopyInto(VOXEL_LIST *vl_src, VOXEL_LIST *vl_dst, int start_dst_index, int num)
+{
+  int  i ;
+
+  if (vl_dst == NULL)
+    vl_dst = VLSTalloc(start_dst_index+num) ;
+
+  if (vl_dst->max_vox < start_dst_index+num)
+    ErrorExit(ERROR_NOMEMORY, "VLSTcopy: destination voxlist not big enough (%d, but must be %d)",
+	      vl_dst->max_vox, start_dst_index+num) ;
+
+  vl_dst->type = vl_src->type ;
+
+  if (vl_src->mx)
+    vl_dst->mx = (float *)calloc(num, sizeof(float)) ;
+  if (vl_src->my)
+    vl_dst->my = (float *)calloc(num, sizeof(float)) ;
+  if (vl_src->mz)
+    vl_dst->mz = (float *)calloc(num, sizeof(float)) ;
+  if (vl_src->t)
+    vl_dst->t = (float *)calloc(num, sizeof(float)) ;
+
+  if (vl_src->mx && (vl_dst->t == NULL || vl_dst->mx == NULL ||  vl_dst->my == NULL ||  vl_dst->mz == NULL))
+    ErrorExit(ERROR_NOMEMORY, "VLSTcopy: could not allocate %d-len slope arrays", num) ;
+
+  for (i = 0 ; i < num ; i++)
+  {
+    vl_dst->xi[start_dst_index+i] = vl_src->xi[i] ;
+    vl_dst->yi[start_dst_index+i] = vl_src->yi[i] ;
+    vl_dst->zi[start_dst_index+i] = vl_src->zi[i] ;
+
+    vl_dst->xd[start_dst_index+i] = vl_src->xd[i] ;
+    vl_dst->yd[start_dst_index+i] = vl_src->yd[i] ;
+    vl_dst->zd[start_dst_index+i] = vl_src->zd[i] ;
+
+    vl_dst->vsrc[start_dst_index+i] = vl_src->vsrc[i] ;
+    vl_dst->vdst[start_dst_index+i] = vl_src->vdst[i] ;
+  }
+
+  if (vl_dst->nvox < start_dst_index+num)
+    vl_dst->nvox = start_dst_index+num ;
   return(vl_dst) ;
 }
 int
@@ -721,6 +771,8 @@ VLSTaddUnique(VOXEL_LIST *vl, int x, int y, int z, float xd, float yd, float zd)
 int
 VLSTadd(VOXEL_LIST *vl, int x, int y, int z, float xd, float yd, float zd)
 {
+  if (vl->nvox >= vl->max_vox)
+    ErrorExit(ERROR_NOMEMORY, "VLSTadd: too many voxels (%d)", vl->max_vox) ;
   vl->xi[vl->nvox] = x ;
   vl->yi[vl->nvox] = y ;
   vl->zi[vl->nvox] = z ;
@@ -859,8 +911,38 @@ VLSTinterpolate(VOXEL_LIST *vl, float spacing)
   VOXEL_LIST  *vl_interp ;
   float       x_k, y_k, z_k, x_kp1, y_kp1, z_kp1, x, y, z, t, dx, dy, dz, mx_k, my_k, mz_k, mx_kp1, my_kp1, mz_kp1, len ;
 
-
   // compute slopes, and # of points in interpolated spline
+  if (vl->mx == 0)
+  {
+    int    km1, kp1 ;
+    double dx, dy, dz ;
+
+    vl->mx = (float *)calloc(vl->nvox, sizeof(float)) ;
+    vl->my = (float *)calloc(vl->nvox, sizeof(float)) ;
+    vl->mz = (float *)calloc(vl->nvox, sizeof(float)) ;
+    vl->t = (float *)calloc(vl->nvox, sizeof(float)) ;
+    if (vl->t == NULL || vl->mx == NULL ||  vl->my == NULL ||  vl->mz == NULL)
+      ErrorExit(ERROR_BADPARM, "VLSTinterpolate: cannot allocate slopes") ;
+    for (k = 0 ; k < vl->nvox ; k++)
+    {
+      if (k == 0)
+	km1 = 0 ;
+      else
+	km1 = k-1 ;
+      if (k == vl->nvox-1)
+	kp1 = vl->nvox-1 ;
+      else
+	kp1 = k+1 ;
+      dx = vl->xd[kp1] - vl->xd[km1] ;
+      dy = vl->yd[kp1] - vl->yd[km1] ;
+      dz = vl->zd[kp1] - vl->zd[km1] ;
+      vl->mx[k] = dx / 2 ;
+      vl->my[k] = dy / 2 ;
+      vl->mz[k] = dz / 2 ;
+    }
+  }
+
+
   for (k = nvox = 0 ; k < vl->nvox-1 ; k++)
   {
     if (k == 0)
@@ -934,3 +1016,70 @@ VLSTwriteOrderToMRI(VOXEL_LIST *vl, MRI *mri)
 
   return(mri) ;
 }
+VOXEL_LIST *
+VLSTfromMRI(MRI *mri, int vno)
+{
+  VOXEL_LIST *vl ;
+  int n ;
+  double xd, yd, zd ;
+
+  vl = VLSTalloc(mri->nframes) ; vl->nvox = 0 ;
+  for (n = 0 ; n < vl->max_vox ; n++)
+  {
+    xd = MRIgetVoxVal(mri, vno, n, 0, 0) ;
+    yd = MRIgetVoxVal(mri, vno, n, 1, 0) ;
+    zd = MRIgetVoxVal(mri, vno, n, 2, 0) ;
+    VLSTadd(vl, nint(xd), nint(yd), nint(zd), xd, yd, zd);
+  }
+
+  return(vl) ;
+}
+int
+VLSTinterpolateSplineIntoVolume(VOXEL_LIST *vl, MRI *mri, double spacing, VOXEL_LIST *vl_total)
+{
+  VOXEL_LIST *vl_interp ;
+
+  vl_interp = VLSTinterpolate(vl, spacing) ;
+  if (vl_interp == NULL)
+    return(Gerror) ;
+  VLSTinterpolateIntoVolume(vl_interp, mri) ;
+  VLSTcopyInto(vl_interp, vl_total, vl_total->nvox, vl_interp->nvox) ;
+  VLSTfree(&vl_interp) ;
+  return(NO_ERROR) ;
+}
+int
+VLSTinterpolateIntoVolume(VOXEL_LIST *vl, MRI *mri)
+{
+  int   n ;
+
+  for (n = 0 ; n < vl->nvox ; n++)
+    MRIinterpolateIntoVolume(mri, vl->xd[n], vl->yd[n], vl->zd[n], 1.0) ;
+
+  return(NO_ERROR) ;
+}
+
+double
+VLSTcomputeEntropy(VOXEL_LIST *vl, MRI *mri, int num) 
+{
+  double val, entropy, total ;
+  int    n ;
+  
+  for (total = 0.0, n = 0 ; n < vl->nvox ; n++)
+  {
+    val = MRIgetVoxVal(mri, vl->xi[n], vl->yi[n], vl->zi[n], 0) ;
+    total += val ;
+  }
+
+  for (entropy = 0.0, n = 0 ; n < vl->nvox ; n++)
+  {
+    val = MRIgetVoxVal(mri, vl->xi[n], vl->yi[n], vl->zi[n], 0) ;
+    if (FZERO(val))
+      continue ;
+    MRIsetVoxVal(mri, vl->xi[n], vl->yi[n], vl->zi[n], 0, 0) ;
+    val /= total ;
+    entropy -= val * log(val) ;
+  }
+
+  return(entropy) ;
+}
+
