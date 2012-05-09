@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2011/04/21 19:48:51 $
- *    $Revision: 1.15 $
+ *    $Date: 2012/05/09 23:07:20 $
+ *    $Revision: 1.16 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -310,7 +310,6 @@ EVENT_SCHEDULE *EVSsynth(int nEvTypes, int *nPer, float *tPer,
   /* The code  below is for synthesizing the timing */
   /* Compute the total amount of null time */
   tNullTot = tScanTot-tStimTot-nevents*tNullMin;
-  ;
 
   /* Comute number of slots allocated for null */
   nSlotsNull = (int)floor(tNullTot/tRes);
@@ -319,7 +318,7 @@ EVENT_SCHEDULE *EVSsynth(int nEvTypes, int *nPer, float *tPer,
   nSlotsTot = nevents + nSlotsNull;
 
   /* Compute maximum number of back-to-back null slots */
-  if (tNullMax > 0)  nNullMax = (int)(floor(tNullMax/tRes));
+  if (tNullMax > 0) nNullMax = (int)(floor((tNullMax-tNullMin)/tRes));
   else              nNullMax = nSlotsTot;
 
   /* Create a non-random sequence of 0s and 1s, 1 = Non-Null */
@@ -564,7 +563,10 @@ int RandPermListLimit0(int N, int *v, int lim, int nitersmax)
       }
     }
     // Termination conditions
-    if (runlenmax <= lim)   return(0);
+    if (runlenmax <= lim)   {
+      printf("runlenmax = %d, niters = %d\n",runlenmax,niters);
+      return(0);
+    }
     if (niters > nitersmax) return(-1);
     niters++;
   }
