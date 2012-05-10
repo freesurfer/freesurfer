@@ -8,8 +8,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2011/11/17 02:58:19 $
- *    $Revision: 1.12 $
+ *    $Date: 2012/05/10 16:19:31 $
+ *    $Revision: 1.13 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -691,9 +691,9 @@ MRI * MyMRI::gaussianCube(int size)
 double MyMRI::entropyPatch(MRI * mri, int x, int y, int z, int radius, int nbins, MRI* kernel)
 // expects uchar image between 0..(nbins-1) intensity values
 {
-  int width  = mri->width;
-  int height = mri->height;
-  int depth  = mri->depth;
+  //int width  = mri->width;
+  //int height = mri->height;
+  //int depth  = mri->depth;
 
   // compute neighborhood bounds
   int xMin = x - radius; 
@@ -702,36 +702,41 @@ double MyMRI::entropyPatch(MRI * mri, int x, int y, int z, int radius, int nbins
   int yMax = y + radius;
   int zMin = z - radius;
   int zMax = z + radius;
-  int xr = xMin;
-  int yr = yMin;
-  int zr = zMin;
-  if (xMin < 0) xMin = 0;
-  if (xMax > width - 1) xMax = width - 1;
-  if (yMin < 0) yMin = 0;
-  if (yMax > height - 1) yMax = height - 1;
-  if (zMin < 0) zMin = 0;
-  if (zMax > depth - 1) zMax = depth - 1;
+  //int xr = xMin;
+  //int yr = yMin;
+  //int zr = zMin;
+  //if (xMin < 0) xMin = 0;
+ // if (xMax > width - 1) xMax = width - 1;
+ // if (yMin < 0) yMin = 0;
+ // if (yMax > height - 1) yMax = height - 1;
+//  if (zMin < 0) zMin = 0;
+//  if (zMax > depth - 1) zMax = depth - 1;
 
   // compute histogram of pixel values in neighborhood
-  HISTOGRAM *h = HISTOalloc(nbins);
-  HISTOclear(h,h);
-  HISTOinit( h,nbins,0,nbins-1);
+  double histo[nbins];
+  for (int o = 0; o < nbins; o++)
+     histo[o] = 0.0f;
+  
   int minI = MRIvox(mri, x, y, z); 
-  int maxI = MRIvox(mri, x, y, z);
+  int maxI = minI;
+  int index,dx,dy,dz,zp,yp,xp;
   //cout << " minI: " << minI << " maxI: " << maxI << " float: " << MRIgetVoxVal(mri,x,y,z,0) << endl;
-  for (int zp = zMin; zp <= zMax; zp++)
+  for (zp = zMin; zp <= zMax; zp++)
   {
-    for (int yp = yMin; yp <= yMax; yp++)
+    for (yp = yMin; yp <= yMax; yp++)
     {
-      for (int xp = xMin; xp <= xMax; xp++)
+      for (xp = xMin; xp <= xMax; xp++)
       {
-        int index = MRIvox(mri, xp, yp, zp);
+      //cout <<  xp << " " << yp << " " << zp << endl;
+        index = MRIvox(mri, xp, yp, zp);
         if (index < minI) minI = index;
         if (index > maxI) maxI = index;
-        int dx = xp - xr;
-        int dy = yp - yr;
-        int dz = zp - zr;
-        h->counts[ index ] += MRIFvox(kernel,dx,dy,dz);
+        dx = xp - xMin;
+        dy = yp - yMin;
+        dz = zp - zMin;
+        //assert(index>=0);
+        //assert(index<nbins);
+        histo[ index ] += MRIFvox(kernel,dx,dy,dz);
       }
     }
   }
@@ -740,43 +745,48 @@ double MyMRI::entropyPatch(MRI * mri, int x, int y, int z, int radius, int nbins
   if (minI == maxI)
   {
     //cout << " minI == maxI == " << minI << endl;
-     HISTOfree(&h) ;
+    // HISTOfree(&h) ;
      return 0.0;
   }
   
-  // smooth histo
-  HISTOGRAM *hs = HISTOalloc(nbins) ;
-  hs->bin_size = h->bin_size ;
-  hs->min = h->min ;
-  hs->max = h->max ;
-  float smooth [5] = { 0.05, 0.25, 0.4, 0.25, 0.05 };
-  float total;
-  float alltotal = 0.0;
-  int pos,b,b1,kx;
-  for (b = 0 ; b < nbins ; b++)
-  {
-    for (total = 0.0f, pos = 0 ; pos < 5 ; pos++)
-    {
-      kx = pos - 2 ;
-      b1 = b + kx ;
-      if (b1 >= nbins || b1 < 0)
-        continue ;
-
-      total += smooth[pos] * (float)h->counts[b1] ;
-    }
-    hs->counts[b] = total ;
-    hs->bins[b] = h->bins[b] ;
-    alltotal += total;
-  }
-
+//  // smooth histo
+//  HISTOGRAM *hs = HISTOalloc(nbins) ;
+//  hs->bin_size = h->bin_size ;
+//  hs->min = h->min ;
+//  hs->max = h->max ;
+//  float smooth [5] = { 0.05, 0.25, 0.4, 0.25, 0.05 };
+//  float total;
+//  float alltotal = 0.0;
+//  int pos,b,b1,kx;
+//  for (b = 0 ; b < nbins ; b++)
+//  {
+//    for (total = 0.0f, pos = 0 ; pos < 5 ; pos++)
+//    {
+//      kx = pos - 2 ;
+//      b1 = b + kx ;
+//      if (b1 >= nbins || b1 < 0)
+//        continue ;
+//
+//      total += smooth[pos] * (float)h->counts[b1] ;
+//    }
+//    hs->counts[b] = total ;
+//    hs->bins[b] = h->bins[b] ;
+//    alltotal += total;
+//  }
 
   // entropy (on normalized histo)
+  double alltotal = 0.0f;
+  for (int o = 0; o < nbins; o++)
+    alltotal += histo[o];  
+
   double entropy=0.0,temp;
-  for (b = 0 ; b < nbins ; b++)
+  for (int b = 0 ; b < nbins ; b++)
   {
-    if (h->counts[b] > 0)
+    //if (h->counts[b] > 0)
+    if (histo[b] > 0)
 		{
-      temp = (double)hs->counts[b]/alltotal ;
+      //temp = (double)hs->counts[b]/alltotal ;
+      temp = (double)histo[b]/alltotal ;
       // shannon
 		  entropy -= temp * log(temp);
       // burg
@@ -788,115 +798,20 @@ double MyMRI::entropyPatch(MRI * mri, int x, int y, int z, int radius, int nbins
   // Renyi
   //entropy = -log(entropy);
   
-  // cleanup
-  HISTOfree(&h) ;
-  HISTOfree(&hs) ;
-
   return entropy;
 } 
 
-MRI * MyMRI::entropyImage(MRI* mri, int radius )
-{
-
-  int nbins = 32;
-
-  int width  = mri->width;
-  int height = mri->height;
-  int depth  = mri->depth;
-
-  // convert to uchar (0..255)
-  MRI * mriIn;
-  if (mri->type != MRI_UCHAR)
-  {
-    int no_scale_flag = FALSE;
-    printf("changing data type from %d to %d (noscale = %d)...\n",
-           mri->type,MRI_UCHAR,no_scale_flag);
-    mriIn  = MRISeqchangeType(mri, MRI_UCHAR, 0.0, 0.999, no_scale_flag);
-    if (mriIn == NULL)
-    {
-      printf("ERROR: MRISeqchangeType\n");
-      exit(1);
-    }
-   // MRIwrite(mriIn,"mriIn.mgz");
-  }
-  else
-  {
-     mriIn = MRIcopy(mri,NULL);
-  }
-
-  // scale factor for image to fit bin size (0...(nbins-1))
-  float factor = nbins/256.0;
-  //cout << "factor :  " << factor << endl;
-  int x,y,z;
-  for (z=0;z<depth;z++)
-    for (y=0;y<height;y++)
-      for (x=0;x<width;x++)
-          MRIsetVoxVal(mriIn,x,y,z,0,(int)(MRIgetVoxVal(mriIn,x,y,z,0)*factor));
-  
-  
-  // get gaussian kernel
-  MRI * kernel = gaussianCube(2*radius+1);
-
-  
-  // get Entropy image
-  MRI * entI =  MRIalloc(width,height,depth, MRI_FLOAT);
-  entI = MRIcopyHeader(mri,entI);
-
-  float e;
-  float minEntropy = 1000000;
-  float maxEntropy = 0;
-  int zinterval = depth/10;
-  int zinterval2 = depth/50;
-  for (z=0;z<depth;z++)
-  {
-    if ((z+1)%zinterval == 0) cout << (z+1)/zinterval << flush;
-    else  if ((z+1)%zinterval2 ==0) cout << "." << flush;
-    for (y=0;y<height;y++)
-    {
-      for (x=0;x<width;x++)
-      {
-          e = (float) entropyPatch(mriIn,x,y,z,radius,nbins,kernel);
-          if (e<0 || isnan(e) )
-          {
-             cerr<< " ERROR in MyMRI::entropyImage: entropy is negative or nan ? " << endl;
-          }
-          MRIsetVoxVal(entI,x,y,z,0,e);
-          if (e < minEntropy)
-            minEntropy = e;
-          if (e > maxEntropy)
-            maxEntropy = e;
-      }
-    }
-  }
-
-  cout << endl << " Min Entropy: " << minEntropy << "  Max Entropy: " << maxEntropy << endl;
-
-  // scale entropy image to 0..255 and make uchar
-  int no_scale_flag = FALSE;
-  MRI* mriEnt = MRISeqchangeType(entI, MRI_UCHAR, 0.0, 0.999, no_scale_flag);
-  if (mriEnt == NULL)
-  {
-    printf("ERROR: MRISeqchangeType\n");
-    exit(1);
-  }
-
-  //MRIwrite(entI,"mriEntFloat.mgz");
-
-  // cleanup
-  MRIfree(&entI);
-  MRIfree(&mriIn);
-  MRIfree(&kernel);
-  
-  return mriEnt;
-}
-
-// MRI * MyMRI::entropyImage(MRI* mri, int radius, int sigma )
+// MRI * MyMRI::entropyImage(MRI* mri, int radius )
 // {
+// 
+//   int nbins = 64;
+// 
 //   int width  = mri->width;
 //   int height = mri->height;
 //   int depth  = mri->depth;
 // 
-//   MRI * mriIn = mri;
+//   // convert to uchar (0..255)
+//   MRI * mriIn;
 //   if (mri->type != MRI_UCHAR)
 //   {
 //     int no_scale_flag = FALSE;
@@ -910,153 +825,315 @@ MRI * MyMRI::entropyImage(MRI* mri, int radius )
 //     }
 //    // MRIwrite(mriIn,"mriIn.mgz");
 //   }
+//   else
+//   {
+//      mriIn = MRIcopy(mri,NULL);
+//   }
 // 
-//   MRI * entI =  MRIalloc(width,height,depth, MRI_FLOAT);
-//   entI = MRIcopyHeader(mri,entI);
-// 
-// 	//float patchGaussFactor = gaussFactor( patchSigma );
-// 	float minEntropy = 1e8; 
-//   float maxEntropy = -1.0;
-//   
-//   //HISTOGRAM *hpdf = HISTOgaussianPDF(NULL,0,sigma,3*radius*radius);
-//   int twosig2 = 2*sigma*sigma;
-//   float gfactor = 1.0/sqrt(M_PI*twosig2);
-//   
+//   // scale factor for image to fit bin size (0...(nbins-1))
+//   float factor = nbins/256.0;
+//   //cout << "factor :  " << factor << endl;
 //   int x,y,z;
 //   for (z=0;z<depth;z++)
+//     for (y=0;y<height;y++)
+//       for (x=0;x<width;x++)
+//           MRIsetVoxVal(mriIn,x,y,z,0,(int)(MRIgetVoxVal(mriIn,x,y,z,0)*factor));
+//   
+//   //MRIwrite(mriIn,"mriin.mgz");
+//   
+//   
+//   // get gaussian kernel
+//   MRI * kernel = gaussianCube(2*radius+1);
+//   //MRIwrite(mriIn,"mrikernel.mgz");
+// 
+//   
+//   // get Entropy image
+//   MRI * entI =  MRIalloc(width,height,depth, MRI_FLOAT);
+//   entI = MRIcopyHeader(mri,entI);
+//   entI->type = MRI_FLOAT;
+// 
+//   float e;
+//   float minEntropy = 1000000;
+//   float maxEntropy = 0;
+//   int zinterval = depth/10;
+//   int zinterval2 = depth/50;
+//   int xmax = width-radius-1;
+//   int ymax = height-radius-1;
+//   int zmax = depth-radius-1;
+//   for (z=0;z<depth;z++)
 //   {
-//     if ((z+1)%10 == 0) cout << "#" << flush;
-//     else  cout << "." << flush;
+//     if ((z+1)%zinterval == 0) cout << (z+1)/zinterval << flush;
+//     else  if ((z+1)%zinterval2 ==0) cout << "." << flush;
+//         
 //     for (y=0;y<height;y++)
 //     {
 //       for (x=0;x<width;x++)
 //       {
-//         // compute neighborhood bounds
-//         int xMin = x - radius; 
-//         int xMax = x + radius;
-//         int yMin = y - radius;
-//         int yMax = y + radius;
-//         int zMin = z - radius;
-//         int zMax = z + radius;
-//         if (xMin < 0) xMin = 0;
-//         if (xMax > width - 1) xMax = width - 1;
-//         if (yMin < 0) yMin = 0;
-//         if (yMax > height - 1) yMax = height - 1;
-//         if (zMin < 0) zMin = 0;
-//         if (zMax > depth - 1) zMax = depth - 1;
-// 
-//         // compute histogram of pixel values in neighborhood
-//         HISTOGRAM *h = HISTOalloc(64);
-//         HISTOclear(h,h);
-//         HISTOinit( h,64,0,252 );
-//         int count = 0; //, outsideCount = 0;
-//         for (int zp = zMin; zp <= zMax; zp++)
-//         {
-//           for (int yp = yMin; yp <= yMax; yp++)
+//           //zero padding
+//           if (x < radius || y< radius || z<radius || x>xmax || y>ymax || z>zmax)
 //           {
-//             for (int xp = xMin; xp <= xMax; xp++)
-//             {
-// //            if (mask.data( xp, yp )) {
-//               int index = MRIvox(mriIn, xp, yp, zp) / 4;
-//               int dx = xp - x;
-//               int dy = yp - y;
-//               int dz = zp - z;
-//               int distSqd =  (dx * dx + dy * dy + dz * dz);
-//               //float weight = gauss( distSqd, patchGaussFactor ); // fix(faster): store in table?
-//              // cout << " min: " << hpdf->min << " max: " << hpdf->max << "  distsqd: " << distSqd << endl;
-//              // assert(distSqd <= hpdf->max);
-//              // assert(distSqd >= hpdf->min);
-//              
-//               //float weight = hpdf->counts[distSqd];
-//               float weight = gfactor * exp(- (float)distSqd/twosig2);
-//               h->counts[ index ] += weight;
-//               if (index - 1 >= 0)
-//                 h->counts[ index - 1 ] += weight * 0.5f;
-//               if (index + 1 < 64)
-//                 h->counts[ index + 1 ] += weight * 0.5f;
-//               count++;
-// //            } else {
-// //              outsideCount++;
-// //            }
-//             }
+//             MRIsetVoxVal(entI,x,y,z,0,0.0);
+//             continue;
 //           }
-//         }
-// 
-//         // normalize intensity?
-// 
-//         // if have enough values
-//         if (count)
-//         {
-//   
-// //          // normalize the histogram
-// //          float factor = 1.0f / histogram.sum();
-// //          multiply( histogram, factor, histogram );
-// 
-//           // compute entropy from histogram
-//           float e = (float) HISTOgetEntropy(h);
+//             
+//           // inside
+//           e = (float) entropyPatch(mriIn,x,y,z,radius,nbins,kernel);
 //           if (e<0 || isnan(e) )
 //           {
-//             cout << " count: " << count << "  e: " << e << endl;
-//             cout << " h bin size: " << h->bin_size << endl;
-//             cout << " hmin: " << h->min << endl;
-//             cout << " hmax: " << h->max << endl;
-//             cout << " total: " << HISTOtotal(h) << endl;
-//             
-//             for (int b = 0 ; b < h->nbins ; b++)
-//               cout << " ["<< b << "] : " << h->bins[b] << "  " << h->counts[b] << endl;
-//             exit(1);
+//              cerr<< " ERROR in MyMRI::entropyImage: entropy is negative or nan ? " << endl;
 //           }
 //           MRIsetVoxVal(entI,x,y,z,0,e);
 //           if (e < minEntropy)
 //             minEntropy = e;
 //           if (e > maxEntropy)
 //             maxEntropy = e;
-//         }
-//         else
-//         {
-//           assert (count > 0 );
-//           cout << " count : " << count << endl;
-//           MRIsetVoxVal(entI,x,y,z,0,0.0);
-//         
-//         }
 //       }
 //     }
 //   }
 // 
-// //  // clear unititialzed values to the minimum value
-// //  for (int y = 0; y < height; y++) {
-// //    for (int x = 0; x < width; x++) {
-// //      if (entImage.data( x, y ) == -1)
-// //        entImage.data( x, y ) = minEntropy;
-// //    }
+//   cout << endl << " Min Entropy: " << minEntropy << "  Max Entropy: " << maxEntropy << endl;
+// 
+//   // scale entropy image to 0..255 and make uchar
+// //  int no_scale_flag = FALSE;
+// //  MRI* mriEnt = MRISeqchangeType(entI, MRI_UCHAR, 0.0, 0.999, no_scale_flag);
+// //  if (mriEnt == NULL)
+// //  {
+// //    printf("ERROR: MRISeqchangeType\n");
+// //    exit(1);
 // //  }
 // //
-// //  // display stats
-// //  float min = 0, mean = 0, max = 0;
-// //  imageStats( entImage, min, mean, max );
-// //  disp( 1, "entropy: %f / %f / %f", min, mean, max );
-//   cout << " Min Entropy: " << minEntropy << "  Max Entropy: " << maxEntropy << endl;
+// //  //MRIwrite(entI,"mriEntFloat.mgz");
 // 
-//   // transform to [0, 255] range
-// //  aptr<ImageGrayU> entImageGray = toUChar( entImage );
+//   // cleanup
+// //  MRIfree(&entI);
+//   MRIfree(&mriIn);
+//   MRIfree(&kernel);
 //   
-//  
-//   int no_scale_flag = FALSE;
-// //  printf("changing data type from %d to %d (noscale = %d)...\n",
-//  //          mri->type,MRI_UCHAR,no_scale_flag);
-//   MRI* mriEnt = MRISeqchangeType(entI, MRI_UCHAR, 0.0, 0.999, no_scale_flag);
-//   if (mriEnt == NULL)
-//   {
-//     printf("ERROR: MRISeqchangeType\n");
-//     exit(1);
-//   }
-//   //MRIwrite(entI,"mriEntFloat.mgz");
-//   MRIfree(&entI);
-//   
-//   if (mri != mriIn)
-//     MRIfree(&mriIn);
-//   
-//   return mriEnt;
-// 
+// //  return mriEnt;
+//   return entI;
 // }
+
+
+MRI * MyMRI::entropyImage(MRI* mri, int radius )
+{
+
+  int nbins = 64;
+
+  int width  = mri->width;
+  int height = mri->height;
+  int depth  = mri->depth;
+  int x,y,z;
+
+  int insize = width*height*depth;
+  unsigned char * mriIn = new unsigned char[insize];
+  if (! mriIn) 
+  {
+    cout << "ERROR: Memory Overflow for mriIn in myMRI::entropyImage" << endl;
+    exit(1);  
+  }
+
+  // -------------------------------------------------------------------------------------
+  // scale image to fit bins (probably faster w/o using histogram)
+//   double minIn = MRIgetVoxVal(mri,0,0,0,0);
+//   double maxIn = minIn;
+//   float tempIn;
+//   for (z=0; z<depth; z++)
+//   for (y=0; y<height;y++)
+//   for (x=0; x<width; x++)
+//   {
+//     tempIn = MRIgetVoxVal(mri,x,y,z,0);
+//     if (tempIn > maxIn) maxIn=tempIn;
+//     if (tempIn < minIn) minIn=tempIn;
+//   }
+//   double factor = ((double)nbins) / (maxIn - minIn + 0.0001);
+//   int count = 0;
+//   double temp;
+//   for (z=0; z<depth; z++)
+//   for (y=0; y<height;y++)
+//   for (x=0; x<width; x++)
+//   {
+//     temp = floor(factor * (MRIgetVoxVal(mri,x,y,z,0) - minIn));
+//     assert(temp >= 0 && temp < nbins);
+//     mriIn[count] = (unsigned char) temp;
+//     count++;
+//   }
+
+  // -------------------------------------------------------------------------------------
+  // convert to uchar (0..255)
+  MRI * mriuchar;
+  if (mri->type != MRI_UCHAR)
+  {
+    int no_scale_flag = FALSE;
+    printf("changing data type from %d to %d (noscale = %d)...\n",
+           mri->type,MRI_UCHAR,no_scale_flag);
+    mriuchar  = MRISeqchangeType(mri, MRI_UCHAR, 0.0, 0.999, no_scale_flag);
+    if (mriuchar == NULL)
+    {
+      printf("ERROR: MRISeqchangeType\n");
+      exit(1);
+    }
+   // MRIwrite(mriIn,"mriIn.mgz");
+  }
+  else
+  {
+    mriuchar = MRIcopy(mri,NULL);
+  }
+ 
+  double factor = nbins/256.0;
+  double temp;
+  int count = 0;
+  //cout << "factor :  " << factor << endl;
+  for (z=0;z<depth;z++)
+  for (y=0;y<height;y++)
+  for (x=0;x<width;x++)
+  {
+    temp = (int)(MRIgetVoxVal(mriuchar,x,y,z,0)*factor);
+    assert(temp >= 0 && temp < nbins);
+    mriIn[count] = (unsigned char) temp;
+    count++;
+  }  
+  MRIfree(&mriuchar);
+  
+  // -------------------------------------------------------------------------------------
+  // get gaussian kernel
+  int ssize = 2*radius+1;
+  double sigma = ssize/(4*sqrt(2*log(2)));
+  cout << "compute Gaussian cube( size: "<< ssize << " )  sigma: " << sigma << endl;
+  int gsize = ssize*ssize*ssize;
+  double* g = new double [gsize];
+  if (! g) 
+  {
+    cout << "ERROR: Memory Overflow for g in myMRI::entropyImage" << endl;
+    exit(1);  
+  }
+  double sum = 0.0;
+  count = 0;
+  double dtmp,zs,ys,xs;
+  sigma = 2.0*sigma*sigma;
+  for (z=0;z<ssize;z++)
+  {
+    zs = z-radius;
+    zs = zs*zs/sigma;
+    for (y=0;y<ssize;y++)
+    {
+      ys = y-radius;
+      ys = ys*ys/sigma;
+      for (x=0;x<ssize;x++)
+      {
+        xs = x-radius;
+        xs = xs*xs/sigma;
+        dtmp = exp(-xs-ys-zs);
+        //assert(count < gsize);
+        g[count] = dtmp;
+        count++;
+        sum += dtmp;
+      }
+    }
+  }
+  // normalize
+  for (z=0;z<gsize;z++)
+    g[z] /= sum;
+    
+  // get Entropy image
+  MRI * entI =  MRIalloc(width,height,depth, MRI_FLOAT);
+  entI = MRIcopyHeader(mri,entI);
+  entI->type = MRI_FLOAT;
+
+  double minEntropy = 1000000;
+  double maxEntropy = 0;
+  int zinterval = depth/10;
+  int zinterval2 = depth/50;
+  int xmax = width-radius-1;
+  int ymax = height-radius-1;
+  int zmax = depth-radius-1;
+  double histo[nbins];
+  double histosum, entropy,etmp;
+  int o,zz,yy,xx;
+  count = 0;
+  int count2,pos;
+  unsigned char index;
+  for (z=0;z<depth;z++)
+  {
+    if ((z+1)%zinterval == 0) cout << (z+1)/zinterval << flush;
+    else  if ((z+1)%zinterval2 ==0) cout << "." << flush;
+        
+    for (y=0;y<height;y++)
+    {
+      for (x=0;x<width;x++)
+      {
+        //zero padding at boarder:
+        if (x < radius || y< radius || z<radius || x>xmax || y>ymax || z>zmax)
+        {
+          MRIsetVoxVal(entI,x,y,z,0,0.0);
+          count++;
+          continue;
+        }
+           
+        // inside compute entropy in box:
+
+        // init histo
+        for ( o = 0; o < nbins; o++)
+          histo[o] = 0.0f;
+        
+        // compute histo
+        count2 = 0;
+        for (zz = 0; zz < ssize; zz++)
+        for (yy = 0; yy < ssize; yy++)
+        for (xx = 0; xx < ssize; xx++)
+        {
+          pos = count+(xx-radius)+ ((yy-radius) + (zz-radius)*height) * width;
+          index = mriIn[pos];
+          histo[ index ] += g[count2];
+          count2++;
+        }
+        
+        histosum = 0.0;
+        for (o = 0; o < nbins; o++)
+          histosum += histo[o];
+        
+        entropy = 0.0f;
+        for (o = 0; o < nbins; o++)
+          if (histo[o] > 0)
+          {
+            etmp =  histo[o]/histosum;
+            entropy -= etmp * log(etmp);
+          }
+          
+        if (entropy<0 || isnan(entropy) )
+        {
+          cerr<< " ERROR in MyMRI::entropyImage: entropy is negative or nan ? " << endl;
+        }
+        MRIsetVoxVal(entI,x,y,z,0,(float)entropy);
+        if (entropy < minEntropy)
+          minEntropy = entropy;
+        if (entropy > maxEntropy)
+          maxEntropy = entropy;
+        
+        count++;
+      }
+    }
+  }
+          
+
+  cout << endl << " Min Entropy: " << minEntropy << "  Max Entropy: " << maxEntropy << endl;
+
+  // scale entropy image to 0..255 and make uchar
+//  int no_scale_flag = FALSE;
+//  MRI* mriEnt = MRISeqchangeType(entI, MRI_UCHAR, 0.0, 0.999, no_scale_flag);
+//  if (mriEnt == NULL)
+//  {
+//    printf("ERROR: MRISeqchangeType\n");
+//    exit(1);
+//  }
+//
+//  //MRIwrite(entI,"mriEntFloat.mgz");
+
+  // cleanup
+  delete [] g;
+  delete [] mriIn;
+  
+//  MRIwrite(entI,"enttest.mgz");
+//  return mriEnt;
+  return entI;
+}
 

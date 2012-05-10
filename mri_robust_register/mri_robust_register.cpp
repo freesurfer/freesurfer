@@ -10,8 +10,8 @@
  * Original Author: Martin Reuter, Nov. 4th ,2008
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2012/03/06 19:54:03 $
- *    $Revision: 1.61 $
+ *    $Date: 2012/05/10 16:19:31 $
+ *    $Revision: 1.62 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -74,6 +74,7 @@ using namespace std;
 //#define SAT 4.685 // this is suggested for gaussian noise
 //#define SAT 20
 #define SSAMPLE -1
+#define ERADIUS 5
 
 struct Parameters
 {
@@ -123,6 +124,8 @@ struct Parameters
   Registration::Cost cost;
 //  int    bins;
   int    finalsampletype;
+  bool   entropy;
+  int    entroradius;
 };
 static struct Parameters P =
 {
@@ -171,7 +174,9 @@ static struct Parameters P =
   -1,
   Registration::ROB,
 //  256,
-  SAMPLE_CUBIC_BSPLINE
+  SAMPLE_CUBIC_BSPLINE,
+  false,
+  ERADIUS
 };
 
 
@@ -179,7 +184,7 @@ static void printUsage(void);
 static bool parseCommandLine(int argc, char *argv[],Parameters & P) ;
 static void initRegistration(Registration & R, Parameters & P) ;
 
-static char vcid[] = "$Id: mri_robust_register.cpp,v 1.61 2012/03/06 19:54:03 mreuter Exp $";
+static char vcid[] = "$Id: mri_robust_register.cpp,v 1.62 2012/05/10 16:19:31 mreuter Exp $";
 char *Progname = NULL;
 
 //static MORPH_PARMS  parms ;
@@ -261,10 +266,11 @@ void testSubsamp(Parameters &P)
 void entro (Parameters & P)
 {
 
-  int sigma  = 7;
+  //int sigma  = 7;
   int radius = 5;
   
-  cout << "Entropy sigma: " << sigma << "  radius: " << radius << endl;
+//  cout << "Entropy sigma: " << sigma << "  radius: " << radius << endl;
+  cout << "Entropy radius: " << radius << endl;
   
   cout << "Converting: " << P.mov.c_str() << endl;
   MRI * mri1 = MRIread(P.mov.c_str());
@@ -782,7 +788,7 @@ int main(int argc, char *argv[])
     // end of writing transform
 
     // here do scaling of intensity values
-    if (R.isIscale() && Md.second > 0)
+    if (R.isIscale() && Md.second > 0 && !P.entropy)
     {
       cout << "Adjusting Intensity of MOV by " << Md.second << endl;
       P.mri_mov = MyMRI::MRIvalscale(P.mri_mov, P.mri_mov, Md.second);
@@ -884,7 +890,8 @@ int main(int argc, char *argv[])
       {
         cout << endl;
         cout << "Writing out Weights ..." << endl;
-
+        //MRIwrite(mri_weights,"temp.mgz") ;
+        //cout << " mri_weights type: " << mri_weights->type << endl;
         if (P.oneminusweights)
         {
           mri_weights = MRIlinearScale(mri_weights,NULL,-1,1,0);
@@ -892,6 +899,7 @@ int main(int argc, char *argv[])
         MRIwrite(mri_weights,P.weightsout.c_str()) ;
         if (P.oneminusweights)
         {
+          MRIfree(&mri_weights);
           mri_weights = R.getWeights();
         }
 
@@ -1476,7 +1484,23 @@ static void initRegistration(Registration & R, Parameters & P)
     ErrorExit(ERROR_NOFILE, "%s: only pass single frame MRI source %s.\n",
               Progname, P.mov.c_str()) ;
   }
+  
   P.mri_mov = MRIcopy(mri_mov,P.mri_mov); // save dst mri
+  if (P.entropy)
+  {
+    MRI * temp = mri_mov;
+    struct timeb start ;
+    int    msec,minutes,seconds;
+    TimerStart(&start) ;
+    cout << "Converting mov to entropy image (box radius " << P.entroradius << " ) ... (can take 1-2 min)" <<endl;
+    mri_mov = MyMRI::entropyImage(temp,P.entroradius);
+    msec = TimerStop(&start) ;
+    seconds = nint((float)msec/1000.0f) ;
+    minutes = seconds / 60 ;
+    //seconds = seconds % 60 ;
+    cout << " Entropy computation took "<<seconds<<" seconds." << endl;
+    MRIfree(&temp);
+  }
 
   if (P.maskmov != "")
   {
@@ -1506,6 +1530,13 @@ static void initRegistration(Registration & R, Parameters & P)
               Progname, P.dst.c_str()) ;
   }
   P.mri_dst = MRIcopy(mri_dst,P.mri_dst); // save dst mri
+  if (P.entropy)
+  {
+    MRI * temp = mri_dst;
+    cout << "Converting dst to entropy image (box radius " << P.entroradius << " ) ... (can take 1-2 min)" <<endl;
+    mri_dst = MyMRI::entropyImage(temp,P.entroradius);
+    MRIfree(&temp);
+  }
 
   if (P.maskdst != "")
   {
@@ -1730,6 +1761,11 @@ static int parseNextCommand(int argc, char *argv[], Parameters & P)
     nargs = 1;
     if (cost == "LS") P.cost = Registration::LS;
     else if (cost == "ROB") P.cost = Registration::ROB;
+    else if (cost == "ROBENT")
+    {
+      P.cost = Registration::ROB;
+      P.entropy  = true;
+    }
     else if (cost == "MI")  P.cost = Registration::MI;
     else if (cost == "NMI") P.cost = Registration::NMI;
     else if (cost == "ECC") P.cost = Registration::ECC;
@@ -1742,6 +1778,12 @@ static int parseNextCommand(int argc, char *argv[], Parameters & P)
     }
 
     cout << "--cost: Using cost function: " << cost << " !" << endl;
+  }
+  else if (!strcmp(option, "RADIUS")  )
+  {
+    P.entroradius = atoi(argv[1]);
+    nargs = 1 ;
+    cout << "--radius: Using local boxes with radius " << P.entroradius << " = " << P.entroradius *2+1 << " sides. "<< endl;
   }
   else if (!strcmp(option, "MAXIT")  )
   {
