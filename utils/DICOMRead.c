@@ -6,9 +6,9 @@
 /*
  * Original Authors: Sebastien Gicquel and Douglas Greve, 06/04/2001
  * CVS Revision Info:
- *    $Author: twitzel $
- *    $Date: 2012/03/22 22:31:54 $
- *    $Revision: 1.146 $
+ *    $Author: greve $
+ *    $Date: 2012/05/11 20:15:51 $
+ *    $Revision: 1.147 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -5395,13 +5395,15 @@ int CompareDCMFileInfo(const void *a, const void *b)
     dv[n] = dcmfi2->ImagePosition[n] - dcmfi1->ImagePosition[n];
     dvsum2 += (dv[n]*dv[n]);
   }
-  for (n=0; n < 3; n++) dv[n] /= sqrt(dvsum2); /* normalize */
-  /* Compute dot product with Slice Normal vector */
-  dot = 0;
-  for (n=0; n < 3; n++) dot += (dv[n] * dcmfi1->Vs[n]);
-  // Now Sort by slice position.
-  if (dot > +0.5) return(-1);
-  if (dot < -0.5) return(+1);
+  if(dvsum2 > 0){
+    for (n=0; n < 3; n++) dv[n] /= sqrt(dvsum2); /* normalize */
+    /* Compute dot product with Slice Normal vector */
+    dot = 0;
+    for (n=0; n < 3; n++) dot += (dv[n] * dcmfi1->Vs[n]);
+    // Now Sort by slice position.
+    if (dot > +0.5) return(-1);
+    if (dot < -0.5) return(+1);
+  }
 
   /* Sort by Image Number (Temporal Sequence) */
   if (dcmfi1->ImageNumber < dcmfi2->ImageNumber) return(-1);
@@ -5480,6 +5482,7 @@ int DCMSliceDir(DICOMInfo **dcmfi_list, int nlist)
   int nth, c, stop;
   double ImgPos0[3],d[3],dlength;
   DICOMInfo *dcmfi;
+  MATRIX *Vc, *Vr, *Vs;
 
   d[0]=d[1]=d[2]=0.0;
 
@@ -5487,6 +5490,7 @@ int DCMSliceDir(DICOMInfo **dcmfi_list, int nlist)
   for (c=0; c < 3; c++)
     ImgPos0[c] = dcmfi_list[0]->ImagePosition[c];
 
+  stop=0;
   for (nth=0;nth < nlist; nth++)
   {
     // Compare Image Position of the first file to that
@@ -5499,6 +5503,21 @@ int DCMSliceDir(DICOMInfo **dcmfi_list, int nlist)
       if (fabs(d[c]) > .0001) stop=1;
     }
     if (stop) break;
+  }
+  if(stop == 0){
+    printf("\n\n WARNING: it appears that the image position for all slices is the same. \n");
+    printf(" This is a problem with the DICOM file. Using direction cosines from col and row\n");
+    printf(" to compute slice direction, but the output may be misoriented. \n\n");
+    dcmfi = dcmfi_list[0];
+    Vc = MatrixAlloc(3,1,MATRIX_REAL);
+    Vr = MatrixAlloc(3,1,MATRIX_REAL);
+    for (c=0; c < 3; c++){
+      Vc->rptr[c+1][1] = dcmfi->Vc[c];
+      Vr->rptr[c+1][1] = dcmfi->Vr[c];
+    }
+    Vs = VectorCrossProduct(Vc,Vr,NULL);
+    for (c=0; c < 3; c++) d[c] = Vs->rptr[c+1][1];
+    MatrixFree(&Vc);MatrixFree(&Vr);MatrixFree(&Vs);
   }
   // Compute the slice direction cosine based on the first file in the
   // series, which should preserve slice order.
