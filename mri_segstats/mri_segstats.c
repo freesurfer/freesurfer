@@ -12,8 +12,8 @@
  * Original Author: Dougas N Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2012/04/10 19:33:57 $
- *    $Revision: 1.83 $
+ *    $Date: 2012/05/14 20:33:58 $
+ *    $Revision: 1.84 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -114,7 +114,7 @@ int DumpStatSumTable(STATSUMENTRY *StatSumTable, int nsegid);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-  "$Id: mri_segstats.c,v 1.83 2012/04/10 19:33:57 greve Exp $";
+  "$Id: mri_segstats.c,v 1.84 2012/05/14 20:33:58 greve Exp $";
 char *Progname = NULL, *SUBJECTS_DIR = NULL, *FREESURFER_HOME=NULL;
 char *SegVolFile = NULL;
 char *InVolFile = NULL;
@@ -132,6 +132,7 @@ char *FrameAvgVolFile = NULL;
 char *SpatFrameAvgFile = NULL;
 int DoFrameAvg = 0;
 int DoFrameSum = 0;
+int DoAccumulate = 0;
 int frame = 0;
 int synth = 0;
 int debug = 0;
@@ -967,7 +968,8 @@ int main(int argc, char **argv)
       StatSumTable[n].min   = min;
       StatSumTable[n].max   = max;
       StatSumTable[n].range = range;
-      StatSumTable[n].mean  = mean;
+      if(DoAccumulate == 0) StatSumTable[n].mean  = mean;
+      if(DoAccumulate == 1) StatSumTable[n].mean  = mean*nhits;
       StatSumTable[n].std   = std;
       StatSumTable[n].snr   = snr;
     }
@@ -1572,6 +1574,10 @@ static int parse_commandline(int argc, char **argv)
     else if ( !strcmp(option, "--snr") )
     {
       DoSNR = 1;
+    }
+    else if ( !strcmp(option, "--acc") || !strcmp(option, "--accumulate") )
+    {
+      DoAccumulate=1;
     }
 
     else if ( !strcmp(option, "--mul") )

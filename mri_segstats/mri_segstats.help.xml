@@ -80,6 +80,8 @@ The summary file is an ascii file in which the segmentation statistics are repor
       <explanation>multiply input by val</explanation>
       <argument>--snr</argument>
       <explanation>save mean/std as extra column in output table</explanation>
+      <argument>--accumulate</argument>
+      <explanation>save mean*nvoxels instead of mean</explanation>
       <argument>--ctab ctabfile</argument>
       <explanation>FreeSurfer color table file. This is a file used by FreeSurfer to specify how each segmentation index is mapped to a segmentation name and color. See $FREESURFER_HOME/FreeSurferColorLUT.txt for example. The ctab can be used to specify the segmentations to report on or simply to supply human-readable names to segmentations chosen with --id. See SPECIFYING SEGMENTATION IDS below.</explanation>
       <argument>--ctab-default</argument>
