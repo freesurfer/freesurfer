@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2012/05/09 23:07:20 $
- *    $Revision: 1.16 $
+ *    $Date: 2012/05/14 17:23:54 $
+ *    $Revision: 1.17 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -290,14 +290,15 @@ EVENT_SCHEDULE *EVSsynth(int nEvTypes, int *nPer, float *tPer,
   for (n=0;n<nEvTypes;n++)
   {
     nevents += nPer[n];
-    tStimTot += (nPer[n]*tPer[n] + tNullMin);
+    tStimTot += nPer[n]*(tPer[n] + tNullMin);
+    //printf("%2d %d %g %g %g\n",n,nPer[n],tPer[n],tNullMin,tStimTot);
   }
 
   /* Compute the total amount of scan time and compare to stim time */
   tScanTot = tMax + tPreScan;
-  if (tStimTot > tScanTot)
-  {
-    printf("ERROR: too much stim time (%g/%g)\n",tStimTot,tScanTot);
+  if (tStimTot > tScanTot){
+    printf("ERROR: stimulation time %g (including tNullMin %g) exceeds scan time %g\n",
+	   tStimTot,nevents*tNullMin,tScanTot);
     return(NULL);
   }
 
@@ -309,7 +310,7 @@ EVENT_SCHEDULE *EVSsynth(int nEvTypes, int *nPer, float *tPer,
 
   /* The code  below is for synthesizing the timing */
   /* Compute the total amount of null time */
-  tNullTot = tScanTot-tStimTot-nevents*tNullMin;
+  tNullTot = tScanTot-tStimTot;
 
   /* Comute number of slots allocated for null */
   nSlotsNull = (int)floor(tNullTot/tRes);
@@ -321,6 +322,12 @@ EVENT_SCHEDULE *EVSsynth(int nEvTypes, int *nPer, float *tPer,
   if (tNullMax > 0) nNullMax = (int)(floor((tNullMax-tNullMin)/tRes));
   else              nNullMax = nSlotsTot;
 
+  if(Gdiag_no > 0){
+    printf("EVSsynth(): tNullMin=%g \n",tNullMin);
+    printf("EVSsynth(): tScanTot=%g, tStimTot=%g, tNullTot=%g \n",tScanTot,tStimTot,tNullTot);
+    printf("EVSsynth(): nNullMax=%d, nSlotsTot=%d, nevents=%d\n",nNullMax, nSlotsTot, nevents);
+  }
+
   /* Create a non-random sequence of 0s and 1s, 1 = Non-Null */
   EvSeq = (int *) calloc(sizeof(int),nSlotsTot);
   for (n=0;n < nevents; n++) EvSeq[n] = 1;
@@ -328,7 +335,9 @@ EVENT_SCHEDULE *EVSsynth(int nEvTypes, int *nPer, float *tPer,
   m=RandPermListLimit0(nSlotsTot,EvSeq,nNullMax,100000);
   if (m < 0)
   {
-    printf("ERROR: could not enforce tNullMax (ntries=100000)\n");
+    printf("ERROR: could not enforce tNullMax=%g (ntries=100000)\n",tNullMax);
+    printf("You will need to reduce the number of time points\n");
+    printf("or increase the number of presentations.\n");
     return(NULL);
   }
   // Assure that first event is non-null. Swap with first non-null
@@ -563,10 +572,7 @@ int RandPermListLimit0(int N, int *v, int lim, int nitersmax)
       }
     }
     // Termination conditions
-    if (runlenmax <= lim)   {
-      printf("runlenmax = %d, niters = %d\n",runlenmax,niters);
-      return(0);
-    }
+    if (runlenmax <= lim) return(0);
     if (niters > nitersmax) return(-1);
     niters++;
   }
