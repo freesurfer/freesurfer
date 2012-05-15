@@ -8,8 +8,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2012/05/10 16:19:31 $
- *    $Revision: 1.13 $
+ *    $Date: 2012/05/15 18:27:33 $
+ *    $Revision: 1.14 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -137,6 +137,10 @@ MRI * MyMRI::convolute(MRI * mri, MRI * filter, int dir)
 // dir 1,2,3  : x,y,z
 // filter should be dimension (x,1,1) with odd length x
 {
+
+cout << "MyMRI::convolute is deprecated ..." << endl;
+assert(1==2);
+
   assert(filter->height ==1 && filter->depth ==1);
 
   int d[3];
@@ -1039,23 +1043,27 @@ MRI * MyMRI::entropyImage(MRI* mri, int radius )
   entI = MRIcopyHeader(mri,entI);
   entI->type = MRI_FLOAT;
 
-  double minEntropy = 1000000;
-  double maxEntropy = 0;
-  int zinterval = depth/10;
-  int zinterval2 = depth/50;
+  //double minEntropy = 1000000;
+  //double maxEntropy = 0;
+  //int zinterval = depth/10;
+  //int zinterval2 = depth/50;
   int xmax = width-radius-1;
   int ymax = height-radius-1;
   int zmax = depth-radius-1;
   double histo[nbins];
-  double histosum, entropy,etmp;
-  int o,zz,yy,xx;
+  double histosum=0, entropy=0,etmp=0;
+  int o=0,zz=0,yy=0,xx=0;
   count = 0;
-  int count2,pos;
-  unsigned char index;
+  int pos=0;
+  unsigned char index=0;
+  x=0; y=0;
+#ifdef HAVE_OPENMP
+#pragma omp parallel for firstprivate(y,x,o,histo,count,zz,yy,xx,pos,index,histosum,entropy,etmp) shared(depth,height,width,radius,entI,nbins,ssize,xmax,ymax,zmax,mriIn,g) schedule(static,1)
+#endif
   for (z=0;z<depth;z++)
   {
-    if ((z+1)%zinterval == 0) cout << (z+1)/zinterval << flush;
-    else  if ((z+1)%zinterval2 ==0) cout << "." << flush;
+    //if ((z+1)%zinterval == 0) cout << (z+1)/zinterval << flush;
+    //else  if ((z+1)%zinterval2 ==0) cout << "." << flush;
         
     for (y=0;y<height;y++)
     {
@@ -1065,7 +1073,6 @@ MRI * MyMRI::entropyImage(MRI* mri, int radius )
         if (x < radius || y< radius || z<radius || x>xmax || y>ymax || z>zmax)
         {
           MRIsetVoxVal(entI,x,y,z,0,0.0);
-          count++;
           continue;
         }
            
@@ -1076,15 +1083,15 @@ MRI * MyMRI::entropyImage(MRI* mri, int radius )
           histo[o] = 0.0f;
         
         // compute histo
-        count2 = 0;
+        count = 0;
         for (zz = 0; zz < ssize; zz++)
         for (yy = 0; yy < ssize; yy++)
         for (xx = 0; xx < ssize; xx++)
         {
-          pos = count+(xx-radius)+ ((yy-radius) + (zz-radius)*height) * width;
+          pos = (x+xx-radius)+ ((y+yy-radius) + (z+zz-radius)*height) * width;
           index = mriIn[pos];
-          histo[ index ] += g[count2];
-          count2++;
+          histo[ index ] += g[count];
+          count++;
         }
         
         histosum = 0.0;
@@ -1104,18 +1111,17 @@ MRI * MyMRI::entropyImage(MRI* mri, int radius )
           cerr<< " ERROR in MyMRI::entropyImage: entropy is negative or nan ? " << endl;
         }
         MRIsetVoxVal(entI,x,y,z,0,(float)entropy);
-        if (entropy < minEntropy)
-          minEntropy = entropy;
-        if (entropy > maxEntropy)
-          maxEntropy = entropy;
+        //if (entropy < minEntropy)
+        //  minEntropy = entropy;
+        //if (entropy > maxEntropy)
+        //  maxEntropy = entropy;
         
-        count++;
       }
     }
   }
           
 
-  cout << endl << " Min Entropy: " << minEntropy << "  Max Entropy: " << maxEntropy << endl;
+  //cout << endl << " Min Entropy: " << minEntropy << "  Max Entropy: " << maxEntropy << endl;
 
   // scale entropy image to 0..255 and make uchar
 //  int no_scale_flag = FALSE;

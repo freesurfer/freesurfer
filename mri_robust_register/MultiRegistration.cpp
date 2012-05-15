@@ -14,8 +14,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2012/03/29 20:08:02 $
- *    $Revision: 1.42 $
+ *    $Date: 2012/05/15 18:27:33 $
+ *    $Revision: 1.43 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -440,7 +440,6 @@ bool MultiRegistration::computeTemplate(int itmax, double eps , int iterate, dou
 	
   }
   
-  LTA * lastlta = NULL;
   // if we do not have good transforms, run special treatement
   // below on different resolutions, here we determine how often
   // these lowres registrations are run.
@@ -467,10 +466,18 @@ bool MultiRegistration::computeTemplate(int itmax, double eps , int iterate, dou
     
     // register all inputs to mean
     vector < double > dists(nin,1000); // should be larger than maxchange!
+#ifdef HAVE_OPENMP
+#pragma omp parallel for schedule(static,1)
+#endif
     for (int i = 0;i<nin;i++)
     {
+#ifdef HAVE_OPENMP
+  #pragma omp critical
+#endif  
 		  cout << endl << "Working on TP " << i+1 << endl;
+      
       Rv[i].clear();
+      Rv[i].setVerbose(0);
       initRegistration(Rv[i]); //set parameter
       Rv[i].setTarget(mri_mean,
                       fixvoxel,
@@ -518,11 +525,11 @@ bool MultiRegistration::computeTemplate(int itmax, double eps , int iterate, dou
 		  Md.first  = Rv[i].getFinalVox2Vox();
 			Md.second = Rv[i].getFinalIscale();
 
-      transforms[i] = Md.first;
+      transforms[i]  = Md.first;
       intensities[i] = Md.second;
-
+      
       // convert Matrix to LTA ras to ras
-      if (lastlta)  LTAfree(&lastlta);
+      LTA * lastlta = NULL;
       if (ltas[i]) lastlta = ltas[i];
       ltas[i] = MyMatrix::VOXmatrix2LTA(Md.first,mri_mov[i],mri_mean);
       //P.ltas[i] = LTAalloc(1,P.mri_mov[i]);
@@ -544,6 +551,9 @@ bool MultiRegistration::computeTemplate(int itmax, double eps , int iterate, dou
                                                 ltas[i]->xforms[0].m_L));
         LTAfree(&lastlta);
         if (dists[i] > maxchange) maxchange = dists[i];
+#ifdef HAVE_OPENMP
+  #pragma omp critical
+#endif  
         cout << endl << "tp " << i+1 << " distance: " << dists[i] << endl;
       }
 
@@ -553,12 +563,18 @@ bool MultiRegistration::computeTemplate(int itmax, double eps , int iterate, dou
       mri_warps[i] = MRIclone(mri_mean,mri_warps[i]);
       if (sampletype == SAMPLE_CUBIC_BSPLINE)
       {
-        cout << "mapping mov to template (cubic bspline) ..." << endl;
+#ifdef HAVE_OPENMP
+  #pragma omp critical
+#endif  
+        cout << "mapping tp " <<i+1<< " to template (cubic bspline) ..." << endl;
         mri_warps[i] = LTAtransformBSpline(mri_bsplines[i],mri_warps[i], ltas[i]);
       }
       else
       {
-        cout << "mapping mov to template..." << endl;
+#ifdef HAVE_OPENMP
+  #pragma omp critical
+#endif  
+        cout << "mapping tp " <<i+1<< " to template..." << endl;
         mri_warps[i] = LTAtransformInterp(mri_mov[i],mri_warps[i], ltas[i],sampletype);
       }
 		  MRIcopyPulseParameters(mri_mov[i],mri_warps[i]);
@@ -566,14 +582,20 @@ bool MultiRegistration::computeTemplate(int itmax, double eps , int iterate, dou
       // here do scaling of intensity values
       if (Rv[i].isIscale() && Md.second > 0)
       {
-        cout << "Adjusting Intensity of WARP by " << Md.second << endl;
+#ifdef HAVE_OPENMP
+  #pragma omp critical
+#endif  
+        cout << "Adjusting Intensity of mapped tp " <<i+1<< " by " << Md.second << endl;
         mri_warps[i] = MyMRI::MRIvalscale(mri_warps[i],
                                          mri_warps[i], Md.second);
       }
 			
 			// copy weights (as RV will be cleared)
       //   (info: they are in original half way space)
-	     cout << "backup weights ..." << endl;
+#ifdef HAVE_OPENMP
+  #pragma omp critical
+#endif  
+	     cout << "backup weights tp " <<i+1<< " ..." << endl;
        if (mri_weights[i]) MRIfree(&mri_weights[i]); 
        mri_weights[i] = MRIcopy(Rv[i].getWeights(),NULL);
 			 
@@ -585,7 +607,11 @@ bool MultiRegistration::computeTemplate(int itmax, double eps , int iterate, dou
 
       if (debug)
       {
+#ifdef HAVE_OPENMP
+  #pragma omp critical
+#endif  
         cout << "debug: writing transforms, warps, weights ..." << endl;
+        
         LTAwriteEx(ltas[i], (oss.str()+".lta").c_str()) ;
 
         MRIwrite(mri_warps[i], (oss.str()+".mgz").c_str()) ;
@@ -601,22 +627,21 @@ bool MultiRegistration::computeTemplate(int itmax, double eps , int iterate, dou
         // if we have weights:  
         if (mri_weights[i] != NULL)
         {
-          //std::pair <MATRIX*, MATRIX*> map2weights = Rv[i].getHalfWayMaps();
-          //MATRIX * hinv = MatrixInverse(map2weights.second,NULL);
           std::pair <vnl_matrix_fixed < double , 4, 4> , vnl_matrix_fixed < double, 4, 4 > > map2weights = Rv[i].getHalfWayMaps();
           vnl_matrix_fixed < double , 4, 4>  hinv = vnl_inverse(map2weights.second);
 
-          cout << endl;
-          //MatrixPrint(stdout,map2weights.first) ;
-					cout << map2weights.first << endl;
-          cout << endl;
-          //MatrixPrint(stdout,map2weights.second) ;
-					cout << map2weights.second << endl;
-          cout << endl;
-          //MatrixPrint(stdout,hinv) ;
-					cout << hinv << endl;
-          cout << endl;
-
+#ifdef HAVE_OPENMP
+  #pragma omp critical
+#endif  
+          {
+            cout << endl;
+  					cout << map2weights.first << endl;
+            cout << endl;
+            cout << map2weights.second << endl;
+            cout << endl;
+            cout << hinv << endl;
+            cout << endl;
+          }
           MRI * wtarg = MRIalloc(mri_weights[i]->width,
                                  mri_weights[i]->height,
                                  mri_weights[i]->depth,
@@ -642,11 +667,14 @@ bool MultiRegistration::computeTemplate(int itmax, double eps , int iterate, dou
       Rv[i].clear();
       Rv[i].freeGPT();
 			
-      cout << endl << "Finished TP : " << i+1 << endl;
-      cout << endl;
-      cout << "=====================================================" << endl;
-      //printmemusage();
-      //cout << "========================================" << endl << endl;
+#ifdef HAVE_OPENMP
+  #pragma omp critical
+#endif  
+      {
+        cout << endl << "Finished TP : " << i+1 << endl;
+        cout << endl;
+        cout << "=====================================================" << endl;
+      }
 
     } // for loop end (all timepoints)
 
@@ -843,24 +871,33 @@ bool MultiRegistration::initialXforms(int tpi, bool fixtp, int maxres, int itera
 //  vector < Registration > Rv(nin);
   vector < std::pair <vnl_matrix_fixed < double, 4, 4> , double> > Md(nin);
 //	vector < double >  centroid;
-  vnl_vector_fixed < double, 4 > centroid;
+  vnl_vector_fixed < double, 4 > centroid(0.0);
 
   //Md[0].first = MatrixIdentity(4,NULL);
   Md[0].first.set_identity();
   Md[0].second= 1.0;
+#ifdef HAVE_OPENMP
+#pragma omp parallel for schedule(static,1)
+#endif
   for (int i = 1;i<nin;i++) 
   {
 	  int j = index[i]; // use new index
-    cout << endl 
-		     << "[init] ========================= TP "<< j+1 <<" to TP "<<tpi+1<<" ==============================" << endl;
-		cout << "         Register TP "<< j+1 <<" ( "<<mov[j]<<" )" << endl;
-		cout << "          to      TP "<<tpi+1<<" ( "<<mov[tpi]<<" )" << endl << endl;
-
+#ifdef HAVE_OPENMP
+  #pragma omp critical
+#endif  
+    {
+      cout << endl 
+		       << "[init] ========================= TP "<< j+1 <<" to TP "<<tpi+1<<" ==============================" << endl;
+  		cout << "         Register TP "<< j+1 <<" ( "<<mov[j]<<" )" << endl;
+  		cout << "          to      TP "<<tpi+1<<" ( "<<mov[tpi]<<" )" << endl << endl;
+    }
+    
     ostringstream oss;
     oss << outdir << "tp" << j+1 << "_to_tp" << tpi;
     
     Registration R;
     initRegistration(R); //set parameter
+    R.setVerbose(0);
     R.setSourceAndTarget(mri_mov[j],mri_mov[tpi],keeptype);
     R.setName(oss.str());
 		
@@ -873,38 +910,15 @@ bool MultiRegistration::initialXforms(int tpi, bool fixtp, int maxres, int itera
 		// get centroid of tpi (target of the registration)
 		// only do this once (when i==1) is enough
 		// the centroid is the voxel coord where the moment based centroid is located
-		if (i==1) centroid = R.getCentroidT();
-    centroid += R.getCentroidSinT();
-
-//    ostringstream oss2;
-//    oss2 << "tp" << j+1;    
-//    MatrixWrite(Md[i].first,(oss2.str()+".fsmat").c_str(),oss2.str().c_str());
-//    Md[i].first = MatrixRead((oss2.str()+".fsmat").c_str());
-//    Md[i].second = 1.0;
-
-//     if (P.debug)
-//     {
-//       LTA * nlta = VOXmatrix2LTA(Md[i].first,P.mri_mov[j],P.mri_mov[tpi]);
-//       LTAwriteEx(nlta, (oss.str()+".lta").c_str()) ;
-// 
-//       MRI* warped = MRIclone(P.mri_mov[tpi],NULL);
-//       warped = LTAtransform(P.mri_mov[j],warped, nlta);
-// 
-//       if (R.isIscale() && Md[i].second >0)
-//       {
-//         string fn = oss.str() + "-intensity.txt";
-//         ofstream f(fn.c_str(),ios::out);
-//         f << Md[i].second;
-//         f.close();
-// 	
-//         warped = R.MRIvalscale(warped,warped, Md[i].second);
-//       }
-//       MRIwrite(warped, (oss.str()+".mgz").c_str()) ;
-//       // todo: maybe output weights (not necessary so far) 
-//       LTAfree(&nlta);
-//       MRIfree(&warped);     
-//     }
+#ifdef HAVE_OPENMP
+  #pragma omp critical
+#endif  
+    {
+		  if (i==1) centroid += R.getCentroidT();
+      centroid += R.getCentroidSinT();
+    }
   } // end for loop (initial registration to inittp)
+
 	centroid = (1.0/nin) * centroid;
   
   // copy results in correct order back to global members
@@ -1403,27 +1417,33 @@ MRI* MultiRegistration::averageSet(const vector < MRI * >& set,
     // robust
     int x,y,z,i;
     assert(set.size() > 0);
-    float dd[set.size()];
+   // float dd[set.size()];
     if (!mean) mean = MRIclone(set[0],NULL);
     //MRI * midx = MRIalloc(set[0]->width,set[0]->height,set[0]->depth, MRI_FLOAT);
     //MRIcopyHeader(mean,midx);
     //midx->type = MRI_FLOAT;
-    pair < float, float > mm;
+ //   pair < float, float > mm;
+#ifdef HAVE_OPENMP
+#pragma omp parallel for private(y,x,i) shared(set,mean) schedule(guided)
+#endif
     for (z = 0 ; z < set[0]->depth ; z++)
+    {
+      float dd[set.size()];
       for (y = 0 ; y < set[0]->height ; y++)
         for (x = 0 ; x < set[0]->width ; x++)
         {
           for (i=0; i<(int) set.size();i++)
             dd[i] = MRIgetVoxVal(set[i],x,y,z,0);
-          mm = RobustGaussian<float>::medianI(dd,(int)set.size());
+          pair < float, float > mm = RobustGaussian<float>::medianI(dd,(int)set.size());
           MRIsetVoxVal(mean,x,y,z,0,mm.first);
 	  //MRIsetVoxVal(midx,x,y,z,0,mm.second);
         }
     //MRIwrite(midx,"midx.mgz");
     //MRIwrite(mean,"m.mgz");
     //assert(1==2);
+   }
   }
-  else if (method ==2)
+  else if (method ==2) // NEVER REALLY WORKED!! (not enough values and usually int)
   {
     cout << "    using tukey biweight" << endl;
     // robust tukey biweight

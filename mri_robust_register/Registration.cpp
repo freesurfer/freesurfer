@@ -8,8 +8,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2011/11/17 02:53:36 $
- *    $Revision: 1.76 $
+ *    $Date: 2012/05/15 18:27:33 $
+ *    $Revision: 1.77 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -3087,7 +3087,8 @@ void Registration::saveGaussianPyramid(std::vector< MRI* >& p, const std::string
 
 vnl_matrix_fixed <double,4,4> Registration::initializeTransform(MRI *mriS, MRI *mriT)
 {
-  cout << "   - computing centroids \n" ;
+  if (verbose > 0)
+    cout << "   - computing centroids \n" ;
 
 // removed: do not trust RAS coordinates
 //  it can happen that SRC is outside of Target frame
@@ -3119,7 +3120,8 @@ vnl_matrix_fixed <double,4,4> Registration::initializeTransform(MRI *mriS, MRI *
   {
      // default (new) initialize based on ras coordinates
      // later: allow option to use voxel identity for init?
-     cout << "   - initialize transform based on RAS\n" ;
+     if (verbose > 0)
+       cout << "   - initialize transform based on RAS\n" ;
      MATRIX *mv2rS, *mv2rT ;
      mv2rS = extract_i_to_r(mriS) ;
      mv2rT = extract_i_to_r(mriT) ;
@@ -3141,7 +3143,8 @@ vnl_matrix_fixed <double,4,4> Registration::initializeTransform(MRI *mriS, MRI *
      return myinit;
   }
   
-  cout << "   - computing initial transform\n" ;
+  if (verbose > 0)
+    cout << "   - computing initial transform\n" ;
 
 
   //bool initorient = false; // do not use orientation (can be off due to different cropping)
@@ -3164,7 +3167,7 @@ vnl_matrix_fixed <double,4,4> Registration::initializeTransform(MRI *mriS, MRI *
         d += evT[r][c] * evS[r][c];
       if (fabs(d)<0.1)
       {
-        cout << "        Over 84 degree difference ( " << 360*acos(fabs(d))/M_PI << " ) in column " << c << ", skipping pre-orientation" << endl;
+        cout << "       WARNING: Over 84 degree difference ( " << 360*acos(fabs(d))/M_PI << " ) in column " << c << ", skipping pre-orientation" << endl;
         initorient =false;
         break;
       }
@@ -3191,7 +3194,8 @@ vnl_matrix_fixed <double,4,4> Registration::initializeTransform(MRI *mriS, MRI *
 
     if (initorient) // still use orientation info for intial alignment
     {
-      cout << "     -- using orientation info\n" ;
+      if (verbose > 0)
+        cout << "     -- using orientation info\n" ;
       // make 4x4
      // MATRIX * evS2 = MatrixIdentity(4,NULL);
      // MATRIX * evT2 = MatrixIdentity(4,NULL);
@@ -3241,7 +3245,8 @@ vnl_matrix_fixed <double,4,4> Registration::initializeTransform(MRI *mriS, MRI *
 
   if (!initorient) // if orientation did not work
   {
-    cout << "     -- using translation info\n" ;
+    if (verbose > 0)
+      cout << "     -- using translation info\n" ;
     myinit[0][3] += centroidT[0]-centroidS[0];
     myinit[1][3] += centroidT[1]-centroidS[1];
     myinit[2][3] += centroidT[2]-centroidS[2];
@@ -3500,12 +3505,15 @@ bool Registration::reorientSource()
 void Registration::setSourceAndTarget (MRI * s,MRI * t, bool keeptype)
 // both need to be in the same voxel space
 {
-  cout << "Registration::setSourceAndTarget ..." << endl;
-	
-  cout << "   Type Source : " << s->type <<  "  Type Target : " << t->type << endl;
+  if (verbose > 0)
+  {
+    cout << "Registration::setSourceAndTarget ..." << endl;
+    cout << "   Type Source : " << s->type <<  "  Type Target : " << t->type << endl;
+  }
+  
   if (s->type != t->type )
   {
-     cout << "   Types differ, will adjust type internally ..." << endl;
+     if (verbose > 0) cout << "   Types differ, will adjust type internally ..." << endl;
      keeptype = false;
   }
   
@@ -3533,11 +3541,14 @@ void Registration::setSourceAndTarget (MRI * s,MRI * t, bool keeptype)
      }
   }
 
-  cout << "   Mov: (" << s->xsize << ", " << s->ysize << ", " << s->zsize << ")mm  and dim (" << s->width << ", " << s->height << ", " << s->depth << ")" <<endl;
-  cout << "   Dst: (" << t->xsize << ", " << t->ysize << ", " << t->zsize << ")mm  and dim (" << t->width << ", " << t->height << ", " << t->depth << ")" <<endl;
+  if (verbose > 0)
+  {
+    cout << "   Mov: (" << s->xsize << ", " << s->ysize << ", " << s->zsize << ")mm  and dim (" << s->width << ", " << s->height << ", " << s->depth << ")" <<endl;
+    cout << "   Dst: (" << t->xsize << ", " << t->ysize << ", " << t->zsize << ")mm  and dim (" << t->width << ", " << t->height << ", " << t->depth << ")" <<endl;
 
-  cout << "   Asserting both images: " << isosize <<"mm isotropic " << endl; //and (" << s_dim[0] << ", " << s_dim[1] << ", " << s_dim[2] <<") voxels" <<endl;
-
+    cout << "   Asserting both images: " << isosize <<"mm isotropic " << endl; //and (" << s_dim[0] << ", " << s_dim[1] << ", " << s_dim[2] <<") voxels" <<endl;
+  }
+  
   // source
 	pair < MRI*, vnl_matrix_fixed < double, 4, 4> > mm = makeIsotropic(s,NULL,isosize,s_dim[0],s_dim[1],s_dim[2],keeptype);
 	if (mri_source) MRIfree(&mri_source);
@@ -3551,7 +3562,7 @@ void Registration::setSourceAndTarget (MRI * s,MRI * t, bool keeptype)
 //		   cout << "   Writing resampled source as " << n << endl;
 //       MRIwrite(mri_source,n.c_str());
   }
-	if (!rl ) cout << "    - no Mov reslice necessary" << endl;
+	if (!rl && verbose > 0) cout << "    - no Mov reslice necessary" << endl;
 	   
 	// target
 	mm = makeIsotropic(t,NULL,isosize,t_dim[0],t_dim[1],t_dim[2],keeptype);
@@ -3566,7 +3577,7 @@ void Registration::setSourceAndTarget (MRI * s,MRI * t, bool keeptype)
 		  cout << "   Writing resampled target as " << n << endl;
       MRIwrite(mri_target,n.c_str());
   }
-	if (!rl ) cout << "    - no Dst reslice necessary" << endl;
+	if (!rl && verbose > 0 ) cout << "    - no Dst reslice necessary" << endl;
 
   // flip and reorder axis of source based on RAS alignment or ixform:
   // this ensures that vox2vox rot is small and dimensions agree 

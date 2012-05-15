@@ -10,8 +10,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2012/03/29 20:08:02 $
- *    $Revision: 1.42 $
+ *    $Date: 2012/05/15 18:27:33 $
+ *    $Revision: 1.43 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -169,7 +169,7 @@ static void printUsage(void);
 static bool parseCommandLine(int argc, char *argv[],Parameters & P) ;
 
 static char vcid[] =
-  "$Id: mri_robust_template.cpp,v 1.42 2012/03/29 20:08:02 mreuter Exp $";
+  "$Id: mri_robust_template.cpp,v 1.43 2012/05/15 18:27:33 mreuter Exp $";
 char *Progname = NULL;
 
 int getRandomNumber(int start, int end, unsigned int & seed)
@@ -396,9 +396,15 @@ int main(int argc, char *argv[])
   seconds = nint((float)msec/1000.0f) ;
   minutes = seconds / 60 ;
   seconds = seconds % 60 ;
-  cout << "registration took "<<minutes<<" minutes and "<<
-       seconds<<" seconds." << endl;
+  cout << "registration took "<<minutes<<" minutes and "<< seconds<<" seconds." << endl;
   //if (diag_fp) fclose(diag_fp) ;
+
+  cout << endl<<" Thank you for using RobustTemplate! " << endl;
+  cout << " If you find it useful and use it for a publication, please cite: " << endl<<endl;
+  cout << " Within-Subject Template Estimation for Unbiased Longitudinal Image Analysis" << endl;
+  cout << " M. Reuter, N.J. Schmansky, H.D. Rosas, B. Fischl. NeuroImage 2012." << endl;
+  cout << " http://dx.doi.org/10.1016/j.neuroimage.2012.02.084" << endl;
+  cout << " http://reuter.mit.edu/papers/reuter-long12.pdf" << endl << endl;
 
   exit(0) ;
   return(0) ;
