@@ -15,8 +15,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2011/12/01 12:50:51 $
- *    $Revision: 1.9 $
+ *    $Date: 2012/05/15 19:36:38 $
+ *    $Revision: 1.10 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -35,6 +35,10 @@
 #include	<stddef.h>
 #include	<stdio.h>
 #include	<stdlib.h>
+
+#ifdef HAVE_OPENMP
+#include <omp.h>
+#endif
 
 #include	"mriBSpline.h"
 #include  "error.h"
@@ -1721,7 +1725,7 @@ extern MRI_BSPLINE* MRItoBSpline (const MRI	*mri_src,	MRI_BSPLINE *bspline, int 
 { 
   printf("MRItoBSpline degree %i\n",degree);
   
-	double	*Line;
+	double	*Lines[_MAX_FS_THREADS];
 	double	Pole[4];
 	int	NbPoles;
 	int	x, y, z,f;
@@ -1729,6 +1733,7 @@ extern MRI_BSPLINE* MRItoBSpline (const MRI	*mri_src,	MRI_BSPLINE *bspline, int 
   int Height= mri_src->height;
   int Depth = mri_src->depth;
   int Frames= mri_src->nframes;
+  int nthreads=1, tid=0, i;
 
 //  double eps = 1e-5;
 //   if (fabs(mri_src->xsize - mri_src->ysize) > eps || fabs(mri_src->xsize = mri_src->zsize) > eps)
@@ -1771,67 +1776,129 @@ extern MRI_BSPLINE* MRItoBSpline (const MRI	*mri_src,	MRI_BSPLINE *bspline, int 
   NbPoles = initPoles(Pole,degree);
 
 	/* convert the image samples into interpolation coefficients */
-  Line = (double *)malloc((size_t)(Width * sizeof(double)));
-  if (Line == (double *)NULL)
+#ifdef HAVE_OPENMP
+#pragma omp parallel 
   {
-    printf("ERROR MRItoBSpline: X Line allocation failed\n");
-    exit(1);
+    nthreads = omp_get_num_threads();
   }
-  for (f = 0; f < Frames; f++)
-  for (z = 0; z < Depth ; z++)
-  for (y = 0; y < Height; y++)
+#else
+  nthreads = 1;
+#endif
+  //printf("nthreads : %d\n",nthreads);
+  for (i=0;i<nthreads;i++)
   {
-    //printf("f: %i  z: %i  y: %i\n",f,z,y);
-    getXLine(mri_src, y,z,f, Line);
-    if (Width > 1)
+    Lines[i] = (double *)malloc((size_t)(Width * sizeof(double)));
+    if (Lines[i] == (double *)NULL)
     {
-      ConvertToInterpolationCoefficients(Line, Width, Pole, NbPoles, DBL_EPSILON);
+      printf("ERROR MRItoBSpline: X Line allocation failed\n");
+      exit(1);
     }
-    setXLine(bspline->coeff, y,z,f, Line);
   }
-  free(Line);
+  y=0;f=0;
+#ifdef HAVE_OPENMP
+#pragma omp parallel for firstprivate(tid,y,f,Lines) shared(Depth,Height,Width,Frames,Pole,NbPoles,bspline) schedule(static,1)
+#endif
+  for (z = 0; z < Depth ; z++)
+  {
+#ifdef HAVE_OPENMP
+	  tid = omp_get_thread_num();
+#else
+    tid = 0;
+#endif
+    for (y = 0; y < Height; y++)
+    for (f = 0; f < Frames; f++)
+    {
+      //printf("f: %i  z: %i  y: %i\n",f,z,y);
+      getXLine(mri_src, y,z,f, Lines[tid]);
+      if (Width > 1)
+      {
+        ConvertToInterpolationCoefficients(Lines[tid], Width, Pole, NbPoles, DBL_EPSILON);
+      }
+      setXLine(bspline->coeff, y,z,f, Lines[tid]);
+    }
+  }
+  for (i=0;i<nthreads;i++)
+  {
+    free(Lines[i]);
+  }
+
 
 
   if (Height > 1)
   {
-    Line = (double *)malloc((size_t)(Height * sizeof(double)));
-    if (Line == (double *)NULL)
+    for (i=0;i<nthreads;i++)
     {
-      printf("ERROR MRItoBSpline: Y Line allocation failed\n");
-      exit(1);
-  	}
-    for (f = 0; f < Frames; f++)
-    for (z = 0; z < Depth ; z++)
-    for (x = 0; x < Width; x++)
-    {
-      //printf("f: %i  z: %i  x: %i\n",f,z,x);
-      getYLine(bspline->coeff, x,z,f, Line);
-      ConvertToInterpolationCoefficients(Line, Height, Pole, NbPoles, DBL_EPSILON);
-      setYLine(bspline->coeff, x,z,f, Line);
+      Lines[i] = (double *)malloc((size_t)(Height * sizeof(double)));
+      if (Lines[i] == (double *)NULL)
+      {
+        printf("ERROR MRItoBSpline: Y Line allocation failed\n");
+        exit(1);
+      }
     }
-    free(Line);
+    x=0;f=0;
+#ifdef HAVE_OPENMP
+#pragma omp parallel for firstprivate(tid,x,f,Lines) shared(Depth,Height,Width,Frames,Pole,NbPoles,bspline) schedule(static,1)
+#endif
+    for (z = 0; z < Depth ; z++)
+    {
+#ifdef HAVE_OPENMP
+	    tid = omp_get_thread_num();
+#else
+      tid = 0;
+#endif
+      for (x = 0; x < Width; x++)
+      for (f = 0; f < Frames; f++)
+      {
+        //printf("f: %i  z: %i  x: %i\n",f,z,x);
+        getYLine(bspline->coeff, x,z,f, Lines[tid]);
+        ConvertToInterpolationCoefficients(Lines[tid], Height, Pole, NbPoles, DBL_EPSILON);
+        setYLine(bspline->coeff, x,z,f, Lines[tid]);
+      }
+    }
+    for (i=0;i<nthreads;i++)
+    {
+      free(Lines[i]);
+    }
   }
+  
   
   if (Depth > 1)
   {
-    Line = (double *)malloc((size_t)(Depth * sizeof(double)));
-    if (Line == (double *)NULL)
+    for (i=0;i<nthreads;i++)
     {
-  	  printf("ERROR MRItoBSpline: Z Line allocation failed\n");
-  	  exit(1);
-  	}
-    for (f = 0; f < Frames; f++)
-    for (y = 0; y < Height ; y++)
-    for (x = 0; x < Width; x++)
-    {
-      //printf("f: %i  y: %i  x: %i\n",f,y,x);
-      getZLine(bspline->coeff, x,y,f, Line);
-      ConvertToInterpolationCoefficients(Line, Depth, Pole, NbPoles, DBL_EPSILON);
-      setZLine(bspline->coeff, x,y,f, Line);
+      Lines[i] = (double *)malloc((size_t)(Depth * sizeof(double)));
+      if (Lines[i] == (double *)NULL)
+      {
+        printf("ERROR MRItoBSpline: Z Line allocation failed\n");
+        exit(1);
+      }
     }
-    free(Line);
+    x=0;f=0;
+#ifdef HAVE_OPENMP
+#pragma omp parallel for firstprivate(tid,x,f,Lines) shared(Depth,Height,Width,Frames,Pole,NbPoles,bspline) schedule(static,1)
+#endif
+    for (y = 0; y < Height ; y++)
+    {
+#ifdef HAVE_OPENMP
+	    tid = omp_get_thread_num();
+#else
+      tid = 0;
+#endif
+      for (x = 0; x < Width; x++)
+      for (f = 0; f < Frames; f++)
+      {
+        //printf("f: %i  y: %i  x: %i\n",f,y,x);
+        getZLine(bspline->coeff, x,y,f, Lines[tid]);
+        ConvertToInterpolationCoefficients(Lines[tid], Depth, Pole, NbPoles, DBL_EPSILON);
+        setZLine(bspline->coeff, x,y,f, Lines[tid]);
+      }
+    }
+    for (i=0;i<nthreads;i++)
+    {
+      free(Lines[i]);
+    }
   }
-  
+    
 	return bspline;
 }
 
@@ -2099,9 +2166,17 @@ MRI *MRIlinearTransformBSpline(const MRI_BSPLINE *bspline, MRI *mri_dst, MATRIX 
 // mainly copied from mri.c
 {
   int    y1, y2, y3, width, height, depth,frame ;
-  VECTOR *v_X, *v_Y ;   /* original and transformed coordinate systems */
+  //VECTOR *v_X, *v_Y ;   /* original and transformed coordinate systems */
+  VECTOR *v_X[_MAX_FS_THREADS], *v_Y[_MAX_FS_THREADS] ;   /* original and transformed coordinate systems */
   MATRIX *mAinv ;     /* inverse of mA */
   double   val, x1, x2, x3 ;
+  int nthreads=1, tid=0;
+#ifdef HAVE_OPENMP
+#pragma omp parallel 
+  {
+    nthreads = omp_get_num_threads();
+  }
+#endif
 
   mAinv = MatrixInverse(mA, NULL) ;      /* will sample from dst back to src */
   if (!mAinv)
@@ -2119,24 +2194,37 @@ MRI *MRIlinearTransformBSpline(const MRI_BSPLINE *bspline, MRI *mri_dst, MATRIX 
   width  = mri_dst->width ;
   height = mri_dst->height ;
   depth  = mri_dst->depth ;
-  v_X = VectorAlloc(4, MATRIX_REAL) ;  /* input (src) coordinates */
-  v_Y = VectorAlloc(4, MATRIX_REAL) ;  /* transformed (dst) coordinates */
 
-  v_Y->rptr[4][1] = 1.0f ;
+  for (tid=0;tid<nthreads;tid++)
+  {
+    v_X[tid] = VectorAlloc(4, MATRIX_REAL) ;  /* input (src) coordinates */
+    v_Y[tid] = VectorAlloc(4, MATRIX_REAL) ;  /* transformed (dst) coordinates */
+    v_Y[tid]->rptr[4][1] = 1.0f ;
+  }
+
+  y2=0;y1=0;x1=0;x2=0;x3=0;frame=0;val=0;
+#ifdef HAVE_OPENMP
+#pragma omp parallel for firstprivate(tid,y2,y1,x1,x2,x3,frame,val,v_X,v_Y) shared(depth,height,width,mAinv,bspline,mri_dst) schedule(static,1)
+#endif
   for (y3 = 0 ; y3 < depth ; y3++)
   {
-    V3_Z(v_Y) = y3 ;
+#ifdef HAVE_OPENMP
+	  tid = omp_get_thread_num();
+#else
+    tid = 0;
+#endif
+    V3_Z(v_Y[tid]) = y3 ;
     for (y2 = 0 ; y2 < height ; y2++)
     {
-      V3_Y(v_Y) = y2 ;
+      V3_Y(v_Y[tid]) = y2 ;
       for (y1 = 0 ; y1 < width ; y1++)
       {
-        V3_X(v_Y) = y1 ;
-        MatrixMultiply(mAinv, v_Y, v_X) ;
+        V3_X(v_Y[tid]) = y1 ;
+        MatrixMultiply(mAinv, v_Y[tid], v_X[tid]) ;
 
-        x1 = V3_X(v_X) ;
-        x2 = V3_Y(v_X) ;
-        x3 = V3_Z(v_X) ;
+        x1 = V3_X(v_X[tid]) ;
+        x2 = V3_Y(v_X[tid]) ;
+        x3 = V3_Z(v_X[tid]) ;
 
         for (frame = 0 ; frame < bspline->coeff->nframes ; frame++)
         {
@@ -2147,11 +2235,16 @@ MRI *MRIlinearTransformBSpline(const MRI_BSPLINE *bspline, MRI *mri_dst, MATRIX 
 
         }
       }
-    }
+    }    
   }
-  MatrixFree(&v_X) ;
+  
+  for (tid=0;tid<nthreads;tid++)
+  {
+    MatrixFree(&v_X[tid]) ;
+    MatrixFree(&v_Y[tid]) ;
+  }
+
   MatrixFree(&mAinv) ;
-  MatrixFree(&v_Y) ;
 
   mri_dst->ras_good_flag = 1;
 
