@@ -7,8 +7,8 @@
  * Original Authors: Sebastien Gicquel and Douglas Greve, 06/04/2001
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2012/05/11 20:15:51 $
- *    $Revision: 1.147 $
+ *    $Date: 2012/05/15 17:34:57 $
+ *    $Revision: 1.148 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -4132,7 +4132,7 @@ CONDITION GetDICOMInfo(const char *fname,
     strcpy(dcminfo->TransferSyntaxUID, "UNKNOWN");
     cond2=cond;
 #ifdef _DEBUG
-    printf("WARNING: tag TransferSystaxUID not found\n");
+    printf("WARNING: tag TransferSystaxUID not found in %s\n",fname);
 #endif
   }
   else
@@ -4172,7 +4172,7 @@ CONDITION GetDICOMInfo(const char *fname,
     strcpy(dcminfo->Manufacturer, "UNKNOWN");
     cond2=cond;
 #ifdef _DEBUG
-    printf("WARNING: tag Manufacturer not found\n");
+    printf("WARNING: tag Manufacturer not found in %s\n",fname);
 #endif
   }
   else
@@ -4187,7 +4187,7 @@ CONDITION GetDICOMInfo(const char *fname,
     strcpy(dcminfo->PatientName, "UNKNOWN");
     cond2=cond;
 #ifdef _DEBUG
-    printf("WARNING: tag PatientName not found\n");
+    printf("WARNING: tag PatientName not found in %s\n",fname);
 #endif
   }
   else
@@ -4202,7 +4202,7 @@ CONDITION GetDICOMInfo(const char *fname,
     strcpy(dcminfo->StudyDate, "UNKNOWN");
     cond2=cond;
 #ifdef _DEBUG
-    printf("WARNING: tag StudyDate not found\n");
+    printf("WARNING: tag StudyDate not found in %s\n",fname);
 #endif
   }
   else
@@ -4217,7 +4217,7 @@ CONDITION GetDICOMInfo(const char *fname,
     strcpy(dcminfo->StudyTime, "UNKNOWN");
     cond2=cond;
 #ifdef _DEBUG
-    printf("WARNING: tag StudyTime not found\n");
+    printf("WARNING: tag StudyTime not found in %s\n",fname);
 #endif
   }
   else
@@ -4232,7 +4232,7 @@ CONDITION GetDICOMInfo(const char *fname,
     strcpy(dcminfo->SeriesTime, "UNKNOWN");
     cond2=cond;
 #ifdef _DEBUG
-    printf("WARNING: tag SeriesTime not found\n");
+    printf("WARNING: tag SeriesTime not found in %s\n",fname);
 #endif
   }
   else
@@ -4247,7 +4247,7 @@ CONDITION GetDICOMInfo(const char *fname,
     strcpy(dcminfo->AcquisitionTime, "UNKNOWN");
     cond2=cond;
 #ifdef _DEBUG
-    printf("WARNING: tag AcquisitionTime not found\n");
+    printf("WARNING: tag AcquisitionTime not found in %s\n",fname);
 #endif
   }
   else
@@ -4259,7 +4259,7 @@ CONDITION GetDICOMInfo(const char *fname,
   if (cond != DCM_NORMAL || dcminfo->SliceThickness==0.0)
   {
 #ifdef _DEBUG
-    printf("WARNING: tag Slice Spacing not found\n");
+    printf("WARNING: tag Slice Spacing not found in %s\n",fname);
 #endif
     // try Slice Thickness tag
     tag=DCM_MAKETAG(0x18, 0x50);
@@ -4285,7 +4285,7 @@ CONDITION GetDICOMInfo(const char *fname,
   {
     dcminfo->ImageNumber=ImageNumber;
     cond2=cond;
-    printf("WARNING: tag ImageNumber not found\n");
+    printf("WARNING: tag ImageNumber not found in %s\n",fname);
   }
   else IsTagPresent[DCM_ImageNumber]=true;
 
@@ -4295,7 +4295,7 @@ CONDITION GetDICOMInfo(const char *fname,
   if (cond != DCM_NORMAL || dcminfo->SeriesNumber==0)
   {
     cond2=cond;
-    printf("WARNING: tag SeriesNumber not found\n");
+    printf("WARNING: tag SeriesNumber not found in %s\n",fname);
   }
   else  IsTagPresent[DCM_SeriesNumber]=true;
 
@@ -4307,7 +4307,7 @@ CONDITION GetDICOMInfo(const char *fname,
     dcminfo->Rows=0;
     cond2=cond;
 #ifdef _DEBUG
-    printf("WARNING: tag Rows not found\n");
+    printf("WARNING: tag Rows not found in %s\n",fname);
 #endif
   }
   else
@@ -4321,7 +4321,7 @@ CONDITION GetDICOMInfo(const char *fname,
     dcminfo->Columns=0;
     cond2=cond;
 #ifdef _DEBUG
-    printf("WARNING: tag Columns not found\n");
+    printf("WARNING: tag Columns not found in %s\n",fname);
 #endif
   }
   else
@@ -4336,7 +4336,7 @@ CONDITION GetDICOMInfo(const char *fname,
     dcminfo->ysize=0.0;
     cond2=cond;
 #ifdef _DEBUG
-    printf("WARNING: tag Pixel spacing not found\n");
+    printf("WARNING: tag Pixel spacing not found in %s\n",fname);
 #endif
   }
   else
@@ -4355,7 +4355,7 @@ CONDITION GetDICOMInfo(const char *fname,
     dcminfo->BitsAllocated=0;
     cond2=cond;
 #ifdef _DEBUG
-    printf("WARNING: tag BitsAllocated not found\n");
+    printf("WARNING: tag BitsAllocated not found in %s\n",fname);
 #endif
   }
   else
@@ -4369,7 +4369,7 @@ CONDITION GetDICOMInfo(const char *fname,
     dcminfo->RepetitionTime=0;
     cond2=cond;
 #ifdef _DEBUG
-    printf("WARNING: tag RepetitionTime not found\n");
+    printf("WARNING: tag RepetitionTime not found in %s\n",fname);
 #endif
   }
   else
@@ -4383,7 +4383,7 @@ CONDITION GetDICOMInfo(const char *fname,
     dcminfo->EchoTime=0;
     cond2=cond;
 #ifdef _DEBUG
-    printf("WARNING: tag EchoTime not found\n");
+    printf("WARNING: tag EchoTime not found in %s\n",fname);
 #endif
   }
   else
@@ -4397,7 +4397,7 @@ CONDITION GetDICOMInfo(const char *fname,
     dcminfo->FlipAngle=0;
     cond2=cond;
 #ifdef _DEBUG
-    printf("WARNING: tag FlipAngle not found\n");
+    printf("WARNING: tag FlipAngle not found in %s\n",fname);
 #endif
   }
   else
@@ -4414,7 +4414,7 @@ CONDITION GetDICOMInfo(const char *fname,
     dcminfo->InversionTime=0;
     cond2=cond;
 #ifdef _DEBUG
-    printf("WARNING: tag InversionTime not found\n");
+    printf("WARNING: tag InversionTime not found in %s\n",fname);
 #endif
   }
   else
@@ -4428,7 +4428,7 @@ CONDITION GetDICOMInfo(const char *fname,
     dcminfo->EchoNumber=0;
     cond2=cond;
 #ifdef _DEBUG
-    printf("WARNING: tag EchoNumber not found\n");
+    printf("WARNING: tag EchoNumber not found in %s\n",fname);
 #endif
   }
   else
@@ -4445,7 +4445,7 @@ CONDITION GetDICOMInfo(const char *fname,
       dcminfo->ImagePosition[i]=0;
     cond2=cond;
 #ifdef _DEBUG
-    printf("WARNING: tag image position not found\n");
+    printf("WARNING: tag image position not found in %s\n",fname);
 #endif
   }
   else
@@ -4462,7 +4462,7 @@ CONDITION GetDICOMInfo(const char *fname,
   {
     for (i=0; i<6; i++) dcminfo->ImageOrientation[i]=0;
     cond2=cond;
-    printf("WARNING: tag image orientation not found\n");
+    printf("WARNING: tag image orientation not found in %s\n",fname);
   }
   else
   {
@@ -4505,7 +4505,7 @@ CONDITION GetDICOMInfo(const char *fname,
       dcminfo->PixelData=NULL;
       cond2=cond;
 #ifdef _DEBUG
-      printf("WARNING: tag pixel data not found\n");
+      printf("WARNING: tag pixel data not found in %s\n",fname);
 #endif
     }
   }
