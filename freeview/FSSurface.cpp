@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2012/05/03 20:50:17 $
- *    $Revision: 1.57 $
+ *    $Date: 2012/05/16 20:41:20 $
+ *    $Revision: 1.58 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -199,18 +199,22 @@ bool FSSurface::MRISRead( const QString& filename,
     if (vo2rasTkReg)
     {
       MATRIX* vox2rasTkReg_inv = MatrixInverse( vo2rasTkReg, NULL );
-      MATRIX* M = MatrixMultiply( vox2rasScanner, vox2rasTkReg_inv, NULL );
-      for ( int i = 0; i < 16; i++ )
+      if (vox2rasTkReg_inv)
       {
-        m_SurfaceToRASMatrix[i] =
-          (double) *MATRIX_RELT( M, (i/4)+1, (i%4)+1 );
+        MATRIX* M = MatrixMultiply( vox2rasScanner, vox2rasTkReg_inv, NULL );
+        for ( int i = 0; i < 16; i++ )
+        {
+          m_SurfaceToRASMatrix[i] =
+            (double) *MATRIX_RELT( M, (i/4)+1, (i%4)+1 );
+        }
+        MatrixFree( &vox2rasTkReg_inv );
+        MatrixFree( &M );
+        m_bValidVolumeGeometry = true;
       }
-      MatrixFree( &vox2rasTkReg_inv );
-      MatrixFree( &M );
-      m_bValidVolumeGeometry = true;
+      else
+        cout << "Warning: MatrixInverse failed." << endl;
     }
-    else
-      cout << "Warning: MatrixInverse failed." << endl;
+
     MRIfree( &tmp );
     MatrixFree( &vox2rasScanner );
     MatrixFree( &vo2rasTkReg );

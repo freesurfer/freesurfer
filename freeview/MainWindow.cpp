@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2012/05/01 16:35:36 $
- *    $Revision: 1.212 $
+ *    $Date: 2012/05/16 20:41:20 $
+ *    $Revision: 1.213 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -4186,7 +4186,7 @@ void MainWindow::OnIOFinished( Layer* layer, int jobtype )
     if ( !sf->HasValidVolumeGeometry() )
     {
       ShowNonModalMessage("Warning",
-                          "Surface does not contain valid volume geometry information. It may not align with volumes and other surfaces.");
+                          "Either this surface does not contain valid volume geometry information, or freeview failed to read the information. This surface may not align with volumes and other surfaces.");
     }
 
     m_strLastDir = QFileInfo( layer->GetFileName() ).canonicalPath();
