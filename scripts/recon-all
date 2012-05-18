@@ -7,9 +7,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: nicks $
-#    $Date: 2012/05/07 18:04:24 $
-#    $Revision: 1.416 $
+#    $Author: greve $
+#    $Date: 2012/05/18 23:16:29 $
+#    $Revision: 1.417 $
 #
 # Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -26,7 +26,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.416 2012/05/07 18:04:24 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.417 2012/05/18 23:16:29 greve Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -3373,6 +3373,7 @@ if($DoSegStats) then
   set cmd = (mri_segstats --seg mri/aseg.mgz --sum stats/aseg.stats)
 #  if($UseCuda) set cmd = (mri_segstats_cuda --seg mri/aseg.mgz --sum stats/aseg.stats)
   set cmd = ($cmd --pv mri/norm.mgz --empty)
+  set cmd = ($cmd --brainmask mri/brainmask.mgz --brain-vol-from-seg)
   set cmd = ($cmd --excludeid 0 --excl-ctxgmwm)
   if ( -e mri/ribbon.mgz ) then
     set cmd = ($cmd --supratent)
