@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: rpwang $
- *    $Date: 2012/04/11 19:46:23 $
- *    $Revision: 1.486.2.5 $
+ *    $Author: greve $
+ *    $Date: 2012/05/18 23:16:52 $
+ *    $Revision: 1.486.2.6 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -23,7 +23,7 @@
  */
 
 extern const char* Progname;
-const char *MRI_C_VERSION = "$Revision: 1.486.2.5 $";
+const char *MRI_C_VERSION = "$Revision: 1.486.2.6 $";
 
 
 /*-----------------------------------------------------
@@ -15008,7 +15008,7 @@ float MRIvoxelsInLabelWithPartialVolumeEffects( const MRI *mri,
             if( (label_counts[this_label] > max_count) &&
                 ((label_means[this_label] - val) *
                  (mean_label - val) < 0) ) {
-              max_count = label_means[this_label] ;
+              max_count = label_counts[this_label] ;
               nbr_label = this_label ;
             }
           }
@@ -15033,7 +15033,7 @@ float MRIvoxelsInLabelWithPartialVolumeEffects( const MRI *mri,
 		}
                 
                 if( label_counts[this_label] > max_count ) {
-                  max_count = label_means[this_label] ;
+                  max_count = label_counts[this_label] ;
                   nbr_label = this_label ;
                 }
               }
