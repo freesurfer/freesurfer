@@ -10,8 +10,8 @@
  * CUDA version : Richard Edgar
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2011/10/25 13:53:06 $
- *    $Revision: 1.94 $
+ *    $Date: 2012/05/21 15:15:04 $
+ *    $Revision: 1.95 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -48,6 +48,7 @@
 
 #include "emregisterutils.h"
 #include "findtranslation.h"
+#include "fsinit.h"
 
 #ifdef FS_CUDA
 #include "devicemanagement.h"
@@ -203,6 +204,7 @@ main(int argc, char *argv[])
   struct timeb start ;
   float        old_log_p, log_p ;
 
+  FSinit() ;
 #ifdef FS_CUDA
   // Force CUDA initialisation
   AcquireCUDADevice();
@@ -212,7 +214,7 @@ main(int argc, char *argv[])
   nargs =
     handle_version_option
     (argc, argv,
-     "$Id: mri_em_register.c,v 1.94 2011/10/25 13:53:06 fischl Exp $",
+     "$Id: mri_em_register.c,v 1.95 2012/05/21 15:15:04 fischl Exp $",
      "$Name:  $");
   if (nargs && argc - nargs == 1)
   {
