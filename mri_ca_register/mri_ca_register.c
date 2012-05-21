@@ -23,9 +23,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2012/03/17 20:44:41 $
- *    $Revision: 1.80 $
+ *    $Author: fischl $
+ *    $Date: 2012/05/21 15:15:08 $
+ *    $Revision: 1.81 $
  *
  * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -66,6 +66,7 @@
 #include "version.h"
 #include "mri_ca_register.help.xml.h"
 #include "mri2.h"
+#include "fsinit.h"
 
 #ifdef FS_CUDA
 #include "devicemanagement.h"
@@ -191,6 +192,7 @@ main(int argc, char *argv[])
   int          label_computed[MAX_CMA_LABELS];
   int          got_scales =0;
 
+  FSinit() ;
 #ifdef FS_CUDA
   AcquireCUDADevice();
 #endif
@@ -233,7 +235,7 @@ main(int argc, char *argv[])
 
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mri_ca_register.c,v 1.80 2012/03/17 20:44:41 nicks Exp $",
+           "$Id: mri_ca_register.c,v 1.81 2012/05/21 15:15:08 fischl Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
   {
@@ -981,7 +983,7 @@ main(int argc, char *argv[])
            parms.log_fp,
            parms.base_name,
            &lta,
-           handle_expanded_ventricles,
+           0,
            label_scales,label_offsets,label_peaks,label_computed) ;
           got_scales = 1;
         }
@@ -991,7 +993,7 @@ main(int argc, char *argv[])
           // not passing lta
           GCAcomputeRenormalizationWithAlignment
           (gcam->gca, mri_morphed, transform,
-           parms.log_fp, parms.base_name, NULL, handle_expanded_ventricles,
+           parms.log_fp, parms.base_name, NULL, 0,
            label_scales,label_offsets,label_peaks,label_computed) ;
 
           // sequential call gets passed the results from first call
@@ -1000,7 +1002,7 @@ main(int argc, char *argv[])
                  "intensity distributions\n");
           GCAseqRenormalizeWithAlignment
           (gcam->gca, mri_morphed, transform,
-           parms.log_fp, parms.base_name, &lta, handle_expanded_ventricles,
+           parms.log_fp, parms.base_name, &lta, 0,
            label_scales,label_offsets,label_peaks,label_computed) ;
           got_scales = 1;
         }
@@ -1037,7 +1039,7 @@ main(int argc, char *argv[])
          parms.log_fp,
          parms.base_name,
          &lta,
-         handle_expanded_ventricles,
+         0,
          label_scales,label_offsets,label_peaks,label_computed) ;
         got_scales = 1;
       }
@@ -1047,7 +1049,7 @@ main(int argc, char *argv[])
         // not passing lta
         GCAcomputeRenormalizationWithAlignment
         (gcam->gca, mri_inputs, trans,
-         parms.log_fp, parms.base_name, NULL, handle_expanded_ventricles,
+         parms.log_fp, parms.base_name, NULL, 0,
          label_scales,label_offsets,label_peaks,label_computed) ;
 
         // sequential call gets passed the results from first call
@@ -1056,7 +1058,7 @@ main(int argc, char *argv[])
                "intensity distributions\n");
         GCAseqRenormalizeWithAlignment
         (gcam->gca, mri_inputs, trans,
-         parms.log_fp, parms.base_name, &lta, handle_expanded_ventricles,
+         parms.log_fp, parms.base_name, &lta, 0,
          label_scales,label_offsets,label_peaks,label_computed) ;
         got_scales = 1;
       }
@@ -1189,6 +1191,27 @@ main(int argc, char *argv[])
 
   //////////////////////////////////////////////////////////////////
   // here is the main work force
+  if (handle_expanded_ventricles)
+  {
+    INTEGRATION_PARMS old_parms ;
+    int               start_t ;
+
+    memmove(&old_parms, (const void *)&parms, sizeof(old_parms)) ;
+    parms.tol = .01 ;
+    parms.l_label = 0 ;
+    parms.l_smoothness = .1 ;   // defaults to 10 when renormalizing by alignment
+    parms.uncompress = 1 ;
+    parms.ratio_thresh = .25;
+    parms.navgs = 256 ;
+    parms.integration_type = GCAM_INTEGRATE_OPTIMAL ;
+    parms.noneg = 0 ;
+    printf("registering ventricular system...\n") ;
+    GCAMregisterVentricles(gcam, mri_inputs, &parms) ;
+    start_t = parms.start_t ;
+    memmove(&parms, (const void *)&old_parms, sizeof(old_parms)) ;
+    parms.start_t = start_t ;
+  }
+
   GCAMregister(gcam, mri_inputs, &parms) ;
   if (renormalize_align_after)
   {
@@ -1212,7 +1235,7 @@ main(int argc, char *argv[])
     }
 
     // GCA Renormalization with Alignment:
-    // check wether or not this is a sequential call
+    // check whether or not this is a sequential call
     if (!got_scales)
       // this is the first (and also last) call
       // do not bother passing or receiving scales info
@@ -1224,7 +1247,7 @@ main(int argc, char *argv[])
        parms.log_fp,
        parms.base_name,
        NULL,
-       handle_expanded_ventricles) ;
+       0) ;
 
       if (parms.write_iterations != 0)
       {
@@ -1255,7 +1278,7 @@ main(int argc, char *argv[])
        parms.log_fp,
        parms.base_name,
        NULL,
-       handle_expanded_ventricles,
+       0,
        label_scales,label_offsets,label_peaks,label_computed) ;
 
     got_scales = 1;
@@ -1272,10 +1295,17 @@ main(int argc, char *argv[])
       parms.tol /= 5 ;  // reset parameters to previous level
       parms.l_smoothness /= 5 ;
       GCAMregister(gcam, mri_inputs, &parms) ;
+      printf("*********************************************************************************************\n") ;
+      printf("*********************************************************************************************\n") ;
+      printf("*********************************************************************************************\n") ;
+      printf("********************* ALLOWING NEGATIVE NODES IN DEFORMATION ********************************\n") ;
+      printf("*********************************************************************************************\n") ;
+      printf("*********************************************************************************************\n") ;
+      printf("*********************************************************************************************\n") ;
       parms.noneg = 0 ;
       parms.tol = 0.25 ;
       parms.orig_dt = 1e-6 ;
-      parms.navgs = 16 ;
+      parms.navgs = 256 ;
       GCAMregister(gcam, mri_inputs, &parms) ;
     }
   }
@@ -1390,6 +1420,11 @@ get_option(int argc, char *argv[])
   {
     remove_rh = 1  ;
     printf("removing right hemisphere labels\n") ;
+  }
+  else if (!stricmp(option, "FROM_ATLAS"))
+  {
+    parms.diag_morph_from_atlas = 1 ;
+    printf("morphing diagnostics from atlas\n") ;
   }
   else if (!stricmp(option, "write_grad"))
   {
