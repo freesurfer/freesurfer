@@ -8,8 +8,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2012/05/15 18:27:33 $
- *    $Revision: 1.14 $
+ *    $Date: 2012/05/21 20:32:42 $
+ *    $Revision: 1.15 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -24,6 +24,11 @@
  */
 #include <cassert>
 #include <iostream>
+
+#ifdef HAVE_OPENMP
+#include <omp.h>
+#endif
+
 #include "MyMRI.h"
 #include "MyMatrix.h"
 #include "CostFunctions.h"
@@ -917,6 +922,282 @@ double MyMRI::entropyPatch(MRI * mri, int x, int y, int z, int radius, int nbins
 //   return entI;
 // }
 
+double MyMRI::noiseVar(MRI * mri)
+{
+  cout << "MyMRI::noiseVar : " << flush;
+  int width  = mri->width -1;
+  int height = mri->height -1;
+  int depth  = mri->depth -1;
+  int insize = (width-1)*(height-1)*(depth-1);
+  int x=0,y=0,z=0;
+
+  double epsi =0.0;
+  
+//   MRI * mrifloat = NULL;
+//   if (mri->type != MRI_FLOAT)
+//   {
+//     mrifloat = MRISeqchangeType(mri, MRI_FLOAT, 0.0, 1, TRUE);
+//     if (mrifloat == NULL)
+//     {
+//       printf("ERROR: MRISeqchangeType\n");
+//       exit(1);
+//     }
+//   }
+//   else
+//     mrifloat = mri;
+// 
+//   MRI *mri_6filter = MRIalloc(3,1,1, MRI_FLOAT);
+//   MRIFvox(mri_6filter, 0, 0, 0) =  1.0/2.0 ;
+//   MRIFvox(mri_6filter, 1, 0, 0) =  -1.0 ;
+//   MRIFvox(mri_6filter, 2, 0, 0) =  1.0/2.0 ;
+//   MRI * mri6 = MRIconvolveGaussian(mrifloat,NULL,mri_6filter);
+//   MRIfree(&mri_6filter);
+//   
+//   MRIwrite(mri6,"mri6.mgz");
+  
+  double sum = 0.0;  
+  for (z=1;z<depth;z++)
+  {
+    //if ((z+1)%zinterval == 0) cout << (z+1)/zinterval << flush;
+    //else  if ((z+1)%zinterval2 ==0) cout << "." << flush;
+    for (y=1;y<height;y++)
+    {
+      for (x=1;x<width;x++)
+      {
+        epsi = MRIgetVoxVal(mri,x-1,y,z,0) + MRIgetVoxVal(mri,x+1,y,z,0);
+        epsi += MRIgetVoxVal(mri,x,y-1,z,0) + MRIgetVoxVal(mri,x,y+1,z,0);
+        epsi += MRIgetVoxVal(mri,x,y,z-1,0) + MRIgetVoxVal(mri,x,y,z+1,0);
+        epsi = MRIgetVoxVal(mri,x,y,z,0) - (epsi/6.0);
+        sum += epsi*epsi;
+      }
+    }
+  }
+  
+//  if (mri != mrifloat)
+//    MRIfree(&mrifloat);
+  
+  sum = (sum/insize) * (6.0 / 7.0);
+  cout.precision(12);
+  cout << sum << endl;
+  return sum;
+}
+
+MRI * MyMRI::nlsdImage(MRI * mri, int prad, int nrad)
+{
+
+  int width  = mri->width;
+  int height = mri->height;
+  int depth  = mri->depth;
+  int x=0,y=0,z=0,xx=0,yy=0,zz=0,xxx=0,yyy=0,zzz=0;
+  //int insize = width*height*depth;
+
+  // allocate non-local shape descriptor image
+  MRI * nlsdI =  MRIalloc(width,height,depth, MRI_FLOAT);
+  nlsdI = MRIcopyHeader(mri,nlsdI);
+  nlsdI->type = MRI_FLOAT;
+  MRIclear(nlsdI);
+  
+  int radius = prad+nrad;
+  int xmax = width-radius-1;
+  int ymax = height-radius-1;
+  int zmax = depth-radius-1;
+  double wij =0.0;
+  double d = 0.0;
+  double val = 0.0;
+  int nsize1 = (nrad*2)+1;
+  int nsize = nsize1 * nsize1 * nsize1;
+  int count = 0;
+  
+  double nvar = noiseVar(mri);
+  double sigma2 = sqrt(2) * nvar; // needs to be estimated from full image
+  double s2 = sqrt(2);
+  
+#ifdef HAVE_OPENMP
+#pragma omp parallel for firstprivate(y,x,val,zz,yy,xx,zzz,yyy,xxx,d,wij,count) shared(depth,height,width,radius,nrad,prad,mri,nlsdI,nsize,sigma2) schedule(static,1)
+#endif
+  for (z=0;z<depth;z++)
+  {
+  
+    if (z%10 == 0)
+    {
+      cout <<"."<< flush;
+    }
+    //if ((z+1)%zinterval == 0) cout << (z+1)/zinterval << flush;
+    //else  if ((z+1)%zinterval2 ==0) cout << "." << flush;
+    for (y=0;y<height;y++)
+    {
+      for (x=0;x<width;x++)
+      {
+        //zero padding at boarder:
+        if (x < radius || y< radius || z<radius || x>xmax || y>ymax || z>zmax)
+        {
+          MRIsetVoxVal(nlsdI,x,y,z,0,0.0);
+          continue;
+        }
+
+        val = 0.0;                
+        double * weights = new double[nsize];
+        count = 0;
+        // run over (non-local) neighborhood
+        for (zz = -nrad; zz <= nrad; zz++)
+        for (yy = -nrad; yy <= nrad; yy++)
+        for (xx = -nrad; xx <= nrad; xx++)
+        {
+                  
+          // run over local neighborhood
+          wij = 0.0;
+          for (zzz = -prad; zzz <= prad; zzz++)
+          for (yyy = -prad; yyy <= prad; yyy++)
+          for (xxx = -prad; xxx <= prad; xxx++)
+          {
+            d= MRIgetVoxVal(mri,x+xxx,y+yyy,z+zzz,0) - MRIgetVoxVal(mri,x+xx+xxx,y+yy+yyy,z+zz+zzz,0);
+            wij += d*d;
+          }
+          wij = exp(- wij / sigma2);
+          weights[count] = wij;
+          count++;
+          val += wij;          
+          
+        }
+        
+        val /= nsize;
+        d = 0.0;
+        for (zz = 0; zz < nsize; zz++)
+        {
+          d += weights[zz] - val;
+        }
+        
+        delete [] weights;
+        
+        MRIsetVoxVal(nlsdI,x,y,z,0,d);
+        
+      }
+    }
+  }
+  cout << endl;
+  return nlsdI;
+}
+
+// MRI * MyMRI::nlsdImage(MRI * mri, int prad, int nrad)
+// {
+// 
+//   int width  = mri->width;
+//   int height = mri->height;
+//   int depth  = mri->depth;
+//   int x=0,y=0,z=0,xx=0,yy=0,zz=0;
+//   double val = 0.0;
+//   int nthreads=1, tid=0;
+// #ifdef HAVE_OPENMP
+// #pragma omp parallel 
+//   {
+//     nthreads = omp_get_num_threads();
+//   }
+// #endif
+// 
+//   // allocate non-local shape descriptor image
+//   MRI * nlsdI =  MRIalloc(width,height,depth, MRI_FLOAT);
+//   nlsdI = MRIcopyHeader(mri,nlsdI);
+//   nlsdI->type = MRI_FLOAT;
+//   MRIclear(nlsdI);
+// 
+//   // allocate tmp mri images (one for each thread)
+//   MRI * mritmps[_MAX_FS_THREADS];
+//   for (tid=0;tid<nthreads;tid++)
+//   {
+//     mritmps[tid] =  MRIalloc(width,height,depth, MRI_FLOAT);
+//     if (mritmps[tid] == NULL)
+//     {
+//       printf("ERROR MyMRI::nlsdImage: mritmp allocation failed (memory overflow)!\n");
+//       exit(1);
+//     }
+//   }
+//   tid = 0;
+//   
+//   // lookup table for neighorhood offset coords:
+//   int nsize = (nrad*2)+1;
+//   nsize = nsize * nsize * nsize;
+//   int nxoffset[nsize];
+//   int nyoffset[nsize];
+//   int nzoffset[nsize];
+//   int count = 0;
+//   for (zz = -nrad; zz <= nrad; zz++)
+//   for (yy = -nrad; yy <= nrad; yy++)
+//   for (xx = -nrad; xx <= nrad; xx++)
+//   {
+//     nxoffset[count] = xx;
+//     nyoffset[count] = yy;
+//     nzoffset[count] = zz;
+//     count++;
+//   }
+//   
+//   // pre compute sqrt(2) sigma^2
+//   double nvar = noiseVar(mri);
+//   double sigma2 = sqrt(2) * nvar; // needs to be estimated from full image
+//   
+//   // pre compute average filter for patch size:
+//   int psize1 = (prad*2)+1;
+//   MRI *avg_filter = MRIalloc(psize1,1,1, MRI_FLOAT);
+//   for (int i = 0;i<psize1; i++) MRIFvox(avg_filter, i, 0, 0) = -1;
+//   
+//   
+//   // run over neighborhood offsets (single loop for better paralellization)
+//   tid = 0;
+// #ifdef HAVE_OPENMP
+// #pragma omp parallel for firstprivate(tid,z,y,x,zz,yy,xx,val) shared(depth,height,width,nxoffset,nyoffset,nzoffset,nlsdI) schedule(static,1)
+// #endif
+//   for (count = 0; count < nsize; count++)
+//   {
+// #ifdef HAVE_OPENMP
+// 	  tid = omp_get_thread_num();
+// #endif
+// 
+// #ifdef HAVE_OPENMP
+//   #pragma omp critical
+// #endif  
+//     cout << " " << count << " ( " << tid << " ) " << endl;
+//     // 1. subtract shifted image from original at current neighbor hood offset
+//     for (z=0; z < depth;  z++)
+//     {
+//       zz = nzoffset[count] +z;
+//       for (y=0; y < height; y++)
+//       {
+//         yy = nyoffset[count] +y;
+//         for (x=0; x < width;  x++)
+//         {
+//           xx = nxoffset[count] + x;
+//           val = MRIgetVoxVal(mri,x,y,z,0);
+//           if ( xx >= 0 && yy >= 0 && zz >= 0 && xx < width && yy < height && zz < depth)
+//             val -= MRIgetVoxVal(mri,xx,yy,zz,0);
+//           // 2. compute pointwise square
+//           MRIsetVoxVal(mritmps[tid],x,y,z,0,val*val);
+//         }
+//       }
+//     }
+//     
+//     // 3. filter with average filter in patch box
+//     MRI * mrit2 = MRIconvolveGaussian(mritmps[tid],NULL,avg_filter);
+// 
+//     // 4. compute (fixed j offset)  wij = exp ( - sum(squared differences) / (sqrt(2) sigma^2)
+//     for (z=0; z < depth;  z++)
+//     for (y=0; y < height; y++)
+//     for (x=0; x < width;  x++)
+//     {
+//       val = exp( MRIgetVoxVal(mrit2,x,y,z,0) / sigma2);
+//       //MRIsetVoxVal(mritemp[tid],x,y,z,0,val);
+// #ifdef HAVE_OPENMP
+//   #pragma omp critical
+// #endif  
+//       MRIFvox(nlsdI, x, y, z) += val;
+//     }
+//   
+//     
+//   
+//     MRIfree(&mrit2);
+//   }
+//   
+//   nlsdI = MRIscalarMul(nlsdI,nlsdI,1.0/nsize);
+//   return nlsdI;
+// }
 
 MRI * MyMRI::entropyImage(MRI* mri, int radius )
 {
@@ -964,7 +1245,7 @@ MRI * MyMRI::entropyImage(MRI* mri, int radius )
 
   // -------------------------------------------------------------------------------------
   // convert to uchar (0..255)
-  MRI * mriuchar;
+  MRI * mriuchar = NULL;
   if (mri->type != MRI_UCHAR)
   {
     int no_scale_flag = FALSE;
@@ -980,7 +1261,7 @@ MRI * MyMRI::entropyImage(MRI* mri, int radius )
   }
   else
   {
-    mriuchar = MRIcopy(mri,NULL);
+    mriuchar = mri;
   }
  
   double factor = nbins/256.0;
@@ -996,7 +1277,8 @@ MRI * MyMRI::entropyImage(MRI* mri, int radius )
     mriIn[count] = (unsigned char) temp;
     count++;
   }  
-  MRIfree(&mriuchar);
+  if (mriuchar != mri)
+    MRIfree(&mriuchar);
   
   // -------------------------------------------------------------------------------------
   // get gaussian kernel

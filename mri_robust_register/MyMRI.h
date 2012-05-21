@@ -8,8 +8,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2011/11/17 02:58:19 $
- *    $Revision: 1.10 $
+ *    $Date: 2012/05/21 20:32:42 $
+ *    $Revision: 1.11 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -55,6 +55,8 @@ public:
   static MRI * subSample(MRI * mri_src, MRI * mri_dst = NULL, bool fixheader = false);
   static MRI * entropyImage( MRI * mri, int radius, int sigma ); 
   static MRI * entropyImage( MRI * mri, int radius ); 
+  static MRI * nlsdImage(MRI * mri, int prad, int nrad);
+  static double noiseVar(MRI * mri);
 
   static vnl_matrix_fixed < double, 4, 4 > MRIvoxelXformToRasXform(MRI * src, MRI * trg, const vnl_matrix_fixed < double, 4, 4> &vox);
 	static MRI* MRIlinearTransform(MRI* mriS, MRI* mriT, const vnl_matrix_fixed < double, 4, 4 >& m);
