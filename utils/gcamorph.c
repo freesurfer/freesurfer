@@ -10,9 +10,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2012/04/30 18:36:40 $
- *    $Revision: 1.265 $
+ *    $Author: fischl $
+ *    $Date: 2012/05/21 23:24:31 $
+ *    $Revision: 1.266 $
  *
  * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -20811,3 +20811,325 @@ GCAMdownsample2(GCA_MORPH *gcam)
   return(gcam_dst) ;
 }
 
+
+int
+GCAMdilateUseLikelihood(GCA_MORPH *gcam, int ndilations)
+{
+  MRI             *mri ;
+  int             x, y, z, i ;
+  GCA_MORPH_NODE *gcamn ;
+
+  mri = MRIalloc(gcam->width, gcam->height, gcam->depth, MRI_UCHAR) ;
+  for (x = 0 ; x < gcam->width ; x++)
+    for (y = 0 ; y < gcam->height ; y++)
+      for (z = 0 ; z < gcam->depth ; z++)
+      {
+	if (x == Gx && y == Gy && z == Gz)
+	  DiagBreak() ;
+	gcamn = &gcam->nodes[x][y][z] ;
+	if (gcamn->status & GCAM_IGNORE_LIKELIHOOD ||
+	    gcamn->status & GCAM_NEVER_USE_LIKELIHOOD)
+	  continue ;
+	MRIsetVoxVal(mri, x, y, z, 0, 1) ;
+      }
+  for (i = 0 ; i < ndilations ; i++)
+    MRIdilate(mri, mri) ;
+  for (x = 0 ; x < gcam->width ; x++)
+    for (y = 0 ; y < gcam->height ; y++)
+      for (z = 0 ; z < gcam->depth ; z++)
+      {
+	if (x == Gx && y == Gy && z == Gz)
+	  DiagBreak() ;
+	gcamn = &gcam->nodes[x][y][z] ;
+	if (gcamn->status & GCAM_IGNORE_LIKELIHOOD ||
+	    gcamn->status & GCAM_NEVER_USE_LIKELIHOOD)
+	{
+	  if (MRIgetVoxVal(mri, x, y, z, 0))
+	    gcamn->status = GCAM_USE_LIKELIHOOD ;
+	}
+      }
+
+  MRIfree(&mri) ;
+  return(NO_ERROR) ;
+}
+
+
+
+static MRI *
+gcamLabelToMRI(GCA_MORPH *gcam, MRI *mri, int label)
+{
+  int             x, y, z ;
+  GCA_MORPH_NODE *gcamn ;
+
+  if (mri == NULL)
+  {
+    mri = MRIalloc(gcam->width, gcam->height, gcam->depth, MRI_SHORT) ;
+    useVolGeomToMRI(&gcam->atlas, mri) ;
+  }
+
+  for (x = 0 ; x < gcam->width ; x++)
+    for (y = 0 ; y < gcam->height ; y++)
+      for (z = 0 ; z < gcam->depth ; z++)
+      {
+	if (x == Gx && y == Gy && z == Gz)
+	  DiagBreak() ;
+	gcamn = &gcam->nodes[x][y][z] ;
+	if (gcamn->label == label)
+	  MRIsetVoxVal(mri, x, y, z, 0, label) ;
+      }
+
+  return(mri) ;
+}
+
+int
+GCAMcomputeVentricleExpansionGradient(GCA_MORPH *gcam)
+{
+  int             x, y, z ;
+  GCA_MORPH_NODE *gcamn ;
+  MRI            *mri_vent_dist, *mri_vent, *mri_vent_dist_grad ;
+
+  mri_vent = gcamLabelToMRI(gcam, NULL, Left_Lateral_Ventricle) ;
+  gcamLabelToMRI(gcam, mri_vent, Right_Lateral_Ventricle) ;
+  gcamLabelToMRI(gcam, mri_vent, Right_Inf_Lat_Vent) ;
+  gcamLabelToMRI(gcam, mri_vent, Left_Inf_Lat_Vent) ;
+  gcamLabelToMRI(gcam, mri_vent, Third_Ventricle) ;
+  gcamLabelToMRI(gcam, mri_vent, Fourth_Ventricle) ;
+  MRIbinarize(mri_vent, mri_vent, 1, 0, 1) ;
+  mri_vent_dist =  MRIdistanceTransform(mri_vent, NULL, 1, -1, DTRANS_MODE_SIGNED, NULL);
+  mri_vent_dist_grad = MRIsobel(mri_vent_dist, NULL, NULL) ;
+  
+  MRIfree(&mri_vent) ; 
+  MRIfree(&mri_vent_dist) ; 
+
+  for (x = 0 ; x < gcam->width ; x++)
+    for (y = 0 ; y < gcam->height ; y++)
+      for (z = 0 ; z < gcam->depth ; z++)
+      {
+	if (x == Gx && y == Gy && z == Gz)
+	  DiagBreak() ;
+	gcamn = &gcam->nodes[x][y][z] ;
+	if (IS_VENTRICLE(gcamn->label))
+	{
+	  if (gcamn->label == Left_Lateral_Ventricle)
+	  {
+//	    Gx = x ; Gy= y ; Gz=z;
+	    DiagBreak() ;
+	  }
+	  gcamn->dx = MRIgetVoxVal(mri_vent_dist_grad, x, y, z, 0) ;
+	  gcamn->dy = MRIgetVoxVal(mri_vent_dist_grad, x, y, z, 1) ;
+	  gcamn->dz = MRIgetVoxVal(mri_vent_dist_grad, x, y, z, 2) ;
+	}
+      }
+
+  MRIfree(&mri_vent_dist_grad) ; 
+  return(NO_ERROR) ;
+}
+
+int
+GCAMregisterVentricles(GCA_MORPH *gcam, MRI *mri, GCA_MORPH_PARMS *parms)
+{
+  char   fname[STRLEN] ;
+  int    navgs, which, fixed_steps = 0, n ;
+  double base_sigma, pct_change, rms, last_rms = 0.0, orig_dt, l_orig_smooth, min_dt, l_orig_elastic, l_elastic, tol ;
+
+  if (FZERO(parms->min_sigma))
+    parms->min_sigma = 0.4 ;
+
+  navgs = parms->navgs ;
+  orig_dt = parms->dt ;
+  l_orig_smooth = parms->l_smoothness;
+  l_orig_elastic = l_elastic = parms->l_elastic;
+  if (DZERO(parms->exp_k))
+    parms->exp_k = EXP_K ;
+  if (parms->levels < 0)
+    parms->levels = DEFAULT_PYRAMID_LEVELS ;
+  else if (parms->levels >= MAX_PYRAMID_LEVELS)
+    parms->levels = MAX_PYRAMID_LEVELS ;
+
+  gcam->exp_k = parms->exp_k ;
+  parms->mri = mri ;
+  //////////////////////////////////////////////////////////
+  if (Gdiag & DIAG_WRITE)
+  {
+    sprintf(fname, "%s.log", parms->base_name) ;
+    if (parms->log_fp == NULL)
+    {
+      if (parms->start_t == 0)
+        parms->log_fp = fopen(fname, "w") ;
+      else
+        parms->log_fp = fopen(fname, "a") ;
+    }
+    log_integration_parms(parms->log_fp, parms) ;
+  }
+  else
+    parms->log_fp = NULL ;
+
+  if (Gdiag & DIAG_SHOW)
+    log_integration_parms(stdout, parms) ;
+  base_sigma = parms->sigma ;
+
+  // GCAMinit() did this at the end
+  // make node to have the max_prior label values
+  if (parms->relabel_avgs >= parms->navgs && parms->relabel)
+    GCAMcomputeLabels(mri, gcam) ;
+  else
+    GCAMcomputeMaxPriorLabels(gcam) ;
+
+  tol = parms->tol ;
+  if (parms->write_iterations && (Gdiag & DIAG_WRITE) && parms->start_t == 0)
+    write_snapshot(gcam, mri, parms, 0) ;
+  n = 0 ;
+  for (navgs = parms->navgs ; parms->navgs >= 0 ; parms->navgs /= 4)
+  {
+    parms->l_smoothness = l_orig_smooth / (sqrt(parms->navgs)+1) ;
+    if (parms->integration_type == GCAM_INTEGRATE_OPTIMAL || parms->integration_type == GCAM_INTEGRATE_BOTH)
+      which = GCAM_INTEGRATE_OPTIMAL ;
+    else
+      which = GCAM_INTEGRATE_FIXED ;
+
+    last_rms = GCAMcomputeRMS(gcam, mri, parms) ;
+    if (FZERO(parms->start_t) && n==0)
+    {
+      if (parms->log_fp)
+      {
+        fprintf(parms->log_fp, "%04d: dt=%2.6f, rms=%2.3f (%2.3f%%), neg=%d, invalid=%d, PA, navgs=%d",
+                parms->start_t, 0.0, last_rms, 0.0, gcam->neg, Ginvalid,navgs) ;
+        if (parms->l_binary > 0)
+          fprintf(parms->log_fp, ", aligned = %d (%2.3f%%)\n",
+                  Galigned, 100.0*Galigned/((gcam->width*gcam->height*gcam->depth)-Ginvalid));
+        else
+          fprintf(parms->log_fp, "\n") ;
+        fflush(parms->log_fp) ;
+      }
+      
+      if (Gdiag & DIAG_SHOW)
+      {
+        printf("%04d: dt=%2.6f, rms=%2.3f (%2.3f%%), neg=%d, invalid=%d, PA, navgs=%d",
+               parms->start_t, 0.0, last_rms, 0.0, gcam->neg, Ginvalid, navgs) ;
+        if (parms->l_binary > 0)
+          printf(", aligned = %d (%2.3f%%)\n",
+                 Galigned, 100.0*Galigned/((gcam->width*gcam->height*gcam->depth)-Ginvalid));
+        else
+          printf("\n") ;
+      }
+    }
+    do
+    {
+      GCAMcopyNodePositions(gcam, CURRENT_POSITIONS, SAVED2_POSITIONS) ;
+      gcamClearGradient(gcam) ;
+      GCAMcomputeVentricleExpansionGradient(gcam) ;
+      gcamSmoothnessTerm(gcam, mri, parms->l_smoothness)  ;
+      gcamLSmoothnessTerm(gcam, mri, parms->l_lsmoothness)  ;
+      gcamSpringTerm(gcam, parms->l_spring, parms->ratio_thresh)  ;
+      gcamJacobianTerm(gcam, mri, parms->l_jacobian,parms->ratio_thresh)  ;
+      // The following appears to be a null operation, based on current #ifdefs
+      gcamLimitGradientMagnitude(gcam, parms, mri) ;
+      gcamSmoothGradient(gcam, parms->navgs) ;
+
+
+      if (which == GCAM_INTEGRATE_OPTIMAL)
+      {
+	parms->dt = (sqrt(parms->navgs)+1.0f)*orig_dt ; /* will search around 
+							   this value */
+	min_dt = gcamFindOptimalTimeStep(gcam, parms, mri) ;
+	if (FZERO(min_dt)) // try a momentum step
+	{
+	  fixed_steps++ ;
+	  which = GCAM_INTEGRATE_FIXED ;
+	  min_dt = parms->dt = (sqrt(parms->navgs)+1.0f)*orig_dt ;
+	}
+	else
+	  fixed_steps = 0 ;
+	parms->dt = min_dt ;
+      }
+      else
+      {
+	fixed_steps++ ;
+	min_dt = parms->dt = (sqrt(parms->navgs)+1.0f)*orig_dt ;
+      }
+
+      gcamApplyGradient(gcam, parms) ;
+      gcamComputeMetricProperties(gcam) ;
+      gcamCheck(gcam, mri) ;
+      if (parms->constrain_jacobian)
+	gcamConstrainJacobian(gcam, mri, parms) ;
+      if (Gdiag & DIAG_SHOW)
+	gcamShowCompressed(gcam, stdout) ;
+
+      gcamRemoveNegativeNodes(gcam, mri, parms) ;
+      if (gcam->neg > 0)   // couldn't unfold everything
+      {
+	printf("---------- unfolding failed - restoring original position --------------------\n");
+	GCAMcopyNodePositions(gcam, SAVED2_POSITIONS, CURRENT_POSITIONS) ;
+	gcamComputeMetricProperties(gcam) ;
+      }
+      if (parms->uncompress)
+	gcamRemoveCompressedNodes(gcam, mri, parms, parms->ratio_thresh) ;
+      rms = GCAMcomputeRMS(gcam, mri, parms) ;
+      pct_change = 100.0*(last_rms-rms)/last_rms ;
+      if (pct_change < 0)
+      {
+	printf("rms increased (dt=%2.4f) - undoing step...\n", min_dt) ;
+	GCAMcopyNodePositions(gcam, SAVED2_POSITIONS, CURRENT_POSITIONS) ;
+	gcamComputeMetricProperties(gcam) ;
+	gcamClearMomentum(gcam) ;
+	continue ;
+      }
+      if (pct_change < 2*tol && parms->integration_type == GCAM_INTEGRATE_BOTH && fixed_steps > 5)
+      {
+	printf("switching integration type back to optimal\n") ;
+	which = GCAM_INTEGRATE_OPTIMAL ;
+      }
+
+      if (!FZERO(parms->start_t))
+	DiagBreak() ;
+      if (parms->write_iterations > 0 && 
+	  !((n+1) % parms->write_iterations) && (Gdiag & DIAG_WRITE))
+	write_snapshot(gcam, mri, parms, parms->start_t+n+1) ;
+
+
+      last_rms = rms ;
+      if (parms->log_fp)
+      {
+        fprintf(parms->log_fp, "%04d: dt=%2.6f, rms=%2.3f (%2.3f%%), neg=%d, invalid=%d, PA, navgs=%d",
+                parms->start_t+n+1, min_dt, rms, pct_change, gcam->neg,
+                Ginvalid,parms->navgs) ;
+        if (parms->l_binary > 0)
+          fprintf(parms->log_fp, ", aligned = %d (%2.3f%%)\n",
+                  Galigned,
+                  100.0*Galigned/((gcam->width*gcam->height*gcam->depth)-Ginvalid));
+        else
+          fprintf(parms->log_fp, "\n") ;
+        fflush(parms->log_fp) ;
+      }
+
+      if (Gdiag & DIAG_SHOW)
+      {
+        printf("%04d: dt=%2.6f, rms=%2.3f (%2.3f%%), neg=%d, invalid=%d, PA, navgs=%d",
+               parms->start_t+n+1, min_dt, rms, pct_change, gcam->neg, Ginvalid, parms->navgs) ;
+        if (parms->l_binary > 0)
+          printf(", aligned = %d (%2.3f%%)\n",
+                 Galigned,
+                 100.0*Galigned/((gcam->width*gcam->height*gcam->depth)-Ginvalid));
+        else
+          printf("\n") ;
+      }
+      n++ ;
+    } while (pct_change > tol) ;
+    if (parms->navgs <= parms->min_avgs)
+      break ;
+  }
+
+  parms->navgs = navgs ;
+  parms->sigma = base_sigma ;
+  parms->l_smoothness = l_orig_smooth ;
+  parms->start_t += n ;
+  
+  if (parms->log_fp)
+  {
+    fclose(parms->log_fp) ;
+    parms->log_fp = NULL ;
+  }
+
+  return(NO_ERROR) ;
+}
