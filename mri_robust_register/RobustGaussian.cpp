@@ -8,8 +8,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2011/08/31 00:39:30 $
- *    $Revision: 1.14 $
+ *    $Date: 2012/05/21 20:32:04 $
+ *    $Revision: 1.15 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -374,29 +374,17 @@ T RobustGaussian<T>::mad(T a[], int n, T d)
 // array a will be reordered!
 {
   T medi = median(a,n);
-//	mmm(a,n);
-//	cout << " median: " << medi << endl;
 	
   T* t = (T *)calloc(n, sizeof(T));
   if (t == NULL) 
      ErrorExit(ERROR_NO_MEMORY,"RobustGaussian<T>::mad could not allocate memory for t") ;
      
-//	double min = fabs(a[0] -medi);
-//	double max = fabs(a[0] -medi);
-//	double mean = 0.0;
   for (int i=0;i<n;i++)
   {
     t[i] = fabs(a[i] -medi);
-//		if (t[i] < min) min = t[i];
-//		if (t[i] > max) max = t[i];
-//		mean += t[i];
-//    //cout  << t[i] << " " << flush;
   }
-//	mean /= n;
-//	cout << " min: " << min << "  max: " << max << "  mean: " << mean << endl;
 
   T mm = median(t,n);
-  //cout << endl <<" RobustGaussian<T>::mad median: " << mm << endl;
   free(t);
   return d * mm;
 }
