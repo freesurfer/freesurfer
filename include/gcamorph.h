@@ -15,8 +15,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2012/04/11 01:01:07 $
- *    $Revision: 1.107 $
+ *    $Date: 2012/05/21 23:24:42 $
+ *    $Revision: 1.108 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -258,6 +258,8 @@ typedef struct
 }
 MRI_SUBCORTCONN ;
 
+int GCAMdilateUseLikelihood(GCA_MORPH *gcam, int ndilations) ;
+int GCAMcomputeVentricleExpansionGradient(GCA_MORPH *gcam) ;
 GCA_MORPH *GCAMupsample2(GCA_MORPH *gcam) ;
 int       GCAMcopy(GCA_MORPH *gcamsrc, GCA_MORPH *gcamdst) ;
 int GCAMconcatenate(GCA_MORPH *gcam1, GCA_MORPH *gcam2, GCA_MORPH *gcam_comp);
@@ -299,6 +301,7 @@ MRI       *GCAMmorphDTIToAtlasType(MRI *mri_src,
 					  GCA_MORPH *gcam, 
 					  MRI *mri_dst, int interp_type, int reorient) ;
 int       GCAMmarkNegativeNodesInvalid(GCA_MORPH *gcam) ;
+int       GCAMregisterVentricles(GCA_MORPH *gcam, MRI *mri, GCA_MORPH_PARMS *parms) ;
 int       GCAMregister(GCA_MORPH *gcam, MRI *mri, GCA_MORPH_PARMS *parms) ;
 int       GCAMregisterWithSubcorticalConnections(GCA_MORPH *gcam, MRI *mri, GCA_MORPH_PARMS *parms, 
 						 MRI_SUBCORTCONN *mri_source_subcort, MRI_SUBCORTCONN *mri_target_subcort) ;
