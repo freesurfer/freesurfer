@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl (Apr 16, 1997)
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2012/04/13 03:44:23 $
- *    $Revision: 1.194 $
+ *    $Author: fischl $
+ *    $Date: 2012/05/21 15:15:10 $
+ *    $Revision: 1.195 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -43,6 +43,7 @@
 #include "stats.h"
 #include "fsgdf.h"
 #include "cma.h"
+#include "fsinit.h"
 
 
 /* ----- determines tolerance of non-orthogonal basis vectors ----- */
@@ -138,6 +139,7 @@ int main(int argc, char *argv[])
   int frame_flag, mid_frame_flag;
   int frame;
   int subsample_flag, SubSampStart, SubSampDelta, SubSampEnd;
+  int downsample_flag ;
   char in_name_only[STRLEN];
   char transform_fname[STRLEN];
   int transform_flag, invert_transform_flag;
@@ -199,12 +201,13 @@ int main(int argc, char *argv[])
   int OutStatTableFlag=0;
   int UpsampleFlag=0, UpsampleFactor=0;
 
+  FSinit() ;
   ErrorInit(NULL, NULL, NULL) ;
   DiagInit(NULL, NULL, NULL) ;
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mri_convert.c,v 1.194 2012/04/13 03:44:23 greve Exp $",
+   "$Id: mri_convert.c,v 1.195 2012/05/21 15:15:10 fischl Exp $",
    "$Name:  $",
    cmdline);
 
@@ -295,6 +298,7 @@ int main(int argc, char *argv[])
   frame_flag = FALSE;
   mid_frame_flag = FALSE;
   subsample_flag = FALSE;
+  downsample_flag = FALSE;
   transform_flag = FALSE;
   smooth_parcellation_flag = FALSE;
   in_like_flag = FALSE;
@@ -325,7 +329,7 @@ int main(int argc, char *argv[])
     handle_version_option
     (
       argc, argv,
-      "$Id: mri_convert.c,v 1.194 2012/04/13 03:44:23 greve Exp $",
+      "$Id: mri_convert.c,v 1.195 2012/05/21 15:15:10 fischl Exp $",
       "$Name:  $"
     );
   if (nargs && argc - nargs == 1)
@@ -1095,6 +1099,10 @@ int main(int argc, char *argv[])
       frame_flag = TRUE;
       mid_frame_flag = TRUE;
     }
+    else if(strcmp(argv[i], "--downsample2") == 0)
+    {
+      downsample_flag = TRUE;
+    }
     else if(strcmp(argv[i], "--fsubsample") == 0)
     {
       get_ints(argc, argv, &i, &SubSampStart, 1);
@@ -1581,9 +1589,25 @@ int main(int argc, char *argv[])
             "= --zero_ge_z_offset option ignored.\n");
   }
 
-  printf("$Id: mri_convert.c,v 1.194 2012/04/13 03:44:23 greve Exp $\n");
+  printf("$Id: mri_convert.c,v 1.195 2012/05/21 15:15:10 fischl Exp $\n");
   printf("reading from %s...\n", in_name_only);
 
+  if (in_volume_type == MGH_MORPH)
+  {
+    GCA_MORPH *gcam, *gcam_out ;
+    gcam = GCAMread(in_name_only) ;
+    if (gcam == NULL)
+      ErrorExit(ERROR_NOFILE, "%s: could not read input morph from %s", Progname, in_name_only) ;
+    if (downsample_flag)
+    {
+      gcam_out = GCAMdownsample2(gcam) ;
+    }
+    else
+      gcam_out = gcam ;
+
+    GCAMwrite(gcam_out, out_name) ;
+    exit(0) ;
+  }
   if (in_volume_type == OTL_FILE)
   {
 
