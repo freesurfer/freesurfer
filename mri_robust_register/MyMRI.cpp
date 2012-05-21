@@ -8,8 +8,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2012/05/21 20:32:42 $
- *    $Revision: 1.15 $
+ *    $Date: 2012/05/21 20:38:00 $
+ *    $Revision: 1.16 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -1010,7 +1010,7 @@ MRI * MyMRI::nlsdImage(MRI * mri, int prad, int nrad)
   
   double nvar = noiseVar(mri);
   double sigma2 = sqrt(2) * nvar; // needs to be estimated from full image
-  double s2 = sqrt(2);
+  //double s2 = sqrt(2);
   
 #ifdef HAVE_OPENMP
 #pragma omp parallel for firstprivate(y,x,val,zz,yy,xx,zzz,yyy,xxx,d,wij,count) shared(depth,height,width,radius,nrad,prad,mri,nlsdI,nsize,sigma2) schedule(static,1)
