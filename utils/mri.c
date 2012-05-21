@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2012/05/18 23:14:52 $
- *    $Revision: 1.510 $
+ *    $Author: mreuter $
+ *    $Date: 2012/05/21 21:08:51 $
+ *    $Revision: 1.511 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -23,7 +23,7 @@
  */
 
 extern const char* Progname;
-const char *MRI_C_VERSION = "$Revision: 1.510 $";
+const char *MRI_C_VERSION = "$Revision: 1.511 $";
 
 
 /*-----------------------------------------------------
@@ -1465,7 +1465,7 @@ MRIlinearScale(MRI *mri_src, MRI *mri_dst, float scale, float offset,
     {
       for (y = 0 ; y < height ; y++)
       {
-        for (x = 0 ; x < height ; x++)
+        for (x = 0 ; x < width ; x++)
         {
           val = MRIgetVoxVal(mri_src, x, y, z, frame) ;
           if (!only_nonzero || !DZERO(val))
@@ -1477,6 +1477,7 @@ MRIlinearScale(MRI *mri_src, MRI *mri_dst, float scale, float offset,
             else if (val < 0) 
               val = 0 ;
           }
+          /*printf(" %d %d %d %d %f \n",x,y,z,frame,val);*/
           MRIsetVoxVal(mri_dst, x, y, z, frame, val) ;
         }
       }
