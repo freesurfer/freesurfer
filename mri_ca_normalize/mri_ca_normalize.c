@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2012/03/01 18:49:31 $
- *    $Revision: 1.61 $
+ *    $Date: 2012/05/21 15:15:02 $
+ *    $Revision: 1.62 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -42,6 +42,7 @@
 #include "mrinorm.h"
 #include "version.h"
 #include "mri2.h"
+#include "fsinit.h"
 
 #define MM_FROM_EXTERIOR  5  // distance into brain mask to go when erasing super bright CSF voxels
 
@@ -59,6 +60,7 @@ static double TRs[MAX_GCA_INPUTS] ;
 static double fas[MAX_GCA_INPUTS] ;
 static double TEs[MAX_GCA_INPUTS] ;
 
+static int noedit = 0 ;
 static int remove_cerebellum = 0 ;
 static int remove_lh = 0 ;
 static int remove_rh = 0 ;
@@ -156,15 +158,16 @@ main(int argc, char *argv[])
   TRANSFORM    *transform = NULL ;
   char         cmdline[CMD_LINE_LEN] ;
 
+  FSinit() ;
   make_cmd_version_string
   (argc, argv,
-   "$Id: mri_ca_normalize.c,v 1.61 2012/03/01 18:49:31 fischl Exp $",
+   "$Id: mri_ca_normalize.c,v 1.62 2012/05/21 15:15:02 fischl Exp $",
    "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mri_ca_normalize.c,v 1.61 2012/03/01 18:49:31 fischl Exp $",
+           "$Id: mri_ca_normalize.c,v 1.62 2012/05/21 15:15:02 fischl Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
   {
@@ -385,7 +388,9 @@ main(int argc, char *argv[])
         ErrorExit(ERROR_NOFILE, "%s: could not open mask volume %s.\n",
                   Progname, mask_fname) ;
 
-      MRIreplaceValues(mri_mask, mri_mask, WM_EDITED_OFF_VAL, 0) ;
+      if (noedit == 0)
+	MRIreplaceValues(mri_mask, mri_mask, WM_EDITED_OFF_VAL, 0) ;
+      MRIclose(mri_mask, mri_mask) ;
       MRImask(mri_tmp, mri_mask, mri_tmp, 0, 0) ;
       MRIfree(&mri_mask) ;
     }
@@ -747,6 +752,12 @@ get_option(int argc, char *argv[])
     nargs = 1 ;
     printf("using longitudinal segmentation volume %s to generate control points...\n",
            long_seg_fname) ;
+  }
+  else if (!strcmp(option, "NOEDIT"))
+  {
+    noedit = atoi(argv[2]) ;
+    nargs = 1 ;
+    printf("%sremoving edited off voxels in the mask\n", noedit ? "not " : "") ;
   }
   else if (!stricmp(option, "LH"))
   {
