@@ -8,8 +8,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2012/05/15 18:27:33 $
- *    $Revision: 1.77 $
+ *    $Date: 2012/05/21 20:36:26 $
+ *    $Revision: 1.78 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -4165,7 +4165,12 @@ void Registration::mapToNewSpace(const vnl_matrix_fixed<double , 4, 4>& M, doubl
       if (mri_Twarp) MRIfree(&mri_Twarp);
       mri_Twarp = MRIclone(mriS,NULL); // bring them to same space (just use src geometry) !! symmetry slightly destroyed here!!
       mri_Twarp = MyMRI::MRIlinearTransform(mriT,mri_Twarp, mhi);
-      
+      //cout << " Ss : " << mri_Swarp->width << " " << mri_Swarp->height << " " << mri_Swarp->depth << endl;
+      //cout << " Ts : " << mri_Twarp->width << " " << mri_Twarp->height << " " << mri_Twarp->depth << endl;
+      // probably better to:
+      //   a) keep inputs at their input size in setSourceTarget
+      //   b) compute overlap here (bbox)
+      //   c) compute image dimensions based on bbox
     }
     else // resample at target location (using target geometry)
     {

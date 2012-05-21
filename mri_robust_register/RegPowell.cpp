@@ -8,8 +8,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2011/10/07 22:28:51 $
- *    $Revision: 1.13 $
+ *    $Date: 2012/05/21 20:36:27 $
+ *    $Revision: 1.14 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -359,7 +359,7 @@ void RegPowell::computeIterativeRegistration( int nmax,double epsit,MRI * mriS, 
   tcf = mriT;
 
   // create parameter vector:
-  pcount = 3; // transolny
+  pcount = 3; // transonly
   if (rigid) pcount = 6;
   else pcount = 12;
   if (pcount==3) assert(transonly);
