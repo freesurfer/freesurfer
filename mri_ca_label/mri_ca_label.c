@@ -9,9 +9,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2012/02/21 21:04:20 $
- *    $Revision: 1.98 $
+ *    $Author: fischl $
+ *    $Date: 2012/05/21 15:15:06 $
+ *    $Revision: 1.99 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -50,11 +50,19 @@
 #include "tags.h"
 #include "mrinorm.h"
 #include "version.h"
+#include "fsinit.h"
+
+static int remove_cerebellum = 0 ;
+static int remove_lh = 0 ;
+static int remove_rh = 0 ;
 
 static int GCAremoveWMSA(GCA *gca) ;
 static char *example_T1 = NULL ;
 static char *example_segmentation = NULL ;
 static char *save_gca_fname = NULL ;
+
+static float Glabel_scales[MAX_CMA_LABELS] ;
+static float Glabel_offsets[MAX_CMA_LABELS] ;
 
 #define MAX_READS 100
 static int nreads = 0 ;
@@ -74,6 +82,8 @@ static int wmsa = 0 ;   // apply wmsa postprocessing (using T2/PD data)
 static int nowmsa = 0 ; // remove all wmsa labels from the atlas
 
 static int handle_expanded_ventricles = 0;
+
+static int renorm_with_histos = 0 ;
 
 static double TRs[MAX_GCA_INPUTS] ;
 static double fas[MAX_GCA_INPUTS] ;
@@ -194,15 +204,16 @@ int main(int argc, char *argv[])
 
   char cmdline[CMD_LINE_LEN] ;
 
+  FSinit() ;
   make_cmd_version_string
   (argc, argv,
-   "$Id: mri_ca_label.c,v 1.98 2012/02/21 21:04:20 greve Exp $",
+   "$Id: mri_ca_label.c,v 1.99 2012/05/21 15:15:06 fischl Exp $",
    "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mri_ca_label.c,v 1.98 2012/02/21 21:04:20 greve Exp $",
+           "$Id: mri_ca_label.c,v 1.99 2012/05/21 15:15:06 fischl Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
   {
@@ -291,6 +302,22 @@ int main(int argc, char *argv[])
     ErrorExit(ERROR_NOFILE, "%s: could not read classifier array from %s",
               Progname, gca_fname) ;
 
+  if (remove_lh)
+  {
+    GCAremoveHemi(gca, 1) ;  // for exvivo contrast
+  }
+  if (remove_rh)
+  {
+    GCAremoveHemi(gca, 0) ;  // for exvivo contrast
+  }
+  if (remove_cerebellum)
+  {
+    GCAremoveLabel(gca, Brain_Stem) ;
+    GCAremoveLabel(gca, Left_Cerebellum_Cortex) ;
+    GCAremoveLabel(gca, Left_Cerebellum_White_Matter) ;
+    GCAremoveLabel(gca, Right_Cerebellum_White_Matter) ;
+    GCAremoveLabel(gca, Right_Cerebellum_Cortex) ;
+  }
   if (nowmsa)
   {
     GCAremoveWMSA(gca) ;
@@ -435,6 +462,7 @@ int main(int argc, char *argv[])
     exit(0) ;
   }
   // -renorm fname option
+  GCAapplyRenormalization(gca, Glabel_scales, Glabel_offsets, 0) ;
   if (renormalization_fname)
   {
     FILE   *fp ;
@@ -692,6 +720,11 @@ int main(int argc, char *argv[])
   fflush(stdout);  fflush(stderr);
 
   GCAfixSingularCovarianceMatrices(gca) ;
+  if (renorm_with_histos)
+  {
+    GCAmapRenormalizeWithHistograms
+      (gca, mri_inputs, transform, NULL, "ca_label",NULL,NULL,NULL,NULL);
+  }
   if (read_fname != NULL && reg_fname == NULL)  /* use given segmentation */
   {
     //read in initial segmentation from file read_fname
@@ -1152,6 +1185,21 @@ get_option(int argc, char *argv[])
     no_gibbs = 1 ;
     printf("disabling gibbs priors...\n") ;
   }
+  else if (!stricmp(option, "LH"))
+  {
+    remove_rh = 1  ;
+    printf("removing right hemisphere labels\n") ;
+  }
+  else if (!stricmp(option, "RH"))
+  {
+    remove_lh = 1  ;
+    printf("removing left hemisphere labels\n") ;
+  }
+  else if (!strcmp(option, "NOCEREBELLUM"))
+  {
+    remove_cerebellum = 1 ;
+    printf("removing cerebellum from atlas\n") ;
+  }
   else if (!stricmp(option, "nowmsa"))
   {
     nowmsa = 1 ;
@@ -1182,6 +1230,11 @@ get_option(int argc, char *argv[])
   else if (!stricmp(option, "-HELP")||!stricmp(option, "-USAGE"))
   {
     usage_exit(0) ;
+  }
+  else if (!stricmp(option, "histo-norm"))
+  {
+    printf("using prior subject histograms for initial GCA renormalization\n") ;
+    renorm_with_histos = 1 ;
   }
   else if (!stricmp(option, "SAVE_GCA"))
   {
@@ -1319,6 +1372,17 @@ get_option(int argc, char *argv[])
   {
     novar = 1 ;
     printf("not using variance in classification\n") ;
+  }
+  else if (!stricmp(option, "LSCALE"))
+  {
+    int l ;
+    l = atoi(argv[2]) ;
+    Glabel_scales[l] = atof(argv[3]) ;
+    nargs = 2 ;
+    printf("scaling label %s by %2.2f\n", cma_label_to_name(l), Glabel_scales[l]) ;
+    for (l = 0 ; l < MAX_CMA_LABELS ; l++)
+      if (FZERO(Glabel_scales[l]))
+	Glabel_scales[l] = 1.0 ;
   }
   else if (!stricmp(option, "REGULARIZE"))
   {
