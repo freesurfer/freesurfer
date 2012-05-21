@@ -104,6 +104,7 @@ libutils_main_SOURCES=\
 	fsenv.c \
 	fsglm.c \
 	fsPrintHelp.c \
+	fsinit.c \
 	gcaboundary.c \
 	gca.c \
 	gcamorph.c \

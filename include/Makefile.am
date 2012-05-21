@@ -54,6 +54,7 @@ EXTRA_DIST=\
 	fmriutils.h \
 	fsenv.h \
 	fsgdf.h \
+	fsinit.h \
 	FsgdfPlot.h \
 	fsgdf_wrap.h \
 	fsglm.h \
