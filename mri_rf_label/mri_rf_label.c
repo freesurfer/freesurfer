@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2012/05/23 13:37:36 $
- *    $Revision: 1.1 $
+ *    $Date: 2012/05/23 23:32:08 $
+ *    $Revision: 1.2 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -120,13 +120,13 @@ main(int argc, char *argv[])
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mri_rf_label.c,v 1.1 2012/05/23 13:37:36 fischl Exp $",
+   "$Id: mri_rf_label.c,v 1.2 2012/05/23 23:32:08 fischl Exp $",
    "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mri_rf_label.c,v 1.1 2012/05/23 13:37:36 fischl Exp $",
+           "$Id: mri_rf_label.c,v 1.2 2012/05/23 23:32:08 fischl Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
   {
@@ -708,7 +708,7 @@ static MRI *
 relabel_wmsa_nbrs_with_random_forest(RANDOM_FOREST *rf, TRANSFORM *transform, GCA *gca, 
 				     MRI *mri_in, MRI *mri_labeled)
 {
-  int     x, y, z, wsize, label, non, noff, nunchanged, new_label, total ;
+  int     x, y, z, wsize, label, non, noff, nunchanged = 0, new_label, total ;
   double  *feature, pval ;
   MRI     *mri_mask, *mri_orig_labeled ;
 
@@ -827,8 +827,8 @@ static int close_labels[] =
   Left_choroid_plexus,
   Right_choroid_plexus,
   Unknown, 
-  Left_Hippocampus,
-  Right_Hippocampus,
+
+
   Left_Amygdala,
   Right_Amygdala,
   Left_Putamen,
