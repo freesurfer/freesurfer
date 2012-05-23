@@ -8,8 +8,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2012/05/23 13:38:42 $
- *    $Revision: 1.1 $
+ *    $Date: 2012/05/23 19:24:37 $
+ *    $Revision: 1.2 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -39,6 +39,7 @@
 #include "gcarray.h"
 #include "version.h"
 #include "rforest.h"
+#include "cma.h"
 
 static int features = FEATURE_INTENSITY | FEATURE_MEAN3 | FEATURE_DIRECTION |
                       FEATURE_CPOLV_MEDIAN5 ;
@@ -71,7 +72,7 @@ main(int argc, char *argv[]) {
   int     nargs, error, i ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_classify.c,v 1.1 2012/05/23 13:38:42 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_classify.c,v 1.2 2012/05/23 19:24:37 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -95,7 +96,7 @@ main(int argc, char *argv[]) {
 
   switch (classifier)
   {
-  case RFOREST:
+  case CLASSIFIER_RFOREST:
     break ;
   default:
     if (nclusters > 0) {

@@ -5,10 +5,10 @@
 AM_CFLAGS=-I$(top_srcdir)/include -I$(top_srcdir)/include/dicom
 AM_LDFLAGS=
 
-bin_PROGRAMS = mri_train
-mri_train_SOURCES=mri_train.c
-mri_train_LDADD= $(addprefix $(top_builddir)/, $(LIBS_MGH))
-mri_train_LDFLAGS=$(OS_LDFLAGS)
+bin_PROGRAMS = mri_classify
+mri_classify_SOURCES=mri_classify.c
+mri_classify_LDADD= $(addprefix $(top_builddir)/, $(LIBS_MGH))
+mri_classify_LDFLAGS=$(OS_LDFLAGS)
 
 
 
