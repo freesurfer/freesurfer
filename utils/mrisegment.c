@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:46 $
- *    $Revision: 1.25 $
+ *    $Author: fischl $
+ *    $Date: 2012/05/23 20:31:35 $
+ *    $Revision: 1.26 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -1064,6 +1064,34 @@ MRIremoveSmallSegments(MRI_SEGMENTATION *mriseg, int min_voxels)
       mriseg->segments[s].nvoxels = 0 ;
     }
   return(MRIcompactSegments(mriseg)) ;
+}
+
+int
+MRIeraseSmallSegments(MRI_SEGMENTATION *mriseg, MRI *mri_seg, int min_voxels)
+{
+  int         s, v, nerased = 0, x, y, z ;
+  MRI_SEGMENT *mseg ;
+
+  if (DIAG_VERBOSE_ON && 0)
+    fprintf(stdout, "compacting segments...\n") ;
+
+  for (s = 0 ; s < mriseg->max_segments ; s++)
+  {
+    mseg = &mriseg->segments[s] ;
+    if (mseg->nvoxels < min_voxels)
+    {
+      if (mseg->voxels)
+	for (v = 0 ; v < mseg->nvoxels ; v++)
+	{
+	  x = mseg->voxels[v].x ; y = mseg->voxels[v].y ; z = mseg->voxels[v].z ;
+	  if (x == Gx && y == Gy && z == Gz)
+	    printf("MRIeraseSmallSegments: erasing (%d, %d %d)\n", x, y, z) ;
+	  MRIsetVoxVal(mri_seg, x, y, z,0, 0) ;
+	  nerased++ ;
+	}
+    }
+  }
+  return(nerased) ;
 }
 
 
