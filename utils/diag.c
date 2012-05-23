@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:42 $
- *    $Revision: 1.35 $
+ *    $Author: fischl $
+ *    $Date: 2012/05/23 17:36:46 $
+ *    $Revision: 1.36 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -35,6 +35,7 @@
 #include "windiag.h"
 #include "proto.h"
 #include "const.h"
+#include "fsinit.h"
 
 /*-----------------------------------------------------
                     MACROS AND CONSTANTS
@@ -99,6 +100,7 @@ DiagInit(char *fname,
   char *cp = 0;
   unsigned long diag = 0L ;
 
+  FSinit() ;
   Gstdout = stdout ;
   Gstdin = stdin ;
   Gstderr = stderr ; // for use in gdb

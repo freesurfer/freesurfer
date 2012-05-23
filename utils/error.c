@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:43 $
- *    $Revision: 1.22 $
+ *    $Author: fischl $
+ *    $Date: 2012/05/23 17:36:46 $
+ *    $Revision: 1.23 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -40,6 +40,7 @@
 #include "hips.h"
 #include "proto.h"
 #include "rgb_image.h"
+#include "fsinit.h"
 
 /*-----------------------------------------------------
                     MACROS AND CONSTANTS
@@ -95,6 +96,7 @@ ErrorInit(char *fname,
           int (*vfprint)(FILE *fp, const char *fmt, va_list args),
           int (*vprint)(const char *fmt, va_list args))
 {
+  FSinit() ;
   error_exit = (void *)exit;
   i_seterror(rgb_error) ;
   if (fname)
@@ -164,8 +166,10 @@ ErrorPrintf(int ecode, const char *fmt, ...)
   va_end(args);
   if (errno)
     perror(NULL) ;
+#if 0
   if (hipserrno)
     perr(ecode, "Hips error:") ;
+#endif
 
   va_start(args, fmt) ;
   fp = fopen(ERROR_FNAME, "a") ;
