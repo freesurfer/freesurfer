@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2012/04/11 00:56:39 $
- *    $Revision: 1.1 $
+ *    $Date: 2012/05/23 17:35:26 $
+ *    $Revision: 1.2 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -37,6 +37,7 @@ extern "C" {
 
 #include "affine.h"
 #include "rforest.h"
+#include "cma.h"
 
 
 #define MAX_MRI_INPUTS  1000
@@ -116,4 +117,40 @@ int  extract_feature(MRI *mri_in, int wsize, int x, int y, int z, double *featur
 
 
 
+#define NOT_TRAINING_LABEL(l) (\
+    ((l) == Left_Accumbens_area) || \
+    ((l) == Right_Accumbens_area) || \
+    ((l) == Unknown) || \
+    ((l) == CSF) || \
+    ((l) == Third_Ventricle) || \
+    ((l) == Fourth_Ventricle) || \
+    ((l) == Left_vessel) || \
+    ((l) == Right_vessel) || \
+    ((l) == non_WM_hypointensities) || \
+    ((l) == Left_Lateral_Ventricle) || \
+    ((l) == Right_Lateral_Ventricle) || \
+    ((l) == Left_Inf_Lat_Vent) || \
+    ((l) == Right_Inf_Lat_Vent) || \
+    ((l) == Left_Pallidum) || \
+    ((l) == Right_Pallidum) || \
+    ((l) == Left_Amygdala) || \
+    ((l) == Right_Amygdala) || \
+    ((l) == Left_Hippocampus) || \
+    ((l) == Right_Hippocampus) || \
+    ((l) == Left_Putamen) || \
+    ((l) == non_WM_hypointensities) || \
+    ((l) == Right_Putamen) || \
+    ((l) == Left_Caudate) || \
+    ((l) == Right_Caudate) || \
+    ((l) == Left_Thalamus_Proper) || \
+    ((l) == Right_Thalamus_Proper) || \
+    ((l) == Left_choroid_plexus) || \
+    ((l) == Right_choroid_plexus) || \
+    ((l) == CC_Anterior) || \
+    ((l) == CC_Mid_Anterior) || \
+    ((l) == CC_Central) || \
+    ((l) == CC_Posterior) || \
+    ((l) == CC_Mid_Posterior))
+
+int MRIcountCSFInNbhd(MRI *mri_seg, int wsize, int x, int y, int z) ;
 #endif

@@ -11,8 +11,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2012/04/11 01:01:07 $
- *    $Revision: 1.117 $
+ *    $Date: 2012/05/23 17:35:26 $
+ *    $Revision: 1.118 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -544,6 +544,8 @@ int GCAreadLabelIntensities(char *fname, float *label_scales, float *label_offse
 int is_possible_wmsa(GCA *gca, MRI *mri, TRANSFORM *transform, int x, int y, int z, int whalf) ;
 double wm_prior(GCA *gca, MRI *mri, TRANSFORM *transform, int x, int y, int z) ;
 double cortex_prior(GCA *gca, MRI *mri, TRANSFORM *transform, int x, int y, int z) ;
+double csf_prior(GCA *gca, MRI *mri, TRANSFORM *transform, int x, int y, int z) ;
+double gm_prior(GCA *gca, MRI *mri, TRANSFORM *transform, int x, int y, int z) ;
 
 #if defined(__cplusplus)
 };
