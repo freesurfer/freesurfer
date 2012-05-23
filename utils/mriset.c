@@ -8,9 +8,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2012/04/18 20:11:21 $
- *    $Revision: 1.83 $
+ *    $Author: fischl $
+ *    $Date: 2012/05/23 17:36:18 $
+ *    $Revision: 1.84 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -4209,3 +4209,63 @@ MRIminAbs(MRI *mri_src1, MRI *mri_src2, MRI *mri_dst)
   return(mri_dst) ;
 }
 
+MRI *
+MRImin(MRI *mri1, MRI *mri2, MRI *mri_min)
+{
+  int   x, y, z, f ;
+  float val1, val2 ;
+
+  if (mri_min == NULL)
+    mri_min = MRIclone(mri1, NULL) ;
+
+
+  for (f = 0 ; f < mri1->nframes ; f++)
+    for (x = 0 ; x < mri1->width;  x++)
+      for (y = 0 ; y < mri1->height;  y++)
+	for (z = 0 ; z < mri1->depth;  z++)
+	{
+	  val1 = MRIgetVoxVal(mri1, x, y, z, f) ;
+	  val2 = MRIgetVoxVal(mri2, x, y, z, f) ;
+	  val1 = val2 < val1 ? val2 : val1 ;
+	  MRIsetVoxVal(mri_min, x, y, z, f, val1) ;
+	}
+
+  return(mri_min) ;
+}
+
+int
+MRIcountNonzero(MRI *mri)
+{
+  int  x, y, z, nonzero, f ;
+
+  for (nonzero = f = 0 ; f < mri->nframes ; f++)
+    for (x = 0 ; x < mri->width ; x++)
+      for (y = 0 ; y < mri->height ; y++)
+	for (z = 0 ; z < mri->depth ; z++)
+	  if (MRIgetVoxVal(mri, x, y, z, f) > 0)
+	    nonzero++ ;
+  return(nonzero) ;
+}
+
+int
+MRIcountValInNbhd(MRI *mri, int wsize, int x, int y, int z, int val)
+{
+  int   xk, yk, zk, xi, yi, zi, whalf, total ;
+
+  whalf = (wsize-1)/2 ;
+  for (total = 0, zk = -whalf ; zk <= whalf ; zk++)
+  {
+    zi = mri->zi[z+zk] ;
+    for (yk = -whalf ; yk <= whalf ; yk++)
+    {
+      yi = mri->yi[y+yk] ;
+      for (xk = -whalf ; xk <= whalf ; xk++)
+      {
+        xi = mri->xi[x+xk] ;
+        if ((int)MRIgetVoxVal(mri, xi, yi, zi,0)  == val)
+          total++ ;
+      }
+    }
+  }
+  return(total) ;
+}

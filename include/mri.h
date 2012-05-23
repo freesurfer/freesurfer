@@ -7,9 +7,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2012/04/18 20:11:21 $
- *    $Revision: 1.438 $
+ *    $Author: fischl $
+ *    $Date: 2012/05/23 17:36:22 $
+ *    $Revision: 1.439 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -592,6 +592,7 @@ MRI   *MRImodeFilterWithControlPoints(MRI *mri_src,
                                       MRI *mri_dst,
                                       int niter) ;
 MRI   *MRIthreshModeFilter(MRI *mri_src, MRI *mri_dst, int niter,float thresh);
+MRI   *MRImin(MRI *mri1, MRI *mri2, MRI *mri_min);
 MRI   *MRIminmax(MRI *mri_src, MRI *mri_dst, MRI *mri_dir, int wsize) ;
 MRI   *MRIgaussian1d(float sigma, int max_len) ;
 MRI   *MRIconvolveGaussian(MRI *mri_src, MRI *mri_dst, MRI *mri_gaussian) ;
@@ -935,6 +936,7 @@ int   MRIneighborsOff(MRI *mri, int x0, int y0, int z0, int min_val) ;
 int   MRIneighborsOn3x3(MRI *mri, int x0, int y0, int z0, int min_val) ;
 int   MRIneighborsOff3x3(MRI *mri, int x0, int y0, int z0, int min_val) ;
 int   MRIlabelsInNbhd(MRI *mri, int x, int y, int z, int whalf, int label) ;
+int   MRIlabelsInNbhd6(MRI *mri, int x, int y, int z, int label) ;
 int   MRIlabelsInPlanarNbhd(MRI *mri,
                             int x, int y, int z,
                             int whalf, int label, int which) ;
@@ -1322,6 +1324,8 @@ MRI *MRIsetValuesOutsideRegion(MRI *mri_src,
                                MRI *mri_dst,
                                float val) ;
 int MRIcountNonzeroInNbhd(MRI *mri, int wsize, int x, int y, int z) ;
+int MRIcountValInNbhd(MRI *mri, int wsize, int x, int y, int z, int val) ;
+int MRIcountNonzero(MRI *mri) ;
 int MRIcountThreshInNbhd(MRI *mri, int wsize, int x,int y,int z, float thresh);
 MRI *MRImatchMeanIntensity(MRI *mri_source,
                            MRI *mri_target,
