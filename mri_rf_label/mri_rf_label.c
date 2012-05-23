@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2012/05/23 23:32:08 $
- *    $Revision: 1.2 $
+ *    $Date: 2012/05/23 23:50:50 $
+ *    $Revision: 1.3 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -112,21 +112,21 @@ main(int argc, char *argv[])
   MRI          *mri_inputs, *mri_labeled, *mri_tmp, *mri_pvals ;
   int          msec, minutes, seconds, ninputs, input ;
   struct timeb start ;
-  RFA          *rfa ;
   TRANSFORM     *transform ;
-  RANDOM_FOREST *rf ;  // if single_classifier_flag is true
+  RFA          *rfa = NULL ;
+  RANDOM_FOREST *rf = NULL ;  // if single_classifier_flag is true
 
   char cmdline[CMD_LINE_LEN] ;
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mri_rf_label.c,v 1.2 2012/05/23 23:32:08 fischl Exp $",
+   "$Id: mri_rf_label.c,v 1.3 2012/05/23 23:50:50 fischl Exp $",
    "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mri_rf_label.c,v 1.2 2012/05/23 23:32:08 fischl Exp $",
+           "$Id: mri_rf_label.c,v 1.3 2012/05/23 23:50:50 fischl Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
   {
