@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2012/04/11 13:46:49 $
- *    $Revision: 1.2 $
+ *    $Date: 2012/05/23 17:35:17 $
+ *    $Revision: 1.3 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -728,3 +728,27 @@ extract_feature(MRI *mri_in, int wsize, int x, int y, int z, double *feature, in
   return(NO_ERROR) ;
 }
 
+static int csf_labels[] = 
+{
+  CSF,
+  Unknown,
+  Left_Lateral_Ventricle,
+  Right_Lateral_Ventricle,
+  Left_Inf_Lat_Vent,
+  Right_Inf_Lat_Vent,
+  Third_Ventricle,
+  Fourth_Ventricle
+} ;
+#define NCSF_LABELS (sizeof(csf_labels) / sizeof(csf_labels[0]))
+
+
+int
+MRIcountCSFInNbhd(MRI *mri_seg, int wsize, int x, int y, int z)
+{
+  int  total, n ;
+
+  for (n = total = 0 ; n < NCSF_LABELS ; n++)
+    total += MRIcountValInNbhd(mri_seg, wsize, x, y, z, csf_labels[n]);
+
+  return(total) ;
+}

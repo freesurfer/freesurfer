@@ -13,9 +13,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2012/03/17 20:44:41 $
- *    $Revision: 1.307 $
+ *    $Author: fischl $
+ *    $Date: 2012/05/23 17:35:16 $
+ *    $Revision: 1.308 $
  *
  * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -11855,6 +11855,10 @@ cma_label_to_name(int label)
     return("Right_Lateral_Ventricles") ;
   if (label == WM_hypointensities)
     return("WM_hypointensities") ;
+  if (label == Left_future_WMSA)
+    return("Left_future_WMSA") ;
+  if (label == Right_future_WMSA)
+    return("Right_future_WMSA") ;
   if (label == Left_WM_hypointensities)
     return("Left_WM_hypointensities") ;
   if (label == Right_WM_hypointensities)
@@ -25864,3 +25868,98 @@ GCAremoveLabel(GCA *gca, int label)
 
   return(NO_ERROR) ;
 }
+int
+is_possible_wmsa(GCA *gca, MRI *mri, TRANSFORM *transform, int x, int y, int z, int whalf)
+{
+  GCA_PRIOR *gcap ;
+  int       xp, yp, zp, xi, yi, zi ;
+  float     left_wmsa, right_wmsa, never_thresh, wmsa ;
+
+  for (xi = -whalf ; xi <= whalf ; xi++)
+    for (yi = -whalf ; yi <= whalf ; yi++)
+      for (zi = -whalf ; zi <= whalf ; zi++)
+      {
+	GCAsourceVoxelToPrior( gca, mri, transform,x+xi, y+yi,z+zi, &xp, &yp, &zp) ;
+	gcap = getGCAP(gca, mri, transform, x, y, z) ;
+	if (gcap == NULL)
+	  continue ;
+	never_thresh = .5/gcap->total_training ;
+
+	left_wmsa = getPrior(gcap, Left_WM_hypointensities) ;
+	right_wmsa = getPrior(gcap, Right_WM_hypointensities) ;
+	wmsa = getPrior(gcap, WM_hypointensities) ;
+	if (left_wmsa > never_thresh || right_wmsa > never_thresh || wmsa > never_thresh)
+	  return(1) ;       // wmsa  occurred here
+      }
+  return(0) ;       // wmsa has never occurred here
+}
+
+double
+cortex_prior(GCA *gca, MRI *mri, TRANSFORM *transform, int x, int y, int z)
+{
+  GCA_PRIOR *gcap ;
+  int       xp, yp, zp ;
+  float     left_gm, right_gm ;
+
+  GCAsourceVoxelToPrior( gca, mri, transform,x, y,z, &xp, &yp, &zp) ;
+  gcap = getGCAP(gca, mri, transform, x, y, z) ;
+  if (gcap == NULL)
+    return(0.0) ;
+  left_gm = getPrior(gcap, Left_Cerebral_Cortex) ;
+  right_gm = getPrior(gcap, Right_Cerebral_Cortex) ;
+  return(left_gm+right_gm) ;
+}
+
+double
+wm_prior(GCA *gca, MRI *mri, TRANSFORM *transform, int x, int y, int z)
+{
+  GCA_PRIOR *gcap ;
+  int       xp, yp, zp ;
+  float     left_wm, right_wm, wmsa ;
+
+  GCAsourceVoxelToPrior( gca, mri, transform,x, y,z, &xp, &yp, &zp) ;
+  gcap = getGCAP(gca, mri, transform, x, y, z) ;
+  if (gcap == NULL)
+    return(0.0) ;
+  wmsa = getPrior(gcap, WM_hypointensities) ;
+  left_wm = getPrior(gcap, Left_Cerebral_White_Matter) ;
+  right_wm = getPrior(gcap, Right_Cerebral_White_Matter) ;
+
+  return(left_wm+right_wm+wmsa) ;
+}
+double
+csf_prior(GCA *gca, MRI *mri, TRANSFORM *transform, int x, int y, int z)
+{
+  GCA_PRIOR *gcap ;
+  int       xp, yp, zp, n ;
+  float     prior ;
+
+  GCAsourceVoxelToPrior( gca, mri, transform,x, y,z, &xp, &yp, &zp) ;
+  gcap = getGCAP(gca, mri, transform, x, y, z) ;
+  if (gcap == NULL)
+    return(0.0) ;
+  for (prior= 0.0, n = 0 ; n < gcap->nlabels ; n++)
+    if (IS_CSF(gcap->labels[n]))
+      prior += gcap->priors[n] ;
+
+  return(prior) ;
+}
+
+double
+gm_prior(GCA *gca, MRI *mri, TRANSFORM *transform, int x, int y, int z)
+{
+  GCA_PRIOR *gcap ;
+  int       xp, yp, zp, n ;
+  float     prior ;
+
+  GCAsourceVoxelToPrior( gca, mri, transform,x, y,z, &xp, &yp, &zp) ;
+  gcap = getGCAP(gca, mri, transform, x, y, z) ;
+  if (gcap == NULL)
+    return(0.0) ;
+  for (prior= 0.0, n = 0 ; n < gcap->nlabels ; n++)
+    if (IS_GRAY_MATTER(gcap->labels[n]))
+      prior += gcap->priors[n] ;
+
+  return(prior) ;
+}
+

@@ -8,8 +8,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2012/04/11 00:56:28 $
- *    $Revision: 1.8 $
+ *    $Date: 2012/05/23 17:35:17 $
+ *    $Revision: 1.9 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -221,6 +221,8 @@ find_optimal_feature_and_threshold(RANDOM_FOREST *rf, TREE *tree, NODE *parent, 
   for (f = 0 ; f < tree->nfeatures ; f++)
   {
     fno = tree->feature_list[f] ;
+    if (fno == Gdiag_no)
+      DiagBreak() ;
     fmin = rf->feature_max[fno] ; fmax = rf->feature_min[fno] ;
     for (tno = 0 ; tno < parent->total_counts ; tno++)
     {
@@ -741,7 +743,7 @@ rfFindLeaf(RF *rf, NODE *node, double *feature)
 	  printf("\tnode: feature #%d: thresh = %2.1f, input val = %2.1f, ",
 		 node->feature, node->thresh, feature[node->feature]) ;
       for (c = 0 ; c < rf->nclasses ; c++)
-	printf("C%d=%d ", c, node->class_counts[c]) ;
+	printf("C%d=%2.0f (%d) ", c, 100.0*(float)node->class_counts[c]/(float)node->total_counts, node->class_counts[c]) ;
       printf("\n") ;
     }
   }
@@ -902,13 +904,15 @@ RFclassify(RANDOM_FOREST *rf, double *feature, double *p_pval, int true_class)
 
       printf("tree %d: ", n) ;
       for  (c = 0 ; c < rf->nclasses ; c++)
-	printf(" C%d=%d ", c, tree->root.class_counts[c]) ;
+	printf(" C%d=%2.f (%d) ", c, 100.0f*tree->root.class_counts[c]/tree->root.total_counts, 
+	       tree->root.class_counts[c]) ;
       for (t = 0 ; t < tree->nleaves ; t++)  // diagnostic
 	if (node == tree->leaves[t])
 	{
 	  printf("leaf %d: ", t) ;
 	  for  (c = 0 ; c < rf->nclasses ; c++)
-	    printf(" C%d=%d ", c, node->class_counts[c]) ;
+	    printf(" C%d=%2.0f (%d) ", c, 100.0*(float)node->class_counts[c]/node->total_counts, 
+		   node->class_counts[c]) ;
 	  printf("\n") ;
 	}
     }
