@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:10 $
- *    $Revision: 1.12 $
+ *    $Author: fischl $
+ *    $Date: 2012/05/23 20:31:40 $
+ *    $Revision: 1.13 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -75,6 +75,7 @@ int              MRIsegmentDilateThreshold(MRI_SEGMENTATION *mriseg,
     MRI *mri_binary, MRI *mri_thresh,
     int low_thresh, int hi_thresh) ;
 int              MRIcompactSegments(MRI_SEGMENTATION *mriseg) ;
+int MRIeraseSmallSegments(MRI_SEGMENTATION *mriseg, MRI *mri_seg, int min_voxels) ;
 int              MRIremoveSmallSegments(MRI_SEGMENTATION *mriseg,
                                         int min_voxels) ;
 int              MRIsegmentMax(MRI_SEGMENTATION *mriseg) ;
