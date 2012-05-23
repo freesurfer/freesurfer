@@ -1,0 +1,123 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<!DOCTYPE help [
+<!ENTITY lt "#38;#60;">
+<!ENTITY gt "&#62;">
+<!ENTITY amp "&#38;#38;">
+<!ELEMENT help (name , synopsis , description , arguments+ , outputs* , example* , bugs* , reporting* , see-also*)*>
+<!ELEMENT name (#PCDATA)>
+<!ELEMENT synopsis (#PCDATA)>
+<!ELEMENT description (#PCDATA)>
+<!ELEMENT arguments (positional* , required-flagged* , optional-flagged*)*>
+<!ELEMENT positional (intro* , argument* , explanation*)*>
+<!ELEMENT required-flagged (intro* , argument* , explanation*)*>
+<!ELEMENT optional-flagged (intro* , argument* , explanation*)*>
+<!ELEMENT intro (#PCDATA)>
+<!ELEMENT argument (#PCDATA)>
+<!ELEMENT explanation (#PCDATA)>
+<!ELEMENT outputs (output* , explanation*)>
+<!ELEMENT output (#PCDATA)>
+<!ELEMENT example (#PCDATA)>
+<!ELEMENT bugs (#PCDATA)>
+<!ELEMENT reporting (#PCDATA)>
+<!ELEMENT see-also (#PCDATA)>
+]>
+<help>
+	<name>mri_ca_label</name>
+	<synopsis>mri_ca_label [&lt;options&gt;] invol1 [invol2 ...] xform gcafile outvol</synopsis>
+	<description>**********************************************************</description>
+  <arguments>
+    <positional>
+      <argument>invol1 [invol2 ...]</argument>
+      <explanation>input volume(s)</explanation>
+      <argument>xform</argument>
+      <explanation>transform file</explanation>
+      <argument>gcafile</argument>
+      <argument>outvol</argument>
+      <explanation>output volume</explanation>
+</positional>
+    <required-flagged>
+      <intro>None</intro>
+    </required-flagged>
+    <optional-flagged>
+      <argument>-cross-sequence</argument>  
+      <explanation>label a volume acquired with sequence different than atlas</explanation>
+      <argument>-nogibbs</argument>
+      <explanation>disable gibbs priors</explanation>
+      <argument>-wm &lt;path&gt;</argument>
+      <explanation>use wm segmentation</explanation>
+      <argument>-conform</argument>
+      <explanation>interpolate volume to be isotropic 1mm^3</explanation>
+      <argument>-normpd</argument>
+      <explanation>normalize PD image to GCA means</explanation>
+      <argument>-tl &lt;gca_tl&gt;</argument>
+      <explanation>use file to label thin temporal lobe</explanation>
+      <argument>-debug_voxel &lt;x&gt; &lt;y&gt; &lt;z&gt;</argument>
+      <explanation>debug voxel</explanation>
+      <argument>-debug_node &lt;x&gt; &lt;y&gt; &lt;z&gt;</argument>
+      <explanation>debug node</explanation>
+      <argument>-debug_label &lt;int n&gt;</argument>
+      <explanation>debug label</explanation>
+      <argument>-tr &lt;float n&gt;</argument>
+      <explanation>set TR in msec</explanation>
+      <argument>-te &lt;float n&gt;</argument>
+      <explanation>set TE in msec</explanation>
+      <argument>-alpha &lt;float n&gt;</argument>
+      <explanation>set alpha in radians</explanation>
+      <argument>-example &lt;mri_vol&gt; &lt;segmentation&gt;</argument>
+      <explanation>use T1 (mri_vol) and segmentation as example</explanation>
+      <argument>-pthresh &lt;float n&gt;</argument>
+      <explanation>use p threshold n for adaptive renormalization (default=.7)</explanation>
+      <argument>-niter &lt;int n&gt;</argument>
+      <explanation>apply max likelihood for n iterations (default=2)</explanation>
+      <argument>-novar</argument>
+      <explanation>do not use variance in classification</explanation>
+      <argument>-regularize &lt;float n&gt;</argument>
+      <explanation>regularize variance to be sigma+nC(noise)</explanation>
+      <argument>-nohippo</argument>
+      <explanation>do not auto-edit hippocampus</explanation>
+      <argument>-fwm &lt;mri_vol&gt;</argument>
+      <explanation>use fixed white matter segmentation from wm</explanation>
+      <argument>-mri &lt;mri_vol&gt;</argument>
+      <explanation>write most likely MR volume to mri_vol</explanation>
+      <argument>-heq &lt;mri_vol&gt;</argument>
+      <explanation>use histogram equalization from mri_vol</explanation>
+      <argument>-renorm &lt;mri_vol&gt;</argument>
+      <explanation>renormalize using predicted intensity values in mri_vol</explanation>
+      <argument>-flash</argument>
+      <explanation>use FLASH forward model to predict intensity values</explanation>
+      <argument>-flash_params &lt;filename&gt;</argument>
+      <explanation>use FLASH forward model and tissue params in filename to predict</explanation>
+      <argument>-renormalize &lt;wsize&gt; &lt;iter&gt;</argument>
+      <explanation>renorm class means &lt;iter&gt; times after initial label with window of &lt;wsize&gt;</explanation>
+      <argument>-r &lt;mri_vol&gt;</argument>
+      <explanation>set input volume</explanation>
+      <argument>-h</argument>
+      <explanation>use GCA to histogram normalize input image</explanation>
+      <argument>-a &lt;int n&gt;</argument>
+      <explanation>mean filter n time to conditional densities</explanation>
+      <argument>-w &lt;int n&gt; &lt;filename&gt;</argument>
+      <explanation>write snapshots of gibbs process every n times to filename</explanation>
+      <argument>-m &lt;mri_vol&gt;</argument>
+      <explanation>use mri_vol to mask final labeling</explanation>
+      <argument>-e &lt;int n&gt;</argument>
+      <explanation>expand</explanation>
+      <argument>-n &lt;int n&gt;</argument>
+      <explanation>set max iterations to n (default=200)</explanation>
+      <argument>-f &lt;int f&gt; &lt;float t&gt;</argument>
+      <explanation>filter labeled volume with threshold t (default=.5) mode filter f (default=0)times</explanation>
+      <argument>-L &lt;mri_vol&gt; &lt;LTA&gt;</argument>
+      <explanation>longitudinal processing: mri_vol is label from tp1, LTA is registration from tp1 to current data</explanation>
+      <argument>-RELABEL_UNLIKELY &lt;1/0&gt; &lt;wsize&gt; &lt;sigma&gt; &lt;thresh&gt;</argument>
+      <explanation>reclassify voxels at least &lt;thresh&gt; std devs from the mean using a &lt;wsize&gt; Gaussian window (with &lt;sigma&gt; standard dev) to recompute priors and likelihoods</explanation>
+    </optional-flagged>
+  </arguments>
+  <outputs>
+    <output>outvol</output>
+    <explanation>output volume</explanation>
+  </outputs>
+	<example>******************************************************</example>
+  <bugs>None</bugs>
+  <reporting>Report bugs to &lt;freesurfer@nmr.mgh.harvard.edu&gt;</reporting>
+	<see-also>mri_cc</see-also>
+</help>
+
