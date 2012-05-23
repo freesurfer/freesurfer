@@ -8,9 +8,9 @@
 # Process this file with autoconf to produce a configure script.
 #
 # CVS Revision Info:
-#    $Author: greve $
-#    $Date: 2012/04/17 19:04:24 $
-#    $Revision: 1.568 $
+#    $Author: fischl $
+#    $Date: 2012/05/23 13:36:30 $
+#    $Revision: 1.569 $
 #
 ########################################################################
 AC_PREREQ(2.57)
@@ -3380,6 +3380,7 @@ AC_OUTPUT([Makefile
            hiam_make_surfaces/Makefile
            hiam_register/Makefile
            hiam_make_template/Makefile
+           template/Makefile
            hipsstubs/Makefile
            histo_register/Makefile
            histo_register/SimpleBaseLib/Makefile
@@ -3423,10 +3424,12 @@ AC_OUTPUT([Makefile
            mri_binarize/Makefile
            mri_build_priors/Makefile
            mri_ca_label/Makefile
+           mri_rf_label/Makefile
            mri_ca_normalize/Makefile
            mri_ca_register/Makefile
            mri_ca_tissue_parms/Makefile
            mri_ca_train/Makefile
+           mri_rf_train/Makefile
            mri_gcab_train/Makefile
            mri_cc/Makefile
            mri_cht2p/Makefile
@@ -3543,6 +3546,7 @@ AC_OUTPUT([Makefile
            mri_threshold/Makefile
            mri_topologycorrection/Makefile
            mri_train/Makefile
+           mri_classify/Makefile
            mri_transform/Makefile
            mri_transform_to_COR/Makefile
            mri_twoclass/Makefile
@@ -3573,6 +3577,7 @@ AC_OUTPUT([Makefile
            mris_fill/Makefile
            mris_fbirn_annot/Makefile
            mris_anatomical_stats/Makefile
+           mris_transmantle_dysplasia_paths/Makefile
            mris_annot_to_segmentation/Makefile
            mris_apply_reg/Makefile
            mris_average_curvature/Makefile

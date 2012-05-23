@@ -45,12 +45,14 @@ MRISUBDIRS=\
 	mri_binarize \
 	mri_build_priors \
 	mri_ca_label \
+	mri_rf_label \
 	mri_aseg_edit_train \
 	mri_aseg_edit_reclassify \
 	mri_ca_normalize \
 	mri_ca_tissue_parms \
 	mri_ca_register \
 	mri_ca_train \
+	mri_rf_train \
 	mri_cvs_register \
 	mri_gcab_train \
 	mri_gcut \
@@ -103,6 +105,7 @@ MRISUBDIRS=\
 	mri_make_bem_surfaces \
 	mri_make_register \
 	mri_make_template \
+	template \
 	mri_map_cpdat \
 	mri_mark_temporal_lobe \
 	mri_mask mri_ms_fitparms \
@@ -143,6 +146,7 @@ MRISUBDIRS=\
 	mri_distance_transform \
 	mri_transform \
 	mri_train \
+	mri_classify \
 	mri_twoclass \
 	mri_volcluster \
 	mri_voldiff \
@@ -206,6 +210,7 @@ MRISSUBDIRS=\
 	mris_fill \
 	mris_add_template \
 	mris_anatomical_stats \
+	mris_transmantle_dysplasia_paths \
 	mris_annot_to_segmentation \
 	mris_apply_reg \
 	mris_aseg_distance \
