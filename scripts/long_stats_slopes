@@ -9,8 +9,8 @@
 # Original Author: Martin Reuter
 # CVS Revision Info:
 #    $Author: mreuter $
-#    $Date: 2012/03/09 00:52:43 $
-#    $Revision: 1.17 $
+#    $Date: 2012/05/24 00:11:37 $
+#    $Revision: 1.18 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -182,6 +182,11 @@ M. Reuter, B. Fischl. NeuroImage 57 (1), pp. 19-21, 2011.
   http://dx.doi.org/10.1016/j.neuroimage.2011.02.076
   http://reuter.mit.edu/papers/reuter-bias11.pdf 
 
+Within-Subject Template Estimation for Unbiased Longitudinal Image Analysis.
+M. Reuter, N.J. Schmansky, H.D. Rosas, B. Fischl. NeuroImage 2012.
+  http://dx.doi.org/10.1016/j.neuroimage.2012.02.084
+  http://reuter.mit.edu/papers/reuter-long12.pdf 
+
 """
 
 def options_parse():
@@ -189,7 +194,7 @@ def options_parse():
     Command Line Options Parser for long_mris_slopes
     initiate the option parser and return the parsed object
     """
-    parser = optparse.OptionParser(version='$Id: long_stats_slopes,v 1.17 2012/03/09 00:52:43 mreuter Exp $', usage=HELPTEXT)
+    parser = optparse.OptionParser(version='$Id: long_stats_slopes,v 1.18 2012/05/24 00:11:37 mreuter Exp $', usage=HELPTEXT)
     
     # help text
     h_qdec      = '(REQUIRED) qdec table file specifying the subjects and time points'
@@ -203,12 +208,14 @@ def options_parse():
     h_dopc1fit  = 'compute and output the pct. change (w.r.t. tp1 from linear fit)'
     h_dospc     = 'compute and output the sym. pct. change (w.r.t. temp. average)'
     h_dostack   = 'save the stacked within subject time point data (time series)'
+    h_resid     = 'residual tp (pass 1 for tp1) to export (default no export)'
 
     h_out_avg   = 'filename to store temporal average in <template>/stats/<OUT_AVG> (default: long.<stats>.<meas>-avg.dat)'
     h_out_rate  = 'filename to store rate in <template>/stats/<OUT_RATE> (default: long.<stats>.<meas>-rate.dat)'
     h_out_pc1   = 'filename to store pct. change (to tp1) in <template>/stats/<OUT_PC1> (default: long.<stats>.<meas>-pc1.dat)'
     h_out_pc1fit= 'filename to store pct. change (to tp1fit) in <template>/stats/<OUT_PC1FIT> (default: long.<stats>.<meas>-pc1fit.dat)'
     h_out_spc   = 'filename to store sym. pct. change in <template>/stats/<OUT_SPC> (default: long.<stats>.<meas>-spc.dat)'
+    h_out_resid = 'filename to store residual in <template>/stats/<OUT_RESID> (default: long.<stats>.<meas>-resid<resid>.dat), requires --resid <int> '
     h_outstack  = 'filename to store stacked measure file <template>/stats/<OUT_STACK> (default: long.<stats>.<meas>-stack.dat)'
 
     h_time      = 'variable name for time column variable (e.g. age) in qdec table'    
@@ -219,63 +226,77 @@ def options_parse():
     h_stack_pc1 = 'full filename to stack pct. change to tp1 tables (default no stacking)'
     h_stack_pc1fit = 'full filename to stack pct. change to tp1fit tables (default no stacking)'
     h_stack_spc = 'full filename to stack sym. pct. tables (default no stacking)'
+    h_stack_resid = 'full filename to stack residual tables (default no stacking)'
     
     h_cross     = 'use cross sectional results (for testing only)'
     # Add options 
 
     # Sepcify inputs
-    parser.add_option('--qdec', dest='qdec', help=h_qdec)
-    parser.add_option('--stats', dest='stats', help=h_stats)
-    parser.add_option('--meas', dest='meas', help=h_meas)
-    parser.add_option('--sd',   dest='sd'  , help=h_sd)
+    group = optparse.OptionGroup(parser, "Required Arguments")
+    group.add_option('--qdec', dest='qdec', help=h_qdec)
+    group.add_option('--stats', dest='stats', help=h_stats)
+    group.add_option('--meas', dest='meas', help=h_meas)
+    group.add_option('--sd',   dest='sd'  , help=h_sd)
+    parser.add_option_group(group)
 
     # do computations:
-    parser.add_option('--do-avg'  , action='store_true', dest='do_avg'  , help=h_doavg  , default=False)
-    parser.add_option('--do-rate' , action='store_true', dest='do_rate' , help=h_dorate , default=False)
-    parser.add_option('--do-pc1fit'  , action='store_true', dest='do_pc1fit'  , help=h_dopc1fit  , default=False)
-    parser.add_option('--do-pc1'  , action='store_true', dest='do_pc1'  , help=h_dopc1  , default=False)
-    parser.add_option('--do-spc'  , action='store_true', dest='do_spc'  , help=h_dospc  , default=False)
-    parser.add_option('--do-stack', action='store_true', dest='do_stack', help=h_dostack, default=False)
+    group = optparse.OptionGroup(parser, "Computations", "Select one or more of the following options:")
+    group.add_option('--do-avg'  , action='store_true', dest='do_avg'  , help=h_doavg  , default=False)
+    group.add_option('--do-rate' , action='store_true', dest='do_rate' , help=h_dorate , default=False)
+    group.add_option('--do-pc1fit'  , action='store_true', dest='do_pc1fit'  , help=h_dopc1fit  , default=False)
+    group.add_option('--do-pc1'  , action='store_true', dest='do_pc1'  , help=h_dopc1  , default=False)
+    group.add_option('--do-spc'  , action='store_true', dest='do_spc'  , help=h_dospc  , default=False)
+    group.add_option('--do-stack', action='store_true', dest='do_stack', help=h_dostack, default=False)
+    group.add_option('--resid', dest='resid', type="int", help=h_resid, default=-1)
+    parser.add_option_group(group)
     
     # parameters:
-    parser.add_option('--time', dest='time', help=h_time)
-    parser.add_option('--generic-time', action='store_true', dest='generic_time', help=h_generictime, default=False)
+    group = optparse.OptionGroup(parser, "Parameters")
+    group.add_option('--time', dest='time', help=h_time)
+    group.add_option('--generic-time', action='store_true', dest='generic_time', help=h_generictime, default=False)
+    group.add_option('--cross', action='store_true', dest='cross', help=h_cross, default=False)
+    parser.add_option_group(group)
     
     # overwrite default output names:
-    parser.add_option('--out-avg'  , dest='out_avg'  , help=h_out_avg)
-    parser.add_option('--out-rate' , dest='out_rate' , help=h_out_rate)
-    parser.add_option('--out-pc1fit'  , dest='out_pc1fit'  , help=h_out_pc1fit)
-    parser.add_option('--out-pc1'  , dest='out_pc1'  , help=h_out_pc1)
-    parser.add_option('--out-spc'  , dest='out_spc'  , help=h_out_spc)
-    parser.add_option('--out-stack', dest='out_stack', help=h_outstack)
+    group = optparse.OptionGroup(parser, "Within-Subject Output","Select these to overwrite the default names:")
+    group.add_option('--out-avg'  , dest='out_avg'  , help=h_out_avg)
+    group.add_option('--out-rate' , dest='out_rate' , help=h_out_rate)
+    group.add_option('--out-pc1fit'  , dest='out_pc1fit'  , help=h_out_pc1fit)
+    group.add_option('--out-pc1'  , dest='out_pc1'  , help=h_out_pc1)
+    group.add_option('--out-spc'  , dest='out_spc'  , help=h_out_spc)
+    group.add_option('--out-resid'  , dest='out_resid'  , help=h_out_resid)
+    group.add_option('--out-stack', dest='out_stack', help=h_outstack)
+    parser.add_option_group(group)
     
-    parser.add_option('--stack-avg'  , dest='stack_avg'  , help=h_stack_avg)
-    parser.add_option('--stack-rate' , dest='stack_rate' , help=h_stack_rate)
-    parser.add_option('--stack-pc1fit'  , dest='stack_pc1fit'  , help=h_stack_pc1fit)
-    parser.add_option('--stack-pc1'  , dest='stack_pc1'  , help=h_stack_pc1)
-    parser.add_option('--stack-spc'  , dest='stack_spc'  , help=h_stack_spc)
+    group = optparse.OptionGroup(parser, "Stacked Tables","To output tables with results from all subjects")
+    group.add_option('--stack-avg'  , dest='stack_avg'  , help=h_stack_avg)
+    group.add_option('--stack-rate' , dest='stack_rate' , help=h_stack_rate)
+    group.add_option('--stack-pc1fit'  , dest='stack_pc1fit'  , help=h_stack_pc1fit)
+    group.add_option('--stack-pc1'  , dest='stack_pc1'  , help=h_stack_pc1)
+    group.add_option('--stack-spc'  , dest='stack_spc'  , help=h_stack_spc)
+    group.add_option('--stack-resid'  , dest='stack_resid'  , help=h_stack_resid)
+    parser.add_option_group(group)
 
-    parser.add_option('--cross', action='store_true', dest='cross', help=h_cross, default=False)
                       
     (options, args) = parser.parse_args()
     
     # extensive error checks
     if options.qdec is None:
-        print 'ERROR: Specify --qedc'
-        print '       or run with --help for help.'
+        parser.print_help()
+        print '\nERROR: Specify --qedc (and other required arguments)\n'
         sys.exit(1)
 
         
     if options.stats is None:
-        print 'ERROR: Specify --stats (e.g. \'aseg.stats\')'
+        print 'ERROR: Specify --stats (e.g. \'aseg.stats\')\n'
         sys.exit(1)
 
     if options.meas is None:
-        print 'ERROR: Specify --meas (e.g. \'volume\')'
+        print 'ERROR: Specify --meas (e.g. \'volume\')\n'
         sys.exit(1)
 
     if options.sd is None:
-        print 'ERROR: Specify the subject dir with --sd <fullpath>'
+        print 'ERROR: Specify the subject dir with --sd <fullpath>\n'
         sys.exit(1)   
     
  
@@ -303,14 +324,21 @@ def options_parse():
         options.out_spc = crosslong+options.stats+'.'+options.meas+'-spc.dat'
     else:
         options.do_spc = True
+    if options.out_resid is None:
+        options.out_resid = crosslong+options.stats+'.'+options.meas+'-resid'+str(options.resid)+'.dat'
+    else:
+        if options.resid < 1:
+            print 'ERROR: Please also specify the tp number to export residuals (starting at 1) with --resid !\n'
+            sys.exit(1)
+                
     if options.out_stack is None:
         options.out_stack = crosslong+options.stats+'.'+options.meas+'-stack.dat'
     else:
         options.do_stack = True
     
-               
-    if options.do_avg is None and options.do_rate is None and options.do_pc1fit is None and options.do_pc1 is None and options.do_spc is None:
-        print 'ERROR: Analysis type should be specified, use one or more of --do-avg, --do-rate, --do-pc1fit, --do-pc1 or --do-spc'
+    do_something = options.do_avg or options.do_rate or options.do_pc1fit or options.do_pc1 or options.do_spc or (options.resid > 0)
+    if not do_something:
+        print 'ERROR: Analysis type should be specified, use one or more of --do-avg, --do-rate, --do-pc1fit, --do-pc1, --do-spc, --resid <tpid>\n'
         sys.exit(1)
                 
     return options
@@ -425,6 +453,7 @@ if __name__=="__main__":
     allpc1 = []
     allpc1fit = []
     allrate= []
+    allresid= []
     for subjectid, tplist in qdectable.subjects_tp_map.items():
         print '\nSubject-Template: '+subjectid
         
@@ -493,9 +522,12 @@ if __name__=="__main__":
         zerodof=""
         if num==2:
             zerodof=" --allow-zero-dof "
+        saveeres=""
+        if options.resid > 0:
+            saveeres=" --eres-save "
 
         glmdir=os.path.join(dirname,'glm')
-        cmd = 'mri_glmfit --table '+meas_target+' --X '+x_target+zerodof+' --no-contrasts-ok --glmdir '+glmdir
+        cmd = 'mri_glmfit --table '+meas_target+' --X '+x_target+zerodof+saveeres+' --no-contrasts-ok --glmdir '+glmdir
         run_cmd(cmd,'mri_glmfit did not work?')
 
         # harvest results (in beta.mgh)
@@ -522,6 +554,21 @@ if __name__=="__main__":
                 
         # create ouput (depending on type)
         outex=''
+        
+        if options.resid > 0:
+            # output residual in specific time point
+            eres =  os.path.join(glmdir,'eres.mgh' )
+            outtmp = os.path.join(dirname,options.out_resid+'.mgh')
+            cmd = 'mri_convert --frame '+str(options.resid - 1)+' '+eres+' '+outtmp 
+            run_cmd(cmd,'mri_convert split residual frames '+str(options.resid)+' did not work?')      
+            outname = os.path.join(basestatsdir,options.out_resid)
+            outex = outname
+            allresid.append(outname)
+            template = os.path.join(dirname,'template.'+options.out_resid+'.dat')
+            create_template_table(meas_target,options.meas+'-resid'+str(options.resid),[ subjectid ], template)
+            cmd ='mri_convert --out_stats_table --like '+template+' '+outtmp+' '+outname
+            run_cmd(cmd,'converting resid '+str(options.resid)+' to statstable failed?') 
+                
         if options.do_pc1fit:
             # compute pct change wrt slope evaluated at baseline:
             outtmp = os.path.join(dirname,options.out_pc1fit+'.mgh')
@@ -630,6 +677,10 @@ if __name__=="__main__":
     if options.stack_spc is not None:
         cmd = 'merge_stats_tables --inputs '+" ".join(allspc)+' -t '+options.stack_spc+' --meas '+options.meas+'-spc'+" --all-segs"
         run_cmd(cmd,'merge_stats_tables failed (spc)?') 
+
+    if options.stack_resid is not None:
+        cmd = 'merge_stats_tables --inputs '+" ".join(allresid)+' -t '+options.stack_resid+' --meas '+options.meas+'-resid'+str(options.resid)+" --all-segs"
+        run_cmd(cmd,'merge_stats_tables failed (resid)?') 
     
     #print 'merge_stats_tables --inputs '+" ".join(allavg)+' -t long.all.'+options.stats+'.'+options.meas+'-avg.dat --meas '+options.meas+'-avg'
        
