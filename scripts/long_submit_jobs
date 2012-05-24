@@ -9,8 +9,8 @@
 # Original Author: Martin Reuter
 # CVS Revision Info:
 #    $Author: mreuter $
-#    $Date: 2011/11/04 20:01:43 $
-#    $Revision: 1.10 $
+#    $Date: 2012/05/24 00:09:55 $
+#    $Revision: 1.11 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -256,6 +256,10 @@ M. Reuter, B. Fischl. NeuroImage 57 (1), pp. 19-21, 2011.
   http://dx.doi.org/10.1016/j.neuroimage.2011.02.076
   http://reuter.mit.edu/papers/reuter-bias11.pdf 
 
+Within-Subject Template Estimation for Unbiased Longitudinal Image Analysis.
+M. Reuter, N.J. Schmansky, H.D. Rosas, B. Fischl. NeuroImage 2012.
+  http://dx.doi.org/10.1016/j.neuroimage.2012.02.084
+
 """
 
 
@@ -265,7 +269,7 @@ def options_parse():
     Command Line Options Parser for long_mris_slopes
     initiate the option parser and return the parsed object
     """
-    parser = optparse.OptionParser(version='$Id: long_submit_jobs,v 1.10 2011/11/04 20:01:43 mreuter Exp $', usage=HELPTEXT)
+    parser = optparse.OptionParser(version='$Id: long_submit_jobs,v 1.11 2012/05/24 00:09:55 mreuter Exp $', usage=HELPTEXT)
     
     # help text
     h_qdec      = '(REQUIRED) qdec table file specifying the subjects and time points'
@@ -340,8 +344,8 @@ def options_parse():
     
     # extensive error checks
     if options.qdec is None or options.cdir is None:
-        print 'ERROR: Specify --qedc and --cdir'
-        print '       or run with --help for help.'
+        parser.print_help()
+        print '\nERROR: Specify --qedc and --cdir'
         sys.exit(1)
 
     # setting all to true if not manually selected through parameters (unless check is true):
@@ -566,10 +570,14 @@ def run_base(qdectable,options):
         total = total+1
 
         # check if 2 or more time points
-        if len(tplist) < 2 :
+        if len(tplist) == 1 :
             less2 = less2 + 1
-            print 'WARNING: '+str(subjectid)+' has less than 2 time points, skipping ...'
-            continue
+            print 'WARNING: '+str(subjectid)+' has only single time point, processing upright as base'
+#            print 'WARNING: '+str(subjectid)+' has less than 2 time points, skipping ...'
+#            continue
+        if len(tplist) == 0 :
+            print 'ERROR: '+str(subjectid)+' has 0 time points? '
+            sys.exit(1)
 
         basedir   = os.path.join(options.bdir,subjectid)
         if os.path.exists(basedir) and not ( os.access(basedir,os.R_OK) and os.access(basedir,os.X_OK)and os.access(basedir,os.W_OK)):
@@ -733,10 +741,13 @@ def run_long(qdectable,options):
         print '[LONG] Subject: '+subjectid+'\n'
 
         # check if 2 or more time points
-        if len(tplist) < 2 :
-            print 'WARNING: '+str(subjectid)+' has less than 2 time points, skipping ...'
-            continue
-
+        if len(tplist) == 1 :
+            print 'WARNING: '+str(subjectid)+' has only single time point, running long with upright base'
+#            print 'WARNING: '+str(subjectid)+' has less than 2 time points, skipping ...'
+#            continue
+        if len(tplist) == 0 :
+            print 'ERROR: '+str(subjectid)+' has 0 time points? '
+            sys.exit(1)
 
         requirement = os.path.join("scripts","recon-all.done")
         status = check_file(options.bdir,subjectid,requirement)
