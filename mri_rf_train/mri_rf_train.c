@@ -9,8 +9,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2012/05/23 13:37:47 $
- *    $Revision: 1.1 $
+ *    $Date: 2012/05/24 00:04:15 $
+ *    $Revision: 1.2 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -130,13 +130,13 @@ main(int argc, char *argv[])
   int          ac, nargs, i, n, options ;
   int          msec, minutes, seconds, nsubjects, input, ordering[MAX_RFA_INPUTS], o ;
   struct timeb start ;
-  MRI          *mri_seg, *mri_tmp, *mri_in ;
+  MRI          *mri_seg, *mri_tmp, *mri_in = 0 ;
   TRANSFORM    *transform ;
   int          used[MAX_RFA_INPUTS];
   int          counts;
-  RFA          *rfa ;
-  RANDOM_FOREST *rf ;
-  GCA           *gca ;
+  RFA          *rfa = NULL ;
+  RANDOM_FOREST *rf = NULL ;
+  GCA           *gca = NULL ;
 
   Progname = argv[0] ;
 
@@ -157,7 +157,7 @@ main(int argc, char *argv[])
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mri_rf_train.c,v 1.1 2012/05/23 13:37:47 fischl Exp $",
+           "$Id: mri_rf_train.c,v 1.2 2012/05/24 00:04:15 fischl Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -1666,7 +1666,7 @@ train_rforest_with_wmsa_nbrs(MRI **mri_inputs, MRI **mri_segs, TRANSFORM **trans
 			     GCA *gca, RFA_PARMS *parms)
 {
   RANDOM_FOREST  *rf ;
-  int            nfeatures, x, y, z, ntraining, n, ignored ;
+  int            nfeatures, x, y, z, ntraining, n, ignored = 0 ;
   MRI            *mri_in, *mri_seg ;
   TRANSFORM      *transform ;
   double         **training_data ;
@@ -1740,7 +1740,7 @@ train_rforest_with_wmsa_nbrs(MRI **mri_inputs, MRI **mri_segs, TRANSFORM **trans
 
   if (max_wm_wmsa_ratio*(nfuture+nwmsa) < nnot)   // too many wm labels w.r.t. # of wmsas - remove some wm
   {
-    int ignored, total_to_remove =  nnot - (max_wm_wmsa_ratio*(nfuture+nwmsa)), *random_indices ;
+    int total_to_remove =  nnot - (max_wm_wmsa_ratio*(nfuture+nwmsa)), *random_indices ;
     printf("removing %dK WM indices to reduce training set imbalance\n", total_to_remove/1000) ;
     random_indices = compute_permutation(ntraining, NULL) ;
 
