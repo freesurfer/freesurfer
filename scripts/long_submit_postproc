@@ -9,8 +9,8 @@
 # Original Author: Martin Reuter
 # CVS Revision Info:
 #    $Author: mreuter $
-#    $Date: 2011/07/15 16:49:43 $
-#    $Revision: 1.1 $
+#    $Date: 2012/05/24 00:09:21 $
+#    $Revision: 1.2 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -188,7 +188,7 @@ def options_parse():
     Command Line Options Parser for long_mris_slopes
     initiate the option parser and return the parsed object
     """
-    parser = optparse.OptionParser(version='$Id: long_submit_postproc,v 1.1 2011/07/15 16:49:43 mreuter Exp $', usage=HELPTEXT)
+    parser = optparse.OptionParser(version='$Id: long_submit_postproc,v 1.2 2012/05/24 00:09:21 mreuter Exp $', usage=HELPTEXT)
     
     # help text
     h_qdec      = '(REQUIRED) qdec table file specifying the subjects and time points'
@@ -226,8 +226,8 @@ def options_parse():
 
     # extensive error checks
     if options.qdec is None or options.prog is None:
-        print 'ERROR: Specify --qedc and --prog'
-        print '       or run with --help for help.'
+        parser.print_help()
+        print '\nERROR: Specify --qedc and --prog'
         sys.exit(1)
 
     if not os.path.exists(options.dir):
