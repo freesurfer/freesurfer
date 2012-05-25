@@ -8,8 +8,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2011/09/26 21:50:11 $
- *    $Revision: 1.17 $
+ *    $Date: 2012/05/25 22:54:19 $
+ *    $Revision: 1.18 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -977,7 +977,7 @@ pair < vnl_matrix_fixed <double,4,4 >, double > RegistrationStep<T>::convertP2Md
       vnl_matrix < double > rmat = MyMatrix::getVNLMatrix(q.getRotMatrix3d(),3);
       //Scale
       vnl_matrix < double > smat(3,3,0.0);
-      smat[0][0] = p[3]; smat[1][1] = p[4];
+      smat[0][0] = p[3]; smat[1][1] = p[4]; smat[2][2] = 1;
       //Shear
       vnl_matrix <double > zmat(3,3); zmat.set_identity();
       zmat[0][1] = p[5]; 
