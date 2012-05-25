@@ -8,8 +8,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2012/05/21 20:36:27 $
- *    $Revision: 1.14 $
+ *    $Date: 2012/05/25 22:30:24 $
+ *    $Revision: 1.15 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -35,6 +35,7 @@
 #include <iostream>
 #include <vnl/vnl_inverse.h>
 #include "RegistrationStep.h"
+#include "MyMatrix.h"
 #include <iomanip>
 #include "fs_vnl/fs_powell.h"
 #include "fs_vnl/fs_cost_function.h"
@@ -81,16 +82,15 @@ double RegPowell::costFunction(const vnl_vector < double >& p)
     Md = RegistrationStep<double>::convertP2Md(p,tocurrent->rtype);
   Md.second = exp(Md.second); // compute full factor (source to target)
   //cout << endl;
-  //cout << " M(p)   : " << endl << Md.first << endl;
-  //cout << " psize : " << p.size() << endl;
-  //vnl_matlab_print(vcl_cerr,Md.first,"M",vnl_matlab_print_format_long);
+  //cout << " rtype : " << tocurrent->rtype << endl;
   //cout << " iscale : " << Md.second << endl;
   //vnl_matlab_print(vcl_cerr,p,"p",vnl_matlab_print_format_long);
   //vnl_matlab_print(vcl_cerr,Md.first,"M",vnl_matlab_print_format_long);
+  //vnl_matlab_print(vcl_cerr,mh2,"mh2",vnl_matlab_print_format_long);
+  //vnl_matlab_print(vcl_cerr,mh1,"mh1",vnl_matlab_print_format_long);
  
   // new full M = mh2 * cm * mh1
 	Md.first = mh2 * Md.first * mh1;
-  //cout << " M adj  : " << endl << Md.first << endl;
   //vnl_matlab_print(vcl_cerr,Md.first,"Madj",vnl_matlab_print_format_long);
   //exit(1);
   // maps from half way space (or target if not sym) back to source and to target
@@ -251,6 +251,7 @@ void RegPowell::computeIterativeRegistration( int nmax,double epsit,MRI * mriS, 
     if (mriT->depth != mriS->depth){cout << "ERROR: both source and target need to be 2D or 3D" << endl; exit(1);}
     is2d = true;
   }
+
   
   bool cleanupS = true;
   if (mriS->type != MRI_UCHAR)
@@ -276,6 +277,7 @@ void RegPowell::computeIterativeRegistration( int nmax,double epsit,MRI * mriS, 
     int no_scale_flag = FALSE;
     printf("changing data type from %d to %d (noscale = %d)...\n",
            mriT->type,MRI_UCHAR,no_scale_flag);
+       
     mriT = MRISeqchangeType(mriT, MRI_UCHAR, 0.0, 0.999, no_scale_flag);
     if (mriT == NULL)
     {
@@ -388,11 +390,17 @@ void RegPowell::computeIterativeRegistration( int nmax,double epsit,MRI * mriS, 
   double tols[13] = { 0.02, 0.02, 0.02, 0.001, 0.001 ,0.001, 0.01, 0.01, 0.01, 0.001, 0.001, 0.001,0.001};
   // initial parameters
   vnl_vector < double > p(pcount,0.0);
-
   if (is2d)
   { 
+    // rigid pcount = 3 (transx, transy, rot) init with zero (above)
+
     tols[2] = tols[1];
-    if (pcount >= 6) p[3] = 1.0 ; p[4] = 1.0;
+    // affine 6 (or 7 for int scale), init scaling with 1:
+    if (pcount >= 6)
+    { 
+      p[3] = 1.0;
+      p[4] = 1.0;
+    }
   }
 
   if (pcount >=12)
