@@ -8,8 +8,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2012/05/21 20:36:26 $
- *    $Revision: 1.52 $
+ *    $Date: 2012/05/25 22:57:22 $
+ *    $Revision: 1.53 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -79,13 +79,13 @@ enum Cost
 
   Registration(): sat(-1),iscale(false),transonly(false),rigid(true),
       rtype(1),subsamplesize(-1),minsize(-1),maxsize(-1),debug(0),verbose(1),initorient(false),
-      inittransform(true),highit(-1),mri_source(NULL),mri_target(NULL),iscaleinit(1.0),
+      inittransform(true),initscaling(false),highit(-1),mri_source(NULL),mri_target(NULL),iscaleinit(1.0),
       iscalefinal(1.0),doubleprec(false),wlimit(0.175),symmetry(true),sampletype(SAMPLE_TRILINEAR),
       resample(false),costfun(ROB),	mri_weights(NULL), mri_hweights(NULL),mri_indexing(NULL)
   {};
   Registration(MRI * s, MRI *t): sat(-1),iscale(false),transonly(false),rigid(true),
       rtype(1),subsamplesize(-1),minsize(-1),maxsize(-1),debug(0),verbose(1),initorient(false),
-      inittransform(true),highit(-1),mri_source(MRIcopy(s,NULL)),mri_target(MRIcopy(t,NULL)),
+      inittransform(true),initscaling(false),highit(-1),mri_source(MRIcopy(s,NULL)),mri_target(MRIcopy(t,NULL)),
       iscaleinit(1.0),iscalefinal(1.0),doubleprec(false),wlimit(0.175),symmetry(true),
       sampletype(SAMPLE_TRILINEAR),resample(false),costfun(ROB),
 			mri_weights(NULL),mri_hweights(NULL),mri_indexing(NULL)
@@ -169,6 +169,10 @@ enum Cost
   void setInitTransform(bool it)
   {
     inittransform = it;
+  };
+  void setInitScaling(bool it)
+  {
+    initscaling = it;
   };
   void setDoublePrec(bool b)
   {
@@ -302,6 +306,7 @@ protected:
   int verbose;
   bool initorient;
   bool inittransform;
+  bool initscaling;
   int highit;
 
   MRI * mri_source;

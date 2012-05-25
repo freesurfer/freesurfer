@@ -8,8 +8,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2012/05/21 20:36:26 $
- *    $Revision: 1.78 $
+ *    $Date: 2012/05/25 22:57:22 $
+ *    $Revision: 1.79 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -708,10 +708,13 @@ void Registration::computeMultiresRegistration (int stopres, int n,double epsit)
   if (debug)
   {
     cout << " Debug: writing inital MOV resampled to DST ..." << endl;
+    vnl_matlab_print(vcl_cerr,md.first,"Minit",vnl_matlab_print_format_long);
+    cout << endl;
     MRI * mri_tmp = MRIclone(mriT,NULL); // bring to same space as target (output after resampling)
     mri_tmp = MyMRI::MRIlinearTransform(mriS,mri_tmp,md.first);
     MyMRI::MRIvalscale(mri_tmp,mri_tmp,md.second);
 	  string fn = getName() + "-mapmov-init.mgz";
+    cout << "    Filename: " << fn << endl;
     MRIwrite(mri_tmp,fn.c_str());
     MRIfree(&mri_tmp);
   }
@@ -799,7 +802,7 @@ void Registration::computeMultiresRegistration (int stopres, int n,double epsit)
   {
     //MRIwrite(gpS[r],"mriS-smooth.mgz");
     //MRIwrite(gpT[r],"mriT-smooth.mgz");
-
+    
     if (verbose >0 )
 		{
 		  cout << endl << "Resolution: " << r;
@@ -2856,7 +2859,7 @@ pair < int, int > Registration::getGPLimits(MRI *mriS, MRI *mriT, int min, int m
 // max: no dimension will be larger than max in both images (can happen in one)
 {
   
-  if (verbose >0) cout << "   - Gaussian Pyramid Limits ( min size: " << min << " max size: " << max << " ) "<< endl;
+  if (verbose >0) cout << "   - Get Gaussian Pyramid Limits ( min size: " << min << " max size: " << max << " ) "<< endl;
   
   int smallest = mriS->width;
   if (mriT->width  < smallest) smallest = mriT->width;
@@ -2921,7 +2924,7 @@ vector < MRI* > Registration::buildGPLimits (MRI * mri_in, pair< int, int > limi
 // meaning:  start highest resolution after min steps
 //           don't do more than max steps.
 {
-  if (verbose >0) cout << "   - Gaussian Pyramid Limits ( min steps: " << limits.first << " max steps: " << limits.second << " ) "<< endl;
+  if (verbose >0) cout << "   - Build Gaussian Pyramid ( Limits min steps: " << limits.first << " max steps: " << limits.second << " ) "<< endl;
 
   int n = limits.second - limits.first + 1;
   vector <MRI* > p (n);
@@ -2969,6 +2972,9 @@ vector < MRI* > Registration::buildGPLimits (MRI * mri_in, pair< int, int > limi
     mri_tmp = p[j];
     j++;
 	  //cout << " w[" << i<<"]: " << p[i]->width << endl;
+    //cout << "i: " << i << " j: " << j << endl;
+    //cout << " rows " << mri_tmp->r_to_i__->rows << " cols " << mri_tmp->r_to_i__->cols <<  endl;
+  
   }
   
   assert(j==n); // check that all fields were filled
@@ -3146,6 +3152,33 @@ vnl_matrix_fixed <double,4,4> Registration::initializeTransform(MRI *mriS, MRI *
   if (verbose > 0)
     cout << "   - computing initial transform\n" ;
 
+  if (initscaling)
+  {
+     if (symmetry)
+     {
+        cout << " ERROR: initscaling only meaningful with --nosym (else image sizes will agree)!\n";
+        exit(1);
+     }
+     double rw = ((double)mriT->width)  / ((double) mriS->width);
+     double rh = ((double)mriT->height) / ((double) mriS->height);
+     double rd = ((double)mriT->depth)  / ((double) mriS->depth);
+     //cout << " rw : " << rw << " rh : " << rh  << " rd :  " << rd << endl;
+     //cout << " sw : " << mriS->width << " sh : " << mriS->height  << " sd :  " << mriS->depth << endl;
+     double s;
+     if (mriT->depth > 1 && mriS->depth  > 1)
+     {
+       s = pow( rw*rh*rd, 1.0/3.0);
+       myinit[0][0] = s; myinit[1][1] = s; myinit[2][2] = s;
+     }
+     else //assume 2d
+     {
+       s = sqrt( rw*rh);
+       myinit[0][0] = s; myinit[1][1] = s; 
+     }
+	 //  if (verbose > 1)   
+         cout << "     -- adjusting image sizes ( " << s << " ) \n" ;
+     return myinit;
+  }
 
   //bool initorient = false; // do not use orientation (can be off due to different cropping)
   //bool initorient = true;

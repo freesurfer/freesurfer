@@ -10,8 +10,8 @@
  * Original Author: Martin Reuter, Nov. 4th ,2008
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2012/05/10 16:19:31 $
- *    $Revision: 1.62 $
+ *    $Date: 2012/05/25 22:57:22 $
+ *    $Revision: 1.63 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -111,6 +111,7 @@ struct Parameters
   bool   dosatest;
   bool   initorient;
   bool   inittrans;
+  bool   initscaling;
   int    verbose;
   int    highit;
   bool   doubleprec;
@@ -162,6 +163,7 @@ static struct Parameters P =
   false,
   false,
   true,
+  false,
   1,
   -1,
   false,
@@ -184,7 +186,7 @@ static void printUsage(void);
 static bool parseCommandLine(int argc, char *argv[],Parameters & P) ;
 static void initRegistration(Registration & R, Parameters & P) ;
 
-static char vcid[] = "$Id: mri_robust_register.cpp,v 1.62 2012/05/10 16:19:31 mreuter Exp $";
+static char vcid[] = "$Id: mri_robust_register.cpp,v 1.63 2012/05/25 22:57:22 mreuter Exp $";
 char *Progname = NULL;
 
 //static MORPH_PARMS  parms ;
@@ -824,7 +826,9 @@ int main(int argc, char *argv[])
 //       }
       
       // keep mov type:
+      cout << " copy ... " << endl;
       MRI *mri_aligned = MRIcloneDifferentType(P.mri_dst, P.mri_mov->type) ;
+      cout << " transform ... " << endl;
       mri_aligned = LTAtransformInterp(P.mri_mov,mri_aligned, lta,P.finalsampletype);
       
       // reset mov n frames:
@@ -894,14 +898,12 @@ int main(int argc, char *argv[])
         //cout << " mri_weights type: " << mri_weights->type << endl;
         if (P.oneminusweights)
         {
-          mri_weights = MRIlinearScale(mri_weights,NULL,-1,1,0);
+          MRI * mri_iweights = MRIlinearScale(mri_weights,NULL,-1,1,0);
+          MRIwrite(mri_iweights,P.weightsout.c_str()) ;
+          MRIfree(&mri_iweights);
         }
-        MRIwrite(mri_weights,P.weightsout.c_str()) ;
-        if (P.oneminusweights)
-        {
-          MRIfree(&mri_weights);
-          mri_weights = R.getWeights();
-        }
+        else
+          MRIwrite(mri_weights,P.weightsout.c_str()) ;
 
 //       // map to target and use target geometry
 //       std::pair < vnl_matrix_fixed < double, 4, 4>, vnl_matrix_fixed < double, 4, 4> > map2weights = R.getHalfWayMaps();
@@ -1388,6 +1390,7 @@ static void initRegistration(Registration & R, Parameters & P)
   R.setHighit(P.highit);
   R.setInitTransform(P.inittrans);
   R.setInitOrient(P.initorient);
+  R.setInitScaling(P.initscaling);
   R.setDoublePrec(P.doubleprec);
   R.setWLimit(P.wlimit);
   R.setSymmetry(P.symmetry);
@@ -1723,6 +1726,11 @@ static int parseNextCommand(int argc, char *argv[], Parameters & P)
   {
     P.affine = true;
     cout << "--affine: Enableing affine transform!" << endl;
+  }
+  else if (!strcmp(option, "INITSCALING") )
+  {
+    P.initscaling = true;
+    cout << "--initscaling: Enableing initial scale adjustment based on image dimensions!" << endl;
   }
   else if (!strcmp(option, "ISCALE") || !strcmp(option, "I") )
   {
