@@ -8,8 +8,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2012/05/21 20:38:00 $
- *    $Revision: 1.16 $
+ *    $Date: 2012/05/25 22:55:45 $
+ *    $Revision: 1.17 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -1352,10 +1352,21 @@ MRI * MyMRI::entropyImage(MRI* mri, int radius )
       for (x=0;x<width;x++)
       {
         //zero padding at boarder:
-        if (x < radius || y< radius || z<radius || x>xmax || y>ymax || z>zmax)
+        if (depth > 1)
         {
-          MRIsetVoxVal(entI,x,y,z,0,0.0);
-          continue;
+          if (x < radius || y< radius || z<radius || x>xmax || y>ymax || z>zmax)
+          {
+            MRIsetVoxVal(entI,x,y,z,0,0.0);
+            continue;
+          }
+        }
+        else // 2D
+        {
+          if (x < radius || y< radius ||  x>xmax || y>ymax )
+          {
+            MRIsetVoxVal(entI,x,y,z,0,0.0);
+            continue;
+          }        
         }
            
         // inside compute entropy in box:
@@ -1366,7 +1377,14 @@ MRI * MyMRI::entropyImage(MRI* mri, int radius )
         
         // compute histo
         count = 0;
-        for (zz = 0; zz < ssize; zz++)
+        int zstart = 0;
+        int zend = ssize;
+        if (depth == 1)
+        {
+          zstart = radius;
+          zend   = zstart+1;
+        }
+        for (zz = zstart; zz < zend; zz++)
         for (yy = 0; yy < ssize; yy++)
         for (xx = 0; xx < ssize; xx++)
         {
