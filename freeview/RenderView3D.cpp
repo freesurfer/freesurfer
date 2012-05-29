@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2011/12/05 20:03:33 $
- *    $Revision: 1.65 $
+ *    $Date: 2012/05/29 16:59:22 $
+ *    $Revision: 1.66 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -261,6 +261,7 @@ void RenderView3D::UpdateViewByWorldCoordinate()
 void RenderView3D::RefreshAllActors(bool bForScreenShot)
 {
   MainWindow* mainwnd = MainWindow::GetMainWindow();
+  SettingsScreenshot setting = mainwnd->GetScreenShotSettings();
 
   m_renderer->RemoveAllViewProps();
   bool b[3] = { m_bShowSlices, m_bShowSlices, m_bShowSlices };
@@ -273,7 +274,8 @@ void RenderView3D::RefreshAllActors(bool bForScreenShot)
 
   if (!mainwnd->IsEmpty())
   {
-    m_cursor3D->AppendActor( m_renderer );
+    if (!bForScreenShot || !setting.HideCursor)
+      m_cursor3D->AppendActor( m_renderer );
   }
 
   // add focus frame

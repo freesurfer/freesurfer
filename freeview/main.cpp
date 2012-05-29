@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2012/04/25 00:04:02 $
- *    $Revision: 1.19 $
+ *    $Date: 2012/05/29 16:59:22 $
+ *    $Revision: 1.20 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -34,6 +34,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "error.h"
+extern "C"
+{
+#include "fsinit.h"
+}
 
 char* Progname;
 
@@ -71,6 +75,8 @@ int main(int argc, char *argv[])
   ErrorSetExitFunc(my_error_exit);
 
   putenv((char*)"SURFER_FRONTDOOR=");
+  if (getenv("FS_DISABLE_LANG") == NULL)
+    putenv((char*)"LANG=en_US");
   qInstallMsgHandler(myMessageOutput);
 
   CmdLineEntry cmdLineDesc[] =
