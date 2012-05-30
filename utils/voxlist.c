@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2012/05/07 16:32:57 $
- *    $Revision: 1.23 $
+ *    $Date: 2012/05/30 12:52:51 $
+ *    $Revision: 1.24 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -1023,7 +1023,7 @@ VLSTfromMRI(MRI *mri, int vno)
   int n ;
   double xd, yd, zd ;
 
-  vl = VLSTalloc(mri->nframes) ; vl->nvox = 0 ;
+  vl = VLSTalloc(mri->height) ; vl->nvox = 0 ;
   for (n = 0 ; n < vl->max_vox ; n++)
   {
     xd = MRIgetVoxVal(mri, vno, n, 0, 0) ;
@@ -1081,5 +1081,47 @@ VLSTcomputeEntropy(VOXEL_LIST *vl, MRI *mri, int num)
   }
 
   return(entropy) ;
+}
+
+double
+VLSTcomputeSplineMean(VOXEL_LIST *vl_spline, MRI *mri, double step_size) 
+{
+  VOXEL_LIST *vl = VLSTinterpolate(vl_spline, step_size) ;
+  double     mean, val ;
+  int        n ;
+
+  for (mean = 0.0, n = 0 ; n < vl->nvox ; n++)
+  {
+    val = MRIgetVoxVal(mri, vl->xi[n], vl->yi[n], vl->zi[n], 0) ;
+    if (FZERO(val))
+      continue ;
+    mean += val ;
+  }
+
+  if (vl->nvox > 1)
+    mean /= vl->nvox ;
+  VLSTfree(&vl) ;
+  return(mean) ;
+}
+
+float
+VLSTcomputeSplineMedian(VOXEL_LIST *vl_spline, MRI *mri, double step_size) 
+{
+  VOXEL_LIST *vl = VLSTinterpolate(vl_spline, step_size) ;
+  float     *vals, median ;
+  int        n ;
+
+  vals = (float *)calloc(vl->nvox, sizeof(float)) ;
+  for (n = 0 ; n < vl->nvox ; n++)
+  {
+    vals[n] = MRIgetVoxVal(mri, vl->xi[n], vl->yi[n], vl->zi[n], 0) ;
+    if (fabs(vals[n]) > 1e20)
+      DiagBreak() ;
+  }
+
+  qsort(vals, vl->nvox, sizeof(float), compare_floats) ;
+  median = vals[vl->nvox/2] ;
+  VLSTfree(&vl) ; free(vals) ;
+  return(median) ;
 }
 

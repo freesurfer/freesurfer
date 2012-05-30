@@ -9,8 +9,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2012/05/07 14:35:32 $
- *    $Revision: 1.105 $
+ *    $Date: 2012/05/30 12:52:51 $
+ *    $Revision: 1.106 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -3163,3 +3163,18 @@ LabelFillVolume(MRI *mri, LABEL *area, int fillval)
   return(NO_ERROR) ;
 }
 
+int
+LabelSetVals(MRI_SURFACE *mris, LABEL *area, float fillval)
+{
+  int           n ;
+  LABEL_VERTEX  *lv ;
+
+  for (n = 0 ; n < area->n_points ; n++)
+  {
+    lv = &area->lv[n] ;
+    if (lv->deleted || lv->vno < 0)
+      continue ;
+    mris->vertices[lv->vno].val = fillval ;
+  }
+  return(NO_ERROR) ;
+}

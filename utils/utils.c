@@ -8,8 +8,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2012/04/11 00:53:28 $
- *    $Revision: 1.83 $
+ *    $Date: 2012/05/30 12:52:50 $
+ *    $Revision: 1.84 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -1267,6 +1267,20 @@ int compare_ints(const void *v1,const void *v2)
   int i1, i2;
   i1 = *((int*)v1);
   i2 = *((int*)v2);
+  if (i1 < i2) return(-1);
+  if (i1 > i2) return(+1);
+  return(0); // equal
+}
+/* --------------------------------------------- */
+/*!
+  \fn int compare_ints(const void *v1,const void *v2) 
+  \brief Float comparison function suitable for qsort.
+*/
+int compare_floats(const void *v1,const void *v2) 
+{
+  float i1, i2;
+  i1 = *((float*)v1);
+  i2 = *((float*)v2);
   if (i1 < i2) return(-1);
   if (i1 > i2) return(+1);
   return(0); // equal
