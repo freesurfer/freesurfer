@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2012/05/07 16:33:05 $
- *    $Revision: 1.14 $
+ *    $Date: 2012/05/30 12:53:01 $
+ *    $Revision: 1.15 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -109,6 +109,9 @@ int         VLSTinterpolateIntoVolume(VOXEL_LIST *vl, MRI *mri) ;
 double      VLSTcomputeEntropy(VOXEL_LIST *vl, MRI *mri, int num) ;
 int         VLSTinterpolateSplineIntoVolume(VOXEL_LIST *vl, MRI *mri, double spacing, VOXEL_LIST *vl_total) ;
 VOXEL_LIST  *VLSTcopyInto(VOXEL_LIST *vl_src, VOXEL_LIST *vl_dst, int start_dst_index, int num);
+
+double VLSTcomputeSplineMean(VOXEL_LIST *vl_spline, MRI *mri, double step_size)  ;
+float VLSTcomputeSplineMedian(VOXEL_LIST *vl_spline, MRI *mri, double step_size) ;
 
 #if defined(__cplusplus)
 };
