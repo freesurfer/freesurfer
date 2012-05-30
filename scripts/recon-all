@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: mreuter $
-#    $Date: 2012/05/30 22:51:21 $
-#    $Revision: 1.419 $
+#    $Date: 2012/05/30 22:57:26 $
+#    $Revision: 1.420 $
 #
 # Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -26,7 +26,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.419 2012/05/30 22:51:21 mreuter Exp $';
+set VERSION = '$Id: recon-all,v 1.420 2012/05/30 22:57:26 mreuter Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -7036,4 +7036,4 @@ NeuroImage 51(1), 19-21, 2011. http://dx.doi.org/10.1016/j.neuroimage.2011.02.07
 
 [16] Martin Reuter, Nicholas J Schmansky, H Diana Rosas, Bruce Fischl.
 Within-Subject Template Estimation for Unbiased Longitudinal Image Analysis.
-NeuroImage 61(4), 1402-1481, 2012. http://dx.doi.org/10.1016/j.neuroimage.2012.02.084
+NeuroImage 61(4), 1402-1418, 2012. http://dx.doi.org/10.1016/j.neuroimage.2012.02.084

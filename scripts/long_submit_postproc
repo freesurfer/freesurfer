@@ -9,8 +9,8 @@
 # Original Author: Martin Reuter
 # CVS Revision Info:
 #    $Author: mreuter $
-#    $Date: 2012/05/30 22:51:21 $
-#    $Revision: 1.3 $
+#    $Date: 2012/05/30 22:57:26 $
+#    $Revision: 1.4 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -182,7 +182,7 @@ Avoiding Asymmetry-Induced Bias in Longitudinal Image Processing,
 
 Within-Subject Template Estimation for Unbiased Longitudinal Image Analysis.
   M. Reuter, N.J. Schmansky, H.D. Rosas, B. Fischl.
-  NeuroImage 61(4), 1402-1481, 2012.
+  NeuroImage 61(4), 1402-1418, 2012.
   http://dx.doi.org/10.1016/j.neuroimage.2012.02.084
   http://reuter.mit.edu/papers/reuter-long12.pdf
 
@@ -195,7 +195,7 @@ def options_parse():
     Command Line Options Parser for long_mris_slopes
     initiate the option parser and return the parsed object
     """
-    parser = optparse.OptionParser(version='$Id: long_submit_postproc,v 1.3 2012/05/30 22:51:21 mreuter Exp $', usage=HELPTEXT)
+    parser = optparse.OptionParser(version='$Id: long_submit_postproc,v 1.4 2012/05/30 22:57:26 mreuter Exp $', usage=HELPTEXT)
     
     # help text
     h_qdec      = '(REQUIRED) qdec table file specifying the subjects and time points'
