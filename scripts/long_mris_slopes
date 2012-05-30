@@ -9,8 +9,8 @@
 # Original Author: Martin Reuter
 # CVS Revision Info:
 #    $Author: mreuter $
-#    $Date: 2012/05/24 00:13:24 $
-#    $Revision: 1.36 $
+#    $Date: 2012/05/30 22:51:21 $
+#    $Revision: 1.37 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -309,19 +309,21 @@ REFERENCES
 ==========
 
 Highly Accurate Inverse Consistent Registration: A Robust Approach,
-M. Reuter, H.D. Rosas, B. Fischl. NeuroImage 53 (4), pp. 1181-1196, 2010.
+  M. Reuter, H.D. Rosas, B. Fischl. NeuroImage 53(4), 1181-1196, 2010.
   http://dx.doi.org/10.1016/j.neuroimage.2010.07.020
   http://reuter.mit.edu/papers/reuter-robreg10.pdf 
 
 Avoiding Asymmetry-Induced Bias in Longitudinal Image Processing,
-M. Reuter, B. Fischl. NeuroImage 57 (1), pp. 19-21, 2011.
+  M. Reuter, B. Fischl. NeuroImage 57(1), 19-21, 2011.
   http://dx.doi.org/10.1016/j.neuroimage.2011.02.076
   http://reuter.mit.edu/papers/reuter-bias11.pdf 
 
 Within-Subject Template Estimation for Unbiased Longitudinal Image Analysis.
-M. Reuter, N.J. Schmansky, H.D. Rosas, B. Fischl. NeuroImage 2012.
+  M. Reuter, N.J. Schmansky, H.D. Rosas, B. Fischl.
+  NeuroImage 61(4), 1402-1481, 2012.
   http://dx.doi.org/10.1016/j.neuroimage.2012.02.084
-
+  http://reuter.mit.edu/papers/reuter-long12.pdf
+  
 """
 
 
@@ -331,7 +333,7 @@ def options_parse():
     Command Line Options Parser for long_mris_slopes
     initiate the option parser and return the parsed object
     """
-    parser = optparse.OptionParser(version='$Id: long_mris_slopes,v 1.36 2012/05/24 00:13:24 mreuter Exp $', usage=HELPTEXT)
+    parser = optparse.OptionParser(version='$Id: long_mris_slopes,v 1.37 2012/05/30 22:51:21 mreuter Exp $', usage=HELPTEXT)
     
     # help text
 #    h_fsgd = '(REQUIRED) fsdg file specifying the subjects and time points'

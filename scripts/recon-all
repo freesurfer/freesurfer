@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: mreuter $
-#    $Date: 2012/05/24 00:08:54 $
-#    $Revision: 1.418 $
+#    $Date: 2012/05/30 22:51:21 $
+#    $Revision: 1.419 $
 #
 # Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -26,7 +26,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.418 2012/05/24 00:08:54 mreuter Exp $';
+set VERSION = '$Id: recon-all,v 1.419 2012/05/30 22:51:21 mreuter Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -7028,12 +7028,12 @@ Gyrification (2007) IEEE Transactions on Medical Imaging.
 
 [14] Martin Reuter, H Diana Rosas, Bruce Fischl.
 Highly Accurate Inverse Consistent Registration: A Robust Approach.
-NeuroImage (2010). http://dx.doi.org/10.1016/j.neuroimage.2010.07.020
+NeuroImage 53(4), 1181-1196, 2010. http://dx.doi.org/10.1016/j.neuroimage.2010.07.020
 
 [15] Martin Reuter, Bruce Fischl.
 Avoiding Asymmetry-Induced Bias in Longitudinal Image Processing.
-NeuroImage (2011). http://dx.doi.org/10.1016/j.neuroimage.2011.02.076
+NeuroImage 51(1), 19-21, 2011. http://dx.doi.org/10.1016/j.neuroimage.2011.02.076
 
 [16] Martin Reuter, Nicholas J Schmansky, H Diana Rosas, Bruce Fischl.
 Within-Subject Template Estimation for Unbiased Longitudinal Image Analysis.
-NeuroImage (2012). http://dx.doi.org/10.1016/j.neuroimage.2012.02.084
+NeuroImage 61(4), 1402-1481, 2012. http://dx.doi.org/10.1016/j.neuroimage.2012.02.084
