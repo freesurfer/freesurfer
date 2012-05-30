@@ -12,8 +12,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2011/12/08 15:01:24 $
- *    $Revision: 1.130 $
+ *    $Date: 2012/05/30 19:04:31 $
+ *    $Revision: 1.131 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -52,7 +52,7 @@
 #include "label.h"
 
 static char vcid[] =
-  "$Id: mris_make_surfaces.c,v 1.130 2011/12/08 15:01:24 fischl Exp $";
+  "$Id: mris_make_surfaces.c,v 1.131 2012/05/30 19:04:31 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -60,6 +60,7 @@ int main(int argc, char *argv[]) ;
 #define BRIGHT_LABEL         130
 #define BRIGHT_BORDER_LABEL  100
 
+static int compute_pial_target_locations(MRI_SURFACE *mris, MRI *mri_T2, float nstd_below, float nstd_above) ;
 static int compute_label_normal(MRI *mri_aseg, int x0, int y0, int z0,
                                 int label, int whalf,
                                 double *pnx, double *pny,
@@ -105,6 +106,8 @@ static LABEL *highres_label = NULL ;
 static char T1_name[STRLEN] = "brain" ;
 
 static float nsigma = 2.0 ;
+static float nsigma_above = 2.0 ;
+static float nsigma_below = 2.0 ;
 static int remove_contra = 1 ;
 static char *write_aseg_fname = NULL ;
 static char *white_fname = NULL ;
@@ -129,6 +132,7 @@ static char *filled_name = "filled" ;
 static char *wm_name = "wm" ;
 static int auto_detect_stats = 1 ;
 static char *dura_echo_name = NULL ;
+static char *T2_name = NULL ;
 static int nechos = 0 ;
 
 static int in_out_in_flag = 0 ;  /* for Arthur (as are most things) */
@@ -243,13 +247,13 @@ main(int argc, char *argv[])
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mris_make_surfaces.c,v 1.130 2011/12/08 15:01:24 fischl Exp $",
+   "$Id: mris_make_surfaces.c,v 1.131 2012/05/30 19:04:31 fischl Exp $",
    "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mris_make_surfaces.c,v 1.130 2011/12/08 15:01:24 fischl Exp $",
+           "$Id: mris_make_surfaces.c,v 1.131 2012/05/30 19:04:31 fischl Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
   {
@@ -1216,6 +1220,70 @@ main(int argc, char *argv[])
   }
 
 #if 1
+  if (orig_pial)
+  {
+    printf("reading initial pial vertex positions from %s...\n", orig_pial) ;
+
+    if (longitudinal)
+    {
+      //save final white location into TMP_VERTICES (v->tx, v->ty, v->tz)
+      MRISsaveVertexPositions(mris, TMP_VERTICES);
+    }
+
+    if (MRISreadVertexPositions(mris, orig_pial) != NO_ERROR)
+    {
+      ErrorExit(Gerror, "reading orig pial positions failed") ;
+    }
+    MRISsaveVertexPositions(mris, PIAL_VERTICES) ;
+
+    if (longitudinal)
+    {
+      //reset starting point to be between final white and orig pial
+      int vno;
+      VERTEX *v;
+      //reset the starting position to be
+      //slightly inside the orig_pial in the longitudinal case
+      for (vno = 0; vno < mris->nvertices; vno++)
+      {
+        v = &mris->vertices[vno];
+        if (v->ripflag)
+        {
+          continue;
+        }
+        // where tx ty tz is the TMP_VERTICES (final white)
+        v->x = 0.75*v->x + 0.25*v->tx;
+        v->y = 0.75*v->y + 0.25*v->ty;
+        v->z = 0.75*v->z + 0.25*v->tz;
+      }
+    }
+    MRIScomputeMetricProperties(mris) ; //shouldn't this be done whenever
+    // orig_pial is used??? Maybe that's why the cross-intersection
+    // was caused
+  }
+  /*    parms.l_convex = 1000 ;*/
+  mri_T1 = mri_T1_pial ;
+  if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
+  {
+    MRIwrite(mri_T1, "p.mgz") ;
+  }
+  if (T2_name)
+  {
+    MRI  *mri_T2 ;
+
+    printf("masking non-brain from pial surface locations using T2 volume %s\n", T2_name) ;
+    sprintf(parms.base_name, "%s%s%s", pial_name, output_suffix, suffix) ;
+    mri_T2 = MRIread(T2_name) ;
+    if (mri_T2 == NULL)
+      ErrorExit(ERROR_NOFILE, "%s: could not load T2 volume %s", Progname, T2_name) ;
+
+    compute_pial_target_locations(mris, mri_T2, nsigma_below, nsigma_above) ;
+    mri_mask = mri_T2 ;
+    parms.l_location = 1 ;
+    parms.l_intensity = 0 ;
+    parms.l_nspring *= 0.1 ; 
+    parms.l_tspring *= 0.1 ; 
+    parms.l_curv *= 0.1 ; 
+  }
   if (dura_echo_name)
   {
 #define MAX_VOLUMES 100
@@ -1271,51 +1339,6 @@ main(int argc, char *argv[])
 
   fprintf(stderr, "repositioning cortical surface to gray/csf boundary.\n") ;
   parms.l_repulse = 0 ;
-  if (orig_pial)
-  {
-    printf("reading initial pial vertex positions from %s...\n", orig_pial) ;
-
-    if (longitudinal)
-    {
-      //save final white location into TMP_VERTICES (v->tx, v->ty, v->tz)
-      MRISsaveVertexPositions(mris, TMP_VERTICES);
-    }
-
-    if (MRISreadVertexPositions(mris, orig_pial) != NO_ERROR)
-    {
-      ErrorExit(Gerror, "reading orig pial positions failed") ;
-    }
-
-    if (longitudinal)
-    {
-      //reset starting point to be between final white and orig pial
-      int vno;
-      VERTEX *v;
-      //reset the starting position to be
-      //slightly inside the orig_pial in the longitudinal case
-      for (vno = 0; vno < mris->nvertices; vno++)
-      {
-        v = &mris->vertices[vno];
-        if (v->ripflag)
-        {
-          continue;
-        }
-        // where tx ty tz is the TMP_VERTICES (final white)
-        v->x = 0.75*v->x + 0.25*v->tx;
-        v->y = 0.75*v->y + 0.25*v->ty;
-        v->z = 0.75*v->z + 0.25*v->tz;
-      }
-    }
-    MRIScomputeMetricProperties(mris) ; //shouldn't this be done whenever
-    // orig_pial is used??? Maybe that's why the cross-intersection
-    // was caused
-  }
-  /*    parms.l_convex = 1000 ;*/
-  mri_T1 = mri_T1_pial ;
-  if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
-  {
-    MRIwrite(mri_T1, "p.mgz") ;
-  }
   for (j = 0 ; j <= 0 ; parms.l_intensity *= 2, j++)  /* only once for now */
   {
     current_sigma = pial_sigma ;
@@ -1677,10 +1700,22 @@ get_option(int argc, char *argv[])
     remove_contra = 0 ;
     fprintf(stderr,  "not removing contralateral hemi\n") ;
   }
-  else if (!stricmp(option, "nsigma"))
+  else if (!stricmp(option, "nsigma") || !stricmp(option, "nsigmas"))
   {
     nsigma = atof(argv[2]) ;
     fprintf(stderr,  "using dura threshold of %2.2f sigmas from mean (default=2)\n", nsigma) ;
+    nargs = 1;
+  }
+  else if (!stricmp(option, "nsigma_above") || !stricmp(option, "nsigmas_above"))
+  {
+    nsigma_above = atof(argv[2]) ;
+    fprintf(stderr,  "using T2 threshold of %2.2f sigmas above the mean (default=2)\n", nsigma_above) ;
+    nargs = 1;
+  }
+  else if (!stricmp(option, "nsigma_below") || !stricmp(option, "nsigmas_below"))
+  {
+    nsigma_below = atof(argv[2]) ;
+    fprintf(stderr,  "using T2 threshold of %2.2f sigmas below the mean (default=2)\n", nsigma_below) ;
     nargs = 1;
   }
   else if (!stricmp(option, "dura"))
@@ -1691,6 +1726,13 @@ get_option(int argc, char *argv[])
             "detecting dura using %d echos from %s\n",
             nechos, dura_echo_name) ;
     nargs = 2 ;
+  }
+  else if (!stricmp(option, "T2dura"))
+  {
+    T2_name = argv[2] ;
+    fprintf(stderr,
+            "detecting dura using T2 volume %s\n", T2_name) ;
+    nargs = 1 ;
   }
   else if (!stricmp(option, "cortex"))
   {
@@ -3331,6 +3373,158 @@ compute_brain_thresh(MRI_SURFACE *mris, MRI *mri_ratio, float nstd)
   std = sqrt(std/num - mean*mean) ;
   thresh = mean+nstd*std ;
   return(thresh) ;
+}
+
+#define SAMPLE_DIST .1
+#define PERCENTILE   0.9
+#define HISTO_NBINS  256
+
+static int
+compute_pial_target_locations(MRI_SURFACE *mris, MRI *mri_T2, float nstd_below, float nstd_above)
+{
+  Real      val, xs, ys, zs, xv, yv, zv, d, mean, std ;
+  int       vno, num, found_bad_intensity, done, bin, niter ;
+  VERTEX    *v ;
+  double    min_gray, max_gray, thickness, nx, ny, nz, mn, mx, sig ;
+  HISTOGRAM *h, *hcdf ;
+
+  h = HISTOalloc(HISTO_NBINS) ;
+  mx = HISTO_NBINS-1 ;
+  HISTOinit(h, HISTO_NBINS, 0, mx) ;
+
+  mean = std = 0.0 ;
+  num = 0 ;
+  niter = 0 ;
+  do 
+  {
+    for (vno = 0 ; vno < mris->nvertices ; vno++)
+    {
+      v = &mris->vertices[vno] ;
+      if (v->ripflag)
+	continue ;
+      if (vno == Gdiag_no)
+	DiagBreak() ;
+      nx = v->pialx - v->whitex ; ny = v->pialy - v->whitey ; nz = v->pialz - v->whitez ;
+      thickness = sqrt(SQR(nx)+SQR(ny)+SQR(nz)) ;
+      if (FZERO(thickness))  // pial and white in same place - no cortex here
+	continue ;
+      MRISvertexToVoxel(mris, v, mri_T2, &xv, &yv, &zv) ;
+      MRIsampleVolume(mri_T2, xv, yv, zv, &val) ;
+      for (d = thickness/2 ; d <= thickness ; d += SAMPLE_DIST)
+      {
+	xs = v->whitex + d*v->nx ;
+	ys = v->whitey + d*v->ny ;
+	zs = v->whitez + d*v->nz ;
+	MRISsurfaceRASToVoxelCached(mris, mri_T2, xs, ys, zs, &xv, &yv, &zv);
+	MRIsampleVolumeType(mri_T2, xv, yv, zv, &val, SAMPLE_TRILINEAR) ;
+	if (val <= 0)
+	  continue ;
+	
+	mean += val ;
+	std += val*val ;
+	num++ ;
+	HISTOaddSample(h, val, 0, mx) ;
+      }
+    }
+    hcdf = HISTOmakeCDF(h, NULL) ;
+    bin = HISTOfindBinWithCount(hcdf, PERCENTILE);
+    if (bin < ceil(PERCENTILE*HISTO_NBINS)/4)  // data range is too compressed for histogram to represent
+    {
+      done = (niter > 10) ;
+      if (niter++ > 0)
+	mx /= 2 ;
+      else
+	mx = 2*bin/(.9) ;  // first time - take an educated guess
+      HISTOinit(h, HISTO_NBINS, 0, mx) ;
+      printf("compressed histogram detected, changing bin size to %f\n", h->bin_size) ;
+    }
+    else
+      done = 1 ;
+  } while (!done) ;
+  mean /= num ;
+  std = sqrt(std/num - mean*mean) ;
+  max_gray = mean+nstd_above*std ;
+  min_gray = mean-nstd_below*std ;
+
+  
+  HISTOrobustGaussianFit(h, .9, &mn, &sig) ;
+  HISTOplot(h, "h.plt") ;
+  max_gray = mn+nstd_above*sig ;
+  min_gray = mn-nstd_below*sig ;
+  printf("locating cortical regions not in the range [%2.2f %2.2f], gm=%2.2f+-%2.2f\n", 
+	 min_gray, max_gray, mn, sig) ;
+
+  for (num = vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    v = &mris->vertices[vno] ;
+    v->targx = v->pialx ; v->targy = v->pialy ; v->targz = v->pialz ; 
+    if (v->ripflag)
+      continue ;
+    if (vno == Gdiag_no)
+      DiagBreak() ;
+    nx = v->pialx - v->whitex ; ny = v->pialy - v->whitey ; nz = v->pialz - v->whitez ;
+    thickness = sqrt(SQR(nx)+SQR(ny)+SQR(nz)) ;
+    if (FZERO(thickness))
+      continue ;
+    MRISvertexToVoxel(mris, v, mri_T2, &xv, &yv, &zv) ;
+    nx /= thickness ; ny /= thickness ; nz /= thickness ;
+    found_bad_intensity = 0 ;
+    for (d = thickness/2 ; d <= thickness ; d += SAMPLE_DIST)
+    {
+      xs = v->whitex + d*nx ;
+      ys = v->whitey + d*ny ;
+      zs = v->whitez + d*nz ;
+      MRISsurfaceRASToVoxelCached(mris, mri_T2, xs, ys, zs, &xv, &yv, &zv);
+      MRIsampleVolumeType(mri_T2, xv, yv, zv, &val, SAMPLE_TRILINEAR) ;
+      if (val < 0)
+        continue ;
+      if (val < min_gray || val > max_gray)
+      {
+	found_bad_intensity = 1 ;
+	break ;
+      }
+    }
+    if (found_bad_intensity)
+    {
+      num++ ;
+      // target surface so interior is good value and exterior is bad gm value
+      v->targx = xs - (SAMPLE_DIST/2*nx) ; v->targy = ys - (SAMPLE_DIST/2*ny) ; 
+      v->targz = zs - (SAMPLE_DIST/2*nz) ;
+      if (vno == Gdiag_no)
+      {
+	printf("vno %d: resetting target location to be (%2.1f %2.1f %2.1f), val = %2.0f\n",
+	       vno, v->targx, v->targy, v->targz, val) ;
+	DiagBreak() ;
+      }
+    }
+    else  // no invalid intensities found in the interior, check for valid ones in the exterior?
+    {
+#if 0
+      for (d = 0 ; d <= 1 ; d += SAMPLE_DIST)
+      {
+	xs = v->pialx + d*v->nx ;
+	ys = v->pialy + d*v->ny ;
+	zs = v->pialz + d*v->nz ;
+	MRISsurfaceRASToVoxelCached(mris, mri_T2, xs, ys, zs, &xv, &yv, &zv);
+	MRIsampleVolumeType(mri_T2, xv, yv, zv, &val, SAMPLE_TRILINEAR) ;
+	if (val < 0)
+	  continue ;
+	if (val < mn-sig ||  val > mn+sig)  // only look for a very narrow range of intensities
+	  break ;
+      }
+      if (d > 0)
+      {
+	d -= SAMPLE_DIST ;
+	num++ ;
+      }
+      v->targx = v->pialx+d*v->nx ; v->targy = v->pialy+d*v->ny ; v->targz = v->pialz+d*v->nz ;
+#else
+      v->targx = v->pialx ; v->targy = v->pialy ; v->targz = v->pialz ;
+#endif
+    }
+  }
+  printf("%d surface locations found to contain inconsistent values\n", num) ;
+  return(NO_ERROR) ;
 }
 
 #include "mrisegment.h"
