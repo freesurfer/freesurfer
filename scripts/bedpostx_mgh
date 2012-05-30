@@ -132,10 +132,29 @@ fslver=(`cat $FSLDIR/etc/fslversion | sed 's/\./ /g'`)
 if [ -z ${fslver[1]} ]; then fslver[1]=0; fi
 if [ -z ${fslver[2]} ]; then fslver[2]=0; fi
 
-# For version 4.1.9 or newer, use new order of bedpostx_single_slice arguments
-if [ ${fslver[0]} -lt 4 ] || [ ${fslver[1]} -lt 1 ] || [ ${fslver[2]} -lt 9 ];
-then usenew=0;
-else usenew=1;
+# The order of bedpostx_single_slice arguments has been shifting around
+# in different versions of FSL
+if [ ${fslver[0]} -lt 4 ]; then
+    echo "Unsupported FSL version (${fslver[0]}.${fslver[1]}.${fslver[2]})"
+    exit 1
+else
+    if [ ${fslver[0]} -eq 4 ] && [ ${fslver[1]} -eq 0 ]; then
+	if [ ${fslver[2]} -lt 2 ]; then
+	    argorder=400;				# Order as in FSL 4.0.0
+	else
+            argorder=402;				# Order as in FSL 4.0.2
+	fi
+    elif [ ${fslver[0]} -eq 4 ] && [ ${fslver[1]} -eq 1 ]; then
+	if [ ${fslver[2]} -lt 5 ]; then
+	    argorder=402;				# Order as in FSL 4.0.2
+	elif [ ${fslver[2]} -lt 9 ]; then
+	    argorder=415;				# Order as in FSL 4.1.5
+	else
+            argorder=419;				# Order as in FSL 4.1.9
+	fi
+    else
+	argorder=419;					# Order as in FSL 4.1.9
+    fi
 fi
 
 make_absolute(){
@@ -301,11 +320,17 @@ do
     if [ `$FSLDIR/bin/imtest ${subjdir}.bedpostX/diff_slices/data_slice_$slicezp/dyads1` -eq 1 ];then
 	echo "slice $slice has already been processed"
     else
-	if [ $usenew -eq 1 ]; then
-	  echo "${FSLDIR}/bin/bedpostx_single_slice.sh $subjdir $slice $opts" \
+	if [ $argorder -eq 400 ]; then
+	    echo "${FSLDIR}/bin/bedpostx_single_slice.sh $subjdir $nfibres $fudge $burnin $slice" \
 	      >> ${subjdir}.bedpostX/commands.txt
-	else
-	  echo "${FSLDIR}/bin/bedpostx_single_slice.sh $subjdir $nfibres $fudge $burnin $njumps $sampleevery $model $slice" \
+	elif [ $argorder -eq 402 ]; then
+	    echo "${FSLDIR}/bin/bedpostx_single_slice.sh $subjdir $nfibres $fudge $burnin $njumps $sampleevery $slice" \
+	      >> ${subjdir}.bedpostX/commands.txt
+	elif [ $argorder -eq 415 ]; then
+	    echo "${FSLDIR}/bin/bedpostx_single_slice.sh $subjdir $nfibres $fudge $burnin $njumps $sampleevery $model $slice" \
+	      >> ${subjdir}.bedpostX/commands.txt
+	elif [ $argorder -eq 419 ]; then
+	    echo "${FSLDIR}/bin/bedpostx_single_slice.sh $subjdir $slice $opts" \
 	      >> ${subjdir}.bedpostX/commands.txt
 	fi
     fi
