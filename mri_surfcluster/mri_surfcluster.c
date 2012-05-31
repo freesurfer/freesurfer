@@ -7,8 +7,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2012/03/27 21:47:01 $
- *    $Revision: 1.55 $
+ *    $Date: 2012/05/31 22:08:59 $
+ *    $Revision: 1.56 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -67,7 +67,7 @@ static int  stringmatch(char *str1, char *str2);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_surfcluster.c,v 1.55 2012/03/27 21:47:01 greve Exp $";
+static char vcid[] = "$Id: mri_surfcluster.c,v 1.56 2012/05/31 22:08:59 greve Exp $";
 char *Progname = NULL;
 
 char *subjectdir = NULL;
@@ -178,7 +178,7 @@ int main(int argc, char **argv) {
   double cmaxsize;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_surfcluster.c,v 1.55 2012/03/27 21:47:01 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_surfcluster.c,v 1.56 2012/05/31 22:08:59 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -303,7 +303,7 @@ int main(int argc, char **argv) {
     }
 
     for (vtx = 0; vtx < srcsurf->nvertices; vtx++)
-      srcsurf->vertices[vtx].val = MRIFseq_vox(srcval,vtx,0,0,srcframe);
+      srcsurf->vertices[vtx].val = MRIgetVoxVal(srcval,vtx,0,0,srcframe);
     MRIfree(&srcval);
   }
 
@@ -1201,7 +1201,7 @@ static void print_help(void) {
     "summary file is shown below.\n"
     "\n"
     "Cluster Growing Summary (mri_surfcluster)\n"
-    "$Id: mri_surfcluster.c,v 1.55 2012/03/27 21:47:01 greve Exp $\n"
+    "$Id: mri_surfcluster.c,v 1.56 2012/05/31 22:08:59 greve Exp $\n"
     "Input :      minsig-0-lh.w\n"
     "Frame Number:      0\n"
     "Minimum Threshold: 5\n"
