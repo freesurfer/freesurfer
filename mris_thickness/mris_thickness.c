@@ -9,8 +9,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2012/05/31 19:51:22 $
- *    $Revision: 1.24 $
+ *    $Date: 2012/05/31 19:52:19 $
+ *    $Revision: 1.25 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -44,7 +44,7 @@
 #include "icosahedron.h"
 #include "label.h"
 
-static char vcid[] = "$Id: mris_thickness.c,v 1.24 2012/05/31 19:51:22 fischl Exp $";
+static char vcid[] = "$Id: mris_thickness.c,v 1.25 2012/05/31 19:52:19 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -314,7 +314,7 @@ main(int argc, char *argv[]) {
   struct timeb  then ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_thickness.c,v 1.24 2012/05/31 19:51:22 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_thickness.c,v 1.25 2012/05/31 19:52:19 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -839,6 +839,7 @@ print_help(void) {
           "<thickness file>.\n") ;
   fprintf(stderr, "\nvalid options are:\n\n") ;
   fprintf(stderr, "-max <max>\t use <max> to threshold thickness (default=5mm)\n") ;
+  fprintf(stderr, "-fill_holes <parcellation> <cortex label> fill in thickness in holes in the cortex label\n");
   exit(1) ;
 }
 
