@@ -8,9 +8,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:34 $
- *    $Revision: 1.23 $
+ *    $Author: fischl $
+ *    $Date: 2012/05/31 19:51:22 $
+ *    $Revision: 1.24 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -42,11 +42,13 @@
 #include "macros.h"
 #include "version.h"
 #include "icosahedron.h"
+#include "label.h"
 
-static char vcid[] = "$Id: mris_thickness.c,v 1.23 2011/03/02 00:04:34 nicks Exp $";
+static char vcid[] = "$Id: mris_thickness.c,v 1.24 2012/05/31 19:51:22 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
+static int fill_thickness_holes(MRI_SURFACE *mris, LABEL *cortex_label) ;
 int  MRISmeasureDistanceBetweenSurfaces(MRI_SURFACE *mris, MRI_SURFACE *mris2, int signed_dist) ;
 static int  get_option(int argc, char *argv[]) ;
 static void usage_exit(void) ;
@@ -71,6 +73,9 @@ static int laplace_thick = 0 ;
 static INTEGRATION_PARMS parms ;
 
 static char *long_fname = NULL ;
+
+static char *annot_name = NULL  ;
+static LABEL *cortex_label = NULL ;
 
 #include "voxlist.h"
 #include "mrinorm.h"
@@ -134,7 +139,6 @@ MRISsolveLaplaceEquation(MRI_SURFACE *mris, MRI *mri, double res)
           vl->xi[nribbon] = x ;
           vl->yi[nribbon] = y ;
           vl->zi[nribbon] = z ;
-
           nribbon++ ;
         }
       }
@@ -310,7 +314,7 @@ main(int argc, char *argv[]) {
   struct timeb  then ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_thickness.c,v 1.23 2011/03/02 00:04:34 nicks Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_thickness.c,v 1.24 2012/05/31 19:51:22 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -636,6 +640,14 @@ main(int argc, char *argv[]) {
   } else {
     MRISmeasureCorticalThickness(mris, nbhd_size, max_thick) ;
   }
+ 
+  if (cortex_label)  // fill in thickness in holes in the cortex label where it isn't to be trusted
+  {
+    if (MRISreadAnnotation(mris, annot_name) != NO_ERROR)
+      ErrorExit(ERROR_NOFILE, "%s: could not load annotation from %s", annot_name) ;
+    fill_thickness_holes(mris, cortex_label) ;
+  }
+
 
 #if 0
   sprintf(fname, "%s/%s/surf/%s", sdir, sname, out_fname) ;
@@ -666,6 +678,16 @@ get_option(int argc, char *argv[]) {
     print_usage() ;
   else if (!stricmp(option, "-version"))
     print_version() ;
+  else if (!stricmp(option, "fill_holes"))
+  {
+    annot_name = argv[2] ;
+    cortex_label = LabelRead(NULL, argv[3]) ;
+    if (cortex_label == NULL)
+      ErrorExit(ERROR_NOFILE, "%s: could not read label from %s", argv[3]) ;
+    nargs = 2 ;
+    printf("filling holes in label %s that are not unknown in %s\n", argv[2], argv[3]) ;
+
+  }
   else if (!stricmp(option, "long"))
   {
     long_fname = argv[2] ;
@@ -824,5 +846,28 @@ static void
 print_version(void) {
   fprintf(stderr, "%s\n", vcid) ;
   exit(1) ;
+}
+
+static int
+fill_thickness_holes(MRI_SURFACE *mris, LABEL *cortex_label)
+{
+  int    vno, n, unknown_annot ;
+  VERTEX *v ;
+
+  LabelMarkSurface(cortex_label, mris) ;
+  CTABfindName(mris->ct, "Unknown", &n) ;
+  CTABannotationAtIndex(mris->ct, n, &unknown_annot) ;
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    v = &mris->vertices[vno] ;
+    if (v->annotation == unknown_annot || v->annotation == 0)
+      v->marked = 1 ;  // make this a fixed point
+    if (v->marked > 0)
+      v->val = v->curv ;  // put thickness into val field
+  }
+
+  MRISsoapBubbleVals(mris, 500); 
+  MRIScopyValuesToCurvature(mris) ;
+  return(NO_ERROR) ;
 }
 
