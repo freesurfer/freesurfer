@@ -15,8 +15,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2012/03/08 23:33:59 $
- *    $Revision: 1.60 $
+ *    $Date: 2012/06/01 19:20:15 $
+ *    $Revision: 1.61 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -61,7 +61,7 @@ static void dump_options(FILE *fp);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_concat.c,v 1.60 2012/03/08 23:33:59 greve Exp $";
+static char vcid[] = "$Id: mri_concat.c,v 1.61 2012/06/01 19:20:15 greve Exp $";
 char *Progname = NULL;
 int debug = 0;
 #define NInMAX 400000
@@ -82,6 +82,7 @@ int DoVar=0;
 int DoStd=0;
 int DoMax=0;
 int DoMaxIndex=0;
+int DoPruneMaxIndex = 0;
 int DoMin=0;
 int DoConjunction=0;
 int DoPaired=0;
@@ -131,7 +132,7 @@ int DoCumSum = 0;
 int main(int argc, char **argv)
 {
   int nargs, nthin, nframestot=0, nr=0,nc=0,ns=0, fout;
-  int r,c,s,f,outf,nframes,err,nthrep;
+  int r,c,s,f,outf,nframes,err,nthrep,AllZero;
   double v, v1, v2, vavg, vsum;
   int inputDatatype=MRI_UCHAR;
   MATRIX *Upca=NULL,*Spca=NULL;
@@ -549,10 +550,28 @@ int main(int argc, char **argv)
     mriout = mritmp;
   }
 
-  if(DoMaxIndex)
-  {
+  if(DoMaxIndex){
     printf("Computing max index across all frames \n");
     mritmp = MRIvolMaxIndex(mriout,1,NULL,NULL);
+    if(DoPruneMaxIndex){
+      // Set to 0 any voxels that are all 0 in each input frame
+      // Note: not the same as --prune (which sets to 0 if ANY frame=0)
+      printf("Pruning max index\n");
+      for (c=0; c < nc; c++){
+	for (r=0; r < nr; r++) {
+	  for (s=0; s < ns; s++){
+	    AllZero = 1;
+	    for (f=0; f < mriout->nframes; f++){
+	      if(fabs(MRIgetVoxVal(mriout,c,r,s,f))>0){
+		AllZero = 0;
+		break;
+	      }
+	    }
+	    if(AllZero) MRIsetVoxVal(mritmp,c,r,s,0, 0);
+	  }
+	}
+      }
+    }
     MRIfree(&mriout);
     mriout = mritmp;
   }
@@ -804,6 +823,11 @@ static int parse_commandline(int argc, char **argv)
     else if (!strcasecmp(option, "--max-index"))
     {
       DoMaxIndex = 1;
+    }
+    else if (!strcasecmp(option, "--max-index-prune"))
+    {
+      DoMaxIndex = 1;
+      DoPruneMaxIndex = 1;
     }
     else if (!strcasecmp(option, "--min"))
     {
@@ -1091,6 +1115,7 @@ static void print_usage(void)
   printf("   --std  : compute std  of concatenated volumes\n");
   printf("   --max  : compute max  of concatenated volumes\n");
   printf("   --max-index  : compute index of max of concatenated volumes (1-based)\n");
+  printf("   --max-index-prune  : max index setting to 0 any voxel where all frames are 0 (not the same as --prune)\n");
   printf("   --min  : compute min of concatenated volumes\n");
   printf("   --rep N : replicate N times (over frame)\n");
   printf("   --conjunct  : compute voxel-wise conjunction concatenated volumes\n");
