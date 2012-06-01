@@ -9,8 +9,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2012/05/30 12:52:51 $
- *    $Revision: 1.106 $
+ *    $Date: 2012/06/01 20:14:37 $
+ *    $Revision: 1.107 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -1478,6 +1478,34 @@ LabelMark(LABEL *area, MRI_SURFACE *mris)
     }
     v = &mris->vertices[vno] ;
     v->marked = 1 ;
+  }
+  return(NO_ERROR) ;
+}
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+------------------------------------------------------*/
+int
+LabelAddToMark(LABEL *area, MRI_SURFACE *mris, int val_to_add)
+{
+  int    n, vno ;
+  VERTEX *v ;
+
+  for (n = 0 ; n < area->n_points ; n++)
+  {
+    vno = area->lv[n].vno ;
+    if (vno < 0 || vno >= mris->nvertices)
+    {
+      DiagBreak() ;
+    }
+    if (area->lv[n].deleted > 0)
+      continue ;
+
+    v = &mris->vertices[vno] ;
+    v->marked += val_to_add ;
   }
   return(NO_ERROR) ;
 }
