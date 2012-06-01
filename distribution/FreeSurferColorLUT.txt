@@ -1,4 +1,4 @@
-#$Id: FreeSurferColorLUT.txt,v 1.84 2012/05/07 18:28:50 nicks Exp $
+#$Id: FreeSurferColorLUT.txt,v 1.85 2012/06/01 21:56:30 greve Exp $
 
 #No. Label Name:                            R   G   B   A
 
@@ -923,6 +923,26 @@
 5115   rh.slfp                                          204 204 204 0
 5116   rh.slft                                          153 255 255 0
 5117   rh.unc                                           102 153 255 0
+
+# These are the same tracula labels as above in human-readable form
+5200   CC-ForcepsMajor                                  204 102 102 0
+5201   CC-ForcepsMinor                                  204 102 102 0
+5202   LAntThalRadiation                                   255 255 102 0
+5203   LCingulumAngBundle                                153 204 0   0
+5204   LCingulumCingGyrus                                0   153 153 0
+5205   LCorticospinalTract                               204 153 255 0
+5206   LInfLongFas                                       255 153 51  0
+5207   LSupLongFasParietal                               204 204 204 0
+5208   LSupLongFasTemporal                               153 255 255 0
+5209   LUncinateFas                                      102 153 255 0
+5210   RAntThalRadiation                                 255 255 102 0
+5211   RCingulumAngBundle                                153 204 0   0
+5212   RCingulumCingGyrus                                0   153 153 0
+5213   RCorticospinalTract                               204 153 255 0
+5214   RInfLongFas                                       255 153 51  0
+5215   RSupLongFasParietal                               204 204 204 0
+5216   RSupLongFasTemporal                               153 255 255 0
+5217   RUncinateFas                                      102 153 255 0
 
 ########################################
 
