@@ -15,8 +15,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2012/06/01 19:20:15 $
- *    $Revision: 1.61 $
+ *    $Date: 2012/06/01 20:10:23 $
+ *    $Revision: 1.62 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -61,7 +61,7 @@ static void dump_options(FILE *fp);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_concat.c,v 1.61 2012/06/01 19:20:15 greve Exp $";
+static char vcid[] = "$Id: mri_concat.c,v 1.62 2012/06/01 20:10:23 greve Exp $";
 char *Progname = NULL;
 int debug = 0;
 #define NInMAX 400000
@@ -82,7 +82,9 @@ int DoVar=0;
 int DoStd=0;
 int DoMax=0;
 int DoMaxIndex=0;
-int DoPruneMaxIndex = 0;
+int DoMaxIndexPrune = 0;
+int DoMaxIndexAdd = 0 ;
+int MaxIndexAdd = 0 ;
 int DoMin=0;
 int DoConjunction=0;
 int DoPaired=0;
@@ -553,7 +555,7 @@ int main(int argc, char **argv)
   if(DoMaxIndex){
     printf("Computing max index across all frames \n");
     mritmp = MRIvolMaxIndex(mriout,1,NULL,NULL);
-    if(DoPruneMaxIndex){
+    if(DoMaxIndexPrune){
       // Set to 0 any voxels that are all 0 in each input frame
       // Note: not the same as --prune (which sets to 0 if ANY frame=0)
       printf("Pruning max index\n");
@@ -574,6 +576,19 @@ int main(int argc, char **argv)
     }
     MRIfree(&mriout);
     mriout = mritmp;
+    if(DoMaxIndexAdd){
+      printf("Adding %d to index\n",MaxIndexAdd);
+      // This adds a value only to the non-zero voxels
+      for (c=0; c < nc; c++){
+	for (r=0; r < nr; r++) {
+	  for (s=0; s < ns; s++){
+	    f = MRIgetVoxVal(mriout,c,r,s,0);
+	    if(f == 0) continue;
+	    MRIsetVoxVal(mriout,c,r,s,0,f+MaxIndexAdd);
+	  }
+	}
+      }
+    }
   }
 
   if(DoConjunction)
@@ -827,7 +842,19 @@ static int parse_commandline(int argc, char **argv)
     else if (!strcasecmp(option, "--max-index-prune"))
     {
       DoMaxIndex = 1;
-      DoPruneMaxIndex = 1;
+      DoMaxIndexPrune = 1;
+    }
+    else if (!strcasecmp(option, "--max-index-add"))
+    {
+      if (nargc < 1) argnerr(option,1);
+      if(! isdigit(pargv[0][0]) && pargv[0][0] != '-' && pargv[0][0] != '+'){
+        printf("ERROR: value passed to the --max-index-add flag must be a number\n");
+        printf("       If you want to add two images, use --sum or fscalc\n");
+        exit(1);
+      }
+      sscanf(pargv[0],"%d",&MaxIndexAdd);
+      DoMaxIndexAdd = 1;
+      nargsused = 1;
     }
     else if (!strcasecmp(option, "--min"))
     {
@@ -1116,6 +1143,7 @@ static void print_usage(void)
   printf("   --max  : compute max  of concatenated volumes\n");
   printf("   --max-index  : compute index of max of concatenated volumes (1-based)\n");
   printf("   --max-index-prune  : max index setting to 0 any voxel where all frames are 0 (not the same as --prune)\n");
+  printf("   --max-index-add val  : add val to non-zero max indices)\n");
   printf("   --min  : compute min of concatenated volumes\n");
   printf("   --rep N : replicate N times (over frame)\n");
   printf("   --conjunct  : compute voxel-wise conjunction concatenated volumes\n");
