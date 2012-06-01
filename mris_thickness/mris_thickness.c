@@ -9,8 +9,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2012/05/31 19:52:19 $
- *    $Revision: 1.25 $
+ *    $Date: 2012/06/01 01:41:31 $
+ *    $Revision: 1.26 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -44,7 +44,7 @@
 #include "icosahedron.h"
 #include "label.h"
 
-static char vcid[] = "$Id: mris_thickness.c,v 1.25 2012/05/31 19:52:19 fischl Exp $";
+static char vcid[] = "$Id: mris_thickness.c,v 1.26 2012/06/01 01:41:31 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -314,7 +314,7 @@ main(int argc, char *argv[]) {
   struct timeb  then ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_thickness.c,v 1.25 2012/05/31 19:52:19 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_thickness.c,v 1.26 2012/06/01 01:41:31 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -861,13 +861,17 @@ fill_thickness_holes(MRI_SURFACE *mris, LABEL *cortex_label)
   for (vno = 0 ; vno < mris->nvertices ; vno++)
   {
     v = &mris->vertices[vno] ;
-    if (v->annotation == unknown_annot || v->annotation == 0)
-      v->marked = 1 ;  // make this a fixed point
     if (v->marked > 0)
       v->val = v->curv ;  // put thickness into val field
   }
 
   MRISsoapBubbleVals(mris, 500); 
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    v = &mris->vertices[vno] ;
+    if (v->annotation == unknown_annot || v->annotation == 0)
+      v->val = v->curv ;  // don't let the unknown values change
+  }
   MRIScopyValuesToCurvature(mris) ;
   return(NO_ERROR) ;
 }
