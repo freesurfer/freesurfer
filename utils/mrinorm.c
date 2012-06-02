@@ -10,8 +10,8 @@
  * Original Author: Bruce Fischl, 4/9/97
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2012/03/27 22:19:29 $
- *    $Revision: 1.111 $
+ *    $Date: 2012/06/02 18:01:35 $
+ *    $Revision: 1.112 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -514,6 +514,7 @@ MRInormInit(MRI *mri, MNI *mni, int windows_above_t0,int windows_below_t0,
   {
     MRI_REGION  bbox ;
 
+    printf("no Talairach xform detected - using skull bounding box to determine origin\n");
 #if 0
     MRIboundingBoxNbhd(mri, 50, 5, &bbox) ;
 #else
