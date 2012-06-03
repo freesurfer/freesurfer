@@ -14,9 +14,10 @@
 # Edited : 08-04-2011: deleting partial files and renaming final output files; 
 # also resampling norm / aseg files after nl_align so that only one resampling is done
 # Edited : 08-24-2011: added new logfile that should be easier to read for the user
+# Edited : 06-03-2012: added new flags --asegfname and --nointensity
 
 set inputargs = ($argv);
-set VERSION = '$Id: mri_cvs_register,v 1.37 2012/04/27 21:27:52 lzollei Exp $';
+set VERSION = '$Id: mri_cvs_register,v 1.38 2012/06/03 18:15:46 lzollei Exp $';
 
 set movingid = ();
 set templateid = ();
@@ -27,6 +28,7 @@ set keepallm3z = 0;
 set usem3d = 0;
 set nolog = 0;
 set UseAseg = 1;
+set UseInt = 1;
 set PrintHelp = 0;
 set OnlyStep1 = 0
 set OnlyStep2 = 0
@@ -39,6 +41,10 @@ set CleanVolReg = 0
 
 set FStemplate = cvs_avg35
 set usingFStemplate = 0
+
+set asegfname = aseg
+
+set downsample = 0
 
 # Parsing and checking the input arguments
 if($#argv == 0) goto usage_exit;
@@ -58,6 +64,10 @@ goto parse_args;
 parse_args_return:
 goto check_params;
 check_params_return:
+
+if (($UseAseg==0) && ($UseInt==0)) then
+  set DoAllSteps = 0;
+endif
 
 set StartTime = `date`;
 set DateString = "`date '+%y%m%d%H%M'`"
@@ -359,7 +369,7 @@ set Step3StartTime = `date +%s`;
 ## Apply results of elastic registration to aseg 
 
 if ($UseAseg) then 
-  set voltype = aseg
+  set voltype = $asegfname
   if (!(-e $outdir/${elasticmorph:r}_${voltype}.mgz) || $CleanSurfReg) then 
     set cmd = (applyMorph --template $tmri/$voltype.mgz --transform $outdir/${elasticmorph} vol $mmri/$voltype.mgz $outdir/${elasticmorph:r}_${voltype}.mgz nearest)
     echo $cmd >> $LF
@@ -372,13 +382,16 @@ endif
 
 ### REGISTRATION: STEP 3: # CVS_step3.csh
 ###     intensity-based volumetric registration
-###        (UseAseg==0) only intensity-based
-###        (UseAseg==1) aseg + intensity-based
+###        (UseAseg==0) no aseg registration
+###        (UseAseg==1) use aseg registration
+###        (UseInt==0)  no intensity-based registration
+###        (UseInt==1)  use intensity-based registration
+###    default: UseAseg == 1 and UseInt == 1
 
 echo "Ready for volumetric registration (CVS: Step 3)" >> $sLF
 
 if ($UseAseg) then
-  set voltype = aseg
+  set voltype = $asegfname
   set input = ${elasticmorph:r}  # INPUT morph from CVS_step2
   set nl_regresult = nlalign-${voltype}.${morphsuffix}
   set options = (-passes 3 -z 1 -aseg -dtrans 1 -apply 1 -sigma .25 -fixed -dt 0.25 -m 0.25 -intensity 0.0 -T $cvsdir/id.xfm )
@@ -388,7 +401,11 @@ if ($UseAseg) then
   endif
 ## Run the non-linear registration based on the aseg volumes.
   if (!(-e $outdir/${nl_regresult}) || $CleanVolReg) then
-    set cmd = (mri_nl_align $options $outdir/${input}_${voltype}.mgz $tmri/$voltype.mgz $outdir/${nl_regresult})
+    if ($downsample) then
+      set cmd = (mri_nl_align -downsample $downsample $options $outdir/${input}_${voltype}.mgz $tmri/$voltype.mgz $outdir/${nl_regresult})
+    else 
+      set cmd = (mri_nl_align $options $outdir/${input}_${voltype}.mgz $tmri/$voltype.mgz $outdir/${nl_regresult})
+    endif
     echo $cmd >> $LF
     echo $cmd >> $sLF
     $cmd |& tee -a $LF
@@ -457,6 +474,7 @@ if ($UseAseg) then
 endif # (aseg registration)
 
 ## Intensity-based registration; the default one. 
+if ($UseInt) then
 set prefix = ()
 set voltype = norm
 if ($UseAseg) then # otherwise already asigned
@@ -474,7 +492,11 @@ endif
 if (!(-e $outdir/nlalign-$prefix${voltype}.${morphsuffix}) || $CleanVolReg) then 
   set nl_regresult = nlalign-$prefix${voltype}.${morphsuffix}
   set options = (-apply 1 -z 1 -sigma 2 -dt 0.0001 -intensity 0.1 -T $cvsdir/id.xfm  )
-  set cmd = (mri_nl_align $options $outdir/${input} $tmri/$voltype.mgz $outdir/${nl_regresult})
+  if ($downsample) then
+    set cmd = (mri_nl_align -downsample $downsample $options $outdir/${input} $tmri/$voltype.mgz $outdir/${nl_regresult})
+  else
+    set cmd = (mri_nl_align $options $outdir/${input} $tmri/$voltype.mgz $outdir/${nl_regresult})
+  endif
   echo $cmd >> $LF
   echo $cmd >> $sLF
   $cmd |& tee -a $LF
@@ -502,12 +524,16 @@ if (!(-e $outdir/combined_to${templateid}_elreg_$prefix$voltype.${morphsuffix}  
   if($status) exit 1;
 endif
 
+endif # int-based registration
+
 if ($cleanup) then # deleting tm3d file!
   echo Cleaning up ...
-  if ($UseAseg) then
+  if ($UseAseg && $UseInt) then
     set filesToDelete = ($outdir/$oldcombined $outdir/$combined)
-  else 
-    set filesToDelete = $outdir/$combined
+  else
+    if ($UseInt) then 
+      set filesToDelete = $outdir/$combined
+    endif
   endif
   set cmd = ( rm -f $filesToDelete)
   echo $cmd >> $LF
@@ -520,7 +546,7 @@ endif
 ## one less time and the latter is just for visualization
 set voltype = norm
 set finaloutputfilename = final_CVSmorphed_to${templateid}_${voltype}.mgz
-if (!(-e  $outdir/$finaloutputfilename ) || $CleanElReg || $CleanVolReg) then 
+if ((-e $outdir/${combined:r}.${morphsuffix}) && (!(-e  $outdir/$finaloutputfilename ) || $CleanElReg || $CleanVolReg)) then 
   set cmd = (mri_vol2vol --targ $tmri/$voltype.mgz --m3z $outdir/${combined:r}.${morphsuffix} --noDefM3zPath \
 		       --mov $mmri/${voltype}.mgz --o $outdir/$finaloutputfilename --no-save-reg)
   echo $cmd >> $LF
@@ -537,9 +563,9 @@ endif
 #  if($status) exit 1; 
 #endif
 set oldfinaloutputfilename = $finaloutputfilename
-set voltype = aseg
+set voltype = $asegfname
 set finaloutputfilename = final_CVSmorphed_to${templateid}_${voltype}.mgz
-if (!(-e  $outdir/$finaloutputfilename ) || $CleanElReg || $CleanVolReg) then 
+if (($outdir/${combined:r}.${morphsuffix}) && (!(-e  $outdir/$finaloutputfilename ) || $CleanElReg || $CleanVolReg)) then 
 #  set cmd = ( applyMorph --template $tmri/$voltype.mgz --transform $outdir/$combined \
 #                         vol $mmri/$voltype.mgz $outdir/${combined:r}_${voltype}.mgz nearest )
   set cmd = ( mri_vol2vol  --targ $tmri/$voltype.mgz --m3z $outdir/${combined:r}.${morphsuffix} --noDefM3zPath \
@@ -563,7 +589,7 @@ endif #--step3
 if ($OnlyStep3 || $DoAllSteps) then
 
 echo "To check results, run:"
-echo "freeview -v $outdir/${oldfinaloutputfilename}  $tmri/norm.mgz $outdir/${finaloutputfilename}:colormap=lut $tmri/aseg.mgz:colormap=lut"
+echo "freeview -v $outdir/${oldfinaloutputfilename}  $tmri/norm.mgz $outdir/${finaloutputfilename}:colormap=lut $tmri/$asegfname.mgz:colormap=lut"
 echo " "
 
 # rename final morph for easier identification
@@ -659,8 +685,23 @@ while( $#argv != 0 )
       set Verbosity = $argv[1]; shift;
       breaksw
 
+    case "--downsample":
+      if ( $#argv < 1) goto arg1err;
+      set downsample = $argv[1]; shift;
+      breaksw
+
     case "--noaseg":
       set UseAseg = 0;
+      breaksw
+
+    case "--asegfname":
+      if ( $#argv < 1) goto arg1err;
+      set asegfname = $argv[1]; shift;
+      set asegfname = $asegfname:r:r  # no fileextension should remain in the name!
+      breaksw
+
+    case "--nointensity":
+      set UseInt = 0;
       breaksw
 
     case "--m3d":
@@ -670,6 +711,7 @@ while( $#argv != 0 )
     case "--nocleanup":
       set cleanup = 0;
       set keepelreg = 1;
+      set keepallm3z = 1;
       breaksw
 
     case "--keepelreg":
