@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2012/05/30 12:53:01 $
- *    $Revision: 1.15 $
+ *    $Date: 2012/06/04 16:45:19 $
+ *    $Revision: 1.16 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -105,12 +105,13 @@ MRI         *VLSTwriteOrderToMRI(VOXEL_LIST *vl, MRI *mri) ;
 
 VOXEL_LIST  *VLSTsplineFit(VOXEL_LIST *vl, int num_control) ;
 VOXEL_LIST  *VLSTinterpolate(VOXEL_LIST *vl, float spacing) ;
-int         VLSTinterpolateIntoVolume(VOXEL_LIST *vl, MRI *mri) ;
+int         VLSTinterpolateIntoVolume(VOXEL_LIST *vl, MRI *mri, float val) ;
 double      VLSTcomputeEntropy(VOXEL_LIST *vl, MRI *mri, int num) ;
-int         VLSTinterpolateSplineIntoVolume(VOXEL_LIST *vl, MRI *mri, double spacing, VOXEL_LIST *vl_total) ;
+int         VLSTinterpolateSplineIntoVolume(VOXEL_LIST *vl, MRI *mri, double spacing, VOXEL_LIST *vl_total, float val) ;
 VOXEL_LIST  *VLSTcopyInto(VOXEL_LIST *vl_src, VOXEL_LIST *vl_dst, int start_dst_index, int num);
 
 double VLSTcomputeSplineMean(VOXEL_LIST *vl_spline, MRI *mri, double step_size)  ;
+double VLSTcomputeSplineSegmentMean(VOXEL_LIST *vl_spline, MRI *mri, double step_size, int start, int stop)  ;
 float VLSTcomputeSplineMedian(VOXEL_LIST *vl_spline, MRI *mri, double step_size) ;
 
 #if defined(__cplusplus)
