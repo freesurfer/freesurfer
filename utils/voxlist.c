@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2012/05/30 12:52:51 $
- *    $Revision: 1.24 $
+ *    $Date: 2012/06/04 16:45:09 $
+ *    $Revision: 1.25 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -1035,25 +1035,25 @@ VLSTfromMRI(MRI *mri, int vno)
   return(vl) ;
 }
 int
-VLSTinterpolateSplineIntoVolume(VOXEL_LIST *vl, MRI *mri, double spacing, VOXEL_LIST *vl_total)
+VLSTinterpolateSplineIntoVolume(VOXEL_LIST *vl, MRI *mri, double spacing, VOXEL_LIST *vl_total, float val)
 {
   VOXEL_LIST *vl_interp ;
 
   vl_interp = VLSTinterpolate(vl, spacing) ;
   if (vl_interp == NULL)
     return(Gerror) ;
-  VLSTinterpolateIntoVolume(vl_interp, mri) ;
+  VLSTinterpolateIntoVolume(vl_interp, mri, val) ;
   VLSTcopyInto(vl_interp, vl_total, vl_total->nvox, vl_interp->nvox) ;
   VLSTfree(&vl_interp) ;
   return(NO_ERROR) ;
 }
 int
-VLSTinterpolateIntoVolume(VOXEL_LIST *vl, MRI *mri)
+VLSTinterpolateIntoVolume(VOXEL_LIST *vl, MRI *mri, float val)
 {
   int   n ;
 
   for (n = 0 ; n < vl->nvox ; n++)
-    MRIinterpolateIntoVolume(mri, vl->xd[n], vl->yd[n], vl->zd[n], 1.0) ;
+    MRIinterpolateIntoVolume(mri, vl->xd[n], vl->yd[n], vl->zd[n], val) ;
 
   return(NO_ERROR) ;
 }
@@ -1123,5 +1123,30 @@ VLSTcomputeSplineMedian(VOXEL_LIST *vl_spline, MRI *mri, double step_size)
   median = vals[vl->nvox/2] ;
   VLSTfree(&vl) ; free(vals) ;
   return(median) ;
+}
+
+double
+VLSTcomputeSplineSegmentMean(VOXEL_LIST *vl_spline, MRI *mri, double step_size, int start, int stop) 
+{
+  VOXEL_LIST *vl = VLSTinterpolate(vl_spline, step_size) ;
+  double     mean, val ;
+  int        n ;
+
+  if (stop >= vl->nvox-1)
+    stop = vl->nvox-1 ;
+  if (start > stop)
+    start = stop ;
+  for (mean = 0.0, n = start ; n <= stop ; n++)
+  {
+    val = MRIgetVoxVal(mri, vl->xi[n], vl->yi[n], vl->zi[n], 0) ;
+    if (FZERO(val))
+      continue ;
+    mean += val ;
+  }
+
+  if (stop-start+1)
+    mean /= (float)(stop-start+1) ;
+  VLSTfree(&vl) ;
+  return(mean) ;
 }
 
