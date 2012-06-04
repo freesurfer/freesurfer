@@ -2,14 +2,15 @@
  * @file  main_template.c
  * @brief MCMC for computing posterior of splines connecting cortex with ventricle
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ * Fit a Catmull Rom spline to each point in the cortex, initializing it with a connection along the
+ * shortest path to the lateral ventricles, then use MCMC to estimate the posterior distribution.
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2012/05/07 16:32:34 $
- *    $Revision: 1.1 $
+ *    $Date: 2012/06/04 16:44:59 $
+ *    $Revision: 1.2 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -44,6 +45,7 @@
 #include "icosahedron.h"
 #include "voxlist.h"
 #include "pdf.h"
+#include "tritri.h"
 
 int main(int argc, char *argv[]) ;
 static VOXEL_LIST *compute_path_to_ventricles(MRI_SURFACE *mris, int vno, MRI *mri_ventricle_dist_grad, MRI *mri_aseg) ;
@@ -51,6 +53,10 @@ static int get_option(int argc, char *argv[]) ;
 static MRI *compute_migration_probabilities(MRI_SURFACE *mris, MRI *mri, MRI *mri_aseg, TRANSFORM *xform, MRI *mri_pvals, int spline_control_points, int mcmc_samples, int read_flag) ;
 static VOXEL_LIST *find_optimal_spline(VOXEL_LIST *vl, MRI *mri_intensity, MRI *mri_aseg, MRI *mri_wm_dist, double gm_mean, int nsamples,MRI_SURFACE *mris, int spline_control_points, int mcmc_samples, double spline_length_penalty, double spline_nonwm_penalty, double spline_interior_penalty, MRI *mri_posterior, VOXEL_LIST *vl_posterior,
 				       double *pentropy, MRI *mri_total_posterior) ;
+
+static MRI *compute_posterior_on_paths(MRI_SURFACE *mris, MRI *mri_splines, MRI *mri_total_posterior, MRI *mri_aseg, MRI *mri_posterior_on_spline) ;
+
+static MRI *compute_filtered_posterior_on_paths(MRI_SURFACE *mris, MRI *mri_splines, MRI *mri_total_posterior, MRI *mri_aseg, MRI *mri_posterior_on_spline) ;
 
 
 #define SPLINE_WM_DIST    0x0001
@@ -93,7 +99,7 @@ main(int argc, char *argv[]) {
   TRANSFORM    *xform ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_transmantle_dysplasia_paths.c,v 1.1 2012/05/07 16:32:34 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_transmantle_dysplasia_paths.c,v 1.2 2012/06/04 16:44:59 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -308,6 +314,9 @@ compute_migration_probabilities(MRI_SURFACE *mris, MRI *mri_intensity, MRI *mri_
     *mri_entropy, *mri_total_posterior,
     *mri_eroded_aseg, *mri_possible_migration_paths,*mri_path_grad, *mri_splines;
   VOXEL_LIST *vl, *vl_spline, *vl_posterior ;
+  char fname[STRLEN], path[STRLEN] ;
+  MRI  *mri_posterior_on_splines, *mri_filtered_posterior_on_spline ;
+
 
   wm_mean = gm_mean = wm_var = gm_var = 0 ;
 
@@ -479,8 +488,6 @@ compute_migration_probabilities(MRI_SURFACE *mris, MRI *mri_intensity, MRI *mri_
   }
   if (read_flag == 0)
   {
-    char fname[STRLEN], path[STRLEN] ;
-
     if (randomize_data)
       sprintf(fname, "%s/%s.splines.rand.mgz", 
 	      FileNamePath(mris->fname, path), 
@@ -491,9 +498,6 @@ compute_migration_probabilities(MRI_SURFACE *mris, MRI *mri_intensity, MRI *mri_
 	      mris->hemisphere == LEFT_HEMISPHERE ? "lh" : "rh"); 
     printf("writing optimal splines to %s\n", fname) ;
     MRIwrite(mri_splines, fname) ;
-  }
-  {
-    char fname[STRLEN], path[STRLEN] ;
 
     if (randomize_data)
       sprintf(fname, "%s/%s.entropy.rand.mgz", 
@@ -517,6 +521,66 @@ compute_migration_probabilities(MRI_SURFACE *mris, MRI *mri_intensity, MRI *mri_
     printf("writing integrated posterior to %s\n", fname) ;
     MRIwrite(mri_total_posterior, fname) ;
   }
+  else    // read previously computed data in
+  {
+    if (randomize_data)
+      sprintf(fname, "%s/%s.splines.rand.mgz", 
+	      FileNamePath(mris->fname, path), 
+	      mris->hemisphere == LEFT_HEMISPHERE ? "lh" : "rh"); 
+    else
+      sprintf(fname, "%s/%s.splines.mgz", 
+	      FileNamePath(mris->fname, path), 
+	      mris->hemisphere == LEFT_HEMISPHERE ? "lh" : "rh"); 
+    printf("reading optimal splines from %s\n", fname) ;
+    mri_splines = MRIread(fname) ;
+
+    if (randomize_data)
+      sprintf(fname, "%s/%s.entropy.rand.mgz", 
+	      FileNamePath(mris->fname, path), 
+	      mris->hemisphere == LEFT_HEMISPHERE ? "lh" : "rh"); 
+    else
+      sprintf(fname, "%s/%s.entropy.mgz", 
+	      FileNamePath(mris->fname, path), 
+	      mris->hemisphere == LEFT_HEMISPHERE ? "lh" : "rh"); 
+
+    printf("reading entropies from to %s\n", fname) ;
+    mri_entropy = MRIread(fname) ;
+    if (randomize_data)
+      sprintf(fname, "%s/%s.posterior.rand.mgz", 
+	      FileNamePath(mris->fname, path), 
+	      mris->hemisphere == LEFT_HEMISPHERE ? "lh" : "rh"); 
+    else
+      sprintf(fname, "%s/%s.posterior.corrected.mgz", 
+	      FileNamePath(mris->fname, path), 
+	      mris->hemisphere == LEFT_HEMISPHERE ? "lh" : "rh"); 
+    printf("reading integrated posterior from %s\n", fname) ;
+    mri_total_posterior = MRIread(fname) ;
+
+  }
+  mri_posterior_on_splines = compute_posterior_on_paths(mris, mri_splines, mri_total_posterior, mri_aseg,NULL) ;
+  if (randomize_data)
+    sprintf(fname, "%s/%s.spline_posterior.rand.mgz", 
+	    FileNamePath(mris->fname, path), 
+	    mris->hemisphere == LEFT_HEMISPHERE ? "lh" : "rh"); 
+  else
+    sprintf(fname, "%s/%s.spline_posterior.mgz", 
+	    FileNamePath(mris->fname, path), 
+	    mris->hemisphere == LEFT_HEMISPHERE ? "lh" : "rh"); 
+  printf("writing posterior projected onto optimal splines to %s\n", fname) ;
+  MRIwrite(mri_posterior_on_splines, fname) ;
+
+  mri_filtered_posterior_on_spline = compute_filtered_posterior_on_paths(mris, mri_splines, mri_total_posterior, mri_aseg,NULL) ;
+  if (randomize_data)
+    sprintf(fname, "%s/%s.spline_posterior.filtered.rand.mgz", 
+	    FileNamePath(mris->fname, path), 
+	    mris->hemisphere == LEFT_HEMISPHERE ? "lh" : "rh"); 
+  else
+    sprintf(fname, "%s/%s.spline_posterior.filtered.mgz", 
+	    FileNamePath(mris->fname, path), 
+	    mris->hemisphere == LEFT_HEMISPHERE ? "lh" : "rh"); 
+  printf("writing posterior projected and filtered onto optimal splines  to %s\n", fname) ;
+  MRIwrite(mri_filtered_posterior_on_spline, fname) ;
+
   MRIfree(&mri_splines) ; MRIfree(&mri_posterior); VLSTfree(&vl_posterior) ; MRIfree(&mri_entropy) ;
   MRIfree(&mri_total_posterior) ;
   MRIfree(&mri_possible_migration_paths) ; MRIfree(&mri_path_grad) ;
@@ -658,9 +722,13 @@ find_optimal_spline(VOXEL_LIST *vl, MRI *mri_intensity, MRI *mri_aseg, MRI *mri_
       current_energy = energy ;
       if (n > burnin && mri_posterior && n > (lastn+jump))
       {
+	
+	VOXEL_LIST *vl_interp = VLSTinterpolate(vl_spline_current, 1.0) ;
 	VLSTinterpolateSplineIntoVolume(vl_spline_current, mri_total_posterior, 
-					mri_posterior->xsize, vl_posterior) ;
-	VLSTinterpolateSplineIntoVolume(vl_spline_current, mri_posterior, mri_posterior->xsize, vl_posterior) ;
+					mri_posterior->xsize, vl_posterior, 1.0/vl_interp->nvox) ;
+	VLSTinterpolateSplineIntoVolume(vl_spline_current, mri_posterior, mri_posterior->xsize, vl_posterior,
+	  1.0/vl_interp->nvox) ;
+	VLSTfree(&vl_interp) ;
 	nposterior++ ;
 	lastn = n ;
       }
@@ -756,3 +824,152 @@ compute_spline_energy(VOXEL_LIST *vl, MRI *mri_intensity, MRI *mri_aseg, MRI *mr
   return(neg_log_p) ;
 }
 
+static MRI *
+compute_posterior_on_paths(MRI_SURFACE *mris, MRI *mri_splines, MRI *mri_total_posterior, MRI *mri_aseg,
+			   MRI *mri_posterior_on_spline)
+{
+  int         vno ;
+  VOXEL_LIST  *vl_spline ;
+  double      mean ;
+  MRI         *mri_mask, *mri_masked_posterior ;
+
+  if (0)
+  {
+    double sigma = 2.0 ;
+    MRI *mri_kernel = MRIgaussian1d(sigma, 11) ;
+    mri_posterior_on_spline = MRIlaplacian(mri_total_posterior, NULL) ;
+    MRIscalarMul(mri_posterior_on_spline, mri_posterior_on_spline, -1) ;
+    MRIwrite(mri_posterior_on_spline, "lap.mgz") ;
+    MRIconvolveGaussian(mri_posterior_on_spline, mri_posterior_on_spline, mri_kernel) ;
+    MRIwrite(mri_posterior_on_spline, "slap.mgz") ;
+    MRIcopy(mri_posterior_on_spline, mri_total_posterior) ;
+    MRIfree(&mri_kernel) ;
+    MRIfree(&mri_posterior_on_spline) ;
+  }
+
+  if (mri_posterior_on_spline == NULL)
+    mri_posterior_on_spline = MRIalloc(mris->nvertices, 1, 1, MRI_FLOAT) ;
+
+  mri_mask = MRIcloneDifferentType(mri_total_posterior, MRI_UCHAR) ;
+  MRIcopyLabel(mri_aseg, mri_mask, Left_Cerebral_White_Matter) ;
+  MRIcopyLabel(mri_aseg, mri_mask, Right_Cerebral_White_Matter) ;
+  MRIcopyLabel(mri_aseg, mri_mask, WM_hypointensities) ;
+  MRIbinarize(mri_mask, mri_mask, 1, 0, 1) ;
+  mri_masked_posterior = MRImask(mri_total_posterior, mri_mask, NULL, 0, 0) ;
+
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    if (vno == Gdiag_no)
+      DiagBreak() ;
+
+    vl_spline = VLSTfromMRI(mri_splines, vno) ;
+
+    mean = VLSTcomputeSplineMedian(vl_spline, mri_masked_posterior, mri_total_posterior->xsize/2) ;
+    mean = VLSTcomputeSplineSegmentMean(vl_spline, mri_masked_posterior, mri_total_posterior->xsize/2,
+					8, 12) ;
+    VLSTfree(&vl_spline) ;
+    MRIsetVoxVal(mri_posterior_on_spline, vno, 0, 0, 0, mean) ;
+  }
+
+  MRIfree(&mri_masked_posterior) ; MRIfree(&mri_mask) ;
+
+  return(mri_posterior_on_spline) ;
+}
+
+#define ANGLE_STEP RADIANS(10)
+
+static MRI *
+compute_filtered_posterior_on_paths(MRI_SURFACE *mris, MRI *mri_splines, MRI *mri_total_posterior, MRI *mri_aseg, MRI *mri_filtered_posterior_on_spline) 
+{
+  int         vno, nm1, np1, nsamples, n, nspline, outside_bad ;
+  VOXEL_LIST  *vl_spline, *vl ;
+  double      tangent[3], normal1[3], normal2[3], norm, theta, radius = 4.0, p[3], x1[3], y1[3],
+    xscale, yscale, outside, total, val ;
+  MRI         *mri_mask, *mri_masked_posterior ;
+
+  if (mri_filtered_posterior_on_spline == NULL)
+    mri_filtered_posterior_on_spline = MRIalloc(mris->nvertices, 1, 1, MRI_FLOAT) ;
+
+  mri_mask = MRIcloneDifferentType(mri_total_posterior, MRI_UCHAR) ;
+  MRIcopyLabel(mri_aseg, mri_mask, Left_Cerebral_White_Matter) ;
+  MRIcopyLabel(mri_aseg, mri_mask, Right_Cerebral_White_Matter) ;
+  MRIcopyLabel(mri_aseg, mri_mask, WM_hypointensities) ;
+  MRIbinarize(mri_mask, mri_mask, 1, 0, 1) ;
+  mri_masked_posterior = MRImask(mri_total_posterior, mri_mask, NULL, 0, 0) ;
+
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    if (vno == Gdiag_no)
+      DiagBreak() ;
+
+    vl_spline = VLSTfromMRI(mri_splines, vno) ;
+    vl = VLSTinterpolate(vl_spline, mri_total_posterior->xsize) ;
+
+    for (total = 0.0, nspline = n = 0 ; n < vl->nvox ; n++)
+    {
+      if (MRIgetVoxVal(mri_mask, nint(vl->xi[n]), nint(vl->yi[n]), nint(vl->zi[n]), 0) == 0)
+	continue ; // not in wm
+      MRIsampleVolume(mri_total_posterior, vl->xd[n], vl->yd[n], vl->zd[n], &val) ;
+      nm1 = n-1 ; np1 = n+1 ;
+      if (n == 0)
+	nm1 = n ;
+      else if (n == vl->nvox-1)
+	np1 = n ;
+
+      tangent[0] = vl->xd[np1]-vl->xd[nm1] ;
+      tangent[1] = vl->yd[np1]-vl->yd[nm1] ;
+      tangent[2] = vl->zd[np1]-vl->zd[nm1] ;
+      norm = VLEN(tangent) ; tangent[0] /= norm ; tangent[1] /= norm ; tangent[2] /= norm ;
+      // pick some random, no colinear vector by permuting tangent
+      if (!FEQUAL(tangent[0], tangent[1]))
+      {
+	normal1[0] = tangent[1] ;
+	normal1[1] = tangent[0] ;
+	normal1[2] = tangent[2] ;
+      }
+      else  // if [0] and [1] are equal, 1 and 2 can't be for a unit vector
+      {
+	normal1[0] = tangent[0] ;
+	normal1[1] = tangent[2] ;
+	normal1[2] = tangent[1] ;
+      }
+      CROSS(normal2, tangent, normal1) ;
+      norm = VLEN(normal2) ; normal2[0] /= norm ; normal2[1] /= norm ; normal2[2] /= norm ;
+      CROSS(normal1, tangent, normal2) ;
+      norm = VLEN(normal1) ; normal1[0] /= norm ; normal1[1] /= norm ; normal1[2] /= norm ;
+
+      outside_bad = 0 ;
+      for (nsamples = 0, outside = theta = 0.0 ; theta <= 2*M_PI ; theta += ANGLE_STEP)
+      {
+	xscale = radius * cos(theta) ;
+	yscale = radius * sin(theta) ;
+	SCALAR_MUL(x1, xscale, normal1) ;
+	SCALAR_MUL(y1, yscale, normal2) ;
+	ADD(p, x1, y1) ;
+	if (MRIgetVoxVal(mri_mask, nint(vl->xd[n]+p[0]), nint(vl->yd[n]+p[1]), nint(vl->zd[n]+p[2]), 0) == 0)
+	{
+	  outside_bad = 1 ;
+	  break ; // not in wm
+	}
+	MRIsampleVolume(mri_total_posterior, vl->xd[n]+p[0], vl->yd[n]+p[1], vl->zd[n]+p[2], &val) ;
+	nsamples++ ;
+	outside += val ;
+      }
+      if (outside_bad)
+	continue ;
+      nspline++ ;
+      outside /= (double)nsamples ;
+      MRIsampleVolume(mri_total_posterior, vl->xd[n], vl->yd[n], vl->zd[n], &val) ;
+      total += val / outside ;
+    }
+
+    VLSTfree(&vl_spline) ;
+    VLSTfree(&vl) ;
+    if (nspline > 0)
+      MRIsetVoxVal(mri_filtered_posterior_on_spline, vno, 0, 0, 0, total/(double)nspline) ;
+  }
+
+  MRIfree(&mri_masked_posterior) ; MRIfree(&mri_mask) ;
+
+  return(mri_filtered_posterior_on_spline) ;
+}
