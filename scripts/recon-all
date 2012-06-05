@@ -7,9 +7,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: greve $
-#    $Date: 2012/05/18 23:17:03 $
-#    $Revision: 1.379.2.36 $
+#    $Author: nicks $
+#    $Date: 2012/06/05 21:25:42 $
+#    $Revision: 1.379.2.37 $
 #
 # Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -26,7 +26,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.379.2.36 2012/05/18 23:17:03 greve Exp $';
+set VERSION = '$Id: recon-all,v 1.379.2.37 2012/06/05 21:25:42 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -1392,7 +1392,7 @@ if($DoMotionCor) then
     goto error_exit;
   endif
 
-  # Add xfm to orig, eventhough it does not exist yet. This is a
+  # Add xfm to orig, even though it does not exist yet. This is a
   # compromise to keep from having to change the time stamp of
   # the orig volume after talairaching.
   set cmd = (mri_add_xform_to_header -c \
@@ -1403,7 +1403,6 @@ if($DoMotionCor) then
     $fs_time $cmd |& tee -a $LF
     if($status) goto error_exit;
   endif
-
 
 endif # Motion Correction
 
@@ -1619,6 +1618,15 @@ if($DoNuIntensityCor) then
   echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
   if($RunIt) $fs_time $cmd |& tee -a $LF
   if($status) goto error_exit;
+  # Add xfm to nu
+  set cmd = (mri_add_xform_to_header -c \
+             $subjdir/mri/transforms/talairach.xfm \
+             nu.mgz nu.mgz)
+  echo "\n $cmd \n" |& tee -a $LF |& tee -a $CF
+  if($RunIt) then
+    $fs_time $cmd |& tee -a $LF
+    if($status) goto error_exit;
+  endif
   touch $touchdir/nu.touch
 endif
 
