@@ -17,7 +17,7 @@
 # Edited : 06-03-2012: added new flags --asegfname and --nointensity
 
 set inputargs = ($argv);
-set VERSION = '$Id: mri_cvs_register,v 1.39 2012/06/03 22:46:28 greve Exp $';
+set VERSION = '$Id: mri_cvs_register,v 1.40 2012/06/06 22:40:11 greve Exp $';
 
 set movingid = ();
 set templateid = ();
@@ -566,7 +566,7 @@ endif
 set oldfinaloutputfilename = $finaloutputfilename
 set voltype = $asegfname
 set finaloutputfilename = final_CVSmorphed_to${templateid}_${voltype}.mgz
-if (($outdir/${combined:r}.${morphsuffix}) && (!(-e  $outdir/$finaloutputfilename ) || $CleanElReg || $CleanVolReg)) then 
+if ((-e $outdir/${combined:r}.${morphsuffix}) && (!(-e  $outdir/$finaloutputfilename ) || $CleanElReg || $CleanVolReg)) then 
 #  set cmd = ( applyMorph --template $tmri/$voltype.mgz --transform $outdir/$combined \
 #                         vol $mmri/$voltype.mgz $outdir/${combined:r}_${voltype}.mgz nearest )
   set cmd = ( mri_vol2vol  --targ $tmri/$voltype.mgz --m3z $outdir/${combined:r}.${morphsuffix} --noDefM3zPath \
