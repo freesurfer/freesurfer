@@ -9,8 +9,8 @@
 # Original Author: Martin Reuter
 # CVS Revision Info:
 #    $Author: mreuter $
-#    $Date: 2012/05/30 22:57:26 $
-#    $Revision: 1.20 $
+#    $Date: 2012/06/06 21:40:33 $
+#    $Revision: 1.21 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -48,6 +48,7 @@ slopelogger.addHandler(ch)
 HELPTEXT = """
 
 SUMMARY
+=======
 
 Computes slopes of stats in a longitudinal study.
 The slope is computed within subject from the longitudinally processed
@@ -55,68 +56,11 @@ results (taken from the <tpNid>.long.<template> directories) and the
 output is written into the subjects <template>/stats directory for further
 processing (e.g. group analysis).
 
-
-REQUIRED ARGUMENTS
-
---qdec <name>     qdec.table.dat file with first columns: fsid  fsid-base
-
---stats <name>    Stats file w/o path: e.g. aseg.stats or lh.aparc.stats
-
---meas <name>     Stats measure, e.g. volume, thickness, mean, std
-
-
-One or more of the following:
-
---do-avg           Compute and output the temporal average (recommended)
-
---do-rate          Compute and output the rate (recommended)
-
---do-pc1fit        Compute and output the pct. change (w.r.t. tp1 computed from line fit)
-
---do-pc1           Compute and output the pct. change (w.r.t. tp1 directly, more noisy)
-
---do-spc           Compute and output the sym. pct. change (w.r.t. temp. average) (recommended)
-
-
-
-OPTIONAL ARGUMENTS
-
---do-stack        Compute and output the a tables showing the time series (row per time point)
-
---time <name>     Variable name of time variable (e.g. age)
-
-
-To manually specify the within subject output in <template>/stats/<name> :
-
---out-avg <name>     Output filename for temporal average (default: long.<stats>.<meas>-avg.dat)
-
---out-rate <name>    Output filename for the rate (diff per time) (default: long.<stats>.<meas>-rate.dat)
-
---out-pc1fit <name>  Output filename for percent change (w.r.t. time 1 fit) (default: long.<stats>.<meas>-pc1fit.dat)
-
---out-pc1 <name>     Output filename for percent change (w.r.t. time 1) (default: long.<stats>.<meas>-pc1.dat)
-
---out-spc <name>     Output filename for sym. pct. change (w.r.t. average) (default: long.<stats>.<meas>-spc.dat)
-
---out-stack <name>   Store time series file <template>/stats/<name> (default: long.<stats>.<meas>-stack.dat)
-
-
-To manually specify stacked tables (across all input subjects):
-
---stack-avg <name>    Full output filename to stack temporal average tables (default no stacking)
-
---stack-rate <name>   Full output filename to stack rate tables (default no stacking)
-
---stack-pc1fit <name> Full output filename to stack pct. change to tp1fit tables (default no stacking)
-
---stack-pc1 <name>    Full output filename to stack pct. change to tp1 tables (default no stacking)
-
---stack-spc <name>    Full output filename to stack sym. pct. tables (default no stacking)
-
-
+See below for parameters...
 
 DETAILS
 =======
+
 QDEC.TABLE
 Pass a qdec table file, where the first 2 columns need to be 'fsid  fsid-base'.
 fsid is the id of the individual time points an 'fsid-base' the template/base
@@ -138,6 +82,7 @@ Bert_3   Bert       9.9    34    2400
 
 OUTPUT
 ======
+
 The within subject output will be written into the template stats directory:
 <template>/stats/<name>
 
@@ -196,7 +141,7 @@ def options_parse():
     Command Line Options Parser for long_mris_slopes
     initiate the option parser and return the parsed object
     """
-    parser = optparse.OptionParser(version='$Id: long_stats_slopes,v 1.20 2012/05/30 22:57:26 mreuter Exp $', usage=HELPTEXT)
+    parser = optparse.OptionParser(version='$Id: long_stats_slopes,v 1.21 2012/06/06 21:40:33 mreuter Exp $', usage=HELPTEXT)
     
     # help text
     h_qdec      = '(REQUIRED) qdec table file specifying the subjects and time points'
@@ -209,7 +154,7 @@ def options_parse():
     h_dopc1     = 'compute and output the pct. change (w.r.t. tp1)'
     h_dopc1fit  = 'compute and output the pct. change (w.r.t. tp1 from linear fit)'
     h_dospc     = 'compute and output the sym. pct. change (w.r.t. temp. average)'
-    h_dostack   = 'save the stacked within subject time point data (time series)'
+    h_dostack   = 'Compute and output tables showing the time series (row per time point)'
     h_resid     = 'residual tp (pass 1 for tp1) to export (default no export)'
 
     h_out_avg   = 'filename to store temporal average in <template>/stats/<OUT_AVG> (default: long.<stats>.<meas>-avg.dat)'
@@ -260,7 +205,7 @@ def options_parse():
     parser.add_option_group(group)
     
     # overwrite default output names:
-    group = optparse.OptionGroup(parser, "Within-Subject Output","Select these to overwrite the default names:")
+    group = optparse.OptionGroup(parser, "Within-Subject Output","Pass these to overwrite the default names:")
     group.add_option('--out-avg'  , dest='out_avg'  , help=h_out_avg)
     group.add_option('--out-rate' , dest='out_rate' , help=h_out_rate)
     group.add_option('--out-pc1fit'  , dest='out_pc1fit'  , help=h_out_pc1fit)
