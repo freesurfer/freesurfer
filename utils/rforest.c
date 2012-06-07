@@ -8,8 +8,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2012/06/07 13:08:39 $
- *    $Revision: 1.10 $
+ *    $Date: 2012/06/07 23:44:40 $
+ *    $Revision: 1.11 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -967,11 +967,11 @@ RFclassify(RANDOM_FOREST *rf, double *feature, double *p_pval, int true_class)
     {
       if (c == max_class)
       {
-        printf("%s: p = %2.2f ", rf->class_names[c], 100.0*class_counts[c]) ;
+        printf("%s: p = %2.2f ", rf->class_names[c], 100.0*class_counts[c]/total_count) ;
         if (c==true_class)
           printf("CORRECT\n") ;
         else
-          printf("(true = %s, p = %2.2f)\n", rf->class_names[true_class], 100.0*class_counts[true_class]) ;
+          printf("(true = %s, p = %2.2f)\n", rf->class_names[true_class], 100.0*class_counts[true_class]/total_count) ;
       }
     }
     else
@@ -1095,7 +1095,7 @@ RFsetNumberOfClasses(RANDOM_FOREST *rf, int nclasses)
 int
 RFevaluateFeatures(RANDOM_FOREST *rf, FILE *fp)
 {
-  int  fno, tree_count, total_count, tno ;
+  int  fno, tree_count, total_count = 0, tno ;
   TREE *tree ;
   double info_gain, total_info_gain ;
 
@@ -1113,9 +1113,9 @@ RFevaluateFeatures(RANDOM_FOREST *rf, FILE *fp)
     if (total_count > 0)
       total_info_gain = total_info_gain / (double)total_count ;
     if (rf->feature_names)
-      printf("feature %s: info gain = %2.3f\n", rf->feature_names[fno], total_info_gain) ;
+      printf("feature %s: info gain = %2.5f\n", rf->feature_names[fno], total_info_gain) ;
     else
-      printf("feature %d: info gain = %2.3f\n", fno, total_info_gain) ;
+      printf("feature %d: info gain = %2.5f\n", fno, total_info_gain) ;
   }
   return(NO_ERROR) ;
 }
