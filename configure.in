@@ -9,8 +9,8 @@
 #
 # CVS Revision Info:
 #    $Author: fischl $
-#    $Date: 2012/05/23 13:36:30 $
-#    $Revision: 1.569 $
+#    $Date: 2012/06/07 12:09:35 $
+#    $Revision: 1.570 $
 #
 ########################################################################
 AC_PREREQ(2.57)
@@ -3424,11 +3424,11 @@ AC_OUTPUT([Makefile
            mri_binarize/Makefile
            mri_build_priors/Makefile
            mri_ca_label/Makefile
-           mri_rf_label/Makefile
            mri_ca_normalize/Makefile
            mri_ca_register/Makefile
            mri_ca_tissue_parms/Makefile
            mri_ca_train/Makefile
+           mri_rf_label/Makefile
            mri_rf_train/Makefile
            mri_gcab_train/Makefile
            mri_cc/Makefile
@@ -3553,6 +3553,8 @@ AC_OUTPUT([Makefile
            mri_vol2roi/Makefile
            mri_vol2surf/Makefile
            mri_vol2vol/Makefile
+           mris_rf_label/Makefile
+           mris_rf_train/Makefile
            mri_volcluster/Makefile
            mri_voldiff/Makefile
            mri_volsynth/Makefile

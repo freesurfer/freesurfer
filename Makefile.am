@@ -46,13 +46,13 @@ MRISUBDIRS=\
 	mri_build_priors \
 	mri_ca_label \
 	mri_rf_label \
+	mri_rf_train \
 	mri_aseg_edit_train \
 	mri_aseg_edit_reclassify \
 	mri_ca_normalize \
 	mri_ca_tissue_parms \
 	mri_ca_register \
 	mri_ca_train \
-	mri_rf_train \
 	mri_cvs_register \
 	mri_gcab_train \
 	mri_gcut \
@@ -206,6 +206,8 @@ MRISSUBDIRS=\
 	mris_calc \
 	mris_shrinkwrap \
 	mris_density \
+	mris_rf_label \
+	mris_rf_train \
 	mris_fbirn_annot \
 	mris_fill \
 	mris_add_template \
