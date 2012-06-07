@@ -1,27 +1,29 @@
 function [kmeans, kmap, dmin, niters, yhat] = fast_kmeans(y,nc,kmeans0,nitersmax,nfix,ndiffmax)
 % [kmeans, kmap, dmin, niters, yhat] = fast_kmeans(y,nc,<kmeans0>,<nitersmax>,<nfix>,<ndiffmax>)
 %
+% y is n-variates by nsamples
 % nc is number of classes (a better name would have been nk)
 % If nitersmax is not specified, uses 100.
-% If kmeans0 is not specified, uses first nc of y.
+% If kmeans0 is not specified, uses first nc of y:
+%      kmeans0 = y(:,1:nc);
 % The mean error is mean(dmin) = mean(abs(y-yhat)). Note
 % that this is an L1, not L2, measure.
 %
 % nfix - fix the first nfix class means as specified in
 % kmeans0. nc-nfix class means are adapted.
 %
+% kmeans is n-variates by n-classes
+% kmap is 1 by nsamples
 %
-%
-
 
 %
 % fast_kmeans.m
 %
 % Original Author: Doug Greve
 % CVS Revision Info:
-%    $Author: nicks $
-%    $Date: 2011/03/02 00:04:04 $
-%    $Revision: 1.9 $
+%    $Author: greve $
+%    $Date: 2012/06/07 21:23:34 $
+%    $Revision: 1.10 $
 %
 % Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 %
@@ -46,7 +48,7 @@ end
 
 if(~exist('nfix','var')) nfix = []; end
 if(isempty(nfix)) nfix = 0; end
-if(isempty(kmeans0) & nfix > 0)
+if(~exist('kmeans0','var') & nfix > 0)
   fprintf('ERROR: must specify kmeans0 with nfix\n');
   return;
 end
@@ -109,7 +111,7 @@ while(niters < nitersmax & ndiff > ndiffmax)
 
   kmap0 = kmap;
   niters = niters + 1;
-  if(1 | mod(niters,10)==0 | niters == 1)
+  if(mod(niters,10)==0 | niters == 1)
     fprintf('%3d %5d %14.13f %g\n',niters,ndiff,mean(dmin),toc);
   end
 
