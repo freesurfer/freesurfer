@@ -8,8 +8,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2012/05/23 17:35:17 $
- *    $Revision: 1.9 $
+ *    $Date: 2012/06/07 13:08:39 $
+ *    $Revision: 1.10 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -40,6 +40,7 @@
 
 #define MAX_CLASSES 50
 static double entropy(int *class_counts, int nclasses, int *Nc) ;
+static double rfFeatureInfoGain(RANDOM_FOREST *rf, TREE *tree, NODE *parent, NODE *left, NODE *right, int fno, int *ptotal_count) ;
 
 RANDOM_FOREST *
 RFalloc(int ntrees, int nfeatures, int nclasses, int max_depth, char **class_names, int nsteps) 
@@ -410,9 +411,9 @@ rfTrainTree(RANDOM_FOREST *rf, TREE *tree, int *training_classes, double **train
 int
 RFtrain(RANDOM_FOREST *rf, double feature_fraction, double training_fraction, int *training_classes, double **training_data, int ntraining)
 {
-  int    n, i, nfeatures_per_tree, *feature_permutation, *training_permutation, f, index, start_no, end_no,
-         ntraining_per_tree ;
-  TREE   *tree ;
+  int    n, i, nfeatures_per_tree = 0, *feature_permutation, *training_permutation, f, index, start_no, end_no,
+         ntraining_per_tree = 0 ;
+  TREE   *tree = NULL ;
 
   rf->ntraining = ntraining ;
   rf->training_data = training_data ;
@@ -445,8 +446,21 @@ RFtrain(RANDOM_FOREST *rf, double feature_fraction, double training_fraction, in
 
   compute_permutation(rf->nfeatures, feature_permutation) ;
   compute_permutation(ntraining, training_permutation) ;
+
+
+#ifdef HAVE_OPENMP
+  tree = NULL;
+  start_no = 0 ; // only 1 tree
+  end_no = 0 ; // only 1 tree
+  index = 0 ;
+  n = 0 ;
+#pragma omp parallel for firstprivate(tree,start_no,end_no,i,index) shared(rf, nfeatures_per_tree, Gdiag,training_classes,training_data) schedule(static,1)
+#endif
   for (n = 0 ; n < rf->ntrees ; n++)  // train each tree
   {
+#ifdef HAVE_OPENMP
+  #pragma omp critical 
+#endif  
     printf("training tree %d of %d....\n", n, rf->ntrees) ;
     tree = &rf->trees[n] ;
 
@@ -479,9 +493,11 @@ RFtrain(RANDOM_FOREST *rf, double feature_fraction, double training_fraction, in
     {
       index = training_permutation[i] ;
       if (training_classes[index] < 0 || training_classes[index] >= rf->nclasses)
-	ErrorReturn(ERROR_BADPARM, 
-		    (ERROR_BADPARM, "RFtrain: class at index %d = %d: out of bounds (%d)",
-		     index, training_classes[index], rf->nclasses)) ;
+      {
+	ErrorPrintf(ERROR_BADPARM, "RFtrain: class at index %d = %d: out of bounds (%d)",
+		    index, training_classes[index], rf->nclasses) ;
+	training_classes[index] = 0 ;
+      }
       tree->root.class_counts[training_classes[index]]++ ;
       tree->root.training_set[tree->root.total_counts] = index ;
       tree->root.total_counts++ ;
@@ -491,6 +507,9 @@ RFtrain(RANDOM_FOREST *rf, double feature_fraction, double training_fraction, in
       printf("tree %d: initial entropy = %f\n", n, 
 	     entropy(tree->root.class_counts, rf->nclasses, tree->root.class_counts)) ;
     rfTrainTree(rf, tree, training_classes, training_data, rf->ntraining) ;
+#ifdef HAVE_OPENMP
+  #pragma omp critical 
+#endif  
     printf("\ttraining complete, depth %d, nleaves %d.\n", tree->depth, tree->nleaves) ;
   }
 
@@ -719,6 +738,15 @@ RFwriteInto(RANDOM_FOREST *rf, FILE *fp)
 
   for (f = 0 ; f < rf->nfeatures ; f++)
     fprintf(fp, "%lf %lf\n", rf->feature_min[f], rf->feature_max[f]) ;
+  fprintf(fp, "FEATURE NAMES\n") ;
+  for (f = 0 ; f < rf->nfeatures ; f++)
+  {
+    if (rf->feature_names)
+      fprintf(fp, "%s\n", rf->feature_names[f]) ;
+    else
+      fprintf(fp, "FEATURE %d\n", f) ;
+  }
+      
 
   for (n = 0 ; n < rf->ntrees ; n++)
     rfWriteTree(rf, &rf->trees[n], fp) ;
@@ -736,11 +764,11 @@ rfFindLeaf(RF *rf, NODE *node, double *feature)
     {
       int c ;
       if (rf->feature_names)
-	printf("\tnode: feature %s (#%d): thresh = %2.1f, input val = %2.1f, ",
+	printf("\tnode: feature %s (#%d): thresh = %2.2f, input val = %2.2f, ",
 	       rf->feature_names[node->feature],
 	       node->feature, node->thresh, feature[node->feature]) ;
 	else
-	  printf("\tnode: feature #%d: thresh = %2.1f, input val = %2.1f, ",
+	  printf("\tnode: feature #%d: thresh = %2.2f, input val = %2.2f, ",
 		 node->feature, node->thresh, feature[node->feature]) ;
       for (c = 0 ; c < rf->nclasses ; c++)
 	printf("C%d=%2.0f (%d) ", c, 100.0*(float)node->class_counts[c]/(float)node->total_counts, node->class_counts[c]) ;
@@ -856,7 +884,7 @@ RFcomputeOutOfBagCorrect(RANDOM_FOREST *rf, int *training_classes, double **trai
 	    if (c==true_class)
 	      printf("CORRECT\n") ;
 	    else
-	      printf("(true = %s, p = %2.1f)\n",
+	      printf("(true = %s, p = %2.2f)\n",
 		     rf->class_names[true_class], 
 		     100*(double)class_counts[true_class]/total_count) ;
 	  }
@@ -943,7 +971,7 @@ RFclassify(RANDOM_FOREST *rf, double *feature, double *p_pval, int true_class)
         if (c==true_class)
           printf("CORRECT\n") ;
         else
-          printf("(true = %s, p = %2.1f)\n", rf->class_names[true_class], 100.0*class_counts[true_class]) ;
+          printf("(true = %s, p = %2.2f)\n", rf->class_names[true_class], 100.0*class_counts[true_class]) ;
       }
     }
     else
@@ -1003,6 +1031,18 @@ RFreadFrom(FILE *fp)
     cp = fgetl(line, MAX_LINE_LEN, fp) ;
     sscanf(cp, "%lf %lf\n", &rf->feature_min[f], &rf->feature_max[f]) ;
   }
+  cp = fgetl(line, MAX_LINE_LEN, fp) ;  // should be FEATURE NAMES
+  rf->feature_names = (char **)calloc(rf->nfeatures, sizeof(char *)) ;
+  if (rf->feature_names == NULL)
+    ErrorExit(ERROR_NOMEMORY, "RFreadFrom: could not allocate feature name array") ;
+  for (f = 0 ; f < rf->nfeatures ; f++)
+  {
+    cp = fgetl(line, MAX_LINE_LEN, fp) ;  
+    rf->feature_names[f] = (char *)calloc(strlen(cp)+1, sizeof(char)) ;
+    if (rf->feature_names[f] == NULL)
+      ErrorExit(ERROR_NOMEMORY, "RFreadFrom: could not allocate %d-len feature name array [%d]", strlen(cp)+1, f) ;
+    strcpy(rf->feature_names[f], cp) ;
+  }
 
   for (n = 0 ; n < rf->ntrees ; n++)
     rfReadTree(rf, &rf->trees[n], fp) ;
@@ -1051,4 +1091,65 @@ RFsetNumberOfClasses(RANDOM_FOREST *rf, int nclasses)
   }
   rf->nclasses = nclasses ;
   return(NO_ERROR) ;
+}
+int
+RFevaluateFeatures(RANDOM_FOREST *rf, FILE *fp)
+{
+  int  fno, tree_count, total_count, tno ;
+  TREE *tree ;
+  double info_gain, total_info_gain ;
+
+  for (fno = 0 ; fno < rf->nfeatures ; fno++)
+  {
+    // compute weighted info gain
+    for (total_info_gain = 0.0, tno = 0 ; tno < rf->ntrees ; tno++)
+    {
+      tree = &rf->trees[tno] ;
+      tree_count = 0 ;
+      info_gain = rfFeatureInfoGain(rf, tree, &tree->root, tree->root.left, tree->root.right, fno, &tree_count) ;
+      total_count += tree_count ;
+      total_info_gain += info_gain  ;
+    }
+    if (total_count > 0)
+      total_info_gain = total_info_gain / (double)total_count ;
+    if (rf->feature_names)
+      printf("feature %s: info gain = %2.3f\n", rf->feature_names[fno], total_info_gain) ;
+    else
+      printf("feature %d: info gain = %2.3f\n", fno, total_info_gain) ;
+  }
+  return(NO_ERROR) ;
+}
+static double
+rfFeatureInfoGain(RANDOM_FOREST *rf, TREE *tree, NODE *parent, NODE *left, NODE *right, int fno, int *ptotal_count)
+{
+  int    c ;
+  double info_gain = 0, entropy_before, entropy_after, wr, wl ;
+
+  if (left != NULL)   //  not a leaf and uses this feature
+  {
+    if (parent->feature == fno)
+    {
+      entropy_before = entropy(parent->class_counts, rf->nclasses, tree->root.class_counts) ;
+      for (wr = wl = 0.0, c = 0 ; c < rf->nclasses ; c++)
+      {
+	if (tree->root.class_counts[c] == 0)
+	  continue ;
+	wl += (double)left->class_counts[c] / tree->root.class_counts[c] ;
+	wr += (double)right->class_counts[c] / tree->root.class_counts[c] ;
+      }
+      wl = wl / (wl + wr); wr = 1-wl ;
+      
+      entropy_after = 
+	wl * entropy(left->class_counts, rf->nclasses, tree->root.class_counts) +
+	wr * entropy(right->class_counts, rf->nclasses, tree->root.class_counts) ;
+      info_gain = ((double)parent->total_counts * (entropy_before-entropy_after)) ;
+      *ptotal_count += parent->total_counts ;
+    }
+    else 
+      info_gain = 0 ;
+
+    info_gain += rfFeatureInfoGain(rf, tree, left, left->left, left->right, fno, ptotal_count) ;
+    info_gain += rfFeatureInfoGain(rf, tree, right, right->left, right->right, fno, ptotal_count) ;
+  }
+  return(info_gain) ;
 }
