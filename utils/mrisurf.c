@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2012/04/11 22:11:20 $
- *    $Revision: 1.723 $
+ *    $Date: 2012/06/07 13:11:40 $
+ *    $Revision: 1.724 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -733,7 +733,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void)
 {
-  return("$Id: mrisurf.c,v 1.723 2012/04/11 22:11:20 fischl Exp $");
+  return("$Id: mrisurf.c,v 1.724 2012/06/07 13:11:40 fischl Exp $");
 }
 
 /*-----------------------------------------------------
@@ -1172,9 +1172,11 @@ MRI_SURFACE *MRISreadOverAlloc(const char *fname, double pct_over)
 
   // Check whether there is an area file for group average
   sprintf(tmpstr,"%s.avg.area.mgh",fname);
-  if(Gdiag_no > 0) printf("Trying to read average area %s\n",tmpstr);
+  if(Gdiag_no >= 0 && DIAG_VERBOSE_ON) 
+    printf("Trying to read average area %s\n",tmpstr);
   if (fio_FileExistsReadable(tmpstr)){
-    printf("Reading in average area %s\n",tmpstr);
+    if(Gdiag_no >= 0 && DIAG_VERBOSE_ON) 
+      printf("Reading in average area %s\n",tmpstr);
     mri = MRIread(tmpstr);
     if (!mri){
       printf("ERROR: reading in average area %s\n",tmpstr);
@@ -1185,7 +1187,8 @@ MRI_SURFACE *MRISreadOverAlloc(const char *fname, double pct_over)
     mris->group_avg_vtxarea_loaded=1;
   }
   else mris->group_avg_vtxarea_loaded=0;
-  if(Gdiag_no > 0) printf("Average area loaded %d\n",mris->group_avg_vtxarea_loaded);
+  if(Gdiag_no >= 0 && DIAG_VERBOSE_ON) 
+    printf("Average area loaded %d\n",mris->group_avg_vtxarea_loaded);
 
   return(mris) ;
 }
@@ -3030,7 +3033,7 @@ MRISremoveRipped(MRI_SURFACE *mris)
   VERTEX  *v, *vn ;
   FACE    *face ;
 
-  if (Gdiag & DIAG_SHOW)
+  if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
     fprintf(stdout, "removing ripped vertices and faces...\n") ;
   do
   {
@@ -70351,5 +70354,28 @@ MRIStrinarizeCurvature(MRI_SURFACE *mris, float trinarize_thresh)
       v->curv = 0 ;
   }
   return(NO_ERROR) ;
+}
+
+int
+MRIScountTotalNeighbors(MRI_SURFACE *mris, int nsize)
+{
+  int      vno, total_nbrs ;
+  VERTEX   *v ;
+
+  for (total_nbrs = vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    v = &mris->vertices[vno] ;
+    if (v->ripflag)
+      continue ;
+    switch (nsize)
+    {
+    case 0: total_nbrs++ ; break ;
+    case 1: total_nbrs += v->vnum ; break ;
+    case 2: total_nbrs += v->v2num ; break ;
+    case 3: total_nbrs += v->v3num ; break ;
+    default: ErrorExit(ERROR_UNSUPPORTED, "MRIScountNeighbors(%d): max nbhd size = 3", nsize) ;
+    }
+  }
+  return(total_nbrs) ;
 }
 
