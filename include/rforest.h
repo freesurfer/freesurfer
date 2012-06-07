@@ -8,8 +8,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2012/04/11 00:56:39 $
- *    $Revision: 1.5 $
+ *    $Date: 2012/06/07 13:08:43 $
+ *    $Revision: 1.6 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -95,6 +95,7 @@ int  RFclassify(RANDOM_FOREST *rf, double *feature, double *p_pval, int true_cla
 int  RFcomputeOutOfBagCorrect(RANDOM_FOREST *rf, int *training_classes, double **training_data,int ntraining);
 int  RFtrainTree(RANDOM_FOREST *rf, int tno, int *training_classes, double **training_data, int ntraining);
 int  RFsetNumberOfClasses(RANDOM_FOREST *rf, int nlabels) ;
+int  RFevaluateFeatures(RANDOM_FOREST *rf, FILE *fp) ;
 
 
 #endif
