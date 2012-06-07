@@ -9,8 +9,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2012/06/04 16:44:59 $
- *    $Revision: 1.2 $
+ *    $Date: 2012/06/07 16:29:13 $
+ *    $Revision: 1.3 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -46,6 +46,9 @@
 #include "voxlist.h"
 #include "pdf.h"
 #include "tritri.h"
+#ifdef HAVE_OPENMP
+#include <omp.h>
+#endif
 
 int main(int argc, char *argv[]) ;
 static VOXEL_LIST *compute_path_to_ventricles(MRI_SURFACE *mris, int vno, MRI *mri_ventricle_dist_grad, MRI *mri_aseg) ;
@@ -99,7 +102,7 @@ main(int argc, char *argv[]) {
   TRANSFORM    *xform ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_transmantle_dysplasia_paths.c,v 1.2 2012/06/04 16:44:59 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_transmantle_dysplasia_paths.c,v 1.3 2012/06/07 16:29:13 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -422,6 +425,10 @@ compute_migration_probabilities(MRI_SURFACE *mris, MRI *mri_intensity, MRI *mri_
     MRIwrite(mri_path_grad, "pg.mgz") ;
     MRIwrite(mri_possible_migration_paths, "p.mgz") ;
   }
+#ifdef HAVE_OPENMP
+  v = NULL ; n = 0 ;
+#pragma omp parallel for firstprivate(n, v, vl, vl_spline, entropy, gm_mean, mcmc_samples) shared(mri_intensity, mri_aseg, mri_path_grad,mri_splines) schedule(static,1)
+#endif
   for (vno = 0 ; vno < mris->nvertices ; vno++)
   {
     if ((vno % (mris->nvertices/200)) == 0)
@@ -550,7 +557,7 @@ compute_migration_probabilities(MRI_SURFACE *mris, MRI *mri_intensity, MRI *mri_
 	      FileNamePath(mris->fname, path), 
 	      mris->hemisphere == LEFT_HEMISPHERE ? "lh" : "rh"); 
     else
-      sprintf(fname, "%s/%s.posterior.corrected.mgz", 
+      sprintf(fname, "%s/%s.posterior.mgz", 
 	      FileNamePath(mris->fname, path), 
 	      mris->hemisphere == LEFT_HEMISPHERE ? "lh" : "rh"); 
     printf("reading integrated posterior from %s\n", fname) ;
@@ -768,11 +775,12 @@ compute_spline_energy(VOXEL_LIST *vl, MRI *mri_intensity, MRI *mri_aseg, MRI *mr
 {
   int         n, label, num ;
   VOXEL_LIST *vl_interp ;
-  double     val, neg_log_p, wm_dist ;
-
-  vl_interp = VLSTinterpolate(vl, 1) ;
+  double     val, wm_dist ;
+  double     neg_log_p ;
 
   neg_log_p = 0 ;
+  vl_interp = VLSTinterpolate(vl, 1) ;
+
   for (n = num = 0 ; n < vl_interp->nvox ; n++)
   {
     if (vl_interp->xi[n] == Gx &&  vl_interp->yi[n] == Gy &&  vl_interp->zi[n] == Gz)
@@ -818,7 +826,7 @@ compute_spline_energy(VOXEL_LIST *vl, MRI *mri_intensity, MRI *mri_aseg, MRI *mr
   if (which & SPLINE_LENGTH)
     neg_log_p = spline_length_penalty*sqrt(vl_interp->nvox) + sqrt(neg_log_p/num) ;
   else
-    neg_log_p = sqrt(neg_log_p/num) ;
+    neg_log_p= sqrt(neg_log_p/num) ;
 
   VLSTfree(&vl_interp) ;
   return(neg_log_p) ;
