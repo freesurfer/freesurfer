@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2012/06/07 13:11:40 $
- *    $Revision: 1.724 $
+ *    $Date: 2012/06/08 17:30:48 $
+ *    $Revision: 1.725 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -733,7 +733,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void)
 {
-  return("$Id: mrisurf.c,v 1.724 2012/06/07 13:11:40 fischl Exp $");
+  return("$Id: mrisurf.c,v 1.725 2012/06/08 17:30:48 fischl Exp $");
 }
 
 /*-----------------------------------------------------
@@ -67052,6 +67052,23 @@ MRISthresholdCurvature(MRI_SURFACE *mris, float thresh, int use_abs)
     val = (use_abs ? fabs(v->curv) : v->curv) ;
     if (val < thresh)
       v->curv = 0 ;
+  }
+
+  return(NO_ERROR) ;
+}
+
+int
+MRISthresholdValIntoMarked(MRI_SURFACE *mris, float thresh)
+{
+  int     vno ;
+  VERTEX  *v ;
+
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    v = &mris->vertices[vno] ;
+    if (v->ripflag)
+      continue ;
+    v->marked = v->val >= thresh ;
   }
 
   return(NO_ERROR) ;
