@@ -9,8 +9,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2012/06/01 20:14:37 $
- *    $Revision: 1.107 $
+ *    $Date: 2012/06/08 17:30:19 $
+ *    $Revision: 1.108 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -3146,6 +3146,34 @@ LabelMaskSurface(LABEL *area, MRI_SURFACE *mris)
     v->stat = v->val = v->imag_val = v->val2 = v->valbak = v->val2bak = 0.0 ;
   }
   MRISclearMarks(mris) ;
+  return(NO_ERROR) ;
+}
+int
+LabelMaskSurfaceVolume(LABEL *area, MRI *mri, float nonmask_val)
+{
+  int    vno, n, x, y, z, f ;
+  uchar  *marked ;
+  long   nvox ;
+
+  nvox = mri->width*mri->height*mri->depth*mri->nframes ;
+  marked = (uchar *)calloc(nvox, sizeof(uchar)) ;
+  for (n = 0 ; n < area->n_points ; n++)
+  {
+    vno = area->lv[n].vno ;
+    if (vno >= 0)
+      marked[vno] = 1 ;
+  }
+  for (n = x = 0 ; x < mri->width ; x++)
+    for (y = 0 ; y < mri->height ; y++)
+      for (z = 0 ; z < mri->depth ; z++)
+	for (f = 0 ; f < mri->nframes ; f++, n++)
+	{
+	  if (marked[n])
+	    continue ;
+	  MRIsetVoxVal(mri, x, y, z, f, nonmask_val) ;
+	}
+
+  free(marked) ;
   return(NO_ERROR) ;
 }
 int
