@@ -194,6 +194,7 @@ MRISSUBDIRS=\
 	label2flat \
 	spherical_stats \
 	tridec \
+	mris_segmentation_stats \
 	mris_register_to_volume \
 	mris_interpolate_warp \
 	mris_parcellate_connectivity \
