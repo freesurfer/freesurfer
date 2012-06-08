@@ -10,8 +10,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2012/06/01 20:14:56 $
- *    $Revision: 1.52 $
+ *    $Date: 2012/06/08 17:30:23 $
+ *    $Revision: 1.53 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -133,6 +133,7 @@ LABEL *LabelInFOV(MRI_SURFACE *mris, MRI *mri, float pad) ;
 int   LabelUnassign(LABEL *area) ;
 LABEL *MRISlabelInvert(MRIS *surf, LABEL *label);
 int LabelMaskSurface(LABEL *label, MRI_SURFACE *mris) ;
+int LabelMaskSurfaceVolume(LABEL *label, MRI *mri, float nonmask_val) ;
 
 #include "mrishash.h"
 LABEL   *LabelSphericalCombine(MRI_SURFACE *mris, LABEL *area,
