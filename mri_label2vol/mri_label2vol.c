@@ -14,8 +14,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2011/09/30 15:19:36 $
- *    $Revision: 1.34.2.4 $
+ *    $Date: 2012/06/08 17:31:03 $
+ *    $Revision: 1.34.2.5 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -77,7 +77,7 @@ static int *NthLabelMap(MRI *aseg, int *nlabels);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_label2vol.c,v 1.34.2.4 2011/09/30 15:19:36 greve Exp $";
+static char vcid[] = "$Id: mri_label2vol.c,v 1.34.2.5 2012/06/08 17:31:03 greve Exp $";
 char *Progname = NULL;
 
 char *LabelList[100];
@@ -132,6 +132,7 @@ int UseNewASeg2Vol=1;
 int UseAParcPlusASeg = 0;
 int DoStatThresh = 0;
 double StatThresh = -1;
+int LabelCodeOffset = 0;
 
 /*---------------------------------------------------------------*/
 int main(int argc, char **argv) {
@@ -145,11 +146,11 @@ int main(int argc, char **argv) {
   char cmdline[CMD_LINE_LEN] ;
 
   make_cmd_version_string (argc, argv,
-                           "$Id: mri_label2vol.c,v 1.34.2.4 2011/09/30 15:19:36 greve Exp $", "$Name:  $", cmdline);
+                           "$Id: mri_label2vol.c,v 1.34.2.5 2012/06/08 17:31:03 greve Exp $", "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option (argc, argv,
-                                 "$Id: mri_label2vol.c,v 1.34.2.4 2011/09/30 15:19:36 greve Exp $", "$Name:  $");
+                                 "$Id: mri_label2vol.c,v 1.34.2.5 2012/06/08 17:31:03 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -168,15 +169,7 @@ int main(int argc, char **argv) {
   dump_options(stdout);
   printf("%s\n",vcid);
 
-  SUBJECTS_DIR = getenv("SUBJECTS_DIR");
-  if (SUBJECTS_DIR==NULL) {
-    printf("ERROR: SUBJECTS_DIR not defined in environment\n");
-    exit(1);
-  }
-
   // Load the template volume
-  if (TempVolId == NULL)
-    ErrorExit(ERROR_UNSUPPORTED, "%s: must specify template volume with --temp",Progname) ;
   TempVol = MRIreadHeader(TempVolId,MRI_VOLUME_TYPE_UNKNOWN);
   if (TempVol == NULL) {
     printf("ERROR: reading %s header\n",TempVolId);
@@ -287,12 +280,12 @@ int main(int argc, char **argv) {
     }
 
     ASegLabelList = NthLabelMap(ASeg, &nlabels);
-    printf("nlabels = %d\n",nlabels);
   }
+  printf("nlabels = %d\n",nlabels);
 
   // Create hit volume based on template, one frame for each label
-  printf("Allocating Hit Volume (%d) voxels\n",TempVol->width*TempVol->height*
-         TempVol->depth*nlabels );
+  printf("Allocating Hit Volume (%ld) voxels\n",
+	 (long)TempVol->width*TempVol->height*TempVol->depth*nlabels );
   HitVol = MRIallocSequence(TempVol->width, TempVol->height,
                             TempVol->depth, MRI_SHORT, nlabels );
   if (HitVol == NULL) {
@@ -314,7 +307,6 @@ int main(int argc, char **argv) {
   }
 
   // Go through each label
-  printf("nlabels = %d\n",nlabels);
   for (nthlabel = 0; nthlabel < nlabels; nthlabel++) {
     if (debug) {
       printf("%2d ",nthlabel);
@@ -443,14 +435,13 @@ int main(int argc, char **argv) {
           }
         }
         if (nhitsmax_label == -1)
-          LabelCode = 0; // No hits -- Unknown
+          LabelCode = 0; // No hits -- Unknown, dont add Offset
         else if (ASegFSpec != NULL)
-          LabelCode = ASegLabelList[nhitsmax_label];
+          LabelCode = ASegLabelList[nhitsmax_label] + LabelCodeOffset;
         else if (AnnotFile != NULL)
-          LabelCode = nhitsmax_label;//dont +1, keeps consist with ctab
-        else{
-          LabelCode = nhitsmax_label + 1;
-	}
+          LabelCode = nhitsmax_label + LabelCodeOffset;//dont +1, keeps consist with ctab
+        else
+          LabelCode = nhitsmax_label + 1 + LabelCodeOffset;
         MRIIseq_vox(OutVol,c,r,s,0) = LabelCode;
 
       }
@@ -602,11 +593,22 @@ static int parse_commandline(int argc, char **argv) {
       printf("PVF %s\n",PVFVolId);
       nargsused = 1;
     } 
+    else if (!strcmp(option, "--sd")) {
+      if (nargc < 1) argnerr(option,1);
+      SUBJECTS_DIR = pargv[0];
+      nargsused = 1;
+    } 
     else if (!strcmp(option, "--o")) {
       if (nargc < 1) argnerr(option,1);
       OutVolId = pargv[0];
       nargsused = 1;
-    } else {
+    } 
+    else if (!strcmp(option, "--offset")) {
+      if (nargc < 1) argnerr(option,1);
+      sscanf(pargv[0],"%d",&LabelCodeOffset);
+      nargsused = 1;
+    } 
+    else {
       fprintf(stderr,"ERROR: Option %s unknown\n",option);
       if (singledash(option))
         fprintf(stderr,"       Did you really mean -%s ?\n",option);
@@ -652,6 +654,7 @@ static void print_usage(void) {
   printf("   --hits hitvolid : each frame is nhits for a label\n");
   printf("   --label-stat statvol : map the label stats field into the vol\n");
   printf("   --stat-thresh thresh : only use label point where stat > thresh\n");
+  printf("   --offset k : add k to segmentation numbers (good when 0 should not be ignored)\n");
   printf("\n");
   printf("   --native-vox2ras : use native vox2ras xform instead of tkregister-style\n");
   printf("   --version : print version and exit\n");
@@ -1002,7 +1005,17 @@ static void check_options(void) {
     printf("ERROR: cannot spec --identity and --regheader\n");
     exit(1);
   }
-
+  if(SUBJECTS_DIR == NULL){
+    SUBJECTS_DIR = getenv("SUBJECTS_DIR");
+    if (SUBJECTS_DIR==NULL) {
+      printf("ERROR: SUBJECTS_DIR not defined in environment\n");
+      exit(1);
+    }
+  }
+  if(TempVolId == NULL){
+    printf("ERROR: must specify template volume with --temp\n");
+    exit(1);
+  }
   return;
 }
 /* --------------------------------------------- */
@@ -1028,7 +1041,8 @@ static void dump_options(FILE *fp) {
   fprintf(fp,"Hemi:     %s\n",hemi);
   fprintf(fp,"UseNewASeg2Vol:  %d\n",UseNewASeg2Vol);
   fprintf(fp,"DoLabelStatVol  %d\n",DoLabelStatVol);
-
+  fprintf(fp,"LabelCodeOffset  %d\n",LabelCodeOffset);
+  fprintf(fp,"setenv SUBJECTS_DIR %s\n",SUBJECTS_DIR);
   return;
 }
 /*---------------------------------------------------------------*/
