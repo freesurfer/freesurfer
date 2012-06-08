@@ -9,8 +9,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2012/06/08 17:30:19 $
- *    $Revision: 1.108 $
+ *    $Date: 2012/06/08 20:13:25 $
+ *    $Revision: 1.109 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -1758,6 +1758,34 @@ LabelFromMarkValue(MRI_SURFACE *mris, int mark)
   }
   area->n_points = npoints ;
   return(area) ;
+}
+/*-----------------------------------------------------
+------------------------------------------------------*/
+int
+LabelAddToSurfaceMark(LABEL *area, MRI_SURFACE *mris, int mark_to_add) 
+{
+  int     n, vno ;
+  VERTEX  *v ;
+
+  for (n = 0 ; n < area->n_points ; n++)
+  {
+    vno = area->lv[n].vno ;
+    if(vno < 0)
+      continue ;
+
+    if(vno >= mris->nvertices)
+    {
+      printf("ERROR: LabelMarkSurface: label point %d exceeds nvertices %d\n",
+             vno,mris->nvertices);
+      return(1);
+    }
+    v = &mris->vertices[vno] ;
+    if(v->ripflag)
+      continue ;
+
+    v->marked += mark_to_add ;
+  }
+  return(NO_ERROR) ;
 }
 /*-----------------------------------------------------
 ------------------------------------------------------*/
