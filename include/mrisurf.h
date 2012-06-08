@@ -9,8 +9,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2012/04/11 22:11:37 $
- *    $Revision: 1.367 $
+ *    $Date: 2012/06/08 17:30:54 $
+ *    $Revision: 1.368 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -2038,5 +2038,6 @@ MRI *MRIScomputeFlattenedVolume(MRI_SURFACE *mris,
                                 double wm_dist,
                                 double outside_dist);
 int MRIStrinarizeCurvature(MRI_SURFACE *mris, float binarize_thresh) ;
+int MRISthresholdValIntoMarked(MRI_SURFACE *mris, float thresh) ;
 
 #endif // MRISURF_H
