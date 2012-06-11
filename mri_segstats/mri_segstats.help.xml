@@ -72,6 +72,9 @@ The summary file is an ascii file in which the segmentation statistics are repor
       <explanation>Erode segmentation boundaries by Nerodes.</explanation>
       <argument>--frame frame</argument>
       <explanation>Report statistics of the input volume at the 0-based frame number. Frame is 0 by default.</explanation>
+      <argument>--robust percent</argument>
+      <explanation> compute stats after excluding percent from high
+      and low values (volume reported is still full volume).</explanation>
       <argument>--sqr</argument>
       <explanation>compute the square of the input prior to computing stats.</explanation>
       <argument>--sqrt</argument>

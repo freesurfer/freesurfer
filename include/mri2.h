@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2012/04/12 19:31:50 $
- *    $Revision: 1.39 $
+ *    $Date: 2012/06/11 17:42:47 $
+ *    $Revision: 1.40 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -106,6 +106,9 @@ int MRIsegFrameAvg(MRI *seg, int segid, MRI *mri, double *favg);
 int MRIsegStats(MRI *seg, int segid, MRI *mri,int frame,
                 float *min, float *max, float *range,
                 float *mean, float *std);
+int MRIsegStatsRobust(MRI *seg, int segid, MRI *mri,int frame,
+		      float *min, float *max, float *range,
+		      float *mean, float *std, float Pct);
 
 MRI *MRImask_with_T2_and_aparc_aseg(MRI *mri_src, MRI *mri_dst, MRI *mri_T2, MRI *mri_aparc_aseg, float T2_thresh, int mm_from_exterior) ;
 int *MRIsegmentationList(MRI *seg, int *pListLength);

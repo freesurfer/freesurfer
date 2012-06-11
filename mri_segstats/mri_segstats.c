@@ -12,8 +12,8 @@
  * Original Author: Dougas N Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2012/05/14 20:33:58 $
- *    $Revision: 1.84 $
+ *    $Date: 2012/06/11 17:42:48 $
+ *    $Revision: 1.85 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -104,17 +104,13 @@ typedef struct
 STATSUMENTRY;
 
 int MRIsegCount(MRI *seg, int id, int frame);
-int MRIsegStats(MRI *seg, int segid, MRI *mri,  int frame,
-                float *min, float *max, float *range,
-                float *mean, float *std);
 STATSUMENTRY *LoadStatSumFile(char *fname, int *nsegid);
 int DumpStatSumTable(STATSUMENTRY *StatSumTable, int nsegid);
-
 
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-  "$Id: mri_segstats.c,v 1.84 2012/05/14 20:33:58 greve Exp $";
+  "$Id: mri_segstats.c,v 1.85 2012/06/11 17:42:48 greve Exp $";
 char *Progname = NULL, *SUBJECTS_DIR = NULL, *FREESURFER_HOME=NULL;
 char *SegVolFile = NULL;
 char *InVolFile = NULL;
@@ -202,6 +198,8 @@ int DoMultiply = 0;
 double MultVal = 0;
 
 int DoSNR = 0;
+int UseRobust = 0;
+float RobustPct = 5.0;
 struct utsname uts;
 char *cmdline, cwd[2000];
 
@@ -952,8 +950,13 @@ int main(int argc, char **argv)
     {
       if (nhits > 0)
       {
-        MRIsegStats(seg, StatSumTable[n].id, invol, frame,
-                    &min, &max, &range, &mean, &std);
+        if(UseRobust == 0)
+	  MRIsegStats(seg, StatSumTable[n].id, invol, frame,
+		      &min, &max, &range, &mean, &std);
+	else
+	  MRIsegStatsRobust(seg, StatSumTable[n].id, invol, frame,
+			    &min, &max, &range, &mean, &std, RobustPct);
+
         snr = mean/std;
       }
       else
@@ -1124,20 +1127,15 @@ int main(int argc, char **argv)
     fprintf(fp,"# hostname %s\n",uts.nodename);
     fprintf(fp,"# machine  %s\n",uts.machine);
     fprintf(fp,"# user     %s\n",VERuser());
-    if (mris)
-    {
-      fprintf(fp,"# anatomy_type surface\n");
-    }
-    else
-    {
-      fprintf(fp,"# anatomy_type volume\n");
-    }
+    if (mris) fprintf(fp,"# anatomy_type surface\n");
+    else      fprintf(fp,"# anatomy_type volume\n");
     fprintf(fp,"# \n");
     if (subject != NULL)
     {
       fprintf(fp,"# SUBJECTS_DIR %s\n",SUBJECTS_DIR);
       fprintf(fp,"# subjectname %s\n",subject);
     }
+    if(UseRobust) fprintf(fp,"# RobustPct %g\n",RobustPct);
     if (BrainMaskFile)
     {
       fprintf(fp,"# BrainMaskFile  %s \n",BrainMaskFile);
@@ -1588,6 +1586,13 @@ static int parse_commandline(int argc, char **argv)
       }
       DoMultiply = 1;
       sscanf(pargv[0],"%lf",&MultVal);
+      nargsused = 1;
+    }
+    else if (!strcasecmp(option, "--robust"))
+    {
+      if(nargc < 1) argnerr(option,1);
+      sscanf(pargv[0],"%f",&RobustPct);
+      UseRobust = 1;
       nargsused = 1;
     }
     else if ( !strcmp(option, "--talxfm") )
@@ -2084,6 +2089,7 @@ static void dump_options(FILE *fp)
   fprintf(fp,"hostname %s\n",uts.nodename);
   fprintf(fp,"machine  %s\n",uts.machine);
   fprintf(fp,"user     %s\n",VERuser());
+  fprintf(fp,"UseRobust  %d\n",UseRobust);
   return;
 }
 /*---------------------------------------------------------------*/

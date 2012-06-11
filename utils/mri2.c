@@ -7,8 +7,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2012/04/12 19:31:50 $
- *    $Revision: 1.78 $
+ *    $Date: 2012/06/11 17:42:48 $
+ *    $Revision: 1.79 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -3387,6 +3387,88 @@ int MRIsegStats(MRI *seg, int segid, MRI *mri,int frame,
   }
 
   return(nvoxels);
+}
+/*------------------------------------------------------------*/
+/*!
+  \fn int MRIsegStatsRobust(MRI *seg, int segid, MRI *mri,int frame,
+		      float *min, float *max, float *range,
+		      float *mean, float *std, float Pct)
+  \brief Computes stats based on the the middle 100-2*Pct values, ie,
+         it trims Pct off the ends.
+*/
+int MRIsegStatsRobust(MRI *seg, int segid, MRI *mri,int frame,
+		      float *min, float *max, float *range,
+		      float *mean, float *std, float Pct)
+{
+  int id,nvoxels,r,c,s,k,m;
+  double val, sum, sum2;
+  float *vlist;
+
+  *min = 0;
+  *max = 0;
+  *range = 0;
+  *mean = 0;
+  *std = 0;
+
+  // Count number of voxels
+  nvoxels = 0;
+  for (c=0; c < seg->width; c++) {
+    for (r=0; r < seg->height; r++)  {
+      for (s=0; s < seg->depth; s++)  {
+        id = (int) MRIgetVoxVal(seg,c,r,s,0);
+        if (id != segid) continue;
+        nvoxels++;
+      }
+    }
+  }
+  if(nvoxels == 0) return(nvoxels);
+
+  // Load voxels into an array
+  vlist = (float *) calloc(sizeof(float),nvoxels);
+  nvoxels = 0;
+  for (c=0; c < seg->width; c++) {
+    for (r=0; r < seg->height; r++)  {
+      for (s=0; s < seg->depth; s++)  {
+        id = (int) MRIgetVoxVal(seg,c,r,s,0);
+        if (id != segid) continue;
+	vlist[nvoxels] = MRIgetVoxVal(mri,c,r,s,frame);
+        nvoxels++;
+      }
+    }
+  }
+  // Sort the array
+  qsort((void *) vlist, nvoxels, sizeof(float), compare_floats);
+
+  // Compute stats excluding Pct of the values from each end
+  sum  = 0;
+  sum2 = 0;
+  m = 0;
+  printf("Robust Indices: %d %d\n",(int)nint(Pct*nvoxels/100.0),(int)nint((100-Pct)*nvoxels/100.0));
+  for(k=0; k < nvoxels; k++){
+    if(k < Pct*nvoxels/100.0)       continue;
+    if(k > (100-Pct)*nvoxels/100.0) continue;
+    val = vlist[k];
+    if(m == 0){
+      *min = val;
+      *max = val;
+    }
+    if (*min > val) *min = val;
+    if (*max < val) *max = val;
+    sum  += val;
+    sum2 += (val*val);
+    m = m + 1;
+  }
+
+  *range = *max - *min;
+  *mean = sum/m;
+  if(m > 1)
+    *std = sqrt(((m)*(*mean)*(*mean) - 2*(*mean)*sum + sum2)/
+                (m-1));
+  else *std = 0.0;
+
+  free(vlist);
+  vlist = NULL;
+  return(m);
 }
 /*---------------------------------------------------------
   MRIsegFrameAvg() - computes the average time course withing the
