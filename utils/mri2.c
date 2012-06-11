@@ -7,8 +7,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2012/06/11 17:42:48 $
- *    $Revision: 1.79 $
+ *    $Date: 2012/06/11 17:46:18 $
+ *    $Revision: 1.80 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -3443,7 +3443,7 @@ int MRIsegStatsRobust(MRI *seg, int segid, MRI *mri,int frame,
   sum  = 0;
   sum2 = 0;
   m = 0;
-  printf("Robust Indices: %d %d\n",(int)nint(Pct*nvoxels/100.0),(int)nint((100-Pct)*nvoxels/100.0));
+  //printf("Robust Indices: %d %d\n",(int)nint(Pct*nvoxels/100.0),(int)nint((100-Pct)*nvoxels/100.0));
   for(k=0; k < nvoxels; k++){
     if(k < Pct*nvoxels/100.0)       continue;
     if(k > (100-Pct)*nvoxels/100.0) continue;
