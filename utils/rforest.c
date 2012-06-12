@@ -8,8 +8,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2012/06/07 23:44:40 $
- *    $Revision: 1.11 $
+ *    $Date: 2012/06/12 17:47:56 $
+ *    $Revision: 1.12 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -411,10 +411,93 @@ rfTrainTree(RANDOM_FOREST *rf, TREE *tree, int *training_classes, double **train
 int
 RFtrain(RANDOM_FOREST *rf, double feature_fraction, double training_fraction, int *training_classes, double **training_data, int ntraining)
 {
-  int    n, i, nfeatures_per_tree = 0, *feature_permutation, *training_permutation, f, index, start_no, end_no,
-         ntraining_per_tree = 0 ;
+  int    n, i, nfeatures_per_tree = 0, *feature_permutation, *training_permutation, f, 
+    index, start_no, end_no, ntraining_per_tree = 0, total_to_remove ;
   TREE   *tree = NULL ;
 
+  if (rf->max_class_ratio > 0)
+  {
+    int class_counts[MAX_CLASSES], max_class, max_class_count, min_class, min_class_count ;
+    double **new_training_data ;
+    int    *new_training_classes ;
+
+    memset(class_counts, 0, sizeof(class_counts)) ;
+    for (n = 0 ; n < ntraining ; n++)
+      class_counts[training_classes[n]]++ ;
+    for (min_class_count = ntraining+1, min_class = max_class = max_class_count = n = 0 ; 
+	 n < rf->nclasses ; n++)
+    {
+      if (class_counts[n] > max_class_count)
+      {
+	max_class_count = class_counts[n] ;
+	max_class = n ;
+      }
+      if (class_counts[n] < min_class_count)
+      {
+	min_class_count = class_counts[n] ;
+	min_class = n ;
+      }
+    }
+    total_to_remove = (max_class_count-nint(min_class_count*rf->max_class_ratio)) ;
+    if (total_to_remove > 0)
+    {
+      int *class_indices, class_index,new_index, new_ntraining = ntraining-total_to_remove ;
+
+      printf("class %s (%d) has too many examples (%d) relative to class %s (%d) with %d\n",
+	     rf->class_names[max_class], max_class, max_class_count,
+	     rf->class_names[min_class], min_class, min_class_count) ;
+      new_training_classes = (int *)calloc(new_ntraining, sizeof(int)) ;
+      new_training_data = (double **)calloc(new_ntraining, sizeof(double *)) ;
+      class_indices = (int *)calloc(max_class_count, sizeof(int)) ;
+
+      // first copy over everything that isn't in class max_class
+      for (class_index = new_index = n = 0 ; n < ntraining ; n++)
+      {
+	if (training_classes[n] == max_class)
+	  class_indices[class_index++] = n ;
+	else  // copy over other class features and class
+	{
+	  new_training_classes[new_index] = training_classes[n] ;
+	  new_training_data[new_index] = (double *)calloc(rf->nfeatures,sizeof(double));
+	  for (i = 0 ; i < rf->nfeatures ; i++)
+	    new_training_data[new_index][i] = training_data[n][i] ;
+	  new_index++ ;
+	}
+      }
+
+      compute_permutation(max_class_count, class_indices) ;
+      for (n = 0 ; n < max_class_count - total_to_remove ; n++)
+      {
+	new_training_classes[new_index] = max_class ;
+	new_training_data[new_index] = (double *)calloc(rf->nfeatures,sizeof(double));
+	for (i = 0 ; i < rf->nfeatures ; i++)
+	  new_training_data[new_index][i] = training_data[class_indices[new_index]][i] ;
+	new_index++ ;
+      }
+      training_data = new_training_data ;
+      training_classes = new_training_classes ;
+      ntraining -= total_to_remove ;
+    }
+  }
+
+  if (getenv("RF_WRITE_TRAINING"))
+  {
+    char *fname = getenv("RF_WRITE_TRAINING") ;
+    FILE *fp ;
+
+    printf("writing RF training to %s\n", fname) ;
+    fp = fopen(fname, "w") ;
+
+    for (n = 0 ; n < ntraining ; n++)
+    {
+      fprintf(fp, "%d ", training_classes[n]) ;
+      for (i = 0 ; i < rf->nfeatures ; i++)
+	fprintf(fp, "%f ", training_data[n][i]) ;
+      fprintf(fp, "\n") ;
+    }
+
+    fclose(fp) ;
+  }
   rf->ntraining = ntraining ;
   rf->training_data = training_data ;
   rf->training_classes = training_classes ;
@@ -434,18 +517,16 @@ RFtrain(RANDOM_FOREST *rf, double feature_fraction, double training_fraction, in
     }
   }
 
-  feature_permutation = calloc(rf->nfeatures, sizeof(int)) ;
-  if (feature_permutation == NULL)
-    ErrorExit(ERROR_NOMEMORY, "could not allocate feature permutation vector");
-  training_permutation = calloc(ntraining, sizeof(int)) ;
-  if (training_permutation == NULL)
-    ErrorExit(ERROR_NOMEMORY, "could not allocate feature permutation vector");
 
   nfeatures_per_tree = nint((double)rf->nfeatures * feature_fraction) ;
   ntraining_per_tree = nint((double)rf->ntraining * training_fraction) ;
+  if (feature_permutation == NULL)
+    ErrorExit(ERROR_NOMEMORY, "could not allocate feature permutation vector");
+  if (training_permutation == NULL)
+    ErrorExit(ERROR_NOMEMORY, "could not allocate feature permutation vector");
 
-  compute_permutation(rf->nfeatures, feature_permutation) ;
-  compute_permutation(ntraining, training_permutation) ;
+  feature_permutation = compute_permutation(rf->nfeatures, NULL) ;
+  training_permutation = compute_permutation(ntraining, NULL) ;
 
 
 #ifdef HAVE_OPENMP
@@ -513,6 +594,12 @@ RFtrain(RANDOM_FOREST *rf, double feature_fraction, double training_fraction, in
     printf("\ttraining complete, depth %d, nleaves %d.\n", tree->depth, tree->nleaves) ;
   }
 
+  if (total_to_remove > 0)
+  {
+    for (n = 0 ; n < ntraining ; n++)
+      free(training_data[n]) ;
+    free(training_data) ; free(training_classes) ;
+  }
   free(feature_permutation) ;
   free(training_permutation) ;
   return(NO_ERROR) ;
