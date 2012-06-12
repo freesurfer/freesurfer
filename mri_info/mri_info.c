@@ -8,8 +8,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2012/02/27 19:07:26 $
- *    $Revision: 1.82 $
+ *    $Date: 2012/06/12 19:47:25 $
+ *    $Revision: 1.83 $
  *
  * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -23,7 +23,7 @@
  *
  */
 
-char *MRI_INFO_VERSION = "$Revision: 1.82 $";
+char *MRI_INFO_VERSION = "$Revision: 1.83 $";
 
 #include <stdio.h>
 #include <sys/stat.h>
@@ -58,7 +58,7 @@ static void print_help(void) ;
 static void print_version(void) ;
 
 static char vcid[] =
-  "$Id: mri_info.c,v 1.82 2012/02/27 19:07:26 greve Exp $";
+  "$Id: mri_info.c,v 1.83 2012/06/12 19:47:25 greve Exp $";
 
 char *Progname ;
 static char *inputlist[100];
@@ -578,13 +578,12 @@ static void do_file(char *fname)
   MRI *mri ;
   MATRIX *m, *minv, *m2, *m2inv, *p ;
   int r,c,s,f;
-  char ostr[5];
+  char ostr[5], *ext;
   GCA_MORPH *gcam;
   ostr[4] = '\0';
-
-  if (!(strstr(fname, ".m3d") == 0 && strstr(fname, ".m3z") == 0
-     && strstr(fname, ".M3D") == 0 && strstr(fname, ".M3Z") == 0))
-  {
+  ext = fio_extension(fname);
+  if (!(strstr(ext, "m3d") == 0 && strstr(ext, "m3z") == 0
+     && strstr(ext, "M3D") == 0 && strstr(ext, "M3Z") == 0)){
     fprintf(fpout,"Input file is a 3D morph.\n");
 
     gcam = NULL;
