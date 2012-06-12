@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2012/05/07 22:08:34 $
- *    $Revision: 1.120 $
+ *    $Date: 2012/06/12 20:17:08 $
+ *    $Revision: 1.121 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -2800,4 +2800,9 @@ bool LayerMRI::SaveIsoSurface(const QString &fn)
   }
   else
     return false;
+}
+
+bool LayerMRI::HasReg()
+{
+  return GetSourceVolume()->GetRegMatrix();
 }

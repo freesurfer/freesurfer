@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2012/02/23 19:51:27 $
- *    $Revision: 1.77 $
+ *    $Date: 2012/06/12 20:17:08 $
+ *    $Revision: 1.78 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -36,6 +36,7 @@
 #include "vtkSmartPointer.h"
 #include "vtkImageReslice.h"
 #include "vtkMatrix4x4.h"
+#include "vtkSmartPointer.h"
 #include "vtkTransform.h"
 #include "vtkImageChangeInformation.h"
 #include "vtkMath.h"
@@ -251,6 +252,98 @@ bool FSVolume::Restore( const QString& filename, const QString& reg_filename )
   }
 }
 
+MATRIX* FSVolume::LoadRegistrationMatrix(const QString &filename, MRI *target, MRI *src)
+{
+  QString ext = QFileInfo( filename ).suffix();
+  MATRIX* matReg = NULL;
+  if ( ext == "xfm" )  // MNI style
+  {
+    MATRIX* m = NULL;
+    if ( regio_read_mincxfm( filename.toAscii().data(), &m, NULL ) != 0 )
+    {
+      return NULL;
+    }
+
+    matReg = MRItkRegMtx( target, src, m );
+    MatrixFree( &m );
+  }
+  else if ( ext == "mat" )  // fsl style
+  {
+    QFile file( filename );
+    if ( !file.open( QIODevice::ReadOnly | QIODevice::Text ) )
+    {
+      cerr << qPrintable (file.errorString()) << "\n";;
+      return NULL;
+    }
+
+    QTextStream in(&file);
+    QString line = in.readLine();
+    QStringList values;
+    while ( !line.isNull() )
+    {
+      values += line.split( " ", QString::SkipEmptyParts );
+      line = in.readLine();
+    }
+    if ( values.size() < 16 )
+    {
+      return NULL;
+    }
+
+    MATRIX* m = MatrixAlloc( 4, 4, MATRIX_REAL );
+    for ( int i = 0; i < 16; i++ )
+    {
+      *MATRIX_RELT(m, (i/4)+1, (i%4)+1) = values[i].toDouble();
+    }
+    matReg = MRIfsl2TkReg( target, src, m );
+    MatrixFree( &m );
+  }
+  else if ( ext == "dat" )  // tkregister style
+  {
+    char* subject = NULL;
+    float inplaneres, betplaneres, intensity;
+    int float2int;
+    if ( regio_read_register( filename.toAscii().data(),
+                              &subject,
+                              &inplaneres,
+                              &betplaneres,
+                              &intensity,
+                              &matReg,
+                              &float2int ) != 0 )
+    {
+      return NULL;
+    }
+
+    free( subject );
+  }
+  else  // LTA style & all possible other styles
+  {
+    TRANSFORM* FSXform = TransformRead( (char*)filename.toAscii().data() );
+    if ( FSXform == NULL )
+    {
+      return false;
+    }
+    LTA* lta = (LTA*) FSXform->xform;
+    if ( lta->type != LINEAR_RAS_TO_RAS )
+    {
+      cout << "INFO: LTA input is not RAS to RAS...converting...\n";
+      lta = LTAchangeType( lta, LINEAR_RAS_TO_RAS );
+    }
+    if ( lta->type != LINEAR_RAS_TO_RAS )
+    {
+      cerr << "ERROR: LTA input is not RAS to RAS\n";
+      TransformFree( &FSXform );
+      return false;
+    }
+
+    // Assume RAS2RAS and uses vox2ras from input volumes:
+    // Note: This ignores the volume geometry in the LTA file.
+    matReg = MRItkRegMtx( target, src, lta->xforms[0].m_L );
+    TransformFree( &FSXform );
+  }
+
+  return matReg;
+}
+
 // read in registration file and convert it to tkreg style
 bool FSVolume::LoadRegistrationMatrix( const QString& filename )
 {
@@ -258,8 +351,10 @@ bool FSVolume::LoadRegistrationMatrix( const QString& filename )
   {
     ::MatrixFree( &m_matReg );
   }
-  m_matReg = NULL;
+  m_matReg = LoadRegistrationMatrix(filename, m_MRIRef, m_MRI);
+  return (m_matReg != NULL);
 
+  /*
   QString ext = QFileInfo( filename ).suffix();
   if ( ext == "xfm" )  // MNI style
   {
@@ -347,6 +442,7 @@ bool FSVolume::LoadRegistrationMatrix( const QString& filename )
   }
 
   return true;
+  */
 }
 
 bool FSVolume::Create( FSVolume* src_vol, bool bCopyVoxelData, int data_type )
@@ -1080,9 +1176,28 @@ int FSVolume::RASToOriginalIndex ( float iRASX, float iRASY, float iRASZ,
   Real ix, iy, iz, wx, wy, wz;
   int r;
 
-  wx = iRASX;
-  wy = iRASY;
-  wz = iRASZ;
+  if (m_matReg)
+  {
+    Real v[4] = {iRASX, iRASY, iRASZ, 1};
+    MATRIX* matNative = MRItkReg2Native(this->m_MRIRef, m_MRI, m_matReg);
+    double m[16];
+    for ( int i = 0; i < 16; i++ )
+    {
+      m[i] = (double) *MATRIX_RELT((matNative),(i/4)+1,(i%4)+1);
+    }
+    vtkMatrix4x4::Invert(m, m);
+    vtkMatrix4x4::MultiplyPoint(m, v, v);
+    MatrixFree(&matNative);
+    wx = v[0];
+    wy = v[1];
+    wz = v[2];
+  }
+  else
+  {
+    wx = iRASX;
+    wy = iRASY;
+    wz = iRASZ;
+  }
   r = ::MRIworldToVoxel( m_MRI, wx, wy, wz, &ix, &iy, &iz );
   oIdxX = ix;
   oIdxY = iy;
@@ -1094,21 +1209,14 @@ int FSVolume::RASToOriginalIndex ( float iRASX, float iRASY, float iRASZ,
 int FSVolume::RASToOriginalIndex ( float iRASX, float iRASY, float iRASZ,
                                    int& oIdxX, int& oIdxY, int& oIdxZ )
 {
-  if ( m_MRI == NULL )
+  float ix, iy, iz;
+  int r = RASToOriginalIndex(iRASX, iRASY, iRASZ, ix, iy, iz);
+  if (r == 0) // no error
   {
-    cerr << "No MRI is present.\n";
-    return 1;
+    oIdxX = (int)( ix + 0.5 );
+    oIdxY = (int)( iy + 0.5 );
+    oIdxZ = (int)( iz + 0.5 );
   }
-
-  Real ix, iy, iz;
-  int r;
-
-  r = ::MRIworldToVoxel( m_MRI, iRASX, iRASY, iRASZ, &ix, &iy, &iz );
-
-  oIdxX = (int)( ix + 0.5 );
-  oIdxY = (int)( iy + 0.5 );
-  oIdxZ = (int)( iz + 0.5 );
-
   return r;
 }
 

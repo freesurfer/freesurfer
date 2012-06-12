@@ -1272,7 +1272,7 @@
     <bool>true</bool>
    </property>
    <property name="text">
-    <string>Enable Surface Spline</string>
+    <string>Change Surface Spline With Selected Vertex</string>
    </property>
    <property name="toolTip">
     <string>Surface Spline Picking</string>

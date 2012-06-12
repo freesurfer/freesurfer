@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2012/01/19 20:35:05 $
- *    $Revision: 1.37 $
+ *    $Date: 2012/06/12 20:17:08 $
+ *    $Revision: 1.38 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -186,6 +186,8 @@ public:
   {
     m_bCropToOriginal = bCrop;
   }
+
+  static MATRIX* LoadRegistrationMatrix(const QString &filename, MRI* target, MRI* src);
 
 Q_SIGNALS:
   void ProgressChanged( int n );

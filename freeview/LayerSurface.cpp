@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2012/05/01 16:35:36 $
- *    $Revision: 1.71 $
+ *    $Date: 2012/06/12 20:17:08 $
+ *    $Revision: 1.72 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -267,7 +267,7 @@ bool LayerSurface::LoadCurvatureFromFile( const QString& filename )
   return true;
 }
 
-bool LayerSurface::LoadOverlayFromFile(const QString &filename, bool bCorrelation)
+bool LayerSurface::LoadOverlayFromFile(const QString &filename, const QString& fn_reg, bool bCorrelation)
 {
   QString fn = filename;
   fn.replace("~", QDir::homePath());
@@ -283,13 +283,19 @@ bool LayerSurface::LoadOverlayFromFile(const QString &filename, bool bCorrelatio
   }
   else
   {
-    return LoadGenericOverlayFromFile(fn);
+    QString fullpath = fn_reg;
+    if (!fn_reg.isEmpty())
+    {
+      fullpath.replace("~", QDir::homePath());
+      fullpath = QFileInfo(fullpath).absoluteFilePath();
+    }
+    return LoadGenericOverlayFromFile(fn, fullpath);
   }
 }
 
-bool LayerSurface::LoadGenericOverlayFromFile( const QString& filename )
+bool LayerSurface::LoadGenericOverlayFromFile( const QString& filename, const QString& fn_reg )
 {
-  if ( !m_surfaceSource->LoadOverlay( filename ) )
+  if ( !m_surfaceSource->LoadOverlay( filename, fn_reg ) )
   {
     return false;
   }

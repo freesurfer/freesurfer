@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2012/05/16 20:41:20 $
- *    $Revision: 1.213 $
+ *    $Date: 2012/06/12 20:17:08 $
+ *    $Revision: 1.214 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -88,6 +88,7 @@
 #include "VolumeFilterWorkerThread.h"
 #include "FSGroupDescriptor.h"
 #include "WindowGroupPlot.h"
+#include "DialogLoadSurfaceOverlay.h"
 
 MainWindow::MainWindow( QWidget *parent, MyCmdLineParser* cmdParser ) :
   QMainWindow( parent ),
@@ -2141,6 +2142,20 @@ void MainWindow::CommandLoadSurface( const QStringList& cmd )
   QString fn_target = "";
   bool bLoadAll = false;
   bool bLabelOutline = false;
+  QString overlay_reg;
+  for ( int k = sa_fn.size()-1; k >= 1; k-- )
+  {
+    int n = sa_fn[k].indexOf( "=" );
+    if ( n != -1  )
+    {
+      QString subOption = sa_fn[k].left( n ).toLower();
+      QString subArgu = sa_fn[k].mid( n+1 );
+      if ( subOption == "overlay_reg" )
+        overlay_reg = subArgu;
+    }
+  }
+  if (overlay_reg.isEmpty())
+    overlay_reg = "n/a";
   for ( int k = sa_fn.size()-1; k >= 1; k-- )
   {
     int n = sa_fn[k].indexOf( "=" );
@@ -2187,6 +2202,8 @@ void MainWindow::CommandLoadSurface( const QStringList& cmd )
           {
             script += overlay_fns[i];
           }
+
+          script += " " + overlay_reg;
           if (subOption == "correlation")
           {
             script += QString(" correlation");
@@ -2301,7 +2318,7 @@ void MainWindow::CommandLoadSurface( const QStringList& cmd )
         if ( subArgu.toLower() == "true" || subArgu.toLower() == "yes" || subArgu == "1")
           bLabelOutline = true;
       }
-      else
+      else if (subOption != "overlay_reg")
       {
         cerr << "Unrecognized sub-option flag '" << subOption.toAscii().constData() << "'.\n";
         return;
@@ -2390,7 +2407,7 @@ void MainWindow::CommandSetSurfaceOverlayMethod( const QStringList& cmd )
           cerr << "Invalid input for overlay threshold.\n";
         }
       }
-      surf->UpdateOverlay(false);
+      surf->UpdateOverlay(true);
     }
   }
 }
@@ -2571,7 +2588,10 @@ void MainWindow::CommandLoadSurfaceCurvature( const QStringList& cmd )
 
 void MainWindow::CommandLoadSurfaceOverlay( const QStringList& cmd )
 {
-  LoadSurfaceOverlayFile( cmd[1], cmd.size() > 2 && cmd[2] == "correlation" );
+  QString reg_file = cmd[2];
+  if (reg_file == "n/a")
+    reg_file = "";
+  LoadSurfaceOverlayFile( cmd[1], reg_file, cmd.size() > 3 && cmd[3] == "correlation" );
 }
 
 void MainWindow::CommandLoadSurfaceAnnotation( const QStringList& cmd )
@@ -4417,16 +4437,22 @@ void MainWindow::LoadSurfaceCurvatureFile( const QString& filename )
 
 void MainWindow::LoadSurfaceOverlay(bool bCorrelation)
 {
+  /*
   QString filename = QFileDialog::getOpenFileName( this, "Select overlay file",
                      AutoSelectLastDir( "surf" ),
                      "Overlay files (*)");
-  if ( !filename.isEmpty() )
+*/
+  DialogLoadSurfaceOverlay dlg;
+  dlg.SetLastDir(AutoSelectLastDir("mri"));
+  if (dlg.exec() == QDialog::Accepted)
   {
-    this->LoadSurfaceOverlayFile( filename, bCorrelation );
+    QString filename = dlg.GetFileName();
+    QString reg_file = dlg.GetRegistration();
+    this->LoadSurfaceOverlayFile( filename, reg_file, bCorrelation );
   }
 }
 
-void MainWindow::LoadSurfaceOverlayFile( const QString& filename, bool bCorrelation )
+void MainWindow::LoadSurfaceOverlayFile( const QString& filename, const QString& reg_file, bool bCorrelation )
 {
   LayerSurface* layer = ( LayerSurface* )GetLayerCollection( "Surface" )->GetActiveLayer();
   if ( layer )
@@ -4434,6 +4460,7 @@ void MainWindow::LoadSurfaceOverlayFile( const QString& filename, bool bCorrelat
     QVariantMap args;
     args["FileName"] = filename;
     args["Correlation"] = bCorrelation;
+    args["Registration"] = reg_file;
     this->m_threadIOWorker->LoadSurfaceOverlay(layer, args);
 //   m_strLastDir = QFileInfo(filename).absoluteFilePath();
   }

@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2012/04/26 02:38:43 $
- *    $Revision: 1.49 $
+ *    $Date: 2012/06/12 20:17:08 $
+ *    $Revision: 1.50 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -61,8 +61,8 @@ public:
   bool LoadSurfaceFromFile();
   bool LoadVectorFromFile();
   bool LoadCurvatureFromFile( const QString& filename );
-  bool LoadOverlayFromFile( const QString& filename, bool bCorrelation );
-  bool LoadGenericOverlayFromFile( const QString& filename );
+  bool LoadOverlayFromFile( const QString& filename, const QString& fn_reg, bool bCorrelation );
+  bool LoadGenericOverlayFromFile( const QString& filename, const QString& fn_reg );
   bool LoadCorrelationFromFile( const QString& filename );
   bool LoadAnnotationFromFile( const QString& filename );
   bool LoadLabelFromFile( const QString& filename );

@@ -133,7 +133,8 @@ SOURCES += \
     FSGroupDescriptor.cpp \
     WindowGroupPlot.cpp \
     WidgetGroupPlot.cpp \
-    SurfaceSpline.cpp
+    SurfaceSpline.cpp \
+    DialogLoadSurfaceOverlay.cpp
 
 HEADERS  += \
     Annotation2D.h \
@@ -256,7 +257,8 @@ HEADERS  += \
     FSGroupDescriptor.h \
     WindowGroupPlot.h \
     WidgetGroupPlot.h \
-    SurfaceSpline.h
+    SurfaceSpline.h \
+    DialogLoadSurfaceOverlay.h
 
 FORMS    += MainWindow.ui \
     PanelVolume.ui \
@@ -291,7 +293,8 @@ FORMS    += MainWindow.ui \
     DialogRepositionSurface.ui \
     WindowTimeCourse.ui \
     DialogLabelStats.ui \
-    WindowGroupPlot.ui
+    WindowGroupPlot.ui \
+    DialogLoadSurfaceOverlay.ui
 
 RESOURCES += \
     freeview.qrc

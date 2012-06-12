@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2011/10/17 17:37:51 $
- *    $Revision: 1.34 $
+ *    $Date: 2012/06/12 20:17:08 $
+ *    $Revision: 1.35 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -101,7 +101,7 @@ public:
 
   bool LoadSurface    ( const QString& filename, int nSet );
   bool LoadCurvature  ( const QString& filename = NULL );
-  bool LoadOverlay    ( const QString& filename );
+  bool LoadOverlay    ( const QString& filename, const QString& fn_reg );
 
   bool IsSurfaceLoaded( int nSet )
   {

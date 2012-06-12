@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2012/05/16 20:41:20 $
- *    $Revision: 1.58 $
+ *    $Date: 2012/06/12 20:17:08 $
+ *    $Revision: 1.59 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -352,30 +352,68 @@ bool FSSurface::LoadCurvature( const QString& filename )
   }
 }
 
-bool FSSurface::LoadOverlay( const QString& filename )
+bool FSSurface::LoadOverlay( const QString& filename, const QString& fn_reg )
 {
 //    int mritype = mri_identify((char*)( filename.toAscii().data() ));
 //    qDebug() << "mritype " << mritype;
-  if ( ::MRISreadValues( m_MRIS, (char*)( filename.toAscii().data() ) ) != 0 )
+  MRI* mriheader = MRIreadHeader(filename.toAscii().data(), MRI_VOLUME_TYPE_UNKNOWN);
+  if (mriheader && mriheader->width*mriheader->height*mriheader->depth != m_MRIS->nvertices)
   {
-    cerr << "could not read overlay data from " << qPrintable(filename) << "\n";
-    return false;
-
-    /*
-    // failed first attempt, try load as volume
+    // try load as volume
     MRI* mri = MRIread(filename.toAscii().data());
     if (!mri)
     {
       cerr << "could not read overlay data from " << qPrintable(filename) << "\n";
       return false;
     }
+
+    // if there is registration file, read it
+    MATRIX* tkregMat = MRIxfmCRS2XYZtkreg(mri);
+    MATRIX* ras2vox_tkreg = MatrixInverse(tkregMat, NULL);
+    MatrixFree(&tkregMat);
+    if (!fn_reg.isEmpty())
+    {
+      MRI* tmp = MRIallocHeader(m_MRIS->vg.width, m_MRIS->vg.height, m_MRIS->vg.depth, MRI_UCHAR, 1);
+      useVolGeomToMRI(&m_MRIS->vg, tmp);
+      MATRIX* matReg = FSVolume::LoadRegistrationMatrix(fn_reg, tmp, mri);
+      if (matReg == NULL)
+      {
+         cerr << "could not read registration data from " << qPrintable(fn_reg) << "\n";
+      }
+      else
+      {
+        ras2vox_tkreg = MatrixMultiply(ras2vox_tkreg, matReg, NULL);
+      }
+      MatrixFree(&matReg);
+      MRIfree(&tmp);
+    }
+    double m[16];
+    for ( int i = 0; i < 16; i++ )
+    {
+      m[i] = (double) *MATRIX_RELT((ras2vox_tkreg),(i/4)+1,(i%4)+1);
+    }
+
+    for ( int i = 0; i < m_MRIS->nvertices; i++ )
+    {
+      double v[4] = { m_MRIS->vertices[i].x, m_MRIS->vertices[i].y, m_MRIS->vertices[i].z, 1 };
+      vtkMatrix4x4::MultiplyPoint(m, v, v);
+      int nx = (int)(v[0]+0.5);
+      int ny = (int)(v[1]+0.5);
+      int nz = (int)(v[2]+0.5);
+      if (nx >= 0 && nx < mri->width && ny >= 0 && ny < mri->height && nz >= 0 && nz < mri->depth)
+        m_MRIS->vertices[i].val = ::MRIgetVoxVal(mri, nx, ny, nz, 0);
+    }
+
     MRIfree(&mri);
-    */
+    MatrixFree(&ras2vox_tkreg);
   }
-  else
+  else if ( ::MRISreadValues( m_MRIS, (char*)( filename.toAscii().data() ) ) != 0 )
   {
-    return true;
+    cerr << "could not read overlay data from " << qPrintable(filename) << "\n";
+    return false;
   }
+
+  return true;
 }
 
 /*

@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2012/05/29 16:59:22 $
- *    $Revision: 1.10 $
+ *    $Date: 2012/06/12 20:17:08 $
+ *    $Revision: 1.11 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -113,7 +113,7 @@ void InfoTreeWidget::UpdateAll()
       item->setText(0, layer->GetName());
       layer->RASToOriginalIndex( ras, nIndex );
       double dvalue;
-      if (layer->IsModified())
+      if (layer->IsModified()) // || layer->HasReg())
         dvalue = layer->GetVoxelValue( m_dRAS );
       else
         dvalue = layer->GetVoxelValueByOriginalIndex(nIndex[0], nIndex[1], nIndex[2]);

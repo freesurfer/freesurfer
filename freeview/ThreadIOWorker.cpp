@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2011/10/26 16:15:44 $
- *    $Revision: 1.7 $
+ *    $Date: 2012/06/12 20:17:09 $
+ *    $Revision: 1.8 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -212,8 +212,9 @@ void ThreadIOWorker::run()
       return;
     }
     QString fn = m_args["FileName"].toString();
+    QString fn_reg = m_args["Registration"].toString();
     bool bCorrelation = m_args["Correlation"].toBool();
-    if ( !surf->LoadOverlayFromFile(fn, bCorrelation))
+    if ( !surf->LoadOverlayFromFile(fn, fn_reg, bCorrelation))
     {
       emit Error( m_layer, m_nJobType );
     }
