@@ -8,8 +8,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2012/06/07 13:08:43 $
- *    $Revision: 1.6 $
+ *    $Date: 2012/06/13 00:01:40 $
+ *    $Revision: 1.7 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -82,6 +82,7 @@ typedef struct
   double min_step_size ;
   int    max_steps ;
   char   **feature_names ;   // for diags
+  double max_class_ratio ;  // don't let there be way more of one class than another
 } RANDOM_FOREST, RF ;
 
 RANDOM_FOREST *RFalloc(int ntrees, int nfeatures, int nclasses, int max_depth,
