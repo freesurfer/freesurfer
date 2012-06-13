@@ -47,6 +47,8 @@ MRISUBDIRS=\
 	mri_ca_label \
 	mri_rf_label \
 	mri_rf_train \
+	mri_rf_long_label \
+	mri_rf_long_train \
 	mri_aseg_edit_train \
 	mri_aseg_edit_reclassify \
 	mri_ca_normalize \

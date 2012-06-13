@@ -9,8 +9,8 @@
 #
 # CVS Revision Info:
 #    $Author: fischl $
-#    $Date: 2012/06/08 20:03:45 $
-#    $Revision: 1.571 $
+#    $Date: 2012/06/13 20:47:58 $
+#    $Revision: 1.572 $
 #
 ########################################################################
 AC_PREREQ(2.57)
@@ -3556,6 +3556,8 @@ AC_OUTPUT([Makefile
            mris_segmentation_stats/Makefile
            mris_rf_label/Makefile
            mris_rf_train/Makefile
+           mri_rf_long_train/Makefile
+           mri_rf_long_label/Makefile
            mri_volcluster/Makefile
            mri_voldiff/Makefile
            mri_volsynth/Makefile
