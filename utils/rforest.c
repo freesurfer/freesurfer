@@ -8,8 +8,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2012/06/13 00:01:45 $
- *    $Revision: 1.13 $
+ *    $Date: 2012/06/13 12:59:06 $
+ *    $Revision: 1.14 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -411,7 +411,7 @@ rfTrainTree(RANDOM_FOREST *rf, TREE *tree, int *training_classes, double **train
 int
 RFtrain(RANDOM_FOREST *rf, double feature_fraction, double training_fraction, int *training_classes, double **training_data, int ntraining)
 {
-  int    n, i, nfeatures_per_tree = 0, *feature_permutation, *training_permutation, f, 
+  int    n, ii, nfeatures_per_tree = 0, *feature_permutation, *training_permutation, f, 
     index, start_no, end_no, ntraining_per_tree = 0, total_to_remove = 0 ;
   TREE   *tree = NULL ;
 
@@ -459,8 +459,8 @@ RFtrain(RANDOM_FOREST *rf, double feature_fraction, double training_fraction, in
 	{
 	  new_training_classes[new_index] = training_classes[n] ;
 	  new_training_data[new_index] = (double *)calloc(rf->nfeatures,sizeof(double));
-	  for (i = 0 ; i < rf->nfeatures ; i++)
-	    new_training_data[new_index][i] = training_data[n][i] ;
+	  for (ii = 0 ; ii < rf->nfeatures ; ii++)
+	    new_training_data[new_index][ii] = training_data[n][ii] ;
 	  new_index++ ;
 	}
       }
@@ -470,8 +470,8 @@ RFtrain(RANDOM_FOREST *rf, double feature_fraction, double training_fraction, in
       {
 	new_training_classes[new_index] = max_class ;
 	new_training_data[new_index] = (double *)calloc(rf->nfeatures,sizeof(double));
-	for (i = 0 ; i < rf->nfeatures ; i++)
-	  new_training_data[new_index][i] = training_data[class_indices[new_index]][i] ;
+	for (ii = 0 ; ii < rf->nfeatures ; ii++)
+	  new_training_data[new_index][ii] = training_data[class_indices[new_index]][ii] ;
 	new_index++ ;
       }
       training_data = new_training_data ;
@@ -491,8 +491,8 @@ RFtrain(RANDOM_FOREST *rf, double feature_fraction, double training_fraction, in
     for (n = 0 ; n < ntraining ; n++)
     {
       fprintf(fp, "%d ", training_classes[n]) ;
-      for (i = 0 ; i < rf->nfeatures ; i++)
-	fprintf(fp, "%f ", training_data[n][i]) ;
+      for (ii = 0 ; ii < rf->nfeatures ; ii++)
+	fprintf(fp, "%f ", training_data[n][ii]) ;
       fprintf(fp, "\n") ;
     }
 
@@ -508,12 +508,12 @@ RFtrain(RANDOM_FOREST *rf, double feature_fraction, double training_fraction, in
   {
     rf->feature_min[f] = 1e20 ;
     rf->feature_max[f] = -1e20 ;
-    for (i = 0 ; i < ntraining ; i++)
+    for (ii = 0 ; ii < ntraining ; ii++)
     {
-      if (training_data[i][f] < rf->feature_min[f])
-        rf->feature_min[f] = training_data[i][f] ;
-      if (training_data[i][f] > rf->feature_max[f])
-        rf->feature_max[f] = training_data[i][f] ;
+      if (training_data[ii][f] < rf->feature_min[f])
+        rf->feature_min[f] = training_data[ii][f] ;
+      if (training_data[ii][f] > rf->feature_max[f])
+        rf->feature_max[f] = training_data[ii][f] ;
     }
   }
 
@@ -528,7 +528,8 @@ RFtrain(RANDOM_FOREST *rf, double feature_fraction, double training_fraction, in
   end_no = 0 ; // only 1 tree
   index = 0 ;
   n = 0 ;
-#pragma omp parallel for firstprivate(tree,start_no,end_no,i,index) shared(rf, nfeatures_per_tree, Gdiag,training_classes,training_data) schedule(static,1)
+  ii = 0 ;
+#pragma omp parallel for firstprivate(tree,start_no,end_no,ii,index) shared(rf, nfeatures_per_tree, Gdiag,training_classes,training_data) schedule(static,1)
 #endif
   for (n = 0 ; n < rf->ntrees ; n++)  // train each tree
   {
@@ -549,8 +550,8 @@ RFtrain(RANDOM_FOREST *rf, double feature_fraction, double training_fraction, in
     else
       start_no = 0 ; // only 1 tree
     end_no = MIN(rf->nfeatures-1, start_no+nfeatures_per_tree-1) ;
-    for (i = start_no  ; i <= end_no  ; i++)
-      tree->feature_list[i-start_no] = feature_permutation[i] ;
+    for (ii = start_no  ; ii <= end_no  ; ii++)
+      tree->feature_list[ii-start_no] = feature_permutation[ii] ;
     
 
     // randomize what training data this tree will use
@@ -563,9 +564,9 @@ RFtrain(RANDOM_FOREST *rf, double feature_fraction, double training_fraction, in
     else
       start_no = 0 ; // only 1 tree
     end_no = MIN(rf->ntraining-1, start_no+ntraining_per_tree-1) ;
-    for (i = start_no  ; i <= end_no  ; i++)
+    for (ii = start_no  ; ii <= end_no  ; ii++)
     {
-      index = training_permutation[i] ;
+      index = training_permutation[ii] ;
       if (training_classes[index] < 0 || training_classes[index] >= rf->nclasses)
       {
 	ErrorPrintf(ERROR_BADPARM, "RFtrain: class at index %d = %d: out of bounds (%d)",
