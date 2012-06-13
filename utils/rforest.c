@@ -8,8 +8,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2012/06/12 17:47:56 $
- *    $Revision: 1.12 $
+ *    $Date: 2012/06/13 00:01:45 $
+ *    $Revision: 1.13 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -412,7 +412,7 @@ int
 RFtrain(RANDOM_FOREST *rf, double feature_fraction, double training_fraction, int *training_classes, double **training_data, int ntraining)
 {
   int    n, i, nfeatures_per_tree = 0, *feature_permutation, *training_permutation, f, 
-    index, start_no, end_no, ntraining_per_tree = 0, total_to_remove ;
+    index, start_no, end_no, ntraining_per_tree = 0, total_to_remove = 0 ;
   TREE   *tree = NULL ;
 
   if (rf->max_class_ratio > 0)
@@ -517,17 +517,10 @@ RFtrain(RANDOM_FOREST *rf, double feature_fraction, double training_fraction, in
     }
   }
 
-
   nfeatures_per_tree = nint((double)rf->nfeatures * feature_fraction) ;
   ntraining_per_tree = nint((double)rf->ntraining * training_fraction) ;
-  if (feature_permutation == NULL)
-    ErrorExit(ERROR_NOMEMORY, "could not allocate feature permutation vector");
-  if (training_permutation == NULL)
-    ErrorExit(ERROR_NOMEMORY, "could not allocate feature permutation vector");
-
   feature_permutation = compute_permutation(rf->nfeatures, NULL) ;
   training_permutation = compute_permutation(ntraining, NULL) ;
-
 
 #ifdef HAVE_OPENMP
   tree = NULL;
