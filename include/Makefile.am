@@ -220,6 +220,7 @@ EXTRA_DIST=\
 	retinotopy.h \
 	rfa.h \
 	rforest.h \
+	rfutils.h \
 	rgb_image.h \
 	rgb_utils.h \
 	runfuncs.h \
