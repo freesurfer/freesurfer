@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2012/05/23 17:35:17 $
- *    $Revision: 1.3 $
+ *    $Date: 2012/06/13 20:57:16 $
+ *    $Revision: 1.4 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -36,6 +36,7 @@
 #include "gcamorph.h"
 #include "utils.h"
 #include "macros.h"
+#include "gca.h"
 
 #define MAX_LABELS_PER_NODE 10
 
@@ -725,6 +726,34 @@ extract_feature(MRI *mri_in, int wsize, int x, int y, int z, double *feature, in
   feature[f++] = xatlas ;
   feature[f++] = yatlas ;
   feature[f++] = zatlas ;
+  return(NO_ERROR) ;
+}
+
+int
+extract_long_features(MRI *mri_in, MRI *mri_seg, TRANSFORM *transform, GCA *gca, int wsize, int x, int y, int z, double *feature)
+{
+  int  xi, yi, zi, xk, yk, zk, whalf, n, f ;
+
+  whalf = (wsize-1)/2 ;
+  for (f =0, xk = -whalf ; xk <= whalf ; xk++)
+  {
+    xi = mri_in->xi[x+xk] ;
+    for (yk = -whalf ; yk <= whalf ; yk++)
+    {
+      yi = mri_in->yi[y+yk] ;
+      for (zk = -whalf ; zk <= whalf ; zk++)
+      {
+	zi = mri_in->zi[z+zk] ;
+	for (n = 0 ; n < mri_in->nframes ; n++)
+	  feature[f++] = MRIgetVoxVal(mri_in, xi, yi, zi, n) ;
+      }
+    }
+  }
+  feature[f++] = MRIcountCSFInNbhd(mri_seg, 5, x, y, z) ;
+  feature[f++] = 100*gm_prior(gca, mri_in, transform, x, y, z) ;
+  feature[f++] = 100*wm_prior(gca, mri_in, transform, x, y, z) ;
+  feature[f++] = 100*csf_prior(gca, mri_in, transform, x, y, z) ;
+  feature[f++] = 100*MRIcountValInNbhd(mri_seg, 3, x, y, z, WM_hypointensities) ;
   return(NO_ERROR) ;
 }
 
