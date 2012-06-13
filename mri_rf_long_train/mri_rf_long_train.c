@@ -9,8 +9,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2012/06/13 20:47:32 $
- *    $Revision: 1.1 $
+ *    $Date: 2012/06/13 21:15:28 $
+ *    $Revision: 1.2 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -129,7 +129,8 @@ main(int argc, char *argv[])
   struct timeb start ;
   MRI          *mri_seg, *mri_tmp, *mri_in ;
   TRANSFORM    *transform ;
-  int          counts, t;
+//  int          counts ;
+  int          t;
   RANDOM_FOREST *rf = NULL ;
   GCA           *gca = NULL ;
 
@@ -151,7 +152,7 @@ main(int argc, char *argv[])
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mri_rf_long_train.c,v 1.1 2012/06/13 20:47:32 fischl Exp $",
+           "$Id: mri_rf_long_train.c,v 1.2 2012/06/13 21:15:28 fischl Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -221,12 +222,12 @@ main(int argc, char *argv[])
 #if 1
 #ifdef HAVE_OPENMP
   mri_in = NULL ; subject_name = NULL ; sname = NULL ; t = 0 ;
-  counts = 0 ;
+//  counts = 0 ;   would be private
   input = 0 ;
   transform = NULL ;
   tp1_name = tp2_name = NULL ;
   o = 0 ;
-#pragma omp parallel for firstprivate(tp1_name, tp2_name, mri_in,mri_tmp,counts, input, xform_name, transform, subjects_dir, force_inputs, conform, Progname, o, ordering, mri_seg, subject_name, s1_name, s2_name, sname, t, fname) shared(mri_inputs, transforms, mri_segs,argv) schedule(static,1)
+#pragma omp parallel for firstprivate(tp1_name, tp2_name, mri_in,mri_tmp, input, xform_name, transform, subjects_dir, force_inputs, conform, Progname, o, ordering, mri_seg, subject_name, s1_name, s2_name, sname, t, fname) shared(mri_inputs, transforms, mri_segs,argv) schedule(static,1)
 #endif
 #endif
   for (i = 0 ; i < max_index ; i++)
