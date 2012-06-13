@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2012/05/23 17:35:26 $
- *    $Revision: 1.2 $
+ *    $Date: 2012/06/13 20:57:20 $
+ *    $Revision: 1.3 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -38,7 +38,7 @@ extern "C" {
 #include "affine.h"
 #include "rforest.h"
 #include "cma.h"
-
+#include "gca.h"
 
 #define MAX_MRI_INPUTS  1000
 
@@ -153,4 +153,5 @@ int  extract_feature(MRI *mri_in, int wsize, int x, int y, int z, double *featur
     ((l) == CC_Mid_Posterior))
 
 int MRIcountCSFInNbhd(MRI *mri_seg, int wsize, int x, int y, int z) ;
+int extract_long_features(MRI *mri_in, MRI *mri_seg, TRANSFORM *transform, GCA *gca, int wsize, int x, int y, int z, double *feature);
 #endif
