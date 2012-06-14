@@ -1,4 +1,4 @@
-#$Id: FreeSurferColorLUT.txt,v 1.85 2012/06/01 21:56:30 greve Exp $
+#$Id: FreeSurferColorLUT.txt,v 1.86 2012/06/14 13:24:28 fischl Exp $
 
 #No. Label Name:                            R   G   B   A
 
@@ -87,7 +87,13 @@
 83  Left-F1                                 255 218 185 0
 84  Right-F1                                255 218 185 0
 85  Optic-Chiasm                            234 169 30  0
-86  Corpus_Callosum                         250 255 50  0
+192  Corpus_Callosum                         250 255 50  0
+
+86  Left_future_WMSA                        200 120  255 0
+87  Right_future_WMSA                       200 121  255 0
+88  future_WMSA                             200 122  255 0
+
+
 96  Left-Amygdala-Anterior                  205 10  125 0
 97  Right-Amygdala-Anterior                 205 10  125 0
 98  Dura                                    160 32  240 0
