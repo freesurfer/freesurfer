@@ -14,7 +14,8 @@ mri_rf_long_label_LDFLAGS=$(OS_LDFLAGS)
 #foodir=$(prefix)/docs/xml
 #foo_DATA=mri_rf_long_label.help.xml
 
-TESTS=$(top_builddir)/scripts/help_xml_validate
+#TESTS=$(top_builddir)/scripts/help_xml_validate
+TESTS=
 
 #EXTRA_DIST=$(foo_DATA) $(BUILT_SOURCES)
 EXTRA_DIST=$(BUILT_SOURCES)
