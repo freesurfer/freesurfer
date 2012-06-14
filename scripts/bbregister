@@ -5,9 +5,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: lzollei $
-#    $Date: 2011/11/10 16:24:17 $
-#    $Revision: 1.53 $
+#    $Author: greve $
+#    $Date: 2012/06/14 21:32:12 $
+#    $Revision: 1.54 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -22,7 +22,7 @@
 #
 
 #
-set VERSION = '$Id: bbregister,v 1.53 2011/11/10 16:24:17 lzollei Exp $';
+set VERSION = '$Id: bbregister,v 1.54 2012/06/14 21:32:12 greve Exp $';
 set inputargs = ($argv);
 
 set subject = ();
@@ -61,6 +61,7 @@ set nPowellMax = 36;
 set DOF = 6;
 set FSLDOF = 6;
 set FSLSwapTrans = 0;
+set FSLBETMov = 0;
 set DoPass1 = 1;
 
 set WMProjAbs = 2;
@@ -150,8 +151,10 @@ if($#InitReg == 0) then
   endif
   if($InitFSL) then
     set cmd = (fslregister --s $subject --mov $regvol --reg $InitReg \
-      --niters 1 --maxangle 90 --nobetmov --tmp $tmpdir/fslregister \
+      --niters 1 --maxangle 90 --tmp $tmpdir/fslregister \
       --dof $FSLDOF --fsvol $fsvol)
+    if($FSLBETMov)   set cmd = ($cmd --betmov)
+    if(! $FSLBETMov) set cmd = ($cmd --nobetmov)
     if($FSLSwapTrans) set cmd = ($cmd --allow-swap --trans)
     if($nolog) set cmd = ($cmd --nolog)
     echo $cmd | tee -a $LF
@@ -678,6 +681,13 @@ while( $#argv != 0 )
     case "--fsl-dof":
       if($#argv < 1) goto arg1err;
       set FSLDOF = $argv[1]; shift;
+      breaksw
+
+    case "--fsl-bet-mov":
+      set FSLBETMov = 1;
+      breaksw
+    case "--no-fsl-bet-mov":
+      set FSLBETMov = 0;
       breaksw
 
     case "--rms":
