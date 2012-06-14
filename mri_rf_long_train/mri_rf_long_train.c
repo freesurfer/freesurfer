@@ -9,8 +9,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2012/06/13 21:15:28 $
- *    $Revision: 1.2 $
+ *    $Date: 2012/06/14 01:52:21 $
+ *    $Revision: 1.3 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -152,7 +152,7 @@ main(int argc, char *argv[])
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mri_rf_long_train.c,v 1.2 2012/06/13 21:15:28 fischl Exp $",
+           "$Id: mri_rf_long_train.c,v 1.3 2012/06/14 01:52:21 fischl Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -219,16 +219,15 @@ main(int argc, char *argv[])
   // going through the subject one at a time
   max_index = nsubjects+options ;
   nargs = 0 ;
-#if 1
+  mri_in = NULL ; 
 #ifdef HAVE_OPENMP
-  mri_in = NULL ; subject_name = NULL ; sname = NULL ; t = 0 ;
+  subject_name = NULL ; sname = NULL ; t = 0 ;
 //  counts = 0 ;   would be private
   input = 0 ;
   transform = NULL ;
   tp1_name = tp2_name = NULL ;
   o = 0 ;
 #pragma omp parallel for firstprivate(tp1_name, tp2_name, mri_in,mri_tmp, input, xform_name, transform, subjects_dir, force_inputs, conform, Progname, o, ordering, mri_seg, subject_name, s1_name, s2_name, sname, t, fname) shared(mri_inputs, transforms, mri_segs,argv) schedule(static,1)
-#endif
 #endif
   for (i = 0 ; i < max_index ; i++)
   {
