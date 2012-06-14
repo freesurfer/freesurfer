@@ -9,8 +9,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2012/06/14 01:52:21 $
- *    $Revision: 1.3 $
+ *    $Date: 2012/06/14 12:27:47 $
+ *    $Revision: 1.4 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -125,7 +125,7 @@ main(int argc, char *argv[])
   char         **av, fname[STRLEN], *out_fname, *subject_name, *cp, *tp1_name, *tp2_name ;
   char         s1_name[STRLEN], s2_name[STRLEN], *sname ;
   int          ac, nargs, i, n, options, max_index ;
-  int          msec, minutes, seconds, nsubjects, input, ordering[MAX_RFA_INPUTS], o ;
+  int          msec, minutes, seconds, nsubjects, input ;
   struct timeb start ;
   MRI          *mri_seg, *mri_tmp, *mri_in ;
   TRANSFORM    *transform ;
@@ -152,7 +152,7 @@ main(int argc, char *argv[])
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mri_rf_long_train.c,v 1.3 2012/06/14 01:52:21 fischl Exp $",
+           "$Id: mri_rf_long_train.c,v 1.4 2012/06/14 12:27:47 fischl Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -226,8 +226,7 @@ main(int argc, char *argv[])
   input = 0 ;
   transform = NULL ;
   tp1_name = tp2_name = NULL ;
-  o = 0 ;
-#pragma omp parallel for firstprivate(tp1_name, tp2_name, mri_in,mri_tmp, input, xform_name, transform, subjects_dir, force_inputs, conform, Progname, o, ordering, mri_seg, subject_name, s1_name, s2_name, sname, t, fname) shared(mri_inputs, transforms, mri_segs,argv) schedule(static,1)
+#pragma omp parallel for firstprivate(tp1_name, tp2_name, mri_in,mri_tmp, input, xform_name, transform, subjects_dir, force_inputs, conform, Progname, mri_seg, subject_name, s1_name, s2_name, sname, t, fname) shared(mri_inputs, transforms, mri_segs,argv) schedule(static,1)
 #endif
   for (i = 0 ; i < max_index ; i++)
   {
@@ -314,73 +313,6 @@ main(int argc, char *argv[])
       replaceLabels(mri_seg) ;
       MRIeraseBorderPlanes(mri_seg, 1) ;
 
-#if 1
-      for (o = 0 ; o < ninputs ; o++)
-	ordering[o] = o ;
-#else
-      // subjects loop index i
-      if (i != 0)  /* not the first image read -
-		      reorder it to be in the same order as 1st */
-      {
-	// initialize the flag array
-	for (input =0; input < ninputs; input++)
-	  used[input] = 0;
-	
-	for (input = 0 ; input < ninputs ; input++)
-	{
-	  sprintf(fname, "%s/%s/mri/%s", subjects_dir, sname, input_names[input]);
-	  mri_tmp = MRIreadInfo(fname) ;
-	  if (!mri_tmp)
-	    ErrorExit
-	      (ERROR_NOFILE,
-	       "%s: could not read image from file %s", Progname, fname) ;
-	  if (force_inputs)
-	  {
-	    ordering[input] = input ;
-	    used[input] = 1 ;
-	  }
-	  else for (o = 0 ; o < ninputs ; o++)
-		 if (FEQUAL(TRs[o],mri_tmp->tr) &&
-		     FEQUAL(FAs[o],mri_tmp->flip_angle) &&
-		     FEQUAL(TEs[o],mri_tmp->te))
-		 {
-		   // if this o is not used, then use it
-		   if (used[o] == 0)
-		   {
-		     ordering[input] = o ;
-		     used[o] = 1;
-		     break;
-		   }
-		 }
-	}
-	// verify whether it has input values are used
-	counts = 0;
-	for (input = 0; input < ninputs; input++)
-	  if (used[input] == 1) counts++;
-	if (counts != ninputs)
-	{
-	  for (o = 0 ; o < ninputs ; o++)
-	    printf("previous input %d TR/TE/flip = %2.2f/%2.2f/%2.1f\n",o,TRs[o],TEs[o],DEGREES(FAs[o])) ;
-	  printf("subject %s TR/TE/flip = %2.2f/%2.2f/%2.1f\n",subject_name,mri_tmp->tr,mri_tmp->te,DEGREES(mri_tmp->flip_angle)) ;
-	  ErrorExit(ERROR_BADPARM,
-		    "Input TR, TE, FlipAngle for each subjects must match.\n");
-	}
-	MRIfree(&mri_tmp) ;
-      }
-      else
-	for (o = 0 ; o < ninputs ; o++)
-	  ordering[o] = o ;
-      
-      
-      if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
-      {
-	printf("ordering images: ") ;
-	for (o = 0 ; o < ninputs ; o++)
-	  printf("%d ", ordering[o]) ;
-	printf("\n") ;
-      }
-#endif
-      
       ////////////////////////////////////////////////////////////
       if (DIAG_VERBOSE_ON)
 	fprintf(stderr,
@@ -397,7 +329,7 @@ main(int argc, char *argv[])
 	// thus we cannot allow flash data training.
 	////////////////////////////////////////////////////////////
 	
-	sprintf(fname, "%s/%s/mri/%s", subjects_dir, sname,input_names[ordering[input]]);
+	sprintf(fname, "%s/%s/mri/%s", subjects_dir, sname,input_names[input]);
 	if (DIAG_VERBOSE_ON)
 	  printf("reading co-registered input from %s...\n", fname) ;
 	fprintf(stderr, "   reading input %d: %s\n", input, fname);
