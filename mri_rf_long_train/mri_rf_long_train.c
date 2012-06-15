@@ -9,8 +9,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2012/06/14 12:27:47 $
- *    $Revision: 1.4 $
+ *    $Date: 2012/06/15 12:22:28 $
+ *    $Revision: 1.5 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -105,7 +105,12 @@ static int max_steps = 10 ;
 static char *single_classifier_names[] = 
 { "NOT WMSA", "WMSA", "FUTURE WMSA" } ;
 
+#define NCLASSES     3
+#define NOT_WMSA     0
+#define WMSA         1
+#define FUTURE_WMSA  2
 #define MAX_SUBJECTS 1000
+
 static MRI *mri_inputs[MAX_SUBJECTS][MAX_TIMEPOINTS] ;
 static MRI *mri_segs[MAX_SUBJECTS][MAX_TIMEPOINTS] ;
 static TRANSFORM *transforms[MAX_SUBJECTS][MAX_TIMEPOINTS] ;
@@ -152,7 +157,7 @@ main(int argc, char *argv[])
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mri_rf_long_train.c,v 1.4 2012/06/14 12:27:47 fischl Exp $",
+           "$Id: mri_rf_long_train.c,v 1.5 2012/06/15 12:22:28 fischl Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -226,6 +231,7 @@ main(int argc, char *argv[])
   input = 0 ;
   transform = NULL ;
   tp1_name = tp2_name = NULL ;
+  mri_tmp = mri_seg = NULL ;
 #pragma omp parallel for firstprivate(tp1_name, tp2_name, mri_in,mri_tmp, input, xform_name, transform, subjects_dir, force_inputs, conform, Progname, mri_seg, subject_name, s1_name, s2_name, sname, t, fname) shared(mri_inputs, transforms, mri_segs,argv) schedule(static,1)
 #endif
   for (i = 0 ; i < max_index ; i++)
@@ -1275,21 +1281,20 @@ train_rforest(MRI *mri_inputs[MAX_SUBJECTS][MAX_TIMEPOINTS], MRI *mri_segs[MAX_S
   MRI            *mri_in, *mri_seg, *mri_training_voxels, *mri_wmsa_possible ;
   TRANSFORM      *transform ;
   double         **training_data ;
-  int            *training_classes, i, label, tlabel, nwmsa, nfuture, nnot, correct;
+  int            *training_classes, i, label, tlabel, nwmsa, nfuture, nnot, correct, label_time1, label_time2;
 
   nwmsa = nnot = nfuture = 0 ;
 
 /*
   features are:
   t1 intensity (3 vols)
-  t2 intensity (3 vols)
   3 priors
   # of unknown voxels in the nbhd
   # of neighboring wmsa voxels at t1
 */
-  nfeatures = parms->wsize*parms->wsize*parms->wsize*parms->nvols*2 + 5 ; 
+  nfeatures = parms->wsize*parms->wsize*parms->wsize*parms->nvols + 5 ; 
 
-  rf = RFalloc(parms->ntrees, nfeatures, 2, parms->max_depth, single_classifier_names, max_steps) ;
+  rf = RFalloc(parms->ntrees, nfeatures, NCLASSES, parms->max_depth, single_classifier_names, max_steps) ;
   if (rf == NULL)
     ErrorExit(ERROR_NOFILE, "%s: could not allocate random forest", Progname) ;
   rf->min_step_size = 1 ; 
@@ -1303,7 +1308,8 @@ train_rforest(MRI *mri_inputs[MAX_SUBJECTS][MAX_TIMEPOINTS], MRI *mri_segs[MAX_S
   mri_in = mri_inputs[0][0] ;
   mri_training_voxels = MRIallocSequence(mri_in->width,mri_in->height, mri_in->depth,MRI_UCHAR,nsubjects) ;
 
-#if 0
+#if 1
+  // update time 1 segmentation based on labels at time1 and time2
   for (n = 0 ; n < nsubjects ; n++)
   {
     mri_seg = mri_segs[n][0] ;
@@ -1311,9 +1317,12 @@ train_rforest(MRI *mri_inputs[MAX_SUBJECTS][MAX_TIMEPOINTS], MRI *mri_segs[MAX_S
       for (y = 0 ; y < mri_in->height ; y++)
 	for (z = 0 ; z < mri_in->depth ; z++)
 	{
-	  label = MRIgetVoxVal(mri_seg, x, y, z, 0) ;
-	  if (IS_WMSA(label))
-	    MRIsetVoxVal(mri_segs[n][1], x, y, z, 0, label) ;
+	  label_time1 = MRIgetVoxVal(mri_segs[n][0], x, y, z, 0) ;
+	  label_time2 = MRIgetVoxVal(mri_segs[n][1], x, y, z, 0) ;
+	  if (IS_WMSA(label_time1))
+	    MRIsetVoxVal(mri_segs[n][0], x, y, z, 0, label_time1) ;
+	  else if (IS_WMSA(label_time2))
+	    MRIsetVoxVal(mri_segs[n][0], x, y, z, 0, future_WMSA) ;
 	}
   }
 #endif
@@ -1342,8 +1351,7 @@ train_rforest(MRI *mri_inputs[MAX_SUBJECTS][MAX_TIMEPOINTS], MRI *mri_segs[MAX_S
   // now build map of all voxels in training set
   for (nnot = nwmsa = nfuture = ntraining = n = 0 ; n < nsubjects ; n++)
   {
-    // train on all voxels that are wmsa at time 2
-    mri_in = mri_inputs[n][1] ; mri_seg = mri_segs[n][1] ; transform = transforms[n][1] ;
+    mri_in = mri_inputs[n][0] ; mri_seg = mri_segs[n][0] ; transform = transforms[n][0] ;
     for (x = 0 ; x < mri_in->width ; x++)
       for (y = 0 ; y <  mri_in->height; y++)
 	for (z = 0 ; z <  mri_in->depth; z++)
@@ -1365,17 +1373,17 @@ train_rforest(MRI *mri_inputs[MAX_SUBJECTS][MAX_TIMEPOINTS], MRI *mri_segs[MAX_S
 	  
 	  if (IS_FUTURE_WMSA(label))
 	  {
-	    label = 1;
+	    label = FUTURE_WMSA;
 	    nfuture++ ;
 	  }
 	  else if (IS_WMSA(label))
 	  {
-	    label = 1 ;
+	    label = WMSA ;
 	    nwmsa++ ;
 	  }
 	  else
 	  {
-	    label = 0 ;
+	    label = NOT_WMSA ;
 	    nnot++ ;
 	  }
           // set label to one more than it will be for training so that 0 means this is not a training voxel
@@ -1451,17 +1459,25 @@ train_rforest(MRI *mri_inputs[MAX_SUBJECTS][MAX_TIMEPOINTS], MRI *mri_segs[MAX_S
 
     sprintf(buf, "CSF voxels in nbhd") ;
     rf->feature_names[i] = (char *)calloc(strlen(buf)+1, sizeof(char)) ;
+    strcpy(rf->feature_names[i], buf) ;
     i++ ; sprintf(buf, "gm prior") ;
     rf->feature_names[i] = (char *)calloc(strlen(buf)+1, sizeof(char)) ;
+    strcpy(rf->feature_names[i], buf) ;
     i++ ; sprintf(buf, "wm prior") ;
     rf->feature_names[i] = (char *)calloc(strlen(buf)+1, sizeof(char)) ;
+    strcpy(rf->feature_names[i], buf) ;
     i++ ; sprintf(buf, "csf prior") ;
     rf->feature_names[i] = (char *)calloc(strlen(buf)+1, sizeof(char)) ;
+    strcpy(rf->feature_names[i], buf) ;
     i++ ; sprintf(buf, "WMSA in nbhd") ;
     rf->feature_names[i] = (char *)calloc(strlen(buf)+1, sizeof(char)) ;
+    strcpy(rf->feature_names[i], buf) ;
 
-    printf("writing training voxels to tv.mgz\n") ;
-    MRIwrite(mri_training_voxels, "tv.mgz") ;
+    if (Gdiag & DIAG_WRITE)
+    {
+      printf("writing training voxels to tv.mgz\n") ;
+      MRIwrite(mri_training_voxels, "tv.mgz") ;
+    }
   }
 
   // now build training features and classes
@@ -1473,7 +1489,7 @@ train_rforest(MRI *mri_inputs[MAX_SUBJECTS][MAX_TIMEPOINTS], MRI *mri_segs[MAX_S
     ErrorExit(ERROR_NOFILE, "train_rforest: could not allocate %d-length training buffers",ntraining);
   for (i = n = 0 ; n < nsubjects ; n++)
   {
-    mri_in = mri_inputs[n][1] ; mri_seg = mri_segs[n][1] ; transform = transforms[n][1] ;
+    mri_in = mri_inputs[n][0] ; mri_seg = mri_segs[n][0] ; transform = transforms[n][0] ;
     for (x = 0 ; x < mri_in->width ; x++)
       for (y = 0 ; y <  mri_in->height; y++)
 	for (z = 0 ; z <  mri_in->depth; z++)
@@ -1484,11 +1500,11 @@ train_rforest(MRI *mri_inputs[MAX_SUBJECTS][MAX_TIMEPOINTS], MRI *mri_segs[MAX_S
 	  TransformSourceVoxelToAtlas(transform, mri_in, x, y, z, &xatlas, &yatlas, &zatlas) ;
 	  xt = nint(xatlas/tvoxel_size) ; yt = nint(yatlas/tvoxel_size) ; zt = nint(zatlas/tvoxel_size) ;
 	  if (IS_FUTURE_WMSA(label))
-	    tlabel = 1 ;
+	    tlabel = FUTURE_WMSA ;
 	  else if (IS_WMSA(label))
-	    tlabel = 1 ;
+	    tlabel = WMSA ;
 	  else
-	    tlabel= 0 ;
+	    tlabel= NOT_WMSA ;
 	    
 	  training_classes[i] =  tlabel ;
 	  training_data[i] = (double *)calloc(nfeatures, sizeof(double)) ;
@@ -1498,15 +1514,6 @@ train_rforest(MRI *mri_inputs[MAX_SUBJECTS][MAX_TIMEPOINTS], MRI *mri_segs[MAX_S
 	  training_classes[i] = training_classes[i] ;
 //	  extract_feature(mri_in, parms->wsize, x, y, z, training_data[i], xatlas, yatlas, zatlas) ;
 	  extract_long_features(mri_in, mri_seg, transform, gca, parms->wsize, x, y, z, training_data[i]) ;
-#if 0
-	  extract_feature(mri_in, parms->wsize, x, y, z, training_data[i], 0, 0, 0) ;
-	  // scale up priors so that a min step size of 1 in training is still ok
-	  // count # of unknowns nearby to avoid mislabeling partial-volumed CSF and cortex
-	  training_data[i][nfeatures-4] = MRIcountCSFInNbhd(mri_seg, 5, x, y, z) ;
-	  training_data[i][nfeatures-3] = 100*gm_prior(gca, mri_in, transform, x, y, z) ;
-	  training_data[i][nfeatures-2] = 100*wm_prior(gca, mri_in, transform, x, y, z) ;
-	  training_data[i][nfeatures-1] = 100*csf_prior(gca, mri_in, transform, x, y, z) ;
-#endif
 	  if (training_data[i][Gdiag_no] < 80 && training_classes[i] == 1)
 	    DiagBreak() ;
 	  i++ ;
