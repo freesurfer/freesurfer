@@ -9,8 +9,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2012/06/07 16:29:13 $
- *    $Revision: 1.3 $
+ *    $Date: 2012/06/16 12:48:24 $
+ *    $Revision: 1.4 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -102,7 +102,7 @@ main(int argc, char *argv[]) {
   TRANSFORM    *xform ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_transmantle_dysplasia_paths.c,v 1.3 2012/06/07 16:29:13 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_transmantle_dysplasia_paths.c,v 1.4 2012/06/16 12:48:24 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -427,6 +427,7 @@ compute_migration_probabilities(MRI_SURFACE *mris, MRI *mri_intensity, MRI *mri_
   }
 #ifdef HAVE_OPENMP
   v = NULL ; n = 0 ;
+  vl = vl_spline = NULL ;
 #pragma omp parallel for firstprivate(n, v, vl, vl_spline, entropy, gm_mean, mcmc_samples) shared(mri_intensity, mri_aseg, mri_path_grad,mri_splines) schedule(static,1)
 #endif
   for (vno = 0 ; vno < mris->nvertices ; vno++)
