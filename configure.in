@@ -8,9 +8,9 @@
 # Process this file with autoconf to produce a configure script.
 #
 # CVS Revision Info:
-#    $Author: fischl $
-#    $Date: 2012/06/13 20:47:58 $
-#    $Revision: 1.572 $
+#    $Author: nicks $
+#    $Date: 2012/06/18 20:43:50 $
+#    $Revision: 1.573 $
 #
 ########################################################################
 AC_PREREQ(2.57)
@@ -523,7 +523,7 @@ case "${target}" in
  DYNAMIC_LIB_EXT=".dylib"
  SHARED_CFLAGS="-fno-common"
  SHARED_LDFLAGS="-dynamiclib"
- CPPFLAGS="-gfull -O3 $WALL $WERROR $LFS_CFLAGS"
+ CPPFLAGS="-gfull -O3 -msse2 -mfpmath=sse $WALL $WERROR $LFS_CFLAGS"
  FCLIBS="-L/usr/lib -lgcc"
  ;;
  i*86-*-solaris*)
