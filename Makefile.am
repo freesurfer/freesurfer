@@ -107,7 +107,6 @@ MRISUBDIRS=\
 	mri_make_bem_surfaces \
 	mri_make_register \
 	mri_make_template \
-	template \
 	mri_map_cpdat \
 	mri_mark_temporal_lobe \
 	mri_mask mri_ms_fitparms \
@@ -185,7 +184,8 @@ MRISUBDIRS=\
 	mri_compute_change_map \
 	mri_apply_inu_correction \
 	talairach_afd \
-	talairach_avi
+	talairach_avi \
+	template
 
 #	mri_edit_seg_with_ribbons
 

@@ -31,10 +31,10 @@
 AM_CFLAGS=-I$(top_srcdir)/include
 AM_CXXFLAGS=-I$(top_srcdir)/include
 
-bin_PROGRAMS = mri_multiscale_segment
-mri_multiscale_segment_SOURCES=mri_multiscale_segment.c
-mri_multiscale_segment_LDADD= $(addprefix $(top_builddir)/, $(LIBS_MGH))
-mri_multiscale_segment_LDFLAGS=$(OS_LDFLAGS)
+bin_PROGRAMS = template
+template_SOURCES=template.c
+template_LDADD= $(addprefix $(top_builddir)/, $(LIBS_MGH))
+template_LDFLAGS=$(OS_LDFLAGS)
 
 # to --------------------------------------------------
 #
@@ -53,7 +53,7 @@ mri_multiscale_segment_LDFLAGS=$(OS_LDFLAGS)
 # The program listed as check_PROGRAMS are not compiled under standard 
 # "make". Only "make check" will compile them.
 # 
-# Please don't remove myown.c from this mri_multiscale_segment directory.
+# Please don't remove myown.c from this template directory.
 ########################################################################
 #check_PROGRAMS=myown
 

@@ -9,8 +9,8 @@
 #
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2012/06/18 20:43:50 $
-#    $Revision: 1.573 $
+#    $Date: 2012/06/19 17:22:34 $
+#    $Revision: 1.574 $
 #
 ########################################################################
 AC_PREREQ(2.57)
@@ -3380,7 +3380,6 @@ AC_OUTPUT([Makefile
            hiam_make_surfaces/Makefile
            hiam_register/Makefile
            hiam_make_template/Makefile
-           template/Makefile
            hipsstubs/Makefile
            histo_register/Makefile
            histo_register/SimpleBaseLib/Makefile
@@ -3620,7 +3619,7 @@ AC_OUTPUT([Makefile
            mris_info/Makefile
            mris_jacobian/Makefile
            mris_label_area/Makefile
-					 mris_label_calc/Makefile
+           mris_label_calc/Makefile
            mris_label_mode/Makefile
            mris_label2annot/Makefile
            mris_make_average_surface/Makefile
@@ -3692,6 +3691,7 @@ AC_OUTPUT([Makefile
            svm-lib/Makefile
            talairach_afd/Makefile
            talairach_avi/Makefile
+           template/Makefile
            test_makevol/Makefile
            test_window_env/Makefile
            tetgen/Makefile
