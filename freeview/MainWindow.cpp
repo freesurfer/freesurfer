@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2012/06/12 20:17:08 $
- *    $Revision: 1.214 $
+ *    $Date: 2012/06/19 18:48:48 $
+ *    $Revision: 1.215 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -2143,6 +2143,8 @@ void MainWindow::CommandLoadSurface( const QStringList& cmd )
   bool bLoadAll = false;
   bool bLabelOutline = false;
   QString overlay_reg;
+  QString overlay_method = "linearopaque";
+  QStringList overlay_thresholds;
   for ( int k = sa_fn.size()-1; k >= 1; k-- )
   {
     int n = sa_fn[k].indexOf( "=" );
@@ -2152,6 +2154,10 @@ void MainWindow::CommandLoadSurface( const QStringList& cmd )
       QString subArgu = sa_fn[k].mid( n+1 );
       if ( subOption == "overlay_reg" )
         overlay_reg = subArgu;
+      else if (subOption == "overlay_method")
+        overlay_method = subArgu;
+      else if (subOption == "overlay_threshold")
+        overlay_thresholds = subArgu.split(",", QString::SkipEmptyParts);
     }
   }
   if (overlay_reg.isEmpty())
@@ -2219,7 +2225,7 @@ void MainWindow::CommandLoadSurface( const QStringList& cmd )
 
           QStringList overlay_opts = opt_strg.split(":");
 
-          QString method = "linearopaque";
+          QString method;
           QStringList thresholds;
           for ( int j = 0; j < overlay_opts.size(); j++ )
           {
@@ -2234,10 +2240,19 @@ void MainWindow::CommandLoadSurface( const QStringList& cmd )
             }
           }
 
-          if ( method != "linearopaque" || !thresholds.isEmpty() )
+          if ( !method.isEmpty() || !thresholds.isEmpty() )
           {
+            if (method.isEmpty())
+              method = overlay_method;
             script = QString("setsurfaceoverlaymethod ") + method + " " +
                      thresholds.join(" ");
+            // insert right AFTER loadsurfaceoverlay command
+            m_scripts.insert( 1, script );
+          }
+          else if (overlay_method != "linearopaque" || !overlay_thresholds.isEmpty())
+          {
+            script = QString("setsurfaceoverlaymethod ") + overlay_method + " " +
+                     overlay_thresholds.join(" ");
             // insert right AFTER loadsurfaceoverlay command
             m_scripts.insert( 1, script );
           }
@@ -2318,7 +2333,7 @@ void MainWindow::CommandLoadSurface( const QStringList& cmd )
         if ( subArgu.toLower() == "true" || subArgu.toLower() == "yes" || subArgu == "1")
           bLabelOutline = true;
       }
-      else if (subOption != "overlay_reg")
+      else if (subOption != "overlay_reg" && subOption != "overlay_method" && subOption != "overlay_threshold")
       {
         cerr << "Unrecognized sub-option flag '" << subOption.toAscii().constData() << "'.\n";
         return;
