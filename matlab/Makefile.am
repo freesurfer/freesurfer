@@ -136,6 +136,7 @@ mfiles_DATA=\
 	write_ascii_curv.m \
 	write_curv.m \
 	write_label.m \
+	write_surf.m \
 	write_wfile.m \
 	xfm_read.m
 
