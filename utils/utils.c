@@ -7,9 +7,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2012/05/30 12:52:50 $
- *    $Revision: 1.84 $
+ *    $Author: nicks $
+ *    $Date: 2012/06/24 14:06:55 $
+ *    $Revision: 1.85 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -75,9 +75,6 @@ setRandomSeed(long seed)
   // also seed the 'standard' random number generators: rand() and random()
   srand(seed);
   srandom(seed);
-#ifdef Darwin_not_used
-  srand48(seed);
-#endif
 
   // seed vnl_random thingy
   OpenRan1(&idum);
@@ -242,34 +239,6 @@ fComplementCode(double *pdIn, double *pdOut, int iLen)
   }
 }
 
-#ifdef Darwin
-void srand48(long seed) ;
-void
-srand48(long seed)
-{
-  setRandomSeed(seed) ;
-}
-#endif
-
-#ifdef Darwin_not_used
-double drand48(void) ;
-/*------------------------------------------------------------------------
-  Parameters:
-
-  Description:
-
-  Return Values:
-  nothing.
-  ------------------------------------------------------------------------*/
-double
-drand48(void)
-{
-  int  r ;
-
-  r = rand() ;
-  return((double)r / (double)RAND_MAX) ;
-}
-#endif
 #ifndef _HOME_
 /*------------------------------------------------------------------------
   Parameters:
