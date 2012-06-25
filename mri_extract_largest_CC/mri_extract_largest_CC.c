@@ -2,14 +2,14 @@
  * @file  mri_extract_largest_CC.c
  * @brief extract the largest connected component from a volume and write it into another volume
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ * extract the largest connected component from a volume and write it into another volume
  */
 /*
  * Original Author: Florent Segonne
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2011/10/25 14:09:07 $
- *    $Revision: 1.8 $
+ *    $Date: 2012/06/25 18:34:05 $
+ *    $Revision: 1.9 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -69,9 +69,9 @@ int main(int argc, char *argv[]) {
 
   Progname = argv[0];
 
-  nargs = handle_version_option (argc, argv, "$Id: mri_extract_largest_CC.c,v 1.8 2011/10/25 14:09:07 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_extract_largest_CC.c,v 1.9 2012/06/25 18:34:05 fischl Exp $", "$Name:  $");
   argc -= nargs ;
-  if (1 == argc)
+  if (1 >= argc)
     usage (0);
 
   ac = argc ;
