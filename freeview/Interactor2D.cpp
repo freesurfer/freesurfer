@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2012/05/01 16:35:36 $
- *    $Revision: 1.33 $
+ *    $Date: 2012/06/26 17:06:07 $
+ *    $Revision: 1.34 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -196,20 +196,23 @@ bool Interactor2D::ProcessMouseMoveEvent( QMouseEvent* event, RenderView* render
   {
     QList<Layer*> layers = mainwnd->GetLayerCollection( "MRI" )->GetLayers();
     LayerMRI* layer = (LayerMRI*)mainwnd->GetActiveLayer("MRI");
-    if (layer && layer->GetProperty()->GetColorMap() == LayerPropertyMRI::LUT)
+    if (layer && (!layer->IsVisible() || layer->GetProperty()->GetColorMap() == LayerPropertyMRI::LUT))
     {
       layer = NULL;
     }
-    for ( int i = 0; i < layers.size(); i++ )
+    if (layer == NULL)
     {
-      layer = ( LayerMRI*)layers[i];
-      if ( layer->IsVisible() && layer->GetProperty()->GetColorMap() != LayerPropertyMRI::LUT )
+      for ( int i = 0; i < layers.size(); i++ )
       {
-        break;
-      }
-      else
-      {
-        layer = NULL;
+        layer = ( LayerMRI*)layers[i];
+        if ( layer->IsVisible() && layer->GetProperty()->GetColorMap() != LayerPropertyMRI::LUT )
+        {
+          break;
+        }
+        else
+        {
+          layer = NULL;
+        }
       }
     }
     if ( layer )

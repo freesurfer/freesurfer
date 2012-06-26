@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2012/06/19 18:48:48 $
- *    $Revision: 1.22 $
+ *    $Date: 2012/06/26 17:06:07 $
+ *    $Revision: 1.23 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -108,7 +108,7 @@ int main(int argc, char *argv[])
     CmdLineEntry( CMD_LINE_OPTION, "cmd", "command", "<FILE>", "Load freeview commands from a text file.", 1, 1 ),
     CmdLineEntry( CMD_LINE_OPTION, "hide", "hide", "<LAYER_TYPE>", "Hide the current layer. This is useful for loading comands by -cmd option. Valid LAYER_TYPEs are volume, surface, label, etc.", 1, 1 ),
     CmdLineEntry( CMD_LINE_OPTION, "unload", "unload", "<LAYER_TYPE>", "Unload/Close the current layer. Useful for loading comands by -cmd option. Valid LAYER_TYPEs are volume, surface, label, etc.", 1, 1 ),
-    CmdLineEntry( CMD_LINE_SWITCH, "quit", "quit", "", "Quit freeview. Useful for loading comands by -cmd option." ),
+    CmdLineEntry( CMD_LINE_SWITCH, "quit", "quit", "", "Quit freeview. Useful for scripting or loading comands by -cmd option." ),
     CmdLineEntry( CMD_LINE_NONE )
   };
 

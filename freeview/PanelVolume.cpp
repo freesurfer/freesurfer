@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2012/03/29 20:35:50 $
- *    $Revision: 1.77 $
+ *    $Date: 2012/06/26 17:06:07 $
+ *    $Revision: 1.78 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -1084,6 +1084,7 @@ void PanelVolume::OnCopySettings()
     {
       strgs << keys[i] << map[keys[i]].toString();
     }
+    qDebug() << strgs;
     qApp->clipboard()->setText(strgs.join(","));
   }
 }
@@ -1127,7 +1128,7 @@ void PanelVolume::OnPasteSettingsToAll()
       }
     }
     QList<Layer*> layers = GetSelectedLayers<Layer*>();
-    if (layers.isEmpty())
+    if (layers.size() < 2)
       layers = MainWindow::GetMainWindow()->GetLayerCollection("MRI")->GetLayers();
     for (int i = 0; i < layers.size(); i++)
     {
