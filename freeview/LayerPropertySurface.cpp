@@ -11,8 +11,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2011/05/20 17:35:30 $
- *    $Revision: 1.5 $
+ *    $Date: 2012/06/27 18:58:40 $
+ *    $Revision: 1.6 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -59,7 +59,7 @@ LayerPropertySurface::LayerPropertySurface ( QObject* parent ) :
   SetThresholdColor( c1, c2 );
   SetEdgeColor( 1, 1, 0 );
   SetVectorColor( 1, 0.75, 0 );
-  SetVertexColor( 0.75, 0.75, 0.75 );
+  SetVertexColor( 0., 1.0, 1.0 );
   SetMeshColor( 0.75, 0.75, 0.75 );
   blockSignals( false );
   for ( int i = 0; i < 3; i++ )

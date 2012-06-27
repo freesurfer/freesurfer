@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2012/06/12 20:17:08 $
- *    $Revision: 1.72 $
+ *    $Date: 2012/06/27 18:58:40 $
+ *    $Revision: 1.73 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -60,6 +60,7 @@
 #include "MyUtils.h"
 #include "SurfaceOverlay.h"
 #include "SurfaceSpline.h"
+#include "vtkMaskPoints.h"
 
 LayerSurface::LayerSurface( LayerMRI* ref, QObject* parent ) : LayerEditable( parent ),
   m_surfaceSource( NULL ),
@@ -81,9 +82,12 @@ LayerSurface::LayerSurface( LayerMRI* ref, QObject* parent ) : LayerEditable( pa
   for ( int i = 0; i < 3; i++ )
   {
     // m_nSliceNumber[i] = 0;
-    m_sliceActor2D[i] = vtkActor::New();
-    m_sliceActor3D[i] = vtkActor::New();
-    m_vectorActor2D[i] = vtkActor::New();
+    m_sliceActor2D[i] = vtkSmartPointer<vtkActor>::New();
+    m_sliceActor3D[i] = vtkSmartPointer<vtkActor>::New();
+    m_vectorActor2D[i] = vtkSmartPointer<vtkActor>::New();
+    m_vertexActor2D[i] = vtkSmartPointer<vtkActor>::New();
+    m_vertexActor2D[i]->GetProperty()->SetRepresentationToPoints();
+    m_vertexActor2D[i]->VisibilityOff();
   }
 
 // m_mainActor = vtkLODActor::New();
@@ -133,13 +137,6 @@ LayerSurface::LayerSurface( LayerMRI* ref, QObject* parent ) : LayerEditable( pa
 
 LayerSurface::~LayerSurface()
 {
-  for ( int i = 0; i < 3; i++ )
-  {
-    m_sliceActor2D[i]->Delete();
-    m_sliceActor3D[i]->Delete();
-    m_vectorActor2D[i]->Delete();
-  }
-
   if ( m_surfaceSource )
   {
     delete m_surfaceSource;
@@ -524,7 +521,19 @@ void LayerSurface::InitializeActors()
 //  m_sliceActor3D[i]->GetBackfaceProperty()->BackfaceCullingOff();
     m_sliceActor3D[i]->SetProperty( m_sliceActor3D[i]->MakeProperty() );
     m_sliceActor3D[i]->GetProperty()->SetLineWidth( GetProperty()->GetEdgeThickness() );
-    m_sliceActor2D[i]->GetProperty()->SetInterpolationToFlat();
+//    m_sliceActor3D[i]->GetProperty()->SetInterpolationToFlat();
+
+    vtkSmartPointer<vtkPolyDataMapper> mapper3 = vtkSmartPointer<vtkPolyDataMapper>::New();
+    vtkSmartPointer<vtkMaskPoints> pts = vtkSmartPointer<vtkMaskPoints>::New();
+    pts->GenerateVerticesOn();
+    pts->SetOnRatio(1);
+    pts->SetInputConnection(cutter->GetOutputPort());
+    mapper3->SetInputConnection( pts->GetOutputPort() );
+    mapper3->ScalarVisibilityOff();
+    m_vertexActor2D[i]->SetMapper(mapper3);
+    m_vertexActor2D[i]->SetProperty( m_vertexActor2D[i]->MakeProperty() );
+    m_vertexActor2D[i]->GetProperty()->SetPointSize(3);
+    m_vertexActor2D[i]->GetProperty()->SetInterpolationToFlat();
 
     // Set ourselves up.
     this->OnSlicePositionChanged( i );
@@ -638,6 +647,7 @@ void LayerSurface::Append2DProps( vtkRenderer* renderer, int nPlane )
 {
   renderer->AddViewProp( m_sliceActor2D[nPlane] );
   renderer->AddViewProp( m_vectorActor2D[nPlane] );
+  renderer->AddViewProp( m_vertexActor2D[nPlane]);
   if (m_spline)
     m_spline->AppendProp2D(renderer, nPlane);
 }
@@ -711,16 +721,19 @@ void LayerSurface::OnSlicePositionChanged( int nPlane )
   case 0:
     mReslicePlane[0]->SetOrigin( m_dSlicePosition[0]-pos[0], 0, 0  );
     m_sliceActor2D[0]->SetPosition( 0.1, pos[1], pos[2] );
+    m_vertexActor2D[0]->SetPosition( 0.1, pos[1], pos[2] );
     m_vectorActor2D[0]->SetPosition( 1.0, pos[1], pos[2] );
     break;
   case 1:
     mReslicePlane[1]->SetOrigin( 0, m_dSlicePosition[1]-pos[1], 0 );
     m_sliceActor2D[1]->SetPosition( pos[0], 0.1, pos[2] );
+    m_vertexActor2D[1]->SetPosition( pos[0], 0.1, pos[2] );
     m_vectorActor2D[1]->SetPosition( pos[0], 1.0, pos[2] );
     break;
   case 2:
     mReslicePlane[2]->SetOrigin( 0, 0, m_dSlicePosition[2]-pos[2]  );
     m_sliceActor2D[2]->SetPosition( pos[0], pos[1], -0.1 );
+    m_vertexActor2D[2]->SetPosition( pos[0], pos[1], -0.1 );
     m_vectorActor2D[2]->SetPosition( pos[0], pos[1], -1.0 );
     break;
   }
@@ -754,6 +767,7 @@ void LayerSurface::SetVisible( bool bVisible )
   {
     m_sliceActor2D[i] ->SetVisibility( nSliceVisibility );
     m_sliceActor3D[i] ->SetVisibility( nSliceVisibility );
+    m_vertexActor2D[i]->SetVisibility( bVisible && GetProperty()->GetShowVertices() );
   }
 
   m_mainActor->SetVisibility( bVisible && GetProperty()->GetSurfaceRenderMode() != LayerPropertySurface::SM_Wireframe );
@@ -801,7 +815,7 @@ bool LayerSurface::HasProp( vtkProp* prop )
 {
   for ( int i = 0; i < 3; i++ )
   {
-    if ( m_sliceActor2D[i] == prop || m_sliceActor3D[i] == prop )
+    if ( m_sliceActor2D[i].GetPointer() == prop || m_sliceActor3D[i].GetPointer() == prop )
     {
       return true;
     }
@@ -1359,6 +1373,12 @@ void LayerSurface::UpdateVertexRender()
   m_vertexActor->SetVisibility( GetProperty()->GetShowVertices()? 1: 0 );
   m_vertexActor->GetProperty()->SetPointSize( GetProperty()->GetVertexPointSize() );
   m_vertexActor->GetProperty()->SetColor( GetProperty()->GetVertexColor() );
+  for (int i = 0; i < 3; i++)
+  {
+    m_vertexActor2D[i]->SetVisibility( GetProperty()->GetShowVertices()? 1: 0 );
+    m_vertexActor2D[i]->GetProperty()->SetPointSize( GetProperty()->GetVertexPointSize() );
+    m_vertexActor2D[i]->GetProperty()->SetColor( GetProperty()->GetVertexColor() );
+  }
   emit ActorUpdated();
 }
 
@@ -1411,6 +1431,10 @@ void LayerSurface::UpdateActorPositions()
   m_vectorActor2D[0]->SetPosition( 1.0, pos[1], pos[2] );
   m_vectorActor2D[1]->SetPosition( pos[0], 1.0, pos[2] );
   m_vectorActor2D[2]->SetPosition( pos[0], pos[1], -1.0 );
+
+  m_vertexActor2D[0]->SetPosition( 0.1, pos[1], pos[2] );
+  m_vertexActor2D[1]->SetPosition( pos[0], 0.1, pos[2] );
+  m_vertexActor2D[2]->SetPosition( pos[0], pos[1], -0.1 );
 
   m_mainActor->SetPosition( pos );
   m_vectorActor->SetPosition( pos );

@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2012/06/12 20:17:08 $
- *    $Revision: 1.50 $
+ *    $Date: 2012/06/27 18:58:40 $
+ *    $Revision: 1.51 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -281,14 +281,15 @@ protected:
   QString   m_sVectorFilename;
   QString   m_sTargetFilename;
 
-  vtkActor*   m_sliceActor2D[3];
-  vtkActor*   m_sliceActor3D[3];
-  vtkActor*   m_vectorActor2D[3];
+  vtkSmartPointer<vtkActor>   m_sliceActor2D[3];
+  vtkSmartPointer<vtkActor>   m_sliceActor3D[3];
+  vtkSmartPointer<vtkActor>   m_vectorActor2D[3];
 
   // vtkLODActor*  m_mainActor;
   vtkSmartPointer<vtkActor>   m_mainActor;
   vtkSmartPointer<vtkActor>   m_vectorActor;
   vtkSmartPointer<vtkActor>   m_vertexActor;
+  vtkSmartPointer<vtkActor>   m_vertexActor2D[3];
   vtkSmartPointer<vtkActor>   m_wireframeActor;
 
   QList<SurfaceOverlay*>    m_overlays;

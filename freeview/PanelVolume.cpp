@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2012/06/26 17:18:43 $
- *    $Revision: 1.79 $
+ *    $Date: 2012/06/27 18:58:40 $
+ *    $Revision: 1.80 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -162,16 +162,6 @@ PanelVolume::PanelVolume(QWidget *parent) :
       combo.removeAt(n);
   }
   m_widgetlistNonVolumeTrack = combo;
-
-  /*
-          << m_widgetlistGrayScale
-          << m_widgetlistHeatScale
-          << m_widgetlistGenericColorMap
-          << m_widgetlistLUT
-          << m_widgetlistContour
-          << m_widgetlistDirectionCode
-          << m_widgetlistEditable;
-  */
 
   LayerCollection* lc = mainwnd->GetLayerCollection("MRI");
   PanelLayer::InitializeLayerList( ui->treeWidgetLayers, lc );

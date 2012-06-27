@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2012/06/12 20:17:08 $
- *    $Revision: 1.78 $
+ *    $Date: 2012/06/27 18:58:40 $
+ *    $Revision: 1.79 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -353,96 +353,6 @@ bool FSVolume::LoadRegistrationMatrix( const QString& filename )
   }
   m_matReg = LoadRegistrationMatrix(filename, m_MRIRef, m_MRI);
   return (m_matReg != NULL);
-
-  /*
-  QString ext = QFileInfo( filename ).suffix();
-  if ( ext == "xfm" )  // MNI style
-  {
-    MATRIX* m = NULL;
-    if ( regio_read_mincxfm( filename.toAscii().data(), &m, NULL ) != 0 )
-    {
-      return false;
-    }
-
-    m_matReg = MRItkRegMtx( m_MRIRef, m_MRI, m );
-    MatrixFree( &m );
-  }
-  else if ( ext == "mat" )  // fsl style
-  {
-    QFile file( filename );
-    if ( !file.open( QIODevice::ReadOnly | QIODevice::Text ) )
-    {
-      cerr << qPrintable (file.errorString()) << "\n";;
-      return false;
-    }
-
-    QTextStream in(&file);
-    QString line = in.readLine();
-    QStringList values;
-    while ( !line.isNull() )
-    {
-      values += line.split( " ", QString::SkipEmptyParts );
-      line = in.readLine();
-    }
-    if ( values.size() < 16 )
-    {
-      return false;
-    }
-
-    MATRIX* m = MatrixAlloc( 4, 4, MATRIX_REAL );
-    for ( int i = 0; i < 16; i++ )
-    {
-      *MATRIX_RELT(m, (i/4)+1, (i%4)+1) = values[i].toDouble();
-    }
-    m_matReg = MRIfsl2TkReg( m_MRIRef, m_MRI, m );
-    MatrixFree( &m );
-  }
-  else if ( ext == "dat" )  // tkregister style
-  {
-    char* subject = NULL;
-    float inplaneres, betplaneres, intensity;
-    int float2int;
-    if ( regio_read_register( filename.toAscii().data(),
-                              &subject,
-                              &inplaneres,
-                              &betplaneres,
-                              &intensity,
-                              &m_matReg,
-                              &float2int ) != 0 )
-    {
-      return false;
-    }
-
-    free( subject );
-  }
-  else  // LTA style & all possible other styles
-  {
-    TRANSFORM* FSXform = TransformRead( (char*)filename.toAscii().data() );
-    if ( FSXform == NULL )
-    {
-      return false;
-    }
-    LTA* lta = (LTA*) FSXform->xform;
-    if ( lta->type != LINEAR_RAS_TO_RAS )
-    {
-      cout << "INFO: LTA input is not RAS to RAS...converting...\n";
-      lta = LTAchangeType( lta, LINEAR_RAS_TO_RAS );
-    }
-    if ( lta->type != LINEAR_RAS_TO_RAS )
-    {
-      cerr << "ERROR: LTA input is not RAS to RAS\n";
-      TransformFree( &FSXform );
-      return false;
-    }
-
-    // Assume RAS2RAS and uses vox2ras from input volumes:
-    // Note: This ignores the volume geometry in the LTA file.
-    m_matReg = MRItkRegMtx( m_MRIRef, m_MRI, lta->xforms[0].m_L );
-    TransformFree( &FSXform );
-  }
-
-  return true;
-  */
 }
 
 bool FSVolume::Create( FSVolume* src_vol, bool bCopyVoxelData, int data_type )

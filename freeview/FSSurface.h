@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2012/06/12 20:17:08 $
- *    $Revision: 1.35 $
+ *    $Date: 2012/06/27 18:58:40 $
+ *    $Revision: 1.36 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -238,6 +238,7 @@ protected:
   vtkSmartPointer<vtkPolyData> m_polydataVertices;
   vtkSmartPointer<vtkPolyData> m_polydataWireframes;
   vtkSmartPointer<vtkPolyData> m_polydataVector2D[3];
+  vtkSmartPointer<vtkPolyData> m_polydataVertex2D[3];
   vtkSmartPointer<vtkPolyData> m_polydataTarget;
 
   // Hash table so we can look up vertices. Uses v->x,y,z.

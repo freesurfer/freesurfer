@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2012/06/12 20:17:08 $
- *    $Revision: 1.59 $
+ *    $Date: 2012/06/27 18:58:39 $
+ *    $Revision: 1.60 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -78,6 +78,7 @@ FSSurface::FSSurface( FSVolume* ref, QObject* parent ) : QObject( parent ),
   for ( int i = 0; i < 3; i++ )
   {
     m_polydataVector2D[i] = vtkSmartPointer<vtkPolyData>::New();
+    m_polydataVertex2D[i] = vtkSmartPointer<vtkPolyData>::New();
   }
 
   for ( int i = 0; i < NUM_OF_VSETS; i++ )

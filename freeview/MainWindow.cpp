@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2012/06/19 18:48:48 $
- *    $Revision: 1.215 $
+ *    $Date: 2012/06/27 18:58:40 $
+ *    $Revision: 1.216 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -1353,6 +1353,14 @@ void MainWindow::RunScript()
   {
     CommandSetSurfaceEdgeThickness( sa );
   }
+  else if ( cmd == "displaysurfacevertex" )
+  {
+    CommandSetDisplaySurfaceVertex( sa );
+  }
+  else if ( cmd == "setsurfacevertexcolor" )
+  {
+    CommandSetSurfaceVertexColor( sa );
+  }
   else if ( cmd == "setsurfacelabeloutline" )
   {
     CommandSetSurfaceLabelOutline( sa );
@@ -2181,6 +2189,14 @@ void MainWindow::CommandLoadSurface( const QStringList& cmd )
       {
         m_scripts.insert( 0, QString("setsurfaceedgethickness ") + subArgu );
       }
+      else if ( subOption == "vertex" )
+      {
+        m_scripts.insert( 0, QString("displaysurfacevertex ") + subArgu);
+      }
+      else if ( subOption == "vertexcolor" )
+      {
+        m_scripts.insert( 0, QString("setsurfacevertexcolor ") + subArgu );
+      }
       else if ( subOption == "curv" || subOption == "curvature" )
       {
         m_scripts.insert( 0, QString("loadsurfacecurvature ") + subArgu );
@@ -2518,6 +2534,32 @@ void MainWindow::CommandSetSurfaceEdgeThickness( const QStringList& cmd )
     else
     {
       surf->GetProperty()->SetEdgeThickness( thickness );
+    }
+  }
+}
+
+void MainWindow::CommandSetDisplaySurfaceVertex(const QStringList &cmd)
+{
+  LayerSurface* surf = (LayerSurface*)GetLayerCollection( "Surface" )->GetActiveLayer();
+  if ( surf && cmd[1].toLower() == "on" || cmd[1].toLower() == "true" || cmd[1].toLower() == "yes" || cmd[1] == "1" )
+  {
+    surf->GetProperty()->ShowVertices(true);
+  }
+}
+
+void MainWindow::CommandSetSurfaceVertexColor(const QStringList &cmd)
+{
+  LayerSurface* surf = (LayerSurface*)GetLayerCollection( "Surface" )->GetActiveLayer();
+  if ( surf && cmd[1] != "null" )
+  {
+    QColor color = ParseColorInput( cmd[1] );
+    if ( color.isValid() )
+    {
+      surf->GetProperty()->SetVertexColor( color.redF(), color.greenF(), color.blueF() );
+    }
+    else
+    {
+      cerr << "Invalid color name or value " << cmd[1].toAscii().constData() << ".\n";
     }
   }
 }
