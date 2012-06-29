@@ -13,8 +13,8 @@
  * Original Author: Rudolph Pienaar
  * CVS Revision Info:
  *    $Author: rudolph $
- *    $Date: 2012/06/29 17:04:20 $
- *    $Revision: 1.14 $
+ *    $Date: 2012/06/29 20:52:52 $
+ *    $Revision: 1.15 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -445,6 +445,7 @@ class C_mpmProg_ROI : public C_mpmProg {
     string              mstr_outputStem;
     bool                mb_ROIsInSeparateLabels;
     bool                mb_saveStaggered;
+    bool		mb_boundaryOnly;	  // Toggle ROI only at border
 
   public:
     C_mpmProg_ROI(
@@ -456,6 +457,15 @@ class C_mpmProg_ROI : public C_mpmProg {
     //
     // Access block
     //
+    bool	boundaryOnly(void) const {
+	    return mb_boundaryOnly;
+    };
+
+    bool	boundaryOnly(const bool& ab_val) {
+	    mb_boundaryOnly	= ab_val;
+	    return mb_boundaryOnly;
+    };
+
     void        surfaceRipClear_set(bool avalue) {
             mb_surfaceRipClear  = avalue;
     };
@@ -489,6 +499,7 @@ class C_mpmProg_ROI : public C_mpmProg {
             return mv_vertex;
     };
 
+    int		border_mark(void);
     int         vertexFile_load(        string  astr_fileName);
     int         labelFile_load(         string  astr_fileName);
     int         labelFile_save(         string  astr_fileName);

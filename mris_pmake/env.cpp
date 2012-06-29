@@ -12,8 +12,8 @@
  * Original Author: Rudolph Pienaar / Christian Haselgrove
  * CVS Revision Info:
  *    $Author: rudolph $
- *    $Date: 2012/06/29 17:04:20 $
- *    $Revision: 1.32 $
+ *    $Date: 2012/06/29 20:52:52 $
+ *    $Revision: 1.33 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -1692,6 +1692,7 @@ s_env_mpmProgSetIndex(
                                                   e_EquLink, "", ":");
               float       f_radius              = 0.0;
               bool        b_saveStaggered       = false;
+              bool	  b_borderRegion	= false;
               string      str_option            = "";
               C_mpmProg_ROI* pC_ROI             = NULL;
               pC_ROI_cast(apst_env->pCmpmProg, pC_ROI);
@@ -1708,6 +1709,10 @@ s_env_mpmProgSetIndex(
                   if(!pC_ROI->labelFile_load(str_option))
                       error_exit("reading the labelFile",
                                   "a file access error occurred", 10);
+              }
+              if(cso_mpm.scanFor("borderOnly", &str_option)) {
+        	  b_borderRegion 	= atoi(str_option.c_str());
+        	  pC_ROI->boundaryOnly(b_borderRegion);
               }
               if(cso_mpm.scanFor("plySaveStaggered", &str_option)) {
                   b_saveStaggered       = atoi(str_option.c_str());

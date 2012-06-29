@@ -13,8 +13,8 @@
  * Original Author: Rudolph Pienaar
  * CVS Revision Info:
  *    $Author: rudolph $
- *    $Date: 2012/06/29 17:04:20 $
- *    $Revision: 1.20 $
+ *    $Date: 2012/06/29 20:52:52 $
+ *    $Revision: 1.21 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -995,6 +995,69 @@ C_mpmProg_ROI::labelFile_save(
 }
 
 int
+C_mpmProg_ROI::border_mark(void)
+{
+/*
+ * ARGS
+ * 	(void)
+ *
+ * DESC
+ * Redefines the pattern of RIPFLAGS on a mesh so that contiguous
+ * regions only have outer border vertices ripped.
+ *
+ * PRECONDITIONS
+ * o An existing pattern of rips must already be present on the surface.
+ * o The "primary" surface mesh is processed.
+ *
+ * POSTCONDITIONS
+ * o Contiguous regions will have border vertices marked.
+ * o Number of border vertices is returned.
+ *
+ */
+    int 	i		= 0;
+    int         vertex          = -1;
+    int		neighbor	= -1;
+    int		neighborCount	= -1;
+    int         borderCount	= 0;
+    MRIS*       mesh            = NULL;
+    VERTEX*	SVertex 	= NULL;
+    bool	b_innerVertex 	= true;
+
+    mesh = mps_env->pMS_primary;
+
+    // Start by clearing the mv_vertex array. This array will be re-purposed
+    // to contain the indices of the border vertices.
+    if(mv_vertex.size()) {
+        mv_vertex.clear();
+    }
+
+    for(vertex = 0; vertex < mesh->nvertices; vertex++) {
+	b_innerVertex = true;
+	SVertex = &mesh->vertices[vertex];
+        for(neighborCount = 0; neighborCount < SVertex->vnum; neighborCount++) {
+            neighbor = SVertex->v[neighborCount];
+            b_innerVertex &= mesh->vertices[neighbor].ripflag;
+        }
+        if(!b_innerVertex) {
+            borderCount++;
+            mv_vertex.push_back(vertex);
+        }
+    }
+
+    if(borderCount) {
+        // At this point, the mv_vertex array contains all the border vertices.
+        // Now, clear the current ripflag pattern, and then assign rips
+        // according the mv_vertex array
+        surface_ripClear(*mps_env, true);
+        for(i=0; i<mv_vertex.size(); i++) {
+            vertex = mv_vertex[i];
+            mesh->vertices[vertex].ripflag = true;
+        }
+    }
+    return borderCount;
+}
+
+int
 C_mpmProg_ROI::vertexFile_load(string astr_fileName)
 {
     //
@@ -1087,6 +1150,8 @@ C_mpmProg_ROI::run() {
     MRIS*       pmesh                   = mps_env->pMS_active;
 
     debug_push("run");
+
+    if(mb_boundaryOnly) border_mark();
 
     if(!mb_ROIsInSeparateLabels) {
         for (i=0; i<(unsigned int)pmesh->nvertices; i++) {
