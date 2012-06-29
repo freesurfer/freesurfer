@@ -12,8 +12,8 @@
  * Original Author: Rudolph Pienaar / Christian Haselgrove
  * CVS Revision Info:
  *    $Author: rudolph $
- *    $Date: 2012/04/13 21:20:38 $
- *    $Revision: 1.31 $
+ *    $Date: 2012/06/29 17:04:20 $
+ *    $Revision: 1.32 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -462,6 +462,7 @@ s_env_nullify(
     st_env.vstr_mpmProgName.push_back("autodijk");
     st_env.vstr_mpmProgName.push_back("autodijk_fast");
     st_env.vstr_mpmProgName.push_back("ROI");
+    st_env.vstr_mpmProgName.push_back("externalMesh");
     st_env.totalmpmProgs	    = st_env.vstr_mpmProgName.size();
     st_env.pCmpmProg                = NULL; // Not yet created!
     // autodijk
@@ -1627,7 +1628,7 @@ s_env_mpmProgSetIndex(
 	apst_env->pCmpmProg		= new C_mpmProg_pathFind(apst_env,
 	    						apst_env->startVertex,
 	    						apst_env->endVertex);
-          // Check for any command-line spec'd args for the 'pathFind' mpmProg:
+          // Check for any command-line spec'd args for this mpmProg:
           if(apst_env->str_mpmArgs != "-x") {
             C_scanopt                   cso_mpm(apst_env->str_mpmArgs, ",",
                                                 e_EquLink, "", ":");
@@ -1685,7 +1686,39 @@ s_env_mpmProgSetIndex(
         break;
       case emp_ROI:
           apst_env->pCmpmProg             = new C_mpmProg_ROI(apst_env);
-            // Check for any command-line spec'd args for the 'pathFind' mpmProg:
+            // Check for any command-line spec'd args for this mpmProg:
+            if(apst_env->str_mpmArgs != "-x") {
+              C_scanopt                   cso_mpm(apst_env->str_mpmArgs, ",",
+                                                  e_EquLink, "", ":");
+              float       f_radius              = 0.0;
+              bool        b_saveStaggered       = false;
+              string      str_option            = "";
+              C_mpmProg_ROI* pC_ROI             = NULL;
+              pC_ROI_cast(apst_env->pCmpmProg, pC_ROI);
+              if(cso_mpm.scanFor("radius", &str_option)) {
+                  f_radius              = atof(str_option.c_str());
+                  pC_ROI->radius_set(f_radius);
+              }
+              if(cso_mpm.scanFor("vertexFile", &str_option)) {
+                  if(!pC_ROI->vertexFile_load(str_option))
+                      error_exit("reading the vertexFile",
+                                  "a file access error occurred", 10);
+              }
+              if(cso_mpm.scanFor("labelFile", &str_option)) {
+                  if(!pC_ROI->labelFile_load(str_option))
+                      error_exit("reading the labelFile",
+                                  "a file access error occurred", 10);
+              }
+              if(cso_mpm.scanFor("plySaveStaggered", &str_option)) {
+                  b_saveStaggered       = atoi(str_option.c_str());
+                  pC_ROI->plySaveStaggered_set(b_saveStaggered);
+              }
+              s_env_optionsFile_write(*apst_env);
+            }
+          break;
+      case emp_externalMesh:
+          apst_env->pCmpmProg             = new C_mpmProg_externalMesh(apst_env);
+            // Check for any command-line spec'd args for this mpmProg:
             if(apst_env->str_mpmArgs != "-x") {
               C_scanopt                   cso_mpm(apst_env->str_mpmArgs, ",",
                                                   e_EquLink, "", ":");

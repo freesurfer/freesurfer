@@ -13,8 +13,8 @@
  * Original Author: Rudolph Pienaar
  * CVS Revision Info:
  *    $Author: rudolph $
- *    $Date: 2012/04/13 21:20:38 $
- *    $Revision: 1.19 $
+ *    $Date: 2012/06/29 17:04:20 $
+ *    $Revision: 1.20 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -1127,5 +1127,60 @@ C_mpmProg_ROI::run() {
     debug_pop();
     return ret;
 }
+
+//
+//\\\***
+// C_mpmProg_externalMesh definitions ****>>>>
+/////***
+//
+
+C_mpmProg_externalMesh::C_mpmProg_externalMesh(
+    s_env*      aps_env,
+    string      astr_meshFile) : C_mpmProg(aps_env)
+{
+    //
+    // ARGS
+    //
+    // DESC
+    // Basically a thin "fall-through" constructor to the base
+    // class.
+    //
+    // PRECONDITIONS
+    // o aps_env must be fully instantiated.
+    //
+    // HISTORY
+    // 05 May 2011
+    // o Initial design and coding.
+    //
+
+    debug_push("C_mpmProg_externalMesh");
+    mstr_obj	        = "C_mpmProg_externalMesh";
+
+    mb_surfaceRipClear  = true;
+
+    debug_pop();
+}
+
+C_mpmProg_externalMesh::~C_mpmProg_externalMesh() {
+    //
+    // Destructor
+    //
+
+}
+
+int
+C_mpmProg_externalMesh::run() {
+    //
+    // DESC
+    // Main entry to the actual 'run' core of the mpmProg
+    //
+
+    int         ret                     = 1;
+    debug_push("run");
+
+    debug_pop();
+    return ret;
+}
+
 
 /* eof */

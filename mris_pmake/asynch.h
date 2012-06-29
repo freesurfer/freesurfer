@@ -8,8 +8,8 @@
  * Original Author: Rudolph Pienaar / Christian Haselgrove
  * CVS Revision Info:
  *    $Author: rudolph $
- *    $Date: 2012/04/13 21:20:38 $
- *    $Revision: 1.5 $
+ *    $Date: 2012/06/29 17:04:20 $
+ *    $Revision: 1.6 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -171,6 +171,12 @@ C_mpmProg_ROI*
 pC_ROI_cast(
     C_mpmProg*                  pmpm,
     C_mpmProg_ROI*&             pC_mpmProg_ROI
+);
+
+C_mpmProg_externalMesh*
+pC_externalMesh_cast(
+    C_mpmProg*                  pmpm,
+    C_mpmProg_externalMesh*&	pC_mpmProg_exernalMesh
 );
 
 

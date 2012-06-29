@@ -9,8 +9,8 @@
  * Original Author:  Rudolph Pienaar / Christian Haselgrove
  * CVS Revision Info:
  *    $Author: rudolph $
- *    $Date: 2012/04/13 21:20:38 $
- *    $Revision: 1.17 $
+ *    $Date: 2012/06/29 17:04:20 $
+ *    $Revision: 1.18 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -621,6 +621,17 @@ pC_ROI_cast(
     return pC_mpmProg_ROI;
 }
 
+C_mpmProg_externalMesh*
+pC_externalMesh_cast(
+    C_mpmProg*                  pmpm,
+    C_mpmProg_externalMesh*&    pC_mpmProg_externalMesh
+) {
+    pC_mpmProg_externalMesh     = dynamic_cast<C_mpmProg_externalMesh*>(pmpm);
+    if(!pC_mpmProg_externalMesh) {
+        cout << "The embedded mpmProg is not of type 'externalMesh'" << endl;
+    }
+    return pC_mpmProg_externalMesh;
+}
 
 bool
 asynchEvent_processMPMPROG(
@@ -648,8 +659,13 @@ asynchEvent_processMPMPROG(
     C_mpmProg_pathFind*		pC_pathFind 	= NULL;
     C_mpmProg_autodijk*         pC_autodijk     = NULL;
     C_mpmProg_ROI*              pC_ROI          = NULL;
+    C_mpmProg_externalMesh*	pC_externalMesh = NULL;
     switch(st_env.empmProg_current) {
-	case emp_NULL: break;
+    	case emp_externalMesh:
+                if( (pC_externalMesh_cast(st_env.pCmpmProg, pC_externalMesh))==NULL)
+                    return false;
+        break;
+    	case emp_NULL: break;
         case emp_NOP:
             if( (pC_NOP_cast(st_env.pCmpmProg, pC_NOP))==NULL) 
 		return false;

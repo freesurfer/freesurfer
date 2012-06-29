@@ -12,8 +12,8 @@
  * Original Author: Rudolph Pienaar / Christian Haselgrove
  * CVS Revision Info:
  *    $Author: rudolph $
- *    $Date: 2012/04/13 21:20:38 $
- *    $Revision: 1.20 $
+ *    $Date: 2012/06/29 17:04:20 $
+ *    $Revision: 1.21 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -180,6 +180,7 @@ typedef enum _e_mpmProg {
     emp_autodijk 	= 3, 
     emp_autodijk_fast 	= 4,
     emp_ROI             = 5,
+    emp_externalMesh	= 6,
     empmprog
 } e_MPMPROG;
 

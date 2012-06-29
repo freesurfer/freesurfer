@@ -13,8 +13,8 @@
  * Original Author: Rudolph Pienaar
  * CVS Revision Info:
  *    $Author: rudolph $
- *    $Date: 2012/04/13 21:20:38 $
- *    $Revision: 1.13 $
+ *    $Date: 2012/06/29 17:04:20 $
+ *    $Revision: 1.14 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -506,6 +506,43 @@ class C_mpmProg_ROI : public C_mpmProg {
     float               cost_compute(int start, int end);
 };
 
+///
+/// \class C_mpmProg_externalMesh
+/// \brief This class uses an externalMesh with same vertices but different edges
+///
+class C_mpmProg_externalMesh : public C_mpmProg {
+
+  protected:
+
+    bool                mb_surfaceRipClear;
+    vector<int>         mv_vertex;
+    string              mstr_meshFile;
+
+  public:
+    C_mpmProg_externalMesh(
+        s_env* 		aps_env,
+        string      astr_meshFile = "");
+    ~C_mpmProg_externalMesh(void);
+
+    //
+    // Access block
+    //
+    void        surfaceRipClear_set(bool avalue) {
+            mb_surfaceRipClear  = avalue;
+    };
+    int         surfaceRipClear_get() {
+            return(mb_surfaceRipClear);
+    };
+
+    void        print(void);
+
+    //
+    // Functional block
+    //
+
+    virtual int         run(void);
+    float               cost_compute(int start, int end);
+};
 
 #endif //__C_MPM_PROG_H__
 
