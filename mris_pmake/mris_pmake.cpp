@@ -18,8 +18,8 @@
  * Original Authors: Rudolph Pienaar / Christian Haselgrove
  * CVS Revision Info:
  *    $Author: rudolph $
- *    $Date: 2011/05/31 18:18:49 $
- *    $Revision: 1.16 $
+ *    $Date: 2012/07/02 20:18:09 $
+ *    $Revision: 1.17 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -74,7 +74,7 @@ bool    Gb_stdout       = true;         // Global flag controlling output to
                                         //+stdout
 string  G_SELF          = "";           // "My" name
 string  G_VERSION       =               // version
-  "$Id: mris_pmake.cpp,v 1.16 2011/05/31 18:18:49 rudolph Exp $";
+  "$Id: mris_pmake.cpp,v 1.17 2012/07/02 20:18:09 rudolph Exp $";
 char 	pch_buffer[65536];
 
 // "Class"-like globals...
@@ -92,6 +92,7 @@ main(
   Gpch_Progname  = (Gpch_Progname == NULL ? ppch_argv[0] : Gpch_Progname+1);
   string	str_progname(Gpch_Progname);
   G_SELF        = str_progname;
+  int 		ret = 0;
 
   // "Construct" a default environment structure.
   s_env_nullify(st_env);
@@ -119,7 +120,7 @@ main(
     if ( str_asynchComms == "HUP"               || \
          str_asynchComms == "RUNPROG") {
 
-      system("echo > lock");            // signal a "lock"
+      ret = system("echo > lock");	// signal a "lock"
                                         //+ semaphore on
                                         //+ the file system
 
@@ -169,7 +170,8 @@ main(
   if (st_env.pcsm_userlog) {
     st_env.pcsm_userlog->timer(eSM_stop);
   }
-  system("rm -f lock 2>/dev/null");  // "unlock" semaphore
+  ret = system("rm -f lock 2>/dev/null");  // "unlock" semaphore
+  if(ret) printf("WARNING: 'rm' returned non-zero exit status!\n");
   return EXIT_SUCCESS;
 
 } /* end main() */

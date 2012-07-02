@@ -13,8 +13,8 @@
  * Original Author: Rudolph Pienaar
  * CVS Revision Info:
  *    $Author: rudolph $
- *    $Date: 2012/06/29 20:52:52 $
- *    $Revision: 1.21 $
+ *    $Date: 2012/07/02 20:18:09 $
+ *    $Revision: 1.22 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -1014,14 +1014,14 @@ C_mpmProg_ROI::border_mark(void)
  * o Number of border vertices is returned.
  *
  */
-    int 	i		= 0;
-    int         vertex          = -1;
-    int		neighbor	= -1;
-    int		neighborCount	= -1;
-    int         borderCount	= 0;
-    MRIS*       mesh            = NULL;
-    VERTEX*	SVertex 	= NULL;
-    bool	b_innerVertex 	= true;
+    unsigned int	i		= 0;
+    int         	vertex          = -1;
+    int			neighbor	= -1;
+    int			neighborCount	= -1;
+    int         	borderCount	= 0;
+    MRIS*       	mesh            = NULL;
+    VERTEX*		SVertex 	= NULL;
+    bool		b_innerVertex 	= true;
 
     mesh = mps_env->pMS_primary;
 

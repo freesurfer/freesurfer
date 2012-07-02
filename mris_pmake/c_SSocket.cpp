@@ -6,9 +6,9 @@
 /*
  * Original Author: Rudolph Pienaar
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/02/27 21:18:07 $
- *    $Revision: 1.3 $
+ *    $Author: rudolph $
+ *    $Date: 2012/07/02 20:18:09 $
+ *    $Revision: 1.4 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -360,7 +360,7 @@ c_SSocket_UDP::sendFile(
     return 0;
   }
   while (!feof(pFILE_stream)) {
-    fscanf(pFILE_stream, "%c", &ch);
+    ret = fscanf(pFILE_stream, "%c", &ch);
     pch_filebuf[i++] = ch;
   }
   pch_filebuf[i] = '\0';
