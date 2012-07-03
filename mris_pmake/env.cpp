@@ -12,8 +12,8 @@
  * Original Author: Rudolph Pienaar / Christian Haselgrove
  * CVS Revision Info:
  *    $Author: rudolph $
- *    $Date: 2012/06/29 20:52:52 $
- *    $Revision: 1.33 $
+ *    $Date: 2012/07/03 21:50:44 $
+ *    $Revision: 1.34 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -1803,6 +1803,7 @@ s_env_mpmOverlaySetIndex(
 	apst_env->pCmpmOverlay	= new C_mpmOverlay_distance(apst_env);
 	break;
       case emo_euclidean:
+	apst_env->pCmpmOverlay	= new C_mpmOverlay_euclidean(apst_env);
         break;
       case emo_fscurvs:
         break;

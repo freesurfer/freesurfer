@@ -13,8 +13,8 @@
  * Original Author: Rudolph Pienaar
  * CVS Revision Info:
  *    $Author: rudolph $
- *    $Date: 2012/06/29 20:52:52 $
- *    $Revision: 1.15 $
+ *    $Date: 2012/07/03 21:50:44 $
+ *    $Revision: 1.16 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -446,6 +446,7 @@ class C_mpmProg_ROI : public C_mpmProg {
     bool                mb_ROIsInSeparateLabels;
     bool                mb_saveStaggered;
     bool		mb_boundaryOnly;	  // Toggle ROI only at border
+    int			m_borderSize;
 
   public:
     C_mpmProg_ROI(
@@ -457,6 +458,10 @@ class C_mpmProg_ROI : public C_mpmProg {
     //
     // Access block
     //
+    int		borderSize(void) const {
+	    return m_borderSize;
+    };
+
     bool	boundaryOnly(void) const {
 	    return mb_boundaryOnly;
     };

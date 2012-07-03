@@ -16,8 +16,8 @@
  * Original Author: Rudolph Pienaar
  * CVS Revision Info:
  *    $Author: rudolph $
- *    $Date: 2012/01/29 22:33:28 $
- *    $Revision: 1.5 $
+ *    $Date: 2012/07/03 21:50:44 $
+ *    $Revision: 1.6 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -687,7 +687,8 @@ C_mpmOverlay_distance::costEdge_calc(int i, int j) {
     // Return the cost in moving from vertex 'i' to vertex 'j'.
     // In this overlay, this is simply the edge length between
     // the two vertices, as defined in the FreeSurfer mesh
-    // structure.
+    // structure. These vertices must thus be connected by
+    // a single edge.
     //
 
     VERTEX*     pVrtx_i         = &mps_env->pMS_active->vertices[i];
@@ -714,6 +715,111 @@ C_mpmOverlay_distance::costEdge_calc(int i, int j) {
     debug_pop();
     return(f_cost);
 }
+
+//
+//\\\***
+// C_mpmOverlay_euclidean definitions ****>>>>
+/////***
+//
+
+void
+C_mpmOverlay_euclidean::costWeightVector_init(void) {
+    //
+    // ARGS
+    //
+    // DESC
+    // Initialize the cost weight vector for this class
+    //
+    // POSTCONDITIONS
+    // 	o Both weight vectors are initialized to '1'.
+    //
+    // HISTORY
+    // July 2012
+    // o Initial design and coding.
+    //
+
+    mv_costWeight.clear();
+    mv_costWeightDel.clear();
+    mv_costWeight.push_back(1.);
+    mv_costWeightDel.push_back(1.);
+}
+
+C_mpmOverlay_euclidean::C_mpmOverlay_euclidean(
+    s_env*      aps_env) : C_mpmOverlay(aps_env)
+{
+    //
+    // ARGS
+    //
+    // DESC
+    // Basically a thin "fall-through" constructor to the base
+    // class.
+    //
+    // PRECONDITIONS
+    // o aps_env must be fully instantiated.
+    //
+
+    debug_push("C_mpmOverlay_euclidean");
+    mstr_obj	= "C_mpmOverlay_euclidean";
+    mstr_costWeightFile	= "M_weights_euclidean.mat";
+
+    if(!costVector_read()) {
+	costWeightVector_init();
+	costVector_write();
+    }
+
+    mb_created	= true;
+    debug_pop();
+}
+
+C_mpmOverlay_euclidean::~C_mpmOverlay_euclidean() {
+    //
+    // Destructor
+    //
+
+}
+
+float
+C_mpmOverlay_euclidean::costEdge_calc(int i, int j) {
+    //
+    // Return the cost in moving from vertex 'i' to vertex 'j'.
+    // In this overlay, this is simply the length between
+    // the two vertices. This length is calculated from the
+    // Euclidean position of the two vertices. In theory, these
+    // vertices do not need to have an actual mesh edge connecting
+    // them.
+    //
+
+    VERTEX*     pVrtx_i         = &mps_env->pMS_active->vertices[i];
+    VERTEX*     pVrtx_j         = &mps_env->pMS_active->vertices[j];
+    float       wd              = mv_costWeight[0];
+    float       f_distance      = 0.;
+    float       f_cost          = 0.;
+
+    debug_push ("costEdge_calc (...)");
+
+    st_V3D   V3_c; // current point
+    st_V3D   V3_n; // next points
+
+
+    f_distance  = pVrtx_i->dist[j];
+    // Cartesian points "current" and "next"
+    V3_c.f_x    = pVrtx_i->x;
+    V3_n.f_x    = pVrtx_j->x;
+    V3_c.f_y    = pVrtx_i->y;
+    V3_n.f_y    = pVrtx_j->y;
+    V3_c.f_z    = pVrtx_i->z;
+    V3_n.f_z    = pVrtx_j->z;
+
+    f_distance  = V3D_distance(V3_c, V3_n);
+
+    f_cost      = f_distance * wd;
+
+    if (f_cost <= 0.) error("negative edge length detected!", 1);
+
+    debug_pop();
+    return(f_cost);
+}
+
 
 //
 //\\\***

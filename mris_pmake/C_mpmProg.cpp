@@ -13,8 +13,8 @@
  * Original Author: Rudolph Pienaar
  * CVS Revision Info:
  *    $Author: rudolph $
- *    $Date: 2012/07/02 20:18:09 $
- *    $Revision: 1.22 $
+ *    $Date: 2012/07/03 21:50:44 $
+ *    $Revision: 1.23 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -908,6 +908,7 @@ C_mpmProg_ROI::C_mpmProg_ROI(
     mf_radius           = af_radius;
     mf_plyIncrement     = 1.0;
     mb_surfaceRipClear  = true;
+    m_borderSize	= 0;
 
     debug_pop();
 }
@@ -1018,7 +1019,7 @@ C_mpmProg_ROI::border_mark(void)
     int         	vertex          = -1;
     int			neighbor	= -1;
     int			neighborCount	= -1;
-    int         	borderCount	= 0;
+    int			markedCount	= 0;
     MRIS*       	mesh            = NULL;
     VERTEX*		SVertex 	= NULL;
     bool		b_innerVertex 	= true;
@@ -1031,20 +1032,24 @@ C_mpmProg_ROI::border_mark(void)
         mv_vertex.clear();
     }
 
+    m_borderSize = 0;
     for(vertex = 0; vertex < mesh->nvertices; vertex++) {
-	b_innerVertex = true;
-	SVertex = &mesh->vertices[vertex];
-        for(neighborCount = 0; neighborCount < SVertex->vnum; neighborCount++) {
-            neighbor = SVertex->v[neighborCount];
-            b_innerVertex &= mesh->vertices[neighbor].ripflag;
-        }
-        if(!b_innerVertex) {
-            borderCount++;
-            mv_vertex.push_back(vertex);
-        }
+	if(mesh->vertices[vertex].ripflag) {
+	    markedCount++;
+	    b_innerVertex = true;
+	    SVertex = &mesh->vertices[vertex];
+	    for(neighborCount = 0; neighborCount < SVertex->vnum; neighborCount++) {
+		neighbor = SVertex->v[neighborCount];
+		b_innerVertex &= mesh->vertices[neighbor].ripflag;
+	    }
+	    if(!b_innerVertex) {
+		m_borderSize++;
+		mv_vertex.push_back(vertex);
+	    }
+	}
     }
 
-    if(borderCount) {
+    if(m_borderSize) {
         // At this point, the mv_vertex array contains all the border vertices.
         // Now, clear the current ripflag pattern, and then assign rips
         // according the mv_vertex array
@@ -1054,7 +1059,7 @@ C_mpmProg_ROI::border_mark(void)
             mesh->vertices[vertex].ripflag = true;
         }
     }
-    return borderCount;
+    return m_borderSize;
 }
 
 int
@@ -1141,13 +1146,13 @@ C_mpmProg_ROI::run() {
     // Main entry to the actual 'run' core of the mpmProg
     //
 
-    int         ret                     = 1;
-    bool        b_origHistoryFlag       = mps_env->b_costHistoryPreserve;
-    bool        b_surfaceCostVoid       = false;
-    unsigned int i                       = 0;
-    int         j                       = 0;
+    int          ret                    = 1;
+    bool         b_origHistoryFlag      = mps_env->b_costHistoryPreserve;
+    bool         b_surfaceCostVoid      = false;
+    unsigned int i			= 0;
+    int          j                      = 0;
     mps_env->b_costHistoryPreserve      = true;
-    MRIS*       pmesh                   = mps_env->pMS_active;
+    MRIS*        pmesh                  = mps_env->pMS_active;
 
     debug_push("run");
 
