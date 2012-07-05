@@ -10,8 +10,8 @@
  * Original Author: Martin Reuter, Nov. 4th ,2008
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2012/05/25 22:57:22 $
- *    $Revision: 1.63 $
+ *    $Date: 2012/07/05 21:34:47 $
+ *    $Revision: 1.64 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -127,6 +127,8 @@ struct Parameters
   int    finalsampletype;
   bool   entropy;
   int    entroradius;
+  string entmov;
+  string entdst;
 };
 static struct Parameters P =
 {
@@ -178,7 +180,9 @@ static struct Parameters P =
 //  256,
   SAMPLE_CUBIC_BSPLINE,
   false,
-  ERADIUS
+  ERADIUS,
+  "",
+  ""
 };
 
 
@@ -186,7 +190,7 @@ static void printUsage(void);
 static bool parseCommandLine(int argc, char *argv[],Parameters & P) ;
 static void initRegistration(Registration & R, Parameters & P) ;
 
-static char vcid[] = "$Id: mri_robust_register.cpp,v 1.63 2012/05/25 22:57:22 mreuter Exp $";
+static char vcid[] = "$Id: mri_robust_register.cpp,v 1.64 2012/07/05 21:34:47 mreuter Exp $";
 char *Progname = NULL;
 
 //static MORPH_PARMS  parms ;
@@ -1497,6 +1501,8 @@ static void initRegistration(Registration & R, Parameters & P)
     TimerStart(&start) ;
     cout << "Converting mov to entropy image (box radius " << P.entroradius << " ) ... (can take 1-2 min)" <<endl;
     mri_mov = MyMRI::entropyImage(temp,P.entroradius);
+    if (P.entmov != "")
+      MRIwrite(mri_mov,P.entmov.c_str());
     msec = TimerStop(&start) ;
     seconds = nint((float)msec/1000.0f) ;
     minutes = seconds / 60 ;
@@ -1538,6 +1544,8 @@ static void initRegistration(Registration & R, Parameters & P)
     MRI * temp = mri_dst;
     cout << "Converting dst to entropy image (box radius " << P.entroradius << " ) ... (can take 1-2 min)" <<endl;
     mri_dst = MyMRI::entropyImage(temp,P.entroradius);
+    if (P.entdst != "")
+      MRIwrite(mri_dst,P.entdst.c_str());
     MRIfree(&temp);
   }
 
@@ -1792,6 +1800,18 @@ static int parseNextCommand(int argc, char *argv[], Parameters & P)
     P.entroradius = atoi(argv[1]);
     nargs = 1 ;
     cout << "--radius: Using local boxes with radius " << P.entroradius << " = " << P.entroradius *2+1 << " sides. "<< endl;
+  }
+  else if (!strcmp(option, "ENTDST")  )
+  {
+    P.entdst = string(argv[1]);
+    nargs = 1 ;
+    cout << "--entdst: Output entropy dst image as " << P.entdst << endl;
+  }
+  else if (!strcmp(option, "ENTMOV")  )
+  {
+    P.entmov = string(argv[1]);
+    nargs = 1 ;
+    cout << "--entmov: Output entropy mov image as " << P.entdst << endl;
   }
   else if (!strcmp(option, "MAXIT")  )
   {
