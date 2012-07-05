@@ -7,9 +7,9 @@
 /*
  * Original Author: Martin Reuter
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:24 $
- *    $Revision: 1.5 $
+ *    $Author: mreuter $
+ *    $Date: 2012/07/05 23:15:26 $
+ *    $Revision: 1.6 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -84,17 +84,19 @@ struct Parameters
 	double iscale;
 	bool   doiscale;
 	string iscaleout;
+  string ltaouts;
+  string ltaoutt;
 };
 
 static struct Parameters P =
-  { "","","","","","","",NULL,0.0,0,-1,false,false,1.0,false,""
+  { "","","","","","","",NULL,0.0,0,-1,false,false,1.0,false,"","",""
   };
 
 
 static void printUsage(void);
 static bool parseCommandLine(int argc, char *argv[],Parameters & P) ;
 
-static char vcid[] = "$Id: mri_create_tests.cpp,v 1.5 2011/03/02 00:04:24 nicks Exp $";
+static char vcid[] = "$Id: mri_create_tests.cpp,v 1.6 2012/07/05 23:15:26 mreuter Exp $";
 char *Progname = NULL;
 
 
@@ -440,8 +442,29 @@ MatrixPrintFmt(stdout,"% 2.8f",lta->xforms[0].m_L); cout << endl <<endl;
      LTAwriteEx(lta, P.ltaout.c_str()) ;
 	}
 	
-    MRIfree(&mriS) ;
-    MRIfree(&mriT) ;
+	if (P.ltaouts != "")
+	{
+     cout << " OUTPUT LTA (input -> new source) : " << P.ltaouts<< endl;
+	   lta->xforms[0].m_L =  MatrixCopy(a,lta->xforms[0].m_L);
+     // add src and dst info
+     getVolGeom(mriS, &lta->xforms[0].src);
+     getVolGeom(mriS, &lta->xforms[0].dst);
+     LTAwriteEx(lta, P.ltaouts.c_str()) ;
+	}
+  
+	if (P.ltaoutt != "")
+	{
+     cout << " OUTPUT LTA (input -> new target) : " << P.ltaoutt<< endl;
+	   lta->xforms[0].m_L =  MatrixCopy(ai,lta->xforms[0].m_L);
+     // add src and dst info
+     getVolGeom(mriT, &lta->xforms[0].src);
+     getVolGeom(mriT, &lta->xforms[0].dst);
+     LTAwriteEx(lta, P.ltaoutt.c_str()) ;
+	}
+  
+  
+  MRIfree(&mriS) ;
+  MRIfree(&mriT) ;
 
   // output iscale:
   if (P.iscaleout != "")
@@ -487,9 +510,11 @@ static void printUsage(void)
   cout << "  --outlier-box <int>    add box 0..<int> containing random voxels" << endl;
   cout << "  --translation          apply random translation" << endl;
 	cout << "  --rotation             apply random rotation" << endl;
-	cout << "  --lta-out lta          write used random transform to lta" << endl;
 	cout << "  --intensity            apply random intensity scaling" << endl;
 	cout << "  --iscale <double>      use as fixed intensity scaling parameter" << endl;
+	cout << "  --lta-out lta          write used random transform to lta" << endl;
+	cout << "  --lta-outs lta         write half way lta for source" << endl;
+	cout << "  --lta-outt lta         write half way lta for target" << endl;
 	cout << "  --iscale-out <string>  write used intensity scaling parameter" << endl;
 	
 
@@ -556,6 +581,18 @@ static int parseNextCommand(int argc, char *argv[], Parameters & P)
     P.ltaout = string(argv[1]);
     nargs = 1;
     cout << "Storing transform as "<< P.ltaout << " . " << endl;
+  }
+  else if (!strcmp(option, "LTA-OUTS")   )
+  {
+    P.ltaouts = string(argv[1]);
+    nargs = 1;
+    cout << "Storing half way source lta (input -> out-source) "<< P.ltaouts << " . " << endl;
+  }
+  else if (!strcmp(option, "LTA-OUTT")   )
+  {
+    P.ltaoutt = string(argv[1]);
+    nargs = 1;
+    cout << "Storing half way target lta (input -> out-target) "<< P.ltaoutt << " . " << endl;
   }
   else if (!strcmp(option, "MASK")   )
   {
