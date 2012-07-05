@@ -12,8 +12,8 @@
  * Original Author: Rudolph Pienaar / Christian Haselgrove
  * CVS Revision Info:
  *    $Author: rudolph $
- *    $Date: 2012/07/03 21:50:44 $
- *    $Revision: 1.34 $
+ *    $Date: 2012/07/05 21:21:28 $
+ *    $Revision: 1.35 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -33,11 +33,14 @@
 #include "C_mpmOverlay.h"
 #include "asynch.h"
 
+#include "legacy.h"
+
 #include <stdlib.h>
 #include <assert.h>
 
 extern string G_SELF;
 
+#if 0
 void
 s_weights_scan(
   s_weights&  st_costWeight,
@@ -279,6 +282,7 @@ s_Dweights_setAll(
     asw.Dwdch   = af;
     asw.Dwdir   = af;
 }
+#endif
 
 float
 s_env_plyDepth_get(
@@ -493,6 +497,7 @@ s_env_nullify(
 
 }
 
+#if 0
 void s_weights_copy(
     s_weights&		sw_target,
     s_weights&		sw_source
@@ -538,6 +543,7 @@ void s_Dweights_copy(
     sw_target.Dwdch	= sw_source.Dwdch;
     sw_target.Dwdir	= sw_source.Dwdir;
 }
+#endif
 
 string 
 s_env_HUP(
@@ -759,11 +765,15 @@ s_env_defaultsSet(
     st_env.pSTw                         = new s_weights;
     st_env.pSTDw                        = new s_Dweights;
 
+    //
+    // LEGACY CODE
     s_weights_setAll(*st_env.pSTw, 0.0);
     st_env.pSTw->wc                    	= 1.0;
 
     st_env.b_transitionPenalties        = false;
     s_Dweights_setAll(*st_env.pSTDw, 1.0);
+    // LEGACY CODE
+    //
 
     st_env.str_costCurvFile             = st_env.str_hemi + ".autodijk.crv";
     st_env.b_exitOnDone                 = true;
@@ -1835,6 +1845,7 @@ s_env_mpmOverlaySetIndex(
   return ret;
 }
 
+#if 0
 void
 s_env_costFctList(
   s_env& ast_env
@@ -1891,6 +1902,7 @@ s_env_costFctSetIndex(
       ret       = aindex;
   return ret;
 }
+#endif
 
 float 
 s_env_edgeCostFind(
@@ -1926,7 +1938,7 @@ s_env_edgeCostFind(
     bool 	b_relNextReference	= false;
 
     if(!ast_env.b_mpmOverlayUse)
-    	f_cost = ast_env.costFunc_do(	ast_env, &(ast_env.st_iterInfo), 
+    	f_cost = ast_env.costFunc_do(	ast_env, &*(ast_env.pst_iterInfo),
         		    		avertexi, avertexj,
         		    		b_relNextReference);
     else
@@ -1935,7 +1947,7 @@ s_env_edgeCostFind(
     return f_cost;
 }
 
-
+#if 0
 void
 s_env_costFctSet(
     s_env*          pst_env,
@@ -2242,6 +2254,6 @@ costFunc_EuclideanReturn(
 
     return(f_cost);
 }
-
+#endif
 
 /* eof */

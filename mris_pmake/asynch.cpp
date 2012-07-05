@@ -9,8 +9,8 @@
  * Original Author:  Rudolph Pienaar / Christian Haselgrove
  * CVS Revision Info:
  *    $Author: rudolph $
- *    $Date: 2012/06/29 17:04:20 $
- *    $Revision: 1.18 $
+ *    $Date: 2012/07/05 21:21:28 $
+ *    $Revision: 1.19 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -27,6 +27,8 @@
 #include <string>
 #include <sstream>
 
+#include "legacy.h"
+
 #include "asynch.h"
 #include "general.h"
 #include "c_vertex.h"
@@ -36,6 +38,7 @@
 extern  bool    	Gb_stdout;
 extern  stringstream 	Gsout;
 
+#if 0
 bool
 asynchEvent_processWGHT(
   s_env&    ast_env,
@@ -289,6 +292,7 @@ asynchEvent_processDWGHT(
   cout.flags(origFlags);
   return true;
 }
+#endif
 
 bool
 asynchEvent_processVERTEX(

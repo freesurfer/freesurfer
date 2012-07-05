@@ -9,8 +9,8 @@
  * Original Author: Rudolph Pienaar / Christian Haselgrove
  * CVS Revision Info:
  *    $Author: rudolph $
- *    $Date: 2012/04/13 21:20:38 $
- *    $Revision: 1.14 $
+ *    $Date: 2012/07/05 21:21:28 $
+ *    $Revision: 1.15 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -381,11 +381,11 @@ surface_ripMark(
         if(st_env.b_costPathSave) {
             ofs << ii << "\t" << jj;
             ofs << "\t"  << f_cost;
-            ofs << "\t"  << st_env.st_iterInfo.iter;
-            ofs << "\t"  << st_env.st_iterInfo.f_distance;
-            ofs << "\t"  << st_env.st_iterInfo.f_curvature;
-            ofs << "\t"  << st_env.st_iterInfo.f_sulcalHeight;
-            ofs << "\t"  << st_env.st_iterInfo.f_dir;
+            ofs << "\t"  << st_env.pst_iterInfo->iter;
+            ofs << "\t"  << st_env.pst_iterInfo->f_distance;
+            ofs << "\t"  << st_env.pst_iterInfo->f_curvature;
+            ofs << "\t"  << st_env.pst_iterInfo->f_sulcalHeight;
+            ofs << "\t"  << st_env.pst_iterInfo->f_dir;
             ofs << endl;
         }
     }

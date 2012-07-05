@@ -12,8 +12,8 @@
  * Original Author: Rudolph Pienaar / Christian Haselgrove
  * CVS Revision Info:
  *    $Author: rudolph $
- *    $Date: 2012/06/29 17:04:20 $
- *    $Revision: 1.21 $
+ *    $Date: 2012/07/05 21:21:28 $
+ *    $Revision: 1.22 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -32,10 +32,13 @@
 
 #include <sys/stat.h>
 
-#include "general.h"
+//#include "legacy.h"
+//#include "general.h"
+
 #include "c_SMessage.h"
 #include "c_SSocket.h"
 #include "scanopt.h"
+
 
 #ifdef __cplusplus
 extern  "C" {
@@ -58,6 +61,28 @@ using namespace std;
 class C_mpmProg;
 class C_mpmOverlay;
 
+// For legacy handling...
+typedef struct _weights 	s_weights;
+typedef struct _Dweights	s_Dweights;
+
+/// s_iterInfo contains information pertaining to a particular iteration
+/// of the main program loop. It is accessed during each call to the
+/// cost function, and is populated with per-call information.
+///
+typedef struct _iterInfo {
+  int       iter;
+  float     f_distance;
+  float     f_curvature;
+  float     f_sulcalHeight;
+  float     f_dir;
+}
+s_iterInfo;
+
+typedef enum {
+  e_default, e_unity, e_euclid, e_distance
+} e_COSTFUNCTION;
+
+#if 0
 /// Weights and values for the main cost function polynomial.
 typedef struct _weights {
   float wd;         // distance
@@ -127,6 +152,7 @@ void s_Dweights_print( s_Dweights& asw);
 /// \return    (void)
 void  s_Dweights_setAll( s_Dweights& asw,
                          float  af);
+
 /// s_iterInfo contains information pertaining to a particular iteration
 /// of the main program loop. It is accessed during each call to the
 /// cost function, and is populated with per-call information.
@@ -140,13 +166,10 @@ typedef struct _iterInfo {
 }
 s_iterInfo;
 
-/// The main environment structure. This structure records important
-/// variables, mostly interpreted from the process <b>options</b> file.
-typedef struct _env s_env;
-
 typedef enum {
   e_default, e_unity, e_euclid, e_distance
 } e_COSTFUNCTION;
+#endif
 
 typedef enum {
   e_workingCurvature, e_workingSulcal, e_auxillary
@@ -156,6 +179,9 @@ typedef enum {
   e_user, e_sys, e_result
 } e_LOG;
 
+/// The main environment structure. This structure records important
+/// variables, mostly interpreted from the process <b>options</b> file.
+typedef struct _env s_env;
 
 /// 
 /// mpm MODULE enums
@@ -218,9 +244,6 @@ typedef struct _env {
                                             // args
     char**        ppch_argv;                // char array of command line args
     
-    s_weights*    pSTw;                     // weight structure
-    s_Dweights*   pSTDw;                    // Del weight structure
-
     C_scanopt*	  pcso_options;		    // class that houses the parsed
     					    //+ options file for the environment
     C_SMessage*   pcsm_optionsFile;         // message wrapper for options file
@@ -322,9 +345,15 @@ typedef struct _env {
                                             //+ Set to TRUE if finding
                                             //+ ply distances from
                                             //+ existing path
+
+    //
+    // LEGACY CODE
+    s_weights*    pSTw;                     // weight structure
+    s_Dweights*   pSTDw;                    // Del weight structure
+
     int           totalNumFunctions;        // total number of cost
                                             // functions
-    s_iterInfo	  st_iterInfo;	            // structure that houses
+    s_iterInfo*	  pst_iterInfo;	            // structure that houses
     					    //+ per-iteration information
     e_COSTFUNCTION ecf_current;             // the current cost function
     string*       pstr_functionName;        // names of each cost function
@@ -336,6 +365,8 @@ typedef struct _env {
         int             j,
         bool            b_relNextReference
     );
+    // LEGACY CODE
+    //
 
     //
     // Modules
@@ -504,6 +535,7 @@ s_env_mpmOverlaySetIndex(
     int         aindex
 );
 
+#if 0
 void s_env_costFctList(
     s_env&      ast_env
 );
@@ -589,7 +621,7 @@ float   costFunc_distanceReturn(
   int   j,
   bool  b_relNextReference = true
 );
-
+#endif
 
 #endif //__ENV_H__
 

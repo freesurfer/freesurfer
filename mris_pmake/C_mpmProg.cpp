@@ -13,8 +13,8 @@
  * Original Author: Rudolph Pienaar
  * CVS Revision Info:
  *    $Author: rudolph $
- *    $Date: 2012/07/03 21:50:44 $
- *    $Revision: 1.23 $
+ *    $Date: 2012/07/05 21:21:28 $
+ *    $Revision: 1.24 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -1169,7 +1169,7 @@ C_mpmProg_ROI::run() {
         }
         mps_env->b_costHistoryPreserve = b_origHistoryFlag;
         Gsout.str(std::string());
-        Gsout << "-r" << mf_radius << ".label";
+        Gsout << "-r" << mf_radius;
         label_savePly(mstr_outputStem + Gsout.str(),
                       mb_saveStaggered, mf_plyIncrement);
         // For the "single" label file output, the surface clearing

@@ -9,8 +9,8 @@
  * Original Author: Rudolph Pienaar / Christian Haselgrove
  * CVS Revision Info:
  *    $Author: rudolph $
- *    $Date: 2012/04/13 21:20:38 $
- *    $Revision: 1.6 $
+ *    $Date: 2012/07/05 21:21:28 $
+ *    $Revision: 1.7 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -337,7 +337,7 @@ label_ply_save(
   f_plyDepth            = s_env_plyDepth_get(st_env);
   f_plyStart            = f_plyDepth;
   if (b_staggered)
-    f_plyStart = 1.0;
+    f_plyStart = 0.0;
 
   while(f_plyStart <= f_plyDepth) {
     pf_plyDepth = &f_plyStart;

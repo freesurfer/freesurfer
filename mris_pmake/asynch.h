@@ -8,8 +8,8 @@
  * Original Author: Rudolph Pienaar / Christian Haselgrove
  * CVS Revision Info:
  *    $Author: rudolph $
- *    $Date: 2012/06/29 17:04:20 $
- *    $Revision: 1.6 $
+ *    $Date: 2012/07/05 21:21:28 $
+ *    $Revision: 1.7 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -105,6 +105,7 @@ asynchEvent_processVERTEX(
   string    astr_comms
 );
 
+#if 0
 /// \fn void asynchEvent_processDWGHT(s_env& st_env, string str_comms)
 /// \brief Process socket-based access to the Dweight structure
 /// \param ast_env   Core simulation environment
@@ -126,6 +127,7 @@ asynchEvent_processWGHT(
   s_env&    ast_env,
   string    astr_comms
 );
+#endif
 
 /// \fn void asynchEvent_processENV(s_env& st_env, string str_comms)
 /// \brief Process socket-based access to the core problem environment
