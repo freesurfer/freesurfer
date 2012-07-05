@@ -11,9 +11,9 @@
 /*
  * Original Author: Rudolph Pienaar
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2011/12/07 17:13:37 $
- *    $Revision: 1.47 $
+ *    $Author: rudolph $
+ *    $Date: 2012/07/05 21:44:25 $
+ *    $Revision: 1.48 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -63,7 +63,7 @@
 #define  START_i        3
 
 static const char vcid[] =
-  "$Id: mris_calc.c,v 1.47 2011/12/07 17:13:37 greve Exp $";
+  "$Id: mris_calc.c,v 1.48 2012/07/05 21:44:25 rudolph Exp $";
 double fn_sign(float af_A);
 
 // ----------------------------------------------------------------------------
@@ -828,7 +828,8 @@ fileType_find(
   // The acph_inputFile can be either a file on the filesystem
   // or a float argument. Check if <apch_inputFile> is an actual
   // file, if not, check if it converts to a float.
-  filestat = stat(basename(apch_inputFile), &stFileInfo);
+//  filestat = stat(basename(apch_inputFile), &stFileInfo);
+  filestat = stat((apch_inputFile), &stFileInfo);
   if(filestat)
   {
     // <apch_inputFile> does not seem to refer to a valid file.
@@ -843,7 +844,8 @@ fileType_find(
   }
 
   // Check if input is a volume file...
-  type     = mri_identify(basename(apch_inputFile));
+//  type     = mri_identify(basename(apch_inputFile));
+  type     = mri_identify((apch_inputFile));
   *ap_FSFILETYPE = type;
   if(type != MRI_VOLUME_TYPE_UNKNOWN && type != MRI_CURV_FILE)
   {
@@ -1369,7 +1371,7 @@ main(
   init();
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mris_calc.c,v 1.47 2011/12/07 17:13:37 greve Exp $",
+           "$Id: mris_calc.c,v 1.48 2012/07/05 21:44:25 rudolph Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
   {
