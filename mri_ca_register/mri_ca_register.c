@@ -24,8 +24,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2012/05/21 15:15:08 $
- *    $Revision: 1.81 $
+ *    $Date: 2012/07/06 17:08:50 $
+ *    $Revision: 1.82 $
  *
  * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -235,7 +235,7 @@ main(int argc, char *argv[])
 
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mri_ca_register.c,v 1.81 2012/05/21 15:15:08 fischl Exp $",
+           "$Id: mri_ca_register.c,v 1.82 2012/07/06 17:08:50 fischl Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
   {
@@ -687,7 +687,8 @@ main(int argc, char *argv[])
       //   TransformInvert(transform_long, mri_inputs) ;
       //   TransformSwapInverse(transform_long) ;
       // }
-      GCAMapplyTransform(gcam, transform_long) ;
+      TransformInvert(transform_long, mri_inputs);
+      GCAMapplyInverseTransform(gcam, transform_long) ;
       TransformFree(&transform_long) ;
       //      GCAMwrite(gcam, "combined_gcam.m3z");
     }
