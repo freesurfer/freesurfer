@@ -11,8 +11,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2012/05/21 23:24:31 $
- *    $Revision: 1.266 $
+ *    $Date: 2012/07/06 17:08:57 $
+ *    $Revision: 1.267 $
  *
  * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -11596,6 +11596,8 @@ GCAMapplyTransform(GCA_MORPH *gcam, TRANSFORM *transform)
       for (z = 0 ; z < gcam->depth ; z++)
       {
         gcamn = &gcam->nodes[x][y][z] ;
+	if (x == Gx && y == Gy && z == Gz)
+	  DiagBreak() ;
         TransformSample(transform, (float)gcamn->x, (float)gcamn->y, (float)gcamn->z,
                         &xf, &yf, &zf) ;
         gcamn->x = xf ;
@@ -11609,6 +11611,66 @@ GCAMapplyTransform(GCA_MORPH *gcam, TRANSFORM *transform)
         gcamn->origz = zf ;
       }
     }
+  }
+  if (transform->type == MORPH_3D_TYPE)
+  {
+    GCA_MORPH_PARMS parms ;
+    MRI             *mri_tmp ;
+
+    GCAMcomputeOriginalProperties(gcam) ;
+    gcamComputeMetricProperties(gcam) ;
+    GCAMmarkNegativeNodesInvalid(gcam) ;
+    gcamComputeMetricProperties(gcam) ;
+    mri_tmp = MRIalloc(gcam->image.width, gcam->image.height, gcam->image.depth, MRI_UCHAR);
+    memset(&parms, 0, sizeof(parms)) ;
+    gcamRemoveNegativeNodes(gcam, mri_tmp, &parms) ;
+    MRIfree(&mri_tmp) ;
+  }
+  return(NO_ERROR) ;
+}
+int
+GCAMapplyInverseTransform(GCA_MORPH *gcam, TRANSFORM *transform)
+{
+  int            x, y, z ;
+  float          xf, yf, zf ;
+  GCA_MORPH_NODE *gcamn ;
+
+  for (x = 0 ; x < gcam->width ; x++)
+  {
+    for (y = 0 ; y < gcam->height ; y++)
+    {
+      for (z = 0 ; z < gcam->depth ; z++)
+      {
+        gcamn = &gcam->nodes[x][y][z] ;
+	if (x == Gx && y == Gy && z == Gz)
+	  DiagBreak() ;
+        TransformSampleInverseFloat(transform, (float)gcamn->x, (float)gcamn->y, (float)gcamn->z,
+				    &xf, &yf, &zf) ;
+        gcamn->x = xf ;
+        gcamn->y = yf ;
+        gcamn->z = zf ;
+
+        TransformSampleInverseFloat(transform, (float)gcamn->origx, (float)gcamn->origy, (float)gcamn->origz,
+                        &xf, &yf, &zf) ;
+        gcamn->origx = xf ;
+        gcamn->origy = yf ;
+        gcamn->origz = zf ;
+      }
+    }
+  }
+  if (transform->type == MORPH_3D_TYPE)
+  {
+    GCA_MORPH_PARMS parms ;
+    MRI             *mri_tmp ;
+
+    GCAMcomputeOriginalProperties(gcam) ;
+    gcamComputeMetricProperties(gcam) ;
+    GCAMmarkNegativeNodesInvalid(gcam) ;
+    gcamComputeMetricProperties(gcam) ;
+    mri_tmp = MRIalloc(gcam->image.width, gcam->image.height, gcam->image.depth, MRI_UCHAR);
+    memset(&parms, 0, sizeof(parms)) ;
+    gcamRemoveNegativeNodes(gcam, mri_tmp, &parms) ;
+    MRIfree(&mri_tmp) ;
   }
   return(NO_ERROR) ;
 }
@@ -11625,7 +11687,35 @@ GCAMmarkNegativeNodesInvalid(GCA_MORPH *gcam)
       for (x = 0 ; x < gcam->width ; x++)
       {
         gcamn = &gcam->nodes[x][y][z] ;
-        if ((gcamn->area <= 0 || gcamn->orig_area <= 0) &&
+        if ((gcamn->area <= 0 || gcamn->area1 <= 0 || gcamn->area2 <= 0 || gcamn->orig_area <= 0) &&
+            (gcamn->invalid == 0))
+        {
+          gcamn->invalid = GCAM_AREA_INVALID ;
+        }
+      }
+    }
+  }
+  return(NO_ERROR) ;
+}
+int
+GCAMmarkNegativeBorderNodesInvalid(GCA_MORPH *gcam)
+{
+  int  x, y, z ;
+  GCA_MORPH_NODE *gcamn ;
+
+  for (z = 0 ; z < gcam->depth ; z++)
+  {
+    for (y = 0 ; y < gcam->height ; y++)
+    {
+      for (x = 0 ; x < gcam->width ; x++)
+      {
+	if (x != 0 && y != 0 && z != 0 &&
+	    x != gcam->width-1 &&
+	    y != gcam->height-1 &&
+	    z != gcam->depth-1)
+	  continue ;   // must be on at least one border plane
+        gcamn = &gcam->nodes[x][y][z] ;
+        if ((gcamn->area <= 0 || gcamn->area1 <= 0 || gcamn->area2 <= 0 || gcamn->orig_area <= 0) &&
             (gcamn->invalid == 0))
         {
           gcamn->invalid = GCAM_AREA_INVALID ;
