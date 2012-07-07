@@ -15,8 +15,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2012/05/21 23:24:42 $
- *    $Revision: 1.108 $
+ *    $Date: 2012/07/07 02:05:33 $
+ *    $Revision: 1.109 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -301,6 +301,7 @@ MRI       *GCAMmorphDTIToAtlasType(MRI *mri_src,
 					  GCA_MORPH *gcam, 
 					  MRI *mri_dst, int interp_type, int reorient) ;
 int       GCAMmarkNegativeNodesInvalid(GCA_MORPH *gcam) ;
+int       GCAMmarkNegativeBorderNodesInvalid(GCA_MORPH *gcam) ;
 int       GCAMregisterVentricles(GCA_MORPH *gcam, MRI *mri, GCA_MORPH_PARMS *parms) ;
 int       GCAMregister(GCA_MORPH *gcam, MRI *mri, GCA_MORPH_PARMS *parms) ;
 int       GCAMregisterWithSubcorticalConnections(GCA_MORPH *gcam, MRI *mri, GCA_MORPH_PARMS *parms, 
@@ -371,6 +372,7 @@ int GCAMresetLikelihoodStatus(GCA_MORPH *gcam) ;
 int GCAMsetLabelStatus(GCA_MORPH *gcam, int label, int status) ;
 int GCAMsetStatus(GCA_MORPH *gcam, int status) ;
 int GCAMapplyTransform(GCA_MORPH *gcam, TRANSFORM *transform) ;
+int GCAMapplyInverseTransform(GCA_MORPH *gcam, TRANSFORM *transform) ;
 int GCAMinitVolGeom(GCAM *gcam, MRI *mri_src, MRI *mri_atlas) ;
 MRI *GCAMmorphFieldFromAtlas(GCA_MORPH *gcam, 
                              MRI *mri, 
