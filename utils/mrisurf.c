@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2012/06/08 17:30:48 $
- *    $Revision: 1.725 $
+ *    $Date: 2012/07/07 15:10:06 $
+ *    $Revision: 1.726 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -733,7 +733,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void)
 {
-  return("$Id: mrisurf.c,v 1.725 2012/06/08 17:30:48 fischl Exp $");
+  return("$Id: mrisurf.c,v 1.726 2012/07/07 15:10:06 fischl Exp $");
 }
 
 /*-----------------------------------------------------
@@ -37456,6 +37456,7 @@ MRIStransform(MRI_SURFACE *mris, MRI *mri, TRANSFORM *transform, MRI *mri_dst)
   int error = NO_ERROR;
   char errMsg[256];
   int dstNotGiven=0;
+  int srcNotGiven=0;
 
   if (transform->type == MORPH_3D_TYPE)
   {
@@ -37471,6 +37472,20 @@ MRIStransform(MRI_SURFACE *mris, MRI *mri, TRANSFORM *transform, MRI *mri_dst)
     */
 
     gcam = (GCA_MORPH *)(transform->xform) ;
+    if (!mri_dst)
+    {
+      dstNotGiven = 1;
+      mri_dst = MRIalloc(gcam->image.width, gcam->image.height, gcam->image.depth,MRI_UCHAR);
+      getVolGeom(mri_dst, &gcam->image);
+      
+    }
+    if (!mri)
+    {
+      srcNotGiven = 1;
+      mri = MRIalloc(gcam->atlas.width, gcam->atlas.height, gcam->atlas.depth,MRI_UCHAR);
+      getVolGeom(mri, &gcam->atlas);
+      
+    }
     GCAMrasToVox(gcam, mri_dst) ;
 
     v1 = VectorAlloc(4, MATRIX_REAL) ;
@@ -37519,7 +37534,8 @@ MRIStransform(MRI_SURFACE *mris, MRI *mri, TRANSFORM *transform, MRI *mri_dst)
     }
     mrisComputeSurfaceDimensions(mris) ;
     // save the volume information from dst
-    getVolGeom(mri_dst, &mris->vg);
+    if (dstNotGiven == 0)
+      getVolGeom(mri_dst, &mris->vg);
     VectorFree(&v1) ;
     VectorFree(&v2) ;
     MatrixFree(&voxelFromSurfaceRAS) ;
@@ -37527,6 +37543,10 @@ MRIStransform(MRI_SURFACE *mris, MRI *mri, TRANSFORM *transform, MRI *mri_dst)
     MatrixFree(&m_surf_vox2ras) ;
     MatrixFree(&m_atlas_ras2vox) ;
     MatrixFree(&m_surf_ras_to_atlas_ras) ;
+    if (dstNotGiven)
+      MRIfree(&mri_dst) ;
+    if (srcNotGiven)
+      MRIfree(&mri) ;
   }
   else
   {
