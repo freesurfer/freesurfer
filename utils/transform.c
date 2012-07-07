@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: mreuter $
- *    $Date: 2012/04/30 16:12:18 $
- *    $Revision: 1.156 $
+ *    $Author: fischl $
+ *    $Date: 2012/07/07 12:17:22 $
+ *    $Revision: 1.157 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -2216,9 +2216,19 @@ TransformSample(TRANSFORM *transform,
     if (zv >= gcam->mri_zind->depth)
       zv = gcam->mri_zind->depth-1 ;
 
-    xi = nint(xv) ;
-    yi = nint(yv) ;
-    zi = nint(zv) ;
+    xi = nint(xv) ; yi = nint(yv) ; zi = nint(zv) ;
+    if (xi < 0)
+      xi = 0 ;
+    else if (xi >= gcam->mri_xind->width)
+      xi = gcam->mri_xind->width-1 ;
+    if (yi < 0)
+      yi = 0 ;
+    else if (yi >= gcam->mri_yind->height)
+      yi = gcam->mri_yind->height-1 ;
+    if (zi < 0)
+      zi = 0 ;
+    else if (zi >= gcam->mri_zind->depth)
+      zi = gcam->mri_zind->depth-1 ;
 
     xt = nint(MRIgetVoxVal(gcam->mri_xind, xi, yi, zi, 0)*gcam->spacing) ;
     yt = nint(MRIgetVoxVal(gcam->mri_yind, xi, yi, zi, 0)*gcam->spacing) ;
@@ -2390,6 +2400,12 @@ TransformSampleInverse(TRANSFORM *transform,
       yn = gcam->height-1 ;
     if (zn >= gcam->depth)
       zn = gcam->depth-1 ;
+    if (xn < 0)
+      xn = 0 ; 
+    if (yn < 0)
+      yn = 0 ;
+    if (zn < 0)
+      zn = 0 ;
 
     gcamn = &gcam->nodes[xn][yn][zn] ;
     xt = gcamn->x ;
@@ -2449,6 +2465,100 @@ TransformSampleInverse(TRANSFORM *transform,
   return errCode ;
 }
 
+int
+TransformSampleInverseFloat(TRANSFORM *transform,
+			    float xv, float yv, float zv,
+			    float *px, float *py, float *pz)
+{
+  static VECTOR  *v_input, *v_canon = NULL ;
+  static MATRIX  *m_L_inv ;
+  float          xt, yt, zt ;
+  int            xn, yn, zn ;
+  LTA            *lta ;
+  GCA_MORPH      *gcam ;
+  GCA_MORPH_NODE *gcamn ;
+  int errCode = NO_ERROR;
+
+  if (transform->type == MORPH_3D_TYPE)
+  {
+    gcam = (GCA_MORPH *)transform->xform ;
+    if (GCAMsampleMorph(gcam, xv, yv, zv, px, py, pz) == NO_ERROR)
+      return(NO_ERROR) ;
+
+    xn = nint(xv/gcam->spacing) ;
+    yn = nint(yv/gcam->spacing) ;
+    zn = nint(zv/gcam->spacing) ;
+    
+    if (xn >= gcam->width)
+      xn = gcam->width-1 ;
+    if (yn >= gcam->height)
+      yn = gcam->height-1 ;
+    if (zn >= gcam->depth)
+      zn = gcam->depth-1 ;
+    if (xn < 0)
+      xn = 0 ; 
+    if (yn < 0)
+      yn = 0 ;
+    if (zn < 0)
+      zn = 0 ;
+    
+    gcamn = &gcam->nodes[xn][yn][zn] ;
+    xt = gcamn->x ;
+    yt = gcamn->y ;
+    zt = gcamn->z ;
+    // if marked invalid, then return error
+    if (gcamn->invalid)
+      errCode=ERROR_BADPARM;
+  }
+  else
+  {
+    lta = (LTA *)transform->xform ;
+    if (lta->type != LINEAR_VOXEL_TO_VOXEL)
+    {
+      int i;
+      printf("Converting to LTA type LINEAR_VOXEL_TO_VOXEL...\n");
+      lta = LTAchangeType(lta, LINEAR_VOXEL_TO_VOXEL);
+      printf("After conversion:\n");
+      for (i = 0 ; i < lta->num_xforms ; i++)
+      {
+        LINEAR_TRANSFORM *lt = &lta->xforms[i] ;
+        MatrixAsciiWriteInto(stdout, lt->m_L) ;
+      }
+    }
+    if (!v_canon)
+    {
+      v_input = VectorAlloc(4, MATRIX_REAL) ;
+      v_canon = VectorAlloc(4, MATRIX_REAL) ;
+      *MATRIX_RELT(v_input, 4, 1) = 1.0 ;
+      *MATRIX_RELT(v_canon, 4, 1) = 1.0 ;
+      m_L_inv = MatrixAlloc(4, 4, MATRIX_REAL) ;
+    }
+
+    V3_X(v_canon) =
+      (float)xv;
+    V3_Y(v_canon) =
+      (float)yv;
+    V3_Z(v_canon) =
+      (float)zv;
+#if 0
+    MatrixInverse(lta->xforms[0].m_L, m_L_inv) ;
+    MatrixMultiply(m_L_inv, v_canon, v_input) ;
+#else
+    MatrixMultiply(lta->inv_xforms[0].m_L, v_canon, v_input) ;
+#endif
+    xt = V3_X(v_input) ;
+    yt = V3_Y(v_input) ;
+    zt = V3_Z(v_input) ;
+    // here I cannot get access to width, height, depth values
+    // thus I cannot judge the point is good or bad
+    // errCode remains to be valid
+  }
+  *px = xt ;
+  *py = yt ;
+  *pz = zt ;
+
+  return errCode ;
+}
 int
 TransformSampleInverseVoxel(TRANSFORM *transform,
                             int width, int height, int depth,

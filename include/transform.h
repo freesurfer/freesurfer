@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2012/04/11 00:54:47 $
- *    $Revision: 1.69 $
+ *    $Date: 2012/07/07 12:17:24 $
+ *    $Revision: 1.70 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -178,6 +178,8 @@ int       TransformSample(TRANSFORM *transform,
                           float *px, float *py, float *pz) ;
 int       TransformSampleInverse(TRANSFORM *transform, int xv, int yv, int zv,
                                  float *px, float *py, float *pz) ;
+int       TransformSampleInverseFloat(TRANSFORM *transform, float xv, float yv, float zv,
+				      float *px, float *py, float *pz) ;
 int       TransformSampleInverseVoxel(TRANSFORM *transform,
                                       int width, int height, int depth,
                                       int xv, int yv, int zv,
