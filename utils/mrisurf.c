@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2012/07/07 15:10:06 $
- *    $Revision: 1.726 $
+ *    $Date: 2012/07/07 15:18:12 $
+ *    $Revision: 1.727 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -733,7 +733,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void)
 {
-  return("$Id: mrisurf.c,v 1.726 2012/07/07 15:10:06 fischl Exp $");
+  return("$Id: mrisurf.c,v 1.727 2012/07/07 15:18:12 fischl Exp $");
 }
 
 /*-----------------------------------------------------
@@ -37476,15 +37476,13 @@ MRIStransform(MRI_SURFACE *mris, MRI *mri, TRANSFORM *transform, MRI *mri_dst)
     {
       dstNotGiven = 1;
       mri_dst = MRIalloc(gcam->image.width, gcam->image.height, gcam->image.depth,MRI_UCHAR);
-      getVolGeom(mri_dst, &gcam->image);
-      
+      useVolGeomToMRI(&gcam->image, mri_dst);
     }
     if (!mri)
     {
       srcNotGiven = 1;
       mri = MRIalloc(gcam->atlas.width, gcam->atlas.height, gcam->atlas.depth,MRI_UCHAR);
-      getVolGeom(mri, &gcam->atlas);
-      
+      useVolGeomToMRI(&gcam->atlas, mri);
     }
     GCAMrasToVox(gcam, mri_dst) ;
 
@@ -37534,8 +37532,7 @@ MRIStransform(MRI_SURFACE *mris, MRI *mri, TRANSFORM *transform, MRI *mri_dst)
     }
     mrisComputeSurfaceDimensions(mris) ;
     // save the volume information from dst
-    if (dstNotGiven == 0)
-      getVolGeom(mri_dst, &mris->vg);
+    getVolGeom(mri_dst, &mris->vg);
     VectorFree(&v1) ;
     VectorFree(&v2) ;
     MatrixFree(&voxelFromSurfaceRAS) ;
