@@ -6,9 +6,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: rpwang $
- *    $Date: 2012/06/27 18:58:40 $
- *    $Revision: 1.216 $
+ *    $Author: nicks $
+ *    $Date: 2012/07/10 20:39:32 $
+ *    $Revision: 1.217 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -2541,7 +2541,10 @@ void MainWindow::CommandSetSurfaceEdgeThickness( const QStringList& cmd )
 void MainWindow::CommandSetDisplaySurfaceVertex(const QStringList &cmd)
 {
   LayerSurface* surf = (LayerSurface*)GetLayerCollection( "Surface" )->GetActiveLayer();
-  if ( surf && cmd[1].toLower() == "on" || cmd[1].toLower() == "true" || cmd[1].toLower() == "yes" || cmd[1] == "1" )
+  if ( surf && (cmd[1].toLower() == "on" ||
+                cmd[1].toLower() == "true" ||
+                cmd[1].toLower() == "yes" ||
+                cmd[1] == "1") )
   {
     surf->GetProperty()->ShowVertices(true);
   }
