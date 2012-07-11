@@ -15,8 +15,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2012/07/07 02:05:33 $
- *    $Revision: 1.109 $
+ *    $Date: 2012/07/11 17:50:59 $
+ *    $Revision: 1.110 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -232,11 +232,8 @@ lambda = E v / ((1+v) (1-2v))
 mu = G = E / (2 ( 1+v))
 
  */
-}
-
-
-
-GCA_MORPH_PARMS, GMP ;
+  MRI *mri_twm ;     // for manually specified temporal lobe white matter 
+} GCA_MORPH_PARMS, GMP ;
 
 
 typedef struct
@@ -366,6 +363,7 @@ int GCAMresetLabelNodeStatus(GCA_MORPH *gcam)  ;
 #define GCAM_TARGET_DEFINED        0x0010
 #define GCAM_IGNORE_DISTANCES      0x0020
 #define GCAM_DISCOUNT_LIKELIHOOD   0x0040
+#define GCAM_MANUAL_LABEL          0x0080
 
 int GCAMpreserveLabelMetricProperties(GCA_MORPH *gcam, LABEL *area, MRI *mri) ;
 int GCAMresetLikelihoodStatus(GCA_MORPH *gcam) ;
@@ -571,7 +569,7 @@ double MRIlabelMorphSSE(MRI *mri_source, MRI *mri_atlas, MRI *mri_morph) ;
 
   int gcamLabelTerm( GCA_MORPH *gcam,
 		     const MRI *mri,
-		     double l_label, double label_dist );
+		     double l_label, double label_dist , MRI *mri_twm);
 
   int
   remove_label_outliers( GCA_MORPH *gcam,
@@ -586,7 +584,7 @@ double MRIlabelMorphSSE(MRI *mri_source, MRI *mri_atlas, MRI *mri_morph) ;
 
   void gcamLabelTermMainLoop( GCA_MORPH *gcam, const MRI *mri,
 			      MRI *mri_dist,
-			      const double l_label, const double label_dist );
+			      const double l_label, const double label_dist , MRI *mri_twm);
   void gcamLabelTermCopyDeltas( GCA_MORPH *gcam,
 				const MRI* mri_dist,
 				const double l_label );
