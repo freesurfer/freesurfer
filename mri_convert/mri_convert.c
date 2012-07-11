@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl (Apr 16, 1997)
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2012/05/21 15:15:10 $
- *    $Revision: 1.195 $
+ *    $Date: 2012/07/11 17:50:50 $
+ *    $Revision: 1.196 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -207,7 +207,7 @@ int main(int argc, char *argv[])
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mri_convert.c,v 1.195 2012/05/21 15:15:10 fischl Exp $",
+   "$Id: mri_convert.c,v 1.196 2012/07/11 17:50:50 fischl Exp $",
    "$Name:  $",
    cmdline);
 
@@ -329,7 +329,7 @@ int main(int argc, char *argv[])
     handle_version_option
     (
       argc, argv,
-      "$Id: mri_convert.c,v 1.195 2012/05/21 15:15:10 fischl Exp $",
+      "$Id: mri_convert.c,v 1.196 2012/07/11 17:50:50 fischl Exp $",
       "$Name:  $"
     );
   if (nargs && argc - nargs == 1)
@@ -1589,7 +1589,7 @@ int main(int argc, char *argv[])
             "= --zero_ge_z_offset option ignored.\n");
   }
 
-  printf("$Id: mri_convert.c,v 1.195 2012/05/21 15:15:10 fischl Exp $\n");
+  printf("$Id: mri_convert.c,v 1.196 2012/07/11 17:50:50 fischl Exp $\n");
   printf("reading from %s...\n", in_name_only);
 
   if (in_volume_type == MGH_MORPH)
@@ -2773,18 +2773,20 @@ int main(int argc, char *argv[])
       TRANSFORM *tran = TransformRead(transform_fname);
       // check whether the volume to be morphed and the morph have the same dimensions
       if (invert_transform_flag == 0)
+      {
+	printf("morphing to atlas with resample type %d\n", resample_type_val) ;
         mri_transformed =
-        GCAMmorphToAtlas(mri, (GCA_MORPH *)tran->xform, NULL, 0,
-                         resample_type_val) ;
+	  GCAMmorphToAtlas(mri, (GCA_MORPH *)tran->xform, NULL, 0, resample_type_val) ;
+      }
       else // invert
       {
         mri_transformed = MRIclone(mri, NULL);
         // check whether the volume to be morphed and the morph have the same dimensions
-        mri_transformed =
-        GCAMmorphFromAtlas(mri,
-                           (GCA_MORPH *)tran->xform,
-                           mri_transformed,
-                           SAMPLE_TRILINEAR);
+	printf("morphing from atlas with resample type %d\n", resample_type_val) ;
+        mri_transformed = GCAMmorphFromAtlas(mri,                  
+					     (GCA_MORPH *)tran->xform,
+					     mri_transformed,
+					     resample_type_val);
       }
       TransformFree(&tran);
       MRIfree(&mri);
