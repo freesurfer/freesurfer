@@ -2,7 +2,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: dt_recon,v 1.17 2011/12/09 15:54:06 lzollei Exp $';
+set VERSION = '$Id: dt_recon,v 1.18 2012/07/11 20:44:59 lzollei Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -76,7 +76,7 @@ setenv FSLOUTPUTTYPE NIFTI
 echo "#@#-------------------------------" |  tee -a $LF
 echo "Converting input" |  tee -a $LF
 date |  tee -a $LF
-set f = $OutDir/dwi.nii.gz
+set f = $OutDir/dwi.nii
 set cmd = (mri_convert $InputVol $f);
 echo "cd `pwd`" |  tee -a $LF
 echo $cmd       |  tee -a $LF
@@ -100,7 +100,7 @@ if($#bvals == 0) then
 endif
 
 # Eddy/Motion Correct (needs its own tmp dir)
-set fec = $OutDir/dwi-ec.nii.gz
+set fec = $OutDir/dwi-ec.nii
 if($DoEddyCorrect) then
   echo "#@#-------------------------------" |  tee -a $LF
   echo "Eddy/Motion Correct" |  tee -a $LF
@@ -108,9 +108,9 @@ if($DoEddyCorrect) then
   set ectmp = $OutDir/ectmp
   mkdir -p $ectmp
   pushd $ectmp > /dev/null
-  set cmd = (eddy_correct $f ${fec:r} $ECRefTP) 
-  set cmd = ($cmd; mri_convert ${fec:r} $fec)
-  set cmd = ($cmd; rm -f ${fec:r})
+  set cmd = (eddy_correct $f $fec $ECRefTP) 
+  #set cmd = ($cmd; mri_convert ${fec:r} $fec)
+  #set cmd = ($cmd; rm -f ${fec:r})
   #set cmd = (cp $f $fec)
   echo "cd `pwd`" |  tee -a $LF
   echo $cmd       |  tee -a $LF 
@@ -135,7 +135,21 @@ echo "#@#-------------------------------" |  tee -a $LF
 echo "Fitting Tensors" |  tee -a $LF
 date |  tee -a $LF
 
-set cmd = (mri_glmfit --y $fec --glmdir $OutDir);
+# zip files to save space
+set cmd = (gzip $f)
+echo $cmd       |  tee -a $LF 
+$cmd            |& tee -a $LF
+if($status) exit 1;
+echo "" | tee -a $LF
+echo "" | tee -a $LF
+set cmd = (gzip $fec)
+echo $cmd       |  tee -a $LF 
+$cmd            |& tee -a $LF
+if($status) exit 1;
+echo "" | tee -a $LF
+echo "" | tee -a $LF
+
+set cmd = (mri_glmfit --y $fec.gz --glmdir $OutDir);
 if($#bvals == 0) then 
   set cmd = ($cmd --dti $infodump)
 else
@@ -217,6 +231,7 @@ exit 0
 
 ############--------------##################
 parse_args:
+
 set cmdline = ($argv);
 while( $#argv != 0 )
 
@@ -372,10 +387,12 @@ arg3err:
 
 ############--------------##################
 check_params:
+
   if($#InputVol == 0) then
     echo "ERROR: must specify input volume"
     exit 1;
   endif
+ls -latr $InputVol
   if(! -e $InputVol) then
     echo "ERROR: cannot find $InputVol"
     exit 1;
@@ -384,13 +401,11 @@ check_params:
     echo "ERROR: must specify output dir"
     exit 1;
   endif
-
   if($DoRegistration) then
     if($#subject == 0) then
       echo "ERROR: must specify a subject"
       exit 1;
     endif
-
     if(! $?SUBJECTS_DIR ) then
       echo "ERROR: environment variable SUBJECTS_DIR not set"
       echo "  this can be done by setting it in the shell before"
@@ -409,12 +424,10 @@ check_params:
       exit 1;
     endif
   endif
- 
   if(! $?FREESURFER_HOME ) then
     echo "ERROR: environment variable FREESURFER_HOME not set."
     exit 1;
   endif
-
   which eddy_correct > /dev/null
   if($status) then
     echo "ERROR: cannot find eddy_correct. Make sure"
@@ -511,7 +524,7 @@ Stages:
      dwires.nii.gz - residual error (dwi intensity)
      dwirvar.nii.gz - residual variance (dwi intensity)
 4. Registration of lowb to same-subject anatomical using
-   FSLs flirt (creates mask.nii.gz and register.dat)
+   bbregister (creates mask.nii.gz and register.dat)
 5. Map FA to talairach space (creates fa-tal.nii.gz)
 
 Example usage:
