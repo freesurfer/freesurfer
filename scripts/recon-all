@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2012/06/05 21:25:42 $
-#    $Revision: 1.379.2.37 $
+#    $Date: 2012/07/11 20:46:55 $
+#    $Revision: 1.379.2.38 $
 #
 # Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -26,7 +26,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.379.2.37 2012/06/05 21:25:42 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.379.2.38 2012/07/11 20:46:55 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -168,6 +168,7 @@ set DoNuMakeUchar = 1; # if 1, then run mri_nu_correct.mni using talairach.xfm
                        # to run mri_make_uchar to correct histogram problem
 set DoTalairachUseNu = 0; # if 1, use nu.mgz as input to talairach stage
 setenv OMP_NUM_THREADS 1 # -openmp <num_threads> allows specifying more threads
+set UseCPsWithCaNorm = 0 # -canorm-usecps flag allows usage of control points with ca_norm
 
 # Longitudinal processing:
 set longitudinal = 0;    # if 1, will run the longitudinal scheme
@@ -2112,7 +2113,7 @@ if($DoCANormalize) then
 
   set xopts = `fsr-getxopts mri_ca_normalize $XOptsFile`;
   set cmd = (mri_ca_normalize)
-  if($UseControlPoints)  set cmd = ($cmd -f $ControlPointsFile)
+  if($UseCPsWithCaNorm)  set cmd = ($cmd -f $ControlPointsFile)
   if ($longitudinal) then
     # longitudinal processing:
     # use the aseg_base (just created) as initialization of the current TP:
@@ -4260,6 +4261,10 @@ while( $#argv != 0 )
       breaksw
     case "-nocanorm":
       set DoCANormalize = 0;
+      breaksw
+    case "-canorm-usecps":
+      set DoCANormalize = 1;
+      set UseCPsWithCaNorm = 1;
       breaksw
 
     case "-careg":
@@ -7033,12 +7038,12 @@ Gyrification (2007) IEEE Transactions on Medical Imaging.
 
 [14] Martin Reuter, H Diana Rosas, Bruce Fischl.
 Highly Accurate Inverse Consistent Registration: A Robust Approach.
-NeuroImage (2010). http://dx.doi.org/10.1016/j.neuroimage.2010.07.020
+NeuroImage 53(4), 1181-1196, 2010. http://dx.doi.org/10.1016/j.neuroimage.2010.07.020
 
 [15] Martin Reuter, Bruce Fischl.
 Avoiding Asymmetry-Induced Bias in Longitudinal Image Processing.
-NeuroImage (2011). http://dx.doi.org/10.1016/j.neuroimage.2011.02.076
+NeuroImage 51(1), 19-21, 2011. http://dx.doi.org/10.1016/j.neuroimage.2011.02.076
 
-[16] Martin Reuter, Nicholas J Schmasnky, H Diana Rosas, Bruce Fischl.
+[16] Martin Reuter, Nicholas J Schmansky, H Diana Rosas, Bruce Fischl.
 Within-Subject Template Estimation for Unbiased Longitudinal Image Analysis.
-NeuroImage (2012). http://dx.doi.org/10.1016/j.neuroimage.2012.02.084
+NeuroImage 61(4), 1402-1418, 2012. http://dx.doi.org/10.1016/j.neuroimage.2012.02.084
