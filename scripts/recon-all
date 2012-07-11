@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2012/06/05 21:24:04 $
-#    $Revision: 1.421 $
+#    $Date: 2012/07/11 20:45:22 $
+#    $Revision: 1.422 $
 #
 # Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -26,7 +26,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.421 2012/06/05 21:24:04 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.422 2012/07/11 20:45:22 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -168,6 +168,7 @@ set DoNuMakeUchar = 1; # if 1, then run mri_nu_correct.mni using talairach.xfm
                        # to run mri_make_uchar to correct histogram problem
 set DoTalairachUseNu = 0; # if 1, use nu.mgz as input to talairach stage
 setenv OMP_NUM_THREADS 1 # -openmp <num_threads> allows specifying more threads
+set UseCPsWithCaNorm = 0 # -canorm-usecps flag allows usage of control points with ca_norm
 
 # Longitudinal processing:
 set longitudinal = 0;    # if 1, will run the longitudinal scheme
@@ -2115,7 +2116,7 @@ if($DoCANormalize) then
 
   set xopts = `fsr-getxopts mri_ca_normalize $XOptsFile`;
   set cmd = (mri_ca_normalize)
-  if($UseControlPoints)  set cmd = ($cmd -f $ControlPointsFile)
+  if($UseCPsWithCaNorm)  set cmd = ($cmd -f $ControlPointsFile)
   if ($longitudinal) then
     # longitudinal processing:
     # use the aseg_base (just created) as initialization of the current TP:
@@ -4263,6 +4264,10 @@ while( $#argv != 0 )
       breaksw
     case "-nocanorm":
       set DoCANormalize = 0;
+      breaksw
+    case "-canorm-usecps":
+      set DoCANormalize = 1;
+      set UseCPsWithCaNorm = 1;
       breaksw
 
     case "-careg":
