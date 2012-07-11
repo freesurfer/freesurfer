@@ -24,8 +24,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2012/07/06 17:08:50 $
- *    $Revision: 1.82 $
+ *    $Date: 2012/07/11 17:51:20 $
+ *    $Revision: 1.83 $
  *
  * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -67,6 +67,7 @@
 #include "mri_ca_register.help.xml.h"
 #include "mri2.h"
 #include "fsinit.h"
+#include "ctrpoints.h"
 
 #ifdef FS_CUDA
 #include "devicemanagement.h"
@@ -144,6 +145,7 @@ static int write_vector_field(MRI *mri, GCA_MORPH *gcam, char *vf_fname) ;
 static int remove_bright_stuff(MRI *mri, GCA *gca, TRANSFORM *transform) ;
 static void print_help(void);
 
+static char *twm_fname = NULL ;  // file with manually specified temporal lobe white matter points
 static char *renormalization_fname = NULL ;
 static char *tissue_parms_fname = NULL ;
 static int center = 1 ;
@@ -235,7 +237,7 @@ main(int argc, char *argv[])
 
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mri_ca_register.c,v 1.82 2012/07/06 17:08:50 fischl Exp $",
+           "$Id: mri_ca_register.c,v 1.83 2012/07/11 17:51:20 fischl Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
   {
@@ -538,6 +540,49 @@ main(int argc, char *argv[])
     GCArenormalizeToExample(gca, mri_seg, mri_T1) ;
     MRIfree(&mri_seg) ;
     MRIfree(&mri_T1) ;
+  }
+
+  if (twm_fname)
+  {
+    int      i, nctrl, x, y, z, bad = 0, useRealRAS, count ;
+    MPoint  *pArray ;
+    double   xr, yr, zr ;
+
+    parms.mri_twm = MRIalloc(mri_inputs->width, mri_inputs->height, mri_inputs->depth, MRI_UCHAR) ;
+    MRIcopyHeader(mri_inputs, parms.mri_twm) ;
+    pArray = MRIreadControlPoints(twm_fname, &nctrl, &useRealRAS);
+    for (count = i = 0 ; i < nctrl ; i++)
+    {
+      switch (useRealRAS)
+      {
+      case 0:
+	MRIsurfaceRASToVoxel(parms.mri_twm,
+			     pArray[i].x, pArray[i].y, pArray[i].z,
+			     &xr, &yr, &zr);
+	break;
+      case 1:
+	MRIworldToVoxel(parms.mri_twm,
+			pArray[i].x, pArray[i].y, pArray[i].z,
+			&xr, &yr, &zr) ;
+	break;
+      default:
+	ErrorExit(ERROR_BADPARM,
+		  "MRI3dUseFileControlPoints has bad useRealRAS flag %d\n",
+		  useRealRAS) ;
+      }	
+      x = nint(xr) ; y = nint(yr) ; z = nint(zr) ;
+      if (MRIindexNotInVolume(parms.mri_twm, x, y, z) == 0)
+      {
+	if (MRIvox(parms.mri_twm, x, y, z) == 0)
+	  count++ ;
+	MRIvox(parms.mri_twm, x, y, z) = 1 ;
+      }
+      else
+	bad++ ;
+    }
+    if (bad > 0)
+      ErrorPrintf(ERROR_BADFILE, "!!!!! %d control points rejected for being out of bounds !!!!!!\n") ;
+    printf("%d temporal lobe white matter control points read from file %s\n", count, twm_fname) ;
   }
 
   /////////////////////////////////////////////////
@@ -1415,6 +1460,12 @@ get_option(int argc, char *argv[])
   {
     regularize = atof(argv[2]) ;
     printf("regularizing variance to be sigma+%2.1fC(noise)\n", regularize) ;
+    nargs = 1 ;
+  }
+  else if (!stricmp(option, "TWM"))
+  {
+    twm_fname = argv[2] ;
+    printf("specifying temporal white matter using control points in %s\n", twm_fname) ;
     nargs = 1 ;
   }
   else if (!stricmp(option, "LH"))
