@@ -144,7 +144,7 @@ int main( int argc, char *argv[] ) {
   // ============================================
   // Perform the calculation
   tTotal.Start();
-  gcamLabelTerm( gcam, mri, lambda, labelDist );
+  gcamLabelTerm( gcam, mri, lambda, labelDist , NULL);
   tTotal.Stop();
 
   cout << "Computation took " << tTotal << endl;
