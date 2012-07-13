@@ -8,8 +8,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2012/05/25 22:54:19 $
- *    $Revision: 1.18 $
+ *    $Date: 2012/07/13 19:25:51 $
+ *    $Revision: 1.19 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -433,7 +433,7 @@ void RegistrationStep<T>::constructAb(MRI *mriS, MRI *mriT,vnl_matrix < T >& A,v
 	SpTh = MRIadd(mriS,mriT,SpTh);
 	SpTh = MRIscalarMul(SpTh,SpTh,0.5);
 	MRI *fx1 = NULL, *fy1 = NULL, *fz1 = NULL, *ft1 = NULL;
-	MyMRI::getPartials(SpTh,fx1,fy1,fz1,ft1);
+	MyMRI::getPartials(SpTh,fx1,fy1,fz1,ft1);  
 	MRI * SmT = MRIalloc(mriS->width,mriS->height,mriS->depth,MRI_FLOAT);
 	SmT = MRIsubtract(mriS,mriT,SmT);
 	SmT = MyMRI::getBlur(SmT,SmT);
@@ -563,6 +563,7 @@ void RegistrationStep<T>::constructAb(MRI *mriS, MRI *mriT,vnl_matrix < T >& A,v
   }
   
   if (iscale) pnum++;
+  //cout << " pnum: " << pnum << "  counti: " << counti<<  endl;
 
   double amu = ((double)counti*(pnum+1)) * sizeof(T) / (1024.0 * 1024.0); // +1 =  rowpointer vector
 	double bmu = (double)counti * sizeof(T) / (1024.0 * 1024.0);
@@ -752,6 +753,9 @@ void RegistrationStep<T>::constructAb(MRI *mriS, MRI *mriT,vnl_matrix < T >& A,v
   //cout << " counti: " << counti << " count : " << count<< endl;    
 	assert(counti == count);
       
+  //  vnl_matlab_print(vcl_cerr,A,"A",vnl_matlab_print_format_long);std::cerr << std::endl;    
+ //   vnl_matlab_print(vcl_cerr,b,"b",vnl_matlab_print_format_long);std::cerr << std::endl;    
+      
   // free remaining MRI    
   MRIfree(&fx);
   MRIfree(&fy);
@@ -760,40 +764,6 @@ void RegistrationStep<T>::constructAb(MRI *mriS, MRI *mriT,vnl_matrix < T >& A,v
 	MRIfree(&SmT);
   //if (Sbl) MRIfree(&Sbl);
   //if (Tbl) MRIfree(&Tbl);
-
-  // Setup return std::pair
- //  std::pair <MATRIX*, VECTOR* > Ab(A,b);
-	
-// 	if (counter == 1) exit(1);
-// 	counter++;
-// 	MatrixWriteTxt((name+"A.txt").c_str(),A);
-// 	MatrixWriteTxt((name+"b.txt").c_str(),b);
-//	if (counter == 1) exit(1);
-	
-//   // adjust sizes
-//   std::pair <MATRIX*, VECTOR* > Ab(NULL,NULL);
-//   double abmu2 = ((double)count*(pnum+1)) * sizeof(float) / (1024.0 * 1024.0);
-//   if (verbose > 1) std::cout << "     -- allocating another " << abmu2 << "Mb mem for A and b ... " << std::flush;
-//   Ab.first  = MatrixAlloc(count,pnum,MATRIX_REAL);
-//   Ab.second = MatrixAlloc(count,1,MATRIX_REAL);
-//   if (Ab.first == NULL || Ab.second == NULL) 
-// 	{
-// 	  std::cout << std::endl;
-//     ErrorExit(ERROR_NO_MEMORY,"Registration::constructAB could not allocate memory for Ab.first Ab.second") ;
-// 	}
-//   if (verbose > 1) std::cout << " done! " << std::endl;	
-//   for (int rr = 1; rr<= count; rr++)
-//   {
-//     *MATRIX_RELT(Ab.second, rr, 1) = *MATRIX_RELT(b, rr, 1);
-//     for (int cc = 1; cc <= pnum; cc++)
-//     {
-//       *MATRIX_RELT(Ab.first, rr, cc) = *MATRIX_RELT(A, rr, cc);
-//       assert (!isnan(*MATRIX_RELT(Ab.first, rr, cc)));
-//     }
-//     assert (!isnan(*MATRIX_RELT(Ab.second, rr, 1)));
-//   }
-//   MatrixFree(&A);
-//   MatrixFree(&b);
 
   return;
 }
