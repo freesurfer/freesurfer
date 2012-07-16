@@ -11,9 +11,9 @@
 /*
  * Original Author: Dougas N Greve
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/04/27 22:18:58 $
- *    $Revision: 1.75.2.2 $
+ *    $Author: greve $
+ *    $Date: 2012/07/16 14:41:02 $
+ *    $Revision: 1.75.2.3 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -114,7 +114,7 @@ int DumpStatSumTable(STATSUMENTRY *StatSumTable, int nsegid);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-  "$Id: mri_segstats.c,v 1.75.2.2 2011/04/27 22:18:58 nicks Exp $";
+  "$Id: mri_segstats.c,v 1.75.2.3 2012/07/16 14:41:02 greve Exp $";
 char *Progname = NULL, *SUBJECTS_DIR = NULL, *FREESURFER_HOME=NULL;
 char *SegVolFile = NULL;
 char *InVolFile = NULL;
@@ -912,10 +912,10 @@ int main(int argc, char **argv)
           nhits = MRIsegCount(seg, StatSumTable[n].id, 0);
         }
         else
-          nhits =
+          vol =
             MRIvoxelsInLabelWithPartialVolumeEffects
             (seg, pvvol, StatSumTable[n].id, NULL, NULL);
-        vol = nhits*voxelvolume;
+        nhits = nint(vol/voxelvolume);
       }
       else
       {
