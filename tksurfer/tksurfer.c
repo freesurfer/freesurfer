@@ -12,8 +12,8 @@
  * Original Author: Martin Sereno and Anders Dale, 1996
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2012/07/16 16:34:54 $
- *    $Revision: 1.359 $
+ *    $Date: 2012/07/16 23:17:49 $
+ *    $Revision: 1.360 $
  *
  * Copyright (C) 2002-2011, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA).
@@ -9823,6 +9823,11 @@ sclv_read_from_volume (char* fname, FunD_tRegistrationType reg_type,
       mri_tmp = MRIextractInto(volume->mpData, NULL, 0, 0, 0, 
 			       volume->mpData->width/2, volume->mpData->height, volume->mpData->depth,
 			       0,0,0) ;
+    else
+      mri_tmp = MRIextractInto(volume->mpData, NULL, volume->mpData->width/2, 0, 0, 
+			       volume->mpData->width/2, volume->mpData->height, volume->mpData->depth,
+			       0,0,0) ;
+
     linkvertexmode = 1 ;
     fprintf(stderr, "setting linkvertexmode to %d\n", linkvertexmode) ;
     MRIfree(&volume->mpData) ; volume->mpData = mri_tmp ;
@@ -21598,7 +21603,7 @@ int main(int argc, char *argv[])   /* new main */
   nargs =
     handle_version_option
     (argc, argv,
-     "$Id: tksurfer.c,v 1.359 2012/07/16 16:34:54 fischl Exp $", "$Name:  $");
+     "$Id: tksurfer.c,v 1.360 2012/07/16 23:17:49 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
