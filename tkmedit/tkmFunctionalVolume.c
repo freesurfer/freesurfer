@@ -12,9 +12,9 @@
 /*
  * Original Author: Kevin Teich
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/01 01:41:22 $
- *    $Revision: 1.66 $
+ *    $Author: fischl $
+ *    $Date: 2012/07/16 15:10:33 $
+ *    $Revision: 1.67 $
  *
  * Copyright (C) 2002-2011, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA).
@@ -554,7 +554,7 @@ FunV_tErr FunV_LoadFunctionalVolume_ ( tkmFunctionalVolumeRef this,
                       regType,
                       isRegistration,
                       -1,  /* Don't try to be a scalar volume */
-                      iAnatomicalVolume );
+                      iAnatomicalVolume,0 );
   if ( FunD_tErr_NoError != eVolume ) {
     eResult = FunV_tErr_ErrorLoadingVolume;
     goto error;
