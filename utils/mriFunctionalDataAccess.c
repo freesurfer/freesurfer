@@ -6,9 +6,9 @@
 /*
  * Original Author: Kevin Teich
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:45 $
- *    $Revision: 1.56 $
+ *    $Author: fischl $
+ *    $Date: 2012/07/16 01:29:22 $
+ *    $Revision: 1.57 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -94,7 +94,8 @@ FunD_tErr FunD_New ( mriFunctionalDataRef*  opVolume,
                      FunD_tRegistrationType iRegistrationType,
                      char*                  isRegistrationFileName,
                      int                    inScalarSize,
-                     mriVolumeRef           iAnatomicalVolume )
+                     mriVolumeRef           iAnatomicalVolume,
+                     tBoolean               ibIsLeftHemisphere )
 {
   mriFunctionalDataRef this    = NULL;
   FunD_tErr            eResult = FunD_tErr_NoError;
@@ -183,7 +184,7 @@ FunD_tErr FunD_New ( mriFunctionalDataRef*  opVolume,
   if ( inScalarSize > 0 )
   {
     DebugNote( ("Trying reshape with %d values", inScalarSize) );
-    FunD_ReshapeIfScalar_( this, inScalarSize, NULL );
+    FunD_ReshapeIfScalar_( this, inScalarSize, NULL, ibIsLeftHemisphere );
   }
 
   /* If we're not scalar by now, parse the registration file */
@@ -286,7 +287,8 @@ FunD_tErr FunD_Delete ( mriFunctionalDataRef* iopVolume )
 
 FunD_tErr FunD_ReshapeIfScalar_ ( mriFunctionalDataRef this,
                                   int                  inNumValues,
-                                  tBoolean*            obReshaped )
+                                  tBoolean*            obReshaped ,
+                                  tBoolean             ibIsLeftHemisphere)
 {
 
   FunD_tErr eResult        = FunD_tErr_NoError;
@@ -298,6 +300,29 @@ FunD_tErr FunD_ReshapeIfScalar_ ( mriFunctionalDataRef this,
   DebugNote( ("Checking parameters") );
   DebugAssertThrowX( (NULL != this), eResult, FunD_tErr_InvalidParameter );
   DebugAssertThrowX( (inNumValues > 0), eResult, FunD_tErr_InvalidParameter );
+
+  if (this->mpData->width*this->mpData->height*this->mpData->depth == 
+      2*inNumValues)
+  {
+    MRI *mri_tmp, *mri_tmp2 ;
+    this->mbScalar = 1 ;
+    if (ibIsLeftHemisphere)
+    {
+      mri_tmp = MRIextractInto(this->mpData, NULL, 0, 0, 0, 
+			       this->mpData->width/2, this->mpData->height, this->mpData->depth,
+			       0,0,0) ;
+      mri_tmp2 = MRIcopyFrames(mri_tmp, NULL, 0, inNumValues-1, 0) ;
+    }
+    else
+    {
+      mri_tmp = MRIextractInto(this->mpData, NULL, 0, 0, 0, 
+			       this->mpData->width/2, this->mpData->height, this->mpData->depth,
+			       inNumValues,0,0) ;
+      mri_tmp2 = MRIcopyFrames(mri_tmp, NULL, inNumValues, 2*inNumValues-1, 0) ;
+    }
+    MRIfree(&mri_tmp) ;
+    MRIfree(&this->mpData) ; this->mpData = mri_tmp2 ;
+  }
 
   if ( this->mpData->width * this->mpData->height * this->mpData->depth ==
        inNumValues )
