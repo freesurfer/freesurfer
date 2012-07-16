@@ -9,10 +9,10 @@
 #
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2011/03/02 18:38:06 $
-#    $Revision: 1.9 $
+#    $Date: 2012/07/16 15:54:03 $
+#    $Revision: 1.10 $
 #
-# Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+# Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
 #
 # Terms and conditions for use, reproduction, distribution and contribution
 # are found in the 'FreeSurfer Software License Agreement' contained
@@ -23,7 +23,7 @@
 # Reporting: freesurfer@nmr.mgh.harvard.edu
 #
 
-set VERSION = '$Id: talairach_avi,v 1.9 2011/03/02 18:38:06 nicks Exp $'
+set VERSION = '$Id: talairach_avi,v 1.10 2012/07/16 15:54:03 nicks Exp $'
 
 set InVol = ();
 set XFM = ();
@@ -34,7 +34,8 @@ set PrintHelp = 0;
 
 # default target atlas (uncommented), override with -atlas flag
 #set target = 711-2B_as_mni_average_305		# 711-2B registered to mni305
-set target = 711-2C_as_mni_average_305		# 711-2C registered to mni305
+#set target = 711-2C_as_mni_average_305		# 711-2C registered to mni305
+set target = 3T18yoSchwartzReactN32_as_orig # per Avi's recommendation 4Jul2012
 
 set cmdargs = ($argv);
 
