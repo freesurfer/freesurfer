@@ -12,8 +12,8 @@
  * Original Author: Martin Sereno and Anders Dale, 1996
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2012/07/16 01:28:57 $
- *    $Revision: 1.358 $
+ *    $Date: 2012/07/16 16:34:54 $
+ *    $Revision: 1.359 $
  *
  * Copyright (C) 2002-2011, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA).
@@ -9835,7 +9835,8 @@ sclv_read_from_volume (char* fname, FunD_tRegistrationType reg_type,
   {
     printf ("surfer: Interpreting overlay volume %s "
             "as encoded scalar volume.\n", fname);
-    if (volume->mpData->width == mris->nvertices)
+    if ((volume->mpData->nframes == mris->nvertices) ||
+	(volume->mpData->nframes == 2*mris->nvertices))
     {
       char cmd[STRLEN] ;
       enable_menu_set (MENUSET_OVERLAY_LOADED, 1);
@@ -21597,7 +21598,7 @@ int main(int argc, char *argv[])   /* new main */
   nargs =
     handle_version_option
     (argc, argv,
-     "$Id: tksurfer.c,v 1.358 2012/07/16 01:28:57 fischl Exp $", "$Name:  $");
+     "$Id: tksurfer.c,v 1.359 2012/07/16 16:34:54 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -25327,7 +25328,8 @@ int func_load_timecourse (char* fname, FunD_tRegistrationType reg_type,
   {
     printf ("surfer: Interpreting time course volume %s "
             "as encoded scalar volume.\n", fname);
-    if (func_timecourse->mpData->width == mris->nvertices)
+    if ((func_timecourse->mpData->nframes == mris->nvertices) ||
+	(func_timecourse->mpData->nframes == 2*mris->nvertices))
     {
       char cmd[STRLEN] ;
       MRI *mri_tmp, *mri_tmp2 ;
