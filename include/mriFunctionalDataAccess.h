@@ -5,9 +5,9 @@
 /*
  * Original Author: Kevin Teich
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:10 $
- *    $Revision: 1.31 $
+ *    $Author: fischl $
+ *    $Date: 2012/07/16 01:29:17 $
+ *    $Revision: 1.32 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -265,7 +265,8 @@ FunD_tErr FunD_New    ( mriFunctionalDataRef*  opVolume,
                         FunD_tRegistrationType iRegistrationType,
                         char*                  isRegistrationFile,
                         int                    inScalarSize,
-                        mriVolumeRef           iAnatomicalVolume );
+                        mriVolumeRef           iAnatomicalVolume,
+                        tBoolean               ibIsLeftHemi) ;
 
 FunD_tErr FunD_Delete ( mriFunctionalDataRef*  iopVolume );
 
@@ -454,7 +455,8 @@ FunD_tErr FunD_GetPercentileOfValue ( mriFunctionalDataRef this,
    as a scalar volume with no transform. */
 FunD_tErr FunD_ReshapeIfScalar_ ( mriFunctionalDataRef this,
                                   int                  inNumValues,
-                                  tBoolean*            obReshaped );
+                                  tBoolean*            obReshaped,
+                                  tBoolean             ibIsLeftHemisphere);
 
 /* Resamples the data into client space for fast lookup. */
 FunD_tErr FunD_ResampleData_ ( mriFunctionalDataRef this );
