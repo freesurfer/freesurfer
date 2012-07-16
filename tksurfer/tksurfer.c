@@ -12,8 +12,8 @@
  * Original Author: Martin Sereno and Anders Dale, 1996
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2012/05/27 01:28:07 $
- *    $Revision: 1.357 $
+ *    $Date: 2012/07/16 01:28:57 $
+ *    $Revision: 1.358 $
  *
  * Copyright (C) 2002-2011, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA).
@@ -2073,7 +2073,7 @@ int cptn_draw_flag = FALSE;
    values that will be calcualted when update_labels() is run. The
    value string is the working result of that, and is drawn to the
    screen. */
-#define CPTN_STRING_LEN 1024
+#define CPTN_STRING_LEN 2000
 char* cptn_format_string = NULL;
 char* cptn_value_string = NULL;
 
@@ -2387,10 +2387,10 @@ int  main(int argc,char *argv[])
       fprintf(stderr, "setting colscalebarvertflag to %d\n",
               colscalebarvertflag) ;
     }
-    else if (!stricmp(argv[i], "-linkvertexmode"))
+     else if (!stricmp(argv[i], "-linkvertexmode"))
     {
       nargs = 2 ;
-      colscalebarvertflag = atoi(argv[i+1]) ;
+      linkvertexmode = atoi(argv[i+1]) ;
       fprintf(stderr, "setting linkvertexmode to %d\n",
               linkvertexmode) ;
     }
@@ -9771,7 +9771,8 @@ sclv_read_from_volume (char* fname, FunD_tRegistrationType reg_type,
                            reg_type,
                            registration,
                            mris->nvertices, /* Try to be scalar */
-                           volm);
+                           volm,
+                           mris->hemisphere == LEFT_HEMISPHERE);
   if (volume_error!=FunD_tErr_NoError)
   {
     if (NULL != volm)
@@ -9812,6 +9813,21 @@ sclv_read_from_volume (char* fname, FunD_tRegistrationType reg_type,
                  "FunD_ClientSpaceIsTkRegRAS\n"));
   }
 
+  // see if it is a correlation volume
+  if (volume->mpData->width*volume->mpData->height*volume->mpData->depth == 
+      2*mris->nvertices)
+  {
+    MRI *mri_tmp ;
+    volume->mbScalar = 1 ;
+    if (mris->hemisphere == LEFT_HEMISPHERE)
+      mri_tmp = MRIextractInto(volume->mpData, NULL, 0, 0, 0, 
+			       volume->mpData->width/2, volume->mpData->height, volume->mpData->depth,
+			       0,0,0) ;
+    linkvertexmode = 1 ;
+    fprintf(stderr, "setting linkvertexmode to %d\n", linkvertexmode) ;
+    MRIfree(&volume->mpData) ; volume->mpData = mri_tmp ;
+  }
+
   /* See if it's scalar */
   FunD_IsScalar (volume, &sclv_field_info[field].is_scalar_volume);
 
@@ -9819,6 +9835,17 @@ sclv_read_from_volume (char* fname, FunD_tRegistrationType reg_type,
   {
     printf ("surfer: Interpreting overlay volume %s "
             "as encoded scalar volume.\n", fname);
+    if (volume->mpData->width == mris->nvertices)
+    {
+      char cmd[STRLEN] ;
+      enable_menu_set (MENUSET_OVERLAY_LOADED, 1);
+      enable_menu_set(MENUSET_TIMECOURSE_LOADED, 1) ;
+      sprintf (cmd, "UpdateLinkedVarGroup overlay");
+      send_tcl_command (cmd);
+      linkvertexmode = 1 ;
+      fprintf(stderr, "setting linkvertexmode to %d\n", linkvertexmode) ;
+      func_load_timecourse(fname, FunD_tRegistration_Identity, NULL) ;
+    }
   }
   else
   {
@@ -9846,6 +9873,8 @@ sclv_read_from_volume (char* fname, FunD_tRegistrationType reg_type,
                 (func_convert_error(volume_error),
                  "sclv_read_from_volume: error in FunD_GetValueRange\n"));
   }
+  
+  sclv_field_info[field].func_volume->mNumTimePoints= volume->mpData->nframes;
   volume_error =
     FunD_GetNumConditions (sclv_field_info[field].func_volume,
                            &sclv_field_info[field].num_conditions);
@@ -10037,7 +10066,7 @@ int sclv_read_from_annotcorr (char* fname, int field)
   
   /* Try to reshape if we can. */
   DebugNote( ("Trying reshape with %d values", mris->nvertices) );
-  FunD_ReshapeIfScalar_( this, mris->nvertices, NULL );
+  FunD_ReshapeIfScalar_( this, mris->nvertices, NULL , mris->hemisphere == LEFT_HEMISPHERE);
 
   
   /* If we're not scalar by now, parse the registration file */
@@ -21568,7 +21597,7 @@ int main(int argc, char *argv[])   /* new main */
   nargs =
     handle_version_option
     (argc, argv,
-     "$Id: tksurfer.c,v 1.357 2012/05/27 01:28:07 fischl Exp $", "$Name:  $");
+     "$Id: tksurfer.c,v 1.358 2012/07/16 01:28:57 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -25262,7 +25291,9 @@ int func_load_timecourse (char* fname, FunD_tRegistrationType reg_type,
                            reg_type,
                            registration,
                            mris->nvertices,
-                           volm);
+                           volm,
+                           mris->hemisphere == LEFT_HEMISPHERE);
+
   if (volume_error!=FunD_tErr_NoError)
   {
     if (NULL != volm)
@@ -25296,6 +25327,39 @@ int func_load_timecourse (char* fname, FunD_tRegistrationType reg_type,
   {
     printf ("surfer: Interpreting time course volume %s "
             "as encoded scalar volume.\n", fname);
+    if (func_timecourse->mpData->width == mris->nvertices)
+    {
+      char cmd[STRLEN] ;
+      MRI *mri_tmp, *mri_tmp2 ;
+      if (mris->hemisphere == LEFT_HEMISPHERE)
+      {
+	mri_tmp = MRIextractInto(func_timecourse->mpData, NULL, 0, 0, 0, 
+				 func_timecourse->mpData->width/2, 
+				 func_timecourse->mpData->height, 
+				 func_timecourse->mpData->depth,
+				 0,0,0) ;
+	mri_tmp2 = MRIcopyFrames(mri_tmp, NULL, 0, mris->nvertices-1, 0) ;
+      }
+      else
+      {
+	mri_tmp = MRIextractInto(func_timecourse->mpData, NULL, 0, 0, 0, 
+				 func_timecourse->mpData->width/2, 
+				 func_timecourse->mpData->height, 
+				 func_timecourse->mpData->depth,
+				 mris->nvertices,0,0) ;
+	mri_tmp2 = MRIcopyFrames(mri_tmp, NULL, mris->nvertices, 
+				 2*mris->nvertices-1, 0) ;
+      }
+      MRIfree(&mri_tmp) ;
+      MRIfree(&func_timecourse->mpData) ; func_timecourse->mpData = mri_tmp2 ;
+      func_timecourse->mNumTimePoints = mri_tmp2->nframes ;
+      enable_menu_set (MENUSET_OVERLAY_LOADED, 1);
+      enable_menu_set(MENUSET_TIMECOURSE_LOADED, 1) ;
+      sprintf (cmd, "UpdateLinkedVarGroup overlay");
+      send_tcl_command (cmd);
+      linkvertexmode = 1 ;
+      fprintf(stderr, "setting linkvertexmode to %d\n", linkvertexmode) ;
+    }
   }
   else
   {
@@ -25404,7 +25468,9 @@ int func_load_timecourse_offset (char* fname, FunD_tRegistrationType reg_type,
                            reg_type,
                            registration,
                            mris->nvertices, /* Try to be scalar */
-                           volm);
+                           volm,
+                           mris->hemisphere == LEFT_HEMISPHERE);
+
   if (volume_error!=FunD_tErr_NoError)
   {
     if (NULL != volm)
@@ -30236,14 +30302,14 @@ void send_cached_tcl_commands ()
 int
 cptn_initialize ()
 {
-  cptn_format_string = (char*) calloc (CPTN_STRING_LEN, sizeof(char));
+  cptn_format_string = (char*) calloc (CPTN_STRING_LEN+1, sizeof(char));
   if (NULL == cptn_format_string)
     ErrorReturn
       (ERROR_NO_MEMORY,
        (ERROR_NO_MEMORY,
         "cptn_initialize: Couldn't init format string"));
 
-  cptn_value_string = (char*) calloc (CPTN_STRING_LEN, sizeof(char));
+  cptn_value_string = (char*) calloc (CPTN_STRING_LEN+1, sizeof(char));
   if (NULL == cptn_value_string)
     ErrorReturn
       (ERROR_NO_MEMORY,
