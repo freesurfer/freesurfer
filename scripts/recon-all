@@ -7,9 +7,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: nicks $
-#    $Date: 2012/07/11 20:45:22 $
-#    $Revision: 1.422 $
+#    $Author: mreuter $
+#    $Date: 2012/07/17 21:15:22 $
+#    $Revision: 1.423 $
 #
 # Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -26,7 +26,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.422 2012/07/11 20:45:22 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.423 2012/07/17 21:15:22 mreuter Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -924,18 +924,36 @@ if ($DoCreateBaseInput && $DoCreateBaseSubj) then
   set lta1forms=();
   set ltaAforms=();
   set headInVols=(); 
-  set rawInVols=();
+  set geodiff=0;
   foreach s ($BaseSubjsList)
     if($RunIt) echo "${s}" >> ${BaseSubjsListFname};
     set normInVols = ($normInVols ${SUBJECTS_DIR}/${s}/mri/norm.mgz)
     set headInVols = ($headInVols ${SUBJECTS_DIR}/${s}/mri/T1.mgz)
-    set rawInVols = ($rawInVols ${SUBJECTS_DIR}/${s}/mri/rawavg.mgz)
     set subjInVols = ($subjInVols ${SUBJECTS_DIR}/${s}/mri/${BaseSubjInvol})
     set ltaname = ${s}_to_${subjid}.lta
     set ltaXforms = ($ltaXforms ${subjdir}/mri/transforms/${ltaname})
     set lta1forms = ($lta1forms ${subjdir}/mri/transforms/${s}_to_${subjid}_norm.lta)
-    set ltaAforms = ($ltaAforms ${subjdir}/mri/transforms/${s}_to_${subjid}_affine.lta)    
+    set ltaAforms = ($ltaAforms ${subjdir}/mri/transforms/${s}_to_${subjid}_affine.lta)
+
+    # check if geometry differs across time
+    if ( "$s" != "$BaseSubjsList[1]" ) then
+      set cmd = (  mri_diff --notallow-pix ${SUBJECTS_DIR}/$s/mri/rawavg.mgz \
+                       ${SUBJECTS_DIR}/$BaseSubjsList[1]/mri/rawavg.mgz )
+      echo "\n $cmd \n" |& tee -a $LF |& tee -a $CF
+      if($RunIt) then
+        $fs_time $cmd |& tee -a $LF
+        if($status) set geodiff = 1;
+      endif  
+    endif          
   end
+  
+  if ( "$geodiff" == "1" ) then
+    echo "\n*******************************************************************************" |& tee -a $LF
+    echo "WARNING: Image geometries differ across time, maybe due to aquisition changes?" |& tee -a $LF
+    echo "         This can potentially bias a longitudinal study! Will continue in 10s." |& tee -a $LF
+    echo "*******************************************************************************\n" |& tee -a $LF
+    sleep 10
+  endif
   
   if ($#BaseSubjsList == 1) then
     # if only a single time point, create fake 'base' by making the image upright
@@ -949,6 +967,7 @@ if ($DoCreateBaseInput && $DoCreateBaseSubj) then
       $fs_time $cmd |& tee -a $LF
       if($status) goto error_exit;
     endif  
+    
     # 2. create the upright orig volume
     set cmd = ( mri_convert -rt cubic -at $ltaXforms[1] $subjInVols[1] ${subjdir}/mri/orig.mgz )
     echo "\n $cmd \n" |& tee -a $LF |& tee -a $CF
@@ -956,14 +975,7 @@ if ($DoCreateBaseInput && $DoCreateBaseSubj) then
       $fs_time $cmd |& tee -a $LF
       if($status) goto error_exit;
     endif  
-    # 3. create the upright rawavg volume
-    set cmd = ( mri_convert -rt cubic -at $ltaXforms[1] $rawInVols[1] ${subjdir}/mri/rawavg.mgz )
-    echo "\n $cmd \n" |& tee -a $LF |& tee -a $CF
-    if($RunIt) then
-      $fs_time $cmd |& tee -a $LF
-      if($status) goto error_exit;
-    endif  
-    
+        
   else #more than 1 time point:
     
     # create the 'mean/median' norm volume:
@@ -1026,18 +1038,6 @@ if ($DoCreateBaseInput && $DoCreateBaseSubj) then
       if($status) goto error_exit;
     endif
 
-    # create the 'mean/median' rawavg volume
-    # (here we assume same RAS space for rawavg and orig)
-    set cmd = (mri_robust_template --mov ${rawInVols})
-    set cmd = ($cmd --average ${robust_template_avg_arg})
-    set cmd = ($cmd --ixforms ${ltaXforms})
-    set cmd = ($cmd --noit)
-    set cmd = ($cmd --template ${subjdir}/mri/rawavg.mgz)
-    echo "\n $cmd \n" |& tee -a $LF |& tee -a $CF
-    if($RunIt) then
-      $fs_time $cmd |& tee -a $LF
-      if($status) goto error_exit;
-    endif
   endif # more than one time point
 
   # now create the inverse transforms
@@ -1240,7 +1240,8 @@ if($DoMotionCor) then
   endif #longitudinal
 
   # base processing (we do not need to do anything,
-  #   as rawavg and orig should be there)
+  #   as orig should be there, rawavg is not there, due to difficulties of 
+  #   averaging different image geometries across time)
   if ($DoCreateBaseSubj) then
     set origvol = $subjdir/mri/orig.mgz
     goto motioncor_post_process
