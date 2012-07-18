@@ -208,11 +208,210 @@ bool Spline::InterpolateSpline() {
 
 //
 // Fit spline control points to a curve
+// Uses "dominant" points on the curve (cf. Park and Lee, Computer-Aided Design 
+// 39:439-451, 2007)
 //
 bool Spline::FitControlPoints(const vector<int> &InputPoints) {
-  CatmullRomFit(InputPoints);
+  bool success;
+  const int npts = (int) InputPoints.size() / 3;
+  const float seglen = (npts - 1) / (float) (mNumControl - 1),
+              ds = 1 / seglen;
+  const int lentot = npts - 1,
+            mingap = (int) ceil(seglen / 2);
+  float s = 0;
+  vector<bool> isfinal(mNumControl, false);
+  vector<int> peeksegs;
+  vector<float> peekcurvs, arcparam(npts);
+  vector< vector<int>::const_iterator > peekpts, dompts(mNumControl);
+  vector<float>::iterator iarc = arcparam.begin();
 
-  return InterpolateSpline();
+  cout << "INFO: Minimum allowable distance between dominant points is "
+       << mingap << endl;
+
+  mAllPoints.resize(InputPoints.size());
+  copy(InputPoints.begin(), InputPoints.end(), mAllPoints.begin());
+
+  ComputeTangent(false);
+  ComputeNormal(false);
+  ComputeCurvature(false);
+
+  const float curvtot = accumulate(mCurvature.begin() + 1,
+                                   mCurvature.end() - 1, 0.0),
+              mincurv = accumulate(mCurvature.begin() + mingap,
+                                   mCurvature.end() - mingap, 0.0) /
+                        (npts - 2*mingap);
+
+  cout << "INFO: Minimum allowable curvature at a dominant point is "
+       << mincurv << endl;
+
+  // Split curve into segments of equal length
+  // We will pick only one dominant point in each of these segments,
+  // to ensure that control points end up fairly spread out along the length
+  // of the streamline
+  for (vector< vector<int>::const_iterator>::iterator idom = dompts.begin();
+                                                      idom < dompts.end();
+                                                      idom++) {
+    *idom = mAllPoints.begin() + 3 * (int) ceil(s);
+    s += seglen;
+  }
+
+  // Find points where local peeks in curvature occur
+  cout << "INFO: Points where local peeks in curvature occur are" << endl;
+
+  for (vector<float>::const_iterator icurv = mCurvature.begin() + mingap;
+                                     icurv < mCurvature.end() - mingap;
+                                     icurv++) {
+    if (*icurv > mincurv && *icurv > *(icurv-1) && *icurv > *(icurv+1)) {
+      const int kpt = icurv - mCurvature.begin(),
+                idx = (int) floor(ds * kpt);
+      vector<int>::const_iterator ipt = mAllPoints.begin() + 3*kpt;
+
+      // Save info for this candidate point
+      peeksegs.push_back(idx);
+      peekcurvs.push_back(*icurv);
+      peekpts.push_back(ipt);
+
+      cout << " " << *ipt << " " << *(ipt+1) << " " << *(ipt+2)
+           << " (curv = " << *icurv << ")" << endl;
+    }
+  }
+
+  *isfinal.begin() = true;
+  *(isfinal.end() - 1) = true;
+
+  // Go down the list of candidate points to pick out dominant points
+  while (!peekcurvs.empty()) {
+    // Find candidate point with maximum curvature
+    const int ipeek = max_element(peekcurvs.begin(), peekcurvs.end()) - 
+                      peekcurvs.begin(),
+              iseg = peeksegs.at(ipeek);
+    const bool isLfinal = isfinal.at(iseg),
+               isRfinal = isfinal.at(iseg+1);
+    vector<int>::iterator imatch;
+    vector<int>::const_iterator ipt  = peekpts.at(ipeek),
+                                iptL = dompts.at(iseg),
+                                iptR = dompts.at(iseg+1);
+    const int distL = (ipt - iptL) / 3,
+              distR = (iptR - ipt) / 3;
+
+    // Find which end of the segment the candidate point is closest to
+    if (distL < distR && !isLfinal && !(isRfinal && distR <= mingap)) {
+      // Move left end of segment to this dominant point
+      dompts.at(iseg) = ipt;
+      isfinal.at(iseg) = true;
+    }
+    else if (!isRfinal && !(isLfinal && distL <= mingap)) {
+      // Move right end of segment to this dominant point
+      dompts.at(iseg+1) = ipt;
+      isfinal.at(iseg+1) = true;
+    }
+
+    // Remove point from list of candidate points
+    peeksegs.erase(peeksegs.begin() + ipeek);
+    peekcurvs.erase(peekcurvs.begin() + ipeek);
+    peekpts.erase(peekpts.begin() + ipeek);
+
+    // Also remove any other candidate points that are in the same segment
+    imatch = find(peeksegs.begin(), peeksegs.end(), iseg);
+
+    while (imatch != peeksegs.end()) {
+      int irem = imatch - peeksegs.begin(); 
+
+      peeksegs.erase(peeksegs.begin() + irem);
+      peekcurvs.erase(peekcurvs.begin() + irem);
+      peekpts.erase(peekpts.begin() + irem);
+
+      imatch = find(peeksegs.begin(), peeksegs.end(), iseg);
+    }
+  }
+
+  cout << "INFO: Intermediate dominant points are" << endl;
+  for (vector< vector<int>::const_iterator>::iterator idom = dompts.begin();
+                                                      idom < dompts.end();
+                                                      idom++)
+    cout << " " << *(*idom) << " " << *(*idom+1) << " " << *(*idom+2) << endl;
+
+  // Find segment ends that have not been moved yet
+  for (vector<bool>::const_iterator ifinal = isfinal.begin();
+                                    ifinal < isfinal.end(); ifinal++)
+    if (! *ifinal) {
+      const int kdom = ifinal - isfinal.begin();
+      int lenL, lenR;
+      float curvL, curvR,
+            dshape, dshapemin = numeric_limits<double>::infinity();
+      vector<int>::const_iterator iptL = dompts.at(kdom-1),
+                                  iptR = dompts.at(kdom+1);
+      vector<float>::const_iterator icurv = mCurvature.begin() +
+                                            (iptL - mAllPoints.begin()) / 3;
+
+      // Find point in the segment between the two neighboring dominant points
+      // to split the segment into 2 subsegments with minimum difference in
+      // "shape index" (to balance the subsegments' total curvature and length)
+      lenL = mingap;
+      lenR = (iptR-iptL)/3 - mingap;
+
+      curvL = accumulate(icurv + 1, icurv + mingap - 1, 0.0);
+      curvR = accumulate(icurv + mingap + 1, icurv + (iptR-iptL)/3, 0.0);
+
+      iptL += 3*mingap;
+      iptR -= 3*mingap;
+      icurv += mingap;
+
+      for (vector<int>::const_iterator ipt = iptL; ipt <= iptR; ipt += 3) {
+        dshape = fabs( (lenL - lenR) / (float) lentot +
+                       (curvL - curvR) / curvtot );
+
+        if (dshape < dshapemin) {
+          dompts.at(kdom) = ipt;
+          dshape = dshapemin;
+        }
+
+        lenL++;
+        lenR--;
+
+        curvL += *icurv;
+        curvR -= *(icurv+1);
+
+        icurv++;
+      }
+    }
+
+  cout << "INFO: Final dominant points are" << endl;
+  for (vector< vector<int>::const_iterator>::iterator idom = dompts.begin();
+                                                      idom < dompts.end();
+                                                      idom++)
+    cout << " " << *(*idom) << " " << *(*idom+1) << " " << *(*idom+2) << endl;
+
+  // Parameterize the curve based on these dominant points
+  for (int kdom = 1; kdom < mNumControl; kdom++) {
+    const int seglen = (int) (dompts.at(kdom) - dompts.at(kdom-1)) / 3;
+    const float ds = 1.0 / seglen;
+    float s = kdom - 1.0;
+
+    for (int kpt = seglen; kpt > 0; kpt--) {
+      *iarc = s;
+      s += ds;
+      iarc++;
+    }
+  }
+
+  *iarc = (float) (mNumControl - 1);
+
+  CatmullRomFit(InputPoints, arcparam);
+
+  success = InterpolateSpline();
+
+  // If spline interpolation after fitting to these dominant points fails,
+  // default to equidistant dominant points
+  if (!success) {
+    cout << "WARN: Defaulting to equidistant dominant points" << endl;
+
+    CatmullRomFit(InputPoints);
+
+    success = InterpolateSpline();
+  }
+
+  return success;
 }
 
 //
@@ -839,15 +1038,37 @@ void Spline::CatmullRomDerivative2(vector<float> &InterpDerivative,
 }
 
 //
-// Fit Catmull-Rom spline to a curve
+// Least-squares fit of a Catmull-Rom spline to a set points,
+// given the coordinates of the points but no user-specified parameterization
+// (default to parameterizing the curve based on equidistant dominant points)
 //
 void Spline::CatmullRomFit(const vector<int> &InputPoints) {
   const int npts = (int) InputPoints.size() / 3;
   const float smax = (float) (mNumControl - 1),
               ds = smax / (npts - 1);
-  float s = ds; 
+  float s = 0.0;
+  vector<float> arcparam(npts);
+
+  for (vector<float>::iterator iarc = arcparam.begin(); iarc < arcparam.end();
+                                                        iarc++) {
+    *iarc = s;
+    s += ds;
+  }
+
+  CatmullRomFit(InputPoints, arcparam);
+}
+
+//
+// Least-squares fit of a Catmull-Rom spline to a set of points,
+// given the coordinates of the points and the respective arc length
+// parameter values, which should be reals in the interval [0, mNumControl-1]
+//
+void Spline::CatmullRomFit(const vector<int> &InputPoints,
+                           const vector<float> &ArcLengthParameter) {
+  const int npts = (int) InputPoints.size() / 3;
   vector<int>::const_iterator ipt = InputPoints.begin() + 3;
   vector<int>::iterator icpt;
+  vector<float>::const_iterator iarc = ArcLengthParameter.begin() + 1;
   MATRIX *A = NULL, *Ap = NULL, *y = NULL, *x = NULL;
 
   // Fit all but the first and last control points,
@@ -858,8 +1079,8 @@ void Spline::CatmullRomFit(const vector<int> &InputPoints) {
   x  = MatrixAlloc(mNumControl-2, 3, MATRIX_REAL);
 
   for (int irow = 1; irow < npts-1; irow++) {
-    const int idx = (int) floor(s);
-    const float t = s - floor(s),
+    const int idx = (int) floor(*iarc);
+    const float t = *iarc - floor(*iarc),
                 t2 = t*t,
                 t3 = t2*t,
                 a = -.5*(t3 + t) + t2,
@@ -931,7 +1152,7 @@ void Spline::CatmullRomFit(const vector<int> &InputPoints) {
       A->rptr[irow][idx+2] = d;
     }
 
-    s += ds;
+    iarc++;
   }
 
   // Find least-squares fit of all control points but the first and last

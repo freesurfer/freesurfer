@@ -8,8 +8,8 @@
  * Original Author: Anastasia Yendiki
  * CVS Revision Info:
  *    $Author: ayendiki $
- *    $Date: 2012/07/03 19:58:29 $
- *    $Revision: 1.5 $
+ *    $Date: 2012/07/18 16:44:56 $
+ *    $Revision: 1.6 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -41,6 +41,7 @@ double round(double x);
 #include <math.h>
 #include <stdlib.h>
 #include <time.h>
+#include <limits.h>
 
 #include "error.h"
 #include "diag.h"

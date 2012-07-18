@@ -27,6 +27,9 @@
 #include <string>
 #include <iostream>
 #include <fstream>
+#include <numeric>
+#include <algorithm>
+#include <limits>
 #include <math.h>
 #include "mri.h"
 
@@ -96,6 +99,8 @@ class Spline {
                                std::vector<int>::const_iterator ControlPoint3,
                                std::vector<int>::const_iterator ControlPoint4);
     void CatmullRomFit(const std::vector<int> &InputPoints);
+    void CatmullRomFit(const std::vector<int> &InputPoints,
+                       const std::vector<float> &ArcLengthParameter);
     bool IsInMask(std::vector<int>::const_iterator Point);
 };
 
