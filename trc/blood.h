@@ -129,6 +129,7 @@ class Blood {
     void ComputeAnatomyPrior(bool UseTruncated);
     void ComputeCurvaturePrior(bool UseTruncated);
     void FindPointsOnStreamline(std::vector<int> &Streamline, int NumPoints);
+    bool FindPointsOnStreamlineLS(std::vector<int> &Streamline, int NumPoints);
     bool FindPointsOnStreamlineComb(std::vector<int> &Streamline,
                                     int NumPoints);
     void TryControlPoint(double &HausDistMin,

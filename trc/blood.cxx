@@ -1069,7 +1069,8 @@ void Blood::ComputePriors() {
                                      incpt < mNumControls.end(); incpt++) {
       cout << "Selecting " << *incpt << " points on center streamline" << endl;
       //FindPointsOnStreamline(mCenterStreamline, *incpt);
-      if (!FindPointsOnStreamlineComb(mCenterStreamline, *incpt)) {
+      //if (!FindPointsOnStreamlineComb(mCenterStreamline, *incpt)) {
+      if (!FindPointsOnStreamlineLS(mCenterStreamline, *incpt)) {
         cout << "WARN: Could not find satisfactory control point fit - try "
              << itry << endl;
         retry = true;
@@ -1901,7 +1902,7 @@ void Blood::ComputeCurvaturePrior(bool UseTruncated) {
         // Quadratic approximation of tangent and normal vectors from 3 points
         for (int k = 0; k < 3; k++) {
           tang[k] = (*(ipt + offset) - *(ipt - offset)) / 2.0;
-          norm[k] = *(ipt + offset) - 2 * (*ipt) - *(ipt - offset);
+          norm[k] = *(ipt + offset) - 2 * (*ipt) + *(ipt - offset);
           ipt++;
         }
 
@@ -2690,6 +2691,124 @@ void Blood::TryControlPoint(double &HausDistMin,
         HausDistMin = hd;
       }
     }
+}
+
+//
+// Least-squares fit of spline control points to streamline
+//
+bool Blood::FindPointsOnStreamlineLS(vector<int> &Streamline, int NumPoints) {
+  bool success;
+  const int strlen = (int) Streamline.size() / 3;
+  vector<int> cpts(NumPoints*3);
+  vector<int>::const_iterator ipt;
+  Spline spline(NumPoints, mTestMask); 
+
+  if (NumPoints > strlen) {
+    cout << "ERROR: Selected streamline has fewer than " << NumPoints
+         << " points" << endl;
+    exit(1);
+  }
+
+  // Least-squares fitting of spline control points
+  success = spline.FitControlPoints(Streamline);
+
+  // Don't allow spline if any point is too far from true streamline
+  // or if more than 3 contiguous points are in low FA
+  // or if more than 10% of all points are off the histogram
+  if (success) {
+    const int splen = (spline.GetAllPointsEnd() -
+                       spline.GetAllPointsBegin()) / 3;
+    int nhzeros = 0, nfzeros = 0;
+    double hd = 0.0, dmin = numeric_limits<double>::infinity();
+
+    // Find Hausdorff distance of true streamline from fitted spline
+    for (vector<int>::const_iterator ipt = spline.GetAllPointsBegin();
+                                     ipt < spline.GetAllPointsEnd();
+                                     ipt += 3) {
+      const float h = MRIgetVoxVal(mHistoStr, ipt[0], ipt[1], ipt[2], 0),
+                  f = (mTestFa ? 
+                      MRIgetVoxVal(mTestFa, ipt[0], ipt[1], ipt[2], 0) : 1.0);
+
+      dmin = numeric_limits<double>::infinity();
+
+      if (f < 0.1) {		 	// Point is in low anisotropy area
+        nfzeros++;
+
+        if (nfzeros > 3)
+          break;
+      }
+      else
+        nfzeros = 0;
+
+      // Point distance from true streamline
+      for (vector<int>::const_iterator iptrue = Streamline.begin();
+                                       iptrue < Streamline.end();
+                                       iptrue += 3) {
+        const int dx = ipt[0] - iptrue[0],
+                  dy = ipt[1] - iptrue[1],
+                  dz = ipt[2] - iptrue[2];
+        const double dist = sqrt(dx*dx + dy*dy + dz*dz);
+
+        if (dist < dmin)
+          dmin = dist;
+      }
+
+      if (dmin > 5)			// Point is far from true streamline
+        break;
+
+      if (dmin > hd)
+        hd = dmin;
+
+      if (h < 4.0)			// Point is off histogram
+        nhzeros++;
+    }
+
+    if (dmin > 5 || nfzeros > 3 || nhzeros > (int) (.1 * splen))
+      success = false;
+  }
+
+  if (success) {
+    ipt = spline.GetControlPointsBegin();
+    for (vector<int>::iterator icpt = cpts.begin(); icpt < cpts.end(); icpt++) {
+      *icpt = *ipt;
+      ipt++;
+    }
+  }
+  else {		// If fitting fails, I'll use equidistant points
+    const int strdiv = (int) round((strlen-1) / (NumPoints-1));
+
+    cout << "WARN: Defaulting to equidistant control points" << endl;
+
+    ipt = Streamline.begin();
+    for (vector<int>::iterator icpt = cpts.begin(); icpt < cpts.end() - 3;
+                                                    icpt += 3) {
+      copy(ipt, ipt+3, icpt);
+      ipt += strdiv*3;
+    }
+    copy(Streamline.end()-3, Streamline.end(), cpts.end()-3);
+  }
+
+  cout << "INFO: Selected control points are" << endl;
+  for (vector<int>::const_iterator icpt = cpts.begin(); icpt < cpts.end();
+                                                        icpt += 3)
+    cout << " " << icpt[0] << " " << icpt[1] << " " << icpt[2] << endl;
+
+  cout << "INFO: Distances between consecutive points are";
+  for (vector<int>::const_iterator icpt = cpts.begin() + 3; icpt < cpts.end();
+                                                            icpt += 3) {
+    const int dx = icpt[0] - icpt[-3],
+              dy = icpt[1] - icpt[-2],
+              dz = icpt[2] - icpt[-1];
+
+    cout << " " << round(sqrt(dx*dx + dy*dy + dz*dz));
+  }
+  cout << endl;
+
+  mControlPoints.push_back(cpts);
+
+  ComputeStreamlineSpread(cpts);
+
+  return success;
 }
 
 //
