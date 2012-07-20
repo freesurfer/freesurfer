@@ -7,9 +7,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: mreuter $
-#    $Date: 2012/07/17 21:15:22 $
-#    $Revision: 1.423 $
+#    $Author: greve $
+#    $Date: 2012/07/20 19:27:44 $
+#    $Revision: 1.424 $
 #
 # Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -26,7 +26,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.423 2012/07/17 21:15:22 mreuter Exp $';
+set VERSION = '$Id: recon-all,v 1.424 2012/07/20 19:27:44 greve Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -3488,7 +3488,7 @@ if($DoWMParc) then
   set cmd = (mri_segstats)
 #  if($UseCuda) set cmd = (mri_segstats_cuda)
   set cmd = ($cmd --seg mri/wmparc.mgz --sum stats/wmparc.stats \
-    --pv mri/norm.mgz --excludeid 0 --brain-vol-from-seg  \
+    --pv mri/norm.mgz --excludeid 0 \
     --brainmask mri/brainmask.mgz --in mri/norm.mgz --in-intensity-name norm \
     --in-intensity-units MR --subject $subjid --surf-wm-vol \
     --ctab $FREESURFER_HOME/WMParcStatsLUT.txt )
