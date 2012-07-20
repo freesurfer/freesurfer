@@ -8,8 +8,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2012/05/21 20:32:42 $
- *    $Revision: 1.11 $
+ *    $Date: 2012/07/20 23:31:17 $
+ *    $Revision: 1.12 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -54,7 +54,7 @@ public:
   static MRI * getBlur(MRI* mriS, MRI* mriT);
   static MRI * subSample(MRI * mri_src, MRI * mri_dst = NULL, bool fixheader = false);
   static MRI * entropyImage( MRI * mri, int radius, int sigma ); 
-  static MRI * entropyImage( MRI * mri, int radius ); 
+  static MRI * entropyImage( MRI * mri, int radius, bool ball = false ); 
   static MRI * nlsdImage(MRI * mri, int prad, int nrad);
   static double noiseVar(MRI * mri);
 
@@ -79,7 +79,7 @@ private:
 	static bool isConform(MRI *mri);
 
   static MATRIX* MRIgetZslice(MRI * mri, int slice);
-  static double entropyPatch(MRI * mri, int x, int y, int z, int radius, int nbins, MRI* kernel);
+  static double entropyPatch(MRI * mri, int x, int y, int z, int radius, int nbins, MRI* kernel,bool ball = false);
 	
 };
 

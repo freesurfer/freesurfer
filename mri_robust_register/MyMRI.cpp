@@ -8,8 +8,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2012/05/25 22:55:45 $
- *    $Revision: 1.17 $
+ *    $Date: 2012/07/20 23:31:17 $
+ *    $Revision: 1.18 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -455,11 +455,21 @@ bool MyMRI::getPartials(MRI* mri, MRI* & outfx, MRI* & outfy, MRI* &outfz, MRI* 
   int klen = mri_prefilter->width ;
   int whd[3] = {MRI_WIDTH ,MRI_HEIGHT, MRI_DEPTH};
 
-  MRI* mdz =  MRIconvolve1d(mri, NULL, &MRIFvox(mri_derfilter, 0, 0, 0), klen, whd[3-1], 0, 0) ;
-  //MRI* mdz   = convolute(mri,mri_derfilter,3);
+  MRI* mdz;
+  MRI* mbz;
+  if (mri->depth > 1)
+  {
+    mdz =  MRIconvolve1d(mri, NULL, &MRIFvox(mri_derfilter, 0, 0, 0), klen, whd[3-1], 0, 0) ;
+    //MRI* mdz   = convolute(mri,mri_derfilter,3);
 
-  MRI* mbz =  MRIconvolve1d(mri, NULL, &MRIFvox(mri_prefilter, 0, 0, 0), klen, whd[3-1], 0, 0) ;
-  //MRI* mbz   = convolute(mri,mri_prefilter,3);
+    mbz =  MRIconvolve1d(mri, NULL, &MRIFvox(mri_prefilter, 0, 0, 0), klen, whd[3-1], 0, 0) ;
+    //MRI* mbz   = convolute(mri,mri_prefilter,3);
+  }
+  else
+  {
+    mdz = MRIcopy(mri,NULL);
+    mbz = MRIcopy(mri,NULL);
+  }
 
   MRI* mdzby = MRIconvolve1d(mdz, NULL, &MRIFvox(mri_prefilter, 0, 0, 0), klen, whd[2-1], 0, 0) ;
   //MRI* mdzby = convolute(mdz,mri_prefilter,2);
@@ -697,7 +707,7 @@ MRI * MyMRI::gaussianCube(int size)
   return g;
 }
 
-double MyMRI::entropyPatch(MRI * mri, int x, int y, int z, int radius, int nbins, MRI* kernel)
+double MyMRI::entropyPatch(MRI * mri, int x, int y, int z, int radius, int nbins, MRI* kernel, bool ball)
 // expects uchar image between 0..(nbins-1) intensity values
 {
   //int width  = mri->width;
@@ -729,6 +739,7 @@ double MyMRI::entropyPatch(MRI * mri, int x, int y, int z, int radius, int nbins
   int minI = MRIvox(mri, x, y, z); 
   int maxI = minI;
   int index,dx,dy,dz,zp,yp,xp;
+  double r2 = radius*radius;
   //cout << " minI: " << minI << " maxI: " << maxI << " float: " << MRIgetVoxVal(mri,x,y,z,0) << endl;
   for (zp = zMin; zp <= zMax; zp++)
   {
@@ -737,12 +748,17 @@ double MyMRI::entropyPatch(MRI * mri, int x, int y, int z, int radius, int nbins
       for (xp = xMin; xp <= xMax; xp++)
       {
       //cout <<  xp << " " << yp << " " << zp << endl;
-        index = MRIvox(mri, xp, yp, zp);
-        if (index < minI) minI = index;
-        if (index > maxI) maxI = index;
         dx = xp - xMin;
         dy = yp - yMin;
         dz = zp - zMin;
+        if (ball)
+        {
+          if (dx*dx+dy*dy+dz*dz > r2)
+             continue;
+        }
+        index = MRIvox(mri, xp, yp, zp);
+        if (index < minI) minI = index;
+        if (index > maxI) maxI = index;
         //assert(index>=0);
         //assert(index<nbins);
         histo[ index ] += MRIFvox(kernel,dx,dy,dz);
@@ -1199,7 +1215,7 @@ MRI * MyMRI::nlsdImage(MRI * mri, int prad, int nrad)
 //   return nlsdI;
 // }
 
-MRI * MyMRI::entropyImage(MRI* mri, int radius )
+MRI * MyMRI::entropyImage(MRI* mri, int radius, bool ball )
 {
 
   int nbins = 64;
@@ -1339,6 +1355,7 @@ MRI * MyMRI::entropyImage(MRI* mri, int radius )
   int pos=0;
   unsigned char index=0;
   x=0; y=0;
+  int r2 = radius*radius;
 #ifdef HAVE_OPENMP
 #pragma omp parallel for firstprivate(y,x,o,histo,count,zz,yy,xx,pos,index,histosum,entropy,etmp) shared(depth,height,width,radius,entI,nbins,ssize,xmax,ymax,zmax,mriIn,g) schedule(static,1)
 #endif
@@ -1379,19 +1396,31 @@ MRI * MyMRI::entropyImage(MRI* mri, int radius )
         count = 0;
         int zstart = 0;
         int zend = ssize;
+        int z2=0,y2=0,x2=0;
         if (depth == 1)
         {
           zstart = radius;
           zend   = zstart+1;
         }
         for (zz = zstart; zz < zend; zz++)
-        for (yy = 0; yy < ssize; yy++)
-        for (xx = 0; xx < ssize; xx++)
         {
-          pos = (x+xx-radius)+ ((y+yy-radius) + (z+zz-radius)*height) * width;
-          index = mriIn[pos];
-          histo[ index ] += g[count];
-          count++;
+          if (ball) z2 = zz*zz - r2;
+          for (yy = 0; yy < ssize; yy++)
+          {
+            if (ball) y2 = z2 + yy*yy;
+            for (xx = 0; xx < ssize; xx++)
+            {
+              if (ball)
+              {
+                x2 = y2 + xx*xx;
+                if (x2 > 0) continue;
+              }
+              pos = (x+xx-radius)+ ((y+yy-radius) + (z+zz-radius)*height) * width;
+              index = mriIn[pos];
+              histo[ index ] += g[count];
+              count++;
+            }
+          }
         }
         
         histosum = 0.0;
