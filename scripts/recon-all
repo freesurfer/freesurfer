@@ -7,9 +7,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: greve $
-#    $Date: 2012/07/20 19:27:44 $
-#    $Revision: 1.424 $
+#    $Author: mreuter $
+#    $Date: 2012/07/20 23:24:53 $
+#    $Revision: 1.425 $
 #
 # Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -26,7 +26,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.424 2012/07/20 19:27:44 greve Exp $';
+set VERSION = '$Id: recon-all,v 1.425 2012/07/20 23:24:53 mreuter Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -3166,7 +3166,8 @@ foreach hemi ($hemilist)
   endif
 
   # ---------- WM/GM Contrast (pctsurfcon) ---------------------------
-  if($DoPctSurfCon) then
+  # skip in base (as rawavg does not exist)
+  if($DoPctSurfCon && ( ! $DoCreateBaseSubj )) then
     echo "#-----------------------------------------" \
       |& tee -a $LF |& tee -a $CF
     echo "#@# WM/GM Contrast $hemi `date`" \
