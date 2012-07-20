@@ -12,8 +12,8 @@
  * Original Author: Dougas N Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2012/07/18 19:25:40 $
- *    $Revision: 1.87 $
+ *    $Date: 2012/07/20 18:48:23 $
+ *    $Revision: 1.88 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -110,7 +110,7 @@ int DumpStatSumTable(STATSUMENTRY *StatSumTable, int nsegid);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-  "$Id: mri_segstats.c,v 1.87 2012/07/18 19:25:40 greve Exp $";
+  "$Id: mri_segstats.c,v 1.88 2012/07/20 18:48:23 greve Exp $";
 char *Progname = NULL, *SUBJECTS_DIR = NULL, *FREESURFER_HOME=NULL;
 char *SegVolFile = NULL;
 char *InVolFile = NULL;
@@ -1056,22 +1056,17 @@ int main(int argc, char **argv)
   }
   printf("Reporting on %3d segmentations\n",nsegid);
 
-  if(BrainVolFromSeg)
-  {
+  if(BrainVolFromSeg) {
+    printf("Computing BrainVolFromSeg\n");
     brainsegvolume2 = 0.0;
-    for(n=0; n < nsegid; n++)
-    {
+    for(n=0; n < nsegid; n++)   {
       id = StatSumTable[n].id;
-      if(!IS_BRAIN(id))
-      {
-        continue ;
-      }
-      if(IS_CSF(id) || IS_CSF_CLASS(id))
-      {
-        continue;
-      }
+      if(!IS_BRAIN(id) && (id < 251 && id > 255) ) continue ;
+      if(IS_CSF(id) || IS_CSF_CLASS(id)) continue;
       brainsegvolume2 += StatSumTable[n].vol;
     }
+    brainsegvolume2 += (lhctxvol+rhctxvol+lhwhitevol+rhwhitevol);
+    printf("BrainVolFromSeg = %g\n",brainsegvolume2);
   }
   if(DoSubCortGrayVol)
   {
