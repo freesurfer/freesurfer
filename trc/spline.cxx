@@ -249,11 +249,13 @@ bool Spline::FitControlPoints(const vector<int> &InputPoints) {
   // to ensure that control points end up fairly spread out along the length
   // of the streamline
   for (vector< vector<int>::const_iterator>::iterator idom = dompts.begin();
-                                                      idom < dompts.end();
+                                                      idom < dompts.end() - 1;
                                                       idom++) {
     *idom = mAllPoints.begin() + 3 * (int) ceil(s);
     s += seglen;
   }
+
+  *(dompts.end() - 1) = mAllPoints.end() - 3;		// Last point
 
   // Find points where local peeks in curvature occur
   cout << "INFO: Points where local peeks in curvature occur are" << endl;
