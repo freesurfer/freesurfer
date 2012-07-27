@@ -8,8 +8,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2012/06/12 19:47:25 $
- *    $Revision: 1.83 $
+ *    $Date: 2012/07/27 15:41:46 $
+ *    $Revision: 1.84 $
  *
  * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -23,7 +23,7 @@
  *
  */
 
-char *MRI_INFO_VERSION = "$Revision: 1.83 $";
+char *MRI_INFO_VERSION = "$Revision: 1.84 $";
 
 #include <stdio.h>
 #include <sys/stat.h>
@@ -58,7 +58,7 @@ static void print_help(void) ;
 static void print_version(void) ;
 
 static char vcid[] =
-  "$Id: mri_info.c,v 1.83 2012/06/12 19:47:25 greve Exp $";
+  "$Id: mri_info.c,v 1.84 2012/07/27 15:41:46 greve Exp $";
 
 char *Progname ;
 static char *inputlist[100];
@@ -105,6 +105,7 @@ static int PrintStats = 0;
 static int PrintVoxel = 0;
 static int PrintAutoAlign = 0;
 static int PrintCmds = 0;
+static int PrintDump = 0;
 static int VoxelCRS[3];
 static FILE *fpout;
 static int PrintToFile = 0;
@@ -203,6 +204,10 @@ static int parse_commandline(int argc, char **argv)
     else if (!strcasecmp(option, "--version"))
     {
       print_version() ;
+    }
+    else if (!strcasecmp(option, "--dump"))
+    {
+      PrintDump = 1;
     }
     else if (!strcasecmp(option, "--zero-cras"))
     {
@@ -454,7 +459,7 @@ static void print_usage(void)
   printf("USAGE: %s fname1 <fname2> <options> \n",Progname) ;
   printf("\n");
   printf("   --conformed : print whether a volume is conformed stdout\n");
-  printf("   --type : print the voxel type (e.g. FLOAT) to stdout\n");
+  printf("   --type : print the voxel type/precision (e.g. FLOAT) to stdout\n");
   printf("   --tr : print TR to stdout\n");
   printf("   --te : print TE to stdout\n");
   printf("   --ti : print TI to stdout\n");
@@ -492,6 +497,7 @@ static void print_usage(void)
   printf("   --slicedirection : primary slice direction (eg, axial)\n");
   printf("   --autoalign : print auto align matrix (if it exists)\n");
   printf("   --cmds : print command-line provenance info\n");
+  printf("   --dump : print FA, TR, TE, TI, etc \n");
   printf("   --voxel c r s : dump voxel value from col row slice "
          "(0-based, all frames)\n");
   printf("   --entropy : compute and print entropy \n");
@@ -624,6 +630,32 @@ static void do_file(char *fname)
     mri->c_s = 0;
   }
 
+  if (PrintDump){
+    fprintf(fpout,"FA %g\n",DEGREES(mri->flip_angle));
+    fprintf(fpout,"TR %g\n",mri->tr);
+    fprintf(fpout,"TE %g\n",mri->te);
+    fprintf(fpout,"TI %g\n",mri->ti);
+    fprintf(fpout,"Dim %d %d %d %d\n",
+            mri->width,mri->height,mri->depth,mri->nframes);
+    fprintf(fpout,"Res %5.3f %5.3f %5.3f %5.3f\n",
+            mri->xsize,mri->ysize,mri->zsize,mri->tr);
+    m = MRIgetVoxelToRasXform(mri) ;
+    fprintf(fpout,"Det %g\n",MatrixDeterminant(m));
+    MatrixFree(&m) ;
+    MRIdircosToOrientationString(mri,ostr);
+    fprintf(fpout,"Orientation %s\n",ostr);
+    fprintf(fpout,"SliceDir %s\n",MRIsliceDirectionName(mri));
+    fprintf(fpout,"Precision ");
+    switch (mri->type){
+    case MRI_UCHAR: fprintf(fpout,"uchar\n") ;  break ;
+    case MRI_FLOAT: fprintf(fpout,"float\n") ;  break ;
+    case MRI_LONG:  fprintf(fpout,"long\n") ;   break ;
+    case MRI_SHORT: fprintf(fpout,"short\n") ;  break ;
+    case MRI_INT:   fprintf(fpout,"int\n") ;    break ;
+    case MRI_TENSOR: fprintf(fpout,"tensor\n") ; break ;
+    }
+    return;
+  }
   if (PrintTR)
   {
     fprintf(fpout,"%g\n",mri->tr);
