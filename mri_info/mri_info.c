@@ -7,9 +7,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2012/07/27 15:41:46 $
- *    $Revision: 1.84 $
+ *    $Author: fischl $
+ *    $Date: 2012/07/27 18:13:32 $
+ *    $Revision: 1.85 $
  *
  * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -23,7 +23,7 @@
  *
  */
 
-char *MRI_INFO_VERSION = "$Revision: 1.84 $";
+char *MRI_INFO_VERSION = "$Revision: 1.85 $";
 
 #include <stdio.h>
 #include <sys/stat.h>
@@ -58,7 +58,7 @@ static void print_help(void) ;
 static void print_version(void) ;
 
 static char vcid[] =
-  "$Id: mri_info.c,v 1.84 2012/07/27 15:41:46 greve Exp $";
+  "$Id: mri_info.c,v 1.85 2012/07/27 18:13:32 fischl Exp $";
 
 char *Progname ;
 static char *inputlist[100];
@@ -588,6 +588,8 @@ static void do_file(char *fname)
   GCA_MORPH *gcam;
   ostr[4] = '\0';
   ext = fio_extension(fname);
+  if (ext == NULL)
+    ErrorExit(ERROR_UNSUPPORTED, "%s: could not parse extension from %s", Progname, fname) ;
   if (!(strstr(ext, "m3d") == 0 && strstr(ext, "m3z") == 0
      && strstr(ext, "M3D") == 0 && strstr(ext, "M3Z") == 0)){
     fprintf(fpout,"Input file is a 3D morph.\n");
@@ -659,17 +661,28 @@ static void do_file(char *fname)
   if (PrintTR)
   {
     fprintf(fpout,"%g\n",mri->tr);
-    return;
+//    return;
   }
   if (PrintTE)
   {
     fprintf(fpout,"%g\n",mri->te);
-    return;
+//    return;
   }
+  if (PrintFlipAngle)
+  {
+    fprintf(fpout,"%g\n",mri->flip_angle);
+//    return;
+  }
+  if (PrintFlipAngleDeg)
+  {
+    fprintf(fpout,"%g\n",DEGREES(mri->flip_angle));
+//    return;
+  }
+
   if (PrintConformed)
   {
     fprintf(fpout,"%s\n",mriConformed(mri) ? "yes" : "no");
-    return;
+//    return;
   }
 
   if (PrintType)
@@ -702,19 +715,12 @@ static void do_file(char *fname)
   if (PrintTI)
   {
     fprintf(fpout,"%g\n",mri->ti);
-    return;
+//    return;
   }
 
-  if (PrintFlipAngle)
-  {
-    fprintf(fpout,"%g\n",mri->flip_angle);
-    return;
-  }
-  if (PrintFlipAngleDeg)
-  {
-    fprintf(fpout,"%g\n",DEGREES(mri->flip_angle));
-    return;
-  }
+  if (PrintTR || PrintTE || PrintFlipAngle || PrintFlipAngleDeg || PrintType || PrintTI)
+    return ;
+
   if(PrintPEDir)
   {
     if(mri->pedir)
