@@ -8,8 +8,8 @@
 # Original Author: Anastasia Yendiki
 # CVS Revision Info:
 #    $Author: ayendiki $
-#    $Date: 2011/09/22 21:45:52 $
-#    $Revision: 1.35 $
+#    $Date: 2012/07/27 05:08:43 $
+#    $Revision: 1.36 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -25,7 +25,7 @@
 
 umask 002
 
-set VERSION = '$Id: trac-preproc,v 1.35 2011/09/22 21:45:52 ayendiki Exp $'
+set VERSION = '$Id: trac-preproc,v 1.36 2012/07/27 05:08:43 ayendiki Exp $'
 set ProgName = `basename $0`
 set inputargs = ($argv)
 
@@ -1228,7 +1228,9 @@ if ($dopriors) then
         if ($usetrunc) then
           set cmd = ($cmd --trunc)
         endif
-        set cmd = ($cmd --debug)
+        if ($debug) then
+          set cmd = ($cmd --debug)
+        endif
         echo $cmd |& tee -a $LF |& tee -a $CF
         if ($RunIt) then
           $fs_time $cmd |& tee -a $LF
