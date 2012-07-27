@@ -11,9 +11,9 @@
 /*
  * Original Author: Martin Sereno and Anders Dale, 1996
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2012/07/16 23:17:49 $
- *    $Revision: 1.360 $
+ *    $Author: greve $
+ *    $Date: 2012/07/27 16:35:25 $
+ *    $Revision: 1.361 $
  *
  * Copyright (C) 2002-2011, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA).
@@ -2595,6 +2595,13 @@ int  main(int argc,char *argv[])
     else if (!stricmp(argv[i], "-aparc"))
     {
       strncpy (annotation_fname, "aparc.annot", sizeof(annotation_fname));
+      load_annotation = TRUE;
+      labl_draw_style = LABL_STYLE_OUTLINE;
+      nargs = 1 ;
+    }
+    else if (!stricmp(argv[i], "-a2009s"))
+    {
+      strncpy (annotation_fname, "aparc.a2009s.annot", sizeof(annotation_fname));
       load_annotation = TRUE;
       labl_draw_style = LABL_STYLE_OUTLINE;
       nargs = 1 ;
@@ -19512,6 +19519,7 @@ print_help_tksurfer(void)
 
   printf("-annotation <filename> : load an annotation\n");
   printf("-aparc : set annotation to aparc.annot and use outline mode\n");
+  printf("-a2009s : set annotation to aparc.a2009s.annot and use outline mode\n");
   printf("-snap <filename> : save initial view to <filename> and exit\n");
   printf("-colortable <filename> : load a color table file\n");
   printf("-labels-under : display labels under any overlay\n");
@@ -21603,7 +21611,7 @@ int main(int argc, char *argv[])   /* new main */
   nargs =
     handle_version_option
     (argc, argv,
-     "$Id: tksurfer.c,v 1.360 2012/07/16 23:17:49 fischl Exp $", "$Name:  $");
+     "$Id: tksurfer.c,v 1.361 2012/07/27 16:35:25 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
