@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl (Apr 16, 1997)
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2012/07/11 17:50:50 $
- *    $Revision: 1.196 $
+ *    $Author: greve $
+ *    $Date: 2012/07/27 16:05:48 $
+ *    $Revision: 1.197 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -44,6 +44,7 @@
 #include "fsgdf.h"
 #include "cma.h"
 #include "fsinit.h"
+#include "fio.h"
 
 
 /* ----- determines tolerance of non-orthogonal basis vectors ----- */
@@ -207,7 +208,7 @@ int main(int argc, char *argv[])
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mri_convert.c,v 1.196 2012/07/11 17:50:50 fischl Exp $",
+   "$Id: mri_convert.c,v 1.197 2012/07/27 16:05:48 greve Exp $",
    "$Name:  $",
    cmdline);
 
@@ -329,7 +330,7 @@ int main(int argc, char *argv[])
     handle_version_option
     (
       argc, argv,
-      "$Id: mri_convert.c,v 1.196 2012/07/11 17:50:50 fischl Exp $",
+      "$Id: mri_convert.c,v 1.197 2012/07/27 16:05:48 greve Exp $",
       "$Name:  $"
     );
   if (nargs && argc - nargs == 1)
@@ -1567,10 +1568,11 @@ int main(int argc, char *argv[])
     else                   in_volume_type = mri_identify(in_name_only);
     if(in_volume_type == MRI_VOLUME_TYPE_UNKNOWN){
       errno = 0;
-      ErrorPrintf(ERROR_BADFILE,
-		  "file not found or unknown file type for file %s",
-		  in_name_only);
-      if (in_like_flag) MRIfree(&mri_in_like);
+      if(!fio_FileExistsReadable(in_name_only))
+	printf("ERROR: file %s does not exist\n",in_name_only);
+      else
+	printf("ERROR: cannot determine file type for %s \n",in_name_only);
+      if(in_like_flag) MRIfree(&mri_in_like);
       exit(1);
     }
   }
@@ -1589,7 +1591,7 @@ int main(int argc, char *argv[])
             "= --zero_ge_z_offset option ignored.\n");
   }
 
-  printf("$Id: mri_convert.c,v 1.196 2012/07/11 17:50:50 fischl Exp $\n");
+  printf("$Id: mri_convert.c,v 1.197 2012/07/27 16:05:48 greve Exp $\n");
   printf("reading from %s...\n", in_name_only);
 
   if (in_volume_type == MGH_MORPH)
