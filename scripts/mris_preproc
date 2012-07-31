@@ -10,9 +10,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: greve $
-#    $Date: 2012/02/11 04:21:51 $
-#    $Revision: 1.63 $
+#    $Author: mreuter $
+#    $Date: 2012/07/31 23:16:39 $
+#    $Revision: 1.64 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -29,7 +29,7 @@
 #
 setenv FIX_VERTEX_AREA
 
-set VERSION = '$Id: mris_preproc,v 1.63 2012/02/11 04:21:51 greve Exp $';
+set VERSION = '$Id: mris_preproc,v 1.64 2012/07/31 23:16:39 mreuter Exp $';
 
 set PrintHelp = 0;
 set subjlist = ();
@@ -394,6 +394,28 @@ while( $#argv != 0 )
         exit 1;
       endif
       set sl = `cat $fsgdf | awk '{if($1 == "Input") print $2}'`;
+      set subjlist = ($subjlist $sl);
+      breaksw
+
+    case "--qdec-long":
+      if ( $#argv == 0) goto arg1err;
+      set fsgdf = $argv[1]; shift;
+      if(! -e $fsgdf) then
+        echo "ERROR: cannot find $fsgdf";
+        exit 1;
+      endif
+      set sl = `cat $fsgdf | awk '{if ($1 != "fsid" && substr($1,0,1) != "#") printf("%s.long.%s\n", $1, $2)}'`;
+      set subjlist = ($subjlist $sl);
+      breaksw
+
+    case "--qdec":
+      if ( $#argv == 0) goto arg1err;
+      set fsgdf = $argv[1]; shift;
+      if(! -e $fsgdf) then
+        echo "ERROR: cannot find $fsgdf";
+        exit 1;
+      endif
+      set sl = `cat $fsgdf | awk '{if ($1 != "fsid" && substr($1,0,1) != "#") print $1}'`;
       set subjlist = ($subjlist $sl);
       breaksw
 
@@ -1113,6 +1135,18 @@ for more info. For use with --meas.
 
 List all subjects separated by white space in subjlistfile. This is just an
 alternative to using an fsgd file. For use with --meas.
+
+--qdec qdectable
+
+Specify list of subjects via qdec table file. It is assumed that the first column
+is the "fsid" (subject id). Rows starting with "#" are skipped.
+
+--qdec-long qdectable
+
+Specify list of subjects via longitudinal qdec table file. It is assumed that the
+first column is the "fsid" (subject_tp id) and the second is "fsid-base" that
+specifies the base name (fixed per subject). Internally longitudinal subject ids 
+are created as <fsid>.long.<fsid-base>. Rows starting with "#" are skipped. 
 
 --is surfmeasfile
 
