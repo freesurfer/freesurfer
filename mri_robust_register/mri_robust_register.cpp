@@ -10,8 +10,8 @@
  * Original Author: Martin Reuter, Nov. 4th ,2008
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2012/07/05 21:34:47 $
- *    $Revision: 1.64 $
+ *    $Date: 2012/07/31 22:33:04 $
+ *    $Revision: 1.65 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -25,6 +25,7 @@
  *
  */
 
+#include <algorithm>
 #include <string>
 #include <iostream>
 #include <fstream>
@@ -129,6 +130,7 @@ struct Parameters
   int    entroradius;
   string entmov;
   string entdst;
+  bool   entball;
 };
 static struct Parameters P =
 {
@@ -182,7 +184,8 @@ static struct Parameters P =
   false,
   ERADIUS,
   "",
-  ""
+  "",
+  false
 };
 
 
@@ -190,7 +193,7 @@ static void printUsage(void);
 static bool parseCommandLine(int argc, char *argv[],Parameters & P) ;
 static void initRegistration(Registration & R, Parameters & P) ;
 
-static char vcid[] = "$Id: mri_robust_register.cpp,v 1.64 2012/07/05 21:34:47 mreuter Exp $";
+static char vcid[] = "$Id: mri_robust_register.cpp,v 1.65 2012/07/31 22:33:04 mreuter Exp $";
 char *Progname = NULL;
 
 //static MORPH_PARMS  parms ;
@@ -1499,8 +1502,8 @@ static void initRegistration(Registration & R, Parameters & P)
     struct timeb start ;
     int    msec,minutes,seconds;
     TimerStart(&start) ;
-    cout << "Converting mov to entropy image (box radius " << P.entroradius << " ) ... (can take 1-2 min)" <<endl;
-    mri_mov = MyMRI::entropyImage(temp,P.entroradius);
+    cout << "Converting mov to entropy image (radius " << P.entroradius << " ) ... (can take 1-2 min)" <<endl;
+    mri_mov = MyMRI::entropyImage(temp,P.entroradius,P.entball);
     if (P.entmov != "")
       MRIwrite(mri_mov,P.entmov.c_str());
     msec = TimerStop(&start) ;
@@ -1542,8 +1545,8 @@ static void initRegistration(Registration & R, Parameters & P)
   if (P.entropy)
   {
     MRI * temp = mri_dst;
-    cout << "Converting dst to entropy image (box radius " << P.entroradius << " ) ... (can take 1-2 min)" <<endl;
-    mri_dst = MyMRI::entropyImage(temp,P.entroradius);
+    cout << "Converting dst to entropy image (radius " << P.entroradius << " ) ... (can take 1-2 min)" <<endl;
+    mri_dst = MyMRI::entropyImage(temp,P.entroradius,P.entball);
     if (P.entdst != "")
       MRIwrite(mri_dst,P.entdst.c_str());
     MRIfree(&temp);
@@ -1774,6 +1777,8 @@ static int parseNextCommand(int argc, char *argv[], Parameters & P)
   else if (!strcmp(option, "COST")  )
   {
     string cost(argv[1]);
+    std::transform(cost.begin(), cost.end(),cost.begin(), ::toupper);
+
     nargs = 1;
     if (cost == "LS") P.cost = Registration::LS;
     else if (cost == "ROB") P.cost = Registration::ROB;
@@ -1806,6 +1811,12 @@ static int parseNextCommand(int argc, char *argv[], Parameters & P)
     P.entdst = string(argv[1]);
     nargs = 1 ;
     cout << "--entdst: Output entropy dst image as " << P.entdst << endl;
+  }
+  else if (!strcmp(option, "ENTBALL")  )
+  {
+    P.entball = true;
+    nargs = 0 ;
+    cout << "--entball: Using ball instead of local boxes. " <<endl;
   }
   else if (!strcmp(option, "ENTMOV")  )
   {
