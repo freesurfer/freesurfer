@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl (Apr 16, 1997)
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2012/07/27 16:05:48 $
- *    $Revision: 1.197 $
+ *    $Author: mreuter $
+ *    $Date: 2012/07/31 22:45:20 $
+ *    $Revision: 1.198 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -189,6 +189,7 @@ int main(int argc, char *argv[])
   int LeftRightReversePix = FALSE;
   int LeftRightMirrorFlag = FALSE;  // mirror half of the image
   char LeftRightMirrorHemi[STRLEN]; // which half to mirror (lh, rh)
+  int LeftRightKeepFlag = FALSE;  // keep half of the image
   int LeftRightSwapLabel = FALSE;
   int FlipCols = FALSE;
   int SliceReverse = FALSE;
@@ -208,7 +209,7 @@ int main(int argc, char *argv[])
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mri_convert.c,v 1.197 2012/07/27 16:05:48 greve Exp $",
+   "$Id: mri_convert.c,v 1.198 2012/07/31 22:45:20 mreuter Exp $",
    "$Name:  $",
    cmdline);
 
@@ -330,7 +331,7 @@ int main(int argc, char *argv[])
     handle_version_option
     (
       argc, argv,
-      "$Id: mri_convert.c,v 1.197 2012/07/27 16:05:48 greve Exp $",
+      "$Id: mri_convert.c,v 1.198 2012/07/31 22:45:20 mreuter Exp $",
       "$Name:  $"
     );
   if (nargs && argc - nargs == 1)
@@ -375,6 +376,17 @@ int main(int argc, char *argv[])
           (strcmp(LeftRightMirrorHemi,"rh") != 0))
       {
         printf("ERROR: pass either 'lh' or 'rh' with --left-right-mirror!\n");
+        exit(1);
+      }
+    }
+    else if(strcmp(argv[i], "--left-right-keep") == 0)
+    {
+      LeftRightKeepFlag = 1;
+      get_string(argc, argv, &i, LeftRightMirrorHemi);
+      if( (strcmp(LeftRightMirrorHemi,"lh") != 0) && 
+          (strcmp(LeftRightMirrorHemi,"rh") != 0))
+      {
+        printf("ERROR: pass either 'lh' or 'rh' with --left-right-keep!\n");
         exit(1);
       }
     }
@@ -1591,7 +1603,7 @@ int main(int argc, char *argv[])
             "= --zero_ge_z_offset option ignored.\n");
   }
 
-  printf("$Id: mri_convert.c,v 1.197 2012/07/27 16:05:48 greve Exp $\n");
+  printf("$Id: mri_convert.c,v 1.198 2012/07/31 22:45:20 mreuter Exp $\n");
   printf("reading from %s...\n", in_name_only);
 
   if (in_volume_type == MGH_MORPH)
@@ -1945,20 +1957,23 @@ int main(int argc, char *argv[])
   }
   
   
-  if(LeftRightMirrorFlag) //(mr, 2012-03-08)
+  if(LeftRightMirrorFlag || LeftRightKeepFlag) //(mr, 2012-03-08)
   {
     // Mirror one half of the image into the other half (left-right)
     // the split point is at the middle of the dimension that is 
     // most left-right oriented. The header geometry is not changed
-    printf("WARNING: Mirroring %s half into the other half.\n"
-           "This is only meaningful if image is upright and centerd,\n"
-           "see make_upright.\n",LeftRightMirrorHemi);
+    // If LeftRightKeep, then don't mirror but fill with zero and
+    // only keep the specified hemisphere
+    printf("WARNING: Mirroring %s half into the other half,\n"
+           "or masking one half of the image is only meaningful if\n"
+           "the image is upright and centerd, see make_upright.\n",LeftRightMirrorHemi);
 
     MRIdircosToOrientationString(mri,ostr);
     printf("  Orientation string: %s\n",ostr);
     mri2 = MRIcopy(mri,NULL);
+    v=0;
     if(ostr[0] == 'L' || ostr[0] == 'R'){
-      printf("  Mirror pixels for the columns\n");
+      printf("  Mirror or keep pixels for the columns\n");
       for(c=0; c < mri->width/2; c++){
         c1 = c;
         if (ostr[0] == toupper(LeftRightMirrorHemi[0])) {
@@ -1968,7 +1983,8 @@ int main(int argc, char *argv[])
         for(r=0; r < mri->height; r++){
           for(s=0; s < mri->depth; s++){
             for(f=0; f < mri->nframes; f++){
-              v = MRIgetVoxVal(mri,c1,r,s,f);
+              if (LeftRightMirrorFlag)
+                v = MRIgetVoxVal(mri,c1,r,s,f);
               MRIsetVoxVal(mri2,c2,r,s,f,v);
             }
           }
@@ -1976,7 +1992,7 @@ int main(int argc, char *argv[])
       }
     }
     if(ostr[1] == 'L' || ostr[1] == 'R') {
-      printf("  Mirror pixels for the rows\n");
+      printf("  Mirror or keep pixels for the rows\n");
       for(c=0; c < mri->width; c++){
         for(r=0; r < mri->height/2; r++){
           r1 = r;
@@ -1986,7 +2002,8 @@ int main(int argc, char *argv[])
           r2 = mri->height - r1 - 1;
           for(s=0; s < mri->depth; s++){
             for(f=0; f < mri->nframes; f++){
-              v = MRIgetVoxVal(mri,c,r1,s,f);
+              if (LeftRightMirrorFlag)
+                v = MRIgetVoxVal(mri,c,r1,s,f);
               MRIsetVoxVal(mri2,c,r2,s,f,v);
             }
           }
@@ -1994,7 +2011,7 @@ int main(int argc, char *argv[])
       }
     }
     if(ostr[2] == 'L' || ostr[2] == 'R') {
-      printf("  Mirror pixels for the slices\n");
+      printf("  Mirror or keep pixels for the slices\n");
       for(c=0; c < mri->width; c++){
         for(r=0; r < mri->height; r++){
           for(s=0; s < mri->depth/2; s++){
@@ -2004,7 +2021,8 @@ int main(int argc, char *argv[])
             }
             s2 = mri->depth - s1 - 1;
             for(f=0; f < mri->nframes; f++){
-              v = MRIgetVoxVal(mri,c,r,s1,f);
+              if (LeftRightMirrorFlag)
+                v = MRIgetVoxVal(mri,c,r,s1,f);
               MRIsetVoxVal(mri2,c,r,s2,f,v);
             }
           }
