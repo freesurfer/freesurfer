@@ -104,6 +104,7 @@ make_average_subcort \
 make_cortex_label \
 make_upright \
 make_symmetric \
+make_hemi_mask \
 make-segvol-table \
 map_all_labels \
 map_all_labels-lh \

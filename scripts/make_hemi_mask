@@ -1,0 +1,70 @@
+#!/bin/csh -f
+
+#
+# make_hemi_mask
+#
+# Registers head/brian image to the left/right reversed into midspace
+#   to make the image upright and straight, then keep only specified
+#   hemi and map back to original space
+#
+# Original Author: Martin Reuter
+# CVS Revision Info:
+#    $Author: mreuter $
+#    $Date: 2012/07/31 23:15:55 $
+#    $Revision: 1.1 $
+#
+# Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+#
+# Terms and conditions for use, reproduction, distribution and contribution
+# are found in the 'FreeSurfer Software License Agreement' contained
+# in the file 'LICENSE' found in the FreeSurfer distribution, and here:
+#
+# https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
+#
+# Reporting: freesurfer@nmr.mgh.harvard.edu
+#
+#
+
+set VERSION = '$Id: make_hemi_mask,v 1.1 2012/07/31 23:15:55 mreuter Exp $';
+
+
+if ( $#argv < 4 ) then
+	echo 
+	echo "   Usage: make_hemi_mask hemi input.mgz output.mgz map.lta"
+  echo  
+  echo "   Description: "
+  echo "    Registers input to the left/right reversed version using "
+  echo "    mri_robust_register making use of the half-way space. This results"
+  echo "    in an upright, forward facing head position. Then keep only selected"
+  echo "    hemi ('lh' or 'rh'). The transform map.lta is also"
+  echo "    written that maps the input to the upright space."
+  echo  
+  echo "   Reference:"
+  echo "    Highly Accurate Inverse Consistent Registration: A Robust Approach, M."
+  echo "    Reuter, H.D. Rosas, B. Fischl.  NeuroImage 53(4):1181-1196, 2010."
+  echo "    DOI-Link http://dx.doi.org/10.1016/j.neuroimage.2010.07.020 "
+  echo "    Pre-Print http://reuter.mit.edu/papers/reuter-robreg10.pdf "
+	echo
+  echo $VERSION
+  echo
+	exit 1;
+endif
+
+set hemi     = $argv[1]
+set infile   = $argv[2]
+set outfile  = $argv[3]
+set maplta   = $argv[4]
+set tmpupright = `mktemp -p ./`
+rm $tmpupright
+set tmpupright = ${tmpupright}.mgz
+
+set cmd = "make_upright $infile $tmpupright $maplta"
+eval $cmd
+
+set cmd = "mri_convert $tmpupright $outfile --left-right-keep $hemi "
+eval $cmd
+
+rm -rf $tmpupright
+
+echo "make_hemi_mask done"
+echo
