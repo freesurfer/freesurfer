@@ -8,8 +8,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2012/07/20 23:31:17 $
- *    $Revision: 1.18 $
+ *    $Date: 2012/07/31 22:37:33 $
+ *    $Revision: 1.19 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -748,9 +748,9 @@ double MyMRI::entropyPatch(MRI * mri, int x, int y, int z, int radius, int nbins
       for (xp = xMin; xp <= xMax; xp++)
       {
       //cout <<  xp << " " << yp << " " << zp << endl;
-        dx = xp - xMin;
-        dy = yp - yMin;
-        dz = zp - zMin;
+        dx = xp - xMin - radius;
+        dy = yp - yMin - radius;
+        dz = zp - zMin - radius;
         if (ball)
         {
           if (dx*dx+dy*dy+dz*dz > r2)
@@ -1386,7 +1386,7 @@ MRI * MyMRI::entropyImage(MRI* mri, int radius, bool ball )
           }        
         }
            
-        // inside compute entropy in box:
+        // inside compute entropy in box or ball:
 
         // init histo
         for ( o = 0; o < nbins; o++)
@@ -1394,28 +1394,35 @@ MRI * MyMRI::entropyImage(MRI* mri, int radius, bool ball )
         
         // compute histo
         count = 0;
-        int zstart = 0;
-        int zend = ssize;
+        int zstart = -radius;
+        int zend = radius+1;
         int z2=0,y2=0,x2=0;
+        int yp=0,zp=0;
         if (depth == 1)
         {
-          zstart = radius;
-          zend   = zstart+1;
+          zstart = 0;
+          zend   = 1;
         }
         for (zz = zstart; zz < zend; zz++)
         {
           if (ball) z2 = zz*zz - r2;
-          for (yy = 0; yy < ssize; yy++)
+          zp = (z+zz)*height;
+          for (yy = -radius; yy <= radius; yy++)
           {
             if (ball) y2 = z2 + yy*yy;
-            for (xx = 0; xx < ssize; xx++)
+            yp= ((y+yy)+zp) * width;
+            for (xx = -radius; xx <= radius; xx++)
             {
               if (ball)
               {
                 x2 = y2 + xx*xx;
-                if (x2 > 0) continue;
+                if (x2 > 0)
+                {
+                  //cout << " continue : " << zz << " " << yy << " " << xx << " " << radius << " " << x2 << endl;
+                  continue;
+                }
               }
-              pos = (x+xx-radius)+ ((y+yy-radius) + (z+zz-radius)*height) * width;
+              pos = (x+xx)+ yp;
               index = mriIn[pos];
               histo[ index ] += g[count];
               count++;
