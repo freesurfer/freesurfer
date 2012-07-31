@@ -8,8 +8,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2012/07/05 23:15:26 $
- *    $Revision: 1.6 $
+ *    $Date: 2012/07/31 23:13:15 $
+ *    $Revision: 1.7 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -96,7 +96,7 @@ static struct Parameters P =
 static void printUsage(void);
 static bool parseCommandLine(int argc, char *argv[],Parameters & P) ;
 
-static char vcid[] = "$Id: mri_create_tests.cpp,v 1.6 2012/07/05 23:15:26 mreuter Exp $";
+static char vcid[] = "$Id: mri_create_tests.cpp,v 1.7 2012/07/31 23:13:15 mreuter Exp $";
 char *Progname = NULL;
 
 
@@ -445,7 +445,7 @@ MatrixPrintFmt(stdout,"% 2.8f",lta->xforms[0].m_L); cout << endl <<endl;
 	if (P.ltaouts != "")
 	{
      cout << " OUTPUT LTA (input -> new source) : " << P.ltaouts<< endl;
-	   lta->xforms[0].m_L =  MatrixCopy(a,lta->xforms[0].m_L);
+	   lta->xforms[0].m_L =  MatrixCopy(ai,lta->xforms[0].m_L);
      // add src and dst info
      getVolGeom(mriS, &lta->xforms[0].src);
      getVolGeom(mriS, &lta->xforms[0].dst);
@@ -455,7 +455,7 @@ MatrixPrintFmt(stdout,"% 2.8f",lta->xforms[0].m_L); cout << endl <<endl;
 	if (P.ltaoutt != "")
 	{
      cout << " OUTPUT LTA (input -> new target) : " << P.ltaoutt<< endl;
-	   lta->xforms[0].m_L =  MatrixCopy(ai,lta->xforms[0].m_L);
+	   lta->xforms[0].m_L =  MatrixCopy(a,lta->xforms[0].m_L);
      // add src and dst info
      getVolGeom(mriT, &lta->xforms[0].src);
      getVolGeom(mriT, &lta->xforms[0].dst);
@@ -502,8 +502,11 @@ static void printUsage(void)
 
   cout << "Optional arguments" << endl << endl;
   cout << "  --int  intvol.mgz      input target volume to be modified" << endl;
-	cout << "                           Must be in same space as invol.mgz" << endl;
-  cout << "  --lta-in lta           apply lta (transform)" << endl;
+	cout << "                           must be in same space as invol.mgz" << endl;
+  cout << "                           default: use invol to create outtarget" << endl;
+  cout << "  --lta-in lta           specify lta for mapping input to outtarget" << endl;
+  cout << "                           (inverse will be used to create outsource)" << endl;
+  cout << "                           cannot be used with --rotation or --translation" << endl;
   cout << "  --mask mask.mgz        mask src mri with mask.mgz" << endl;
   cout << "  --noise <float>        add global Gaussian noise" << endl;
   cout << "  --outlier <int>        add <int> outlier voxel randomly" << endl;
@@ -517,6 +520,15 @@ static void printUsage(void)
 	cout << "  --lta-outt lta         write half way lta for target" << endl;
 	cout << "  --iscale-out <string>  write used intensity scaling parameter" << endl;
 	
+
+  cout << endl << endl;
+  cout << " If --translation and/or --rotation is specified, a matrix A is generated " << endl;
+  cout << " (for mapping the input to the outtarget), then the input is also mapped via " << endl;
+  cout << " the inverse of A to outsource. Therefore, --lta-out is A*A (the map from" << endl;
+  cout << " outsource to outtarget), --lta-outs is Inv(A) and --lta-outt is A." << endl;
+  cout << " If the same transform is to be applied to a different input image, " << endl;
+  cout << " you need to first output the --lta-outt (A) and then pass it for the " << endl;
+  cout << " different input via --lta-in in a subsequent call." <<endl;
 
   cout << endl << endl;
 
