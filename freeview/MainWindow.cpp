@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2012/08/06 20:35:55 $
- *    $Revision: 1.219 $
+ *    $Date: 2012/08/06 20:32:58 $
+ *    $Revision: 1.218 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -1042,7 +1042,6 @@ void MainWindow::OnIdle()
   ui->actionCloseVolume     ->setEnabled( !bBusy && layerVolume ); 
   ui->actionCloseTrack      ->setEnabled( !bBusy && layerTrack );
   ui->actionReloadVolume    ->setEnabled( !bBusy && layerVolume );
-  ui->actionReloadSurface    ->setEnabled( !bBusy && layerSurface );
   ui->actionCreateOptimalCombinedVolume->setEnabled( GetLayerCollection("MRI")->GetNumberOfLayers() > 1 );
   ui->actionCycleLayer      ->setEnabled( lc && lc->GetNumberOfLayers() > 1 );
   ui->actionReverseCycleLayer      ->setEnabled( lc && lc->GetNumberOfLayers() > 1 );
