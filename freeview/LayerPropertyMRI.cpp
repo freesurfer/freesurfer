@@ -12,8 +12,8 @@
  * Reimplemented by: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2012/03/14 16:58:21 $
- *    $Revision: 1.11 $
+ *    $Date: 2012/08/06 20:32:57 $
+ *    $Revision: 1.12 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -252,6 +252,61 @@ QVariantMap LayerPropertyMRI::GetSettings()
   map["RememberFrameSettings"] = m_bRememberFrameSettings;
   map["FrameSettings"] = m_frameSettings;
   return map;
+}
+
+QVariantMap LayerPropertyMRI::GetFullSettings()
+{
+  QVariantMap map = GetSettings();
+  map["ColorMapType"] = mColorMapType;
+  map["MinContourThreshold"] = mMinContourThreshold;
+  map["MaxContourThreshold"] = mMaxContourThreshold;
+
+  map["DisplayVector"] = m_bDisplayVector;
+  map["VectorInversion"] = m_nVectorInversion;
+  map["VectorRepresentation"] = m_nVectorRepresentation;
+
+  map["DisplayTensor"] = m_bDisplayTensor;
+  map["TensorInversion"] = m_nTensorInversion;
+  map["TensorRepresentation"] = m_nTensorRepresentation;
+
+  map["Opacity"] = this->mOpacity;
+
+  return map;
+}
+
+void LayerPropertyMRI::RestoreFullSettings(const QVariantMap &map)
+{
+  if (map.contains("ColorMapType"))
+    mColorMapType = map["ColorMapType"].toInt();
+
+  if (map.contains("MinContourThreshold"))
+    mMinContourThreshold = map["MinContourThreshold"].toDouble();
+
+  if (map.contains("MaxContourThreshold"))
+    mMaxContourThreshold = map["MaxContourThreshold"].toDouble();
+
+  if (map.contains("DisplayVector"))
+    m_bDisplayVector = map["DisplayVector"].toBool();
+
+  if (map.contains("VectorInversion"))
+    m_nVectorInversion = map["VectorInversion"].toInt();
+
+  if (map.contains("VectorRepresentation"))
+    m_nVectorRepresentation = map["VectorRepresentation"].toInt();
+
+  if (map.contains("DisplayTensor"))
+    m_bDisplayTensor = map["DisplayTensor"].toBool();
+
+  if (map.contains("TensorInversion"))
+    m_nTensorInversion = map["TensorInversion"].toInt();
+
+  if (map.contains("TensorRepresentation"))
+    m_nTensorRepresentation = map["TensorRepresentation"].toInt();
+
+  if (map.contains("Opacity"))
+    mOpacity = map["Opacity"].toDouble();
+
+  RestoreSettings(map);
 }
 
 QVariantMap LayerPropertyMRI::GetActiveSettings()

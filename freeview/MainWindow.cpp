@@ -6,9 +6,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2012/07/10 20:39:32 $
- *    $Revision: 1.217 $
+ *    $Author: rpwang $
+ *    $Date: 2012/08/06 20:35:55 $
+ *    $Revision: 1.219 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -89,6 +89,7 @@
 #include "FSGroupDescriptor.h"
 #include "WindowGroupPlot.h"
 #include "DialogLoadSurfaceOverlay.h"
+#include "DialogReloadLayer.h"
 
 MainWindow::MainWindow( QWidget *parent, MyCmdLineParser* cmdParser ) :
   QMainWindow( parent ),
@@ -1040,6 +1041,8 @@ void MainWindow::OnIdle()
   ui->actionCloseSurface    ->setEnabled( !bBusy && layerSurface );
   ui->actionCloseVolume     ->setEnabled( !bBusy && layerVolume ); 
   ui->actionCloseTrack      ->setEnabled( !bBusy && layerTrack );
+  ui->actionReloadVolume    ->setEnabled( !bBusy && layerVolume );
+  ui->actionReloadSurface    ->setEnabled( !bBusy && layerSurface );
   ui->actionCreateOptimalCombinedVolume->setEnabled( GetLayerCollection("MRI")->GetNumberOfLayers() > 1 );
   ui->actionCycleLayer      ->setEnabled( lc && lc->GetNumberOfLayers() > 1 );
   ui->actionReverseCycleLayer      ->setEnabled( lc && lc->GetNumberOfLayers() > 1 );
@@ -3496,12 +3499,12 @@ void MainWindow::LoadVolumeFile( const QString& filename,
   m_threadIOWorker->LoadVolume( layer );
 }
 
-void MainWindow::OnCloseVolume()
+bool MainWindow::OnCloseVolume()
 {
   LayerMRI* layer = (LayerMRI*)GetActiveLayer( "MRI" );
   if ( !layer )
   {
-    return;
+    return false;
   }
   if ( layer->IsModified() )
   {
@@ -3509,7 +3512,7 @@ void MainWindow::OnCloseVolume()
                                 "Volume has been modifed and not been saved. Do you still want to continue?",
                                 QMessageBox::Yes, QMessageBox::No ) == QMessageBox::No )
     {
-      return;
+      return false;
     }
   }
   GetLayerCollection( "MRI" )->RemoveLayer( layer );
@@ -3517,6 +3520,7 @@ void MainWindow::OnCloseVolume()
   {
     m_layerVolumeRef = (LayerMRI*)GetActiveLayer("MRI");
   }
+  return true;
 }
 
 void MainWindow::OnNewVolume()
@@ -4172,6 +4176,8 @@ void MainWindow::OnIOError( Layer* layer, int jobtype )
     QMessageBox::warning( this, "Error", msg + "overlay." );
   }
   m_bProcessing = false;
+  m_volumeSettings.clear();
+  m_surfaceSettings.clear();
 }
 
 void MainWindow::OnIOFinished( Layer* layer, int jobtype )
@@ -4226,6 +4232,11 @@ void MainWindow::OnIOFinished( Layer* layer, int jobtype )
     m_strLastDir = QFileInfo( layer->GetFileName() ).canonicalPath();
     SetCurrentFile( layer->GetFileName(), 0 );
 //    ui->tabWidgetControlPanel->setCurrentWidget( ui->tabVolume );
+    if (!m_volumeSettings.isEmpty())
+    {
+      mri->GetProperty()->RestoreFullSettings(m_volumeSettings);
+      m_volumeSettings.clear();
+    }
   }
   else if ( jobtype == ThreadIOWorker::JT_SaveVolume && layer->IsTypeOf( "MRI" ) )
   {
@@ -4272,6 +4283,11 @@ void MainWindow::OnIOFinished( Layer* layer, int jobtype )
     m_strLastDir = QFileInfo( layer->GetFileName() ).canonicalPath();
     SetCurrentFile( layer->GetFileName(), 1 );
 //    ui->tabWidgetControlPanel->setCurrentWidget( ui->tabSurface );
+    if (!m_surfaceSettings.isEmpty())
+    {
+      sf->GetProperty()->RestoreFullSettings(m_surfaceSettings);
+      m_surfaceSettings.clear();
+    }
     if (UpdateSurfaceCorrelation((LayerSurface*)layer) )
     {
       emit SlicePositionChanged();
@@ -5403,4 +5419,49 @@ void MainWindow::SetSplinePicking(bool b)
 {
   if (b != m_bSplinePicking)
     ToggleSplinePicking();
+}
+
+void MainWindow::OnReloadVolume()
+{
+  LayerMRI* mri = qobject_cast<LayerMRI*>(this->GetActiveLayer("MRI"));
+  if (mri)
+  {
+    DialogReloadLayer dlg;
+    QString name = mri->GetName();
+    QString filename = mri->GetFileName();
+    QString reg_fn = mri->GetRegFileName();
+    if (dlg.Execute(name, "Volume", filename) == QDialog::Accepted)
+    {
+      m_volumeSettings = mri->GetProperty()->GetFullSettings();
+      if (dlg.GetCloseLayerFirst())
+      {
+        if (!OnCloseVolume())
+        {
+          m_volumeSettings.clear();
+          return;
+        }
+      }
+      this->LoadVolumeFile(filename, reg_fn);
+    }
+  }
+}
+
+void MainWindow::OnReloadSurface()
+{
+  LayerSurface* surf = qobject_cast<LayerSurface*>(this->GetActiveLayer("Surface"));
+  if (surf)
+  {
+    DialogReloadLayer dlg;
+    QString name = surf->GetName();
+    QString filename = surf->GetFileName();
+    if (dlg.Execute(name, "Surface", filename) == QDialog::Accepted)
+    {
+      m_surfaceSettings = surf->GetProperty()->GetFullSettings();
+      if (dlg.GetCloseLayerFirst())
+      {
+        OnCloseSurface();
+      }
+      this->LoadSurfaceFile(filename);
+    }
+  }
 }

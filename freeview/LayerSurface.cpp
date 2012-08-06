@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2012/06/27 18:58:40 $
- *    $Revision: 1.73 $
+ *    $Date: 2012/08/06 20:32:58 $
+ *    $Revision: 1.74 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -124,7 +124,7 @@ LayerSurface::LayerSurface( LayerMRI* ref, QObject* parent ) : LayerEditable( pa
 
   LayerPropertySurface* p = GetProperty();
   connect( p, SIGNAL(ColorMapChanged()), this, SLOT(UpdateColorMap()) ),
-           connect( p, SIGNAL(OpacityChanged(double)), this, SLOT(UpdateOpacity()) );
+  connect( p, SIGNAL(OpacityChanged(double)), this, SLOT(UpdateOpacity()) );
   connect( p, SIGNAL(EdgeThicknessChanged(int)), this, SLOT(UpdateEdgeThickness()) );
   connect( p, SIGNAL(VectorPointSizeChanged(int)), this, SLOT(UpdateVectorPointSize()) );
   connect( p, SIGNAL(RenderModeChanged(int)), this, SLOT(UpdateRenderMode()) );

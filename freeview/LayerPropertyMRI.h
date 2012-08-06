@@ -11,8 +11,8 @@
  * Reimplemented by: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2012/01/10 17:46:15 $
- *    $Revision: 1.8 $
+ *    $Date: 2012/08/06 20:32:57 $
+ *    $Revision: 1.9 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -83,10 +83,12 @@ public:
 
   QVariantMap GetSettings();
   QVariantMap GetActiveSettings();
+  QVariantMap GetFullSettings();
   void CopySettings  ( const LayerPropertyMRI* p );
-  void RestoreSettings(const QVariantMap& map);
+  void RestoreSettings( const QVariantMap& map);
   void RestoreSettings( const QString& filename );
   void SaveSettings   ( const QString& filename );
+  void RestoreFullSettings( const QVariantMap& map );
 
   void SetVolumeSource( FSVolume* source );
 

@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2012/06/27 18:58:40 $
- *    $Revision: 1.119 $
+ *    $Date: 2012/08/06 20:32:58 $
+ *    $Revision: 1.120 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -195,6 +195,11 @@ public:
     return m_bSplinePicking;
   }
 
+  QVariantMap GetGeneralSettings()
+  {
+    return m_settings;
+  }
+
 Q_SIGNALS:
   void MainViewChanged( int n );
   void ViewLayoutChanged( int n );
@@ -326,12 +331,14 @@ protected slots:
   void OnSetMainView  ( QAction* );
   void OnNewVolume();
   void OnLoadVolume();
-  void OnCloseVolume();
+  bool OnCloseVolume();
   void OnSaveVolume();
+  void OnReloadVolume();
   void OnLoadDTI();
   void OnLoadTrackVolume();
   void OnLoadSurface();
   void OnCloseSurface();
+  void OnReloadSurface();
   void OnNewROI();
   void OnLoadROI();
   void OnSaveROI();
@@ -476,6 +483,9 @@ private:
   QVariantMap           m_settings;
   QPoint                m_ptBackUpPos;      // for X11 geometry hack
   QMessageBox*          m_dlgMessage;
+
+  QVariantMap           m_volumeSettings;
+  QVariantMap           m_surfaceSettings;
 };
 
 #endif // MAINWINDOW_H

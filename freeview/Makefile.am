@@ -40,6 +40,7 @@ BUILT_SOURCES = \
   ui_DialogLabelStats.h \
   ui_WindowGroupPlot.h \
   ui_DialogLoadSurfaceOverlay.h \
+  ui_DialogReloadLayer.h \
 	qtcolorpicker.moc \
 	moc_BrushProperty.cpp \
 	moc_CommandEdit.cpp \
@@ -143,6 +144,7 @@ BUILT_SOURCES = \
   moc_WidgetGroupPlot.cpp \
   moc_SurfaceSpline.cpp \
   moc_DialogLoadSurfaceOverlay.cpp \
+  moc_DialogReloadLayer.cpp \
   qrc_freeview.cpp
 
 freeview_SOURCES = $(BUILT_SOURCES) \
@@ -414,6 +416,8 @@ freeview_SOURCES = $(BUILT_SOURCES) \
   SurfaceSpline.h \
   DialogLoadSurfaceOverlay.cpp \
   DialogLoadSurfaceOverlay.h \
+  DialogReloadLayer.cpp \
+  DialogRelaodLayer.h \
 	freeview.qrc
 
 qrc_freeview.cpp: freeview.qrc

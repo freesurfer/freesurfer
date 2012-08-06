@@ -256,6 +256,7 @@
     </widget>
     <addaction name="actionNewVolume"/>
     <addaction name="actionLoadVolume"/>
+    <addaction name="actionReloadVolume"/>
     <addaction name="actionSaveVolume"/>
     <addaction name="actionCloseVolume"/>
     <addaction name="actionSaveVolumeAs"/>
@@ -264,6 +265,7 @@
     <addaction name="actionLoadTrackVolume"/>
     <addaction name="separator"/>
     <addaction name="actionLoadSurface"/>
+    <addaction name="actionReloadSurface"/>
     <addaction name="actionSaveSurface"/>
     <addaction name="actionSaveSurfaceAs"/>
     <addaction name="separator"/>
@@ -1279,6 +1281,16 @@
    </property>
    <property name="shortcut">
     <string>Alt+Shift+S</string>
+   </property>
+  </action>
+  <action name="actionReloadVolume">
+   <property name="text">
+    <string>Reload Volume...</string>
+   </property>
+  </action>
+  <action name="actionReloadSurface">
+   <property name="text">
+    <string>Reload Surface...</string>
    </property>
   </action>
  </widget>
@@ -2411,6 +2423,38 @@
     </hint>
    </hints>
   </connection>
+  <connection>
+   <sender>actionReloadVolume</sender>
+   <signal>triggered()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>OnReloadVolume()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>606</x>
+     <y>435</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>actionReloadSurface</sender>
+   <signal>triggered()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>OnReloadSurface()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>606</x>
+     <y>435</y>
+    </hint>
+   </hints>
+  </connection>
  </connections>
  <slots>
   <slot>OnLoadVolume()</slot>
@@ -2477,5 +2521,7 @@
   <slot>OnSaveROIAs()</slot>
   <slot>OnPlot()</slot>
   <slot>SetSplinePicking(bool)</slot>
+  <slot>OnReloadVolume()</slot>
+  <slot>OnReloadSurface()</slot>
  </slots>
 </ui>

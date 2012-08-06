@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2012/06/26 17:06:07 $
- *    $Revision: 1.34 $
+ *    $Date: 2012/08/06 20:32:57 $
+ *    $Revision: 1.35 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -119,6 +119,10 @@ bool Interactor2D::ProcessMouseDownEvent( QMouseEvent* event, RenderView* render
     view->RequestRedraw();
   }
 #endif
+  else if (event->button() == Qt::MidButton && (event->modifiers() & CONTROL_MODIFIER ))
+  {
+    m_bChangeSlice = true;
+  }
   else
   {
     return Interactor::ProcessMouseDownEvent( event, renderview ); // pass down the event
@@ -172,16 +176,14 @@ bool Interactor2D::ProcessMouseMoveEvent( QMouseEvent* event, RenderView* render
 
   if ( m_bChangeSlice )
   {
-    /*
     double* voxelSize = mainwnd->GetLayerCollection( "MRI" )->GetWorldVoxelSize();
     int nPlane = view->GetViewPlane();
-    double dPixelPer = -0.20;
+    double dPixelPer = -0.25;
 
     double dPosDiff =  ( ( (int)( dPixelPer * ( posY - m_nDownPosY ) ) ) / dPixelPer -
                          ( (int)( dPixelPer * ( m_nMousePosY - m_nDownPosY ) ) ) / dPixelPer )
                        * dPixelPer * voxelSize[nPlane];
-    if ( lcm->OffsetSlicePosition( nPlane, dPosDiff ) )
-    */
+    if ( mainwnd->OffsetSlicePosition( nPlane, dPosDiff ) )
     {
       m_nMousePosX = posX;
       m_nMousePosY = posY;
