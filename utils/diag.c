@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2012/05/23 17:36:46 $
- *    $Revision: 1.36 $
+ *    $Date: 2012/08/07 22:11:13 $
+ *    $Revision: 1.37 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -61,6 +61,7 @@ int Gsz = -1 ;
 
 unsigned long  Gdiag      = 0 ;
 int            Gdiag_no   = -1 ;
+int            Gdiag_no2   = -1 ;
 int Gx = -1 ;
 int Gy = -1 ;
 int Gz = -1 ;
