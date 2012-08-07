@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2012/08/07 15:20:21 $
- *    $Revision: 1.7 $
+ *    $Date: 2012/08/07 19:57:44 $
+ *    $Revision: 1.8 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -37,6 +37,9 @@ DialogRepositionSurface::DialogRepositionSurface(QWidget *parent) :
     ui(new Ui::DialogRepositionSurface)
 {
     ui->setupUi(this);
+    ui->lineEditTargetX->hide();
+    ui->lineEditTargetY->hide();
+    ui->lineEditTargetZ->hide();
 }
 
 DialogRepositionSurface::~DialogRepositionSurface()
@@ -98,6 +101,11 @@ void DialogRepositionSurface::OnApply()
 void DialogRepositionSurface::OnComboTarget( int nSel )
 {
  //
+  ui->lineEditTarget->setVisible(nSel == 0);
+  ui->lineEditTargetX->setVisible(nSel == 1);
+  ui->lineEditTargetY->setVisible(nSel == 1);
+  ui->lineEditTargetZ->setVisible(nSel == 1);
+  ui->labelHelper->setVisible(nSel == 0);
 }
 
 void DialogRepositionSurface::UpdateUI()
@@ -157,12 +165,17 @@ void DialogRepositionSurface::GetCoordinate( double* pos )
 {
   if (ui->tabWidget->currentIndex() == 0)
   {
+    /*
     QStringList list = ui->lineEditTarget->text().split(",", QString::SkipEmptyParts);
     if (list.size() < 3)
       list = ui->lineEditTarget->text().split(" ", QString::SkipEmptyParts);
 
     for ( int i = 0; i < 3; i++ )
       pos[i] = list[i].toDouble();
+    */
+    pos[0] = ui->lineEditTargetX->text().toDouble();
+    pos[1] = ui->lineEditTargetY->text().toDouble();
+    pos[2] = ui->lineEditTargetZ->text().toDouble();
   }
   else
   {
@@ -215,6 +228,7 @@ bool DialogRepositionSurface::ValidateAll()
       name = "Intensity";
     if ( ui->comboBoxTarget->currentIndex() == 1 )
     {
+      /*
       QStringList list = ui->lineEditTarget->text().split(",", QString::SkipEmptyParts);
       if (list.size() < 3)
         list = ui->lineEditTarget->text().split(" ", QString::SkipEmptyParts);
@@ -226,6 +240,16 @@ bool DialogRepositionSurface::ValidateAll()
         if (!ok)
           name = "Coordinate";
       }
+      */
+      ui->lineEditTargetX->text().toDouble(&ok);
+      if (!ok)
+        name = "Coordinate";
+      ui->lineEditTargetY->text().toDouble(&ok);
+      if (!ok)
+        name = "Coordinate";
+      ui->lineEditTargetZ->text().toDouble(&ok);
+      if (!ok)
+        name = "Coordinate";
     }
   }
   else
