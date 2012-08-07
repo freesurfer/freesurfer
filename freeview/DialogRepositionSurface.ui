@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>367</width>
-    <height>315</height>
+    <height>334</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -345,6 +345,9 @@
        <property name="autoExclusive">
         <bool>true</bool>
        </property>
+       <attribute name="buttonGroup">
+        <string>buttonGroup</string>
+       </attribute>
       </widget>
      </item>
      <item>
@@ -355,6 +358,9 @@
        <property name="autoExclusive">
         <bool>true</bool>
        </property>
+       <attribute name="buttonGroup">
+        <string>buttonGroup</string>
+       </attribute>
       </widget>
      </item>
      <item>
@@ -365,6 +371,9 @@
        <property name="autoExclusive">
         <bool>true</bool>
        </property>
+       <attribute name="buttonGroup">
+        <string>buttonGroup</string>
+       </attribute>
       </widget>
      </item>
      <item>
@@ -664,4 +673,7 @@
   <slot>OnUndo()</slot>
   <slot>OnCoordinateTypeChanged()</slot>
  </slots>
+ <buttongroups>
+  <buttongroup name="buttonGroup"/>
+ </buttongroups>
 </ui>
