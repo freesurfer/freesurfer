@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2012/08/07 15:20:21 $
- *    $Revision: 1.61 $
+ *    $Date: 2012/08/07 20:40:03 $
+ *    $Revision: 1.62 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -1603,6 +1603,9 @@ void FSSurface::Reposition( FSVolume *volume, int target_vno, double target_val,
   ComputeNormals();
   SaveNormals( m_MRIS, m_nActiveSurface );
   UpdateVerticesAndNormals();
+  if ( m_HashTable[0] )
+    MHTfree( &m_HashTable[0] );
+  m_HashTable[0] = MHTfillVertexTableRes( m_MRIS, NULL, CURRENT_VERTICES, 2.0 );
 }
 
 void FSSurface::Reposition( FSVolume *volume, int target_vno, double* coord, int nsize, double sigma, int flags )
@@ -1613,6 +1616,9 @@ void FSSurface::Reposition( FSVolume *volume, int target_vno, double* coord, int
   ComputeNormals();
   SaveNormals( m_MRIS, m_nActiveSurface );
   UpdateVerticesAndNormals();
+  if ( m_HashTable[0] )
+    MHTfree( &m_HashTable[0] );
+  m_HashTable[0] = MHTfillVertexTableRes( m_MRIS, NULL, CURRENT_VERTICES, 2.0 );
 }
 
 void FSSurface::RepositionVertex(int vno, double *coord)
@@ -1626,6 +1632,9 @@ void FSSurface::RepositionVertex(int vno, double *coord)
   ComputeNormals();
   SaveNormals( m_MRIS, m_nActiveSurface );
   UpdateVerticesAndNormals();
+  if ( m_HashTable[0] )
+    MHTfree( &m_HashTable[0] );
+  m_HashTable[0] = MHTfillVertexTableRes( m_MRIS, NULL, CURRENT_VERTICES, 2.0 );
 }
 
 void FSSurface::UndoReposition()

@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2012/08/07 19:57:44 $
- *    $Revision: 1.8 $
+ *    $Date: 2012/08/07 20:40:03 $
+ *    $Revision: 1.9 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -105,7 +105,7 @@ void DialogRepositionSurface::OnComboTarget( int nSel )
   ui->lineEditTargetX->setVisible(nSel == 1);
   ui->lineEditTargetY->setVisible(nSel == 1);
   ui->lineEditTargetZ->setVisible(nSel == 1);
-  ui->labelHelper->setVisible(nSel == 0);
+//  ui->labelHelper->setVisible(nSel == 0);
 }
 
 void DialogRepositionSurface::UpdateUI()
@@ -321,6 +321,9 @@ void DialogRepositionSurface::UpdateIntensity()
       ui->lineEditTarget->setText(QString::number(val, 'f', 2));
       OnCoordinateTypeChanged();
     }
+    ui->lineEditTargetX->setText(QString::number(ras[0], 'f', 2));
+    ui->lineEditTargetY->setText(QString::number(ras[1], 'f', 2));
+    ui->lineEditTargetZ->setText(QString::number(ras[2], 'f', 2));
   }
 }
 
