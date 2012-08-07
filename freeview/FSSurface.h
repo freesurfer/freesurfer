@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2012/06/27 18:58:40 $
- *    $Revision: 1.36 $
+ *    $Date: 2012/08/07 15:20:21 $
+ *    $Revision: 1.37 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -183,9 +183,9 @@ public:
   void UpdateVector2D( int nPlane, double slice_pos,
                        vtkPolyData* contour_polydata = NULL );
 
-  void Reposition( FSVolume* volume, int target_vnos, double target_val, int nsize, double sigma );
+  void Reposition( FSVolume* volume, int target_vnos, double target_val, int nsize, double sigma, int flags = 0 );
 
-  void Reposition( FSVolume* volume, int target_vnos, double* coord, int nsize, double sigma );
+  void Reposition( FSVolume* volume, int target_vnos, double* coord, int nsize, double sigma, int flags = 0 );
 
   void RepositionVertex( int vno, double* coord );
 

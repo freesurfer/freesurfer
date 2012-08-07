@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2012/06/27 18:58:40 $
- *    $Revision: 1.51 $
+ *    $Date: 2012/08/07 15:20:21 $
+ *    $Revision: 1.52 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -203,8 +203,8 @@ public:
 
   int GetHemisphere();
 
-  void RepositionSurface( LayerMRI* mri, int nVertex, double value, int size, double sigma );
-  void RepositionSurface( LayerMRI* mri, int nVertex, double* pos, int size, double sigma );
+  void RepositionSurface( LayerMRI* mri, int nVertex, double value, int size, double sigma, int flags = 0 );
+  void RepositionSurface( LayerMRI* mri, int nVertex, double* pos, int size, double sigma, int flags = 0 );
   void RepositionVertex( int nVertex, double* pos);
 
   void Undo();

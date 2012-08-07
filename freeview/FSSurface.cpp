@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2012/06/27 18:58:39 $
- *    $Revision: 1.60 $
+ *    $Date: 2012/08/07 15:20:21 $
+ *    $Revision: 1.61 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -1594,21 +1594,21 @@ double FSSurface::GetCurvatureValue( int nVertex )
   return m_MRIS->vertices[nVertex].curv;
 }
 
-void FSSurface::Reposition( FSVolume *volume, int target_vno, double target_val, int nsize, double sigma )
+void FSSurface::Reposition( FSVolume *volume, int target_vno, double target_val, int nsize, double sigma, int flags )
 {
   MRISsaveVertexPositions( m_MRIS, INFLATED_VERTICES );
   float fval = (float)target_val;
-  MRISrepositionSurface( m_MRIS, volume->GetMRI(), &target_vno, &fval, 1, nsize, sigma );
+  MRISrepositionSurface( m_MRIS, volume->GetMRI(), &target_vno, &fval, 1, nsize, sigma, flags );
   SaveVertices( m_MRIS, m_nActiveSurface );
   ComputeNormals();
   SaveNormals( m_MRIS, m_nActiveSurface );
   UpdateVerticesAndNormals();
 }
 
-void FSSurface::Reposition( FSVolume *volume, int target_vno, double* coord, int nsize, double sigma )
+void FSSurface::Reposition( FSVolume *volume, int target_vno, double* coord, int nsize, double sigma, int flags )
 {
   MRISsaveVertexPositions( m_MRIS, INFLATED_VERTICES );
-  MRISrepositionSurfaceToCoordinate( m_MRIS, volume->GetMRI(), target_vno, coord[0], coord[1], coord[2], nsize, sigma );
+  MRISrepositionSurfaceToCoordinate( m_MRIS, volume->GetMRI(), target_vno, coord[0], coord[1], coord[2], nsize, sigma, flags );
   SaveVertices( m_MRIS, m_nActiveSurface );
   ComputeNormals();
   SaveNormals( m_MRIS, m_nActiveSurface );

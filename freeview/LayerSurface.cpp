@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2012/08/06 20:32:58 $
- *    $Revision: 1.74 $
+ *    $Date: 2012/08/07 15:20:21 $
+ *    $Revision: 1.75 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -1535,17 +1535,17 @@ void LayerSurface::SetActiveAnnotationOutline(bool bOutline)
 }
 
 
-void LayerSurface::RepositionSurface( LayerMRI* mri, int nVertex, double value, int size, double sigma )
+void LayerSurface::RepositionSurface( LayerMRI* mri, int nVertex, double value, int size, double sigma, int flags )
 {
-  m_surfaceSource->Reposition( mri->GetSourceVolume(), nVertex, value, size, sigma );
+  m_surfaceSource->Reposition( mri->GetSourceVolume(), nVertex, value, size, sigma, flags );
   SetModified();
   m_bUndoable = true;
   emit ActorUpdated();
 }
 
-void LayerSurface::RepositionSurface( LayerMRI* mri, int nVertex, double* pos, int size, double sigma )
+void LayerSurface::RepositionSurface( LayerMRI* mri, int nVertex, double* pos, int size, double sigma, int flags )
 {
-  m_surfaceSource->Reposition( mri->GetSourceVolume(), nVertex, pos, size, sigma );
+  m_surfaceSource->Reposition( mri->GetSourceVolume(), nVertex, pos, size, sigma, flags );
   SetModified();
   m_bUndoable = true;
   emit ActorUpdated();

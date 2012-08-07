@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2012/01/04 21:20:20 $
- *    $Revision: 1.6 $
+ *    $Date: 2012/08/07 15:20:21 $
+ *    $Revision: 1.7 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -28,6 +28,7 @@
 #include "ui_DialogRepositionSurface.h"
 #include "MainWindow.h"
 #include "LayerSurface.h"
+#include "FSSurface.h"
 #include "LayerMRI.h"
 #include <QMessageBox>
 
@@ -69,7 +70,8 @@ void DialogRepositionSurface::OnApply()
         surf->RepositionSurface(mri, GetVertex(),
                                 GetIntensity(),
                                 GetNeighborSize(),
-                                GetSigma());
+                                GetSigma(),
+                                GetFlags());
       }
       else
       {
@@ -78,7 +80,8 @@ void DialogRepositionSurface::OnApply()
         surf->RepositionSurface( mri, GetVertex(),
                                        pos,
                                        GetNeighborSize(),
-                                       GetSigma() );
+                                       GetSigma(),
+                                       GetFlags());
       }
     }
     else
@@ -116,6 +119,20 @@ void DialogRepositionSurface::OnSaveAs()
 {
   MainWindow::GetMainWindow()->SaveSurfaceAs();
   UpdateUI();
+}
+
+int DialogRepositionSurface::GetFlags()
+{
+  int flags = 0;
+  if (ui->radioButtonForceDirectionIn->isChecked())
+    flags |= IPFLAG_FORCE_GRADIENT_IN;
+  else if (ui->radioButtonForceDirectionOut->isChecked())
+    flags |= IPFLAG_FORCE_GRADIENT_OUT;
+
+  if (ui->checkBoxAllowIntersection->isChecked())
+    flags |= IPFLAG_NO_SELF_INT_TEST;
+
+  return flags;
 }
 
 int DialogRepositionSurface::GetVertex()
