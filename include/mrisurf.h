@@ -9,8 +9,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2012/06/08 17:30:54 $
- *    $Revision: 1.368 $
+ *    $Date: 2012/08/07 14:44:48 $
+ *    $Revision: 1.369 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -176,6 +176,7 @@ typedef struct vertex_type_
   float theta, phi ;     /* parameterization */
   short  marked;         /* for a variety of uses */
   short  marked2 ;
+  short  marked3 ;
   char   ripflag ;
   char   border;         /* flag */
   float area, origarea, group_avg_area ;
@@ -326,6 +327,8 @@ that will
 maximize the
 positive areas */
 #define IPFLAG_NOSCALE_TOL            0x8000   // don't scale tol with navgs
+#define IPFLAG_FORCE_GRADIENT_OUT    0x10000
+#define IPFLAG_FORCE_GRADIENT_IN     0x20000
 
 #define INTEGRATE_LINE_MINIMIZE    0  /* use quadratic fit */
 #define INTEGRATE_MOMENTUM         1
@@ -436,8 +439,10 @@ typedef struct
                                  along normal */
   float   l_spring ;          /* coefficient of spring term */
   float   l_nlspring ;        /* nonlinear spring term */
+  float   l_max_spring ;      /* draws vertices towards the most distant neighbor */
   float   l_spring_norm ;     /* coefficient of normalize spring term */
   float   l_tspring ;         /* coefficient of tangential spring term */
+  float   l_nltspring ;       /* coefficient of nonlinear tangential spring term */
   float   l_nspring ;         /* coefficient of normal spring term */
   float   l_repulse ;         /* repulsize force on tessellation */
   float   l_repulse_ratio ;   /* repulsize force on tessellation */
@@ -566,6 +571,9 @@ typedef struct
   MRI          *mri_template ;
   int          which_surface ;
   float        trinarize_thresh;   // for trinarizing curvature in registration
+  int          smooth_intersections ;  // run soap bubble smoothing during surface positioning
+  int          uncompress ;            // run code to remove compressions in tessellation
+  double       min_dist ;
 }
 INTEGRATION_PARMS ;
 
@@ -931,6 +939,8 @@ double       MRIScomputeAnalyticDistanceError(MRI_SURFACE *mris, int which,
     FILE *fp);
 int          MRISzeroNegativeAreas(MRI_SURFACE *mris) ;
 int          MRIScountNegativeTriangles(MRI_SURFACE *mris) ;
+int          MRIScountMarked(MRI_SURFACE *mris, int mark_threshold) ;
+int          MRIScountTotalNeighbors(MRI_SURFACE *mris, int nsize) ;
 int          MRISstoreMeanCurvature(MRI_SURFACE *mris) ;
 int          MRISreadTetherFile(MRI_SURFACE *mris,
                                 const char *fname,
@@ -1239,6 +1249,7 @@ double MRIScomputeTotalVertexSpacingStats(MRI_SURFACE *mris, double *psigma,
 double MRIScomputeFaceAreaStats(MRI_SURFACE *mris, double *psigma,
                                 double *pmin, double *pmax);
 int MRISprintTessellationStats(MRI_SURFACE *mris, FILE *fp) ;
+int MRISprintVertexStats(MRI_SURFACE *mris, int vno, FILE *fp, int which_vertices) ;
 int MRISmergeIcosahedrons(MRI_SURFACE *mri_src, MRI_SURFACE *mri_dst) ;
 int MRISinverseSphericalMap(MRI_SURFACE *mris, MRI_SURFACE *mris_ico) ;
 
@@ -1654,6 +1665,8 @@ MRI *MRISremoveRippedFromMask(MRIS *surf, MRI *mask, MRI *outmask);
 int MRISremoveIntersections(MRI_SURFACE *mris) ;
 int MRIScopyMarkedToMarked2(MRI_SURFACE *mris) ;
 int MRIScopyMarked2ToMarked(MRI_SURFACE *mris) ;
+int MRIScopyMarkedToMarked3(MRI_SURFACE *mris) ;
+int MRIScopyMarked3ToMarked(MRI_SURFACE *mris) ;
 int MRISexpandMarked(MRI_SURFACE *mris) ;
 double MRISsmoothingArea(MRIS *mris, int vtxno, int niters);
 
@@ -2019,12 +2032,12 @@ int MRISreadMarked(MRI_SURFACE *mris, const char *sname) ;
 int MRISstoreTangentPlanes(MRI_SURFACE *mris, int which_vertices) ;
 double MRISsampleFace(MRI_SURFACE *mris, int fno, int which, double x, double y, double z, double val0, double val1, double val2);
 int MRISrepositionSurface(MRI_SURFACE *mris, MRI *mri, int *target_vnos, float *target_vals, 
-                          int nv, int nsize, double sigma)  ;
+                          int nv, int nsize, double sigma, int flags)  ;
 int MRISrepositionSurfaceToCoordinate(MRI_SURFACE *mris, MRI *mri, int target_vno, 
                                       float tx, 
                                       float ty, 
                                       float tz, 
-                                      int nsize, double sigma)  ;
+                                      int nsize, double sigma, int flags)  ;
 int face_barycentric_coords(MRI_SURFACE *mris, int fno, int which_vertices,
                             double cx, double cy, double cz, double *pl1, double *pl2, double *pl3) ;
 
@@ -2039,5 +2052,12 @@ MRI *MRIScomputeFlattenedVolume(MRI_SURFACE *mris,
                                 double outside_dist);
 int MRIStrinarizeCurvature(MRI_SURFACE *mris, float binarize_thresh) ;
 int MRISthresholdValIntoMarked(MRI_SURFACE *mris, float thresh) ;
+int MRISremoveCompressedRegions(MRI_SURFACE *mris, double min_dist) ;
+int  MRISweightedSoapBubbleVertexPositions(MRI_SURFACE *mris, int navgs) ;
+int MRIStaubinSmooth(MRI_SURFACE *mris, int niters, double lambda, double mu, int which) ;
+
+#define TAUBIN_UNIFORM_WEIGHTS   0
+#define TAUBIN_INVERSE_WEIGHTS   1
+#define TAUBIN_EDGE_WEIGHTS      2
 
 #endif // MRISURF_H
