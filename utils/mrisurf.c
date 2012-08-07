@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2012/08/07 14:44:37 $
- *    $Revision: 1.728 $
+ *    $Date: 2012/08/07 23:12:13 $
+ *    $Revision: 1.729 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -742,7 +742,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void)
 {
-  return("$Id: mrisurf.c,v 1.728 2012/08/07 14:44:37 fischl Exp $");
+  return("$Id: mrisurf.c,v 1.729 2012/08/07 23:12:13 fischl Exp $");
 }
 
 /*-----------------------------------------------------
@@ -65354,6 +65354,7 @@ MRIStaubinSmooth(MRI_SURFACE *mris, int niters, double lambda, double mu, int wh
   if (lambda < 0 || lambda > 1 || mu >= -lambda)
     ErrorReturn(ERROR_BADPARM, (ERROR_BADPARM, "MRIStaubinSmooth: mu < -lambda < 0 violated")) ;
 
+  dx = dy = dz = 0 ; // to get rid of compiler warning
   for (n = 0 ; n < niters ; n++)
   {
     for (vno = 0 ; vno < mris->nvertices ; vno++)
@@ -70886,6 +70887,8 @@ int
   INTEGRATION_PARMS parms ;
   VERTEX            *v ;
 
+  printf("flags = %x, size = %ld\n", flags, sizeof(flags)) ;
+
   memset(&parms, 0, sizeof(parms)) ;
   parms.fill_interior = 0 ; 
   parms.projection = NO_PROJECTION ;
@@ -70901,8 +70904,17 @@ int
   parms.l_tspring = 1.0f ;
   parms.l_nspring = 0.5f ;
 
-  if (flags & IPFLAG_NO_SELF_INT_TEST)
-    parms.flags |= IPFLAG_NO_SELF_INT_TEST ;
+  parms.flags |= flags ;
+  if (flags & IPFLAG_FORCE_GRADIENT_IN)
+  {
+    parms.grad_dir = -1 ;
+    printf("forcing gradient in\n") ;
+  }
+  else if (flags & IPFLAG_FORCE_GRADIENT_IN)
+  {
+    parms.grad_dir= 1 ;
+    printf("forcing gradient out\n") ;
+  }
   parms.niterations = 0 ;
   parms.write_iterations = 0 /*WRITE_ITERATIONS */;
   parms.integration_type = INTEGRATE_MOMENTUM ;
@@ -70943,21 +70955,26 @@ int MRISrepositionSurfaceToCoordinate(MRI_SURFACE *mris, MRI *mri, int target_vn
   int               vno ;
   INTEGRATION_PARMS parms ;
   VERTEX            *v ;
+  double            xv, yv, zv, val ;
 
+#define SCALE .01
+
+  printf("MRISrepositionSurfaceToCoordinate(%d, %f, %f, %f, %d, %f, %x)\n",target_vno,tx,ty,tz,nsize,sigma,flags);
   memset(&parms, 0, sizeof(parms)) ;
   parms.fill_interior = 0 ; 
   parms.projection = NO_PROJECTION ;
   parms.tol = 1e-4 ;
+  parms.n_averages = sigma*sigma*M_PI/2 ;
   parms.dt = 0.5f ;
   parms.base_dt = .1 ;
-  parms.l_spring = 1.0f ;
-  parms.l_curv = 1.0 ;
+  parms.l_spring = SCALE*1.0f ;
+  parms.l_curv = SCALE*1.0 ;
   parms.l_location = 10 ;
+  parms.flags = flags ;
   parms.l_spring = 0.0f ;
-  parms.l_curv = 1.0 ;
-  parms.l_intensity = 0.2 ;
-  parms.l_tspring = 1.0f ;
-  parms.l_nspring = 0.5f ;
+  parms.l_intensity = 0*SCALE*0.2 ;
+  parms.l_tspring = SCALE*.1f ;
+  parms.l_nspring = SCALE*0.5f ;
 
   parms.niterations = 0 ;
   parms.write_iterations = 0 /*WRITE_ITERATIONS */;
@@ -70968,20 +70985,30 @@ int MRISrepositionSurfaceToCoordinate(MRI_SURFACE *mris, MRI *mri, int target_vn
   parms.error_ratio = 50.0 /*ERROR_RATIO */;
   /*  parms.integration_type = INTEGRATE_LINE_MINIMIZE ;*/
   parms.l_surf_repulse = 0.0 ;
-  parms.l_repulse = 5 ;
+//  parms.l_repulse = SCALE*5 ;
   parms.niterations = 100 ;
   sprintf(parms.base_name, "nudge") ;
 
   for (vno = 0 ; vno < mris->nvertices ; vno++)
     mris->vertices[vno].ripflag = 1 ;
+  mris->vertices[target_vno].ripflag = 0 ;
 #if 0
   for (n = 0 ; n < nv ; n++)
     mris->vertices[target_vnos[n]].ripflag = 0 ;
-  MRISerodeRipped(mris, nsize) ;
 #endif
+  MRISerodeRipped(mris, nsize) ;
   v = &mris->vertices[target_vno] ;
   v->targx = tx ; v->targy = ty ; v->targz = tz ;
   v->val2 = sigma ;
+  MRISsurfaceRASToVoxelCached(mris, mri, tx, ty, tz, &xv, &yv, &zv) ;
+  MRIsampleVolume(mri, xv, yv, zv, &val) ;
+  printf("volume @ (%2.1f, %2.1f, %2.1f) = %2.1f\n", xv, yv, zv, val) ;
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+    if (mris->vertices[vno].ripflag == 0)
+      mris->vertices[vno].val = val ;
+
+  Gdiag |= DIAG_SHOW ;
+  Gdiag_no = target_vno ;
 
   MRISpositionSurface(mris, mri, mri, &parms) ;
   return(NO_ERROR) ;
