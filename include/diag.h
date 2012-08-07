@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:09 $
- *    $Revision: 1.23 $
+ *    $Author: fischl $
+ *    $Date: 2012/08/07 22:10:59 $
+ *    $Revision: 1.24 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -101,6 +101,7 @@ int check_finite(char *where, double what) ;
 
 extern unsigned long Gdiag ;    /* global diagnostic flag */
 extern int Gdiag_no ;           /* misc. int for diagnostics */
+extern int Gdiag_no2 ;           /* misc. int for diagnostics */
 extern int Gx ;
 extern int Gy ;
 extern int Gz ;
