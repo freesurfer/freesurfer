@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2012/08/08 16:51:18 $
- *    $Revision: 1.10 $
+ *    $Date: 2012/08/08 17:05:33 $
+ *    $Revision: 1.11 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -311,7 +311,7 @@ void DialogRepositionSurface::UpdateIntensity()
 {
   LayerMRI* mri = (LayerMRI*)MainWindow::GetMainWindow()->GetTopVisibleLayer("MRI");
   LayerSurface* surf = (LayerSurface*)MainWindow::GetMainWindow()->GetActiveLayer( "Surface" );
-  if (mri & surf)
+  if (mri && surf)
   {
     double ras[3], surf_ras[3];
     mri->GetSlicePosition(ras);
