@@ -24,8 +24,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2012/07/11 17:51:20 $
- *    $Revision: 1.83 $
+ *    $Date: 2012/08/08 15:14:52 $
+ *    $Revision: 1.84 $
  *
  * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -237,7 +237,7 @@ main(int argc, char *argv[])
 
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mri_ca_register.c,v 1.83 2012/07/11 17:51:20 fischl Exp $",
+           "$Id: mri_ca_register.c,v 1.84 2012/08/08 15:14:52 fischl Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
   {
@@ -573,9 +573,18 @@ main(int argc, char *argv[])
       x = nint(xr) ; y = nint(yr) ; z = nint(zr) ;
       if (MRIindexNotInVolume(parms.mri_twm, x, y, z) == 0)
       {
+	GC1D      *gc ;
+	int       lh ;
+
 	if (MRIvox(parms.mri_twm, x, y, z) == 0)
 	  count++ ;
 	MRIvox(parms.mri_twm, x, y, z) = 1 ;
+	lh = GCAisLeftHemisphere(gca, mri_inputs, transform, x, y, z) ;
+	gc = GCAfindSourceGC(gca, mri_inputs, transform, x, y, z, lh ? Left_Cerebral_White_Matter : Right_Cerebral_White_Matter) ;
+	if (gc)
+	  MRIsetVoxVal(mri_inputs, x, y,z, 0, gc->means[0]) ;
+	else
+	  MRIsetVoxVal(mri_inputs, x, y,z, 0, 100) ;
       }
       else
 	bad++ ;
