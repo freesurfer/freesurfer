@@ -9,9 +9,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:31 $
- *    $Revision: 1.2 $
+ *    $Author: fischl $
+ *    $Date: 2012/08/08 13:10:32 $
+ *    $Revision: 1.3 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -66,7 +66,7 @@ main(int argc, char *argv[]) {
   MRI_SURFACE  *mris ;
   MRI          *mri ;
 
-  nargs = handle_version_option (argc, argv, "$Id: mris_nudge.c,v 1.2 2011/03/02 00:04:31 nicks Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_nudge.c,v 1.3 2012/08/08 13:10:32 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -106,7 +106,7 @@ main(int argc, char *argv[]) {
   nvertices++ ;
 
   MRISerodeRipped(mris, nsize) ;
-  MRISrepositionSurface(mris, mri, target_vnos, target_vals, nvertices, nsize, sigma) ;
+  MRISrepositionSurface(mris, mri, target_vnos, target_vals, nvertices, nsize, sigma, 0) ;
 
   MRISunrip(mris) ;
   printf("writing repositioned surface to %s\n", argv[6]) ;
