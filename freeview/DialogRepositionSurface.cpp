@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2012/08/07 20:40:03 $
- *    $Revision: 1.9 $
+ *    $Date: 2012/08/08 16:51:18 $
+ *    $Revision: 1.10 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -310,10 +310,12 @@ void DialogRepositionSurface::UpdateVertex()
 void DialogRepositionSurface::UpdateIntensity()
 {
   LayerMRI* mri = (LayerMRI*)MainWindow::GetMainWindow()->GetTopVisibleLayer("MRI");
-  if (mri)
+  LayerSurface* surf = (LayerSurface*)MainWindow::GetMainWindow()->GetActiveLayer( "Surface" );
+  if (mri & surf)
   {
-    double ras[3];
+    double ras[3], surf_ras[3];
     mri->GetSlicePosition(ras);
+    surf->GetSurfaceRASAtTarget(ras, surf_ras);
     mri->RemapPositionToRealRAS(ras, ras);
     double val = mri->GetSampledVoxelValueByRAS(ras);
     if (val >= 0)
@@ -321,9 +323,9 @@ void DialogRepositionSurface::UpdateIntensity()
       ui->lineEditTarget->setText(QString::number(val, 'f', 2));
       OnCoordinateTypeChanged();
     }
-    ui->lineEditTargetX->setText(QString::number(ras[0], 'f', 2));
-    ui->lineEditTargetY->setText(QString::number(ras[1], 'f', 2));
-    ui->lineEditTargetZ->setText(QString::number(ras[2], 'f', 2));
+    ui->lineEditTargetX->setText(QString::number(surf_ras[0], 'f', 2));
+    ui->lineEditTargetY->setText(QString::number(surf_ras[1], 'f', 2));
+    ui->lineEditTargetZ->setText(QString::number(surf_ras[2], 'f', 2));
   }
 }
 
