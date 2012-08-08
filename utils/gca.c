@@ -14,8 +14,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2012/05/23 17:35:16 $
- *    $Revision: 1.308 $
+ *    $Date: 2012/08/08 18:09:37 $
+ *    $Revision: 1.309 $
  *
  * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -5114,8 +5114,10 @@ GCAcomputeLogSampleProbability(GCA *gca,
   int        x, y, z, width, height, depth, i, xp, yp, zp ;
   float      vals[MAX_GCA_INPUTS] ;
   double     total_log_p, log_p ;
+#ifndef HAVE_OPENMP
   int        countOutside = 0;
   double     outside_log_p = 0.;
+#endif
   /* go through each GC in the sample and compute the probability of
      the image at that point.
   */
@@ -5127,7 +5129,15 @@ GCAcomputeLogSampleProbability(GCA *gca,
   TransformInvert(transform, mri_inputs) ;
 
   // go through all sample points
-  for (total_log_p = 0.0, i = 0 ; i < nsamples ; i++)
+  total_log_p = 0.0 ;
+#if 1
+#ifdef HAVE_OPENMP
+  xp = yp = zp = x = y = z = 0 ;
+  log_p = 0.0 ;
+#pragma omp parallel for firstprivate(Gdiag_no, Gxp, Gyp, Gzp, nsamples,xp, yp, zp, x, y, z, vals,log_p,transform,mri_inputs) shared(gcas, gca, clamp) schedule(static,1) reduction(+: total_log_p)
+#endif
+#endif
+  for (i = 0 ; i < nsamples ; i++)
   {
     /////////////////// diag code /////////////////////////////
     if (i == Gdiag_no)
@@ -5140,9 +5150,7 @@ GCAcomputeLogSampleProbability(GCA *gca,
     ///////////////////////////////////////////////////////////
 
     // get prior coordinates
-    xp = gcas[i].xp ;
-    yp = gcas[i].yp ;
-    zp = gcas[i].zp ;
+    xp = gcas[i].xp ; yp = gcas[i].yp ; zp = gcas[i].zp ;
     // if it is inside the source voxel
     if (!GCApriorToSourceVoxel(gca, mri_inputs, transform,
                                xp, yp, zp, &x, &y, &z))
@@ -5151,9 +5159,8 @@ GCAcomputeLogSampleProbability(GCA *gca,
         DiagBreak() ;
 
       // (x,y,z) is the source voxel position
-      gcas[i].x = x ;
-      gcas[i].y = y ;
-      gcas[i].z = z ;
+      gcas[i].x = x ; gcas[i].y = y ; gcas[i].z = z ;
+
       // get values from all inputs
       load_vals(mri_inputs, x, y, z, vals, gca->ninputs) ;
       log_p = gcaComputeSampleLogDensity(&gcas[i], vals, gca->ninputs) ;
@@ -5167,9 +5174,8 @@ GCAcomputeLogSampleProbability(GCA *gca,
       if (log_p < -clamp)
         log_p = -clamp ;
 #endif
-      total_log_p += log_p ;
-      gcas[i].log_p = log_p ;
 
+#if 0
       if (!check_finite("2", total_log_p))
       {
         fprintf(stdout,
@@ -5177,16 +5183,19 @@ GCAcomputeLogSampleProbability(GCA *gca,
                 x, y, z) ;
         DiagBreak() ;
       }
+#endif
     }
     else  // outside the voxel
     {
       log_p = -1000000; // BIG_AND_NEGATIVE;
       // log(VERY_UNLIKELY); // BIG_AND_NEGATIVE;
-      total_log_p += log_p;
-      gcas[i].log_p = log_p;
+#ifndef HAVE_OPENMP
       outside_log_p += log_p;
       countOutside++;
+#endif
     }
+    gcas[i].log_p = log_p;
+    total_log_p += log_p;
   }
 
 #ifndef __OPTIMIZE__
@@ -25961,5 +25970,22 @@ gm_prior(GCA *gca, MRI *mri, TRANSFORM *transform, int x, int y, int z)
       prior += gcap->priors[n] ;
 
   return(prior) ;
+}
+
+int
+GCAisLeftHemisphere(GCA *gca, MRI *mri, TRANSFORM *transform, int x, int y, int z) 
+{
+  GCA_PRIOR *gcap ;
+  float     lh_prior, rh_prior ;
+  int       n ;
+
+  gcap = getGCAP(gca, mri, transform, x, y, z) ;
+  for (lh_prior = rh_prior = 0.0, n = 0 ; n < gcap->nlabels ; n++)
+    if (IS_LH_CLASS(gcap->labels[n]))
+      lh_prior += gcap->priors[n] ;
+    else if (IS_RH_CLASS(gcap->labels[n]))
+      rh_prior += gcap->priors[n] ;
+
+  return(lh_prior > rh_prior);
 }
 

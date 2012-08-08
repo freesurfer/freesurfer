@@ -11,8 +11,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2012/05/23 17:35:26 $
- *    $Revision: 1.118 $
+ *    $Date: 2012/08/08 18:09:48 $
+ *    $Revision: 1.119 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -392,6 +392,7 @@ int     GCAhisto(GCA *gca, int nbins, int **pcounts) ;
 int     GCAcomputeVoxelLikelihoods(GCA *gca, MRI *mri_in, int x, int y, int z,
                                    TRANSFORM *transform, int *labels, double *likelihoods);
 GCA_PRIOR *getGCAP(GCA *gca, MRI *mri, TRANSFORM *transform, int xv, int yv, int zv) ;
+int      GCAisLeftHemisphere(GCA *gca, MRI *mri, TRANSFORM *transform, int x, int y, int z) ;
 float getPrior(GCA_PRIOR *gcap, int label) ;
 int   GCApriorToNode( const GCA *gca,
 		      int xp, int yp, int zp,
