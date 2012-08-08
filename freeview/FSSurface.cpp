@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2012/08/07 20:40:03 $
- *    $Revision: 1.62 $
+ *    $Date: 2012/08/08 17:33:49 $
+ *    $Revision: 1.63 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -1599,19 +1599,34 @@ void FSSurface::Reposition( FSVolume *volume, int target_vno, double target_val,
   MRISsaveVertexPositions( m_MRIS, INFLATED_VERTICES );
   float fval = (float)target_val;
   MRISrepositionSurface( m_MRIS, volume->GetMRI(), &target_vno, &fval, 1, nsize, sigma, flags );
-  SaveVertices( m_MRIS, m_nActiveSurface );
-  ComputeNormals();
-  SaveNormals( m_MRIS, m_nActiveSurface );
-  UpdateVerticesAndNormals();
-  if ( m_HashTable[0] )
-    MHTfree( &m_HashTable[0] );
-  m_HashTable[0] = MHTfillVertexTableRes( m_MRIS, NULL, CURRENT_VERTICES, 2.0 );
+  PostEditProcess();
 }
 
 void FSSurface::Reposition( FSVolume *volume, int target_vno, double* coord, int nsize, double sigma, int flags )
 {
   MRISsaveVertexPositions( m_MRIS, INFLATED_VERTICES );
   MRISrepositionSurfaceToCoordinate( m_MRIS, volume->GetMRI(), target_vno, coord[0], coord[1], coord[2], nsize, sigma, flags );
+  PostEditProcess();
+}
+
+bool FSSurface::Smooth(int niters, double lambda, double K_bp)
+{
+  double mu = (1.0)/((K_bp)-1.0/lambda);
+  MRISsaveVertexPositions( m_MRIS, INFLATED_VERTICES );
+  if (MRIStaubinSmooth(m_MRIS, niters, lambda, mu, TAUBIN_UNIFORM_WEIGHTS) != 0)
+    return false;
+  PostEditProcess();
+  return true;
+}
+
+void FSSurface::RemoveIntersections()
+{
+  MRISremoveIntersections(m_MRIS);
+  PostEditProcess();
+}
+
+void FSSurface::PostEditProcess()
+{
   SaveVertices( m_MRIS, m_nActiveSurface );
   ComputeNormals();
   SaveNormals( m_MRIS, m_nActiveSurface );
@@ -1628,13 +1643,7 @@ void FSSurface::RepositionVertex(int vno, double *coord)
   v->x = coord[0];
   v->y = coord[1];
   v->z = coord[2];
-  SaveVertices( m_MRIS, m_nActiveSurface );
-  ComputeNormals();
-  SaveNormals( m_MRIS, m_nActiveSurface );
-  UpdateVerticesAndNormals();
-  if ( m_HashTable[0] )
-    MHTfree( &m_HashTable[0] );
-  m_HashTable[0] = MHTfillVertexTableRes( m_MRIS, NULL, CURRENT_VERTICES, 2.0 );
+  PostEditProcess();
 }
 
 void FSSurface::UndoReposition()

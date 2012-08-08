@@ -135,7 +135,8 @@ SOURCES += \
     WidgetGroupPlot.cpp \
     SurfaceSpline.cpp \
     DialogLoadSurfaceOverlay.cpp \
-    DialogReloadLayer.cpp
+    DialogReloadLayer.cpp \
+    DialogSmoothSurface.cpp
 
 HEADERS  += \
     Annotation2D.h \
@@ -260,7 +261,8 @@ HEADERS  += \
     WidgetGroupPlot.h \
     SurfaceSpline.h \
     DialogLoadSurfaceOverlay.h \
-    DialogReloadLayer.h
+    DialogReloadLayer.h \
+    DialogSmoothSurface.h
 
 FORMS    += MainWindow.ui \
     PanelVolume.ui \
@@ -297,7 +299,8 @@ FORMS    += MainWindow.ui \
     DialogLabelStats.ui \
     WindowGroupPlot.ui \
     DialogLoadSurfaceOverlay.ui \
-    DialogReloadLayer.ui
+    DialogReloadLayer.ui \
+    DialogSmoothSurface.ui
 
 RESOURCES += \
     freeview.qrc

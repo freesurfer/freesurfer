@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2012/08/07 15:20:21 $
- *    $Revision: 1.37 $
+ *    $Date: 2012/08/08 17:33:49 $
+ *    $Revision: 1.38 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -189,6 +189,10 @@ public:
 
   void RepositionVertex( int vno, double* coord );
 
+  bool Smooth(int niters, double lambda, double k_cutoff);
+
+  void RemoveIntersections();
+
   void UndoReposition();
 
   bool HasValidVolumeGeometry()
@@ -221,6 +225,8 @@ protected:
                              vtkPoints* contour_pts,
                              vtkCellArray* contour_lines,
                              double* pt_out );
+
+  void PostEditProcess();
 
   MRIS*   m_MRIS;
   MRIS*   m_MRISTarget;

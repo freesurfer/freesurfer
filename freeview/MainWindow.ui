@@ -382,6 +382,8 @@
     <addaction name="actionCreateOptimalCombinedVolume"/>
     <addaction name="separator"/>
     <addaction name="actionRepositionSurface"/>
+    <addaction name="actionSmoothSurface"/>
+    <addaction name="actionRemoveIntersectionsSurface"/>
     <addaction name="separator"/>
     <addaction name="actionSavePoint"/>
     <addaction name="actionGoToPoint"/>
@@ -1291,6 +1293,16 @@
   <action name="actionReloadSurface">
    <property name="text">
     <string>Reload Surface...</string>
+   </property>
+  </action>
+  <action name="actionSmoothSurface">
+   <property name="text">
+    <string>Smooth Surface...</string>
+   </property>
+  </action>
+  <action name="actionRemoveIntersectionsSurface">
+   <property name="text">
+    <string>Remove Intersections In Surface</string>
    </property>
   </action>
  </widget>
@@ -2455,6 +2467,38 @@
     </hint>
    </hints>
   </connection>
+  <connection>
+   <sender>actionSmoothSurface</sender>
+   <signal>triggered()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>OnSmoothSurface()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>606</x>
+     <y>435</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>actionRemoveIntersectionsSurface</sender>
+   <signal>triggered()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>OnRemoveIntersectionsFromSurface()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>606</x>
+     <y>435</y>
+    </hint>
+   </hints>
+  </connection>
  </connections>
  <slots>
   <slot>OnLoadVolume()</slot>
@@ -2523,5 +2567,7 @@
   <slot>SetSplinePicking(bool)</slot>
   <slot>OnReloadVolume()</slot>
   <slot>OnReloadSurface()</slot>
+  <slot>OnSmoothSurface()</slot>
+  <slot>OnRemoveIntersectionsFromSurface()</slot>
  </slots>
 </ui>

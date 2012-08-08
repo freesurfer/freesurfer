@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2012/08/06 20:32:58 $
- *    $Revision: 1.120 $
+ *    $Date: 2012/08/08 17:33:49 $
+ *    $Revision: 1.121 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -52,6 +52,7 @@ class MyCmdLineParser;
 class LayerSurface;
 class DialogWriteMovieFrames;
 class DialogRepositionSurface;
+class DialogSmoothSurface;
 class QMessageBox;
 class WindowTimeCourse;
 class WindowGroupPlot;
@@ -389,6 +390,8 @@ protected slots:
   void OnDecreaseOpacity();
   void OnToggleCursorVisibility(bool bShow);
   void OnRepositionSurface();
+  void OnSmoothSurface();
+  void OnRemoveIntersectionsFromSurface();
   void OnShowLabelStats();
   void OnSaveIsoSurface();
   void OnPlot();
@@ -470,6 +473,7 @@ private:
   DialogWriteMovieFrames*   m_dlgWriteMovieFrames;
   DialogPreferences*    m_dlgPreferences;
   DialogRepositionSurface*  m_dlgRepositionSurface;
+  DialogSmoothSurface*  m_dlgSmoothSurface;
   WindowQuickReference* m_wndQuickRef;
   FloatingStatusBar*    m_statusBar;
   TermWidget*           m_term;

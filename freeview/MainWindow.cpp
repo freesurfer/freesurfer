@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2012/08/06 20:32:58 $
- *    $Revision: 1.218 $
+ *    $Date: 2012/08/08 17:33:49 $
+ *    $Revision: 1.220 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -90,6 +90,7 @@
 #include "WindowGroupPlot.h"
 #include "DialogLoadSurfaceOverlay.h"
 #include "DialogReloadLayer.h"
+#include "DialogSmoothSurface.h"
 
 MainWindow::MainWindow( QWidget *parent, MyCmdLineParser* cmdParser ) :
   QMainWindow( parent ),
@@ -206,6 +207,9 @@ MainWindow::MainWindow( QWidget *parent, MyCmdLineParser* cmdParser ) :
           m_dlgRepositionSurface, SLOT(UpdateVertex()), Qt::QueuedConnection);
   connect(this, SIGNAL(SurfaceRepositionIntensityChanged()),
           m_dlgRepositionSurface, SLOT(UpdateIntensity()), Qt::QueuedConnection);
+
+  m_dlgSmoothSurface = new DialogSmoothSurface(this);
+  m_dlgSmoothSurface->hide();
 
   m_wndTimeCourse = new WindowTimeCourse(this);
   m_wndTimeCourse->hide();
@@ -1042,6 +1046,7 @@ void MainWindow::OnIdle()
   ui->actionCloseVolume     ->setEnabled( !bBusy && layerVolume ); 
   ui->actionCloseTrack      ->setEnabled( !bBusy && layerTrack );
   ui->actionReloadVolume    ->setEnabled( !bBusy && layerVolume );
+  ui->actionReloadSurface    ->setEnabled( !bBusy && layerSurface );
   ui->actionCreateOptimalCombinedVolume->setEnabled( GetLayerCollection("MRI")->GetNumberOfLayers() > 1 );
   ui->actionCycleLayer      ->setEnabled( lc && lc->GetNumberOfLayers() > 1 );
   ui->actionReverseCycleLayer      ->setEnabled( lc && lc->GetNumberOfLayers() > 1 );
@@ -5305,6 +5310,20 @@ void MainWindow::ShowNonModalMessage(const QString &title, const QString &msg)
 void MainWindow::OnRepositionSurface()
 {
   m_dlgRepositionSurface->show();
+}
+
+void MainWindow::OnSmoothSurface()
+{
+  m_dlgSmoothSurface->show();
+}
+
+void MainWindow::OnRemoveIntersectionsFromSurface()
+{
+  LayerSurface* surf = ( LayerSurface* )GetActiveLayer( "Surface" );
+  if (surf)
+  {
+    surf->RemoveIntersections();
+  }
 }
 
 void MainWindow::SaveSurface()
