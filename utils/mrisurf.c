@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2012/08/07 23:12:13 $
- *    $Revision: 1.729 $
+ *    $Date: 2012/08/08 18:44:52 $
+ *    $Revision: 1.730 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -742,7 +742,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void)
 {
-  return("$Id: mrisurf.c,v 1.729 2012/08/07 23:12:13 fischl Exp $");
+  return("$Id: mrisurf.c,v 1.730 2012/08/08 18:44:52 fischl Exp $");
 }
 
 /*-----------------------------------------------------
@@ -71004,11 +71004,28 @@ int MRISrepositionSurfaceToCoordinate(MRI_SURFACE *mris, MRI *mri, int target_vn
   MRIsampleVolume(mri, xv, yv, zv, &val) ;
   printf("volume @ (%2.1f, %2.1f, %2.1f) = %2.1f\n", xv, yv, zv, val) ;
   for (vno = 0 ; vno < mris->nvertices ; vno++)
-    if (mris->vertices[vno].ripflag == 0)
-      mris->vertices[vno].val = val ;
+  {
+    VERTEX *v, *vn ;
 
+    vn = &mris->vertices[vno] ;
+    if (vn->ripflag == 0)
+    {
+      vn->val = val ;
+      if (vno != target_vno)  // give it a target which maintains its relative position
+      {
+	v = &mris->vertices[target_vno] ;
+	vn->targx = tx + (vn->x-v->x) ;
+	vn->targy = ty + (vn->y-v->y) ;
+	vn->targz = tz + (vn->z-v->z) ;
+	printf("setting target for vertex %d to (%2.1f %2.1f %2.1f)\n", vno, vn->targx, vn->targy, vn->targz) ;
+      }
+    }
+  }
+
+  /*
   Gdiag |= DIAG_SHOW ;
   Gdiag_no = target_vno ;
+  */
 
   MRISpositionSurface(mris, mri, mri, &parms) ;
   return(NO_ERROR) ;
