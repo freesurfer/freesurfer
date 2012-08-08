@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2012/08/08 17:33:49 $
- *    $Revision: 1.220 $
+ *    $Date: 2012/08/08 20:24:50 $
+ *    $Revision: 1.221 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -1062,6 +1062,8 @@ void MainWindow::OnIdle()
   ui->actionNewROI          ->setEnabled( layerVolume );
   ui->actionNewPointSet     ->setEnabled( layerVolume );
   ui->actionRepositionSurface->setEnabled( layerSurface );
+  ui->actionSmoothSurface   ->setEnabled( layerSurface );
+  ui->actionRemoveIntersectionsSurface->setEnabled(layerSurface);
   ui->actionResetView       ->setEnabled( bHasLayer );
   ui->actionResetViewNearestAxis->setEnabled( bHasLayer && ui->view3D->isVisible() );
   ui->actionSaveMovieFrames ->setEnabled( bHasLayer );
@@ -5323,6 +5325,7 @@ void MainWindow::OnRemoveIntersectionsFromSurface()
   if (surf)
   {
     surf->RemoveIntersections();
+    emit SlicePositionChanged();
   }
 }
 

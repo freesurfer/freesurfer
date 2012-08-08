@@ -3,6 +3,7 @@
 #include <QMessageBox>
 #include "MainWindow.h"
 #include "LayerSurface.h"
+#include <QTimer>
 
 DialogSmoothSurface::DialogSmoothSurface(QWidget *parent) :
     QDialog(parent),
@@ -30,6 +31,7 @@ void DialogSmoothSurface::OnApply()
     double lambda = ui->lineEditLambda->text().toDouble();
     double k_cutoff = ui->lineEditFrequencyCutoff->text().toDouble();
     surf->SmoothSurface(niters, lambda, k_cutoff);
+    QTimer::singleShot(0, MainWindow::GetMainWindow(), SIGNAL(SlicePositionChanged()));
   }
 }
 

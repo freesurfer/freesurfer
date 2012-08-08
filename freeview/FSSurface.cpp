@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2012/08/08 17:33:49 $
- *    $Revision: 1.63 $
+ *    $Date: 2012/08/08 20:24:50 $
+ *    $Revision: 1.64 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -1627,13 +1627,14 @@ void FSSurface::RemoveIntersections()
 
 void FSSurface::PostEditProcess()
 {
+  if ( m_HashTable[m_nActiveSurface] )
+    MHTfree( &m_HashTable[m_nActiveSurface] );
+  m_HashTable[m_nActiveSurface] = MHTfillVertexTableRes( m_MRIS, NULL, CURRENT_VERTICES, 2.0 );
+
   SaveVertices( m_MRIS, m_nActiveSurface );
   ComputeNormals();
   SaveNormals( m_MRIS, m_nActiveSurface );
   UpdateVerticesAndNormals();
-  if ( m_HashTable[0] )
-    MHTfree( &m_HashTable[0] );
-  m_HashTable[0] = MHTfillVertexTableRes( m_MRIS, NULL, CURRENT_VERTICES, 2.0 );
 }
 
 void FSSurface::RepositionVertex(int vno, double *coord)

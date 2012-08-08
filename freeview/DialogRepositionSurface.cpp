@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2012/08/08 17:05:33 $
- *    $Revision: 1.11 $
+ *    $Date: 2012/08/08 20:24:50 $
+ *    $Revision: 1.12 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -31,6 +31,7 @@
 #include "FSSurface.h"
 #include "LayerMRI.h"
 #include <QMessageBox>
+#include <QTimer>
 
 DialogRepositionSurface::DialogRepositionSurface(QWidget *parent) :
     QDialog(parent),
@@ -95,6 +96,7 @@ void DialogRepositionSurface::OnApply()
     }
     UpdateUI();
     ui->pushButtonApply->setDisabled(false);
+    QTimer::singleShot(0, MainWindow::GetMainWindow(), SIGNAL(SlicePositionChanged()));
   }
 }
 
