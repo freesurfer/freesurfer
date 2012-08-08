@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2012/08/08 17:33:49 $
- *    $Revision: 1.76 $
+ *    $Date: 2012/08/08 20:50:46 $
+ *    $Revision: 1.77 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -1551,9 +1551,9 @@ void LayerSurface::RepositionSurface( LayerMRI* mri, int nVertex, double* pos, i
   emit ActorUpdated();
 }
 
-bool LayerSurface::SmoothSurface(int niters, double lambda, double k_cutoff)
+bool LayerSurface::SmoothSurface(int nMethod, int niters, double lambda, double k_cutoff)
 {
-  bool ret = m_surfaceSource->Smooth(niters, lambda, k_cutoff);
+  bool ret = m_surfaceSource->Smooth(nMethod, niters, lambda, k_cutoff);
   if (ret)
   {
     SetModified();

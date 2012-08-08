@@ -17,6 +17,7 @@ public:
 
 public slots:
     void OnApply();
+    void OnMethod(int nMethod);
 
 private:
     Ui::DialogSmoothSurface *ui;

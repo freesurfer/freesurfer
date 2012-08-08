@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2012/08/08 20:24:50 $
- *    $Revision: 1.64 $
+ *    $Date: 2012/08/08 20:50:46 $
+ *    $Revision: 1.65 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -1609,12 +1609,20 @@ void FSSurface::Reposition( FSVolume *volume, int target_vno, double* coord, int
   PostEditProcess();
 }
 
-bool FSSurface::Smooth(int niters, double lambda, double K_bp)
+bool FSSurface::Smooth(int nMethod, int niters, double lambda, double K_bp)
 {
-  double mu = (1.0)/((K_bp)-1.0/lambda);
   MRISsaveVertexPositions( m_MRIS, INFLATED_VERTICES );
-  if (MRIStaubinSmooth(m_MRIS, niters, lambda, mu, TAUBIN_UNIFORM_WEIGHTS) != 0)
-    return false;
+  if (nMethod == 0 ) // Taubin
+  {
+    double mu = (1.0)/((K_bp)-1.0/lambda);
+    if (MRIStaubinSmooth(m_MRIS, niters, lambda, mu, TAUBIN_UNIFORM_WEIGHTS) != 0)
+      return false;
+  }
+  else if (nMethod == 1) // standard
+  {
+    if (MRISaverageVertexPositions(m_MRIS, niters) != 0)
+      return false;
+  }
   PostEditProcess();
   return true;
 }

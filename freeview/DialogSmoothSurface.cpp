@@ -30,7 +30,8 @@ void DialogSmoothSurface::OnApply()
     int niters = ui->lineEditIterations->text().toInt();
     double lambda = ui->lineEditLambda->text().toDouble();
     double k_cutoff = ui->lineEditFrequencyCutoff->text().toDouble();
-    surf->SmoothSurface(niters, lambda, k_cutoff);
+    surf->SmoothSurface(ui->comboBoxMethod->currentIndex(), niters, lambda, k_cutoff);
+
     QTimer::singleShot(0, MainWindow::GetMainWindow(), SIGNAL(SlicePositionChanged()));
   }
 }
@@ -44,6 +45,9 @@ bool DialogSmoothSurface::ValidateAll()
     QMessageBox::warning(this, "Error", "Number of iterations is not valid.");
     return false;
   }
+  if (ui->comboBoxMethod->currentIndex() == 1)
+    return true;
+
   double dVal = ui->lineEditLambda->text().toDouble(&ok);
   if (!ok || dVal < 0 || dVal > 1)
   {
@@ -57,4 +61,13 @@ bool DialogSmoothSurface::ValidateAll()
     return false;
   }
   return true;
+}
+
+void DialogSmoothSurface::OnMethod(int nMethod)
+{
+  ui->labelFrequencyCutoff->setVisible(nMethod == 0);
+  ui->labelLambda->setVisible(nMethod == 0);
+  ui->labelHelper->setVisible(nMethod == 0);
+  ui->lineEditFrequencyCutoff->setVisible(nMethod == 0);
+  ui->lineEditLambda->setVisible(nMethod == 0);
 }

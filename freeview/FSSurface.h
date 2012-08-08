@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2012/08/08 17:33:49 $
- *    $Revision: 1.38 $
+ *    $Date: 2012/08/08 20:50:46 $
+ *    $Revision: 1.39 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -189,7 +189,7 @@ public:
 
   void RepositionVertex( int vno, double* coord );
 
-  bool Smooth(int niters, double lambda, double k_cutoff);
+  bool Smooth(int nMethod, int niters, double lambda, double k_cutoff);
 
   void RemoveIntersections();
 

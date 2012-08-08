@@ -6,17 +6,20 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>294</width>
-    <height>171</height>
+    <width>314</width>
+    <height>206</height>
    </rect>
   </property>
   <property name="windowTitle">
    <string>Smooth Surface</string>
   </property>
   <layout class="QVBoxLayout" name="verticalLayout">
+   <property name="sizeConstraint">
+    <enum>QLayout::SetFixedSize</enum>
+   </property>
    <item>
     <layout class="QGridLayout" name="gridLayout">
-     <item row="0" column="1">
+     <item row="1" column="1">
       <widget class="QLabel" name="label">
        <property name="text">
         <string>Number of iterations:</string>
@@ -26,31 +29,18 @@
        </property>
       </widget>
      </item>
-     <item row="0" column="2">
+     <item row="1" column="2">
       <widget class="QLineEdit" name="lineEditIterations">
        <property name="maximumSize">
         <size>
-         <width>60</width>
+         <width>167777</width>
          <height>16777215</height>
         </size>
        </property>
       </widget>
      </item>
-     <item row="0" column="3">
-      <spacer name="horizontalSpacer_3">
-       <property name="orientation">
-        <enum>Qt::Horizontal</enum>
-       </property>
-       <property name="sizeHint" stdset="0">
-        <size>
-         <width>5</width>
-         <height>5</height>
-        </size>
-       </property>
-      </spacer>
-     </item>
-     <item row="1" column="1">
-      <widget class="QLabel" name="label_3">
+     <item row="2" column="1">
+      <widget class="QLabel" name="labelLambda">
        <property name="text">
         <string>Lambda:</string>
        </property>
@@ -59,11 +49,11 @@
        </property>
       </widget>
      </item>
-     <item row="1" column="2">
+     <item row="2" column="2">
       <widget class="QLineEdit" name="lineEditLambda">
        <property name="maximumSize">
         <size>
-         <width>60</width>
+         <width>167777</width>
          <height>16777215</height>
         </size>
        </property>
@@ -72,8 +62,8 @@
        </property>
       </widget>
      </item>
-     <item row="2" column="1">
-      <widget class="QLabel" name="label_2">
+     <item row="3" column="1">
+      <widget class="QLabel" name="labelFrequencyCutoff">
        <property name="text">
         <string>Frequency cutoff:</string>
        </property>
@@ -82,11 +72,11 @@
        </property>
       </widget>
      </item>
-     <item row="2" column="2">
+     <item row="3" column="2">
       <widget class="QLineEdit" name="lineEditFrequencyCutoff">
        <property name="maximumSize">
         <size>
-         <width>60</width>
+         <width>167777</width>
          <height>16777215</height>
         </size>
        </property>
@@ -95,7 +85,7 @@
        </property>
       </widget>
      </item>
-     <item row="0" column="0">
+     <item row="1" column="0">
       <spacer name="horizontalSpacer_4">
        <property name="orientation">
         <enum>Qt::Horizontal</enum>
@@ -108,8 +98,8 @@
        </property>
       </spacer>
      </item>
-     <item row="1" column="3">
-      <widget class="QLabel" name="label_4">
+     <item row="2" column="3">
+      <widget class="QLabel" name="labelHelper">
        <property name="styleSheet">
         <string notr="true">color: gray;</string>
        </property>
@@ -117,6 +107,43 @@
         <string>0.0~1.0</string>
        </property>
       </widget>
+     </item>
+     <item row="0" column="2">
+      <widget class="QComboBox" name="comboBoxMethod">
+       <item>
+        <property name="text">
+         <string>Taubin</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>Standard</string>
+        </property>
+       </item>
+      </widget>
+     </item>
+     <item row="0" column="1">
+      <widget class="QLabel" name="label_5">
+       <property name="text">
+        <string>Method:</string>
+       </property>
+       <property name="alignment">
+        <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+       </property>
+      </widget>
+     </item>
+     <item row="2" column="4">
+      <spacer name="horizontalSpacer_3">
+       <property name="orientation">
+        <enum>Qt::Horizontal</enum>
+       </property>
+       <property name="sizeHint" stdset="0">
+        <size>
+         <width>5</width>
+         <height>5</height>
+        </size>
+       </property>
+      </spacer>
      </item>
     </layout>
    </item>
@@ -191,8 +218,8 @@
    <slot>close()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>212</x>
-     <y>145</y>
+     <x>222</x>
+     <y>179</y>
     </hint>
     <hint type="destinationlabel">
      <x>215</x>
@@ -207,8 +234,8 @@
    <slot>OnApply()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>123</x>
-     <y>148</y>
+     <x>133</x>
+     <y>182</y>
     </hint>
     <hint type="destinationlabel">
      <x>119</x>
@@ -216,8 +243,25 @@
     </hint>
    </hints>
   </connection>
+  <connection>
+   <sender>comboBoxMethod</sender>
+   <signal>currentIndexChanged(int)</signal>
+   <receiver>DialogSmoothSurface</receiver>
+   <slot>OnMethod(int)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>206</x>
+     <y>21</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>522</x>
+     <y>57</y>
+    </hint>
+   </hints>
+  </connection>
  </connections>
  <slots>
   <slot>OnApply()</slot>
+  <slot>OnMethod(int)</slot>
  </slots>
 </ui>

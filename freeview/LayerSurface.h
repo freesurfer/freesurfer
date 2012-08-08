@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2012/08/08 17:33:49 $
- *    $Revision: 1.53 $
+ *    $Date: 2012/08/08 20:50:46 $
+ *    $Revision: 1.54 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -206,7 +206,7 @@ public:
   void RepositionSurface( LayerMRI* mri, int nVertex, double value, int size, double sigma, int flags = 0 );
   void RepositionSurface( LayerMRI* mri, int nVertex, double* pos, int size, double sigma, int flags = 0 );
   void RepositionVertex( int nVertex, double* pos);
-  bool SmoothSurface(int niters, double lambda, double k_cutoff);
+  bool SmoothSurface(int nMethod, int niters, double lambda, double k_cutoff);
   void RemoveIntersections();
 
   void Undo();
