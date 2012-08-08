@@ -11,8 +11,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2012/07/11 17:51:13 $
- *    $Revision: 1.268 $
+ *    $Date: 2012/08/08 18:07:34 $
+ *    $Revision: 1.269 $
  *
  * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -20893,7 +20893,7 @@ gcamLabelToMRI(GCA_MORPH *gcam, MRI *mri, int label)
   if (mri == NULL)
   {
     mri = MRIalloc(gcam->width, gcam->height, gcam->depth, MRI_SHORT) ;
-    useVolGeomToMRI(&gcam->atlas, mri) ;
+//    useVolGeomToMRI(&gcam->atlas, mri) ;
   }
 
   for (x = 0 ; x < gcam->width ; x++)
