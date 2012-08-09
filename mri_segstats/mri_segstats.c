@@ -11,9 +11,9 @@
 /*
  * Original Author: Dougas N Greve
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2012/07/20 18:48:23 $
- *    $Revision: 1.88 $
+ *    $Author: mreuter $
+ *    $Date: 2012/08/09 00:35:05 $
+ *    $Revision: 1.89 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -110,7 +110,7 @@ int DumpStatSumTable(STATSUMENTRY *StatSumTable, int nsegid);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-  "$Id: mri_segstats.c,v 1.88 2012/07/20 18:48:23 greve Exp $";
+  "$Id: mri_segstats.c,v 1.89 2012/08/09 00:35:05 mreuter Exp $";
 char *Progname = NULL, *SUBJECTS_DIR = NULL, *FREESURFER_HOME=NULL;
 char *SegVolFile = NULL;
 char *InVolFile = NULL;
@@ -1061,7 +1061,7 @@ int main(int argc, char **argv)
     brainsegvolume2 = 0.0;
     for(n=0; n < nsegid; n++)   {
       id = StatSumTable[n].id;
-      if(!IS_BRAIN(id) && (id < 251 && id > 255) ) continue ;
+      if(!IS_BRAIN(id) && (id < 251 || id > 255) ) continue ;
       if(IS_CSF(id) || IS_CSF_CLASS(id)) continue;
       brainsegvolume2 += StatSumTable[n].vol;
     }
