@@ -8,9 +8,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2012/06/15 12:49:02 $
- *    $Revision: 1.64 $
+ *    $Author: mreuter $
+ *    $Date: 2012/08/10 02:10:01 $
+ *    $Revision: 1.65 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -336,7 +336,7 @@ extern "C" {
 
 #define IS_UNKNOWN(label)  (((label) == Unknown) || (label == 255) || (label == Bright_Unknown) || (label == Dark_Unknown))
 
-#define IS_BRAIN(label)  (!IS_UNKNOWN(label) && label < Dura)
+#define IS_BRAIN(label)  ((!IS_UNKNOWN(label) && label < Dura) || IS_CC(label))
 
 #define IS_WM(label) (((label) == Left_Cerebral_White_Matter) || ((label) == Right_Cerebral_White_Matter) || ((label) == Left_Temporal_Cerebral_White_Matter) || ((label) == Right_Temporal_Cerebral_White_Matter))
 #define IS_HYPO(label) (((label) == WM_hypointensities)  || ((label) == Left_WM_hypointensities)  || ((label) == Right_WM_hypointensities) || IS_FUTURE_WMSA(label))
