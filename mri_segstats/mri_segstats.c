@@ -12,8 +12,8 @@
  * Original Author: Dougas N Greve
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2012/08/09 00:35:05 $
- *    $Revision: 1.89 $
+ *    $Date: 2012/08/10 02:13:57 $
+ *    $Revision: 1.90 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -110,7 +110,7 @@ int DumpStatSumTable(STATSUMENTRY *StatSumTable, int nsegid);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-  "$Id: mri_segstats.c,v 1.89 2012/08/09 00:35:05 mreuter Exp $";
+  "$Id: mri_segstats.c,v 1.90 2012/08/10 02:13:57 mreuter Exp $";
 char *Progname = NULL, *SUBJECTS_DIR = NULL, *FREESURFER_HOME=NULL;
 char *SegVolFile = NULL;
 char *InVolFile = NULL;
@@ -678,13 +678,15 @@ int main(int argc, char **argv)
   if (BrainVolFromSeg)
   {
     nbrainsegvoxels = 0;
+    int tempvox = 0;
     for (n = 0 ; n <= MAX_CMA_LABEL ; n++)
     {
-      if (!IS_BRAIN(n))
+      if (!IS_BRAIN(n)) /* currently 1...97 and CC 251..255*/
       {
         continue ;
       }
-      nbrainsegvoxels += MRIvoxelsInLabel(seg, n) ;
+      tempvox = MRIvoxelsInLabel(seg, n);
+      nbrainsegvoxels += tempvox ;
     }
     brainsegvolume = nbrainsegvoxels * seg->xsize * seg->ysize * seg->zsize;
     printf("# nbrainsegvoxels %d\n",nbrainsegvoxels);
@@ -867,6 +869,11 @@ int main(int argc, char **argv)
   printf("Found %3d segmentations\n",nsegid);
   printf("Computing statistics for each segmentation\n");
   fflush(stdout);
+
+  DoContinue=0;nx=0;skip=0;n0=0;vol=0;nhits=0;c=0;min=0.0;max=0.0;range=0.0;mean=0.0;std=0.0;snr=0.0;
+#ifdef HAVE_OPENMP
+#pragma omp parallel for firstprivate(DoContinue,nx,skip,n0,vol,nhits,c,min,max,range,mean,std,snr)  schedule(guided)
+#endif
   for (n=0; n < nsegid; n++)
   {
     if(DoExclSegId)
@@ -885,8 +892,6 @@ int main(int argc, char **argv)
         continue;
       }
     }
-    printf("%3d   %3d  %s ",n,StatSumTable[n].id,StatSumTable[n].name);
-    fflush(stdout);
 
     // Skip ones that are not represented
     skip = 1;
@@ -897,7 +902,6 @@ int main(int argc, char **argv)
       }
     if (skip)
     {
-      printf(" 0\n");
       continue;
     }
 
@@ -908,12 +912,13 @@ int main(int argc, char **argv)
         if (pvvol == NULL)
         {
           nhits = MRIsegCount(seg, StatSumTable[n].id, 0);
-	  vol = nhits*voxelvolume;
+          vol = nhits*voxelvolume;
         }
-        else{
+        else
+        {
           vol = MRIvoxelsInLabelWithPartialVolumeEffects(seg, pvvol, StatSumTable[n].id, NULL, NULL);
-	  nhits = nint(vol/voxelvolume);
-	}
+          nhits = nint(vol/voxelvolume);
+        }
       }
       else
       {
@@ -942,8 +947,6 @@ int main(int argc, char **argv)
       nhits = n;
     }
 
-    printf("%4d  %g\n",nhits,vol);
-    fflush(stdout);
     StatSumTable[n].nhits = nhits;
     StatSumTable[n].vol = vol;
     if (InVolFile != NULL && !dontrun)
@@ -951,11 +954,11 @@ int main(int argc, char **argv)
       if (nhits > 0)
       {
         if(UseRobust == 0)
-	  MRIsegStats(seg, StatSumTable[n].id, invol, frame,
-		      &min, &max, &range, &mean, &std);
-	else
-	  MRIsegStatsRobust(seg, StatSumTable[n].id, invol, frame,
-			    &min, &max, &range, &mean, &std, RobustPct);
+          MRIsegStats(seg, StatSumTable[n].id, invol, frame,
+            &min, &max, &range, &mean, &std);
+        else
+          MRIsegStatsRobust(seg, StatSumTable[n].id, invol, frame,
+            &min, &max, &range, &mean, &std, RobustPct);
 
         snr = mean/std;
       }
@@ -976,6 +979,27 @@ int main(int argc, char **argv)
       StatSumTable[n].std   = std;
       StatSumTable[n].snr   = snr;
     }
+  }
+  /* print results ordered */
+  for (n=0; n < nsegid; n++)
+  {
+    if(DoExclSegId)
+    {
+      DoContinue = 0;
+      for(nx=0; nx < nExcl; nx++)
+      {
+        if(StatSumTable[n].id == ExclSegIdList[nx])
+        {
+          DoContinue = 1;
+          break;
+        }
+      }
+      if(DoContinue)
+      {
+        continue;
+      }
+    }
+    printf("%3d   %3d  %s  %4d  %g\n",n,StatSumTable[n].id,StatSumTable[n].name,StatSumTable[n].nhits,StatSumTable[n].vol);
   }
   printf("\n");
 
@@ -1057,16 +1081,23 @@ int main(int argc, char **argv)
   printf("Reporting on %3d segmentations\n",nsegid);
 
   if(BrainVolFromSeg) {
-    printf("Computing BrainVolFromSeg\n");
+    printf("\nComputing BrainSegVolNotVent by adding:\n");
     brainsegvolume2 = 0.0;
     for(n=0; n < nsegid; n++)   {
       id = StatSumTable[n].id;
       if(!IS_BRAIN(id) && (id < 251 || id > 255) ) continue ;
       if(IS_CSF(id) || IS_CSF_CLASS(id)) continue;
+      if(id == Brain_Stem) continue;
+      if(id == Left_choroid_plexus || id == Right_choroid_plexus) continue;
+      printf("%3d   %3d  %s  %g\n",n,id,StatSumTable[n].name,StatSumTable[n].vol);
       brainsegvolume2 += StatSumTable[n].vol;
     }
+    printf("           lh_cortex_vol_from_surf  %g\n",lhctxvol);
+    printf("           rh_cortex_vol_from_surf  %g\n",rhctxvol);
+    printf("           lh_white_vol_from_surf  %g\n",lhwhitevol);
+    printf("           rh_white_vol_from_surf  %g\n",rhwhitevol);
     brainsegvolume2 += (lhctxvol+rhctxvol+lhwhitevol+rhwhitevol);
-    printf("BrainVolFromSeg = %g\n",brainsegvolume2);
+    printf("\nBrainSegVolNotVent = %g\n\n",brainsegvolume2);
   }
   if(DoSubCortGrayVol)
   {
