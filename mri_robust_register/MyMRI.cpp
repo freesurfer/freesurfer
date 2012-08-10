@@ -8,8 +8,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2012/07/31 22:37:33 $
- *    $Revision: 1.19 $
+ *    $Date: 2012/08/10 21:08:50 $
+ *    $Revision: 1.20 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -1419,6 +1419,7 @@ MRI * MyMRI::entropyImage(MRI* mri, int radius, bool ball )
                 if (x2 > 0)
                 {
                   //cout << " continue : " << zz << " " << yy << " " << xx << " " << radius << " " << x2 << endl;
+                  count++;
                   continue;
                 }
               }
