@@ -10,9 +10,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: mreuter $
-#    $Date: 2012/07/31 23:16:39 $
-#    $Revision: 1.64 $
+#    $Author: greve $
+#    $Date: 2012/08/13 13:37:35 $
+#    $Revision: 1.65 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -29,7 +29,7 @@
 #
 setenv FIX_VERTEX_AREA
 
-set VERSION = '$Id: mris_preproc,v 1.64 2012/07/31 23:16:39 mreuter Exp $';
+set VERSION = '$Id: mris_preproc,v 1.65 2012/08/13 13:37:35 greve Exp $';
 
 set PrintHelp = 0;
 set subjlist = ();
@@ -75,6 +75,7 @@ set MeasIn  = 0;
 set outdir = ();
 set SmoothCortexOnly = 0; # At some point, this should be the default
 set DoXHemi = 0;
+set DoXHemiOnly = 0; # do not include the non-xhemi
 set DualHemi = 0;
 set subjlistfile = ();
 set fsgdf = ();
@@ -684,6 +685,11 @@ while( $#argv != 0 )
       set DoXHemi = 1;
       breaksw
 
+    case "--xhemi-only":
+      set DoXHemi = 1;
+      set DoXHemiOnly = 1;
+      breaksw
+
     case "--paired-diff-norm":
       set paireddiffnorm = 1;
       breaksw
@@ -927,8 +933,12 @@ endif
 if($DoXHemi) then
   set tmplist = ();
   foreach subj ($subjlist)
-    if($srchemi == lh) set tmplist = ($tmplist $subj $subj/xhemi)
-    if($srchemi == rh) set tmplist = ($tmplist $subj/xhemi $subj)
+    if($DoXHemiOnly) then
+      set tmplist = ($tmplist $subj/xhemi)
+    else
+      if($srchemi == lh) set tmplist = ($tmplist $subj $subj/xhemi)
+      if($srchemi == rh) set tmplist = ($tmplist $subj/xhemi $subj)
+    endif
   end
   set subjlist = ($tmplist);
 endif
