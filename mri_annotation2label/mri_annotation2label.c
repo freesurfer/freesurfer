@@ -7,8 +7,8 @@
  * Original Author: Douglas Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2011/11/16 22:28:46 $
- *    $Revision: 1.27 $
+ *    $Date: 2012/08/13 19:27:51 $
+ *    $Revision: 1.28 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -55,7 +55,7 @@ static int  singledash(char *flag);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_annotation2label.c,v 1.27 2011/11/16 22:28:46 greve Exp $";
+static char vcid[] = "$Id: mri_annotation2label.c,v 1.28 2012/08/13 19:27:51 greve Exp $";
 char *Progname = NULL;
 
 char  *subject   = NULL;
@@ -106,7 +106,7 @@ int main(int argc, char **argv) {
   MRI *border;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_annotation2label.c,v 1.27 2011/11/16 22:28:46 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_annotation2label.c,v 1.28 2012/08/13 19:27:51 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -262,8 +262,7 @@ int main(int argc, char **argv) {
 
     if (label_index >= 0 && ani != label_index)      continue ;
     if (nperannot[ani] == 0) {
-      if (DIAG_VERBOSE_ON)
-        printf("%3d  %5d  empty --- skipping \n",ani,nperannot[ani]);
+      printf("%3d  %5d  empty --- skipping \n",ani,nperannot[ani]);
       continue;
     }
 
