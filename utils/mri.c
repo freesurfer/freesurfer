@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2012/05/21 21:08:51 $
- *    $Revision: 1.511 $
+ *    $Date: 2012/08/13 19:39:02 $
+ *    $Revision: 1.512 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -23,7 +23,7 @@
  */
 
 extern const char* Progname;
-const char *MRI_C_VERSION = "$Revision: 1.511 $";
+const char *MRI_C_VERSION = "$Revision: 1.512 $";
 
 
 /*-----------------------------------------------------
@@ -6141,7 +6141,7 @@ MRI *MRIallocChunk(int width, int height, int depth, int type, int nframes)
 MRI *MRIallocSequence(int width, int height, int depth, int type, int nframes)
 {
   MRI     *mri ;
-  int     slice, row, bpp, i ;
+  int     slice, row, bpp;
   BUFTYPE *buf ;
 
   if (getenv("FS_USE_MRI_CHUNK") != NULL)
@@ -6170,16 +6170,16 @@ MRI *MRIallocSequence(int width, int height, int depth, int type, int nframes)
   mri->yinvert = 1 ;
   mri->depth = depth ;
   mri->type = type ;
-#endif
-  mri->nframes = nframes ;
-  MRIallocIndices(mri) ;
-  mri->outside_val = 0 ;
   mri->frames = (MRI_FRAME *)calloc(nframes, sizeof(MRI_FRAME)) ;
   if (!mri->frames)
     ErrorExit(ERROR_NO_MEMORY,
               "MRIalloc: could not allocate %d frames\n", nframes) ;
-  for (i = 0 ; i < mri->nframes ; i++)
+  for (int i = 0 ; i < nframes ; i++)
     mri->frames[i].m_ras2vox = MatrixAlloc(4,4, MATRIX_REAL) ;
+#endif
+  mri->nframes = nframes ;
+  MRIallocIndices(mri) ;
+  mri->outside_val = 0 ;
   mri->slices = (BUFTYPE ***)calloc(depth*nframes, sizeof(BUFTYPE **)) ;
   if (!mri->slices)
     ErrorExit(ERROR_NO_MEMORY,
