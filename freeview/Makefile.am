@@ -419,7 +419,7 @@ freeview_SOURCES = $(BUILT_SOURCES) \
   DialogLoadSurfaceOverlay.cpp \
   DialogLoadSurfaceOverlay.h \
   DialogReloadLayer.cpp \
-  DialogRelaodLayer.h \
+  DialogReloadLayer.h \
   DialogSmoothSurface.cpp \
   DialogSmoothSurface.h \
 	freeview.qrc
