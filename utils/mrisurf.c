@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: rpwang $
- *    $Date: 2012/08/08 20:26:15 $
- *    $Revision: 1.732 $
+ *    $Author: nicks $
+ *    $Date: 2012/08/13 13:28:13 $
+ *    $Revision: 1.733 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -742,7 +742,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void)
 {
-  return("$Id: mrisurf.c,v 1.732 2012/08/08 20:26:15 rpwang Exp $");
+  return("$Id: mrisurf.c,v 1.733 2012/08/13 13:28:13 nicks Exp $");
 }
 
 /*-----------------------------------------------------
@@ -70887,7 +70887,7 @@ int
   INTEGRATION_PARMS parms ;
   VERTEX            *v ;
 
-  printf("flags = %x, size = %ld\n", flags, sizeof(flags)) ;
+  printf("flags = %x, size = %d\n", flags, sizeof(flags)) ;
 
   memset(&parms, 0, sizeof(parms)) ;
   parms.fill_interior = 0 ; 
