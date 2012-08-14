@@ -8,9 +8,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2012/03/21 13:14:34 $
- *    $Revision: 1.399 $
+ *    $Author: mreuter $
+ *    $Date: 2012/08/14 17:37:08 $
+ *    $Revision: 1.400 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -12277,6 +12277,7 @@ znzTAGwriteMRIframes(znzFile fp, MRI *mri)
     {
       MATRIX *m = MatrixAlloc(4, 4, MATRIX_REAL) ;
       znzWriteMatrix(fp, m) ;
+      MatrixFree(&m);
     }
     znzwriteFloat(frame->thresh, fp) ;
     znzwriteInt(frame->units, fp) ;
