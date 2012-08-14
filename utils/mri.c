@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2012/08/13 19:39:02 $
- *    $Revision: 1.512 $
+ *    $Date: 2012/08/14 02:12:35 $
+ *    $Revision: 1.513 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -23,7 +23,7 @@
  */
 
 extern const char* Progname;
-const char *MRI_C_VERSION = "$Revision: 1.512 $";
+const char *MRI_C_VERSION = "$Revision: 1.513 $";
 
 
 /*-----------------------------------------------------
@@ -6783,6 +6783,9 @@ MRIcopyHeader( const MRI *mri_src, MRI *mri_dst )
   mri_dst->xsize = mri_src->xsize ;
   mri_dst->ysize = mri_src->ysize ;
   mri_dst->zsize = mri_src->zsize ;
+  
+  if (mri_dst->free_transform)
+    delete_general_transform(&mri_dst->transform) ;
   if (mri_src->linear_transform)
   {
     copy_general_transform(&(((MRI*)mri_src)->transform),
@@ -6857,6 +6860,7 @@ MRIcopyHeader( const MRI *mri_src, MRI *mri_dst )
   }
 
 
+  for (i = 0 ; i < mri_dst->ncmds ; i++) free(mri_dst->cmdlines[i]) ;
   for (i = 0 ; i < mri_src->ncmds ; i++)
   {
     mri_dst->cmdlines[i] =
