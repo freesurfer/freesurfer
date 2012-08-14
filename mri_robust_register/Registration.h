@@ -8,8 +8,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2012/05/25 22:57:22 $
- *    $Revision: 1.53 $
+ *    $Date: 2012/08/14 18:35:40 $
+ *    $Revision: 1.54 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -93,99 +93,47 @@ enum Cost
 
   virtual ~Registration();
 
-  void clear(); // initialize registration (keep source and target and gauss pyramid)
-  void freeGPS() {freeGaussianPyramid(gpS);};
-  void freeGPT() {freeGaussianPyramid(gpT);};
+  // initialize registration (keep source and target and gauss pyramid)
+  void clear(); 
+  
+  void freeGPS()                 {freeGaussianPyramid(gpS);};
+  void freeGPT()                 {freeGaussianPyramid(gpT);};
 
   // Set parameters:
-  void setTransonly(bool r)
-  {
-    transonly = r;
-  };
-  void setRigid(bool r)
-  {
-    rigid = r;
-  };
-  void setSaturation(double d)
-  {
-    sat = d;
-  };
-  void setHighit(int i)
-  {
-    highit = i;
-  };
-  void setDebug(int d)
-  {
-    debug = d;
-    if (d>0) verbose = 2;
-  };
-  void setVerbose(int i)
-	// 0 very quiet, 1 default, 2 detail
-  {
-    if (i < 0) i=0;
-    else if (i > 2) i=2;
-    verbose = i;
-  };
-  void setIscale(bool i)
-  {
-    iscale = i;
-  };
-  void setIscaleInit(double d)
-  {
-    iscaleinit = d;
-  };
-  void setRtype(int r)
-  {
-    rtype = r;
-  };
-  void setMinitOrig(const vnl_matrix < double > & m)
-  {
-    Minit =m; // this is for the original volumes (not in resampled space!)
-  };
+  void setTransonly(bool r)      {transonly = r;};
+  void setRigid(bool r)          {rigid = r;};
+  void setSaturation(double d)   {sat = d;};
+  void setHighit(int i)          {highit = i;};
+  void setDebug(int d)           {debug = d; if (d>0) verbose = 2;};
+ 
+	// Set Verbose Level: 0 very quiet, 1 default, 2 detail
+  void setVerbose(int i)         {if (i < 0) i=0; else if (i > 2) i=2; verbose = i;};
+  
+  void setIscale(bool i)         {iscale = i;};
+  void setIscaleInit(double d)   {iscaleinit = d;};
+  void setRtype(int r)           {rtype = r;};
+  
+  // Set initial transform fo the original volumes (not in resampled space!)
+  void setMinitOrig(const vnl_matrix < double > & m){ Minit =m; };
+  
   void setSource (MRI * s, bool conform = false, bool keeptype = false);
   void setTarget (MRI * t, bool conform = false, bool keeptype = false);
   void setSourceAndTarget(MRI * s, MRI * t, bool keeptype = false);
-  void setSubsampleSize (int sss)
-  {
-    subsamplesize = sss;
-  };
-  void setMinSize (int s)
-  {
-    minsize = s;
-  };
-  void setMaxSize (int s)
-  {
-    maxsize = s;
-  };
+  void setSubsampleSize (int sss){subsamplesize = sss;};
+  void setMinSize (int s)        {minsize = s;};
+  void setMaxSize (int s)        {maxsize = s;};
   void setName(const std::string &n);
 	
 	// if inittransform is true additionally use orientation?
-  void setInitOrient(bool io)
-  {
-    initorient = io;
-  };
+  void setInitOrient(bool io)    {initorient = io;};
 	
 	// if true (default) automatically initialize transform
-  void setInitTransform(bool it)
-  {
-    inittransform = it;
-  };
-  void setInitScaling(bool it)
-  {
-    initscaling = it;
-  };
-  void setDoublePrec(bool b)
-  {
-    doubleprec = b;
-  };
-  void setWLimit( double d)
-  {
-    wlimit = d;
-  };
-  void setSymmetry( bool b)
-  {
-    symmetry = b;
-  };
+  void setInitTransform(bool it) {inittransform = it;};
+  void setInitScaling(bool it)   {initscaling = it;};
+  void setDoublePrec(bool b)     {doubleprec = b;};
+  void setWLimit( double d)      {wlimit = d;};
+  void setSymmetry( bool b)      {symmetry = b;};
+  
   void setSampleType(int st)
   {
     switch (st)
@@ -198,31 +146,15 @@ enum Cost
     }
     sampletype = st;
   }
-  void setCost( Cost c)
-  {
-    costfun = c;
-  };
-
-  bool isIscale()
-  {
-    return iscale;
-  };
-  std::string  getName()
-  {
-    return name;
-  };
-  MRI * getWeights()
-  {
-    return mri_weights;
-  };
-  MRI * getHWeights()
-  {
-    return mri_hweights;
-  };
-  MRI * getHalfWayGeom()
-  {
-    return mri_weights;
-  };
+  
+  void setCost( Cost c)          {costfun = c;};
+  bool isIscale()                {return iscale;};
+  std::string  getName()         {return name;};
+  bool getConverged()            {return converged;};
+  MRI * getWeights()             {return mri_weights;};
+  MRI * getHWeights()            {return mri_hweights;};
+  MRI * getHalfWayGeom()         {return mri_weights;};
+  
   std::pair <vnl_matrix_fixed< double, 4, 4 > , vnl_matrix_fixed < double, 4, 4 > > getHalfWayMaps();
 
   double findSaturation ();
@@ -234,7 +166,7 @@ enum Cost
 
   // get final transform (might be different from mfinal due to possible resampling)
   vnl_matrix_fixed < double , 4 , 4 >  getFinalVox2Vox ();
-  double getFinalIscale() {return iscalefinal;};
+  double getFinalIscale()        {return iscalefinal;};
 
   double estimateIScale(MRI *mriS, MRI *mriT);
 
@@ -309,6 +241,7 @@ protected:
   bool initscaling;
   int highit;
 
+  // PROTECTED DATA
   MRI * mri_source;
   std::vector < MRI* > gpS;
   std::vector < double > centroidS;
@@ -342,9 +275,6 @@ private:
 //  void constructAb(MRI *mriS, MRI *mriT, vnl_matrix < double > &A, vnl_vector < double > &b);
   std::pair < MATRIX*, VECTOR* > constructAb2(MRI *mriS, MRI *mriT);
 
-  // conversions
-  //MATRIX * rt2mat(MATRIX * r, MATRIX * t, MATRIX *outM); // uses global rtype flag
-  //MATRIX * p2mat(MATRIX * p6, MATRIX *outM); // calls rt2mat (uses global rtype)
 
   bool needReslice(MRI *mri, double vsize = -1, int xdim =-1, int ydim=-1, int zdim=-1, bool fixtype = true);
   std::pair< MRI* , vnl_matrix_fixed < double, 4, 4> > makeIsotropic(MRI *mri, MRI *out, double vsize = -1, int xdim =-1, int ydim=-1, int zdim=-1, bool fixtype = true);
@@ -358,17 +288,14 @@ private:
   void freeGaussianPyramid(std::vector< MRI* >& p);
   void saveGaussianPyramid(std::vector< MRI* >& p, const std::string & prefix);
 
-  MRI * mri_weights;
-  MRI * mri_hweights;
   double wcheck; // set from computeRegistrationStepW
   double wchecksqrt; // set from computeRegistrationStepW
-//  double zeroweights;// set from computeRegistrationStepW
 
   bool converged;
 
-  // help vars
-//	vnl_vector < double > lastp;
-
+  // PRIVATE DATA
+  MRI * mri_weights;
+  MRI * mri_hweights;
   MRI * mri_indexing;
 };
 

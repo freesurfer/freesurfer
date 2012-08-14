@@ -8,8 +8,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2012/05/25 22:30:24 $
- *    $Revision: 1.15 $
+ *    $Date: 2012/08/14 18:35:40 $
+ *    $Revision: 1.16 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -395,7 +395,7 @@ void RegPowell::computeIterativeRegistration( int nmax,double epsit,MRI * mriS, 
     // rigid pcount = 3 (transx, transy, rot) init with zero (above)
 
     tols[2] = tols[1];
-    // affine 6 (or 7 for int scale), init scaling with 1:
+    // affine 6 (transx, transy, rot, scalex, scaley, shear), init scaling with 1
     if (pcount >= 6)
     { 
       p[3] = 1.0;

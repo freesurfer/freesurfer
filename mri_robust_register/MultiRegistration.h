@@ -14,8 +14,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2011/11/21 20:59:11 $
- *    $Revision: 1.16 $
+ *    $Date: 2012/08/14 18:35:40 $
+ *    $Revision: 1.17 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -57,16 +57,15 @@ public:
   MultiRegistration():outdir("./"),transonly(false),rigid(true),robust(true),sat(4.685),satit(false),
 	                     debug(0),iscale(false),subsamplesize(-1),highit(-1),fixvoxel(false),
 											 keeptype(false),average(1),doubleprec(false),sampletype(SAMPLE_CUBIC_BSPLINE),
-                       mri_mean(NULL)
-		{};
+                       mri_mean(NULL)   {};
+                                        
   MultiRegistration(const std::vector < std::string > mov):outdir("./"),transonly(false),
 	                     rigid(true),robust(true),sat(4.685),satit(false),debug(0),iscale(false),
 											 subsamplesize(-1),highit(-1),fixvoxel(false),keeptype(false),average(1),doubleprec(false),
 											 sampletype(SAMPLE_CUBIC_BSPLINE),mri_mean(NULL)
-  { loadMovables(mov);};
+                                        { loadMovables(mov);};
 		
-  ~MultiRegistration()
-  {clear();};
+  ~MultiRegistration()                  {clear();};
 	 
   bool initialXforms(int tpi, bool fixtp, int regmaxres, int regitmax, double regeps);
   bool computeTemplate(int avitmax, double aveps, int regitmax, double regeps);
@@ -88,62 +87,21 @@ public:
   unsigned int getSeed();
 	 
   // Set parameters:
-  void setOutdir(const std::string & s)
-  {
-    outdir = s;
-  }; 
-  void setTransonly(bool r)
-  {
-    transonly = r;
-  };
-  void setRigid(bool r)
-  {
-    rigid = r;
-  };
-  void setRobust(bool r)
-  {
-    robust = r;
-  };
-  void setSaturation(double d)
-  {
-    sat = d;
-  };
-  void setSatit(bool b)
-  {
-    satit = b;
-  };
-  void setDebug(int d)
-  {
-    debug = d;
-  };
-  void setIscale(bool i)
-  {
-    iscale = i;
-  };
-  void setFixVoxel(bool i)
-  {
-    fixvoxel = i;
-  };
-  void setKeepType(bool i)
-  {
-    keeptype = i;
-  };
-  void setAverage(int i)
-  {
-    average = i;
-  };
-  void setSubsamplesize (int sss)
-  {
-    subsamplesize = sss;
-  };
-  void setHighit (int hit)
-  {
-    highit = hit;
-  };
-  void setDoublePrec(bool b)
-  {
-    doubleprec = b;
-  }
+  void setOutdir(const std::string & s) {outdir = s;}; 
+  void setTransonly(bool r)             {transonly = r;};
+  void setRigid(bool r)                 {rigid = r;};
+  void setRobust(bool r)                {robust = r;};
+  void setSaturation(double d)          {sat = d;};
+  void setSatit(bool b)                 {satit = b;};
+  void setDebug(int d)                  {debug = d;};
+  void setIscale(bool i)                {iscale = i;};
+  void setFixVoxel(bool i)              {fixvoxel = i;};
+  void setKeepType(bool i)              {keeptype = i;};
+  void setAverage(int i)                {average = i;};
+  void setSubsamplesize (int sss)       {subsamplesize = sss;};
+  void setHighit (int hit)              {highit = hit;};
+  void setDoublePrec(bool b)            {doubleprec = b;}
+  
   // sample type when creating averages
   void setSampleType(int st)
   {
@@ -159,7 +117,7 @@ public:
     }
     sampletype = st;
   }
-  int getSampleType() {return sampletype;};
+  int getSampleType()                   {return sampletype;};
   
   // maps mov based on ltas (also iscale) and averages:
   bool mapAndAverageMov(int itdebug);
@@ -184,13 +142,7 @@ private:
   std::vector <std::string > mov;
   std::vector <std::string > iltas;
   std::vector <std::string > iintens;
-	
-  // copy of output filenames
-  //std::string mean;
-  // std::vector <std::string> nltas;
-  //std::vector <std::string> nweights;
-  // std::vector <std::string> nwarps;
-	
+		
   // Parameter:
   std::string outdir;
   bool   transonly;

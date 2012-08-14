@@ -8,8 +8,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2012/05/25 22:57:22 $
- *    $Revision: 1.79 $
+ *    $Date: 2012/08/14 18:35:40 $
+ *    $Revision: 1.80 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -65,6 +65,7 @@ Registration::~Registration()
   if (mri_target) MRIfree(&mri_target);
   if (mri_indexing) MRIfree(&mri_indexing);
   if (mri_weights) MRIfree(&mri_weights);
+  if (mri_hweights) MRIfree(&mri_hweights);
   if (gpS.size() > 0) freeGaussianPyramid(gpS);
   if (gpT.size() > 0) freeGaussianPyramid(gpT);
   //std::cout << " Done " << std::endl;
@@ -86,7 +87,8 @@ void Registration::clear() // initialize registration (keep source and target an
   debug = 0;
 	
   if (mri_indexing) MRIfree(&mri_indexing);
-  if (mri_weights) MRIfree(&mri_weights);
+  if (mri_weights)  MRIfree(&mri_weights);
+  if (mri_hweights) MRIfree(&mri_hweights);
   mri_weights= NULL;
 
 	Minit.clear();
@@ -986,7 +988,7 @@ void Registration::computeMultiresRegistration (int stopres, int n,double epsit)
     cout << "   - final iscale:  If = " << md.second << endl;
   }
 	
-  if (!converged)
+  if (!converged && verbose > 0)
   {
     cout << endl;
     cout << "**********************************************************" << endl;

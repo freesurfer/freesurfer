@@ -8,8 +8,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2012/07/13 19:25:51 $
- *    $Revision: 1.19 $
+ *    $Date: 2012/08/14 18:35:40 $
+ *    $Revision: 1.20 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -434,7 +434,8 @@ void RegistrationStep<T>::constructAb(MRI *mriS, MRI *mriT,vnl_matrix < T >& A,v
 	SpTh = MRIscalarMul(SpTh,SpTh,0.5);
 	MRI *fx1 = NULL, *fy1 = NULL, *fz1 = NULL, *ft1 = NULL;
 	MyMRI::getPartials(SpTh,fx1,fy1,fz1,ft1);  
-	MRI * SmT = MRIalloc(mriS->width,mriS->height,mriS->depth,MRI_FLOAT);
+  MRIfree(&SpTh);
+	MRI *SmT = MRIalloc(mriS->width,mriS->height,mriS->depth,MRI_FLOAT);
 	SmT = MRIsubtract(mriS,mriT,SmT);
 	SmT = MyMRI::getBlur(SmT,SmT);
   
@@ -449,7 +450,7 @@ void RegistrationStep<T>::constructAb(MRI *mriS, MRI *mriT,vnl_matrix < T >& A,v
   //MRIwrite(ft1,"ft.mgz");
 
   // subsample if wanted
-  MRI * fx,* fy,* fz,* ft;
+  MRI *fx, *fy, *fz, *ft;
   if (dosubsample)
   {
     if (verbose > 1) std::cout << "     -- subsample ... "<< std::flush;
@@ -463,7 +464,7 @@ void RegistrationStep<T>::constructAb(MRI *mriS, MRI *mriT,vnl_matrix < T >& A,v
     ft = MyMRI::subSample(ft1);
     MRIfree(&ft1);
 		
-		MRI * SmTt = SmT;
+		MRI *SmTt = SmT;
 		SmT = MyMRI::subSample(SmTt);
     MRIfree(&SmTt);
 		
@@ -696,9 +697,9 @@ void RegistrationStep<T>::constructAb(MRI *mriS, MRI *mriT,vnl_matrix < T >& A,v
             A[count][0] =  MRIFvox(fx, x, y, z);
             A[count][1] =  MRIFvox(fy, x, y, z);
             A[count][2] =  MRIFvox(fz, x, y, z);
-            A[count][3] =  (MRIFvox(fz, x, y, z)*yp1 - MRIFvox(fy, x, y, z)*zp1);
-            A[count][4] =  (MRIFvox(fx, x, y, z)*zp1 - MRIFvox(fz, x, y, z)*xp1);
-            A[count][5] =  (MRIFvox(fy, x, y, z)*xp1 - MRIFvox(fx, x, y, z)*yp1);
+            A[count][3] = (MRIFvox(fz, x, y, z)*yp1 - MRIFvox(fy, x, y, z)*zp1);
+            A[count][4] = (MRIFvox(fx, x, y, z)*zp1 - MRIFvox(fz, x, y, z)*xp1);
+            A[count][5] = (MRIFvox(fy, x, y, z)*xp1 - MRIFvox(fx, x, y, z)*yp1);
 					  dof = 6;
           }
 					
@@ -733,8 +734,8 @@ void RegistrationStep<T>::constructAb(MRI *mriS, MRI *mriT,vnl_matrix < T >& A,v
         }
 
      // !! ISCALECHANGE
-        //if (iscale) A[count][dof] =  (0.5 / iscalefinal) * ( MRIFvox(Tbl, x, y, z) + MRIFvox(Sbl,x,y,z));
-        //if (iscale) A[count][dof] =  2.0* MRIFvox(ft, x, y, z) / sqrt(iscalefinal);
+        //if (iscale) A[count][dof] = (0.5 / iscalefinal) * ( MRIFvox(Tbl, x, y, z) + MRIFvox(Sbl,x,y,z));
+        //if (iscale) A[count][dof] = 2.0* MRIFvox(ft, x, y, z) / sqrt(iscalefinal);
         //if (iscale) A[count][dof] = MRIFvox(ft, x, y, z) / iscalefinal;
         //if (iscale) A[count][dof] = MRIFvox(Sbl,x,y,z); // not symmetric here, but much more stable, we still map both to geometric intensity mean
         //if (iscale) A[count][dof] = 2.0 * MRIFvox(ft,x,y,z); 
@@ -753,8 +754,8 @@ void RegistrationStep<T>::constructAb(MRI *mriS, MRI *mriT,vnl_matrix < T >& A,v
   //cout << " counti: " << counti << " count : " << count<< endl;    
 	assert(counti == count);
       
-  //  vnl_matlab_print(vcl_cerr,A,"A",vnl_matlab_print_format_long);std::cerr << std::endl;    
- //   vnl_matlab_print(vcl_cerr,b,"b",vnl_matlab_print_format_long);std::cerr << std::endl;    
+  // vnl_matlab_print(vcl_cerr,A,"A",vnl_matlab_print_format_long);std::cerr << std::endl;    
+  // vnl_matlab_print(vcl_cerr,b,"b",vnl_matlab_print_format_long);std::cerr << std::endl;    
       
   // free remaining MRI    
   MRIfree(&fx);
@@ -762,8 +763,6 @@ void RegistrationStep<T>::constructAb(MRI *mriS, MRI *mriT,vnl_matrix < T >& A,v
   MRIfree(&fz);
   MRIfree(&ft);
 	MRIfree(&SmT);
-  //if (Sbl) MRIfree(&Sbl);
-  //if (Tbl) MRIfree(&Tbl);
 
   return;
 }

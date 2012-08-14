@@ -10,8 +10,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2012/05/15 18:27:33 $
- *    $Revision: 1.43 $
+ *    $Date: 2012/08/14 18:35:41 $
+ *    $Revision: 1.44 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -169,7 +169,7 @@ static void printUsage(void);
 static bool parseCommandLine(int argc, char *argv[],Parameters & P) ;
 
 static char vcid[] =
-  "$Id: mri_robust_template.cpp,v 1.43 2012/05/15 18:27:33 mreuter Exp $";
+  "$Id: mri_robust_template.cpp,v 1.44 2012/08/14 18:35:41 mreuter Exp $";
 char *Progname = NULL;
 
 int getRandomNumber(int start, int end, unsigned int & seed)
@@ -193,6 +193,7 @@ int getRandomNumber(int start, int end, unsigned int & seed)
 
 int main(int argc, char *argv[])
 {
+ {
   cout << vcid << endl << endl;
   // set the environment variable
 //  setenv("SURFER_FRONTDOOR","",1) ;
@@ -391,6 +392,8 @@ int main(int argc, char *argv[])
     MR.writeWeights(P.nweights,P.oneminusweights);
   }
 
+  MR.clear();
+  
   ///////////////////////////////////////////////////////////////
   msec = TimerStop(&start) ;
   seconds = nint((float)msec/1000.0f) ;
@@ -406,6 +409,7 @@ int main(int argc, char *argv[])
   cout << " http://dx.doi.org/10.1016/j.neuroimage.2012.02.084" << endl;
   cout << " http://reuter.mit.edu/papers/reuter-long12.pdf" << endl << endl;
 
+ }
   exit(0) ;
   return(0) ;
 }

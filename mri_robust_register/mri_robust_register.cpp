@@ -10,8 +10,8 @@
  * Original Author: Martin Reuter, Nov. 4th ,2008
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2012/07/31 22:33:04 $
- *    $Revision: 1.65 $
+ *    $Date: 2012/08/14 18:35:41 $
+ *    $Revision: 1.66 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -193,12 +193,32 @@ static void printUsage(void);
 static bool parseCommandLine(int argc, char *argv[],Parameters & P) ;
 static void initRegistration(Registration & R, Parameters & P) ;
 
-static char vcid[] = "$Id: mri_robust_register.cpp,v 1.65 2012/07/31 22:33:04 mreuter Exp $";
+static char vcid[] = "$Id: mri_robust_register.cpp,v 1.66 2012/08/14 18:35:41 mreuter Exp $";
 char *Progname = NULL;
 
 //static MORPH_PARMS  parms ;
 //static FILE *diag_fp = NULL ;
 
+void debug(Parameters &P)
+{
+  MRI * mriS = MRIread(P.mov.c_str());
+  MRI * mriT = MRIread(P.dst.c_str());
+	MRI * SmT  = MRIalloc(mriS->width,mriS->height,mriS->depth,MRI_FLOAT);
+	SmT = MRIsubtract(mriS,mriT,SmT);
+	SmT = MyMRI::getBlur(SmT,SmT);
+
+// MRI * mri = MRIread(P.mov.c_str());
+// mri = MyMRI::getBlur(mri,mri);
+// MRI * mri2 = MRIread(P.dst.c_str());
+// MRI * mri = MRIallocHeader(256,256,256,MRI_UCHAR,1);
+// MRI * mri2 = MRIallocHeader(122,256,256,MRI_UCHAR,1);
+// MRIcopyFrame(mri,mri2,0,0);
+  MRIfree(&mriS);
+  MRIfree(&mriT);
+  MRIfree(&SmT);
+  //MRIfree(&mri2);
+  exit(0);
+}
 
 void conv(MRI * i)
 {
@@ -589,7 +609,6 @@ void testcubic(Parameters & P)
 
 int main(int argc, char *argv[])
 {
-
   {
     // for valgrind, so that everything is freed
     cout << vcid << endl << endl;
@@ -626,6 +645,7 @@ int main(int argc, char *argv[])
 //entro(P);
 //gradmag(P);
 //jointhisto(P);
+//debug(P);
 
 // vnl_vector < double > p(6,0.0);
 // p[3] = 0.1;
@@ -1152,6 +1172,8 @@ int main(int argc, char *argv[])
       delete(Rp);
       Rp=NULL;
     }
+    if (lta)
+      LTAfree(&lta);
 
     ///////////////////////////////////////////////////////////////
     msec = TimerStop(&start) ;
