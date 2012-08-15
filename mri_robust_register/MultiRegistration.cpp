@@ -14,8 +14,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2012/05/15 18:27:33 $
- *    $Revision: 1.43 $
+ *    $Date: 2012/08/15 20:58:47 $
+ *    $Revision: 1.44 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -417,8 +417,8 @@ bool MultiRegistration::computeTemplate(int itmax, double eps , int iterate, dou
   int itcount = 0;
   double maxchange = 100;
 
-  vector < Registration > Rv(mri_mov.size());
-  for (int i = 0;i<nin;i++) Rv[i].setSource(mri_mov[i],fixvoxel,keeptype);
+//  vector < Registration > Rv(mri_mov.size()); //(removed to save mem)
+//  for (int i = 0;i<nin;i++) Rv[i].setSource(mri_mov[i],fixvoxel,keeptype);
 	
   vector < vnl_matrix_fixed < double, 4, 4> > transforms(mri_mov.size());
 //  if (havexforms) //initial transforms
@@ -474,18 +474,19 @@ bool MultiRegistration::computeTemplate(int itmax, double eps , int iterate, dou
 #ifdef HAVE_OPENMP
   #pragma omp critical
 #endif  
-		  cout << endl << "Working on TP " << i+1 << endl;
-      
-      Rv[i].clear();
-      Rv[i].setVerbose(0);
-      initRegistration(Rv[i]); //set parameter
-      Rv[i].setTarget(mri_mean,
+		  cout << endl << "Working on TP " << i+1 << endl << endl;
+      Registration R; // create new registration each time to keep mem usage smaller
+//      Rv[i].clear();
+      R.setVerbose(0);
+      initRegistration(R); //set parameters
+      R.setSource(mri_mov[i],fixvoxel,keeptype);
+      R.setTarget(mri_mean,
                       fixvoxel,
                       keeptype); // gaussian pyramid will be constructed for
                                   // each Rv[i], could be optimized
       ostringstream oss;
       oss << outdir << "tp" << i+1 << "_to_template-it" << itcount;
-      Rv[i].setName(oss.str());
+      R.setName(oss.str());
 
       // compute Alignment
       //std::pair <MATRIX*, double> Md;
@@ -515,15 +516,19 @@ bool MultiRegistration::computeTemplate(int itmax, double eps , int iterate, dou
         }
 		  }
 
-      Rv[i].setSubsampleSize(subsamp);
-      Rv[i].setIscaleInit(intensities[i]);
-      Rv[i].setMinitOrig(transforms[i]); // as the transforms are in the original space
-			if (satit) Rv[i].findSaturation();
+      R.setSubsampleSize(subsamp);
+      R.setIscaleInit(intensities[i]);
+      R.setMinitOrig(transforms[i]); // as the transforms are in the original space
+			if (satit) R.findSaturation();
 
-      Rv[i].computeMultiresRegistration(maxres, iterate, epsit);
+      cout << " - running multi-resolutional registration ..." << endl;
+      R.computeMultiresRegistration(maxres, iterate, epsit);
 
-		  Md.first  = Rv[i].getFinalVox2Vox();
-			Md.second = Rv[i].getFinalIscale();
+		  Md.first  = R.getFinalVox2Vox();
+			Md.second = R.getFinalIscale();
+      if (!R.getConverged())
+        cout << "   *** WARNING: TP " << i+1 <<" to template did not converge ***"<< endl;
+
 
       transforms[i]  = Md.first;
       intensities[i] = Md.second;
@@ -554,7 +559,7 @@ bool MultiRegistration::computeTemplate(int itmax, double eps , int iterate, dou
 #ifdef HAVE_OPENMP
   #pragma omp critical
 #endif  
-        cout << endl << "tp " << i+1 << " distance: " << dists[i] << endl;
+        cout << "   tp " << i+1 << " distance: " << dists[i] << endl;
       }
 
 
@@ -566,7 +571,7 @@ bool MultiRegistration::computeTemplate(int itmax, double eps , int iterate, dou
 #ifdef HAVE_OPENMP
   #pragma omp critical
 #endif  
-        cout << "mapping tp " <<i+1<< " to template (cubic bspline) ..." << endl;
+        cout << " - mapping tp " <<i+1<< " to template (cubic bspline) ..." << endl;
         mri_warps[i] = LTAtransformBSpline(mri_bsplines[i],mri_warps[i], ltas[i]);
       }
       else
@@ -574,30 +579,33 @@ bool MultiRegistration::computeTemplate(int itmax, double eps , int iterate, dou
 #ifdef HAVE_OPENMP
   #pragma omp critical
 #endif  
-        cout << "mapping tp " <<i+1<< " to template..." << endl;
+        cout << " - mapping tp " <<i+1<< " to template..." << endl;
         mri_warps[i] = LTAtransformInterp(mri_mov[i],mri_warps[i], ltas[i],sampletype);
       }
 		  MRIcopyPulseParameters(mri_mov[i],mri_warps[i]);
 
       // here do scaling of intensity values
-      if (Rv[i].isIscale() && Md.second > 0)
+      if (R.isIscale() && Md.second > 0)
       {
 #ifdef HAVE_OPENMP
   #pragma omp critical
 #endif  
-        cout << "Adjusting Intensity of mapped tp " <<i+1<< " by " << Md.second << endl;
+        cout << " - adjusting intensity of mapped tp " <<i+1<< " by " << Md.second << endl;
         mri_warps[i] = MyMRI::MRIvalscale(mri_warps[i],
                                          mri_warps[i], Md.second);
       }
 			
+      if (backupweights)
+      {
 			// copy weights (as RV will be cleared)
       //   (info: they are in original half way space)
 #ifdef HAVE_OPENMP
   #pragma omp critical
 #endif  
-	     cout << "backup weights tp " <<i+1<< " ..." << endl;
-       if (mri_weights[i]) MRIfree(&mri_weights[i]); 
-       mri_weights[i] = MRIcopy(Rv[i].getWeights(),NULL);
+	       cout << " - backup weights tp " <<i+1<< " ..." << endl;
+         //if (mri_weights[i]) MRIfree(&mri_weights[i]); 
+         mri_weights[i] = MRIcopy(R.getWeights(),mri_weights[i]);
+      }
 			 
       //cout << " LS difference after: " <<
       //CF.leastSquares(mri_aligned,P.mri_dst) << endl;
@@ -610,13 +618,13 @@ bool MultiRegistration::computeTemplate(int itmax, double eps , int iterate, dou
 #ifdef HAVE_OPENMP
   #pragma omp critical
 #endif  
-        cout << "debug: writing transforms, warps, weights ..." << endl;
+        cout << " - debug: writing transforms, warps, weights ..." << endl;
         
         LTAwriteEx(ltas[i], (oss.str()+".lta").c_str()) ;
 
         MRIwrite(mri_warps[i], (oss.str()+".mgz").c_str()) ;
 
-        if (Rv[i].isIscale() && Md.second >0)
+        if (R.isIscale() && Md.second >0)
         {
           string fn = oss.str() + "-intensity.txt";
           ofstream f(fn.c_str(),ios::out);
@@ -627,7 +635,7 @@ bool MultiRegistration::computeTemplate(int itmax, double eps , int iterate, dou
         // if we have weights:  
         if (mri_weights[i] != NULL)
         {
-          std::pair <vnl_matrix_fixed < double , 4, 4> , vnl_matrix_fixed < double, 4, 4 > > map2weights = Rv[i].getHalfWayMaps();
+          std::pair <vnl_matrix_fixed < double , 4, 4> , vnl_matrix_fixed < double, 4, 4 > > map2weights = R.getHalfWayMaps();
           vnl_matrix_fixed < double , 4, 4>  hinv = vnl_inverse(map2weights.second);
 
 #ifdef HAVE_OPENMP
@@ -664,8 +672,8 @@ bool MultiRegistration::computeTemplate(int itmax, double eps , int iterate, dou
       } // if debug end
     
 		  // clear to reduce memory usage:
-      Rv[i].clear();
-      Rv[i].freeGPT();
+      //Rv[i].clear();
+     // Rv[i].freeGPT();
 			
 #ifdef HAVE_OPENMP
   #pragma omp critical
@@ -865,6 +873,7 @@ bool MultiRegistration::initialXforms(int tpi, bool fixtp, int maxres, int itera
   for (int i = 0;i<nin;i++) index[i] = i;
   index[0] = tpi;
   index[tpi] = 0;
+  vector < bool > converged(nin,true);
 
 
   // Register everything to tpi TP
@@ -906,20 +915,28 @@ bool MultiRegistration::initialXforms(int tpi, bool fixtp, int maxres, int itera
     R.computeMultiresRegistration(maxres,iterate,epsit);
 		Md[i].first = R.getFinalVox2Vox();
 		Md[i].second = R.getFinalIscale();
+    converged[i] = R.getConverged();
 		
 		// get centroid of tpi (target of the registration)
 		// only do this once (when i==1) is enough
 		// the centroid is the voxel coord where the moment based centroid is located
+    vnl_vector_fixed < double, 4 > centroid_temp(R.getCentroidSinT());
+	  if (i==1) centroid_temp += R.getCentroidT();
 #ifdef HAVE_OPENMP
   #pragma omp critical
 #endif  
     {
-		  if (i==1) centroid += R.getCentroidT();
-      centroid += R.getCentroidSinT();
+      centroid += centroid_temp;
     }
   } // end for loop (initial registration to inittp)
-
+  
 	centroid = (1.0/nin) * centroid;
+  
+  for (int i = 1;i<nin;i++) 
+  {
+    if (!converged[i])
+      cout << "* WARNING: TP " << index[i]+1 << " to " << tpi+1 << " did not converge !! "<< endl;
+  }  
   
   // copy results in correct order back to global members
 	// lta (transforms) and intensities:
