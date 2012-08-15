@@ -7,9 +7,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: rpwang $
- *    $Date: 2012/04/11 19:46:22 $
- *    $Revision: 1.422.2.4 $
+ *    $Author: mreuter $
+ *    $Date: 2012/08/15 22:35:55 $
+ *    $Revision: 1.422.2.5 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -45,6 +45,7 @@ extern "C" {
 #define SAMPLE_SINC          2
 #define SAMPLE_CUBIC         3 /*E*/
 #define SAMPLE_WEIGHTED      4
+#define SAMPLE_CUBIC_BSPLINE 5
 
 #define MRI_UCHAR   0
 #define MRI_INT     1
