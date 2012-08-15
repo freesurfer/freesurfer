@@ -1,0 +1,308 @@
+#!/usr/bin/env python
+# -*- coding: latin-1 -*-
+
+#
+# long_stats_tps
+#
+# script to stack individual time point results based on longitudinal qdec table
+#
+# Original Author: Martin Reuter
+# CVS Revision Info:
+#    $Author: mreuter $
+#    $Date: 2012/08/15 20:32:09 $
+#    $Revision: 1.3.2.2 $
+#
+# Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+#
+# Terms and conditions for use, reproduction, distribution and contribution
+# are found in the 'FreeSurfer Software License Agreement' contained
+# in the file 'LICENSE' found in the FreeSurfer distribution, and here:
+#
+# https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
+#
+# Reporting: freesurfer@nmr.mgh.harvard.edu
+#
+#
+
+import warnings
+warnings.filterwarnings('ignore', '.*negative int.*')
+import os
+import sys
+import shlex
+import optparse
+import logging
+import subprocess
+import tempfile
+import shutil
+from subject_info import *
+from LongQdecTable import *
+
+# logging 
+ch = logging.StreamHandler()
+#create logger
+slopelogger = logging.getLogger("long_stats_tps")
+slopelogger.setLevel(logging.INFO)
+slopelogger.addHandler(ch)
+
+
+HELPTEXT = """
+
+SUMMARY
+
+Adds columns (populated from stats) into longitudinal qdec table.
+Measures are taken from the longitudinally processed results by
+default (i.e. the <tpNid>.long.<template> directories).
+
+
+REQUIRED ARGUMENTS
+
+--qdec <name>     qdec.table.dat file with first columns: fsid  fsid-base
+
+--stats <name>    Stats file w/o path: e.g. aseg.stats or lh.aparc.stats
+
+--meas <name>     Stats measure, e.g. volume, thickness, mean, std
+
+--sd <name>       Subject directory
+
+--out <name>      File name of output long qdec table
+
+OPTIONAL ARGUMENTS
+
+--outstats <name> File name to output stacked stats table (all subject, all tps)
+
+--instats <name>  File name of stacked stats table (same order as qdec), instead of --stats and --meas
+
+
+DESCRIPTION:
+
+Pass --stasts and --meas to harvest stats from the subjects stats dirs into
+large table containing all subjects and time points as passed in the qdec
+table. You can output this stats table using --outstats
+
+Alternatively, pass a stacked stats table with --instats instead of --stats
+and --meas. 
+
+The stacked stats table will then be appended to the input qdec table and
+written into --out <name>.
+
+
+
+QDEC.TABLE
+Pass a qdec table file, where the first 2 columns need to be 'fsid  fsid-base'.
+fsid is the id of the individual time points an 'fsid-base' the template/base
+id (grouping the timepoints that belong to the same subject).
+
+QDEC.TABLE-EXAMPLE:
+fsid    fsid-base  age   weight   IQ
+Elmo_1   Elmo       3      10    1000        
+#Elmo_2  Elmo       3.5    15    1100
+Elmo_3   Elmo       4      20    1300 
+Snuffy_1 Snuffy    20      40    1100
+Snuffy_2 Snuffy    21      45    1200
+Bert_1   Bert       8      25    2000
+Bert_2   Bert       9      30    2500
+Bert_3   Bert       9.9    34    2400
+
+
+
+
+
+REFERENCES
+==========
+
+Highly Accurate Inverse Consistent Registration: A Robust Approach,
+  M. Reuter, H.D. Rosas, B. Fischl. NeuroImage 53(4), 1181-1196, 2010.
+  http://dx.doi.org/10.1016/j.neuroimage.2010.07.020
+  http://reuter.mit.edu/papers/reuter-robreg10.pdf 
+
+Avoiding Asymmetry-Induced Bias in Longitudinal Image Processing,
+  M. Reuter, B. Fischl. NeuroImage 57(1), 19-21, 2011.
+  http://dx.doi.org/10.1016/j.neuroimage.2011.02.076
+  http://reuter.mit.edu/papers/reuter-bias11.pdf 
+
+Within-Subject Template Estimation for Unbiased Longitudinal Image Analysis.
+  M. Reuter, N.J. Schmansky, H.D. Rosas, B. Fischl.
+  NeuroImage 61(4), 1402-1418, 2012.
+  http://dx.doi.org/10.1016/j.neuroimage.2012.02.084
+  http://reuter.mit.edu/papers/reuter-long12.pdf
+
+"""
+
+def options_parse():
+    """
+    Command Line Options Parser for long_mris_slopes
+    initiate the option parser and return the parsed object
+    """
+    parser = optparse.OptionParser(version='$Id: long_stats_combine,v 1.3.2.2 2012/08/15 20:32:09 mreuter Exp $', usage=HELPTEXT)
+    
+    # help text
+    h_qdec      = '(REQUIRED) qdec table file specifying the subjects and time points'
+    h_stats     = '(REQUIRED) the stats file, e.g. aseg.stats or lh.aparc.stats'
+    h_meas      = '(REQUIRED) the stats measure (e.g. volume, thickness, mean, std)'
+    h_sd        = '(REQUIRED) full path to FreeSurfer subjects dir'
+    h_outqdec       = '(REQUIRED) output long qdec table'
+    h_outstats  = 'output stacked stats table (all subject, all tps)'
+    h_instats   = 'input stacked stats table (same order as qdec table, instead of --meas --stats)'
+    h_cross     = 'use cross sectional results (for testing only)'
+
+    # Add options 
+
+    # Sepcify inputs
+    parser.add_option('--qdec',  dest='qdec',  help=h_qdec)
+    parser.add_option('--stats', dest='stats', help=h_stats)
+    parser.add_option('--meas',  dest='meas',  help=h_meas)
+    parser.add_option('--sd',    dest='sd'  ,  help=h_sd)
+    parser.add_option('--outqdec',   dest='outqdec'  , help=h_outqdec)
+    parser.add_option('--outstats',   dest='outstats'  , help=h_outstats)
+    parser.add_option('--instats',   dest='instats'  , help=h_instats)
+
+    parser.add_option('--cross', action='store_true', dest='cross', help=h_cross, default=False)
+                      
+    (options, args) = parser.parse_args()
+    
+    # extensive error checks
+    if options.qdec is None:
+        parser.print_help() 
+        print
+        print 'ERROR: Specify --qedc'
+        print 
+        sys.exit(1)
+        
+    if options.instats is None:
+        if options.stats is None :
+            print 'ERROR: Specify --stats (e.g. \'aseg.stats\')'
+            sys.exit(1)
+        if options.meas is None :
+            print 'ERROR: Specify --meas (e.g. \'volume\')'
+            sys.exit(1)
+        if options.sd is None :
+            print 'ERROR: Specify the subject dir with --sd <fullpath>'
+            sys.exit(1)
+    else:
+        if options.stats is not None or options.meas is not None:
+            print '\nERROR: Do not pass --stats or --meas when passing --instats\n'        
+            sys.exit(1)
+        if options.outstats is not None:
+            print '\nERROR: Do not pass --outstats when passing --instats (just make a copy yourself)\n'
+            sys.exit(1)
+            
+    
+    if options.outqdec is None and options.outstats is None:
+        print 'ERROR: Specify the output file name with --outqdec <name> or --outstats <name>'
+        sys.exit(1)   
+ 
+    crosslong = 'long.'
+    if options.cross:
+        crosslong = 'cross.'
+ 
+                
+    return options
+
+
+def run_cmd(cmd,err_msg):
+    """
+    execute the comand
+    """
+    print cmd+'\n'
+    args = shlex.split(cmd)
+    retcode = subprocess.call(args)
+    if retcode != 0 :
+        print 'ERROR: '+err_msg
+        sys.exit(1)
+    print '\n'
+
+
+if __name__=="__main__":
+    # Command Line options and error checking done here
+    options = options_parse()
+    slopelogger.debug('-- The options you entered --')
+    slopelogger.debug(options) 
+
+    subjectsdir = ''
+    # Parse the stats files 
+    print 'Parsing the qdec table: '+options.qdec
+    try:
+        slopelogger.debug('Processing file ' + options.qdec)
+        qdectable = LongQdecTable(options.qdec)
+        #subjects_tp_map, variables, subjectdir = qdecparse.parse()
+    except BadFileError, e:
+        print 'ERROR: qdec table '+str(e)+' not found!'
+        sys.exit(1)
+    
+    
+    # make sure we have a long table containing the bases
+    if qdectable.cross:
+        print '\nERROR: qdec table '+options.qdec+' is cross sectional\n       (2nd column not \'fsid-base\')!\n'
+        sys.exit(1)
+        
+    # get other variables:
+    variables=qdectable.variables
+    
+    # overwrite environment with passed subjects dir:
+    if options.sd is not None:
+        subjectsdir = options.sd
+        print '\nWorking in SUBJECTS_DIR: '+subjectsdir+'\n'
+        os.environ['SUBJECTS_DIR'] =  subjectsdir
+    
+    # process
+    
+    if options.instats is None:
+    
+        retcode = 0
+        all = ""
+        slist = []
+        for subjectid, tplist in qdectable.subjects_tp_map.items():
+            print '\nSubject-Template: '+subjectid
+                    
+            # extract ids:
+            if options.cross:
+                tpids = [entry[0] for entry in tplist]
+            else:
+                tpids = [entry[0]+'.long.'+subjectid for entry in tplist]
+                    
+            # list of subjects :
+            slist =  slist + tpids
+                    
+#            # check stats dir 
+#            for tpid in tpids:
+#                statsdir = os.path.join(subjectsdir,tpid,'stats')
+#                if not os.path.exists(statsdir):
+#                    print 'ERROR: Stats dir '+str(statsdir)+' does not exist!'
+#                    sys.exit(1)
+        
+        
+  
+        # list of subjects and tps:
+        all = " ".join(slist)
+
+        # use stats2table to parse through all directories stats files:
+        if options.outstats is None:
+            allf = tempfile.mkstemp('','stat_combine_','')
+            alltable = allf[1]
+        else:
+            alltable = options.outstats
+        stats = options.stats
+        prog  = 'asegstats2table --common-segs --stats '+stats
+        if options.stats[0:3] == 'lh.' or options.stats[0:3]=='rh.':
+            stats = options.stats[3:]
+            if stats[-6:] == '.stats':
+               stats=stats[0:-6]
+            prog = 'aparcstats2table --common-parcs --hemi '+options.stats[0:2]+' --parc '+stats
+        cmd = prog+' --subjects '+all+' --meas '+options.meas+' --tablefile '+ alltable +' -d space'
+        run_cmd(cmd,prog+' stacking all stats did not work?')        
+    
+    else:
+        alltable = options.instats
+    
+    if options.outqdec is not None:
+        # now append that table to the long qdec table
+        qdectable.append_table(alltable)
+        # save
+        qdectable.write(options.outqdec);  
+    
+    # clean up temp file
+    if options.instats is None and options.outstats is None:
+        os.unlink(alltable)
+
+    # always exit with 0 exit code
+    sys.exit(0)
