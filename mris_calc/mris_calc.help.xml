@@ -116,6 +116,9 @@ If the comparison is valid for a point in &lt;file1&gt; compared to correspondin
       <explanation>2 inputs and 1 output. &lt;outputFile&gt; = (int)&lt;file1&gt; &amp; (int)&lt;file2&gt;</explanation>
       <argument>orbw</argument>
       <explanation>2 inputs and 1 output. &lt;outputFile&gt; = (int)&lt;file1&gt; | (int)&lt;file2&gt;</explanation>
+      <argument>not</argument>
+      <explanation>1 input and 1 output. &lt;outputFile&gt; = not &lt;file1&gt;</explanation>
+
       <argument>masked</argument>
       <explanation>2 inputs and 1 output. &lt;outputFile&gt; = &lt;file1&gt; maskedby &lt;file2&gt;</explanation>
       <explanation>The logical operations follow C convention, i.e. and is a logical 'and' equivalent to the C '&amp;&amp;' operator, similarly for 'or' which is evaluated with the C '||'. The 'andbw' and 'orbw' are bit-wise operators, evaluted with the C operators '&amp;' and '|' respectively.</explanation>

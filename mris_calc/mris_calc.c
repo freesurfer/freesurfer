@@ -11,9 +11,9 @@
 /*
  * Original Author: Rudolph Pienaar
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/08/01 18:24:21 $
- *    $Revision: 1.37.2.6 $
+ *    $Author: mreuter $
+ *    $Date: 2012/08/15 21:47:25 $
+ *    $Revision: 1.37.2.7 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -41,6 +41,7 @@
 
 #include <getopt.h>
 #include <stdarg.h>
+#include <float.h>
 
 #include "macros.h"
 #include "error.h"
@@ -62,7 +63,7 @@
 #define  START_i        3
 
 static const char vcid[] =
-  "$Id: mris_calc.c,v 1.37.2.6 2011/08/01 18:24:21 nicks Exp $";
+  "$Id: mris_calc.c,v 1.37.2.7 2012/08/15 21:47:25 mreuter Exp $";
 double fn_sign(float af_A);
 
 // ----------------------------------------------------------------------------
@@ -122,8 +123,10 @@ typedef enum _operation
   e_add,
   e_pow,
   e_sub,
+  e_pctdiff,
   e_sqd,
   e_sqr,
+  e_not,
   e_sqrt,
   e_set,
   e_atan2,
@@ -168,6 +171,7 @@ const char* Gppch_operation[] =
   "add",
   "pow",
   "subtract",
+  "pctdiff",
   "square difference",
   "square",
   "square root"
@@ -310,6 +314,10 @@ double fn_sub(float af_A, float af_B)
 {
   return (af_A - af_B);
 }
+double fn_pctdiff(float af_A, float af_B)
+{
+  return (100*(af_A - af_B)/( (af_A + af_B + FLT_MIN)/2) );
+}
 double fn_sqd(float af_A, float af_B)
 {
   return (af_A - af_B)*(af_A - af_B);
@@ -407,6 +415,11 @@ double fn_inv(float af_A)
 double fn_sqr(float af_A)
 {
   return (af_A*af_A);
+}
+double fn_not(float af_A)
+{
+  if(af_A > 0.5) return(0);
+  return(1);
 }
 double fn_sqrt(float af_A)
 {
@@ -815,7 +828,8 @@ fileType_find(
   // The acph_inputFile can be either a file on the filesystem
   // or a float argument. Check if <apch_inputFile> is an actual
   // file, if not, check if it converts to a float.
-  filestat = stat(basename(apch_inputFile), &stFileInfo);
+//  filestat = stat(basename(apch_inputFile), &stFileInfo);
+  filestat = stat((apch_inputFile), &stFileInfo);
   if(filestat)
   {
     // <apch_inputFile> does not seem to refer to a valid file.
@@ -830,7 +844,8 @@ fileType_find(
   }
 
   // Check if input is a volume file...
-  type     = mri_identify(basename(apch_inputFile));
+//  type     = mri_identify(basename(apch_inputFile));
+  type     = mri_identify((apch_inputFile));
   *ap_FSFILETYPE = type;
   if(type != MRI_VOLUME_TYPE_UNKNOWN && type != MRI_CURV_FILE)
   {
@@ -1356,7 +1371,7 @@ main(
   init();
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mris_calc.c,v 1.37.2.6 2011/08/01 18:24:21 nicks Exp $",
+           "$Id: mris_calc.c,v 1.37.2.7 2012/08/15 21:47:25 mreuter Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
   {
@@ -1573,6 +1588,10 @@ operation_lookup(
   {
     e_op    = e_sub;
   }
+  else if(!strcmp(apch_operation, "pctdiff"))
+  {
+    e_op    = e_pctdiff;
+  }
   else if(!strcmp(apch_operation, "sqd"))
   {
     e_op    = e_sqd;
@@ -1584,6 +1603,10 @@ operation_lookup(
   else if(!strcmp(apch_operation, "sqrt"))
   {
     e_op    = e_sqrt;
+  }
+  else if(!strcmp(apch_operation, "not"))
+  {
+    e_op    = e_not;
   }
   else if(!strcmp(apch_operation, "set"))
   {
@@ -1990,11 +2013,15 @@ CURV_arrayProgress_print(
     fprintf(G_FP, " [");
     fflush(G_FP);
   }
-  if(acurrent%fivePerc == fivePerc-1)
+  else if(fivePerc>0)
   {
-    fprintf(G_FP, "#");
-    fflush(G_FP);
+    if (acurrent%fivePerc == fivePerc-1)
+    {
+      fprintf(G_FP, "#");
+      fflush(G_FP);
+    }
   }
+  
   if(acurrent == asize-1)
   {
     fprintf(G_FP, "] ");
@@ -2036,9 +2063,11 @@ b_outCurvFile_write(e_operation e_op)
     e_op == e_pow           ||
     e_op == e_add           ||
     e_op == e_sub           ||
+    e_op == e_pctdiff       ||
     e_op == e_sqd           ||
     e_op == e_sqr           ||
     e_op == e_sqrt          ||
+    e_op == e_not           ||
     e_op == e_set           ||
     e_op == e_atan2         ||
     e_op == e_bcor          ||
@@ -2140,6 +2169,9 @@ CURV_process(void)
   case  e_sub:
     CURV_functionRunABC(fn_sub);
     break;
+  case  e_pctdiff:
+    CURV_functionRunABC(fn_pctdiff);
+    break;
   case  e_set:
     CURV_functionRunABC(fn_set);
     break;
@@ -2172,6 +2204,9 @@ CURV_process(void)
     break;
   case  e_sqrt:
     CURV_functionRunAC( fn_sqrt);
+    break;
+  case  e_not:
+    CURV_functionRunAC( fn_not);
     break;
   case  e_eq:
     CURV_functionRunABC(fn_eq);
