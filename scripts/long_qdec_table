@@ -9,8 +9,8 @@
 # Original Author: Martin Reuter
 # CVS Revision Info:
 #    $Author: mreuter $
-#    $Date: 2011/08/23 18:16:58 $
-#    $Revision: 1.1.2.5 $
+#    $Date: 2012/08/15 20:34:50 $
+#    $Revision: 1.1.2.6 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -97,7 +97,7 @@ def options_parse():
     Command Line Options Parser
     initiate the option parser and return the parsed object
     """
-    parser = optparse.OptionParser(version='$Id: long_qdec_table,v 1.1.2.5 2011/08/23 18:16:58 mreuter Exp $', usage=HELPTEXT)
+    parser = optparse.OptionParser(version='$Id: long_qdec_table,v 1.1.2.6 2012/08/15 20:34:50 mreuter Exp $', usage=HELPTEXT)
     
     # help text
     h_qdec      = '(REQUIRED) qdec table file specifying the subjects and time points'
@@ -115,8 +115,8 @@ def options_parse():
     (options, args) = parser.parse_args()
 
     if options.qdec is None:
-        print 'ERROR: Specify --qedc'
-        print '       or run with --help for help.'
+        parser.print_help()
+        print '\nERROR: Specify --qedc'
         sys.exit(1)
 
     if ( options.sort is not None or options.cross ) and options.out is None:

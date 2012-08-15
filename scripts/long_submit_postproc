@@ -9,8 +9,8 @@
 # Original Author: Martin Reuter
 # CVS Revision Info:
 #    $Author: mreuter $
-#    $Date: 2011/07/15 17:52:14 $
-#    $Revision: 1.1.2.2 $
+#    $Date: 2012/08/15 20:34:50 $
+#    $Revision: 1.1.2.3 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -169,15 +169,22 @@ parameters for each individual fsid-base in the qdec table separately.
 
 REFERENCES
 ==========
+
 Highly Accurate Inverse Consistent Registration: A Robust Approach,
-M. Reuter, H.D. Rosas, B. Fischl. NeuroImage 53 (4), pp. 1181-1196, 2010.
+  M. Reuter, H.D. Rosas, B. Fischl. NeuroImage 53(4), 1181-1196, 2010.
   http://dx.doi.org/10.1016/j.neuroimage.2010.07.020
   http://reuter.mit.edu/papers/reuter-robreg10.pdf 
 
 Avoiding Asymmetry-Induced Bias in Longitudinal Image Processing,
-M. Reuter, B. Fischl. NeuroImage 57 (1), pp. 19-21, 2011.
+  M. Reuter, B. Fischl. NeuroImage 57(1), 19-21, 2011.
   http://dx.doi.org/10.1016/j.neuroimage.2011.02.076
   http://reuter.mit.edu/papers/reuter-bias11.pdf 
+
+Within-Subject Template Estimation for Unbiased Longitudinal Image Analysis.
+  M. Reuter, N.J. Schmansky, H.D. Rosas, B. Fischl.
+  NeuroImage 61(4), 1402-1418, 2012.
+  http://dx.doi.org/10.1016/j.neuroimage.2012.02.084
+  http://reuter.mit.edu/papers/reuter-long12.pdf
 
 """
 
@@ -188,7 +195,7 @@ def options_parse():
     Command Line Options Parser for long_mris_slopes
     initiate the option parser and return the parsed object
     """
-    parser = optparse.OptionParser(version='$Id: long_submit_postproc,v 1.1.2.2 2011/07/15 17:52:14 mreuter Exp $', usage=HELPTEXT)
+    parser = optparse.OptionParser(version='$Id: long_submit_postproc,v 1.1.2.3 2012/08/15 20:34:50 mreuter Exp $', usage=HELPTEXT)
     
     # help text
     h_qdec      = '(REQUIRED) qdec table file specifying the subjects and time points'
@@ -226,8 +233,8 @@ def options_parse():
 
     # extensive error checks
     if options.qdec is None or options.prog is None:
-        print 'ERROR: Specify --qedc and --prog'
-        print '       or run with --help for help.'
+        parser.print_help()
+        print '\nERROR: Specify --qedc and --prog'
         sys.exit(1)
 
     if not os.path.exists(options.dir):

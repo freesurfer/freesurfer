@@ -1,8 +1,9 @@
 # Original author - Martin Reuter
-# $Id: LongQdecTable.py,v 1.1.2.5 2011/08/23 18:59:01 mreuter Exp $
+# $Id: LongQdecTable.py,v 1.1.2.6 2012/08/15 20:34:50 mreuter Exp $
 import os
 import logging
 import sys
+import itertools
 from datastruct_utils import *
 
 class BadFileError(Exception):
@@ -25,7 +26,9 @@ class LongQdecTable:
     cross = True
     
     # constructor
-    def __init__(self, stpmap, vari=None, sdir=None,cval=None,cross=True):
+    def __init__(self, stpmap=None, vari=None, sdir=None,cval=None,cross=True):
+        if stpmap == None:
+           return
         if isinstance(stpmap,str):
            self.parse(stpmap)
         else:
@@ -48,7 +51,7 @@ class LongQdecTable:
         
                         
     # we read in the file
-    def parse(self,filename):
+    def parse(self,filename,warncross=True):
         self.filename = filename
         # raise exception if file doesn't exist
         if not os.path.exists(filename):
@@ -79,12 +82,19 @@ class LongQdecTable:
             elif strlst[0].upper() == 'FSID':
                 gotheaders = True
                 if not strlst[1].upper() == 'FSID-BASE':
-                    print '\nWarning: second column is not \'fsid-base\' assuming cross sectional qdec table\n'
+                    if warncross:
+                        print '\nWarning: second column is not \'fsid-base\' assuming cross sectional qdec table\n'
                     #print '\nERROR: Make sure second column is \'fsid-base\' to specify the subject tempate (base)\n'
                     #sys.exit(1)
+                    self.variables= strlst[1:]  # 0 is tpid, 1 is templateid
                 else:
                     self.cross = False
-                self.variables= strlst[2:]  # 0 is tpid, 1 is templateid
+                    self.variables= strlst[2:]  # 0 is tpid, 1 is templateid
+            elif strlst[0].startswith('Measure:') or strlst[0].startswith('h.aparc',1,):
+                print 'Input is probably stats table, reading it as cross sectional...\n'
+                self.cross = True
+                self.variables = strlst[1:] # 0 is subject id
+                gotheaders = True
                 
             else:
                 if not gotheaders:
@@ -213,12 +223,74 @@ class LongQdecTable:
             colnum = poscols[0]   
         
         for key,value in self.subjects_tp_map.items():
-           #print 'Key before: '+key+'  ->  '+str(value)+'\n'
-           #a = sorted(value, key=lambda tpdata: tpdata[colnum])
-           #print 'Key after : '+key+'  ->  '+str(a)+'\n'
+            #print 'Key before: '+key+'  ->  '+str(value)+'\n'
+            #a = sorted(value, key=lambda tpdata: tpdata[colnum])
+            #print 'Key after : '+key+'  ->  '+str(a)+'\n'
            
-           self.subjects_tp_map[key] = sorted(value, key=lambda tpdata: tpdata[colnum])
-           
+            self.subjects_tp_map[key] = sorted(value, key=lambda tpdata: tpdata[colnum])
+    
+    def append_table(self,filename):
+        if self.cross:
+            print 'ERROR: append_table not supported for type cross!'
+            sys.exit(1)
+        
+        # append columns from another table (read it from disk) to this
+        # it is assumed that a row exists for each subject.tp in this table
+        print 'Parsing the qdec table: '+filename
+        statstable = LongQdecTable()
+        statstable.parse(filename,False) #don't warn about being cross sectional table
+        #print statstable.variables
+        
+        self.variables = list(itertools.chain(*[self.variables, statstable.variables]))
+        first = True
+        crossnames = True
+        #iterate through current table
+        for subjectid, tplist in self.subjects_tp_map.items():
+            
+        
+            if not statstable.cross:
+                print 'statstable is not corss (= long)\n'
+                # table to append is in long format
+                #  check if subject is here
+                if subjectid not in statstable.subjects_tp_map:
+                    print 'ERROR: did not find '+subjectid+' in table '+filename+'!'
+                    sys.exit(1)
+                    
+                # get that data
+                addtplist = statstable.subjects_tp_map[subjectid]
+                
+                # check if all time points are in same order
+                for i,tpdata,addtpdata in itertools.izip(itertools.count(),tplist,addtplist):
+                    if tpdata[0] != addtpdata[0]:
+                        print 'ERROR: time point id'+tpdata[0]+' not found in other table!'
+                        sys.exit(1)
+                    # append all columns (except the id)
+                    self.subjects_tp_map[subjectid][i] = list(itertools.chain(*[self.subjects_tp_map[subjectid][i], addtplist[i][1:]]))
+            else:
+                # if saved in cross format
+                for i,tpdata in itertools.izip(itertools.count(),tplist):
+                    #determin if fsid is cross or long (only once)
+                    if first:
+                        first=False
+                        tpid = tpdata[0]
+                        if tpid in statstable.subjects_tp_map:
+                            crossnames = True
+                        elif tpid+'.long.'+subjectid in statstable.subjects_tp_map:
+                            crossnames = False
+                        else:
+                            print 'ERROR: time point id'+tpid+' not found in other table!'
+                            sys.exit(1)
+                    # get the name
+                    tpid = tpdata[0]
+                    if not crossnames:
+                        tpid = tpdata[0]+'.long.'+subjectid
+                    # get the data
+                    addtplist = statstable.subjects_tp_map[tpid]
+                    # append all columns (except the id)
+                    self.subjects_tp_map[subjectid][i] = list(itertools.chain(*[self.subjects_tp_map[subjectid][i], addtplist[0][1:]]))
+                    
+                
+            
 
     def write(self,filename):
         self.filename = filename
