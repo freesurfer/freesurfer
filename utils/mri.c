@@ -6,11 +6,11 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: mreuter $
- *    $Date: 2012/08/14 02:12:35 $
- *    $Revision: 1.513 $
+ *    $Author: nicks $
+ *    $Date: 2012/08/15 19:26:28 $
+ *    $Revision: 1.514 $
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -23,7 +23,7 @@
  */
 
 extern const char* Progname;
-const char *MRI_C_VERSION = "$Revision: 1.513 $";
+const char *MRI_C_VERSION = "$Revision: 1.514 $";
 
 
 /*-----------------------------------------------------
@@ -6157,7 +6157,7 @@ MRI *MRIallocSequence(int width, int height, int depth, int type, int nframes)
                 (ERROR_BADPARM, "MRIalloc(%d, %d, %d): bad parm",
                  width, height, depth)) ;
 #if 1
-  mri = MRIallocHeader(width, height, depth, type, 1) ;
+  mri = MRIallocHeader(width, height, depth, type, nframes) ;
   MRIinitHeader(mri) ;
 #else
   mri = (MRI *)calloc(1, sizeof(MRI)) ;
