@@ -1,5 +1,5 @@
 # Original author - Krish Subramaniam
-# $Id: fsutils.py,v 1.4.2.1 2011/03/24 03:18:19 krish Exp $
+# $Id: fsutils.py,v 1.4.2.2 2012/08/15 20:35:43 mreuter Exp $
 import os
 import logging
 import sys
@@ -92,7 +92,7 @@ Derived from StatsParser
 """
 class AsegStatsParser(StatsParser):
 
-    measure_column_map = {'volume':3, 'mean':5, 'std':6}
+    measure_column_map = {'volume':3, 'mean':5, 'std':6, 'max':8, 'snr':10}
     maxsegno = None
     id_name_map = StableDict()
 
@@ -158,7 +158,8 @@ class AsegStatsParser(StatsParser):
                         ('# Measure SuperTentorial, SuperTentorialVol,','SuperTentorialVol'),
                         ('# Measure SupraTentorial, SupraTentorialVol,','SupraTentorialVol'),
                         ('# Measure IntraCranialVol, ICV,','IntraCranialVol'),
-                        ('# Measure BrainSeg, BrainSegVol,','BrainSegVol'),)
+                        ('# Measure BrainSeg, BrainSegVol,','BrainSegVol'),
+                        ('# Measure BrainSegNotVent, BrainSegVolNotVent,','BrainSegVolNotVent'),)
                 c = 0
                 for start, structn in beg_struct_tuple:
                     c = c + 1
@@ -213,6 +214,14 @@ class AparcStatsParser(StatsParser):
             if measure == 'area':
                 beg_struct_tuple = (
                     ('# Measure Cortex, WhiteSurfArea,', 'WhiteSurfArea'),
+                )
+                for start, structn in beg_struct_tuple:
+                    if line.startswith(start):
+                        strlst = line.split(',')
+                        self.parc_measure_map[structn] = float( strlst[3])
+            if measure == 'thickness':
+                beg_struct_tuple = (
+                    ('# Measure Cortex, MeanThickness,', 'MeanThickness'),
                 )
                 for start, structn in beg_struct_tuple:
                     if line.startswith(start):
