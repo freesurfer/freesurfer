@@ -89,6 +89,7 @@ labels_intersect \
 labels_disjoint \
 long_mris_slopes \
 long_stats_slopes \
+long_stats_combine \
 long_stats_tps \
 long_submit_jobs \
 long_submit_postproc \
@@ -102,6 +103,7 @@ make_average_subcort \
 make_cortex_label \
 make_upright \
 make_symmetric \
+make_hemi_mask \
 make-segvol-table \
 map_all_labels \
 map_all_labels-lh \
