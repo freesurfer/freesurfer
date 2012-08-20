@@ -14,8 +14,8 @@
  * Original Author: Douglas N Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2012/05/02 20:12:51 $
- *    $Revision: 1.211 $
+ *    $Date: 2012/08/20 16:33:35 $
+ *    $Revision: 1.212 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -555,7 +555,7 @@ static int SmoothSurfOrVol(MRIS *surf, MRI *mri, MRI *mask, double SmthLevel);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-"$Id: mri_glmfit.c,v 1.211 2012/05/02 20:12:51 greve Exp $";
+"$Id: mri_glmfit.c,v 1.212 2012/08/20 16:33:35 greve Exp $";
 const char *Progname = "mri_glmfit";
 
 int SynthSeed = -1;
@@ -711,7 +711,7 @@ int  nThreshList = 5, nthThresh;
 float ThreshList[5] = {1.3,  2.0,  2.3,  3.0, 3.3};
 int  nSignList = 3, nthSign;
 int SignList[3] = {-1,0,1};
-CSD *csdList[5][3];
+CSD *csdList[5][3][20];
 
 int nRandExclude=0,  *ExcludeFrames=NULL, nExclude=0;
 MATRIX *MatrixExcludeFrames(MATRIX *Src, int *ExcludeFrames, int nExclude);
@@ -1262,7 +1262,7 @@ int main(int argc, char **argv) {
   mriglm->glm->ncontrasts = nContrasts;
   if(nContrasts > 0) {
     for(n=0; n < nContrasts; n++) {
-      if (! useasl && ! useqa  && fsgd->nContrasts == 0) {
+      if (! useasl && ! useqa  && !(fsgd != NULL && fsgd->nContrasts != 0)) {
         // Get its name
         mriglm->glm->Cname[n] =
           fio_basename(CFile[n],".mat"); //strip .mat
@@ -1451,13 +1451,23 @@ int main(int argc, char **argv) {
     }
     printf("thresh = %g, threshadj = %g \n",csd->thresh,csd->thresh-log10(2.0));
 
+    if(!DoSimThreshLoop){
+      nThreshList = 1;
+      ThreshList[0] = csd->thresh;
+      nSignList = 1;
+      SignList[0] = tSimSign;
+      DoSimThreshLoop = 1;
+    }
+
     if(DoSimThreshLoop){
       for(nthThresh = 0; nthThresh < nThreshList; nthThresh++){
 	for(nthSign = 0; nthSign < nSignList; nthSign++){
-	  csdList[nthThresh][nthSign] = CSDcopy(csd,NULL);
-	  csdList[nthThresh][nthSign]->thresh = ThreshList[nthThresh];
-	  csdList[nthThresh][nthSign]->threshsign = SignList[nthSign];
-	  csdList[nthThresh][nthSign]->seed = csd->seed;
+	  for (n=0; n < mriglm->glm->ncontrasts; n++) {
+	    csdList[nthThresh][nthSign][n] = CSDcopy(csd,NULL);
+	    csdList[nthThresh][nthSign][n]->thresh = ThreshList[nthThresh];
+	    csdList[nthThresh][nthSign][n]->threshsign = SignList[nthSign];
+	    csdList[nthThresh][nthSign][n]->seed = csd->seed;
+	  }
 	}
       }
     }
@@ -1508,25 +1518,17 @@ int main(int argc, char **argv) {
         }
       }
 
-      //--------------------------------------------------
-      if(DoSimThreshLoop == 0){
-	nThreshList = 1;
-	nSignList = 1;
-      }
-
       for(nthThresh = 0; nthThresh < nThreshList; nthThresh++){
 	for(nthSign = 0; nthSign < nSignList; nthSign++){
-	  if(DoSimThreshLoop) {
-	    csd = csdList[nthThresh][nthSign];
-	    tSimSign = SignList[nthSign];
-	  }
+	  // Go through each contrast.
+	  for (n=0; n < mriglm->glm->ncontrasts; n++) {
+	    if(DoSimThreshLoop) {
+	      csd = csdList[nthThresh][nthSign][n];
+	      tSimSign = SignList[nthSign];
+	    }
+	    if(debug) printf("%2d %d %5.1f  %d %2d %5.1f\n",nthsim,nthThresh,
+			     csd->thresh,nthSign,tSimSign,TimerStop(&mytimer)/1000.0);
 
-	  if(debug) printf("%2d %d %5.1f  %d %2d %5.1f\n",nthsim,nthThresh,
-		 csd->thresh,nthSign,tSimSign,TimerStop(&mytimer)/1000.0);
-
-	  // Go through each contrast. Only works for 1 contrast!
-	  //for (n=0; n < mriglm->glm->ncontrasts; n++) {
-	  for (n=0; n < 1; n++) {
 	    // Change sign to abs for F-tests
 	    csd->threshsign = tSimSign;
 	    if(mriglm->glm->C[n]->rows > 1) csd->threshsign = 0;
@@ -1614,7 +1616,7 @@ int main(int argc, char **argv) {
 	    // long and assures output can be used immediately regardless
 	    // of whether the job terminated properly or not
 	    strcpy(csd->contrast,mriglm->glm->Cname[n]);
-	    if(DoSimThreshLoop){
+	    if(DoSimThreshLoop && (nThreshList > 1 || nSignList > 1) ){
 	      if(round(csd->threshsign) ==  0) tmpstr2 = "abs"; 
 	      if(round(csd->threshsign) == +1) tmpstr2 = "pos"; 
 	      if(round(csd->threshsign) == -1) tmpstr2 = "neg"; 
