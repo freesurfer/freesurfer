@@ -9,8 +9,8 @@
 # Original Author: Martin Reuter
 # CVS Revision Info:
 #    $Author: mreuter $
-#    $Date: 2012/05/30 22:57:25 $
-#    $Revision: 1.38 $
+#    $Date: 2012/08/20 19:50:22 $
+#    $Revision: 1.39 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -333,7 +333,7 @@ def options_parse():
     Command Line Options Parser for long_mris_slopes
     initiate the option parser and return the parsed object
     """
-    parser = optparse.OptionParser(version='$Id: long_mris_slopes,v 1.38 2012/05/30 22:57:25 mreuter Exp $', usage=HELPTEXT)
+    parser = optparse.OptionParser(version='$Id: long_mris_slopes,v 1.39 2012/08/20 19:50:22 mreuter Exp $', usage=HELPTEXT)
     
     # help text
 #    h_fsgd = '(REQUIRED) fsdg file specifying the subjects and time points'
@@ -455,28 +455,18 @@ def options_parse():
         print 'ERROR: Specify --hemi (e.g. \'lh\')\n'
         sys.exit(1)
  
-    if options.do_avg and options.name_avg is None:
+    if options.name_avg is None:
         options.name_avg = 'long.'+options.meas+'-avg'
-#    elif options.name_avg is not None:
-#        options.do_avg = True
-    if options.do_rate and options.name_rate is None:
+    if options.name_rate is None:
         options.name_rate = 'long.'+options.meas+'-rate'
-#    elif options.name_rate is not None:
-#        options.do_rate = True
-    if options.do_pc1fit and options.name_pc1fit is None:
+    if options.name_pc1fit is None:
         options.name_pc1fit = 'long.'+options.meas+'-pc1fit'
-    if options.do_pc1 and options.name_pc1 is None:
+    if options.name_pc1 is None:
         options.name_pc1 = 'long.'+options.meas+'-pc1'
-#    elif options.name_pc1 is not None:
-#        options.do_pc1 = True
-    if options.do_spc and options.name_spc is None:
+    if options.name_spc is None:
         options.name_spc = 'long.'+options.meas+'-spc'
-#    elif options.name_spc is not None:
-#        options.do_spc = True
-    if options.do_stack and options.out_stack is None:
+    if options.out_stack is None:
         options.out_stack = 'long.'+options.meas+'-stack'
-#    elif options.out_stack is not None:
-#        options.do_stack = True
     if options.resid > 0 and options.name_resid is None:
         options.name_resid = 'long.'+options.meas+'-resid'+str(options.resid)
     if options.resid < 1 and options.name_resid is not None:
