@@ -40,20 +40,19 @@
 /*
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2010/07/19 20:47:46 $
- *    $Revision: 1.35 $
+ *    $Author: mreuter $
+ *    $Date: 2012/08/20 19:42:00 $
+ *    $Revision: 1.37.2.1 $
  *
- * Copyright (C) 2002-2010,
- * The General Hospital Corporation (Boston, MA). 
- * All rights reserved.
+ * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
- * Distribution, usage and copying of this software is covered under the
- * terms found in the License Agreement file named 'COPYING' found in the
- * FreeSurfer source code root directory, and duplicated here:
- * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ * Terms and conditions for use, reproduction, distribution and contribution
+ * are found in the 'FreeSurfer Software License Agreement' contained
+ * in the file 'LICENSE' found in the FreeSurfer distribution, and here:
  *
- * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
+ *
+ * Reporting: freesurfer@nmr.mgh.harvard.edu
  *
  */
 
@@ -634,8 +633,8 @@ MRI * vol2maskavg(MRI *SrcVol, MRI *SrcMskVol, int *nhits)
   ProjNormFracThick() - projects along the surface normal a given
   fraction of the thickness at that point.
   ----------------------------------------------------------------*/
-int ProjNormFracThick(float *x, float *y, float *z,
-                      MRI_SURFACE *surf, int vtx, float frac)
+int ProjNormFracThick( float *x, float *y, float *z,
+                       const MRI_SURFACE *surf, int vtx, float frac )
 {
   float r;
   r = frac * surf->vertices[vtx].curv;
@@ -669,8 +668,8 @@ int ProjNormFracThickNbr(float *x, float *y, float *z, MRI_SURFACE *surf,
   ProjNormDist() - projects along the surface normal a given
   distance.
   ----------------------------------------------------------------*/
-int ProjNormDist(float *x, float *y, float *z,
-                 MRI_SURFACE *surf, int vtx, float dist)
+int ProjNormDist( float *x, float *y, float *z,
+                  const MRI_SURFACE *surf, int vtx, float dist)
 {
   *x = surf->vertices[vtx].x + dist*surf->vertices[vtx].nx;
   *y = surf->vertices[vtx].y + dist*surf->vertices[vtx].ny;
@@ -1605,6 +1604,7 @@ MRI *MRImapSurf2VolClosest(MRIS *surf, MRI *vol, MATRIX *Qa2v, float projfrac)
 /*-------------------------------------------------------------------*/
 /*-------------------------------------------------------------------*/
 /*-------------------------------------------------------------
+
   MRIaseg2vol() - maps a segmentation volume to another volume thru a
   registration file. voltemp is a geometry template for the new
   volume. The new volume is returned. Also returned (thru the arglist)
@@ -1615,13 +1615,19 @@ MRI *MRImapSurf2VolClosest(MRIS *surf, MRI *vol, MATRIX *Qa2v, float projfrac)
   of hits is chosen.  It is possible that some output voxels will not
   be closest to any aseg voxel. So finds the output voxels that were
   not initially mapped and assigns them the seg id of the closest in
-  the seg volume.  If nhitsthresh is non-zero, then the number of
-  hits for the winning seg id must exceed nhitsthresh; otherwise the
-  segid is set to 0. The registration should work with:
-    tkregister2  --targ aseg --mov voltemp --reg  tkR
+  the seg volume.  The number of hits for the winning seg id must
+  exceed fthresh*nhitstot where nhitstot is the total number of aseg
+  voxels that land in the given voxel. This cannot necessarily be
+  computed from the voxel volumes because the voxel boundaries will
+  not necessarily line up. If the number of hits does not exceed this
+  value, then the segid is set to 0. 0 < fthresh < 1. 
+
+  The registration should work with: 
+     tkregister2 --targ  aseg --mov voltemp --reg tkR
+
   -------------------------------------------------------------*/
 MRI *MRIaseg2vol(MRI *aseg, MATRIX *tkR, MRI *voltemp,
-                 int nhitsthresh, MRI **pvolhit)
+                 double fthresh, MRI **pvolhit)
 {
   int Na,inda,sa,ra,ca,cv,rv,sv,indv,n,segid,nhits,nhitsmost;
   int nmisses, nfilled;
@@ -1723,7 +1729,7 @@ MRI *MRIaseg2vol(MRI *aseg, MATRIX *tkR, MRI *voltemp,
       continue;
     }
 
-    // Count number of aseg voxels falling into this volume vox
+    // Count total number of aseg voxels falling into this volume vox
     nhits = 0;
     while ((n+nhits < Na) && (indv == avind[n+nhits].volindex)) nhits++;
 
@@ -1731,8 +1737,11 @@ MRI *MRIaseg2vol(MRI *aseg, MATRIX *tkR, MRI *voltemp,
     nhitsmost = MostHitsInVolVox(&avind[n], nhits, &segid);
     MRIsetVoxVal(volhit,avind[n].cv,avind[n].rv,avind[n].sv,0,nhitsmost);
 
-    // Threshold
-    if (nhitsmost < nhitsthresh) segid=0;
+    // Threshold (changed method on Jan 4, 2011)
+    // New way based on number of segid hits relative to number of voxel hits
+    if((double)nhitsmost/nhits < fthresh) segid=0;
+    // Old way based on voxel volume
+    //if (nhitsmost < nhitsthresh) segid=0; 
 
     // Set the output
     MRIsetVoxVal(volaseg,avind[n].cv,avind[n].rv,avind[n].sv,0,segid);
