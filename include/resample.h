@@ -7,21 +7,19 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2008/05/15 15:01:59 $
- *    $Revision: 1.15 $
+ *    $Author: mreuter $
+ *    $Date: 2012/08/20 19:41:09 $
+ *    $Revision: 1.17.2.1 $
  *
- * Copyright (C) 2002-2007,
- * The General Hospital Corporation (Boston, MA). 
- * All rights reserved.
+ * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
- * Distribution, usage and copying of this software is covered under the
- * terms found in the License Agreement file named 'COPYING' found in the
- * FreeSurfer source code root directory, and duplicated here:
- * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ * Terms and conditions for use, reproduction, distribution and contribution
+ * are found in the 'FreeSurfer Software License Agreement' contained
+ * in the file 'LICENSE' found in the FreeSurfer distribution, and here:
  *
- * General inquiries: freesurfer@nmr.mgh.harvard.edu
- * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
+ *
+ * Reporting: freesurfer@nmr.mgh.harvard.edu
  *
  */
 
@@ -55,10 +53,10 @@ extern char *ResampleVtxMapFile;
 int interpolation_code(char *interpolation_string);
 int float2int_code(char *float2int_string);
 
-int ProjNormFracThick(float *x, float *y, float *z,
-                      MRI_SURFACE *surf, int vtx, float frac);
-int ProjNormDist(float *x, float *y, float *z,
-                 MRI_SURFACE *surf, int vtx, float dist);
+int ProjNormFracThick( float *x, float *y, float *z,
+                       const MRI_SURFACE *surf, int vtx, float frac );
+int ProjNormDist( float *x, float *y, float *z,
+                  const MRI_SURFACE *surf, int vtx, float dist );
 int ProjNormDistNbr(float *x, float *y, float *z, MRI_SURFACE *surf, 
 		    int vtxno, float dist, int nthNbr);
 int ProjNormFracThickNbr(float *x, float *y, float *z, MRI_SURFACE *surf, 
@@ -135,6 +133,6 @@ MRI *MRImapSurf2VolClosest(MRIS *surf, MRI *vol,
 int MRIsurf2Vol(MRI *surfvals, MRI *vol, MRI *map);
 
 MRI *MRIaseg2vol(MRI *aseg, MATRIX *tkR, MRI *voltemp,
-                 int nhitsthresh, MRI **pvolhit);
+                 double fthresh, MRI **pvolhit);
 
 #endif /* #ifndef RESAMPLE_H_INC */
