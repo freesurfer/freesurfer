@@ -9,8 +9,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2012/03/26 23:39:27 $
- *    $Revision: 1.55.2.3 $
+ *    $Date: 2012/08/20 19:40:14 $
+ *    $Revision: 1.55.2.4 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -32,8 +32,6 @@
 #if defined(__cplusplus)
 extern "C" {
 #endif
-
-
 
 /*
  * colors for these labels defined in distribution/FreeSurferColorLUT.txt
@@ -298,7 +296,7 @@ extern "C" {
 
 #define IS_UNKNOWN(label)  (((label) == Unknown) || (label == 255) || (label == Bright_Unknown) || (label == Dark_Unknown))
 
-#define IS_BRAIN(label)  (!IS_UNKNOWN(label) && label < Dura)
+#define IS_BRAIN(label)  ((!IS_UNKNOWN(label) && label < Dura) || IS_CC(label))
 
 #define IS_WM(label) (((label) == Left_Cerebral_White_Matter) || ((label) == Right_Cerebral_White_Matter) || ((label) == Left_Temporal_Cerebral_White_Matter) || ((label) == Right_Temporal_Cerebral_White_Matter))
 #define IS_HYPO(label) (((label) == WM_hypointensities)  || ((label) == Left_WM_hypointensities)  || ((label) == Right_WM_hypointensities))
@@ -312,6 +310,7 @@ extern "C" {
 
 #define IS_HIPPO(l) (((l) == Left_Hippocampus) || ((l) == Right_Hippocampus))
 #define IS_AMYGDALA(l) (((l) == Left_Amygdala) || ((l) == Right_Amygdala))
+#define IS_MTL(l)   (IS_HIPPO(l) || IS_AMYGDALA(l))
 #define IS_CORTEX(l) (((l) == Left_Cerebral_Cortex) || \
                       ((l) == Right_Cerebral_Cortex))
 #define IS_LAT_VENT(l) (((l) == Left_Lateral_Ventricle) || \
@@ -321,6 +320,7 @@ extern "C" {
 #define IS_CSF(l) (IS_LAT_VENT(l) || ((l) == CSF) || ((l) == CSF_SA) || ((l) == Third_Ventricle) || ((l) == Fourth_Ventricle))
 
 #define IS_INF_LAT_VENT(l)  (((l) == Left_Inf_Lat_Vent) || ((l) == Right_Inf_Lat_Vent))
+#define IS_VENTRICLE(l)  (IS_LAT_VENT(l) || IS_INF_LAT_VENT(l) || ((l) == Third_Ventricle) || ((l) == Fourth_Ventricle))
 #define IS_CAUDATE(l) (((l) == Left_Caudate) || ((l) == Right_Caudate))
 #define IS_PUTAMEN(l) (((l) == Left_Putamen) || ((l) == Right_Putamen))
 #define IS_PALLIDUM(l) (((l) == Left_Pallidum) || ((l) == Right_Pallidum))
