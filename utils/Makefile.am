@@ -149,6 +149,7 @@ libutils_main_SOURCES=\
 	mosaic.c \
 	mri2.c \
 	mri.c \
+	mriBSpline.c \
 	mriclass.c \
 	mri_conform.c \
 	mricurv.c \

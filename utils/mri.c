@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2012/05/18 23:16:52 $
- *    $Revision: 1.486.2.6 $
+ *    $Author: mreuter $
+ *    $Date: 2012/08/20 19:45:51 $
+ *    $Revision: 1.486.2.7 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -23,7 +23,7 @@
  */
 
 extern const char* Progname;
-const char *MRI_C_VERSION = "$Revision: 1.486.2.6 $";
+const char *MRI_C_VERSION = "$Revision: 1.486.2.7 $";
 
 
 /*-----------------------------------------------------
@@ -55,6 +55,7 @@ const char *MRI_C_VERSION = "$Revision: 1.486.2.6 $";
 #include "talairachex.h"
 #include "voxlist.h"
 #include "fastmarching.h"
+#include "mriBSpline.h"
 
 extern int errno;
 
@@ -63,6 +64,36 @@ extern int errno;
   -------------------------------------------------------*/
 
 #define DEBUG_POINT(x,y,z)  (((x==8&&y==9) || (x==9&&y==8)) &&((z)==15))
+
+
+#ifndef UCHAR_MIN
+#define UCHAR_MIN  0.0
+#endif
+#ifndef UCHAR_MAX
+#define UCHAR_MAX  255.0
+#endif
+#ifndef SHORT_MIN
+#define SHORT_MIN  -32768.0
+#endif
+#ifndef SHORT_MAX
+#define SHORT_MAX  32767.0
+#endif
+#ifndef INT_MIN
+#define INT_MIN    -2147483648.0
+#endif
+#ifndef INT_MAX
+#define INT_MAX    2147483647.0
+#endif
+#ifndef LONG_MIN
+#define LONG_MIN   -2147483648.0
+#endif
+#ifndef LONG_MAX
+#define LONG_MAX   2147483647.0
+#endif
+
+#define N_HIST_BINS 1000
+
+
 
 /*-----------------------------------------------------
   STATIC DATA
@@ -115,6 +146,8 @@ static long mris_alloced = 0 ;
   exist in the header as mri->c_r, mri->c_a, and mri->c_s,
   respectively.
 
+  Note: coordinates are at the center of the voxel.
+
   Note: to compute the matrix with respect to the first voxel being
   at CRS 1,1,1 instead of 0,0,0, then set base = 1. This is
   necessary with SPM matrices.
@@ -124,7 +157,7 @@ static long mris_alloced = 0 ;
 
   Note: MRIgetVoxelToRasXform is #defined to be extract_i_to_r().
   ----------------------------------------------------------------*/
-MATRIX *MRIxfmCRS2XYZ(MRI *mri, int base)
+MATRIX *MRIxfmCRS2XYZ( const MRI *mri, int base)
 {
   MATRIX *m;
   MATRIX *Pcrs, *PxyzOffset;
@@ -192,7 +225,7 @@ MATRIX *MRIxfmCRS2XYZ(MRI *mri, int base)
   non-zero voxels base correctly (eg, SPM expects vox2ras to be 1-based).
   Note: MRIgetVoxelToRasXform is #defined to be extract_i_to_r().
   ---------------------------------------------------------------------------*/
-MATRIX *extract_i_to_r(MRI *mri)
+MATRIX *extract_i_to_r(const MRI *mri)
 {
   MATRIX *m;
   m = MRIxfmCRS2XYZ(mri, 0);
@@ -202,7 +235,7 @@ MATRIX *extract_i_to_r(MRI *mri)
   extract_r_to_i() - computes scanner ras2vox. See also extract_i_to_r()
   and MRIxfmCRS2XYZ()
   ---------------------------------------------------------------------*/
-MATRIX *extract_r_to_i(MRI *mri)
+MATRIX *extract_r_to_i(const MRI *mri)
 {
   MATRIX *m_ras_to_voxel, *m_voxel_to_ras ;
   m_voxel_to_ras = extract_i_to_r(mri) ;
@@ -305,7 +338,7 @@ int MRIsetVox2RASFromMatrixUnitTest(MRI *mri)
   arbitrary, they must be applied consistently. See also:
   surfaceRASFromVoxel_ and voxelFromSurfaceRAS_.
   -------------------------------------------------------------*/
-MATRIX *MRIxfmCRS2XYZtkreg(MRI *mri)
+MATRIX *MRIxfmCRS2XYZtkreg( const MRI *mri)
 {
   MRI *tmp;
   MATRIX *K;
@@ -1192,6 +1225,28 @@ inline float MRIgetVoxVal(const MRI *mri, int c, int r, int s, int f)
 inline int MRIsetVoxVal(MRI *mri, int c, int r, int s, int f, float voxval)
 {
   static void *p=NULL;
+  
+  //clipping
+  switch (mri->type)
+  {
+  case MRI_UCHAR:
+    if (voxval < UCHAR_MIN) voxval = UCHAR_MIN;
+    if (voxval > UCHAR_MAX) voxval = UCHAR_MAX;
+    break;
+  case MRI_SHORT:
+    if (voxval < SHORT_MIN) voxval = SHORT_MIN;
+    if (voxval > SHORT_MAX) voxval = SHORT_MAX;
+    break;
+  case MRI_INT:
+    if (voxval < INT_MIN) voxval = INT_MIN;
+    if (voxval > INT_MAX) voxval = INT_MAX;
+    break;
+  case MRI_LONG:
+    if (voxval < LONG_MIN) voxval = LONG_MIN;
+    if (voxval > LONG_MAX) voxval = LONG_MAX;
+    break;
+  }  
+  
   if (mri->ischunked)
   {
     p = mri->chunk + c + r*mri->bytes_per_row +
@@ -1255,7 +1310,7 @@ int MRIinterpCode(char *InterpString)
   if (!strncasecmp(InterpString,"sinc",3))
     return(SAMPLE_SINC);
   if (!strncasecmp(InterpString,"cubic",3))
-    return(SAMPLE_CUBIC);
+    return(SAMPLE_CUBIC_BSPLINE);
 
   return(-1);
 }
@@ -1277,7 +1332,7 @@ char * MRIinterpString(int InterpCode)
   case SAMPLE_SINC:
     return("sinc");
     break ;
-  case SAMPLE_CUBIC:
+  case SAMPLE_CUBIC_BSPLINE:
     return("cubic");
     break ;
   }
@@ -1361,7 +1416,7 @@ MRIlinearScale(MRI *mri_src, MRI *mri_dst, float scale, float offset,
     {
       for (y = 0 ; y < height ; y++)
       {
-        for (x = 0 ; x < height ; x++)
+        for (x = 0 ; x < width ; x++)
         {
           val = MRIgetVoxVal(mri_src, x, y, z, frame) ;
           if (!only_nonzero || !DZERO(val))
@@ -6655,6 +6710,9 @@ MRIcopyHeader( const MRI *mri_src, MRI *mri_dst )
   mri_dst->xsize = mri_src->xsize ;
   mri_dst->ysize = mri_src->ysize ;
   mri_dst->zsize = mri_src->zsize ;
+  
+  if (mri_dst->free_transform)
+    delete_general_transform(&mri_dst->transform) ;
   if (mri_src->linear_transform)
   {
     copy_general_transform(&(((MRI*)mri_src)->transform),
@@ -6729,6 +6787,7 @@ MRIcopyHeader( const MRI *mri_src, MRI *mri_dst )
   }
 
 
+  for (i = 0 ; i < mri_dst->ncmds ; i++) free(mri_dst->cmdlines[i]) ;
   for (i = 0 ; i < mri_src->ncmds ; i++)
   {
     mri_dst->cmdlines[i] =
@@ -7958,6 +8017,7 @@ MRIupsampleN(MRI *mri_src, MRI *mri_dst, int N)
 
   return(mri_dst) ;
 }
+
 MRI *
 MRIdownsample2LabeledVolume(MRI *mri_src, MRI *mri_dst)
 {
@@ -8022,8 +8082,26 @@ MRIdownsample2LabeledVolume(MRI *mri_src, MRI *mri_dst)
   mri_dst->xsize = mri_src->xsize*2 ;
   mri_dst->ysize = mri_src->ysize*2 ;
   mri_dst->zsize = mri_src->zsize*2 ;
+  mri_dst->thick = mri_src->thick*2 ;
+  mri_dst->ps    = mri_src->ps*2 ;
 
-  mri_dst->ras_good_flag = 0;
+  VECTOR* C = VectorAlloc(4, MATRIX_REAL);
+  VECTOR_ELT(C,1) = mri_src->width/2+0.5;
+  VECTOR_ELT(C,2) = mri_src->height/2+0.5;
+  VECTOR_ELT(C,3) = mri_src->depth/2+0.5;
+  VECTOR_ELT(C,4) = 1.0;
+  MATRIX* V2R     = extract_i_to_r(mri_src);
+  MATRIX* P       = MatrixMultiply(V2R,C,NULL);
+  mri_dst->c_r    = P->rptr[1][1];
+  mri_dst->c_a    = P->rptr[2][1];
+  mri_dst->c_s    = P->rptr[3][1];
+  MatrixFree(&P);
+  MatrixFree(&V2R);
+  VectorFree(&C);
+  
+  MRIreInitCache(mri_dst) ;
+
+  //mri_dst->ras_good_flag = 0;
 
   return(mri_dst) ;
 }
@@ -8049,9 +8127,9 @@ MRIdownsample2(MRI *mri_src, MRI *mri_dst)
      (ERROR_UNSUPPORTED,
       "MRIdownsample2: source and dst must be same type"));
 
-  width = mri_src->width/2 ;
+  width  = mri_src->width/2 ;
   height = mri_src->height/2 ;
-  depth = mri_src->depth/2 ;
+  depth  = mri_src->depth/2 ;
 
   if (!mri_dst)
   {
@@ -8118,8 +8196,26 @@ MRIdownsample2(MRI *mri_src, MRI *mri_dst)
   mri_dst->ysize = mri_src->ysize*2 ;
   mri_dst->zsize = mri_src->zsize*2 ;
   mri_dst->thick = mri_src->thick*2 ;
-  mri_dst->ps = mri_src->ps*2 ;
+  mri_dst->ps    = mri_src->ps*2 ;
+  
+  // adjust cras
+  //printf("COMPUTING new CRAS\n") ;
+  VECTOR* C = VectorAlloc(4, MATRIX_REAL);
+  VECTOR_ELT(C,1) = mri_src->width/2+0.5;
+  VECTOR_ELT(C,2) = mri_src->height/2+0.5;
+  VECTOR_ELT(C,3) = mri_src->depth/2+0.5;
+  VECTOR_ELT(C,4) = 1.0;
+  MATRIX* V2R     = extract_i_to_r(mri_src);
+  MATRIX* P       = MatrixMultiply(V2R,C,NULL);
+  mri_dst->c_r    = P->rptr[1][1];
+  mri_dst->c_a    = P->rptr[2][1];
+  mri_dst->c_s    = P->rptr[3][1];
+  MatrixFree(&P);
+  MatrixFree(&V2R);
+  VectorFree(&C);
+  
   MRIreInitCache(mri_dst) ;
+  //printf("CRAS new: %2.3f %2.3f %2.3f\n",mri_dst->c_r,mri_dst->c_a,mri_dst->c_s);
 
   //  mri_dst->ras_good_flag = 0;
 
@@ -9559,9 +9655,9 @@ MRIsampleLabeledVolume(MRI *mri,
   Description
   ------------------------------------------------------*/
 int
-MRIsampleVolumeType(MRI *mri,
-                    double x, double y, double z,
-                    double *pval, int type)
+MRIsampleVolumeType( const MRI *mri,
+                     double x, double y, double z,
+                     double *pval, int type)
 {
   int   xv, yv, zv ;
   int OutOfBounds;
@@ -9653,6 +9749,12 @@ MRIsampleVolumeFrameType
     break ;
   case SAMPLE_TRILINEAR:
     return(MRIsampleVolumeFrame(mri, x, y, z, frame, pval)) ;
+  case SAMPLE_CUBIC_BSPLINE:
+    ErrorReturn
+    (ERROR_UNSUPPORTED,
+     (ERROR_UNSUPPORTED,
+      "MRIsampleVolumeFrameType(%d): First create coeff image and then use it to sample (see mriBSpline).",
+      type));    
   case SAMPLE_SINC:
     ErrorReturn
     (ERROR_UNSUPPORTED,
@@ -9660,6 +9762,11 @@ MRIsampleVolumeFrameType
       "MRIsampleVolumeFrameType(%d): unsupported interpolation type",
       type));
   default: break;
+    ErrorReturn
+    (ERROR_UNSUPPORTED,
+     (ERROR_UNSUPPORTED,
+      "MRIsampleVolumeFrameType(%d): unsupported interpolation type",
+      type));
     /*E* add SAMPLE_CUBIC here? */
     /*    return(MRIsincSampleVolume(mri, x, y, z, 5, pval)) ;*/
   }
@@ -9825,7 +9932,7 @@ MRIinterpolateIntoVolumeFrame(MRI *mri, double x, double y, double z, int frame,
   multi-frame.
   -------------------------------------------------------------------*/
 int
-MRIsampleVolume(MRI *mri, double x, double y, double z, double *pval)
+MRIsampleVolume( const MRI *mri, double x, double y, double z, double *pval)
 {
   int  OutOfBounds;
   int  xm, xp, ym, yp, zm, zp, width, height, depth ;
@@ -9941,8 +10048,8 @@ MRIsampleVolume(MRI *mri, double x, double y, double z, double *pval)
   sampled at the same time (this can be important in time-sensitive
   applications).
   -------------------------------------------------------------------*/
-int MRIsampleSeqVolume(MRI *mri, double x, double y, double z, float *valvect,
-                       int firstframe, int lastframe)
+int MRIsampleSeqVolume( const MRI *mri, double x, double y, double z, float *valvect,
+                        int firstframe, int lastframe )
 {
   int  OutOfBounds;
   int  f,xm, xp, ym, yp, zm, zp, width, height, depth ;
@@ -10076,6 +10183,11 @@ int MRIsampleSeqVolumeType(MRI *mri, double x, double y, double z, float *valvec
       {
 	printf("Sinc interpolation is not implemented yet on multi-frame data. Going ahead with tri-linear") ;
 	return(MRIsampleSeqVolume(mri, x, y, z, valvect, firstframe, lastframe)) ;
+      }
+    case SAMPLE_CUBIC_BSPLINE:
+      {
+	printf("Cubic Bspline interpolation not implemented here. Needs to be done by calling function!") ;
+	exit(1);
       }
     }
 
@@ -10312,7 +10424,8 @@ localeval(double x, int iter)
 
   ------------------------------------------------------*/
 int
-MRIcubicSampleVolume(MRI *mri, double x, double y, double z, double *pval)
+MRIcubicSampleVolume( const MRI *mri,
+                      double x, double y, double z, double *pval )
 {
   int  OutOfBounds;
   int  width, height, depth ;
@@ -10587,9 +10700,9 @@ double ham_sinc(double x,double fullwidth)
 
 /*-------------------------------------------------------------------------*/
 int
-MRIsincSampleVolume(MRI *mri,
-                    double x, double y, double z,
-                    int hw, double *pval)
+MRIsincSampleVolume( const MRI *mri,
+                     double x, double y, double z,
+                     int hw, double *pval )
 {
   int  OutOfBounds;
   int  width, height, depth ;
@@ -11711,10 +11824,9 @@ MRIlinearTransformInterp(MRI *mri_src, MRI *mri_dst, MATRIX *mA,
 
   if (InterpMethod != SAMPLE_NEAREST &&
       InterpMethod != SAMPLE_TRILINEAR &&
-      InterpMethod != SAMPLE_CUBIC &&
-      InterpMethod != SAMPLE_SINC )
+      InterpMethod != SAMPLE_CUBIC_BSPLINE )
   {
-    printf("ERROR: MRIlinearTransformInterp: unrecoginzed interpolation "
+    printf("ERROR: MRIlinearTransformInterp: unrecognized or unsupported interpolation "
            "method %d\n",InterpMethod);
   }
 
@@ -11728,9 +11840,13 @@ MRIlinearTransformInterp(MRI *mri_src, MRI *mri_dst, MATRIX *mA,
   else
     MRIclear(mri_dst) ;
 
-  width = mri_dst->width ;
+  MRI_BSPLINE * bspline = NULL;
+  if (InterpMethod == SAMPLE_CUBIC_BSPLINE)
+    bspline = MRItoBSpline(mri_src,NULL,3);
+
+  width  = mri_dst->width ;
   height = mri_dst->height ;
-  depth = mri_dst->depth ;
+  depth  = mri_dst->depth ;
   v_X = VectorAlloc(4, MATRIX_REAL) ;  /* input (src) coordinates */
   v_Y = VectorAlloc(4, MATRIX_REAL) ;  /* transformed (dst) coordinates */
 
@@ -11767,10 +11883,19 @@ MRIlinearTransformInterp(MRI *mri_src, MRI *mri_dst, MATRIX *mA,
         //MRIsampleVolume(mri_src, x1, x2, x3, &val);
         for (frame = 0 ; frame < mri_src->nframes ; frame++)
         {
-          MRIsampleVolumeFrameType(mri_src, x1, x2, x3, 
-                                   frame, InterpMethod, &val);
+          if (InterpMethod == SAMPLE_CUBIC_BSPLINE)
+            // recommended to externally call this and keep mri_coeff
+            // if image is resampled often (e.g. in registration algo)
+            MRIsampleBSpline(bspline, x1, x2, x3, frame, &val);
+          else
+            MRIsampleVolumeFrameType(mri_src, x1, x2, x3, 
+                                     frame, InterpMethod, &val);
+
+          // will clip the val according to mri_dst type:
           MRIsetVoxVal(mri_dst, y1, y2, y3, frame, val) ;
+
 #if 0
+          // if this gets ever enabled, don't forget to clip val to type...
           switch (mri_dst->type)
           {
           case MRI_UCHAR:
@@ -11797,7 +11922,7 @@ MRIlinearTransformInterp(MRI *mri_src, MRI *mri_dst, MATRIX *mA,
       }
     }
   }
-
+  if (bspline) MRIfreeBSpline(&bspline);
   MatrixFree(&v_X) ;
   MatrixFree(&mAinv) ;
   MatrixFree(&v_Y) ;
@@ -12083,32 +12208,6 @@ MRImeanFrameThresh(MRI *mri, int frame, float thresh)
   return(mean) ;
 }
 
-#ifndef UCHAR_MIN
-#define UCHAR_MIN  0.0
-#endif
-#ifndef UCHAR_MAX
-#define UCHAR_MAX  255.0
-#endif
-#ifndef SHORT_MIN
-#define SHORT_MIN  -32768.0
-#endif
-#ifndef SHORT_MAX
-#define SHORT_MAX  32767.0
-#endif
-#ifndef INT_MIN
-#define INT_MIN    -2147483648.0
-#endif
-#ifndef INT_MAX
-#define INT_MAX    2147483647.0
-#endif
-#ifndef LONG_MIN
-#define LONG_MIN   -2147483648.0
-#endif
-#ifndef LONG_MAX
-#define LONG_MAX   2147483647.0
-#endif
-
-#define N_HIST_BINS 1000
 
 /*--------------------------------------------------------------
   MRISeqchangeType() - changes the data type for a 3D or 4D volume.
@@ -12147,6 +12246,7 @@ MRI *MRISeqchangeType(MRI *vol, int dest_type, float f_low,
   /* Change mri dimensions back to original */
   mri->depth = nslices;
   mri->nframes = nframes;
+
   // Alloc MRI_FRAME. This needs to be updated when MRI_FRAME items are added
   mri->frames = (MRI_FRAME *)calloc(mri->nframes, sizeof(MRI_FRAME)) ;
   for (i = 0 ; i < mri->nframes ; i++)
@@ -12619,6 +12719,11 @@ MRI *MRIresampleFill
 
   *MATRIX_RELT(dp, 4, 1) = 1.0;
 
+  MRI_BSPLINE * bspline = NULL;
+  if (resample_type == SAMPLE_CUBIC_BSPLINE)
+    bspline = MRItoBSpline(src,NULL,3);
+  
+
   for (nframe = 0; nframe < template_vol->nframes; nframe++)
   {
     for (di = 0;di < template_vol->width;di++)
@@ -12671,6 +12776,11 @@ MRI *MRIresampleFill
           else if (resample_type == SAMPLE_CUBIC)
           {
             MRIcubicSampleVolumeFrame(src, si_ff, sj_ff, sk_ff, nframe, &pval);
+            val = (float)pval;
+          }
+          else if (resample_type == SAMPLE_CUBIC_BSPLINE)
+          {
+            MRIsampleBSpline(bspline, si_ff, sj_ff, sk_ff, nframe, &pval);
             val = (float)pval;
           }
           else
@@ -13062,15 +13172,33 @@ MRI *MRIresampleFill
           }
 
           if (dest->type == MRI_UCHAR)
+          {
+            if (val < UCHAR_MIN) val = UCHAR_MIN;
+            if (val > UCHAR_MAX) val = UCHAR_MAX;
             MRIseq_vox(dest, di, dj, dk, nframe) = (unsigned char)nint(val);
+          }
           if (dest->type == MRI_SHORT)
+          {
+            if (val < SHORT_MIN) val = SHORT_MIN;
+            if (val > SHORT_MAX) val = SHORT_MAX;
             MRISseq_vox(dest, di, dj, dk, nframe) = (short)nint(val);
+          }
           if (dest->type == MRI_INT)
+          {
+            if (val < INT_MIN) val = INT_MIN;
+            if (val > INT_MAX) val = INT_MAX;
             MRIIseq_vox(dest, di, dj, dk, nframe) = (int)nint(val);
+          }
           if (dest->type == MRI_LONG)
+          {
+            if (val < LONG_MIN) val = LONG_MIN;
+            if (val > LONG_MAX) val = LONG_MAX;
             MRILseq_vox(dest, di, dj, dk, nframe) = (long)nint(val);
+          }
           if (dest->type == MRI_FLOAT)
+          {
             MRIFseq_vox(dest, di, dj, dk, nframe) = (float)val;
+          }
 
         }
       }
@@ -13142,7 +13270,7 @@ MRI *MRIresampleFill
     MatrixFree(&m_old_voxel_to_ras) ;
   }
 
-
+  if (bspline) MRIfreeBSpline(&bspline);
   MatrixFree(&dp);
   MatrixFree(&sp);
   MatrixFree(&m);
@@ -16301,8 +16429,8 @@ MRIextractRegionAndPad(MRI *mri_src, MRI *mri_dst, MRI_REGION *region, int pad)
     box.dz = mri_src->depth ;
   }
   mri_dst =
-    MRIalloc
-    (region->dx+2*pad, region->dy+2*pad, region->dz+2*pad, mri_src->type) ;
+    MRIallocSequence
+    (region->dx+2*pad, region->dy+2*pad, region->dz+2*pad, mri_src->type,mri_src->nframes) ;
   MRIcopyHeader(mri_src, mri_dst) ;
   mri_tmp = MRIextractInto(mri_src, NULL, region->x, region->y, region->z,
                            region->dx, region->dy, region->dz, 0, 0, 0) ;
@@ -17348,10 +17476,11 @@ void MRIrms(MRI *in, MRI *out)
         for (x = 0 ; x < width ; x++)
         {
           double vin = MRIgetVoxVal(in,x,y,z,f);
-          double vout = MRIgetVoxVal(out,x,y,z,0);
-          if (f == 0)
+          double vout = 0; // output summation
+          if (f != 0)
           {
-            vout = 0; // zero the output on first frame
+            // after first frame, output gets summed
+            vout = MRIgetVoxVal(out,x,y,z,0);
           }
           double v = (vin*vin) + vout; // square and sum
           if (f == (nframes - 1)) // if last frame, div and sqrt
