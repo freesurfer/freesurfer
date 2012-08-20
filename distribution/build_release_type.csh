@@ -1,6 +1,6 @@
 #!/bin/tcsh -f
 
-set ID='$Id: build_release_type.csh,v 1.144 2012/03/27 18:36:02 nicks Exp $'
+set ID='$Id: build_release_type.csh,v 1.145 2012/08/20 16:15:21 nicks Exp $'
 
 unsetenv echo
 if ($?SET_ECHO_1) set echo=1
@@ -19,33 +19,33 @@ set STABLE_PUB_VER_NUM="v5.1.0"
 set HOSTNAME=`hostname -s`
 
 # note: Mac's need full email addr
-set SUCCESS_MAIL_LIST=(nicks@nmr.mgh.harvard.edu krish@nmr.mgh.harvard.edu)
+set SUCCESS_MAIL_LIST=(nicks@nmr.mgh.harvard.edu)
 set FAILURE_MAIL_LIST=(\
     nicks@nmr.mgh.harvard.edu \
     fischl@nmr.mgh.harvard.edu \
     greve@nmr.mgh.harvard.edu \
-    krish@nmr.mgh.harvard.edu \
     rpwang@nmr.mgh.harvard.edu \
     mreuter@nmr.mgh.harvard.edu \
     koen@nmr.mgh.harvard.edu \
     lzollei@nmr.mgh.harvard.edu \
-    rudolph@nmr.mgh.harvard.edu)
+    rudolph@nmr.mgh.harvard.edu \
+    ayendiki@nmr.mgh.harvard.edu)
 #set FAILURE_MAIL_LIST=(nicks@nmr.mgh.harvard.edu)
 #if ("$HOSTNAME" == "hima") then
-#  set FAILURE_MAIL_LIST=(nicks@nmr.mgh.harvard.edu krish@nmr.mgh.harvard.edu)
+#  set FAILURE_MAIL_LIST=(nicks@nmr.mgh.harvard.edu)
 #endif
 if ("$HOSTNAME" == "sleet") then
-  set FAILURE_MAIL_LIST=(nicks@nmr.mgh.harvard.edu krish@nmr.mgh.harvard.edu)
+  set FAILURE_MAIL_LIST=(nicks@nmr.mgh.harvard.edu)
 endif
 if ("$HOSTNAME" == "mist") then
-  set FAILURE_MAIL_LIST=(nicks@nmr.mgh.harvard.edu krish@nmr.mgh.harvard.edu)
+  set FAILURE_MAIL_LIST=(nicks@nmr.mgh.harvard.edu)
 endif
 if ("$HOSTNAME" == "storm") then
   set FAILURE_MAIL_LIST=(nicks@nmr.mgh.harvard.edu)
 endif
-if ("$HOSTNAME" == "monster") then
-  set FAILURE_MAIL_LIST=(nicks@nmr.mgh.harvard.edu)
-endif
+#if ("$HOSTNAME" == "monster") then
+#  set FAILURE_MAIL_LIST=(nicks@nmr.mgh.harvard.edu)
+#endif
 
 setenv OSTYPE `uname -s`
 if ("$OSTYPE" == "linux") setenv OSTYPE Linux
@@ -383,6 +383,15 @@ endif
 
 echo "CMD: grep -e "update aborted" $CVSUPDATEF" >>& $OUTPUTF
 grep -e "update aborted" $CVSUPDATEF >& /dev/null
+if ($status == 0) then
+  set msg="$HOSTNAME $RELEASE_TYPE build FAILED - cvs update aborted"
+  echo "$msg" >>& $OUTPUTF
+  tail -n 30 $OUTPUTF | mail -s "$msg" $FAILURE_MAIL_LIST
+  exit 1  
+endif
+
+echo "CMD: grep -e "Cannot allocate memory" $CVSUPDATEF" >>& $OUTPUTF
+grep -e "Cannot allocate memory" $CVSUPDATEF >& /dev/null
 if ($status == 0) then
   set msg="$HOSTNAME $RELEASE_TYPE build FAILED - cvs update aborted"
   echo "$msg" >>& $OUTPUTF
