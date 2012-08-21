@@ -194,6 +194,7 @@ EXTRA_DIST=\
 	MRISOBBTree.h \
 	MRISdistancefield.h \
 	mthread.h \
+	mriBSpline.h \
 	nifti1.h \
 	nifti1_io.h \
 	numerics.h \
