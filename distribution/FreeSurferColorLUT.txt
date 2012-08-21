@@ -1,4 +1,4 @@
-#$Id: FreeSurferColorLUT.txt,v 1.86 2012/06/14 13:24:28 fischl Exp $
+#$Id: FreeSurferColorLUT.txt,v 1.87 2012/08/21 20:57:51 nicks Exp $
 
 #No. Label Name:                            R   G   B   A
 
@@ -364,6 +364,47 @@
 627  Cbm_Vermis_X                           0   255 127 0
 628  Cbm_Right_X                            165 42  42  0
 
+# Cerebellar lobule parcellations
+640  Cbm_Left_I_V_med                       204  0  0   0
+641  Cbm_Left_I_V_mid                       255  0  0   0
+642  Cbm_Left_VI_med                        0    0  255 0
+643  Cbm_Left_VI_mid                        30  144 255 0
+644  Cbm_Left_VI_lat                        100 212 237 0
+645  Cbm_Left_CrusI_med                     218 165 32  0
+646  Cbm_Left_CrusI_mid                     255 215 0   0
+647  Cbm_Left_CrusI_lat                     255 255 166 0
+648  Cbm_Left_CrusII_med                    153 0   204 0
+649  Cbm_Left_CrusII_mid                    153 141 209 0
+650  Cbm_Left_CrusII_lat                    204 204 255 0
+651  Cbm_Left_7med                          31  212 194 0
+652  Cbm_Left_7mid                          3   255 237 0
+653  Cbm_Left_7lat                          204 255 255 0
+654  Cbm_Left_8med                          86  74  147 0
+655  Cbm_Left_8mid                          114 114 190 0
+656  Cbm_Left_8lat                          184 178 255 0
+657  Cbm_Left_PUNs                          126 138 37  0
+658  Cbm_Left_TONs                          189 197 117 0
+659  Cbm_Left_FLOs                          240 230 140 0
+660  Cbm_Right_I_V_med                      204  0  0   0
+661  Cbm_Right_I_V_mid                      255  0  0   0
+662  Cbm_Right_VI_med                       0    0  255 0
+663  Cbm_Right_VI_mid                       30  144 255 0
+664  Cbm_Right_VI_lat                       100 212 237 0
+665  Cbm_Right_CrusI_med                    218 165 32  0
+666  Cbm_Right_CrusI_mid                    255 215 0   0
+667  Cbm_Right_CrusI_lat                    255 255 166 0
+668  Cbm_Right_CrusII_med                   153 0   204 0
+669  Cbm_Right_CrusII_mid                   153 141 209 0
+670  Cbm_Right_CrusII_lat                   204 204 255 0
+671  Cbm_Right_7med                         31  212 194 0
+672  Cbm_Right_7mid                         3   255 237 0
+673  Cbm_Right_7lat                         204 255 255 0
+674  Cbm_Right_8med                         86  74  147 0
+675  Cbm_Right_8mid                         114 114 190 0
+676  Cbm_Right_8lat                         184 178 255 0
+677  Cbm_Right_PUNs                         126 138 37  0
+678  Cbm_Right_TONs                         189 197 117 0
+679  Cbm_Right_FLOs                         240 230 140 0
 
 701 CSF-FSL-FAST                            120 18  134 0
 702 GrayMatter-FSL-FAST                     205 62  78  0
