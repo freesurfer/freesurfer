@@ -7,9 +7,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2012/05/23 17:36:22 $
- *    $Revision: 1.439 $
+ *    $Author: nicks $
+ *    $Date: 2012/08/21 20:46:21 $
+ *    $Revision: 1.440 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -957,6 +957,7 @@ MRI   *MRIreplaceValueRange(MRI *mri_src, MRI *mri_dst,
                             float low_in_val, float hi_in_val, float out_val) ;
 MRI   *MRIreplaceValuesUchar(MRI *mri_src, MRI *mri_dst,
                              BUFTYPE in_val, BUFTYPE out_val) ;
+int MRImaskLabel(MRI *mri_src, MRI *mri_dst, MRI *mri_labeled, int label_to_mask, float out_val)  ;
 MRI   *MRImask(MRI *mri_src, MRI *mri_mask, MRI *mri_dst, int mask,
                float out_val) ;
 MRI   *MRImaskZero(MRI *mri_src, MRI *mri_mask, MRI *mri_dst) ;
@@ -1130,6 +1131,10 @@ int  MRIcomputeClassStatistics(MRI *mri_T1, MRI *mri_labeled,
 #define MRI_LEFT_HEMISPHERE     255
 #define MRI_RIGHT_HEMISPHERE    127
 #define MRI_RIGHT_HEMISPHERE2   80
+
+#define MRI_NONBRAIN            0
+#define MRI_PIAL_INTERIOR       1
+#define MRI_WHITE_INTERIOR      2
 
 /* STATS volumes have 2 images each */
 #define TRI_HI_PRIORS            0

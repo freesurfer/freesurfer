@@ -8,9 +8,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2012/08/07 14:44:48 $
- *    $Revision: 1.369 $
+ *    $Author: nicks $
+ *    $Date: 2012/08/21 20:46:21 $
+ *    $Revision: 1.370 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -465,6 +465,7 @@ typedef struct
   float   l_expandwrap ;      /* move out */
   float   l_unfold ;          /* move inwards along normal */
   float   l_dura ;            // move away from dura
+  float   l_histo ;           // increase the likelihood of the entire volume given the surfaces
   double  dura_thresh ;
   MRI     *mri_dura ;         /* ratio of early to late echo -
                                          dura shows up bright */
@@ -574,6 +575,11 @@ typedef struct
   int          smooth_intersections ;  // run soap bubble smoothing during surface positioning
   int          uncompress ;            // run code to remove compressions in tessellation
   double       min_dist ;
+  HISTOGRAM    *h_wm ;
+  HISTOGRAM    *h_gm ;
+  HISTOGRAM    *h_nonbrain ;
+  MRI          *mri_labels ;   // hires labeling of interior of WM, GM and nonbrain
+  MRI          *mri_white ;
 }
 INTEGRATION_PARMS ;
 
