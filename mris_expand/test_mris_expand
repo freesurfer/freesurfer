@@ -8,8 +8,8 @@
 # Original Author: Nick Schmansky
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2012/01/07 20:58:25 $
-#    $Revision: 1.8 $
+#    $Date: 2012/08/21 20:48:13 $
+#    $Revision: 1.9 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -24,7 +24,7 @@
 # General inquiries: freesurfer@nmr.mgh.harvard.edu
 #
 
-set VERSION='$Id: test_mris_expand,v 1.8 2012/01/07 20:58:25 nicks Exp $'
+set VERSION='$Id: test_mris_expand,v 1.9 2012/08/21 20:48:13 nicks Exp $'
 
 umask 002
 
@@ -44,10 +44,13 @@ gunzip -c testdata.tar.gz | tar xvf -
 # run mris_expand
 #
 
+set cmd=(./mris_expand --all-info)
+$cmd >& test_mris_expand.log
+
 set cmd=(./mris_expand -v 111706 -thickness lh.white 0.5 lh.midgray)
 echo ""
 echo $cmd
-echo $cmd >& test_mris_expand.log
+echo $cmd >>& test_mris_expand.log
 echo ""
 $cmd >>& test_mris_expand.log
 if ($status != 0) then

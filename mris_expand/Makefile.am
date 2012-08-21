@@ -18,7 +18,7 @@ foo:
 
 check_PROGRAMS=foo
 
-#disabled until fixed: TESTS=test_mris_expand
+TESTS=test_mris_expand
 
 EXTRA_DIST=testdata.tar.gz test_mris_expand
 
