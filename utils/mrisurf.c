@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2012/08/21 20:46:20 $
- *    $Revision: 1.735 $
+ *    $Date: 2012/08/21 21:55:05 $
+ *    $Revision: 1.736 $
  *
  * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -764,7 +764,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void)
 {
-  return("$Id: mrisurf.c,v 1.735 2012/08/21 20:46:20 nicks Exp $");
+  return("$Id: mrisurf.c,v 1.736 2012/08/21 21:55:05 nicks Exp $");
 }
 
 /*-----------------------------------------------------
@@ -33339,7 +33339,7 @@ mrisComputePlaneTerm(MRI_SURFACE *mris, double l_plane, double l_spacing)
   VERTEX  *v, *vn ;
   double  dx, dy, dz, norm, dist, a, b, c, d, xc, yc, zc, dxt, dyt, dzt ;
   float   evalues[3] ;
-
+  d = 0.0f;
 
   if (FZERO(l_plane) && FZERO(l_spacing))
   {
