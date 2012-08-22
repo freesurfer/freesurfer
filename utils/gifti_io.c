@@ -4260,6 +4260,7 @@ int gifti_add_to_meta( giiMetaData * md, const char * name, const char * value,
 int gifti_valid_gifti_image( gifti_image * gim, int whine )
 {
     int c, errs = 0;
+    float gim_version = 0.0f, gifti_xml_version = 0.0f;
 
     if( !gim ) {
         if(whine) fprintf(stderr,"** invalid: gifti_image ptr is NULL\n");
@@ -4273,11 +4274,24 @@ int gifti_valid_gifti_image( gifti_image * gim, int whine )
         errs ++;
     }
 
-    if( !gim->version || strcmp(gim->version, GIFTI_XML_VERSION) ) {
-        if(whine) fprintf(stderr, "** invalid: gim version = %s\n",
-                          G_CHECK_NULL_STR(gim->version));
+    if ( gim->version ) {
+      sscanf(gim->version,"%f",&gim_version);
+      sscanf(GIFTI_XML_VERSION,"%f",&gifti_xml_version);
+    }
+
+#if 1 // NJS: original code checks string, not value, so '1' fails 
+    if( gim_version != gifti_xml_version ) {
+        if(whine) 
+          fprintf(stderr, 
+                  "** invalid: gim version = %f, expected %f\n",
+                  gim_version,gifti_xml_version);
         errs++;
     }
+#else
+    if( !gim->version || strcmp(gim->version, GIFTI_XML_VERSION) ) {
+      if(whine) fprintf(stderr, "** invalid: gim version = %s\n",
+                        G_CHECK_NULL_STR(gim->version));
+#endif
 
     if( ! gifti_valid_nvpairs(&gim->meta, whine) ) errs ++;
 
