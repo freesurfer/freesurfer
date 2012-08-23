@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2011/11/14 17:41:35 $
-#    $Revision: 1.48 $
+#    $Date: 2012/08/23 15:55:15 $
+#    $Revision: 1.49 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -27,7 +27,7 @@
 # This creates fmcpr.sm5, then
 # mkanalysis-sess -native -funcstem fmcpr.sm5 ...
 
-set VERSION = '$Id: preproc-sess,v 1.48 2011/11/14 17:41:35 greve Exp $';
+set VERSION = '$Id: preproc-sess,v 1.49 2012/08/23 15:55:15 greve Exp $';
 
 set inputargs = ($argv);
 set DateStr = "`date '+%y%m%d%H%M'`"
@@ -246,6 +246,7 @@ foreach sess ($SessList)
     # By default it will do both, so set -hemi to anything
     if("$hemi" == lh || "$hemi" == rh) set cmd = ($cmd -hemi $hemi)
     if($subject == self) set cmd = ($cmd -self)
+    if($subject != self) set cmd = ($cmd -trgsubject $subject)
     if($#RunListFile != 0)  set cmd = ($cmd -rlf $RunListFile);
     if($#SliceOrder) set cmd = ($cmd -stc $SliceOrder)
     if($nolog)      set cmd = ($cmd -nolog);
