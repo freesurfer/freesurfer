@@ -9,8 +9,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2012/08/21 20:51:29 $
- *    $Revision: 1.401 $
+ *    $Date: 2012/08/24 19:54:06 $
+ *    $Revision: 1.402 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -4527,6 +4527,7 @@ static MRI *get_b_info
   mri->fov = ((mri->xend - mri->xstart) > (mri->yend - mri->ystart) ?
               (mri->xend - mri->xstart) : (mri->yend - mri->ystart));
 
+  mri->frames = (MRI_FRAME *)calloc(mri->nframes, sizeof(MRI_FRAME)) ;
   for (i = 0 ; i < mri->nframes ; i++) mri->frames[i].m_ras2vox = NULL;
 
   if (read_volume)
