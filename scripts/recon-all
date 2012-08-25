@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2012/07/11 20:46:55 $
-#    $Revision: 1.379.2.38 $
+#    $Date: 2012/08/25 20:50:28 $
+#    $Revision: 1.379.2.39 $
 #
 # Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -26,7 +26,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.379.2.38 2012/07/11 20:46:55 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.379.2.39 2012/08/25 20:50:28 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -1532,18 +1532,28 @@ if($DoTalCheck) then
     endif
   endif
   # now run Avi's QA check on the results found in talairach_avi.log
+  # see document RLB700_preprocessing_statistics.pdf for details
   set avilog = ($subjdir/mri/transforms/talairach_avi.log)
   if ( ! $UseMincMritotal && -e $avilog) then
     set cmd = (awk -f $FREESURFER_HOME/bin/extract_talairach_avi_QA.awk)
     set cmd = ($cmd $avilog)
     set qalog = ($subjdir/mri/transforms/talairach_avi_QA.log)
     echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+    set cmd2 = (tal_QC_AZS $avilog)
+    set qalog2 = ($subjdir/mri/transforms/talairach_avi_QA2.log)
+    echo "\n $cmd2 \n"|& tee -a $LF |& tee -a $CF
     if($RunIt) then
       $fs_time $cmd >& $qalog
       if($status) then
         echo "ERROR: ${cmd} failed!  See logfile ${qalog}" |& tee -a $LF
         goto error_exit;
       endif
+      $fs_time $cmd2 >& $qalog2
+      if($status) then
+        echo "ERROR: ${cmd2} failed!  See logfile ${qalog2}" |& tee -a $LF
+        goto error_exit;
+      endif
+      # first set of QA data:
       set talAviQA=`grep "TalAviQA" ${qalog} | awk '{print $2}'`
       echo "TalAviQA: ${talAviQA}" |& tee -a $LF
       set mean=(0.9781) # buckner40 mean TalAviQA
@@ -1551,9 +1561,16 @@ if($DoTalCheck) then
       set zscore=`echo "scale=0;(${talAviQA} - ${mean}) / ${std}" | bc`
       echo "z-score: ${zscore}" |& tee -a $LF
       set zscoreThreshold=(-9) # conservative value, but catches M.Harms subjs.
-      if ($zscore < $zscoreThreshold) then
+      # second set:
+      set talAviQA2=`grep "atlas_transform_error" ${qalog2} | awk '{print $6}'`
+      echo "TalAviQA2: ${talAviQA2}" |& tee -a $LF
+      set atlaserrhi=`echo "${talAviQA2} > 10" | bc`
+      set atlaserrlo=`echo "${talAviQA2} < -30" | bc`
+      # check both:
+      if (($zscore < $zscoreThreshold) || $atlaserrhi || $atlaserrlo) then
         echo "ERROR: Talairach QA check failed!" |& tee -a $LF
-        echo "       z-score = ${zscore} <= ${zscoreThreshold} = threshold" \
+        echo "       z-score = ${zscore} <= ${zscoreThreshold} = threshold\n" \
+             "      atlas xform error = $talAviQA2 < -30 | > 10" \
              |& tee -a $LF
         echo "Manual Talairach alignment may be necessary, or" |& tee -a $LF
         echo "include the -notal-check flag to skip this test," |& tee -a $LF
