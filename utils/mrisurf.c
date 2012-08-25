@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2012/08/21 21:55:05 $
- *    $Revision: 1.736 $
+ *    $Author: fischl $
+ *    $Date: 2012/08/25 15:56:07 $
+ *    $Revision: 1.737 $
  *
  * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -764,7 +764,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void)
 {
-  return("$Id: mrisurf.c,v 1.736 2012/08/21 21:55:05 nicks Exp $");
+  return("$Id: mrisurf.c,v 1.737 2012/08/25 15:56:07 fischl Exp $");
 }
 
 /*-----------------------------------------------------
@@ -82355,6 +82355,9 @@ mrisComputeHistoNegativeLikelihood(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
   MATRIX   *m_brain_to_hires ;
   double   xv, yv, zv, val, pval ;
 
+  if (DZERO(parms->l_histo))
+    return(NO_ERROR) ;
+
   mrisCreateLikelihoodHistograms(mris, parms) ;
 
   v_brain = VectorAlloc(4, MATRIX_REAL) ;
@@ -82417,6 +82420,9 @@ mrisComputeHistoTerm(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
   VERTEX   *v ;
   double   xv, yv, zv, val, p, dx, dy, dz, d, d2, x, y, z, best_d, best_p ;
   int      num ;
+
+  if (DZERO(parms->l_histo))
+    return(NO_ERROR) ;
 
   mrisCreateLikelihoodHistograms(mris, parms) ;
 
