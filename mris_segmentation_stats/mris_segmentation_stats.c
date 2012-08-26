@@ -8,8 +8,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2012/06/08 20:03:57 $
- *    $Revision: 1.1 $
+ *    $Date: 2012/08/26 00:41:44 $
+ *    $Revision: 1.2 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -72,7 +72,7 @@ main(int argc, char *argv[]) {
   MRI          *mri_overlays[MAX_SUBJECTS] ;
   MRI_SURFACE  *mris[MAX_SUBJECTS] ;
 
-  nargs = handle_version_option (argc, argv, "$Id: mris_segmentation_stats.c,v 1.1 2012/06/08 20:03:57 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_segmentation_stats.c,v 1.2 2012/08/26 00:41:44 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -242,7 +242,7 @@ write_roc_curve(MRI_SURFACE *mris[MAX_SUBJECTS], LABEL *labels[MAX_SUBJECTS],
   float   min_val, max_val, total_min, total_max, step, thresh ;
   int     n, nlabels ;
   LABEL   **segments ;
-  int    tpos, fpos, tneg, fneg, tps[MAX_SUBJECTS], fps[MAX_SUBJECTS], tns[MAX_SUBJECTS], fns[MAX_SUBJECTS] ;
+  int    tpos, fpos, tneg, fneg, tps[MAX_SUBJECTS], fps[MAX_SUBJECTS], tns[MAX_SUBJECTS], fns[MAX_SUBJECTS], i ;
 
   fp = fopen(out_fname, "w") ;
 
@@ -260,8 +260,9 @@ write_roc_curve(MRI_SURFACE *mris[MAX_SUBJECTS], LABEL *labels[MAX_SUBJECTS],
   {
     printf("setting thresh = %2.4f\n", thresh) ;
     fpos = fneg = tpos = tneg = 0 ;
+    i = 0 ;
 #ifdef HAVE_OPENMP
-#pragma omp parallel for firstprivate(thresh, dilate, erode, nlabels, segments, min_area) shared(mris, labels) schedule(static,1)
+#pragma omp parallel for firstprivate(i, thresh, dilate, erode, nlabels, segments, min_area) shared(mris, labels) schedule(static,1)
 #endif
     for (n = 0 ; n < nsubjects ; n++)
     {
@@ -271,6 +272,8 @@ write_roc_curve(MRI_SURFACE *mris[MAX_SUBJECTS], LABEL *labels[MAX_SUBJECTS],
       MRISsegmentMarked(mris[n], &segments, &nlabels, min_area) ;
       compute_segmentation_stats(mris[n], labels[n], segments, nlabels, 
 				 &tps[n], &tns[n], &fps[n], &fns[n]);
+      for (i = 0 ; i < nlabels ; i++)
+	LabelFree(&segments[i]) ;
     }
     for (n = 0 ; n < nsubjects ; n++)
     {
