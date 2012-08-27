@@ -6,9 +6,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: rpwang $
- *    $Date: 2012/04/11 19:46:18 $
- *    $Revision: 1.10.2.6 $
+ *    $Author: nicks $
+ *    $Date: 2012/08/27 23:13:51 $
+ *    $Revision: 1.10.2.7 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -40,6 +40,7 @@ class QLineEdit;
 class QScrollBar;
 class QtColorPicker;
 class QPushButton;
+class QSlider;
 
 class DialogTransformVolume : public QDialog, public UIUpdateHelper
 {
@@ -63,6 +64,12 @@ protected slots:
   void OnRestore();
   void OnSaveReg();
 
+  void OnSliderRotateX(int nVal);
+  void OnSliderRotateY(int nVal);
+  void OnSliderRotateZ(int nVal);
+  void OnLineEditRotateX(const QString& text);
+  void OnLineEditRotateY(const QString& text);
+  void OnLineEditRotateZ(const QString& text);
   void OnScrollBarTranslateX(int nVal);
   void OnScrollBarTranslateY(int nVal);
   void OnScrollBarTranslateZ(int nVal);
@@ -75,6 +82,8 @@ protected slots:
   void OnLineEditScaleX(const QString& text);
   void OnLineEditScaleY(const QString& text);
   void OnLineEditScaleZ(const QString& text);
+
+  void OnSampleMethodChanged();
 
   void OnActiveLayerChanged();
 
@@ -90,6 +99,8 @@ private:
   void RespondScrollTranslate ( int n );
   void RespondTextScale   ( int n );
   void RespondScrollScale ( int n );
+  void RespondTextRotate  (int n);
+  void RespondSliderRotate  (int n);
 
   QIcon MakeIcon(const QColor& color, int size);
 
@@ -97,6 +108,7 @@ private:
 
   QCheckBox*   m_checkRotate[3];
   QComboBox*   m_comboRotate[3];
+  QSlider*     m_sliderRotate[3];
   QLineEdit*   m_textAngle[3];
   QScrollBar*    m_scrollTranslate[3];
   QLineEdit*     m_textTranslate[3];

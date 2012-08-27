@@ -6,9 +6,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: rpwang $
- *    $Date: 2012/04/11 19:46:19 $
- *    $Revision: 1.21.2.7 $
+ *    $Author: nicks $
+ *    $Date: 2012/08/27 23:13:51 $
+ *    $Revision: 1.21.2.8 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -110,6 +110,7 @@ signals:
   void LayerPropertyChanged();
   void LayerVisibilityChanged();
   void LayerShowInfoChanged();
+  void LayerModified();
   void LayerNameChanged();
   void MouseRASPositionChanged();
   void CursorRASPositionChanged();

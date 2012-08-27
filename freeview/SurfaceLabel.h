@@ -9,9 +9,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: rpwang $
- *    $Date: 2012/04/11 19:46:20 $
- *    $Revision: 1.6.2.2 $
+ *    $Author: nicks $
+ *    $Date: 2012/08/27 23:13:52 $
+ *    $Revision: 1.6.2.3 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -30,6 +30,7 @@
 #define SurfaceLabel_h
 
 #include <QObject>
+#include <vtkSmartPointer.h>
 
 extern "C"
 {
@@ -37,6 +38,8 @@ extern "C"
 }
 
 class LayerSurface;
+class vtkActor;
+class vtkPolyData;
 
 class SurfaceLabel  : public QObject
 {
@@ -62,15 +65,29 @@ public:
 
   void MapLabel( unsigned char* colordata, int nVertexCount );
 
+  bool GetShowOutline()
+  {
+    return m_bShowOutline;
+  }
+
+  void SetShowOutline(bool bOutline);
+
+  vtkActor* GetOutlineActor();
+
 Q_SIGNALS:
   void SurfaceLabelChanged();
 
 private:
+  QList<int> DoConnectEdgeVertices(const QList<int>& indices_in, const QList<int>& vertices);
+  vtkPolyData* MakeEdgePolyData(const QList<int>& indices_in, const QList<int>& vertices);
+
   LABEL*        m_label;
   QString       m_strName;
   LayerSurface* m_surface;
   double        m_rgbColor[3];
   bool          m_bTkReg;
+  bool          m_bShowOutline;
+  vtkSmartPointer<vtkActor> m_actorOutline;
 };
 
 #endif

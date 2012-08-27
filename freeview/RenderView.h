@@ -1,14 +1,14 @@
 /**
  * @file  RenderView.h
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief View class for rendering 2D and 3D actors
  *
  */
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: rpwang $
- *    $Date: 2012/04/11 19:46:20 $
- *    $Revision: 1.30.2.2 $
+ *    $Author: nicks $
+ *    $Date: 2012/08/27 23:13:52 $
+ *    $Revision: 1.30.2.3 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -26,6 +26,7 @@
 
 #include "GenericRenderView.h"
 #include "vtkSmartPointer.h"
+#include <QPointer>
 
 class Interactor;
 class QEvent;
@@ -35,6 +36,7 @@ class QWheelEvent;
 class QFocusEvent;
 class vtkActor2D;
 class vtkScalarBarActor;
+class Layer;
 
 class RenderView : public GenericRenderView
 {
@@ -44,7 +46,7 @@ public:
 
   enum InteractionMode { IM_Navigate = 0, IM_Measure, IM_VoxelEdit, IM_ROIEdit, IM_PointSetEdit, IM_VolumeCrop };
 
-  void SetWorldCoordinateInfo( const double* origin, const double* size );
+  void SetWorldCoordinateInfo( const double* origin, const double* size, bool bResetView = true );
   virtual void UpdateViewByWorldCoordinate() {}
 
   int GetInteractionMode();
@@ -88,6 +90,8 @@ public slots:
   void Reset();
   void SetAction( int nAction );
   void ShowScalarBar( bool bShow );
+  void SetScalarBarLayer( Layer* layer );
+  void SetScalarBarLayer( QAction* act );
 
 protected:
   virtual void paintEvent(QPaintEvent *event);
@@ -109,6 +113,7 @@ protected:
 
   vtkSmartPointer<vtkActor2D>   m_actorFocusFrame;
   vtkSmartPointer<vtkScalarBarActor>  m_actorScalarBar;
+  QPointer<Layer>        m_layerScalarBar;
 };
 
 #endif // RENDERVIEW_H

@@ -6,9 +6,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: rpwang $
- *    $Date: 2012/04/11 19:46:20 $
- *    $Revision: 1.27.2.2 $
+ *    $Author: nicks $
+ *    $Date: 2012/08/27 23:13:52 $
+ *    $Revision: 1.27.2.3 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -184,7 +184,7 @@ inline bool MyUtils::IsIdentity( double m[4][4] )
 
 inline bool MyUtils::IsOblique( double m[4][4] )
 {
-  double near_zero = 1e-10;
+  double near_zero = 1e-5;
   for (int i = 0; i < 3; i++)
   {
     for (int j = 0; j < 3; j++)

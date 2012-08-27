@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>328</width>
-    <height>278</height>
+    <width>386</width>
+    <height>370</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -56,16 +56,11 @@
              <string>Intensity</string>
             </property>
            </item>
-          </widget>
-         </item>
-         <item row="1" column="1">
-          <widget class="QLineEdit" name="lineEditTarget">
-           <property name="maximumSize">
-            <size>
-             <width>80</width>
-             <height>16777215</height>
-            </size>
-           </property>
+           <item>
+            <property name="text">
+             <string>Coordinate</string>
+            </property>
+           </item>
           </widget>
          </item>
          <item row="2" column="0">
@@ -114,7 +109,7 @@
            </property>
           </widget>
          </item>
-         <item row="0" column="2">
+         <item row="0" column="3">
           <widget class="QLabel" name="label_6">
            <property name="styleSheet">
             <string notr="true">color:gray;</string>
@@ -124,8 +119,8 @@
            </property>
           </widget>
          </item>
-         <item row="1" column="2">
-          <widget class="QLabel" name="label_7">
+         <item row="1" column="3">
+          <widget class="QLabel" name="labelHelper">
            <property name="styleSheet">
             <string notr="true">color: gray;</string>
            </property>
@@ -133,6 +128,162 @@
             <string>Shift+Ctrl+Left Btn</string>
            </property>
           </widget>
+         </item>
+         <item row="1" column="1">
+          <layout class="QHBoxLayout" name="horizontalLayout_7">
+           <property name="leftMargin">
+            <number>0</number>
+           </property>
+           <item>
+            <widget class="QLineEdit" name="lineEditTarget">
+             <property name="maximumSize">
+              <size>
+               <width>80</width>
+               <height>16777215</height>
+              </size>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QLineEdit" name="lineEditTargetX">
+             <property name="maximumSize">
+              <size>
+               <width>60</width>
+               <height>16777215</height>
+              </size>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QLineEdit" name="lineEditTargetY">
+             <property name="maximumSize">
+              <size>
+               <width>60</width>
+               <height>16777215</height>
+              </size>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QLineEdit" name="lineEditTargetZ">
+             <property name="maximumSize">
+              <size>
+               <width>60</width>
+               <height>16777215</height>
+              </size>
+             </property>
+            </widget>
+           </item>
+          </layout>
+         </item>
+        </layout>
+       </item>
+       <item>
+        <layout class="QHBoxLayout" name="horizontalLayout_6">
+         <property name="topMargin">
+          <number>0</number>
+         </property>
+         <item>
+          <widget class="QLabel" name="label_8">
+           <property name="text">
+            <string>Gradient direction</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QRadioButton" name="radioButtonForceDirectionAuto">
+           <property name="text">
+            <string>Auto</string>
+           </property>
+           <property name="checked">
+            <bool>true</bool>
+           </property>
+           <property name="autoExclusive">
+            <bool>true</bool>
+           </property>
+           <attribute name="buttonGroup">
+            <string>buttonGroup</string>
+           </attribute>
+          </widget>
+         </item>
+         <item>
+          <widget class="QRadioButton" name="radioButtonForceDirectionIn">
+           <property name="text">
+            <string>In</string>
+           </property>
+           <property name="autoExclusive">
+            <bool>true</bool>
+           </property>
+           <attribute name="buttonGroup">
+            <string>buttonGroup</string>
+           </attribute>
+          </widget>
+         </item>
+         <item>
+          <widget class="QRadioButton" name="radioButtonForceDirectionOut">
+           <property name="text">
+            <string>Out</string>
+           </property>
+           <property name="autoExclusive">
+            <bool>true</bool>
+           </property>
+           <attribute name="buttonGroup">
+            <string>buttonGroup</string>
+           </attribute>
+          </widget>
+         </item>
+         <item>
+          <spacer name="horizontalSpacer">
+           <property name="orientation">
+            <enum>Qt::Horizontal</enum>
+           </property>
+           <property name="sizeHint" stdset="0">
+            <size>
+             <width>0</width>
+             <height>5</height>
+            </size>
+           </property>
+          </spacer>
+         </item>
+        </layout>
+       </item>
+       <item>
+        <layout class="QHBoxLayout" name="horizontalLayout_8">
+         <property name="topMargin">
+          <number>0</number>
+         </property>
+         <item>
+          <spacer name="horizontalSpacer_9">
+           <property name="orientation">
+            <enum>Qt::Horizontal</enum>
+           </property>
+           <property name="sizeHint" stdset="0">
+            <size>
+             <width>5</width>
+             <height>5</height>
+            </size>
+           </property>
+          </spacer>
+         </item>
+         <item>
+          <widget class="QCheckBox" name="checkBoxAllowIntersection">
+           <property name="text">
+            <string>Allow intersection</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <spacer name="horizontalSpacer_10">
+           <property name="orientation">
+            <enum>Qt::Horizontal</enum>
+           </property>
+           <property name="sizeHint" stdset="0">
+            <size>
+             <width>5</width>
+             <height>5</height>
+            </size>
+           </property>
+          </spacer>
          </item>
         </layout>
        </item>
@@ -434,8 +585,8 @@
    <slot>hide()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>213</x>
-     <y>238</y>
+     <x>280</x>
+     <y>359</y>
     </hint>
     <hint type="destinationlabel">
      <x>230</x>
@@ -466,8 +617,8 @@
    <slot>OnApply()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>95</x>
-     <y>228</y>
+     <x>144</x>
+     <y>324</y>
     </hint>
     <hint type="destinationlabel">
      <x>27</x>
@@ -482,8 +633,8 @@
    <slot>OnSave()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>191</x>
-     <y>228</y>
+     <x>235</x>
+     <y>324</y>
     </hint>
     <hint type="destinationlabel">
      <x>167</x>
@@ -498,8 +649,8 @@
    <slot>OnSaveAs()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>282</x>
-     <y>228</y>
+     <x>326</x>
+     <y>324</y>
     </hint>
     <hint type="destinationlabel">
      <x>298</x>
@@ -514,8 +665,8 @@
    <slot>OnUndo()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>118</x>
-     <y>240</y>
+     <x>189</x>
+     <y>359</y>
     </hint>
     <hint type="destinationlabel">
      <x>123</x>
@@ -530,12 +681,12 @@
    <slot>OnCoordinateTypeChanged()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>124</x>
-     <y>132</y>
+     <x>233</x>
+     <y>141</y>
     </hint>
     <hint type="destinationlabel">
      <x>161</x>
-     <y>412</y>
+     <y>369</y>
     </hint>
    </hints>
   </connection>
@@ -546,8 +697,8 @@
    <slot>OnCoordinateTypeChanged()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>192</x>
-     <y>127</y>
+     <x>174</x>
+     <y>141</y>
     </hint>
     <hint type="destinationlabel">
      <x>266</x>
@@ -564,4 +715,7 @@
   <slot>OnUndo()</slot>
   <slot>OnCoordinateTypeChanged()</slot>
  </slots>
+ <buttongroups>
+  <buttongroup name="buttonGroup"/>
+ </buttongroups>
 </ui>

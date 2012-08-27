@@ -6,9 +6,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: rpwang $
- *    $Date: 2012/04/11 19:46:19 $
- *    $Revision: 1.22.2.6 $
+ *    $Author: nicks $
+ *    $Date: 2012/08/27 23:13:51 $
+ *    $Revision: 1.22.2.7 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -98,6 +98,25 @@ public:
     scale[2] = m_dScale[2];
   }
 
+  void ResetRotate()
+  {
+    m_dRotate[0] = 0;
+    m_dRotate[1] = 0;
+    m_dRotate[2] = 0;
+  }
+
+  void GetRotate( double* rotate)
+  {
+    rotate[0] = m_dRotate[0];
+    rotate[1] = m_dRotate[1];
+    rotate[2] = m_dRotate[2];
+  }
+
+  void SetRotate(double* rotate, bool bAroundCenter = true);
+  void SetTranslate(double* offset);
+  void SetScale(double* scale);
+  void UpdateTransform(int sample_method = 0);
+
   double* GetWorldOrigin();
   void GetWorldOrigin( double* origin );
   void SetWorldOrigin( double* origin );
@@ -114,7 +133,6 @@ public:
   void GetSlicePosition( double* slicePos );
   void SetSlicePosition( double* slicePos );
   void SetSlicePosition( int nPlane, double slicePos );
-
 
   virtual void OnSlicePositionChanged( int nPlane ) = 0;
 
@@ -182,6 +200,10 @@ protected:
   virtual void DoTranslate( double* offset ) {}
   virtual void DoScale( double* scale, int nSampleMethod ) {}
   virtual void DoTransform( double* mat, int sample_method ) {}
+  virtual void DoRotate( double* rotate, double* pos) {}
+
+  // new transform scheme
+  virtual void DoTransform(int sample_method) {}
 
   QString   m_strName;
   double    m_dSlicePosition[3];
@@ -192,6 +214,8 @@ protected:
   // translate and scale are for volume transformation
   double    m_dTranslate[3];
   double    m_dScale[3];
+  double    m_dRotate[3];
+  bool      m_bRotateAroundCenter;
 
   bool      m_bLocked;
 

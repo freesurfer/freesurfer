@@ -9,9 +9,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: rpwang $
- *    $Date: 2012/04/11 19:46:20 $
- *    $Revision: 1.13.2.2 $
+ *    $Author: nicks $
+ *    $Date: 2012/08/27 23:13:52 $
+ *    $Revision: 1.13.2.3 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -30,6 +30,7 @@
 #define SurfaceAnnotation_h
 
 #include <QObject>
+#include <vtkSmartPointer.h>
 
 extern "C"
 {
@@ -39,6 +40,8 @@ extern "C"
 class vtkLookupTable;
 class vtkRGBAColorTransferFunction;
 class LayerSurface;;
+class vtkActor;
+class vtkPolyData;
 
 class SurfaceAnnotation  : public QObject
 {
@@ -56,7 +59,7 @@ public:
 
   int* GetIndices()
   {
-    return m_nIndices;
+    return (m_bShowOutline ? m_nOutlineIndices : m_nIndices);
   }
 
   int GetIndexSize()
@@ -84,11 +87,22 @@ public:
 
   void GetAnnotationColorAtIndex( int nIndex, int* rgb );
 
+  bool GetShowOutline()
+  {
+    return m_bShowOutline;
+  }
+
+  void SetShowOutline(bool bOutline);
+
+  void MapAnnotationColor( unsigned char* colordata );
+
 protected:
   void Reset();
 
 private:
+
   int*          m_nIndices;
+  int*          m_nOutlineIndices;
   int           m_nIndexSize;
   int*          m_nCenterVertices;  // center vertex of each annotation
   int           m_nAnnotations;     // number of valid annotations
@@ -96,6 +110,8 @@ private:
   QString       m_strName;
   COLOR_TABLE*  m_lut;
   LayerSurface* m_surface;
+  bool          m_bShowOutline;
+  double        m_dOpacity;
 };
 
 #endif

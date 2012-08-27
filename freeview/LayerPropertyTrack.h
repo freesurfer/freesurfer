@@ -6,9 +6,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: rpwang $
- *    $Date: 2012/04/11 19:46:19 $
- *    $Revision: 1.4.2.3 $
+ *    $Author: nicks $
+ *    $Date: 2012/08/27 23:13:52 $
+ *    $Revision: 1.4.2.4 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -25,12 +25,78 @@
 #define LAYERPROPERTYTRACK_H
 
 #include "LayerProperty.h"
+#include <QColor>
 
 class LayerPropertyTrack : public LayerProperty
 {
   Q_OBJECT
 public:
   LayerPropertyTrack(QObject* parent = 0);
+
+  enum ColorCode { Directional = 0, SolidColor };
+  enum DirectionScheme { EndPoints = 0, MidSegment, EverySegment };
+  enum DirectionMapping  { RGB = 0, RBG, GRB, GBR, BRG, BGR };
+  enum RenderRep { Line = 0, Tube };
+
+  int GetColorCode()
+  {
+    return m_nColorCode;
+  }
+
+  int GetDirectionScheme()
+  {
+    return m_nDirectionScheme;
+  }
+
+  int GetDirectionMapping()
+  {
+    return m_nDirectionMapping;
+  }
+
+  QColor GetSolidColor()
+  {
+    return m_color;
+  }
+
+  int GetRenderRep()
+  {
+    return m_nRenderRep;
+  }
+
+  double GetTubeRadius()
+  {
+    return m_dTubeRadius;
+  }
+
+  int GetNumberOfSides()
+  {
+    return m_nNumberOfSides;
+  }
+
+signals:
+  void ColorCodeChanged(int);
+  void DirectionSchemeChanged(int);
+  void DirectionMappingChanged(int);
+  void SolidColorChanged(const QColor& c);
+  void RenderRepChanged();
+
+public slots:
+  void SetColorCode(int nCode);
+  void SetDirectionScheme(int nVal);
+  void SetDirectionMapping(int nVal);
+  void SetSolidColor(const QColor& c);
+  void SetRenderRep(int nVal);
+  void SetTubeRadius(double dVal);
+  void SetNumberOfSides(int nVal);
+
+private:
+  int     m_nColorCode;
+  int     m_nDirectionScheme;
+  int     m_nDirectionMapping;
+  int     m_nRenderRep;
+  double  m_dTubeRadius;
+  int     m_nNumberOfSides;
+  QColor  m_color;
 };
 
 #endif // LAYERPROPERTYTRACK_H

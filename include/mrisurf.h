@@ -9,8 +9,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2011/04/27 17:36:41 $
- *    $Revision: 1.351.2.1 $
+ *    $Date: 2012/08/27 23:13:54 $
+ *    $Revision: 1.351.2.2 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -325,6 +325,8 @@ that will
 maximize the
 positive areas */
 #define IPFLAG_NOSCALE_TOL            0x8000   // don't scale tol with navgs
+#define IPFLAG_FORCE_GRADIENT_OUT    0x10000
+#define IPFLAG_FORCE_GRADIENT_IN     0x20000
 
 #define INTEGRATE_LINE_MINIMIZE    0  /* use quadratic fit */
 #define INTEGRATE_MOMENTUM         1
@@ -1993,14 +1995,23 @@ int MRIScurvToMarked(MRI_SURFACE *mris) ;
 int MRISreadMarked(MRI_SURFACE *mris, const char *sname) ;
 int MRISstoreTangentPlanes(MRI_SURFACE *mris, int which_vertices) ;
 double MRISsampleFace(MRI_SURFACE *mris, int fno, int which, double x, double y, double z, double val0, double val1, double val2);
-int MRISrepositionSurface(MRI_SURFACE *mris, MRI *mri, int *target_vnos, float *target_vals, 
-                          int nv, int nsize, double sigma)  ;
-int MRISrepositionSurfaceToCoordinate(MRI_SURFACE *mris, MRI *mri, int target_vno, 
+int MRISrepositionSurface(MRI_SURFACE *mris, MRI *mri, int *target_vnos, float *target_vals, int nv, int nsize, double sigma, int flags)  ;
+int MRISrepositionSurfaceToCoordinate(MRI_SURFACE *mris,
+                                      MRI *mri,
+                                      int target_vno, 
                                       float tx, 
                                       float ty, 
                                       float tz, 
-                                      int nsize, double sigma)  ;
+                                      int nsize,
+                                      double sigma,
+                                      int flags)  ;
 int face_barycentric_coords(MRI_SURFACE *mris, int fno, int which_vertices,
                             double cx, double cy, double cz, double *pl1, double *pl2, double *pl3) ;
+
+int MRIStaubinSmooth(MRI_SURFACE *mris, int niters, double lambda, double mu, int which) ;
+
+#define TAUBIN_UNIFORM_WEIGHTS   0
+#define TAUBIN_INVERSE_WEIGHTS   1
+#define TAUBIN_EDGE_WEIGHTS      2
 
 #endif // MRISURF_H

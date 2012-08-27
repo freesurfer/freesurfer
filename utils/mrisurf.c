@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2011/04/27 19:21:05 $
- *    $Revision: 1.693.2.2 $
+ *    $Date: 2012/08/27 23:13:54 $
+ *    $Revision: 1.693.2.3 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -735,7 +735,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void)
 {
-  return("$Id: mrisurf.c,v 1.693.2.2 2011/04/27 19:21:05 nicks Exp $");
+  return("$Id: mrisurf.c,v 1.693.2.3 2012/08/27 23:13:54 nicks Exp $");
 }
 
 /*-----------------------------------------------------
@@ -69109,14 +69109,16 @@ MRISstoreTangentPlanes(MRI_SURFACE *mris, int which_vertices)
   return(NO_ERROR) ;
 }
 int
-MRISrepositionSurface(MRI_SURFACE *mris, MRI *mri, int *target_vnos, float *target_vals, int nv, int nsize, double sigma) 
+MRISrepositionSurface(MRI_SURFACE *mris, MRI *mri, int *target_vnos, float *target_vals, int nv, int nsize, double sigma, int flags)
 {
   int               vno, n ;
   INTEGRATION_PARMS parms ;
   VERTEX            *v ;
 
+  printf("flags = %x, size = %ld\n", flags, (long)sizeof(flags)) ;
+
   memset(&parms, 0, sizeof(parms)) ;
-  parms.fill_interior = 0 ; 
+  parms.fill_interior = 0 ;
   parms.projection = NO_PROJECTION ;
   parms.tol = 1e-4 ;
   parms.dt = 0.5f ;
@@ -69130,6 +69132,17 @@ MRISrepositionSurface(MRI_SURFACE *mris, MRI *mri, int *target_vnos, float *targ
   parms.l_tspring = 1.0f ;
   parms.l_nspring = 0.5f ;
 
+  parms.flags |= flags ;
+  if (flags & IPFLAG_FORCE_GRADIENT_IN)
+  {
+    parms.grad_dir = -1 ;
+    printf("forcing gradient in\n") ;
+  }
+  else if (flags & IPFLAG_FORCE_GRADIENT_IN)
+  {
+    parms.grad_dir= 1 ;
+    printf("forcing gradient out\n") ;
+  }
   parms.niterations = 0 ;
   parms.write_iterations = 0 /*WRITE_ITERATIONS */;
   parms.integration_type = INTEGRATE_MOMENTUM ;
@@ -69144,47 +69157,63 @@ MRISrepositionSurface(MRI_SURFACE *mris, MRI *mri, int *target_vnos, float *targ
   sprintf(parms.base_name, "nudge") ;
 
   for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
     mris->vertices[vno].ripflag = 1 ;
+  }
   for (n = 0 ; n < nv ; n++)
+  {
     mris->vertices[target_vnos[n]].ripflag = 0 ;
+  }
   MRISerodeRipped(mris, nsize) ;
   for (vno = 0 ; vno < mris->nvertices ; vno++)
   {
     v = &mris->vertices[vno] ;
     if (v->ripflag)
+    {
       continue ;
+    }
     v->val = target_vals[0] ;
     v->val2 = sigma ;
     v->marked = 1 ;
   }
 
   MRISpositionSurface(mris, mri, mri, &parms) ;
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    mris->vertices[vno].ripflag = 0 ;
+  }
   return(NO_ERROR) ;
 }
-int MRISrepositionSurfaceToCoordinate(MRI_SURFACE *mris, MRI *mri, int target_vno, 
-                                      float tx, 
-                                      float ty, 
-                                      float tz, 
-                                      int nsize, double sigma)  
+
+int MRISrepositionSurfaceToCoordinate(MRI_SURFACE *mris, MRI *mri, int target_vno,
+                                      float tx,
+                                      float ty,
+                                      float tz,
+                                      int nsize, double sigma, int flags)
 {
   int               vno ;
   INTEGRATION_PARMS parms ;
   VERTEX            *v ;
+  double            xv, yv, zv, val ;
 
+#define SCALE .01
+
+  printf("MRISrepositionSurfaceToCoordinate(%d, %f, %f, %f, %d, %f, %x)\n",target_vno,tx,ty,tz,nsize,sigma,flags);
   memset(&parms, 0, sizeof(parms)) ;
-  parms.fill_interior = 0 ; 
+  parms.fill_interior = 0 ;
   parms.projection = NO_PROJECTION ;
   parms.tol = 1e-4 ;
+  parms.n_averages = sigma*sigma*M_PI/2 ;
   parms.dt = 0.5f ;
   parms.base_dt = .1 ;
-  parms.l_spring = 1.0f ;
-  parms.l_curv = 1.0 ;
+  parms.l_spring = SCALE*1.0f ;
+  parms.l_curv = SCALE*1.0 ;
   parms.l_location = 10 ;
+  parms.flags = flags ;
   parms.l_spring = 0.0f ;
-  parms.l_curv = 1.0 ;
-  parms.l_intensity = 0.2 ;
-  parms.l_tspring = 1.0f ;
-  parms.l_nspring = 0.5f ;
+  parms.l_intensity = 0*SCALE*0.2 ;
+  parms.l_tspring = SCALE*.1f ;
+  parms.l_nspring = SCALE*0.5f ;
 
   parms.niterations = 0 ;
   parms.write_iterations = 0 /*WRITE_ITERATIONS */;
@@ -69195,22 +69224,59 @@ int MRISrepositionSurfaceToCoordinate(MRI_SURFACE *mris, MRI *mri, int target_vn
   parms.error_ratio = 50.0 /*ERROR_RATIO */;
   /*  parms.integration_type = INTEGRATE_LINE_MINIMIZE ;*/
   parms.l_surf_repulse = 0.0 ;
-  parms.l_repulse = 5 ;
+//  parms.l_repulse = SCALE*5 ;
   parms.niterations = 100 ;
   sprintf(parms.base_name, "nudge") ;
 
   for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
     mris->vertices[vno].ripflag = 1 ;
+  }
+  mris->vertices[target_vno].ripflag = 0 ;
 #if 0
   for (n = 0 ; n < nv ; n++)
+  {
     mris->vertices[target_vnos[n]].ripflag = 0 ;
-  MRISerodeRipped(mris, nsize) ;
+  }
 #endif
+  MRISerodeRipped(mris, nsize) ;
   v = &mris->vertices[target_vno] ;
-  v->targx = tx ; v->targy = ty ; v->targz = tz ;
+  v->targx = tx ;
+  v->targy = ty ;
+  v->targz = tz ;
   v->val2 = sigma ;
+  MRISsurfaceRASToVoxelCached(mris, mri, tx, ty, tz, &xv, &yv, &zv) ;
+  MRIsampleVolume(mri, xv, yv, zv, &val) ;
+  printf("volume @ (%2.1f, %2.1f, %2.1f) = %2.1f\n", xv, yv, zv, val) ;
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    VERTEX *v, *vn ;
+
+    vn = &mris->vertices[vno] ;
+    if (vn->ripflag == 0)
+    {
+      vn->val = val ;
+      if (vno != target_vno)  // give it a target which maintains its relative position
+      {
+        v = &mris->vertices[target_vno] ;
+        vn->targx = tx + (vn->x-v->x) ;
+        vn->targy = ty + (vn->y-v->y) ;
+        vn->targz = tz + (vn->z-v->z) ;
+        printf("setting target for vertex %d to (%2.1f %2.1f %2.1f)\n", vno, vn->targx, vn->targy, vn->targz) ;
+      }
+    }
+  }
+
+  /*
+  Gdiag |= DIAG_SHOW ;
+  Gdiag_no = target_vno ;
+  */
 
   MRISpositionSurface(mris, mri, mri, &parms) ;
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    mris->vertices[vno].ripflag = 0 ;
+  }
   return(NO_ERROR) ;
 }
 
@@ -69313,5 +69379,114 @@ MRISlogOdds(MRI_SURFACE *mris, LABEL *area, double slope)
     p = exp(-p*slope) ;
     v->val = p ;
   }
+  return(NO_ERROR) ;
+}
+
+static int
+mrisGraphLaplacian(MRI_SURFACE *mris, int vno, double *pdx, double *pdy, double *pdz, int which)
+{
+  VERTEX *v, *vn ;
+  double lx, ly, lz, w, norm, dx, dy, dz, wtotal ;
+  int    n ;
+
+  v = &mris->vertices[vno] ;
+  if (v->vnum == 0)
+  {
+    return(NO_ERROR) ;
+  }
+  w = 1.0 / (double)v->vnum ;
+  for (wtotal = 0.0, lx = ly = lz = 0.0, n = 0 ; n < v->vnum ; n++)
+  {
+    vn = &mris->vertices[v->v[n]] ;
+    dx = (v->x - vn->x) ;
+    dy = (v->y - vn->y) ;
+    dz = (v->z - vn->z) ;
+    switch (which)
+    {
+    default:
+    case TAUBIN_UNIFORM_WEIGHTS:
+      // w = 1/v->vnum above
+      break ;
+    case TAUBIN_INVERSE_WEIGHTS:
+      norm = sqrt(dx*dx + dy*dy + dz*dz) ;
+
+      if (!FZERO(norm))
+      {
+        w = 1.0/norm;
+      }
+      else
+      {
+        w = 1 ;
+      }
+      break ;
+    case TAUBIN_EDGE_WEIGHTS:
+      norm = sqrt(dx*dx + dy*dy + dz*dz) ;
+      w = norm;
+      break ;
+    }
+
+    wtotal += w ;
+    lx += w * dx ;
+    ly += w * dy ;
+    lz += w * dz ;
+  }
+  *pdx = lx/wtotal ;
+  *pdy = ly/wtotal ;
+  *pdz = lz/wtotal ;
+
+  return(NO_ERROR) ;
+}
+
+/* bigger values of lambda will give more smoothing. Lambda and Mu
+   bigger K_bp will also yield more smoothing
+#define Lambda .3
+#define Mu     (1.0)/((K_bp)-1.0/Lambda)
+*/
+int
+MRIStaubinSmooth(MRI_SURFACE *mris, int niters, double lambda, double mu, int which)
+{
+  int        n, vno ;
+  double     dx, dy, dz ;
+  VERTEX     *v ;
+
+  if (lambda < 0 || lambda > 1 || mu >= -lambda)
+  {
+    ErrorReturn(ERROR_BADPARM, (ERROR_BADPARM, "MRIStaubinSmooth: mu < -lambda < 0 violated")) ;
+  }
+
+  dx = dy = dz = 0 ; // to get rid of compiler warning
+  for (n = 0 ; n < niters ; n++)
+  {
+    for (vno = 0 ; vno < mris->nvertices ; vno++)
+    {
+      v = &mris->vertices[vno] ;
+      if (vno == Gdiag_no)
+      {
+        DiagBreak() ;
+      }
+      if (v->ripflag)
+      {
+        v->tx = v->x ;
+        v->ty = v->y ;
+        v->tz = v->z ;
+        continue ;
+      }
+      mrisGraphLaplacian(mris, vno, &dx, &dy, &dz, which) ;
+      if (EVEN(n))
+      {
+        v->tx = v->x + lambda * dx ;
+        v->ty = v->y + lambda * dy ;
+        v->tz = v->z + lambda * dz ;
+      }
+      else
+      {
+        v->tx = v->x + mu * dx ;
+        v->ty = v->y + mu * dy ;
+        v->tz = v->z + mu * dz ;
+      }
+    }
+    MRISrestoreVertexPositions(mris, TMP_VERTICES) ;
+  }
+
   return(NO_ERROR) ;
 }

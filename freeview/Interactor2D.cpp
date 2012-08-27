@@ -6,9 +6,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: rpwang $
- *    $Date: 2012/04/11 19:46:19 $
- *    $Revision: 1.28.2.2 $
+ *    $Author: nicks $
+ *    $Date: 2012/08/27 23:13:51 $
+ *    $Revision: 1.28.2.3 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -31,6 +31,7 @@
 #include "LayerMRI.h"
 #include <vtkRenderer.h>
 #include <QDebug>
+#include <QTimer>
 
 Interactor2D::Interactor2D( QObject* parent ) : Interactor( parent ),
   m_nMousePosX( -1 ),
@@ -53,6 +54,7 @@ bool Interactor2D::ProcessMouseDownEvent( QMouseEvent* event, RenderView* render
 
   view->UpdateAnnotation();
 
+  MainWindow* mainwnd = MainWindow::GetMainWindow();
   if ( ( event->modifiers() & CONTROL_MODIFIER ) &&  !( event->modifiers() & Qt::ShiftModifier ) )
   {
     if ( event->button() == Qt::LeftButton )
@@ -76,7 +78,8 @@ bool Interactor2D::ProcessMouseDownEvent( QMouseEvent* event, RenderView* render
     m_nDownPosX = m_nMousePosX;
     m_nDownPosY = m_nMousePosY;
 
-    if ( !( event->modifiers() & CONTROL_MODIFIER ) &&  ( event->modifiers() & Qt::ShiftModifier ) )
+    if ( !( event->modifiers() & CONTROL_MODIFIER ) &&  ( event->modifiers() & Qt::ShiftModifier ) &&
+         !mainwnd->IsRepositioningSurface())
     {
       m_bWindowLevel = true;
     }
@@ -85,6 +88,14 @@ bool Interactor2D::ProcessMouseDownEvent( QMouseEvent* event, RenderView* render
       m_bMovingCursor = true;
       view->UpdateCursorRASPosition( m_nMousePosX, m_nMousePosY );
       view->RequestRedraw();
+      if (mainwnd->IsRepositioningSurface())
+      {
+        if ( event->modifiers() & CONTROL_MODIFIER &&
+          event->modifiers() & Qt::ShiftModifier)
+          QTimer::singleShot(0, mainwnd, SIGNAL(SurfaceRepositionIntensityChanged()));
+        else if (event->modifiers() & Qt::ShiftModifier)
+          QTimer::singleShot(0, mainwnd, SIGNAL(SurfaceRepositionVertexChanged()));
+      }
     }
   }
   else if ( event->button() == Qt::MidButton && ( event->modifiers() & Qt::ShiftModifier ) )
@@ -108,6 +119,10 @@ bool Interactor2D::ProcessMouseDownEvent( QMouseEvent* event, RenderView* render
     view->RequestRedraw();
   }
 #endif
+  else if (event->button() == Qt::MidButton && (event->modifiers() & CONTROL_MODIFIER ))
+  {
+    m_bChangeSlice = true;
+  }
   else
   {
     return Interactor::ProcessMouseDownEvent( event, renderview ); // pass down the event
@@ -163,11 +178,12 @@ bool Interactor2D::ProcessMouseMoveEvent( QMouseEvent* event, RenderView* render
   {
     double* voxelSize = mainwnd->GetLayerCollection( "MRI" )->GetWorldVoxelSize();
     int nPlane = view->GetViewPlane();
-    double dPixelPer = -0.20;
+    double dPixelPer = -0.25;
+
     double dPosDiff =  ( ( (int)( dPixelPer * ( posY - m_nDownPosY ) ) ) / dPixelPer -
                          ( (int)( dPixelPer * ( m_nMousePosY - m_nDownPosY ) ) ) / dPixelPer )
                        * dPixelPer * voxelSize[nPlane];
-    //  if ( lcm->OffsetSlicePosition( nPlane, dPosDiff ) )
+    if ( mainwnd->OffsetSlicePosition( nPlane, dPosDiff ) )
     {
       m_nMousePosX = posX;
       m_nMousePosY = posY;
@@ -182,20 +198,23 @@ bool Interactor2D::ProcessMouseMoveEvent( QMouseEvent* event, RenderView* render
   {
     QList<Layer*> layers = mainwnd->GetLayerCollection( "MRI" )->GetLayers();
     LayerMRI* layer = (LayerMRI*)mainwnd->GetActiveLayer("MRI");
-    if (layer && layer->GetProperty()->GetColorMap() == LayerPropertyMRI::LUT)
+    if (layer && (!layer->IsVisible() || layer->GetProperty()->GetColorMap() == LayerPropertyMRI::LUT))
     {
       layer = NULL;
     }
-    for ( int i = 0; i < layers.size(); i++ )
+    if (layer == NULL)
     {
-      layer = ( LayerMRI*)layers[i];
-      if ( layer->IsVisible() && layer->GetProperty()->GetColorMap() != LayerPropertyMRI::LUT )
+      for ( int i = 0; i < layers.size(); i++ )
       {
-        break;
-      }
-      else
-      {
-        layer = NULL;
+        layer = ( LayerMRI*)layers[i];
+        if ( layer->IsVisible() && layer->GetProperty()->GetColorMap() != LayerPropertyMRI::LUT )
+        {
+          break;
+        }
+        else
+        {
+          layer = NULL;
+        }
       }
     }
     if ( layer )
@@ -302,7 +321,18 @@ bool Interactor2D::ProcessKeyDownEvent( QKeyEvent* event, RenderView* renderview
   }
 
   int nKeyCode = event->key();
-  if ( nKeyCode == Qt::Key_PageUp )
+  if ( event->modifiers() & Qt::ShiftModifier )
+  {
+      if ( nKeyCode == Qt::Key_Up )
+      {
+        view->Zoom(1.05);
+      }
+      else if ( nKeyCode == Qt::Key_Down )
+      {
+        view->Zoom(0.95);
+      }
+  }
+  else if ( nKeyCode == Qt::Key_PageUp )
   {
     view->MoveSlice( 1 );
   }

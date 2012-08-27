@@ -256,6 +256,7 @@
     </widget>
     <addaction name="actionNewVolume"/>
     <addaction name="actionLoadVolume"/>
+    <addaction name="actionReloadVolume"/>
     <addaction name="actionSaveVolume"/>
     <addaction name="actionCloseVolume"/>
     <addaction name="actionSaveVolumeAs"/>
@@ -264,6 +265,7 @@
     <addaction name="actionLoadTrackVolume"/>
     <addaction name="separator"/>
     <addaction name="actionLoadSurface"/>
+    <addaction name="actionReloadSurface"/>
     <addaction name="actionSaveSurface"/>
     <addaction name="actionSaveSurfaceAs"/>
     <addaction name="separator"/>
@@ -276,6 +278,8 @@
     <addaction name="actionLoadPointSet"/>
     <addaction name="actionSavePointSet"/>
     <addaction name="actionSavePointSetAs"/>
+    <addaction name="separator"/>
+    <addaction name="actionLoadTrack"/>
     <addaction name="separator"/>
     <addaction name="actionSaveScreenshot"/>
     <addaction name="actionSaveMovieFrames"/>
@@ -326,9 +330,12 @@
     <addaction name="separator"/>
     <addaction name="actionShowCoordinateAnnotation"/>
     <addaction name="actionShowColorScale"/>
+    <addaction name="actionTimeCourse"/>
     <addaction name="actionToggleCursorVisibility"/>
     <addaction name="actionShowSlices"/>
     <addaction name="actionShowSliceFrames"/>
+    <addaction name="separator"/>
+    <addaction name="actionToggleSurfaceSpline"/>
    </widget>
    <widget class="QMenu" name="menuLayer">
     <property name="title">
@@ -361,7 +368,7 @@
     </property>
     <widget class="QMenu" name="menuVolume_Fiilter">
      <property name="title">
-      <string>Volume Fiilter</string>
+      <string>Volume Filter</string>
      </property>
      <addaction name="actionVolumeFilterMean"/>
      <addaction name="actionVolumeFilterMedian"/>
@@ -375,11 +382,15 @@
     <addaction name="actionCreateOptimalCombinedVolume"/>
     <addaction name="separator"/>
     <addaction name="actionRepositionSurface"/>
+    <addaction name="actionSmoothSurface"/>
+    <addaction name="actionRemoveIntersectionsSurface"/>
     <addaction name="separator"/>
     <addaction name="actionSavePoint"/>
     <addaction name="actionGoToPoint"/>
     <addaction name="separator"/>
     <addaction name="actionShowLabelStats"/>
+    <addaction name="separator"/>
+    <addaction name="actionPlot"/>
    </widget>
    <widget class="QMenu" name="menuHelp">
     <property name="title">
@@ -425,7 +436,6 @@
    <addaction name="actionRedo"/>
    <addaction name="separator"/>
    <addaction name="actionShowControlPanel"/>
-   <addaction name="actionShowCommandConsole"/>
    <addaction name="separator"/>
    <addaction name="actionLayout1x1"/>
    <addaction name="actionLayout2x2"/>
@@ -439,6 +449,7 @@
    <addaction name="separator"/>
    <addaction name="actionShowCoordinateAnnotation"/>
    <addaction name="actionShowColorScale"/>
+   <addaction name="actionTimeCourse"/>
    <addaction name="separator"/>
    <addaction name="actionSaveScreenshot"/>
    <addaction name="separator"/>
@@ -1045,9 +1056,6 @@
    <property name="text">
     <string>Show Label Stats...</string>
    </property>
-   <property name="shortcut">
-    <string>Alt+T</string>
-   </property>
   </action>
   <action name="actionQuickReference">
    <property name="text">
@@ -1230,6 +1238,71 @@
    </property>
    <property name="shortcut">
     <string>Alt+A</string>
+   </property>
+  </action>
+  <action name="actionIntensityProject">
+   <property name="text">
+    <string>Create Intensity Projection Map</string>
+   </property>
+  </action>
+  <action name="actionTimeCourse">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="checked">
+    <bool>true</bool>
+   </property>
+   <property name="icon">
+    <iconset resource="freeview.qrc">
+     <normaloff>:/resource/icons/view_time_course.png</normaloff>:/resource/icons/view_time_course.png</iconset>
+   </property>
+   <property name="text">
+    <string>Show Time Course</string>
+   </property>
+   <property name="toolTip">
+    <string>View Time Course</string>
+   </property>
+  </action>
+  <action name="actionPlot">
+   <property name="text">
+    <string>Plot FSGD Data...</string>
+   </property>
+   <property name="toolTip">
+    <string>Plot FSGD Data</string>
+   </property>
+  </action>
+  <action name="actionToggleSurfaceSpline">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>Change Surface Spline With Selected Vertex</string>
+   </property>
+   <property name="toolTip">
+    <string>Surface Spline Picking</string>
+   </property>
+   <property name="shortcut">
+    <string>Alt+Shift+S</string>
+   </property>
+  </action>
+  <action name="actionReloadVolume">
+   <property name="text">
+    <string>Reload Volume...</string>
+   </property>
+  </action>
+  <action name="actionReloadSurface">
+   <property name="text">
+    <string>Reload Surface...</string>
+   </property>
+  </action>
+  <action name="actionSmoothSurface">
+   <property name="text">
+    <string>Smooth Surface...</string>
+   </property>
+  </action>
+  <action name="actionRemoveIntersectionsSurface">
+   <property name="text">
+    <string>Remove Intersections In Surface</string>
    </property>
   </action>
  </widget>
@@ -2282,6 +2355,150 @@
     </hint>
    </hints>
   </connection>
+  <connection>
+   <sender>actionRepositionSurface</sender>
+   <signal>triggered()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>OnRepositionSurface()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>606</x>
+     <y>435</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>actionShowLabelStats</sender>
+   <signal>triggered()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>OnShowLabelStats()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>606</x>
+     <y>435</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>actionSaveROIAs</sender>
+   <signal>triggered()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>OnSaveROIAs()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>606</x>
+     <y>435</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>actionPlot</sender>
+   <signal>triggered()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>OnPlot()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>606</x>
+     <y>435</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>actionToggleSurfaceSpline</sender>
+   <signal>toggled(bool)</signal>
+   <receiver>MainWindow</receiver>
+   <slot>SetSplinePicking(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>606</x>
+     <y>435</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>actionReloadVolume</sender>
+   <signal>triggered()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>OnReloadVolume()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>606</x>
+     <y>435</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>actionReloadSurface</sender>
+   <signal>triggered()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>OnReloadSurface()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>606</x>
+     <y>435</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>actionSmoothSurface</sender>
+   <signal>triggered()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>OnSmoothSurface()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>606</x>
+     <y>435</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>actionRemoveIntersectionsSurface</sender>
+   <signal>triggered()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>OnRemoveIntersectionsFromSurface()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>606</x>
+     <y>435</y>
+    </hint>
+   </hints>
+  </connection>
  </connections>
  <slots>
   <slot>OnLoadVolume()</slot>
@@ -2342,5 +2559,15 @@
   <slot>OnIncreaseOpacity()</slot>
   <slot>OnDecreaseOpacity()</slot>
   <slot>OnToggleCursorVisibility(bool)</slot>
+  <slot>OnCreateIntensityProjectionMap()</slot>
+  <slot>OnRepositionSurface()</slot>
+  <slot>OnShowLabelStats()</slot>
+  <slot>OnSaveROIAs()</slot>
+  <slot>OnPlot()</slot>
+  <slot>SetSplinePicking(bool)</slot>
+  <slot>OnReloadVolume()</slot>
+  <slot>OnReloadSurface()</slot>
+  <slot>OnSmoothSurface()</slot>
+  <slot>OnRemoveIntersectionsFromSurface()</slot>
  </slots>
 </ui>

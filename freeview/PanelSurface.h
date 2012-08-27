@@ -1,161 +1,81 @@
 /**
  * @file  PanelSurface.h
- * @brief Layer control panel.
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
  *
  */
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: rpwang $
- *    $Date: 2010/06/10 21:04:06 $
- *    $Revision: 1.20 $
+ *    $Author: nicks $
+ *    $Date: 2012/08/27 23:13:52 $
+ *    $Revision: 1.26.2.1 $
  *
- * Copyright (C) 2008-2009,
- * The General Hospital Corporation (Boston, MA).
- * All rights reserved.
+ * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
- * Distribution, usage and copying of this software is covered under the
- * terms found in the License Agreement file named 'COPYING' found in the
- * FreeSurfer source code root directory, and duplicated here:
- * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ * Terms and conditions for use, reproduction, distribution and contribution
+ * are found in the 'FreeSurfer Software License Agreement' contained
+ * in the file 'LICENSE' found in the FreeSurfer distribution, and here:
  *
- * General inquiries: freesurfer@nmr.mgh.harvard.edu
- * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
+ *
+ * Reporting: freesurfer@nmr.mgh.harvard.edu
  *
  */
-#ifndef PanelSurface_h
-#define PanelSurface_h
+#ifndef PANELSURFACE_H
+#define PANELSURFACE_H
 
-#include <wx/wx.h>
-#include "Listener.h"
-#include "Broadcaster.h"
-#include <vector>
+#include "PanelLayer.h"
+#include <QList>
 
-class wxAuiNotebook;
-class wxListBox;
-class wxCheckListBox;
-class wxColourPickerCtrl;
-class wxColourPickerEvent;
-class wxSpinCtrl;
-class wxSpinEvent;
-class wxTextCtrl;
-class Layer;
-
-class PanelSurface : public wxPanel, public Listener, public Broadcaster
+namespace Ui
 {
-public:
-  PanelSurface(wxWindow* parent);
-  virtual ~PanelSurface();
+class PanelSurface;
+}
 
-  void UpdateUI( bool bForce = false );
+class QAction;
+class WindowConfigureOverlay;
+
+class PanelSurface : public PanelLayer
+{
+  Q_OBJECT
+
+public:
+  explicit PanelSurface(QWidget *parent = 0);
+  ~PanelSurface();
 
 protected:
-  void OnInternalIdle();
+  void DoUpdateWidgets();
+  void DoIdle();
+  virtual void ConnectLayer( Layer* layer );
+
+protected slots:
+  void OnChangeSurfaceType( QAction* act );
+  void OnSliderOpacity( int nVal );
+  void OnSliderMidPoint( int nVal );
+  void OnSliderSlope( int nVal );
+  void OnComboCurvature( int nSel );
+  void OnLineEditMidPoint( const QString& text );
+  void OnLineEditSlope( const QString& text );
+  void OnComboOverlay( int nSel );
+  void OnComboAnnotation( int nSel );
+  void OnComboLabel( int nSel );
+  void OnComboVector( int nSel );
+  void OnComboSpline(int nSel );
+  void OnButtonConfigureOverlay();
+  void OnEditPositionOffset();
 
 private:
-  void OnSurfaceClose           ( wxCommandEvent& event );
-  void OnSurfaceCloseUpdateUI   ( wxUpdateUIEvent& event );
-  void OnSurfaceLock            ( wxCommandEvent& event );
-  void OnSurfaceLockUpdateUI    ( wxUpdateUIEvent& event );
-  
-  void OnSliderOpacityChanging  ( wxScrollEvent& event );
-  void OnSliderOpacity          ( wxScrollEvent& event );
-  void OnTextOpacity            ( wxCommandEvent& event );
-  void OnLayerSelectionChanged  ( wxCommandEvent& event );
-  void OnLayerVisibilityChanged ( wxCommandEvent& event );
-  
-  void OnColorChanged           ( wxColourPickerEvent& event );
-  void OnEdgeColorChanged       ( wxColourPickerEvent& event );
-  void OnSpinEdgeThickness      ( wxSpinEvent& event );
+  Ui::PanelSurface *ui;
 
-  void OnChoiceVector           ( wxCommandEvent& event );
-  void OnVectorColorChanged     ( wxColourPickerEvent& event );
-  void OnSpinVectorPointSize    ( wxSpinEvent& event );
-  
-  void OnChoiceOverlay          ( wxCommandEvent& event );
-  void OnButtonConfigureOverlay ( wxCommandEvent& event );          
+  QList<QWidget*>  m_widgetsMidPoint;
+  QList<QWidget*>  m_widgetsSlope;
+  QList<QWidget*>  m_widgetsVector;
+  QList<QWidget*>  m_widgetsVertex;
+  QList<QWidget*>  m_widgetsMesh;
+  QList<QWidget*>  m_widgetsLabel;
+  QList<QWidget*>  m_widgetsSpline;
 
-  void OnChoiceCurvatureMap     ( wxCommandEvent& evet );
-  void OnSliderMidPoint         ( wxScrollEvent& event );
-  void OnSliderSlope            ( wxScrollEvent& event );
-  void OnSliderMidPointChanging ( wxScrollEvent& event );
-  void OnSliderSlopeChanging    ( wxScrollEvent& event );
-  void OnTextMidPoint           ( wxCommandEvent& event );
-  void OnTextSlope              ( wxCommandEvent& event );
-  void OnChoiceRenderMode       ( wxCommandEvent& event );
-  void OnChoiceMeshColorMap     ( wxCommandEvent& event );
-  
-  void OnCheckHideInfo          ( wxCommandEvent& event );
-  
-  void OnChoiceAnnotation       ( wxCommandEvent& event );
-  
-  void OnChoiceLabel            ( wxCommandEvent& event );
-  void OnLabelColorChanged      ( wxColourPickerEvent& event );
-  
-  void OnCheckShowVertices      ( wxCommandEvent& event );
-  void OnColorVertex            ( wxColourPickerEvent& event );
-  void OnSpinVertexPointSize    ( wxSpinEvent& event );
-  
-  void OnTextPosition           ( wxCommandEvent& event );
-
-  void DoUpdateUI();
-
-  void UpdateTextValue( wxTextCtrl* ctrl, double dvalue );
-
-  void UpdateLayerList( Layer* layer );
-
-  virtual void DoListenToMessage( std::string const iMsg, void* iData, void* sender );
-
-  wxCheckListBox* m_listBoxLayers;
-  wxButton*     m_btnConfigureOverlay;
-  wxSlider*     m_sliderOpacity;
-  wxTextCtrl*   m_textOpacity;
-  wxColourPickerCtrl*  m_colorPicker;
-  wxColourPickerCtrl*  m_colorPickerEdge;
-  wxTextCtrl*   m_textFileName;
-  wxSpinCtrl*   m_spinEdgeThickness;
-  wxChoice*     m_choiceVector;
-  wxColourPickerCtrl*  m_colorPickerVector;
-  wxSpinCtrl*   m_spinVectorPointSize;
-
-  wxChoice*     m_choiceCurvatureMap;
-  wxSlider*     m_sliderMidPoint;
-  wxTextCtrl*   m_textMidPoint;
-  wxSlider*     m_sliderSlope;
-  wxTextCtrl*   m_textSlope;
-  
-  wxChoice*     m_choiceOverlay;
-  wxButton*     m_btnOverlayConfiguration;
-  
-  wxChoice*     m_choiceAnnotation;
-  
-  wxChoice*     m_choiceLabel;
-  wxColourPickerCtrl* m_colorPickerLabel;
-  
-  wxChoice*     m_choiceRenderMode;
-  wxChoice*     m_choiceMeshColorMap;
-  
-  wxCheckBox*   m_checkShowVertices;
-  wxColourPickerCtrl* m_colorPickerVertex;
-  wxSpinCtrl*   m_spinVertexPointSize;
-  
-  wxTextCtrl*   m_textPosition;
-  
-  wxCheckBox*   m_checkHideInfo;
-
-  std::vector<wxWindow*>  m_widgetsMidPoint;
-  std::vector<wxWindow*>  m_widgetsSlope;
-  std::vector<wxWindow*>  m_widgetsVector;
-  std::vector<wxWindow*>  m_widgetsVertex;
-  std::vector<wxWindow*>  m_widgetsMesh;
-  std::vector<wxWindow*>  m_widgetsLabel;
-  
-  std::vector<wxWindow*>  m_widgetsResize;
-
-  bool   m_bUINeedUpdate;
-
-  DECLARE_EVENT_TABLE()
+  WindowConfigureOverlay* m_wndConfigureOverlay;
 };
 
-#endif
-
+#endif // PANELSURFACE_H

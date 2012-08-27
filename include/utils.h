@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: rpwang $
- *    $Date: 2012/04/11 19:46:22 $
- *    $Revision: 1.44.2.2 $
+ *    $Author: nicks $
+ *    $Date: 2012/08/27 23:13:54 $
+ *    $Revision: 1.44.2.3 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -37,8 +37,12 @@ extern "C" {
 #define LIST_FILE     2
 #define UNKNOWN_FILE  3
 
+// defines the maximum number of threads used in OpenMP code
+#define _MAX_FS_THREADS 128 
+
 double randomNumber(double low, double hi) ;
 int    setRandomSeed(long seed) ;
+long getRandomSeed(void);
 double normAngle(double angle) ;
 float  deltaAngle(float angle1, float angle2) ;
 double calcDeltaPhi(double phi1, double phi2) ;
@@ -92,6 +96,7 @@ char *deblank(const char *str);
 char *str_toupper(char *str);
 double sum2stddev(double xsum, double xsum2, int nx);
 int compare_ints(const void *v1,const void *v2);
+int compare_floats(const void *v1,const void *v2)  ;
 int nunqiue_int_list(int *idlist, int nlist);
 int *unqiue_int_list(int *idlist, int nlist, int *nunique);
 int most_frequent_int_list(int *idlist, int nlist, int *nmax);
@@ -114,6 +119,15 @@ int nint( double f );
 
 /* Outputs the help files (found in utils/fsPrintHelp.c) */
 int outputHelpXml(const unsigned char *text, unsigned int size);
+
+/* Set progress callback */
+extern void (*progress_callback)(int progress);
+extern int global_progress_range[2];
+void SetProgressCallback(void (*callback)(int), int start, int end);
+void exec_progress_callback(int slice, int total_slices, int frame, int total_frames);
+
+
+int  *compute_permutation(int num, int *vec)  ;
 
 #if defined(__cplusplus)
 };

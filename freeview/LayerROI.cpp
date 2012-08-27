@@ -6,9 +6,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: rpwang $
- *    $Date: 2012/04/11 19:46:19 $
- *    $Revision: 1.20.2.2 $
+ *    $Author: nicks $
+ *    $Date: 2012/08/27 23:13:52 $
+ *    $Revision: 1.20.2.3 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -268,23 +268,6 @@ void LayerROI::OnSlicePositionChanged( int nPlane )
     break;
   }
 }
-
-/*
-void LayerROI::DoListenToMessage( std::string const iMessage, void* iData, void* sender )
-{
-  if ( iMessage == "ColorMapChanged" )
-  {
-    this->UpdateColorMap();
-    this->SendBroadcast( "LayerActorUpdated", this, this );
-  }
-  else if ( iMessage == "OpacityChanged" )
-  {
-    this->UpdateOpacity();
-    this->SendBroadcast( "LayerActorUpdated", this, this );
-  }
-  LayerVolumeBase::DoListenToMessage( iMessage, iData, sender );
-}
-*/
 
 void LayerROI::SetVisible( bool bVisible )
 {

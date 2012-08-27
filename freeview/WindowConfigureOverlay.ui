@@ -1081,6 +1081,22 @@
     </hint>
    </hints>
   </connection>
+  <connection>
+   <sender>radioButtonPiecewise</sender>
+   <signal>toggled(bool)</signal>
+   <receiver>lineEditMid</receiver>
+   <slot>setEnabled(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>290</x>
+     <y>566</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>251</x>
+     <y>471</y>
+    </hint>
+   </hints>
+  </connection>
  </connections>
  <slots>
   <slot>OnApply()</slot>

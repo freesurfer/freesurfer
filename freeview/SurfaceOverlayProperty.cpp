@@ -10,9 +10,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: rpwang $
- *    $Date: 2012/04/11 19:46:20 $
- *    $Revision: 1.4.2.3 $
+ *    $Author: nicks $
+ *    $Date: 2012/08/27 23:13:52 $
+ *    $Revision: 1.4.2.4 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -334,6 +334,9 @@ void SurfaceOverlayProperty::MapOverlayColor( float* data, unsigned char* colord
 void SurfaceOverlayProperty::MapOverlayColorSymmetric( float* data, unsigned char* colordata, int nPoints )
 {
   double c[3];
+  double dMidPoint = m_dMidPoint;
+  if (m_nColorMethod != CM_Piecewise)
+    dMidPoint = (m_dMaxPoint + m_dMinPoint)/2.0;
   if ( m_nColorMethod== CM_LinearOpaque )
   {
     for ( int i = 0; i < nPoints; i++ )
@@ -342,9 +345,9 @@ void SurfaceOverlayProperty::MapOverlayColorSymmetric( float* data, unsigned cha
       if ( data[i] >= m_dMinPoint && !( m_bColorInverse && m_bColorTruncate ) )
       {
         double r = 0;
-        if (m_dMaxPoint != m_dMidPoint)
+        if (m_dMaxPoint != dMidPoint)
         {
-          r = ( m_dMaxPoint - data[i] ) / ( m_dMaxPoint - m_dMidPoint );
+          r = ( m_dMaxPoint - data[i] ) / ( m_dMaxPoint - dMidPoint );
         }
         if ( r < 0 )
         {
@@ -375,9 +378,9 @@ void SurfaceOverlayProperty::MapOverlayColorSymmetric( float* data, unsigned cha
       else if ( data[i] <= -m_dMinPoint && !( m_bColorTruncate && !m_bColorInverse ) )
       {
         double r = 0;
-        if (m_dMaxPoint != m_dMidPoint)
+        if (m_dMaxPoint != dMidPoint)
         {
-          r = ( data[i] + m_dMaxPoint ) / ( m_dMaxPoint - m_dMidPoint );
+          r = ( data[i] + m_dMaxPoint ) / ( m_dMaxPoint - dMidPoint );
         }
         if ( r < 0 )
         {
@@ -413,12 +416,12 @@ void SurfaceOverlayProperty::MapOverlayColorSymmetric( float* data, unsigned cha
       // map positive values
       if ( data[i] >= m_dMinPoint && !( m_bColorInverse && m_bColorTruncate ) )
       {
-        if ( data[i] < m_dMidPoint )
+        if ( data[i] < dMidPoint )
         {
           double r = 0;
-          if (m_dMidPoint != m_dMinPoint)
+          if (dMidPoint != m_dMinPoint)
           {
-            r = ( m_dMidPoint - data[i] ) / ( m_dMidPoint - m_dMinPoint );
+            r = ( dMidPoint - data[i] ) / ( dMidPoint - m_dMinPoint );
           }
           if ( r < 0 )
           {
@@ -444,9 +447,9 @@ void SurfaceOverlayProperty::MapOverlayColorSymmetric( float* data, unsigned cha
         else if ( data[i] <= m_dMaxPoint )
         {
           double r = 0;
-          if (m_dMaxPoint != m_dMidPoint)
+          if (m_dMaxPoint != dMidPoint)
           {
-            r = ( m_dMaxPoint - data[i] ) / ( m_dMaxPoint - m_dMidPoint );
+            r = ( m_dMaxPoint - data[i] ) / ( m_dMaxPoint - dMidPoint );
           }
           if ( r < 0 )
           {
@@ -491,12 +494,12 @@ void SurfaceOverlayProperty::MapOverlayColorSymmetric( float* data, unsigned cha
       // map negative value
       else if ( data[i] <= -m_dMinPoint && !( m_bColorTruncate && !m_bColorInverse ) )
       {
-        if ( data[i] >= -m_dMidPoint )
+        if ( data[i] >= -dMidPoint )
         {
           double r = 0;
-          if (m_dMinPoint != m_dMidPoint)
+          if (m_dMinPoint != dMidPoint)
           {
-            r = ( m_dMidPoint + data[i] ) / ( m_dMidPoint - m_dMinPoint );
+            r = ( dMidPoint + data[i] ) / ( dMidPoint - m_dMinPoint );
           }
           if ( r < 0 )
           {
@@ -522,9 +525,9 @@ void SurfaceOverlayProperty::MapOverlayColorSymmetric( float* data, unsigned cha
         else if ( data[i] >= -m_dMaxPoint )
         {
           double r = 0;
-          if (m_dMaxPoint != m_dMidPoint)
+          if (m_dMaxPoint != dMidPoint)
           {
-            r = ( m_dMaxPoint + data[i] ) / ( m_dMaxPoint - m_dMidPoint );
+            r = ( m_dMaxPoint + data[i] ) / ( m_dMaxPoint - dMidPoint );
           }
           if ( r < 0 )
           {

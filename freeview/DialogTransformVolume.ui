@@ -6,14 +6,14 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>558</width>
-    <height>836</height>
+    <width>484</width>
+    <height>714</height>
    </rect>
   </property>
   <property name="windowTitle">
-   <string>Dialog</string>
+   <string>Transform Volume</string>
   </property>
-  <layout class="QVBoxLayout" name="verticalLayout_4">
+  <layout class="QVBoxLayout" name="verticalLayout_4" stretch="0,0,0">
    <property name="spacing">
     <number>8</number>
    </property>
@@ -33,6 +33,9 @@
        <string>Rotate</string>
       </attribute>
       <layout class="QVBoxLayout" name="verticalLayout_3">
+       <property name="sizeConstraint">
+        <enum>QLayout::SetDefaultConstraint</enum>
+       </property>
        <item>
         <layout class="QHBoxLayout" name="horizontalLayout_3">
          <property name="topMargin">
@@ -81,7 +84,7 @@
          <property name="title">
           <string>Rotations</string>
          </property>
-         <layout class="QGridLayout" name="gridLayout" columnstretch="0,1,0,0">
+         <layout class="QGridLayout" name="gridLayout" columnstretch="0,0,0,1,0,0">
           <property name="horizontalSpacing">
            <number>6</number>
           </property>
@@ -120,20 +123,7 @@
             </item>
            </widget>
           </item>
-          <item row="0" column="2">
-           <widget class="QLineEdit" name="lineEditRotateX">
-            <property name="maximumSize">
-             <size>
-              <width>65</width>
-              <height>16777215</height>
-             </size>
-            </property>
-            <property name="text">
-             <string>0</string>
-            </property>
-           </widget>
-          </item>
-          <item row="0" column="3">
+          <item row="0" column="5">
            <widget class="QLabel" name="label_8">
             <property name="text">
              <string>degrees</string>
@@ -144,6 +134,9 @@
            <widget class="QCheckBox" name="checkBoxRotateY">
             <property name="text">
              <string/>
+            </property>
+            <property name="checked">
+             <bool>true</bool>
             </property>
            </widget>
           </item>
@@ -172,26 +165,10 @@
             </item>
            </widget>
           </item>
-          <item row="1" column="2">
-           <widget class="QLineEdit" name="lineEditRotateY">
-            <property name="enabled">
-             <bool>false</bool>
-            </property>
-            <property name="maximumSize">
-             <size>
-              <width>65</width>
-              <height>16777215</height>
-             </size>
-            </property>
-            <property name="text">
-             <string>0</string>
-            </property>
-           </widget>
-          </item>
-          <item row="1" column="3">
+          <item row="1" column="5">
            <widget class="QLabel" name="label_9">
             <property name="enabled">
-             <bool>false</bool>
+             <bool>true</bool>
             </property>
             <property name="text">
              <string>degrees</string>
@@ -202,6 +179,9 @@
            <widget class="QCheckBox" name="checkBoxRotateZ">
             <property name="text">
              <string/>
+            </property>
+            <property name="checked">
+             <bool>true</bool>
             </property>
            </widget>
           </item>
@@ -230,14 +210,40 @@
             </item>
            </widget>
           </item>
-          <item row="2" column="2">
-           <widget class="QLineEdit" name="lineEditRotateZ">
+          <item row="2" column="5">
+           <widget class="QLabel" name="label_10">
             <property name="enabled">
-             <bool>false</bool>
+             <bool>true</bool>
             </property>
+            <property name="text">
+             <string>degrees</string>
+            </property>
+           </widget>
+          </item>
+          <item row="0" column="3">
+           <widget class="QSlider" name="horizontalSliderRotateX">
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+              <horstretch>1</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
+            <property name="minimum">
+             <number>-180</number>
+            </property>
+            <property name="maximum">
+             <number>180</number>
+            </property>
+            <property name="orientation">
+             <enum>Qt::Horizontal</enum>
+            </property>
+           </widget>
+          </item>
+          <item row="0" column="4">
+           <widget class="QLineEdit" name="lineEditRotateX">
             <property name="maximumSize">
              <size>
-              <width>65</width>
+              <width>45</width>
               <height>16777215</height>
              </size>
             </property>
@@ -246,13 +252,100 @@
             </property>
            </widget>
           </item>
-          <item row="2" column="3">
-           <widget class="QLabel" name="label_10">
+          <item row="1" column="4">
+           <widget class="QLineEdit" name="lineEditRotateY">
             <property name="enabled">
-             <bool>false</bool>
+             <bool>true</bool>
+            </property>
+            <property name="maximumSize">
+             <size>
+              <width>45</width>
+              <height>16777215</height>
+             </size>
             </property>
             <property name="text">
-             <string>degrees</string>
+             <string>0</string>
+            </property>
+           </widget>
+          </item>
+          <item row="2" column="4">
+           <widget class="QLineEdit" name="lineEditRotateZ">
+            <property name="enabled">
+             <bool>true</bool>
+            </property>
+            <property name="maximumSize">
+             <size>
+              <width>45</width>
+              <height>16777215</height>
+             </size>
+            </property>
+            <property name="text">
+             <string>0</string>
+            </property>
+           </widget>
+          </item>
+          <item row="1" column="3">
+           <widget class="QSlider" name="horizontalSliderRotateY">
+            <property name="enabled">
+             <bool>true</bool>
+            </property>
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+              <horstretch>1</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
+            <property name="minimum">
+             <number>-180</number>
+            </property>
+            <property name="maximum">
+             <number>180</number>
+            </property>
+            <property name="orientation">
+             <enum>Qt::Horizontal</enum>
+            </property>
+           </widget>
+          </item>
+          <item row="2" column="3">
+           <widget class="QSlider" name="horizontalSliderRotateZ">
+            <property name="enabled">
+             <bool>true</bool>
+            </property>
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+              <horstretch>1</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
+            <property name="minimum">
+             <number>-180</number>
+            </property>
+            <property name="maximum">
+             <number>180</number>
+            </property>
+            <property name="orientation">
+             <enum>Qt::Horizontal</enum>
+            </property>
+           </widget>
+          </item>
+          <item row="0" column="2">
+           <widget class="QLabel" name="label_19">
+            <property name="text">
+             <string>X (L-R)</string>
+            </property>
+           </widget>
+          </item>
+          <item row="1" column="2">
+           <widget class="QLabel" name="label_20">
+            <property name="text">
+             <string>Y (P-A)</string>
+            </property>
+           </widget>
+          </item>
+          <item row="2" column="2">
+           <widget class="QLabel" name="label_21">
+            <property name="text">
+             <string>Z (I-S)</string>
             </property>
            </widget>
           </item>
@@ -260,7 +353,7 @@
         </widget>
        </item>
        <item>
-        <widget class="QGroupBox" name="groupBox_2">
+        <widget class="QGroupBox" name="groupBoxAxis">
          <property name="title">
           <string>Axis Point</string>
          </property>
@@ -757,62 +850,6 @@
         </widget>
        </item>
        <item>
-        <widget class="QGroupBox" name="groupBox_3">
-         <property name="title">
-          <string>Sample Method</string>
-         </property>
-         <layout class="QVBoxLayout" name="verticalLayout_2">
-          <item>
-           <layout class="QHBoxLayout" name="horizontalLayout_2">
-            <item>
-             <widget class="QRadioButton" name="radioButtonNearestNeighbor">
-              <property name="text">
-               <string>Nearest Neighbor</string>
-              </property>
-             </widget>
-            </item>
-            <item>
-             <widget class="QRadioButton" name="radioButtonTrilinear">
-              <property name="text">
-               <string>Trilinear</string>
-              </property>
-              <property name="checked">
-               <bool>true</bool>
-              </property>
-             </widget>
-            </item>
-            <item>
-             <spacer name="horizontalSpacer_2">
-              <property name="orientation">
-               <enum>Qt::Horizontal</enum>
-              </property>
-              <property name="sizeHint" stdset="0">
-               <size>
-                <width>0</width>
-                <height>0</height>
-               </size>
-              </property>
-             </spacer>
-            </item>
-           </layout>
-          </item>
-          <item>
-           <widget class="QLabel" name="label">
-            <property name="text">
-             <string>Interpolation method on label volumes will always be nearest neighbor. Therefore, there is risk to lose voxels after rotation.</string>
-            </property>
-            <property name="scaledContents">
-             <bool>false</bool>
-            </property>
-            <property name="wordWrap">
-             <bool>true</bool>
-            </property>
-           </widget>
-          </item>
-         </layout>
-        </widget>
-       </item>
-       <item>
         <layout class="QHBoxLayout" name="horizontalLayout_4">
          <property name="topMargin">
           <number>0</number>
@@ -834,26 +871,13 @@
            </property>
            <property name="sizeHint" stdset="0">
             <size>
-             <width>40</width>
-             <height>20</height>
+             <width>0</width>
+             <height>0</height>
             </size>
            </property>
           </spacer>
          </item>
         </layout>
-       </item>
-       <item>
-        <spacer name="verticalSpacer">
-         <property name="orientation">
-          <enum>Qt::Vertical</enum>
-         </property>
-         <property name="sizeHint" stdset="0">
-          <size>
-           <width>0</width>
-           <height>0</height>
-          </size>
-         </property>
-        </spacer>
        </item>
       </layout>
      </widget>
@@ -975,8 +999,8 @@
          </property>
          <property name="sizeHint" stdset="0">
           <size>
-           <width>13</width>
-           <height>283</height>
+           <width>0</width>
+           <height>0</height>
           </size>
          </property>
         </spacer>
@@ -1104,14 +1128,83 @@
          </property>
          <property name="sizeHint" stdset="0">
           <size>
-           <width>13</width>
-           <height>283</height>
+           <width>0</width>
+           <height>0</height>
           </size>
          </property>
         </spacer>
        </item>
       </layout>
      </widget>
+    </widget>
+   </item>
+   <item>
+    <widget class="QGroupBox" name="groupBox_3">
+     <property name="title">
+      <string>Sample Method</string>
+     </property>
+     <layout class="QVBoxLayout" name="verticalLayout_2">
+      <item>
+       <layout class="QHBoxLayout" name="horizontalLayout_2">
+        <item>
+         <widget class="QRadioButton" name="radioButtonNearestNeighbor">
+          <property name="text">
+           <string>Nearest Neighbor</string>
+          </property>
+          <property name="checked">
+           <bool>true</bool>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QRadioButton" name="radioButtonTrilinear">
+          <property name="text">
+           <string>Trilinear</string>
+          </property>
+          <property name="checked">
+           <bool>false</bool>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QRadioButton" name="radioButtonCubic">
+          <property name="text">
+           <string>Cubic</string>
+          </property>
+          <property name="checked">
+           <bool>false</bool>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <spacer name="horizontalSpacer_2">
+          <property name="orientation">
+           <enum>Qt::Horizontal</enum>
+          </property>
+          <property name="sizeHint" stdset="0">
+           <size>
+            <width>0</width>
+            <height>0</height>
+           </size>
+          </property>
+         </spacer>
+        </item>
+       </layout>
+      </item>
+      <item>
+       <widget class="QLabel" name="label">
+        <property name="text">
+         <string>Interpolation method on label volumes will always be nearest neighbor. Therefore, there is risk to lose voxels after rotation.</string>
+        </property>
+        <property name="scaledContents">
+         <bool>false</bool>
+        </property>
+        <property name="wordWrap">
+         <bool>true</bool>
+        </property>
+       </widget>
+      </item>
+     </layout>
     </widget>
    </item>
    <item>
@@ -1174,6 +1267,7 @@
    <container>1</container>
    <slots>
     <signal>colorChanged(QColor)</signal>
+    <signal>currentColorChanged(QColor)</signal>
    </slots>
   </customwidget>
  </customwidgets>
@@ -1206,8 +1300,8 @@
      <y>158</y>
     </hint>
     <hint type="destinationlabel">
-     <x>451</x>
-     <y>137</y>
+     <x>419</x>
+     <y>162</y>
     </hint>
    </hints>
   </connection>
@@ -1222,8 +1316,8 @@
      <y>158</y>
     </hint>
     <hint type="destinationlabel">
-     <x>511</x>
-     <y>137</y>
+     <x>477</x>
+     <y>162</y>
     </hint>
    </hints>
   </connection>
@@ -1254,8 +1348,8 @@
      <y>125</y>
     </hint>
     <hint type="destinationlabel">
-     <x>451</x>
-     <y>109</y>
+     <x>419</x>
+     <y>129</y>
     </hint>
    </hints>
   </connection>
@@ -1270,8 +1364,8 @@
      <y>125</y>
     </hint>
     <hint type="destinationlabel">
-     <x>511</x>
-     <y>109</y>
+     <x>477</x>
+     <y>129</y>
     </hint>
    </hints>
   </connection>
@@ -1302,7 +1396,7 @@
      <y>191</y>
     </hint>
     <hint type="destinationlabel">
-     <x>471</x>
+     <x>419</x>
      <y>195</y>
     </hint>
    </hints>
@@ -1318,7 +1412,7 @@
      <y>191</y>
     </hint>
     <hint type="destinationlabel">
-     <x>529</x>
+     <x>477</x>
      <y>195</y>
     </hint>
    </hints>
@@ -1330,8 +1424,8 @@
    <slot>OnApply()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>85</x>
-     <y>656</y>
+     <x>96</x>
+     <y>685</y>
     </hint>
     <hint type="destinationlabel">
      <x>462</x>
@@ -1346,8 +1440,8 @@
    <slot>OnRestore()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>127</x>
-     <y>811</y>
+     <x>136</x>
+     <y>764</y>
     </hint>
     <hint type="destinationlabel">
      <x>428</x>
@@ -1362,8 +1456,8 @@
    <slot>OnSaveReg()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>327</x>
-     <y>817</y>
+     <x>356</x>
+     <y>764</y>
     </hint>
     <hint type="destinationlabel">
      <x>260</x>
@@ -1426,7 +1520,7 @@
    <slot>OnLineEditTranslateX(QString)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>537</x>
+     <x>485</x>
      <y>75</y>
     </hint>
     <hint type="destinationlabel">
@@ -1442,7 +1536,7 @@
    <slot>OnLineEditTranslateY(QString)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>537</x>
+     <x>485</x>
      <y>108</y>
     </hint>
     <hint type="destinationlabel">
@@ -1458,7 +1552,7 @@
    <slot>OnLineEditTranslateZ(QString)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>537</x>
+     <x>485</x>
      <y>141</y>
     </hint>
     <hint type="destinationlabel">
@@ -1522,7 +1616,7 @@
    <slot>OnLineEditScaleX(QString)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>537</x>
+     <x>485</x>
      <y>75</y>
     </hint>
     <hint type="destinationlabel">
@@ -1538,7 +1632,7 @@
    <slot>OnLineEditScaleY(QString)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>537</x>
+     <x>485</x>
      <y>108</y>
     </hint>
     <hint type="destinationlabel">
@@ -1554,7 +1648,7 @@
    <slot>OnLineEditScaleZ(QString)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>537</x>
+     <x>485</x>
      <y>141</y>
     </hint>
     <hint type="destinationlabel">
@@ -1582,7 +1676,7 @@
   <connection>
    <sender>radioButtonRotateManual</sender>
    <signal>toggled(bool)</signal>
-   <receiver>groupBox_2</receiver>
+   <receiver>groupBoxAxis</receiver>
    <slot>setShown(bool)</slot>
    <hints>
     <hint type="sourcelabel">
@@ -1619,7 +1713,7 @@
    <hints>
     <hint type="sourcelabel">
      <x>300</x>
-     <y>371</y>
+     <y>399</y>
     </hint>
     <hint type="destinationlabel">
      <x>637</x>
@@ -1650,8 +1744,8 @@
    <slot>OnButtonLandmarkPick()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>126</x>
-     <y>360</y>
+     <x>152</x>
+     <y>399</y>
     </hint>
     <hint type="destinationlabel">
      <x>611</x>
@@ -1666,8 +1760,8 @@
    <slot>UpdateLandmarkColors()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>62</x>
-     <y>370</y>
+     <x>61</x>
+     <y>399</y>
     </hint>
     <hint type="destinationlabel">
      <x>278</x>
@@ -1682,8 +1776,8 @@
    <slot>UpdateLandmarkColors()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>220</x>
-     <y>370</y>
+     <x>209</x>
+     <y>399</y>
     </hint>
     <hint type="destinationlabel">
      <x>278</x>
@@ -1698,8 +1792,8 @@
    <slot>UpdateLandmarkColors()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>62</x>
-     <y>403</y>
+     <x>61</x>
+     <y>432</y>
     </hint>
     <hint type="destinationlabel">
      <x>278</x>
@@ -1730,8 +1824,8 @@
    <slot>OnButtonLandmarkPick()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>278</x>
-     <y>403</y>
+     <x>300</x>
+     <y>432</y>
     </hint>
     <hint type="destinationlabel">
      <x>278</x>
@@ -1746,12 +1840,156 @@
    <slot>UpdateLandmarkColors()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>224</x>
-     <y>403</y>
+     <x>209</x>
+     <y>432</y>
     </hint>
     <hint type="destinationlabel">
      <x>278</x>
      <y>417</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>radioButtonNearestNeighbor</sender>
+   <signal>toggled(bool)</signal>
+   <receiver>DialogTransformVolume</receiver>
+   <slot>OnSampleMethodChanged()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>118</x>
+     <y>589</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>588</x>
+     <y>653</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>radioButtonTrilinear</sender>
+   <signal>toggled(bool)</signal>
+   <receiver>DialogTransformVolume</receiver>
+   <slot>OnSampleMethodChanged()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>229</x>
+     <y>586</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>571</x>
+     <y>564</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>radioButtonCubic</sender>
+   <signal>toggled(bool)</signal>
+   <receiver>DialogTransformVolume</receiver>
+   <slot>OnSampleMethodChanged()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>303</x>
+     <y>588</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>675</x>
+     <y>617</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>horizontalSliderRotateX</sender>
+   <signal>valueChanged(int)</signal>
+   <receiver>DialogTransformVolume</receiver>
+   <slot>OnSliderRotateX(int)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>316</x>
+     <y>115</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>563</x>
+     <y>23</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>horizontalSliderRotateY</sender>
+   <signal>valueChanged(int)</signal>
+   <receiver>DialogTransformVolume</receiver>
+   <slot>OnSliderRotateY(int)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>300</x>
+     <y>153</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>777</x>
+     <y>241</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>horizontalSliderRotateZ</sender>
+   <signal>valueChanged(int)</signal>
+   <receiver>DialogTransformVolume</receiver>
+   <slot>OnSliderRotateZ(int)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>277</x>
+     <y>182</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>704</x>
+     <y>267</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>lineEditRotateX</sender>
+   <signal>textChanged(QString)</signal>
+   <receiver>DialogTransformVolume</receiver>
+   <slot>OnLineEditRotateX(QString)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>397</x>
+     <y>113</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>536</x>
+     <y>62</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>lineEditRotateY</sender>
+   <signal>textChanged(QString)</signal>
+   <receiver>DialogTransformVolume</receiver>
+   <slot>OnLineEditRotateY(QString)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>385</x>
+     <y>144</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>667</x>
+     <y>148</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>lineEditRotateZ</sender>
+   <signal>textChanged(QString)</signal>
+   <receiver>DialogTransformVolume</receiver>
+   <slot>OnLineEditRotateZ(QString)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>409</x>
+     <y>179</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>616</x>
+     <y>230</y>
     </hint>
    </hints>
   </connection>
@@ -1777,5 +2015,12 @@
   <slot>OnButtonLandmarkPick()</slot>
   <slot>UpdateLandmarkColors()</slot>
   <slot>OnRadioButtonLandmark(bool)</slot>
+  <slot>OnSampleMethodChanged()</slot>
+  <slot>OnSliderRotateX(int)</slot>
+  <slot>OnSliderRotateY(int)</slot>
+  <slot>OnSliderRotateZ(int)</slot>
+  <slot>OnLineEditRotateX(QString)</slot>
+  <slot>OnLineEditRotateY(QString)</slot>
+  <slot>OnLineEditRotateZ(QString)</slot>
  </slots>
 </ui>

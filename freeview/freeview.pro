@@ -132,7 +132,11 @@ SOURCES += \
     VolumeFilterWorkerThread.cpp \
     FSGroupDescriptor.cpp \
     WindowGroupPlot.cpp \
-    WidgetGroupPlot.cpp
+    WidgetGroupPlot.cpp \
+    SurfaceSpline.cpp \
+    DialogLoadSurfaceOverlay.cpp \
+    DialogReloadLayer.cpp \
+    DialogSmoothSurface.cpp
 
 HEADERS  += \
     Annotation2D.h \
@@ -254,7 +258,11 @@ HEADERS  += \
     VolumeFilterWorkerThread.h \
     FSGroupDescriptor.h \
     WindowGroupPlot.h \
-    WidgetGroupPlot.h
+    WidgetGroupPlot.h \
+    SurfaceSpline.h \
+    DialogLoadSurfaceOverlay.h \
+    DialogReloadLayer.h \
+    DialogSmoothSurface.h
 
 FORMS    += MainWindow.ui \
     PanelVolume.ui \
@@ -289,7 +297,10 @@ FORMS    += MainWindow.ui \
     DialogRepositionSurface.ui \
     WindowTimeCourse.ui \
     DialogLabelStats.ui \
-    WindowGroupPlot.ui
+    WindowGroupPlot.ui \
+    DialogLoadSurfaceOverlay.ui \
+    DialogReloadLayer.ui \
+    DialogSmoothSurface.ui
 
 RESOURCES += \
     freeview.qrc

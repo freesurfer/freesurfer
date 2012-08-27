@@ -6,9 +6,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: rpwang $
- *    $Date: 2012/04/11 19:46:18 $
- *    $Revision: 1.11.2.6 $
+ *    $Author: nicks $
+ *    $Date: 2012/08/27 23:13:51 $
+ *    $Revision: 1.11.2.7 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -26,6 +26,7 @@
 #include "MainWindow.h"
 #include "LayerCollection.h"
 #include "LayerMRI.h"
+#include "LayerPropertyMRI.h"
 #include "LayerLandmarks.h"
 #include "RenderView.h"
 #include "vtkMatrix4x4.h"
@@ -50,6 +51,7 @@ DialogTransformVolume::DialogTransformVolume(QWidget *parent) :
 {
   ui->setupUi(this);
   ui->groupBoxLandmarks->hide();
+  ui->pushButtonApply->hide();
 
   QButtonGroup* bg = new QButtonGroup(this);
   bg->addButton(ui->radioButtonRotateLandmarks);
@@ -62,6 +64,9 @@ DialogTransformVolume::DialogTransformVolume(QWidget *parent) :
   m_comboRotate[0] = ui->comboBoxRotateX;
   m_comboRotate[1] = ui->comboBoxRotateY;
   m_comboRotate[2] = ui->comboBoxRotateZ;
+  m_sliderRotate[0] = ui->horizontalSliderRotateX;
+  m_sliderRotate[1] = ui->horizontalSliderRotateY;
+  m_sliderRotate[2] = ui->horizontalSliderRotateZ;
   m_textAngle[0] = ui->lineEditRotateX;
   m_textAngle[1] = ui->lineEditRotateY;
   m_textAngle[2] = ui->lineEditRotateZ;
@@ -89,6 +94,12 @@ DialogTransformVolume::DialogTransformVolume(QWidget *parent) :
                   << ui->comboBoxAxis12
                   << ui->comboBoxAxis21
                   << ui->comboBoxAxis22;
+
+  for (int i = 0; i < 3; i++)
+  {
+    m_checkRotate[i]->hide();
+    m_comboRotate[i]->hide();
+  }
 
   connect(MainWindow::GetMainWindow()->GetLayerCollection("MRI"), SIGNAL(ActiveLayerChanged(Layer*)),
           this, SLOT(OnActiveLayerChanged()));
@@ -174,6 +185,20 @@ void DialogTransformVolume::UpdateUI( int scope )
     ui->pushButtonRestore->setEnabled( layer->IsTransformed() );
     ui->pushButtonSaveReg->setEnabled( layer->IsTransformed() );
     ui->pushButtonSaveVolumeAs->setEnabled( layer->IsTransformed() );
+    double angle[3];
+    layer->GetRotate(angle);
+    ui->groupBoxAxis->setDisabled(angle[0] != 0 || angle[1] != 0 || angle[2] != 0);
+    for (int i = 0; i < 3; i++)
+    {
+      double val = angle[i];
+      while (val > 180)
+        val -= 360;
+      while (angle[i] < -180)
+        val += 360;
+      m_sliderRotate[i]->setValue((int)val);
+      ChangeLineEditNumber(m_textAngle[i], angle[i]);
+    }
+
     for ( int i = 0; i < allwidgets.size(); i++ )
     {
       allwidgets[i]->blockSignals( false );
@@ -288,6 +313,10 @@ void DialogTransformVolume::DoRotate()
     {
       re.SampleMethod = SAMPLE_NEAREST;
     }
+    else if (ui->radioButtonCubic->isChecked())
+    {
+      re.SampleMethod = SAMPLE_CUBIC_BSPLINE;
+    }
     if (ui->radioButtonRotateManual->isChecked())
     {
       if ( ui->radioButtonAroundCursor->isChecked() )
@@ -385,8 +414,52 @@ void DialogTransformVolume::OnActiveLayerChanged()
   LayerMRI* layer = (LayerMRI* )MainWindow::GetMainWindow()->GetActiveLayer( "MRI" );
   LayerLandmarks* landmarks = (LayerLandmarks*)MainWindow::GetMainWindow()->GetSupplementLayer( "Landmarks" );
   landmarks->SetMRIRef(layer);
+  OnSampleMethodChanged();
 }
 
+void DialogTransformVolume::OnSampleMethodChanged()
+{
+  LayerMRI* layer = (LayerMRI* )MainWindow::GetMainWindow()->GetActiveLayer( "MRI" );
+  if (layer)
+  {
+    int nMethod = SAMPLE_NEAREST;
+    if (ui->radioButtonTrilinear->isChecked())
+      nMethod = SAMPLE_TRILINEAR;
+    else if (ui->radioButtonCubic->isChecked())
+      nMethod = SAMPLE_CUBIC_BSPLINE;
+    layer->GetProperty()->SetResliceInterpolation(nMethod);
+  }
+}
+
+void DialogTransformVolume::OnLineEditRotateX(const QString& text)
+{
+  RespondTextRotate( 0 );
+}
+
+void DialogTransformVolume::OnLineEditRotateY(const QString& text)
+{
+  RespondTextRotate( 1 );
+}
+
+void DialogTransformVolume::OnLineEditRotateZ(const QString& text)
+{
+  RespondTextRotate( 2 );
+}
+
+void DialogTransformVolume::OnSliderRotateX(int nVal)
+{
+  RespondSliderRotate( 0 );
+}
+
+void DialogTransformVolume::OnSliderRotateY(int nVal)
+{
+  RespondSliderRotate( 1 );
+}
+
+void DialogTransformVolume::OnSliderRotateZ(int nVal)
+{
+  RespondSliderRotate( 2 );
+}
 
 void DialogTransformVolume::OnLineEditTranslateX(const QString& text)
 {
@@ -432,7 +505,7 @@ void DialogTransformVolume::RespondTextTranslate( int n )
         double pos[3];
         layer->GetTranslate( pos );
         pos[n] = dvalue;
-        layer->Translate( pos );
+        layer->SetTranslate( pos );
         MainWindow::GetMainWindow()->RequestRedraw();
 
         double* vs = layer->GetWorldVoxelSize();
@@ -459,7 +532,7 @@ void DialogTransformVolume::RespondScrollTranslate( int n )
       int npos = m_scrollTranslate[n]->value();
       double* vs = layer->GetWorldVoxelSize();
       pos[n] = ( npos - range/2 ) * vs[n];
-      layer->Translate( pos );
+      layer->SetTranslate( pos );
       MainWindow::GetMainWindow()->RequestRedraw();
       ChangeLineEditNumber(m_textTranslate[n], pos[n] );
       UpdateUI( 1 );
@@ -467,6 +540,54 @@ void DialogTransformVolume::RespondScrollTranslate( int n )
   }
 }
 
+void DialogTransformVolume::RespondTextRotate( int n )
+{
+  if ( isVisible() )
+  {
+    bool bOK;
+    double dvalue = m_textAngle[n]->text().toDouble(&bOK);
+    if ( bOK )
+    {
+      LayerMRI* layer = ( LayerMRI* )MainWindow::GetMainWindow()->GetActiveLayer( "MRI" );
+      if ( layer )
+      {
+        double angle[3];
+        layer->GetRotate( angle );
+        angle[n] = dvalue;
+        layer->SetRotate( angle, ui->radioButtonAroundCenter->isChecked() );
+        MainWindow::GetMainWindow()->RequestRedraw();
+
+        while (dvalue > 180)
+          dvalue -= 360;
+        while (dvalue < -180)
+          dvalue += 360;
+
+        m_sliderRotate[n]->blockSignals(true);
+        m_sliderRotate[n]->setValue( (int)dvalue );
+        m_sliderRotate[n]->blockSignals(false);
+        UpdateUI( 1 );
+      }
+    }
+  }
+}
+
+void DialogTransformVolume::RespondSliderRotate( int n )
+{
+  if ( isVisible() )
+  {
+    LayerMRI* layer = ( LayerMRI* )MainWindow::GetMainWindow()->GetActiveLayer( "MRI" );
+    if ( layer )
+    {
+      double angle[3];
+      layer->GetRotate( angle );
+      angle[n] = m_sliderRotate[n]->value();
+      layer->SetRotate( angle, ui->radioButtonAroundCenter->isChecked() );
+      MainWindow::GetMainWindow()->RequestRedraw();
+      ChangeLineEditNumber(m_textAngle[n], angle[n] );
+      UpdateUI( 1 );
+    }
+  }
+}
 
 void DialogTransformVolume::OnLineEditScaleX(const QString& text)
 {
@@ -512,7 +633,7 @@ void DialogTransformVolume::RespondTextScale( int n )
         double scale[3];
         layer->GetScale( scale );
         scale[n] = dvalue;
-        layer->Scale( scale );
+        layer->SetScale( scale );
         MainWindow::GetMainWindow()->RequestRedraw();
 
         m_scrollScale[n]->blockSignals(true);
@@ -547,7 +668,7 @@ void DialogTransformVolume::RespondScrollScale( int n )
     {
       scale[n] = ( npos - 50 ) / 100.0 + 1.0;
     }
-    layer->Scale( scale );
+    layer->SetScale( scale );
     MainWindow::GetMainWindow()->RequestRedraw();
 
     ChangeLineEditNumber( m_textScale[n], scale[n] );

@@ -6,9 +6,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: rpwang $
- *    $Date: 2012/04/11 19:46:19 $
- *    $Revision: 1.4.2.4 $
+ *    $Author: nicks $
+ *    $Date: 2012/08/27 23:13:52 $
+ *    $Revision: 1.4.2.5 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -26,16 +26,29 @@
 
 #include <QTreeWidget>
 
+class Layer;
+
 class LayerTreeWidget : public QTreeWidget
 {
   Q_OBJECT
 public:
   explicit LayerTreeWidget(QWidget *parent = 0);
 
+  void contextMenuEvent(QContextMenuEvent *e);
+  void mousePressEvent(QMouseEvent *event);
+
 signals:
 
 public slots:
   void ForceUpdate();
+
+  void OnShowAll();
+  void OnHideAll();
+  void OnLockAll();
+  void OnUnlockAll();
+  void OnShowAllInfo();
+  void OnHideAllInfo();
+  void OnSetColorMap();
 
 protected:
   void drawRow ( QPainter * painter, const QStyleOptionViewItem & option, const QModelIndex & index ) const;

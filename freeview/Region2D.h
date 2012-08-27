@@ -6,9 +6,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: rpwang $
- *    $Date: 2012/04/11 19:46:20 $
- *    $Revision: 1.9.2.2 $
+ *    $Author: nicks $
+ *    $Date: 2012/08/27 23:13:52 $
+ *    $Revision: 1.9.2.3 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -58,6 +58,15 @@ public:
   virtual void UpdateSlicePosition( int nPlane, double pos );
 
   virtual void GetWorldPoint( int nIndex, double* pt ) = 0;
+
+  virtual QString DataToString() = 0;
+
+  virtual Region2D* ObjectFromString(RenderView2D* view, const QString& text) = 0;
+
+  Region2D* Duplicate(RenderView2D* view = NULL)
+  {
+    return ObjectFromString((view?view:m_view), DataToString());
+  }
 
   QString GetShortStats()
   {

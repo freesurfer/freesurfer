@@ -6,9 +6,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: rpwang $
- *    $Date: 2012/04/11 19:46:21 $
- *    $Revision: 1.4.2.6 $
+ *    $Author: nicks $
+ *    $Date: 2012/08/27 23:13:52 $
+ *    $Revision: 1.4.2.7 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -28,6 +28,7 @@
 #include "LayerPLabel.h"
 #include "LayerTrack.h"
 #include "LayerVolumeTrack.h"
+#include <QApplication>
 
 ThreadIOWorker::ThreadIOWorker(QObject *parent) :
   QThread(parent),
@@ -60,6 +61,15 @@ void ThreadIOWorker::LoadSurface( Layer* layer, const QVariantMap& args )
   start();
 }
 
+void ThreadIOWorker::SaveSurface( Layer* layer, const QVariantMap& args )
+{
+  m_layer = layer;
+  m_nJobType = JT_SaveSurface;
+  m_args = args;
+  start();
+}
+
+
 void ThreadIOWorker::LoadSurfaceOverlay( Layer* layer, const QVariantMap& args )
 {
   m_layer = layer;
@@ -78,6 +88,7 @@ void ThreadIOWorker::LoadTrack( Layer* layer, const QVariantMap& args)
 
 void ThreadIOWorker::run()
 {
+  connect(qApp, SIGNAL(GlobalProgress(int)), this, SIGNAL(Progress(int)), Qt::UniqueConnection);
   if ( m_nJobType == JT_LoadVolume )
   {
     if (m_layer->IsTypeOf("DTI"))
@@ -177,6 +188,22 @@ void ThreadIOWorker::run()
       emit Finished( m_layer, m_nJobType );
     }
   }
+  else if ( m_nJobType == JT_SaveSurface )
+  {
+    LayerSurface* surf = qobject_cast<LayerSurface*>( m_layer );
+    if ( !surf )
+    {
+      return;
+    }
+    if ( !surf->SaveSurface() )
+    {
+      emit Error( m_layer, m_nJobType );
+    }
+    else
+    {
+      emit Finished( m_layer, m_nJobType );
+    }
+  }
   else if ( m_nJobType == JT_LoadSurfaceOverlay )
   {
     LayerSurface* surf = qobject_cast<LayerSurface*>( m_layer );
@@ -185,8 +212,9 @@ void ThreadIOWorker::run()
       return;
     }
     QString fn = m_args["FileName"].toString();
+    QString fn_reg = m_args["Registration"].toString();
     bool bCorrelation = m_args["Correlation"].toBool();
-    if ( !surf->LoadOverlayFromFile(fn, bCorrelation))
+    if ( !surf->LoadOverlayFromFile(fn, fn_reg, bCorrelation))
     {
       emit Error( m_layer, m_nJobType );
     }
@@ -202,7 +230,7 @@ void ThreadIOWorker::run()
     {
       return;
     }
-    connect(layer, SIGNAL(Progress(int)), this, SIGNAL(Progress(int)));
+    connect(layer, SIGNAL(Progress(int)), this, SIGNAL(Progress(int)), Qt::UniqueConnection);
     if ( !layer->LoadTrackFromFile() )
     {
       emit Error( m_layer, m_nJobType );
@@ -212,4 +240,5 @@ void ThreadIOWorker::run()
       emit Finished( m_layer, m_nJobType );
     }
   }
+  disconnect(qApp, SIGNAL(GlobalProgress(int)), this, SIGNAL(Progress(int)));
 }

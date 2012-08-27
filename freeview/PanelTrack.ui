@@ -113,6 +113,151 @@
         </property>
        </widget>
       </item>
+      <item row="3" column="0">
+       <widget class="QLabel" name="label">
+        <property name="text">
+         <string>Color code</string>
+        </property>
+       </widget>
+      </item>
+      <item row="3" column="1">
+       <widget class="QComboBox" name="comboBoxColorCode">
+        <item>
+         <property name="text">
+          <string>Directional</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string>Solid Color</string>
+         </property>
+        </item>
+       </widget>
+      </item>
+      <item row="4" column="0">
+       <widget class="QLabel" name="labelSolidColor">
+        <property name="text">
+         <string>Color</string>
+        </property>
+        <property name="alignment">
+         <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+        </property>
+       </widget>
+      </item>
+      <item row="4" column="1">
+       <layout class="QHBoxLayout" name="horizontalLayout">
+        <item>
+         <widget class="QtColorPicker" name="colorPickerSolidColor" native="true"/>
+        </item>
+        <item>
+         <spacer name="horizontalSpacer">
+          <property name="orientation">
+           <enum>Qt::Horizontal</enum>
+          </property>
+          <property name="sizeHint" stdset="0">
+           <size>
+            <width>0</width>
+            <height>0</height>
+           </size>
+          </property>
+         </spacer>
+        </item>
+       </layout>
+      </item>
+      <item row="5" column="0">
+       <widget class="QLabel" name="labelDirectionScheme">
+        <property name="text">
+         <string>Scheme</string>
+        </property>
+        <property name="alignment">
+         <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+        </property>
+       </widget>
+      </item>
+      <item row="5" column="1">
+       <widget class="QComboBox" name="comboBoxDirectionScheme">
+        <item>
+         <property name="text">
+          <string>End Points</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string>Mid Segment</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string>Every Segment</string>
+         </property>
+        </item>
+       </widget>
+      </item>
+      <item row="6" column="0">
+       <widget class="QLabel" name="labelDirectionMapping">
+        <property name="text">
+         <string>Mapping</string>
+        </property>
+        <property name="alignment">
+         <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+        </property>
+       </widget>
+      </item>
+      <item row="6" column="1">
+       <widget class="QComboBox" name="comboBoxDirectionMapping">
+        <item>
+         <property name="text">
+          <string>RAS -&gt; RGB</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string>RAS -&gt; RBG</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string>RAS -&gt; GRB</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string>RAS -&gt; GBR</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string>RAS -&gt; BRG</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string>RAS -&gt; BGR</string>
+         </property>
+        </item>
+       </widget>
+      </item>
+      <item row="2" column="0">
+       <widget class="QLabel" name="label_2">
+        <property name="text">
+         <string>Render</string>
+        </property>
+       </widget>
+      </item>
+      <item row="2" column="1">
+       <widget class="QComboBox" name="comboBoxRenderRep">
+        <item>
+         <property name="text">
+          <string>Lines</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string>Tubes (Slow!)</string>
+         </property>
+        </item>
+       </widget>
+      </item>
      </layout>
     </item>
     <item>
@@ -136,6 +281,16 @@
    <class>LayerTreeWidget</class>
    <extends>QTreeWidget</extends>
    <header>LayerTreeWidget.h</header>
+  </customwidget>
+  <customwidget>
+   <class>QtColorPicker</class>
+   <extends>QWidget</extends>
+   <header>qtcolorpicker.h</header>
+   <container>1</container>
+   <slots>
+    <signal>colorChanged(QColor)</signal>
+    <signal>currentColorChanged(QColor)</signal>
+   </slots>
   </customwidget>
  </customwidgets>
  <resources/>

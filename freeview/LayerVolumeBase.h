@@ -6,9 +6,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: rpwang $
- *    $Date: 2012/04/11 19:46:19 $
- *    $Revision: 1.18.2.2 $
+ *    $Author: nicks $
+ *    $Date: 2012/08/27 23:13:52 $
+ *    $Revision: 1.18.2.3 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -46,7 +46,7 @@ public:
 
   void SetVoxelByRAS( double* ras, int nPlane, bool bAdd = true );
   void SetVoxelByRAS( double* ras1, double* ras2, int nPlane, bool bAdd = true );
-  bool FloodFillByRAS( double* ras, int nPlane, bool bAdd = true, char* mask_out = false );
+  bool FloodFillByRAS( double* ras, int nPlane, bool bAdd = true, bool b3D = false, char* mask_out = 0 );
 
   void SetLiveWireByRAS( double* ras1, double* raw2, int nPlane );
   std::vector<double> GetLiveWirePointsByRAS( double* pt1, double* pt2, int nPlane );
@@ -111,7 +111,7 @@ signals:
 protected:
   bool SetVoxelByIndex( int* n, int nPlane, bool bAdd = true ); // true is to add, false is to remove
   bool SetVoxelByIndex( int* n1, int* n2, int nPlane, bool bAdd = true );
-  bool FloodFillByIndex( int* n, int nPlane, bool bAdd = true, char* mask_out = false );
+  bool FloodFillByIndex( int* n, int nPlane, bool bAdd = true, bool ignore_overflow = true, char* mask_out = false );
   bool SetLiveWireByIndex( int* n1, int* n2, int nPlane );
 
   bool GetConnectedToOld( vtkImageData* img, int nFrame, int* n, int nPlane );

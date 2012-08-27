@@ -6,9 +6,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: rpwang $
- *    $Date: 2012/04/11 19:46:21 $
- *    $Revision: 1.7.2.5 $
+ *    $Author: nicks $
+ *    $Date: 2012/08/27 23:13:53 $
+ *    $Revision: 1.7.2.6 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -27,12 +27,22 @@
 #include <math.h>
 #include "LayerMRI.h"
 #include <vtkImageData.h>
+#include "ProgressCallback.h"
+#include <QTimer>
+
+extern "C"
+{
+#include "utils.h"
+}
+
 
 VolumeFilter::VolumeFilter( LayerMRI* input, LayerMRI* output, QObject* parent ) :
   QObject( parent ),
   m_nKernelSize( 3 )
 {
   SetInputOutputVolumes( input, output );
+  m_timerProgress = new QTimer(this);
+  connect(m_timerProgress, SIGNAL(timeout()), this, SLOT(OnTimeout()));
 }
 
 VolumeFilter::~VolumeFilter()
@@ -171,6 +181,7 @@ MRI* VolumeFilter::CreateMRIFromVolume( LayerMRI* layer )
           }
         }
       }
+      exec_progress_callback(j, mri->height, 0, 1);
   }
 
   return mri;
@@ -220,7 +231,20 @@ void VolumeFilter::MapMRIToVolume( MRI* mri, LayerMRI* layer )
         }
       }
     }
+    exec_progress_callback(nZ, zZ, 0, 1);
   }
 }
 
+void VolumeFilter::TriggerFakeProgress(int interval)
+{
+  m_nTimerCount = 0;
+  m_timerProgress->start(interval);
+}
 
+void VolumeFilter::OnTimeout()
+{
+  m_nTimerCount++;
+  if (m_nTimerCount == 100)
+    m_nTimerCount = 50;
+  emit Progress(m_nTimerCount);
+}

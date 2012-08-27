@@ -1,14 +1,14 @@
 /**
  * @file  main.cpp
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief the 'main' for freeview
  *
  */
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: rpwang $
- *    $Date: 2012/04/11 19:46:21 $
- *    $Revision: 1.4.2.7 $
+ *    $Author: nicks $
+ *    $Date: 2012/08/27 23:13:53 $
+ *    $Revision: 1.4.2.8 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -21,7 +21,7 @@
  * Reporting: freesurfer@nmr.mgh.harvard.edu
  *
  */
-#include <QApplication>
+#include "MainApplication.h"
 #include "MainWindow.h"
 #include "MyCmdLineParser.h"
 #include "MyUtils.h"
@@ -33,6 +33,11 @@
 #include "vtkObject.h"
 #include <stdio.h>
 #include <stdlib.h>
+#include "error.h"
+extern "C"
+{
+#include "fsinit.h"
+}
 
 char* Progname;
 
@@ -59,10 +64,19 @@ void myMessageOutput(QtMsgType type, const char *msg)
   }
 }
 
+void my_error_exit(int ecode)
+{
+  // do nothing
+}
+
 int main(int argc, char *argv[])
 {
-  Progname = argv[0]; 
+  Progname = argv[0];  
+  ErrorSetExitFunc(my_error_exit);
+
   putenv((char*)"SURFER_FRONTDOOR=");
+  if (getenv("FS_DISABLE_LANG") == NULL)
+    putenv((char*)"LANG=en_US");
   qInstallMsgHandler(myMessageOutput);
 
   CmdLineEntry cmdLineDesc[] =
@@ -71,16 +85,19 @@ int main(int argc, char *argv[])
     CmdLineEntry( CMD_LINE_SWITCH, "r", "resample", "", "Resample oblique data to standard RAS." ),
     CmdLineEntry( CMD_LINE_SWITCH, "conform", "conform", "", "Conform the volume to the first loaded volume." ),
     CmdLineEntry( CMD_LINE_SWITCH, "trilinear", "trilinear", "", "Use trilinear as the default resample method." ),
+    CmdLineEntry( CMD_LINE_SWITCH, "cubic", "cubic", "", "Use cubic as the default resample method." ),
+    CmdLineEntry( CMD_LINE_OPTION, "colormap", "colormap", "<TYPE>", "Use the give colormap type as the default colormap for all the volumes to be loaded.", 1, 1 ),
     CmdLineEntry( CMD_LINE_OPTION, "dti", "dti", "<VECTOR> <FA>...", "Load one or more dti volumes. Need two files for each dti volume. First one is vector file. Second one is FA (brightness) file.", 2, 100 ),
     CmdLineEntry( CMD_LINE_OPTION, "tv", "track_volume", "<FILE>...", "Load one or more track volumes.", 1, 100 ),
-    CmdLineEntry( CMD_LINE_OPTION, "f", "surface", "<FILE>...", "Load one or multiple surface files. Available sub-options are:\n\n':curvature=curvature_filename' Load curvature data from the given curvature file. By default .curv file will be loaded if available.\n\n':overlay=overlay_filename' Load overlay data from file.\n\n':correlation=correlation_filename' Load correlation data from file. Correlation data is treated as a special kind of overlay data.\n\n':color=colorname' Set the base color of the surface. Color can be a color name such as 'red' or 3 values as RGB components of the color, e.g., '255,0,0'.\n\n':edgecolor=colorname' Set the color of the slice intersection outline on the surface. \n\n':edgethickness=thickness' Set the thickness of the slice intersection outline on the surface. set 0 to hide it.\n\n':annot=filenames' Set annotation files to load.\n\n':name=display_name' Set the display name of the surface.\n\n':offset=x,y,z' Set the position offset of the surface. Useful for connectivity display.\n\n':visible=visibility' Set the initial visibility of the surface. Visibility can be '1' or '0' or 'true' or 'false'.\n\n':vector=filename' Load a vector file for display.\n\n':target_surf=filename' Load a target surface file for vectors to project on for 2D display.\n\n':label=filename' Load a surface label file.\n\n':all=flag' Indicate to load all available surfaces. flag can be 'true', 'yes' or '1'.\n", 1, 100 ),
-    CmdLineEntry( CMD_LINE_OPTION, "l", "label", "<FILE>...", "Load one or multiple label(ROI) files. Available sub-options are:\n\n':ref=ref_volume' Enter the name of the reference volume for this label file. The volume is one of the volumes given by -v option. \n", 1, 100 ),
+    CmdLineEntry( CMD_LINE_OPTION, "f", "surface", "<FILE>...", "Load one or multiple surface files. Available sub-options are:\n\n':curvature=curvature_filename' Load curvature data from the given curvature file. By default .curv file will be loaded if available.\n\n':overlay=overlay_filename' Load overlay data from file.\n\n':overlay_reg=overlay_registration_filename' Apply registration when loading overlay data.\n\n':overlay_method=method_name' Set overlay method. Valid names are 'linear', 'linearopaque' and 'piecewise'.\n\n':overlay_threshold=low,(mid,)high' Set overlay threshold values, separated by comma. When overlay method is linear or linearopaque, only 2 numbers (low and high) are needed. When method is piecewise, 3 numbers are needed.\n\n':correlation=correlation_filename' Load correlation data from file. Correlation data is treated as a special kind of overlay data.\n\n':color=colorname' Set the base color of the surface. Color can be a color name such as 'red' or 3 values as RGB components of the color, e.g., '255,0,0'.\n\n':edgecolor=colorname' Set the color of the slice intersection outline on the surface. \n\n':edgethickness=thickness' Set the thickness of the slice intersection outline on the surface. set 0 to hide it.\n\n':annot=filenames' Set annotation files to load.\n\n':name=display_name' Set the display name of the surface.\n\n':offset=x,y,z' Set the position offset of the surface. Useful for connectivity display.\n\n':visible=visibility' Set the initial visibility of the surface. Visibility can be '1' or '0' or 'true' or 'false'.\n\n':vector=filename' Load a vector file for display.\n\n':target_surf=filename' Load a target surface file for vectors to project on for 2D display.\n\n':label=filename' Load a surface label file.\n\n':label_outline=flag' Show surface labels as outline. flag can be 'true', 'yes' or '1'.\n\n':spline=filename' Load a spline file for display.\n\n':vertex=flag' Show surface vertices on both 2D and 3D views. flag can be 'true', 'on' or '1'.\n\n':vertexcolor=colorname' Set color of the vertices. Color can be a color name such as 'red' or 3 values as RGB components of the color, e.g., '255,0,0'.\n\n':all=flag' Indicate to load all available surfaces. flag can be 'true', 'yes' or '1'.\n", 1, 100 ),
+    CmdLineEntry( CMD_LINE_OPTION, "l", "label", "<FILE>...", "Load one or multiple label(ROI) files. Available sub-options are:\n\n':ref=ref_volume' Enter the name of the reference volume for this label file. The volume is one of the volumes given by -v option. \n\n':color=name' Set color of the label. Name can be a generic color name such as 'red' or 'lightgreen', or three integer values as RGB values ranging from 0 to 255. For example '255,0,0' is the same as 'red'.\n", 1, 100 ),
     CmdLineEntry( CMD_LINE_OPTION, "w", "way-points", "<FILE>...", "Load one or multiple way points files. Available sub-options are:\n\n':color=name' Set color of the way points. Name can be a generic color name such as 'red' or 'lightgreen', or three integer values as RGB values ranging from 0 to 255. For example '255,0,0' is the same as 'red'.\n\n':splinecolor=name' Set color of the spline.\n\n':radius=value' Set radius of the way points.\n\n':splineradius=value' Set radius of the spline tube.\n\n':name=display_name' Set the display name of the way points.\n\n':visible=visibility' Set the initial visibility of the way points. Visibility can be '1' or '0' or 'true' or 'false'.\n", 1, 100 ),
     CmdLineEntry( CMD_LINE_OPTION, "c", "control-points", "<FILE>...", "Load one or multiple control points files. Available sub-options are:\n\n':color=name' Set color of the control points. Name can be a generic color name such as 'red' or 'lightgreen', or three integer values as RGB values ranging from 0 to 255. For example '255,0,0' is the same as 'red'.\n\n':radius=value' Set radius of the control points.\n\n':name=display_name' Set the display name of the control points.\n\n':visible=visibility' Set the initial visibility of the control points. Visibility can be '1' or '0' or 'true' or 'false'.\n", 1, 100 ),
     CmdLineEntry( CMD_LINE_OPTION, "p-labels", "p-labels", "<FILES>...", "Load multiple p-label volume files.\n", 1, 100 ),
     CmdLineEntry( CMD_LINE_OPTION, "p-prefix", "p-prefix", "<PREFIX>...", "Set the file name prefix for p-label volume. program will use this to figure out label name from file name.\n", 1, 1 ),
     CmdLineEntry( CMD_LINE_OPTION, "p-lut", "p-lut", "<NAME>...", "Set the look up table name to use for p-label display. name can be the name of a stock lookup table or the file name of a lookup table file. default is the default freesurfer look up table.\n", 1, 1 ),
     CmdLineEntry( CMD_LINE_OPTION, "conn", "connectivity", "<DATA> <COLORMAP>", "Load connectivity data files.\n", 2, 2 ),
+    CmdLineEntry( CMD_LINE_OPTION, "t", "track", "<FILE>...", "Load one or more track files.", 1, 100 ),
     CmdLineEntry( CMD_LINE_OPTION, "ss", "screenshot", "<FILE>", "Take a screen shot of the main viewport and then quit the program.", 1, 1 ),
     CmdLineEntry( CMD_LINE_OPTION, "viewport", "viewport", "<NAME>", "Set the main viewport as given. Accepted names are 'sagittal' or 'x', 'coronal' or 'y', 'axial' or 'z' and '3d'.", 1, 1 ),
     CmdLineEntry( CMD_LINE_OPTION, "viewsize", "viewsize", "<width> <height>", "Set the size of the main viewport. The size of the whole window will be changed accordingly.", 2, 2 ),
@@ -89,10 +106,13 @@ int main(int argc, char *argv[])
     CmdLineEntry( CMD_LINE_OPTION, "ras", "ras", "<X> <Y> <Z>", "Set cursor location at the given RAS coordinate.", 3, 3 ),
     CmdLineEntry( CMD_LINE_OPTION, "slice", "slice", "<X> <Y> <Z>", "Set cursor location at the given slice numbers of the first loaded volume.", 3, 3 ),
     CmdLineEntry( CMD_LINE_OPTION, "cmd", "command", "<FILE>", "Load freeview commands from a text file.", 1, 1 ),
+    CmdLineEntry( CMD_LINE_OPTION, "hide", "hide", "<LAYER_TYPE>", "Hide the current layer. This is useful for loading comands by -cmd option. Valid LAYER_TYPEs are volume, surface, label, etc.", 1, 1 ),
+    CmdLineEntry( CMD_LINE_OPTION, "unload", "unload", "<LAYER_TYPE>", "Unload/Close the current layer. Useful for loading comands by -cmd option. Valid LAYER_TYPEs are volume, surface, label, etc.", 1, 1 ),
+    CmdLineEntry( CMD_LINE_SWITCH, "quit", "quit", "", "Quit freeview. Useful for scripting or loading comands by -cmd option." ),
     CmdLineEntry( CMD_LINE_NONE )
   };
 
-  char progDesc[] = "Volume/Surface viewer for freesurfer.";
+  char progDesc[] = "Volume and surface viewer and editor for freesurfer.";
 
   MyCmdLineParser cmd( (const char*)"freeview", (CmdLineEntry*)cmdLineDesc );
   cmd.SetProgramDescription( progDesc );
@@ -101,7 +121,7 @@ int main(int argc, char *argv[])
     return false;
   }
 
-  QApplication app(argc, argv);
+  MainApplication app(argc, argv);
   app.setOrganizationName("Massachusetts General Hospital");
   app.setOrganizationDomain("nmr.mgh.harvard.edu");
 #ifdef Q_WS_X11

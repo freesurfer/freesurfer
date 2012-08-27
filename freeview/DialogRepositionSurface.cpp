@@ -6,9 +6,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: rpwang $
- *    $Date: 2012/04/06 19:15:28 $
- *    $Revision: 1.6.2.3 $
+ *    $Author: nicks $
+ *    $Date: 2012/08/27 23:13:51 $
+ *    $Revision: 1.6.2.4 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -28,14 +28,19 @@
 #include "ui_DialogRepositionSurface.h"
 #include "MainWindow.h"
 #include "LayerSurface.h"
+#include "FSSurface.h"
 #include "LayerMRI.h"
 #include <QMessageBox>
+#include <QTimer>
 
 DialogRepositionSurface::DialogRepositionSurface(QWidget *parent) :
     QDialog(parent),
     ui(new Ui::DialogRepositionSurface)
 {
     ui->setupUi(this);
+    ui->lineEditTargetX->hide();
+    ui->lineEditTargetY->hide();
+    ui->lineEditTargetZ->hide();
 }
 
 DialogRepositionSurface::~DialogRepositionSurface()
@@ -69,7 +74,8 @@ void DialogRepositionSurface::OnApply()
         surf->RepositionSurface(mri, GetVertex(),
                                 GetIntensity(),
                                 GetNeighborSize(),
-                                GetSigma());
+                                GetSigma(),
+                                GetFlags());
       }
       else
       {
@@ -78,7 +84,8 @@ void DialogRepositionSurface::OnApply()
         surf->RepositionSurface( mri, GetVertex(),
                                        pos,
                                        GetNeighborSize(),
-                                       GetSigma() );
+                                       GetSigma(),
+                                       GetFlags());
       }
     }
     else
@@ -89,12 +96,18 @@ void DialogRepositionSurface::OnApply()
     }
     UpdateUI();
     ui->pushButtonApply->setDisabled(false);
+    QTimer::singleShot(0, MainWindow::GetMainWindow(), SIGNAL(SlicePositionChanged()));
   }
 }
 
 void DialogRepositionSurface::OnComboTarget( int nSel )
 {
  //
+  ui->lineEditTarget->setVisible(nSel == 0);
+  ui->lineEditTargetX->setVisible(nSel == 1);
+  ui->lineEditTargetY->setVisible(nSel == 1);
+  ui->lineEditTargetZ->setVisible(nSel == 1);
+//  ui->labelHelper->setVisible(nSel == 0);
 }
 
 void DialogRepositionSurface::UpdateUI()
@@ -116,6 +129,20 @@ void DialogRepositionSurface::OnSaveAs()
 {
   MainWindow::GetMainWindow()->SaveSurfaceAs();
   UpdateUI();
+}
+
+int DialogRepositionSurface::GetFlags()
+{
+  int flags = 0;
+  if (ui->radioButtonForceDirectionIn->isChecked())
+    flags |= IPFLAG_FORCE_GRADIENT_IN;
+  else if (ui->radioButtonForceDirectionOut->isChecked())
+    flags |= IPFLAG_FORCE_GRADIENT_OUT;
+
+  if (ui->checkBoxAllowIntersection->isChecked())
+    flags |= IPFLAG_NO_SELF_INT_TEST;
+
+  return flags;
 }
 
 int DialogRepositionSurface::GetVertex()
@@ -140,12 +167,17 @@ void DialogRepositionSurface::GetCoordinate( double* pos )
 {
   if (ui->tabWidget->currentIndex() == 0)
   {
+    /*
     QStringList list = ui->lineEditTarget->text().split(",", QString::SkipEmptyParts);
     if (list.size() < 3)
       list = ui->lineEditTarget->text().split(" ", QString::SkipEmptyParts);
 
     for ( int i = 0; i < 3; i++ )
       pos[i] = list[i].toDouble();
+    */
+    pos[0] = ui->lineEditTargetX->text().toDouble();
+    pos[1] = ui->lineEditTargetY->text().toDouble();
+    pos[2] = ui->lineEditTargetZ->text().toDouble();
   }
   else
   {
@@ -198,6 +230,7 @@ bool DialogRepositionSurface::ValidateAll()
       name = "Intensity";
     if ( ui->comboBoxTarget->currentIndex() == 1 )
     {
+      /*
       QStringList list = ui->lineEditTarget->text().split(",", QString::SkipEmptyParts);
       if (list.size() < 3)
         list = ui->lineEditTarget->text().split(" ", QString::SkipEmptyParts);
@@ -209,6 +242,16 @@ bool DialogRepositionSurface::ValidateAll()
         if (!ok)
           name = "Coordinate";
       }
+      */
+      ui->lineEditTargetX->text().toDouble(&ok);
+      if (!ok)
+        name = "Coordinate";
+      ui->lineEditTargetY->text().toDouble(&ok);
+      if (!ok)
+        name = "Coordinate";
+      ui->lineEditTargetZ->text().toDouble(&ok);
+      if (!ok)
+        name = "Coordinate";
     }
   }
   else
@@ -269,10 +312,12 @@ void DialogRepositionSurface::UpdateVertex()
 void DialogRepositionSurface::UpdateIntensity()
 {
   LayerMRI* mri = (LayerMRI*)MainWindow::GetMainWindow()->GetTopVisibleLayer("MRI");
-  if (mri)
+  LayerSurface* surf = (LayerSurface*)MainWindow::GetMainWindow()->GetActiveLayer( "Surface" );
+  if (mri && surf)
   {
-    double ras[3];
+    double ras[3], surf_ras[3];
     mri->GetSlicePosition(ras);
+    surf->GetSurfaceRASAtTarget(ras, surf_ras);
     mri->RemapPositionToRealRAS(ras, ras);
     double val = mri->GetSampledVoxelValueByRAS(ras);
     if (val >= 0)
@@ -280,6 +325,9 @@ void DialogRepositionSurface::UpdateIntensity()
       ui->lineEditTarget->setText(QString::number(val, 'f', 2));
       OnCoordinateTypeChanged();
     }
+    ui->lineEditTargetX->setText(QString::number(surf_ras[0], 'f', 2));
+    ui->lineEditTargetY->setText(QString::number(surf_ras[1], 'f', 2));
+    ui->lineEditTargetZ->setText(QString::number(surf_ras[2], 'f', 2));
   }
 }
 

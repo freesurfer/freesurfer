@@ -6,9 +6,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: rpwang $
- *    $Date: 2012/04/06 19:15:28 $
- *    $Revision: 1.5.2.3 $
+ *    $Author: nicks $
+ *    $Date: 2012/08/27 23:13:51 $
+ *    $Revision: 1.5.2.4 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -47,6 +47,8 @@ class DialogRepositionSurface : public QDialog
     double GetSigma();
 
     void GetCoordinate( double* pos );
+
+    int GetFlags();
 
   public slots:
     void OnApply();

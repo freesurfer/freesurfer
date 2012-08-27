@@ -7,9 +7,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: rpwang $
- *    $Date: 2012/04/11 19:46:24 $
- *    $Revision: 1.79.2.2 $
+ *    $Author: nicks $
+ *    $Date: 2012/08/27 23:13:55 $
+ *    $Revision: 1.79.2.3 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -74,14 +74,16 @@ setRandomSeed(long seed)
   // also seed the 'standard' random number generators: rand() and random()
   srand(seed);
   srandom(seed);
-#ifdef Darwin_not_used
-  srand48(seed);
-#endif
 
   // seed vnl_random thingy
   OpenRan1(&idum);
 
   return(NO_ERROR) ;
+}
+
+long getRandomSeed(void)
+{
+  return(idum);
 }
 
 double
@@ -236,34 +238,6 @@ fComplementCode(double *pdIn, double *pdOut, int iLen)
   }
 }
 
-#ifdef Darwin
-void srand48(long seed) ;
-void
-srand48(long seed)
-{
-  setRandomSeed(seed) ;
-}
-#endif
-
-#ifdef Darwin_not_used
-double drand48(void) ;
-/*------------------------------------------------------------------------
-  Parameters:
-
-  Description:
-
-  Return Values:
-  nothing.
-  ------------------------------------------------------------------------*/
-double
-drand48(void)
-{
-  int  r ;
-
-  r = rand() ;
-  return((double)r / (double)RAND_MAX) ;
-}
-#endif
 #ifndef _HOME_
 /*------------------------------------------------------------------------
   Parameters:
@@ -1265,6 +1239,20 @@ int compare_ints(const void *v1,const void *v2)
   if (i1 > i2) return(+1);
   return(0); // equal
 }
+/* --------------------------------------------- */
+/*!
+  \fn int compare_ints(const void *v1,const void *v2) 
+  \brief Float comparison function suitable for qsort.
+*/
+int compare_floats(const void *v1,const void *v2) 
+{
+  float i1, i2;
+  i1 = *((float*)v1);
+  i2 = *((float*)v2);
+  if (i1 < i2) return(-1);
+  if (i1 > i2) return(+1);
+  return(0); // equal
+}
 /* ---------------------------------------------------*/
 /*!
   \fn int nunqiue_int_list(int *idlist, int nlist)
@@ -1588,3 +1576,60 @@ int nint( double f )
   return (f<0?((int)(f-0.5)):((int)(f+0.5)));
 }
 
+
+
+void (*progress_callback)(int) = 0;
+int global_progress_range[2] = {0, 100};
+
+/*---------------------------------------------------------------------------
+// Function SetProgressCallback:
+//       set call back function to respond to progress change
+//
+//       input start and end as the range of progress
+//       default is 0 and 100
+//
+ ---------------------------------------------------------------------------*/
+void SetProgressCallback(void (*callback)(int), int start, int end)
+{
+  progress_callback = callback;
+  global_progress_range[0] = start;
+  global_progress_range[1] = end;
+}
+
+/*---------------------------------------------------------------------------
+// Function exec_progress_callback:
+//       convenient function to call progress callback function
+//       and set current progress
+//
+//       In case of single frame volume, set frame to 0 and
+//       total_frames to 1
+//
+ ---------------------------------------------------------------------------*/
+void exec_progress_callback(int slice, int total_slices, int frame, int total_frames)
+{
+  if (progress_callback)
+    progress_callback(global_progress_range[0] +
+                      (global_progress_range[1]-global_progress_range[0])*(slice+total_slices*frame)/(total_slices*total_frames));
+}
+int *
+compute_permutation(int num, int *vec) 
+{
+  int n, index, tmp ;
+
+  if (vec == NULL)
+    vec = (int *)calloc(num, sizeof(vec[0])) ;
+  if (vec == NULL)
+    ErrorExit(ERROR_NOMEMORY, "compute_permutation(%d): calloc failed", num) ;
+
+  for (n = 0 ; n < num ; n++)
+    vec[n] = n ;
+
+  for (n = 0 ; n < num ; n++)
+  {  
+    index = (int)randomNumber(0.0, (double)(num-0.0001)) ;
+    tmp = vec[index] ;
+    vec[index] = vec[n] ;
+    vec[n] = tmp ;
+  }
+  return(vec) ;
+}

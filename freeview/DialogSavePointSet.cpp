@@ -6,9 +6,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: rpwang $
- *    $Date: 2012/04/11 19:46:18 $
- *    $Revision: 1.4.2.6 $
+ *    $Author: nicks $
+ *    $Date: 2012/08/27 23:13:51 $
+ *    $Revision: 1.4.2.7 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -88,6 +88,6 @@ int DialogSavePointSet::GetType()
   }
   else
   {
-    LayerPropertyPointSet::WayPoint;
+    return LayerPropertyPointSet::WayPoint;
   }
 }

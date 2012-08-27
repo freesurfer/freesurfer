@@ -6,9 +6,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: rpwang $
- *    $Date: 2012/04/11 19:46:19 $
- *    $Revision: 1.4.2.6 $
+ *    $Author: nicks $
+ *    $Date: 2012/08/27 23:13:51 $
+ *    $Revision: 1.4.2.7 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -40,9 +40,12 @@
 #include <QMouseEvent>
 #include <QShowEvent>
 #include <QDebug>
+#include <QMenu>
 
 InfoTreeWidget::InfoTreeWidget(QWidget* parent) :
-  QTreeWidget(parent)
+  QTreeWidget(parent),
+  m_bShowSurfaceCurvature(false),
+  m_bShowSurfaceNormal(false)
 {
   this->setAlternatingRowColors(true);
   m_editor = new QLineEdit(this);
@@ -109,9 +112,22 @@ void InfoTreeWidget::UpdateAll()
       QTreeWidgetItem* item = new QTreeWidgetItem(this);
       item->setText(0, layer->GetName());
       layer->RASToOriginalIndex( ras, nIndex );
-      double dvalue = layer->GetVoxelValue( m_dRAS );
+      double dvalue;
+      if (layer->IsModified()) // || layer->HasReg())
+        dvalue = layer->GetVoxelValue( m_dRAS );
+      else
+        dvalue = layer->GetVoxelValueByOriginalIndex(nIndex[0], nIndex[1], nIndex[2]);
       QString editable = QString("%1, %2, %3").arg(nIndex[0]).arg(nIndex[1]).arg(nIndex[2]);
-      QString strg = QString("%1 \t[%2]").arg(dvalue).arg(editable);
+      QString valueStrg = QString("%1").arg(dvalue);
+      if (layer->GetNumberOfFrames() > 1 && layer->GetNumberOfFrames() <= 4)
+      {
+        QList<double> values = layer->GetVoxelValueByOriginalIndexAllFrames(nIndex[0], nIndex[1], nIndex[2]);
+        QStringList strgs;
+        foreach (double value, values)
+          strgs << QString("%1").arg(value);
+        valueStrg = strgs.join(", ");
+      }
+      QString strg = QString("%1 \t[%2]").arg(valueStrg).arg(editable);
       QString labelStrg;
       if (layer->IsTypeOf("PLabel"))
       {
@@ -171,12 +187,15 @@ void InfoTreeWidget::UpdateAll()
         item->setData(1, Qt::UserRole, map);
 
         double vec[3];
-        surf->GetNormalAtVertex( nVertex, vec );
-        item = new QTreeWidgetItem(this);
-        item->setText(1, QString("Normal \t[%1, %2, %3]")
-                      .arg(vec[0], 0, 'f', 2)
-                      .arg(vec[1], 0, 'f', 2)
-                      .arg(vec[2], 0, 'f', 2));
+        if (m_bShowSurfaceNormal)
+        {
+          surf->GetNormalAtVertex( nVertex, vec );
+          item = new QTreeWidgetItem(this);
+          item->setText(1, QString("Normal \t[%1, %2, %3]")
+                        .arg(vec[0], 0, 'f', 2)
+                        .arg(vec[1], 0, 'f', 2)
+                        .arg(vec[2], 0, 'f', 2));
+        }
 
         if ( surf->GetActiveVector() >= 0 )
         {
@@ -188,7 +207,7 @@ void InfoTreeWidget::UpdateAll()
                         .arg(vec[2], 0, 'f', 2));
         }
 
-        if ( surf->HasCurvature() )
+        if ( surf->HasCurvature() && m_bShowSurfaceCurvature)
         {
           item = new QTreeWidgetItem(this);
           item->setText(1, QString("Curvature \t%1").arg(surf->GetCurvatureValue(nVertex)));
@@ -210,6 +229,16 @@ void InfoTreeWidget::UpdateAll()
           item = new QTreeWidgetItem(this);
           item->setText(1, QString("%1 \t%2").arg(annot->GetName()).arg(annot->GetAnnotationNameAtVertex( nVertex )));
         }
+      }
+      else
+      {
+        QTreeWidgetItem* item = new QTreeWidgetItem(this);
+        item->setText(1, "Vertex \tN/A");
+        map.clear();
+        map["Type"] = "SurfaceVertex";
+        map["EditableText"] = "N/A";
+        map["Object"] = QVariant::fromValue((QObject*)surf);
+        item->setData(1, Qt::UserRole, map);
       }
     }
   }
@@ -351,4 +380,63 @@ void InfoTreeWidget::UpdateTrackVolumeAnnotation(Layer *layer, const QVariantMap
       }
     }
   }
+}
+
+void InfoTreeWidget::contextMenuEvent(QContextMenuEvent * e)
+{
+  QList<Layer*> layers = MainWindow::GetMainWindow()->GetLayerCollection( "MRI" )->GetLayers();
+  QList<Layer*> surfs = MainWindow::GetMainWindow()->GetLayerCollection( "Surface" )->GetLayers();
+  layers += surfs;
+
+  if ( layers.isEmpty())
+    return;
+
+  QMenu* menu = new QMenu;
+  foreach (Layer* layer, layers)
+  {
+    QAction* act = new QAction(layer->GetName(), this);
+    act->setCheckable(true);
+    act->setChecked(layer->GetProperty()->GetShowInfo());
+    act->setData(qVariantFromValue(qobject_cast<QObject*>(layer)));
+    connect(act, SIGNAL(toggled(bool)), this, SLOT(OnToggleShowInfo(bool)));
+    menu->addAction(act);
+  }
+  if (!surfs.isEmpty())
+  {
+    menu->addSeparator();
+    QAction* act = new QAction("Show Surface Curvature", this);
+    act->setCheckable(true);
+    act->setChecked(m_bShowSurfaceCurvature);
+    connect(act, SIGNAL(toggled(bool)), this, SLOT(OnToggleSurfaceCurvature(bool)));
+    menu->addAction(act);
+    act = new QAction("Show Surface Normal", this);
+    act->setCheckable(true);
+    act->setChecked(m_bShowSurfaceNormal);
+    connect(act, SIGNAL(toggled(bool)), this, SLOT(OnToggleSurfaceNormal(bool)));
+    menu->addAction(act);
+  }
+  menu->exec(e->globalPos());
+}
+
+void InfoTreeWidget::OnToggleShowInfo(bool bShow)
+{
+  QAction* act = qobject_cast<QAction*>(sender());
+  if (act)
+  {
+    Layer* layer = qobject_cast<Layer*>(qVariantValue<QObject*>(act->data()));
+    if (layer)
+      layer->GetProperty()->SetShowInfo(bShow);
+  }
+}
+
+void InfoTreeWidget::OnToggleSurfaceCurvature(bool show)
+{
+  m_bShowSurfaceCurvature = show;
+  UpdateAll();
+}
+
+void InfoTreeWidget::OnToggleSurfaceNormal(bool show)
+{
+  m_bShowSurfaceNormal = show;
+  UpdateAll();
 }

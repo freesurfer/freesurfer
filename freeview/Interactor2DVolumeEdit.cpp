@@ -6,9 +6,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: rpwang $
- *    $Date: 2012/04/11 19:46:19 $
- *    $Revision: 1.23.2.2 $
+ *    $Author: nicks $
+ *    $Date: 2012/08/27 23:13:51 $
+ *    $Revision: 1.23.2.3 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -68,51 +68,54 @@ bool Interactor2DVolumeEdit::ProcessMouseDownEvent( QMouseEvent* event, RenderVi
     LayerVolumeBase* mri = ( LayerVolumeBase* )lc->GetActiveLayer();
     if ( (!mri || !mri->IsVisible()) ) //&& ( event->ControlDown() || m_nAction == EM_Polyline ) )
     {
-      emit Error( "LayerNotVisible", mri );
+      emit Error( "Layer Not Visible", mri );
     }
     else if ( !mri->IsEditable() ) //&& ( event->ControlDown() || m_nAction == EM_Polyline ) )
     {
-      emit Error( "LayerNotEditable", mri );
+      emit Error( "Layer Not Editable", mri );
     }
     else if ( m_strLayerTypeName == "MRI" && ((LayerMRI*)mri)->IsTransformed() )
     {
-      emit Error( "LayerNotEditableForTransformation", mri );
+      emit Error( "Layer Not Editable For Transformation", mri );
     }
     else
     {
       m_nMousePosX = event->x();
       m_nMousePosY = event->y();
+      bool bFill3D = (LayerMRI*)MainWindow::GetMainWindow()->GetBrushProperty()->GetFill3D();
 
       double ras[3];
       view->MousePositionToRAS( m_nMousePosX, m_nMousePosY, ras );
       bool bCondition = !(event->modifiers() & Qt::ShiftModifier) && !(event->buttons() & Qt::RightButton);
       if ( m_nAction == EM_Freehand ) //&& ( event->ControlDown() ) )
       {
-        mri->SaveForUndo( view->GetViewPlane() );
         if ( event->modifiers() & CONTROL_MODIFIER )
         {
-          mri->FloodFillByRAS( ras, view->GetViewPlane(), bCondition );
+          mri->SaveForUndo( bFill3D ? -1 : view->GetViewPlane());
+          mri->FloodFillByRAS( ras, view->GetViewPlane(), bCondition, bFill3D );
         }
         else
         {
+          mri->SaveForUndo( view->GetViewPlane() );
           m_bEditing = true;
           mri->SetVoxelByRAS( ras, view->GetViewPlane(),bCondition );
         }
       }
       else if ( m_nAction == EM_Fill ) //&& ( event->ControlDown() ) )
       {
-        mri->SaveForUndo( view->GetViewPlane() );
-        mri->FloodFillByRAS( ras, view->GetViewPlane(), bCondition );
+        mri->SaveForUndo(bFill3D ? -1 : view->GetViewPlane());
+        mri->FloodFillByRAS( ras, view->GetViewPlane(), bCondition, bFill3D );
       }
       else if ( m_nAction == EM_Polyline || m_nAction == EM_Livewire )
       {
-        mri->SaveForUndo( view->GetViewPlane() );
         if ( event->modifiers() & CONTROL_MODIFIER )
         {
-          mri->FloodFillByRAS( ras, view->GetViewPlane(), bCondition );
+          mri->SaveForUndo(bFill3D ? -1 : view->GetViewPlane());
+          mri->FloodFillByRAS( ras, view->GetViewPlane(), bCondition, bFill3D );
         }
         else
         {
+          mri->SaveForUndo( view->GetViewPlane() );
           m_bEditing = true;
           double ras2[3];
           view->GetCursor2D()->ClearInterpolationPoints();
@@ -146,8 +149,8 @@ bool Interactor2DVolumeEdit::ProcessMouseDownEvent( QMouseEvent* event, RenderVi
       {
         if ( event->modifiers() & CONTROL_MODIFIER )
         {
-          mri->SaveForUndo( view->GetViewPlane() );
-          mri->FloodFillByRAS( ras, view->GetViewPlane(), bCondition );
+          mri->SaveForUndo(bFill3D ? -1 : view->GetViewPlane());
+          mri->FloodFillByRAS( ras, view->GetViewPlane(), bCondition, bFill3D );
         }
         else
         {
@@ -163,7 +166,7 @@ bool Interactor2DVolumeEdit::ProcessMouseDownEvent( QMouseEvent* event, RenderVi
         LayerMRI* mri_ref = (LayerMRI*)MainWindow::GetMainWindow()->GetBrushProperty()->GetReferenceLayer();
         if ( !mri_ref )
         {
-          emit Error( "LayerReferenceNotSet" );
+          emit Error( "Reference Layer Not Set" );
           return false;
         }
 
@@ -266,10 +269,6 @@ bool Interactor2DVolumeEdit::ProcessMouseUpEvent( QMouseEvent* event, RenderView
     {
       m_bEditing = false;
     }
-
-    LayerCollection* lc = MainWindow::GetMainWindow()->GetLayerCollection( m_strLayerTypeName );
-    LayerVolumeBase* mri = ( LayerVolumeBase* )lc->GetActiveLayer();
-//   mri->SendBroadcast( "LayerEdited", mri );
 
     return false;
   }
