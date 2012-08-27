@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2012/08/06 20:32:57 $
- *    $Revision: 1.35 $
+ *    $Date: 2012/08/27 18:34:09 $
+ *    $Revision: 1.36 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -321,7 +321,18 @@ bool Interactor2D::ProcessKeyDownEvent( QKeyEvent* event, RenderView* renderview
   }
 
   int nKeyCode = event->key();
-  if ( nKeyCode == Qt::Key_PageUp )
+  if ( event->modifiers() & Qt::ShiftModifier )
+  {
+      if ( nKeyCode == Qt::Key_Up )
+      {
+        view->Zoom(1.05);
+      }
+      else if ( nKeyCode == Qt::Key_Down )
+      {
+        view->Zoom(0.95);
+      }
+  }
+  else if ( nKeyCode == Qt::Key_PageUp )
   {
     view->MoveSlice( 1 );
   }
