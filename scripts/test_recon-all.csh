@@ -32,10 +32,10 @@
 # Original Author: Nick Schmansky
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2011/03/02 20:16:40 $
-#    $Revision: 1.37 $
+#    $Date: 2012/08/27 18:05:51 $
+#    $Revision: 1.38 $
 #
-# Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+# Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
 #
 # Terms and conditions for use, reproduction, distribution and contribution
 # are found in the 'FreeSurfer Software License Agreement' contained
@@ -48,11 +48,11 @@
 #
 
 
-set VERSION='$Id: test_recon-all.csh,v 1.37 2011/03/02 20:16:40 nicks Exp $'
+set VERSION='$Id: test_recon-all.csh,v 1.38 2012/08/27 18:05:51 nicks Exp $'
 
-set MAIL_LIST=(krish@nmr.mgh.harvard.edu nicks@nmr.mgh.harvard.edu)
+set MAIL_LIST=(nicks@nmr.mgh.harvard.edu)
 # failure mailing list:
-set FMAIL_LIST=(krish@nmr.mgh.harvard.edu nicks@nmr.mgh.harvard.edu)
+set FMAIL_LIST=(nicks@nmr.mgh.harvard.edu)
 
 limit coredumpsize unlimited
 
