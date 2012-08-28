@@ -11,8 +11,8 @@
  * Original Author: Douglas Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2012/02/08 20:44:33 $
- *    $Revision: 1.95 $
+ *    $Date: 2012/08/28 13:59:38 $
+ *    $Revision: 1.96 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -210,6 +210,10 @@ OPTIONS
     Attempt to reshape to Nfactor 'slices' (will choose closest prime
     factor) Default is 6.
 
+  --reshape3d
+
+    Reshape fsaverage (ico7) into 42 x 47 x 83
+
   --sd SUBJECTS_DIR
 
     Set SUBJECTS_DIR on the command line.
@@ -349,7 +353,7 @@ MATRIX *MRIleftRightRevMatrix(MRI *mri);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_surf2surf.c,v 1.95 2012/02/08 20:44:33 greve Exp $";
+static char vcid[] = "$Id: mri_surf2surf.c,v 1.96 2012/08/28 13:59:38 greve Exp $";
 char *Progname = NULL;
 
 char *srcsurfregfile = NULL;
@@ -395,6 +399,7 @@ int TrgIcoOrder;
 MRI  *mritmp;
 int  reshape = 0;
 int  reshapefactor;
+int  reshape3d=0;
 
 char *mapmethod = "nnfr";
 
@@ -477,7 +482,7 @@ int main(int argc, char **argv)
   /* rkt: check for and handle version tag */
   nargs = handle_version_option (
     argc, argv,
-    "$Id: mri_surf2surf.c,v 1.95 2012/02/08 20:44:33 greve Exp $",
+    "$Id: mri_surf2surf.c,v 1.96 2012/08/28 13:59:38 greve Exp $",
     "$Name:  $");
   if (nargs && argc - nargs == 1) exit (0);
   argc -= nargs;
@@ -1118,6 +1123,20 @@ int main(int argc, char **argv)
       MRIfree(&TrgVals);
       TrgVals = mritmp;
     }
+    if (reshape3d) {
+      if(TrgSurfReg->nvertices != 163842) {
+	printf("ERROR: subject must have 163842 vertices to 3d reshape\n");
+	exit(1);
+      }
+      printf("Reshape 3d\n");
+      mritmp = mri_reshape(TrgVals, 42,47,83,TrgVals->nframes);
+      if (mritmp == NULL) {
+        printf("ERROR: mri_reshape could not alloc\n");
+        return(1);
+      }
+      MRIfree(&TrgVals);
+      TrgVals = mritmp;
+    }
     if(DoNormVar) {
       NormVar(TrgVals, NULL);
     }
@@ -1203,6 +1222,9 @@ static int parse_commandline(int argc, char **argv)
       reshape = 0;
     } else if (!strcasecmp(option, "--reshape")) {
       reshape = 1;
+    } else if (!strcasecmp(option, "--reshape3d")) {
+      reshape = 0;
+      reshape3d = 1;
     } else if (!strcasecmp(option, "--usediff")) {
       usediff = 1;
     } else if (!strcasecmp(option, "--nousediff")) {
@@ -1721,6 +1743,7 @@ static void print_usage(void)
 
   printf("   --reshape  reshape output to multiple 'slices'\n");
   printf("   --reshape-factor Nfactor : reshape to Nfactor 'slices'\n");
+  printf("   --reshape3d : reshape fsaverage (ico7) into 42 x 47 x 83\n");
   printf("   --split : output each frame separately\n");
   printf("   --synth : replace input with WGN\n");
   printf("   --ones  : replace input with 1s\n");
