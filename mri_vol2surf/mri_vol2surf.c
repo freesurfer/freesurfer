@@ -27,8 +27,8 @@
  * Original Author: Doug Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2012/04/03 16:47:32 $
- *    $Revision: 1.66 $
+ *    $Date: 2012/08/28 14:09:49 $
+ *    $Revision: 1.67 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -82,7 +82,7 @@ static int  singledash(char *flag);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] = 
-"$Id: mri_vol2surf.c,v 1.66 2012/04/03 16:47:32 greve Exp $";
+"$Id: mri_vol2surf.c,v 1.67 2012/08/28 14:09:49 greve Exp $";
 
 char *Progname = NULL;
 
@@ -149,6 +149,7 @@ static int debug = 0;
 static int reshape = 0;
 static int reshapefactor = 0;
 static int reshapetarget = 20;
+static int reshape3d = 0;
 
 static MATRIX *Dsrc, *Dsrctmp, *Wsrc, *Fsrc, *Qsrc, *vox2ras;
 
@@ -217,7 +218,7 @@ int main(int argc, char **argv) {
   /* rkt: check for and handle version tag */
   nargs = handle_version_option 
     (argc, argv, 
-     "$Id: mri_vol2surf.c,v 1.66 2012/04/03 16:47:32 greve Exp $", 
+     "$Id: mri_vol2surf.c,v 1.67 2012/08/28 14:09:49 greve Exp $", 
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -713,6 +714,22 @@ int main(int argc, char **argv) {
         printf("INFO: nvertices is prime, cannot reshape\n");
       }
     }
+
+    if (reshape3d) {
+      if(TrgSurfReg->nvertices != 163842) {
+	printf("ERROR: subject must have 163842 vertices to 3d reshape\n");
+	exit(1);
+      }
+      printf("Reshape 3d\n");
+      mritmp = mri_reshape(SurfVals2, 42,47,83,SurfVals2->nframes);
+      if (mritmp == NULL) {
+        printf("ERROR: mri_reshape could not alloc\n");
+        return(1);
+      }
+      MRIfree(&SurfVals2);
+      SurfVals2 = mritmp;
+    }
+
     printf("Writing to %s\n",outfile);
     printf("Dim: %d %d %d\n",
            SurfVals2->width,SurfVals2->height,SurfVals2->depth);
@@ -753,6 +770,9 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--dontusehash")) UseHash = 0;
     else if (!strcasecmp(option, "--nohash")) UseHash = 0;
     else if (!strcasecmp(option, "--reshape"))    reshape = 1;
+    else if (!strcasecmp(option, "--reshape3d")) {
+      reshape3d = 1;reshape = 0;
+    }
     else if (!strcasecmp(option, "--noreshape"))  reshape = 0;
     else if (!strcasecmp(option, "--no-reshape")) reshape = 0;
     else if (!strcasecmp(option, "--fixtkreg")) fixtkreg = 1;
@@ -1123,6 +1143,7 @@ static void print_usage(void) {
   printf(" Other Options\n");
   printf("   --reshape : so dims fit in nifti or analyze\n");
   printf("   --noreshape : do not reshape (default)\n");
+  printf("   --reshape3d : reshape fsaverage (ico7) into 42 x 47 x 83\n");
   printf("   --scale scale : multiply all intensities by scale.\n");
   printf("   --v vertex no : debug mapping of vertex.\n");
   printf("   --srcsynth seed : synthesize source volume\n");
