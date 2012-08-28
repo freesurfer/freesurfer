@@ -10,9 +10,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2012/08/08 18:07:34 $
- *    $Revision: 1.269 $
+ *    $Author: nicks $
+ *    $Date: 2012/08/28 18:25:59 $
+ *    $Revision: 1.270 $
  *
  * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -2162,8 +2162,8 @@ GCAMinit(GCA_MORPH *gcam,
     LTA *lta = (LTA *)transform->xform  ;
     gcam->m_affine = MatrixCopy(lta->xforms[0].m_L, NULL) ;
     gcam->det = MatrixDeterminant(gcam->m_affine) ;
-    printf("det(m_affine) = %2.2f (predicted orig area = %2.1f)\n",
-           gcam->det, gcam->spacing*gcam->spacing*gcam->spacing/gcam->det) ;
+    fprintf(stderr,"det(m_affine) = %2.2f (predicted orig area = %2.1f)\n",
+	    gcam->det, gcam->spacing*gcam->spacing*gcam->spacing/gcam->det) ;
   }
   gcamComputeMetricProperties(gcam) ;
   for (x = 0 ; x < width ; x++)
@@ -8411,7 +8411,7 @@ GCAMcomputeLabels(MRI *mri, GCA_MORPH *gcam)
         }
       }
 
-  printf("label assignment complete, %d changed (%2.2f%%)\n",
+  fprintf(stderr, "label assignment complete, %d changed (%2.2f%%)\n",
          nchanged, 100.0*(float)nchanged/(width*height*depth)) ;
   return(nchanged) ;
 }
@@ -8493,7 +8493,7 @@ GCAMcomputeMaxPriorLabels(GCA_MORPH *gcam)
                  gcamn->prior) ;
       }
 
-  printf("label assignment complete, %d changed (%2.2f%%)\n",
+  fprintf(stderr, "label assignment complete, %d changed (%2.2f%%)\n",
          nchanged, 100.0*(float)nchanged/(width*height*depth)) ;
   return(NO_ERROR) ;
 }
