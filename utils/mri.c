@@ -6,11 +6,11 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: mreuter $
- *    $Date: 2012/08/20 19:45:51 $
- *    $Revision: 1.486.2.7 $
+ *    $Author: nicks $
+ *    $Date: 2012/08/28 22:11:22 $
+ *    $Revision: 1.486.2.8 $
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -23,7 +23,7 @@
  */
 
 extern const char* Progname;
-const char *MRI_C_VERSION = "$Revision: 1.486.2.7 $";
+const char *MRI_C_VERSION = "$Revision: 1.486.2.8 $";
 
 
 /*-----------------------------------------------------
@@ -217,6 +217,55 @@ MATRIX *MRIxfmCRS2XYZ( const MRI *mri, int base)
   MatrixFree(&PxyzOffset);
 
   return(m);
+}
+/*!
+  \fn MATRIX *MRImatrixOfDirectionCosines(MRI *mri, MATRIX *Mdc)
+  \brief Fills Mdc with direction cosines
+*/
+MATRIX *MRImatrixOfDirectionCosines(MRI *mri, MATRIX *Mdc)
+{
+  if(Mdc == NULL) Mdc = MatrixZero(4,4,NULL);
+  Mdc->rptr[1][1] = mri->x_r;
+  Mdc->rptr[2][1] = mri->x_a;
+  Mdc->rptr[3][1] = mri->x_s;
+  Mdc->rptr[1][2] = mri->y_r;
+  Mdc->rptr[2][2] = mri->y_a;
+  Mdc->rptr[3][2] = mri->y_s;
+  Mdc->rptr[1][3] = mri->z_r;
+  Mdc->rptr[2][3] = mri->z_a;
+  Mdc->rptr[3][3] = mri->z_s;
+  Mdc->rptr[4][4] = 1;
+  return(Mdc);
+}
+/*!
+  \fn MATRIX *MRImatrixOfVoxelSizes(MRI *mri, MATRIX *D)
+  \brief Creaetes diagonal matrix D with voxel sizes on diagonal
+*/
+MATRIX *MRImatrixOfVoxelSizes(MRI *mri, MATRIX *D)
+{
+  if(D == NULL) D = MatrixZero(4,4,NULL);
+  D->rptr[1][1] = mri->xsize;
+  D->rptr[2][2] = mri->ysize;
+  D->rptr[3][3] = mri->zsize;
+  D->rptr[4][4] = 1;
+  return(D);
+}
+/*!
+  \fn MATRIX *MRImatrixOfTranslations(MRI *mri, MATRIX *P0)
+  \brief Creates 4x4 matrix which implements the translation
+*/
+MATRIX *MRImatrixOfTranslations(MRI *mri, MATRIX *P0)
+{
+  MATRIX *Vox2ScannerRAS;
+  int k;
+  if(P0 == NULL) P0 = MatrixZero(4,4,NULL);
+  Vox2ScannerRAS = MRIxfmCRS2XYZ(mri,0);
+  for(k=1; k<=4; k++) {
+    P0->rptr[k][4] = Vox2ScannerRAS->rptr[k][4];
+    P0->rptr[k][k] = 1;
+  }
+  MatrixFree(&Vox2ScannerRAS);
+  return(P0);
 }
 /*--------------------------------------------------------------------------
   extract_i_to_r() - computes scanner vox2ras. On 2/27/06, this was replaced
@@ -1428,6 +1477,7 @@ MRIlinearScale(MRI *mri_src, MRI *mri_dst, float scale, float offset,
             else if (val < 0) 
               val = 0 ;
           }
+          /*printf(" %d %d %d %d %f \n",x,y,z,frame,val);*/
           MRIsetVoxVal(mri_dst, x, y, z, frame, val) ;
         }
       }
@@ -3613,6 +3663,27 @@ MRIextract(MRI *mri_src, MRI *mri_dst, int x0, int y0, int z0,
            int dx, int dy, int dz)
 {
   return(MRIextractInto(mri_src, mri_dst, x0, y0, z0, dx, dy, dz, 0, 0, 0)) ;
+}
+MRI *
+MRIcopyFrames(MRI *mri_src, MRI *mri_dst, int src_start_frame, int src_end_frame, int dst_start_frame)
+{
+  int  fno, offset ;
+
+  if (mri_dst == NULL)
+  {
+    mri_dst = MRIallocSequence(mri_src->width, mri_src->height, mri_src->depth, mri_src->type,
+          src_end_frame-src_start_frame+1) ;
+    MRIcopyHeader(mri_src, mri_dst) ;
+  }
+
+  offset = dst_start_frame-src_start_frame ;
+
+  for (fno = src_start_frame ; fno <= src_end_frame ; fno++)
+  {
+    mri_dst = MRIcopyFrame(mri_src, mri_dst, fno, fno+offset) ;
+    if(mri_dst == NULL) return(NULL);
+  }
+  return(mri_dst) ;
 }
 /*-----------------------------------------------------
   Parameters:
@@ -6070,7 +6141,7 @@ MRI *MRIallocChunk(int width, int height, int depth, int type, int nframes)
 MRI *MRIallocSequence(int width, int height, int depth, int type, int nframes)
 {
   MRI     *mri ;
-  int     slice, row, bpp, i ;
+  int     slice, row, bpp;
   BUFTYPE *buf ;
 
   if (getenv("FS_USE_MRI_CHUNK") != NULL)
@@ -6086,7 +6157,7 @@ MRI *MRIallocSequence(int width, int height, int depth, int type, int nframes)
                 (ERROR_BADPARM, "MRIalloc(%d, %d, %d): bad parm",
                  width, height, depth)) ;
 #if 1
-  mri = MRIallocHeader(width, height, depth, type, 1) ;
+  mri = MRIallocHeader(width, height, depth, type, nframes) ;
   MRIinitHeader(mri) ;
 #else
   mri = (MRI *)calloc(1, sizeof(MRI)) ;
@@ -6099,16 +6170,16 @@ MRI *MRIallocSequence(int width, int height, int depth, int type, int nframes)
   mri->yinvert = 1 ;
   mri->depth = depth ;
   mri->type = type ;
-#endif
-  mri->nframes = nframes ;
-  MRIallocIndices(mri) ;
-  mri->outside_val = 0 ;
   mri->frames = (MRI_FRAME *)calloc(nframes, sizeof(MRI_FRAME)) ;
   if (!mri->frames)
     ErrorExit(ERROR_NO_MEMORY,
               "MRIalloc: could not allocate %d frames\n", nframes) ;
-  for (i = 0 ; i < mri->nframes ; i++)
+  for (int i = 0 ; i < nframes ; i++)
     mri->frames[i].m_ras2vox = MatrixAlloc(4,4, MATRIX_REAL) ;
+#endif
+  mri->nframes = nframes ;
+  MRIallocIndices(mri) ;
+  mri->outside_val = 0 ;
   mri->slices = (BUFTYPE ***)calloc(depth*nframes, sizeof(BUFTYPE **)) ;
   if (!mri->slices)
     ErrorExit(ERROR_NO_MEMORY,
@@ -6231,12 +6302,14 @@ MRI *MRIallocHeader(int width, int height, int depth, int type, int nframes)
   if (!mri)
     ErrorExit(ERROR_NO_MEMORY, "MRIalloc: could not allocate MRI\n") ;
 
+  // Note: changes here may need to be reflected in MRISeqchangeType()
   mri->frames = (MRI_FRAME *)calloc(nframes, sizeof(MRI_FRAME)) ;
   if (!mri->frames)
     ErrorExit(ERROR_NO_MEMORY,
               "MRIalloc: could not allocate %d frame\n", nframes) ;
   for (i = 0 ; i < mri->nframes ; i++)
     mri->frames[i].m_ras2vox = MatrixAlloc(4,4, MATRIX_REAL) ;
+
   mri->imnr0 = 1 ;
   mri->imnr1 = depth;
   mri->fov = width ;
@@ -7339,7 +7412,7 @@ MRItoImageView(MRI *mri, IMAGE *I, int slice, int view, int frame)
 {
   int      width, height, depth, x, y, yp, w, h, d,
   xm, ym, zm, format ;
-  float    fmin, fmax ;
+  float    fmin, fmax, frac ;
   double     val ;
   int src_slice_direction;
   int xsign, ysign;
@@ -7370,6 +7443,7 @@ MRItoImageView(MRI *mri, IMAGE *I, int slice, int view, int frame)
   height = mri->height ;
   depth = mri->depth ;
 
+  frac = .6 ;
   switch (src_slice_direction)
   {
   case MRI_CORONAL: // x direction can be -R or R,
@@ -7380,6 +7454,7 @@ MRItoImageView(MRI *mri, IMAGE *I, int slice, int view, int frame)
     switch (view)
     {
     case MRI_CORONAL:
+      frac = .4 ;
       w = width;
       h = height;
       d = depth;
@@ -7420,6 +7495,7 @@ MRItoImageView(MRI *mri, IMAGE *I, int slice, int view, int frame)
     case MRI_SAGITTAL:
       w = width;
       h = height;
+      frac = .4 ;
       d = depth;
       xsign = (mri->x_a > 0) ? 1 : -1;
       ysign = (mri->y_s > 0) ? -1 : 1;
@@ -7457,6 +7533,7 @@ MRItoImageView(MRI *mri, IMAGE *I, int slice, int view, int frame)
     case MRI_HORIZONTAL:
       w = width;
       h = height;
+      frac = .4 ;
       d = depth;
       xsign = (mri->x_r > 0) ? -1 : 1;
       ysign = (mri->y_a > 0) ?  1 : -1;
@@ -7471,7 +7548,7 @@ MRItoImageView(MRI *mri, IMAGE *I, int slice, int view, int frame)
       slice, view, src_slice_direction)) ;
   }
   if (slice < 0)
-    slice = nint(6.0*d/10.0) ;
+    slice = nint(frac*d) ;
   else if (slice >= d)
     ErrorReturn(NULL, (ERROR_BADPARM, "MRItoImageView: bad slice %d\n",slice));
     
@@ -7901,12 +7978,9 @@ MRIextractValues(MRI *mri_src, MRI *mri_dst, float min_val, float max_val)
 
   return(mri_dst) ;
 }
+
+
 /*-----------------------------------------------------
-  Parameters:
-
-  Returns value:
-
-  Description
   Wrapper around MRIupsampleN for N=2
   ------------------------------------------------------*/
 MRI *
@@ -7915,111 +7989,80 @@ MRIupsample2(MRI *mri_src, MRI *mri_dst)
   return(MRIupsampleN(mri_src, mri_dst, 2)) ;
 }
 /*-----------------------------------------------------
-  Parameters:
-
-  Returns value:
-
-  Description
+  MRI *MRIupsampleN(MRI *mri_src, MRI *mri_dst, int N)
   Upsample volume by integer factor. No error checking, upsample
-  factor must be valid. (Generalization of original routine
-  'MRIupsample2'.)
+  factor must be valid.
   ------------------------------------------------------*/
-MRI *
-MRIupsampleN(MRI *mri_src, MRI *mri_dst, int N)
+MRI *MRIupsampleN(MRI *mri_src, MRI *mri_dst, int N)
 {
-  int     width, depth, height, x, y, z ;
-  BUFTYPE *pdst ;
-  short   *psdst ;
-  float   *pfdst ;
-  MATRIX  *m_vox2ras, *m_scale, *m_tmp ;
+  int     width, depth, height, x, y, z, f ;
+  double val;
+  MATRIX *Vox2RAS,*CRS0,*RAS0;
 
-  if (mri_dst && mri_src->type != mri_dst->type)
-    ErrorReturn
-    (NULL,
-     (ERROR_UNSUPPORTED, "MRIupsampleN: source and dst must be same type"));
-
-  width = N*mri_src->width ;
+  width  = N*mri_src->width ;
   height = N*mri_src->height ;
-  depth = N*mri_src->depth ;
+  depth  = N*mri_src->depth ;
 
-  if (!mri_dst)
-  {
-    //    double c_r, c_a, c_s;
-  
-    mri_dst = MRIalloc(width, height, depth, mri_src->type) ;
+  if (!mri_dst) {
+    mri_dst = MRIallocSequence(width, height, depth, mri_src->type, mri_src->nframes) ;
     MRIcopyHeader(mri_src, mri_dst) ;
-    MRIsetResolution(mri_dst,
-                     mri_src->xsize/N, mri_src->ysize/N, mri_src->zsize/N) ;
-    mri_dst->xstart = mri_src->xstart ;
-    mri_dst->ystart = mri_src->ystart ;
-    mri_dst->zstart = mri_src->zstart ;
-    mri_dst->xend = mri_src->xend ;
-    mri_dst->yend = mri_src->yend ;
-    mri_dst->zend = mri_src->zend ;
-    m_vox2ras = MRIgetVoxelToRasXform(mri_src) ;
-    m_scale = MatrixIdentity(4, NULL) ;
-    *MATRIX_RELT(m_scale, 1,1) = 1.0/N ; 
-    *MATRIX_RELT(m_scale, 2,2) = 1.0/N ; 
-    *MATRIX_RELT(m_scale, 3,3) = 1.0/N ;
-    m_tmp = MatrixMultiply(m_vox2ras, m_scale, NULL) ;
-    MatrixFree(&m_vox2ras) ; MatrixFree(&m_scale) ; m_vox2ras = m_tmp ;
-    MRIsetVoxelToRasXform(mri_dst, m_vox2ras) ;
-    MatrixFree(&m_vox2ras) ;
-    m_vox2ras = MRIgetVoxelToRasXform(mri_dst) ;
-    MatrixFree(&m_vox2ras) ;
-#if 0
-    MRIcalcCRASforSampledVolume(mri_src, mri_dst, &c_r, &c_a, &c_s);
-    mri_dst->c_a = c_a;
-    mri_dst->c_s = c_s;
-    mri_dst->c_r = c_r;
-#endif
   }
 
-  for (z = 0 ; z < depth ; z++)
-  {
-    for (y = 0 ; y < height ; y++)
-    {
-      switch (mri_src->type)
-      {
-      case MRI_UCHAR:
-        pdst = &MRIvox(mri_dst, 0, y, z) ;
-        for (x = 0 ; x < width ; x++)
-          *pdst++ = MRIvox(mri_src, x/N, y/N, z/N) ;
-        break ;
-      case MRI_SHORT:
-        psdst = &MRISvox(mri_dst, 0, y, z) ;
-        for (x = 0 ; x < width ; x++)
-          *psdst++ = MRISvox(mri_src, x/N, y/N, z/N) ;
-        break ;
-      case MRI_FLOAT:
-        pfdst = &MRIFvox(mri_dst, 0, y, z) ;
-        for (x = 0 ; x < width ; x++)
-          *pfdst++ = MRIFvox(mri_src, x/N, y/N, z/N) ;
-        break ;
-      default:
-        ErrorReturn
-        (NULL,
-         (ERROR_UNSUPPORTED,
-          "MRIupsampleN: unsupported src type %d", mri_src->type)) ;
-      }
-
-    }
-  }
-
+  // Recompute geometry for finer resolution
+  // Only the xsize and cras change
+  mri_dst->xsize = mri_src->xsize/N;
+  mri_dst->ysize = mri_src->ysize/N;
+  mri_dst->zsize = mri_src->zsize/N;
+  mri_dst->x_r = mri_src->x_r;
+  mri_dst->x_a = mri_src->x_a;
+  mri_dst->x_s = mri_src->x_s;
+  mri_dst->y_r = mri_src->y_r;
+  mri_dst->y_a = mri_src->y_a;
+  mri_dst->y_s = mri_src->y_s;
+  mri_dst->z_r = mri_src->z_r;
+  mri_dst->z_a = mri_src->z_a;
+  mri_dst->z_s = mri_src->z_s;
+  mri_dst->xstart = mri_src->xstart;
+  mri_dst->ystart = mri_src->ystart;
+  mri_dst->zstart = mri_src->zstart;
+  mri_dst->xend = mri_src->xend;
+  mri_dst->yend = mri_src->yend;
+  mri_dst->zend = mri_src->zend;
   mri_dst->imnr0 = mri_src->imnr0 ;
   mri_dst->imnr1 = mri_src->imnr0 + mri_dst->depth - 1 ;
 
-  mri_dst->xsize = mri_src->xsize/N ;
-  mri_dst->ysize = mri_src->ysize/N ;
-  mri_dst->zsize = mri_src->zsize/N ;
+  // Computes CRAS based on location of the 1st voxel in upsampled space
+  // The new location is 1/Nth of a voxel from the corner. The RAS of
+  // a voxel is at the center of the voxel (unfortunately)
+  Vox2RAS = MRIxfmCRS2XYZ(mri_src,0); // scanner vox2ras of source mri
+  CRS0 = MatrixZero(4,1,NULL);
+  CRS0->rptr[1][1] = -1.0/N;
+  CRS0->rptr[2][1] = -1.0/N;
+  CRS0->rptr[3][1] = -1.0/N;
+  CRS0->rptr[4][1] =  1.0;
+  RAS0 = MatrixMultiply(Vox2RAS,CRS0,NULL);
+  MRIp0ToCRAS(mri_dst, RAS0->rptr[1][1],RAS0->rptr[2][1],RAS0->rptr[3][1]);
+  MatrixFree(&Vox2RAS);
+  MatrixFree(&CRS0);
+  MatrixFree(&RAS0);
 
+  for (z = 0 ; z < depth ; z++) {
+    for (y = 0 ; y < height ; y++) {
+      for (x = 0 ; x < width ; x++) {
+	for(f = 0; f < mri_src->nframes; f++){
+	  val = MRIgetVoxVal(mri_src, x/N, y/N, z/N, f);
+	  MRIsetVoxVal(mri_dst,x,y,z,f,val);
+	}
+      }
+    }
+  }
   MRIreInitCache(mri_dst) ;
 
   return(mri_dst) ;
 }
 
-MRI *
-MRIdownsample2LabeledVolume(MRI *mri_src, MRI *mri_dst)
+
+MRI *MRIdownsample2LabeledVolume(MRI *mri_src, MRI *mri_dst)
 {
   int     width, depth, height, x, y, z, x1, y1, z1, counts[256], label,
   max_count, out_label ;
@@ -14799,6 +14842,37 @@ MRInormalizeSequence(MRI *mri, float target)
   return(NO_ERROR) ;
 }
 
+double 
+MRIstdInLabel(MRI *mri_src, MRI *mri_labeled, MRI *mri_mean, int label)
+{
+  int  x, y, z, nvox, l ;
+  double mean, var = 0.0 ;
+  float  val ;
+
+  nvox = 0 ;
+  for (x = 0 ; x < mri_src->width ; x++)
+  {
+    for (y = 0 ; y < mri_src->height ; y++)
+    {
+      for (z = 0 ; z < mri_src->depth ; z++)
+      {
+        l = nint(MRIgetVoxVal(mri_labeled, x, y, z, 0)) ;
+        if (l == label)
+        {
+          val = MRIgetVoxVal(mri_src, x, y, z, 0) ;
+          mean = MRIgetVoxVal(mri_mean, x, y, z, 0) ;
+          val -= mean ;
+          var += (val*val) ;
+          nvox++ ;
+        }
+      }
+    }
+  }
+  if (!nvox)
+    nvox = 1 ;
+  return(sqrt(var/nvox)) ;
+}
+
 double
 MRImeanInLabel(MRI *mri_src, MRI *mri_labeled, int label)
 {
@@ -15136,6 +15210,7 @@ float MRIvoxelsInLabelWithPartialVolumeEffects( const MRI *mri,
             if( (label_counts[this_label] > max_count) &&
                 ((label_means[this_label] - val) *
                  (mean_label - val) < 0) ) {
+              //max_count = label_means[this_label] ; // bug
               max_count = label_counts[this_label] ;
               nbr_label = this_label ;
             }
@@ -15161,6 +15236,7 @@ float MRIvoxelsInLabelWithPartialVolumeEffects( const MRI *mri,
 		}
                 
                 if( label_counts[this_label] > max_count ) {
+                  //max_count = label_means[this_label] ; //bug
                   max_count = label_counts[this_label] ;
                   nbr_label = this_label ;
                 }
@@ -17429,7 +17505,6 @@ MRIfindSliceWithMostStructure(MRI *mri_aseg, int slice_direction, int label)
   }
   return(max_slice) ;
 }
-
 double
 MRIrmsDiff(MRI *mri1, MRI *mri2)
 {

@@ -6,20 +6,19 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2010/04/14 14:43:52 $
- *    $Revision: 1.73 $
+ *    $Author: nicks $
+ *    $Date: 2012/08/28 22:11:22 $
+ *    $Revision: 1.74.2.1 $
  *
- * Copyright (C) 2002-2010,
- * The General Hospital Corporation (Boston, MA). 
- * All rights reserved.
+ * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
- * Distribution, usage and copying of this software is covered under the
- * terms found in the License Agreement file named 'COPYING' found in the
- * FreeSurfer source code root directory, and duplicated here:
- * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ * Terms and conditions for use, reproduction, distribution and contribution
+ * are found in the 'FreeSurfer Software License Agreement' contained
+ * in the file 'LICENSE' found in the FreeSurfer distribution, and here:
  *
- * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
+ *
+ * Reporting: freesurfer@nmr.mgh.harvard.edu
  *
  */
 
@@ -7381,6 +7380,7 @@ mriOrthonormalizeTransform(MATRIX *m_L)
 static MRI *g_mri_in, *g_mri_ref ;
 static MP *g_parms ;
 static GCA *g_gca ;
+static double g_clamp ;
 extern void (*user_call_func)(float []) ;
 
 #if 0
@@ -8102,9 +8102,11 @@ computeEMAlignmentErrorFunctional(float *p)
   GCA     *gca ;
   MRI     *mri_inputs ;
   MP      *parms ;
+  double  clamp ;
 
   parms = g_parms ;
   gca = g_gca ;
+  clamp = g_clamp ;
   mri_inputs = g_mri_in ;
 
   /* copy current matrix out of p into matrix format */
@@ -8128,7 +8130,7 @@ computeEMAlignmentErrorFunctional(float *p)
   old_lta = (LTA *)parms->transform->xform ;
   parms->transform->xform = (void *)lta ;
   log_p = GCAcomputeLogSampleProbability(gca,parms->gcas,g_mri_in,
-                                         parms->transform,parms->nsamples);
+                                         parms->transform,parms->nsamples, clamp);
   parms->transform->xform = (void *)old_lta ;
   LTAfree(&lta) ;
   return(-log_p) ;
@@ -8409,7 +8411,7 @@ MRIemAlign(MRI *mri_in, GCA *gca, MORPH_PARMS *parms, MATRIX *m_L)
   /* E step */
   pcurrent =
     -GCAcomputeLogSampleProbability(gca,parms->gcas,mri_in,
-                                    parms->transform,parms->nsamples);
+                                    parms->transform,parms->nsamples, parms->clamp);
 
   i = 0 ;
   do
@@ -8420,7 +8422,7 @@ MRIemAlign(MRI *mri_in, GCA *gca, MORPH_PARMS *parms, MATRIX *m_L)
 
     pcurrent =
       -GCAcomputeLogSampleProbability(gca,parms->gcas,mri_in,
-                                      parms->transform,parms->nsamples);
+                                      parms->transform,parms->nsamples, parms->clamp);
     i++ ;
     printf("outof QuasiNewtonEMA: %03d: -log(p) = %6.1f  tol %f\n",parms->start_t+i, pcurrent, parms->tol) ;
   }
@@ -8956,6 +8958,7 @@ mriQuasiNewtonEMAlignPyramidLevel(MRI *mri_in, GCA *gca, MP *parms)
   }
   //////
   g_mri_in = mri_in ;
+  g_clamp = parms->clamp ;
   g_gca = gca ;
   g_parms = parms ;
   //////

@@ -7,19 +7,18 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2010/03/13 01:32:40 $
- *    $Revision: 1.66 $
+ *    $Date: 2012/08/28 22:11:20 $
+ *    $Revision: 1.68.2.1 $
  *
- * Copyright (C) 2002-2010,
- * The General Hospital Corporation (Boston, MA). 
- * All rights reserved.
+ * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
- * Distribution, usage and copying of this software is covered under the
- * terms found in the License Agreement file named 'COPYING' found in the
- * FreeSurfer source code root directory, and duplicated here:
- * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ * Terms and conditions for use, reproduction, distribution and contribution
+ * are found in the 'FreeSurfer Software License Agreement' contained
+ * in the file 'LICENSE' found in the FreeSurfer distribution, and here:
  *
- * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
+ *
+ * Reporting: freesurfer@nmr.mgh.harvard.edu
  *
  */
 
@@ -179,6 +178,8 @@ int       TransformSample(TRANSFORM *transform,
                           float *px, float *py, float *pz) ;
 int       TransformSampleInverse(TRANSFORM *transform, int xv, int yv, int zv,
                                  float *px, float *py, float *pz) ;
+int       TransformSampleInverseFloat(TRANSFORM *transform, float xv, float yv, float zv,
+				      float *px, float *py, float *pz) ;
 int       TransformSampleInverseVoxel(TRANSFORM *transform,
                                       int width, int height, int depth,
                                       int xv, int yv, int zv,
@@ -218,6 +219,8 @@ MATRIX *vg_i_to_r(const VOL_GEOM *vg);
 MATRIX *vg_r_to_i(const VOL_GEOM *vg);
 #define vg_getRasToVoxelXform vg_r_to_i
 #define vg_getVoxelToRasXform vg_i_to_r
+MATRIX *TkrVox2RASfromVolGeom(const VOL_GEOM *vg);
+MATRIX *TkrRAS2VoxfromVolGeom(const VOL_GEOM *vg);
 
 int TransformCopyVolGeomToMRI(TRANSFORM *transform, MRI *mri);
 
@@ -249,6 +252,9 @@ int TransformSampleDirection(TRANSFORM *transform, float x0, float y0, float z0,
 
 int TransformRas2Vox(TRANSFORM *transform, MRI *mri_src, MRI *mri_dst);
 int TransformVox2Ras(TRANSFORM *transform, MRI *mri_src, MRI *mri_dst);
+int TransformSourceVoxelToAtlas( TRANSFORM *transform, MRI *mri, 
+				 int xv, int yv, int zv,
+				 double *px, double *py, double *pz ) ;
 
 MATRIX *MRIangles2RotMat(double *angles);
 double *SegRegCost(MRI *regseg, MRI *f, double *costs);

@@ -7,26 +7,29 @@
 /*
  * Original Author: Richard Edgar
  * CVS Revision Info:
- *    $Author: rge21 $
- *    $Date: 2010/02/11 16:40:56 $
- *    $Revision: 1.1 $
+ *    $Author: nicks $
+ *    $Date: 2012/08/28 22:11:21 $
+ *    $Revision: 1.2.2.1 $
  *
- * Copyright (C) 2002-2008,
- * The General Hospital Corporation (Boston, MA). 
- * All rights reserved.
+ * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
- * Distribution, usage and copying of this software is covered under the
- * terms found in the License Agreement file named 'COPYING' found in the
- * FreeSurfer source code root directory, and duplicated here:
- * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ * Terms and conditions for use, reproduction, distribution and contribution
+ * are found in the 'FreeSurfer Software License Agreement' contained
+ * in the file 'LICENSE' found in the FreeSurfer distribution, and here:
  *
- * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
+ *
+ * Reporting: freesurfer@nmr.mgh.harvard.edu
  *
  */
 
 
 #ifndef EM_REGISTER_CUDA_H
 #define EM_REGISTER_CUDA_H
+
+#include "gca.h"
+#include "mri.h"
+#include "matrix.h"
 
 #if defined(__cplusplus)
 extern "C" {
@@ -42,13 +45,15 @@ extern "C" {
   void CUDA_em_register_Release( void );
 
   //! Routine to compute the probability of the given transform matrix
-  float CUDA_ComputeLogSampleProbability( const MATRIX *m_L );
+  float CUDA_ComputeLogSampleProbability( const MATRIX *m_L,
+                                          const float clamp );
 
   //! Routine to find the best translation
   void CUDA_FindOptimalTranslation( const MATRIX *baseTransform,
 				    const float minTrans,
 				    const float maxTrans,
 				    const unsigned int nTrans,
+                                    const float clamp,
 				    float *maxLogP,
 				    float *dx,
 				    float *dy,
@@ -66,6 +71,7 @@ extern "C" {
 				  const float minRot,
 				  const float maxRot,
 				  const unsigned int nRot,
+                                  const float clamp,
 				  double *maxLogP,
 				  double *dx,
 				  double *dy,

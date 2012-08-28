@@ -7,21 +7,19 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2010/03/16 22:33:54 $
- *    $Revision: 1.38 $
+ *    $Author: nicks $
+ *    $Date: 2012/08/28 22:11:20 $
+ *    $Revision: 1.41.2.1 $
  *
- * Copyright (C) 2002-2007,
- * The General Hospital Corporation (Boston, MA). 
- * All rights reserved.
+ * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
- * Distribution, usage and copying of this software is covered under the
- * terms found in the License Agreement file named 'COPYING' found in the
- * FreeSurfer source code root directory, and duplicated here:
- * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ * Terms and conditions for use, reproduction, distribution and contribution
+ * are found in the 'FreeSurfer Software License Agreement' contained
+ * in the file 'LICENSE' found in the FreeSurfer distribution, and here:
  *
- * General inquiries: freesurfer@nmr.mgh.harvard.edu
- * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
+ *
+ * Reporting: freesurfer@nmr.mgh.harvard.edu
  *
  */
 
@@ -54,6 +52,7 @@ HISTOGRAM *HISTOinit(HISTOGRAM *h, int nbins, double mn, double mx) ;
 HISTOGRAM *HISTOalloc(int nbins) ;
 HISTOGRAM *HISTOrealloc(HISTOGRAM *histo, int nbins) ;
 HISTOGRAM *HISTOcrunch(HISTOGRAM *histo_src, HISTOGRAM *histo_dst) ;
+double     HISTOcorrelate(HISTOGRAM *h1, HISTOGRAM *h2) ;
 HISTOGRAM *HISTOcopy(HISTOGRAM *histo_src, HISTOGRAM *histo_dst) ;
 HISTOGRAM *HISTOinvert(HISTOGRAM *histo_src, HISTOGRAM *histo_dst,int max_dst);
 HISTOGRAM *HISTOnormalize(HISTOGRAM *histo_src, HISTOGRAM *histo_dst,
@@ -70,6 +69,7 @@ HISTOGRAM *HISTOcomposeInvert(HISTOGRAM *histo_fwd, HISTOGRAM *histo_inv,
                               HISTOGRAM *histo_dst) ;
 HISTOGRAM *HISTOmul(HISTOGRAM *h1, HISTOGRAM *h2, HISTOGRAM *histo_dst) ;
 HISTOGRAM *HISTOscalarMul(HISTOGRAM *hsrc, float mul, HISTOGRAM *hdst) ;
+HISTOGRAM *HISTOscalarAdd(HISTOGRAM *hsrc, float add, HISTOGRAM *hdst) ;
 HISTOGRAM *HISTOadd(HISTOGRAM *h1, HISTOGRAM *h2, HISTOGRAM *histo_dst) ;
 HISTOGRAM *HISTOsubtract(HISTOGRAM *h1, HISTOGRAM *h2, HISTOGRAM *histo_dst) ;
 HISTOGRAM *HISTOclearBins(HISTOGRAM *h1, HISTOGRAM *h2, int b0, int b1) ;
@@ -98,8 +98,8 @@ int       HISTOfindCurrentPeak(HISTOGRAM *histo,
                                int wsize,
                                float min_pct) ;
 int       HISTOfillHoles(HISTO *h) ;
-int       HISTOtotal(HISTO *h) ;
-int       HISTOtotalInRegion(HISTO *h, int b0, int b1) ;
+float     HISTOtotal(HISTO *h) ;
+float     HISTOtotalInRegion(HISTO *h, int b0, int b1) ;
 HISTOGRAM *HISTOmakeCDF(HISTOGRAM *hsrc, HISTOGRAM *hdst) ;
 int       HISTOfindBin(HISTOGRAM *h, float val) ;
 int       HISTOfindBinWithCount(HISTOGRAM *h, float val) ;
@@ -108,7 +108,7 @@ int       HISTOfindPreviousPeak(HISTOGRAM *h, int b0, int whalf) ;
 HISTO     *HISTOlinearScale(HISTOGRAM *hsrc, HISTOGRAM *hdst, float scale,
                             float offset) ;
 
-int       HISTOfindLinearFit(HISTOGRAM *h1,
+double    HISTOfindLinearFit(HISTOGRAM *h1,
                              HISTOGRAM *h2,
                              double amin, double amax,
                              double bmin, double bmax,

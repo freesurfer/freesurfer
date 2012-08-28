@@ -8,8 +8,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2011/03/17 19:49:06 $
- *    $Revision: 1.5.2.1 $
+ *    $Date: 2012/08/28 22:11:21 $
+ *    $Revision: 1.5.2.2 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -26,6 +26,9 @@
 #include <iostream>
 #include <iomanip>
 #include <memory>
+#include <fstream>
+#include <sstream>
+#include <vector>
 using namespace std;
 
 
@@ -33,6 +36,8 @@ using namespace std;
 #include <thrust/device_ptr.h>
 #include <thrust/extrema.h>
 #include <thrust/reduce.h>
+
+
 
 #include "cudacheck.h"
 
@@ -45,6 +50,80 @@ using namespace std;
 #include "cudatypeutils.hpp"
 
 #include "em_register_cuda.h"
+
+//#define OUTPUT_STAGES
+
+#ifdef OUTPUT_STAGES
+#include <netcdf.h>
+
+#define NC_SAFE_CALL( call ) do {		\
+    int err = call;				\
+    if( NC_NOERR != err ) {			\
+      std::cerr << __FUNCTION__ \
+		<< ": NetCDF failure on line " << __LINE__	\
+		<< " of file " << __FILE__			\
+		<< std::endl;					\
+      std::cerr << "Error code was " << err << std::endl;	\
+      std::cerr << "Error string was : " << nc_strerror(err)	\
+		<< std::endl;					\
+      abort();                                                  \
+    }								\
+  } while ( 0 );
+
+
+
+
+void WriteTranslationLogPs( const float minTrans,
+                            const float maxTrans,
+                            const unsigned int nTrans,
+                            const float* const logps,
+                            const unsigned int iteration ) {
+  enum dimIndices{ iX, iY, iZ };
+
+  // Create the filename
+  std::stringstream fileName;
+  fileName << "TranslationLogPs"
+           << setw(4) << setfill( '0' ) << iteration
+           << ".nc";
+
+  // Set up the translations
+  TranslationGenerator myGen( minTrans, maxTrans, nTrans );
+
+  // Reference for the file
+  int ncid;
+
+  // Open the file
+  NC_SAFE_CALL( nc_create( fileName.str().c_str(), NC_CLOBBER, &ncid ) );
+
+  // Set up the dimensions
+  int dimIDs[nTrans];
+  NC_SAFE_CALL( nc_def_dim( ncid, "delta_x", nTrans, &dimIDs[iX] ) );
+  NC_SAFE_CALL( nc_def_dim( ncid, "delta_y", nTrans, &dimIDs[iY] ) );
+  NC_SAFE_CALL( nc_def_dim( ncid, "delta_z", nTrans, &dimIDs[iZ] ) );
+
+  // Set up the variable ID
+  int varID;
+  NC_SAFE_CALL( nc_def_var( ncid,
+                            "log_p",
+                            NC_FLOAT,
+                            3, dimIDs,
+                            &varID ) );
+
+  // Make the end of the 'definition' region
+  NC_SAFE_CALL( nc_enddef( ncid ) );
+
+  // Write the log ps
+  NC_SAFE_CALL( nc_put_var_float( ncid,
+				  varID,
+				  logps ) );
+
+
+  // Close the file
+  NC_SAFE_CALL( nc_close( ncid ) );
+}
+
+#endif
+
 
 // ==================================================================
 
@@ -92,16 +171,18 @@ __device__ float MRIlookup( const float3 r ) {
 
 //! Computes the log_p value for a single point.
 __device__ float ComputeLogP( const float val, const float mean,
-			      const float prior, const float covar ) {
+			      const float prior, const float covar,
+                              const float clamp ) {
   
   float det = covar;
 
   float v = val - mean;
 
-  float log_p = - logf( sqrtf( det ) ) - 0.5*( v*v / covar ) + logf( prior );
+  float log_p = - logf( sqrtf( det ) ) - 0.5f*( v*v / covar ) + logf( prior );
 
-  if( log_p < -3 ) {
-    log_p = -3;
+  // Assume that clamp is already -ve
+  if( log_p < clamp ) {
+    log_p = clamp;
   }
 
   return( log_p );
@@ -111,7 +192,8 @@ __device__ float ComputeLogP( const float val, const float mean,
 
 //! Routine to sum all the logps for a given transform in shared memory
 __device__ float SumLogPs( const GPU::Classes::AffineTransShared &afTrans,
-			   const GPU::Classes::GCASonGPU& gcas ) {
+			   const GPU::Classes::GCASonGPU& gcas,
+                           const float clamp ) {
   // The accumulator array for this block
   __shared__ float myLogps[kOptimiseBlockSize];
   myLogps[threadIdx.x] = 0;
@@ -126,14 +208,15 @@ __device__ float SumLogPs( const GPU::Classes::AffineTransShared &afTrans,
       myLogps[threadIdx.x] += ComputeLogP( mriVal,
 					   gcas.means[i+threadIdx.x],
 					   gcas.priors[i+threadIdx.x],
-					   gcas.covars[i+threadIdx.x] );
+					   gcas.covars[i+threadIdx.x],
+                                           clamp );
     }
   }
 
   __syncthreads();
 
   // Perform reduction sum
-#if 0
+#if 1
   // Slow but always correct version
   for( unsigned int d=blockDim.x / 2; d>0; d>>=1 ) {
     if( threadIdx.x < d ) { 
@@ -174,6 +257,7 @@ __device__ float SumLogPs( const GPU::Classes::AffineTransShared &afTrans,
 __global__
 void ComputeAllLogP( const GPU::Classes::AffineTransformation afTrans,
 		     const GPU::Classes::GCASonGPU gcas,
+                     const float clamp,
 		     float *logps ) {
   /*!
     Driver kernel to compute the value of log_p for every sample.
@@ -196,19 +280,22 @@ void ComputeAllLogP( const GPU::Classes::AffineTransformation afTrans,
   logps[iSample] = ComputeLogP( mriVal,
 				gcas.means[iSample],
 				gcas.priors[iSample],
-				gcas.covars[iSample] );
+				gcas.covars[iSample],
+                                clamp );
 }
 
 
 //! Kernel to compute all probabilities for a given translation generator
 __global__
 void TranslationLogps( const GPU::Classes::AffineTransformation base,
-				  const TranslationGenerator tGen,
-				  const GPU::Classes::GCASonGPU gcas,
-				  float *logps ) {
+                       const TranslationGenerator tGen,
+                       const GPU::Classes::GCASonGPU gcas,
+                       const float clamp,
+                       float *logps ) {
+  const size_t b1d = blockIdx.x + ( blockIdx.y * gridDim.x );
 
   // Find our translation
-  float3 myTrans = tGen( blockIdx.x );
+  float3 myTrans = tGen( b1d );
   
   __shared__ float m1[GPU::Classes::AffineTransShared::kMatrixSize];
   __shared__ float m2[GPU::Classes::AffineTransShared::kMatrixSize];
@@ -236,10 +323,10 @@ void TranslationLogps( const GPU::Classes::AffineTransformation base,
   
   // Compute the final result
 
-  float myLogP = SumLogPs( final, gcas );
+  float myLogP = SumLogPs( final, gcas, clamp );
 
   if( threadIdx.x == 0 ) {
-    logps[ blockIdx.x ] = myLogP;
+    logps[ b1d ] = myLogP;
   }
 }
 
@@ -250,6 +337,7 @@ __global__
 void TransformLogps( const GPU::Classes::AffineTransformation base,
 		     const float3 originTranslation,
 		     const GPU::Classes::GCASonGPU gcas,
+                     const float clamp,
 		     float *logps ) {
 
   
@@ -333,7 +421,7 @@ void TransformLogps( const GPU::Classes::AffineTransformation base,
 
   // -- All threads now have access to the transformation
   
-  float myLogp = SumLogPs( B, gcas );
+  float myLogp = SumLogPs( B, gcas, clamp );
 
   // Write the final result
   if( threadIdx.x == 0 ) {
@@ -348,7 +436,8 @@ void TransformLogps( const GPU::Classes::AffineTransformation base,
 // ===================================================================
 // External Functions
 
-float CUDA_ComputeLogSampleProbability( const MATRIX *m_L ) {
+float CUDA_ComputeLogSampleProbability( const MATRIX *m_L,
+                                        const float clamp ) {
 /*!
     Re-implementation of local_GCAcomputeLogSampleProbability() from
     file mri_em_register.c.
@@ -381,7 +470,9 @@ float CUDA_ComputeLogSampleProbability( const MATRIX *m_L ) {
   grid.x = static_cast<int>( ceilf ( static_cast<float>(nsamples) / threads.x ) );
   grid.y = grid.z = 1;
 
+  // Do the computation (note sign change on clamp!
   ComputeAllLogP<<<grid,threads>>>( myTransform, myGCASonGPU,
+                                    -clamp,
 				    thrust::raw_pointer_cast(d_logpvals) );
   CUDA_CHECK_ERROR( "ComputeAllLogP kernel failed!\n" );
 
@@ -402,6 +493,7 @@ void CUDA_FindOptimalTranslation( const MATRIX *baseTransform,
 				  const float minTrans,
 				  const float maxTrans,
 				  const unsigned int nTrans,
+                                  const float clamp,
 				  float *maxLogP,
 				  float *dx,
 				  float *dy,
@@ -412,6 +504,18 @@ void CUDA_FindOptimalTranslation( const MATRIX *baseTransform,
     A 'base' transform is supplied, and then translations
     within the given limits are searched
   */
+
+#ifdef OUTPUT_STAGES
+  static unsigned int nCalls = 0;
+
+  std::stringstream fileName;
+  fileName << "FastTransGPU"
+           << std::setw(2) << std::setfill('0')
+           << nCalls
+           << ".output";
+  
+  std::ofstream outFile( fileName.str().c_str() );
+#endif
 
   const unsigned int totalTrans = nTrans * nTrans * nTrans;
 
@@ -439,24 +543,31 @@ void CUDA_FindOptimalTranslation( const MATRIX *baseTransform,
   threads.x = kOptimiseBlockSize;
   threads.y = threads.z = 1;
 
-  grid.x = totalTrans;
-  grid.y = grid.z = 1;
+  grid.x = nTrans*nTrans;
+  grid.y = nTrans;
+  grid.z = 1;
 
   TranslationLogps<<<grid,threads>>>( myBaseTransform,
 				      myGen,
 				      myGCAS,
+                                      -clamp, // Note sign change
 				      thrust::raw_pointer_cast( d_logps ) );
   CUDA_CHECK_ERROR( "TranslationLogps failed!" );
  
-#if 0
+#ifdef OUTPUT_STAGES
+  std::vector<float> h_logps( totalTrans );
   for( unsigned int i=0; i<totalTrans; i++ ) {
     float3 translation = myGen(i);
-    cout << __FUNCTION__  << " "
-	 << setw(8) << setprecision(4) << translation.x << " "
-	 << setw(8) << setprecision(4) << translation.y << " "
-	 << setw(8) << setprecision(4) << translation.z << " "
-	 << setw(12) << setprecision(8) << d_logps[i] << endl;
+    outFile << setw(20) << setprecision(12) << translation.x << ",";
+    outFile << setw(20) << setprecision(12) << translation.y << ",";
+    outFile << setw(20) << setprecision(12) << translation.z << ",";
+    outFile << setw(20) << setprecision(12) << d_logps[i];
+    outFile << "\n";
+    h_logps.at(i) = d_logps[i];
   }
+  WriteTranslationLogPs( minTrans, maxTrans, nTrans,
+                         &h_logps[0], nCalls );
+                         
 #endif
 
   // Extract the maximum location
@@ -476,6 +587,11 @@ void CUDA_FindOptimalTranslation( const MATRIX *baseTransform,
   *dz = trans.z;
 
   thrust::device_delete( d_logps );
+
+#ifdef OUTPUT_STAGES
+  nCalls++;
+#endif
+
 }
 
 
@@ -493,6 +609,7 @@ void CUDA_FindOptimalTransform( const MATRIX *baseTransform,
 				const float minRot,
 				const float maxRot,
 				const unsigned int nRot,
+                                const float clamp,
 				double *maxLogP,
 				double *dx,
 				double *dy,
@@ -572,6 +689,7 @@ void CUDA_FindOptimalTransform( const MATRIX *baseTransform,
   TransformLogps<<<grid,threads>>>( myBaseTransform,
 				    oTranslate,
 				    myGCAS,
+                                    -clamp, // Note sign change
 				    thrust::raw_pointer_cast( d_logps ) );
   CUDA_CHECK_ERROR( "TransformLogps failed!" );
   
@@ -630,7 +748,9 @@ void CUDA_em_register_Prepare( GCA *gca,
   src_uchar.Allocate( mri );
   src_uchar.Send( mri, nFrame );
 
-  srcFactory.reset( new GPU::Classes::CTfactory( src_uchar, dt_mri ) );
+  srcFactory.reset( new GPU::Classes::CTfactory( src_uchar,
+                                                 dt_mri,
+                                                 cudaFilterModePoint ) );
 
   // Send the GCAS
 

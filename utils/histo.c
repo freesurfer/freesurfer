@@ -7,21 +7,19 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2010/03/16 22:33:48 $
- *    $Revision: 1.67 $
+ *    $Author: nicks $
+ *    $Date: 2012/08/28 22:11:22 $
+ *    $Revision: 1.70.2.1 $
  *
- * Copyright (C) 2002-2007,
- * The General Hospital Corporation (Boston, MA). 
- * All rights reserved.
+ * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
- * Distribution, usage and copying of this software is covered under the
- * terms found in the License Agreement file named 'COPYING' found in the
- * FreeSurfer source code root directory, and duplicated here:
- * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ * Terms and conditions for use, reproduction, distribution and contribution
+ * are found in the 'FreeSurfer Software License Agreement' contained
+ * in the file 'LICENSE' found in the FreeSurfer distribution, and here:
  *
- * General inquiries: freesurfer@nmr.mgh.harvard.edu
- * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
+ *
+ * Reporting: freesurfer@nmr.mgh.harvard.edu
  *
  */
 
@@ -1476,12 +1474,13 @@ HISTOfillHoles(HISTO *h)
 }
 
 
-int
+float
 HISTOtotalInRegion(HISTO *h, int b0, int b1)
 {
-  int b, total ;
+  int b;
+  float total =0.0 ;
 
-  for (total = 0, b = b0 ; b <= b1 ; b++)
+  for (b = b0 ; b <= b1 ; b++)
   {
     total += h->counts[b] ;
   }
@@ -1489,7 +1488,7 @@ HISTOtotalInRegion(HISTO *h, int b0, int b1)
   return(total) ;
 }
 
-int
+float
 HISTOtotal(HISTO *h)
 {
   return HISTOtotalInRegion(h,0,h->nbins-1);	
@@ -1577,20 +1576,20 @@ HISTOclearBG(HISTOGRAM *hsrc, HISTOGRAM *hdst, int *pbg_end)
   return(hdst) ;
 }
 
-#if 0
-static double
-histoComputeLinearFitCorrelation(HISTOGRAM *h1, HISTOGRAM *h2, double a, double b)
+double
+HISTOcorrelate(HISTOGRAM *h1, HISTOGRAM *h2)
 {
   int    b1, b2, h2_done[256] ;
-  double error, sse, c1, c2;
+  double correlation, c1, c2, norm1, norm2 ;
 
   if (h2->nbins > 256)
     ErrorExit(ERROR_UNSUPPORTED, 
               "histoComputeLinearFitCorrelation: only 256 bins allowed") ;
   memset(h2_done, 0, sizeof(h2_done)) ;
-  for (sse = 0.0, b1 = 0 ; b1 < h1->nbins ; b1++)
+  norm1 = norm2 = 0.0 ;
+  for (correlation = 0, b1 = 0 ;  b1 < h1->nbins ; b1++)
   {
-    b2 = nint(b1*a+b) ;
+    b2 = HISTOfindBin(h2, h1->bins[b1]) ;
     if ((b2 < 0) || (b2 > h2->nbins-1))
       c2 = 0 ;
     else
@@ -1599,28 +1598,18 @@ histoComputeLinearFitCorrelation(HISTOGRAM *h1, HISTOGRAM *h2, double a, double 
       h2_done[b2] = 1 ;
     }
     c1 = h1->counts[b1] ;
-    error = (c2 - c1) ;
-    sse += error*error ;
+    correlation += c1 * c2 ;
+    norm1 += c1*c1 ;
+    norm2 += c2*c2 ;
   }
 
-  // inverse map
-  for (b2 = 0 ; b2 < h2->nbins ; b2++)
-  {
-    if (h2_done[b2])
-      continue ;
-    b1 = nint((b2-b)/a) ;
-    if ((b1 < 0) || (b1 > h1->nbins-1))
-      c1 = 0 ;
-    else
-      c1 = h1->counts[b1] ;
-    c2 = h2->counts[b2] ;
-    error = (c2 - c1) ;
-    sse += error*error ;
-  }
-
-  return(sse) ;
+  if (FZERO(norm1))
+    norm1 = 1.0 ;
+  if (FZERO(norm2))
+    norm2 = 1.0 ;
+  correlation /= (sqrt(norm1) * sqrt(norm2)) ;
+  return(correlation) ;
 }
-#endif
 
 
 static double
@@ -1660,7 +1649,7 @@ histoComputeLinearFitCorrelation(HISTOGRAM *h1, HISTOGRAM *h2, double a, double 
 
 
 #define NSTEPS 100
-int
+double
 HISTOfindLinearFit(HISTOGRAM *h1, HISTOGRAM *h2, double amin, double amax,
                    double bmin, double bmax, float *pa, float *pb)
 {
@@ -1688,7 +1677,7 @@ HISTOfindLinearFit(HISTOGRAM *h1, HISTOGRAM *h2, double amin, double amax,
   *pa = best_a ;
   *pb = best_b ;
 
-  return(NO_ERROR) ;
+  return(best_correlation) ;
 }
 
 
@@ -2133,6 +2122,22 @@ HISTOscalarMul(HISTOGRAM *hsrc, float mul, HISTOGRAM *hdst)
 
   for (b = 0 ; b < hsrc->nbins ; b++)
     hdst->counts[b] = hsrc->counts[b] * mul ;
+
+  return(hdst) ;
+}
+
+HISTOGRAM *
+HISTOscalarAdd(HISTOGRAM *hsrc, float add, HISTOGRAM *hdst) 
+{
+  int  b ;
+
+  if (!hdst)
+    hdst = HISTOalloc(hsrc->nbins) ;
+  else
+    hdst->nbins = hsrc->nbins ;
+
+  for (b = 0 ; b < hsrc->nbins ; b++)
+    hdst->counts[b] = hsrc->counts[b] + add ;
 
   return(hdst) ;
 }
