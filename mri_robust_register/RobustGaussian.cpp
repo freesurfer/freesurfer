@@ -8,8 +8,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2012/05/21 20:32:04 $
- *    $Revision: 1.15 $
+ *    $Date: 2012/08/29 20:36:57 $
+ *    $Revision: 1.16 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -39,18 +39,21 @@ extern "C"
 
 using namespace std;
 
-/*
-  * This Quickselect routine is based on the algorithm described in
-  * "Numerical recipes in C", Second Edition,
-  * Cambridge University Press, 1992, Section 8.5, ISBN 0-521-43108-5
-  * This code is based on code by Nicolas Devillard - 1998. Public domain.  
-  * see also http://ndevilla.free.fr/median/median.pdf
-  * or http://ndevilla.free.fr/median/median/index.html
-  * modifications: - instead of only selecting the median, select the k-th smallest
-  *                - additionally keep track of the index in the original array
-  */
 #define ELEM_SWAPD(a,b) { T t=a;a=b;b=t; }
 #define ELEM_SWAPI(a,b) { int t=a;a=b;b=t; }
+/**
+   This Quickselect routine is based on the algorithm described in
+   "Numerical recipes in C", Second Edition,
+   Cambridge University Press, 1992, Section 8.5, ISBN 0-521-43108-5 .
+   
+   This code is based on code by Nicolas Devillard - 1998. Public domain.  
+   See also http://ndevilla.free.fr/median/median.pdf
+   or http://ndevilla.free.fr/median/median/index.html .
+
+   Modifications: 
+   - instead of only selecting the median, select the k-th smallest
+   - additionally keep track of the index in the original array
+*/
 template <class T>
 pair < T , int > RobustGaussian<T>::quick_selectI(T arr[], int n, int k)
 {
@@ -131,6 +134,18 @@ pair < T , int > RobustGaussian<T>::quick_selectI(T arr[], int n, int k)
   }
 }
 
+/**
+   This Quickselect routine is based on the algorithm described in
+   "Numerical recipes in C", Second Edition,
+   Cambridge University Press, 1992, Section 8.5, ISBN 0-521-43108-5 .
+   
+   This code is based on code by Nicolas Devillard - 1998. Public domain.  
+   See also http://ndevilla.free.fr/median/median.pdf
+   or http://ndevilla.free.fr/median/median/index.html .
+
+   Modifications: 
+   - instead of only selecting the median, select the k-th smallest
+*/
 template <class T>
 T RobustGaussian<T>::quick_select(T arr[], int n, int k)
 {
@@ -196,30 +211,20 @@ T RobustGaussian<T>::quick_select(T arr[], int n, int k)
   }
 }
 
-/*---------------------------------------------------------------------------
-   Function :   kth_smallest()
-   In       :   array of elements, # of elements in the array, rank k
-   Out      :   one element
-   Job      :   find the kth smallest element in the array
+/**
+   Find the kth smallest element in the array.
+   Reorders a[] (of length n) and returns k_th smallest and original position in array.
 
-                Reference:
+   Reference:
+   Niklaus Wirth, Algorithms + data structures = programs, Prentice-Hall, 1976
 
-                  Author: Wirth, Niklaus
-                   Title: Algorithms + data structures = programs
-               Publisher: Englewood Cliffs: Prentice-Hall, 1976
-    Physical description: 366 p.
-                  Series: Prentice-Hall Series in Automatic Computation
+   Implementation based on code by N.Devillard. Public Domain.
 
-    Implementation based on code by N.Devillard. Public Domain.
-
-    kth_smallestI is modified: we keep track of the position inside the original 
-    array of the k_th smallest element
-
- ---------------------------------------------------------------------------*/
+   Modification:
+   - we keep track of the position inside the original array of the k_th smallest element.
+*/
 template <class T>
 std::pair < T , int> RobustGaussian<T>::kth_smallestI(T a[], int n, int k)
-// reorders a[] (of length n)
-// returns k_th smallest and original position in array
 {
   int i,j,l,m ;
   int kk = k-1;
@@ -258,10 +263,17 @@ std::pair < T , int> RobustGaussian<T>::kth_smallestI(T a[], int n, int k)
   return pair < T, int > (a[kk],pp) ;
 }
 
+/**
+   Find the kth smallest element in the array.
+   Reorders a[] (of length n) and returns k_th smallest elemnt in array.
+
+   Reference:
+   Niklaus Wirth, Algorithms + data structures = programs, Prentice-Hall, 1976
+
+   Implementation based on code by N.Devillard. Public Domain.
+*/
 template <class T>
 T RobustGaussian<T>::kth_smallest(T a[], int n, int k)
-// reorders a[] (of length n)
-// returns k_th smallest and original position in array
 {
   int i,j,l,m ;
   int kk = k-1;
@@ -296,11 +308,11 @@ T RobustGaussian<T>::kth_smallest(T a[], int n, int k)
 #undef ELEM_SWAPD
 #undef ELEM_SWAPI
 
+/** Compute median in situ, t will be reordered.
+   The index (return.second ) is type double or float because with even number of elements, we will lie between two indices.
+*/
 template <class T>
 pair < T, T > RobustGaussian<T>::medianI(T t[],int n)
-// compute median
-// in situ, t will be reordered
-// index (return.second ) is T (double or float) because with even no of elements, we lie between two indices
 {
 
   pair < T, int > qs;
@@ -324,10 +336,10 @@ pair < T, T > RobustGaussian<T>::medianI(T t[],int n)
 
 }
 
+/** Compute median in situ, t will be reordered.
+*/
 template <class T>
 T RobustGaussian<T>::median(T t[],int n)
-// compute median
-// in situ, t will be reordered
 {
 
   T q;
@@ -367,11 +379,14 @@ void mmm (T a[], int n)
 	 cout << " min: " << min << "  max: " << max << "  mean: " << mean << endl;
 }
 
+/**
+  \f$ MAD = med_i(|r_i - med_j(r_j)|)\f$
+  To obtain a robust estimate for sigma (using median absolute deviation):
+  \f$ 1.4826 \ MAD \f$
+  Array a will be reordered!
+*/
 template <class T>
 T RobustGaussian<T>::mad(T a[], int n, T d)
-// robust estimate for sigma (using median absolute deviation)
-// 1.4826 med_i(|r_i - med_j(r_j)|)
-// array a will be reordered!
 {
   T medi = median(a,n);
 	
