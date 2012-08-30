@@ -86,7 +86,7 @@
       <argument>-n &lt;int n&gt;</argument>
       <explanation>use n regions/struct for normalization</explanation>
       <argument>-v &lt;int n&gt;</argument>
-      <explanation>does nothing as far as i can tell, but an option</explanation>
+      <explanation>used for debugging and diagnostics</explanation>
       <argument>-p &lt;float p&gt;</argument>
       <explanation>use top p percent(default=.25) white matter points as control points</explanation>
     </optional-flagged>
