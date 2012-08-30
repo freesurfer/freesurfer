@@ -109,6 +109,8 @@
       <explanation>longitudinal processing: mri_vol is label from tp1, LTA is registration from tp1 to current data</explanation>
       <argument>-RELABEL_UNLIKELY &lt;1/0&gt; &lt;wsize&gt; &lt;sigma&gt; &lt;thresh&gt;</argument>
       <explanation>reclassify voxels at least &lt;thresh&gt; std devs from the mean using a &lt;wsize&gt; Gaussian window (with &lt;sigma&gt; standard dev) to recompute priors and likelihoods</explanation>
+      <argument>-nowmsa</argument>
+      <explanation>disables WMSA labels (hypo/hyper-intensities), selects second most probable label for each WMSA labelled voxel instead</explanation>
     </optional-flagged>
   </arguments>
   <outputs>
