@@ -58,6 +58,7 @@ EXTRA_DIST=\
 	fsgdf_wrap.h \
 	fsglm.h \
 	fixedmap.hpp \
+	fsinit.h \
 	gcaboundary.h \
 	gca.h \
 	gcalinearnode.hpp \
