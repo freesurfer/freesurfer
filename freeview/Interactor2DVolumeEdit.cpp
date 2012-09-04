@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2012/04/25 00:04:02 $
- *    $Revision: 1.26 $
+ *    $Date: 2012/09/04 18:50:45 $
+ *    $Revision: 1.27 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -39,7 +39,8 @@
 
 Interactor2DVolumeEdit::Interactor2DVolumeEdit( const QString& layerTypeName, QObject* parent ) :
   Interactor2D( parent ),
-  m_bEditing( false )
+  m_bEditing( false ),
+  m_bColorPicking( false )
 {
   m_strLayerTypeName = layerTypeName;
 }
@@ -87,7 +88,24 @@ bool Interactor2DVolumeEdit::ProcessMouseDownEvent( QMouseEvent* event, RenderVi
       double ras[3];
       view->MousePositionToRAS( m_nMousePosX, m_nMousePosY, ras );
       bool bCondition = !(event->modifiers() & Qt::ShiftModifier) && !(event->buttons() & Qt::RightButton);
-      if ( m_nAction == EM_Freehand ) //&& ( event->ControlDown() ) )
+      if ( (m_nAction == EM_ColorPicker || m_bColorPicking ) && mri->IsTypeOf( "MRI" ) )
+      {
+        if ( event->modifiers() & CONTROL_MODIFIER )
+        {
+          mri->SaveForUndo(bFill3D ? -1 : view->GetViewPlane());
+          mri->FloodFillByRAS( ras, view->GetViewPlane(), bCondition, bFill3D );
+        }
+        else
+        {
+          double dValue = ((LayerMRI*)mri)->GetVoxelValue( ras );
+          if ( dValue != 0 )
+          {
+            mri->SetFillValue( (float)dValue );
+          }
+        }
+        m_bColorPicking = false;
+      }
+      else if ( m_nAction == EM_Freehand ) //&& ( event->ControlDown() ) )
       {
         if ( event->modifiers() & CONTROL_MODIFIER )
         {
@@ -143,22 +161,6 @@ bool Interactor2DVolumeEdit::ProcessMouseDownEvent( QMouseEvent* event, RenderVi
           }
 
           view->grabMouse();
-        }
-      }
-      else if ( m_nAction == EM_ColorPicker && mri->IsTypeOf( "MRI" ) )
-      {
-        if ( event->modifiers() & CONTROL_MODIFIER )
-        {
-          mri->SaveForUndo(bFill3D ? -1 : view->GetViewPlane());
-          mri->FloodFillByRAS( ras, view->GetViewPlane(), bCondition, bFill3D );
-        }
-        else
-        {
-          double dValue = ((LayerMRI*)mri)->GetVoxelValue( ras );
-          if ( dValue != 0 )
-          {
-            mri->SetFillValue( (float)dValue );
-          }
         }
       }
       else if ( m_nAction == EM_Contour && mri->IsTypeOf( "MRI" ) )
@@ -370,6 +372,16 @@ bool Interactor2DVolumeEdit::ProcessKeyDownEvent( QKeyEvent* event, RenderView* 
     view->RequestRedraw();
     return false;
   }
+  else if (event->modifiers() & Qt::ShiftModifier && event->key() == Qt::Key_C)
+  {
+    m_bColorPicking = true;
+    return false;
+  }
+  else if (event->key() == Qt::Key_Escape)
+  {
+    m_bColorPicking = false;
+    return false;
+  }
 
   if ( !m_bEditing )
   {
@@ -425,7 +437,7 @@ void Interactor2DVolumeEdit::UpdateCursor( QEvent* event, QWidget* wnd )
       {
         wnd->setCursor( CursorFactory::CursorFill );
       }
-      else if ( m_nAction == EM_ColorPicker )
+      else if ( m_nAction == EM_ColorPicker || m_bColorPicking )
       {
         wnd->setCursor( CursorFactory::CursorColorPicker );
       }
