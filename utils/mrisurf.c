@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2012/08/25 15:56:07 $
- *    $Revision: 1.737 $
+ *    $Author: greve $
+ *    $Date: 2012/09/04 20:31:44 $
+ *    $Revision: 1.738 $
  *
  * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -764,7 +764,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void)
 {
-  return("$Id: mrisurf.c,v 1.737 2012/08/25 15:56:07 fischl Exp $");
+  return("$Id: mrisurf.c,v 1.738 2012/09/04 20:31:44 greve Exp $");
 }
 
 /*-----------------------------------------------------
@@ -73457,45 +73457,48 @@ MRI *MRISsmoothMRI(MRIS *Surf,
   -------------------------------------------------------------------*/
 MRI *MRISsmoothMRIFast(MRIS *Surf, MRI *Src, int nSmoothSteps, MRI *IncMask,  MRI *Targ)
 {
-  int nnbrs, nthstep, frame, vno, nthnbr, num, nvox, nbrvno;
-  MRI *SrcTmp;
+  int nnbrs, nthstep, frame, vno, nthnbr, num, nvox, nbrvno,reshape;
+  MRI *SrcTmp,*mritmp,*IncMaskTmp=NULL;
   struct timeb  mytimer;
   int msecTime;
   int *nNbrs, *nNbrs0, *rip, *rip0, nNbrsMax;
   float **pF, **pF0, *tF, *tF0, sumF;
   VERTEX *v, *vn;
 
-  if(Gdiag_no > 0)
-  {
-    printf("MRISsmoothMRIFast()\n");
-  }
+  if(Gdiag_no > 0) printf("MRISsmoothMRIFast()\n");
 
   nvox = Src->width * Src->height * Src->depth;
-  if (Surf->nvertices != nvox)
-  {
+  if (Surf->nvertices != nvox){
     printf("ERROR: MRISsmoothMRIFast(): Surf/Src dimension mismatch\n");
     return(NULL);
   }
-  if(Targ == NULL)
-  {
-    Targ = MRIallocSequence(Src->width, Src->height, Src->depth,
-                            MRI_FLOAT, Src->nframes);
-    if (Targ==NULL)
-    {
-      printf("ERROR: MRISsmoothMRIFast(): could not alloc\n");
+  if(IncMask){
+    if(IncMask->width * IncMask->height * IncMask->depth != nvox){
+      printf("ERROR: MRISsmoothMRIFast(): Surf/Mask dimension mismatch\n");
+      return(NULL);      
+    }
+    if(IncMask->width != nvox) IncMaskTmp = mri_reshape(IncMask, nvox, 1, 1, IncMask->nframes);
+    else                       IncMaskTmp = MRIcopy(IncMask,NULL);
+  }
+  // Reshape the source if needed
+  if(Src->width != nvox){
+    if(Gdiag_no > 0) printf("MRISsmoothMRIFast(): reshaping\n");
+    SrcTmp = mri_reshape(Src, nvox, 1, 1, Src->nframes);
+    reshape = 1;
+  } 
+  else{
+    reshape = 0;
+    SrcTmp = MRIcopy(Src,NULL);
+  }
+  if(Targ != NULL){
+    if(MRIdimMismatch(Src,Targ,1)){
+      printf("ERROR: MRISsmoothFast(): output dimension mismatch\n");
       return(NULL);
     }
-    MRIcopyHeader(Src,Targ);
-  }
-  if(MRIdimMismatch(Src,Targ,1))
-  {
-    printf("ERROR: MRISsmoothFast(): output dimension mismatch\n");
-    return(NULL);
-  }
-  if(Targ->type != MRI_FLOAT)
-  {
-    printf("ERROR: MRISsmoothFast(): structure passed is not MRI_FLOAT\n");
-    return(NULL);
+    if(Targ->type != MRI_FLOAT){
+      printf("ERROR: MRISsmoothFast(): structure passed is not MRI_FLOAT\n");
+      return(NULL);
+    }
   }
 
   // Alloc arrays. If there are ripped vertices, then only rip
@@ -73504,7 +73507,7 @@ MRI *MRISsmoothMRIFast(MRIS *Surf, MRI *Src, int nSmoothSteps, MRI *IncMask,  MR
   pF = (float **) calloc(Surf->nvertices*nNbrsMax,sizeof(float *));
   tF = (float *)  calloc(Surf->nvertices,sizeof(float));
   nNbrs = (int *) calloc(Surf->nvertices,sizeof(int));
-  rip = (int *) calloc(Surf->nvertices,sizeof(int));
+  rip = (int *)   calloc(Surf->nvertices,sizeof(int));
 
   pF0 = pF;
   tF0 = tF;
@@ -73512,7 +73515,6 @@ MRI *MRISsmoothMRIFast(MRIS *Surf, MRI *Src, int nSmoothSteps, MRI *IncMask,  MR
   nNbrs0 = nNbrs;
 
   TimerStart(&mytimer) ;
-  SrcTmp = MRIcopy(Src,NULL);
 
   // Loop through frames
   for (frame = 0; frame < Src->nframes; frame ++)
@@ -73525,13 +73527,12 @@ MRI *MRISsmoothMRIFast(MRIS *Surf, MRI *Src, int nSmoothSteps, MRI *IncMask,  MR
     for (vno = 0 ; vno < Surf->nvertices ; vno++)
     {
       v = &Surf->vertices[vno] ;
-      if(IncMask && MRIgetVoxVal(IncMask,vno,0,0,0) < 0.5)
+      if(IncMaskTmp && MRIgetVoxVal(IncMaskTmp,vno,0,0,0) < 0.5)
       {
         // Mask is inclusive, so look for out of mask
         // should exclude rips here too? Original does not.
         rip[vno] = 1;
         MRIFseq_vox(SrcTmp,vno,0,0,frame) = 0;
-        MRIFseq_vox(Targ,vno,0,0,frame) = 0;
         continue ;
       }
       rip[vno] = 0;
@@ -73546,7 +73547,7 @@ MRI *MRISsmoothMRIFast(MRIS *Surf, MRI *Src, int nSmoothSteps, MRI *IncMask,  MR
         {
           continue ;
         }
-        if(IncMask && MRIgetVoxVal(IncMask,nbrvno,0,0,0) < 0.5)
+        if(IncMaskTmp && MRIgetVoxVal(IncMaskTmp,nbrvno,0,0,0) < 0.5)
         {
           continue ;
         }
@@ -73595,7 +73596,13 @@ MRI *MRISsmoothMRIFast(MRIS *Surf, MRI *Src, int nSmoothSteps, MRI *IncMask,  MR
   }/* end loop over frame */
 
   // Copy to the output
-  MRIcopy(SrcTmp,Targ);
+  if(reshape){
+    if(Gdiag_no > 0) printf("MRISsmoothFast() reshaping again\n");
+    mritmp = mri_reshape(SrcTmp, Src->width, Src->height, Src->depth, Src->nframes);
+    Targ = MRIcopy(mritmp,Targ);
+    MRIfree(&mritmp);
+  }
+  else Targ = MRIcopy(SrcTmp,Targ);
 
   msecTime = TimerStop(&mytimer) ;
   if(Gdiag_no > 0)
@@ -73605,6 +73612,7 @@ MRI *MRISsmoothMRIFast(MRIS *Surf, MRI *Src, int nSmoothSteps, MRI *IncMask,  MR
   }
 
   MRIfree(&SrcTmp);
+  if(IncMaskTmp) MRIfree(&IncMaskTmp);
   free(pF0);
   free(tF0);
   free(rip0);
@@ -73615,7 +73623,8 @@ MRI *MRISsmoothMRIFast(MRIS *Surf, MRI *Src, int nSmoothSteps, MRI *IncMask,  MR
 /*------------------------------------------------------------------
   MRISsmoothMRIFastFrame() same as MRISsmoothMRIFast() but operates
   on a single frame. This allows the pointers to be cached in
-  a static data structure.
+  a static data structure. Note: this will fail if Src is not
+  nvertices x 1 x 1 x nframes.
   ------------------------------------------------------------------*/
 int MRISsmoothMRIFastFrame(MRIS *Surf, MRI *Src, int frame, int nSmoothSteps, MRI *IncMask)
 {
@@ -73629,21 +73638,18 @@ int MRISsmoothMRIFastFrame(MRIS *Surf, MRI *Src, int frame, int nSmoothSteps, MR
   static int DoInit=1, frameInit=0, *nNbrs=NULL, *nNbrs0=NULL, *rip=NULL, *rip0=NULL, nNbrsMax=0;
   static float **pF=NULL, **pF0=NULL, *tF=NULL, *tF0=NULL;
 
-  if(Gdiag_no > 0)
-  {
-    printf("MRISsmoothMRIFast2()\n");
-  }
+  if(Gdiag_no > 0) printf("MRISsmoothMRIFastFrame()\n");
 
   if(DoInit)
   {
     if(Gdiag_no > 0)
     {
-      printf("MRISsmoothMRIFast2() Init\n");
+      printf("MRISsmoothMRIFastFrame() Init\n");
     }
     nvox = Src->width * Src->height * Src->depth;
     if (Surf->nvertices != nvox)
     {
-      printf("ERROR: MRISsmoothMRIFast2(): Surf/Src dimension mismatch\n");
+      printf("ERROR: MRISsmoothMRIFastFrame(): Surf/Src dimension mismatch\n");
       return(1);
     }
     // Alloc arrays. If there are ripped vertices, then only rip
