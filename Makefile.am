@@ -398,8 +398,11 @@ install-data-hook:
 		fi; \
 	fi;
 	if test ! "x$(AFNIDIR)" = "x" ; then \
-		if test -e $(AFNIDIR) ; then \
+		if test -e $(AFNIDIR)/bin/3dvolreg ; then \
 			cp -f $(AFNIDIR)/bin/3dvolreg $(DESTDIR)$(bindir)/3dvolreg.afni ; \
+		fi; \
+		if test -e $(AFNIDIR)/3dvolreg ; then \
+			cp -f $(AFNIDIR)/3dvolreg $(DESTDIR)$(bindir)/3dvolreg.afni ; \
 		fi; \
 	fi;
 	if test ! "x$(TCL_DIR)" = "x" ; then \
