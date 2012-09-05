@@ -8,8 +8,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2011/07/15 23:58:13 $
- *    $Revision: 1.21 $
+ *    $Date: 2012/09/05 04:45:10 $
+ *    $Revision: 1.22 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -56,7 +56,7 @@ extern "C"
 
 using namespace std;
 
-//static char vcid[] = "$Id: lta_diff.cpp,v 1.21 2011/07/15 23:58:13 mreuter Exp $";
+//static char vcid[] = "$Id: lta_diff.cpp,v 1.22 2012/09/05 04:45:10 mreuter Exp $";
 char *Progname = NULL;
 void writeVox2Vox(LTA * lta)
 {
@@ -574,7 +574,7 @@ int main(int argc, char *argv[])
 
 
   double dist = -1;
-  Registration R;
+  //Registration R;
 	
   LTAchangeType(lta1,LINEAR_RAS_TO_RAS);
 //  LTAchangeType(lta1,LINEAR_VOX_TO_VOX);
