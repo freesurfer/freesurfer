@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl (Apr 16, 1997)
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2012/08/20 19:47:06 $
- *    $Revision: 1.179.2.5 $
+ *    $Date: 2012/09/05 21:23:29 $
+ *    $Revision: 1.179.2.6 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -208,7 +208,7 @@ int main(int argc, char *argv[])
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mri_convert.c,v 1.179.2.5 2012/08/20 19:47:06 mreuter Exp $",
+   "$Id: mri_convert.c,v 1.179.2.6 2012/09/05 21:23:29 mreuter Exp $",
    "$Name:  $",
    cmdline);
 
@@ -328,7 +328,7 @@ int main(int argc, char *argv[])
     handle_version_option
     (
       argc, argv,
-      "$Id: mri_convert.c,v 1.179.2.5 2012/08/20 19:47:06 mreuter Exp $",
+      "$Id: mri_convert.c,v 1.179.2.6 2012/09/05 21:23:29 mreuter Exp $",
       "$Name:  $"
     );
   if (nargs && argc - nargs == 1)
@@ -1665,7 +1665,7 @@ int main(int argc, char *argv[])
             "= --zero_ge_z_offset option ignored.\n");
   }
 
-  printf("$Id: mri_convert.c,v 1.179.2.5 2012/08/20 19:47:06 mreuter Exp $\n");
+  printf("$Id: mri_convert.c,v 1.179.2.6 2012/09/05 21:23:29 mreuter Exp $\n");
   printf("reading from %s...\n", in_name_only);
 
   if (in_volume_type == OTL_FILE)
@@ -2372,7 +2372,7 @@ int main(int argc, char *argv[])
   // Load the transform
   if (transform_flag)
   {
-    printf("INFO: Applying transformation from file %s...\n",
+    printf("INFO: Reading transformation from file %s...\n",
            transform_fname);
     transform_type = TransformFileNameType(transform_fname);
     if (transform_type == MNI_TRANSFORM_TYPE ||
@@ -2518,6 +2518,12 @@ int main(int argc, char *argv[])
                 reslice_like_name);
         exit(1);
       }
+      // if we loaded a transform above, set the lta target geometry from template:
+      if(lta_transform)
+      {
+        lta_transform = LTAchangeType(lta_transform,LINEAR_RAS_TO_RAS);
+        LTAmodifySrcDstGeom(lta_transform, NULL, template);
+      }
     }
   }
   else
@@ -2530,7 +2536,7 @@ int main(int argc, char *argv[])
                      mri->nframes);
     MRIcopyHeader(mri, template);
 
-    // if we loaded a transform above, set the target geometry:
+    // if we loaded a transform above, get target geometry from lta:
     if(lta_transform && lta_transform->xforms[0].dst.valid == 1)
     {
       useVolGeomToMRI(&lta_transform->xforms[0].dst,template);
@@ -2772,10 +2778,9 @@ int main(int argc, char *argv[])
       if (out_like_flag == 1)
       {
         MRI *tmp = 0;
-        printf("INFO: transform dst into the like-volume\n");
+        printf("INFO: transform dst into the like-volume (resample_type %d)\n",resample_type_val);
         tmp = MRIreadHeader(out_like_name, MRI_VOLUME_TYPE_UNKNOWN);
-        mri_transformed =
-        MRIalloc(tmp->width, tmp->height, tmp->depth, mri->type);
+        mri_transformed = MRIalloc(tmp->width, tmp->height, tmp->depth, mri->type);
         if (!mri_transformed)
         {
           ErrorExit(ERROR_NOMEMORY, "could not allocate memory");
@@ -2843,15 +2848,15 @@ int main(int argc, char *argv[])
       // check whether the volume to be morphed and the morph have the same dimensions
       if (invert_transform_flag == 0)
       {
-	printf("morphing to atlas with resample type %d\n", resample_type_val) ;
+        printf("morphing to atlas with resample type %d\n", resample_type_val) ;
         mri_transformed =
-	  GCAMmorphToAtlas(mri, (GCA_MORPH *)tran->xform, NULL, 0, resample_type_val) ;
+           GCAMmorphToAtlas(mri, (GCA_MORPH *)tran->xform, NULL, 0, resample_type_val) ;
       }
       else // invert
       {
         mri_transformed = MRIclone(mri, NULL);
         // check whether the volume to be morphed and the morph have the same dimensions
-	printf("morphing from atlas with resample type %d\n", resample_type_val) ;
+        printf("morphing from atlas with resample type %d\n", resample_type_val) ;
         mri_transformed = GCAMmorphFromAtlas(mri,                  
 					     (GCA_MORPH *)tran->xform,
 					     mri_transformed,
@@ -2943,8 +2948,9 @@ int main(int argc, char *argv[])
     mri = mri2;
   }
 
-  /* ----- reslice if necessary ----- */
-  if (mri->xsize != template->xsize ||
+  /* ----- reslice if necessary and not performed during transform ----- */
+  if (!out_like_flag && !reslice_like_flag 
+      && (mri->xsize != template->xsize ||
       mri->ysize != template->ysize ||
       mri->zsize != template->zsize ||
       mri->width != template->width ||
@@ -2961,7 +2967,7 @@ int main(int argc, char *argv[])
       mri->z_s != template->z_s ||
       mri->c_r != template->c_r ||
       mri->c_a != template->c_a ||
-      mri->c_s != template->c_s)
+      mri->c_s != template->c_s))
   {
     printf("Reslicing using ");
     switch (resample_type_val)
