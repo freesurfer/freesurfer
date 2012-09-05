@@ -11,8 +11,8 @@
  * Original Author: Doug Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2011/12/08 03:23:08 $
- *    $Revision: 1.76 $
+ *    $Date: 2012/09/05 19:23:00 $
+ *    $Revision: 1.77 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -479,7 +479,7 @@ MATRIX *LoadRfsl(char *fname);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_vol2vol.c,v 1.76 2011/12/08 03:23:08 greve Exp $";
+static char vcid[] = "$Id: mri_vol2vol.c,v 1.77 2012/09/05 19:23:00 greve Exp $";
 char *Progname = NULL;
 
 int debug = 0, gdiagno = -1;
@@ -600,12 +600,12 @@ int main(int argc, char **argv) {
 
 
   make_cmd_version_string(argc, argv,
-                          "$Id: mri_vol2vol.c,v 1.76 2011/12/08 03:23:08 greve Exp $",
+                          "$Id: mri_vol2vol.c,v 1.77 2012/09/05 19:23:00 greve Exp $",
                           "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option(argc, argv,
-                                "$Id: mri_vol2vol.c,v 1.76 2011/12/08 03:23:08 greve Exp $",
+                                "$Id: mri_vol2vol.c,v 1.77 2012/09/05 19:23:00 greve Exp $",
                                 "$Name:  $");
   if(nargs && argc - nargs == 1) exit (0);
 
@@ -1179,42 +1179,30 @@ static int parse_commandline(int argc, char **argv) {
     else if (istringnmatch(option, "--lta",0)) {
       if (nargc < 1) argnerr(option,1);
       regfile = pargv[0];
-      if (!stricmp(FileNameExtension(regfile, tmp), "LTA"))
-      {
-        lta = LTAread(regfile) ;
-        if(lta == NULL)
-        {
-           printf("ERROR reading LTA %s !\n",regfile);        
-           exit(1) ;
-        }
-        if (!lta->xforms[0].src.valid)
-        {
-           printf("ERROR LTA %s has no valid src geometry!\n",regfile);        
-           exit(1) ;       
-        }
-        if (!lta->xforms[0].dst.valid)
-        {
-           printf("ERROR LTA %s has no valid dst geometry!\n",regfile);        
-           exit(1) ; 
-        }
-        
-        if(lta->subject[0]==0) strcpy(lta->subject, "subject-unknown"); 
-        subject = (char *) calloc(strlen(lta->subject)+2,sizeof(char));
-        strcpy(subject, lta->subject) ;
-        intensity = lta->fscale ;
-        float2int = FLT2INT_ROUND ;
-        ipr = lta->xforms[0].src.xsize ;
-        bpr = lta->xforms[0].src.zsize ;
-        R = TransformLTA2RegDat(lta);
-        
-        
-        //err = regio_read_register(regfile, &subject, &ipr, &bpr,
-        //                          &intensity, &R, &float2int);
-      }
-      else {
+      if(stricmp(FileNameExtension(regfile, tmp), "LTA")){
         printf("LTA registration file needs to have .lta extension!\n");
         exit(1);        
       }
+      lta = LTAread(regfile) ;
+      if(lta == NULL){
+	printf("ERROR reading LTA %s !\n",regfile);        
+	exit(1) ;
+      }
+      if (!lta->xforms[0].src.valid){
+	printf("ERROR LTA %s has no valid src geometry!\n",regfile);        
+	exit(1) ;       
+      }
+      if (!lta->xforms[0].dst.valid){
+	printf("ERROR LTA %s has no valid dst geometry!\n",regfile);        
+	exit(1) ; 
+      }
+      if(lta->subject[0]==0) strcpy(lta->subject, "subject-unknown"); 
+      subject = (char *) calloc(strlen(lta->subject)+2,sizeof(char));
+      strcpy(subject, lta->subject) ;
+      intensity = lta->fscale ;
+      float2int = FLT2INT_ROUND ;
+      //err = regio_read_register(regfile, &subject, &ipr, &bpr,
+      //                          &intensity, &R, &float2int);
       nargsused = 1;
     } 
     else if (istringnmatch(option, "--mni152reg",0)) {
@@ -1795,7 +1783,22 @@ static void check_options(void) {
     printf("ERROR: No mov volume supplied.\n");
     exit(1);
   }
-  
+  if(lta != NULL){
+    MRI *mrimovtmp,*mritrgtmp;
+    printf("%s %s\n",movvolfile,targvolfile);
+    mrimovtmp = MRIreadHeader(movvolfile,MRI_VOLUME_TYPE_UNKNOWN);
+    if(mrimovtmp == NULL) exit(1);
+    mritrgtmp = MRIreadHeader(targvolfile,MRI_VOLUME_TYPE_UNKNOWN);
+    if(mritrgtmp == NULL) exit(1);
+    lta = LTAchangeType(lta,LINEAR_RAS_TO_RAS);
+    LTAmodifySrcDstGeom(lta, mrimovtmp, mritrgtmp);
+    R = TransformLTA2RegDat(lta);
+    ipr = lta->xforms[0].src.xsize ;
+    bpr = lta->xforms[0].src.zsize ;
+    MRIfree(&mrimovtmp);
+    MRIfree(&mritrgtmp);
+  }
+
   if(outvolfile == NULL && DispFile == NULL) {
     printf("ERROR: No output volume supplied.\n");
     exit(1);
