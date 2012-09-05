@@ -9,9 +9,9 @@
 /*
  * Original Authors: Xiao Han, Nick Schmansky 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/23 23:21:35 $
- *    $Revision: 1.13 $
+ *    $Author: lzollei $
+ *    $Date: 2012/09/05 21:15:50 $
+ *    $Revision: 1.14 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -24,6 +24,8 @@
  * Reporting: freesurfer@nmr.mgh.harvard.edu
  *
  */
+
+// LZ: TODO: have an --all-labels option for computing Dice on all of the lables!
 
 
 #include <stdio.h>
@@ -100,6 +102,11 @@ static int isOverallDiceLabel(int volVal) {
 #define MAX_CLASSES 256
 #define MAX_CLASS_NUM 255
 
+int all_labels_flag = FALSE;
+int num_all_labels = 0;
+int all_labels_of_interest[MAX_CLASSES];
+
+
 int main(int argc, char *argv[]) {
   MRI *mri_seg1, *mri_seg2;
   int nargs, ac;
@@ -126,7 +133,7 @@ int main(int argc, char *argv[]) {
   nargs = 
     handle_version_option
     (argc, argv,
-     "$Id: mri_compute_seg_overlap.c,v 1.13 2011/03/23 23:21:35 nicks Exp $",
+     "$Id: mri_compute_seg_overlap.c,v 1.14 2012/09/05 21:15:50 lzollei Exp $",
      "$Name:  $");
   if (nargs && argc - nargs == 1)
   {
@@ -198,11 +205,20 @@ int main(int argc, char *argv[]) {
              Notice that these labels are not included in the 'if' checks: */
 
           if (v1 == v2) {
-            if (isOverallDiceLabel(v1)) subcorvolume_overlap++;
+	    if (all_labels_flag)
+	      subcorvolume_overlap++;
+            else 
+	      if (isOverallDiceLabel(v1)) subcorvolume_overlap++;
           }
 
-          if (isOverallDiceLabel(v1)) subcorvolume1++;
-          if (isOverallDiceLabel(v2)) subcorvolume2++;
+	  if (all_labels_flag)
+	    subcorvolume1++;
+          else 
+	    if (isOverallDiceLabel(v1)) subcorvolume1++;
+	  if (all_labels_flag) 
+	    subcorvolume2++;
+          else 
+	    if (isOverallDiceLabel(v2)) subcorvolume2++;
 
           Volume_from1[v1]++;
           Volume_from2[v2]++;
@@ -230,41 +246,91 @@ int main(int argc, char *argv[]) {
   printf("Jaccard Coefficients:\n");
   mean1 = 0;
   std1 = 0;
-  for (i=0; i < num_labels; i++) {
-    printf("correct ratio for label %d = %g\n",
-           labels_of_interest[i], correct_ratio[labels_of_interest[i]]);
-    mean1 += correct_ratio[labels_of_interest[i]];
-    std1 += correct_ratio[labels_of_interest[i]] *
-            correct_ratio[labels_of_interest[i]];
+  if (all_labels_flag)
+    {
+      num_all_labels = 0;
+      for (i=0; i < MAX_CLASSES; i++) {
+	if(correct_ratio[i] > 0.0) // This will include zero overlap areas as well (not just non-existing labels. If it is a problem, should flag existing labels....
+	  {
+	    printf("correct ratio for label %d = %g\n",
+		   i, correct_ratio[i]);
+	    mean1 += correct_ratio[i];
+	    std1 += correct_ratio[i] *
+	      correct_ratio[i];
+	    num_all_labels++;
+	  }
+      }
+      mean1 /= num_all_labels;
+      std1 /= num_all_labels;
+      std1 = sqrt(std1 - mean1*mean1);
+      printf("mean +/- std = %6.4f +/- %6.4f\n", mean1, std1);
+    }
+  else {
+    for (i=0; i < num_labels; i++) {
+      printf("correct ratio for label %d = %g\n",
+	     labels_of_interest[i], correct_ratio[labels_of_interest[i]]);
+      mean1 += correct_ratio[labels_of_interest[i]];
+      std1 += correct_ratio[labels_of_interest[i]] *
+	correct_ratio[labels_of_interest[i]];
+    }
+    mean1 /= num_labels;
+    std1 /= num_labels;
+    std1 = sqrt(std1 - mean1*mean1);
+    printf("mean +/- std = %6.4f +/- %6.4f\n", mean1, std1);
   }
-  mean1 /= num_labels;
-  std1 /= num_labels;
-  std1 = sqrt(std1 - mean1*mean1);
-  printf("mean +/- std = %6.4f +/- %6.4f\n", mean1, std1);
 
   printf("Dice Coefficients:\n");
   // printf("ratio of overlap to volume of input1:\n");
   mean2 = 0;
   std2 = 0;
-  for (i=0; i < num_labels; i++) {
-    printf("label %d = %g\n",
-           labels_of_interest[i], correct_ratio2[labels_of_interest[i]]);
-    mean2 += correct_ratio2[labels_of_interest[i]];
-    std2 += correct_ratio2[labels_of_interest[i]] *
-            correct_ratio2[labels_of_interest[i]];
+  if (all_labels_flag)
+    {
+      num_all_labels = 0;
+      for (i=0; i < MAX_CLASSES; i++) {
+	if(correct_ratio2[i] > 0.0) // This will include zero overlap areas as well (not just non-existing labels. If it is a problem, should flag existing labels....                                                                                                        
+          {
+	    all_labels_of_interest[num_all_labels] = i;
+	    printf("label %d = %g\n",
+		   i, correct_ratio2[i]);
+	    mean2 += correct_ratio2[i];
+	    std2 += correct_ratio2[i] *
+	      correct_ratio2[i];
+	    num_all_labels++;
+	  }
+      }
+      mean2 /= num_all_labels;
+      std2 /= num_all_labels;
+      std2 = sqrt(std2 - mean2*mean2);
+      printf("mean +/- std = %6.4f +/- %6.4f \n", mean2, std2);
+    }
+  else {
+    for (i=0; i < num_labels; i++) {
+      printf("label %d = %g\n",
+	     labels_of_interest[i], correct_ratio2[labels_of_interest[i]]);
+      mean2 += correct_ratio2[labels_of_interest[i]];
+      std2 += correct_ratio2[labels_of_interest[i]] *
+	correct_ratio2[labels_of_interest[i]];
+    }
+    mean2 /= num_labels;
+    std2 /= num_labels;
+    std2 = sqrt(std2 - mean2*mean2);
+    printf("mean +/- std = %6.4f +/- %6.4f \n", mean2, std2);
   }
-  mean2 /= num_labels;
-  std2 /= num_labels;
-  std2 = sqrt(std2 - mean2*mean2);
-  printf("mean +/- std = %6.4f +/- %6.4f \n", mean2, std2);
-
+  
   if (log_fname != NULL) {
     log_fp = fopen(log_fname, "a+") ;
     if (!log_fp)
       ErrorExit(ERROR_BADFILE, "%s: could not open %s for writing",
                 Progname, log_fname) ;
-    for (i=0; i < num_labels; i++) {
-      fprintf(log_fp, "%6.4f ", correct_ratio2[labels_of_interest[i]]);
+    if (all_labels_flag) {
+      for (i=0; i < num_all_labels; i++) {
+	fprintf(log_fp, "%6.4f ", correct_ratio2[all_labels_of_interest[i]]);
+      }
+    }
+    else {
+      for (i=0; i < num_labels; i++) {
+	fprintf(log_fp, "%6.4f ", correct_ratio2[labels_of_interest[i]]);
+      }
     }
     fprintf(log_fp, "%6.4f ", mean2);
     fprintf(log_fp, "%6.4f ", std2);
@@ -324,6 +390,11 @@ static int get_option(int argc, char *argv[]) {
   option = argv[1] + 1 ;            /* past '-' */
   if (!stricmp(option, "-help"))
     usage(0) ;
+  else if (!stricmp(option, "-all_labels")) {
+    all_labels_flag = TRUE;
+    nargs = 1;
+    fprintf(stderr, "Computing overlap measures for all commonly existing labels. \n") ;
+  }
   else if (!stricmp(option, "mlog")) {
     mlog_fname = argv[2];
     nargs = 1;
