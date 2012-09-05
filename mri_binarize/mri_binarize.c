@@ -10,8 +10,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2012/04/18 20:11:22 $
- *    $Revision: 1.35 $
+ *    $Date: 2012/09/05 14:46:08 $
+ *    $Revision: 1.36 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -26,7 +26,7 @@
  */
 
 
-// $Id: mri_binarize.c,v 1.35 2012/04/18 20:11:22 greve Exp $
+// $Id: mri_binarize.c,v 1.36 2012/09/05 14:46:08 greve Exp $
 
 /*
   BEGINHELP
@@ -58,6 +58,14 @@ Set min threshold so that the top P percent of the voxels are captured
 in the output mask. The percent will be computed based on the number of
 voxels in the volume (if not input mask is specified) or within the
 input mask.
+
+--fdr fdrthreshold
+
+Set min threshold to achieve a given FDR. By default, it uses the
+absolute value but this can be changed with --fdr-pos and
+--fdr-neg. If a mask is passed, it will compute the voxel-wise
+threshold only with in the places where mask > 0.5.  The mask
+threshold will be ignored.
 
 --match matchvalue <matchvalue2 ...>
 
@@ -179,7 +187,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_binarize.c,v 1.35 2012/04/18 20:11:22 greve Exp $";
+static char vcid[] = "$Id: mri_binarize.c,v 1.36 2012/09/05 14:46:08 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -224,6 +232,9 @@ int DoFrameSum = 0;
 int DoFrameAnd = 0;
 int DoPercent = 0;
 double TopPercent = -1;
+double FDR;
+int DoFDR = 0;
+int FDRSign = 0;
 
 int nErodeNN=0, NNType=0;
 
@@ -260,6 +271,45 @@ int main(int argc, char *argv[]) {
     printf("ERROR: requested frame=%d >= nframes=%d\n",
            frame,InVol->nframes);
     exit(1);
+  }
+
+  // Load the mask volume (if needed)
+  if (MaskVolFile) {
+    printf("Loading mask %s\n",MaskVolFile);
+    MaskVol = MRIread(MaskVolFile);
+    if (MaskVol==NULL) exit(1);
+    if (MaskVol->width != InVol->width) {
+      printf("ERROR: dimension mismatch between input and mask volumes\n");
+      exit(1);
+    }
+    if (MaskVol->height != InVol->height) {
+      printf("ERROR: dimension mismatch between input and mask volumes\n");
+      exit(1);
+    }
+    if (MaskVol->depth != InVol->depth) {
+      printf("ERROR: dimension mismatch between input and mask volumes\n");
+      exit(1);
+    }
+  }
+
+  if(DoFDR){
+    double FDRThresh;
+    // 1 = assume -log10(p)
+    MRIfdr2vwth(InVol, frame, FDR, FDRSign, 1, MaskVol, &FDRThresh, NULL);
+    printf("FDR %g, Sign=%d, Thresh = %g\n",FDR,FDRSign,FDRThresh);
+    if(FDRSign == 0) {
+      DoAbs = 1;
+      MinThresh = FDRThresh;
+      MinThreshSet=1;
+    }
+    if(FDRSign == +1) {
+      MinThresh = FDRThresh;
+      MinThreshSet=1;
+    }
+    if(FDRSign == -1) {
+      MaxThresh = -FDRThresh;
+      MaxThreshSet=1;
+    }
   }
 
   if(DoFrameSum || DoFrameAnd) {
@@ -308,25 +358,6 @@ int main(int argc, char *argv[]) {
     }
     if (MergeVol->depth != InVol->depth) {
       printf("ERROR: dimension mismatch between input and merge volumes\n");
-      exit(1);
-    }
-  }
-
-  // Load the mask volume (if needed)
-  if (MaskVolFile) {
-    printf("Loading mask %s\n",MaskVolFile);
-    MaskVol = MRIread(MaskVolFile);
-    if (MaskVol==NULL) exit(1);
-    if (MaskVol->width != InVol->width) {
-      printf("ERROR: dimension mismatch between input and mask volumes\n");
-      exit(1);
-    }
-    if (MaskVol->height != InVol->height) {
-      printf("ERROR: dimension mismatch between input and mask volumes\n");
-      exit(1);
-    }
-    if (MaskVol->depth != InVol->depth) {
-      printf("ERROR: dimension mismatch between input and mask volumes\n");
       exit(1);
     }
   }
@@ -642,7 +673,16 @@ static int parse_commandline(int argc, char **argv) {
       sscanf(pargv[0],"%lf",&RMaxThresh);
       RMaxThreshSet = 1;
       nargsused = 1;
-    } else if (!strcasecmp(option, "--binval")) {
+    } else if (!strcasecmp(option, "--fdr")) {
+      if (nargc < 1) CMDargNErr(option,1);
+      sscanf(pargv[0],"%lf",&FDR);
+      DoFDR = 1;
+      nargsused = 1;
+    } 
+    else if (!strcasecmp(option, "--fdr-pos")) FDRSign = +1;
+    else if (!strcasecmp(option, "--fdr-neg")) FDRSign = -1;
+    else if (!strcasecmp(option, "--fdr-abs")) FDRSign =  0; //default
+    else if (!strcasecmp(option, "--binval")) {
       if (nargc < 1) CMDargNErr(option,1);
       sscanf(pargv[0],"%d",&BinVal);
       nargsused = 1;
@@ -766,6 +806,8 @@ static void print_usage(void) {
   printf("   --pct P : set threshold to capture top P%% (in mask or total volume)\n");
   printf("   --rmin rmin  : compute min based on rmin*globalmean\n");
   printf("   --rmax rmax  : compute max based on rmax*globalmean\n");
+  printf("   --fdr fdrthresh : compute min based on FDR (assuming -log10(p) input)\n");
+  printf("     --fdr-pos, --fdr-neg, --fdr-abs (use only pos, neg, or abs; abs is default)\n");
   printf("   --match matchval <matchval2 ...>  : match instead of threshold\n");
   printf("   --ctx-wm : set match vals to 2, 41, 77, 251-255 (aseg for cerebral WM)\n");
   printf("   --all-wm : set match vals to 2, 41, 77, 251-255, 7, and 46, (aseg for all WM)\n");
@@ -837,6 +879,14 @@ printf("in the output mask. The percent will be computed based on the number of\
 printf("voxels in the volume (if not input mask is specified) or within the\n");
 printf("input mask.\n");
 printf("\n");
+printf("--fdr fdrthreshold\n");
+printf("\n");
+printf("Set min threshold to achieve a given FDR. By default, it uses the\n");
+printf("absolute value but this can be changed with --fdr-pos and\n");
+printf("--fdr-neg. If a mask is passed, it will compute the voxel-wise\n");
+printf("threshold only with in the places where mask > 0.5.  The mask\n");
+printf("threshold will be ignored.\n");
+printf("\n");
 printf("--match matchvalue <matchvalue2 ...>\n");
 printf("\n");
 printf("Binarize based on matching values. Any number of match values can be \n");
@@ -863,7 +913,7 @@ printf("values. binvalnot only applies when a merge volume is NOT specified.\n")
 printf("\n");
 printf("--frame frameno\n");
 printf("\n");
-printf("Use give frame of the input. 0-based. Default is to do all.\n");
+printf("Use give frame of the input. 0-based. Default is 0.\n");
 printf("\n");
 printf("--frame-sum\n");
 printf("\n");
@@ -922,7 +972,7 @@ static void check_options(void) {
   }
   if(MinThreshSet == 0  && MaxThreshSet == 0 &&
      RMinThreshSet == 0 && RMaxThreshSet == 0 &&
-     !DoMatch ) {
+     !DoMatch && !DoFDR) {
     printf("ERROR: must specify minimum and/or maximum threshold or match values\n");
     exit(1);
   }
