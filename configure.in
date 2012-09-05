@@ -9,8 +9,8 @@
 #
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2012/06/18 20:41:39 $
-#    $Revision: 1.519.2.22 $
+#    $Date: 2012/09/05 19:50:52 $
+#    $Revision: 1.519.2.23 $
 #
 ########################################################################
 AC_PREREQ(2.57)
@@ -197,15 +197,24 @@ AC_PROG_F77
 if test "x$F77" = "x"; then
 	AC_MSG_ERROR([FATAL: A Fortran 77 compiler is required!])
 fi
-# hack: when building with gcc 4.4.*, AC_PROC_LIBTOOL creates
-# a libtool which when run gives CDPATH errors. the workaround
-# is to use the libtool on the system.
+
+# check for gcc 4.4.*, which supports openmp, and requires some special
+# handling in regards to AC_PROC_LIBTOOL
+ac_have_gcc_44="no"
 if test "${CC}" = "gcc"; then
   gcc --version | head -n 1 | awk '{print $2 $3}' | grep "(GCC)4.4." >& /dev/null
   if test "$?" = "0"; then
-    AC_MSG_NOTICE(Copying /usr/bin/libtool overtop the PROG_LIBTOOL)
-    cp /usr/bin/libtool .
+    AC_MSG_NOTICE(Have gcc 4.4)
+    ac_have_gcc_44="yes"
   fi
+fi
+
+# hack: when building with gcc 4.4.*, AC_PROC_LIBTOOL creates
+# a libtool which when run gives CDPATH errors. the workaround
+# is to use the libtool on the system.
+if test "$ac_have_gcc_44" = "yes"; then
+  AC_MSG_NOTICE(Copying /usr/bin/libtool overtop the PROG_LIBTOOL)
+  cp /usr/bin/libtool .
 fi
 
 ################################################################
@@ -624,6 +633,13 @@ AC_ARG_ENABLE(openmp,
      CPPFLAGS="-D_OPENMP -fopenmp $CPPFLAGS"
    fi  
  ])
+# gcc 4.4 supports openmp, so enable it by default (no harm in doing so)
+if test "$ac_have_gcc_44" = "yes"; then
+  ac_have_openmp=yes
+  CPPFLAGS="$CPPFLAGS -fopenmp -DHAVE_OPENMP"
+  LDFLAGS="$LDFLAGS -fopenmp"
+  AC_MSG_NOTICE(Using OpenMP with gcc 4.4)
+fi
 AM_CONDITIONAL(HAVE_OPENMP, test "x$ac_have_openmp" = "xyes")
 
 ##############################################################
@@ -633,6 +649,7 @@ AC_ARG_WITH([opencv],
    [  --with-opencv=PATH         prefix where opencv is installed])
 
 use_opencv="no"
+OPENCV_DIR="no"
 if test -n "$with_opencv"; then
   OPENCV_DIR="$with_opencv"
 else
@@ -1634,23 +1651,24 @@ AM_CONDITIONAL(HAVE_ANN_LIBS, ! test "x$ac_ann_libraries" = "xNO")
 
 
 ############################################################
-# Catch-all flag to enable OpenGL, Tcl/Tk, ITK and KWW apps
+# Catch-all flag to disable OpenGL, Tcl/Tk, ITK and KWW apps
 ############################################################
 tcltk_apps="NO"
 itk_apps="NO"
 kww_apps="NO"
 AC_ARG_ENABLE(all-apps,
- [  --enable-all-apps       enable building Tcl/Tk, ITK, VTK/KWWidgets, wxWidgets and OpenGL-based apps],
- [ tcltk_apps="yes"
-   itk_apps="yes"
-   kww_apps="yes"
-   wxw_apps="yes"
-   need_opengl="yes"
+ [  --disable-all-apps      disable building Tcl/Tk, ITK, VTK/KWWidgets, wxWidgets and OpenGL-based apps],
+ [ tcltk_apps="NO"
+   itk_apps="NO"
+   vtk_apps="NO"
+   kww_apps="NO"
+   wxw_apps="NO"
+   need_opengl="NO"
  ])
 
 AC_ARG_ENABLE(gl-apps,
- [  --enable-gl-apps        enable building OpenGL-based apps],
- [ need_opengl="yes"
+ [  --disable-gl-apps       disable building OpenGL-based apps],
+ [ need_opengl="NO"
  ])
 
 
@@ -1707,8 +1725,8 @@ if test ! "$ac_tcl_libraries" = "NO"; then
 fi
 
 AC_ARG_ENABLE(tcltk-apps,
- [  --enable-tcltk-apps     enable building Tcl/Tk-based apps],
- [ tcltk_apps="yes"
+ [  --disable-tcltk-apps    disable building Tcl/Tk-based apps],
+ [ tcltk_apps="NO"
  ])
 
 if test "$tcltk_apps" = "yes"; then
@@ -1743,9 +1761,9 @@ if test "x$TIXWISH" = "x"; then
 fi
 # and check
 if test "x$TIXWISH" = "x"; then
-if test ! "x$tcltk_apps" = "xNO"; then
-  AC_MSG_RESULT([INFO: tixwish not found. Use --with-tixwish=... to specify])
-fi
+  if test "x$tcltk_apps" = "xyes"; then
+    AC_MSG_RESULT([INFO: tixwish not found. Use --with-tixwish=... to specify])
+  fi
 fi
 
 AC_SUBST(TIXWISH)
@@ -2009,10 +2027,11 @@ AC_DEFINE([XML_CONTEXT_BYTES], 1024,
 ################################################################
 # Qt
 ################################################################
+QT_PATH=""
 m4_include([m4/autotroll.m4])
 AT_WITH_QT([opengl])
 # support for --without-qt:
-AM_CONDITIONAL(ENABLE_QT_APPS, ! test "$QT_PATH" = "no")
+AM_CONDITIONAL(ENABLE_QT_APPS, ! test "x$QT_PATH" = "x")
 # hack: make sure our QT_LIBS overrides /usr/lib64 native Qt install
 # this is problematic on Centos6, where qt 4.6.3 is installed, but
 # we (at the NMR Center) want to use v4.7.1 in /usr/pubsw/packages/qt
@@ -2357,8 +2376,8 @@ if test ! "$ac_kwwidgets_libraries" = "NO"; then
 fi
 
 AC_ARG_ENABLE(kww-apps,
- [  --enable-kww-apps       enable building KWWidgets-based apps],
- [ kww_apps="yes"
+ [  --disable-kww-apps      disable building KWWidgets-based apps],
+ [ kww_apps="NO"
  ])
 
 if test "$kww_apps" = "yes"; then
@@ -2447,8 +2466,8 @@ if test ! "x$WXWIDGETS_DIR" = "x"; then
 fi
 
 AC_ARG_ENABLE(wxw-apps,
- [  --enable-wxw-apps       enable building wxWidgets-based apps],
- [ wxw_apps="yes"
+ [  --disable-wxw-apps      disable building wxWidgets-based apps],
+ [ wxw_apps="NO"
  ])
 
 if test "$wxw_apps" = "yes"; then
@@ -2543,7 +2562,7 @@ AC_ARG_WITH(itk-libraries,
 
 # if --without-itk-dir was specified:
 if test "x$ITK_DIR" = "xno"; then
-   itk_apps="no"
+   itk_apps="NO"
 fi
 
 if test "x$ITK_DIR" = "x"; then
@@ -2573,8 +2592,8 @@ if test ! "$ac_itk_libraries" = "NO"; then
 fi
 
 AC_ARG_ENABLE(itk-apps,
- [  --enable-itk-apps       enable building ITK-based apps],
- [ itk_apps="yes"
+ [  --disable-itk-apps      disable building ITK-based apps],
+ [ itk_apps="NO"
  ])
 
 if test "$itk_apps" = "yes"; then
@@ -3060,11 +3079,12 @@ AC_SUBST(VTK_METAIO_LIB)
 #
 # check tcl/tk/tix/blt only if tcl/tk apps are enabled
 #
-if test ! "x$tcltk_apps" = "xNO"; then
+if test "x$tcltk_apps" = "xyes"; then
   ################## Tcl
   # check tcl8.5
-  AC_CHECK_LIB([tcl8.5],[Tcl_Init],
-    [LIB_TCL=-ltcl8.5],
+  # NJS NOTE! here temp changed to 8.4 until tcl8.5 works
+  AC_CHECK_LIB([tcl8.4],[Tcl_Init],
+    [LIB_TCL=-ltcl8.4],
   # check tcl8.4
     [
     AC_CHECK_LIB([tcl8.4],[Tcl_Init],
@@ -3098,8 +3118,9 @@ Check config.log. Set LDFLAGS or --with-tcl-dir.])
   CPPFLAGS="$GL_CFLAGS $CPPFLAGS"
   LDFLAGS="$X_LIBS $LDFLAGS"
   # check tk8.5
-  AC_CHECK_LIB([tk8.5],[Tk_Init],
-    [LIB_TK=-ltk8.5],
+  # NJS NOTE! here temp changed to 8.4 until tcl8.5 works
+  AC_CHECK_LIB([tk8.4],[Tk_Init],
+    [LIB_TK=-ltk8.4],
   # check tk8.4
     [
     AC_CHECK_LIB([tk8.4],[Tk_Init],
@@ -3275,13 +3296,14 @@ AC_SUBST(LIBS)
 # check whether needs Itcl_Init() and Itk_Init()
 # except when using Tcl8.4, which doesn't contain Itcl_Init or Itk_Init
 ########################################################################
-if test ! "x$tcltk_apps" = "xNO"; then
-  if ! test "$LIB_TCL" = "-ltcl8.5"; then
+if test "x$tcltk_apps" = "xyes"; then
+   # NJS NOTE! tcl8.5 doesnt work yet with freesurfer (blt/tix)
+#  if ! test "$LIB_TCL" = "-ltcl8.5"; then
     if ! test "$LIB_TCL" = "-ltcl8.4"; then
       if ! test "$LIB_TCL" = "-ltcl83"; then
         AX_TIX_INITCHECK($TCL_CFLAGS, $LDFLAGS_TCL, $LIBS_TCL)
       fi
-    fi
+#    fi
   fi
 fi
 
@@ -3327,6 +3349,7 @@ AC_OUTPUT([Makefile
            distribution/Makefile
            distribution/average/Makefile
            distribution/average/surf/Makefile
+           distribution/average/Yeo_JNeurophysiol11_MNI152/Makefile
            distribution/docs/Makefile
            distribution/diffusion/Makefile
            distribution/diffusion/mgh-dti-seqpack/Makefile
