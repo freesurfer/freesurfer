@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2011/03/22 17:16:19 $
-#    $Revision: 1.16.2.1 $
+#    $Date: 2012/09/05 21:19:52 $
+#    $Revision: 1.16.2.2 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -22,7 +22,7 @@
 # Bug reports: analysis-bugs@nmr.mgh.harvard.edu
 #
 
-set VERSION = '$Id: rawfunc2tal-sess,v 1.16.2.1 2011/03/22 17:16:19 greve Exp $'
+set VERSION = '$Id: rawfunc2tal-sess,v 1.16.2.2 2012/09/05 21:19:52 greve Exp $'
 
 set inputargs = ($argv);
 
@@ -292,7 +292,7 @@ while( $#argv != 0 )
     case "-no-per-run":
     case "-no-perrun":
       set PerRun = 0;
-      set ExpKeyNeeded = 1;
+      #set ExpKeyNeeded = 1;
       breaksw
 
     case "-update":
