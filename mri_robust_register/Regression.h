@@ -11,9 +11,9 @@
 /*
  * Original Author: Martin Reuter
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:24 $
- *    $Revision: 1.15 $
+ *    $Author: mreuter $
+ *    $Date: 2012/09/05 04:41:50 $
+ *    $Revision: 1.16 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -52,29 +52,34 @@ extern "C"
 #include <vnl/vnl_vector.h>
 #include <vnl/vnl_matrix.h>
 
+/** \class Transform3dTranslate
+ * \brief Templated class for iteratively reweighted least squares
+ */
 template <class T>
 class Regression
 {
 public:
 
-  // constructor initializing A and B
+  //! Constructor initializing A and B
   Regression(vnl_matrix< T > & Ap,vnl_vector< T > & bp):
       A(&Ap), b(&bp),lasterror(-1),lastweight(-1),lastzero(-1),verbose(1),floatsvd(false)
   {};
-  // constructor initializing B (for simple case where x is single variable and A is (...1...)^T
+  //! Constructor initializing B (for simple case where x is single variable and A is (...1...)^T
   Regression(vnl_vector< T > & bp):
       A(NULL), b(&bp),lasterror(-1),lastweight(-1),lastzero(-1),verbose(1),floatsvd(false)
   {};
 
-  // Robust solver
+  //! Robust solver
   vnl_vector< T > getRobustEst(double sat =  SATr, double sig =  1.4826);
-  // Robust solver (returning also the sqrtweights)
+  //! Robust solver (returning also the sqrtweights)
   vnl_vector< T > getRobustEstW(vnl_vector< T >&w, double sat =  SATr, double sig =  1.4826);
 
-  // Least Squares
+  //! Least Squares
   vnl_vector < T > getLSEst ();
+  //! Weighted least squares
   vnl_vector < T > getWeightedLSEst (const vnl_vector< T > & sqrtweights);
-	vnl_vector < T > getWeightedLSEstFloat(const vnl_vector< T > & sqrtweights); // only for T=double
+  //! Weighted least squares in float (only for the T=double version)
+	vnl_vector < T > getWeightedLSEstFloat(const vnl_vector< T > & sqrtweights);
 
 
   double getLastError()
@@ -89,12 +94,14 @@ public:
   {
     return lastzero;
   };
+  //! Set verbose level
 	void setVerbose(int v)
 	{
 	   verbose = v;
 		 if (v < 0 ) verbose = 0;
 		 if (v > 2 ) verbose = 2;
   }
+  //! Specify if SVD is float (also in double case)
 	void setFloatSvd(bool b)
 	{ 
 	   floatsvd = b;

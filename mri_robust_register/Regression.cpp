@@ -12,8 +12,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2011/08/31 16:49:17 $
- *    $Revision: 1.25 $
+ *    $Date: 2012/09/05 04:41:50 $
+ *    $Revision: 1.26 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -193,13 +193,14 @@ double Regression<T>::getRobustEstWB(vnl_vector< T >& w, double sat, double sig)
 
 }
 
+/** Solves overconstrained system A p = b using
+   M estimators (Beaton and Tukey's biweigt function).
+   Returns vectors p and w (w by reference as it is large)
+   where p is the robust solution and w the used weights.
+   Method: iterative reweighted least squares
+*/
 template <class T>
 vnl_vector< T > Regression<T>::getRobustEstWAB(vnl_vector< T >& wfinal, double sat, double sig)
-// solves overconstrained system A p = b using
-// M estimators (Beaton and Tukey's biweigt function)
-// returns vectors p and w (by reference as it is large)
-// where p is the robust solution and w the used weights
-// Method: iterative reweighted least squares
 {
 //   cout << "  Regression<T>::getRobustEstW( "<<sat<<" , "<<sig<<" ) " << endl;
 
@@ -498,13 +499,14 @@ vnl_vector< T > Regression<T>::getRobustEstWAB(vnl_vector< T >& wfinal, double s
 //   return *pfinal;
 //}
 
+/** Solving \f$ p = [A^T W A]^{-1} A^T W b\f$     (with \f$ W = diag(w_i^2) \f$ )
+    done by computing \f$ M := \sqrt{W} A\f$ and  \f$ v := \sqrt{W} b\f$
+    then we have \f$ p = [ M^T M ]^{-1} M^T v  \f$
+    or \f$ M p = v \f$, this we solve with QR decomposition (faster than svd).
+   \param w vector representing a diagnoal matrix with the sqrt of the weights as elements
+*/
 template <class T>
 vnl_vector< T >  Regression<T>::getWeightedLSEst(const vnl_vector< T > & w)
-// w is a vector representing a diagnoal matrix with the sqrt of the weights as elements
-// solving p = [A^T W A]^{-1} A^T W b     (with W = diag(w_i^2) )
-// done by computing M := Sqrt(W) A and and  wb := sqrt(W) b
-// then we have p = [ M^T M ]^{-1} M^T wb  
-//  or M p = wb, this we solve with QR
 {
   unsigned int rr, cc;
 	
@@ -534,14 +536,15 @@ vnl_vector< T >  Regression<T>::getWeightedLSEst(const vnl_vector< T > & w)
   return p;
 }
 
+/** Uses FLOAT internaly.
+ Solving \f$ p = [A^T W A]^{-1} A^T W b\f$     (with \f$ W = diag(w_i^2) \f$ )
+    done by computing \f$ M := \sqrt{W} A\f$ and  \f$ v := \sqrt{W} b\f$
+    then we have \f$ p = [ M^T M ]^{-1} M^T v  \f$
+    or \f$ M p = v \f$, this we solve with QR decomposition (faster than svd).
+\param w vector representing a diagnoal matrix with the sqrt of the weights as elements
+*/
 template <class T>
 vnl_vector< T >  Regression<T>::getWeightedLSEstFloat(const vnl_vector< T > & w)
-// uses FLOAT internaly
-// w is a vector representing a diagnoal matrix with the sqrt of the weights as elements
-// solving p = [A^T W A]^{-1} A^T W b     (with W = diag(w_i^2) )
-// done by computing M := Sqrt(W) A and and  wb := sqrt(W) b
-// then we have p = [ M^T M ]^{-1} M^T wb   
-// or M p = wb, which we solve with QR
 {
   unsigned int rr, cc;
 	
@@ -735,9 +738,10 @@ void getTukeyBiweight(const vnl_vector< T >& r, vnl_vector< T >& w, double sat)
   //return w;
 }
 
+/** Computes sum of partial derivatives d_rho/d_sat(r_i)
+*/
 template <class T>
 double Regression<T>::getTukeyPartialSat(const vnl_vector< T >& r, double sat)
-// computes sum of partial derivatives d_rho/d_sat(r_i)
 {
 
   double sum = 0;
@@ -765,10 +769,11 @@ double Regression<T>::getTukeyPartialSat(const vnl_vector< T >& r, double sat)
   return sum;
 }
 
+/** Computes sqrt(weights) for a reweighted least squares approach.
+   Returns elements of diag matrix W (as a column vector).
+*/
 template <class T>
 void Regression<T>::getSqrtTukeyDiaWeights(const vnl_vector< T >& r, vnl_vector< T >& w, double sat)
-// computes sqrt(weights) for a reweighted least squares approach
-// returns elements of diag matrix W (as a column vector)
 {
   //cout << " getTukeyDiaWeights  r size: " << r->rows << " , " << r->cols << endl;
 
@@ -819,10 +824,11 @@ T Regression<T>::VectorMedian(const vnl_vector< T >& v)
   return qs;
 }
 
+/** Robust estimate for sigma (using median absolute deviation).
+ \f$ 1.4826 med_i(|r_i - med_j(r_j)|) \f$
+ */
 template <class T>
 T Regression<T>::getSigmaMAD(const vnl_vector< T >& v, T d)
-// robust estimate for sigma (using median absolute deviation)
-// 1.4826 med_i(|r_i - med_j(r_j)|)
 {
   unsigned int n = v.size();
   T* t = (T *)calloc(n, sizeof(T));
@@ -843,9 +849,11 @@ T Regression<T>::getSigmaMAD(const vnl_vector< T >& v, T d)
 }
 
 
+/**
+\param fname is the filename without ending
+*/
 template <class T>
 void Regression<T>::plotPartialSat(const std::string& fname)
-// fname is the filename without ending
 {
 
   // residual is B (as b-Ap = b since p = 0 initially)

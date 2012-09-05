@@ -9,8 +9,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2011/09/13 03:08:25 $
- *    $Revision: 1.11 $
+ *    $Date: 2012/09/05 04:41:50 $
+ *    $Revision: 1.12 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -48,19 +48,31 @@ extern "C"
 #include <vnl/vnl_matrix_fixed.h>
 #include "JointHisto.h"
 
+/** \class CostFunctions
+ * \brief Static class implementing several cost functions and other image statistics
+ */
 class CostFunctions
 {
 public:
+  //! Get min and max intensity value
   static std::pair < float, float > minmax(MRI *i);
+  //! Get max intensity value
   static float max(MRI *i);
+  //! Get mean intensity value
   static float mean(MRI *i);
+  //! Get variance of intensity values
   static float var(MRI *i);
-  static float sdev(MRI *i)
-     { return sqrt(var(i)); };
+  //! Get standard deviation of intensity values
+  static float sdev(MRI *i) { return sqrt(var(i)); };
+  //! Get median of intensity values
   static float median(MRI *i);
+  //! Get d times median absolute deviation of intensity values (robust std)
   static float mad(MRI *i, float d = 1.4826);
+  //! Get moment of image
   static double moment(MRI * i, int x, int y, int z);
+  //! Get weighted centroid of intensity image
   static std::vector < double > centroid (MRI * i);
+  //! Get principal orientation
   static vnl_matrix_fixed < double,3,3 > orientation (MRI * i);
 
   // never really tested:
@@ -68,13 +80,16 @@ public:
   static double tukeyBiweight(MRI *i1, MRI * i2 = NULL, double sat = 4.685);
   static double normalizedCorrelation(MRI * i1, MRI * i2);
 
-  // joint histograms stuff:
+  //! Mutual Information (joint histograms)
   static double mutualInformation(MRI * i1, MRI * i2,double fwhm = 7)
      { JointHisto H(i1,i2); H.smooth(fwhm); return -H.computeMI(); };
+  //! Normalized Mutual Information (joint histograms)
   static double normalizedMutualInformation(MRI * i1, MRI * i2,double fwhm = 7 )
      { JointHisto H(i1,i2); H.smooth(fwhm); return -H.computeNMI(); };
+  //! Entropy Correlation (joint histograms) (does it work?)
   static double entropyCorrelationCoefficient(MRI * i1, MRI * i2,double fwhm = 7 )
      { JointHisto H(i1,i2); H.smooth(fwhm); return -H.computeECC(); };
+  //! Normalized Cross Correlation (joint histograms) (does it work?)
   static double normalizedCrossCorrelation(MRI * i1, MRI * i2,double fwhm = 7 )
      { JointHisto H(i1,i2); H.smooth(fwhm); return -H.computeNCC(); };
 
@@ -102,6 +117,9 @@ inline double CostFunctions::rhoTukeyBiweight(double d, double sat)
   }
 }
 
+/** \class MRIiterator
+ * \brief Class for iterating through an MRI
+ */
 class MRIiterator
 {
 public:
