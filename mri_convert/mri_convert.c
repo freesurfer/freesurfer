@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl (Apr 16, 1997)
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2012/09/05 21:16:46 $
- *    $Revision: 1.199 $
+ *    $Date: 2012/09/05 21:52:04 $
+ *    $Revision: 1.200 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -209,7 +209,7 @@ int main(int argc, char *argv[])
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mri_convert.c,v 1.199 2012/09/05 21:16:46 mreuter Exp $",
+   "$Id: mri_convert.c,v 1.200 2012/09/05 21:52:04 mreuter Exp $",
    "$Name:  $",
    cmdline);
 
@@ -331,7 +331,7 @@ int main(int argc, char *argv[])
     handle_version_option
     (
       argc, argv,
-      "$Id: mri_convert.c,v 1.199 2012/09/05 21:16:46 mreuter Exp $",
+      "$Id: mri_convert.c,v 1.200 2012/09/05 21:52:04 mreuter Exp $",
       "$Name:  $"
     );
   if (nargs && argc - nargs == 1)
@@ -1603,7 +1603,7 @@ int main(int argc, char *argv[])
             "= --zero_ge_z_offset option ignored.\n");
   }
 
-  printf("$Id: mri_convert.c,v 1.199 2012/09/05 21:16:46 mreuter Exp $\n");
+  printf("$Id: mri_convert.c,v 1.200 2012/09/05 21:52:04 mreuter Exp $\n");
   printf("reading from %s...\n", in_name_only);
 
   if (in_volume_type == MGH_MORPH)
@@ -2900,8 +2900,8 @@ int main(int argc, char *argv[])
   }
 
   /* ----- reslice if necessary and not performed during transform ----- */
-  if (!out_like_flag && !reslice_like_flag 
-      && (mri->xsize != template->xsize ||
+  if (!out_like_flag
+   && (mri->xsize != template->xsize ||
       mri->ysize != template->ysize ||
       mri->zsize != template->zsize ||
       mri->width != template->width ||
