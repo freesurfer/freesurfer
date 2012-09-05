@@ -9,8 +9,8 @@
 #
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2012/06/19 17:22:34 $
-#    $Revision: 1.574 $
+#    $Date: 2012/09/05 17:58:39 $
+#    $Revision: 1.575 $
 #
 ########################################################################
 AC_PREREQ(2.57)
@@ -3082,8 +3082,9 @@ AC_SUBST(VTK_METAIO_LIB)
 if test "x$tcltk_apps" = "xyes"; then
   ################## Tcl
   # check tcl8.5
-  AC_CHECK_LIB([tcl8.5],[Tcl_Init],
-    [LIB_TCL=-ltcl8.5],
+  # NJS NOTE! here temp changed to 8.4 until tcl8.5 works
+  AC_CHECK_LIB([tcl8.4],[Tcl_Init],
+    [LIB_TCL=-ltcl8.4],
   # check tcl8.4
     [
     AC_CHECK_LIB([tcl8.4],[Tcl_Init],
@@ -3117,8 +3118,9 @@ Check config.log. Set LDFLAGS or --with-tcl-dir.])
   CPPFLAGS="$GL_CFLAGS $CPPFLAGS"
   LDFLAGS="$X_LIBS $LDFLAGS"
   # check tk8.5
-  AC_CHECK_LIB([tk8.5],[Tk_Init],
-    [LIB_TK=-ltk8.5],
+  # NJS NOTE! here temp changed to 8.4 until tcl8.5 works
+  AC_CHECK_LIB([tk8.4],[Tk_Init],
+    [LIB_TK=-ltk8.4],
   # check tk8.4
     [
     AC_CHECK_LIB([tk8.4],[Tk_Init],
@@ -3296,12 +3298,13 @@ AC_SUBST(LIBS)
 # except when using Tcl8.4, which doesn't contain Itcl_Init or Itk_Init
 ########################################################################
 if test "x$tcltk_apps" = "xyes"; then
-  if ! test "$LIB_TCL" = "-ltcl8.5"; then
+   # NJS NOTE! tcl8.5 doesnt work yet with freesurfer (blt/tix)
+#  if ! test "$LIB_TCL" = "-ltcl8.5"; then
     if ! test "$LIB_TCL" = "-ltcl8.4"; then
       if ! test "$LIB_TCL" = "-ltcl83"; then
         AX_TIX_INITCHECK($TCL_CFLAGS, $LDFLAGS_TCL, $LIBS_TCL)
       fi
-    fi
+#    fi
   fi
 fi
 
