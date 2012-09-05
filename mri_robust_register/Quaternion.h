@@ -8,8 +8,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2012/08/29 20:38:01 $
- *    $Revision: 1.7 $
+ *    $Date: 2012/09/05 04:46:35 $
+ *    $Revision: 1.8 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -289,7 +289,7 @@ inline std::vector < double > Quaternion::getRotAxis() const
 
 /**
   Converts rotation vector v1,v2,v3 to quaternion:
-  rotation of ||v|| around axis defined by v
+  rotation of ||v|| around axis defined by vector v=(v1,v2,v3)
 */
 inline Quaternion& Quaternion::importRotVec(double v1, double v2, double v3)
 {
@@ -310,7 +310,7 @@ inline Quaternion& Quaternion::importRotVec(double v1, double v2, double v3)
 }
 
 /**
-  Converts rotation of alpha around axis vec to quaternion
+  Converts rotation of alpha around axis vector to quaternion
 */
 inline Quaternion& Quaternion::importRotVec(double alpha, double v1, double v2, double v3)
 {
@@ -598,19 +598,19 @@ inline Quaternion& Quaternion::operator*=(const double& scalar)
 }
 
 
-// component wise addition
+//! component wise addition
 inline Quaternion Quaternion::operator+(const Quaternion &vect) const
 {
   return Quaternion(a+vect.a, b+vect.b, c+vect.c, d+vect.d,false);
 }
 
-// component wise subtraction
+//! component wise subtraction
 inline Quaternion Quaternion::operator-(const Quaternion &vect) const
 {
   return Quaternion(a-vect.a,b-vect.b, c-vect.c, d-vect.d,false);
 }
 
-// Mult Quaternion Quaternion (the order is important!)
+//! Multiplication Quaternion Quaternion (the order is important!)
 inline Quaternion Quaternion::operator*(const Quaternion &vect) const
 {
   double an = a*vect.a - b*vect.b - c*vect.c - d*vect.d;
@@ -621,7 +621,7 @@ inline Quaternion Quaternion::operator*(const Quaternion &vect) const
 }
 
 
-// Mult Quaternion scalar
+//! Mult Quaternion scalar
 inline Quaternion Quaternion::operator*(const double& scalar) const
 {
   return Quaternion(a*scalar, b*scalar, c*scalar, d*scalar,false);
@@ -631,7 +631,7 @@ inline Quaternion Quaternion::operator*(const double& scalar) const
 // ---------------------------------------------------------- global functions
 
 
-// Multiplication of scalar and Quaternion from left.
+//! Multiplication of scalar and Quaternion from left.
 Quaternion operator*(const double& scalar, const Quaternion& vect);
 
 std::ostream& operator<<(std::ostream& os, const Quaternion& q);

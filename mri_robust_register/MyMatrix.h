@@ -10,8 +10,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2011/11/17 02:56:18 $
- *    $Revision: 1.15 $
+ *    $Date: 2012/09/05 04:46:35 $
+ *    $Revision: 1.16 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -53,17 +53,23 @@ extern "C"
 #include <vnl/vnl_vector_fixed.h>
 #include <vnl/vnl_matrix_fixed.h>
 
+/** \class MyMatrix
+ * \brief A static class with Matrix operations (conversion, sqrt, decomposition, distances etc.)
+ */
 class MyMatrix
 {
 public:
 
-  // conversion
+  //! Convert VNL vector to FS MATRIX
   static MATRIX* convertVNL2MATRIX(const vnl_vector <double > & v, MATRIX* outM = NULL);
+  //! Convert VNL matrix to FS MATRIX
   static MATRIX* convertVNL2MATRIX(const vnl_matrix <double > & v, MATRIX* outM = NULL);
+  //! Convert FS VECTOR to VNL vector
   static vnl_vector <double > convertVECTOR2VNL(VECTOR* m);
+  //! Convert FS MATRIX to VNL matrix
   static vnl_matrix <double > convertMATRIX2VNL(MATRIX* m);
 
-//======== VNL STUFF ===========================================================================
+//======== VNL MATRIX STUFF ===========================================================================
 
   //! Matrix Square Root (Denman and Beavers)
   static vnl_matrix < double >  MatrixSqrtIter(const vnl_matrix < double >& m);
@@ -77,17 +83,19 @@ public:
 	//! Matrix Square Root (splitting off the translation)
   static vnl_matrix < double >  MatrixSqrtAffine(const vnl_matrix < double >& m);
 
-	static vnl_matrix_fixed < double, 4, 4 > getRot(int i, int j, int k);
+	//! Returns rotation matrix (multiples of 90 degrees)
+  static vnl_matrix_fixed < double, 4, 4 > getRot(int i, int j, int k);
+	//! Returns rotation matrix (multiples of 90 degrees)
   static vnl_matrix_fixed < double, 4, 4 > getRot(int i);
 
 //	//! Geometric mean
 //	static vnl_matrix < double > GeometricMean(const std::vector < vnl_matrix < double > > &vm, int n=-1);
 	
-	// ! Polar Decomposition: A = R * S  (R orthogonal, S pos. semi def, symmetric)
+	//! Polar Decomposition: A = R * S  (R orthogonal, S pos. semi def, symmetric)
 	static void PolarDecomposition(const vnl_matrix < double > &A,
 	                                     vnl_matrix < double > &R,
 																       vnl_matrix < double > &S);
-  // ! Advanced Polar Decomp. A = Rot * Shear * Scale  (where scale is diag)
+  //! Advanced Polar Decomposition A = Rot * Shear * Scale  (where scale is diag)
 	static void Polar2Decomposition(const vnl_matrix < double > &A,
 	                                      vnl_matrix < double > &R,
 																        vnl_matrix < double > &S,
@@ -107,36 +115,48 @@ public:
 	//! Matrix Power
   static vnl_matrix < double > MatrixPow(const vnl_matrix < double >& A, double d);
 
-  // distances
+  //! Squared distance based on rigid transformation
   static double RigidTransDistSq(const vnl_matrix < double >&a, const vnl_matrix < double >&b  = vnl_matrix<double>());
+  //! Squared distance based on affine transformation
   static double AffineTransDistSq(const vnl_matrix < double >&a, const vnl_matrix < double >&b = vnl_matrix<double>(), double r=100);
+  //! Distance based on frobenius norm
   static double getFrobeniusDiff(const vnl_matrix < double >&m1, const vnl_matrix < double >&m2);
 
+  //! Quantify tri-linear smoothing induce by this LTA transform
   static double getResampSmoothing(const LTA*);
 
-  // conversions
+  //! Construct vnl matrix from double array using r rows
   static vnl_matrix < double > getVNLMatrix(std::vector < double > d, int r);
+  //! Computes Frobenius norm of log of rotation matrix
   static double RotMatrixLogNorm(const vnl_matrix_fixed < double, 4, 4 > &m);
+  //! Construct LTA from vox2vox matrix and src, dst geometries
   static LTA* VOXmatrix2LTA(const vnl_matrix_fixed < double, 4, 4 >&m, MRI* src, MRI* dst);
+  //! Construct LTA from ras2ras matrix and src, dst geometries
   static LTA* RASmatrix2LTA(const vnl_matrix_fixed < double, 4, 4 >&m, MRI* src, MRI* dst);
+  //! Get vox2vox matrix from LTA
   static vnl_matrix < double > LTA2VOXmatrix (LTA * lta);
+  //! Get ras2ras matrix from LTA
   static vnl_matrix < double > LTA2RASmatrix (LTA * lta);
+  //! Compute rotation and translation from rigid 4x4 matrix 
   static void getRTfromM(const vnl_matrix_fixed < double , 4 , 4 > &m,
 	                             vnl_matrix_fixed < double , 3 , 3 > &r, 
 															 vnl_vector_fixed < double, 3 >      &t);
+  //! Construct 4x4 rigid matrix from rotation and translation
   static vnl_matrix_fixed < double , 4 , 4 >  getMfromRT(
 	                             const vnl_matrix_fixed < double , 3 , 3 > &r, 
 															 const vnl_vector_fixed < double, 3 >      &t);
 
-//========= MATRIX STUFF ========================================================================
+//========= FS MATRIX STUFF ========================================================================
 	
-  // distances
+  //! (FS MATRIX) Squared distance based on rigid transformation
   static double RigidTransDistSq(MATRIX *a, MATRIX *b = NULL);
+  //! (FS MATRIX) Squared distance based on affine transformation
   static double AffineTransDistSq(MATRIX *a, MATRIX *b = NULL, double r=100);
+  //! (FS MATRIX) Distance based on frobenius norm
   static double getFrobeniusDiff(MATRIX *m1, MATRIX *m2);
 
-  // operations
-  static MATRIX * MatrixSqrt(MATRIX * m, MATRIX * sqrtm=NULL);
+  //! (FS MATRIX) Matrix Square Root (Denman and Beavers)
+  static MATRIX * MatrixSqrtIter(MATRIX * m, MATRIX * sqrtm=NULL);
 
   // conversions
   static MATRIX* getMatrix(std::vector < double > d, int r, int c=-1, MATRIX* m=NULL);

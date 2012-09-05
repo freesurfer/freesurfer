@@ -8,8 +8,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2011/11/17 02:56:18 $
- *    $Revision: 1.26 $
+ *    $Date: 2012/09/05 04:46:35 $
+ *    $Revision: 1.27 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -1255,6 +1255,12 @@ vnl_matrix < vcl_complex < double > >
 
 // ==================================== MATRIX POWER ============================================================
 
+/**
+     Uses matrix log and exp to compute the matrix power
+	   @param[in]     A The input matrix
+     @param[in]     d the exponent
+	   @return M to the power of d.
+*/
 vnl_matrix < double > MyMatrix::MatrixPow(const vnl_matrix < double >& A, double d)
 // use log and exp to compute power
 {
@@ -1265,13 +1271,18 @@ vnl_matrix < double > MyMatrix::MatrixPow(const vnl_matrix < double >& A, double
 
 // ==================================== MATRIX SQUAREROOT ============================================================
 
+/**
+     Computes the squareroot of a matrix \f$M = \sqrt{M} * \sqrt{M}\f$ 
+     using complex SCHUR decomposition (same as matlab,
+     although they seem to use slightly different LAPACK routines for the SCHUR decomposition)
+     Note: there exists also a completely REAL algorithm (not implemented here), see
+     Computing Real Square Roots of a Real Matrix
+     by Nicholas J. Higham
+	 
+	   @param[in]     A The input matrix needs to be a square matrix.
+	   @return Square root of A.
+*/
 vnl_matrix < double > MyMatrix::MatrixSqrt(const vnl_matrix < double >& A)
-// use complex SCHUR decomposition, same as matlab
-// (although they seem to use slightly different LAPACK routines for the SCHUR decomposition)
-//
-// Note: there exists also a completely REAL algorithm (not implemented here), see
-// Computing Real Square Roots of a Real Matrix
-// Nicholas J. Higham
 {
 
 //
@@ -1407,6 +1418,15 @@ vnl_matrix < double > MyMatrix::MatrixSqrt(const vnl_matrix < double >& A)
 
 }
 
+/**
+     Checks if a matrix is diagonal. It returns true if
+     the sum of squared differences (SSD) of the off diagonal elements
+     is below a given epsilon.
+	 
+	   @param[in]     A The input matrix needs to be square.
+     @param[in]     eps the threshold for the SSD.
+	   @return True if SSD in off diagonal elements is below eps.
+*/
 bool MyMatrix::isDiag(const vnl_matrix < double >& A, double eps)
 {
 
@@ -1427,11 +1447,17 @@ bool MyMatrix::isDiag(const vnl_matrix < double >& A, double eps)
 }
 
 
+/**
+     Computes the squareroot of a matrix \f$M = \sqrt{M} * \sqrt{M}\f$ 
+     using its eigen-decomposition (here via svd).
+     This works only if the matrix is diagonalizable.
+     For now separate the translation, else we easily get defective m (not diagonalizable)
+     (where we cannot do the eigendecomposition trick).
+	 
+	   @param[in]     m The input matrix needs to be a 4x4 affine matrix.
+	   @return Square root of m.
+*/
 vnl_matrix < double > MyMatrix::MatrixSqrtEigs(const vnl_matrix < double >& m)
-// compute the squareroot of a matrix using its eigen-decomposition (here via svd)
-//   works only if the matrix is diagonalizable
-// for now separate the translation, else we easily get defective m (not diagonalizable)
-// (where we cannot do the eigendecomposition trick)
 {
   assert(m.rows() == 4 && m.cols() == 4);
 
@@ -1527,9 +1553,15 @@ vnl_matrix < double > MyMatrix::MatrixSqrtEigs(const vnl_matrix < double >& m)
   return msqrt;
 }
 
+/**
+     Computes the sqrt of a matrix \f$M = \sqrt{M} * \sqrt{M}\f$
+     using Schur decomposition on the 3x3 linear map after splitting off the translation.
+     Note, [smith:01] say that sqrt(affine) is not necessarily affine
+	 
+	   @param[in]     m The input matrix needs to be a 4x4 affine matrix.
+	   @return Square root of m.
+*/
 vnl_matrix < double > MyMatrix::MatrixSqrtAffine(const vnl_matrix < double >& m)
-// using Schur on 3x3 linear map and splitting off the translation
-// smith:01 say that sqrt(affine) is not necessarily affine
 {
   assert(m.rows() == 4 && m.cols() == 4);
 	
@@ -1565,6 +1597,15 @@ vnl_matrix < double > MyMatrix::MatrixSqrtAffine(const vnl_matrix < double >& m)
   return msqrt;
 }
 
+/**
+	   Computes the matrix square root using an iterative algorithm by Denman and Beavers.
+     The square root here is defined so that \f$M = \sqrt{M} * \sqrt{M}\f$.
+     Note that symmetry cannot be guaranteed (termination may be before reaching optimum at
+     machine precision).
+	 
+	   @param[in]     m The input matrix needs to be 4x4.
+	   @return Approximated square root of m.
+*/
 vnl_matrix < double > MyMatrix::MatrixSqrtIter(const vnl_matrix < double >& m)
 //Denman and Beavers square root iteration
 {
@@ -1755,6 +1796,13 @@ void MyMatrix::SchurComplex( const vnl_matrix < double > & M,
 //   return geo;
 // }
 
+/**
+  Computes polar decomposition of sqyare matrix A (using singular value decomposition):
+  A = R S into a rotation matrix R and a symmetric matrix S
+ @param[in]  A  Matrix to be decomposed
+ @param[out] R  Rotation Matrix
+ @param[out] S  Symmetric Matrix
+*/
 void MyMatrix::PolarDecomposition(const vnl_matrix < double > &A,
 	                               vnl_matrix < double > &R,
 																 vnl_matrix < double > &S)
@@ -1776,6 +1824,14 @@ void MyMatrix::PolarDecomposition(const vnl_matrix < double > &A,
 
 }
 
+/**
+  Computes polar decomposition of sqyare matrix A (using singular value decomposition):
+  A = R S D into a rotation matrix R and a shear matrix S and diagonal matrix D
+ @param[in]  A  Matrix to be decomposed
+ @param[out] R  Rotation Matrix
+ @param[out] S  Shear Matrix
+ @param[out] D  Diagonal Matrix
+*/
 void MyMatrix::Polar2Decomposition(const vnl_matrix < double > &A,
 	                               vnl_matrix < double > &R,
 																 vnl_matrix < double > &S,
@@ -1794,20 +1850,19 @@ void MyMatrix::Polar2Decomposition(const vnl_matrix < double > &A,
 	//vnl_matlab_print(vcl_cout,R,"Rot",vnl_matlab_print_format_long);cout << endl;
 	//vnl_matlab_print(vcl_cout,S,"Shear",vnl_matlab_print_format_long);cout << endl;
 	//vnl_matlab_print(vcl_cout,D,"Scale",vnl_matlab_print_format_long);cout << endl;	
-	
-
 }
 
-
+/**
+  Computes squared distance between a and b (4x4 affine transformations)
+  \f$ D^2 = 1/5 r^2 Tr(A^tA) +  ||T_d||^2 \f$
+  where \f$T_d\f$ is the translation and \f$A\f$ the Affine
+  of the matrix \f$d = a - b\f$.
+  r is the radius specifying the volume of interest.
+  This distance is used in Jenkinson 1999 RMS deviation - tech report
+     www.fmrib.ox.ac.uk/analysis/techrep .
+  The center of the brain should be at the origin.
+*/
 double MyMatrix::AffineTransDistSq(const vnl_matrix < double >&a, const vnl_matrix < double >&b, double r)
-// computes squared distance between a and b (4x4 affine transformations)
-// D^2 = 1/5 r^2 Tr(A^tA) +  ||T_d||^2
-// where T_d is the translation and A the Affine
-// of the matrix d = a - b
-// r is the radius specifying the volume of interest
-// (this distance is used in Jenkinson 1999 RMS deviation - tech report
-//    www.fmrib.ox.ac.uk/analysis/techrep )
-// the center of the brain should be at the origin
 {
 
   vnl_matrix <double> drigid(a);
@@ -1855,11 +1910,13 @@ double MyMatrix::AffineTransDistSq(const vnl_matrix < double >&a, const vnl_matr
 
 }
 
+/**
+Computes squared distance between a and b (4x4 rigid transformations)
+\f$ D^2 = ||T_d||^2 + |log R_d|^2 \f$
+where \f$ T_df$ is the translation and f$R_df$ the rotation
+of the matrix d that rigidly transforms a to b
+*/
 double MyMatrix::RigidTransDistSq(const vnl_matrix < double >&a, const vnl_matrix < double >&b)
-// computes squared distance between a and b (4x4 rigid transformations)
-// D^2 = ||T_d||^2 + |log R_d|^2
-// where T_d is the translation and R_d the rotation
-// of the matrix d that rigidly transforms a to b
 {
 
   vnl_matrix <double> drigid;
@@ -1907,11 +1964,13 @@ double MyMatrix::getFrobeniusDiff(const vnl_matrix < double >&m1, const vnl_matr
 	return (m1-m2).fro_norm();
 }
 
+/**
+   The Frobenius norm of the log of a rotation matrix is the geodesic
+   distance on rotation matrices.
+   The procedure will look only at first three rows and colums and
+   expects a rotation matrix there.
+*/
 double  MyMatrix::RotMatrixLogNorm(const vnl_matrix_fixed < double, 4, 4 >& m)
-// computes Frobenius norm of log of rot matrix
-// this is equivalent to geodesic distance on rot matrices
-// will look only at first three rows and colums and
-// expects a rotation matrix there
 {
   // assert we have no stretching only rot (and trans)
   double det = vnl_determinant(m);
@@ -1935,10 +1994,12 @@ double  MyMatrix::RotMatrixLogNorm(const vnl_matrix_fixed < double, 4, 4 >& m)
 
 }
 
+/**
+   Assuming tri-linear interpolation, how large
+   is the smoothing (averaging) introduced by this transform?
+   Source and target geometries are taken from the LTA.
+*/
 double MyMatrix::getResampSmoothing(const LTA * lta)
-// assuming tri-linear interpolation, how large
-// is the smoothing (averaging) introduced by this transform.
-// source and target geometries are taken from the lta
 {
 
   MATRIX *V2V;
@@ -2064,10 +2125,12 @@ vnl_matrix_fixed < double , 4 , 4 >  MyMatrix::getMfromRT(
 	return m;
 }
 
+/**
+   Returns rotation matrix with 1 (or -1 based on sign) in the 
+   row specified by i,j,k for each column respectively.
+   i,j,k permutations of 1,2,3 (possibly signed, so that det = 1).
+*/
 vnl_matrix_fixed < double, 4, 4 > MyMatrix::getRot(int i, int j, int k)
-// i,j,k permutations of 1,2,3 (possibly signed, so that det = 1)
-// returns rotation matrix with 1 (or -1 based on sign) in the 
-// row specified by i,j,k for each column respectively.
 {
 
   vnl_matrix_fixed < double , 4 , 4> M(0.0);
@@ -2092,9 +2155,11 @@ vnl_matrix_fixed < double, 4, 4 > MyMatrix::getRot(int i, int j, int k)
 
 }
 
+/** 
+  Parametrizes all 24 possible rotations (multiples of 90 degrees in all directions)
+   so i = 0..23
+*/
 vnl_matrix_fixed < double, 4, 4 > MyMatrix::getRot(int i)
-// parametrizes all 24 possible rotations (multiples of 90 degrees in all directions)
-// so i = 0..23
 {
 
   int j = i/4; // 0..5
@@ -2356,7 +2421,7 @@ double MyMatrix::getFrobeniusDiff(MATRIX *m1, MATRIX *m2)
 }
 
 
-MATRIX * MyMatrix::MatrixSqrt (MATRIX * m, MATRIX *msqrt)
+MATRIX * MyMatrix::MatrixSqrtIter (MATRIX * m, MATRIX *msqrt)
 {
   assert(m->rows == 4 && m->cols == 4);
   msqrt = MatrixIdentity(4,msqrt);
@@ -2479,8 +2544,10 @@ MATRIX * MyMatrix::MatrixSqrt (MATRIX * m, MATRIX *msqrt)
 }
 
 
+/**
+  Converts std double vector (r x c) into a matrix (FS MATRIX)
+*/
 MATRIX* MyMatrix::getMatrix(std::vector < double > d, int r, int c, MATRIX* m)
-// convert double array to matrix
 {
   if (c==-1) c=r; // quadratic
 
@@ -2500,9 +2567,10 @@ MATRIX* MyMatrix::getMatrix(std::vector < double > d, int r, int c, MATRIX* m)
   return m;
 }
 
+/**
+  Converts affine vector (12x1) into an affine matrix (homogeneous coord) 4x4 (FS MATRIX)
+*/
 MATRIX * MyMatrix::aff2mat(MATRIX * aff, MATRIX *outM)
-// converts affine vector (12x1)
-// into an affine matrix (homogeneous coord) 4x4
 {
   if (outM == NULL) outM = MatrixAlloc(4, 4, MATRIX_REAL);
   MatrixIdentity(4,outM);
@@ -2518,8 +2586,11 @@ MATRIX * MyMatrix::aff2mat(MATRIX * aff, MATRIX *outM)
   return outM;
 }
 
+/**
+   Computes half the rotation and translation (FS MATRIX).
+   m must be rotation and translation only (rigid!)
+*/
 MATRIX * MyMatrix::getHalfRT (MATRIX * m, MATRIX *mhalf)
-// m must be rotation and translation only (rigid!)
 {
   if (mhalf) MatrixFree(&mhalf);
 
@@ -2567,11 +2638,13 @@ MATRIX * MyMatrix::getHalfRT (MATRIX * m, MATRIX *mhalf)
   return mhalf;
 }
 
+/**
+  Computes Frobenius norm of log of rot matrix (FS MATRIX).
+  This is equivalent to geodesic distance on rot matrices.
+  The procedure will look only at first three rows and colums and
+  expects a rotation matrix there.
+*/
 double  MyMatrix::RotMatrixLogNorm(MATRIX * m)
-// computes Frobenius norm of log of rot matrix
-// this is equivalent to geodesic distance on rot matrices
-// will look only at first three rows and colums and
-// expects a rotation matrix there
 {
   // assert we have no stretching only rot (and trans)
   float det = MatrixDeterminant(m);
@@ -2688,6 +2761,7 @@ MATRIX * MyMatrix::getMfromRT(MATRIX * R, VECTOR * T, MATRIX * M)
    
    return M;
 }
+
 LTA* MyMatrix::VOXmatrix2LTA(MATRIX * m, MRI* src, MRI* dst)
 {
   LTA* ret =  LTAalloc(1,src);
