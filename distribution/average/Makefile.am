@@ -1,7 +1,7 @@
 #
 # Makefile.am
 #
-SUBDIRS=surf
+SUBDIRS=surf Yeo_JNeurophysiol11_MNI152
 
 foodir=$(prefix)/average
 
@@ -50,6 +50,7 @@ foo_DATA=\
 	$(TIF) \
 	$(TXT) \
 	$(MGZ) \
+	label_scales.dat \
 	mni305.cor.readme \
 	mni305.cor.subfov1.reg \
 	mni305.cor.subfov2.reg \
@@ -62,6 +63,7 @@ foo_DATA=\
 	$(GCS) \
 	$(TIF) \
 	$(TXT) \
+	label_scales.dat \
 	mni305.cor.mgz \
 	mni305.cor.readme \
 	mni305.mask.cor.mgz \
@@ -74,12 +76,12 @@ foo_DATA=\
 	mni152.mni305.cor.subfov2.dat 
 endif
 
-EXTRA_DIST=$(foo_DATA) fsaverage.tar.gz \
+EXTRA_DIST=$(foo_DATA) fsaverage.tar.gz fsaverage_sym.tar.gz \
         V1_average.tar.gz \
 	fsaverage3.tar.gz fsaverage4.tar.gz \
 	fsaverage5.tar.gz fsaverage6.tar.gz fsaverage7.tar.gz \
 	EC_average.tar.gz mult-comp-cor.tar.gz \
-	build_gcs_morph.csh cvs_avg35.tar.gz fsaverage_sym.tar.gz
+	build_gcs_morph.csh cvs_avg35.tar.gz
 
 install: install-fooDATA
 	mkdir -p $(DESTDIR)$(prefix)/subjects
@@ -94,6 +96,12 @@ install: install-fooDATA
 	mv $(top_builddir)/distribution/average/fsaverage \
 		$(DESTDIR)$(prefix)/subjects
 	chmod -R 775 $(DESTDIR)$(prefix)/subjects/fsaverage
+	rm -Rf $(DESTDIR)$(prefix)/subjects/fsaverage_sym
+	rm -Rf $(top_builddir)/distribution/average/fsaverage_sym
+	gunzip -c $(top_srcdir)/distribution/average/fsaverage_sym.tar.gz | tar xvf -
+	mv $(top_builddir)/distribution/average/fsaverage_sym \
+		$(DESTDIR)$(prefix)/subjects
+	chmod -R 775 $(DESTDIR)$(prefix)/subjects/fsaverage_sym
 	rm -Rf $(DESTDIR)$(prefix)/subjects/V1_average
 	rm -Rf $(top_builddir)/distribution/average/V1_average
 	gunzip -c $(top_srcdir)/distribution/average/V1_average.tar.gz | tar xvf -
@@ -140,6 +148,7 @@ install: install-fooDATA
 		$(DESTDIR)$(prefix)/average
 	chmod -R 775 $(DESTDIR)$(prefix)/average/mult-comp-cor
 	cd surf; make install
+	cd Yeo_JNeurophysiol11_MNI152; make install
 
 uninstall-hook:
 	rm -Rf $(DESTDIR)$(prefix)/subjects/cvs_avg35
