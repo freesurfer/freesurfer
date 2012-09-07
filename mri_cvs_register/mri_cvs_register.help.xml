@@ -62,6 +62,8 @@ example* , bugs* , reporting* , references* , see-also*)*>
       <explanation>Only do step 2 (elastic registration).</explanation>
       <argument>--step3</argument>
       <explanation>Only do step 3 (volumetric registration).</explanation>
+      <argument>--mni</argument>
+      <explanation>Use the CVS atlas in MNI152 space as a target for registration.</explanation>
       <argument>--noaseg</argument>
       <explanation>Do not use aseg volumes in the volumetric registration pipeline (default is 0). Setting this option could shorten significantly the time of registration, however, might also take away from the accuracy of the final results.</explanation>
       <argument>--nointensity</argument>

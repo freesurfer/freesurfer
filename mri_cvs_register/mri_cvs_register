@@ -17,7 +17,7 @@
 # Edited : 06-03-2012: added new flags --asegfname and --nointensity
 
 set inputargs = ($argv);
-set VERSION = '$Id: mri_cvs_register,v 1.40 2012/06/06 22:40:11 greve Exp $';
+set VERSION = '$Id: mri_cvs_register,v 1.41 2012/09/07 17:55:47 lzollei Exp $';
 
 set movingid = ();
 set templateid = ();
@@ -41,6 +41,8 @@ set CleanVolReg = 0
 
 set FStemplate = cvs_avg35
 set usingFStemplate = 0
+set CVSMNItemplate = cvs_avg35_inMNI152
+set usingCVSMNItemplate = 0
 
 set asegfname = aseg
 
@@ -318,7 +320,7 @@ if (!(-e $outdir/$elasticmorph) || $CleanElReg) then
  set elasticoptions = (-lin_res 20 -ksp_rtol 1.0e-9 -penalty_weight 1000 -fem_steps 17 -elt_vol_range 5.0,10.0 \
                        -log_summary -topology_old -compress -pc_type jacobi -ksp_type preonly \
                        -ksp_view -ksp_converged_reason -poisson .3)
- if (!($usingFStemplate)) then 
+ if (!($usingFStemplate) && !($usingCVSMNItemplate)) then 
    set elasticoptions = ($elasticoptions -young 1000) # otherwise default is 10
  endif
 
@@ -333,7 +335,8 @@ if (!(-e $outdir/$elasticmorph) || $CleanElReg) then
                       -aparc_3 $tlabel/lh.aparc.annot -aparc_4 $tlabel/rh.aparc.annot \
                       $elasticoptions -cache_transform $outdir/transform.txt \
                       -out $outdir/${elasticmorph:r}.mgz -out_surf $outdir/surf-mfc_to$templateid \
-                      -out_mesh $outdir/${elasticmorph:r})
+                      -out_mesh $outdir/${elasticmorph:r} )
+#                      -dbg_output $outdir/${elasticmorph:r}.debug )
   echo $cmd >> $LF
   echo $cmd >> $sLF
   $cmd |& tee -a $LF
@@ -699,7 +702,7 @@ while( $#argv != 0 )
       if ( $#argv < 1) goto arg1err;
       set asegfname = $argv[1]; shift;
       # no file extension should remain in the name!
-      #set asegfname = $asegfname:r:r  # fails for aseg.noWMHI.mgz
+      # set asegfname = $asegfname:r:r  # fails for aseg.noWMHI.mgz
       # This is hacky, but it works
       set asegfname = `basename $asegfname .mgz`;
       set asegfname = `basename $asegfname .mgh`;
@@ -761,6 +764,11 @@ while( $#argv != 0 )
       set OnlyStep3 = 1;
       set DoAllSteps = 0;
     breaksw
+
+    case "--mni":
+      set usingCVSMNItemplate = 1;
+    breaksw
+
     
     case "--hemi":
       if ( $#argv < 1) goto arg1err;
@@ -801,8 +809,13 @@ check_params:
   if($#templateid == 0) then
     unsetenv $TEMPLATE_DIR
     setenv TEMPLATE_DIR $FREESURFER_HOME/subjects/
-    set templateid = $FStemplate
-    echo "Using the CVS template as registration target..."
+    if ($usingCVSMNItemplate) then
+      set templateid = $CVSMNItemplate
+      echo "Using the CVS template in MNI space as registration target..."
+    else
+      set templateid = $FStemplate
+      echo "Using the CVS template as registration target..."      
+    endif
   endif
 
   if($templateid == $movingid) then
@@ -812,6 +825,10 @@ check_params:
 
   if($templateid == $FStemplate) then
     set usingFStemplate = 1;
+  endif
+
+  if($templateid == $CVSMNItemplate) then
+    set usingCVSMNItemplate = 1;
   endif
 
 goto check_params_return;
