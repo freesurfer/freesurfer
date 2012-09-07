@@ -13,9 +13,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2012/08/28 18:18:51 $
- *    $Revision: 1.310 $
+ *    $Author: greve $
+ *    $Date: 2012/09/07 17:39:08 $
+ *    $Revision: 1.311 $
  *
  * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -12656,14 +12656,6 @@ cma_label_to_name(int label)
   if (label == Right_Interior)
   {
     return("Right_Interior") ;
-  }
-  if (label == Left_Lateral_Ventricles)
-  {
-    return("Left_Lateral_Ventricles") ;
-  }
-  if (label == Right_Lateral_Ventricles)
-  {
-    return("Right_Lateral_Ventricles") ;
   }
   if (label == WM_hypointensities)
   {
