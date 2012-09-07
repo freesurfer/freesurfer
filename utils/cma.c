@@ -9,8 +9,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2012/02/23 23:01:22 $
- *    $Revision: 1.11 $
+ *    $Date: 2012/09/07 17:40:03 $
+ *    $Revision: 1.12 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -584,8 +584,8 @@ double SupraTentorialVolCorrection(MRI *aseg, MRI *ribbon)
 	// These are midline, medial wall, or unknown structures
 	// that the pial could cut through.
 	SegId = MRIgetVoxVal(aseg,c,r,s,0);
-	if(SegId == Left_Lateral_Ventricles) vol += VoxSize;
-	if(SegId == Right_Lateral_Ventricles) vol += VoxSize;
+	if(SegId == Left_Lateral_Ventricle) vol += VoxSize;
+	if(SegId == Right_Lateral_Ventricle) vol += VoxSize;
 	if(SegId == Left_choroid_plexus) vol += VoxSize;
 	if(SegId == Right_choroid_plexus) vol += VoxSize;
 	if(SegId == Left_Inf_Lat_Vent) vol += VoxSize;
@@ -622,6 +622,94 @@ double SupraTentorialVolCorrection(MRI *aseg, MRI *ribbon)
       }
     }
   }
+  return(vol);
+}
+
+/*!
+\fn double CorticalGMVolCorrection(MRI *aseg, MRI *ribbon)
+\brief Computes the volume of non-cortical structures within the
+ribbon. This should be subtracted from the cortical GM volume computed
+by subtracting the volume inside the white from the volume inside the
+pial.
+\param aseg - segmentation
+\param ribbon - ribbon
+\param hemi - 1=left, 2=right
+*/
+double CorticalGMVolCorrection(MRI *aseg, MRI *ribbon, int hemi)
+{
+  int c,r,s,SegId;
+  double vol = 0, vol2 = 0;
+  int RibbonVal, VoxSize;
+
+  VoxSize = aseg->xsize * aseg->ysize * aseg->zsize;
+  for(c=0; c < aseg->width; c++){
+    for(r=0; r < aseg->height; r++){
+      for(s=0; s < aseg->depth; s++){
+
+	// If this voxel is not inside the ribbon, then skip it
+	RibbonVal = MRIgetVoxVal(ribbon,c,r,s,0);
+	if(hemi == 1 && RibbonVal != 3) continue;
+	if(hemi == 2 && RibbonVal != 42) continue;
+
+	// If it gets here, it means that the voxel was within the
+	// ribbon. It could be in a structure that is not part of the
+	// cortical GM
+
+	SegId = MRIgetVoxVal(aseg,c,r,s,0);
+	// This could be done in two ways. (1) If the aseg is not
+	// cortex (SegID=3 or 42), then make the correction. or (2) If
+	// the SegId is in a list of non-cortical structures, then
+	// make the correction. #2 is better because it assumes that
+	// the aseg is correct for non-cortex (but requires listing
+	// all the structures that could be affected). #1 is easier
+	// but assumes that the aseg cortex label always correctly
+	// declares cortex to be cortex.
+
+        // This uses method 1 (for testing) - gives very similar value as method 2
+	if(SegId != 3 && SegId != 42 && SegId != 2 && SegId != 41 && SegId != 0) vol2 += VoxSize;
+
+	// Method 2
+	// By far, most of the volume is going to be Hip and Amyg
+	if(SegId == Left_Hippocampus) vol += VoxSize;
+	if(SegId == Right_Hippocampus) vol += VoxSize;
+	if(SegId == Left_Amygdala) vol += VoxSize;
+	if(SegId == Right_Amygdala) vol += VoxSize;
+
+	if(SegId == Left_Lateral_Ventricle) vol += VoxSize;
+	if(SegId == Right_Lateral_Ventricle) vol += VoxSize;
+	if(SegId == Left_choroid_plexus) vol += VoxSize;
+	if(SegId == Right_choroid_plexus) vol += VoxSize;
+	if(SegId == Left_Inf_Lat_Vent) vol += VoxSize;
+	if(SegId == Right_Inf_Lat_Vent) vol += VoxSize;
+	if(SegId == WM_hypointensities) vol += VoxSize;
+	if(SegId == Left_WM_hypointensities) vol += VoxSize;
+	if(SegId == Right_WM_hypointensities) vol += VoxSize;
+	if(SegId == Left_Thalamus_Proper) vol += VoxSize;
+	if(SegId == Right_Thalamus_Proper) vol += VoxSize;
+	if(SegId == Left_Thalamus) vol += VoxSize;
+	if(SegId == Right_Thalamus) vol += VoxSize;
+	if(SegId == CC_Posterior) vol += VoxSize;
+	if(SegId == CC_Mid_Posterior) vol += VoxSize;
+	if(SegId == CC_Central) vol += VoxSize;
+	if(SegId == CC_Mid_Anterior) vol += VoxSize;
+	if(SegId == CC_Anterior) vol += VoxSize;
+	if(SegId == Left_VentralDC) vol += VoxSize;
+	if(SegId == Right_VentralDC) vol += VoxSize;
+	if(SegId == Left_Caudate) vol += VoxSize;
+	if(SegId == Right_Caudate) vol += VoxSize;
+	if(SegId == Left_Putamen ) vol += VoxSize;
+	if(SegId == Right_Putamen ) vol += VoxSize;
+	if(SegId == Left_Pallidum) vol += VoxSize;
+	if(SegId == Right_Pallidum) vol += VoxSize;
+	if(SegId == Left_Accumbens_area) vol += VoxSize;
+	if(SegId == Right_Accumbens_area) vol += VoxSize;
+	if(SegId == Left_Cerebellum_Cortex) vol += VoxSize;
+	if(SegId == Right_Cerebellum_Cortex) vol += VoxSize;
+	if(SegId == Left_vessel) vol += VoxSize;
+      }
+    }
+  }
+  printf("CorticalGMVolCorrection(): hemi=%d, vol1=%g, vol2=%g\n",hemi,vol,vol2);
   return(vol);
 }
 
@@ -696,7 +784,6 @@ MRI *MRIlrswapAseg(MRI *aseg)
 	case Left_Porg: id2 = Right_Porg; break;
 	case Left_Aorg: id2 = Right_Aorg; break;
 	case Left_Interior: id2 = Right_Interior; break;
-	case Left_Lateral_Ventricles: id2 = Right_Lateral_Ventricles; break;
 	case Left_WM_hypointensities: id2 = Right_WM_hypointensities; break;
 	case Left_non_WM_hypointensities: id2 = Right_non_WM_hypointensities; break;
 	case Left_F1: id2 = Right_F1; break;
@@ -704,7 +791,6 @@ MRI *MRIlrswapAseg(MRI *aseg)
 	case Right_Cerebral_Exterior: id2 = Left_Cerebral_Exterior; break;
 	case Right_Cerebral_White_Matter: id2 = Left_Cerebral_White_Matter; break;
 	case Right_Cerebral_Cortex: id2 = Left_Cerebral_Cortex; break;
-	case Right_Lateral_Ventricle: id2 = Left_Lateral_Ventricle; break;
 	case Right_Inf_Lat_Vent: id2 = Left_Inf_Lat_Vent; break;
 	case Right_Cerebellum_Exterior: id2 = Left_Cerebellum_Exterior; break;
 	case Right_Cerebellum_White_Matter: id2 = Left_Cerebellum_White_Matter; break;
@@ -734,7 +820,7 @@ MRI *MRIlrswapAseg(MRI *aseg)
 	case Right_Porg: id2 = Left_Porg; break;
 	case Right_Aorg: id2 = Left_Aorg; break;
 	case Right_Interior: id2 = Left_Interior; break;
-	case Right_Lateral_Ventricles: id2 = Left_Lateral_Ventricles; break;
+	case Right_Lateral_Ventricle: id2 = Left_Lateral_Ventricle; break;
 	case Right_WM_hypointensities: id2 = Left_WM_hypointensities; break;
 	case Right_non_WM_hypointensities: id2 = Left_non_WM_hypointensities; break;
 	case Right_F1: id2 = Left_F1; break;
