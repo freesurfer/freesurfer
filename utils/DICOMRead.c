@@ -6,9 +6,9 @@
 /*
  * Original Authors: Sebastien Gicquel and Douglas Greve, 06/04/2001
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2012/05/15 17:34:57 $
- *    $Revision: 1.148 $
+ *    $Author: pwighton $
+ *    $Date: 2012/09/07 19:52:27 $
+ *    $Revision: 1.149 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -107,6 +107,7 @@ MRI * sdcmLoadVolume(const char *dcmfile, int LoadVolume, int nthonly)
   int nnlist, nthdir;
   DTI *dti;
   int TryDTI = 1, DoDTI = 1;
+  int vol_datatype;
   extern int sliceDirCosPresent; // set when no ascii header
 
   xs=ys=zs=xe=ye=ze=d=0.; /* to avoid compiler warnings */
@@ -217,13 +218,22 @@ MRI * sdcmLoadVolume(const char *dcmfile, int LoadVolume, int nthonly)
          ncols,nrows,nslices,nframes,IsMosaic);
   fflush(stdout);
 
+  /* PW 2012/09/06: If the Autoscale functor has been used, save the MRI 
+                    structure as floats, otherwise use shorts
+  */
+  if (sdfi->UseSliceScaleFactor) {
+    vol_datatype = MRI_FLOAT;    
+  } else {
+    vol_datatype = MRI_SHORT;
+  }
+
   /** Allocate an MRI structure **/
   if (LoadVolume)
   {
     if (nthonly < 0)
-      vol = MRIallocSequence(ncols,nrows,nslices,MRI_SHORT,nframes);
+      vol = MRIallocSequence(ncols,nrows,nslices,vol_datatype,nframes);
     else
-      vol = MRIallocSequence(ncols,nrows,nslices,MRI_SHORT,1);
+      vol = MRIallocSequence(ncols,nrows,nslices,vol_datatype,1);
     if (vol==NULL)
     {
       fprintf(stderr,"ERROR: could not alloc MRI volume\n");
@@ -233,7 +243,7 @@ MRI * sdcmLoadVolume(const char *dcmfile, int LoadVolume, int nthonly)
   }
   else
   {
-    vol = MRIallocHeader(ncols,nrows,nslices,MRI_SHORT,nframes);
+    vol = MRIallocHeader(ncols,nrows,nslices,vol_datatype,nframes);
     if (vol==NULL)
     {
       fprintf(stderr,"ERROR: could not alloc MRI header \n");
@@ -428,11 +438,17 @@ MRI * sdcmLoadVolume(const char *dcmfile, int LoadVolume, int nthonly)
         {
           for (col=0; col < ncols; col++)
           {
-	    if(sdfi->UseSliceScaleFactor)
-	      val = 8*MinSliceScaleFactor*(*(pixeldata++))/sdfi->SliceScaleFactor;
-	    else
+	    if(sdfi->UseSliceScaleFactor) {
+              /* PW 2012/09/06: Old way to scale data to the dynamic range of 
+                                a SHORT, but now we're saving as FLOATs.. */                         
+              //val = 8*MinSliceScaleFactor*(*(pixeldata++))/sdfi->SliceScaleFactor;
+	      
+              val = ((float)*(pixeldata++))/sdfi->SliceScaleFactor;
+              MRIFseq_vox(vol,col,row,slice,frame) = val;
+	    } else {
 	      val = *(pixeldata++);
-            MRISseq_vox(vol,col,row,slice,frame) = (short)nint(val);
+              MRISseq_vox(vol,col,row,slice,frame) = (short)nint(val);
+	    }
           }
         }
       }
@@ -443,7 +459,12 @@ MRI * sdcmLoadVolume(const char *dcmfile, int LoadVolume, int nthonly)
         {
           for (col=0; col < ncols; col++)
           {
-            MRISvox(vol,col,row,slice) = *(pixeldata++);
+            if (sdfi->UseSliceScaleFactor) {
+              val = ((float)*(pixeldata++))/sdfi->SliceScaleFactor;
+              MRIFvox(vol,col,row,slice) = val;
+            } else {
+              MRISvox(vol,col,row,slice) = *(pixeldata++);
+            }
           }
         }
       }
@@ -481,7 +502,12 @@ MRI * sdcmLoadVolume(const char *dcmfile, int LoadVolume, int nthonly)
             }
             /* Compute the linear index into the block of pixel data */
             mosindex = moscol + mosrow * nmoscols;
-            MRISseq_vox(vol,col,row,slice,frame) = *(pixeldata + mosindex);
+            if (sdfi->UseSliceScaleFactor) {
+              val = ((float)*(pixeldata + mosindex))/sdfi->SliceScaleFactor;
+              MRIFseq_vox(vol,col,row,slice,frame) = val;
+            } else {
+              MRISseq_vox(vol,col,row,slice,frame) = *(pixeldata + mosindex);
+            }            
           }
         }
       }
