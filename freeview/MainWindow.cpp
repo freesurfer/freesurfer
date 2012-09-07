@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2012/08/08 20:24:50 $
- *    $Revision: 1.221 $
+ *    $Date: 2012/09/07 18:56:51 $
+ *    $Revision: 1.222 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -1314,6 +1314,10 @@ void MainWindow::RunScript()
   {
     CommandSetOpacity( sa );
   }
+  else if ( cmd == "setdisplayoutline")
+  {
+    CommandSetLabelOutline(sa);
+  }
   else if ( cmd == "setdisplayisosurface" )
   {
     CommandSetDisplayIsoSurface( sa );
@@ -1570,6 +1574,13 @@ void MainWindow::CommandLoadVolume( const QStringList& sa )
 
         m_scripts.insert( 0, script );
       }
+      else if ( subOption == "outline")
+      {
+        QString script = "setdisplayoutline ";
+        script += subArgu;
+
+        m_scripts.insert( 0, script );
+      }
       else if ( subOption == "isosurface" )
       {
         QString script = "setdisplayisosurface ";
@@ -1794,6 +1805,18 @@ void MainWindow::CommandShowLayer( const QStringList& cmd )
   }
 }
 
+void MainWindow::CommandSetLabelOutline(const QStringList &cmd)
+{
+  QString stemp = cmd[1].toLower();
+  if ( stemp == "yes"|| stemp == "true" || stemp == "1" || stemp == "on")
+  {
+    LayerMRI* mri = (LayerMRI*)GetLayerCollection( "MRI" )->GetActiveLayer();
+    if ( mri )
+    {
+      mri->GetProperty()->SetShowLabelOutline(true);
+    }
+  }
+}
 
 void MainWindow::CommandSetDisplayVector( const QStringList& cmd )
 {
