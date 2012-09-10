@@ -8,9 +8,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: mreuter $
- *    $Date: 2012/03/26 23:39:21 $
- *    $Revision: 1.9.2.2 $
+ *    $Author: greve $
+ *    $Date: 2012/09/10 18:14:54 $
+ *    $Revision: 1.9.2.3 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -31,6 +31,7 @@
 #include <string.h>
 #include <errno.h>
 #include "error.h"
+#include "mrisutils.h"
 
 /* see ch notebook 2 */
 
@@ -518,7 +519,8 @@ insert_ribbon_into_aseg(MRI *mri_src_aseg, MRI *mri_aseg,
 
 /*!
 \fn int IsSubCorticalGray(int SegId)
-\brief Returns a 1 if the given seg is subcortical gray
+\brief Returns a 1 if the given seg is subcortical gray. Note: 
+subcortical gray does not include brainstem or cerebellum cortex.
 \param SegId - segmentation id number
 */
 int IsSubCorticalGray(int SegId)
@@ -533,7 +535,7 @@ int IsSubCorticalGray(int SegId)
   if(SegId == Right_Putamen ) return(1);
   if(SegId == Left_Pallidum) return(1);
   if(SegId == Right_Pallidum) return(1);
-  if(SegId == Brain_Stem) return(1);
+  //if(SegId == Brain_Stem) return(1);
   if(SegId == Left_Hippocampus) return(1);
   if(SegId == Right_Hippocampus) return(1);
   if(SegId == Left_Amygdala) return(1);
@@ -544,8 +546,8 @@ int IsSubCorticalGray(int SegId)
   if(SegId == Right_VentralDC) return(1);
   if(SegId == Left_Substancia_Nigra) return(1);
   if(SegId == Right_Substancia_Nigra) return(1);
-  if(SegId == Left_Cerebellum_Cortex) return(1);
-  if(SegId == Right_Cerebellum_Cortex) return(1);
+  //if(SegId == Left_Cerebellum_Cortex) return(1);
+  //if(SegId == Right_Cerebellum_Cortex) return(1);
   return(0);
 }
 
@@ -573,6 +575,7 @@ double SupraTentorialVolCorrection(MRI *aseg, MRI *ribbon)
 
 	// If this voxel is inside the pial, then skip it because it
 	// will be part of the surface-based volume measure
+	// This was the location of a bug found by Mike Harms.
 	RibbonVal = MRIgetVoxVal(ribbon,c,r,s,0);
 	if(RibbonVal > 0) continue;
 
@@ -583,8 +586,8 @@ double SupraTentorialVolCorrection(MRI *aseg, MRI *ribbon)
 	// These are midline, medial wall, or unknown structures
 	// that the pial could cut through.
 	SegId = MRIgetVoxVal(aseg,c,r,s,0);
-	if(SegId == Left_Lateral_Ventricles) vol += VoxSize;
-	if(SegId == Right_Lateral_Ventricles) vol += VoxSize;
+	if(SegId == Left_Lateral_Ventricle) vol += VoxSize;
+	if(SegId == Right_Lateral_Ventricle) vol += VoxSize;
 	if(SegId == Left_choroid_plexus) vol += VoxSize;
 	if(SegId == Right_choroid_plexus) vol += VoxSize;
 	if(SegId == Left_Inf_Lat_Vent) vol += VoxSize;
@@ -621,6 +624,94 @@ double SupraTentorialVolCorrection(MRI *aseg, MRI *ribbon)
       }
     }
   }
+  return(vol);
+}
+
+/*!
+\fn double CorticalGMVolCorrection(MRI *aseg, MRI *ribbon)
+\brief Computes the volume of non-cortical structures within the
+ribbon. This should be subtracted from the cortical GM volume computed
+by subtracting the volume inside the white from the volume inside the
+pial.
+\param aseg - segmentation
+\param ribbon - ribbon
+\param hemi - 1=left, 2=right
+*/
+double CorticalGMVolCorrection(MRI *aseg, MRI *ribbon, int hemi)
+{
+  int c,r,s,SegId;
+  double vol = 0, vol2 = 0;
+  int RibbonVal, VoxSize;
+
+  VoxSize = aseg->xsize * aseg->ysize * aseg->zsize;
+  for(c=0; c < aseg->width; c++){
+    for(r=0; r < aseg->height; r++){
+      for(s=0; s < aseg->depth; s++){
+
+	// If this voxel is not inside the ribbon, then skip it
+	RibbonVal = MRIgetVoxVal(ribbon,c,r,s,0);
+	if(hemi == 1 && RibbonVal != 3) continue;
+	if(hemi == 2 && RibbonVal != 42) continue;
+
+	// If it gets here, it means that the voxel was within the
+	// ribbon. It could be in a structure that is not part of the
+	// cortical GM
+
+	SegId = MRIgetVoxVal(aseg,c,r,s,0);
+	// This could be done in two ways. (1) If the aseg is not
+	// cortex (SegID=3 or 42), then make the correction. or (2) If
+	// the SegId is in a list of non-cortical structures, then
+	// make the correction. #2 is better because it assumes that
+	// the aseg is correct for non-cortex (but requires listing
+	// all the structures that could be affected). #1 is easier
+	// but assumes that the aseg cortex label always correctly
+	// declares cortex to be cortex.
+
+        // This uses method 1 (for testing) - gives very similar value as method 2
+	if(SegId != 3 && SegId != 42 && SegId != 2 && SegId != 41 && SegId != 0) vol2 += VoxSize;
+
+	// Method 2
+	// By far, most of the volume is going to be Hip and Amyg
+	if(SegId == Left_Hippocampus) vol += VoxSize;
+	if(SegId == Right_Hippocampus) vol += VoxSize;
+	if(SegId == Left_Amygdala) vol += VoxSize;
+	if(SegId == Right_Amygdala) vol += VoxSize;
+
+	if(SegId == Left_Lateral_Ventricle) vol += VoxSize;
+	if(SegId == Right_Lateral_Ventricle) vol += VoxSize;
+	if(SegId == Left_choroid_plexus) vol += VoxSize;
+	if(SegId == Right_choroid_plexus) vol += VoxSize;
+	if(SegId == Left_Inf_Lat_Vent) vol += VoxSize;
+	if(SegId == Right_Inf_Lat_Vent) vol += VoxSize;
+	if(SegId == WM_hypointensities) vol += VoxSize;
+	if(SegId == Left_WM_hypointensities) vol += VoxSize;
+	if(SegId == Right_WM_hypointensities) vol += VoxSize;
+	if(SegId == Left_Thalamus_Proper) vol += VoxSize;
+	if(SegId == Right_Thalamus_Proper) vol += VoxSize;
+	if(SegId == Left_Thalamus) vol += VoxSize;
+	if(SegId == Right_Thalamus) vol += VoxSize;
+	if(SegId == CC_Posterior) vol += VoxSize;
+	if(SegId == CC_Mid_Posterior) vol += VoxSize;
+	if(SegId == CC_Central) vol += VoxSize;
+	if(SegId == CC_Mid_Anterior) vol += VoxSize;
+	if(SegId == CC_Anterior) vol += VoxSize;
+	if(SegId == Left_VentralDC) vol += VoxSize;
+	if(SegId == Right_VentralDC) vol += VoxSize;
+	if(SegId == Left_Caudate) vol += VoxSize;
+	if(SegId == Right_Caudate) vol += VoxSize;
+	if(SegId == Left_Putamen ) vol += VoxSize;
+	if(SegId == Right_Putamen ) vol += VoxSize;
+	if(SegId == Left_Pallidum) vol += VoxSize;
+	if(SegId == Right_Pallidum) vol += VoxSize;
+	if(SegId == Left_Accumbens_area) vol += VoxSize;
+	if(SegId == Right_Accumbens_area) vol += VoxSize;
+	if(SegId == Left_Cerebellum_Cortex) vol += VoxSize;
+	if(SegId == Right_Cerebellum_Cortex) vol += VoxSize;
+	if(SegId == Left_vessel) vol += VoxSize;
+      }
+    }
+  }
+  printf("CorticalGMVolCorrection(): hemi=%d, vol1=%g, vol2=%g\n",hemi,vol,vol2);
   return(vol);
 }
 
@@ -695,7 +786,6 @@ MRI *MRIlrswapAseg(MRI *aseg)
 	case Left_Porg: id2 = Right_Porg; break;
 	case Left_Aorg: id2 = Right_Aorg; break;
 	case Left_Interior: id2 = Right_Interior; break;
-	case Left_Lateral_Ventricles: id2 = Right_Lateral_Ventricles; break;
 	case Left_WM_hypointensities: id2 = Right_WM_hypointensities; break;
 	case Left_non_WM_hypointensities: id2 = Right_non_WM_hypointensities; break;
 	case Left_F1: id2 = Right_F1; break;
@@ -703,7 +793,6 @@ MRI *MRIlrswapAseg(MRI *aseg)
 	case Right_Cerebral_Exterior: id2 = Left_Cerebral_Exterior; break;
 	case Right_Cerebral_White_Matter: id2 = Left_Cerebral_White_Matter; break;
 	case Right_Cerebral_Cortex: id2 = Left_Cerebral_Cortex; break;
-	case Right_Lateral_Ventricle: id2 = Left_Lateral_Ventricle; break;
 	case Right_Inf_Lat_Vent: id2 = Left_Inf_Lat_Vent; break;
 	case Right_Cerebellum_Exterior: id2 = Left_Cerebellum_Exterior; break;
 	case Right_Cerebellum_White_Matter: id2 = Left_Cerebellum_White_Matter; break;
@@ -733,7 +822,7 @@ MRI *MRIlrswapAseg(MRI *aseg)
 	case Right_Porg: id2 = Left_Porg; break;
 	case Right_Aorg: id2 = Left_Aorg; break;
 	case Right_Interior: id2 = Left_Interior; break;
-	case Right_Lateral_Ventricles: id2 = Left_Lateral_Ventricles; break;
+	case Right_Lateral_Ventricle: id2 = Left_Lateral_Ventricle; break;
 	case Right_WM_hypointensities: id2 = Left_WM_hypointensities; break;
 	case Right_non_WM_hypointensities: id2 = Left_non_WM_hypointensities; break;
 	case Right_F1: id2 = Left_F1; break;
@@ -746,5 +835,236 @@ MRI *MRIlrswapAseg(MRI *aseg)
   }
   return(asegswap);
 }
+/*!
+\fn MRI *MRIfixAsegWithRibbon(MRI *aseg, MRI *ribbon, MRI *asegfixed)
+\brief Compares aseg.mgz to ribbon.mgz and replaces the aseg values 
+with ribbon values if the aseg is CtxGM or CtxWM or unknown.
+\param aseg - aseg.mgz segmentation
+\param ribbon - ribbon.mgz segmentation
+*/
+MRI *MRIfixAsegWithRibbon(MRI *aseg, MRI *ribbon, MRI *asegfixed)
+{
+  int c,r,s,asegid,ribbonid;
 
+  asegfixed = MRIcopy(aseg,asegfixed);
+
+  for(c=0; c < aseg->width; c++){
+    for(r=0; r < aseg->height; r++){
+      for(s=0; s < aseg->depth; s++){
+	asegid = MRIgetVoxVal(aseg,c,r,s,0);
+	if(asegid == 2 || asegid == 41 || asegid == 3 || asegid == 42 || asegid == 0){
+	  ribbonid = MRIgetVoxVal(ribbon,c,r,s,0);
+	  MRIsetVoxVal(asegfixed,c,r,s,0,ribbonid);
+	}
+      }
+    }
+  }
+  return(asegfixed);
+}
+
+/*!
+\fn double *ComputeBrainVolumeStats(char *subject)
+\brief computes various brain volume statistics and returns them as a
+double array.  These include BrainSegVol, BrainSegVolNotVent,
+SupraTentVol, SubCortGM, CtxGM, CtxWM, etc.  The hope is that this one
+function will be able to consistently define all of these
+parameters. Where possible, this function returns values based on
+surface-based analysis. It also computes the same values based on
+volume-based analysis to check against the surface-based results.
+\param subject
+*/
+double *ComputeBrainVolumeStats(char *subject)
+{
+  char tmpstr[2000];
+  char *SUBJECTS_DIR;
+  MRI *aseg, *ribbon, *asegfixed, *brainmask;
+  MRIS *mris;
+  int c,r,s,asegid,ribbonid,asegfixedid;
+  double lhwhitevolTot, rhwhitevolTot, lhpialvolTot, rhpialvolTot;
+  double lhCtxGM, rhCtxGM, lhCtxWM, rhCtxWM;
+  double lhCtxGMCor, rhCtxGMCor, lhCtxWMCor, rhCtxWMCor;
+  double lhCtxGMCount, rhCtxGMCount, lhCtxWMCount, rhCtxWMCount;
+  double CCVol;
+  double SupraTentVol, SupraTentVolCor, SupraTentVolNotVent, eSTV;
+  double SubCortGMVol, CerebellumVol, CerebellumGMVol, VentChorVol;
+  double BrainSegVol, eBSV, BrainSegVolNotVent, MaskVol, VesselVol;
+  double OptChiasmVol, CSFVol;
+  double *stats=NULL;
+
+  SUBJECTS_DIR = getenv("SUBJECTS_DIR");
+
+  sprintf(tmpstr,"%s/%s/surf/lh.white",SUBJECTS_DIR,subject);
+  mris = MRISread(tmpstr); if(mris==NULL) return(NULL);
+  lhwhitevolTot = MRISvolumeInSurf(mris);
+  MRISfree(&mris);
+
+  sprintf(tmpstr,"%s/%s/surf/rh.white",SUBJECTS_DIR,subject);
+  mris = MRISread(tmpstr); if(mris==NULL) return(NULL);
+  rhwhitevolTot = MRISvolumeInSurf(mris);
+  MRISfree(&mris);
+
+  sprintf(tmpstr,"%s/%s/surf/lh.pial",SUBJECTS_DIR,subject);
+  mris = MRISread(tmpstr); if(mris==NULL) return(NULL);
+  lhpialvolTot = MRISvolumeInSurf(mris);
+  MRISfree(&mris);
+
+  sprintf(tmpstr,"%s/%s/surf/rh.pial",SUBJECTS_DIR,subject);
+  mris = MRISread(tmpstr); if(mris==NULL) return(NULL);
+  rhpialvolTot = MRISvolumeInSurf(mris);
+  MRISfree(&mris);
+
+  sprintf(tmpstr,"%s/%s/mri/brainmask.mgz",SUBJECTS_DIR,subject);
+  brainmask = MRIread(tmpstr); if(brainmask == NULL) return(NULL);
+
+  sprintf(tmpstr,"%s/%s/mri/aseg.mgz",SUBJECTS_DIR,subject);
+  aseg = MRIread(tmpstr); if(aseg == NULL) return(NULL);
+
+  sprintf(tmpstr,"%s/%s/mri/ribbon.mgz",SUBJECTS_DIR,subject);
+  ribbon = MRIread(tmpstr); if(ribbon == NULL) return(NULL);
+
+  asegfixed = MRIfixAsegWithRibbon(aseg, ribbon, NULL);
+
+  lhCtxGMCor = 0;
+  rhCtxGMCor = 0;
+  lhCtxWMCor = 0;
+  rhCtxWMCor = 0;
+  lhCtxGMCount = 0;
+  rhCtxGMCount = 0;
+  lhCtxWMCount = 0;
+  rhCtxWMCount = 0;
+  CCVol = 0;
+  SubCortGMVol = 0;
+  CerebellumVol = 0;
+  CerebellumGMVol = 0;
+  VentChorVol = 0;
+  BrainSegVol = 0;
+  MaskVol = 0;
+  VesselVol = 0;
+  OptChiasmVol = 0;
+  CSFVol = 0;
+  for(c=0; c < aseg->width; c++){
+    for(r=0; r < aseg->height; r++){
+      for(s=0; s < aseg->depth; s++){
+	asegid = MRIgetVoxVal(aseg,c,r,s,0);
+	asegfixedid = MRIgetVoxVal(asegfixed,c,r,s,0);
+	ribbonid = MRIgetVoxVal(ribbon,c,r,s,0);
+	// Corpus Callosum
+	if(asegid == 251 || asegid == 252 || asegid == 253 ||
+	   asegid == 254 || asegid == 255) CCVol++;
+	// Correct CtxGM by anything in the ribbon that is not GM, WM, or Unkown in the aseg
+	if(ribbonid ==  3 && asegid !=  3 && asegid !=  2 && asegid != 0) lhCtxGMCor += 1;
+	if(ribbonid == 42 && asegid != 42 && asegid != 41 && asegid != 0) rhCtxGMCor += 1;
+	// Correct CtxWM by anything in the WMribbon that is not WM, eg, GM structures.
+	// Does not use PVC for subcort GM. Make sure to include hypointensities (77)
+	if(ribbonid ==  2 && asegfixedid != 2 && asegfixedid != 77 && 
+	   asegfixedid != 251 && asegfixedid != 252 && asegfixedid != 253 &&
+	   asegfixedid != 254 && asegfixedid != 255) lhCtxWMCor += 1;
+	if(ribbonid == 41 && asegfixedid != 41 && asegfixedid != 77 && 
+	   asegfixedid != 251 && asegfixedid != 252 && asegfixedid != 253 &&
+	   asegfixedid != 254 && asegfixedid != 255) rhCtxWMCor += 1;
+	// Subcortical GM structures (does not use PVC)
+	if(IsSubCorticalGray(asegfixedid)) SubCortGMVol++;
+	// Cerebellum GM volume
+	if(asegid == Left_Cerebellum_Cortex || asegid == Right_Cerebellum_Cortex)
+	  CerebellumGMVol++;	  
+	// Cerebellum (GM+WM) volume
+	if(asegid == Left_Cerebellum_Cortex || asegid == Right_Cerebellum_Cortex ||
+	   asegid == Right_Cerebellum_White_Matter || asegid == Left_Cerebellum_White_Matter)
+	  CerebellumVol++;	  
+	// Ventricle Volume
+	if(asegid == Left_choroid_plexus     || asegid == Right_choroid_plexus ||
+	   asegid == Left_Lateral_Ventricle  || asegid == Right_Lateral_Ventricle ||
+	   asegid == Left_Inf_Lat_Vent       || asegid == Right_Inf_Lat_Vent)
+	  VentChorVol++;
+	// Other
+	if(asegid == 30 || asegid == 62) VesselVol++;
+	if(asegid == 85) OptChiasmVol++;
+	if(asegid == 24) CSFVol++;
+	// Total number of voxels in the segmentation. Use fixed to exclude
+	// stuff outside of the brain (eg, dura)
+	if(asegfixedid != 0 && asegfixedid != Brain_Stem)  BrainSegVol++;
+	// Total number of voxels in the brainmask
+	if(MRIgetVoxVal(brainmask,c,r,s,0) > 0) MaskVol++;
+	// Total number of voxels in the CtxGM, CtxWM of asegfixed
+	// This is to check against the surface-based measures
+	if(asegfixedid ==  3) lhCtxGMCount++;
+	if(asegfixedid == 42) rhCtxGMCount++;
+	// For CtxWM, include hypointensities. The hypos are not lateralized,
+	// so just lateralize them based on column (not perfect, but it is only a check)
+	if(asegfixedid ==  2 || asegfixedid ==  78 || (asegfixedid == 77 && c <  128)) lhCtxWMCount++;
+	if(asegfixedid == 41 || asegfixedid ==  79 || (asegfixedid == 77 && c >= 128)) rhCtxWMCount++;
+      } //c 
+    } //r
+  } //s
+
+  // CtxGM = everything inside pial surface minus everything in white surface 
+  // minus stuff in the ribbon that is not cortex
+  lhCtxGM = lhpialvolTot - lhwhitevolTot - lhCtxGMCor;
+  rhCtxGM = rhpialvolTot - rhwhitevolTot - rhCtxGMCor;
+
+  // CtxWM = everything inside of white surface minus stuff that is not WM
+  lhCtxWM = lhwhitevolTot - lhCtxWMCor;
+  rhCtxWM = rhwhitevolTot - rhCtxWMCor;
+
+  // Add half of CC to each hemi for counting, 
+  lhCtxWMCount += CCVol/2;
+  rhCtxWMCount += CCVol/2;
+
+  // Supratentorial volume is everything inside the pial surface plus 
+  // stuff that is ouside the surface but still in the ST (eg, hippo, amyg)
+  SupraTentVolCor = SupraTentorialVolCorrection(aseg, ribbon);
+  SupraTentVol = lhpialvolTot + rhpialvolTot + SupraTentVolCor;
+  SupraTentVolNotVent = SupraTentVol - VentChorVol;
+  // Estimated STV based - should these be exactly the same? Might depend on how
+  // much of CSF and OptChiasm are in or out of the surface.
+  eSTV = lhCtxGM + rhCtxGM + lhCtxWM + rhCtxWM + SubCortGMVol + VentChorVol + VesselVol;
+
+  // Estimated BrainSegVolume - mostly a comparison between surface- and volume-based
+  eBSV = eSTV + CerebellumVol + CSFVol + OptChiasmVol;
+
+  BrainSegVolNotVent = BrainSegVol - VentChorVol;
+
+  printf("lhCtxGM: %9.3f %9.3f  diff=%7.1f  pctdiff=%6.3f\n",
+	 lhCtxGM,lhCtxGMCount,lhCtxGM-lhCtxGMCount,100*(lhCtxGM-lhCtxGMCount)/lhCtxGM);
+  printf("rhCtxGM: %9.3f %9.3f  diff=%7.1f  pctdiff=%6.3f\n",
+	 rhCtxGM,rhCtxGMCount,rhCtxGM-rhCtxGMCount,100*(rhCtxGM-rhCtxGMCount)/rhCtxGM);
+  printf("lhCtxWM: %9.3f %9.3f  diff=%7.1f  pctdiff=%6.3f\n",
+	 lhCtxWM,lhCtxWMCount,lhCtxWM-lhCtxWMCount,100*(lhCtxWM-lhCtxWMCount)/lhCtxWM);
+  printf("rhCtxWM: %9.3f %9.3f  diff=%7.1f  pctdiff=%6.3f\n",
+	 rhCtxWM,rhCtxWMCount,rhCtxWM-rhCtxWMCount,100*(rhCtxWM-rhCtxWMCount)/rhCtxWM);
+  printf("SubCortGMVol  %9.3f\n",SubCortGMVol);
+  printf("SupraTentVol  %9.3f (%9.3f) diff=%6.3f pctdiff=%4.3f\n",
+	 SupraTentVol,eSTV, SupraTentVol-eSTV, 100*(SupraTentVol-eSTV)/SupraTentVol );
+  printf("SupraTentVolNotVent  %9.3f\n",SupraTentVolNotVent);
+  printf("BrainSegVol  %9.3f (%9.3f) diff=%6.3f pctdiff=%4.3f\n",
+	 BrainSegVol,eBSV, BrainSegVol-eBSV, 100*(BrainSegVol-eBSV)/BrainSegVol );
+
+  printf("BrainSegVolNotVent  %9.3f\n",BrainSegVolNotVent);
+  printf("CerebellumVol %9.3f\n",CerebellumVol);
+  printf("VentChorVol   %9.3f\n",VentChorVol);
+  printf("MaskVol %9.3f\n",MaskVol);
+  printf("CSFVol %9.3f, OptChiasmVol %9.3f\n",CSFVol,OptChiasmVol);
+
+  MRIfree(&aseg);
+  MRIfree(&ribbon);
+  MRIfree(&asegfixed);
+  MRIfree(&brainmask);
+
+  stats = (double*)calloc(13,sizeof(double));
+  stats[0] = BrainSegVol;
+  stats[1] = BrainSegVolNotVent;
+  stats[2] = SupraTentVol;
+  stats[3] = SupraTentVolNotVent;
+  stats[4] = SubCortGMVol;
+  stats[5] = lhCtxGM;
+  stats[6] = rhCtxGM;
+  stats[7] = lhCtxGM + rhCtxGM;
+  stats[8] = SubCortGMVol + lhCtxGM + rhCtxGM + CerebellumGMVol; // total GM Vol
+  stats[9] = lhCtxWM;
+  stats[10] = rhCtxWM;
+  stats[11] = lhCtxWM + rhCtxWM;
+  stats[12] = MaskVol;
+
+  return(stats);
+}
 /* eof */

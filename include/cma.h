@@ -8,9 +8,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2012/08/28 22:11:20 $
- *    $Revision: 1.55.2.5 $
+ *    $Author: greve $
+ *    $Date: 2012/09/10 18:14:54 $
+ *    $Revision: 1.55.2.6 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -112,8 +112,8 @@ extern "C" {
 #define Fifth_Ventricle               72
 #define Left_Interior                 73
 #define Right_Interior                74
-#define Left_Lateral_Ventricles       75
-#define Right_Lateral_Ventricles      76
+//#define Left_Lateral_Ventricles       75
+//#define Right_Lateral_Ventricles      76
 #define WM_hypointensities            77
 #define Left_WM_hypointensities       78
 #define Right_WM_hypointensities      79
@@ -437,6 +437,9 @@ char *cma_label_to_name(int label) ;
 int IsSubCorticalGray(int SegId);
 #include "mri.h"
 double SupraTentorialVolCorrection(MRI *aseg, MRI *ribbon);
+double CorticalGMVolCorrection(MRI *aseg, MRI *ribbon, int hemi);
+double *ComputeBrainVolumeStats(char *subject);
+MRI *MRIfixAsegWithRibbon(MRI *aseg, MRI *ribbon, MRI *asegfixed);
 
 #define IS_FIMBRIA(l) ((l) == left_fimbria || (l) == right_fimbria || (l) == fimbria)
 #define CSF_CLASS        0
