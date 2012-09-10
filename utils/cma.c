@@ -9,8 +9,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2012/09/07 17:40:03 $
- *    $Revision: 1.12 $
+ *    $Date: 2012/09/10 15:48:38 $
+ *    $Revision: 1.13 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -518,7 +518,8 @@ insert_ribbon_into_aseg(MRI *mri_src_aseg, MRI *mri_aseg,
 
 /*!
 \fn int IsSubCorticalGray(int SegId)
-\brief Returns a 1 if the given seg is subcortical gray
+\brief Returns a 1 if the given seg is subcortical gray. Note: 
+subcortical gray does not include brainstem or cerebellum cortex.
 \param SegId - segmentation id number
 */
 int IsSubCorticalGray(int SegId)
@@ -533,7 +534,7 @@ int IsSubCorticalGray(int SegId)
   if(SegId == Right_Putamen ) return(1);
   if(SegId == Left_Pallidum) return(1);
   if(SegId == Right_Pallidum) return(1);
-  if(SegId == Brain_Stem) return(1);
+  //if(SegId == Brain_Stem) return(1);
   if(SegId == Left_Hippocampus) return(1);
   if(SegId == Right_Hippocampus) return(1);
   if(SegId == Left_Amygdala) return(1);
@@ -544,8 +545,8 @@ int IsSubCorticalGray(int SegId)
   if(SegId == Right_VentralDC) return(1);
   if(SegId == Left_Substancia_Nigra) return(1);
   if(SegId == Right_Substancia_Nigra) return(1);
-  if(SegId == Left_Cerebellum_Cortex) return(1);
-  if(SegId == Right_Cerebellum_Cortex) return(1);
+  //if(SegId == Left_Cerebellum_Cortex) return(1);
+  //if(SegId == Right_Cerebellum_Cortex) return(1);
   return(0);
 }
 
