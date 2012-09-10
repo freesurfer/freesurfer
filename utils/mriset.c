@@ -8,20 +8,19 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: lzollei $
- *    $Date: 2010/04/27 21:35:44 $
- *    $Revision: 1.74 $
+ *    $Author: greve $
+ *    $Date: 2012/09/10 18:12:12 $
+ *    $Revision: 1.78.2.1 $
  *
- * Copyright (C) 2002-2010,
- * The General Hospital Corporation (Boston, MA). 
- * All rights reserved.
+ * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
- * Distribution, usage and copying of this software is covered under the
- * terms found in the License Agreement file named 'COPYING' found in the
- * FreeSurfer source code root directory, and duplicated here:
- * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ * Terms and conditions for use, reproduction, distribution and contribution
+ * are found in the 'FreeSurfer Software License Agreement' contained
+ * in the file 'LICENSE' found in the FreeSurfer distribution, and here:
  *
- * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
+ *
+ * Reporting: freesurfer@nmr.mgh.harvard.edu
  *
  */
 
@@ -31,6 +30,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
+double round(double x);
 #include <string.h>
 #include <memory.h>
 
@@ -277,13 +277,57 @@ MRIor(MRI *mri1, MRI *mri2, MRI *mri_dst, int thresh)
           MRIsampleVolumeFrame(mri2, x, y, z, f, &val2) ;
           if (val2 < thresh)
             val2 = 0 ;
-          MRIsetVoxVal(mri_dst, x, y, z, f, val1 || val2) ;
+	  MRIsetVoxVal(mri_dst, x, y, z, f, val1 || val2) ;
         }
       }
     }
   }
   return(mri_dst) ;
 }
+
+MRI *
+MRIorVal(MRI *mri1, MRI *mri2, MRI *mri_dst, int thresh)
+{
+  int     width, height, depth, x, y, z, f ;
+  double  val1, val2, val;
+
+  MRIcheckVolDims(mri1, mri2);
+
+  width = mri1->width ;
+  height = mri1->height ;
+  depth = mri1->depth ;
+
+  if (!mri_dst)
+    mri_dst = MRIclone(mri1, NULL) ;
+
+  for (f = 0 ; f < mri1->nframes ; f++)
+  {
+    for (z = 0 ; z < depth ; z++)
+    {
+      for (y = 0 ; y < height ; y++)
+      {
+        for (x = 0 ; x < width ; x++)
+        {
+          MRIsampleVolumeFrame(mri1, x, y, z, f, &val1) ;
+          if (val1 < thresh)
+            val1 = 0 ;
+          MRIsampleVolumeFrame(mri2, x, y, z, f, &val2) ;
+          if (val2 < thresh)
+            val2 = 0 ;
+	  val = 0;
+	  if(val1)
+	    val = val1;
+	  else 
+	    if(val2)
+	      val = val2;
+	  MRIsetVoxVal(mri_dst, x, y, z, f, val) ;
+        }
+      }
+    }
+  }
+  return(mri_dst) ;
+}
+
 /*-----------------------------------------------------
   Parameters:
 
@@ -295,38 +339,26 @@ MRI *
 MRIxor(MRI *mri1, MRI *mri2, MRI *mri_dst, int t1, int t2)
 {
   int     width, height, depth, x, y, z ;
-  BUFTYPE *p1, *p2, *pdst, v1, v2 ;
+  int   v1, v2 ;
 
   MRIcheckVolDims(mri1, mri2);
 
-  if ((mri1->type != MRI_UCHAR) || (mri2->type != MRI_UCHAR))
-    ErrorReturn(NULL,
-                (ERROR_UNSUPPORTED, "MRIxor: inputs must be UCHAR")) ;
-
-  width = mri1->width ;
-  height = mri1->height ;
-  depth = mri1->depth ;
+  width = mri1->width ; height = mri1->height ; depth = mri1->depth ;
 
   if (!mri_dst)
     mri_dst = MRIclone(mri1, NULL) ;
-  else if (mri_dst->type != MRI_UCHAR)
-    ErrorReturn(NULL,
-                (ERROR_UNSUPPORTED, "MRIxor: destination must be UCHAR")) ;
 
   for (z = 0 ; z < depth ; z++)
   {
     for (y = 0 ; y < height ; y++)
     {
-      pdst = &MRIvox(mri_dst, 0, y, z) ;
-      p1 = &MRIvox(mri1, 0, y, z) ;
-      p2 = &MRIvox(mri2, 0, y, z) ;
       for (x = 0 ; x < width ; x++)
       {
-        v1 = *p1++ ;
-        v2 = *p2++ ;
+        v1 = (int)MRIgetVoxVal(mri1, x, y, z, 0) ;
+        v2 = (int)MRIgetVoxVal(mri2, x, y, z, 0) ;
         v1 = ((v1 >= t1) && (v1 <= t2)) ;
         v2 = ((v2 >= t1) && (v2 <= t2)) ;
-        *pdst++ = v1 ^ v2 ;
+        MRIsetVoxVal(mri_dst, x, y, z, 0, (float)(v1 ^ v2)) ;
       }
     }
   }
@@ -519,6 +551,70 @@ MRI * MRIerodeThresh(MRI *mri_src, MRI *mri_intensity, double thresh,
   }
   return(mri_dst) ;
 }
+/*!
+  \fn MRI *MRIerodeSegmentation(MRI *seg, MRI *out, int nErodes, int nDiffThresh)
+  \brief Erodes the boundaries of a segmentation (ie, sets value=0) if the number
+  of nearest neighbor voxels that are different than the center is greater than
+  nDiffThresh. "Nearest neighbor" is defined as the 6 nearest neighbors. If
+  nErodes>1, then it calls itself recursively.
+*/
+MRI *MRIerodeSegmentation(MRI *seg, MRI *out, int nErodes, int nDiffThresh)
+{
+  int c,r,s,dc,dr,ds,segid0,segidD, n, nDiff;
+  MRI *seg2=NULL;
+
+  if(seg == out){
+    printf("ERROR: MRIerodeSegmentation(): cannot be done in-place\n");
+    return(NULL);
+  }
+  if(!out) out = MRIallocSequence(seg->width, seg->height, seg->depth,seg->type, 1);
+  if(MRIdimMismatch(seg, out, 0)){
+    printf("ERROR: MRIerodeSegmentation(): seg/out dim mismatch\n");
+    return(NULL);
+  }
+  out = MRIcopy(seg,out);
+
+  n = nErodes;
+  seg2 = MRIcopy(seg,seg2);
+  while(n != 1) {
+    out = MRIerodeSegmentation(seg2, out, 1, nDiffThresh);
+    seg2 = MRIcopy(out,seg2);
+    n--;
+  }
+
+  for(c=0; c < seg->width; c++){
+    for(r=0; r < seg->height; r++){
+      for(s=0; s < seg->depth; s++){
+	if(c==0 || c==seg->width-1 ||
+	   r==0 || r==seg->height-1 ||
+	   s==0 || s==seg->depth-1){
+	  MRIsetVoxVal(out,c,r,s,0, 0);
+	  continue;
+	}
+	segid0 = MRIgetVoxVal(seg2,c,r,s,0);
+	nDiff = 0;
+	for(dc=-1; dc <= 1; dc++){
+	  segidD = MRIgetVoxVal(seg2,c+dc,r,s,0);
+	  if(segidD != segid0) nDiff++;
+	}
+	for(dr=-1; dr <= 1; dr++){
+	  segidD = MRIgetVoxVal(seg2,c,r+dr,s,0);
+	  if(segidD != segid0) nDiff++;
+	}
+	for(ds=-1; ds <= 1; ds++){
+	  segidD = MRIgetVoxVal(seg2,c,r,s+ds,0);
+	  if(segidD != segid0) nDiff++;
+	}
+	if(nDiff > nDiffThresh) segid0 = 0;
+	MRIsetVoxVal(out,c,r,s,0, segid0);
+      }
+    }
+  }
+  return(out);
+}
+
+
+
 MRI * MRIdilateThresh(MRI *mri_src, MRI *mri_intensity, double thresh, 
                      MRI *mri_dst)
 {
@@ -3847,3 +3943,41 @@ MRIsetVoxelsWithValue(MRI *mri_src, MRI *mri_dst, int src_val, int dst_val)
   }
   return(nvox) ;
 }
+/*-------------------------------------------------------*/
+/*!
+  \fn double MRIpercentThresh(MRI *mri, MRI *mask, int frame, double pct)
+  \brief Computes a threshold above which there will be pct percent of the
+    voxels in the mask.
+ */
+double MRIpercentThresh(MRI *mri, MRI *mask, int frame, double pct)
+{
+  double *vlist, thresh;
+  int nlist, ntot,npct;
+  int c, r, s;
+  
+  ntot = mri->width*mri->depth*mri->height;
+  vlist = (double *) calloc(ntot,sizeof(double));
+
+  nlist = 0;
+  for(c=0; c < mri->width; c++){
+    for(r=0; r < mri->height; r++){
+      for(s=0; s < mri->depth; s++){
+	if(mask && MRIgetVoxVal(mask,c,r,s,0) < 0.5) continue;
+	vlist[nlist] = MRIgetVoxVal(mri,c,r,s,frame);
+	nlist++;
+      }
+    }
+  }
+
+  // sort from lowest to highest
+  qsort(vlist,nlist,sizeof(double),CompareDoubles);
+
+  // ascending order so 100-pct
+  npct = round(nlist*(100-pct)/100);
+  thresh = vlist[npct];
+
+  //printf("nlist %d, npct = %d, pct=%g, thresh %g\n",nlist,npct,pct,thresh);
+  free(vlist);
+  return(thresh);
+}
+
