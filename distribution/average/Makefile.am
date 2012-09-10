@@ -81,7 +81,7 @@ EXTRA_DIST=$(foo_DATA) fsaverage.tar.gz fsaverage_sym.tar.gz \
 	fsaverage3.tar.gz fsaverage4.tar.gz \
 	fsaverage5.tar.gz fsaverage6.tar.gz fsaverage7.tar.gz \
 	EC_average.tar.gz mult-comp-cor.tar.gz \
-	build_gcs_morph.csh cvs_avg35.tar.gz
+	build_gcs_morph.csh cvs_avg35.tar.gz cvs_avg35_inMNI152.tar.gz
 
 install: install-fooDATA
 	mkdir -p $(DESTDIR)$(prefix)/subjects
@@ -89,6 +89,11 @@ install: install-fooDATA
 	rm -Rf $(top_builddir)/distribution/average/cvs_avg35
 	gunzip -c $(top_srcdir)/distribution/average/cvs_avg35.tar.gz | tar xvf -
 	mv $(top_builddir)/distribution/average/cvs_avg35 \
+		$(DESTDIR)$(prefix)/subjects
+	rm -Rf $(DESTDIR)$(prefix)/subjects/cvs_avg35_inMNI152
+	rm -Rf $(top_builddir)/distribution/average/cvs_avg35_inMNI152
+	gunzip -c $(top_srcdir)/distribution/average/cvs_avg35_inMNI152.tar.gz | tar xvf -
+	mv $(top_builddir)/distribution/average/cvs_avg35_inMNI152 \
 		$(DESTDIR)$(prefix)/subjects
 	rm -Rf $(DESTDIR)$(prefix)/subjects/fsaverage
 	rm -Rf $(top_builddir)/distribution/average/fsaverage
@@ -152,6 +157,7 @@ install: install-fooDATA
 
 uninstall-hook:
 	rm -Rf $(DESTDIR)$(prefix)/subjects/cvs_avg35
+	rm -Rf $(DESTDIR)$(prefix)/subjects/cvs_avg35_inMNI152
 	rm -Rf $(DESTDIR)$(prefix)/subjects/fsaverage
 	rm -Rf $(DESTDIR)$(prefix)/subjects/fsaverage_sym
 	rm -Rf $(DESTDIR)$(prefix)/subjects/fsaverage3
