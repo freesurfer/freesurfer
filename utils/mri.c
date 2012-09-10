@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2012/08/15 19:26:28 $
- *    $Revision: 1.514 $
+ *    $Author: mreuter $
+ *    $Date: 2012/09/10 23:06:24 $
+ *    $Revision: 1.515 $
  *
  * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -23,7 +23,7 @@
  */
 
 extern const char* Progname;
-const char *MRI_C_VERSION = "$Revision: 1.514 $";
+const char *MRI_C_VERSION = "$Revision: 1.515 $";
 
 
 /*-----------------------------------------------------
@@ -12399,14 +12399,39 @@ MRI *MRIchangeType(MRI *src, int dest_type, float f_low,
           if (src->type == MRI_FLOAT)
             val = (float)MRIFvox(src, i, j, k);
 
-          if (dest_type == MRI_UCHAR)
+          if (dest->type == MRI_UCHAR)
+          {
+            if (val < UCHAR_MIN)
+              val = UCHAR_MIN;
+            if (val > UCHAR_MAX)
+              val = UCHAR_MAX;
             MRIvox(dest, i, j, k) = (unsigned char)nint(val);
-          if (dest_type == MRI_SHORT)
+          }
+          if (dest->type == MRI_SHORT)
+          {
+            if (val < SHORT_MIN)
+              val = SHORT_MIN;
+            if (val > SHORT_MAX)
+              val = SHORT_MAX;
             MRISvox(dest, i, j, k) = (short)nint(val);
-          if (dest_type == MRI_INT)
+          }
+          if (dest->type == MRI_INT)
+          {
+            if (val < INT_MIN)
+              val = INT_MIN;
+            if (val > INT_MAX)
+              val = INT_MAX;
             MRIIvox(dest, i, j, k) = (int)nint(val);
-          if (dest_type == MRI_LONG)
+          }
+          if (dest->type == MRI_LONG)
+          {
+            if (val < LONG_MIN)
+              val = LONG_MIN;
+            if (val > LONG_MAX)
+              val = LONG_MAX;
             MRILvox(dest, i, j, k) = (long)nint(val);
+          }
+          
           if (dest_type == MRI_FLOAT)
             MRIFvox(dest, i, j, k) = (float)val;
         }
