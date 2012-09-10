@@ -11,9 +11,9 @@
 /*
  * Original Author: Dougas N Greve
  * CVS Revision Info:
- *    $Author: mreuter $
- *    $Date: 2012/08/10 02:13:57 $
- *    $Revision: 1.90 $
+ *    $Author: greve $
+ *    $Date: 2012/09/10 19:09:22 $
+ *    $Revision: 1.91 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -110,7 +110,7 @@ int DumpStatSumTable(STATSUMENTRY *StatSumTable, int nsegid);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-  "$Id: mri_segstats.c,v 1.90 2012/08/10 02:13:57 mreuter Exp $";
+  "$Id: mri_segstats.c,v 1.91 2012/09/10 19:09:22 greve Exp $";
 char *Progname = NULL, *SUBJECTS_DIR = NULL, *FREESURFER_HOME=NULL;
 char *SegVolFile = NULL;
 char *InVolFile = NULL;
@@ -145,10 +145,6 @@ int DoExclSegId = 0, nExcl = 0, ExclSegIdList[1000], ExclSegId;
 int DoExclCtxGMWM= 0;
 int DoSurfCtxVol = 0;
 int DoSurfWMVol = 0;
-double lhwhitevol;
-double rhwhitevol;
-double lhwhitevolTot, lhpialvolTot, lhctxvol;
-double rhwhitevolTot, rhpialvolTot, rhctxvol;
 int DoSupraTent = 0;
 double SupraTentVol, SupraTentVolCor;
 
@@ -160,15 +156,9 @@ int   maskinvert = 0, maskframe = 0;
 char *masksign=NULL;
 int   maskerode = 0;
 int   nmaskhits;
-int   nbrainsegvoxels = 0;
-double brainsegvolume = 0;
-double brainsegvolume2 = 0;
 int DoSubCortGrayVol = 0;
-double SubCortGrayVol = 0;
 int DoTotalGrayVol = 0;
-int   nbrainmaskvoxels = 0;
-double brainmaskvolume = 0;
-int   BrainVolFromSeg = 0;
+int BrainVolFromSeg = 0;
 int   DoETIV = 0;
 int   DoETIVonly = 0;
 int   DoOldETIVonly = 0;
@@ -206,7 +196,7 @@ char *cmdline, cwd[2000];
 /*--------------------------------------------------*/
 int main(int argc, char **argv)
 {
-  int nargs, n, nx, n0, skip, nhits, f, nsegidrep, id, ind, nthsegid;
+  int nargs, n, nx, n0, skip, nhits, f, nsegidrep, ind, nthsegid;
   int c,r,s,err,DoContinue,nvox;
   float voxelvolume,vol;
   float min, max, range, mean, std, snr;
@@ -220,6 +210,7 @@ int main(int argc, char **argv)
   LABEL *label;
   MRI *tmp;
   MATRIX *vox2vox = NULL;
+  double *BrainVolStats=NULL;
   nhits = 0;
   vol = 0;
 
@@ -460,114 +451,11 @@ int main(int argc, char **argv)
     ctab = GCAcolorTableCMA(gca);
   }
 
-  if(DoSurfWMVol)
-  {
-    printf("Getting Cerebral WM volumes from surface\n");
-
-    sprintf(tmpstr,"%s/%s/mri/aseg.mgz",SUBJECTS_DIR,subject);
-    mri_aseg = MRIread(tmpstr);
-    if(mri_aseg == NULL)
-    {
-      exit(1);
-    }
-
-    sprintf(tmpstr,"%s/%s/surf/lh.white",SUBJECTS_DIR,subject);
-    mris = MRISread(tmpstr);
-    if(mris==NULL)
-    {
-      exit(1);
-    }
-    lhwhitevol = MRIScomputeWhiteVolume(mris, mri_aseg, 1.0/4.0);
-    MRISfree(&mris);
-    printf("lh white matter volume %g\n",lhwhitevol);
-
-    sprintf(tmpstr,"%s/%s/surf/rh.white",SUBJECTS_DIR,subject);
-    mris = MRISread(tmpstr);
-    if(mris==NULL)
-    {
-      exit(1);
-    }
-    rhwhitevol = MRIScomputeWhiteVolume(mris, mri_aseg, 1.0/4.0);
-    MRISfree(&mris);
-    printf("rh white matter volume %g\n",rhwhitevol);
-
-    MRIfree(&mri_aseg);
+  if(DoSurfWMVol || DoSurfCtxVol || DoSupraTent || BrainVolFromSeg || DoSubCortGrayVol){
+    printf("Getting Brain Volume Statistics\n");
+    BrainVolStats = ComputeBrainVolumeStats(subject);
+    if(BrainVolStats == NULL) exit(1);
   }
-
-  if(DoSurfCtxVol)
-  {
-    printf("Getting Cerebral GM and WM volumes from surfaces\n");
-    // Does this include the non-cortical areas of the surface?
-
-    sprintf(tmpstr,"%s/%s/surf/lh.white",SUBJECTS_DIR,subject);
-    mris = MRISread(tmpstr);
-    if(mris==NULL)
-    {
-      exit(1);
-    }
-    lhwhitevolTot = MRISvolumeInSurf(mris);
-    MRISfree(&mris);
-
-    sprintf(tmpstr,"%s/%s/surf/lh.pial",SUBJECTS_DIR,subject);
-    mris = MRISread(tmpstr);
-    if(mris==NULL)
-    {
-      exit(1);
-    }
-    lhpialvolTot = MRISvolumeInSurf(mris);
-    lhctxvol = lhpialvolTot - lhwhitevolTot;
-    MRISfree(&mris);
-
-    sprintf(tmpstr,"%s/%s/surf/rh.white",SUBJECTS_DIR,subject);
-    mris = MRISread(tmpstr);
-    if(mris==NULL)
-    {
-      exit(1);
-    }
-    rhwhitevolTot = MRISvolumeInSurf(mris);
-    MRISfree(&mris);
-
-    sprintf(tmpstr,"%s/%s/surf/rh.pial",SUBJECTS_DIR,subject);
-    mris = MRISread(tmpstr);
-    if(mris==NULL)
-    {
-      exit(1);
-    }
-    rhpialvolTot = MRISvolumeInSurf(mris);
-    rhctxvol = rhpialvolTot - rhwhitevolTot;
-    MRISfree(&mris);
-    mris = NULL;
-
-    printf("lh surface-based volumes (mm3): wTot = %lf,  pTot = %lf c = %lf \n",
-           lhwhitevolTot,lhpialvolTot,lhctxvol);
-    printf("rh surface-based volumes (mm3): wTot = %lf,  pTot = %lf c = %lf \n",
-           rhwhitevolTot,rhpialvolTot,rhctxvol);
-    fflush(stdout);
-
-    if(DoSupraTent)
-    {
-      printf("Computing SupraTentVolCor\n");
-      sprintf(tmpstr,"%s/%s/mri/aseg.mgz",SUBJECTS_DIR,subject);
-      mri_aseg = MRIread(tmpstr);
-      if(mri_aseg == NULL)
-      {
-        exit(1);
-      }
-      sprintf(tmpstr,"%s/%s/mri/ribbon.mgz",SUBJECTS_DIR,subject);
-      mri_ribbon = MRIread(tmpstr);
-      if(mri_ribbon == NULL)
-      {
-        exit(1);
-      }
-      SupraTentVolCor = SupraTentorialVolCorrection(mri_aseg, mri_ribbon);
-      SupraTentVol = SupraTentVolCor + lhpialvolTot + rhpialvolTot;
-      printf("SupraTentVolCor = %8.3f\n",SupraTentVolCor);
-      printf("SupraTentVol = %8.3f\n",SupraTentVol);
-      MRIfree(&mri_aseg);
-      MRIfree(&mri_ribbon);
-    }
-  }
-
 
   /* Load the input volume */
   if (InVolFile != NULL)
@@ -649,48 +537,6 @@ int main(int argc, char **argv)
       printf("  seg   %d %d %d\n",seg->width,seg->height,seg->depth);
       exit(1);
     }
-  }
-
-  /* Load the brain volume */
-  if (BrainMaskFile != NULL)
-  {
-    printf("Loading %s\n",BrainMaskFile);
-    fflush(stdout);
-    brainvol = MRIread(BrainMaskFile);
-    if(brainvol == NULL)
-    {
-      printf("ERROR: loading %s\n",BrainMaskFile);
-      exit(1);
-    }
-    if(MRIdimMismatch(brainvol,seg,0))
-    {
-      printf("ERROR: dimension mismatch between brain volume and seg\n");
-      exit(1);
-    }
-    nbrainmaskvoxels = MRItotalVoxelsOn(brainvol, WM_MIN_VAL) ;
-    brainmaskvolume =
-      nbrainmaskvoxels * brainvol->xsize * brainvol->ysize * brainvol->zsize;
-    MRIfree(&brainvol) ;
-    printf("# nbrainmaskvoxels %d\n",nbrainmaskvoxels);
-    printf("# brainmaskvolume %10.1lf\n",brainmaskvolume);
-  }
-
-  if (BrainVolFromSeg)
-  {
-    nbrainsegvoxels = 0;
-    int tempvox = 0;
-    for (n = 0 ; n <= MAX_CMA_LABEL ; n++)
-    {
-      if (!IS_BRAIN(n)) /* currently 1...97 and CC 251..255*/
-      {
-        continue ;
-      }
-      tempvox = MRIvoxelsInLabel(seg, n);
-      nbrainsegvoxels += tempvox ;
-    }
-    brainsegvolume = nbrainsegvoxels * seg->xsize * seg->ysize * seg->zsize;
-    printf("# nbrainsegvoxels %d\n",nbrainsegvoxels);
-    printf("# brainsegvolume %10.1lf\n",brainsegvolume);
   }
 
   /* Load the mask volume */
@@ -999,7 +845,9 @@ int main(int argc, char **argv)
         continue;
       }
     }
-    printf("%3d   %3d  %s  %4d  %g\n",n,StatSumTable[n].id,StatSumTable[n].name,StatSumTable[n].nhits,StatSumTable[n].vol);
+    printf("%3d   %3d  %33s  %6d  %10.3f\n",n,StatSumTable[n].id,StatSumTable[n].name,
+	   StatSumTable[n].nhits,StatSumTable[n].vol);
+    fflush(stdout);
   }
   printf("\n");
 
@@ -1080,40 +928,6 @@ int main(int argc, char **argv)
   }
   printf("Reporting on %3d segmentations\n",nsegid);
 
-  if(BrainVolFromSeg) {
-    printf("\nComputing BrainSegVolNotVent by adding:\n");
-    brainsegvolume2 = 0.0;
-    for(n=0; n < nsegid; n++)   {
-      id = StatSumTable[n].id;
-      if(!IS_BRAIN(id) && (id < 251 || id > 255) ) continue ;
-      if(IS_CSF(id) || IS_CSF_CLASS(id)) continue;
-      if(id == Brain_Stem) continue;
-      if(id == Left_choroid_plexus || id == Right_choroid_plexus) continue;
-      printf("%3d   %3d  %s  %g\n",n,id,StatSumTable[n].name,StatSumTable[n].vol);
-      brainsegvolume2 += StatSumTable[n].vol;
-    }
-    printf("           lh_cortex_vol_from_surf  %g\n",lhctxvol);
-    printf("           rh_cortex_vol_from_surf  %g\n",rhctxvol);
-    printf("           lh_white_vol_from_surf  %g\n",lhwhitevol);
-    printf("           rh_white_vol_from_surf  %g\n",rhwhitevol);
-    brainsegvolume2 += (lhctxvol+rhctxvol+lhwhitevol+rhwhitevol);
-    printf("\nBrainSegVolNotVent = %g\n\n",brainsegvolume2);
-  }
-  if(DoSubCortGrayVol)
-  {
-    SubCortGrayVol = 0.0;
-    for(n=0; n < nsegid; n++)
-    {
-      id = StatSumTable[n].id;
-      if(! IsSubCorticalGray(id))
-      {
-        continue ;
-      }
-      SubCortGrayVol += StatSumTable[n].vol;
-    }
-    printf("SubCortGrayVol = %g\n",SubCortGrayVol);
-  }
-
   /* Dump the table to the screen */
   if (debug)
   {
@@ -1162,67 +976,62 @@ int main(int argc, char **argv)
       fprintf(fp,"# subjectname %s\n",subject);
     }
     if(UseRobust) fprintf(fp,"# RobustPct %g\n",RobustPct);
-    if (BrainMaskFile)
-    {
-      fprintf(fp,"# BrainMaskFile  %s \n",BrainMaskFile);
-      fprintf(fp,"# BrainMaskFileTimeStamp  %s \n",
-              VERfileTimeStamp(BrainMaskFile));
-      fprintf(fp,"# Measure BrainMask, BrainMaskNVox, "
-              "Number of Brain Mask Voxels, %7d, unitless\n",
-              nbrainmaskvoxels);
-      fprintf(fp,"# Measure BrainMask, BrainMaskVol, "
-              "Brain Mask Volume, %f, mm^3\n",brainmaskvolume);
-    }
     if (BrainVolFromSeg)
     {
       fprintf(fp,"# Measure BrainSegNotVent, BrainSegVolNotVent, "
               "Brain Segmentation Volume Without Ventricles, %f, mm^3\n",
-              brainsegvolume2);
-      fprintf(fp,"# Measure BrainSeg, BrainSegNVox, "
-              "Number of Brain Segmentation Voxels, %7d, unitless\n",
-              nbrainsegvoxels);
+              BrainVolStats[1]);
       fprintf(fp,"# Measure BrainSeg, BrainSegVol, "
               "Brain Segmentation Volume, %f, mm^3\n",
-              brainsegvolume);
+              BrainVolStats[0]);
     }
     if(DoSurfCtxVol)
     {
       // Does this include the non-cortical areas of the surface?
       fprintf(fp,"# Measure lhCortex, lhCortexVol, "
-              "Left hemisphere cortical gray matter volume, %f, mm^3\n",lhctxvol);
+              "Left hemisphere cortical gray matter volume, %f, mm^3\n",BrainVolStats[5]);
       fprintf(fp,"# Measure rhCortex, rhCortexVol, "
-              "Right hemisphere cortical gray matter volume, %f, mm^3\n",rhctxvol);
+              "Right hemisphere cortical gray matter volume, %f, mm^3\n",BrainVolStats[6]);
       fprintf(fp,"# Measure Cortex, CortexVol, "
-              "Total cortical gray matter volume, %f, mm^3\n",lhctxvol+rhctxvol);
+              "Total cortical gray matter volume, %f, mm^3\n",BrainVolStats[7]);
     }
     if(DoSurfWMVol)
     {
       fprintf(fp,"# Measure lhCorticalWhiteMatter, lhCorticalWhiteMatterVol, "
-              "Left hemisphere cortical white matter volume, %f, mm^3\n",lhwhitevol);
+              "Left hemisphere cortical white matter volume, %f, mm^3\n",BrainVolStats[9]);
       fprintf(fp,"# Measure rhCorticalWhiteMatter, rhCorticalWhiteMatterVol, "
-              "Right hemisphere cortical white matter volume, %f, mm^3\n",rhwhitevol);
+              "Right hemisphere cortical white matter volume, %f, mm^3\n",BrainVolStats[10]);
       fprintf(fp,"# Measure CorticalWhiteMatter, CorticalWhiteMatterVol, "
-              "Total cortical white matter volume, %f, mm^3\n",lhwhitevol+rhwhitevol);
+              "Total cortical white matter volume, %f, mm^3\n",BrainVolStats[11]);
     }
     if(DoSubCortGrayVol)
     {
       fprintf(fp,"# Measure SubCortGray, SubCortGrayVol, "
               "Subcortical gray matter volume, %f, mm^3\n",
-              SubCortGrayVol);
+              BrainVolStats[4]);
     }
     if(DoTotalGrayVol)
     {
-      fprintf(fp,"# Measure TotalGray, TotalGrayVol, "
-              "Total gray matter volume, %f, mm^3\n",
-              SubCortGrayVol+lhctxvol+rhctxvol);
+      fprintf(fp,"# Measure TotalGray, TotalGrayVol, Total gray matter volume, %f, mm^3\n",
+              BrainVolStats[8]);
     }
     if(DoSupraTent)
     {
       fprintf(fp,"# Measure SupraTentorial, SupraTentorialVol, "
-              "Supratentorial volume, %f, mm^3\n",SupraTentVol);
-
+              "Supratentorial volume, %f, mm^3\n",BrainVolStats[2]);
+      fprintf(fp,"# Measure SupraTentorialNotVent, SupraTentorialVolNotVent, "
+              "Supratentorial volume, %f, mm^3\n",BrainVolStats[3]);
     }
-
+    if (BrainMaskFile){
+      //fprintf(fp,"# BrainMaskFile  %s \n",BrainMaskFile);
+      //fprintf(fp,"# BrainMaskFileTimeStamp  %s \n",
+      //       VERfileTimeStamp(BrainMaskFile));
+      //fprintf(fp,"# Measure BrainMask, BrainMaskNVox, "
+      //        "Number of Brain Mask Voxels, %7d, unitless\n",
+      //        nbrainmaskvoxels);
+      fprintf(fp,"# Measure Mask, MaskVol, "
+              "Mask Volume, %f, mm^3\n",BrainVolStats[12]);
+    }
     if (DoETIV)
     {
       fprintf(fp,"# Measure IntraCranialVol, ICV, "
