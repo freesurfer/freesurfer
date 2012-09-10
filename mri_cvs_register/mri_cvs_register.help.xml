@@ -52,6 +52,9 @@ example* , bugs* , reporting* , references* , see-also*)*>
       <argument>--outdir directory</argument>
       <explanation>Name of the output directory where all the registration results are written. The default is SUBJECTS_DIR/mov/cvs. The final output directory is going to be ~.6G, but make sure that there is around double that amount of space available for the computations.</explanation>
 
+      <argument>--asegfname fname</argument>
+      <explanation>Name of the segmentation volume that should be used in order to guide the volumetric registration step. The default value is aseg. Note that both the template and the moving subject needs to have this file if you want to use this option. Also, do not use the file extension of the volume that you are including with this flag!</explanation>
+
       <intro>Partial run of the registration</intro>
       <argument>--step1</argument>
       <explanation>Only do step 1 (spherical registration).</explanation>
@@ -61,12 +64,16 @@ example* , bugs* , reporting* , references* , see-also*)*>
       <explanation>Only do step 3 (volumetric registration).</explanation>
       <argument>--noaseg</argument>
       <explanation>Do not use aseg volumes in the volumetric registration pipeline (default is 0). Setting this option could shorten significantly the time of registration, however, might also take away from the accuracy of the final results.</explanation>
+      <argument>--nointensity</argument>
+      <explanation>Do not use the intensity volumes in the volumetric registration pipeline (default is 0). Setting this option could shorten significantly the time of registration. It also indicates that the intensity values are not to be trusted during the registration.</explanation>
 
       <intro>Cleanup Arguments</intro>
       <argument>--nocleanup</argument>
       <explanation>Do not delete temporary files (default is 0). If this option is set, make sure you have ~2G space in the output directory.</explanation>
       <argument>--keepelreg</argument>
       <explanation>Do not delete elastic registration (default is 0) outcome. If this option is set, make sure ~1G of space is available in the output directory.</explanation>
+      <argument>--keepallm3z</argument>
+      <explanation>Do not delete m3z morph files that are computed during the CVS process (default is 0). </explanation>
       <argument>--cleanall</argument>
       <explanation>Overwrite / recompute all CVS-related morphs that might have been computed prior to the current CVS run (default is 0).</explanation>
       <argument>--cleansurfreg</argument>
@@ -77,6 +84,8 @@ example* , bugs* , reporting* , references* , see-also*)*>
       <explanation>Overwrite / recompute CVS-related volumetric morphs that might have been computed prior to the current CVS run (default is 0).</explanation>
 
       <intro>Others</intro>
+      <argument>--m3d</argument>
+      <explanation>Use m3d instead of m3z in order to represent the registration morphs (and to avoid potential gzip errors).</explanation>
       <argument>--nolog</argument>
       <explanation>Do not produce a log file (default is 0).</explanation>
       <argument>--version</argument>
@@ -90,43 +99,51 @@ example* , bugs* , reporting* , references* , see-also*)*>
     <intro>******************************************************************</intro>
     <intro>(a) Full CVS (with both (i) and (ii))</intro>
 
-      <argument> combined_toTEMPLATE_elreg_afteraseg-norm.m3z</argument>
-      <explanation>the morph that combines correspondences recovered in steps (1), (2), (3) (i) and (3) (ii) </explanation>
+      <argument> final_CVSmorph_toTEMPLATE.m3z (formerly: combined_toTEMPLATE_elreg_afteraseg-norm.m3z)</argument>
+      <explanation>the final morph that combines correspondences recovered in steps (1), (2), (3) (i) and (3) (ii) </explanation>
+      <argument>final_CVSmorphed_toTEMPLATE_norm.mgz (formerly nlalign-afteraseg-norm.mgz)</argument>
+      <explanation>the CVS morphed norm.mgz file; it is the final result of CVS and contains contributions from ALL registration steps (combination of the elatic morph and the two m3z files</explanation>
+      <argument>final_CVSmorphed_toTEMPLATE_aseg.mgz (formerly combined_toTEMPLATE_elreg_afteraseg-norm_aseg.mgz)</argument>
+      <explanation>the CVS morphed aseg.mgz file; it is the final result of CVS and contains contributions from ALL registration steps (combination of the elatic morph and the two m3z files</explanation>
 
-      <argument>nlalign-afteraseg-norm.m3z</argument>
-      <explanation>the morph resulting from (ii) of step (3) (intensity-based non-linear registration); it is NOT combined with the elastic registration morph</explanation>
 
-      <argument>nlalign-afteraseg-norm.mgz</argument>
-      <explanation>the morphed norm.mgz file; it is the final result of CVS and contains contributions from ALL registration steps (combination of the elatic morph and the two m3z files</explanation>
-
-      <argument>combined_toTEMPLATE_elreg_aseg.m3z</argument>
-      <explanation>the morph that combines correspondences recovered in steps (1), (2) and (3) (i)</explanation>
-
-      <argument>nlalign-aseg.m3z</argument>
-      <explanation>the morph resulting from (i) of step (3) (aseg-based non-linear registration); it is NOT combined with the elastic registration morph</explanation>
-
-      <argument>nlalign-aseg.mgz</argument>
-      <explanation>the morphed aseg.mgz file; it is the result of CVS up to (i) of step (3) and contains contributions from registration steps of the elatic morph and the above m3z file</explanation>
+      <argument>step1_CVSmorphed_toTEMPLATE_aseg.mgz (formerly: nlalign-aseg.mgz) </argument>
+      <explanation>a morphed aseg.mgz file; it is the result of CVS up to (i) of step (3) and contains contributions from registration steps of the elatic morph and the aseg-based nonlinear registration</explanation>
+      <argument>step1_CVSmorphed_toTEMPLATE_norm.mgz (formerly: combined_toTEMPLATE_elreg_aseg_norm.mgz) </argument>
+      <explanation>a morphed norm.mgz file; it is the result of CVS up to (i) of step (3) and contains contributions from registration steps of the elatic morph and the aseg-based nonlinear registration</explanation>
 
       <argument>el_reg_toTEMPLATE_aseg.mgz</argument>
       <explanation>the elastic morph applied to aseg.mgz</explanation>
-
       <argument>el_reg_toTEMPLATE.mgz</argument>
       <explanation>the elastic morph applied to norm.mgz</explanation>
 
+
+
+      <argument>! current version does not keep this file any more ! nlalign-afteraseg-norm.m3z</argument>
+      <explanation>the morph resulting from (ii) of step (3) (intensity-based non-linear registration); it is NOT combined with the elastic registration morph</explanation>
+
+      <argument>! current version does not keep this file any more ! combined_toTEMPLATE_elreg_aseg.m3z</argument>
+      <explanation>the morph that combines correspondences recovered in steps (1), (2) and (3) (i)</explanation>
+
+      <argument>! current version does not keep this file any more ! nlalign-aseg.m3z</argument>
+      <explanation>the morph resulting from (i) of step (3) (aseg-based non-linear registration); it is NOT combined with the elastic registration morph</explanation>
+
+
     <intro>(b) Shorter version of CVS (using only (ii) in step (3) of the algorithm)</intro>
 
-      <argument>combined_toTEMPLATE_elreg_norm.m3z</argument>
+      <argument> final_CVSmorph_toTEMPLATE.m3z (formerly: combined_toTEMPLATE_elreg_norm.m3z)</argument>
       <explanation>The morph that combines correspondences recovered in steps (1), (2) and (3) (ii)</explanation>
 
-      <argument>nlalign-norm.m3z</argument>
-      <explanation>the morph resulting from step(3) (intensity-based non-linear registration); it is NOT combined with the elastic registration morph</explanation>
-
-      <argument>nlalign-norm.mgz</argument>
+      <argument>final_CVSmorphed_toTEMPLATE_norm.mgz (formerly: nlalign-norm.mgz)</argument>
       <explanation>the morphed norm.mgz file; it is the final result of CVS and contains contributions from ALL registration steps (combination of the elatic morph and the above m3z file)</explanation>
 
       <argument>el_reg_toTEMPLATE.mgz</argument>
       <explanation>the elastic morph applied to norm.mgz</explanation>
+
+
+      <argument>! current version does not keep this file any more ! nlalign-norm.m3z</argument>
+      <explanation>the morph resulting from step(3) (intensity-based non-linear registration); it is NOT combined with the elastic registration morph</explanation>
+
 
     <intro>When the "--nocleanup" option is set: three more files will exist, called combined*tm3d and el_reg*tm3d. These files take up a lot of memory so by default are deleted. These files are</intro>
     <intro>(a)</intro>
@@ -153,6 +170,8 @@ example* , bugs* , reporting* , references* , see-also*)*>
       <argument>el_reg_toTEMPLATE.tm3d</argument>
       <explanation>the elastic morph that combines correspondences recovered in steps (1) and (2). This file takes up a lot of memory so, by default, is deleted. It can only be recreated if the elastic registration step (--step 2) is re-run.</explanation>
 
+   <intro> The command also produces two log files. These will be created in the output directory with a .log extension and contain the function calls that are initiated by the registration. The one that has a *summary* prefix is easier to read and does not contain all the function outputs. The longer version is to be consulted if looking for more details or explanations for possible errors.</intro>
+
   </outputs>
 
   <example>Register Subj1 to average CVS space: mri_cvs_register --mov Subj1ID</example>
@@ -161,6 +180,8 @@ example* , bugs* , reporting* , references* , see-also*)*>
   <example>Register Subj1 to Subj2: mri_cvs_register --mov Subj1ID --template Subj2ID</example>
 
   <example>Register Subj1 to Subj2 where the two subjects have different SUBJECTS_DIR's: mri_cvs_register --mov Subj1ID --template Subj2ID --templatedir OTHER_SUBJECTS_DIR</example>
+
+  <example>If running mri_cvs_register on lanchpad, use "-l nodes=1:ppn=4,vmem=28gb"</example>
 
   <bugs>None</bugs>
 
