@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl (Apr 16, 1997)
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2012/09/05 21:52:04 $
- *    $Revision: 1.200 $
+ *    $Date: 2012/09/10 23:01:59 $
+ *    $Revision: 1.201 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -209,7 +209,7 @@ int main(int argc, char *argv[])
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mri_convert.c,v 1.200 2012/09/05 21:52:04 mreuter Exp $",
+   "$Id: mri_convert.c,v 1.201 2012/09/10 23:01:59 mreuter Exp $",
    "$Name:  $",
    cmdline);
 
@@ -308,7 +308,7 @@ int main(int argc, char *argv[])
   fill_parcellation_flag = FALSE;
   zero_outlines_flag = FALSE;
   color_file_flag = FALSE;
-  no_scale_flag = FALSE;
+  no_scale_flag = 0;
   roi_flag = FALSE;
   translate_labels_flag = TRUE;
   gdf_image_stem[0] = '\0';
@@ -331,7 +331,7 @@ int main(int argc, char *argv[])
     handle_version_option
     (
       argc, argv,
-      "$Id: mri_convert.c,v 1.200 2012/09/05 21:52:04 mreuter Exp $",
+      "$Id: mri_convert.c,v 1.201 2012/09/10 23:01:59 mreuter Exp $",
       "$Name:  $"
     );
   if (nargs && argc - nargs == 1)
@@ -1176,7 +1176,7 @@ int main(int argc, char *argv[])
              strcmp(argv[i], "--no_scale") == 0)
     {
       get_ints(argc, argv, &i, &no_scale_flag, 1);
-      no_scale_flag = (no_scale_flag == 0 ? FALSE : TRUE);
+      //no_scale_flag = (no_scale_flag == 0 ? FALSE : TRUE);
     }
     else if (strcmp(argv[i], "-nth") == 0 ||
              strcmp(argv[i], "--nth_frame") == 0)
@@ -1603,7 +1603,7 @@ int main(int argc, char *argv[])
             "= --zero_ge_z_offset option ignored.\n");
   }
 
-  printf("$Id: mri_convert.c,v 1.200 2012/09/05 21:52:04 mreuter Exp $\n");
+  printf("$Id: mri_convert.c,v 1.201 2012/09/10 23:01:59 mreuter Exp $\n");
   printf("reading from %s...\n", in_name_only);
 
   if (in_volume_type == MGH_MORPH)
