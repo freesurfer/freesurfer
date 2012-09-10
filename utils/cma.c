@@ -9,8 +9,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2012/09/10 15:58:53 $
- *    $Revision: 1.14 $
+ *    $Date: 2012/09/10 17:59:56 $
+ *    $Revision: 1.15 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -866,7 +866,7 @@ MRI *MRIfixAsegWithRibbon(MRI *aseg, MRI *ribbon, MRI *asegfixed)
 \fn double *ComputeBrainVolumeStats(char *subject)
 \brief computes various brain volume statistics and returns them as a
 double array.  These include BrainSegVol, BrainSegVolNotVent,
-SupraTentVol, lhCtxGM, ..., lhCtxWM.  The hope is that this one
+SupraTentVol, SubCortGM, CtxGM, CtxWM, etc.  The hope is that this one
 function will be able to consistently define all of these
 parameters. Where possible, this function returns values based on
 surface-based analysis. It also computes the same values based on
@@ -886,7 +886,7 @@ double *ComputeBrainVolumeStats(char *subject)
   double lhCtxGMCount, rhCtxGMCount, lhCtxWMCount, rhCtxWMCount;
   double CCVol;
   double SupraTentVol, SupraTentVolCor, SupraTentVolNotVent, eSTV;
-  double SubCortGMVol, CerebellumVol, VentChorVol;
+  double SubCortGMVol, CerebellumVol, CerebellumGMVol, VentChorVol;
   double BrainSegVol, eBSV, BrainSegVolNotVent, MaskVol, VesselVol;
   double OptChiasmVol, CSFVol;
   double *stats=NULL;
@@ -935,6 +935,7 @@ double *ComputeBrainVolumeStats(char *subject)
   CCVol = 0;
   SubCortGMVol = 0;
   CerebellumVol = 0;
+  CerebellumGMVol = 0;
   VentChorVol = 0;
   BrainSegVol = 0;
   MaskVol = 0;
@@ -963,6 +964,9 @@ double *ComputeBrainVolumeStats(char *subject)
 	   asegfixedid != 254 && asegfixedid != 255) rhCtxWMCor += 1;
 	// Subcortical GM structures (does not use PVC)
 	if(IsSubCorticalGray(asegfixedid)) SubCortGMVol++;
+	// Cerebellum GM volume
+	if(asegid == Left_Cerebellum_Cortex || asegid == Right_Cerebellum_Cortex)
+	  CerebellumGMVol++;	  
 	// Cerebellum (GM+WM) volume
 	if(asegid == Left_Cerebellum_Cortex || asegid == Right_Cerebellum_Cortex ||
 	   asegid == Right_Cerebellum_White_Matter || asegid == Left_Cerebellum_White_Matter)
@@ -987,8 +991,8 @@ double *ComputeBrainVolumeStats(char *subject)
 	if(asegfixedid == 42) rhCtxGMCount++;
 	// For CtxWM, include hypointensities. The hypos are not lateralized,
 	// so just lateralize them based on column (not perfect, but it is only a check)
-	if(asegfixedid ==  2 || (asegfixedid == 77 && c <  128)) lhCtxWMCount++;
-	if(asegfixedid == 41 || (asegfixedid == 77 && c >= 128)) rhCtxWMCount++;
+	if(asegfixedid ==  2 || asegfixedid ==  78 || (asegfixedid == 77 && c <  128)) lhCtxWMCount++;
+	if(asegfixedid == 41 || asegfixedid ==  79 || (asegfixedid == 77 && c >= 128)) rhCtxWMCount++;
       } //c 
     } //r
   } //s
@@ -1046,18 +1050,20 @@ double *ComputeBrainVolumeStats(char *subject)
   MRIfree(&asegfixed);
   MRIfree(&brainmask);
 
-  stats = (double*)calloc(11,sizeof(double));
+  stats = (double*)calloc(13,sizeof(double));
   stats[0] = BrainSegVol;
   stats[1] = BrainSegVolNotVent;
   stats[2] = SupraTentVol;
   stats[3] = SupraTentVolNotVent;
-  stats[4] = lhCtxGM;
-  stats[5] = rhCtxGM;
-  stats[6] = lhCtxGM + rhCtxGM;
-  stats[7] = lhCtxWM;
-  stats[8] = rhCtxWM;
-  stats[9] = lhCtxWM + rhCtxWM;
-  stats[10] = MaskVol;
+  stats[4] = SubCortGMVol;
+  stats[5] = lhCtxGM;
+  stats[6] = rhCtxGM;
+  stats[7] = lhCtxGM + rhCtxGM;
+  stats[8] = SubCortGMVol + lhCtxGM + rhCtxGM + CerebellumGMVol; // total GM Vol
+  stats[9] = lhCtxWM;
+  stats[10] = rhCtxWM;
+  stats[11] = lhCtxWM + rhCtxWM;
+  stats[12] = MaskVol;
 
   return(stats);
 }
