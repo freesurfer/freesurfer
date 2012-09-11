@@ -8,8 +8,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2011/07/22 12:50:06 $
- *    $Revision: 1.72 $
+ *    $Date: 2012/09/11 16:40:05 $
+ *    $Revision: 1.73 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -1538,6 +1538,9 @@ HISTOfindBin(HISTOGRAM *h, float val)
 {
   int b ;
 
+  if (h->bin_size == 1)
+    return((int)val-h->min) ;
+
   for (b = h->nbins-1 ; b > 0 ; b--)
     if (h->bins[b-1] < val)
       return(b) ;
@@ -1691,6 +1694,9 @@ HISTOlinearScale(HISTOGRAM *hsrc, HISTOGRAM *hdst, float scale, float offset)
   for (b = 0 ; b < hdst->nbins ; b++)
     hdst->bins[b] = hdst->bins[b]*scale+offset ;
 
+  hdst->min = hsrc->min * scale + offset ;
+  hdst->max = hsrc->max * scale + offset ;
+  hdst->bin_size = hsrc->bin_size*scale ;
   return(hdst) ;
 }
 
@@ -1725,7 +1731,11 @@ HISTOmakePDF(HISTO *h_src, HISTO *h_dst)
 
   if (total > 0)
     for (b = 0 ; b < h_dst->nbins ; b++)
+    {
       h_dst->counts[b]/=total ;
+      if (DZERO(h_dst->counts[b]))
+	h_dst->counts[b] = 1.0/(10*total) ;
+    }
 
   return(h_dst) ;
 }
@@ -1953,8 +1963,12 @@ HISTOrobustGaussianFit(HISTOGRAM *h, double max_percentile,
 
   bin = HISTOfindNextValley(h, peak) ;
   if (bin < 0)
+  {
     bin = HISTOfindBinWithCount(hcdf, max_percentile) ;
-  thresh = hcdf->bins[bin] ;  // threshold for computing variance
+    thresh = hcdf->bins[bin] ;  // threshold for computing variance
+  }
+  else
+    thresh = h->bins[bin]-peak ;
   min_bin = HISTOfindBin(hz, -thresh) ;
   max_bin = HISTOfindBin(hz, thresh) ;
   if (hz->nbins == 0)

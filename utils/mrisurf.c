@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2012/09/04 20:31:44 $
- *    $Revision: 1.738 $
+ *    $Author: fischl $
+ *    $Date: 2012/09/11 16:40:04 $
+ *    $Revision: 1.739 $
  *
  * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -764,7 +764,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void)
 {
-  return("$Id: mrisurf.c,v 1.738 2012/09/04 20:31:44 greve Exp $");
+  return("$Id: mrisurf.c,v 1.739 2012/09/11 16:40:04 fischl Exp $");
 }
 
 /*-----------------------------------------------------
@@ -20803,18 +20803,12 @@ mrisComputeTargetLocationTerm(MRI_SURFACE *mris,
   for (vno = 0 ; vno < mris->nvertices ; vno++)
   {
     v = &mris->vertices[vno] ;
-    if (v->ripflag || v->val < 0)
-    {
+    if (v->ripflag)
       continue ;
-    }
     if (vno == Gdiag_no)
-    {
       DiagBreak() ;
-    }
 
-    dx = v->targx - v->x ;
-    dy = v->targy-v->y ;
-    dz = v->targz-v->z ;
+    dx = v->targx-v->x ; dy = v->targy-v->y ; dz = v->targz-v->z ;
 
     norm = sqrt(dx*dx + dy*dy + dz*dz) ;
 #define LOCATION_MOVE_LEN  0.1
@@ -33582,7 +33576,7 @@ MRISremoveCompressedRegions(MRI_SURFACE *mris, double min_dist)
     {
       mht = NULL ;
     }
-    if (Gdiag_no >= 0)
+    if (Gdiag_no >= 0 && DIAG_VERBOSE_ON)
     {
       MRISprintVertexStats(mris, Gdiag_no, Gstdout, CURRENT_VERTICES) ;
     }
@@ -34300,7 +34294,7 @@ MRISpositionSurface(MRI_SURFACE *mris, MRI *mri_brain, MRI *mri_smooth,
         }
 #endif
       }
-      if (Gdiag_no >= 0)
+      if (Gdiag_no >= 0 && DIAG_VERBOSE_ON)
       {
         MRISprintVertexStats(mris, Gdiag_no, Gstdout, CURRENT_VERTICES) ;
       }
@@ -36509,7 +36503,8 @@ MRISweightedSoapBubbleVertexPositions(MRI_SURFACE *mris, int navgs)
       break ;
     }
 #endif
-    MRISprintVertexStats(mris, Gdiag_no, Gstdout, CURRENT_VERTICES) ;
+    if (DIAG_VERBOSE_ON)
+      MRISprintVertexStats(mris, Gdiag_no, Gstdout, CURRENT_VERTICES) ;
   }
 #if 0
   if (fp)
@@ -40993,35 +40988,26 @@ mrisComputeTargetLocationError(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
   double  sse, mag ;
 
   if (FZERO(parms->l_location))
-  {
     return(0.0f) ;
-  }
 
   for (sse = 0.0, vno = 0 ; vno < mris->nvertices ; vno++)
   {
     v = &mris->vertices[vno] ;
-    if (v->ripflag || v->val < 0)
-    {
+    if (v->ripflag)
       continue ;
-    }
-    if (vno == Gdiag_no)
-    {
-      DiagBreak() ;
-    }
 
-    dx = v->x - v->targx ;
-    dy = v->y - v->targy ;
-    dz = v->z - v->targz ;
+    if (vno == Gdiag_no)
+      DiagBreak() ;
+
+    dx = v->x - v->targx ; dy = v->y - v->targy ; dz = v->z - v->targz ;
 
     mag = dx * dx + dy * dy + dz*dz ;
     if (mag > 50)
-    {
       DiagBreak() ;
-    }
+
     if (!devFinite(mag))
-    {
       DiagBreak() ;
-    }
+
     sse += mag ;
   }
 
