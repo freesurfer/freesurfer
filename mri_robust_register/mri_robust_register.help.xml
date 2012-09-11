@@ -35,7 +35,7 @@ The registration can fail because of several reasons, most likely due to large i
  * If you specified a manual saturation (--sat) too many voxels might be considered outlier early in the process. You can check this by outputing the weights (--weights ow.mgz) and by looking at them in:
    tkmedit -f dst.mgz -aux mov.mgz -overlay ow.mgz 
 If most of the brain is labeled outlier, try to set the saturation to a higher value (eg. --sat 12) or use --satit to automatically determine a good sat value.
- * If you used automatic saturation estimation (--satit), try to specify the sensitivity manually or play around with --wlimit (which is around 0.16 by default). A lower wlimit should reduce the number of outlier voxels.	</description>
+ * If you used automatic saturation estimation (--satit), try to specify the sensitivity manually or adjust --wlimit (which is around 0.16 by default). A lower wlimit should reduce the number of outlier voxels.	</description>
   <arguments>
     <positional>
       <intro>None.</intro>
@@ -74,8 +74,7 @@ Highly recommended for unnormalized images!</explanation>
 			<argument>--affine</argument>
 			<explanation>find 12 parameter affine transform</explanation>
 			<argument>--ixform lta</argument>
-			<explanation>use initial transform lta on source ('id'=identity).
-Default: align centers of mass</explanation>
+			<explanation>use initial transform lta on source. Default: align centers of mass (see also --noinit). The final output transform will be from source to target and thus include the ixform.</explanation>
 			<argument>--initorient</argument>
 			<explanation>use moments for orientation initialization (default false). Recommended for stripped brains, but not with full head images with different cropping. </explanation>
 			<argument>--noinit</argument>
@@ -89,13 +88,13 @@ Use --noinit if center of mass is meaningless, e.g. when registering different r
       ROB (robust) &lt;- default,
       MI  (mutual information),
       NMI (normalized mutual information),
-      ECC (entropy correlation coefficient),
-      NCC (normalized cross corrrelation),
-      SCR (symetrized correlation ratio).
+      ECC (entropy correlation coefficient) experimental,
+      NCC (normalized cross corrrelation) experimental,
+      SCR (symetrized correlation ratio) experimental.
 Use MI, NMI (recommended), ECC, NCC or SCR for registering cross modality.</explanation>
 
       <argument>--nosym</argument>
-      <explanation>do not map to half way space, but resample mov to dst internally (destroys symmetrie, but is useful when registering a larger block to a part)</explanation>
+      <explanation>do not map to half way space, but resample mov to dst internally (destroys symmetry, but is useful when registering a larger block to a part)</explanation>
       <argument>--maxit &lt;#&gt;</argument>
       <explanation>iterate max # times on each resolution (default 5)</explanation>
       <argument>--highit &lt;#&gt;</argument>
@@ -141,16 +140,16 @@ Use MI, NMI (recommended), ECC, NCC or SCR for registering cross modality.</expl
   
 mri_robust_register --mov vol1.mgz --dst vol2.mgz --lta v1to2.lta --mapmov v1to2.mgz --weights v1to2-weights.mgz --iscale --satit
 
-Computes the symmetric rigid registration (6 degrees of freedom) of vol1.mgz to vol2.mgz using robust statistics and with an additional 7th global intensity scaling parameter (recommended e.g. for orig.mgz). The output is the transform (v1to2.lta) and v1to2.mgz (the vol1.mgz resampled to the target image). Additionally the weights of the robust registation (outlier detection) are saved. Everything can be viewed in tkmedit with:
+Computes the symmetric rigid registration (translation and rotation) of vol1.mgz to vol2.mgz using robust statistics and with an additional global intensity scaling parameter. The output is the transform (v1to2.lta) and image v1to2.mgz (the vol1.mgz resampled to the target image). Additionally the weights of the robust registation (outlier detection) are saved. Everything can be viewed with:
 
-tkmedit -f vol2.mgz -aux v1to2.mgz -overlay v1to2-weights.mgz </example>
+freeview vol2.mgz v1to2.mgz v1to2-weights.mgz:colormap=heat </example>
 	<example>Half Way Space Output:
   
 mri_robust_register --mov vol1.nii --dst vol2.nii --lta v1to2.lta --halfmov h1.nii --halfdst h2.nii --halfmovlta h1.lta --halfdstlta h2.lta --iscale --satit
 	
 Computes the rigid robust registration with intensity scaling of Nifti vol1 to vol2 (the registration will be saved in v1to2.lta). Additionally outputs the half-way volumes h1.nii and h2.nii (with corresponding transforms h1.lta and h2.lta). As both volumes are mapped to the half-way space, they will both be resampled. This can be used to construct an unbiased mean volume (e.g. with mri_average) or to compute change maps. The output can be viewed with: 
 
-freeview -v h1.nii h2.nii</example>
+freeview h1.nii h2.nii</example>
 	<example>Part to Full Registration:
   
 mri_robust_register --mov fullhemi.mgz --dst part.mgz --noinit --nosym --sat 8 --maxsize 380 --mapmovhdr hemi2part.mgz --lta hemi2part.lta
