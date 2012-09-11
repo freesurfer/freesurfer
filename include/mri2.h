@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: mreuter $
- *    $Date: 2012/08/20 19:41:09 $
- *    $Revision: 1.35.2.2 $
+ *    $Author: greve $
+ *    $Date: 2012/09/11 01:21:10 $
+ *    $Revision: 1.35.2.3 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -105,6 +105,9 @@ int MRIsegFrameAvg(MRI *seg, int segid, MRI *mri, double *favg);
 int MRIsegStats(MRI *seg, int segid, MRI *mri,int frame,
                 float *min, float *max, float *range,
                 float *mean, float *std);
+int MRIsegStatsRobust(MRI *seg, int segid, MRI *mri,int frame,
+		      float *min, float *max, float *range,
+		      float *mean, float *std, float Pct);
 
 
 #if defined(__cplusplus)
