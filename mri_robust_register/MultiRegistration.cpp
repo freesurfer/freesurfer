@@ -14,8 +14,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2012/08/15 20:58:47 $
- *    $Revision: 1.44 $
+ *    $Date: 2012/09/11 19:20:45 $
+ *    $Revision: 1.45 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -32,7 +32,7 @@
 
 
 #include "MultiRegistration.h"
-#include "Registration.h"
+#include "RegRobust.h"
 #include "Regression.h"
 #include "RobustGaussian.h"
 #include "CostFunctions.h"
@@ -119,7 +119,7 @@ unsigned int MultiRegistration::getSeed()
 }
 
 /*!
-  \fn int loadMovables(const std::vector < std::string > mov)
+  \fn int loadMovables(const std::vector < std::string > pmov)
   \brief Loads the movable volumes as specified on command line
   \param P  Paramters for the initialization
 */
@@ -228,6 +228,8 @@ int MultiRegistration::loadLTAs(const std::vector < std::string > nltas)
         LTA* lta =  (LTA *)trans->xform ;
         if (!lta)
           ErrorExit(ERROR_BADFILE, "MultiRegistration::loadLTAs could not read transform file %s", nltas[i].c_str()) ;
+        if (nltas[i] == "identity.nofile" && mri_mov[i] != NULL)
+          LTAmodifySrcDstGeom(lta, mri_mov[i], mri_mov[i]);
         if ( ! lta->xforms[0].src.valid)
           ErrorExit(ERROR_BADFILE, "MultiRegistration::loadLTAs no source geometry, use lta with valid geometry ( %s )",nltas[i].c_str());
         if ( ! lta->xforms[0].dst.valid)
@@ -262,17 +264,16 @@ int MultiRegistration::loadIntensities(const std::vector < std::string > nintens
 
 
 /*!
-  \fn void initRegistration(Registration & R, const Parameters & P)
   \brief Initializes a Registration with Parameters (rigid, iscale, transonly, robust, sat and doubleprec)
   \param R  Registration to be initialized
 */
-void MultiRegistration::initRegistration(Registration & R)
+void MultiRegistration::initRegistration(RegRobust & R)
 {
   // assert(n < (int) P.mov.size());
 
-  R.setRigid(rigid);
+  if (rigid) R.setRigid();
   R.setIscale(iscale);
-  R.setTransonly(transonly);
+  if (transonly) R.setTransonly();
   R.setCost(Registration::ROB);
   R.setSaturation(sat);
   R.setDoublePrec(doubleprec);
@@ -475,7 +476,7 @@ bool MultiRegistration::computeTemplate(int itmax, double eps , int iterate, dou
   #pragma omp critical
 #endif  
 		  cout << endl << "Working on TP " << i+1 << endl << endl;
-      Registration R; // create new registration each time to keep mem usage smaller
+      RegRobust R; // create new registration each time to keep mem usage smaller
 //      Rv[i].clear();
       R.setVerbose(0);
       initRegistration(R); //set parameters
@@ -738,7 +739,7 @@ bool MultiRegistration::halfWayTemplate(int maxres, int iterate, double epsit, b
 
   // register 1 with 2
 
-  Registration R;
+  RegRobust R;
   initRegistration(R); //set parameter
   R.setSourceAndTarget(mri_mov[0],mri_mov[1],keeptype);
 
@@ -904,7 +905,7 @@ bool MultiRegistration::initialXforms(int tpi, bool fixtp, int maxres, int itera
     ostringstream oss;
     oss << outdir << "tp" << j+1 << "_to_tp" << tpi;
     
-    Registration R;
+    RegRobust R;
     initRegistration(R); //set parameter
     R.setVerbose(0);
     R.setSourceAndTarget(mri_mov[j],mri_mov[tpi],keeptype);
@@ -1255,7 +1256,7 @@ bool MultiRegistration::writeConformMean(const std::string& mean)
   return (ok == 0);
 }
 
-bool MultiRegistration::writeLTAs(const std::vector < std::string > & nltas, bool vox2vox,const string & mean)
+bool MultiRegistration::writeLTAs(const std::vector < std::string > & nltas, bool vox2vox,const std::string & mean)
 {
    assert (nltas.size() == ltas.size());
 	 int error = 0;
@@ -1405,7 +1406,7 @@ bool MultiRegistration::writeWeights(const std::vector < std::string >& nweights
   \param method  0 = mean, 1 = median, 2 = tukey biweight (testing)
   \param sat     saturation for tukey biweight
 */
-MRI* MultiRegistration::averageSet(const vector < MRI * >& set,
+MRI* MultiRegistration::averageSet(const std::vector < MRI * >& set,
                        MRI* mean, int method, double sat)
 {
   assert(set.size() > 1);

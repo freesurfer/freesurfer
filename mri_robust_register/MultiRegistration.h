@@ -14,8 +14,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2012/08/15 20:58:46 $
- *    $Revision: 1.18 $
+ *    $Date: 2012/09/11 19:20:45 $
+ *    $Revision: 1.19 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -37,7 +37,7 @@
 #include <vector>
 //#include <iostream>
 
-#include "Registration.h"
+#include "RegRobust.h"
 
 #ifdef __cplusplus
 extern "C"
@@ -51,6 +51,9 @@ extern "C"
 }
 #endif
 
+/** \class MultiRegistration
+ * \brief Class for co-registering several images (same modality)
+ */
 class MultiRegistration
 {
 public:
@@ -67,43 +70,70 @@ public:
 		
   ~MultiRegistration()                  {clear();};
 	 
+  //! Initialize co-registration based on tpi
   bool initialXforms(int tpi, bool fixtp, int regmaxres, int regitmax, double regeps);
+  //! Iteratively estimate template in mid-space
   bool computeTemplate(int avitmax, double aveps, int regitmax, double regeps);
+  //! Half way template (special case for two inputs)
   bool halfWayTemplate(int regmaxres, int regitmax, double regeps, bool vox2vox);
 
+  //! Write the tempalate image
   bool writeMean(const std::string& mean);
+  //! Write conform tempalate image
   bool writeConformMean(const std::string& cmean);
+  //! Write all LTAs
   bool writeLTAs(const std::vector < std::string > & nltas, bool vox2vox, const std::string & mean);
+  //! Write all mapped movables
   bool writeWarps(const std::vector <  std::string >& nwarps);
+  //! Write all intensity scales
   bool writeIntensities(const std::vector < std::string >& nintens);
+  //! Write all weights
   bool writeWeights(const std::vector < std::string >& nweights, bool oneminusweights);
 
-
-  int loadMovables(const std::vector < std::string > mov);
+  //! Load all inputs
+  int loadMovables(const std::vector < std::string > pmov);
+  //! Load initial transforms
   int loadLTAs(const std::vector < std::string > nltas);
+  //! Load initial intensity scales
   int loadIntensities(const std::vector < std::string > nintens);
+  //! Clear everything
   void clear();
   
+  //! Get a random seed from input images
   unsigned int getSeed();
 	 
-  // Set parameters:
+  //! Set output directory
   void setOutdir(const std::string & s) {outdir = s;}; 
+  //! Restrict to translation only
   void setTransonly(bool r)             {transonly = r;};
+  //! Run rigid registration
   void setRigid(bool r)                 {rigid = r;};
+  //! Toggle robustness
   void setRobust(bool r)                {robust = r;};
+  //! Specify saturation for outlier sensitivity
   void setSaturation(double d)          {sat = d;};
+  //! Switch on automatic saturation estimation
   void setSatit(bool b)                 {satit = b;};
+  //! Set debug level
   void setDebug(int d)                  {debug = d;};
+  //! Toggle global intensity scaling
   void setIscale(bool i)                {iscale = i;};
+  //! Toggle fixed voxel???
   void setFixVoxel(bool i)              {fixvoxel = i;};
+  //! Specify if we keep input type 
   void setKeepType(bool i)              {keeptype = i;};
+  //! Specify method to create average (1 mean, 2 median..)
   void setAverage(int i)                {average = i;};
+  //! Specify size to start subsampling
   void setSubsamplesize (int sss)       {subsamplesize = sss;};
+  //! Specify iteration number on highest resolution
   void setHighit (int hit)              {highit = hit;};
+  //! Specify precision for registration
   void setDoublePrec(bool b)            {doubleprec = b;};
+  //! Specify if weights are keept
   void setBackupWeights(bool b)         {backupweights = b;};
   
-  // sample type when creating averages
+  //! Sample type when creating averages
   void setSampleType(int st)
   {
     switch (st)
@@ -118,17 +148,19 @@ public:
     }
     sampletype = st;
   }
+  //! Get the sample type
   int getSampleType()                   {return sampletype;};
   
-  // maps mov based on ltas (also iscale) and averages:
+  //! Maps mov based on ltas (also iscale) and then averages them
   bool mapAndAverageMov(int itdebug);
   
+  //! (not tested)
   MRI * averageConformSet(int itdebug = 0);
 	
-	// creates ltas based on centroids and maps and averages			 
+	//! Creates ltas based on centroids and maps and averages			 
   bool initialAverageSet();
 
-  // averages a set of images (assumed to be aligned)
+  //! Averages a set of images (assumed to be aligned)
   static MRI* averageSet(const std::vector < MRI * >& set,
                        MRI* mean, int method, double sat);
 
@@ -137,7 +169,7 @@ private:
 
   void normalizeIntensities(void);
 
-  void initRegistration(Registration & R);
+  void initRegistration(RegRobust & R);
   
   // copy of input filenames
   std::vector <std::string > mov;
