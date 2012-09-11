@@ -8,8 +8,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2011/10/07 22:28:51 $
- *    $Revision: 1.6 $
+ *    $Date: 2012/09/11 19:19:19 $
+ *    $Revision: 1.7 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -131,7 +131,11 @@ void JointHisto::create(MRI *mriS, MRI* mriT,
            const vnl_matrix_fixed < double, 4,4 >& Mti,
            int d1, int d2, int d3)
 {
-//   assert (mriS->type == MRI_UCHAR);
+//  cout << " JointHisto::create " << endl;
+//   vnl_matlab_print(vcl_cerr,Msi,"Msi",vnl_matlab_print_format_long);std::cerr << std::endl;
+//   vnl_matlab_print(vcl_cerr,Mti,"Mti",vnl_matlab_print_format_long);std::cerr << std::endl;
+//  cout << " d1: " << d1 << " d2: " << d2 << " d3: " << d3 << endl;
+   //   assert (mriS->type == MRI_UCHAR);
 //   assert (mriT->type == MRI_UCHAR);
   //int dim = 4;
   int dim = 1;
@@ -190,7 +194,7 @@ void JointHisto::create(MRI *mriS, MRI* mriT,
   mriS->outside_val = -1;
   mriT->outside_val = -1;
   //int count = 0;
-  //cout <<" df " << df[0] << " " << df[1] << " " << df[2] << endl;
+//  cout <<" dt " << dt[0] << " " << dt[1] << " " << dt[2] << endl;
 	for(z=0; z<dt[2]-d3+1; z+=d3)
 	{
 		for(y=0; y<dt[1]-d2+1; y+=d2)
@@ -230,15 +234,17 @@ void JointHisto::create(MRI *mriS, MRI* mriT,
           if (vt == -1) continue;
           if (dim != 1) vt /= dim;
 					ivt = (int)floor(vt);
+          //cout << "ivs " << ivs << " ivt " << ivt << endl;
           if (ivs < 0 || ivt < 0 || ivs >=n || ivt >=n)
           {
             cout << "ERROR at ( " << x << " " << y << " " << z << " ) "<< endl;
-            cout <<" PS: ( " << xs << " " << ys << " " << zs << " )  PT: ( " << xt << " " << yt << " " << zt << " )" << endl;
+            cout << " PS: ( " << xs << " " << ys << " " << zs << " )  PT: ( " << xt << " " << yt << " " << zt << " )" << endl;
             cout << " ivs: " << ivs << "  ivt: " << ivt << "  n: " << n << endl;
             exit(1);
           }
           sdiff  = vs-ivs;
           tdiff  = vt-ivt;
+          //cout << "ivs " << ivs << " ivt " << ivt << endl;
           // distribute peak among bins symetrically:
 					histo[ivs][ivt] += (1-sdiff)*(1-tdiff);
 					if (ivs<nm1)
@@ -256,8 +262,11 @@ void JointHisto::create(MRI *mriS, MRI* mriT,
   //cout << " count: " << count << endl;
   if (sum == 0.0)
   {
-    cout << " ERROR JointHisto::create : histogram is empty? " << endl;
-    exit(1);
+    cout << " WARNING JointHisto::create : histogram is empty (no overlap?) " << endl;
+    //cout << " ERROR JointHisto::create : histogram is empty? Writing debug images. " << endl;
+    //MRIwrite(mriS,"mriS_error.mgz");
+    //MRIwrite(mriT,"mriT_error.mgz");
+    //exit(1);
   }
 }
 
@@ -713,6 +722,7 @@ double JointHisto::computeNMI()
   double s2 = 0;
   int i,j;
   double d;
+  if (sum == 0.0) return -100;
   //addeps(2.2204E-16);
   normalize();
   computeRCsums();
