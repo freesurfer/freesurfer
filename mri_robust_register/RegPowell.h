@@ -1,6 +1,6 @@
 /**
  * @file RegPowell.h
- * @brief A class to compute a robust registration using Powell
+ * @brief A class to compute a registration using Powell
  *
  */
 
@@ -8,8 +8,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2011/12/12 22:15:52 $
- *    $Revision: 1.8 $
+ *    $Date: 2012/09/11 19:28:02 $
+ *    $Revision: 1.9 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -47,33 +47,26 @@ extern "C"
 #include "Registration.h"
 
 
+/** \class RegPowell
+ * \brief Class for registration using Powell method
+ */
 class RegPowell : public Registration
 {
 public:
-  RegPowell():Registration()
-  {};
-  RegPowell(MRI * s, MRI *t):Registration(s,t)
-  {};
-  virtual ~RegPowell()
-  {};
+  RegPowell():Registration(){};
+  virtual ~RegPowell(){};
 
-  void computeIterativeRegistration(int n,double epsit){Registration::computeIterativeRegistration(n,epsit);};
+//  void computeIterativeRegistration(int n,double epsit){Registration::computeIterativeRegistration(n,epsit);};
 
-  //virtual void computeIterativeRegistration( int n,double epsit,MRI * mriS=NULL, MRI* mriT=NULL, const vnl_matrix < double > &Minit = vnl_matrix<double>(), double iscaleinit = 1.0);
   virtual void computeIterativeRegistration( int n,double epsit,MRI * mriS, MRI* mriT, const vnl_matrix < double > &Minit, double iscaleinit);
-  //static float costFunction(float p[] );
+  //! The static cost function for the Powell minimizer
   static double costFunction(const vnl_vector<double> & p);
-  MRI * getWeights()
-  {
-    return NULL;
-  };
-  MRI * getHalfWayGeom()
-  {
-    return tcf;
-  };
+
+  MRI * getHalfWayGeom(){return tcf;};
 
 protected:
 
+  virtual void setTransformation(bool is2d);
   static RegPowell* tocurrent;
   static MRI * scf;
   static MRI * tcf;

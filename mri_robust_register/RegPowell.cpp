@@ -8,8 +8,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2012/08/14 18:35:40 $
- *    $Revision: 1.16 $
+ *    $Date: 2012/09/11 19:28:02 $
+ *    $Revision: 1.17 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -74,18 +74,20 @@ double RegPowell::costFunction(const vnl_vector < double >& p)
 
   // transform into matrix and iscale double
   static pair < vnl_matrix_fixed < double , 4, 4 > , double > Md;
-  if (tocurrent->is2d)
-  {
-    Md = RegistrationStep<double>::convertP2Md2(p,tocurrent->iscale,tocurrent->rtype);  
-  }
-  else
-    Md = RegistrationStep<double>::convertP2Md(p,tocurrent->rtype);
+//   if (tocurrent->is2d)
+//   {
+//     Md = RegistrationStep<double>::convertP2Md2(p,tocurrent->iscale,tocurrent->rtype);  
+//   }
+//   else
+//     Md = RegistrationStep<double>::convertP2Md(p,tocurrent->iscale,tocurrent->rtype);
+  Md = tocurrent->convertP2Md(p);
   Md.second = exp(Md.second); // compute full factor (source to target)
   //cout << endl;
   //cout << " rtype : " << tocurrent->rtype << endl;
   //cout << " iscale : " << Md.second << endl;
-  //vnl_matlab_print(vcl_cerr,p,"p",vnl_matlab_print_format_long);
-  //vnl_matlab_print(vcl_cerr,Md.first,"M",vnl_matlab_print_format_long);
+  //cout << " trans dof: " << tocurrent->trans->getDOF() << endl;
+//  vnl_matlab_print(vcl_cerr,p,"p",vnl_matlab_print_format_long);
+//  vnl_matlab_print(vcl_cerr,Md.first,"M",vnl_matlab_print_format_long);
   //vnl_matlab_print(vcl_cerr,mh2,"mh2",vnl_matlab_print_format_long);
   //vnl_matlab_print(vcl_cerr,mh1,"mh1",vnl_matlab_print_format_long);
  
@@ -233,9 +235,10 @@ double RegPowell::costFunction(const vnl_vector < double >& p)
 }
 
 
+/** Computes 4x4 matrix and iscale value in members iscalefinal and Mfinal.
+  nmax and epsit are ignored
+*/
 void RegPowell::computeIterativeRegistration( int nmax,double epsit,MRI * mriS, MRI* mriT, const vnl_matrix < double > & m , double scaleinit)
-// computes 4x4 matrix and iscale value in members iscalefinal and Mfinal
-// nmax and epsit is ignored 
 {
   cout << "RegPowell::computeIterativeRegistration" << endl;
   cout << " sym: " << symmetry << endl; 
@@ -293,7 +296,7 @@ void RegPowell::computeIterativeRegistration( int nmax,double epsit,MRI * mriS, 
      
 
   tocurrent = this; // so that we can access this from static cost function
-  rtype = 2;
+  //rtype = 2;
   
   pair < vnl_matrix_fixed < double, 4, 4> , double > fmd(vnl_matrix_fixed < double, 4 , 4> () ,0.0);
 
@@ -361,16 +364,19 @@ void RegPowell::computeIterativeRegistration( int nmax,double epsit,MRI * mriS, 
   tcf = mriT;
 
   // create parameter vector:
-  pcount = 3; // transonly
-  if (rigid) pcount = 6;
-  else pcount = 12;
-  if (pcount==3) assert(transonly);
-  if (is2d)
-  { 
-    pcount = 6;
-    if (transonly) pcount = 2;
-    else if (rigid) pcount = 3;
-  }
+//   pcount = 12;
+//   if (transonly) pcount = 3;
+//   if (rigid) pcount = 6;
+//   if (isoscale) pcount = 7;
+//   
+//   if (is2d)
+//   { 
+//     pcount = 6;
+//     if (transonly) pcount = 2;
+//     else if (rigid) pcount = 3;
+//     if (isoscale) pcount = 4;
+//   }
+  pcount = trans->getDOF();
   
   if (iscale) pcount++;
 
@@ -384,67 +390,49 @@ void RegPowell::computeIterativeRegistration( int nmax,double epsit,MRI * mriS, 
   // compute Registration
   cout << "   - compute new registration ( " << pcount << " params )" << endl;
 
-//pcount = 3;
 
-//  double tols[6] = { 0.01, 0.01, 0.01, 0.001, 0.001 ,0.001};
-  double tols[13] = { 0.02, 0.02, 0.02, 0.001, 0.001 ,0.001, 0.01, 0.01, 0.01, 0.001, 0.001, 0.001,0.001};
   // initial parameters
+  trans->setIdentity();
+  vnl_vector < double > pid = trans->getParameters();
   vnl_vector < double > p(pcount,0.0);
-  if (is2d)
-  { 
-    // rigid pcount = 3 (transx, transy, rot) init with zero (above)
+  for (unsigned int i=0;i<pid.size();i++)  p[i] = pid[i];
+    
+// //  double tols[6] = { 0.01, 0.01, 0.01, 0.001, 0.001 ,0.001};
+//   double tols[13] = { 0.02, 0.02, 0.02, 0.001, 0.001 ,0.001, 0.01, 0.01, 0.01, 0.001, 0.001, 0.001,0.001};
+//   if (is2d)
+//   { 
+//     // rigid pcount = 3 (transx, transy, rot) init with zero (above)
+// 
+//     tols[2] = tols[3];
+//     // affine 6 (transx, transy, rot, scalex, scaley, shear), init scaling with 1
+//     if (pcount >= 6)
+//     { 
+//       p[3] = 1.0;
+//       p[4] = 1.0;
+//     }
+//     if (isoscale) p[3] = 1.0;
+//   }
+// 
+//   if (pcount >=12) //init scaling with 1
+//   {
+//      p[6] = 1.0; p[7] = 1.0; p[8] = 1.0;
+//   }
 
-    tols[2] = tols[1];
-    // affine 6 (transx, transy, rot, scalex, scaley, shear), init scaling with 1
-    if (pcount >= 6)
-    { 
-      p[3] = 1.0;
-      p[4] = 1.0;
-    }
-  }
-
-  if (pcount >=12)
-  {
-     p[6] = 1.0; p[7] = 1.0; p[8] = 1.0;
-  }
-  if (iscale) p[pcount-1] = iscaleinit;
   // initial steps:
+  vnl_vector < double > steps = trans->getSteps();
   vnl_matrix < double > xi(pcount,pcount,0.0);
   for (int i = 0;i<pcount;i++)
-    xi[i][i] = 20*tols[i];
+    xi[i][i] = steps[i];
   
   if (iscale)
   {
-    p[pcount-1] = tols[12];
-    xi[pcount-1][pcount-1] = 20*tols[12];
+    p[pcount-1] = iscaleinit; // or are the images already pre-scaled????
+    xi[pcount-1][pcount-1] = 20*0.001;
   }
   
-//p[0] = -0.2;
-//p[1] = 0.13;
-//p[2] = -0.15;
-//p[3] = 0.08;
-//p[4] = -0.03;
-//p[5] = -0.01;
-//p[0] =0.5187 ;  p[1] = -0.167 ; p[2] = -0.308;
 
-//p[0] =0.1458980337503;
-
-//    int nn = 200;
-//    vnl_vector < double > sx(nn);
-//    vnl_vector < double > sy(nn);
-//    for (int ii = 0;ii<nn;ii++)
-//    {
-//      sx [ii] = (0.5*ii)/nn;
-//      p[0] = sx[ii];
-//      sy [ii] = costFunction(p);
-//    }
-//      vnl_matlab_print(vcl_cerr,sx,"sx",vnl_matlab_print_format_long); cout << endl;   
-//      vnl_matlab_print(vcl_cerr,sy,"sy",vnl_matlab_print_format_long); cout << endl;   
-//  exit(1);
-
-  double min_sse = costFunction(p) ;
+  double min_sse = costFunction(p);
   cout << "   - initial cost: " << min_sse << endl;
-//exit(1);
 
 
   icount = 0;
@@ -488,51 +476,7 @@ void RegPowell::computeIterativeRegistration( int nmax,double epsit,MRI * mriS, 
     vnl_matlab_print(vcl_cerr,p,"p",vnl_matlab_print_format_long); cout << endl;   
   }
   
-  //OpenPowell(p, xi, pcount, tol, &iter, &fret, costFunction);
- // OpenPowell2(p, xi, pcount, tol,tol,maxiter, &iter, &fret, costFunction);
-  //cout << endl << "best alignment initial powell: " << fret << " (" << iter << " steps)" << endl;
-
-//   int count = 0;
-//   float flast;
-//   do
-//   {
-//     count++;
-//     // reinitialize powell directions
-//     for (int r = 1 ; r <= pcount ; r++)
-//     {
-//       for (int c = 1 ; c <= pcount ; c++)
-//       {
-//         xi[r][c] = r == c ? 20*tols[r-1] : 0 ;
-//       }
-//     }
-// 
-//     flast = fret ;
-//     icount = 0;
-//     OpenPowell(p, xi, pcount, tol, &iter, &fret, costFunction);
-//     cout << endl << " return from " << count << " powell: " << fret << " (" << iter << " steps)" << endl;
-// 
-// 
-// //    if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
-//     //   printf("best alignment after powell: %2.3f (%d steps)\n", fret, iter) ;
-//     //cout << "best alignment after powell: " << fret << " (" << iter << " steps)" << endl;
-// 
-//     if ((flast-fret)/flast < tol)
-//       break ;
-//   }
-//   while (fret < flast) ;
-
-//  vnl_vector < double > v(pcount);
-//  for (int i = 1;i<=pcount; i++)
-//    v[i-1] = p[i];
-// // MatrixPrintFmt(stdout,"% 2.8f",v);
-//	cout << v << endl;
-
-  //if (fmd.first) MatrixFree(&fmd.first);
-  if (is2d)
-   fmd = RegistrationStep<double>::convertP2Md2(p,iscale,rtype);  
-  else
-   fmd = RegistrationStep<double>::convertP2Md(p,rtype);
-  //vnl_matlab_print(vcl_cerr,fmd.first,"M",vnl_matlab_print_format_long); cout << endl;   
+  fmd = convertP2Md(p);
 
   if (symmetry)
   {
@@ -565,19 +509,33 @@ void RegPowell::computeIterativeRegistration( int nmax,double epsit,MRI * mriS, 
   Mfinal = fmd.first;
 
   cout << endl << " DONE " << endl;
-  //cout << endl << "Final Transform:" << endl;
-  
-  //MatrixPrintFmt(stdout,"% 2.8f",Mfinal);
-	//cout << Mfinal << endl;
-
-  //MRI* mri_Swarp = MRIclone(mriT,NULL);
-  //mri_Swarp = MyMRI::MRIlinearTransform(mriS,mri_Swarp,Mfinal);
-  //MRIwrite(mriS,"mriS.mgz");
-  //MRIwrite(mri_Swarp,"mriSwarp.mgz");
-  //MRIwrite(mriT,"mriT.mgz");
-  //MRIfree(&mri_Swarp);
   
   if (cleanupS) MRIfree(&mriS);
   if (cleanupT) MRIfree(&mriT);
 
+}
+
+void RegPowell::setTransformation (bool is2d)
+{
+  if (trans) delete(trans);
+  if (transonly)
+  {
+    if (is2d) trans = new Transform2dTranslate;
+    else      trans = new Transform3dTranslate;
+  }
+  else if (rigid)
+  {
+    if (is2d) trans = new Transform2dRigid2;
+    else      trans = new Transform3dRigid2;
+  }
+  else if (isoscale)
+  {
+    if (is2d) trans = new Transform2dIsoscale2;
+    else      trans = new Transform3dIsoscale2;
+  }
+  else
+  {
+    if (is2d) trans = new Transform2dAffine2;
+    else      trans = new Transform3dAffine2;
+  }
 }
