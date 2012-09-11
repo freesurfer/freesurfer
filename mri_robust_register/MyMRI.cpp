@@ -8,8 +8,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2012/08/10 21:08:50 $
- *    $Revision: 1.20 $
+ *    $Date: 2012/09/11 19:25:51 $
+ *    $Revision: 1.21 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -251,19 +251,28 @@ MRI * MyMRI::getDerfilter()
   return mri_derfilter;
 }
 
-MRI * MyMRI::subSample(MRI * mri_src, MRI * mri_dst, bool fixheader)
+MRI * MyMRI::subSample(MRI * mri_src, MRI * mri_dst, bool fixheader, int randpos)
+// if randpos == -1, do not use random locations, else start at randpos;
 // this only makes sense when images are smoothed before
-// else you need to average neighboring voxel as in MRIdownsample2 (mri.h)_
+// else you need to average neighboring voxel as in MRIdownsample2 (mri.h)
 {
-  int w = (mri_src->width +1) / 2;
-  int h = (mri_src->height+1) / 2;
-  int d = (mri_src->depth +1) / 2;
-  if (fixheader)
-  {
-    w = mri_src->width  / 2;
-    h = mri_src->height / 2;
-    d = mri_src->depth  / 2;
-  }
+  
+//  int w = (mri_src->width +1) / 2;
+//  int h = (mri_src->height+1) / 2;
+//  int d = (mri_src->depth +1) / 2;
+//  if (fixheader)
+//  {
+//    w = mri_src->width  / 2;
+//    h = mri_src->height / 2;
+//    d = mri_src->depth  / 2;
+//  }
+
+  // for random position within 2x2x2 box, we need each box to exist in image:
+  int w = mri_src->width  / 2;
+  int h = mri_src->height / 2;
+  int d = mri_src->depth  / 2;
+  
+  if (mri_src->depth == 1) d = 1; // 2d image
 
   if (!mri_dst)
   {
@@ -272,10 +281,28 @@ MRI * MyMRI::subSample(MRI * mri_src, MRI * mri_dst, bool fixheader)
   }
 
   int x,y,z;
+  int dx, dy, dz=0;
   for (z = 0;z<d;z++)
     for (y = 0;y<h;y++)
       for (x = 0;x<w;x++)
-        MRIsetVoxVal(mri_dst,x,y,z,0,MRIgetVoxVal(mri_src,2*x,2*y,2*z,0));
+      {
+        if (randpos >= 0)
+        {
+          // random offset 0 or 1:
+          dx = (int)(2.0*MyMRI::getRand(randpos));
+          randpos++;
+          dy = (int)(2.0*MyMRI::getRand(randpos));
+          randpos++;
+          if (d > 1)
+          {
+            dz = (int)(2.0*MyMRI::getRand(randpos));
+            randpos++;
+          }
+          MRIsetVoxVal(mri_dst,x,y,z,0,MRIgetVoxVal(mri_src,2*x+dx,2*y+dy,2*z+dz,0));
+        }
+        else
+          MRIsetVoxVal(mri_dst,x,y,z,0,MRIgetVoxVal(mri_src,2*x,2*y,2*z,0));
+      }
 
   if (fixheader) // adjusts header of dest so that RAS coordinates agree
   {
@@ -454,45 +481,85 @@ bool MyMRI::getPartials(MRI* mri, MRI* & outfx, MRI* & outfy, MRI* &outfz, MRI* 
   MRI *mri_derfilter = getDerfilter();
   int klen = mri_prefilter->width ;
   int whd[3] = {MRI_WIDTH ,MRI_HEIGHT, MRI_DEPTH};
-
-  MRI* mdz;
-  MRI* mbz;
-  if (mri->depth > 1)
-  {
-    mdz =  MRIconvolve1d(mri, NULL, &MRIFvox(mri_derfilter, 0, 0, 0), klen, whd[3-1], 0, 0) ;
-    //MRI* mdz   = convolute(mri,mri_derfilter,3);
-
-    mbz =  MRIconvolve1d(mri, NULL, &MRIFvox(mri_prefilter, 0, 0, 0), klen, whd[3-1], 0, 0) ;
-    //MRI* mbz   = convolute(mri,mri_prefilter,3);
-  }
+  bool is2d = (mri->depth == 1);
+  
+  // compute outfx
+  MRI* mdx =  MRIconvolve1d(mri, NULL, &MRIFvox(mri_derfilter, 0, 0, 0), klen, whd[1-1], 0, 0) ;
+  MRI* mdxby = MRIconvolve1d(mdx, NULL, &MRIFvox(mri_prefilter, 0, 0, 0), klen, whd[2-1], 0, 0) ;
+  MRIfree(&mdx);
+  if (is2d) outfx = mdxby;
   else
   {
-    mdz = MRIcopy(mri,NULL);
-    mbz = MRIcopy(mri,NULL);
+    outfx = MRIconvolve1d(mdxby, NULL, &MRIFvox(mri_prefilter, 0, 0, 0), klen, whd[3-1], 0, 0) ;
+    MRIfree(&mdxby);
   }
 
-  MRI* mdzby = MRIconvolve1d(mdz, NULL, &MRIFvox(mri_prefilter, 0, 0, 0), klen, whd[2-1], 0, 0) ;
-  //MRI* mdzby = convolute(mdz,mri_prefilter,2);
+  // compute outfy 
+  MRI* mbx =  MRIconvolve1d(mri, NULL, &MRIFvox(mri_prefilter, 0, 0, 0), klen, whd[1-1], 0, 0) ;
+  MRI* mbxdy = MRIconvolve1d(mbx, NULL, &MRIFvox(mri_derfilter, 0, 0, 0), klen, whd[2-1], 0, 0) ;
+  MRI* mbxby = MRIconvolve1d(mbx, NULL, &MRIFvox(mri_prefilter, 0, 0, 0), klen, whd[2-1], 0, 0) ;
+  MRIfree(&mbx);
+  if (is2d) outfy = mbxdy;
+  else
+  {
+    outfy = MRIconvolve1d(mbxdy, NULL, &MRIFvox(mri_prefilter, 0, 0, 0), klen, whd[3-1], 0, 0) ;
+    MRIfree(&mbxdy);
+  }
+
+  // compute outfz (using mbxby from above)
+  if (is2d) outfz = NULL;
+  else
+  {
+    outfz = MRIconvolve1d(mbxby, NULL, &MRIFvox(mri_derfilter, 0, 0, 0), klen, whd[3-1], 0, 0) ;
+  }
   
-  MRIfree(&mdz);
-  outfz = MRIconvolve1d(mdzby, NULL, &MRIFvox(mri_prefilter, 0, 0, 0), klen, whd[1-1], 0, 0) ;
-  //outfz = convolute(mdzby,mri_prefilter,1);
-  MRIfree(&mdzby);
+  // compute outblur
+  if (is2d) outblur = mbxby;
+  else
+  {
+    outblur = MRIconvolve1d(mbxby, NULL, &MRIFvox(mri_prefilter, 0, 0, 0), klen, whd[3-1], 0, 0) ;
+    MRIfree(&mbxby);
+  }
   
-  MRI* mbzby = MRIconvolve1d(mbz, NULL, &MRIFvox(mri_prefilter, 0, 0, 0), klen, whd[2-1], 0, 0) ;
-  //MRI* mbzby = convolute(mbz,mri_prefilter,2);
-  MRI* mbzdy = MRIconvolve1d(mbz, NULL, &MRIFvox(mri_derfilter, 0, 0, 0), klen, whd[2-1], 0, 0) ;
-  //MRI* mbzdy = convolute(mbz,mri_derfilter,2);
-  MRIfree(&mbz);
-  outfy = MRIconvolve1d(mbzdy, NULL, &MRIFvox(mri_prefilter, 0, 0, 0), klen, whd[1-1], 0, 0) ;
-  //outfy = convolute(mbzdy,mri_prefilter,1);
-  MRIfree(&mbzdy);
-  
-  outfx = MRIconvolve1d(mbzby, NULL, &MRIFvox(mri_derfilter, 0, 0, 0), klen, whd[1-1], 0, 0) ;
-  //outfx = convolute(mbzby,mri_derfilter,1);
-  outblur = MRIconvolve1d(mbzby, NULL, &MRIFvox(mri_prefilter, 0, 0, 0), klen, whd[1-1], 0, 0) ;
-  //outblur = convolute(mbzby,mri_prefilter,1);
-  MRIfree(&mbzby);
+
+//   MRI* mdz;
+//   MRI* mbz;
+//   if (mri->depth > 1)
+//   {
+//     mdz =  MRIconvolve1d(mri, NULL, &MRIFvox(mri_derfilter, 0, 0, 0), klen, whd[3-1], 0, 0) ;
+//     //MRI* mdz   = convolute(mri,mri_derfilter,3);
+// 
+//     mbz =  MRIconvolve1d(mri, NULL, &MRIFvox(mri_prefilter, 0, 0, 0), klen, whd[3-1], 0, 0) ;
+//     //MRI* mbz   = convolute(mri,mri_prefilter,3);
+//   }
+//   else
+//   {
+//     mdz = MRIcopy(mri,NULL);
+//     mbz = MRIcopy(mri,NULL);
+//   }
+// 
+//   MRI* mdzby = MRIconvolve1d(mdz, NULL, &MRIFvox(mri_prefilter, 0, 0, 0), klen, whd[2-1], 0, 0) ;
+//   //MRI* mdzby = convolute(mdz,mri_prefilter,2);
+//   
+//   MRIfree(&mdz);
+//   outfz = MRIconvolve1d(mdzby, NULL, &MRIFvox(mri_prefilter, 0, 0, 0), klen, whd[1-1], 0, 0) ;
+//   //outfz = convolute(mdzby,mri_prefilter,1);
+//   MRIfree(&mdzby);
+//   
+//   MRI* mbzby = MRIconvolve1d(mbz, NULL, &MRIFvox(mri_prefilter, 0, 0, 0), klen, whd[2-1], 0, 0) ;
+//   //MRI* mbzby = convolute(mbz,mri_prefilter,2);
+//   MRI* mbzdy = MRIconvolve1d(mbz, NULL, &MRIFvox(mri_derfilter, 0, 0, 0), klen, whd[2-1], 0, 0) ;
+//   //MRI* mbzdy = convolute(mbz,mri_derfilter,2);
+//   MRIfree(&mbz);
+//   outfy = MRIconvolve1d(mbzdy, NULL, &MRIFvox(mri_prefilter, 0, 0, 0), klen, whd[1-1], 0, 0) ;
+//   //outfy = convolute(mbzdy,mri_prefilter,1);
+//   MRIfree(&mbzdy);
+//   
+//   outfx = MRIconvolve1d(mbzby, NULL, &MRIFvox(mri_derfilter, 0, 0, 0), klen, whd[1-1], 0, 0) ;
+//   //outfx = convolute(mbzby,mri_derfilter,1);
+//   outblur = MRIconvolve1d(mbzby, NULL, &MRIFvox(mri_prefilter, 0, 0, 0), klen, whd[1-1], 0, 0) ;
+//   //outblur = convolute(mbzby,mri_prefilter,1);
+//   MRIfree(&mbzby);
 
   //cout << " size fx: " << outfx->width << " " << outfx->height << " " << outfx->depth << endl;
 
@@ -551,25 +618,24 @@ std::vector < int >  MyMRI::findRightSize(MRI *mri, float conform_size, bool con
   ret[0] = (int) ceil((fwidth/conform_size)-eps);
   ret[1] = (int) ceil((fheight/conform_size)-eps);
   ret[2] = (int) ceil((fdepth/conform_size)-eps);
+  if (mri->depth == 1) ret[2] = 1; // 2d image
   
   //cout << " zsize: " << zsize << " depth: " << mri->depth << " fdepth: " << fdepth << " new depth: " << ret[2] << endl;
   
   if (! conform) return ret;
   
-  // pick the largest
-  if (fwidth> fheight)
-    fmax = (fwidth > fdepth) ? fwidth : fdepth;
-  else
-    fmax = (fdepth > fheight) ? fdepth : fheight;
+  // pick the largest image side length
+  fmax = fwidth;
+  if (fheight > fmax) fmax = fheight;
+  if (mri->depth > 1 && fdepth > fmax) fmax = fdepth;
+  
   // get the width with conform_size
   conform_width = (int) ceil(fmax/conform_size);
 
   // just to make sure that if smaller than 256, use 256 anyway
-  if (conform_width < 256)
-    conform_width = 256;
+  if (conform_width < 256) conform_width = 256;
   // conform_width >= 256.   allow 10% leeway
-  else if ((conform_width -256.)/256. < 0.1)
-    conform_width = 256;
+  else if ((conform_width -256.)/256. < 0.1) conform_width = 256;
 
 //   // if more than 256, warn users
 //   if (conform_width > 256)
@@ -595,6 +661,7 @@ std::vector < int >  MyMRI::findRightSize(MRI *mri, float conform_size, bool con
   ret[0] = conform_width;
   ret[1] = conform_width;
   ret[2] = conform_width;
+  if (mri->depth == 1) ret[2] = 1; // 2d image
 
   return ret;
 }
