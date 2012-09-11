@@ -25,13 +25,13 @@ bin_PROGRAMS = mri_robust_register \
 
 mri_robust_register_SOURCES= JointHisto.cpp \
 	CostFunctions.cpp MyMatrix.cpp MyMRI.cpp \
-	Quaternion.cpp Registration.cpp RegPowell.cpp \
+	Quaternion.cpp Registration.cpp RegRobust.cpp RegPowell.cpp \
 	mri_robust_register.cpp mri_robust_register.help.xml.h
 mri_robust_register_LDADD= $(addprefix $(top_builddir)/, $(LIBS_MGH)) \
   $(LIB_LAPACK_A) $(LIB_BLAS_A) $(LIB_G2C_A) $(LIB_GFORTRAN)
 mri_robust_register_LDFLAGS=$(OS_LDFLAGS) $(OTHERLDFLAGS)
 
-mri_robust_template_SOURCES= Registration.cpp \
+mri_robust_template_SOURCES= Registration.cpp  RegRobust.cpp \
 	CostFunctions.cpp MyMatrix.cpp MyMRI.cpp Quaternion.cpp \
 	MultiRegistration.cpp mri_robust_template.cpp mri_robust_template.help.xml.h
 mri_robust_template_LDADD= $(addprefix $(top_builddir)/, $(LIBS_MGH)) \
