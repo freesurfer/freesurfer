@@ -52,7 +52,6 @@ libkvlAtlas3DCommon_a_SOURCES= \
 		kvlAtlasMeshCollectionPositionCostCalculator2.cxx \
 		kvlImageSmoother.cxx \
 		kvlAtlasMeshDeformationLevenbergMarquardt.cxx \
-                kvlAtlasMeshDeformationLevenbergMarquardtOptimizer.cxx \
 		kvlAtlasMeshHamiltonianPositionSampler.cxx
 
 am_libkvlAtlas3DCommon_a_OBJECTS=$(libkvlAtlas3DCommon_a_SOURCES:%.cxx=%.o)
@@ -866,8 +865,6 @@ EXTRA_DIST=\
 	kvlAtlasMeshCollectionReferencePositionCost.h \
 	kvlAtlasMeshCollectionValidator.h \
 	kvlAtlasMeshDeformationLevenbergMarquardt.h \
-	kvlAtlasMeshDeformationLevenbergMarquardt2.h \
-	kvlAtlasMeshDeformationLevenbergMarquardtOptimizer.h \
 	kvlAtlasMesh.h \
 	kvlAtlasMeshHamiltonianPositionSampler.h \
 	kvlAtlasMeshLabelStatisticsCollector.h \
@@ -917,3 +914,4 @@ endif
 # release' target.
 EXCLUDE_FILES=
 include $(top_srcdir)/Makefile.extra
+

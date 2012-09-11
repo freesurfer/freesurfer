@@ -311,7 +311,6 @@ do {								\
 namespace kvl
 {
 
-static itk::SimpleFastMutexLock rasterizorMutex;
 
 //
 //
@@ -321,10 +320,6 @@ AtlasMeshRasterizor< TFragmentProcessor >
 ::AtlasMeshRasterizor()
 {
   m_LabelImage = 0;
-  for ( int threadNumber = 0; threadNumber < itk::MultiThreader::GetGlobalDefaultNumberOfThreads(); threadNumber++ )
-    {
-    m_FragmentProcessors.push_back( FragmentProcessorType() );
-    }
 
 }
 
@@ -337,7 +332,7 @@ AtlasMeshRasterizor< TFragmentProcessor >
 template < class TFragmentProcessor >
 void
 AtlasMeshRasterizor< TFragmentProcessor >
-::Rasterize( const AtlasMesh* mesh, bool useMultiThreading )
+::Rasterize( const AtlasMesh* mesh )
 {
 
   //
@@ -346,212 +341,54 @@ AtlasMeshRasterizor< TFragmentProcessor >
     itkExceptionMacro( "No label image available!" );
     }
 
-  if ( !useMultiThreading )
+  //
+  m_FragmentProcessor.SetMesh( mesh );
+
+  // Rasterize all triangles
+  typedef AtlasMesh::CellsContainer  CellsContainerType;
+  typedef AtlasMesh::CellType  CellType;
+  typedef AtlasMesh::PointType  PointType;
+
+  CellsContainerType::ConstIterator  cellIt = mesh->GetCells()->Begin();
+  CellsContainerType::ConstIterator  cellEnd = mesh->GetCells()->End();
+  while ( cellIt != cellEnd )
     {
-    //
-    FragmentProcessorType&  fragmentProcessor = m_FragmentProcessors[ 0 ];
-    fragmentProcessor.SetMesh( mesh );
+    CellType*  cell = cellIt.Value();
 
-    // Rasterize all tetrahedra
-    typedef AtlasMesh::CellsContainer  CellsContainerType;
-    typedef AtlasMesh::CellType  CellType;
-    typedef AtlasMesh::PointType  PointType;
-
-    CellsContainerType::ConstIterator  cellIt = mesh->GetCells()->Begin();
-    CellsContainerType::ConstIterator  cellEnd = mesh->GetCells()->End();
-    while ( cellIt != cellEnd )
+    if( cell->GetType() == CellType::TETRAHEDRON_CELL )
       {
-      CellType*  cell = cellIt.Value();
-
-      if( cell->GetType() == CellType::TETRAHEDRON_CELL )
+      // OK, found tetrahedron. Warn the FragmentProcessor
+      if ( !m_FragmentProcessor.StartNewTetrahedron( cellIt.Index() ) )
         {
-        // OK, found tetrahedron. Warn the FragmentProcessor
-        if ( !fragmentProcessor.StartNewTetrahedron( cellIt.Index() ) )
-          {
-          // Something is wrong with this tetrahedron; abort rasterization.
-          return;
-          }
-        
-        // Retrieve position of vertices
-        CellType::PointIdIterator  pit = cell->PointIdsBegin();
-        PointType  p0;
-        PointType  p1;
-        PointType  p2;
-        PointType  p3;
-        mesh->GetPoint( *pit, &p0 );
-        ++pit;
-        mesh->GetPoint( *pit, &p1 );
-        ++pit;
-        mesh->GetPoint( *pit, &p2 );
-        ++pit;
-        mesh->GetPoint( *pit, &p3 );
-
-        // Rasterize
-        Self::RasterizeTetrahedron( p0, p1, p2, p3, fragmentProcessor, m_LabelImage );
+        // Something is wrong with this tetrahedron; abort rasterization.
+        return;
         }
+      
+      // Retrieve position of vertices
+      CellType::PointIdIterator  pit = cell->PointIdsBegin();
+      PointType  p0;
+      PointType  p1;
+      PointType  p2;
+      PointType  p3;
+      mesh->GetPoint( *pit, &p0 );
+      ++pit;
+      mesh->GetPoint( *pit, &p1 );
+      ++pit;
+      mesh->GetPoint( *pit, &p2 );
+      ++pit;
+      mesh->GetPoint( *pit, &p3 );
 
-      ++cellIt;
-      }
-  
-    }
-  else  // Use multithreading
-    {
-    // Fill in the data structure to pass on to the threads
-    ThreadStruct  str;
-    str.m_LabelImage = m_LabelImage;
-    str.m_Mesh = mesh;
-    str.m_FragmentProcessors = &m_FragmentProcessors;
-    for ( AtlasMesh::CellsContainer::ConstIterator  cellIt = mesh->GetCells()->Begin();
-          cellIt != mesh->GetCells()->End(); ++cellIt )
-      {
-      if ( cellIt.Value()->GetType() == AtlasMesh::CellType::TETRAHEDRON_CELL )
-        {
-        str.m_TetrahedronsToRasterize.insert( cellIt.Index() );
-        }
+      // Rasterize
+      this->RasterizeTetrahedron( p0, p1, p2, p3 );
       }
 
-    // Set up the multithreader
-    itk::MultiThreader::Pointer  threader = itk::MultiThreader::New();
-    threader->SetSingleMethod(this->ThreaderCallback, &str );
-
-    // Let the beast go
-    threader->SingleMethodExecute();
-
-    } // End if use multithreading
-
-
-}
-
-
-
-//
-//
-//
-template < class TFragmentProcessor >
-ITK_THREAD_RETURN_TYPE
-AtlasMeshRasterizor< TFragmentProcessor >
-::ThreaderCallback( void *arg )
-{
-
-  // Retrieve the input arguments
-  const int  threadId = ((itk::MultiThreader::ThreadInfoStruct *)(arg))->ThreadID;
-  //const int  threadCount = ((itk::MultiThreader::ThreadInfoStruct *)(arg))->NumberOfThreads;
-
-  ThreadStruct*  str = (ThreadStruct *)(((itk::MultiThreader::ThreadInfoStruct *)(arg))->UserData);
-
-
-  // Pass the mesh to the fragmentProcessor
-  ( *( str->m_FragmentProcessors ) )[ threadId ].SetMesh( str->m_Mesh );
-
-  const int  numberOfTetrahedraAtATime = 100; // Could do something more intelligent here...
-  int  numberOfTetrahedraRasterized = 0;
-  while ( true )
-    {
-    //std::cout << "I am thread " << threadId << " and I have rasterized "
-    //          <<  numberOfTetrahedraRasterized << " tetrahedra so far" << std::endl;
-
-    if ( !Self::RasterizedTetrahedra( str->m_LabelImage, str->m_Mesh, 
-                                      ( *( str->m_FragmentProcessors ) )[ threadId ], 
-                                      str->m_TetrahedronsToRasterize, 
-                                      numberOfTetrahedraAtATime, threadId ) )
-      {
-      //std::cout << "Nothing left to do for thread " << threadId << std::endl;
-      break;
-      }
-
-    numberOfTetrahedraRasterized += numberOfTetrahedraAtATime;
-    }
-
-  return ITK_THREAD_RETURN_VALUE;
-}
-
-
-
-
-//
-//
-//
-template < class TFragmentProcessor >
-bool
-AtlasMeshRasterizor< TFragmentProcessor >
-::RasterizedTetrahedra( const LabelImageType* labelImage, const AtlasMesh* mesh,
-                        FragmentProcessorType& fragmentProcessor, 
-                        std::set< AtlasMesh::CellIdentifier >&  tetrahedronsToRasterize, 
-                        int numberOfTetrahedra, int threadId )
-{
-  rasterizorMutex.Lock();
-
-
-  // Check if there is anything left to do
-  if ( tetrahedronsToRasterize.size() == 0 )
-    {
-    rasterizorMutex.Unlock();
-    return false;
-    }
-
-
-  // Pop the first numberOfTetrahedra tetrahedra on the list
-  std::vector< AtlasMesh::CellIdentifier >  tetrahedronIds;
-  for ( int i = 0; i < numberOfTetrahedra; i++ )
-    {
-    const AtlasMesh::CellIdentifier  tetrahedronId = *( tetrahedronsToRasterize.begin() );
-    //std::cout << "    [THREAD " << threadId << "] " << "         Removing tetrahedron with id: " << tetrahedronId << "(" << tetrahedronsToRasterize.size() << ")" << std::endl;
-    tetrahedronsToRasterize.erase( tetrahedronId );
-    //std::cout << "    [THREAD " << threadId << "] " << "         Removed tetrahedron with id: " << tetrahedronId << "(" << tetrahedronsToRasterize.size() << ")" << std::endl;
-
-    tetrahedronIds.push_back( tetrahedronId );
-    if ( tetrahedronsToRasterize.size() == 0 )
-      {
-      break;
-      }
-    }
-
-  rasterizorMutex.Unlock();
-
-
-  for ( std::vector< AtlasMesh::CellIdentifier >::const_iterator  it = tetrahedronIds.begin();
-        it != tetrahedronIds.end(); ++it )
-    {
-    const AtlasMesh::CellIdentifier  tetrahedronId = *it;
-
-    // OK, we have a tetrahedron. Warn the FragmentProcessor
-    if ( !fragmentProcessor.StartNewTetrahedron( tetrahedronId ) )
-      {
-      // Something is wrong with this tetrahedron; abort rasterization.
-      //std::cout << "Can't start rasterizing tetrahedron with id " << tetrahedronId << "; aborting" <<  std::endl;
-
-      // Make sure other thread also stop ASAP
-      rasterizorMutex.Lock();
-      tetrahedronsToRasterize.clear();
-      rasterizorMutex.Unlock();
-
-      return false;
-      }
-        
-
-    // Rasterize the tetrahedron
-    AtlasMesh::CellType::PointIdIterator  pit = mesh->GetCells()->ElementAt( tetrahedronId )->PointIdsBegin(); 
-    AtlasMesh::PointType  p0;                                                                              
-    AtlasMesh::PointType  p1;                                                                                 
-    AtlasMesh::PointType  p2;
-    AtlasMesh::PointType  p3;
-    mesh->GetPoint( *pit, &p0 ); 
-    ++pit;
-    mesh->GetPoint( *pit, &p1 );
-    ++pit;
-    mesh->GetPoint( *pit, &p2 );
-    ++pit;
-    mesh->GetPoint( *pit, &p3 );
-    
-
-    Self::RasterizeTetrahedron( p0, p1, p2, p3, fragmentProcessor, labelImage );
+    ++cellIt;
     }
   
-  return true;
+
+
 
 }
-
-
 
 
 
@@ -578,9 +415,7 @@ struct sortableItem
 template < class TFragmentProcessor >
 void
 AtlasMeshRasterizor< TFragmentProcessor >
-::RasterizeTetrahedron( const AtlasMesh::PointType& p0, const AtlasMesh::PointType& p1,  
-                        const AtlasMesh::PointType& p2, const AtlasMesh::PointType& p3,
-                        FragmentProcessorType& fragmentProcessor, const LabelImageType* labelImage )
+::RasterizeTetrahedron( const AtlasMesh::PointType& p0, const AtlasMesh::PointType& p1,  const AtlasMesh::PointType& p2, const AtlasMesh::PointType& p3 )
 {
 
   // The notation (A,B,C,O) for tetrahedra and (a,b,c) and (b,c,d) for triangles is taken from figure 6 in
@@ -681,9 +516,9 @@ AtlasMeshRasterizor< TFragmentProcessor >
     // std::cout << "             pa: " << pa << "   pisIna: " <<  pisIna << std::endl;
     // std::cout << "             pb: " << pb << "   pisInb: " <<  pisInb << std::endl;
     // std::cout << "             pc: " << pc << "   pisInc: " <<  pisInc << std::endl;
-    Self::RasterizeTriangle( pa.GetDataPointer(), pb.GetDataPointer(), pc.GetDataPointer(),
+    this->RasterizeTriangle( pa.GetDataPointer(), pb.GetDataPointer(), pc.GetDataPointer(),
                              pisIna.GetDataPointer(), pisInb.GetDataPointer(), pisInc.GetDataPointer(), 
-                             z, fragmentProcessor, labelImage );
+                             z );
 
 
     // If B > z > C, there is an extra triangle (b,c,d) to rasterize. 
@@ -699,9 +534,9 @@ AtlasMeshRasterizor< TFragmentProcessor >
       //std::cout << "             pb: " << pb << "   pisInb: " <<  pisInb << std::endl;
       //std::cout << "             pc: " << pc << "   pisInc: " <<  pisInc << std::endl;
       //std::cout << "             pd: " << pd << "   pisInd: " <<  pisInd << std::endl;
-      Self::RasterizeTriangle( pb.GetDataPointer(), pc.GetDataPointer(), pd.GetDataPointer(),
-                               pisInb.GetDataPointer(), pisInc.GetDataPointer(), pisInd.GetDataPointer(), 
-                               z, fragmentProcessor, labelImage );
+      this->RasterizeTriangle( pb.GetDataPointer(), pc.GetDataPointer(), pd.GetDataPointer(),
+                              pisInb.GetDataPointer(), pisInc.GetDataPointer(), pisInd.GetDataPointer(), 
+                              z );
       } 
 
 
@@ -719,8 +554,7 @@ void
 AtlasMeshRasterizor< TFragmentProcessor >
 ::RasterizeTriangle( const float* vertex0, const float* vertex1, const float* vertex2, 
                      const float* pisIn0, const float* pisIn1, const float* pisIn2, 
-                     const int zLevel,
-                     FragmentProcessorType& fragmentProcessor, const LabelImageType* labelImage )
+                     const int zLevel )
 {
 
 
@@ -1264,12 +1098,12 @@ AtlasMeshRasterizor< TFragmentProcessor >
                index[ 0 ] = InterpToInt(fxLeftEdge);
                index[ 1 ] = span.y;
                index[ 2 ] = zLevel;
-               pRow = labelImage->GetBufferPointer() + labelImage->ComputeOffset( index );
+               pRow = m_LabelImage->GetBufferPointer() + m_LabelImage->ComputeOffset( index );
                //pRow = (PIXEL_TYPE *) PIXEL_ADDRESS( InterpToInt(fxLeftEdge), span.y );
 #if 0
-               dPRowOuter = -( (int) labelImage->GetLargestPossibleRegion().GetSize( 0 ) ) + idxOuter;
+               dPRowOuter = -( (int) m_LabelImage->GetLargestPossibleRegion().GetSize( 0 ) ) + idxOuter;
 #else
-               dPRowOuter = ( (int) labelImage->GetLargestPossibleRegion().GetSize( 0 ) ) + idxOuter;
+               dPRowOuter = ( (int) m_LabelImage->GetLargestPossibleRegion().GetSize( 0 ) ) + idxOuter;
 #endif 
                //dPRowOuter = -((int)BYTES_PER_ROW) + idxOuter * sizeof(PIXEL_TYPE);
                /* negative because Y=0 at bottom and increases upward */
@@ -1408,7 +1242,7 @@ AtlasMeshRasterizor< TFragmentProcessor >
                /* This is where we actually generate fragments */
                if (span.end > 0) {
                
-                  fragmentProcessor.StartNewSpan( span.x, span.y, zLevel, pRow );
+                  m_FragmentProcessor.StartNewSpan( span.x, span.y, zLevel, pRow );
                
 #if 0
                   std::cout << "Rasterizing span" << std::endl;
@@ -1439,7 +1273,7 @@ AtlasMeshRasterizor< TFragmentProcessor >
                                     
                   for ( unsigned int i = 0; i < n; i++ )
                     {
-                    fragmentProcessor( FixedToChan( r ), FixedToChan( g ), FixedToChan( b ), FixedToChan( a ) );
+                    m_FragmentProcessor( FixedToChan( r ), FixedToChan( g ), FixedToChan( b ), FixedToChan( a ) );
                     r += dr;
                     g += dg;
                     b += db;

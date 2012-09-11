@@ -1,3 +1,27 @@
+/**
+ * @file  kvlAtlasMeshSegmenter.cxx
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ */
+/*
+ * Original Author: Koen Van Leemput
+ * CVS Revision Info:
+ *    $Author: koen $
+ *    $Date: 2012/09/11 13:20:52 $
+ *    $Revision: 1.1.2.5 $
+ *
+ * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ *
+ * Terms and conditions for use, reproduction, distribution and contribution
+ * are found in the 'FreeSurfer Software License Agreement' contained
+ * in the file 'LICENSE' found in the FreeSurfer distribution, and here:
+ *
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
+ *
+ * Reporting: freesurfer@nmr.mgh.harvard.edu
+ *
+ */
 #include "kvlAtlasMeshSegmenter.h"
 
 #include "kvlAtlasMeshToIntensityImageGradientCalculator.h"
@@ -10,7 +34,7 @@
 #include "kvlAtlasMeshDeformationLevenbergMarquardt.h"
 
 #if 1
-  #include "kvlAtlasMeshCollection.h"
+#include "kvlAtlasMeshCollection.h"
 #endif
 
 namespace kvl
@@ -23,9 +47,9 @@ AtlasMeshSegmenter
 ::AtlasMeshSegmenter()
 {
   for ( int i = 0; i < 3; i++ )
-    {
+  {
     m_PartialVolumeUpsamplingFactors[ i ] = 1;
-    }
+  }
   m_UsePartialVoluming = false;
 
   m_Image = 0;
@@ -42,7 +66,7 @@ AtlasMeshSegmenter
   m_CoregisterToPosteriorProbabilities = false;
   m_StopCriterion = 1e-5;
   m_MaximalDeformationStopCriterion = 0.05;
-  
+
   m_MeshToImageTransform = TransformType::New();
 
   m_PartialVolumeGradientCalculator = 0;
@@ -75,16 +99,16 @@ AtlasMeshSegmenter
 {
   // Sanity check on input
   if ( !m_Image || !m_Mesh )
-    {
+  {
     itkExceptionMacro( << "Insufficient inputs set!" );
-    }
+  }
 
   // Now loop over the two steps
   this->InvokeEvent( itk::StartEvent() );
 
   float  currentCost = itk::NumericTraits< float >::max();
   for ( m_IterationNumber = 0; m_IterationNumber < m_MaximumNumberOfIterations; m_IterationNumber++ )
-    {
+  {
     // Update the model parameters
     const float  previousCost = currentCost;
     currentCost = this->UpdateModelParameters();
@@ -96,29 +120,29 @@ AtlasMeshSegmenter
     std::cout << "============================================" << std::endl;
 
     if ( ( ( ( previousCost - currentCost ) / fabsf( currentCost ) ) < m_StopCriterion ) || m_DontDeform )
-      {
+    {
       std::cout << "Converged!" << std::endl;
       break;
-      }
+    }
 
     // Make sure to invalidate the posterior image, and update the position
     m_PosteriorProbabilityImage = 0;
     if ( !this->UpdatePosition( useAffine ) )
-      {
+    {
       std::cout << "Converged!" << std::endl;
       break;
-      }
+    }
 
 
     this->InvokeEvent( itk::IterationEvent() );
-    }
+  }
 
   // Retrieve the posterior
   m_Posteriors.clear();
   for ( unsigned int classNumber = 0; classNumber < m_NumberOfClasses; classNumber++ )
-    {
+  {
     m_Posteriors.push_back( m_EMSegmenter->GetPosterior( classNumber ) );
-    } 
+  }
 
   this->InvokeEvent( itk::EndEvent() );
 }
@@ -135,14 +159,14 @@ AtlasMeshSegmenter
 
   m_UsePartialVoluming = false;
   for ( int i = 0; i < 3; i++ )
-    {
+  {
     m_PartialVolumeUpsamplingFactors[ i ] = partialVolumeUpsamplingFactors[ i ];
 
     if ( m_PartialVolumeUpsamplingFactors[ i ] > 1 )
-      {
+    {
       m_UsePartialVoluming = true;
-      }
     }
+  }
 
   m_EMSegmenter->SetPartialVolumeUpsamplingFactors( m_PartialVolumeUpsamplingFactors );
 
@@ -159,7 +183,7 @@ AtlasMeshSegmenter
 
   // Calculate internal image
   std::cout << "TODO: we're using internally an image of unsigned char pixel type"
-                " to calculate the position gradients" << std::endl;
+            " to calculate the position gradients" << std::endl;
 
 
   // Calculate minimum and maximum
@@ -204,7 +228,7 @@ AtlasMeshSegmenter
 //
 //
 //
-void 
+void
 AtlasMeshSegmenter
 ::SetMesh( AtlasMesh* mesh,
            const std::vector< unsigned int >&  lookupTable,
@@ -214,7 +238,7 @@ AtlasMeshSegmenter
   m_EMSegmenter->SetAtlasMesh( mesh, lookupTable, independentParametersLookupTable );
 
   m_NumberOfClasses = m_EMSegmenter->GetNumberOfClasses();
-  m_Mesh = m_EMSegmenter->GetAtlasMesh(); 
+  m_Mesh = m_EMSegmenter->GetAtlasMesh();
 
   std::cout << "OK" << std::endl;
 }
@@ -226,7 +250,7 @@ AtlasMeshSegmenter
 //
 //
 //
-bool 
+bool
 AtlasMeshSegmenter
 ::UpdatePosition( bool useAffine )
 {
@@ -242,10 +266,10 @@ AtlasMeshSegmenter
   itk::Array< float >   means( m_NumberOfClasses );
   itk::Array< float >   variances( m_NumberOfClasses );
   for ( unsigned int classNumber = 0; classNumber < m_NumberOfClasses; classNumber++ )
-    {
+  {
     means[ classNumber ] = m_Means[ classNumber ];
     variances[ classNumber ] = m_Variances[ classNumber ];
-    }
+  }
 
   // Some initialization
   AtlasMesh::Pointer  meshToRasterize = AtlasMesh::New();
@@ -257,10 +281,10 @@ AtlasMeshSegmenter
 
 #if 0
   {
-  AtlasMeshCollection::Pointer  collection = AtlasMeshCollection::New();
-  collection->GenerateFromSingleMesh( meshToRasterize, 1, 1000.0f );
-  collection->Write( "meshToRasterize" );
-  //exit( -1 );
+    AtlasMeshCollection::Pointer  collection = AtlasMeshCollection::New();
+    collection->GenerateFromSingleMesh( meshToRasterize, 1, 1000.0f );
+    collection->Write( "meshToRasterize" );
+    //exit( -1 );
   }
 #endif
 
@@ -269,38 +293,38 @@ AtlasMeshSegmenter
   const float  lambdaIncreaseFactor = 2.0f; // Factor by which lambda is increased if failure detected
   const float  lambdaDecreaseFactor = 1.1f; // Factor by which lambda is decreased if success detected
   AtlasMeshDeformationLevenbergMarquardt::Pointer  levenbergMarquardt =
-                            AtlasMeshDeformationLevenbergMarquardt::New();
+    AtlasMeshDeformationLevenbergMarquardt::New();
   InternalImageType::ConstPointer  dummyTemplateImage = m_InternalImage;
   if ( m_UsePartialVoluming )
-    {
+  {
     typedef itk::CastImageFilter< EMSegmenter::ImageType, InternalImageType >  CasterType;
     CasterType::Pointer  caster = CasterType::New();
     caster->SetInput( m_EMSegmenter->GetSuperResolutionImage() );
     caster->Update();
     dummyTemplateImage = caster->GetOutput();
-    }
+  }
   levenbergMarquardt->SetLabelImage( dummyTemplateImage );
 
   if ( m_CoregisterToPosteriorProbabilities )
-    {
+  {
     levenbergMarquardt->SetProbabilityImage( this->GetPosteriorProbabilityImage() );
     levenbergMarquardt->SetUseProbabilityImage( true );
-    }
+  }
   else
-    {
+  {
     if ( !m_UsePartialVoluming )
-      {
+    {
       levenbergMarquardt->SetImage( m_EMSegmenter->GetBiasCorrectedImage() );
       levenbergMarquardt->SetMeans( means );
       levenbergMarquardt->SetVariances( variances );
-      }
+    }
     else
-      {
+    {
       //levenbergMarquardt->SetLikelihoods( m_EMSegmenter->GetSuperResolutionLikelihoods() );
       itkExceptionMacro( "That's not implemented yet!" );
-      }
-    levenbergMarquardt->SetUseProbabilityImage( false );
     }
+    levenbergMarquardt->SetUseProbabilityImage( false );
+  }
 
   //
   TransformType::Pointer  meshToImageTransform = TransformType::New();
@@ -308,47 +332,19 @@ AtlasMeshSegmenter
   std::cout << "m_MeshToImageTransform: " << std::endl;
   m_MeshToImageTransform->Print( std::cout );
   if ( m_UsePartialVoluming )
-    {
+  {
     TransformType::OutputVectorType  extraScaling;
     for ( int i = 0; i < 3; i++ )
-      {
+    {
       extraScaling[ i ] = m_PartialVolumeUpsamplingFactors[ i ];
-      }
-    meshToImageTransform->Scale( extraScaling );
     }
+    meshToImageTransform->Scale( extraScaling );
+  }
   std::cout << "meshToImageTransform: " << std::endl;
   meshToImageTransform->Print( std::cout );
   levenbergMarquardt->SetMeshToImageTransform( meshToImageTransform );
 
-  // Similar set up for trialLevenbergMarquardt
-  AtlasMeshDeformationLevenbergMarquardt::Pointer  trialLevenbergMarquardt =
-                                AtlasMeshDeformationLevenbergMarquardt::New();
-  trialLevenbergMarquardt->SetLabelImage( dummyTemplateImage );
-  if ( m_CoregisterToPosteriorProbabilities )
-    {
-    trialLevenbergMarquardt->SetProbabilityImage( this->GetPosteriorProbabilityImage() );
-    trialLevenbergMarquardt->SetUseProbabilityImage( true );
-    }
-  else
-    {
-    if ( !m_UsePartialVoluming )
-      {
-      trialLevenbergMarquardt->SetImage( m_EMSegmenter->GetBiasCorrectedImage() );
-      trialLevenbergMarquardt->SetMeans( means );
-      trialLevenbergMarquardt->SetVariances( variances );
-      }
-    else
-      {
-      //levenbergMarquardt->SetLikelihoods( m_EMSegmenter->GetSuperResolutionLikelihoods() );
-      itkExceptionMacro( "That's not implemented yet!" );
-      }
-    trialLevenbergMarquardt->SetUseProbabilityImage( false );
 
-    }
-  trialLevenbergMarquardt->SetMeshToImageTransform( meshToImageTransform );
-
-  
-  
   // Evaluate cost at current position
   std::cout << "Rasterizing Levenberg-Marquardt..." << std::endl;
   levenbergMarquardt->Rasterize( meshToRasterize );
@@ -356,15 +352,14 @@ AtlasMeshSegmenter
   double  currentCost = levenbergMarquardt->GetMinLogLikelihoodTimesPrior();
 
 
-
-  for ( m_PositionUpdatingIterationNumber = 0; 
+  for ( m_PositionUpdatingIterationNumber = 0;
         m_PositionUpdatingIterationNumber < m_PositionUpdatingMaximumNumberOfIterations;
         m_PositionUpdatingIterationNumber++ )
-    {
+  {
 
     //
     while ( true )
-      {
+    {
       // Save current position
       AtlasMesh::PointsContainer::Pointer  currentPosition = m_EMSegmenter->GetSuperResolutionMesh( m_Mesh )->GetPoints();
 
@@ -381,25 +376,51 @@ AtlasMeshSegmenter
       AtlasMesh::PointsContainer::ConstIterator  posIt = currentPosition->Begin();
       AtlasPositionGradientContainerType::ConstIterator  stepIt = trialStep->Begin();
       while ( stepIt != trialStep->End() )
-        {
+      {
         AtlasPositionGradientType  trialStep = stepIt.Value();
 
         if ( trialStep.GetNorm() > maximalDeformation )
-          {
+        {
           maximalDeformation = trialStep.GetNorm();
-          }
+        }
 
         trialPosition->InsertElement( posIt.Index(), posIt.Value() + trialStep );
 
         // Move on to next vertex
         ++posIt;
         ++stepIt;
-        }
+      }
 
       std::cout << "maximalDeformation: " << maximalDeformation << std::endl;
 
 
       // Evaluate the trial position
+      AtlasMeshDeformationLevenbergMarquardt::Pointer  trialLevenbergMarquardt =
+        AtlasMeshDeformationLevenbergMarquardt::New();
+      trialLevenbergMarquardt->SetLabelImage( dummyTemplateImage );
+      if ( m_CoregisterToPosteriorProbabilities )
+      {
+        trialLevenbergMarquardt->SetProbabilityImage( this->GetPosteriorProbabilityImage() );
+        trialLevenbergMarquardt->SetUseProbabilityImage( true );
+      }
+      else
+      {
+        if ( !m_UsePartialVoluming )
+        {
+          trialLevenbergMarquardt->SetImage( m_EMSegmenter->GetBiasCorrectedImage() );
+          trialLevenbergMarquardt->SetMeans( means );
+          trialLevenbergMarquardt->SetVariances( variances );
+        }
+        else
+        {
+          //levenbergMarquardt->SetLikelihoods( m_EMSegmenter->GetSuperResolutionLikelihoods() );
+          itkExceptionMacro( "That's not implemented yet!" );
+        }
+        trialLevenbergMarquardt->SetUseProbabilityImage( false );
+
+      }
+      trialLevenbergMarquardt->SetMeshToImageTransform( meshToImageTransform );
+
       meshToRasterize->SetPoints( trialPosition );
       m_Mesh->SetPoints( m_EMSegmenter->GetNormalResolutionMesh( meshToRasterize )->GetPoints() );
       std::cout << "Rasterizing Levenberg-Marquardt..." << std::endl;
@@ -411,7 +432,7 @@ AtlasMeshSegmenter
       // Do the Right Thing
       std::cout << "=======================" << std::endl;
       if ( trialCost < currentCost )
-        {
+      {
         // Good move. Keep the move and decrease Marquardt's lambda
         std::cout << "Good trial move (maximal deformation: " << maximalDeformation
                   << ", lambda: " << lambda << ")" << std::endl;
@@ -421,24 +442,21 @@ AtlasMeshSegmenter
         std::cout << " to " << lambda << std::endl;
 
         currentCost = trialCost;
-        
-        AtlasMeshDeformationLevenbergMarquardt::Pointer  tmp = levenbergMarquardt;
         levenbergMarquardt = trialLevenbergMarquardt;
-        trialLevenbergMarquardt = levenbergMarquardt;
 
         haveMoved = true;
 
         // This was a good step, but if we're not making much progress anymore, simply stop
         if ( maximalDeformation < m_MaximalDeformationStopCriterion )
-          {
+        {
           std::cout << "        maximalDeformation is too small; stopping" << std::endl;
           stopping = true;
-          }
+        }
 
         break;
-        }
+      }
       else
-        {
+      {
         // Bad move. Restore previous position
         std::cout << "Bad trial move (maximal deformation: " << maximalDeformation
                   << ", lambda: " << lambda << ")" << std::endl;
@@ -449,34 +467,34 @@ AtlasMeshSegmenter
 
         // Increase lambda and try again - unless the proposed deformation was already so small you want to stop altogether
         if ( maximalDeformation > 0.01 /* 0.01 */ )
-          {
+        {
           std::cout << "        Increasing lambda from " << lambda;
           lambda *= lambdaIncreaseFactor;
           std::cout << " to " << lambda << " and trying again." << std::endl;
-          }
+        }
         else
-          {
+        {
           std::cout << "        proposed deformation is already too small; bailing out" << std::endl;
           stopping = true;
           break;
-          }
+        }
 
-        } // End test if good or bad trial move
+      } // End test if good or bad trial move
 
 
-      } // End trying loop until we find a good step or we're converged
+    } // End trying loop until we find a good step or we're converged
 
     if ( stopping )
-      {
+    {
       break;
-      }
+    }
 
     if ( !( m_PositionUpdatingIterationNumber % m_PositionUpdatingIterationEventResolution ) )
-      {
+    {
       this->InvokeEvent( PositionUpdatingIterationEvent() );
-      }
+    }
 
-    } // End loop over all positive moves
+  } // End loop over all positive moves
 
 
   this->InvokeEvent( PositionUpdatingEndEvent() );
@@ -509,7 +527,7 @@ AtlasMeshSegmenter
 //
 //
 //
-void 
+void
 AtlasMeshSegmenter
 ::MakeAffine( AtlasPositionGradientContainerType* gradient ) const
 {
@@ -528,12 +546,12 @@ AtlasMeshSegmenter
   AtlasMesh::PointsContainer::ConstIterator  posIt = m_Mesh->GetPoints()->Begin();
   AtlasPositionGradientContainerType::ConstIterator  gradIt = gradient->Begin();
   for( ; posIt != m_Mesh->GetPoints()->End(); ++posIt, ++gradIt )
-    {
+  {
     gradientOfE1 += posIt.Value()[ 0 ] * gradIt.Value();
     gradientOfE2 += posIt.Value()[ 1 ] * gradIt.Value();
     gradientOfE3 += posIt.Value()[ 2 ] * gradIt.Value();
     gradientOfOrigin += gradIt.Value();
-    }
+  }
 
   std::cout << "   gradientOfE1: " << gradientOfE1 << std::endl;
   std::cout << "   gradientOfE2: " << gradientOfE2 << std::endl;
@@ -543,12 +561,12 @@ AtlasMeshSegmenter
   AtlasPositionGradientContainerType::Iterator  grad2It = gradient->Begin();
   for( posIt = m_Mesh->GetPoints()->Begin();
        posIt != m_Mesh->GetPoints()->End(); ++posIt, ++grad2It )
-    {
+  {
     grad2It.Value() = gradientOfE1 * posIt.Value()[ 0 ] +
                       gradientOfE2 * posIt.Value()[ 1 ] +
                       gradientOfE3 * posIt.Value()[ 2 ] +
                       gradientOfOrigin;
-    }
+  }
 
 
 
@@ -583,58 +601,58 @@ AtlasMeshSegmenter
 
   // Loop over all the posterior images
   for ( unsigned int  classNumber = 0; classNumber < this->GetNumberOfClasses(); classNumber++ )
-    {
+  {
     // Decide what mean to use
     float  mean;
     if ( means.size() != 0 )
-      {
+    {
       mean = means[ classNumber ];
-      }
+    }
     else
-      {
+    {
       //mean = classNumber;
       mean = m_EMSegmenter->GetLookupTable()[ classNumber ];
-      }
+    }
 
     // Loop over all voxels
     EMSegmenter::ClassificationImageType::ConstPointer  classification = 0;
     if ( usePrior )
-      {
+    {
       classification =  m_EMSegmenter->GetPrior( classNumber );
-      }
+    }
     else
-      {
+    {
       classification =  m_EMSegmenter->GetPosterior( classNumber );
-      }
+    }
     itk::ImageRegionConstIterator< EMSegmenter::ClassificationImageType >
-                                                  classificationIt( classification,
-                                                                    classification->GetLargestPossibleRegion() );
+    classificationIt( classification,
+                      classification->GetLargestPossibleRegion() );
     itk::ImageRegionIterator< SummaryImageType >  maximumIt( maximumProbability,
-                                                   maximumProbability->GetLargestPossibleRegion() );
+        maximumProbability->GetLargestPossibleRegion() );
     itk::ImageRegionIterator< SummaryImageType >  summaryIt( summary,
-                                                   summary->GetLargestPossibleRegion() );
+        summary->GetLargestPossibleRegion() );
 
     for ( ; !classificationIt.IsAtEnd(); ++classificationIt, ++maximumIt, ++summaryIt )
-      {
+    {
       if ( useCrisp )
-        {
+      {
         // Only override voxel value if this is the MAP so far
         if ( classificationIt.Value() > maximumIt.Value() )
-          {
+        {
           maximumIt.Value() = classificationIt.Value();
           summaryIt.Value() = mean;
-          }
-
         }
+
+      }
       else
-        {
+      {
         summaryIt.Value() += mean * classificationIt.Value();
-        }
+      }
 
 
-      } // End loop over all voxels
+    } // End loop over all voxels
 
-    } // End loop over all labels
+  } // End loop over all labels
 
 
   return summary;
@@ -653,9 +671,9 @@ AtlasMeshSegmenter
 {
 
   if ( !m_PosteriorProbabilityImage )
-    {
+  {
     if ( !m_UsePartialVoluming )
-      {
+    {
       // Combine the posteriors, which are now contained in different images,
       // into one image
       std::cout << "Constructing posterior probability image...";
@@ -668,29 +686,29 @@ AtlasMeshSegmenter
       m_PosteriorProbabilityImage->FillBuffer( emptyAlphas );
 
       for ( unsigned int classNumber = 0; classNumber < m_NumberOfClasses; classNumber++ )
-        {
+      {
         // Loop over all voxels
         itk::ImageRegionConstIterator< ClassificationImageType >  sourceIt( m_EMSegmenter->GetPosterior( classNumber ),
-                                                                            m_EMSegmenter->GetPosterior( classNumber )->GetBufferedRegion() );
+            m_EMSegmenter->GetPosterior( classNumber )->GetBufferedRegion() );
         itk::ImageRegionIterator< ProbabilityImageType >  targetIt( m_PosteriorProbabilityImage,
-                                                                    m_PosteriorProbabilityImage->GetBufferedRegion() );
+            m_PosteriorProbabilityImage->GetBufferedRegion() );
         for ( ; !sourceIt.IsAtEnd(); ++sourceIt, ++targetIt )
-          {
+        {
           targetIt.Value()[ classNumber ] = sourceIt.Value();
-          }
-
         }
 
-      std::cout << " done!" << std::endl;
       }
+
+      std::cout << " done!" << std::endl;
+    }
     else
-      {
+    {
       std::cout << "AtlasMeshSegmenter: retrieving super resolution posterior..." << std::endl;
       m_PosteriorProbabilityImage = m_EMSegmenter->GetSuperResolutionPosteriors();
       std::cout << "...done!" << std::endl;
-      }
+    }
 
-    } // End test if m_PosteriorProbabilityImage already exists
+  } // End test if m_PosteriorProbabilityImage already exists
 
   return m_PosteriorProbabilityImage;
 
@@ -718,14 +736,14 @@ AtlasMeshSegmenter
   itk::Array< float >   means( m_NumberOfClasses );
   itk::Array< float >   variances( m_NumberOfClasses );
   for ( unsigned int classNumber = 0; classNumber < m_NumberOfClasses; classNumber++ )
-    {
+  {
     means[ classNumber ] = m_Means[ classNumber ];
     variances[ classNumber ] = m_Variances[ classNumber ];
-    }
+  }
 
   // Rasterize using gradient calculator, just so we can evaluate the current cost
   AtlasMeshToIntensityImageGradientCalculator::Pointer  gradientCalculator =
-                            AtlasMeshToIntensityImageGradientCalculator::New();
+    AtlasMeshToIntensityImageGradientCalculator::New();
   gradientCalculator->SetLabelImage( zeroImage );
   gradientCalculator->SetMeans( means );
   gradientCalculator->SetVariances( variances );
