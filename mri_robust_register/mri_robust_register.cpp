@@ -10,8 +10,8 @@
  * Original Author: Martin Reuter, Nov. 4th ,2008
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2012/08/14 18:35:41 $
- *    $Revision: 1.66 $
+ *    $Date: 2012/09/11 19:32:18 $
+ *    $Revision: 1.67 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -98,6 +98,7 @@ struct Parameters
   bool   affine;
   bool   iscale;
   bool   transonly;
+  bool   isoscale;
   string transform;
   bool   leastsquares;
   int    iterate;
@@ -153,6 +154,7 @@ static struct Parameters P =
   false,
   false,
   false,
+  false,
   "",
   false,
   5,
@@ -193,7 +195,7 @@ static void printUsage(void);
 static bool parseCommandLine(int argc, char *argv[],Parameters & P) ;
 static void initRegistration(Registration & R, Parameters & P) ;
 
-static char vcid[] = "$Id: mri_robust_register.cpp,v 1.66 2012/08/14 18:35:41 mreuter Exp $";
+static char vcid[] = "$Id: mri_robust_register.cpp,v 1.67 2012/09/11 19:32:18 mreuter Exp $";
 char *Progname = NULL;
 
 //static MORPH_PARMS  parms ;
@@ -223,7 +225,7 @@ void debug(Parameters &P)
 void conv(MRI * i)
 {
   cout << " adsf" << endl;
-  Registration R;
+  RegRobust R;
   MRI * fmri = MRIalloc(i->width,i->height,i->depth,MRI_FLOAT);
   MRIcopyHeader(i,fmri);
   fmri->type = MRI_FLOAT;
@@ -664,7 +666,7 @@ int main(int argc, char *argv[])
   // init registration from Parameters
   Registration * Rp=NULL;
   if (P.cost == Registration::ROB ) //|| P.cost == Registration::LS )
-    Rp= new Registration;
+    Rp= new RegRobust;
   else
   {
     P.floattype = true;  // bad way, I know: will allow type to switch inside Registration, and because of the constfun, will switch to uchar
@@ -690,9 +692,9 @@ int main(int argc, char *argv[])
 //  if (P.satest) R.computeSatEstimate(2,P.iterate,P.epsit);
 ////  else if (P.satit) Md = R.computeIterativeRegSat(P.iterate,P.epsit);
 //  else
-    if (P.satit)
+    if (P.satit && P.cost == Registration::ROB)
     {
-      R.findSaturation();
+      dynamic_cast<RegRobust*>(Rp)->findSaturation();
       R.computeMultiresRegistration(0,P.iterate,P.epsit);
     }
     else if (P.nomulti)
@@ -732,7 +734,7 @@ int main(int argc, char *argv[])
 //  MatrixPrintFmt(stdout,"% 2.8f",Md.first);
 
     cout << " Determinant : " << vnl_determinant(fMv2v) << endl << endl;
-    if (P.affine)
+    if (P.affine || P.isoscale)
     {
       cout << " Decompose into Rot * Shear * Scale : " << endl << endl;
       vnl_matrix < double > Rot, Shear;
@@ -1409,11 +1411,13 @@ static void printUsage(void)
 */
 static void initRegistration(Registration & R, Parameters & P)
 {
-  R.setRigid(!P.affine);
+  if (!P.affine) R.setRigid();
+  else R.setAffine();
+  if (P.transonly) R.setTransonly();
+  if (P.isoscale) R.setIsoscale();
   R.setIscale(P.iscale);
-  R.setTransonly(P.transonly);
   //R.setRobust(!P.leastsquares);
-  R.setSaturation(P.sat);
+  //R.setSaturation(P.sat);
   R.setVerbose(P.verbose); // set before debug, as debug sets its own verbose level
   R.setDebug(P.debug);
   R.setHighit(P.highit);
@@ -1421,11 +1425,16 @@ static void initRegistration(Registration & R, Parameters & P)
   R.setInitOrient(P.initorient);
   R.setInitScaling(P.initscaling);
   R.setDoublePrec(P.doubleprec);
-  R.setWLimit(P.wlimit);
+  //R.setWLimit(P.wlimit);
   R.setSymmetry(P.symmetry);
   R.setCost(P.cost);
   //R.setOutputWeights(P.weights,P.weightsout);
-
+  // set only for robust registration
+  if (P.cost == Registration::ROB)
+  {
+    dynamic_cast<RegRobust*>(&R)->setSaturation(P.sat);
+    dynamic_cast<RegRobust*>(&R)->setWLimit(P.wlimit);
+  }
 
   int pos = P.lta.rfind(".");
   if (pos > 0)
@@ -1760,6 +1769,11 @@ static int parseNextCommand(int argc, char *argv[], Parameters & P)
     P.affine = true;
     cout << "--affine: Enableing affine transform!" << endl;
   }
+  else if (!strcmp(option, "ISOSCALE") )
+  {
+    P.isoscale = true;
+    cout << "--isoscale: Enableing isotropic scaling!" << endl;
+  }
   else if (!strcmp(option, "INITSCALING") )
   {
     P.initscaling = true;
@@ -1896,6 +1910,10 @@ static int parseNextCommand(int argc, char *argv[], Parameters & P)
   }
   else if (!strcmp(option, "SUBSAMPLE") )
   {
+    if (argc == 1)
+      ErrorExit(ERROR_BADPARM, "\nERROR: specify min side lenght to start subsampling, e.g. --subsample 200.\n",
+                Progname) ;
+
     P.subsamplesize = atoi(argv[1]);
     nargs = 1 ;
     if (P.subsamplesize >= 0)
@@ -2006,7 +2024,7 @@ static int parseNextCommand(int argc, char *argv[], Parameters & P)
   else if (!strcmp(option, "TEST"))
   {
     cout << "--test: TEST-MODE " << endl;
-    Registration R;
+    RegRobust R;
     R.testRobust(argv[2], atoi(argv[1]));
     nargs = 2 ;
     exit(0);
