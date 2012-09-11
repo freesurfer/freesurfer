@@ -8,8 +8,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2012/08/14 18:35:40 $
- *    $Revision: 1.80 $
+ *    $Date: 2012/09/11 19:30:19 $
+ *    $Revision: 1.81 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -61,35 +61,36 @@ using namespace std;
 Registration::~Registration()
 { // we cleanup our private variables
   //std::cout << " Destroy Registration" << std::endl;
-  if (mri_source) MRIfree(&mri_source);
-  if (mri_target) MRIfree(&mri_target);
-  if (mri_indexing) MRIfree(&mri_indexing);
-  if (mri_weights) MRIfree(&mri_weights);
-  if (mri_hweights) MRIfree(&mri_hweights);
+  if (mri_source)   MRIfree(&mri_source);
+  if (mri_target)   MRIfree(&mri_target);
+//  if (mri_indexing) MRIfree(&mri_indexing);
+//  if (mri_weights)  MRIfree(&mri_weights);
+//  if (mri_hweights) MRIfree(&mri_hweights);
   if (gpS.size() > 0) freeGaussianPyramid(gpS);
   if (gpT.size() > 0) freeGaussianPyramid(gpT);
+  if (trans) delete trans;
   //std::cout << " Done " << std::endl;
 }
-
 
 void Registration::clear() // initialize registration (keep source and target and gauss pyramid)
 // initialize registration (keep source and target and gauss pyramid)
 // also keep Rsrc and Rtrg (resampling matrices, if exist).
+// and keeps transformation type
 {
-  transonly = false;
-  rigid = true;
+//  if (trans) delete trans;
+//  setRigid();
   costfun = ROB;
-  sat = -1;
+//  sat = -1;
   iscale = false;
-  rtype = 1;
+//  rtype = 1;
   subsamplesize = -1;
   initorient = false;
   debug = 0;
 	
-  if (mri_indexing) MRIfree(&mri_indexing);
-  if (mri_weights)  MRIfree(&mri_weights);
-  if (mri_hweights) MRIfree(&mri_hweights);
-  mri_weights= NULL;
+//  if (mri_indexing) MRIfree(&mri_indexing);
+//  if (mri_weights)  MRIfree(&mri_weights);
+//  if (mri_hweights) MRIfree(&mri_hweights);
+//  mri_weights= NULL;
 
 	Minit.clear();
 	Mfinal.clear();
@@ -98,10 +99,11 @@ void Registration::clear() // initialize registration (keep source and target an
 	dst2weights.clear();
 }
 
+/**
+  Computes iterative registration as 4x4 matrix Mfinal and iscalefinal (class member).
+  The caller needs to retrieve any really final transform with getFinalVox2Vox.
+*/
 void Registration::computeIterativeRegistration( int nmax,double epsit)
-// computes iterative registration (recomputing A and b in each step)
-// retruns 4x4 matrix Mfinal and iscalefinal (class member)
-// The caller needs to retrieve any really final transform with getFinalVox2Vox
 {
 
   // wraping private routine
@@ -110,23 +112,23 @@ void Registration::computeIterativeRegistration( int nmax,double epsit)
 
 }
 
-void Registration::computeIterativeRegistration( int nmax,double epsit, MRI * mriS, MRI* mriT, const vnl_matrix < double >& m, double scaleinit)
-// private routine, as called from multiregistration (passing mriS and mriT...)
-// computes iterative registration (recomputing A and b in each step)
-// retruns 4x4 matrix Mfinal and iscalefinal (class member)
-// The caller needs to retrieve any really final transform with getFinalVox2Vox
-{
-
-  // call helper to avoid code duplication:
-	
-	if (doubleprec)
-	 iterativeRegistrationHelper<double>(nmax,epsit,mriS,mriT,m,scaleinit);
-	else
-	 iterativeRegistrationHelper<float>(nmax,epsit,mriS,mriT,m,scaleinit);
-		
-	return;
-	
-}
+// void Registration::computeIterativeRegistration( int nmax,double epsit, MRI * mriS, MRI* mriT, const vnl_matrix < double >& m, double scaleinit)
+// // private routine, as called from multiregistration (passing mriS and mriT...)
+// // computes iterative registration (recomputing A and b in each step)
+// // retruns 4x4 matrix Mfinal and iscalefinal (class member)
+// // The caller needs to retrieve any really final transform with getFinalVox2Vox
+// {
+// 
+//   // call helper to avoid code duplication:
+// 	
+// 	if (doubleprec)
+// 	 iterativeRegistrationHelper<double>(nmax,epsit,mriS,mriT,m,scaleinit);
+// 	else
+// 	 iterativeRegistrationHelper<float>(nmax,epsit,mriS,mriT,m,scaleinit);
+// 		
+// 	return;
+// 	
+// }
 
 // // update this to vnl:   or remove???
 // pair < MATRIX*, double > Registration::computeIterativeRegSat( int n,double epsit, MRI * mriS, MRI* mriT, MATRIX* m, double scaleinit)
@@ -387,292 +389,295 @@ void Registration::computeIterativeRegistration( int nmax,double epsit, MRI * mr
 // }
 
 
-void Registration::findSatMultiRes(const vnl_matrix < double > &mi, double scaleinit )
-// helper for findSaturation
-// basically the code from multiresoltuion
-// all kinds of stuff is initialized before (e.g. pyramid)
-{
-  // variables to store matrix m and scaling factor d:
-  pair < vnl_matrix_fixed < double, 4, 4> , double > cmd;
-  pair < vnl_matrix_fixed < double, 4, 4> , double > md(mi,scaleinit);
-
-  // allow 2d case (depth == 1)
-  if ( gpS[0]->width < 16 || gpS[0]->height < 16 ||  (gpS[0]->depth < 16 && !gpS[0]->depth == 1))
-	{
-     ErrorExit(ERROR_BADFILE, "Input images must be larger than 16^3.\n") ;
-	}
-  int resolution = gpS.size();
-	assert(resolution >= 1); // otherwise we should have exited above
-  int rstart = 1;  // at least 16^3
-	
-	// stop if we get larger than 64^3 or if we reach highest resolution:
-	int stopres;
-	for (stopres = resolution-rstart; stopres>0; stopres--)
-	{
-	   if (gpS[stopres]->width >= 64 || gpS[stopres]->height >= 64 || gpS[stopres]->depth >= 64) break;
-	}
-		
-//  bool iscaletmp = iscale;
-//  iscale = false; //disable intensity scaling on low resolutions
-
-  for (int r = resolution-rstart;r>=stopres;r--)
-  {
-    if (verbose >1 ) 
-		{ 
-		  cout << endl << "Resolution: " << r << endl;
-		  cout << " gpS ( " << gpS[r]->width <<" , " << gpS[r]->height << " , " << gpS[r]->depth << " )" << endl;
-		  cout << " gpT ( " << gpT[r]->width <<" , " << gpT[r]->height << " , " << gpT[r]->depth << " )" << endl;
-		}
-
-//    if (r==2) iscale = iscaletmp; // set iscale if set by user
-
-
-    // compute Registration
-    if (verbose >2 ) cout << "   - compute new iterative registration" << endl;
-		
-		int n = 3;
-		if (r==stopres) n = 1;
-		int vv = verbose;
-		if (verbose == 1) verbose = 0;
-		computeIterativeRegistration(n,0.05,gpS[r],gpT[r],md.first,md.second);
-		cmd.first = Mfinal;
-		cmd.second = iscalefinal;		
-		verbose = vv;
-		
-    if (verbose > 1)
-    {
-      cout << endl << " current Matrix: " << endl;
-	    vnl_matlab_print(vcl_cout,cmd.first,"Tc",vnl_matlab_print_format_long);cout << endl;
-      cout << " intens: Ic = " << cmd.second << endl;
-
-      // adjust to highest level for output only:
-      double tx = cmd.first[0][3];
-      double ty = cmd.first[1][3];
-      double tz = cmd.first[2][3];
-      for (int ll = r; ll > 0; ll--)
-      {
-        tx*=2;
-        ty*=2;
-        tz*=2;
-      }
-      cout << " equiv trans on highres: " << tx << " " << ty << " " << tz << endl;
-    }
-		
-// 		if (r == stopres)
-// 		{
-// 			 if (debug)
-// 			 {
-//          // write out wcheck
-// 			   string fn = getName() + "-wcheck-est.txt";
-//          ofstream f(fn.c_str(),ios::out);
-//          f << sat << " " << wcheck << endl;
-//          f.close();  
-// 			   string fn2 = getName() + "-wchecksqrt-est.txt";
-//          ofstream f2(fn.c_str(),ios::out);
-//          f2 << sat << " " << wchecksqrt << endl;
-//          f2.close();  
-// 			 }
-// 			 
-// // 			 if (wcheck > wlimit)
-// // 			 {
-// // 			    sat = sat+0.5;
-// // 			    if (verbose > 1) cout << "   - Weight check " << wcheck << " > "<< wlimit  << " increasing sat: " << sat << endl;
-// // 					md.first = firstbackup;
-// // 					md.second = scaleinit;
-// // 					r = resolution-rstart+1;
-// // 					continue;
-// // 			  }
+// void Registration::findSatMultiRes(const vnl_matrix < double > &mi, double scaleinit )
+// // helper for findSaturation
+// // basically the code from multiresoltuion
+// // all kinds of stuff is initialized before (e.g. pyramid)
+// {
+//   // variables to store matrix m and scaling factor d:
+//   pair < vnl_matrix_fixed < double, 4, 4> , double > cmd;
+//   pair < vnl_matrix_fixed < double, 4, 4> , double > md(mi,scaleinit);
+// 
+//   // allow 2d case (depth == 1)
+//   if ( gpS[0]->width < 16 || gpS[0]->height < 16 ||  (gpS[0]->depth < 16 && !gpS[0]->depth == 1))
+// 	{
+//      ErrorExit(ERROR_BADFILE, "Input images must be larger than 16^3.\n") ;
+// 	}
+//   int resolution = gpS.size();
+// 	assert(resolution >= 1); // otherwise we should have exited above
+//   int rstart = 1;  // at least 16^3
+// 	
+// 	// stop if we get larger than 64^3 or if we reach highest resolution:
+// 	int stopres;
+// 	for (stopres = resolution-rstart; stopres>0; stopres--)
+// 	{
+// 	   if (gpS[stopres]->width >= 64 || gpS[stopres]->height >= 64 || gpS[stopres]->depth >= 64) break;
+// 	}
+// 		
+// //  bool iscaletmp = iscale;
+// //  iscale = false; //disable intensity scaling on low resolutions
+// 
+//   for (int r = resolution-rstart;r>=stopres;r--)
+//   {
+//     if (verbose >1 ) 
+// 		{ 
+// 		  cout << endl << "Resolution: " << r << endl;
+// 		  cout << " gpS ( " << gpS[r]->width <<" , " << gpS[r]->height << " , " << gpS[r]->depth << " )" << endl;
+// 		  cout << " gpT ( " << gpT[r]->width <<" , " << gpT[r]->height << " , " << gpT[r]->depth << " )" << endl;
 // 		}
+// 
+// //    if (r==2) iscale = iscaletmp; // set iscale if set by user
+// 
+// 
+//     // compute Registration
+//     if (verbose >2 ) cout << "   - compute new iterative registration" << endl;
+// 		
+// 		int n = 3;
+// 		if (r==stopres) n = 1;
+// 		int vv = verbose;
+// 		if (verbose == 1) verbose = 0;
+// 		computeIterativeRegistration(n,0.05,gpS[r],gpT[r],md.first,md.second);
+// 		cmd.first = Mfinal;
+// 		cmd.second = iscalefinal;		
+// 		verbose = vv;
+// 		
+//     if (verbose > 1)
+//     {
+//       cout << endl << " current Matrix: " << endl;
+// 	    vnl_matlab_print(vcl_cout,cmd.first,"Tc",vnl_matlab_print_format_long);cout << endl;
+//       cout << " intens: Ic = " << cmd.second << endl;
+// 
+//       // adjust to highest level for output only:
+//       double tx = cmd.first[0][3];
+//       double ty = cmd.first[1][3];
+//       double tz = cmd.first[2][3];
+//       for (int ll = r; ll > 0; ll--)
+//       {
+//         tx*=2;
+//         ty*=2;
+//         tz*=2;
+//       }
+//       cout << " equiv trans on highres: " << tx << " " << ty << " " << tz << endl;
+//     }
+// 		
+// // 		if (r == stopres)
+// // 		{
+// // 			 if (debug)
+// // 			 {
+// //          // write out wcheck
+// // 			   string fn = getName() + "-wcheck-est.txt";
+// //          ofstream f(fn.c_str(),ios::out);
+// //          f << sat << " " << wcheck << endl;
+// //          f.close();  
+// // 			   string fn2 = getName() + "-wchecksqrt-est.txt";
+// //          ofstream f2(fn.c_str(),ios::out);
+// //          f2 << sat << " " << wchecksqrt << endl;
+// //          f2.close();  
+// // 			 }
+// // 			 
+// // // 			 if (wcheck > wlimit)
+// // // 			 {
+// // // 			    sat = sat+0.5;
+// // // 			    if (verbose > 1) cout << "   - Weight check " << wcheck << " > "<< wlimit  << " increasing sat: " << sat << endl;
+// // // 					md.first = firstbackup;
+// // // 					md.second = scaleinit;
+// // // 					r = resolution-rstart+1;
+// // // 					continue;
+// // // 			  }
+// // 		}
+// 
+//     if (r !=0) // adjust matrix to higher resolution level
+//     {
+//       for (int rr = 0; rr<3; rr++)
+//       {
+//         cmd.first[rr][3] = 2.0 * cmd.first[rr][3];
+//       }
+//     }
+//     if (r == stopres) // passed the test, adjust to highest
+//     {
+//       for (; r>1; r--) // adjusted once already in the lines above
+//       {
+//         for (int rr = 0; rr<3; rr++)
+//         {
+//           cmd.first[rr][3] = 4.0 * cmd.first[rr][3];
+//         }
+//       }
+//     }
+// 		md.first = cmd.first;
+//     md.second = cmd.second;
+//     if (verbose > 1)
+//     {
+//       cout << endl << " Matrix: " << endl;
+// 	    vnl_matlab_print(vcl_cout,md.first,"T",vnl_matlab_print_format_long);cout << endl;
+//       cout << " Intensity:  I = " << md.second << endl;
+//     }
+//   } // resolution loop
+// 	
+// }
+// 
+// double Registration::findSaturation ( )
+// {
+//   if (verbose >0) cout << endl << endl << " Registration::findSaturation " << endl;
+// //   if (!mriS) mriS = mri_source;
+// //   if (!mriT) mriT = mri_target;
+//   MRI * mriS = mri_source;
+// 	MRI * mriT = mri_target;
+// 	
+//   vnl_matrix_fixed < double, 4, 4> m; m.set_identity();
+// 
+//   // variables to store matrix m and scaling factor d:
+//   pair < vnl_matrix_fixed < double, 4, 4> , double > md(vnl_matrix_fixed < double, 4, 4> (),iscaleinit);
+// 
+// 	if (!Minit.empty()) md.first = getMinitResampled();
+//   else md.first = initializeTransform(mriS,mriT);
+// 
+// //   if (scaleinit != 1.0) md.second = scaleinit;
+// // 	else md.second = iscaleinit;
+// 
+//   int MINS = 16;
+//   if (minsize > MINS) MINS = minsize; // use minsize, but at least 16
+//   pair <int, int> limits = getGPLimits(mriS,mriT,MINS,maxsize);
+//   if (gpS.size() ==0) gpS = buildGPLimits(mriS,limits);
+//   if (gpT.size() ==0) gpT = buildGPLimits(mriT,limits);
+//   assert(gpS.size() == gpT.size());
+//   if ( gpS[0]->width < MINS || gpS[0]->height < MINS || (gpS[0]->depth < MINS && gpS[0]->depth != 1))
+// 	{
+//      ErrorExit(ERROR_BADFILE, "Input images must be larger than 16^3.\n") ;
+// 	}
+//   if ( gpT[0]->width < MINS || gpT[0]->height < MINS || (gpT[0]->depth < MINS && gpT[0]->depth != 1))
+// 	{
+//      ErrorExit(ERROR_BADFILE, "Input images must be larger than 16^3.\n") ;
+// 	}	
+// 	
+//   int resolution = gpS.size();
+// 	
+// 	assert(resolution >= 1); // otherwise we should have exited above
+//   int rstart = 1;  // at least 16^3, last and most coarse image
+// 	
+// 	// stop if we get larger than 64^3
+// 	// should be as close as possible to 64
+// 	// the problem is that on other scales the wcheck limit gets meaningless
+// 	int stopres;
+// 	for (stopres = resolution-rstart; stopres>0; stopres--)
+// 	{
+// 	   if (gpS[stopres]->width >= 64 || gpS[stopres]->height >= 64 || gpS[stopres]->depth >= 64) break;
+// 	}
+// 	
+//   if ( gpS[stopres]->width < 32 || gpS[stopres]->height < 32 || gpS[stopres]->depth < 32)
+// 	{
+// 	   cout << endl<< " ========================================================================" << endl;
+//      cout << " WARNING: image might be too small (or ill shaped) for --satit to work." << endl;
+// 		 cout << "          Try to manually specify --sat # if not satisfied with result! " << endl;
+// 	   cout << " ========================================================================" << endl << endl;;
+// 	}
+// 	
+//   cout << endl << "   - Max Resolution used: " << stopres << endl;
+//   cout << "     -- gpS ( " << gpS[stopres]->width <<" , " << gpS[stopres]->height << " , " << gpS[stopres]->depth << " )" << endl;
+//   cout << "     -- gpT ( " << gpT[stopres]->width <<" , " << gpT[stopres]->height << " , " << gpT[stopres]->depth << " )" << endl;
+// 
+// 
+//   if (verbose >1 ) 
+//   {
+//     cout << "   - initial transform:\n" ;
+// 	  vnl_matlab_print(vcl_cout,md.first,"Ti",vnl_matlab_print_format_long);cout << endl;
+// 		cout << "   - initial iscale:   Ii = " << md.second <<endl;
+//   }
+// 
+//   // adjust md.first to current (lowest) resolution:
+//   for (int r = 1; r<=resolution-rstart; r++)
+//     for (int rr = 0;rr<3;rr++)
+//       md.first[rr][3]  = 0.5 *  md.first[rr][3];
+// 			
+// 	vnl_matrix_fixed < double, 4, 4> firstbackup = md.first;
+// 
+//   if (verbose >1 ) 
+//   {
+//     cout << "   - initial adjusted:\n" ;
+// 	  vnl_matlab_print(vcl_cout,md.first,"Tia",vnl_matlab_print_format_long);cout << endl;
+//   }
+// 
+// 	
+// 	// -------------------------------------------- RUN LOOP ----------------------------------
+// 	// 
+//   cout << "   - running loop to estimate saturation parameter:\n" ;
+// 	double satdiff = 0.5; // stop if we get closer than this
+//   double satmax  = 0;
+//   double satmin  = 0;
+// 	double wmin    = -1; 
+// 	double wmax    = -1;
+// 	int counter    = 0;
+// 	while ( satmin == 0.0 || satmax == 0.0 || satmax-satmin > satdiff )
+// 	{
+// 		 counter++;
+// 	   if ( satmin == 0 && satmax == 0 ) sat = 16;
+// 		 else if (satmin ==0) sat = 0.5 * satmax;
+// 		 else if (satmax ==0) sat = 2 * satmin;
+// 		 else sat = 0.5*(satmax+satmin);
+// 	   if (verbose > 0)
+// 		 {
+// 		    if (counter > 1) cout << "         min sat: " << satmin << " ( " <<wmin <<" ), max sat: " << satmax << " ( " <<wmax <<" ), sat diff: " << satmax-satmin <<endl;
+// 		    cout << "     -- Iteration: " << counter << "  trying sat: " << sat <<endl;
+// 		 }
+//      findSatMultiRes(md.first, md.second );
+// 	   if (wcheck > wlimit)
+// 		 {
+// 		    satmin = sat;
+// 				wmin   = wcheck;
+// 		 }
+// 		 else
+// 		 {
+// 		   satmax = sat;
+// 			 wmax = wcheck;
+// 		 }
+// 		 
+// 		 // if sat low (sensitive) and still not many outliers
+// 		 // quit, to prevent long (infinite) search
+// 		 // e.g. if source and target are same image
+// 		 if (sat < 6 && wcheck < 0.04)
+// 		 {
+// 		    satmax = sat;
+// 				satmin = sat;
+// 				wmax= wcheck;
+// 				wmin= wcheck;
+// 				break;
+// 		 }
+// 	}
+// 	
+// 	// -------------------------------------------- SELECT FINAL ---------------------------------
+// 	// 
+// 	if (wmax <= wlimit )
+// 	{
+// 	  sat = satmax;
+// 		wcheck = wmax;
+// 	}
+// 	else
+// 	{
+// 	  assert (wmin <= wlimit);
+// 		sat = satmin;
+// 		wcheck = wmin;
+// 	}
+//     
+//   if (verbose > 0 )  cout << "   - final SAT: " << sat << " ( it: " << counter << " , weight check " << wcheck << " <= "<< wlimit << " )" <<  endl;
+// 
+// 	if (debug)
+// 	{
+//       // write out wcheck
+//       string fn = getName() + "-wcheck-est.txt";
+//       ofstream f(fn.c_str(),ios::out);
+//       f << sat << " " << wcheck << endl;
+//       f.close();  
+// 	}
+// 
+//   return sat;
+// }
 
-    if (r !=0) // adjust matrix to higher resolution level
-    {
-      for (int rr = 0; rr<3; rr++)
-      {
-        cmd.first[rr][3] = 2.0 * cmd.first[rr][3];
-      }
-    }
-    if (r == stopres) // passed the test, adjust to highest
-    {
-      for (; r>1; r--) // adjusted once already in the lines above
-      {
-        for (int rr = 0; rr<3; rr++)
-        {
-          cmd.first[rr][3] = 4.0 * cmd.first[rr][3];
-        }
-      }
-    }
-		md.first = cmd.first;
-    md.second = cmd.second;
-    if (verbose > 1)
-    {
-      cout << endl << " Matrix: " << endl;
-	    vnl_matlab_print(vcl_cout,md.first,"T",vnl_matlab_print_format_long);cout << endl;
-      cout << " Intensity:  I = " << md.second << endl;
-    }
-  } // resolution loop
-	
-}
 
-double Registration::findSaturation ( )
-{
-  if (verbose >0) cout << endl << endl << " Registration::findSaturation " << endl;
-//   if (!mriS) mriS = mri_source;
-//   if (!mriT) mriT = mri_target;
-  MRI * mriS = mri_source;
-	MRI * mriT = mri_target;
-	
-  vnl_matrix_fixed < double, 4, 4> m; m.set_identity();
-
-  // variables to store matrix m and scaling factor d:
-  pair < vnl_matrix_fixed < double, 4, 4> , double > md(vnl_matrix_fixed < double, 4, 4> (),iscaleinit);
-
-	if (!Minit.empty()) md.first = getMinitResampled();
-  else md.first = initializeTransform(mriS,mriT);
-
-//   if (scaleinit != 1.0) md.second = scaleinit;
-// 	else md.second = iscaleinit;
-
-  int MINS = 16;
-  if (minsize > MINS) MINS = minsize; // use minsize, but at least 16
-  pair <int, int> limits = getGPLimits(mriS,mriT,MINS,maxsize);
-  if (gpS.size() ==0) gpS = buildGPLimits(mriS,limits);
-  if (gpT.size() ==0) gpT = buildGPLimits(mriT,limits);
-  assert(gpS.size() == gpT.size());
-  if ( gpS[0]->width < MINS || gpS[0]->height < MINS || (gpS[0]->depth < MINS && gpS[0]->depth != 1))
-	{
-     ErrorExit(ERROR_BADFILE, "Input images must be larger than 16^3.\n") ;
-	}
-  if ( gpT[0]->width < MINS || gpT[0]->height < MINS || (gpT[0]->depth < MINS && gpT[0]->depth != 1))
-	{
-     ErrorExit(ERROR_BADFILE, "Input images must be larger than 16^3.\n") ;
-	}	
-	
-  int resolution = gpS.size();
-	
-	assert(resolution >= 1); // otherwise we should have exited above
-  int rstart = 1;  // at least 16^3, last and most coarse image
-	
-	// stop if we get larger than 64^3
-	// should be as close as possible to 64
-	// the problem is that on other scales the wcheck limit gets meaningless
-	int stopres;
-	for (stopres = resolution-rstart; stopres>0; stopres--)
-	{
-	   if (gpS[stopres]->width >= 64 || gpS[stopres]->height >= 64 || gpS[stopres]->depth >= 64) break;
-	}
-	
-  if ( gpS[stopres]->width < 32 || gpS[stopres]->height < 32 || gpS[stopres]->depth < 32)
-	{
-	   cout << endl<< " ========================================================================" << endl;
-     cout << " WARNING: image might be too small (or ill shaped) for --satit to work." << endl;
-		 cout << "          Try to manually specify --sat # if not satisfied with result! " << endl;
-	   cout << " ========================================================================" << endl << endl;;
-	}
-	
-  cout << endl << "   - Max Resolution used: " << stopres << endl;
-  cout << "     -- gpS ( " << gpS[stopres]->width <<" , " << gpS[stopres]->height << " , " << gpS[stopres]->depth << " )" << endl;
-  cout << "     -- gpT ( " << gpT[stopres]->width <<" , " << gpT[stopres]->height << " , " << gpT[stopres]->depth << " )" << endl;
-
-
-  if (verbose >1 ) 
-  {
-    cout << "   - initial transform:\n" ;
-	  vnl_matlab_print(vcl_cout,md.first,"Ti",vnl_matlab_print_format_long);cout << endl;
-		cout << "   - initial iscale:   Ii = " << md.second <<endl;
-  }
-
-  // adjust md.first to current (lowest) resolution:
-  for (int r = 1; r<=resolution-rstart; r++)
-    for (int rr = 0;rr<3;rr++)
-      md.first[rr][3]  = 0.5 *  md.first[rr][3];
-			
-	vnl_matrix_fixed < double, 4, 4> firstbackup = md.first;
-
-  if (verbose >1 ) 
-  {
-    cout << "   - initial adjusted:\n" ;
-	  vnl_matlab_print(vcl_cout,md.first,"Tia",vnl_matlab_print_format_long);cout << endl;
-  }
-
-	
-	// -------------------------------------------- RUN LOOP ----------------------------------
-	// 
-  cout << "   - running loop to estimate saturation parameter:\n" ;
-	double satdiff = 0.5; // stop if we get closer than this
-  double satmax  = 0;
-  double satmin  = 0;
-	double wmin    = -1; 
-	double wmax    = -1;
-	int counter    = 0;
-	while ( satmin == 0.0 || satmax == 0.0 || satmax-satmin > satdiff )
-	{
-		 counter++;
-	   if ( satmin == 0 && satmax == 0 ) sat = 16;
-		 else if (satmin ==0) sat = 0.5 * satmax;
-		 else if (satmax ==0) sat = 2 * satmin;
-		 else sat = 0.5*(satmax+satmin);
-	   if (verbose > 0)
-		 {
-		    if (counter > 1) cout << "         min sat: " << satmin << " ( " <<wmin <<" ), max sat: " << satmax << " ( " <<wmax <<" ), sat diff: " << satmax-satmin <<endl;
-		    cout << "     -- Iteration: " << counter << "  trying sat: " << sat <<endl;
-		 }
-     findSatMultiRes(md.first, md.second );
-	   if (wcheck > wlimit)
-		 {
-		    satmin = sat;
-				wmin   = wcheck;
-		 }
-		 else
-		 {
-		   satmax = sat;
-			 wmax = wcheck;
-		 }
-		 
-		 // if sat low (sensitive) and still not many outliers
-		 // quit, to prevent long (infinite) search
-		 // e.g. if source and target are same image
-		 if (sat < 6 && wcheck < 0.04)
-		 {
-		    satmax = sat;
-				satmin = sat;
-				wmax= wcheck;
-				wmin= wcheck;
-				break;
-		 }
-	}
-	
-	// -------------------------------------------- SELECT FINAL ---------------------------------
-	// 
-	if (wmax <= wlimit )
-	{
-	  sat = satmax;
-		wcheck = wmax;
-	}
-	else
-	{
-	  assert (wmin <= wlimit);
-		sat = satmin;
-		wcheck = wmin;
-	}
-    
-  if (verbose > 0 )  cout << "   - final SAT: " << sat << " ( it: " << counter << " , weight check " << wcheck << " <= "<< wlimit << " )" <<  endl;
-
-	if (debug)
-	{
-      // write out wcheck
-      string fn = getName() + "-wcheck-est.txt";
-      ofstream f(fn.c_str(),ios::out);
-      f << sat << " " << wcheck << endl;
-      f.close();  
-	}
-
-  return sat;
-}
-
+/**
+  \param stopres stops on this resolution level (0 highest resolution ...)
+  \param n number of max iterations on each resolution
+  \param epsit epsilon to stop iterations
+*/  
 void Registration::computeMultiresRegistration (int stopres, int n,double epsit)
-// stopres : stops on this resolution level (0 highest resolution ...)
-// n: number of max iterations on each resolution
-// epsit: epsilon to stop iterations
 {
   if (verbose >0) cout << endl << endl << " Registration::computeMultiresRegistration " << endl;
 //  if (verbose >0) cout << "   - Gaussian Pyramid " << endl;
@@ -1493,35 +1498,35 @@ void Registration::testRobust(const std::string& fname, int testno)
     MRIwrite(mriTt,"scaleT.mgz");
 
     break;
-  case 8 : //iscale only
-	{
-    cout << "Test " << testno << " : Intensity" << endl;
-    a  = MatrixIdentity(4,a);
-    ai = MatrixIdentity(4,ai);
-    iscaleval = 0.8;
-    iscaleval = 0.2;
-		level = 3;
-	  mriTs = MRIcopy(gpS[gpS.size()-level], NULL);
-    mriTt = MyMRI::MRIvalscale(gpS[gpS.size()-level], NULL, iscaleval);
-    MRIwrite(mriTs,"iscaleS.mgz");
-    MRIwrite(mriTt,"iscaleT.mgz");
-		
-		iscalefinal = 1;
-		MRI *snew = NULL;
-		MRI *tnew = NULL;
-		cout << " find: " << iscaleval << "  or : " << 1.0/iscaleval << endl;
-		for (int l = 0;l<10;l++)
-		{ 
-		  cout << " L " << l << " iscale: " << iscalefinal << endl;
-			snew = MyMRI::MRIvalscale(mriTs,snew, sqrt(iscalefinal));
-			tnew = MyMRI::MRIvalscale(mriTt,tnew, 1.0/sqrt(iscalefinal));			
-			estimateIScale(snew,tnew);
-			MRIfree(&snew);
-		}
-		cout << "final: " << iscalefinal << "  init: " << iscaleval << endl;
-		exit (0);
-    break;
-	}  		
+//   case 8 : //iscale only  (move to regRobust)
+// 	{
+//     cout << "Test " << testno << " : Intensity" << endl;
+//     a  = MatrixIdentity(4,a);
+//     ai = MatrixIdentity(4,ai);
+//     iscaleval = 0.8;
+//     iscaleval = 0.2;
+// 		level = 3;
+// 	  mriTs = MRIcopy(gpS[gpS.size()-level], NULL);
+//     mriTt = MyMRI::MRIvalscale(gpS[gpS.size()-level], NULL, iscaleval);
+//     MRIwrite(mriTs,"iscaleS.mgz");
+//     MRIwrite(mriTt,"iscaleT.mgz");
+// 		
+// 		iscalefinal = 1;
+// 		MRI *snew = NULL;
+// 		MRI *tnew = NULL;
+// 		cout << " find: " << iscaleval << "  or : " << 1.0/iscaleval << endl;
+// 		for (int l = 0;l<10;l++)
+// 		{ 
+// 		  cout << " L " << l << " iscale: " << iscalefinal << endl;
+// 			snew = MyMRI::MRIvalscale(mriTs,snew, sqrt(iscalefinal));
+// 			tnew = MyMRI::MRIvalscale(mriTt,tnew, 1.0/sqrt(iscalefinal));			
+// 			estimateIScale(snew,tnew);
+// 			MRIfree(&snew);
+// 		}
+// 		cout << "final: " << iscalefinal << "  init: " << iscaleval << endl;
+// 		exit (0);
+//     break;
+// 	}  		
   case 9:   // rotation and translation and iscale
 	{
     cout << "Test " << testno << " : Rotation and Translation" << endl;
@@ -1543,122 +1548,122 @@ void Registration::testRobust(const std::string& fname, int testno)
     MRIwrite(mriTt,"rottransintT.mgz");
     break;
 	}
-  case 20: //error functions when rotating
-  {
-    int steps = 50;
-    double div = 4.0;
-    vector < double > theta(steps);
-    vector < double > err(steps);
-    vector < double > mls(steps);
-    vector < double > mls2(steps);
-    //level--;
-		RegistrationStep<float> RStep(*this);
-    for (int i=0; i<steps; i++)
-    {
-      // 0.. PI/div in 20 steps
-      // -PI/div ..0 is symmetric
-      theta[i] = M_PI * i / ((steps-1)*div);
-
-      a  = MatrixAllocRotation(4,0.5*theta[i],Z_ROTATION);
-      a  = MatrixMultiply(a, extract_i_to_r(gpS[gpS.size()-level]), a);
-      a  = MatrixMultiply(extract_r_to_i(gpS[gpS.size()-level]) , a, a);
-      ai = MatrixInverse(a,ai);
-
-      mriTs = MRIlinearTransformInterp(gpS[gpS.size()-level],mriTs, a, SAMPLE_TRILINEAR);
-      mriTt = MRIlinearTransformInterp(gpS[gpS.size()-level],mriTt, ai, SAMPLE_TRILINEAR);
-      //MRIwrite(mriTs,"test20-s.mgz");
-      //MRIwrite(mriTt,"test20-t.mgz");
-      MatrixFree(&a);
-      MatrixFree(&ai);
-      ai = NULL;
-
-      transonly = false;
-      costfun   = ROB;
-      rigid     = true;
-      iscale    = false;
-
-      vnl_matrix< float > A;
-			vnl_vector< float > b;
-      RStep.constructAb(mriTs, mriTt,A,b);
-      pair < MATRIX*, MATRIX* > pwm(NULL,NULL);
-      Regression< float > R(A,b);
-			R.setVerbose(verbose);
-
-      sat = 5;
-
-      cout << "   - compute robust estimate ( sat "<<sat<<" )..." << flush;
-		  R.getRobustEst(sat);
-
-      err[i] = R.getLastError();
-      cout << "angle: " << theta[i] << "  error: " << err[i] << endl;
-      R.getLSEst();
-      mls[i] = R.getLastError();
-      cout << "angle: " << theta[i] << "  mls: " << mls[i] << endl;
-      MRI * mridiff = MRIalloc(mriTs->width, mriTs->height, mriTs->depth, MRI_FLOAT);
-      mridiff = MRIsubtract(mriTs,mriTt,mridiff);
-      double ddd = 0;
-      for (int d = 0;d<mriTs->depth;d++)
-        for (int h = 0;h<mriTs->height;h++)
-          for (int w = 0;w<mriTs->width;w++)
-            ddd += MRIgetVoxVal(mridiff,w,h,d,0) * MRIgetVoxVal(mridiff,w,h,d,0);
-            //ddd += MRIgetVoxVal(mridiff,w,h,d,1) * MRIgetVoxVal(mridiff,w,h,d,1);
-      mls2[i] = ddd;
-      cout << "angle: " << theta[i] << "  mls: " << mls2[i] << endl;
-			A.clear();
-			b.clear();
-    }
-
-    ostringstream ss;
-    ss << "r-error-rot4-l" << level;
-    string fn = ss.str()+".plot";
-    ofstream f(fn.c_str(),ios::out);
-
-    f << "set terminal postscript eps color" << endl;
-    f << "set title \"(Robust) error when rotating on level " << level <<"\"" << endl;
-    f << "set output \""<< ss.str() << ".eps\"" << endl;
-    f << "plot  \"-\" notitle with lines 1" << endl;
-    for (int i=0; i<steps; i++)
-    {
-      cout << theta[i] << " " << err[i] << endl;
-      f << theta[i] << " " << err[i] << endl;
-    }
-    f << "e" << endl;
-
-    ostringstream ss2;
-    ss2 << "ls-error-rot4-l" << level;
-    string fn2 = ss2.str()+".plot";
-    ofstream f2(fn2.c_str(),ios::out);
-
-    f2 << "set terminal postscript eps color" << endl;
-    f2 << "set title \"(LeastSquares) error when rotating on level " << level <<"\"" << endl;
-    f2 << "set output \""<< ss2.str() << ".eps\"" << endl;
-    f2 << "plot  \"-\" notitle with lines 1" << endl;
-    for (int i=0; i<steps; i++)
-    {
-      cout << theta[i] << " " << mls[i] << endl;
-      f2 << theta[i] << " " << mls[i] << endl;
-    }
-    f2 << "e" << endl;
-
-    ostringstream ss3;
-    ss3 << "ils-error-rot4-l" << level;
-    string fn3 = ss3.str()+".plot";
-    ofstream f3(fn3.c_str(),ios::out);
-
-    f3 << "set terminal postscript eps color" << endl;
-    f3 << "set title \"(IntensityLeastSquares) error when rotating on level " << level <<"\"" << endl;
-    f3 << "set output \""<< ss3.str() << ".eps\"" << endl;
-    f3 << "plot  \"-\" notitle with lines 1" << endl;
-    for (int i=0; i<steps; i++)
-    {
-      cout << theta[i] << " " << mls2[i] << endl;
-      f3 << theta[i] << " " << mls2[i] << endl;
-    }
-    f3 << "e" << endl;
-
-    exit(0);
-    break;
-  }
+//   case 20: //error functions when rotating  (needs to be moved to RegRobust !!!)
+//   {
+//     int steps = 50;
+//     double div = 4.0;
+//     vector < double > theta(steps);
+//     vector < double > err(steps);
+//     vector < double > mls(steps);
+//     vector < double > mls2(steps);
+//     //level--;
+// 		RegistrationStep<float> RStep(*this);
+//     for (int i=0; i<steps; i++)
+//     {
+//       // 0.. PI/div in 20 steps
+//       // -PI/div ..0 is symmetric
+//       theta[i] = M_PI * i / ((steps-1)*div);
+// 
+//       a  = MatrixAllocRotation(4,0.5*theta[i],Z_ROTATION);
+//       a  = MatrixMultiply(a, extract_i_to_r(gpS[gpS.size()-level]), a);
+//       a  = MatrixMultiply(extract_r_to_i(gpS[gpS.size()-level]) , a, a);
+//       ai = MatrixInverse(a,ai);
+// 
+//       mriTs = MRIlinearTransformInterp(gpS[gpS.size()-level],mriTs, a, SAMPLE_TRILINEAR);
+//       mriTt = MRIlinearTransformInterp(gpS[gpS.size()-level],mriTt, ai, SAMPLE_TRILINEAR);
+//       //MRIwrite(mriTs,"test20-s.mgz");
+//       //MRIwrite(mriTt,"test20-t.mgz");
+//       MatrixFree(&a);
+//       MatrixFree(&ai);
+//       ai = NULL;
+// 
+//       transonly = false;
+//       costfun   = ROB;
+//       rigid     = true;
+//       iscale    = false;
+// 
+//       vnl_matrix< float > A;
+// 			vnl_vector< float > b;
+//       RStep.constructAb(mriTs, mriTt,A,b);
+//       pair < MATRIX*, MATRIX* > pwm(NULL,NULL);
+//       Regression< float > R(A,b);
+// 			R.setVerbose(verbose);
+// 
+//       sat = 5;
+// 
+//       cout << "   - compute robust estimate ( sat "<<sat<<" )..." << flush;
+// 		  R.getRobustEst(sat);
+// 
+//       err[i] = R.getLastError();
+//       cout << "angle: " << theta[i] << "  error: " << err[i] << endl;
+//       R.getLSEst();
+//       mls[i] = R.getLastError();
+//       cout << "angle: " << theta[i] << "  mls: " << mls[i] << endl;
+//       MRI * mridiff = MRIalloc(mriTs->width, mriTs->height, mriTs->depth, MRI_FLOAT);
+//       mridiff = MRIsubtract(mriTs,mriTt,mridiff);
+//       double ddd = 0;
+//       for (int d = 0;d<mriTs->depth;d++)
+//         for (int h = 0;h<mriTs->height;h++)
+//           for (int w = 0;w<mriTs->width;w++)
+//             ddd += MRIgetVoxVal(mridiff,w,h,d,0) * MRIgetVoxVal(mridiff,w,h,d,0);
+//             //ddd += MRIgetVoxVal(mridiff,w,h,d,1) * MRIgetVoxVal(mridiff,w,h,d,1);
+//       mls2[i] = ddd;
+//       cout << "angle: " << theta[i] << "  mls: " << mls2[i] << endl;
+// 			A.clear();
+// 			b.clear();
+//     }
+// 
+//     ostringstream ss;
+//     ss << "r-error-rot4-l" << level;
+//     string fn = ss.str()+".plot";
+//     ofstream f(fn.c_str(),ios::out);
+// 
+//     f << "set terminal postscript eps color" << endl;
+//     f << "set title \"(Robust) error when rotating on level " << level <<"\"" << endl;
+//     f << "set output \""<< ss.str() << ".eps\"" << endl;
+//     f << "plot  \"-\" notitle with lines 1" << endl;
+//     for (int i=0; i<steps; i++)
+//     {
+//       cout << theta[i] << " " << err[i] << endl;
+//       f << theta[i] << " " << err[i] << endl;
+//     }
+//     f << "e" << endl;
+// 
+//     ostringstream ss2;
+//     ss2 << "ls-error-rot4-l" << level;
+//     string fn2 = ss2.str()+".plot";
+//     ofstream f2(fn2.c_str(),ios::out);
+// 
+//     f2 << "set terminal postscript eps color" << endl;
+//     f2 << "set title \"(LeastSquares) error when rotating on level " << level <<"\"" << endl;
+//     f2 << "set output \""<< ss2.str() << ".eps\"" << endl;
+//     f2 << "plot  \"-\" notitle with lines 1" << endl;
+//     for (int i=0; i<steps; i++)
+//     {
+//       cout << theta[i] << " " << mls[i] << endl;
+//       f2 << theta[i] << " " << mls[i] << endl;
+//     }
+//     f2 << "e" << endl;
+// 
+//     ostringstream ss3;
+//     ss3 << "ils-error-rot4-l" << level;
+//     string fn3 = ss3.str()+".plot";
+//     ofstream f3(fn3.c_str(),ios::out);
+// 
+//     f3 << "set terminal postscript eps color" << endl;
+//     f3 << "set title \"(IntensityLeastSquares) error when rotating on level " << level <<"\"" << endl;
+//     f3 << "set output \""<< ss3.str() << ".eps\"" << endl;
+//     f3 << "plot  \"-\" notitle with lines 1" << endl;
+//     for (int i=0; i<steps; i++)
+//     {
+//       cout << theta[i] << " " << mls2[i] << endl;
+//       f3 << theta[i] << " " << mls2[i] << endl;
+//     }
+//     f3 << "e" << endl;
+// 
+//     exit(0);
+//     break;
+//   }
   case 30:
   {
      cout << "Test " << testno << " : Save GP lowest" << endl;
@@ -1677,7 +1682,7 @@ void Registration::testRobust(const std::string& fname, int testno)
 
   int steps;
   steps = 3;
-  rtype = 2;
+//  rtype = 2;
 
 //    transonly = true;
 //    robust = false;
@@ -1694,12 +1699,11 @@ void Registration::testRobust(const std::string& fname, int testno)
   costfun   = ROB;
   iscale = true;
 	setVerbose(2);
-  sat = 5;
+//  sat = 5;
 
 //  pair <MATRIX*, double> pwit    = computeIterativeRegistration(steps,mriTs,mriTt);
   pair < vnl_matrix_fixed < double, 4, 4> , double> pw;
-	setSource(mriTs);
-	setTarget(mriTt);
+  setSourceAndTarget(mriTs,mriTt);
 	computeMultiresRegistration(0,5,0.01);
 	pw.first = Mfinal;
 	pw.second = iscalefinal;
@@ -1860,206 +1864,207 @@ void Registration::testRobust(const std::string& fname, int testno)
 //   return true; // no error treatment so far
 // }
 
-double Registration::estimateIScale(MRI *mriS, MRI *mriT)
-{
- 
-  if (verbose > 1) cout << "   - estimateIScale: " << endl;
-
-  assert(mriT != NULL);
-  assert(mriS != NULL);
-  assert(mriS->width == mriT->width);
-  assert(mriS->height== mriT->height);
-  assert(mriS->depth == mriT->depth);
-  assert(mriS->type  == mriT->type);
-  //assert(mriS->width == mask->width);
-  //assert(mriS->height== mask->height);
-  //assert(mriS->depth == mask->depth);
-  //assert(mask->type == MRI_INT);
-  //MRIclear(mask);
-
-  int z,y,x;
-  long int ss = mriS->width * mriS->height * mriS->depth;
-  if (mri_indexing) MRIfree(&mri_indexing);
-  if (ss > std::numeric_limits<int>::max())
-  {
-     if (verbose > 1) cout << "     -- using LONG for indexing ... " << flush;
-     mri_indexing = MRIalloc(mriS->width, mriS->height, mriS->depth,MRI_LONG);
-     if (mri_indexing == NULL) 
-        ErrorExit(ERROR_NO_MEMORY,"Registration::estimateIScale could not allocate memory for mri_indexing") ;
-     if (verbose > 1) cout << " done!" << endl;
-  }
-  else 
-  {
-     double mu = ((double)ss) * sizeof(int) / (1024.0 * 1024.0);
-     if (verbose > 1) cout << "     -- allocating " << mu << "Mb mem for indexing ... " << flush;
-     mri_indexing = MRIalloc(mriS->width, mriS->height, mriS->depth,MRI_INT);
-     if (mri_indexing == NULL) 
-        ErrorExit(ERROR_NO_MEMORY,"Registration::estimateIScale could not allocate memory for mri_indexing") ;
-     if (verbose > 1) cout << " done!" << endl;
-  }
-
-  for (z = 0 ; z < mriS->depth ; z++)
-    for (x = 0 ; x < mriS->width ; x++)
-      for (y = 0 ; y < mriS->height ; y++)
-        MRILvox(mri_indexing, x, y, z) = 0;
-
-
-  bool dosubsample = false;
-  if (subsamplesize > 0)
-    dosubsample = (mriS->width > subsamplesize && mriS->height > subsamplesize && mriS->depth > subsamplesize);
-
-  // we will need the blurred images (as float):
-  if (verbose > 1) cout << "     -- compute smoothie ... " << flush;
-  MRI *Sbl= MRIalloc(mriS->width, mriS->height, mriS->depth,MRI_FLOAT);
-  Sbl = MRIcopy(mriS,Sbl);
-  Sbl= MyMRI::getBlur(Sbl,Sbl);
-  MRI *Tbl= MRIalloc(mriT->width, mriT->height, mriT->depth,MRI_FLOAT);
-  Tbl = MRIcopy(mriT,Tbl);
-  Tbl= MyMRI::getBlur(Tbl,Tbl);
-
-  if (verbose > 1) cout << " done!" << endl;
-
-  if (dosubsample)
-  {
-    if (verbose > 1) cout << "     -- subsample ... "<< flush;
-
-		MRI * Sblt = Sbl;
-		Sbl = MyMRI::subSample(Sblt);
-		MRIfree(&Sblt);
-		MRI * Tblt = Tbl;
-		Tbl = MyMRI::subSample(Tblt);
-		MRIfree(&Tblt);
-
-    if (verbose > 1) cout << " done! " << endl;
-  }
-
-  // compute 'counti': the number of rows needed (zero elements need to be removed)
-  int n = Sbl->width * Sbl->height * Sbl->depth;
-  if (verbose > 1) cout << "     -- size " << Sbl->width << " x " << Sbl->height << " x " << Sbl->depth << " = " << n << flush;
-  long int counti = 0;
-  double eps = 0.00001;
-  for (z = 0 ; z < Sbl->depth ; z++)
-    for (x = 0 ; x < Sbl->width ; x++)
-      for (y = 0 ; y < Sbl->height ; y++)
-      {
-        if (isnan(MRIFvox(Sbl, x, y, z)) ||isnan(MRIFvox(Tbl, x, y, z)))
-        {
-          if (verbose > 0) cout << " found a nan value!!!" << endl;
-          continue;
-        }
-        if (fabs(MRIFvox(Sbl, x, y, z)) < eps  && fabs(MRIFvox(Tbl, x, y, z)) < eps  )
-        {
-          //if (verbose > 0) cout << " found a zero element !!!" << endl;
-          continue;
-        }
-        counti++; // start with 1
-      }	
-  if (verbose > 1) cout << "  need only: " << counti << endl;
-	if (counti == 0)
-	{
-	   cerr << endl;
-	   cerr << " ERROR: All entries are zero! Images do not overlap (anymore?)." << endl;
-     cerr << "    This can have several reasons (i.e. different modalities, different "<< endl;
-		 cerr << "    intensity scales, large non-linearities, too diff. voxel sizes ...)" << endl;
-		 //cerr << "    Try calling with --noinit (if the original images are well aligned)" << endl;
-		 cerr << "    Maybe use --transform <init.lta> with an approx. alignment" <<endl;
-		 cerr << "    obtained from tkregister or another registration program." << endl;
-		 cerr << "    Or do some prior intensity correction? " << endl;
-		 cerr << endl;
-		 exit(1);
-	}
-   
-
-  // allocate the space for A and B
-  double abmu = ( (double)counti ) * sizeof(double) / (1024.0 * 1024.0);
-  if (verbose > 1) cout << "     -- allocating " << abmu << "Mb mem for A and b ... " << flush;
-	pair < vnl_matrix <double> , vnl_vector < double> > Ab( vnl_matrix <double>(counti,1), vnl_vector<double> (counti));
-  if (verbose > 1) cout << " done! " << endl;
-//      if (A == NULL || b == NULL) 
-//         ErrorExit(ERROR_NO_MEMORY,"Registration::estimateIScale could not allocate memory for A or b") ;
-
-  if (verbose > 1) cout << "     -- size " << Sbl->width << " " << Sbl->height << " " << Sbl->depth << flush;
-
-  long int count = 0;
-  int xp1,yp1,zp1;
-  for (z = 0 ; z < Sbl->depth ; z++)
-    for (x = 0 ; x < Sbl->width ; x++)
-      for (y = 0 ; y < Sbl->height ; y++)
-      {
-        if (isnan(MRIFvox(Sbl, x, y, z)) ||isnan(MRIFvox(Tbl, x, y, z))  )
-        {
-          if (verbose > 0) cout << " found a nan value!!!" << endl;
-          continue;
-        }
-
-        if (dosubsample)
-        {
-          xp1 = 2*x;
-          yp1 = 2*y;
-          zp1 = 2*z;
-        }
-        else
-        {
-          xp1 = x;
-          yp1 = y;
-          zp1 = z; // if not subsampled
-        }
-        assert(xp1 < mriS->width);
-        assert(yp1 < mriS->height);
-        assert(zp1 < mriS->depth);
-
-
-        if (fabs(MRIFvox(Sbl, x, y, z)) < eps  && fabs(MRIFvox(Tbl, x, y, z)) < eps )
-        {
-          //cout << " found a zero row!!!" << endl;
-          MRILvox(mri_indexing, xp1, yp1, zp1) = -1;
-          continue;
-        }
-
-        //count++; // start with 1
-
-        if (xp1 >= mriS->width || yp1 >= mriS->height || zp1 >= mriS->depth)
-        {
-
-          cerr << " outside !!! " << xp1 << " " << yp1 << " " << zp1 << endl;
-          assert(1==2);
-        }
-
-        MRILvox(mri_indexing, xp1, yp1, zp1) = count;
-
-        //Ab.first[count][0]  = 0.5 / iscalefinal *( MRIFvox(Tbl,x,y,z) + MRIFvox(Sbl, x, y, z)); 
-        //Ab.first[count][0]  = MRIFvox(Sbl, x, y, z);
-
-        // intensity model: R(s,IS,IT) = exp(-0.5 s) IT - exp(0.5 s) IS
-        //                  R'  = -0.5 ( exp(-0.5 s) IT + exp(0.5 s) IS)
-        Ab.first[count][0]  = 0.5 * (MRIFvox(Tbl,x,y,z) + MRIFvox(Sbl, x, y, z));
-
-        Ab.second[count] = -(MRIFvox(Tbl, x, y, z) - MRIFvox(Sbl, x, y, z));
-        
-				count++; // start with 0
-
-      }
-      
-  // free remaining MRI    
-  if (Sbl) MRIfree(&Sbl);
-  if (Tbl) MRIfree(&Tbl);
-
-	assert(counti == count);
-
-  Regression<double> R(Ab.first,Ab.second);
-	R.setVerbose(verbose);
-	R.setFloatSvd(true); // even for double, the svd can be float, better switch to float all toghether
-	
-	vnl_vector<double> p( R.getRobustEst());
-
-  double is = p[0];
-  double s = log(iscalefinal);
-  s = s - is;
-  iscalefinal = exp(s);
-  cout << " ISCALE: " << iscalefinal << " returned: " << is  << endl;
-	
-  return iscalefinal;
-}
+// double Registration::estimateIScale(MRI *mriS, MRI *mriT)
+// {
+//  
+//   if (verbose > 1) cout << "   - estimateIScale: " << endl;
+// 
+//   assert(mriT != NULL);
+//   assert(mriS != NULL);
+//   assert(mriS->width == mriT->width);
+//   assert(mriS->height== mriT->height);
+//   assert(mriS->depth == mriT->depth);
+//   assert(mriS->type  == mriT->type);
+//   //assert(mriS->width == mask->width);
+//   //assert(mriS->height== mask->height);
+//   //assert(mriS->depth == mask->depth);
+//   //assert(mask->type == MRI_INT);
+//   //MRIclear(mask);
+// 
+//   int z,y,x;
+//   long int ss = mriS->width * mriS->height * mriS->depth;
+//   if (mri_indexing) MRIfree(&mri_indexing);
+//   if (ss > std::numeric_limits<int>::max())
+//   {
+//      if (verbose > 1) cout << "     -- using LONG for indexing ... " << flush;
+//      mri_indexing = MRIalloc(mriS->width, mriS->height, mriS->depth,MRI_LONG);
+//      if (mri_indexing == NULL) 
+//         ErrorExit(ERROR_NO_MEMORY,"Registration::estimateIScale could not allocate memory for mri_indexing") ;
+//      if (verbose > 1) cout << " done!" << endl;
+//   }
+//   else 
+//   {
+//      double mu = ((double)ss) * sizeof(int) / (1024.0 * 1024.0);
+//      if (verbose > 1) cout << "     -- allocating " << mu << "Mb mem for indexing ... " << flush;
+//      mri_indexing = MRIalloc(mriS->width, mriS->height, mriS->depth,MRI_INT);
+//      if (mri_indexing == NULL) 
+//         ErrorExit(ERROR_NO_MEMORY,"Registration::estimateIScale could not allocate memory for mri_indexing") ;
+//      if (verbose > 1) cout << " done!" << endl;
+//   }
+// 
+//   for (z = 0 ; z < mriS->depth ; z++)
+//     for (x = 0 ; x < mriS->width ; x++)
+//       for (y = 0 ; y < mriS->height ; y++)
+//         MRILvox(mri_indexing, x, y, z) = 0;
+// 
+// 
+//   bool dosubsample = false;
+//   if (subsamplesize > 0)
+//     dosubsample = (mriS->width > subsamplesize && mriS->height > subsamplesize && (mriS->depth > subsamplesize || mriS->depth == 1));
+//   dosubsample = false; // needs to be fixed below!!! indeces are now randomized
+// 
+//   // we will need the blurred images (as float):
+//   if (verbose > 1) cout << "     -- compute smoothie ... " << flush;
+//   MRI *Sbl= MRIalloc(mriS->width, mriS->height, mriS->depth,MRI_FLOAT);
+//   Sbl = MRIcopy(mriS,Sbl);
+//   Sbl= MyMRI::getBlur(Sbl,Sbl);
+//   MRI *Tbl= MRIalloc(mriT->width, mriT->height, mriT->depth,MRI_FLOAT);
+//   Tbl = MRIcopy(mriT,Tbl);
+//   Tbl= MyMRI::getBlur(Tbl,Tbl);
+// 
+//   if (verbose > 1) cout << " done!" << endl;
+// 
+//   if (dosubsample)
+//   {
+//     if (verbose > 1) cout << "     -- subsample ... "<< flush;
+// 
+// 		MRI * Sblt = Sbl;
+// 		Sbl = MyMRI::subSample(Sblt);
+// 		MRIfree(&Sblt);
+// 		MRI * Tblt = Tbl;
+// 		Tbl = MyMRI::subSample(Tblt);
+// 		MRIfree(&Tblt);
+// 
+//     if (verbose > 1) cout << " done! " << endl;
+//   }
+// 
+//   // compute 'counti': the number of rows needed (zero elements need to be removed)
+//   int n = Sbl->width * Sbl->height * Sbl->depth;
+//   if (verbose > 1) cout << "     -- size " << Sbl->width << " x " << Sbl->height << " x " << Sbl->depth << " = " << n << flush;
+//   long int counti = 0;
+//   double eps = 0.00001;
+//   for (z = 0 ; z < Sbl->depth ; z++)
+//     for (x = 0 ; x < Sbl->width ; x++)
+//       for (y = 0 ; y < Sbl->height ; y++)
+//       {
+//         if (isnan(MRIFvox(Sbl, x, y, z)) ||isnan(MRIFvox(Tbl, x, y, z)))
+//         {
+//           if (verbose > 0) cout << " found a nan value!!!" << endl;
+//           continue;
+//         }
+//         if (fabs(MRIFvox(Sbl, x, y, z)) < eps  && fabs(MRIFvox(Tbl, x, y, z)) < eps  )
+//         {
+//           //if (verbose > 0) cout << " found a zero element !!!" << endl;
+//           continue;
+//         }
+//         counti++; // start with 1
+//       }	
+//   if (verbose > 1) cout << "  need only: " << counti << endl;
+// 	if (counti == 0)
+// 	{
+// 	   cerr << endl;
+// 	   cerr << " ERROR: All entries are zero! Images do not overlap (anymore?)." << endl;
+//      cerr << "    This can have several reasons (i.e. different modalities, different "<< endl;
+// 		 cerr << "    intensity scales, large non-linearities, too diff. voxel sizes ...)" << endl;
+// 		 //cerr << "    Try calling with --noinit (if the original images are well aligned)" << endl;
+// 		 cerr << "    Maybe use --transform <init.lta> with an approx. alignment" <<endl;
+// 		 cerr << "    obtained from tkregister or another registration program." << endl;
+// 		 cerr << "    Or do some prior intensity correction? " << endl;
+// 		 cerr << endl;
+// 		 exit(1);
+// 	}
+//    
+// 
+//   // allocate the space for A and B
+//   double abmu = ( (double)counti ) * sizeof(double) / (1024.0 * 1024.0);
+//   if (verbose > 1) cout << "     -- allocating " << abmu << "Mb mem for A and b ... " << flush;
+// 	pair < vnl_matrix <double> , vnl_vector < double> > Ab( vnl_matrix <double>(counti,1), vnl_vector<double> (counti));
+//   if (verbose > 1) cout << " done! " << endl;
+// //      if (A == NULL || b == NULL) 
+// //         ErrorExit(ERROR_NO_MEMORY,"Registration::estimateIScale could not allocate memory for A or b") ;
+// 
+//   if (verbose > 1) cout << "     -- size " << Sbl->width << " " << Sbl->height << " " << Sbl->depth << flush;
+// 
+//   long int count = 0;
+//   int xp1,yp1,zp1;
+//   for (z = 0 ; z < Sbl->depth ; z++)
+//     for (x = 0 ; x < Sbl->width ; x++)
+//       for (y = 0 ; y < Sbl->height ; y++)
+//       {
+//         if (isnan(MRIFvox(Sbl, x, y, z)) ||isnan(MRIFvox(Tbl, x, y, z))  )
+//         {
+//           if (verbose > 0) cout << " found a nan value!!!" << endl;
+//           continue;
+//         }
+// 
+//         if (dosubsample)
+//         {
+//           xp1 = 2*x;
+//           yp1 = 2*y;
+//           zp1 = 2*z;
+//         }
+//         else
+//         {
+//           xp1 = x;
+//           yp1 = y;
+//           zp1 = z; // if not subsampled
+//         }
+//         assert(xp1 < mriS->width);
+//         assert(yp1 < mriS->height);
+//         assert(zp1 < mriS->depth);
+// 
+// 
+//         if (fabs(MRIFvox(Sbl, x, y, z)) < eps  && fabs(MRIFvox(Tbl, x, y, z)) < eps )
+//         {
+//           //cout << " found a zero row!!!" << endl;
+//           MRILvox(mri_indexing, xp1, yp1, zp1) = -1;
+//           continue;
+//         }
+// 
+//         //count++; // start with 1
+// 
+//         if (xp1 >= mriS->width || yp1 >= mriS->height || zp1 >= mriS->depth)
+//         {
+// 
+//           cerr << " outside !!! " << xp1 << " " << yp1 << " " << zp1 << endl;
+//           assert(1==2);
+//         }
+// 
+//         MRILvox(mri_indexing, xp1, yp1, zp1) = count;
+// 
+//         //Ab.first[count][0]  = 0.5 / iscalefinal *( MRIFvox(Tbl,x,y,z) + MRIFvox(Sbl, x, y, z)); 
+//         //Ab.first[count][0]  = MRIFvox(Sbl, x, y, z);
+// 
+//         // intensity model: R(s,IS,IT) = exp(-0.5 s) IT - exp(0.5 s) IS
+//         //                  R'  = -0.5 ( exp(-0.5 s) IT + exp(0.5 s) IS)
+//         Ab.first[count][0]  = 0.5 * (MRIFvox(Tbl,x,y,z) + MRIFvox(Sbl, x, y, z));
+// 
+//         Ab.second[count] = -(MRIFvox(Tbl, x, y, z) - MRIFvox(Sbl, x, y, z));
+//         
+// 				count++; // start with 0
+// 
+//       }
+//       
+//   // free remaining MRI    
+//   if (Sbl) MRIfree(&Sbl);
+//   if (Tbl) MRIfree(&Tbl);
+// 
+// 	assert(counti == count);
+// 
+//   Regression<double> R(Ab.first,Ab.second);
+// 	R.setVerbose(verbose);
+// 	R.setFloatSvd(true); // even for double, the svd can be float, better switch to float all toghether
+// 	
+// 	vnl_vector<double> p( R.getRobustEst());
+// 
+//   double is = p[0];
+//   double s = log(iscalefinal);
+//   s = s - is;
+//   iscalefinal = exp(s);
+//   cout << " ISCALE: " << iscalefinal << " returned: " << is  << endl;
+// 	
+//   return iscalefinal;
+// }
 
 //static int counter = 0;
 
@@ -2855,10 +2860,12 @@ pair < MATRIX*, VECTOR* > Registration::constructAb2(MRI *mriS, MRI *mriT)
 
 
 
+/**
+   Both MRI are assumed to have conform voxels (same size).
+ \param min no dimension should get smaller than min voxels, default 16
+ \param max no dimension will be larger than max in both images (can happen in one)
+*/
 pair < int, int > Registration::getGPLimits(MRI *mriS, MRI *mriT, int min, int max)
-// both mri are assumed to have conform voxels (same size)
-// min: no dimension should get smaller than min voxels, default 16
-// max: no dimension will be larger than max in both images (can happen in one)
 {
   
   if (verbose >0) cout << "   - Get Gaussian Pyramid Limits ( min size: " << min << " max size: " << max << " ) "<< endl;
@@ -2921,10 +2928,11 @@ pair < int, int > Registration::getGPLimits(MRI *mriS, MRI *mriT, int min, int m
  
 }
 
-vector < MRI* > Registration::buildGPLimits (MRI * mri_in, pair< int, int > limits )
-// here limits is the min and max iterations (subdivision level)
-// meaning:  start highest resolution after min steps
-//           don't do more than max steps.
+/** Here limits is the min and max iterations (subdivision level),
+   meaning:  start highest resolution after min steps
+             don't do more than max steps.
+*/
+vector < MRI* > Registration::buildGPLimits (MRI * mri_in, std::pair< int, int > limits )
 {
   if (verbose >0) cout << "   - Build Gaussian Pyramid ( Limits min steps: " << limits.first << " max steps: " << limits.second << " ) "<< endl;
 
@@ -2986,9 +2994,12 @@ vector < MRI* > Registration::buildGPLimits (MRI * mri_in, pair< int, int > limi
 
 }
 
+/**
+  \param mri_in input MRI
+  \param min no dimension should get smaller than min voxels, default 16
+  \param max no dimension will be larger than max
+*/
 vector < MRI* > Registration::buildGaussianPyramid (MRI * mri_in, int min, int max )
-// min: no dimension should get smaller than min voxels, default 16
-// max: no dimension will be larger than max
 {
 
   if (verbose >0) cout << "   - Build Gaussian Pyramid ( min: " << min << " max: " << max << " ) "<< endl;
@@ -3070,7 +3081,7 @@ vector < MRI* > Registration::buildGaussianPyramid (MRI * mri_in, int min, int m
   return p;
 }
 
-void Registration::freeGaussianPyramid(vector< MRI* >& p)
+void Registration::freeGaussianPyramid(std::vector< MRI* >& p)
 {
   for (uint i = 0;i<p.size();i++)
     MRIfree(&p[i]);
@@ -3357,11 +3368,11 @@ int Registration::init_scaling(MRI *mri_in, MRI *mri_ref, MATRIX *m_L)
   return(NO_ERROR) ;
 }
 
+/** Important in some cases where input voxel sizes are negative
+   based on weird RAS coordinates?
+   Also adjusts resample matrices.
+*/
 bool Registration::flipInputs()
-// flips inputs to have positive voxel sizes
-// important in some cases where input voxel sizes are negative
-// based on weird RAS coordinates?
-// adjust resample matrices
 {
   bool flipped = false;
   int x = 1;
@@ -3429,11 +3440,11 @@ bool Registration::flipInputs()
   return flipped;
 }
 
+/** Potentially changes mri_Source and the resample matrix.
+   This ensures that vox2vox rot is small and dimensions agree,
+   important for gaussian pyramid.
+ */
 bool Registration::reorientSource()
-// potentially changes mri_Source and the resample matrix
-  // flip and reorder axis of source based on RAS alignment or ixform:
-  // this ensures that vox2vox rot is small and dimensions agree 
-  // important for gaussian pyramid
 {
   //cout << "Registration::reorientSource ..." << endl;
   assert(mri_source);
@@ -3536,31 +3547,61 @@ bool Registration::reorientSource()
 
 }
 
+void Registration::setTransformation (bool is2d)
+{
+  if (trans) delete (trans);
+  if (transonly)
+  {
+    if (is2d) trans = new Transform2dTranslate;
+    else      trans = new Transform3dTranslate;
+  }
+  else if (rigid)
+  {
+    if (is2d) trans = new Transform2dRigid;
+    else      trans = new Transform3dRigid;
+  }
+  else if (isoscale)
+  {
+    if (is2d) trans = new Transform2dIsoscale;
+    else      trans = new Transform3dIsoscale;
+  }
+  else
+  {
+    if (is2d) trans = new Transform2dAffine;
+    else      trans = new Transform3dAffine;
+  }
+}
 
+/** Both inputs need to be in the same voxel space.
+  If not keeptype, ensure both are float.
+  If keeptype, and types disagree, ensure both float (is that still true or is it uchar???)
+*/
 void Registration::setSourceAndTarget (MRI * s,MRI * t, bool keeptype)
-// both need to be in the same voxel space
 {
   if (verbose > 0)
   {
-    cout << "Registration::setSourceAndTarget ..." << endl;
-    cout << "   Type Source : " << s->type <<  "  Type Target : " << t->type << endl;
+    string kt = "FALSE";
+    if (keeptype) kt = "TRUE";
+    cout << "Registration::setSourceAndTarget(MRI s, MRI t, keeptype = " << kt << " )" << endl;
   }
+  if (s->type != t->type ) keeptype = false;
   
-  if (s->type != t->type )
+  if (verbose > 0)
   {
-     if (verbose > 0) cout << "   Types differ, will adjust type internally ..." << endl;
-     keeptype = false;
+    cout << "   Type Source : " << s->type <<  "  Type Target : " << t->type ;
+    if (keeptype) cout << "  keeping type " << endl;
+    else cout  <<"  ensure both FLOAT (" << MRI_FLOAT <<  ")" << endl;
   }
-  
+    
 	// we will make images isotropic
-
+  
   // get smallest dimension
   double mins = fabs(s->xsize);
   if (fabs(s->ysize) < mins) mins = fabs(s->ysize);
-  if (fabs(s->zsize) < mins) mins = fabs(s->zsize);
+  if (s->depth > 1 && fabs(s->zsize) < mins) mins = fabs(s->zsize);
   double mint = fabs(t->xsize);
   if (fabs(t->ysize) < mint) mint = fabs(t->ysize);
-  if (fabs(t->zsize) < mint) mint = fabs(t->zsize);
+  if (t->depth > 1 && fabs(t->zsize) < mint) mint = fabs(t->zsize);
   // select the larger of the smallest sides
   double isosize = mins;
   if ( mint > mins ) isosize = mint;
@@ -3623,6 +3664,12 @@ void Registration::setSourceAndTarget (MRI * s,MRI * t, bool keeptype)
 	centroidS.clear();
   if (gpT.size() > 0) freeGaussianPyramid(gpT);
 	centroidT.clear();
+  
+  // initialize the correct registration type:
+  bool is2d = (s->depth ==1 || t->depth ==1);
+  setTransformation(is2d);
+
+  
 	if (verbose > 1 ) cout << " DONE setSourceAndTarget " << endl;
 }
 
@@ -3675,8 +3722,9 @@ void Registration::setTarget (MRI * t, bool conform, bool keeptype)
   //cout << "mri_target" << mri_target << endl;
 }
 
+/** To set name and nbase (base name without path)
+*/
 void Registration::setName(const std::string &n)
-// set name and nbase (base name without path)
 {
   name = n;
   nbase = n;
@@ -3689,22 +3737,31 @@ void Registration::setName(const std::string &n)
 
 bool Registration::needReslice(MRI *mri,  double vsize, int xdim, int ydim, int zdim, bool keeptype)
 {
-  //cout << "Registration::needReslice(mri , "<< vsize << ", " << xdim << ", " << ydim << ", " << zdim << ", " << keeptype << ")" <<endl;
+
+  int mw = mri->width;
+  int mh = mri->height;
+  int md = mri->depth;
+  double mx = mri->xsize;
+  double my = mri->ysize;
+  double mz = mri->zsize;
+  if (md == 1) mz = my; // adjust voxel size for tests below if 2D image
+  
+//  cout << "Registration::needReslice(mri , "<< vsize << ", " << xdim << ", " << ydim << ", " << zdim << ", " << keeptype << ")" <<endl;
   // don't change type if keeptype or if already float:
   bool notypeconvert = (keeptype || mri->type == MRI_FLOAT);
 //	if (notypeconvert && verbose > 1) cout << "     - no TYPE conversion necessary" << endl;
 	// dont change voxel size if 
 	// if already conform and no vsize specified
-	bool novoxconvert  = (vsize < 0 && mri->xsize == mri->ysize && mri->ysize == mri->zsize );
+	bool novoxconvert  = (vsize < 0 && mx == my && my == mz );
 //	if (novoxconvert && verbose > 1) cout << "     - no vsize and allready conform "<< mri->xsize << endl;
 	// if conform like vsize and no dims specified:
   double eps = 0.0001;
-	bool conformvsize = (fabs(mri->xsize - vsize)<eps && fabs(mri->ysize - vsize) <eps && fabs(mri->zsize- vsize) < eps);
+	bool conformvsize = (fabs(mx - vsize)<eps && fabs(my - vsize) <eps && fabs(mz- vsize) < eps);
 //	if (conformvsize && verbose > 1) cout << "     - allready conform to "<< vsize << endl;
 	novoxconvert = novoxconvert || (xdim < 0 && ydim < 0 && zdim < 0  && conformvsize);
 //	if (novoxconvert && verbose > 1) cout << "     - no voxel conversion necessary (dimensions not passed)" << endl;
 	// or if all values are specified and agree:
-	bool dimagree = (xdim == mri->width && ydim== mri->height && zdim ==mri->depth);
+	bool dimagree = (xdim == mw && ydim== mh && zdim ==md);
 //	if (dimagree && verbose > 1) cout << "     - image dimensions agree" << endl;
 	novoxconvert = novoxconvert || (conformvsize && dimagree);
 //	if (novoxconvert && verbose > 1) cout << "     - no VOXEL conversion necessary" << endl;
@@ -3712,18 +3769,21 @@ bool Registration::needReslice(MRI *mri,  double vsize, int xdim, int ydim, int 
   return !(novoxconvert && notypeconvert );
 }
 
+/** Makes the voxel size isotropic (and vox2ras map standard)
+*/
 std::pair < MRI* , vnl_matrix_fixed <double, 4, 4> >
 Registration::makeIsotropic(MRI *mri, MRI *out, double vsize, int xdim, int ydim, int zdim, bool keeptype)
-// makes the voxel size isotropic (and vox2ras map standard)
 {
 
   out = MRIcopy(mri,out);
+  if (out->depth == 1) out->zsize = out->ysize; // for 2d images adjust z voxels size
+  
 	vnl_matrix_fixed < double , 4, 4> Rm;Rm.set_identity();
 	
-	if (! needReslice(mri,vsize,xdim,ydim,zdim,keeptype ) )
+	if (! needReslice(out,vsize,xdim,ydim,zdim,keeptype ) )
 	   return std::pair < MRI *,vnl_matrix_fixed < double, 4, 4> >(out,Rm);
 		 
-	if (verbose > 1) cout << "     - will resample image" << endl;
+	if (verbose > 1) cout << "     - will resample image or adjust type" << endl;
 	// determine conform size
   double conform_size = vsize;
 	if (conform_size < 0) // if not set use minimum:
@@ -3733,7 +3793,8 @@ Registration::makeIsotropic(MRI *mri, MRI *out, double vsize, int xdim, int ydim
 	  if (mri->zsize < conform_size) conform_size = mri->zsize;
 	}
 	// get dimensions:
-  vector < int > conform_dimensions = MyMRI::findRightSize(mri, conform_size,false);
+  vector < int > conform_dimensions = MyMRI::findRightSize(out, conform_size,false);
+  //cout<< " conform dim: " << conform_dimensions[0] << " "  << conform_dimensions[1] << " " << conform_dimensions[2] << endl;
 	if (xdim > 0)
 	{
 	  if (xdim < conform_dimensions[0])
@@ -3794,6 +3855,7 @@ Registration::makeIsotropic(MRI *mri, MRI *out, double vsize, int xdim, int ydim
   temp->thick  = conform_size;
   temp->ps     = conform_size;
   temp->xsize  = temp->ysize = temp->zsize = conform_size;
+  if (mri->depth == 1) temp->zsize = mri->zsize; // if 2D image
 
   temp->xstart = -conform_dimensions[0]/2;
 	temp->ystart = -conform_dimensions[1]/2;
@@ -3816,7 +3878,7 @@ Registration::makeIsotropic(MRI *mri, MRI *out, double vsize, int xdim, int ydim
   if (mri->type != temp->type && !keeptype)
   {
     int no_scale_flag = FALSE;
-    printf("changing data type from %d to %d (noscale = %d)...\n",
+    printf("       -- changing data type from %d to %d (noscale = %d)...\n",
            mri->type,temp->type,no_scale_flag);
     MRI * mri2  = MRISeqchangeType(out, temp->type, 0.0, 0.999, no_scale_flag);
     if (mri2 == NULL)
@@ -3899,15 +3961,15 @@ Registration::makeIsotropic(MRI *mri, MRI *out, double vsize, int xdim, int ydim
 //   	temp->yend   = conform_dimensions[rlookup[1]]/2;
 //   	temp->zend   = conform_dimensions[rlookup[2]]/2;
 		
-    printf("   Original : (%g, %g, %g) mm size and (%d, %d, %d) voxels.\n",
+    printf("       -- Original : (%g, %g, %g) mm size and (%d, %d, %d) voxels.\n",
            mri->xsize, mri->ysize, mri->zsize, mri->width, mri->height, mri->depth);
-    printf("   Resampled: (%g, %g, %g) mm size and (%d, %d, %d) voxels.\n",
+    printf("       -- Resampled: (%g, %g, %g) mm size and (%d, %d, %d) voxels.\n",
            temp->xsize,temp->ysize,temp->zsize, temp->width,temp->height,temp->depth);
 
     //int resample_type_val = SAMPLE_TRILINEAR;
     int resample_type_val = SAMPLE_CUBIC_BSPLINE;
 
-    printf("   Reslicing using ");
+    printf("       -- Reslicing using ");
     switch (resample_type_val)
     {
     case SAMPLE_TRILINEAR:
@@ -3978,8 +4040,9 @@ Registration::makeIsotropic(MRI *mri, MRI *out, double vsize, int xdim, int ydim
 //   return ct;
 // }
 
+/** Maps centroid back to original space
+*/
 vnl_vector_fixed < double, 4 >  Registration::getCentroidS()
-// map centroid back to original space
 {
 	vnl_vector_fixed < double, 4 > ncenter;
 	for (uint ii = 0; ii<3;ii++)
@@ -3989,8 +4052,9 @@ vnl_vector_fixed < double, 4 >  Registration::getCentroidS()
   return ncenter;
 }
 
+/** Maps centroid back to original space
+*/
 vnl_vector_fixed < double, 4 > Registration::getCentroidT()
-// map centroid back to original space
 {
 	vnl_vector_fixed < double, 4 > ncenter;
 	for (uint ii = 0; ii<3;ii++)
@@ -4000,31 +4064,35 @@ vnl_vector_fixed < double, 4 > Registration::getCentroidT()
   return ncenter;
 }
 
+/** Map source centroid to target space,
+ only makes sense to call this after registration
+*/
 vnl_vector_fixed < double, 4 > Registration::getCentroidSinT()
-// map source centroid to target space
-// only makes sense to call this after registration
 {
   vnl_vector_fixed < double, 4 > ncenter=getCentroidS();
   vnl_matrix_fixed <double, 4, 4> v2v=getFinalVox2Vox();
   return v2v*ncenter;
 }
 
+/**
+<pre>
+                 (Mfinal)
+         VOXS ------------> VOXT   (resampled)
+       |   |                 |     |
+       |   |                 |     |
+ (Rsrc)|  RAS               RAS    |(Rtrg)
+       |   |                 |     |
+       V   |                 |     V
+         VOXS ------------> VOXT   (original)
+               (finalV2V)
+</pre>
+ The matrix Mfinal is computed for the resampled (isotropic) images
+ They have the same RAS coords as the original images.
+ to compute finalV2V we use the resample matrices: Rsrc and Rtrg
+ these were stored during resampling (conformalizing), they map
+ from the  resampled/conform image to the original (vox2vox)
+*/
 vnl_matrix_fixed <double, 4, 4> Registration::getFinalVox2Vox()
-//                 (Mfinal)
-//         VOXS ------------> VOXT   (resampled)
-//       |   |                 |     |
-//       |   |                 |     |
-// (Rsrc)|  RAS               RAS    |(Rtrg)
-//       |   |                 |     |
-//       V   |                 |     V
-//         VOXS ------------> VOXT   (original)
-//               (finalV2V)
-//
-// The matrix Mfinal is computed for the resampled (isotropic) images
-// They have the same RAS coords as the original images.
-// to compute finalV2V we use the resample matrices: Rsrc and Rtrg
-// these were stored during resampling (conformalizing), they map
-// from the  resampled/conform image to the original (vox2vox)
 {
 
    if (!resample) return Mfinal;
@@ -4078,10 +4146,10 @@ std::pair < vnl_matrix_fixed < double , 4, 4 >, vnl_matrix_fixed < double , 4, 4
   return md2w;
 }
 
+/** Returns the Minit matrix as vox2vox for the resampled images
+  (it is originally the vox2vox of the input images before resampling),
+ see also description of Registration::getFinalVox2Vox*/
 vnl_matrix < double > Registration::getMinitResampled()
-// returns the Minit matrix as vox2vox for the resampled images
-// (it is originally the vox2vox of the input images before resampling)
-// see also description of Registration::getFinalVox2Vox
 {
   if (Minit.empty()) return Minit;
   if (!resample) return Minit;
@@ -4097,8 +4165,11 @@ vnl_matrix < double > Registration::getMinitResampled()
 }
  
  
+/* Performs several checks (e.g. if sqrt produces a reflection, or projection). 
+  If testrigid is true, check if sqrt produces reflection or scale, and if close to a rotation.
+  Expects sqrt to be passed as M.
+*/
 bool Registration::checkSqrtM(const vnl_matrix_fixed <double,4,4 > & M, bool testrigid)
-// expects sqrt to be passed as M
 {
 
   if (testrigid) 
@@ -4150,14 +4221,15 @@ bool Registration::checkSqrtM(const vnl_matrix_fixed <double,4,4 > & M, bool tes
 }
 
 
+/** Resample both images (or if not symmetric only src) to new space.
+   Also return half way transforms.
+  Checks members: symmetry and iscale
+  Also rigid and Minit (if symmetry == true)
+*/
 void Registration::mapToNewSpace(const vnl_matrix_fixed<double , 4, 4>& M, double iscaleval, 
                                  MRI * mriS, MRI* mriT, MRI *& mri_Swarp, MRI*& mri_Twarp,
                                  vnl_matrix_fixed<double , 4, 4>& mh,
                                  vnl_matrix_fixed<double , 4, 4>& mhi) 
-// resample both images (or if not symmetric only src) to new space
-// also return half way transforms
-// checks members: symmetry and iscale
-// also rigid and Minit (if symmetry == true)
 {
 
     if (symmetry)
@@ -4238,6 +4310,28 @@ void Registration::mapToNewSpace(const vnl_matrix_fixed<double , 4, 4>& M, doubl
       MyMRI::MRIvalscale(mri_Swarp,mri_Swarp,si);
       MyMRI::MRIvalscale(mri_Twarp,mri_Twarp,1.0/si);
     }
+
+}
+
+std::pair < vnl_matrix_fixed <double,4,4 >, double > Registration::convertP2Md(const vnl_vector < double >& p) const
+{
+
+  std::pair < vnl_matrix_fixed <double,4,4 >, double> ret; ret.second = 0.0;
+
+  int psize = p.size();
+	
+  if (iscale)
+  {
+    //std::cout << " has intensity " << std::endl;
+    // last is intensity scale		
+		// ISCALECHANGE:
+    psize--;
+    ret.second =  (double) p[psize];
+  }
+  
+  trans->setParameters(p);
+  ret.first = trans->getMatrix();
+  return ret;
 
 }
 

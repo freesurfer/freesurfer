@@ -8,8 +8,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2012/08/14 18:35:40 $
- *    $Revision: 1.20 $
+ *    $Date: 2012/09/11 19:30:19 $
+ *    $Revision: 1.21 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -51,52 +51,49 @@ extern "C"
 #include "MyMatrix.h"
 #include "Regression.h"
 #include "Quaternion.h"
-
+#include "Transformation.h"
+#include "RegRobust.h"
 
 template <class T>
 class RegistrationStep
 {
 public:
- 
-					 
-  RegistrationStep(const Registration & R):sat(R.sat),iscale(R.iscale),
-									 transonly(R.transonly),rigid(R.rigid),costfun(R.costfun),rtype(R.rtype),
-									 subsamplesize(R.subsamplesize),debug(R.debug),verbose(R.verbose),
-									 floatsvd(false),iscalefinal(R.iscalefinal),mri_weights(NULL),
-									 mri_indexing(NULL){};
 
+  //! Constructor sets member from registration
+  RegistrationStep(const RegRobust & R):sat(R.sat),iscale(R.iscale),transonly(R.transonly),
+                   rigid(R.rigid),isoscale(R.isoscale),trans(R.trans),costfun(R.costfun),
+ 									 rtype(1),subsamplesize(R.subsamplesize),debug(R.debug),verbose(R.verbose),
+ 									 floatsvd(false),iscalefinal(R.iscalefinal),mri_weights(NULL),
+ 									 mri_indexing(NULL){};
+
+  //! Destructor to cleanup index image and weights
   ~RegistrationStep()
 	{ 
 	  if (mri_indexing) MRIfree(&mri_indexing);
 		if (mri_weights)  MRIfree(&mri_weights);
 	};
 
+  //! Compute a single registration step
   std::pair < vnl_matrix_fixed <double,4,4 >, double > computeRegistrationStep(MRI * mriS, MRI* mriT);
 
 	double getwcheck()      {return wcheck;};
 	double getwchecksqrt()  {return wchecksqrt;};
 	double getzeroweights() {return zeroweights;};
-	MRI * getWeights()  {return mri_weights;}; //??? who takes care of freeing? Currently we do.
+  //! Return pointer to the weights image
+	MRI * getWeights()      {return mri_weights;}; //??? who takes care of freeing? Currently we do.
+  //! Return 4x4 transformation matrix and intensity scale parameter
 	std::pair < vnl_matrix_fixed <double,4,4 >, double > getMd() {return Md;};
 
   void setFloatSVD(bool fsvd) { floatsvd = fsvd;}; // only makes sense for T=double;
 	
-// 
-//   //   returns weights:
-//   std::pair < vnl_vector < double >, MRI* > computeRegistrationStepW(MRI * mriS, MRI* mriT);
-//   //   returns param vector:
-//   vnl_vector <double > computeRegistrationStepP(MRI * mriS, MRI* mriT);
-//   //   returns 4x4 matrix and iscale:
-//   std::pair < vnl_matrix_fixed <double,4,4 >, double> computeRegistrationStep(MRI * mriS = NULL, MRI* mriT = NULL);
-
   // only public because of resampling testing in Registration.cpp
 	// should be made protected at some point.
   void constructAb(MRI *mriS, MRI *mriT, vnl_matrix < T > &A, vnl_vector < T > &b);
 
   // called from computeRegistrationStepW
-  // and externally from RegPowell
-  static std::pair < vnl_matrix_fixed <double,4,4 >, double > convertP2Md(const vnl_vector < T >& p,int rtype);
-  static std::pair < vnl_matrix_fixed <double,4,4 >, double > convertP2Md2(const vnl_vector < T >& p,bool iscale,int rtype);
+  // and externally from RegPowell (not anymore, now use transformation model)
+  //static std::pair < vnl_matrix_fixed <double,4,4 >, double > convertP2Md(const vnl_vector < T >& p,bool iscale,int rtype);
+  //static std::pair < vnl_matrix_fixed <double,4,4 >, double > convertP2Md2(const vnl_vector < T >& p,bool iscale,int rtype);
 
 
 protected:
@@ -110,6 +107,8 @@ private:
   bool iscale;
   bool transonly;
   bool rigid;
+  bool isoscale;
+  Transformation* trans;
   Registration::Cost costfun;
   int rtype;
   int subsamplesize;
@@ -133,18 +132,15 @@ private:
 	
 };
 
-//template <class T>
-//std::pair < vnl_vector < double >, MRI* > RegistrationStep<T>::computeRegistrationStepW(MRI * mriS, MRI* mriT)
+
+
+/** Computes Registration Single Step
+   The mri's have to be in same space.
+   Returns transformation matrix (and created internal float MRI with the weights, if robust, else weights ==NULL).
+   Member parameter rtype only for rigid (2: affine restriction to rigid, 1: use rigid from robust-paper)
+*/
 template <class T>
 std::pair < vnl_matrix_fixed <double,4,4 >, double >  RegistrationStep<T>::computeRegistrationStep(MRI * mriS, MRI* mriT)
-// computes Registration single step
-// the mri's have to be in same space
-// returns parameter vector and float MRI with the weights (if robust, else weights ==NULL)
-//
-// if rigid (only trans and rot) else use affine transform
-// if robust  use M-estimator instead of ordinary least squares
-// if iscale add parameter for intensity scaling
-// rtype only for rigid (2: affine restriction to rigid, 1: use rigid from robust-paper)
 {
 
 	vnl_matrix < T > A;
@@ -281,12 +277,6 @@ std::pair < vnl_matrix_fixed <double,4,4 >, double >  RegistrationStep<T>::compu
 //		   std::cerr << " Too many voxels in the center are removed! Try to set a larger SAT value! " << std::endl;
 //		   exit(1);
 //		}
-    // for 2d images convert 
-    if (mriS->depth == 1 || mriT->depth ==1)
-    {
-      
-    
-    }
 
   }
   else
@@ -306,55 +296,27 @@ std::pair < vnl_matrix_fixed <double,4,4 >, double >  RegistrationStep<T>::compu
 
 //  R.plotPartialSat(name);
 
-  if (mriS->depth ==1 || mriT->depth ==1)
-  {
-    if (mriS->depth != mriT->depth) { cout << " ERROR both src and trg need to be 2d or 3d!" << endl; exit(1);}
-    Md = convertP2Md2(pvec,iscale,rtype);
-  }
-  else
-    Md = convertP2Md(pvec,rtype);
+//   if (mriS->depth ==1 || mriT->depth ==1)
+//   {
+//     if (mriS->depth != mriT->depth) { cout << " ERROR both src and trg need to be 2d or 3d!" << endl; exit(1);}
+//     Md = convertP2Md2(pvec,iscale,rtype);
+//   }
+//   else
+//     Md = convertP2Md(pvec,iscale,rtype);
+
+  Md.second = 0.0;
+  if (iscale) Md.second = pvec[pvec.size()-1];
+  trans->setParameters(pvec);
+  Md.first = trans->getMatrix();
 
   return Md;
 }
 
-// template <class T>
-// vnl_vector <double > RegistrationStep<T>::computeRegistrationStepP(MRI * mriS, MRI* mriT)
-// // computes Registration single step
-// // retruns parameter Vector only
-// {
-//   std::pair < vnl_vector <double >, MRI*> pw = computeRegistrationStepW(mriS,mriT);
-//   if (pw.second)
-//   {
-//     //cout << "mrisweight widht " << pw.second->width << std::endl;
-// //     if (debug > 0)
-// //     {
-// //       string n = name+string("-mriS-weights.mgz");
-// //       MRIwrite(pw.second,n.c_str());
-// //     }
-//     MRIfree(&pw.second);
-//   }
-//   return pw.first;
-// }
-// 
-// 
-// template <class T>
-// std::pair <vnl_matrix_fixed <double,4,4 >,double> RegistrationStep<T>::computeRegistrationStep(MRI * mriS, MRI* mriT)
-// // computes Registration single step
-// // retruns 4x4 matrix and iscale value
-// {
-// //cout << "  Registration::computeRegistrationStep " << std::endl;
-//   vnl_vector <double > p = computeRegistrationStepP(mriS,mriT);
-// //   std::cout << " prows: " << p->rows << std::endl;
-//   std::pair <vnl_matrix_fixed <double,4,4 >, double> pd = convertP2Md(p,rtype);
-//   return pd;
-// }
-// 
-// 
 
+/** Constructs matrix A and vector b for robust regression (see paper)
+*/
 template <class T>
 void RegistrationStep<T>::constructAb(MRI *mriS, MRI *mriT,vnl_matrix < T >& A,vnl_vector< T >&b)
-// similar to robust paper
-// (with symmetry and iscale)
 {
 
   if (verbose > 1) std::cout << "   - constructAb: " << std::endl;
@@ -365,12 +327,9 @@ void RegistrationStep<T>::constructAb(MRI *mriS, MRI *mriT,vnl_matrix < T >& A,v
   assert(mriS->height== mriT->height);
   assert(mriS->depth == mriT->depth);
   assert(mriS->type  == mriT->type);
-  //assert(mriS->width == mask->width);
-  //assert(mriS->height== mask->height);
-  //assert(mriS->depth == mask->depth);
-  //assert(mask->type == MRI_INT);
-  //MRIclear(mask);
+
   bool is2d = false;
+  //cout << "Sd: " << mriS->depth << " Td: " << mriT->depth << endl;
   if ( mriS->depth == 1 || mriT->depth == 1)
   {
     if (mriT->depth != mriS->depth){cout << "ERROR: both source and target need to be 2D or 3D" << endl; exit(1);}
@@ -406,29 +365,10 @@ void RegistrationStep<T>::constructAb(MRI *mriS, MRI *mriT,vnl_matrix < T >& A,v
 
   bool dosubsample = false;
   if (subsamplesize > 0)
-    dosubsample = (mriS->width > subsamplesize && mriS->height > subsamplesize && mriS->depth > subsamplesize);
+    dosubsample = (mriS->width > subsamplesize && mriS->height > subsamplesize && (mriS->depth > subsamplesize || mriS->depth == 1));
 
-  // we will need the derivatives
+  // we will need the derivatives (fx1,fy1,fz1), smoothed image (ft1) and average (SpTh)
   if (verbose > 1) std::cout << "     -- compute derivatives ... " << std::flush;
-#if 0
-  MRI *Sfx=NULL,*Sfy=NULL,*Sfz=NULL,*Sbl=NULL;
-  MRI *Tfx=NULL,*Tfy=NULL,*Tfz=NULL,*Tbl=NULL;
-  MyMRI::getPartials(mriS,Sfx,Sfy,Sfz,Sbl);
-  MyMRI::getPartials(mriT,Tfx,Tfy,Tfz,Tbl);
-  MRI * SmT  = MRIsubtract(Sbl,Tbl,NULL); //S-T = f2-f1 =  delta f from paper
-  MRI * fx1  = MRIadd(Sfx,Tfx,Tfx); // store at Tfx location, renamed to fx1
-  MRIfree(&Sfx);
-  MRIscalarMul(fx1,fx1,0.5);
-  MRI * fy1  = MRIadd(Sfy,Tfy,Tfy); // store at Tfy location, renamed to fy1
-  MRIfree(&Sfy);
-  MRIscalarMul(fy1,fy1,0.5);
-  MRI * fz1  = MRIadd(Sfz,Tfz,Tfz); // store at Tfz location, renamed to fz1
-  MRIfree(&Sfz);
-  MRIscalarMul(fz1,fz1,0.5);
-  MRI * ft1  = MRIadd(Sbl,Tbl,Tbl); // store at Tbl location, renamed to ft1
-  MRIfree(&Sbl);
-  MRIscalarMul(ft1,ft1,0.5);
-#else
   MRI *SpTh = MRIalloc(mriS->width,mriS->height,mriS->depth,MRI_FLOAT);
 	SpTh = MRIadd(mriS,mriT,SpTh);
 	SpTh = MRIscalarMul(SpTh,SpTh,0.5);
@@ -439,10 +379,6 @@ void RegistrationStep<T>::constructAb(MRI *mriS, MRI *mriT,vnl_matrix < T >& A,v
 	SmT = MRIsubtract(mriS,mriT,SmT);
 	SmT = MyMRI::getBlur(SmT,SmT);
   
-//  MRI *Sbl = MRIalloc(mriS->width,mriS->height,mriS->depth,MRI_FLOAT);
-//  Sbl = MRIcopy(mriS,Sbl);
-//  Sbl = MyMRI::getBlur(Sbl,Sbl);
-#endif
   if (verbose > 1) std::cout << " done!" << std::endl;
   //MRIwrite(fx1,"fx.mgz");
   //MRIwrite(fy1,"fy.mgz");
@@ -454,18 +390,24 @@ void RegistrationStep<T>::constructAb(MRI *mriS, MRI *mriT,vnl_matrix < T >& A,v
   if (dosubsample)
   {
     if (verbose > 1) std::cout << "     -- subsample ... "<< std::flush;
-
-    fx = MyMRI::subSample(fx1);
+    
+    // by default the subsample routine uses random offsets, we compute the coordinates below again
+    // when looping through the subsampled image (for index creation and for constructing the matrices)
+    fx = MyMRI::subSample(fx1,NULL,false,0);
     MRIfree(&fx1);
-    fy = MyMRI::subSample(fy1);
+    fy = MyMRI::subSample(fy1,NULL,false,0);
     MRIfree(&fy1);
-    fz = MyMRI::subSample(fz1);
-    MRIfree(&fz1);
-    ft = MyMRI::subSample(ft1);
+    if (fz1)
+    {
+      fz = MyMRI::subSample(fz1,NULL,false,0);
+      MRIfree(&fz1);
+    }
+    else fz = NULL;
+    ft = MyMRI::subSample(ft1,NULL,false,0);
     MRIfree(&ft1);
 		
 		MRI *SmTt = SmT;
-		SmT = MyMRI::subSample(SmTt);
+		SmT = MyMRI::subSample(SmTt,NULL,false,0);
     MRIfree(&SmTt);
 		
     if (verbose > 1) std::cout << " done! " << std::endl;
@@ -492,17 +434,21 @@ void RegistrationStep<T>::constructAb(MRI *mriS, MRI *mriT,vnl_matrix < T >& A,v
 	int fxstart = 0;
   int xp1,yp1,zp1;
   int ocount=0,ncount=0,zcount = 0;
+  float fzvox = 1.0+eps;
+  int dx,dy,dz;
+  int randpos = 0;
   for (z = fxstart ; z < fxd ; z++)
     for (x = fxstart ; x < fxw ; x++)
       for (y = fxstart ; y < fxh ; y++)
       {
-        if (isnan(MRIFvox(fx, x, y, z)) ||isnan(MRIFvox(fy, x, y, z)) || isnan(MRIFvox(fz, x, y, z)) || isnan(MRIFvox(ft, x, y, z)) )
+        if (!is2d) fzvox = MRIFvox(fz, x, y, z);
+        if (isnan(MRIFvox(fx, x, y, z)) ||isnan(MRIFvox(fy, x, y, z)) || isnan(fzvox) || isnan(MRIFvox(ft, x, y, z)) )
         {
           //if (verbose > 0) std::cout << " found a nan value!!!" << std::endl;
           ncount++;
           continue;
         }
-        if (fabs(MRIFvox(fx, x, y, z)) < eps  && fabs(MRIFvox(fy, x, y, z)) < eps &&  fabs(MRIFvox(fz, x, y, z)) < eps )
+        if (fabs(MRIFvox(fx, x, y, z)) < eps  && fabs(MRIFvox(fy, x, y, z)) < eps &&  fabs(fzvox) < eps )
         {
           //if (verbose > 0) std::cout << " found a zero element !!!" << std::endl;
           zcount++;
@@ -510,10 +456,20 @@ void RegistrationStep<T>::constructAb(MRI *mriS, MRI *mriT,vnl_matrix < T >& A,v
         }
         if (dosubsample)
         {
-          xp1 = 2*x;
-          yp1 = 2*y;
+          // dx,dy and dz need to agree with the subsampling above
+          dx = (int)(2.0*MyMRI::getRand(randpos));
+          randpos++;
+          dy = (int)(2.0*MyMRI::getRand(randpos));
+          randpos++;
+          xp1 = 2*x+dx;
+          yp1 = 2*y+dy;
           if (is2d) zp1 = z;
-          else zp1 = 2*z;
+          else
+          {
+            dz = (int)(2.0*MyMRI::getRand(randpos));
+            randpos++;
+            zp1 = 2*z+dz;
+          }
         }
         else 
         {
@@ -552,20 +508,9 @@ void RegistrationStep<T>::constructAb(MRI *mriS, MRI *mriT,vnl_matrix < T >& A,v
   if (verbose >1) cout << "     -- nans: " << ncount << " zeros: " <<zcount << " outside: " << ocount << endl;
 
   // allocate the space for A and B
-  int pnum = 12;
-  if (transonly)  pnum = 3;
-  else if (rigid) pnum = 6;
-  
-  if (is2d)
-  { 
-    pnum = 6;
-    if (transonly) pnum = 2;
-    else if (rigid) pnum = 3;
-  }
-  
+  int pnum = trans->getDOF();  
   if (iscale) pnum++;
   //cout << " pnum: " << pnum << "  counti: " << counti<<  endl;
-
   double amu = ((double)counti*(pnum+1)) * sizeof(T) / (1024.0 * 1024.0); // +1 =  rowpointer vector
 	double bmu = (double)counti * sizeof(T) / (1024.0 * 1024.0);
   if (verbose > 1) std::cout << "     -- allocating " << amu + bmu<< "Mb mem for A and b ... " << std::flush;
@@ -574,16 +519,15 @@ void RegistrationStep<T>::constructAb(MRI *mriS, MRI *mriT,vnl_matrix < T >& A,v
 	if ( !OK )
 	{
  	  std::cout << std::endl;
-     ErrorExit(ERROR_NO_MEMORY,"Registration::constructAB could not allocate memory for A and b") ;
-	
+    ErrorExit(ERROR_NO_MEMORY,"Registration::constructAB could not allocate memory for A and b") ;
 	}
   if (verbose > 1) std::cout << " done! " << std::endl;
 	double maxmu = 5* amu + 7 * bmu;
 	string fstr = "";
 	if (floatsvd) 
 	{
-	   maxmu = amu + 3*bmu + 2*(amu+bmu);
-		 fstr = "-float";
+	  maxmu = amu + 3*bmu + 2*(amu+bmu);
+		fstr = "-float";
 	}
   if (verbose > 1 ) std::cout << "         (MAX usage in SVD"<<fstr<<" will be > " << maxmu << "Mb mem + 6 MRI) " << std::endl;
   if (maxmu > 3800)
@@ -599,14 +543,21 @@ void RegistrationStep<T>::constructAb(MRI *mriS, MRI *mriT,vnl_matrix < T >& A,v
 //        std::cin  >> ch;
 
   // Loop and construct A and b
-  //int xp1,yp1,zp1;
 	long int count = 0;
   ocount = 0;
+  fzvox = 1.0+eps;
+  randpos = 0;
+  float fzval = 1.0+eps;
+  
   for (z = fxstart ; z < fxd ; z++)
     for (x = fxstart ; x < fxw ; x++)
       for (y = fxstart ; y < fxh ; y++)
       {
-        if (isnan(MRIFvox(fx, x, y, z)) ||isnan(MRIFvox(fy, x, y, z)) || isnan(MRIFvox(fz, x, y, z)) || isnan(MRIFvox(ft, x, y, z)) )
+        const float & ftval = MRIFvox(ft, x, y, z);
+        const float & fxval = MRIFvox(fx, x, y, z);
+        const float & fyval = MRIFvox(fy, x, y, z);
+        if (!is2d) fzval = MRIFvox(fz, x, y, z);
+        if (isnan(fxval) || isnan(fyval) || isnan(fzval) || isnan(ftval) )
         {
           //if (verbose > 0) std::cout << " found a nan value!!!" << std::endl;
           continue;
@@ -614,19 +565,23 @@ void RegistrationStep<T>::constructAb(MRI *mriS, MRI *mriT,vnl_matrix < T >& A,v
 
         if (dosubsample)
         {
-          //xp1 = 2*x+2;
-          //yp1 = 2*y+2;
-          //zp1 = 2*z+2;
-          xp1 = 2*x;
-          yp1 = 2*y;
+          // dx,dy and dz need to agree with the subsampling above
+          dx = (int)(2.0*MyMRI::getRand(randpos));
+          randpos++;
+          dy = (int)(2.0*MyMRI::getRand(randpos));
+          randpos++;
+          xp1 = 2*x+dx;
+          yp1 = 2*y+dy;
           if (is2d) zp1 = z;
-          else zp1 = 2*z;
+          else
+          {
+            dz = (int)(2.0*MyMRI::getRand(randpos));
+            randpos++;
+            zp1 = 2*z+dz;
+          }
         }
-        else // if not subsampled, shift only due to 5 tab derivative above
+        else // if not subsampled
         {
-          //xp1 = x+2;
-          //yp1 = y+2;
-          //zp1 = z+2; 
           xp1 = x;
           yp1 = y;
           zp1 = z; 
@@ -636,7 +591,7 @@ void RegistrationStep<T>::constructAb(MRI *mriS, MRI *mriT,vnl_matrix < T >& A,v
         assert(zp1 < mriS->depth);
 
 
-        if (fabs(MRIFvox(fx, x, y, z)) < eps  && fabs(MRIFvox(fy, x, y, z)) < eps &&  fabs(MRIFvox(fz, x, y, z)) < eps )
+        if (fabs(fxval) < eps  && fabs(fyval) < eps &&  fabs(fzval) < eps )
         {
           //if (verbose > 0) std::cout << " found a zero element !!!" << std::endl;
           MRILvox(mri_indexing, xp1, yp1, zp1) = -1;
@@ -666,86 +621,140 @@ void RegistrationStep<T>::constructAb(MRI *mriS, MRI *mriT,vnl_matrix < T >& A,v
 
         //cout << "x: " << x << " y: " << y << " z: " << z << " std::coutn: "<< count << std::endl;
         //cout << " " << count << " mrifx: " << MRIFvox(mri_fx, x, y, z) << " mrifx int: " << (int)MRIvox(mri_fx,x,y,z) <<endl;
-				int dof = 0;
-        if (transonly)
-        {
-          if (is2d)
-          {
-            A[count][0] = MRIFvox(fx, x, y, z);
-            A[count][1] = MRIFvox(fy, x, y, z);
-            dof = 2;
-          }
-          else
-          {
-            A[count][0] = MRIFvox(fx, x, y, z);
-            A[count][1] = MRIFvox(fy, x, y, z);
-            A[count][2] = MRIFvox(fz, x, y, z);
-				    dof = 3;
-          }
-        }
-        else if (rigid)
-        {
-          if (is2d)
-          {
-            A[count][0] =  MRIFvox(fx, x, y, z);
-            A[count][1] =  MRIFvox(fy, x, y, z);
-            A[count][2] = (MRIFvox(fy, x, y, z)*xp1 - MRIFvox(fx, x, y, z)*yp1);
-					  dof = 3;        
-          }
-          else
-          {
-            A[count][0] =  MRIFvox(fx, x, y, z);
-            A[count][1] =  MRIFvox(fy, x, y, z);
-            A[count][2] =  MRIFvox(fz, x, y, z);
-            A[count][3] = (MRIFvox(fz, x, y, z)*yp1 - MRIFvox(fy, x, y, z)*zp1);
-            A[count][4] = (MRIFvox(fx, x, y, z)*zp1 - MRIFvox(fz, x, y, z)*xp1);
-            A[count][5] = (MRIFvox(fy, x, y, z)*xp1 - MRIFvox(fx, x, y, z)*yp1);
-					  dof = 6;
-          }
-					
-        }
-        else // affine
-        {
-          if (is2d)
-          {
-            A[count][0]  = MRIFvox(fx, x, y, z)*xp1;
-            A[count][1]  = MRIFvox(fx, x, y, z)*yp1;
-            A[count][2]  = MRIFvox(fx, x, y, z);
-            A[count][3]  = MRIFvox(fy, x, y, z)*xp1;
-            A[count][4]  = MRIFvox(fy, x, y, z)*yp1;
-            A[count][5]  = MRIFvox(fy, x, y, z);
-					  dof = 6;
-          }
-          {
-            A[count][0]  = MRIFvox(fx, x, y, z)*xp1;
-            A[count][1]  = MRIFvox(fx, x, y, z)*yp1;
-            A[count][2]  = MRIFvox(fx, x, y, z)*zp1;
-            A[count][3]  = MRIFvox(fx, x, y, z);
-            A[count][4]  = MRIFvox(fy, x, y, z)*xp1;
-            A[count][5]  = MRIFvox(fy, x, y, z)*yp1;
-            A[count][6]  = MRIFvox(fy, x, y, z)*zp1;
-            A[count][7]  = MRIFvox(fy, x, y, z);
-            A[count][8]  = MRIFvox(fz, x, y, z)*xp1;
-            A[count][9]  = MRIFvox(fz, x, y, z)*yp1;
-            A[count][10] = MRIFvox(fz, x, y, z)*zp1;
-            A[count][11] = MRIFvox(fz, x, y, z);
-					  dof = 12;
-          }
-        }
 
-     // !! ISCALECHANGE
-        //if (iscale) A[count][dof] = (0.5 / iscalefinal) * ( MRIFvox(Tbl, x, y, z) + MRIFvox(Sbl,x,y,z));
-        //if (iscale) A[count][dof] = 2.0* MRIFvox(ft, x, y, z) / sqrt(iscalefinal);
-        //if (iscale) A[count][dof] = MRIFvox(ft, x, y, z) / iscalefinal;
-        //if (iscale) A[count][dof] = MRIFvox(Sbl,x,y,z); // not symmetric here, but much more stable, we still map both to geometric intensity mean
-        //if (iscale) A[count][dof] = 2.0 * MRIFvox(ft,x,y,z); 
+        // new: now use transformation model to get the gradient vector
+        vnl_vector < double > grad = trans->getGradient(x,fxval,y,fyval,z,fzval);
+        int dof = grad.size();
+        for (int pno = 0; pno < dof; pno++)
+        {
+          A[count][pno] =  grad[pno];
+        }
+                
+//         if (transonly)
+//         {
+//           if (is2d)
+//           {
+//             vnl_vector < double > grad = Trans->getGradient(x,fxval,y,fyval,z,fzval);
+//             dof = grad.size();
+//             for (int pno = 0; pno < dof; pno++)
+//             {
+//               A[count][pno] =  grad[pno];
+//             }
+//            // A[count][0] = fxval;
+//            // A[count][1] = fyval;
+//            // dof = 2;
+//           }
+//           else
+//           {
+//             A[count][0] = fxval;
+//             A[count][1] = fyval;
+//             A[count][2] = fzval;
+// 				    dof = 3;
+//           }
+//         }
+//         else if (rigid)
+//         {
+//           if (is2d)
+//           {
+//             vnl_vector < double > grad = Trans->getGradient(x,fxval,y,fyval,z,fzval);
+//             dof = grad.size();
+//             for (int pno = 0; pno < dof; pno++)
+//             {
+//               A[count][pno] =  grad[pno];
+//             }
+//             //A[count][0] =  fxval;
+//             //A[count][1] =  fyval;
+//             //A[count][2] = (fyval*xp1 - fxval*yp1);
+// 					  //dof = 3;     
+//           }
+//           else
+//           {
+//             A[count][0] =  fxval;
+//             A[count][1] =  fyval;
+//             A[count][2] =  fzval;
+//             A[count][3] = (fzval*yp1 - fyval*zp1);
+//             A[count][4] = (fxval*zp1 - fzval*xp1);
+//             A[count][5] = (fyval*xp1 - fxval*yp1);
+// 					  dof = 6;
+//           }
+// 					
+//         }
+//         else if (isoscale)
+//         {
+//           if (is2d) // [ p -q ; q p ] + T
+//           {
+//             vnl_vector < double > grad = Trans->getGradient(x,fxval,y,fyval,z,fzval);
+//             dof = grad.size();
+//             for (int pno = 0; pno < dof; pno++)
+//             {
+//               A[count][pno] =  grad[pno];
+//             }
+//             //A[count][0] =  fxval;
+//             //A[count][1] =  fyval;
+//             //A[count][2] =  fxval*xp1 + fyval*yp1;
+//             //A[count][3] = -fxval*yp1 + fyval*xp1;
+// 					  //dof = 4;
+//           }
+//           else
+//           {
+//             A[count][0] =  fxval;
+//             A[count][1] =  fyval;
+//             A[count][2] =  fzval;
+//             A[count][3] = (fzval*yp1 - fyval*zp1);
+//             A[count][4] = (fxval*zp1 - fzval*xp1);
+//             A[count][5] = (fyval*xp1 - fxval*yp1);
+//             A[count][6] = (fxval*xp1 + fyval*yp1);
+// 					  dof = 7;
+//             cerr << " Isoscale in 3D not implemented yet, use ridig or affine" <<endl;
+//             exit(1);
+//           }        
+//         }
+//         else // affine
+//         {
+//           if (is2d)
+//           {
+//             //A[count][0]  = fxval*xp1;
+//             //A[count][1]  = fxval*yp1;
+//             //A[count][2]  = fxval;
+//             //A[count][3]  = fyval*xp1;
+//             //A[count][4]  = fyval*yp1;
+//             //A[count][5]  = fyval;
+// 					  //dof = 6;
+//             
+//             vnl_vector < double > grad = Trans->getGradient(x,fxval,y,fyval,z,fzval);
+//             dof = grad.size();
+//             for (int pno = 0; pno < dof; pno++)
+//             {
+//               A[count][pno] =  grad[pno];
+//             }
+//           }
+//           else
+//           {
+//             A[count][0]  = fxval*xp1;
+//             A[count][1]  = fxval*yp1;
+//             A[count][2]  = fxval*zp1;
+//             A[count][3]  = fxval;
+//             A[count][4]  = fyval*xp1;
+//             A[count][5]  = fyval*yp1;
+//             A[count][6]  = fyval*zp1;
+//             A[count][7]  = fyval;
+//             A[count][8]  = fzval*xp1;
+//             A[count][9]  = fzval*yp1;
+//             A[count][10] = fzval*zp1;
+//             A[count][11] = fzval;
+// 					  dof = 12;
+//           }
+//         }
 
+
+        // ISCALE
         // intensity model: R(s,IS,IT) = exp(-0.5 s) IT - exp(0.5 s) IS
         //                  R'  = -0.5 ( exp(-0.5 s) IT + exp(0.5 s) IS)
         //   ft = 0.5 ( exp(-0.5s) IT + exp(0.5s) IS)  (average of intensity adjusted images)
-        if (iscale) A[count][dof]  = MRIFvox(ft,x,y,z); 
-        				 
-        b[count] =  MRIFvox(SmT, x, y, z); // S-T
+        if (iscale) A[count][dof]  = ftval; 
+        
+        // A p = b = IS - IT
+        b[count] =  MRIFvox(SmT, x, y, z);
 
         count++; // start with 0 above
 
@@ -754,291 +763,466 @@ void RegistrationStep<T>::constructAb(MRI *mriS, MRI *mriT,vnl_matrix < T >& A,v
   //cout << " counti: " << counti << " count : " << count<< endl;    
 	assert(counti == count);
       
-  // vnl_matlab_print(vcl_cerr,A,"A",vnl_matlab_print_format_long);std::cerr << std::endl;    
-  // vnl_matlab_print(vcl_cerr,b,"b",vnl_matlab_print_format_long);std::cerr << std::endl;    
+//   vnl_matlab_print(vcl_cerr,A,"A",vnl_matlab_print_format_long);std::cerr << std::endl;    
+//   vnl_matlab_print(vcl_cerr,b,"b",vnl_matlab_print_format_long);std::cerr << std::endl;    
       
   // free remaining MRI    
   MRIfree(&fx);
   MRIfree(&fy);
-  MRIfree(&fz);
+  if (fz) MRIfree(&fz);
   MRIfree(&ft);
 	MRIfree(&SmT);
-
+  
   return;
 }
 
 
-template <class T>
-pair < vnl_matrix_fixed <double,4,4 >, double > RegistrationStep<T>::convertP2Md(const vnl_vector < T >& p, int rtype)
-// rtype : use restriction (if 2) or rigid from robust paper
-// returns registration as 4x4 matrix M, and iscale
-{
-//   std::cout << " RegistrationStep<T>::convertP2Md(MATRIX* p) (p->rows: " << p->rows << " )" << std::flush;
-  std::pair < vnl_matrix_fixed <double,4,4 >, double> ret; ret.second = 0.0;
+// template <class T>
+// pair < vnl_matrix_fixed <double,4,4 >, double > RegistrationStep<T>::convertP2Md(const vnl_vector < T >& p, bool iscale, int rtype)
+// // rtype : use restriction (if 2) or rigid from robust paper
+// // returns registration as 4x4 matrix M, and iscale
+// {
+// //   std::cout << " RegistrationStep<T>::convertP2Md(MATRIX* p) (p->rows: " << p->rows << " )" << std::flush;
+//   std::pair < vnl_matrix_fixed <double,4,4 >, double> ret; ret.second = 0.0;
+// 
+//   int psize = p.size();
+// 	
+//   if (iscale)
+//   {
+//     //std::cout << " has intensity " << std::endl;
+//     // last is intensity scale		
+// 		// ISCALECHANGE:
+//     psize--;
+//     ret.second =  (double) p[psize];
+//   }
+//   
+//   if (rtype == 1)
+//   {
+//     Transformation * Trans = NULL;
+//     if (psize == 12)     Trans = new Transform3dAffine(p);
+//     else if (psize == 7) Trans = new Transform3dIsoscale(p);
+//     else if (psize == 6) Trans = new Transform3dRigid(p);
+//     else if (psize == 3) Trans = new Transform3dTranslate(p);
+//     else
+//     {
+//       std::cerr << " ERROR: unknown 3d transformation (type 1) with " << psize << " DOF" << std::endl;
+//       assert(1==2);
+//     }
+//     
+//     ret.first = Trans->getMatrix();
+//     free(Trans);
+//     return ret;
+//   }
+//   else if (rtype == 2)
+//   {
+//     Transformation * Trans = NULL;
+//     if (psize == 12)     Trans = new Transform3dAffine2(p);
+//     else if (psize == 7) Trans = new Transform3dIsoscale2(p);
+//     else if (psize == 6) Trans = new Transform3dRigid2(p);
+//     else if (psize == 3) Trans = new Transform3dTranslate(p);
+//     else 
+//     {
+//       std::cerr << " ERROR: unknown 3d transformation (type 2) with " << psize << " DOF" << std::endl;
+//       assert(1==2);
+//     }
+//     
+//     ret.first = Trans->getMatrix();
+//     free(Trans);
+//     return ret;  
+//   }
+//   else
+//   {
+//     std::cerr << " ERROR: unknown rtype (should never get here) ..." << std::endl;
+//     assert(1==2);
+//   }
+//   
+//   
+//   
+//   // now transformation parameters:
+//   
+//   if (psize == 12) // affine
+// 	{
+//     if (rtype == 1)
+//     {
+//       // affine, just the 12 parameters as matrix add-ons
+// 	    ret.first.set_identity();
+//       int count = 0;
+//       for (int rr = 0;rr<3;rr++)
+//       for (int cc = 0;cc<4;cc++)
+//       {
+//         ret.first[rr][cc] +=  p[count];
+//         count++;
+//       }
+//     }
+//     else if (rtype == 2)
+//     {
+//       // M = T*shear*Scale*Rot
+//       
+//       //Rot
+// 		  Quaternion q;
+//       q.importZYXAngles(-p[5], p[4], -p[3]); // same as spm now
+//       vnl_matrix < double > rmat = MyMatrix::getVNLMatrix(q.getRotMatrix3d(),3);
+//       //Scale
+//       vnl_matrix < double > smat(3,3,0.0);
+//       smat[0][0] = p[6]; smat[1][1] = p[7]; smat[2][2] = p[8];
+//       //Shear
+//       vnl_matrix <double > zmat(3,3); zmat.set_identity();
+//       zmat[0][1] = p[9]; zmat[0][2] = p[10]; zmat[1][2] = p[11];
+//       // product 3x3
+//       vnl_matrix <double> M3 = zmat * smat * rmat;
+//       // consturct 4x4 with translation also:
+//       int rr, cc;
+//       for (rr=0;rr<3;rr++)
+//       {
+//         for (cc=0;cc<3;cc++) // copy M3
+//           ret.first[rr][cc] =M3[rr][cc];
+// 
+//         // copy translation into 4th column
+//         ret.first[rr][3] = p[rr];
+//         // set 4th row to zero
+//         ret.first[3][rr] = 0.0;
+//       }
+//       //except 4,4
+//       ret.first[3][3] = 1.0;
+//       
+//       
+//     }
+//     else assert(1==2);
+// 	} 
+//   else if (psize == 7) // rigid and isotropic scale: tx,ty,tz,r1,r2,r3,s
+//   {
+//     
+//     // M = T*(Scale*Rot)
+// 
+//     //Rotation
+//     Quaternion q;
+//     if (rtype == 1)
+//     {
+//       q.importRotVec(p[3],p[4],p[5]);
+//     }
+//     else if (rtype == 2)
+//     {
+//       // first convert rotation to quaternion (clockwise)
+//       //q.importZYXAngles(-p[5], -p[4], -p[3]);
+//       q.importZYXAngles(-p[5],p[4],-p[3]); // same as spm now
+//     }           
+//     else assert(1==2);    
+//     vnl_matrix < double > rmat = MyMatrix::getVNLMatrix(q.getRotMatrix3d(),3);
+// 
+//     // scale
+//     rmat = ((double)p[6]) * rmat;
+//       
+//     // copy 
+// 	  ret.first.set_identity();
+//     int rr, cc;
+//     for (rr=0;rr<3;rr++)
+//       for (cc=0;cc<3;cc++) // copy 
+//         ret.first[rr][cc] = rmat[rr][cc];
+// 
+//     // translation
+//     ret.first[0][3] = p[0];
+//     ret.first[1][3] = p[1];
+//     ret.first[2][3] = p[2];
+//   
+//   }
+//   else if (psize == 6) // rigid tx,ty,tz,r1,r2,r3
+//   {
+//     // converts rot vector (3x1) and translation vector (3x1)
+//     // into an affine matrix (homogeneous coord) 4x4
+//     // if global rtype ==1 r1,r2,r3 are as in robust paper (axis, and length is angle)
+//     // if global rtype ==2 then r1,r2,r3 are angles around x,y,z axis (order 1zrot,2yrot,3xrot)
+// 		Quaternion q;
+//     if (rtype == 2)
+//     {
+//       // first convert rotation to quaternion (clockwise)
+//       //q.importZYXAngles(-p[5], -p[4], -p[3]);
+//       q.importZYXAngles(-p[5], p[4], -p[3]); // same as spm now
+//     }
+//     else if (rtype == 1)
+//     {
+//       // first convert rotation to quaternion;
+//       q.importRotVec(p[3],p[4],p[5]);
+//     }
+//     else assert (1==2);
+//     // then to rotation matrix
+//     vnl_matrix < double > rmat = MyMatrix::getVNLMatrix(q.getRotMatrix3d(),3);
+// 		
+//     int rr, cc;
+//     for (rr=0;rr<3;rr++)
+//     {
+//       for (cc=0;cc<3;cc++) // copy rot-matrix
+//         ret.first[rr][cc] = rmat[rr][cc];
+// 
+//       // copy translation into 4th column
+//       ret.first[rr][3] = p[rr];
+//       // set 4th row to zero
+//       ret.first[3][rr] = 0.0;
+//     }
+//     //except 4,4
+//     ret.first[3][3] = 1.0;
+//   }
+//   else if (psize == 3) // translation only
+//   {
+// 	  ret.first.set_identity();
+// 		ret.first[0][3] = p[0];
+// 		ret.first[1][3] = p[1];
+// 		ret.first[2][3] = p[2];
+//   }
+//   else
+//   {
+//     cerr << " transformation neither 3,6,7 nor 12 dof : " << psize <<" ??" << std::endl;
+//     assert(1==2);
+//   }
+// 
+// //   std::cout << " -- DONE " << std::endl;
+//   return ret;
+// }
+// 
+// template <class T>
+// pair < vnl_matrix_fixed <double,4,4 >, double > RegistrationStep<T>::convertP2Md2(const vnl_vector < T >& p, bool iscale, int rtype)
+// // rtype : use restriction (if 2) or rigid from robust paper
+// // returns registration as 4x4 matrix M, and iscale
+// {
+// //  if (iscale) std::cout << " RegistrationStep<T>::convertP2Md2(p,iscale=true,"<<rtype<<") (p length: " << p.size() << " )" << std::flush;
+// //  else  std::cout << " RegistrationStep<T>::convertP2Md2(p,iscale=false,"<<rtype<<") (p length: " << p.size() << " )" << std::flush;
+// //  std::cout<< endl; vnl_matlab_print(vcl_cout,p,"p",vnl_matlab_print_format_long);std::cout << std::endl;
+//   std::pair < vnl_matrix_fixed <double,4,4 >, double> ret; ret.second = 0.0;
+// 
+//   int psize = p.size();
+// 	
+//   if (iscale) // iscale
+//   {
+//     //std::cout << " has intensity " << std::endl;
+//     // last is intensity scale		
+// 		// ISCALECHANGE:
+//     psize--;
+//     ret.second =  (double) p[psize];
+//   }
+// 
+//   if (rtype == 1)
+//   {
+//     Transformation * Trans = NULL;
+//     if (psize == 6)      Trans = new Transform2dAffine(p);
+//     else if (psize == 4) Trans = new Transform2dIsoscale(p);
+//     else if (psize == 3) Trans = new Transform2dRigid(p);
+//     else if (psize == 2) Trans = new Transform2dTranslate(p);
+//     else
+//     {
+//       std::cerr << " ERROR: unknown 2d transformation (type 1) with " << psize << " DOF" << std::endl;
+//       assert(1==2);
+//     }
+//     
+//     ret.first = Trans->getMatrix();
+//     free(Trans);
+//     return ret;
+//   }
+//   else if (rtype == 2)
+//   {
+//     Transformation * Trans = NULL;
+//     if (psize == 6)      Trans = new Transform2dAffine2(p);
+//     else if (psize == 4) Trans = new Transform2dIsoscale2(p);
+//     else if (psize == 3) Trans = new Transform2dRigid(p);
+//     else if (psize == 2) Trans = new Transform2dTranslate(p);
+//     else
+//     {
+//       std::cerr << " ERROR: unknown 2d transformation (type 2) with " << psize << " DOF" << std::endl;
+//       assert(1==2);
+//     }
+//     
+//     ret.first = Trans->getMatrix();
+//     free(Trans);
+//     return ret;
+//   }
+//   else
+//   {
+//     cerr << " ERROR: unknown rtype (should never get here) ..." << std::endl;
+//     assert(1==2);
+//   }
+//   
+// 
+// 
+//   
+//   // now transformation parameters:
+//   
+//   if (psize == 6) //AFFINE 2D
+// 	{
+//     if (rtype == 1)
+//     {
+//       // affine, just the 6 parameters as matrix add-ons
+// 	    /*ret.first.set_identity();
+//       ret.first[0][0] += p[0];
+//       ret.first[0][1] += p[1];
+//       ret.first[0][3] += p[2];
+//       ret.first[1][0] += p[3];
+//       ret.first[1][1] += p[4];
+//       ret.first[1][3] += p[5];*/
+//       Transform2dAffine A2d(p);
+//       ret.first = A2d.getMatrix();
+//     }
+//     else if (rtype == 2)
+//     {
+//       // M = T*shear*Scale*Rot
+//       // Translation
+// 		  vnl_vector_fixed <double,3 > t(p[0],p[1],0);   
+//       //Rot
+// 		  Quaternion q;
+//       q.importZYXAngles(-p[2],0,0);
+//       vnl_matrix < double > rmat = MyMatrix::getVNLMatrix(q.getRotMatrix3d(),3);
+//       //Scale
+//       vnl_matrix < double > smat(3,3,0.0);
+//       smat[0][0] = p[3]; smat[1][1] = p[4]; smat[2][2] = 1;
+//       //Shear
+//       vnl_matrix <double > zmat(3,3); zmat.set_identity();
+//       zmat[0][1] = p[5]; 
+//       // product 3x3
+//       vnl_matrix <double> M3 = zmat * smat * rmat;
+//       // consturct 4x4 with translation also:
+//       int rr, cc;
+//       for (rr=0;rr<3;rr++)
+//       {
+//         for (cc=0;cc<3;cc++) // copy M3
+//           ret.first[rr][cc] =M3[rr][cc];
+// 
+//         // copy translation into 4th column
+//         ret.first[rr][3] = t[rr];
+//         // set 4th row to zero
+//         ret.first[3][rr] = 0.0;
+//       }
+//       //except 4,4
+//       ret.first[3][3] = 1.0;
+//       
+//       
+//     }
+//     else assert(1==2);
+// 	} 
+//   else if (psize == 4) // rigid and isotropic scaling
+//   {
+//     if (rtype == 1)
+//     {
+// //       // matrix add-ons
+// // 	    ret.first.set_identity();
+// //       ret.first[0][0] += p[2];
+// //       ret.first[0][1] += -p[3];
+// //       ret.first[0][3] += p[0];
+// //       ret.first[1][0] += p[3];
+// //       ret.first[1][1] += p[2];
+// //       ret.first[1][3] += p[1];
+//       Transform2dIsoscale A2d(p);
+//       ret.first = A2d.getMatrix();
+//     }
+//     else if (rtype == 2)
+//     {
+//       // M = T*(Scale*Rot)
+//       //Rot
+// 		  Quaternion q;
+//       q.importZYXAngles(-p[2],0,0);
+//       vnl_matrix < double > rmat = MyMatrix::getVNLMatrix(q.getRotMatrix3d(),3);
+// 
+//       // scale
+// 	    ret.first.set_identity();
+//       ret.first[0][0] = p[3] * rmat[0][0];
+//       ret.first[0][1] = p[3] * rmat[0][1];
+//       ret.first[1][0] = p[3] * rmat[1][0];
+//       ret.first[1][1] = p[3] * rmat[1][1];
+//      
+//       // translation
+//       ret.first[0][3] = p[0];
+//       ret.first[1][3] = p[1];
+//     }
+//     else assert(1==2);
+//   
+//   
+//   }
+//   else if (psize == 3) // rigid (rot and trans xy)
+//   {
+//     if (rtype == 1)
+//     {
+// //       // matrix add-ons
+// // 	    ret.first.set_identity();
+// //       ret.first[0][0] += p[2];
+// //       ret.first[0][1] += -p[3];
+// //       ret.first[0][3] += p[0];
+// //       ret.first[1][0] += p[3];
+// //       ret.first[1][1] += p[2];
+// //       ret.first[1][3] += p[1];
+//       Transform2dRigid A2d(p);
+//       ret.first = A2d.getMatrix();
+//     }
+//     else if (rtype == 2)
+//     {
+//  		// rigid: first 2 translation, next rotation (as a vector)
+// 		// split translation and rotation:
+// 		vnl_vector_fixed <double,3 > t(p[0],p[1],0);
+// 		double r = p[2];
+// 
+//     // converts rot vector (3x1) and translation vector (3x1)
+//     // into an affine matrix (homogeneous coord) 4x4
+//     // if global rtype ==1 r1,r2,r3 are as in robust paper (axis, and length is angle)
+//     // if global rtype ==2 then r1,r2,r3 are angles around x,y,z axis (order 1zrot,2yrot,3xrot)
+// 		vnl_matrix < double > rmat;
+// 		Quaternion q;
+//     if (rtype == 2)
+//     {
+//       // first convert rotation to quaternion (clockwise)
+//       //q.importZYXAngles(-r[2], -r[1], -r[0]);
+//       q.importZYXAngles(-r, 0, 0); // same as spm now
+//     }
+//     else if (rtype == 1)
+//     {
+//       // first convert rotation to quaternion;
+//       q.importRotVec(0,0,r);
+//       //cout << " r: " << r << endl;
+//       //cout << " q: " << q << endl;
+//     }
+//     else assert (1==2);
+//     // then to rotation matrix
+//     rmat = MyMatrix::getVNLMatrix(q.getRotMatrix3d(),3);
+// 		
+//     int rr, cc;
+//     for (rr=0;rr<3;rr++)
+//     {
+//       for (cc=0;cc<3;cc++) // copy rot-matrix
+//         ret.first[rr][cc] = rmat[rr][cc];
+// 
+//       // copy translation into 4th column
+//       ret.first[rr][3] = t[rr];
+//       // set 4th row to zero
+//       ret.first[3][rr] = 0.0;
+//     }
+//     //except 4,4
+//     ret.first[3][3] = 1.0;
+//     }
+//   }
+//   else if (psize == 2) // translation only
+//   {
+//       Transform2dTranslate A2d(p);
+//       ret.first = A2d.getMatrix();
+// //	  ret.first.set_identity();
+// //		ret.first[0][3] = p[0];
+// //		ret.first[1][3] = p[1];
+// //		ret.first[2][3] = 0;
+//   }
+//   else
+//   {
+//     cerr << " transformation neither 6,4,3 nor 2 dof : " << psize <<" ??" << std::endl;
+//     assert(1==2);
+//   }
+// //  std::cout<< endl; vnl_matlab_print(vcl_cout,ret.first,"Mt",vnl_matlab_print_format_long);std::cout << std::endl;
+// 
+// //   std::cout << " -- DONE " << std::endl;
+//   return ret;
+// }
 
-  int psize = p.size();
-	
-  if (psize == 4 ||psize == 7 || psize == 10|| psize == 13) // iscale
-  {
-    //std::cout << " has intensity " << std::endl;
-    // last is intensity scale		
-		// ISCALECHANGE:
-    psize--;
-    ret.second =  (double) p[psize];
-  }
-  
-  // now transformation parameters:
-  
-  if (psize == 12)
-	{
-    if (rtype == 1)
-    {
-      // affine, just the 12 parameters as matrix add-ons
-	    ret.first.set_identity();
-      int count = 0;
-      for (int rr = 0;rr<3;rr++)
-      for (int cc = 0;cc<4;cc++)
-      {
-        ret.first[rr][cc] +=  p[count];
-        count++;
-      }
-    }
-    else if (rtype == 2)
-    {
-      // M = T*shear*Scale*Rot
-      
-      //Rot
-		  Quaternion q;
-      q.importZYXAngles(-p[5], p[4], -p[3]); // same as spm now
-      vnl_matrix < double > rmat = MyMatrix::getVNLMatrix(q.getRotMatrix3d(),3);
-      //Scale
-      vnl_matrix < double > smat(3,3,0.0);
-      smat[0][0] = p[6]; smat[1][1] = p[7]; smat[2][2] = p[8];
-      //Shear
-      vnl_matrix <double > zmat(3,3); zmat.set_identity();
-      zmat[0][1] = p[9]; zmat[0][2] = p[10]; zmat[1][2] = p[11];
-      // product 3x3
-      vnl_matrix <double> M3 = zmat * smat * rmat;
-      // consturct 4x4 with translation also:
-      int rr, cc;
-      for (rr=0;rr<3;rr++)
-      {
-        for (cc=0;cc<3;cc++) // copy M3
-          ret.first[rr][cc] =M3[rr][cc];
 
-        // copy translation into 4th column
-        ret.first[rr][3] = p[rr];
-        // set 4th row to zero
-        ret.first[3][rr] = 0.0;
-      }
-      //except 4,4
-      ret.first[3][3] = 1.0;
-      
-      
-    }
-    else assert(1==2);
-	} 
-  else if (psize == 6)
-  {
-		// rigid: first 3 translation, next 3 rotation (as a vector)
-		// split translation and rotation:
-		vnl_vector_fixed <double,3 > t;
-		vnl_vector_fixed <double,3 > r;
-    for (int rr = 0;rr<3;rr++)
-    {
-      t[rr] = (double)p[rr];
-      r[rr] = (double)p[rr+3];
-    }
-    // converts rot vector (3x1) and translation vector (3x1)
-    // into an affine matrix (homogeneous coord) 4x4
-    // if global rtype ==1 r1,r2,r3 are as in robust paper (axis, and length is angle)
-    // if global rtype ==2 then r1,r2,r3 are angles around x,y,z axis (order 1zrot,2yrot,3xrot)
-		vnl_matrix < double > rmat;
-		Quaternion q;
-    if (rtype == 2)
-    {
-      // first convert rotation to quaternion (clockwise)
-      //q.importZYXAngles(-r[2], -r[1], -r[0]);
-      q.importZYXAngles(-r[2], r[1], -r[0]); // same as spm now
-    }
-    else if (rtype == 1)
-    {
-      // first convert rotation to quaternion;
-      q.importRotVec(r[0],r[1],r[2]);
-    }
-    else assert (1==2);
-    // then to rotation matrix
-    rmat = MyMatrix::getVNLMatrix(q.getRotMatrix3d(),3);
-		
-    int rr, cc;
-    for (rr=0;rr<3;rr++)
-    {
-      for (cc=0;cc<3;cc++) // copy rot-matrix
-        ret.first[rr][cc] = rmat[rr][cc];
-
-      // copy translation into 4th column
-      ret.first[rr][3] = t[rr];
-      // set 4th row to zero
-      ret.first[3][rr] = 0.0;
-    }
-    //except 4,4
-    ret.first[3][3] = 1.0;
-  }
-  else if (psize == 3) // translation only
-  {
-	  ret.first.set_identity();
-		ret.first[0][3] = p[0];
-		ret.first[1][3] = p[1];
-		ret.first[2][3] = p[2];
-  }
-  else
-  {
-    cerr << " transformation neither 3,6 nor 12 dof : " << psize <<" ??" << std::endl;
-    assert(1==2);
-  }
-
-//   std::cout << " -- DONE " << std::endl;
-  return ret;
-}
-
-template <class T>
-pair < vnl_matrix_fixed <double,4,4 >, double > RegistrationStep<T>::convertP2Md2(const vnl_vector < T >& p, bool iscale, int rtype)
-// rtype : use restriction (if 2) or rigid from robust paper
-// returns registration as 4x4 matrix M, and iscale
-{
-//   std::cout << " RegistrationStep<T>::convertP2Md2(MATRIX* p) (p->rows: " << p->rows << " )" << std::flush;
-  std::pair < vnl_matrix_fixed <double,4,4 >, double> ret; ret.second = 0.0;
-
-  int psize = p.size();
-	
-  if (iscale) // iscale
-  {
-    //std::cout << " has intensity " << std::endl;
-    // last is intensity scale		
-		// ISCALECHANGE:
-    psize--;
-    ret.second =  (double) p[psize];
-  }
-  
-  // now transformation parameters:
-  
-  if (psize == 6) //AFFINE 2D
-	{
-    if (rtype == 1)
-    {
-      // affine, just the 6 parameters as matrix add-ons
-	    ret.first.set_identity();
-      ret.first[0][0] = p[0];
-      ret.first[0][1] = p[1];
-      ret.first[0][3] = p[2];
-      ret.first[1][0] = p[3];
-      ret.first[1][1] = p[4];
-      ret.first[1][3] = p[5];
-    }
-    else if (rtype == 2)
-    {
-      // M = T*shear*Scale*Rot
-      // Translation
-		  vnl_vector_fixed <double,3 > t(p[0],p[1],0);   
-      //Rot
-		  Quaternion q;
-      q.importZYXAngles(-p[2],0,0);
-      vnl_matrix < double > rmat = MyMatrix::getVNLMatrix(q.getRotMatrix3d(),3);
-      //Scale
-      vnl_matrix < double > smat(3,3,0.0);
-      smat[0][0] = p[3]; smat[1][1] = p[4]; smat[2][2] = 1;
-      //Shear
-      vnl_matrix <double > zmat(3,3); zmat.set_identity();
-      zmat[0][1] = p[5]; 
-      // product 3x3
-      vnl_matrix <double> M3 = zmat * smat * rmat;
-      // consturct 4x4 with translation also:
-      int rr, cc;
-      for (rr=0;rr<3;rr++)
-      {
-        for (cc=0;cc<3;cc++) // copy M3
-          ret.first[rr][cc] =M3[rr][cc];
-
-        // copy translation into 4th column
-        ret.first[rr][3] = t[rr];
-        // set 4th row to zero
-        ret.first[3][rr] = 0.0;
-      }
-      //except 4,4
-      ret.first[3][3] = 1.0;
-      
-      
-    }
-    else assert(1==2);
-	} 
-  else if (psize == 3) // rigid (rot and trans xy)
-  {
-		// rigid: first 2 translation, next 2 rotation (as a vector)
-		// split translation and rotation:
-		vnl_vector_fixed <double,3 > t(p[0],p[1],0);
-		double r = p[2];
-
-    // converts rot vector (3x1) and translation vector (3x1)
-    // into an affine matrix (homogeneous coord) 4x4
-    // if global rtype ==1 r1,r2,r3 are as in robust paper (axis, and length is angle)
-    // if global rtype ==2 then r1,r2,r3 are angles around x,y,z axis (order 1zrot,2yrot,3xrot)
-		vnl_matrix < double > rmat;
-		Quaternion q;
-    if (rtype == 2)
-    {
-      // first convert rotation to quaternion (clockwise)
-      //q.importZYXAngles(-r[2], -r[1], -r[0]);
-      q.importZYXAngles(-r, 0, 0); // same as spm now
-    }
-    else if (rtype == 1)
-    {
-      // first convert rotation to quaternion;
-      q.importRotVec(0,0,r);
-      //cout << " r: " << r << endl;
-      //cout << " q: " << q << endl;
-    }
-    else assert (1==2);
-    // then to rotation matrix
-    rmat = MyMatrix::getVNLMatrix(q.getRotMatrix3d(),3);
-		
-    int rr, cc;
-    for (rr=0;rr<3;rr++)
-    {
-      for (cc=0;cc<3;cc++) // copy rot-matrix
-        ret.first[rr][cc] = rmat[rr][cc];
-
-      // copy translation into 4th column
-      ret.first[rr][3] = t[rr];
-      // set 4th row to zero
-      ret.first[3][rr] = 0.0;
-    }
-    //except 4,4
-    ret.first[3][3] = 1.0;
-  }
-  else if (psize == 2) // translation only
-  {
-	  ret.first.set_identity();
-		ret.first[0][3] = p[0];
-		ret.first[1][3] = p[1];
-		ret.first[2][3] = 0;
-  }
-  else
-  {
-    cerr << " transformation neither 2,3 nor 6 dof : " << psize <<" ??" << std::endl;
-    assert(1==2);
-  }
-
-//   std::cout << " -- DONE " << std::endl;
-  return ret;
-}
-
+/** Construct restriction matrix (to restrict the affine problem to less parameters)
+   ! Experimental !
+   if p->rows == 6 use only rigid
+   if p->rows == 7 use also intensity scale
+   if p->rows == 3 use only trans
+   if p->rows == 4 use only trans + intensity
+*/
 template <class T>
 vnl_matrix < T > RegistrationStep<T>::constructR(const vnl_vector < T > & p)
-// Construct restriction matrix (to restrict the affine problem to less parameters)
-// if p->rows == 6 use only rigid
-// if p->rows == 7 use also intensity scale
-// if p->rows == 3 use only trans
-// if p->rows == 4 use only trans + intensity
 {
   assert(p.size() > 0);
   assert(p.size() == 6 || p.size()==7);
