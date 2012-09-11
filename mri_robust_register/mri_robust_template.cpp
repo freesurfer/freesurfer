@@ -10,8 +10,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2012/08/15 20:58:47 $
- *    $Revision: 1.45 $
+ *    $Date: 2012/09/11 19:30:59 $
+ *    $Revision: 1.46 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -169,7 +169,7 @@ static void printUsage(void);
 static bool parseCommandLine(int argc, char *argv[],Parameters & P) ;
 
 static char vcid[] =
-  "$Id: mri_robust_template.cpp,v 1.45 2012/08/15 20:58:47 mreuter Exp $";
+  "$Id: mri_robust_template.cpp,v 1.46 2012/09/11 19:30:59 mreuter Exp $";
 char *Progname = NULL;
 
 int getRandomNumber(int start, int end, unsigned int & seed)
@@ -686,7 +686,7 @@ static int parseNextCommand(int argc, char *argv[], Parameters & P)
   else if (!strcmp(option, "TEST"))
   {
     cout << "--test: TEST-MODE " << endl;
-    Registration R;
+    RegRobust R;
     R.testRobust(argv[2], atoi(argv[1]));
     nargs = 2 ;
     exit(0);
