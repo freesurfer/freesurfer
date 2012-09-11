@@ -9,8 +9,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2012/09/05 04:41:50 $
- *    $Revision: 1.12 $
+ *    $Date: 2012/09/11 19:26:40 $
+ *    $Revision: 1.13 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -75,9 +75,11 @@ public:
   //! Get principal orientation
   static vnl_matrix_fixed < double,3,3 > orientation (MRI * i);
 
-  // never really tested:
+  //! never really tested
   static float leastSquares(MRI * i1, MRI * i2 = NULL);
+  //! never really tested
   static double tukeyBiweight(MRI *i1, MRI * i2 = NULL, double sat = 4.685);
+  //! never really tested
   static double normalizedCorrelation(MRI * i1, MRI * i2);
 
   //! Mutual Information (joint histograms)
@@ -93,8 +95,9 @@ public:
   static double normalizedCrossCorrelation(MRI * i1, MRI * i2,double fwhm = 7 )
      { JointHisto H(i1,i2); H.smooth(fwhm); return -H.computeNCC(); };
 
-  // not implemented and not sure where they are from? Flirt?
+  //! not implemented and not sure where they are from? Flirt?
   static float woods(MRI * i1, MRI * i2 = NULL);
+  //! not implemented and not sure where they are from? Flirt?
   static float correlationRatio(MRI * i1, MRI * i2 );
 
 
@@ -123,11 +126,16 @@ inline double CostFunctions::rhoTukeyBiweight(double d, double sat)
 class MRIiterator
 {
 public:
+  //! Set current position to begin and initialize end pointer
   MRIiterator(MRI * i);
 
+  //! Set position to first element
   void begin();
+  //! Check wether end position is reached
   bool isEnd();
+  //! Increase to next position
   MRIiterator& operator++(int);
+  //! Return value at current position as float
   float operator*();
 
 
