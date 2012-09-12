@@ -228,6 +228,7 @@ EXTRA_DIST=\
 	stats.h \
 	stc.h \
 	struct.h \
+	connectcomp.h \
 	surfcluster.h \
 	svm.h \
 	tags.h \
