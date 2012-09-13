@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2011/12/15 20:41:21 $
-#    $Revision: 1.6.4.2 $
+#    $Date: 2012/09/13 15:42:49 $
+#    $Revision: 1.6.4.3 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: mc-afni2,v 1.6.4.2 2011/12/15 20:41:21 greve Exp $';
+set VERSION = '$Id: mc-afni2,v 1.6.4.3 2012/09/13 15:42:49 greve Exp $';
 
 set invol = ();
 set outvol = ();
@@ -46,7 +46,7 @@ if($n != 0) then
   echo $VERSION
   exit 1;
 endif
-set n = `echo $argv | grep -e --help | wc -l` 
+set n = `echo $argv | grep -e -help | wc -l` 
 if($n != 0) then
   set PrintHelp = 1;
   goto usage_exit;
@@ -372,23 +372,15 @@ Save motion correction parameters into mcdatfile. Default is outvol.mcdat.
 
   The AFNI 3dvolreg output mcdat file will have the following 10 columns:
   1. n      : time point
-  2. roll   : rotation about the column (?) axis (degrees CCW)
-  3. pitch  : rotation about the row (?) axis (degrees CCW)
-  4. yaw    : rotation about the slice (?) axis (degrees CCW)
-  5. dcol   : displacement in the column direction (mm)
-  6. drow   : displacement in the row direction (mm)
-  7. dslice : displacement in the slice direction (mm)
+  2. roll   : rotation about the I-S axis (degrees CCW)
+  3. pitch  : rotation about the R-L axis (degrees CCW)
+  4. yaw    : rotation about the A-P axis (degrees CCW)
+  5. dS     : displacement in the Superior direction (mm)
+  6. dL     : displacement in the Left direction (mm)
+  7. dP     : displacement in the Posterior direction (mm)
   8. rmsold : RMS difference between input frame and reference frame
   9. rmsnew : RMS difference between output frame and reference frame
-  10. trans : translation (mm) = sqrt(dslice^2 + dcol^2 + drow^2)
-
-  Where "displacement in the column direction" means orthogonal to the
-  row-slice plane. A negative dcol indicates that the input volume was
-  originally shifted up from the template and had to be shifted down. A
-  negative drow indicates that the input was was originally to the right
-  of the template and had to be shifted to the left. A negative dslice
-  means that the input started closer to slice 0 than the template and
-  had to be shifted away from slice 0.
+  10. trans : translation (mm) = sqrt(dS^2 + dL^2 + dP^2)
 
 --tmp tmpdir
 
