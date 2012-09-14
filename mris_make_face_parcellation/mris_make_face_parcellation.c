@@ -10,8 +10,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2012/06/07 18:08:37 $
- *    $Revision: 1.16.2.1 $
+ *    $Date: 2012/09/14 15:50:55 $
+ *    $Revision: 1.16.2.2 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -48,7 +48,7 @@
 
 #define MAX_PARCEL_VERTICES 10000
 static char vcid[] =
-  "$Id: mris_make_face_parcellation.c,v 1.16.2.1 2012/06/07 18:08:37 greve Exp $";
+  "$Id: mris_make_face_parcellation.c,v 1.16.2.2 2012/09/14 15:50:55 greve Exp $";
 
 typedef struct
 {
@@ -160,6 +160,7 @@ static char *write_corr_fname = NULL ;
 static char *write_annot_fname = NULL ;
 char *ctab_fname = NULL ;
 
+
 int
 main(int argc, char *argv[]) {
   char               **av, *in_fname, *ico_fname, *out_fname, path[STRLEN], ico_name[STRLEN] ;
@@ -167,7 +168,7 @@ main(int argc, char *argv[]) {
   float              scale ;
   MRI_SURFACE        *mris, *mris_ico ;
   float              radius ;
-  int                fno, vno, annot ;
+  int                fno, vno, annot,k ;
   char               cmdline[CMD_LINE_LEN] ;
   double             fdist ;
   FACE               *face ;
@@ -189,7 +190,7 @@ main(int argc, char *argv[]) {
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mris_make_face_parcellation.c,v 1.16.2.1 2012/06/07 18:08:37 greve Exp $",
+   "$Id: mris_make_face_parcellation.c,v 1.16.2.2 2012/09/14 15:50:55 greve Exp $",
    "$Name:  $", cmdline);
 
   setRandomSeed(1L) ;
@@ -197,7 +198,7 @@ main(int argc, char *argv[]) {
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
     (argc, argv,
-     "$Id: mris_make_face_parcellation.c,v 1.16.2.1 2012/06/07 18:08:37 greve Exp $",
+     "$Id: mris_make_face_parcellation.c,v 1.16.2.2 2012/09/14 15:50:55 greve Exp $",
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -349,10 +350,16 @@ main(int argc, char *argv[]) {
   }
 
   MRISaddCommandLine(mris, cmdline) ;
+  printf("parcellating hemisphere into %d units\n", mris_ico->nvertices) ;
 
   mris->ct = CTABalloc(mris_ico->nvertices) ;
+  // Search an additional 100 times for a unique set of RGBs
+  CTABunique(mris->ct, 100);
+  if(CTABcountRepeats(mris->ct) != 0){
+    printf("ERROR: could not find a unique color table\n");
+    exit(1);
+  }
   strcpy (mris->ct->fname, ico_fname);
-  printf("parcellating hemisphere into %d units\n", mris_ico->nvertices) ;
   for (vno = 0 ; vno < mris_ico->nvertices ; vno++)
     sprintf (mris->ct->entries[vno]->name, "%s_vertex_%d", ico_name, vno);
   // Note: there was logic here that attempted to assure that nearby patches did not 
@@ -362,6 +369,8 @@ main(int argc, char *argv[]) {
 
   printf("do_vertices = %d\n",do_vertices);
   if(do_vertices){
+    int *nhits;
+    nhits = (int*)calloc(mris_ico->nvertices,sizeof(int));
     radius = MRISaverageRadius(mris) ;
     MRISscaleBrain(mris_ico, mris_ico, radius / mris_ico->radius) ;
     MRIScomputeMetricProperties(mris_ico) ;
@@ -373,7 +382,18 @@ main(int argc, char *argv[]) {
       CTABannotationAtIndex(mris->ct, fno, &annot);
       v->annotation = annot ;
       v->marked = fno ;
+      CTABfindAnnotation(mris->ct, annot, &k);
+      nhits[k] ++;
     }
+    // Check that all have representation
+    for(k=0; k<mris_ico->nvertices;k++){
+      if(nhits[k] == 0) {
+	v = &(mris_ico->vertices[k]);
+	printf("Parcellation %d is empty\n",k);
+	fflush(stdout);
+      }
+    }
+    free(nhits);
   }
   else{
     mht = MHTfillTableAtResolution(mris_ico, NULL, CURRENT_VERTICES, 1.0);
@@ -2065,4 +2085,3 @@ write_annot_correlations(MRI_SURFACE *mris, MRI *mri_cmatrix, PARMS *parms, char
   MRIfree(&mri_corr) ;
   return(NO_ERROR) ;
 }
-
