@@ -11,9 +11,9 @@
 /*
  * Original Authors: Kevin Teich, Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:09 $
- *    $Revision: 1.27 $
+ *    $Author: greve $
+ *    $Date: 2012/09/14 15:44:27 $
+ *    $Revision: 1.28 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -159,6 +159,10 @@ COLOR_TABLE *CTABaddEntry(COLOR_TABLE *ctold,const char *name);
 
 // returns name of annotation (or "NOT_FOUND")
 const char* CTABgetAnnotationName(COLOR_TABLE *ct, int annotation);
+
+int CTABcountRepeats(COLOR_TABLE *ct);
+int CTABrandom(COLOR_TABLE *ct);
+int CTABunique(COLOR_TABLE *ct, int nmax);
 
 #define AnnotToRGB(annot,r,g,b)             \
   r = annot & 0xff ;                            \

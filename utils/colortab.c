@@ -11,9 +11,9 @@
 /*
  * Original Authors: Kevin Teich, Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:42 $
- *    $Revision: 1.39 $
+ *    $Author: greve $
+ *    $Date: 2012/09/14 15:44:28 $
+ *    $Revision: 1.40 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -362,11 +362,15 @@ int CTABwriteIntoBinary(COLOR_TABLE *ct, FILE *fp)
 
   return(result);
 }
-
-
-
-/*-------------------------------------------------------------------
-  ----------------------------------------------------------------*/
+/*------------------------------------------------------------------------*/
+/*!
+  \fn COLOR_TABLE *CTABalloc(int nentries)
+  \brief Allocates a color table and fills it with random
+  entries. Note: if the RGBs are not unique, then all hell breaks
+  loose for surface annotations, so there is a search at the end of
+  this function which uses a brute force search to over 10 max
+  iterations to find a unique set.
+*/
 COLOR_TABLE *CTABalloc(int nentries)
 {
   COLOR_TABLE        *ct;
@@ -433,8 +437,81 @@ COLOR_TABLE *CTABalloc(int nentries)
     sprintf (ct->entries[structure]->name, "cluster%d", structure);
   }
   ct->idbase = 0;
+  CTABunique(ct, 10);
 
   return(ct);
+}
+/*------------------------------------------------------------------------*/
+/*!
+  \fn int CTABunique(COLOR_TABLE *ct, int nmax)
+  \brief Fill an already allocated color table with unique, random
+  entries.  This is just a brute force search over at most nmax tries
+  to find a set that are unique.
+*/
+int CTABunique(COLOR_TABLE *ct, int nmax)
+{
+  int n;
+  n = 0;
+  while(n < nmax){
+    n++;
+    CTABrandom(ct);
+    if(CTABcountRepeats(ct)==0) break;
+  }
+  if(n==nmax){
+    printf("INFO: CTABunique() could not find a unique set in %d tries\n",nmax);
+    return(-1);
+  }
+  return(0);
+}
+/*------------------------------------------------------------------------*/
+/*!
+  \fn int CTABcountRepeats(COLOR_TABLE *ct)
+  \brief Returns the number of pairs of entries that have the same RGB
+*/
+int CTABcountRepeats(COLOR_TABLE *ct)
+{
+  int i,j,nrepeats;
+  nrepeats=0;
+  for(i = 0; i < ct->nentries; i++) {
+    for(j = i+1; j < ct->nentries; j++) {
+      if(i==j) continue;
+      if(ct->entries[i]->rf == ct->entries[j]->rf &&
+	 ct->entries[i]->gf == ct->entries[j]->gf &&
+	 ct->entries[i]->bf == ct->entries[j]->bf){
+	//printf("Entries %d and %d have the same RGB\n",i,j);
+	nrepeats++;
+      }
+    }
+  }
+  //printf("Found %d nrepeatss\n",nrepeats);
+  return(nrepeats);
+}
+/*------------------------------------------------------------------------*/
+/*!
+  \fn int CTABrandom(COLOR_TABLE *ct)
+  \brief Fills an already allocated color table with random colors
+*/
+int CTABrandom(COLOR_TABLE *ct)
+{
+  int structure;
+  /* Set all entries to random colors. */
+  for (structure = 0; structure < ct->nentries; structure++){
+    /* Random colors. */
+    ct->entries[structure]->ri = nint(randomNumber(0, 255));
+    ct->entries[structure]->gi = nint(randomNumber(0, 255));
+    ct->entries[structure]->bi = nint(randomNumber(0, 255));
+    ct->entries[structure]->ai = 255;
+    /* Now calculate the float versions. */
+    ct->entries[structure]->rf =
+      (float)ct->entries[structure]->ri / 255.0;
+    ct->entries[structure]->gf =
+      (float)ct->entries[structure]->gi / 255.0;
+    ct->entries[structure]->bf =
+      (float)ct->entries[structure]->bi / 255.0;
+    ct->entries[structure]->af =
+      (float)ct->entries[structure]->ai / 255.0;
+  }
+  return(0);
 }
 
 /*-------------------------------------------------------------------
