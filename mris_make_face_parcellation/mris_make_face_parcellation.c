@@ -10,8 +10,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2012/09/14 15:50:55 $
- *    $Revision: 1.16.2.2 $
+ *    $Date: 2012/09/14 18:59:39 $
+ *    $Revision: 1.16.2.3 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -44,11 +44,12 @@
 #include "macros.h"
 #include "version.h"
 #include "mrishash.h"
+#include "fio.h"
 
 
 #define MAX_PARCEL_VERTICES 10000
 static char vcid[] =
-  "$Id: mris_make_face_parcellation.c,v 1.16.2.2 2012/09/14 15:50:55 greve Exp $";
+  "$Id: mris_make_face_parcellation.c,v 1.16.2.3 2012/09/14 18:59:39 greve Exp $";
 
 typedef struct
 {
@@ -159,7 +160,7 @@ static int  do_vertices =1 ;
 static char *write_corr_fname = NULL ;
 static char *write_annot_fname = NULL ;
 char *ctab_fname = NULL ;
-
+int InflatedOK = 0;
 
 int
 main(int argc, char *argv[]) {
@@ -190,7 +191,7 @@ main(int argc, char *argv[]) {
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mris_make_face_parcellation.c,v 1.16.2.2 2012/09/14 15:50:55 greve Exp $",
+   "$Id: mris_make_face_parcellation.c,v 1.16.2.3 2012/09/14 18:59:39 greve Exp $",
    "$Name:  $", cmdline);
 
   setRandomSeed(1L) ;
@@ -198,7 +199,7 @@ main(int argc, char *argv[]) {
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
     (argc, argv,
-     "$Id: mris_make_face_parcellation.c,v 1.16.2.2 2012/09/14 15:50:55 greve Exp $",
+     "$Id: mris_make_face_parcellation.c,v 1.16.2.3 2012/09/14 18:59:39 greve Exp $",
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -216,8 +217,7 @@ main(int argc, char *argv[]) {
     argv += nargs ;
   }
 
-  if (argc < 4)
-    print_help() ;
+  if(argc < 4) print_help() ;
 
   in_fname = argv[1] ;
   ico_fname = argv[2] ;
@@ -225,26 +225,27 @@ main(int argc, char *argv[]) {
   FileNamePath(out_fname, path) ;
   FileNameOnly(ico_fname, ico_name) ;
 
-  mris = MRISread(in_fname) ;
-  if (!mris)
-    ErrorExit(ERROR_NOFILE, "%s: could not read surface file %s",
-              Progname, in_fname) ;
-#if 0
-  if (MRISreadCanonicalCoordinates(mris,"sphere") != NO_ERROR)
-    ErrorExit(ERROR_BADPARM, "%s: could not read spherical coordinates", Progname) ;
-#else
-  MRISsaveVertexPositions(mris, CANONICAL_VERTICES) ;
-#endif
+  if(strcmp("lh.inflated",fio_basename(in_fname,NULL))==0 ||
+     strcmp("rh.inflated",fio_basename(in_fname,NULL))==0){
+    if(InflatedOK == 0){
+      printf("ERROR: do not use the inflated surface for this function\n");
+      printf(" You probably want to use sphere or sphere.reg\n");
+      exit(1);
+    }
+    printf("You have selected inflated surface\n");    
+  }
 
+  printf("Reading %s\n",in_fname) ;
+  mris = MRISread(in_fname) ;
+  if (!mris)  ErrorExit(ERROR_NOFILE, "%s: could not read surface file %s",Progname, in_fname) ;
+  MRISsaveVertexPositions(mris, CANONICAL_VERTICES) ;
   MRISresetNeighborhoodSize(mris, 3) ; // reset current size to 1-nbrs
+
+  printf("Reading %s\n",ico_fname) ;
   mris_ico = MRISread(ico_fname) ;
-  if (!mris_ico)
-    ErrorExit(ERROR_NOFILE, "%s: could not read ico file %s",
-              Progname, ico_fname) ;
-  if (mris_ico->nfaces < 256)
-    scale = 256 / mris_ico->nfaces ;
-  else
-    scale = 1 ;
+  if (!mris_ico) ErrorExit(ERROR_NOFILE, "%s: could not read ico file %s",Progname, ico_fname) ;
+  if (mris_ico->nfaces < 256) scale = 256 / mris_ico->nfaces ;
+  else                        scale = 1 ;
   parms.mris_ico = mris_ico ;
   radius = MRISaverageRadius(mris) ;
   MRISscaleBrain(mris_ico, mris_ico, radius / mris_ico->radius) ;
@@ -563,6 +564,11 @@ get_option(int argc, char *argv[]) {
     nargs = 1 ;
     printf("setting max iterations to %d\n", parms.max_iterations) ;
     break ;
+  case 'I':
+    nargs = 0 ;
+    InflatedOK = 1;
+    printf("OK to use inflated\n");
+    break ;
   case 'R':
     randomize = atof(argv[2]) ;
     printf("%susing randomization to normalize energies\n", randomize ? "" : "not ") ;
@@ -602,11 +608,16 @@ get_option(int argc, char *argv[]) {
 
 static void
 print_usage(void) {
-  fprintf(stderr,
-          "usage: %s [options] <input surface> <ico file> <output annot>\n"
-          "example: %s lh.inflated $FREESURFER_HOME/lib/bem/ic3.tri "
-          "./lh.ic3.annot",
+  printf("usage: %s [options] <input surface> <ico file> <output annot>\n\n"
+          "example: %s lh.surf $FREESURFER_HOME/lib/bem/ic3.tri ./lh.ic3.annot\n",
           Progname, Progname) ;
+  printf("  surf should be either:\n");
+  printf("    sphere: units will be approximately equal size within subject but \n"
+	 "            not in correspondence across subjects\n");
+  printf("    sphere.reg: units will be different sizes within subject but \n"
+	 "            in correspondence across subjects\n");
+  printf("  Note: do not use inflated as was suggested by previous versions! \n");
+  printf("  \n");
 }
 
 static void
