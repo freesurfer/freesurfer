@@ -8,8 +8,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2012/09/11 19:17:10 $
- *    $Revision: 1.1 $
+ *    $Date: 2012/09/15 00:18:52 $
+ *    $Revision: 1.2 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -42,6 +42,7 @@
 class Transformation
 {
 public:
+  virtual ~Transformation(){};
   //! Get the transformation as a 4x4 affine matrix
   virtual vnl_matrix_fixed < double, 4, 4 > getMatrix() const =0;
   //! Get the degrees of freedom of the transform
@@ -88,6 +89,7 @@ public:
   Transform2dAffine(const std::vector < double > &p) { parameters.set_size(getDOF()); setParameters(p);};
   Transform2dAffine(const vnl_vector < float >  &v)  { parameters.set_size(getDOF()); setParameters(v);};
   Transform2dAffine(const vnl_vector < double >  &v) { parameters.set_size(getDOF()); setParameters(v);};
+  virtual ~Transform2dAffine(){};
   inline virtual unsigned int getDOF() const { return 6;};
   inline virtual vnl_vector < double > getSteps() const
   {
@@ -132,6 +134,7 @@ public:
   Transform2dAffine2(const std::vector < double > &p) { parameters.set_size(getDOF()); setParameters(p);};
   Transform2dAffine2(const vnl_vector < float >  &v)  { parameters.set_size(getDOF()); setParameters(v);};
   Transform2dAffine2(const vnl_vector < double >  &v) { parameters.set_size(getDOF()); setParameters(v);};
+  virtual ~Transform2dAffine2(){};
   inline virtual unsigned int getDOF() const { return 6;};
   virtual void setIdentity() { std::fill( parameters.begin(), parameters.end(), 0.0 );  parameters[3] = 1.0; parameters[4] = 1.0; };
   inline virtual vnl_vector < double > getSteps() const
@@ -202,6 +205,7 @@ public:
   Transform2dIsoscale(const std::vector < double > &p) { parameters.set_size(getDOF()); setParameters(p);};
   Transform2dIsoscale(const vnl_vector < float >  &v)  { parameters.set_size(getDOF()); setParameters(v);};
   Transform2dIsoscale(const vnl_vector < double >  &v) { parameters.set_size(getDOF()); setParameters(v);};
+  virtual ~Transform2dIsoscale(){};
   inline virtual unsigned int getDOF() const { return 4;};
   inline virtual vnl_vector < double > getSteps() const
   {
@@ -243,6 +247,7 @@ public:
   Transform2dIsoscale2(const std::vector < double > &p) { parameters.set_size(getDOF()); setParameters(p); };
   Transform2dIsoscale2(const vnl_vector < float >  &v)  { parameters.set_size(getDOF()); setParameters(v); };
   Transform2dIsoscale2(const vnl_vector < double >  &v) { parameters.set_size(getDOF()); setParameters(v); };
+  virtual ~Transform2dIsoscale2(){};
   inline virtual unsigned int getDOF() const { return 4;};
   inline virtual void setIdentity (){ parameters.fill(0.0); parameters[3] = 1.0;};
   inline virtual vnl_vector < double > getSteps() const
@@ -298,6 +303,7 @@ public:
   Transform2dRigid(const std::vector < double > &p) { parameters.set_size(getDOF()); setParameters(p);};
   Transform2dRigid(const vnl_vector < float >  &v)  { parameters.set_size(getDOF()); setParameters(v);};
   Transform2dRigid(const vnl_vector < double >  &v) { parameters.set_size(getDOF()); setParameters(v);};
+  virtual ~Transform2dRigid(){};
   inline virtual unsigned int getDOF() const { return 3;};
   inline virtual vnl_vector < double > getSteps() const
   {
@@ -349,6 +355,7 @@ public:
   Transform2dRigid2(const std::vector < double > &p) { parameters.set_size(getDOF()); setParameters(p);};
   Transform2dRigid2(const vnl_vector < float >  &v)  { parameters.set_size(getDOF()); setParameters(v);};
   Transform2dRigid2(const vnl_vector < double >  &v) { parameters.set_size(getDOF()); setParameters(v);};
+  virtual ~Transform2dRigid2(){};
   inline virtual unsigned int getDOF() const { return 3;};
   inline virtual vnl_vector < double > getSteps() const
   {
@@ -413,6 +420,7 @@ public:
   Transform2dTranslate(const std::vector < double > &p) { parameters.set_size(getDOF()); setParameters(p);};
   Transform2dTranslate(const vnl_vector < float >  &v)  { parameters.set_size(getDOF()); setParameters(v);};
   Transform2dTranslate(const vnl_vector < double >  &v) { parameters.set_size(getDOF()); setParameters(v);};
+  virtual ~Transform2dTranslate(){};
   inline virtual unsigned int getDOF() const { return 2;};
   inline virtual vnl_vector < double > getSteps() const
   {
@@ -452,6 +460,7 @@ public:
   Transform3dAffine(const std::vector < double > &p) { parameters.set_size(getDOF()); setParameters(p);};
   Transform3dAffine(const vnl_vector < float >  &v)  { parameters.set_size(getDOF()); setParameters(v);};
   Transform3dAffine(const vnl_vector < double >  &v) { parameters.set_size(getDOF()); setParameters(v);};
+  virtual ~Transform3dAffine(){};
   inline virtual unsigned int getDOF() const { return 12;};
   inline virtual vnl_vector < double > getSteps() const
   {
@@ -501,6 +510,7 @@ public:
   Transform3dAffine2(const std::vector < double > &p) { parameters.set_size(getDOF()); setParameters(p);};
   Transform3dAffine2(const vnl_vector < float >  &v)  { parameters.set_size(getDOF()); setParameters(v);};
   Transform3dAffine2(const vnl_vector < double >  &v) { parameters.set_size(getDOF()); setParameters(v);};
+  virtual ~Transform3dAffine2(){};
   inline virtual unsigned int getDOF() const { return 12;};
   inline virtual void setIdentity (){ parameters.fill(0.0); parameters[6] = 1.0; parameters[7] = 1.0; parameters[8] = 1.0;};
   inline virtual vnl_vector < double > getSteps() const
@@ -575,6 +585,7 @@ public:
   Transform3dIsoscale(const std::vector < double > &p) { parameters.set_size(getDOF()); setParameters(p);};
   Transform3dIsoscale(const vnl_vector < float >  &v)  { parameters.set_size(getDOF()); setParameters(v);};
   Transform3dIsoscale(const vnl_vector < double >  &v) { parameters.set_size(getDOF()); setParameters(v);};
+  virtual ~Transform3dIsoscale(){};
   inline virtual unsigned int getDOF() const { return 7;};
   inline virtual void setIdentity (){ parameters.fill(0.0); parameters[6] = 1.0;};
   inline virtual vnl_vector < double > getSteps() const
@@ -639,6 +650,7 @@ public:
   Transform3dIsoscale2(const std::vector < double > &p) { parameters.set_size(getDOF()); setParameters(p);};
   Transform3dIsoscale2(const vnl_vector < float >  &v)  { parameters.set_size(getDOF()); setParameters(v);};
   Transform3dIsoscale2(const vnl_vector < double >  &v) { parameters.set_size(getDOF()); setParameters(v);};
+  virtual ~Transform3dIsoscale2(){};
   inline virtual unsigned int getDOF() const { return 7;};
   inline virtual void setIdentity (){ parameters.fill(0.0); parameters[6] = 1.0;};
   inline virtual vnl_vector < double > getSteps() const
@@ -701,6 +713,7 @@ public:
   Transform3dRigid(const std::vector < double > &p) { parameters.set_size(getDOF()); setParameters(p);};
   Transform3dRigid(const vnl_vector < float >  &v)  { parameters.set_size(getDOF()); setParameters(v);};
   Transform3dRigid(const vnl_vector < double >  &v) { parameters.set_size(getDOF()); setParameters(v);};
+  virtual ~Transform3dRigid(){};
   inline virtual unsigned int getDOF() const { return 6;};
   inline virtual vnl_vector < double > getSteps() const
   {
@@ -755,6 +768,7 @@ public:
   Transform3dRigid2(const std::vector < double > &p) { parameters.set_size(getDOF()); setParameters(p);};
   Transform3dRigid2(const vnl_vector < float >  &v)  { parameters.set_size(getDOF()); setParameters(v);};
   Transform3dRigid2(const vnl_vector < double >  &v) { parameters.set_size(getDOF()); setParameters(v);};
+  virtual ~Transform3dRigid2(){};
   inline virtual unsigned int getDOF() const { return 6;};
   inline virtual vnl_vector < double > getSteps() const
   {
@@ -811,6 +825,7 @@ public:
   Transform3dTranslate(const std::vector < double > &p) { parameters.set_size(getDOF()); setParameters(p);};
   Transform3dTranslate(const vnl_vector < float >  &v)  { parameters.set_size(getDOF()); setParameters(v);};
   Transform3dTranslate(const vnl_vector < double >  &v) { parameters.set_size(getDOF()); setParameters(v);};
+  virtual ~Transform3dTranslate(){};
   inline virtual unsigned int getDOF() const { return 3;};
   inline virtual vnl_vector < double > getSteps() const
   {
