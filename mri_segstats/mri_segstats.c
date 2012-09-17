@@ -12,8 +12,8 @@
  * Original Author: Dougas N Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2012/09/10 19:09:42 $
- *    $Revision: 1.75.2.5 $
+ *    $Date: 2012/09/17 16:39:55 $
+ *    $Revision: 1.75.2.6 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -110,7 +110,7 @@ int DumpStatSumTable(STATSUMENTRY *StatSumTable, int nsegid);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-  "$Id: mri_segstats.c,v 1.75.2.5 2012/09/10 19:09:42 greve Exp $";
+  "$Id: mri_segstats.c,v 1.75.2.6 2012/09/17 16:39:55 greve Exp $";
 char *Progname = NULL, *SUBJECTS_DIR = NULL, *FREESURFER_HOME=NULL;
 char *SegVolFile = NULL;
 char *InVolFile = NULL;
@@ -1034,8 +1034,11 @@ int main(int argc, char **argv)
     }
     if (DoETIV)
     {
-      fprintf(fp,"# Measure IntraCranialVol, ICV, "
-              "Intracranial Volume, %f, mm^3\n",atlas_icv);
+      //fprintf(fp,"# Measure IntraCranialVol, ICV, "
+      //      "Intracranial Volume, %f, mm^3\n",atlas_icv);
+      fprintf(fp,"# Measure EstimatedTotalIntraCranialVol, eTIV, "
+              "Estimated Total Intracranial Volume, %f, mm^3\n",atlas_icv);
+
     }
     if (SegVolFile)
     {
