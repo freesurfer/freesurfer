@@ -1,5 +1,5 @@
 # Original author - Krish Subramaniam
-# $Id: fsutils.py,v 1.4.2.2 2012/08/15 20:35:43 mreuter Exp $
+# $Id: fsutils.py,v 1.4.2.3 2012/09/17 16:38:18 greve Exp $
 import os
 import logging
 import sys
@@ -157,7 +157,9 @@ class AsegStatsParser(StatsParser):
                         ('# Measure TotalGray, TotalGrayVol,','TotalGrayVol'),
                         ('# Measure SuperTentorial, SuperTentorialVol,','SuperTentorialVol'),
                         ('# Measure SupraTentorial, SupraTentorialVol,','SupraTentorialVol'),
+                        ('# Measure SupraTentorialNotVent, SupraTentorialVolNotVent,','SupraTentorialVolNotVent'),
                         ('# Measure IntraCranialVol, ICV,','IntraCranialVol'),
+                        ('# Measure EstimatedTotalIntraCranialVol, eTIV,','EstimatedTotalIntraCranialVol'),
                         ('# Measure BrainSeg, BrainSegVol,','BrainSegVol'),
                         ('# Measure BrainSegNotVent, BrainSegVolNotVent,','BrainSegVolNotVent'),)
                 c = 0
