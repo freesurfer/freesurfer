@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: mreuter $
- *    $Date: 2012/09/10 23:06:24 $
- *    $Revision: 1.515 $
+ *    $Author: fischl $
+ *    $Date: 2012/09/18 23:47:58 $
+ *    $Revision: 1.516 $
  *
  * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -23,7 +23,7 @@
  */
 
 extern const char* Progname;
-const char *MRI_C_VERSION = "$Revision: 1.515 $";
+const char *MRI_C_VERSION = "$Revision: 1.516 $";
 
 
 /*-----------------------------------------------------
@@ -16573,6 +16573,30 @@ MRIsetValuesOutsideRegion(MRI *mri_src,
 }
 
 int
+MRIlabelsInNbhd6(MRI *mri, int x, int y, int z, int label) 
+{
+  int xi, yi, zi, xk, yk, zk, count ;
+
+  for (count = 0, zk = -1 ; zk <= 1 ; zk++)
+  {
+    zi = mri->zi[z+zk] ;
+    for (yk = -1 ; yk <= 1 ; yk++)
+    {
+      yi = mri->yi[y+yk] ;
+      for (xk = -1 ; xk <= 1 ; xk++)
+      {
+        xi = mri->xi[x+xk] ;
+	if (fabs(xk) + fabs(yk) + fabs(zk) > 1)
+	  continue ;
+        if (nint(MRIgetVoxVal(mri, xi, yi, zi,0)) == label)
+          count++;
+      }
+    }
+  }
+  return(count) ;
+}
+
+int
 MRIlabelsInNbhd(MRI *mri, int x, int y, int z, int whalf, int label)
 {
   int xi, yi, zi, xk, yk, zk, count ;
@@ -17595,3 +17619,20 @@ void MRIrms(MRI *in, MRI *out)
   }
 }
 
+int
+MRImaskLabel(MRI *mri_src, MRI *mri_dst, MRI *mri_labeled, int label_to_mask, float out_val) 
+{
+  int    x, y, z, label ;
+
+  if (mri_dst != mri_src)
+    mri_dst = MRIcopy(mri_src, mri_dst) ;
+  for (x = 0 ; x < mri_src->width; x++)
+    for (y = 0 ; y < mri_src->height ; y++)
+      for (z = 0 ; z < mri_src->depth; z++)
+      {
+	label = MRIgetVoxVal(mri_labeled, x, y, z, 0) ;
+	if (label == label_to_mask)
+	  MRIsetVoxVal(mri_dst, x, y, z, 0, out_val) ;
+      }
+  return(NO_ERROR) ;
+}
