@@ -8,8 +8,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2012/08/29 20:38:01 $
- *    $Revision: 1.4 $
+ *    $Date: 2012/09/21 23:05:15 $
+ *    $Revision: 1.5 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -25,19 +25,17 @@
 
 #include "Quaternion.h"
 
-
 // ---------------------------------------------------------- global functions
 
-
 /** Multiplication of scalar and Quaternion from left.
-*/
+ */
 Quaternion operator*(const double& scalar, const Quaternion& vect)
 {
-  return vect*scalar;
+  return vect * scalar;
 }
 
 /** Operator to pipe quaternion onto stream.
-*/
+ */
 std::ostream& operator<<(std::ostream& os, const Quaternion& q)
 {
   q.write(os);

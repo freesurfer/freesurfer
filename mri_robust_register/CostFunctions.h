@@ -9,8 +9,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2012/09/11 19:26:40 $
- *    $Revision: 1.13 $
+ *    $Date: 2012/09/21 23:05:14 $
+ *    $Revision: 1.14 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -27,7 +27,6 @@
 // written by Martin Reuter
 // March 20th ,2009
 //
-
 #ifndef CostFunctions_H
 #define CostFunctions_H
 
@@ -55,7 +54,7 @@ class CostFunctions
 {
 public:
   //! Get min and max intensity value
-  static std::pair < float, float > minmax(MRI *i);
+  static std::pair<float, float> minmax(MRI *i);
   //! Get max intensity value
   static float max(MRI *i);
   //! Get mean intensity value
@@ -63,7 +62,11 @@ public:
   //! Get variance of intensity values
   static float var(MRI *i);
   //! Get standard deviation of intensity values
-  static float sdev(MRI *i) { return sqrt(var(i)); };
+  static float sdev(MRI *i)
+  {
+    return sqrt(var(i));
+  }
+  ;
   //! Get median of intensity values
   static float median(MRI *i);
   //! Get d times median absolute deviation of intensity values (robust std)
@@ -71,9 +74,9 @@ public:
   //! Get moment of image
   static double moment(MRI * i, int x, int y, int z);
   //! Get weighted centroid of intensity image
-  static std::vector < double > centroid (MRI * i);
+  static std::vector<double> centroid(MRI * i);
   //! Get principal orientation
-  static vnl_matrix_fixed < double,3,3 > orientation (MRI * i);
+  static vnl_matrix_fixed<double, 3, 3> orientation(MRI * i);
 
   //! never really tested
   static float leastSquares(MRI * i1, MRI * i2 = NULL);
@@ -83,40 +86,62 @@ public:
   static double normalizedCorrelation(MRI * i1, MRI * i2);
 
   //! Mutual Information (joint histograms)
-  static double mutualInformation(MRI * i1, MRI * i2,double fwhm = 7)
-     { JointHisto H(i1,i2); H.smooth(fwhm); return -H.computeMI(); };
+  static double mutualInformation(MRI * i1, MRI * i2, double fwhm = 7)
+  {
+    JointHisto H(i1, i2);
+    H.smooth(fwhm);
+    return -H.computeMI();
+  }
+  ;
   //! Normalized Mutual Information (joint histograms)
-  static double normalizedMutualInformation(MRI * i1, MRI * i2,double fwhm = 7 )
-     { JointHisto H(i1,i2); H.smooth(fwhm); return -H.computeNMI(); };
+  static double normalizedMutualInformation(MRI * i1, MRI * i2, double fwhm = 7)
+  {
+    JointHisto H(i1, i2);
+    H.smooth(fwhm);
+    return -H.computeNMI();
+  }
+  ;
   //! Entropy Correlation (joint histograms) (does it work?)
-  static double entropyCorrelationCoefficient(MRI * i1, MRI * i2,double fwhm = 7 )
-     { JointHisto H(i1,i2); H.smooth(fwhm); return -H.computeECC(); };
+  static double entropyCorrelationCoefficient(MRI * i1, MRI * i2, double fwhm =
+      7)
+  {
+    JointHisto H(i1, i2);
+    H.smooth(fwhm);
+    return -H.computeECC();
+  }
+  ;
   //! Normalized Cross Correlation (joint histograms) (does it work?)
-  static double normalizedCrossCorrelation(MRI * i1, MRI * i2,double fwhm = 7 )
-     { JointHisto H(i1,i2); H.smooth(fwhm); return -H.computeNCC(); };
+  static double normalizedCrossCorrelation(MRI * i1, MRI * i2, double fwhm = 7)
+  {
+    JointHisto H(i1, i2);
+    H.smooth(fwhm);
+    return -H.computeNCC();
+  }
+  ;
 
   //! not implemented and not sure where they are from? Flirt?
   static float woods(MRI * i1, MRI * i2 = NULL);
   //! not implemented and not sure where they are from? Flirt?
-  static float correlationRatio(MRI * i1, MRI * i2 );
-
+  static float correlationRatio(MRI * i1, MRI * i2);
 
 protected:
-  inline static double rhoTukeyBiweight (double d, double sat = 4.685);
-  inline static double rhoSquare (double d)
+  inline static double rhoTukeyBiweight(double d, double sat = 4.685);
+  inline static double rhoSquare(double d)
   {
-    return d*d;
-  };
+    return d * d;
+  }
+  ;
 };
 
 inline double CostFunctions::rhoTukeyBiweight(double d, double sat)
 {
-  if (d > sat || d < -sat) return sat*sat/2.0;
+  if (d > sat || d < -sat)
+    return sat * sat / 2.0;
   else
   {
-    double a = d/sat;
+    double a = d / sat;
     double b = 1.0 - a * a;
-    return (sat*sat/2.0)*(1.0-b*b*b);
+    return (sat * sat / 2.0) * (1.0 - b * b * b);
   }
 }
 
@@ -138,7 +163,6 @@ public:
   //! Return value at current position as float
   float operator*();
 
-
 protected:
 
   float fromUCHAR(void);
@@ -155,11 +179,12 @@ protected:
   unsigned char * end;
   float (MRIiterator::*getVal)(void);
   MRIiterator& (MRIiterator::*opinc)(int);
-  int x,y,z;
+  int x, y, z;
   int bytes_per_voxel;
 };
 
-inline MRIiterator::MRIiterator(MRI * i):img(i)
+inline MRIiterator::MRIiterator(MRI * i) :
+    img(i)
 {
   // set current pos to begin
   // and initialize end pointer
@@ -192,7 +217,6 @@ inline MRIiterator::MRIiterator(MRI * i):img(i)
     exit(1);
   }
 
-
 }
 
 inline void MRIiterator::begin()
@@ -207,8 +231,8 @@ inline void MRIiterator::begin()
   else
   {
     x = 0;
-    y=0;
-    z=0;
+    y = 0;
+    z = 0;
     pos = (unsigned char*) img->slices[0][0];
     end = NULL;
     opinc = &MRIiterator::opincnochunk;
@@ -246,44 +270,45 @@ inline MRIiterator& MRIiterator::opincnochunk(int)
     y++;
     if (y == img->height)
     {
-      y=0;
+      y = 0;
       z++;
-      if (z== img->depth)
+      if (z == img->depth)
       {
-        z=0;
+        z = 0;
         pos = NULL;
         return *this;
       }
     }
     pos = (unsigned char*) img->slices[z][y];
   }
-  else pos += bytes_per_voxel;
+  else
+    pos += bytes_per_voxel;
   return *this;
 }
 
 inline float MRIiterator::fromUCHAR()
 {
-  return ((float) *(unsigned char *)pos);
+  return ((float) *(unsigned char *) pos);
 }
 
 inline float MRIiterator::fromSHORT()
 {
-  return ((float) *(short *)pos);
+  return ((float) *(short *) pos);
 }
 
 inline float MRIiterator::fromINT()
 {
-  return ((float) *(int *)pos);
+  return ((float) *(int *) pos);
 }
 
 inline float MRIiterator::fromLONG()
 {
-  return ((float) *(long *)pos);
+  return ((float) *(long *) pos);
 }
 
 inline float MRIiterator::fromFLOAT()
 {
-  return ((float) *(float *)pos);
+  return ((float) *(float *) pos);
 }
 
 inline float MRIiterator::operator*()
@@ -299,6 +324,5 @@ inline float MRIiterator::operator*()
 //    std::cout << *it << std::endl;
 ////    *it = 0;
 // }
-
 
 #endif

@@ -8,8 +8,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2012/09/11 19:30:19 $
- *    $Revision: 1.55 $
+ *    $Date: 2012/09/21 23:05:16 $
+ *    $Revision: 1.56 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -26,7 +26,6 @@
 // written by Martin Reuter
 // Nov. 4th ,2008
 //
-
 #ifndef Registration_H
 #define Registration_H
 
@@ -52,12 +51,10 @@ extern "C"
 #include <vnl/vnl_matrix_fixed.h>
 #include <vnl/vnl_inverse.h>
 #include <vnl/vnl_matlab_print.h>
-#include <vcl_iostream.h>
 
 #include "MyMatrix.h"
 #include "MyMRI.h"
 #include "Transformation.h"
-
 
 /** \class Registration
  * \brief Base class for registration 
@@ -68,88 +65,180 @@ class Registration
 public:
 
 //! The different cost functions
-enum Cost
-{
-  LS = 0,
-  ROB,
-  MI,
-  NMI,
-  ECC,
-  NCC,
-  SCR
-};
+  enum Cost
+  {
+    LS = 0, ROB, MI, NMI, ECC, NCC, SCR
+  };
 
   //! Default constructor
-  Registration():iscale(false),transonly(false),rigid(true),isoscale(false),trans(NULL),
-      subsamplesize(-1),minsize(-1),maxsize(-1),debug(0),verbose(1),initorient(false),
-      inittransform(true),initscaling(false),highit(-1),mri_source(NULL),mri_target(NULL),iscaleinit(1.0),
-      iscalefinal(1.0),doubleprec(false),symmetry(true),sampletype(SAMPLE_TRILINEAR),
-      resample(false),costfun(ROB)
-  {};
+  Registration() :
+      iscale(false), transonly(false), rigid(true), isoscale(false), trans(
+          NULL), subsamplesize(-1), minsize(-1), maxsize(-1), debug(0), verbose(
+          1), initorient(false), inittransform(true), initscaling(false), highit(
+          -1), mri_source(NULL), mri_target(NULL), iscaleinit(1.0), iscalefinal(
+          1.0), doubleprec(false), symmetry(true), sampletype(SAMPLE_TRILINEAR), resample(
+          false), costfun(ROB), converged(false)
+  {
+  }
+  ;
 
   //! Destructor to delete our data
   virtual ~Registration();
 
   //! Initialize registration (keep source, target, gauss pyramid and transformation type)
-  virtual void clear(); 
-  
+  virtual void clear();
+
   //! Free Gaussian pyramid for source image
-  void freeGPS()                 {freeGaussianPyramid(gpS);};
+  void freeGPS()
+  {
+    freeGaussianPyramid(gpS);
+  }
+  ;
   //! Free Gaussian pyramid for target image
-  void freeGPT()                 {freeGaussianPyramid(gpT);};
+  void freeGPT()
+  {
+    freeGaussianPyramid(gpT);
+  }
+  ;
 
   //! Allow only translation
-  void setTransonly()            {rigid=false; transonly=true;  isoscale=false;};
+  void setTransonly()
+  {
+    rigid = false;
+    transonly = true;
+    isoscale = false;
+  }
+  ;
   //! Allow only rigid (default)
-  void setRigid()                {rigid=true;  transonly=false; isoscale=false;};
+  void setRigid()
+  {
+    rigid = true;
+    transonly = false;
+    isoscale = false;
+  }
+  ;
   //! Allow rigid and isotropic scaling
-  void setIsoscale()             {rigid=false; transonly=false; isoscale=true ;};
+  void setIsoscale()
+  {
+    rigid = false;
+    transonly = false;
+    isoscale = true;
+  }
+  ;
   //! Allow affine transform
-  void setAffine()               {rigid=false; transonly=false; isoscale=false;};
+  void setAffine()
+  {
+    rigid = false;
+    transonly = false;
+    isoscale = false;
+  }
+  ;
   //! Specify iteration number on highest level
-  void setHighit(int i)          {highit = i;};
+  void setHighit(int i)
+  {
+    highit = i;
+  }
+  ;
   //! Specify debug level
-  void setDebug(int d)           {debug = d; if (d>0) verbose = 2;};
- 
-	//! Set Verbose Level: 0 very quiet, 1 default, 2 detail
-  void setVerbose(int i)         {if (i < 0) i=0; else if (i > 2) i=2; verbose = i;};
-  
+  void setDebug(int d)
+  {
+    debug = d;
+    if (d > 0)
+      verbose = 2;
+  }
+  ;
+
+  //! Set Verbose Level: 0 very quiet, 1 default, 2 detail
+  void setVerbose(int i)
+  {
+    if (i < 0)
+      i = 0;
+    else if (i > 2)
+      i = 2;
+    verbose = i;
+  }
+  ;
+
   //! Specify wether global intensity scale is to be estimated
-  void setIscale(bool i)         {iscale = i;};
+  void setIscale(bool i)
+  {
+    iscale = i;
+  }
+  ;
   //! Specify initial intensity scale
-  void setIscaleInit(double d)   {iscaleinit = d;};
-  
+  void setIscaleInit(double d)
+  {
+    iscaleinit = d;
+  }
+  ;
+
   //! Set initial transform fo the original volumes (not in resampled space!)
-  void setMinitOrig(const vnl_matrix < double > & m){ Minit =m; };
-  
+  void setMinitOrig(const vnl_matrix<double> & m)
+  {
+    Minit = m;
+  }
+  ;
+
   //! setSource and setTarget needed by MultiRegistration (no reslicing necessary there)
-  void setSource (MRI * s, bool conform = false, bool keeptype = false);
+  void setSource(MRI * s, bool conform = false, bool keeptype = false);
   //! setSource and setTarget needed by MultiRegistration (no reslicing necessary there)
-  void setTarget (MRI * t, bool conform = false, bool keeptype = false);
+  void setTarget(MRI * t, bool conform = false, bool keeptype = false);
   //! everyone else should call this to initialize the inputs
   void setSourceAndTarget(MRI * s, MRI * t, bool keeptype = false);
   //! Specify min size to switch on subsampling
-  void setSubsampleSize (int sss){subsamplesize = sss;};
+  void setSubsampleSize(int sss)
+  {
+    subsamplesize = sss;
+  }
+  ;
   //! Specify min size for multi resolution
-  void setMinSize (int s)        {minsize = s;};
+  void setMinSize(int s)
+  {
+    minsize = s;
+  }
+  ;
   //! Specify max size for multi resolution
-  void setMaxSize (int s)        {maxsize = s;};
+  void setMaxSize(int s)
+  {
+    maxsize = s;
+  }
+  ;
   //! Specify name for debug output
   void setName(const std::string &n);
-	
-	//! If inittransform is true, specify wether additionally init orientation
-  void setInitOrient(bool io)    {initorient = io;};
-	
-	//! If true (default) automatically initialize transform
-  void setInitTransform(bool it) {inittransform = it;};
+
+  //! If inittransform is true, specify wether additionally init orientation
+  void setInitOrient(bool io)
+  {
+    initorient = io;
+  }
+  ;
+
+  //! If true (default) automatically initialize transform
+  void setInitTransform(bool it)
+  {
+    inittransform = it;
+  }
+  ;
   //! Specify if initial scaling should be performed (not tested)
-  void setInitScaling(bool it)   {initscaling = it;};
+  void setInitScaling(bool it)
+  {
+    initscaling = it;
+  }
+  ;
   //! Specify if double precision is to be used internally
-  void setDoublePrec(bool b)     {doubleprec = b;};
- // void setWLimit( double d)      {wlimit = d;};
+  void setDoublePrec(bool b)
+  {
+    doubleprec = b;
+  }
+  ;
+  // void setWLimit( double d)      {wlimit = d;};
   //! Specify wether registration is symmetric or at target space
-  void setSymmetry( bool b)      {symmetry = b;};
-  
+  void setSymmetry(bool b)
+  {
+    symmetry = b;
+  }
+  ;
+
   //! Will be changed by Interpolator later, do not use
   void setSampleType(int st)
   {
@@ -158,45 +247,71 @@ enum Cost
     case SAMPLE_TRILINEAR:
       break;
     default:
-      std::cout << "ERROR Registration:setSampleType: " << st << " not supported type!" << std::endl;
+      std::cout << "ERROR Registration:setSampleType: " << st
+          << " not supported type!" << std::endl;
       exit(1);
     }
     sampletype = st;
   }
-  
+
   //! Specify cost function
-  void setCost( Cost c)          {costfun = c;};
-  
+  void setCost(Cost c)
+  {
+    costfun = c;
+  }
+  ;
+
   //! Is intensity scaling switched on?
-  bool isIscale()                {return iscale;};\
+  bool isIscale()
+  {
+    return iscale;
+  }
+  ;\
   //! Get the name as specified with setName()
-  std::string  getName()         {return name;};
+  std::string getName()
+  {
+    return name;
+  }
+  ;
   //! Returns true if the registration converged in maxit steps
-  bool getConverged()            {return converged;};
+  bool getConverged()
+  {
+    return converged;
+  }
+  ;
   //! Returns the weights (only for robust registration)
-  virtual MRI * getWeights()             {return NULL;};
+  virtual MRI * getWeights()
+  {
+    return NULL;
+  }
+  ;
 //  MRI * getWeights()             {return mri_weights;};
 //  MRI * getHWeights()            {return mri_hweights;};
   //! Returns the half way geometry
   virtual MRI * getHalfWayGeom() = 0;
   //! Returns the half way transforms
-  std::pair <vnl_matrix_fixed< double, 4, 4 > , vnl_matrix_fixed < double, 4, 4 > > getHalfWayMaps();
+  std::pair<vnl_matrix_fixed<double, 4, 4>, vnl_matrix_fixed<double, 4, 4> > getHalfWayMaps();
 
 //  double findSaturation ();
   //std::pair <MATRIX*, double> computeIterativeRegSat( int n,double epsit,MRI * mriS=NULL, MRI* mriT=NULL, MATRIX* Minit = NULL, double iscaleinit = 1.0);
 
   //! Compute registration iteratively
-  void computeIterativeRegistration(int n,double epsit);
+  void computeIterativeRegistration(int n, double epsit);
   //! Compute registration on different resolution levels
-  void computeMultiresRegistration (int stopres, int n,double epsit);
-  
+  void computeMultiresRegistration(int stopres, int n, double epsit);
+
   //! Convert parameter vector to affine matrix (using current transformation model)
-  std::pair < vnl_matrix_fixed <double,4,4 >, double > convertP2Md(const vnl_vector < double >& p) const;
-  
+  std::pair<vnl_matrix_fixed<double, 4, 4>, double> convertP2Md(
+      const vnl_vector<double>& p) const;
+
   //! Get final transform (might be different from mfinal due to possible resampling)
-  vnl_matrix_fixed < double , 4 , 4 >  getFinalVox2Vox ();
+  vnl_matrix_fixed<double, 4, 4> getFinalVox2Vox();
   //! Get final intensity scale factor
-  double getFinalIscale() const       {return iscalefinal;};
+  double getFinalIscale() const
+  {
+    return iscalefinal;
+  }
+  ;
 
 //  double estimateIScale(MRI *mriS, MRI *mriT);
 
@@ -209,27 +324,27 @@ enum Cost
 //  double computeSatEstimate (int reslevel, int n,double epsit, MRI * mriS=NULL, MRI* mriT=NULL, MATRIX* mi=NULL, double scaleinit=1.0 );
 
   //! Return centroid of mov image (of input, not of resampled internal version)
-  vnl_vector_fixed < double, 4 > getCentroidS();
+  vnl_vector_fixed<double, 4> getCentroidS();
   //! Return centroid of dst image (of input, not of resampled internal version)
-  vnl_vector_fixed < double, 4 > getCentroidT();
+  vnl_vector_fixed<double, 4> getCentroidT();
   //! Return centroid of mov image in dst space (of input, not of resampled internal version)
-  vnl_vector_fixed < double, 4 > getCentroidSinT();
-	
+  vnl_vector_fixed<double, 4> getCentroidSinT();
 
 protected:
   //! Setup transfromation model, source and target need to be set before
   virtual void setTransformation(bool is2d);
 
   //   returns weights:
- // std::pair < vnl_vector <double >, MRI* > computeRegistrationStepW(MRI * mriS = NULL, MRI* mriT=NULL);
+  // std::pair < vnl_vector <double >, MRI* > computeRegistrationStepW(MRI * mriS = NULL, MRI* mriT=NULL);
   //   returns param vector:
 //  vnl_vector <double > computeRegistrationStepP(MRI * mriS, MRI* mriT);
   //   returns 4x4 matrix and iscale:
 //  std::pair < vnl_matrix_fixed <double,4,4 >, double> computeRegistrationStep(MRI * mriS = NULL, MRI* mriT = NULL);
 
   //! IterativeRegistrationHelper 
-  virtual void computeIterativeRegistration(int n,double epsit,MRI * mriS, MRI* mriT, const vnl_matrix < double > &Minit, double iscaleinit) =0;	
-	//template < class T > void iterativeRegistrationHelper( int nmax,double epsit, MRI * mriS, MRI* mriT, const vnl_matrix < double >& m, double scaleinit);
+  virtual void computeIterativeRegistration(int n, double epsit, MRI * mriS,
+      MRI* mriT, const vnl_matrix<double> &Minit, double iscaleinit) =0;
+  //template < class T > void iterativeRegistrationHelper( int nmax,double epsit, MRI * mriS, MRI* mriT, const vnl_matrix < double >& m, double scaleinit);
 
   //! Flips inputs to have positive voxel sizes
   bool flipInputs();
@@ -239,36 +354,36 @@ protected:
   //conversion
   //std::pair < vnl_matrix_fixed <double,4,4 >, double > convertP2Md(const vnl_vector <double >& p);
   //std::pair < MATRIX*, double > convertP2MATRIXd(MATRIX* p);
-	
-	//MRI * applyParams(MRI * mri_in, const vnl_vector<double>& p, MRI * mri_dst=NULL, bool inverse=false);
+
+  //MRI * applyParams(MRI * mri_in, const vnl_vector<double>& p, MRI * mri_dst=NULL, bool inverse=false);
 
   //! Transform initial matrix into resampled space
-	vnl_matrix < double > getMinitResampled();
+  vnl_matrix<double> getMinitResampled();
 
   //! Estimate initial coarse registration using moments
-  vnl_matrix_fixed < double,4,4>  initializeTransform(MRI *mri_in, MRI *mri_ref);
+  vnl_matrix_fixed<double, 4, 4> initializeTransform(MRI *mri_in, MRI *mri_ref);
   //! Estimate initial scale (not tested!)
   int init_scaling(MRI *mri_in, MRI *mri_ref, MATRIX *m_L);
-  
+
   //! Performs several validity checks on sqrt matrix
-  bool checkSqrtM(const vnl_matrix_fixed <double,4,4 > & sqrtM, bool rigid);
+  bool checkSqrtM(const vnl_matrix_fixed<double, 4, 4> & sqrtM, bool rigid);
 
   //! Resample both images (or if not symmetric only src) to new space, return half way transforms
-  void mapToNewSpace(const vnl_matrix_fixed<double , 4, 4>& M, double iscaleval, 
-                                 MRI * mriS, MRI* mriT, MRI *& mriSwarp, MRI*& mriTwarp,
-                                 vnl_matrix_fixed<double , 4, 4>& mh,
-                                 vnl_matrix_fixed<double , 4, 4>& mhi);
+  void mapToNewSpace(const vnl_matrix_fixed<double, 4, 4>& M, double iscaleval,
+      MRI * mriS, MRI* mriT, MRI *& mriSwarp, MRI*& mriTwarp,
+      vnl_matrix_fixed<double, 4, 4>& mh, vnl_matrix_fixed<double, 4, 4>& mhi);
 
   //! Compute levels for gaussian pyramid based on both input images
-  std::pair < int, int > getGPLimits(MRI *mriS, MRI *mriT, int min, int max);
+  std::pair<int, int> getGPLimits(MRI *mriS, MRI *mriT, int min, int max);
   //! Build Gaussian pyramid based on min and max image size
-  std::vector < MRI* > buildGaussianPyramid (MRI * mri_in, int min = 16, int max = -1);
+  std::vector<MRI*> buildGaussianPyramid(MRI * mri_in, int min = 16, int max =
+      -1);
   //! Build Gaussian pyramid based on limits
-  std::vector < MRI* > buildGPLimits (MRI *mri_in, std::pair< int, int > limits);
+  std::vector<MRI*> buildGPLimits(MRI *mri_in, std::pair<int, int> limits);
   //! Free a Gaussian pyramid
-  void freeGaussianPyramid(std::vector< MRI* >& p);
+  void freeGaussianPyramid(std::vector<MRI*>& p);
   //! Save a Gaussian pyramid
-  void saveGaussianPyramid(std::vector< MRI* >& p, const std::string & prefix);
+  void saveGaussianPyramid(std::vector<MRI*>& p, const std::string & prefix);
 
 //  double sat;
   bool iscale;
@@ -291,14 +406,14 @@ protected:
 
   // PROTECTED DATA
   MRI * mri_source;
-  std::vector < MRI* > gpS;
-  std::vector < double > centroidS;
+  std::vector<MRI*> gpS;
+  std::vector<double> centroidS;
   MRI * mri_target;
-  std::vector < MRI* > gpT;
-  std::vector < double > centroidT;
-  vnl_matrix < double >  Minit;
-  vnl_matrix < double >  Mfinal;
-	double iscaleinit;
+  std::vector<MRI*> gpT;
+  std::vector<double> centroidT;
+  vnl_matrix<double> Minit;
+  vnl_matrix<double> Mfinal;
+  double iscaleinit;
   double iscalefinal;
   bool doubleprec;
 //  double wlimit;
@@ -306,11 +421,11 @@ protected:
   int sampletype;
 
   bool resample;
-  vnl_matrix < double >  Rsrc;
-  vnl_matrix < double >  Rtrg;
+  vnl_matrix<double> Rsrc;
+  vnl_matrix<double> Rtrg;
 
-  vnl_matrix < double> mov2weights;
-  vnl_matrix < double> dst2weights;
+  vnl_matrix<double> mov2weights;
+  vnl_matrix<double> dst2weights;
 
   Cost costfun;
 
@@ -323,17 +438,18 @@ private:
   //std::pair < MATRIX*, VECTOR* > constructAb(MRI *mriS, MRI *mriT);
   //std::pair < vnl_matrix <double>, vnl_vector <double> > constructAb(MRI *mriS, MRI *mriT);
 //  void constructAb(MRI *mriS, MRI *mriT, vnl_matrix < double > &A, vnl_vector < double > &b);
-  std::pair < MATRIX*, VECTOR* > constructAb2(MRI *mriS, MRI *mriT);
+  std::pair<MATRIX*, VECTOR*> constructAb2(MRI *mriS, MRI *mriT);
 
-
-  bool needReslice(MRI *mri, double vsize = -1, int xdim =-1, int ydim=-1, int zdim=-1, bool fixtype = true);
-  std::pair< MRI* , vnl_matrix_fixed < double, 4, 4> > makeIsotropic(MRI *mri, MRI *out, double vsize = -1, int xdim =-1, int ydim=-1, int zdim=-1, bool fixtype = true);
+  bool needReslice(MRI *mri, double vsize = -1, int xdim = -1, int ydim = -1,
+      int zdim = -1, bool fixtype = true);
+  std::pair<MRI*, vnl_matrix_fixed<double, 4, 4> > makeIsotropic(MRI *mri,
+      MRI *out, double vsize = -1, int xdim = -1, int ydim = -1, int zdim = -1,
+      bool fixtype = true);
 
 //  void findSatMultiRes(const vnl_matrix < double > &mi, double scaleinit );
 
 //  double wcheck; // set from computeRegistrationStepW
 //  double wchecksqrt; // set from computeRegistrationStepW
-
 
   // PRIVATE DATA
 //  MRI * mri_weights;
@@ -369,7 +485,7 @@ private:
 //   //     ==> s = log (iscalefinal)
 //   iscalefinal = 1.0;
 //   if (scaleinit != 1.0) iscalefinal = scaleinit;
-// 	else iscalefinal = iscaleinit;
+//   else iscalefinal = iscaleinit;
 //   fmd.second = log(iscalefinal);
 //   
 // 
@@ -377,7 +493,7 @@ private:
 //   {
 //     std::cout << "   - initial iscale: " << iscalefinal << std::endl;
 //     std::cout << "   - initial transform:\n" ;
-// 		std::cout << fmd.first << std::endl;
+//     std::cout << fmd.first << std::endl;
 //   }
 // 
 //   //std::cout << "mris width " << mriS->width << std::endl;
@@ -387,26 +503,26 @@ private:
 //   vnl_matrix_fixed<double , 4, 4> mh;
 //   vnl_matrix_fixed<double , 4, 4> mhi;mhi.set_identity();
 // //  vnl_matrix_fixed<double , 4, 4> mi;
-// 	
+//   
 //   double diff = 100.0;
 //   double idiff = 0.0;
 //   double ieps = 0.001; // exp(ieps) = 1.0010005, so stop if below 0.1% change
 // 
 //   int i = 1;
-// 	
+//   
 //   // here create RegistrationStep of the specific type: double or float:
 //   RegistrationStep<T> RStep(*this);
-// 	RStep.setFloatSVD(true); // even with double, use float for SVD to save some memory
-// 	T tt;	
-// 		
+//   RStep.setFloatSVD(true); // even with double, use float for SVD to save some memory
+//   T tt;  
+//     
 //   converged = false;
 //   while (!converged && i<=nmax  )
 //   {
 //     if (verbose >0) std::cout << " Iteration(" << typeid(tt).name() << "): " << i << std::endl;
-// 		if (verbose == 1 && subsamplesize > 0)
+//     if (verbose == 1 && subsamplesize > 0)
 //     if (mriS->width > subsamplesize && mriS->height > subsamplesize && (mriS->depth > subsamplesize || mriS->depth ==1))
 //       std::cout << " (subsample " << subsamplesize << ") " << std::flush;
-// 		if (verbose >1) std::cout << std::endl;
+//     if (verbose >1) std::cout << std::endl;
 // 
 //     // map source (and if symmetric also target) to new space for next iteration
 //     // get mri_?warp and half way maps (mh, mhi):
@@ -429,13 +545,13 @@ private:
 //     //
 //     if (verbose >1) std::cout << "   - compute new registration" << std::endl;
 //     cmd = RStep.computeRegistrationStep(mri_Swarp,mri_Twarp);
-// 		wcheck = RStep.getwcheck();
-// 		wchecksqrt = RStep.getwchecksqrt();
+//     wcheck = RStep.getwcheck();
+//     wchecksqrt = RStep.getwchecksqrt();
 //     // ==========================================================================
 // 
 //    // store M and d
 //     if (verbose >1) std::cout << "   - store transform" << std::endl;
-// 		vnl_matrix_fixed < double, 4, 4 > fmdtmp(fmd.first);
+//     vnl_matrix_fixed < double, 4, 4 > fmdtmp(fmd.first);
 //     if (symmetry)
 //     {
 //       mh2 = vnl_inverse(mhi); // M = mh2 * mh
@@ -454,27 +570,27 @@ private:
 //       if (idiff <= ieps) istar << " <= " << ieps << "  :-)" ;
 //       if (verbose >0 ) std::cout << "     -- intensity log diff: abs(" << cmd.second << ") " << istar.str() << std::endl;
 //     }
-// 		
+//     
 //     if (!rigid) diff = MyMatrix::getFrobeniusDiff(fmd.first, fmdtmp);
 //     else        diff = sqrt(MyMatrix::RigidTransDistSq(fmd.first, fmdtmp));
 //     if (verbose >1) std::cout << "     -- old diff. to prev. transform: " << diff << std::endl;
 //     diff = sqrt(MyMatrix::AffineTransDistSq(fmd.first, fmdtmp, 100));
-// 		std::ostringstream star;
+//     std::ostringstream star;
 //     if (diff <= epsit) star << "  <= " << epsit << "   :-)" ;
-// 		else if (i == nmax) star<< " max it: " << nmax << " reached!";
+//     else if (i == nmax) star<< " max it: " << nmax << " reached!";
 //     if (verbose >0) std::cout << "     -- diff. to prev. transform: " << diff << star.str() << std::endl;
 //     //std::cout << " intens: " << fmd.second << std::endl;
-// 		i++;
+//     i++;
 //     converged = (diff <= epsit && idiff <=ieps);
-// 		
+//     
 //     if (debug > 0)
 //     {
 //       // write weights
 //       if (costfun == ROB)
 //       {
 //         if (mri_hweights) MRIfree(&mri_hweights);
-//  		    assert(RStep.getWeights());
-//  	      mri_hweights = MRIcopy(RStep.getWeights(),NULL);
+//          assert(RStep.getWeights());
+//          mri_hweights = MRIcopy(RStep.getWeights(),NULL);
 //         MRIwrite(mri_hweights,(name+"-mriS-hw-weights.mgz").c_str());
 //         char ch;
 //         std::cout << "Weights written for this iteration" << std::endl;
@@ -482,7 +598,7 @@ private:
 //         std::cin  >> ch;
 //       }
 //     } // end if debug
-// 	
+//   
 //   } // end while loop
 //   
 //   // adjust converged (don't tell the outside about intensiy problems)
@@ -491,11 +607,11 @@ private:
 //   if (mri_hweights) MRIfree(&mri_hweights);
 //   if (costfun == ROB)
 //   {
-// 		assert(RStep.getWeights());
-// 	  mri_hweights = MRIcopy(RStep.getWeights(),NULL);
-// 	}
+//     assert(RStep.getWeights());
+//     mri_hweights = MRIcopy(RStep.getWeights(),NULL);
+//   }
 // 
-// 	
+//   
 //   //   DEBUG OUTPUT
 //   if (debug > 0)
 //   {
@@ -527,7 +643,7 @@ private:
 //         {
 //           if (MRIFvox(mri_hweights,x,y,z) < 0) MRIFvox(mri_hweights,x,y,z) = 1;
 //         }
-// 				
+//         
 //     mri_weights = MRIalloc(mriT->width,mriT->height,mriT->depth,MRI_FLOAT);
 //     MRIcopyHeader(mriT,mri_weights);
 //     mri_weights->type = MRI_FLOAT;
@@ -563,6 +679,5 @@ private:
 // 
 // }
 // 
-
 
 #endif
