@@ -73,7 +73,7 @@ foreach hemi ( $hemis )
 
     # now check that the curvature files have the correct number of vertices
     # mris_info does this check via the $hemi.orig input argument
-    foreach curv ( curv sulc area thickness )
+    foreach curv ( curv sulc area area.mid area.pial thickness volume)
 
         if ("x$2" != "x") echo "Checking $subj/surf/$hemi.$curv..."
         if ( ! -e $SUBJECTS_DIR/$subj/surf/$hemi.$curv ) then
