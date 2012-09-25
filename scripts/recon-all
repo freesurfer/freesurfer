@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2012/08/25 20:41:03 $
-#    $Revision: 1.426 $
+#    $Date: 2012/09/25 20:29:39 $
+#    $Revision: 1.427 $
 #
 # Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -26,7 +26,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.426 2012/08/25 20:41:03 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.427 2012/09/25 20:29:39 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -5584,6 +5584,10 @@ check_params:
         echo "       ID) and <templateid> is the ID created in the -base run."
         echo "       The directory <tpNid>.long.<templateid> will be created"
         echo "       automatically or used for output, if it already exists."
+        echo ""
+        echo "NOTE:  Your time point id may not contain .long in the name."
+        echo "       Usage of .long is reserved for the automatically created"
+        echo "       longitudinal files."
         echo ""
         exit 1;
       endif
