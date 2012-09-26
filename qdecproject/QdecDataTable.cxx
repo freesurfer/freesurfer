@@ -9,19 +9,18 @@
  * Original Author: Nick Schmansky
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2010/03/26 16:55:27 $
- *    $Revision: 1.25 $
+ *    $Date: 2012/09/26 16:38:30 $
+ *    $Revision: 1.26.2.1 $
  *
- * Copyright (C) 2007-2010,
- * The General Hospital Corporation (Boston, MA).
- * All rights reserved.
+ * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
- * Distribution, usage and copying of this software is covered under the
- * terms found in the License Agreement file named 'COPYING' found in the
- * FreeSurfer source code root directory, and duplicated here:
- * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ * Terms and conditions for use, reproduction, distribution and contribution
+ * are found in the 'FreeSurfer Software License Agreement' contained
+ * in the file 'LICENSE' found in the FreeSurfer distribution, and here:
  *
- * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
+ *
+ * Reporting: freesurfer@nmr.mgh.harvard.edu
  *
  */
 
@@ -234,6 +233,9 @@ int QdecDataTable::Load (const char* isFileName,
          << isFileName << endl;
     cout << "This line did not appear to end with a newline: " 
          << endl << tmpstr << endl;
+    cout << "In your editor, place the cursor at the end of that" 
+         << endl << "line and press Enter once, then save the file."
+         << endl;
     ifsDatFile.close();
     return (-1);
   }
