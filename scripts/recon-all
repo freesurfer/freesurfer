@@ -7,9 +7,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: nicks $
-#    $Date: 2012/09/25 20:29:39 $
-#    $Revision: 1.427 $
+#    $Author: mreuter $
+#    $Date: 2012/09/26 01:01:16 $
+#    $Revision: 1.428 $
 #
 # Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -26,7 +26,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.427 2012/09/25 20:29:39 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.428 2012/09/26 01:01:16 mreuter Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -5575,8 +5575,10 @@ check_params:
       set haslong = `echo $tpNid | grep "\.long\."`
       if ( "$haslong" != "" ) then
         echo ""
-        echo "ERROR: Are you trying to run or re-run a longitudinal time point?"
-        echo "       If so, please specify the following parameters:"
+        echo "ERROR: Detected \'.long.\' in a subject id!
+        echo ""
+        echo "       If you are trying to run or re-run a longitudinal time point"
+        echo "       please specify the following parameters:"
         echo ""
         echo "       \' -long <tpNid> <templateid> \'"
         echo ""
@@ -5585,9 +5587,9 @@ check_params:
         echo "       The directory <tpNid>.long.<templateid> will be created"
         echo "       automatically or used for output, if it already exists."
         echo ""
-        echo "NOTE:  Your time point id may not contain .long in the name."
-        echo "       Usage of .long is reserved for the automatically created"
-        echo "       longitudinal files."
+        echo "       If you are running a \'-base\' please specify a different name."
+        echo "       Usage of \'.long.\' is reserved for the automatically created"
+        echo "       longitudinal output."
         echo ""
         exit 1;
       endif
