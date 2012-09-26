@@ -9,8 +9,8 @@
  * Original Author: Nick Schmansky
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:35 $
- *    $Revision: 1.26 $
+ *    $Date: 2012/09/26 16:36:36 $
+ *    $Revision: 1.27 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -233,6 +233,9 @@ int QdecDataTable::Load (const char* isFileName,
          << isFileName << endl;
     cout << "This line did not appear to end with a newline: " 
          << endl << tmpstr << endl;
+    cout << "In your editor, place the cursor at the end of that" 
+         << endl << "line and press Enter once, then save the file."
+         << endl;
     ifsDatFile.close();
     return (-1);
   }
