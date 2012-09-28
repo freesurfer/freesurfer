@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2011/11/19 17:34:36 $
- *    $Revision: 1.27 $
+ *    $Date: 2012/09/28 18:09:37 $
+ *    $Revision: 1.28 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -174,6 +174,10 @@ the same with --to-fwhm.
 Synthesize input with white gaussian noise with the given number of frames.
 Implies --synth.
 
+--tr TRms
+
+Set TR (generally not too useful)
+
 EXAMPLES:
 
 1. Measure the fwhm of an input data set, compute mask automatically by
@@ -251,7 +255,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_fwhm.c,v 1.27 2011/11/19 17:34:36 greve Exp $";
+static char vcid[] = "$Id: mri_fwhm.c,v 1.28 2012/09/28 18:09:37 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -306,6 +310,9 @@ char *sum2file = NULL;
 
 int DoAR2;
 
+double TR=0.0;
+int SetTR=0;
+
 /*---------------------------------------------------------------*/
 int main(int argc, char *argv[]) {
   int nargs, n, Ntp, nsearch, nsearch2=0;
@@ -341,6 +348,10 @@ int main(int argc, char *argv[]) {
   // ------------- load or synthesize input ---------------------
   InVals = MRIreadType(inpath,InValsType);
   if(InVals == NULL) exit(1);
+  if(SetTR){
+    printf("Setting TR to %g ms\n",TR);
+    InVals->tr = TR;
+  }
   if((nframes < 0 && synth) || !synth) nframes = InVals->nframes;
   if(nframes < nframesmin && !SmoothOnly && !sum2file) {
     printf("ERROR: nframes = %d, need at least %d\n",
@@ -743,6 +754,11 @@ static int parse_commandline(int argc, char **argv) {
       if (nargc < 1) CMDargNErr(option,1);
       sscanf(pargv[0],"%d",&SynthSeed);
       synth = 1;
+      nargsused = 1;
+    } else if (!strcasecmp(option, "--tr")) {
+      if (nargc < 1) CMDargNErr(option,1);
+      sscanf(pargv[0],"%lf",&TR);
+      SetTR = 1;
       nargsused = 1;
     } else if (!strcasecmp(option, "--o")) {
       if (nargc < 1) CMDargNErr(option,1);
