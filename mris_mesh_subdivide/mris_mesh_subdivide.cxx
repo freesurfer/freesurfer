@@ -8,8 +8,8 @@
  * Original Author: jonathan polimeni
  * CVS Revision Info:
  *    $Author: jonp $
- *    $Date: 2012/09/30 17:41:34 $
- *    $Revision: 1.3 $
+ *    $Date: 2012/09/30 17:54:10 $
+ *    $Revision: 1.4 $
  *
  * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -75,7 +75,7 @@ static void argnerr(char *, int) ;
 static int debug = 0;
 
 static char vcid[] =
-  "$Id: mris_mesh_subdivide.cxx,v 1.3 2012/09/30 17:41:34 jonp Exp $";
+  "$Id: mris_mesh_subdivide.cxx,v 1.4 2012/09/30 17:54:10 jonp Exp $";
 
 
 
@@ -129,12 +129,12 @@ int main(int argc, char *argv[])
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mris_mesh_subdivide.cxx,v 1.3 2012/09/30 17:41:34 jonp Exp $",
+   "$Id: mris_mesh_subdivide.cxx,v 1.4 2012/09/30 17:54:10 jonp Exp $",
    "$Name:  $", cmdline);
 
 
   //nargs = handle_version_option (argc, argv,
-  //   "$Id: mris_mesh_subdivide.cxx,v 1.3 2012/09/30 17:41:34 jonp Exp $",
+  //   "$Id: mris_mesh_subdivide.cxx,v 1.4 2012/09/30 17:54:10 jonp Exp $",
   //   "$Name:  $");
   if (nargs && argc - nargs == 1)
   {
@@ -501,6 +501,7 @@ static int parse_commandline(int argc, char **argv)
       surf_filename = pargv[0];
       if( !strcmp(surf_filename, "inflated") )
       {
+	// TODO: add "force" option to subdivide inflated surface
         printf("\nWARNING: do you really want to subdivide the "
                "*inflated* surface?\n\n");
         exit(1);
@@ -594,10 +595,10 @@ static void print_usage(void)
   printf("   --surf <filename>       name of input surface\n");
   printf("   --out  <filename>       name for output surface (if does not\n");
   printf("                           contain '/' outputs to same directory\n");
-  printf("                           as input surface\n");
+  printf("                           as input surface)\n");
   printf("   --method <methodname>   subdivision method options are:\n");
   printf("                           'butterfly', 'loop', or 'linear'\n");
-  printf("   --iter <N>              number of subdivision iterations'\n");
+  printf("   --iter <N>              number of subdivision iterations\n");
   printf("\n");
   printf("\n");
   printf("   --help        print out information on how to use this program\n");
@@ -620,7 +621,7 @@ static void print_help(void)
 }
 
 /* --------------------------------------------------------------------------- */
-ystatic void print_version(void)
+static void print_version(void)
 {
   printf("%s\n", vcid) ;
   exit(1) ;
