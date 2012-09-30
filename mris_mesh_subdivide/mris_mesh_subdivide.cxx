@@ -8,8 +8,8 @@
  * Original Author: jonathan polimeni
  * CVS Revision Info:
  *    $Author: jonp $
- *    $Date: 2012/09/29 05:44:12 $
- *    $Revision: 1.1 $
+ *    $Date: 2012/09/30 15:51:40 $
+ *    $Revision: 1.2 $
  *
  * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -60,6 +60,8 @@ extern "C"
 #include <vtkPointData.h>
 #include <vtkSphereSource.h>
 #include <vtkButterflySubdivisionFilter.h>
+#include <vtkLoopSubdivisionFilter.h>
+#include <vtkLinearSubdivisionFilter.h>
 
 char *Progname = NULL;
 static int  parse_commandline(int argc, char **argv);
@@ -73,11 +75,11 @@ static void argnerr(char *, int) ;
 static int debug = 0;
 
 static char vcid[] =
-  "$Id: mris_mesh_subdivide.cxx,v 1.1 2012/09/29 05:44:12 jonp Exp $";
+  "$Id: mris_mesh_subdivide.cxx,v 1.2 2012/09/30 15:51:40 jonp Exp $";
 
 
 
-int mris_mesh_subdivide__loop_butterfly(MRI_SURFACE *mris, int iter);
+int mris_mesh_subdivide__VTK(MRI_SURFACE *mris, int iter);
 int mris_mesh_subdivide__convert_mris_VTK(MRI_SURFACE *mris, vtkPolyData *mesh);
 int mris_mesh_subdivide__convert_VTK_mris(vtkPolyData *mesh, MRI_SURFACE *mris_dst);
 int mris_mesh_subdivide__VTK_delete(vtkPolyData *mesh);
@@ -85,6 +87,13 @@ int mris_mesh_subdivide__mris_clone_header(MRI_SURFACE *mris_src, MRI_SURFACE *m
 
 //static char  *subdividemethod_string = "nearest";
 static int  subdividemethod = -1;
+
+enum subdividemethod_type {
+  SUBDIVIDE_UNDEFINED = 0,
+  SUBDIVIDE_BUTTERFLY = 1,
+  SUBDIVIDE_LOOP      = 2,
+  SUBDIVIDE_LINEAR    = 3
+};
 
 MRI_SURFACE  *mris_subdivide  = NULL;
 
@@ -117,11 +126,11 @@ int main(int argc, char *argv[])
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mris_mesh_subdivide.cxx,v 1.1 2012/09/29 05:44:12 jonp Exp $",
+   "$Id: mris_mesh_subdivide.cxx,v 1.2 2012/09/30 15:51:40 jonp Exp $",
    "$Name:  $", cmdline);
 
 
-  //  nargs = handle_version_option (argc, argv, "$Id: mris_mesh_subdivide.cxx,v 1.1 2012/09/29 05:44:12 jonp Exp $", "$Name:  $");
+  //  nargs = handle_version_option (argc, argv, "$Id: mris_mesh_subdivide.cxx,v 1.2 2012/09/30 15:51:40 jonp Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
   {
     exit (0);
@@ -142,6 +151,9 @@ int main(int argc, char *argv[])
     usage_exit();
   }
 
+  // set default
+  subdividemethod = SUBDIVIDE_BUTTERFLY;
+
   parse_commandline(argc, argv);
 
 
@@ -159,11 +171,11 @@ int main(int argc, char *argv[])
   //==-----------------------------------------------------------
   // 1) subdivide!
 
-  // TODO: add other subdivision filters
+  // TODO: replace VTK subdivision with our own implementation from scratch
 
-  if ( subdividemethod == -1 )
+  if ( subdividemethod != -1 )
     {
-      err = mris_mesh_subdivide__loop_butterfly(mris, iter);
+      err = mris_mesh_subdivide__VTK(mris, iter);
     }
 
 
@@ -197,7 +209,7 @@ int main(int argc, char *argv[])
 
 
 /* --------------------------------------------- */
-int mris_mesh_subdivide__loop_butterfly(MRI_SURFACE *mris, 
+int mris_mesh_subdivide__VTK(MRI_SURFACE *mris,
                                         int iter)
 {
   int err;
@@ -214,11 +226,43 @@ int mris_mesh_subdivide__loop_butterfly(MRI_SURFACE *mris,
             << " triangle faces." << std::endl;
 
 
+  // NOTE TO MYSELF [jrp, 2012/sep/29]: in some viewers like freeview
+  // the interpolating subdivision does not appear to strictly
+  // maintain the positions of original vertices. they are not
+  // displaced as much as the approximating algorithms like loop
+  // subdivision, but they are clearly not in the same position
+  // (whereas the linear subvision vertices are). but this is an
+  // artifact of the visualization. i have confirmed that the vertex
+  // position values for the original vertices are identical in the
+  // interpolating subdivision.
+
+
   vtkSmartPointer<vtkPolyDataAlgorithm> subdivisionFilter;
 
-  subdivisionFilter = vtkSmartPointer<vtkButterflySubdivisionFilter>::New();
-  dynamic_cast<vtkButterflySubdivisionFilter *> (subdivisionFilter.GetPointer())->SetNumberOfSubdivisions(iter);
-
+  switch ( subdividemethod )
+    {
+    case SUBDIVIDE_BUTTERFLY:
+      printf("  interpolating subdivision method: 'modified butterfly' \n");
+      subdivisionFilter = vtkSmartPointer<vtkButterflySubdivisionFilter>::New();
+      dynamic_cast<vtkButterflySubdivisionFilter *> (subdivisionFilter.GetPointer())->SetNumberOfSubdivisions(iter);
+      break;
+    case SUBDIVIDE_LOOP:
+      printf("  approximating subdivision method: 'loop' \n");
+      subdivisionFilter = vtkSmartPointer<vtkLoopSubdivisionFilter>::New();
+      dynamic_cast<vtkLoopSubdivisionFilter *> (subdivisionFilter.GetPointer())->SetNumberOfSubdivisions(iter);
+      break;
+    case SUBDIVIDE_LINEAR:
+      printf("  interpolating subdivision method: 'linear' \n");
+      subdivisionFilter = vtkSmartPointer<vtkLinearSubdivisionFilter>::New();
+      dynamic_cast<vtkLinearSubdivisionFilter *> (subdivisionFilter.GetPointer())->SetNumberOfSubdivisions(iter);
+      break;
+    case -1:
+      printf("method uninitialized\n");
+      break;
+    default:
+      printf("this should not happen\n");
+      break;
+    }
 
 #if VTK_MAJOR_VERSION <= 5
   subdivisionFilter->SetInputConnection(inputMesh->GetProducerPort());
@@ -389,6 +433,7 @@ static int parse_commandline(int argc, char **argv)
 {
   int  nargc , nargsused;
   char **pargv, *option ;
+  char *tmpstr = NULL;
 
   if (argc < 1)
   {
@@ -457,7 +502,39 @@ static int parse_commandline(int argc, char **argv)
       iter = atoi(pargv[0]);
       nargsused = 1;
     }
+    else if ( !strcmp(option, "--method") )
+    {
+      if (nargc < 1)
+      {
+        argnerr(option,1);
+      }
+      tmpstr = pargv[0];
+      nargsused = 1;
 
+      if ( !tmpstr )
+        {
+          printf("option 'method' requires argument\n");
+        }
+      else if ( !strcmp(tmpstr, "butterfly") )
+        {
+          subdividemethod = SUBDIVIDE_BUTTERFLY;
+        }
+      else if ( !strcmp(tmpstr, "loop") )
+        {
+          subdividemethod = SUBDIVIDE_LOOP;
+        }
+      else if ( !strcmp(tmpstr, "linear") )
+        {
+          subdividemethod = SUBDIVIDE_LINEAR;
+        }
+      else
+        {
+          subdividemethod = SUBDIVIDE_UNDEFINED;
+          ErrorExit(ERROR_NOFILE, "%s: method '%s' unrecognized, see help",
+                    Progname, tmpstr) ;
+
+        }
+    }
     nargc -= nargsused;
     pargv += nargsused;
   }
