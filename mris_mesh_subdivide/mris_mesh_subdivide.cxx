@@ -8,8 +8,8 @@
  * Original Author: jonathan polimeni
  * CVS Revision Info:
  *    $Author: jonp $
- *    $Date: 2012/09/30 15:51:40 $
- *    $Revision: 1.2 $
+ *    $Date: 2012/09/30 17:41:34 $
+ *    $Revision: 1.3 $
  *
  * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -75,20 +75,23 @@ static void argnerr(char *, int) ;
 static int debug = 0;
 
 static char vcid[] =
-  "$Id: mris_mesh_subdivide.cxx,v 1.2 2012/09/30 15:51:40 jonp Exp $";
+  "$Id: mris_mesh_subdivide.cxx,v 1.3 2012/09/30 17:41:34 jonp Exp $";
 
 
 
 int mris_mesh_subdivide__VTK(MRI_SURFACE *mris, int iter);
 int mris_mesh_subdivide__convert_mris_VTK(MRI_SURFACE *mris, vtkPolyData *mesh);
-int mris_mesh_subdivide__convert_VTK_mris(vtkPolyData *mesh, MRI_SURFACE *mris_dst);
+int mris_mesh_subdivide__convert_VTK_mris(vtkPolyData *mesh,
+    MRI_SURFACE *mris_dst);
 int mris_mesh_subdivide__VTK_delete(vtkPolyData *mesh);
-int mris_mesh_subdivide__mris_clone_header(MRI_SURFACE *mris_src, MRI_SURFACE *mris_dst);
+int mris_mesh_subdivide__mris_clone_header(MRI_SURFACE *mris_src,
+    MRI_SURFACE *mris_dst);
 
 //static char  *subdividemethod_string = "nearest";
 static int  subdividemethod = -1;
 
-enum subdividemethod_type {
+enum subdividemethod_type
+{
   SUBDIVIDE_UNDEFINED = 0,
   SUBDIVIDE_BUTTERFLY = 1,
   SUBDIVIDE_LOOP      = 2,
@@ -126,11 +129,13 @@ int main(int argc, char *argv[])
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mris_mesh_subdivide.cxx,v 1.2 2012/09/30 15:51:40 jonp Exp $",
+   "$Id: mris_mesh_subdivide.cxx,v 1.3 2012/09/30 17:41:34 jonp Exp $",
    "$Name:  $", cmdline);
 
 
-  //  nargs = handle_version_option (argc, argv, "$Id: mris_mesh_subdivide.cxx,v 1.2 2012/09/30 15:51:40 jonp Exp $", "$Name:  $");
+  //nargs = handle_version_option (argc, argv,
+  //   "$Id: mris_mesh_subdivide.cxx,v 1.3 2012/09/30 17:41:34 jonp Exp $",
+  //   "$Name:  $");
   if (nargs && argc - nargs == 1)
   {
     exit (0);
@@ -168,24 +173,35 @@ int main(int argc, char *argv[])
   }
 
 
-  //==-----------------------------------------------------------
-  // 1) subdivide!
+  //==--------------------------------------------------------------
+  // 1) define subsurface with label or triangle area metric
 
-  // TODO: replace VTK subdivision with our own implementation from scratch
+  // TODO!
+
+
+
+  //==--------------------------------------------------------------
+  // 2) subdivide!
+
+  // TODO: replace VTK subdivision with our own implementation from
+  // scratch
 
   if ( subdividemethod != -1 )
-    {
-      err = mris_mesh_subdivide__VTK(mris, iter);
-    }
+  {
+    err = mris_mesh_subdivide__VTK(mris, iter);
+  }
 
 
-  //==-----------------------------------------------------------
-  // 2) check surface quality, self-intersections, non-manifoldness
+  //==--------------------------------------------------------------
+  // 3) check surface quality, self-intersections, non-manifoldness
 
   // TODO: see mris_warp.c ( mrisurf.c:IsMRISselfIntersecting )
 
+  // TODO: report change in edge length or triangle area over
+  // subsurface
 
-  //==---------------------------------------------------------
+
+  //==--------------------------------------------------------------
   // N) write out surface
 
   MRISaddCommandLine(mris_subdivide, cmdline);
@@ -208,9 +224,9 @@ int main(int argc, char *argv[])
 }
 
 
-/* --------------------------------------------- */
+/* --------------------------------------------------------------------------- */
 int mris_mesh_subdivide__VTK(MRI_SURFACE *mris,
-                                        int iter)
+                             int iter)
 {
   int err;
 
@@ -240,29 +256,32 @@ int mris_mesh_subdivide__VTK(MRI_SURFACE *mris,
   vtkSmartPointer<vtkPolyDataAlgorithm> subdivisionFilter;
 
   switch ( subdividemethod )
-    {
-    case SUBDIVIDE_BUTTERFLY:
-      printf("  interpolating subdivision method: 'modified butterfly' \n");
-      subdivisionFilter = vtkSmartPointer<vtkButterflySubdivisionFilter>::New();
-      dynamic_cast<vtkButterflySubdivisionFilter *> (subdivisionFilter.GetPointer())->SetNumberOfSubdivisions(iter);
-      break;
-    case SUBDIVIDE_LOOP:
-      printf("  approximating subdivision method: 'loop' \n");
-      subdivisionFilter = vtkSmartPointer<vtkLoopSubdivisionFilter>::New();
-      dynamic_cast<vtkLoopSubdivisionFilter *> (subdivisionFilter.GetPointer())->SetNumberOfSubdivisions(iter);
-      break;
-    case SUBDIVIDE_LINEAR:
-      printf("  interpolating subdivision method: 'linear' \n");
-      subdivisionFilter = vtkSmartPointer<vtkLinearSubdivisionFilter>::New();
-      dynamic_cast<vtkLinearSubdivisionFilter *> (subdivisionFilter.GetPointer())->SetNumberOfSubdivisions(iter);
-      break;
-    case -1:
-      printf("method uninitialized\n");
-      break;
-    default:
-      printf("this should not happen\n");
-      break;
-    }
+  {
+  case SUBDIVIDE_BUTTERFLY:
+    printf("  interpolating subdivision method: 'modified butterfly' \n");
+    subdivisionFilter = vtkSmartPointer<vtkButterflySubdivisionFilter>::New();
+    dynamic_cast<vtkButterflySubdivisionFilter *>
+    (subdivisionFilter.GetPointer())->SetNumberOfSubdivisions(iter);
+    break;
+  case SUBDIVIDE_LOOP:
+    printf("  approximating subdivision method: 'loop' \n");
+    subdivisionFilter = vtkSmartPointer<vtkLoopSubdivisionFilter>::New();
+    dynamic_cast<vtkLoopSubdivisionFilter *>
+    (subdivisionFilter.GetPointer())->SetNumberOfSubdivisions(iter);
+    break;
+  case SUBDIVIDE_LINEAR:
+    printf("  interpolating subdivision method: 'linear' \n");
+    subdivisionFilter = vtkSmartPointer<vtkLinearSubdivisionFilter>::New();
+    dynamic_cast<vtkLinearSubdivisionFilter *>
+    (subdivisionFilter.GetPointer())->SetNumberOfSubdivisions(iter);
+    break;
+  case -1:
+    printf("method uninitialized\n");
+    break;
+  default:
+    printf("this should not happen\n");
+    break;
+  }
 
 #if VTK_MAJOR_VERSION <= 5
   subdivisionFilter->SetInputConnection(inputMesh->GetProducerPort());
@@ -285,7 +304,8 @@ int mris_mesh_subdivide__VTK(MRI_SURFACE *mris,
             << " triangle faces." << std::endl;
 
 
-  mris_subdivide = MRISalloc(outputMesh->GetNumberOfPoints(), outputMesh->GetNumberOfPolys()) ;
+  mris_subdivide = MRISalloc(outputMesh->GetNumberOfPoints(),
+                             outputMesh->GetNumberOfPolys()) ;
   err = mris_mesh_subdivide__mris_clone_header(mris, mris_subdivide);
   err = mris_mesh_subdivide__convert_VTK_mris(outputMesh, mris_subdivide);
 
@@ -296,9 +316,9 @@ int mris_mesh_subdivide__VTK(MRI_SURFACE *mris,
 }
 
 
-/* --------------------------------------------- */
+/* --------------------------------------------------------------------------- */
 int mris_mesh_subdivide__convert_mris_VTK(MRI_SURFACE *mris,
-                                          vtkPolyData *mesh)
+    vtkPolyData *mesh)
 {
   vtkPoints* points;
   vtkCellArray* faces;
@@ -308,22 +328,22 @@ int mris_mesh_subdivide__convert_mris_VTK(MRI_SURFACE *mris,
   VERTEX* pvtx = &( mris->vertices[0] );
   for (unsigned int ui(0), nvertices(mris->nvertices);
        ui < nvertices; ++ui, ++pvtx )
-    {
-      points->SetPoint(ui, pvtx->x, pvtx->y, pvtx->z);
-    } // next point (vertex)
+  {
+    points->SetPoint(ui, pvtx->x, pvtx->y, pvtx->z);
+  } // next point (vertex)
 
   faces = vtkCellArray::New();
   faces->Allocate( mris->nfaces );
   FACE* pface = &( mris->faces[0] );
   for ( unsigned int ui(0), nfaces(mris->nfaces);
         ui < nfaces; ++ui, ++pface )
+  {
+    faces->InsertNextCell((long long int)VERTICES_PER_FACE);
+    for ( int i = 0; i < VERTICES_PER_FACE; i++ )
     {
-      faces->InsertNextCell((long long int)VERTICES_PER_FACE);
-      for ( int i = 0; i < VERTICES_PER_FACE; i++ )
-        {
-          faces->InsertCellPoint(pface->v[i]);
-        }
-    } // next cell (face)
+      faces->InsertCellPoint(pface->v[i]);
+    }
+  } // next cell (face)
 
   mesh->SetPoints(points);
   mesh->SetPolys(faces);
@@ -333,8 +353,9 @@ int mris_mesh_subdivide__convert_mris_VTK(MRI_SURFACE *mris,
 }
 
 
-/* --------------------------------------------- */
-int mris_mesh_subdivide__convert_VTK_mris(vtkPolyData *mesh, MRI_SURFACE *mris_dst)
+/* --------------------------------------------------------------------------- */
+int mris_mesh_subdivide__convert_VTK_mris(vtkPolyData *mesh,
+    MRI_SURFACE *mris_dst)
 {
 
   int      vno, fno;
@@ -346,32 +367,33 @@ int mris_mesh_subdivide__convert_VTK_mris(vtkPolyData *mesh, MRI_SURFACE *mris_d
     vtkSmartPointer<vtkIdList>::New();
 
   for (uvno = 0, vno = 0 ; vno < mris_dst->nvertices ; uvno++, vno++)
-    {
-      v = &mris_dst->vertices[vno] ;
-      mesh->GetPoint(uvno, p);
+  {
+    v = &mris_dst->vertices[vno] ;
+    mesh->GetPoint(uvno, p);
 
-      v->x = p[0];
-      v->y = p[1];
-      v->z = p[2];
+    v->x = p[0];
+    v->y = p[1];
+    v->z = p[2];
 
-    }
+  }
 
   for (fno = 0; fno < mris_dst->nfaces; fno++)
-    {
-      mesh->GetCellPoints(fno, pointIdList);
+  {
+    mesh->GetCellPoints(fno, pointIdList);
 
-      mris_dst->faces[fno].v[0] = pointIdList->GetId(0);
-      mris_dst->faces[fno].v[1] = pointIdList->GetId(1);
-      mris_dst->faces[fno].v[2] = pointIdList->GetId(2);
-    }
+    mris_dst->faces[fno].v[0] = pointIdList->GetId(0);
+    mris_dst->faces[fno].v[1] = pointIdList->GetId(1);
+    mris_dst->faces[fno].v[2] = pointIdList->GetId(2);
+  }
 
 
   return 0;
 }
 
 
-/* --------------------------------------------- */
-int mris_mesh_subdivide__mris_clone_header(MRI_SURFACE *mris_src, MRI_SURFACE *mris_dst)
+/* --------------------------------------------------------------------------- */
+int mris_mesh_subdivide__mris_clone_header(MRI_SURFACE *mris_src,
+    MRI_SURFACE *mris_dst)
 {
   int ind;
 
@@ -401,17 +423,18 @@ int mris_mesh_subdivide__mris_clone_header(MRI_SURFACE *mris_src, MRI_SURFACE *m
   {
     mris_dst->ncmds = mris_src->ncmds;
     for (ind = 0 ; ind < mris_src->ncmds ; ind++)
-      {
-        mris_dst->cmdlines[ind] = (char *)calloc(strlen(mris_src->cmdlines[ind])+1, sizeof(char)) ;
-        strcpy(mris_dst->cmdlines[ind], mris_src->cmdlines[ind]);
-      }
+    {
+      mris_dst->cmdlines[ind] =
+        (char *)calloc(strlen(mris_src->cmdlines[ind])+1, sizeof(char)) ;
+      strcpy(mris_dst->cmdlines[ind], mris_src->cmdlines[ind]);
+    }
   }
 
   return 0;
 }
 
 
-/* --------------------------------------------- */
+/* --------------------------------------------------------------------------- */
 int mris_mesh_subdivide__VTK_delete(vtkPolyData *mesh)
 {
   vtkPoints* points;
@@ -428,7 +451,7 @@ int mris_mesh_subdivide__VTK_delete(vtkPolyData *mesh)
 }
 
 
-/* --------------------------------------------- */
+/* --------------------------------------------------------------------------- */
 static int parse_commandline(int argc, char **argv)
 {
   int  nargc , nargsused;
@@ -512,28 +535,28 @@ static int parse_commandline(int argc, char **argv)
       nargsused = 1;
 
       if ( !tmpstr )
-        {
-          printf("option 'method' requires argument\n");
-        }
+      {
+        printf("option 'method' requires argument\n");
+      }
       else if ( !strcmp(tmpstr, "butterfly") )
-        {
-          subdividemethod = SUBDIVIDE_BUTTERFLY;
-        }
+      {
+        subdividemethod = SUBDIVIDE_BUTTERFLY;
+      }
       else if ( !strcmp(tmpstr, "loop") )
-        {
-          subdividemethod = SUBDIVIDE_LOOP;
-        }
+      {
+        subdividemethod = SUBDIVIDE_LOOP;
+      }
       else if ( !strcmp(tmpstr, "linear") )
-        {
-          subdividemethod = SUBDIVIDE_LINEAR;
-        }
+      {
+        subdividemethod = SUBDIVIDE_LINEAR;
+      }
       else
-        {
-          subdividemethod = SUBDIVIDE_UNDEFINED;
-          ErrorExit(ERROR_NOFILE, "%s: method '%s' unrecognized, see help",
-                    Progname, tmpstr) ;
+      {
+        subdividemethod = SUBDIVIDE_UNDEFINED;
+        ErrorExit(ERROR_NOFILE, "%s: method '%s' unrecognized, see help",
+                  Progname, tmpstr) ;
 
-        }
+      }
     }
     nargc -= nargsused;
     pargv += nargsused;
@@ -541,7 +564,7 @@ static int parse_commandline(int argc, char **argv)
   return(0);
 }
 
-/* --------------------------------------------- */
+/* --------------------------------------------------------------------------- */
 static void argnerr(char *option, int n)
 {
   if (n==1)
@@ -552,26 +575,29 @@ static void argnerr(char *option, int n)
   {
     fprintf(stderr,"ERROR: %s flag needs %d arguments\n",option,n);
   }
-  exit(-1);
+  exit(-1) ;
 }
 
 
-/* --------------------------------------------- */
+/* --------------------------------------------------------------------------- */
 static void usage_exit(void)
 {
   print_usage() ;
   exit(1) ;
 }
 
-/* --------------------------------------------- */
+/* --------------------------------------------------------------------------- */
 static void print_usage(void)
 {
   printf("USAGE: %s  [options]\n",Progname) ;
   printf("\n");
-  printf("   --surf <filename>        name of input surface\n");
-  printf("   --out  <filename>        name for output surface (if does not contain '/'\n");
-  printf("                            outputs to same directory as input surface)\n");
-  printf("   --iter <N>               integer number of subdivision iterations'\n");
+  printf("   --surf <filename>       name of input surface\n");
+  printf("   --out  <filename>       name for output surface (if does not\n");
+  printf("                           contain '/' outputs to same directory\n");
+  printf("                           as input surface\n");
+  printf("   --method <methodname>   subdivision method options are:\n");
+  printf("                           'butterfly', 'loop', or 'linear'\n");
+  printf("   --iter <N>              number of subdivision iterations'\n");
   printf("\n");
   printf("\n");
   printf("   --help        print out information on how to use this program\n");
@@ -581,7 +607,7 @@ static void print_usage(void)
   printf("\n");
 }
 
-/* --------------------------------------------- */
+/* --------------------------------------------------------------------------- */
 static void print_help(void)
 {
   print_usage() ;
@@ -593,8 +619,8 @@ static void print_help(void)
   exit(1) ;
 }
 
-/* --------------------------------------------- */
-static void print_version(void)
+/* --------------------------------------------------------------------------- */
+ystatic void print_version(void)
 {
   printf("%s\n", vcid) ;
   exit(1) ;
