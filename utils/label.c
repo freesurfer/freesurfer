@@ -9,8 +9,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2012/06/08 20:13:25 $
- *    $Revision: 1.109 $
+ *    $Date: 2012/10/01 18:59:58 $
+ *    $Revision: 1.110 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -2768,6 +2768,7 @@ LABEL *LabelfromASeg(MRI *aseg, int segcode)
           lb->lv[nlabel].x = ras->rptr[1][1];
           lb->lv[nlabel].y = ras->rptr[2][1];
           lb->lv[nlabel].z = ras->rptr[3][1];
+	  lb->lv[nlabel].vno = -1 ;   // not assigned yet
           nlabel++;
         }
       }
