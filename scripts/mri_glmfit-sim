@@ -1,5 +1,5 @@
 #!/bin/tcsh -f
-set VERSION = '$Id: mri_glmfit-sim,v 1.36.2.4 2012/05/02 20:52:35 greve Exp $';
+set VERSION = '$Id: mri_glmfit-sim,v 1.36.2.5 2012/10/01 22:31:37 greve Exp $';
 
 set inputargs = ($argv);
 
@@ -28,6 +28,7 @@ set volsubject = fsaverage;
 set subjectOverride = ();
 set Bonferroni = 0;
 set ReportCentroid = 0;
+set annot = aparc
 
 set nJobs = 1;
 set DoBackground = 0;
@@ -505,14 +506,14 @@ foreach conname ($conlist)
   set cwsig = $glmdir/$conname/$csdbase.sig.cluster.$ext
   set msig  = $glmdir/$conname/$csdbase.sig.masked.$ext
   set ocn   = $glmdir/$conname/$csdbase.sig.ocn.$ext
-  set annot = $glmdir/$conname/$csdbase.sig.ocn.annot
+  set oannot = $glmdir/$conname/$csdbase.sig.ocn.annot
   set sum   = $glmdir/$conname/$csdbase.sig.cluster.summary
   set csdpdf = $glmdir/$conname/$csdbase.pdf.dat
 
   if($anattype == surface) then
     set cmd = (mri_surfcluster --in $sig $csdlist --mask $mask \
       --cwsig $cwsig --vwsig $vwsig --sum $sum --ocn $ocn \
-      --oannot $annot --annot aparc --csdpdf $csdpdf \
+      --oannot $oannot --annot $annot --csdpdf $csdpdf \
       --cwpvalthresh $cwpvalthresh --o $msig --no-fixmni)
     if($Bonferroni) set cmd = ($cmd --bonferroni $Bonferroni)
     if($ReportCentroid) set cmd = ($cmd --centroid);
@@ -666,6 +667,14 @@ while( $#argv != 0 )
       set LF = $argv[1]; shift;
       breaksw
 
+    case "--a2009s":
+      set annot = "aparc.a2009s"
+      breaksw
+    case "--annot":
+      if( $#argv < 1) goto arg1err;
+      set annot = $argv[1]; shift;
+      breaksw
+
     case "--overwrite":
       set Overwrite = 1;
       breaksw
@@ -732,6 +741,7 @@ while( $#argv != 0 )
       set Bonferroni = 3;
       breaksw
 
+    case "--cwp":
     case "--cwpvalthresh":
       if($#argv < 1) goto arg1err;
       set cwpvalthresh = $argv[1]; shift;
