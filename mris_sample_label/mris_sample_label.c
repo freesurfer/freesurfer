@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:33 $
- *    $Revision: 1.4 $
+ *    $Author: fischl $
+ *    $Date: 2012/10/01 18:59:32 $
+ *    $Revision: 1.5 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -40,7 +40,7 @@
 #include "fio.h"
 #include "label.h"
 
-static char vcid[] = "$Id: mris_sample_label.c,v 1.4 2011/03/02 00:04:33 nicks Exp $";
+static char vcid[] = "$Id: mris_sample_label.c,v 1.5 2012/10/01 18:59:32 fischl Exp $";
 
 
 /*-------------------------------- CONSTANTS -----------------------------*/
@@ -58,14 +58,14 @@ static void print_version(void) ;
 /*-------------------------------- DATA ----------------------------*/
 
 char *Progname ;
-
+static int voxval = 1 ;
 
 /*-------------------------------- FUNCTIONS ----------------------------*/
 
 int
 main(int argc, char *argv[]) {
   MRI_SURFACE  *mris ;
-  char         **av, *in_label_fname, *out_label_fname, *surf_fname ;
+  char         **av, *in_label_fname, *out_label_fname, *surf_fname, ext[STRLEN] ; ;
   int          ac, nargs ;
   LABEL        *label, *label_out ;
 
@@ -89,9 +89,21 @@ main(int argc, char *argv[]) {
   out_label_fname = argv[3] ;
 
   printf("reading label from %s...\n", in_label_fname) ;
-  label = LabelRead(NULL, in_label_fname) ;
-  if (!label)
-    ErrorExit(ERROR_NOFILE, "%s: could not read label file %s", Progname, in_label_fname) ;
+  if (!strcmp(FileNameExtension(in_label_fname, ext), "mgz"))
+  {
+    MRI *mri = MRIread(in_label_fname) ;
+    printf("creating label from volumetric inputs with voxval = %d\n", voxval) ;
+    if (mri == NULL)
+      ErrorExit(ERROR_NOFILE, "%s: could not read input volume from %s", Progname, in_label_fname);
+    label = LabelfromASeg(mri, voxval) ;
+    MRIfree(&mri) ;
+  }
+  else
+  {
+    label = LabelRead(NULL, in_label_fname) ;
+    if (!label)
+      ErrorExit(ERROR_NOFILE, "%s: could not read label file %s", Progname, in_label_fname) ;
+  }
   printf("reading surface from %s...\n", surf_fname) ;
   mris = MRISread(surf_fname) ;
   if (!mris)
