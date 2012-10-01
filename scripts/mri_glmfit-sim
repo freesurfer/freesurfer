@@ -1,5 +1,5 @@
 #!/bin/tcsh -f
-set VERSION = '$Id: mri_glmfit-sim,v 1.45 2012/01/31 18:53:03 greve Exp $';
+set VERSION = '$Id: mri_glmfit-sim,v 1.46 2012/10/01 22:31:27 greve Exp $';
 
 set inputargs = ($argv);
 
@@ -28,6 +28,7 @@ set volsubject = fsaverage;
 set subjectOverride = ();
 set Bonferroni = 0;
 set ReportCentroid = 0;
+set annot = aparc
 
 set nJobs = 1;
 set DoBackground = 0;
@@ -527,14 +528,14 @@ foreach conname ($conlist)
   set cwsig = $glmdir/$conname/$csdbase.sig.cluster.$ext
   set msig  = $glmdir/$conname/$csdbase.sig.masked.$ext
   set ocn   = $glmdir/$conname/$csdbase.sig.ocn.$ext
-  set annot = $glmdir/$conname/$csdbase.sig.ocn.annot
+  set oannot = $glmdir/$conname/$csdbase.sig.ocn.annot
   set sum   = $glmdir/$conname/$csdbase.sig.cluster.summary
   set csdpdf = $glmdir/$conname/$csdbase.pdf.dat
 
   if($anattype == surface) then
     set cmd = (mri_surfcluster --in $sig $csdlist --mask $mask \
       --cwsig $cwsig --vwsig $vwsig --sum $sum --ocn $ocn \
-      --oannot $annot --annot aparc --csdpdf $csdpdf \
+      --oannot $oannot --annot $annot --csdpdf $csdpdf \
       --cwpvalthresh $cwpvalthresh --o $msig --no-fixmni)
     if($Bonferroni) set cmd = ($cmd --bonferroni $Bonferroni)
     if($ReportCentroid) set cmd = ($cmd --centroid);
@@ -686,6 +687,14 @@ while( $#argv != 0 )
     case "--log":
       if( $#argv < 1) goto arg1err;
       set LF = $argv[1]; shift;
+      breaksw
+
+    case "--a2009s":
+      set annot = "aparc.a2009s"
+      breaksw
+    case "--annot":
+      if( $#argv < 1) goto arg1err;
+      set annot = $argv[1]; shift;
       breaksw
 
     case "--overwrite":
@@ -868,6 +877,9 @@ usage_exit:
   echo " --overwrite : delete previous CSDs"
   echo " --bg njobs : divide sim into njobs and put in background"
   echo " --sleep tSleepSec : number of seconds to sleep between background polls "
+  echo ""
+  echo " --a2009s : use aparc.a2009s instead of aparc for reporting region of vertex max"
+  echo " --annot annot : use annot instead of aparc for reporting region of vertex max"
   echo ""
   echo " --log logfile : default is csdbase.mri_glmfit-sim.log"
   echo ""
