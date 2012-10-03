@@ -8,9 +8,9 @@
 # Process this file with autoconf to produce a configure script.
 #
 # CVS Revision Info:
-#    $Author: jonp $
-#    $Date: 2012/09/30 23:22:23 $
-#    $Revision: 1.576 $
+#    $Author: nicks $
+#    $Date: 2012/10/03 23:10:35 $
+#    $Revision: 1.577 $
 #
 ########################################################################
 AC_PREREQ(2.57)
@@ -216,6 +216,13 @@ if test "$ac_have_gcc_44" = "yes"; then
   AC_MSG_NOTICE(Copying /usr/bin/libtool overtop the PROG_LIBTOOL)
   cp /usr/bin/libtool .
 fi
+
+# when building on the Mac, use glibtool instead of libtool
+if test "$OS" = "Darwin"; then
+  AC_MSG_NOTICE(Copying /usr/bin/glibtool overtop the PROG_LIBTOOL)
+  cp /usr/bin/glibtool libtool
+fi
+
 
 ################################################################
 # Checks for header files.
