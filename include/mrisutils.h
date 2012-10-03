@@ -6,9 +6,9 @@
 /*
  * Original Authors: Segonne and Greve 
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2012/04/11 01:01:07 $
- *    $Revision: 1.20 $
+ *    $Author: greve $
+ *    $Date: 2012/10/03 21:28:35 $
+ *    $Revision: 1.21 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -69,4 +69,5 @@ MRISsampleProfile(MRI_SURFACE *mris, MRI *mri, double *profile, int nsamples, in
 		  double wx,  double wy,  double wz,
 		  double l4x, double l4y, double l4z,
 		  double px,  double py,  double pz) ;
+MRI_SP *MRISmakeTemplate(int nsubjects, char **subjlist, int nhemis, char **hemilist, char *surfregname);
 #endif

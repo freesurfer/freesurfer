@@ -6,9 +6,9 @@
 /*
  * Original Authors: Segonne and Greve 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/09/20 21:20:04 $
- *    $Revision: 1.41 $
+ *    $Author: greve $
+ *    $Date: 2012/10/03 21:28:35 $
+ *    $Revision: 1.42 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -2432,4 +2432,115 @@ MRI *MRIScomputeFlattenedVolume(MRI_SURFACE *mris,
   else
     MRIfree(&mri_vno) ;
   return(mri_flat) ;
+}
+
+/*!
+  \fn MRI_SP *MRISmakeTemplate(int nsubjects, char **subjlist, 
+      int nhemis, char **hemilist, char *surfregname)
+  \brief Creates a surface registration template. Overlaps with 
+    mris_make_template. Produces the same result as with -norot -aparc.
+    Can be used on both lh and rh.
+  \params number of subjects in subjlist
+  \params subjlist - list of subjects
+  \params nhemis - number of hemispheres in hemilist
+  \params hemilist - list of hemispheres to use
+  \params surfregname - name of surface registration
+  Example 1:
+    subjlist[0] = "s02.ghent";subjlist[1] = "s05.ghent";
+    hemilist[0] = "lh";
+    mrisp_template=MRISmakeTemplate(2, subjlist, 1, hemilist, "sphere.reg");
+  Example 2:
+    subjlist[0] = "s02.ghent";subjlist[1] = "s05.ghent";
+    hemilist[0] = "rh";  hemilist[1] = "lh";
+    mrisp_template=MRISmakeTemplate(2, subjlist, 2, hemilist, "sphere.left_right");
+*/
+MRI_SP *MRISmakeTemplate(int nsubjects, char **subjlist, int nhemis, char **hemilist, char *surfregname)
+{
+  static char *surface_names[] = {"inflated","smoothwm","smoothwm"} ;
+  static char *curvature_names[] =  {"inflated.H","sulc",NULL} ;
+  char tmpstr[2000];
+  int images_per_surface = 3;
+  int nsurfaces = sizeof(curvature_names) / sizeof(curvature_names[0]);
+  int nparam_images = images_per_surface*nsurfaces;
+  float scale = 1 ;
+  char *annot_name = "aparc", *SUBJECTS_DIR, *hemi, *subject ;
+  INTEGRATION_PARMS parms ;
+  int which_norm = NORM_MEAN;
+  int navgs = 0, nthhemi, sno, nthsubject ;
+  int nbrs = 3, err ;
+  MRI_SP  *mrisp, /* *mrisp_aligned,*/ *mrisp_template ;
+  MRIS *mris;
+
+  /* default template fields*/
+  memset(&parms, 0, sizeof(parms)) ;
+  parms.nfields=3;
+  SetFieldLabel(&parms.fields[0], INFLATED_CURV_CORR_FRAME,0,0.0,0.0,0,which_norm);
+  /* only use sulc for rigid registration */
+  SetFieldLabel(&parms.fields[1],SULC_CORR_FRAME,1,1.0,0.0,0,which_norm);
+  SetFieldLabel(&parms.fields[2],CURVATURE_CORR_FRAME,2,0.0,0.0,0,which_norm);
+
+  SUBJECTS_DIR = getenv("SUBJECTS_DIR");
+
+  mrisp_template = MRISPalloc(scale, nparam_images);
+  for(nthsubject = 0; nthsubject < nsubjects; nthsubject++){
+    subject = subjlist[nthsubject];
+
+    for(nthhemi = 0; nthhemi < nhemis; nthhemi++){
+      hemi = hemilist[nthhemi];
+      printf("subject %s hemi %s\n",subject,hemi);
+      sprintf(tmpstr, "%s/%s/surf/%s.%s",SUBJECTS_DIR, subject, hemi, surfregname);
+      printf("   reading surface %s...\n",tmpstr);
+      mris = MRISread(tmpstr);
+      if(mris == NULL){
+	printf("ERROR: could not load %s\n",tmpstr);
+	return(NULL);
+      }
+      
+      err = MRISreadAnnotation(mris, annot_name);
+      if(err){
+	printf("ERROR: could not load %s\n",annot_name);
+	return(NULL);
+      }
+
+      MRISripMedialWall(mris) ;
+      MRISsaveVertexPositions(mris, CANONICAL_VERTICES) ;
+      MRIScomputeMetricProperties(mris) ;
+      MRISstoreMetricProperties(mris) ;
+      
+      for (sno = 0; sno < nsurfaces ; sno++){
+	if(curvature_names[sno]){
+	  /* read in precomputed curvature file */
+	  sprintf(tmpstr, "%s/%s/surf/%s.%s",SUBJECTS_DIR,subject,hemi,curvature_names[sno]) ;
+	  err = MRISreadCurvatureFile(mris, tmpstr);
+	  if(err){
+	    printf("ERROR: could not load %s\n",tmpstr);
+	    return(NULL);
+	  }
+	  MRISaverageCurvatures(mris, navgs) ;
+	  MRISnormalizeCurvature(mris, which_norm) ;
+	}
+	else {
+	  sprintf(tmpstr, "%s/%s/surf/%s.%s",SUBJECTS_DIR,subject, hemi,surface_names[sno]) ;
+	  err = MRISreadVertexPositions(mris, tmpstr);
+	  if(err){
+	    printf("ERROR: could not load %s\n",tmpstr);
+	    return(NULL);
+	  }
+	  if (nbrs > 1) MRISsetNeighborhoodSize(mris, nbrs) ;
+	  MRIScomputeMetricProperties(mris) ;
+	  MRIScomputeSecondFundamentalForm(mris) ;
+	  MRISuseMeanCurvature(mris) ;
+	  MRISaverageCurvatures(mris, navgs) ;
+	  MRISrestoreVertexPositions(mris, CANONICAL_VERTICES) ;
+	  MRISnormalizeCurvature(mris, which_norm) ;
+	}
+	printf("  computing parameterization for surface %s...\n",tmpstr);
+	mrisp = MRIStoParameterization(mris, NULL, scale, 0) ;
+	MRISPcombine(mrisp, mrisp_template, sno*3) ;
+	MRISPfree(&mrisp) ;
+      }
+      MRISfree(&mris) ;
+    }
+  }
+  return(mrisp_template);
 }
