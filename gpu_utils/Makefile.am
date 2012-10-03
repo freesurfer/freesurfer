@@ -2,16 +2,16 @@
 ## Makefile.am 
 ##
 
+# BUILDCUDA is defined if configure.in finds CUDA
+if BUILDCUDA
+
 bin_PROGRAMS=cudadetect
 
 cudadetect_SOURCES=cudadetect.cpp
 cudadetect_LDFLAGS=-rdynamic -ldl
 
-# BUILDCUDA is defined if configure.in finds CUDA
-if BUILDCUDA
 cudadetect_CXXFLAGS=$(CUDA_CFLAGS) -DFS_CUDA
 cudadetect_LDADD=$(CUDA_LIBS)
-endif
 
 # put a wrapper around the bin, to set LD_LIBRARY_PATH to /usr/local/cuda
 install-exec-hook:cudadetect
@@ -26,6 +26,9 @@ install-exec-hook:cudadetect
 
 uninstall-hook:
 	rm -f $(DESTDIR)$(bindir)/cudadetect.bin
+
+endif
+
 
 EXCLUDE_FILES=
 include $(top_srcdir)/Makefile.extra
