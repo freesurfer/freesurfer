@@ -8,8 +8,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2011/12/15 22:34:25 $
- *    $Revision: 1.3 $
+ *    $Date: 2012/10/04 18:01:53 $
+ *    $Revision: 1.4 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -33,7 +33,7 @@
 */
 
 
-// $Id: mris_apply_reg.c,v 1.3 2011/12/15 22:34:25 greve Exp $
+// $Id: mris_apply_reg.c,v 1.4 2012/10/04 18:01:53 greve Exp $
 
 /*
   BEGINHELP
@@ -63,6 +63,7 @@
 #include "mrisurf.h"
 #include "resample.h"
 #include "pdf.h"
+#include "icosahedron.h"
 
 
 static int  parse_commandline(int argc, char **argv);
@@ -76,7 +77,7 @@ void usage_message(FILE *stream);
 void usage(FILE *stream);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mris_apply_reg.c,v 1.3 2011/12/15 22:34:25 greve Exp $";
+static char vcid[] = "$Id: mris_apply_reg.c,v 1.4 2012/10/04 18:01:53 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -99,6 +100,7 @@ int main(int argc, char *argv[]) {
   int nargs,n;
   MRIS *SurfReg[100];
   MRI *SrcVal, *TrgVal;
+  char *base;
 
   nargs = handle_version_option (argc, argv, vcid, "$Name:  $");
   if (nargs && argc - nargs == 1) exit (0);
@@ -137,7 +139,15 @@ int main(int argc, char *argv[]) {
 
   for(n=0; n<nsurfs;n++){
     printf("%d Loading %s\n",n+1,SurfRegFile[n]);
-    SurfReg[n] = MRISread(SurfRegFile[n]);
+    base = fio_basename(SurfRegFile[n],".tri");
+    if(strcmp(base,"ic7")==0){
+      // Have to do it this way to rescale. Need to find a better more robust way.
+      printf("   reading as ico 7, rescaling radius to 100\n");
+      SurfReg[n] = ReadIcoByOrder(7, 100);
+    }
+    else
+      SurfReg[n] = MRISread(SurfRegFile[n]);
+    free(base);
     if(SurfReg[n]==NULL) exit(1);
   }
 
