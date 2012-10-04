@@ -43,6 +43,8 @@
       <explanation>save  2nd (min) principal curvature in ?h.&lt;surface&gt;.min file</explanation>
       <argument>-a &lt;avgs&gt;</argument>
       <explanation>perform &lt;avgs&gt; iterative averages of curvature measure before saving</explanation>
+      <argument>-nbrs &lt;nbrs&gt;</argument>
+      <explanation>set neighborhood size to nbrs </explanation>
     </optional-flagged>
   </arguments>
   <outputs>
