@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2012/06/12 20:17:08 $
- *    $Revision: 1.121 $
+ *    $Date: 2012/10/04 18:06:50 $
+ *    $Revision: 1.122 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -815,7 +815,7 @@ void LayerMRI::ShowContour()
 
 void LayerMRI::UpdateContourColor()
 {
-  if ( GetProperty()->GetContourUseImageColorMap() )
+  if ( GetProperty()->GetContourUseImageColorMap() || GetProperty()->GetShowAsLabelContour())
   {
     m_actorContour->GetMapper()->ScalarVisibilityOn();
   }

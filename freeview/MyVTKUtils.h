@@ -6,9 +6,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/14 23:44:47 $
- *    $Revision: 1.4 $
+ *    $Author: rpwang $
+ *    $Date: 2012/10/04 18:06:50 $
+ *    $Revision: 1.5 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -60,6 +60,9 @@ public:
                                double world_z, double& x, double& y, double& z );
 
   static bool BuildContourActor( vtkImageData* data_in, double dTh1, double dTh2, vtkActor* actor_out,
+                                 int nSmoothIterations = 0, int* ext = NULL, bool bAllRegion = false );
+
+  static bool BuildLabelContourActor( vtkImageData* data_in, double dTh1, double dTh2, vtkActor* actor_out,
                                  int nSmoothIterations = 0, int* ext = NULL, bool bAllRegion = false );
 
   static bool BuildVolume( vtkImageData* data_in, double dTh1, double dTh2, vtkVolume* vol_out );

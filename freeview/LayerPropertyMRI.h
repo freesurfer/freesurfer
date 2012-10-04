@@ -11,8 +11,8 @@
  * Reimplemented by: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2012/08/06 20:32:57 $
- *    $Revision: 1.9 $
+ *    $Date: 2012/10/04 18:06:50 $
+ *    $Revision: 1.10 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -304,7 +304,18 @@ public:
     return m_bRememberFrameSettings;
   }
 
+  bool GetShowAsLabelContour()
+  {
+    return this->m_bShowAsLabelContour;
+  }
+
   void SetActiveFrame(int nFrame);
+
+  void GetLabelContourRange(double* th1, double* th2)
+  {
+    *th1 = m_dLabelContourRange[0];
+    *th2 = m_dLabelContourRange[1];
+  }
 
 public slots:
   void SetOpacity( double opacity );
@@ -313,6 +324,7 @@ public slots:
   void SetContourSmoothIterations( int nIterations );
   void SetTextureSmoothing ( int iSmooth );
   void SetShowAsContour( bool bContour );
+  void SetShowAsLabelContour(bool bLabelContour);
   void SetClearZero( bool bClear );
   void SetResliceInterpolation ( int iMode );
   void SetWindow( double iWindow );
@@ -334,6 +346,8 @@ public slots:
   }
   void SetShowProjectionMap(bool bShow);
   void SetRememberFrameSettings(bool bFlag);
+
+  void SetLabelContourRange(double dmin, double dmax);
 
 signals:
   void ColorMapChanged();
@@ -421,6 +435,9 @@ private:
   bool    m_bContourUseImageColorMap;
   bool    m_bContourExtractAll;
   int     m_nContourSmoothIterations;
+
+  bool    m_bShowAsLabelContour;
+  double  m_dLabelContourRange[2];
 
   bool    m_bShowLabelOutline;
   int     m_nUpSampleMethod;

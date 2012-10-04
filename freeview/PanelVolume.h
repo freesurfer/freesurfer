@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2011/09/01 21:03:51 $
- *    $Revision: 1.41 $
+ *    $Date: 2012/10/04 18:06:50 $
+ *    $Revision: 1.42 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -49,6 +49,7 @@ public:
 
 protected slots:
   void OnCheckShowContour( bool bShow );
+  void OnCheckShowLabelContour( bool bShow );
   void OnSliderOpacity( int nVal );
   void OnComboColorMap( int nSel );
   void OnComboLookupTable( int nSel );
@@ -102,6 +103,8 @@ private:
   QList<QWidget*> m_widgetlistFrame;
   QList<QWidget*> m_widgetlistVector;
   QList<QWidget*> m_widgetlistContour;
+  QList<QWidget*> m_widgetlistContourNormal;
+  QList<QWidget*> m_widgetlistContourLabel;
   QList<QWidget*> m_widgetlistNormalDisplay;
   QList<QWidget*> m_widgetlistEditable;
   QList<QWidget*> m_widgetlistVolumeTrack;

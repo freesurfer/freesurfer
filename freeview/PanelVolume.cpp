@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2012/06/27 18:58:40 $
- *    $Revision: 1.80 $
+ *    $Date: 2012/10/04 18:06:50 $
+ *    $Revision: 1.81 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -125,7 +125,27 @@ PanelVolume::PanelVolume(QWidget *parent) :
                       << ui->sliderContourSmoothIteration
                       << ui->lineEditContourSmoothIteration
                       << ui->labelSmoothIteration
-                      << ui->pushButtonContourSave;
+                      << ui->pushButtonContourSave
+                      << ui->labelContourLabelRange
+                      << ui->lineEditContourLabelRangeLow
+                      << ui->lineEditContourLabelRangeHigh
+                      << ui->checkBoxShowLabelContour;
+
+  m_widgetlistContourNormal << ui->sliderContourThresholdLow
+      << ui->sliderContourThresholdHigh
+      << ui->lineEditContourThresholdLow
+      << ui->lineEditContourThresholdHigh
+      << ui->checkBoxUseColorMap
+      << ui->checkBoxContourExtractAll
+      << ui->colorPickerContour
+      << ui->labelContourThresholdHigh
+      << ui->labelContourThresholdLow
+      << ui->labelContourColor
+      << ui->pushButtonContourSave;
+
+  m_widgetlistContourLabel << ui->labelContourLabelRange
+      << ui->lineEditContourLabelRangeLow
+      << ui->lineEditContourLabelRangeHigh;
 
   m_widgetlistEditable << ui->labelBrushValue
                        << ui->lineEditBrushValue;
@@ -190,6 +210,7 @@ void PanelVolume::ConnectLayer( Layer* layer_in )
   connect( ui->doubleSpinBoxOpacity, SIGNAL(valueChanged(double)), p, SLOT(SetOpacity(double)) );
   connect( ui->checkBoxSmooth, SIGNAL(stateChanged(int)), p, SLOT(SetTextureSmoothing(int)) );
   connect( ui->checkBoxShowContour, SIGNAL(clicked(bool)), p, SLOT(SetShowAsContour(bool)) );
+  connect( ui->checkBoxShowLabelContour, SIGNAL(clicked(bool)), p, SLOT(SetShowAsLabelContour(bool)) );
   connect( ui->sliderFrame, SIGNAL(valueChanged(int)), layer, SLOT(SetActiveFrameOneBase(int)) );
   connect( ui->spinBoxFrame, SIGNAL(valueChanged(int)), layer, SLOT(SetActiveFrameOneBase(int)) );
   connect( ui->checkBoxDisplayVector, SIGNAL(toggled(bool)), p, SLOT(SetDisplayVector(bool)) );
@@ -386,6 +407,10 @@ void PanelVolume::DoUpdateWidgets()
     ui->checkBoxContourExtractAll->setChecked( layer->GetProperty()->GetContourExtractAllRegions() );
     ui->sliderContourSmoothIteration->setValue( layer->GetProperty()->GetContourSmoothIterations() );
     ChangeLineEditNumber( ui->lineEditContourSmoothIteration, layer->GetProperty()->GetContourSmoothIterations() );
+    double dTh1, dTh2;
+    layer->GetProperty()->GetLabelContourRange(&dTh1, &dTh2);
+    ChangeLineEditNumber( ui->lineEditContourLabelRangeLow, dTh1 );
+    ChangeLineEditNumber( ui->lineEditContourLabelRangeHigh, dTh2 );
 
     ui->colorPickerContour->setEnabled( !layer->GetProperty()->GetContourUseImageColorMap() );
     double rgb[3];
@@ -455,6 +480,13 @@ void PanelVolume::DoUpdateWidgets()
     ShowWidgets( m_widgetlistVector, ui->checkBoxDisplayVector->isChecked() || ui->checkBoxDisplayTensor->isChecked() );
     ShowWidgets( m_widgetlistContour, ui->checkBoxShowContour->isChecked() );
     ui->checkBoxShowContour->setVisible( bNormalDisplay );
+    if (layer && ui->checkBoxShowContour->isChecked())
+    {
+      ui->checkBoxShowLabelContour->setChecked(layer->GetProperty()->GetShowAsLabelContour());
+      ShowWidgets( m_widgetlistContourNormal, !layer->GetProperty()->GetShowAsLabelContour());
+      ShowWidgets( m_widgetlistContourLabel, layer->GetProperty()->GetShowAsLabelContour());
+    }
+
     //  ShowWidgets( m_widgetlistContour, false );
     //  m_checkContour->Show( false /*nColorMap == LayerPropertyMRI::LUT*/ );
 
@@ -730,6 +762,12 @@ void PanelVolume::OnCheckShowContour(bool bShow)
   ShowWidgets( m_widgetlistContour, bShow );
 }
 
+void PanelVolume::OnCheckShowLabelContour(bool bShow)
+{
+  ShowWidgets( m_widgetlistContourNormal, !bShow);
+  ShowWidgets( m_widgetlistContourLabel, bShow);
+}
+
 void PanelVolume::OnSliderOpacity( int nVal )
 {
   QList<LayerMRI*> layers = GetSelectedLayers<LayerMRI*>();
@@ -980,28 +1018,59 @@ void PanelVolume::OnContourValueChanged()
   bool bOK;
   double fMin, fMax = 0;
   int nSmooth = 20;
-  fMin = ui->lineEditContourThresholdLow->text().trimmed().toDouble(&bOK);
-  if (bOK)
+  if (ui->checkBoxShowLabelContour->isChecked())
   {
-    fMax = ui->lineEditContourThresholdHigh->text().trimmed().toDouble(&bOK);
-  }
-  if (bOK)
-  {
-    nSmooth = ui->lineEditContourSmoothIteration->text().trimmed().toInt(&bOK);
-  }
-  QList<LayerMRI*> layers = GetSelectedLayers<LayerMRI*>();
-  foreach (LayerMRI* layer, layers)
-  {
-    if (layer && bOK)
+    fMin = ui->lineEditContourLabelRangeLow->text().trimmed().toDouble(&bOK);
+    if (bOK)
     {
-      if (sender() == ui->lineEditContourSmoothIteration ||
-          sender() == ui->sliderContourSmoothIteration )
+      fMax = ui->lineEditContourLabelRangeHigh->text().trimmed().toDouble(&bOK);
+    }
+    if (bOK)
+    {
+      nSmooth = ui->lineEditContourSmoothIteration->text().trimmed().toInt(&bOK);
+    }
+    QList<LayerMRI*> layers = GetSelectedLayers<LayerMRI*>();
+    foreach (LayerMRI* layer, layers)
+    {
+      if (layer && bOK)
       {
-        layer->GetProperty()->SetContourSmoothIterations(nSmooth);
+        if (sender() == ui->lineEditContourSmoothIteration ||
+            sender() == ui->sliderContourSmoothIteration )
+        {
+          layer->GetProperty()->SetContourSmoothIterations(nSmooth);
+        }
+        else
+        {
+          layer->GetProperty()->SetLabelContourRange(fMin, fMax);
+        }
       }
-      else
+    }
+  }
+  else
+  {
+    fMin = ui->lineEditContourThresholdLow->text().trimmed().toDouble(&bOK);
+    if (bOK)
+    {
+      fMax = ui->lineEditContourThresholdHigh->text().trimmed().toDouble(&bOK);
+    }
+    if (bOK)
+    {
+      nSmooth = ui->lineEditContourSmoothIteration->text().trimmed().toInt(&bOK);
+    }
+    QList<LayerMRI*> layers = GetSelectedLayers<LayerMRI*>();
+    foreach (LayerMRI* layer, layers)
+    {
+      if (layer && bOK)
       {
-        layer->GetProperty()->SetContourThreshold(fMin, fMax);
+        if (sender() == ui->lineEditContourSmoothIteration ||
+            sender() == ui->sliderContourSmoothIteration )
+        {
+          layer->GetProperty()->SetContourSmoothIterations(nSmooth);
+        }
+        else
+        {
+          layer->GetProperty()->SetContourThreshold(fMin, fMax);
+        }
       }
     }
   }

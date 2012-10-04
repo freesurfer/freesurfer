@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2011/10/13 21:05:31 $
- *    $Revision: 1.5 $
+ *    $Date: 2012/10/04 18:06:50 $
+ *    $Revision: 1.6 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -55,8 +55,14 @@ void ThreadBuildContour::run()
   }
   double dTh1 = m_mri->GetProperty()->GetContourMinThreshold();
   double dTh2 = m_mri->GetProperty()->GetContourMaxThreshold();
-  int nSmoothFactor = m_mri->GetProperty()->GetContourSmoothIterations();
   bool bExtractAllRegions = m_mri->GetProperty()->GetContourExtractAllRegions();
+  bool bLabelContour = m_mri->GetProperty()->GetShowAsLabelContour();
+  if (bLabelContour)
+  {
+    m_mri->GetProperty()->GetLabelContourRange(&dTh1, &dTh2);
+    bExtractAllRegions = true;
+  }
+  int nSmoothFactor = m_mri->GetProperty()->GetContourSmoothIterations();
   if ( m_nSegValue >= 0 )
   {
     dTh1 = m_nSegValue - 0.5;
@@ -68,7 +74,10 @@ void ThreadBuildContour::run()
   //  int ext[6] = { 370, 520, 0, 140, 0, 280 };
   if (m_mri->GetNumberOfFrames() == 1)
   {
-    MyVTKUtils::BuildContourActor( m_mri->GetImageData(), dTh1, dTh2, actor, nSmoothFactor, NULL, bExtractAllRegions );
+    if (bLabelContour)
+      MyVTKUtils::BuildLabelContourActor( m_mri->GetImageData(), dTh1, dTh2, actor, nSmoothFactor, NULL, bExtractAllRegions );
+    else
+      MyVTKUtils::BuildContourActor( m_mri->GetImageData(), dTh1, dTh2, actor, nSmoothFactor, NULL, bExtractAllRegions );
   }
   else
   {
@@ -76,7 +85,10 @@ void ThreadBuildContour::run()
     extract->SetComponents(m_mri->GetActiveFrame());
     extract->SetInput(m_mri->GetImageData());
     extract->Update();
-    MyVTKUtils::BuildContourActor( extract->GetOutput(), dTh1, dTh2, actor, nSmoothFactor, NULL, bExtractAllRegions );
+    if (bLabelContour)
+      MyVTKUtils::BuildLabelContourActor( extract->GetOutput(), dTh1, dTh2, actor, nSmoothFactor, NULL, bExtractAllRegions );
+    else
+      MyVTKUtils::BuildContourActor( extract->GetOutput(), dTh1, dTh2, actor, nSmoothFactor, NULL, bExtractAllRegions );
   }
   m_mri->m_actorContourTemp = actor;
   actor->Delete();
