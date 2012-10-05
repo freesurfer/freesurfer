@@ -8,8 +8,8 @@
 # Original Author: Anastasia Yendiki
 # CVS Revision Info:
 #    $Author: ayendiki $
-#    $Date: 2012/08/07 22:30:47 $
-#    $Revision: 1.39 $
+#    $Date: 2012/10/05 17:20:21 $
+#    $Revision: 1.40 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -25,7 +25,7 @@
 
 umask 002
 
-set VERSION = '$Id: trac-all,v 1.39 2012/08/07 22:30:47 ayendiki Exp $'
+set VERSION = '$Id: trac-all,v 1.40 2012/10/05 17:20:21 ayendiki Exp $'
 set ProgName = `basename $0`
 set inputargs = ($argv)
 
@@ -788,7 +788,12 @@ check_params:
         # The first subject of each line is the test subject,
         # the remaining subjects of the line are the training subjects
         set subjlist = `cat $trainfile | awk '{print $1}'`
-        set runlist = `jot - 1 $#subjlist 1`
+
+        set runlist = 1
+        while ($runlist[$#runlist] < $#subjlist)
+          set runlist = ($runlist `echo $runlist[$#runlist] + 1 | bc`)
+        end
+
         if (! $#ntrainlist) then
           set ntrainlist = `head -1 $trainfile | wc -w | awk '{print $1 - 1}'`
         endif
@@ -813,7 +818,10 @@ check_params:
     endif
 
     if (! $#runlist) then		# Process all subjects
-      set runlist = `jot $#subjlist`
+      set runlist = 1
+      while ($runlist[$#runlist] < $#subjlist)
+        set runlist = ($runlist `echo $runlist[$#runlist] + 1 | bc`)
+      end
     endif
 
     if (! $?SUBJECTS_DIR) then
