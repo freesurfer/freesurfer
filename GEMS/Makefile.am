@@ -39,7 +39,6 @@ libkvlAtlas3DCommon_a_SOURCES= \
 		kvlAtlasMeshBuilder.cxx \
 		kvlAtlasMeshCollectionReferencePositionCost.cxx \
 		kvlAtlasMeshCollectionFastReferencePositionCost.cxx \
-		itkPowellOptimizer.cxx \
 		kvlAtlasMeshCollectionModelLikelihoodCalculator.cxx \
 		kvlAtlasMeshSegmenter.cxx \
 		kvlAtlasMeshSegmentationDriver.cxx \
@@ -71,7 +70,7 @@ bin_PROGRAMS=\
 			 kvlUpsampleMesh \
 			 kvlSetReferencePosition \
 			 kvlCompressImage \
-			 kvlBuildAtlasMeshWithoutGUI \
+			 #kvlBuildAtlasMeshWithoutGUI \
 			 kvlCropImage \
 			 kvlCombineManualSegmentationProtocols \
 			 kvlReduceNumberOfIntensityLevels \
@@ -90,7 +89,7 @@ bin_PROGRAMS=\
 			 kvlSamplePositionsFromMeshCollection \
 			 kvlAddMeshToMeshCollection \
 			 kvlMergeMeshCollections \
-			 kvlAddCSFToBucknerData \
+			 #kvlAddCSFToBucknerData \
 			 kvlAddBorder \
 			 kvlQuantifyPosteriorProbabilityImages \
 			 kvlEMSegment \
@@ -233,15 +232,15 @@ kvlCompressImage_LDADD=$(LIBS_ITK) \
 				 $(addprefix $(top_builddir)/, $(LIBS_MGH) )
 kvlCompressImage_LDFLAGS= $(OS_LDFLAGS)
 
-kvlBuildAtlasMeshWithoutGUI_SOURCES=kvlBuildAtlasMeshWithoutGUI.cxx
-kvlBuildAtlasMeshWithoutGUI_LDADD=$(LIBS_ITK) \
-				 libkvlAtlas3DCommon.a \
-				 $(top_builddir)/itkio/libitkio.a \
-				 $(top_builddir)/itkutils/libitkutils.a \
-				 -lITKCommon -lITKAlgorithms -lITKIO -lITKznz \
-				 $(top_builddir)/tetgen/libtetgen.a \
-				 $(addprefix $(top_builddir)/, $(LIBS_MGH) )
-kvlBuildAtlasMeshWithoutGUI_LDFLAGS= $(OS_LDFLAGS)
+# kvlBuildAtlasMeshWithoutGUI_SOURCES=kvlBuildAtlasMeshWithoutGUI.cxx
+# kvlBuildAtlasMeshWithoutGUI_LDADD=$(LIBS_ITK) \
+# 				 libkvlAtlas3DCommon.a \
+# 				 $(top_builddir)/itkio/libitkio.a \
+# 				 $(top_builddir)/itkutils/libitkutils.a \
+# 				 -lITKCommon -lITKAlgorithms -lITKIO -lITKznz \
+# 				 $(top_builddir)/tetgen/libtetgen.a \
+# 				 $(addprefix $(top_builddir)/, $(LIBS_MGH) )
+# kvlBuildAtlasMeshWithoutGUI_LDFLAGS= $(OS_LDFLAGS)
 
 # kvlConstructSparseMeshCollection_SOURCES=kvlConstructSparseMeshCollection.cxx
 # kvlConstructSparseMeshCollection_LDADD=$(LIBS_ITK) \
@@ -438,14 +437,14 @@ kvlMergeMeshCollections_LDADD=$(LIBS_ITK) \
 				 $(addprefix $(top_builddir)/, $(LIBS_MGH) )
 kvlMergeMeshCollections_LDFLAGS= $(OS_LDFLAGS)
 
-kvlAddCSFToBucknerData_SOURCES=kvlAddCSFToBucknerData.cxx
-kvlAddCSFToBucknerData_LDADD=$(LIBS_ITK) \
-				 libkvlAtlas3DCommon.a \
-				 $(top_builddir)/itkio/libitkio.a \
-				 $(top_builddir)/itkutils/libitkutils.a \
-				 -lITKCommon -lITKIO -lITKznz \
-				 $(addprefix $(top_builddir)/, $(LIBS_MGH) )
-kvlAddCSFToBucknerData_LDFLAGS= $(OS_LDFLAGS)
+# kvlAddCSFToBucknerData_SOURCES=kvlAddCSFToBucknerData.cxx
+# kvlAddCSFToBucknerData_LDADD=$(LIBS_ITK) \
+# 				 libkvlAtlas3DCommon.a \
+# 				 $(top_builddir)/itkio/libitkio.a \
+# 				 $(top_builddir)/itkutils/libitkutils.a \
+# 				 -lITKCommon -lITKIO -lITKznz \
+# 				 $(addprefix $(top_builddir)/, $(LIBS_MGH) )
+# kvlAddCSFToBucknerData_LDFLAGS= $(OS_LDFLAGS)
 
 kvlAddBorder_SOURCES=kvlAddBorder.cxx
 kvlAddBorder_LDADD=$(LIBS_ITK) \

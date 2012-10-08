@@ -1,27 +1,3 @@
-/**
- * @file  kvlRegisterer.h
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
- *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
- */
-/*
- * Original Author: Koen Van Leemput
- * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/09/28 21:04:06 $
- *    $Revision: 1.1.2.4 $
- *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
- *
- * Terms and conditions for use, reproduction, distribution and contribution
- * are found in the 'FreeSurfer Software License Agreement' contained
- * in the file 'LICENSE' found in the FreeSurfer distribution, and here:
- *
- * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
- *
- * Reporting: freesurfer@nmr.mgh.harvard.edu
- *
- */
 #ifndef __kvlRegisterer_h
 #define __kvlRegisterer_h
 
@@ -29,7 +5,7 @@
 #include "itkAffine3DTransform.h"
 #include "itkShrinkImageFilter.h"
 #include "itkRecursiveMultiResolutionPyramidImageFilter.h"
-#include "itkPowellOptimizer.h"
+#include "kvlParameterOrderPowellOptimizer.h"
 #include "itkMultiResolutionImageRegistrationMethod.h"
 #include "itkFixedArray.h"
 
@@ -45,7 +21,7 @@ namespace kvl
 class Registerer: public itk::Object
 {
 public :
-
+  
   /** Standard class typedefs */
   typedef Registerer  Self;
   typedef itk::Object  Superclass;
@@ -65,9 +41,9 @@ public :
   typedef itk::Image< float, 3 >  InternalImageType;
   typedef itk::ShrinkImageFilter< ImageType, InternalImageType >   ImageShrinkerType;
   typedef itk::RecursiveMultiResolutionPyramidImageFilter< InternalImageType,
-          InternalImageType >   ImagePyramidType;
+                                                           InternalImageType >   ImagePyramidType;
   typedef itk::MultiResolutionImageRegistrationMethod< InternalImageType,
-          InternalImageType >   RegistrationType;
+                                                       InternalImageType >   RegistrationType;
 
   // Set/get fixed image
   itkSetConstObjectMacro( FixedImage, ImageType );
@@ -77,29 +53,25 @@ public :
   itkSetConstObjectMacro( MovingImage, ImageType );
   itkGetConstObjectMacro( MovingImage, ImageType );
 
-  //
+  // 
   void  StartRegistration();
 
   //
   void  ApplyParameters( ImageType* image ) const
-  {
+    {
     std::vector< ImageType::Pointer >  images;
     images.push_back( image );
     this->ApplyParameters( images );
-  }
+    }
 
   void  ApplyParameters( std::vector< ImageType::Pointer > images ) const;
 
   // Set/Get
   void  SetParameters( const ParametersType& parameters )
-  {
-    m_Transform->SetParameters( parameters );
-  }
+    { m_Transform->SetParameters( parameters ); }
 
   const ParametersType&  GetParameters() const
-  {
-    return m_Transform->GetParameters();
-  }
+    { return m_Transform->GetParameters(); }
 
 
   // Standard Set/Get access to data members
@@ -109,7 +81,7 @@ public :
   itkGetConstObjectMacro( FixedImagePyramid, ImagePyramidType );
   itkGetConstObjectMacro( MovingImagePyramid, ImagePyramidType );
 
-  itkGetConstObjectMacro( Optimizer, itk::PowellOptimizer );
+  itkGetConstObjectMacro( Optimizer, ParameterOrderPowellOptimizer );
 
   itkGetConstObjectMacro( Registration, RegistrationType );
 
@@ -128,8 +100,8 @@ public :
   itkSetMacro( DegreesOfFreedom, int );
   itkGetConstReferenceMacro( DegreesOfFreedom, int );
 
-  itkSetMacro( AcceptNewDirections, bool );
-  itkGetConstReferenceMacro( AcceptNewDirections, bool );
+  //itkSetMacro( AcceptNewDirections, bool );
+  //itkGetConstReferenceMacro( AcceptNewDirections, bool );
 
   itkSetMacro( MaximumNumberOfIterations, int );
   itkGetConstReferenceMacro( MaximumNumberOfIterations, int );
@@ -137,11 +109,11 @@ public :
   itkSetMacro( InitialBracketStepSize, float );
   itkGetConstReferenceMacro( InitialBracketStepSize, float );
 
-  itkSetMacro( InitialBracketStepSizeShrinkFactor, float );
-  itkGetConstReferenceMacro( InitialBracketStepSizeShrinkFactor, float );
+  //itkSetMacro( InitialBracketStepSizeShrinkFactor, float );
+  //itkGetConstReferenceMacro( InitialBracketStepSizeShrinkFactor, float );
 
-  itkSetMacro( MaximumBracketStep, float );
-  itkGetConstReferenceMacro( MaximumBracketStep, float );
+  //itkSetMacro( MaximumBracketStep, float );
+  //itkGetConstReferenceMacro( MaximumBracketStep, float );
 
   itkSetMacro( AbsolutePrecisionBrent, float );
   itkGetConstReferenceMacro( AbsolutePrecisionBrent, float );
@@ -149,8 +121,8 @@ public :
   itkSetMacro( MaximumNumberOfIterationsBrent, int );
   itkGetConstReferenceMacro( MaximumNumberOfIterationsBrent, int );
 
-  itkSetMacro( AbsolutePrecision, float );
-  itkGetConstReferenceMacro( AbsolutePrecision, float );
+  //itkSetMacro( AbsolutePrecision, float );
+  //itkGetConstReferenceMacro( AbsolutePrecision, float );
 
 
 protected:
@@ -176,7 +148,7 @@ private:
   ImagePyramidType::Pointer  m_FixedImagePyramid;
   ImagePyramidType::Pointer  m_MovingImagePyramid;
 
-  itk::PowellOptimizer::Pointer  m_Optimizer;
+  ParameterOrderPowellOptimizer::Pointer  m_Optimizer;
 
   RegistrationType::Pointer m_Registration;
 
@@ -188,7 +160,7 @@ private:
   typedef ImagePyramidType::ScheduleType  ScheduleType;
   ScheduleType  GetSchedule( const ImageType* image ) const;
 
-  typedef itk::PowellOptimizer::ParameterOrderType  ParameterOrderType;
+  typedef ParameterOrderPowellOptimizer::ParameterOrderType  ParameterOrderType;
   ParameterOrderType  GetParameterOrder() const;
 
 
@@ -198,14 +170,14 @@ private:
   int  m_NumberOfBins;
   int  m_NumberOfSamples;
   int  m_DegreesOfFreedom;
-  bool  m_AcceptNewDirections;
+  //bool  m_AcceptNewDirections;
   int  m_MaximumNumberOfIterations;
   float  m_InitialBracketStepSize;
-  float  m_InitialBracketStepSizeShrinkFactor;
-  float  m_MaximumBracketStep;
+  //float  m_InitialBracketStepSizeShrinkFactor;
+  //float  m_MaximumBracketStep;
   float  m_AbsolutePrecisionBrent;
   int  m_MaximumNumberOfIterationsBrent;
-  float  m_AbsolutePrecision;
+  //float  m_AbsolutePrecision;
 
 
 };

@@ -1,27 +1,3 @@
-/**
- * @file  kvlRegisterer.cxx
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
- *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
- */
-/*
- * Original Author: Koen Van Leemput
- * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/09/28 21:04:06 $
- *    $Revision: 1.1.2.4 $
- *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
- *
- * Terms and conditions for use, reproduction, distribution and contribution
- * are found in the 'FreeSurfer Software License Agreement' contained
- * in the file 'LICENSE' found in the FreeSurfer distribution, and here:
- *
- * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
- *
- * Reporting: freesurfer@nmr.mgh.harvard.edu
- *
- */
 #include "kvlRegisterer.h"
 
 #include "itkAffineTransform.h"
@@ -51,7 +27,7 @@ Registerer
   m_FixedImagePyramid = ImagePyramidType::New();
   m_MovingImagePyramid = ImagePyramidType::New();
 
-  m_Optimizer  = itk::PowellOptimizer::New();
+  m_Optimizer  = ParameterOrderPowellOptimizer::New();
 
   m_Registration = RegistrationType::New();
 
@@ -60,14 +36,14 @@ Registerer
   m_NumberOfBins = 20;
   m_NumberOfSamples = 20000;
   m_DegreesOfFreedom = 6;
-  m_AcceptNewDirections = false;
+  //m_AcceptNewDirections = false;
   m_MaximumNumberOfIterations = 10;
   m_InitialBracketStepSize = 5.0f;
-  m_InitialBracketStepSizeShrinkFactor = 2.0f;
-  m_MaximumBracketStep = 30.0f;
+  //m_InitialBracketStepSizeShrinkFactor = 2.0f;
+  //m_MaximumBracketStep = 30.0f;
   m_AbsolutePrecisionBrent = 0.1;
   m_MaximumNumberOfIterationsBrent = 50;
-  m_AbsolutePrecision = 0.1;
+  //m_AbsolutePrecision = 0.1;
 
 }
 
@@ -95,9 +71,9 @@ Registerer
 
   // Sanity check on input
   if ( !m_FixedImage || !m_MovingImage )
-  {
+    {
     itkExceptionMacro( << "Can't run without having both a fixed image and a moving image" );
-  }
+    }
 
 
   // Shrink and simultaneously cast input images to float
@@ -105,18 +81,18 @@ Registerer
   std::cout << "Using fixedShrinkFactors: " << fixedShrinkFactors << std::endl;
   m_FixedShrinker->SetInput( m_FixedImage );
   for ( int i = 0; i < 3; i++ )
-  {
+    {
     m_FixedShrinker->SetShrinkFactor( 0, fixedShrinkFactors[ i ] );
-  }
+    }
   m_FixedShrinker->Update();
 
   ShrinkFactorsType  movingShrinkFactors = this->GetShrinkFactors( m_MovingImage );
   std::cout << "Using movingShrinkFactors: " << movingShrinkFactors << std::endl;
   m_MovingShrinker->SetInput( m_MovingImage );
   for ( int i = 0; i < 3; i++ )
-  {
+    {
     m_MovingShrinker->SetShrinkFactor( 0, movingShrinkFactors[ i ] );
-  }
+    }
   m_MovingShrinker->Update();
 
 
@@ -135,18 +111,18 @@ Registerer
 
   // Set up metric
   typedef itk::MattesMutualInformationImageToImageMetric< InternalImageType,
-          InternalImageType >   MetricType;
+                                                          InternalImageType >   MetricType;
   if ( m_Reseed )
-  {
+    {
     vnl_sample_reseed( 12345 ); // Make sure we get the same samples every time
-  }
+    }
   MetricType::Pointer  metric = MetricType::New();
   metric->SetNumberOfHistogramBins( m_NumberOfBins );
   metric->SetNumberOfSpatialSamples( m_NumberOfSamples );
 
 
   // Set up m_Optimizer
-  itk::Optimizer::ScalesType scales( 12 );
+  ParameterOrderPowellOptimizer::ScalesType scales( 12 );
   scales[0] = 1.0 / 0.0175;
   scales[1] = 1.0 / 0.0175;
   scales[2] = 1.0 / 0.0175;
@@ -166,17 +142,23 @@ Registerer
 
   m_Optimizer->SetScales( scales );
   m_Optimizer->SetParameterOrder( parameterOrder );
-  m_Optimizer->SetAcceptNewDirections( m_AcceptNewDirections );
-  m_Optimizer->SetMaximumNumberOfIterations( m_MaximumNumberOfIterations );
-  m_Optimizer->SetInitialBracketStepSize( m_InitialBracketStepSize );
-  m_Optimizer->SetInitialBracketStepSizeShrinkFactor( m_InitialBracketStepSizeShrinkFactor );
-  m_Optimizer->SetMaximumBracketStep( m_MaximumBracketStep );
-  m_Optimizer->SetFractionalPrecisionBrent( 0.0 ); // Make sure this is never satisfied
-  m_Optimizer->SetAbsolutePrecisionBrent( m_AbsolutePrecisionBrent );
-  m_Optimizer->SetMaximumNumberOfIterationsBrent( m_MaximumNumberOfIterationsBrent );
-  m_Optimizer->SetFractionalPrecision( 0.0 ); // Make sure this is never satisfied
-  m_Optimizer->SetAbsolutePrecision( m_AbsolutePrecision );
-  m_Optimizer->MinimizeOn();
+  //m_Optimizer->SetAcceptNewDirections( m_AcceptNewDirections );
+  //m_Optimizer->SetMaximumNumberOfIterations( m_MaximumNumberOfIterations );
+  m_Optimizer->SetMaximumIteration( m_MaximumNumberOfIterations );
+  //m_Optimizer->SetInitialBracketStepSize( m_InitialBracketStepSize );
+  m_Optimizer->SetStepLength( m_InitialBracketStepSize );
+  //m_Optimizer->SetInitialBracketStepSizeShrinkFactor( m_InitialBracketStepSizeShrinkFactor );
+  //m_Optimizer->SetMaximumBracketStep( m_MaximumBracketStep );
+  //m_Optimizer->SetFractionalPrecisionBrent( 0.0 ); // Make sure this is never satisfied
+  //m_Optimizer->SetAbsolutePrecisionBrent( m_AbsolutePrecisionBrent );
+  m_Optimizer->SetStepTolerance( m_AbsolutePrecisionBrent );
+  //m_Optimizer->SetMaximumNumberOfIterationsBrent( m_MaximumNumberOfIterationsBrent );
+  m_Optimizer->SetMaximumLineIteration( m_MaximumNumberOfIterationsBrent );
+  //m_Optimizer->SetFractionalPrecision( 0.0 ); // Make sure this is never satisfied
+  m_Optimizer->SetValueTolerance( 0.0 ); // Make sure this is never satisfied
+  //m_Optimizer->SetAbsolutePrecision( m_AbsolutePrecision );
+  //m_Optimizer->MinimizeOn();
+  m_Optimizer->MaximizeOff();
 
 
 
@@ -219,7 +201,7 @@ Registerer
   // Loop over all images
   for ( std::vector< ImageType::Pointer >::iterator  it = images.begin();
         it != images.end(); ++it )
-  {
+    {
     // Get the image
     ImageType::Pointer  image = *it;
 
@@ -228,10 +210,10 @@ Registerer
     AffineTransformType::MatrixType  scale;
     AffineTransformType::OffsetType  offset;
     for ( int i = 0; i < 3; i++ )
-    {
+      {
       scale[ i ][ i ] = image->GetSpacing()[ i ];
       offset[ i ] = image->GetOrigin()[ i ];
-    }
+      }
     AffineTransformType::Pointer  original = AffineTransformType::New();
     original->SetMatrix( image->GetDirection() * scale );
     original->SetOffset( offset );
@@ -249,28 +231,28 @@ Registerer
     ImageType::SpacingType  newSpacing;
     ImageType::DirectionType  newDirection;
     for ( int i = 0; i < 3; i++ )
-    {
+      {
       // Offset part
       newOrigin[ i ] = updated->GetOffset()[ i ];
 
       // For every column, determine norm (which will be voxel spacing), and normalize direction
       double  normOfColumn = 0.0;
       for ( int j = 0; j < 3; j++ )
-      {
+        {
         normOfColumn += pow( updated->GetMatrix()[ j ][ i ], 2 );
-      }
+        }
       normOfColumn = sqrt( normOfColumn );
       newSpacing[ i ] = normOfColumn;
       for ( int j = 0; j < 3; j++ )
-      {
+        {
         newDirection[ j ][ i ] = updated->GetMatrix()[ j ][ i ] / normOfColumn;
+        }
       }
-    }
     image->SetOrigin( newOrigin );
     image->SetSpacing( newSpacing );
     image->SetDirection( newDirection );
 
-  } // end loop over all images
+    } // end loop over all images
 
 
 }
@@ -288,16 +270,16 @@ Registerer
   ShrinkFactorsType  shrinkFactors;
   shrinkFactors.Fill( 1 );
   if ( m_UseDefaultSchedule )
-  {
-    for ( int i = 0; i < 3; i++ )
     {
+    for ( int i = 0; i < 3; i++ )
+      {
       shrinkFactors[ i ] = vnl_math_rnd( 1.0f / ( image->GetSpacing()[ i ] ) );
       if ( shrinkFactors[ i ] < 1 )
-      {
+        {
         shrinkFactors[ i ] = 1;
+        }
       }
     }
-  }
 
   return shrinkFactors;
 }
@@ -314,29 +296,29 @@ Registerer
 
   // Check if doing default thing
   if ( !m_UseDefaultSchedule )
-  {
+    {
     ScheduleType  schedule( 1, 3 );
     for ( int i = 0; i < 3; i++ )
-    {
+      {
       schedule[ 0 ][ i ] = 1;
-    }
+      }
 
     return schedule;
-  }
+    }
 
   // Default case
   ScheduleType  schedule( 2, 3 );
   const ShrinkFactorsType  shrinkFactors =  this->GetShrinkFactors( image );
   for ( int i = 0; i < 3; i++ )
-  {
+    {
     schedule[ 1 ][ i ] = 1;
 
     schedule[ 0 ][ i ] = vnl_math_rnd( 4.0 / ( shrinkFactors[ i ] * image->GetSpacing()[ i ] ) );
     if ( schedule[ 0 ][ i ] < 1 )
-    {
+      {
       schedule[ 0 ][ i ] = 1;
+      }
     }
-  }
 
   return schedule;
 
@@ -352,28 +334,28 @@ Registerer
 ::GetParameterOrder() const
 {
   if ( m_DegreesOfFreedom > 12 )
-  {
+    {
     itkExceptionMacro( "Maximum allowed degrees of freedom is 12" );
-  }
+    }
 
   ParameterOrderType  parameterOrder( 12 );
   parameterOrder.Fill( 0 );
   for ( int i = 0; i < m_DegreesOfFreedom; i++ )
-  {
+    {
     if ( i < 3 )
-    {
+      {
       parameterOrder[ 3 + i ] = i+1;
-    }
+      }
     else if ( i < 6 )
-    {
+      {
       parameterOrder[ i-3 ] = i+1;
-    }
+      }
     else
-    {
+      {
       parameterOrder[ i ] = i+1;
-    }
+      }
 
-  }
+    }
 
   return parameterOrder;
 }
