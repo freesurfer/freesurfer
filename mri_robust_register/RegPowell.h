@@ -1,6 +1,6 @@
 /**
  * @file RegPowell.h
- * @brief A class to compute a robust registration using Powell
+ * @brief A class to compute a registration using Powell
  *
  */
 
@@ -8,20 +8,18 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2010/01/14 19:41:04 $
- *    $Revision: 1.4 $
+ *    $Date: 2012/10/10 19:59:04 $
+ *    $Revision: 1.5.2.1 $
  *
- * Copyright (C) 2008-2009
- * The General Hospital Corporation (Boston, MA).
- * All rights reserved.
+ * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
- * Distribution, usage and copying of this software is covered under the
- * terms found in the License Agreement file named 'COPYING' found in the
- * FreeSurfer source code root directory, and duplicated here:
- * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ * Terms and conditions for use, reproduction, distribution and contribution
+ * are found in the 'FreeSurfer Software License Agreement' contained
+ * in the file 'LICENSE' found in the FreeSurfer distribution, and here:
  *
- * General inquiries: freesurfer@nmr.mgh.harvard.edu
- * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
+ *
+ * Reporting: freesurfer@nmr.mgh.harvard.edu
  *
  */
 
@@ -29,7 +27,6 @@
 // written by Martin Reuter
 // Apr. 22th ,2009
 //
-
 #ifndef RegPowell_H
 #define RegPowell_H
 
@@ -48,32 +45,49 @@ extern "C"
 #include <vector>
 #include "Registration.h"
 
-
-class RegPowell : public Registration
+/** \class RegPowell
+ * \brief Class for registration using Powell method
+ */
+class RegPowell: public Registration
 {
 public:
-  RegPowell():Registration()
-  {};
-  RegPowell(MRI * s, MRI *t):Registration(s,t)
-  {};
+  RegPowell() :
+      Registration()
+  {
+  }
+  ;
   virtual ~RegPowell()
-  {};
+  {
+  }
+  ;
 
-  virtual void computeIterativeRegistration( int n,double epsit,MRI * mriS=NULL, MRI* mriT=NULL, const vnl_matrix < double > &Minit = vnl_matrix<double>(), double iscaleinit = 1.0);
+//  void computeIterativeRegistration(int n,double epsit){Registration::computeIterativeRegistration(n,epsit);};
+
+  virtual void computeIterativeRegistration(int n, double epsit, MRI * mriS,
+      MRI* mriT, const vnl_matrix<double> &Minit, double iscaleinit);
+  //! The static cost function for the Powell minimizer
+  static double costFunction(const vnl_vector<double> & p);
+
+  MRI * getHalfWayGeom()
+  {
+    return tcf;
+  }
+  ;
 
 protected:
 
-  static float costFunction(float p[] );
+  virtual void setTransformation(bool is2d);
   static RegPowell* tocurrent;
   static MRI * scf;
   static MRI * tcf;
   static int pcount;
-  static vnl_matrix_fixed < double , 4, 4 > mh1;
-  static vnl_matrix_fixed < double , 4, 4 > mh2;
+  static vnl_matrix_fixed<double, 4, 4> mh1;
+  static vnl_matrix_fixed<double, 4, 4> mh2;
   static int icount;
+  static int subsamp;
+  static bool is2d;
 
 };
-
 
 #endif
 

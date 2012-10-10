@@ -2,7 +2,7 @@
  * @file  mri_robust_register.cpp
  * @brief Linear registration of two volumes using robust statistics
  *
- * See also "Robust Multiresolution Alignment of MRI Brain Volumes"
+ * Based on ideas in "Robust Multiresolution Alignment of MRI Brain Volumes"
  * by Nestares and Heeger (2000)
  */
 
@@ -10,8 +10,8 @@
  * Original Author: Martin Reuter, Nov. 4th ,2008
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2011/08/23 18:53:42 $
- *    $Revision: 1.52.2.1 $
+ *    $Date: 2012/10/10 19:59:05 $
+ *    $Revision: 1.52.2.2 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -25,6 +25,7 @@
  *
  */
 
+#include <algorithm>
 #include <string>
 #include <iostream>
 #include <fstream>
@@ -40,11 +41,13 @@
 #include <vnl/vnl_matlab_print.h>
 
 #include "Registration.h"
+#include "RegistrationStep.h"
 #include "Regression.h"
 #include "RegPowell.h"
 #include "CostFunctions.h"
 #include "MyMRI.h"
 #include "MyMatrix.h"
+#include "JointHisto.h"
 
 // all other software are all in "C"
 #ifdef __cplusplus
@@ -54,11 +57,13 @@ extern "C"
 #include "error.h"
 #include "macros.h"
 #include "mri.h"
+#include "mriBSpline.h"
 #include "matrix.h"
 #include "timer.h"
 #include "diag.h"
 #include "mrimorph.h"
 #include "version.h"
+#include "transform.h"
 
 #ifdef __cplusplus
 }
@@ -70,6 +75,7 @@ using namespace std;
 //#define SAT 4.685 // this is suggested for gaussian noise
 //#define SAT 20
 #define SSAMPLE -1
+#define ERADIUS 5
 
 struct Parameters
 {
@@ -84,79 +90,113 @@ struct Parameters
   string halfmovlta;
   string halfdstlta;
   string weightsout;
-  bool   satit;
-  bool   nomulti;
-  bool   conform;
-  bool   floattype;
-  bool   lta_vox2vox;
-  bool   affine;
-  bool   iscale;
-  bool   transonly;
+  bool satit;
+  bool nomulti;
+  bool conform;
+  bool floattype;
+  bool lta_vox2vox;
+  bool affine;
+  bool iscale;
+  bool transonly;
+  bool isoscale;
   string transform;
-  bool   leastsquares;
-  int    iterate;
+  bool leastsquares;
+  int iterate;
   double epsit;
   double sat;
   string warpout;
   string norlout;
-  int    subsamplesize;
-  int    debug;
-  MRI*   mri_mov;
-  MRI*   mri_dst;
-  bool   dosatest;
-  bool   initorient;
-  bool   inittrans;
-  int    verbose;
-  int    highit;
-  bool   doubleprec;
+  int subsamplesize;
+  int debug;
+  MRI* mri_mov;
+  MRI* mri_dst;
+  bool dosatest;
+  bool initorient;
+  bool inittrans;
+  bool initscaling;
+  int verbose;
+  int highit;
+  bool doubleprec;
   double wlimit;
-  bool   oneminusweights;
-  bool   symmetry;
+  bool oneminusweights;
+  bool symmetry;
   string iscaleout;
   string iscalein;
-  int    minsize;
-  int    maxsize;
+  int minsize;
+  int maxsize;
+  Registration::Cost cost;
+//  int    bins;
+  int finalsampletype;
+  bool entropy;
+  int entroradius;
+  string entmov;
+  string entdst;
+  bool entball;
+  bool entcorrection;
 };
 static struct Parameters P =
-{
-  "","","","","","","","","","","",false,false,false,false,false,false,false,false,"",false,5,0.01,SAT,"","",SSAMPLE,0,NULL,NULL,false,false,true,1,-1,false,0.16,false,true,"","",-1,-1
-};
-
+{ "", "", "", "", "", "", "", "", "", "", "", false, false, false, false, false,
+    false, false, false, false, "", false, 5, 0.01, SAT, "", "", SSAMPLE, 0,
+    NULL, NULL, false, false, true, false, 1, -1, false, 0.16, true, true, "",
+    "", -1, -1, Registration::ROB,
+//  256,
+    SAMPLE_CUBIC_BSPLINE, false, ERADIUS, "", "", false, false };
 
 static void printUsage(void);
-static bool parseCommandLine(int argc, char *argv[],Parameters & P) ;
-static void initRegistration(Registration & R, Parameters & P) ;
+static bool parseCommandLine(int argc, char *argv[], Parameters & P);
+static void initRegistration(Registration & R, Parameters & P);
 
-static char vcid[] = "$Id: mri_robust_register.cpp,v 1.52.2.1 2011/08/23 18:53:42 mreuter Exp $";
+static char vcid[] =
+    "$Id: mri_robust_register.cpp,v 1.52.2.2 2012/10/10 19:59:05 mreuter Exp $";
 char *Progname = NULL;
 
 //static MORPH_PARMS  parms ;
 //static FILE *diag_fp = NULL ;
 
+void debug(Parameters &P)
+{
+  MRI * mriS = MRIread(P.mov.c_str());
+  MRI * mriT = MRIread(P.dst.c_str());
+  MRI * SmT = MRIalloc(mriS->width, mriS->height, mriS->depth, MRI_FLOAT);
+  SmT = MRIsubtract(mriS, mriT, SmT);
+  SmT = MyMRI::getBlur(SmT, SmT);
+
+// MRI * mri = MRIread(P.mov.c_str());
+// mri = MyMRI::getBlur(mri,mri);
+// MRI * mri2 = MRIread(P.dst.c_str());
+// MRI * mri = MRIallocHeader(256,256,256,MRI_UCHAR,1);
+// MRI * mri2 = MRIallocHeader(122,256,256,MRI_UCHAR,1);
+// MRIcopyFrame(mri,mri2,0,0);
+  MRIfree(&mriS);
+  MRIfree(&mriT);
+  MRIfree(&SmT);
+  //MRIfree(&mri2);
+  exit(0);
+}
 
 void conv(MRI * i)
 {
   cout << " adsf" << endl;
-  Registration R;
-  MRI * fmri = MRIalloc(i->width,i->height,i->depth,MRI_FLOAT);
-  MRIcopyHeader(i,fmri);
+  RegRobust R;
+  MRI * fmri = MRIalloc(i->width, i->height, i->depth, MRI_FLOAT);
+  MRIcopyHeader(i, fmri);
   fmri->type = MRI_FLOAT;
   float f;
-  for (int z=0; z<i->depth; z++)
-    for (int y=0; y<i->height; y++)
-      for (int x=0; x<i->width; x++)
+  for (int z = 0; z < i->depth; z++)
+    for (int y = 0; y < i->height; y++)
+      for (int x = 0; x < i->width; x++)
       {
-        f = MRIgetVoxVal(i,x,y,z,0);
+        f = MRIgetVoxVal(i, x, y, z, 0);
         // cout << " f " << f << endl;
-        MRIsetVoxVal(fmri,x,y,z,0,f);
+        MRIsetVoxVal(fmri, x, y, z, 0, f);
       }
   cout << "asdfasdf" << endl;
-  MRIwrite(fmri,"float-1.mgz");
+  MRIwrite(fmri, "float-1.mgz");
   MRI * sfmri;
-  sfmri = MyMRI::MRIvalscale(fmri,NULL,100);
-  MRIwrite(sfmri,"float-100.mgz");
-  sfmri = MyMRI::MRIvalscale(fmri,sfmri,1000);
-  MRIwrite(sfmri,"float-1000.mgz");
+  sfmri = MyMRI::MRIvalscale(fmri, NULL, 100);
+  MRIwrite(sfmri, "float-100.mgz");
+  sfmri = MyMRI::MRIvalscale(fmri, sfmri, 1000);
+  MRIwrite(sfmri, "float-1000.mgz");
   exit(0);
 }
 
@@ -164,126 +204,365 @@ void testRegression()
 {
 
   int n = 200;
-  vnl_matrix < double > A(n,1);
-  vnl_vector < double > b(n);
+  vnl_matrix<double> A(n, 1);
+  vnl_vector<double> b(n);
 
-  for (int i = 0; i<n; i++)
+  for (int i = 0; i < n; i++)
   {
     A[i][0] = i;
-    b[i]    = 4*i;
+    b[i] = 4 * i;
   }
-  for (int i = 0; i<n; i+=5)
+  for (int i = 0; i < n; i += 5)
   {
     b[i] = 0;
   }
 
-  Regression<double> R1(A,b);
-  vnl_vector < double >  M1 = R1.getLSEst();
+  Regression<double> R1(A, b);
+  vnl_vector<double> M1 = R1.getLSEst();
   cout << M1 << endl;
-  cout << endl <<endl;
+  cout << endl << endl;
 
-  Regression<double> R2(A,b);
-  vnl_vector < double >  M2 = R2.getRobustEst();
+  Regression<double> R2(A, b);
+  vnl_vector<double> M2 = R2.getRobustEst();
   cout << M1 << endl;
-  cout << endl <<endl;
+  cout << endl << endl;
 
   exit(0);
 
 }
 
-void entro (Parameters & P)
+void testSubsamp(Parameters &P)
 {
 
-  int sigma  = 15;
-  int radius = 15;
-  
   MRI * mri1 = MRIread(P.mov.c_str());
-  MRI * mri1e = MyMRI::entropyImage(mri1,radius,sigma);
-  MRIwrite(mri1e,"mri1e.mgz");
+//  MRI * mris = MRIdownsample2(mri1,NULL);
+  //MRI * mris = MRIdownsample2BSpline(mri1,NULL);
+  MRI * mris = MRIupsampleN(mri1, NULL, 2);
+  MRIwrite(mris, "mri1up2.mgz");
 
-  MRI * mri2 = MRIread(P.dst.c_str());
-  MRI * mri2e = MyMRI::entropyImage(mri2,radius,sigma);
-  MRIwrite(mri2e,"mri2e.mgz");
-  
+  MRI * mril = MRIupsampleN(mri1, NULL, 3);
+  MRIwrite(mril, "mri1up3.mgz");
+
   exit(0);
 }
-void gradmag (Parameters & P)
+
+void entro(Parameters & P)
+{
+
+  //int sigma  = 7;
+  int radius = 5;
+
+//  cout << "Entropy sigma: " << sigma << "  radius: " << radius << endl;
+  cout << "Entropy radius: " << radius << endl;
+
+  cout << "Converting: " << P.mov.c_str() << endl;
+  MRI * mri1 = MRIread(P.mov.c_str());
+  //MRI * mri1e = MyMRI::entropyImage(mri1,radius,sigma);
+  MRI * mri1e = MyMRI::entropyImage(mri1, radius);
+  MRIwrite(mri1e, "mri1e.mgz");
+  P.mov = "mri1e.mgz";
+
+  cout << "Converting: " << P.dst.c_str() << endl;
+  MRI * mri2 = MRIread(P.dst.c_str());
+  //MRI * mri2e = MyMRI::entropyImage(mri2,radius,sigma);
+  MRI * mri2e = MyMRI::entropyImage(mri2, radius);
+  MRIwrite(mri2e, "mri2e.mgz");
+  P.dst = "mri2e.mgz";
+
+  exit(0);
+}
+
+void jointhisto(Parameters & P)
+{
+
+  MRI* mriS = MRIread(P.mov.c_str());
+  MyMRI::MRInorm255(mriS, mriS);
+  MRI* mriT = MRIread(P.dst.c_str());
+  MyMRI::MRInorm255(mriT, mriT);
+  vnl_matrix_fixed<double, 4, 4> M;
+  M.set_identity();
+  JointHisto hm(mriS, mriT, M, M, 1, 1, 1);
+  hm.smooth();
+  hm.save("histo.m", "H");
+  //hm.normalize();
+  MRI * weights = hm.locate(mriS, mriT, M, M, 1, 1, 1);
+  MRIwrite(weights, "weights.mgz");
+
+//    int n = 10;
+//    vnl_matrix < double > m(n,n);
+//    int i,j;
+//    for (i=0;i<n;i++)
+//    for (j=0;j<n;j++)
+//      m[i][j] = i+j+2;
+//    m[2][3] = 15;
+//    m[1][2] = 13;
+//    m[6][9] = 4;
+//    vnl_matlab_print(vcl_cerr,m,"m",vnl_matlab_print_format_long);std::cerr << std::endl;
+//    
+//    JointHisto h;
+//    h.set(m); 
+//    h.print("H");
+//    cout << " NMI: " << h.computeNMI() << endl;
+//    
+//    h.smooth(1);
+//    h.print("Hs");
+//    cout << " NMI: " << h.computeNMI() << endl;
+// //   
+// //   cout << " MI : " << h.computeMI() << endl;
+// //   cout << " ECC: " << h.computeECC() << endl;
+// //   cout << " NMI: " << h.computeNMI() << endl;
+// //   cout << " NCC: " << h.computeNCC() << endl;
+// 
+// exit(1);
+
+//    MRI* mriS = MRIread(P.mov.c_str());
+//    MyMRI::MRInorm255(mriS,mriS);
+//    std::pair < float, float > mm = CostFunctions::minmax(mriS);
+//    cout << " mriS   min: " << mm.first << "   max : " << mm.second << "   mean : " << CostFunctions::mean(mriS) << endl;
+//    MRI* mriT = MRIread(P.dst.c_str());
+//    MyMRI::MRInorm255(mriT,mriT);
+//    mm = CostFunctions::minmax(mriT);
+//    cout << " mriT   min: " << mm.first << "   max : " << mm.second << "   mean : " << CostFunctions::mean(mriT) << endl;
+//    JointHisto hm(mriS,mriT);
+//    //hm.print("H");
+//    cout << " NMI : " << hm.computeNMI() << endl;
+//    hm.smooth(7);
+//    cout << " NMIs: " << hm.computeNMI() << endl;
+// 
+
+  exit(1);
+}
+
+void gradmag(Parameters & P)
 {
 
   MRI* mri1 = MRIread(P.mov.c_str());
-	MRI* mri_mag1  = MRIalloc(mri1->width, mri1->height, mri1->depth, MRI_FLOAT);
-	MRI* mri_grad1 = MRIsobel(mri1, NULL, mri_mag1);
+  MRI* mri_mag1 = MRIalloc(mri1->width, mri1->height, mri1->depth, MRI_FLOAT);
+  MRI* mri_grad1 = MRIsobel(mri1, NULL, mri_mag1);
 //  MRIwrite(mri_mag1,"mri1mag.mgz");
-//	MRIwriteFrame(mri_grad1,"mri1sobel_grad1.mgz",0);
-//	MRIwriteFrame(mri_grad1,"mri1sobel_grad2.mgz",1);
-//	MRIwriteFrame(mri_grad1,"mri1sobel_grad3.mgz",2);
-  
-  int dd,hh,ww;
-  float x,y,z,r,phi,psi;
-  
-//	MRI* mri_phi1  = MRIalloc(mri1->width, mri1->height, mri1->depth, MRI_FLOAT);
-//	MRI* mri_psi1  = MRIalloc(mri1->width, mri1->height, mri1->depth, MRI_FLOAT);
-	MRI* mri_pp1   = MRIalloc(mri1->width, mri1->height, mri1->depth, MRI_FLOAT);
-	for (dd = 0; dd < mri_mag1->depth ; dd++)
-	for (hh = 0; hh < mri_mag1->height; hh++)
-	for (ww = 0; ww < mri_mag1->width; ww++)
-  {
-     x = MRIgetVoxVal(mri_grad1, ww, hh, dd, 0);
-     y = MRIgetVoxVal(mri_grad1, ww, hh, dd, 1);
-     z = MRIgetVoxVal(mri_grad1, ww, hh, dd, 2);
-     r = MRIgetVoxVal(mri_mag1, ww, hh, dd, 0);
-     phi = 0;
-     psi = 0;
-     if ( r > 10 ) 
-     {
-       phi = acos(z/r);
-       psi = atan2(y,x);
-     }
+//  MRIwriteFrame(mri_grad1,"mri1sobel_grad1.mgz",0);
+//  MRIwriteFrame(mri_grad1,"mri1sobel_grad2.mgz",1);
+//  MRIwriteFrame(mri_grad1,"mri1sobel_grad3.mgz",2);
+
+  int dd, hh, ww;
+  float x, y, z, r, phi, psi;
+
+//  MRI* mri_phi1  = MRIalloc(mri1->width, mri1->height, mri1->depth, MRI_FLOAT);
+//  MRI* mri_psi1  = MRIalloc(mri1->width, mri1->height, mri1->depth, MRI_FLOAT);
+  MRI* mri_pp1 = MRIalloc(mri1->width, mri1->height, mri1->depth, MRI_FLOAT);
+  for (dd = 0; dd < mri_mag1->depth; dd++)
+    for (hh = 0; hh < mri_mag1->height; hh++)
+      for (ww = 0; ww < mri_mag1->width; ww++)
+      {
+        x = MRIgetVoxVal(mri_grad1, ww, hh, dd, 0);
+        y = MRIgetVoxVal(mri_grad1, ww, hh, dd, 1);
+        z = MRIgetVoxVal(mri_grad1, ww, hh, dd, 2);
+        r = MRIgetVoxVal(mri_mag1, ww, hh, dd, 0);
+        phi = 0;
+        psi = 0;
+        if (r > 10)
+        {
+          phi = acos(z / r);
+          psi = atan2(y, x);
+        }
 //     MRIsetVoxVal(mri_phi1,ww,hh,dd,0,phi);
 //     MRIsetVoxVal(mri_psi1,ww,hh,dd,0,psi);
-     MRIsetVoxVal(mri_pp1,ww,hh,dd,0,psi+phi);
-  }
+        MRIsetVoxVal(mri_pp1, ww, hh, dd, 0, psi + phi);
+      }
 //  MRIwrite(mri_phi1,"mri1phi.mgz");
 //  MRIwrite(mri_psi1,"mri1psi.mgz");
-  MRIwrite(mri_pp1,"mri1phipsi.mgz");
- 
+  MRIwrite(mri_pp1, "mri1phipsi.mgz");
+
   MRI* mri2 = MRIread(P.dst.c_str());
-	MRI* mri_mag2  = MRIalloc(mri2->width, mri2->height, mri2->depth, MRI_FLOAT);
-	MRI* mri_grad2 = MRIsobel(mri2, NULL, mri_mag2);
+  MRI* mri_mag2 = MRIalloc(mri2->width, mri2->height, mri2->depth, MRI_FLOAT);
+  MRI* mri_grad2 = MRIsobel(mri2, NULL, mri_mag2);
 //  MRIwrite(mri_mag2,"mri2mag.mgz");
-//	MRIwriteFrame(mri_grad2,"mri2sobel_grad1.mgz",0);
-//	MRIwriteFrame(mri_grad2,"mri2sobel_grad2.mgz",1);
-//	MRIwriteFrame(mri_grad2,"mri2sobel_grad3.mgz",2);
-//	MRI* mri_phi2  = MRIalloc(mri2->width, mri2->height, mri2->depth, MRI_FLOAT);
-//	MRI* mri_psi2  = MRIalloc(mri2->width, mri2->height, mri2->depth, MRI_FLOAT);
-	MRI* mri_pp2  = MRIalloc(mri2->width, mri2->height, mri2->depth, MRI_FLOAT);
-	for (dd = 0; dd < mri_mag2->depth ; dd++)
-	for (hh = 0; hh < mri_mag2->height; hh++)
-	for (ww = 0; ww < mri_mag2->width; ww++)
-  {
-     x = MRIgetVoxVal(mri_grad2, ww, hh, dd, 0);
-     y = MRIgetVoxVal(mri_grad2, ww, hh, dd, 1);
-     z = MRIgetVoxVal(mri_grad2, ww, hh, dd, 2);
-     r = MRIgetVoxVal(mri_mag2, ww, hh, dd, 0);
-     phi = 0;
-     psi = 0;
-     if ( r > 10 ) 
-     {
-       phi = acos(z/r);
-       psi = atan2(y,x);
-     }
+//  MRIwriteFrame(mri_grad2,"mri2sobel_grad1.mgz",0);
+//  MRIwriteFrame(mri_grad2,"mri2sobel_grad2.mgz",1);
+//  MRIwriteFrame(mri_grad2,"mri2sobel_grad3.mgz",2);
+//  MRI* mri_phi2  = MRIalloc(mri2->width, mri2->height, mri2->depth, MRI_FLOAT);
+//  MRI* mri_psi2  = MRIalloc(mri2->width, mri2->height, mri2->depth, MRI_FLOAT);
+  MRI* mri_pp2 = MRIalloc(mri2->width, mri2->height, mri2->depth, MRI_FLOAT);
+  for (dd = 0; dd < mri_mag2->depth; dd++)
+    for (hh = 0; hh < mri_mag2->height; hh++)
+      for (ww = 0; ww < mri_mag2->width; ww++)
+      {
+        x = MRIgetVoxVal(mri_grad2, ww, hh, dd, 0);
+        y = MRIgetVoxVal(mri_grad2, ww, hh, dd, 1);
+        z = MRIgetVoxVal(mri_grad2, ww, hh, dd, 2);
+        r = MRIgetVoxVal(mri_mag2, ww, hh, dd, 0);
+        phi = 0;
+        psi = 0;
+        if (r > 10)
+        {
+          phi = acos(z / r);
+          psi = atan2(y, x);
+        }
 //     MRIsetVoxVal(mri_phi2,ww,hh,dd,0,phi);
 //     MRIsetVoxVal(mri_psi2,ww,hh,dd,0,psi);
-     MRIsetVoxVal(mri_pp2,ww,hh,dd,0,psi+phi);
-  }
+        MRIsetVoxVal(mri_pp2, ww, hh, dd, 0, psi + phi);
+      }
 //  MRIwrite(mri_phi2,"mri2phi.mgz");
 //  MRIwrite(mri_psi2,"mri2psi.mgz");
-  MRIwrite(mri_pp1,"mri1phipsi.mgz");
-  
+  MRIwrite(mri_pp1, "mri1phipsi.mgz");
+
   MRIfree(&mri_grad1);
   MRIfree(&mri_grad2);
-  
+
   exit(0);
+}
+
+int ReadByteImageRawData(float **Image, /* output image data */
+long *Width, /* output image width */
+long *Height /* output image height */
+)
+
+{ /* begin ReadByteImageRawData */
+
+  //char  Filename[256];
+  FILE *f = (FILE *) NULL;
+  float *p;
+  unsigned char *Line;
+  long x, y;
+  int Error;
+
+  /* interactivity */
+//   do {
+//     printf("Give the input image file name (enter ? to cancel):\n");
+//     printf("--> ");
+//     scanf("%255s", Filename);
+//     f = fopen(Filename, "rb");
+//   } while (strcmp(Filename, "?") && (f == (FILE *)NULL));
+//   if (!strcmp(Filename, "?")) {
+//     if (f != (FILE *)NULL) {
+//       fclose(f);
+//       printf("Sorry: reserved file name\n");
+//     }
+//     printf("Cancel\n");
+//     return(1);
+//   }
+//   do {
+//     printf("Give the input image width:\n");
+//     printf("--> ");
+//     scanf("%ld", Width);
+// 
+//     printf("Give the input image height:\n");
+//     printf("--> ");
+//     scanf("%ld", Height);
+//   } while ((*Width < 1L) || (*Height < 1L));
+  f = fopen("lena.img", "rb");
+  *Width = 256;
+  *Height = 256;
+
+  /* allocation of workspace */
+  *Image = (float *) malloc((size_t) (*Width * *Height * (long) sizeof(float)));
+  if (*Image == (float *) NULL)
+  {
+    fclose(f);
+    printf("Allocation of input image failed\n");
+    return (1);
+  }
+  Line = (unsigned char *) malloc(
+      (size_t) (*Width * (long) sizeof(unsigned char)));
+  if (Line == (unsigned char *) NULL)
+  {
+    free(*Image);
+    *Image = (float *) NULL;
+    fclose(f);
+    printf("Allocation of buffer failed\n");
+    return (1);
+  }
+
+  /* perform reading in raster fashion */
+  p = *Image;
+  for (y = 0L; y < *Height; y++)
+  {
+    Error = (*Width
+        != (long) fread(Line, sizeof(unsigned char), (size_t) *Width, f));
+    if (Error)
+    {
+      free(Line);
+      free(*Image);
+      *Image = (float *) NULL;
+      fclose(f);
+      printf("File access failed\n");
+      return (1);
+    }
+    for (x = 0L; x < *Width; x++)
+    {
+      *p++ = (float) Line[x];
+    }
+  }
+
+  free(Line);
+  fclose(f);
+  return (0);
+} /* end ReadByteImageRawData */
+
+void testcubic(Parameters & P)
+{
+
+  float *ImageRasterArray;
+  long Width, Height;
+  int Error;
+
+  Error = ReadByteImageRawData(&ImageRasterArray, &Width, &Height);
+  if (Error)
+  {
+    printf("Failure to import image data\n");
+    exit(1);
+  }
+
+  MRI* img = MRIalloc(Width, Height, 1, MRI_FLOAT);
+  int x, y;
+  for (x = 0; x < Width; x++)
+    for (y = 0; y < Height; y++)
+      MRIsetVoxVal(img, x, y, 0, 0, ImageRasterArray[y * Height + x]);
+
+  //MRIwrite(img,"coeff-orig.tif");
+  //exit(1);
+  MRI_BSPLINE * bspline = NULL;
+  bspline = MRItoBSpline(img, NULL, 3);
+  MRIwrite(bspline->coeff, "img-coeff.tif");
+
+  double val;
+  MRI* mri2 = MRIcopy(img, NULL);
+  for (x = 0; x < Width; x++)
+    for (y = 0; y < Height; y++)
+    {
+      MRIsampleBSpline(bspline, x, y, 0, 0, &val);
+      MRIsetVoxVal(mri2, x, y, 0, 0, val);
+    }
+
+  MRIwrite(mri2, "img-id.tif");
+  exit(1);
+
+//   MRI* mri1 = MRIread(P.mov.c_str());
+//   //LTA * lta = LTAread("identity.nofile");
+//   
+//   //MRI* mri2 = LTAtransformInterp(mri1,NULL,lta,SAMPLE_CUBIC_BSPLINE);
+//  // MRIwrite(mri2,"idlta.mgz");
+//  
+//   MRI* mri2 = MRIcopy(mri1,NULL);
+//   
+//   // now manually do it:
+//   MRI_BSPLINE * bspline = NULL;
+//   bspline = MRItoBSpline(mri1,NULL,3);
+//   MRIwrite(bspline->coeff,"coeff.mgz");
+//   
+// 
+//   int r,c,s;
+//   double val;
+//   for (s=0;s<mri1->depth;s++)
+//   for (c=0;c<mri1->height;c++)
+//   for (r=0;r<mri1->width;r++)
+//   {
+//     MRIsampleBSpline(bspline, r, c, s, 0, &val);
+//     MRIsetVoxVal(mri2, r, c,s, 0, val) ;
+//   }
+//   MRIwrite(mri2,"idmy.mgz");
+//   exit(1);
+
 }
 
 int main(int argc, char *argv[])
@@ -297,21 +576,22 @@ int main(int argc, char *argv[])
 //  setenv("FS_USE_MRI_CHUNK","",1) ;
     if (getenv("FS_USE_MRI_CHUNK") != NULL)
     {
-      cerr << "Error: do not set FS_USE_MRI_CHUNK while it is still buggy!" << endl;
+      cerr << "Error: do not set FS_USE_MRI_CHUNK while it is still buggy!"
+          << endl;
       exit(1);
     }
 
     // Default initialization
-    int nargs = handle_version_option (argc, argv, vcid, "$Name:  $");
+    int nargs = handle_version_option(argc, argv, vcid, "$Name:  $");
     if (nargs && argc - nargs == 1)
     {
-      exit (0);
+      exit(0);
     }
     argc -= nargs;
-    Progname = argv[0] ;
-    argc --;
+    Progname = argv[0];
+    argc--;
     argv++;
-    ErrorInit(NULL, NULL, NULL) ;
+    ErrorInit(NULL, NULL, NULL);
 //  DiagInit(NULL, NULL, NULL) ;
 
     if (!parseCommandLine(argc, argv, P))
@@ -319,19 +599,40 @@ int main(int argc, char *argv[])
       //printUsage();
       exit(1);
     }
+// testSubsamp(P);
+// testcubic(P);
 //entro(P);
 //gradmag(P);
+//jointhisto(P);
+//debug(P);
+
+// vnl_vector < double > p(6,0.0);
+// p[3] = 0.1;
+// p[4] = .2;
+// p[5]=.3;
+// vnl_matrix < double > M = (RegistrationStep<double>::convertP2Md(p,2)).first;
+// vnl_matlab_print(vcl_cerr,M,"M",vnl_matlab_print_format_long);std::cerr << std::endl;
+// exit(1);
 
     // Timer
-    struct timeb start ;
-    int    msec,minutes,seconds;
-    TimerStart(&start) ;
-
+    struct timeb start;
+    int msec, minutes, seconds;
+    TimerStart(&start);
 
     // init registration from Parameters
-//  RegPowell R;
-    Registration R;
-    initRegistration(R,P);
+    Registration * Rp = NULL;
+    if (P.cost == Registration::ROB) //|| P.cost == Registration::LS )
+      Rp = new RegRobust;
+    else
+    {
+      P.floattype = true; // bad way, I know: will allow type to switch inside Registration, and because of the constfun, will switch to uchar
+      Rp = new RegPowell;
+    }
+    // keep as reference (in order not to modify everything below to pointer)
+    Registration &R = *Rp;
+
+//    Registration R;
+    initRegistration(R, P);
 //conv(P.mri_dst);
 
 //  cout << " mean mov : " << CostFunctions::mean(P.mri_mov) << "  mean dst: " << CostFunctions::mean(P.mri_dst) << endl;
@@ -347,18 +648,18 @@ int main(int argc, char *argv[])
 //  if (P.satest) R.computeSatEstimate(2,P.iterate,P.epsit);
 ////  else if (P.satit) Md = R.computeIterativeRegSat(P.iterate,P.epsit);
 //  else
-    if (P.satit)
+    if (P.satit && P.cost == Registration::ROB)
     {
-      R.findSaturation();
-      R.computeMultiresRegistration(0,P.iterate,P.epsit);
+      dynamic_cast<RegRobust*>(Rp)->findSaturation();
+      R.computeMultiresRegistration(0, P.iterate, P.epsit);
     }
     else if (P.nomulti)
     {
-      R.computeIterativeRegistration(P.iterate,P.epsit);
+      R.computeIterativeRegistration(P.iterate, P.epsit);
     }
     else
     {
-      R.computeMultiresRegistration(0,P.iterate,P.epsit);
+      R.computeMultiresRegistration(0, P.iterate, P.epsit);
     }
 
 //   if (P.satest) // old stuff, can be removed ?
@@ -379,9 +680,9 @@ int main(int argc, char *argv[])
     //Md.second = 1;
 
     // Print results:
-    std::pair <MATRIX*, double> Md;
+    std::pair<MATRIX*, double> Md;
     cout << endl << "Final Transform:" << endl;
-    vnl_matrix < double > fMv2v(R.getFinalVox2Vox());
+    vnl_matrix<double> fMv2v(R.getFinalVox2Vox());
     vnl_matlab_print(vcl_cout,fMv2v,"M",vnl_matlab_print_format_long);
     cout << endl;
     Md.first = MyMatrix::convertVNL2MATRIX(fMv2v);
@@ -389,19 +690,18 @@ int main(int argc, char *argv[])
 //  MatrixPrintFmt(stdout,"% 2.8f",Md.first);
 
     cout << " Determinant : " << vnl_determinant(fMv2v) << endl << endl;
-    if (P.affine)
+    if (P.affine || P.isoscale)
     {
       cout << " Decompose into Rot * Shear * Scale : " << endl << endl;
-      vnl_matrix < double > Rot, Shear;
-      vnl_diag_matrix < double > Scale;
-      MyMatrix::Polar2Decomposition(fMv2v.extract(3,3),Rot,Shear,Scale);
+      vnl_matrix<double> Rot, Shear;
+      vnl_diag_matrix<double> Scale;
+      MyMatrix::Polar2Decomposition(fMv2v.extract(3, 3), Rot, Shear, Scale);
       vnl_matlab_print(vcl_cout,Rot,"Rot",vnl_matlab_print_format_long);
       cout << endl;
       vnl_matlab_print(vcl_cout,Shear,"Shear",vnl_matlab_print_format_long);
       cout << endl;
       vnl_matlab_print(vcl_cout,Scale,"Scale",vnl_matlab_print_format_long);
       cout << endl;
-
 
 //    vnl_svd <double > svd(fMv2v.extract(3,3));
 //    // svd: M = U * W * V'
@@ -430,42 +730,43 @@ int main(int argc, char *argv[])
     {
       cout << "Intenstiy Scale Factor: " << Md.second << endl;
     }
-    cout << endl ;
+    cout << endl;
 
     // writing transform section here
-    cout << "writing output transformation to "<<P.lta <<" ..." << endl;
+    cout << "writing output transformation to " << P.lta << " ..." << endl;
     char reg[STRLEN];
     strcpy(reg, P.lta.c_str());
-    LTA * lta = LTAalloc(1,P.mri_mov);
+    LTA * lta = LTAalloc(1, P.mri_mov);
     if (!P.lta_vox2vox) // do ras to ras
     {
-      cout << "converting VOX to RAS and saving RAS2RAS..." << endl ;
+      cout << "converting VOX to RAS and saving RAS2RAS..." << endl;
       //cout << "VOX2VOX:" << endl ;
       //MatrixPrint(stdout, Md.first) ;
-      lta->xforms[0].m_L = MRIvoxelXformToRasXform (P.mri_mov, P.mri_dst, Md.first, lta->xforms[0].m_L) ;
+      lta->xforms[0].m_L = MRIvoxelXformToRasXform(P.mri_mov, P.mri_dst,
+          Md.first, lta->xforms[0].m_L);
       //cout << "RAS2RAS:" << endl ;
       //MatrixPrint(stdout,lta->xforms[0].m_L) ;
-      lta->type = LINEAR_RAS_TO_RAS ;
+      lta->type = LINEAR_RAS_TO_RAS;
     }
     else // vox to vox
     {
-      cout << "saving VOX2VOX..." << endl ;
-      lta->xforms[0].m_L = MatrixCopy(Md.first, lta->xforms[0].m_L) ;
-      lta->type = LINEAR_VOX_TO_VOX ;
+      cout << "saving VOX2VOX..." << endl;
+      lta->xforms[0].m_L = MatrixCopy(Md.first, lta->xforms[0].m_L);
+      lta->type = LINEAR_VOX_TO_VOX;
     }
     // add src and dst info
     getVolGeom(P.mri_mov, &lta->xforms[0].src);
     getVolGeom(P.mri_dst, &lta->xforms[0].dst);
-    LTAwriteEx(lta, reg) ;
+    LTAwriteEx(lta, reg);
 
-    if (R.isIscale() && Md.second >0 && P.iscaleout != "")
+    if (R.isIscale() && Md.second > 0 && P.iscaleout != "")
 //  if (R.isIscale() && Md.second >0)
     {
       //string fn;
       //if (P.iscaleout != "") fn = P.iscaleout;
       //else fn = R.getName() + "-intensity.txt";
       //ofstream f(fn.c_str(),ios::out);
-      ofstream f(P.iscaleout.c_str(),ios::out);
+      ofstream f(P.iscaleout.c_str(), ios::out);
       f << Md.second;
       f.close();
     }
@@ -474,7 +775,7 @@ int main(int argc, char *argv[])
     // end of writing transform
 
     // here do scaling of intensity values
-    if (R.isIscale() && Md.second > 0)
+    if (R.isIscale() && Md.second > 0 && !P.entropy)
     {
       cout << "Adjusting Intensity of MOV by " << Md.second << endl;
       P.mri_mov = MyMRI::MRIvalscale(P.mri_mov, P.mri_mov, Md.second);
@@ -489,15 +790,40 @@ int main(int argc, char *argv[])
       int nframes = P.mri_mov->nframes;
       if (P.mri_mov->nframes > 1)
       {
-        cout << " WARNING: movable has more than one frame !!! Only map first ..." << endl;
+        cout
+            << " WARNING: movable has more than one frame !!! Only map first ..."
+            << endl;
       }
-      P.mri_mov->nframes = 1 ; // only map frame 1
-      MRI *mri_aligned = MRIclone(P.mri_dst,NULL);
-      mri_aligned = LTAtransform(P.mri_mov,mri_aligned, lta);
-      P.mri_mov->nframes = nframes ;
+      P.mri_mov->nframes = 1; // only map frame 1
+
+//       //switch type to dst type:
+//       MRI *mri_aligned = MRIcloneDifferentType(P.mri_dst, MRI_FLOAT) ;
+//       mri_aligned = LTAtransform(P.mri_mov,mri_aligned, lta);
+//       if (mri_aligned->type != P.mri_dst->type)
+//       {
+//          int no_scale_flag = FALSE;
+//          MRI* mri2 = MRISeqchangeType(mri_aligned, P.mri_dst->type, 0.0, 0.999, no_scale_flag);
+//          if (mri2 == NULL)
+//          {
+//            printf("ERROR: MRISeqchangeType\n");
+//            exit(1);
+//          }
+//          MRIfree(&mri_aligned);
+//          mri_aligned = mri2;
+//       }
+
+      // keep mov type:
+      cout << " copy ... " << endl;
+      MRI *mri_aligned = MRIcloneDifferentType(P.mri_dst, P.mri_mov->type);
+      cout << " transform ... " << endl;
+      mri_aligned = LTAtransformInterp(P.mri_mov, mri_aligned, lta,
+          P.finalsampletype);
+
+      // reset mov n frames:
+      P.mri_mov->nframes = nframes;
 
       // keep acquisition params:
-      MRIcopyPulseParameters(P.mri_mov,mri_aligned);
+      MRIcopyPulseParameters(P.mri_mov, mri_aligned);
 
 //    sprintf(fname, "%s_after_final_alignment", parms.base_name) ;
 //    MRIwriteImageViews(mri_aligned, fname, IMAGE_SIZE) ;
@@ -512,43 +838,46 @@ int main(int argc, char *argv[])
 //    cout << " LS difference after: " << CostFunctions::leastSquares(mri_aligned,P.mri_dst) << endl;
 //    cout << " NC difference after: " << CostFunctions::normalizedCorrelation(mri_aligned,P.mri_dst) << endl;
 
-      MRIwrite(mri_aligned, P.warpout.c_str()) ;
-      MRIfree(&mri_aligned) ;
+      MRIwrite(mri_aligned, P.warpout.c_str());
+      MRIfree(&mri_aligned);
 
       cout << endl;
       cout << "To check aligned result, run:" << endl;
-      cout << "  freeview -v "<< P.dst <<" " << P.warpout << endl;
+      cout << "  freeview -v " << P.dst << " " << P.warpout << endl;
     }
-    
+
     if (P.norlout != "") // map source to target (no resample only adjust header)
     {
       cout << endl;
-      cout << "mapmovhdr: Changing vox2ras MOV header (to map to DST) ..." << endl;
+      cout << "mapmovhdr: Changing vox2ras MOV header (to map to DST) ..."
+          << endl;
       // Compute new vox2ras instead of resampling
       // vox2ras = Stemp * invTtemp * invR * Tin
-      MATRIX * ras2ras = MRIvoxelXformToRasXform (P.mri_mov, P.mri_dst, Md.first, NULL) ;
+      MATRIX * ras2ras = MRIvoxelXformToRasXform(P.mri_mov, P.mri_dst, Md.first,
+          NULL);
       MATRIX * vox2ras = MRIgetVoxelToRasXform(P.mri_mov);
-      
+
       // concat:
-      vox2ras = MatrixMultiply(ras2ras,vox2ras,vox2ras);
-    
-      MRI *mri_aligned = MRIcopy(P.mri_mov,NULL);
-      MRIsetVoxelToRasXform(mri_aligned,vox2ras);
-      int err = MRIwrite(mri_aligned, P.norlout.c_str()) ;
-      MRIfree(&mri_aligned) ;
-      if(err){
-        printf("ERROR: writing %s\n",P.norlout.c_str());
+      vox2ras = MatrixMultiply(ras2ras, vox2ras, vox2ras);
+
+      MRI *mri_aligned = MRIcopy(P.mri_mov, NULL);
+      MRIsetVoxelToRasXform(mri_aligned, vox2ras);
+      int err = MRIwrite(mri_aligned, P.norlout.c_str());
+      MRIfree(&mri_aligned);
+      if (err)
+      {
+        printf("ERROR: writing %s\n", P.norlout.c_str());
         exit(1);
       }
-      
+
       cout << endl;
       cout << "To check aligned result, run:" << endl;
-      cout << "  freeview -v "<< P.dst <<" " << P.norlout << endl;
-    
+      cout << "  freeview -v " << P.dst << " " << P.norlout << endl;
+
     }
 
     // maybe write out weights in target space:
-    if (P.weightsout!="")
+    if (P.weightsout != "")
     {
 
       MRI * mri_weights = R.getWeights(); // in target space
@@ -556,16 +885,16 @@ int main(int argc, char *argv[])
       {
         cout << endl;
         cout << "Writing out Weights ..." << endl;
-
+        //MRIwrite(mri_weights,"temp.mgz") ;
+        //cout << " mri_weights type: " << mri_weights->type << endl;
         if (P.oneminusweights)
         {
-          mri_weights = MRIlinearScale(mri_weights,NULL,-1,1,0);
+          MRI * mri_iweights = MRIlinearScale(mri_weights, NULL, -1, 1, 0);
+          MRIwrite(mri_iweights, P.weightsout.c_str());
+          MRIfree(&mri_iweights);
         }
-        MRIwrite(mri_weights,P.weightsout.c_str()) ;
-        if (P.oneminusweights)
-        {
-          mri_weights = R.getWeights();
-        }
+        else
+          MRIwrite(mri_weights, P.weightsout.c_str());
 
 //       // map to target and use target geometry
 //       std::pair < vnl_matrix_fixed < double, 4, 4>, vnl_matrix_fixed < double, 4, 4> > map2weights = R.getHalfWayMaps();
@@ -577,206 +906,252 @@ int main(int argc, char *argv[])
 //       MRIwrite(wtarg, P.weightsout.c_str()) ;
 //       MRIfree(&wtarg);
 //       //MatrixFree(&hinv);
-        cout << "... overlay the weights:" <<endl;
-        cout << "  tkmedit -f "<< P.dst <<" -aux "<< P.warpout << " -overlay " << P.weightsout <<endl;
+        cout << "... overlay the weights:" << endl;
+        if (P.warpout != "")
+          cout << "  freeview -v " << P.dst << " " << P.warpout << " "
+              << P.weightsout << ":colormap=heat" << endl;
+        else if (P.norlout != "")
+          cout << "  freeview -v " << P.dst << " " << P.norlout << " "
+              << P.weightsout << ":colormap=heat" << endl;
+//        cout << "  tkmedit -f "<< P.dst <<" -aux "<< P.warpout << " -overlay " << P.weightsout <<endl;
       }
       else
       {
-        cout << "Warning: no weights could be created! Maybe you ran with --leastsquares??" << endl;
+        cout
+            << "Warning: no weights could be created! Maybe you ran with --leastsquares??"
+            << endl;
       }
     }
 
     // write out images in half way space
-    if (P.halfmov != "" || P.halfdst != "" || P.halfweights != "" || P.halfdstlta != "" || P.halfmovlta != "")
+    if (P.halfmov != "" || P.halfdst != "" || P.halfweights != ""
+        || P.halfdstlta != "" || P.halfmovlta != "")
     {
       cout << endl;
-      cout << "Creating half way data ..." << endl;
-      std::pair < vnl_matrix_fixed < double, 4, 4>, vnl_matrix_fixed < double, 4, 4> > maps2weights = R.getHalfWayMaps();
-      vnl_matlab_print(vcl_cerr,maps2weights.first,"movhw",vnl_matlab_print_format_long);std::cerr << std::endl;
-      vnl_matlab_print(vcl_cerr,maps2weights.second,"dsthw",vnl_matlab_print_format_long);std::cerr << std::endl;
-      
-      MRI * mri_weights = R.getWeights();
 
-      LTA * m2hwlta = LTAalloc(1,P.mri_mov);
-      LTA * d2hwlta = LTAalloc(1,P.mri_dst);
-      if (!P.lta_vox2vox) // do ras to ras
+      if (!P.symmetry)
       {
-        // cout << "converting VOX to RAS and saving RAS2RAS..." << endl ;
-        // (use geometry of destination space for half-way)
-        m2hwlta->xforms[0].m_L = MRIvoxelXformToRasXform (P.mri_mov, mri_weights, MyMatrix::convertVNL2MATRIX(maps2weights.first), m2hwlta->xforms[0].m_L) ;
-        m2hwlta->type = LINEAR_RAS_TO_RAS ;
-        d2hwlta->xforms[0].m_L = MRIvoxelXformToRasXform (P.mri_dst, mri_weights, MyMatrix::convertVNL2MATRIX(maps2weights.second), d2hwlta->xforms[0].m_L) ;
-        d2hwlta->type = LINEAR_RAS_TO_RAS ;
+        cout << "ERROR: no half way space created (symmetry was switched off)!"
+            << endl;
       }
-      else // vox to vox
+      else if (!R.getHalfWayGeom())
       {
-        // cout << "saving VOX2VOX..." << endl ;
-        //m2hwlta->xforms[0].m_L = MatrixCopy(maps2weights.first, m2hwlta->xforms[0].m_L) ;
-        m2hwlta->xforms[0].m_L = MyMatrix::convertVNL2MATRIX(maps2weights.first, m2hwlta->xforms[0].m_L) ;
-        m2hwlta->type = LINEAR_VOX_TO_VOX ;
-        //d2hwlta->xforms[0].m_L = MatrixCopy(maps2weights.second, d2hwlta->xforms[0].m_L) ;
-        d2hwlta->xforms[0].m_L = MyMatrix::convertVNL2MATRIX(maps2weights.second, d2hwlta->xforms[0].m_L) ;
-        d2hwlta->type = LINEAR_VOX_TO_VOX ;
+        cout
+            << "ERROR: no half way space created (not implemented for this cost function)!"
+            << endl;
       }
-      // add src and dst info (use mri_weights as target geometry in both cases)
-      getVolGeom(P.mri_mov, &m2hwlta->xforms[0].src);
-      getVolGeom(mri_weights, &m2hwlta->xforms[0].dst);
-      getVolGeom(P.mri_dst, &d2hwlta->xforms[0].src);
-      getVolGeom(mri_weights, &d2hwlta->xforms[0].dst);
-
-      // write lta to half way
-      if (P.halfmovlta != "")
+      else
       {
-        LTAwriteEx(m2hwlta, P.halfmovlta.c_str()) ;
-      }
-      if (P.halfdstlta != "")
-      {
-        LTAwriteEx(d2hwlta, P.halfdstlta.c_str()) ;
-      }
 
-      if (P.halfmov != "")
-      {
-        cout << " creating half-way movable ..." << endl;
-        // take dst geometry info from lta:
-        MRI* mri_Swarp = LTAtransform(P.mri_mov,NULL, m2hwlta);
+        cout << "Creating half way data ..." << endl;
+        std::pair<vnl_matrix_fixed<double, 4, 4>, vnl_matrix_fixed<double, 4, 4> > maps2weights =
+            R.getHalfWayMaps();
+        vnl_matlab_print(vcl_cerr,maps2weights.first,"movhw",vnl_matlab_print_format_long);
+        std::cerr << std::endl;
+        vnl_matlab_print(vcl_cerr,maps2weights.second,"dsthw",vnl_matlab_print_format_long);
+        std::cerr << std::endl;
 
-        //cout << " MOV       RAS: " << P.mri_mov->c_r << " , " <<  P.mri_mov->c_a << " , " <<  P.mri_mov->c_s << endl;
-        //cout << " DST       RAS: " << P.mri_dst->c_r << " , " <<  P.mri_dst->c_a << " , " <<  P.mri_dst->c_s << endl;
-        //cout << " weights   RAS: " << mri_weights->c_r << " , " <<  mri_weights->c_a << " , " <<  mri_weights->c_s << endl;
-        //cout << " Swarp_old RAS: " << mri_Swarp_old->c_r << " , " <<  mri_Swarp_old->c_a << " , " <<  mri_Swarp_old->c_s << endl;
-        //MRI* mri_Swarp = MRIalloc(mri_weights->width, mri_weights->height, mri_weights->depth, P.mri_mov->type);
-        //MRIcopyHeader(mri_weights,mri_Swarp);
-        //mri_Swarp->type = P.mri_mov->type;
-        //LTAtransform(P.mri_mov,mri_Swarp, m2hwlta);
-        //cout << " Swarp     RAS: " << mri_Swarp->c_r << " , " <<  mri_Swarp->c_a << " , " <<  mri_Swarp->c_s << endl;
-        MRIcopyPulseParameters(P.mri_mov,mri_Swarp);
-        MRIwrite(mri_Swarp,P.halfmov.c_str());
+        MRI * mri_hwgeom = R.getHalfWayGeom();
 
-        if (P.debug)
+        LTA * m2hwlta = LTAalloc(1, P.mri_mov);
+        LTA * d2hwlta = LTAalloc(1, P.mri_dst);
+        if (!P.lta_vox2vox) // do ras to ras
         {
-          MRIiterator mw(mri_weights);
-          MRIiterator ms(mri_Swarp);
-          double meanw1=0, meanw0=0, mean = 0, meanw = 0, countw = 0;
-          int countw1=0,countw0=0,count=0;
-          for (ms.begin(); !ms.isEnd(); ms++)
-          {
-            if (fabs(*mw )>0.0001)
-            {
-              meanw0+= (*ms);
-              countw0++;
-            }
-            if (fabs(*mw-1.0) < 0.0001)
-            {
-              meanw1+= *ms;
-              countw1++;
-            }
+          // cout << "converting VOX to RAS and saving RAS2RAS..." << endl ;
+          // (use geometry of destination space for half-way)
+          m2hwlta->xforms[0].m_L = MRIvoxelXformToRasXform(P.mri_mov,
+              mri_hwgeom, MyMatrix::convertVNL2MATRIX(maps2weights.first),
+              m2hwlta->xforms[0].m_L);
+          m2hwlta->type = LINEAR_RAS_TO_RAS;
+          d2hwlta->xforms[0].m_L = MRIvoxelXformToRasXform(P.mri_dst,
+              mri_hwgeom, MyMatrix::convertVNL2MATRIX(maps2weights.second),
+              d2hwlta->xforms[0].m_L);
+          d2hwlta->type = LINEAR_RAS_TO_RAS;
+        }
+        else // vox to vox
+        {
+          // cout << "saving VOX2VOX..." << endl ;
+          //m2hwlta->xforms[0].m_L = MatrixCopy(maps2weights.first, m2hwlta->xforms[0].m_L) ;
+          m2hwlta->xforms[0].m_L = MyMatrix::convertVNL2MATRIX(
+              maps2weights.first, m2hwlta->xforms[0].m_L);
+          m2hwlta->type = LINEAR_VOX_TO_VOX;
+          //d2hwlta->xforms[0].m_L = MatrixCopy(maps2weights.second, d2hwlta->xforms[0].m_L) ;
+          d2hwlta->xforms[0].m_L = MyMatrix::convertVNL2MATRIX(
+              maps2weights.second, d2hwlta->xforms[0].m_L);
+          d2hwlta->type = LINEAR_VOX_TO_VOX;
+        }
+        // add src and dst info (use mri_weights as target geometry in both cases)
+        getVolGeom(P.mri_mov, &m2hwlta->xforms[0].src);
+        getVolGeom(mri_hwgeom, &m2hwlta->xforms[0].dst);
+        getVolGeom(P.mri_dst, &d2hwlta->xforms[0].src);
+        getVolGeom(mri_hwgeom, &d2hwlta->xforms[0].dst);
 
-            mean+= *ms;
-            count++;
-
-            meanw+= *ms * *mw;
-            countw+= *mw;
-
-            assert(! (mw.isEnd() && !ms.isEnd()));
-            mw++;
-          }
-
-          cout << " mov int means: " << mean/count << " ( " << count << " )  w0: " << meanw0/countw0 << " ( " << countw0 << " ) w1: " << meanw1/countw1 << " ( " << countw1 << " )  weighted: " << meanw/countw<<" ( " << countw << " )" << endl;
+        // write lta to half way
+        if (P.halfmovlta != "")
+        {
+          LTAwriteEx(m2hwlta, P.halfmovlta.c_str());
+        }
+        if (P.halfdstlta != "")
+        {
+          LTAwriteEx(d2hwlta, P.halfdstlta.c_str());
         }
 
-        MRIfree(&mri_Swarp);
-
-        //MRIwrite(P.mri_mov,"movable-original.mgz");
-        //mri_Swarp = R.makeConform(P.mri_mov,NULL,false,true);
-        //MRIwrite(mri_Swarp,"movable-uhar.mgz");
-        //MRI * tttemp = MRIclone(mri_Swarp,NULL);
-        //tttemp =  MRIlinearTransform(mri_Swarp,tttemp, mh);
-        //MRIwrite(tttemp,"movable-uhar-half.mgz");
-        //MRIfree(&mri_Swarp);
-        //MRIfree(&tttemp);
-
-      }
-      if (P.halfdst != "")
-      {
-        cout << " creating half-way destination ..." << endl;
-        MRI* mri_Twarp = LTAtransform(P.mri_dst,NULL, d2hwlta);
-        MRIcopyPulseParameters(P.mri_dst,mri_Twarp);
-        MRIwrite(mri_Twarp,P.halfdst.c_str());
-        MRI * mri_weights = R.getWeights();
-
-        if (P.debug)
+        if (P.halfmov != "")
         {
-          MRIiterator mw(mri_weights);
-          MRIiterator ms(mri_Twarp);
-          double meanw1=0, meanw0=0, mean = 0, meanw = 0, countw = 0;
-          int countw1=0,countw0=0,count=0;
-          for (ms.begin(); !ms.isEnd(); ms++)
+          cout << " creating half-way movable ..." << endl;
+          // take dst geometry info from lta:
+          MRI* mri_Swarp = LTAtransformInterp(P.mri_mov, NULL, m2hwlta,
+              P.finalsampletype);
+
+          //cout << " MOV       RAS: " << P.mri_mov->c_r << " , " <<  P.mri_mov->c_a << " , " <<  P.mri_mov->c_s << endl;
+          //cout << " DST       RAS: " << P.mri_dst->c_r << " , " <<  P.mri_dst->c_a << " , " <<  P.mri_dst->c_s << endl;
+          //cout << " weights   RAS: " << mri_weights->c_r << " , " <<  mri_weights->c_a << " , " <<  mri_weights->c_s << endl;
+          //cout << " Swarp_old RAS: " << mri_Swarp_old->c_r << " , " <<  mri_Swarp_old->c_a << " , " <<  mri_Swarp_old->c_s << endl;
+          //MRI* mri_Swarp = MRIalloc(mri_weights->width, mri_weights->height, mri_weights->depth, P.mri_mov->type);
+          //MRIcopyHeader(mri_weights,mri_Swarp);
+          //mri_Swarp->type = P.mri_mov->type;
+          //LTAtransform(P.mri_mov,mri_Swarp, m2hwlta);
+          //cout << " Swarp     RAS: " << mri_Swarp->c_r << " , " <<  mri_Swarp->c_a << " , " <<  mri_Swarp->c_s << endl;
+          MRIcopyPulseParameters(P.mri_mov, mri_Swarp);
+          MRIwrite(mri_Swarp, P.halfmov.c_str());
+
+          if (P.debug)
           {
-            if (fabs(*mw )>0.0001)
+            MRIiterator mw(R.getWeights());
+            MRIiterator ms(mri_Swarp);
+            double meanw1 = 0, meanw0 = 0, mean = 0, meanw = 0, countw = 0;
+            int countw1 = 0, countw0 = 0, count = 0;
+            for (ms.begin(); !ms.isEnd(); ms++)
             {
-              meanw0+= (*ms);
-              countw0++;
+              if (fabs(*mw) > 0.0001)
+              {
+                meanw0 += (*ms);
+                countw0++;
+              }
+              if (fabs(*mw - 1.0) < 0.0001)
+              {
+                meanw1 += *ms;
+                countw1++;
+              }
+
+              mean += *ms;
+              count++;
+
+              meanw += *ms * *mw;
+              countw += *mw;
+
+              assert(! (mw.isEnd() && !ms.isEnd()));
+              mw++;
             }
-            if (fabs(*mw-1.0) < 0.0001)
-            {
-              meanw1+= *ms;
-              countw1++;
-            }
 
-            mean+= *ms;
-            count++;
-
-            meanw+= *ms * *mw;
-            countw+= *mw;
-
-            assert(! (mw.isEnd() && !ms.isEnd()));
-            mw++;
+            cout << " mov int means: " << mean / count << " ( " << count
+                << " )  w0: " << meanw0 / countw0 << " ( " << countw0
+                << " ) w1: " << meanw1 / countw1 << " ( " << countw1
+                << " )  weighted: " << meanw / countw << " ( " << countw << " )"
+                << endl;
           }
-          cout << " mov int means: " << mean/count << " ( " << count << " )  w0: " << meanw0/countw0 << " ( " << countw0 << " ) w1: " << meanw1/countw1 << " ( " << countw1 << " )  weighted: " << meanw/countw<<" ( " << countw << " )" << endl;
-        }
 
-        MRIfree(&mri_Twarp);
-      }
-      if (P.halfweights != "")
-      {
-        //MRI * mri_weights = R.getWeights();
-        if (mri_weights != NULL)
+          MRIfree(&mri_Swarp);
+
+          //MRIwrite(P.mri_mov,"movable-original.mgz");
+          //mri_Swarp = R.makeConform(P.mri_mov,NULL,false,true);
+          //MRIwrite(mri_Swarp,"movable-uhar.mgz");
+          //MRI * tttemp = MRIclone(mri_Swarp,NULL);
+          //tttemp =  MRIlinearTransform(mri_Swarp,tttemp, mh);
+          //MRIwrite(tttemp,"movable-uhar-half.mgz");
+          //MRIfree(&mri_Swarp);
+          //MRIfree(&tttemp);
+
+        }
+        if (P.halfdst != "")
         {
-          cout << " saving half-way weights ..." << endl;
-          MRI* mri_wtemp = LTAtransform(mri_weights,NULL, d2hwlta);
-          if (P.oneminusweights)
+          cout << " creating half-way destination ..." << endl;
+          MRI* mri_Twarp = LTAtransformInterp(P.mri_dst, NULL, d2hwlta,
+              P.finalsampletype);
+          MRIcopyPulseParameters(P.mri_dst, mri_Twarp);
+          MRIwrite(mri_Twarp, P.halfdst.c_str());
+
+          if (P.debug)
           {
-            mri_wtemp = MRIlinearScale(mri_wtemp,mri_wtemp,-1,1,0);
+            MRIiterator mw(R.getWeights());
+            MRIiterator ms(mri_Twarp);
+            double meanw1 = 0, meanw0 = 0, mean = 0, meanw = 0, countw = 0;
+            int countw1 = 0, countw0 = 0, count = 0;
+            for (ms.begin(); !ms.isEnd(); ms++)
+            {
+              if (fabs(*mw) > 0.0001)
+              {
+                meanw0 += (*ms);
+                countw0++;
+              }
+              if (fabs(*mw - 1.0) < 0.0001)
+              {
+                meanw1 += *ms;
+                countw1++;
+              }
+
+              mean += *ms;
+              count++;
+
+              meanw += *ms * *mw;
+              countw += *mw;
+
+              assert(! (mw.isEnd() && !ms.isEnd()));
+              mw++;
+            }
+            cout << " mov int means: " << mean / count << " ( " << count
+                << " )  w0: " << meanw0 / countw0 << " ( " << countw0
+                << " ) w1: " << meanw1 / countw1 << " ( " << countw1
+                << " )  weighted: " << meanw / countw << " ( " << countw << " )"
+                << endl;
           }
-          MRIwrite(mri_wtemp,P.halfweights.c_str());
-          MRIfree(&mri_wtemp);
-          //MRIwrite(mri_weights,P.halfweights.c_str());
+
+          MRIfree(&mri_Twarp);
         }
-        else
+        if (P.halfweights != "")
         {
-          cout << "Warning: no weights have been computed! Maybe you ran with --leastsquares??" << endl;
+          MRI * mri_weights = R.getWeights();
+          if (mri_weights != NULL)
+          {
+            cout << " saving half-way weights ..." << endl;
+            MRI* mri_wtemp = LTAtransformInterp(mri_weights, NULL, d2hwlta,
+                P.finalsampletype);
+            if (P.oneminusweights)
+            {
+              mri_wtemp = MRIlinearScale(mri_wtemp, mri_wtemp, -1, 1, 0);
+            }
+            MRIwrite(mri_wtemp, P.halfweights.c_str());
+            MRIfree(&mri_wtemp);
+            //MRIwrite(mri_weights,P.halfweights.c_str());
+          }
+          else
+          {
+            cout
+                << "Warning: no weights have been computed! Maybe you ran with --leastsquares??"
+                << endl;
+          }
         }
       }
     }
 
-    if (P.debug >0)
+    if (P.debug > 0)
     {
       cout << endl;
       cout << "To check debug output, run:" << endl;
       std::string name = R.getName();
-      cout << "  tkmedit -f " << name << "-mriS-mapped.mgz -aux " << name << "-mriT-mapped.mgz -overlay " << name << "-mriS-weights.mgz" << endl;
+      cout << "  tkmedit -f " << name << "-mriS-mapped.mgz -aux " << name
+          << "-mriT-mapped.mgz -overlay " << name << "-mriS-weights.mgz"
+          << endl;
     }
 
     cout << endl;
-    cout << "To check transform, run:" << endl;
-    cout << "  tkregister2 --mov "<< P.mov <<" --targ " << P.dst <<" --lta " << P.lta << " --reg " << R.getName() << ".reg" << endl;
-
-
+    //  cout << "To check transform, run:" << endl;
+    //  cout << "  tkregister2 --mov "<< P.mov <<" --targ " << P.dst <<" --lta " << P.lta << " --reg " << R.getName() << ".reg" << endl;
 
     // cleanup
     if (Md.first)
     {
-      MatrixFree(&Md.first) ;
+      MatrixFree(&Md.first);
     }
     if (P.mri_mov)
     {
@@ -786,17 +1161,39 @@ int main(int argc, char *argv[])
     {
       MRIfree(&P.mri_dst);
     }
+    if (Rp)
+    {
+      delete (Rp);
+      Rp = NULL;
+    }
+    if (lta)
+      LTAfree(&lta);
 
     ///////////////////////////////////////////////////////////////
-    msec = TimerStop(&start) ;
-    seconds = nint((float)msec/1000.0f) ;
-    minutes = seconds / 60 ;
-    seconds = seconds % 60 ;
-    cout << endl << "Registration took "<<minutes<<" minutes and "<<seconds<<" seconds." << endl;
+    msec = TimerStop(&start);
+    seconds = nint((float) msec / 1000.0f);
+    minutes = seconds / 60;
+    seconds = seconds % 60;
+    cout << endl << "Registration took " << minutes << " minutes and "
+        << seconds << " seconds." << endl;
+
+    cout << endl << " Thank you for using RobustRegister! " << endl;
+    cout << " If you find it useful and use it for a publication, please cite: "
+        << endl << endl;
+    cout
+        << " Highly Accurate Inverse Consistent Registration: A Robust Approach"
+        << endl;
+    cout
+        << " M. Reuter, H.D. Rosas, B. Fischl.  NeuroImage 53(4):1181-1196, 2010."
+        << endl;
+    cout << " http://dx.doi.org/10.1016/j.neuroimage.2010.07.020" << endl;
+    cout << " http://reuter.mit.edu/papers/reuter-robreg10.pdf" << endl << endl;
+    ;
+
     //if (diag_fp) fclose(diag_fp) ;
   } // for valgrind, so that everything is free
-  exit(0) ;
-  return(0) ;
+  exit(0);
+  return (0);
 }
 
 // int main(int argc, char *argv[])
@@ -996,42 +1393,54 @@ int main(int argc, char *argv[])
 // }
 
 /*----------------------------------------------------------------------
-  ----------------------------------------------------------------------*/
+ ----------------------------------------------------------------------*/
 #include "mri_robust_register.help.xml.h"
 static void printUsage(void)
 {
-  outputHelpXml(mri_robust_register_help_xml,
-                mri_robust_register_help_xml_len);
+  outputHelpXml(mri_robust_register_help_xml, mri_robust_register_help_xml_len);
 }
 
 /*!
-\fn void initRegistration(Registration & R, const Parameters & P)
-\brief Initializes a Registration with Parameters (affine, iscale, transonly, leastsquares, sat and trans)
-\param R  Registration to be initialized
-\param P  Paramters for the initialization
-*/
+ \fn void initRegistration(Registration & R, const Parameters & P)
+ \brief Initializes a Registration with Parameters (affine, iscale, transonly, leastsquares, sat and trans)
+ \param R  Registration to be initialized
+ \param P  Paramters for the initialization
+ */
 static void initRegistration(Registration & R, Parameters & P)
 {
-  R.setRigid(!P.affine);
+  if (!P.affine)
+    R.setRigid();
+  else
+    R.setAffine();
+  if (P.transonly)
+    R.setTransonly();
+  if (P.isoscale)
+    R.setIsoscale();
   R.setIscale(P.iscale);
-  R.setTransonly(P.transonly);
-  R.setRobust(!P.leastsquares);
-  R.setSaturation(P.sat);
+  //R.setRobust(!P.leastsquares);
+  //R.setSaturation(P.sat);
   R.setVerbose(P.verbose); // set before debug, as debug sets its own verbose level
   R.setDebug(P.debug);
   R.setHighit(P.highit);
   R.setInitTransform(P.inittrans);
   R.setInitOrient(P.initorient);
+  R.setInitScaling(P.initscaling);
   R.setDoublePrec(P.doubleprec);
-  R.setWLimit(P.wlimit);
+  //R.setWLimit(P.wlimit);
   R.setSymmetry(P.symmetry);
+  R.setCost(P.cost);
   //R.setOutputWeights(P.weights,P.weightsout);
-
+  // set only for robust registration
+  if (P.cost == Registration::ROB)
+  {
+    dynamic_cast<RegRobust*>(&R)->setSaturation(P.sat);
+    dynamic_cast<RegRobust*>(&R)->setWLimit(P.wlimit);
+  }
 
   int pos = P.lta.rfind(".");
   if (pos > 0)
   {
-    R.setName(P.lta.substr(0,pos));
+    R.setName(P.lta.substr(0, pos));
   }
   else
   {
@@ -1044,7 +1453,7 @@ static void initRegistration(Registration & R, Parameters & P)
   }
   R.setMinSize(P.minsize);
   R.setMaxSize(P.maxsize);
-  
+
 //   //////////////////////////////////////////////////////////////
 //   // create a list of MRI volumes
 //   //cout << "reading "<<ninputs<<" source (movable) volumes..."<< endl;
@@ -1101,67 +1510,99 @@ static void initRegistration(Registration & R, Parameters & P)
 
   ///////////  read MRI Source //////////////////////////////////////////////////
   cout << endl;
-  cout <<  "reading source '"<<P.mov<<"'..."<< endl ;
-  fflush(stdout) ;
+  cout << "reading source '" << P.mov << "'..." << endl;
+  fflush(stdout);
 
-  MRI* mri_mov = MRIread(P.mov.c_str()) ;
+  MRI* mri_mov = MRIread(P.mov.c_str());
   if (mri_mov == NULL)
   {
-    ErrorExit(ERROR_NOFILE, "%s: could not open MRI source %s.\n",
-              Progname, P.mov.c_str()) ;
+    ErrorExit(ERROR_NOFILE, "%s: could not open MRI source %s.\n", Progname,
+        P.mov.c_str());
     //cerr << Progname << " could not open MRI Target " << P.mov << endl;
     //exit(1);
   }
   if (mri_mov->nframes != 1)
   {
     ErrorExit(ERROR_NOFILE, "%s: only pass single frame MRI source %s.\n",
-              Progname, P.mov.c_str()) ;
+        Progname, P.mov.c_str());
   }
-  P.mri_mov = MRIcopy(mri_mov,P.mri_mov); // save dst mri
+
+  P.mri_mov = MRIcopy(mri_mov, P.mri_mov); // save dst mri
+  if (P.entropy)
+  {
+    MRI * temp = mri_mov;
+    struct timeb start;
+    int msec, minutes, seconds;
+    TimerStart(&start);
+    cout << "Converting mov to entropy image (radius " << P.entroradius
+        << " ) ... (can take 1-2 min)" << endl;
+    mri_mov = MyMRI::entropyImage(temp, P.entroradius, P.entball,
+        P.entcorrection);
+    if (P.entmov != "")
+      MRIwrite(mri_mov, P.entmov.c_str());
+    msec = TimerStop(&start);
+    seconds = nint((float) msec / 1000.0f);
+    minutes = seconds / 60;
+    //seconds = seconds % 60 ;
+    cout << " Entropy computation took " << seconds << " seconds." << endl;
+    MRIfree(&temp);
+  }
 
   if (P.maskmov != "")
   {
     MRI *mri_mask = MRIread(P.maskmov.c_str());
     if (!mri_mask)
-      ErrorExit(ERROR_NOFILE, "%s: could not open mask volume %s.\n",
-                Progname, P.maskmov.c_str()) ;
-    MRImask(mri_mov, mri_mask, mri_mov, 0, 0) ;
-    MRIfree(&mri_mask) ;
+      ErrorExit(ERROR_NOFILE, "%s: could not open mask volume %s.\n", Progname,
+          P.maskmov.c_str());
+    MRImask(mri_mov, mri_mask, mri_mov, 0, 0);
+    MRIfree(&mri_mask);
   }
 
   ///////////  read MRI Target //////////////////////////////////////////////////
-  cout <<  "reading target '"<<P.dst<<"'..."<< endl ;
-  fflush(stdout) ;
+  cout << "reading target '" << P.dst << "'..." << endl;
+  fflush(stdout);
 
-  MRI* mri_dst = MRIread(P.dst.c_str()) ;
+  MRI* mri_dst = MRIread(P.dst.c_str());
   if (mri_dst == NULL)
   {
-    ErrorExit(ERROR_NOFILE, "%s: could not open MRI target %s.\n",
-              Progname, P.dst.c_str()) ;
+    ErrorExit(ERROR_NOFILE, "%s: could not open MRI target %s.\n", Progname,
+        P.dst.c_str());
     //cerr << Progname << " could not open MRI Target " << P.dst << endl;
     //exit(1);
   }
   if (mri_dst->nframes != 1)
   {
     ErrorExit(ERROR_NOFILE, "%s: only pass single frame MRI target %s.\n",
-              Progname, P.dst.c_str()) ;
+        Progname, P.dst.c_str());
   }
-  P.mri_dst = MRIcopy(mri_dst,P.mri_dst); // save dst mri
+  P.mri_dst = MRIcopy(mri_dst, P.mri_dst); // save dst mri
+  if (P.entropy)
+  {
+    MRI * temp = mri_dst;
+    cout << "Converting dst to entropy image (radius " << P.entroradius
+        << " ) ... (can take 1-2 min)" << endl;
+    mri_dst = MyMRI::entropyImage(temp, P.entroradius, P.entball,
+        P.entcorrection);
+    if (P.entdst != "")
+      MRIwrite(mri_dst, P.entdst.c_str());
+    MRIfree(&temp);
+  }
 
   if (P.maskdst != "")
   {
     MRI *mri_mask = MRIread(P.maskdst.c_str());
     if (!mri_mask)
-      ErrorExit(ERROR_NOFILE, "%s: could not open mask volume %s.\n",
-                Progname, P.maskdst.c_str()) ;
-    MRImask(mri_dst, mri_mask, mri_dst, 0, 0) ;
-    MRIfree(&mri_mask) ;
+      ErrorExit(ERROR_NOFILE, "%s: could not open mask volume %s.\n", Progname,
+          P.maskdst.c_str());
+    MRImask(mri_dst, mri_mask, mri_dst, 0, 0);
+    MRIfree(&mri_mask);
   }
 
   // Set initial transform //////////////////////////////////////////////////
   if (P.transform != "")
   {
-    cout << endl << "reading initial transform '"<<P.transform<<"'..."<< endl;
+    cout << endl << "reading initial transform '" << P.transform << "'..."
+        << endl;
 
 //     // try to read simple text
 //     bool st = true;
@@ -1218,33 +1659,40 @@ static void initRegistration(Registration & R, Parameters & P)
     TRANSFORM * trans = TransformRead(P.transform.c_str());
     if (!trans)
     {
-      ErrorExit(ERROR_BADFILE, "%s: could not read transform file %s",Progname, P.transform.c_str()) ;
+      ErrorExit(ERROR_BADFILE, "%s: could not read transform file %s", Progname,
+          P.transform.c_str());
     }
-    LTA* lta =  (LTA *)trans->xform ;
+    LTA* lta = (LTA *) trans->xform;
     if (!lta)
     {
-      ErrorExit(ERROR_BADFILE, "%s: could not read lta transform file %s",Progname, P.transform.c_str()) ;
+      ErrorExit(ERROR_BADFILE, "%s: could not read lta transform file %s",
+          Progname, P.transform.c_str());
     }
-    if (! lta->xforms[0].src.valid )
+    if (!lta->xforms[0].src.valid)
     {
-      cout << " WARNING: no source geometry (RAS) in transform, assuming movable !!!" << endl;
+      cout
+          << " WARNING: no source geometry (RAS) in transform, assuming movable !!!"
+          << endl;
       getVolGeom(mri_mov, &lta->xforms[0].src);
     }
-    if (! lta->xforms[0].dst.valid )
+    if (!lta->xforms[0].dst.valid)
     {
-      cout << " WARNING: no target geometry (RAS) in transform, assuming destination !!!" << endl;
+      cout
+          << " WARNING: no target geometry (RAS) in transform, assuming destination !!!"
+          << endl;
       getVolGeom(mri_dst, &lta->xforms[0].dst);
     }
 
     // change to Ras2Ras, then swap geometries (this is important only, if the geometries in the lta
     // differ from the source and target passed on the command line):
-    lta = LTAchangeType(lta,LINEAR_RAS_TO_RAS);
+    lta = LTAchangeType(lta, LINEAR_RAS_TO_RAS);
     LTAmodifySrcDstGeom(lta, P.mri_mov, P.mri_dst);
-    lta = LTAchangeType(lta,LINEAR_VOX_TO_VOX);
-    if (lta->type!=LINEAR_VOX_TO_VOX)
+    lta = LTAchangeType(lta, LINEAR_VOX_TO_VOX);
+    if (lta->type != LINEAR_VOX_TO_VOX)
     {
       // should never happen:
-      ErrorExit(ERROR_BADFILE, "%s: must be LINEAR_VOX_TO_VOX (=0), but %d", Progname, P.transform.c_str(), lta->type) ;
+      ErrorExit(ERROR_BADFILE, "%s: must be LINEAR_VOX_TO_VOX (=0), but %d",
+          Progname, P.transform.c_str(), lta->type);
     }
     R.setMinitOrig(MyMatrix::convertMATRIX2VNL(lta->xforms[0].m_L));
     //if (P.debug) // apply init transform to input source image directly
@@ -1261,7 +1709,7 @@ static void initRegistration(Registration & R, Parameters & P)
   if (P.iscalein != "")
   {
     double iscale = 1.0;
-    ifstream f(P.iscalein.c_str(),ios::in);
+    ifstream f(P.iscalein.c_str(), ios::in);
     if (f.good())
     {
       f >> iscale;
@@ -1269,7 +1717,8 @@ static void initRegistration(Registration & R, Parameters & P)
     }
     else
     {
-      ErrorExit(ERROR_BADFILE, "Load Iscale input: no such file ( %s )",P.iscalein.c_str());
+      ErrorExit(ERROR_BADFILE, "Load Iscale input: no such file ( %s )",
+          P.iscalein.c_str());
     };
     R.setIscaleInit(iscale);
   }
@@ -1278,63 +1727,75 @@ static void initRegistration(Registration & R, Parameters & P)
 
   // now actually set source and target (and possibly reslice):
   // important that first everything else is set!
-  R.setSourceAndTarget(mri_mov,mri_dst,!P.floattype);
+  R.setSourceAndTarget(mri_mov, mri_dst, !P.floattype);
   MRIfree(&mri_mov);
   MRIfree(&mri_dst);
 
 }
 
 /*!
-\fn int parseNextCommand(int argc, char **argv)
-\brief Parses the command-line for next command
-\param   argc  number of command line arguments
-\param   argv  pointer to a character pointer
-\param      P  reference to parameters
-\returns       number of used arguments for this command
-*/
+ \fn int parseNextCommand(int argc, char **argv)
+ \brief Parses the command-line for next command
+ \param   argc  number of command line arguments
+ \param   argv  pointer to a character pointer
+ \param      P  reference to parameters
+ \returns       number of used arguments for this command
+ */
 static int parseNextCommand(int argc, char *argv[], Parameters & P)
 {
-  int  nargs = 0 ;
-  char *option ;
+  int nargs = 0;
+  char *option;
 
-  option = argv[0] + 1 ;                     // remove '-'
+  option = argv[0] + 1;                     // remove '-'
   if (option[0] == '-')
   {
-    option = option +1;  // remove second '-'
+    option = option + 1;  // remove second '-'
   }
-  StrUpper(option) ;
+  StrUpper(option);
 
   //cout << " option: " << option << endl;
 
-  if (!strcmp(option, "MOV") ||  !strcmp(option, "M") )
+  if (!strcmp(option, "MOV") || !strcmp(option, "M"))
   {
     P.mov = string(argv[1]);
     nargs = 1;
-    cout << "--mov: Using "<< P.mov << " as movable/source volume." << endl;
+    cout << "--mov: Using " << P.mov << " as movable/source volume." << endl;
   }
-  else if (!strcmp(option, "DST") || !strcmp(option, "D") )
+  else if (!strcmp(option, "DST") || !strcmp(option, "D"))
   {
     P.dst = string(argv[1]);
     nargs = 1;
-    cout << "--dst: Using "<< P.dst << " as target volume." << endl;
+    cout << "--dst: Using " << P.dst << " as target volume." << endl;
   }
-  else if (!strcmp(option, "LTA")   )
+  else if (!strcmp(option, "LTA"))
   {
     P.lta = string(argv[1]);
     nargs = 1;
-    cout << "--lta: Output transform as "<< P.lta << " . " << endl;
+    cout << "--lta: Output transform as " << P.lta << " . " << endl;
   }
-  else if (!strcmp(option, "VOX2VOX")   )
+  else if (!strcmp(option, "VOX2VOX"))
   {
     P.lta_vox2vox = true;
     cout << "--vox2vox: Output transform as VOX2VOX. " << endl;
   }
-  else if (!strcmp(option, "AFFINE") || !strcmp(option, "A") )
+  else if (!strcmp(option, "AFFINE") || !strcmp(option, "A"))
   {
     P.affine = true;
     cout << "--affine: Enableing affine transform!" << endl;
   }
-  else if (!strcmp(option, "ISCALE") || !strcmp(option, "I") )
+  else if (!strcmp(option, "ISOSCALE"))
+  {
+    P.isoscale = true;
+    cout << "--isoscale: Enableing isotropic scaling!" << endl;
+  }
+  else if (!strcmp(option, "INITSCALING"))
+  {
+    P.initscaling = true;
+    cout
+        << "--initscaling: Enableing initial scale adjustment based on image dimensions!"
+        << endl;
+  }
+  else if (!strcmp(option, "ISCALE") || !strcmp(option, "I"))
   {
     P.iscale = true;
     cout << "--iscale: Enableing intensity scaling!" << endl;
@@ -1344,11 +1805,12 @@ static int parseNextCommand(int argc, char *argv[], Parameters & P)
     P.transonly = true;
     cout << "--transonly: Using only translation!" << endl;
   }
-  else if (!strcmp(option, "TRANSFORM") || !strcmp(option, "IXFORM") )
+  else if (!strcmp(option, "TRANSFORM") || !strcmp(option, "IXFORM"))
   {
     P.transform = string(argv[1]);
     nargs = 1;
-    cout << "--ixform: Using previously computed initial transform: "<< argv[1] << endl;
+    cout << "--ixform: Using previously computed initial transform: " << argv[1]
+        << endl;
   }
   else if (!strcmp(option, "INITORIENT"))
   {
@@ -1360,77 +1822,155 @@ static int parseNextCommand(int argc, char *argv[], Parameters & P)
     P.inittrans = false;
     cout << "--noinit: Skipping init of transform !" << endl;
   }
-  else if (!strcmp(option, "LEASTSQUARES") || !strcmp(option, "L")  )
+  else if (!strcmp(option, "LEASTSQUARES"))
   {
     P.leastsquares = true;
-    cout << "--leastsquares: Using standard least squares (non-robust)!" << endl;
+    cout << "--leastsquares: Using standard least squares (non-robust)!"
+        << endl;
   }
-  else if (!strcmp(option, "MAXIT")  )
+  else if (!strcmp(option, "COST"))
+  {
+    string cost(argv[1]);
+    std::transform(cost.begin(), cost.end(), cost.begin(), ::toupper);
+
+    nargs = 1;
+    if (cost == "LS")
+      P.cost = Registration::LS;
+    else if (cost == "ROB")
+      P.cost = Registration::ROB;
+    else if (cost == "ROBENT")
+    {
+      P.cost = Registration::ROB;
+      P.entropy = true;
+    }
+    else if (cost == "MI")
+      P.cost = Registration::MI;
+    else if (cost == "NMI")
+      P.cost = Registration::NMI;
+    else if (cost == "ECC")
+      P.cost = Registration::ECC;
+    else if (cost == "NCC")
+      P.cost = Registration::NCC;
+    else if (cost == "SCR")
+      P.cost = Registration::SCR;
+    else
+    {
+      cout << "ERROR: cost function " << cost << " unknown! " << endl;
+      exit(1);
+    }
+
+    cout << "--cost: Using cost function: " << cost << " !" << endl;
+  }
+  else if (!strcmp(option, "RADIUS"))
+  {
+    P.entroradius = atoi(argv[1]);
+    nargs = 1;
+    cout << "--radius: Using local boxes with radius " << P.entroradius << " = "
+        << P.entroradius * 2 + 1 << " sides. " << endl;
+  }
+  else if (!strcmp(option, "ENTDST"))
+  {
+    P.entdst = string(argv[1]);
+    nargs = 1;
+    cout << "--entdst: Output entropy dst image as " << P.entdst << endl;
+  }
+  else if (!strcmp(option, "ENTBALL"))
+  {
+    P.entball = true;
+    nargs = 0;
+    cout << "--entball: Using ball instead of local boxes. " << endl;
+  }
+  else if (!strcmp(option, "ENTCORRECTION"))
+  {
+    P.entcorrection = true;
+    nargs = 0;
+    cout << "--entcorrection: Using 'correction' mode for entropy images. "
+        << endl;
+  }
+  else if (!strcmp(option, "ENTMOV"))
+  {
+    P.entmov = string(argv[1]);
+    nargs = 1;
+    cout << "--entmov: Output entropy mov image as " << P.entdst << endl;
+  }
+  else if (!strcmp(option, "MAXIT"))
   {
     P.iterate = atoi(argv[1]);
-    nargs = 1 ;
-    cout << "--maxit: Performing maximal " << P.iterate << " iterations on each resolution" << endl;
+    nargs = 1;
+    cout << "--maxit: Performing maximal " << P.iterate
+        << " iterations on each resolution" << endl;
   }
-  else if (!strcmp(option, "HIGHIT")  )
+  else if (!strcmp(option, "HIGHIT"))
   {
     P.highit = atoi(argv[1]);
-    nargs = 1 ;
-    cout << "--highit: Performing maximal " << P.highit << " iterations on highest resolution" << endl;
+    nargs = 1;
+    cout << "--highit: Performing maximal " << P.highit
+        << " iterations on highest resolution" << endl;
   }
-  else if (!strcmp(option, "EPSIT") )
+  else if (!strcmp(option, "EPSIT"))
   {
     P.epsit = atof(argv[1]);
-    nargs = 1 ;
-    cout << "--epsit: Stop iterations when change is less than " << P.epsit << " . " << endl;
+    nargs = 1;
+    cout << "--epsit: Stop iterations when change is less than " << P.epsit
+        << " . " << endl;
   }
-  else if (!strcmp(option, "NOMULTI") )
+  else if (!strcmp(option, "NOMULTI"))
   {
     P.nomulti = true;
-    nargs = 0 ;
-    cout << "--nomulti: Will work on highest resolution only (nomulti)!" << endl;
+    nargs = 0;
+    cout << "--nomulti: Will work on highest resolution only (nomulti)!"
+        << endl;
   }
-  else if (!strcmp(option, "MAXSIZE")  )
+  else if (!strcmp(option, "MAXSIZE"))
   {
     P.maxsize = atoi(argv[1]);
-    nargs = 1 ;
+    nargs = 1;
     cout << "--maxsize: Largest dimension < " << P.maxsize << " . " << endl;
   }
-  else if (!strcmp(option, "MINSIZE")  )
+  else if (!strcmp(option, "MINSIZE"))
   {
     P.minsize = atoi(argv[1]);
-    nargs = 1 ;
+    nargs = 1;
     cout << "--minsize: Smallest dimension > " << P.minsize << " . " << endl;
   }
-  else if (!strcmp(option, "SAT")  )
+  else if (!strcmp(option, "SAT"))
   {
     P.sat = atof(argv[1]);
-    nargs = 1 ;
+    nargs = 1;
     cout << "--sat: Using saturation " << P.sat << " in M-estimator!" << endl;
   }
-  else if (!strcmp(option, "WLIMIT")  )
+  else if (!strcmp(option, "WLIMIT"))
   {
     P.wlimit = atof(argv[1]);
-    nargs = 1 ;
-    cout << "--wlimit: Using wlimit in satit " << P.wlimit <<  endl;
+    nargs = 1;
+    cout << "--wlimit: Using wlimit in satit " << P.wlimit << endl;
   }
-  else if (!strcmp(option, "SUBSAMPLE") )
+  else if (!strcmp(option, "SUBSAMPLE"))
   {
+    if (argc == 1)
+      ErrorExit(ERROR_BADPARM,
+          "\nERROR: specify min side lenght to start subsampling, e.g. --subsample 200.\n",
+          Progname);
+
     P.subsamplesize = atoi(argv[1]);
-    nargs = 1 ;
+    nargs = 1;
     if (P.subsamplesize >= 0)
     {
-      cout << "--subsample: Will subsample if size is larger than " << P.subsamplesize << " on all axes!" << endl;
+      cout << "--subsample: Will subsample if size is larger than "
+          << P.subsamplesize << " on all axes!" << endl;
     }
     else
     {
       cout << "--subsample -1: Will not subsample on any scale!" << endl;
     }
   }
-  else if (!strcmp(option, "SATIT") )
+  else if (!strcmp(option, "SATIT"))
   {
     P.satit = true;
-    nargs = 0 ;
-    cout << "--satit: Will iterate with different SAT to ensure outliers below wlimit!" << endl;
+    nargs = 0;
+    cout
+        << "--satit: Will iterate with different SAT to ensure outliers below wlimit!"
+        << endl;
   }
 //   else if (!strcmp(option, "SATEST") ) // old  remove
 //   {
@@ -1438,130 +1978,146 @@ static int parseNextCommand(int argc, char *argv[], Parameters & P)
 //     nargs = 0 ;
 //     cout << "--satest: Will estimate SAT (never really tested, use --satit instead!)" << endl;
 //   }
-  else if (!strcmp(option, "SATEST") ) // never reached???  - old remove
+  else if (!strcmp(option, "SATEST")) // never reached???  - old remove
   {
     P.dosatest = true;
-    nargs = 0 ;
+    nargs = 0;
     cout << "--satest: Trying to estimate SAT value!" << endl;
   }
-  else if (!strcmp(option, "DOUBLEPREC") )
+  else if (!strcmp(option, "DOUBLEPREC"))
   {
     P.doubleprec = true;
-    nargs = 0 ;
-    cout << "--doubleprec: Will perform algorithm with double precision (higher mem usage)!" << endl;
+    nargs = 0;
+    cout
+        << "--doubleprec: Will perform algorithm with double precision (higher mem usage)!"
+        << endl;
   }
-  else if (!strcmp(option, "DEBUG") )
+  else if (!strcmp(option, "DEBUG"))
   {
     P.debug = 1;
-    nargs = 0 ;
+    nargs = 0;
     cout << "--debug: Will output debug info and files!" << endl;
   }
-  else if (!strcmp(option, "VERBOSE") )
+  else if (!strcmp(option, "VERBOSE"))
   {
     P.verbose = atoi(argv[1]);
-    nargs = 1 ;
+    nargs = 1;
     cout << "--verbose: Will use verbose level : " << P.verbose << endl;
   }
-  else if (!strcmp(option, "WEIGHTS") )
+  else if (!strcmp(option, "WEIGHTS"))
   {
     P.weightsout = string(argv[1]);
-    nargs = 1 ;
-    cout << "--weights: Will output weights (in target space) as "<<P.weightsout<<" !" << endl;
+    nargs = 1;
+    cout << "--weights: Will output weights (in target space) as "
+        << P.weightsout << " !" << endl;
   }
-  else if (!strcmp(option, "WARP") || !strcmp(option, "MAPMOV") )
+  else if (!strcmp(option, "WARP") || !strcmp(option, "MAPMOV"))
   {
     P.warpout = string(argv[1]);
-    nargs = 1 ;
-    cout << "--mapmov: Will save resampled movable as "<<P.warpout <<" !" << endl;
+    nargs = 1;
+    cout << "--mapmov: Will save resampled movable as " << P.warpout << " !"
+        << endl;
   }
-  else if (!strcmp(option, "MAPMOVHDR") )
+  else if (!strcmp(option, "MAPMOVHDR"))
   {
     P.norlout = string(argv[1]);
-    nargs = 1 ;
-    cout << "--mapmovhdr: Will save header adjusted movable as "<<P.norlout <<" !" << endl;
+    nargs = 1;
+    cout << "--mapmovhdr: Will save header adjusted movable as " << P.norlout
+        << " !" << endl;
   }
-  else if (!strcmp(option, "HALFMOV") )
+  else if (!strcmp(option, "HALFMOV"))
   {
     P.halfmov = string(argv[1]);
-    nargs = 1 ;
+    nargs = 1;
     cout << "--halfmov: Will output final half way MOV !" << endl;
   }
-  else if (!strcmp(option, "HALFDST") )
+  else if (!strcmp(option, "HALFDST"))
   {
     P.halfdst = string(argv[1]);
-    nargs = 1 ;
+    nargs = 1;
     cout << "--halfdst: Will output final half way DST !" << endl;
   }
-  else if (!strcmp(option, "HALFWEIGHTS") )
+  else if (!strcmp(option, "HALFWEIGHTS"))
   {
     P.halfweights = string(argv[1]);
-    nargs = 1 ;
-    cout << "--halfweights: Will output half way WEIGHTS from last step to " <<P.halfweights<<" !" << endl;
+    nargs = 1;
+    cout << "--halfweights: Will output half way WEIGHTS from last step to "
+        << P.halfweights << " !" << endl;
   }
-  else if (!strcmp(option, "HALFMOVLTA") )
+  else if (!strcmp(option, "HALFMOVLTA"))
   {
     P.halfmovlta = string(argv[1]);
-    nargs = 1 ;
-    cout << "--halfmovlta: Will output half way transform (mov) " <<P.halfmovlta << " !" << endl;
+    nargs = 1;
+    cout << "--halfmovlta: Will output half way transform (mov) "
+        << P.halfmovlta << " !" << endl;
   }
-  else if (!strcmp(option, "HALFDSTLTA") )
+  else if (!strcmp(option, "HALFDSTLTA"))
   {
     P.halfdstlta = string(argv[1]);
-    nargs = 1 ;
-    cout << "--halfdstlta: Will output half way transform (dst) " <<P.halfdstlta << " !" << endl;
+    nargs = 1;
+    cout << "--halfdstlta: Will output half way transform (dst) "
+        << P.halfdstlta << " !" << endl;
   }
-  else if (!strcmp(option, "MASKMOV") )
+  else if (!strcmp(option, "MASKMOV"))
   {
     P.maskmov = string(argv[1]);
-    nargs = 1 ;
-    cout << "--maskmov: Will apply "<<P.maskmov <<" to mask mov/src !" << endl;
+    nargs = 1;
+    cout << "--maskmov: Will apply " << P.maskmov << " to mask mov/src !"
+        << endl;
   }
-  else if (!strcmp(option, "MASKDST") )
+  else if (!strcmp(option, "MASKDST"))
   {
     P.maskdst = string(argv[1]);
-    nargs = 1 ;
-    cout << "--maskdst: Will apply "<<P.maskdst <<" to mask dst/target !" << endl;
+    nargs = 1;
+    cout << "--maskdst: Will apply " << P.maskdst << " to mask dst/target !"
+        << endl;
   }
   else if (!strcmp(option, "TEST"))
   {
     cout << "--test: TEST-MODE " << endl;
-    Registration R;
+    RegRobust R;
     R.testRobust(argv[2], atoi(argv[1]));
-    nargs = 2 ;
+    nargs = 2;
     exit(0);
   }
-  else if (!strcmp(option, "CONFORM") )
+  else if (!strcmp(option, "CONFORM"))
   {
     P.conform = true;
-    nargs = 0 ;
-    cout << "--conform: Will conform images to 256^3 and voxels to 1mm!" << endl;
+    nargs = 0;
+    cout << "--conform: Will conform images to 256^3 and voxels to 1mm!"
+        << endl;
   }
-  else if (!strcmp(option, "FLOATTYPE") )
+  else if (!strcmp(option, "FLOATTYPE"))
   {
     P.floattype = true;
-    nargs = 0 ;
-    cout << "--floattype: Use float images internally (independent of input)!" << endl;
+    nargs = 0;
+    cout << "--floattype: Use float images internally (independent of input)!"
+        << endl;
   }
-  else if (!strcmp(option, "ONEMINUSW") )
+  else if (!strcmp(option, "ONEMINUSW"))
   {
-    P.oneminusweights = true;
-    nargs = 0 ;
-    cout << "--oneminusw: Will output 1-weights!" << endl;
+    P.oneminusweights = false;
+    nargs = 0;
+    cout
+        << "--oneminusw: Will output 1-weights (zero=outlier), as in earlier versions!"
+        << endl;
   }
-  else if (!strcmp(option, "NOSYM") )
+  else if (!strcmp(option, "NOSYM"))
   {
     P.symmetry = false;
-    nargs = 0 ;
-    cout << "--nosym: Will resample source to target (no half-way space)!" << endl;
+    nargs = 0;
+    cout << "--nosym: Will resample source to target (no half-way space)!"
+        << endl;
   }
-  else if (!strcmp(option, "ISCALEOUT") )
+  else if (!strcmp(option, "ISCALEOUT"))
   {
     P.iscaleout = string(argv[1]);
-    nargs = 1 ;
+    nargs = 1;
     P.iscale = true;
-    cout << "--iscaleout: Will do --iscale and ouput intensity scale to "<<P.iscaleout <<  endl;
+    cout << "--iscaleout: Will do --iscale and ouput intensity scale to "
+        << P.iscaleout << endl;
   }
-  else if (!strcmp(option, "ISCALEIN")   )
+  else if (!strcmp(option, "ISCALEIN"))
   {
     nargs = 1;
     P.iscalein = string(argv[1]);
@@ -1569,32 +2125,33 @@ static int parseNextCommand(int argc, char *argv[], Parameters & P)
   }
   else
   {
-    cerr << endl << endl << "ERROR: Option: " << argv[0] << " unknown !! " << endl << endl;
+    cerr << endl << endl << "ERROR: Option: " << argv[0] << " unknown !! "
+        << endl << endl;
     exit(1);
   }
 
   fflush(stdout);
 
-  return(nargs) ;
+  return (nargs);
 }
 
 /*!
-\fn int parseCommandLine(int argc, char **argv)
-\brief Parses the command-line
-\param   argc  number of command line arguments
-\param   argv  pointer to a character pointer
-\param      P  reference to parameters
-\returns       if all necessary parameters were set
-*/
+ \fn int parseCommandLine(int argc, char **argv)
+ \brief Parses the command-line
+ \param   argc  number of command line arguments
+ \param   argv  pointer to a character pointer
+ \param      P  reference to parameters
+ \returns       if all necessary parameters were set
+ */
 static bool parseCommandLine(int argc, char *argv[], Parameters & P)
 {
   int nargs;
   int inputargs = argc;
-  for ( ; argc > 0 && ISOPTION(*argv[0]) ; argc--, argv++)
+  for (; argc > 0 && ISOPTION(*argv[0]); argc--, argv++)
   {
-    nargs = parseNextCommand(argc, argv,P) ;
-    argc -= nargs ;
-    argv += nargs ;
+    nargs = parseNextCommand(argc, argv, P);
+    argc -= nargs;
+    argv += nargs;
   }
 
   if (inputargs == 0)
@@ -1603,32 +2160,40 @@ static bool parseCommandLine(int argc, char *argv[], Parameters & P)
     exit(1);
   }
 
-  bool test1 = ( P.mov != "" && P.dst != "" && P.lta != "" );
+  bool test1 = (P.mov != "" && P.dst != "" && P.lta != "");
   if (!test1)
   {
     printUsage();
-    cerr << endl<< endl << "ERROR: Please specify --mov --dst and --lta !  "<< endl << endl;
+    cerr << endl << endl << "ERROR: Please specify --mov --dst and --lta !  "
+        << endl << endl;
     exit(1);
   }
-  bool test2 = ( P.satit || P.sat > 0 || P.leastsquares );
+  bool test2 = (P.satit || P.sat > 0 || P.cost != Registration::ROB
+      || P.leastsquares);
   if (!test2)
   {
     printUsage();
-    cerr << endl << endl<< "ERROR: Please specify either --satit or --sat <float> !  "<< endl << endl;
+    cerr << endl << endl
+        << "ERROR: Please specify either --satit or --sat <float> !  " << endl
+        << endl;
     exit(1);
   }
-  bool test3 = ( P.iscaleout == "" || P.iscale);
+  bool test3 = (P.iscaleout == "" || P.iscale);
   if (!test3)
   {
     printUsage();
-    cerr << endl << endl << "ERROR: Please specify --iscale together with --iscaleout to compute and output global intensity scaling! " << endl << endl;
+    cerr << endl << endl
+        << "ERROR: Please specify --iscale together with --iscaleout to compute and output global intensity scaling! "
+        << endl << endl;
     exit(1);
   }
-  bool test4 = ( P.warpout == "" || (P.warpout != P.weightsout) );
+  bool test4 = (P.warpout == "" || (P.warpout != P.weightsout));
   if (!test4)
   {
     printUsage();
-    cerr << endl << endl << "ERROR: Resampled input name (--mapmov) cannot be same as --weights output!" << endl << endl;
+    cerr << endl << endl
+        << "ERROR: Resampled input name (--mapmov) cannot be same as --weights output!"
+        << endl << endl;
     exit(1);
   }
 
