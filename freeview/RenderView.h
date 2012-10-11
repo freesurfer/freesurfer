@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2011/10/27 16:18:07 $
- *    $Revision: 1.33 $
+ *    $Date: 2012/10/11 20:23:43 $
+ *    $Revision: 1.34 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -80,6 +80,9 @@ public:
 
   virtual void TriggerContextMenu( QMouseEvent* event ) {}
 
+signals:
+  void ViewChanged();
+
 public slots:
   void RequestRedraw( bool bForce = false );
   void MoveUp();
@@ -92,6 +95,7 @@ public slots:
   void ShowScalarBar( bool bShow );
   void SetScalarBarLayer( Layer* layer );
   void SetScalarBarLayer( QAction* act );
+  void CenterAtWorldPosition( double* pos );
 
 protected:
   virtual void paintEvent(QPaintEvent *event);

@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2011/10/27 16:18:07 $
- *    $Revision: 1.44 $
+ *    $Date: 2012/10/11 20:23:43 $
+ *    $Revision: 1.45 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -324,6 +324,7 @@ void RenderView::MoveLeft()
   cam->SetPosition( cam_pos );
 
   RequestRedraw();
+  emit ViewChanged();
 }
 
 void RenderView::MoveRight()
@@ -346,6 +347,7 @@ void RenderView::MoveRight()
   cam->SetPosition( cam_pos );
 
   RequestRedraw();
+  emit ViewChanged();
 }
 
 void RenderView::MoveUp()
@@ -366,6 +368,7 @@ void RenderView::MoveUp()
   cam->SetPosition( cam_pos );
 
   RequestRedraw();
+  emit ViewChanged();
 }
 
 void RenderView::MoveDown()
@@ -386,6 +389,7 @@ void RenderView::MoveDown()
   cam->SetPosition( cam_pos );
 
   RequestRedraw();
+  emit ViewChanged();
 }
 
 void RenderView::Zoom( double dFactor )
@@ -393,7 +397,25 @@ void RenderView::Zoom( double dFactor )
   vtkCamera* cam = m_renderer->GetActiveCamera();
   cam->Zoom( dFactor );
 
+  emit ViewChanged();
   Render();
+}
+
+void RenderView::CenterAtWorldPosition(double *pos)
+{
+  vtkCamera* cam = m_renderer->GetActiveCamera();
+  double v[3], cam_pos[3];
+  cam->GetDirectionOfProjection( v );
+  double dist = cam->GetDistance();
+  for ( int i = 0; i < 3; i++ )
+  {
+    cam_pos[i] = pos[i] - v[i] * dist;
+  }
+  cam->SetFocalPoint( pos );
+  cam->SetPosition( cam_pos );
+
+  RequestRedraw();
+  emit ViewChanged();
 }
 
 int RenderView::GetAction()

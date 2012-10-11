@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2012/09/07 18:56:51 $
- *    $Revision: 1.222 $
+ *    $Date: 2012/10/11 20:23:43 $
+ *    $Revision: 1.223 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -3004,6 +3004,7 @@ void MainWindow::CommandSetRAS( const QStringList& cmd )
     }
     lc->SetCursorRASPosition( ras );
     SetSlicePosition( ras );
+    this->GetMainView()->CenterAtWorldPosition(ras);
   }
   else
   {
