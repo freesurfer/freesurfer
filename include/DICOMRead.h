@@ -6,21 +6,19 @@
 /*
  * Original Author: Sebastien Gicquel and Douglas Greve, 06/04/2001
  * CVS Revision Info:
- *    $Author: mreuter $
- *    $Date: 2009/03/04 19:20:35 $
- *    $Revision: 1.28 $
+ *    $Author: greve $
+ *    $Date: 2012/10/11 03:02:42 $
+ *    $Revision: 1.29.2.1 $
  *
- * Copyright (C) 2002-2007
- * The General Hospital Corporation (Boston, MA). 
- * All rights reserved.
+ * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
- * Distribution, usage and copying of this software is covered under the
- * terms found in the License Agreement file named 'COPYING' found in the
- * FreeSurfer source code root directory, and duplicated here:
- * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ * Terms and conditions for use, reproduction, distribution and contribution
+ * are found in the 'FreeSurfer Software License Agreement' contained
+ * in the file 'LICENSE' found in the FreeSurfer distribution, and here:
  *
- * General inquiries: freesurfer@nmr.mgh.harvard.edu
- * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
+ *
+ * Reporting: freesurfer@nmr.mgh.harvard.edu
  *
  */
 
@@ -148,10 +146,8 @@ typedef struct
 
   // pixels
   void *PixelData;
-  unsigned char min8,
-  max8;
-  unsigned short int min16,
-  max16;
+  unsigned char min8,  max8;
+  unsigned short int min16, max16;
 
 }
 DICOMInfo ;
@@ -208,6 +204,8 @@ typedef struct
   int   NFrames;     /* Equals lRepetitions + 1 */
   double bValue;        /* for DWI */
   int    nthDirection;  /* also for DWI */
+  int UseSliceScaleFactor; /* for slice-by-slice scaling (0020,4000) */
+  double SliceScaleFactor; /* for slice-by-slice scaling (0020,4000) */
 
   int   ErrorFlag;   /* Set for error, eg, aborted run */
 
@@ -297,6 +295,7 @@ int sdfiCountFilesInRun(int RunNo, SDCMFILEINFO **sdfi_list, int nlist);
 int *sdfiRunFileList(const char *dcmfile, SDCMFILEINFO **sdfi_list,
                      int nlist, int *NRunList);
 MRI * sdcmLoadVolume(const char *dcmfile, int LoadVolume, int nthonly);
+MRI * sdcmLoadVolumeAutoScale(const char *dcmfile, int LoadVolume, int nthonly);
 int sdfiVolCenter(SDCMFILEINFO *sdfi);
 int sdfiFixImagePosition(SDCMFILEINFO *sdfi);
 int sdfiSameSlicePos(SDCMFILEINFO *sdfi1, SDCMFILEINFO *sdfi2);
