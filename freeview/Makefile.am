@@ -462,10 +462,10 @@ freeview_LDADD		= $(QT_LIBS) \
 	$(VTK_SQLITE_LIB) \
 	-lvtkImaging -lvtkFiltering \
 	-lvtkCommon -lvtksys -lvtkGenericFiltering \
-	-lvtkexoIIc -lvtkNetCDF \
+	-lvtkexoIIc -lvtkNetCDF $(VTK_NETCDFCXX_LIB) \
 	-lvtkVolumeRendering -lvtkRendering -lvtkftgl \
-	-lvtkWidgets -lvtkHybrid \
-	-lvtkIO	-lvtkDICOMParser $(VTK_MPEG2ENCODE_LIB)
+	-lvtkWidgets -lvtkHybrid $(VTK_HDF5_LIB) \
+	-lvtkIO	$(VTK_LSDYNA_LIB) -lvtkDICOMParser $(VTK_MPEG2ENCODE_LIB)
 
 
 # need to create a bundle for Macs
@@ -528,10 +528,10 @@ freeview_LDADD		= $(QT_LIBS)	\
 	$(VTK_SQLITE_LIB) \
 	-lvtkImaging -lvtkFiltering \
 	-lvtkCommon -lvtksys -lvtkGenericFiltering \
-	-lvtkexoIIc -lvtkNetCDF \
+	-lvtkexoIIc -lvtkNetCDF $(VTK_NETCDFCXX_LIB) \
 	-lvtkVolumeRendering -lvtkRendering -lvtkftgl \
-	-lvtkWidgets -lvtkHybrid \
-	-lvtkIO	-lvtkDICOMParser $(VTK_MPEG2ENCODE_LIB)
+	-lvtkWidgets -lvtkHybrid $(VTK_HDF5_LIB) \
+	-lvtkIO	$(VTK_LSDYNA_LIB) -lvtkDICOMParser $(VTK_MPEG2ENCODE_LIB)
 
 # put a wrapper around the bin, used to setup tcltktixblt,vtk enviro vars
 # and if the OS is MACOSX have a different install-hook to create a bundle

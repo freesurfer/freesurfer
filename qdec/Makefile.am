@@ -35,10 +35,10 @@ qdec_LDADD=  \
 	$(VTK_SQLITE_LIB) \
 	-lvtkImaging -lvtkFiltering \
 	-lvtkCommon -lvtksys \
-	-lvtkexoIIc -lvtkNetCDF \
+	-lvtkexoIIc -lvtkNetCDF $(VTK_NETCDFCXX_LIB) \
 	-lvtkVolumeRendering -lvtkRendering -lvtkftgl \
-	-lvtkWidgets -lvtkHybrid \
-	-lvtkIO	-lvtkDICOMParser $(VTK_MPEG2ENCODE_LIB) \
+	-lvtkWidgets -lvtkHybrid $(VTK_HDF5_LIB) \
+	-lvtkIO	$(VTK_LSDYNA_LIB) -lvtkDICOMParser $(VTK_MPEG2ENCODE_LIB) \
 	-lvtkImagingTCL -lvtkVolumeRenderingTCL -lvtkRenderingTCL \
 	-lvtkFilteringTCL -lvtkWidgetsTCL \
 	-lvtkHybridTCL -lvtkGraphicsTCL -lvtkImagingTCL -lvtkIOTCL \
@@ -133,8 +133,9 @@ vtkKWQdecView.h \
 vtkKWQdecViewTcl.cxx \
 vtkKWQdecWindow.cxx \
 vtkKWQdecWindow.h \
-vtkKWQdecWindowTcl.cxx
-
+vtkKWQdecWindowTcl.cxx \
+development_notes.txt \
+qdec.ppt
 
 # Our release target. Include files to be excluded here. They will be
 # found and removed after 'make install' is run during the 'make

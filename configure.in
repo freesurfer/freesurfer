@@ -9,8 +9,8 @@
 #
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2012/09/05 19:50:52 $
-#    $Revision: 1.519.2.23 $
+#    $Date: 2012/10/15 21:05:47 $
+#    $Revision: 1.519.2.24 $
 #
 ########################################################################
 AC_PREREQ(2.57)
@@ -216,6 +216,13 @@ if test "$ac_have_gcc_44" = "yes"; then
   AC_MSG_NOTICE(Copying /usr/bin/libtool overtop the PROG_LIBTOOL)
   cp /usr/bin/libtool .
 fi
+
+# when building on the Mac, use glibtool instead of libtool
+if test "$OS" = "Darwin"; then
+  AC_MSG_NOTICE(Copying /usr/bin/glibtool overtop the PROG_LIBTOOL)
+  cp /usr/bin/glibtool libtool
+fi
+
 
 ################################################################
 # Checks for header files.
@@ -2170,7 +2177,9 @@ AC_ARG_WITH(vtk-libraries,
 
 if test ! "$ac_vtk_includes" = "NO"; then
   AC_MSG_RESULT(VTK directory is $withval)
-  if test -e $ac_vtk_includes/vtk-5.6 ; then
+  if test -e $ac_vtk_includes/vtk-5.10 ; then
+    ac_vtk_includes="$ac_vtk_includes/vtk-5.10"
+  elif test -e $ac_vtk_includes/vtk-5.6 ; then
     ac_vtk_includes="$ac_vtk_includes/vtk-5.6"
   elif test -e $ac_vtk_includes/vtk-5.5 ; then
     ac_vtk_includes="$ac_vtk_includes/vtk-5.5"
@@ -2194,7 +2203,11 @@ fi
 if test ! "$ac_vtk_libraries" = "NO"; then
   VTK_LIBS=-L$ac_vtk_libraries
   VTK_LIB=$ac_vtk_libraries
-  if test -e $ac_vtk_libraries/vtk-5.6 ; then
+  if test -e $ac_vtk_libraries/vtk-5.10 ; then
+    VTK_LIB_VTK="$ac_vtk_libraries/vtk-5.10"
+    VTK_LIBS=-L$ac_vtk_libraries/vtk-5.10
+    VTK_LIB=$ac_vtk_libraries/vtk-5.10
+  elif test -e $ac_vtk_libraries/vtk-5.6 ; then
     VTK_LIB_VTK="$ac_vtk_libraries/vtk-5.6"
     VTK_LIBS=-L$ac_vtk_libraries/vtk-5.6
     VTK_LIB=$ac_vtk_libraries/vtk-5.6
@@ -2260,7 +2273,9 @@ AC_ARG_WITH(vtk-cocoa-dir,
 
 if test ! "$ac_vtk_cocoa_includes" = "NO"; then
   AC_MSG_RESULT(VTK cocoa directory is $withval)
-  if test -e $ac_vtk_cocoa_includes/vtk-5.6 ; then
+  if test -e $ac_vtk_cocoa_includes/vtk-5.10 ; then
+    ac_vtk_cocoa_includes="$ac_vtk_cocoa_includes/vtk-5.10"
+  elif test -e $ac_vtk_cocoa_includes/vtk-5.6 ; then
     ac_vtk_cocoa_includes="$ac_vtk_cocoa_includes/vtk-5.6"
   elif test -e $ac_vtk_cocoa_includes/vtk-5.5 ; then
     ac_vtk_cocoa_includes="$ac_vtk_cocoa_includes/vtk-5.5"
@@ -2284,7 +2299,11 @@ fi
 if test ! "$ac_vtk_libraries" = "NO"; then
   VTK_COCOA_LIBS=-L$ac_vtk_cocoa_libraries
   VTK_COCOA_LIB=$ac_vtk_cocoa_libraries
-  if test -e $ac_vtk_cocoa_libraries/vtk-5.6 ; then
+  if test -e $ac_vtk_cocoa_libraries/vtk-5.10 ; then
+    VTK_COCOA_LIB_VTK="$ac_vtk_cocoa_libraries/vtk-5.10"
+    VTK_COCOA_LIBS=-L$ac_vtk_cocoa_libraries/vtk-5.10
+    VTK_COCOA_LIB=$ac_vtk_cocoa_libraries/vtk-5.10
+  elif test -e $ac_vtk_cocoa_libraries/vtk-5.6 ; then
     VTK_COCOA_LIB_VTK="$ac_vtk_cocoa_libraries/vtk-5.6"
     VTK_COCOA_LIBS=-L$ac_vtk_cocoa_libraries/vtk-5.6
     VTK_COCOA_LIB=$ac_vtk_cocoa_libraries/vtk-5.6
@@ -3075,6 +3094,17 @@ AC_CHECK_LIB([vtkmetaio], [main], [VTK_METAIO_LIB="-lvtkmetaio"
   AC_CHECK_LIB([vtkzlib], [main], [VTK_Z_LIB="-lvtkzlib"], [])
 ], [])
 AC_SUBST(VTK_METAIO_LIB)
+
+# vtkhdf5, vtkNetCDF_cxx and LSDyna appeared in VTK v5.10.0, so check for them
+VTK_HDF5_LIB=""
+AC_CHECK_LIB([vtkhdf5], [main], [VTK_HDF5_LIB="-lvtkhdf5_hl -lvtkhdf5"], [])
+AC_SUBST(VTK_HDF5_LIB)
+VTK_NETCDFCXX_LIB=""
+AC_CHECK_LIB([vtkNetCDF_cxx], [main], [VTK_NETCDFCXX_LIB="-lvtkNetCDF_cxx"], [])
+AC_SUBST(VTK_NETCDFCXX_LIB)
+VTK_LSDYNA_LIB=""
+AC_CHECK_LIB([LSDyna], [main], [VTK_LSDYNA_LIB="-lLSDyna"], [])
+AC_SUBST(VTK_LSDYNA_LIB)
 
 #
 # check tcl/tk/tix/blt only if tcl/tk apps are enabled
