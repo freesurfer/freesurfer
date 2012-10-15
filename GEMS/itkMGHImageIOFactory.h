@@ -8,41 +8,41 @@
 namespace itk
 {
 
-  class ITK_EXPORT MGHImageIOFactory : public ObjectFactoryBase
+class ITK_EXPORT MGHImageIOFactory : public ObjectFactoryBase
+{
+public:
+  /** Standard class typedefs **/
+  typedef MGHImageIOFactory         Self;
+  typedef ObjectFactoryBase         Superclass;
+  typedef SmartPointer<Self>        Pointer;
+  typedef SmartPointer<const Self>  ConstPointer;
+
+  /** Class methods used to interface with the registered factories **/
+  virtual const char* GetITKSourceVersion(void) const;
+  virtual const char* GetDescription(void)  const;
+
+  /** Method for class instantiation **/
+  itkFactorylessNewMacro(Self);
+
+  /** RTTI (and related methods) **/
+  itkTypeMacro(MGHImageIOFactory, ObjectFactoryBase);
+
+  /** Register one factory of this type **/
+  static void RegisterOneFactory(void)
   {
-  public:
-    /** Standard class typedefs **/
-    typedef MGHImageIOFactory         Self;
-    typedef ObjectFactoryBase         Superclass;
-    typedef SmartPointer<Self>        Pointer;
-    typedef SmartPointer<const Self>  ConstPointer;
+    MGHImageIOFactory::Pointer MGHFactory = MGHImageIOFactory::New();
+    ObjectFactoryBase::RegisterFactory(MGHFactory);
+  }
 
-    /** Class methods used to interface with the registered factories **/
-    virtual const char* GetITKSourceVersion(void) const;
-    virtual const char* GetDescription(void)  const;
-    
-    /** Method for class instantiation **/
-    itkFactorylessNewMacro(Self);
-    
-    /** RTTI (and related methods) **/
-    itkTypeMacro(MGHImageIOFactory, ObjectFactoryBase);
+protected:
+  MGHImageIOFactory();
+  ~MGHImageIOFactory();
 
-    /** Register one factory of this type **/
-    static void RegisterOneFactory(void)
-      {
-  MGHImageIOFactory::Pointer MGHFactory = MGHImageIOFactory::New();
-  ObjectFactoryBase::RegisterFactory(MGHFactory);
-      }
+private:
+  MGHImageIOFactory(const Self&); // purposely not implemented
+  void operator=(const Self&); // purposely not implemented
 
-  protected:
-    MGHImageIOFactory();
-    ~MGHImageIOFactory();
-
-  private:
-    MGHImageIOFactory(const Self&); // purposely not implemented
-    void operator=(const Self&); // purposely not implemented
-    
-  }; // end class MGHImageIOFactory
+}; // end class MGHImageIOFactory
 
 
 } // end namespace itk

@@ -21,7 +21,7 @@ namespace kvl
 class Registerer: public itk::Object
 {
 public :
-  
+
   /** Standard class typedefs */
   typedef Registerer  Self;
   typedef itk::Object  Superclass;
@@ -41,9 +41,9 @@ public :
   typedef itk::Image< float, 3 >  InternalImageType;
   typedef itk::ShrinkImageFilter< ImageType, InternalImageType >   ImageShrinkerType;
   typedef itk::RecursiveMultiResolutionPyramidImageFilter< InternalImageType,
-                                                           InternalImageType >   ImagePyramidType;
+          InternalImageType >   ImagePyramidType;
   typedef itk::MultiResolutionImageRegistrationMethod< InternalImageType,
-                                                       InternalImageType >   RegistrationType;
+          InternalImageType >   RegistrationType;
 
   // Set/get fixed image
   itkSetConstObjectMacro( FixedImage, ImageType );
@@ -53,25 +53,29 @@ public :
   itkSetConstObjectMacro( MovingImage, ImageType );
   itkGetConstObjectMacro( MovingImage, ImageType );
 
-  // 
+  //
   void  StartRegistration();
 
   //
   void  ApplyParameters( ImageType* image ) const
-    {
+  {
     std::vector< ImageType::Pointer >  images;
     images.push_back( image );
     this->ApplyParameters( images );
-    }
+  }
 
   void  ApplyParameters( std::vector< ImageType::Pointer > images ) const;
 
   // Set/Get
   void  SetParameters( const ParametersType& parameters )
-    { m_Transform->SetParameters( parameters ); }
+  {
+    m_Transform->SetParameters( parameters );
+  }
 
   const ParametersType&  GetParameters() const
-    { return m_Transform->GetParameters(); }
+  {
+    return m_Transform->GetParameters();
+  }
 
 
   // Standard Set/Get access to data members

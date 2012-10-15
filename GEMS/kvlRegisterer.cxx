@@ -71,9 +71,9 @@ Registerer
 
   // Sanity check on input
   if ( !m_FixedImage || !m_MovingImage )
-    {
+  {
     itkExceptionMacro( << "Can't run without having both a fixed image and a moving image" );
-    }
+  }
 
 
   // Shrink and simultaneously cast input images to float
@@ -81,18 +81,18 @@ Registerer
   std::cout << "Using fixedShrinkFactors: " << fixedShrinkFactors << std::endl;
   m_FixedShrinker->SetInput( m_FixedImage );
   for ( int i = 0; i < 3; i++ )
-    {
+  {
     m_FixedShrinker->SetShrinkFactor( 0, fixedShrinkFactors[ i ] );
-    }
+  }
   m_FixedShrinker->Update();
 
   ShrinkFactorsType  movingShrinkFactors = this->GetShrinkFactors( m_MovingImage );
   std::cout << "Using movingShrinkFactors: " << movingShrinkFactors << std::endl;
   m_MovingShrinker->SetInput( m_MovingImage );
   for ( int i = 0; i < 3; i++ )
-    {
+  {
     m_MovingShrinker->SetShrinkFactor( 0, movingShrinkFactors[ i ] );
-    }
+  }
   m_MovingShrinker->Update();
 
 
@@ -111,11 +111,11 @@ Registerer
 
   // Set up metric
   typedef itk::MattesMutualInformationImageToImageMetric< InternalImageType,
-                                                          InternalImageType >   MetricType;
+          InternalImageType >   MetricType;
   if ( m_Reseed )
-    {
+  {
     vnl_sample_reseed( 12345 ); // Make sure we get the same samples every time
-    }
+  }
   MetricType::Pointer  metric = MetricType::New();
   metric->SetNumberOfHistogramBins( m_NumberOfBins );
   metric->SetNumberOfSpatialSamples( m_NumberOfSamples );
@@ -201,7 +201,7 @@ Registerer
   // Loop over all images
   for ( std::vector< ImageType::Pointer >::iterator  it = images.begin();
         it != images.end(); ++it )
-    {
+  {
     // Get the image
     ImageType::Pointer  image = *it;
 
@@ -210,10 +210,10 @@ Registerer
     AffineTransformType::MatrixType  scale;
     AffineTransformType::OffsetType  offset;
     for ( int i = 0; i < 3; i++ )
-      {
+    {
       scale[ i ][ i ] = image->GetSpacing()[ i ];
       offset[ i ] = image->GetOrigin()[ i ];
-      }
+    }
     AffineTransformType::Pointer  original = AffineTransformType::New();
     original->SetMatrix( image->GetDirection() * scale );
     original->SetOffset( offset );
@@ -231,28 +231,28 @@ Registerer
     ImageType::SpacingType  newSpacing;
     ImageType::DirectionType  newDirection;
     for ( int i = 0; i < 3; i++ )
-      {
+    {
       // Offset part
       newOrigin[ i ] = updated->GetOffset()[ i ];
 
       // For every column, determine norm (which will be voxel spacing), and normalize direction
       double  normOfColumn = 0.0;
       for ( int j = 0; j < 3; j++ )
-        {
+      {
         normOfColumn += pow( updated->GetMatrix()[ j ][ i ], 2 );
-        }
+      }
       normOfColumn = sqrt( normOfColumn );
       newSpacing[ i ] = normOfColumn;
       for ( int j = 0; j < 3; j++ )
-        {
+      {
         newDirection[ j ][ i ] = updated->GetMatrix()[ j ][ i ] / normOfColumn;
-        }
       }
+    }
     image->SetOrigin( newOrigin );
     image->SetSpacing( newSpacing );
     image->SetDirection( newDirection );
 
-    } // end loop over all images
+  } // end loop over all images
 
 
 }
@@ -270,16 +270,16 @@ Registerer
   ShrinkFactorsType  shrinkFactors;
   shrinkFactors.Fill( 1 );
   if ( m_UseDefaultSchedule )
-    {
+  {
     for ( int i = 0; i < 3; i++ )
-      {
+    {
       shrinkFactors[ i ] = vnl_math_rnd( 1.0f / ( image->GetSpacing()[ i ] ) );
       if ( shrinkFactors[ i ] < 1 )
-        {
+      {
         shrinkFactors[ i ] = 1;
-        }
       }
     }
+  }
 
   return shrinkFactors;
 }
@@ -296,29 +296,29 @@ Registerer
 
   // Check if doing default thing
   if ( !m_UseDefaultSchedule )
-    {
+  {
     ScheduleType  schedule( 1, 3 );
     for ( int i = 0; i < 3; i++ )
-      {
+    {
       schedule[ 0 ][ i ] = 1;
-      }
+    }
 
     return schedule;
-    }
+  }
 
   // Default case
   ScheduleType  schedule( 2, 3 );
   const ShrinkFactorsType  shrinkFactors =  this->GetShrinkFactors( image );
   for ( int i = 0; i < 3; i++ )
-    {
+  {
     schedule[ 1 ][ i ] = 1;
 
     schedule[ 0 ][ i ] = vnl_math_rnd( 4.0 / ( shrinkFactors[ i ] * image->GetSpacing()[ i ] ) );
     if ( schedule[ 0 ][ i ] < 1 )
-      {
+    {
       schedule[ 0 ][ i ] = 1;
-      }
     }
+  }
 
   return schedule;
 
@@ -334,28 +334,28 @@ Registerer
 ::GetParameterOrder() const
 {
   if ( m_DegreesOfFreedom > 12 )
-    {
+  {
     itkExceptionMacro( "Maximum allowed degrees of freedom is 12" );
-    }
+  }
 
   ParameterOrderType  parameterOrder( 12 );
   parameterOrder.Fill( 0 );
   for ( int i = 0; i < m_DegreesOfFreedom; i++ )
-    {
+  {
     if ( i < 3 )
-      {
+    {
       parameterOrder[ 3 + i ] = i+1;
-      }
-    else if ( i < 6 )
-      {
-      parameterOrder[ i-3 ] = i+1;
-      }
-    else
-      {
-      parameterOrder[ i ] = i+1;
-      }
-
     }
+    else if ( i < 6 )
+    {
+      parameterOrder[ i-3 ] = i+1;
+    }
+    else
+    {
+      parameterOrder[ i ] = i+1;
+    }
+
+  }
 
   return parameterOrder;
 }

@@ -54,9 +54,9 @@
 export template <class T>
 class vnl_qr
 {
- public:
+public:
   vnl_qr(vnl_matrix<T> const & M);
- ~vnl_qr();
+  ~vnl_qr();
 
   //: return the inverse matrix of M
   vnl_matrix<T> inverse () const;
@@ -83,9 +83,13 @@ class vnl_qr
   //: Return residual vector d of M x = b -> d = Q'b
   vnl_vector<T> QtB(const vnl_vector<T>& b) const;
 
-  void extract_q_and_r(vnl_matrix<T>* q, vnl_matrix<T>* r) const { *q = Q(); *r = R(); }
+  void extract_q_and_r(vnl_matrix<T>* q, vnl_matrix<T>* r) const
+  {
+    *q = Q();
+    *r = R();
+  }
 
- private:
+private:
   vnl_matrix<T> qrdc_out_;
   vnl_vector<T> qraux_;
   vnl_vector<long> jpvt_;

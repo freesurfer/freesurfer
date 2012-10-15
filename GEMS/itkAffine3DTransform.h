@@ -17,7 +17,7 @@ namespace itk
  */
 template < class TScalarType=double >    // Data type for scalars (float or double)
 class ITK_EXPORT Affine3DTransform :
-        public Transform< TScalarType, 3, 3> // Dimensions of input and output spaces
+  public Transform< TScalarType, 3, 3> // Dimensions of input and output spaces
 {
 public:
   /** Standard class typedefs. */
@@ -82,20 +82,30 @@ public:
   /**
    * Get matrix from an Affine3DTransform
    **/
-   itkGetConstReferenceMacro( Matrix, MatrixType );
+  itkGetConstReferenceMacro( Matrix, MatrixType );
 
 
   /**
    * Set offset of a Affine3D Transform
    **/
   void SetOffset(const OffsetType &offset)
-      { m_Offset = offset; this->ConstructParametersFromTransform(); this->Modified(); return; }
+  {
+    m_Offset = offset;
+    this->ConstructParametersFromTransform();
+    this->Modified();
+    return;
+  }
 
   /**
    * Set the matrix of a Rigid3D Transform
    **/
   void SetMatrix(const MatrixType &matrix)
-      { m_Matrix = matrix; this->ConstructParametersFromTransform(); this->Modified(); return; }
+  {
+    m_Matrix = matrix;
+    this->ConstructParametersFromTransform();
+    this->Modified();
+    return;
+  }
 
 
   /**
@@ -115,7 +125,7 @@ public:
   OutputVnlVectorType    TransformVector(const InputVnlVectorType &vector) const;
 
   OutputCovariantVectorType TransformCovariantVector(
-                                 const InputCovariantVectorType &vector) const;
+    const InputCovariantVectorType &vector) const;
 
   /**
    * Print contents of an Affine3DTransform
@@ -148,10 +158,10 @@ private:
 
   // Function to calculate determinant of m_Matrix
   double GetDeterminantOfMatrix( void ) const;
-  
-  // Function to provide a set of parameters that generate the 
+
+  // Function to provide a set of parameters that generate the
   // current transform. Since such a set is not unique, the extra
-  // constraint is introduced that all angles lie in the interval 
+  // constraint is introduced that all angles lie in the interval
   // [ -pi/2, pi/2 ]
   void ConstructParametersFromTransform( void );
 
