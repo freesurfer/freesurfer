@@ -8,10 +8,10 @@
 # Original Author: Nick Schmansky
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2011/03/02 20:16:40 $
-#    $Revision: 1.14 $
+#    $Date: 2012/10/15 19:41:34 $
+#    $Revision: 1.15 $
 #
-# Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+# Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
 #
 # Terms and conditions for use, reproduction, distribution and contribution
 # are found in the 'FreeSurfer Software License Agreement' contained
@@ -46,17 +46,21 @@ if ( $?FS_VTK_HOME ) then
   if ( -e $FS_VTK_HOME/lib ) then
 
     setenv VTKLIBPATH $FS_VTK_HOME/lib
-    if ( -e $FS_VTK_HOME/lib/vtk-5.6 ) then
-      setenv VTKLIBPATH $FS_VTK_HOME/lib/vtk-5.6
+    if ( -e $FS_VTK_HOME/lib/vtk-5.10 ) then
+      setenv VTKLIBPATH $FS_VTK_HOME/lib/vtk-5.10
     else
-      if ( -e $FS_VTK_HOME/lib/vtk-5.4 ) then
-        setenv VTKLIBPATH $FS_VTK_HOME/lib/vtk-5.4
+      if ( -e $FS_VTK_HOME/lib/vtk-5.6 ) then
+        setenv VTKLIBPATH $FS_VTK_HOME/lib/vtk-5.6
       else
-        if ( -e $FS_VTK_HOME/lib/vtk-5.3 ) then
-          setenv VTKLIBPATH $FS_VTK_HOME/lib/vtk-5.3
+        if ( -e $FS_VTK_HOME/lib/vtk-5.4 ) then
+          setenv VTKLIBPATH $FS_VTK_HOME/lib/vtk-5.4
         else
-          if ( -e $FS_VTK_HOME/lib/vtk-5.2 ) then
-            setenv VTKLIBPATH $FS_VTK_HOME/lib/vtk-5.2
+          if ( -e $FS_VTK_HOME/lib/vtk-5.3 ) then
+            setenv VTKLIBPATH $FS_VTK_HOME/lib/vtk-5.3
+          else
+            if ( -e $FS_VTK_HOME/lib/vtk-5.2 ) then
+              setenv VTKLIBPATH $FS_VTK_HOME/lib/vtk-5.2
+            endif
           endif
         endif
       endif
