@@ -19,10 +19,10 @@ mris_mesh_subdivide_LDADD= \
 	$(VTK_METAIO_LIB) $(VTK_PNG_LIB) $(VTK_Z_LIB) $(VTK_SQLITE_LIB) \
 	-lvtkImaging -lvtkFiltering \
 	-lvtkCommon -lvtksys \
-	-lvtkexoIIc -lvtkNetCDF \
+	-lvtkexoIIc -lvtkNetCDF $(VTK_NETCDFCXX_LIB) \
 	-lvtkRendering -lvtkftgl \
-	-lvtkHybrid \
-	-lvtkIO	-lvtkDICOMParser $(VTK_MPEG2ENCODE_LIB)
+	-lvtkHybrid $(VTK_HDF5_LIB) \
+	-lvtkIO $(VTK_LSDYNA_LIB) -lvtkDICOMParser $(VTK_MPEG2ENCODE_LIB)
 mris_mesh_subdivide_LDFLAGS=$(OS_LDFLAGS)
 
 # put a script wrapper around the binary, to set up VTK environment (from QDEC example)

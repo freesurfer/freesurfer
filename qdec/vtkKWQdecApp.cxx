@@ -10,8 +10,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:35 $
- *    $Revision: 1.11 $
+ *    $Date: 2012/10/15 20:49:01 $
+ *    $Revision: 1.12 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -47,7 +47,7 @@
 using namespace std;
 
 vtkStandardNewMacro( vtkKWQdecApp );
-vtkCxxRevisionMacro( vtkKWQdecApp, "$Revision: 1.11 $" );
+vtkCxxRevisionMacro( vtkKWQdecApp, "$Revision: 1.12 $" );
 
 vtkKWQdecApp::vtkKWQdecApp () :
   vtkKWApplication() {
@@ -284,7 +284,7 @@ vtkKWQdecApp::AddAboutText( ostream &os) {
   buildStamp += __DATE__ ;
   buildStamp += " " ;
   buildStamp += __TIME__ ;
-  buildStamp += "\n  - Copyright (c) 2007-2010\n";
+  buildStamp += "\n  - Copyright (c) 2007-2012\n";
   buildStamp += "    The General Hospital Corporation (Boston, MA),\n";
   buildStamp += "    Martinos Center for Biomedical Imaging,\n";
   buildStamp += "    http://www.nmr.mgh.harvard.edu\n";

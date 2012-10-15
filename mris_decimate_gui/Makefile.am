@@ -46,16 +46,17 @@ if HAVE_VTK_LIBS
             $(VTK_TIFF_LIB) $(VTK_JPEG_LIB) \
             $(VTK_METAIO_LIB) $(VTK_PNG_LIB) $(VTK_Z_LIB) \
             $(VTK_SQLITE_LIB) \
-            -lvtkexoIIc -lvtkNetCDF \
+            -lvtkexoIIc -lvtkNetCDF $(VTK_NETCDFCXX_LIB) \
             -lvtkVolumeRendering -lvtkRendering -lvtkftgl \
-            -lvtkHybrid -lvtkWidgets \
+            -lvtkHybrid $(VTK_HDF5_LIB) \
+						-lvtkWidgets \
             -lvtkGraphics \
             -lvtkCommon  \
             -lvtksys \
             -lvtkImaging \
             -lvtkFiltering \
             -lvtkRendering \
-            -lvtkIO -lvtkDICOMParser \
+            -lvtkIO $(VTK_LSDYNA_LIB) -lvtkDICOMParser \
             $(WXWIDGETS_LIBS) $(WXWIDGETS_GL_LIBS) $(GTS_LIBS)
     mris_decimate_gui_LDFLAGS=$(OS_LDFLAGS)
 

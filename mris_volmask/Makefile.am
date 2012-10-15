@@ -20,12 +20,12 @@ $(VTK_LIBS) \
 $(VTK_FREETYPE_LIB) $(VTK_PNG_LIB) \
 $(VTK_TIFF_LIB) $(VTK_JPEG_LIB) $(VTK_SQLITE_LIB) \
 $(VTK_Z_LIB) $(VTK_EXPAT_LIB) $(VTK_METAIO_LIB) \
--lvtkFiltering $(VTK_VERDICT_LIB) -lvtkHybrid \
+-lvtkFiltering $(VTK_VERDICT_LIB) -lvtkHybrid $(VTK_HDF5_LIB) \
 -lvtkRendering -lvtkGraphics \
 -lvtkImaging -lvtkftgl \
--lvtkIO -lvtkFiltering -lvtkCommon -lvtkDICOMParser \
+-lvtkIO	$(VTK_LSDYNA_LIB) -lvtkFiltering -lvtkCommon -lvtkDICOMParser \
 -lvtksys \
-$(VTK_MPEG2ENCODE_LIB) -lvtkexoIIc -lvtkNetCDF
+$(VTK_MPEG2ENCODE_LIB) -lvtkexoIIc -lvtkNetCDF $(VTK_NETCDFCXX_LIB)
 endif
 
 mris_volmask_novtk_SOURCES=mris_volmask_old.cpp cmd_line_interface.cpp
