@@ -2,12 +2,13 @@
 # dcmunpack
 # 
 
-set VERSION = '$Id: dcmunpack,v 1.12.2.3 2012/10/16 19:23:47 greve Exp $';
+set VERSION = '$Id: dcmunpack,v 1.12.2.4 2012/10/16 19:24:47 greve Exp $';
 
 set SeriesInfo = ();
 
 set DoUnpack = 0;
 set TargetDir = ();
+set SrcInfo = ();
 set SrcDirList = ();
 set SrcPre = ();
 set SrcPat = ();
@@ -20,6 +21,7 @@ set OnePerDir = 0;
 set MGHDCM = 0;
 set Key = ();
 set DoBase = 0;
+set infofile = ();
 
 set RunNos = ();
 set SubDirs = ();
@@ -125,7 +127,7 @@ if($#flist == 0) then
   echo "ERROR: did not find any files"| tee -a $LF
   exit 1;
 endif
-if($#flist > 100) then
+if($#flist > 100 && $#SrcInfo == 0) then
   echo "  Interrogating each and every one of them."
   echo "  Be patient." 
   echo "If you have collected the data in the Martinos center, this "
@@ -135,13 +137,18 @@ endif
 # Go through each file, create an info dump, extract params. 
 # This can be slow, esp for GE. In that case, try using the
 # -one-per-dir functionality with -ext, -pat, and/or -pre.
-if($#TargetDir) then
-  set infofile = $TargetDir/imagelist.dat
-else
-  set infofile = /tmp/dcmdir-all.$$
+if($#infofile == 0) then
+  if($#TargetDir) then
+    set infofile = $TargetDir/imagelist.dat
+  else
+    set infofile = /tmp/dcmdir-all.$$
+  endif
 endif
+rm -f $infofile
+if($#SrcInfo) cp $SrcInfo $infofile
+
 set dumpfile = /tmp/dcmunpack.dump.$$
-rm -f $dumpfile $infofile
+rm -f $dumpfile 
 @ nth = 0;
 foreach f ($flist)
   @ nth = $nth + 1;
@@ -190,10 +197,12 @@ foreach f ($flist)
   set PixFreq  = (`cat $dumpfile | awk '{if($1 == "PixelFrequency") print $2}'`)
   if($#PixFreq == 0) set PixFreq = 'unknown';
 
+  if($#SrcInfo) break;
   echo "$Patient $SeriesNo $Date $Time $EchoTime $TR $FlipAngle $PixSpace $PhaseEncDir $PixFreq $f" >> $infofile
 
 end
 rm -f $dumpfile
+
 
 set SeriesNos = (`cat $infofile | awk '{print $2}' | sort -n | uniq`)
 echo "Found $#SeriesNos unique series: $SeriesNos" | tee -a $LF
@@ -361,6 +370,20 @@ while( $#argv != 0 )
       if($#argv < 1) goto arg1err;
       set TargetDir = "$argv[1]"; shift;
       set DoUnpack = 1;
+      breaksw
+
+    case "-index-in":
+      if($#argv < 1) goto arg1err;
+      set SrcInfo = "$argv[1]"; shift;
+      if(! -e $SrcInfo) then
+        echo "ERROR: cannot find $SrcInfo"
+        exit 1;
+      endif
+      breaksw
+
+    case "-index-out":
+      if($#argv < 1) goto arg1err;
+      set infofile = "$argv[1]"; shift;
       breaksw
 
     case "-pre":
@@ -677,6 +700,8 @@ usage_exit:
   echo "   -max : print out max in given dicom file"
   echo "   -base : report filename without path"
   echo "   -key keystring : put keystring before each run line (good for searching)"
+  echo "   -index-out index.out.dat : save index of files to index.out.dat (for re-use)"
+  echo "   -index-in  index.dat : read index of files (can make things much faster on 2nd run) "
   echo ""
   echo "   -fips project site birnid visit"
   echo "   -fips-run run paradigm <<nskip> ndrop>"
@@ -746,6 +771,11 @@ Assume that the DICOM file names have the form produced at the MGH
 Martinos Center when you "push something to bourget" from the scanner,
 namely that each series will have one file that ends in "1.dcm", eg
 397000-000007-000001.dcm.  This can speed things up considerably.
+Note: as of August, 2012, the naming convention that allows for fast
+unpacking does not exist. If you have to run this twice, it will be
+faster if you run it with --index-out index.dat when you are getting a
+list of runs, then run it again with --index-in index.dat when you go
+to unpack it.
 
 -no-infodump
 
