@@ -63,6 +63,7 @@ class Blood {
     void WriteOutputs(const char *OutBase);
     void WriteCenterStreamline(const char *CenterTrkFile,
                                const char *RefTrkFile);
+    void WriteEndPoints(const char *OutBase, MRI *RefVol);
     void PrintStreamline(int SubjIndex, int LineIndex);
     std::vector<float> ComputeAvgPath(std::vector<MRI *> &ValueVolumes);
     std::vector<float> ComputeWeightAvgPath(std::vector<MRI *> &ValueVolumes);
@@ -128,9 +129,10 @@ class Blood {
     void ComputeAnatomyPrior(bool UseTruncated);
     void ComputeCurvaturePrior(bool UseTruncated);
     void FindPointsOnStreamline(std::vector<int> &Streamline, int NumPoints);
+    bool FindPointsOnStreamlineLS(std::vector<int> &Streamline, int NumPoints);
     bool FindPointsOnStreamlineComb(std::vector<int> &Streamline,
                                     int NumPoints);
-    void TryControlPoint(float &OverlapMax,
+    void TryControlPoint(double &HausDistMin,
                          int IndexPoint,
                          int SearchLag,
                          std::vector<int> &ControlPointsMax,

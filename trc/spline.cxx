@@ -29,8 +29,14 @@ Spline::Spline(const char *ControlPointFile, const char *MaskFile) {
   ReadMask(MaskFile);
   mVolume = MRIclone(mMask, NULL);
   mAllPoints.clear();
-  mTangent.clear();
   mArcLength.clear();
+  mDerivative1.clear();
+  mDerivative2.clear();
+  mFiniteDifference1.clear();
+  mFiniteDifference2.clear();
+  mTangent.clear();
+  mNormal.clear();
+  mCurvature.clear();
 }
 
 Spline::Spline(const vector<int> &ControlPoints, MRI *Mask) {
@@ -38,19 +44,49 @@ Spline::Spline(const vector<int> &ControlPoints, MRI *Mask) {
   mMask = MRIcopy(Mask, NULL);
   mVolume = MRIclone(mMask, NULL);
   mAllPoints.clear();
-  mTangent.clear();
   mArcLength.clear();
+  mDerivative1.clear();
+  mDerivative2.clear();
+  mFiniteDifference1.clear();
+  mFiniteDifference2.clear();
+  mTangent.clear();
+  mNormal.clear();
+  mCurvature.clear();
+}
+
+Spline::Spline(const int NumControl, MRI *Mask) : mNumControl(NumControl) {
+  mMask = MRIcopy(Mask, NULL);
+  mVolume = MRIclone(mMask, NULL);
+  mControlPoints.clear();
+  mAllPoints.clear();
+  mArcLength.clear();
+  mDerivative1.clear();
+  mDerivative2.clear();
+  mFiniteDifference1.clear();
+  mFiniteDifference2.clear();
+  mTangent.clear();
+  mNormal.clear();
+  mCurvature.clear();
 }
 
 Spline::~Spline() {
   mControlPoints.clear();
   mAllPoints.clear();
-  mTangent.clear();
   mArcLength.clear();
+  mDerivative1.clear();
+  mDerivative2.clear();
+  mFiniteDifference1.clear();
+  mFiniteDifference2.clear();
+  mTangent.clear();
+  mNormal.clear();
+  mCurvature.clear();
   MRIfree(&mMask);
   MRIfree(&mVolume);
 }
 
+//
+// Check if two consecutive control points overlap
+//
 bool Spline::IsDegenerate() {
   vector<int>::const_iterator icpt;
 
@@ -61,6 +97,9 @@ bool Spline::IsDegenerate() {
   return false;
 }
 
+//
+// Interpolate spline given its control points
+//
 bool Spline::InterpolateSpline() {
   const int ncpts = mNumControl-1;
   vector<int>::const_iterator icpt = mControlPoints.begin();
@@ -105,9 +144,10 @@ bool Spline::InterpolateSpline() {
         }
         else {
           // Interpolate new point
-          CatmullRomInterp(newpoint, newt, (kcpt==1)?icpt:(icpt-3), 
-                                           icpt, icpt+3,
-                                           (kcpt==ncpts)?(icpt+3):(icpt+6));
+          CatmullRomInterpolate(newpoint, newt,
+                                (kcpt==1)?icpt:(icpt-3), 
+                                icpt, icpt+3,
+                                (kcpt==ncpts)?(icpt+3):(icpt+6));
 
           // Check that the new point is adjacent to the previous point
           incstep = true;
@@ -166,82 +206,493 @@ bool Spline::InterpolateSpline() {
   return true;
 }
 
-void Spline::ComputeTangent() {
-  int kcpt = 1;
-  const int ncpts = mNumControl-1;
-  vector<int>::const_iterator icpt = mControlPoints.begin();
-  vector<int>::const_iterator ipt;
-  vector<float>::const_iterator iarc = mArcLength.begin();
-  vector<float> newtangent(3);
+//
+// Fit spline control points to a curve
+// Uses "dominant" points on the curve (cf. Park and Lee, Computer-Aided Design 
+// 39:439-451, 2007)
+//
+bool Spline::FitControlPoints(const vector<int> &InputPoints) {
+  bool success;
+  const int npts = (int) InputPoints.size() / 3;
+  const float seglen = (npts - 1) / (float) (mNumControl - 1),
+              ds = 1 / seglen;
+  const int lentot = npts - 1,
+            mingap = (int) ceil(seglen / 2);
+  float s = 0;
+  vector<bool> isfinal(mNumControl, false);
+  vector<int> peeksegs;
+  vector<float> peekcurvs, arcparam(npts);
+  vector< vector<int>::const_iterator > peekpts, dompts(mNumControl);
+  vector<float>::iterator iarc = arcparam.begin();
 
-  mTangent.clear();
+  cout << "INFO: Minimum allowable distance between dominant points is "
+       << mingap << endl;
 
-  for (ipt = mAllPoints.begin(); ipt != mAllPoints.end()-3; ipt += 3) {
-    CatmullRomTangent(newtangent, *iarc, (kcpt==1)?icpt:(icpt-3),
-                                         icpt, icpt+3,
-                                         (kcpt==ncpts)?(icpt+3):(icpt+6));
-    mTangent.insert(mTangent.end(), newtangent.begin(), newtangent.end());
+  mAllPoints.resize(InputPoints.size());
+  copy(InputPoints.begin(), InputPoints.end(), mAllPoints.begin());
 
-    iarc++;
-    if (*iarc == 0) {	// Have reached next control point
-      kcpt++;
-      icpt += 3;
+  ComputeTangent(false);
+  ComputeNormal(false);
+  ComputeCurvature(false);
+
+  const float curvtot = accumulate(mCurvature.begin() + 1,
+                                   mCurvature.end() - 1, 0.0),
+              mincurv = accumulate(mCurvature.begin() + mingap,
+                                   mCurvature.end() - mingap, 0.0) /
+                        (npts - 2*mingap);
+
+  cout << "INFO: Minimum allowable curvature at a dominant point is "
+       << mincurv << endl;
+
+  // Split curve into segments of equal length
+  // We will pick only one dominant point in each of these segments,
+  // to ensure that control points end up fairly spread out along the length
+  // of the streamline
+  for (vector< vector<int>::const_iterator>::iterator idom = dompts.begin();
+                                                      idom < dompts.end() - 1;
+                                                      idom++) {
+    *idom = mAllPoints.begin() + 3 * (int) ceil(s);
+    s += seglen;
+  }
+
+  *(dompts.end() - 1) = mAllPoints.end() - 3;		// Last point
+
+  // Find points where local peeks in curvature occur
+  cout << "INFO: Points where local peeks in curvature occur are" << endl;
+
+  for (vector<float>::const_iterator icurv = mCurvature.begin() + mingap;
+                                     icurv < mCurvature.end() - mingap;
+                                     icurv++) {
+    if (*icurv > mincurv && *icurv > *(icurv-1) && *icurv > *(icurv+1)) {
+      const int kpt = icurv - mCurvature.begin(),
+                idx = (int) floor(ds * kpt);
+      vector<int>::const_iterator ipt = mAllPoints.begin() + 3*kpt;
+
+      // Save info for this candidate point
+      peeksegs.push_back(idx);
+      peekcurvs.push_back(*icurv);
+      peekpts.push_back(ipt);
+
+      cout << " " << *ipt << " " << *(ipt+1) << " " << *(ipt+2)
+           << " (curv = " << *icurv << ")" << endl;
     }
   }
 
-  // Tangent vector at final control point
-  CatmullRomTangent(newtangent, *iarc, icpt-3, icpt, icpt, icpt);
-  mTangent.insert(mTangent.end(), newtangent.begin(), newtangent.end());
-}
+  *isfinal.begin() = true;
+  *(isfinal.end() - 1) = true;
 
-void Spline::ComputeNormal() {
-  int kcpt = 1;
-  const int ncpts = mNumControl-1;
-  vector<int>::const_iterator icpt = mControlPoints.begin();
-  vector<int>::const_iterator ipt;
-  vector<float>::const_iterator iarc = mArcLength.begin();
-  vector<float> newnorm(3);
+  // Go down the list of candidate points to pick out dominant points
+  while (!peekcurvs.empty()) {
+    // Find candidate point with maximum curvature
+    const int ipeek = max_element(peekcurvs.begin(), peekcurvs.end()) - 
+                      peekcurvs.begin(),
+              iseg = peeksegs.at(ipeek);
+    const bool isLfinal = isfinal.at(iseg),
+               isRfinal = isfinal.at(iseg+1);
+    vector<int>::iterator imatch;
+    vector<int>::const_iterator ipt  = peekpts.at(ipeek),
+                                iptL = dompts.at(iseg),
+                                iptR = dompts.at(iseg+1);
+    const int distL = (ipt - iptL) / 3,
+              distR = (iptR - ipt) / 3;
 
-  mNormal.clear();
+    // Find which end of the segment the candidate point is closest to
+    if (distL < distR && !isLfinal && !(isRfinal && distR <= mingap)) {
+      // Move left end of segment to this dominant point
+      dompts.at(iseg) = ipt;
+      isfinal.at(iseg) = true;
+    }
+    else if (!isRfinal && !(isLfinal && distL <= mingap)) {
+      // Move right end of segment to this dominant point
+      dompts.at(iseg+1) = ipt;
+      isfinal.at(iseg+1) = true;
+    }
 
-  for (ipt = mAllPoints.begin(); ipt != mAllPoints.end()-3; ipt += 3) {
-    CatmullRomNormal(newnorm, *iarc, (kcpt==1)?icpt:(icpt-3),
-                                     icpt, icpt+3,
-                                     (kcpt==ncpts)?(icpt+3):(icpt+6));
-    mNormal.insert(mNormal.end(), newnorm.begin(), newnorm.end());
+    // Remove point from list of candidate points
+    peeksegs.erase(peeksegs.begin() + ipeek);
+    peekcurvs.erase(peekcurvs.begin() + ipeek);
+    peekpts.erase(peekpts.begin() + ipeek);
 
-    iarc++;
-    if (*iarc == 0) {	// Have reached next control point
-      kcpt++;
-      icpt += 3;
+    // Also remove any other candidate points that are in the same segment
+    imatch = find(peeksegs.begin(), peeksegs.end(), iseg);
+
+    while (imatch != peeksegs.end()) {
+      int irem = imatch - peeksegs.begin(); 
+
+      peeksegs.erase(peeksegs.begin() + irem);
+      peekcurvs.erase(peekcurvs.begin() + irem);
+      peekpts.erase(peekpts.begin() + irem);
+
+      imatch = find(peeksegs.begin(), peeksegs.end(), iseg);
     }
   }
 
-  // Normal vector at final control point
-  CatmullRomNormal(newnorm, *iarc, icpt-3, icpt, icpt, icpt);
-  mNormal.insert(mNormal.end(), newnorm.begin(), newnorm.end());
+  cout << "INFO: Intermediate dominant points are" << endl;
+  for (vector< vector<int>::const_iterator>::iterator idom = dompts.begin();
+                                                      idom < dompts.end();
+                                                      idom++)
+    cout << " " << *(*idom) << " " << *(*idom+1) << " " << *(*idom+2) << endl;
+
+  // Find segment ends that have not been moved yet
+  for (vector<bool>::const_iterator ifinal = isfinal.begin();
+                                    ifinal < isfinal.end(); ifinal++)
+    if (! *ifinal) {
+      const int kdom = ifinal - isfinal.begin();
+      int lenL, lenR;
+      float curvL, curvR,
+            dshape, dshapemin = numeric_limits<double>::infinity();
+      vector<int>::const_iterator iptL = dompts.at(kdom-1),
+                                  iptR = dompts.at(kdom+1);
+      vector<float>::const_iterator icurv = mCurvature.begin() +
+                                            (iptL - mAllPoints.begin()) / 3;
+
+      // Find point in the segment between the two neighboring dominant points
+      // to split the segment into 2 subsegments with minimum difference in
+      // "shape index" (to balance the subsegments' total curvature and length)
+      lenL = mingap;
+      lenR = (iptR-iptL)/3 - mingap;
+
+      curvL = accumulate(icurv + 1, icurv + mingap - 1, 0.0);
+      curvR = accumulate(icurv + mingap + 1, icurv + (iptR-iptL)/3, 0.0);
+
+      iptL += 3*mingap;
+      iptR -= 3*mingap;
+      icurv += mingap;
+
+      for (vector<int>::const_iterator ipt = iptL; ipt <= iptR; ipt += 3) {
+        dshape = fabs( (lenL - lenR) / (float) lentot +
+                       (curvL - curvR) / curvtot );
+
+        if (dshape < dshapemin) {
+          dompts.at(kdom) = ipt;
+          dshape = dshapemin;
+        }
+
+        lenL++;
+        lenR--;
+
+        curvL += *icurv;
+        curvR -= *(icurv+1);
+
+        icurv++;
+      }
+    }
+
+  cout << "INFO: Final dominant points are" << endl;
+  for (vector< vector<int>::const_iterator>::iterator idom = dompts.begin();
+                                                      idom < dompts.end();
+                                                      idom++)
+    cout << " " << *(*idom) << " " << *(*idom+1) << " " << *(*idom+2) << endl;
+
+  // Parameterize the curve based on these dominant points
+  for (int kdom = 1; kdom < mNumControl; kdom++) {
+    const int seglen = (int) (dompts.at(kdom) - dompts.at(kdom-1)) / 3;
+    const float ds = 1.0 / seglen;
+    float s = kdom - 1.0;
+
+    for (int kpt = seglen; kpt > 0; kpt--) {
+      *iarc = s;
+      s += ds;
+      iarc++;
+    }
+  }
+
+  *iarc = (float) (mNumControl - 1);
+
+  CatmullRomFit(InputPoints, arcparam);
+
+  success = InterpolateSpline();
+
+  // If spline interpolation after fitting to these dominant points fails,
+  // default to equidistant dominant points
+  if (!success) {
+    cout << "WARN: Defaulting to equidistant dominant points" << endl;
+
+    CatmullRomFit(InputPoints);
+
+    success = InterpolateSpline();
+  }
+
+  return success;
 }
 
-void Spline::ComputeCurvature() {
-  vector<float>::iterator icurv;
-  vector<float>::const_iterator itang = mTangent.begin(),
-                                inorm = mNormal.begin();
+//
+// Compute tangent vectors along spline (either from analytical derivatives
+// or from finite difference approximation)
+//
+void Spline::ComputeTangent(const bool DoAnalytical) {
+  vector<float>::const_iterator id1;
 
-  mCurvature.resize(mNormal.size() / 3);
+  if (DoAnalytical) {	// Compute analytically using parametric form
+    int kcpt = 1;
+    const int ncpts = mNumControl-1;
+    vector<int>::const_iterator icpt = mControlPoints.begin();
+    vector<int>::const_iterator ipt;
+    vector<float>::const_iterator iarc = mArcLength.begin();
+    vector<float> newderiv(3);
+
+    mDerivative1.clear();
+
+    for (ipt = mAllPoints.begin(); ipt != mAllPoints.end()-3; ipt += 3) {
+      CatmullRomDerivative1(newderiv, *iarc, (kcpt==1)?icpt:(icpt-3),
+                                             icpt, icpt+3,
+                                             (kcpt==ncpts)?(icpt+3):(icpt+6));
+      mDerivative1.insert(mDerivative1.end(), newderiv.begin(), newderiv.end());
+
+      iarc++;
+      if (*iarc == 0) {	// Have reached next control point
+        kcpt++;
+        icpt += 3;
+      }
+    }
+
+    // First derivative at final control point
+    CatmullRomDerivative1(newderiv, *iarc, icpt-3, icpt, icpt, icpt);
+    mDerivative1.insert(mDerivative1.end(), newderiv.begin(), newderiv.end());
+
+    id1 = mDerivative1.begin();
+  }
+  else {		// Approximate using finite differences
+    const unsigned int dt = 3,
+                       dt2 = 2 * dt,
+                       offset = 3 * dt;
+    vector<int>::const_iterator ipt;
+    vector<float>::const_iterator iptsm;
+    vector<float>::iterator ismooth, idiff;
+    vector<float> vecsmooth(mAllPoints.size());
+
+    mFiniteDifference1.resize(mAllPoints.size());
+
+    // Smooth discrete point coordinates
+    ipt = mAllPoints.begin();
+    ismooth = vecsmooth.begin();
+
+    for ( ; ipt < mAllPoints.begin() + 3; ipt++) {
+      *ismooth = (float) *ipt;
+      ismooth++;
+    }
+
+    for ( ; ipt < mAllPoints.end() - 3; ipt++) {
+      *ismooth = (*(ipt-3) + 2 * (*ipt) + *(ipt+3)) / 4.0;
+      ismooth++;
+    }
+  
+    for ( ; ipt < mAllPoints.end(); ipt++) {
+      *ismooth = (float) *ipt;
+      ismooth++;
+    }
+
+    // Approximate derivatives by 2nd-order central finite differences,
+    // everywhere except at the start and end of the spline, where 1st-order
+    // forward and backward finite differences are used, respectively
+    iptsm = vecsmooth.begin();
+    idiff = mFiniteDifference1.begin();
+
+    for ( ; iptsm < vecsmooth.begin() + offset; iptsm++) {
+      *idiff = (*(iptsm + offset) - *iptsm) / (float) dt;
+      idiff++;
+    }
+
+    for ( ; iptsm < vecsmooth.end() - offset; iptsm++) {
+      *idiff = (*(iptsm + offset) - *(iptsm - offset)) / (float) dt2;
+      idiff++;
+    }
+
+    for ( ; iptsm < vecsmooth.end(); iptsm++) {
+      *idiff = (*iptsm - *(iptsm - offset)) / (float) dt;
+      idiff++;
+    }
+
+    // Smooth finite differences
+    idiff = mFiniteDifference1.begin();
+    ismooth = vecsmooth.begin();
+
+    for ( ; idiff < mFiniteDifference1.begin() + 3; idiff++) {
+      *ismooth = (*idiff + *(idiff+3)) / 2.0;
+      ismooth++;
+    }
+
+    for ( ; idiff < mFiniteDifference1.end() - 3; idiff++) {
+      *ismooth = (*(idiff-3) + *idiff + *(idiff+3)) / 3.0;
+      ismooth++;
+    }
+  
+    for ( ; idiff < mFiniteDifference1.end(); idiff++) {
+      *ismooth = (*(idiff-3) + *idiff) / 2.0;
+      ismooth++;
+    }
+  
+    copy(vecsmooth.begin(), vecsmooth.end(), mFiniteDifference1.begin());
+
+    id1 = mFiniteDifference1.begin();
+  }
+
+  // Compute tangent vectors from first derivative
+  mTangent.resize(mAllPoints.size());
+
+  for (vector<float>::iterator itang = mTangent.begin(); itang < mTangent.end();
+                                                         itang += 3) {
+    const float nrm = sqrt(id1[0]*id1[0] + id1[1]*id1[1] + id1[2]*id1[2]);
+
+    if (nrm > 0) 			// Normalize
+      for (int k = 0; k < 3; k++)
+        itang[k] = id1[k] / nrm;
+    else
+      fill(itang, itang+3, 0.0);
+
+    id1 += 3;
+  }
+}
+
+//
+// Compute normal vectors along spline (either from analytical derivatives
+// or from finite difference approximation)
+//
+void Spline::ComputeNormal(const bool DoAnalytical) {
+  vector<float>::const_iterator id2, itang = mTangent.begin();
+
+  if (DoAnalytical) {	// Compute analytically using parametric form
+    int kcpt = 1;
+    const int ncpts = mNumControl-1;
+    vector<int>::const_iterator icpt = mControlPoints.begin();
+    vector<int>::const_iterator ipt;
+    vector<float>::const_iterator iarc = mArcLength.begin();
+    vector<float> newderiv(3);
+
+    mDerivative2.clear();
+
+    for (ipt = mAllPoints.begin(); ipt != mAllPoints.end()-3; ipt += 3) {
+      CatmullRomDerivative2(newderiv, *iarc, (kcpt==1)?icpt:(icpt-3),
+                                             icpt, icpt+3,
+                                             (kcpt==ncpts)?(icpt+3):(icpt+6));
+      mDerivative2.insert(mDerivative2.end(), newderiv.begin(), newderiv.end());
+
+      iarc++;
+      if (*iarc == 0) {	// Have reached next control point
+        kcpt++;
+        icpt += 3;
+      }
+    }
+
+    // Second derivative at final control point
+    CatmullRomDerivative2(newderiv, *iarc, icpt-3, icpt, icpt, icpt);
+    mDerivative2.insert(mDerivative2.end(), newderiv.begin(), newderiv.end());
+
+    id2 = mDerivative2.begin();
+  }
+  else {		// Approximate using finite differences
+    const unsigned int dt = 3,
+                       dt2 = 2 * dt,
+                       offset = 3 * dt;
+    vector<float>::const_iterator ipt;
+    vector<float>::iterator ismooth, idiff;
+    vector<float> vecsmooth(mAllPoints.size());
+
+    mFiniteDifference2.resize(vecsmooth.size());
+
+    // Approximate derivatives by 2nd-order central finite differences,
+    // everywhere except at the start and end of the spline, where 1st-order
+    // forward and backward finite differences are used, respectively
+    ipt = mFiniteDifference1.begin();
+    idiff = mFiniteDifference2.begin();
+
+    for ( ; ipt < mFiniteDifference1.begin() + offset; ipt++) {
+      *idiff = (*(ipt + offset) - *ipt) / (float) dt;
+      idiff++;
+    }
+
+    for ( ; ipt < mFiniteDifference1.end() - offset; ipt++) {
+      *idiff = (*(ipt + offset) - *(ipt - offset)) / (float) dt2;
+      *idiff++;
+    }
+
+    for ( ; ipt < mFiniteDifference1.end(); ipt++) {
+      *idiff = (*ipt - *(ipt - offset)) / (float) dt;
+      idiff++;
+    }
+
+    // Smooth finite differences
+    idiff = mFiniteDifference2.begin();
+    ismooth = vecsmooth.begin();
+
+    for ( ; idiff < mFiniteDifference2.begin() + 3; idiff++) {
+      *ismooth = (*idiff + *(idiff+3)) / 2.0;
+      ismooth++;
+    }
+
+    for ( ; idiff < mFiniteDifference2.end() - 3; idiff++) {
+      *ismooth = (*(idiff-3) + *idiff + *(idiff+3)) / 3.0;
+      ismooth++;
+    }
+  
+    for ( ; idiff < mFiniteDifference2.end(); idiff++) {
+      *ismooth = (*(idiff-3) + *idiff) / 2.0;
+      ismooth++;
+    }
+  
+    copy(vecsmooth.begin(), vecsmooth.end(), mFiniteDifference2.begin());
+
+    id2 = mFiniteDifference2.begin();
+  }
+
+  // Compute normal vectors from first and second derivative
+  mNormal.resize(mAllPoints.size());
+
+  for (vector<float>::iterator inorm = mNormal.begin(); inorm < mNormal.end();
+                                                        inorm += 3) {
+    const float dot = id2[0]*itang[0] + id2[1]*itang[1] + id2[2]*itang[2];
+    float nrm = 0;
+
+    for (int k = 0; k < 3; k++) {
+      inorm[k] = id2[k] - dot * itang[k];
+      nrm += inorm[k]*inorm[k];
+    }
+
+    nrm = sqrt(nrm);
+
+    if (nrm > 0) 			// Normalize
+      for (int k = 0; k < 3; k++)
+        inorm[k] /= nrm;
+
+    id2 += 3;
+    itang += 3;
+  }
+}
+
+//
+// Compute curvature along spline (either from analytical derivatives
+// or from finite difference approximation)
+//
+void Spline::ComputeCurvature(const bool DoAnalytical) {
+  vector<float>::const_iterator id1, id2;
+
+  mCurvature.resize(mAllPoints.size() / 3);
+
+  if (DoAnalytical) {	// Compute analytically using parametric form
+    id1 = mDerivative1.begin();
+    id2 = mDerivative2.begin();
+  }
+  else {		// Approximate using finite differences
+    id1 = mFiniteDifference1.begin();
+    id2 = mFiniteDifference2.begin();
+  }
 
   // Curvature = |r' x r''| / |r'|^3
-  for (icurv = mCurvature.begin(); icurv != mCurvature.end(); icurv++) {
-    *icurv =
-      sqrt( ( pow(itang[1] * inorm[2] - itang[2] * inorm[1], 2) +
-              pow(itang[2] * inorm[0] - itang[0] * inorm[2], 2) +
-              pow(itang[0] * inorm[1] - itang[1] * inorm[0], 2) ) / 
-            pow(pow(itang[0], 2) + pow(itang[1], 2) + pow(itang[2], 2), 3) );
+  for (vector<float>::iterator icurv = mCurvature.begin();
+                               icurv < mCurvature.end(); icurv++) {
+    *icurv = sqrt( ( pow(id1[1] * id2[2] - id1[2] * id2[1], 2) +
+                     pow(id1[2] * id2[0] - id1[0] * id2[2], 2) +
+                     pow(id1[0] * id2[1] - id1[1] * id2[0], 2) ) / 
+                   pow(pow(id1[0], 2) + pow(id1[1], 2) + pow(id1[2], 2), 3) );
 
-    itang += 3;
-    inorm += 3;
+    id1 += 3;
+    id2 += 3;
   }
 }
 
+//
+// Read control points from file
+//
 void Spline::ReadControlPoints(const char *ControlPointFile) {
   float coord;
   ifstream infile(ControlPointFile, ios::in);
@@ -265,11 +716,17 @@ void Spline::ReadControlPoints(const char *ControlPointFile) {
   mNumControl = mControlPoints.size()/3;
 }
 
+//
+// Read mask volume from file
+//
 void Spline::ReadMask(const char *MaskFile) {
   cout << "Loading spline mask from " << MaskFile << endl;
   mMask = MRIread(MaskFile);
 }
 
+//
+// Set control points
+//
 void Spline::SetControlPoints(const std::vector<int> &ControlPoints) {
   mControlPoints.resize(ControlPoints.size());
   copy(ControlPoints.begin(), ControlPoints.end(), mControlPoints.begin());
@@ -277,6 +734,9 @@ void Spline::SetControlPoints(const std::vector<int> &ControlPoints) {
   mNumControl = mControlPoints.size()/3;
 }
 
+//
+// Write spline to volume
+//
 void Spline::WriteVolume(const char *VolumeFile, const bool ShowControls) {
   if (ShowControls)
     for (vector<int>::const_iterator icpt = mControlPoints.begin();
@@ -287,6 +747,77 @@ void Spline::WriteVolume(const char *VolumeFile, const bool ShowControls) {
   MRIwrite(mVolume, VolumeFile);
 }
 
+//
+// Write spline coordinates to file
+//
+void Spline::WriteAllPoints(const char *TextFile) {
+  ofstream outfile(TextFile, ios::out);
+  if (!outfile) {
+    cout << "ERROR: Could not open " << TextFile << " for writing" << endl;
+    exit(1);
+  }
+
+  cout << "Writing coordinates along spline to " << TextFile << endl;
+
+  for (vector<int>::const_iterator ipt = mAllPoints.begin();
+                                   ipt < mAllPoints.end(); ipt += 3)
+    outfile << ipt[0] << " " << ipt[1] << " " << ipt[2] << endl;
+}
+
+//
+// Write tangent vectors along spline to file
+//
+void Spline::WriteTangent(const char *TextFile) {
+  ofstream outfile(TextFile, ios::out);
+  if (!outfile) {
+    cout << "ERROR: Could not open " << TextFile << " for writing" << endl;
+    exit(1);
+  }
+
+  cout << "Writing tangent vectors along spline to " << TextFile << endl;
+
+  for (vector<float>::const_iterator itang = mTangent.begin();
+                                     itang < mTangent.end(); itang += 3)
+    outfile << itang[0] << " " << itang[1] << " " << itang[2] << endl;
+}
+
+//
+// Write normal vectors along spline to file
+//
+void Spline::WriteNormal(const char *TextFile) {
+  ofstream outfile(TextFile, ios::out);
+  if (!outfile) {
+    cout << "ERROR: Could not open " << TextFile << " for writing" << endl;
+    exit(1);
+  }
+
+  cout << "Writing normal vectors along spline to " << TextFile << endl;
+
+  for (vector<float>::const_iterator inorm = mNormal.begin();
+                                     inorm < mNormal.end(); inorm += 3)
+    outfile << inorm[0] << " " << inorm[1] << " " << inorm[2] << endl;
+}
+
+//
+// Write curvatures along spline to file
+//
+void Spline::WriteCurvature(const char *TextFile) {
+  ofstream outfile(TextFile, ios::out);
+  if (!outfile) {
+    cout << "ERROR: Could not open " << TextFile << " for writing" << endl;
+    exit(1);
+  }
+
+  cout << "Writing curvatures along spline to " << TextFile << endl;
+
+  for (vector<float>::const_iterator icurv = mCurvature.begin();
+                                     icurv < mCurvature.end(); icurv++)
+    outfile << *icurv << endl;
+}
+
+//
+// Write the intensity values of each of a set of input volumes along the spline
+//
 void Spline::WriteValues(vector<MRI *> &ValueVolumes, const char *TextFile) {
   ofstream outfile(TextFile, ios::app);
   if (!outfile) {
@@ -308,6 +839,9 @@ void Spline::WriteValues(vector<MRI *> &ValueVolumes, const char *TextFile) {
   }
 }
 
+//
+// Compute average intensity of each of a set of input volumes along the spline
+//
 vector<float> Spline::ComputeAvg(vector<MRI *> &ValueVolumes) {
   int nvox = (int) mAllPoints.size()/3;
   vector<float> avg(ValueVolumes.size(), 0);
@@ -330,79 +864,130 @@ vector<float> Spline::ComputeAvg(vector<MRI *> &ValueVolumes) {
   return avg;
 }
 
+//
+// Print control point coordinates
+//
 void Spline::PrintControlPoints() {
-  vector<int>::const_iterator icpt;
-
-  for (icpt = mControlPoints.begin(); icpt != mControlPoints.end(); icpt += 3)
+  for (vector<int>::const_iterator icpt = mControlPoints.begin();
+                                   icpt != mControlPoints.end(); icpt += 3)
     cout << icpt[0] << " " << icpt[1] << " " << icpt[2] << endl;
 }
 
+//
+// Print spline coordinates
+//
 void Spline::PrintAllPoints() {
-  vector<int>::const_iterator ipt;
-
-  for (ipt = mAllPoints.begin(); ipt != mAllPoints.end(); ipt += 3)
+  for (vector<int>::const_iterator ipt = mAllPoints.begin();
+                                   ipt != mAllPoints.end(); ipt += 3)
     cout << ipt[0] << " " << ipt[1] << " " << ipt[2] << endl;
 }
 
+//
+// Print tangent vectors along spline
+//
 void Spline::PrintTangent() {
-  vector<float>::const_iterator itang;
-
-  for (itang = mTangent.begin(); itang != mTangent.end(); itang += 3)
+  for (vector<float>::const_iterator itang = mTangent.begin();
+                                     itang != mTangent.end(); itang += 3)
     cout << itang[0] << " " << itang[1] << " " << itang[2] << endl;
 }
 
+//
+// Print normal vectors along spline
+//
 void Spline::PrintNormal() {
-  vector<float>::const_iterator inorm;
-
-  for (inorm = mNormal.begin(); inorm != mNormal.end(); inorm += 3)
+  for (vector<float>::const_iterator inorm = mNormal.begin();
+                                     inorm != mNormal.end(); inorm += 3)
     cout << inorm[0] << " " << inorm[1] << " " << inorm[2] << endl;
 }
 
+//
+// Print curvatures along spline
+//
 void Spline::PrintCurvature() {
-  vector<float>::const_iterator icurv;
-
-  for (icurv = mCurvature.begin(); icurv != mCurvature.end(); icurv++)
+  for (vector<float>::const_iterator icurv = mCurvature.begin();
+                                     icurv != mCurvature.end(); icurv++)
     cout << *icurv << endl;
 }
 
+//
+// Return pointer to start of control points
+//
+vector<int>::const_iterator Spline::GetControlPointsBegin() {
+  return mControlPoints.begin();
+}
+
+//
+// Return pointer to end of control points
+//
+vector<int>::const_iterator Spline::GetControlPointsEnd() {
+  return mControlPoints.end();
+}
+
+//
+// Return pointer to beginning of control points
+//
 vector<int>::const_iterator Spline::GetAllPointsBegin() {
   return mAllPoints.begin();
 }
 
+//
+// Return pointer to end of control points
+//
 vector<int>::const_iterator Spline::GetAllPointsEnd() {
   return mAllPoints.end();
 }
 
+//
+// Return pointer to beginning of tangent vectors
+//
 vector<float>::const_iterator Spline::GetTangentBegin() {
   return mTangent.begin();
 }
 
+//
+// Return pointer to end of tangent vectors
+//
 vector<float>::const_iterator Spline::GetTangentEnd() {
   return mTangent.end();
 }
 
+//
+// Return pointer to beginning of normal vectors
+//
 vector<float>::const_iterator Spline::GetNormalBegin() {
   return mNormal.begin();
 }
 
+//
+// Return pointer to end of normal vectors
+//
 vector<float>::const_iterator Spline::GetNormalEnd() {
   return mNormal.end();
 }
 
+//
+// Return pointer to beginning of curvatures
+//
 vector<float>::const_iterator Spline::GetCurvatureBegin() {
   return mCurvature.begin();
 }
 
+//
+// Return pointer to end of curvatures
+//
 vector<float>::const_iterator Spline::GetCurvatureEnd() {
   return mCurvature.end();
 }
 
-void Spline::CatmullRomInterp(vector<int> &InterpPoint,
-                              const float t,
-                              vector<int>::const_iterator ControlPoint1,
-                              vector<int>::const_iterator ControlPoint2,
-                              vector<int>::const_iterator ControlPoint3,
-                              vector<int>::const_iterator ControlPoint4) {
+//
+// Intepolate Catmull-Rom spline from control points
+//
+void Spline::CatmullRomInterpolate(vector<int> &InterpPoint,
+                                   const float t,
+                                   vector<int>::const_iterator ControlPoint1,
+                                   vector<int>::const_iterator ControlPoint2,
+                                   vector<int>::const_iterator ControlPoint3,
+                                   vector<int>::const_iterator ControlPoint4) {
   const float t2 = t*t,
               t3 = t2*t,
               a = -.5*(t3 + t) + t2,
@@ -415,12 +1000,15 @@ void Spline::CatmullRomInterp(vector<int> &InterpPoint,
                                  c * ControlPoint3[k] + d * ControlPoint4[k]);
 }
 
-void Spline::CatmullRomTangent(vector<float> &InterpTangent,
-                               const float t,
-                               vector<int>::const_iterator ControlPoint1,
-                               vector<int>::const_iterator ControlPoint2,
-                               vector<int>::const_iterator ControlPoint3,
-                               vector<int>::const_iterator ControlPoint4) {
+//
+// Compute Catmull-Rom spline first derivative vector from control points
+//
+void Spline::CatmullRomDerivative1(vector<float> &InterpDerivative,
+                                   const float t,
+                                   vector<int>::const_iterator ControlPoint1,
+                                   vector<int>::const_iterator ControlPoint2,
+                                   vector<int>::const_iterator ControlPoint3,
+                                   vector<int>::const_iterator ControlPoint4) {
   const float t2 = t*t,
               a = -1.5*t2 + 2*t - .5,
               b = 4.5*t2 - 5*t,
@@ -428,26 +1016,177 @@ void Spline::CatmullRomTangent(vector<float> &InterpTangent,
               d = 1.5*t2 - t;
 
   for (int k = 0; k < 3; k++)
-    InterpTangent[k] = a * ControlPoint1[k] + b * ControlPoint2[k] +
-                       c * ControlPoint3[k] + d * ControlPoint4[k];
+    InterpDerivative[k] = a * ControlPoint1[k] + b * ControlPoint2[k] +
+                          c * ControlPoint3[k] + d * ControlPoint4[k];
 }
 
-void Spline::CatmullRomNormal(vector<float> &InterpNormal,
-                                 const float t,
-                                 vector<int>::const_iterator ControlPoint1,
-                                 vector<int>::const_iterator ControlPoint2,
-                                 vector<int>::const_iterator ControlPoint3,
-                                 vector<int>::const_iterator ControlPoint4) {
+//
+// Compute Catmull-Rom spline second derivative vector from control points
+//
+void Spline::CatmullRomDerivative2(vector<float> &InterpDerivative,
+                                   const float t,
+                                   vector<int>::const_iterator ControlPoint1,
+                                   vector<int>::const_iterator ControlPoint2,
+                                   vector<int>::const_iterator ControlPoint3,
+                                   vector<int>::const_iterator ControlPoint4) {
   const float a = -3*t + 2,
               b = 9*t - 5,
               c = -9*t + 4,
               d = 3*t - 1;
 
   for (int k = 0; k < 3; k++)
-    InterpNormal[k] = a * ControlPoint1[k] + b * ControlPoint2[k] +
-                      c * ControlPoint3[k] + d * ControlPoint4[k];
+    InterpDerivative[k] = a * ControlPoint1[k] + b * ControlPoint2[k] +
+                          c * ControlPoint3[k] + d * ControlPoint4[k];
 }
 
+//
+// Least-squares fit of a Catmull-Rom spline to a set points,
+// given the coordinates of the points but no user-specified parameterization
+// (default to parameterizing the curve based on equidistant dominant points)
+//
+void Spline::CatmullRomFit(const vector<int> &InputPoints) {
+  const int npts = (int) InputPoints.size() / 3;
+  const float smax = (float) (mNumControl - 1),
+              ds = smax / (npts - 1);
+  float s = 0.0;
+  vector<float> arcparam(npts);
+
+  for (vector<float>::iterator iarc = arcparam.begin(); iarc < arcparam.end();
+                                                        iarc++) {
+    *iarc = s;
+    s += ds;
+  }
+
+  CatmullRomFit(InputPoints, arcparam);
+}
+
+//
+// Least-squares fit of a Catmull-Rom spline to a set of points,
+// given the coordinates of the points and the respective arc length
+// parameter values, which should be reals in the interval [0, mNumControl-1]
+//
+void Spline::CatmullRomFit(const vector<int> &InputPoints,
+                           const vector<float> &ArcLengthParameter) {
+  const int npts = (int) InputPoints.size() / 3;
+  vector<int>::const_iterator ipt = InputPoints.begin() + 3;
+  vector<int>::iterator icpt;
+  vector<float>::const_iterator iarc = ArcLengthParameter.begin() + 1;
+  MATRIX *A = NULL, *Ap = NULL, *y = NULL, *x = NULL;
+
+  // Fit all but the first and last control points,
+  // which will be set equal to the first and last of the input points
+  A  = MatrixAlloc(npts-2, mNumControl-2, MATRIX_REAL);
+  Ap = MatrixAlloc(mNumControl-2, npts-2, MATRIX_REAL);
+  y  = MatrixAlloc(npts-2, 3, MATRIX_REAL);
+  x  = MatrixAlloc(mNumControl-2, 3, MATRIX_REAL);
+
+  for (int irow = 1; irow < npts-1; irow++) {
+    const int idx = (int) floor(*iarc);
+    const float t = *iarc - floor(*iarc),
+                t2 = t*t,
+                t3 = t2*t,
+                a = -.5*(t3 + t) + t2,
+                b = 1.5*t3 - 2.5*t2 + 1,
+                c = -1.5*t3 + 2*t2 + .5*t,
+                d = .5*(t3 - t2);
+
+    if (idx == 0) {
+      const float ab = a + b;
+      vector<int>::const_iterator ipt1 = InputPoints.begin();
+
+      for (int k = 1; k < 4; k++) {
+        y->rptr[irow][k] = *ipt - ab * (*ipt1);
+        ipt++;
+        ipt1++;
+      }
+
+      A->rptr[irow][1] = c;
+      A->rptr[irow][2] = d;
+    }
+    else if (idx == 1) {
+      vector<int>::const_iterator ipt1 = InputPoints.begin();
+
+      for (int k = 1; k < 4; k++) {
+        y->rptr[irow][k] = *ipt - a * (*ipt1);
+        ipt++;
+        ipt1++;
+      }
+
+      A->rptr[irow][1] = b;
+      A->rptr[irow][2] = c;
+      A->rptr[irow][3] = d;
+    }
+    else if (idx == mNumControl - 3) {
+      vector<int>::const_iterator iptn = InputPoints.end() - 3;
+
+      for (int k = 1; k < 4; k++) {
+        y->rptr[irow][k] = *ipt - d * (*iptn);
+        ipt++;
+        iptn++;
+      }
+
+      A->rptr[irow][mNumControl - 4] = a;
+      A->rptr[irow][mNumControl - 3] = b;
+      A->rptr[irow][mNumControl - 2] = c;
+    }
+    else if (idx == mNumControl - 2) {
+      const float cd = c + d;
+      vector<int>::const_iterator iptn = InputPoints.end() - 3;
+
+      for (int k = 1; k < 4; k++) {
+        y->rptr[irow][k] = *ipt - cd * (*iptn);
+        ipt++;
+        iptn++;
+      }
+
+      A->rptr[irow][mNumControl - 3] = a;
+      A->rptr[irow][mNumControl - 2] = b;
+    }
+    else {
+      for (int k = 1; k < 4; k++) {
+        y->rptr[irow][k] = *ipt;
+        ipt++;
+      }
+
+      A->rptr[irow][idx-1] = a;
+      A->rptr[irow][idx]   = b;
+      A->rptr[irow][idx+1] = c;
+      A->rptr[irow][idx+2] = d;
+    }
+
+    iarc++;
+  }
+
+  // Find least-squares fit of all control points but the first and last
+  MatrixPseudoInverse(A, Ap);
+  MatrixMultiply(Ap, y, x);
+
+  // Copy fitted control points and append the first and last point
+  mControlPoints.resize(mNumControl * 3);
+
+  icpt = mControlPoints.begin();
+  ipt = InputPoints.begin();
+
+  for (ipt = InputPoints.begin(); ipt < InputPoints.begin() + 3; ipt++) {
+    *icpt = *ipt;
+    *icpt++;
+  }
+
+  for (int irow = 1; irow < mNumControl-1; irow++)
+    for (int k = 1; k < 4; k++) {
+      *icpt = (int) round(x->rptr[irow][k]);
+      icpt++;
+    }
+
+  for (ipt = InputPoints.end() - 3; ipt < InputPoints.end(); ipt++) {
+    *icpt = *ipt;
+    *icpt++;
+  }
+}
+
+//
+// Check if a point is in mask
+//
 bool Spline::IsInMask(vector<int>::const_iterator Point) {
   // Check that point is inside mask and has not already been traversed
   return (Point[0] > -1) && (Point[0] < mMask->width) && 

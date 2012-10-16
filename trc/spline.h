@@ -8,17 +8,15 @@
  * Original Author: Anastasia Yendiki
  * CVS Revision Info:
  *
- * Copyright (C) 2010,
- * The General Hospital Corporation (Boston, MA).
- * All rights reserved.
+ * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
- * Distribution, usage and copying of this software is covered under the
- * terms found in the License Agreement file named 'COPYING' found in the
- * FreeSurfer source code root directory, and duplicated here:
- * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ * Terms and conditions for use, reproduction, distribution and contribution
+ * are found in the 'FreeSurfer Software License Agreement' contained
+ * in the file 'LICENSE' found in the FreeSurfer distribution, and here:
  *
- * General inquiries: freesurfer@nmr.mgh.harvard.edu
- * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
+ *
+ * Reporting: freesurfer@nmr.mgh.harvard.edu
  *
  */
 
@@ -29,6 +27,9 @@
 #include <string>
 #include <iostream>
 #include <fstream>
+#include <numeric>
+#include <algorithm>
+#include <limits>
 #include <math.h>
 #include "mri.h"
 
@@ -36,53 +37,70 @@ class Spline {
   public:
     Spline(const char *ControlPointFile, const char *MaskFile);
     Spline(const std::vector<int> &ControlPoints, MRI *Mask);
+    Spline(const int NumControl, MRI *Mask);
     ~Spline();
     bool IsDegenerate();
     bool InterpolateSpline();
-    void ComputeTangent();
-    void ComputeCurvature();
+    bool FitControlPoints(const std::vector<int> &InputPoints);
+    void ComputeTangent(const bool DoAnalytical=true);
+    void ComputeNormal(const bool DoAnalytical=true);
+    void ComputeCurvature(const bool DoAnalytical=true);
     void ReadControlPoints(const char *ControlPointFile);
     void ReadMask(const char *MaskFile);
     void SetControlPoints(const std::vector<int> &ControlPoints);
     void WriteVolume(const char *VolumeFile, const bool ShowControls=false);
+    void WriteAllPoints(const char *TextFile);
+    void WriteTangent(const char *TextFile);
+    void WriteNormal(const char *TextFile);
+    void WriteCurvature(const char *TextFile);
+    void WriteValues(std::vector<MRI *> &ValueVolumes, const char *TextFile);
+    std::vector<float> ComputeAvg(std::vector<MRI *> &ValueVolumes);
     void PrintControlPoints();
     void PrintAllPoints();
     void PrintTangent();
+    void PrintNormal();
     void PrintCurvature();
+    std::vector<int>::const_iterator GetControlPointsBegin();
+    std::vector<int>::const_iterator GetControlPointsEnd();
     std::vector<int>::const_iterator GetAllPointsBegin();
     std::vector<int>::const_iterator GetAllPointsEnd();
     std::vector<float>::const_iterator GetTangentBegin();
     std::vector<float>::const_iterator GetTangentEnd();
+    std::vector<float>::const_iterator GetNormalBegin();
+    std::vector<float>::const_iterator GetNormalEnd();
     std::vector<float>::const_iterator GetCurvatureBegin();
     std::vector<float>::const_iterator GetCurvatureEnd();
 
   private:
-    unsigned int mNumControl;
-    std::vector<int> mControlPoints;
-    std::vector<int> mAllPoints;
-    std::vector<float> mArcLength;
-    std::vector<float> mTangent;
-    std::vector<float> mCurvature;
+    int mNumControl;
+    std::vector<int> mControlPoints, mAllPoints;
+    std::vector<float> mArcLength,
+                       mDerivative1, mDerivative2,
+                       mFiniteDifference1, mFiniteDifference2,
+                       mTangent, mNormal, mCurvature;
     MRI *mMask, *mVolume;
 
-    void CatmullRomInterp(std::vector<int> &InterpPoint,
-                          const float t,
-                          std::vector<int>::const_iterator ControlPoint1,
-                          std::vector<int>::const_iterator ControlPoint2,
-                          std::vector<int>::const_iterator ControlPoint3,
-                          std::vector<int>::const_iterator ControlPoint4);
-    void CatmullRomTangent(std::vector<float> &InterpTangent,
-                           const float t,
-                           std::vector<int>::const_iterator ControlPoint1,
-                           std::vector<int>::const_iterator ControlPoint2,
-                           std::vector<int>::const_iterator ControlPoint3,
-                           std::vector<int>::const_iterator ControlPoint4);
-    void CatmullRomCurvature(std::vector<float> &InterpCurvature,
-                             const float t,
-                             std::vector<int>::const_iterator ControlPoint1,
-                             std::vector<int>::const_iterator ControlPoint2,
-                             std::vector<int>::const_iterator ControlPoint3,
-                             std::vector<int>::const_iterator ControlPoint4);
+    void CatmullRomInterpolate(std::vector<int> &InterpPoint,
+                               const float t,
+                               std::vector<int>::const_iterator ControlPoint1,
+                               std::vector<int>::const_iterator ControlPoint2,
+                               std::vector<int>::const_iterator ControlPoint3,
+                               std::vector<int>::const_iterator ControlPoint4);
+    void CatmullRomDerivative1(std::vector<float> &InterpDerivative,
+                               const float t,
+                               std::vector<int>::const_iterator ControlPoint1,
+                               std::vector<int>::const_iterator ControlPoint2,
+                               std::vector<int>::const_iterator ControlPoint3,
+                               std::vector<int>::const_iterator ControlPoint4);
+    void CatmullRomDerivative2(std::vector<float> &InterpDerivative,
+                               const float t,
+                               std::vector<int>::const_iterator ControlPoint1,
+                               std::vector<int>::const_iterator ControlPoint2,
+                               std::vector<int>::const_iterator ControlPoint3,
+                               std::vector<int>::const_iterator ControlPoint4);
+    void CatmullRomFit(const std::vector<int> &InputPoints);
+    void CatmullRomFit(const std::vector<int> &InputPoints,
+                       const std::vector<float> &ArcLengthParameter);
     bool IsInMask(std::vector<int>::const_iterator Point);
 };
 

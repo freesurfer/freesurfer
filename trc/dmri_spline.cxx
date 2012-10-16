@@ -7,9 +7,9 @@
 /*
  * Original Author: Anastasia Yendiki
  * CVS Revision Info:
- *    $Author: ayendiki $
- *    $Date: 2011/05/15 05:16:23 $
- *    $Revision: 1.2.2.1 $
+ *    $Author: nicks $
+ *    $Date: 2012/10/16 21:56:15 $
+ *    $Revision: 1.2.2.2 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -41,6 +41,7 @@ double round(double x);
 #include <math.h>
 #include <stdlib.h>
 #include <time.h>
+#include <limits.h>
 
 #include "error.h"
 #include "diag.h"
@@ -69,7 +70,8 @@ int main(int argc, char *argv[]) ;
 static char vcid[] = "";
 const char *Progname = "dmri_spline";
 
-char *inFile = NULL, *outFile = NULL, *maskFile = NULL;
+char *inFile = NULL, *maskFile = NULL,
+     *outVolFile = NULL, *outTextFile = NULL, *outVecBase = NULL;
 //char *inFiles[50];
 
 struct utsname uts;
@@ -107,13 +109,57 @@ int main(int argc, char **argv) {
 
   printf("Computing spline...\n");
   TimerStart(&cputimer);
+
   myspline.InterpolateSpline();
-  //myspline.ComputeTangent();
+
   cputime = TimerStop(&cputimer);
   printf("Done in %g sec.\n", cputime/1000.0);
 
-  printf("Saving output volume...\n");
-  myspline.WriteVolume(outFile);
+  if (outVolFile)
+    myspline.WriteVolume(outVolFile);
+
+  if (outTextFile)
+    myspline.WriteAllPoints(outTextFile);
+
+  if (outVecBase) {
+    char fname[PATH_MAX];
+
+    printf("Computing analytical tangent, normal, and curvature...\n");
+    TimerStart(&cputimer);
+
+    myspline.ComputeTangent(true);
+    myspline.ComputeNormal(true);
+    myspline.ComputeCurvature(true);
+
+    cputime = TimerStop(&cputimer);
+    printf("Done in %g sec.\n", cputime/1000.0);
+
+    // Write tangent, normal, and curvature (analytical) to text files
+    sprintf(fname, "%s_tang.txt", outVecBase);
+    myspline.WriteTangent(fname);
+    sprintf(fname, "%s_norm.txt", outVecBase);
+    myspline.WriteNormal(fname);
+    sprintf(fname, "%s_curv.txt", outVecBase);
+    myspline.WriteCurvature(fname);
+
+    printf("Computing discrete tangent, normal, and curvature...\n");
+    TimerStart(&cputimer);
+
+    myspline.ComputeTangent(false);
+    myspline.ComputeNormal(false);
+    myspline.ComputeCurvature(false);
+
+    cputime = TimerStop(&cputimer);
+    printf("Done in %g sec.\n", cputime/1000.0);
+
+    // Write tangent, normal, and curvature (discrete) to text files
+    sprintf(fname, "%s_tang_diff.txt", outVecBase);
+    myspline.WriteTangent(fname);
+    sprintf(fname, "%s_norm_diff.txt", outVecBase);
+    myspline.WriteNormal(fname);
+    sprintf(fname, "%s_curv_diff.txt", outVecBase);
+    myspline.WriteCurvature(fname);
+  }
 
   printf("dmri_spline done\n");
   return(0);
@@ -149,14 +195,30 @@ static int parse_commandline(int argc, char **argv) {
     } 
     else if (!strcmp(option, "--out")) {
       if (nargc < 1) CMDargNErr(option,1);
-      outFile = fio_fullpath(pargv[0]);
+      outVolFile = fio_fullpath(pargv[0]);
+      nargsused = 1;
+    } 
+    else if (!strcmp(option, "--outpts")) {
+      if (nargc < 1) CMDargNErr(option,1);
+      outTextFile = fio_fullpath(pargv[0]);
+      nargsused = 1;
+    } 
+    else if (!strcmp(option, "--outvec")) {
+      if (nargc < 1) CMDargNErr(option,1);
+      outVecBase = fio_fullpath(pargv[0]);
       nargsused = 1;
     } 
     else if (!strcmp(option, "--mask")) {
       if (nargc < 1) CMDargNErr(option,1);
       maskFile = fio_fullpath(pargv[0]);
       nargsused = 1;
-    } 
+    }
+    else {
+      fprintf(stderr,"ERROR: Option %s unknown\n",option);
+      if (CMDsingleDash(option))
+        fprintf(stderr,"       Did you really mean -%s ?\n",option);
+      exit(-1);
+    }
     nargc -= nargsused;
     pargv += nargsused;
   }
@@ -169,9 +231,14 @@ static void print_usage(void)
   printf("\n");
   printf("USAGE: ./dmri_spline\n");
   printf("\n");
-  printf("   --cpts <filename>:   input text file containing control points\n");
-  printf("   --mask <filename>:   input mask volume\n");
-  printf("   --out <filename>:    output spline volume\n");
+  printf("   --cpts   <file>: input text file containing control points\n");
+  printf("   --mask   <file>: input mask volume\n");
+  printf("   --out    <file>: output spline volume\n");
+  printf("   --outpts <file>: output text file containing all spline points\n");
+  printf("   --outvec <base>: base name of output text files containing the\n");
+  printf("                    tangent vectors, normal vectors, and curvatures\n");
+  printf("                    of the spline at every point along the spline\n");
+  printf("                    (both analytical and finite-difference version)\n");
   printf("\n");
   printf("   --debug:     turn on debugging\n");
   printf("   --checkopts: don't run anything, just check options and exit\n");
@@ -211,8 +278,8 @@ static void check_options(void) {
     printf("ERROR: must specify mask volume\n");
     exit(1);
   }
-  if(!outFile) {
-    printf("ERROR: must specify output file\n");
+  if(!outVolFile && !outTextFile && !outVecBase) {
+    printf("ERROR: must specify at least one type of output file\n");
     exit(1);
   }
   return;
@@ -231,7 +298,12 @@ static void dump_options(FILE *fp) {
 
   fprintf(fp, "Control points: %s\n", inFile);
   fprintf(fp, "Mask volume: %s\n", maskFile);
-  fprintf(fp, "Output volume: %s\n", outFile);
+  if (outVolFile)
+    fprintf(fp, "Output volume: %s\n", outVolFile);
+  if (outTextFile)
+    fprintf(fp, "Output text file: %s\n", outTextFile);
+  if (outVecBase)
+    fprintf(fp, "Output tangent vector file base name: %s\n", outVecBase);
 
   return;
 }

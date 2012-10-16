@@ -1,15 +1,15 @@
 /**
- * @file  dmri_trk2trk.c
- * @brief Apply affine and non-linear warp to streamlines in .trk file
+ * @file  dmri_vox2vox.cxx
+ * @brief Apply affine and non-linear warp to voxel coordinates in text file
  *
- * Apply affine and non-linear warp to streamlines in .trk file
+ * Apply affine and non-linear warp to voxel coordinates in text file
  */
 /*
  * Original Author: Anastasia Yendiki
  * CVS Revision Info:
  *    $Author: nicks $
  *    $Date: 2012/10/16 21:56:15 $
- *    $Revision: 1.8.2.2 $
+ *    $Revision: 1.1.2.2 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -24,7 +24,6 @@
  */
 
 #include "vial.h"	// Needs to be included first because of CVS libs
-#include "TrackIO.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -68,11 +67,11 @@ int debug = 0, checkoptsonly = 0;
 int main(int argc, char *argv[]) ;
 
 static char vcid[] = "";
-const char *Progname = "dmri_trk2trk";
+const char *Progname = "dmri_vox2vox";
 
-int doInvNonlin = 0, doFill = 0, nin = 0, nout = 0, nvol = 0;
+int doInvNonlin = 0, nin = 0, nout = 0;
 char *inDir = NULL, *inFile[100],
-     *outDir = NULL, *outFile[100], *outVolFile[100],
+     *outDir = NULL, *outFile[100],
      *inRefFile = NULL, *outRefFile = NULL,
      *affineXfmFile = NULL, *nonlinXfmFile = NULL;
 
@@ -84,10 +83,9 @@ struct timeb cputimer;
 /*--------------------------------------------------*/
 int main(int argc, char **argv) {
   int nargs, cputime;
-  char fname[PATH_MAX], outorient[4];
-  vector<float> point(3), step(3, 0);
-  MATRIX *outv2r;
-  MRI *inref = 0, *outref = 0, *outvol = 0;
+  char fname[PATH_MAX];
+  vector<float> point(3);
+  MRI *inref = 0, *outref = 0;
   AffineReg affinereg;
 #ifndef NO_CVS_UP_IN_HERE
   NonlinReg nonlinreg;
@@ -119,13 +117,6 @@ int main(int argc, char **argv) {
   inref = MRIread(inRefFile);
   outref = MRIread(outRefFile);
 
-  if (nvol > 0)
-    outvol = MRIclone(outref, NULL);
-
-  // Output space orientation information
-  outv2r = MRIgetVoxelToRasXform(outref);
-  MRIdircosToOrientationString(outref, outorient);
-
   // Read transform files
 #ifndef NO_CVS_UP_IN_HERE
   if (nonlinXfmFile) {
@@ -137,192 +128,86 @@ int main(int argc, char **argv) {
   if (affineXfmFile)
     affinereg.ReadXfm(affineXfmFile, inref, outref);
 
-  for (int itrk = 0; itrk < nout; itrk++) {
-    int npts;
-    CTrackReader trkreader;
-    CTrackWriter trkwriter;
-    TRACK_HEADER trkheadin, trkheadout;
+  for (int k = 0; k < nout; k++) {
+    float coord;
+    ifstream infile;
+    ofstream outfile;
+    vector<float> inpts;
 
-    printf("Processing .trk file %d of %d...\n", itrk+1, nout);
+    printf("Processing coordinate file %d of %d...\n", k+1, nout);
     TimerStart(&cputimer);
 
-    // Open input .trk file
+    // Read input text file
     if (inDir)
-      sprintf(fname, "%s/%s", inDir, inFile[itrk]);
+      sprintf(fname, "%s/%s", inDir, inFile[k]);
     else
-      strcpy(fname, inFile[itrk]);
+      strcpy(fname, inFile[k]);
 
-    if (!trkreader.Open(fname, &trkheadin)) {
-      cout << "ERROR: Cannot open input file " << fname << endl;
-      cout << "ERROR: " << trkreader.GetLastErrorMessage() << endl;
+    infile.open(fname, ios::in);
+    if (!infile) {
+      cout << "ERROR: Could not open " << fname << " for reading" << endl;
       exit(1);
     }
 
-    if (nout > 0) {
-      // Set output .trk header
-      trkheadout = trkheadin;
+    inpts.clear();
+    while (infile >> coord)
+      inpts.push_back(coord);
 
-      trkheadout.voxel_size[0] = outref->xsize;
-      trkheadout.voxel_size[1] = outref->ysize;
-      trkheadout.voxel_size[2] = outref->zsize;
-
-      trkheadout.dim[0] = outref->width;
-      trkheadout.dim[1] = outref->height;
-      trkheadout.dim[2] = outref->depth;
-
-      for (int i = 0; i < 4; i++)
-        for (int j = 0; j < 4; j++)
-          trkheadout.vox_to_ras[i][j] = outv2r->rptr[i+1][j+1];
-
-      strcpy(trkheadout.voxel_order, outorient);
-
-      // Find patient-to-scanner coordinate transform:
-      // Take x and y vectors from vox2RAS matrix, convert to LPS,
-      // divide by voxel size
-      trkheadout.image_orientation_patient[0] = 
-        - trkheadout.vox_to_ras[0][0] / trkheadout.voxel_size[0];
-      trkheadout.image_orientation_patient[1] = 
-        - trkheadout.vox_to_ras[1][0] / trkheadout.voxel_size[0];
-      trkheadout.image_orientation_patient[2] = 
-          trkheadout.vox_to_ras[2][0] / trkheadout.voxel_size[0];
-      trkheadout.image_orientation_patient[3] = 
-        - trkheadout.vox_to_ras[0][1] / trkheadout.voxel_size[1];
-      trkheadout.image_orientation_patient[4] = 
-        - trkheadout.vox_to_ras[1][1] / trkheadout.voxel_size[1];
-      trkheadout.image_orientation_patient[5] = 
-          trkheadout.vox_to_ras[2][1] / trkheadout.voxel_size[1];
-
-      // Open output .trk file
-      if (outDir)
-        sprintf(fname, "%s/%s", outDir, outFile[itrk]);
-      else
-        strcpy(fname, outFile[itrk]);
-
-      if (!trkwriter.Initialize(fname, trkheadout)) {
-        cout << "ERROR: Cannot open output file " << fname << endl;
-        cout << "ERROR: " << trkwriter.GetLastErrorMessage() << endl;
-        exit(1);
-      }
+    if (inpts.size() % 3 != 0) {
+      cout << "ERROR: File " << fname
+           << " must contain triplets of coordinates" << endl;
+      exit(1);
     }
 
-    if (nvol > 0)
-      MRIclear(outvol);
+    infile.close();
 
-    while (trkreader.GetNextPointCount(&npts)) {
-      float *iraw, *rawpts = new float[npts*3];
-      vector<float> newpts;
+    for (vector<float>::iterator ipt = inpts.begin();
+                                 ipt < inpts.end(); ipt += 3) {
+      copy(ipt, ipt+3, point.begin());
 
-      // Read a streamline from input file
-      trkreader.GetNextTrackData(npts, rawpts);
-
-      iraw = rawpts;
-      for (int ipt = npts; ipt > 0; ipt--) {
-        // Divide by input voxel size and make 0-based to get voxel coords
-        for (int k = 0; k < 3; k++) {
-          point[k] = *iraw / trkheadin.voxel_size[k] - .5;
-          iraw++;
-        }
-
-        // Apply affine transform
-        if (!affinereg.IsEmpty())
-          affinereg.ApplyXfm(point, point.begin());
+      // Apply affine transform
+      if (!affinereg.IsEmpty())
+        affinereg.ApplyXfm(point, point.begin());
 
 #ifndef NO_CVS_UP_IN_HERE
-        // Apply nonlinear transform
-        if (!nonlinreg.IsEmpty()) {
-          if (doInvNonlin)
-            nonlinreg.ApplyXfmInv(point, point.begin());
-          else
-            nonlinreg.ApplyXfm(point, point.begin());
-        }
+      // Apply nonlinear transform
+      if (!nonlinreg.IsEmpty()) {
+        if (doInvNonlin)
+          nonlinreg.ApplyXfmInv(point, point.begin());
+        else
+          nonlinreg.ApplyXfm(point, point.begin());
+      }
 #endif
 
-        copy(point.begin(), point.end(), iraw-3);
-      }
-
-      iraw = rawpts;
-      for (int ipt = npts; ipt > 0; ipt--) {
-        float dmax = 1;		// This will not remove duplicate points
-
-        if (doFill && ipt > 1) {
-          // Calculate step for filling in gap between points
-          // Gaps could result when mapping to a higher-resolution space
-          for (int k = 0; k < 3; k++) {
-            float dist = iraw[k+3] - iraw[k];
-
-            step[k] = dist;
-            dist = fabs(dist);
-
-            if (dist > dmax)
-              dmax = dist;
-          }
-
-          if (dmax > 0)
-            for (int k = 0; k < 3; k++)
-              step[k] /= dmax;
-        }
-
-        copy(iraw, iraw+3, point.begin());
-
-        for (int istep = (int) round(dmax); istep > 0; istep--) {
-          // Write transformed point to volume
-          if (nvol > 0) {
-            int ix = (int) round(point[0]),
-                iy = (int) round(point[1]),
-                iz = (int) round(point[2]);
-
-            if (ix < 0)			ix = 0;
-            if (ix >= outvol->width)	ix = outvol->width-1;
-            if (iy < 0)			iy = 0;
-            if (iy >= outvol->height)	iy = outvol->height-1;
-            if (iz < 0)			iz = 0;
-            if (iz >= outvol->depth)	iz = outvol->depth-1;
-
-            MRIsetVoxVal(outvol, ix, iy, iz, 0,
-                         MRIgetVoxVal(outvol, ix, iy, iz, 0) + 1);
-          }
-
-          for (int k = 0; k < 3; k++) {
-            // Make .5-based and multiply back by output voxel size
-            newpts.push_back((point[k] + .5) * trkheadout.voxel_size[k]);
-
-            point[k] += step[k];
-          }
-        }
-
-        iraw += 3;
-      }
-
-      // Write transformed streamline to .trk file
-      if (nout > 0)
-        trkwriter.WriteNextTrack(newpts.size()/3, &newpts[0]);
-
-      delete[] rawpts;
+      copy(point.begin(), point.end(), ipt);
     }
 
-    if (nout > 0)
-      trkwriter.Close();
+    // Write output text file
+    if (outDir)
+      sprintf(fname, "%s/%s", outDir, outFile[k]);
+    else
+      strcpy(fname, outFile[k]);
 
-    if (nvol > 0) {
-      if (outDir)
-        sprintf(fname, "%s/%s", outDir, outVolFile[itrk]);
-      else
-        strcpy(fname, outVolFile[itrk]);
-
-      MRIwrite(outvol, fname);
+    outfile.open(fname, ios::out);
+    if (!outfile) {
+      cout << "ERROR: Could not open " << fname << " for writing" << endl;
+      exit(1);
     }
+
+    for (vector<float>::const_iterator ipt = inpts.begin();
+                                       ipt < inpts.end(); ipt += 3)
+        outfile << ipt[0] << " " << ipt[1] << " " << ipt[2] << endl;
+
+    outfile.close();
 
     cputime = TimerStop(&cputimer);
     printf("Done in %g sec.\n", cputime/1000.0);
   }
 
-  MatrixFree(&outv2r);
   MRIfree(&inref);
   MRIfree(&outref);
-  if (nvol > 0)
-    MRIfree(&outvol);
 
-  printf("dmri_trk2trk done\n");
+  printf("dmri_vox2vox done\n");
   return(0);
   exit(0);
 }
@@ -377,15 +262,6 @@ static int parse_commandline(int argc, char **argv) {
         nout++;
       }
     } 
-    else if (!strcmp(option, "--outvol")) {
-      if (nargc < 1) CMDargNErr(option,1);
-      nargsused = 0;
-      while (strncmp(pargv[nargsused], "--", 2)) {
-        outVolFile[nvol] = pargv[nargsused];
-        nargsused++;
-        nvol++;
-      }
-    } 
     else if (!strcmp(option, "--inref")) {
       if (nargc < 1) CMDargNErr(option,1);
       inRefFile = fio_fullpath(pargv[0]);
@@ -408,8 +284,6 @@ static int parse_commandline(int argc, char **argv) {
     }
     else if (!strcasecmp(option, "--invnl"))
       doInvNonlin = 1;
-    else if (!strcasecmp(option, "--fill"))
-      doFill = 1;
     else {
       fprintf(stderr,"ERROR: Option %s unknown\n",option);
       if (CMDsingleDash(option))
@@ -426,21 +300,19 @@ static int parse_commandline(int argc, char **argv) {
 static void print_usage(void) 
 {
   printf("\n");
-  printf("USAGE: ./dmri_trk2trk\n");
+  printf("USAGE: ./dmri_vox2vox\n");
   printf("\n");
   printf("Basic inputs\n");
   printf("   --in <file> [...]:\n");
-  printf("     Input .trk file(s)\n");
+  printf("     Input text file(s)\n");
   printf("   --indir <dir>:\n");
   printf("     Input directory (optional)\n");
-  printf("     If specified, names of input .trk files are relative to this\n");
+  printf("     If specified, names of input text files are relative to this\n");
   printf("   --out <file> [...]:\n");
-  printf("     Output .trk file(s), as many as inputs\n");
-  printf("   --outvol <file> [...]:\n");
-  printf("     Output volume(s), as many as inputs\n");
+  printf("     Output text file(s), as many as inputs\n");
   printf("   --outdir <dir>:\n");
   printf("     Output directory (optional)\n");
-  printf("     If specified, names of output .trk files and volumes are relative to this)\n");
+  printf("     If specified, names of output text files are relative to this)\n");
   printf("   --inref <file>:\n");
   printf("     Input reference volume\n");
   printf("   --outref <file>:\n");
@@ -451,9 +323,6 @@ static void print_usage(void)
   printf("     Nonlinear registration (.m3z), applied second\n");
   printf("   --invnl:\n");
   printf("     Apply inverse of nonlinear warp (with --regnl, default: no)\n");
-  printf("   --fill:\n");
-  printf("     Fill gaps b/w mapped points by linear interpolation\n");
-  printf("     (Default: don't fill)\n");
   printf("\n");
   printf("Other options\n");
   printf("   --debug:     turn on debugging\n");
@@ -487,19 +356,15 @@ static void print_version(void) {
 /* --------------------------------------------- */
 static void check_options(void) {
   if(nin == 0) {
-    printf("ERROR: must specify input .trk file(s)\n");
+    printf("ERROR: must specify input text file(s)\n");
     exit(1);
   }
-  if(nout == 0 && nvol == 0) {
-    printf("ERROR: must specify output .trk or volume file(s)\n");
+  if(nout == 0) {
+    printf("ERROR: must specify output text file(s)\n");
     exit(1);
   }
-  if(nout > 0 && nout != nin) {
-    printf("ERROR: must specify as many output .trk files as input files\n");
-    exit(1);
-  }
-  if(nvol > 0 && nvol != nin) {
-    printf("ERROR: must specify as many output volumes as input .trk files\n");
+  if(nout != nin) {
+    printf("ERROR: must specify as many output text files as input files\n");
     exit(1);
   }
   if(!inRefFile) {
@@ -538,12 +403,6 @@ static void dump_options(FILE *fp) {
       fprintf(fp, " %s", outFile[k]);
     fprintf(fp, "\n");
   }
-  if (nvol > 0) {
-    fprintf(fp, "Output volumes:");
-    for (int k = 0; k < nvol; k++)
-      fprintf(fp, " %s", outVolFile[k]);
-    fprintf(fp, "\n");
-  }
   fprintf(fp, "Input reference: %s\n", inRefFile);
   fprintf(fp, "Output reference: %s\n", outRefFile);
   if (affineXfmFile)
@@ -552,7 +411,6 @@ static void dump_options(FILE *fp) {
     fprintf(fp, "Nonlinear registration: %s\n", nonlinXfmFile);
     fprintf(fp, "Invert nonlinear morph: %d\n", doInvNonlin);
   }
-  fprintf(fp, "Fill gaps between points: %d\n", doFill);
 
   return;
 }
