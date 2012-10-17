@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl (Apr 16, 1997)
  * CVS Revision Info:
- *    $Author: mreuter $
- *    $Date: 2012/09/10 23:01:59 $
- *    $Revision: 1.201 $
+ *    $Author: greve $
+ *    $Date: 2012/10/17 19:23:56 $
+ *    $Revision: 1.202 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -140,7 +140,9 @@ int main(int argc, char *argv[])
   int frame_flag, mid_frame_flag;
   int frame;
   int subsample_flag, SubSampStart, SubSampDelta, SubSampEnd;
-  int downsample_flag ;
+  int downsample2_flag ;
+  int downsample_flag;
+  float downsample_factor[3];
   char in_name_only[STRLEN];
   char transform_fname[STRLEN];
   int transform_flag, invert_transform_flag;
@@ -209,7 +211,7 @@ int main(int argc, char *argv[])
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mri_convert.c,v 1.201 2012/09/10 23:01:59 mreuter Exp $",
+   "$Id: mri_convert.c,v 1.202 2012/10/17 19:23:56 greve Exp $",
    "$Name:  $",
    cmdline);
 
@@ -300,7 +302,9 @@ int main(int argc, char *argv[])
   frame_flag = FALSE;
   mid_frame_flag = FALSE;
   subsample_flag = FALSE;
+  downsample2_flag = FALSE;
   downsample_flag = FALSE;
+
   transform_flag = FALSE;
   smooth_parcellation_flag = FALSE;
   in_like_flag = FALSE;
@@ -331,7 +335,7 @@ int main(int argc, char *argv[])
     handle_version_option
     (
       argc, argv,
-      "$Id: mri_convert.c,v 1.201 2012/09/10 23:01:59 mreuter Exp $",
+      "$Id: mri_convert.c,v 1.202 2012/10/17 19:23:56 greve Exp $",
       "$Name:  $"
     );
   if (nargs && argc - nargs == 1)
@@ -914,6 +918,17 @@ int main(int argc, char *argv[])
       get_floats(argc, argv, &i, voxel_size, 3);
       voxel_size_flag = TRUE;
     }
+    else if(strcmp(argv[i], "-ds") == 0 ||
+            strcmp(argv[i], "--downsample") == 0 ||
+            strcmp(argv[i], "-downsample") == 0)
+    {
+      get_floats(argc, argv, &i, downsample_factor, 3);
+      downsample_flag = TRUE;
+    }
+    else if(strcmp(argv[i], "--downsample2") == 0)
+    {
+      downsample2_flag = TRUE;
+    }
     else if(strcmp(argv[i], "-ini") == 0 ||
             strcmp(argv[i], "-iic") == 0 ||
             strcmp(argv[i], "--in_i_count") == 0)
@@ -1111,10 +1126,6 @@ int main(int argc, char *argv[])
     {
       frame_flag = TRUE;
       mid_frame_flag = TRUE;
-    }
-    else if(strcmp(argv[i], "--downsample2") == 0)
-    {
-      downsample_flag = TRUE;
     }
     else if(strcmp(argv[i], "--fsubsample") == 0)
     {
@@ -1603,7 +1614,7 @@ int main(int argc, char *argv[])
             "= --zero_ge_z_offset option ignored.\n");
   }
 
-  printf("$Id: mri_convert.c,v 1.201 2012/09/10 23:01:59 mreuter Exp $\n");
+  printf("$Id: mri_convert.c,v 1.202 2012/10/17 19:23:56 greve Exp $\n");
   printf("reading from %s...\n", in_name_only);
 
   if (in_volume_type == MGH_MORPH)
@@ -1612,7 +1623,7 @@ int main(int argc, char *argv[])
     gcam = GCAMread(in_name_only) ;
     if (gcam == NULL)
       ErrorExit(ERROR_NOFILE, "%s: could not read input morph from %s", Progname, in_name_only) ;
-    if (downsample_flag)
+    if (downsample2_flag)
     {
       gcam_out = GCAMdownsample2(gcam) ;
     }
@@ -2567,6 +2578,32 @@ int main(int argc, char *argv[])
       template->zstart = - template->depth / 2;
       template->zend   = template->depth / 2;
 
+    }
+    else if ( downsample_flag )
+    {
+      template = MRIallocHeader(mri->width,
+                                mri->height,
+                                mri->depth,
+                                mri->type,
+                                mri->nframes);
+      MRIcopyHeader( mri, template );
+
+      template->nframes = mri->nframes ;
+
+      template->width  = (int)ceil( mri->width  / downsample_factor[0] );
+      template->height = (int)ceil( mri->height / downsample_factor[1] );
+      template->depth  = (int)ceil( mri->depth  / downsample_factor[2] );
+
+      template->xsize *= downsample_factor[0];
+      template->ysize *= downsample_factor[1];
+      template->zsize *= downsample_factor[2];
+
+      template->xstart = -template->xsize*template->width  / 2;
+      template->xend   =  template->xsize*template->width  / 2;
+      template->ystart = -template->ysize*template->height / 2;
+      template->yend   =  template->ysize*template->height / 2;
+      template->zstart = -template->zsize*template->depth  / 2;
+      template->zend   =  template->zsize*template->depth  / 2;
     }
   }
 
