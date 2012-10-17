@@ -8,9 +8,9 @@
 # Process this file with autoconf to produce a configure script.
 #
 # CVS Revision Info:
-#    $Author: nicks $
-#    $Date: 2012/10/15 20:49:00 $
-#    $Revision: 1.578 $
+#    $Author: mreuter $
+#    $Date: 2012/10/17 22:25:12 $
+#    $Revision: 1.579 $
 #
 ########################################################################
 AC_PREREQ(2.57)
@@ -3748,6 +3748,7 @@ AC_OUTPUT([Makefile
            qdecproject/Makefile
            vtkfsio/Makefile
            vtkutils/Makefile
+           lineprof/Makefile
            xml2/Makefile])
 
 #           mri_edit_seg_with_ribbons/Makefile
