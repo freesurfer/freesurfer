@@ -6,21 +6,19 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2008/08/26 02:18:00 $
- *    $Revision: 1.4 $
+ *    $Author: nicks $
+ *    $Date: 2012/10/17 19:11:32 $
+ *    $Revision: 1.6.2.1 $
  *
- * Copyright (C) 2002-2007,
- * The General Hospital Corporation (Boston, MA). 
- * All rights reserved.
+ * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
- * Distribution, usage and copying of this software is covered under the
- * terms found in the License Agreement file named 'COPYING' found in the
- * FreeSurfer source code root directory, and duplicated here:
- * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ * Terms and conditions for use, reproduction, distribution and contribution
+ * are found in the 'FreeSurfer Software License Agreement' contained
+ * in the file 'LICENSE' found in the FreeSurfer distribution, and here:
  *
- * General inquiries: freesurfer@nmr.mgh.harvard.edu
- * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
+ *
+ * Reporting: freesurfer@nmr.mgh.harvard.edu
  *
  */
 
@@ -324,7 +322,7 @@ CAtrain(CA *ca, VOXEL_LIST *vl, MRI *mri_norm, MRI *mri_aseg,
 
   ca->c1_label = target_label ;
   ca->c2_label = source_label ;
-  VLSTtransformCoords(vl, ca->m_vox2index) ;
+  VLSTtransformCoords(vl, ca->m_vox2index, 0) ;
   mri_normals = caComputeSurfaceNormals(mri_aseg, NULL, source_label) ;
 
   for (i = 0 ; i < vl->nvox ; i++)
@@ -740,10 +738,10 @@ caComputeSurfaceNormals(MRI *mri_aseg, MRI *mri_normals, int label)
   for (i = 0 ; i < 3 ; i++)  // dx, dy, dz
   {
     mri_tmp = MRIcopyFrame(mri_normals, NULL, i, 0) ;
-    mri_tmp2 = MRIsoapBubble(mri_tmp, mri_ctrl, NULL, 50) ;
-    MRIsoapBubble(mri_tmp2, mri_ctrl, mri_tmp, 50) ;
+    mri_tmp2 = MRIsoapBubble(mri_tmp, mri_ctrl, NULL, 50, 1) ;
+    MRIsoapBubble(mri_tmp2, mri_ctrl, mri_tmp, 50, 1) ;
 #if 0
-    MRIsoapBubble(mri_tmp, mri_ctrl, mri_tmp2, 50) ;
+    MRIsoapBubble(mri_tmp, mri_ctrl, mri_tmp2, 50, 1) ;
     MRImean(mri_tmp2, mri_tmp, 5) ;
 #endif
     MRIcopyFrame(mri_tmp, mri_normals, 0, i) ;

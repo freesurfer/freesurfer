@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2012/08/28 22:11:22 $
- *    $Revision: 1.74.2.1 $
+ *    $Date: 2012/10/17 19:11:33 $
+ *    $Revision: 1.74.2.2 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -3192,7 +3192,7 @@ MRIapply3DMorph(MRI *mri_in, MORPH_3D *m3d, MRI *mri_morphed)
   MRIfree(&mri_weights) ;
 #endif
   MRIbuildVoronoiDiagram(mri_morphed, mri_ctrl, mri_morphed) ;
-  MRIsoapBubble(mri_morphed, mri_ctrl, mri_morphed, 5) ;
+  MRIsoapBubble(mri_morphed, mri_ctrl, mri_morphed, 5, -1) ;
 
   MRIfree(&mri_ctrl) ;
   return(mri_morphed) ;

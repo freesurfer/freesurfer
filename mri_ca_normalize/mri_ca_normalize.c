@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2012/08/28 22:11:21 $
- *    $Revision: 1.52.2.1 $
+ *    $Date: 2012/10/17 19:11:32 $
+ *    $Revision: 1.52.2.2 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -161,13 +161,13 @@ main(int argc, char *argv[])
   FSinit() ;
   make_cmd_version_string
   (argc, argv,
-   "$Id: mri_ca_normalize.c,v 1.52.2.1 2012/08/28 22:11:21 nicks Exp $",
+   "$Id: mri_ca_normalize.c,v 1.52.2.2 2012/10/17 19:11:32 nicks Exp $",
    "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mri_ca_normalize.c,v 1.52.2.1 2012/08/28 22:11:21 nicks Exp $",
+           "$Id: mri_ca_normalize.c,v 1.52.2.2 2012/10/17 19:11:32 nicks Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
   {
@@ -1573,7 +1573,7 @@ normalize_from_segmentation_volume
     mri_dst = normalizeChannelFromLabel(mri_src, mri_dst, mri_bin, fas, i);
   }
 
-  MRInormGentlyFindControlPoints(mri_dst, 110, 20, 10, mri_bin) ;
+  MRInormGentlyFindControlPoints(mri_dst, 110, 20, 10, mri_bin, NULL) ;
   // remove control points that don't agree with the seg
   for (x = 0 ; x < mri_dst->width ; x++)
     for (y = 0 ; y < mri_dst->height ; y++)
@@ -1757,7 +1757,7 @@ normalizeFromLabel(MRI *mri_in, MRI *mri_dst, MRI *mri_seg, double *fas)
     MRIfree(&mri_kernel) ;
   }
 #else
-  MRIsoapBubble(mri_bias, mri_ctrl, mri_bias, 10) ;
+  MRIsoapBubble(mri_bias, mri_ctrl, mri_bias, 10, -1) ;
 #endif
   /*  MRIwrite(mri_bias, "smooth_bias.mgh") ;*/
 
@@ -1957,7 +1957,7 @@ normalizeChannelFromLabel(MRI *mri_in, MRI *mri_dst, MRI *mri_seg,
     MRIfree(&mri_kernel) ;
   }
 #else
-  MRIsoapBubble(mri_bias, mri_ctrl, mri_bias, 10) ;
+  MRIsoapBubble(mri_bias, mri_ctrl, mri_bias, 10, -1) ;
 #endif
   /*  MRIwrite(mri_bias, "smooth_bias.mgh") ;*/
 

@@ -7,21 +7,19 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: mreuter $
- *    $Date: 2009/03/04 19:20:36 $
- *    $Revision: 1.30 $
+ *    $Author: nicks $
+ *    $Date: 2012/10/17 19:11:31 $
+ *    $Revision: 1.31.2.1 $
  *
- * Copyright (C) 2002-2007,
- * The General Hospital Corporation (Boston, MA). 
- * All rights reserved.
+ * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
- * Distribution, usage and copying of this software is covered under the
- * terms found in the License Agreement file named 'COPYING' found in the
- * FreeSurfer source code root directory, and duplicated here:
- * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ * Terms and conditions for use, reproduction, distribution and contribution
+ * are found in the 'FreeSurfer Software License Agreement' contained
+ * in the file 'LICENSE' found in the FreeSurfer distribution, and here:
  *
- * General inquiries: freesurfer@nmr.mgh.harvard.edu
- * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
+ *
+ * Reporting: freesurfer@nmr.mgh.harvard.edu
  *
  */
 
@@ -115,21 +113,21 @@ int MRInormCheckPeaks(MNI *mni, float *inputs, float *outputs, int npeaks) ;
 
 MRI *MRInormFindControlPoints(MRI *mri_src, int wm_target,
                               float intensity_above, float intensity_below,
-                              MRI *mri_ctrl, int which, int scan_type) ;
+                              MRI *mri_ctrl, int which, int scan_type, MRI *mri_not_control) ;
 MRI *MRInormalizeHighSignalLowStd(MRI *mri_src, MRI *mri_dst, float bias_sigma, float wm_target) ;
 MRI *MRInormFindHighSignalLowStdControlPoints(MRI *mri_src, MRI *mri_ctrl) ;
 MRI *MRInormGentlyFindControlPoints(MRI *mri_src, int wm_target,
                                     float intensity_above,
-                                    float intensity_below, MRI *mri_ctrl) ;
+                                    float intensity_below, MRI *mri_ctrl, MRI *mri_not_control) ;
 MRI *MRIbuildBiasImage(MRI *mri_src,MRI *mri_ctrl, MRI *mri_bias, float sigma);
 MRI *MRI3dNormalize(MRI *mri_orig, MRI *mri_src, int wm_target, MRI *mri_norm,
                     float intensity_above, float intensity_below,
-                    int only_file, int prune, float sigma, int scan_type);
+                    int only_file, int prune, float sigma, int scan_type, MRI *mri_not_control);
 MRI *MRI3dGentleNormalize(MRI *mri_src, MRI *mri_bias, int wm_target,
                           MRI *mri_norm, float intensity_above,
-                          float intensity_below, int only_file, float bias_sigma);
+                          float intensity_below, int only_file, float bias_sigma, MRI *mri_not_control);
 MRI *MRIbuildVoronoiDiagram(MRI *mri_src, MRI *mri_ctrl, MRI *mri_dst);
-MRI *MRIsoapBubble(MRI *mri_src, MRI *mri_ctrl, MRI *mri_dst,int niter);
+MRI *MRIsoapBubble(MRI *mri_src, MRI *mri_ctrl, MRI *mri_dst,int niter, float min_change);
 MRI *MRIsoapBubbleExpand(MRI *mri_src, MRI *mri_ctrl, MRI *mri_dst,int niter);
 int MRI3dUseFileControlPoints(MRI *mri,const char *fname) ;
 int MRI3dWriteControlPoints(char *control_volume_fname) ;
@@ -140,7 +138,7 @@ MRI *MRInormFindControlPointsInWindow(MRI *mri_src, int wm_target,
                                       float intensity_above,
                                       float intensity_below, MRI *mri_ctrl,
                                       float whalf_mm,const char *debug_str,
-                                      int *pnctrl, int scan_type);
+                                      int *pnctrl, int scan_type, MRI *mri_not_control);
 MRI *MRIapplyBiasCorrection(MRI *mri_in, MRI *mri_bias, MRI *mri_out) ;
 
 #endif

@@ -13,9 +13,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2012/09/10 18:14:54 $
- *    $Revision: 1.292.2.4 $
+ *    $Author: nicks $
+ *    $Date: 2012/10/17 19:11:32 $
+ *    $Revision: 1.292.2.5 $
  *
  * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -11420,7 +11420,7 @@ void GCAnormalizeSamplesOneChannel(MRI *mri_in, GCA *gca,
   else  // if manually specified control points, don't let them be overwhelmed
   {
     MRI *mri_kernel, *mri_smooth ;
-    mri_smooth = MRIsoapBubble(mri_bias, mri_ctrl, NULL, 10) ;
+    mri_smooth = MRIsoapBubble(mri_bias, mri_ctrl, NULL, 10, -1) ;
     mri_kernel = MRIgaussian1d(bias_sigma, 100) ;
     MRIconvolveGaussian(mri_smooth, mri_bias, mri_kernel) ;
     if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
@@ -11762,7 +11762,7 @@ GCAnormalizeSamplesT1PD(MRI *mri_in, GCA *gca,
     MRIfree(&mri_kernel) ;
   }
 #else
-  MRIsoapBubble(mri_bias, mri_ctrl, mri_bias, 10) ;
+  MRIsoapBubble(mri_bias, mri_ctrl, mri_bias, 10, -1) ;
 #endif
   /*  MRIwrite(mri_bias, "smooth_bias.mgz") ;*/
 
@@ -14391,9 +14391,9 @@ GCArenormalizeLabels(MRI *mri_in,
     MRIfree(&mri_control) ;
     mri_control = mri_tmp ;
 
-    MRIsoapBubble(mri_means, mri_control, mri_means, 10) ;
+    MRIsoapBubble(mri_means, mri_control, mri_means, 10, -1) ;
     MRIclear(mri_control) ;
-    MRIsoapBubble(mri_means, mri_control, mri_means, 1) ;
+    MRIsoapBubble(mri_means, mri_control, mri_means, 1, -1) ;
 
     if (DIAG_VERBOSE_ON && Gdiag & DIAG_WRITE)
     {
