@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2012/08/28 18:37:46 $
- *    $Revision: 1.97 $
+ *    $Author: fischl $
+ *    $Date: 2012/10/17 19:06:11 $
+ *    $Revision: 1.98 $
  *
  * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -3564,28 +3564,36 @@ MRI *
 MRIreduce(MRI *mri_src, MRI *mri_dst)
 {
   int     width, height, depth ;
-  MRI     *mtmp1, *mtmp2 ;
+  MRI     *mtmp1, *mtmp2 = NULL ;
   MATRIX  *m_vox2ras, *m_scale, *m_tmp ;
 
   width = mri_src->width ;
   height = mri_src->height ;
   depth = mri_src->depth ;
 
-  if (width <= 1 || height <= 1 || depth <= 1)
+  if (width <= 1 || height <= 1 /* || depth <= 1*/)
     ErrorExit(ERROR_BADPARM, "MRIreduce: insufficient dimension (%d, %d, %d)",
               width, height, depth) ;
 
   mtmp1 = MRIconvolve1d(mri_src, NULL, kernel, KERNEL_SIZE, MRI_WIDTH, 0,0) ;
-  // null then create MRI_FLOAT volume
-  mtmp2 = MRIconvolve1d(mtmp1, NULL, kernel, KERNEL_SIZE, MRI_HEIGHT, 0,0) ;
-  // again MRI_FLOAT volume
-  MRIfree(&mtmp1) ;
-  // half dimensions of the original
-  mri_dst = MRIreduce1d(mtmp2, mri_dst, kernel, KERNEL_SIZE, MRI_DEPTH) ;
+  if (depth > 1)
+  {
+    // again MRI_FLOAT volume
+    mtmp2 = MRIconvolve1d(mtmp1, NULL, kernel, KERNEL_SIZE, MRI_HEIGHT, 0,0) ;
+    // half dimensions of the original
+    mri_dst = MRIreduce1d(mtmp2, mri_dst, kernel, KERNEL_SIZE, MRI_DEPTH) ;
+    // null then create MRI_FLOAT volume
+    MRIfree(&mtmp1) ;
+  }
+  else
+  {
+    mri_dst = MRIreduce1d(mtmp1, mri_dst, kernel, KERNEL_SIZE, MRI_HEIGHT) ;
+  }
+
 
   MRIcopyHeader(mri_src, mri_dst) ;
   MRIsetResolution(mri_dst,
-                   mri_src->xsize*2, mri_src->ysize*2, mri_src->zsize*2) ;
+                   mri_src->xsize*2, mri_src->ysize*2, depth == 1 ? mri_src->zsize : mri_src->zsize*2) ;
   mri_dst->xstart = mri_src->xstart ;
   mri_dst->ystart = mri_src->ystart ;
   mri_dst->zstart = mri_src->zstart ;
@@ -3596,7 +3604,7 @@ MRIreduce(MRI *mri_src, MRI *mri_dst)
   m_scale = MatrixIdentity(4, NULL) ;
   *MATRIX_RELT(m_scale, 1,1) = 2.0;
   *MATRIX_RELT(m_scale, 2,2) = 2.0 ;
-  *MATRIX_RELT(m_scale, 3,3) = 2.0;
+  *MATRIX_RELT(m_scale, 3,3) = depth == 1 ? 1.0 : 2.0;
   m_tmp = MatrixMultiply(m_vox2ras, m_scale, NULL) ;
   MatrixFree(&m_vox2ras) ;
   MatrixFree(&m_scale) ;
@@ -3605,7 +3613,8 @@ MRIreduce(MRI *mri_src, MRI *mri_dst)
   MatrixFree(&m_vox2ras) ;
   //  MRImodifySampledHeader(mri_src, mri_dst);
 
-  MRIfree(&mtmp2) ;
+  if (mtmp2)
+    MRIfree(&mtmp2) ;
 
   return(mri_dst) ;
 }
