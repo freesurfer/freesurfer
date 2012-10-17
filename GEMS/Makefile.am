@@ -851,6 +851,7 @@ uninstall-hook:
 EXTRA_DIST=\
 	gzstream.h \
 	itkAffine3DTransform.h \
+	kvlParameterOrderPowellOptimizer.h \
 	kvlAtlasMeshAlphaDrawer.h \
 	kvlAtlasMeshBuilder.h \
 	kvlAtlasMeshCollectionFastReferencePositionCost.h \
