@@ -7,9 +7,9 @@
 #
 # Original Author: Anastasia Yendiki
 # CVS Revision Info:
-#    $Author: ayendiki $
-#    $Date: 2011/09/02 19:21:03 $
-#    $Revision: 1.22.2.9 $
+#    $Author: nicks $
+#    $Date: 2012/10/17 18:33:11 $
+#    $Revision: 1.22.2.10 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -25,16 +25,16 @@
 
 umask 002
 
-set VERSION = '$Id: trac-all,v 1.22.2.9 2011/09/02 19:21:03 ayendiki Exp $'
+set VERSION = '$Id: trac-all,v 1.22.2.10 2012/10/17 18:33:11 nicks Exp $'
 set ProgName = `basename $0`
 set inputargs = ($argv)
 
-if ($?PBS_JOBID) then
-  echo "ERROR: Do not submit $ProgName as a job with pbsubmit or qsub."
-  echo "ERROR: Run it directly on the command line."
-  echo "ERROR: If run on the cluster, $ProgName will submit the jobs for you."
-  echo "ERROR: Each subject listed in your dmrirc will be submitted as a job."
-  exit 1
+if ($?PBS_JOBID && `domainname` == nmr.mgh.harvard.edu) then
+  echo "WARN: The intended usage of $ProgName is not to submit it as a job."
+  echo "WARN: It is to be run directly on the command line."
+  echo "WARN: If run on the cluster, $ProgName will submit the jobs for you."
+  echo "WARN: Each subject listed in your dmrirc will be submitted as a job."
+  echo "WARN: If run on a single node, it will run everything serially."
 endif
 
 set onpbs = 0
@@ -152,6 +152,7 @@ set nsample = 5000
 set nupdate = 0
 set nkeep = 5
 set doinitprop = 0
+set overwrite = 1
 set trcdir = $FREESURFER_HOME/bin
 
 # Parse command line arguments
@@ -430,6 +431,7 @@ foreach isubj ($runlist)
   echo "set nupdate = ($nupdate)"					>> $RCF
   echo "set nkeep = ($nkeep)"						>> $RCF
   echo "set doinitprop = ($doinitprop)"					>> $RCF
+  echo "set overwrite = ($overwrite)"					>> $RCF
   echo "set trcdir = ($trcdir)"						>> $RCF
 
   set dmdirlist = ($dmdirlist $dtdir/dmri)
@@ -478,7 +480,7 @@ foreach isubj ($runlist)
         |& tee -a $LF
       echo "WARN: It is recommended to run this step on a cluster" \
         |& tee -a $LF
-      set cmd = (bedpostx_seychelles $dtdir/dmri)
+      set cmd = (bedpostx_mgh $dtdir/dmri)
       echo $cmd |& tee -a $LF |& tee -a $CF
       if ($RunIt) then
         $cmd |& tee -a $LF
@@ -507,23 +509,23 @@ if ($onpbs && $RunIt) then
   if ($dopreproc) then
     if (! $?MYPBSWAIT) setenv MYPBSWAIT 30
     if ($doregcvs) then
-      if ($hname == launchpad)  setenv MYPBSARCH "ppn=2"
+      if ($hname == launchpad)  setenv MYPBSARCH "ppn=4,vmem=28gb"
       if ($hname == seychelles)	setenv MYPBSARCH "bigmem:ppn=2"
     endif
     echo Queueing pre-processing
-    set preid = `fsl_sub_seychelles \
+    set preid = `fsl_sub_mgh \
                  -l $pbslogdir/log -m a -N trcpre -t $submitfile`
   else if ($dobedpost) then
     if (! $?MYPBSWAIT) setenv MYPBSWAIT 0
-    bedpostx_seychelles $dmdirlist
+    bedpostx_mgh $dmdirlist
   else if ($dopaths) then
     if (! $?MYPBSWAIT) setenv MYPBSWAIT 30
     if ($doregcvs) then
-      if ($hname == launchpad)  setenv MYPBSARCH "ppn=2"
+      if ($hname == launchpad)  setenv MYPBSARCH "ppn=4,vmem=28gb"
       if ($hname == seychelles)	setenv MYPBSARCH "bigmem:ppn=2"
     endif
     echo Queueing path reconstruction
-    set trcid = `fsl_sub_seychelles \
+    set trcid = `fsl_sub_mgh \
                  -l $pbslogdir/log -m a -N trc -t $submitfile`
   endif
 endif
@@ -780,22 +782,18 @@ arg1err:
 ############--------------##################
 check_params:
   if (! $DoVersionsOnly) then
-    if ($doregcvs) then
-      echo "WARN: CVS template is unavailable in the current version"
-      set doregcvs = 0
-    endif
-    if (! $doregmni) then
-      echo "WARN: MNI is the only available inter-subject registration template"
-      set doregmni = 1
-    endif
-
     if (-e $trainfile) then
       if ($do1out) then
         # Leave-one-out training file:
         # The first subject of each line is the test subject,
         # the remaining subjects of the line are the training subjects
         set subjlist = `cat $trainfile | awk '{print $1}'`
-        set runlist = `jot - 1 $#subjlist 1`
+
+        set runlist = 1
+        while ($runlist[$#runlist] < $#subjlist)
+          set runlist = ($runlist `echo $runlist[$#runlist] + 1 | bc`)
+        end
+
         if (! $#ntrainlist) then
           set ntrainlist = `head -1 $trainfile | wc -w | awk '{print $1 - 1}'`
         endif
@@ -820,7 +818,10 @@ check_params:
     endif
 
     if (! $#runlist) then		# Process all subjects
-      set runlist = `jot $#subjlist`
+      set runlist = 1
+      while ($runlist[$#runlist] < $#subjlist)
+        set runlist = ($runlist `echo $runlist[$#runlist] + 1 | bc`)
+      end
     endif
 
     if (! $?SUBJECTS_DIR) then
