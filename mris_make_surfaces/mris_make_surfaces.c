@@ -12,8 +12,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2012/10/17 21:45:13 $
- *    $Revision: 1.133 $
+ *    $Date: 2012/10/17 22:06:51 $
+ *    $Revision: 1.134 $
  *
  * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -56,7 +56,7 @@
 #define CONTRAST_FLAIR 2
 
 static char vcid[] =
-  "$Id: mris_make_surfaces.c,v 1.133 2012/10/17 21:45:13 nicks Exp $";
+  "$Id: mris_make_surfaces.c,v 1.134 2012/10/17 22:06:51 nicks Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -199,6 +199,7 @@ static float pial_sigma = 2.0f ;
 static float white_sigma = 2.0f ;
 static float max_thickness = 5.0 ;
 
+static float variablesigma = 3.0;
 
 #define MAX_WHITE             120
 #define MAX_BORDER_WHITE      105
@@ -264,13 +265,13 @@ main(int argc, char *argv[])
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mris_make_surfaces.c,v 1.133 2012/10/17 21:45:13 nicks Exp $",
+   "$Id: mris_make_surfaces.c,v 1.134 2012/10/17 22:06:51 nicks Exp $",
    "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mris_make_surfaces.c,v 1.133 2012/10/17 21:45:13 nicks Exp $",
+           "$Id: mris_make_surfaces.c,v 1.134 2012/10/17 22:06:51 nicks Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
   {
@@ -577,7 +578,7 @@ main(int argc, char *argv[])
     }
     if (!max_csf_set)
     {
-      max_csf = gray_mean-2*gray_std ;
+      max_csf = gray_mean - variablesigma*gray_std ;
     }
     if (!min_border_white_set)
     {
@@ -602,7 +603,7 @@ main(int argc, char *argv[])
     }
     if (!min_gray_at_csf_border_set)
     {
-      min_gray_at_csf_border = gray_mean - 3*gray_std ;
+      min_gray_at_csf_border = gray_mean - variablesigma*gray_std ;
     }
     fprintf(stderr, "setting MAX_GRAY to %2.1f (was %d)\n",
             max_gray, MAX_GRAY) ;
@@ -726,7 +727,7 @@ main(int argc, char *argv[])
       }
       if (!max_csf_set)
       {
-        max_csf = gray_mean-2*gray_std ;
+        max_csf = gray_mean - variablesigma*gray_std ;
       }
       if (!min_border_white_set)
       {
@@ -752,7 +753,7 @@ main(int argc, char *argv[])
       }
       if (!min_gray_at_csf_border_set)
       {
-        min_gray_at_csf_border = gray_mean - 3*gray_std ;
+        min_gray_at_csf_border = gray_mean - variablesigma*gray_std ;
       }
       fprintf(stderr, "setting MAX_GRAY to %2.1f (was %d)\n",
               max_gray, MAX_GRAY) ;
@@ -806,7 +807,7 @@ main(int argc, char *argv[])
         MRIScomputeBorderValues
         (mris, mri_T1, mri_smooth, max_gray,
          max_gray_at_csf_border, min_gray_at_csf_border,
-         min_csf,(max_csf+max_gray_at_csf_border)/2,
+         min_csf,(max_csf+min_gray_at_csf_border)/2,
          current_sigma, 2*max_thickness, parms.fp,
          GRAY_CSF, mri_ratio, thresh) ;
       MRISaddToValues(mris, white_target_offset) ;
@@ -1685,7 +1686,7 @@ main(int argc, char *argv[])
         MRIScomputeBorderValues
         (mris, mri_T1, mri_smooth, max_gray,
          max_gray_at_csf_border, min_gray_at_csf_border,
-         min_csf,(max_csf+max_gray_at_csf_border)/2,
+         min_csf,(max_csf+min_gray_at_csf_border)/2,
          current_sigma, 2*max_thickness, parms.fp,
          GRAY_CSF, mri_mask, thresh) ;
         MRImask(mri_T1, mri_labeled, mri_T1, BRIGHT_LABEL, 0) ;
@@ -2211,6 +2212,11 @@ get_option(int argc, char *argv[])
   {
     min_gray_at_csf_border_set = 1 ;
     min_gray_at_csf_border = atof(argv[2]) ;
+    nargs = 1 ;
+  }
+  else if (!stricmp(option, "variablesigma"))
+  {
+    variablesigma = atof(argv[2]) ;
     nargs = 1 ;
   }
   else if (!stricmp(option, "min_csf"))
