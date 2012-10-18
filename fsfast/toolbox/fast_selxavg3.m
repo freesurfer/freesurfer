@@ -1,6 +1,6 @@
 % fast_selxavg3.m
 %
-% $Id: fast_selxavg3.m,v 1.104 2011/12/21 16:28:02 greve Exp $
+% $Id: fast_selxavg3.m,v 1.105 2012/10/18 19:47:22 greve Exp $
 
 
 %
@@ -9,8 +9,8 @@
 % Original Author: Doug Greve
 % CVS Revision Info:
 %    $Author: greve $
-%    $Date: 2011/12/21 16:28:02 $
-%    $Revision: 1.104 $
+%    $Date: 2012/10/18 19:47:22 $
+%    $Revision: 1.105 $
 %
 % Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 %
@@ -31,7 +31,7 @@ fprintf('%s\n',sess);
 
 
 fprintf('-------------------------\n');
-fprintf('$Id: fast_selxavg3.m,v 1.104 2011/12/21 16:28:02 greve Exp $\n');
+fprintf('$Id: fast_selxavg3.m,v 1.105 2012/10/18 19:47:22 greve Exp $\n');
 which fast_selxavg3
 which fast_ldanaflac
 which MRIread
@@ -58,7 +58,7 @@ if(isempty(flac0))
   if(~monly) quit; end
   return; 
 end
-flac0.sxaversion = '$Id: fast_selxavg3.m,v 1.104 2011/12/21 16:28:02 greve Exp $';
+flac0.sxaversion = '$Id: fast_selxavg3.m,v 1.105 2012/10/18 19:47:22 greve Exp $';
 
 flac0.sess = sess;
 flac0.nthrun = 1;
@@ -1024,8 +1024,15 @@ if(DoContrasts)
       MRIwrite(pcc,fname);
     end
 
-    if(flac.IsRetinotopy)
-      if(strcmp(conname,'eccen') | strcmp(conname,'polar'))
+    zscoremat = fast_p2z(pmat/2); % Div by 2 to make it one-sided
+    if(J==1) zscoremat = zscoremat.*sign(cesmat); end
+    zscore = mri;
+    zscore.vol = fast_mat2vol(zscoremat,zscore.volsize);
+    fname = sprintf('%s/z.%s',outcondir,ext);
+    MRIwrite(zscore,fname);
+
+    if(flac.IsRetinotopy | flac.IsABBlocked)
+      if(strcmp(conname,'eccen') | strcmp(conname,'polar') | strcmp(conname,'fund'))
 	cesreal = ces;	cesreal.vol = ces.vol(:,:,:,1);
 	cesimag = ces;	cesimag.vol = ces.vol(:,:,:,2);
 	if(~isempty(flac0.subject) & strcmp(flac0.hemi,'rh') & ...
