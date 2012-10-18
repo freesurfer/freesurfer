@@ -1,12 +1,14 @@
 function z = fast_p2z(p)
 % z = fast_p2z(p)
 %
-% Converts a significance to a z-score. p must be
-% between -1 and 1
+% Converts a significance to a z-score. p is assumed to be
+% one-sided (if p is signed, then the z gets the sign of p)
 %
-%
-%
-
+%  z = sqrt(2)*erfcinv(2*abs(p)) .* sign(p);
+% Check:
+%  r = randn(100000,1);
+%  phat = length(find(r>z))/length(r)
+%  phat should be same as p (approx)
 
 %
 % fast_p2z.m
@@ -14,20 +16,18 @@ function z = fast_p2z(p)
 % Original Author: Doug Greve
 % CVS Revision Info:
 %    $Author: greve $
-%    $Date: 2007/04/02 23:06:44 $
-%    $Revision: 1.3 $
+%    $Date: 2012/10/18 19:46:59 $
+%    $Revision: 1.4.2.1 $
 %
-% Copyright (C) 2002-2007,
-% The General Hospital Corporation (Boston, MA). 
-% All rights reserved.
+% Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 %
-% Distribution, usage and copying of this software is covered under the
-% terms found in the License Agreement file named 'COPYING' found in the
-% FreeSurfer source code root directory, and duplicated here:
-% https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+% Terms and conditions for use, reproduction, distribution and contribution
+% are found in the 'FreeSurfer Software License Agreement' contained
+% in the file 'LICENSE' found in the FreeSurfer distribution, and here:
 %
-% General inquiries: freesurfer@nmr.mgh.harvard.edu
-% Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+% https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
+%
+% Reporting: freesurfer@nmr.mgh.harvard.edu
 %
 
 z = [];
