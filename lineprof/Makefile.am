@@ -62,10 +62,19 @@ LineProfTest_SOURCES=LineProfTest.cpp
 
 LineProfTest_LDADD=\
 	$(top_builddir)/lineprof/liblineprof.a \
-	$(VTK_LIBS) \
+	$(VTK_LIBS) $(VTK_VERDICT_LIB) $(VTK_SQLITE_LIB) \
+	-lvtkIO -lvtkWidgets -lvtkGraphics \
+	-lvtkImaging -lvtkFiltering \
+	-lvtkCommon -lvtksys \
+	-lvtkHybrid -lvtkexoIIc -lvtkNetCDF -lvtkDICOMParser \
+	-lvtkVolumeRendering -lvtkRendering -lvtkftgl \
+	-lexpat $(VTK_EXPAT_LIB) $(VTK_FREETYPE_LIB) \
+	-ltiff $(VTK_TIFF_LIB) -ljpeg $(VTK_JPEG_LIB) \
+	$(VTK_PNG_LIB) $(VTK_Z_LIB) $(VTK_METAIO_LIB) \
   $(ITK_LIBS) \
-  $(PETSC_LIBS)
-
+  $(PETSC_LIBS) -lpetscts -lpetscsnes -lpetscksp \
+  -lpetscdm -lpetscmat -lpetscvec -lpetsc -lmpich -lfmpich \
+  $(LIB_LAPACK_A) $(LIB_BLAS_A) -lgfortran
 
 EXTRA_DIST=  \
 PetscSolver.h \

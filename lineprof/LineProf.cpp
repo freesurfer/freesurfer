@@ -228,7 +228,7 @@ double LineProf::pointDistance(const std::vector < double >& pt1,
 
 
 
-int InitializePackage()
+int LineProf::InitializePetsc()
 {
   PetscInitialize(0, 0,(char*)0,NULL);
   PetscMPIInt mpiSize;
@@ -236,7 +236,7 @@ int InitializePackage()
   return 1;
 }
 
-int Finalize()
+int LineProf::FinalizePetsc()
 {
   PetscFinalize();
   return 1;

@@ -16,6 +16,7 @@ public:
            const std::vector < int >& segment1,
            const std::vector < int >& segmentL,
            const std::vector < int >& segmentR);
+  ~LineProf() { if (_tracer) delete _tracer; };
   
   void solveLaplace(int paddingL, int paddingR,
                     double dresolution,
@@ -27,7 +28,17 @@ public:
   std::vector < std::vector < std::vector < double > > >
   ComputeIsolines(const std::vector < double >& vec, double x0, double y0);
 
+  static int InitializePetsc();
+  static int FinalizePetsc();
+
 private:
+  
+  vtkPolyData* GetPolyData();
+  
+  std::vector < std::vector < double > > ConvertLine(const Tracer::LineType& line);
+  
+  double pointDistance(const std::vector < double >& pt1,
+                       const std::vector < double >& pt2);
   
   std::vector < std::vector < double > > _points2d;
   std::vector < int > _segment0;
@@ -36,13 +47,6 @@ private:
   std::vector < int > _segmentR;
   Tracer* _tracer;
 
-  vtkPolyData* GetPolyData();
-  
-  std::vector < std::vector < double > > ConvertLine(const Tracer::LineType& line);
-  
-  double pointDistance(const std::vector < double >& pt1,
-                       const std::vector < double >& pt2);
-  
 };
 
 

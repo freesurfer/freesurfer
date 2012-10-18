@@ -8,8 +8,8 @@
  * Original Author: Martin Reuter, Oct. 17th ,2012
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2012/10/17 22:24:24 $
- *    $Revision: 1.1 $
+ *    $Date: 2012/10/18 14:33:42 $
+ *    $Revision: 1.2 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -27,6 +27,8 @@
 
 int main(int argc, char *argv[])
 {
+
+  LineProf::InitializePetsc();
 
   // setup polygon
   std::vector < std::vector < double > > points2d;
@@ -89,6 +91,8 @@ int main(int argc, char *argv[])
   std::vector < std::vector < double > > referenceLine;
   std::vector < std::vector < std::vector < double > > > profiles;
   profiles = LP.ComputeProfiles(offset, dspacing, referenceLine);
+
+  LineProf::FinalizePetsc();
   
 }
 
