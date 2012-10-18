@@ -1,21 +1,23 @@
 function z = fast_p2z(p)
 % z = fast_p2z(p)
 %
-% Converts a significance to a z-score. p must be
-% between -1 and 1
+% Converts a significance to a z-score. p is assumed to be
+% one-sided (if p is signed, then the z gets the sign of p)
 %
-%
-%
-
+%  z = sqrt(2)*erfcinv(2*abs(p)) .* sign(p);
+% Check:
+%  r = randn(100000,1);
+%  phat = length(find(r>z))/length(r)
+%  phat should be same as p (approx)
 
 %
 % fast_p2z.m
 %
 % Original Author: Doug Greve
 % CVS Revision Info:
-%    $Author: nicks $
-%    $Date: 2011/03/02 00:04:04 $
-%    $Revision: 1.4 $
+%    $Author: greve $
+%    $Date: 2012/10/18 19:46:12 $
+%    $Revision: 1.5 $
 %
 % Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 %
