@@ -1,3 +1,28 @@
+/**
+ * @file LineProf.h
+ * @brief Class to interface with the laplace solver and line profiler
+ *
+ */
+
+/*
+ * Original Author: Martin Reuter
+ * CVS Revision Info:
+ *    $Author: mreuter $
+ *    $Date: 2012/10/18 17:41:05 $
+ *    $Revision: 1.3 $
+ *
+ * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ *
+ * Terms and conditions for use, reproduction, distribution and contribution
+ * are found in the 'FreeSurfer Software License Agreement' contained
+ * in the file 'LICENSE' found in the FreeSurfer distribution, and here:
+ *
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
+ *
+ * Reporting: freesurfer@nmr.mgh.harvard.edu
+ *
+ */
+ 
 #ifndef _LineProf_h
 #define _LineProf_h
 
@@ -6,33 +31,50 @@
 
 class vtkPolyData;
 
+/** \class LineProf
+ * \brief Class to interface with the laplace solver and line profiler library
+ * The library uses VTK ITK and Petsc to solve the laplace equation on a 2D
+ * polygon (with 4 boundary segments).
+ */
 class LineProf
 {
 
 public:
+
+  //! Petsc Initializer (call this at the beginning of your program once)
+  static int InitializePetsc();
   
+  //! Petsc Finalizer (call this at the end of your program once)
+  static int FinalizePetsc();
+
+  //! Constructor from 2d points and 4 boundary segments
   LineProf(const std::vector < std::vector < double > >& points2d,
            const std::vector < int >& segment0,
            const std::vector < int >& segment1,
            const std::vector < int >& segmentL,
            const std::vector < int >& segmentR);
+           
+  //! Destructor
   ~LineProf() { if (_tracer) delete _tracer; };
-  
+    
+  //! Laplace solver
   void solveLaplace(int paddingL, int paddingR,
-                    double dresolution,
+                    double resolution,
 		                int convergenceCriterion);
 
+  //! Compute Profiles as array of lines (each line an array of 2d coordinates)
   std::vector < std::vector < std::vector < double > > >
-  ComputeProfiles(int offset,	double dspacing, const std::vector < std::vector < double > >& referenceLine);
+  ComputeProfiles(int offset,	double spacing);
+  
+
+private:
+  
+  std::vector < std::vector < std::vector < double > > >
+  ComputeProfiles(int offset,	double spacing, const std::vector < std::vector < double > >& referenceLine);
   
   std::vector < std::vector < std::vector < double > > >
   ComputeIsolines(const std::vector < double >& vec, double x0, double y0);
 
-  static int InitializePetsc();
-  static int FinalizePetsc();
-
-private:
-  
   vtkPolyData* GetPolyData();
   
   std::vector < std::vector < double > > ConvertLine(const Tracer::LineType& line);

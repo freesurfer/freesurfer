@@ -10,18 +10,17 @@
 #include "PetscSolver.h"
 
 LineProf::LineProf(const std::vector < std::vector < double > >& points2d,
-           const std::vector < int >& segment0,
-           const std::vector < int >& segment1,
-           const std::vector < int >& segmentL,
-           const std::vector < int >& segmentR)
-           : _points2d(points2d), _segment0(segment0), _segment1(segment1),
-             _segmentL(segmentL), _segmentR(segmentR), _tracer(NULL)
-{ // maybe some error check here? 
+                   const std::vector < int >& segment0,
+                   const std::vector < int >& segment1,
+                   const std::vector < int >& segmentL,
+                   const std::vector < int >& segmentR)
+                  : _points2d(points2d), _segment0(segment0), _segment1(segment1),
+                    _segmentL(segmentL), _segmentR(segmentR), _tracer(NULL)
+{
+// maybe some error check here? e.g. if points are really 2d?
 }
 
-void LineProf::solveLaplace(int paddingL, int paddingR,
-                    double dresolution,
-                    int convergenceCriterion)
+void LineProf::solveLaplace(int paddingL, int paddingR, double dresolution, int convergenceCriterion)
 {
   vtkPolyData* polyData = GetPolyData();
 
@@ -57,7 +56,7 @@ void LineProf::solveLaplace(int paddingL, int paddingR,
   // post-processing
   
   // filter the mask
-    typedef PetscSolver::MaskImageType MaskImageType;
+  typedef PetscSolver::MaskImageType MaskImageType;
   MaskImageType::Pointer mask = MaskImageType::New();
   mask->SetRegions( solver.GetOutputMask()->GetRequestedRegion() );
   mask->Allocate();
@@ -84,6 +83,16 @@ void LineProf::solveLaplace(int paddingL, int paddingR,
   
 }
 
+std::vector < std::vector < std::vector < double > > >
+LineProf::ComputeProfiles(int offset,	double dspacing)
+{
+  std::vector < double > dv(1,0.5);
+  std::vector < std::vector < std::vector < double > > > vml;
+  vml = ComputeIsolines(dv,_points2d[_segment0[0]][0], _points2d[_segment0[0]][1]);
+  
+  return ComputeProfiles(offset, dspacing, vml[0]);
+
+}
 
 std::vector < std::vector < std::vector < double > > >
 LineProf::ComputeProfiles(int offset,  double dspacing, 

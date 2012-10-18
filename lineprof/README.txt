@@ -5,6 +5,7 @@ Martin Reuter, Oct 17 2012
 
 This library solves the Laplace equation in a 2D piecewise linear
 polygon with four boundary segments:
+
 0-level, 1-level and the two connecting boundaries (segmentL, segmentR):
 
  1111111111111111111
