@@ -39,7 +39,7 @@ and segmentRight from the 0-level to the 1-level.
 
 
 2. The library then solves the Laplace equation with appropriate boundary
-contitions using an image as grid to construct the Laplace matrix and rhight
+contitions using an image as grid to construct the Laplace matrix and right
 handside vector and then solves the problem using Petsc.
 
 

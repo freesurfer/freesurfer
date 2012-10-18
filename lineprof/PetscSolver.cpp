@@ -148,7 +148,7 @@ PetscSolver::SetupSystem()
   MapType map_rhs;
 
   OffsetVectorType::const_iterator off_cit;
-  int pj[5], counter;
+  int pj[5], counter=0;
   int row;
   PetscScalar value[5];
   //int dbgCount = 0;

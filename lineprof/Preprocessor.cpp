@@ -19,8 +19,8 @@
 template<class T>
 T sqr(T x)
 { 
-return x*x; 
-};
+  return x*x; 
+}
 
 Preprocessor::Preprocessor()
 {
@@ -35,20 +35,17 @@ Preprocessor::Preprocessor()
   outsideValue = 0;
 }
 
-void
-Preprocessor::SetPadding(const SizeType& padding)
+void Preprocessor::SetPadding(const SizeType& padding)
 {
   paddingSize = padding;
 }
 
-void
-Preprocessor::SetResolution(const ResolutionType& resolution)
+void Preprocessor::SetResolution(const ResolutionType& resolution)
 {
   imageResolution = resolution;
 }
 
-void
-Preprocessor::SetInput(vtkPolyData* polyData)
+void Preprocessor::SetInput(vtkPolyData* polyData)
 {
   inputData->DeepCopy(polyData);
 }
@@ -81,77 +78,68 @@ Preprocessor::convertInputToPointSet()
   // get the constant potential lines
   float fBuf;
   while ( counter < 2 && lines->GetNextCell(numPoints, vtkIds) )
+  {
+    vtkIdType* idPtr = vtkIds;
+    for (vtkIdType ui=0; ui < numPoints; ++ui, ++idPtr )
     {
-      vtkIdType* idPtr = vtkIds;
-      for (unsigned int ui=0;
-	   ui < numPoints; ++ui, ++idPtr )
-	{
-	  for(unsigned int uiDim = 0;
-	      uiDim < Dimension; ++uiDim)
-	    pt[uiDim] = inputData->GetPoints()->GetPoint(*idPtr)[uiDim];
-	  pointSet->SetPoint(ptSetCounter++, pt);
-	  fBuf = (float)counter;
-	  floatArray->SetTupleValue( *idPtr, &fBuf);
-	} // next ui
-      ++counter;
-    }
+      for(unsigned int uiDim = 0; uiDim < Dimension; ++uiDim)
+        pt[uiDim] = inputData->GetPoints()->GetPoint(*idPtr)[uiDim];
+      pointSet->SetPoint(ptSetCounter++, pt);
+      fBuf = (float)counter;
+      floatArray->SetTupleValue( *idPtr, &fBuf);
+    } // next ui
+    ++counter;
+  }
   if ( counter < 2 )
-    {
-      std::cerr << " incorect number of cells\n";
-      exit(1);
-    }
+  {
+    std::cerr << " incorect number of cells\n";
+    exit(1);
+  }
 
   // get the transverse lines
   counter = 0;
   fBuf = .0f;
   while ( counter < 2 && lines->GetNextCell(numPoints, vtkIds) )
+  {
+    typedef std::map<unsigned int,float> MapType;
+    MapType distMap;
+    float fLength(.0f);
+    vtkIdType* idPtr = vtkIds;
+
+    // the following is useful for length measurements
+    PointType prevPt;
+    for(unsigned int uiDim(0); uiDim < Dimension; ++uiDim)
+      prevPt[uiDim] = inputData->GetPoints()->GetPoint(*idPtr)[uiDim];
+
+    for(vtkIdType ui=0; ui < numPoints; ++ui, ++idPtr)
     {
-      typedef std::map<unsigned int,float> MapType;
-      MapType distMap;
-      float fLength(.0f);
-      vtkIdType* idPtr = vtkIds;
+      for(unsigned int uiDim = 0; uiDim < Dimension; ++uiDim)
+        pt[uiDim] = inputData->GetPoints()->GetPoint(*idPtr)[uiDim];
+      pointSet->SetPoint(ptSetCounter,pt);
 
-      // the following is useful for length measurements
-      PointType prevPt;
-      for(unsigned int uiDim(0);
-	  uiDim < Dimension; ++uiDim)
-	prevPt[uiDim] 
-	  = inputData->GetPoints()->GetPoint(*idPtr)[uiDim];
+      // update length
+      fBuf = .0f;
+      for(unsigned int uiDim=0; uiDim < Dimension; ++uiDim)
+        fBuf += sqr( pt[uiDim] - prevPt[uiDim] );
+      fLength += std::sqrt( fBuf );
+      distMap[ptSetCounter++] = fLength;
+      prevPt = pt; // compute the distance - at each moment, remember the last point to speed up things
+    } // next ui, idPtr
 
-      for(unsigned int ui=0;
-	  ui < numPoints; 
-	  ++ui, ++idPtr)
-	{
-	  for(unsigned int uiDim = 0;
-	      uiDim < Dimension; ++uiDim)
-	    pt[uiDim] = inputData->GetPoints()->GetPoint(*idPtr)[uiDim];
-	  pointSet->SetPoint(ptSetCounter,pt);
-
-	  // update length
-	  fBuf = .0f;
-	  for(unsigned int uiDim=0;
-	      uiDim < Dimension; ++uiDim)
-	    fBuf += sqr( pt[uiDim] - prevPt[uiDim] );
-	  fLength += std::sqrt( fBuf );
-	  distMap[ptSetCounter++] = fLength;
-	  prevPt = pt; // compute the distance - at each moment, remember the last point to speed up things
-	} // next ui, idPtr
-
-      for(MapType::const_iterator cit = distMap.begin();
-	  cit != distMap.end();
-	  ++cit )
-	{
-	  fBuf = cit->second / fLength;
-	  floatArray->SetTupleValue( cit->first, &fBuf );
-	}
-
-      counter++;
+    for(MapType::const_iterator cit = distMap.begin();
+        cit != distMap.end(); ++cit )
+    {
+      fBuf = cit->second / fLength;
+      floatArray->SetTupleValue( cit->first, &fBuf );
     }
+
+    counter++;
+  }
   if ( counter < 2 )
-    {
-      std::cerr << " incorect number of transverse cells\n";
-      exit(1);
-    }
+  {
+    std::cerr << " incorect number of transverse cells\n";
+    exit(1);
+  }
 
   inputData->GetPointData()->SetScalars( floatArray );
 
@@ -171,28 +159,20 @@ Preprocessor::convertPointSetToBinaryImage(PointSetPointer pointSet)
   // use it to infer the resolution
   // also use the padding size
   FilterType::SizeType imageSize;
-  for(unsigned int uiDim=0;
-      uiDim < Dimension;
-      ++uiDim)
+  for(unsigned int uiDim=0; uiDim < Dimension; ++uiDim)
     imageSize[uiDim] = (int)std::floor( (bbox[2*uiDim+1] - bbox[2*uiDim]) 
-				   / imageResolution[uiDim] )
-      + 2*paddingSize[uiDim]
-      ; 
+           / imageResolution[uiDim] ) + 2*paddingSize[uiDim]; 
   filter->SetSize(imageSize);
   
   // set the origin accordingly
   FilterType::PointType origin;
-  for(unsigned int uiDim = 0;
-      uiDim < Dimension; 
-      ++uiDim )
+  for(unsigned int uiDim = 0; uiDim < Dimension; ++uiDim )
     origin[uiDim] = bbox[2*uiDim] - imageResolution[uiDim] * paddingSize[uiDim];
   filter->SetOrigin(origin);
 
   // spacing
   FilterType::SpacingType spacing;
-  for(unsigned int uiDim = 0;
-      uiDim < Dimension;
-      ++uiDim )
+  for(unsigned int uiDim = 0; uiDim < Dimension; ++uiDim )
     spacing[uiDim] = imageResolution[uiDim];
   filter->SetSpacing(spacing);
 
@@ -204,8 +184,7 @@ Preprocessor::convertPointSetToBinaryImage(PointSetPointer pointSet)
   return filter->GetOutput();
 }
 
-void
-Preprocessor::generateImageMask(LabelImagePointer image)
+void Preprocessor::generateImageMask(LabelImagePointer image)
 {
   typedef 
     itk::NeighborhoodConnectedImageFilter<LabelImageType, LabelImageType> 
@@ -237,17 +216,14 @@ Preprocessor::generateImageMask(LabelImagePointer image)
 
   IteratorType iter(image, image->GetRequestedRegion() );
   ConstIteratorType citerOutside( filter->GetOutput(), 
-				  filter->GetOutput()->GetRequestedRegion() );
+          filter->GetOutput()->GetRequestedRegion() );
   
   for( iter.GoToBegin(), citerOutside.GoToBegin();
-       !iter.IsAtEnd();
-       ++iter, ++citerOutside)
-    {
-      if ( citerOutside.Get() )
-	iter.Set( outsideValue );
-      else if ( !iter.Get() )
-	iter.Set(insideValue);
-    } // next iter, citerOutside
+       !iter.IsAtEnd(); ++iter, ++citerOutside)
+  {
+    if ( citerOutside.Get() ) iter.Set( outsideValue );
+    else if ( !iter.Get() ) iter.Set(insideValue);
+  } // next iter, citerOutside
 
 }
 
@@ -257,8 +233,7 @@ Create a data image
 On pixels corresponding to the zero level,
 pass over the values in the closest point from the pointSet
 */
-void
-Preprocessor::generateInitialDataImage()
+void Preprocessor::generateInitialDataImage()
 {
   data = DataImageType::New();
   data->SetRegions( mask->GetRequestedRegion() );
@@ -276,33 +251,27 @@ Preprocessor::generateInitialDataImage()
   vtkIdType foundId;
   PointSetType::PointType point;
   for( iterData.GoToBegin(), citer.GoToBegin();
-       !iterData.IsAtEnd();
-       ++iterData, ++citer)
+       !iterData.IsAtEnd(); ++iterData, ++citer)
+  {
+    if ( citer.Get() == zeroLevelValue )
     {
-      if ( citer.Get() == zeroLevelValue )
-	{
-	  data->TransformIndexToPhysicalPoint( iterData.GetIndex(),
-					       point );
-	  for(unsigned int uiDim = 0;
-	      uiDim < Dimension; ++uiDim )
-	    pt[uiDim] = point[uiDim];
-	  foundId = inputData->FindPoint(pt);
-	  // set the value of the pixel
-	  iterData.Set( inputData->GetPointData()->
-			GetScalars()->GetComponent(foundId,0) );
-	  
-	}
-    } // next iterData, citer
+      data->TransformIndexToPhysicalPoint( iterData.GetIndex(), point );
+      for(unsigned int uiDim = 0; uiDim < Dimension; ++uiDim )
+        pt[uiDim] = point[uiDim];
+      foundId = inputData->FindPoint(pt);
+      // set the value of the pixel
+      iterData.Set( inputData->GetPointData()->GetScalars()->GetComponent(foundId,0) );
+    }
+  } // next iterData, citer
 }
 
-void
-Preprocessor::Update()
+void Preprocessor::Update()
 {
   if ( !inputData )
-    {
-      std::cerr << " Preprocessor::Update - no input data\n";
-      exit(1);
-    }
+  {
+    std::cerr << " Preprocessor::Update - no input data\n";
+    exit(1);
+  }
 
   PointSetPointer pointSet = convertInputToPointSet(); // also adds a float array to the input
   mask = convertPointSetToBinaryImage(pointSet);
