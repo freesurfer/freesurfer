@@ -8,8 +8,8 @@
  * Original Author: Martin Reuter, Oct. 17th ,2012
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2012/10/18 17:41:05 $
- *    $Revision: 1.3 $
+ *    $Date: 2012/10/18 18:29:53 $
+ *    $Revision: 1.4 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -28,7 +28,10 @@
 #include "LineProf.h"
 
 
-
+/** Creates a line segment between start(xy) and end(xy)
+  where the distance between points is approx dist.
+  New points including start and end are appended to points2d
+  and indices are appended to segment. */
 void createTestSegment(double startx, double starty, double endx, double endy, double dist,
                        std::vector < std::vector < double > > & points2d,
                        std::vector < int >& segment)
@@ -48,7 +51,65 @@ void createTestSegment(double startx, double starty, double endx, double endy, d
     segment.push_back(count);
     count++;
   }
-    
+}
+
+/** Checks the profile lines for the rectangle.
+  They should be vertical lines (fixed x coord) where
+  the y coordinate is equally spaced between 6 and 8.*/
+void checkProfiles(const std::vector < std::vector < std::vector < double > > >& profiles)
+{
+
+  if (profiles.size() != 40)
+  {
+    std::cerr <<"ERROR: expecting 40 profiles, but got " << profiles.size() << " !" << std::endl;
+    exit(1);
+  }
+
+  double eps = 0.000001;
+  double ystart = 6.0;
+  double ydelta = 0.1;
+  double xstart = 11.15;
+  double xdelta = 0.2;
+  double xp = 0.0;
+  for (unsigned int p=0;p<profiles.size();p++)
+  {
+    if (profiles[p].size() != 21)
+    {
+      std::cerr <<"ERROR: expecting 21 points in profile " << p << ", but got " << profiles[p].size() << " !" << std::endl;
+      exit(1);
+    }
+    xp = profiles[p][0][0];
+    if (fabs(xp - (p*xdelta+xstart)) > eps)
+    {
+        std::cerr << "ERROR: Profile " <<p <<"  x-coordinate difference!" << std::endl;
+        std::cerr <<setprecision(9) << p*xdelta+xstart << " != "<< xp << std::endl;
+        exit(1);      
+    }
+  
+    for (unsigned int i=0;i<profiles[p].size();i++)
+    {
+      if (profiles[p][i].size() != 2)
+      {
+        std::cerr <<"ERROR: expecting 2 coords in profile " << p << " point " << i << " , but got " << profiles[p][i].size() << " !" << std::endl;
+        exit(1);
+      }
+      if (fabs(profiles[p][i][0] - xp) > eps)
+      {
+        std::cerr <<"ERROR: Profile " <<p <<"  point " << i << " x-coordinate difference!" << std::endl;
+        std::cerr <<setprecision(9) << xp << " != "<< profiles[p][i][0] << std::endl;
+        exit(1);
+      }
+      
+      if (fabs(profiles[p][i][1] - (i*ydelta+ystart)) > eps)
+      {
+        std::cerr << "ERROR: Profile " <<p <<"  point " << i << " y-coordinate difference!" << std::endl;
+        std::cerr <<setprecision(9) << i*ydelta+ystart << " != "<< profiles[p][i][1] << std::endl;
+        exit(1);
+      }
+    }
+  }
+  std::cout << std::endl << "Profile check successfull ! " << std::endl<< std::endl;
+  
 }
 
 int main(int argc, char *argv[])
@@ -97,7 +158,11 @@ int main(int argc, char *argv[])
   profiles = LP.ComputeProfiles(offset, spacing);
 
 
-  // Petsc needs to be finalized at the end of your program
+  // We check the profiles (should be vertical lines in this rectangle)
+  checkProfiles(profiles);
+
+
+  // Petsc should be finalized at the end of your program
   LineProf::FinalizePetsc();
   
 }
