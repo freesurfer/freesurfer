@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2011/05/05 15:28:03 $
- *    $Revision: 1.26 $
+ *    $Date: 2012/10/19 21:08:35 $
+ *    $Revision: 1.27 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -25,7 +25,7 @@
 
 
 // fsglm.c - routines to perform GLM analysis.
-// $Id: fsglm.c,v 1.26 2011/05/05 15:28:03 greve Exp $
+// $Id: fsglm.c,v 1.27 2012/10/19 21:08:35 greve Exp $
 /*
   y = X*beta + n;                      Forward Model
   beta = inv(X'*X)*X'*y;               Fit beta
@@ -150,7 +150,7 @@
 // Return the CVS version of this file.
 const char *GLMSrcVersion(void)
 {
-  return("$Id: fsglm.c,v 1.26 2011/05/05 15:28:03 greve Exp $");
+  return("$Id: fsglm.c,v 1.27 2012/10/19 21:08:35 greve Exp $");
 }
 
 
@@ -372,6 +372,9 @@ int GLMxMatrices(GLMMAT *glm)
   glm->dof = glm->X->rows - glm->X->cols;
   if(glm->dof == 0 && glm->AllowZeroDOF) glm->dof = 1;
 
+  // If necessary, free Xt so that it can be realloced (FrameMask)
+  if(glm->Xt && glm->Xt->cols != glm->X->rows) MatrixFree(&glm->Xt);
+
   glm->Xt   = MatrixTranspose(glm->X,glm->Xt);
   glm->XtX  = MatrixMultiply(glm->Xt,glm->X,glm->XtX);
   if(glm->ReScaleX){
@@ -435,6 +438,10 @@ int GLMfit(GLMMAT *glm)
   // Now do the actual parameter (beta) estmation
   // beta = inv(X'*X)*X'*y
   glm->beta = MatrixMultiply(glm->iXtX,glm->Xty,glm->beta);
+
+  // If necessary, free vectors so that they can be realloced (FrameMask)
+  if(glm->yhat && glm->yhat->rows != glm->X->rows) MatrixFree(&glm->yhat);
+  if(glm->eres && glm->eres->rows != glm->X->rows) MatrixFree(&glm->eres);
 
   // Compute yhat, eres, and residual variance
   glm->yhat = MatrixMultiply(glm->X, glm->beta, glm->yhat);

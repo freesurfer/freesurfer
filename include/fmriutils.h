@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2012/03/08 23:12:50 $
- *    $Revision: 1.43 $
+ *    $Date: 2012/10/19 21:08:35 $
+ *    $Revision: 1.44 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -70,6 +70,7 @@ typedef struct
   MRI *F[100];       // F = gamma'*inv(C*inv(XtX)C')*gamma/(rvar*J)
   MRI *p[100];       // p = significance of the F
   MRI *ypmf[100];    // partial model fit for each contrast
+  MRI *FrameMask;    // Exclude a frame at a voxel if 0
 }
 MRIGLM;
 /*---------------------------------------------------------*/
@@ -90,7 +91,7 @@ MRI *fMRIframe(MRI *inmri, int frame, MRI *outmri);
 MATRIX *MRItoMatrix(MRI *mri, int c, int r, int s,
                     int Mrows, int Mcols, MATRIX *M);
 MATRIX *MRItoSymMatrix(MRI *mri, int c, int r, int s, MATRIX *M);
-int MRIfromMatrix(MRI *mri, int c, int r, int s, MATRIX *M);
+int MRIfromMatrix(MRI *mri, int c, int r, int s, MATRIX *M, MRI *FrameMask);
 int MRIfromSymMatrix(MRI *mri, int c, int r, int s, MATRIX *M);
 MRI *MRInormWeights(MRI *w, int sqrtFlag, int invFlag, MRI *mask, MRI *wn);
 
