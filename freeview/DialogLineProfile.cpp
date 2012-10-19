@@ -39,7 +39,7 @@ void DialogLineProfile::OnCompute()
   ui->labelError->hide();
 
   MainWindow* mainwnd = MainWindow::GetMainWindow();
-  int nViewId = mainwnd->GetActiveViewId();  qDebug() << "to compute";
+  int nViewId = mainwnd->GetActiveViewId();
   LayerCollection* col = mainwnd->GetLayerCollection("Supplement");
   if (!col)
     return;
@@ -106,7 +106,7 @@ void DialogLineProfile::OnExport()
                "",
                "CSV files (*.csv);;All Files (*)");
   if (!fn.isEmpty())
-  {  qDebug() << "to compute";
+  {
     MainWindow* mainwnd = MainWindow::GetMainWindow();
     LayerMRI* mri = qobject_cast<LayerMRI*>(mainwnd->GetActiveLayer("MRI"));
     if (mri)
