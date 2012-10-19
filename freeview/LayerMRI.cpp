@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2012/10/04 18:06:50 $
- *    $Revision: 1.122 $
+ *    $Date: 2012/10/19 15:52:08 $
+ *    $Revision: 1.123 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -1106,6 +1106,19 @@ double LayerMRI::GetSampledVoxelValueByRAS(double* ras, int frame)
   else
     MRIsampleVolume(mri, fx, fy, fz, &val);
   return val;
+}
+
+std::vector<double> LayerMRI::GetSampledVoxelValues(std::vector<std::vector<double> > &line3d, int frame)
+{
+  MRI* mri = m_volumeSource->GetMRI();
+  std::vector<double> vals;
+  for (size_t i = 0; i < line3d.size(); i++)
+  {
+    double pt[3] = { line3d[i][0], line3d[i][1], line3d[i][2] };
+    this->TargetToRAS(pt, pt);
+    vals.push_back(GetSampledVoxelValueByRAS(pt, frame));
+  }
+  return vals;
 }
 
 QList<double> LayerMRI::GetVoxelValueByOriginalIndexAllFrames(int i, int j, int k)

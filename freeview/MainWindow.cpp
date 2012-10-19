@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2012/10/11 20:23:43 $
- *    $Revision: 1.223 $
+ *    $Date: 2012/10/19 15:52:08 $
+ *    $Revision: 1.224 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -91,6 +91,8 @@
 #include "DialogLoadSurfaceOverlay.h"
 #include "DialogReloadLayer.h"
 #include "DialogSmoothSurface.h"
+#include "DialogLineProfile.h"
+#include "LayerLineProfile.h"
 
 MainWindow::MainWindow( QWidget *parent, MyCmdLineParser* cmdParser ) :
   QMainWindow( parent ),
@@ -114,7 +116,7 @@ MainWindow::MainWindow( QWidget *parent, MyCmdLineParser* cmdParser ) :
   // supplemental layers will not show on control panel
   m_layerCollections["Supplement"] = new LayerCollection( "Supplement", this);
   LayerLandmarks* landmarks = new LayerLandmarks(this);
-  m_layerCollections["Supplement"]->AddLayer(landmarks);
+  m_layerCollections["Supplement"]->AddLayer(landmarks);  
 
   m_luts = new LUTDataHolder();
   m_propertyBrush = new BrushProperty();
@@ -223,6 +225,12 @@ MainWindow::MainWindow( QWidget *parent, MyCmdLineParser* cmdParser ) :
   m_dlgLabelStats = new DialogLabelStats(this);
   m_dlgLabelStats->hide();
   connect(this, SIGNAL(SlicePositionChanged()), m_dlgLabelStats, SLOT(OnSlicePositionChanged()), Qt::QueuedConnection);
+
+  m_dlgLineProfile = new DialogLineProfile(this);
+  m_dlgLineProfile->hide();
+  connect(m_layerCollections["PointSet"], SIGNAL(LayerAdded(Layer*)), m_dlgLineProfile, SLOT(UpdatePointSetList()));
+  connect(m_layerCollections["PointSet"], SIGNAL(LayerRemoved(Layer*)), m_dlgLineProfile, SLOT(UpdatePointSetList()));
+  connect(m_layerCollections["PointSet"], SIGNAL(LayerNameChanged()), m_dlgLineProfile, SLOT(UpdatePointSetList()));
 
   QStringList keys = m_layerCollections.keys();
   for ( int i = 0; i < keys.size(); i++ )
@@ -3929,7 +3937,7 @@ void MainWindow::OnNewPointSet()
 
   // enter the name of the new point set
   DialogNewPointSet dlg( this );
-  dlg.SetPointSetName( "New Point Set");
+  dlg.SetPointSetName( tr("New Point Set %1").arg(GetLayerCollection("PointSet")->GetNumberOfLayers()));
   if ( dlg.exec() == QDialog::Accepted )
   {
     // finally we are about to create new point set.
@@ -5411,6 +5419,11 @@ void MainWindow::SaveSurfaceAs()
 void MainWindow::OnShowLabelStats()
 {
   m_dlgLabelStats->show();
+}
+
+void MainWindow::OnLineProfile()
+{
+  m_dlgLineProfile->show();
 }
 
 void MainWindow::OnSaveIsoSurface()

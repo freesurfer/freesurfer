@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2011/08/02 15:58:25 $
- *    $Revision: 1.25 $
+ *    $Date: 2012/10/19 15:52:08 $
+ *    $Revision: 1.26 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -64,6 +64,7 @@ public:
   Layer* GetFirstVisibleLayer();
 
   Layer* GetLayer(const QString& type);
+  QList<Layer*> GetLayers(const QString& type);
 
   double* GetSlicePosition();
   void GetSlicePosition( double* slicePos );

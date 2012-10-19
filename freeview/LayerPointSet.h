@@ -6,9 +6,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/14 23:44:47 $
- *    $Revision: 1.4 $
+ *    $Author: rpwang $
+ *    $Date: 2012/10/19 15:52:08 $
+ *    $Revision: 1.5 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -88,11 +88,14 @@ public:
 
   bool Rotate( std::vector<RotationElement>& rotations, wxWindow* wnd, wxCommandEvent& event );
 
+  std::vector<double> GetPoints();
+
 protected slots:
   void UpdateColorMap();
   void UpdateOpacity();
   void UpdateScalars();
-  void UpdateSnapToVoxelCenter();
+  void UpdateSnapToVoxelCenter();  
+  void UpdateSplineVisibility();
   void RebuildActors( bool bRebuild3D = true );
 
 protected:
@@ -102,6 +105,7 @@ protected:
   vtkActor*    m_actorBalls;
   vtkActor*    m_actorSpline;
   vtkActor*    m_actorSlice[3];
+  vtkActor*    m_actorSplineSlice[3];
 
   vtkSmartPointer<vtkPolyDataMapper>  m_mapper;
 

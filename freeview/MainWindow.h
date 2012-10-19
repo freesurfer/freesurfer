@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2012/09/07 18:56:52 $
- *    $Revision: 1.122 $
+ *    $Date: 2012/10/19 15:52:08 $
+ *    $Revision: 1.123 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -59,6 +59,7 @@ class WindowGroupPlot;
 class DialogLabelStats;
 class VolumeFilterWorkerThread;
 class VolumeFilter;
+class DialogLineProfile;
 
 #define MAX_RECENT_FILES    10
 
@@ -396,6 +397,7 @@ protected slots:
   void OnShowLabelStats();
   void OnSaveIsoSurface();
   void OnPlot();
+  void OnLineProfile();
 
   void OnActiveLayerChanged(Layer*);
 
@@ -481,6 +483,7 @@ private:
   WindowTimeCourse*     m_wndTimeCourse;
   WindowGroupPlot*      m_wndGroupPlot;
   DialogLabelStats*     m_dlgLabelStats;
+  DialogLineProfile*    m_dlgLineProfile;
 
   VolumeFilterWorkerThread* m_threadVolumeFilter;
 

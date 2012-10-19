@@ -1,0 +1,351 @@
+#include "LayerLineProfile.h"
+#include "LayerPointSet.h"
+#include "LayerMRI.h"
+#include <vtkActor.h>
+#include <vtkRenderer.h>
+#include <vtkPolyData.h>
+#include <vtkPolyDataMapper.h>
+#include <vtkCellArray.h>
+#include <vtkPoints.h>
+#include <vtkTubeFilter.h>
+#include <vtkSplineFilter.h>
+#include <vtkCutter.h>
+#include <vtkStripper.h>
+#include <vtkTriangleFilter.h>
+#include <vtkPlane.h>
+#include <vtkProperty.h>
+#include <QFile>
+#include <QTextStream>
+#include <QDebug>
+
+LayerLineProfile::LayerLineProfile(int nPlane, QObject *parent, LayerPointSet *line1, LayerPointSet *line2) :
+    Layer(parent),
+    m_nPlane(nPlane)
+{
+  this->m_strTypeNames << "Supplement" << "LineProfile";
+  SetSourceLayers(line1, line2);
+  m_endLines = vtkSmartPointer<vtkActor>::New();
+  m_profileLines = vtkSmartPointer<vtkActor>::New();
+  m_endLines->GetProperty()->SetColor(0.3, 0.3, 1.0);
+  m_profileLines->GetProperty()->SetColor(1.0, 0.3, 0.3);
+}
+
+LayerLineProfile::~LayerLineProfile()
+{
+
+}
+
+void LayerLineProfile::Append2DProps( vtkRenderer* renderer, int nPlane )
+{
+  if (nPlane == m_nPlane)
+  {
+    renderer->AddViewProp(m_profileLines);
+    renderer->AddViewProp(m_endLines);
+  }
+}
+
+bool LayerLineProfile::HasProp( vtkProp* prop )
+{
+  return (prop == m_profileLines.GetPointer() || prop == m_endLines.GetPointer());
+}
+
+bool LayerLineProfile::IsVisible()
+{
+  return (this->m_profileLines->GetVisibility() > 0);
+}
+
+void LayerLineProfile::SetVisible( bool bVisible )
+{
+  m_profileLines->SetVisibility(bVisible?1:0);
+  m_endLines->SetVisibility(bVisible?1:0);
+}
+
+void LayerLineProfile::SetSourceLayers(LayerPointSet *line1, LayerPointSet *line2)
+{
+  m_line1 = line1;
+  m_line2 = line2;
+  connect(m_line1, SIGNAL(destroyed()), this, SLOT(OnSourceLineDestroyed()));
+  connect(m_line2, SIGNAL(destroyed()), this, SLOT(OnSourceLineDestroyed()));
+}
+
+void LayerLineProfile::OnSlicePositionChanged(int nPlane)
+{
+
+}
+
+std::vector < std::vector < double > > LayerLineProfile::Points3DToSpline2D(std::vector<double> pts3d, double distance)
+{
+  vtkSmartPointer<vtkPoints> points = vtkSmartPointer<vtkPoints>::New();
+  vtkSmartPointer<vtkCellArray> lines = vtkSmartPointer<vtkCellArray>::New();
+  lines->InsertNextCell(pts3d.size()/3);
+  for (size_t i = 0; i < pts3d.size(); i+= 3)
+  {
+    points->InsertNextPoint(pts3d[i], pts3d[i+1], pts3d[i+2]);
+    lines->InsertNextCell(i/3);
+  }
+  vtkSmartPointer<vtkPolyData> polydata = vtkSmartPointer<vtkPolyData>::New();
+  polydata->SetPoints(points);
+  polydata->SetLines(lines);
+  vtkSmartPointer<vtkSplineFilter> spline = vtkSmartPointer<vtkSplineFilter>::New();
+  spline->SetInput(polydata);
+  spline->SetSubdivideToLength();
+  spline->SetLength(distance);
+  spline->Update();
+  polydata = spline->GetOutput();
+  points = polydata->GetPoints();
+  std::vector < std::vector < double > > points2d;
+  for (int i = 0; i < points->GetNumberOfPoints(); i++)
+  {
+    std::vector<double> pt;
+    double x[3];
+    points->GetPoint(i, x);
+    if (m_nPlane != 0)
+      pt.push_back(x[0]);
+    if (m_nPlane != 1)
+      pt.push_back(x[1]);
+    if (m_nPlane != 2)
+      pt.push_back(x[2]);
+    points2d.push_back(pt);
+  }
+  return points2d;
+}
+
+std::vector< std::vector<double> > LayerLineProfile::Points2DToSpline3D(std::vector < std::vector<double> > pts2d, int nSample)
+{
+  vtkSmartPointer<vtkPoints> points = vtkSmartPointer<vtkPoints>::New();
+  vtkSmartPointer<vtkCellArray> lines = vtkSmartPointer<vtkCellArray>::New();
+  lines->InsertNextCell(pts2d.size());
+  for (size_t i = 0; i < pts2d.size(); i++)
+  {
+    if (m_nPlane == 0)
+      points->InsertNextPoint(m_dSliceLocation, pts2d[i][0], pts2d[i][1]);
+    else if (m_nPlane == 1)
+      points->InsertNextPoint(pts2d[i][0], m_dSliceLocation, pts2d[i][1]);
+    else if (m_nPlane == 2)
+      points->InsertNextPoint(pts2d[i][0], pts2d[i][1], m_dSliceLocation);
+    lines->InsertNextCell(i);
+  }
+  vtkSmartPointer<vtkPolyData> polydata = vtkSmartPointer<vtkPolyData>::New();
+  polydata->SetPoints(points);
+  polydata->SetLines(lines);
+  vtkSmartPointer<vtkSplineFilter> spline = vtkSmartPointer<vtkSplineFilter>::New();
+  spline->SetInput(polydata);
+  spline->SetNumberOfSubdivisions(nSample);
+  spline->Update();
+  polydata = spline->GetOutput();
+  points = polydata->GetPoints();
+  std::vector < std::vector < double > > points3d;
+  for (int i = 0; i < points->GetNumberOfPoints(); i++)
+  {
+    std::vector<double> pt;
+    double x[3];
+    points->GetPoint(i, x);
+    pt.push_back(x[0]);
+    pt.push_back(x[1]);
+    pt.push_back(x[2]);
+    points3d.push_back(pt);
+  }
+  return points3d;
+}
+
+bool LayerLineProfile::Solve(double resolution_in)
+{
+  double laplaceResolution = resolution_in;
+  double referenceSize     = 0.1;
+  double resolution        = laplaceResolution * referenceSize;
+  double distance          = resolution / 3.0;
+  double profileSpacing    = 2.0;
+  double spacing           = profileSpacing * referenceSize;
+
+  std::vector < std::vector < double > > points2d;
+  std::vector < int > segment0;
+  std::vector < int > segment1;
+  std::vector < int > segmentL;
+  std::vector < int > segmentR;
+
+  std::vector<double> ctrl_pts0  = m_line1->GetPoints();
+  std::vector < std::vector < double > > pts0 = Points3DToSpline2D(ctrl_pts0, distance);
+  for (size_t i = 0; i < pts0.size(); i++)
+    segment0.push_back(i);
+
+  std::vector<double> ctrl_pts1  = m_line2->GetPoints();
+  std::vector < std::vector < double > > pts1 = Points3DToSpline2D(ctrl_pts1, distance);
+  for (size_t i = 0; i < pts1.size(); i++)
+    segment1.push_back(pts0.size()+i);
+
+  std::vector<double> ctrl_ptsL;
+  ctrl_ptsL.push_back(ctrl_pts0[0]);
+  ctrl_ptsL.push_back(ctrl_pts0[1]);
+  ctrl_ptsL.push_back(ctrl_pts0[2]);
+  ctrl_ptsL.push_back(ctrl_pts1[0]);
+  ctrl_ptsL.push_back(ctrl_pts1[1]);
+  ctrl_ptsL.push_back(ctrl_pts1[2]);
+  std::vector < std::vector < double > > ptsL = Points3DToSpline2D(ctrl_ptsL, distance);
+  for (size_t i = 0; i < ptsL.size(); i++)
+    segmentL.push_back(pts0.size() + pts1.size() + i);
+
+  std::vector<double> ctrl_ptsR;
+  ctrl_ptsR.push_back(ctrl_pts0[ctrl_pts0.size()-3]);
+  ctrl_ptsR.push_back(ctrl_pts0[ctrl_pts0.size()-2]);
+  ctrl_ptsR.push_back(ctrl_pts0[ctrl_pts0.size()-1]);
+  ctrl_ptsR.push_back(ctrl_pts1[ctrl_pts1.size()-3]);
+  ctrl_ptsR.push_back(ctrl_pts1[ctrl_pts1.size()-2]);
+  ctrl_ptsR.push_back(ctrl_pts1[ctrl_pts1.size()-1]);
+  std::vector < std::vector < double > > ptsR = Points3DToSpline2D(ctrl_ptsR, distance);
+  for (size_t i = 0; i < ptsR.size(); i++)
+    segmentR.push_back(pts0.size() + pts1.size() + ptsL.size() + i);
+
+  points2d = pts0;
+  for (size_t i = 0; i < pts1.size(); i++)
+    points2d.push_back(pts1[i]);
+  for (size_t i = 0; i < ptsL.size(); i++)
+    points2d.push_back(ptsL[i]);
+  for (size_t i = 0; i < ptsR.size(); i++)
+    points2d.push_back(ptsR[i]);
+
+  m_dSliceLocation = ctrl_pts0[m_nPlane];
+
+  LineProf LP(points2d, segment0, segment1, segmentL, segmentR);
+  // Next we solve the Laplace on the domain
+  int paddingL       = 10;
+  int paddingR       = 10;
+  int convergence    = 8;
+  LP.solveLaplace(paddingL,paddingR,resolution,convergence);
+
+
+  // And finally compute line profiles
+  int offset     = 10;
+  m_ptsProfile = LP.ComputeProfiles(offset, spacing);
+
+  UpdateActors();
+  return true;
+}
+
+void LayerLineProfile::MakeFlatTube(vtkPoints* points, vtkCellArray* lines, vtkActor* actor_in)
+{
+  vtkSmartPointer<vtkPolyData> polydata = vtkSmartPointer<vtkPolyData>::New();
+  polydata->SetPoints(points);
+  polydata->SetLines(lines);
+  vtkSmartPointer<vtkPolyDataMapper> mapper = vtkSmartPointer<vtkPolyDataMapper>::New();
+  vtkSmartPointer<vtkTubeFilter> tube = vtkSmartPointer<vtkTubeFilter>::New();
+  tube->SetInput(polydata);
+  tube->SetNumberOfSides(6);
+  tube->SetRadius(this->m_dWorldVoxelSize[0]/4);
+
+  vtkSmartPointer<vtkPlane> plane = vtkSmartPointer<vtkPlane>::New();
+  double origin[3] = {0, 0, 0};
+  origin[m_nPlane] = m_dSliceLocation;
+  plane->SetOrigin( origin );
+  plane->SetNormal( m_nPlane==0?1:0, m_nPlane==1?1:0, m_nPlane==2?1:0 );
+
+  vtkSmartPointer<vtkCutter> cutter =
+    vtkSmartPointer<vtkCutter>::New();
+  cutter->SetInput( tube->GetOutput() );
+  cutter->SetCutFunction( plane );
+
+  vtkSmartPointer<vtkStripper> stripper = vtkSmartPointer<vtkStripper>::New();
+  stripper->SetInputConnection( cutter->GetOutputPort() );
+  stripper->Update();
+
+  vtkSmartPointer<vtkPolyData> cutpoly = vtkSmartPointer<vtkPolyData>::New();
+  cutpoly->SetPoints( stripper->GetOutput()->GetPoints() );
+  cutpoly->SetPolys( stripper->GetOutput()->GetLines() );
+
+  vtkSmartPointer<vtkTriangleFilter> triangleFilter = vtkSmartPointer<vtkTriangleFilter>::New();
+  triangleFilter->SetInput( cutpoly );
+  mapper->SetInput(tube->GetOutput());
+  actor_in->SetMapper(mapper);
+}
+
+void LayerLineProfile::UpdateActors()
+{
+  if (!m_line1 || !m_line2)
+    return;
+
+  std::vector<double> pts1 = m_line1->GetPoints(), pts2 = m_line2->GetPoints();
+  if (pts1.size() < 4 || pts2.size() < 4)
+    return;
+
+  // update boundary lines
+  vtkSmartPointer<vtkPoints> points = vtkSmartPointer<vtkPoints>::New();
+  vtkSmartPointer<vtkCellArray> lines = vtkSmartPointer<vtkCellArray>::New();
+  points->InsertNextPoint(pts1[0], pts1[1], pts1[2]);
+  points->InsertNextPoint(pts2[0], pts2[1], pts2[2]);
+  points->InsertNextPoint(pts1[pts1.size()-3], pts1[pts1.size()-2], pts1[pts1.size()-1]);
+  points->InsertNextPoint(pts2[pts2.size()-3], pts2[pts2.size()-2], pts2[pts2.size()-1]);
+  lines->InsertNextCell(2);
+  lines->InsertCellPoint(0);
+  lines->InsertCellPoint(1);
+  lines->InsertNextCell(2);
+  lines->InsertCellPoint(2);
+  lines->InsertCellPoint(3);
+  MakeFlatTube(points, lines, m_endLines);
+
+  // update profile lines
+  points = vtkSmartPointer<vtkPoints>::New();
+  lines = vtkSmartPointer<vtkCellArray>::New();
+  int nCount = 0;
+  for (size_t i = 0; i < m_ptsProfile.size(); i++)
+  {
+    std::vector < std::vector < double > > line = m_ptsProfile[i];
+    lines->InsertNextCell(line.size());
+    for (size_t j = 0; j < line.size(); j++)
+    {
+      lines->InsertCellPoint(nCount++);
+      double pt[3] = {m_dSliceLocation, m_dSliceLocation, m_dSliceLocation};
+      if (m_nPlane == 0)
+      {
+        pt[1] = line[j][0];
+        pt[2] = line[j][1];
+      }
+      else if (m_nPlane == 1)
+      {
+        pt[0] = line[j][0];
+        pt[2] = line[j][1];
+      }
+      else
+      {
+        pt[0] = line[j][0];
+        pt[1] = line[j][1];
+      }
+      points->InsertNextPoint(pt);
+    }
+  }
+
+  MakeFlatTube(points, lines, m_profileLines);
+
+  emit this->ActorChanged();
+}
+
+void LayerLineProfile::OnSourceLineDestroyed()
+{
+  if (sender() == m_line1)
+    m_line1 = NULL;
+  if (sender() == m_line2)
+    m_line2 = NULL;
+
+  if (!m_line1 || !m_line2)
+    this->Hide();
+}
+
+bool LayerLineProfile::Export(const QString &filename, LayerMRI *mri, int nSample)
+{
+  QFile file(filename);
+  if (!file.open(QIODevice::WriteOnly | QIODevice::Text))
+    return false;
+
+  QTextStream out(&file);
+  for (size_t i = 0; i < m_ptsProfile.size(); i++)
+  {
+    std::vector < std::vector <double> > line3d = Points2DToSpline3D(m_ptsProfile[i], nSample);
+    std::vector<double> vals = mri->GetSampledVoxelValues(line3d);
+    out << i << "," << nSample;
+    for (size_t j = 0; j < vals.size(); j++)
+    {
+      out << "," << vals[j];
+    }
+    out << "\n";
+  }
+
+  return true;
+}

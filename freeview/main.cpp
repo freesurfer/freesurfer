@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2012/09/07 18:56:52 $
- *    $Revision: 1.26 $
+ *    $Date: 2012/10/19 15:52:08 $
+ *    $Revision: 1.27 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -31,6 +31,7 @@
 #include <QDebug>
 #include "CursorFactory.h"
 #include "vtkObject.h"
+#include "LineProf.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include "error.h"
@@ -78,6 +79,8 @@ int main(int argc, char *argv[])
   if (getenv("FS_DISABLE_LANG") == NULL)
     putenv((char*)"LANG=en_US");
   qInstallMsgHandler(myMessageOutput);
+
+  LineProf::InitializePetsc();
 
   CmdLineEntry cmdLineDesc[] =
   {
@@ -154,5 +157,8 @@ int main(int argc, char *argv[])
     return false;
   }
 
-  return app.exec();
+  int ret = app.exec();
+
+  LineProf::FinalizePetsc();
+  return ret;
 }
