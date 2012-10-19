@@ -5,6 +5,7 @@
 #include "LayerPointSet.h"
 #include "LayerCollection.h"
 #include "LayerLineProfile.h"
+#include "RenderView.h"
 #include <QFileDialog>
 #include <QDebug>
 
@@ -24,7 +25,6 @@ DialogLineProfile::~DialogLineProfile()
 
 void DialogLineProfile::OnCompute()
 {
-  qDebug() << "to compute";
   QVariant v = ui->comboBoxIsoLine1->itemData(ui->comboBoxIsoLine1->currentIndex());
   LayerPointSet* layer1 = qobject_cast<LayerPointSet*>(v.value<QObject*>());
   v = ui->comboBoxIsoLine1->itemData(ui->comboBoxIsoLine2->currentIndex());
@@ -39,7 +39,7 @@ void DialogLineProfile::OnCompute()
   ui->labelError->hide();
 
   MainWindow* mainwnd = MainWindow::GetMainWindow();
-  int nViewId = mainwnd->GetActiveViewId();
+  int nViewId = mainwnd->GetActiveViewId();  qDebug() << "to compute";
   LayerCollection* col = mainwnd->GetLayerCollection("Supplement");
   if (!col)
     return;
@@ -78,6 +78,8 @@ void DialogLineProfile::OnCompute()
   }
 
   m_lineProfile->Solve(GetResolution());
+
+  mainwnd->SetMode(RenderView::IM_Navigate);
 }
 
 double DialogLineProfile::GetResolution()
@@ -104,7 +106,7 @@ void DialogLineProfile::OnExport()
                "",
                "CSV files (*.csv);;All Files (*)");
   if (!fn.isEmpty())
-  {
+  {  qDebug() << "to compute";
     MainWindow* mainwnd = MainWindow::GetMainWindow();
     LayerMRI* mri = qobject_cast<LayerMRI*>(mainwnd->GetActiveLayer("MRI"));
     if (mri)
