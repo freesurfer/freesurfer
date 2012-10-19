@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2012/10/17 19:06:04 $
- *    $Revision: 1.8 $
+ *    $Date: 2012/10/19 13:56:00 $
+ *    $Revision: 1.9 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -50,7 +50,7 @@ main(int argc, char *argv[]) {
   char   *in_fname, *out_fname ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_reduce.c,v 1.8 2012/10/17 19:06:04 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_reduce.c,v 1.9 2012/10/19 13:56:00 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -80,6 +80,8 @@ main(int argc, char *argv[]) {
 
   fprintf(stderr, "reading from %s...", in_fname) ;
   mri_src = MRIread(in_fname) ;
+  if (mri_src == NULL)
+    ErrorExit(ERROR_NOFILE, "%s: could not read src image from %s\n", Progname,in_fname) ;
 
   i = 0 ;
   do {
