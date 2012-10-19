@@ -14,8 +14,8 @@
  * Original Author: Douglas N Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2012/08/20 16:33:35 $
- *    $Revision: 1.212 $
+ *    $Date: 2012/10/19 21:10:00 $
+ *    $Revision: 1.213 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -555,7 +555,7 @@ static int SmoothSurfOrVol(MRIS *surf, MRI *mri, MRI *mask, double SmthLevel);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-"$Id: mri_glmfit.c,v 1.212 2012/08/20 16:33:35 greve Exp $";
+"$Id: mri_glmfit.c,v 1.213 2012/10/19 21:10:00 greve Exp $";
 const char *Progname = "mri_glmfit";
 
 int SynthSeed = -1;
@@ -705,6 +705,8 @@ char *Gamma0File[GLMMAT_NCONTRASTS_MAX];
 MATRIX *Xtmp=NULL, *Xnorm=NULL;
 char *XOnlyFile = NULL;
 char *yOutFile = NULL;
+
+char *frameMaskFile = NULL;
 
 int DoSimThreshLoop = 0;
 int  nThreshList = 5, nthThresh;
@@ -1006,6 +1008,11 @@ int main(int argc, char **argv) {
       MRIfree(&mriglm->w);
       mriglm->w = mritmp;
     }
+  }
+
+  if(frameMaskFile){
+    mriglm->FrameMask = MRIread(frameMaskFile);
+    if(mriglm->FrameMask == NULL) exit(1);
   }
 
   if(! DontSave) {
@@ -2321,6 +2328,10 @@ static int parse_commandline(int argc, char **argv) {
       fscanf(fp,"%d",&mriglm->ffxdof);
       fclose(fp);
       DoFFx = 1;
+      nargsused = 1;
+    } else if (!strcmp(option, "--frame-mask")) {
+      if (nargc < 1) CMDargNErr(option,1);
+      frameMaskFile = pargv[0];
       nargsused = 1;
     } else if (!strcmp(option, "--mask")) {
       if (nargc < 1) CMDargNErr(option,1);
