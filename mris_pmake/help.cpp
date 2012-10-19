@@ -7,8 +7,8 @@
  * Original Author: Rudolph Pienaar / Christian Haselgrove
  * CVS Revision Info:
  *    $Author: rudolph $
- *    $Date: 2012/06/29 17:04:20 $
- *    $Revision: 1.19 $
+ *    $Date: 2012/10/19 19:01:35 $
+ *    $Revision: 1.20 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -197,6 +197,7 @@ commandLineOptions_process(
   char*       pch_subjectsDir;
   string      str_subject                     = "";
   string      str_hemi                        = "";
+  int	      port                            = 1701;
 
   string      str_mpmProg                     = "";
   string      str_mpmArgs                     = "-x";
@@ -293,12 +294,17 @@ commandLineOptions_process(
       st_env.b_mpmOverlayUse            = true;
       b_optionsFileUse                  = false;
       break;
+    case 'p':
+      port                              = atoi(optarg);
+      b_optionsFileUse                  = false;
+      break;
     case 'V':
       str_mpmOverlayArgs                = optarg;
-      b_optionsFileUse                = false;
+      b_optionsFileUse                  = false;
       break;
     default:
       cout << "?? getopt returned character code " << opt << endl;
+      break;
     }
   }
   st_env.str_hemi             = str_hemi;
@@ -307,6 +313,7 @@ commandLineOptions_process(
   while(!st_env.b_optionsFileUse)
   {
     s_env_defaultsSet(st_env);
+    st_env.serverControlPort            = port;
     st_env.b_useAbsCurvs                = b_useAbsCurvs;
     st_env.str_primarySurfaceFileName   = str_p + str_hemi + "." +
             str_mainSurfaceFileName;
