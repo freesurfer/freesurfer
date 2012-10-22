@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2012/09/11 16:40:04 $
- *    $Revision: 1.739 $
+ *    $Author: greve $
+ *    $Date: 2012/10/22 16:51:22 $
+ *    $Revision: 1.740 $
  *
  * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -764,7 +764,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void)
 {
-  return("$Id: mrisurf.c,v 1.739 2012/09/11 16:40:04 fischl Exp $");
+  return("$Id: mrisurf.c,v 1.740 2012/10/22 16:51:22 greve Exp $");
 }
 
 /*-----------------------------------------------------
@@ -6355,6 +6355,23 @@ static char *curvature_names[] =
   "sulc",
   NULL
 } ;
+
+int MRISsetCurvatureName(int nth, char *name)
+{
+  if(nth > 2){
+    printf("ERROR: MRISsetCurvatureName() nth=%d > 2\n",nth);
+    return(1);
+  }
+  curvature_names[nth] = strcpyalloc(name);
+  return(0);
+}
+int MRISprintCurvatureNames(FILE *fp)
+{
+  int k;
+  for(k=0; k < sizeof(curvature_names)/sizeof(curvature_names[0]); k++)
+    printf("%d %s\n",k,curvature_names[k]);
+  return(0);
+}
 
 int
 MRISsetInflatedFileName(char *inflated_name)

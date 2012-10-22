@@ -8,9 +8,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2012/08/21 20:46:21 $
- *    $Revision: 1.370 $
+ *    $Author: greve $
+ *    $Date: 2012/10/22 16:51:23 $
+ *    $Revision: 1.371 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -1398,6 +1398,8 @@ int MRISdivideEdges(MRI_SURFACE *mris, int npoints) ;
 int MRISremoveTriangleLinks(MRI_SURFACE *mris) ;
 int MRISsetOriginalFileName(char *orig_name) ;
 int MRISsetSulcFileName(const char *sulc_name) ;
+int MRISsetCurvatureName(int nth, char *name);
+int MRISprintCurvatureNames(FILE *fp);
 int MRISsetInflatedFileName(char *inflated_name) ;
 int MRISsetRegistrationSigmas(float *sigmas, int nsigmas) ;
 
