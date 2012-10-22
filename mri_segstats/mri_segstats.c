@@ -12,8 +12,8 @@
  * Original Author: Dougas N Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2012/09/17 16:38:57 $
- *    $Revision: 1.92 $
+ *    $Date: 2012/10/22 19:39:16 $
+ *    $Revision: 1.93 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -110,7 +110,7 @@ int DumpStatSumTable(STATSUMENTRY *StatSumTable, int nsegid);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-  "$Id: mri_segstats.c,v 1.92 2012/09/17 16:38:57 greve Exp $";
+  "$Id: mri_segstats.c,v 1.93 2012/10/22 19:39:16 greve Exp $";
 char *Progname = NULL, *SUBJECTS_DIR = NULL, *FREESURFER_HOME=NULL;
 char *SegVolFile = NULL;
 char *InVolFile = NULL;
@@ -978,12 +978,15 @@ int main(int argc, char **argv)
     if(UseRobust) fprintf(fp,"# RobustPct %g\n",RobustPct);
     if (BrainVolFromSeg)
     {
-      fprintf(fp,"# Measure BrainSegNotVent, BrainSegVolNotVent, "
-              "Brain Segmentation Volume Without Ventricles, %f, mm^3\n",
-              BrainVolStats[1]);
       fprintf(fp,"# Measure BrainSeg, BrainSegVol, "
               "Brain Segmentation Volume, %f, mm^3\n",
               BrainVolStats[0]);
+      fprintf(fp,"# Measure BrainSegNotVent, BrainSegVolNotVent, "
+              "Brain Segmentation Volume Without Ventricles, %f, mm^3\n",
+              BrainVolStats[1]);
+      fprintf(fp,"# Measure BrainSegNotVentSurf, BrainSegVolNotVentSurf, "
+              "Brain Segmentation Volume Without Ventricles from Surf, %f, mm^3\n",
+              BrainVolStats[14]);
     }
     if(DoSurfCtxVol)
     {
@@ -1021,6 +1024,8 @@ int main(int argc, char **argv)
               "Supratentorial volume, %f, mm^3\n",BrainVolStats[2]);
       fprintf(fp,"# Measure SupraTentorialNotVent, SupraTentorialVolNotVent, "
               "Supratentorial volume, %f, mm^3\n",BrainVolStats[3]);
+      fprintf(fp,"# Measure SupraTentorialNotVentVox, SupraTentorialVolNotVentVox, "
+              "Supratentorial volume voxel count, %f, mm^3\n",BrainVolStats[13]);
     }
     if (BrainMaskFile){
       //fprintf(fp,"# BrainMaskFile  %s \n",BrainMaskFile);
