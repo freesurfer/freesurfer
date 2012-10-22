@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2012/10/19 21:08:35 $
- *    $Revision: 1.27 $
+ *    $Date: 2012/10/22 16:52:15 $
+ *    $Revision: 1.28 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -25,7 +25,7 @@
 
 
 // fsglm.c - routines to perform GLM analysis.
-// $Id: fsglm.c,v 1.27 2012/10/19 21:08:35 greve Exp $
+// $Id: fsglm.c,v 1.28 2012/10/22 16:52:15 greve Exp $
 /*
   y = X*beta + n;                      Forward Model
   beta = inv(X'*X)*X'*y;               Fit beta
@@ -150,7 +150,7 @@
 // Return the CVS version of this file.
 const char *GLMSrcVersion(void)
 {
-  return("$Id: fsglm.c,v 1.27 2012/10/19 21:08:35 greve Exp $");
+  return("$Id: fsglm.c,v 1.28 2012/10/22 16:52:15 greve Exp $");
 }
 
 
@@ -376,12 +376,12 @@ int GLMxMatrices(GLMMAT *glm)
   if(glm->Xt && glm->Xt->cols != glm->X->rows) MatrixFree(&glm->Xt);
 
   glm->Xt   = MatrixTranspose(glm->X,glm->Xt);
-  glm->XtX  = MatrixMultiply(glm->Xt,glm->X,glm->XtX);
+  glm->XtX  = MatrixMultiplyD(glm->Xt,glm->X,glm->XtX);
   if(glm->ReScaleX){
     Xscale = MatrixAlloc(glm->X->cols,1,MATRIX_REAL);
     Xnorm = MatrixNormalizeCol(glm->X,NULL,Xscale);
     Xtnorm = MatrixTranspose(Xnorm,NULL);
-    XtX  = MatrixMultiply(Xtnorm,Xnorm,NULL);
+    XtX  = MatrixMultiplyD(Xtnorm,Xnorm,NULL);
   } 
   else XtX = glm->XtX;
 
@@ -412,9 +412,9 @@ int GLMxMatrices(GLMMAT *glm)
     // gCVM  = rvar*J*C*inv(X'*X)*C'
     // F     = gamma' * inv(gCVM) * gamma;
     glm->CiXtX[n]    =
-      MatrixMultiply(glm->C[n],glm->iXtX,glm->CiXtX[n]);
+      MatrixMultiplyD(glm->C[n],glm->iXtX,glm->CiXtX[n]);
     glm->CiXtXCt[n]  =
-      MatrixMultiply(glm->CiXtX[n],glm->Ct[n],glm->CiXtXCt[n]);
+      MatrixMultiplyD(glm->CiXtX[n],glm->Ct[n],glm->CiXtXCt[n]);
   }
   return(0);
 }
@@ -433,18 +433,18 @@ int GLMfit(GLMMAT *glm)
   if (glm->ill_cond_flag) return(0);
 
   // Compute X'*y
-  glm->Xty  = MatrixMultiply(glm->Xt,glm->y,glm->Xty);
+  glm->Xty  = MatrixMultiplyD(glm->Xt,glm->y,glm->Xty);
 
   // Now do the actual parameter (beta) estmation
   // beta = inv(X'*X)*X'*y
-  glm->beta = MatrixMultiply(glm->iXtX,glm->Xty,glm->beta);
+  glm->beta = MatrixMultiplyD(glm->iXtX,glm->Xty,glm->beta);
 
   // If necessary, free vectors so that they can be realloced (FrameMask)
   if(glm->yhat && glm->yhat->rows != glm->X->rows) MatrixFree(&glm->yhat);
   if(glm->eres && glm->eres->rows != glm->X->rows) MatrixFree(&glm->eres);
 
   // Compute yhat, eres, and residual variance
-  glm->yhat = MatrixMultiply(glm->X, glm->beta, glm->yhat);
+  glm->yhat = MatrixMultiplyD(glm->X, glm->beta, glm->yhat);
   glm->eres = MatrixSubtract(glm->y, glm->yhat, glm->eres);
   glm->rvar = 0;
   for (f = 1; f <= glm->eres->rows; f++)
@@ -483,9 +483,9 @@ int GLMtest(GLMMAT *glm)
     // F     = gamma' * inv(gCVM) * gamma;
     // CiXtX and CiXtXCt are now computed by GLMxMatrices().
     //glm->CiXtX[n]    =
-    //  MatrixMultiply(glm->C[n],glm->iXtX,glm->CiXtX[n]);
+    //  MatrixMultiplyD(glm->C[n],glm->iXtX,glm->CiXtX[n]);
     //glm->CiXtXCt[n]  =
-    //  MatrixMultiply(glm->CiXtX[n],glm->Ct[n],glm->CiXtXCt[n]);
+    //  MatrixMultiplyD(glm->CiXtX[n],glm->Ct[n],glm->CiXtXCt[n]);
 
     if (glm->igCVM[n]==NULL)
       glm->igCVM[n] = MatrixAlloc(glm->C[n]->rows,glm->C[n]->rows,MATRIX_REAL);
@@ -494,7 +494,7 @@ int GLMtest(GLMMAT *glm)
     if (glm->rvar < 2*FLT_MIN)  dtmp = 1e10*glm->C[n]->rows;
     else                       dtmp = glm->rvar*glm->C[n]->rows;
 
-    glm->gamma[n]  = MatrixMultiply(glm->C[n],glm->beta,glm->gamma[n]);
+    glm->gamma[n]  = MatrixMultiplyD(glm->C[n],glm->beta,glm->gamma[n]);
     if(glm->UseGamma0[n]) 
       MatrixSubtract(glm->gamma[n],glm->gamma0[n],glm->gamma[n]);
     glm->gammat[n] = MatrixTranspose(glm->gamma[n],glm->gammat[n]);
@@ -504,8 +504,8 @@ int GLMtest(GLMMAT *glm)
       glm->igCVM[n]    =
         MatrixScalarMul(glm->igCVM[n],1.0/dtmp,glm->igCVM[n]);
       glm->gtigCVM[n]  =
-        MatrixMultiply(glm->gammat[n],glm->igCVM[n],glm->gtigCVM[n]);
-      F                = MatrixMultiply(glm->gtigCVM[n],glm->gamma[n],F);
+        MatrixMultiplyD(glm->gammat[n],glm->igCVM[n],glm->gtigCVM[n]);
+      F                = MatrixMultiplyD(glm->gtigCVM[n],glm->gamma[n],F);
       glm->F[n]        = F->rptr[1][1];
       glm->p[n]        = sc_cdf_fdist_Q(glm->F[n],glm->C[n]->rows,glm->dof);
     }
@@ -517,7 +517,7 @@ int GLMtest(GLMMAT *glm)
       glm->p[n]        = 1;
     }
     if (glm->ypmfflag[n])
-      glm->ypmf[n] = MatrixMultiply(glm->Mpmf[n],glm->beta,glm->ypmf[n]);
+      glm->ypmf[n] = MatrixMultiplyD(glm->Mpmf[n],glm->beta,glm->ypmf[n]);
   }
   return(0);
 }
@@ -554,19 +554,19 @@ int GLMtestFFx(GLMMAT *glm)
     if(glm->igCVM[n]==NULL)
       glm->igCVM[n] = MatrixAlloc(glm->C[n]->rows,glm->C[n]->rows,MATRIX_REAL);
 
-    glm->gamma[n]  = MatrixMultiply(glm->C[n],glm->beta,glm->gamma[n]);
+    glm->gamma[n]  = MatrixMultiplyD(glm->C[n],glm->beta,glm->gamma[n]);
     if(glm->UseGamma0[n]) 
       MatrixSubtract(glm->gamma[n],glm->gamma0[n],glm->gamma[n]);
     glm->gammat[n] = MatrixTranspose(glm->gamma[n],glm->gammat[n]);
 
-    CiXtXXs  = MatrixMultiply(glm->CiXtX[n],Xst,NULL);
+    CiXtXXs  = MatrixMultiplyD(glm->CiXtX[n],Xst,NULL);
     CiXtXXst = MatrixTranspose(CiXtXXs,NULL);
-    glm->gCVM[n] = MatrixMultiply(CiXtXXs,CiXtXXst,glm->gCVM[n]);
+    glm->gCVM[n] = MatrixMultiplyD(CiXtXXs,CiXtXXst,glm->gCVM[n]);
     mtmp = MatrixInverse(glm->gCVM[n],glm->igCVM[n]);
     if (mtmp != NULL)  {
       glm->gtigCVM[n]  =
-        MatrixMultiply(glm->gammat[n],glm->igCVM[n],glm->gtigCVM[n]);
-      F                = MatrixMultiply(glm->gtigCVM[n],glm->gamma[n],F);
+        MatrixMultiplyD(glm->gammat[n],glm->igCVM[n],glm->gtigCVM[n]);
+      F                = MatrixMultiplyD(glm->gtigCVM[n],glm->gamma[n],F);
       glm->F[n]        = F->rptr[1][1];
       glm->p[n]        = sc_cdf_fdist_Q(glm->F[n],glm->C[n]->rows,glm->ffxdof);
       glm->igCVM[n] = mtmp;
@@ -828,11 +828,11 @@ MATRIX *GLMpmfMatrix(MATRIX *C, double *cond, MATRIX *P)
   }
 
   Ct     = MatrixTranspose(C,Ct);
-  CCt    = MatrixMultiply(C,Ct,CCt);
+  CCt    = MatrixMultiplyD(C,Ct,CCt);
   *cond  = MatrixConditionNumber(CCt);
   iCCt   = MatrixInverse(CCt,iCCt);
-  CtiCCt = MatrixMultiply(Ct,iCCt,CtiCCt);
-  P      = MatrixMultiply(CtiCCt,C,P);
+  CtiCCt = MatrixMultiplyD(Ct,iCCt,CtiCCt);
+  P      = MatrixMultiplyD(CtiCCt,C,P);
 
   MatrixFree(&Ct);
   MatrixFree(&CCt);

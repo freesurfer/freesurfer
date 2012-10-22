@@ -14,8 +14,8 @@
  * Original Author: Douglas N Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2012/10/19 21:10:00 $
- *    $Revision: 1.213 $
+ *    $Date: 2012/10/22 16:52:15 $
+ *    $Revision: 1.214 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -555,7 +555,7 @@ static int SmoothSurfOrVol(MRIS *surf, MRI *mri, MRI *mask, double SmthLevel);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-"$Id: mri_glmfit.c,v 1.213 2012/10/19 21:10:00 greve Exp $";
+"$Id: mri_glmfit.c,v 1.214 2012/10/22 16:52:15 greve Exp $";
 const char *Progname = "mri_glmfit";
 
 int SynthSeed = -1;
@@ -1142,6 +1142,7 @@ int main(int argc, char **argv) {
         mritmp = mri_reshape(mriglm->mask, 
                              surf->nvertices,
                              1, 1, mriglm->mask->nframes);
+	if(mritmp == NULL) exit(1);
     }
     for(n=0; n < surf->nvertices; n++){
       if(mritmp && MRIgetVoxVal(mritmp,n,0,0,0) < 0.5) continue;
@@ -1308,7 +1309,7 @@ int main(int argc, char **argv) {
       }
       // Check it's condition
       Ct  = MatrixTranspose(mriglm->glm->C[n],NULL);
-      CCt = MatrixMultiply(mriglm->glm->C[n],Ct,NULL);
+      CCt = MatrixMultiplyD(mriglm->glm->C[n],Ct,NULL);
       Ccond = MatrixConditionNumber(CCt);
       if (Ccond > 1000) {
         printf("ERROR: contrast %s is ill-conditioned (%g)\n",

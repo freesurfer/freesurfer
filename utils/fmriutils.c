@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2012/10/19 21:08:35 $
- *    $Revision: 1.70 $
+ *    $Date: 2012/10/22 16:52:15 $
+ *    $Revision: 1.71 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -28,7 +28,7 @@
   \file fmriutils.c
   \brief Multi-frame utilities
 
-  $Id: fmriutils.c,v 1.70 2012/10/19 21:08:35 greve Exp $
+  $Id: fmriutils.c,v 1.71 2012/10/22 16:52:15 greve Exp $
 
   Things to do:
   1. Add flag to turn use of weight on and off
@@ -60,7 +60,7 @@ double round(double x);
 // Return the CVS version of this file.
 const char *fMRISrcVersion(void)
 {
-  return("$Id: fmriutils.c,v 1.70 2012/10/19 21:08:35 greve Exp $");
+  return("$Id: fmriutils.c,v 1.71 2012/10/22 16:52:15 greve Exp $");
 }
 
 
@@ -378,9 +378,9 @@ MRI *fMRIcomputeT(MRI *ces, MATRIX *X, MATRIX *C, MRI *var, MRI *t)
   Xt      = MatrixTranspose(X,NULL);
   XtX     = MatrixMultiply(Xt,X,NULL);
   iXtX    = MatrixInverse(XtX,NULL);
-  CiXtX   = MatrixMultiply(C,iXtX,NULL);
+  CiXtX   = MatrixMultiplyD(C,iXtX,NULL);
   Ct      = MatrixTranspose(C,NULL);
-  CiXtXCt = MatrixMultiply(CiXtX,Ct,NULL);
+  CiXtXCt = MatrixMultiplyD(CiXtX,Ct,NULL);
   srf = sqrt(CiXtXCt->rptr[1][1]);
   //printf("fMRIcomputeT: srf = %g\n",srf);
 
@@ -511,11 +511,11 @@ MRI *fMRIcomputeF(MRI *ces, MATRIX *X, MATRIX *C, MRI *var, MRI *F)
   }
 
   Xt      = MatrixTranspose(X,NULL);
-  XtX     = MatrixMultiply(Xt,X,NULL);
+  XtX     = MatrixMultiplyD(Xt,X,NULL);
   iXtX    = MatrixInverse(XtX,NULL);
-  CiXtX   = MatrixMultiply(C,iXtX,NULL);
+  CiXtX   = MatrixMultiplyD(C,iXtX,NULL);
   Ct      = MatrixTranspose(C,NULL);
-  CiXtXCt = MatrixMultiply(CiXtX,Ct,NULL);
+  CiXtXCt = MatrixMultiplyD(CiXtX,Ct,NULL);
   iCiXtXCt = MatrixInverse(CiXtXCt,NULL);
   J = C->rows;
   cesvect = MatrixAlloc(ces->nframes,1,MATRIX_REAL);
@@ -540,8 +540,8 @@ MRI *fMRIcomputeF(MRI *ces, MATRIX *X, MATRIX *C, MRI *var, MRI *F)
             cesvect->rptr[f+1][1]  = cesval;
             cesvectt->rptr[1][f+1] = cesval;
           }
-          M = MatrixMultiply(iCiXtXCt,cesvect,M);
-          voxF = MatrixMultiply(cesvectt,M,voxF);
+          M = MatrixMultiplyD(iCiXtXCt,cesvect,M);
+          voxF = MatrixMultiplyD(cesvectt,M,voxF);
 
           MRIFseq_vox(F,c,r,s,0) = (voxF->rptr[1][1])/(J*voxvar);
         }
@@ -1876,14 +1876,14 @@ MRI *fMRIdetrend(MRI *y, MATRIX *X)
   }
 
   Xt = MatrixTranspose(X,NULL);
-  XtX = MatrixMultiply(Xt,X,NULL);
+  XtX = MatrixMultiplyD(Xt,X,NULL);
   iXtX = MatrixInverse(XtX,NULL);
   if (iXtX==NULL)
   {
     printf("ERROR: could not compute psuedo inverse of X\n");
     exit(1);
   }
-  B = MatrixMultiply(iXtX,Xt,NULL);
+  B = MatrixMultiplyD(iXtX,Xt,NULL);
 
   beta = fMRImatrixMultiply(y, B, NULL);
   yhat = fMRImatrixMultiply(beta, X, NULL);
@@ -2502,7 +2502,7 @@ MRI *fMRItemporalGaussian(MRI *src, double gstdmsec, MRI *targ)
       for(s=0; s < src->depth; s++){
 	for(f=0; f < src->nframes; f++) 
 	  v->rptr[f+1][1] = MRIgetVoxVal(src,c,r,s,f);
-	MatrixMultiply(G,v,v);
+	MatrixMultiplyD(G,v,v);
 	for(f=0; f < src->nframes; f++) 
 	  MRIsetVoxVal(targ,c,r,s,f,v->rptr[f+1][1]);
       }
@@ -2748,7 +2748,7 @@ MRI *fMRIspatialCorMatrix(MRI *fmri)
   //MatrixWrite(Mt, "Mt.mat", "Mt");
 
   printf("fMRIspatialCorMatrix: multiplying\n");
-  MtM = MatrixMultiply(Mt,M,NULL);
+  MtM = MatrixMultiplyD(Mt,M,NULL);
   //MatrixWrite(MtM, "MtM.mat", "MtM");
 
   MatrixFree(&M);
