@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2012/03/14 17:14:48 $
- *    $Revision: 1.127 $
+ *    $Date: 2012/10/22 22:01:06 $
+ *    $Revision: 1.128 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -4019,4 +4019,30 @@ MATRIX *MatrixExcludeFrames(MATRIX *Src, int *ExcludeFrames, int nExclude)
     q++;
   }
   return(Trg);
+}
+
+/*!
+  \fn MATRIX *MatrixCumTrapZ(MATRIX *y, MATRIX *t, MATRIX *yz)
+  \brief Computes trapezoidal integration (like matlab cumtrapz)
+*/
+MATRIX *MatrixCumTrapZ(MATRIX *y, MATRIX *t, MATRIX *yz)
+{
+  if(yz==NULL) yz = MatrixAlloc(y->rows,y->cols,MATRIX_REAL);
+
+  int c, f;
+  double v, vprev, vsum, dt;
+
+  for(c=0; c < y->cols; c++){
+    yz->rptr[1][c+1] = 0;
+    vsum = 0;
+    vprev = y->rptr[1][c+1];
+    for(f=1; f < y->rows; f++){
+      dt = t->rptr[f+1][1] - t->rptr[f][1];
+      v = y->rptr[f+1][c+1];
+      vsum += (dt*((v+vprev)/2));
+      yz->rptr[f+1][c+1] = vsum;
+      vprev = v;
+    }
+  }
+  return(yz);
 }

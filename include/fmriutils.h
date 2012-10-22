@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2012/10/19 21:08:35 $
- *    $Revision: 1.44 $
+ *    $Date: 2012/10/22 22:01:06 $
+ *    $Revision: 1.45 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -132,5 +132,6 @@ int fMRIfromMatrix(MATRIX *M, MRI *fmri);
 MRI *fMRIspatialCorMatrix(MRI *fmri);
 MRI *fMRIdistance(MRI *mri, MRI *mask);
 MRI *fMRIcumSum(MRI *inmri, MRI *mask, MRI *outmri);
+MRI *fMRIcumTrapZ(MRI *y, MATRIX *t, MRI *mask, MRI *yz);
 
 #endif

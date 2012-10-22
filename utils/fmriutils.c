@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2012/10/22 16:52:15 $
- *    $Revision: 1.71 $
+ *    $Date: 2012/10/22 22:01:06 $
+ *    $Revision: 1.72 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -28,7 +28,7 @@
   \file fmriutils.c
   \brief Multi-frame utilities
 
-  $Id: fmriutils.c,v 1.71 2012/10/22 16:52:15 greve Exp $
+  $Id: fmriutils.c,v 1.72 2012/10/22 22:01:06 greve Exp $
 
   Things to do:
   1. Add flag to turn use of weight on and off
@@ -60,7 +60,7 @@ double round(double x);
 // Return the CVS version of this file.
 const char *fMRISrcVersion(void)
 {
-  return("$Id: fmriutils.c,v 1.71 2012/10/22 16:52:15 greve Exp $");
+  return("$Id: fmriutils.c,v 1.72 2012/10/22 22:01:06 greve Exp $");
 }
 
 
@@ -2857,4 +2857,44 @@ MRI *fMRIcumSum(MRI *inmri, MRI *mask, MRI *outmri)
     }
   }
   return(outmri);
+}
+
+/*!
+  \fn MRI *fMRIcumTrapZ(MRI *y, MATRIX *t, MRI *mask, MRI *yz)
+  \brief Computes trapezoidal integration (like matlab cumtrapz)
+*/
+MRI *fMRIcumTrapZ(MRI *y, MATRIX *t, MRI *mask, MRI *yz)
+{
+  int c, r, s, f;
+  double v, vprev, vsum, dt;
+
+  if (yz==NULL){
+    yz = MRIallocSequence(y->width,y->height,y->depth,MRI_FLOAT,y->nframes);
+    if(yz==NULL){
+      printf("ERROR: fMRIcumtrapz: could not alloc\n");
+      return(NULL);
+    }
+    MRIcopyHeader(y,yz);
+  }
+
+  for(c=0; c < y->width; c++)  {
+    for(r=0; r < y->height; r++)    {
+      for(s=0; s < y->depth; s++)   {
+	if(mask && MRIgetVoxVal(mask, c, r, s, 0) < 0.5){
+	  for(f=0; f < y->nframes; f++) MRIFseq_vox(yz,c,r,s,f) = 0;
+	  continue;
+	}
+	vsum = 0;
+	vprev = MRIgetVoxVal(y,c,r,s,0);
+	for(f=1; f < y->nframes; f++){
+	  dt = t->rptr[f+1][1] - t->rptr[f][1];
+	  v = MRIgetVoxVal(y,c,r,s,f);
+	  vsum += (dt*((v+vprev)/2));
+	  MRIsetVoxVal(yz,c,r,s,f,vsum);
+	  vprev = v;
+	}
+      }
+    }
+  }
+  return(yz);
 }
