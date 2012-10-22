@@ -9,8 +9,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2012/08/27 23:13:54 $
- *    $Revision: 1.351.2.2 $
+ *    $Date: 2012/10/22 18:15:26 $
+ *    $Revision: 1.351.2.3 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -437,8 +437,10 @@ typedef struct
                                  along normal */
   float   l_spring ;          /* coefficient of spring term */
   float   l_nlspring ;        /* nonlinear spring term */
+  float   l_max_spring ;      /* draws vertices towards the most distant neighbor */
   float   l_spring_norm ;     /* coefficient of normalize spring term */
   float   l_tspring ;         /* coefficient of tangential spring term */
+  float   l_nltspring ;       /* coefficient of nonlinear tangential spring term */
   float   l_nspring ;         /* coefficient of normal spring term */
   float   l_repulse ;         /* repulsize force on tessellation */
   float   l_repulse_ratio ;   /* repulsize force on tessellation */
@@ -461,11 +463,13 @@ typedef struct
   float   l_expandwrap ;      /* move out */
   float   l_unfold ;          /* move inwards along normal */
   float   l_dura ;            // move away from dura
+  float   l_histo ;           // increase the likelihood of the entire volume given the surfaces
   double  dura_thresh ;
   MRI     *mri_dura ;         /* ratio of early to late echo -
                                          dura shows up bright */
   int     n_averages ;        /* # of averages */
   int     min_averages ;
+  int     first_pass_averages;// # of averages to use in the first pass
   int     nbhd_size ;
   int     max_nbrs ;
   int     write_iterations ;  /* # of iterations between saving movies */
@@ -560,6 +564,20 @@ typedef struct
   int          smooth_averages ;
   int          ico_order ;  // which icosahedron to use
   int          remove_neg ;
+  MRI          *mri_hires ;
+  MRI          *mri_hires_smooth ;
+  MRI          *mri_vno ;
+  MRI          *mri_template ;
+  int          which_surface ;
+  float        trinarize_thresh;   // for trinarizing curvature in registration
+  int          smooth_intersections ;  // run soap bubble smoothing during surface positioning
+  int          uncompress ;            // run code to remove compressions in tessellation
+  double       min_dist ;
+  HISTOGRAM    *h_wm ;
+  HISTOGRAM    *h_gm ;
+  HISTOGRAM    *h_nonbrain ;
+  MRI          *mri_labels ;   // hires labeling of interior of WM, GM and nonbrain
+  MRI          *mri_white ;
 }
 INTEGRATION_PARMS ;
 
@@ -1477,6 +1495,7 @@ MRI   *MRISpartialfloodoutside(MRI *mri_src,
 #define MRIS_STL_FILE                  6
 #define MRIS_GIFTI_FILE                7
 #define MRIS_ANNOT_FILE                8
+#define MRIS_VOLUME_FILE               9
 
 
 #define IS_QUADRANGULAR(mris)                   \
