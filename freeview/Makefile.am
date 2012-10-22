@@ -544,7 +544,7 @@ freeview_LDADD		= $(QT_LIBS)	\
   $(ITK_LIBS) \
   $(PETSC_LIBS) -lpetscts -lpetscsnes -lpetscksp \
   -lpetscdm -lpetscmat -lpetscvec -lpetsc -lmpich -lfmpich \
-  $(LIB_LAPACK_A) $(LIB_BLAS_A) -lgfortran
+  $(LIB_GFORTRAN) $(LIB_LAPACK_A) $(LIB_BLAS_A) $(LIB_G2C_A) $(LIB_GFORTRAN)
 
 # put a wrapper around the bin, used to setup tcltktixblt,vtk enviro vars
 # and if the OS is MACOSX have a different install-hook to create a bundle

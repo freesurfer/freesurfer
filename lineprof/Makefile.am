@@ -2,30 +2,6 @@
 # Makefile.am for liblineprof.a
 #
 
-#if USE_LOCAL_TIFF
-#TIFF_THINGS=-I$(top_srcdir)/tiff -L$(top_srcdir)/tiff
-#else
-#TIFF_THINGS=$(TIFF_CFLAGS)
-#endif
-#
-#if USE_LOCAL_JPEG
-#JPEG_THINGS=-I$(top_srcdir)/jpeg -L$(top_srcdir)/jpeg
-#else
-#JPEG_THINGS=$(JPEG_CFLAGS)
-#endif
-#
-#if USE_LOCAL_EXPAT
-#EXPAT_THINGS=-I$(top_srcdir)/expat -L$(top_srcdir)/expat
-#else
-#EXPAT_THINGS=$(EXPAT_CFLAGS)
-#endif
-#
-#	$(TIFF_THINGS) $(JPEG_THINGS) $(EXPAT_THINGS) \
-#	$(GL_CFLAGS) \
-#	$(TCL_CFLAGS) \
-#	$(VXL_CFLAGS) \
-#	-I$(top_srcdir)/include 
-
 AM_CPPFLAGS= -Wno-deprecated \
 	$(VXL_CFLAGS) \
 	$(VTK_CXXFLAGS) \
@@ -74,7 +50,7 @@ LineProfTest_LDADD=\
   $(ITK_LIBS) \
   $(PETSC_LIBS) -lpetscts -lpetscsnes -lpetscksp \
   -lpetscdm -lpetscmat -lpetscvec -lpetsc -lmpich -lfmpich \
-  $(LIB_LAPACK_A) $(LIB_BLAS_A) -lgfortran
+  $(LIB_GFORTRAN) $(LIB_LAPACK_A) $(LIB_BLAS_A) $(LIB_G2C_A) $(LIB_GFORTRAN)
 
 EXTRA_DIST=  \
 PetscSolver.h \
