@@ -1,6 +1,6 @@
 /**
  * @file Registration.h
- * @brief Bese class to compute a robust symmetric registration
+ * @brief Base class to compute a robust symmetric registration
  *
  */
 
@@ -8,8 +8,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2012/09/21 23:05:16 $
- *    $Revision: 1.56 $
+ *    $Date: 2012/10/22 21:51:07 $
+ *    $Revision: 1.57 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

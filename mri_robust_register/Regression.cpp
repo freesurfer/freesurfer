@@ -12,8 +12,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2012/09/21 23:05:16 $
- *    $Revision: 1.27 $
+ *    $Date: 2012/10/22 21:51:07 $
+ *    $Revision: 1.28 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -791,22 +791,23 @@ void Regression<T>::getSqrtTukeyDiaWeights(const vnl_vector<T>& r,
   unsigned int n = r.size();
   assert(n == w.size());
 
-  double t1, t2;
+  double t1;
+  //double t2;
   unsigned int rr;
-  int ocount = 0;
+  //int ocount = 0;
   for (rr = 0; rr < n; rr++)
   {
     // cout << " fabs: " << fabs(r->rptr[rr][cc]) << " sat: " << sat << endl;
     if (fabs(r[rr]) >= sat)
     {
       w(rr) = 0.0;
-      ocount++;
+      //ocount++;
     }
     else
     {
       t1 = r[rr] / sat;
-      t2 = 1.0 - t1 * t1;
-      w(rr) = (T) t2; // returning sqrt
+      //t2 = 1.0 - t1 * t1;
+      w(rr) = (T) (1.0 - t1 * t1); // returning sqrt
     }
   }
   //cout << " over threshold: " << ocount << " times ! " << endl;
