@@ -55,6 +55,7 @@ foo_DATA=\
 	mni305.cor.subfov1.reg \
 	mni305.cor.subfov2.reg \
 	mni152.register.dat \
+	mni152.1mm.register.dat \
 	mni152.mni305.cor.subfov1.dat \
 	mni152.mni305.cor.subfov2.dat 
 else
