@@ -32,7 +32,13 @@ liblineprof_a_SOURCES= \
 ##check_PROGRAMS=foo LineProfTest
 
 check_PROGRAMS=LineProfTest
-TESTS=testLineProf
+#NOTE: the testLineProf script calls the vtk setup script, which is
+# necessary under normal circumstances, but since configure sets the
+# TEST_ENVIRONMENT var already, it is not needed for make check
+# (and in fact will not work for make distcheck), so LineProfTest
+# can be called directly
+#TESTS=testLineProf
+TESTS=LineProfTest
 
 LineProfTest_SOURCES=LineProfTest.cpp
 
