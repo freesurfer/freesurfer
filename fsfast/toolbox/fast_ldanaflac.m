@@ -10,8 +10,8 @@ function flac = fast_ldanaflac(anadir)
 % Original Author: Doug Greve
 % CVS Revision Info:
 %    $Author: greve $
-%    $Date: 2011/12/15 16:32:48 $
-%    $Revision: 1.64 $
+%    $Date: 2012/10/22 15:43:55 $
+%    $Revision: 1.65 $
 %
 % Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 %
@@ -199,6 +199,8 @@ if(isempty(flac.mask))
   flac.mask = 'brain';
   fprintf('INFO: mask is not set, setting to brain\n');
 end
+if(strcmp(flac.mask,'nomask')) flac.mask = ''; end
+
 if(isempty(flac.fsd)) flac.fsd = 'bold'; end 
 if(isempty(flac.acfsegstem)) flac.acfsegstem = 'acfseg'; end 
 
@@ -318,6 +320,7 @@ if(strcmp(designtype,'retinotopy'))
 end
 
 if(strcmp(designtype,'abblocked'))
+  flac.IsABBlocked = 1;
   nharmonics = 1;
   tline = sprintf('EV Fourier abret task %g',period);
   flac.ev(nthev) = flac_ev_parse(tline);

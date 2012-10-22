@@ -7,8 +7,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2011/12/13 23:36:26 $
-#    $Revision: 1.68 $
+#    $Date: 2012/10/22 15:43:55 $
+#    $Revision: 1.69 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 # Bug reports: analysis-bugs@nmr.mgh.harvard.edu
 #
 
-set VERSION = '$Id: mkanalysis-sess,v 1.68 2011/12/13 23:36:26 greve Exp $';
+set VERSION = '$Id: mkanalysis-sess,v 1.69 2012/10/22 15:43:55 greve Exp $';
 
 set analysis = ();
 set TR = ();
@@ -314,6 +314,10 @@ while( $#argv != 0 )
     case "-mask":
       if ( $#argv < 0) goto arg1err;
       set maskstem = $argv[1]; shift;
+      breaksw
+
+    case "-no-mask":
+      set maskstem = nomask;
       breaksw
 
     case "-ter":
@@ -810,6 +814,7 @@ usage_exit:
   echo "  -runlistfile filename : file with list of runs to include in analysis"
   echo "  -funcstem stem  : override default"
   echo "  -mask  maskid : use masks/maskid to compute autocor and whitening"
+  echo "  -no-mask  : do not use a mask"
   echo "  -no-inorm              : do not intensity normalize data"
   echo "  -rescale-target value  : intensity normalize to value"
   echo "  -version        : print version and exit"
