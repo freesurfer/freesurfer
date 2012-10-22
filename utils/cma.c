@@ -9,8 +9,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2012/09/10 17:59:56 $
- *    $Revision: 1.15 $
+ *    $Date: 2012/10/22 19:34:41 $
+ *    $Revision: 1.16 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -884,8 +884,8 @@ double *ComputeBrainVolumeStats(char *subject)
   double lhCtxGM, rhCtxGM, lhCtxWM, rhCtxWM;
   double lhCtxGMCor, rhCtxGMCor, lhCtxWMCor, rhCtxWMCor;
   double lhCtxGMCount, rhCtxGMCount, lhCtxWMCount, rhCtxWMCount;
-  double CCVol;
-  double SupraTentVol, SupraTentVolCor, SupraTentVolNotVent, eSTV;
+  double CCVol,TFFC,eBSVnvSurf;
+  double SupraTentVol, SupraTentVolCor, SupraTentVolNotVent, eSTV,eSTVnv;
   double SubCortGMVol, CerebellumVol, CerebellumGMVol, VentChorVol;
   double BrainSegVol, eBSV, BrainSegVolNotVent, MaskVol, VesselVol;
   double OptChiasmVol, CSFVol;
@@ -942,6 +942,7 @@ double *ComputeBrainVolumeStats(char *subject)
   VesselVol = 0;
   OptChiasmVol = 0;
   CSFVol = 0;
+  TFFC = 0;
   for(c=0; c < aseg->width; c++){
     for(r=0; r < aseg->height; r++){
       for(s=0; s < aseg->depth; s++){
@@ -976,6 +977,10 @@ double *ComputeBrainVolumeStats(char *subject)
 	   asegid == Left_Lateral_Ventricle  || asegid == Right_Lateral_Ventricle ||
 	   asegid == Left_Inf_Lat_Vent       || asegid == Right_Inf_Lat_Vent)
 	  VentChorVol++;
+	// 3rd, 4th, 5th, CSF
+	if(asegid == Third_Ventricle         || asegid == Fourth_Ventricle ||
+	   asegid == Fifth_Ventricle	     || asegid == CSF)
+	  TFFC++;
 	// Other
 	if(asegid == 30 || asegid == 62) VesselVol++;
 	if(asegid == 85) OptChiasmVol++;
@@ -1017,12 +1022,17 @@ double *ComputeBrainVolumeStats(char *subject)
   SupraTentVolNotVent = SupraTentVol - VentChorVol;
   // Estimated STV based - should these be exactly the same? Might depend on how
   // much of CSF and OptChiasm are in or out of the surface.
-  eSTV = lhCtxGM + rhCtxGM + lhCtxWM + rhCtxWM + SubCortGMVol + VentChorVol + VesselVol;
+  //eSTV = lhCtxGM + rhCtxGM + lhCtxWM + rhCtxWM + SubCortGMVol + VentChorVol + VesselVol;
+  eSTV = lhCtxGMCount + rhCtxGMCount + lhCtxWMCount + rhCtxWMCount + SubCortGMVol + VentChorVol + VesselVol;
+  eSTVnv = lhCtxGMCount + rhCtxGMCount + lhCtxWMCount + rhCtxWMCount + SubCortGMVol + VesselVol;
 
   // Estimated BrainSegVolume - mostly a comparison between surface- and volume-based
   eBSV = eSTV + CerebellumVol + CSFVol + OptChiasmVol;
 
-  BrainSegVolNotVent = BrainSegVol - VentChorVol;
+  // Surface-based est of brainseg not vent
+  eBSVnvSurf = lhCtxGM + rhCtxGM + lhCtxWM + rhCtxWM + SubCortGMVol + CerebellumVol + VesselVol;
+
+  BrainSegVolNotVent = BrainSegVol - VentChorVol - TFFC;
 
   printf("lhCtxGM: %9.3f %9.3f  diff=%7.1f  pctdiff=%6.3f\n",
 	 lhCtxGM,lhCtxGMCount,lhCtxGM-lhCtxGMCount,100*(lhCtxGM-lhCtxGMCount)/lhCtxGM);
@@ -1035,22 +1045,26 @@ double *ComputeBrainVolumeStats(char *subject)
   printf("SubCortGMVol  %9.3f\n",SubCortGMVol);
   printf("SupraTentVol  %9.3f (%9.3f) diff=%6.3f pctdiff=%4.3f\n",
 	 SupraTentVol,eSTV, SupraTentVol-eSTV, 100*(SupraTentVol-eSTV)/SupraTentVol );
-  printf("SupraTentVolNotVent  %9.3f\n",SupraTentVolNotVent);
+  printf("SupraTentVolNotVent  %9.3f (%9.3f) diff=%6.3f pctdiff=%4.3f\n",SupraTentVolNotVent,
+	 eSTVnv,SupraTentVolNotVent-eSTVnv,100*(SupraTentVolNotVent-eSTVnv)/SupraTentVolNotVent);
   printf("BrainSegVol  %9.3f (%9.3f) diff=%6.3f pctdiff=%4.3f\n",
 	 BrainSegVol,eBSV, BrainSegVol-eBSV, 100*(BrainSegVol-eBSV)/BrainSegVol );
+  printf("BrainSegVolNotVent  %9.3f (%9.3f) diff=%6.3f pctdiff=%4.3f\n",
+	 BrainSegVolNotVent,eBSVnvSurf, BrainSegVolNotVent-eBSVnvSurf, 100*(BrainSegVolNotVent-eBSVnvSurf)/BrainSegVolNotVent );
 
   printf("BrainSegVolNotVent  %9.3f\n",BrainSegVolNotVent);
-  printf("CerebellumVol %9.3f\n",CerebellumVol);
+  printf("CerebellumVol %9.3f\n",CerebellumVol); 
   printf("VentChorVol   %9.3f\n",VentChorVol);
-  printf("MaskVol %9.3f\n",MaskVol);
+  printf("3rd4th5thCSF  %9.3f\n",TFFC);
   printf("CSFVol %9.3f, OptChiasmVol %9.3f\n",CSFVol,OptChiasmVol);
+  printf("MaskVol %9.3f\n",MaskVol);
 
   MRIfree(&aseg);
   MRIfree(&ribbon);
   MRIfree(&asegfixed);
   MRIfree(&brainmask);
 
-  stats = (double*)calloc(13,sizeof(double));
+  stats = (double*)calloc(15,sizeof(double));
   stats[0] = BrainSegVol;
   stats[1] = BrainSegVolNotVent;
   stats[2] = SupraTentVol;
@@ -1064,6 +1078,8 @@ double *ComputeBrainVolumeStats(char *subject)
   stats[10] = rhCtxWM;
   stats[11] = lhCtxWM + rhCtxWM;
   stats[12] = MaskVol;
+  stats[13] = eSTVnv; // voxel-based supratentorial not vent volume
+  stats[14] = eBSVnvSurf; // surface-based brain  not vent volume
 
   return(stats);
 }
