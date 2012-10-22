@@ -83,6 +83,8 @@ The summary file is an ascii file in which the segmentation statistics are repor
       <explanation>multiply input by val</explanation>
       <argument>--snr</argument>
       <explanation>save mean/std as extra column in output table</explanation>
+      <argument>--abs</argument>
+      <explanation>compute absolute value of input before spatial average</explanation>
       <argument>--accumulate</argument>
       <explanation>save mean*nvoxels instead of mean</explanation>
       <argument>--ctab ctabfile</argument>
