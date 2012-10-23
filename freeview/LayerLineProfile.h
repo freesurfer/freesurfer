@@ -36,16 +36,6 @@ public:
 
     void SetVisible( bool bVisible = true );
 
-    LayerPointSet*  GetLine1()
-    {
-      return m_line1;
-    }
-
-    LayerPointSet*  GetLine2()
-    {
-      return m_line2;
-    }
-
     void SetSourceLayers(LayerPointSet* line1, LayerPointSet* line2);
 
     int GetPlane()
@@ -53,7 +43,7 @@ public:
       return m_nPlane;
     }
 
-    bool Solve(double resolution, double voxel_length);
+    bool Solve(double profileSpacing, double referenceSize, double laplaceResolution);
 
     bool Export(const QString &filename, LayerMRI *mri, int nSample);
 
@@ -66,19 +56,24 @@ public:
       return m_dResolution;
     }
 
+    double GetSpacing()
+    {
+      return m_dSpacing;
+    }
+
     int GetNumberOfSamples()
     {
       return m_nSamples;
     }
 
-    LayerPointSet* GetPointSet0()
+    LayerPointSet* GetSpline0()
     {
-      return m_line1;
+      return m_spline0;
     }
 
-    LayerPointSet* GetPointSet1()
+    LayerPointSet* GetSpline1()
     {
-      return m_line2;
+      return m_spline1;
     }
 
     vtkActor* GetLineProfileActor();
@@ -100,8 +95,8 @@ private:
     std::vector < std::vector < double > > Points2DToSpline3D(std::vector < std::vector<double> > pts2d, int nSample);
     void MakeFlatTube(vtkPoints* points, vtkCellArray* lines, vtkActor* actor_in);
 
-    LayerPointSet*  m_line1;
-    LayerPointSet*  m_line2;
+    LayerPointSet*  m_spline0;
+    LayerPointSet*  m_spline1;
     vtkSmartPointer<vtkActor> m_endLines;
     vtkSmartPointer<vtkActor> m_profileLines;
     vtkSmartPointer<vtkActor> m_activeLine;
@@ -109,6 +104,7 @@ private:
     std::vector < std::vector < std::vector < double > > > m_ptsProfile;
     double      m_dSliceLocation;
     double      m_dResolution;
+    double      m_dSpacing;
     int         m_nSamples;
 
     int         m_nActiveLineId;

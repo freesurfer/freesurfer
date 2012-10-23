@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>268</width>
-    <height>377</height>
+    <height>410</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -42,7 +42,7 @@
        </property>
       </widget>
      </item>
-     <item row="3" column="0">
+     <item row="4" column="0">
       <widget class="QLabel" name="label_2">
        <property name="text">
         <string>Sample points</string>
@@ -52,7 +52,7 @@
        </property>
       </widget>
      </item>
-     <item row="3" column="1">
+     <item row="4" column="1">
       <widget class="QLineEdit" name="lineEditSamplePoints">
        <property name="maximumSize">
         <size>
@@ -98,7 +98,7 @@
      <item row="1" column="1">
       <widget class="QComboBox" name="comboBoxIsoLine2"/>
      </item>
-     <item row="5" column="1">
+     <item row="6" column="1">
       <widget class="QtColorPicker" name="colorPicker" native="true">
        <property name="maximumSize">
         <size>
@@ -108,7 +108,7 @@
        </property>
       </widget>
      </item>
-     <item row="5" column="0">
+     <item row="6" column="0">
       <widget class="QLabel" name="label_5">
        <property name="text">
         <string>Color</string>
@@ -118,7 +118,7 @@
        </property>
       </widget>
      </item>
-     <item row="6" column="0">
+     <item row="7" column="0">
       <widget class="QLabel" name="label_11">
        <property name="text">
         <string>Opacity</string>
@@ -128,7 +128,7 @@
        </property>
       </widget>
      </item>
-     <item row="7" column="0">
+     <item row="8" column="0">
       <widget class="QLabel" name="label_12">
        <property name="text">
         <string>Radius</string>
@@ -138,7 +138,7 @@
        </property>
       </widget>
      </item>
-     <item row="7" column="1">
+     <item row="8" column="1">
       <widget class="QLineEdit" name="lineEditRadius">
        <property name="maximumSize">
         <size>
@@ -151,7 +151,7 @@
        </property>
       </widget>
      </item>
-     <item row="4" column="1">
+     <item row="5" column="1">
       <spacer name="verticalSpacer_2">
        <property name="orientation">
         <enum>Qt::Vertical</enum>
@@ -167,7 +167,7 @@
        </property>
       </spacer>
      </item>
-     <item row="6" column="1">
+     <item row="7" column="1">
       <widget class="QSlider" name="sliderOpacity">
        <property name="maximum">
         <number>100</number>
@@ -180,7 +180,7 @@
        </property>
       </widget>
      </item>
-     <item row="8" column="0">
+     <item row="9" column="0">
       <widget class="QLabel" name="label_13">
        <property name="text">
         <string>Active Id</string>
@@ -190,13 +190,36 @@
        </property>
       </widget>
      </item>
-     <item row="8" column="1">
+     <item row="9" column="1">
       <widget class="QLabel" name="labelActiveId">
        <property name="text">
         <string>-1</string>
        </property>
        <property name="alignment">
         <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
+       </property>
+      </widget>
+     </item>
+     <item row="3" column="0">
+      <widget class="QLabel" name="label_6">
+       <property name="text">
+        <string>Spacing</string>
+       </property>
+       <property name="alignment">
+        <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+       </property>
+      </widget>
+     </item>
+     <item row="3" column="1">
+      <widget class="QLineEdit" name="lineEditSpacing">
+       <property name="maximumSize">
+        <size>
+         <width>80</width>
+         <height>16777215</height>
+        </size>
+       </property>
+       <property name="text">
+        <string>0.5</string>
        </property>
       </widget>
      </item>
@@ -371,8 +394,8 @@
    <slot>OnCompute()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>92</x>
-     <y>236</y>
+     <x>130</x>
+     <y>341</y>
     </hint>
     <hint type="destinationlabel">
      <x>98</x>
@@ -387,8 +410,8 @@
    <slot>OnExport()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>184</x>
-     <y>239</y>
+     <x>221</x>
+     <y>341</y>
     </hint>
     <hint type="destinationlabel">
      <x>213</x>
@@ -404,10 +427,10 @@
    <hints>
     <hint type="sourcelabel">
      <x>185</x>
-     <y>137</y>
+     <y>207</y>
     </hint>
     <hint type="destinationlabel">
-     <x>319</x>
+     <x>267</x>
      <y>150</y>
     </hint>
    </hints>
@@ -419,11 +442,11 @@
    <slot>OnSliderOpacity(int)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>185</x>
-     <y>170</y>
+     <x>257</x>
+     <y>234</y>
     </hint>
     <hint type="destinationlabel">
-     <x>314</x>
+     <x>267</x>
      <y>178</y>
     </hint>
    </hints>
@@ -435,11 +458,11 @@
    <slot>OnEditRadius(QString)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>170</x>
-     <y>200</y>
+     <x>185</x>
+     <y>267</y>
     </hint>
     <hint type="destinationlabel">
-     <x>298</x>
+     <x>267</x>
      <y>207</y>
     </hint>
    </hints>
@@ -451,12 +474,12 @@
    <slot>OnSave()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>84</x>
-     <y>279</y>
+     <x>130</x>
+     <y>376</y>
     </hint>
     <hint type="destinationlabel">
      <x>99</x>
-     <y>430</y>
+     <y>409</y>
     </hint>
    </hints>
   </connection>
@@ -467,11 +490,11 @@
    <slot>OnLoad()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>201</x>
-     <y>271</y>
+     <x>221</x>
+     <y>376</y>
     </hint>
     <hint type="destinationlabel">
-     <x>385</x>
+     <x>267</x>
      <y>277</y>
     </hint>
    </hints>

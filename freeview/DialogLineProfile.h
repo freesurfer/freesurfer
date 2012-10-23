@@ -19,6 +19,7 @@ public:
     ~DialogLineProfile();
 
     double GetResolution();
+    double GetSpacing();
     int    GetNumberOfSamples();
 
 public slots:

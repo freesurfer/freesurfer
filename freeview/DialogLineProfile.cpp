@@ -96,7 +96,7 @@ void DialogLineProfile::OnCompute()
     mri->GetWorldVoxelSize(vs);
     dVoxelSize = qMin(vs[0], qMin(vs[1], vs[2]));
   }
-  m_lineProfile->Solve(GetResolution(), dVoxelSize);
+  m_lineProfile->Solve(GetSpacing(), dVoxelSize, GetResolution());
 
   mainwnd->SetMode(RenderView::IM_Navigate);
 }
@@ -104,6 +104,11 @@ void DialogLineProfile::OnCompute()
 double DialogLineProfile::GetResolution()
 {
   return ui->lineEditResolution->text().toDouble();
+}
+
+double DialogLineProfile::GetSpacing()
+{
+  return ui->lineEditSpacing->text().toDouble();
 }
 
 int DialogLineProfile::GetNumberOfSamples()
@@ -153,7 +158,6 @@ void DialogLineProfile::OnSave()
       LayerPointSet* ptset0, *ptset1;
       if (Validate(ptset0, ptset1))
       {
-        qDebug() << ptset0 << ptset1;
         MainWindow* mainwnd = MainWindow::GetMainWindow();
         lp = new LayerLineProfile(mainwnd->GetActiveViewId(), NULL, ptset0, ptset1);
       }
@@ -200,12 +204,13 @@ void DialogLineProfile::OnLoad()
               col_wp->SetWorldVoxelSize( col_mri->GetWorldVoxelSize() );
               col_wp->SetSlicePosition( col_mri->GetSlicePosition() );
             }
-        col_wp->AddLayer(lp->GetLine1());
-        col_wp->AddLayer(lp->GetLine2());
+        col_wp->AddLayer(lp->GetSpline0());
+        col_wp->AddLayer(lp->GetSpline1());
         col_sup->AddLayer(lp);
         this->m_lineProfile = lp;
         ui->lineEditResolution->setText(QString::number(lp->GetResultion()));
         ui->lineEditSamplePoints->setText(QString::number(lp->GetNumberOfSamples()));
+        ui->lineEditSpacing->setText(QString::number(lp->GetSpacing()));
      //   m_lineProfile->Solve(GetResolution());
       }
     }

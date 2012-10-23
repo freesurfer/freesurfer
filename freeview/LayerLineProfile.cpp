@@ -26,6 +26,7 @@ LayerLineProfile::LayerLineProfile(int nPlane, QObject *parent, LayerPointSet *l
     Layer(parent),
     m_nPlane(nPlane),
     m_dResolution(0.5),
+    m_dSpacing(0.5),
     m_nSamples(100),
     m_nActiveLineId(-1)
 {
@@ -84,12 +85,12 @@ void LayerLineProfile::SetVisible( bool bVisible )
 
 void LayerLineProfile::SetSourceLayers(LayerPointSet *line1, LayerPointSet *line2)
 {
-  m_line1 = line1;
-  m_line2 = line2;
-  if (m_line1)
-    connect(m_line1, SIGNAL(destroyed()), this, SLOT(OnSourceLineDestroyed()));
-  if (m_line2)
-  connect(m_line2, SIGNAL(destroyed()), this, SLOT(OnSourceLineDestroyed()));
+  m_spline0 = line1;
+  m_spline1 = line2;
+  if (m_spline0)
+    connect(m_spline0, SIGNAL(destroyed()), this, SLOT(OnSourceLineDestroyed()));
+  if (m_spline1)
+  connect(m_spline1, SIGNAL(destroyed()), this, SLOT(OnSourceLineDestroyed()));
 }
 
 void LayerLineProfile::OnSlicePositionChanged(int nPlane)
@@ -187,14 +188,14 @@ std::vector< std::vector<double> > LayerLineProfile::Points2DToSpline3D(std::vec
   return points3d;
 }
 
-bool LayerLineProfile::Solve(double resolution_in, double voxel_length)
+bool LayerLineProfile::Solve(double profileSpacing, double referenceSize, double laplaceResolution)
 {
-  double laplaceResolution = 0.5;
-  double referenceSize     = voxel_length; // smallest voxel lenth
+  //double laplaceResolution = ;
+//  double referenceSize     = voxel_length; // smallest voxel lenth
   double resolution        = laplaceResolution * referenceSize;
-  double distance          = resolution / 3.0;
-  double profileSpacing    = resolution_in;
   double spacing           = profileSpacing * referenceSize;
+  //double resolution        = spacing * 10.0;
+  double distance          = resolution / 3.0;
 
   std::vector < std::vector < double > > points2d;
   std::vector < int > segment0;
@@ -202,12 +203,12 @@ bool LayerLineProfile::Solve(double resolution_in, double voxel_length)
   std::vector < int > segmentL;
   std::vector < int > segmentR;
 
-  std::vector<double> ctrl_pts0  = m_line1->GetPoints();
+  std::vector<double> ctrl_pts0  = m_spline0->GetPoints();
   std::vector < std::vector < double > > pts0 = Points3DToSpline2D(ctrl_pts0, distance);
   for (size_t i = 0; i < pts0.size(); i++)
     segment0.push_back(i);
 
-  std::vector<double> ctrl_pts1  = m_line2->GetPoints();
+  std::vector<double> ctrl_pts1  = m_spline1->GetPoints();
   std::vector < std::vector < double > > pts1 = Points3DToSpline2D(ctrl_pts1, distance);
   for (size_t i = 0; i < pts1.size(); i++)
     segment1.push_back(pts0.size()+i);
@@ -251,13 +252,17 @@ bool LayerLineProfile::Solve(double resolution_in, double voxel_length)
   int convergence    = 8;
   LP.solveLaplace(paddingL,paddingR,resolution,convergence);
 
-
   // And finally compute line profiles
   int offset     = 10;
   m_ptsProfile = LP.ComputeProfiles(offset, spacing);
 
   m_nActiveLineId = -1;
+  m_activeLine->SetMapper(vtkSmartPointer<vtkPolyDataMapper>::New());
   UpdateActors();
+
+  m_dResolution = laplaceResolution;
+  m_dSpacing = profileSpacing;
+
   return true;
 }
 
@@ -347,10 +352,10 @@ void LayerLineProfile::UpdateActiveLine()
 
 void LayerLineProfile::UpdateActors()
 {
-  if (!m_line1 || !m_line2)
+  if (!m_spline0 || !m_spline1)
     return;
 
-  std::vector<double> pts1 = m_line1->GetPoints(), pts2 = m_line2->GetPoints();
+  std::vector<double> pts1 = m_spline0->GetPoints(), pts2 = m_spline1->GetPoints();
   if (pts1.size() < 4 || pts2.size() < 4)
     return;
 
@@ -408,12 +413,12 @@ void LayerLineProfile::UpdateActors()
 
 void LayerLineProfile::OnSourceLineDestroyed()
 {
-  if (sender() == m_line1)
-    m_line1 = NULL;
-  if (sender() == m_line2)
-    m_line2 = NULL;
+  if (sender() == m_spline0)
+    m_spline0 = NULL;
+  if (sender() == m_spline1)
+    m_spline1 = NULL;
 
-  if (!m_line1 || !m_line2)
+  if (!m_spline0 || !m_spline1)
     this->Hide();
 }
 
@@ -443,15 +448,15 @@ bool LayerLineProfile::Export(const QString &filename, LayerMRI *mri, int nSampl
 bool LayerLineProfile::Save(const QString &filename)
 {
   QFile file(filename);
-  if (!file.open(QIODevice::WriteOnly | QIODevice::Text) || !m_line1 || !m_line2)
+  if (!file.open(QIODevice::WriteOnly | QIODevice::Text) || !m_spline0 || !m_spline1)
     return false;
 
   QTextStream out(&file);
-  m_line1->UpdateLabelData();
-  out << m_line1->GetPointSetData()->WriteAsControlPointsToString();
+  m_spline0->UpdateLabelData();
+  out << m_spline0->GetPointSetData()->WriteAsControlPointsToString();
   out << "\n---\n";
-  m_line2->UpdateLabelData();
-  out << m_line2->GetPointSetData()->WriteAsControlPointsToString();
+  m_spline1->UpdateLabelData();
+  out << m_spline1->GetPointSetData()->WriteAsControlPointsToString();
   out << "\n---\n";
 
   out << QString("\nViewport %1\nResolution %2\nSample %3\n").arg(m_nPlane).arg(m_dResolution).arg(m_nSamples);
