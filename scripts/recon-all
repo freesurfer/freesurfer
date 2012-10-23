@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2012/10/15 19:40:45 $
-#    $Revision: 1.429 $
+#    $Date: 2012/10/23 17:49:06 $
+#    $Revision: 1.430 $
 #
 # Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -26,7 +26,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.429 2012/10/15 19:40:45 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.430 2012/10/23 17:49:06 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -3719,7 +3719,8 @@ if ($DoBaLabels) then
     endif
 
     # generate labels
-    foreach balabel (BA1 BA2 BA3a BA3b BA4a BA4p BA6 BA44 BA45 V1 V2 MT)
+     foreach balabel (BA1 BA2 BA3a BA3b BA4a BA4p BA6 BA44 BA45 V1 V2 MT \
+                      perirhinal)
       set cmd=(mri_label2label \
         --srcsubject fsaverage \
         --srclabel $SUBJECTS_DIR/fsaverage/label/${hemi}.${balabel}.label \
@@ -3749,6 +3750,7 @@ if ($DoBaLabels) then
         --l $hemi.V1.label \
         --l $hemi.V2.label \
         --l $hemi.MT.label \
+        --l $hemi.perirhinal.label \
         --a BA \
         --maxstatwinner \
         --noverbose )
