@@ -8,9 +8,9 @@
 # Process this file with autoconf to produce a configure script.
 #
 # CVS Revision Info:
-#    $Author: mreuter $
-#    $Date: 2012/10/17 22:25:12 $
-#    $Revision: 1.579 $
+#    $Author: nicks $
+#    $Date: 2012/10/23 20:49:34 $
+#    $Revision: 1.580 $
 #
 ########################################################################
 AC_PREREQ(2.57)
@@ -3358,7 +3358,7 @@ AM_CONDITIONAL(HAVE_OPENGL_LIBS, ! test "X$GL_LIBS" = "X")
 # these environment variable.  The first one bypasses the need for a 
 # license in FREESURFER_HOME, the others specify necessary libs.
 #
-TESTS_ENVIRONMENT="SURFER_FRONTDOOR=1 LD_LIBRARY_PATH=$TCL_LIB"
+TESTS_ENVIRONMENT="SURFER_FRONTDOOR=1 LD_LIBRARY_PATH=$TCL_LIB:$VTK_LIB"
 if (! test "x$ac_cppunit_dir" = "xNO"); then
   TESTS_ENVIRONMENT="$TESTS_ENVIRONMENT:$CPPUNIT_LIB"
 fi
