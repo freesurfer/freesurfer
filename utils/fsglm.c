@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2012/10/22 16:52:15 $
- *    $Revision: 1.28 $
+ *    $Date: 2012/10/23 21:17:41 $
+ *    $Revision: 1.29 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -25,7 +25,7 @@
 
 
 // fsglm.c - routines to perform GLM analysis.
-// $Id: fsglm.c,v 1.28 2012/10/22 16:52:15 greve Exp $
+// $Id: fsglm.c,v 1.29 2012/10/23 21:17:41 greve Exp $
 /*
   y = X*beta + n;                      Forward Model
   beta = inv(X'*X)*X'*y;               Fit beta
@@ -140,6 +140,7 @@
 #include <sys/types.h>
 #include <float.h>
 
+#include "diag.h"
 #include "utils.h"
 #include "fsglm.h"
 #include "timer.h"
@@ -150,7 +151,7 @@
 // Return the CVS version of this file.
 const char *GLMSrcVersion(void)
 {
-  return("$Id: fsglm.c,v 1.28 2012/10/22 16:52:15 greve Exp $");
+  return("$Id: fsglm.c,v 1.29 2012/10/23 21:17:41 greve Exp $");
 }
 
 
@@ -386,7 +387,7 @@ int GLMxMatrices(GLMMAT *glm)
   else XtX = glm->XtX;
 
   Mtmp = MatrixInverse(XtX,glm->iXtX);
-  if(Mtmp == NULL) {
+  if(Mtmp == NULL && Gdiag_no > 0) {
     printf("Matrix is Ill-conditioned\n");
     MatrixPrint(stdout,glm->X);
     glm->ill_cond_flag = 1;
