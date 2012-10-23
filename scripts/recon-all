@@ -7,9 +7,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: mreuter $
-#    $Date: 2012/09/26 01:04:53 $
-#    $Revision: 1.379.2.41 $
+#    $Author: nicks $
+#    $Date: 2012/10/23 17:58:20 $
+#    $Revision: 1.379.2.42 $
 #
 # Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -26,7 +26,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.379.2.41 2012/09/26 01:04:53 mreuter Exp $';
+set VERSION = '$Id: recon-all,v 1.379.2.42 2012/10/23 17:58:20 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -354,7 +354,9 @@ if ($DoMakefile) then
   if ( ! $RunIt) set make_flags=( -n $make_flags )
   echo "Subject '$subjid': make $make_flags"
   make -f $FREESURFER_HOME/bin/recon-all.makefile ${make_flags}
-  exit ($status)
+  set makestatus=($status)
+  unsetenv RECONALL_MAKE_SUBJECT
+  exit ($makestatus)
 endif
 
 if ($DoTime) then
@@ -415,6 +417,8 @@ if($#LF == 0) then
     if(! $AppendLog) then
       mv $LF $LF.old
     else
+      # if running using -make, then dont bother with repeated info dumps
+      if ($?RECONALL_MAKE_SUBJECT) goto skip_new_invo
       echo "\n\n"  >> $LF
       echo "New invocation of recon-all "  >> $LF
       echo "\n\n"  >> $LF
@@ -422,11 +426,13 @@ if($#LF == 0) then
   endif
 else
   if(-e $LF) then
+    if ($?RECONALL_MAKE_SUBJECT) goto skip_new_invo
     echo "\n\n"  >> $LF
     echo "New invocation of recon-all "  >> $LF
     echo "\n\n"  >> $LF
   endif
 endif
+skip_new_invo:
 
 date >> $LF
 $PWD >> $LF
@@ -924,18 +930,36 @@ if ($DoCreateBaseInput && $DoCreateBaseSubj) then
   set lta1forms=();
   set ltaAforms=();
   set headInVols=(); 
-  set rawInVols=();
+  set geodiff=0;
   foreach s ($BaseSubjsList)
     if($RunIt) echo "${s}" >> ${BaseSubjsListFname};
     set normInVols = ($normInVols ${SUBJECTS_DIR}/${s}/mri/norm.mgz)
     set headInVols = ($headInVols ${SUBJECTS_DIR}/${s}/mri/T1.mgz)
-    set rawInVols = ($rawInVols ${SUBJECTS_DIR}/${s}/mri/rawavg.mgz)
     set subjInVols = ($subjInVols ${SUBJECTS_DIR}/${s}/mri/${BaseSubjInvol})
     set ltaname = ${s}_to_${subjid}.lta
     set ltaXforms = ($ltaXforms ${subjdir}/mri/transforms/${ltaname})
     set lta1forms = ($lta1forms ${subjdir}/mri/transforms/${s}_to_${subjid}_norm.lta)
-    set ltaAforms = ($ltaAforms ${subjdir}/mri/transforms/${s}_to_${subjid}_affine.lta)    
+    set ltaAforms = ($ltaAforms ${subjdir}/mri/transforms/${s}_to_${subjid}_affine.lta)
+
+    # check if geometry differs across time
+    if ( "$s" != "$BaseSubjsList[1]" ) then
+      set cmd = (  mri_diff --notallow-pix ${SUBJECTS_DIR}/$s/mri/rawavg.mgz \
+                       ${SUBJECTS_DIR}/$BaseSubjsList[1]/mri/rawavg.mgz )
+      echo "\n $cmd \n" |& tee -a $LF |& tee -a $CF
+      if($RunIt) then
+        $fs_time $cmd |& tee -a $LF
+        if($status) set geodiff = 1;
+      endif  
+    endif          
   end
+  
+  if ( "$geodiff" == "1" ) then
+    echo "\n*******************************************************************************" |& tee -a $LF
+    echo "WARNING: Image geometries differ across time, maybe due to aquisition changes?" |& tee -a $LF
+    echo "         This can potentially bias a longitudinal study! Will continue in 10s." |& tee -a $LF
+    echo "*******************************************************************************\n" |& tee -a $LF
+    sleep 10
+  endif
   
   if ($#BaseSubjsList == 1) then
     # if only a single time point, create fake 'base' by making the image upright
@@ -949,15 +973,9 @@ if ($DoCreateBaseInput && $DoCreateBaseSubj) then
       $fs_time $cmd |& tee -a $LF
       if($status) goto error_exit;
     endif  
+    
     # 2. create the upright orig volume
     set cmd = ( mri_convert -at $ltaXforms[1] $subjInVols[1] ${subjdir}/mri/orig.mgz )
-    echo "\n $cmd \n" |& tee -a $LF |& tee -a $CF
-    if($RunIt) then
-      $fs_time $cmd |& tee -a $LF
-      if($status) goto error_exit;
-    endif  
-    # 3. create the upright rawavg volume
-    set cmd = ( mri_convert -at $ltaXforms[1] $rawInVols[1] ${subjdir}/mri/rawavg.mgz )
     echo "\n $cmd \n" |& tee -a $LF |& tee -a $CF
     if($RunIt) then
       $fs_time $cmd |& tee -a $LF
@@ -1026,18 +1044,6 @@ if ($DoCreateBaseInput && $DoCreateBaseSubj) then
       if($status) goto error_exit;
     endif
 
-    # create the 'mean/median' rawavg volume
-    # (here we assume same RAS space for rawavg and orig)
-    set cmd = (mri_robust_template --mov ${rawInVols})
-    set cmd = ($cmd --average ${robust_template_avg_arg})
-    set cmd = ($cmd --ixforms ${ltaXforms})
-    set cmd = ($cmd --noit)
-    set cmd = ($cmd --template ${subjdir}/mri/rawavg.mgz)
-    echo "\n $cmd \n" |& tee -a $LF |& tee -a $CF
-    if($RunIt) then
-      $fs_time $cmd |& tee -a $LF
-      if($status) goto error_exit;
-    endif
   endif # more than one time point
 
   # now create the inverse transforms
@@ -1238,7 +1244,8 @@ if($DoMotionCor) then
   endif #longitudinal
 
   # base processing (we do not need to do anything,
-  #   as rawavg and orig should be there)
+  #   as orig should be there, rawavg is not there, due to difficulties of 
+  #   averaging different image geometries across time)
   if ($DoCreateBaseSubj) then
     set origvol = $subjdir/mri/orig.mgz
     goto motioncor_post_process
@@ -3179,7 +3186,8 @@ foreach hemi ($hemilist)
   endif
 
   # ---------- WM/GM Contrast (pctsurfcon) ---------------------------
-  if($DoPctSurfCon) then
+  # skip in base (as rawavg does not exist)
+  if($DoPctSurfCon && ( ! $DoCreateBaseSubj )) then
     echo "#-----------------------------------------" \
       |& tee -a $LF |& tee -a $CF
     echo "#@# WM/GM Contrast $hemi `date`" \
@@ -3501,7 +3509,7 @@ if($DoWMParc) then
   set cmd = (mri_segstats)
 #  if($UseCuda) set cmd = (mri_segstats_cuda)
   set cmd = ($cmd --seg mri/wmparc.mgz --sum stats/wmparc.stats \
-    --pv mri/norm.mgz --excludeid 0 --brain-vol-from-seg  \
+    --pv mri/norm.mgz --excludeid 0 \
     --brainmask mri/brainmask.mgz --in mri/norm.mgz --in-intensity-name norm \
     --in-intensity-units MR --subject $subjid --surf-wm-vol \
     --ctab $FREESURFER_HOME/WMParcStatsLUT.txt )
@@ -3708,7 +3716,8 @@ if ($DoBaLabels) then
     endif
 
     # generate labels
-    foreach balabel (BA1 BA2 BA3a BA3b BA4a BA4p BA6 BA44 BA45 V1 V2 MT)
+     foreach balabel (BA1 BA2 BA3a BA3b BA4a BA4p BA6 BA44 BA45 V1 V2 MT \
+                      perirhinal)
       set cmd=(mri_label2label \
         --srcsubject fsaverage \
         --srclabel $SUBJECTS_DIR/fsaverage/label/${hemi}.${balabel}.label \
@@ -3738,6 +3747,7 @@ if ($DoBaLabels) then
         --l $hemi.V1.label \
         --l $hemi.V2.label \
         --l $hemi.MT.label \
+        --l $hemi.perirhinal.label \
         --a BA \
         --maxstatwinner \
         --noverbose )
