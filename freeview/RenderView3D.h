@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2011/09/13 16:11:19 $
- *    $Revision: 1.36 $
+ *    $Date: 2012/10/23 17:35:44 $
+ *    $Revision: 1.37 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -47,8 +47,6 @@ public:
   RenderView3D( QWidget* parent );
 
   void SetInteractionMode(int nMode);
-
-  int PickCell( vtkProp* prop, int posX, int posY, double* pos_out = NULL );
 
   void UpdateViewByWorldCoordinate();
 

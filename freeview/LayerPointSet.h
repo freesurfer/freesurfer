@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2012/10/19 15:52:08 $
- *    $Revision: 1.5 $
+ *    $Date: 2012/10/23 17:35:43 $
+ *    $Revision: 1.6 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -46,6 +46,7 @@ public:
   virtual ~LayerPointSet();
 
   bool LoadFromFile( const QString& filename );
+  bool LoadFromString( const QString& content);
   bool Save();
 
   bool HasUndo();
@@ -89,6 +90,11 @@ public:
   bool Rotate( std::vector<RotationElement>& rotations, wxWindow* wnd, wxCommandEvent& event );
 
   std::vector<double> GetPoints();
+
+  FSPointSet* GetPointSetData()
+  {
+    return m_pointSetSource;
+  }
 
 protected slots:
   void UpdateColorMap();

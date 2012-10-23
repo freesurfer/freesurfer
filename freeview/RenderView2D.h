@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2012/04/25 00:04:02 $
- *    $Revision: 1.31 $
+ *    $Date: 2012/10/23 17:35:44 $
+ *    $Revision: 1.32 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -39,6 +39,7 @@ class Interactor2DROIEdit;
 class Interactor2DPointSetEdit;
 class Interactor2DVolumeCrop;
 class LayerMRI;
+class LayerLineProfile;
 
 class RenderView2D : public RenderView
 {
@@ -106,6 +107,8 @@ public:
 
   void TriggerContextMenu( QMouseEvent* event );
 
+  bool PickLineProfile(int x, int y);
+
 public slots:
   void RefreshAllActors(bool bForScreenShot = false);
   void StopSelection();
@@ -117,6 +120,7 @@ signals:
   void RegionSelected( Region2D* );
   void RegionRemoved( Region2D* );
   void Zooming(RenderView2D* view);
+  void LineProfileIdPicked(LayerLineProfile* lp, int nId);
 
 protected slots:
   virtual void OnSlicePositionChanged();

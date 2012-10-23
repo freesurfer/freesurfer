@@ -17,17 +17,37 @@
 #include <QFile>
 #include <QTextStream>
 #include <QDebug>
+#include "LayerPropertyLineProfile.h"
+#include "FSPointSet.h"
+#include "LayerPropertyPointSet.h"
+#include <vtkLookupTable.h>
 
 LayerLineProfile::LayerLineProfile(int nPlane, QObject *parent, LayerPointSet *line1, LayerPointSet *line2) :
     Layer(parent),
-    m_nPlane(nPlane)
+    m_nPlane(nPlane),
+    m_dResolution(0.5),
+    m_nSamples(100),
+    m_nActiveLineId(-1)
 {
   this->m_strTypeNames << "Supplement" << "LineProfile";
   SetSourceLayers(line1, line2);
+
+  mProperty = new LayerPropertyLineProfile( this );
+
   m_endLines = vtkSmartPointer<vtkActor>::New();
   m_profileLines = vtkSmartPointer<vtkActor>::New();
   m_endLines->GetProperty()->SetColor(0.3, 0.3, 1.0);
-  m_profileLines->GetProperty()->SetColor(1.0, 0.3, 0.3);
+  QColor c = GetProperty()->GetColor();
+  m_profileLines->GetProperty()->SetColor(c.redF(), c.greenF(), c.blueF());
+  m_profileLines->GetProperty()->SetOpacity(GetProperty()->GetOpacity());
+
+  m_activeLine = vtkSmartPointer<vtkActor>::New();
+  m_activeLine->GetProperty()->SetColor(0.3, 0.3, 1.0);
+
+  LayerPropertyLineProfile* p = GetProperty();
+  connect(p, SIGNAL(OpacityChanged(double)), this, SLOT(UpdateOpacity()));
+  connect(p, SIGNAL(ColorChanged(QColor)), this, SLOT(UpdateColor()));
+  connect(p, SIGNAL(RadiusChanged(double)), this, SLOT(UpdateActors()));
 }
 
 LayerLineProfile::~LayerLineProfile()
@@ -41,6 +61,7 @@ void LayerLineProfile::Append2DProps( vtkRenderer* renderer, int nPlane )
   {
     renderer->AddViewProp(m_profileLines);
     renderer->AddViewProp(m_endLines);
+    renderer->AddViewProp(m_activeLine);
   }
 }
 
@@ -58,19 +79,37 @@ void LayerLineProfile::SetVisible( bool bVisible )
 {
   m_profileLines->SetVisibility(bVisible?1:0);
   m_endLines->SetVisibility(bVisible?1:0);
+  m_activeLine->SetVisibility(bVisible?1:0);
 }
 
 void LayerLineProfile::SetSourceLayers(LayerPointSet *line1, LayerPointSet *line2)
 {
   m_line1 = line1;
   m_line2 = line2;
-  connect(m_line1, SIGNAL(destroyed()), this, SLOT(OnSourceLineDestroyed()));
+  if (m_line1)
+    connect(m_line1, SIGNAL(destroyed()), this, SLOT(OnSourceLineDestroyed()));
+  if (m_line2)
   connect(m_line2, SIGNAL(destroyed()), this, SLOT(OnSourceLineDestroyed()));
 }
 
 void LayerLineProfile::OnSlicePositionChanged(int nPlane)
 {
 
+}
+
+void LayerLineProfile::UpdateColor()
+{
+  QColor c = GetProperty()->GetColor();
+  m_profileLines->GetProperty()->SetColor(c.redF(), c.greenF(), c.blueF());
+  emit this->ActorUpdated();
+}
+
+void LayerLineProfile::UpdateOpacity()
+{
+  m_profileLines->GetProperty()->SetOpacity(GetProperty()->GetOpacity());
+  m_endLines->GetProperty()->SetOpacity(GetProperty()->GetOpacity());
+  m_activeLine->GetProperty()->SetOpacity(GetProperty()->GetOpacity());
+  emit ActorUpdated();
 }
 
 std::vector < std::vector < double > > LayerLineProfile::Points3DToSpline2D(std::vector<double> pts3d, double distance)
@@ -148,13 +187,13 @@ std::vector< std::vector<double> > LayerLineProfile::Points2DToSpline3D(std::vec
   return points3d;
 }
 
-bool LayerLineProfile::Solve(double resolution_in)
+bool LayerLineProfile::Solve(double resolution_in, double voxel_length)
 {
-  double laplaceResolution = resolution_in;
-  double referenceSize     = 0.1;
+  double laplaceResolution = 0.5;
+  double referenceSize     = voxel_length; // smallest voxel lenth
   double resolution        = laplaceResolution * referenceSize;
   double distance          = resolution / 3.0;
-  double profileSpacing    = 2.0;
+  double profileSpacing    = resolution_in;
   double spacing           = profileSpacing * referenceSize;
 
   std::vector < std::vector < double > > points2d;
@@ -217,6 +256,7 @@ bool LayerLineProfile::Solve(double resolution_in)
   int offset     = 10;
   m_ptsProfile = LP.ComputeProfiles(offset, spacing);
 
+  m_nActiveLineId = -1;
   UpdateActors();
   return true;
 }
@@ -230,7 +270,7 @@ void LayerLineProfile::MakeFlatTube(vtkPoints* points, vtkCellArray* lines, vtkA
   vtkSmartPointer<vtkTubeFilter> tube = vtkSmartPointer<vtkTubeFilter>::New();
   tube->SetInput(polydata);
   tube->SetNumberOfSides(6);
-  tube->SetRadius(this->m_dWorldVoxelSize[0]/4);
+  tube->SetRadius(this->m_dWorldVoxelSize[0]*GetProperty()->GetRadius());
 
   vtkSmartPointer<vtkPlane> plane = vtkSmartPointer<vtkPlane>::New();
   double origin[3] = {0, 0, 0};
@@ -254,7 +294,55 @@ void LayerLineProfile::MakeFlatTube(vtkPoints* points, vtkCellArray* lines, vtkA
   vtkSmartPointer<vtkTriangleFilter> triangleFilter = vtkSmartPointer<vtkTriangleFilter>::New();
   triangleFilter->SetInput( cutpoly );
   mapper->SetInput(tube->GetOutput());
+  /*
+  mapper->SetScalarVisibility(true);
+  vtkSmartPointer<vtkLookupTable> lut = vtkSmartPointer<vtkLookupTable>::New();
+  lut->SetNumberOfColors(2);
+  QColor c = GetProperty()->GetColor();
+  lut->SetTableValue(0, c.redF(), c.greenF(), c.blueF());
+  lut->SetTableValue(1, 0, 0, 1.0);
+  mapper->SetLookupTable(lut);
+  */
   actor_in->SetMapper(mapper);
+}
+
+void LayerLineProfile::UpdateActiveLine()
+{
+  if (m_nActiveLineId >= 0)
+  {
+    vtkSmartPointer<vtkPoints> points = vtkSmartPointer<vtkPoints>::New();
+    vtkSmartPointer<vtkCellArray> lines = vtkSmartPointer<vtkCellArray>::New();
+    int nCount = 0;
+    for (size_t i = m_nActiveLineId; i < m_nActiveLineId+1; i++)
+    {
+      std::vector < std::vector < double > > line = m_ptsProfile[i];
+      lines->InsertNextCell(line.size());
+      for (size_t j = 0; j < line.size(); j++)
+      {
+        lines->InsertCellPoint(nCount++);
+        double pt[3] = {m_dSliceLocation, m_dSliceLocation, m_dSliceLocation};
+        if (m_nPlane == 0)
+        {
+          pt[1] = line[j][0];
+          pt[2] = line[j][1];
+        }
+        else if (m_nPlane == 1)
+        {
+          pt[0] = line[j][0];
+          pt[2] = line[j][1];
+        }
+        else
+        {
+          pt[0] = line[j][0];
+          pt[1] = line[j][1];
+        }
+        points->InsertNextPoint(pt);
+      }
+    }
+
+    MakeFlatTube(points, lines, m_activeLine);
+    emit ActorUpdated();
+  }
 }
 
 void LayerLineProfile::UpdateActors()
@@ -314,6 +402,7 @@ void LayerLineProfile::UpdateActors()
 
   MakeFlatTube(points, lines, m_profileLines);
 
+  UpdateActiveLine();
   emit this->ActorChanged();
 }
 
@@ -328,7 +417,7 @@ void LayerLineProfile::OnSourceLineDestroyed()
     this->Hide();
 }
 
-bool LayerLineProfile::Export(const QString &filename, LayerMRI *mri, int nSample)
+bool LayerLineProfile::Export(const QString &filename, LayerMRI *mri, int nSamples)
 {
   QFile file(filename);
   if (!file.open(QIODevice::WriteOnly | QIODevice::Text))
@@ -337,15 +426,101 @@ bool LayerLineProfile::Export(const QString &filename, LayerMRI *mri, int nSampl
   QTextStream out(&file);
   for (size_t i = 0; i < m_ptsProfile.size(); i++)
   {
-    std::vector < std::vector <double> > line3d = Points2DToSpline3D(m_ptsProfile[i], nSample);
+    std::vector < std::vector <double> > line3d = Points2DToSpline3D(m_ptsProfile[i], nSamples);
     std::vector<double> vals = mri->GetSampledVoxelValues(line3d);
-    out << i << "," << nSample;
+    out << i << "," << nSamples;
     for (size_t j = 0; j < vals.size(); j++)
     {
       out << "," << vals[j];
     }
     out << "\n";
   }
+  m_nSamples = nSamples;
 
   return true;
+}
+
+bool LayerLineProfile::Save(const QString &filename)
+{
+  QFile file(filename);
+  if (!file.open(QIODevice::WriteOnly | QIODevice::Text) || !m_line1 || !m_line2)
+    return false;
+
+  QTextStream out(&file);
+  m_line1->UpdateLabelData();
+  out << m_line1->GetPointSetData()->WriteAsControlPointsToString();
+  out << "\n---\n";
+  m_line2->UpdateLabelData();
+  out << m_line2->GetPointSetData()->WriteAsControlPointsToString();
+  out << "\n---\n";
+
+  out << QString("\nViewport %1\nResolution %2\nSample %3\n").arg(m_nPlane).arg(m_dResolution).arg(m_nSamples);
+  return true;
+}
+
+LayerLineProfile* LayerLineProfile::Load(const QString &filename, LayerMRI* ref)
+{
+  QFile file(filename);
+  if (!file.open(QIODevice::ReadOnly | QIODevice::Text))
+      return false;
+
+  QTextStream in (&file);
+  QString content = in.readAll();
+  QStringList slist = content.split("\n---\n", QString::SkipEmptyParts);
+  if (slist.size() < 3)
+    return NULL;
+
+  LayerPointSet* ptset0 = new LayerPointSet(ref, LayerPropertyPointSet::ControlPoint);
+  ptset0->SetName("Spline 1");
+  ptset0->GetProperty()->SetSnapToVoxelCenter(false);
+  ptset0->GetProperty()->SetShowSpline(true);
+  if (!ptset0->LoadFromString(slist[0]))
+    return NULL;
+
+  LayerPointSet* ptset1 = new LayerPointSet(ref, LayerPropertyPointSet::ControlPoint);
+  ptset1->SetName("Spline 2");
+  ptset1->GetProperty()->SetSnapToVoxelCenter(false);
+  ptset1->GetProperty()->SetShowSpline(true);
+  if (!ptset1->LoadFromString(slist[1]))
+    return NULL;
+
+  QStringList ar = slist[2].split("\n", QString::SkipEmptyParts);
+  if (ar.size() < 3)
+  {
+    delete ptset0;
+    delete ptset1;
+    return NULL;
+  }
+
+  QStringList sublist = ar[0].split(" ", QString::SkipEmptyParts);
+  if (sublist.size() < 2)
+    return NULL;
+  int nPlane = sublist[1].toInt();
+
+  sublist = ar[1].split(" ", QString::SkipEmptyParts);
+  if (sublist.size() < 2)
+    return NULL;
+  double dResolution = sublist[1].toDouble();
+
+  sublist = ar[2].split(" ", QString::SkipEmptyParts);
+  if (sublist.size() < 2)
+    return NULL;
+  int nSamples = sublist[1].toInt();
+
+  LayerLineProfile* lp = new LayerLineProfile(nPlane, NULL, ptset0, ptset1);
+  lp->m_dResolution = dResolution;
+  lp->m_nSamples = nSamples;
+
+  return lp;
+}
+
+vtkActor* LayerLineProfile::GetLineProfileActor()
+{
+  return m_profileLines;
+}
+
+void LayerLineProfile::SetActiveLineId(int nId)
+{
+  m_nActiveLineId = nId;
+  UpdateActiveLine();
 }

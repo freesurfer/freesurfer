@@ -138,7 +138,8 @@ SOURCES += \
     DialogReloadLayer.cpp \
     DialogSmoothSurface.cpp \
     DialogLineProfile.cpp \
-    LayerLineProfile.cpp
+    LayerLineProfile.cpp \
+    LayerPropertyLineProfile.cpp
 
 HEADERS  += \
     Annotation2D.h \
@@ -266,7 +267,8 @@ HEADERS  += \
     DialogReloadLayer.h \
     DialogSmoothSurface.h \
     DialogLineProfile.h \
-    LayerLineProfile.h
+    LayerLineProfile.h \
+    LayerPropertyLineProfile.h
 
 FORMS    += MainWindow.ui \
     PanelVolume.ui \

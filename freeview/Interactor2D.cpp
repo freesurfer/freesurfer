@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2012/08/27 18:34:09 $
- *    $Revision: 1.36 $
+ *    $Date: 2012/10/23 17:35:43 $
+ *    $Revision: 1.37 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -53,6 +53,8 @@ bool Interactor2D::ProcessMouseDownEvent( QMouseEvent* event, RenderView* render
   m_nMousePosY = event->y();
 
   view->UpdateAnnotation();
+
+  view->PickLineProfile(m_nMousePosX, m_nMousePosY);
 
   MainWindow* mainwnd = MainWindow::GetMainWindow();
   if ( ( event->modifiers() & CONTROL_MODIFIER ) &&  !( event->modifiers() & Qt::ShiftModifier ) )

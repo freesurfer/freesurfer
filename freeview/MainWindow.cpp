@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2012/10/19 15:52:08 $
- *    $Revision: 1.224 $
+ *    $Date: 2012/10/23 17:35:43 $
+ *    $Revision: 1.225 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -231,6 +231,11 @@ MainWindow::MainWindow( QWidget *parent, MyCmdLineParser* cmdParser ) :
   connect(m_layerCollections["PointSet"], SIGNAL(LayerAdded(Layer*)), m_dlgLineProfile, SLOT(UpdatePointSetList()));
   connect(m_layerCollections["PointSet"], SIGNAL(LayerRemoved(Layer*)), m_dlgLineProfile, SLOT(UpdatePointSetList()));
   connect(m_layerCollections["PointSet"], SIGNAL(LayerNameChanged()), m_dlgLineProfile, SLOT(UpdatePointSetList()));
+  for (int i = 0; i < 3; i++)
+  {
+    connect(this->m_views[i], SIGNAL(LineProfileIdPicked(LayerLineProfile*, int)),
+            m_dlgLineProfile, SLOT(OnLineProfileIdPicked(LayerLineProfile*,int)));
+  }
 
   QStringList keys = m_layerCollections.keys();
   for ( int i = 0; i < keys.size(); i++ )

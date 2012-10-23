@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2012/10/19 15:52:08 $
- *    $Revision: 1.6 $
+ *    $Date: 2012/10/23 17:35:43 $
+ *    $Revision: 1.7 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -125,6 +125,18 @@ bool LayerPointSet::LoadFromFile( const QString& filename )
   m_points.clear();
   m_pointSetSource->LabelToPointSet( m_points, m_layerRef->GetSourceVolume() );
   SetFileName( filename );
+  RebuildActors();
+
+  return true;
+}
+
+bool LayerPointSet::LoadFromString(const QString &content)
+{
+  if (!m_pointSetSource->ReadFromStringAsControlPoints(content))
+    return false;
+
+  m_points.clear();
+  m_pointSetSource->LabelToPointSet( m_points, m_layerRef->GetSourceVolume() );
   RebuildActors();
 
   return true;

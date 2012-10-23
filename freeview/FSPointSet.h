@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2011/08/11 15:47:43 $
- *    $Revision: 1.6 $
+ *    $Date: 2012/10/23 17:35:43 $
+ *    $Revision: 1.7 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -62,6 +62,9 @@ public:
 
   void UpdateLabel( PointSet& points_in, FSVolume* vol_ref );
   void LabelToPointSet( PointSet& points_out, FSVolume* vol_ref );
+
+  bool ReadFromStringAsControlPoints(const QString& content);
+  QString WriteAsControlPointsToString();
 
 protected:
   // use label to save way points

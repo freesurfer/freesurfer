@@ -8,6 +8,7 @@ namespace Ui {
 }
 
 class LayerLineProfile;
+class LayerPointSet;
 
 class DialogLineProfile : public QDialog
 {
@@ -26,9 +27,17 @@ public slots:
 protected slots:
     void OnCompute();
     void OnExport();
+    void OnSave();
+    void OnLoad();
     void OnComboIsoLine(int sel);
+    void OnSliderOpacity(int);
+    void OnEditRadius(const QString& strg);
+    void OnColorPicker(const QColor& color);
+    void OnLineProfileIdPicked(LayerLineProfile* lp, int nId);
 
 private:
+    bool Validate(LayerPointSet*& spline0, LayerPointSet* &spline1);
+
     Ui::DialogLineProfile *ui;
 
     LayerLineProfile*   m_lineProfile;

@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2012/10/11 20:23:43 $
- *    $Revision: 1.52 $
+ *    $Date: 2012/10/23 17:35:44 $
+ *    $Revision: 1.53 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -47,6 +47,7 @@
 #include <QMessageBox>
 #include <QMenu>
 #include <QDebug>
+#include "LayerLineProfile.h"
 
 RenderView2D::RenderView2D( QWidget* parent ) : RenderView( parent )
 {
@@ -550,4 +551,34 @@ void RenderView2D::OnDuplicateRegion()
 void RenderView2D::OnInteractorError(const QString &msg)
 {
   QMessageBox::warning(this, "Error", msg);
+}
+
+bool RenderView2D::PickLineProfile(int x, int y)
+{
+  QList<LayerLineProfile*> lineprofs;
+  QList<Layer*> layers = MainWindow::GetMainWindow()->GetLayers("Supplement");
+  foreach (Layer* layer, layers)
+  {
+    if (layer->IsTypeOf("LineProfile"))
+    {
+      LayerLineProfile* l = qobject_cast<LayerLineProfile*>(layer);
+      if (l->GetPlane() == this->m_nViewPlane)
+        lineprofs << l;
+    }
+  }
+  if (lineprofs.isEmpty())
+    return false;
+
+  foreach (LayerLineProfile* lp, lineprofs)
+  {
+    int nId = this->PickCell(lp->GetLineProfileActor(), x, y);
+    if (nId >= 0)
+    {
+      nId /= 6;
+      emit LineProfileIdPicked(lp, nId);
+      lp->SetActiveLineId(nId);
+      return true;
+    }
+  }
+  return false;
 }

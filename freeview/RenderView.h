@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2012/10/11 20:23:43 $
- *    $Revision: 1.34 $
+ *    $Date: 2012/10/23 17:35:44 $
+ *    $Revision: 1.35 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -36,6 +36,7 @@ class QWheelEvent;
 class QFocusEvent;
 class vtkActor2D;
 class vtkScalarBarActor;
+class vtkProp;
 class Layer;
 
 class RenderView : public GenericRenderView
@@ -48,6 +49,8 @@ public:
 
   void SetWorldCoordinateInfo( const double* origin, const double* size, bool bResetView = true );
   virtual void UpdateViewByWorldCoordinate() {}
+
+  int PickCell( vtkProp* prop, int posX, int posY, double* pos_out = NULL );
 
   int GetInteractionMode();
   virtual void SetInteractionMode( int nMode );

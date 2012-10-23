@@ -150,6 +150,7 @@ BUILT_SOURCES = \
   moc_DialogSmoothSurface.cpp \
   moc_DialogLineProfile.cpp \
   moc_LayerLineProfile.cpp \
+  moc_LayerPropertyLineProfile.cpp \
   qrc_freeview.cpp
 
 freeview_SOURCES = $(BUILT_SOURCES) \
@@ -429,6 +430,8 @@ freeview_SOURCES = $(BUILT_SOURCES) \
   LayerLineProfile.h \
   DialogLineProfile.cpp \
   DialogLineProfile.h \
+  LayerPropertyLineProfile.cpp \
+  LayerPropertyLineProfile.h \
 	freeview.qrc
 
 qrc_freeview.cpp: freeview.qrc

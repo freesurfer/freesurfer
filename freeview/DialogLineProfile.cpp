@@ -8,6 +8,7 @@
 #include "RenderView.h"
 #include <QFileDialog>
 #include <QDebug>
+#include "LayerPropertyLineProfile.h"
 
 DialogLineProfile::DialogLineProfile(QWidget *parent) :
     QDialog(parent),
@@ -23,7 +24,7 @@ DialogLineProfile::~DialogLineProfile()
     delete ui;
 }
 
-void DialogLineProfile::OnCompute()
+bool DialogLineProfile::Validate(LayerPointSet*& spline0_out, LayerPointSet*& spline1_out)
 {
   QVariant v = ui->comboBoxIsoLine1->itemData(ui->comboBoxIsoLine1->currentIndex());
   LayerPointSet* layer1 = qobject_cast<LayerPointSet*>(v.value<QObject*>());
@@ -33,23 +34,33 @@ void DialogLineProfile::OnCompute()
   {
     ui->labelError->setText(tr("Please select two point sets"));
     ui->labelError->show();
-    return;
+    return false;
   }
+  MainWindow* mainwnd = MainWindow::GetMainWindow();
+  int nViewId = mainwnd->GetActiveViewId();
+  if (nViewId > 2)
+  {
+    ui->labelError->setText(tr("Please select a 2D slice view"));
+    ui->labelError->show();
+    return false;
+  }
+  spline0_out = layer1;
+  spline1_out = layer2;
+  return true;
+}
 
+void DialogLineProfile::OnCompute()
+{
   ui->labelError->hide();
+  LayerPointSet* layer1 = NULL, *layer2 = NULL;
+  if (!Validate(layer1, layer2))
+    return;
 
   MainWindow* mainwnd = MainWindow::GetMainWindow();
   int nViewId = mainwnd->GetActiveViewId();
   LayerCollection* col = mainwnd->GetLayerCollection("Supplement");
   if (!col)
     return;
-  if (nViewId > 2)
-  {
-    ui->labelError->setText(tr("Please select a 2D slice view"));
-    ui->labelError->show();
-    return;
-  }
-
   QList<Layer*> lineLayers = col->GetLayers("LineProfile");
   if (lineLayers.isEmpty())
   {
@@ -77,7 +88,15 @@ void DialogLineProfile::OnCompute()
       m_lineProfile->SetSourceLayers(layer1, layer2);
   }
 
-  m_lineProfile->Solve(GetResolution());
+  double dVoxelSize = 1.0;
+  LayerMRI* mri = qobject_cast<LayerMRI*>(mainwnd->GetActiveLayer("MRI"));
+  if (mri)
+  {
+    double vs[3];
+    mri->GetWorldVoxelSize(vs);
+    dVoxelSize = qMin(vs[0], qMin(vs[1], vs[2]));
+  }
+  m_lineProfile->Solve(GetResolution(), dVoxelSize);
 
   mainwnd->SetMode(RenderView::IM_Navigate);
 }
@@ -102,7 +121,7 @@ void DialogLineProfile::OnExport()
     return;
   }
 
-  QString fn = QFileDialog::getSaveFileName(this, "Select File To Save",
+  QString fn = QFileDialog::getSaveFileName(this, "Export Line Profiles to File",
                "",
                "CSV files (*.csv);;All Files (*)");
   if (!fn.isEmpty())
@@ -118,6 +137,78 @@ void DialogLineProfile::OnExport()
       }
     }
   }
+}
+
+void DialogLineProfile::OnSave()
+{
+  ui->labelError->hide();
+  QString fn = QFileDialog::getSaveFileName(this, "Select File to Save",
+                                            "",
+                                            "All Files (*)");
+  if (!fn.isEmpty())
+  {
+    LayerLineProfile* lp = m_lineProfile;
+    if (!lp)
+    {
+      LayerPointSet* ptset0, *ptset1;
+      if (Validate(ptset0, ptset1))
+      {
+        qDebug() << ptset0 << ptset1;
+        MainWindow* mainwnd = MainWindow::GetMainWindow();
+        lp = new LayerLineProfile(mainwnd->GetActiveViewId(), NULL, ptset0, ptset1);
+      }
+    }
+    if (lp && !lp->Save(fn))
+    {
+      ui->labelError->setText("Failed to save splines");
+      ui->labelError->show();
+    }
+    if (lp != m_lineProfile)
+      delete lp;
+  }
+}
+
+void DialogLineProfile::OnLoad()
+{
+    MainWindow* mainwnd = MainWindow::GetMainWindow();
+    LayerMRI* mri = qobject_cast<LayerMRI*>(mainwnd->GetActiveLayer("MRI"));
+    if (!mri)
+    {
+      return;
+    }
+    ui->labelError->hide();
+    QString fn = QFileDialog::getOpenFileName(this, "Select File to Open",
+                                              "",
+                                              "All Files (*)");
+    if (!fn.isEmpty())
+    {
+      LayerLineProfile* lp = LayerLineProfile::Load(fn, mri);
+      if (!lp)
+      {
+        ui->labelError->setText("Failed to load splines");
+        ui->labelError->show();
+      }
+      else
+      {
+        LayerCollection* col_wp = mainwnd->GetLayerCollection("PointSet");
+        LayerCollection* col_sup = mainwnd->GetLayerCollection("Supplement");
+        LayerCollection* col_mri = mainwnd->GetLayerCollection("MRI");
+        if ( col_wp->IsEmpty() )
+            {
+              col_wp->SetWorldOrigin( col_mri->GetWorldOrigin() );
+              col_wp->SetWorldSize( col_mri->GetWorldSize() );
+              col_wp->SetWorldVoxelSize( col_mri->GetWorldVoxelSize() );
+              col_wp->SetSlicePosition( col_mri->GetSlicePosition() );
+            }
+        col_wp->AddLayer(lp->GetLine1());
+        col_wp->AddLayer(lp->GetLine2());
+        col_sup->AddLayer(lp);
+        this->m_lineProfile = lp;
+        ui->lineEditResolution->setText(QString::number(lp->GetResultion()));
+        ui->lineEditSamplePoints->setText(QString::number(lp->GetNumberOfSamples()));
+     //   m_lineProfile->Solve(GetResolution());
+      }
+    }
 }
 
 void DialogLineProfile::OnComboIsoLine(int sel)
@@ -154,4 +245,37 @@ void DialogLineProfile::UpdatePointSetList()
   }
   else if (layers.size() > 1)
     ui->comboBoxIsoLine2->setCurrentIndex(1);
+}
+
+void DialogLineProfile::OnColorPicker(const QColor &color)
+{
+  if (m_lineProfile)
+    m_lineProfile->GetProperty()->SetColor(color);
+}
+
+void DialogLineProfile::OnEditRadius(const QString &strg)
+{
+  if (m_lineProfile)
+  {
+    bool ok = false;
+    double val = strg.toDouble(&ok);
+    if (ok && val > 0)
+      m_lineProfile->GetProperty()->SetRadius(val);
+  }
+}
+
+void DialogLineProfile::OnSliderOpacity(int val)
+{
+  if (m_lineProfile)
+  {
+    m_lineProfile->GetProperty()->SetOpacity(val/100.0);
+  }
+}
+
+void DialogLineProfile::OnLineProfileIdPicked(LayerLineProfile *lp, int nId)
+{
+  if (lp == m_lineProfile)
+  {
+    ui->labelActiveId->setText(QString::number(nId));
+  }
 }

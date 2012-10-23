@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>247</width>
-    <height>223</height>
+    <width>268</width>
+    <height>377</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -24,6 +24,9 @@
        <property name="text">
         <string>Resolution</string>
        </property>
+       <property name="alignment">
+        <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+       </property>
       </widget>
      </item>
      <item row="2" column="1">
@@ -35,7 +38,7 @@
         </size>
        </property>
        <property name="text">
-        <string>3</string>
+        <string>0.5</string>
        </property>
       </widget>
      </item>
@@ -43,6 +46,9 @@
       <widget class="QLabel" name="label_2">
        <property name="text">
         <string>Sample points</string>
+       </property>
+       <property name="alignment">
+        <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
        </property>
       </widget>
      </item>
@@ -64,6 +70,9 @@
        <property name="text">
         <string>Iso-line 0</string>
        </property>
+       <property name="alignment">
+        <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+       </property>
       </widget>
      </item>
      <item row="0" column="1">
@@ -81,10 +90,115 @@
        <property name="text">
         <string>Iso-line 1</string>
        </property>
+       <property name="alignment">
+        <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+       </property>
       </widget>
      </item>
      <item row="1" column="1">
       <widget class="QComboBox" name="comboBoxIsoLine2"/>
+     </item>
+     <item row="5" column="1">
+      <widget class="QtColorPicker" name="colorPicker" native="true">
+       <property name="maximumSize">
+        <size>
+         <width>80</width>
+         <height>16777215</height>
+        </size>
+       </property>
+      </widget>
+     </item>
+     <item row="5" column="0">
+      <widget class="QLabel" name="label_5">
+       <property name="text">
+        <string>Color</string>
+       </property>
+       <property name="alignment">
+        <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+       </property>
+      </widget>
+     </item>
+     <item row="6" column="0">
+      <widget class="QLabel" name="label_11">
+       <property name="text">
+        <string>Opacity</string>
+       </property>
+       <property name="alignment">
+        <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+       </property>
+      </widget>
+     </item>
+     <item row="7" column="0">
+      <widget class="QLabel" name="label_12">
+       <property name="text">
+        <string>Radius</string>
+       </property>
+       <property name="alignment">
+        <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+       </property>
+      </widget>
+     </item>
+     <item row="7" column="1">
+      <widget class="QLineEdit" name="lineEditRadius">
+       <property name="maximumSize">
+        <size>
+         <width>80</width>
+         <height>16777215</height>
+        </size>
+       </property>
+       <property name="text">
+        <string>0.25</string>
+       </property>
+      </widget>
+     </item>
+     <item row="4" column="1">
+      <spacer name="verticalSpacer_2">
+       <property name="orientation">
+        <enum>Qt::Vertical</enum>
+       </property>
+       <property name="sizeType">
+        <enum>QSizePolicy::Fixed</enum>
+       </property>
+       <property name="sizeHint" stdset="0">
+        <size>
+         <width>5</width>
+         <height>10</height>
+        </size>
+       </property>
+      </spacer>
+     </item>
+     <item row="6" column="1">
+      <widget class="QSlider" name="sliderOpacity">
+       <property name="maximum">
+        <number>100</number>
+       </property>
+       <property name="value">
+        <number>70</number>
+       </property>
+       <property name="orientation">
+        <enum>Qt::Horizontal</enum>
+       </property>
+      </widget>
+     </item>
+     <item row="8" column="0">
+      <widget class="QLabel" name="label_13">
+       <property name="text">
+        <string>Active Id</string>
+       </property>
+       <property name="alignment">
+        <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+       </property>
+      </widget>
+     </item>
+     <item row="8" column="1">
+      <widget class="QLabel" name="labelActiveId">
+       <property name="text">
+        <string>-1</string>
+       </property>
+       <property name="alignment">
+        <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
+       </property>
+      </widget>
      </item>
     </layout>
    </item>
@@ -149,6 +263,50 @@
     </layout>
    </item>
    <item>
+    <layout class="QHBoxLayout" name="horizontalLayout_2">
+     <item>
+      <spacer name="horizontalSpacer_3">
+       <property name="orientation">
+        <enum>Qt::Horizontal</enum>
+       </property>
+       <property name="sizeHint" stdset="0">
+        <size>
+         <width>5</width>
+         <height>5</height>
+        </size>
+       </property>
+      </spacer>
+     </item>
+     <item>
+      <widget class="QPushButton" name="pushButtonSave">
+       <property name="text">
+        <string>Save</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QPushButton" name="pushButtonLoad">
+       <property name="text">
+        <string>Load</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <spacer name="horizontalSpacer_4">
+       <property name="orientation">
+        <enum>Qt::Horizontal</enum>
+       </property>
+       <property name="sizeHint" stdset="0">
+        <size>
+         <width>5</width>
+         <height>5</height>
+        </size>
+       </property>
+      </spacer>
+     </item>
+    </layout>
+   </item>
+   <item>
     <widget class="QLabel" name="labelError">
      <property name="styleSheet">
       <string notr="true">color:red;</string>
@@ -160,6 +318,18 @@
    </item>
   </layout>
  </widget>
+ <customwidgets>
+  <customwidget>
+   <class>QtColorPicker</class>
+   <extends>QWidget</extends>
+   <header>qtcolorpicker.h</header>
+   <container>1</container>
+   <slots>
+    <signal>colorChanged(QColor)</signal>
+    <signal>currentColorChanged(QColor)</signal>
+   </slots>
+  </customwidget>
+ </customwidgets>
  <resources/>
  <connections>
   <connection>
@@ -186,7 +356,7 @@
    <hints>
     <hint type="sourcelabel">
      <x>190</x>
-     <y>57</y>
+     <y>51</y>
     </hint>
     <hint type="destinationlabel">
      <x>240</x>
@@ -201,8 +371,8 @@
    <slot>OnCompute()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>84</x>
-     <y>172</y>
+     <x>92</x>
+     <y>236</y>
     </hint>
     <hint type="destinationlabel">
      <x>98</x>
@@ -217,12 +387,92 @@
    <slot>OnExport()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>176</x>
-     <y>175</y>
+     <x>184</x>
+     <y>239</y>
     </hint>
     <hint type="destinationlabel">
      <x>213</x>
      <y>319</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>colorPicker</sender>
+   <signal>colorChanged(QColor)</signal>
+   <receiver>DialogLineProfile</receiver>
+   <slot>OnColorPicker(QColor)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>185</x>
+     <y>137</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>319</x>
+     <y>150</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>sliderOpacity</sender>
+   <signal>valueChanged(int)</signal>
+   <receiver>DialogLineProfile</receiver>
+   <slot>OnSliderOpacity(int)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>185</x>
+     <y>170</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>314</x>
+     <y>178</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>lineEditRadius</sender>
+   <signal>textEdited(QString)</signal>
+   <receiver>DialogLineProfile</receiver>
+   <slot>OnEditRadius(QString)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>170</x>
+     <y>200</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>298</x>
+     <y>207</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>pushButtonSave</sender>
+   <signal>clicked()</signal>
+   <receiver>DialogLineProfile</receiver>
+   <slot>OnSave()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>84</x>
+     <y>279</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>99</x>
+     <y>430</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>pushButtonLoad</sender>
+   <signal>clicked()</signal>
+   <receiver>DialogLineProfile</receiver>
+   <slot>OnLoad()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>201</x>
+     <y>271</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>385</x>
+     <y>277</y>
     </hint>
    </hints>
   </connection>
@@ -231,5 +481,10 @@
   <slot>OnComboIsoLine(int)</slot>
   <slot>OnCompute()</slot>
   <slot>OnExport()</slot>
+  <slot>OnColorPicker(QColor)</slot>
+  <slot>OnEditRadius(QString)</slot>
+  <slot>OnSliderOpacity(int)</slot>
+  <slot>OnSave()</slot>
+  <slot>OnLoad()</slot>
  </slots>
 </ui>

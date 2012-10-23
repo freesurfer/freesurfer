@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2012/10/11 20:23:43 $
- *    $Revision: 1.45 $
+ *    $Date: 2012/10/23 17:35:44 $
+ *    $Revision: 1.46 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -48,6 +48,8 @@
 #include "vtkRGBAColorTransferFunction.h"
 #include <QPainter>
 #include <QAction>
+#include <vtkCellPicker.h>
+#include <vtkRenderWindow.h>
 
 #define SCALE_FACTOR  200
 
@@ -78,6 +80,12 @@ RenderView::RenderView( QWidget* parent ) : GenericRenderView( parent),
   Lines->InsertNextCell( 2 );
   Lines->InsertCellPoint( 3 );
   Lines->InsertCellPoint( 0 );
+
+  vtkCellPicker* picker = vtkCellPicker::New();
+  picker->SetTolerance( 0.0005 );
+  picker->PickFromListOn();
+  this->GetRenderWindow()->GetInteractor()->SetPicker( picker );
+  picker->Delete();
 
   vtkSmartPointer<vtkPolyData> Grid = vtkSmartPointer<vtkPolyData>::New();
   Grid->SetPoints(Pts);
@@ -512,4 +520,22 @@ bool RenderView::SaveScreenShot(const QString& filename, bool bAntiAliasing, int
   bool ret = SaveImage(filename, bAntiAliasing, nMag);
   RefreshAllActors(false);
   return ret;
+}
+
+int RenderView::PickCell( vtkProp* prop, int posX, int posY, double* pos_out )
+{
+  vtkCellPicker* picker = vtkCellPicker::SafeDownCast( GetRenderWindow()->GetInteractor()->GetPicker() );
+  if ( !picker )
+  {
+    return -1;
+  }
+
+  picker->InitializePickList();
+  picker->AddPickList( prop );
+  picker->Pick( posX, this->rect().height() - posY, 0, GetRenderer() );
+  if ( pos_out )
+  {
+    picker->GetPickPosition( pos_out );
+  }
+  return picker->GetCellId();
 }
