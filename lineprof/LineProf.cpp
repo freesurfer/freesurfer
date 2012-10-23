@@ -84,46 +84,42 @@ void LineProf::solveLaplace(int paddingL, int paddingR, double dresolution, int 
 }
 
 std::vector < std::vector < std::vector < double > > >
-LineProf::ComputeProfiles(int offset,	double dspacing)
-{
-  std::vector < double > dv(1,0.5);
-  std::vector < std::vector < std::vector < double > > > vml;
-  vml = ComputeIsolines(dv,_points2d[_segment0[0]][0], _points2d[_segment0[0]][1]);
-  
-  return ComputeProfiles(offset, dspacing, vml[0]);
-
-}
-
-std::vector < std::vector < std::vector < double > > >
-LineProf::ComputeProfiles(int offset,  double dspacing, 
-                          const std::vector < std::vector < double > >& referenceLine)
+LineProf::ComputeProfiles(int offset,  double dspacing)
 {
   if (_tracer == NULL)
   {
     std::cerr << "Line Profile Error: call solveLaplace before trying to compute profiles!" << std::endl;
     return std::vector < std::vector < std::vector < double > > > (0);
-
   }
 
   typedef Tracer::LineType LineType;
   typedef std::vector<LineType> LineContainerType;
   std::vector < std::vector < std::vector < double > > > lc;
 
-  // compute the points on the reference line
-  std::vector < std::vector < double > > points;
+//  // compute isoline at 0.5 level (in the middle)
+//  std::vector < double > dv(1,0.5);
+//  std::vector < std::vector < std::vector < double > > > vml;
+//  vml = ComputeIsolines(dv,_points2d[_segment0[0]][0], _points2d[_segment0[0]][1]);
+//  const std::vector < std::vector < double > > & referenceLine = vml[0];
+//
+//   // compute the points on the reference line
+//   std::vector < std::vector < double > > points;
+// 
+//   
+//   double ddist(0);
+//   for( int count(offset), maxVal(referenceLine.size()-offset); count < maxVal; ++count )
+//   {
+//     ddist += pointDistance( referenceLine[count-1], referenceLine[count] );
+//     if (ddist>dspacing)
+//     {
+//       points.push_back( referenceLine[count] );
+//       ddist = 0;
+//     }
+//   } // next count
+
+   // compute the points on the mid iso level (0.5)
+   std::vector < std::vector < double > > points = samplePointsMidline(offset,dspacing);
   
-  double ddist(0);
-  for( int count(offset), maxVal(referenceLine.size()-offset);
-       count < maxVal;
-       ++count )
-  {
-    ddist += pointDistance( referenceLine[count-1], referenceLine[count] );
-    if (ddist>dspacing)
-    {
-      points.push_back( referenceLine[count] );
-      ddist = 0;
-    } 
-  } // next count
 
   // compute the profiles for each of the points previously determined
   for(std::vector < std::vector < double > >::const_iterator cit = points.begin();
@@ -133,10 +129,69 @@ LineProf::ComputeProfiles(int offset,  double dspacing,
   return lc;
 }
 
+//* Samples num points along the midline, leaving pctoffset on both sides */
+std::vector < std::vector < double > >
+LineProf::samplePointsMidline(int offset,  double dspacing)
+{
+  //std::cout << "LineProf::samplePointsMidline(offset " << offset << " ,  spacing " << dspacing << " )" <<std::endl;
+  std::vector < std::vector < double > > points;
 
+  // compute isoline at 0.5 level (in the middle)
+  std::vector < double > dv(1,0.5);
+  std::vector < std::vector < std::vector < double > > > vml;
+  vml = ComputeIsolines(dv,_points2d[_segment0[0]][0], _points2d[_segment0[0]][1]);
+  const std::vector < std::vector < double > > & rl = vml[0];
+
+  // compute length of reference line
+  unsigned int s = rl.size();
+  double l = 0.0;
+  for (unsigned int i = 1; i < s ; i++)
+  {
+    l += pointDistance(rl[i], rl[i-1]);
+    //std::cout << rl[i][0]  << "  " << rl[i][1] << std::endl;
+  }
+
+  //std::cout << " length : " << l << std::endl;
+  double lnext = offset * dspacing + 0.5 * dspacing;
+  double lstop = l - offset *dspacing;
+  double dist  = 0.0;
+  double lastl = 0.0;
+  std::vector < double > point(2);
+  for (unsigned int i = 1; i < s ; i++)
+  {
+    //std::cout << "lnext: " << lnext << std::endl;
+    if (lnext > lstop) break;
+    dist = pointDistance(rl[i], rl[i-1]);
+    //std::cout << "lastl: " << lastl << "  dist : " << dist << std::endl;
+    if (lastl + dist > lnext) // subsample segment
+    {
+      double d = (lnext-lastl)/dist;
+      //cout << " d :"<< d << endl;
+      //cout << " x(i-1): "<<rl[i-1][0] << "  x(i): " << rl[i][0] <<endl;
+      point[0] = rl[i-1][0] * (1-d) + rl[i][0] *d;
+      point[1] = rl[i-1][1] * (1-d) + rl[i][1] *d;
+      //cout << " add point " << point[0] << " " << point[1] << endl;
+      points.push_back(point);
+      lnext += dspacing; // try next point
+      i--; // check this segment again
+    }
+    else
+    {
+      // switch to next
+      lastl += dist;
+    }
+  }
+  //std::cout << " computed number of points: " << points.size() << std::endl;
+  return points;
+}
+
+/** Computes isolines at the levels specified in vec.
+  x0 and y0 specify a point close to the starting point of the lines 
+  to ensure consistent orientation */
 std::vector < std::vector < std::vector < double > > >
 LineProf::ComputeIsolines(const std::vector < double >& vec, double x0, double y0)
 {
+  //std::cout << "LineProf::computeIsolines (vec, x0 = " << x0 << " , y0 = " << y0 << " )" <<std::endl;
   if (_tracer == NULL)
   {
     std::cerr << "Line Profile Error: call solveLaplace before trying to compute isolines!" << std::endl;

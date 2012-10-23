@@ -96,35 +96,34 @@ Tracer::ComputeIsoline(double dval) const
 
   PointType ptBuf;
   while( activeBegin || activeEnd )
+  {
+    if (activeBegin)
     {
-      if (activeBegin)
-	{
-	  activeBegin = this->StepTangent( line.front(),
-					   ptBuf,dval );
-	  if (activeBegin) line.push_front(ptBuf);
-	}
-      if (activeEnd)
-	{
-	  activeEnd = this->StepTangent( line.back(),
-					 ptBuf, dval, true );
-	  if (activeEnd) line.push_back(ptBuf);
-	}
-    } 
+      activeBegin = this->StepTangent(line.front(), ptBuf, dval);
+      if (activeBegin) line.push_front(ptBuf);
+    }
+    if (activeEnd)
+    {
+      activeEnd = this->StepTangent(line.back(), ptBuf, dval, true);
+      if (activeEnd) line.push_back(ptBuf);
+    }
+  } 
 
+  // compute and print stats
   double dmin(1000), dmax(-1), dsum(0), dbuf;
   for( LineType::const_iterator cit = line.begin();
        cit != line.end(); ++cit )
-    {
-      this->ValueAt(*cit, dbuf);
-      dmin = std::min(dmin, dbuf);
-      dmax = std::max(dmax, dbuf);
-      dsum += dbuf;
-    }
+  {
+    this->ValueAt(*cit, dbuf);
+    dmin = std::min(dmin, dbuf);
+    dmax = std::max(dmax, dbuf);
+    dsum += dbuf;
+  }
   dsum /= line.size();
-  std::cout << " target = " << dval << std::endl
-	    << " min = " << dmin << std::endl
-	    << " max = " << dmax << std::endl
-	    << " avg = " << dsum << std::endl;
+  std::cout << " target = " << dval << std::endl;
+  std::cout << " min    = " << dmin << std::endl;
+  std::cout << " max    = " << dmax << std::endl;
+  std::cout << " avg    = " << dsum << std::endl;
 
   return line;
 
@@ -139,8 +138,7 @@ the positive order should be in the increasing order of the gradient
 
 */
 Tracer::LineType
-Tracer::ComputeProfile(double x,
-		       double y) const
+Tracer::ComputeProfile(double x, double y) const
 {
   PointType seed;
   seed[0] = x;
@@ -152,28 +150,25 @@ Tracer::ComputeProfile(double x,
   bool activeBegin(true), activeEnd(true);
   PointType ptBuf;
   while( (activeBegin || activeEnd) && line.size()<500 )
+  {
+    if (activeBegin)
     {
-      if (activeBegin)
-	{
-	  activeBegin = this->StepGradient( line.front(),
-					    ptBuf, true);
-	  line.push_front( ptBuf );
-	}
-      if (activeEnd)
-	{
-	  activeEnd = this->StepGradient( line.back(),
-					  ptBuf);
-	  line.push_back( ptBuf );
-	}
+      activeBegin = this->StepGradient( line.front(), ptBuf, true);
+      line.push_front( ptBuf );
     }
+    if (activeEnd)
+    {
+      activeEnd = this->StepGradient( line.back(), ptBuf);
+      line.push_back( ptBuf );
+    }
+  }
 
   return line;
 }
 
 
 void
-Tracer::ValueAt(const PointType& pt,
-		double& dval) const
+Tracer::ValueAt(const PointType& pt, double& dval) const
 {
   InterpolatorType::PointType cpt;
   std::copy( pt.Begin(), pt.End(), cpt.Begin() );
@@ -182,8 +177,7 @@ Tracer::ValueAt(const PointType& pt,
 }
 
 void
-Tracer::DerivativeAt(const PointType& pt,
-		     VectorType& derivative) const
+Tracer::DerivativeAt(const PointType& pt, VectorType& derivative) const
 {
   InterpolatorType::PointType cpt;
   std::copy( pt.Begin(), pt.End(), cpt.Begin() );
@@ -228,8 +222,8 @@ Tracer::GetLocalFrame(const PointType& pt) const
 
 bool
 Tracer::StepGradient(const PointType& pt,
-		     PointType& returnedPoint,
-		     bool negative) const
+         PointType& returnedPoint,
+         bool negative) const
 {
   // use the locator to see if close to boundary
   double buf[3];
@@ -239,11 +233,11 @@ Tracer::StepGradient(const PointType& pt,
   double dist2;
 
   vtkIdType id = locator->FindClosestPointWithinRadius(1.41 *stepSize,
-						       buf, dist2);
+                   buf, dist2);
   if ( id>=0 )
     {
       for(unsigned int ui=0; ui<Dimension; ++ui)
-	returnedPoint[ui] = pts->GetPoint(id)[ui];
+  returnedPoint[ui] = pts->GetPoint(id)[ui];
       return false;
     }
 
@@ -261,9 +255,9 @@ Tracer::StepGradient(const PointType& pt,
 
 bool
 Tracer::StepTangent(const PointType& pt,
-		    PointType& returnedPoint,
-		    double dval,
-		    bool negative) const
+        PointType& returnedPoint,
+        double dval,
+        bool negative) const
 {
   FrameType frame = this->GetLocalFrame(pt);
 
@@ -305,11 +299,11 @@ Tracer::GetClosestPoint(double val) const
   for(cit.GoToBegin(), citMask.GoToBegin(); !cit.IsAtEnd(); ++cit, ++citMask)
     {
       if ( citMask.Get() )
-	if ( std::abs( val - cit.Get() ) < dMin )
-	  {
-	    dMin = std::abs( val - cit.Get() );
-	    argMin = cit.GetIndex();
-	  }
+  if ( std::abs( val - cit.Get() ) < dMin )
+    {
+      dMin = std::abs( val - cit.Get() );
+      argMin = cit.GetIndex();
+    }
     } // next cit, citMask
 
   if ( dMin > 9.0 )

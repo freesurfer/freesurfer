@@ -8,8 +8,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2012/10/18 17:41:05 $
- *    $Revision: 1.3 $
+ *    $Date: 2012/10/23 23:19:38 $
+ *    $Revision: 1.4 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -64,19 +64,22 @@ public:
 
   //! Compute Profiles as array of lines (each line an array of 2d coordinates)
   std::vector < std::vector < std::vector < double > > >
-  ComputeProfiles(int offset,	double spacing);
-  
+  ComputeProfiles(int offset,	double spacing);  
 
 private:
-  
-  std::vector < std::vector < std::vector < double > > >
-  ComputeProfiles(int offset,	double spacing, const std::vector < std::vector < double > >& referenceLine);
-  
+
+  //! Samples points along midline
+  std::vector < std::vector < double > >
+  samplePointsMidline(int offset,  double spacing);
+    
+  //! Computes isolines at levels in vec
   std::vector < std::vector < std::vector < double > > >
   ComputeIsolines(const std::vector < double >& vec, double x0, double y0);
 
+  //! Converts 2D polygon to vtkPolyData
   vtkPolyData* GetPolyData();
   
+  //! Converts 2D polygon to vtkPolyData
   std::vector < std::vector < double > > ConvertLine(const Tracer::LineType& line);
   
   double pointDistance(const std::vector < double >& pt1,

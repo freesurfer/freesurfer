@@ -8,8 +8,8 @@
  * Original Author: Martin Reuter, Oct. 17th ,2012
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2012/10/18 18:29:53 $
- *    $Revision: 1.4 $
+ *    $Date: 2012/10/23 23:19:38 $
+ *    $Revision: 1.5 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -71,7 +71,7 @@ void checkProfiles(const std::vector < std::vector < std::vector < double > > >&
   double xstart = 11.15;
   double xdelta = 0.2;
   double xp = 0.0;
-  for (unsigned int p=0;p<profiles.size();p++)
+  for (unsigned int p=0; p<profiles.size(); p++)
   {
     if (profiles[p].size() != 21)
     {
@@ -79,6 +79,7 @@ void checkProfiles(const std::vector < std::vector < std::vector < double > > >&
       exit(1);
     }
     xp = profiles[p][0][0];
+    //std::cout << " p " << p << " x " << xp << std::endl;
     if (fabs(xp - (p*xdelta+xstart)) > eps)
     {
         std::cerr << "ERROR: Profile " <<p <<"  x-coordinate difference!" << std::endl;
@@ -86,7 +87,7 @@ void checkProfiles(const std::vector < std::vector < std::vector < double > > >&
         exit(1);      
     }
   
-    for (unsigned int i=0;i<profiles[p].size();i++)
+    for (unsigned int i=0; i<profiles[p].size(); i++)
     {
       if (profiles[p][i].size() != 2)
       {
@@ -112,6 +113,20 @@ void checkProfiles(const std::vector < std::vector < std::vector < double > > >&
   
 }
 
+void printProfiles(const std::vector < std::vector < std::vector < double > > >& profiles)
+{
+  for (unsigned int i = 0;i<profiles.size();i++)
+  {
+    cout << "Profile " << i << endl;
+    for (unsigned int j = 0 ; j<profiles[i].size();j++)
+    {
+      cout << profiles[i][j][0] << " " << profiles[i][j][1] << endl;
+    }
+    cout << endl;
+  }
+}
+
+
 int main(int argc, char *argv[])
 {
 
@@ -119,12 +134,34 @@ int main(int argc, char *argv[])
   LineProf::InitializePetsc();
 
 
-  // setup parameters
-  double laplaceResolution = 0.5;
+  // setup parameters:
+  
+  // voxel size (smallest voxel side length), needed to convert voxel to RAS
+  // usually you get this from the image!
   double referenceSize     = 0.1;
-  double resolution        = laplaceResolution * referenceSize;
-  double distance          = resolution / 3.0;
+  
+  // we want to solve the laplace at twice the voxel resolution (half a voxel)
+  // Unless you want to sample really densly, I think this can be keept at 0.5
+  double laplaceResolution = 0.5;
+   
+  // spacing in voxels between line profiles (here every second voxel)
   double profileSpacing    = 2.0;
+
+  // offsets (necessary as the line profiles are not straight close to the
+  // side boundaries)
+  int offset      = 5;
+  int paddingL    = 10;
+  int paddingR    = 10;
+  
+  // Parameter for the convergence of laplace solver (can probably be keept at 8)
+  int convergence = 8;
+  
+  // compute RAS distances from the above using referenceSize:
+  // RAS resolution for laplace solver
+  double resolution        = laplaceResolution * referenceSize; 
+  // RAS sampling distance on input lines
+  double distance          = resolution / 3.0;
+  // RAS spacing between line profiles
   double spacing           = profileSpacing * referenceSize;
 
 
@@ -135,30 +172,27 @@ int main(int argc, char *argv[])
   std::vector < int > segment1;
   std::vector < int > segmentL;
   std::vector < int > segmentR;  
-  createTestSegment(10,6,20,6,distance,points2d,segment0);
-  createTestSegment(10,8,20,8,distance,points2d,segment1);
-  createTestSegment(10,6,10,8,distance,points2d,segmentL);
-  createTestSegment(20,6,20,8,distance,points2d,segmentR);
+  createTestSegment(10, 6, 20, 6, distance, points2d, segment0);
+  createTestSegment(10, 8, 20, 8, distance, points2d, segment1);
+  createTestSegment(10, 6, 10, 8, distance, points2d, segmentL);
+  createTestSegment(20, 6, 20, 8, distance, points2d, segmentR);
   
 
   // We initialize LineProf class by passing the polygon
-  LineProf LP (points2d,segment0,segment1,segmentL,segmentR);
+  LineProf LP (points2d, segment0, segment1, segmentL, segmentR);
   
   
   // Next we solve the Laplace on the domain
-  int paddingL       = 10;
-  int paddingR       = 10;
-  int convergence    = 8;
-  LP.solveLaplace(paddingL,paddingR,resolution,convergence);
+  LP.solveLaplace(paddingL, paddingR, resolution, convergence);
 
 
   // And finally compute line profiles
-  int offset     = 10;
   std::vector < std::vector < std::vector < double > > > profiles;
   profiles = LP.ComputeProfiles(offset, spacing);
 
 
   // We check the profiles (should be vertical lines in this rectangle)
+  //printProfiles(profiles);
   checkProfiles(profiles);
 
 
