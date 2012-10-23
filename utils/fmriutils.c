@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2012/10/23 16:01:50 $
- *    $Revision: 1.73 $
+ *    $Date: 2012/10/23 19:36:27 $
+ *    $Revision: 1.74 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -28,7 +28,7 @@
   \file fmriutils.c
   \brief Multi-frame utilities
 
-  $Id: fmriutils.c,v 1.73 2012/10/23 16:01:50 greve Exp $
+  $Id: fmriutils.c,v 1.74 2012/10/23 19:36:27 greve Exp $
 
   Things to do:
   1. Add flag to turn use of weight on and off
@@ -60,7 +60,7 @@ double round(double x);
 // Return the CVS version of this file.
 const char *fMRISrcVersion(void)
 {
-  return("$Id: fmriutils.c,v 1.73 2012/10/23 16:01:50 greve Exp $");
+  return("$Id: fmriutils.c,v 1.74 2012/10/23 19:36:27 greve Exp $");
 }
 
 
@@ -2902,3 +2902,35 @@ MRI *fMRIcumTrapZ(MRI *y, MATRIX *t, MRI *mask, MRI *yz)
   }
   return(yz);
 }
+/*!
+  \fn MATRIX *HalfLife2Weight(double HalfLifeMin, MATRIX *tSec)
+  \brief Computes a weight vector based on an exponential decay
+  with the given half life. The weight vector is normalized
+  so that the sum of the squares of the weights is 1. This
+  vector is ready to be used in a GLM.
+*/
+MATRIX *HalfLife2Weight(double HalfLifeMin, MATRIX *tSec)
+{
+  MATRIX *w;
+  int n;
+  double TDecayMin, TDecaySec, v, wsum, *wd;
+
+  // Convert the half-life to a decay constant
+  TDecayMin = -HalfLifeMin/log(.5);
+  TDecaySec = 60*TDecayMin;
+
+  wd = (double *) calloc(tSec->rows,sizeof(double));
+  wsum = 0;
+  for(n=0; n < tSec->rows; n++){
+    v = tSec->rptr[n+1][1] * exp(-tSec->rptr[n+1][1]/TDecaySec);
+    wd[n] = v;
+    wsum += v;
+  }
+
+  w = MatrixAlloc(tSec->rows,tSec->cols, MATRIX_REAL);
+  for(n=0; n < tSec->rows; n++)  w->rptr[n+1][1] = sqrt(wd[n]/wsum);
+
+  free(wd);
+  return(w);
+}
+
