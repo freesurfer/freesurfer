@@ -14,8 +14,8 @@
  * Original Author: Douglas N Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2012/10/22 16:52:15 $
- *    $Revision: 1.214 $
+ *    $Date: 2012/10/23 20:56:37 $
+ *    $Revision: 1.215 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -555,13 +555,14 @@ static int SmoothSurfOrVol(MRIS *surf, MRI *mri, MRI *mask, double SmthLevel);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-"$Id: mri_glmfit.c,v 1.214 2012/10/22 16:52:15 greve Exp $";
+"$Id: mri_glmfit.c,v 1.215 2012/10/23 20:56:37 greve Exp $";
 const char *Progname = "mri_glmfit";
 
 int SynthSeed = -1;
 
 char *yFile = NULL, *XFile=NULL, *betaFile=NULL, *rvarFile=NULL;
-char *yhatFile=NULL, *eresFile=NULL, *wFile=NULL, *maskFile=NULL;
+char *yhatFile=NULL, *eresFile=NULL, *maskFile=NULL;
+char *wgFile=NULL,*wFile=NULL;
 char *eresSCMFile=NULL;
 char *condFile=NULL;
 char *yffxvarFile = NULL;
@@ -715,10 +716,15 @@ int  nSignList = 3, nthSign;
 int SignList[3] = {-1,0,1};
 CSD *csdList[5][3][20];
 
+int DoSRTM=0;
+double SRTM_HalfLife=-1;
+MATRIX *SRTM_Cr, *SRTM_intCr, *SRTM_TimeSec;
+
 int nRandExclude=0,  *ExcludeFrames=NULL, nExclude=0;
 MATRIX *MatrixExcludeFrames(MATRIX *Src, int *ExcludeFrames, int nExclude);
 MRI *fMRIexcludeFrames(MRI *f, int *ExcludeFrames, int nExclude, MRI *fex);
 int AllowZeroDOF=0;
+MRI *BindingPotential(MRI *k2, MRI *k2a, MRI *mask, MRI *bp);
 
 /*--------------------------------------------------*/
 int main(int argc, char **argv) {
@@ -1015,6 +1021,33 @@ int main(int argc, char **argv) {
     if(mriglm->FrameMask == NULL) exit(1);
   }
 
+  // SRTM ------------------------------------
+  if(DoSRTM) {
+    mriglm->Xg = MatrixHorCat(SRTM_Cr,SRTM_intCr,NULL);
+    mriglm->wg = HalfLife2Weight(SRTM_HalfLife,SRTM_TimeSec);
+    mriglm->npvr = 1;
+    mriglm->pvr[0] = fMRIcumTrapZ(mriglm->y,SRTM_TimeSec,NULL,NULL);
+    nContrasts = 4;
+    mriglm->glm->ncontrasts = nContrasts;
+    //------------------------------------------
+    mriglm->glm->Cname[0] = "R1";
+    mriglm->glm->C[0] = MatrixConstVal(0.0, 1, 3, NULL);
+    mriglm->glm->C[0]->rptr[1][1] = 1;
+    //------------------------------------------
+    mriglm->glm->Cname[1] = "k2";
+    mriglm->glm->C[1] = MatrixConstVal(0.0, 1, 3, NULL);
+    mriglm->glm->C[1]->rptr[1][2] = 1;
+    //------------------------------------------
+    mriglm->glm->Cname[2] = "k2a";
+    mriglm->glm->C[2] = MatrixConstVal(0.0, 1, 3, NULL);
+    mriglm->glm->C[2]->rptr[1][3] = -1;
+    //------------------------------------------
+    mriglm->glm->Cname[3] = "k2-k2a";
+    mriglm->glm->C[3] = MatrixConstVal(0.0, 1, 3, NULL);
+    mriglm->glm->C[3]->rptr[1][2] = +1;
+    mriglm->glm->C[3]->rptr[1][3] = +1;
+  }
+
   if(! DontSave) {
     if(GLMDir != NULL) {
       sprintf(tmpstr,"%s/Xg.dat",GLMDir);
@@ -1054,7 +1087,7 @@ int main(int argc, char **argv) {
   }
 
   // Load Per-Voxel Regressors -----------------------------------
-  if (mriglm->npvr > 0) {
+  if(mriglm->npvr > 0 && !DoSRTM) {
     for (n=0; n < mriglm->npvr; n++) {
       mriglm->pvr[n] = MRIread(pvrFiles[n]);
       if (mriglm->pvr[n] == NULL) exit(1);
@@ -1187,7 +1220,27 @@ int main(int argc, char **argv) {
       sprintf(tmpstr,"%s/wn.%s",GLMDir,format);
       if(!DontSave && !DontSaveWn) MRIwrite(mriglm->w,tmpstr);
     }
-  } else mriglm->w = NULL;
+  } 
+  else if(wgFile != NULL){
+    // Global weight to use at every voxel.
+    mriglm->wg = MatrixReadTxt(wgFile,NULL);
+    if(mriglm->wg==NULL) exit(1);
+    if (mriglm->y->nframes != mriglm->wg->rows) {
+      printf("ERROR: dimension mismatch between y and wg.\n");
+      printf("  y has %d frames, w has %d frames.\n",
+             mriglm->y->nframes,mriglm->wg->rows);
+      exit(1);
+    }
+  }
+  else if(!DoSRTM) {
+    mriglm->w = NULL;
+    mriglm->wg = NULL;
+  }
+
+  if(mriglm->wg != NULL){
+    sprintf(tmpstr,"%s/wg.mtx",GLMDir);
+    MatrixWriteTxt(tmpstr,mriglm->wg);
+  }
 
   if(synth) {
     if(! UseUniform){
@@ -1270,7 +1323,7 @@ int main(int argc, char **argv) {
   mriglm->glm->ncontrasts = nContrasts;
   if(nContrasts > 0) {
     for(n=0; n < nContrasts; n++) {
-      if (! useasl && ! useqa  && !(fsgd != NULL && fsgd->nContrasts != 0)) {
+      if (! useasl && ! useqa  && !(fsgd != NULL && fsgd->nContrasts != 0) && !DoSRTM) {
         // Get its name
         mriglm->glm->Cname[n] =
           fio_basename(CFile[n],".mat"); //strip .mat
@@ -1960,7 +2013,14 @@ int main(int argc, char **argv) {
     MRIfree(&ra);
     MRIfree(&vr);
     MRIfree(&adc);
+  }
 
+  if(DoSRTM){
+    printf("Computing binding potentials\n");
+    mritmp = BindingPotential(mriglm->gamma[1],mriglm->gamma[2], mriglm->mask, NULL);
+    sprintf(tmpstr,"%s/bp.%s",GLMDir,format);
+    MRIwrite(mritmp,tmpstr);
+    MRIfree(&mritmp);
   }
 
   sprintf(tmpstr,"%s/X.mat",GLMDir);
@@ -2358,7 +2418,13 @@ static int parse_commandline(int argc, char **argv) {
       if (nargc < 1) CMDargNErr(option,1);
       wFile = pargv[0];
       nargsused = 1;
-    } else if (!strcmp(option, "--wls")) {
+    } 
+    else if (!strcmp(option, "--wg")) {
+      if (nargc < 1) CMDargNErr(option,1);
+      wgFile = pargv[0];
+      nargsused = 1;
+    } 
+    else if (!strcmp(option, "--wls")) {
       if (nargc < 1) CMDargNErr(option,1);
       wFile = pargv[0];
       weightinv = 1;
@@ -2368,7 +2434,8 @@ static int parse_commandline(int argc, char **argv) {
       if (nargc < 1) CMDargNErr(option,1);
       XFile = pargv[0];
       nargsused = 1;
-    } else if (!strcmp(option, "--dti")) {
+    } 
+    else if (!strcmp(option, "--dti")) {
       if(nargc < 1) CMDargNErr(option,1);
       if(CMDnthIsArg(nargc, pargv, 1)){
         bvalfile = pargv[0];
@@ -2383,7 +2450,22 @@ static int parse_commandline(int argc, char **argv) {
       logflag = 1;
       format = "nii.gz";
       ComputeFWHM = 0;
-    } else if (!strcmp(option, "--pvr")) {
+    } 
+    else if (!strcmp(option, "--srtm")) {
+      if(nargc < 1) CMDargNErr(option,1);
+      DoSRTM=1;
+      SRTM_Cr = MatrixReadTxt(pargv[0], NULL);
+      if(SRTM_Cr == NULL) exit(1);
+      SRTM_TimeSec = MatrixReadTxt(pargv[1], NULL);
+      if(SRTM_TimeSec == NULL) exit(1);
+      sscanf(pargv[2],"%lf",&SRTM_HalfLife);
+      printf("SRTM_HalfLife %g\n",SRTM_HalfLife);
+      SRTM_intCr = MatrixCumTrapZ(SRTM_Cr, SRTM_TimeSec, NULL);
+      prunemask = 0;
+      NoContrastsOK = 1;
+      nargsused = 3;
+    } 
+    else if (!strcmp(option, "--pvr")) {
       if (nargc < 1) CMDargNErr(option,1);
       pvrFiles[npvr] = pargv[0];
       npvr++;
@@ -2954,7 +3036,7 @@ static void print_version(void) {
 /* --------------------------------------------- */
 static void check_options(void) {
   if(XFile == NULL && bvalfile == NULL && fsgdfile == NULL &&
-     ! OneSampleGroupMean && ! useasl && !useqa) {
+     ! OneSampleGroupMean && ! useasl && !useqa && !DoSRTM) {
     printf("ERROR: must specify an input X file or fsgd file or --osgm\n");
     exit(1);
   }
@@ -3090,7 +3172,10 @@ static void check_options(void) {
     }
     fsgd->ReScale = 1;
   }
-
+  if(wFile && wgFile){
+    printf("ERROR: cannot have --w and --wg\n");
+    exit(1);
+  }
   return;
 }
 
@@ -3149,6 +3234,7 @@ static void dump_options(FILE *fp) {
     fprintf(fp,"FFxDOF %d\n",mriglm->ffxdof);
     fprintf(fp,"yFFxVar %s\n",yffxvarFile);
   }
+  if(wgFile) fprintf(fp,"wgFile %s\n",wgFile);
   if(wFile){
     fprintf(fp,"wFile %s\n",wFile);
     fprintf(fp,"weightinv  %d\n",weightinv);
@@ -3221,4 +3307,38 @@ int MRISmaskByLabel(MRI *y, MRIS *surf, LABEL *lb, int invflag) {
   MRIScrsLUTFree(crslut);
   return(0);
 }
+
+/*--------------------------------------------------------------*/
+MRI *BindingPotential(MRI *k2, MRI *k2a, MRI *mask, MRI *bp)
+{
+  int c, r, s;
+  double k2v, k2av, bpv;
+
+  if (bp==NULL){
+    bp = MRIallocSequence(k2->width,k2->height,k2->depth,MRI_FLOAT,1);
+    if(bp==NULL){
+      printf("ERROR: fMRIcumtrapz: could not alloc\n");
+      return(NULL);
+    }
+    MRIcopyHeader(k2,bp);
+  }
+
+  for(c=0; c < k2->width; c++)  {
+    for(r=0; r < k2->height; r++)    {
+      for(s=0; s < k2->depth; s++)   {
+	if(mask && MRIgetVoxVal(mask, c, r, s, 0) < 0.5){
+	  MRIsetVoxVal(bp,c,r,s,0,0.0);
+	  continue;
+	}
+	k2v  = MRIgetVoxVal(k2,c,r,s,0);
+	k2av = MRIgetVoxVal(k2a,c,r,s,0);
+	bpv = k2v/(k2av+DBL_EPSILON) - 1.0;
+	MRIsetVoxVal(bp,c,r,s,0, bpv);
+      }
+    }
+  }
+
+  return(bp);
+}
+
 
