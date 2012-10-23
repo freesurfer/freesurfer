@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2012/10/23 17:49:06 $
-#    $Revision: 1.430 $
+#    $Date: 2012/10/23 18:02:58 $
+#    $Revision: 1.431 $
 #
 # Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -26,7 +26,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.430 2012/10/23 17:49:06 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.431 2012/10/23 18:02:58 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -5497,6 +5497,7 @@ while( $#argv != 0 )
       breaksw;
   
     case "-openmp":
+      if ( $#argv < 1) goto arg1err;
       setenv OMP_NUM_THREADS $argv[1]; shift;
       breaksw;
 
