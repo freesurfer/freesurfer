@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2012/10/22 22:01:06 $
- *    $Revision: 1.72 $
+ *    $Date: 2012/10/23 16:01:50 $
+ *    $Revision: 1.73 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -28,7 +28,7 @@
   \file fmriutils.c
   \brief Multi-frame utilities
 
-  $Id: fmriutils.c,v 1.72 2012/10/22 22:01:06 greve Exp $
+  $Id: fmriutils.c,v 1.73 2012/10/23 16:01:50 greve Exp $
 
   Things to do:
   1. Add flag to turn use of weight on and off
@@ -60,7 +60,7 @@ double round(double x);
 // Return the CVS version of this file.
 const char *fMRISrcVersion(void)
 {
-  return("$Id: fmriutils.c,v 1.72 2012/10/22 22:01:06 greve Exp $");
+  return("$Id: fmriutils.c,v 1.73 2012/10/23 16:01:50 greve Exp $");
 }
 
 
@@ -1406,7 +1406,10 @@ int MRIglmLoadVox(MRIGLM *mriglm, int c, int r, int s, int LoadBeta)
     mriglm->glm->y->rptr[nthf][1] = MRIgetVoxVal(mriglm->y,c,r,s,f-1);
 
     // Load Xg->X the global design matrix if needed
-    if (mriglm->w != NULL || !mriglm->XgLoaded || mriglm->FrameMask) {
+    // For wg, this is a little bit of a hack. wg needs to be applied to Xg only once,
+    // but it will get applied again and again. Including wg here forces Xg to be
+    // freshly copied into X each time, then wg is applied.
+    if (mriglm->w != NULL || mriglm->wg != NULL || !mriglm->XgLoaded || mriglm->FrameMask) {
       nthreg = 1;
       for (n = 1; n <= mriglm->Xg->cols; n++){
         mriglm->glm->X->rptr[nthf][nthreg] = mriglm->Xg->rptr[f][n]; // X=Xg
@@ -1425,12 +1428,13 @@ int MRIglmLoadVox(MRIGLM *mriglm, int c, int r, int s, int LoadBeta)
   mriglm->XgLoaded = 1; // Set flag that Xg has been loaded
 
   // Weight X and y, X = w.*X, y = w.*y
-  if (mriglm->w != NULL && ! mriglm->skipweight)  {
+  if( (mriglm->w != NULL || mriglm->wg != NULL) && ! mriglm->skipweight)  {
     nthf = 0;
     for (f = 1; f <= mriglm->y->nframes; f++){
       if(mriglm->FrameMask != NULL && MRIgetVoxVal(mriglm->FrameMask,c,r,s,f-1)<0.5) continue;
       nthf++;
-      v = MRIgetVoxVal(mriglm->w,c,r,s,f-1);
+      if(mriglm->w != NULL) v = MRIgetVoxVal(mriglm->w,c,r,s,f-1);
+      else                  v = mriglm->wg->rptr[f][1];
       mriglm->glm->y->rptr[nthf][1] *= v;
       for (n = 1; n <= mriglm->glm->X->cols; n++)
         mriglm->glm->X->rptr[nthf][n] *= v;

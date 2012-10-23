@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2012/10/22 22:01:06 $
- *    $Revision: 1.45 $
+ *    $Date: 2012/10/23 16:01:50 $
+ *    $Revision: 1.46 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -50,6 +50,7 @@ typedef struct
   int XgLoaded;      // 1 if Xg has been loaded into glm->X
 
   MRI *w;            // Per-voxel, per-input weight
+  MATRIX *wg;        // Global weight vector
   int skipweight;    // Don't use weight even if w != NULL
   MRI *mask;         // Only proc within mask
   int n_ill_cond;    // Number of ill-conditioned voxels
