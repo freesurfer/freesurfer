@@ -14,8 +14,8 @@
  * Original Author: Douglas N Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2012/10/23 20:56:37 $
- *    $Revision: 1.215 $
+ *    $Date: 2012/10/23 21:52:10 $
+ *    $Revision: 1.216 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -555,7 +555,7 @@ static int SmoothSurfOrVol(MRIS *surf, MRI *mri, MRI *mask, double SmthLevel);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-"$Id: mri_glmfit.c,v 1.215 2012/10/23 20:56:37 greve Exp $";
+"$Id: mri_glmfit.c,v 1.216 2012/10/23 21:52:10 greve Exp $";
 const char *Progname = "mri_glmfit";
 
 int SynthSeed = -1;
@@ -725,6 +725,7 @@ MATRIX *MatrixExcludeFrames(MATRIX *Src, int *ExcludeFrames, int nExclude);
 MRI *fMRIexcludeFrames(MRI *f, int *ExcludeFrames, int nExclude, MRI *fex);
 int AllowZeroDOF=0;
 MRI *BindingPotential(MRI *k2, MRI *k2a, MRI *mask, MRI *bp);
+int DoReshape = 0;
 
 /*--------------------------------------------------*/
 int main(int argc, char **argv) {
@@ -824,16 +825,24 @@ int main(int argc, char **argv) {
   mriglm->condsave = condSave;
 
   // Load input--------------------------------------
-  printf("Loading y from %s\n",yFile);
+  printf("Loading y from %s\n",yFile);fflush(stdout);
   if(! UseStatTable){
     mriglm->y = MRIread(yFile);
+    printf("   ... done reading.\n"); fflush(stdout);
     if (mriglm->y == NULL) {
       printf("ERROR: loading y %s\n",yFile);
       exit(1);
     }
-    if(mriglm->y->width == 163842 && surf == NULL){
+    nvoxels = mriglm->y->width * mriglm->y->height * mriglm->y->depth;
+    if(nvoxels == 163842 && surf == NULL){
       printf("ERROR: you must use '--surface subject hemi' with surface data\n");
       exit(1);
+    }
+    if(DoReshape && surf != NULL){
+      printf("Forcing reshape to 1d\n");
+      mritmp = mri_reshape(mriglm->y,nvoxels,1, 1, mriglm->y->nframes);
+      MRIfree(&mriglm->y);
+      mriglm->y = mritmp;
     }
   }
   else {
@@ -1023,10 +1032,13 @@ int main(int argc, char **argv) {
 
   // SRTM ------------------------------------
   if(DoSRTM) {
+    printf("Performing SRTM\n"); fflush(stdout);
     mriglm->Xg = MatrixHorCat(SRTM_Cr,SRTM_intCr,NULL);
     mriglm->wg = HalfLife2Weight(SRTM_HalfLife,SRTM_TimeSec);
     mriglm->npvr = 1;
+    printf("Computing integral of input ..."); fflush(stdout);
     mriglm->pvr[0] = fMRIcumTrapZ(mriglm->y,SRTM_TimeSec,NULL,NULL);
+    printf("done.\n"); fflush(stdout);
     nContrasts = 4;
     mriglm->glm->ncontrasts = nContrasts;
     //------------------------------------------
@@ -1057,6 +1069,7 @@ int main(int argc, char **argv) {
   }
 
   // Check the condition of the global matrix -----------------
+  printf("Computing normalized matrix\n"); fflush(stdout);
   Xnorm = MatrixNormalizeCol(mriglm->Xg,NULL,NULL);
   Xcond = MatrixNSConditionNumber(Xnorm);
   printf("Normalized matrix condition is %g\n",Xcond);
@@ -1085,6 +1098,7 @@ int main(int argc, char **argv) {
     printf("You might want to re-run with --rescale-x\n");
     printf("\n");
   }
+  fflush(stdout);
 
   // Load Per-Voxel Regressors -----------------------------------
   if(mriglm->npvr > 0 && !DoSRTM) {
@@ -1466,18 +1480,18 @@ int main(int argc, char **argv) {
     TimerStart(&mytimer) ;
 
     if (VarFWHM > 0) {
-      printf("Starting fit\n");
+      printf("Starting fit\n");  fflush(stdout);
       MRIglmFit(mriglm);
       printf("Variance smoothing\n");
       SmoothSurfOrVol(surf, mriglm->rvar, mriglm->mask, VarSmoothLevel);
-      printf("Starting test\n");
+      printf("Starting test\n");   fflush(stdout);
       MRIglmTest(mriglm);
     } else {
-      printf("Starting fit and test\n");
+      printf("Starting fit and test\n");   fflush(stdout);
       MRIglmFitAndTest(mriglm);
     }
     msecFitTime = TimerStop(&mytimer) ;
-    printf("Fit completed in %g minutes\n",msecFitTime/(1000*60.0));
+    printf("Fit completed in %g minutes\n",msecFitTime/(1000*60.0));  fflush(stdout);
   }
 
   //--------------------------------------------------------------------------
@@ -2130,6 +2144,7 @@ static int parse_commandline(int argc, char **argv) {
     if (!strcasecmp(option, "--help"))  print_help() ;
     else if (!strcasecmp(option, "--version")) print_version() ;
     else if (!strcasecmp(option, "--debug"))   debug = 1;
+    else if (!strcasecmp(option, "--reshape"))   DoReshape = 1;
     else if (!strcasecmp(option, "--checkopts"))   checkoptsonly = 1;
     else if (!strcasecmp(option, "--nocheckopts")) checkoptsonly = 0;
     else if (!strcasecmp(option, "--save-yhat")) yhatSave = 1;
