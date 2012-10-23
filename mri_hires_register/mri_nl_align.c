@@ -7,21 +7,19 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2009/12/03 22:30:38 $
- *    $Revision: 1.24 $
+ *    $Author: nicks $
+ *    $Date: 2012/10/23 21:29:39 $
+ *    $Revision: 1.25.2.1 $
  *
- * Copyright (C) 2002-2007,
- * The General Hospital Corporation (Boston, MA). 
- * All rights reserved.
+ * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
- * Distribution, usage and copying of this software is covered under the
- * terms found in the License Agreement file named 'COPYING' found in the
- * FreeSurfer source code root directory, and duplicated here:
- * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ * Terms and conditions for use, reproduction, distribution and contribution
+ * are found in the 'FreeSurfer Software License Agreement' contained
+ * in the file 'LICENSE' found in the FreeSurfer distribution, and here:
  *
- * General inquiries: freesurfer@nmr.mgh.harvard.edu
- * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
+ *
+ * Reporting: freesurfer@nmr.mgh.harvard.edu
  *
  */
 
@@ -33,9 +31,9 @@
 // Nov. 9th ,2000
 // 
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2009/12/03 22:30:38 $
-// Revision       : $Revision: 1.24 $
+// Revision Author: $Author: nicks $
+// Revision Date  : $Date: 2012/10/23 21:29:39 $
+// Revision       : $Revision: 1.25.2.1 $
 //
 ////////////////////////////////////////////////////////////////////
 
@@ -43,6 +41,10 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#ifdef HAVE_OPENMP
+#include <omp.h>
+#endif
+
 #include "gcamorph.h"
 #include "mri.h"
 #include "matrix.h"
@@ -113,7 +115,7 @@ main(int argc, char *argv[])
   GCA_MORPH    *gcam ;
   MATRIX       *m_L/*, *m_I*/ ;
   LTA          *lta ;
-
+  int          n_omp_threads;
 
   /* initialize the morph params */
   memset(&mp, 0, sizeof(GCA_MORPH_PARMS));
@@ -140,7 +142,18 @@ main(int argc, char *argv[])
   mp.regrid = regrid? True : False ;
   mp.tol = 0.1 ;
   mp.niterations = 1000 ;
-	
+
+#ifdef HAVE_OPENMP
+  #pragma omp parallel
+  {
+    n_omp_threads = omp_get_num_threads();
+  }
+  printf("\n\n ======= NUMBER OF OPENMP THREADS = %d ======= \n",
+         n_omp_threads);
+#else
+  n_omp_threads = 1;
+#endif
+
   TimerStart(&start) ;
   setRandomSeed(-1L) ;
   DiagInit(NULL, NULL, NULL) ;
