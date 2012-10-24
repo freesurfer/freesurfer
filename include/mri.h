@@ -7,9 +7,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2012/08/21 20:46:21 $
- *    $Revision: 1.440 $
+ *    $Author: fischl $
+ *    $Date: 2012/10/24 13:20:29 $
+ *    $Revision: 1.441 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -611,6 +611,7 @@ MRI *MRI_fft_lowpass(MRI *src, MRI *dst, int percent);
 MRI *MRI_fft_highpass(MRI *src, MRI *dst, int percent);
 
 MRI *MRIscaleMeanIntensities(MRI *mri_src, MRI *mri_ref, MRI *mri_dst) ;
+MRI   *MRIscaleIntensities(MRI *mri_src, MRI *mri_dst, float scale, float offset) ;
 MRI   *MRImedian(MRI *mri_src, MRI *mri_dst, int wsize, MRI_REGION *box) ;
 MRI   *MRImean(MRI *mri_src, MRI *mri_dst, int wsize) ;
 MRI   *MRIminAbs(MRI *mri_src1, MRI *mri_src2, MRI *mri_dst) ;
@@ -886,6 +887,7 @@ HISTOGRAM  *MRIhistogramLabelRegion(MRI *mri,
                                     MRI *mri_labeled,
                                     MRI_REGION *region,
                                     int label, int nbins);
+MRI        *MRIhistogramNormalize(MRI *mri_src, MRI *mri_template, MRI *mri_dst) ;
 MRI        *MRIhistoEqualize(MRI *mri_src, MRI *mri_template, MRI *mri_dst,
                              int low, int high) ;
 MRI        *MRIapplyHistogram(MRI *mri_src, MRI *mri_dst, HISTOGRAM *histo) ;
