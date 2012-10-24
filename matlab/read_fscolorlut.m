@@ -11,9 +11,9 @@ function [code, name, rgbv] = read_fscolorlut(fname)
 %
 % Original Author: Doug Greve
 % CVS Revision Info:
-%    $Author: fischl $
-%    $Date: 2011/11/17 19:48:14 $
-%    $Revision: 1.5 $
+%    $Author: greve $
+%    $Date: 2012/10/24 20:18:48 $
+%    $Revision: 1.6 $
 %
 % Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 %
@@ -47,6 +47,7 @@ while(1)
   % scroll through any blank lines or comments %
   while(1)
     tline = fgetl(fp);
+    if(~isempty(tline) && tline(1) == -1) break; end
     if(~isempty(deblank(tline)) & tline(1) ~= '#') break; end
   end
   if(tline(1) == -1) break; end
