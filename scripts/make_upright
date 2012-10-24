@@ -9,8 +9,8 @@
 # Original Author: Martin Reuter
 # CVS Revision Info:
 #    $Author: mreuter $
-#    $Date: 2012/03/09 00:43:54 $
-#    $Revision: 1.1 $
+#    $Date: 2012/10/24 22:16:25 $
+#    $Revision: 1.2 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -25,7 +25,7 @@
 #
 
 
-set VERSION = '$Id: make_upright,v 1.1 2012/03/09 00:43:54 mreuter Exp $';
+set VERSION = '$Id: make_upright,v 1.2 2012/10/24 22:16:25 mreuter Exp $';
 
 
 if ( $#argv < 3 ) then
@@ -33,7 +33,7 @@ if ( $#argv < 3 ) then
 	echo "   Usage: make_upright input.mgz output.mgz map.lta"
   echo  
   echo "   Description: "
-  echo "    Registers input the the left/right reversed version using "
+  echo "    Registers input to the left/right reversed version using "
   echo "    mri_robust_register and making use of the half-way space, resulting"
   echo "    in an upright, forward facing head position"
   echo  
