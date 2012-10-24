@@ -25,9 +25,10 @@
 LayerLineProfile::LayerLineProfile(int nPlane, QObject *parent, LayerPointSet *line1, LayerPointSet *line2) :
     Layer(parent),
     m_nPlane(nPlane),
-    m_dResolution(0.5),
-    m_dSpacing(0.5),
+    m_dResolution(2),
+    m_dSpacing(2),
     m_nSamples(100),
+    m_dOffset(10),
     m_nActiveLineId(-1)
 {
   this->m_strTypeNames << "Supplement" << "LineProfile";
@@ -188,14 +189,14 @@ std::vector< std::vector<double> > LayerLineProfile::Points2DToSpline3D(std::vec
   return points3d;
 }
 
-bool LayerLineProfile::Solve(double profileSpacing, double referenceSize, double laplaceResolution)
+bool LayerLineProfile::Solve(double profileSpacing, double referenceSize, double laplaceResolution, double offset)
 {
   //double laplaceResolution = ;
 //  double referenceSize     = voxel_length; // smallest voxel lenth
   double resolution        = laplaceResolution * referenceSize;
   double spacing           = profileSpacing * referenceSize;
   //double resolution        = spacing * 10.0;
-  double distance          = resolution / 3.0;
+  double distance          = referenceSize / 3.0;
 
   std::vector < std::vector < double > > points2d;
   std::vector < int > segment0;
@@ -253,8 +254,7 @@ bool LayerLineProfile::Solve(double profileSpacing, double referenceSize, double
   LP.solveLaplace(paddingL,paddingR,resolution,convergence);
 
   // And finally compute line profiles
-  int offset     = 10;
-  m_ptsProfile = LP.ComputeProfiles(offset, spacing);
+  m_ptsProfile = LP.ComputeProfiles(offset*referenceSize, spacing);
 
   m_nActiveLineId = -1;
   m_activeLine->SetMapper(vtkSmartPointer<vtkPolyDataMapper>::New());
@@ -262,6 +262,7 @@ bool LayerLineProfile::Solve(double profileSpacing, double referenceSize, double
 
   m_dResolution = laplaceResolution;
   m_dSpacing = profileSpacing;
+  m_dOffset = offset;
 
   return true;
 }
@@ -432,7 +433,7 @@ bool LayerLineProfile::Export(const QString &filename, LayerMRI *mri, int nSampl
   for (size_t i = 0; i < m_ptsProfile.size(); i++)
   {
     std::vector < std::vector <double> > line3d = Points2DToSpline3D(m_ptsProfile[i], nSamples);
-    std::vector<double> vals = mri->GetSampledVoxelValues(line3d);
+    std::vector<double> vals = mri->GetMeanSegmentValues(line3d);
     out << i << "," << nSamples;
     for (size_t j = 0; j < vals.size(); j++)
     {
@@ -459,7 +460,8 @@ bool LayerLineProfile::Save(const QString &filename)
   out << m_spline1->GetPointSetData()->WriteAsControlPointsToString();
   out << "\n---\n";
 
-  out << QString("\nViewport %1\nResolution %2\nSample %3\n").arg(m_nPlane).arg(m_dResolution).arg(m_nSamples);
+  out << QString("\nViewport %1\nResolution %2\nSample %3\nOffset %4\n").arg(m_nPlane).arg(m_dResolution).arg(m_nSamples)
+                    .arg(m_dOffset);
   return true;
 }
 
@@ -515,6 +517,15 @@ LayerLineProfile* LayerLineProfile::Load(const QString &filename, LayerMRI* ref)
   LayerLineProfile* lp = new LayerLineProfile(nPlane, NULL, ptset0, ptset1);
   lp->m_dResolution = dResolution;
   lp->m_nSamples = nSamples;
+
+  if (ar.size() > 3)
+  {
+    sublist = ar[3].split(" ", QString::SkipEmptyParts);
+    if (sublist.size() > 1)
+    {
+      lp->m_dOffset = sublist[1].toDouble();
+    }
+  }
 
   return lp;
 }

@@ -96,7 +96,7 @@ void DialogLineProfile::OnCompute()
     mri->GetWorldVoxelSize(vs);
     dVoxelSize = qMin(vs[0], qMin(vs[1], vs[2]));
   }
-  m_lineProfile->Solve(GetSpacing(), dVoxelSize, GetResolution());
+  m_lineProfile->Solve(GetSpacing(), dVoxelSize, GetResolution(), GetOffset());
 
   mainwnd->SetMode(RenderView::IM_Navigate);
 }
@@ -109,6 +109,11 @@ double DialogLineProfile::GetResolution()
 double DialogLineProfile::GetSpacing()
 {
   return ui->lineEditSpacing->text().toDouble();
+}
+
+double DialogLineProfile::GetOffset()
+{
+  return ui->lineEditOffset->text().toDouble();
 }
 
 int DialogLineProfile::GetNumberOfSamples()

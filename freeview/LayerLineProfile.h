@@ -43,7 +43,7 @@ public:
       return m_nPlane;
     }
 
-    bool Solve(double profileSpacing, double referenceSize, double laplaceResolution);
+    bool Solve(double profileSpacing, double referenceSize, double laplaceResolution, double offset);
 
     bool Export(const QString &filename, LayerMRI *mri, int nSample);
 
@@ -64,6 +64,11 @@ public:
     int GetNumberOfSamples()
     {
       return m_nSamples;
+    }
+
+    double GetOffset()
+    {
+      return m_dOffset;
     }
 
     LayerPointSet* GetSpline0()
@@ -105,6 +110,7 @@ private:
     double      m_dSliceLocation;
     double      m_dResolution;
     double      m_dSpacing;
+    double      m_dOffset;
     int         m_nSamples;
 
     int         m_nActiveLineId;

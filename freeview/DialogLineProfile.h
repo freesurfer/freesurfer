@@ -20,6 +20,7 @@ public:
 
     double GetResolution();
     double GetSpacing();
+    double GetOffset();
     int    GetNumberOfSamples();
 
 public slots:
