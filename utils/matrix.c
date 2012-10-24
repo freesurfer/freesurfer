@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2012/10/22 22:01:06 $
- *    $Revision: 1.128 $
+ *    $Author: fischl $
+ *    $Date: 2012/10/24 13:46:17 $
+ *    $Revision: 1.129 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -4020,6 +4020,30 @@ MATRIX *MatrixExcludeFrames(MATRIX *Src, int *ExcludeFrames, int nExclude)
   }
   return(Trg);
 }
+/*!
+  \fn int MatrixIsIdentity(MATRIX *m)
+  \brief returns 1 if matrix m is the identity matrix, 0 otherwise
+*/
+int
+MatrixIsIdentity(MATRIX *m)
+{
+  int  r, c ;
+
+  for (r = 1 ; r < m->rows ; r++)
+    for (c = 1 ; c < m->cols ; c++)
+    {
+      if (r == c)
+      {
+	if (FEQUAL(*MATRIX_RELT(m, r, c), 1) == 0)
+	  return(0) ;
+      }
+      else
+	if (FEQUAL(*MATRIX_RELT(m, r, c), 0.0) == 0)
+	  return(0) ;
+    }
+  return(1) ;
+}
+
 
 /*!
   \fn MATRIX *MatrixCumTrapZ(MATRIX *y, MATRIX *t, MATRIX *yz)

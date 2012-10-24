@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2012/10/22 22:01:06 $
- *    $Revision: 1.77 $
+ *    $Author: fischl $
+ *    $Date: 2012/10/24 13:46:08 $
+ *    $Revision: 1.78 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -76,6 +76,7 @@ COMPLEX_FLOAT, *CPTR ;
 #define MATRIX_UPPER  1
 #define MATRIX_LOWER  2
 
+int     MatrixIsIdentity(MATRIX *m) ;
 MATRIX  *MatrixReshape(MATRIX *m_src, MATRIX *m_dst, int rows, int cols) ;
 int     MatrixCheck(MATRIX *m) ;
 MATRIX  *MatrixInverse( const MATRIX *mIn, MATRIX *mOut) ;
