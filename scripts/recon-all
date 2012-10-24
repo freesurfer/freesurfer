@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2012/10/24 19:36:05 $
-#    $Revision: 1.433 $
+#    $Date: 2012/10/24 19:37:39 $
+#    $Revision: 1.434 $
 #
 # Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -26,7 +26,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.433 2012/10/24 19:36:05 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.434 2012/10/24 19:37:39 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -930,7 +930,7 @@ if ($DoCreateBaseInput && $DoCreateBaseSubj) then
   set ltaXforms=();
   set lta1forms=();
   set ltaAforms=();
-  set headInVols=(); 
+  set headInVols=();
   set geodiff=0;
   foreach s ($BaseSubjsList)
     if($RunIt) echo "${s}" >> ${BaseSubjsListFname};
@@ -950,10 +950,10 @@ if ($DoCreateBaseInput && $DoCreateBaseSubj) then
       if($RunIt) then
         $fs_time $cmd |& tee -a $LF
         if($status) set geodiff = 1;
-      endif  
-    endif          
+      endif
+    endif
   end
-  
+
   if ( "$geodiff" == "1" ) then
     echo "\n*******************************************************************************" |& tee -a $LF
     echo "WARNING: Image geometries differ across time, maybe due to aquisition changes?" |& tee -a $LF
@@ -961,7 +961,7 @@ if ($DoCreateBaseInput && $DoCreateBaseSubj) then
     echo "*******************************************************************************\n" |& tee -a $LF
     sleep 10
   endif
-  
+
   if ($#BaseSubjsList == 1) then
     # if only a single time point, create fake 'base' by making the image upright
     # this assures that also subjects with a single time point get processes as the other
@@ -973,18 +973,18 @@ if ($DoCreateBaseInput && $DoCreateBaseSubj) then
     if($RunIt) then
       $fs_time $cmd |& tee -a $LF
       if($status) goto error_exit;
-    endif  
-    
+    endif
+
     # 2. create the upright orig volume
     set cmd = ( mri_convert -rt cubic -at $ltaXforms[1] $subjInVols[1] ${subjdir}/mri/orig.mgz )
     echo "\n $cmd \n" |& tee -a $LF |& tee -a $CF
     if($RunIt) then
       $fs_time $cmd |& tee -a $LF
       if($status) goto error_exit;
-    endif  
-        
+    endif
+
   else #more than 1 time point:
-    
+
     # create the 'mean/median' norm volume:
     set cmd = (mri_robust_template --mov ${normInVols})
     if ($DoAffineBase) then
@@ -1030,7 +1030,7 @@ if ($DoCreateBaseInput && $DoCreateBaseSubj) then
       if($RunIt) then
         $fs_time $cmd |& tee -a $LF
         if($status) goto error_exit;
-      endif  
+      endif
     endif
 
     # create the 'mean/median' input (orig) volume:
@@ -1247,14 +1247,14 @@ if($DoMotionCor) then
   endif #longitudinal
 
   # base processing (we do not need to do anything,
-  #   as orig should be there, rawavg is not there, due to difficulties of 
+  #   as orig should be there, rawavg is not there, due to difficulties of
   #   averaging different image geometries across time)
   if ($DoCreateBaseSubj) then
     set origvol = $subjdir/mri/orig.mgz
     goto motioncor_post_process
   endif
-  
-  
+
+
   # default processing:
   set cmd = ();
 
@@ -1790,7 +1790,7 @@ skullstrip:
       set ltaname = ${s}_to_${subjid}.lta
       set ltaXforms = ($ltaXforms ${subjdir}/mri/transforms/${ltaname})
     end
-    
+
     if ($#bmInVols == 1) then
       # only a single time point in base
       set cmd = (mri_convert -at $ltaXforms[1] -rt nearest $bmInVols[1] brainmask_template.mgz )
@@ -1813,7 +1813,7 @@ skullstrip:
         if($status) goto error_exit;
       endif
     endif # more than 1 tp
-    
+
     # create brainmask.auto by applying brainmask_template to T1
     # first apply mask and keep deletion edits (1)
     set cmd = (mri_mask -keep_mask_deletion_edits)
@@ -2856,7 +2856,7 @@ foreach hemi ($hemilist)
       echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
       if($RunIt) $fs_time $cmd |& tee -a $LF
       if($status) goto error_exit;
-      
+
       # also copy pial just in case (needed if $DoPialSurf == 0 below)
       set cmd = (cp -vf $longbasedir/surf/${hemi}.pial \
                         $subjdir/surf/${hemi}.orig_pial)
@@ -3874,13 +3874,13 @@ if($DoGEMS) then
     if($RunIt) $cmd |& tee -a $GEMSF
 
     set kvltmpd = (${subjdir}/tmp/subfieldResults)
-      
+
     # do hippocampal processing
-    set cmd = (kvlSegmentHippocampalSubfields.sh $subjid left $SUBJECTS_DIR ${kvltmpd} ) 
+    set cmd = (kvlSegmentHippocampalSubfields.sh $subjid left $SUBJECTS_DIR ${kvltmpd} )
     echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
     if($RunIt) $fs_time $cmd |& tee -a $GEMSF
     if($status) goto error_exit;
-    set cmd = (kvlSegmentHippocampalSubfields.sh $subjid right $SUBJECTS_DIR ${kvltmpd} ) 
+    set cmd = (kvlSegmentHippocampalSubfields.sh $subjid right $SUBJECTS_DIR ${kvltmpd} )
     echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
     if($RunIt) $fs_time $cmd |& tee -a $GEMSF
     if($status) goto error_exit;
@@ -3903,7 +3903,7 @@ if($DoGEMS) then
     if($RunIt) $fs_time $cmd |& tee -a $GEMSF
     if($status) goto error_exit;
 
-    # delete the tmp directory 
+    # delete the tmp directory
     set cmd = (rm -rf ${kvltmpd} )
     echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
     if($RunIt) $fs_time $cmd |& tee -a $GEMSF
@@ -4198,8 +4198,8 @@ while( $#argv != 0 )
       set DoNuMakeUchar = 0;
       breaksw
 
-    # note: norm3diters and normmaxgrads is applied to both runs of 
-    # mri_normalize.  use -norm1-b, -norm1-n, -norm2-b, -norm2-n to 
+    # note: norm3diters and normmaxgrads is applied to both runs of
+    # mri_normalize.  use -norm1-b, -norm1-n, -norm2-b, -norm2-n to
     # distinguish -b and -n of the two mri_normalize runs
     case "-norm3diters":
       if ( $#argv < 1) goto arg1err;
@@ -5496,7 +5496,7 @@ while( $#argv != 0 )
       # then set LD_LIBRARY_PATH to distributed cuda libs
       source $FREESURFER_HOME/bin/cuda_setup
       breaksw;
-  
+
     case "-openmp":
       if ( $#argv < 1) goto arg1err;
       setenv OMP_NUM_THREADS $argv[1]; shift;
@@ -6334,7 +6334,7 @@ Passes "-g maxgrad" to _both_ runs of mri_normalize. Max grad default is 1.
 
 -norm1-b N
 
-In the _first_ usage of mri_normalize (during creation of T1.mgz), use 
+In the _first_ usage of mri_normalize (during creation of T1.mgz), use
 control point with intensity N below target (default=10.0)
 
 -norm1-n N
@@ -6343,7 +6343,7 @@ In the _first_ usage of mri_normalize, do N number of iterations
 
 -norm2-b N
 
-In the _second_ usage of mri_normalize (during creation of brain.mgz), use 
+In the _second_ usage of mri_normalize (during creation of brain.mgz), use
 control point with intensity N below target (default=10.0)
 
 -norm2-n N
@@ -6886,7 +6886,7 @@ given to the base subject of a collection of timepoints:
 3) longitudinally process tpN subjects:
   recon-all -long tp1 longbase -all
   recon-all -long tp2 longbase -all
- 
+
 4) do comparisons on results from 3), e.g. calculate differences
 between tp2.long.longbase - tp1.long.longbase
 
@@ -6926,7 +6926,7 @@ If a new timepoint needs to be added to a longitudinal run where a base subject
 has already been created (from prior timepoints), then the -addtp command
 can be added to the -long command in order to 'fix-up' the longitudinal
 stream to accept the new timepoint. Note that the base subject is *not*
-recomputed using the new timepoint. This potentially introduces a bias, and it 
+recomputed using the new timepoint. This potentially introduces a bias, and it
 is recommended to NOT add a time point this way! Instead recreate the base
 from all time points and run all longitudinals again.
 See the LongitudinalProcessing wiki page.
