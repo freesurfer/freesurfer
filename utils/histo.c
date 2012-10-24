@@ -8,8 +8,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2012/09/11 16:40:05 $
- *    $Revision: 1.73 $
+ *    $Date: 2012/10/24 13:20:02 $
+ *    $Revision: 1.74 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -1651,7 +1651,7 @@ histoComputeLinearFitCorrelation(HISTOGRAM *h1, HISTOGRAM *h2, double a, double 
 }
 
 
-#define NSTEPS 100
+#define NSTEPS 1000
 double
 HISTOfindLinearFit(HISTOGRAM *h1, HISTOGRAM *h2, double amin, double amax,
                    double bmin, double bmax, float *pa, float *pb)
