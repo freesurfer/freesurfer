@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2012/10/23 17:35:44 $
- *    $Revision: 1.53 $
+ *    $Date: 2012/10/24 15:51:08 $
+ *    $Revision: 1.54 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -142,7 +142,6 @@ void RenderView2D::RefreshAllActors(bool bForScreenShot)
   mainwnd->GetLayerCollection( "ROI" )->Append2DProps( m_renderer, m_nViewPlane );
   mainwnd->GetLayerCollection( "Surface" )->Append2DProps( m_renderer, m_nViewPlane );
   mainwnd->GetLayerCollection( "PointSet" )->Append2DProps( m_renderer, m_nViewPlane );
-
   mainwnd->GetLayerCollection( "Supplement" )->Append2DProps( m_renderer, m_nViewPlane );
 
   mainwnd->GetVolumeCropper()->Append2DProps( m_renderer, m_nViewPlane );
@@ -163,6 +162,7 @@ void RenderView2D::RefreshAllActors(bool bForScreenShot)
   {
     double* orig = lc->GetWorldOrigin();
     double* size = lc->GetWorldSize();
+
     m_renderer->ResetCameraClippingRange(orig[0], orig[0]+size[0],
                                          orig[1], orig[1]+size[1],
                                          orig[2], orig[2]+size[2]);

@@ -93,7 +93,7 @@ protected slots:
 private:
     std::vector < std::vector < double > > Points3DToSpline2D(std::vector<double> pts3d, double distance);
     std::vector < std::vector < double > > Points2DToSpline3D(std::vector < std::vector<double> > pts2d, int nSample);
-    void MakeFlatTube(vtkPoints* points, vtkCellArray* lines, vtkActor* actor_in);
+    void MakeFlatTube(vtkPoints* points, vtkCellArray* lines, vtkActor* actor_in, double radius);
 
     LayerPointSet*  m_spline0;
     LayerPointSet*  m_spline1;

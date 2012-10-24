@@ -109,7 +109,7 @@ void LayerLineProfile::UpdateOpacity()
 {
   m_profileLines->GetProperty()->SetOpacity(GetProperty()->GetOpacity());
   m_endLines->GetProperty()->SetOpacity(GetProperty()->GetOpacity());
-  m_activeLine->GetProperty()->SetOpacity(GetProperty()->GetOpacity());
+ // m_activeLine->GetProperty()->SetOpacity(GetProperty()->GetOpacity());
   emit ActorUpdated();
 }
 
@@ -170,7 +170,7 @@ std::vector< std::vector<double> > LayerLineProfile::Points2DToSpline3D(std::vec
   polydata->SetLines(lines);
   vtkSmartPointer<vtkSplineFilter> spline = vtkSmartPointer<vtkSplineFilter>::New();
   spline->SetInput(polydata);
-  spline->SetNumberOfSubdivisions(nSample);
+  spline->SetNumberOfSubdivisions(nSample-1);
   spline->Update();
   polydata = spline->GetOutput();
   points = polydata->GetPoints();
@@ -266,7 +266,7 @@ bool LayerLineProfile::Solve(double profileSpacing, double referenceSize, double
   return true;
 }
 
-void LayerLineProfile::MakeFlatTube(vtkPoints* points, vtkCellArray* lines, vtkActor* actor_in)
+void LayerLineProfile::MakeFlatTube(vtkPoints* points, vtkCellArray* lines, vtkActor* actor_in, double radius)
 {
   vtkSmartPointer<vtkPolyData> polydata = vtkSmartPointer<vtkPolyData>::New();
   polydata->SetPoints(points);
@@ -275,7 +275,7 @@ void LayerLineProfile::MakeFlatTube(vtkPoints* points, vtkCellArray* lines, vtkA
   vtkSmartPointer<vtkTubeFilter> tube = vtkSmartPointer<vtkTubeFilter>::New();
   tube->SetInput(polydata);
   tube->SetNumberOfSides(6);
-  tube->SetRadius(this->m_dWorldVoxelSize[0]*GetProperty()->GetRadius());
+  tube->SetRadius(radius);
 
   vtkSmartPointer<vtkPlane> plane = vtkSmartPointer<vtkPlane>::New();
   double origin[3] = {0, 0, 0};
@@ -345,7 +345,7 @@ void LayerLineProfile::UpdateActiveLine()
       }
     }
 
-    MakeFlatTube(points, lines, m_activeLine);
+    MakeFlatTube(points, lines, m_activeLine, m_dWorldVoxelSize[0]*GetProperty()->GetRadius()*1.01);
     emit ActorUpdated();
   }
 }
@@ -372,7 +372,7 @@ void LayerLineProfile::UpdateActors()
   lines->InsertNextCell(2);
   lines->InsertCellPoint(2);
   lines->InsertCellPoint(3);
-  MakeFlatTube(points, lines, m_endLines);
+  MakeFlatTube(points, lines, m_endLines, m_dWorldVoxelSize[0]*GetProperty()->GetRadius());
 
   // update profile lines
   points = vtkSmartPointer<vtkPoints>::New();
@@ -405,7 +405,7 @@ void LayerLineProfile::UpdateActors()
     }
   }
 
-  MakeFlatTube(points, lines, m_profileLines);
+  MakeFlatTube(points, lines, m_profileLines, m_dWorldVoxelSize[0]*GetProperty()->GetRadius());
 
   UpdateActiveLine();
   emit this->ActorChanged();
