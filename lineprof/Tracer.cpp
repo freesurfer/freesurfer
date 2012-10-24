@@ -63,10 +63,11 @@ Tracer::SetInputMask(MaskImagePointer inputMask)
   mask->SetImage( inputMask );
 }
 
+/** Creates a vtkPointLocator object from the polydata points */
 void
 Tracer::SetInputContours(vtkPolyData* data)
 {
-  std::cout << " set input contours\n";
+  std::cout << "Set input contours\n";
   pts = data->GetPoints();
   locator = vtkPointLocator::New();
 
@@ -232,14 +233,13 @@ Tracer::StepGradient(const PointType& pt,
   buf[2] = .0;
   double dist2;
 
-  vtkIdType id = locator->FindClosestPointWithinRadius(1.41 *stepSize,
-                   buf, dist2);
-  if ( id>=0 )
-    {
-      for(unsigned int ui=0; ui<Dimension; ++ui)
-  returnedPoint[ui] = pts->GetPoint(id)[ui];
-      return false;
-    }
+  vtkIdType id = locator->FindClosestPointWithinRadius(1.41 *stepSize, buf, dist2);
+  if (id >= 0)
+  {
+    for(unsigned int ui=0; ui<Dimension; ++ui)
+      returnedPoint[ui] = pts->GetPoint(id)[ui];
+    return false;
+  }
 
   FrameType frame = this->GetLocalFrame(pt);
   
@@ -250,8 +250,32 @@ Tracer::StepGradient(const PointType& pt,
   for(unsigned int ui=0; ui<Dimension; ++ui)
     returnedPoint[ui] = pt[ui] + gradient[ui];
 
-  return mask->IsInside( returnedPoint );
+  bool inside = mask->IsInside( returnedPoint );
+  // this will connect all lines to the boundary but
+  // may cause intersection
+  if (! inside)
+  {
+     double buf[3];
+     //buf[0] = pt[0];
+     //buf[1] = pt[1];
+     buf[0] = returnedPoint[0];
+     buf[1] = returnedPoint[1];
+     buf[2] = .0;
+     //double dist2;
+ 
+     vtkIdType id = locator->FindClosestPoint(buf);
+     if (id >= 0)
+     {
+       for(unsigned int ui=0; ui<Dimension; ++ui)
+         returnedPoint[ui] = pts->GetPoint(id)[ui];
+       // return false;
+     }
+  
+  }
+
+  return inside;
 }
+
 
 bool
 Tracer::StepTangent(const PointType& pt,
