@@ -8,8 +8,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2012/10/23 23:19:38 $
- *    $Revision: 1.4 $
+ *    $Date: 2012/10/24 19:19:28 $
+ *    $Revision: 1.5 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -64,13 +64,13 @@ public:
 
   //! Compute Profiles as array of lines (each line an array of 2d coordinates)
   std::vector < std::vector < std::vector < double > > >
-  ComputeProfiles(int offset,	double spacing);  
+  ComputeProfiles(double offset, double spacing);  
 
 private:
 
   //! Samples points along midline
   std::vector < std::vector < double > >
-  samplePointsMidline(int offset,  double spacing);
+  samplePointsMidline(double offset, double spacing);
     
   //! Computes isolines at levels in vec
   std::vector < std::vector < std::vector < double > > >

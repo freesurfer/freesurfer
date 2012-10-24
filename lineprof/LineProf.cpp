@@ -84,7 +84,7 @@ void LineProf::solveLaplace(int paddingL, int paddingR, double dresolution, int 
 }
 
 std::vector < std::vector < std::vector < double > > >
-LineProf::ComputeProfiles(int offset,  double dspacing)
+LineProf::ComputeProfiles(double offset,  double dspacing)
 {
   if (_tracer == NULL)
   {
@@ -129,9 +129,9 @@ LineProf::ComputeProfiles(int offset,  double dspacing)
   return lc;
 }
 
-//* Samples num points along the midline, leaving pctoffset on both sides */
+//* Samples num points along the midline, leaving offset space on both sides */
 std::vector < std::vector < double > >
-LineProf::samplePointsMidline(int offset,  double dspacing)
+LineProf::samplePointsMidline(double offset,  double dspacing)
 {
   //std::cout << "LineProf::samplePointsMidline(offset " << offset << " ,  spacing " << dspacing << " )" <<std::endl;
   std::vector < std::vector < double > > points;
@@ -150,10 +150,22 @@ LineProf::samplePointsMidline(int offset,  double dspacing)
     l += pointDistance(rl[i], rl[i-1]);
     //std::cout << rl[i][0]  << "  " << rl[i][1] << std::endl;
   }
-
   //std::cout << " length : " << l << std::endl;
-  double lnext = offset * dspacing + 0.5 * dspacing;
-  double lstop = l - offset *dspacing;
+
+  // length available after removing offsets (on both sides):
+  double sl = l-2.0 * offset;
+  if (sl <= 0) return points;
+
+  // if sl > 0 we will place at least one point, 
+  // this tells us how many more we will have:
+  int num = (int)(sl/dspacing);
+  
+  // unused space:
+  double remain = sl - num * dspacing;
+  
+  // where to place the first (at offset plus half the unused space)
+  double lnext = offset + 0.5 * remain;
+  double lstop = l - offset;
   double dist  = 0.0;
   double lastl = 0.0;
   std::vector < double > point(2);

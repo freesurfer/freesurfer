@@ -8,8 +8,8 @@
  * Original Author: Martin Reuter, Oct. 17th ,2012
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2012/10/23 23:19:38 $
- *    $Revision: 1.5 $
+ *    $Date: 2012/10/24 19:19:28 $
+ *    $Revision: 1.6 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -68,7 +68,7 @@ void checkProfiles(const std::vector < std::vector < std::vector < double > > >&
   double eps = 0.000001;
   double ystart = 6.0;
   double ydelta = 0.1;
-  double xstart = 11.15;
+  double xstart = 11.1;
   double xdelta = 0.2;
   double xp = 0.0;
   for (unsigned int p=0; p<profiles.size(); p++)
@@ -149,7 +149,7 @@ int main(int argc, char *argv[])
 
   // offsets (necessary as the line profiles are not straight close to the
   // side boundaries)
-  int offset      = 5;
+  int offset      = 10;
   int paddingL    = 10;
   int paddingR    = 10;
   
@@ -158,24 +158,26 @@ int main(int argc, char *argv[])
   
   // compute RAS distances from the above using referenceSize:
   // RAS resolution for laplace solver
-  double resolution        = laplaceResolution * referenceSize; 
+  double ras_resolution     = laplaceResolution * referenceSize; 
   // RAS sampling distance on input lines
-  double distance          = resolution / 3.0;
+  double ras_distance       = ras_resolution / 3.0;
   // RAS spacing between line profiles
-  double spacing           = profileSpacing * referenceSize;
+  double ras_spacing        = profileSpacing * referenceSize;
+  // RAS offset
+  double ras_offset         = offset * referenceSize;
 
 
   // Here we setup the polygon and 4 boundary segments
-  // as a rectangle from 10..20, 6..8
+  // as a rectangle from 10..20, 6..8 (ras coords)
   std::vector < std::vector < double > > points2d;
   std::vector < int > segment0;
   std::vector < int > segment1;
   std::vector < int > segmentL;
   std::vector < int > segmentR;  
-  createTestSegment(10, 6, 20, 6, distance, points2d, segment0);
-  createTestSegment(10, 8, 20, 8, distance, points2d, segment1);
-  createTestSegment(10, 6, 10, 8, distance, points2d, segmentL);
-  createTestSegment(20, 6, 20, 8, distance, points2d, segmentR);
+  createTestSegment(10, 6, 20, 6, ras_distance, points2d, segment0);
+  createTestSegment(10, 8, 20, 8, ras_distance, points2d, segment1);
+  createTestSegment(10, 6, 10, 8, ras_distance, points2d, segmentL);
+  createTestSegment(20, 6, 20, 8, ras_distance, points2d, segmentR);
   
 
   // We initialize LineProf class by passing the polygon
@@ -183,12 +185,12 @@ int main(int argc, char *argv[])
   
   
   // Next we solve the Laplace on the domain
-  LP.solveLaplace(paddingL, paddingR, resolution, convergence);
+  LP.solveLaplace(paddingL, paddingR, ras_resolution, convergence);
 
 
   // And finally compute line profiles
   std::vector < std::vector < std::vector < double > > > profiles;
-  profiles = LP.ComputeProfiles(offset, spacing);
+  profiles = LP.ComputeProfiles(ras_offset, ras_spacing);
 
 
   // We check the profiles (should be vertical lines in this rectangle)
