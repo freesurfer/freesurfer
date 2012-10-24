@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:31 $
- *    $Revision: 1.11 $
+ *    $Author: maritza $
+ *    $Date: 2012/10/24 19:50:06 $
+ *    $Revision: 1.12 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -72,8 +72,9 @@ where N is the division number. N will go from 2 to the number of
 divisions. The first division has the same name as the original label.
 
 
-EXAMPLE:
+EXAMPLES:
 
+Method 1:
 cd $SUBJECTS_DIR/mysubj001/label
 
 Create a split file to divide the superior frontal gyrus into 4
@@ -97,13 +98,20 @@ The SFG divisions will have the following names: superiorfrontal,
 superiorfrontal_div2, superiorfrontal_div3, superiorfrontal_div4. The
 PC divisions will be precentral, precentral_div2, precentral_div3.
 
+Method 2:
+Run program (from the label directory):
 
+mris_divide_parcellation subj001 rh aparc.annot 100 rh.aparc.split.100mmsquared, and
+saves the result to rh.aparc.split.100mmsquared 
+
+This reads in rh.aparac.annot, splits every parcellation until each subdivision is less than 100 mm^2.
+  
 
 ENDHELP ----------------------------------------------------------------
 
 */
 
-// $Id: mris_divide_parcellation.c,v 1.11 2011/03/02 00:04:31 nicks Exp $
+// $Id: mris_divide_parcellation.c,v 1.12 2012/10/24 19:50:06 maritza Exp $
 
 
 
@@ -133,7 +141,7 @@ static void print_help(void) ;
 static void print_version(void) ;
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mris_divide_parcellation.c,v 1.11 2011/03/02 00:04:31 nicks Exp $";
+static char vcid[] = "$Id: mris_divide_parcellation.c,v 1.12 2012/10/24 19:50:06 maritza Exp $";
 char *Progname = NULL;
 
 static char sdir[STRLEN] = "" ;
