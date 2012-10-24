@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2012/10/24 18:01:11 $
-#    $Revision: 1.432 $
+#    $Date: 2012/10/24 19:36:05 $
+#    $Revision: 1.433 $
 #
 # Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -26,7 +26,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.432 2012/10/24 18:01:11 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.433 2012/10/24 19:36:05 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -186,7 +186,8 @@ set BaseSubjsListFname = (base-tps); # file containing BaseSubjsList
 set robust_template_avg_arg = 1; # construct template from: 0 Mean, 1 Median
 set DoNuIntensityCor3T = 0; # if 1, use Zheng, Chee, Zagorodnov params for 3T
 set DoAddTp = 0; # if 1, then 'fake'-add this timepoint to long subj set
-set DoAffineBase = 0; # if 1, allow affine when creating the base (fix callibration)
+set DoAffineBase = 0; # if 1, allow affine when creating base (fix calibration)
+set UseCubic = 1; # if 1, use cubic spline when mri_convert does conform step
 
 # Hippocampal subfields:
 set DoGEMS = 0;      # if 1, will run the hippocampal subfields processing
@@ -1370,7 +1371,7 @@ if($DoMotionCor) then
   # At this point, rawavg.mgz exists. Use it to create orig.mgz,
   # conform to COR FOV but keep mgz format.
   set cmd = (mri_convert $rawavg $origvol)
-  set cmd = ($cmd -rt cubic)
+  if($UseCubic) set cmd = ($cmd -rt cubic)
   if($ConformMin) then
     set cmd = ($cmd --conform_min)
   else
@@ -5505,6 +5506,15 @@ while( $#argv != 0 )
     case "-hippo-subfields":
       set DoGEMS = 1;
       breaksw;
+
+    case "-cubic":
+      set UseCubic = 1;
+      breaksw
+    case "-nocubic":
+    case "-no-cubic":
+    case "-no_cubic":
+      set UseCubic = 0;
+      breaksw
 
     default:
       echo ERROR: Flag $flag unrecognized.
