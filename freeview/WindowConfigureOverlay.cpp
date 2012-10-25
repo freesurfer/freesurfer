@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2011/05/02 20:38:16 $
- *    $Revision: 1.6 $
+ *    $Date: 2012/10/25 00:36:17 $
+ *    $Revision: 1.7 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -44,6 +44,7 @@ WindowConfigureOverlay::WindowConfigureOverlay(QWidget *parent) :
   ui->checkBoxClearHigher->hide();
   ui->pushButtonFlip->hide();
   ui->widgetColorPicker->setCurrentColor(Qt::green);
+  ui->buttonBox->button(QDialogButtonBox::Apply)->setAutoDefault(true);
   connect(ui->widgetHistogram, SIGNAL(MarkerChanged()), this, SLOT(OnHistogramMarkerChanged()));
   m_layerSurface = NULL;
   QSettings settings;

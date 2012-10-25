@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2012/10/23 17:35:44 $
- *    $Revision: 1.46 $
+ *    $Date: 2012/10/25 00:36:17 $
+ *    $Revision: 1.47 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -322,7 +322,7 @@ void RenderView::MoveLeft()
   double focal_pt[3], cam_pos[3];
   cam->GetFocalPoint( focal_pt );
   cam->GetPosition( cam_pos );
-  double scale = qMin( qMin( m_dWorldSize[0], m_dWorldSize[1] ), m_dWorldSize[2] ) / SCALE_FACTOR;
+  double scale = qMax( qMax( m_dWorldSize[0], m_dWorldSize[1] ), m_dWorldSize[2] ) / SCALE_FACTOR;
   for ( int i = 0; i < 3; i++ )
   {
     focal_pt[i] -= v[i] * scale;
@@ -345,7 +345,7 @@ void RenderView::MoveRight()
   double focal_pt[3], cam_pos[3];
   cam->GetFocalPoint( focal_pt );
   cam->GetPosition( cam_pos );
-  double scale = qMin( qMin( m_dWorldSize[0], m_dWorldSize[1] ), m_dWorldSize[2] ) / SCALE_FACTOR;
+  double scale = qMax( qMax( m_dWorldSize[0], m_dWorldSize[1] ), m_dWorldSize[2] ) / SCALE_FACTOR;
   for ( int i = 0; i < 3; i++ )
   {
     focal_pt[i] += v[i] * scale;
@@ -366,7 +366,7 @@ void RenderView::MoveUp()
   double focal_pt[3], cam_pos[3];
   cam->GetFocalPoint( focal_pt );
   cam->GetPosition( cam_pos );
-  double scale = qMin( qMin( m_dWorldSize[0], m_dWorldSize[1] ), m_dWorldSize[2] ) / SCALE_FACTOR;
+  double scale = qMax( qMax( m_dWorldSize[0], m_dWorldSize[1] ), m_dWorldSize[2] ) / SCALE_FACTOR;
   for ( int i = 0; i < 3; i++ )
   {
     focal_pt[i] -= v[i] * scale;
@@ -387,7 +387,7 @@ void RenderView::MoveDown()
   double focal_pt[3], cam_pos[3];
   cam->GetFocalPoint( focal_pt );
   cam->GetPosition( cam_pos );
-  double scale = qMin( qMin( m_dWorldSize[0], m_dWorldSize[1] ), m_dWorldSize[2] ) / SCALE_FACTOR;
+  double scale = qMax( qMax( m_dWorldSize[0], m_dWorldSize[1] ), m_dWorldSize[2] ) / SCALE_FACTOR;
   for ( int i = 0; i < 3; i++ )
   {
     focal_pt[i] += v[i] * scale;
