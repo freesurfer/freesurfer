@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2012/10/24 15:51:08 $
- *    $Revision: 1.54 $
+ *    $Date: 2012/10/25 00:45:49 $
+ *    $Revision: 1.55 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -182,15 +182,15 @@ void RenderView2D::UpdateViewByWorldCoordinate()
   switch ( m_nViewPlane )
   {
   case 0:
-    cam->SetPosition( wcenter[0] + m_dWorldSize[0], wcenter[1], wcenter[2] );
+    cam->SetPosition( wcenter[0] + m_dWorldSize[0]*4, wcenter[1], wcenter[2] );
     cam->SetViewUp( 0, 0, 1 );
     break;
   case 1:
-    cam->SetPosition( wcenter[0], wcenter[1] + m_dWorldSize[1], wcenter[2] );
+    cam->SetPosition( wcenter[0], wcenter[1] + m_dWorldSize[1]*4, wcenter[2] );
     cam->SetViewUp( 0, 0, 1 );
     break;
   case 2:
-    cam->SetPosition( wcenter[0], wcenter[1], wcenter[2] - m_dWorldSize[2] );
+    cam->SetPosition( wcenter[0], wcenter[1], wcenter[2] - m_dWorldSize[2]*4 );
     break;
   }
 //  m_renderer->ResetCameraClippingRange();
