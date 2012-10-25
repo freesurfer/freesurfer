@@ -171,7 +171,7 @@ std::vector< std::vector<double> > LayerLineProfile::Points2DToSpline3D(std::vec
   polydata->SetLines(lines);
   vtkSmartPointer<vtkSplineFilter> spline = vtkSmartPointer<vtkSplineFilter>::New();
   spline->SetInput(polydata);
-  spline->SetNumberOfSubdivisions(nSample-1);
+  spline->SetNumberOfSubdivisions(nSample);
   spline->Update();
   polydata = spline->GetOutput();
   points = polydata->GetPoints();

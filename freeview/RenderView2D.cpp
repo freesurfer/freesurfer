@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2012/10/25 00:45:49 $
- *    $Revision: 1.55 $
+ *    $Date: 2012/10/25 16:08:51 $
+ *    $Revision: 1.56 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -167,6 +167,7 @@ void RenderView2D::RefreshAllActors(bool bForScreenShot)
                                          orig[1], orig[1]+size[1],
                                          orig[2], orig[2]+size[2]);
   }
+  m_renderer->ResetCameraClippingRange();
   RenderView::RefreshAllActors(bForScreenShot);
 }
 
@@ -179,18 +180,19 @@ void RenderView2D::UpdateViewByWorldCoordinate()
     wcenter[i] = m_dWorldOrigin[i] + m_dWorldSize[i] / 2;
   }
   cam->SetFocalPoint( wcenter );
+  double len = qMax(m_dWorldSize[0], qMax(m_dWorldSize[1], m_dWorldSize[2]));
   switch ( m_nViewPlane )
   {
   case 0:
-    cam->SetPosition( wcenter[0] + m_dWorldSize[0]*4, wcenter[1], wcenter[2] );
+    cam->SetPosition( wcenter[0] + len, wcenter[1], wcenter[2] );
     cam->SetViewUp( 0, 0, 1 );
     break;
   case 1:
-    cam->SetPosition( wcenter[0], wcenter[1] + m_dWorldSize[1]*4, wcenter[2] );
+    cam->SetPosition( wcenter[0], wcenter[1] + len, wcenter[2] );
     cam->SetViewUp( 0, 0, 1 );
     break;
   case 2:
-    cam->SetPosition( wcenter[0], wcenter[1], wcenter[2] - m_dWorldSize[2]*4 );
+    cam->SetPosition( wcenter[0], wcenter[1], wcenter[2] - len );
     break;
   }
 //  m_renderer->ResetCameraClippingRange();
