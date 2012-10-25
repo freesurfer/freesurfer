@@ -21,6 +21,7 @@
 #include "FSPointSet.h"
 #include "LayerPropertyPointSet.h"
 #include <vtkLookupTable.h>
+#include <vtkMath.h>
 
 LayerLineProfile::LayerLineProfile(int nPlane, QObject *parent, LayerPointSet *line1, LayerPointSet *line2) :
     Layer(parent),
@@ -434,7 +435,14 @@ bool LayerLineProfile::Export(const QString &filename, LayerMRI *mri, int nSampl
   {
     std::vector < std::vector <double> > line3d = Points2DToSpline3D(m_ptsProfile[i], nSamples);
     std::vector<double> vals = mri->GetMeanSegmentValues(line3d);
-    out << i << "," << nSamples;
+    double len = 0;
+    for (size_t j = 0; j < line3d.size()-1; j++)
+    {
+      double pt0[3] = { line3d[j][0], line3d[j][1], line3d[j][2] };
+      double pt1[3] = { line3d[j+1][0], line3d[j+1][1], line3d[j+1][2] };
+      len += sqrt(vtkMath::Distance2BetweenPoints(pt0, pt1));
+    }
+    out << i << "," << len <<  "," << nSamples;
     for (size_t j = 0; j < vals.size(); j++)
     {
       out << "," << vals[j];
