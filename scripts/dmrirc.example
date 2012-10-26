@@ -13,8 +13,8 @@
 # Original Author: Anastasia Yendiki
 # CVS Revision Info:
 #    $Author: ayendiki $
-#    $Date: 2012/10/26 20:37:59 $
-#    $Revision: 1.7 $
+#    $Date: 2012/10/26 21:00:14 $
+#    $Revision: 1.8 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -210,4 +210,16 @@ set nsample = 5000
 # Default: 5 (keep every 5th sample)
 #
 set nkeep = 5
+
+# Reinitialize path reconstruction?
+# This is an option of last resort, to be used only if one of the reconstructed
+# pathway distributions looks like a single curve. This is a sign that the
+# initial guess for the pathway was problematic, perhaps due to poor alignment
+# between the individual and the atlas. Setting the reinit parameter to 1 and
+# rerunning "trac-all -prior" and "trac-all -path", only for the specific
+# subjects and pathways that had this problem, will attempt to reconstruct them
+# with a different initial guess.
+# Default: 0 (do not reinitialize)
+#
+set reinit = 0
 
