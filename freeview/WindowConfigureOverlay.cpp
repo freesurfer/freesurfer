@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2012/10/25 00:36:17 $
- *    $Revision: 1.7 $
+ *    $Date: 2012/10/26 19:43:34 $
+ *    $Revision: 1.8 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -163,7 +163,12 @@ void WindowConfigureOverlay::OnClicked( QAbstractButton* btn )
       delete[] m_fDataCache;
     m_fDataCache = 0;
     */
+    OnApply();
+  }
+}
 
+void WindowConfigureOverlay::OnApply()
+{
     if ( !m_layerSurface || !m_layerSurface->GetActiveOverlay() )
     {
       return;
@@ -179,7 +184,6 @@ void WindowConfigureOverlay::OnClicked( QAbstractButton* btn )
       else
         p->EmitColorMapChanged();
     }
-  }
 }
 
 bool WindowConfigureOverlay::UpdateOverlayProperty( SurfaceOverlayProperty* p )
@@ -337,6 +341,8 @@ void WindowConfigureOverlay::UpdateGraph()
       ui->widgetHistogram->SetMarkers( markers );
       delete p;
     }
+    if (ui->checkBoxAutoApply->isChecked())
+      OnApply();
   }
 }
 
