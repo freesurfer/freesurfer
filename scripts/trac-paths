@@ -8,8 +8,8 @@
 # Original Author: Anastasia Yendiki
 # CVS Revision Info:
 #    $Author: ayendiki $
-#    $Date: 2012/02/22 19:13:18 $
-#    $Revision: 1.28 $
+#    $Date: 2012/10/26 20:37:59 $
+#    $Revision: 1.29 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -25,7 +25,7 @@
 
 umask 002
 
-set VERSION = '$Id: trac-paths,v 1.28 2012/02/22 19:13:18 ayendiki Exp $'
+set VERSION = '$Id: trac-paths,v 1.29 2012/10/26 20:37:59 ayendiki Exp $'
 set ProgName = `basename $0`
 set inputargs = ($argv)
 
@@ -278,7 +278,7 @@ foreach ntrain ($ntrainlist)
         set cmd = ($cmd --bval $dwidir/bvals)
         set cmd = ($cmd --mask $brainmask)
         set cmd = ($cmd --bpdir $dtdir/dmri.bedpostX)
-        set cmd = ($cmd --ntr 2)
+        set cmd = ($cmd --ntr  $nstick)
         set cmd = ($cmd --fmin $fmin)
         set cmd = ($cmd --roi1 $roi1list)
         set cmd = ($cmd --roi2 $roi2list)

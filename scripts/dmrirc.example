@@ -13,8 +13,8 @@
 # Original Author: Anastasia Yendiki
 # CVS Revision Info:
 #    $Author: ayendiki $
-#    $Date: 2011/05/24 06:47:26 $
-#    $Revision: 1.6 $
+#    $Date: 2012/10/26 20:37:59 $
+#    $Revision: 1.7 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -187,6 +187,12 @@ set trainfile = $FREESURFER_HOME/trctrain/trainlist.txt
 # Default: 0 (no)
 #
 set dopathsubdirs = 0
+
+# Number of "sticks" (anisotropic diffusion compartments) in the bedpostx
+# ball-and-stick model
+# Default: 2
+#
+set nstick = 2
 
 # Number of MCMC burn-in iterations
 # (Path samples drawn initially by MCMC algorithm and discarded)

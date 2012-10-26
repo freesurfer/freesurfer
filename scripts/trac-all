@@ -8,8 +8,8 @@
 # Original Author: Anastasia Yendiki
 # CVS Revision Info:
 #    $Author: ayendiki $
-#    $Date: 2012/10/26 19:30:58 $
-#    $Revision: 1.42 $
+#    $Date: 2012/10/26 20:37:59 $
+#    $Revision: 1.43 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -25,7 +25,7 @@
 
 umask 002
 
-set VERSION = '$Id: trac-all,v 1.42 2012/10/26 19:30:58 ayendiki Exp $'
+set VERSION = '$Id: trac-all,v 1.43 2012/10/26 20:37:59 ayendiki Exp $'
 set ProgName = `basename $0`
 set inputargs = ($argv)
 
@@ -148,6 +148,7 @@ set do1out = 0
 set doprior = 0
 set dosegprior = 1
 set dopathsubdirs = 0
+set nstick = 2
 set fmin = 0.05
 set nburnin = 200
 set nsample = 5000
@@ -422,11 +423,12 @@ foreach isubj ($runlist)
   echo "set trainsubjlist = ($trainsubjlist)"				>> $RCF
   echo "set ntrainlist = ($ntrainlist)"					>> $RCF
   echo "set avgname = ($avgname)"					>> $RCF
-  echo "set reinit = ($reinit)"					>> $RCF
+  echo "set reinit = ($reinit)"						>> $RCF
   echo "set usetrunc = ($usetrunc)"					>> $RCF
   echo "set doprior = ($doprior)"					>> $RCF
   echo "set dosegprior = ($dosegprior)"					>> $RCF
   echo "set dopathsubdirs = ($dopathsubdirs)"				>> $RCF
+  echo "set nstick = ($nstick)"						>> $RCF
   echo "set fmin = ($fmin)"						>> $RCF
   echo "set nburnin = ($nburnin)"					>> $RCF
   echo "set nsample = ($nsample)"					>> $RCF
@@ -457,7 +459,7 @@ foreach isubj ($runlist)
         |& tee -a $LF
       echo "WARN: It is recommended to run this step on a cluster" \
         |& tee -a $LF
-      set cmd = (bedpostx_mgh $dtdir/dmri)
+      set cmd = (bedpostx_mgh -n $nstick $dtdir/dmri)
       echo $cmd |& tee -a $LF |& tee -a $CF
       if ($RunIt) then
         $cmd |& tee -a $LF
