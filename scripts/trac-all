@@ -8,8 +8,8 @@
 # Original Author: Anastasia Yendiki
 # CVS Revision Info:
 #    $Author: ayendiki $
-#    $Date: 2012/10/26 18:29:49 $
-#    $Revision: 1.41 $
+#    $Date: 2012/10/26 19:30:58 $
+#    $Revision: 1.42 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -25,7 +25,7 @@
 
 umask 002
 
-set VERSION = '$Id: trac-all,v 1.41 2012/10/26 18:29:49 ayendiki Exp $'
+set VERSION = '$Id: trac-all,v 1.42 2012/10/26 19:30:58 ayendiki Exp $'
 set ProgName = `basename $0`
 set inputargs = ($argv)
 
@@ -42,6 +42,8 @@ set hname = `hostname -s`
 if ($hname == seychelles || $hname == launchpad) then
   set onpbs = 1
 endif
+
+setenv FSLOUTPUTTYPE NIFTI_GZ
 
 #------------ Set default options -----------------------------------------#
 
