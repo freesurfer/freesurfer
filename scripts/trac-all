@@ -8,8 +8,8 @@
 # Original Author: Anastasia Yendiki
 # CVS Revision Info:
 #    $Author: ayendiki $
-#    $Date: 2012/10/05 17:20:21 $
-#    $Revision: 1.40 $
+#    $Date: 2012/10/26 18:29:49 $
+#    $Revision: 1.41 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -25,7 +25,7 @@
 
 umask 002
 
-set VERSION = '$Id: trac-all,v 1.40 2012/10/05 17:20:21 ayendiki Exp $'
+set VERSION = '$Id: trac-all,v 1.41 2012/10/26 18:29:49 ayendiki Exp $'
 set ProgName = `basename $0`
 set inputargs = ($argv)
 
@@ -450,31 +450,6 @@ foreach isubj ($runlist)
       if ($status) exit 1
     endif
   else if ($dobedpost) then		# Bedpost ####################
-    # Create links named as expected by bedpostx
-    set bedmask = $dtdir/dlabel/diff/lowb_brain_mask.nii.gz
-
-    if ($usemaskanat) then
-      if ($doregbbr && -e $dtdir/dlabel/diff/aparc+aseg_mask.bbr.nii.gz) then
-        set bedmask = $dtdir/dlabel/diff/aparc+aseg_mask.bbr.nii.gz
-      else if (-e $dtdir/dlabel/diff/aparc+aseg_mask.flt.nii.gz) then
-        set bedmask = $dtdir/dlabel/diff/aparc+aseg_mask.flt.nii.gz
-      endif
-    endif
-
-    set cmd = (ln -sf $bedmask $dtdir/dmri/nodif_brain_mask.nii.gz)
-    echo $cmd |& tee -a $LF |& tee -a $CF 
-    if ($RunIt) then
-      $cmd |& tee -a $LF 
-      if ($status) goto error_exit
-    endif
-  
-    set cmd = (ln -sf $dtdir/dmri/dwi.nii.gz $dtdir/dmri/data.nii.gz)
-    echo $cmd |& tee -a $LF |& tee -a $CF
-    if ($RunIt) then
-      $cmd |& tee -a $LF
-      if ($status) goto error_exit
-    endif
-
     if (! $onpbs) then
       echo "WARN: Running FSL's bedbost locally - this might take a while" \
         |& tee -a $LF

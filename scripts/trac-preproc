@@ -8,8 +8,8 @@
 # Original Author: Anastasia Yendiki
 # CVS Revision Info:
 #    $Author: ayendiki $
-#    $Date: 2012/07/27 05:08:43 $
-#    $Revision: 1.36 $
+#    $Date: 2012/10/26 18:29:49 $
+#    $Revision: 1.37 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -25,7 +25,7 @@
 
 umask 002
 
-set VERSION = '$Id: trac-preproc,v 1.36 2012/07/27 05:08:43 ayendiki Exp $'
+set VERSION = '$Id: trac-preproc,v 1.37 2012/10/26 18:29:49 ayendiki Exp $'
 set ProgName = `basename $0`
 set inputargs = ($argv)
 
@@ -341,6 +341,14 @@ if ($docorr) then
       $cmd |& tee -a $LF
       if ($status) goto error_exit
     endif
+  endif
+
+  # Create symbolic link to DWIs with the name that bedpostx expects
+  set cmd = (ln -sf $dwidir/dwi.nii.gz $dwidir/data.nii.gz)
+  echo $cmd |& tee -a $LF |& tee -a $CF
+  if ($RunIt) then
+    $cmd |& tee -a $LF
+    if ($status) goto error_exit
   endif
 
   # Make diffusion brain mask
@@ -1033,6 +1041,24 @@ if ($domasks) then
       endif
     endif
   end
+
+  # Create symbolic link to brain mask with the name that bedpostx expects
+  set bedmask = $labdir/diff/lowb_brain_mask.nii.gz
+
+  if ($usemaskanat) then
+    if ($doregbbr && -e $labdir/diff/aparc+aseg_mask.bbr.nii.gz) then
+      set bedmask = $labdir/diff/aparc+aseg_mask.bbr.nii.gz
+    else if (-e $labdir/diff/aparc+aseg_mask.flt.nii.gz) then
+      set bedmask = $labdir/diff/aparc+aseg_mask.flt.nii.gz
+    endif
+  endif
+
+  set cmd = (ln -sf $bedmask $dwidir/nodif_brain_mask.nii.gz)
+  echo $cmd |& tee -a $LF |& tee -a $CF
+  if ($RunIt) then
+    $cmd |& tee -a $LF
+    if ($status) goto error_exit
+  endif
 endif
 
 #------------ Tensor fit --------------------------------------------------#
