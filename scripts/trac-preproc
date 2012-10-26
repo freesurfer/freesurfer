@@ -8,8 +8,8 @@
 # Original Author: Anastasia Yendiki
 # CVS Revision Info:
 #    $Author: ayendiki $
-#    $Date: 2012/10/26 18:29:49 $
-#    $Revision: 1.37 $
+#    $Date: 2012/10/26 19:50:03 $
+#    $Revision: 1.38 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -25,7 +25,7 @@
 
 umask 002
 
-set VERSION = '$Id: trac-preproc,v 1.37 2012/10/26 18:29:49 ayendiki Exp $'
+set VERSION = '$Id: trac-preproc,v 1.38 2012/10/26 19:50:03 ayendiki Exp $'
 set ProgName = `basename $0`
 set inputargs = ($argv)
 
@@ -231,7 +231,60 @@ if ($docorr) then
     if ($status) goto error_exit
   endif
 
-  if ($dob0) then		# B0-inhomogeneity "correction"
+  if (! $doeddy && ! $dob0) then	# No corrections to be done
+    set cmd = (mv -f $dwidir/dwi_orig_flip.nii.gz $dwidir/dwi.nii.gz)
+    echo $cmd |& tee -a $LF |& tee -a $CF
+    if ($RunIt) then
+      $cmd |& tee -a $LF
+      if ($status) goto error_exit
+    endif
+  endif
+
+  if ($doeddy) then			# Eddy-current "correction"
+    rm -f $dwidir/dwi.ecclog
+    set cmd = eddy_correct
+    set cmd = ($cmd $dwidir/dwi_orig_flip.nii.gz $dwidir/dwi.nii.gz 0)
+    echo $cmd |& tee -a $LF |& tee -a $CF
+    if ($RunIt) then
+      $fs_time $cmd |& tee -a $LF
+      if ($status) goto error_exit
+    endif
+
+    # Apply rotation from correction to bvecs
+    if ($dorotbvecs) then
+      set cmd = (mv -f $dwidir/bvecs $dwidir/bvecs.norot)
+      echo $cmd |& tee -a $LF |& tee -a $CF
+      if ($RunIt) then
+        $cmd |& tee -a $LF
+        if ($status) goto error_exit
+      endif
+
+      set cmd = xfmrot
+      set cmd = ($cmd $dwidir/dwi.ecclog)
+      set cmd = ($cmd $dwidir/bvecs.norot)
+      set cmd = ($cmd $dwidir/bvecs)
+      echo $cmd |& tee -a $LF |& tee -a $CF
+      if ($RunIt) then
+        $cmd |& tee -a $LF
+        if ($status) goto error_exit
+      endif
+    endif
+  endif
+
+  if ($dob0) then			# B0-inhomogeneity "correction"
+    if ($doeddy) then
+      set cmd = (mv -f $dwidir/dwi.nii.gz $dwidir/dwi_eddy.nii.gz)
+      echo $cmd |& tee -a $LF |& tee -a $CF
+      if ($RunIt) then
+        $cmd |& tee -a $LF
+        if ($status) goto error_exit
+      endif
+
+      set dwi_eddy = $dwidir/dwi_eddy.nii.gz
+    else
+      set dwi_eddy = $dwidir/dwi_orig_flip.nii.gz
+    endif
+
     set dcmfile = $dcmroot/$b0mfile
     set cmd = (mri_convert $dcmfile $dwidir/b0mag.nii.gz)
     echo $cmd |& tee -a $LF |& tee -a $CF
@@ -272,7 +325,7 @@ if ($docorr) then
     set TE = `grep alTE $dwidir/b0info.dat | awk '{print $3}'`
     set dTE = `echo "($TE[2] - $TE[1])/1000" | bc -l`
 
-    set cmd = (fslroi $dwidir/dwi_orig_flip.nii.gz $dwidir/lowb.nii.gz 0 1)
+    set cmd = (fslroi $dwi_eddy $dwidir/lowb.nii.gz 0 1)
     echo $cmd |& tee -a $LF |& tee -a $CF
     if ($RunIt) then
       $cmd |& tee -a $LF
@@ -290,55 +343,13 @@ if ($docorr) then
       goto error_exit
     endif
     set cmd = ($cmd --exf $dwidir/lowb.nii.gz)
-    set cmd = ($cmd --epi $dwidir/dwi_orig_flip.nii.gz)
+    set cmd = ($cmd --epi $dwi_eddy)
     set cmd = ($cmd --tediff $dTE --esp $echospacing)
     set cmd = ($cmd --vsm $dwidir/vsm.nii.gz)
-    set cmd = ($cmd --epidw $dwidir/dwi_b0.nii.gz)
+    set cmd = ($cmd --epidw $dwidir/dwi.nii.gz)
     echo $cmd |& tee -a $LF |& tee -a $CF
     if ($RunIt) then
       $fs_time $cmd |& tee -a $LF
-      if ($status) goto error_exit
-    endif
-
-    set dwi_b0 = $dwidir/dwi_b0.nii.gz
-  else
-    set dwi_b0 = $dwidir/dwi_orig_flip.nii.gz
-  endif
-
-  if ($doeddy) then		# Eddy-current "correction"
-    rm -f $dwidir/dwi.ecclog
-    set cmd = eddy_correct
-    set cmd = ($cmd $dwi_b0 $dwidir/dwi.nii.gz 0)
-    echo $cmd |& tee -a $LF |& tee -a $CF
-    if ($RunIt) then
-      $fs_time $cmd |& tee -a $LF
-      if ($status) goto error_exit
-    endif
-
-    # Apply rotation from correction to bvecs
-    if ($dorotbvecs) then
-      set cmd = (mv -f $dwidir/bvecs $dwidir/bvecs.norot)
-      echo $cmd |& tee -a $LF |& tee -a $CF
-      if ($RunIt) then
-        $cmd |& tee -a $LF
-        if ($status) goto error_exit
-      endif
-
-      set cmd = xfmrot
-      set cmd = ($cmd $dwidir/dwi.ecclog)
-      set cmd = ($cmd $dwidir/bvecs.norot)
-      set cmd = ($cmd $dwidir/bvecs)
-      echo $cmd |& tee -a $LF |& tee -a $CF
-      if ($RunIt) then
-        $cmd |& tee -a $LF
-        if ($status) goto error_exit
-      endif
-    endif
-  else
-    set cmd = (cp $dwi_b0 $dwidir/dwi.nii.gz)
-    echo $cmd |& tee -a $LF |& tee -a $CF
-    if ($RunIt) then
-      $cmd |& tee -a $LF
       if ($status) goto error_exit
     endif
   endif
