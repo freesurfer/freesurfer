@@ -8,8 +8,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2012/09/21 23:05:16 $
- *    $Revision: 1.82 $
+ *    $Date: 2012/10/30 18:26:34 $
+ *    $Revision: 1.83 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -3828,6 +3828,11 @@ void Registration::setSource(MRI * s, bool conform, bool keeptype)
   if (gpS.size() > 0)
     freeGaussianPyramid(gpS);
   centroidS.clear();
+
+  // initialize the correct registration type:
+  bool is2d = (s->depth == 1);
+  setTransformation(is2d);
+  
   //cout << "mri_source" << mri_source << endl;
 }
 
@@ -3856,6 +3861,10 @@ void Registration::setTarget(MRI * t, bool conform, bool keeptype)
     freeGaussianPyramid(gpT);
   centroidT.clear();
   //cout << "mri_target" << mri_target << endl;
+
+  // initialize the correct registration type:
+  bool is2d = (t->depth == 1);
+  setTransformation(is2d);
 }
 
 /** To set name and nbase (base name without path)

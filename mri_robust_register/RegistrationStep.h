@@ -8,8 +8,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2012/09/21 23:05:16 $
- *    $Revision: 1.22 $
+ *    $Date: 2012/10/30 18:26:34 $
+ *    $Revision: 1.23 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -170,6 +170,12 @@ template<class T>
 std::pair<vnl_matrix_fixed<double, 4, 4>, double> RegistrationStep<T>::computeRegistrationStep(
     MRI * mriS, MRI* mriT)
 {
+
+  if (trans == NULL)
+  {
+    cerr<< "ERROR in RegistrationStep: no transform specified ..." << endl;
+    exit(1);
+  }
 
   vnl_matrix<T> A;
   vnl_vector<T> b;
