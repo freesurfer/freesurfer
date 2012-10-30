@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2012/05/04 19:52:54 $
-#    $Revision: 1.41 $
+#    $Date: 2012/10/30 20:02:38 $
+#    $Revision: 1.42 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -22,7 +22,7 @@
 #
 
 #
-set VERSION = '$Id: spmregister,v 1.41 2012/05/04 19:52:54 greve Exp $';
+set VERSION = '$Id: spmregister,v 1.42 2012/10/30 20:02:38 greve Exp $';
 set inputargs = ($argv);
 
 set subjid = ();
@@ -46,7 +46,7 @@ set DoSegReg = 0;
 set segregfile = ();
 set OutVol = ();
 set BBRMask = 1;
-set fmt = img # Format for temporary volumes
+set fmt = nii # Format for temporary volumes
 set UseSPMGetSpace = 1;
 set DNG = (); # For testing
 set DOF = 6;
@@ -200,6 +200,7 @@ monly   = $monly;
 targvol = '$refvolimg';
 srcvol  = '$movvolimg';
 errfile  = '$errfile';
+fmt = '$fmt';
 
 if(exist('spm_coreg') ~= 2)
   fprintf('ERROR: cannot find spm_coreg.m. Make sure that the SPM\n');
@@ -211,7 +212,23 @@ if(exist('spm_coreg') ~= 2)
   return; quit;
 end
 
+fprintf('fmt %s\n',fmt);
 which spm_coreg
+
+% This is a hack to try to determine which version of spm is being run. If
+% spm8 is being run with analyze as input, a left-right reveral will occur.
+% This searches for "spm8" in the spm path, not perfect, but hopefully good 
+% enough. It does not appear that spm offers a "version" command.
+IsSPM8 = length(findstr(dirname(which('spm_coreg')),'spm8'));
+if(IsSPM8 & strcmp(fmt,'img'))
+  fprintf('\n\n');
+  fprintf('ERROR: you appear to be using spm8. If so, re-run this with --nii\n');
+  fprintf('\n\n');
+  fp = fopen(errfile,'a');
+  fprintf(fp,'ERROR: you appear to be using spm8. If so, re-run this with --nii\n');
+  fclose(fp);
+  return; quit; exit; % These do nothing when run from a csh script
+end
 
 global defaults
 spm_defaults			% load spm2's default fields
