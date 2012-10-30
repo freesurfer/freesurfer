@@ -10,8 +10,8 @@
  * Original Authors: Kevin Teich and Nick Schmansky
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2012/10/30 16:23:35 $
- *    $Revision: 1.28.2.1 $
+ *    $Date: 2012/10/30 20:23:09 $
+ *    $Revision: 1.28.2.2 $
  *
  * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -1818,6 +1818,9 @@ int MRISwriteGIFTI(MRIS* mris,
       // the key could be the freesurfer 'annotation' value, which is
       // supposed to be unique to the FreeSurferColorLUT, but for gifti
       // purposes, it is more intutive and obvious to use the index.
+      // also, a display application might choose to interpret the
+      // label data at each vertex as indicies rather than keys (which
+      // i think ignores the gifti spec, but is reasonable to do so).
       labeltable.key[idx] = idx;
       //labeltable.key[idx] = CTABrgb2Annotation(mris->ct->entries[idx]->ri,
       //                                       mris->ct->entries[idx]->gi,
@@ -1903,16 +1906,24 @@ int MRISwriteGIFTI(MRIS* mris,
       return ERROR_NOMEMORY;
     }
 
-    /* Copy our 'annotation' data for each vertex */
+    /* Copy our 'annotation' data for each vertex (actually an index) */
     unsigned int* label_data = labels->data;
-    int label_index;
+    int label_index, theIdx, result;
     for (label_index = 0; label_index < mris->nvertices; label_index++)
     {
       if (mris->vertices[label_index].ripflag)
       {
         continue;
       }
-      *(label_data + label_index) = mris->vertices[label_index].annotation;
+      result = CTABfindAnnotation(mris->ct,
+                                  mris->vertices[label_index].annotation,
+                                  &theIdx);
+      if (result)
+      {
+        return ERROR_BADFILE;
+      }
+
+      *(label_data + label_index) = theIdx;
       //printf("%8.8X ", *(label_data + label_index));
     }
   } // end of if NIFTI_INTENT_LABEL
