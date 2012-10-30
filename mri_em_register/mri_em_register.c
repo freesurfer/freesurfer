@@ -9,11 +9,11 @@
  * Original Author: Bruce Fischl
  * CUDA version : Richard Edgar
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2012/05/21 15:15:04 $
- *    $Revision: 1.95 $
+ *    $Author: nicks $
+ *    $Date: 2012/10/30 19:15:36 $
+ *    $Revision: 1.96 $
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -29,7 +29,9 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-
+#ifdef HAVE_OPENMP
+#include <omp.h>
+#endif
 #include "mri.h"
 #include "matrix.h"
 #include "proto.h"
@@ -203,6 +205,9 @@ main(int argc, char *argv[])
   int          msec, minutes, seconds, min_left_cbm, min_right_cbm ;
   struct timeb start ;
   float        old_log_p, log_p ;
+#ifdef HAVE_OPENMP
+  int          n_omp_threads;
+#endif
 
   FSinit() ;
 #ifdef FS_CUDA
@@ -210,11 +215,20 @@ main(int argc, char *argv[])
   AcquireCUDADevice();
 #endif // FS_CUDA
 
+#ifdef HAVE_OPENMP
+#pragma omp parallel
+  { 
+    n_omp_threads = omp_get_num_threads(); 
+  }
+  printf("\n\n ======= NUMBER OF OPENMP THREADS = %d ======= \n",
+         n_omp_threads);
+#endif
+
   /* rkt: check for and handle version tag */
   nargs =
     handle_version_option
     (argc, argv,
-     "$Id: mri_em_register.c,v 1.95 2012/05/21 15:15:04 fischl Exp $",
+     "$Id: mri_em_register.c,v 1.96 2012/10/30 19:15:36 nicks Exp $",
      "$Name:  $");
   if (nargs && argc - nargs == 1)
   {
