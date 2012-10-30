@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2012/04/30 15:29:28 $
-#    $Revision: 1.14 $
+#    $Date: 2012/10/30 22:06:34 $
+#    $Revision: 1.15 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: plot-twf-sess,v 1.14 2012/04/30 15:29:28 greve Exp $';
+set VERSION = '$Id: plot-twf-sess,v 1.15 2012/10/30 22:06:34 greve Exp $';
 
 set inputargs = ($argv);
 set DateStr = "`date '+%y%m%d%H%M'`"
@@ -300,6 +300,7 @@ while( $#argv != 0 )
       set title = "Vector Translation (mm)"
       breaksw
 
+    case "-mc-per-session":
     case "-mc-per-sess":
       set datfile = (fmc.mcdat);
       set datcolx =  1;
