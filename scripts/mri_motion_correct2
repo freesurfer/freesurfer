@@ -8,9 +8,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: nicks $
-#    $Date: 2011/03/02 20:16:39 $
-#    $Revision: 1.16 $
+#    $Author: greve $
+#    $Date: 2012/10/30 21:26:25 $
+#    $Revision: 1.17 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -25,7 +25,7 @@
 #
 
 
-set VERSION = '$Id: mri_motion_correct2,v 1.16 2011/03/02 20:16:39 nicks Exp $';
+set VERSION = '$Id: mri_motion_correct2,v 1.17 2012/10/30 21:26:25 greve Exp $';
 
 set tmpdir      = ();
 set inputlist   = ();
@@ -35,6 +35,7 @@ set LF          = ();
 set CleanUp     = 1;
 set CleanUpList = ();
 set SaveXFM     = 1;
+set target = ();
 set PWD = pwd;
 if ( -e /bin/pwd ) set PWD = /bin/pwd
 set HiRes = '';
@@ -173,7 +174,14 @@ end
 
 #----------- Motion Correct ---------------#
 set mncresampled = $tmpdir/resampled.mnc
-set mnctarget = $mncinputlist[1];
+if($#target == 0) then
+  set mnctarget = $mncinputlist[1];
+else
+  set mnctarget = $tmpdir/target.mnc
+  set cmd = (mri_convert $target $mnctarget)
+  echo $cmd | tee -a $LF
+  $cmd | tee -a $LF
+endif
 @ run = 0;
 foreach mncinput ($mncinputlist)
   @ run = $run + 1;
@@ -198,7 +206,7 @@ foreach mncinput ($mncinputlist)
   echo $cmd | tee -a $LF
   $cmd |& tee -a $LF
   if($status) then
-    echo "ERROR: mritoself failed" |& tee -a $LF
+    echo "ERROR: minctracc failed" |& tee -a $LF
     exit 1;
   endif
 
@@ -223,19 +231,24 @@ foreach mncinput ($mncinputlist)
 end
 
 #----------- Average Volumes Together ---------------#
-echo "-----------------------------------------" |& tee -a $LF
-echo "Averaging " |& tee -a $LF
-date |& tee -a $LF
-set avgvol = $tmpdir/avgvol.mnc
-set CleanUpList = ($CleanUpList $avgvol);
-rm -f $avgvol
-set cmd = (mincaverage $mncinputlist $avgvol);
-pwd >> $LF
-echo $cmd >> $LF
-$cmd |& tee -a $LF
-if($status) then
-  echo "ERROR: mincaverage failed" |& tee -a $LF
-  exit 1;
+if($#mncinputlist > 1) then
+  echo "-----------------------------------------" |& tee -a $LF
+  echo "Averaging " |& tee -a $LF
+  date |& tee -a $LF
+  set avgvol = $tmpdir/avgvol.mnc
+  set CleanUpList = ($CleanUpList $avgvol);
+  rm -f $avgvol
+  set cmd = (mincaverage $mncinputlist $avgvol);
+  pwd | tee -a $LF
+  echo $cmd | tee -a $LF
+  $cmd |& tee -a $LF
+  if($status) then
+    echo "ERROR: mincaverage failed" |& tee -a $LF
+    exit 1;
+  endif
+else
+  echo "Only one input, so not averaging" |& tee -a $LF
+  set avgvol = $mncinputlist 
 endif
 
 #----------- Convert Average to output ---------------#
@@ -290,6 +303,12 @@ while( $#argv != 0 )
       set inputlist = ($inputlist $argv[1]); shift;
       breaksw
 
+    case "-t":
+      if ( $#argv == 0) goto arg1err;
+      set target = ($argv[1]); shift;
+      breaksw
+
+    case "-tmp":
     case "-tmpdir":
       if ( $#argv == 0) goto arg1err;
       set tmpdir = $argv[1]; shift;
@@ -350,7 +369,7 @@ check_params:
     exit 1;
   endif
 
-  if($#inputlist == 1) then
+  if($#inputlist == 1 && $#target == 0) then
     echo "ERROR: only one input specified"
     exit 1;
   endif
@@ -391,7 +410,11 @@ check_params:
 
   # Create the tmp directory and get full path
   if($#tmpdir == 0) then
-    set tmpdir = $outdir/tmp-mri_motion_correct2-$$
+    if(-e /scratch) then
+      set tmpdir = /scratch/tmp-mri_motion_correct2-$$
+    else
+      set tmpdir = $outdir/tmp-mri_motion_correct2-$$
+    endif
   endif
   echo tmpdir is $tmpdir
   if($tmpdir != /tmp) then
@@ -418,13 +441,12 @@ arg1err:
 ############--------------##################
 cleanup:
 
-  if($#CleanUp > 0) then
+  if($CleanUp) then
     foreach f ($CleanUpList)
       rm -f $f
     end
+    rm -r $tmpdir
   endif
-
-  rm -r $tmpdir
 
 goto cleanup_return;
 ############--------------##################
@@ -443,6 +465,7 @@ usage_exit:
   echo ""
   echo "Optional Arguments:";
   echo ""
+  echo "  -t target      : use target instead of first file"
   echo "  -wild          : assume unmatched args are input files"
   echo "  -tmpdir tmpdir : directory for temporary files"
   echo "  -nocleanup     : do not delete temporary files"
