@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2011/10/05 21:59:05 $
-#    $Revision: 1.2.4.1 $
+#    $Date: 2012/10/30 15:33:00 $
+#    $Revision: 1.2.4.2 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -22,7 +22,7 @@
 # Bug reports: analysis-bugs@nmr.mgh.harvard.edu
 #
 
-set VERSION = '$Id: fieldsign-sess,v 1.2.4.1 2011/10/05 21:59:05 greve Exp $';
+set VERSION = '$Id: fieldsign-sess,v 1.2.4.2 2012/10/30 15:33:00 greve Exp $';
 set inputargs = ($argv);
 
 set analysis = ();
@@ -84,7 +84,7 @@ foreach sess ($SessList)
   set srcsubject = `cat $sess/subjectname`
   set sd = $SUBJECTS_DIR/$srcsubject
   if(! -e $sd) then
-    echo "ERROR: cannot find $subject in $SUBJECTS_DIR" | tee -a $LF
+    echo "ERROR: cannot find $srcsubject in $SUBJECTS_DIR" | tee -a $LF
     exit 1;
   endif
 
