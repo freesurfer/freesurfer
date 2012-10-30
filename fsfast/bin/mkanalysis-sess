@@ -7,8 +7,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2012/10/22 15:43:55 $
-#    $Revision: 1.69 $
+#    $Date: 2012/10/30 22:06:45 $
+#    $Revision: 1.70 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 # Bug reports: analysis-bugs@nmr.mgh.harvard.edu
 #
 
-set VERSION = '$Id: mkanalysis-sess,v 1.69 2012/10/22 15:43:55 greve Exp $';
+set VERSION = '$Id: mkanalysis-sess,v 1.70 2012/10/30 22:06:45 greve Exp $';
 
 set analysis = ();
 set TR = ();
@@ -798,6 +798,7 @@ usage_exit:
   echo "Noise, drift, and temporal filtering options"
   echo "   -polyfit N          : fit trend with polynomial of order N (default is 2)"
   echo "   -hpf CutoffHz       : High-pass filtering with Cuttoff in Hz"
+  echo "   -lpf CutoffHz       : Low-pass filtering with Cuttoff in Hz"
   echo "   -tpexclude filename : time-point (in seconds) exclude file name"
   echo "   -nskip  N           : skip the first N time points in each run"
   echo "   -nuisreg extreg n : external nuisance regressor file and number of regressors to include"
