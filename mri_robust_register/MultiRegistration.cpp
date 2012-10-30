@@ -14,8 +14,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2012/10/10 19:59:03 $
- *    $Revision: 1.35.2.4 $
+ *    $Date: 2012/10/30 18:27:19 $
+ *    $Revision: 1.35.2.5 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -303,7 +303,9 @@ void MultiRegistration::initRegistration(RegRobust & R)
   // assert(n < (int) P.mov.size());
 
   if (rigid)
+  {
     R.setRigid();
+  }
   R.setIscale(iscale);
   if (transonly)
     R.setTransonly();
@@ -529,9 +531,11 @@ bool MultiRegistration::computeTemplate(int itmax, double eps, int iterate,
 //      Rv[i].clear();
       R.setVerbose(0);
       initRegistration(R); //set parameters
-      R.setSource(mri_mov[i], fixvoxel, keeptype);
-      R.setTarget(mri_mean, fixvoxel, keeptype); // gaussian pyramid will be constructed for
-                                                 // each Rv[i], could be optimized
+//      R.setSource(mri_mov[i], fixvoxel, keeptype);
+//      R.setTarget(mri_mean, fixvoxel, keeptype); // gaussian pyramid will be constructed for
+//                                                 // each Rv[i], could be optimized
+      R.setSourceAndTarget(mri_mov[i],mri_mean,keeptype);
+
       ostringstream oss;
       oss << outdir << "tp" << i + 1 << "_to_template-it" << itcount;
       R.setName(oss.str());
@@ -570,15 +574,23 @@ bool MultiRegistration::computeTemplate(int itmax, double eps, int iterate,
       if (satit)
         R.findSaturation();
 
-      cout << " - running multi-resolutional registration ..." << endl;
+#ifdef HAVE_OPENMP
+#pragma omp critical
+#endif  
+      cout << " - running multi-resolutional registration on TP " << i + 1 << "..." << endl;
       R.computeMultiresRegistration(maxres, iterate, epsit);
 
       Md.first = R.getFinalVox2Vox();
       Md.second = R.getFinalIscale();
       if (!R.getConverged())
+      {
+#ifdef HAVE_OPENMP
+#pragma omp critical
+#endif  
         cout << "   *** WARNING: TP " << i + 1
             << " to template did not converge ***" << endl;
-
+      }
+       
       transforms[i] = Md.first;
       intensities[i] = Md.second;
 
@@ -673,7 +685,7 @@ bool MultiRegistration::computeTemplate(int itmax, double eps, int iterate,
 #ifdef HAVE_OPENMP
 #pragma omp critical
 #endif  
-        cout << " - debug: writing transforms, warps, weights ..." << endl;
+        cout << " - debug tp " << i + 1 << " : writing transforms, warps, weights ..." << endl;
 
         LTAwriteEx(ltas[i], (oss.str() + ".lta").c_str());
 
