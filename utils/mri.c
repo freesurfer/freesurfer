@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2012/09/18 23:47:58 $
- *    $Revision: 1.516 $
+ *    $Date: 2012/10/30 18:34:08 $
+ *    $Revision: 1.517 $
  *
  * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -23,7 +23,7 @@
  */
 
 extern const char* Progname;
-const char *MRI_C_VERSION = "$Revision: 1.516 $";
+const char *MRI_C_VERSION = "$Revision: 1.517 $";
 
 
 /*-----------------------------------------------------
@@ -2355,7 +2355,7 @@ int
 MRIfindApproximateSkullBoundingBox(MRI *mri, int thresh,MRI_REGION *box)
 {
   int      width, height, depth, x, y, z, x1, y1, z1;
-  int      ndark, max_dark, start, nlight, max_light ;
+  int      ndark, max_dark, start, nlight, max_light, done = 0 ;
   double   means[3] ;
   double     val ;
 
@@ -2370,75 +2370,86 @@ MRIfindApproximateSkullBoundingBox(MRI *mri, int thresh,MRI_REGION *box)
   bright stuff 'outside' of brain */
 
   /* search for left edge */
-  nlight = ndark = max_dark = 0 ;
-  y = nint(means[1]) ;
-  z = nint(means[2]) ;
-  for (start = x1 = x = nint(means[0]) ; x >= 0 ; x--)
+  do
   {
-    MRIsampleVolumeType(mri, x,  y, z, &val, SAMPLE_NEAREST) ;
-
-    if (val < thresh)
+    nlight = ndark = max_dark = 0 ;
+    y = nint(means[1]) ;
+    z = nint(means[2]) ;
+    for (start = x1 = x = nint(means[0]) ; x >= 0 ; x--)
     {
-      if (!ndark)
-        start = x ;
-      ndark++ ;
-      nlight = 0  ;
+      MRIsampleVolumeType(mri, x,  y, z, &val, SAMPLE_NEAREST) ;
+      
+      if (val < thresh)
+      {
+	if (!ndark)
+	  start = x ;
+	ndark++ ;
+	nlight = 0  ;
+      }
+      else
+      {
+	if (++nlight > MAX_LIGHT)
+	  max_dark = 0 ;
+	if (ndark > max_dark)
+	{
+	  max_dark = ndark ;
+	  x1 = start ;
+	}
+	ndark = 0 ;
+      }
+    }
+    if (ndark > max_dark)
+    {
+      max_dark = ndark ;
+      x1 = start ;
+    }
+    if (max_dark < MIN_DARK)
+      x1 = 0 ;
+    box->x = x1 ;
+
+    /* search for right edge */
+    nlight = ndark = max_dark = 0 ;
+    y = nint(means[1]) ;
+    z = nint(means[2]) ;
+    for (start = x1 = x = nint(means[0]) ; x < width ; x++)
+    {
+      MRIsampleVolumeType(mri, x,  y, z, &val, SAMPLE_NEAREST) ;
+      if (val < thresh)
+      {
+	if (!ndark)
+	  start = x ;
+	ndark++ ;
+	nlight = 0 ;
+      }
+      else
+      {
+	if (++nlight > MAX_LIGHT)
+	  max_dark = 0 ;
+	if (ndark >= max_dark)
+	{
+	  max_dark = ndark ;
+	  x1 = start ;
+	}
+	ndark = 0 ;
+      }
+    }
+    if (ndark > max_dark)
+    {
+      max_dark = ndark ;
+      x1 = start ;
+    }
+    if (max_dark < MIN_DARK)
+      x1 = mri->width-1 ;
+    box->dx = x1 - box->x + 1 ;
+    if (box->dx <= 10)  // too small
+    {
+      done = 0 ;
+      means[1] -= 10 ;
+      printf("left/right detection failed, moving y coord to %d from %d\n", nint(means[1])+10, nint(means[1])) ;
     }
     else
-    {
-      if (++nlight > MAX_LIGHT)
-        max_dark = 0 ;
-      if (ndark > max_dark)
-      {
-        max_dark = ndark ;
-        x1 = start ;
-      }
-      ndark = 0 ;
-    }
-  }
-  if (ndark > max_dark)
-  {
-    max_dark = ndark ;
-    x1 = start ;
-  }
-  if (max_dark < MIN_DARK)
-    x1 = 0 ;
-  box->x = x1 ;
-
-  /* search for right edge */
-  nlight = ndark = max_dark = 0 ;
-  y = nint(means[1]) ;
-  z = nint(means[2]) ;
-  for (start = x1 = x = nint(means[0]) ; x < width ; x++)
-  {
-    MRIsampleVolumeType(mri, x,  y, z, &val, SAMPLE_NEAREST) ;
-    if (val < thresh)
-    {
-      if (!ndark)
-        start = x ;
-      ndark++ ;
-      nlight = 0 ;
-    }
-    else
-    {
-      if (++nlight > MAX_LIGHT)
-        max_dark = 0 ;
-      if (ndark >= max_dark)
-      {
-        max_dark = ndark ;
-        x1 = start ;
-      }
-      ndark = 0 ;
-    }
-  }
-  if (ndark > max_dark)
-  {
-    max_dark = ndark ;
-    x1 = start ;
-  }
-  if (max_dark < MIN_DARK)
-    x1 = mri->width-1 ;
-  box->dx = x1 - box->x + 1 ;
+      done = 1 ;
+  } while (!done) ;
 
   /* search for superior edge */
   nlight = ndark = max_dark = max_light = 0 ;
