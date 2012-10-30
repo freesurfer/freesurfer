@@ -6,24 +6,23 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2009/04/15 18:09:01 $
-#    $Revision: 1.37 $
+#    $Date: 2012/10/30 20:05:17 $
+#    $Revision: 1.39.2.1 $
 #
-# Copyright (C) 2002-2007,
-# The General Hospital Corporation (Boston, MA).
-# All rights reserved.
+# Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
-# Distribution, usage and copying of this software is covered under the
-# terms found in the License Agreement file named 'COPYING' found in the
-# FreeSurfer source code root directory, and duplicated here:
-# https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+# Terms and conditions for use, reproduction, distribution and contribution
+# are found in the 'FreeSurfer Software License Agreement' contained
+# in the file 'LICENSE' found in the FreeSurfer distribution, and here:
 #
-# General inquiries: freesurfer@nmr.mgh.harvard.edu
-# Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+# https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
+#
+# Reporting: freesurfer@nmr.mgh.harvard.edu
+#
 #
 
 #
-set VERSION = '$Id: spmregister,v 1.37 2009/04/15 18:09:01 greve Exp $';
+set VERSION = '$Id: spmregister,v 1.39.2.1 2012/10/30 20:05:17 greve Exp $';
 set inputargs = ($argv);
 
 set subjid = ();
@@ -47,10 +46,12 @@ set DoSegReg = 0;
 set segregfile = ();
 set OutVol = ();
 set BBRMask = 1;
-set fmt = img # Format for temporary volumes
+set fmt = nii # Format for temporary volumes
 set UseSPMGetSpace = 1;
 set DNG = (); # For testing
 set DOF = 6;
+set ltafile = "";
+set regfile = "";
 
 if($?FS_SPMREG_MATLAB) then
   set matlab = $FS_SPMREG_MATLAB
@@ -132,15 +133,21 @@ if($fsvol == rawavg.cor) then
 endif
 
 # Convert reference to analyze
-set refvol = $SUBJECTS_DIR/$subjid/mri/$fsvol
-if(! -e $refvol/COR-.info) then
-  set MGZ = .mgz
-  set refvol = $SUBJECTS_DIR/$subjid/mri/$fsvol$MGZ
-  if(! -e $refvol) then
-    echo "ERROR: $refvol not found in either COR or MGZ formats"
-    exit 1;
+if ( $subjid != "" ) then
+  set refvol = $SUBJECTS_DIR/$subjid/mri/$fsvol
+  if(! -e $refvol/COR-.info) then
+    set MGZ = .mgz
+    set refvol = $SUBJECTS_DIR/$subjid/mri/$fsvol$MGZ
+    if(! -e $refvol) then
+      echo "ERROR: $refvol not found in either COR or MGZ formats"
+      exit 1;
+    endif
   endif
+else
+  set refvol = $fsvol
+  set MGZ = .mgz
 endif
+
 set refvolbase = $tmpdir/refvol.spmregister
 set refvolimg  = $refvolbase.$fmt
 set cmd = (mri_convert $refvol $refvolimg)
@@ -174,7 +181,12 @@ echo "Matlab file is $MLF" |& tee -a $LF
 set errfile = $tmpdir/spmregister.$$.err
 rm -f $errfile
 
-if(-e $regfile) mv $regfile $regfile.$DateString
+if($regfile != "") then
+  if(-e $regfile) mv $regfile $regfile.$DateString
+endif
+if($ltafile != "") then
+  if(-e $ltafile) mv $ltafile $ltafile.$DateString
+endif
 
 set params = (0 0 0 0 0 0);
 
@@ -184,11 +196,11 @@ if($DOF == 12) set params = ($params 1 1 1 0 0 0);
 
 #--------------------------------------------------------#
 tee $MLF <<EOF
-
 monly   = $monly;
 targvol = '$refvolimg';
 srcvol  = '$movvolimg';
 errfile  = '$errfile';
+fmt = '$fmt';
 
 if(exist('spm_coreg') ~= 2)
   fprintf('ERROR: cannot find spm_coreg.m. Make sure that the SPM\n');
@@ -200,7 +212,23 @@ if(exist('spm_coreg') ~= 2)
   return; quit;
 end
 
+fprintf('fmt %s\n',fmt);
 which spm_coreg
+
+% This is a hack to try to determine which version of spm is being run. If
+% spm8 is being run with analyze as input, a left-right reveral will occur.
+% This searches for "spm8" in the spm path, not perfect, but hopefully good 
+% enough. It does not appear that spm offers a "version" command.
+IsSPM8 = length(findstr(dirname(which('spm_coreg')),'spm8'));
+if(IsSPM8 & strcmp(fmt,'img'))
+  fprintf('\n\n');
+  fprintf('ERROR: you appear to be using spm8. If so, re-run this with --nii\n');
+  fprintf('\n\n');
+  fp = fopen(errfile,'a');
+  fprintf(fp,'ERROR: you appear to be using spm8. If so, re-run this with --nii\n');
+  fclose(fp);
+  return; quit; exit; % These do nothing when run from a csh script
+end
 
 global defaults
 spm_defaults			% load spm2's default fields
@@ -258,11 +286,13 @@ disp('determining coregistration parameters...')
 tic;
 try
   x  = spm_coreg$DNG(VG.fname,VF.fname,defaults.coreg.estimate);
-catch
+catch ME
   fprintf('ERROR: spm_coreg\n');
+  ME
   fp = fopen(errfile,'a');
-  fprintf(fp,'ERROR: spm_coreg\n');
+  fprintf(fp,'ERROR: spm_coreg (catch)\n');
   fprintf(fp,'%s\n',which('spm_coreg'));
+  fprintf(fp,'%s\n',ME.message);
   fclose(fp);
   return; quit;
 end
@@ -270,7 +300,7 @@ if(isempty(x))
   fprintf('ERROR: spm_coreg\n');
   if(~monly) 
     fp = fopen(errfile,'a');
-    fprintf(fp,'ERROR: spm_coreg\n');
+    fprintf(fp,'ERROR: spm_coreg, x is empty\n');
     fclose(fp);
     return; quit; 
   end
@@ -316,26 +346,49 @@ if($monly) then
 endif
 
 cat $MLF | $matlab -nosplash -display iconic -nodesktop |& tee -a $LF
-rm $MLF
+#rm $MLF
 
 if(-e $errfile) then
   echo "ERROR: matlab exited with errors" |& tee -a $LF
   cat $errfile |& tee -a $LF
+  echo "ERROR: spmregister exited with errors" |& tee -a $LF
   exit 1;
 endif
 
-# Computer the registration file #
+# Compute the registration file #
 #set TKR2 = ~/sg1/build/tkregister2/tkregister2
+if ( "$regfile" == "" ) set regfile = $tmpdir/regfile.dat
 set TKR2 = tkregister2_cmdl
 set cmd = ($TKR2 --s $subjid --mov $movvolimg \
            --regheader --noedit --reg $regfile \
            --targ $refvolimg );
+if ("$subjid" == "") then
+   set cmd = ($TKR2 --mov $movvolimg \
+           --regheader --noedit --reg $regfile \
+           --targ $refvolimg );
+endif
+
 if($#MGZ) set cmd = ($cmd --mgz);
 echo "--------------------------------------------------" |& tee -a $LF
 pwd        |& tee -a $LF
 echo $cmd  |& tee -a $LF
 $cmd       |& tee -a $LF
 if($status) exit 1;
+
+# store lta
+if ("$ltafile" != "") then
+  set cmd = ($TKR2 --mov $movvol \
+          --targ $refvol --reg $regfile \
+          --ltaout $ltafile \
+          --noedit );
+  if($#MGZ) set cmd = ($cmd --mgz);
+  echo "--------------------------------------------------" |& tee -a $LF
+  pwd        |& tee -a $LF
+  echo $cmd  |& tee -a $LF
+  $cmd       |& tee -a $LF
+  if($status) exit 1;
+endif
+
 
 if($#templateout) then
   mri_convert $movvolimg $templateout
@@ -365,8 +418,13 @@ endif
 if($#OutVol) then
   set v2vreg = $regfile
   if($DoSegReg) set v2vreg = $segregfile
-  set cmd = (mri_vol2vol --mov $movvolimg --fstarg \
-    --o $OutVol --reg $v2vreg --no-save-reg)
+	if($subjid == "") then
+	  set cmd = (mri_vol2vol --mov $movvol --targ $refvol \
+		         --o $OutVol --reg $v2vreg --no-save-reg)
+	else
+      set cmd = (mri_vol2vol --mov $movvolimg --fstarg \
+                 --o $OutVol --reg $v2vreg --no-save-reg)
+	endif
   echo $cmd | tee -a $LF
   $cmd |& tee -a $LF
   if($status) then
@@ -394,12 +452,40 @@ else
   set tmp = ""
 endif
 
-echo "To check results, run:"
-if($#templateout) then
-  echo "tkregister2 --mov $templateout --reg $regfile $tmp"
+
+if ("$ltafile" != "") then
+  if($#templateout) then
+    echo "To check lta on templateout, run:"
+    echo "tkregister2 --mov $templateout --targ $refvol --lta $ltafile --check-reg $tmp"
+    echo
+  else
+    echo "To check lta on movable, run:"
+    echo "tkregister2 --mov $movvol --targ $refvol --lta $ltafile --check-reg $tmp"
+    echo
+  endif
 else
-  echo "tkregister2 --mov $movvol --reg $regfile $tmp"
+  if($#templateout) then
+    echo "To check reg on templateout, run:"
+    echo "tkregister2 --mov $templateout --targ $refvol --reg $regfile $tmp"
+    echo
+  else
+    echo "To check reg on movable, run:"
+    echo "tkregister2 --mov $movvol --targ $refvol --reg $regfile $tmp"
+    echo
+  endif
 endif
+
+if(-e $SUBJECTS_DIR/$subjid/surf/lh.orig) then
+  set tmp = "-f $SUBJECTS_DIR/$subjid/surf/?h.orig"
+else
+  set tmp = ""
+endif
+if($#OutVol) then
+  echo "To check resampled movable (outvol), run:"
+  echo "freeview -v $refvol $OutVol $tmp"
+  echo
+endif
+
 echo " "
 
 
@@ -435,6 +521,11 @@ while( $#argv != 0 )
       set templateout = $argv[1]; shift;
       breaksw
 
+    case "--lta":
+      if ( $#argv < 1) goto arg1err;
+      set ltafile = $argv[1]; shift;
+      breaksw
+
     case "--frame":
       if ( $#argv < 1) goto arg1err;
       set frame = $argv[1]; shift;
@@ -467,6 +558,7 @@ while( $#argv != 0 )
       set OutVol = $argv[1]; shift;
       breaksw
 
+    case "--tmpdir":
     case "--tmp":
       if ( $#argv < 1) goto arg1err;
       set tmpdir = $argv[1]; shift;
@@ -577,22 +669,22 @@ goto parse_args_return;
 ############--------------##################
 check_params:
 
-  if($#subjid == 0) then
-    echo "ERROR: must spec a subject id"
-    exit 1;
-  endif
-  if(! -e $SUBJECTS_DIR/$subjid) then
-    echo "ERROR: cannot find $subjid in $SUBJECTS_DIR"
-    exit 1;
-  endif
+#  if($#subjid == 0) then
+#    echo "ERROR: must spec a subject id"
+#    exit 1;
+#  endif
+#  if(! -e $SUBJECTS_DIR/$subjid) then
+#    echo "ERROR: cannot find $subjid in $SUBJECTS_DIR"
+#    exit 1;
+#  endif
 
   if($#movvol == 0) then
     echo "ERROR: must spec an movput vol"
     exit 1;
   endif
 
-  if($#regfile == 0) then
-    echo "ERROR: must spec an output reg file"
+  if("$regfile" == "" && "$ltafile" == "") then
+    echo "ERROR: must spec an output reg or lta file"
     exit 1;
   endif
 
@@ -622,7 +714,7 @@ usage_exit:
   echo "USAGE: spmregister"
   echo ""
   echo "Required Arguments:";
-  echo "   --s subjid"
+  echo "   --s subjid   or  --fsvol full/path/to.mgz "
   echo "   --mov volid  : input/movable volume"
   echo "   --reg register.dat"
   echo ""
