@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2012/10/26 19:43:34 $
- *    $Revision: 1.8 $
+ *    $Date: 2012/10/31 20:10:12 $
+ *    $Revision: 1.9 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -100,9 +100,16 @@ void WindowConfigureOverlay::UpdateUI()
     {
       allwidgets[i]->blockSignals( true );
     }
-    SurfaceOverlayProperty* p = m_layerSurface->GetActiveOverlay()->GetProperty();
+    SurfaceOverlay* overlay = m_layerSurface->GetActiveOverlay();
+    SurfaceOverlayProperty* p = overlay->GetProperty();
     ui->sliderOpacity->setValue( (int)( p->GetOpacity() * 100 ) );
     ChangeDoubleSpinBoxValue( ui->doubleSpinBoxOpacity, p->GetOpacity() );
+
+    ui->sliderFrame->setRange(0, overlay->GetNumberOfFrames()-1);
+    ui->sliderFrame->setValue(overlay->GetActiveFrame());
+    ui->spinBoxFrame->setRange(0, overlay->GetNumberOfFrames()-1);
+    ui->spinBoxFrame->setValue(overlay->GetActiveFrame());
+    ui->groupBoxFrame->setVisible(overlay->GetNumberOfFrames() > 1);
 
 //   ui->radioButtonGreenRed ->setChecked( p->GetColorScale() == SurfaceOverlayProperty::CS_GreenRed );
     //   ui->radioButtonBlueRed    ->setChecked( p->GetColorScale() == SurfaceOverlayProperty::CS_BlueRed );
@@ -502,4 +509,26 @@ void WindowConfigureOverlay::OnTextThresholdChanged(const QString &strg)
   }
   ui->widgetHistogram->SetMarkers(markers);
   UpdateGraph();
+}
+
+void WindowConfigureOverlay::OnFrameChanged(int nFrame)
+{
+  if (sender() == ui->sliderFrame)
+  {
+    ui->spinBoxFrame->blockSignals(true);
+    ui->spinBoxFrame->setValue(nFrame);
+    ui->spinBoxFrame->blockSignals(false);
+  }
+  else
+  {
+    ui->sliderFrame->blockSignals(true);
+    ui->sliderFrame->setValue(nFrame);
+    ui->sliderFrame->blockSignals(false);
+  }
+  if ( m_layerSurface && m_layerSurface->GetActiveOverlay() )
+  {
+    SurfaceOverlay* overlay = m_layerSurface->GetActiveOverlay();
+    overlay->SetActiveFrame(nFrame);
+    UpdateGraph();
+  }
 }

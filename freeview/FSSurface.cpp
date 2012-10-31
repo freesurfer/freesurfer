@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2012/08/08 20:50:46 $
- *    $Revision: 1.65 $
+ *    $Date: 2012/10/31 20:10:11 $
+ *    $Revision: 1.66 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -353,7 +353,8 @@ bool FSSurface::LoadCurvature( const QString& filename )
   }
 }
 
-bool FSSurface::LoadOverlay( const QString& filename, const QString& fn_reg )
+bool FSSurface::LoadOverlay( const QString& filename, const QString& fn_reg,
+                             float** data_out, int* nvertices_out, int* nframes_out )
 {
 //    int mritype = mri_identify((char*)( filename.toAscii().data() ));
 //    qDebug() << "mritype " << mritype;
@@ -394,6 +395,9 @@ bool FSSurface::LoadOverlay( const QString& filename, const QString& fn_reg )
       m[i] = (double) *MATRIX_RELT((ras2vox_tkreg),(i/4)+1,(i%4)+1);
     }
 
+    float* data = new float[mri->nframes*m_MRIS->nvertices];
+    if (!data)
+      return false;
     for ( int i = 0; i < m_MRIS->nvertices; i++ )
     {
       double v[4] = { m_MRIS->vertices[i].x, m_MRIS->vertices[i].y, m_MRIS->vertices[i].z, 1 };
@@ -402,16 +406,44 @@ bool FSSurface::LoadOverlay( const QString& filename, const QString& fn_reg )
       int ny = (int)(v[1]+0.5);
       int nz = (int)(v[2]+0.5);
       if (nx >= 0 && nx < mri->width && ny >= 0 && ny < mri->height && nz >= 0 && nz < mri->depth)
-        m_MRIS->vertices[i].val = ::MRIgetVoxVal(mri, nx, ny, nz, 0);
+      {
+        for (int j = 0; j < mri->nframes; j++)
+          data[j*m_MRIS->nvertices + i] = ::MRIgetVoxVal(mri, nx, ny, nz, j);
+      }
     }
 
+    *data_out = data;
+    *nframes_out = mri->nframes;
+    *nvertices_out = m_MRIS->nvertices;
     MRIfree(&mri);
     MatrixFree(&ras2vox_tkreg);
   }
-  else if ( ::MRISreadValues( m_MRIS, (char*)( filename.toAscii().data() ) ) != 0 )
+  else
   {
-    cerr << "could not read overlay data from " << qPrintable(filename) << "\n";
-    return false;
+    MRI* mri = MRIread(filename.toAscii().data());
+    if (!mri)
+    {
+      cerr << "could not read overlay data from " << qPrintable(filename) << "\n";
+      return false;
+    }
+    float* data = new float[mri->nframes*m_MRIS->nvertices];
+    for (int nx = 0; nx < mri->width; nx++)
+    {
+      for (int ny = 0; ny < mri->height; ny++)
+      {
+        for (int nz = 0; nz < mri->depth; nz++)
+        {
+          for (int nk = 0; nk < mri->nframes; nk++)
+          {
+            data[nk*m_MRIS->nvertices + nz*mri->height*mri->width + ny*mri->width + nx]
+                = ::MRIgetVoxVal(mri, nx, ny, nz, nk);
+          }
+        }
+      }
+    }
+    *data_out = data;
+    *nframes_out = mri->nframes;
+    *nvertices_out = m_MRIS->nvertices;
   }
 
   return true;

@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2012/10/23 17:35:43 $
- *    $Revision: 1.225 $
+ *    $Date: 2012/10/31 20:10:11 $
+ *    $Revision: 1.226 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -3865,8 +3865,9 @@ void MainWindow::OnSaveROI()
   QString fn = layer_roi->GetFileName();
   if ( fn.isEmpty() )
   {
+    QString def_fn = AutoSelectLastDir( "label" ) + "/" + layer_roi->GetName() + ".label";
     fn = QFileDialog::getSaveFileName( this, "Select label file",
-                                       AutoSelectLastDir( "label" ),
+                                       def_fn,
                                        "Label files (*)");
   }
 
@@ -3895,8 +3896,9 @@ void MainWindow::OnSaveROIAs()
     QMessageBox::warning( this, "Error", "Current ROI layer is not visible. Please turn it on before saving.");
     return;
   }
+  QString def_fn = AutoSelectLastDir( "label" ) + "/" + layer_roi->GetName() + ".label";
   QString fn = QFileDialog::getSaveFileName( this, "Select label file",
-                                       AutoSelectLastDir( "label" ),
+                                       def_fn,
                                        "Label files (*)");
 
   if ( !fn.isEmpty() )
@@ -4094,7 +4096,10 @@ void MainWindow::OnSavePointSetAs()
 
   DialogSavePointSet dlg( this );
   dlg.SetType( layer->GetProperty()->GetType() );
-  dlg.SetFileName( layer->GetFileName() );
+  QString fn = layer->GetFileName();
+  if (fn.isEmpty())
+    fn = layer->GetName();
+  dlg.SetFileName(fn);
   dlg.SetLastDir(m_strLastDir);
   if ( dlg.exec() == QDialog::Accepted )
   {

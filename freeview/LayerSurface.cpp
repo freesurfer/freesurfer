@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2012/08/08 20:50:46 $
- *    $Revision: 1.77 $
+ *    $Date: 2012/10/31 20:10:11 $
+ *    $Revision: 1.78 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -292,15 +292,19 @@ bool LayerSurface::LoadOverlayFromFile(const QString &filename, const QString& f
 
 bool LayerSurface::LoadGenericOverlayFromFile( const QString& filename, const QString& fn_reg )
 {
-  if ( !m_surfaceSource->LoadOverlay( filename, fn_reg ) )
+  float* data = NULL;
+  int nframes, nvertices;
+  if ( !m_surfaceSource->LoadOverlay( filename, fn_reg, &data, &nvertices, &nframes ) )
   {
     return false;
   }
 
   // create overlay
   SurfaceOverlay* overlay = new SurfaceOverlay( this );
+  overlay->InitializeData(data, nvertices, nframes);
   overlay->SetName( QFileInfo(filename).fileName() );
   overlay->SetFileName( filename );
+
   m_overlays.push_back( overlay );
   SetActiveOverlay( m_overlays.size() - 1 );
 

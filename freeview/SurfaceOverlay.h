@@ -10,8 +10,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2011/04/29 17:27:01 $
- *    $Revision: 1.11 $
+ *    $Date: 2012/10/31 20:10:12 $
+ *    $Revision: 1.12 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -62,6 +62,7 @@ public:
   void SetName( const QString& name );
 
   void InitializeData();
+  void InitializeData(float* data_buffer_in, int nvertices, int nframes);
 
   void MapOverlay( unsigned char* colordata );
 
@@ -116,6 +117,18 @@ public:
 
   void SmoothData(int nSteps = -1, float* data_out = NULL);
 
+  int GetNumberOfFrames()
+  {
+    return m_nNumOfFrames;
+  }
+
+  void SetActiveFrame(int nFrame);
+
+  int GetActiveFrame()
+  {
+    return m_nActiveFrame;
+  }
+
 signals:
   void DataUpdated();
 
@@ -123,7 +136,8 @@ public slots:
   void UpdateSmooth(bool trigger_paired = true);
 
 private:
-  float*        m_fData;
+  float*        m_fData;          // pointer only, do not release
+  float*        m_fDataRaw;
   float*        m_fDataOriginal;
   int           m_nDataSize;
   double        m_dMaxValue;
@@ -140,6 +154,9 @@ private:
   SurfaceOverlayProperty* m_property;
   // indicate there is a paired overlay sharing correlation data and property
   SurfaceOverlay*  m_overlayPaired;
+
+  int       m_nActiveFrame;
+  int       m_nNumOfFrames;
 };
 
 #endif

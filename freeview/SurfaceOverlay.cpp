@@ -11,8 +11,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2011/06/17 02:39:27 $
- *    $Revision: 1.14 $
+ *    $Date: 2012/10/31 20:10:12 $
+ *    $Revision: 1.15 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -45,13 +45,16 @@ extern "C"
 SurfaceOverlay::SurfaceOverlay ( LayerSurface* surf ) :
   QObject(),
   m_fData( NULL ),
+  m_fDataRaw( NULL ),
   m_fDataOriginal( NULL ),
   m_dMaxValue(0),
   m_dMinValue(0),
   m_surface( surf ),
   m_bCorrelationData( false ),
-  m_mriCorrelation(0),
-  m_overlayPaired(0)
+  m_mriCorrelation(NULL),
+  m_overlayPaired(NULL),
+  m_nActiveFrame(0),
+  m_nNumOfFrames(1)
 {
   InitializeData();
 
@@ -62,8 +65,8 @@ SurfaceOverlay::SurfaceOverlay ( LayerSurface* surf ) :
 
 SurfaceOverlay::~SurfaceOverlay ()
 {
-  if ( m_fData )
-    delete[] m_fData;
+  if ( m_fDataRaw )
+    delete[] m_fDataRaw;
 
   if (m_fDataOriginal)
     delete[] m_fDataOriginal;
@@ -87,11 +90,11 @@ void SurfaceOverlay::InitializeData()
   if ( m_surface )
   {
     MRIS* mris = m_surface->GetSourceSurface()->GetMRIS();
-    if ( m_fData )
-      delete[] m_fData;
+    if ( m_fDataRaw )
+      delete[] m_fDataRaw;
 
     m_nDataSize = mris->nvertices;
-    m_fData = new float[ m_nDataSize ];
+    m_fData = m_fDataRaw = new float[ m_nDataSize ];
     if ( !m_fData )
     {
       return;
@@ -120,6 +123,35 @@ void SurfaceOverlay::InitializeData()
       }
     }
     memcpy(m_fDataOriginal, m_fData, sizeof(float)*m_nDataSize);
+  }
+}
+
+void SurfaceOverlay::InitializeData(float *data_buffer_in, int nvertices, int nframes)
+{
+  if ( m_surface )
+  {
+    if ( m_fDataRaw )
+      delete[] m_fDataRaw;
+
+    m_nDataSize = nvertices;
+    m_nNumOfFrames = nframes;
+    m_fData = m_fDataRaw = data_buffer_in;
+    if ( !m_fData )
+    {
+      return;
+    }
+
+    if ( m_fDataOriginal )
+      delete[] m_fDataOriginal;
+
+    m_fDataOriginal = new float[ m_nDataSize ];
+    if ( !m_fDataOriginal )
+    {
+      return;
+    }
+
+    SetActiveFrame(0);
+    GetProperty()->Reset();
   }
 }
 
@@ -296,4 +328,25 @@ void SurfaceOverlay::SmoothData(int nSteps_in, float *data_out)
     cerr << "Can not allocate mri\n";
     MRIfree(&mri);
   }
+}
+
+void SurfaceOverlay::SetActiveFrame(int nFrame)
+{
+  if (nFrame >= m_nNumOfFrames)
+    nFrame = 0;
+  m_nActiveFrame = nFrame;
+  m_fData = m_fDataRaw + m_nActiveFrame*m_nDataSize;
+  m_dMaxValue = m_dMinValue = m_fData[0];
+  for ( int i = 0; i < m_nDataSize; i++ )
+  {
+    if ( m_dMaxValue < m_fData[i] )
+    {
+      m_dMaxValue = m_fData[i];
+    }
+    else if ( m_dMinValue > m_fData[i] )
+    {
+      m_dMinValue = m_fData[i];
+    }
+  }
+  memcpy(m_fDataOriginal, m_fData, sizeof(float)*m_nDataSize);
 }
