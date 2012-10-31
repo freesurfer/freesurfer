@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2012/09/28 18:09:37 $
- *    $Revision: 1.28 $
+ *    $Date: 2012/10/31 21:43:57 $
+ *    $Revision: 1.29 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -255,7 +255,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_fwhm.c,v 1.28 2012/09/28 18:09:37 greve Exp $";
+static char vcid[] = "$Id: mri_fwhm.c,v 1.29 2012/10/31 21:43:57 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -658,6 +658,7 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--save-detrended")) SaveDetrended = 1;
     else if (!strcasecmp(option, "--save-unmasked")) SaveUnmasked = 1;
     else if (!strcasecmp(option, "--smooth-only")) SmoothOnly = 1;
+    else if (!strcasecmp(option, "--so")) SmoothOnly = 1;
     else if (!strcasecmp(option, "--sqr")) DoSqr = 1;
     else if (!strcasecmp(option, "--ispm")) InValsType = MRI_ANALYZE_FILE;
     else if (!strcasecmp(option, "--ar2")) DoAR2 = 1;
@@ -819,7 +820,7 @@ static void print_usage(void) {
   printf("   --o outputvol : save input after smoothing\n");
   printf("   --save-detrended : detrend output when saving\n");
   printf("   --save-unmasked  : do not mask outputvol\n");
-  printf("   --smooth-only    : smooth and save, do not compute fwhm.\n");
+  printf("   --smooth-only    : smooth and save, do not compute fwhm (--so)\n");
   printf("\n");
   printf("   --mask maskvol : binary mask\n");
   printf("   --mask-thresh absthresh : threshold for mask (default is .5)\n");
