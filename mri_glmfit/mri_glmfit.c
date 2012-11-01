@@ -14,8 +14,8 @@
  * Original Author: Douglas N Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2012/05/02 21:06:53 $
- *    $Revision: 1.196.2.7 $
+ *    $Date: 2012/11/01 18:51:41 $
+ *    $Revision: 1.196.2.8 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -555,7 +555,7 @@ static int SmoothSurfOrVol(MRIS *surf, MRI *mri, MRI *mask, double SmthLevel);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-"$Id: mri_glmfit.c,v 1.196.2.7 2012/05/02 21:06:53 greve Exp $";
+"$Id: mri_glmfit.c,v 1.196.2.8 2012/11/01 18:51:41 greve Exp $";
 const char *Progname = "mri_glmfit";
 
 int SynthSeed = -1;
@@ -2204,6 +2204,16 @@ static int parse_commandline(int argc, char **argv) {
       if(nargc < 1) CMDargNErr(option,1);
       sscanf(pargv[0],"%lf",&FWHM);
       csd->nullfwhm = FWHM;
+      printf("FWHM = %f\n",FWHM);
+      if(isnan(FWHM)){
+	printf("ERROR: input FWHM is NaN (not a number).\n");
+	printf("  Check the mask in the glm directory.\n");
+	exit(1);
+      }
+      if(FWHM < 0){
+	printf("ERROR: input FWHM = %f < 0.\n",FWHM);
+	exit(1);
+      }
       FWHMSet = 1;
       nargsused = 1;
     } 
