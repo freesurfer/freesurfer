@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2012/10/31 20:10:11 $
- *    $Revision: 1.78 $
+ *    $Date: 2012/11/01 19:21:06 $
+ *    $Revision: 1.79 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -1160,10 +1160,10 @@ void LayerSurface::UpdateOverlay( bool bAskRedraw )
           data[i*4+3] = 255;
         }
       }
-      if (m_nActiveAnnotation >= 0)
-        GetActiveAnnotation()->MapAnnotationColor(data);
       if (m_nActiveOverlay >= 0)
         GetActiveOverlay()->MapOverlay( data );
+      if (m_nActiveAnnotation >= 0)
+        GetActiveAnnotation()->MapAnnotationColor(data);
       MapLabels( data, nCount );
       for ( int i = 0; i < nCount; i++ )
       {

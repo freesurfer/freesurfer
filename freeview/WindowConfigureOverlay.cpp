@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2012/10/31 20:10:12 $
- *    $Revision: 1.9 $
+ *    $Date: 2012/11/01 19:21:06 $
+ *    $Revision: 1.10 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -530,5 +530,6 @@ void WindowConfigureOverlay::OnFrameChanged(int nFrame)
     SurfaceOverlay* overlay = m_layerSurface->GetActiveOverlay();
     overlay->SetActiveFrame(nFrame);
     UpdateGraph();
+    emit ActiveFrameChanged();
   }
 }
