@@ -8,8 +8,8 @@
 # Original Author: Anastasia Yendiki
 # CVS Revision Info:
 #    $Author: ayendiki $
-#    $Date: 2012/10/26 19:50:03 $
-#    $Revision: 1.38 $
+#    $Date: 2012/11/01 19:42:38 $
+#    $Revision: 1.39 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -25,7 +25,7 @@
 
 umask 002
 
-set VERSION = '$Id: trac-preproc,v 1.38 2012/10/26 19:50:03 ayendiki Exp $'
+set VERSION = '$Id: trac-preproc,v 1.39 2012/11/01 19:42:38 ayendiki Exp $'
 set ProgName = `basename $0`
 set inputargs = ($argv)
 
@@ -647,8 +647,7 @@ if ($dointer) then
           if (-e $xfmdir/cvs/$oldcvswarp.m3z) then
             # If 2nd-generation CVS was run,
             # make symlink with 3rd-generation naming
-            set cmd = (ln -s $xfmdir/cvs/$oldcvswarp.m3z)
-            set cmd = ($cmd  $xfmdir/cvs/$cvswarp.m3z)
+            set cmd = (ln -s ./$oldcvswarp.m3z $xfmdir/cvs/$cvswarp.m3z)
             echo $cmd |& tee -a $LF |& tee -a $CF
             if ($RunIt) then
               $cmd |& tee -a $LF
