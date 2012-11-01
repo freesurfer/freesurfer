@@ -15,8 +15,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2012/11/01 18:46:17 $
- *    $Revision: 1.11 $
+ *    $Date: 2012/11/01 19:04:26 $
+ *    $Revision: 1.12 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -2175,6 +2175,10 @@ extern int MRIsampleSeqBSpline(const MRI_BSPLINE *bspline,double x, double y, do
       }
 		  interpolated += zWeight[k] * w2;
     }
+
+    // if input does not have negative values, clip to zero:
+    if (!bspline->srcneg && interpolated < 0.0)
+      interpolated = 0.0;
   
     valvect[f] = interpolated;
   } 
