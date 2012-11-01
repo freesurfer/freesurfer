@@ -15,8 +15,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2012/05/15 19:36:38 $
- *    $Revision: 1.10 $
+ *    $Date: 2012/11/01 18:46:17 $
+ *    $Revision: 1.11 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -1760,6 +1760,7 @@ extern MRI_BSPLINE* MRItoBSpline (const MRI	*mri_src,	MRI_BSPLINE *bspline, int 
   
   bspline->degree = degree;
   bspline->srctype = mri_src->type;
+  bspline->srcneg = FALSE;
   
   if (bspline->coeff->type != MRI_FLOAT)
   {
@@ -1810,6 +1811,21 @@ extern MRI_BSPLINE* MRItoBSpline (const MRI	*mri_src,	MRI_BSPLINE *bspline, int 
     {
       //printf("f: %i  z: %i  y: %i\n",f,z,y);
       getXLine(mri_src, y,z,f, Lines[tid]);
+    
+      // check if we have a negative value 
+      // needs to be done only once and only if we did not find one already 
+      if (!bspline->srcneg) 
+      {
+        for (x=0; x< Width; x++)
+        {
+          if (Lines[tid][x] < 0.0)
+          {
+            bspline->srcneg = TRUE; //write to shared, racing OK (only set to true)
+            break;
+          }
+        }
+      }
+
       if (Width > 1)
       {
         ConvertToInterpolationCoefficients(Lines[tid], Width, Pole, NbPoles, DBL_EPSILON);
@@ -2023,6 +2039,10 @@ extern int	MRIsampleBSpline
     }
 		interpolated += zWeight[k] * w2;
   }
+  
+  // if input does not have negative values, clip to zero:
+  if (!bspline->srcneg && interpolated < 0.0)
+    interpolated = 0.0;
   
 /*  // clip interpolation to limits:
   // removed (let the caller decide)
