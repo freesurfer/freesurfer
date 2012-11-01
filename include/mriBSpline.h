@@ -15,8 +15,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2012/11/01 18:45:57 $
- *    $Revision: 1.5 $
+ *    $Date: 2012/11/01 19:03:46 $
+ *    $Revision: 1.6 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -62,7 +62,7 @@ int MRIfreeBSpline(MRI_BSPLINE **pbspline) ;
 
 /** Compute B-spline coefficients from image (step 1)
     bspline needs to be same dim as mri_src or NULL. */
-MRI_BSPLINE* MRItoBSpline (const MRI*mri_src,	MRI_BSPLINE *bspline, int degree);
+MRI_BSPLINE* MRItoBSpline (const MRI *mri_src, MRI_BSPLINE *bspline, int degree);
 
 /** Based on pre-computed B-spline coefficients interpolate image */
 int MRIsampleBSpline(const MRI_BSPLINE * bspline, double x, double y, double z, int frame, double *pval);
