@@ -11,9 +11,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2012/10/17 22:06:51 $
- *    $Revision: 1.134 $
+ *    $Author: fischl $
+ *    $Date: 2012/11/02 15:13:10 $
+ *    $Revision: 1.135 $
  *
  * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -56,7 +56,7 @@
 #define CONTRAST_FLAIR 2
 
 static char vcid[] =
-  "$Id: mris_make_surfaces.c,v 1.134 2012/10/17 22:06:51 nicks Exp $";
+  "$Id: mris_make_surfaces.c,v 1.135 2012/11/02 15:13:10 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -122,8 +122,8 @@ static LABEL *highres_label = NULL ;
 static char T1_name[STRLEN] = "brain" ;
 
 static float nsigma = 2.0 ;
-static float nsigma_above = 2.0 ;
-static float nsigma_below = 2.0 ;
+static float nsigma_above = 3.0 ;
+static float nsigma_below = 3.0 ;
 static int remove_contra = 1 ;
 static char *write_aseg_fname = NULL ;
 static char *white_fname = NULL ;
@@ -149,7 +149,7 @@ static char *wm_name = "wm" ;
 static int auto_detect_stats = 1 ;
 static char *dura_echo_name = NULL ;
 static char *T2_name = NULL ;
-static char *flair_name = NULL ;
+static char *flair_or_T2_name = NULL ;
 static int nechos = 0 ;
 
 static int in_out_in_flag = 0 ;  /* for Arthur (as are most things) */
@@ -265,13 +265,13 @@ main(int argc, char *argv[])
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mris_make_surfaces.c,v 1.134 2012/10/17 22:06:51 nicks Exp $",
+   "$Id: mris_make_surfaces.c,v 1.135 2012/11/02 15:13:10 fischl Exp $",
    "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mris_make_surfaces.c,v 1.134 2012/10/17 22:06:51 nicks Exp $",
+           "$Id: mris_make_surfaces.c,v 1.135 2012/11/02 15:13:10 fischl Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
   {
@@ -803,7 +803,7 @@ main(int argc, char *argv[])
       {
         fix_midline(mris, mri_aseg, mri_T1, hemi, GRAY_WHITE, 0) ;
       }
-      if (flair_name == NULL) // otherwise already done
+      if (flair_or_T2_name == NULL) // otherwise already done
         MRIScomputeBorderValues
         (mris, mri_T1, mri_smooth, max_gray,
          max_gray_at_csf_border, min_gray_at_csf_border,
@@ -992,7 +992,7 @@ main(int argc, char *argv[])
         MRIfree(&mri_bin) ;
       }
     }
-    else if (flair_name == NULL) // otherwise already done
+    else if (flair_or_T2_name == NULL) // otherwise already done
 
     {
       MRIScomputeBorderValues(mris, mri_T1, mri_smooth,
@@ -1355,7 +1355,7 @@ main(int argc, char *argv[])
          n_averages >= min_pial_averages ;
          n_averages /= 2, current_sigma /= 2, i++)
     {
-      if (flair_name)
+      if (flair_or_T2_name)
       {
         MRI  *mri_flair = NULL ;
         int n = 0 ;
@@ -1363,24 +1363,17 @@ main(int argc, char *argv[])
         int               nlabels ;
         char             fname[STRLEN] ;
 
-        strcpy(fname, flair_name) ;
+        strcpy(fname, flair_or_T2_name) ;
         if (MGZ)
-        {
           strcat(fname, ".mgz");
-        }
-        printf("removing non-brain from pial surface "
-               "locations using flair volume %s\n", fname) ;
+
+        printf("repositioning pial surface locations using  %s\n", fname) ;
         if (mri_flair)  // first time
-        {
           MRIfree(&mri_flair) ;
-        }
+
         mri_flair = MRIread(fname) ;
         if (mri_flair == NULL)
-        {
-          ErrorExit(ERROR_NOFILE,
-                    "%s: could not load flair volume %s",
-                    Progname, fname) ;
-        }
+          ErrorExit(ERROR_NOFILE, "%s: could not load flair volume %s", Progname, fname) ;
 
 
         if (read_pinch_fname)
@@ -1455,9 +1448,8 @@ main(int argc, char *argv[])
           MRIScomputeMetricProperties(mris) ;
         }
         else
-        {
           nlabels = 0 ;
-        }
+
         compute_pial_target_locations(mris, mri_flair,
                                       nsigma_below, nsigma_above,
                                       labels, nlabels,
@@ -1595,8 +1587,8 @@ main(int argc, char *argv[])
           MRISwrite(mris, fname) ;
           MRISrestoreVertexPositions(mris, TMP_VERTICES) ;
         }
-        parms.l_histo = 1 ;
-//  parms.l_location = 1 ;
+//        parms.l_histo = 1 ;
+	parms.l_location = 1 ;
         parms.l_intensity = 0 ;
         parms.l_nspring *= 0.1 ;
         parms.l_tspring *= 0.1 ;
@@ -1681,7 +1673,7 @@ main(int argc, char *argv[])
           MRIfree(&mri_bin) ;
         }
       }
-      else if (flair_name == NULL) // otherwise already done
+      else if (flair_or_T2_name == NULL) // otherwise already done
       {
         MRIScomputeBorderValues
         (mris, mri_T1, mri_smooth, max_gray,
@@ -1832,7 +1824,7 @@ main(int argc, char *argv[])
 
       parms.n_averages = n_averages ;
       MRISprintTessellationStats(mris, stderr) ;
-      if (flair_name == NULL) // otherwise already done
+      if (flair_or_T2_name == NULL) // otherwise already done
         MRIScomputeBorderValues
         (mris, mri_T1, mri_smooth, MAX_WHITE,
          max_border_white, min_border_white,
@@ -2009,18 +2001,19 @@ get_option(int argc, char *argv[])
             nechos, dura_echo_name) ;
     nargs = 2 ;
   }
-  else if (!stricmp(option, "T2dura"))
+  else if (!stricmp(option, "T2dura") || !stricmp(option, "T2"))
   {
-    T2_name = argv[2] ;
+    flair_or_T2_name = argv[2] ;
+//    T2_name = argv[2] ;
     fprintf(stderr,
-            "detecting dura using T2 volume %s\n", T2_name) ;
+            "refining pial surfaces placement using T2 volume %s\n", flair_or_T2_name) ;
     nargs = 1 ;
   }
   else if (!stricmp(option, "flair"))
   {
-    flair_name = argv[2] ;
+    flair_or_T2_name = argv[2] ;
     fprintf(stderr,
-            "deforming surfaces based on FLAIR voluem %s\n", flair_name) ;
+            "deforming surfaces based on FLAIR volume %s\n", flair_or_T2_name) ;
     nargs = 1 ;
   }
   else if (!stricmp(option, "cortex"))
