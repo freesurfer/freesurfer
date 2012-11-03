@@ -8,8 +8,8 @@
 # Original Author: Anastasia Yendiki
 # CVS Revision Info:
 #    $Author: ayendiki $
-#    $Date: 2012/10/26 20:37:59 $
-#    $Revision: 1.43 $
+#    $Date: 2012/11/03 21:09:58 $
+#    $Revision: 1.44 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -25,7 +25,7 @@
 
 umask 002
 
-set VERSION = '$Id: trac-all,v 1.43 2012/10/26 20:37:59 ayendiki Exp $'
+set VERSION = '$Id: trac-all,v 1.44 2012/11/03 21:09:58 ayendiki Exp $'
 set ProgName = `basename $0`
 set inputargs = ($argv)
 
@@ -145,8 +145,9 @@ set avgname = ()
 set reinit = 0
 set usetrunc = 1
 set do1out = 0
-set doprior = 0
+set doxyzprior = 0
 set dosegprior = 1
+set dotangprior = 0
 set dopathsubdirs = 0
 set nstick = 2
 set fmin = 0.05
@@ -425,8 +426,9 @@ foreach isubj ($runlist)
   echo "set avgname = ($avgname)"					>> $RCF
   echo "set reinit = ($reinit)"						>> $RCF
   echo "set usetrunc = ($usetrunc)"					>> $RCF
-  echo "set doprior = ($doprior)"					>> $RCF
+  echo "set doxyzprior = ($doxyzprior)"					>> $RCF
   echo "set dosegprior = ($dosegprior)"					>> $RCF
+  echo "set dotangprior = ($dotangprior)"				>> $RCF
   echo "set dopathsubdirs = ($dopathsubdirs)"				>> $RCF
   echo "set nstick = ($nstick)"						>> $RCF
   echo "set fmin = ($fmin)"						>> $RCF
