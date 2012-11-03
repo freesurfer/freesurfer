@@ -1,5 +1,5 @@
 /**
- * @file  dmri_spline.c
+ * @file  dmri_spline.cxx
  * @brief Interpolate a spline from its control points
  *
  * Interpolate a spline from its control points
@@ -8,8 +8,8 @@
  * Original Author: Anastasia Yendiki
  * CVS Revision Info:
  *    $Author: ayendiki $
- *    $Date: 2012/07/18 16:44:56 $
- *    $Revision: 1.6 $
+ *    $Date: 2012/11/03 21:06:10 $
+ *    $Revision: 1.7 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -57,22 +57,21 @@ using namespace std;
 
 static int  parse_commandline(int argc, char **argv);
 static void check_options(void);
-static void print_usage(void) ;
+static void print_usage(void);
 static void usage_exit(void);
-static void print_help(void) ;
-static void print_version(void) ;
-static void dump_options(FILE *fp);
+static void print_help(void);
+static void print_version(void);
+static void dump_options();
 
 int debug = 0, checkoptsonly = 0;
 
-int main(int argc, char *argv[]) ;
+int main(int argc, char *argv[]);
 
 static char vcid[] = "";
 const char *Progname = "dmri_spline";
 
 char *inFile = NULL, *maskFile = NULL,
      *outVolFile = NULL, *outTextFile = NULL, *outVecBase = NULL;
-//char *inFiles[50];
 
 struct utsname uts;
 char *cmdline, cwd[2000];
@@ -91,11 +90,11 @@ int main(int argc, char **argv) {
   uname(&uts);
   getcwd(cwd, 2000);
 
-  Progname = argv[0] ;
+  Progname = argv[0];
   argc --;
   argv++;
-  ErrorInit(NULL, NULL, NULL) ;
-  DiagInit(NULL, NULL, NULL) ;
+  ErrorInit(NULL, NULL, NULL);
+  DiagInit(NULL, NULL, NULL);
 
   if (argc == 0) usage_exit();
 
@@ -103,7 +102,7 @@ int main(int argc, char **argv) {
   check_options();
   if (checkoptsonly) return(0);
 
-  dump_options(stdout);
+  dump_options();
 
   Spline myspline(inFile, maskFile);
 
@@ -183,8 +182,8 @@ static int parse_commandline(int argc, char **argv) {
 
     nargsused = 0;
 
-    if (!strcasecmp(option, "--help"))  print_help() ;
-    else if (!strcasecmp(option, "--version")) print_version() ;
+    if (!strcasecmp(option, "--help"))  print_help();
+    else if (!strcasecmp(option, "--version")) print_version();
     else if (!strcasecmp(option, "--debug"))   debug = 1;
     else if (!strcasecmp(option, "--checkopts"))   checkoptsonly = 1;
     else if (!strcasecmp(option, "--nocheckopts")) checkoptsonly = 0;
@@ -226,84 +225,92 @@ static int parse_commandline(int argc, char **argv) {
 }
 
 /* --------------------------------------------- */
-static void print_usage(void) 
-{
-  printf("\n");
-  printf("USAGE: ./dmri_spline\n");
-  printf("\n");
-  printf("   --cpts   <file>: input text file containing control points\n");
-  printf("   --mask   <file>: input mask volume\n");
-  printf("   --out    <file>: output spline volume\n");
-  printf("   --outpts <file>: output text file containing all spline points\n");
-  printf("   --outvec <base>: base name of output text files containing the\n");
-  printf("                    tangent vectors, normal vectors, and curvatures\n");
-  printf("                    of the spline at every point along the spline\n");
-  printf("                    (both analytical and finite-difference version)\n");
-  printf("\n");
-  printf("   --debug:     turn on debugging\n");
-  printf("   --checkopts: don't run anything, just check options and exit\n");
-  printf("   --help:      print out information on how to use this program\n");
-  printf("   --version:   print out version and exit\n");
-  printf("\n");
+static void print_usage(void) {
+  cout
+  << endl << "USAGE: " << Progname << endl << endl
+  << "Basic inputs" << endl
+  << "   --cpts <file>:" << endl
+  << "     Input text file containing control points" << endl
+  << "   --mask <file>:" << endl
+  << "     Input mask volume (spline is not allowed to stray off mask)" << endl
+  << endl 
+  << "Outputs (at least one output type must be specified)" << endl
+  << "   --out <file>:" << endl
+  << "     Output volume of the interpolated spline" << endl
+  << "   --outpts <file>:" << endl
+  << "     Output text file containing all interpolated spline points" << endl
+  << "   --outvec <base>:" << endl
+  << "     Base name of output text files containing tangent vectors," << endl
+  << "     normal vectors, and curvatures at every point along the" << endl
+  << "     spline (both analytical and finite-difference versions)" << endl
+  << endl
+  << "Other options" << endl
+  << "   --debug:     turn on debugging" << endl
+  << "   --checkopts: don't run anything, just check options and exit" << endl
+  << "   --help:      print out information on how to use this program" << endl
+  << "   --version:   print out version and exit" << endl
+  << endl;
 }
 
 /* --------------------------------------------- */
 static void print_help(void) {
-  print_usage() ;
-  printf("\n");
-  printf("...\n");
-  printf("\n");
-  exit(1) ;
+  print_usage();
+
+  cout << endl
+       << "..." << endl
+       << endl;
+
+  exit(1);
 }
 
 /* ------------------------------------------------------ */
 static void usage_exit(void) {
-  print_usage() ;
-  exit(1) ;
+  print_usage();
+  exit(1);
 }
 
 /* --------------------------------------------- */
 static void print_version(void) {
-  printf("%s\n", vcid) ;
-  exit(1) ;
+  cout << vcid << endl;
+  exit(1);
 }
 
 /* --------------------------------------------- */
 static void check_options(void) {
   if(!inFile) {
-    printf("ERROR: must specify input text file\n");
+    cout << "ERROR: Must specify input text file" << endl;
     exit(1);
   }
   if(!maskFile) {
-    printf("ERROR: must specify mask volume\n");
+    cout << "ERROR: Must specify mask volume" << endl;
     exit(1);
   }
   if(!outVolFile && !outTextFile && !outVecBase) {
-    printf("ERROR: must specify at least one type of output file\n");
+    cout << "ERROR: Must specify at least one type of output file" << endl;
     exit(1);
   }
   return;
 }
 
 /* --------------------------------------------- */
-static void dump_options(FILE *fp) {
-  fprintf(fp,"\n");
-  fprintf(fp,"%s\n",vcid);
-  fprintf(fp,"cwd %s\n",cwd);
-  fprintf(fp,"cmdline %s\n",cmdline);
-  fprintf(fp,"sysname  %s\n",uts.sysname);
-  fprintf(fp,"hostname %s\n",uts.nodename);
-  fprintf(fp,"machine  %s\n",uts.machine);
-  fprintf(fp,"user     %s\n",VERuser());
+static void dump_options() {
+  cout << endl
+       << vcid << endl
+       << "cwd " << cwd << endl
+       << "cmdline " << cmdline << endl
+       << "sysname  " << uts.sysname << endl
+       << "hostname " << uts.nodename << endl
+       << "machine  " << uts.machine << endl
+       << "user     " << VERuser() << endl;
 
-  fprintf(fp, "Control points: %s\n", inFile);
-  fprintf(fp, "Mask volume: %s\n", maskFile);
+  cout << "Control points: " << inFile << endl;
+  cout << "Mask volume: " << maskFile << endl;
   if (outVolFile)
-    fprintf(fp, "Output volume: %s\n", outVolFile);
+    cout << "Output volume: " << outVolFile << endl;
   if (outTextFile)
-    fprintf(fp, "Output text file: %s\n", outTextFile);
+    cout << "Output text file: " << outTextFile << endl;
   if (outVecBase)
-    fprintf(fp, "Output tangent vector file base name: %s\n", outVecBase);
+    cout << "Output tangent vector file base name: " << outVecBase << endl;
 
   return;
 }

@@ -33,6 +33,15 @@
 #include <math.h>
 #include "mri.h"
 
+void CurveFiniteDifferences(std::vector<float> &DiffPoints,
+                            const std::vector<float> &CurvePoints,
+                            const unsigned int DiffStep);
+
+void CurveSmooth(std::vector<float> &SmoothPoints,
+                 const std::vector<int> &DiscretePoints);
+
+std::vector<int> CurveFill(const std::vector<int> &InPoints);
+
 class Spline {
   public:
     Spline(const char *ControlPointFile, const char *MaskFile);

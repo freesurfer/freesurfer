@@ -24,6 +24,140 @@
 
 using namespace std;
 
+//
+// Compute finite differences of a curve
+// This is used for computing tangent vectors and curvatures of streamlines
+//
+void CurveFiniteDifferences(vector<float> &DiffPoints,
+                            const vector<float> &CurvePoints,
+                            const unsigned int DiffStep) {
+  const unsigned int ds2 = 2 * DiffStep,
+                     offset = 3 * DiffStep;
+  vector<float>::const_iterator ipt;
+  vector<float>::iterator iout;
+  vector<float> diff(CurvePoints.size());
+
+  if (DiffPoints.size() != CurvePoints.size()) {
+    cout << "ERROR: Input and output vector sizes do not match" << endl;
+    exit(1);
+  }
+
+  // Approximate derivatives by 2nd-order central finite differences,
+  // everywhere except at the start and end of the spline, where 1st-order
+  // forward and backward finite differences are used, respectively
+  ipt = CurvePoints.begin();
+  iout = diff.begin();
+
+  for ( ; ipt < CurvePoints.begin() + offset; ipt++) {
+    *iout = (*(ipt + offset) - *ipt) / (float) DiffStep;
+    iout++;
+  }
+
+  for ( ; ipt < CurvePoints.end() - offset; ipt++) {
+    *iout = (*(ipt + offset) - *(ipt - offset)) / (float) ds2;
+    iout++;
+  }
+
+  for ( ; ipt < CurvePoints.end(); ipt++) {
+    *iout = (*ipt - *(ipt - offset)) / (float) DiffStep;
+    iout++;
+  }
+
+  // Smooth finite differences
+  ipt = diff.begin();
+  iout = DiffPoints.begin();
+
+  for ( ; ipt < diff.begin() + 3; ipt++) {
+    *iout = (*ipt + *(ipt+3)) / 2.0;
+    iout++;
+  }
+
+  for ( ; ipt < diff.end() - 3; ipt++) {
+    *iout = (*(ipt-3) + *ipt + *(ipt+3)) / 3.0;
+    iout++;
+  }
+
+  for ( ; ipt < diff.end(); ipt++) {
+    *iout = (*(ipt-3) + *ipt) / 2.0;
+    iout++;
+  }
+}
+
+//
+// Smooth a curve
+// This is used before computing finite differences on a streamline
+//
+void CurveSmooth(vector<float> &SmoothPoints,
+                 const vector<int> &DiscretePoints) {
+  vector<int>::const_iterator ipt = DiscretePoints.begin();
+  vector<float>::iterator ismooth = SmoothPoints.begin();
+
+  if (SmoothPoints.size() != DiscretePoints.size()) {
+    cout << "ERROR: Input and output vector sizes do not match" << endl;
+    exit(1);
+  }
+
+  for ( ; ipt < DiscretePoints.begin() + 3; ipt++) {
+    *ismooth = (float) *ipt;
+    ismooth++;
+  }
+
+  for ( ; ipt < DiscretePoints.end() - 3; ipt++) {
+    *ismooth = (*(ipt-3) + 2 * (*ipt) + *(ipt+3)) / 4.0;
+    ismooth++;
+  }
+
+  for ( ; ipt < DiscretePoints.end(); ipt++) {
+    *ismooth = (float) *ipt;
+    ismooth++;
+  }
+}
+
+//
+// Fill gaps between the points of a curve
+// Gaps could result after mapping a curve's points to a higher-resolution space
+//
+vector<int> CurveFill(const vector<int> &InPoints) {
+  vector<int> outpts;
+  vector<float> point(3), step(3,0);
+
+  for (vector<int>::const_iterator ipt = InPoints.begin(); ipt < InPoints.end();
+                                                           ipt += 3) {
+    float dmax = 1;		// This will not remove duplicate points
+
+    if (ipt < InPoints.end() - 3) {
+      // Calculate step for filling in gap between points
+      for (int k = 0; k < 3; k++) {
+        float dist = ipt[k+3] - ipt[k];
+
+        step[k] = dist;
+        dist = fabs(dist);
+
+        if (dist > dmax)
+          dmax = dist;
+      }
+
+      if (dmax > 0)
+        for (int k = 0; k < 3; k++)
+          step[k] /= dmax;
+    }
+
+    for (int k = 0; k < 3; k++)
+      point[k] = (float) ipt[k];
+
+    for (int istep = (int) round(dmax); istep > 0; istep--)
+      for (int k = 0; k < 3; k++) {
+        outpts.push_back((int) round(point[k]));
+        point[k] += step[k];
+      }
+  }
+
+  return outpts;
+}
+
+//
+// Catmull-Rom cubic spline class
+//
 Spline::Spline(const char *ControlPointFile, const char *MaskFile) {
   ReadControlPoints(ControlPointFile);
   ReadMask(MaskFile);
@@ -453,76 +587,17 @@ void Spline::ComputeTangent(const bool DoAnalytical) {
     id1 = mDerivative1.begin();
   }
   else {		// Approximate using finite differences
-    const unsigned int dt = 3,
-                       dt2 = 2 * dt,
-                       offset = 3 * dt;
-    vector<int>::const_iterator ipt;
-    vector<float>::const_iterator iptsm;
-    vector<float>::iterator ismooth, idiff;
-    vector<float> vecsmooth(mAllPoints.size());
+    const unsigned int diffstep = 3;
+    vector<float> smoothpts(mAllPoints.size());
 
     mFiniteDifference1.resize(mAllPoints.size());
 
     // Smooth discrete point coordinates
-    ipt = mAllPoints.begin();
-    ismooth = vecsmooth.begin();
+    CurveSmooth(smoothpts, mAllPoints);
 
-    for ( ; ipt < mAllPoints.begin() + 3; ipt++) {
-      *ismooth = (float) *ipt;
-      ismooth++;
-    }
-
-    for ( ; ipt < mAllPoints.end() - 3; ipt++) {
-      *ismooth = (*(ipt-3) + 2 * (*ipt) + *(ipt+3)) / 4.0;
-      ismooth++;
-    }
-  
-    for ( ; ipt < mAllPoints.end(); ipt++) {
-      *ismooth = (float) *ipt;
-      ismooth++;
-    }
-
-    // Approximate derivatives by 2nd-order central finite differences,
-    // everywhere except at the start and end of the spline, where 1st-order
-    // forward and backward finite differences are used, respectively
-    iptsm = vecsmooth.begin();
-    idiff = mFiniteDifference1.begin();
-
-    for ( ; iptsm < vecsmooth.begin() + offset; iptsm++) {
-      *idiff = (*(iptsm + offset) - *iptsm) / (float) dt;
-      idiff++;
-    }
-
-    for ( ; iptsm < vecsmooth.end() - offset; iptsm++) {
-      *idiff = (*(iptsm + offset) - *(iptsm - offset)) / (float) dt2;
-      idiff++;
-    }
-
-    for ( ; iptsm < vecsmooth.end(); iptsm++) {
-      *idiff = (*iptsm - *(iptsm - offset)) / (float) dt;
-      idiff++;
-    }
-
-    // Smooth finite differences
-    idiff = mFiniteDifference1.begin();
-    ismooth = vecsmooth.begin();
-
-    for ( ; idiff < mFiniteDifference1.begin() + 3; idiff++) {
-      *ismooth = (*idiff + *(idiff+3)) / 2.0;
-      ismooth++;
-    }
-
-    for ( ; idiff < mFiniteDifference1.end() - 3; idiff++) {
-      *ismooth = (*(idiff-3) + *idiff + *(idiff+3)) / 3.0;
-      ismooth++;
-    }
-  
-    for ( ; idiff < mFiniteDifference1.end(); idiff++) {
-      *ismooth = (*(idiff-3) + *idiff) / 2.0;
-      ismooth++;
-    }
-  
-    copy(vecsmooth.begin(), vecsmooth.end(), mFiniteDifference1.begin());
+    // Approximate first derivative by smoothed finite differences 
+    // of the point coordinates
+    CurveFiniteDifferences(mFiniteDifference1, smoothpts, diffstep);
 
     id1 = mFiniteDifference1.begin();
   }
@@ -581,56 +656,13 @@ void Spline::ComputeNormal(const bool DoAnalytical) {
     id2 = mDerivative2.begin();
   }
   else {		// Approximate using finite differences
-    const unsigned int dt = 3,
-                       dt2 = 2 * dt,
-                       offset = 3 * dt;
-    vector<float>::const_iterator ipt;
-    vector<float>::iterator ismooth, idiff;
-    vector<float> vecsmooth(mAllPoints.size());
+    const unsigned int diffstep = 3;
 
-    mFiniteDifference2.resize(vecsmooth.size());
+    mFiniteDifference2.resize(mFiniteDifference1.size());
 
-    // Approximate derivatives by 2nd-order central finite differences,
-    // everywhere except at the start and end of the spline, where 1st-order
-    // forward and backward finite differences are used, respectively
-    ipt = mFiniteDifference1.begin();
-    idiff = mFiniteDifference2.begin();
-
-    for ( ; ipt < mFiniteDifference1.begin() + offset; ipt++) {
-      *idiff = (*(ipt + offset) - *ipt) / (float) dt;
-      idiff++;
-    }
-
-    for ( ; ipt < mFiniteDifference1.end() - offset; ipt++) {
-      *idiff = (*(ipt + offset) - *(ipt - offset)) / (float) dt2;
-      *idiff++;
-    }
-
-    for ( ; ipt < mFiniteDifference1.end(); ipt++) {
-      *idiff = (*ipt - *(ipt - offset)) / (float) dt;
-      idiff++;
-    }
-
-    // Smooth finite differences
-    idiff = mFiniteDifference2.begin();
-    ismooth = vecsmooth.begin();
-
-    for ( ; idiff < mFiniteDifference2.begin() + 3; idiff++) {
-      *ismooth = (*idiff + *(idiff+3)) / 2.0;
-      ismooth++;
-    }
-
-    for ( ; idiff < mFiniteDifference2.end() - 3; idiff++) {
-      *ismooth = (*(idiff-3) + *idiff + *(idiff+3)) / 3.0;
-      ismooth++;
-    }
-  
-    for ( ; idiff < mFiniteDifference2.end(); idiff++) {
-      *ismooth = (*(idiff-3) + *idiff) / 2.0;
-      ismooth++;
-    }
-  
-    copy(vecsmooth.begin(), vecsmooth.end(), mFiniteDifference2.begin());
+    // Approximate second derivative by smoothed finite differences 
+    // of the first derivative
+    CurveFiniteDifferences(mFiniteDifference2, mFiniteDifference1, diffstep);
 
     id2 = mFiniteDifference2.begin();
   }

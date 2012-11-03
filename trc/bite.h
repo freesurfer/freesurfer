@@ -44,10 +44,10 @@ class Bite {
     static std::vector<float> mGradients,	// [3 x mNumDir]
                               mBvalues;		// [mNumDir]
 
-    bool mIsPriorSet;
+    bool mIsAtlasSet;
     int mCoordX, mCoordY, mCoordZ, mPathTract;
-    float mS0, mD, mPathPrior0, mPathPrior1,
-          mLikelihood0, mLikelihood1, mPrior0, mPrior1;
+    float mS0, mD, mLikelihood0, mLikelihood1, mPrior0, mPrior1;
+    std::vector<int> mAtlasCoords;	// [3]
     std::vector<float> mDwi;		// [mNumDir]
     std::vector<float> mPhiSamples;	// [mNumTract x mNumBedpost]
     std::vector<float> mThetaSamples;	// [mNumTract x mNumBedpost]
@@ -64,10 +64,6 @@ class Bite {
     static int GetNumB0();
     static int GetNumBedpost();
 
-    bool IsPriorSet();
-    void SetPrior(MRI *Prior0, MRI *Prior1,
-                  int CoordX, int CoordY, int CoordZ);
-    void ResetPrior();
     void SampleParameters();
     void ComputeLikelihoodOffPath();
     void ComputeLikelihoodOnPath(float PathPhi, float PathTheta);
@@ -75,12 +71,13 @@ class Bite {
     void ChoosePathTractLike(float PathPhi, float PathTheta);
     void ComputePriorOffPath();
     void ComputePriorOnPath();
+    bool IsAtlasSet();
+    void SetAtlasCoords(std::vector<int>::const_iterator AtlasCoords);
+    void GetAtlasCoords(std::vector<int>::iterator AtlasCoords);
     bool IsFZero();
     bool IsThetaZero();
     float GetLikelihoodOffPath();
     float GetLikelihoodOnPath();
-    float GetPathPriorOffPath();
-    float GetPathPriorOnPath();
     float GetPriorOffPath();
     float GetPriorOnPath();
     float GetPosteriorOffPath();

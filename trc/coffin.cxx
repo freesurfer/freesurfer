@@ -24,7 +24,12 @@
 
 using namespace std;
 
-Coffin::Coffin(const char *OutDir, const char *DwiFile,
+const unsigned int Coffin::mDiffStep = 3;
+const float Coffin::mTangentBinSize = 0.1,
+            Coffin::mCurvatureBinSize = 0.002;
+
+Coffin::Coffin(const char *OutDir, const vector<char *> InDir,
+        const char *DwiFile,
         const char *GradientFile, const char *BvalueFile,
         const char *MaskFile, const char *BedpostDir,
         const int NumTract, const float FminPath,
@@ -32,9 +37,12 @@ Coffin::Coffin(const char *OutDir, const char *DwiFile,
         const char *RoiFile1, const char *RoiFile2,
         const char *RoiMeshFile1, const char *RoiMeshFile2,
         const char *RoiRefFile1, const char *RoiRefFile2,
-        const char *PriorFile0, const char *PriorFile1,
+        const char *XyzPriorFile0, const char *XyzPriorFile1,
+        const char *TangPriorFile, const char *CurvPriorFile,
         const char *NeighPriorFile, const char *NeighIdFile,
+        const int NeighPriorSet, 
         const char *LocalPriorFile, const char *LocalIdFile,
+        const int LocalPriorSet, 
         const char *AsegFile,
         const char *AffineXfmFile, const char *NonlinXfmFile,
         const int NumBurnIn, const int NumSample,
@@ -42,8 +50,9 @@ Coffin::Coffin(const char *OutDir, const char *DwiFile,
         const char *PropStdFile,
         const bool Debug) :
         mDebug(Debug),
+        mPriorSetLocal(LocalPriorSet), mPriorSetNear(NeighPriorSet),
         mMask(0), mRoi1(0), mRoi2(0),
-        mPathPrior0(0), mPathPrior1(0),
+        mXyzPrior0(0), mXyzPrior1(0),
         mAseg(0),
         mPathSamples(0),
         mSpline(InitFile, MaskFile) {
@@ -53,6 +62,13 @@ Coffin::Coffin(const char *OutDir, const char *DwiFile,
   ostringstream infostr;
 
   // Save input info for logging
+  if (!InDir.empty()) {
+    infostr << "Input directory: ";
+    for (vector<char *>::const_iterator idir = InDir.begin();
+                                        idir < InDir.end(); idir++)
+      infostr << " " << *idir;
+    infostr << endl;
+  }
   infostr  << "DWIs: " << DwiFile << endl
            << "Gradients: " << GradientFile << endl
            << "B-values: " << BvalueFile << endl
@@ -230,7 +246,8 @@ exit(1);
   // Set variables specific to pathway
   SetPathway(InitFile, RoiFile1, RoiFile2,
              RoiMeshFile1, RoiMeshFile2, RoiRefFile1, RoiRefFile2,
-             PriorFile0, PriorFile1,
+             XyzPriorFile0, XyzPriorFile1,
+             TangPriorFile, CurvPriorFile,
              NeighPriorFile, NeighIdFile,
              LocalPriorFile, LocalIdFile);
 
@@ -245,9 +262,9 @@ Coffin::~Coffin() {
   MRIfree(&mRoi1);
   MRIfree(&mRoi2);
 
-  if (mPathPrior0) {
-    MRIfree(&mPathPrior0);
-    MRIfree(&mPathPrior1);
+  if (mXyzPrior0) {
+    MRIfree(&mXyzPrior0);
+    MRIfree(&mXyzPrior1);
   }
 
   if (mAseg)
@@ -281,7 +298,8 @@ void Coffin::SetPathway(const char *InitFile,
                         const char *RoiFile1, const char *RoiFile2,
                         const char *RoiMeshFile1, const char *RoiMeshFile2,
                         const char *RoiRefFile1, const char *RoiRefFile2,
-                        const char *PriorFile0, const char *PriorFile1,
+                        const char *XyzPriorFile0, const char *XyzPriorFile1,
+                        const char *TangPriorFile, const char *CurvPriorFile,
                         const char *NeighPriorFile, const char *NeighIdFile,
                         const char *LocalPriorFile, const char *LocalIdFile) {
   int dirs[45] = { 0,  0,  0,
@@ -313,9 +331,13 @@ void Coffin::SetPathway(const char *InitFile,
   if (RoiMeshFile2)
     infostr << "End ROI 2 mesh: " << RoiMeshFile2 << endl
             << "End ROI 2 reference volume: " << RoiRefFile2 << endl;
-  if (PriorFile0)
-    infostr << "Spatial prior (off path): " << PriorFile0 << endl
-            << "Spatial prior (on path): " << PriorFile1 << endl;
+  if (XyzPriorFile0)
+    infostr << "Spatial prior (off path): " << XyzPriorFile0 << endl
+            << "Spatial prior (on path): " << XyzPriorFile1 << endl;
+  if (TangPriorFile)
+    infostr << "Tangent prior: " << TangPriorFile << endl;
+  if (CurvPriorFile)
+    infostr << "Curvature prior: " << CurvPriorFile << endl;
   if (NeighPriorFile)
     infostr << "Neighbor aseg prior: " << NeighPriorFile << endl
             << "Neighbor aseg label ID list: " << NeighIdFile << endl;
@@ -367,33 +389,112 @@ void Coffin::SetPathway(const char *InitFile,
   }
 
   // Read spatial path priors
-  if (PriorFile0 && PriorFile1) {
-    if (mPathPrior0)
-      MRIfree(&mPathPrior0);
+  if (XyzPriorFile0 && XyzPriorFile1) {
+    if (mXyzPrior0)
+      MRIfree(&mXyzPrior0);
 
-    cout << "Loading spatial path prior from " << PriorFile0 << endl;
-    mPathPrior0 = MRIread(PriorFile0);
-    if (!mPathPrior0) {
-      cout << "ERROR: Could not read " << PriorFile0 << endl;
+    cout << "Loading spatial path prior from " << XyzPriorFile0 << endl;
+    mXyzPrior0 = MRIread(XyzPriorFile0);
+    if (!mXyzPrior0) {
+      cout << "ERROR: Could not read " << XyzPriorFile0 << endl;
       exit(1);
     }
 
-    if (mPathPrior1)
-      MRIfree(&mPathPrior1);
+    if (mXyzPrior1)
+      MRIfree(&mXyzPrior1);
 
-    cout << "Loading spatial path prior from " << PriorFile1 << endl;
-    mPathPrior1 = MRIread(PriorFile1);
-    if (!mPathPrior1) {
-      cout << "ERROR: Could not read " << PriorFile1 << endl;
+    cout << "Loading spatial path prior from " << XyzPriorFile1 << endl;
+    mXyzPrior1 = MRIread(XyzPriorFile1);
+    if (!mXyzPrior1) {
+      cout << "ERROR: Could not read " << XyzPriorFile1 << endl;
       exit(1);
     }
   }
   else {
-    mPathPrior0 = 0;
-    mPathPrior1 = 0;
+    mXyzPrior0 = 0;
+    mXyzPrior1 = 0;
   }
 
   mNumArc = 0;
+
+  // Read path tangent prior
+  if (TangPriorFile) {
+    const int nbin = (int) ceil(2 / mTangentBinSize),
+              nbin2 = nbin*nbin;
+    string prline;
+    ifstream prfile;
+
+    mPriorTangent.clear();
+
+    cout << "Loading tangent prior from " << TangPriorFile << endl;
+
+    prfile.open(TangPriorFile, ios::in);
+    if (!prfile) {
+      cout << "ERROR: Could not open " << TangPriorFile << endl;
+      exit(1);
+    }
+
+    while (getline(prfile, prline)) {
+      float pr;
+      vector<float> prior;
+      istringstream prstr(prline);
+
+      while (prstr >> pr)
+        prior.push_back(pr);
+
+      if (prior.size() != (unsigned int) nbin2) {
+        cout << "ERROR: Line length is " << prior.size()
+             << ", expected" << nbin2 << endl;
+        exit(1);
+      }
+
+      mPriorTangent.push_back(prior);
+    }
+
+    prfile.close();
+
+    mNumArc = (int) mPriorTangent.size();
+  }
+
+  // Read path curvature prior
+  if (CurvPriorFile) {
+    string prline;
+    ifstream prfile;
+
+    mPriorCurvature.clear();
+
+    cout << "Loading curvature prior from " << CurvPriorFile << endl;
+
+    prfile.open(CurvPriorFile, ios::in);
+    if (!prfile) {
+      cout << "ERROR: Could not open " << CurvPriorFile << endl;
+      exit(1);
+    }
+
+    while (getline(prfile, prline)) {
+      float pr;
+      vector<float> prior;
+      istringstream prstr(prline);
+
+      while (prstr >> pr)
+        prior.push_back(pr);
+
+      mPriorCurvature.push_back(prior);
+    }
+
+    prfile.close();
+
+    if (mNumArc == 0)
+      mNumArc = (int) mPriorCurvature.size();
+    else if (mNumArc != (int) mPriorCurvature.size()) {
+      cout << "ERROR: Mismatch between the numbers of arc segments in "
+           << TangPriorFile
+           << " (" << mPriorTangent.size() << "), "
+           << CurvPriorFile
+           << " (" << mPriorCurvature.size() << ")" << endl;
+      exit(1);
+    }
+  }
 
   // Read neighbor aseg priors
   if (NeighPriorFile && NeighIdFile) {
@@ -402,8 +503,10 @@ void Coffin::SetPathway(const char *InitFile,
     mDirNear.clear();
 
     // Directions in which to look for neighboring labels
-    mNumNear = 14;
-    mDirNear.insert(mDirNear.begin(), dirs+3, dirs+45);
+    if (mPriorSetNear == 6)
+      mDirNear.insert(mDirNear.begin(), dirs+3, dirs+21);
+    else if (mPriorSetNear == 14)
+      mDirNear.insert(mDirNear.begin(), dirs+3, dirs+45);
 
     for (vector<int>::const_iterator idir = mDirNear.begin();
                                      idir < mDirNear.end(); idir += 3) {
@@ -458,7 +561,19 @@ void Coffin::SetPathway(const char *InitFile,
       idfile.close();
     }
 
-    mNumArc = (int) (mPriorNear.size() / mNumNear);
+    if (mNumArc == 0)
+      mNumArc = (int) (mPriorNear.size() / mPriorSetNear);
+    else if (mNumArc != (int) (mPriorNear.size() / mPriorSetNear)) {
+      cout << "ERROR: Mismatch between the numbers of arc segments in ";
+      if (TangPriorFile)
+        cout << TangPriorFile
+             << " (" << mPriorTangent.size() << "), ";
+      if (CurvPriorFile)
+        cout << CurvPriorFile
+             << " (" << mPriorCurvature.size() << "), ";
+      cout << NeighPriorFile
+           << " (" << mPriorNear.size()  / mPriorSetNear  << ")" << endl;
+    }
   }
 
   // Read local aseg priors
@@ -468,14 +583,12 @@ void Coffin::SetPathway(const char *InitFile,
     mDirLocal.clear();
 
     // Directions in which to look for neighboring labels
-    if (FileExists(LocalPriorFile)) {
-      mNumLocal = 1;
+    if (mPriorSetLocal == 1)
       mDirLocal.insert(mDirLocal.begin(), dirs, dirs+3);
-    }
-    else {
-      mNumLocal = 15;
+    else if (mPriorSetLocal == 7)
+      mDirLocal.insert(mDirLocal.begin(), dirs, dirs+21);
+    else if (mPriorSetLocal == 15)
       mDirLocal.insert(mDirLocal.begin(), dirs, dirs+45);
-    }
 
     for (vector<int>::const_iterator idir = mDirLocal.begin();
                                      idir < mDirLocal.end(); idir += 3) {
@@ -531,21 +644,23 @@ void Coffin::SetPathway(const char *InitFile,
     }
 
     if (mNumArc == 0)
-      mNumArc = (int) (mPriorLocal.size() / mNumLocal);
-    else if (mNumArc != (int) (mPriorLocal.size() / mNumLocal)) {
-      cout << "ERROR: Mismatch between the numbers of arc segments in "
-           << LocalPriorFile
-           << "* (" << mPriorLocal.size() / mNumLocal << ") and "
-           << NeighPriorFile
-           << "* (" << mPriorNear.size()  / mNumNear  << ")" << endl;
+      mNumArc = (int) (mPriorLocal.size() / mPriorSetLocal);
+    else if (mNumArc != (int) (mPriorLocal.size() / mPriorSetLocal)) {
+      cout << "ERROR: Mismatch between the numbers of arc segments in ";
+      if (TangPriorFile)
+        cout << TangPriorFile
+             << " (" << mPriorTangent.size() << "), ";
+      if (CurvPriorFile)
+        cout << CurvPriorFile
+             << " (" << mPriorCurvature.size() << "), ";
+      if (NeighPriorFile)
+        cout << NeighPriorFile
+             << " (" << mPriorNear.size() / mPriorSetNear << "), ";
+      cout << LocalPriorFile
+           << " (" << mPriorLocal.size() / mPriorSetLocal << ")" << endl;
       exit(1);
     }
   }
-
-  // Clear previously used priors, if any
-  for (vector<Bite>::iterator idat = mData.begin(); idat < mData.end(); idat++)
-    if (idat->IsPriorSet())
-      idat->ResetPrior();
 }
 
 //
@@ -881,6 +996,7 @@ bool Coffin::RunMCMC() {
   ikeep = 1;
   for (int ijump = mNumSample; ijump > 0; ijump--) {
     if (JumpMCMC() || mAcceptF || mAcceptTheta) {	// Accept new path
+      SavePathPosterior(true);
       UpdatePath();
       UpdateAcceptanceRate();
 
@@ -890,6 +1006,7 @@ bool Coffin::RunMCMC() {
       }
     }
     else {						// Reject new path
+      SavePathPosterior(false);
       UpdateRejectionRate();
 
       if (mDebug) {
@@ -912,6 +1029,8 @@ bool Coffin::RunMCMC() {
     else
       ikeep++;
   }
+
+  FindPathMAP();
 
   mLog.flush();
   mLog.close();
@@ -1014,6 +1133,7 @@ bool Coffin::RunMCMC1() {
       mRejectPosterior = false;
 
       if (JumpMCMC1(*icpt) || mAcceptF || mAcceptTheta) {	// Accept point
+        SavePathPosterior(true);
         UpdatePath();
 
         if (mDebug) {
@@ -1023,6 +1143,7 @@ bool Coffin::RunMCMC1() {
         }
       }
       else {							// Reject point
+        SavePathPosterior(false);
         mRejectControl[*icpt] = true;
 
         if (mDebug) {
@@ -1050,6 +1171,8 @@ bool Coffin::RunMCMC1() {
       ikeep++;
   }
 
+  FindPathMAP();
+
   mLog.flush();
   mLog.close();
   return true;
@@ -1059,6 +1182,8 @@ bool Coffin::RunMCMC1() {
 // Initialize path and MCMC proposals
 //
 bool Coffin::InitializeMCMC() {
+  vector<int> atlaspoints;
+  vector<int>::iterator iptatlas;
   vector<float>::iterator phi, theta;
 
   // Initialize control point proposal distribution
@@ -1091,11 +1216,10 @@ bool Coffin::InitializeMCMC() {
   mControlPointsMap.resize(mControlPoints.size());
 
   // Clear saved path samples
+  mPosteriorSamples.clear();
   mControlPointSamples.clear();
   mPathLengthSamples.clear();
-  mLikelihoodOnPathSamples.clear();
-  mPriorOnPathSamples.clear();
-  mPosteriorOnPathSamples.clear();
+  mPathPointSamples.clear();
   MRIclear(mPathSamples);
 
   // Interpolate spline from initial control points
@@ -1134,14 +1258,18 @@ bool Coffin::InitializeMCMC() {
     }
   }
 
-  mSpline.ComputeTangent();
-
   // Get initial path points
   mPathPoints.clear();
-  mPathPoints.insert(mPathPoints.begin(),
-                     mSpline.GetAllPointsBegin(), mSpline.GetAllPointsEnd());
+  mPathPoints.insert(mPathPoints.begin(), mSpline.GetAllPointsBegin(),
+                                          mSpline.GetAllPointsEnd());
 
   // Get initial path tangent angles
+  mSpline.ComputeTangent();
+
+  mPathTangent.clear();
+  mPathTangent.insert(mPathTangent.begin(), mSpline.GetTangentBegin(),
+                                            mSpline.GetTangentEnd());
+
   mPathPhi.resize(mPathPoints.size());
   phi = mPathPhi.begin();
   mPathTheta.resize(mPathPoints.size());
@@ -1156,23 +1284,27 @@ bool Coffin::InitializeMCMC() {
     theta++;
   }
 
+  // Get initial path curvatures, if they'll be used for priors
+  if (!mPriorCurvature.empty()) {
+    mSpline.ComputeNormal();
+    mSpline.ComputeCurvature();
+
+    mPathCurvature.clear();
+    mPathCurvature.insert(mPathCurvature.begin(), mSpline.GetCurvatureBegin(),
+                                                  mSpline.GetCurvatureEnd());
+  }
+
   // Compute energy on initial path
   mLikelihoodOnPath = 0;
   mPriorOnPath = 0;
+  atlaspoints.resize(mPathPoints.size());
+  iptatlas = atlaspoints.begin();
   phi = mPathPhi.begin();
   theta = mPathTheta.begin();
+
   for (vector<int>::const_iterator ipt = mPathPoints.begin();
                                    ipt < mPathPoints.end(); ipt += 3) {
     Bite *ivox = mDataMask[ipt[0] + ipt[1]*mNx + ipt[2]*mNxy];
-
-    if (mPathPrior0 && !ivox->IsPriorSet()) {
-      vector<int> atlaspt(3);
-
-      MapToAtlas(atlaspt, ipt);
-
-      ivox->SetPrior(mPathPrior0, mPathPrior1,
-                     atlaspt[0], atlaspt[1], atlaspt[2]);
-    }
 
     ivox->ComputeLikelihoodOnPath(*phi, *theta);
     ivox->ComputePriorOnPath();
@@ -1180,13 +1312,31 @@ bool Coffin::InitializeMCMC() {
     mLikelihoodOnPath += ivox->GetLikelihoodOnPath();
     mPriorOnPath += ivox->GetPriorOnPath();
 
+    // Map point to atlas space
+    if (ivox->IsAtlasSet())
+      // Retrieve previously computed coordinates in atlas space
+      ivox->GetAtlasCoords(iptatlas);
+    else {
+      // Map point coordinates from diffusion space to atlas space
+      MapPointToAtlas(iptatlas, ipt);
+
+      // Save transformed coordinates for future use
+      ivox->SetAtlasCoords(iptatlas);
+    }
+
+    iptatlas += 3;
     phi++;
     theta++;
   }
 
-  mAnatomicalPrior = ComputeAnatomicalPrior(mPathPoints);
+  mXyzPriorOnPath = ComputeXyzPriorOnPath(atlaspoints);
 
-  mPosteriorOnPath = mLikelihoodOnPath + mPriorOnPath + mAnatomicalPrior;
+  mAnatomicalPrior = ComputeAnatomicalPrior(atlaspoints);
+
+  mShapePrior = ComputeShapePrior(atlaspoints);
+
+  mPosteriorOnPath = mLikelihoodOnPath + mPriorOnPath + mXyzPriorOnPath
+                   + mAnatomicalPrior  + mShapePrior;
 
   return true;
 }
@@ -1316,6 +1466,19 @@ bool Coffin::ProposePath() {
     if (*isrej)
       return false;
 
+  // Check if new control points create zig-zag in path
+  if (IsZigZag(mControlPointsNew, mControlPointsNew.begin(), 
+                                  mControlPointsNew.end() - 3)) {
+    mRejectSpline = true;
+
+    if (mDebug) {
+      mLog << "Reject due to zig-zag in spline" << endl;
+      LogObjectiveNaN();
+    }
+
+    return false;
+  }
+
   // Interpolate spline from proposed control points
   mSpline.SetControlPoints(mControlPointsNew);
   if (!mSpline.InterpolateSpline()) {
@@ -1328,15 +1491,19 @@ bool Coffin::ProposePath() {
 
     return false;
   }
-    
-  mSpline.ComputeTangent();
 
   // Get proposed path points
   mPathPointsNew.clear();
-  mPathPointsNew.insert(mPathPointsNew.begin(),
-                        mSpline.GetAllPointsBegin(), mSpline.GetAllPointsEnd());
+  mPathPointsNew.insert(mPathPointsNew.begin(), mSpline.GetAllPointsBegin(),
+                                                mSpline.GetAllPointsEnd());
 
   // Get proposed path tangent angles
+  mSpline.ComputeTangent();
+
+  mPathTangentNew.clear();
+  mPathTangentNew.insert(mPathTangentNew.begin(), mSpline.GetTangentBegin(),
+                                                  mSpline.GetTangentEnd());
+
   mPathPhiNew.resize(mPathPointsNew.size());
   phi = mPathPhiNew.begin();
   mPathThetaNew.resize(mPathPointsNew.size());
@@ -1347,6 +1514,17 @@ bool Coffin::ProposePath() {
     *theta = acos(ipt[2] / sqrt(ipt[0]*ipt[0] + ipt[1]*ipt[1] + ipt[2]*ipt[2]));
     phi++;
     theta++;
+  }
+
+  // Get proposed path curvatures, if they'll be used for priors
+  if (!mPriorCurvature.empty()) {
+    mSpline.ComputeNormal();
+    mSpline.ComputeCurvature();
+
+    mPathCurvatureNew.clear();
+    mPathCurvatureNew.insert(mPathCurvatureNew.begin(),
+                                                  mSpline.GetCurvatureBegin(),
+                                                  mSpline.GetCurvatureEnd());
   }
 
   return true;
@@ -1405,6 +1583,18 @@ bool Coffin::ProposePath1(int ControlIndex) {
     return false;
   }
 
+  // Check if new control point creates zig-zag in path
+  if (IsZigZag(mControlPointsNew, cpoint, cpoint)) {
+    mRejectSpline = true;
+
+    if (mDebug) {
+      mLog << "Reject due to zig-zag at control point " << ControlIndex << endl;
+      LogObjectiveNaN();
+    }
+
+    return false;
+  }
+
   // Interpolate spline from proposed control points
   mSpline.SetControlPoints(mControlPointsNew);
   if (!mSpline.InterpolateSpline()) {
@@ -1418,14 +1608,18 @@ bool Coffin::ProposePath1(int ControlIndex) {
     return false;
   }
     
-  mSpline.ComputeTangent();
-
   // Get proposed path points
   mPathPointsNew.clear();
-  mPathPointsNew.insert(mPathPointsNew.begin(),
-                        mSpline.GetAllPointsBegin(), mSpline.GetAllPointsEnd());
+  mPathPointsNew.insert(mPathPointsNew.begin(), mSpline.GetAllPointsBegin(),
+                                                mSpline.GetAllPointsEnd());
 
   // Get proposed path tangent angles
+  mSpline.ComputeTangent();
+
+  mPathTangentNew.clear();
+  mPathTangentNew.insert(mPathTangentNew.begin(), mSpline.GetTangentBegin(),
+                                                  mSpline.GetTangentEnd());
+
   mPathPhiNew.resize(mPathPointsNew.size());
   phi = mPathPhiNew.begin();
   mPathThetaNew.resize(mPathPointsNew.size());
@@ -1436,6 +1630,17 @@ bool Coffin::ProposePath1(int ControlIndex) {
     *theta = acos(ipt[2] / sqrt(ipt[0]*ipt[0] + ipt[1]*ipt[1] + ipt[2]*ipt[2]));
     phi++;
     theta++;
+  }
+
+  // Get proposed path curvatures, if they'll be used for priors
+  if (!mPriorCurvature.empty()) {
+    mSpline.ComputeNormal();
+    mSpline.ComputeCurvature();
+
+    mPathCurvatureNew.clear();
+    mPathCurvatureNew.insert(mPathCurvatureNew.begin(),
+                                                  mSpline.GetCurvatureBegin(),
+                                                  mSpline.GetCurvatureEnd());
   }
 
   return true;
@@ -1465,28 +1670,23 @@ void Coffin::ProposeDiffusionParameters() {
 //
 bool Coffin::AcceptPath() {
   double neglogratio;
-  vector<int>::const_iterator ipt;
+  vector<int> atlaspoints;
+  vector<int>::iterator iptatlas;
   vector<float>::const_iterator phi, theta;
 
+  // Compute posterior on proposed path
   mLikelihoodOnPathNew = 0;
   mPriorOnPathNew = 0;
   mLikelihoodOffPathNew = 0;
   mPriorOffPathNew = 0;
-
-  // Compute posterior on proposed path
+  atlaspoints.resize(mPathPointsNew.size());
+  iptatlas = atlaspoints.begin();
   phi = mPathPhiNew.begin();
   theta = mPathThetaNew.begin();
-  for (ipt = mPathPointsNew.begin(); ipt < mPathPointsNew.end(); ipt += 3) {
+
+  for (vector<int>::iterator ipt = mPathPointsNew.begin();
+                             ipt < mPathPointsNew.end(); ipt += 3) {
     Bite *ivox = mDataMask[ipt[0] + ipt[1]*mNx + ipt[2]*mNxy];
-
-    if (mPathPrior0 && !ivox->IsPriorSet()) {
-      vector<int> atlaspt(3);
-
-      MapToAtlas(atlaspt, ipt);
-
-      ivox->SetPrior(mPathPrior0, mPathPrior1,
-                     atlaspt[0], atlaspt[1], atlaspt[2]);
-    }
 
     ivox->ComputeLikelihoodOffPath();
     ivox->ComputeLikelihoodOnPath(*phi, *theta);
@@ -1515,14 +1715,12 @@ bool Coffin::AcceptPath() {
     ivox->ComputePriorOffPath();
     ivox->ComputePriorOnPath();
 
-    if (mDebug & 0)
+    if (mDebug && 0)
       mLog << ipt[0] << " " << ipt[1] << " " << ipt[2] << " "
            << ivox->GetLikelihoodOffPath() << " "
            << ivox->GetPriorOffPath() << " "
-           << ivox->GetPathPriorOffPath() << " "
            << ivox->GetLikelihoodOnPath() << " "
-           << ivox->GetPriorOnPath() << " "
-           << ivox->GetPathPriorOnPath() << endl;
+           << ivox->GetPriorOnPath() << endl;
 
     mLikelihoodOnPathNew += ivox->GetLikelihoodOnPath();
     mPriorOnPathNew += ivox->GetPriorOnPath();
@@ -1530,35 +1728,47 @@ bool Coffin::AcceptPath() {
     mLikelihoodOffPathNew += ivox->GetLikelihoodOffPath();
     mPriorOffPathNew += ivox->GetPriorOffPath();
 
+    // Map point to atlas space
+    if (ivox->IsAtlasSet())
+      // Retrieve previously computed coordinates in atlas space
+      ivox->GetAtlasCoords(iptatlas);
+    else {
+      // Map point coordinates from diffusion space to atlas space
+      MapPointToAtlas(iptatlas, ipt);
+
+      // Save transformed coordinates for future use
+      ivox->SetAtlasCoords(iptatlas);
+    }
+
+    iptatlas += 3;
     phi++;
     theta++;
   }
 
-  mAnatomicalPriorNew = ComputeAnatomicalPrior(mPathPointsNew);
+  mXyzPriorOffPathNew = ComputeXyzPriorOffPath(atlaspoints);
+  mXyzPriorOnPathNew  = ComputeXyzPriorOnPath(atlaspoints);
+
+  mAnatomicalPriorNew = ComputeAnatomicalPrior(atlaspoints);
+
+  mShapePriorNew = ComputeShapePrior(atlaspoints);
 
   mPosteriorOnPathNew  = mLikelihoodOnPathNew  + mPriorOnPathNew
-                                               + mAnatomicalPriorNew;
-  mPosteriorOffPathNew = mLikelihoodOffPathNew + mPriorOffPathNew;
+                       + mXyzPriorOnPathNew
+                       + mAnatomicalPriorNew   + mShapePriorNew;
+  mPosteriorOffPathNew = mLikelihoodOffPathNew + mPriorOffPathNew
+                       + mXyzPriorOffPathNew;
 
+  // Compute posterior on current path
   mLikelihoodOnPath = 0;
   mPriorOnPath = 0;
   mLikelihoodOffPath = 0;
   mPriorOffPath = 0;
-
-  // Compute posterior on current path
   phi = mPathPhi.begin();
   theta = mPathTheta.begin();
-  for (ipt = mPathPoints.begin(); ipt < mPathPoints.end(); ipt += 3) {
+
+  for (vector<int>::iterator ipt = mPathPoints.begin();
+                             ipt < mPathPoints.end(); ipt += 3) {
     Bite *ivox = mDataMask[ipt[0] + ipt[1]*mNx + ipt[2]*mNxy];
-
-    if (mPathPrior0 && !ivox->IsPriorSet()) {
-      vector<int> atlaspt(3);
-
-      MapToAtlas(atlaspt, ipt);
-
-      ivox->SetPrior(mPathPrior0, mPathPrior1,
-                     atlaspt[0], atlaspt[1], atlaspt[2]);
-    }
 
     ivox->ComputeLikelihoodOffPath();
     ivox->ComputeLikelihoodOnPath(*phi, *theta);
@@ -1597,8 +1807,9 @@ bool Coffin::AcceptPath() {
     theta++;
   }
 
-  mPosteriorOnPath  = mLikelihoodOnPath  + mPriorOnPath + mAnatomicalPrior;
-  mPosteriorOffPath = mLikelihoodOffPath + mPriorOffPath;
+  mPosteriorOnPath  = mLikelihoodOnPath  + mPriorOnPath + mXyzPriorOnPath
+                    + mAnatomicalPrior   + mShapePrior;
+  mPosteriorOffPath = mLikelihoodOffPath + mPriorOffPath + mXyzPriorOffPath;
 
   neglogratio = (mPosteriorOnPathNew - mPosteriorOffPathNew)
                 / (mPathPointsNew.size()/3) 
@@ -1630,10 +1841,126 @@ bool Coffin::AcceptPath() {
 }
  
 //
+// Compute off-path spatial prior for a set of points
+//
+double Coffin::ComputeXyzPriorOffPath(std::vector<int> &PathAtlasPoints) {
+  double prior = 0;
+
+  if (mXyzPrior0)
+    for (vector<int>::const_iterator ipt = PathAtlasPoints.begin();
+                                     ipt < PathAtlasPoints.end(); ipt += 3)
+      prior += (double) MRIgetVoxVal(mXyzPrior0, ipt[0], ipt[1], ipt[2], 0);
+
+  return prior;
+}
+
+//
+// Compute on-path spatial prior for a set of points
+//
+double Coffin::ComputeXyzPriorOnPath(std::vector<int> &PathAtlasPoints) {
+  double prior = 0;
+
+  if (mXyzPrior1)
+    for (vector<int>::const_iterator ipt = PathAtlasPoints.begin();
+                                     ipt < PathAtlasPoints.end(); ipt += 3)
+      prior += (double) MRIgetVoxVal(mXyzPrior1, ipt[0], ipt[1], ipt[2], 0);
+
+  return prior;
+}
+
+//
+// Compute prior on path given its tangent vector and curvature
+//
+double Coffin::ComputeShapePrior(vector<int> &PathAtlasPoints) {
+  const int nbin = (int) ceil(2 / mTangentBinSize);
+  const double darc = mNumArc / (double) (PathAtlasPoints.size()/3);
+  double larc = 0, prior = 0;
+  vector<float>::const_iterator id1, id2;
+  vector< vector<float> >::const_iterator iprtang = mPriorTangent.begin(),
+                                          iprcurv = mPriorCurvature.begin();
+  vector<float> pathsmooth(PathAtlasPoints.size()),
+                diff1(PathAtlasPoints.size()),
+                diff2(PathAtlasPoints.size());
+
+  if (mPriorTangent.empty() && mPriorCurvature.empty())
+    return 0;
+
+// FILL THE PATH FOR ALL PRIORS?
+//vector<int> pathfilled = CurveFill(PathAtlasPoints);
+
+  // Smooth discrete point coordinates
+  CurveSmooth(pathsmooth, PathAtlasPoints);
+
+  // Approximate first derivative by smoothed finite differences
+  // of the point coordinates
+  CurveFiniteDifferences(diff1, pathsmooth, mDiffStep);
+
+  // Approximate second derivative by smoothed finite differences
+  // of the first derivative
+  CurveFiniteDifferences(diff2, diff1, mDiffStep);
+
+  id2 = diff2.begin();
+
+  for (id1 = diff1.begin(); id1 < diff1.end(); id1 += 3) {
+    int ix, iy;
+    float tangx, tangy, curv;
+    const float nrm = sqrt(id1[0]*id1[0] + id1[1]*id1[1] + id1[2]*id1[2]);
+
+    if (nrm > 0) {
+      // Tangent vector
+      if (id1[2] < 0) {		// Use only z>0 octants, direction is irrelevant
+        tangx = - id1[0] / nrm;
+        tangy = - id1[1] / nrm;
+      }
+      else {
+        tangx = id1[0] / nrm;
+        tangy = id1[1] / nrm;
+      }
+
+      // Curvature = |r' x r''| / |r'|^3
+      curv =
+        sqrt( pow(id1[1] * id2[2] - id1[2] * id2[1], 2) +
+              pow(id1[2] * id2[0] - id1[0] * id2[2], 2) +
+              pow(id1[0] * id2[1] - id1[1] * id2[0], 2) ) / pow(nrm, 3);
+    }
+    else {
+      tangx = 0;
+      tangy = 0;
+      curv = 0;
+    }
+
+    // Find prior given tangent vector
+    ix = (int) floor((tangx + 1) / mTangentBinSize);
+    iy = (int) floor((tangy + 1) / mTangentBinSize);
+
+    prior += iprtang->at( ((iy<nbin) ? iy : (nbin-1)) * nbin +
+                          ((ix<nbin) ? ix : (nbin-1)) );
+
+    // Find prior given curvature
+    ix = (int) floor(curv / mCurvatureBinSize);
+
+    prior += iprcurv->at( (ix < (int) iprcurv->size()) ?
+                          ix : ((int) iprcurv->size()-1) );
+
+    id2 += 3;
+
+    larc += darc;
+
+    if (larc > 1)  {    // Move to the next segment
+      larc -= 1;
+      iprtang++;
+      iprcurv++;
+    }
+  }
+
+  return prior;
+}
+
+//
 // Compute prior on path given anatomical segmentation labels around path
 //
-double Coffin::ComputeAnatomicalPrior(vector<int> &PathPoints) {
-  const double darc = mNumArc / (double) (PathPoints.size()/3);
+double Coffin::ComputeAnatomicalPrior(vector<int> &PathAtlasPoints) {
+  const double darc = mNumArc / (double) (PathAtlasPoints.size()/3);
   double larc = 0, prior = 0;
   vector<unsigned int>::const_iterator imatch;
   vector< vector<unsigned int> >::const_iterator iidlocal = mIdsLocal.begin(),
@@ -1646,11 +1973,9 @@ double Coffin::ComputeAnatomicalPrior(vector<int> &PathPoints) {
   if (mPriorLocal.empty() && mPriorNear.empty())
     return 0;
 
-  for (vector<int>::const_iterator ipt = PathPoints.begin();
-                                   ipt != PathPoints.end(); ipt += 3) {
-    vector<int> atlaspt(3);
-    MapToAtlas(atlaspt, ipt);
-    const int ix0 = atlaspt[0], iy0 = atlaspt[1], iz0 = atlaspt[2];
+  for (vector<int>::const_iterator ipt = PathAtlasPoints.begin();
+                                   ipt < PathAtlasPoints.end(); ipt += 3) {
+    const int ix0 = ipt[0], iy0 = ipt[1], iz0 = ipt[2];
     const float seg0 = MRIgetVoxVal(mAseg, ix0, iy0, iz0, 0);
 
     // Find prior given local neighbor labels
@@ -1749,7 +2074,10 @@ void Coffin::UpdatePath() {
   mPriorOffPath      = mPriorOffPathNew; 
   mPosteriorOnPath   = mPosteriorOnPathNew;
   mPosteriorOffPath  = mPosteriorOffPathNew;
+  mXyzPriorOnPath    = mXyzPriorOnPathNew;
+  mXyzPriorOffPath   = mXyzPriorOffPathNew;
   mAnatomicalPrior   = mAnatomicalPriorNew; 
+  mShapePrior        = mShapePriorNew; 
 }
 
 //
@@ -1903,6 +2231,36 @@ void Coffin::UpdateProposalStd() {
 }
 
 //
+// Save data-fit and prior terms of accepted and rejected path
+//
+void Coffin::SavePathPosterior(bool IsPathAccepted) {
+  if (IsPathAccepted) {			// The newly sampled path was accepted
+    mPosteriorSamples.push_back(mLikelihoodOnPathNew  + mPriorOnPathNew
+                              - mLikelihoodOffPathNew - mPriorOffPathNew);
+    mPosteriorSamples.push_back(mXyzPriorOnPathNew - mXyzPriorOffPathNew);
+    mPosteriorSamples.push_back(mAnatomicalPriorNew);
+    mPosteriorSamples.push_back(mShapePriorNew);
+    mPosteriorSamples.push_back(mLikelihoodOnPath  + mPriorOnPath
+                              - mLikelihoodOffPath - mPriorOffPath);
+    mPosteriorSamples.push_back(mXyzPriorOnPath - mXyzPriorOffPath);
+    mPosteriorSamples.push_back(mAnatomicalPrior);
+    mPosteriorSamples.push_back(mShapePrior);
+  }
+  else {				// The newly sampled path was rejected
+    mPosteriorSamples.push_back(mLikelihoodOnPath  + mPriorOnPath
+                              - mLikelihoodOffPath - mPriorOffPath);
+    mPosteriorSamples.push_back(mXyzPriorOnPath - mXyzPriorOffPath);
+    mPosteriorSamples.push_back(mAnatomicalPrior);
+    mPosteriorSamples.push_back(mShapePrior);
+    mPosteriorSamples.push_back(mLikelihoodOnPathNew  + mPriorOnPathNew
+                              - mLikelihoodOffPathNew - mPriorOffPathNew);
+    mPosteriorSamples.push_back(mXyzPriorOnPathNew - mXyzPriorOffPathNew);
+    mPosteriorSamples.push_back(mAnatomicalPriorNew);
+    mPosteriorSamples.push_back(mShapePriorNew);
+  }
+}
+
+//
 // Save current path as an MCMC sample
 //
 void Coffin::SavePath() {
@@ -1910,13 +2268,11 @@ void Coffin::SavePath() {
   mControlPointSamples.insert(mControlPointSamples.end(),
                               mControlPoints.begin(), mControlPoints.end());
 
+  // Save current path
+  mPathPointSamples.push_back(mPathPoints);
+
   // Save current path length
   mPathLengthSamples.push_back(mPathPoints.size()/3);
-
-  // Save current path energy
-  mLikelihoodOnPathSamples.push_back(mLikelihoodOnPath);
-  mPriorOnPathSamples.push_back(mPriorOnPath + mAnatomicalPrior);
-  mPosteriorOnPathSamples.push_back(mPosteriorOnPath);
 
   // Add current path to path posterior
   for (vector<int>::const_iterator ipt = mPathPoints.begin();
@@ -1953,7 +2309,7 @@ bool Coffin::IsInMask(vector<int>::const_iterator Point) {
 bool Coffin::IsInRoi(vector<int>::const_iterator Point, MRI *Roi) {
   vector<int> outpoint(3);
 
-  MapToAtlas(outpoint, Point);
+  MapPointToAtlas(outpoint.begin(), Point);
 
   return (outpoint[0] > -1) && (outpoint[0] < Roi->width) &&
          (outpoint[1] > -1) && (outpoint[1] < Roi->height) &&
@@ -1962,10 +2318,100 @@ bool Coffin::IsInRoi(vector<int>::const_iterator Point, MRI *Roi) {
 }
 
 //
+// Check if perturbing a control point (or series of control points)
+// would cause a zig-zag in the path:
+// A zig-zag is detected as two consecutive acute angles between path segments
+//
+bool Coffin::IsZigZag(vector<int> &ControlPoints,
+                      vector<int>::const_iterator FirstPerturbedPoint,
+                      vector<int>::const_iterator LastPerturbedPoint) {
+  vector<int>::const_iterator curpoint, checkfirst, checklast;
+
+  // The zig-zag test will also be positive if a perturbed control point
+  // overlaps with one of its two neighbors, in all but these two cases
+  // (when the overlap is between the first two or last two control points)
+  if ( ( FirstPerturbedPoint <= ControlPoints.begin() + 3 &&
+         *ControlPoints.begin()       == *(ControlPoints.begin() + 3) &&
+         *(ControlPoints.begin() + 1) == *(ControlPoints.begin() + 4) &&
+         *(ControlPoints.begin() + 2) == *(ControlPoints.begin() + 5) ) ||
+       ( LastPerturbedPoint >= ControlPoints.end() - 6 &&
+         *(ControlPoints.end() - 6) == *(ControlPoints.end() - 3) &&
+         *(ControlPoints.end() - 5) == *(ControlPoints.end() - 2) &&
+         *(ControlPoints.end() - 4) == *(ControlPoints.end() - 1) ) )
+    return true;
+
+  // When a single control point is perturbed, there are
+  // up to 4 neighboring spots that need to be checked for a potential zig-zag
+  // First spot to check:
+  curpoint = FirstPerturbedPoint - 3;
+  checkfirst = ControlPoints.begin() + 6;
+  if (curpoint > checkfirst)
+    checkfirst = curpoint;
+
+  // Last spot to check:
+  curpoint = LastPerturbedPoint + 6;
+  checklast = ControlPoints.end() - 6;
+  if (curpoint < checklast)
+    checklast = curpoint;
+
+  if (checkfirst > checklast)	// If spline has fewer than 4 control points
+    return false;
+  else {  
+    int dot1, dot2;
+    vector<int>::const_iterator x1, x2, x3, x4;
+    vector<int> diff12(3), diff32(3), diff43(3);
+
+    // Check at first zig-zag candidate spot
+    curpoint = checkfirst;
+
+    x1 = curpoint - 6;
+    x2 = curpoint - 3;
+    x3 = curpoint;
+    x4 = curpoint + 3;
+
+    dot1 = 0; dot2 = 0;
+
+    for (int k = 0; k < 3; k++) {
+      diff12[k] = x1[k] - x2[k];
+      diff32[k] = x3[k] - x2[k];
+      diff43[k] = x4[k] - x3[k];
+
+      dot1 += diff12[k] * diff32[k];
+      dot2 += diff43[k] * (-diff32[k]);
+    }
+
+    if (dot1 >= 0 && dot2 >= 0)		// If both angles are acute
+      return true;
+
+    // Check at remaining zig-zag candidate spots
+    for (curpoint = checkfirst + 3; curpoint <= checklast; curpoint += 3) {
+      x3 += 3;
+      x4 += 3;
+
+      dot1 = 0; dot2 = 0;
+
+      for (int k = 0; k < 3; k++) {
+        diff12[k] = -diff32[k];
+        diff32[k] = diff43[k];
+        diff43[k] = x4[k] - x3[k];
+
+        dot1 += diff12[k] * diff32[k];
+        dot2 += diff43[k] * (-diff32[k]);
+      }
+
+      if (dot1 >= 0 && dot2 >= 0)	// If both angles are acute
+        return true;
+    }
+
+    return false;
+  }
+}
+
+//
 // Map point coordinates from diffusion space to atlas space
 //
-void Coffin::MapToAtlas(vector<int> &OutPoint,
-                        vector<int>::const_iterator InPoint) {
+void Coffin::MapPointToAtlas(vector<int>::iterator OutPoint,
+                             vector<int>::const_iterator InPoint) {
   if (!mAffineReg.IsEmpty()) {
     vector<float> point(InPoint, InPoint+3);
 
@@ -1989,21 +2435,30 @@ void Coffin::MapToAtlas(vector<int> &OutPoint,
 void Coffin::LogObjective() {
   mLog << "mLikelihoodOnPathNew=" << mLikelihoodOnPathNew << " "
        << "mPriorOnPathNew=" << mPriorOnPathNew << endl
+       << "mXyzPriorOnPathNew=" << mXyzPriorOnPathNew << endl
        << "mAnatomicalPriorNew=" << mAnatomicalPriorNew << endl
+       << "mShapePriorNew=" << mShapePriorNew << endl
        << "mLikelihoodOffPathNew=" << mLikelihoodOffPathNew << " "
        << "mPriorOffPathNew=" << mPriorOffPathNew << endl
+       << "mXyzPriorOffPathNew=" << mXyzPriorOffPathNew << endl
        << "mLikelihoodOn-OffPathNew="
        << mLikelihoodOnPathNew-mLikelihoodOffPathNew << " "
        << "mPriorOn-OffPathNew=" << mPriorOnPathNew-mPriorOffPathNew << endl
+       << "mXyzPriorOn-OffPathNew="
+       << mXyzPriorOnPathNew-mXyzPriorOffPathNew << endl
        << "mPathLengthNew=" << mPathPointsNew.size()/3 << endl
        << "mLikelihoodOnPath=" << mLikelihoodOnPath << " "
        << "mPriorOnPath=" << mPriorOnPath << endl
+       << "mXyzPriorOnPath=" << mXyzPriorOnPath << endl
        << "mAnatomicalPrior=" << mAnatomicalPrior << endl
+       << "mShapePrior=" << mShapePrior << endl
        << "mLikelihoodOffPath=" << mLikelihoodOffPath << " "
        << "mPriorOffPath=" << mPriorOffPath << endl
+       << "mXyzPriorOffPath=" << mXyzPriorOffPath << endl
        << "mLikelihoodOff-OnPath="
        << mLikelihoodOffPath-mLikelihoodOnPath << " "
        << "mPriorOff-OnPath=" << mPriorOffPath-mPriorOnPath << endl
+       << "mXyzPriorOn-OffPath=" << mXyzPriorOnPath-mXyzPriorOffPath << endl
        << "mPathLength=" << mPathPoints.size()/3 << endl;
 }
 
@@ -2012,15 +2467,132 @@ void Coffin::LogObjective() {
 //
 void Coffin::LogObjectiveNaN() {
   mLog << "mLikelihoodOnPathNew=NaN mPriorOnPathNew=NaN" << endl
+       << "mXyzPriorOnPathNew=NaN" << endl
        << "mAnatomicalPriorNew=NaN" << endl
+       << "mShapePriorNew=NaN" << endl
        << "mLikelihoodOffPathNew=NaN mPriorOffPathNew=NaN" << endl
+       << "mXyzPriorOffPathNew=NaN" << endl
        << "mLikelihoodOn-OffPathNew=NaN mPriorOn-OffPathNew=NaN" << endl
+       << "mXyzPriorOn-OffPathNew=NaN" << endl
        << "mPathLengthNew=NaN" << endl
        << "mLikelihoodOnPath=NaN mPriorOnPath=NaN" << endl
+       << "mXyzPriorOnPath=NaN" << endl
        << "mAnatomicalPrior=NaN" << endl
+       << "mShapePrior=NaN" << endl
        << "mLikelihoodOffPath=NaN mPriorOffPath=NaN" << endl
+       << "mXyzPriorOffPathNew=NaN" << endl
        << "mLikelihoodOff-OnPath=NaN mPriorOff-OnPath=NaN" << endl
+       << "mXyzPriorOn-OffPath=NaN" << endl
        << "mPathLength=NaN" << endl;
+}
+
+//
+// Find maximum a posteriori path
+//
+void Coffin::FindPathMAP() {
+  const int lmin = *min_element(mPathLengthSamples.begin(),
+                                mPathLengthSamples.end()),
+            lmax = *max_element(mPathLengthSamples.begin(),
+                                mPathLengthSamples.end());
+  float lnorm, pathnorm = 0.0, probmax = 0.0;
+  vector<int>::const_iterator icptsmap, ilen;
+  vector< vector<int> >::const_iterator ipathmap;
+  vector<float> lhisto(lmax-lmin+1, 0), lhistofilt(lhisto.size(), 0);
+  vector<float>::iterator ihistofilt = lhistofilt.begin();
+vector<int> pathPointsMap;	// !Replace with mPathPointsMap eventually!
+vector<int> controlPointsMap;	// !Replace with mControlPointsMap eventually!
+controlPointsMap.resize(mControlPoints.size()); // !Remove eventually!
+
+  // Find histogram of lengths
+  for (ilen = mPathLengthSamples.begin();
+       ilen < mPathLengthSamples.end(); ilen++)
+    lhisto.at(*ilen - lmin)++;
+
+  // Smooth histogram of lengths
+  *ihistofilt = (lhisto[0] + lhisto[1]) / 2.0;
+  ihistofilt++;
+
+  for (vector<float>::const_iterator ihisto = lhisto.begin() + 1;
+                                     ihisto < lhisto.end() - 1; ihisto++) {
+    *ihistofilt = (*(ihisto-1) + *ihisto + *(ihisto+1)) / 3.0;
+    ihistofilt++;
+  }
+
+  *ihistofilt = (*(lhisto.end()-2) + *(lhisto.end()-1)) / 2.0;
+
+  // Find normalization of length posterior to a sum of 1
+  lnorm = accumulate(lhistofilt.begin(), lhistofilt.end(), 0.0);
+
+  // Find normalization of path posterior to a sum of 1
+  for (int iz = 0; iz < mNz; iz++)
+    for (int iy = 0; iy < mNy; iy++)
+      for (int ix = 0; ix < mNx; ix++)
+        pathnorm += MRIgetVoxVal(mPathSamples, ix, iy, iz, 0);
+
+  // Find maximum a posteriori path
+  ilen = mPathLengthSamples.begin();
+  for (vector< vector<int> >::const_iterator ipath = mPathPointSamples.begin();
+                                             ipath < mPathPointSamples.end();
+                                             ipath++) {
+    float prob = 0.0;
+
+    // Path probability
+    for (vector<int>::const_iterator ipt = ipath->begin();
+                                     ipt < ipath->end(); ipt += 3)
+      prob += MRIgetVoxVal(mPathSamples, ipt[0], ipt[1], ipt[2], 0);
+
+    prob /= pathnorm;
+    prob /= (*ilen);		 // Bin paths by length eventually?
+
+    // Length probability
+    prob += lhistofilt.at(*ilen - lmin) / lnorm;
+
+    if (prob > probmax) {
+      ipathmap = ipath;
+      probmax = prob;
+    }
+
+    ilen++;
+  }
+
+  // Save maximum a posteriori path
+  pathPointsMap.resize(ipathmap->size());
+  copy(ipathmap->begin(), ipathmap->end(), pathPointsMap.begin());
+
+  // Save control points corresponding to maximum a posteriori path
+  icptsmap = mControlPointSamples.begin() +
+             (ipathmap - mPathPointSamples.begin()) * 3 * mNumControl;
+  copy(icptsmap, icptsmap + 3 * mNumControl, controlPointsMap.begin());
+  
+  
+{	// !Remove this eventually b/c it's done in WriteOutputs()!
+  char fname[PATH_MAX];
+  MRI *out1 = MRIclone(mMask, NULL);
+
+  // Save MAP control point sample
+  sprintf(fname, "%s/cpts.map.test.txt", mOutDir);
+  ofstream mapfile(fname, ios::out);
+
+  if (!mapfile) {
+    cout << "ERROR: Could not open " << fname << " for writing" << endl;
+    exit(1);
+  }
+
+  for (vector<int>::const_iterator icpt = controlPointsMap.begin();
+                                   icpt < controlPointsMap.end(); icpt += 3)
+    mapfile << icpt[0] << " " << icpt[1] << " " << icpt[2] << endl;
+
+
+  // Save MAP path sample
+  for (vector<int>::const_iterator ipt = pathPointsMap.begin();
+                                   ipt < pathPointsMap.end(); ipt += 3) {
+    const int ix = ipt[0], iy = ipt[1], iz = ipt[2];
+    MRIsetVoxVal(out1, ix, iy, iz, 0, MRIgetVoxVal(out1, ix, iy, iz, 0) + 1);
+  }
+
+  sprintf(fname, "%s/path.map.test.nii.gz", mOutDir);
+  MRIwrite(out1, fname);
+}
 }
 
 //
@@ -2091,21 +2663,21 @@ void Coffin::WriteOutputs() {
                                    ilen < mPathLengthSamples.end(); ilen++)
     lenfile << *ilen << endl;
 
-  // Save likelihood and prior of path samples
+  // Save likelihood and prior of accepted and rejected path samples
   sprintf(fname, "%s/pd.samples.txt", mOutDir);
-  ofstream likefile(fname, ios::out);
+  ofstream pdfile(fname, ios::out);
 
-  if (!likefile) {
+  if (!pdfile) {
     cout << "ERROR: Could not open " << fname << " for writing" << endl;
     exit(1);
   }
 
-  vector<float>::const_iterator ilik = mLikelihoodOnPathSamples.begin();
-  for (vector<float>::const_iterator ipri = mPriorOnPathSamples.begin();
-                                     ipri < mPriorOnPathSamples.end(); ipri++) {
-    likefile << *ilik << " " << *ipri << endl;
-    ilik++;
-  }
+  pdfile << "DataFit1 XyzPrior1 AnatPrior1 ShapePrior1 "
+         << "DataFit0 XyzPrior0 AnatPrior0 ShapePrior0" << endl;
+  for (vector<float>::const_iterator ipd = mPosteriorSamples.begin();
+                                     ipd < mPosteriorSamples.end(); ipd += 8)
+    pdfile << ipd[0] << " " << ipd[1] << " " << ipd[2] << " " << ipd[3] << " "
+           << ipd[4] << " " << ipd[5] << " " << ipd[6] << " " << ipd[7] << endl;
 
   // Save MAP control point sample
   sprintf(fname, "%s/cpts.map.txt", mOutDir);

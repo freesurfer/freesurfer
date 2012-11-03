@@ -28,18 +28,22 @@ using namespace std;
 
 const int Blood::mDistThresh = 4,
           Blood::mEndDilation = 2;
-const unsigned int Blood::mCurvOffset = 4;
+const unsigned int Blood::mDiffStep = 3;
 const float Blood::mLengthCutoff = 0.05,
             Blood::mLengthRatio = 3.0,
             Blood::mHausStepRatio = 0.05,
-            Blood::mControlStepRatio = 0.8;
+            Blood::mControlStepRatio = 0.8,
+            Blood::mTangentBinSize = 0.1,
+            Blood::mCurvatureBinSize = 0.002;
 
 Blood::Blood(const char *TrainListFile, const char *TrainTrkFile,
              const char *TrainRoi1File, const char *TrainRoi2File,
              const char *TrainAsegFile, const char *TrainMaskFile,
              float TrainMaskLabel, const char *ExcludeFile,
              const char *TestMaskFile, const char *TestFaFile,
-             bool UseTruncated, vector<int> &NumControls) :
+             bool UseTruncated, vector<int> &NumControls,
+             bool Debug) :
+             mDebug(Debug),
              mUseTruncated(UseTruncated),
              mMaskLabel(TrainMaskLabel) {
   int dirs[45] = { 0,  0,  0,
@@ -67,10 +71,18 @@ Blood::Blood(const char *TrainListFile, const char *TrainTrkFile,
   
   cout << "Loading brain mask of output subject from " << TestMaskFile << endl;
   mTestMask = MRIread(TestMaskFile);
+  if (!mTestMask) {
+    cout << "ERROR: Could not read " << TestMaskFile << endl;
+    exit(1);
+  }
 
   if (TestFaFile) {
     cout << "Loading FA map of output subject from " << TestFaFile << endl;
     mTestFa = MRIread(TestFaFile);
+    if (!mTestFa) {
+      cout << "ERROR: Could not read " << TestFaFile << endl;
+      exit(1);
+    }
   }
 
   // Size of volumes in common space
@@ -95,8 +107,10 @@ Blood::Blood(const char *TrainListFile, const char *TrainTrkFile,
   mHistoSubj = MRIclone(mTestMask, NULL);
 }
 
-Blood::Blood(const char *TrainTrkFile, const char *TrainRoi1File,
-                                       const char *TrainRoi2File) : 
+Blood::Blood(const char *TrainTrkFile,
+             const char *TrainRoi1File, const char *TrainRoi2File,
+             bool Debug) : 
+             mDebug(Debug),
              mUseTruncated(false),
              mNx(0), mNy(0), mNz(0),
              mTestMask(0) {
@@ -188,14 +202,6 @@ void Blood::ReadStreamlines(const char *TrainListFile,
   mCenterStreamline.clear();
   mControlPoints.clear();
   mControlStd.clear();
-  mTangentMean.clear();
-  mTangentMeanAll.clear();
-  mTangentStd.clear();
-  mTangentStdAll.clear();
-  mCurvatureMean.clear();
-  mCurvatureMeanAll.clear();
-  mCurvatureStd.clear();
-  mCurvatureStdAll.clear();
   mHistoLocal.clear();
   mHistoLocalAll.clear();
   mPriorLocal.clear();
@@ -212,6 +218,20 @@ void Blood::ReadStreamlines(const char *TrainListFile,
   mAsegDistMeanAll.clear();
   mAsegDistStd.clear();
   mAsegDistStdAll.clear();
+  mHistoTangent.clear();
+  mHistoTangentAll.clear();
+  mPriorTangent.clear();
+  mPriorTangentAll.clear();
+  mTangentXByArc.clear();
+  mTangentXByArcAll.clear();
+  mTangentYByArc.clear();
+  mTangentYByArcAll.clear();
+  mHistoCurvature.clear();
+  mHistoCurvatureAll.clear();
+  mPriorCurvature.clear();
+  mPriorCurvatureAll.clear();
+  mCurvatureByArc.clear();
+  mCurvatureByArcAll.clear();
 
   for (ivol = mRoi1.begin(); ivol != mRoi1.end(); ivol++)
     MRIfree(&(*ivol));
@@ -242,12 +262,20 @@ void Blood::ReadStreamlines(const char *TrainListFile,
       fname = *idir + TrainRoi1File;
       cout << "Loading streamline start ROI from " << fname << endl;
       mRoi1.push_back(MRIread(fname.c_str()));
+      if (! *(mRoi1.end()-1)) {
+        cout << "ERROR: Could not read " << fname << endl;
+        exit(1);
+      }
     }
 
     if (TrainRoi2File) {
       fname = *idir + TrainRoi2File;
       cout << "Loading streamline end ROI from " << fname << endl;
       mRoi2.push_back(MRIread(fname.c_str()));
+      if (! *(mRoi2.end()-1)) {
+        cout << "ERROR: Could not read " << fname << endl;
+        exit(1);
+      }
     }
 
     if (!mTestMask) {		// Get size of reference volume from ROIs
@@ -916,11 +944,19 @@ void Blood::ReadAnatomy(const char *TrainListFile, const char *TrainAsegFile,
     fname = *idir + TrainAsegFile;
     cout << "Loading segmentation from " << fname << endl;
     mAseg.push_back(MRIread(fname.c_str()));
+    if (! *(mAseg.end()-1)) {
+      cout << "ERROR: Could not read " << fname << endl;
+      exit(1);
+    }
 
     if (TrainMaskFile) {
       fname = *idir + TrainMaskFile;
       cout << "Loading cortex mask from " << fname << endl;
       mMask.push_back(MRIread(fname.c_str()));
+      if (! *(mMask.end()-1)) {
+        cout << "ERROR: Could not read " << fname << endl;
+        exit(1);
+      }
     }
   }
 
@@ -1043,7 +1079,7 @@ void Blood::ComputePriors() {
 
   cout << "Computing prior on curvature "
        << "(non-truncated streamlines only)" << endl;
-  ComputeCurvaturePrior(false);
+  ComputeShapePrior(false);
 
   if (mUseTruncated) {
     cout << "Computing prior on underlying anatomy "
@@ -1052,7 +1088,7 @@ void Blood::ComputePriors() {
 
     cout << "Computing prior on curvature "
          << "(all streamlines)" << endl;
-    ComputeCurvaturePrior(true);
+    ComputeShapePrior(true);
   }
 
   for (int itry = 1; itry <= mNumStrEnds; itry++) {
@@ -1074,7 +1110,9 @@ void Blood::ComputePriors() {
         cout << "WARN: Could not find satisfactory control point fit - try "
              << itry << endl;
         retry = true;
-        break;
+
+        if (itry < mNumStrEnds)
+          break;
       }
     }
 
@@ -1863,29 +1901,49 @@ void Blood::ComputeAnatomyPrior(bool UseTruncated) {
 //
 // Compute prior on tangent vector and curvature by streamline arc length
 //
-void Blood::ComputeCurvaturePrior(bool UseTruncated) {
-  const unsigned int offset = 3 * mCurvOffset;
-  float curv;
+void Blood::ComputeShapePrior(bool UseTruncated) {
+  const int nbin = (int) ceil(2 / mTangentBinSize);
+  float tangx, tangy, curv;
   vector<bool>::const_iterator ivalid1 = mIsInEnd1.begin(),
                                ivalid2 = mIsInEnd2.begin();
   vector<int>::const_iterator ilen = mLengths.begin(),
                               itrlen = mTruncatedLengths.begin();
-  vector<float> tang(3), norm(3), tangmean(3), tangstd(3);
-  vector< vector<float> > tangbyarc, curvbyarc;
+  vector<float>::const_iterator id1, id2;
+  vector< vector<float> >::const_iterator itangx, itangy, icurv;
+  vector<int> tanghisto(nbin*nbin), curvhisto;
+  vector<float> strsmooth, diff1, diff2,
+                tangprior(tanghisto.size()), curvprior;
+  vector< vector<float> > tangxbyarc, tangybyarc, curvbyarc;
 
-  tangbyarc.resize(mNumArc);
+  tangxbyarc.resize(mNumArc);
+  tangybyarc.resize(mNumArc);
   curvbyarc.resize(mNumArc);
 
-  // Compute tangent vector and curvature along streamlines
+  // Compute tangent vector and curvature at each point on each streamline
   for (vector< vector<int> >::const_iterator istr = mStreamlines.begin();
-                                           istr != mStreamlines.end(); istr++) {
-    
+                                            istr < mStreamlines.end(); istr++) {
     if ( ( (UseTruncated && (*ivalid1 || *ivalid2)) ||
-           (*ivalid1 && *ivalid2) ) &&
-         (*ilen >= 2 * (int) mCurvOffset + 1) ) {
+           (*ivalid1 && *ivalid2) ) && *ilen >= (int) mDiffStep ) {
       unsigned int iarc;
       const double darc = mNumArc / (double) (*ilen + *itrlen);
       double larc;
+
+      strsmooth.resize(istr->size());
+      diff1.resize(istr->size());
+      diff2.resize(istr->size());
+
+      // Smooth discrete point coordinates
+      CurveSmooth(strsmooth, *istr);
+
+      // Approximate first derivative by smoothed finite differences
+      // of the point coordinates
+      CurveFiniteDifferences(diff1, strsmooth, mDiffStep);
+
+      // Approximate second derivative by smoothed finite differences
+      // of the first derivative
+      CurveFiniteDifferences(diff2, diff1, mDiffStep);
+
+      id2 = diff2.begin();
 
       if (*ivalid1) {
         larc = 0;
@@ -1897,25 +1955,37 @@ void Blood::ComputeCurvaturePrior(bool UseTruncated) {
         iarc = (unsigned int) intpart;			// integer part
       }
 
-      for (vector<int>::const_iterator ipt = istr->begin() + offset;
-                                       ipt != istr->end() - offset;) {
-        // Quadratic approximation of tangent and normal vectors from 3 points
-        for (int k = 0; k < 3; k++) {
-          tang[k] = (*(ipt + offset) - *(ipt - offset)) / 2.0;
-          norm[k] = *(ipt + offset) - 2 * (*ipt) + *(ipt - offset);
-          ipt++;
+      for (id1 = diff1.begin(); id1 < diff1.end(); id1 += 3) {
+        const float nrm = sqrt(id1[0]*id1[0] + id1[1]*id1[1] + id1[2]*id1[2]);
+
+        if (nrm > 0) {
+          // Tangent vector
+          if (id1[2] < 0) {	// Use only z>0 octants, direction is irrelevant
+            tangx = - id1[0] / nrm;
+            tangy = - id1[1] / nrm;
+          }
+          else {
+            tangx = id1[0] / nrm;
+            tangy = id1[1] / nrm;
+          }
+
+          // Curvature = |r' x r''| / |r'|^3
+          curv = 
+            sqrt( pow(id1[1] * id2[2] - id1[2] * id2[1], 2) +
+                  pow(id1[2] * id2[0] - id1[0] * id2[2], 2) +
+                  pow(id1[0] * id2[1] - id1[1] * id2[0], 2) ) / pow(nrm, 3);
+        }
+        else {
+          tangx = 0;
+          tangy = 0;
+          curv = 0;
         }
 
-        tangbyarc[iarc].insert(tangbyarc[iarc].end(), tang.begin(), tang.end());
-
-        // Curvature = |r' x r''| / |r'|^3
-        curv = 
-          sqrt( ( pow(tang[1] * norm[2] - tang[2] * norm[1], 2) +
-                  pow(tang[2] * norm[0] - tang[0] * norm[2], 2) +
-                  pow(tang[0] * norm[1] - tang[1] * norm[0], 2) ) /
-                pow(pow(tang[0], 2) + pow(tang[1], 2) + pow(tang[2], 2), 3) );
-
+        tangxbyarc[iarc].push_back(tangx);
+        tangybyarc[iarc].push_back(tangy);
         curvbyarc[iarc].push_back(curv);
+
+        id2 += 3;
 
         larc += darc;
 
@@ -1933,81 +2003,112 @@ void Blood::ComputeCurvaturePrior(bool UseTruncated) {
   }
 
   if (UseTruncated) {
-    mTangentMeanAll.clear();
-    mTangentStdAll.clear();
-    mCurvatureMeanAll.clear();
-    mCurvatureStdAll.clear();
+    mHistoTangentAll.clear();
+    mPriorTangentAll.clear();
+    mHistoCurvatureAll.clear();
+    mPriorCurvatureAll.clear();
   }
   else {
-    mTangentMean.clear();
-    mTangentStd.clear();
-    mCurvatureMean.clear();
-    mCurvatureStd.clear();
+    mHistoTangent.clear();
+    mPriorTangent.clear();
+    mHistoCurvature.clear();
+    mPriorCurvature.clear();
   }
 
-  // Compute mean and variance of tangent vector by arc length
-  for (vector< vector<float> >::const_iterator
-       itang = tangbyarc.begin(); itang != tangbyarc.end(); itang++) {
-    unsigned int nsamp = itang->size() / 3;
+  // Compute priors on tangent vector and curvature by arc length
+  itangx = tangxbyarc.begin();
+  itangy = tangybyarc.begin();
 
-    fill(tangmean.begin(), tangmean.end(), 0.0);
-    fill(tangstd.begin(), tangstd.end(), 0.0);
+  for (icurv = curvbyarc.begin(); icurv < curvbyarc.end(); icurv++) {
+    int nclass;
+    const unsigned int nsamp = icurv->size();
+    float denom;
+    const float curvmax = *max_element(icurv->begin(), icurv->end());
+    vector<int>::const_iterator ihisto;
+    vector<float>::const_iterator isampx = itangx->begin();
 
-    for (vector<float>::const_iterator isamp = itang->begin(); 
-                                       isamp != itang->end(); isamp += 3)
-      for (int k = 0; k < 3; k++) {
-        tangmean[k] += isamp[k];
-        tangstd[k]  += isamp[k] * isamp[k];
-      }
+    // Tangent vector histogram (defined over [-1, 1]^2)
+    fill(tanghisto.begin(), tanghisto.end(), 0);
 
-    for (int k = 0; k < 3; k++) {
-      tangmean[k] /= nsamp;
+    for (vector<float>::const_iterator isampy = itangy->begin();
+                                       isampy < itangy->end(); isampy++) {
+      const int ix = (int) floor((*isampx + 1) / mTangentBinSize),
+                iy = (int) floor((*isampy + 1) / mTangentBinSize);
 
-      if (nsamp > 1)
-        tangstd[k] = sqrt((tangstd[k] - nsamp * tangmean[k] * tangmean[k])
-                           / (nsamp-1));
-      else
-        tangstd[k] = 0;
+      tanghisto.at( ((iy<nbin) ? iy : (nbin-1)) * nbin +
+                    ((ix<nbin) ? ix : (nbin-1)) )++;
+
+      isampx++;
+    }
+
+    // Tangent vector prior
+    nclass = tanghisto.size() - count(tanghisto.begin(), tanghisto.end(), 0);
+    denom = (float) (nsamp + nclass + 1);
+
+    ihisto = tanghisto.begin();
+
+    for (vector<float>::iterator iprior = tangprior.begin();
+                                 iprior < tangprior.end(); iprior++) {
+      *iprior = -log((*ihisto + 1) / denom);
+      ihisto++;
+    }
+
+    // Curvature histogram (defined over [0, curvmax])
+    curvhisto.resize((int) ceil(curvmax / mCurvatureBinSize) + 1);
+    fill(curvhisto.begin(), curvhisto.end(), 0);
+
+    for (vector<float>::const_iterator isamp = icurv->begin();
+                                       isamp < icurv->end(); isamp++)
+      curvhisto.at((int) floor(*isamp / mCurvatureBinSize))++;
+
+    // Curvature prior
+    nclass = curvhisto.size() - count(curvhisto.begin(), curvhisto.end(), 0);
+    denom = (float) (nsamp + nclass + 1);
+
+    curvprior.resize(curvhisto.size());
+    ihisto = curvhisto.begin();
+
+    for (vector<float>::iterator iprior = curvprior.begin();
+                                 iprior < curvprior.end(); iprior++) {
+      *iprior = -log((*ihisto + 1) / denom);
+      ihisto++;
     }
 
     if (UseTruncated) {
-      mTangentMeanAll.insert(mTangentMeanAll.end(),
-                             tangmean.begin(), tangmean.end());
-      mTangentStdAll.insert(mTangentStdAll.end(),
-                            tangstd.begin(), tangstd.end());
+      mHistoTangentAll.push_back(tanghisto);
+      mPriorTangentAll.push_back(tangprior);
+      mHistoCurvatureAll.push_back(curvhisto);
+      mPriorCurvatureAll.push_back(curvprior);
     }
     else {
-      mTangentMean.insert(mTangentMean.end(), tangmean.begin(), tangmean.end());
-      mTangentStd.insert(mTangentStd.end(), tangstd.begin(), tangstd.end());
+      mHistoTangent.push_back(tanghisto);
+      mPriorTangent.push_back(tangprior);
+      mHistoCurvature.push_back(curvhisto);
+      mPriorCurvature.push_back(curvprior);
     }
+
+    itangx++;
+    itangy++;
   }
 
-  // Compute mean and variance of curvature by arc length
-  for (vector< vector<float> >::const_iterator
-       icurv = curvbyarc.begin(); icurv != curvbyarc.end(); icurv++) {
-    unsigned int nsamp = icurv->size();
-    float curvmean = 0, curvstd = 0;
-
-    for (vector<float>::const_iterator isamp = icurv->begin(); 
-                                       isamp != icurv->end(); isamp++) {
-      curvmean += *isamp;
-      curvstd  += (*isamp) * (*isamp);
-    }
-
-    curvmean /= nsamp;
-
-    if (nsamp > 1)
-      curvstd = sqrt((curvstd - nsamp * curvmean * curvmean) / (nsamp-1));
-    else
-      curvstd = 0;
-
+  // In debug mode, save all samples of the tangent vector and curvature
+  // by arc length
+  if (mDebug) {
     if (UseTruncated) {
-      mCurvatureMeanAll.push_back(curvmean);
-      mCurvatureStdAll.push_back(curvstd);
+      mTangentXByArcAll.resize(mNumArc);
+      copy(tangxbyarc.begin(), tangxbyarc.end(), mTangentXByArcAll.begin());
+      mTangentYByArcAll.resize(mNumArc);
+      copy(tangybyarc.begin(), tangybyarc.end(), mTangentYByArcAll.begin());
+      mCurvatureByArcAll.resize(mNumArc);
+      copy(curvbyarc.begin(), curvbyarc.end(), mCurvatureByArcAll.begin());
     }
     else {
-      mCurvatureMean.push_back(curvmean);
-      mCurvatureStd.push_back(curvstd);
+      mTangentXByArc.resize(mNumArc);
+      copy(tangxbyarc.begin(), tangxbyarc.end(), mTangentXByArc.begin());
+      mTangentYByArc.resize(mNumArc);
+      copy(tangybyarc.begin(), tangybyarc.end(), mTangentYByArc.begin());
+      mCurvatureByArc.resize(mNumArc);
+      copy(curvbyarc.begin(), curvbyarc.end(), mCurvatureByArc.begin());
     }
   }
 }
@@ -2961,7 +3062,7 @@ void Blood::WriteOutputs(const char *OutBase) {
 //
 void Blood::WritePriors(const char *OutBase, bool UseTruncated) {
   char fname[PATH_MAX], pfix[5];
-  vector<float>::const_iterator imean, istd;
+  vector<float>::const_iterator ithisto, itprior, ichisto, icprior;
   vector< vector<int> >::const_iterator ihisto;
   vector< vector<float> >::const_iterator iprior, idmean, idstd;
   vector< set<unsigned int> >::const_iterator iids;
@@ -3136,65 +3237,137 @@ void Blood::WritePriors(const char *OutBase, bool UseTruncated) {
     idstd++;
   }
 
-  // Save tangent vector distribution in training set
+  // Save histograms and priors on tangent vector and curvature
   if (UseTruncated) {
-    imean = mTangentMeanAll.begin();
-    istd = mTangentStdAll.begin();
+    ihisto = mHistoTangentAll.begin();
+    iprior = mPriorTangentAll.begin();
   }
   else {
-    imean = mTangentMean.begin();
-    istd = mTangentStd.begin();
+    ihisto = mHistoTangent.begin();
+    iprior = mPriorTangent.begin();
   }
 
-  sprintf(fname, "%s%s_tangmean.txt", OutBase, pfix);
+  sprintf(fname, "%s_tanghisto%s.txt", OutBase, pfix);
   outfile.open(fname, ios::out);
 
   for (int k = mNumArc; k > 0; k--) {
-    outfile << imean[0] << " " << imean[1] << " " << imean[2] << endl;
-    imean += 3;
+    for (vector<int>::const_iterator ival = ihisto->begin();
+                                     ival < ihisto->end(); ival++)
+      outfile << *ival << " ";
+    outfile << endl;
+
+    ihisto++;
   }
 
   outfile.close();
 
-  sprintf(fname, "%s%s_tangstd.txt", OutBase, pfix);
+  sprintf(fname, "%s_tangprior%s.txt", OutBase, pfix);
   outfile.open(fname, ios::out);
 
   for (int k = mNumArc; k > 0; k--) {
-    outfile << istd[0] << " " << istd[1] << " " << istd[2] << endl;
-    istd += 3;
+    for (vector<float>::const_iterator ival = iprior->begin();
+                                       ival < iprior->end(); ival++)
+      outfile << *ival << " ";
+    outfile << endl;
+
+    iprior++;
   }
 
   outfile.close();
 
-  // Save curvature distribution in training set
   if (UseTruncated) {
-    imean = mCurvatureMeanAll.begin();
-    istd = mCurvatureStdAll.begin();
+    ihisto = mHistoCurvatureAll.begin();
+    iprior = mPriorCurvatureAll.begin();
   }
   else {
-    imean = mCurvatureMean.begin();
-    istd = mCurvatureStd.begin();
+    ihisto = mHistoCurvature.begin();
+    iprior = mPriorCurvature.begin();
   }
 
-  sprintf(fname, "%s%s_curvmean.txt", OutBase, pfix);
+  sprintf(fname, "%s_curvhisto%s.txt", OutBase, pfix);
   outfile.open(fname, ios::out);
 
   for (int k = mNumArc; k > 0; k--) {
-    outfile << *imean << endl;
-    imean++;
+    for (vector<int>::const_iterator ival = ihisto->begin();
+                                     ival < ihisto->end(); ival++)
+      outfile << *ival << " ";
+    outfile << endl;
+
+    ihisto++;
   }
 
   outfile.close();
 
-  sprintf(fname, "%s%s_curvstd.txt", OutBase, pfix);
+  sprintf(fname, "%s_curvprior%s.txt", OutBase, pfix);
   outfile.open(fname, ios::out);
 
   for (int k = mNumArc; k > 0; k--) {
-    outfile << *istd << endl;
-    istd++;
+    for (vector<float>::const_iterator ival = iprior->begin();
+                                       ival < iprior->end(); ival++)
+      outfile << *ival << " ";
+    outfile << endl;
+
+    iprior++;
   }
 
   outfile.close();
+
+  // In debug mode, save all samples of the tangent vector and curvature
+  // found in the training data by arc length
+  if (mDebug) {
+    vector<float>::const_iterator isamp;
+    vector< vector<float> >::const_iterator itangx, itangy, icurv;
+
+    if (UseTruncated) {
+      itangx = mTangentXByArcAll.begin();
+      itangy = mTangentYByArcAll.begin();
+      icurv = mCurvatureByArcAll.begin();
+    }
+    else {
+      itangx = mTangentXByArc.begin();
+      itangy = mTangentYByArc.begin();
+      icurv = mCurvatureByArc.begin();
+    }
+
+    sprintf(fname, "%s_tangx%s.txt", OutBase, pfix);
+    outfile.open(fname, ios::out);
+
+    for (int k = mNumArc; k > 0; k--) {
+      for (isamp = itangx->begin(); isamp < itangx->end(); isamp++)
+        outfile << *isamp << " ";
+      outfile << endl;
+
+      itangx++;
+    }
+
+    outfile.close();
+
+    sprintf(fname, "%s_tangy%s.txt", OutBase, pfix);
+    outfile.open(fname, ios::out);
+
+    for (int k = mNumArc; k > 0; k--) {
+      for (isamp = itangy->begin(); isamp < itangy->end(); isamp++)
+        outfile << *isamp << " ";
+      outfile << endl;
+
+      itangy++;
+    }
+
+    outfile.close();
+
+    sprintf(fname, "%s_curv%s.txt", OutBase, pfix);
+    outfile.open(fname, ios::out);
+
+    for (int k = mNumArc; k > 0; k--) {
+      for (isamp = icurv->begin(); isamp < icurv->end(); isamp++)
+        outfile << *isamp << " ";
+      outfile << endl;
+
+      icurv++;
+    }
+
+    outfile.close();
+  }
 }
 
 //

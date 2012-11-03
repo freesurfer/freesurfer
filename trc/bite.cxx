@@ -31,9 +31,7 @@ vector<float> Bite::mGradients, Bite::mBvalues;
 Bite::Bite(MRI *Dwi, MRI **Phi, MRI **Theta, MRI **F,
            MRI **V0, MRI **F0, MRI *D0,
            int CoordX, int CoordY, int CoordZ) :
-           mIsPriorSet(false),
-           mCoordX(CoordX), mCoordY(CoordY), mCoordZ(CoordZ),
-           mPathPrior0(0), mPathPrior1(0) {
+           mCoordX(CoordX), mCoordY(CoordY), mCoordZ(CoordZ) {
   float fsum, vx, vy, vz;
 
   mDwi.clear();
@@ -43,6 +41,7 @@ Bite::Bite(MRI *Dwi, MRI **Phi, MRI **Theta, MRI **F,
   mPhi.clear();
   mTheta.clear();
   mF.clear();
+  mAtlasCoords.clear();
 
   // Initialize s0
   mS0 = 0;
@@ -144,40 +143,6 @@ int Bite::GetNumDir() { return mNumDir; }
 int Bite::GetNumB0() { return mNumB0; }
 
 int Bite::GetNumBedpost() { return mNumBedpost; }
-
-//
-// Check if prior has been set
-//
-bool Bite::IsPriorSet() { return mIsPriorSet; }
-
-//
-// Compute priors for this voxel, given its coordinates in atlas space
-//
-void Bite::SetPrior(MRI *Prior0, MRI *Prior1,
-                    int CoordX, int CoordY, int CoordZ) {
-  // Spatial path priors
-  if (Prior0 && Prior1) {
-    mPathPrior0 = MRIgetVoxVal(Prior0, CoordX, CoordY, CoordZ, 0);
-    mPathPrior1 = MRIgetVoxVal(Prior1, CoordX, CoordY, CoordZ, 0);
-  }
-  else {
-    mPathPrior0 = 0;
-    mPathPrior1 = 0;
-  }
-
-  mIsPriorSet = true;
-}
-
-//
-// Clear priors for this voxel
-//
-void Bite::ResetPrior() {
-  mIsPriorSet = false;
-
-  // Spatial path priors
-  mPathPrior0 = 0;
-  mPathPrior1 = 0;
-}
 
 //
 // Draw samples from marginal posteriors of diffusion parameters
@@ -391,17 +356,36 @@ void Bite::ComputePriorOffPath() {
 //     << log(((double)*fjl - 1) * log(1 - (double)*fjl)) << endl;
 
 if (1) 
-  mPrior0 = log((*fjl - 1) * log(1 - *fjl)) - log(fabs(sin(*thetajl)))
-          + mPathPrior0;
+  mPrior0 = log((*fjl - 1) * log(1 - *fjl)) - log(fabs(sin(*thetajl)));
 else  
-  mPrior0 = mPathPrior0;
+  mPrior0 = 0;
 }
 
 //
 // Compute prior given that voxel is on path
 //
 void Bite::ComputePriorOnPath() {
-  mPrior1 = mPathPrior1;
+  mPrior1 = 0;
+}
+
+//
+// Check if the coordinates of this voxel in atlas space have been set
+//
+bool Bite::IsAtlasSet() { return !mAtlasCoords.empty(); }
+
+//
+// Set the coordinates of this voxel in atlas space
+//
+void Bite::SetAtlasCoords(vector<int>::const_iterator AtlasCoords) {
+  mAtlasCoords.clear();
+  mAtlasCoords.insert(mAtlasCoords.begin(), AtlasCoords, AtlasCoords + 3);
+}
+
+//
+// Retrieve the previously saved coordinates of this voxel in atlas space
+//
+void Bite::GetAtlasCoords(vector<int>::iterator AtlasCoords) {
+  copy(mAtlasCoords.begin(), mAtlasCoords.end(), AtlasCoords);
 }
 
 bool Bite::IsFZero() { return (mF[mPathTract] < mFminPath); }
@@ -411,10 +395,6 @@ bool Bite::IsThetaZero() { return (mTheta[mPathTract] == 0); }
 float Bite::GetLikelihoodOffPath() { return mLikelihood0; }
 
 float Bite::GetLikelihoodOnPath() { return mLikelihood1; }
-
-float Bite::GetPathPriorOffPath() { return mPathPrior0; }
-
-float Bite::GetPathPriorOnPath() { return mPathPrior1; }
 
 float Bite::GetPriorOffPath() { return mPrior0; }
 

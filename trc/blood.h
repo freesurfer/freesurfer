@@ -45,9 +45,11 @@ class Blood {
           const char *TrainAsegFile, const char *TrainMaskFile,
           float TrainMaskLabel, const char *ExcludeFile,
           const char *TestMaskFile, const char *TestFaFile,
-          bool UseTruncated, std::vector<int> &NumControls);
-    Blood(const char *TrainTrkFile, const char *TrainRoi1File,
-          const char *TrainRoi2File);
+          bool UseTruncated, std::vector<int> &NumControls,
+          bool Debug=false);
+    Blood(const char *TrainTrkFile,
+          const char *TrainRoi1File, const char *TrainRoi2File,
+          bool Debug=false);
     ~Blood();
     void ReadStreamlines(const char *TrainListFile, const char *TrainTrkFile,
                          const char *TrainRoi1File, const char *TrainRoi2File,
@@ -83,11 +85,12 @@ class Blood {
 
   private:
     static const int mDistThresh, mEndDilation;
-    static const unsigned int mCurvOffset;
+    static const unsigned int mDiffStep;
     static const float mLengthCutoff, mLengthRatio,
-                       mHausStepRatio, mControlStepRatio;
+                       mHausStepRatio, mControlStepRatio,
+                       mTangentBinSize, mCurvatureBinSize;
 
-    const bool mUseTruncated;
+    const bool mDebug, mUseTruncated;
     int mNx, mNy, mNz, mNumTrain, mVolume,
         mNumStr, mLengthMin, mLengthMax,
         mNumStrEnds, mLengthMinEnds, mLengthMaxEnds,
@@ -97,20 +100,24 @@ class Blood {
     std::vector<int> mNumLines, mLengths, mMidPoints, mTruncatedLengths,
                      mCenterStreamline, mDirLocal, mDirNear, mNumControls;
     std::vector<float> mMeanEnd1, mMeanEnd2, mMeanMid,
-                       mVarEnd1, mVarEnd2, mVarMid,
-                       mTangentMean, mTangentStd,
-                       mTangentMeanAll, mTangentStdAll,
-                       mCurvatureMean, mCurvatureStd,
-                       mCurvatureMeanAll, mCurvatureStdAll;
+                       mVarEnd1, mVarEnd2, mVarMid;
     std::vector< std::vector<int> > mStreamlines, mControlPoints,
                                     mExcludedStreamlines,
                                     mHistoLocal, mHistoNear,
-                                    mHistoLocalAll, mHistoNearAll;
+                                    mHistoLocalAll, mHistoNearAll,
+                                    mHistoTangent, mHistoCurvature,
+                                    mHistoTangentAll, mHistoCurvatureAll;
     std::vector< std::vector<float> > mControlStd,
                                       mPriorLocal, mPriorNear,
                                       mPriorLocalAll, mPriorNearAll,
                                       mAsegDistMean, mAsegDistStd,
-                                      mAsegDistMeanAll, mAsegDistStdAll;
+                                      mAsegDistMeanAll, mAsegDistStdAll,
+                                      mPriorTangent, mPriorCurvature,
+                                      mPriorTangentAll, mPriorCurvatureAll,
+                                      mTangentXByArc, mTangentYByArc,
+                                      mCurvatureByArc,
+                                      mTangentXByArcAll, mTangentYByArcAll,
+                                      mCurvatureByArcAll;
     std::vector< std::set<unsigned int> > mIdsLocal, mIdsNear, //[{6,7}xmNumArc]
                                           mIdsLocalAll, mIdsNearAll;
     std::vector<MRI *> mRoi1, mRoi2, mAseg, mMask;
@@ -127,7 +134,7 @@ class Blood {
                     MRI *Mask, MRI *Aseg);
     void SetArcSegments();
     void ComputeAnatomyPrior(bool UseTruncated);
-    void ComputeCurvaturePrior(bool UseTruncated);
+    void ComputeShapePrior(bool UseTruncated);
     void FindPointsOnStreamline(std::vector<int> &Streamline, int NumPoints);
     bool FindPointsOnStreamlineLS(std::vector<int> &Streamline, int NumPoints);
     bool FindPointsOnStreamlineComb(std::vector<int> &Streamline,
