@@ -11,9 +11,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2012/11/02 15:13:10 $
- *    $Revision: 1.135 $
+ *    $Author: nicks $
+ *    $Date: 2012/11/05 19:58:50 $
+ *    $Revision: 1.136 $
  *
  * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -56,7 +56,7 @@
 #define CONTRAST_FLAIR 2
 
 static char vcid[] =
-  "$Id: mris_make_surfaces.c,v 1.135 2012/11/02 15:13:10 fischl Exp $";
+  "$Id: mris_make_surfaces.c,v 1.136 2012/11/05 19:58:50 nicks Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -66,16 +66,16 @@ int main(int argc, char *argv[]) ;
 
 static int unpinch = 0 ;
 static int find_and_mark_pinched_regions(MRI_SURFACE *mris,
-                                         MRI *mri_T2,
-                                         float nstd_below,
-                                         float nstd_above) ;
+    MRI *mri_T2,
+    float nstd_below,
+    float nstd_above) ;
 static int compute_pial_target_locations(MRI_SURFACE *mris,
-                                         MRI *mri_T2,
-                                         float nstd_below,
-                                         float nstd_above,
-                                         LABEL **labels,
-                                         int nlabels,
-                                         int contrast_type) ;
+    MRI *mri_T2,
+    float nstd_below,
+    float nstd_above,
+    LABEL **labels,
+    int nlabels,
+    int contrast_type) ;
 static int compute_label_normal(MRI *mri_aseg, int x0, int y0, int z0,
                                 int label, int whalf,
                                 double *pnx, double *pny,
@@ -265,13 +265,13 @@ main(int argc, char *argv[])
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mris_make_surfaces.c,v 1.135 2012/11/02 15:13:10 fischl Exp $",
+   "$Id: mris_make_surfaces.c,v 1.136 2012/11/05 19:58:50 nicks Exp $",
    "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mris_make_surfaces.c,v 1.135 2012/11/02 15:13:10 fischl Exp $",
+           "$Id: mris_make_surfaces.c,v 1.136 2012/11/05 19:58:50 nicks Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
   {
@@ -985,7 +985,7 @@ main(int argc, char *argv[])
         mri_tmp =
           MRIdistanceTransform(mri_bin, NULL, 1, 20, DTRANS_MODE_SIGNED, NULL) ;
         // to be in same range as intensities:
-        MRIscalarMul(mri_tmp, mri_tmp, (100.0/mri_bin->xsize)) ;  
+        MRIscalarMul(mri_tmp, mri_tmp, (100.0/mri_bin->xsize)) ;
         MRIfree(&mri_T1) ;
         mri_T1 = mri_tmp ;
         MRISsetVals(mris, 0) ;   // target is 0 distance transform val
@@ -1076,7 +1076,7 @@ main(int argc, char *argv[])
         ErrorExit(Gerror, "%s: could not read white matter surface.",
                   Progname) ;
     }
-    else // read default white (something needs to be 
+    else // read default white (something needs to be
       // read if nowhite was created)
     {
       // if you don't like the default, give an error message here and exit,
@@ -1365,15 +1365,21 @@ main(int argc, char *argv[])
 
         strcpy(fname, flair_or_T2_name) ;
         if (MGZ)
+        {
           strcat(fname, ".mgz");
+        }
 
         printf("repositioning pial surface locations using  %s\n", fname) ;
         if (mri_flair)  // first time
+        {
           MRIfree(&mri_flair) ;
+        }
 
         mri_flair = MRIread(fname) ;
         if (mri_flair == NULL)
+        {
           ErrorExit(ERROR_NOFILE, "%s: could not load flair volume %s", Progname, fname) ;
+        }
 
 
         if (read_pinch_fname)
@@ -1448,7 +1454,9 @@ main(int argc, char *argv[])
           MRIScomputeMetricProperties(mris) ;
         }
         else
+        {
           nlabels = 0 ;
+        }
 
         compute_pial_target_locations(mris, mri_flair,
                                       nsigma_below, nsigma_above,
@@ -1571,7 +1579,7 @@ main(int argc, char *argv[])
         }
         if (0)
         {
-          compute_pial_target_locations(mris, mri_T2, 
+          compute_pial_target_locations(mris, mri_T2,
                                         nsigma_below, nsigma_above,
                                         labels, nlabels,
                                         CONTRAST_T2) ;
@@ -1588,7 +1596,7 @@ main(int argc, char *argv[])
           MRISrestoreVertexPositions(mris, TMP_VERTICES) ;
         }
 //        parms.l_histo = 1 ;
-	parms.l_location = 1 ;
+        parms.l_location = 1 ;
         parms.l_intensity = 0 ;
         parms.l_nspring *= 0.1 ;
         parms.l_tspring *= 0.1 ;
@@ -1974,7 +1982,7 @@ get_option(int argc, char *argv[])
             nsigma) ;
     nargs = 1;
   }
-  else if (!stricmp(option, "nsigma_above") || 
+  else if (!stricmp(option, "nsigma_above") ||
            !stricmp(option, "nsigmas_above"))
   {
     nsigma_above = atof(argv[2]) ;
@@ -1983,7 +1991,7 @@ get_option(int argc, char *argv[])
             nsigma_above) ;
     nargs = 1;
   }
-  else if (!stricmp(option, "nsigma_below") || 
+  else if (!stricmp(option, "nsigma_below") ||
            !stricmp(option, "nsigmas_below"))
   {
     nsigma_below = atof(argv[2]) ;
@@ -2004,9 +2012,9 @@ get_option(int argc, char *argv[])
   else if (!stricmp(option, "T2dura") || !stricmp(option, "T2"))
   {
     flair_or_T2_name = argv[2] ;
-//    T2_name = argv[2] ;
     fprintf(stderr,
-            "refining pial surfaces placement using T2 volume %s\n", flair_or_T2_name) ;
+            "refining pial surfaces placement using T2 volume %s\n", 
+            flair_or_T2_name) ;
     nargs = 1 ;
   }
   else if (!stricmp(option, "flair"))
@@ -3255,7 +3263,7 @@ fix_midline(MRI_SURFACE *mris, MRI *mri_aseg, MRI *mri_brain, char *hemi,
         {
           DiagBreak() ;
         }
-        if ((label == Left_Lateral_Ventricle || 
+        if ((label == Left_Lateral_Ventricle ||
              label == Right_Lateral_Ventricle) &&
             d > 1)  // in calcarine ventricle can be pretty close to wm surface
         {
@@ -3296,7 +3304,7 @@ fix_midline(MRI_SURFACE *mris, MRI *mri_aseg, MRI *mri_brain, char *hemi,
           }
         }
       }
-      if (adjacent && 
+      if (adjacent &&
           (double)nvox/(double)total_vox > 0.5) // more than 50% putamen
       {
         MRISvertexToVoxel(mris, v, mri_aseg, &xv, &yv, &zv) ;
@@ -3752,7 +3760,7 @@ compute_pial_target_locations(MRI_SURFACE *mris,
         zs = v->whitez + d*v->nz ;
         MRISsurfaceRASToVoxelCached(mris, mri_T2, xs, ys, zs, &xv, &yv, &zv);
         MRIsampleVolumeType(mri_T2, xv, yv, zv, &val, SAMPLE_TRILINEAR) ;
-        if (val <= 0 && 
+        if (val <= 0 &&
             (MRIgetVoxVal(mri_filled, nint(xv), nint(yv), nint(zv), 0) > 0))
         {
           continue ;
@@ -3881,8 +3889,8 @@ compute_pial_target_locations(MRI_SURFACE *mris,
         DiagBreak() ;
       }
     }
-    else  // no invalid intensities found in the interior, 
-          // check for valid ones in the exterior?
+    else  // no invalid intensities found in the interior,
+      // check for valid ones in the exterior?
     {
       max_outward_dist = 1 ;  // only small deformations for now
       outside_of_white = 0 ;
@@ -3902,7 +3910,7 @@ compute_pial_target_locations(MRI_SURFACE *mris,
           last_white = d ;
           continue ;
         }
-        if (outside_of_white && 
+        if (outside_of_white &&
             MRIgetVoxVal(mri_filled, nint(xv), nint(yv), nint(zv), 0) > 0)  // interior of wm surface, probably normals are messed up
         {
           if (d-last_white > .5)  // really out of white and not just grazing a corner of the surface
@@ -4189,7 +4197,7 @@ find_and_mark_pinched_regions(MRI_SURFACE *mris,
                   continue ;  // don't sample interior to white surface
                 }
                 MRIsampleVolumeType(mri_T2,
-                                    xi, yi, zi, 
+                                    xi, yi, zi,
                                     &val, SAMPLE_TRILINEAR) ;
                 if (val < 0)
                 {
@@ -4315,7 +4323,8 @@ find_and_mark_pinched_regions(MRI_SURFACE *mris,
 static int labels_to_correct[] = { Left_Hippocampus,
                                    Right_Hippocampus,
                                    Left_Amygdala,
-                                   Right_Amygdala} ;
+                                   Right_Amygdala
+                                 } ;
 #define NLABELS (sizeof(labels_to_correct)/sizeof(labels_to_correct[0]))
 
 static int

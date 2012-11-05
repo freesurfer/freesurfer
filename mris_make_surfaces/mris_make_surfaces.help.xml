@@ -47,7 +47,7 @@
       <argument>-orig_white &lt;surf&gt;</argument>
       <explanation>specify a white surface to start with</explanation>
       <argument>-orig_pial &lt;surf&gt;</argument>
-      <explanation>specify a white surface to start with</explanation>
+      <explanation>specify a pial surface to start with</explanation>
       <argument>-w &lt;value&gt;</argument>
       <explanation>unknown</explanation>
       <argument>-pa &lt;avgs&gt;</argument>
