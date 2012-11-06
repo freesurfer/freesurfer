@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2011/03/09 22:50:16 $
- *    $Revision: 1.5 $
+ *    $Date: 2012/11/06 23:11:52 $
+ *    $Revision: 1.6 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -30,7 +30,7 @@
   email:   analysis-bugs@nmr.mgh.harvard.edu
   Date:    2/27/02
   Purpose: Segment the head.
-  $Id: mri_seghead.c,v 1.5 2011/03/09 22:50:16 mreuter Exp $
+  $Id: mri_seghead.c,v 1.6 2012/11/06 23:11:52 mreuter Exp $
 */
 
 #include <stdio.h>
@@ -61,7 +61,7 @@ static int  singledash(char *flag);
 static int  stringmatch(char *str1, char *str2);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_seghead.c,v 1.5 2011/03/09 22:50:16 mreuter Exp $";
+static char vcid[] = "$Id: mri_seghead.c,v 1.6 2012/11/06 23:11:52 mreuter Exp $";
 char *Progname = NULL;
 int debug = 0;
 char *subjid;
@@ -270,13 +270,17 @@ int main(int argc, char **argv) {
   n = 0;
   double backnoise = 0.0;
   int backcount = 0;
+  double backmax = 0.0;
+  double val = 0.0;
   for (c=0; c < invol->width; c++) {
     for (r=0; r < invol->height; r++) {
       for (s=0; s < invol->depth; s++) {
         if (MRIseq_vox(outvol,c,r,s,0)) n++;
         else
         {
-          backnoise += MRIseq_vox(invol_orig,c,r,s,0);
+          val = MRIgetVoxVal(invol_orig,c,r,s,0);
+          backnoise += val;
+          if (backmax < val) backmax = val;
           backcount++;
         }
       }
@@ -286,6 +290,7 @@ int main(int argc, char **argv) {
   printf("N Head Voxels = %d\n",n);
   printf("N Back Voxels = %d\n",backcount);
   printf("Avg. Back Intensity = %f\n",backnoise);
+  printf("Max. Back Intensity = %f\n",backmax);
   
   if(hvoldat){
     fp = fopen(hvoldat,"w");
