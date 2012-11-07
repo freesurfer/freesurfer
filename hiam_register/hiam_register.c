@@ -7,21 +7,19 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2009/11/15 14:46:32 $
- *    $Revision: 1.4 $
+ *    $Author: nicks $
+ *    $Date: 2012/11/07 23:06:44 $
+ *    $Revision: 1.5.2.1 $
  *
- * Copyright (C) 2002-2007,
- * The General Hospital Corporation (Boston, MA). 
- * All rights reserved.
+ * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
- * Distribution, usage and copying of this software is covered under the
- * terms found in the License Agreement file named 'COPYING' found in the
- * FreeSurfer source code root directory, and duplicated here:
- * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ * Terms and conditions for use, reproduction, distribution and contribution
+ * are found in the 'FreeSurfer Software License Agreement' contained
+ * in the file 'LICENSE' found in the FreeSurfer distribution, and here:
  *
- * General inquiries: freesurfer@nmr.mgh.harvard.edu
- * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
+ *
+ * Reporting: freesurfer@nmr.mgh.harvard.edu
  *
  */
 
@@ -41,7 +39,7 @@
 #include "macros.h"
 #include "timer.h"
 
-static char vcid[] = "$Id: hiam_register.c,v 1.4 2009/11/15 14:46:32 fischl Exp $";
+static char vcid[] = "$Id: hiam_register.c,v 1.5.2.1 2012/11/07 23:06:44 nicks Exp $";
 
 
 static float sigmas[] = {
@@ -68,7 +66,6 @@ static void print_version(void) ;
 static int  compute_area_ratios(MRI_SURFACE *mris) ;
 
 static int  mrisRegister(MRI_SURFACE *mris, MRI_SP *mrisp_template, INTEGRATION_PARMS *parms, int max_passes) ;
-static int  mrisLogIntegrationParms(FILE *fp, MRI_SURFACE *mris,INTEGRATION_PARMS *parms);
 static int  mrisClearMomentum(MRI_SURFACE *mris);
 static int  mrisIntegrationEpoch(MRI_SURFACE *mris, INTEGRATION_PARMS *parms,int base_averages);
 
@@ -794,97 +791,3 @@ mrisClearMomentum(MRI_SURFACE *mris) {
   return(NO_ERROR) ;
 }
 
-static int
-mrisLogIntegrationParms(FILE *fp, MRI_SURFACE *mris,INTEGRATION_PARMS *parms) {
-  char  *cp, host_name[STRLEN] ;
-
-  if (!fp)
-    return(NO_ERROR) ;
-
-  cp = getenv("HOST") ;
-  if (cp)
-    strcpy(host_name, cp) ;
-  else
-    strcpy(host_name, "unknown") ;
-
-  fprintf(fp, "tol=%2.1e, host=%5.5s, nav=%d, nbrs=%d",
-          (float)parms->tol, host_name, parms->n_averages, mris->nsize) ;
-  if (!FZERO(parms->l_area))
-    fprintf(fp, ", l_area=%2.3f", parms->l_area) ;
-  if (!FZERO(parms->l_external))
-    fprintf(fp, ", l_extern=%2.3f", parms->l_external) ;
-  if (!FZERO(parms->l_parea))
-    fprintf(fp, ", l_parea=%2.3f", parms->l_parea) ;
-  if (!FZERO(parms->l_nlarea))
-    fprintf(fp, ", l_nlarea=%2.3f", parms->l_nlarea) ;
-  if (!FZERO(parms->l_nldist))
-    fprintf(fp, ", l_nldist=%2.3f", parms->l_nldist) ;
-  if (!FZERO(parms->l_angle))
-    fprintf(fp, ", l_angle=%2.3f", parms->l_angle) ;
-  if (!FZERO(parms->l_repulse))
-    fprintf(fp, ", l_repulse=%2.3f", parms->l_repulse) ;
-  if (!FZERO(parms->l_repulse_ratio))
-    fprintf(fp, ", l_repulse_ratio=%2.3f", parms->l_repulse_ratio) ;
-  if (!FZERO(parms->l_surf_repulse))
-    fprintf(fp, ", l_surf_repulse=%2.3f", parms->l_surf_repulse) ;
-  if (!FZERO(parms->l_corr))
-    fprintf(fp, ", l_corr=%2.3f", parms->l_corr) ;
-  if (!FZERO(parms->l_spring))
-    fprintf(fp, ", l_spring=%2.3f", parms->l_spring) ;
-  if (!FZERO(parms->l_spring_norm))
-    fprintf(fp, ", l_spring_norm=%2.3f", parms->l_spring_norm) ;
-  if (!FZERO(parms->l_tspring))
-    fprintf(fp, ", l_tspring=%2.3f", parms->l_tspring) ;
-  if (!FZERO(parms->l_nspring))
-    fprintf(fp, ", l_nspring=%2.3f", parms->l_nspring) ;
-  if (!FZERO(parms->l_dist))
-    fprintf(fp, ", l_dist=%2.3f", parms->l_dist) ;
-  if (!FZERO(parms->l_intensity))
-    fprintf(fp, ", l_intensity=%2.3f", parms->l_intensity) ;
-  if (!FZERO(parms->l_grad))
-    fprintf(fp, ", l_grad=%2.3f", parms->l_grad) ;
-  if (!FZERO(parms->l_sphere))
-    fprintf(fp, ", l_sphere=%2.3f", parms->l_sphere) ;
-  if (!FZERO(parms->l_expand))
-    fprintf(fp, ", l_expand=%2.3f", parms->l_expand) ;
-  if (!FZERO(parms->l_curv))
-    fprintf(fp, ", l_curv=%2.3f", parms->l_curv) ;
-  if (!FZERO(parms->l_convex))
-    fprintf(fp, ", l_convex=%2.3f", parms->l_convex) ;
-  if (!FZERO(parms->l_boundary))
-    fprintf(fp, ", l_boundary=%2.3f", parms->l_boundary) ;
-  if (!FZERO(parms->l_neg))
-    fprintf(fp, ", l_neg=%2.3f", parms->l_neg) ;
-  if (!FZERO(parms->l_tsmooth))
-    fprintf(fp, ", l_tsmooth=%2.3f", parms->l_tsmooth) ;
-  fprintf(fp, "\n") ;
-  switch (parms->integration_type) {
-  case INTEGRATE_LM_SEARCH:
-    fprintf(fp, "using binary search line minimization\n") ;
-    break ;
-  case INTEGRATE_LINE_MINIMIZE:
-    fprintf(fp, "using quadratic fit line minimization\n") ;
-    break ;
-  case INTEGRATE_ADAPTIVE:
-    fprintf(fp,
-            "mom=%2.2f, dt=%2.2f, base_dt=%2.3f, dt_inc=%2.2f, "
-            "dt_dec=%2.2f, err_rat=%2.2f\n",
-            (float)parms->momentum, (float)parms->dt,
-            (float)parms->base_dt, (float)parms->dt_increase,
-            (float)parms->dt_decrease, (float)parms->error_ratio) ;
-    break ;
-  default:
-  case INTEGRATE_MOMENTUM:
-    fprintf(fp,
-            "mom=%2.2f, dt=%2.2f\n",(float)parms->momentum, (float)parms->dt);
-    break ;
-  }
-#if 0
-  fprintf(fp, "nbhd_size=%d, max_nbrs=%d ", parms->nbhd_size,parms->max_nbrs);
-#endif
-  if (parms->desired_rms_height > 0.0)
-    fprintf(fp, "desired rms height=%2.3f", parms->desired_rms_height) ;
-  fprintf(fp, "\n") ;
-  fflush(fp) ;
-  return(NO_ERROR) ;
-}
