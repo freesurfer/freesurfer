@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2012/10/24 19:37:39 $
-#    $Revision: 1.434 $
+#    $Date: 2012/11/07 00:13:15 $
+#    $Revision: 1.435 $
 #
 # Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -26,7 +26,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.434 2012/10/24 19:37:39 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.435 2012/11/07 00:13:15 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -64,6 +64,8 @@ set DoCleanBFSE  = 0;
 set DoCleanASeg  = 0;
 set DoCleanWM    = 0;
 set DoCleanXopts = 0;
+set DoCleanT2    = 0;
+set DoCleanFLAIR = 0;
 
 set DoShowEdits  = 0;
 
@@ -188,6 +190,8 @@ set DoNuIntensityCor3T = 0; # if 1, use Zheng, Chee, Zagorodnov params for 3T
 set DoAddTp = 0; # if 1, then 'fake'-add this timepoint to long subj set
 set DoAffineBase = 0; # if 1, allow affine when creating base (fix calibration)
 set UseCubic = 1; # if 1, use cubic spline when mri_convert does conform step
+set DoT2pial = 0; # if 1, mris_make_surfaces refines pial using T2
+set DoFLAIRpial = 0; # if 1, mris_make_surfaces refines pial using FLAIR
 
 # Hippocampal subfields:
 set DoGEMS = 0;      # if 1, will run the hippocampal subfields processing
@@ -233,6 +237,8 @@ set DoVersionsOnly = 0;
 
 #----- Volume -----------#
 set DoConvertInput   = 0;
+set DoConvertT2Input = 0;
+set DoConvertFlairInput = 0;
 set DoCreateBaseInput = 0;
 set DoMotionCor      = 0;
 set DoDeface         = 0;
@@ -704,6 +710,16 @@ if($DoCleanXopts) then
   echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
   if($RunIt) $cmd  |& tee -a $LF
 endif
+if($DoCleanT2) then
+  set cmd = (mv -f $subjdir/mri/T2.mgz $subjdir/trash)
+  echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+  if($RunIt) $cmd  |& tee -a $LF
+endif
+if($DoCleanFLAIR) then
+  set cmd = (mv -f $subjdir/mri/FLAIR.mgz $subjdir/trash)
+  echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+  if($RunIt) $cmd  |& tee -a $LF
+endif
 
 #------------ Handle Seed Points for Fill/Cut, and Watershed ---------------#
 set seedfile = $subjdir/scripts/seed-pons.crs.man.dat
@@ -1063,6 +1079,53 @@ if ($DoCreateBaseInput && $DoCreateBaseSubj) then
   end
   touch $touchdir/base.touch
 endif
+
+#----------- Import T2 or FLAIR images ------------------#
+if ($DoConvertT2Input || $DoConvertFlairInput) then
+
+  echo "#--------------------------------------------" \
+    |& tee -a $LF |& tee -a $CF
+  echo "#@# T2/FLAIR Input `date`" \
+    |& tee -a $SF |& tee -a $LF |& tee -a $CF
+
+  if ($DoConvertT2Input) then
+    set cmd = (mri_convert $InputT2Vol $subjdir/mri/orig/T2raw.mgz)
+    $PWD |& tee -a $LF
+    echo "\n $cmd \n" |& tee -a $LF |& tee -a $CF
+    if($RunIt) then
+      $fs_time $cmd |& tee -a $LF
+      if($status) goto error_exit;
+    endif
+    set cmd = (mri_convert --conform $subjdir/mri/orig/T2raw.mgz \
+        $subjdir/mri/orig/T2conf.mgz)
+    $PWD |& tee -a $LF
+    echo "\n $cmd \n" |& tee -a $LF |& tee -a $CF
+    if($RunIt) then
+      $fs_time $cmd |& tee -a $LF
+      if($status) goto error_exit;
+    endif
+  endif
+
+  if ($DoConvertFlairInput) then
+    set cmd = (mri_convert $InputFlairVol $subjdir/mri/orig/FLAIRraw.mgz)
+    $PWD |& tee -a $LF
+    echo "\n $cmd \n" |& tee -a $LF |& tee -a $CF
+    if($RunIt) then
+      $fs_time $cmd |& tee -a $LF
+      if($status) goto error_exit;
+    endif
+    set cmd = (mri_convert --conform $subjdir/mri/orig/FLAIRraw.mgz \
+        $subjdir/mri/orig/FLAIRconf.mgz)
+    $PWD |& tee -a $LF
+    echo "\n $cmd \n" |& tee -a $LF |& tee -a $CF
+    if($RunIt) then
+      $fs_time $cmd |& tee -a $LF
+      if($status) goto error_exit;
+    endif
+  endif
+
+endif
+
 
 #----------- Motion Correct and Average ------------------#
 if($DoMotionCor) then
@@ -3150,7 +3213,8 @@ foreach hemi ($hemilist)
           -long -max 3.5)
     else
       # default stream:
-      set cmd = (mris_make_surfaces)
+      set cmd = (mris_make_surfaces \
+          -aseg aseg)
     endif
     if ( ! $UseAseg) set cmd = ($cmd -noaseg)
     if ($PialNoAparc) set cmd = ($cmd -noaparc)
@@ -3342,6 +3406,111 @@ foreach hemi ($hemilist)
 end # Loop over hemilist
 
 
+#---------------- Refine Pial Surfaces Using T2/FLAIR -----------------------#
+if($DoT2pial || $DoFLAIRpial) then
+  echo "#--------------------------------------------" \
+    |& tee -a $LF |& tee -a $CF
+  echo "#@# Refine Pial Surfs w/ T2/FLAIR `date`" \
+    |& tee -a $SF |& tee -a $LF |& tee -a $CF
+  cd $subjdir/scripts > /dev/null
+
+  # should be one or the other.  check params checks for this.
+  if($DoT2pial) set t2flair=(T2)
+  if($DoFLAIRpial) set t2flair=(FLAIR)
+
+  set mdir=$SUBJECTS_DIR/${subjid}/mri
+  set sdir=$SUBJECTS_DIR/${subjid}/surf
+
+  if (! -e $mdir/${t2flair}.mgz) then
+    # first create a T2/FLAIR that is registered to the T1s
+    set bbcmd = (bbregister \
+        --s $subjid \
+        --mov $mdir/orig/${t2flair}conf.mgz \
+        --reg $mdir/transforms/${t2flair}conf.reg.dat \
+        --init-fsl \
+        --T2 \
+        --o $mdir/${t2flair}.mgz)
+    echo "\n $bbcmd \n"|& tee -a $LF |& tee -a $CF
+    if($RunIt) $fs_time $bbcmd |& tee -a $LF
+    if($status) goto error_exit;
+    # then give the T2/FLAIR a little normalizing
+    set normcmd = (mri_normalize \
+        -aseg $mdir/aseg.mgz \
+        -sigma 4 \
+        -surface $sdir/rh.white identity.nofile \
+        -surface $sdir/lh.white identity.nofile \
+        $mdir/${t2flair}.mgz \
+        $mdir/${t2flair}.mgz)
+    echo "\n $normcmd \n"|& tee -a $LF |& tee -a $CF
+    if($RunIt) $fs_time $normcmd |& tee -a $LF
+    if($status) goto error_exit;
+  endif
+
+  foreach hemi ($hemilist)
+    $PWD |& tee -a $LF
+    set xopts = `fsr-getxopts mris_make_surfaces $XOptsFile`;
+    set cmd = (cp -v $sdir/${hemi}.pial $sdir/${hemi}.pre${t2flair}.pial)
+    echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+    if($RunIt) $fs_time $cmd |& tee -a $LF
+    if($status) goto error_exit;
+    if($longitudinal) then
+      # longitudinal processing:
+      set cmd = (mris_make_surfaces \
+          -orig orig_white \
+          -orig_white orig_white \
+          -orig_pial orig_pial \
+          -long -max 3.5)
+    else
+      # default stream:
+      set cmd = (mris_make_surfaces \
+          -orig_white white \
+          -orig_pial pre${t2flair}.pial \
+          -aseg aseg)
+    endif
+    if ( ! $UseAseg) set cmd = ($cmd -noaseg)
+    if ($PialNoAparc) set cmd = ($cmd -noaparc)
+    # -white NOWRITE: dont overwrite white, curv, area, and cortex.label files
+    set cmd = ($cmd -white NOWRITE)
+    set cmd = ($cmd -mgz -T1 brain.finalsurfs)
+    # if using a T2 or FLAIR to remove dura that might be confused with pial...
+    if ($DoT2pial) set cmd = ($cmd -T2 ../mri/T2)
+    if ($DoFLAIRpial) set cmd = ($cmd -FLAIR ../mri/FLAIR)
+    set cmd = ($cmd $WMSeg_wlo $WMSeg_ghi $xopts $subjid $hemi);
+    echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+    if($RunIt) $fs_time $cmd |& tee -a $LF
+    if($status) goto error_exit;
+    echo $cmd > $touchdir/$hemi.pial_refine.touch
+  end # for each hemi
+
+  # redo ?h.volume files
+  if(-e $subjdir/surf/rh.volume || -e $subjdir/surf/lh.volume) then
+    foreach hemi ($hemilist)
+      echo "#--------------------------------------------" \
+        |& tee -a $LF |& tee -a $CF
+      echo "#@# Surf Volume $hemi `date`" \
+        |& tee -a $SF |& tee -a $LF |& tee -a $CF
+      cd $subjdir/surf > /dev/null
+      $PWD |& tee -a $LF
+      set cmd=(mris_calc -o ${hemi}.area.mid ${hemi}.area add ${hemi}.area.pial)
+      echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+      if($RunIt) $fs_time $cmd |& tee -a $LF
+      if($status) goto error_exit;
+      set cmd=(mris_calc -o ${hemi}.area.mid ${hemi}.area.mid div 2)
+      echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+      if($RunIt) $fs_time $cmd |& tee -a $LF
+      if($status) goto error_exit;
+      set cmd=(mris_calc -o ${hemi}.volume)
+      set cmd=($cmd ${hemi}.area.mid mul ${hemi}.thickness)
+      echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+      if($RunIt) $fs_time $cmd |& tee -a $LF
+      if($status) goto error_exit;
+      if(-e .xdebug_mris_calc) rm -f .xdebug_mris_calc
+      echo $cmd > $touchdir/$hemi.surfvolume.touch
+    end # Loop over hemilist
+  endif
+
+endif # if correct pial w/ T2/FLAIR
+
 #-------Edit Aseg with Surfaces -------------#
 if($DoSurfSegEdit) then
   echo "#--------------------------------------------" \
@@ -3529,6 +3698,7 @@ if($DoWMParc) then
   if($status) goto error_exit;
   echo $cmd > $touchdir/wmaparc.stats.touch
 endif
+
 
 # -----------------------------------------------------------
 # Do Contra Surface Registration here so don't have
@@ -4065,6 +4235,34 @@ while( $#argv != 0 )
       set InputVol = "$InVolDir/$InVolBase";
       set InputList = ($InputList "$InputVol");
       set DoConvertInput = 1;
+      breaksw
+
+    case "-T2"
+      if( $#argv < 1) goto arg1err;
+      set InputT2Vol = "$argv[1]"; shift;
+      if(! -e "$InputT2Vol") then
+        echo "ERROR: cannot find $InputT2Vol"
+        goto error_exit;
+      endif
+      if(! -r "$InputT2Vol") then
+        echo "ERROR: $InputT2Vol exists but is not readable"
+        goto error_exit;
+      endif
+      set DoConvertT2Input = 1;
+      breaksw
+
+    case "-FLAIR"
+      if( $#argv < 1) goto arg1err;
+      set InputFlairVol = "$argv[1]"; shift;
+      if(! -e "$InputFlairVol") then
+        echo "ERROR: cannot find $InputFlairVol"
+        goto error_exit;
+      endif
+      if(! -r "$InputFlairVol") then
+        echo "ERROR: $InputFlairVol exists but is not readable"
+        goto error_exit;
+      endif
+      set DoConvertFlairInput = 1;
       breaksw
 
     case "-base-affine":
@@ -4823,6 +5021,8 @@ while( $#argv != 0 )
       set DoCleanWM    = 1;
       set DoCleanBFSE  = 1;
       set DoCleanXopts = 1;
+      set DoCleanT2 = 1;
+      set DoCleanFLAIR = 1;
       breaksw
 
     case "-clean-xopts":
@@ -4873,6 +5073,14 @@ while( $#argv != 0 )
 
     case "-clean-bfse":
       set DoCleanBFSE   = 1;
+      breaksw
+
+    case "-clean-T2":
+      set DoCleanT2 = 1;
+      breaksw
+
+    case "-clean-FLAIR":
+      set DoCleanFLAIR = 1;
       breaksw
 
     case "-all":
@@ -5516,6 +5724,30 @@ while( $#argv != 0 )
       set UseCubic = 0;
       breaksw
 
+    case "-T2pial":
+    case "-t2pial":
+      set DoT2pial = 1;
+      breaksw
+    case "-noT2pial":
+    case "-no-T2pial":
+    case "-no_T2pial":
+    case "-no-t2pial":
+    case "-no_t2pial":
+      set DoT2pial = 0;
+      breaksw
+
+    case "-FLAIRpial":
+    case "-flairpial":
+      set DoFLAIRpial = 1;
+      breaksw
+    case "-noFLAIRpial":
+    case "-no-FLAIRpial":
+    case "-no_FLAIRpial":
+    case "-no-flairpial":
+    case "-no_flairpial":
+      set DoFLAIRpial = 0;
+      breaksw
+
     default:
       echo ERROR: Flag $flag unrecognized.
       echo $cmdline
@@ -5540,6 +5772,11 @@ arg3err:
 
 ############--------------##################
 check_params:
+  if($DoT2pial && $DoFLAIRpial) then
+    echo "Cannot specify both T2 and FLAIR for pial correction."
+    goto error_exit;
+  endif
+
   if($UseCuda || $GetCuda) then
     # test a binary
     echo "Testing for CUDA device:"
@@ -5880,7 +6117,8 @@ check_params:
      ! $DoSurfVolume && ! $DoASegMerge && ! $DoCurvStats && ! $DoLabelV1 && \
      ! $DoCreateBaseSubj && ! $DoBaLabels && ! $DoShowEdits && \
      ! $DoLabelExvivoEC && ! $DoSurfSegEdit && ! $DoPialSurfs && \
-     ! $DoGEMS && ! $DoPctSurfCon ) then
+     ! $DoGEMS && ! $DoPctSurfCon && ! $DoT2pial && ! $DoFLAIRpial && \
+     ! $DoConvertT2Input && ! $DoConvertFlairInput) then
      echo "ERROR: nothing to do"
      exit 1;
   endif
