@@ -9,9 +9,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2012/01/31 13:52:43 $
- *    $Revision: 1.8 $
+ *    $Author: greve $
+ *    $Date: 2012/11/07 18:58:02 $
+ *    $Revision: 1.9 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -60,6 +60,7 @@ static void usage_exit(int code) ;
 static char *subject = NULL ;
 static char sdir[STRLEN] = "" ;
 static double resolution = .5 ;
+static char *fmt = "mgz";
 MRI *add_aseg_structures_outside_ribbon(MRI *mri_src, MRI *mri_aseg, MRI *mri_dst,
                                        int wm_val, int gm_val, int csf_val) ;
 int MRIcomputePartialVolumeFractions(MRI *mri_src, MATRIX *m_vox2vox, 
@@ -80,7 +81,7 @@ main(int argc, char *argv[]) {
   float       intensity, betplaneres, inplaneres ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_compute_volume_fractions.c,v 1.8 2012/01/31 13:52:43 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_compute_volume_fractions.c,v 1.9 2012/11/07 18:58:02 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -132,6 +133,7 @@ main(int argc, char *argv[]) {
     if (m_regdat == NULL)
       ErrorExit(ERROR_NOFILE, "%s: could not load registration file from %s", Progname,reg_fname) ;
   }
+  printf("Format is %s\n",fmt);
     
   sprintf(fname, "%s/%s/surf/lh.white", sdir, subject) ;
   printf("reading surface %s\n", fname) ;
@@ -238,19 +240,19 @@ main(int argc, char *argv[]) {
                                      WM_VAL, SUBCORT_GM_VAL, GM_VAL, 0) ;
   }
   
-  sprintf(fname, "%s.wm.mgz", out_stem) ;
+  sprintf(fname, "%s.wm.%s", out_stem,fmt) ;
   printf("writing wm %% to %s\n", fname) ;
   MRIwrite(mri_wm, fname) ;
 
-  sprintf(fname, "%s.subcort_gm.mgz", out_stem) ;
+  sprintf(fname, "%s.subcort_gm.%s", out_stem,fmt) ;
   printf("writing subcortical gm %% to %s\n", fname) ;
   MRIwrite(mri_subcort_gm, fname) ;
 
-  sprintf(fname, "%s.cortex.mgz", out_stem) ;
+  sprintf(fname, "%s.cortex.%s", out_stem, fmt) ;
   printf("writing cortical gm %% to %s\n", fname) ;
   MRIwrite(mri_cortex, fname) ;
   
-  sprintf(fname, "%s.csf.mgz", out_stem) ;
+  sprintf(fname, "%s.csf.%s", out_stem,fmt) ;
   printf("writing csf %% to %s\n", fname) ;
   MRIwrite(mri_csf, fname) ;
 
@@ -278,33 +280,40 @@ get_option(int argc, char *argv[]) {
     strcpy(sdir, argv[2]) ;
     printf("using %s as SUBJECTS_DIR...\n", sdir) ;
     nargs = 1 ;
-
-  } else if (!stricmp(option, "DEBUG_VOXEL")) {
+  } 
+  else if (!stricmp(option, "DEBUG_VOXEL")) {
     Gx = atoi(argv[2]) ;
     Gy = atoi(argv[3]) ;
     Gz = atoi(argv[4]) ;
     printf("debugging voxel (%d, %d, %d)\n", Gx, Gy, Gz) ;
     nargs = 3 ;
-  } else switch (toupper(*option)) {
-  case 'R':
-    resolution = atof(argv[2]) ;
-    printf("setting resolution = %2.3f\n", resolution) ;
-    nargs = 1 ;
-    break ;
-  case 'S':
-    subject = argv[2] ;
-    printf("overriding subject name in register.dat with %s\n", subject) ;
-    nargs = 1 ;
-    break ;
-  case '?':
-  case 'U':
-  case 'H':
-    usage_exit(0) ;
-    break ;
-  default:
-    fprintf(stderr, "unknown option %s\n", argv[1]) ;
-    exit(1) ;
-    break ;
+  } 
+  else if (!stricmp(option, "nii"))    fmt = "nii";
+  else if (!stricmp(option, "nii.gz")) fmt = "nii.gz";
+  else if (!stricmp(option, "mgh"))    fmt = "mgh";
+  else if (!stricmp(option, "mgz"))    fmt = "mgz";
+  else {
+    switch (toupper(*option)) {
+    case 'R':
+      resolution = atof(argv[2]) ;
+      printf("setting resolution = %2.3f\n", resolution) ;
+      nargs = 1 ;
+      break ;
+    case 'S':
+      subject = argv[2] ;
+      printf("overriding subject name in register.dat with %s\n", subject) ;
+      nargs = 1 ;
+      break ;
+    case '?':
+    case 'U':
+    case 'H':
+      usage_exit(0) ;
+      break ;
+    default:
+      fprintf(stderr, "unknown option %s\n", argv[1]) ;
+      exit(1) ;
+      break ;
+    }
   }
 
   return(nargs) ;
@@ -321,6 +330,7 @@ usage_exit(int code) {
   printf("  -SDIR SUBJECTS_DIR \n");
   printf("  -s    subject:  override entry of register.dat file\n") ;
   printf("  -r    resolution:  set resolution of internal volume for filling ribbon (def=0.5)\n") ;
+  printf("  -nii, -nii.gz, -mgh, -mgz : format (default is mgz)\n");
   printf("\n");
   exit(code) ;
 }
