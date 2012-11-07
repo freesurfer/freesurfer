@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2012/11/07 00:16:05 $
-#    $Revision: 1.379.2.46 $
+#    $Date: 2012/11/07 18:27:30 $
+#    $Revision: 1.379.2.47 $
 #
 # Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -26,7 +26,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.379.2.46 2012/11/07 00:16:05 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.379.2.47 2012/11/07 18:27:30 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -3449,10 +3449,12 @@ if($DoT2pial || $DoFLAIRpial) then
   foreach hemi ($hemilist)
     $PWD |& tee -a $LF
     set xopts = `fsr-getxopts mris_make_surfaces $XOptsFile`;
-    set cmd = (cp -v $sdir/${hemi}.pial $sdir/${hemi}.pre${t2flair}.pial)
-    echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
-    if($RunIt) $fs_time $cmd |& tee -a $LF
-    if($status) goto error_exit;
+    if ( ! -e $sdir/${hemi}.wo${t2flair}.pial) then
+      set cmd = (cp -v $sdir/${hemi}.pial $sdir/${hemi}.wo${t2flair}.pial)
+      echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+      if($RunIt) $fs_time $cmd |& tee -a $LF
+      if($status) goto error_exit;
+    endif
     if($longitudinal) then
       # longitudinal processing:
       set cmd = (mris_make_surfaces \
@@ -3464,7 +3466,7 @@ if($DoT2pial || $DoFLAIRpial) then
       # default stream:
       set cmd = (mris_make_surfaces \
           -orig_white white \
-          -orig_pial pre${t2flair}.pial \
+          -orig_pial wo${t2flair}.pial \
           -aseg aseg)
     endif
     if ( ! $UseAseg) set cmd = ($cmd -noaseg)
