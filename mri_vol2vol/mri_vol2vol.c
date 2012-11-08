@@ -10,9 +10,9 @@
 /*
  * Original Author: Doug Greve
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2012/09/05 19:23:00 $
- *    $Revision: 1.77 $
+ *    $Author: lzollei $
+ *    $Date: 2012/11/08 23:46:11 $
+ *    $Revision: 1.78 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -479,7 +479,7 @@ MATRIX *LoadRfsl(char *fname);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_vol2vol.c,v 1.77 2012/09/05 19:23:00 greve Exp $";
+static char vcid[] = "$Id: mri_vol2vol.c,v 1.78 2012/11/08 23:46:11 lzollei Exp $";
 char *Progname = NULL;
 
 int debug = 0, gdiagno = -1;
@@ -600,12 +600,12 @@ int main(int argc, char **argv) {
 
 
   make_cmd_version_string(argc, argv,
-                          "$Id: mri_vol2vol.c,v 1.77 2012/09/05 19:23:00 greve Exp $",
+                          "$Id: mri_vol2vol.c,v 1.78 2012/11/08 23:46:11 lzollei Exp $",
                           "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option(argc, argv,
-                                "$Id: mri_vol2vol.c,v 1.77 2012/09/05 19:23:00 greve Exp $",
+                                "$Id: mri_vol2vol.c,v 1.78 2012/11/08 23:46:11 lzollei Exp $",
                                 "$Name:  $");
   if(nargs && argc - nargs == 1) exit (0);
 
@@ -933,7 +933,7 @@ int main(int argc, char **argv) {
   }
   else {
     Rtransform = (TRANSFORM *)calloc(sizeof(TRANSFORM),1);
-    Rtransform->xform = (void *)TransformRegDat2LTA(template, mov, R);
+    Rtransform->xform = (void *)TransformRegDat2LTA(template, mov, R); // LZ: this is where the morphing goes wrong.....
 
     printf("Reading gcam\n");
     if (defM3zPath)
@@ -1407,6 +1407,10 @@ printf("\n");
 printf("  --tal               : map to a sub FOV of MNI305 (with --reg only)\n");
 printf("  --talres resolution : set voxel size 1mm or 2mm (def is 1)\n");
 printf("  --talxfm xfmfile    : default is talairach.xfm (looks in mri/transforms)\n");
+printf("\n");
+printf("  --m3z morph    : non-linear morph encoded in the m3z format\n");
+printf("  --noDefM3zPath : flag indicating that the code should not be looking for the non-linear m3z morph in the default location (subj/mri/transforms), but should use the morph name as is\n");
+printf("  --inv-morph    : compute and use the inverse of the m3z morph\n");
 printf("\n");
 printf("  --fstarg <vol>      : use vol <orig.mgz> from subject in --reg as target\n");
 printf("  --crop scale        : crop and change voxel size\n");
