@@ -7,9 +7,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2012/10/23 21:22:53 $
- *    $Revision: 1.29 $
+ *    $Author: fischl $
+ *    $Date: 2012/11/08 00:45:56 $
+ *    $Revision: 1.30 $
  *
  * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -74,6 +74,7 @@ static int get_option(int argc, char *argv[]) ;
 
 static char *source_surf = "";
 static char *target_surf = ".toM02100023.resample";
+static char *mask_fname = NULL ;
 
 char *Progname ;
 
@@ -90,6 +91,7 @@ static TRANSFORM  *transform = NULL ;
 static GCA_MORPH_PARMS mp ;
 
 static int renormalize = 1 ;
+static int rip = 0 ;
 
 int
 main(int argc, char *argv[])
@@ -130,6 +132,7 @@ main(int argc, char *argv[])
   mp.l_elastic = 0 ;
 #endif
 
+  mp.uncompress = 0 ;
   mp.sigma = 8 ;
   mp.relabel_avgs = -1 ;
   mp.navgs = 256 ;
@@ -197,9 +200,20 @@ main(int argc, char *argv[])
   if (mri_target->type == MRI_INT)
   {
     MRI *mri_tmp = MRIchangeType(mri_target, MRI_FLOAT, 0, 1, 1) ;
-    MRIfree(&mri_target);
-    mri_target = mri_tmp ;
+    MRIfree(&mri_target); mri_target = mri_tmp ;
   }
+
+  if (mask_fname)
+  {
+    MRI *mri_mask = MRIread(mask_fname) ;
+    if (mri_mask == NULL)
+      ErrorExit(ERROR_NOFILE, "%s: could not load mask from %s\n", Progname,mask_fname) ;
+    
+    MRImask(mri_source, mri_mask, mri_source, 0, 0) ;
+    MRImask(mri_target, mri_mask, mri_target, 0, 0) ;
+    MRIfree(&mri_mask) ;
+  }
+
   if (erosions > 0)
   {
     int n ;
@@ -209,7 +223,7 @@ main(int argc, char *argv[])
       MRIerodeZero(mri_source, mri_source) ;
     }
   }
-  if (scale_values > 0)
+  if (!FEQUAL(scale_values, 1.0))
   {
     MRIscalarMul(mri_source, mri_source, scale_values) ;
     MRIscalarMul(mri_target, mri_target, scale_values) ;
@@ -281,6 +295,7 @@ main(int argc, char *argv[])
   mri_orig_source = MRIcopy(mri_source, NULL) ;
 
   mp.max_grad = 0.3*mri_source->xsize ;
+  mp.max_grad = .1 ;
 
   if (transform == NULL)
   {
@@ -340,7 +355,6 @@ main(int argc, char *argv[])
     printf("initializing GCAM with vox->vox matrix:\n") ;
     MatrixPrint(stdout, m_L) ;
     gcam = GCAMcreateFromIntensityImage(mri_source, mri_target, transform) ;
-    printf("after GCAMcreateFromIntensityImage\n") ;
 #if 0
     gcam->gca = gcaAllocMax(1, 1, 1,
                             mri_target->width, mri_target->height,
@@ -510,7 +524,7 @@ main(int argc, char *argv[])
 
   if (renormalize)
   {
-    GCAMnormalizeIntensities(gcam, mri_target) ;
+    GCAMnormalizeIntensities(gcam, mri_source) ;
   }
   if (mp.write_iterations != 0)
   {
@@ -563,6 +577,15 @@ main(int argc, char *argv[])
   }
 
   mp.write_fname = out_fname ;
+  if (rip && Gx >= 0)
+  {
+    int x, y, z ;
+    for (x = 0 ; x < gcam->width ; x++)
+      for (y = 0 ; y < gcam->height ; y++)
+	for (z = 0 ;z < gcam->depth ; z++)
+	  if (abs(x-Gx) > 1 || abs(y-Gy) > 1 || abs(z-Gz) > 1)
+	    gcam->nodes[x][y][z].invalid = GCAM_POSITION_INVALID ;
+  }
   GCAMregister(gcam, mri_source, &mp) ; // atlas is target, morph target into register with it
   if (apply_transform)
   {
@@ -592,6 +615,8 @@ main(int argc, char *argv[])
   return(0) ;
 }
 
+extern int gcam_write_neg, gcam_write_grad ;
+
 static int
 get_option(int argc, char *argv[])
 {
@@ -608,6 +633,21 @@ get_option(int argc, char *argv[])
     nargs = 3 ;
     printf("debugging voxel (%d, %d, %d)\n", Gx, Gy, Gz) ;
   }
+  else if (!stricmp(option, "uncompress"))
+  {
+    mp.uncompress = 1 ;
+    printf("parms.uncompress=1...\n") ;
+  }
+  else if (!stricmp(option, "write_neg"))
+  {
+    gcam_write_neg = 1 ;
+    printf("writing map of negative nodes\n") ;
+  }
+  else if (!stricmp(option, "write_grad"))
+  {
+    gcam_write_grad = 1 ;
+    printf("writing gradient maps\n") ;
+  }
   else if (!stricmp(option, "debug_node"))
   {
     Gx = atoi(argv[2]) ;
@@ -620,6 +660,11 @@ get_option(int argc, char *argv[])
   {
     mp.integration_type = GCAM_INTEGRATE_OPTIMAL ;
     printf("using optimal time-step integration\n") ;
+  }
+  else if (!stricmp(option, "RIP"))
+  {
+    rip = 1 ;
+    printf("ripping all nodes except one being debugged\n") ;
   }
   else if (!stricmp(option, "mu"))
   {
@@ -825,6 +870,12 @@ get_option(int argc, char *argv[])
   {
     skip = atoi(argv[2]);
     printf("skipping %d voxels in source data...\n", skip) ;
+    nargs = 1 ;
+  }
+  else if (!stricmp(option, "mask"))
+  {
+    mask_fname = (argv[2]);
+    printf("masking inputs with %s\n", mask_fname) ;
     nargs = 1 ;
   }
   else if (!stricmp(option, "apply"))
