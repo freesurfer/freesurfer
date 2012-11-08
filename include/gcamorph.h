@@ -15,8 +15,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2012/07/11 17:50:59 $
- *    $Revision: 1.110 $
+ *    $Date: 2012/11/08 00:45:24 $
+ *    $Revision: 1.111 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -469,6 +469,9 @@ MRI  *GCAMinitDensities(GCA_MORPH *gcam,
 #define GCAM_JACOBIAN  16
 #define GCAM_AREA      17
 #define GCAM_ORIG_AREA 18
+#define GCAM_NEG       19
+#define GCAM_MIN_AREA  20
+#define GCAM_LOG_MIN_AREA  21
 
 int GCAMsmoothConditionalDensities(GCA_MORPH *gcam, float sigma);
 
