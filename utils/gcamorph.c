@@ -10,9 +10,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2012/08/28 18:33:39 $
- *    $Revision: 1.271 $
+ *    $Author: fischl $
+ *    $Date: 2012/11/08 00:45:31 $
+ *    $Revision: 1.272 $
  *
  * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -122,6 +122,7 @@ MRI *MRIcomposeWarps(MRI *mri_warp1, MRI *mri_warp2, MRI *mri_dst) ;
 int fix_borders(GCA_MORPH *gcam)  ;
 
 int gcam_write_grad = 0 ;
+int gcam_write_neg = 0 ;
 
 #if 1
 int dtrans_labels[] =
@@ -182,6 +183,7 @@ int dtrans_labels[] =
 int NCOMBINE_LABELS = _NCOMBINE_LABELS ;
 int NDTRANS_LABELS = _NDTRANS_LABELS ;
 
+static int GCAMsetNegativeNodStatus(GCA_MORPH *gcam, int status) ;
 HISTOGRAM *gcamJacobianHistogram(GCA_MORPH *gcam, HISTOGRAM *h);
 int gcamComputePeriventricularWMDeformation(GCA_MORPH *gcam, MRI *mri) ;
 double gcamMaxGradient(GCA_MORPH *gcam) ;
@@ -437,8 +439,6 @@ GCAMwrite( const GCA_MORPH *gcam, const char *fname )
   int             x, y, z ;
   GCA_MORPH_NODE  *gcamn ;
   int gzipped = 0;
-
-  printf("GCAMwrite\n");
 
   if (strstr(fname, ".m3z"))
   {
@@ -1071,6 +1071,7 @@ GCAMregister(GCA_MORPH *gcam, MRI *mri, GCA_MORPH_PARMS *parms)
       if (FZERO(parms->l_smoothness) && !FZERO(parms->l_elastic))
       {
         parms->l_elastic = l_elastic ;
+	parms->l_elastic = l_elastic / ((parms->navgs)+1) ;
         printf("setting elastic coefficient to %2.3f\n", parms->l_elastic);
       }
       else
@@ -1263,6 +1264,8 @@ GCAMregister(GCA_MORPH *gcam, MRI *mri, GCA_MORPH_PARMS *parms)
     }
   }
 
+  if (parms->noneg < 0 && gcam->neg >0)
+    gcamRemoveNegativeNodes(gcam, mri, parms) ;
   if (mri_smooth)
   {
     MRIfree(&mri_smooth) ;
@@ -1362,7 +1365,12 @@ GCAMread(const char *fname)
         }
         else
         {
-          gcamn->invalid = GCAM_VALID ;
+	  if (x == 0 || x == width-1 ||
+	      y == 0 || y == height-1 ||
+	      z == 0 || z == depth-1)
+	    gcamn->invalid = GCAM_AREA_INVALID ;
+	  else
+	    gcamn->invalid = GCAM_VALID ;
         }
       }
     }
@@ -1647,7 +1655,10 @@ GCAMinit(GCA_MORPH *gcam,
           if (!GCApriorToSourceVoxelFloat(gca, mri_image, transform, x, y, z,
                                           &ox, &oy, &oz) || 1)  // ALWAYS!!!
           {
-            gcamn->invalid = GCAM_VALID;
+	    if (x > 0 && x < width-1 &&
+		y > 0 && y < height-1 &&
+		z > 0 && z < depth-1)
+	      gcamn->invalid = GCAM_VALID;
             // if inside the volume, then
             gcamn->x = gcamn->origx = ox ;
             gcamn->y = gcamn->origy = oy ;
@@ -1797,7 +1808,7 @@ GCAMinit(GCA_MORPH *gcam,
     gcam->m_affine = MatrixCopy(lta->xforms[0].m_L, NULL) ;
     gcam->det = MatrixDeterminant(gcam->m_affine) ;
     fprintf(stderr,"det(m_affine) = %2.2f (predicted orig area = %2.1f)\n",
-            gcam->det, gcam->spacing*gcam->spacing*gcam->spacing/gcam->det) ;
+	    gcam->det, gcam->spacing*gcam->spacing*gcam->spacing/gcam->det) ;
   }
   gcamComputeMetricProperties(gcam) ;
   for (x = 0 ; x < width ; x++)
@@ -5440,7 +5451,7 @@ log_integration_parms(FILE *fp, GCA_MORPH_PARMS *parms)
    parms->tol, parms->dt, parms->exp_k,parms->momentum, parms->levels,
    parms->niterations, parms->label_dist,parms->navgs,
    parms->sigma,parms->integration_type,
-   parms->relabel, parms->noneg ? "no" : "yes") ;
+   parms->relabel, parms->noneg > 0 ? "no" : "yes") ;
   return(NO_ERROR) ;
 }
 
@@ -5600,6 +5611,8 @@ GCAMregisterLevel(GCA_MORPH *gcam, MRI *mri, MRI *mri_smooth,
     gcamRemoveCompressedNodes(gcam, mri, parms, parms->ratio_thresh) ;
   }
 
+  GCAMremoveStatus(gcam, GCAM_LABEL_NODE) ;
+  GCAMremoveStatus(gcam, GCAM_IGNORE_LIKELIHOOD) ;
   last_rms = GCAMcomputeRMS(gcam, mri, parms) ;
   if (parms->log_fp)
   {
@@ -5673,10 +5686,21 @@ GCAMregisterLevel(GCA_MORPH *gcam, MRI *mri, MRI *mri_smooth,
     switch (parms->integration_type)
     {
     case GCAM_INTEGRATE_OPTIMAL:
-      parms->dt = (sqrt(parms->navgs)+1.0f)*orig_dt ; /* will search around
-                                                         this value */
+      parms->dt = (sqrt(parms->navgs)+1.0f)*orig_dt ; /* will search around this value */
       min_dt = gcamFindOptimalTimeStep(gcam, parms, mri) ;
       parms->dt = min_dt ;
+      if (gcam->neg > 0 && parms->noneg == True)
+      {
+	printf("negative nodes detected - removing likelihood from those lattice locations and recomputing\n") ;
+	GCAMsetNegativeNodStatus(gcam, GCAM_IGNORE_LIKELIHOOD) ;
+	GCAMcopyNodePositions(gcam, SAVED2_POSITIONS, CURRENT_POSITIONS) ;
+	gcamClearMomentum(gcam) ;
+	gcamComputeMetricProperties(gcam) ;
+	gcamComputeGradient(gcam, mri, mri_smooth, parms) ;
+	parms->dt = (sqrt(parms->navgs)+1.0f)*orig_dt ; /* will search around this value */
+	min_dt = gcamFindOptimalTimeStep(gcam, parms, mri) ;
+	parms->dt = min_dt ;
+      }
       break ;
     case GCAM_INTEGRATE_FIXED:
       min_dt = parms->dt = (sqrt(parms->navgs)+1.0f)*orig_dt ;
@@ -5685,8 +5709,7 @@ GCAMregisterLevel(GCA_MORPH *gcam, MRI *mri, MRI *mri_smooth,
       if (which == GCAM_INTEGRATE_OPTIMAL)
       {
         check_gcam(gcam) ;
-        parms->dt = (sqrt(parms->navgs)+1.0f)*orig_dt ; /* will search around
-                                                           this value */
+        parms->dt = (sqrt(parms->navgs)+1.0f)*orig_dt ; /* will search around  this value */
         min_dt = gcamFindOptimalTimeStep(gcam, parms, mri) ;
         check_gcam(gcam) ;
         parms->dt = min_dt ;
@@ -5710,6 +5733,44 @@ GCAMregisterLevel(GCA_MORPH *gcam, MRI *mri, MRI *mri_smooth,
     gcamApplyGradient(gcam, parms) ;
     gcamComputeMetricProperties(gcam) ;
     gcamCheck(gcam, mri) ;
+    if (gcam->neg > 0)
+    {
+      if (gcam_write_neg)  // diagnostic
+      {
+	MRI *mri ;
+	char fname[STRLEN] ;
+
+	mri = GCAMwriteMRI(gcam, NULL, GCAM_NEG) ;
+	sprintf(fname, "%s_neg_%4.4d.mgz", parms->base_name, n+1) ;
+	printf("writing neg nodes to %s...\n", fname) ;
+	MRIwrite(mri, fname) ;
+	MRIfree(&mri) ;
+	mri = GCAMwriteMRI(gcam, NULL, GCAM_MIN_AREA) ;
+	sprintf(fname, "%s_minarea_%4.4d.mgz", parms->base_name, n+1) ;
+	printf("writing minarea to %s...\n", fname) ;
+	MRIwrite(mri, fname) ;
+	MRIfree(&mri) ;
+	mri = GCAMwriteMRI(gcam, NULL, GCAM_LOG_MIN_AREA) ;
+	sprintf(fname, "%s_log_minarea_%4.4d.mgz", parms->base_name, n+1) ;
+	printf("writing log minarea to %s...\n", fname) ;
+	MRIwrite(mri, fname) ;
+	MRIfree(&mri) ;
+      }
+
+
+#if 0      
+      printf("%d negative nodes detected - removing likelihood from those lattice locations and recomputing\n",gcam->neg) ;
+      GCAMsetNegativeNodStatus(gcam, GCAM_IGNORE_LIKELIHOOD) ;
+      GCAMcopyNodePositions(gcam, SAVED2_POSITIONS, CURRENT_POSITIONS) ;
+      gcamClearMomentum(gcam) ;
+      gcamComputeMetricProperties(gcam) ;
+      gcamComputeGradient(gcam, mri, mri_smooth, parms) ;
+      GCAMremoveStatus(gcam, GCAM_IGNORE_LIKELIHOOD) ;
+      parms->dt = (sqrt(parms->navgs)+1.0f)*orig_dt ; /* will search around this value */
+      min_dt = gcamFindOptimalTimeStep(gcam, parms, mri) ;
+      parms->dt = min_dt ;
+#endif
+    }
     if (parms->constrain_jacobian)
     {
       gcamConstrainJacobian(gcam, mri, parms) ;
@@ -5770,12 +5831,15 @@ GCAMregisterLevel(GCA_MORPH *gcam, MRI *mri, MRI *mri_smooth,
     }
     min_dt = parms->dt ;
 
-    gcamRemoveNegativeNodes(gcam, mri, parms) ;
-    if (gcam->neg > 0)   // couldn't unfold everything
+    if (parms->noneg >= 0)
     {
-      printf("---------- unfolding failed - restoring original position --------------------\n");
-      GCAMcopyNodePositions(gcam, SAVED2_POSITIONS, CURRENT_POSITIONS) ;
-      gcamComputeMetricProperties(gcam) ;
+      gcamRemoveNegativeNodes(gcam, mri, parms) ;
+      if (gcam->neg > 0)   // couldn't unfold everything
+      {
+	printf("---------- unfolding failed - restoring original position --------------------\n");
+	GCAMcopyNodePositions(gcam, SAVED2_POSITIONS, CURRENT_POSITIONS) ;
+	gcamComputeMetricProperties(gcam) ;
+      }
     }
     if (parms->l_area_smoothness > 0 && (Gdiag & DIAG_WRITE))
     {
@@ -6974,6 +7038,15 @@ gcamLimitGradientMagnitude(GCA_MORPH *gcam, GCA_MORPH_PARMS *parms, MRI *mri)
           ymax = y ;
           zmax = z ;
         }
+	if (norm > parms->max_grad)
+	{
+	  double scale = parms->max_grad / norm ;
+          gcamn->dx *= scale ;
+          gcamn->dy *= scale ;
+          gcamn->dz *= scale ;
+	  if (x == Gx && y == Gy && z == Gz)
+	    printf("scaling gradient @ (%d, %d, %d) --> (%2.2f, %2.2f, %2.2f)\n", x, y, z, gcamn->dx, gcamn->dy, gcamn->dz) ;
+	}
       }
   {
     float vals[MAX_GCA_INPUTS] ;
@@ -8079,7 +8152,8 @@ GCAMcomputeLabels(MRI *mri, GCA_MORPH *gcam)
       }
 
   fprintf(stderr, "label assignment complete, %d changed (%2.2f%%)\n",
-          nchanged, 100.0*(float)nchanged/(width*height*depth)) ;
+         nchanged, 100.0*(float)nchanged/(width*height*depth)) ;
+
   return(nchanged) ;
 }
 int
@@ -8161,7 +8235,8 @@ GCAMcomputeMaxPriorLabels(GCA_MORPH *gcam)
       }
 
   fprintf(stderr, "label assignment complete, %d changed (%2.2f%%)\n",
-          nchanged, 100.0*(float)nchanged/(width*height*depth)) ;
+         nchanged, 100.0*(float)nchanged/(width*height*depth)) ;
+
   return(NO_ERROR) ;
 }
 MRI *
@@ -8800,7 +8875,7 @@ GCAMwriteMRI(GCA_MORPH *gcam, MRI *mri, int which)
   {
     mri = MRIalloc(gcam->width, gcam->height, gcam->depth, MRI_FLOAT) ;
     MRIcopyVolGeomToMRI(mri, &gcam->atlas) ;
-    MRIsetResolution(mri, gcam->spacing, gcam->spacing, gcam->spacing) ;
+    MRIsetResolution(mri, gcam->atlas.xsize*gcam->spacing, gcam->atlas.ysize*gcam->spacing, gcam->atlas.zsize*gcam->spacing) ;
     MRIreInitCache(mri) ;
   }
   if (!mri)
@@ -8825,6 +8900,34 @@ GCAMwriteMRI(GCA_MORPH *gcam, MRI *mri, int which)
            "GCAMwriteMRI(%d): unknown which parameter", which) ;
           d = 0 ;
           break ;
+	case GCAM_NEG:
+	  if (gcamn->invalid == 0 && gcamn->orig_area1 > 0 && gcamn->orig_area2 > 0)
+	    d = (gcamn->area1 <= 0 || gcamn->area2 <= 0) ;
+	  else
+	    d = 0 ;
+	  if (d  > 0)
+	    DiagBreak() ;
+	  break ;
+	case GCAM_MIN_AREA:
+	  if (gcamn->invalid == 0)
+	    d = MIN(gcamn->area1, gcamn->area2) ;
+	  else
+	    d = 0 ;
+	  break ;
+	case GCAM_LOG_MIN_AREA:
+	  if (gcamn->invalid == 0)
+	  {
+	    d = MIN(gcamn->area1, gcamn->area2) ;
+	    if (d > 1)
+	      d = 0 ;
+	    else if (d > 0)
+	      d = -log10(fabs(d)) ;
+	    else
+	      d = log10(fabs(d)) ;
+	  }
+	  else
+	    d = 0 ;
+	  break ;
         case GCAM_X_GRAD:
           d = gcamn->dx ;
           break ;
@@ -9249,7 +9352,7 @@ gcamFindOptimalTimeStep(GCA_MORPH *gcam, GCA_MORPH_PARMS *parms, MRI *mri)
               {
                 if (k++ <  10)
                 {
-                  printf("gcam(%d, %d, %d) neg\n", x, y, z) ;
+                  printf("gcam(%d, %d, %d) neg, areas = %2.2f, %2.2f\n", x, y, z,gcamn->area1,gcamn->area2) ;
                 }
               }
             }
@@ -11048,7 +11151,8 @@ gcamRemoveCompressedNodes(GCA_MORPH *gcam, MRI *mri, GCA_MORPH_PARMS *parms,
     default:
     case GCAM_INTEGRATE_FIXED:
       nfixed++ ;
-      min_dt = lattice_spacing/(2*max_grad) ;
+      min_dt = .1*lattice_spacing/(2*max_grad) ;
+      min_dt = .1*lattice_spacing ;
       if (min_dt < orig_dt)
       {
         min_dt = orig_dt ;
@@ -15128,6 +15232,11 @@ GCAMaddIntensitiesFromImage(GCA_MORPH *gcam, MRI *mri_target)
         }
 #endif
         gcamn = &gcam->nodes[x][y][z] ;
+	if (x == 0 || x == gcam->width-1 ||
+	    y == 0 || y == gcam->height-1 ||
+	    z == 0 || z == gcam->depth-1)
+	  gcamn->invalid = GCAM_AREA_INVALID ;
+	  
         gcamn->gc = alloc_gcs(1, GCA_NO_MRF, gcam->ninputs) ;
         gcamn->gc->means[0] = val ;
         if (!DZERO(val))
@@ -17331,7 +17440,7 @@ GCAMnormalizeIntensities(GCA_MORPH *gcam, MRI *mri_target)
         {
           continue ;
         }
-        if (MRIlabelsInNbhd(mri_target, nint(gcamn->x), nint(gcamn->y),
+        if (mri_target->depth > 5 && MRIlabelsInNbhd(mri_target, nint(gcamn->x), nint(gcamn->y),
                             nint(gcamn->z),1, 0) > 0)
         {
           continue ;  // stay away from skull stripped areas
@@ -17377,7 +17486,7 @@ GCAMnormalizeIntensities(GCA_MORPH *gcam, MRI *mri_target)
         {
           continue ;
         }
-        if (MRIlabelsInNbhd(mri_target, nint(gcamn->x), nint(gcamn->y),
+        if (mri_target->depth > 5 && MRIlabelsInNbhd(mri_target, nint(gcamn->x), nint(gcamn->y),
                             nint(gcamn->z),1, 0) > 0)
         {
           continue ;  // stay away from skull stripped areas
@@ -21000,5 +21109,28 @@ GCAMregisterVentricles(GCA_MORPH *gcam, MRI *mri, GCA_MORPH_PARMS *parms)
     parms->log_fp = NULL ;
   }
 
+  return(NO_ERROR) ;
+}
+
+static int
+GCAMsetNegativeNodStatus(GCA_MORPH *gcam, int status)
+{
+  int             x, y, z ;
+  GCA_MORPH_NODE *gcamn ;
+  double         ratio ;
+
+  for (x = 0 ; x < gcam->width ; x++)
+    for (y = 0 ; y < gcam->height ; y++)
+      for (z = 0 ; z < gcam->depth ; z++)
+      {
+	gcamn = &gcam->nodes[x][y][z] ;
+	if (gcamn->area1 <= 0 || gcamn->area2 <= 0)
+	  gcamn->status |= status ;
+	if (FZERO(gcamn->orig_area))
+	  continue ;
+        ratio = gcamn->area / gcamn->orig_area ;
+	if (ratio <  .1)
+	  gcamn->status |= status ;
+      }
   return(NO_ERROR) ;
 }
