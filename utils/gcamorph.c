@@ -11,8 +11,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2012/11/09 00:09:11 $
- *    $Revision: 1.273 $
+ *    $Date: 2012/11/09 18:34:29 $
+ *    $Revision: 1.274 $
  *
  * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -183,7 +183,7 @@ int dtrans_labels[] =
 int NCOMBINE_LABELS = _NCOMBINE_LABELS ;
 int NDTRANS_LABELS = _NDTRANS_LABELS ;
 
-static int GCAMsetNegativeNodeStatus(GCA_MORPH *gcam, int status) ;
+//static int GCAMsetNegativeNodeStatus(GCA_MORPH *gcam, int status) ;
 HISTOGRAM *gcamJacobianHistogram(GCA_MORPH *gcam, HISTOGRAM *h);
 int gcamComputePeriventricularWMDeformation(GCA_MORPH *gcam, MRI *mri) ;
 double gcamMaxGradient(GCA_MORPH *gcam) ;
@@ -5689,6 +5689,7 @@ GCAMregisterLevel(GCA_MORPH *gcam, MRI *mri, MRI *mri_smooth,
       parms->dt = (sqrt(parms->navgs)+1.0f)*orig_dt ; /* will search around this value */
       min_dt = gcamFindOptimalTimeStep(gcam, parms, mri) ;
       parms->dt = min_dt ;
+#if 0
       if (gcam->neg > 0 && parms->noneg == True && 0)  // disabled
       {
 	printf("negative nodes detected - removing likelihood from those lattice locations and recomputing\n") ;
@@ -5701,6 +5702,7 @@ GCAMregisterLevel(GCA_MORPH *gcam, MRI *mri, MRI *mri_smooth,
 	min_dt = gcamFindOptimalTimeStep(gcam, parms, mri) ;
 	parms->dt = min_dt ;
       }
+#endif
       break ;
     case GCAM_INTEGRATE_FIXED:
       min_dt = parms->dt = (sqrt(parms->navgs)+1.0f)*orig_dt ;
@@ -21112,6 +21114,7 @@ GCAMregisterVentricles(GCA_MORPH *gcam, MRI *mri, GCA_MORPH_PARMS *parms)
   return(NO_ERROR) ;
 }
 
+#if 0
 static int
 GCAMsetNegativeNodeStatus(GCA_MORPH *gcam, int status)
 {
@@ -21134,3 +21137,4 @@ GCAMsetNegativeNodeStatus(GCA_MORPH *gcam, int status)
       }
   return(NO_ERROR) ;
 }
+#endif
