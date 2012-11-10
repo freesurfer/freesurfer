@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2012/10/30 18:34:08 $
- *    $Revision: 1.517 $
+ *    $Date: 2012/11/10 15:13:40 $
+ *    $Revision: 1.518 $
  *
  * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -23,7 +23,7 @@
  */
 
 extern const char* Progname;
-const char *MRI_C_VERSION = "$Revision: 1.517 $";
+const char *MRI_C_VERSION = "$Revision: 1.518 $";
 
 
 /*-----------------------------------------------------
@@ -16531,6 +16531,7 @@ MRIextractRegionAndPad(MRI *mri_src, MRI *mri_dst, MRI_REGION *region, int pad)
 {
   MRI *mri_tmp ;
   MRI_REGION box ;
+  MATRIX *m_src_vox2ras, *m_trans, *m_dst_vox2ras ;
 
   if (region == NULL)
   {
@@ -16546,10 +16547,18 @@ MRIextractRegionAndPad(MRI *mri_src, MRI *mri_dst, MRI_REGION *region, int pad)
   MRIcopyHeader(mri_src, mri_dst) ;
   mri_tmp = MRIextractInto(mri_src, NULL, region->x, region->y, region->z,
                            region->dx, region->dy, region->dz, 0, 0, 0) ;
-  MRIextractInto
-  (mri_tmp, mri_dst, 0, 0, 0,
-   region->dx, region->dy, region->dz, pad, pad, pad);
+  MRIextractInto(mri_tmp, mri_dst, 0, 0, 0, region->dx, region->dy, region->dz, pad, pad, pad);
   MRIfree(&mri_tmp) ;
+  m_src_vox2ras = MRIgetVoxelToRasXform(mri_src) ;
+  m_trans = MatrixIdentity(4, NULL) ;
+  *MATRIX_RELT(m_trans, 1, 4) = -pad ;
+  *MATRIX_RELT(m_trans, 2, 4) = -pad ;
+  *MATRIX_RELT(m_trans, 3, 4) = -pad ;
+  m_dst_vox2ras = MatrixMultiply(m_src_vox2ras, m_trans, NULL) ;
+  MRIsetVox2RASFromMatrix(mri_dst, m_dst_vox2ras) ;
+
+  MatrixFree(&m_src_vox2ras) ; MatrixFree(&m_trans) ; MatrixFree(&m_dst_vox2ras) ;
+  
   return(mri_dst) ;
 }
 
