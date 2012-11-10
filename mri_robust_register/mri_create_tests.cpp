@@ -8,8 +8,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2012/09/21 23:05:17 $
- *    $Revision: 1.8 $
+ *    $Date: 2012/11/10 15:35:01 $
+ *    $Revision: 1.9 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -84,17 +84,19 @@ struct Parameters
   string iscaleout;
   string ltaouts;
   string ltaoutt;
+  double transdist;
+  double maxdeg;
 };
 
 static struct Parameters P =
 { "", "", "", "", "", "", "", NULL, 0.0, 0, -1, false, false, 1.0, false, "",
-    "", "" };
+    "", "" , 11, 25};
 
 static void printUsage(void);
 static bool parseCommandLine(int argc, char *argv[], Parameters & P);
 
 static char vcid[] =
-    "$Id: mri_create_tests.cpp,v 1.8 2012/09/21 23:05:17 mreuter Exp $";
+    "$Id: mri_create_tests.cpp,v 1.9 2012/11/10 15:35:01 mreuter Exp $";
 char *Progname = NULL;
 
 std::vector<int> get_random(int lowest, int highest, int num = 3)
@@ -256,8 +258,9 @@ int main(int argc, char *argv[])
       assert(t.size() == 3);
 ///    double transdist = 100 ; // large 100mm=10 cm
 //    double transdist = 50 ;
-      double transdist = 0.05;
-      double ff = 0.5 * transdist
+//     double transdist = 11;
+//      double transdist = 0.05;
+      double ff = 0.5 * P.transdist
           / sqrt(t[0] * t[0] + t[1] * t[1] + t[2] * t[2]);
       //cout << " ff: " << ff << endl;
       float t0 = (float) (ff * t[0]);
@@ -270,11 +273,12 @@ int main(int argc, char *argv[])
       *MATRIX_RELT(lta->xforms[0].m_L, 1, 4) = t0;
       *MATRIX_RELT(lta->xforms[0].m_L, 2, 4) = t1;
       *MATRIX_RELT(lta->xforms[0].m_L, 3, 4) = t2;
-      *MATRIX_RELT(lta->xforms[0].m_L, 1, 4) = transdist / 2.0;
-      *MATRIX_RELT(lta->xforms[0].m_L, 2, 4) = 0;
-      *MATRIX_RELT(lta->xforms[0].m_L, 3, 4) = 0;
+      //*MATRIX_RELT(lta->xforms[0].m_L, 1, 4) = transdist / 2.0;
+      //*MATRIX_RELT(lta->xforms[0].m_L, 2, 4) = 0;
+      //*MATRIX_RELT(lta->xforms[0].m_L, 3, 4) = 0;
     }
 
+    cout<< endl << " Matrix so far: " << endl;
     MatrixPrintFmt(stdout, "% 2.8f", lta->xforms[0].m_L);
     cout << endl << endl;
 
@@ -284,8 +288,8 @@ int main(int argc, char *argv[])
       double length = sqrt(t[1] * t[1] + t[2] * t[2] + t[3] * t[3]);
       Quaternion Q;
       //double maxdeg = 40.0; // large 40 degree
-      double maxdeg = 25.0;
-      double maxrad = 2.0 * M_PI * maxdeg / 360;
+      //double maxdeg = 25.0;
+      double maxrad = 2.0 * M_PI * P.maxdeg / 360;
       //double rot    = 0.5 * maxrad * t[0]/100.0;
       double rot = 0.5 * maxrad;
       Q.importRotVec(rot, t[1] / length, t[2] / length, t[3] / length);
@@ -539,7 +543,9 @@ static void printUsage(void)
   cout << "  --outlier-box <int>    add box 0..<int> containing random voxels"
       << endl;
   cout << "  --translation          apply random translation" << endl;
+  cout << "  --transdist            set maximal trans. distance in mm (default 11)" << endl;
   cout << "  --rotation             apply random rotation" << endl;
+  cout << "  --maxdeg               maximal rotation in degree (default 25)" << endl;
   cout << "  --intensity            apply random intensity scaling" << endl;
   cout << "  --iscale <double>      use as fixed intensity scaling parameter"
       << endl;
@@ -675,11 +681,23 @@ static int parseNextCommand(int argc, char *argv[], Parameters & P)
     nargs = 0;
     cout << "Creating random translation." << endl;
   }
+  else if (!strcmp(option, "TRANSDIST"))
+  {
+    P.transdist = atof(argv[1]);
+    nargs = 1;
+    cout << "Translation distance" << P.transdist <<" ." << endl;
+  }
   else if (!strcmp(option, "ROTATION"))
   {
     P.rotation = true;
     nargs = 0;
     cout << "Creating random rotation." << endl;
+  }
+  else if (!strcmp(option, "MAXDEG"))
+  {
+    P.maxdeg = atof(argv[1]);
+    nargs = 1;
+    cout << "Max rotation degree" << P.maxdeg <<" ." << endl;
   }
   else if (!strcmp(option, "INTENSITY"))
   {
