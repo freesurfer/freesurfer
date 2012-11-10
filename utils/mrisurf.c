@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2012/10/22 16:51:22 $
- *    $Revision: 1.740 $
+ *    $Author: fischl $
+ *    $Date: 2012/11/10 20:21:53 $
+ *    $Revision: 1.741 $
  *
  * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -764,7 +764,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void)
 {
-  return("$Id: mrisurf.c,v 1.740 2012/10/22 16:51:22 greve Exp $");
+  return("$Id: mrisurf.c,v 1.741 2012/11/10 20:21:53 fischl Exp $");
 }
 
 /*-----------------------------------------------------
@@ -34317,8 +34317,10 @@ MRISpositionSurface(MRI_SURFACE *mris, MRI *mri_brain, MRI *mri_smooth,
       }
     }
     while (!done) ;
+#if 0
     last_sse = sse ;
     last_rms = rms ;
+#endif
 #endif
     enforce_link_positions(mris) ;
     mrisTrackTotalDistanceNew(mris) ;  /* computes signed
@@ -34377,6 +34379,8 @@ MRISpositionSurface(MRI_SURFACE *mris, MRI *mri_brain, MRI *mri_smooth,
     }
   }
 
+  last_sse = sse ;
+  last_rms = rms ;
   parms->start_t = n ;
   parms->dt = base_dt ;
   if (Gdiag & DIAG_SHOW)
@@ -75483,7 +75487,9 @@ mrisComputeShrinkwrapTerm(MRI_SURFACE *mris,
     z = v->z ;
     MRISsurfaceRASToVoxelCached(mris, mri_brain, x, y, z, &xw, &yw, &zw);
     MRIsampleVolume(mri_brain, xw, yw, zw, &val) ;
+      
     delta = (val - target_val) ;
+
     dx = delta * v->nx * l_shrinkwrap ;
     dy = delta * v->ny * l_shrinkwrap ;
     dz = delta * v->nz * l_shrinkwrap ;
