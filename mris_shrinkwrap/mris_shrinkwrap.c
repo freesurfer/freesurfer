@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:34 $
- *    $Revision: 1.8 $
+ *    $Author: fischl $
+ *    $Date: 2012/11/10 20:19:46 $
+ *    $Revision: 1.9 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -45,7 +45,7 @@
 #include "mrisegment.h"
 
 static char vcid[] = 
-"$Id: mris_shrinkwrap.c,v 1.8 2011/03/02 00:04:34 nicks Exp $";
+"$Id: mris_shrinkwrap.c,v 1.9 2012/11/10 20:19:46 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -54,6 +54,9 @@ int main(int argc, char *argv[]) ;
 #define OUTSIDE_BORDER_STEP  16
 #define TARGET_VAL           (BORDER_VAL-OUTSIDE_BORDER_STEP/2)
 
+static MRI *pad_volume(MRI_SURFACE *mris, MRI *mri_src, MRI *mri_dst) ;
+
+static int pad = 40 ;
 static int  get_option(int argc, char *argv[]) ;
 static void usage_exit(void) ;
 static void print_usage(void) ;
@@ -89,6 +92,9 @@ static int smooth = 5 ;
 static int nbrs = 2 ;
 static int ic = 5 ;
 static int inner_skull_only = 0;
+static int embed = 0 ;
+
+static float threshold = 0.0 ;
 
 int
 main(int argc, char *argv[])
@@ -96,7 +102,7 @@ main(int argc, char *argv[])
   char          **av, fname[STRLEN], *vol_name, *output_dir, *mdir ;
   int           ac, nargs, msec ;
   MRI_SURFACE   *mris ;
-  MRI           *mri_labeled, *mri_masked, *mri_masked_smooth;
+  MRI           *mri_labeled, *mri_masked, *mri_masked_smooth, *mri_tmp;
   MRI           *mri_kernel, *mri_dist ;
   struct timeb  then ;
   double        l_spring ;
@@ -104,7 +110,7 @@ main(int argc, char *argv[])
   /* rkt: check for and handle version tag */
   nargs = handle_version_option 
     (argc, argv, 
-     "$Id: mris_shrinkwrap.c,v 1.8 2011/03/02 00:04:34 nicks Exp $", 
+     "$Id: mris_shrinkwrap.c,v 1.9 2012/11/10 20:19:46 fischl Exp $", 
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -166,8 +172,19 @@ main(int argc, char *argv[])
     ErrorExit(ERROR_NOFILE, 
               "%s: could not read input volume %s", 
               Progname, vol_name) ;
+  if (embed)
+  {
+    MRI       *mri_tmp ;
+
+    mri_tmp = MRIextractRegionAndPad(mri_labeled, NULL, NULL, pad) ;
+    MRIfree(&mri_labeled) ; mri_labeled = mri_tmp ;
+  }
+
+  if (threshold > 0)
+    MRIbinarize(mri_labeled, mri_labeled, threshold, 0, target_label) ;
+
   ////////////////////////////// we can handle only conformed volumes
-  setMRIforSurface(mri_labeled);
+//  setMRIforSurface(mri_labeled);
   sprintf(fname, "%s/lib/bem/ic%d.tri", mdir, ic) ;
   fprintf(stderr, "reading %s...\n", fname) ;
   mris = MRISread(fname) ;
@@ -186,6 +203,9 @@ main(int argc, char *argv[])
   parms.sigma = 8 ;
 
   initialize_surface_position(mris, mri_masked, 1) ;
+  mri_tmp = pad_volume(mris, mri_masked, NULL) ;
+  MRIfree(&mri_masked) ; mri_masked = mri_tmp ;
+  MRIScopyVolGeomFromMRI(mris, mri_masked) ;
   if (target_label < 0)
   {
     mri_dist = 
@@ -204,7 +224,7 @@ main(int argc, char *argv[])
             vol_name, output_suffix, suffix) ;
     parms.l_intensity = 0 ;   // use shrinkwrap term
   }
-  else
+  else    // shrink wrapping to a labeled or threshold volume - build distance transform
   {
     mri_dist = 
       MRIdistanceTransform(mri_masked, 
@@ -230,7 +250,10 @@ main(int argc, char *argv[])
   if (target_label>=0)
   {
     char fname[STRLEN] ;
+
     sprintf(fname, "label%d.tri", target_label) ;
+    strcpy(fname, output_dir) ;  // last argv is name of file to write to
+    printf("saving surface to %s\n", fname) ;
     MRISwrite(mris, fname) ;
     exit(0) ;
   }
@@ -443,6 +466,11 @@ get_option(int argc, char *argv[])
     nargs = 1 ;
     fprintf(stderr, "l_intensity = %2.3f\n", parms.l_intensity) ;
   }
+  else if (!stricmp(option, "embed"))
+  {
+    embed = 1 ;
+    printf("embedding input in 2x blank volume\n") ;
+  }
   else if (!stricmp(option, "lm"))
   {
     parms.integration_type = INTEGRATE_LINE_MINIMIZE ;
@@ -490,6 +518,12 @@ get_option(int argc, char *argv[])
       Gdiag_no = atoi(argv[2]) ;
       nargs = 1 ;
       break ;
+    case 'T':
+      threshold = atof(argv[2]) ;
+      target_label = BORDER_VAL ;
+      nargs = 1 ;
+      printf("thresholding input volume at %2.1f\n", threshold) ;
+      break ;
     case 'W':
       sscanf(argv[2], "%d", &parms.write_iterations) ;
       nargs = 1 ;
@@ -521,7 +555,7 @@ usage_exit(void)
 static void
 print_usage(void)
 {
-  fprintf(stderr, "usage: %s [options] <volume> <output dir>\n",
+  fprintf(stderr, "usage: %s [options] <volume> <output name>\n",
           Progname) ;
 }
 
@@ -535,6 +569,8 @@ print_help(void)
           "  inner_skull.tri\n"
           "  outer_skull.tri\n"
           "  outer_skin.tri\n");
+  fprintf(stderr,"\t-t <threshold>  apply threshold to image then deform on distance transform\n") ;
+          
   fprintf(stderr, "\nvalid options are:\n\n") ;
   fprintf(stderr,
           "(see the source code!)\n") ;
@@ -576,11 +612,11 @@ create_brain_volume(MRI *mri_labeled, MRI *mri_brain, int target_label)
       {
         for (z = 0 ; z < mri_labeled->depth ; z++)
         {
-          label = MRIvox(mri_labeled,x,y,z) ;
+          label = MRIgetVoxVal(mri_labeled,x,y,z, 0) ;
           if (IS_BRAIN(label) || label == CSF_SA || label == Dura)
-            MRIvox(mri_brain, x, y, z) = BORDER_VAL ;
+            MRIsetVoxVal(mri_brain, x, y, z, 0, BORDER_VAL) ;
           else
-            MRIvox(mri_brain, x, y, z) = 0 ;
+            MRIsetVoxVal(mri_brain, x, y, z, 0, 0) ;
         }
       }
     }
@@ -632,7 +668,7 @@ initialize_surface_position(MRI_SURFACE *mris, MRI *mri_masked, int outside)
       {
         for (z = 0 ; z < mri_dilated->depth ; z++)
         {
-          if (MRIvox(mri_dilated, x, y, z) > 0)
+          if (MRIgetVoxVal(mri_dilated, x, y, z, 0) > 0)
           {
             MRIvoxelToSurfaceRAS(mri_dilated, x, y, z, &xs, &ys, &zs) ;
             x0 += xs ;
@@ -656,7 +692,7 @@ initialize_surface_position(MRI_SURFACE *mris, MRI *mri_masked, int outside)
       {
         for (z = 0 ; z < mri_dilated->depth ; z++)
         {
-          if (MRIvox(mri_dilated, x, y, z) > 0)
+          if (MRIgetVoxVal(mri_dilated, x, y, z, 0) > 0)
           {
             MRIvoxelToSurfaceRAS(mri_dilated, x, y, z, &xs, &ys, &zs) ;
             dist = sqrt(SQR(xs-x0)+SQR(ys-y0)+SQR(zs-z0)) ;
@@ -769,9 +805,9 @@ create_skull_volume(MRI *mri_labeled, MRI *mri_brain)
     {
       for (z = 0 ; z < mri_labeled->depth ; z++)
       {
-        label = MRIvox(mri_labeled,x,y,z) ;
+        label = MRIgetVoxVal(mri_labeled,x,y,z, 0) ;
         if (label == Bone || label == Cranium)
-          MRIvox(mri_brain, x, y, z) = BORDER_VAL ;
+          MRIsetVoxVal(mri_brain, x, y, z, 0, BORDER_VAL) ;
       }
     }
   }
@@ -813,9 +849,9 @@ create_skin_volume(MRI *mri_labeled, MRI *mri_brain)
     {
       for (z = 0 ; z < mri_labeled->depth ; z++)
       {
-        label = MRIvox(mri_labeled,x,y,z) ;
+        label = MRIgetVoxVal(mri_labeled,x,y,z,0) ;
         if (!IS_UNKNOWN(label))
-          MRIvox(mri_brain, x, y, z) = BORDER_VAL ;
+          MRIsetVoxVal(mri_brain, x, y, z, 0, BORDER_VAL) ;
       }
     }
   }
@@ -868,6 +904,35 @@ remove_small_segments(MRI  *mri_src, MRI *mri_dst)
   }
 
   MRIsegmentFree(&mriseg) ;
+  return(mri_dst) ;
+}
+
+static MRI *
+pad_volume(MRI_SURFACE *mris, MRI *mri_src, MRI *mri_dst)
+{
+  int   vno ;
+  double  x, y, z, pad ;
+  
+
+  pad = 0.0 ;
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    MRISvertexToVoxel(mris, &mris->vertices[vno], mri_src, &x, &y, &z) ;
+    pad = MAX(pad, -x) ;  pad = MAX(pad, -y) ;  pad = MAX(pad, -z) ; 
+    pad = MAX(pad, x-(mri_src->width-1)) ;
+    pad = MAX(pad, y-(mri_src->height-1)) ;
+    pad = MAX(pad, z-(mri_src->depth-1)) ;
+  }
+
+  pad = ceil(pad) ;
+  printf("padding volume by %d\n", (int)pad) ;
+  mri_dst = MRIextractRegionAndPad(mri_src, NULL, NULL, (int)pad) ;
+  {
+    double xs, ys, zs, xd, yd, zd ;
+    MRISvertexToVoxel(mris, &mris->vertices[0], mri_dst, &xd, &yd, &zd) ;
+    MRISvertexToVoxel(mris, &mris->vertices[0], mri_src, &xs, &ys, &zs) ;
+    DiagBreak() ;
+  }
   return(mri_dst) ;
 }
 
