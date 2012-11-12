@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2012/11/07 18:26:14 $
-#    $Revision: 1.436 $
+#    $Date: 2012/11/12 23:32:11 $
+#    $Revision: 1.437 $
 #
 # Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -26,7 +26,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.436 2012/11/07 18:26:14 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.437 2012/11/12 23:32:11 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -3449,7 +3449,10 @@ if($DoT2pial || $DoFLAIRpial) then
   foreach hemi ($hemilist)
     $PWD |& tee -a $LF
     set xopts = `fsr-getxopts mris_make_surfaces $XOptsFile`;
-    if ( ! -e $sdir/${hemi}.wo${t2flair}.pial) then
+    set nv1=(`mris_info $sdir/${hemi}.pial |& grep nvertices`)
+    set nv2=(`mris_info $sdir/${hemi}.wo${t2flair}.pial |& grep nvertices`)
+    if ( (! -e $sdir/${hemi}.wo${t2flair}.pial) || \
+         ("$nv1" != "$nv2") ) then
       set cmd = (cp -v $sdir/${hemi}.pial $sdir/${hemi}.wo${t2flair}.pial)
       echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
       if($RunIt) $fs_time $cmd |& tee -a $LF
