@@ -14,8 +14,8 @@
  * Original Author: Douglas N Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2012/11/01 18:50:55 $
- *    $Revision: 1.217 $
+ *    $Date: 2012/11/12 17:06:41 $
+ *    $Revision: 1.218 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -555,7 +555,7 @@ static int SmoothSurfOrVol(MRIS *surf, MRI *mri, MRI *mask, double SmthLevel);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-"$Id: mri_glmfit.c,v 1.217 2012/11/01 18:50:55 greve Exp $";
+"$Id: mri_glmfit.c,v 1.218 2012/11/12 17:06:41 greve Exp $";
 const char *Progname = "mri_glmfit";
 
 int SynthSeed = -1;
@@ -726,6 +726,7 @@ MRI *fMRIexcludeFrames(MRI *f, int *ExcludeFrames, int nExclude, MRI *fex);
 int AllowZeroDOF=0;
 MRI *BindingPotential(MRI *k2, MRI *k2a, MRI *mask, MRI *bp);
 int DoReshape = 0;
+MRI *MRIconjunct3(MRI *sig1, MRI *sig2, MRI *sig3, MRI *mask, MRI *c123);
 
 /*--------------------------------------------------*/
 int main(int argc, char **argv) {
@@ -2030,11 +2031,29 @@ int main(int argc, char **argv) {
   }
 
   if(DoSRTM){
+    MRI *sig1, *sig2, *sig3, *c123;
     printf("Computing binding potentials\n");
     mritmp = BindingPotential(mriglm->gamma[1],mriglm->gamma[2], mriglm->mask, NULL);
     sprintf(tmpstr,"%s/bp.%s",GLMDir,format);
-    MRIwrite(mritmp,tmpstr);
+    err = MRIwrite(mritmp,tmpstr);
+    if(err) exit(1);
     MRIfree(&mritmp);
+    printf("Computing conjunction of k2, k2a, and k2-k2a\n");
+    sig1 = MRIlog10(mriglm->p[1],NULL,NULL,1); // k2
+    MRIsetSign(sig1,mriglm->gamma[1],0);
+    //if(mriglm->mask) MRImask(sig1,mriglm->mask,sig1,0.0,0.0);
+    sig2 = MRIlog10(mriglm->p[2],NULL,NULL,1); // k2a
+    MRIsetSign(sig2,mriglm->gamma[2],0);
+    //if(mriglm->mask) MRImask(sig2,mriglm->mask,sig3,0.0,0.0);
+    sig3 = MRIlog10(mriglm->p[3],NULL,NULL,1); // k2-k2a
+    MRIsetSign(sig3,mriglm->gamma[3],0);
+    //if(mriglm->mask) MRImask(sig3,mriglm->mask,sig3,0.0,0.0);
+    c123 = MRIconjunct3(sig1, sig2, sig3, mriglm->mask, NULL);
+    sprintf(tmpstr,"%s/bp.kconjunction.%s",GLMDir,format);
+    err = MRIwrite(c123,tmpstr);
+    if(err) exit(1);
+    MRIfree(&sig1);MRIfree(&sig2);MRIfree(&sig3);
+    MRIfree(&c123);
   }
 
   sprintf(tmpstr,"%s/X.mat",GLMDir);
@@ -3342,7 +3361,7 @@ MRI *BindingPotential(MRI *k2, MRI *k2a, MRI *mask, MRI *bp)
   if (bp==NULL){
     bp = MRIallocSequence(k2->width,k2->height,k2->depth,MRI_FLOAT,1);
     if(bp==NULL){
-      printf("ERROR: fMRIcumtrapz: could not alloc\n");
+      printf("ERROR: BindingPotential(): could not alloc\n");
       return(NULL);
     }
     MRIcopyHeader(k2,bp);
@@ -3364,6 +3383,35 @@ MRI *BindingPotential(MRI *k2, MRI *k2a, MRI *mask, MRI *bp)
   }
 
   return(bp);
+}
+
+
+/*--------------------------------------------------------------*/
+MRI *MRIconjunct3(MRI *sig1, MRI *sig2, MRI *sig3, MRI *mask, MRI *c123)
+{
+  int c, r, s;
+  MRI *f3;
+  double sigv;
+
+  f3 = MRIallocSequence(sig1->width,sig1->height,sig1->depth,MRI_FLOAT,3);
+
+  for(c=0; c < sig1->width; c++)  {
+    for(r=0; r < sig1->height; r++)    {
+      for(s=0; s < sig1->depth; s++)   {
+	if(mask && MRIgetVoxVal(mask, c, r, s, 0) < 0.5) continue;
+	sigv = MRIgetVoxVal(sig1,c,r,s,0);
+	MRIsetVoxVal(f3,c,r,s,0, sigv);
+	sigv = MRIgetVoxVal(sig2,c,r,s,0);
+	MRIsetVoxVal(f3,c,r,s,1, sigv);
+	sigv = MRIgetVoxVal(sig3,c,r,s,0);
+	MRIsetVoxVal(f3,c,r,s,2, sigv);
+      }
+    }
+  }
+
+  c123 = MRIconjunct(f3, c123);
+  MRIfree(&f3);
+  return(c123);
 }
 
 
