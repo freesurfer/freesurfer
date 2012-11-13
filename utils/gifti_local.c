@@ -10,8 +10,8 @@
  * Original Authors: Kevin Teich and Nick Schmansky
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2012/10/30 20:23:09 $
- *    $Revision: 1.28.2.2 $
+ *    $Date: 2012/11/13 18:57:50 $
+ *    $Revision: 1.28.2.3 $
  *
  * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -1214,15 +1214,16 @@ MRI *MRISreadGiftiAsMRI(const char *fname, int read_volume)
   int frame_count = 0;
   long long num_vertices = -1;
   long long num_cols = 0;
-#define INTENT_CODE_MAX_IDX 3
+#define INTENT_CODE_MAX_IDX 4
   int intent_code[INTENT_CODE_MAX_IDX] =
   {
     NIFTI_INTENT_TIME_SERIES,
     NIFTI_INTENT_SHAPE,
-    NIFTI_INTENT_NONE
+    NIFTI_INTENT_NONE,
+    NIFTI_INTENT_NORMAL
   };
   int intent_code_idx = 0;
-  // search all DAs for time series, then shape, then none.
+  // search all DAs for time series, then shape, then none, then normal.
   // if time series found, check all DAs to make sure all the same size.
   for (intent_code_idx = 0; intent_code_idx < INTENT_CODE_MAX_IDX;
        intent_code_idx++)
@@ -1269,7 +1270,10 @@ MRI *MRISreadGiftiAsMRI(const char *fname, int read_volume)
       {
         break;
       }
-      if (intent_code[intent_code_idx] != NIFTI_INTENT_TIME_SERIES)
+      if ((intent_code[intent_code_idx] != NIFTI_INTENT_TIME_SERIES) &&
+          (intent_code[intent_code_idx] != NIFTI_INTENT_SHAPE) &&
+          (intent_code[intent_code_idx] != NIFTI_INTENT_NONE) &&
+          (intent_code[intent_code_idx] != NIFTI_INTENT_NORMAL))
       {
         break;
       }
