@@ -17,9 +17,10 @@
 #ifndef DIJKSTRA_KERNEL_H
 #define DIJKSTRA_KERNEL_H
 
-#ifdef HAVE_CONFIG_H
-#include <config.h>
-#endif
+//NJS: config.h not used in this file!
+//#ifdef HAVE_CONFIG_H
+//#include <config.h>
+//#endif
 
 #ifdef FS_OPENCL
     #ifdef __APPLE__
