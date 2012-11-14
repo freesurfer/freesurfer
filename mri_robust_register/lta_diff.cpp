@@ -8,8 +8,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2012/09/21 23:05:17 $
- *    $Revision: 1.23 $
+ *    $Date: 2012/11/14 17:20:11 $
+ *    $Revision: 1.24 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -58,7 +58,7 @@ extern "C"
 
 using namespace std;
 
-//static char vcid[] = "$Id: lta_diff.cpp,v 1.23 2012/09/21 23:05:17 mreuter Exp $";
+//static char vcid[] = "$Id: lta_diff.cpp,v 1.24 2012/11/14 17:20:11 mreuter Exp $";
 char *Progname = NULL;
 void writeVox2Vox(LTA * lta)
 {
@@ -169,6 +169,18 @@ double determinant(MATRIX * M1, MATRIX* M2)
   return d;
 }
 
+void testQuaternion(const vnl_matrix<double>& Rot)
+{
+
+  Quaternion Q;
+  Q.importMatrix(Rot[0][0],Rot[0][1],Rot[0][2],Rot[1][0],Rot[1][1],Rot[1][2],Rot[2][0],Rot[2][1],Rot[2][2]);
+  cout << "Quaternion: " << Q << endl;
+  
+  std::vector < double > m = Q.getRotMatrix3d();
+  cout << " M = [ " << m[0] << " " << m[1] << " " << m[2] << endl << m[3] << " " << m[4] << " " << m[5] << endl << m[6] << " " << m[7] << " " << m[8] << " ]" << endl; 
+exit(1);
+}
+
 void decompose(MATRIX * M1, MATRIX* M2)
 {
   vnl_matrix<double> m = MyMatrix::convertMATRIX2VNL(M1);
@@ -183,20 +195,35 @@ void decompose(MATRIX * M1, MATRIX* M2)
 
   cout << " Decompose RAS2RAS into Rot * Shear * Scale + Trans: " << endl
       << endl;
+      
   vnl_matrix<double> Rot, Shear;
   vnl_diag_matrix<double> Scale;
   MyMatrix::Polar2Decomposition(m.extract(3, 3), Rot, Shear, Scale);
   vnl_matlab_print(vcl_cout,Rot,"Rot",vnl_matlab_print_format_long);
   cout << endl;
+  
+  Quaternion Q;
+  Q.importMatrix(Rot[0][0],Rot[0][1],Rot[0][2],Rot[1][0],Rot[1][1],Rot[1][2],Rot[2][0],Rot[2][1],Rot[2][2]);
+  std::vector < double > v = Q.getRotVec();
+  cout << "RotVec = [ " << v[0] << " " << v[1] << " " << v[2] << " ] " << endl;
+  cout << endl;
+  
+  cout << "RotAngle = " << Q.getRotAngle() << endl;
+  cout << endl;
+  
   vnl_matlab_print(vcl_cout,Shear,"Shear",vnl_matlab_print_format_long);
   cout << endl;
+  
   vnl_matlab_print(vcl_cout,Scale,"Scale",vnl_matlab_print_format_long);
   cout << endl;
+  
   vnl_vector<double> t = m.extract(3, 1, 0, 3).get_column(0);
   vnl_matlab_print(vcl_cout,t,"Trans",vnl_matlab_print_format_long);
   cout << endl;
+  
   cout << "AbsTrans = " << t.two_norm() << endl;
   cout << endl;
+  
   cout << "Determinant = " << vnl_determinant(m) << endl << endl;
 
 }

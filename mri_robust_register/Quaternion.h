@@ -8,8 +8,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2012/09/21 23:05:15 $
- *    $Revision: 1.9 $
+ *    $Date: 2012/11/14 17:20:11 $
+ *    $Revision: 1.10 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -48,26 +48,23 @@ public:
   //! Constructor for the four entries
   Quaternion(double ta, double tb, double tc, double td, bool tnormed = false) :
       a(ta), b(tb), c(tc), d(td), normed(tnormed)
-  {
-  }
-  ;
+  {}
+
 //     Quaternion(double v[4], bool tnormed = false):
 //           a(v[0]), b(v[1]), c(v[2]),d(v[3]),normed(tnormed) {};
 //     Quaternion(double real, double img[3], bool tnormed = false):
 //           a(real), b(img[0]), c(img[1]),d(img[2]),normed(tnormed) {};
+
   //! Default constructor setting quaternion to 1 (real)
   Quaternion() :
       a(1.0), b(0.0), c(0.0), d(0.0), normed(true)
-  {
-  }
-  ;
+  {}
 
   //! Returns the real part of the quaternion
   inline double getReal() const
   {
     return a;
   }
-  ;
 
   //! Returns the imaginary part of the quaternion (3 values)
   inline std::vector<double> getImg() const
@@ -78,79 +75,106 @@ public:
     v[2] = d;
     return v;
   }
-  ;
-
-  //! Returns the matrix representation of the quaternion (not a rotation matrix)
-  inline std::vector<double> getMatrix4d() const;
 
   //! Write quaternion to stream
   inline void write(std::ostream& os) const;
 
-  // Rotation stuff
+
+  // Get Routines
+
+  //! Returns the matrix representation of the quaternion (not a rotation matrix)
+  inline std::vector<double> getMatrix4d() const;
+
   //! Rotation Matrix (3x3) as 9 values (row by row)
   inline std::vector<double> getRotMatrix3d() const;
+  
   //! Rotation Matrix (4x4, homogeneous) as 12 values (row by row)
   inline std::vector<double> getRotMatrix3dh() const;
+  
   //! Returns rotation axis (3 values)
   inline std::vector<double> getRotAxis() const;
+  
   //! Returns rotation angle
   inline double getRotAngle() const;
+  
+  //! Return rotation vector (3d axis, length is the angle)
+  inline std::vector<double> getRotVec() const;
+  
   //! Returns half the rotation as quaternion
   inline Quaternion getHalfRotation() const;
+  
+  
+  // Import Routines
+  
   //! Creates quaternion from rotation vector (3d axis, length is the angle)
   inline Quaternion& importRotVec(double v1, double v2, double v3);
+  
   //! Creates quaternion from rotation vector (angle and 3d axis)
   inline Quaternion& importRotVec(double alpha, double v1, double v2,
       double v3);
+      
   //! Creates quaternion from Euler angles (z, x, z)
   inline Quaternion& importZXZAngles(double z1, double x2, double z3);
+  
   //! Creates quaternion from Euler angles (x, y, z)
   inline Quaternion& importXYZAngles(double x1, double y2, double z3);
+  
   //! Creates quaternion from Euler angles (z, y, x)
   inline Quaternion& importZYXAngles(double z1, double y2, double x3);
+  
   //! Creates quaternion from neg. Euler angles (z, y, x)
   inline Quaternion& importZYXmAngles(double z1, double y2, double x3);
-  //! Creates quaternion from matrix representation (not a rotation matrix)
+  
+  //! Creates quaternion from rotation matrix representation
   inline Quaternion& importMatrix(double a00, double a01, double a02,
       double a10, double a11, double a12, double a20, double a21, double a22);
-  //! Applies rotation of unit quaternion to point v1,v2,v3
-  inline std::vector<double> rotate(double v1, double v2, double v3) const;
 
   // Operations
+  
+  //! Applies rotation of unit quaternion to point v1,v2,v3
+  inline std::vector<double> rotate(double v1, double v2, double v3) const;
+  
   //! Computes and returns conjugate of quaternion
   inline Quaternion getConjugate() const;
+  
   //! Conjugates quaternion
   inline Quaternion& conjugate();
   //! Computes and returns inverse of quaternion
   inline Quaternion getInverse() const;
+  
   //! Inverts quaternion
   inline Quaternion& invert();
+  
   //! Computes norm of quaternion
   inline double norm() const;
+  
   //! Computes squared norm of quaternion
   inline double norm2() const;
+  
   //! Normalizes quaternion
   inline Quaternion& normalize();
   //! Computes and returns normalized quaternion
   inline Quaternion getNormalized() const;
+  
   //! Checks if quaternion is normalized
   inline bool isNormalized() const
   {
     return normed;
   }
-  ;
+
 
   // Operators
-  inline Quaternion& operator=(const Quaternion&);
-  inline int operator==(const Quaternion&) const;
-  inline int operator!=(const Quaternion&) const;
-  inline Quaternion& operator+=(const Quaternion&);
-  inline Quaternion& operator-=(const Quaternion&);
-  inline Quaternion& operator*=(const double&);
-  inline Quaternion operator+(const Quaternion&) const;
-  inline Quaternion operator-(const Quaternion&) const;
-  inline Quaternion operator*(const double&) const;
-  inline Quaternion operator*(const Quaternion&) const;
+  
+  inline Quaternion& operator=  (const Quaternion&);
+  inline int         operator== (const Quaternion&) const;
+  inline int         operator!= (const Quaternion&) const;
+  inline Quaternion& operator+= (const Quaternion&);
+  inline Quaternion& operator-= (const Quaternion&);
+  inline Quaternion& operator*= (const double&);
+  inline Quaternion  operator+  (const Quaternion&) const;
+  inline Quaternion  operator-  (const Quaternion&) const;
+  inline Quaternion  operator*  (const double&)     const;
+  inline Quaternion  operator*  (const Quaternion&) const;
 
 private:
   double a, b, c, d;
@@ -292,6 +316,16 @@ inline std::vector<double> Quaternion::getRotAxis() const
   return v;
 }
 
+inline std::vector<double> Quaternion::getRotVec() const
+{
+  std::vector<double> v = getRotAxis();
+  double alpha = getRotAngle();
+  v[0] *= alpha;
+  v[1] *= alpha;
+  v[2] *= alpha;   
+  return v;
+}
+
 /**
  Converts rotation vector v1,v2,v3 to quaternion:
  rotation of ||v|| around axis defined by vector v=(v1,v2,v3)
@@ -423,13 +457,14 @@ inline Quaternion& Quaternion::importZYXmAngles(double z1, double y2, double x3)
 }
 
 inline Quaternion& Quaternion::importMatrix(double a00, double a01, double a02,
-    double a10, double a11, double a12, double a20, double a21, double a22)
+                                            double a10, double a11, double a12,
+                                            double a20, double a21, double a22)
 {
-  double trace = a00 + a11 + a22 + 1.0;
+  double trace = a00 + a11 + a22;
 
   if (trace > 0.00001)
   {
-    double s = 0.5 / sqrt(trace);
+    double s = 0.5 / sqrt(trace+1.0);
     a = 0.25 / s;
     b = (a21 - a12) * s;
     c = (a02 - a20) * s;
@@ -465,6 +500,10 @@ inline Quaternion& Quaternion::importMatrix(double a00, double a01, double a02,
   normed = true;
   return *this;
 }
+
+
+
+
 
 /**
  Computes \f$ q v q^-1\f $.
