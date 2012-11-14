@@ -24,8 +24,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2012/09/12 16:55:40 $
- *    $Revision: 1.78.2.1 $
+ *    $Date: 2012/11/14 22:03:02 $
+ *    $Revision: 1.78.2.2 $
  *
  * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -234,7 +234,7 @@ main(int argc, char *argv[])
 
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mri_ca_register.c,v 1.78.2.1 2012/09/12 16:55:40 nicks Exp $",
+           "$Id: mri_ca_register.c,v 1.78.2.2 2012/11/14 22:03:02 nicks Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
   {
@@ -1238,7 +1238,7 @@ main(int argc, char *argv[])
   // here is the main work force
   if (handle_expanded_ventricles)
   {
-    INTEGRATION_PARMS old_parms ;
+    GCA_MORPH_PARMS old_parms ;
     int               start_t ;
 
     memmove(&old_parms, (const void *)&parms, sizeof(old_parms)) ;
