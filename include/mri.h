@@ -8,8 +8,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2012/10/24 13:20:29 $
- *    $Revision: 1.441 $
+ *    $Date: 2012/11/15 18:31:16 $
+ *    $Revision: 1.442 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -66,6 +66,10 @@ extern "C" {
 #define SEQUENCE_MPRAGE      1
 #define SEQUENCE_EPI         2
 
+#define FRAME_TYPE_ORIGINAL             0
+#define FRAME_TYPE_DIFFUSION_AUGMENTED  1
+
+
 typedef struct
 {
   int     type ;           // code for what is stored in this frame
@@ -74,7 +78,6 @@ typedef struct
   float   flip ;           // flip angle
   float   TI ;             // time-to-inversion
   float   TD ;             // delay time
-  float   TM;              // mixing time (for stimulluated echo sequences)
   int     sequence_type ;  // see SEQUENCE* constants
   float   echo_spacing ;
   float   echo_train_len ; // length of the echo train
@@ -87,6 +90,46 @@ typedef struct
   MATRIX  *m_ras2vox ;      
   float   thresh ;
   int     units ;          // e.g. UNITS_PPM,  UNITS_RAD_PER_SEC, ...         
+
+  // for Herr Dr. Prof. Dr. Dr. Witzel
+  // directions: maybe best in both reference frames
+  // or just 3 coordinates and a switch which frame it is ?
+  double DX ; 
+  double DY ;
+  double DZ ;
+  
+  double DR ;
+  double DP ;
+  double DS ;
+
+// B-value
+  double bvalue ;
+
+// Mixing time
+  double TM ;
+
+// What kind of diffusion scan is this (can be an enum)
+// stejskal-tanner,trse,steam etc....
+
+  long diffusion_type ;
+ 
+// Gradient values 
+  long D1_ramp ;
+  long D1_flat ;
+  double D1_amp ;
+
+  long D2_ramp ;
+  long D2_flat ;
+  double D2_amp ;
+
+  long D3_ramp ;
+  long D3_flat ;
+  double D3_amp ;
+ 
+  long D4_ramp ;
+  long D4_flat ;
+  double D4_amp ;
+
 } MRI_FRAME ;
 
 
