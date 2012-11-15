@@ -8,9 +8,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2012/08/31 11:55:12 $
- *    $Revision: 1.403 $
+ *    $Author: fischl $
+ *    $Date: 2012/11/15 18:30:56 $
+ *    $Revision: 1.404 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -80,6 +80,7 @@
 #include "mri_circulars.h"
 #include "dti.h"
 #include "gifti_local.h"
+#include "gcamorph.h"
 
 static int niiPrintHdr(FILE *fp, struct nifti_1_header *hdr);
 
@@ -778,6 +779,15 @@ MRI *mri_read( const char *fname,
   else if (type == MRI_MGH_FILE)
   {
     mri = mghRead(fname_copy, volume_flag, -1);
+  }
+  else if (type == MGH_MORPH)
+  {
+    GCA_MORPH *gcam ;
+    gcam = GCAMread(fname_copy) ;
+    if (gcam == NULL)
+      ErrorReturn(NULL, (ERROR_BADPARM, "MRIread(%s): could not read .m3z\n", fname_copy)) ;
+    mri = GCAMwriteWarpToMRI(gcam, NULL) ;
+    GCAMfree(&gcam) ;
   }
   else if (type == GDF_FILE)
   {
@@ -12296,6 +12306,34 @@ znzTAGwriteMRIframes(znzFile fp, MRI *mri)
     }
     znzwriteFloat(frame->thresh, fp) ;
     znzwriteInt(frame->units, fp) ;
+    if (frame->type == FRAME_TYPE_DIFFUSION_AUGMENTED)   // also store diffusion info
+    {
+      znzwriteDouble(frame->DX, fp) ;
+      znzwriteDouble(frame->DY, fp) ;
+      znzwriteDouble(frame->DZ, fp) ;
+
+      znzwriteDouble(frame->DR, fp) ;
+      znzwriteDouble(frame->DP, fp) ;
+      znzwriteDouble(frame->DS, fp) ;
+      znzwriteDouble(frame->bvalue, fp) ;
+      znzwriteDouble(frame->TM, fp) ;
+
+      znzwriteLong(frame->D1_ramp, fp) ;
+      znzwriteLong(frame->D1_flat, fp) ;
+      znzwriteDouble(frame->D1_amp, fp) ;
+
+      znzwriteLong(frame->D2_ramp, fp) ;
+      znzwriteLong(frame->D2_flat, fp) ;
+      znzwriteDouble(frame->D2_amp, fp) ;
+
+      znzwriteLong(frame->D3_ramp, fp) ;
+      znzwriteLong(frame->D3_flat, fp) ;
+      znzwriteDouble(frame->D3_amp, fp) ;
+
+      znzwriteLong(frame->D4_ramp, fp) ;
+      znzwriteLong(frame->D4_flat, fp) ;
+      znzwriteDouble(frame->D4_amp, fp) ;
+    }
   }
   fend = znztell(fp) ;
   len -= (fend - here) ;   // unused space
@@ -12344,6 +12382,34 @@ znzTAGreadMRIframes(znzFile fp, MRI *mri, long len)
 
     frame->thresh = znzreadFloat(fp) ;
     frame->units = znzreadInt(fp) ;
+    if (frame->type == FRAME_TYPE_DIFFUSION_AUGMENTED)
+    {
+      frame->DX = znzreadDouble(fp) ;
+      frame->DY = znzreadDouble(fp) ;
+      frame->DZ = znzreadDouble(fp) ;
+
+      frame->DR = znzreadDouble(fp) ;
+      frame->DP = znzreadDouble(fp) ;
+      frame->DS = znzreadDouble(fp) ;
+      frame->bvalue = znzreadDouble(fp) ;
+      frame->TM = znzreadDouble(fp) ;
+
+      frame->D1_ramp = znzreadLong(fp) ;
+      frame->D1_flat = znzreadLong(fp) ;
+      frame->D1_amp = znzreadDouble(fp) ;
+
+      frame->D2_ramp = znzreadLong(fp) ;
+      frame->D2_flat = znzreadLong(fp) ;
+      frame->D2_amp = znzreadDouble(fp) ;
+
+      frame->D3_ramp = znzreadLong(fp) ;
+      frame->D3_flat = znzreadLong(fp) ;
+      frame->D3_amp = znzreadDouble(fp) ;
+
+      frame->D4_ramp = znzreadLong(fp) ;
+      frame->D4_flat = znzreadLong(fp) ;
+      frame->D4_amp = znzreadDouble(fp) ;
+    }
   }
 
   fend = znztell(fp) ;
