@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2012/11/01 19:21:06 $
- *    $Revision: 1.227 $
+ *    $Date: 2012/11/15 18:32:14 $
+ *    $Revision: 1.228 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -4216,8 +4216,13 @@ void MainWindow::OnIOError( Layer* layer, int jobtype )
     {
       msg = "Failed to save volume to ";
     }
+    else if ( jobtype == ThreadIOWorker::JT_SaveSurface )
+    {
+      msg = "Failed to save surface to ";
+    }
     QMessageBox::warning( this, "Error", msg + layer->GetFileName() );
-    delete layer;
+    if ( jobtype != ThreadIOWorker::JT_SaveVolume && jobtype != ThreadIOWorker::JT_SaveSurface )
+      delete layer;
   }
   else
   {
