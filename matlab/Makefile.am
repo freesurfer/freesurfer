@@ -138,7 +138,60 @@ mfiles_DATA=\
 	write_label.m \
 	write_surf.m \
 	write_wfile.m \
-	xfm_read.m
+	xfm_read.m \
+	sphCoord.m \
+	RgAdjMtx.m \
+	parfor_progress.m \
+	lme_RgFSfit.m \
+	lme_mass_RgMean.m \
+	lme_mass_RgGrow.m \
+	lme_mass_RgGradient.m \
+	lme_mass_RgFSfit.m \
+	lme_mass_RgEI.m \
+	lme_mass_RgDist.m \
+	lme_mass_LR.m \
+	lme_mass_F.m \
+	lme_mass_fit_vw.m \
+	lme_mass_fit_Rgw.m \
+	lme_mass_fit.m \
+	lme_mass_fit_init.m \
+	lme_mass_fit_EMinit.m \
+	lme_mass_FDR.m \
+	lme_mass_FDR2.m \
+	lme_FSfit.m \
+	dijkstra.m \
+	AdjMtx.m \
+	vec.m \
+	lme_timePlot.m \
+	lme_realizedPower.m \
+	lme_plannedSampleSize.m \
+	lme_plannedPower.m \
+	lme_LR.m \
+	lme_lowessPlot.m \
+	lme_Hessian.m \
+	lme_Gradient.m \
+	lme_F.m \
+	lme_fit_NR.m \
+	lme_fit_init.m \
+	lme_fit_FS.m \
+	lme_fit_FSinit.m \
+	lme_fit_EM.m \
+	lme_fit_EMinit.m \
+	lme_EI.m \
+	sortData.m \
+	fs_write_Y.m \
+	fs_write_fstats.m \
+	fs_read_Y.m \
+	fs_read_surf.m \
+	fs_read_label.m \
+	rmQdecCol.m \
+	Qdec2num.m \
+	num2Qdec.m \
+	getQdecVars.m \
+	getQdecVarData.m \
+	fWriteQdec.m \
+	fReadQdec.m \
+	findQdecVar.m \
 
 if NMR_INSTALL
 siemens_DATA=\
