@@ -9,8 +9,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2012/11/15 18:30:56 $
- *    $Revision: 1.404 $
+ *    $Date: 2012/11/15 21:06:44 $
+ *    $Revision: 1.405 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -786,7 +786,17 @@ MRI *mri_read( const char *fname,
     gcam = GCAMread(fname_copy) ;
     if (gcam == NULL)
       ErrorReturn(NULL, (ERROR_BADPARM, "MRIread(%s): could not read .m3z\n", fname_copy)) ;
-    mri = GCAMwriteWarpToMRI(gcam, NULL) ;
+    if (gcam->type == GCAM_RAS)
+      GCAMrasToVox(gcam, NULL) ;
+    if (start_frame < 0)
+      mri = GCAMwriteWarpToMRI(gcam, NULL) ;
+    else
+    {
+      printf("reading 'frame' # %d from gcam (see gcamorph.h for definitions)\n", start_frame) ;
+      mri = GCAMwriteMRI(gcam, NULL, start_frame) ;
+      start_frame = end_frame = 0 ;
+    }
+
     GCAMfree(&gcam) ;
   }
   else if (type == GDF_FILE)
