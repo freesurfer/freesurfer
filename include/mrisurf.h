@@ -8,9 +8,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2012/10/22 16:51:23 $
- *    $Revision: 1.371 $
+ *    $Author: fischl $
+ *    $Date: 2012/11/16 17:01:57 $
+ *    $Revision: 1.372 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -2063,6 +2063,7 @@ int MRISthresholdValIntoMarked(MRI_SURFACE *mris, float thresh) ;
 int MRISremoveCompressedRegions(MRI_SURFACE *mris, double min_dist) ;
 int  MRISweightedSoapBubbleVertexPositions(MRI_SURFACE *mris, int navgs) ;
 int MRIStaubinSmooth(MRI_SURFACE *mris, int niters, double lambda, double mu, int which) ;
+MRI_SURFACE *MRISconcat(MRI_SURFACE *mris1, MRI_SURFACE *mris2, MRI_SURFACE *mris) ;
 
 #define TAUBIN_UNIFORM_WEIGHTS   0
 #define TAUBIN_INVERSE_WEIGHTS   1
