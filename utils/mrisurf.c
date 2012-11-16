@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2012/11/10 20:21:53 $
- *    $Revision: 1.741 $
+ *    $Date: 2012/11/16 17:01:49 $
+ *    $Revision: 1.742 $
  *
  * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -764,7 +764,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void)
 {
-  return("$Id: mrisurf.c,v 1.741 2012/11/10 20:21:53 fischl Exp $");
+  return("$Id: mrisurf.c,v 1.742 2012/11/16 17:01:49 fischl Exp $");
 }
 
 /*-----------------------------------------------------
@@ -82498,5 +82498,78 @@ mrisComputeHistoTerm(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
     v->dz += dz ;
   }
   return(NO_ERROR) ;
+}
+
+MRI_SURFACE *
+MRISconcat(MRI_SURFACE *mris1, MRI_SURFACE *mris2, MRI_SURFACE *mris)
+{
+  int    vno, n ;
+  int    fno ;
+  VERTEX *v, *vo ;
+  FACE   *f, *fo ;
+
+  if (mris == NULL)
+    mris = MRISalloc(mris1->nvertices+mris2->nvertices, mris1->nfaces+mris2->nfaces) ;
+
+  for (vno = 0 ; vno < mris1->nvertices ; vno++)
+  {
+    v = &mris->vertices[vno] ;
+    vo = &mris1->vertices[vno] ;
+    memmove(v, vo, sizeof(VERTEX)) ;
+    v->v = (int *)calloc(vo->vtotal, sizeof(int)) ;
+    if (v->v == NULL)
+      ErrorExit(ERROR_NOMEMORY, "MRISconcat: could not allocate %dth vertex array", vno) ;
+    for (n = 0 ; n < v->vtotal ; n++)
+      v->v[n] = vo->v[n] ;
+    v->f = (int *)calloc(vo->num, sizeof(int)) ;
+    if (v->f == NULL)
+      ErrorExit(ERROR_NOMEMORY, "MRISconcat: could not allocate %dth face array", vno) ;
+    for (n = 0 ; n < v->vtotal ; n++)
+      v->f[n] = vo->f[n] ;
+  }
+
+  for (fno = 0 ; fno < mris1->nfaces ; fno++)
+  {
+    f = &mris->faces[fno] ;
+    fo = &mris1->faces[fno] ;
+    memmove(f, fo, sizeof(FACE)) ;
+  }
+  for (vno = mris1->nvertices ; vno < mris->nvertices ; vno++)
+  {
+    v = &mris->vertices[vno] ;
+    vo = &mris2->vertices[vno-mris1->nvertices] ;
+    memmove(v, vo, sizeof(VERTEX)) ;
+    v->v = (int *)calloc(vo->vtotal, sizeof(int)) ;
+    if (v->v == NULL)
+      ErrorExit(ERROR_NOMEMORY, "MRISconcat: could not allocate %dth vertex array", vno) ;
+    for (n = 0 ; n < v->vtotal ; n++)
+      v->v[n] = vo->v[n]+mris1->nvertices ;
+    v->f = (int *)calloc(vo->num, sizeof(int)) ;
+    if (v->f == NULL)
+      ErrorExit(ERROR_NOMEMORY, "MRISconcat: could not allocate %dth face array", vno) ;
+    for (n = 0 ; n < v->num ; n++)
+      v->f[n] = vo->f[n]+mris1->nfaces ;
+  }
+  for (fno = mris1->nfaces ; fno < mris->nfaces ; fno++)
+  {
+    f = &mris->faces[fno] ;
+    fo = &mris2->faces[fno-mris1->nfaces] ;
+    for (n = 0 ; n < VERTICES_PER_FACE ; n++)
+      f->v[n] = fo->v[n]+mris1->nvertices ;
+  }
+
+  if (mris1->hemisphere != mris2->hemisphere)
+    mris->hemisphere = BOTH_HEMISPHERES ;
+  else
+    mris->hemisphere = mris1->hemisphere ;
+  mris->type = mris1->type ;
+  mris->nsize = mris1->nsize ;
+  MRISsetNeighborhoodSize(mris, mris->nsize) ;
+
+  memmove(&mris->vg, &mris1->vg, sizeof(mris1->vg)) ;
+  MRIScomputeMetricProperties(mris) ;
+  MRIScomputeSecondFundamentalForm(mris) ;
+  
+  return(mris) ;
 }
 
