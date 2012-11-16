@@ -13,8 +13,8 @@
  * Original Author: Rudolph Pienaar
  * CVS Revision Info:
  *    $Author: rudolph $
- *    $Date: 2012/07/05 21:21:28 $
- *    $Revision: 1.24 $
+ *    $Date: 2012/11/16 22:10:05 $
+ *    $Revision: 1.25 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -606,13 +606,23 @@ C_mpmProg_autodijk::cost_compute(
     mps_env->startVertex = a_start;
     mps_env->endVertex   = a_end;
 
-    calls++;
-    if(!(calls % mprogressIter)) {
-        mps_env->pcsm_stdout->colprintf(
-                            "start->end = cost", "[ %d -> %d/%d = ",
+    if(mb_worldMap && !mb_worldMapDistanceCalc) calls++;
+    if(!mb_worldMap)                            calls++;
+    if(!(calls % (mprogressIter))) {
+        if(mb_worldMap && !mb_worldMapDistanceCalc) {
+            mps_env->pcsm_stdout->colprintf(
+                            "here->opposite = cost", "[ %6d -> %6d/%6d = ",
+                            a_start,
+                            ms_stats.indexMax,
+                            mvertex_total);
+        }
+        if (!mb_worldMap) {
+            mps_env->pcsm_stdout->colprintf(
+                            "start->end = cost", "[ %6d -> %6d/%6d = 0.0]\n",
                             mps_env->startVertex,
                             mps_env->endVertex,
                             mvertex_total);
+        }
     }
     ok = dijkstra(*mps_env);  // costs are written to vertex elements along
                               //+ the path in the MRIS structure.
@@ -622,8 +632,9 @@ C_mpmProg_autodijk::cost_compute(
         mps_env->pcsm_stdout->printf("dijkstra failure, returning to system.\n");
         exit(1);
     }
-    //f_cost      = surface_ripMark(*mps_env);
-    if(!(calls % mprogressIter)) {
+    f_cost = mps_env->pMS_active->vertices[ms_stats.indexMax].val;
+    if(!(calls % (mprogressIter))) {
+        if(mb_worldMap && !mb_worldMapDistanceCalc)
         mps_env->pcsm_stdout->printf(" %f ]\n", f_cost);
     }
     if(mb_surfaceRipClear) {
@@ -639,7 +650,7 @@ C_mpmProg_autodijk::vertexCosts_pack(e_stats& a_stats) {
      * Pack the cost values stored in the FreeSurfer mesh into 
      * an array.
      */
-    a_stats.f_max           =  0.0;
+    a_stats.f_max               =  0.0;
     a_stats.indexMax            = -1;
     for(int v = 0; v < mvertex_end; v++) {
         mpf_cost[v]     = mps_env->pMS_active->vertices[v].val;
@@ -661,15 +672,14 @@ C_mpmProg_autodijk::run() {
     float       f_cost                  =  0.0;
     float       f_valueAtFurthest       = 0.0;
     int         ret                     =  1;
-    e_stats     estats;
 
     e_MPMPROG	        e_prog          = mps_env->empmProg_current;
     e_MPMOVERLAY        e_overlay       = mps_env->empmOverlay_current;
 
     debug_push("run");
 
-    estats.f_max        = 0.0;
-    estats.indexMax     = -1;
+    ms_stats.f_max        = 0.0;
+    ms_stats.indexMax     = -1;
 
     mps_env->pcsm_stdout->colprintf("mpmProg (ID)", "[ %s (%d) ]\n",
                             mps_env->vstr_mpmProgName[e_prog].c_str(),
@@ -696,6 +706,9 @@ C_mpmProg_autodijk::run() {
       }
     } else if(mb_worldMap) {
         mps_env->pcsm_stdout->lprintf("Computing World Map...\n");
+        mps_env->pcsm_stdout->colprintf(
+                              "Progress iteration interval",
+                              "[ %d ]\n", mprogressIter);
         for(int v = mvertex_start; v < mvertex_end; v++) {
             // First we need to find the anti-pole for current 'v'
             // by setting the env overlay to the distance object, 
@@ -703,27 +716,29 @@ C_mpmProg_autodijk::run() {
             // finding the highest "cost" which corresponds to the vertex at
             // furthest distance from 'v' on the mesh.
             mps_env->pCmpmOverlay = mpOverlayDistance;
+            mb_worldMapDistanceCalc = true;
             f_cost      = cost_compute(v, v);
-            vertexCosts_pack(estats);
+            vertexCosts_pack(ms_stats);
             // Now set the env overlay back to the original, and recompute
             mps_env->pCmpmOverlay = mpOverlayOrig;
+            mb_worldMapDistanceCalc = false;
             f_cost      = cost_compute(v, v);
             // For this run, we only store the single cost value from the 
             // maxIndex vertex from the distance overlay
-            f_valueAtFurthest = mps_env->pMS_active->vertices[estats.indexMax].val;
+            f_valueAtFurthest = mps_env->pMS_active->vertices[ms_stats.indexMax].val;
             mpf_persistent[v] = f_valueAtFurthest;
         }
         // Now, set the save pointer to the correct data to save
         mpf_fileSaveData = mpf_persistent;
     } else {
       f_cost            = cost_compute(mvertex_polar, mvertex_polar);
-      vertexCosts_pack(estats);
+      vertexCosts_pack(ms_stats);
     }
     if(mb_simpleStatsShow) {
         mps_env->pcsm_stdout->colprintf("max(cost) @ index",
                                         "[ %f : %d ]\n",
-                                        estats.f_max,
-                                        estats.indexMax);
+                                        ms_stats.f_max,
+                                        ms_stats.indexMax);
     }
     // Write the cost curv file
     // NOTE: This saves the data pointed to by mpf_fileSaveData!

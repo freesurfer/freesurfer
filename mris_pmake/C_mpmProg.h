@@ -12,9 +12,9 @@
 /*
  * Original Author: Rudolph Pienaar
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2012/11/14 22:10:16 $
- *    $Revision: 1.17 $
+ *    $Author: rudolph $
+ *    $Date: 2012/11/16 22:10:05 $
+ *    $Revision: 1.18 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -276,14 +276,18 @@ class C_mpmProg_autodijk : public C_mpmProg {
     int         mvertex_end;
     int         mvertex_total;
     int         m_costFunctionIndex;
+    e_stats     ms_stats;                       // A simple stats objects
     bool        mb_surfaceRipClear;
     bool        mb_worldMap;                    // If true, generate a 'world
                                                 //+ map' by looping exhaustively
                                                 //+ over the entire surface and
                                                 //+ only recording the cost 
                                                 //+ value at the vertex index
-                                                //+ "furthest" from each start
+                                                //+ "farthest" from each start
                                                 //+ vertex.
+    bool        mb_worldMapDistanceCalc;        // State calculation tracker
+                                                //+ used for descriptive
+                                                //+ output management
     bool        mb_performExhaustive;           // If true, perform cost
                                                 //+ calculations from polar
                                                 //+ to every other vertex in
