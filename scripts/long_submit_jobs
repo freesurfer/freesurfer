@@ -9,8 +9,8 @@
 # Original Author: Martin Reuter
 # CVS Revision Info:
 #    $Author: mreuter $
-#    $Date: 2012/10/22 21:51:48 $
-#    $Revision: 1.15 $
+#    $Date: 2012/11/16 02:23:59 $
+#    $Revision: 1.16 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -278,7 +278,7 @@ def options_parse():
     Command Line Options Parser for long_mris_slopes
     initiate the option parser and return the parsed object
     """
-    parser = optparse.OptionParser(version='$Id: long_submit_jobs,v 1.15 2012/10/22 21:51:48 mreuter Exp $', usage=HELPTEXT)
+    parser = optparse.OptionParser(version='$Id: long_submit_jobs,v 1.16 2012/11/16 02:23:59 mreuter Exp $', usage=HELPTEXT)
     
     # help text
     h_qdec      = '(REQUIRED) qdec table file specifying the subjects and time points'
@@ -304,6 +304,7 @@ def options_parse():
     h_pause     = 'pause in sec between submissions (default: 13)'
     h_max       = 'max num of jobs of this user (default: 100)'
     h_queue     = 'special queue to submit'
+    h_mem       = 'mem to request (default: 7 Gig), only used in -base submission'
     
     # Add options 
 
@@ -335,6 +336,7 @@ def options_parse():
     parser.add_option('--pause' , dest='pause' , help=h_pause, default=13, type="float")
     parser.add_option('--max'   , dest='max'   , help=h_max, default=100, type="int")
     parser.add_option('--queue' , dest='queue' , help=h_queue)
+    parser.add_option('--mem'   , dest='mem'   , help=h_mem, default=7, type="int")
         
     
                       
@@ -681,7 +683,7 @@ def run_base(qdectable,options):
         #determine mem usage
         nodes = 1
 #        mem = int(math.ceil(len(tpids) * 2.5))
-       mem = 7
+        mem = options.mem
 #        if len(tpids) > 3:
 #            mem = 12
 #        if len(tpids) > 5:
@@ -692,7 +694,7 @@ def run_base(qdectable,options):
         if options.affine:
             baseflag = " -base-affine "
             # also maybe adjust nodes number
-            if mem < 28: mem = mem+7
+            #if mem < 28: mem = mem+7
             
         cmd = recall+" -sd "+options.bdir+baseflag+subjectid+tps+" "+options.bflags
         if not options.simulate:
@@ -821,7 +823,7 @@ def run_long(qdectable,options):
        
             if status == 1: # not there and still running:
                 # if skipping >= 2: don't wait for complete base below
-                if options.skipping >= 2:
+                if options.skip >= 2:
                     print "WARNING [long]: "+tpid+" missing norm.mgz. Skipping longs ..."
                     if options.simulate:
                         continue # check other time points
