@@ -191,7 +191,7 @@ mfiles_DATA=\
 	getQdecVarData.m \
 	fWriteQdec.m \
 	fReadQdec.m \
-	findQdecVar.m \
+	findQdecVar.m
 
 if NMR_INSTALL
 siemens_DATA=\
