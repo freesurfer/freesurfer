@@ -1,11 +1,10 @@
-function [volsm, G] = fast_smooth2d(vol,cfwhm,rfwhm,sfwhm)
-% [volsm, G] = fast_smooth2d(vol,cfwhm,rfwhm,sfwhm)
+function [volsm, G] = fast_smooth2d(vol,cfwhm,rfwhm)
+% [volsm, G] = fast_smooth2d(vol,cfwhm,rfwhm)
 % 
 % 3D gaussian smoother.
 %
 % cfwhm - fwhm for cols
 % rfwhm - fwhm for rows
-% sfwhm - fwhm for slice
 %
 % Note: does not attempt to handle wrap-around
 %
@@ -17,9 +16,9 @@ function [volsm, G] = fast_smooth2d(vol,cfwhm,rfwhm,sfwhm)
 %
 % Original Author: Doug Greve
 % CVS Revision Info:
-%    $Author: nicks $
-%    $Date: 2011/03/02 00:04:05 $
-%    $Revision: 1.3 $
+%    $Author: greve $
+%    $Date: 2012/11/19 22:19:45 $
+%    $Revision: 1.4 $
 %
 % Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 %
