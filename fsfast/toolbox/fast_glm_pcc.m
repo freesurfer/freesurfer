@@ -7,7 +7,7 @@ function rho = fast_glm_pcc(beta,X,C,rvar)
 % WARNING: X must have a column of 1s or both X and y must have
 % been demeaned before the glm.
 %
-% $Id: fast_glm_pcc.m,v 1.1 2010/11/09 21:46:48 greve Exp $
+% $Id: fast_glm_pcc.m,v 1.2 2012/11/19 22:18:23 greve Exp $
 
 if(nargin ~= 4) 
   fprintf('rho = fast_glm_pcc(beta,X,C,rvar)\n');
@@ -28,10 +28,10 @@ DOF = ntp - nbeta;
 Xc = X*C';
 
 % Null space of the contrast
-D = null(C)';
+D = null(C);
 % Design matrix projected onto the null-space contrast. This forms
 % the space of the "nuisance" regressors
-Xd = X*D';
+Xd = X*D;
 % Residual-forming matrix of the nuisance regressors
 Rd = eye(ntp) - Xd*inv(Xd'*Xd)*Xd';
 % Orthogonalize both Xc and yhat wrt the nuisance regressors
