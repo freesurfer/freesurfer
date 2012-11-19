@@ -14,20 +14,18 @@ function flac = fast_ldflac(flacfile,flac)
 % Original Author: Doug Greve
 % CVS Revision Info:
 %    $Author: greve $
-%    $Date: 2010/04/28 22:23:13 $
-%    $Revision: 1.52 $
+%    $Date: 2012/11/19 22:29:39 $
+%    $Revision: 1.55.2.1 $
 %
-% Copyright (C) 2002-2007,
-% The General Hospital Corporation (Boston, MA). 
-% All rights reserved.
+% Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 %
-% Distribution, usage and copying of this software is covered under the
-% terms found in the License Agreement file named 'COPYING' found in the
-% FreeSurfer source code root directory, and duplicated here:
-% https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+% Terms and conditions for use, reproduction, distribution and contribution
+% are found in the 'FreeSurfer Software License Agreement' contained
+% in the file 'LICENSE' found in the FreeSurfer distribution, and here:
 %
-% General inquiries: freesurfer@nmr.mgh.harvard.edu
-% Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+% https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
+%
+% Reporting: freesurfer@nmr.mgh.harvard.edu
 %
 
 if(nargin < 0 | nargin > 2)
@@ -48,6 +46,8 @@ if(isempty(flac))
   flac.TR = [];
   flac.mask = '';
   flac.inorm = 0;
+  flac.tfilter = []; % Spec for temporal filtering matrix
+  flac.TFmtx = []; % Actual matrix
   flac.stimulusdelay = 0;
   flac.fixacf = 1;
   flac.acfsegstem = '';
@@ -71,6 +71,7 @@ if(isempty(flac))
   flac.acffwhm = 0; % Set to 0 for no smoothing
   flac.acfsvd = 2; % Preproc residuals with svd before ar1 calc
   flac.hpfCutoffHz = [];
+  flac.HeteroGCor = 0;
   % Allows flac TR and data TR to be different (will use flac TR).
   flac.OverrideTR = 0; 
   flac.fsv3_st2fir = 0;
@@ -82,6 +83,7 @@ if(isempty(flac))
   flac.RawSpaceType = '';
   flac.RawSpaceRes = [];
   flac.RawSpace = '';
+  flac.PerSession = []; % Binary, 1 if persession
   flac.ExpKey = '';
   % subject surface analysis is being performed on. Can be 'self'.
   flac.subject = ''; 
@@ -92,6 +94,7 @@ if(isempty(flac))
   flac.mc = []; % For motion correction regressors
   flac.globalmean = [];
   flac.IsRetinotopy = 0;
+  flac.IsABBlocked = 0;
   flac.stimtype = ''; % for retinotopy
   flac.direction = ''; % for retinotopy
   inherit = 0;
@@ -214,6 +217,14 @@ while(1)
       fprintf('line %d\n',nthline);
       flac=[]; return; 
     end
+   case 'TFILTER', 
+    tfilter = flac_tfilter_parse(tline);
+    if(isempty(tfilter)) 
+      flac=[]; 
+      fprintf('line %d\n',nthline);
+      return; 
+    end
+    flac.tfilter = tfilter;
    case 'EV', 
     ev = flac_ev_parse(tline);
     if(isempty(ev)) 
