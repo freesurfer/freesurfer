@@ -20,21 +20,19 @@ function [tbl, rowid, colid] = fast_ldtable(tablefile)
 %
 % Original Author: Doug Greve
 % CVS Revision Info:
-%    $Author: nicks $
-%    $Date: 2007/01/10 22:02:31 $
-%    $Revision: 1.3 $
+%    $Author: greve $
+%    $Date: 2012/11/19 22:30:13 $
+%    $Revision: 1.4.2.1 $
 %
-% Copyright (C) 2002-2007,
-% The General Hospital Corporation (Boston, MA). 
-% All rights reserved.
+% Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 %
-% Distribution, usage and copying of this software is covered under the
-% terms found in the License Agreement file named 'COPYING' found in the
-% FreeSurfer source code root directory, and duplicated here:
-% https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+% Terms and conditions for use, reproduction, distribution and contribution
+% are found in the 'FreeSurfer Software License Agreement' contained
+% in the file 'LICENSE' found in the FreeSurfer distribution, and here:
 %
-% General inquiries: freesurfer@nmr.mgh.harvard.edu
-% Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+% https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
+%
+% Reporting: freesurfer@nmr.mgh.harvard.edu
 %
 
 tbl=[];
@@ -61,6 +59,37 @@ if(tline == -1)
 end
 colid = splitstring(tline);
 colid = colid(2:end,:);
+
+if(1)
+  % This is a much faster version
+  fclose(fid);
+  ncols = single(size(colid,1))+1;
+  s = textread(tablefile,'%s','commentstyle','shell');
+  ntot = size(s,1);
+  nrows = round(ntot/ncols);
+  if(ntot ~= nrows*ncols)
+    fprintf('ERROR: %s, ntot=%d, ncols=%d, nrows=%d\n',ntot,ncols,nrows);
+    return;
+  end
+  tbl = zeros(nrows-1,ncols-1);
+  rowid = '';
+  nth = 0;
+  for nthrow = 1:nrows
+    for nthcol = 1:ncols
+      nth = nth + 1;
+      if(nthrow == 1) continue; end
+      if(nthcol == 1) 
+	rowid = strvcat(rowid,char(s(nth)));
+      else
+	tbl(nthrow-1,nthcol-1) = sscanf(char(s(nth)),'%f');
+      end
+    end
+  end
+  return;
+end
+
+% Below is the old slow code
+% It will not reach this point unless the if(1) above is changed to if(0)
 
 %----------- Loop through all the lines ----------------------%
 nthrow = 1;
