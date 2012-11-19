@@ -5,8 +5,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2011/12/09 20:06:46 $
-#    $Revision: 1.6.2.1 $
+#    $Date: 2012/11/19 22:15:39 $
+#    $Revision: 1.6.2.2 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -22,7 +22,7 @@
 # Bug reports: analysis-bugs@nmr.mgh.harvard.edu
 #
 
-set VERSION = '$Id: getana,v 1.6.2.1 2011/12/09 20:06:46 greve Exp $';
+set VERSION = '$Id: getana,v 1.6.2.2 2012/11/19 22:15:39 greve Exp $';
 
 set analysis = ();
 set tag = ();
@@ -66,8 +66,9 @@ switch ($tag)
   case "smstem":
     set stcstem = `getana -a $analysis -t stcstem`
     set fwhm   = `getana -a $analysis -t RawFWHM`
-    if($fwhm != 0) set result = $stcstem.sm$fwhm
-    if($fwhm == 0) set result = $stcstem
+    #if($fwhm != 0) set result = $stcstem.sm$fwhm
+    #if($fwhm == 0) set result = $stcstem
+    set result = $stcstem.sm$fwhm
     breaksw;
 
   case "funcstem-specified":
@@ -186,7 +187,8 @@ switch ($tag)
 
   case "IsPerRun":
     set IsPerSession = `getana -a $analysis -t IsPerSession`
-    set result = ! $IsPerSession
+    if($IsPerSession)   set result = 0;
+    if(! $IsPerSession) set result = 1;
     breaksw;
 
   case "IsNative":
