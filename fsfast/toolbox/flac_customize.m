@@ -17,20 +17,18 @@ function flacnew = flac_customize(flac)
 % Original Author: Doug Greve
 % CVS Revision Info:
 %    $Author: greve $
-%    $Date: 2010/04/29 00:32:17 $
-%    $Revision: 1.51 $
+%    $Date: 2012/11/19 22:33:32 $
+%    $Revision: 1.54.2.1 $
 %
-% Copyright (C) 2002-2007,
-% The General Hospital Corporation (Boston, MA). 
-% All rights reserved.
+% Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 %
-% Distribution, usage and copying of this software is covered under the
-% terms found in the License Agreement file named 'COPYING' found in the
-% FreeSurfer source code root directory, and duplicated here:
-% https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+% Terms and conditions for use, reproduction, distribution and contribution
+% are found in the 'FreeSurfer Software License Agreement' contained
+% in the file 'LICENSE' found in the FreeSurfer distribution, and here:
 %
-% General inquiries: freesurfer@nmr.mgh.harvard.edu
-% Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+% https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
+%
+% Reporting: freesurfer@nmr.mgh.harvard.edu
 %
 
 flacnew = [];
@@ -43,7 +41,11 @@ flacnew = flac;
 % Read in source subject name for 'self' subjects
 if(strcmp(flacnew.subject,'self'))
   fname = sprintf('%s/subjectname',flac.sess);
-  flacnew.sourcesubject = char(textread(fname,'%s'));
+  % textread() not supported in OCTAVE
+  % flacnew.sourcesubject = char(textread(fname,'%s'));
+  fp = fopen(fname,'r');
+  flacnew.sourcesubject = fscanf(fp,'%s',1);
+  fclose(fp);
 else
   flacnew.sourcesubject = flacnew.subject;
 end
@@ -93,7 +95,7 @@ flacnew.ntp = mri.nframes;
 flacnew.funcfspec = fstem;
 
 % MC parameters
-if(strcmp(flac.RawSpace,'native'))
+if(flac.PerSession)
   fname = sprintf('%s/fmc.mcdat',runpath);
 else
   fname = sprintf('%s/fmcpr.mcdat',runpath);
@@ -346,9 +348,17 @@ for nthev = 1:nev
 
 end
 
+% Temporal Filter Matrix
+flacnew.TFmtx = flac_tfilter(flacnew); 
+
 % Now create the full design matrix. This will also create the
 % matrices for the HRF-related EVs.
 flacnew = flac_desmat(flacnew);
+if(~isempty(flacnew.TFmtx))
+  % Filter design matrix
+  flacnew.X0 = flacnew.X; % save unfiltered copy
+  flacnew.X = flacnew.TFmtx * flacnew.X ;
+end
 flacnew.indtask = flac_taskregind(flacnew);			    
 flacnew.indnuis = flac_nuisregind(flacnew);			    
 
@@ -371,14 +381,17 @@ flacnew.resfspec = sprintf('%s/%s/%s/%s/res',flacnew.sess,...
 			    flacnew.fsd,flacnew.name,...
 			    flacnew.runlist(flacnew.nthrun,:));
 
-if(strcmp(flac.RawSpace,'native'))
-  flacnew.maskfspec = sprintf('%s/%s/masks/%s',flacnew.sess,...
-		      flacnew.fsd,flacnew.mask);
+maskstem = flac_funcstem(flac,1);
+if(isempty(maskstem))
+  flacnew.maskfspec = ''; % mask=nomask
 else
-  maskstem = flac_funcstem(flac,1);
-  flacnew.maskfspec = sprintf('%s/masks/%s',runpath,maskstem);
+  if(flac.PerSession)
+    flacnew.maskfspec = sprintf('%s/%s/masks/%s',flacnew.sess,...
+				flacnew.fsd,maskstem);
+  else
+    flacnew.maskfspec = sprintf('%s/masks/%s',runpath,maskstem);
+  end
 end
-
 flacnew.acfsegfspec = sprintf('%s/%s/masks/%s',flacnew.sess,...
 		      flacnew.fsd,flacnew.acfsegstem);
 
