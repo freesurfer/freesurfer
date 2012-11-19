@@ -12,6 +12,8 @@ function md = fast_dilate(m,ndilations,erodeflag,flag2d)
 % flag2d=1, then 3x3x1. Dilation and erosion are reversible only
 % if there are no edge effects.
 %
+% This is pretty slow for big images. Gets slower with the use of
+% circshift. The slowness has to do with making a shifted copy.
 %
 
 
@@ -21,20 +23,18 @@ function md = fast_dilate(m,ndilations,erodeflag,flag2d)
 % Original Author: Doug Greve
 % CVS Revision Info:
 %    $Author: greve $
-%    $Date: 2007/05/11 21:12:04 $
-%    $Revision: 1.4 $
+%    $Date: 2012/11/19 22:25:39 $
+%    $Revision: 1.5.2.1 $
 %
-% Copyright (C) 2002-2007,
-% The General Hospital Corporation (Boston, MA). 
-% All rights reserved.
+% Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 %
-% Distribution, usage and copying of this software is covered under the
-% terms found in the License Agreement file named 'COPYING' found in the
-% FreeSurfer source code root directory, and duplicated here:
-% https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+% Terms and conditions for use, reproduction, distribution and contribution
+% are found in the 'FreeSurfer Software License Agreement' contained
+% in the file 'LICENSE' found in the FreeSurfer distribution, and here:
 %
-% General inquiries: freesurfer@nmr.mgh.harvard.edu
-% Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+% https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
+%
+% Reporting: freesurfer@nmr.mgh.harvard.edu
 %
 
 md = [];
@@ -68,7 +68,7 @@ else       dsrange = [-1:1];
 end
 
 md = m;
-tic;
+%tic;
 nth = 1;
 %fprintf('--------------------\n');
 for dc = -1:1
