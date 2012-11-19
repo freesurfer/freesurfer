@@ -10,20 +10,18 @@ function flac = fast_ldanaflac(anadir)
 % Original Author: Doug Greve
 % CVS Revision Info:
 %    $Author: greve $
-%    $Date: 2010/07/16 16:21:21 $
-%    $Revision: 1.59 $
+%    $Date: 2012/11/19 22:28:48 $
+%    $Revision: 1.63.2.1 $
 %
-% Copyright (C) 2002-2007,
-% The General Hospital Corporation (Boston, MA). 
-% All rights reserved.
+% Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 %
-% Distribution, usage and copying of this software is covered under the
-% terms found in the License Agreement file named 'COPYING' found in the
-% FreeSurfer source code root directory, and duplicated here:
-% https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+% Terms and conditions for use, reproduction, distribution and contribution
+% are found in the 'FreeSurfer Software License Agreement' contained
+% in the file 'LICENSE' found in the FreeSurfer distribution, and here:
 %
-% General inquiries: freesurfer@nmr.mgh.harvard.edu
-% Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+% https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
+%
+% Reporting: freesurfer@nmr.mgh.harvard.edu
 %
 
 if(nargin ~= 1)
@@ -107,7 +105,8 @@ while(1)
    case 'acfsvd',      flac.acfsvd      = sscanf(tline,'%*s %d',1);
    case 'fixacf',      flac.fixacf      = sscanf(tline,'%*s %d',1);
    case 'fsv3-whiten', flac.fsv3_whiten = sscanf(tline,'%*s %d',1);
-   case 'HPFCutoffHz',flac.hpfCutoffHz = sscanf(tline,'%*s %f',1);
+   case 'HPFCutoffHz', flac.hpfCutoffHz = sscanf(tline,'%*s %f',1);
+   case 'HeteroGCor',  flac.HeteroGCor  = sscanf(tline,'%*s %f',1);
    case 'polyfit',     PolyOrder        = sscanf(tline,'%*s %d',1);
    case 'tpexclude',   flac.tpexcfile   = sscanf(tline,'%*s %s',1);
    case 'nskip',       flac.nskip       = sscanf(tline,'%*s %d',1);
@@ -119,6 +118,14 @@ while(1)
    case 'TER',         TER              = sscanf(tline,'%*s %f',1);
    case 'stimulusdelay', flac.stimulusdelay = sscanf(tline,'%*s %f',1);
    case 'nconditions', nconditions      = sscanf(tline,'%*s %d',1);
+   case 'TFILTER', 
+    tfilter = flac_tfilter_parse(tline);
+    if(isempty(tfilter)) 
+      flac=[]; 
+      fprintf('line %d\n',nthline);
+      return; 
+    end
+    flac.tfilter = tfilter;
    case 'gamma', 
     gammafit = 1;
     gamdelay = sscanf(tline,'%*s %f',1);
@@ -156,6 +163,12 @@ while(1)
     nnuisreg = sscanf(tline,'%*s %*s %d',1);
     nuisregList = strvcat(nuisregList,nuisreg);
     nnuisregList = [nnuisregList nnuisreg];
+   case 'UseB0DC'
+    UseB0DC = sscanf(tline,'%*s %d',1);
+   case 'ApplySubCortMask'
+    ApplySubCortMask = sscanf(tline,'%*s %d',1);
+   case 'PerSession'
+    flac.PerSession = sscanf(tline,'%*s %d',1);
    otherwise
     fprintf('INFO: key %s unrecognized, line %d, skipping\n',key,nthline);
   end
@@ -164,6 +177,14 @@ end % while (1)
 fclose(fp);
 if(isempty(flac.funcstem))
   flac.funcstem = flac_funcstem(flac,0);
+end
+
+if(isempty(flac.PerSession))
+  if(strcmp(flac.RawSpace,'native'))
+    flac.PerSession = 1;
+  else
+    flac.PerSession = 0;
+  end
 end
 
 %fprintf('RED %g\n',flac.RefEventDur);
@@ -178,6 +199,8 @@ if(isempty(flac.mask))
   flac.mask = 'brain';
   fprintf('INFO: mask is not set, setting to brain\n');
 end
+if(strcmp(flac.mask,'nomask')) flac.mask = ''; end
+
 if(isempty(flac.fsd)) flac.fsd = 'bold'; end 
 if(isempty(flac.acfsegstem)) flac.acfsegstem = 'acfseg'; end 
 
@@ -297,6 +320,7 @@ if(strcmp(designtype,'retinotopy'))
 end
 
 if(strcmp(designtype,'abblocked'))
+  flac.IsABBlocked = 1;
   nharmonics = 1;
   tline = sprintf('EV Fourier abret task %g',period);
   flac.ev(nthev) = flac_ev_parse(tline);
