@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2010/07/08 18:04:04 $
-#    $Revision: 1.12 $
+#    $Date: 2012/11/19 22:36:56 $
+#    $Revision: 1.13.2.1 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: plot-twf-sess,v 1.12 2010/07/08 18:04:04 greve Exp $';
+set VERSION = '$Id: plot-twf-sess,v 1.13.2.1 2012/11/19 22:36:56 greve Exp $';
 
 set inputargs = ($argv);
 set DateStr = "`date '+%y%m%d%H%M'`"
@@ -173,7 +173,11 @@ foreach sess ($SessList)
     set MCDatList = ($MCDatList $mcdat);
     set c = ",";
     if($Run == $RunListUse[$#RunListUse]) set c = "";
-    set gnpcmd = ($gnpcmd '"'$mcdat'"' u $datcolx : $datcoly t '"'$Run'"' $c)
+    if($#datcolx) then
+      set gnpcmd = ($gnpcmd '"'$mcdat'"' u $datcolx : $datcoly t '"'$Run'"' $c)
+    else
+      set gnpcmd = ($gnpcmd '"'$mcdat'"' u $datcoly t '"'$Run'"' $c)
+    endif
   end
   if($debug) echo $gnpcmd
   echo $gnpcmd | $GNUPLOT
@@ -296,6 +300,7 @@ while( $#argv != 0 )
       set title = "Vector Translation (mm)"
       breaksw
 
+    case "-mc-per-session":
     case "-mc-per-sess":
       set datfile = (fmc.mcdat);
       set datcolx =  1;
@@ -305,11 +310,10 @@ while( $#argv != 0 )
       breaksw
 
     case "-meantwf":
-      set datfile = ($funcstem.twf-over);
-      set datcolx =  1;
+      set datfile = (global.waveform.dat);
       set xlabel = "Time Point"
-      set datcoly = 2;
-      set title = "Mean In-Brain Temporal Waveform (std=1)"
+      set datcoly = 1;
+      set title = "Mean In-Brain Temporal Waveform"
       breaksw
 
     case "-xv":
@@ -377,7 +381,7 @@ check_params:
     exit 1;
   endif
 
-  if($#datcolx == 0) then
+  if(0 && $#datcolx == 0) then
     echo "ERROR: -xcol not specified"
     exit 1;
   endif
@@ -421,10 +425,11 @@ usage_exit:
   echo ""
   echo "   -corner corner : <tr>, tl, bl, br"
   echo ""
-  echo "Arguments for Preset Stuff:";
+  echo "Arguments for showing some standard waveforms";
   echo "   -funcstem stem : put before -mc and -meantwf (default: fmc)"
-  echo "   -mc : set args to mc defaults"
-#  echo "   -meantwf : set args to mean twf defaults"
+  echo "   -mc : show vector motion"
+  echo "   -mc-per-session : show vector motion (session-wise)"
+  echo "   -meantwf : show mean in-brain temporal waveform"
   echo ""
   echo "Session Arguments (Required)"
   echo "   -sf sessidfile  ..."
@@ -464,15 +469,14 @@ have the xlabel as the label and title across the top. Note: the
 xlabel and title must be a single string -- no spaces are allowed. The
 title will automatically have the session id prepended to it.
 
-One predifined configurations has been supplied, for motion
-correction, which requires the -mc option. The dat file is assumed to
-be fmcpr.mcdat. If you have used the -per-session option to
-preproc-sess, then use the -mc-per-session option with plot-twf-sess
-instead of -mc.  The vector translation in mm is plotted (ie, the
-square root of the sum of the squares of the x, y, and z components of
-the translation); this is the 10th column of the mcdat file.
+There are two waveforms that you can display without having to 
+specify the x and y columns: motion and average temporal waveform.
 
-This program uses gnuplot to create a jpeg image of the waveforms, then
-uses xv to display the image. As such, you must have both of these
-programs installed and working to use this program.
+To display the vector motion of the translation, 
+
+  plot-twf-sess -s session -mc
+
+To display the mean temporal waveform
+
+  plot-twf-sess -s session -meantwf
 
