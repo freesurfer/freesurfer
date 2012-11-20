@@ -13,8 +13,8 @@
  * Original Author: Rudolph Pienaar
  * CVS Revision Info:
  *    $Author: rudolph $
- *    $Date: 2012/11/20 18:17:44 $
- *    $Revision: 1.26 $
+ *    $Date: 2012/11/20 18:27:05 $
+ *    $Revision: 1.27 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -615,7 +615,8 @@ C_mpmProg_autodijk::cost_compute(
             if((ret=CURV_fileWrite()) != e_OK)
                 error("I could not save the cost curv file.");
             mps_env->pcsm_stdout->colprintf(
-                            "here/end->opposite = cost", "[ %6d/%6d -> %6d/%6d = ",
+                            "here/end->opposite/total = cost",
+                            "[ %6d/%6d -> %6d/%6d = ",
                             a_start,
                             mvertex_end,
                             ms_stats.indexMax,
