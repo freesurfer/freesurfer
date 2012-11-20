@@ -10,8 +10,8 @@
  * Original Author: Martin Reuter, Nov. 4th ,2008
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2012/10/10 19:59:05 $
- *    $Revision: 1.52.2.2 $
+ *    $Date: 2012/11/20 17:26:47 $
+ *    $Revision: 1.52.2.3 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -147,7 +147,7 @@ static bool parseCommandLine(int argc, char *argv[], Parameters & P);
 static void initRegistration(Registration & R, Parameters & P);
 
 static char vcid[] =
-    "$Id: mri_robust_register.cpp,v 1.52.2.2 2012/10/10 19:59:05 mreuter Exp $";
+    "$Id: mri_robust_register.cpp,v 1.52.2.3 2012/11/20 17:26:47 mreuter Exp $";
 char *Progname = NULL;
 
 //static MORPH_PARMS  parms ;
@@ -1861,11 +1861,11 @@ static int parseNextCommand(int argc, char *argv[], Parameters & P)
 
     cout << "--cost: Using cost function: " << cost << " !" << endl;
   }
-  else if (!strcmp(option, "RADIUS"))
+  else if ((!strcmp(option, "RADIUS")) || (!strcmp(option, "ENTRADIUS")))
   {
     P.entroradius = atoi(argv[1]);
     nargs = 1;
-    cout << "--radius: Using local boxes with radius " << P.entroradius << " = "
+    cout << "--entradius: Using local boxes with radius " << P.entroradius << " = "
         << P.entroradius * 2 + 1 << " sides. " << endl;
   }
   else if (!strcmp(option, "ENTDST"))
