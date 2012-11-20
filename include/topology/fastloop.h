@@ -8,20 +8,18 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2006/12/29 02:09:02 $
- *    $Revision: 1.3 $
+ *    $Date: 2012/11/20 15:58:35 $
+ *    $Revision: 1.4.2.1 $
  *
- * Copyright (C) 2002-2007,
- * The General Hospital Corporation (Boston, MA). 
- * All rights reserved.
+ * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
- * Distribution, usage and copying of this software is covered under the
- * terms found in the License Agreement file named 'COPYING' found in the
- * FreeSurfer source code root directory, and duplicated here:
- * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ * Terms and conditions for use, reproduction, distribution and contribution
+ * are found in the 'FreeSurfer Software License Agreement' contained
+ * in the file 'LICENSE' found in the FreeSurfer distribution, and here:
  *
- * General inquiries: freesurfer@nmr.mgh.harvard.edu
- * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
+ *
+ * Reporting: freesurfer@nmr.mgh.harvard.edu
  *
  */
 
@@ -140,7 +138,7 @@ class HeapCompare : std::binary_function<int,int,bool>
   int _Run(int &stopping_face);
   void _InitDefect();
   int _ExtractFirstLoop(Loop& loop, int init_fn1, int init_fn2);
-  void _FindFacePath(Loop &loop,int init_fn1,int init_fn2);
+  int _FindFacePath(Loop &loop,int init_fn1,int init_fn2);
   int _FindCommonVertex(int init_fn1,int init_fn2);
   int _FindNextFace(int next_fn,int vno);
   int _ExtractSecondLoop(Loop& loop, int init_fn);
