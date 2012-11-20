@@ -8,8 +8,8 @@
 # Original Author: Anastasia Yendiki
 # CVS Revision Info:
 #    $Author: ayendiki $
-#    $Date: 2012/11/03 21:09:58 $
-#    $Revision: 1.30 $
+#    $Date: 2012/11/20 16:56:26 $
+#    $Revision: 1.31 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -25,7 +25,7 @@
 
 umask 002
 
-set VERSION = '$Id: trac-paths,v 1.30 2012/11/03 21:09:58 ayendiki Exp $'
+set VERSION = '$Id: trac-paths,v 1.31 2012/11/20 16:56:26 ayendiki Exp $'
 set ProgName = `basename $0`
 set inputargs = ($argv)
 
@@ -245,9 +245,9 @@ foreach ntrain ($ntrainlist)
         endif
 
         set tpriorlist = `printf \
-          "$labdir/$xspace/${pathname}_${avgmode}_tangprior.txt " $pathlist`
+          "$labdir/$xspace/%s_${avgmode}_tangprior.txt " $pathlist`
         set cpriorlist = `printf \
-          "$labdir/$xspace/${pathname}_${avgmode}_curvprior.txt " $pathlist`
+          "$labdir/$xspace/%s_${avgmode}_curvprior.txt " $pathlist`
 
         if ($usetrunc) then
           set tpriorlist = `echo $tpriorlist | sed 's/\.txt/_all\.txt/'`
