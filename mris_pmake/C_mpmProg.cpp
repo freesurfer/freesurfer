@@ -13,8 +13,8 @@
  * Original Author: Rudolph Pienaar
  * CVS Revision Info:
  *    $Author: rudolph $
- *    $Date: 2012/11/16 22:10:05 $
- *    $Revision: 1.25 $
+ *    $Date: 2012/11/20 18:17:44 $
+ *    $Revision: 1.26 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -602,6 +602,7 @@ C_mpmProg_autodijk::cost_compute(
     int         ok;
     float       f_cost  = 0.0;
     static int  calls   = -1;
+    int         ret;
     
     mps_env->startVertex = a_start;
     mps_env->endVertex   = a_end;
@@ -610,9 +611,13 @@ C_mpmProg_autodijk::cost_compute(
     if(!mb_worldMap)                            calls++;
     if(!(calls % (mprogressIter))) {
         if(mb_worldMap && !mb_worldMapDistanceCalc) {
+            mpf_fileSaveData = mpf_persistent;
+            if((ret=CURV_fileWrite()) != e_OK)
+                error("I could not save the cost curv file.");
             mps_env->pcsm_stdout->colprintf(
-                            "here->opposite = cost", "[ %6d -> %6d/%6d = ",
+                            "here/end->opposite = cost", "[ %6d/%6d -> %6d/%6d = ",
                             a_start,
+                            mvertex_end,
                             ms_stats.indexMax,
                             mvertex_total);
         }
@@ -709,7 +714,7 @@ C_mpmProg_autodijk::run() {
         mps_env->pcsm_stdout->colprintf(
                               "Progress iteration interval",
                               "[ %d ]\n", mprogressIter);
-        for(int v = mvertex_start; v < mvertex_end; v++) {
+        for(int v = mvertex_start; v < mvertex_end; v+=mvertex_step) {
             // First we need to find the anti-pole for current 'v'
             // by setting the env overlay to the distance object, 
             // performing a single sweep from 'v' to 'v' and then

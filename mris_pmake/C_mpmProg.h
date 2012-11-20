@@ -13,8 +13,8 @@
  * Original Author: Rudolph Pienaar
  * CVS Revision Info:
  *    $Author: rudolph $
- *    $Date: 2012/11/16 22:10:05 $
- *    $Revision: 1.18 $
+ *    $Date: 2012/11/20 18:17:44 $
+ *    $Revision: 1.19 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -270,10 +270,19 @@ class C_mpmProg_autodijk : public C_mpmProg {
                                                 //+ overlay created in the
                                                 //+ base environment.
 
-    int         mvertex_polar;
-    int         mvertex_start;
-    int         mvertex_step;
-    int         mvertex_end;
+    int         mvertex_polar;                  // For single sweep runs, this
+                                                //+ defines the "polar" vertex
+                                                //+ to start from
+    int         mvertex_start;                  // For multiple sweep runs, like
+                                                //+ worldMaps, this defines the
+                                                //+ start vertex
+    int         mvertex_step;                   // the "step" vertex
+    int         mvertex_end;                    // and the end vertex index
+                                                // Taken together, these
+                                                //+ allow for selective sweeps
+                                                //+ across the surface, and
+                                                //+ also for re-starting
+                                                //+ crashed processes.
     int         mvertex_total;
     int         m_costFunctionIndex;
     e_stats     ms_stats;                       // A simple stats objects

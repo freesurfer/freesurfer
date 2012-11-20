@@ -12,8 +12,8 @@
  * Original Author: Rudolph Pienaar / Christian Haselgrove
  * CVS Revision Info:
  *    $Author: rudolph $
- *    $Date: 2012/07/05 21:21:28 $
- *    $Revision: 1.35 $
+ *    $Date: 2012/11/20 18:17:44 $
+ *    $Revision: 1.36 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -1336,6 +1336,7 @@ s_env_scan(
             str_surfaceFile = v_dir.at(tokens-1);
         str_tokenize(str_surfaceFile, v_surface, ".");
         st_env.str_hemi                 = v_surface.at(0);
+        st_env.str_surface              = v_surface.at(1);
         //st_env.str_mainSurfaceFileName  = v_surface.at(1);
         st_env.str_subject              = v_dir.at(tokens-3);
     }
@@ -1670,22 +1671,42 @@ s_env_mpmProgSetIndex(
             C_scanopt                   cso_mpm(apst_env->str_mpmArgs, ",",
                                                 e_EquLink, "", ":");
             string      str_vertexPolar         = "0";
+            string      str_vertexStart         = "0";
+            string      str_vertexStep          = "1";
+            string      str_vertexEnd           = "0";
             string      str_costCurvStem        = "";
             string      str_worldMapCreate      = "";
             bool        b_worldMapCreate        = false;
             int         vertexPolar             = 0;
+            int         vertexStart             = 0;
+            int         vertexEnd               = 0;
+            int         vertexStep              = 1;
             C_mpmProg_autodijk* pC_autodijk     = NULL;
             pC_autodijk_cast(apst_env->pCmpmProg, pC_autodijk);
             if(cso_mpm.scanFor("vertexPolar", &str_vertexPolar)) {
                 vertexPolar     = atoi(str_vertexPolar.c_str());
                 pC_autodijk->vertexPolar_set(vertexPolar);
             }
+            if(cso_mpm.scanFor("vertexStart", &str_vertexStart)) {
+                vertexStart     = atoi(str_vertexStart.c_str());
+                pC_autodijk->vertexStart_set(vertexStart);
+            }
+            if(cso_mpm.scanFor("vertexStep", &str_vertexStep)) {
+                vertexStep      = atoi(str_vertexStep.c_str());
+                pC_autodijk->vertexStep_set(vertexStep);
+            }
+            if(cso_mpm.scanFor("vertexEnd", &str_vertexEnd)) {
+                vertexEnd       = atoi(str_vertexEnd.c_str());
+                pC_autodijk->vertexEnd_set(vertexEnd);
+            }
             if(cso_mpm.scanFor("worldMapCreate", &str_worldMapCreate)) {
                 b_worldMapCreate = atoi(str_worldMapCreate.c_str());
                 pC_autodijk->worldMap_set(b_worldMapCreate);
             }
             if(cso_mpm.scanFor("costCurvStem", &str_costCurvStem)) {
-                apst_env->str_costCurvFile = apst_env->str_hemi + "." +
+                apst_env->str_costCurvFile =
+                        apst_env->str_hemi + "."                +
+                        apst_env->str_surface + "."             +
                         "autodijk."                             +
                         str_costCurvStem                        + 
                         ".crv";

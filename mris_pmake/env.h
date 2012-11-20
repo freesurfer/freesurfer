@@ -12,8 +12,8 @@
  * Original Author: Rudolph Pienaar / Christian Haselgrove
  * CVS Revision Info:
  *    $Author: rudolph $
- *    $Date: 2012/07/05 21:21:28 $
- *    $Revision: 1.22 $
+ *    $Date: 2012/11/20 18:17:44 $
+ *    $Revision: 1.23 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -307,6 +307,7 @@ typedef struct _env {
                                             // process
     string        str_subject;
     string        str_hemi;
+    string        str_surface;
 
     MRIS*         pMS_primary;              // primary surface
     string        str_primarySurfaceFileName;
