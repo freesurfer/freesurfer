@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2012/05/14 17:23:54 $
- *    $Revision: 1.17 $
+ *    $Date: 2012/11/21 16:27:30 $
+ *    $Revision: 1.18 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -349,6 +349,7 @@ EVENT_SCHEDULE *EVSsynth(int nEvTypes, int *nPer, float *tPer,
       {
         EvSeq[0] = 1;
         EvSeq[n] = 0;
+	break;
       }
     }
   }
