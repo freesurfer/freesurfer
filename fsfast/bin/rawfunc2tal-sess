@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2012/09/05 21:19:52 $
-#    $Revision: 1.16.2.2 $
+#    $Date: 2012/11/21 22:04:36 $
+#    $Revision: 1.16.2.3 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -22,7 +22,7 @@
 # Bug reports: analysis-bugs@nmr.mgh.harvard.edu
 #
 
-set VERSION = '$Id: rawfunc2tal-sess,v 1.16.2.2 2012/09/05 21:19:52 greve Exp $'
+set VERSION = '$Id: rawfunc2tal-sess,v 1.16.2.3 2012/11/21 22:04:36 greve Exp $'
 
 set inputargs = ($argv);
 
@@ -178,33 +178,28 @@ foreach sess ($SessList)
       set outmask = $sess/$fsd/$Run/$maskdir/$maskstem$ExpKey.$outfmt
     endif
 
-    set outvol = $funcdir/$outstem$ExpKey.$outfmt
-    set UpdateNeeded = 0;
-    if(! $UpdateOnly) set UpdateNeeded = 1;
-    if(! -e $outvol || ! -e $mask) set UpdateNeeded = 1;
-    if($UpdateNeeded == 0) then    
-      if($debug) ls -lt $invol $reg $mask $outvol
-      test $invol -nt $outvol
-      if(! $status) set UpdateNeeded = 1;
-      test $reg -nt $outvol
-      if(! $status) set UpdateNeeded = 1;
-      test $mask -nt $outvol
-      if(! $status) set UpdateNeeded = 1;
+    # Create the mask
+    set UpdateNeeded = `UpdateNeeded $outmask $reg $mask $b0dcmap`;
+    if(! $UpdateOnly) set UpdateNeeded = 1;    
+    if($UpdateNeeded) then
+      set cmd = (mri_vol2vol --mov $mask --reg $reg \
+        --tal --talres $res --talxfm $talxfm --nearest \
+        --no-save-reg --o $outmask)
+      if($UseB0DC) set cmd = ($cmd --vsm $b0dcmap)
+      echo $cmd | tee -a $LF
+      $cmd | tee -a $LF
+      if($status) exit 1;
+    else
+      echo "$outmask does not need updating" | tee -a $LF
     endif
 
+    set outvol = $funcdir/$outstem$ExpKey.$outfmt
+    set UpdateNeeded = `UpdateNeeded $outvol $invol $reg $mask$b0dcmap`;
+    if(! $UpdateOnly) set UpdateNeeded = 1;    
     if($UpdateNeeded == 0) then
       echo "    $sessid $Run Update not needed" | tee -a $LF
       continue
     endif
-
-    # Create the mask
-    set cmd = (mri_vol2vol --mov $mask --reg $reg \
-      --tal --talres $res --talxfm $talxfm --nearest \
-      --no-save-reg --o $outmask)
-    if($UseB0DC) set cmd = ($cmd --vsm $b0dcmap)
-    echo $cmd | tee -a $LF
-    $cmd | tee -a $LF
-    if($status) exit 1;
 
     if($ApplySubCortMask) then
       set subcortmask = $FREESURFER_HOME/subjects/fsaverage/mri.2mm/subcort.mask.mgz

@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2012/09/05 20:55:16 $
-#    $Revision: 1.19.2.1 $
+#    $Date: 2012/11/21 22:04:36 $
+#    $Revision: 1.19.2.2 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -22,7 +22,7 @@
 # Bug reports: analysis-bugs@nmr.mgh.harvard.edu
 #
 
-set VERSION = '$Id: rawfunc2surf-sess,v 1.19.2.1 2012/09/05 20:55:16 greve Exp $';
+set VERSION = '$Id: rawfunc2surf-sess,v 1.19.2.2 2012/11/21 22:04:36 greve Exp $';
 
 set inputargs = ($argv);
 
@@ -146,7 +146,7 @@ foreach sess ($SessList)
       echo "Try running mkbrainmask-sess" | tee -a $LF
       exit 1;
     endif
-    set outmask = $sess/$fsd/$maskdir/$maskstem.$hemi.$outfmt
+    set outmask = $sess/$fsd/$maskdir/$maskstem.$hemi$ExpKey.$outfmt
   endif
 
   set RunList = `getrunlist $sess/$fsd $RunListFile`;
@@ -185,37 +185,32 @@ foreach sess ($SessList)
       set outmask = $sess/$fsd/$Run/$maskdir/$maskstem.$hemi$ExpKey.$outfmt
     endif
 
-    set outvol = $funcdir/$outstem.$hemi$ExpKey.$outfmt
-    set UpdateNeeded = 0;
-    if(! $UpdateOnly) set UpdateNeeded = 1;
-    if(! -e $outvol || ! -e $mask) set UpdateNeeded = 1;
-    if($UpdateNeeded == 0) then    
-      if($debug) ls -lt $invol $reg $mask $outvol
-      test $invol -nt $outvol
-      if(! $status) set UpdateNeeded = 1;
-      test $reg -nt $outvol
-      if(! $status) set UpdateNeeded = 1;
-      test $mask -nt $outvol
-      if(! $status) set UpdateNeeded = 1;
+    # Mask
+    set UpdateNeeded = `UpdateNeeded $outmask $reg $mask $b0dcmap`;
+    if(! $UpdateOnly) set UpdateNeeded = 1;    
+    if($UpdateNeeded) then
+      set cmd = (mri_vol2surf --mov $mask --reg $reg \
+        --trgsubject $trgsubject --interp nearest --projfrac $ProjFrac\
+        --hemi $hemi --o $outmask --noreshape --cortex)
+      if($trgsubject != $subject) set cmd = ($cmd --surfreg $SurfReg)
+      if($UseB0DC) set cmd = ($cmd --vsm $b0dcmap)
+      echo $cmd | tee -a $LF
+      $cmd | tee -a $LF
+      if($status) exit 1;
+      set cmd = (mri_binarize --i $outmask --min .00001 --o $outmask)
+      echo $cmd | tee -a $LF
+      $cmd | tee -a $LF
+    else
+      echo "$outmask does not need updating" | tee -a $LF
     endif
 
+    set outvol = $funcdir/$outstem.$hemi$ExpKey.$outfmt
+    set UpdateNeeded = `UpdateNeeded $outvol $invol $reg $mask$b0dcmap`;
+    if(! $UpdateOnly) set UpdateNeeded = 1;
     if($UpdateNeeded == 0) then
       echo "    $sessid $Run Update not needed" | tee -a $LF
       continue
     endif
-
-    # Mask
-    set cmd = (mri_vol2surf --mov $mask --reg $reg \
-      --trgsubject $trgsubject --interp nearest --projfrac $ProjFrac\
-      --hemi $hemi --o $outmask --noreshape --cortex)
-    if($trgsubject != $subject) set cmd = ($cmd --surfreg $SurfReg)
-    if($UseB0DC) set cmd = ($cmd --vsm $b0dcmap)
-    echo $cmd | tee -a $LF
-    $cmd | tee -a $LF
-    if($status) exit 1;
-    set cmd = (mri_binarize --i $outmask --min .00001 --o $outmask)
-    echo $cmd | tee -a $LF
-    $cmd | tee -a $LF
 
     # Raw data
     set cmd = (mri_vol2surf --mov $invol --reg $reg \
