@@ -10,8 +10,8 @@ function flac = fast_ldanaflac(anadir)
 % Original Author: Doug Greve
 % CVS Revision Info:
 %    $Author: greve $
-%    $Date: 2012/11/19 22:28:48 $
-%    $Revision: 1.63.2.1 $
+%    $Date: 2012/11/26 23:07:24 $
+%    $Revision: 1.63.2.2 $
 %
 % Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 %
@@ -207,6 +207,7 @@ if(isempty(flac.acfsegstem)) flac.acfsegstem = 'acfseg'; end
 flac.designtype = designtype;
 
 ana.analysis     = analysis;
+ana.info = char(textread(info,'%s','delimiter','\n'));
 ana.designtype   = designtype;
 ana.PolyOrder    = PolyOrder;
 %ana.extregList   = extregList;
