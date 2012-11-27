@@ -9,8 +9,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2012/06/01 19:14:51 $
- *    $Revision: 1.27 $
+ *    $Date: 2012/11/27 17:41:26 $
+ *    $Revision: 1.28 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -44,7 +44,7 @@
 #include "icosahedron.h"
 #include "label.h"
 
-static char vcid[] = "$Id: mris_thickness.c,v 1.27 2012/06/01 19:14:51 fischl Exp $";
+static char vcid[] = "$Id: mris_thickness.c,v 1.28 2012/11/27 17:41:26 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -314,7 +314,7 @@ main(int argc, char *argv[]) {
   struct timeb  then ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_thickness.c,v 1.27 2012/06/01 19:14:51 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_thickness.c,v 1.28 2012/11/27 17:41:26 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -326,8 +326,9 @@ main(int argc, char *argv[]) {
 
   // for variational thickness estimation
   parms.dt = 0.1 ;
-  parms.remove_neg = 0 ;
-  parms.momentum = .5; parms.niterations = 1000 ;
+  parms.remove_neg = 1 ;
+  parms.momentum = .1; 
+  parms.niterations = 1000 ;
   parms.l_nlarea = 0 ;
   parms.l_thick_min = 1 ;
   parms.l_thick_spring = 0 ;
@@ -335,8 +336,8 @@ main(int argc, char *argv[]) {
   parms.l_ashburner_lambda = .1 ;
   parms.l_tspring = .25;
   parms.l_thick_normal = 1;
-  parms.integration_type = INTEGRATE_LM_SEARCH ;
-  parms.tol = 1e-2 ;
+  parms.integration_type = INTEGRATE_MOMENTUM ;
+  parms.tol = 1e-3 ;
 
   ac = argc ;
   av = argv ;
@@ -360,16 +361,8 @@ main(int argc, char *argv[]) {
     strcpy(sdir, cp) ;
   }
 
-
-#if 0
-  sprintf(fname, "%s/%s/surf/%s.%s", sdir, sname, hemi, GRAY_MATTER_NAME) ;
-#else
   sprintf(fname, "%s/%s/surf/%s.%s", sdir, sname, hemi, pial_name) ;
-#endif
-  if (!FileExists(fname))
-    sprintf(fname, "%s/%s/surf/%s.gray", sdir, sname, hemi) ;
-
-  fprintf(stderr, "reading gray matter surface %s...\n", fname) ;
+  fprintf(stderr, "reading pial surface %s...\n", fname) ;
   mris = MRISread(fname) ;
   if (!mris)
     ErrorExit(ERROR_NOFILE, "%s: could not read surface file %s",
@@ -728,6 +721,9 @@ get_option(int argc, char *argv[]) {
   } else if (!stricmp(option, "neg")) {
     parms.remove_neg = 0 ;
     printf("allowing negative  vertices to occur during integration\n") ;
+  } else if (!stricmp(option, "noneg")) {
+    parms.remove_neg = 1 ;
+    printf("not allowing negative  vertices to occur during integration\n") ;
   } else if (!stricmp(option, "nlarea")) {
     parms.l_nlarea = atof(argv[2]) ;
     printf("using nonlinear area coefficient %2.3f\n", parms.l_nlarea);
