@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2010/07/26 20:41:33 $
-#    $Revision: 1.53 $
+#    $Date: 2012/11/27 21:03:24 $
+#    $Revision: 1.60.2.1 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: isxconcat-sess,v 1.53 2010/07/26 20:41:33 greve Exp $'
+set VERSION = '$Id: isxconcat-sess,v 1.60.2.1 2012/11/27 21:03:24 greve Exp $'
 
 set inputargs = ($argv);
 
@@ -34,7 +34,7 @@ set fsd  = ();
 set contrastlist = ();
 
 set conmaplist = ();
-set anamaplist = (meanfunc raw.fsnr fsnr rho1)
+set anamaplist = (meanfunc raw.fsnr fsnr rho1mn)
 set RegDOF = 6;
 set regfile = ()
 set interp = trilin
@@ -53,6 +53,7 @@ set DoFFX = 0;
 set SplitMVC = 1; # Split multivariate contrasts
 set DoResample = 1;
 set GetHRF = ();
+set DoAnats = 0;
 
 # for volume-based only
 set talres = 2;
@@ -96,6 +97,41 @@ parse_args_return:
 goto check_params;
 check_params_return:
 
+
+# If the output exists, check consistency with group
+set grouplistfile = $outtop/grouplist.txt 
+if( -e $grouplistfile) then
+  set grouplist = (`cat $grouplistfile`)
+  if($#grouplist != $#SessList) then
+    echo "ERROR: there is an inconsistency between the sessions already"
+    echo "processed in $outtop and the current list of sesssions."
+    echo "The previous group had $#grouplist sessions."
+    echo "The current group has $#SessList sessions."
+    echo "There are three things that you can do:"
+    echo "  1. Specify a different output directory for the new group"
+    echo "  2. Re-run with consistent group definition"
+    echo "  3. Delete the output directory and re-run"
+    exit 1;
+  endif
+  @ nth = 0
+  foreach sess ($SessList)
+    @ nth = $nth + 1
+    set newsessid = `basename $sess`;
+    set oldsessid = $grouplist[$nth];
+    if($newsessid != $oldsessid) then
+      echo "ERROR: there is an inconsistency between the sessions already"
+      echo "processed in $outtop and the current list of sessions."
+      echo "Session number $nth is $oldsessid in the previous analysis and "
+      echo "  $newsessid in the current analysis"
+      echo "There are three things that you can do:"
+      echo "  1. Specify a different output directory for the new group"
+      echo "  2. Re-run with consistent group definition"
+      echo "  3. Delete the output directory and re-run"
+      exit 1;
+    endif
+  end
+endif
+
 set outdir = $outtop/$analysis
 mkdir -p $outdir/log
 
@@ -119,11 +155,14 @@ set StartTime = `date`;
 if($#flac == 0) cp $analysis/analysis.* $outdir
 
 # Go thru each session, get DOF, etc
-set sesslistfile = $outdir/sessid.txt
-rm -f $sesslistfile
+set sessinfofile = $outtop/sess.info.txt
+set subjlistfile = $outtop/subjectlist.txt
+set grouplistfiletmp = $outtop/grouplist.tmp.txt 
+rm -f $sessinfofile $subjlistfile $grouplistfiletmp
 @ DOF = 0;
 foreach sess ($SessList)
   set sessid = `basename $sess`;
+  echo $sessid >> $grouplistfiletmp
 
   set doffile = $sess/$fsd/$analysis/dof
   if(! -e $doffile) then
@@ -143,11 +182,14 @@ foreach sess ($SessList)
   endif
 
   set srcsubject = `cat $sess/subjectname`
-  echo "$sessid $srcsubject $dofsess $mdate $bstamp" >> $sesslistfile
+  echo "$sessid $srcsubject $dofsess $mdate $bstamp" >> $sessinfofile
+  echo "$srcsubject" >> $subjlistfile
 end
 set ffxdofdat = $outdir/ffxdof.dat
 echo $DOF > $ffxdofdat
 set sess0 = $sess[1];
+if(! -e $grouplistfile) cp $grouplistfiletmp $grouplistfile
+rm -f $grouplistfiletmp
 
 #-------------------------------------------------
 foreach hemi ($hemilist)
@@ -214,7 +256,7 @@ foreach hemi ($hemilist)
     endif
 
     # Get number of variates
-    set ces = $sess0/$fsd/$analysis/$contrast/ces.nii
+    set ces = `stem2fname $sess0/$fsd/$analysis/$contrast/ces`
     set tmpfile = /tmp/tmp.isxconcat-sess.$$.nframes
     mri_info --o $tmpfile --nframes $ces
     set J = (`cat $tmpfile`);
@@ -272,10 +314,9 @@ foreach hemi ($hemilist)
        if($DoWRFX) then
          if(! $DoPercent) set glmdir = $outcondir/osgm.wrfx"$SpStr2"
          if($DoPercent) set glmdir = $outcondir/osgm.wrfx.pct"$SpStr2"
-         set cmd = (mri_glmfit --osgm --y $y --glmdir $glmdir)
-         set cmd = ($cmd --mask $maskvol --wls $yffxvar)
+         set cmd = (mri_glmfit --osgm --y $y --glmdir $glmdir --nii)
+         set cmd = ($cmd --mask $maskvol --wls $yffxvar --kurtosis)
          if($ToSurf) set cmd = ($cmd --surf $trgsubject $hemi --cortex)
-         if($ToVol)  set cmd = ($cmd --nii);
          echo $cmd |& tee -a $LF
          $cmd |& tee -a $LF
          if($status) exit 1;
@@ -284,10 +325,9 @@ foreach hemi ($hemilist)
        if($DoRFX) then
          if(! $DoPercent) set glmdir = $outcondir/osgm.rfx"$SpStr2"
          if($DoPercent) set glmdir = $outcondir/osgm.rfx.pct"$SpStr2"
-         set cmd = (mri_glmfit --osgm --y $y --glmdir $glmdir)
-         set cmd = ($cmd --mask $maskvol)
+         set cmd = (mri_glmfit --osgm --y $y --glmdir $glmdir --kurtosis)
+         set cmd = ($cmd --mask $maskvol --nii --kurtosis)
          if($ToSurf) set cmd = ($cmd --surf $trgsubject $hemi --cortex)
-         if($ToVol)  set cmd = ($cmd --nii);
          echo $cmd |& tee -a $LF
          $cmd |& tee -a $LF
          if($status) exit 1;
@@ -296,11 +336,10 @@ foreach hemi ($hemilist)
        if($DoFFX) then
          if(! $DoPercent) set glmdir = $outcondir/osgm.ffx"$SpStr2"
          if($DoPercent) set glmdir = $outcondir/osgm.ffx.pct"$SpStr2"
-         set cmd = (mri_glmfit --osgm --y $y --glmdir $glmdir)
+         set cmd = (mri_glmfit --osgm --y $y --glmdir $glmdir --kurtosis)
          set cmd = ($cmd --mask $maskvol --yffxvar $yffxvar)
-         set cmd = ($cmd --ffxdofdat $ffxdofdat)
+         set cmd = ($cmd --ffxdofdat $ffxdofdat --nii)
          if($ToSurf) set cmd = ($cmd --surf $trgsubject $hemi --cortex)
-         if($ToVol)  set cmd = ($cmd --nii);
          echo $cmd |& tee -a $LF
          $cmd |& tee -a $LF
          if($status) exit 1;
@@ -356,6 +395,42 @@ foreach hemi ($hemilist)
   end # mapname
 
 end # Loop over hemi
+
+
+if($DoAnats) then
+  foreach hemi ($hemilist)
+    if($hemi != mni305) then
+      foreach mapname (thickness curv sulc)
+        set outvol = $outdir/$hemi.$mapname.sm00.$FSF_OUTPUT_FORMAT
+        set cmd = (isxconcat0-sess -o $outvol $sessargs \
+          -surf-anat $mapname -hemi $hemi)
+        if($#flac == 0) set cmd = ($cmd -a $analysis)
+        if($#flac)      set cmd = ($cmd -flac $flac -fsd $fsd)
+        if($#tmpdir)  set cmd = ($cmd -tmp $tmpdir);
+        if($paireddiff) set cmd = ($cmd -paired-diff)
+        if($pairedavg)  set cmd = ($cmd -paired-avg)
+        echo "cd `pwd`" |& tee -a $LF
+        echo $cmd       |& tee -a $LF
+        $cmd            |& tee -a $LF
+        if($status) exit 1;
+      end # Loop over maps
+    else
+      set outvol = $outdir/anat.norm.sm00.$FSF_OUTPUT_FORMAT
+      set cmd = (isxconcat0-sess -o $outvol $sessargs \
+         -vol-anat norm)
+      if($#flac == 0) set cmd = ($cmd -a $analysis)
+      if($#flac)      set cmd = ($cmd -flac $flac -fsd $fsd)
+      if($#tmpdir)  set cmd = ($cmd -tmp $tmpdir);
+      if($paireddiff) set cmd = ($cmd -paired-diff)
+      if($pairedavg)  set cmd = ($cmd -paired-avg)
+      echo "cd `pwd`" |& tee -a $LF
+      echo $cmd       |& tee -a $LF
+      $cmd            |& tee -a $LF
+      if($status) exit 1;
+    endif
+  end # Loop over hemis
+   
+endif
 
 echo "" | tee -a $LF
 echo "" | tee -a $LF
@@ -527,6 +602,15 @@ while( $#argv != 0 )
       set GetHRF = 1;
       breaksw
 
+    case "-anat"
+    case "-anats"
+      set DoAnats = 1;
+      breaksw
+
+    case "-no-anats"
+      set DoAnats = 0;
+      breaksw
+
     case "-osgm"
       set DoOSGM = 1;
       set DoWRFX = 1;
@@ -627,7 +711,7 @@ check_params:
     if($#GetHRF == 0) set GetHRF = `getana -a $analysis -t IsFIR`;
     if($GetHRF) set anamaplist = ($anamaplist h);
   endif
-  echo "DoResample $DoResample"
+  #echo "DoResample $DoResample"
 
   if($#flac) then
     set analysis = `basename $flac .flac`
@@ -705,7 +789,11 @@ check_params:
   endif
   if($#regfile == 0) set regfile = register.dof$RegDOF.dat 
 
-  set subcortmask = $SUBJECTS_DIR/fsaverage/mri.2mm/subcort.mask.mgz
+  if($talres == 2) then
+    set subcortmask = $SUBJECTS_DIR/fsaverage/mri.2mm/subcort.mask.mgz
+  else
+    set subcortmask = $SUBJECTS_DIR/fsaverage/mri/subcort.mask.1mm.mgz
+  endif
   if(! -e $subcortmask) then
     echo "ERROR: cannot find $subcortmask"
     exit 1;
@@ -757,7 +845,7 @@ usage_exit:
   echo "   -nocleanup  : do not delete tmpdir"
   echo "   -version    : print version and exit"
   echo " "
-  echo "Optoins below are for analyses done in native space"
+  echo "Options below are for analyses done in native space"
   echo "   -reg regfile    : instead of register.dat"
   echo "   -interp method  : trilinear (def) or nearest"
   echo "   -fwhm fwhm      : smooth by fwhm"
@@ -858,6 +946,10 @@ directory will have a subfolder for each contrast. These
 are some of the output files and what they mean:
 
 sessid.txt - list of the sessions specified
+
+subjectlist.txt - list of subjects specified. This can be used with
+ mris_preproc, asegstats2table, aparcstats2table, or
+ make_average_subject.
 
 analysis.info - copy of the file created by mkanalysis-sess
 
