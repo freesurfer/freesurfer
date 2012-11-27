@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2011/03/10 15:58:15 $
-#    $Revision: 1.60 $
+#    $Date: 2012/11/27 21:03:08 $
+#    $Revision: 1.61 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: isxconcat-sess,v 1.60 2011/03/10 15:58:15 greve Exp $'
+set VERSION = '$Id: isxconcat-sess,v 1.61 2012/11/27 21:03:08 greve Exp $'
 
 set inputargs = ($argv);
 
@@ -789,7 +789,11 @@ check_params:
   endif
   if($#regfile == 0) set regfile = register.dof$RegDOF.dat 
 
-  set subcortmask = $SUBJECTS_DIR/fsaverage/mri.2mm/subcort.mask.mgz
+  if($talres == 2) then
+    set subcortmask = $SUBJECTS_DIR/fsaverage/mri.2mm/subcort.mask.mgz
+  else
+    set subcortmask = $SUBJECTS_DIR/fsaverage/mri/subcort.mask.1mm.mgz
+  endif
   if(! -e $subcortmask) then
     echo "ERROR: cannot find $subcortmask"
     exit 1;
