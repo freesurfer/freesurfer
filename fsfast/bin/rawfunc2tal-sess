@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2012/11/21 22:04:36 $
-#    $Revision: 1.16.2.3 $
+#    $Date: 2012/11/27 18:27:56 $
+#    $Revision: 1.16.2.4 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -22,7 +22,7 @@
 # Bug reports: analysis-bugs@nmr.mgh.harvard.edu
 #
 
-set VERSION = '$Id: rawfunc2tal-sess,v 1.16.2.3 2012/11/21 22:04:36 greve Exp $'
+set VERSION = '$Id: rawfunc2tal-sess,v 1.16.2.4 2012/11/27 18:27:56 greve Exp $'
 
 set inputargs = ($argv);
 
@@ -194,7 +194,7 @@ foreach sess ($SessList)
     endif
 
     set outvol = $funcdir/$outstem$ExpKey.$outfmt
-    set UpdateNeeded = `UpdateNeeded $outvol $invol $reg $mask$b0dcmap`;
+    set UpdateNeeded = `UpdateNeeded $outvol $invol $reg $outmask`;
     if(! $UpdateOnly) set UpdateNeeded = 1;    
     if($UpdateNeeded == 0) then
       echo "    $sessid $Run Update not needed" | tee -a $LF
@@ -202,7 +202,11 @@ foreach sess ($SessList)
     endif
 
     if($ApplySubCortMask) then
-      set subcortmask = $FREESURFER_HOME/subjects/fsaverage/mri.2mm/subcort.mask.mgz
+      if($res == 2) then
+        set subcortmask = $FREESURFER_HOME/subjects/fsaverage/mri.2mm/subcort.mask.mgz
+      else
+        set subcortmask = $FREESURFER_HOME/subjects/fsaverage/mri/subcort.mask.1mm.mgz
+      endif
       if(! -e $subcortmask) then
         echo "ERROR: cannot find $subcortmask"      
         exit 1;
