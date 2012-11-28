@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:25 $
- *    $Revision: 1.7 $
+ *    $Author: lzollei $
+ *    $Date: 2012/11/28 12:16:15 $
+ *    $Revision: 1.8 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -38,7 +38,7 @@
 #include "macros.h"
 
 static char vcid[] =
-  "$Id: mri_threshold.c,v 1.7 2011/03/02 00:04:25 nicks Exp $";
+  "$Id: mri_threshold.c,v 1.8 2012/11/28 12:16:15 lzollei Exp $";
 
 int main(int argc, char *argv[]) ;
 static int  get_option(int argc, char *argv[]) ;
@@ -49,6 +49,9 @@ static void print_version(void) ;
 
 static int binarize = 0 ;
 char *Progname ;
+int specificframe = 0;
+int frame = 0;
+int upperthreshold = 0;
 
 int
 main(int argc, char *argv[]) {
@@ -59,10 +62,10 @@ main(int argc, char *argv[]) {
 
   char cmdline[CMD_LINE_LEN] ;
 
-  make_cmd_version_string (argc, argv, "$Id: mri_threshold.c,v 1.7 2011/03/02 00:04:25 nicks Exp $", "$Name:  $", cmdline);
+  make_cmd_version_string (argc, argv, "$Id: mri_threshold.c,v 1.8 2012/11/28 12:16:15 lzollei Exp $", "$Name:  $", cmdline);
   /* rkt: check for and handle version tag */
   Progname = argv[0] ;
-  nargs = handle_version_option (argc, argv, "$Id: mri_threshold.c,v 1.7 2011/03/02 00:04:25 nicks Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_threshold.c,v 1.8 2012/11/28 12:16:15 lzollei Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -90,8 +93,23 @@ main(int argc, char *argv[]) {
     ErrorExit(ERROR_NOFILE, "%s: could not read input volume %s", Progname,
               in_fname) ;
 
-  printf("thresholding volume at %2.4f....\n", thresh) ;
-  mri_out = MRIthreshold(mri_in, NULL, thresh) ;
+  if (! upperthreshold) // Keep everything above the threshold value
+    {
+      printf("lower thresholding volume at %2.4f....\n", thresh) ;
+      //mri_out = MRIthreshold(mri_in, NULL, thresh) ;
+      if (specificframe)
+	mri_out = MRIthresholdFrame(mri_in, NULL, thresh, frame) ;
+      else // if value in any frame < thresh ==> reject in all frames
+	mri_out = MRIthresholdAllFrames(mri_in, NULL, thresh) ;
+    }
+  else // Keep everything below the given threshold value
+    {
+      printf("upper thresholding volume at %2.4f....\n", thresh) ;
+      if (specificframe)
+	mri_out = MRIupperthresholdFrame(mri_in, NULL, thresh, frame) ;
+      else // if value in any frame < thresh ==> reject in all frames
+	mri_out = MRIupperthresholdAllFrames(mri_in, NULL, thresh) ;
+    }
 
   if (binarize > 0)
     MRIbinarize(mri_out, mri_out, thresh, 0, binarize) ;
@@ -129,8 +147,15 @@ get_option(int argc, char *argv[]) {
       Gdiag_no = atoi(argv[2]) ;
       nargs = 1 ;
       break ;
-    case '?':
+    case 'F':
+      frame = atoi(argv[2]) ;
+      specificframe = 1;
+      nargs = 1 ;
+      break ;
     case 'U':
+      upperthreshold = 1;
+      break ;
+    case '?':
       print_usage() ;
       exit(1) ;
       break ;
@@ -160,7 +185,13 @@ print_usage(void) {
 static void
 print_help(void) {
   fprintf(stderr,
-          "\nThis program will threshold an input volume\n") ;
+          "\nThis program will lower threshold an input volume\n") ;
+  printf("\n") ;
+  printf("Options:\n\n") ;
+  printf("  -B bval: It will binarize the output volume to be bval.\n");
+  printf("  -U Instead of lower thresholding the volume it will upper threshold it.\n");
+  printf("  -F fnum: Apply thresholding to a specific frame indexed by fnum.\n");
+  printf("  -? : print usage\n");
   exit(1) ;
 }
 
