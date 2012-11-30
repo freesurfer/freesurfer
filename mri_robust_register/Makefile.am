@@ -6,7 +6,7 @@ AM_CFLAGS=-I$(top_srcdir)/include
 AM_CXXFLAGS=-I$(top_srcdir)/include $(VXL_CFLAGS)
 
 if HAVE_MAC_OSX
-OTHERLDFLAGS=-framework veclib
+OTHERLDFLAGS=-framework vecLib
 else
 OTHERLDFLAGS=-z muldefs
 endif
