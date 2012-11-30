@@ -1,5 +1,5 @@
 # Original author - Krish Subramaniam
-# $Id: fsutils.py,v 1.10 2012/09/17 16:37:46 greve Exp $
+# $Id: fsutils.py,v 1.11 2012/11/30 23:07:26 mreuter Exp $
 import os
 import logging
 import sys
@@ -158,10 +158,12 @@ class AsegStatsParser(StatsParser):
                         ('# Measure SuperTentorial, SuperTentorialVol,','SuperTentorialVol'),
                         ('# Measure SupraTentorial, SupraTentorialVol,','SupraTentorialVol'),
                         ('# Measure SupraTentorialNotVent, SupraTentorialVolNotVent,','SupraTentorialVolNotVent'),
+                        ('# Measure SupraTentorialNotVentVox, SupraTentorialVolNotVentVox,','SupraTentorialVolNotVentVox'),
                         ('# Measure IntraCranialVol, ICV,','IntraCranialVol'),
                         ('# Measure EstimatedTotalIntraCranialVol, eTIV,','EstimatedTotalIntraCranialVol'),
                         ('# Measure BrainSeg, BrainSegVol,','BrainSegVol'),
-                        ('# Measure BrainSegNotVent, BrainSegVolNotVent,','BrainSegVolNotVent'),)
+                        ('# Measure BrainSegNotVent, BrainSegVolNotVent,','BrainSegVolNotVent'),
+                        ('# Measure BrainSegNotVentSurf, BrainSegVolNotVentSurf,','BrainSegVolNotVentSurf'),)
                 c = 0
                 for start, structn in beg_struct_tuple:
                     c = c + 1

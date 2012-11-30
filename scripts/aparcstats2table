@@ -3,12 +3,13 @@ import warnings
 warnings.filterwarnings('ignore', '.*negative int.*')
 import os, sys, optparse
 import logging
+import csv
 import fsutils
 from fsutils import AparcStatsParser, BadFileError, aparclogger
 
 # Original Version - Douglas Greve, MGH
 # Rewrite - Krish Subramaniam, MGH
-# $Id: aparcstats2table,v 1.21 2012/03/09 00:53:09 mreuter Exp $
+# $Id: aparcstats2table,v 1.22 2012/11/30 23:07:26 mreuter Exp $
 
 # globals
 l = aparclogger
@@ -87,12 +88,14 @@ def options_parse():
     Command Line Options Parser for aparcstats2table
     initiate the option parser and return the parsed object
     """
-    parser = optparse.OptionParser(version='$Id: aparcstats2table,v 1.21 2012/03/09 00:53:09 mreuter Exp $', usage=HELPTEXT)
+    parser = optparse.OptionParser(version='$Id: aparcstats2table,v 1.22 2012/11/30 23:07:26 mreuter Exp $', usage=HELPTEXT)
     
     # help text
     h_sub = '(REQUIRED) subject1 <subject2 subject3..>'
     h_s = ' subjectname'
     h_subf = 'name of the file which has the list of subjects ( one subject per line)'
+    h_qdec = 'name of the qdec table which has the column of subjects ids (fsid)'
+    h_qdeclong = 'name of the longitudinal qdec table which has the column of tp ids (fsid) and subject templates (fsid-base)'
     h_hemi = '(REQUIRED) lh or rh'
     h_parc = 'parcellation.. default is aparc ( alt aparc.a2009s)'
     h_meas = 'measure: default is area ( alt volume, thickness, thicknessstd, meancurv)'
@@ -112,6 +115,8 @@ def options_parse():
     parser.add_option('-s', dest='subjects' ,action='append',
                       help=h_s)
     parser.add_option('--subjectsfile', dest='subjectsfile', help=h_subf)
+    parser.add_option('--qdec', dest='qdec', help=h_qdec)
+    parser.add_option('--qdec-long', dest='qdeclong', help=h_qdeclong)
     parser.add_option('--hemi', dest='hemi',
                       choices=('lh','rh'), help=h_hemi)
     parser.add_option('-t', '--tablefile', dest='outputfile',
@@ -146,13 +151,22 @@ def options_parse():
             print 'ERROR: atleast 1 subject must be provided'
             sys.exit(1)
         
-    if options.subjects is None and options.subjectsfile is None: 
-        print 'ERROR: Specify one of --subjects or --subjectsfile'
+    if options.subjects is None and options.subjectsfile is None and options.qdec is None and options.qdeclong is None: 
+        print 'ERROR: Specify one of --subjects, --subjectsfile --qdec or --qdec-long'
         print '       or run with --help for help.'
         sys.exit(1)
 
-    if options.subjects is not None and options.subjectsfile is not None:
-        print 'ERROR: Both subjectsfile and subjects are specified. Please specify just one '
+    count=0
+    if options.subjects is not None:
+        count = count+1;
+    if options.subjectsfile is not None:
+        count = count+1
+    if options.qdec is not None:
+        count = count+1;
+    if options.qdeclong is not None:
+        count = count+1;
+    if count >1:
+        print 'ERROR: Please specify just one of  --subjects, --subjectsfile --qdec or --qdec-long.'
         sys.exit(1)
 
     if not options.outputfile:
@@ -201,6 +215,38 @@ def assemble_inputs(options):
         except IOError:
             print 'ERROR: the file %s doesnt exist'%o.subjectsfile
             sys.exit(1)
+    if o.qdec is not None:
+        o.subjects=[]
+        try:
+            with open(o.qdec, 'rb') as f:
+                dialect = csv.Sniffer().sniff(f.read(1024))
+                f.seek(0)
+                reader = csv.DictReader(f,dialect=dialect)
+                #o.subjects = [row['fsid'] for row in reader]
+                for row in reader:
+                    fsid=row['fsid'].strip()
+                    if fsid[0] != '#':
+                        o.subjects.append(fsid)
+                print o.subjects
+        except IOError:
+            print 'ERROR: the file %s doesnt exist'%o.qdec
+                sys.exit(1)
+    if o.qdeclong is not None:
+        o.subjects=[]
+        try:
+            with open(o.qdeclong, 'rb') as f:
+                dialect = csv.Sniffer().sniff(f.read(1024))
+                f.seek(0)
+                reader = csv.DictReader(f,dialect=dialect)
+                #o.subjects = [(row['fsid']+'.long.'+row['fsid-base']) for row in reader]
+                for row in reader:
+                    fsid=row['fsid'].strip()
+                    if fsid[0] != '#':
+                        o.subjects.append(fsid+'.long.'+row['fsid-base'].strip())
+        except IOError:
+            print 'ERROR: the file %s doesnt exist'%o.qdeclong
+            sys.exit(1)
+            
     for sub in o.subjects:
         specs_paths.append( (sub,  os.path.join(subjdir, sub, 'stats',
                              o.hemi + '.' + o.parc+'.stats')) )

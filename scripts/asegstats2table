@@ -5,12 +5,13 @@ import os
 import sys
 import optparse
 import logging
+import csv
 import fsutils
 from fsutils import AsegStatsParser, BadFileError, aseglogger
 
 # Original Version - Douglas Greve, MGH
 # Rewrite - Krish Subramaniam, MGH
-# $Id: asegstats2table,v 1.34 2011/10/08 04:48:35 greve Exp $
+# $Id: asegstats2table,v 1.35 2012/11/30 23:07:26 mreuter Exp $
 
 # globals
 l = aseglogger
@@ -109,12 +110,14 @@ def options_parse():
     Command Line Options Parser for asegstats2table
     initiate the option parser and return the parsed object
     """
-    parser = optparse.OptionParser(version='$Id: asegstats2table,v 1.34 2011/10/08 04:48:35 greve Exp $', usage=HELPTEXT)
+    parser = optparse.OptionParser(version='$Id: asegstats2table,v 1.35 2012/11/30 23:07:26 mreuter Exp $', usage=HELPTEXT)
     
     # help text
     h_sub = '(REQUIRED) subject1 <subject2 subject3..>'
     h_s = ' subjectname'
     h_subf = 'name of the file which has the list of subjects ( one subject per line)'
+    h_qdec = 'name of the qdec table which has the column of subjects ids (fsid)'
+    h_qdeclong = 'name of the longitudinal qdec table which has the column of tp ids (fsid) and subject templates (fsid-base)'
     h_inp = ' input1 <input2 input3..>'
     h_i = ' inputname'
     h_meas = 'measure: default is volume ( alt: mean, std)'
@@ -138,6 +141,8 @@ def options_parse():
     parser.add_option('-s', dest='subjects' ,action='append',
                       help=h_s)
     parser.add_option('--subjectsfile', dest='subjectsfile', help=h_subf)
+    parser.add_option('--qdec', dest='qdec', help=h_qdec)
+    parser.add_option('--qdec-long', dest='qdeclong', help=h_qdeclong)
     parser.add_option('--inputs', dest='inputs' ,action='callback',
                       callback=fsutils.callback_var,  help=h_inp)
     parser.add_option('-i', dest='inputs' ,action='append',
@@ -190,24 +195,27 @@ def options_parse():
         else:
             options.dodirect = True
 
-    if options.subjectsfile is not None:
+    if options.subjectsfile is not None or options.qdec is not None or options.qdeclong is not None:
         options.dodirect = False
 
-    if options.subjects is None and options.inputs is None and options.subjectsfile is None: 
-        print 'ERROR: Specify one of --subjects, --inputs or --subjectsfile'
+    if options.subjects is None and options.inputs is None and options.subjectsfile is None and options.qdec is None and options.qdeclong is None: 
+        print 'ERROR: Specify one of --subjects, --inputs, --subjectsfile --qdec or --qdec-long'
         print '       or run with --help for help.'
         sys.exit(1)
     
-    if options.subjects is not None and options.inputs is not None:
-        print 'ERROR: Both subjects and inputs are specified. Please specify just one '
-        sys.exit(1)
-
-    if options.subjects is not None and options.subjectsfile is not None:
-        print 'ERROR: Both subjectsfile and subjects are specified. Please specify just one '
-        sys.exit(1)
-    
-    if options.inputs is not None and options.subjectsfile is not None:
-        print 'ERROR: Both subjectsfile and inputs are specified. Please specify just one '
+    count=0
+    if options.subjects is not None:
+        count = count+1;
+    if options.inputs is not None:
+        count = count+1;
+    if options.subjectsfile is not None:
+        count = count+1
+    if options.qdec is not None:
+        count = count+1;
+    if options.qdeclong is not None:
+        count = count+1;
+    if count >1:
+        print 'ERROR: Please specify just one of  --subjects, --inputs --subjectsfile --qdec or --qdec-long.'
         sys.exit(1)
     
     if not options.outputfile:
@@ -284,6 +292,37 @@ def assemble_inputs(o):
             except IOError:
                 print 'ERROR: the file %s doesnt exist'%o.subjectsfile
                 sys.exit(1)
+        if o.qdec is not None:
+            o.subjects=[]
+            try:
+                with open(o.qdec, 'rb') as f:
+                    dialect = csv.Sniffer().sniff(f.read(1024))
+                    f.seek(0)
+                    reader = csv.DictReader(f,dialect=dialect)
+                    #o.subjects = [row['fsid'] for row in reader]
+                    for row in reader:
+                        fsid=row['fsid'].strip()
+                        if fsid[0] != '#':
+                            o.subjects.append(fsid)
+            except IOError:
+                print 'ERROR: the file %s doesnt exist'%o.qdec
+                sys.exit(1)
+        if o.qdeclong is not None:
+            o.subjects=[]
+            try:
+                with open(o.qdeclong, 'rb') as f:
+                    dialect = csv.Sniffer().sniff(f.read(1024))
+                    f.seek(0)
+                    reader = csv.DictReader(f,dialect=dialect)
+                    #o.subjects = [(row['fsid']+'.long.'+row['fsid-base']) for row in reader]
+                    for row in reader:
+                        fsid=row['fsid'].strip()
+                        if fsid[0] != '#':
+                            o.subjects.append(fsid+'.long.'+row['fsid-base'].strip())
+            except IOError:
+                print 'ERROR: the file %s doesnt exist'%o.qdeclong
+                sys.exit(1)
+        
         for sub in o.subjects:
             specs_paths.append( (sub,  os.path.join(subjdir, sub, o.subdir, o.statsfname)) )
     return specs_paths
