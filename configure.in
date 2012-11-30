@@ -8,9 +8,9 @@
 # Process this file with autoconf to produce a configure script.
 #
 # CVS Revision Info:
-#    $Author: nicks $
-#    $Date: 2012/10/15 21:05:47 $
-#    $Revision: 1.519.2.24 $
+#    $Author: zkaufman $
+#    $Date: 2012/11/30 17:09:37 $
+#    $Revision: 1.519.2.25 $
 #
 ########################################################################
 AC_PREREQ(2.57)
@@ -216,13 +216,6 @@ if test "$ac_have_gcc_44" = "yes"; then
   AC_MSG_NOTICE(Copying /usr/bin/libtool overtop the PROG_LIBTOOL)
   cp /usr/bin/libtool .
 fi
-
-# when building on the Mac, use glibtool instead of libtool
-if test "$OS" = "Darwin"; then
-  AC_MSG_NOTICE(Copying /usr/bin/glibtool overtop the PROG_LIBTOOL)
-  cp /usr/bin/glibtool libtool
-fi
-
 
 ################################################################
 # Checks for header files.
@@ -531,6 +524,7 @@ case "${target}" in
  SHARED_CFLAGS="-fno-common"
  SHARED_LDFLAGS="-dynamiclib"
  CPPFLAGS="-gfull -O3 -msse2 -mfpmath=sse $WALL $WERROR $LFS_CFLAGS"
+ FFLAGS="-m64"
  FCLIBS="-L/usr/lib -lgcc"
  ;;
  i*86-*-solaris*)
@@ -586,28 +580,6 @@ AC_SUBST(FCLIBS)
 AC_MSG_NOTICE(OS is $OS)
 
 AM_CONDITIONAL(HAVE_MAC_OSX, test "x$OS" = "xDarwin" )
-
-
-################################################################
-# gfortran
-################################################################
-# Centos 5 needs libgfortran when linking fem_elastic/surf2vol
-LIB_GFORTRAN=""
-# but the Mac doesnt need libgfortran!  furthermore, its not installed
-# by default, so dont use it on the Mac!
-# NOTE! OS was just defined, so dont move this section
-if test ! "$OS" = "Darwin"; then
-  AC_CHECK_LIB([gfortran], [_gfortran_compare_string],\
-                           [LIB_GFORTRAN="-lgfortran"],[])
-fi
-AC_SUBST(LIB_GFORTRAN)
-AM_CONDITIONAL(HAVE_GFORTRAN, test ! "x$LIB_GFORTRAN" = "x" )
-# note: gcc 4.4 might give 'undefined reference to _gfortran_ errors, and so
-# the following may be necessary to get around this, as root:
-# cd /usr/lib64
-# rm libgfortran.so; 
-# ln -s libgfortran.so.1.0.0 libgfortran.so
-
 
 ################################################################
 # SSE matrix and math functions (affine.h, sse_mathfun.h)
@@ -835,23 +807,17 @@ AC_ARG_WITH(cpu,
 if test "$CPUTYPE" = "NO"; then
   case "$OS" in
   Darwin)
-    maccpu=`machine`
-    case "$maccpu" in
-      ppc750)
-      CPUTYPE=G3
-      ;;
-      ppc7450)
-      CPUTYPE=G4
-      ;;
-      ppc970)
-      CPUTYPE=G5
-      ;;
-      i486)
+    mac_hardware=`uname -m`
+    case "$mac_hardware" in
+      i386)
       CPUTYPE=intel-mac
+      ;;
+      x86_64)
+      CPUTYPE=x86_64
       ;;
       *)
       CPUTYPE="NO"
-      echo "unknown mac cpu $maccpu"
+      echo "unknown mac cpu $mac_hardware"
       ;;
       esac
     ;;
@@ -1736,6 +1702,11 @@ AC_ARG_ENABLE(tcltk-apps,
  [ tcltk_apps="NO"
  ])
 
+AC_ARG_ENABLE(all-apps,
+ [  --disable-all-apps      disable all apps],
+ [ tcltk_apps="NO"
+ ])
+
 if test "$tcltk_apps" = "yes"; then
   AC_MSG_RESULT([Enabled building of Tcl/Tk apps.])
   # enable testing for OpenGL libs:
@@ -1867,6 +1838,11 @@ fi
 AC_ARG_ENABLE(xawplus-apps,
  [  --enable-xawplus-apps   enable building XawPlus-based apps],
  [ xawplus_apps="yes"
+ ])
+
+AC_ARG_ENABLE(all-apps,
+ [  --disable-all-apps      disable all apps],
+ [ xawplus_apps="NO"
  ])
 
 if test "$xawplus_apps" = "yes"; then
@@ -2396,6 +2372,11 @@ fi
 
 AC_ARG_ENABLE(kww-apps,
  [  --disable-kww-apps      disable building KWWidgets-based apps],
+ [ kww_apps="NO"
+ ])
+
+AC_ARG_ENABLE(all-apps,
+ [  --disable-all-apps      disable all apps],
  [ kww_apps="NO"
  ])
 
