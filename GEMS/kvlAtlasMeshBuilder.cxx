@@ -2647,7 +2647,7 @@ AtlasMeshBuilder
 
 
     // Return
-    if ( isnan( miniDataCost + miniAlphasCost + miniPositionCost ) )
+    if ( std::isnan( miniDataCost + miniAlphasCost + miniPositionCost ) )
     {
       return 0;
     }
@@ -2836,7 +2836,7 @@ AtlasMeshBuilder
 
 
     // Return
-    if ( isnan( miniDataCost + miniAlphasCost + miniPositionCost ) )
+    if ( std::isnan( miniDataCost + miniAlphasCost + miniPositionCost ) )
     {
       return 0;
     }
@@ -3199,7 +3199,7 @@ AtlasMeshBuilder
     }
 
     // Return
-    if ( isnan( miniDataCost + miniAlphasCost + miniPositionCost ) )
+    if ( std::isnan( miniDataCost + miniAlphasCost + miniPositionCost ) )
     {
       return 0;
     }
@@ -3466,7 +3466,7 @@ AtlasMeshBuilder
     }
 
     // Return
-    if ( isnan( miniDataCost + miniAlphasCost + miniPositionCost ) )
+    if ( std::isnan( miniDataCost + miniAlphasCost + miniPositionCost ) )
     {
       return 0;
     }
@@ -3636,7 +3636,7 @@ AtlasMeshBuilder
 
 
     // Return
-    if ( isnan( miniDataCost + miniAlphasCost + miniPositionCost ) )
+    if ( std::isnan( miniDataCost + miniAlphasCost + miniPositionCost ) )
     {
       return 0;
     }
@@ -3720,7 +3720,7 @@ AtlasMeshBuilder
 
 
     // Return
-    if ( isnan( miniDataCost + miniAlphasCost + miniPositionCost ) )
+    if ( std::isnan( miniDataCost + miniAlphasCost + miniPositionCost ) )
     {
       return 0;
     }
