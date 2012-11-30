@@ -6,21 +6,19 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: rpwang $
- *    $Date: 2010/02/10 21:07:55 $
- *    $Revision: 1.38 $
+ *    $Author: zkaufman $
+ *    $Date: 2012/11/30 17:13:20 $
+ *    $Revision: 1.39.2.1 $
  *
- * Copyright (C) 2002-2007,
- * The General Hospital Corporation (Boston, MA). 
- * All rights reserved.
+ * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
- * Distribution, usage and copying of this software is covered under the
- * terms found in the License Agreement file named 'COPYING' found in the
- * FreeSurfer source code root directory, and duplicated here:
- * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ * Terms and conditions for use, reproduction, distribution and contribution
+ * are found in the 'FreeSurfer Software License Agreement' contained
+ * in the file 'LICENSE' found in the FreeSurfer distribution, and here:
  *
- * General inquiries: freesurfer@nmr.mgh.harvard.edu
- * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
+ *
+ * Reporting: freesurfer@nmr.mgh.harvard.edu
  *
  */
 
@@ -98,12 +96,6 @@ int fwrite(void *ptr, int size, int nitems, FILE *fp) ;
 void *malloc(size_t byteSize) ;
 //#define nint(f)  (f<0?((int)(f-0.5)):((int)(f+0.5)))
 /* ((int)(rint((double)f))) */
-#if 0
-double drand48(void);
-#else
-#define drand48()   randomNumber(0.0, 1.0)
-#endif
-void srand48(long seed);
 /* #define log2(d)  log10(d)/log10(2) */
 /* #define exp2(d)  pow(2.0, d) */
 int ftime(struct timeb *tp) ;
