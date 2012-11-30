@@ -2,19 +2,22 @@
 import warnings
 warnings.filterwarnings('ignore', '.*negative int.*')
 import os, sys, optparse
-from sets import Set
+import logging
+import csv
 import fsutils
+from fsutils import AparcStatsParser, BadFileError, aparclogger
 
 # Original Version - Douglas Greve, MGH
 # Rewrite - Krish Subramaniam, MGH
-# $Id: aparcstats2table,v 1.19 2010/02/17 01:00:58 krish Exp $
+# $Id: aparcstats2table,v 1.20.2.1 2012/11/30 23:17:55 mreuter Exp $
 
-# this is a map of measure requested and its corresponding column# in ?h.aparc*.stats
-measure_field_map = {'area':2, 'volume':3, 'thickness':4, 'thicknessstd':5, 'meancurv':6 }
+# globals
+l = aparclogger
+
 # map of delimeter choices and string literals
 delimiter2char = {'comma':',', 'tab':'\t', 'space':' ', 'semicolon':';'}
 
-helptext = """
+HELPTEXT = """
 Converts a cortical stats file created by recon-all and or
 mris_anatomical_stats (eg, ?h.aparc.stats) into a table in which
 each line is a subject and each column is a parcellation. By
@@ -56,6 +59,10 @@ The --common-parcs flag writes only the ROIs which are common to all
 the subjects. Default behavior is it puts 0.0 in the measure of an ROI
 which is not present in a subject. 
 
+The --parcs-from-file <file> outputs only the parcs specified in the file
+The order of the parcs in the file is maintained. Specify one parcellation
+per line.
+
 The --report-rois flag, for each subject, gives what ROIs that are present
 in atleast one other subject is absent in current subject and also gives 
 what ROIs are unique to the current subject.
@@ -80,11 +87,14 @@ def options_parse():
     Command Line Options Parser for aparcstats2table
     initiate the option parser and return the parsed object
     """
-    parser = optparse.OptionParser(version='$Id: aparcstats2table,v 1.19 2010/02/17 01:00:58 krish Exp $', usage=helptext)
+    parser = optparse.OptionParser(version='$Id: aparcstats2table,v 1.20.2.1 2012/11/30 23:17:55 mreuter Exp $', usage=HELPTEXT)
     
     # help text
     h_sub = '(REQUIRED) subject1 <subject2 subject3..>'
     h_s = ' subjectname'
+    h_subf = 'name of the file which has the list of subjects ( one subject per line)'
+    h_qdec = 'name of the qdec table which has the column of subjects ids (fsid)'
+    h_qdeclong = 'name of the longitudinal qdec table which has the column of tp ids (fsid) and subject templates (fsid-base)'
     h_hemi = '(REQUIRED) lh or rh'
     h_parc = 'parcellation.. default is aparc ( alt aparc.a2009s)'
     h_meas = 'measure: default is area ( alt volume, thickness, thicknessstd, meancurv)'
@@ -93,6 +103,7 @@ def options_parse():
     h_deli = 'delimiter between measures in the table. default is tab (alt comma, space, semicolon )' 
     h_parcid = 'do not pre/append hemi/meas to parcellation name'
     h_common = 'output only the common parcellations of all the subjects given'
+    h_parcfile = 'filename: output parcellations specified in the file'
     h_roi = 'print ROIs information for each subject'
     h_tr = 'transpose the table ( default is subjects in rows and ROIs in cols)' 
     h_v = 'increase verbosity'
@@ -102,6 +113,9 @@ def options_parse():
                       callback=fsutils.callback_var,  help=h_sub)
     parser.add_option('-s', dest='subjects' ,action='append',
                       help=h_s)
+    parser.add_option('--subjectsfile', dest='subjectsfile', help=h_subf)
+    parser.add_option('--qdec', dest='qdec', help=h_qdec)
+    parser.add_option('--qdec-long', dest='qdeclong', help=h_qdeclong)
     parser.add_option('--hemi', dest='hemi',
                       choices=('lh','rh'), help=h_hemi)
     parser.add_option('-t', '--tablefile', dest='outputfile',
@@ -120,6 +134,8 @@ def options_parse():
                       default=False, help=h_parcid)
     parser.add_option('--common-parcs', action='store_true', dest='commonparcflag',
                       default=False, help=h_common)
+    parser.add_option('--parcs-from-file', dest='parcsfile',
+                      help=h_parcfile)
     parser.add_option('--report-rois', action='store_true', dest='reportroiflag',
                       default=False, help=h_roi)
     parser.add_option('', '--transpose', action='store_true', dest='transposeflag',
@@ -133,8 +149,23 @@ def options_parse():
         if len(options.subjects) < 1:
             print 'ERROR: atleast 1 subject must be provided'
             sys.exit(1)
-    else:
-        print 'ERROR: --subjects sub1 .. is mandatory. See --help for more info'
+        
+    if options.subjects is None and options.subjectsfile is None and options.qdec is None and options.qdeclong is None: 
+        print 'ERROR: Specify one of --subjects, --subjectsfile --qdec or --qdec-long'
+        print '       or run with --help for help.'
+        sys.exit(1)
+
+    count=0
+    if options.subjects is not None:
+        count = count+1;
+    if options.subjectsfile is not None:
+        count = count+1
+    if options.qdec is not None:
+        count = count+1;
+    if options.qdeclong is not None:
+        count = count+1;
+    if count >1:
+        print 'ERROR: Please specify just one of  --subjects, --subjectsfile --qdec or --qdec-long.'
         sys.exit(1)
 
     if not options.outputfile:
@@ -143,130 +174,155 @@ def options_parse():
     if not options.hemi:
         print 'ERROR: hemisphere should be provided (lh or rh)'
         sys.exit(1)
+        
+    # parse the parcs file
+    options.parcs = None
+    if options.parcsfile is not None:
+        try:
+            f = open(options.parcsfile, 'r')
+            options.parcs = [line.strip() for line in f]
+        except IOError:
+            print 'ERROR: cannot read '+ options.parcsfile
+
+    if options.reportroiflag:
+        print 'WARNING: --report-rois deprecated. Use -v instead'
+
+    if options.verboseflag:
+        l.setLevel(logging.DEBUG)
 
     return options
 
-def roi_setops(table, subjects):
-    """
-    This outputs a tuple which has 2 lists
-    One which is the union of all ROIs of all subjects
-    And another which is a list of ROIs only common to all subjects
-    """
-    _all_parcs = []
-    for subject in subjects:
-        _all_parcs.append( table[subject].keys())
-    # we have a list of lists. Flatten it. 
-    temp_parcs = [item for sublist in _all_parcs for item in sublist]
-    all_parcs = fsutils.unique_union(temp_parcs)
+"""
+Args:
+    the parsed 'options' 
+Returns:
+    a list of tuples of (specifier names ( subjects), path to the corresponding .stats files)
+"""
+def assemble_inputs(options):
     
-    common_parcs = table[subjects[0]].keys()
-    for subject in subjects[1:]:
-        common_parcs = fsutils.intersect_order(common_parcs, table[subject].keys())
-    
-    return (all_parcs, common_parcs) 
-
-def build_table(options):
-    """
-    This function builds the 2d table (spreadsheet )
-    of subjects vs ROIs. The values are given by what the user chose in 
-    measure option.
-    """
+    o = options
+    specs_paths = []
     # check the subjects dir
     subjdir = fsutils.check_subjdirs()
-    
-    # init the table
-    table = fsutils.Ddict(fsutils.StableDict)
-
-    o = options
-    if o.verboseflag: print '\nParsing individual stats files\n' + '-'*40 
-    # for every subject
-    for subject in o.subjects:
-        statsfile = os.path.join(subjdir, subject, 'stats', o.hemi + '.' + o.parc + '.stats')
-        if o.verboseflag: 
-            print 'Subject:%s' %subject 
-            print 'Stats File:%s' %statsfile,
-        if os.path.exists(statsfile):
-            # if file size is less than 10, not a valid parcstats file. so exit
-            if os.path.getsize(statsfile) < 10:
-                print 'WARNING: File:' + statsfile + ' is not a valid aparc statsfile'
-                print 'Exclude it from the list of subjects/don\'t use common-segs option'
-            fp = open(statsfile, 'r')
-            if o.verboseflag: print '\nParcellations: ',
-            for line in fp:
-                # a valid line is a line without a '#'
-                if line.rfind('#') == -1:
-                    strlist = line.split()
-                    # for every parcellation
-                    parcid = strlist[0]
-                    if o.verboseflag: print parcid + ' ',
-                    val = float(strlist[measure_field_map[o.meas]])
-                    # assign the measure to the 2d table
-                    table[subject][parcid] = val
-        else:
-            if not o.skipflag:
-                print 'ERROR: cannot find %s' %statsfile
-                print 'Use --skip flag if you want to continue in such cases'
+    print 'SUBJECTS_DIR : %s' %subjdir
+        # in case the user gave --subjectsfile argument
+    if o.subjectsfile is not None:
+        o.subjects=[]
+        try:
+            sf = open(o.subjectsfile)
+            [o.subjects.append(subfromfile.strip()) for subfromfile in sf]
+        except IOError:
+            print 'ERROR: the file %s doesnt exist'%o.subjectsfile
+            sys.exit(1)
+    if o.qdec is not None:
+        o.subjects=[]
+        try:
+            with open(o.qdec, 'rb') as f:
+                dialect = csv.Sniffer().sniff(f.read(1024))
+                f.seek(0)
+                reader = csv.DictReader(f,dialect=dialect)
+                #o.subjects = [row['fsid'] for row in reader]
+                for row in reader:
+                    fsid=row['fsid'].strip()
+                    if fsid[0] != '#':
+                        o.subjects.append(fsid)
+                print o.subjects
+        except IOError:
+            print 'ERROR: the file %s doesnt exist'%o.qdec
                 sys.exit(1)
-            else:
-                print 'WARNING: cannot find %s' %statsfile
-                print 'skipping the subject %s' %subject
-        if o.verboseflag: print '\n'
-   
-    (all_parcs, common_parcs) = roi_setops(table, o.subjects)
-    if not o.commonparcflag:
-        # The ROIs might not be the same in every subject. But mostly they overlap
-        # What we need is the UNION of all the ROI labels of all subjects. 
-        # The result is if 'bert' doesn't have the ROI 'putamen' 
-        # table['bert']['putamen'] doesn't exist. We
-        # should make it 0 somehow. Thus we get a nice grid which we can output.
-        
-        new_table = fsutils.Ddict(fsutils.StableDict)
-        for subject in o.subjects:
-            for parc in all_parcs:
-                if not parc in table[subject]:
-                    new_table[subject][parc] = 0.0
-                else:
-                    new_table[subject][parc] = table[subject][parc]
-        cols = all_parcs
+    if o.qdeclong is not None:
+        o.subjects=[]
+        try:
+            with open(o.qdeclong, 'rb') as f:
+                dialect = csv.Sniffer().sniff(f.read(1024))
+                f.seek(0)
+                reader = csv.DictReader(f,dialect=dialect)
+                #o.subjects = [(row['fsid']+'.long.'+row['fsid-base']) for row in reader]
+                for row in reader:
+                    fsid=row['fsid'].strip()
+                    if fsid[0] != '#':
+                        o.subjects.append(fsid+'.long.'+row['fsid-base'].strip())
+        except IOError:
+            print 'ERROR: the file %s doesnt exist'%o.qdeclong
+            sys.exit(1)
+            
+    for sub in o.subjects:
+        specs_paths.append( (sub,  os.path.join(subjdir, sub, 'stats',
+                             o.hemi + '.' + o.parc+'.stats')) )
+    return specs_paths
+
+"""
+Args: 
+    disorganized_table - the table is of the form (specifier, parc_measure_map)
+    parcslist - list of parcellation names
+    where parc_measure_map is a stable hashtable of keys parcellation names and values the measures.
+    The table is disorganized because the length of the parc_measure_map may not be the same for all
+    specifiers.
+    parcellations present in parcslist are the only parcellations which go in the table.
+    if any specifier doesn't have a parcellation, the measure is 0.0
+Returns:
+    rows - list of specifiers ( subjects)
+    columns - list of parcellation names
+    table - a stable 2d table of size len(rows) x len(columns)
+"""
+def make_table2d(disorganized_table, parcslist):
+    dt = disorganized_table
+
+    # create an ordered 2d table
+    table = fsutils.Ddict(fsutils.StableDict)
+    for _spec, _parc_measure_map in dt:
+        for parc in parcslist:
+            try:
+                table[_spec][parc] = _parc_measure_map[parc]
+            except KeyError:
+                table[_spec][parc] = 0.0
+
+    return [spec for (spec, i) in dt], parcslist, table
+
+"""
+Args: 
+    parsed options
+    disorganized_table - the table is of the form (specifier, parc_measure_map)
+    where parc_measure_map is a stable hashtable of keys parcellation names and values the measures.
+    The table is disorganized because the length of the parc_measure_map may not be the same for all
+    specifiers.
+Returns:
+    rows - list of specifiers ( subjects)
+    columns - list of parcellation names
+    table - a stable 2d table of size len(rows) x len(columns)
+"""
+def sanitize_table(options, disorganized_table):
+    o = options
+    dt = disorganized_table
+
+    _union = []
+    _spec, _parc_measure_map = dt[0]
+    intersection = _parc_measure_map.keys()
+    for spec, parc_measure_map in dt:
+        parcs = parc_measure_map.keys()
+        _union.append(parcs)
+        intersection = fsutils.intersect_order(intersection, parcs)
+        l.debug('-'*20)
+        l.debug('Specifier: '+spec)
+        l.debug('Intersection upto now:')
+        l.debug(intersection)
+    #_union is a list of lists. Make it a flat list ( single list )
+    temp_union = [item for sublist in _union for item in sublist]
+    union = fsutils.unique_union(temp_union)
+    l.debug('-'*20)
+    l.debug('Union:')
+    l.debug(union)
+
+    if o.commonparcflag:
+        #write only the common parcs ( intersection )
+        row, column, table = make_table2d(dt, intersection)
     else:
-        # common parc is enabled. ROIs which are common to ALL the subjects are
-        # only outputted. So we should take sets of all ROI labels of all
-        # subjects and intersect them
-        # Note that for union, we init'ed with an empty set.
-        # Here we init the intersection with the ROIs for the first subject 
+        # write all the parcs ever encountered
+        # if there's no parcs for a certain .stats file, write the measure as 0.0
+        row, column, table = make_table2d(dt, union)
 
-        new_table = fsutils.Ddict(fsutils.StableDict)
-        for subject in o.subjects:
-            for parc in common_parcs:
-                new_table[subject][parc] = table[subject][parc]
-        cols = common_parcs
+    return row, column, table
 
-    if o.reportroiflag:
-        print '\n\nROIs information'
-        print  '-'*40
-        print 'ROIs which are found in atleast one subject ( union ): ',
-        for parc in all_parcs:
-            print parc+' ',
-        print '\n\nROIs which are common to all subjects ( intersection ): ',
-        for parc in common_parcs:
-            print parc+' ',
-        print '\n\nROIs information pertaining to each subject'
-        print '-'*40
-        for s in o.subjects:
-            roi_set_of_s = Set(table[s].keys())
-            print 'Subject: %s' %s
-            print 'ROIs which are not found in this subject but found in alteast one other subject: ',
-            tmpset = all_parcs - roi_set_of_s
-            for parc in tmpset:
-                print parc+' ',
-            print '\nROIs which are found only in this subject: ',
-            tmpset = roi_set_of_s - common_parcs 
-            for parc in tmpset:
-                print parc+' ',
-            print '\n'
-
-    return (o.subjects, list(cols), new_table)
-        
 def write_table(options, rows, cols, table):
     """
     Write the table from memory to disk. Initialize the writer class.
@@ -282,13 +338,54 @@ def write_table(options, rows, cols, table):
         tw.write_transpose()
     else:
         tw.write()
-        
-  
+
 if __name__=="__main__":
+    # Command Line options are error checking done here
     options = options_parse()
-    print 'Number of subjects : %d' %len(options.subjects)
+    l.debug('-- The options you entered --')
+    l.debug(options) 
+
+    # Assemble the input stats files
+    subj_listoftuples = assemble_inputs(options)
+
+    # Init the table in memory
+    # is a list containing tuples of the form 
+    # [(specifier, segidlist, structlist, measurelist),] for all specifiers
+    pretable = []
+    
+    # Parse the parc.stats files 
+    print 'Parsing the .stats files'
+    for specifier, filepath in subj_listoftuples:
+        try:
+            l.debug('-'*20)
+            l.debug('Processing file ' + filepath)
+            parsed = AparcStatsParser(filepath)
+            # parcs filter from the command line
+            if options.parcs is not None:
+                parsed.parse_only(options.parcs)
+
+            parc_measure_map = parsed.parse(options.meas)
+            l.debug('-- Parsed Parcs and Measures --')
+            l.debug(parc_measure_map)
+        except BadFileError, e:
+            if options.skipflag:
+                print 'Skipping ' + str(e)
+                continue
+            else:
+                print 'ERROR: The stats file '+str(e)+' is not found or is too small to be a valid statsfile'
+                print 'Use --skip flag to automatically skip bad stats files'
+                sys.exit(1)
+        
+        pretable.append( (specifier, parc_measure_map)) 
+
+    # Make sure the table has the same number of cols for all stats files
+    # and merge them up, clean them up etc. More in the documentation of the fn.
     print 'Building the table..'
-    (rows, cols, table) = build_table(options)
-    print '\nWriting the table to %s' %options.outputfile
-    write_table(options, rows, cols, table)
-    sys.exit(0) 
+    rows, columns, table = sanitize_table(options, pretable)
+
+    # Write this table ( in memory ) to disk.. function uses TableWriter class
+    print 'Writing the table to %s' %options.outputfile
+    write_table(options, rows, columns, table)
+
+    # always exit with 0 exit code
+    sys.exit(0)
