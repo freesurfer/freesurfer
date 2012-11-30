@@ -1,6 +1,6 @@
 % fast_selxavg3.m
 %
-% $Id: fast_selxavg3.m,v 1.105 2012/10/18 19:47:22 greve Exp $
+% $Id: fast_selxavg3.m,v 1.106 2012/11/30 18:40:18 greve Exp $
 
 
 %
@@ -9,8 +9,8 @@
 % Original Author: Doug Greve
 % CVS Revision Info:
 %    $Author: greve $
-%    $Date: 2012/10/18 19:47:22 $
-%    $Revision: 1.105 $
+%    $Date: 2012/11/30 18:40:18 $
+%    $Revision: 1.106 $
 %
 % Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 %
@@ -31,7 +31,7 @@ fprintf('%s\n',sess);
 
 
 fprintf('-------------------------\n');
-fprintf('$Id: fast_selxavg3.m,v 1.105 2012/10/18 19:47:22 greve Exp $\n');
+fprintf('$Id: fast_selxavg3.m,v 1.106 2012/11/30 18:40:18 greve Exp $\n');
 which fast_selxavg3
 which fast_ldanaflac
 which MRIread
@@ -58,7 +58,7 @@ if(isempty(flac0))
   if(~monly) quit; end
   return; 
 end
-flac0.sxaversion = '$Id: fast_selxavg3.m,v 1.105 2012/10/18 19:47:22 greve Exp $';
+flac0.sxaversion = '$Id: fast_selxavg3.m,v 1.106 2012/11/30 18:40:18 greve Exp $';
 
 flac0.sess = sess;
 flac0.nthrun = 1;
@@ -957,8 +957,9 @@ if(DoContrasts)
 	  fast_fratiow(betamat,X,rvarmat,C,acfsegmn,acfseg.vol(:));
     end
     pmat = FTest(dof1, dof2, Fmat);
-    ind = find(pmat == 0); pmat(ind) = 1;
-    fsigmat = -log10(pmat + eps(0));
+    ind = find(rvarmat == 0); pmat(ind) = 1; % in case all tps are same value
+    ind = find(pmat == 0);    pmat(ind) = eps(0); % for REALLY sig voxels
+    fsigmat = -log10(pmat);
 
     % Contrast output
     outcondir = sprintf('%s/%s',outanadir,conname);
