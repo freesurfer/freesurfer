@@ -5,11 +5,13 @@
 if ENABLE_XAWPLUS_APPS
 AM_CPPFLAGS=\
 	-DHAVE_XAWPLUS $(XAWPLUS_CFLAGS) \
+	-DHAVE_OPENGL $(GL_CFLAGS) \
 	-I$(top_srcdir)/include \
 	-I$(top_srcdir)/unix \
 	-I$(top_srcdir)/glut
 else
 AM_CPPFLAGS=\
+	-DHAVE_OPENGL $(GL_CFLAGS) \		
 	-I$(top_srcdir)/include \
 	-I$(top_srcdir)/unix \
 	-I$(top_srcdir)/glut
