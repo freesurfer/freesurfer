@@ -36,6 +36,9 @@ foo_DATA= \
 	3T18yoSchwartzReactN32_as_orig.4dfp.mat \
 	3T18yoSchwartzReactN32_as_orig.lst
 
+xmldir=$(prefix)/docs/xml
+xml_DATA=talairach_avi.help.xml
+
 dist_bin_SCRIPTS = talairach_avi mpr2mni305 brec brec.awk \
 	t4img_4dfp tal_QC_AZS
 
@@ -77,9 +80,7 @@ IMG_SRCS=fimgreg.f imgvalm.f imgvalx.f ffind.f
 
 imgreg_4dfp_SOURCES=imgreg_4dfp.c $(TRX_SRCS) $(RMS_SRCS) \
 	$(LIN_SRCS) $(IMG_SRCS) cflip.c
-if HAVE_GFORTRAN
 imgreg_4dfp_CFLAGS=-DHAVE_GFORTRAN
-endif
 imgreg_4dfp_LDADD=$(LIBS_ICC) $(FCLIBS) $(LIB_G2C_A)
 
 T4IMGS_SRCS=ft4imgo.f to_711-2B.f ft4imgn.f set_rnan.f
@@ -88,16 +89,12 @@ T4A_SRCS=ft4ixyz.f
 
 t4imgs_4dfp_SOURCES=t4imgs_4dfp.c $(TRX_SRCS) $(RMS_SRCS) $(LIN_SRCS) \
 	$(IMG_SRCS) $(T4IMGS_SRCS) $(T4A_SRCS) cflip.c spline3dvgh.f
-if HAVE_GFORTRAN
 t4imgs_4dfp_CFLAGS=-DHAVE_GFORTRAN
-endif
 t4imgs_4dfp_LDADD=$(LIBS_ICC) $(FCLIBS) $(LIB_G2C_A)
 
 compute_vox2vox_SOURCES=compute_vox2vox.c $(TRX_SRCS) $(RMS_SRCS) $(LIN_SRCS) \
 	$(IMG_SRCS) cflip.c set_rnan.f ft4imgo.f 
-if HAVE_GFORTRAN
 compute_vox2vox_CFLAGS=-DHAVE_GFORTRAN
-endif
 compute_vox2vox_LDADD=$(LIBS_ICC) $(FCLIBS) $(LIB_G2C_A)
 
 ifh2hdr_SOURCES=ifh2hdr.c Inithdr.c $(TRX_SRCS)
@@ -151,15 +148,15 @@ FFILES=\
 	t4_sub.f \
 	to_711-2B.f
 
-# trick to get test data into the build directory (during make distcheck)
+# trick to get test data and scripts into the build dir (during make distcheck)
 foo_SOURCES=
 foo:
 	if ! test -f "$(top_builddir)/distribution/average/mni305.cor.mgz"; \
 	then \
 		cp -v $(top_srcdir)/distribution/average/mni305.cor.mgz \
 					$(top_builddir)/distribution/average/; fi;
-	if ! test -f "$(top_builddir)/scripts/tkregister2.tcl"; then \
-		cp -v $(top_srcdir)/scripts/tkregister2.tcl \
+	if ! test -f "$(top_builddir)/scripts/avi2talxfm"; then \
+		cp -v $(top_srcdir)/scripts/avi2talxfm \
 					$(top_builddir)/scripts/; fi;
 	if ! test -f "$(top_builddir)/talairach_avi/nu.mgz"; then \
 		cp -v $(top_srcdir)/talairach_avi/nu.mgz \
@@ -168,19 +165,24 @@ foo:
 		cp -v $(top_srcdir)/talairach_avi/reference-tal.xfm \
 					$(top_builddir)/talairach_avi/; fi;
 	if ! test -f "$(top_builddir)/talairach_avi/711-2C_as_mni_average_305.4dfp.img"; then \
-		cp -v $(top_srcdir)/talairach_avi/711-2C* \
+		cp -v $(top_srcdir)/talairach_avi/711-2* \
 					$(top_builddir)/talairach_avi/; fi;
+	if ! test -f "$(top_builddir)/talairach_avi/talairach_avi"; then \
+		list=( $(dist_bin_SCRIPTS) ); \
+		for f in $${list[@]}; do \
+			cp -v $(top_srcdir)/talairach_avi/$$f $(top_builddir)/talairach_avi/; \
+		done; fi;
 
 check_PROGRAMS=foo
 
-TESTS=test_libg2c test_talairach_avi
+TESTS=test_libg2c test_talairach_avi $(top_builddir)/scripts/help_xml_validate
 
-EXTRA_DIST=$(dist_bin_SCRIPTS) \
+EXTRA_DIST=$(dist_bin_SCRIPTS) talairach_avi.help.xml.h \
 	$(foo_DATA) \
 	$(CFILES) \
 	$(HFILES) \
 	$(FFILES) \
-	test_libg2c test_talairach_avi nu.mgz reference-tal.xfm
+	test_libg2c test_talairach_avi nu.mgz reference-tal.xfm $(xml_DATA)
 
 listfiles:
 	@echo $(EXTRA_DIST) Makefile.am
@@ -230,3 +232,6 @@ copy_ffiles_from_src:
 # release' target.
 EXCLUDE_FILES=
 include $(top_srcdir)/Makefile.extra
+
+BUILT_SOURCES=talairach_avi.help.xml.h
+
