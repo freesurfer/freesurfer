@@ -9,8 +9,8 @@
 #
 # CVS Revision Info:
 #    $Author: zkaufman $
-#    $Date: 2012/11/30 17:09:37 $
-#    $Revision: 1.519.2.25 $
+#    $Date: 2012/12/01 21:55:51 $
+#    $Revision: 1.519.2.26 $
 #
 ########################################################################
 AC_PREREQ(2.57)
@@ -580,6 +580,32 @@ AC_SUBST(FCLIBS)
 AC_MSG_NOTICE(OS is $OS)
 
 AM_CONDITIONAL(HAVE_MAC_OSX, test "x$OS" = "xDarwin" )
+
+################################################################
+# gfortran
+################################################################
+# Centos 5 needs libgfortran when linking fem_elastic/surf2vol
+LIB_GFORTRAN=""
+# NOTE! OS was just defined, so dont move this section
+if test ! "$OS" = "Darwin"; then
+  AC_CHECK_LIB([gfortran], [_gfortran_compare_string],\
+                           [LIB_GFORTRAN="-lgfortran"],[])
+fi
+
+if test "$OS" = "Darwin"; then
+  if test ! "x$F77" = "xgfortran"; then
+    AC_MSG_ERROR([FATAL: gfortran (not $F77) required for OSX build.])
+  fi
+fi
+
+AC_SUBST(LIB_GFORTRAN)
+AM_CONDITIONAL(HAVE_GFORTRAN, test ! "x$LIB_GFORTRAN" = "x" )
+# note: gcc 4.4 might give 'undefined reference to _gfortran_ errors, and so
+# the following may be necessary to get around this, as root:
+# cd /usr/lib64
+# rm libgfortran.so; 
+# ln -s libgfortran.so.1.0.0 libgfortran.so
+
 
 ################################################################
 # SSE matrix and math functions (affine.h, sse_mathfun.h)
