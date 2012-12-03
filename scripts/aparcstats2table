@@ -9,7 +9,7 @@ from fsutils import AparcStatsParser, BadFileError, aparclogger
 
 # Original Version - Douglas Greve, MGH
 # Rewrite - Krish Subramaniam, MGH
-# $Id: aparcstats2table,v 1.20.2.1 2012/11/30 23:17:55 mreuter Exp $
+# $Id: aparcstats2table,v 1.20.2.2 2012/12/03 18:12:50 nicks Exp $
 
 # globals
 l = aparclogger
@@ -23,7 +23,8 @@ mris_anatomical_stats (eg, ?h.aparc.stats) into a table in which
 each line is a subject and each column is a parcellation. By
 default, the values are the area of the parcellation in mm2. The
 first row is a list of the parcellation names. The first column is
-the subject name.
+the subject name. If the measure is thickness then the last column
+is the mean cortical thickness.
 
 The subjects list can be specified on either of two ways:
   1. Specify each subject after a -s flag 
@@ -87,7 +88,7 @@ def options_parse():
     Command Line Options Parser for aparcstats2table
     initiate the option parser and return the parsed object
     """
-    parser = optparse.OptionParser(version='$Id: aparcstats2table,v 1.20.2.1 2012/11/30 23:17:55 mreuter Exp $', usage=HELPTEXT)
+    parser = optparse.OptionParser(version='$Id: aparcstats2table,v 1.20.2.2 2012/12/03 18:12:50 nicks Exp $', usage=HELPTEXT)
     
     # help text
     h_sub = '(REQUIRED) subject1 <subject2 subject3..>'
@@ -229,7 +230,7 @@ def assemble_inputs(options):
                 print o.subjects
         except IOError:
             print 'ERROR: the file %s doesnt exist'%o.qdec
-                sys.exit(1)
+            sys.exit(1)
     if o.qdeclong is not None:
         o.subjects=[]
         try:
