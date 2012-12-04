@@ -8,8 +8,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2012/09/21 23:05:15 $
- *    $Revision: 1.18 $
+ *    $Date: 2012/12/04 16:21:56 $
+ *    $Revision: 1.19 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -101,6 +101,8 @@ double RegPowell::costFunction(const vnl_vector<double>& p)
 
   // new full M = mh2 * cm * mh1
   Md.first = mh2 * Md.first * mh1;
+  
+
   //vnl_matlab_print(vcl_cerr,Md.first,"Madj",vnl_matlab_print_format_long);
   //exit(1);
   // maps from half way space (or target if not sym) back to source and to target
@@ -132,6 +134,16 @@ double RegPowell::costFunction(const vnl_vector<double>& p)
   //hist2(HM, msi,mti,scf,tcf,tocurrent->subsamp,tocurrent->subsamp,tocurrent->subsamp);
   ////vnl_matlab_print(vcl_cerr,HM,"HM",vnl_matlab_print_format_long);
 
+  // special case for sum of squared differences:
+  if (tocurrent->costfun == LS)
+  {
+    double dd = CostFunctions::leastSquares(scf,tcf,msi,mti,tocurrent->subsamp,tocurrent->subsamp, tocurrent->subsamp);
+    icount++;
+    return dd;
+  }
+    
+
+  // other cases that require a 2d histogram
   static JointHisto H;
   H.create(scf, tcf, msi, mti, tocurrent->subsamp, tocurrent->subsamp,
       tocurrent->subsamp);
@@ -157,9 +169,9 @@ double RegPowell::costFunction(const vnl_vector<double>& p)
   case NCC:
     dd = -H.computeNCC();
     break;
-  case LS:
-    dd = H.computeLS();
-    break;
+  //case LS:
+  //  dd = H.computeLS();
+  //  break;
   case SCR:
     dd = -H.computeSCR();
     break;
