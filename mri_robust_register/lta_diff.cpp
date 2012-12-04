@@ -8,8 +8,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2012/11/14 17:20:11 $
- *    $Revision: 1.24 $
+ *    $Date: 2012/12/04 16:20:49 $
+ *    $Revision: 1.25 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -58,7 +58,7 @@ extern "C"
 
 using namespace std;
 
-//static char vcid[] = "$Id: lta_diff.cpp,v 1.24 2012/11/14 17:20:11 mreuter Exp $";
+//static char vcid[] = "$Id: lta_diff.cpp,v 1.25 2012/12/04 16:20:49 mreuter Exp $";
 char *Progname = NULL;
 void writeVox2Vox(LTA * lta)
 {
@@ -176,8 +176,17 @@ void testQuaternion(const vnl_matrix<double>& Rot)
   Q.importMatrix(Rot[0][0],Rot[0][1],Rot[0][2],Rot[1][0],Rot[1][1],Rot[1][2],Rot[2][0],Rot[2][1],Rot[2][2]);
   cout << "Quaternion: " << Q << endl;
   
+  vnl_vector < double > v(3);
+  v[0] = 1.2; v[1]=-0.5; v[2] = .7;
+  cout << " v    :  " << v << endl;
+  cout << " v rot:  " << Rot * v << endl;
+  
+  std::vector < double > v1 = Q.rotate(v[0],v[1],v[2]);
+  cout << " v rotQ: " << v1[0] <<" " << v1[1] << " " << v1[2] << endl;
+  
   std::vector < double > m = Q.getRotMatrix3d();
   cout << " M = [ " << m[0] << " " << m[1] << " " << m[2] << endl << m[3] << " " << m[4] << " " << m[5] << endl << m[6] << " " << m[7] << " " << m[8] << " ]" << endl; 
+
 exit(1);
 }
 
