@@ -6,9 +6,9 @@
 /*
  * Original Author: Yasunari Tosa
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:32 $
- *    $Revision: 1.32 $
+ *    $Author: greve $
+ *    $Date: 2012/12/04 19:17:57 $
+ *    $Revision: 1.33 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -63,7 +63,7 @@ static void print_version(void);
 #define NEW_QUAD_FILE_MAGIC_NUMBER  (-3 & 0x00ffffff)
 
 static char vcid[] = 
-"$Id: mris_info.cpp,v 1.32 2011/03/02 00:04:32 nicks Exp $";
+"$Id: mris_info.cpp,v 1.33 2012/12/04 19:17:57 greve Exp $";
 using namespace std;
 char *surffile=NULL, *outfile=NULL, *curvfile=NULL, *annotfile=NULL;
 char *SUBJECTS_DIR=NULL, *subject=NULL, *hemi=NULL, *surfname=NULL;
@@ -278,7 +278,12 @@ int main(int argc, char *argv[]) {
     cout << "talairached surfaceRAS to surfaceRAS: " << endl;
     MatrixPrint(stdout, mris->TalSRASToSRAS_);
   }
+  printf("Volume Geometry (vg)\n");
   vg_print(&mris->vg);
+  printf("Volume Geometry vox2ras\n");
+  MatrixPrint(stdout,vg_i_to_r(&mris->vg));
+  printf("Volume Geometry vox2ras-tkr\n");
+  MatrixPrint(stdout,TkrVox2RASfromVolGeom(&mris->vg));
 
   {
     int i ;
