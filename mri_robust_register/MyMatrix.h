@@ -10,8 +10,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2012/11/14 17:20:11 $
- *    $Revision: 1.18 $
+ *    $Date: 2012/12/04 16:22:32 $
+ *    $Revision: 1.19 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -101,8 +101,8 @@ public:
   static vnl_matrix_fixed<double, 4, 4> getRot(int i);
   
 
-//  //! Geometric mean
-//  static vnl_matrix < double > GeometricMean(const std::vector < vnl_matrix < double > > &vm, int n=-1);
+  //! Geometric mean
+  static vnl_matrix < double > GeometricMean(const std::vector < vnl_matrix < double > > &vm, int n=-1);
 
   //! Polar Decomposition: A = R * S  (R orthogonal, S pos. semi def, symmetric)
   static void PolarDecomposition(const vnl_matrix<double> &A,

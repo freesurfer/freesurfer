@@ -8,8 +8,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2012/09/21 23:05:15 $
- *    $Revision: 1.28 $
+ *    $Date: 2012/12/04 16:22:32 $
+ *    $Revision: 1.29 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -1809,8 +1809,26 @@ void MyMatrix::SchurComplex(const vnl_matrix<double> & M,
 
       }
 
+/**
+ Computes geometric mean of matrices in vector vm.
+  If n=-1 set n number of elements in vm (default)
+  else use n for the division (usefull, if some elements are the identity matrix and not
+  passed in the array).
+  geo = exp ( sum_i log(mv[i]) / n )
+ */
+vnl_matrix < double > MyMatrix::GeometricMean(const std::vector < vnl_matrix < double > > & vm, int n)
+{
+  assert(vm.size() > 0);
+  if (n==-1) n=(int)vm.size();
+  vnl_matrix < double > geo(MatrixLog(vm[0]));
+  for (unsigned int i = 1;i<vm.size();i++)
+    geo = geo + MatrixLog(vm[i]);
+  geo = MatrixExp((1.0/n) * geo);
+  return geo;
+}
+
 // vnl_matrix < double > MyMatrix::GeometricMean(const std::vector < vnl_matrix < double > > & vm, int n)
-// // Computes ( mv[0] * mv[1] ... * mv[n] )^{1/n}
+// // Computes ( mv[0] * mv[1] ... * mv[m] )^{1/n}
 // // by first computing the n-th square root of each factor and then multiplying,
 // // to ensure the solution is the one that lies between the inputs
 // // (imagine n=7 with six pos 45 degree rotations and one identity,
