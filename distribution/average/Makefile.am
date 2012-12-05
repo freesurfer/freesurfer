@@ -20,7 +20,11 @@ GCS=\
 	rh.atlas2005_simple.gcs \
 	rh.curvature.buckner40.filled.desikan_killiany.2010-03-25.gcs \
 	rh_trans_toSulc.gcs \
-	rh.destrieux.simple.2009-07-29.gcs
+	rh.destrieux.simple.2009-07-29.gcs \
+	rh.DKTatlas40.gcs \
+	lh.DKTatlas40.gcs \
+	rh.DKTatlas100.gcs \
+	lh.DKTatlas100.gcs
 
 TIF=\
 	lh.average.curvature.filled.buckner40.tif \
