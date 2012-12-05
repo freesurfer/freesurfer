@@ -8,9 +8,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2012/05/23 17:36:18 $
- *    $Revision: 1.84 $
+ *    $Author: greve $
+ *    $Date: 2012/12/05 19:30:45 $
+ *    $Revision: 1.85 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -1049,7 +1049,124 @@ MRI *MRIerodeSegmentation(MRI *seg, MRI *out, int nErodes, int nDiffThresh)
   }
   return(out);
 }
+/*!
+  \fn MRI *MRIdilateSegmentation(MRI *seg, MRI *out, int nDils, MRI *mask, int *pnchanges)
+  \brief Dilates the boundaries of a segmentation to nearest neighbors
+  that have a value of 0. If a voxel has neighbors that are different
+  ROIs, then it is set to the most frequently occuring neighbor.
+  "Nearest neighbor" is defined as the 6 nearest neighbors. If
+  nDils>1, then it calls itself recursively. If nDils == -1, then it
+  calls itself recursively until the output segmentation stops
+  changing. If mask is set, then mask must be > 0.5
+*/
+MRI *MRIdilateSegmentation(MRI *seg, MRI *out, int nDils, MRI *mask, int *pnchanges)
+{
+  int c,r,s,dc,dr,ds,segid0,segidD, n;
+  int nNbrs, NbrId[6], segidMost, nOccurances,nchanges;
+  MRI *seg2=NULL;
+  double mval;
 
+  if(seg == out){
+    printf("ERROR: MRIdilateSegmentation(): cannot be done in-place\n");
+    return(NULL);
+  }
+  if(!out) out = MRIallocSequence(seg->width, seg->height, seg->depth,seg->type, 1);
+  if(MRIdimMismatch(seg, out, 0)){
+    printf("ERROR: MRIdilateSegmentation(): seg/out dim mismatch\n");
+    return(NULL);
+  }
+
+  out = MRIcopy(seg,out);
+  seg2 = MRIcopy(seg,seg2);
+
+  // If nDils == -1, this will loop through progressive dilations
+  // until no changes are made. The value of pnchanges becomes the
+  // number of loops needed
+  if(nDils == -1){
+    n = 0;
+    nchanges = 1;
+    while(nchanges){
+      n++;
+      out = MRIdilateSegmentation(seg2, out, 1, mask, &nchanges);
+      seg2 = MRIcopy(out,seg2);
+      printf("  MRIdilateSegmentation(): %2d %5d\n",n,nchanges);
+    }
+    *pnchanges = n; // number of loops
+    MRIfree(&seg2);
+    return(out);
+  }
+
+  // If nDils > 1, loop through progressive dilations
+  n = nDils;
+  while(n != 1) {
+    out = MRIdilateSegmentation(seg2, out, 1, mask, pnchanges);
+    seg2 = MRIcopy(out,seg2);
+    n--;
+  }
+
+  // This is the major loop to assign new voxel values
+  nchanges = 0;
+  for(c=0; c < seg->width; c++){
+    for(r=0; r < seg->height; r++){
+      for(s=0; s < seg->depth; s++){
+	segid0 = MRIgetVoxVal(seg2,c,r,s,0);
+
+	// if it already has a value, dont overwrite
+	if(segid0 != 0) continue;
+
+	// if it is not in the mask, skip it
+	if(mask){
+	  mval = MRIgetVoxVal(mask,c,r,s,0);
+	  if(mval < .5) continue;
+	}
+
+	// Get a list of nearest neighbors. Nearest = shares a face
+	nNbrs = 0;
+	for(dc=-1; dc <= 1; dc++){
+	  if(dc == 0) continue;
+	  if(c + dc < 0) continue;
+	  if(c + dc >= seg->width) continue;
+	  segidD = MRIgetVoxVal(seg2,c+dc,r,s,0);
+	  if(segidD == 0) continue;
+	  NbrId[nNbrs] = segidD;
+	  nNbrs++;
+	}
+	for(dr=-1; dr <= 1; dr++){
+	  if(dr == 0) continue;
+	  if(r + dr < 0) continue;
+	  if(r + dr >= seg->height) continue;
+	  segidD = MRIgetVoxVal(seg2,c,r+dr,s,0);
+	  if(segidD == 0) continue;
+	  NbrId[nNbrs] = segidD;
+	  nNbrs++;
+	}
+	for(ds=-1; ds <= 1; ds++){
+	  if(ds == 0) continue;
+	  if(s + ds < 0) continue;
+	  if(s + ds >= seg->depth) continue;
+	  segidD = MRIgetVoxVal(seg2,c,r,s+ds,0);
+	  if(segidD == 0) continue;
+	  NbrId[nNbrs] = segidD;
+	  nNbrs++;
+	}
+	// Dont change value if no non-zero neighbors
+	if(nNbrs == 0) continue;
+
+	// Find most frequencly occuring neighbor
+	// If a tie, gets the one with the lowest sort number (deterministic)
+	segidMost = most_frequent_int_list(NbrId, nNbrs, &nOccurances);
+
+	// now set the new ID
+	MRIsetVoxVal(out,c,r,s,0, segidMost);
+	nchanges++;
+      }
+    }
+  }
+  //printf("    MRIdilateSegmentation(): nchanges = %d\n",nchanges);
+  *pnchanges = nchanges;
+  MRIfree(&seg2);
+  return(out);
+}
 
 
 
