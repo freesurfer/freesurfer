@@ -2671,7 +2671,7 @@ __xmlParserInputBufferCreateFilename(const char *URI, xmlCharEncoding enc)
     if ((xmlInputCallbackTable[i].opencallback == xmlGzfileOpen) &&
         (strcmp(URI, "-") != 0))
     {
-#if defined(ZLIB_VERNUM) && ZLIB_VERNUM >= 0x1230 && !defined(Darwin)
+#if defined(ZLIB_VERNUM) && ZLIB_VERNUM >= 0x1230
       ret->compressed = !gzdirect(context);
 #else
       if (((z_stream *)context)->avail_in > 4)
