@@ -19,20 +19,19 @@
 /*
  * Original Author: Doug Greve
  * CVS Revision Info:
- *    $Author: mreuter $
- *    $Date: 2010/05/04 21:07:18 $
- *    $Revision: 1.30 $
+ *    $Author: greve $
+ *    $Date: 2012/12/05 20:57:35 $
+ *    $Revision: 1.31.2.1 $
  *
- * Copyright (C) 2005-2010,
- * The General Hospital Corporation (Boston, MA). 
- * All rights reserved.
+ * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
- * Distribution, usage and copying of this software is covered under the
- * terms found in the License Agreement file named 'COPYING' found in the
- * FreeSurfer source code root directory, and duplicated here:
- * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ * Terms and conditions for use, reproduction, distribution and contribution
+ * are found in the 'FreeSurfer Software License Agreement' contained
+ * in the file 'LICENSE' found in the FreeSurfer distribution, and here:
  *
- * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
+ *
+ * Reporting: freesurfer@nmr.mgh.harvard.edu
  *
  */
 
@@ -173,7 +172,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_diff.c,v 1.30 2010/05/04 21:07:18 mreuter Exp $";
+static char vcid[] = "$Id: mri_diff.c,v 1.31.2.1 2012/12/05 20:57:35 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -667,7 +666,8 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--qa")) {
       CheckPixVals = 0;
       CheckGeo     = 0;
-    } else if (!strcasecmp(option, "--pix-only")) {
+    } else if (!strcasecmp(option, "--pix-only") || !strcasecmp(option, "--po") ||
+	       !strcasecmp(option, "--pixonly")) {
       CheckPixVals = 1;
       CheckResolution = 0;
       CheckAcqParams = 0;
