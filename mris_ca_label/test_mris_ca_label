@@ -7,9 +7,9 @@
 #
 # Original Author: Nick Schmansky
 # CVS Revision Info:
-#    $Author: nicks $
-#    $Date: 2011/05/02 21:02:43 $
-#    $Revision: 1.3 $
+#    $Author: zkaufman $
+#    $Date: 2012/12/05 18:37:19 $
+#    $Revision: 1.4 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -24,7 +24,7 @@
 # General inquiries: freesurfer@nmr.mgh.harvard.edu
 #
 
-set VERSION='$Id: test_mris_ca_label,v 1.3 2011/05/02 21:02:43 nicks Exp $'
+set VERSION='$Id: test_mris_ca_label,v 1.4 2012/12/05 18:37:19 zkaufman Exp $'
 
 umask 002
 
@@ -35,6 +35,7 @@ if ( $?SKIP_MRIS_CA_LABEL_TEST ) then
 endif
 
 setenv SUBJECTS_DIR $PWD
+setenv FREESURFER_HOME ../distribution
 
 set LOG=(test_mris_ca_label.log)
 
