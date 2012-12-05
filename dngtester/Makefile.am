@@ -2,7 +2,7 @@
 ## Makefile.am 
 ##
 
-AM_CFLAGS=-I$(top_srcdir)/include -I$(top_srcdir)/include/dicom
+AM_CFLAGS=-I$(top_srcdir)/include -I$(top_srcdir)/include/dicom -O0
 AM_CXXFLAGS=-I$(top_srcdir)/include -I$(top_srcdir)/include/dicom
 
 bin_PROGRAMS = dngtester
