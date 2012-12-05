@@ -58,6 +58,8 @@ The summary file is an ascii file in which the segmentation statistics are repor
       <explanation>Create a segmentation from hemi.parc.annot. If parc is aparc or aparc.a2005s, then the segmentation numbers will match those in $FREESURFER_HOME/FreeSurferColorLUT.txt (and so aparc+aseg.mgz). The numbering can also be altered with --segbase. If an input is used, it must be a surface ovelay with the same dimension as the parcellation. This functionality makes mri_segstats partially redundant with mris_anatomical_stats.</explanation>
       <argument>--slabel subject hemi label</argument>
       <explanation>Create a segmentation from the given surface label. The points in the label are given a value of 1; 0 for outside.</explanation>
+      <argument>--label-thresh threshold</argument>
+      <explanation>Select only those label points that have a stat value greater than threshold</explanation>
       <argument>--sum file</argument>
       <explanation>ASCII file in which summary statistics are saved. See SUMMARY FILE below for more information.</explanation>
     </required-flagged>
@@ -66,8 +68,13 @@ The summary file is an ascii file in which the segmentation statistics are repor
       <explanation>Use pvvol to compensate for partial voluming. This should result in more accurate volumes. Usually, this is only done when computing anatomical statistics. Usually, the mri/norm.mgz volume is used. Not with --annot.</explanation>
       <argument>--i invol</argument>
       <explanation>Input volume from which to compute more statistics, including min, max, range, average, and standard deviation as measured spatially across each segmentation. The input volume must be the same size and dimension as the segmentation volume.</explanation>
+      <argument>--seg-erode Nerodes</argument>
+      <explanation>Erode segmentation boundaries by Nerodes.</explanation>
       <argument>--frame frame</argument>
       <explanation>Report statistics of the input volume at the 0-based frame number. Frame is 0 by default.</explanation>
+      <argument>--robust percent</argument>
+      <explanation> compute stats after excluding percent from high
+      and low values (volume reported is still full volume).</explanation>
       <argument>--sqr</argument>
       <explanation>compute the square of the input prior to computing stats.</explanation>
       <argument>--sqrt</argument>
@@ -76,6 +83,10 @@ The summary file is an ascii file in which the segmentation statistics are repor
       <explanation>multiply input by val</explanation>
       <argument>--snr</argument>
       <explanation>save mean/std as extra column in output table</explanation>
+      <argument>--abs</argument>
+      <explanation>compute absolute value of input before spatial average</explanation>
+      <argument>--accumulate</argument>
+      <explanation>save mean*nvoxels instead of mean</explanation>
       <argument>--ctab ctabfile</argument>
       <explanation>FreeSurfer color table file. This is a file used by FreeSurfer to specify how each segmentation index is mapped to a segmentation name and color. See $FREESURFER_HOME/FreeSurferColorLUT.txt for example. The ctab can be used to specify the segmentations to report on or simply to supply human-readable names to segmentations chosen with --id. See SPECIFYING SEGMENTATION IDS below.</explanation>
       <argument>--ctab-default</argument>
@@ -132,9 +143,13 @@ white surface. This is more accurate than from the aseg. The aseg values for the
       <explanation>specify path to talairach.xfm file for etiv</explanation>
       <intro>Average waveform options</intro>
       <argument>--avgwf textfile</argument>
-      <explanation>For each segmentation, compute an average waveform across all the voxels in the segmentation (excluding voxels masked out). The results are saved in an ascii text file with number of rows equal to the number of frames and number of columns equal to the number of segmentations reported plus 2. The first row is -1 -1 then all of the segid numbers. After that, the first two columns are: (1) 0-based frame number and (2) 0-based frame number times TR.</explanation>
+      <explanation>
+For each segmentation, computes the average waveform across all the voxels in the segmentation (excluding voxels masked out). The results are saved in an ascii text file with number of rows equal to the number of frames and number of columns equal to the number of segmentations reported. The order of segmentations is the same order as in the summary file.
+</explanation>
+      <argument>--sumwf textfile</argument>
+      <explanation>Same as --avgwf but computes the sum instead of average</explanation>
       <argument>--avgwfvol mrivol</argument>
-      <explanation>Same as --avgwf except that the resulting waveforms are stored in a binary mri volume format (eg, analyze, nifti, mgh, etc) with number of columns equal to the number segmentations, number of rows = slices = 1, and the number of frames equal that of the input volume. This may be more convenient than saving as an ascii text file.</explanation>
+      <explanation>Same as --avgwf except that the resulting waveforms are stored in a binary mri volume format (eg, analyze, nifti, mgh, etc) with number of columns equal to the number segmentations, number of rows = slices = 1, and the number of frames equal that of the input volume. This may be more convenient than saving as an ascii text file. The order of segmentations is the same order as in the summary file.</explanation>
       <argument>--sfavg textfile</argument>
       <explanation>save mean across space and frame</explanation>
       <argument>--vox C R S</argument>
