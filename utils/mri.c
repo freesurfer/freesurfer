@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2012/10/16 22:11:46 $
- *    $Revision: 1.486.2.9 $
+ *    $Author: greve $
+ *    $Date: 2012/12/05 21:08:31 $
+ *    $Revision: 1.486.2.10 $
  *
  * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -23,7 +23,7 @@
  */
 
 extern const char* Progname;
-const char *MRI_C_VERSION = "$Revision: 1.486.2.9 $";
+const char *MRI_C_VERSION = "$Revision: 1.486.2.10 $";
 
 
 /*-----------------------------------------------------
@@ -8032,13 +8032,13 @@ MRI *MRIupsampleN(MRI *mri_src, MRI *mri_dst, int N)
   mri_dst->imnr1 = mri_src->imnr0 + mri_dst->depth - 1 ;
 
   // Computes CRAS based on location of the 1st voxel in upsampled space
-  // The new location is 1/Nth of a voxel from the corner. The RAS of
+  // The new location is 1/(2*Nth) of a voxel from the corner. The RAS of
   // a voxel is at the center of the voxel (unfortunately)
   Vox2RAS = MRIxfmCRS2XYZ(mri_src,0); // scanner vox2ras of source mri
   CRS0 = MatrixZero(4,1,NULL);
-  CRS0->rptr[1][1] = -1.0/N;
-  CRS0->rptr[2][1] = -1.0/N;
-  CRS0->rptr[3][1] = -1.0/N;
+  CRS0->rptr[1][1] = -1.0/(2*N);
+  CRS0->rptr[2][1] = -1.0/(2*N);
+  CRS0->rptr[3][1] = -1.0/(2*N);
   CRS0->rptr[4][1] =  1.0;
   RAS0 = MatrixMultiply(Vox2RAS,CRS0,NULL);
   MRIp0ToCRAS(mri_dst, RAS0->rptr[1][1],RAS0->rptr[2][1],RAS0->rptr[3][1]);
