@@ -2,6 +2,10 @@
 # Makefile.am for liblineprof.a
 #
 
+# For now skip the lineprof build when --disable-all-apps is set (hence, 
+# ENABLE_QT_APPS = false) because lineprof is only used by freeview.
+if ENABLE_QT_APPS
+
 AM_CPPFLAGS= -Wno-deprecated \
 	$(VXL_CFLAGS) \
 	$(VTK_CXXFLAGS) \
@@ -71,3 +75,5 @@ testLineProf
 # release' target.
 EXCLUDE_FILES=
 include $(top_srcdir)/Makefile.extra
+
+endif
