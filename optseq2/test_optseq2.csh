@@ -10,7 +10,7 @@
 #
 #############################################################################
 
-set VERSION='$Id: test_optseq2.csh,v 2.17 2010/02/28 18:56:51 nicks Exp $'
+set VERSION='$Id: test_optseq2.csh,v 2.18 2012/12/05 18:48:06 zkaufman Exp $'
 
 umask 002
 
@@ -41,7 +41,17 @@ if (! $status) set PROC=(x86_64)
 set TEST_DATA=$EXPECTED/$PROC-emot.tar.gz
 # Mac OS has its own test data since it uses a different RNG
 set OS=`uname -s`
-if ("$OS" == "Darwin") set TEST_DATA=$EXPECTED/Darwin-emot.tar.gz
+if ("$OS" == "Darwin") then
+  if ("$PROC" == "x86_64") then 
+    set TEST_DATA=$EXPECTED/Darwin-x86_64-emot.tar.gz
+  else if ("$PROC" == "i386") then
+    set TEST_DATA=$EXPECTED/Darwin-i386-emot.tar.gz
+  else
+    echo "Failure: unknown data set for $PROC architecture."
+    exit 1
+  endif
+endif
+
 if (! -e $TEST_DATA) then
   echo "Architecture-specific test data file $TEST_DATA does not exist"
   # status 77 means test result is ignored

@@ -7,9 +7,9 @@
 #
 # Original Author: Nick Schmansky
 # CVS Revision Info:
-#    $Author: nicks $
-#    $Date: 2011/03/03 04:04:39 $
-#    $Revision: 1.8 $
+#    $Author: zkaufman $
+#    $Date: 2012/12/05 18:52:42 $
+#    $Revision: 1.9 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -22,7 +22,7 @@
 # Reporting: freesurfer@nmr.mgh.harvard.edu
 #
 
-set VERSION='$Id: test_talairach_avi,v 1.8 2011/03/03 04:04:39 nicks Exp $'
+set VERSION='$Id: test_talairach_avi,v 1.9 2012/12/05 18:52:42 zkaufman Exp $'
 
 umask 002
 
@@ -58,9 +58,9 @@ if ($status) then
   exit 1
 endif
 echo "rigid transform distance = $diffVal"
-set diffBool=(`echo "$diffVal > 0.025" | bc`)
+set diffBool=(`echo "$diffVal > 0.045" | bc`)
 if ($diffBool) then
-  echo "$cmd FAILED: rigid transform distance = $diffVal > 0.025"
+  echo "$cmd FAILED: rigid transform distance = $diffVal > 0.045"
   exit 1
 endif
 

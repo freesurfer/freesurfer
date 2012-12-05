@@ -80,9 +80,7 @@ IMG_SRCS=fimgreg.f imgvalm.f imgvalx.f ffind.f
 
 imgreg_4dfp_SOURCES=imgreg_4dfp.c $(TRX_SRCS) $(RMS_SRCS) \
 	$(LIN_SRCS) $(IMG_SRCS) cflip.c
-if HAVE_GFORTRAN
 imgreg_4dfp_CFLAGS=-DHAVE_GFORTRAN
-endif
 imgreg_4dfp_LDADD=$(LIBS_ICC) $(FCLIBS) $(LIB_G2C_A)
 
 T4IMGS_SRCS=ft4imgo.f to_711-2B.f ft4imgn.f set_rnan.f
@@ -91,16 +89,12 @@ T4A_SRCS=ft4ixyz.f
 
 t4imgs_4dfp_SOURCES=t4imgs_4dfp.c $(TRX_SRCS) $(RMS_SRCS) $(LIN_SRCS) \
 	$(IMG_SRCS) $(T4IMGS_SRCS) $(T4A_SRCS) cflip.c spline3dvgh.f
-if HAVE_GFORTRAN
 t4imgs_4dfp_CFLAGS=-DHAVE_GFORTRAN
-endif
 t4imgs_4dfp_LDADD=$(LIBS_ICC) $(FCLIBS) $(LIB_G2C_A)
 
 compute_vox2vox_SOURCES=compute_vox2vox.c $(TRX_SRCS) $(RMS_SRCS) $(LIN_SRCS) \
 	$(IMG_SRCS) cflip.c set_rnan.f ft4imgo.f 
-if HAVE_GFORTRAN
 compute_vox2vox_CFLAGS=-DHAVE_GFORTRAN
-endif
 compute_vox2vox_LDADD=$(LIBS_ICC) $(FCLIBS) $(LIB_G2C_A)
 
 ifh2hdr_SOURCES=ifh2hdr.c Inithdr.c $(TRX_SRCS)
