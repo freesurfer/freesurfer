@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:10 $
- *    $Revision: 1.39 $
+ *    $Author: zkaufman $
+ *    $Date: 2012/12/05 18:31:09 $
+ *    $Revision: 1.40 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -96,12 +96,6 @@ int fwrite(void *ptr, int size, int nitems, FILE *fp) ;
 void *malloc(size_t byteSize) ;
 //#define nint(f)  (f<0?((int)(f-0.5)):((int)(f+0.5)))
 /* ((int)(rint((double)f))) */
-#if 0
-double drand48(void);
-#else
-#define drand48()   randomNumber(0.0, 1.0)
-#endif
-void srand48(long seed);
 /* #define log2(d)  log10(d)/log10(2) */
 /* #define exp2(d)  pow(2.0, d) */
 int ftime(struct timeb *tp) ;
