@@ -8,8 +8,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2012/10/30 18:27:19 $
- *    $Revision: 1.11.2.3 $
+ *    $Date: 2012/12/06 21:37:20 $
+ *    $Revision: 1.11.2.4 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -66,7 +66,6 @@ public:
           R.iscalefinal), mri_weights(NULL), mri_indexing(NULL)
   {
   }
-  ;
 
   //! Destructor to cleanup index image and weights
   ~RegistrationStep()
@@ -76,7 +75,6 @@ public:
     if (mri_weights)
       MRIfree(&mri_weights);
   }
-  ;
 
   //! Compute a single registration step
   std::pair<vnl_matrix_fixed<double, 4, 4>, double> computeRegistrationStep(
@@ -86,35 +84,35 @@ public:
   {
     return wcheck;
   }
-  ;
+
   double getwchecksqrt()
   {
     return wchecksqrt;
   }
-  ;
+
   double getzeroweights()
   {
     return zeroweights;
   }
-  ;
+
   //! Return pointer to the weights image
   MRI * getWeights()
   {
     return mri_weights;
   }
-  ; //??? who takes care of freeing? Currently we do.
+  //??? who takes care of freeing? Currently we do.
+
   //! Return 4x4 transformation matrix and intensity scale parameter
   std::pair<vnl_matrix_fixed<double, 4, 4>, double> getMd()
   {
     return Md;
   }
-  ;
 
   void setFloatSVD(bool fsvd)
   {
     floatsvd = fsvd;
   }
-  ; // only makes sense for T=double;
+  // only makes sense for T=double;
 
   // only public because of resampling testing in Registration.cpp
   // should be made protected at some point.
@@ -367,13 +365,14 @@ std::pair<vnl_matrix_fixed<double, 4, 4>, double> RegistrationStep<T>::computeRe
   return Md;
 }
 
-/** Constructs matrix A and vector b for robust regression (see paper)
+/** Constructs matrix A and vector b for robust regression
+   (see Reuter et. al, Neuroimage 2010)
  */
 template<class T>
 void RegistrationStep<T>::constructAb(MRI *mriS, MRI *mriT, vnl_matrix<T>& A,
     vnl_vector<T>&b)
 {
-
+  //verbose=2;
   if (verbose > 1)
     std::cout << "   - constructAb: " << std::endl;
 
@@ -509,27 +508,14 @@ void RegistrationStep<T>::constructAb(MRI *mriS, MRI *mriT, vnl_matrix<T>& A,
   int fxstart = 0;
   int xp1, yp1, zp1;
   int ocount = 0, ncount = 0, zcount = 0;
-  float fzvox = 1.0 + eps;
+  float fzval = eps/2.0;
   int dx, dy, dz;
   int randpos = 0;
   for (z = fxstart; z < fxd; z++)
     for (x = fxstart; x < fxw; x++)
       for (y = fxstart; y < fxh; y++)
       {
-        if (!is2d)
-          fzvox = MRIFvox(fz, x, y, z) ;
-          if (isnan(MRIFvox(fx, x, y, z)) ||isnan(MRIFvox(fy, x, y, z)) || isnan(fzvox) || isnan(MRIFvox(ft, x, y, z)) )
-        {
-          //if (verbose > 0) std::cout << " found a nan value!!!" << std::endl;
-          ncount++;
-          continue;
-        }
-        if (fabs(MRIFvox(fx, x, y, z)) < eps  && fabs(MRIFvox(fy, x, y, z)) < eps &&  fabs(fzvox) < eps )
-        {
-          //if (verbose > 0) std::cout << " found a zero element !!!" << std::endl;
-          zcount++;
-          continue;
-        }
+        // check if position is outside either source or target:
         if (dosubsample)
         {
           // dx,dy and dz need to agree with the subsampling above
@@ -562,10 +548,33 @@ void RegistrationStep<T>::constructAb(MRI *mriS, MRI *mriT, vnl_matrix<T>& A,
           ocount++;
           continue;
         }
-        counti++; // start with 1
+
+        // nan and zero values will also be skipped 
+        const float & ftval = MRIFvox(ft, x, y, z);
+        const float & fxval = MRIFvox(fx, x, y, z);
+        const float & fyval = MRIFvox(fy, x, y, z);
+        if (!is2d)
+          fzval = MRIFvox(fz, x, y, z) ;
+                
+        if (isnan(fxval) || isnan(fyval) || isnan(fzval) || isnan(ftval) )
+        {
+          //if (verbose > 0) std::cout << " found a nan value!!!" << std::endl;
+          ncount++;
+          continue;
+        }
+        if (fabs(fxval) < eps  && fabs(fyval) < eps && fabs(fzval) < eps )
+        {
+          //if (verbose > 0) std::cout << " found a zero element !!!" << std::endl;
+          zcount++;
+          continue;
+        }
+
+        counti++; // found another good voxel
       }
+      
   if (verbose > 1 && n > counti)
     std::cout << "  need only: " << counti << std::endl;
+
   if (counti == 0)
   {
     std::cerr << std::endl;
@@ -644,80 +653,88 @@ void RegistrationStep<T>::constructAb(MRI *mriS, MRI *mriT, vnl_matrix<T>& A,
 
   // Loop and construct A and b
   long int count = 0;
-  ocount = 0;
-  fzvox = 1.0 + eps;
+  ocount = 0;ncount = 0;zcount = 0;
   randpos = 0;
-  float fzval = 1.0 + eps;
+  fzval = eps/2.0;
 
   for (z = fxstart; z < fxd; z++)
     for (x = fxstart; x < fxw; x++)
       for (y = fxstart; y < fxh; y++)
       {
-        const float & ftval = MRIFvox(ft, x, y, z) ;
+        // check if position is outside either source or target:
+        if (dosubsample)
+        {
+          // dx,dy and dz need to agree with the subsampling above
+          dx = (int)(2.0*MyMRI::getRand(randpos));
+          randpos++;
+          dy = (int)(2.0*MyMRI::getRand(randpos));
+          randpos++;
+          xp1 = 2*x+dx;
+          yp1 = 2*y+dy;
+          if (is2d) zp1 = z;
+          else
+          {
+            dz = (int)(2.0*MyMRI::getRand(randpos));
+            randpos++;
+            zp1 = 2*z+dz;
+          }
+        }
+        else // if not subsampled
+        {
+          xp1 = x;
+          yp1 = y;
+          zp1 = z;
+        }
+        assert(xp1 < mriS->width);
+        assert(yp1 < mriS->height);
+        assert(zp1 < mriS->depth);
+        if ( MRIgetVoxVal(mriS,xp1,yp1,zp1,0) == mriS->outside_val || MRIgetVoxVal(mriT,xp1,yp1,zp1,0) == mriT->outside_val )
+        {
+          //std::cout << "voxel outside (" << xp1 << " " << yp1 << " " << zp1 << " )  mriS: " <<MRIFvox(mriS,xp1,yp1,zp1) << "  mriT: " << MRIFvox(mriT,xp1,yp1,zp1)  << "  ovalS: " << mriS->outside_val << "  ovalT: " << mriT->outside_val<< std::endl;
+          MRILvox(mri_indexing, xp1, yp1, zp1) = -5;
+          ocount++;
+          //cout << " " << ocount << flush;
+          continue;
+        }
+
+        const float & ftval = MRIFvox(ft, x, y, z);
         const float & fxval = MRIFvox(fx, x, y, z);
         const float & fyval = MRIFvox(fy, x, y, z);
         if (!is2d) fzval = MRIFvox(fz, x, y, z);
+
+         // skip nans or zeros
         if (isnan(fxval) || isnan(fyval) || isnan(fzval) || isnan(ftval) )
         {
           //if (verbose > 0) std::cout << " found a nan value!!!" << std::endl;
-            continue;
-          }
+          ncount++;
+          MRILvox(mri_indexing, xp1, yp1, zp1) = -1;
+          continue;
+        }
 
-          if (dosubsample)
+        if (fabs(fxval) < eps && fabs(fyval) < eps && fabs(fzval) < eps )
+        {
+          //if (verbose > 0) std::cout << " found a zero element !!!" << std::endl;
+          zcount++;
+          MRILvox(mri_indexing, xp1, yp1, zp1) = -1;
+          continue;
+        }
+
+
+
+          if (counti <= count)
           {
-            // dx,dy and dz need to agree with the subsampling above
-            dx = (int)(2.0*MyMRI::getRand(randpos));
-            randpos++;
-            dy = (int)(2.0*MyMRI::getRand(randpos));
-            randpos++;
-            xp1 = 2*x+dx;
-            yp1 = 2*y+dy;
-            if (is2d) zp1 = z;
-            else
-            {
-              dz = (int)(2.0*MyMRI::getRand(randpos));
-              randpos++;
-              zp1 = 2*z+dz;
-            }
+            cerr << " ERROR in ConstructAB, debug output:" << endl;
+            cerr << " counti: " << counti << endl;
+            cerr << " count : " << count << endl;
+            cerr << "     -- nans: " << ncount << " zeros: " << zcount << " outside: "
+               << ocount << endl;
+             if(dosubsample) cerr << " we are subsampleing!!" << endl;
+            assert(counti > count);
           }
-          else // if not subsampled
-          {
-            xp1 = x;
-            yp1 = y;
-            zp1 = z;
-          }
-          assert(xp1 < mriS->width);
-          assert(yp1 < mriS->height);
-          assert(zp1 < mriS->depth);
-
-          if (fabs(fxval) < eps && fabs(fyval) < eps && fabs(fzval) < eps )
-          {
-            //if (verbose > 0) std::cout << " found a zero element !!!" << std::endl;
-            MRILvox(mri_indexing, xp1, yp1, zp1) = -1;
-            continue;
-          }
-
-          if ( MRIgetVoxVal(mriS,xp1,yp1,zp1,0) == mriS->outside_val || MRIgetVoxVal(mriT,xp1,yp1,zp1,0) == mriT->outside_val )
-          {
-            //std::cout << "voxel outside (" << xp1 << " " << yp1 << " " << zp1 << " )  mriS: " <<MRIFvox(mriS,xp1,yp1,zp1) << "  mriT: " << MRIFvox(mriT,xp1,yp1,zp1)  << "  ovalS: " << mriS->outside_val << "  ovalT: " << mriT->outside_val<< std::endl;
-            MRILvox(mri_indexing, xp1, yp1, zp1) = -5;
-            ocount++;
-            //cout << " " << ocount << flush;
-            continue;
-          }
-
-          if (xp1 >= mriS->width || yp1 >= mriS->height || zp1 >= mriS->depth)
-          {
-
-            cerr << " outside !!! " << xp1 << " " << yp1 << " " << zp1 << std::endl;
-            assert(1==2);
-          }
-
-          assert(counti > count);
 
           MRILvox(mri_indexing, xp1, yp1, zp1) = count;
 
-          //cout << "x: " << x << " y: " << y << " z: " << z << " std::coutn: "<< count << std::endl;
+          //cout << "x: " << x << " y: " << y << " z: " << z << " count: "<< count << std::endl;
           //cout << " " << count << " mrifx: " << MRIFvox(mri_fx, x, y, z) << " mrifx int: " << (int)MRIvox(mri_fx,x,y,z) <<endl;
 
           // new: now use transformation model to get the gradient vector
