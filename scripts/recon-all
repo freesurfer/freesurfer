@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2012/11/20 16:03:36 $
-#    $Revision: 1.438 $
+#    $Date: 2012/12/06 00:29:15 $
+#    $Revision: 1.439 $
 #
 # Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -26,7 +26,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.438 2012/11/20 16:03:36 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.439 2012/12/06 00:29:15 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -228,6 +228,10 @@ set OLD_DESTRIEUX_NAME = a2005s
 set DESTRIEUX_GCS = destrieux.simple.2009-07-29.gcs
 set DESTRIEUX_NAME = a2009s
 
+# Mindboggle cortical parcellation atlas (-cortparc3):
+set DKTATLAS40_GCS = DKTatlas40.gcs
+set DKTATLAS40_NAME = DKTatlas40
+
 # Set this to 0 to do everything but run the command.
 # This is good for debugging.
 set RunIt = 1;
@@ -280,12 +284,14 @@ set DoAvgCurv        = 0;
 set DoMorphRGB       = 0;
 set DoWhiteSurfs     = 0;
 set DoCortParc       = 0;
+set DoCortParc2      = 0;
+set DoCortParc3      = 0;
 set DoPialSurfs      = 0;
 set DoPctSurfCon     = 0;
 set DoSurfVolume     = 0;
-set DoCortParc2      = 0;
 set DoParcStats      = 0;
 set DoParcStats2     = 0;
+set DoParcStats3     = 0;
 set DoCurvStats      = 0;
 set DoVnoMatchCheck  = 0;
 set DoLocalGyriIndex = 0;
@@ -3340,6 +3346,55 @@ foreach hemi ($hemilist)
     echo $cmd > $touchdir/$hemi.aparcstats2.touch
   endif
 
+  #---------------- Cortical Parcellation 3 ------------------------#
+  if($DoCortParc3) then
+    echo "#-----------------------------------------"\
+      |& tee -a $LF |& tee -a $CF
+    echo "#@# Cortical Parc 3 $hemi `date`" \
+      |& tee -a $SF |& tee -a $LF |& tee -a $CF
+    cd $subjdir/scripts > /dev/null
+    set xopts = `fsr-getxopts mris_ca_label $XOptsFile`;
+    set CPAtlas = ${GCSDIR}/${hemi}.${DKTATLAS40_GCS}
+    set annot = ../label/$hemi.aparc.${DKTATLAS40_NAME}.annot
+    set cmd = (mris_ca_label)
+    if($UseAseg) set cmd = ($cmd -l ../label/$hemi.cortex.label)
+    if($UseAseg) set cmd = ($cmd -aseg ../mri/aseg.mgz)
+    if($NoRandomness) set cmd = ($cmd -seed $RngSeed)
+    set cmd = ($cmd $xopts)
+    if($longitudinal) then
+      # longitudinal:
+      set cmd = ($cmd -long -R \
+                   $longbasedir/label/${hemi}.aparc.${DKTATLAS40_NAME}.annot)
+    endif
+    set cmd = ($cmd $subjid $hemi ../surf/$hemi.sphere.reg $CPAtlas $annot)
+    $PWD |& tee -a $LF
+    echo "\n $cmd \n" |& tee -a $LF |& tee -a $CF
+    if($RunIt) $fs_time $cmd |& tee -a $LF
+    if($status) goto error_exit;
+    echo $cmd > $touchdir/$hemi.aparc2.touch
+  endif
+
+  # ---------- Surface Anatomical Stats 3 ---------------------------
+  if($DoParcStats3) then
+    echo "#-----------------------------------------" \
+      |& tee -a $LF |& tee -a $CF
+    echo "#@# Parcellation Stats 3 $hemi `date`" \
+      |& tee -a $SF |& tee -a $LF |& tee -a $CF
+    cd $subjdir/scripts > /dev/null
+    set annot = ../label/$hemi.aparc.${DKTATLAS40_NAME}.annot
+    set stats = ../stats/$hemi.aparc.${DKTATLAS40_NAME}.stats
+    set ctab  = ../label/aparc.annot.${DKTATLAS40_NAME}.ctab
+    set xopts = `fsr-getxopts mris_anatomical_stats $XOptsFile`;
+    set cmd = (mris_anatomical_stats -mgz)
+    if($UseAseg) set cmd = ($cmd -cortex ../label/$hemi.cortex.label)
+    set cmd = ($cmd -f $stats -b -a $annot -c $ctab $xopts $subjid $hemi white);
+    $PWD |& tee -a $LF
+    echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+    if($RunIt) $fs_time $cmd |& tee -a $LF
+    if($status) goto error_exit;
+    echo $cmd > $touchdir/$hemi.aparcstats3.touch
+  endif
+
   # ---------- Surface Vertices Number Match Check --------------
   if($DoVnoMatchCheck) then
     echo "#-----------------------------------------" \
@@ -3664,6 +3719,20 @@ if($DoAParc2ASeg) then
     echo $cmd > $touchdir/aparc.${DESTRIEUX_NAME}2aseg.touch
   else
     echo "INFO: skipping ${DESTRIEUX_NAME} aparc2aseg" \
+    |& tee -a $LF |& tee -a $CF
+  endif
+  # Now do Mindboggles's (if exist, which they may not, if -nocortparc3 used)
+  if( -e ${subjdir}/label/lh.aparc.${DKTATLAS40_NAME}.annot && \
+      -e ${subjdir}/label/rh.aparc.${DKTATLAS40_NAME}.annot ) then
+    set xopts = `fsr-getxopts mri_aparc2aseg $XOptsFile`;
+    set cmd = (mri_aparc2aseg --s $subjid --volmask --${DKTATLAS40_NAME} $xopts)
+    $PWD |& tee -a $LF
+    echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+    if($RunIt) $fs_time $cmd |& tee -a $LF
+    if($status) goto error_exit;
+    echo $cmd > $touchdir/aparc.${DKTATLAS40_NAME}2aseg.touch
+  else
+    echo "INFO: skipping ${DKTATLAS40_NAME} aparc2aseg" \
     |& tee -a $LF |& tee -a $CF
   endif
 endif
@@ -4936,6 +5005,13 @@ while( $#argv != 0 )
       set DoCortParc2 = 0;
       breaksw
 
+    case "-cortparc3":
+      set DoCortParc3 = 1;
+      breaksw
+    case "-nocortparc3":
+      set DoCortParc3 = 0;
+      breaksw
+
     case "-parcstats":
       set DoParcStats = 1;
       breaksw
@@ -4948,6 +5024,13 @@ while( $#argv != 0 )
       breaksw
     case "-noparcstats2":
       set DoParcStats2 = 0;
+      breaksw
+
+    case "-parcstats3":
+      set DoParcStats3 = 1;
+      breaksw
+    case "-noparcstats3":
+      set DoParcStats3 = 0;
       breaksw
 
     case "-surfsegedit":
@@ -5125,6 +5208,8 @@ while( $#argv != 0 )
       set DoParcStats      = 1;
       set DoCortParc2      = 1;
       set DoParcStats2     = 1;
+      set DoCortParc3      = 1;
+      set DoParcStats3     = 1;
       set DoCortRibbonVolMask = 1;
       set DoSegStats       = 1;
       set DoAParc2ASeg     = 1;
@@ -5266,6 +5351,8 @@ while( $#argv != 0 )
       set DoParcStats      = 1;
       set DoCortParc2      = 1;
       set DoParcStats2     = 1;
+      set DoCortParc3      = 1;
+      set DoParcStats3     = 1;
       set DoCortRibbonVolMask = 1;
       set DoAParc2ASeg     = 1;
       set DoWMParc         = 1;
@@ -5285,6 +5372,8 @@ while( $#argv != 0 )
       set DoParcStats      = 1;
       set DoCortParc2      = 1;
       set DoParcStats2     = 1;
+      set DoCortParc3      = 1;
+      set DoParcStats3     = 1;
       set DoSegStats       = 1;
       set DoCortRibbonVolMask = 1;
       set DoAParc2ASeg     = 1;
@@ -5322,6 +5411,8 @@ while( $#argv != 0 )
       set DoParcStats      = 1;
       set DoCortParc2      = 1;
       set DoParcStats2     = 1;
+      set DoCortParc3      = 1;
+      set DoParcStats3     = 1;
       set DoCortRibbonVolMask = 0;
       set DoAParc2ASeg     = 0;
       set DoWMParc         = 0;
@@ -6121,7 +6212,8 @@ check_params:
      ! $DoCreateBaseSubj && ! $DoBaLabels && ! $DoShowEdits && \
      ! $DoLabelExvivoEC && ! $DoSurfSegEdit && ! $DoPialSurfs && \
      ! $DoGEMS && ! $DoPctSurfCon && ! $DoT2pial && ! $DoFLAIRpial && \
-     ! $DoConvertT2Input && ! $DoConvertFlairInput) then
+     ! $DoConvertT2Input && ! $DoConvertFlairInput && \
+     ! $DoCortParc3 && ! $DoParcStats3) then
      echo "ERROR: nothing to do"
      exit 1;
   endif
@@ -6457,6 +6549,8 @@ Run times are approximate for an AMD Opteron 64bit 2.5GHz processor:
   -<no>parcstats        < 1 min     per hemisphere
   -<no>cortparc2          1 min     per hemisphere
   -<no>parcstats2       < 1 min     per hemisphere
+  -<no>cortparc3          1 min     per hemisphere
+  -<no>parcstats3       < 1 min     per hemisphere
   -<no>pial               1 hour    per hemisphere
   -<no>cortribbon        20 min
   -<no>aparc2aseg         1 min
@@ -7038,13 +7132,14 @@ Allows the user to display activity on the surface of an individual
 with the folding pattern (ie, anatomy) of a group. Calls mrisp_paint.
 Creates surf/?h.avg_curv.
 
-Cortical Parcellation (-<no>cortparc, -<no>cortparc2)
+Cortical Parcellation (-<no>cortparc, -<no>cortparc2, -<no>cortparc3 )
 
 Assigns a neuroanatomical label to each location on the cortical surface.
 Incorporates both geometric information derived from the cortical model
 (sulcus and curvature), and neuroanatomical convention.
-Calls mris_ca_label.  -cortparc creates label/?h.aparc.annot, and
--cortparc2 creates /label/?h.aparc.a2009s.annot.
+Calls mris_ca_label.  -cortparc creates label/?h.aparc.annot,
+-cortparc2 creates /label/?h.aparc.a2009s.annot, and
+-cortparc3 creates /label/?h.aparc.DKTatlas40.annot.
 
 Pial Surface (-<no>pial)
 
@@ -7082,7 +7177,7 @@ adding ?h.area(.white) to ?h.area.pial, then dividing by two.  Then
 ?h.volume is created by multiplying ?.mid.area with ?h.thickness.
 This step is also run at the end of the -pial step.
 
-Parcellation Statistics (-<no>parcstats, -<no>parcstats2)
+Parcellation Statistics (-<no>parcstats, -<no>parcstats2, -<no>parcstats3)
 
 Runs mris_anatomical_stats to create a summary table of cortical
 parcellation statistics for each structure, including 1. structure
@@ -7093,6 +7188,7 @@ curvature 8. integrated rectified Gaussian wm curvature 9. folding index
 10. intrinsic curvature index.
 For -parcstats, the file is saved in stats/?h.aparc.stats.
 For -parcstats2, the file is saved in stats/?h.aparc.${DESTRIEUX_NAME}.stats.
+For -parcstats3, the file is saved in stats/?h.aparc.${DKTATLAS40_NAME}.stats.
 
 Cortical Ribbon Mask (-<no>cortribbon)
 
