@@ -8,8 +8,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2012/09/21 23:05:15 $
- *    $Revision: 1.14 $
+ *    $Date: 2012/12/06 21:53:33 $
+ *    $Revision: 1.15 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -94,15 +94,9 @@ private:
   static MRI * getPrefilter();
   static MRI * getDerfilter();
 
-  // these are not really used any longer (maybe delete)?
-  static MRI * getPartial(MRI* mriS, int dir);
-//  static MRI * getBlur2(MRI* mri);
-//  static bool  getPartials2(MRI* mri, MRI* & outfx, MRI* & outfy, MRI* &outfz, MRI* &outblur);
-  static MRI * convolute(MRI * mri, MRI * filter, int dir);
-
   static bool isConform(MRI *mri);
 
-  static MATRIX* MRIgetZslice(MRI * mri, int slice);
+  static MATRIX* MRIgetZslice(MRI * mri, int slice, int frame = 0);
   static double entropyPatch(MRI * mri, int x, int y, int z, int radius,
       int nbins, MRI* kernel, bool ball = false);
   static void get3Dcorrection(double* histo, unsigned int v1, unsigned int v2,

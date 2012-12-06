@@ -8,8 +8,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2012/09/21 23:05:16 $
- *    $Revision: 1.2 $
+ *    $Date: 2012/12/06 21:53:33 $
+ *    $Revision: 1.3 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -47,20 +47,20 @@ public:
           NULL), mri_indexing(NULL)
   {
   }
-  ;
+  
   virtual ~RegRobust();
   virtual MRI * getHalfWayGeom()
   {
     return mri_weights;
   }
-  ;
+  
   virtual void clear();
   //! Return the weights in target space
   virtual MRI * getWeights()
   {
     return mri_weights;
   }
-  ;
+  
 
   double estimateIScale(MRI *mriS, MRI *mriT);
   //! Estimate saturation parameter (higher sensitivity to outliers if sat small)
@@ -70,13 +70,13 @@ public:
   {
     sat = d;
   }
-  ;
+  
   //! Set weight limit for saturation estimation
   void setWLimit(double d)
   {
     wlimit = d;
   }
-  ;
+  
 protected:
   virtual void computeIterativeRegistration(int n, double epsit, MRI * mriS,
       MRI* mriT, const vnl_matrix<double> &Minit, double iscaleinit);

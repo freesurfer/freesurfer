@@ -14,8 +14,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2012/10/30 18:26:33 $
- *    $Revision: 1.47 $
+ *    $Date: 2012/12/06 21:53:33 $
+ *    $Revision: 1.48 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -718,8 +718,8 @@ bool MultiRegistration::computeTemplate(int itmax, double eps, int iterate,
             cout << hinv << endl;
             cout << endl;
           }
-          MRI * wtarg = MRIalloc(mri_weights[i]->width, mri_weights[i]->height,
-              mri_weights[i]->depth, MRI_FLOAT);
+          MRI * wtarg = MRIallocSequence(mri_weights[i]->width, mri_weights[i]->height,
+              mri_weights[i]->depth, MRI_FLOAT,mri_weights[i]->nframes);
           MRIcopyHeader(mri_weights[i], wtarg);
           MATRIX * v2r = MRIgetVoxelToRasXform(mri_mean);
           MRIsetVoxelToRasXform(wtarg, v2r);

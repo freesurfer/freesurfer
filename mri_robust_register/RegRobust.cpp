@@ -8,8 +8,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2012/09/21 23:05:16 $
- *    $Revision: 1.2 $
+ *    $Date: 2012/12/06 21:53:33 $
+ *    $Revision: 1.3 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -401,6 +401,13 @@ double RegRobust::findSaturation()
 
 double RegRobust::estimateIScale(MRI *mriS, MRI *mriT)
 {
+  if (mriS->nframes > 1 || mriT->nframes > 1)
+  {
+    cerr << "RegRobust::estimateIScale multiple frames not supported!" << endl;
+    exit(1);
+    // see constructAB for modifications necessary to do multi frame
+  }
+
 
   if (verbose > 1)
     cout << "   - estimateIScale: " << endl;

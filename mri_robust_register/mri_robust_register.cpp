@@ -10,8 +10,8 @@
  * Original Author: Martin Reuter, Nov. 4th ,2008
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2012/09/21 23:05:17 $
- *    $Revision: 1.68 $
+ *    $Date: 2012/12/06 21:53:34 $
+ *    $Revision: 1.69 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -147,7 +147,7 @@ static bool parseCommandLine(int argc, char *argv[], Parameters & P);
 static void initRegistration(Registration & R, Parameters & P);
 
 static char vcid[] =
-    "$Id: mri_robust_register.cpp,v 1.68 2012/09/21 23:05:17 mreuter Exp $";
+    "$Id: mri_robust_register.cpp,v 1.69 2012/12/06 21:53:34 mreuter Exp $";
 char *Progname = NULL;
 
 //static MORPH_PARMS  parms ;
@@ -157,7 +157,7 @@ void debug(Parameters &P)
 {
   MRI * mriS = MRIread(P.mov.c_str());
   MRI * mriT = MRIread(P.dst.c_str());
-  MRI * SmT = MRIalloc(mriS->width, mriS->height, mriS->depth, MRI_FLOAT);
+  MRI * SmT = MRIallocSequence(mriS->width, mriS->height, mriS->depth, MRI_FLOAT, mriS->nframes);
   SmT = MRIsubtract(mriS, mriT, SmT);
   SmT = MyMRI::getBlur(SmT, SmT);
 

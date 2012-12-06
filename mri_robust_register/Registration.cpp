@@ -8,8 +8,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2012/10/30 18:26:34 $
- *    $Revision: 1.83 $
+ *    $Date: 2012/12/06 21:53:33 $
+ *    $Revision: 1.84 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -4427,7 +4427,7 @@ void Registration::mapToNewSpace(const vnl_matrix_fixed<double, 4, 4>& M,
 //         Mnew[2][2] = 1.0;
 //         Mnew[2][3] = 0.0;
 //       }
-    mh = MyMatrix::MatrixSqrt(M); //!! symmetry slighlty destroyed here? !!
+    mh = MyMatrix::MatrixSqrt(M); // symmetry slighlty destroyed here? !!
 
     // check if we moved out of our space:
     checkSqrtM(mh, rigid && Minit.empty()); // if minit was passed, it might be an affine initialization
