@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl (Apr 16, 1997)
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2012/10/17 19:23:56 $
- *    $Revision: 1.202 $
+ *    $Date: 2012/12/06 21:44:17 $
+ *    $Revision: 1.203 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -162,6 +162,8 @@ int main(int argc, char *argv[])
   int read_parcellation_volume_flag;
   int zero_outlines_flag;
   int erode_seg_flag=FALSE, n_erode_seg;
+  int dil_seg_flag=FALSE, n_dil_seg;
+  char dil_seg_mask[STRLEN];
   int read_otl_flags;
   int color_file_flag;
   char color_file_name[STRLEN];
@@ -211,7 +213,7 @@ int main(int argc, char *argv[])
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mri_convert.c,v 1.202 2012/10/17 19:23:56 greve Exp $",
+   "$Id: mri_convert.c,v 1.203 2012/12/06 21:44:17 greve Exp $",
    "$Name:  $",
    cmdline);
 
@@ -298,6 +300,7 @@ int main(int argc, char *argv[])
   out_volume_type = MRI_VOLUME_TYPE_UNKNOWN;
   force_in_type_flag = force_out_type_flag = force_template_type_flag = FALSE;
   subject_name[0] = '\0';
+  dil_seg_mask[0] = '\0';
   reslice_like_flag = FALSE;
   frame_flag = FALSE;
   mid_frame_flag = FALSE;
@@ -335,7 +338,7 @@ int main(int argc, char *argv[])
     handle_version_option
     (
       argc, argv,
-      "$Id: mri_convert.c,v 1.202 2012/10/17 19:23:56 greve Exp $",
+      "$Id: mri_convert.c,v 1.203 2012/12/06 21:44:17 greve Exp $",
       "$Name:  $"
     );
   if (nargs && argc - nargs == 1)
@@ -1112,6 +1115,15 @@ int main(int argc, char *argv[])
       get_ints(argc, argv, &i, &n_erode_seg, 1);
       erode_seg_flag = TRUE;
     }
+    else if(strcmp(argv[i], "--dil-seg") == 0)
+    {
+      get_ints(argc, argv, &i, &n_dil_seg, 1);
+      dil_seg_flag = TRUE;
+    }
+    else if(strcmp(argv[i], "--dil-seg-mask") == 0)
+    {
+      get_string(argc, argv, &i, dil_seg_mask);
+    }
     else if(strcmp(argv[i], "--cutends") == 0)
     {
       get_ints(argc, argv, &i, &ncutends, 1);
@@ -1614,7 +1626,7 @@ int main(int argc, char *argv[])
             "= --zero_ge_z_offset option ignored.\n");
   }
 
-  printf("$Id: mri_convert.c,v 1.202 2012/10/17 19:23:56 greve Exp $\n");
+  printf("$Id: mri_convert.c,v 1.203 2012/12/06 21:44:17 greve Exp $\n");
   printf("reading from %s...\n", in_name_only);
 
   if (in_volume_type == MGH_MORPH)
@@ -3068,6 +3080,23 @@ int main(int argc, char *argv[])
   if(erode_seg_flag == TRUE){
     printf("Eroding segmentation %d\n",n_erode_seg);
     mri2 = MRIerodeSegmentation(mri, NULL,n_erode_seg,0);
+    if (mri2 == NULL) exit(1);
+    MRIfree(&mri);
+    mri = mri2;
+  }
+  if(dil_seg_flag == TRUE){
+    mritmp = NULL;
+    if(dil_seg_mask[0] == '\0')
+      printf("Dilating segmentation %d\n",n_dil_seg);
+    else{
+      printf("Dilating segmentation, mask %s\n",dil_seg_mask);
+      mritmp = MRIread(dil_seg_mask);
+      if(mritmp == NULL){
+	printf("ERROR: could not read %s\n",dil_seg_mask);
+	exit(1);
+      }
+    }
+    mri2 = MRIdilateSegmentation(mri, NULL, n_dil_seg, mritmp, &i);
     if (mri2 == NULL) exit(1);
     MRIfree(&mri);
     mri = mri2;
