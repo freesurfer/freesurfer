@@ -10,9 +10,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: greve $
-#    $Date: 2011/08/26 20:20:40 $
-#    $Revision: 1.59.2.3 $
+#    $Author: mreuter $
+#    $Date: 2012/12/06 16:06:52 $
+#    $Revision: 1.59.2.4 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -29,7 +29,7 @@
 #
 setenv FIX_VERTEX_AREA
 
-set VERSION = '$Id: mris_preproc,v 1.59.2.3 2011/08/26 20:20:40 greve Exp $';
+set VERSION = '$Id: mris_preproc,v 1.59.2.4 2012/12/06 16:06:52 mreuter Exp $';
 
 set PrintHelp = 0;
 set subjlist = ();
@@ -394,6 +394,28 @@ while( $#argv != 0 )
         exit 1;
       endif
       set sl = `cat $fsgdf | awk '{if($1 == "Input") print $2}'`;
+      set subjlist = ($subjlist $sl);
+      breaksw
+
+    case "--qdec-long":
+      if ( $#argv == 0) goto arg1err;
+      set fsgdf = $argv[1]; shift;
+      if(! -e $fsgdf) then
+        echo "ERROR: cannot find $fsgdf";
+        exit 1;
+      endif
+      set sl = `cat $fsgdf | awk '{if ($1 != "fsid" && substr($1,0,1) != "#") printf("%s.long.%s\n", $1, $2)}'`;
+      set subjlist = ($subjlist $sl);
+      breaksw
+
+    case "--qdec":
+      if ( $#argv == 0) goto arg1err;
+      set fsgdf = $argv[1]; shift;
+      if(! -e $fsgdf) then
+        echo "ERROR: cannot find $fsgdf";
+        exit 1;
+      endif
+      set sl = `cat $fsgdf | awk '{if ($1 != "fsid" && substr($1,0,1) != "#") print $1}'`;
       set subjlist = ($subjlist $sl);
       breaksw
 
@@ -987,6 +1009,8 @@ usage_exit:
   echo "  --s subj1 <--s subj2 ... --s subjN>"
   echo "  --fsgd fsgdfile"
   echo "  --f subjectlistfile"
+  echo "  --qdec qdectable"
+  echo "  --qdec-long longitudinal qdectable"
   echo ""
   echo "  --is surfmeasfile <--is surfmeasfile> "
   echo "  --srcfmt fmt : source format"
@@ -1104,6 +1128,18 @@ for more info. For use with --meas.
 
 List all subjects separated by white space in subjlistfile. This is just an
 alternative to using an fsgd file. For use with --meas.
+
+--qdec qdectable
+
+Specify list of subjects via qdec table file. It is assumed that the first column
+is the "fsid" (subject id). Rows starting with "#" are skipped.
+
+--qdec-long qdectable
+
+Specify list of subjects via longitudinal qdec table file. It is assumed that the
+first column is the "fsid" (subject_tp id) and the second is "fsid-base" that
+specifies the base name (fixed per subject). Internally longitudinal subject ids 
+are created as <fsid>.long.<fsid-base>. Rows starting with "#" are skipped. 
 
 --is surfmeasfile
 
