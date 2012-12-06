@@ -10,8 +10,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2012/09/05 14:46:08 $
- *    $Revision: 1.36 $
+ *    $Date: 2012/12/06 18:43:47 $
+ *    $Revision: 1.37 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -26,7 +26,7 @@
  */
 
 
-// $Id: mri_binarize.c,v 1.36 2012/09/05 14:46:08 greve Exp $
+// $Id: mri_binarize.c,v 1.37 2012/12/06 18:43:47 greve Exp $
 
 /*
   BEGINHELP
@@ -90,6 +90,11 @@ voxels in the volume (nvoxtot), and the percent matching
 Value to use for those voxels that are in the threshold/match
 (--binval) or out of the range (--binvalnot). These must be integer
 values. binvalnot only applies when a merge volume is NOT specified.
+
+--replace V1 V2
+
+Replace every occurrence of (int) value V1 with value V2. Multiple 
+--replace args are possible.
 
 --frame frameno
 
@@ -187,7 +192,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_binarize.c,v 1.36 2012/09/05 14:46:08 greve Exp $";
+static char vcid[] = "$Id: mri_binarize.c,v 1.37 2012/12/06 18:43:47 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -237,6 +242,8 @@ int DoFDR = 0;
 int FDRSign = 0;
 
 int nErodeNN=0, NNType=0;
+
+int nReplace = 0, SrcReplace[1000], TrgReplace[1000];
 
 /*---------------------------------------------------------------*/
 int main(int argc, char *argv[]) {
@@ -386,67 +393,75 @@ int main(int argc, char *argv[]) {
   if (OutVol == NULL) exit(1);
   MRIcopyHeader(InVol, OutVol);
 
-  // Binarize
-  mergeval = BinValNot;
-  InMask = 1;
   nhits = 0;
-  for(frame = fstart; frame <= fend; frame++){
-    for (c=0; c < InVol->width; c++) {
-      for (r=0; r < InVol->height; r++) {
-	for (s=0; s < InVol->depth; s++) {
-	  if(MergeVol) mergeval = MRIgetVoxVal(MergeVol,c,r,s,frame);
-
-	  // Skip if on the edge
-	  if( (ZeroColEdges &&   (c == 0 || c == InVol->width-1))  ||
-	      (ZeroRowEdges &&   (r == 0 || r == InVol->height-1)) ||
-	      (ZeroSliceEdges && (s == 0 || s == InVol->depth-1)) ){
-	    MRIsetVoxVal(OutVol,c,r,s,frame,mergeval);
-	    continue;
-	  }
-
-	  // Skip if not in the mask
-	  if(MaskVol) {
-	    maskval = MRIgetVoxVal(MaskVol,c,r,s,0);
-	    if(maskval < MaskThresh){
-	      MRIsetVoxVal(OutVol,c,r,s,frame-fstart,mergeval);
+  if(nReplace == 0){
+    // Binarize
+    mergeval = BinValNot;
+    InMask = 1;
+    for(frame = fstart; frame <= fend; frame++){
+      for (c=0; c < InVol->width; c++) {
+	for (r=0; r < InVol->height; r++) {
+	  for (s=0; s < InVol->depth; s++) {
+	    if(MergeVol) mergeval = MRIgetVoxVal(MergeVol,c,r,s,frame);
+	    
+	    // Skip if on the edge
+	    if( (ZeroColEdges &&   (c == 0 || c == InVol->width-1))  ||
+		(ZeroRowEdges &&   (r == 0 || r == InVol->height-1)) ||
+		(ZeroSliceEdges && (s == 0 || s == InVol->depth-1)) ){
+	      MRIsetVoxVal(OutVol,c,r,s,frame,mergeval);
 	      continue;
 	    }
-	  }
-
-	  // Get the value at this voxel
-	  val = MRIgetVoxVal(InVol,c,r,s,frame);
-
-	  if(DoMatch){
-	    // Check for a match
-	    Matched = 0;
-	    for(n=0; n < nMatch; n++){
-	      if(fabs(val - MatchValues[n]) < 2*FLT_MIN){
-		MRIsetVoxVal(OutVol,c,r,s,frame-fstart,BinVal);
-		Matched = 1;
-		nhits ++;
-		break;
+	    
+	    // Skip if not in the mask
+	    if(MaskVol) {
+	      maskval = MRIgetVoxVal(MaskVol,c,r,s,0);
+	      if(maskval < MaskThresh){
+		MRIsetVoxVal(OutVol,c,r,s,frame-fstart,mergeval);
+		continue;
 	      }
 	    }
-	    if(!Matched) MRIsetVoxVal(OutVol,c,r,s,frame-fstart,mergeval);
-	  }
-	  else{
-	    // Determine whether it is in range
-	    if((MinThreshSet && (val < MinThresh)) ||
-	       (MaxThreshSet && (val > MaxThresh))){
-	      // It is NOT in the Range
-	      MRIsetVoxVal(OutVol,c,r,s,frame-fstart,mergeval);
+	    
+	    // Get the value at this voxel
+	    val = MRIgetVoxVal(InVol,c,r,s,frame);
+	    
+	    if(DoMatch){
+	      // Check for a match
+	      Matched = 0;
+	      for(n=0; n < nMatch; n++){
+		if(fabs(val - MatchValues[n]) < 2*FLT_MIN){
+		  MRIsetVoxVal(OutVol,c,r,s,frame-fstart,BinVal);
+		  Matched = 1;
+		  nhits ++;
+		  break;
+		}
+	      }
+	      if(!Matched) MRIsetVoxVal(OutVol,c,r,s,frame-fstart,mergeval);
 	    }
-	    else {
-	      // It is in the Range
-	      MRIsetVoxVal(OutVol,c,r,s,frame-fstart,BinVal);
-	      nhits ++;
+	    else{
+	      // Determine whether it is in range
+	      if((MinThreshSet && (val < MinThresh)) ||
+		 (MaxThreshSet && (val > MaxThresh))){
+		// It is NOT in the Range
+		MRIsetVoxVal(OutVol,c,r,s,frame-fstart,mergeval);
+	      }
+	      else {
+		// It is in the Range
+		MRIsetVoxVal(OutVol,c,r,s,frame-fstart,BinVal);
+		nhits ++;
+	      }
 	    }
-	  }
-	  
-	} // slice
-      } // row
-    } // col
-  } // frame
+	    
+	  } // slice
+	} // row
+      } // col
+    } // frame
+  } // if(nReplace == 0)
+
+  if(nReplace != 0){
+    printf("Replacing %d\n",nReplace);
+    for(n=0; n < nReplace; n++) printf("%2d:  %4d %4d\n",n+1,SrcReplace[n],TrgReplace[n]);
+    OutVol = MRIreplaceList(InVol, SrcReplace, TrgReplace, nReplace, NULL);
+  }
 
   printf("Found %d values in range\n",nhits);
 
@@ -682,7 +697,14 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--fdr-pos")) FDRSign = +1;
     else if (!strcasecmp(option, "--fdr-neg")) FDRSign = -1;
     else if (!strcasecmp(option, "--fdr-abs")) FDRSign =  0; //default
-    else if (!strcasecmp(option, "--binval")) {
+
+    else if (!strcasecmp(option, "--replace")) {
+      if(nargc < 2) CMDargNErr(option,2);
+      sscanf(pargv[0],"%d",&SrcReplace[nReplace]);
+      sscanf(pargv[1],"%d",&TrgReplace[nReplace]);
+      nReplace++;
+      nargsused = 2;
+    }    else if (!strcasecmp(option, "--binval")) {
       if (nargc < 1) CMDargNErr(option,1);
       sscanf(pargv[0],"%d",&BinVal);
       nargsused = 1;
@@ -809,6 +831,7 @@ static void print_usage(void) {
   printf("   --fdr fdrthresh : compute min based on FDR (assuming -log10(p) input)\n");
   printf("     --fdr-pos, --fdr-neg, --fdr-abs (use only pos, neg, or abs; abs is default)\n");
   printf("   --match matchval <matchval2 ...>  : match instead of threshold\n");
+  printf("   --replace V1 V2 : replace voxels=V1 with V2\n");
   printf("   --ctx-wm : set match vals to 2, 41, 77, 251-255 (aseg for cerebral WM)\n");
   printf("   --all-wm : set match vals to 2, 41, 77, 251-255, 7, and 46, (aseg for all WM)\n");
   printf("   --ventricles : set match vals those for aseg ventricles+choroid (not 4th)\n");
@@ -911,6 +934,11 @@ printf("Value to use for those voxels that are in the threshold/match\n");
 printf("(--binval) or out of the range (--binvalnot). These must be integer\n");
 printf("values. binvalnot only applies when a merge volume is NOT specified.\n");
 printf("\n");
+printf("--replace V1 V2\n");
+printf("\n");
+printf("Replace every occurrence of (int) value V1 with value V2. Multiple \n");
+printf("--replace args are possible.\n");
+printf("\n");
 printf("--frame frameno\n");
 printf("\n");
 printf("Use give frame of the input. 0-based. Default is 0.\n");
@@ -972,7 +1000,7 @@ static void check_options(void) {
   }
   if(MinThreshSet == 0  && MaxThreshSet == 0 &&
      RMinThreshSet == 0 && RMaxThreshSet == 0 &&
-     !DoMatch && !DoFDR) {
+     !DoMatch && !DoFDR && nReplace == 0) {
     printf("ERROR: must specify minimum and/or maximum threshold or match values\n");
     exit(1);
   }
