@@ -10,8 +10,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2012/12/06 18:43:47 $
- *    $Revision: 1.37 $
+ *    $Date: 2012/12/06 22:26:29 $
+ *    $Revision: 1.38 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -26,7 +26,7 @@
  */
 
 
-// $Id: mri_binarize.c,v 1.37 2012/12/06 18:43:47 greve Exp $
+// $Id: mri_binarize.c,v 1.38 2012/12/06 22:26:29 greve Exp $
 
 /*
   BEGINHELP
@@ -192,7 +192,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_binarize.c,v 1.37 2012/12/06 18:43:47 greve Exp $";
+static char vcid[] = "$Id: mri_binarize.c,v 1.38 2012/12/06 22:26:29 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -616,6 +616,7 @@ static int parse_commandline(int argc, char **argv) {
       DoMatch = 1;
     }
     else if (!strcasecmp(option, "--gm")) {
+      // Create a mask of all other stuff and invert
       MatchValues[nMatch++] =  2;
       MatchValues[nMatch++] = 41;
       MatchValues[nMatch++] = 77;
@@ -636,6 +637,7 @@ static int parse_commandline(int argc, char **argv) {
       MatchValues[nMatch++] = 31; // Left-choroid-plexus 
       MatchValues[nMatch++] = 63; // Right-choroid-plexus 
       MatchValues[nMatch++] =  0; // Background
+      MatchValues[nMatch++] = 24; // CSF
       DoMatch = 1;
       // Invert the matches above
       BinVal = 0;
