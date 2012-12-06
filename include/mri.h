@@ -8,8 +8,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2012/12/05 19:30:45 $
- *    $Revision: 1.443 $
+ *    $Date: 2012/12/06 18:31:56 $
+ *    $Revision: 1.444 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -994,11 +994,9 @@ int MRIvol2VolR(MRI *src, MRI *targ, MATRIX *Vt2s,
 
 MRI *MRIresampleFill(MRI *src, MRI *template_vol,
                      int resample_type, float fill_val) ;
-MRI *MRIreplaceValuesOnly(MRI *mri_src,
-                          MRI *mri_dst,
-                          float in_val, float out_val) ;
-MRI   *MRIreplaceValues(MRI *mri_src, MRI *mri_dst,
-                        float in_val, float out_val) ;
+MRI *MRIreplaceList(MRI *seg, int *srclist, int *targlist, int nlist, MRI *out);
+MRI *MRIreplaceValuesOnly(MRI *mri_src, MRI *mri_dst,float in_val, float out_val) ;
+MRI   *MRIreplaceValues(MRI *mri_src, MRI *mri_dst, float in_val, float out_val) ;
 MRI   *MRIreplaceValueRange(MRI *mri_src, MRI *mri_dst,
                             float low_in_val, float hi_in_val, float out_val) ;
 MRI   *MRIreplaceValuesUchar(MRI *mri_src, MRI *mri_dst,

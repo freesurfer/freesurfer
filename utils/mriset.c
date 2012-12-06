@@ -9,8 +9,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2012/12/05 19:30:45 $
- *    $Revision: 1.85 $
+ *    $Date: 2012/12/06 18:31:57 $
+ *    $Revision: 1.86 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -2424,16 +2424,47 @@ MRIreplaceValueRange(MRI *mri_src, MRI *mri_dst,float low_in_val, float hi_in_va
   }
   return(mri_dst) ;
 }
-/*-----------------------------------------------------
-  Parameters:
+/*!
+  \fn MRI *MRIreplaceList(MRI *seg, int *srclist, int *targlist, int nlist, MRI *out)
+  \brief Replaces a value in the source list with the corresponding value 
+  in the target list. See also MRIreplaceValues().
+*/
+MRI *MRIreplaceList(MRI *seg, int *srclist, int *targlist, int nlist, MRI *out)
+{
+  int c,r,s,n,segid;
 
-  Returns value:
+  if(seg == out){
+    printf("ERROR: MRIreplaceList(): cannot be done in-place\n");
+    return(NULL);
+  }
+  if(!out) out = MRIallocSequence(seg->width, seg->height, seg->depth,seg->type, 1);
+  if(MRIdimMismatch(seg, out, 0)){
+    printf("ERROR: MRIreplaceList(): seg/out dim mismatch\n");
+    return(NULL);
+  }
 
-  Description
-  replace a single value with a specified one
-  ------------------------------------------------------*/
-MRI *
-MRIreplaceValues(MRI *mri_src, MRI *mri_dst, float in_val, float out_val)
+  out = MRIcopy(seg,out);
+  for(c=0; c < seg->width; c++){
+    for(r=0; r < seg->height; r++){
+      for(s=0; s < seg->depth; s++){
+	segid = MRIgetVoxVal(seg,c,r,s,0);
+	for(n = 0; n < nlist; n++){
+	  if(segid == srclist[n]){
+	    MRIsetVoxVal(out,c,r,s,0, targlist[n]);
+	    break;
+	  }
+	}//n
+      }//s
+    }//r
+  }//c
+  return(out);
+}
+
+/*!
+  \fn MRI *MRIreplaceValues(MRI *mri_src, MRI *mri_dst, float in_val, float out_val)
+  \brief Replaces a single value with a specified one. See also MRIreplaceList().
+*/
+MRI *MRIreplaceValues(MRI *mri_src, MRI *mri_dst, float in_val, float out_val)
 {
   int     width, height, depth, x, y, z, frame ;
   float   val ;
