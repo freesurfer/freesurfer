@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:55 $
- *    $Revision: 1.8 $
+ *    $Author: greve $
+ *    $Date: 2012/12/07 21:53:31 $
+ *    $Revision: 1.9 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -32,6 +32,7 @@
 #include <memory.h>
 
 #include "mri.h"
+#include "macros.h"
 #include "const.h"
 #include "region.h"
 #include "diag.h"
@@ -319,4 +320,55 @@ regionCornerCoords(MRI_REGION *r, int which_corner, int *px, int *py, int *pz)
     break ;
   }
   return(NO_ERROR) ;
+}
+/*!
+  \fn MRI_REGION *REGIONgetBoundingBox(MRI *mask, int npad)
+  \brief Determines bounding box as corners of the smallest box needed
+  to fit all the non-zero voxels. If npad is non-zero then then the box
+  is expanded by npad in each direction (making it 2*npad bigger in each
+  dimension).
+*/
+MRI_REGION *REGIONgetBoundingBox(MRI *mask, int npad)
+{
+  int c, r, s;
+  int cmin, cmax, rmin, rmax, smin, smax;
+  MRI_REGION *region;
+  float v;
+  
+  cmin = rmin = smin = 1000000;
+  cmax = rmax = smax = 0;
+
+  for(c=0; c < mask->width; c++){
+    for(r=0; r < mask->height; r++){
+      for(s=0; s < mask->depth; s++){
+	v = MRIgetVoxVal(mask,c,r,s,0);
+	if(iszero(v)) continue;
+	if(cmin > c) cmin = c;
+	if(rmin > r) rmin = r;
+	if(smin > s) smin = s;
+	if(cmax < c) cmax = c;
+	if(rmax < r) rmax = r;
+	if(smax < s) smax = s;
+      }
+    }
+  }
+  region = REGIONalloc();
+  region->x  = cmin - npad;
+  region->y  = rmin - npad;
+  region->z  = smin - npad;
+  region->dx = cmax-cmin + 2*npad;
+  region->dy = rmax-rmin + 2*npad;
+  region->dz = smax-smin + 2*npad;
+
+  return(region);
+}
+
+/*!
+  \fn int REGIONprint(FILE *fp, MRI_REGION *r)
+  \brief Prints REGION struct.
+*/
+int REGIONprint(FILE *fp, MRI_REGION *r)
+{
+  fprintf(fp,"%d %d %d  %d %d %d\n",r->x,r->y,r->z,r->dx,r->dy,r->dz);
+  return(0);
 }
