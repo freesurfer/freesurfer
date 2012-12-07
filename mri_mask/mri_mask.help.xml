@@ -42,8 +42,10 @@
       <explanation>source volume for -xform (if not available from the xform file)</explanation>
       <argument>-lta_dst %s</argument>
       <explanation>target volume for -xform (if not available from the xform file)</explanation>
-      <argument>-T #</argument>
-      <explanation>threshold mask volume at # (i.e., all values &lt;= T considered as zero)</explanation>
+      <argument>-T threshold</argument>
+      <explanation>threshold mask volume at threshold (i.e., all values &lt;= T considered as zero)</explanation>
+      <argument>-bb npad</argument>
+      <explanation>Create and extract data from a bounding box around the mask. The bounding box is expanded by npad voxels in each direction.</explanation>
       <argument>-abs</argument>
       <explanation>take abs() before applying threshold</explanation>
       <argument>-transfer #</argument>

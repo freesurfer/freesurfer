@@ -14,9 +14,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2011/12/08 00:49:06 $
- *    $Revision: 1.17 $
+ *    $Author: greve $
+ *    $Date: 2012/12/07 22:45:50 $
+ *    $Revision: 1.18 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -47,8 +47,9 @@
 #include "fio.h"
 #include "version.h"
 #include "transform.h"
+#include "region.h"
 
-static char vcid[] = "$Id: mri_mask.c,v 1.17 2011/12/08 00:49:06 fischl Exp $";
+static char vcid[] = "$Id: mri_mask.c,v 1.18 2012/12/07 22:45:50 greve Exp $";
 
 void usage(int exit_val);
 
@@ -70,6 +71,7 @@ static int do_transfer=0;
 static float transfer_val;
 static int keep_mask_deletion_edits = 0; // if 1, keep mask voxels with value=1
 int DoAbs = 0;
+int DoBB = 0, nPadBB=0;
 
 int main(int argc, char *argv[])
 {
@@ -78,15 +80,16 @@ int main(int argc, char *argv[])
   int nargs, ac, nmask;
   int x, y, z;
   float value;
-
+  MRI_REGION *region;
   LTA          *lta = 0;
   int          transform_type;
+  MRI *mri_tmp;
 
   nargs =
     handle_version_option
     (
       argc, argv,
-      "$Id: mri_mask.c,v 1.17 2011/12/08 00:49:06 fischl Exp $", "$Name:  $"
+      "$Id: mri_mask.c,v 1.18 2012/12/07 22:45:50 greve Exp $", "$Name:  $"
     );
   if (nargs && argc - nargs == 1)
   {
@@ -133,7 +136,6 @@ int main(int argc, char *argv[])
   /* Read LTA transform and apply it to mri_mask */
   if (xform_fname != NULL)
   {
-    MRI *mri_tmp;
 
     printf("Apply the given LTA xfrom to the mask volume\n");
     // read transform
@@ -299,7 +301,22 @@ int main(int argc, char *argv[])
       }
     }
   }
-  printf("Found %d voxels in mask\n",nmask);
+  printf("Found %d voxels in mask (pct=%6.2f)\n",nmask,
+	 100.0*nmask/(mri_mask->width*mri_mask->height*mri_mask->depth));
+
+  if(DoBB){
+    printf("Computing bounding box, npad = %d\n",nPadBB);
+    region = REGIONgetBoundingBox(mri_mask,nPadBB);
+    REGIONprint(stdout, region);
+    mri_tmp = MRIextractRegion(mri_mask, NULL, region);
+    if(mri_tmp == NULL) exit(1);
+    MRIfree(&mri_mask);
+    mri_mask = mri_tmp;
+    mri_tmp = MRIextractRegion(mri_src, NULL, region);
+    if(mri_tmp == NULL) exit(1);
+    MRIfree(&mri_src);
+    mri_src = mri_tmp;
+  }
 
   int mask=0;
   float out_val=0;
@@ -382,6 +399,13 @@ get_option(int argc, char *argv[])
     threshold = (float)atof(argv[2]);
     nargs = 1;
     fprintf(stderr, "threshold mask volume at %g\n", threshold);
+  }
+  else if (!stricmp(option, "BB")|| !stricmp(option, "boundingbox"))
+  {
+    nPadBB = (int)atoi(argv[2]);
+    DoBB = 1;
+    nargs = 1;
+    printf("bounding box npad = %d\n",nPadBB);
   }
   else if (!stricmp(option, "transfer"))
   {
