@@ -9,8 +9,8 @@
 #
 # CVS Revision Info:
 #    $Author: zkaufman $
-#    $Date: 2012/12/05 18:22:38 $
-#    $Revision: 1.581 $
+#    $Date: 2012/12/07 21:34:21 $
+#    $Revision: 1.582 $
 #
 ########################################################################
 AC_PREREQ(2.57)
@@ -217,6 +217,11 @@ if test "$ac_have_gcc_44" = "yes"; then
   cp /usr/bin/libtool .
 fi
 
+# when building on the Mac, use the autotool package provided by FreeSurfer.
+if test `uname -s` = "Darwin"; then
+  AC_MSG_NOTICE(Copying /usr/bin/glibtool overtop the PROG_LIBTOOL)
+  cp /usr/pubsw/packages/autotools/bin/libtool .
+fi  
 ################################################################
 # Checks for header files.
 ################################################################
@@ -524,7 +529,6 @@ case "${target}" in
  SHARED_CFLAGS="-fno-common"
  SHARED_LDFLAGS="-dynamiclib"
  CPPFLAGS="-gfull -O3 -msse2 -mfpmath=sse $WALL $WERROR $LFS_CFLAGS"
- FFLAGS="-m64"
  FCLIBS="-L/usr/lib -lgcc"
  ;;
  i*86-*-solaris*)
@@ -592,12 +596,15 @@ if test ! "$OS" = "Darwin"; then
                            [LIB_GFORTRAN="-lgfortran"],[])
 fi
 
-if test "$OS" = "Darwin"; then
+machine_hardware=`uname -m`
+if test "$OS" = "Darwin" && "$machine_hardware" = "x86_64"; then
   if test ! "x$F77" = "xgfortran"; then
-    AC_MSG_ERROR([FATAL: gfortran (not $F77) required for OSX build.])
+    AC_MSG_ERROR([FATAL: gfortran (not $F77) required for 64-bit Mac OSX systems.])
+  else
+    FFLAGS="-m64"
   fi
 fi
-        
+
 AC_SUBST(LIB_GFORTRAN)
 AM_CONDITIONAL(HAVE_GFORTRAN, test ! "x$LIB_GFORTRAN" = "x" )
 # note: gcc 4.4 might give 'undefined reference to _gfortran_ errors, and so
@@ -646,7 +653,6 @@ if test "$ac_have_gcc_44" = "yes"; then
   AC_MSG_NOTICE(Using OpenMP with gcc 4.4)
 fi
 AM_CONDITIONAL(HAVE_OPENMP, test "x$ac_have_openmp" = "xyes")
-
 
 ##############################################################
 # OpenCV
@@ -2042,6 +2048,12 @@ m4_include([m4/autotroll.m4])
 AT_WITH_QT([opengl])
 # support for --without-qt:
 AM_CONDITIONAL(ENABLE_QT_APPS, ! test "x$QT_PATH" = "x")
+
+AC_ARG_ENABLE(all-apps,
+ [  --disable-all-apps      disable all apps],
+ [ QT_PATH=""
+ ])
+
 # hack: make sure our QT_LIBS overrides /usr/lib64 native Qt install
 # this is problematic on Centos6, where qt 4.6.3 is installed, but
 # we (at the NMR Center) want to use v4.7.1 in /usr/pubsw/packages/qt
