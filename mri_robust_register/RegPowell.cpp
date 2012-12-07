@@ -8,8 +8,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2012/12/04 16:21:56 $
- *    $Revision: 1.19 $
+ *    $Date: 2012/12/07 03:55:14 $
+ *    $Revision: 1.20 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -67,13 +67,13 @@ public:
   {
     set_number_of_unknowns(pdim);
   }
-  ;
+
 //  my_cost_function( double (*function)(const vnl_vector<double> &), int pdim ):vnl_cost_function(pdim),mFunction(function){};
   virtual double f(const vnl_vector<double> & p)
   {
     return (*mFunction)(p);
   }
-  ;
+
 };
 
 double RegPowell::costFunction(const vnl_vector<double>& p)

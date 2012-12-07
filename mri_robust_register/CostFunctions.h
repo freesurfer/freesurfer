@@ -9,8 +9,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2012/12/04 16:21:56 $
- *    $Revision: 1.15 $
+ *    $Date: 2012/12/07 03:55:14 $
+ *    $Revision: 1.16 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -35,6 +35,7 @@ extern "C"
 {
 #endif
 #include "mri.h"
+#include "mriBSpline.h"
 #include "matrix.h"
 #ifdef __cplusplus
 }
@@ -78,10 +79,14 @@ public:
   //! Get principal orientation
   static vnl_matrix_fixed<double, 3, 3> orientation(MRI * i);
 
-  //! never really tested
+  //! Least Squares
   static double leastSquares(MRI * si, MRI * ti,
     const vnl_matrix_fixed<double, 4, 4>& Msi,
     const vnl_matrix_fixed<double, 4, 4>& Mti, int d1, int d2, int d3);
+  static double leastSquares(MRI_BSPLINE * sbi, MRI_BSPLINE * tbi,
+    const vnl_matrix_fixed<double, 4, 4>& Msi,
+    const vnl_matrix_fixed<double, 4, 4>& Mti, int d1, int d2, int d3);
+
   //! never really tested
   static double tukeyBiweight(MRI *i1, MRI * i2 = NULL, double sat = 4.685);
   //! never really tested

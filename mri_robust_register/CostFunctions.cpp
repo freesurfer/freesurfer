@@ -9,8 +9,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2012/12/04 16:21:56 $
- *    $Revision: 1.20 $
+ *    $Date: 2012/12/07 03:55:14 $
+ *    $Revision: 1.21 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -164,6 +164,51 @@ double CostFunctions::leastSquares(MRI *mriS, MRI* mriT,
           MRIsampleVolumeFrame(mriS, xs, ys, zs, f, &vs);
           if (vs == -1) continue;
           MRIsampleVolumeFrame(mriT, xt, yt, zt, f, &vt);
+          if (vt == -1) continue;
+        
+          dd = vs-vt;
+          d += dd*dd;  
+        }
+      }
+    }
+  }
+
+  return d;
+
+}
+
+double CostFunctions::leastSquares(MRI_BSPLINE *mriS, MRI_BSPLINE* mriT,
+    const vnl_matrix_fixed<double, 4, 4>& Msi,
+    const vnl_matrix_fixed<double, 4, 4>& Mti, int d1, int d2, int d3)
+{
+  mriS->coeff->outside_val = -1;
+  mriT->coeff->outside_val = -1;
+  double dt[4] = { mriT->coeff->width, mriT->coeff->height, mriT->coeff->depth , mriT->coeff->nframes };
+  int x, y, z, f;
+  double dd, d=0;
+  double xs, ys, zs;
+  double xt, yt, zt;
+  double vs, vt;
+  for (z = 0; z < dt[2] - d3 + 1; z += d3)
+  {
+    for (y = 0; y < dt[1] - d2 + 1; y += d2)
+    {
+      for (x = 0; x < dt[0] - d1 + 1; x += d1)
+      {
+
+        xt = Mti[0][0] * x + Mti[0][1] * y + Mti[0][2] * z + Mti[0][3];
+        yt = Mti[1][0] * x + Mti[1][1] * y + Mti[1][2] * z + Mti[1][3];
+        zt = Mti[2][0] * x + Mti[2][1] * y + Mti[2][2] * z + Mti[2][3];
+
+        xs = Msi[0][0] * x + Msi[0][1] * y + Msi[0][2] * z + Msi[0][3];
+        ys = Msi[1][0] * x + Msi[1][1] * y + Msi[1][2] * z + Msi[1][3];
+        zs = Msi[2][0] * x + Msi[2][1] * y + Msi[2][2] * z + Msi[2][3];
+
+        for (f = 0; f < dt[3]; f++)
+        {
+          MRIsampleBSpline(mriS, xs, ys, zs, f, &vs);
+          if (vs == -1) continue;
+          MRIsampleBSpline(mriT, xt, yt, zt, f, &vt);
           if (vt == -1) continue;
         
           dd = vs-vt;
