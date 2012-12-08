@@ -601,10 +601,10 @@ kvlEstimateAtlasParameters_LDADD=$(LIBS_ITK) \
 	$(VTK_SQLITE_LIB) \
 	-lvtkImaging -lvtkFiltering \
 	-lvtkCommon -lvtksys \
-	-lvtkexoIIc -lvtkNetCDF \
+	-lvtkexoIIc -lvtkNetCDF $(VTK_NETCDFCXX_LIB) \
 	-lvtkVolumeRendering -lvtkRendering -lvtkftgl \
-	-lvtkWidgets -lvtkHybrid \
-	-lvtkIO -lvtkDICOMParser $(VTK_MPEG2ENCODE_LIB) \
+	-lvtkWidgets -lvtkHybrid $(VTK_HDF5_LIB) \
+	-lvtkIO	$(VTK_LSDYNA_LIB) -lvtkDICOMParser $(VTK_MPEG2ENCODE_LIB) \
 	$(FLTK_LIBS) $(FLTK_LDFLAGS)\
 	$(addprefix $(top_builddir)/, $(LIBS_MGH) )
 kvlEstimateAtlasParameters_LDFLAGS = $(OS_LDFLAGS)
@@ -632,10 +632,10 @@ kvlThresholdImage_LDADD=$(LIBS_ITK) \
 	$(VTK_SQLITE_LIB) \
 	-lvtkImaging -lvtkFiltering \
 	-lvtkCommon -lvtksys \
-	-lvtkexoIIc -lvtkNetCDF \
+	-lvtkexoIIc -lvtkNetCDF $(VTK_NETCDFCXX_LIB) \
 	-lvtkVolumeRendering -lvtkRendering -lvtkftgl \
-	-lvtkWidgets -lvtkHybrid \
-	-lvtkIO -lvtkDICOMParser $(VTK_MPEG2ENCODE_LIB) \
+	-lvtkWidgets -lvtkHybrid $(VTK_HDF5_LIB) \
+	-lvtkIO	$(VTK_LSDYNA_LIB) -lvtkDICOMParser $(VTK_MPEG2ENCODE_LIB) \
 	$(FLTK_LIBS) $(FLTK_LDFLAGS)\
 	$(addprefix $(top_builddir)/, $(LIBS_MGH) )
 kvlThresholdImage_LDFLAGS = $(OS_LDFLAGS)
@@ -663,10 +663,10 @@ kvlViewImage_LDADD=$(LIBS_ITK) \
 	$(VTK_SQLITE_LIB) \
 	-lvtkImaging -lvtkFiltering \
 	-lvtkCommon -lvtksys \
-	-lvtkexoIIc -lvtkNetCDF \
+	-lvtkexoIIc -lvtkNetCDF $(VTK_NETCDFCXX_LIB) \
 	-lvtkVolumeRendering -lvtkRendering -lvtkftgl \
-	-lvtkWidgets -lvtkHybrid \
-	-lvtkIO -lvtkDICOMParser $(VTK_MPEG2ENCODE_LIB) \
+	-lvtkWidgets -lvtkHybrid $(VTK_HDF5_LIB) \
+	-lvtkIO	$(VTK_LSDYNA_LIB) -lvtkDICOMParser $(VTK_MPEG2ENCODE_LIB) \
 	$(FLTK_LIBS) $(FLTK_LDFLAGS)\
 	$(addprefix $(top_builddir)/, $(LIBS_MGH) )
 kvlViewImage_LDFLAGS = $(OS_LDFLAGS)
@@ -692,10 +692,10 @@ kvlViewMeshCollectionWithGUI_LDADD=$(LIBS_ITK) \
 	$(VTK_SQLITE_LIB) \
 	-lvtkImaging -lvtkFiltering \
 	-lvtkCommon -lvtksys \
-	-lvtkexoIIc -lvtkNetCDF \
+	-lvtkexoIIc -lvtkNetCDF $(VTK_NETCDFCXX_LIB) \
 	-lvtkVolumeRendering -lvtkRendering -lvtkftgl \
-	-lvtkWidgets -lvtkHybrid \
-	-lvtkIO -lvtkDICOMParser $(VTK_MPEG2ENCODE_LIB) \
+	-lvtkWidgets -lvtkHybrid $(VTK_HDF5_LIB) \
+	-lvtkIO	$(VTK_LSDYNA_LIB) -lvtkDICOMParser $(VTK_MPEG2ENCODE_LIB) \
 	$(FLTK_LIBS) $(FLTK_LDFLAGS)\
 	$(addprefix $(top_builddir)/, $(LIBS_MGH) )
 kvlViewMeshCollectionWithGUI_LDFLAGS = $(OS_LDFLAGS)
@@ -749,10 +749,10 @@ kvlEvaluateSegmentation_LDADD=$(LIBS_ITK) \
 	$(VTK_SQLITE_LIB) \
 	-lvtkImaging -lvtkFiltering \
 	-lvtkCommon -lvtksys \
-	-lvtkexoIIc -lvtkNetCDF \
+	-lvtkexoIIc -lvtkNetCDF $(VTK_NETCDFCXX_LIB) \
 	-lvtkVolumeRendering -lvtkRendering -lvtkftgl \
-	-lvtkWidgets -lvtkHybrid \
-	-lvtkIO -lvtkDICOMParser $(VTK_MPEG2ENCODE_LIB) \
+	-lvtkWidgets -lvtkHybrid $(VTK_HDF5_LIB) \
+	-lvtkIO	$(VTK_LSDYNA_LIB) -lvtkDICOMParser $(VTK_MPEG2ENCODE_LIB) \
 	$(FLTK_LIBS) $(FLTK_LDFLAGS)\
 	$(addprefix $(top_builddir)/, $(LIBS_MGH) )
 kvlEvaluateSegmentation_LDFLAGS = $(OS_LDFLAGS)
