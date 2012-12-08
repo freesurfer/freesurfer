@@ -1,6 +1,6 @@
 #!/bin/tcsh -f
 
-set ID='$Id: build_release_type.csh,v 1.145 2012/08/20 16:15:21 nicks Exp $'
+set ID='$Id: build_release_type.csh,v 1.146 2012/12/08 16:17:20 nicks Exp $'
 
 unsetenv echo
 if ($?SET_ECHO_1) set echo=1
@@ -13,13 +13,15 @@ umask 002
 #  build_release_type stable-pub
 set RELEASE_TYPE=$1
 
-set STABLE_VER_NUM="v5.1.0"
-set STABLE_PUB_VER_NUM="v5.1.0"
+set STABLE_VER_NUM="v5.2.0"
+set STABLE_PUB_VER_NUM="v5.2.0"
 
 set HOSTNAME=`hostname -s`
 
 # note: Mac's need full email addr
-set SUCCESS_MAIL_LIST=(nicks@nmr.mgh.harvard.edu)
+set SUCCESS_MAIL_LIST=(\
+    nicks@nmr.mgh.harvard.edu \
+    zkaufman@nmr.mgh.harvard.edu)
 set FAILURE_MAIL_LIST=(\
     nicks@nmr.mgh.harvard.edu \
     fischl@nmr.mgh.harvard.edu \
@@ -29,13 +31,16 @@ set FAILURE_MAIL_LIST=(\
     koen@nmr.mgh.harvard.edu \
     lzollei@nmr.mgh.harvard.edu \
     rudolph@nmr.mgh.harvard.edu \
-    ayendiki@nmr.mgh.harvard.edu)
+    ayendiki@nmr.mgh.harvard.edu \
+    zkaufman@nmr.mgh.harvard.edu)
 #set FAILURE_MAIL_LIST=(nicks@nmr.mgh.harvard.edu)
-#if ("$HOSTNAME" == "hima") then
-#  set FAILURE_MAIL_LIST=(nicks@nmr.mgh.harvard.edu)
-#endif
+if ("$HOSTNAME" == "hima") then
+  set FAILURE_MAIL_LIST=(\
+    zkaufman@nmr.mgh.harvard.edu)
+endif
 if ("$HOSTNAME" == "sleet") then
-  set FAILURE_MAIL_LIST=(nicks@nmr.mgh.harvard.edu)
+  set FAILURE_MAIL_LIST=(\
+    zkaufman@nmr.mgh.harvard.edu)
 endif
 if ("$HOSTNAME" == "mist") then
   set FAILURE_MAIL_LIST=(nicks@nmr.mgh.harvard.edu)
@@ -288,6 +293,9 @@ endif
 # files, and files with conflicts, all these being a big no-no.
 # this stupid cd is to try to get Mac NFS to see CVSROOT:
 setenv CVSROOT /autofs/space/repo_001/dev
+if ("$HOSTNAME" == "hima") then
+  setenv CVSROOT /space/repo/1/dev
+endif
 cd $CVSROOT >>& $OUTPUTF
 sleep 3
 cd ${BUILD_DIR} >>& $OUTPUTF
