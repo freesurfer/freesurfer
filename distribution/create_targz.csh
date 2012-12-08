@@ -1,6 +1,6 @@
 #!/bin/tcsh -f
 
-set ID='$Id: create_targz.csh,v 1.31 2012/03/27 18:36:51 nicks Exp $'
+set ID='$Id: create_targz.csh,v 1.32 2012/12/08 16:22:01 nicks Exp $'
 
 unsetenv echo
 if ($?SET_ECHO_1) set echo=1
@@ -28,8 +28,8 @@ if ($?USE_SPACE_MINERVA) then
 endif
 
 if ("$PLATFORM" == "centos6_x86_64") then
-    if ("${HOSTNAME}" != "monster" ) then
-        echo "must run on machine monster"
+    if ("${HOSTNAME}" != "terrier" ) then
+        echo "must run on machine terrier"
         exit 1
     endif
 else if ("$PLATFORM" == "centos5_x86_64") then
@@ -53,6 +53,11 @@ else if ("$PLATFORM" == "leopard-ppc") then
         exit 1
     endif
 else if ("$PLATFORM" == "leopard-i686") then
+    if ("${HOSTNAME}" != "hima" ) then
+        echo "must run on machine hima"
+        exit 1
+    endif
+else if ("$PLATFORM" == "lion") then
     if ("${HOSTNAME}" != "hima" ) then
         echo "must run on machine hima"
         exit 1
@@ -89,7 +94,7 @@ cd ${LOCAL_FS}
 if ( ("$PLATFORM" == "leopard-ppc") || \
     ("$PLATFORM" == "leopard-i686") || \
     ( "$PLATFORM" == "tiger-ppc") || \
-    ( "$PLATFORM" == "tiger-i686") ) then
+    ( "$PLATFORM" == "lion") ) then
   if (-e /Users/Shared/tmp/$RELEASE_TYPE) \
     rm -Rf /Users/Shared/tmp/$RELEASE_TYPE
   echo "cp -r $RELEASE_TYPE /Users/Shared/tmp"
