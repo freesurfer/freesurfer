@@ -3,7 +3,7 @@
 
 # Creates segmentations and annotations for defect visualization
 
-set VERSION = '$Id: defect-seg,v 1.4 2008/12/15 22:57:49 greve Exp $';
+set VERSION = '$Id: defect-seg,v 1.5 2012/12/10 21:17:00 greve Exp $';
 
 set subject = ();
 set PrintHelp = 0;
@@ -28,6 +28,9 @@ goto parse_args;
 parse_args_return:
 goto check_params;
 check_params_return:
+
+set StartTime = `date`;
+set tSecStart = `date '+%s'`;
 
 cd $SUBJECTS_DIR/$subject
 
@@ -113,6 +116,14 @@ foreach hemi ($HemiList)
   $cmd | tee -a $LF
   if($status) exit 1
 
+  # Measure defect statistics
+  set cmd = (mri_segstats --annot $subject $hemi defects.fix \
+    --i $SUBJECTS_DIR/$subject/surf/$hemi.thickness \
+    --sum $SUBJECTS_DIR/$subject/stats/$hemi.defect.stats --excludeid 0)
+  echo $cmd | tee -a $LF
+  $cmd | tee -a $LF
+  if($status) exit 1
+
   # Map to fsaverage space
   if($DoMapToFsaverage) then
     set cmd = (mri_surf2surf --hemi $hemi\
@@ -130,6 +141,13 @@ end
 #-----------------------------------------
 echo "" | tee -a $LF
 echo "" | tee -a $LF
+set tSecEnd = `date '+%s'`;
+@ tSecRun = $tSecEnd - $tSecStart;
+set tRunHours = `echo $tSecRun/3600|bc -l`
+set tRunHours = `printf %5.2f $tRunHours`
+echo "Started at $StartTime " |& tee -a $LF
+echo "Ended   at `date`" |& tee -a $LF
+echo "defect-seg-Run-Time-Sec $tSecRun" |& tee -a $LF
 date | tee -a $LF
 echo "defect-seg done"  | tee -a $LF
 
@@ -157,6 +175,10 @@ while( $#argv != 0 )
     case "--rh-only":
       set DoLH = 0;
       set DoRH = 1;
+      breaksw
+
+    case "--fsaverage":
+      set DoMapToFsaverage = 1;
       breaksw
 
     case "--debug":
@@ -241,6 +263,7 @@ Creates:
   surf/?h.defect_labels.fix.bin.mgz
   label/?h.defects.nofix.annot
   label/?h.defects.fix.annot
+  stats/?h.defects.stats
 
 # ----------------------------------------------------------
 # List of defects, their numberic ID, and number of vertices,
@@ -255,6 +278,16 @@ less scripts/lh.defects.summary
      1     133379          36
      2     130681          32
      3     125634          65
+
+# ----------------------------------------------------------
+# See summary of defects:
+less stats/lh.defects.stats
+# This gives the area and average thickness over all defects
+# asegstats2table can be run on this file to get a table
+# of defects for multiple subjects
+# asegstats2table --stats=lh.defect.stats -t group.lh.defect.dat ...
+# Note: the output will say that it is "volume" but it is
+# really "Area_2mm", ie, area in square mm
 
 # ----------------------------------------------------------
 # Visualize defects as a segmentation with left hemi surfaces
