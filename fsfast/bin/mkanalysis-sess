@@ -7,8 +7,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2012/10/30 22:08:22 $
-#    $Revision: 1.64.2.3 $
+#    $Date: 2012/12/10 18:02:03 $
+#    $Revision: 1.64.2.4 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 # Bug reports: analysis-bugs@nmr.mgh.harvard.edu
 #
 
-set VERSION = '$Id: mkanalysis-sess,v 1.64.2.3 2012/10/30 22:08:22 greve Exp $';
+set VERSION = '$Id: mkanalysis-sess,v 1.64.2.4 2012/12/10 18:02:03 greve Exp $';
 
 set analysis = ();
 set TR = ();
@@ -922,7 +922,19 @@ cycles). You will be required to specify a paradigm file.
 
 Design is AB-Blocked (ie, periodic, two condition). Specify the period
 of stimuluation in seconds (NOTE: in previous versions you had to
-specify the number of cycles). No paradigm file is required.
+specify the number of cycles). No paradigm file is required. When
+selxavg3-sess is run, it will automatically create a Fourier analysis
+with components at the fundamental and first harmonic as well as
+components at a frequency just below and above the fundamental for a
+total of 4 frequencies each of which will have a real and imaginary
+component for a total of 8 regressors.  It will also create a contrast
+called "fund" (for "fundamental"). This contrast will be a F-contrast
+to test both the real (cosine) and imaginary (sine) components of the
+fundamental frequency with the fsig volume being the final
+result. There will also be other files there including real.nii and
+imag.nii which are the real and imaginary components. There will also
+be angle.nii and angle.masked.nii which will be the angle between the
+real and imaginary; the masked version will be masked by fsig > 2.
 
 -notask
 
