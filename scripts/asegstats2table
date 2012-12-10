@@ -11,7 +11,7 @@ from fsutils import AsegStatsParser, BadFileError, aseglogger
 
 # Original Version - Douglas Greve, MGH
 # Rewrite - Krish Subramaniam, MGH
-# $Id: asegstats2table,v 1.35 2012/11/30 23:07:26 mreuter Exp $
+# $Id: asegstats2table,v 1.36 2012/12/10 21:26:36 greve Exp $
 
 # globals
 l = aseglogger
@@ -110,7 +110,7 @@ def options_parse():
     Command Line Options Parser for asegstats2table
     initiate the option parser and return the parsed object
     """
-    parser = optparse.OptionParser(version='$Id: asegstats2table,v 1.35 2012/11/30 23:07:26 mreuter Exp $', usage=HELPTEXT)
+    parser = optparse.OptionParser(version='$Id: asegstats2table,v 1.36 2012/12/10 21:26:36 greve Exp $', usage=HELPTEXT)
     
     # help text
     h_sub = '(REQUIRED) subject1 <subject2 subject3..>'
@@ -150,7 +150,7 @@ def options_parse():
     parser.add_option('-t', '--tablefile', dest='outputfile',
                       help=h_t)
     parser.add_option('-m', '--meas', dest='meas',
-                      choices=('volume','mean','std','snr'),  default='volume', help=h_meas)
+                      choices=('volume','Area_mm2','nvoxels','nvertices','mean','std','snr','max'),  default='volume', help=h_meas)
     parser.add_option('--maxsegno', dest='maxsegno',
                        help=h_inp)
     parser.add_option('--segids-from-file', dest='segidsfile', help=h_segsfile)
@@ -517,7 +517,9 @@ if __name__=="__main__":
 
     # Parse the stats files 
     print 'Parsing the .stats files'
+    nth = 0;
     for specifier, filepath in subj_listoftuples:
+        nth = nth + 1;
         try:
             l.debug('-'*20)
             l.debug('Processing file ' + filepath)
@@ -543,7 +545,10 @@ if __name__=="__main__":
                 print 'ERROR: The stats file '+str(e)+' is not found or is too small to be a valid statsfile'
                 print 'Use --skip flag to automatically skip bad stats files'
                 sys.exit(1)
-        
+        nmeasures = len(measurelist);
+        if(nth == 1): nmeasures0 = nmeasures;
+        if(nmeasures != nmeasures0 and not options.common_flag and not options.all_flag):
+            print "WARN: %s nmeasures = %d, expecting %d" % (specifier,nmeasures,nmeasures0);
         pretable.append( (specifier, id_name_map, measurelist)) 
 
     # Make sure the table has the same number of cols for all stats files
