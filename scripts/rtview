@@ -1,0 +1,379 @@
+#!/bin/tcsh -f
+# rtview
+
+set VERSION = '$Id: rtview,v 1.1 2012/12/10 17:22:40 greve Exp $';
+
+set srcsubject = ();
+set trgsubject = ();
+set realvol = ();
+set imagvol = ();
+set hemi = ();
+set regfile = ();
+set hfile = ();
+set stimtype = ();
+
+set tmpdir = ();
+set cleanup = 1;
+set LF = ();
+
+set tclcmd0 = $FREESURFER_HOME/lib/tcl/twocond-views.tcl
+
+set inputargs = ($argv);
+set PrintHelp = 0;
+
+if($#argv == 0) goto usage_exit;
+set n = `echo $argv | grep -e -help | wc -l` 
+if($n != 0) then
+  set PrintHelp = 1;
+  goto usage_exit;
+endif
+set n = `echo $argv | grep -e -version | wc -l` 
+if($n != 0) then
+  echo $VERSION
+  exit 0;
+endif
+
+goto parse_args;
+parse_args_return:
+
+goto check_params;
+check_params_return:
+
+if($#hfile) then
+  set srcdir = `dirname $hfile`
+else
+  set srcdir = `dirname $realvol`
+endif
+if($#tmpdir == 0) set tmpdir = $srcdir/tmpdir.rtview
+mkdir -p $tmpdir
+
+if($#LF == 0) set LF = $tmpdir/rtview.log
+if($LF != /dev/null) rm -f $LF
+echo "Log file for rtview" >> $LF
+date  | tee -a $LF
+echo "" | tee -a $LF
+echo "setenv SUBJECTS_DIR $SUBJECTS_DIR" | tee -a $LF
+echo "cd `pwd`"  | tee -a $LF
+echo $0 $inputargs | tee -a $LF
+echo "" | tee -a $LF
+uname -a  | tee -a $LF
+
+set tkimagvol = $tmpdir/tkimag.mgh
+set tkrealvol = $tmpdir/tkreal.mgh
+rm -f $tkimagvol $tkrealvol
+if($#hfile) then
+  set imagvol = $tmpdir/imag.mgh
+  set realvol = $tmpdir/real.mgh
+  mri_convert $hfile --frame 1 $tkimagvol; # 2nd frame
+  if($status) exit 1;
+  mri_convert $hfile --frame 2 $tkrealvol; # 3rd frame
+  if($status) exit 1;
+endif
+if(! -e $tkimagvol) then
+  # Multiply by fsig because that is what 
+  mris_calc -o $tkimagvol $fsigvol mul $imagvol
+  if($status) exit 1;
+  mris_calc -o $tkrealvol $fsigvol mul $realvol
+  if($status) exit 1;
+endif
+
+foreach cmpx (real imag)
+  set cmpxvol = $tmpdir/tk"$cmpx".mgh
+  if($#regfile) then
+    # Input is a volume, use vol2surf
+    set cmpxmgh = $tmpdir/map-$cmpx-$hemi.mgh
+    mri_vol2surf --reg $regfile --mov $cmpxvol --hemi $hemi --o $cmpxmgh \
+       --mapmethod nnf
+    if($status) exit 1;
+  else
+    set cmpxmgh = $cmpxvol
+  endif
+  # Convert to wfile (and maybe change subjects)
+  set cmpxw = $tmpdir/map-$cmpx-$hemi.w
+  mri_surf2surf --hemi $hemi --sval $cmpxmgh --tval $cmpxw \
+   --tfmt paint --srcsubject $srcsubject --trgsubject $trgsubject 
+  if($status) exit 1;
+end
+
+#mri_fieldsign --eccen eccen/lh.real.mgh eccen/lh.imag.mgh \
+#--polar polar/lh.real.mgh polar/lh.imag.mgh \
+# --fs lh.fieldsign.mgh --s els --hemi lh --sphere --old --fwhm 10
+
+setenv angle_offset 0
+setenv revpolarflag 0
+unsetenv flatzrot 
+unsetenv flatscale 
+unsetenv statflag 
+unsetenv statname
+setenv colscale 0
+unsetenv colscalebarflag 
+#setenv eccendir eccen
+#setenv polardir polar
+setenv floatstem map
+setenv realname    -real; # map-real-?h.w
+setenv complexname -imag; # map-imag-?h.w
+setenv fthresh 0.4
+setenv fslope 1.3
+setenv fmid 0.8
+setenv offset 0.4; # for gray scale
+setenv hemi $hemi
+setenv curv $hemi.curv
+setenv nosave 1
+setenv noexit
+setenv dir $tmpdir
+setenv polardir $tmpdir
+setenv eccendir $tmpdir
+setenv smoothsteps 2
+
+#set tclcmd = $tmpdir/rtview.tcl
+#rm -f $tclcmd
+#echo "set noexit 1" >> $tclcmd
+#cat $tclcmd0  >> $tclcmd
+#echo "set dir $tmpdir" >> $tclcmd
+#echo "set floatstem map" >> $tclcmd
+
+set tclcmd = $FREESURFER_HOME/lib/tcl/$stimtype-views.tcl
+
+set cmd = (tksurfer $subject $hemi inflated -aparc -tcl $tclcmd)
+echo $cmd
+$cmd
+
+if($cleanup) rm -f $tmpdir
+
+exit 0
+
+###############################################
+
+############--------------##################
+parse_args:
+set cmdline = ($argv);
+while( $#argv != 0 )
+
+  set flag = $argv[1]; shift;
+  
+  switch($flag)
+
+    case "--s":
+      if($#argv < 1) goto arg1err;
+      set trgsubject = $argv[1]; shift;
+      set srcsubject = $trgsubject;
+      breaksw
+
+    case "--reg":
+      if($#argv < 1) goto arg1err;
+      set regfile = $argv[1]; shift;
+      if(! -e $regfile) then
+        echo "ERROR: cannot find $regfile"
+        exit 1;
+      endif
+      set srcsubject = `head -n 1 $regfile`
+      breaksw
+
+    case "--r":
+    case "--real":
+      if($#argv < 1) goto arg1err;
+      set realvol = $argv[1]; shift;
+      if(! -e $realvol) then
+        echo "ERROR: cannot find $realvol"
+        exit 1;
+      endif
+      breaksw
+      breaksw
+
+    case "--i":
+    case "--imag":
+      if($#argv < 1) goto arg1err;
+      set imagvol = $argv[1]; shift;
+      if(! -e $imagvol) then
+        echo "ERROR: cannot find $imagvol"
+        exit 1;
+      endif
+      breaksw
+
+    case "--fsig":
+      if($#argv < 1) goto arg1err;
+      set fsigvol = $argv[1]; shift;
+      if(! -e $fsigvol) then
+        echo "ERROR: cannot find $fsigvol"
+        exit 1;
+      endif
+      breaksw
+
+    case "--h":
+      if($#argv < 1) goto arg1err;
+      set hfile = $argv[1]; shift;
+      if(! -e $hfile) then
+        echo "ERROR: cannot find $hfile"
+        exit 1;
+      endif
+      breaksw
+
+    case "--hemi":
+      if($#argv < 1) goto arg1err;
+      set hemi = $argv[1]; shift;
+      breaksw
+
+    case "--lh":
+      set hemi = lh;
+      breaksw
+
+    case "--rh":
+      set hemi = rh;
+      breaksw
+
+    case "--log":
+      if($#argv < 1) goto arg1err;
+      set LF = $argv[1]; shift;
+      breaksw
+
+    case "--nolog":
+    case "--no-log":
+      set LF = /dev/null
+      breaksw
+
+    case "--tmpdir":
+      if($#argv < 1) goto arg1err;
+      set tmpdir = $argv[1]; shift;
+      set cleanup = 0;
+      breaksw
+
+    case "--no-cleanup":
+    case "--nocleanup":
+      set cleanup = 0;
+      breaksw
+
+    case "--polar":
+      set stimtype = polar
+      breaksw
+
+    case "--eccen":
+      set stimtype = eccen
+      breaksw
+
+    case "--cleanup":
+      set cleanup = 1;
+      breaksw
+
+    case "--debug":
+      set verbose = 1;
+      set echo = 1;
+      breaksw
+
+    default:
+      echo ERROR: Flag $flag unrecognized. 
+      echo $cmdline
+      exit 1
+      breaksw
+  endsw
+
+end
+
+goto parse_args_return;
+############--------------##################
+
+############--------------##################
+check_params:
+
+if($#stimtype == 0) then
+  echo "ERROR: must --eccen or --polar"
+  exit 1;
+endif
+
+if($#trgsubject == 0) set trgsubject = $srcsubject
+if($#trgsubject == 0) then
+  echo "ERROR: must spec subject or reg"
+  exit 1;
+endif
+foreach subject ($srcsubject $trgsubject)
+  if(! -e $SUBJECTS_DIR/$subject) then
+    echo "ERROR: cannot find $subject"
+    exit 1;
+  endif
+end
+if($#hemi == 0) then
+  echo "ERROR: must spec hemi"
+  exit 1;
+endif
+if($#fsigvol == 0) then
+  echo "ERROR: must spec fsigvol"
+  exit 1;
+endif
+if($#realvol == 0) then
+  echo "ERROR: must spec real vol"
+  exit 1;
+endif
+if($#imagvol == 0) then
+  echo "ERROR: must spec imag vol"
+  exit 1;
+endif
+if(0 && $#hfile == 0) then
+  echo "ERROR: must spec hfile"
+  exit 1;
+endif
+
+goto check_params_return;
+############--------------##################
+
+############--------------##################
+arg1err:
+  echo "ERROR: flag $flag requires one argument"
+  exit 1
+############--------------##################
+
+############--------------##################
+usage_exit:
+  echo ""
+  echo "rtview"
+  echo ""
+  echo "  --s subject : subject to use as display"
+  echo "  --hemi hemi, --lh, --rh"
+  echo "  --eccen or --polar"
+  echo "  --real real : real (cosine) values"
+  echo "  --imag imag : imaginary (sine) values"
+  echo "  --fsig fsig : significances"
+  echo ""
+  echo "  --reg regfile  : for when real/imag/fsig are volumes "
+  echo ""
+  echo "  --no-cleanup : don't delete tmp dir"
+  echo ""
+#  echo "  --src srcsubject : map to this subject"
+#  echo "   --h hfile : eg, eccen/h.nii"
+#  echo ""
+
+  if(! $PrintHelp) exit 1;
+
+  echo $VERSION
+
+  cat $0 | awk 'BEGIN{prt=0}{if(prt) print $0; if($1 == "BEGINHELP") prt = 1 }'
+
+exit 1;
+
+
+#---- Everything below here is printed out as part of help -----#
+BEGINHELP
+
+View FSFAST version 5 retinotopy data using the color wheel. This is a
+front-end for tksurfer. It sets up the environment for using the
+color wheel.
+
+The source data (real/imaginary/fsig) can be either in the volume or
+the surface.  If in the volume, then you need to supply a registration
+file with --reg (and no need to supply a subject name with --s).
+
+For displaying data already on the surface:
+
+cd sess/bold/rtopy.lh
+ rtview --s subject --lh --eccen \
+   --real eccen/real.nii --imag eccen/imag.nii --fsig eccen/fsig.nii
+ rtview --s subject --lh --polar \
+   --real polar/real.nii --imag polar/imag.nii --fsig polar/fsig.nii
+
+For displaying in the native volume:
+
+cd sess/bold/rtopy.native
+ rtview --reg ../register.dof6.dat --lh --eccen \
+   --real eccen/real.nii --imag eccen/imag.nii --fsig eccen/fsig.nii
+ rtview --reg ../register.dof6.dat --lh --polar \
+   --real polar/real.nii --imag polar/imag.nii --fsig polar/fsig.nii
+
+
