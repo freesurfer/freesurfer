@@ -16,8 +16,8 @@ function volsm = fast_smooth3d(vol,cfwhm,rfwhm,sfwhm,UseBB)
 % Original Author: Doug Greve
 % CVS Revision Info:
 %    $Author: greve $
-%    $Date: 2012/12/10 19:46:52 $
-%    $Revision: 1.8 $
+%    $Date: 2012/12/11 21:45:03 $
+%    $Revision: 1.9 $
 %
 % Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 %
@@ -46,7 +46,6 @@ rstd = rfwhm/sqrt(log(256.0));
 cstd = cfwhm/sqrt(log(256.0));
 sstd = sfwhm/sqrt(log(256.0));
 
-UseBB = 1;
 if(UseBB)
   % This is not exactly the same near the edges of the volume
   [nrows0 ncols0 nslices0 nframes0] = size(vol);
@@ -54,11 +53,11 @@ if(UseBB)
   bb = mri_boundingbox(vol);
   %fprintf('bb min %d %d %d max %d %d %d\n',bb(1,:),bb(2,:));
   nstds = 4;
-  rmin = max(round(bb(1,1)-nstds*rstd),0);
+  rmin = max(round(bb(1,1)-nstds*rstd),1);
   rmax = min(round(bb(2,1)+nstds*rstd),nrows0);
-  cmin = max(round(bb(1,2)-nstds*cstd),0);
+  cmin = max(round(bb(1,2)-nstds*cstd),1);
   cmax = min(round(bb(2,2)+nstds*cstd),ncols0);
-  smin = max(round(bb(1,3)-nstds*sstd),0);
+  smin = max(round(bb(1,3)-nstds*sstd),1);
   smax = min(round(bb(2,3)+nstds*sstd),nslices0);
   vol = vol(rmin:rmax,cmin:cmax,smin:smax,:);
   nvox = prod(size(vol));
