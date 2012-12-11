@@ -1,7 +1,7 @@
 #!/bin/csh -f
 # fcseed-sess
 #
-set VERSION    = '$Id: fcseed-sess,v 1.13 2011/03/11 23:47:45 greve Exp $';
+set VERSION    = '$Id: fcseed-sess,v 1.14 2012/12/11 18:18:38 greve Exp $';
 set cmdargs = ($argv);
 
 set fcconfig = ();
@@ -351,6 +351,8 @@ check_params:
   set roicfg = `cat $fcconfig | awk '{if($1 == "roicfg") print $2}'`
   set tmp = `cat $fcconfig | awk '{if($1 == "segidlist") print $0}'`
   if($#tmp) set segidlist = ($tmp[2-$#tmp]);
+  set tmp = `cat $fcconfig | awk '{if($1 == "funcstem") print $0}'`
+  if($#tmp) set funcstem = $tmp;
 
   # Note: Imperfect for B0DC because label2vol cannot take a b0 map yet
   # This just uses the reg computed with B0DC so that it does not die

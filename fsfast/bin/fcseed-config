@@ -1,7 +1,7 @@
 #!/bin/csh -f
 # fcseed-sess
 #
-set VERSION    = '$Id: fcseed-config,v 1.6 2011/03/15 20:31:16 greve Exp $';
+set VERSION    = '$Id: fcseed-config,v 1.7 2012/12/11 18:18:38 greve Exp $';
 set cmdargs = ($argv);
 
 set fcconfig = ();
@@ -21,6 +21,7 @@ set DoWM = 0;
 set WMErode = 0;
 set SVDSynth = 0;
 set UseB0DC = 0;
+set funcstem = (); # default fmcpr set in fcseed-sess
 
 set Overwrite = 0;
 set cleanup = 1;
@@ -64,6 +65,7 @@ echo "WMErode $WMErode"   >> $fcconfig
 echo "SVDSynth $SVDSynth" >> $fcconfig
 echo "DoWM $DoWM"         >> $fcconfig
 echo "UseB0DC $UseB0DC"   >> $fcconfig
+if($#funcstem) echo "funcstem $funcstem"   >> $fcconfig
 if($#rlf)       echo "RunListFile $rlf"     >> $fcconfig
 if($#roicfg)    echo "roicfg $roicfg"       >> $fcconfig
 if($#segidlist) echo "segidlist $segidlist" >> $fcconfig
@@ -103,6 +105,11 @@ while( $#argv != 0 )
     case "-fsd":
       if ( $#argv < 1) goto arg1err;
       set fsd = $argv[1]; shift;
+      breaksw
+
+    case "-funcstem":
+      if ( $#argv < 1) goto arg1err;
+      set funcstem = $argv[1]; shift;
       breaksw
 
     case "-segid":
@@ -270,6 +277,7 @@ usage_exit:
   echo "    only applies to analyses using segmentation-based"
   echo ""
   echo "  -fsd FSD : rest or bold (required)"
+  echo "  -funcstem funcstem : default is fmcpr"
   echo ""
   echo "Functional ROI-based options"
   echo "  -roi fcconfig : as created by funcroi-confg"
