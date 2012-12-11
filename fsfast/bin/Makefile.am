@@ -15,16 +15,13 @@ FSF_FILES=\
 	acfseg-sess \
 	acorfunc-sess \
 	addmcparams \
-	afni2bvol \
 	aseg2funcmask-sess \
 	autoreg-fsl \
 	autoreg-sess \
 	avgraw \
-	bfile2afni \
 	bfileconvert \
 	bfvcheck \
 	bgmask-sess \
-	bvol2afni \
 	cat-bvolume \
 	checkmincdir \
 	check-sliceres-sess \
@@ -44,15 +41,11 @@ FSF_FILES=\
 	diag-optseq \
 	difffsfast \
 	du-sess \
-	editmask \
 	evfunc \
-	evfunc-jk-sess \
 	evfunc-sess \
 	evpve-sess \
 	evspatfil \
-	evspatfil-jk-sess \
 	evspatfil-sess \
-	extract-roi-tc-sess \
 	fast_getext \
 	fast-log-preamble.csh \
 	fcseed-config \
@@ -60,12 +53,9 @@ FSF_FILES=\
 	fcreg-sess \
 	feat.fsfast-patch \
 	feat.fsfast-patch.tcl \
-	fftfunc-sess \
 	fieldsign-sess \
 	fixseqinfo-sess \
 	flacproc-sess \
-	fmreigen \
-	fmreigen-jk \
 	fsfast-version \
 	fsfast-gui-bug \
 	fsfeat \
@@ -78,15 +68,9 @@ FSF_FILES=\
 	fsl2par \
 	func2acf \
 	func2label \
-	func2roi-sess \
-	func2roi-sess-mrun \
-	func2sph-sess \
-	func2sph-sess-new \
-	func2tal \
-	func2tal-sess \
-  funcroi-config \
-  funcroi-sess \
-  funcroi-table-sess \
+	funcroi-config \
+	funcroi-sess \
+	funcroi-table-sess \
 	functcvm \
 	functcvm-sess \
 	functwf-sess \
@@ -178,9 +162,6 @@ FSF_FILES=\
 	mris_glm-sess \
 	optseq \
 	optseq.matlab \
-	paint-fieldsign-sess \
-	paint-sess \
-	paint-sess-new \
 	par2fsl \
 	par2fsl3 \
 	par2kspar \
@@ -203,28 +184,16 @@ FSF_FILES=\
 	rocview \
 	roiavg \
 	roiavgraw \
-	roisummary-sess \
 	roitxt2tbl \
 	roixrunsum-sess \
-	segregister-sess \
-	selfreqavg \
-	selfreqavg-sess \
-	selfreqcomb \
 	selxavg2 \
 	selxavg3-sess \
 	selxavg-jk-sess \
 	selxavg-sess \
 	selxavg-sess-perrun \
 	seqefficiency \
-	sfa-sess \
 	sliceview-sess \
-	spatev \
-	spatevfilter \
-	spatevfilter-sess \
-	spatev-sess \
-	spatfil \
 	spatialsmooth-sess \
-	sphsmooth-sess \
 	spikedet \
 	spikedet-sess \
 	splitstr \
@@ -233,20 +202,10 @@ FSF_FILES=\
 	stc.fsl \
 	stc-sess \
 	stem2fmt \
-	stfreqgrinder \
 	stripsessargs \
-	stxgpredict \
-	stxgrinder \
-	stxgrinder0-sess \
-	stxgrinder-sess \
-	stxgrinder-sess-perrun \
 	subject-sess \
 	surf-sess \
 	surfsmooth-sess \
-	surf-sess-new \
-	svdfunctcvm \
-	svdfunctcvm-sess \
-	swfflac-sess \
 	sxacfg-get \
 	synthfmri \
 	synth-phenc \
@@ -260,7 +219,6 @@ FSF_FILES=\
 	tksurfer-sess \
 	txt2bfile \
 	vlrmerge \
-	yakview \
 	zpadfmri
 
 foo_SCRIPTS=$(FSF_FILES)
@@ -270,5 +228,5 @@ EXTRA_DIST=$(FSF_FILES)
 # Our release target. Include files to be excluded here. They will be
 # found and removed after 'make install' is run during the 'make
 # release' target.
-EXCLUDE_FILES=$(TDR_FILES) CVS
+EXCLUDE_FILES=$(TDR_FILES) CVS func2roi-sess
 include $(top_srcdir)/Makefile.extra
