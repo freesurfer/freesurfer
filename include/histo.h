@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2011/07/22 12:50:27 $
- *    $Revision: 1.43 $
+ *    $Date: 2012/12/12 13:50:18 $
+ *    $Revision: 1.44 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -92,6 +92,7 @@ int       HISTOfindFirstPeakInRegion(HISTOGRAM *h, int wsize, float min_pct,
                                      int b0, int b1) ;
 int       HISTOfindHighestPeakInRegion(HISTOGRAM *h, int b0, int b1);
 int       HISTOplot(HISTOGRAM *histo, char *fname) ;
+int       HISTOaddFractionalSample(HISTOGRAM *histo, float val, float bmin, float bmax, float frac);
 int       HISTOaddSample(HISTOGRAM *histo, float val, float bmin, float bmax) ;
 int       HISTOfindCurrentPeak(HISTOGRAM *histo,
                                int b0,
