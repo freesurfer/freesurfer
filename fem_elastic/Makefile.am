@@ -29,6 +29,11 @@ common3d_SOURCES=\
 
 bin_PROGRAMS=createMorph applyMorph exportGcam
 
+if HAVE_MAC_OSX
+else
+bin_PROGRAMS += surf2vol
+endif
+
 createMorph_SOURCES=\
 	$(common3d_SOURCES) \
 	fcreateMorph.cpp \
@@ -61,6 +66,39 @@ exportGcam_SOURCES=\
 exportGcam_LDADD=\
 	$(addprefix $(top_builddir)/, $(LIBS_MGH)) \
 	$(top_builddir)/tetgen/libtetgen.a $(BOOST_PO_LIB)
+
+if HAVE_MAC_OSX
+
+# NJS dont build surf2vol on mac until petsc lib problem resolved....
+
+#surf2vol_LDADD=\
+#	$(addprefix $(top_builddir)/, $(LIBS_MGH)) \
+#	$(top_builddir)/tetgen/libtetgen.a \
+#	$(PETSC_LIBS) -lpetscts -lpetscsnes -lpetscksp -lpetscdm -lpetscmat \
+#	-lpetscvec -lpetsc -lpmpich -lmpich -llmpe -lmpe -lflapack -lfblas \
+#	$(LIB_LAPACK_A) $(LIB_BLAS_A) $(LIB_G2C_A)
+
+else
+surf2vol_SOURCES=\
+	$(common3d_SOURCES) \
+	fsurf2vol.cpp cstats.h surf_types.h \
+	surf_powell.cpp surf_powell.h \
+	surf_energy.cpp surf_energy.h \
+	misc_maths.cpp \
+	transformUtils.cpp \
+	surf_utils.cpp \
+	ZlibStringCompressor.cpp \
+	pbCluster_mesh_crop.cpp pbCluster_mesh_crop.h mesh_bfs.h \
+	untangler.cpp untangler.h pbmesh_crop.h
+
+surf2vol_LDADD=\
+    $(addprefix $(top_builddir)/, $(LIBS_MGH)) \
+    $(top_builddir)/tetgen/libtetgen.a \
+    $(PETSC_LIBS) -lpetscts -lpetscsnes -lpetscksp -lpetscdm -lpetscmat \
+    -lpetscvec -lpetsc -lmpich \
+		$(LIB_GFORTRAN) $(LIB_LAPACK_A) $(LIB_BLAS_A) $(LIB_G2C_A) $(LIB_GFORTRAN)
+endif
+
 
 # build library...
 noinst_LIBRARIES= libfem_elastic.a
