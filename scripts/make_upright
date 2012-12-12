@@ -9,8 +9,8 @@
 # Original Author: Martin Reuter
 # CVS Revision Info:
 #    $Author: mreuter $
-#    $Date: 2012/10/24 22:16:25 $
-#    $Revision: 1.2 $
+#    $Date: 2012/12/12 16:33:39 $
+#    $Revision: 1.3 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -25,7 +25,7 @@
 #
 
 
-set VERSION = '$Id: make_upright,v 1.2 2012/10/24 22:16:25 mreuter Exp $';
+set VERSION = '$Id: make_upright,v 1.3 2012/12/12 16:33:39 mreuter Exp $';
 
 
 if ( $#argv < 3 ) then
@@ -51,7 +51,9 @@ endif
 set infile   = $argv[1]
 set outfile  = $argv[2]
 set maplta   = $argv[3]
-set tmpdir   = `mktemp -d -p ./`
+set outdir   = `dirname $outfile`;
+set tmpdir   = $outdir/tmp.make_upright.$$
+mkdir -p $tmpdir
 set reverse  = $tmpdir/tmp_reverse.mgz
 set ltalr    = $tmpdir/tmp_reverse.lta
 set hweights = $tmpdir/tmp_reverse_hweights.mgz
