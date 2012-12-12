@@ -209,8 +209,7 @@ mfiles_DATA=\
 	geodesic_new_algorithm.m \
 	geodesic_new_mesh.m \
 	geodesic_propagate.m \
-	geodesic_trace_back.m \
-	libgeodesic.so
+	geodesic_trace_back.m 
 
 
 if NMR_INSTALL
