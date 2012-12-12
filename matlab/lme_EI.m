@@ -21,12 +21,12 @@ function [EI,Pth,Qthth] = lme_EI(X,Zcols,W,CBhat,SIGMA,L,phi,ni)
 % EI: Expected information matrix.
 % Pth,Qthth: Matrices that are useful for inferences on the fixed effects.
 %
-% $Revision: 1.1 $  $Date: 2012/11/15 15:17:51 $
+% $Revision: 1.2 $  $Date: 2012/12/12 22:58:12 $
 % Original Author: Jorge Luis Bernal Rusiel
 % CVS Revision Info:
 %    $Author: vinke $
-%    $Date: 2012/11/15 15:17:51 $
-%    $Revision: 1.1 $
+%    $Date: 2012/12/12 22:58:12 $
+%    $Revision: 1.2 $
 % Reference: Kenward MG and Roger JH, 1997. Small sample inference for fixed
 % effects from restricted maximum likelihood. Biometrics,Vol. 53, No.3.
 %

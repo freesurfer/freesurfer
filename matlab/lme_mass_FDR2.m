@@ -19,12 +19,12 @@ function [detvtx,sided_pval,pth,m0] = lme_mass_FDR2(pval,sgn,maskvtx,rate,tail)
 % pth: FDR threshold.
 % m0: Estimated number of null vertices.
 %
-% $Revision: 1.1 $  $Date: 2012/11/15 15:17:52 $
+% $Revision: 1.2 $  $Date: 2012/12/12 22:58:12 $
 % Original Author: Jorge Luis Bernal Rusiel 
 % CVS Revision Info:
 %    $Author: vinke $
-%    $Date: 2012/11/15 15:17:52 $
-%    $Revision: 1.1 $
+%    $Date: 2012/12/12 22:58:12 $
+%    $Revision: 1.2 $
 % References: Benjamini, Y., Krieger, A.M., Yekutieli, D. (2006). Adaptive
 % linear step-up procedures that control the false discovery rate. 
 % Biometrika, 93, 491-507.

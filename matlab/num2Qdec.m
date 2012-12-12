@@ -11,12 +11,12 @@ function Qdec = num2Qdec(M,Vars)
 % Output
 % Qdec: Two dimensional cell string array of Qdec data .
 %
-% $Revision: 1.1 $  $Date: 2012/11/15 15:17:52 $
+% $Revision: 1.2 $  $Date: 2012/12/12 22:58:13 $
 % Original Author: Jorge Luis Bernal Rusiel 
 % CVS Revision Info:
 %    $Author: vinke $
-%    $Date: 2012/11/15 15:17:52 $
-%    $Revision: 1.1 $
+%    $Date: 2012/12/12 22:58:13 $
+%    $Revision: 1.2 $
 %
 if nargin < 2
     error('Too few inputs');

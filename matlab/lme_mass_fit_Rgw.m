@@ -28,8 +28,8 @@ function [stats,st] = lme_mass_fit_Rgw(X,Zcols,Y,ni,Th0,Rgs,Surf,fname,...
 % fname: File name to save outputs. Default [] (no output is saved to any
 % file).
 % Dtype: Type of distances to be computed among the surface nodes. It is
-% 'euc' for Euclidean or 'surf' for computing distances along the surface 
-% using the triangulation squeme. Default 'euc'.
+% 'euc' for Euclidean or 'surf' for geodesic distances along the surface. 
+% Default 'euc'.
 % sptm: Spatial model for the covariance matrix inside the regions. It can 
 % be 'exp' or 'gauss'. Default 'exp'.
 % prs: Number of workers for parallel computing. Default 8;
@@ -41,12 +41,12 @@ function [stats,st] = lme_mass_fit_Rgw(X,Zcols,Y,ni,Th0,Rgs,Surf,fname,...
 % st: Array containing the termination state for each location.
 % (1 for convergence and 0 otherwise).
 %
-% $Revision: 1.1 $  $Date: 2012/11/15 15:17:52 $
+% $Revision: 1.2 $  $Date: 2012/12/12 22:58:13 $
 % Original Author: Jorge Luis Bernal Rusiel 
 % CVS Revision Info:
 %    $Author: vinke $
-%    $Date: 2012/11/15 15:17:52 $
-%    $Revision: 1.1 $
+%    $Date: 2012/12/12 22:58:13 $
+%    $Revision: 1.2 $
 % References: Bernal-Rusiel J.L., Greve D.N., Reuter M., Fischl B., Sabuncu
 % M.R., 2012. Statistical Analysis of Longitudinal Neuroimage Data with Linear 
 % Mixed Effects Models, NeuroImage, doi:10.1016/j.neuroimage.2012.10.065.
@@ -82,20 +82,15 @@ nv0 = size(Y,2);
 if (nv0 ~= size(Th0,2)) 
     error('Y and Theta0 must have the same number of colums.');
 end;
+%to make slightly different two vertices with same coord in FreeSurfer
+%meshes
+[~,loc] = unique(Surf.coord','rows');
+pos = find(~ismember(1:nv0,loc));
+if ~isempty(pos)
+    Surf.coord(3,pos) = Surf.coord(3,pos) + 0.001;
+end;
 maskvtx = find(Rgs ~= 0);
 nv = length(maskvtx);
-if strcmpi(Dtype,'surf')
-    [AdjM,cn] = AdjMtx(Surf,maskvtx);
-    AdjMv = vec(AdjM(maskvtx,:));
-    [~,loc] = ismember(AdjMv,maskvtx);
-    AdjMv = loc;
-    AdjM = reshape(AdjMv,nv,cn);
-elseif strcmpi(Dtype,'euc')
-    AdjM = [];
-else
-    error('Valid values for Dtype are ''euc'' or ''surf''');
-end;
-Coord = Surf.coord(:,maskvtx);
 Rgs = Rgs(maskvtx);
 Y = Y(:,maskvtx);
 Th0 = Th0(:,maskvtx);
@@ -141,15 +136,15 @@ end;
 for j=1:prs
     posi = 0;
     for i=1:prsnRg(j)
-        Rgvtx = find(Rgs == bRgind(j,i));
-        nRgvtx = length(Rgvtx);
+        RgVtxInd = find(Rgs == bRgind(j,i));
+        nRgvtx = length(RgVtxInd);
         posf = posi+nRgvtx;
-        Yj{j}(:,posi+1:posf) = Y(:,Rgvtx); 
-        Th0j{j}(:,posi+1:posf) = Th0(:,Rgvtx); 
+        Yj{j}(:,posi+1:posf) = Y(:,RgVtxInd); 
+        Th0j{j}(:,posi+1:posf) = Th0(:,RgVtxInd); 
         posi = posf;
     end;
 end;
-clear Y Th0 Surf
+clear Y Th0 
 %Estimation
 display(' ');
 display('Starting model fitting at each region ...');
@@ -161,12 +156,12 @@ parfor j=1:prs
     progress = 0;
     posi = 0;
     for i=1:prsnRg(j)
-        Rgvtx = find(Rgs == bRgind(j,i));
-        nRgvtx = length(Rgvtx);
+        RgVtxInd = find(Rgs == bRgind(j,i));
+        nRgvtx = length(RgVtxInd);
         posf = posi+nRgvtx;
         try
             if nRgvtx > 1
-                Dist = lme_mass_RgDist(Coord,Rgvtx,AdjM);
+                Dist = lme_mass_RgDist(Surf,maskvtx,RgVtxInd,Dtype);
                 [Rgstats{j}(posi+1:posf),Rgsts{j}(posi+1:posf)] = lme_RgFSfit(X,...
                     Zcols,Yj{j}(:,posi+1:posf),ni,Th0j{j}(:,posi+1:posf),Dist,sptm);
             else
@@ -196,15 +191,15 @@ st = false(nv0,1);
 for j=1:prs
     posi = 0;
     for i=1:prsnRg(j)
-        Rgvtx = find(Rgs == bRgind(j,i));
-        nRgvtx = length(Rgvtx);
+        RgVtxInd = find(Rgs == bRgind(j,i));
+        nRgvtx = length(RgVtxInd);
         posf = posi+nRgvtx;
         Rgstatsji = Rgstats{j}(posi+1:posf);
         Rgstsji = Rgsts{j}(posi+1:posf);
         for k=1:nRgvtx           
-            stats(maskvtx(Rgvtx(k))) = Rgstatsji(k);
-            stats(maskvtx(Rgvtx(k))).lreml = stats(maskvtx(Rgvtx(k))).lreml(end);
-            st(maskvtx(Rgvtx(k))) = Rgstsji(k);
+            stats(maskvtx(RgVtxInd(k))) = Rgstatsji(k);
+            stats(maskvtx(RgVtxInd(k))).lreml = stats(maskvtx(RgVtxInd(k))).lreml(end);
+            st(maskvtx(RgVtxInd(k))) = Rgstsji(k);
         end;
        posi = posf; 
     end;

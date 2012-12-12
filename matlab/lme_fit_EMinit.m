@@ -21,12 +21,12 @@ function [D0,phisq0,st] = lme_fit_EMinit(X,Zcols,y,ni,e)
 % D0: Estimated random effects covariance matrix.
 % st: Termination state (1 for convergence and 0 otherwise).
 %
-% $Revision: 1.1 $  $Date: 2012/11/15 15:17:51 $
+% $Revision: 1.2 $  $Date: 2012/12/12 22:58:12 $
 % Original Author: Jorge Luis Bernal Rusiel 
 % CVS Revision Info:
 %    $Author: vinke $
-%    $Date: 2012/11/15 15:17:51 $
-%    $Revision: 1.1 $
+%    $Date: 2012/12/12 22:58:12 $
+%    $Revision: 1.2 $
 % References: Bernal-Rusiel J.L., Greve D.N., Reuter M., Fischl B., Sabuncu
 % M.R., 2012. Statistical Analysis of Longitudinal Neuroimage Data with Linear 
 % Mixed Effects Models, NeuroImage, doi:10.1016/j.neuroimage.2012.10.065.

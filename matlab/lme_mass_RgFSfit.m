@@ -27,12 +27,12 @@ function [stats,st,a] = lme_mass_RgFSfit(X,Zcols,Y,ni,Dist,model,prs,e)
 % st: Array containing the termination state for each location.
 % (1 for convergence and 0 otherwise).
 %
-% $Revision: 1.1 $  $Date: 2012/11/15 15:17:52 $
+% $Revision: 1.2 $  $Date: 2012/12/12 22:58:12 $
 % Original Author: Jorge Luis Bernal Rusiel 
 % CVS Revision Info:
 %    $Author: vinke $
-%    $Date: 2012/11/15 15:17:52 $
-%    $Revision: 1.1 $
+%    $Date: 2012/12/12 22:58:12 $
+%    $Revision: 1.2 $
 % References: 
 % References: Bernal-Rusiel J.L., Greve D.N., Reuter M., Fischl B., Sabuncu
 % M.R., 2012. Statistical Analysis of Longitudinal Neuroimage Data with Linear 

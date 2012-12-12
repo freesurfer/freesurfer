@@ -18,17 +18,18 @@ function [AdjM,cn] = AdjMtx(Surf,maskvtx)
 % cn: Connectivity number (maximum number of adjacent vertices to any 
 % given vertice along the surface). It is 6 for Freesurfer's meshes.
 %
-% $Revision: 1.1 $  $Date: 2012/11/15 15:17:51 $
+% $Revision: 1.2 $  $Date: 2012/12/12 22:58:12 $
 % Original Author: Jorge Luis Bernal Rusiel 
 % CVS Revision Info:
 %    $Author: vinke $
-%    $Date: 2012/11/15 15:17:51 $
-%    $Revision: 1.1 $
+%    $Date: 2012/12/12 22:58:12 $
+%    $Revision: 1.2 $
 %
 if nargin < 2
     maskvtx = [];
 end;
 surftri = Surf.tri;
+[~,cn] = mode(double(surftri(:)));
 if ~isempty(maskvtx)
     logictri = surftri;
     for i=1:3
@@ -36,7 +37,6 @@ if ~isempty(maskvtx)
     end;
     surftri = surftri(sum(logictri,2) == 3,:);
 end;
-[~,cn] = mode(double(surftri(:)));
 nv = size(Surf.coord,2);
 AdjM = zeros(nv,cn);
 last = ones(nv,1);

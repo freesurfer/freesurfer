@@ -20,12 +20,12 @@ function [sX,sY,ni,ssID] = sortData(X,tcol,Y,sID)
 % sY).
 % ssID: Vector of ordered subjects'ID. 
 %
-% $Revision: 1.1 $  $Date: 2012/11/15 15:17:52 $
+% $Revision: 1.2 $  $Date: 2012/12/12 22:58:13 $
 % Original Author: Jorge Luis Bernal Rusiel 
 % CVS Revision Info:
 %    $Author: vinke $
-%    $Date: 2012/11/15 15:17:52 $
-%    $Revision: 1.1 $
+%    $Date: 2012/12/12 22:58:13 $
+%    $Revision: 1.2 $
 %  
 if nargin < 4 
     error('Too few inputs');   
@@ -43,7 +43,7 @@ end;
 [ssID,sID_ind] = sort(sID);
 count = 1;
 m = length(unique(ssID));
-ni = ones(m,1,'uint8');
+ni = ones(m,1);
 for i=2:nm
     if strcmp(char(ssID(i-1)),char(ssID(i)))
         ni(count) = ni(count) + 1;

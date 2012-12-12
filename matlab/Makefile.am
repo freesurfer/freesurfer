@@ -191,7 +191,27 @@ mfiles_DATA=\
 	getQdecVarData.m \
 	fWriteQdec.m \
 	fReadQdec.m \
-	findQdecVar.m
+	findQdecVar.m \
+	create_flat_triangular_mesh.m \
+	create_hedgehog_mesh.m \
+	create_subdivision_pattern.m \
+	example1.m \
+	example2.m \
+	example3.m \
+	example4.m \
+	example5.m \
+	extract_coordinates_from_path.m \
+	geodesic_convert_surface_points.m \
+	geodesic_create_surface_point.m \
+	geodesic_delete.m \
+	geodesic_distance_and_source.m \
+	geodesic_matlab_api.h \
+	geodesic_new_algorithm.m \
+	geodesic_new_mesh.m \
+	geodesic_propagate.m \
+	geodesic_trace_back.m \
+	libgeodesic.so
+
 
 if NMR_INSTALL
 siemens_DATA=\
