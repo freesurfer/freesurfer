@@ -10,9 +10,9 @@
 /*
  * Original Author: Richard Edgar
  * CVS Revision Info:
- *    $Author: rge21 $
- *    $Date: 2011/03/17 18:00:32 $
- *    $Revision: 1.3 $
+ *    $Author: nicks $
+ *    $Date: 2012/12/12 21:18:24 $
+ *    $Revision: 1.4 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -48,16 +48,18 @@
 
 template<typename T, typename U>
 void RegisterPipeline( GPU::Classes::GCAmorphGPU& gcam,
-		       const GPU::Classes::MRIframeGPU<T>& mri,
-		       const GPU::Classes::MRIframeGPU<U>& mri_smooth,
-		       GCA_MORPH_PARMS *parms,
-		       double *last_rms,
-		       int *level_steps,
-		       int i ) {
+                       const GPU::Classes::MRIframeGPU<T>& mri,
+                       const GPU::Classes::MRIframeGPU<U>& mri_smooth,
+                       GCA_MORPH_PARMS *parms,
+                       double *last_rms,
+                       int *level_steps,
+                       int i )
+{
   GPU::Algorithms::GCAmorphEnergy gcamEnergy;
 
   *last_rms = gcamEnergy.ComputeRMS( gcam, mri, parms );
-  if( i==0 ) {
+  if( i==0 )
+  {
     parms->start_rms = *last_rms;
   }
   *level_steps = parms->start_t;
@@ -70,12 +72,13 @@ void RegisterPipeline( GPU::Classes::GCAmorphGPU& gcam,
 template<typename T, typename U>
 void
 gcamRPfinalDispatch( GCA_MORPH *gcam,
-		     MRI *mri,
-		     MRI *mri_smooth,
-		     GCA_MORPH_PARMS *parms,
-		     double *last_rms,
-		     int *level_steps,
-		     int i ) {
+                     MRI *mri,
+                     MRI *mri_smooth,
+                     GCA_MORPH_PARMS *parms,
+                     double *last_rms,
+                     int *level_steps,
+                     int i )
+{
   GPU::Classes::GCAmorphGPU myGCAM;
   GPU::Classes::MRIframeGPU<T> myMRI;
   GPU::Classes::MRIframeGPU<U> myMRIsmooth;
@@ -93,7 +96,7 @@ gcamRPfinalDispatch( GCA_MORPH *gcam,
 
   // Run the computation
   RegisterPipeline( myGCAM, myMRI, myMRIsmooth, parms,
-		    last_rms, level_steps, i);
+                    last_rms, level_steps, i);
 
   // Retrieve results
   myGCAM.RecvAll( gcam );
@@ -106,22 +109,24 @@ gcamRPfinalDispatch( GCA_MORPH *gcam,
 template<typename T>
 void
 gcamRPsmoothDispatch(  GCA_MORPH *gcam,
-		       MRI *mri,
-		       MRI *mri_smooth,
-		       GCA_MORPH_PARMS *parms,
-		       double *last_rms,
-		       int *level_steps,
-		       int i ) {
-  switch( mri_smooth->type ) {
+                       MRI *mri,
+                       MRI *mri_smooth,
+                       GCA_MORPH_PARMS *parms,
+                       double *last_rms,
+                       int *level_steps,
+                       int i )
+{
+  switch( mri_smooth->type )
+  {
 
   case MRI_UCHAR:
     gcamRPfinalDispatch<T,unsigned char>( gcam, mri, mri_smooth, parms,
-					  last_rms, level_steps, i );
+                                          last_rms, level_steps, i );
     break;
-    default:
+  default:
     std::cerr << __FUNCTION__
-	      << ": Unrecognised type for mri_smooth "
-	      << mri_smooth->type << std::endl;
+              << ": Unrecognised type for mri_smooth "
+              << mri_smooth->type << std::endl;
     abort();
   }
 
@@ -131,29 +136,31 @@ gcamRPsmoothDispatch(  GCA_MORPH *gcam,
 // -------------------
 
 void GCAMregisterPipelineGPU( GCA_MORPH *gcam,
-			      MRI *mri,
-			      MRI *mri_smooth,
-			      GCA_MORPH_PARMS *parms,
-			      double *last_rms,
-			      int *level_steps,
-			      int i ) {
+                              MRI *mri,
+                              MRI *mri_smooth,
+                              GCA_MORPH_PARMS *parms,
+                              double *last_rms,
+                              int *level_steps,
+                              int i )
+{
 
-  switch( mri->type ) {
+  switch( mri->type )
+  {
 
   case MRI_UCHAR:
     gcamRPsmoothDispatch<unsigned char>( gcam, mri, mri_smooth, parms,
-					 last_rms, level_steps, i );
+                                         last_rms, level_steps, i );
     break;
 
   case MRI_FLOAT:
     gcamRPsmoothDispatch<float>( gcam, mri, mri_smooth, parms,
-				 last_rms, level_steps, i );
+                                 last_rms, level_steps, i );
     break;
-    
+
   default:
     std::cerr << __FUNCTION__
-	      << ": Unrecognised type for mri "
-	      << mri->type << std::endl;
+              << ": Unrecognised type for mri "
+              << mri->type << std::endl;
     abort();
   }
 

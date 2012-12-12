@@ -8,8 +8,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:41 $
- *    $Revision: 1.5 $
+ *    $Date: 2012/12/12 21:18:24 $
+ *    $Revision: 1.6 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -34,99 +34,117 @@
 
 // ====================================================
 
-namespace GPU {
-  namespace Classes {
+namespace GPU
+{
+namespace Classes
+{
 
-    AffineTransformation::AffineTransformation( void ) {
-      /*!
-	Default constructor zeros the matrix
-      */
-      
-      // Have a little sanity check
-      if( kVectorSize != 4 ) {
-	std::cerr << __FUNCTION__
-		  << ": Incompatible universe detected"
-		  << std::endl
-		  << "Please adjust number of spatial dimensions "
-		  << "to 3 and try again"
-		  << std::endl;
-	exit( EXIT_FAILURE );
-      }
+AffineTransformation::AffineTransformation( void )
+{
+  /*!
+  Default constructor zeros the matrix
+  */
 
-      for( unsigned int i=0; i<kMatrixSize; i++ ) {
-	this->matrix[i] = 0;
-      }
-    }
-
-    AffineTransformation::AffineTransformation( const MATRIX* src ) {
-      /*!
-	Constructor to take values from a real 4x4 matrix.
-	Double checks everything before performing assignment
-      */
-
-      if( src->type != MATRIX_REAL ) {
-	std::cerr << __FUNCTION__ << ": Invalid matrix type " <<
-	  src->type << std::endl;
-	exit( EXIT_FAILURE );
-      }
-
-      if( static_cast<unsigned int>(src->rows) != kVectorSize ) {
-	std::cerr << __FUNCTION__ << ": Invalid number of rows " <<
-	  src->rows << std:: endl;
-	exit( EXIT_FAILURE );
-      }
-
-      if( static_cast<unsigned int>(src->cols) != kVectorSize ) {
-	std::cerr << __FUNCTION__ << ": Invalid number of cols " <<
-	  src->cols << std:: endl;
-	exit( EXIT_FAILURE );
-      }
-
-      // Do the copy
-      for( unsigned int i=0; i<kVectorSize; i++ ) {
-	for( unsigned int j=0; j<kVectorSize; j++ ) {
-	  this->operator()( i, j ) = *MATRIX_RELT( src, i+1, j+1 );
-	}
-      }
-    }
-
-
-
-    void AffineTransformation::SetTransform( const MATRIX* src ) {
-      /*!
-	Duplicates the functionality of the constructor from
-	a real 4x4 matrix
-      */
-      if( src->type != MATRIX_REAL ) {
-	std::cerr << __FUNCTION__ << ": Invalid matrix type " <<
-	  src->type << std::endl;
-	exit( EXIT_FAILURE );
-      }
-      
-      if( static_cast<unsigned int>(src->rows) != kVectorSize ) {
-	std::cerr << __FUNCTION__ << ": Invalid number of rows " <<
-	  src->rows << std:: endl;
-	exit( EXIT_FAILURE );
-      }
-      
-      if( static_cast<unsigned int>(src->cols) != kVectorSize ) {
-	std::cerr << __FUNCTION__ << ": Invalid number of cols " <<
-	  src->cols << std:: endl;
-	exit( EXIT_FAILURE );
-      }
-      
-      // Do the copy
-      for( unsigned int i=0; i<kVectorSize; i++ ) {
-	for( unsigned int j=0; j<kVectorSize; j++ ) {
-	  this->operator()( i, j ) = *MATRIX_RELT( src, i+1, j+1 );
-	}
-      }
-    }
-
-    void AffineTransformation::SetTransform( const AffineMatrix* src ) {
-      memcpy( this->matrix, src->mat, kMatrixSize*sizeof(float) );
-    }
-
-
+  // Have a little sanity check
+  if( kVectorSize != 4 )
+  {
+    std::cerr << __FUNCTION__
+              << ": Incompatible universe detected"
+              << std::endl
+              << "Please adjust number of spatial dimensions "
+              << "to 3 and try again"
+              << std::endl;
+    exit( EXIT_FAILURE );
   }
+
+  for( unsigned int i=0; i<kMatrixSize; i++ )
+  {
+    this->matrix[i] = 0;
+  }
+}
+
+AffineTransformation::AffineTransformation( const MATRIX* src )
+{
+  /*!
+  Constructor to take values from a real 4x4 matrix.
+  Double checks everything before performing assignment
+  */
+
+  if( src->type != MATRIX_REAL )
+  {
+    std::cerr << __FUNCTION__ << ": Invalid matrix type " <<
+              src->type << std::endl;
+    exit( EXIT_FAILURE );
+  }
+
+  if( static_cast<unsigned int>(src->rows) != kVectorSize )
+  {
+    std::cerr << __FUNCTION__ << ": Invalid number of rows " <<
+              src->rows << std:: endl;
+    exit( EXIT_FAILURE );
+  }
+
+  if( static_cast<unsigned int>(src->cols) != kVectorSize )
+  {
+    std::cerr << __FUNCTION__ << ": Invalid number of cols " <<
+              src->cols << std:: endl;
+    exit( EXIT_FAILURE );
+  }
+
+  // Do the copy
+  for( unsigned int i=0; i<kVectorSize; i++ )
+  {
+    for( unsigned int j=0; j<kVectorSize; j++ )
+    {
+      this->operator()( i, j ) = *MATRIX_RELT( src, i+1, j+1 );
+    }
+  }
+}
+
+
+
+void AffineTransformation::SetTransform( const MATRIX* src )
+{
+  /*!
+  Duplicates the functionality of the constructor from
+  a real 4x4 matrix
+  */
+  if( src->type != MATRIX_REAL )
+  {
+    std::cerr << __FUNCTION__ << ": Invalid matrix type " <<
+              src->type << std::endl;
+    exit( EXIT_FAILURE );
+  }
+
+  if( static_cast<unsigned int>(src->rows) != kVectorSize )
+  {
+    std::cerr << __FUNCTION__ << ": Invalid number of rows " <<
+              src->rows << std:: endl;
+    exit( EXIT_FAILURE );
+  }
+
+  if( static_cast<unsigned int>(src->cols) != kVectorSize )
+  {
+    std::cerr << __FUNCTION__ << ": Invalid number of cols " <<
+              src->cols << std:: endl;
+    exit( EXIT_FAILURE );
+  }
+
+  // Do the copy
+  for( unsigned int i=0; i<kVectorSize; i++ )
+  {
+    for( unsigned int j=0; j<kVectorSize; j++ )
+    {
+      this->operator()( i, j ) = *MATRIX_RELT( src, i+1, j+1 );
+    }
+  }
+}
+
+void AffineTransformation::SetTransform( const AffineMatrix* src )
+{
+  memcpy( this->matrix, src->mat, kMatrixSize*sizeof(float) );
+}
+
+
+}
 }

@@ -2,7 +2,6 @@ SUBDIRS = gcatest \
           volumecopy \
           mrilabeltest
 
-
 AM_CFLAGS=-I$(top_srcdir)/include
 
 AM_CXXFLAGS=-I$(top_srcdir)/include $(BOOST_CFLAGS) -Wall -Wextra
@@ -26,7 +25,7 @@ endif
 
 # rules for building cuda files
 .cu.o:
-	$(NVCC) -o $@ -c $< $(NVCCFLAGS) $(AM_CFLAGS) $(MNI_CFLAGS)
+	$(NVCC) -o $@ -c $< $(NVCCFLAGS) $(CUDA_CFLAGS) $(AM_CFLAGS) $(MNI_CFLAGS)
 
 
 bin_PROGRAMS = gcamCompare\
@@ -69,8 +68,8 @@ gcam_write_test_LDADD=  $(addprefix $(top_builddir)/, $(LIBS_MGH)) $(BOOST_PO_LI
 gcam_write_test_LDFLAGS=$(OS_LDFLAGS)
 
 gcam_write_test_cuda_SOURCES = gcam_write_test.cpp
-gcam_write_test_cuda_CFLAGS = $(AM_CFLAGS)  $(CUDA_CFLAGS) -DFS_CUDA
-gcam_write_test_cuda_CXXFLAGS = $(AM_CXXFLAGS) $(CUDA_CFLAGS) -DFS_CUDA
+gcam_write_test_cuda_CFLAGS = $(CUDA_CFLAGS) $(AM_CFLAGS) -DFS_CUDA
+gcam_write_test_cuda_CXXFLAGS = $(CUDA_CXXFLAGS) $(AM_CFLAGS) -DFS_CUDA
 gcam_write_test_cuda_LDADD = $(addprefix $(top_builddir)/, $(LIBS_CUDA_MGH)) $(CUDA_LIBS) $(BOOST_PO_LIB)
 gcam_write_test_cuda_LDFLAGS = $(OS_LDFLAGS) 
 gcam_write_test_cuda_LINK = $(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) \
@@ -92,8 +91,8 @@ conv1d_test_LDFLAGS=$(OS_LDFLAGS)
 
 
 conv1d_test_cuda_SOURCES = conv1d_test.cpp
-conv1d_test_cuda_CFLAGS = $(AM_CFLAGS)  $(CUDA_CFLAGS) -DFS_CUDA
-conv1d_test_cuda_CXXFLAGS = $(AM_CXXFLAGS) $(CUDA_CFLAGS) -DFS_CUDA
+conv1d_test_cuda_CFLAGS = $(CUDA_CFLAGS) $(AM_CFLAGS) -DFS_CUDA
+conv1d_test_cuda_CXXFLAGS = $(CUDA_CXXFLAGS) $(AM_CFLAGS) -DFS_CUDA
 conv1d_test_cuda_LDADD = $(addprefix $(top_builddir)/, $(LIBS_CUDA_MGH)) $(CUDA_LIBS) $(BOOST_PO_LIB)
 conv1d_test_cuda_LDFLAGS = $(OS_LDFLAGS) 
 conv1d_test_cuda_LINK = $(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) \
@@ -108,8 +107,8 @@ convgaussian_test_LDFLAGS=$(OS_LDFLAGS)
 
 
 convgaussian_test_cuda_SOURCES = convgaussian_test.cpp
-convgaussian_test_cuda_CFLAGS = $(AM_CFLAGS)  $(CUDA_CFLAGS) -DFS_CUDA
-convgaussian_test_cuda_CXXFLAGS = $(AM_CXXFLAGS) $(CUDA_CFLAGS) -DFS_CUDA
+convgaussian_test_cuda_CFLAGS = $(CUDA_CFLAGS) $(AM_CFLAGS) -DFS_CUDA
+convgaussian_test_cuda_CXXFLAGS = $(CUDA_CXXFLAGS) $(AM_CFLAGS) -DFS_CUDA
 convgaussian_test_cuda_LDADD = $(addprefix $(top_builddir)/, $(LIBS_CUDA_MGH)) $(CUDA_LIBS) $(BOOST_PO_LIB)
 convgaussian_test_cuda_LDFLAGS = $(OS_LDFLAGS) 
 convgaussian_test_cuda_LINK = $(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) \
@@ -124,8 +123,8 @@ gcam_cmp_test_LDFLAGS=$(OS_LDFLAGS)
 
 
 gcam_cmp_test_cuda_SOURCES = gcam_cmp_test.cpp
-gcam_cmp_test_cuda_CFLAGS = $(AM_CFLAGS)  $(CUDA_CFLAGS) -DFS_CUDA
-gcam_cmp_test_cuda_CXXFLAGS = $(AM_CXXFLAGS) $(CUDA_CFLAGS) -DFS_CUDA
+gcam_cmp_test_cuda_CFLAGS = $(CUDA_CFLAGS)  $(AM_CFLAGS) -DFS_CUDA
+gcam_cmp_test_cuda_CXXFLAGS = $(CUDA_CXXFLAGS) $(AM_CFLAGS) -DFS_CUDA
 gcam_cmp_test_cuda_LDADD = $(addprefix $(top_builddir)/, $(LIBS_CUDA_MGH)) $(CUDA_LIBS) $(BOOST_PO_LIB)
 gcam_cmp_test_cuda_LDFLAGS = $(OS_LDFLAGS) 
 gcam_cmp_test_cuda_LINK = $(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) \
@@ -140,8 +139,8 @@ gcam_lle_test_LDFLAGS=$(OS_LDFLAGS)
 
 
 gcam_lle_test_cuda_SOURCES = gcam_lle_test.cpp
-gcam_lle_test_cuda_CFLAGS = $(AM_CFLAGS)  $(CUDA_CFLAGS) -DFS_CUDA
-gcam_lle_test_cuda_CXXFLAGS = $(AM_CXXFLAGS) $(CUDA_CFLAGS) -DFS_CUDA
+gcam_lle_test_cuda_CFLAGS = $(CUDA_CFLAGS)  $(AM_CFLAGS) -DFS_CUDA
+gcam_lle_test_cuda_CXXFLAGS = $(CUDA_CXXFLAGS) $(AM_CFLAGS) -DFS_CUDA
 gcam_lle_test_cuda_LDADD = $(addprefix $(top_builddir)/, $(LIBS_CUDA_MGH)) $(CUDA_LIBS) $(BOOST_PO_LIB)
 gcam_lle_test_cuda_LDFLAGS = $(OS_LDFLAGS) 
 gcam_lle_test_cuda_LINK = $(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) \
@@ -156,8 +155,8 @@ gcam_jacobenergy_test_LDFLAGS=$(OS_LDFLAGS)
 
 
 gcam_jacobenergy_test_cuda_SOURCES = gcam_jacobenergy_test.cpp
-gcam_jacobenergy_test_cuda_CFLAGS = $(AM_CFLAGS)  $(CUDA_CFLAGS) -DFS_CUDA
-gcam_jacobenergy_test_cuda_CXXFLAGS = $(AM_CXXFLAGS) $(CUDA_CFLAGS) -DFS_CUDA
+gcam_jacobenergy_test_cuda_CFLAGS = $(CUDA_CFLAGS)  $(AM_CFLAGS) -DFS_CUDA
+gcam_jacobenergy_test_cuda_CXXFLAGS = $(CUDA_CXXFLAGS) $(AM_CFLAGS) -DFS_CUDA
 gcam_jacobenergy_test_cuda_LDADD = $(addprefix $(top_builddir)/, $(LIBS_CUDA_MGH)) $(CUDA_LIBS) $(BOOST_PO_LIB)
 gcam_jacobenergy_test_cuda_LDFLAGS = $(OS_LDFLAGS) 
 gcam_jacobenergy_test_cuda_LINK = $(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) \
@@ -172,8 +171,8 @@ gcam_labelenergy_test_LDFLAGS=$(OS_LDFLAGS)
 
 
 gcam_labelenergy_test_cuda_SOURCES = gcam_labelenergy_test.cpp
-gcam_labelenergy_test_cuda_CFLAGS = $(AM_CFLAGS)  $(CUDA_CFLAGS) -DFS_CUDA
-gcam_labelenergy_test_cuda_CXXFLAGS = $(AM_CXXFLAGS) $(CUDA_CFLAGS) -DFS_CUDA
+gcam_labelenergy_test_cuda_CFLAGS = $(CUDA_CFLAGS) $(AM_CFLAGS) -DFS_CUDA
+gcam_labelenergy_test_cuda_CXXFLAGS = $(CUDA_CXXFLAGS) $(AM_CFLAGS) -DFS_CUDA
 gcam_labelenergy_test_cuda_LDADD = $(addprefix $(top_builddir)/, $(LIBS_CUDA_MGH)) $(CUDA_LIBS) $(BOOST_PO_LIB)
 gcam_labelenergy_test_cuda_LDFLAGS = $(OS_LDFLAGS) 
 gcam_labelenergy_test_cuda_LINK = $(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) \
@@ -189,8 +188,8 @@ gcam_smoothnessenergy_test_LDFLAGS=$(OS_LDFLAGS)
 
 
 gcam_smoothnessenergy_test_cuda_SOURCES = gcam_smoothnessenergy_test.cpp
-gcam_smoothnessenergy_test_cuda_CFLAGS = $(AM_CFLAGS)  $(CUDA_CFLAGS) -DFS_CUDA
-gcam_smoothnessenergy_test_cuda_CXXFLAGS = $(AM_CXXFLAGS) $(CUDA_CFLAGS) -DFS_CUDA
+gcam_smoothnessenergy_test_cuda_CFLAGS = $(CUDA_CFLAGS)  $(AM_CFLAGS) -DFS_CUDA
+gcam_smoothnessenergy_test_cuda_CXXFLAGS = $(CUDA_CXXFLAGS) $(AM_CFLAGS) -DFS_CUDA
 gcam_smoothnessenergy_test_cuda_LDADD = $(addprefix $(top_builddir)/, $(LIBS_CUDA_MGH)) $(CUDA_LIBS) $(BOOST_PO_LIB)
 gcam_smoothnessenergy_test_cuda_LDFLAGS = $(OS_LDFLAGS) 
 gcam_smoothnessenergy_test_cuda_LINK = $(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) \
@@ -206,8 +205,8 @@ gcam_clear_test_LDFLAGS=$(OS_LDFLAGS)
 
 
 gcam_clear_test_cuda_SOURCES = gcam_clear_test.cpp
-gcam_clear_test_cuda_CFLAGS = $(AM_CFLAGS)  $(CUDA_CFLAGS) -DFS_CUDA
-gcam_clear_test_cuda_CXXFLAGS = $(AM_CXXFLAGS) $(CUDA_CFLAGS) -DFS_CUDA
+gcam_clear_test_cuda_CFLAGS = $(CUDA_CFLAGS) $(AM_CFLAGS) -DFS_CUDA
+gcam_clear_test_cuda_CXXFLAGS = $(CUDA_CXXFLAGS) $(AM_CFLAGS) -DFS_CUDA
 gcam_clear_test_cuda_LDADD = $(addprefix $(top_builddir)/, $(LIBS_CUDA_MGH)) $(CUDA_LIBS) $(BOOST_PO_LIB)
 gcam_clear_test_cuda_LDFLAGS = $(OS_LDFLAGS) 
 gcam_clear_test_cuda_LINK = $(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) \
@@ -223,8 +222,8 @@ gcam_applygradient_test_LDFLAGS=$(OS_LDFLAGS)
 
 
 gcam_applygradient_test_cuda_SOURCES = gcam_applygradient_test.cpp
-gcam_applygradient_test_cuda_CFLAGS = $(AM_CFLAGS)  $(CUDA_CFLAGS) -DFS_CUDA
-gcam_applygradient_test_cuda_CXXFLAGS = $(AM_CXXFLAGS) $(CUDA_CFLAGS) -DFS_CUDA
+gcam_applygradient_test_cuda_CFLAGS = $(CUDA_CFLAGS) $(AM_CFLAGS) -DFS_CUDA
+gcam_applygradient_test_cuda_CXXFLAGS = $(CUDA_CXXFLAGS) $(AM_CFLAGS) -DFS_CUDA
 gcam_applygradient_test_cuda_LDADD = $(addprefix $(top_builddir)/, $(LIBS_CUDA_MGH)) $(CUDA_LIBS) $(BOOST_PO_LIB)
 gcam_applygradient_test_cuda_LDFLAGS = $(OS_LDFLAGS) 
 gcam_applygradient_test_cuda_LINK = $(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) \
@@ -239,8 +238,8 @@ gcam_undogradient_test_LDFLAGS=$(OS_LDFLAGS)
 
 
 gcam_undogradient_test_cuda_SOURCES = gcam_undogradient_test.cpp
-gcam_undogradient_test_cuda_CFLAGS = $(AM_CFLAGS)  $(CUDA_CFLAGS) -DFS_CUDA
-gcam_undogradient_test_cuda_CXXFLAGS = $(AM_CXXFLAGS) $(CUDA_CFLAGS) -DFS_CUDA
+gcam_undogradient_test_cuda_CFLAGS = $(CUDA_CFLAGS) $(AM_CFLAGS) -DFS_CUDA
+gcam_undogradient_test_cuda_CXXFLAGS = $(CUDA_CXXFLAGS) $(AM_CFLAGS) -DFS_CUDA
 gcam_undogradient_test_cuda_LDADD = $(addprefix $(top_builddir)/, $(LIBS_CUDA_MGH)) $(CUDA_LIBS) $(BOOST_PO_LIB)
 gcam_undogradient_test_cuda_LDFLAGS = $(OS_LDFLAGS) 
 gcam_undogradient_test_cuda_LINK = $(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) \
@@ -255,7 +254,7 @@ meanfilter_test_LDFLAGS=$(OS_LDFLAGS)
 
 meanfilter_test_cuda_SOURCES = meanfilter_test.cpp
 meanfilter_test_cuda_CFLAGS = $(AM_CFLAGS) $(CUDA_CFLAGS) -DFS_CUDA
-meanfilter_test_cuda_CXXFLAGS = $(AM_CXXFLAGS) $(CUDA_CFLAGS) -DFS_CUDA
+meanfilter_test_cuda_CXXFLAGS = $(CUDA_CXXFLAGS) $(AM_CFLAGS) -DFS_CUDA
 meanfilter_test_cuda_LDADD = $(addprefix $(top_builddir)/, $(LIBS_CUDA_MGH)) $(CUDA_LIBS) $(BOOST_PO_LIB)
 meanfilter_test_cuda_LDFLAGS = $(OS_LDFLAGS) 
 meanfilter_test_cuda_LINK = $(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) \
@@ -271,8 +270,8 @@ gcam_smoothnessterm_test_LDFLAGS=$(OS_LDFLAGS)
 
 
 gcam_smoothnessterm_test_cuda_SOURCES = gcam_smoothnessterm_test.cpp
-gcam_smoothnessterm_test_cuda_CFLAGS = $(AM_CFLAGS)  $(CUDA_CFLAGS) -DFS_CUDA
-gcam_smoothnessterm_test_cuda_CXXFLAGS = $(AM_CXXFLAGS) $(CUDA_CFLAGS) -DFS_CUDA
+gcam_smoothnessterm_test_cuda_CFLAGS = $(CUDA_CFLAGS) $(AM_CFLAGS) -DFS_CUDA
+gcam_smoothnessterm_test_cuda_CXXFLAGS = $(CUDA_CXXFLAGS) $(AM_CFLAGS) -DFS_CUDA
 gcam_smoothnessterm_test_cuda_LDADD = $(addprefix $(top_builddir)/, $(LIBS_CUDA_MGH)) $(CUDA_LIBS) $(BOOST_PO_LIB)
 gcam_smoothnessterm_test_cuda_LDFLAGS = $(OS_LDFLAGS) 
 gcam_smoothnessterm_test_cuda_LINK = $(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) \
@@ -287,8 +286,8 @@ gcam_jacobterm_test_LDFLAGS=$(OS_LDFLAGS)
 
 
 gcam_jacobterm_test_cuda_SOURCES = gcam_jacobterm_test.cpp
-gcam_jacobterm_test_cuda_CFLAGS = $(AM_CFLAGS)  $(CUDA_CFLAGS) -DFS_CUDA
-gcam_jacobterm_test_cuda_CXXFLAGS = $(AM_CXXFLAGS) $(CUDA_CFLAGS) -DFS_CUDA
+gcam_jacobterm_test_cuda_CFLAGS = $(CUDA_CFLAGS) $(AM_CFLAGS) -DFS_CUDA
+gcam_jacobterm_test_cuda_CXXFLAGS = $(CUDA_CXXFLAGS) $(AM_CFLAGS) -DFS_CUDA
 gcam_jacobterm_test_cuda_LDADD = $(addprefix $(top_builddir)/, $(LIBS_CUDA_MGH)) $(CUDA_LIBS) $(BOOST_PO_LIB)
 gcam_jacobterm_test_cuda_LDFLAGS = $(OS_LDFLAGS) 
 gcam_jacobterm_test_cuda_LINK = $(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) \
@@ -303,8 +302,8 @@ gcam_llterm_test_LDFLAGS=$(OS_LDFLAGS)
 
 
 gcam_llterm_test_cuda_SOURCES = gcam_llterm_test.cpp
-gcam_llterm_test_cuda_CFLAGS = $(AM_CFLAGS)  $(CUDA_CFLAGS) -DFS_CUDA
-gcam_llterm_test_cuda_CXXFLAGS = $(AM_CXXFLAGS) $(CUDA_CFLAGS) -DFS_CUDA
+gcam_llterm_test_cuda_CFLAGS = $(CUDA_CFLAGS) $(AM_CFLAGS) -DFS_CUDA
+gcam_llterm_test_cuda_CXXFLAGS = $(CUDA_CXXFLAGS) $(AM_CFLAGS) -DFS_CUDA
 gcam_llterm_test_cuda_LDADD = $(addprefix $(top_builddir)/, $(LIBS_CUDA_MGH)) $(CUDA_LIBS) $(BOOST_PO_LIB)
 gcam_llterm_test_cuda_LDFLAGS = $(OS_LDFLAGS) 
 gcam_llterm_test_cuda_LINK = $(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) \
@@ -319,8 +318,8 @@ gcam_labelterm_final_test_LDFLAGS=$(OS_LDFLAGS)
 
 
 gcam_labelterm_final_test_cuda_SOURCES = gcam_labelterm_final_test.cpp
-gcam_labelterm_final_test_cuda_CFLAGS = $(AM_CFLAGS)  $(CUDA_CFLAGS) -DFS_CUDA
-gcam_labelterm_final_test_cuda_CXXFLAGS = $(AM_CXXFLAGS) $(CUDA_CFLAGS) -DFS_CUDA
+gcam_labelterm_final_test_cuda_CFLAGS = $(CUDA_CFLAGS) $(AM_CFLAGS) -DFS_CUDA
+gcam_labelterm_final_test_cuda_CXXFLAGS = $(CUDA_CXXFLAGS) $(AM_CFLAGS) -DFS_CUDA
 gcam_labelterm_final_test_cuda_LDADD = $(addprefix $(top_builddir)/, $(LIBS_CUDA_MGH)) $(CUDA_LIBS) $(BOOST_PO_LIB)
 gcam_labelterm_final_test_cuda_LDFLAGS = $(OS_LDFLAGS) 
 gcam_labelterm_final_test_cuda_LINK = $(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) \
@@ -336,8 +335,8 @@ gcam_labelterm_postantconsist_test_LDFLAGS=$(OS_LDFLAGS)
 
 
 gcam_labelterm_postantconsist_test_cuda_SOURCES = gcam_labelterm_postantconsist_test.cpp
-gcam_labelterm_postantconsist_test_cuda_CFLAGS = $(AM_CFLAGS)  $(CUDA_CFLAGS) -DFS_CUDA
-gcam_labelterm_postantconsist_test_cuda_CXXFLAGS = $(AM_CXXFLAGS) $(CUDA_CFLAGS) -DFS_CUDA
+gcam_labelterm_postantconsist_test_cuda_CFLAGS = $(CUDA_CFLAGS) $(AM_CFLAGS) -DFS_CUDA
+gcam_labelterm_postantconsist_test_cuda_CXXFLAGS = $(CUDA_CXXFLAGS) $(AM_CFLAGS) -DFS_CUDA
 gcam_labelterm_postantconsist_test_cuda_LDADD = $(addprefix $(top_builddir)/, $(LIBS_CUDA_MGH)) $(CUDA_LIBS) $(BOOST_PO_LIB)
 gcam_labelterm_postantconsist_test_cuda_LDFLAGS = $(OS_LDFLAGS) 
 gcam_labelterm_postantconsist_test_cuda_LINK = $(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) \
@@ -352,8 +351,8 @@ gcam_labelterm_copydeltas_test_LDFLAGS=$(OS_LDFLAGS)
 
 
 gcam_labelterm_copydeltas_test_cuda_SOURCES = gcam_labelterm_copydeltas_test.cpp
-gcam_labelterm_copydeltas_test_cuda_CFLAGS = $(AM_CFLAGS)  $(CUDA_CFLAGS) -DFS_CUDA
-gcam_labelterm_copydeltas_test_cuda_CXXFLAGS = $(AM_CXXFLAGS) $(CUDA_CFLAGS) -DFS_CUDA
+gcam_labelterm_copydeltas_test_cuda_CFLAGS = $(CUDA_CFLAGS) $(AM_CFLAGS) -DFS_CUDA
+gcam_labelterm_copydeltas_test_cuda_CXXFLAGS = $(CUDA_CXXFLAGS) $(AM_CFLAGS) -DFS_CUDA
 gcam_labelterm_copydeltas_test_cuda_LDADD = $(addprefix $(top_builddir)/, $(LIBS_CUDA_MGH)) $(CUDA_LIBS) $(BOOST_PO_LIB)
 gcam_labelterm_copydeltas_test_cuda_LDFLAGS = $(OS_LDFLAGS) 
 gcam_labelterm_copydeltas_test_cuda_LINK = $(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) \
@@ -369,8 +368,8 @@ gcam_labelterm_removeoutliers_test_LDFLAGS=$(OS_LDFLAGS)
 
 
 gcam_labelterm_removeoutliers_test_cuda_SOURCES = gcam_labelterm_removeoutliers_test.cpp
-gcam_labelterm_removeoutliers_test_cuda_CFLAGS = $(AM_CFLAGS)  $(CUDA_CFLAGS) -DFS_CUDA
-gcam_labelterm_removeoutliers_test_cuda_CXXFLAGS = $(AM_CXXFLAGS) $(CUDA_CFLAGS) -DFS_CUDA
+gcam_labelterm_removeoutliers_test_cuda_CFLAGS = $(CUDA_CFLAGS) $(AM_CFLAGS) -DFS_CUDA
+gcam_labelterm_removeoutliers_test_cuda_CXXFLAGS = $(CUDA_CXXFLAGS) $(AM_CFLAGS) -DFS_CUDA
 gcam_labelterm_removeoutliers_test_cuda_LDADD = $(addprefix $(top_builddir)/, $(LIBS_CUDA_MGH)) $(CUDA_LIBS) $(BOOST_PO_LIB)
 gcam_labelterm_removeoutliers_test_cuda_LDFLAGS = $(OS_LDFLAGS) 
 gcam_labelterm_removeoutliers_test_cuda_LINK = $(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) \
@@ -386,8 +385,8 @@ gcam_labelterm_mainloop_test_LDFLAGS=$(OS_LDFLAGS)
 
 
 gcam_labelterm_mainloop_test_cuda_SOURCES = gcam_labelterm_mainloop_test.cpp
-gcam_labelterm_mainloop_test_cuda_CFLAGS = $(AM_CFLAGS)  $(CUDA_CFLAGS) -DFS_CUDA
-gcam_labelterm_mainloop_test_cuda_CXXFLAGS = $(AM_CXXFLAGS) $(CUDA_CFLAGS) -DFS_CUDA
+gcam_labelterm_mainloop_test_cuda_CFLAGS = $(CUDA_CFLAGS) $(AM_CFLAGS) -DFS_CUDA
+gcam_labelterm_mainloop_test_cuda_CXXFLAGS = $(CUDA_CXXFLAGS) $(AM_CFLAGS) -DFS_CUDA
 gcam_labelterm_mainloop_test_cuda_LDADD = $(addprefix $(top_builddir)/, $(LIBS_CUDA_MGH)) $(CUDA_LIBS) $(BOOST_PO_LIB)
 gcam_labelterm_mainloop_test_cuda_LDFLAGS = $(OS_LDFLAGS) 
 gcam_labelterm_mainloop_test_cuda_LINK = $(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) \
@@ -404,8 +403,8 @@ gcam_labelterm_test_LDFLAGS=$(OS_LDFLAGS)
 
 
 gcam_labelterm_test_cuda_SOURCES = gcam_labelterm_test.cpp
-gcam_labelterm_test_cuda_CFLAGS = $(AM_CFLAGS)  $(CUDA_CFLAGS) -DFS_CUDA
-gcam_labelterm_test_cuda_CXXFLAGS = $(AM_CXXFLAGS) $(CUDA_CFLAGS) -DFS_CUDA
+gcam_labelterm_test_cuda_CFLAGS = $(CUDA_CFLAGS) $(AM_CFLAGS) -DFS_CUDA
+gcam_labelterm_test_cuda_CXXFLAGS = $(CUDA_CXXFLAGS) $(AM_CFLAGS) -DFS_CUDA
 gcam_labelterm_test_cuda_LDADD = $(addprefix $(top_builddir)/, $(LIBS_CUDA_MGH)) $(CUDA_LIBS) $(BOOST_PO_LIB)
 gcam_labelterm_test_cuda_LDFLAGS = $(OS_LDFLAGS) 
 gcam_labelterm_test_cuda_LINK = $(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) \
@@ -422,8 +421,8 @@ gcam_addstatus_test_LDFLAGS=$(OS_LDFLAGS)
 
 
 gcam_addstatus_test_cuda_SOURCES = gcam_addstatus_test.cpp
-gcam_addstatus_test_cuda_CFLAGS = $(AM_CFLAGS)  $(CUDA_CFLAGS) -DFS_CUDA
-gcam_addstatus_test_cuda_CXXFLAGS = $(AM_CXXFLAGS) $(CUDA_CFLAGS) -DFS_CUDA
+gcam_addstatus_test_cuda_CFLAGS = $(CUDA_CFLAGS) $(AM_CFLAGS) -DFS_CUDA
+gcam_addstatus_test_cuda_CXXFLAGS = $(CUDA_CXXFLAGS) $(AM_CFLAGS) -DFS_CUDA
 gcam_addstatus_test_cuda_LDADD = $(addprefix $(top_builddir)/, $(LIBS_CUDA_MGH)) $(CUDA_LIBS) $(BOOST_PO_LIB)
 gcam_addstatus_test_cuda_LDFLAGS = $(OS_LDFLAGS) 
 gcam_addstatus_test_cuda_LINK = $(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) \
@@ -439,8 +438,8 @@ gcam_removestatus_test_LDFLAGS=$(OS_LDFLAGS)
 
 
 gcam_removestatus_test_cuda_SOURCES = gcam_removestatus_test.cpp
-gcam_removestatus_test_cuda_CFLAGS = $(AM_CFLAGS)  $(CUDA_CFLAGS) -DFS_CUDA
-gcam_removestatus_test_cuda_CXXFLAGS = $(AM_CXXFLAGS) $(CUDA_CFLAGS) -DFS_CUDA
+gcam_removestatus_test_cuda_CFLAGS = $(CUDA_CFLAGS) $(AM_CFLAGS) -DFS_CUDA
+gcam_removestatus_test_cuda_CXXFLAGS = $(CUDA_CXXFLAGS) $(AM_CFLAGS) -DFS_CUDA
 gcam_removestatus_test_cuda_LDADD = $(addprefix $(top_builddir)/, $(LIBS_CUDA_MGH)) $(CUDA_LIBS) $(BOOST_PO_LIB)
 gcam_removestatus_test_cuda_LDFLAGS = $(OS_LDFLAGS) 
 gcam_removestatus_test_cuda_LINK = $(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) \
@@ -455,8 +454,8 @@ gcam_smoothgradient_test_LDFLAGS=$(OS_LDFLAGS)
 
 
 gcam_smoothgradient_test_cuda_SOURCES = gcam_smoothgradient_test.cpp
-gcam_smoothgradient_test_cuda_CFLAGS = $(AM_CFLAGS)  $(CUDA_CFLAGS) -DFS_CUDA
-gcam_smoothgradient_test_cuda_CXXFLAGS = $(AM_CXXFLAGS) $(CUDA_CFLAGS) -DFS_CUDA
+gcam_smoothgradient_test_cuda_CFLAGS = $(CUDA_CFLAGS) $(AM_CFLAGS) -DFS_CUDA
+gcam_smoothgradient_test_cuda_CXXFLAGS = $(CUDA_CXXFLAGS) $(AM_CFLAGS) -DFS_CUDA
 gcam_smoothgradient_test_cuda_LDADD = $(addprefix $(top_builddir)/, $(LIBS_CUDA_MGH)) $(CUDA_LIBS) $(BOOST_PO_LIB)
 gcam_smoothgradient_test_cuda_LDFLAGS = $(OS_LDFLAGS) 
 gcam_smoothgradient_test_cuda_LINK = $(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) \
@@ -471,8 +470,8 @@ gcam_removesingularities_test_LDFLAGS=$(OS_LDFLAGS)
 
 
 gcam_removesingularities_test_cuda_SOURCES = gcam_removesingularities_test.cpp
-gcam_removesingularities_test_cuda_CFLAGS = $(AM_CFLAGS)  $(CUDA_CFLAGS) -DFS_CUDA
-gcam_removesingularities_test_cuda_CXXFLAGS = $(AM_CXXFLAGS) $(CUDA_CFLAGS) -DFS_CUDA
+gcam_removesingularities_test_cuda_CFLAGS = $(CUDA_CFLAGS) $(AM_CFLAGS) -DFS_CUDA
+gcam_removesingularities_test_cuda_CXXFLAGS = $(CUDA_CXXFLAGS) $(AM_CFLAGS) -DFS_CUDA
 gcam_removesingularities_test_cuda_LDADD = $(addprefix $(top_builddir)/, $(LIBS_CUDA_MGH)) $(CUDA_LIBS) $(BOOST_PO_LIB)
 gcam_removesingularities_test_cuda_LDFLAGS = $(OS_LDFLAGS) 
 gcam_removesingularities_test_cuda_LINK = $(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) \

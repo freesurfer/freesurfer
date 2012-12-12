@@ -9,8 +9,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:42 $
- *    $Revision: 1.2 $
+ *    $Date: 2012/12/12 21:18:24 $
+ *    $Revision: 1.3 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -33,7 +33,8 @@
 // Stream operators
 
 
-std::ostream& operator<<( std::ostream& os, const float3& me ) {
+std::ostream& operator<<( std::ostream& os, const float3& me )
+{
   const unsigned int w = 6;
   const unsigned int p = 2;
 
@@ -45,7 +46,8 @@ std::ostream& operator<<( std::ostream& os, const float3& me ) {
   return( os );
 }
 
-std::ostream& operator<<( std::ostream& os, const dim3& me ) {
+std::ostream& operator<<( std::ostream& os, const dim3& me )
+{
   const unsigned int w = 6;
   os << "(";
   os << std::setw(w) << me.x;

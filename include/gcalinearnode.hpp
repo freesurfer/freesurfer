@@ -7,20 +7,18 @@
  * Original Authors: Richard Edgar
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2011/01/25 17:19:00 $
- *    $Revision: 1.10 $
+ *    $Date: 2012/12/12 21:18:23 $
+ *    $Revision: 1.11 $
  *
- * Copyright (C) 2010-2011,
- * The General Hospital Corporation (Boston, MA).
- * All rights reserved.
+ * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
  *
- * Distribution, usage and copying of this software is covered under the
- * terms found in the License Agreement file named 'COPYING' found in the
- * FreeSurfer source code root directory, and duplicated here:
- * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ * Terms and conditions for use, reproduction, distribution and contribution
+ * are found in the 'FreeSurfer Software License Agreement' contained
+ * in the file 'LICENSE' found in the FreeSurfer distribution, and here:
  *
- * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
  *
+ * Reporting: freesurfer@nmr.mgh.harvard.edu
  */
 
 #ifndef GCA_LINEAR_NODE_HPP
@@ -34,47 +32,53 @@
 
 
 // Forward declaration
-namespace GPU {
-namespace Classes {
+namespace GPU
+{
+namespace Classes
+{
 class GCAnodeGPU;
 }
 }
 
 //! Catch-all namespace
-namespace Freesurfer {
+namespace Freesurfer
+{
 
 // Forward declaration
 class const_GCAnode;
 class const_GCAnode_GC1D;
 
 //! Class to hold a 3D volume of GCA nodes in linear memory (ninputs=1)
-class GCAlinearNode {
+class GCAlinearNode
+{
 public:
   GCAlinearNode( void ) : xDim(0), yDim(0), zDim(0),
-      n4D(0), n5D(0), n6D(0),
-      gc1dNeighbourDim(GIBBS_NEIGHBORHOOD),
-      offsets4D(), offsets5D(), offsets6D(),
-      nodeMaxLabels(),
-      nodeTotalTraining(),
-      nodeLabels(),
-      means(), variances(),
-      nJustPriors(), nTraining(), regularised(),
-      gc1dDirecLabelPriors(),
-      gc1dDirecLabels(),
-      tExhume(), tInhume() {};
+    n4D(0), n5D(0), n6D(0),
+    gc1dNeighbourDim(GIBBS_NEIGHBORHOOD),
+    offsets4D(), offsets5D(), offsets6D(),
+    nodeMaxLabels(),
+    nodeTotalTraining(),
+    nodeLabels(),
+    means(), variances(),
+    nJustPriors(), nTraining(), regularised(),
+    gc1dDirecLabelPriors(),
+    gc1dDirecLabels(),
+    tExhume(), tInhume() {};
 
   // -------------------------------------------------
   // 3D data access
 
   //! Accessor for nodeMaxLabels
-  inline int maxLabels( const int ix, const int iy, const int iz ) const {
+  inline int maxLabels( const int ix, const int iy, const int iz ) const
+  {
     const size_t idx = this->index3D(ix,iy,iz);
 
     return( this->nodeMaxLabels.at(idx) );
   }
 
   //! Mutator for nodeMaxLabels
-  inline int& maxLabels( const int ix, const int iy, const int iz ) {
+  inline int& maxLabels( const int ix, const int iy, const int iz )
+  {
     const size_t idx = this->index3D(ix,iy,iz);
 
     return( this->nodeMaxLabels.at(idx) );
@@ -85,7 +89,8 @@ public:
   //! Accessor for nodeTotalTraining
   inline int totalTraining( const int ix,
                             const int iy,
-                            const int iz ) const {
+                            const int iz ) const
+  {
     const size_t idx = this->index3D(ix,iy,iz);
 
     return( this->nodeTotalTraining.at(idx) );
@@ -94,7 +99,8 @@ public:
   //! Mutator for nodeTotalTraining
   inline int& totalTraining( const int ix,
                              const int iy,
-                             const int iz ) {
+                             const int iz )
+  {
     const size_t idx = this->index3D(ix,iy,iz);
 
     return( this->nodeTotalTraining.at(idx) );
@@ -106,7 +112,8 @@ public:
   //! Dynamic computation of gc1dCount
   inline int gc1dCount( const int ix,
                         const int iy,
-                        const int iz ) const {
+                        const int iz ) const
+  {
     /*!
     This is computed as the difference between
     consecutive entries of the offsets4D array
@@ -127,7 +134,8 @@ public:
   inline unsigned short labelsAtNode( const int ix,
                                       const int iy,
                                       const int iz,
-                                      const int iGC1D ) const {
+                                      const int iGC1D ) const
+  {
     const size_t idx = this->index4D(ix,iy,iz,iGC1D);
 
     return( this->nodeLabels.at(idx) );
@@ -137,7 +145,8 @@ public:
   inline unsigned short& labelsAtNode( const int ix,
                                        const int iy,
                                        const int iz,
-                                       const int iGC1D ) {
+                                       const int iGC1D )
+  {
     const size_t idx = this->index4D(ix,iy,iz,iGC1D);
 
     return( this->nodeLabels.at(idx) );
@@ -149,7 +158,8 @@ public:
   inline float meansAtNodeGC1D( const int ix,
                                 const int iy,
                                 const int iz,
-                                const int iGC1D ) const {
+                                const int iGC1D ) const
+  {
     const size_t idx = this->index4D(ix,iy,iz,iGC1D);
 
     return( this->means.at(idx) );
@@ -159,7 +169,8 @@ public:
   inline float& meansAtNodeGC1D( const int ix,
                                  const int iy,
                                  const int iz,
-                                 const int iGC1D ) {
+                                 const int iGC1D )
+  {
     const size_t idx = this->index4D(ix,iy,iz,iGC1D);
 
     return( this->means.at(idx) );
@@ -171,7 +182,8 @@ public:
   inline float variancesAtNodeGC1D( const int ix,
                                     const int iy,
                                     const int iz,
-                                    const int iGC1D ) const {
+                                    const int iGC1D ) const
+  {
     const size_t idx = this->index4D(ix,iy,iz,iGC1D);
 
     return( this->variances.at(idx) );
@@ -181,7 +193,8 @@ public:
   inline float& variancesAtNodeGC1D( const int ix,
                                      const int iy,
                                      const int iz,
-                                     const int iGC1D ) {
+                                     const int iGC1D )
+  {
     const size_t idx = this->index4D(ix,iy,iz,iGC1D);
 
     return( this->variances.at(idx) );
@@ -193,7 +206,8 @@ public:
   inline short nJustPriorsAtNodeGC1D( const int ix,
                                       const int iy,
                                       const int iz,
-                                      const int iGC1D ) const {
+                                      const int iGC1D ) const
+  {
     const size_t idx = this->index4D(ix,iy,iz,iGC1D);
 
     return( this->nJustPriors.at(idx) );
@@ -203,7 +217,8 @@ public:
   inline short& nJustPriorsAtNodeGC1D( const int ix,
                                        const int iy,
                                        const int iz,
-                                       const int iGC1D ) {
+                                       const int iGC1D )
+  {
     const size_t idx = this->index4D(ix,iy,iz,iGC1D);
 
     return( this->nJustPriors.at(idx) );
@@ -215,7 +230,8 @@ public:
   inline int nTrainingAtNodeGC1D( const int ix,
                                   const int iy,
                                   const int iz,
-                                  const int iGC1D ) const {
+                                  const int iGC1D ) const
+  {
     const size_t idx = this->index4D(ix,iy,iz,iGC1D);
 
     return( this->nTraining.at(idx) );
@@ -225,7 +241,8 @@ public:
   inline int& nTrainingAtNodeGC1D( const int ix,
                                    const int iy,
                                    const int iz,
-                                   const int iGC1D ) {
+                                   const int iGC1D )
+  {
     const size_t idx = this->index4D(ix,iy,iz,iGC1D);
 
     return( this->nTraining.at(idx) );
@@ -237,7 +254,8 @@ public:
   inline char regularisedAtNodeGC1D( const int ix,
                                      const int iy,
                                      const int iz,
-                                     const int iGC1D ) const {
+                                     const int iGC1D ) const
+  {
     const size_t idx = this->index4D(ix,iy,iz,iGC1D);
 
     return( this->regularised.at(idx) );
@@ -247,7 +265,8 @@ public:
   inline char& regularisedAtNodeGC1D( const int ix,
                                       const int iy,
                                       const int iz,
-                                      const int iGC1D ) {
+                                      const int iGC1D )
+  {
     const size_t idx = this->index4D(ix,iy,iz,iGC1D);
 
     return( this->regularised.at(idx) );
@@ -261,7 +280,8 @@ public:
                                          const int iy,
                                          const int iz,
                                          const int iGC1D,
-                                         const int iDirec ) const {
+                                         const int iDirec ) const
+  {
     /*!
     This is computed as the difference between
     consecutive entries of the offsets6D array
@@ -284,7 +304,8 @@ public:
       const int iz,
       const int iGC1D,
       const int iDirec,
-      const int iLabel ) const {
+      const int iLabel ) const
+  {
     const size_t idx = this->index6D(ix,iy,iz,iGC1D,iDirec,iLabel);
 
     return( this->gc1dDirecLabelPriors.at(idx) );
@@ -296,7 +317,8 @@ public:
       const int iz,
       const int iGC1D,
       const int iDirec,
-      const int iLabel ) {
+      const int iLabel )
+  {
     const size_t idx = this->index6D(ix,iy,iz,iGC1D,iDirec,iLabel);
 
     return( this->gc1dDirecLabelPriors.at(idx) );
@@ -310,7 +332,8 @@ public:
       const int iz,
       const int iGC1D,
       const int iDirec,
-      const int iLabel ) const {
+      const int iLabel ) const
+  {
     const size_t idx = this->index6D(ix,iy,iz,iGC1D,iDirec,iLabel);
 
     return( this->gc1dDirecLabels.at(idx) );
@@ -322,7 +345,8 @@ public:
       const int iz,
       const int iGC1D,
       const int iDirec,
-      const int iLabel ) {
+      const int iLabel )
+  {
     const size_t idx = this->index6D(ix,iy,iz,iGC1D,iDirec,iLabel);
 
     return( this->gc1dDirecLabels.at(idx) );
@@ -359,7 +383,7 @@ private:
   //! Stores offsets of (variable length) 4th dimension
   std::vector<size_t> offsets4D;
 
-  //! Stores offsets of 5th dimension (5th dim itself always of 
+  //! Stores offsets of 5th dimension (5th dim itself always of
   // length gc1dNeighbourDim)
   std::vector<size_t> offsets5D;
 
@@ -419,12 +443,14 @@ private:
   //! Index computation for 3D matrices
   inline size_t index3D( const int ix,
                          const int iy,
-                         const int iz ) const {
+                         const int iz ) const
+  {
     if ( (ix<0) || (ix>=this->xDim) ||
          (iy<0) || (iy>=this->yDim) ||
-         (iz<0) || (iz>=this->zDim ) ) {
+         (iz<0) || (iz>=this->zDim ) )
+    {
       std::cerr << __FUNCTION__
-      << ": Index out of range" << std::endl;
+                << ": Index out of range" << std::endl;
       abort();
     }
 
@@ -438,12 +464,14 @@ private:
   inline size_t index4D( const int ix,
                          const int iy,
                          const int iz,
-                         const int iGC1D ) const {
+                         const int iGC1D ) const
+  {
     if ( (ix<0) || (ix>=this->xDim) ||
          (iy<0) || (iy>=this->yDim) ||
-         (iz<0) || (iz>=this->zDim ) ) {
+         (iz<0) || (iz>=this->zDim ) )
+    {
       std::cerr << __FUNCTION__
-      << ": Index out of range" << std::endl;
+                << ": Index out of range" << std::endl;
       abort();
     }
 
@@ -452,9 +480,10 @@ private:
     const long long currOffset = this->offsets4D.at( idx3D );
     const long long nextOffset = this->offsets4D.at( idx3D + 1 );
 
-    if ( (iGC1D<0) || (iGC1D>=(nextOffset-currOffset) ) ) {
+    if ( (iGC1D<0) || (iGC1D>=(nextOffset-currOffset) ) )
+    {
       std::cerr << __FUNCTION__
-      << ": iGC1D out of range" << std::endl;
+                << ": iGC1D out of range" << std::endl;
       abort();
     }
 
@@ -467,7 +496,8 @@ private:
                          const int iy,
                          const int iz,
                          const int iGC1D,
-                         const int iDirec ) const {
+                         const int iDirec ) const
+  {
     /*!
     No actual 5D arrays exist in the class, since nlabels in GC1D
     can be dynamically computed.
@@ -477,9 +507,10 @@ private:
 
     if ( (ix<0) || (ix>=this->xDim) ||
          (iy<0) || (iy>=this->yDim) ||
-         (iz<0) || (iz>=this->zDim ) ) {
+         (iz<0) || (iz>=this->zDim ) )
+    {
       std::cerr << __FUNCTION__
-      << ": Index out of range" << std::endl;
+                << ": Index out of range" << std::endl;
       abort();
     }
 
@@ -488,18 +519,20 @@ private:
     const long long currGC1dOffset = this->offsets4D.at( idx3D );
     const long long nextGC1dOffset = this->offsets4D.at( idx3D + 1 );
 
-    if ( (iGC1D<0) || (iGC1D>=(nextGC1dOffset-currGC1dOffset) ) ) {
+    if ( (iGC1D<0) || (iGC1D>=(nextGC1dOffset-currGC1dOffset) ) )
+    {
       std::cerr << __FUNCTION__
-      << ": iGC1D out of range" << std::endl;
+                << ": iGC1D out of range" << std::endl;
       abort();
     }
 
     const long long currOffset = this->offsets5D.at( currGC1dOffset+iGC1D );
     const long long nextOffset = this->offsets5D.at( currGC1dOffset+iGC1D+1 );
 
-    if ( (iDirec<0) || (iDirec>=(nextOffset-currOffset) ) ) {
+    if ( (iDirec<0) || (iDirec>=(nextOffset-currOffset) ) )
+    {
       std::cerr << __FUNCTION__
-      << ": iDirec out of range" << std::endl;
+                << ": iDirec out of range" << std::endl;
       abort();
     }
 
@@ -514,13 +547,15 @@ private:
                          const int iz,
                          const int iGC1D,
                          const int iDirec,
-                         const int iLabel ) const {
+                         const int iLabel ) const
+  {
 
     if ( (ix<0) || (ix>=this->xDim) ||
          (iy<0) || (iy>=this->yDim) ||
-         (iz<0) || (iz>=this->zDim ) ) {
+         (iz<0) || (iz>=this->zDim ) )
+    {
       std::cerr << __FUNCTION__
-      << ": Index out of range" << std::endl;
+                << ": Index out of range" << std::endl;
       abort();
     }
 
@@ -529,31 +564,34 @@ private:
     const long long currgc1DOffset = this->offsets4D.at( idx3D );
     const long long nextgc1DOffset = this->offsets4D.at( idx3D + 1 );
 
-    if ( (iGC1D<0) || (iGC1D>=(nextgc1DOffset-currgc1DOffset) ) ) {
+    if ( (iGC1D<0) || (iGC1D>=(nextgc1DOffset-currgc1DOffset) ) )
+    {
       std::cerr << __FUNCTION__
-      << ": iGC1D outof range" << std::endl;
+                << ": iGC1D outof range" << std::endl;
       abort();
     }
 
-    const long long currDirecOffset = 
+    const long long currDirecOffset =
       this->offsets5D.at( currgc1DOffset+iGC1D );
-    const long long nextDirecOffset = 
+    const long long nextDirecOffset =
       this->offsets5D.at( currgc1DOffset+iGC1D+1 );
 
-    if ( (iDirec<0) || (iDirec>=(nextDirecOffset-currDirecOffset) ) ) {
+    if ( (iDirec<0) || (iDirec>=(nextDirecOffset-currDirecOffset) ) )
+    {
       std::cerr << __FUNCTION__
-      << ": iDirec out of range" << std::endl;
+                << ": iDirec out of range" << std::endl;
       abort();
     }
 
-    const long long currOffset = 
+    const long long currOffset =
       this->offsets6D.at( currDirecOffset+iDirec );
-    const long long nextOffset = 
+    const long long nextOffset =
       this->offsets6D.at( currDirecOffset+iDirec+1 );
 
-    if ( (iLabel<0) || (iLabel>=(nextOffset-currOffset)) ) {
+    if ( (iLabel<0) || (iLabel>=(nextOffset-currOffset)) )
+    {
       std::cerr << __FUNCTION__
-      << ": iLabel out of range" << std::endl;
+                << ": iLabel out of range" << std::endl;
       abort();
     }
 
@@ -576,43 +614,49 @@ private:
   A lot of the precomputations are performed in the constructor
 */
 
-class const_GCAnode {
+class const_GCAnode
+{
 public:
   //! Constructor from location
   const_GCAnode( const int _ix,
                  const int _iy,
                  const int _iz,
                  const GCAlinearNode& src ) : gcaln(src),
-      idx3d(src.index3D(_ix,_iy,_iz)),
-      offset4d(src.offsets4D.at(idx3d)),
-      myGC1Dcount(src.offsets4D.at(idx3d+1)-offset4d),
-      ix(_ix),
-      iy(_iy),
-      iz(_iz) {}
+    idx3d(src.index3D(_ix,_iy,_iz)),
+    offset4d(src.offsets4D.at(idx3d)),
+    myGC1Dcount(src.offsets4D.at(idx3d+1)-offset4d),
+    ix(_ix),
+    iy(_iy),
+    iz(_iz) {}
 
   // --------------------
 
   //! Accessor for max_labels
-  inline int maxLabels( void ) const {
+  inline int maxLabels( void ) const
+  {
     return( this->gcaln.nodeMaxLabels.at(this->idx3d) );
   }
 
   //! Accessor for totalTraining
-  inline int totalTraining( void ) const {
+  inline int totalTraining( void ) const
+  {
     return( this->gcaln.nodeTotalTraining.at(this->idx3d) );
   }
 
   //! Accessor for gc1dCount
-  inline int gc1dCount( void ) const {
+  inline int gc1dCount( void ) const
+  {
     return( this->myGC1Dcount );
   }
 
   //! Accessor for nodeLabels
-  inline unsigned short labels( const int iGC1D ) const {
-    if ( (iGC1D<0) || (iGC1D>=this->myGC1Dcount) ) {
+  inline unsigned short labels( const int iGC1D ) const
+  {
+    if ( (iGC1D<0) || (iGC1D>=this->myGC1Dcount) )
+    {
       std::cerr << __FUNCTION__
-      << ": Out of range " << iGC1D
-      << std::endl;
+                << ": Out of range " << iGC1D
+                << std::endl;
       abort();
     }
 
@@ -642,40 +686,46 @@ private:
 
 
 //! Equivalent of a 'const GC1D' for a GCA_NODE
-class const_GCAnode_GC1D {
+class const_GCAnode_GC1D
+{
 public:
   const_GCAnode_GC1D( const int _ix,
                       const int _iy,
                       const int _iz,
                       const int _iGC1D,
                       const GCAlinearNode& src ) : gcaln(src),
-      offset4d(src.index4D(_ix,_iy,_iz,_iGC1D)) {}
+    offset4d(src.index4D(_ix,_iy,_iz,_iGC1D)) {}
 
   // -----------------------------
   // 4D data
 
   //! Accessor for the mean
-  inline float mean( void ) const {
+  inline float mean( void ) const
+  {
     return( this->gcaln.means.at(this->offset4d) );
   }
 
   //! Accessor for the variance
-  inline float variance( void ) const {
+  inline float variance( void ) const
+  {
     return( this->gcaln.variances.at(this->offset4d) );
   }
 
   //! Accessor for nJustPriors
-  inline short nJustPriors( void ) const {
+  inline short nJustPriors( void ) const
+  {
     return( this->gcaln.nJustPriors.at(this->offset4d) );
   }
 
   //! Accessor for nTraining
-  inline int nTraining( void ) const {
+  inline int nTraining( void ) const
+  {
     return( this->gcaln.nTraining.at(this->offset4d) );
   }
 
   //! Accessor for regularised
-  inline int regularised( void ) const {
+  inline int regularised( void ) const
+  {
     return( this->gcaln.regularised.at(this->offset4d ) );
   }
 
@@ -683,15 +733,17 @@ public:
   // 5D data
 
   //! Accessor for nlabels
-  inline short nLabels( const int iDirec ) const {
+  inline short nLabels( const int iDirec ) const
+  {
     /*!
     This is basically an alternative for
     GCAlinearNode::nLabelsAtNodeGC1Ddirection
     */
-    if ( iDirec >= this->gcaln.gc1dNeighbourDim ) {
+    if ( iDirec >= this->gcaln.gc1dNeighbourDim )
+    {
       std::cerr << __FUNCTION__
-      << ": iDirec out of range"
-      << std::endl;
+                << ": iDirec out of range"
+                << std::endl;
     }
 
     const size_t idx5D = this->gcaln.offsets5D.at( this->offset4d ) + iDirec;
@@ -706,7 +758,8 @@ public:
   // 6D data
 
   //! Accessor for labels
-  inline unsigned short labels( const int iDirec, const int iLabel ) const {
+  inline unsigned short labels( const int iDirec, const int iLabel ) const
+  {
     /*!
     This is basically an alternative for
     GCAlinearNode::labelsAtNodeGC1Ddirection
@@ -717,7 +770,8 @@ public:
   }
 
   //! Accessor for labelPriors
-  inline float labelPriors( const int iDirec, const int iLabel ) const {
+  inline float labelPriors( const int iDirec, const int iLabel ) const
+  {
     /*!
     This is an alternative for
     GCAlinearNode::labelPriorsAtNodeGC1Ddirection
@@ -737,11 +791,13 @@ private:
 
   //! Index computation for 6D data
   inline size_t index6D( const int iDirec,
-                         const int iLabel ) const {
-    if ( (iDirec<0) || (iDirec>= this->gcaln.gc1dNeighbourDim ) ) {
+                         const int iLabel ) const
+  {
+    if ( (iDirec<0) || (iDirec>= this->gcaln.gc1dNeighbourDim ) )
+    {
       std::cerr << __FUNCTION__
-      << ": iDirec out of range"
-      << std::endl;
+                << ": iDirec out of range"
+                << std::endl;
     }
 
     const size_t idx5D = this->gcaln.offsets5D.at( this->offset4d ) + iDirec;
@@ -749,9 +805,10 @@ private:
     const long long currOffset = this->gcaln.offsets6D.at( idx5D );
     const long long nextOffset = this->gcaln.offsets6D.at( idx5D+1 );
 
-    if ( (iLabel<0) || (iLabel>=(nextOffset-currOffset)) ) {
+    if ( (iLabel<0) || (iLabel>=(nextOffset-currOffset)) )
+    {
       std::cerr << __FUNCTION__
-      << ": iLabel out of range" << std::endl;
+                << ": iLabel out of range" << std::endl;
       abort();
     }
 

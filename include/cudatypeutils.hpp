@@ -8,20 +8,19 @@
 /*
  * Original Author: Richard Edgar
  * CVS Revision Info:
- *    $Author: rge21 $
- *    $Date: 2010/04/08 20:04:09 $
- *    $Revision: 1.7 $
+ *    $Author: nicks $
+ *    $Date: 2012/12/12 21:18:23 $
+ *    $Revision: 1.8 $
  *
- * Copyright (C) 2002-2008,
- * The General Hospital Corporation (Boston, MA). 
- * All rights reserved.
+ * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
  *
- * Distribution, usage and copying of this software is covered under the
- * terms found in the License Agreement file named 'COPYING' found in the
- * FreeSurfer source code root directory, and duplicated here:
- * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ * Terms and conditions for use, reproduction, distribution and contribution
+ * are found in the 'FreeSurfer Software License Agreement' contained
+ * in the file 'LICENSE' found in the FreeSurfer distribution, and here:
  *
- * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
+ *
+ * Reporting: freesurfer@nmr.mgh.harvard.edu
  *
  */
 
@@ -47,16 +46,17 @@ std::ostream& operator<<( std::ostream& os, const dim3& me );
 template<typename T>
 __device__ __host__
 unsigned int DivRoundUp( const T a,
-			 const unsigned int b )  {
+                         const unsigned int b )
+{
   /*!
     This isn't strictly a routine just for CUDA types,
     but it's the sort of code which comes up repeatedly
     when configuring kernel launches
   */
   float tmp;
-  
+
   tmp = static_cast<float>(a) / b;
-  
+
   return( static_cast<unsigned int>( ceilf( tmp ) ) );
 }
 
@@ -64,7 +64,8 @@ unsigned int DivRoundUp( const T a,
 template<typename T>
 __device__ __host__
 unsigned int NextMultiple( const T a,
-			   const unsigned int b ) {
+                           const unsigned int b )
+{
   /*!
     This isn't strictly a routine for CUDA types
     but it's the sort of thing which comes up
@@ -80,7 +81,8 @@ unsigned int NextMultiple( const T a,
 //! Equality for dim3
 static inline
 __device__ __host__
-bool operator==( const dim3& a, const dim3& b ) {
+bool operator==( const dim3& a, const dim3& b )
+{
 
   bool res = ( a.x == b.x );
   res = res && ( a.y == b.y );
@@ -92,7 +94,8 @@ bool operator==( const dim3& a, const dim3& b ) {
 //! Inequality for dim3
 static inline
 __device__ __host__
-bool operator!=( const dim3& a, const dim3& b ) {
+bool operator!=( const dim3& a, const dim3& b )
+{
   return( !(a==b) );
 }
 
@@ -102,7 +105,8 @@ bool operator!=( const dim3& a, const dim3& b ) {
 //! Unary negation for float3
 static inline
 __device__ __host__
-float3 operator-( const float3& a ) {
+float3 operator-( const float3& a )
+{
   float3 b;
 
   b.x = -a.x;
@@ -116,7 +120,8 @@ float3 operator-( const float3& a ) {
 //! Self addition for float3
 static inline
 __device__ __host__
-void operator+=( float3& a, const float3 b ) {
+void operator+=( float3& a, const float3 b )
+{
 
   a.x += b.x;
   a.y += b.y;
@@ -126,7 +131,8 @@ void operator+=( float3& a, const float3 b ) {
 //! Addition for float3
 static inline
 __device__ __host__
-const float3 operator+( const float3& a, const float3& b ) {
+const float3 operator+( const float3& a, const float3& b )
+{
   float3 res = a;
 
   res += b;
@@ -139,7 +145,8 @@ const float3 operator+( const float3& a, const float3& b ) {
 //! Self subtraction for float3
 static inline
 __device__ __host__
-void operator-=( float3& a, const float3 b ) {
+void operator-=( float3& a, const float3 b )
+{
   a.x -= b.x;
   a.y -= b.y;
   a.z -= b.z;
@@ -148,7 +155,8 @@ void operator-=( float3& a, const float3 b ) {
 //! Subtraction for float3
 static inline
 __device__ __host__
-const float3 operator-( const float3& a, const float3& b ) {
+const float3 operator-( const float3& a, const float3& b )
+{
   float3 res = a;
 
   res -= b;
@@ -161,7 +169,8 @@ const float3 operator-( const float3& a, const float3& b ) {
 //! Scalar self-multiplication for float3
 static inline
 __device__ __host__
-void operator*=( float3& a, const float b ) {
+void operator*=( float3& a, const float b )
+{
   a.x *= b;
   a.y *= b;
   a.z *= b;
@@ -170,19 +179,21 @@ void operator*=( float3& a, const float b ) {
 //! Scalar multiplication for float3 (on right)
 static inline
 __device__ __host__
-const float3 operator*( const float3& a, const float b ) {
+const float3 operator*( const float3& a, const float b )
+{
   float3 res = a;
-  
+
   res *= b;
-  
+
   return( res );
 }
 
 //! Scalar multiplication for float3 (on left)
 static inline
 __device__ __host__
-const float3 operator*( const float b, const float3& a ) {
- 
+const float3 operator*( const float b, const float3& a )
+{
+
   return( a * b );
 }
 
@@ -191,7 +202,8 @@ const float3 operator*( const float b, const float3& a ) {
 //! Scalar self-division for float3
 static inline
 __device__ __host__
-void operator/=( float3& a, const float b ) {
+void operator/=( float3& a, const float b )
+{
 
   a *= (1/b);
 }
@@ -199,7 +211,8 @@ void operator/=( float3& a, const float b ) {
 //! Scalar division for float3
 static inline
 __device__ __host__
-const float3 operator/( const float3& a, const float b ) {
+const float3 operator/( const float3& a, const float b )
+{
   float3 res = a;
 
   res /= b;
@@ -212,7 +225,8 @@ const float3 operator/( const float3& a, const float b ) {
 //! Dot product for float3
 static inline
 __device__ __host__
-float dot( const float3& a, const float3& b ) {
+float dot( const float3& a, const float3& b )
+{
   float res;
 
   res = (a.x*b.x) + (a.y*b.y) + (a.z*b.z);
@@ -223,14 +237,16 @@ float dot( const float3& a, const float3& b ) {
 //! Modulus squared for float3
 static inline
 __device__ __host__
-float modsq( const float3& a ) {
+float modsq( const float3& a )
+{
   return( dot( a, a ) );
 }
 
 //! Modulus for float3
 static inline
 __device__ __host__
-float mod( const float3& a ) {
+float mod( const float3& a )
+{
   return( sqrtf( modsq( a ) ) );
 }
 
@@ -239,7 +255,8 @@ float mod( const float3& a ) {
 //! Cross product for float3
 static inline
 __device__ __host__
-const float3 cross( const float3& a, const float3& b ) {
+const float3 cross( const float3& a, const float3& b )
+{
   float3 res;
 
   res.x = (a.y*b.z) - (a.z*b.y);
@@ -255,7 +272,8 @@ const float3 cross( const float3& a, const float3& b ) {
 //! Scalar triple product \f$ \mathbf{a} \times \mathbf{b} \cdot \mathbf{c} \f$
 static inline
 __device__ __host__
-float stp( const float3& a, const float3& b, const float3& c ) {
+float stp( const float3& a, const float3& b, const float3& c )
+{
   return( dot( cross( a, b ), c ) );
 }
 
@@ -268,7 +286,8 @@ float stp( const float3& a, const float3& b, const float3& c ) {
 //! Copy a dim3 to a cudaExtent
 static
 __host__
-cudaExtent ExtentFromDims( const dim3 dims ) {
+cudaExtent ExtentFromDims( const dim3 dims )
+{
   cudaExtent e;
 
   e.width = dims.x;

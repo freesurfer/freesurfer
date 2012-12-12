@@ -6,20 +6,19 @@
 /*
  * Original Author: Richard Edgar
  * CVS Revision Info:
- *    $Author: rge21 $
- *    $Date: 2011/03/15 20:03:25 $
- *    $Revision: 1.2 $
+ *    $Author: nicks $
+ *    $Date: 2012/12/12 21:18:23 $
+ *    $Revision: 1.3 $
  *
- * Copyright (C) 2002-2008,
- * The General Hospital Corporation (Boston, MA). 
- * All rights reserved.
+ * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
  *
- * Distribution, usage and copying of this software is covered under the
- * terms found in the License Agreement file named 'COPYING' found in the
- * FreeSurfer source code root directory, and duplicated here:
- * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ * Terms and conditions for use, reproduction, distribution and contribution
+ * are found in the 'FreeSurfer Software License Agreement' contained
+ * in the file 'LICENSE' found in the FreeSurfer distribution, and here:
  *
- * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
+ *
+ * Reporting: freesurfer@nmr.mgh.harvard.edu
  *
  */
 
@@ -32,105 +31,115 @@
 
 #include "volumegpu.hpp"
 
-namespace GPU {
+namespace GPU
+{
 
-  namespace Classes {
+namespace Classes
+{
 
-    //! Class to encapsulate a cudaArray and texture binding
-    /*!
-      This is a helper class, which copies a given VolumeGPU 
-      into a cudaArray, and binds that array to the designated
-      texture.
-      The cudaArray is held internally to the class, and deleted
-      by the destructor.
-    */
-    class CTfactory {
-    public:
+//! Class to encapsulate a cudaArray and texture binding
+/*!
+  This is a helper class, which copies a given VolumeGPU
+  into a cudaArray, and binds that array to the designated
+  texture.
+  The cudaArray is held internally to the class, and deleted
+  by the destructor.
+*/
+class CTfactory
+{
+public:
 
-      //! Construct from VolumeGPU
-      template<typename T,typename U>
-      CTfactory( const VolumeGPU<T>& src,
-                 U& texRef,
-                 const cudaTextureFilterMode fm = cudaFilterModePoint,
-                 const cudaTextureAddressMode am = cudaAddressModeClamp,
-                 const int norm = false ) : dca_data(NULL) {
+  //! Construct from VolumeGPU
+  template<typename T,typename U>
+  CTfactory( const VolumeGPU<T>& src,
+             U& texRef,
+             const cudaTextureFilterMode fm = cudaFilterModePoint,
+             const cudaTextureAddressMode am = cudaAddressModeClamp,
+             const int norm = false ) : dca_data(NULL)
+  {
 
-        // Check for valid input
-        if( src.d_data.ptr == NULL ) {
-          std::cerr << __FUNCTION__
-                    << ": Source has no data"
-                    << std::endl;
-          abort();
-        }
+    // Check for valid input
+    if( src.d_data.ptr == NULL )
+    {
+      std::cerr << __FUNCTION__
+                << ": Source has no data"
+                << std::endl;
+      abort();
+    }
 
-        // Allocate memory
-        cudaChannelFormatDesc cd = cudaCreateChannelDesc<T>();
-        cudaExtent tmpExtent = ExtentFromDims( src.dims );
-        
-        CUDA_SAFE_CALL( cudaMalloc3DArray( &(this->dca_data),
-                                           &cd,
-                                           tmpExtent ) );
+    // Allocate memory
+    cudaChannelFormatDesc cd = cudaCreateChannelDesc<T>();
+    cudaExtent tmpExtent = ExtentFromDims( src.dims );
 
-        // Do the copy
-        cudaMemcpy3DParms cp = {0};
+    CUDA_SAFE_CALL( cudaMalloc3DArray( &(this->dca_data),
+                                       &cd,
+                                       tmpExtent ) );
 
-        cp.srcPtr = src.d_data;
-        cp.dstArray = this->dca_data;
-        cp.extent = tmpExtent;
-        cp.kind = cudaMemcpyDeviceToDevice;
+    // Do the copy
+    cudaMemcpy3DParms cp = {0};
 
-        CUDA_SAFE_CALL( cudaMemcpy3D( &cp ) );
+    cp.srcPtr = src.d_data;
+    cp.dstArray = this->dca_data;
+    cp.extent = tmpExtent;
+    cp.kind = cudaMemcpyDeviceToDevice;
+
+    CUDA_SAFE_CALL( cudaMemcpy3D( &cp ) );
 
 
-        // Bind the texture
-        texRef.normalized = norm;
-        texRef.addressMode[0] = am;
-        texRef.addressMode[1] = am;
-        texRef.addressMode[2] = am;
-        texRef.filterMode = fm;
+    // Bind the texture
+    texRef.normalized = norm;
+    texRef.addressMode[0] = am;
+    texRef.addressMode[1] = am;
+    texRef.addressMode[2] = am;
+    texRef.filterMode = fm;
 
-        CUDA_SAFE_CALL( cudaBindTextureToArray( texRef, this->dca_data ) );
-      }
-
-      //! Destructor releases array
-      ~CTfactory( void ) {
-        if( this->dca_data != NULL ) {
-          // Actually, shouldn't exist without an array...
-          CUDA_SAFE_CALL( cudaFreeArray( this->dca_data ) );
-        }
-      }
-
-    private:
-      //! The actual CUDA array
-      cudaArray *dca_data;
-
-      //! Inhibit default construction
-      CTfactory( void ) : dca_data(NULL) {
-        std::cerr << __FUNCTION__
-                  << ": Default construction inhibited"
-                  << std::endl;
-        abort();
-      }
-
-      //! Inhibit copy construction
-      CTfactory( const CTfactory& src ) : dca_data(NULL) {
-        std::cerr << __FUNCTION__
-                  << ": Please don't copy"
-                  << std::endl;
-        abort();
-      }
-
-      //! Inhibit assigment
-      void operator=( const CTfactory& src ) {
-        std::cerr << __FUNCTION__
-                  << ": Please don't copy"
-                  << std::endl;
-        abort();
-      }
-
-    };
-
+    CUDA_SAFE_CALL( cudaBindTextureToArray( texRef, this->dca_data ) );
   }
+
+  //! Destructor releases array
+  ~CTfactory( void )
+  {
+    if( this->dca_data != NULL )
+    {
+      // Actually, shouldn't exist without an array...
+      cudaFreeArray( this->dca_data );
+    }
+  }
+
+private:
+  //! The actual CUDA array
+  cudaArray *dca_data;
+
+  //! Inhibit default construction
+  CTfactory( void ) : dca_data(NULL)
+  {
+    std::cerr << __FUNCTION__
+              << ": Default construction inhibited"
+              << std::endl;
+    abort();
+  }
+
+  //! Inhibit copy construction
+  CTfactory( const CTfactory& src ) : dca_data(NULL)
+  {
+    std::cerr << __FUNCTION__
+              << ": Please don't copy"
+              << std::endl;
+    abort();
+  }
+
+  //! Inhibit assigment
+  void operator=( const CTfactory& src )
+  {
+    std::cerr << __FUNCTION__
+              << ": Please don't copy"
+              << std::endl;
+    abort();
+  }
+
+};
+
+}
 }
 
 

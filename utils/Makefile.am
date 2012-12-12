@@ -315,7 +315,7 @@ libutils_a_SOURCES=\
 # BUILDCUDA is defined if configure.in finds CUDA
 if BUILDCUDA
 # rules for building cuda files
-NVCCINCLUDES = -I$(top_srcdir)/include $(MNI_CFLAGS)
+NVCCINCLUDES = $(CUDA_CFLAGS) -I$(top_srcdir)/include $(MNI_CFLAGS)
 
 if HAVE_FERMI_GPU
 # Fermi flags:

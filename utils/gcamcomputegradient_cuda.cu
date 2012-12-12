@@ -10,9 +10,9 @@
 /*
  * Original Author: Richard Edgar
  * CVS Revision Info:
- *    $Author: rge21 $
- *    $Date: 2011/03/17 18:00:32 $
- *    $Revision: 1.9 $
+ *    $Author: nicks $
+ *    $Date: 2012/12/12 21:18:24 $
+ *    $Revision: 1.10 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -49,9 +49,10 @@
 
 template<typename T, typename U>
 int ComputeGradient( GPU::Classes::GCAmorphGPU& gcam,
-		     const GPU::Classes::MRIframeGPU<T>& mri,
-		     const GPU::Classes::MRIframeGPU<U>& mri_smooth,
-		     GCA_MORPH_PARMS *parms ) {
+                     const GPU::Classes::MRIframeGPU<T>& mri,
+                     const GPU::Classes::MRIframeGPU<U>& mri_smooth,
+                     GCA_MORPH_PARMS *parms )
+{
 
   static GPU::Algorithms::GCAmorphTerm myTerms;
   int invalid;
@@ -63,81 +64,91 @@ int ComputeGradient( GPU::Classes::GCAmorphGPU& gcam,
   SetGinvalid( invalid );
 
   // Map term unimplemented
-  if( !DZERO(parms->l_map) ) {
+  if( !DZERO(parms->l_map) )
+  {
     std::cerr << __FUNCTION__
-	      << ": MapTerm not implemented on GPU" << std::endl;
+              << ": MapTerm not implemented on GPU" << std::endl;
     exit( EXIT_FAILURE );
   }
-  
+
   // Do label term
   myTerms.LabelTerm( gcam, mri, parms->l_label, parms->label_dist );
 
   // Area intensity term unimplemented
-  if( !DZERO(parms->l_area_intensity) ) {
+  if( !DZERO(parms->l_area_intensity) )
+  {
     std::cerr << __FUNCTION__
-	      << ": AreaIntensity not implemented on GPU" << std::endl;
+              << ": AreaIntensity not implemented on GPU" << std::endl;
     exit( EXIT_FAILURE );
   }
-  
+
   // Binary term unimplemented
-  if( !DZERO(parms->l_binary) ) {
+  if( !DZERO(parms->l_binary) )
+  {
     std::cerr << __FUNCTION__
-	      << ": BinaryTerm not implemented on GPU" << std::endl;
+              << ": BinaryTerm not implemented on GPU" << std::endl;
     exit( EXIT_FAILURE );
   }
-  
+
   // Expansion term unimplemented
-  if( !DZERO(parms->l_expansion) ) {
+  if( !DZERO(parms->l_expansion) )
+  {
     std::cerr << __FUNCTION__
-	      << ": ExpansionTerm not implemented on GPU" << std::endl;
+              << ": ExpansionTerm not implemented on GPU" << std::endl;
     exit( EXIT_FAILURE );
   }
-  
+
 
   // Likelihood term unimplemented
-  if( !DZERO(parms->l_likelihood) ) {
+  if( !DZERO(parms->l_likelihood) )
+  {
     std::cerr << __FUNCTION__
-	      << ": LikelihoodTerm not implemented on GPU" << std::endl;
+              << ": LikelihoodTerm not implemented on GPU" << std::endl;
     exit( EXIT_FAILURE );
   }
-  
+
   // Distance transform term unimplemented
-  if( !DZERO(parms->l_dtrans) ) {
+  if( !DZERO(parms->l_dtrans) )
+  {
     std::cerr << __FUNCTION__
-	      << ": DistanceTransformTerm not implemented on GPU" << std::endl;
+              << ": DistanceTransformTerm not implemented on GPU" << std::endl;
     exit( EXIT_FAILURE );
   }
-  
+
   // Do the log likelihood term
   myTerms.LogLikelihood( gcam, mri, mri_smooth, parms->l_log_likelihood );
 
-  
+
   // Multiscale term unimplemented
-  if( !DZERO(parms->l_multiscale) ) {
+  if( !DZERO(parms->l_multiscale) )
+  {
     std::cerr << __FUNCTION__
-	      << ": MultiscaleTerm not implemented on GPU" << std::endl;
+              << ": MultiscaleTerm not implemented on GPU" << std::endl;
     exit( EXIT_FAILURE );
   }
 
 
   // Distance term unimplemented
-  if( !DZERO(parms->l_distance) ) {
+  if( !DZERO(parms->l_distance) )
+  {
     std::cerr << __FUNCTION__
-	      << ": DistanceTerm not implemented on GPU" << std::endl;
+              << ": DistanceTerm not implemented on GPU" << std::endl;
     exit( EXIT_FAILURE );
   }
 
   // AreaSmoothness term unimplemented
-  if( !DZERO(parms->l_area_smoothness) ) {
+  if( !DZERO(parms->l_area_smoothness) )
+  {
     std::cerr << __FUNCTION__
-	      << ": AreaSmoothnessTerm not implemented on GPU" << std::endl;
+              << ": AreaSmoothnessTerm not implemented on GPU" << std::endl;
     exit( EXIT_FAILURE );
   }
-  
+
   // Area term unimplemented
-  if( !DZERO(parms->l_area) ) {
+  if( !DZERO(parms->l_area) )
+  {
     std::cerr << __FUNCTION__
-	      << ": AreaTerm not implemented on GPU" << std::endl;
+              << ": AreaTerm not implemented on GPU" << std::endl;
     exit( EXIT_FAILURE );
   }
 
@@ -145,20 +156,22 @@ int ComputeGradient( GPU::Classes::GCAmorphGPU& gcam,
   myTerms.Smoothness( gcam, parms->l_smoothness );
 
   // LSmoothness term unimplemented
-  if( !DZERO(parms->l_lsmoothness) ) {
+  if( !DZERO(parms->l_lsmoothness) )
+  {
     std::cerr << __FUNCTION__
-	      << ": LSmoothnessTerm not implemented on GPU" << std::endl;
+              << ": LSmoothnessTerm not implemented on GPU" << std::endl;
     exit( EXIT_FAILURE );
   }
-  
+
 
   // Spring term unimplemented
-  if( !DZERO(parms->l_spring) ) {
+  if( !DZERO(parms->l_spring) )
+  {
     std::cerr << __FUNCTION__
-	      << ": SpringTerm not implemented on GPU" << std::endl;
+              << ": SpringTerm not implemented on GPU" << std::endl;
     exit( EXIT_FAILURE );
   }
-  
+
 
   // Do the Jacobian term
   myTerms.Jacobian( gcam, parms->l_jacobian, parms->ratio_thresh );
@@ -178,9 +191,10 @@ int ComputeGradient( GPU::Classes::GCAmorphGPU& gcam,
 template<typename T, typename U>
 int
 gcamCGFinalDispatch( GCA_MORPH *gcam,
-		     const MRI *mri,
-		     const MRI *mri_smooth,
-		     GCA_MORPH_PARMS *parms ) {
+                     const MRI *mri,
+                     const MRI *mri_smooth,
+                     GCA_MORPH_PARMS *parms )
+{
 
   GPU::Classes::GCAmorphGPU myGCAM;
   GPU::Classes::MRIframeGPU<T> myMRI;
@@ -211,11 +225,13 @@ gcamCGFinalDispatch( GCA_MORPH *gcam,
 template<typename T>
 int
 gcamCGSmoothDispatch( GCA_MORPH *gcam,
-		      const MRI *mri,
-		      const MRI *mri_smooth,
-		      GCA_MORPH_PARMS *parms ) {
-  
-  switch( mri_smooth->type ) {
+                      const MRI *mri,
+                      const MRI *mri_smooth,
+                      GCA_MORPH_PARMS *parms )
+{
+
+  switch( mri_smooth->type )
+  {
 
   case MRI_UCHAR:
     gcamCGFinalDispatch<T,unsigned char>( gcam, mri, mri_smooth, parms );
@@ -227,8 +243,8 @@ gcamCGSmoothDispatch( GCA_MORPH *gcam,
 
   default:
     std::cerr << __FUNCTION__
-	      << ": Unrecognised type for mri_smooth "
-	      << mri_smooth->type << std::endl;
+              << ": Unrecognised type for mri_smooth "
+              << mri_smooth->type << std::endl;
     exit( EXIT_FAILURE );
   }
 
@@ -238,11 +254,13 @@ gcamCGSmoothDispatch( GCA_MORPH *gcam,
 
 
 int gcamComputeGradientGPU( GCA_MORPH *gcam,
-			    const MRI *mri,
-			    const MRI *mri_smooth,
-			    GCA_MORPH_PARMS *parms ) {
+                            const MRI *mri,
+                            const MRI *mri_smooth,
+                            GCA_MORPH_PARMS *parms )
+{
 
-  switch( mri->type ) {
+  switch( mri->type )
+  {
 
   case MRI_UCHAR:
     gcamCGSmoothDispatch<unsigned char>( gcam, mri, mri_smooth, parms );
@@ -251,11 +269,11 @@ int gcamComputeGradientGPU( GCA_MORPH *gcam,
   case MRI_FLOAT:
     gcamCGSmoothDispatch<float>( gcam, mri, mri_smooth, parms );
     break;
-    
+
   default:
     std::cerr << __FUNCTION__
-	      << ": Unrecognised type for mri "
-	      << mri->type << std::endl;
+              << ": Unrecognised type for mri "
+              << mri->type << std::endl;
     exit( EXIT_FAILURE );
   }
 

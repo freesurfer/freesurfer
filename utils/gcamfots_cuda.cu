@@ -10,9 +10,9 @@
 /*
  * Original Author: Richard Edgar
  * CVS Revision Info:
- *    $Author: rge21 $
- *    $Date: 2011/03/17 18:00:32 $
- *    $Revision: 1.11 $
+ *    $Author: nicks $
+ *    $Date: 2012/12/12 21:18:24 $
+ *    $Revision: 1.12 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -47,10 +47,14 @@
 const unsigned int MAX_SAMPLES = 100;
 
 
-static int finitep( const float f ) {
-  if( !finite(f) ) {
+static int finitep( const float f )
+{
+  if( !finite(f) )
+  {
     return 0;
-  } else {
+  }
+  else
+  {
     return 1;
   }
 }
@@ -60,8 +64,9 @@ static int finitep( const float f ) {
 
 template<typename T>
 float FindOptimalTimestep( GPU::Classes::GCAmorphGPU& gcam,
-			   GCA_MORPH_PARMS *parms,
-			   const GPU::Classes::MRIframeGPU<T>& mri ) {
+                           GCA_MORPH_PARMS *parms,
+                           const GPU::Classes::MRIframeGPU<T>& mri )
+{
 
   GPU::Algorithms::GCAmorphEnergy gcamEnergy;
 #if SHOW_TIMERS
@@ -82,7 +87,8 @@ float FindOptimalTimestep( GPU::Classes::GCAmorphGPU& gcam,
 
   // Find right order of magnitude for time step
   orig_dt = parms->dt;
-  if( DZERO( orig_dt ) ) {
+  if( DZERO( orig_dt ) )
+  {
     orig_dt = 1e-6;
     std::cerr << "orig_dt = 0 in FindOptimalTimestep" << std::endl;
   }
@@ -93,60 +99,73 @@ float FindOptimalTimestep( GPU::Classes::GCAmorphGPU& gcam,
 
 
   int i = 0;
-  do {
+  do
+  {
 
-    if( i++ > 0 ) {
+    if( i++ > 0 )
+    {
       start_dt *= 0.01;
     }
 
-    if( DEQUAL( start_dt, 0 ) ) {
+    if( DEQUAL( start_dt, 0 ) )
+    {
       break;
     }
 
-    for( parms->dt = start_dt; parms->dt <= max_dt; parms->dt *= 4 ) {
-      
+    for( parms->dt = start_dt; parms->dt <= max_dt; parms->dt *= 4 )
+    {
+
       gcam.ApplyGradient( parms );
       rms = gcamEnergy.ComputeRMS( gcam, mri, parms );
       gcam.UndoGradient();
 
-      if( (gcam.neg > 0) && 0 ) {
-	std::cerr << __FUNCTION__
-		  << ": How did you get here?" << std::endl;
-	std::cerr << "Exiting on line " << __LINE__ << std::endl;
-	exit( EXIT_FAILURE );
-      } else {
-	//prev_neg = suppressed = 0;
+      if( (gcam.neg > 0) && 0 )
+      {
+        std::cerr << __FUNCTION__
+                  << ": How did you get here?" << std::endl;
+        std::cerr << "Exiting on line " << __LINE__ << std::endl;
+        exit( EXIT_FAILURE );
+      }
+      else
+      {
+        //prev_neg = suppressed = 0;
       }
 
 
-      if( (gcam.neg>0) && DEQUAL(parms->dt, start_dt) ) {
+      if( (gcam.neg>0) && DEQUAL(parms->dt, start_dt) )
+      {
         start_dt *= 0.1;
         parms->dt /= 4;
         continue ;
       }
 
-      if( (gcam.neg>0) && parms->noneg == True ) {
-	break;
+      if( (gcam.neg>0) && parms->noneg == True )
+      {
+        break;
       }
 
-      if( rms < min_rms ) {
-	min_rms = rms;
-	min_dt = parms->dt;
+      if( rms < min_rms )
+      {
+        min_rms = rms;
+        min_dt = parms->dt;
       }
 
-      if( DEQUAL( min_dt, max_dt ) ) {
-	max_dt *= 10;
+      if( DEQUAL( min_dt, max_dt ) )
+      {
+        max_dt *= 10;
       }
     }
 
-    if( i > 10 ) {
+    if( i > 10 )
+    {
       break;
     }
 
     max_dt = start_dt*10 ; /* will only iterate if min was at start_dt */
-    
 
-  } while( DEQUAL( min_dt, start_dt ) );
+
+  }
+  while( DEQUAL( min_dt, start_dt ) );
 
 
   // I believe that we now have a start point to do something more advanced
@@ -160,7 +179,8 @@ float FindOptimalTimestep( GPU::Classes::GCAmorphGPU& gcam,
   gcam.UndoGradient() ;
 
   if( (rms < min_rms) &&
-      ( (gcam.neg==0) || (parms->noneg==False) ) ) {
+      ( (gcam.neg==0) || (parms->noneg==False) ) )
+  {
     min_rms = rms;
     min_dt = parms->dt;
   }
@@ -172,19 +192,21 @@ float FindOptimalTimestep( GPU::Classes::GCAmorphGPU& gcam,
   gcam.UndoGradient();
 
   if( (rms < min_rms) &&
-      ( (gcam.neg==0) || (parms->noneg==False) ) ) {
+      ( (gcam.neg==0) || (parms->noneg==False) ) )
+  {
     min_rms = rms;
     min_dt = parms->dt;
   }
 
-  
+
   parms->dt = dt_in[3] = dt_in[0] + dt_in[0]*.2 ;
   gcam.ApplyGradient( parms );
   rms = rms_out[3] = gcamEnergy.ComputeRMS( gcam, mri, parms );
   gcam.UndoGradient() ;
 
   if( (rms < min_rms) &&
-      ( (gcam.neg==0) || (parms->noneg==False) ) ) {
+      ( (gcam.neg==0) || (parms->noneg==False) ) )
+  {
     min_rms = rms;
     min_dt = parms->dt;
   }
@@ -196,12 +218,13 @@ float FindOptimalTimestep( GPU::Classes::GCAmorphGPU& gcam,
   gcam.UndoGradient() ;
 
   if( (rms < min_rms) &&
-      ( (gcam.neg==0) || (parms->noneg==False) ) ) {
+      ( (gcam.neg==0) || (parms->noneg==False) ) )
+  {
     min_rms = rms;
     min_dt = parms->dt;
   }
 
-  
+
   /* now compute location of minimum of best quadratic fit */
   MATRIX   *mX, *m_xTx, *m_xTx_inv, *m_xTy, *mP, *m_xT;
   VECTOR   *vY;
@@ -209,7 +232,8 @@ float FindOptimalTimestep( GPU::Classes::GCAmorphGPU& gcam,
   mX = MatrixAlloc(N, 3, MATRIX_REAL) ;
   vY = VectorAlloc(N, MATRIX_REAL) ;
 
-  for( i=1; i<=N; i++ ) {
+  for( i=1; i<=N; i++ )
+  {
     *MATRIX_RELT(mX, i, 1) = dt_in[i-1] * dt_in[i-1] ;
     *MATRIX_RELT(mX, i, 2) = 2*dt_in[i-1] ;
     *MATRIX_RELT(mX, i, 3) = 1.0f ;
@@ -221,7 +245,8 @@ float FindOptimalTimestep( GPU::Classes::GCAmorphGPU& gcam,
   m_xTx = MatrixMultiply(m_xT, mX, NULL) ;
   m_xTx_inv = MatrixInverse(m_xTx, NULL) ;
 
-  if (m_xTx_inv) {
+  if (m_xTx_inv)
+  {
     float a, b;
 
     m_xTy = MatrixMultiply(m_xT, vY, NULL) ;
@@ -229,19 +254,21 @@ float FindOptimalTimestep( GPU::Classes::GCAmorphGPU& gcam,
     a = RVECTOR_ELT(mP, 1) ;
     b = RVECTOR_ELT(mP, 2) ;
     //c = RVECTOR_ELT(mP, 3);
-    
+
     MatrixFree(&mP) ;
     MatrixFree(&m_xTx_inv) ;
     MatrixFree(&m_xTy) ;
 
-    if (finitep(a) && !FZERO(a)) {
+    if (finitep(a) && !FZERO(a))
+    {
       parms->dt = -b/a ;
       gcam.ApplyGradient( parms );
       rms = gcamEnergy.ComputeRMS( gcam, mri, parms );
       gcam.UndoGradient();
-      
+
       if( (rms<min_rms) &&
-	  ( (gcam.neg==0) || (parms->noneg == False) ) ) {
+          ( (gcam.neg==0) || (parms->noneg == False) ) )
+      {
         min_rms = rms ;
         min_dt = parms->dt ;
       }
@@ -257,12 +284,12 @@ float FindOptimalTimestep( GPU::Classes::GCAmorphGPU& gcam,
   gcam.ComputeMetricProperties( invalid );
 
   parms->dt = orig_dt ;
-  
+
 #if SHOW_TIMERS
   tFOTS.Stop();
   std::cout << __FUNCTION__
-	    << ": Complete in "
-	    << tFOTS << std::endl;
+            << ": Complete in "
+            << tFOTS << std::endl;
 #endif
 
   return( min_dt );
@@ -276,8 +303,9 @@ float FindOptimalTimestep( GPU::Classes::GCAmorphGPU& gcam,
 
 template<typename T>
 float FindOptimalTimestepDispatch( GCA_MORPH *gcam,
-				   GCA_MORPH_PARMS *parms,
-				   MRI *mri ) {
+                                   GCA_MORPH_PARMS *parms,
+                                   MRI *mri )
+{
 
 #if SHOW_TIMERS
   SciGPU::Utilities::Chronometer tFOTSd;
@@ -301,8 +329,8 @@ float FindOptimalTimestepDispatch( GCA_MORPH *gcam,
 #if SHOW_TIMERS
   tFOTSd.Stop();
   std::cout << __FUNCTION__
-	    << ": Complete in "
-	    << tFOTSd << std::endl;
+            << ": Complete in "
+            << tFOTSd << std::endl;
 #endif
 
   return( dt );
@@ -312,12 +340,14 @@ float FindOptimalTimestepDispatch( GCA_MORPH *gcam,
 
 
 float gcamFindOptimalTimestepGPU( GCA_MORPH *gcam,
-				  GCA_MORPH_PARMS *parms,
-				  MRI *mri ) {
-  
+                                  GCA_MORPH_PARMS *parms,
+                                  MRI *mri )
+{
+
   float dt;
 
-  switch( mri->type ) {
+  switch( mri->type )
+  {
 
   case MRI_UCHAR:
     dt = FindOptimalTimestepDispatch<unsigned char>( gcam, parms, mri );
@@ -329,13 +359,13 @@ float gcamFindOptimalTimestepGPU( GCA_MORPH *gcam,
 
   default:
     std::cerr << __FUNCTION__
-	      << ": Unrecognised MRI type" << std::endl;
+              << ": Unrecognised MRI type" << std::endl;
     exit( EXIT_FAILURE );
   }
 
   return( dt );
-  
+
 }
-  
+
 
 #endif

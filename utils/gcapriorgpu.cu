@@ -7,8 +7,8 @@
  * Original Authors: Richard Edgar
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:44 $
- *    $Revision: 1.2 $
+ *    $Date: 2012/12/12 21:18:24 $
+ *    $Revision: 1.3 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -27,114 +27,120 @@
 #include "gcapriorgpu.hpp"
 
 
-namespace GPU {
-  namespace Classes {
+namespace GPU
+{
+namespace Classes
+{
 
-    void GCApriorGPU::Allocate( const long long nxDim,
-				const long long nyDim,
-				const long long nzDim,
-				const size_t num4D ) {
-      // Get rid of old allocation
-      this->Release();
+void GCApriorGPU::Allocate( const long long nxDim,
+                            const long long nyDim,
+                            const long long nzDim,
+                            const size_t num4D )
+{
+  // Get rid of old allocation
+  this->Release();
 
-      // Copy sizes
-      this->xDim = nxDim;
-      this->yDim = nyDim;
-      this->zDim = nzDim;
-      
-      this->n4D = num4D;
+  // Copy sizes
+  this->xDim = nxDim;
+  this->yDim = nyDim;
+  this->zDim = nzDim;
 
-      // Do the allocation
-      const size_t nVoxels = this->xDim * this->yDim * this->zDim;
+  this->n4D = num4D;
 
-      // The offset array
-      CUDA_SAFE_CALL( cudaMalloc( (void**)&(this->d_offsets4D),
-				  (nVoxels+1)*sizeof(size_t) ) );
+  // Do the allocation
+  const size_t nVoxels = this->xDim * this->yDim * this->zDim;
 
-      // Space for maxLabels
-      CUDA_SAFE_CALL( cudaMalloc( (void**)&(this->d_maxLabels),
-				  nVoxels*sizeof(short) ) );
+  // The offset array
+  CUDA_SAFE_CALL( cudaMalloc( (void**)&(this->d_offsets4D),
+                              (nVoxels+1)*sizeof(size_t) ) );
 
-      // Space for the labels
-      CUDA_SAFE_CALL( cudaMalloc( (void**)&(this->d_labels),
-				  this->n4D*sizeof(unsigned short) ) );
+  // Space for maxLabels
+  CUDA_SAFE_CALL( cudaMalloc( (void**)&(this->d_maxLabels),
+                              nVoxels*sizeof(short) ) );
 
-      // Space for the priors
-      CUDA_SAFE_CALL( cudaMalloc( (void**)&(this->d_priors),
-				  this->n4D*sizeof(float) ) );
+  // Space for the labels
+  CUDA_SAFE_CALL( cudaMalloc( (void**)&(this->d_labels),
+                              this->n4D*sizeof(unsigned short) ) );
 
-      // Space for the total_training
-      CUDA_SAFE_CALL( cudaMalloc( (void**)&(this->d_totTraining),
-				  nVoxels*sizeof(int) ) );
-    }
+  // Space for the priors
+  CUDA_SAFE_CALL( cudaMalloc( (void**)&(this->d_priors),
+                              this->n4D*sizeof(float) ) );
+
+  // Space for the total_training
+  CUDA_SAFE_CALL( cudaMalloc( (void**)&(this->d_totTraining),
+                              nVoxels*sizeof(int) ) );
+}
 
 
-    // --------------------
+// --------------------
 
-    void GCApriorGPU::Release( void ) {
+void GCApriorGPU::Release( void )
+{
 
-      if( this->xDim != 0 ) {
-	// Release offset array
-	CUDA_SAFE_CALL( cudaFree( this->d_offsets4D ) );
-	this->d_offsets4D = NULL;
+  if( this->xDim != 0 )
+  {
+    // Release offset array
+    CUDA_SAFE_CALL( cudaFree( this->d_offsets4D ) );
+    this->d_offsets4D = NULL;
 
-	// Release 3D arrays
-	CUDA_SAFE_CALL( cudaFree( this->d_maxLabels ) );
-	this->d_maxLabels = NULL;
-	CUDA_SAFE_CALL( cudaFree( this->d_totTraining ) );
-	this->d_totTraining = NULL;
+    // Release 3D arrays
+    CUDA_SAFE_CALL( cudaFree( this->d_maxLabels ) );
+    this->d_maxLabels = NULL;
+    CUDA_SAFE_CALL( cudaFree( this->d_totTraining ) );
+    this->d_totTraining = NULL;
 
-	// Release 4D arrays
-	CUDA_SAFE_CALL( cudaFree( this->d_labels ) );
-	this->d_labels = NULL;
-	CUDA_SAFE_CALL( cudaFree( this->d_priors ) );
-	this->d_priors = NULL;
+    // Release 4D arrays
+    CUDA_SAFE_CALL( cudaFree( this->d_labels ) );
+    this->d_labels = NULL;
+    CUDA_SAFE_CALL( cudaFree( this->d_priors ) );
+    this->d_priors = NULL;
 
-	// Zero sizes
-	this->xDim = 0;
-	this->yDim = 0;
-	this->zDim = 0;
-	this->n4D = 0;
-	
-      }
-    }
-    
-
-    // --------------------
-
-    void GCApriorGPU::Send( const Freesurfer::GCAlinearPrior& src ) {
-
-      // Allocate memory
-      this->Allocate( src.xDim, src.yDim, src.zDim, src.n4D );
-
-      const size_t nVoxels = this->xDim * this->yDim * this->zDim;
-
-      // Copy offsets array
-      CUDA_SAFE_CALL( cudaMemcpy( this->d_offsets4D,
-				  &src.offsets4D.front(),
-				  (nVoxels+1)*sizeof(size_t),
-				  cudaMemcpyHostToDevice ) );
-
-      // Copy 3D arrays
-      CUDA_SAFE_CALL( cudaMemcpy( this->d_maxLabels,
-				  &src.maxLabels.front(),
-				  nVoxels*sizeof(short),
-				  cudaMemcpyHostToDevice ) );
-      CUDA_SAFE_CALL( cudaMemcpy( this->d_totTraining,
-				  &src.totTraining.front(),
-				  nVoxels*sizeof(int),
-				  cudaMemcpyHostToDevice ) );
-
-      // Copy 4D arrays
-      CUDA_SAFE_CALL( cudaMemcpy( this->d_labels,
-				  &src.labels.front(),
-				  this->n4D*sizeof(unsigned short),
-				  cudaMemcpyHostToDevice ) );
-      CUDA_SAFE_CALL( cudaMemcpy( this->d_priors,
-				  &src.priors.front(),
-				  this->n4D*sizeof(float),
-				  cudaMemcpyHostToDevice ) );
-    }
+    // Zero sizes
+    this->xDim = 0;
+    this->yDim = 0;
+    this->zDim = 0;
+    this->n4D = 0;
 
   }
+}
+
+
+// --------------------
+
+void GCApriorGPU::Send( const Freesurfer::GCAlinearPrior& src )
+{
+
+  // Allocate memory
+  this->Allocate( src.xDim, src.yDim, src.zDim, src.n4D );
+
+  const size_t nVoxels = this->xDim * this->yDim * this->zDim;
+
+  // Copy offsets array
+  CUDA_SAFE_CALL( cudaMemcpy( this->d_offsets4D,
+                              &src.offsets4D.front(),
+                              (nVoxels+1)*sizeof(size_t),
+                              cudaMemcpyHostToDevice ) );
+
+  // Copy 3D arrays
+  CUDA_SAFE_CALL( cudaMemcpy( this->d_maxLabels,
+                              &src.maxLabels.front(),
+                              nVoxels*sizeof(short),
+                              cudaMemcpyHostToDevice ) );
+  CUDA_SAFE_CALL( cudaMemcpy( this->d_totTraining,
+                              &src.totTraining.front(),
+                              nVoxels*sizeof(int),
+                              cudaMemcpyHostToDevice ) );
+
+  // Copy 4D arrays
+  CUDA_SAFE_CALL( cudaMemcpy( this->d_labels,
+                              &src.labels.front(),
+                              this->n4D*sizeof(unsigned short),
+                              cudaMemcpyHostToDevice ) );
+  CUDA_SAFE_CALL( cudaMemcpy( this->d_priors,
+                              &src.priors.front(),
+                              this->n4D*sizeof(float),
+                              cudaMemcpyHostToDevice ) );
+}
+
+}
 }

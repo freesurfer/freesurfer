@@ -7,19 +7,18 @@
  * Original Authors: Richard Edgar
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2011/01/25 17:19:00 $
- *    $Revision: 1.6 $
+ *    $Date: 2012/12/12 21:18:23 $
+ *    $Revision: 1.7 $
  *
- * Copyright (C) 2010-2011,
- * The General Hospital Corporation (Boston, MA).
- * All rights reserved.
+ * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
  *
- * Distribution, usage and copying of this software is covered under the
- * terms found in the License Agreement file named 'COPYING' found in the
- * FreeSurfer source code root directory, and duplicated here:
- * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ * Terms and conditions for use, reproduction, distribution and contribution
+ * are found in the 'FreeSurfer Software License Agreement' contained
+ * in the file 'LICENSE' found in the FreeSurfer distribution, and here:
  *
- * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
+ *
+ * Reporting: freesurfer@nmr.mgh.harvard.edu
  *
  */
 
@@ -33,14 +32,17 @@
 #include "gca.h"
 
 // Forward declaration
-namespace GPU {
-namespace Classes {
+namespace GPU
+{
+namespace Classes
+{
 class GCApriorGPU;
 }
 }
 
 
-namespace Freesurfer {
+namespace Freesurfer
+{
 
 
 // Forward declaration
@@ -49,17 +51,18 @@ class const_GCAprior;
 
 
 //! Class to hold a 3D volume of GCA priors in linear memory
-class GCAlinearPrior {
+class GCAlinearPrior
+{
 public:
 
   GCAlinearPrior( void ) : xDim(0), yDim(0), zDim(0), n4D(0),
-      bytes(),
-      offsets4D(),
-      maxLabels(),
-      labels(),
-      priors(),
-      totTraining(),
-      tExhume() {};
+    bytes(),
+    offsets4D(),
+    maxLabels(),
+    labels(),
+    priors(),
+    totTraining(),
+    tExhume() {};
 
 
 
@@ -68,7 +71,8 @@ public:
   //! Accessor for totTraining array
   inline int& totalTraining( const int ix,
                              const int iy,
-                             const int iz ) {
+                             const int iz )
+  {
     /*!
     The totTraining array holds per voxel data
     */
@@ -80,7 +84,8 @@ public:
   //! Const accessor for totTraining array
   inline int totalTraining( const int ix,
                             const int iy,
-                            const int iz ) const {
+                            const int iz ) const
+  {
     /*!
     The totTraining array holds per voxel data
     */
@@ -96,7 +101,8 @@ public:
   //! Accessor for maxLabels array
   inline short& maxVoxelLabel( const int ix,
                                const int iy,
-                               const int iz ) {
+                               const int iz )
+  {
     /*!
     The maxLabels array holds per voxel data
     */
@@ -108,7 +114,8 @@ public:
   //! Const accessor for maxLabels array
   inline short maxVoxelLabel( const int ix,
                               const int iy,
-                              const int iz ) const {
+                              const int iz ) const
+  {
     /*!
     The maxLabels array holds per voxel data
     */
@@ -123,7 +130,8 @@ public:
   //! Dynamically compute nlabels for each prior voxel
   inline short voxelLabelCount( const int ix,
                                 const int iy,
-                                const int iz ) const {
+                                const int iz ) const
+  {
     /*!
     This is computed as a difference between consecutive
     entries on the offsets4D array;
@@ -140,7 +148,8 @@ public:
   inline unsigned short& voxelLabel( const int ix,
                                      const int iy,
                                      const int iz,
-                                     const int iLabel ) {
+                                     const int iLabel )
+  {
     /*!
     The labels array is 4D.
     Each voxel has a 1D array of labels hanging from it,
@@ -155,7 +164,8 @@ public:
   inline unsigned short voxelLabel( const int ix,
                                     const int iy,
                                     const int iz,
-                                    const int iLabel ) const {
+                                    const int iLabel ) const
+  {
     /*!
     The labels array is 4D.
     Each voxel has a 1D array of labels hanging from it,
@@ -172,7 +182,8 @@ public:
 
   //! Accessor for the priors array
   inline float& voxelPrior(  const int ix, const int iy, const int iz,
-                             const int iLabel ) {
+                             const int iLabel )
+  {
     /*!
     The priors array is 4D.
     Each voxel has a 1D array of priors hanging from it,
@@ -185,7 +196,8 @@ public:
 
   //! Const accessor for the priors array
   inline float voxelPrior(  const int ix, const int iy, const int iz,
-                            const int iLabel ) const {
+                            const int iLabel ) const
+  {
     /*!
     The priors array is 4D.
     Each voxel has a 1D array of priors hanging from it,
@@ -230,12 +242,14 @@ private:
   //! Index computation for 3D indices
   inline size_t index3D( const int ix,
                          const int iy,
-                         const int iz ) const {
+                         const int iz ) const
+  {
     if ( (ix<0) || (ix>=this->xDim) ||
          (iy<0) || (iy>=this->yDim) ||
-         (iz<0) || (iz>=this->zDim ) ) {
+         (iz<0) || (iz>=this->zDim ) )
+    {
       std::cerr << __FUNCTION__
-      << ": Index out of range" << std::endl;
+                << ": Index out of range" << std::endl;
       abort();
     }
 
@@ -249,12 +263,14 @@ private:
   inline size_t index4D( const int ix,
                          const int iy,
                          const int iz,
-                         const int iLabel ) const {
+                         const int iLabel ) const
+  {
     if ( (ix<0) || (ix>=this->xDim) ||
          (iy<0) || (iy>=this->yDim) ||
-         (iz<0) || (iz>=this->zDim ) ) {
+         (iz<0) || (iz>=this->zDim ) )
+    {
       std::cerr << __FUNCTION__
-      << ": Index out of range" << std::endl;
+                << ": Index out of range" << std::endl;
       abort();
     }
 
@@ -263,9 +279,10 @@ private:
     const long long currOffset = this->offsets4D.at( idx3D );
     const long long nextOffset = this->offsets4D.at( idx3D + 1 );
 
-    if ( (iLabel<0) || (iLabel>=(nextOffset-currOffset) ) ) {
+    if ( (iLabel<0) || (iLabel>=(nextOffset-currOffset) ) )
+    {
       std::cerr << __FUNCTION__
-      << ": iLabel out of range" << std::endl;
+                << ": iLabel out of range" << std::endl;
       abort();
     }
 
@@ -317,38 +334,44 @@ private:
   everything will fall apart horribly.
   A lot of the precomputations are performed in the constructor
 */
-class const_GCAprior {
+class const_GCAprior
+{
 public:
   const_GCAprior( const int _ix,
                   const int _iy,
                   const int _iz,
                   const GCAlinearPrior& src ) : gcalp(src),
-      idx3d(src.index3D(_ix,_iy,_iz)),
-      currOffset(src.offsets4D.at(idx3d)),
-      myLabelCount(src.offsets4D.at(idx3d+1)-currOffset) {}
+    idx3d(src.index3D(_ix,_iy,_iz)),
+    currOffset(src.offsets4D.at(idx3d)),
+    myLabelCount(src.offsets4D.at(idx3d+1)-currOffset) {}
 
 
   //! Accessor for totalTraining
-  inline int totalTraining( void ) const {
+  inline int totalTraining( void ) const
+  {
     return( this->gcalp.totTraining.at(this->idx3d) );
   }
 
   //! Accessor for maxLabels
-  inline short maxLabel( void ) const {
+  inline short maxLabel( void ) const
+  {
     return( this->gcalp.maxLabels.at(this->idx3d) );
   }
 
   //! Accessor for nlabels
-  inline short labelCount( void ) const {
+  inline short labelCount( void ) const
+  {
     return( this->myLabelCount );
   }
 
   //! Accessor for labels
-  inline unsigned short labels( const int iLabel ) const {
-    if ( (iLabel<0) || (iLabel>=this->myLabelCount) ) {
+  inline unsigned short labels( const int iLabel ) const
+  {
+    if ( (iLabel<0) || (iLabel>=this->myLabelCount) )
+    {
       std::cerr << __FUNCTION__
-      << ": iLabel out of range " << iLabel
-      << std::endl;
+                << ": iLabel out of range " << iLabel
+                << std::endl;
       abort();
     }
 
@@ -356,11 +379,13 @@ public:
   }
 
   //! Accessor for priors
-  inline float priors( const int iLabel ) const {
-    if ( (iLabel<0) || (iLabel>=this->myLabelCount) ) {
+  inline float priors( const int iLabel ) const
+  {
+    if ( (iLabel<0) || (iLabel>=this->myLabelCount) )
+    {
       std::cerr << __FUNCTION__
-      << ": iLabel out of range " << iLabel
-      << std::endl;
+                << ": iLabel out of range " << iLabel
+                << std::endl;
       abort();
     }
 

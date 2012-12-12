@@ -10,20 +10,19 @@
 /*
  * Original Author: Richard Edgar
  * CVS Revision Info:
- *    $Author: rge21 $
- *    $Date: 2011/03/02 18:36:57 $
- *    $Revision: 1.2 $
+ *    $Author: nicks $
+ *    $Date: 2012/12/12 21:18:23 $
+ *    $Revision: 1.3 $
  *
- * Copyright (C) 2002-2010,
- * The General Hospital Corporation (Boston, MA). 
- * All rights reserved.
+ * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
  *
- * Distribution, usage and copying of this software is covered under the
- * terms found in the License Agreement file named 'COPYING' found in the
- * FreeSurfer source code root directory, and duplicated here:
- * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ * Terms and conditions for use, reproduction, distribution and contribution
+ * are found in the 'FreeSurfer Software License Agreement' contained
+ * in the file 'LICENSE' found in the FreeSurfer distribution, and here:
  *
- * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
+ *
+ * Reporting: freesurfer@nmr.mgh.harvard.edu
  *
  */
 
@@ -45,7 +44,8 @@ const int kMaxNegIter = 100;
 template<typename T>
 void RemoveNegativeNodes( GPU::Classes::GCAmorphGPU& gcam,
                           const GPU::Classes::MRIframeGPU<T>& mri,
-                          GCA_MORPH_PARMS *parms ) {
+                          GCA_MORPH_PARMS *parms )
+{
   /*!
     Implementation of gcamRemoveNegativeNodes for the GPU
     pipeline
@@ -55,25 +55,27 @@ void RemoveNegativeNodes( GPU::Classes::GCAmorphGPU& gcam,
   int old_neg, new_neg, i;
   GPU::Algorithms::GCAmorphEnergy gcamEnergy;
 
-  if( gcam.neg <=0 ) {
+  if( gcam.neg <=0 )
+  {
     return;
   }
 
   // Try simple removal
   gcam.RemoveSingularities();
-  if( gcam.neg <= 0 ) {
+  if( gcam.neg <= 0 )
+  {
     return;
   }
 
   parms->noneg = 0 ;
   parms->l_distance
-    = parms->l_log_likelihood
+  = parms->l_log_likelihood
     = parms->l_binary
-    = parms->l_multiscale
-    = parms->l_spring
-    = parms->l_area
-    = parms->l_smoothness
-    = parms->l_label = 0;
+      = parms->l_multiscale
+        = parms->l_spring
+          = parms->l_area
+            = parms->l_smoothness
+              = parms->l_label = 0;
   parms->navgs = 0;
   parms->l_area = 0.0;
   parms->l_jacobian = 1;
@@ -84,7 +86,8 @@ void RemoveNegativeNodes( GPU::Classes::GCAmorphGPU& gcam,
   new_neg = gcam.neg;
   i = 0;
 
-  do {
+  do
+  {
     old_neg = new_neg;
 
     ComputeGradient( gcam, mri, mri, parms );

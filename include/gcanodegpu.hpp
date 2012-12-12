@@ -7,19 +7,18 @@
  * Original Authors: Richard Edgar
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2011/01/25 17:19:00 $
- *    $Revision: 1.4 $
+ *    $Date: 2012/12/12 21:18:23 $
+ *    $Revision: 1.5 $
  *
- * Copyright (C) 2010-2011,
- * The General Hospital Corporation (Boston, MA).
- * All rights reserved.
+ * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
  *
- * Distribution, usage and copying of this software is covered under the
- * terms found in the License Agreement file named 'COPYING' found in the
- * FreeSurfer source code root directory, and duplicated here:
- * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ * Terms and conditions for use, reproduction, distribution and contribution
+ * are found in the 'FreeSurfer Software License Agreement' contained
+ * in the file 'LICENSE' found in the FreeSurfer distribution, and here:
  *
- * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
+ *
+ * Reporting: freesurfer@nmr.mgh.harvard.edu
  *
  */
 
@@ -32,9 +31,11 @@
 #include "gcalinearnode.hpp"
 
 
-namespace GPU {
+namespace GPU
+{
 
-namespace Classes {
+namespace Classes
+{
 
 // Forward declarations
 class const_GCAnode;
@@ -42,7 +43,8 @@ class const_GCAnode_GC1D;
 
 
 //! Device class for GCA node data
-class GCAnodeGPUarg {
+class GCAnodeGPUarg
+{
 public:
 
   //! Constructor from contents
@@ -61,24 +63,25 @@ public:
                  char *const _regularised,
                  float *const _gc1dDirecLabelPriors,
                  unsigned short *const _gc1dDirecLabels ) :
-      xDim(_xDim), yDim(_yDim), zDim(_zDim),
-      n4D(_n4D), n5D(_n5D), n6D(_n6D),
-      gc1dNeighbourDim(GIBBS_NEIGHBORHOOD),
-      offsets4D(_offsets4D), offsets5D(_offsets5D), offsets6D(_offsets6D),
-      nodeMaxLabels(_nodeMaxLabels), nodeTotalTraining(_nodeTotalTraining),
-      nodeLabels(_nodeLabels),
-      means(_means), variances(_variances),
-      nJustPriors(_nJustPriors),
-      nTraining(_nTraining), regularised(_regularised),
-      gc1dDirecLabelPriors(_gc1dDirecLabelPriors),
-      gc1dDirecLabels(_gc1dDirecLabels) {};
+    xDim(_xDim), yDim(_yDim), zDim(_zDim),
+    n4D(_n4D), n5D(_n5D), n6D(_n6D),
+    gc1dNeighbourDim(GIBBS_NEIGHBORHOOD),
+    offsets4D(_offsets4D), offsets5D(_offsets5D), offsets6D(_offsets6D),
+    nodeMaxLabels(_nodeMaxLabels), nodeTotalTraining(_nodeTotalTraining),
+    nodeLabels(_nodeLabels),
+    means(_means), variances(_variances),
+    nJustPriors(_nJustPriors),
+    nTraining(_nTraining), regularised(_regularised),
+    gc1dDirecLabelPriors(_gc1dDirecLabelPriors),
+    gc1dDirecLabels(_gc1dDirecLabels) {};
 
   // ---------------------------------------------
   // 3D data access
 
   //! Accessor for nodeMaxLabels
   __device__
-  int maxLabels( const int ix, const int iy, const int iz ) const {
+  int maxLabels( const int ix, const int iy, const int iz ) const
+  {
     const size_t idx = this->index3D(ix,iy,iz);
 
     return( this->nodeMaxLabels[idx] );
@@ -89,7 +92,8 @@ public:
   __device__
   int totalTraining( const int ix,
                      const int iy,
-                     const int iz ) const {
+                     const int iz ) const
+  {
     const size_t idx = this->index3D(ix,iy,iz);
 
     return( this->nodeTotalTraining[idx] );
@@ -100,7 +104,8 @@ public:
   __device__
   int gc1dCount( const int ix,
                  const int iy,
-                 const int iz ) const {
+                 const int iz ) const
+  {
     const size_t idx3D = this->index3D(ix,iy,iz);
     const size_t currOffset = this->offsets4D[idx3D];
     const size_t nextOffset = this->offsets4D[idx3D+1];
@@ -116,7 +121,8 @@ public:
   unsigned short labelsAtNode( const int ix,
                                const int iy,
                                const int iz,
-                               const int iGC1D ) const {
+                               const int iGC1D ) const
+  {
     const size_t idx = this->index4D(ix,iy,iz,iGC1D);
 
     return( this->nodeLabels[idx] );
@@ -128,7 +134,8 @@ public:
   float meansAtNodeGC1D( const int ix,
                          const int iy,
                          const int iz,
-                         const int iGC1D ) const {
+                         const int iGC1D ) const
+  {
     const size_t idx = this->index4D(ix,iy,iz,iGC1D);
 
     return( this->means[idx] );
@@ -140,7 +147,8 @@ public:
   float variancesAtNodeGC1D( const int ix,
                              const int iy,
                              const int iz,
-                             const int iGC1D ) const {
+                             const int iGC1D ) const
+  {
     const size_t idx = this->index4D(ix,iy,iz,iGC1D);
 
     return( this->variances[idx] );
@@ -152,7 +160,8 @@ public:
   short nJustPriorsAtNodeGC1D( const int ix,
                                const int iy,
                                const int iz,
-                               const int iGC1D ) const {
+                               const int iGC1D ) const
+  {
     const size_t idx = this->index4D(ix,iy,iz,iGC1D);
 
     return( this->nJustPriors[idx] );
@@ -164,7 +173,8 @@ public:
   int nTrainingAtNodeGC1D( const int ix,
                            const int iy,
                            const int iz,
-                           const int iGC1D ) const {
+                           const int iGC1D ) const
+  {
     const size_t idx = this->index4D(ix,iy,iz,iGC1D);
 
     return( this->nTraining[idx] );
@@ -176,7 +186,8 @@ public:
   char regularisedAtNodeGC1D( const int ix,
                               const int iy,
                               const int iz,
-                              const int iGC1D ) const {
+                              const int iGC1D ) const
+  {
     const size_t idx = this->index4D(ix,iy,iz,iGC1D);
 
     return( this->regularised[idx] );
@@ -191,7 +202,8 @@ public:
                                   const int iy,
                                   const int iz,
                                   const int iGC1D,
-                                  const int iDirec ) const {
+                                  const int iDirec ) const
+  {
     /*!
       This is computed as the difference between
       consecutive entries of the offsets6D array
@@ -214,7 +226,8 @@ public:
                                         const int iz,
                                         const int iGC1D,
                                         const int iDirec,
-                                        const int iLabel ) const {
+                                        const int iLabel ) const
+  {
     const size_t idx = this->index6D(ix,iy,iz,iGC1D,iDirec,iLabel);
 
     return( this->gc1dDirecLabelPriors[idx] );
@@ -228,7 +241,8 @@ public:
       const int iz,
       const int iGC1D,
       const int iDirec,
-      const int iLabel ) const {
+      const int iLabel ) const
+  {
     const size_t idx = this->index6D(ix,iy,iz,iGC1D,iDirec,iLabel);
 
     return( this->gc1dDirecLabels[idx] );
@@ -276,7 +290,8 @@ private:
   __device__
   size_t index3D( const int ix,
                   const int iy,
-                  const int iz ) const {
+                  const int iz ) const
+  {
     size_t index;
     index = ix + ( this->xDim * ( iy + ( this->yDim * iz ) ) );
 
@@ -288,7 +303,8 @@ private:
   size_t index4D( const int ix,
                   const int iy,
                   const int iz,
-                  const int iGC1D ) const {
+                  const int iGC1D ) const
+  {
     const size_t idx3D = this->index3D(ix,iy,iz);
     const size_t currOffset = this->offsets4D[ idx3D ];
 
@@ -301,7 +317,8 @@ private:
                   const int iy,
                   const int iz,
                   const int iGC1D,
-                  const int iDirec ) const {
+                  const int iDirec ) const
+  {
     const size_t idx3D = this->index3D(ix,iy,iz);
     const size_t currGC1dOffset = this->offsets4D[ idx3D ];
     const size_t currOffset = this->offsets5D[ currGC1dOffset+iGC1D ];
@@ -316,7 +333,8 @@ private:
                   const int iz,
                   const int iGC1D,
                   const int iDirec,
-                  const int iLabel ) const {
+                  const int iLabel ) const
+  {
     const size_t idx3D = this->index3D(ix,iy,iz);
     const size_t currGC1dOffset = this->offsets4D[ idx3D ];
     const size_t currDirecOffset = this->offsets5D[ currGC1dOffset+iGC1D ];
@@ -334,7 +352,8 @@ private:
 
 #ifdef __CUDA_ARCH__
 //! Mirror of the CPU const_GCAnode
-class const_GCAnode {
+class const_GCAnode
+{
 public:
   //! Constructor from location
   __device__
@@ -342,35 +361,39 @@ public:
                  const int _iy,
                  const int _iz,
                  const GCAnodeGPUarg& src ) : gnga(src),
-      idx3d(src.index3D(_ix,_iy,_iz)),
-      offset4d(src.offsets4D[idx3d]),
-      myGC1Dcount(src.offsets4D[idx3d+1]-offset4d),
-      ix(_ix),
-      iy(_iy),
-      iz(_iz) {}
+    idx3d(src.index3D(_ix,_iy,_iz)),
+    offset4d(src.offsets4D[idx3d]),
+    myGC1Dcount(src.offsets4D[idx3d+1]-offset4d),
+    ix(_ix),
+    iy(_iy),
+    iz(_iz) {}
 
 
   //! Accessor for max_labels
   __device__
-  int maxLabels( void ) const {
+  int maxLabels( void ) const
+  {
     return( this->gnga.nodeMaxLabels[this->idx3d] );
   }
 
   //! Accessor for totalTraining
   __device__
-  int totalTraining( void ) const {
+  int totalTraining( void ) const
+  {
     return( this->gnga.nodeTotalTraining[this->idx3d] );
   }
 
   //! Accessor for gc1dCount
   __device__
-  int gc1dCount( void ) const {
+  int gc1dCount( void ) const
+  {
     return( this->myGC1Dcount );
   }
 
   //! Access for nodeLabels
   __device__
-  unsigned short labels( const int iGC1D ) const {
+  unsigned short labels( const int iGC1D ) const
+  {
     return( this->gnga.nodeLabels[this->offset4d+iGC1D] );
   }
 
@@ -391,7 +414,8 @@ private:
 __device__
 const_GCAnode GCAnodeGPUarg::GetConstNode( const int ix,
     const int iy,
-    const int iz ) const {
+    const int iz ) const
+{
   return( const_GCAnode( ix, iy, iz, *this ) );
 }
 #else
@@ -402,7 +426,8 @@ const_GCAnode GCAnodeGPUarg::GetConstNode( const int ix,
 // ===============
 
 #ifdef __CUDA_ARCH__
-class const_GCAnode_GC1D {
+class const_GCAnode_GC1D
+{
 public:
   //! Construction from location
   __device__
@@ -411,45 +436,51 @@ public:
                       const int _iz,
                       const int _iGC1D,
                       const GCAnodeGPUarg& src ) : gnga(src),
-      offset4d(src.index4D(_ix,_iy,_iz,_iGC1D)) {}
+    offset4d(src.index4D(_ix,_iy,_iz,_iGC1D)) {}
 
   // -----------------------------
   // 4D data
 
   //! Accessor for the mean
   __device__
-  float mean( void ) const {
+  float mean( void ) const
+  {
     return( this->gnga.means[this->offset4d] );
   }
 
   //! Accessor for the variance
   __device__
-  float variance( void ) const {
+  float variance( void ) const
+  {
     return( this->gnga.variances[this->offset4d] );
   }
 
   //! Accessor for nJustPriors
   __device__
-  short nJustPriors( void ) const {
+  short nJustPriors( void ) const
+  {
     return( this->gnga.nJustPriors[this->offset4d] );
   }
 
   //! Accessor for nTraining
   __device__
-  int nTraining( void ) const {
+  int nTraining( void ) const
+  {
     return( this->gnga.nTraining[this->offset4d] );
   }
 
   //! Accessor for regularised
   __device__
-  int regularised( void ) const {
+  int regularised( void ) const
+  {
     return( this->gnga.regularised[this->offset4d] );
   }
 
   // -----------------------------
   // 5D data
   __device__
-  short nLabels( const int iDirec ) const {
+  short nLabels( const int iDirec ) const
+  {
     /*!
       This is basically an alternative for
       GCAlinearNode::nLabelsAtNodeGC1Ddirection
@@ -468,14 +499,16 @@ public:
 
   //! Accessor for labels
   __device__
-  unsigned short labels( const int iDirec, const int iLabel ) const {
+  unsigned short labels( const int iDirec, const int iLabel ) const
+  {
     const size_t idx6D = this->index6D(iDirec,iLabel);
     return( this->gnga.gc1dDirecLabels[idx6D] );
   }
 
   //! Accessor for labelPriors
   __device__
-  float labelPriors( const int iDirec, const int iLabel ) const {
+  float labelPriors( const int iDirec, const int iLabel ) const
+  {
     const size_t idx6D = this->index6D(iDirec,iLabel);
     return( this->gnga.gc1dDirecLabelPriors[idx6D] );
   }
@@ -487,7 +520,8 @@ private:
   //! Index computation for 6D data
   __device__
   size_t index6D( const int iDirec,
-                  const int iLabel ) const {
+                  const int iLabel ) const
+  {
     const size_t idx5D = this->gnga.offsets5D[this->offset4d] + iDirec;
     const size_t currOffset = this->gnga.offsets6D[idx5D];
     return( currOffset + iLabel );
@@ -496,8 +530,9 @@ private:
 
 
 
-__device__
-const_GCAnode_GC1D const_GCAnode::GetConstGC1D( const int iGC1D ) const {
+__host__ __device__
+const_GCAnode_GC1D const_GCAnode::GetConstGC1D( const int iGC1D ) const
+{
   const_GCAnode_GC1D gc1d( this->ix,
                            this->iy,
                            this->iz,
@@ -515,28 +550,31 @@ const_GCAnode_GC1D const_GCAnode::GetConstGC1D( const int iGC1D ) const {
 // =============================================================
 
 //! Management class for GCA node data on the GPU
-class GCAnodeGPU {
+class GCAnodeGPU
+{
 public:
   //! Default constructor
   GCAnodeGPU( void ) : xDim(0), yDim(0), zDim(0),
-      n4D(0), n5D(0), n6D(0),
-      gc1dNeighbourDim(GIBBS_NEIGHBORHOOD),
-      d_offsets4D(NULL), d_offsets5D(NULL), d_offsets6D(NULL),
-      d_nodeMaxLabels(NULL), d_nodeTotalTraining(NULL),
-      d_nodeLabels(NULL),
-      d_means(NULL), d_variances(NULL),
-      d_nJustPriors(NULL), d_nTraining(NULL),
-      d_regularised(NULL),
-      d_gc1dDirecLabelPriors(NULL),
-      d_gc1dDirecLabels(NULL) {};
+    n4D(0), n5D(0), n6D(0),
+    gc1dNeighbourDim(GIBBS_NEIGHBORHOOD),
+    d_offsets4D(NULL), d_offsets5D(NULL), d_offsets6D(NULL),
+    d_nodeMaxLabels(NULL), d_nodeTotalTraining(NULL),
+    d_nodeLabels(NULL),
+    d_means(NULL), d_variances(NULL),
+    d_nJustPriors(NULL), d_nTraining(NULL),
+    d_regularised(NULL),
+    d_gc1dDirecLabelPriors(NULL),
+    d_gc1dDirecLabels(NULL) {};
 
   //! Destructor
-  ~GCAnodeGPU( void ) {
+  ~GCAnodeGPU( void )
+  {
     this->Release();
   }
 
   //! Conversion operator
-  operator GCAnodeGPUarg( void ) const {
+  operator GCAnodeGPUarg( void ) const
+  {
     GCAnodeGPUarg gnga( this->xDim, this->yDim, this->zDim,
                         this->n4D, this->n5D, this->n6D,
                         this->d_offsets4D,
@@ -611,27 +649,29 @@ private:
 
   //! Inhibit copy constructor
   GCAnodeGPU( const GCAnodeGPU& src ): xDim(0), yDim(0), zDim(0),
-      n4D(0), n5D(0), n6D(0),
-      gc1dNeighbourDim(GIBBS_NEIGHBORHOOD),
-      d_offsets4D(NULL), d_offsets5D(NULL), d_offsets6D(NULL),
-      d_nodeMaxLabels(NULL), d_nodeTotalTraining(NULL),
-      d_nodeLabels(NULL),
-      d_means(NULL), d_variances(NULL),
-      d_nJustPriors(NULL), d_nTraining(NULL),
-      d_regularised(NULL),
-      d_gc1dDirecLabelPriors(NULL),
-      d_gc1dDirecLabels(NULL) {
+    n4D(0), n5D(0), n6D(0),
+    gc1dNeighbourDim(GIBBS_NEIGHBORHOOD),
+    d_offsets4D(NULL), d_offsets5D(NULL), d_offsets6D(NULL),
+    d_nodeMaxLabels(NULL), d_nodeTotalTraining(NULL),
+    d_nodeLabels(NULL),
+    d_means(NULL), d_variances(NULL),
+    d_nJustPriors(NULL), d_nTraining(NULL),
+    d_regularised(NULL),
+    d_gc1dDirecLabelPriors(NULL),
+    d_gc1dDirecLabels(NULL)
+  {
     std::cerr << __FUNCTION__
-    << ": Please don't copy"
-    << std::endl;
+              << ": Please don't copy"
+              << std::endl;
     abort();
   }
 
   //! Inhibit assignment
-  GCAnodeGPU& operator=( const GCAnodeGPU& src ) {
+  GCAnodeGPU& operator=( const GCAnodeGPU& src )
+  {
     std::cerr << __FUNCTION__
-    << ": Please don't copy"
-    << std::endl;
+              << ": Please don't copy"
+              << std::endl;
     abort();
   }
 
