@@ -8,8 +8,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2012/10/24 13:20:02 $
- *    $Revision: 1.74 $
+ *    $Date: 2012/12/12 13:50:40 $
+ *    $Revision: 1.75 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -1177,10 +1177,42 @@ HISTOaddSample(HISTOGRAM *histo, float val, float bmin, float bmax)
   int    bin_no ;
   float  bin_size ;
 
-  bin_size = (bmax - bmin) / ((float)histo->nbins-1) ;
+  if (bmin >= bmax) // not specified by caller
+  {
+    bmin = histo->min ;
+    bmax = histo->max ;
+    bin_size = histo->bin_size ;
+  }
+  else
+    bin_size = (bmax - bmin) / ((float)histo->nbins-1) ;
+
   bin_no = nint((val - bmin) / bin_size) ;
   if (bin_no < histo->nbins && bin_no >= 0)
     histo->counts[bin_no]++ ;
+  else
+    DiagBreak() ;
+
+  return(bin_no) ;
+}
+
+int
+HISTOaddFractionalSample(HISTOGRAM *histo, float val, float bmin, float bmax, float frac)
+{
+  int    bin_no ;
+  float  bin_size ;
+
+  if (bmin >= bmax) // not specified by caller
+  {
+    bmin = histo->min ;
+    bmax = histo->max ;
+    bin_size = histo->bin_size ;
+  }
+  else
+    bin_size = (bmax - bmin) / ((float)histo->nbins-1) ;
+
+  bin_no = nint((val - bmin) / bin_size) ;
+  if (bin_no < histo->nbins && bin_no >= 0)
+    histo->counts[bin_no] += frac ;
   else
     DiagBreak() ;
 
@@ -1553,6 +1585,8 @@ HISTOgetCount(HISTOGRAM *h, float bin_val)
   int b ;
 
   b = HISTOfindBin(h, bin_val);
+  if (b < 0 || b >= h->nbins)
+    return(0) ;
   return(h->counts[b]);
 }
 
