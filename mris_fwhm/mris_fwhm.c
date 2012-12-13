@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2012/09/04 20:33:18 $
- *    $Revision: 1.36 $
+ *    $Date: 2012/12/13 18:18:27 $
+ *    $Revision: 1.37 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -148,7 +148,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mris_fwhm.c,v 1.36 2012/09/04 20:33:18 greve Exp $";
+static char vcid[] = "$Id: mris_fwhm.c,v 1.37 2012/12/13 18:18:27 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -447,7 +447,7 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--sqr")) DoSqr = 1;
     else if (!strcasecmp(option, "--fast")) setenv("USE_FAST_SURF_SMOOTHER","1",1);
     else if (!strcasecmp(option, "--no-fast")) setenv("USE_FAST_SURF_SMOOTHER","0",1);
-    else if (!strcasecmp(option, "--smooth-only")) {
+    else if (!strcasecmp(option, "--smooth-only") || !strcasecmp(option, "--so")) {
       DoDetrend = 0;
       SmoothOnly = 1;
     }
