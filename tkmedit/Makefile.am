@@ -65,6 +65,25 @@ all:
 install-exec-hook:
 endif
 
+# Copy over precompiled 32-bit versions until we get 64-bit builds working.
+if INSTALL_MAC32_GUIS
+install-exec-hook:
+	rm -vf $(DESTDIR)$(bindir)/tkmedit
+	cp $(top_builddir)/distribution/Mac_32b/tkmedit_Mac32.bin $(DESTDIR)$(prefix)/tktools/tkmedit.bin
+	echo "#!/bin/tcsh -ef" > $(DESTDIR)$(prefix)/tktools/tkmedit
+	echo "source \$$FREESURFER_HOME/bin/tcl_setup" \
+		>> $(DESTDIR)$(prefix)/tktools/tkmedit
+	echo "exec \$$FREESURFER_HOME/tktools/tkmedit.bin \$$argv" \
+		>> $(DESTDIR)$(prefix)/tktools/tkmedit
+	chmod a+x $(DESTDIR)$(prefix)/tktools/tkmedit
+	cp $(DESTDIR)$(prefix)/tktools/tkmedit $(DESTDIR)$(bindir)/
+	if [[ -f /usr/pubsw/bin/chrpath ]]; then \
+	/usr/pubsw/bin/chrpath -d $(DESTDIR)$(prefix)/tktools/tkmedit.bin; fi
+
+uninstall-hook:
+	rm -f $(DESTDIR)$(prefix)/tktools/tkmedit*
+endif
+
 EXTRA_DIST=development_notes.txt
 
 # Our release target. Include files to be excluded here. They will be

@@ -59,6 +59,25 @@ all:
 install-exec-hook:
 endif
 
+# Copy over precompiled 32-bit versions until we get 64-bit builds working.
+if INSTALL_MAC32_GUIS
+install-exec-hook:
+	rm -fv $(DESTDIR)$(bindir)/tksurfer
+	cp $(top_builddir)/distribution/Mac_32b/tksurfer_Mac32.bin $(DESTDIR)$(prefix)/tktools/tksurfer.bin
+	echo "#!/bin/tcsh -ef" > $(DESTDIR)$(prefix)/tktools/tksurfer
+	echo "source \$$FREESURFER_HOME/bin/tcl_setup" \
+		>> $(DESTDIR)$(prefix)/tktools/tksurfer
+	echo "exec \$$FREESURFER_HOME/tktools/tksurfer.bin \$$argv" \
+		>> $(DESTDIR)$(prefix)/tktools/tksurfer
+	chmod a+x $(DESTDIR)$(prefix)/tktools/tksurfer
+	cp $(DESTDIR)$(prefix)/tktools/tksurfer $(DESTDIR)$(bindir)/
+	if [[ -f /usr/pubsw/bin/chrpath ]]; then \
+	/usr/pubsw/bin/chrpath -d $(DESTDIR)$(prefix)/tktools/tksurfer.bin; fi
+
+uninstall-hook:
+	rm -f $(DESTDIR)$(prefix)/tktools/surfer*
+endif
+
 EXTRA_DIST=development_notes.txt
 
 # Our release target. Include files to be excluded here. They will be

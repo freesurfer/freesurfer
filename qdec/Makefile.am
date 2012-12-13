@@ -116,6 +116,32 @@ vtkKWQdecViewTcl.cxx:
 QdecLibInit.cxx:
 endif
 
+# Copy over precompiled 32-bit versions until we get 64-bit builds working.
+if INSTALL_MAC32_GUIS
+install-exec-hook:
+	cp $(top_builddir)/distribution/Mac_32b/qdec_Mac32.bin $(DESTDIR)$(bindir)/qdec.bin
+	echo "#!/bin/tcsh -ef" > $(DESTDIR)$(bindir)/qdec
+	echo "source \$$FREESURFER_HOME/bin/tcl_setup" \
+		>> $(DESTDIR)$(bindir)/qdec
+	echo "source \$$FREESURFER_HOME/bin/vtk_setup" \
+		>> $(DESTDIR)$(bindir)/qdec
+	echo "source \$$FREESURFER_HOME/bin/kww_setup" \
+		>> $(DESTDIR)$(bindir)/qdec
+	echo "if (-e /bin/pwd) then" >> $(DESTDIR)$(bindir)/qdec
+	echo "  setenv HOME \`cd \$$HOME; /bin/pwd\`" \
+		>> $(DESTDIR)$(bindir)/qdec
+	echo "  setenv SUBJECTS_DIR \`cd \$$SUBJECTS_DIR; /bin/pwd\`" \
+		>> $(DESTDIR)$(bindir)/qdec
+	echo "endif" >> $(DESTDIR)$(bindir)/qdec
+	echo "qdec.bin \$$argv" >> $(DESTDIR)$(bindir)/qdec
+	chmod a+x $(DESTDIR)$(bindir)/qdec
+	if [[ -f /usr/pubsw/bin/chrpath ]]; then \
+	/usr/pubsw/bin/chrpath -d $(DESTDIR)$(bindir)/qdec.bin; fi
+
+uninstall-hook:
+	rm -f $(DESTDIR)$(bindir)/qdec.bin
+endif
+
 EXTRA_DIST=QdecIcons.txt $(foo_DATA) \
 qdec2.table.dat $(dist_bin_SCRIPTS) \
 QdecEvents.h \

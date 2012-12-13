@@ -61,6 +61,34 @@ all:
 	@echo ""
 endif
 
+# Copy over precompiled 32-bit versions until we get 64-bit builds working.
+if INSTALL_MAC32_GUIS
+install-exec-hook:
+	mv -v $(DESTDIR)$(bindir)/tkregister2_cmdl $(DESTDIR)$(prefix)/tktools/
+	rm -vf $(DESTDIR)$(bindir)/tkregister*
+	cp $(top_builddir)/distribution/Mac_32b/tkregister2_Mac32.bin \
+		$(DESTDIR)$(prefix)/tktools/tkregister2.bin
+	echo "#!/bin/tcsh -ef" > $(DESTDIR)$(prefix)/tktools/tkregister2
+	echo "source \$$FREESURFER_HOME/bin/tcl_setup" \
+		>> $(DESTDIR)$(prefix)/tktools/tkregister2
+	echo "exec \$$FREESURFER_HOME/tktools/tkregister2.bin \$$argv" \
+		>> $(DESTDIR)$(prefix)/tktools/tkregister2
+	cp $(DESTDIR)$(prefix)/tktools/tkregister2 \
+		$(DESTDIR)$(prefix)/tktools/tkregister
+	chmod a+x $(DESTDIR)$(prefix)/tktools/tkregister
+	chmod a+x $(DESTDIR)$(prefix)/tktools/tkregister2
+	cp $(DESTDIR)$(prefix)/tktools/tkregister $(DESTDIR)$(bindir)/
+	cp $(DESTDIR)$(prefix)/tktools/tkregister2 $(DESTDIR)$(bindir)/
+	if [[ -f /usr/pubsw/bin/chrpath ]]; then \
+	/usr/pubsw/bin/chrpath -d $(DESTDIR)$(prefix)/tktools/tkregister2.bin; fi
+
+uninstall-hook:
+	rm -f $(DESTDIR)$(prefix)/tktools/tkregister*
+	rm -f $(DESTDIR)$(bindir)/tkregister*
+endif
+
+
+
 # Our release target. Include files to be excluded here. They will be
 # found and removed after 'make install' is run during the 'make
 # release' target.

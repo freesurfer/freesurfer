@@ -555,6 +555,40 @@ endif
 
 clean-local:
 	rm -f $(BUILT_SOURCES)
+endif 
+
+
+# Copy over precompiled 32-bit versions until we get 64-bit builds working.
+if INSTALL_MAC32_GUIS
+# need to create a bundle for Macs
+install-exec-hook:
+	mkdir -p $(DESTDIR)$(bindir)/Freeview.app
+	mkdir -p $(DESTDIR)$(bindir)/Freeview.app/Contents
+	mkdir -p $(DESTDIR)$(bindir)/Freeview.app/Contents/MacOS
+	mkdir -p $(DESTDIR)$(bindir)/Freeview.app/Contents/Resources
+	mkdir -p $(DESTDIR)$(bindir)/Freeview.app/Contents/Resources/English.lproj
+#	mkdir -p $(DESTDIR)$(bindir)/Freeview.app/Contents/Frameworks
+	cp $(top_builddir)/freeview/Info.plist $(DESTDIR)$(bindir)/Freeview.app/Contents
+	echo -n 'APPL????' > $(DESTDIR)$(bindir)/Freeview.app/Contents/PkgInfo
+	cp $(top_builddir)/distribution/Mac_32b/freeview_Mac32.bin $(DESTDIR)$(bindir)/Freeview.app/Contents/MacOS/freeview.bin
+	if [[ -d  /usr/pubsw/packages/qt/current/lib/qt_menu.nib ]]; then \
+	cp -rv /usr/pubsw/packages/qt/current/lib/qt_menu.nib $(DESTDIR)$(bindir)/Freeview.app/Contents/Resources; fi
+	echo "#!/bin/tcsh -ef" > $(DESTDIR)$(bindir)/freeview
+#	echo "source \$$FREESURFER_HOME/bin/tcl_setup" \
+		>> $(DESTDIR)$(bindir)/freeview
+	echo "source \$$FREESURFER_HOME/bin/qt_setup" \
+		>> $(DESTDIR)$(bindir)/freeview
+	echo "exec \$$FREESURFER_HOME/bin/Freeview.app/Contents/MacOS/freeview.bin \$$*" >> $(DESTDIR)$(bindir)/freeview
+	chmod a+x $(DESTDIR)$(bindir)/freeview
+#	./mac_package_dylibs.sh $(WXWIDGETS_DIR)lib $(DESTDIR)$(bindir)/Freeview.app/Contents/Frameworks $(DESTDIR)$(bindir)/Freeview.app/Contents/MacOS/freeview.bin
+	if [[ -f /usr/pubsw/bin/chrpath ]]; then \
+	/usr/pubsw/bin/chrpath -d $(DESTDIR)$(bindir)/Freeview.app/Contents/MacOS/freeview.bin; fi
+
+uninstall-hook:
+	rm -f $(DESTDIR)$(bindir)/freeview
+	rm -rf $(DESTDIR)$(bindir)/Freeview.app
+endif
+
 
 EXTRA_DIST=$(freeview_SOURCES)
 
@@ -564,4 +598,3 @@ EXTRA_DIST=$(freeview_SOURCES)
 EXCLUDE_FILES=
 include $(top_srcdir)/Makefile.extra
 
-endif 
