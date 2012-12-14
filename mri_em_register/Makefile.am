@@ -2,9 +2,9 @@
 ## Makefile.am 
 ##
 
-AM_CFLAGS=-I$(top_srcdir)/include -I$(top_srcdir)/include/dicom 
+AM_CFLAGS=-I$(top_srcdir)/include
 
-AM_CXXFLAGS=-I$(top_srcdir)/include -I$(top_srcdir)/include/dicom\
+AM_CXXFLAGS=-I$(top_srcdir)/include\
              $(BOOST_CFLAGS)\
              -Wall -Wextra
 
@@ -30,17 +30,16 @@ foo_DATA=mri_em_register.help.xml mri_em_register_cuda.help.xml
 if BUILDCUDA
 # rules for building cuda files
 .cu.o:
-	$(NVCC) -o $@ -c $< $(NVCCFLAGS) $(AM_CFLAGS) $(MNI_CFLAGS)
+	$(NVCC) -o $@ -c $< $(NVCCFLAGS) $(CUDA_CFLAGS) $(AM_CFLAGS) $(MNI_CFLAGS)
 
 bin_PROGRAMS += mri_em_register_cuda
-
 
 mri_em_register_cuda_SOURCES = mri_em_register.c \
   em_register_cuda.cu em_register_cuda.h\
   findtranslation.cpp findtranslation.h\
   emregisterutils.cpp emregisterutils.h
-mri_em_register_cuda_CFLAGS = $(AM_CFLAGS) $(CUDA_CFLAGS) -DFS_CUDA
-mri_em_register_cuda_CXXFLAGS = $(AM_CFLAGS) $(CUDA_CFLAGS) -DFS_CUDA
+mri_em_register_cuda_CFLAGS = $(CUDA_CFLAGS) $(AM_CFLAGS) -DFS_CUDA
+mri_em_register_cuda_CXXFLAGS = $(CUDA_CFLAGS) $(AM_CFLAGS) -DFS_CUDA
 mri_em_register_cuda_LDADD = $(addprefix $(top_builddir)/, $(LIBS_CUDA_MGH)) $(CUDA_LIBS)
 mri_em_register_cuda_LDFLAGS = $(OS_LDFLAGS) 
 mri_em_register_cuda_LINK = $(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) \
