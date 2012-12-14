@@ -9,10 +9,10 @@
  * CUDA version : Richard Edgar
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2012/08/28 22:11:21 $
- *    $Revision: 1.3.2.2 $
+ *    $Date: 2012/12/14 10:35:06 $
+ *    $Revision: 1.3.2.3 $
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -36,12 +36,13 @@
 // ===========================================
 
 double local_GCAcomputeLogSampleProbability( GCA *gca,
-                                             GCA_SAMPLE *gcas,
-                                             MRI *mri,
-                                             MATRIX *m_L,
-                                             int nsamples,
-                                             int exvivo,
-                                             double clamp) {
+    GCA_SAMPLE *gcas,
+    MRI *mri,
+    MATRIX *m_L,
+    int nsamples,
+    int exvivo,
+    double clamp)
+{
   static TRANSFORM *transform = NULL ;
 
   if (!transform)
@@ -54,20 +55,28 @@ double local_GCAcomputeLogSampleProbability( GCA *gca,
   {
     double gm, wm, fluid ;
 
-    compute_tissue_modes(mri, gca, gcas, transform, nsamples, &wm, &gm, &fluid ) ;
-    return( (SQR(gm - wm) + SQR(gm-fluid) + SQR(fluid - wm) + SQR(gm) - SQR(fluid))) ;
+    compute_tissue_modes(mri, gca, gcas, transform, nsamples,
+                         &wm, &gm, &fluid ) ;
+    return( (SQR(gm - wm) +
+             SQR(gm-fluid) +
+             SQR(fluid - wm) +
+             SQR(gm) -
+             SQR(fluid))) ;
   }
 
 
   double result;
 
-  if (robust) {
+  if (robust)
+  {
     // Defined 0 at the top of the file
     result = GCAcomputeNumberOfGoodFittingSamples( gca, gcas, mri,
-                                                   transform, nsamples );
-  } else {
+             transform, nsamples );
+  }
+  else
+  {
     result = GCAcomputeLogSampleProbability( gca, gcas, mri,
-                                             transform, nsamples, clamp );
+             transform, nsamples, clamp );
   }
 
 
@@ -83,7 +92,8 @@ int compute_tissue_modes( MRI *mri_inputs,
                           GCA_SAMPLE *gcas,
                           TRANSFORM *transform,
                           int nsamples,
-                          double *pwm, double *pgm, double *pfluid ) {
+                          double *pwm, double *pgm, double *pfluid )
+{
   int        x, y, z, width, height, depth, i, xp, yp, zp ;
   float      vals[MAX_GCA_INPUTS] ;
   int        countOutside = 0, ngm, nwm, nfluid;
@@ -100,7 +110,9 @@ int compute_tissue_modes( MRI *mri_inputs,
   TransformInvert(transform, mri_inputs) ;
 
   // go through all sample points
-  for (ngm = nwm = nfluid = 0, wm = gm = fluid = 0.0, i = 0 ; i < nsamples ; i++)
+  for (ngm = nwm = nfluid = 0, wm = gm = fluid = 0.0, i = 0 ;
+       i < nsamples ;
+       i++)
   {
     /////////////////// diag code /////////////////////////////
     if (i == Gdiag_no)
@@ -158,7 +170,6 @@ int compute_tissue_modes( MRI *mri_inputs,
         nfluid++ ;
         fluid += vals[0] ;
       }
-
 
       if (!FZERO(vals[0]))
       {

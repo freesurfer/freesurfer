@@ -731,6 +731,10 @@ nvcc_version.h:
 	echo "bcopy(nvcc_version,buf,nvcc_version_len);" >> nvcc_version.h
 	echo "buf[nvcc_version_len]=0;" >> nvcc_version.h
 	echo "printf(buf);" >> nvcc_version.h
+	echo "" >> nvcc_version.h
+	echo "nvcc_version.h was created by running:" >> nvcc_version.h
+	echo "nvcc --version > nvcc_version" >> nvcc_version.h
+	echo "xxd -i nvcc_version >> nvcc_version.h" >> nvcc_version.h
 	echo "*/" >> nvcc_version.h
 	xxd -i nvcc_version >> nvcc_version.h
 

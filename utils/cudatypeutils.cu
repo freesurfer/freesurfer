@@ -8,20 +8,19 @@
 /*
  * Original Author: Richard Edgar
  * CVS Revision Info:
- *    $Author: rge21 $
- *    $Date: 2010/02/11 15:29:56 $
- *    $Revision: 1.1 $
+ *    $Author: nicks $
+ *    $Date: 2012/12/14 10:35:07 $
+ *    $Revision: 1.2.2.1 $
  *
- * Copyright (C) 2002-2008,
- * The General Hospital Corporation (Boston, MA). 
- * All rights reserved.
+ * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
- * Distribution, usage and copying of this software is covered under the
- * terms found in the License Agreement file named 'COPYING' found in the
- * FreeSurfer source code root directory, and duplicated here:
- * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ * Terms and conditions for use, reproduction, distribution and contribution
+ * are found in the 'FreeSurfer Software License Agreement' contained
+ * in the file 'LICENSE' found in the FreeSurfer distribution, and here:
  *
- * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
+ *
+ * Reporting: freesurfer@nmr.mgh.harvard.edu
  *
  */
 
@@ -34,7 +33,8 @@
 // Stream operators
 
 
-std::ostream& operator<<( std::ostream& os, const float3& me ) {
+std::ostream& operator<<( std::ostream& os, const float3& me )
+{
   const unsigned int w = 6;
   const unsigned int p = 2;
 
@@ -46,7 +46,8 @@ std::ostream& operator<<( std::ostream& os, const float3& me ) {
   return( os );
 }
 
-std::ostream& operator<<( std::ostream& os, const dim3& me ) {
+std::ostream& operator<<( std::ostream& os, const dim3& me )
+{
   const unsigned int w = 6;
   os << "(";
   os << std::setw(w) << me.x;

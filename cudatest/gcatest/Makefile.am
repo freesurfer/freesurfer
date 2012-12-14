@@ -20,7 +20,7 @@ CUDA_CFLAGS += -DGCAMORPH_ON_GPU
 
 # rules for building cuda files
 .cu.o:
-	$(NVCC) -o $@ -c $< $(NVCCFLAGS) $(AM_CFLAGS) $(MNI_CFLAGS)
+	$(NVCC) -o $@ -c $< $(NVCCFLAGS) $(CUDA_CFLAGS) $(AM_CFLAGS) $(MNI_CFLAGS)
 
 bin_PROGRAMS = gca_read_test
 

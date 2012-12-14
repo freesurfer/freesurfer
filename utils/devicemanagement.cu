@@ -28,7 +28,8 @@ using namespace std;
 // ==============================================
 
 
-void AcquireCUDADevice( void ) {
+void AcquireCUDADevice( void )
+{
   /*!
     Looks up the environment variable "FREESURFER_CUDA_DEVICE"
     attempts to acquire that GPU.
@@ -39,7 +40,8 @@ void AcquireCUDADevice( void ) {
 
   cout << nvcc_version << endl;
   int driverVersion=0, runtimeVersion=0;
-  if( cudaSuccess == cudaDriverGetVersion( &driverVersion ) ) {
+  if( cudaSuccess == cudaDriverGetVersion( &driverVersion ) )
+  {
     cudaRuntimeGetVersion( &runtimeVersion );
     cout << "Driver : "
          << driverVersion/1000 << "." << driverVersion%1000
@@ -54,12 +56,16 @@ void AcquireCUDADevice( void ) {
 
   // Get the environment variable
   devString = getenv( "FREESURFER_CUDA_DEVICE" );
-  if( devString == NULL ) {
+  if( devString == NULL )
+  {
     cout << "Using default device" << endl;
-  } else {
+  }
+  else
+  {
     iDevice = atoi( devString );
     cout << "Device " << iDevice << " requested" << endl;
-    if( cudaSuccess != cudaSetDevice( iDevice ) ) {
+    if( cudaSuccess != cudaSetDevice( iDevice ) )
+    {
       cerr << "ERROR: Unable to set CUDA device " << iDevice << endl;
       exit( EXIT_FAILURE );
     }
@@ -67,7 +73,8 @@ void AcquireCUDADevice( void ) {
 
   // Acquire the device
   int *d_tmp;
-  if( cudaSuccess != cudaMalloc( (void**)&d_tmp, sizeof(int) ) ) {
+  if( cudaSuccess != cudaMalloc( (void**)&d_tmp, sizeof(int) ) )
+  {
     cerr << "ERROR: Unable to acquire a CUDA device!" << endl;
     exit( EXIT_FAILURE );
   }
@@ -77,18 +84,19 @@ void AcquireCUDADevice( void ) {
   CUDA_SAFE_CALL( cudaGetDevice( &iDevice ) );
 
   cudaDeviceProp devProp;
-  
+
   CUDA_SAFE_CALL( cudaGetDeviceProperties( &devProp, iDevice ) );
   cout << "CUDA device: " << devProp.name << endl;
 
 #ifdef GCAMORPH_ON_GPU
-  if( devProp.major < 2 ) {
+  if( devProp.major < 2 )
+  {
     cerr << "Must have compute capability 2 for GCAMORPH_ON_GPU"
          << endl;
     exit( EXIT_FAILURE );
   }
 #endif
-  
+
 }
 
 
@@ -98,7 +106,8 @@ void AcquireCUDADevice( void ) {
 // ==============================================
 
 
-void PrintGPUtimers( void ) {
+void PrintGPUtimers( void )
+{
 
   GPU::Algorithms::MRIconvolve::ShowTimings();
   GPU::Algorithms::MRImean::ShowTimings();
