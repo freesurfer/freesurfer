@@ -9,8 +9,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2012/12/12 21:18:24 $
- *    $Revision: 1.32 $
+ *    $Date: 2012/12/15 21:47:47 $
+ *    $Revision: 1.33 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -910,7 +910,7 @@ void MRIconvolve::ReleaseKernel( void )
 {
   if( this->d_kernel != NULL )
   {
-    CUDA_SAFE_CALL( cudaFree( this->d_kernel ) );
+    cudaFree( this->d_kernel );
     this->kernelAllocSize = 0;
   }
 }
