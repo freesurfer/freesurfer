@@ -34,8 +34,8 @@ mriMarkLabelBorderVoxelTest_LDADD = $(addprefix $(top_builddir)/, $(LIBS_MGH)) $
 mriMarkLabelBorderVoxelTest_LDFLAGS = $(OS_LDFLAGS)
 
 mriMarkLabelBorderVoxelTest_cuda_SOURCES = mriMarkLabelBorderVoxelTest.cpp
-mriMarkLabelBorderVoxelTest_cuda_CFLAGS = $(CUDA_CFLAGS) $(AM_CFLAGS) -DFS_CUDA
-mriMarkLabelBorderVoxelTest_cuda_CXXFLAGS = $(CUDA_CXXFLAGS) $(AM_CFLAGS) -DFS_CUDA
+mriMarkLabelBorderVoxelTest_cuda_CFLAGS = $(CUDA_CFLAGS) $(AM_CFLAGS) $(BOOST_CFLAGS) -DFS_CUDA
+mriMarkLabelBorderVoxelTest_cuda_CXXFLAGS = $(CUDA_CXXFLAGS) $(AM_CFLAGS) $(BOOST_CFLAGS) -DFS_CUDA
 mriMarkLabelBorderVoxelTest_cuda_LDADD = $(addprefix $(top_builddir)/, $(LIBS_CUDA_MGH)) $(CUDA_LIBS) $(BOOST_PO_LIB)
 mriMarkLabelBorderVoxelTest_cuda_LDFLAGS = $(OS_LDFLAGS)
 mriMarkLabelBorderVoxelTest_cuda_LINK = $(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) \
@@ -50,8 +50,8 @@ mriVoxInLabelPartialVolumeTest_LDADD = $(addprefix $(top_builddir)/, $(LIBS_MGH)
 mriVoxInLabelPartialVolumeTest_LDFLAGS = $(OS_LDFLAGS)
 
 mriVoxInLabelPartialVolumeTest_cuda_SOURCES = mriVoxInLabelPartialVolumeTest.cpp
-mriVoxInLabelPartialVolumeTest_cuda_CFLAGS = $(CUDA_CFLAGS) $(AM_CFLAGS) -DFS_CUDA
-mriVoxInLabelPartialVolumeTest_cuda_CXXFLAGS = $(CUDA_CXXFLAGS) $(AM_CFLAGS) -DFS_CUDA
+mriVoxInLabelPartialVolumeTest_cuda_CFLAGS = $(CUDA_CFLAGS) $(AM_CFLAGS) $(BOOST_CFLAGS) -DFS_CUDA
+mriVoxInLabelPartialVolumeTest_cuda_CXXFLAGS = $(CUDA_CXXFLAGS) $(AM_CFLAGS) $(BOOST_CFLAGS) -DFS_CUDA
 mriVoxInLabelPartialVolumeTest_cuda_LDADD = $(addprefix $(top_builddir)/, $(LIBS_CUDA_MGH)) $(CUDA_LIBS) $(BOOST_PO_LIB)
 mriVoxInLabelPartialVolumeTest_cuda_LDFLAGS = $(OS_LDFLAGS)
 mriVoxInLabelPartialVolumeTest_cuda_LINK = $(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) \
