@@ -2,7 +2,7 @@ SUBDIRS = gcatest \
           volumecopy \
           mrilabeltest
 
-AM_CFLAGS=-I$(top_srcdir)/include
+AM_CFLAGS=-I$(top_srcdir)/include $(BOOST_CFLAGS)
 
 AM_CXXFLAGS=-I$(top_srcdir)/include $(BOOST_CFLAGS) -Wall -Wextra
 
