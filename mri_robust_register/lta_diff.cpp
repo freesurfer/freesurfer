@@ -8,8 +8,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2012/12/04 16:20:49 $
- *    $Revision: 1.25 $
+ *    $Date: 2012/12/19 01:50:52 $
+ *    $Revision: 1.26 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -58,7 +58,7 @@ extern "C"
 
 using namespace std;
 
-//static char vcid[] = "$Id: lta_diff.cpp,v 1.25 2012/12/04 16:20:49 mreuter Exp $";
+//static char vcid[] = "$Id: lta_diff.cpp,v 1.26 2012/12/19 01:50:52 mreuter Exp $";
 char *Progname = NULL;
 void writeVox2Vox(LTA * lta)
 {
@@ -202,7 +202,7 @@ void decompose(MATRIX * M1, MATRIX* M2)
     m = m * m2;
   }
 
-  cout << " Decompose RAS2RAS into Rot * Shear * Scale + Trans: " << endl
+  cout << " Decompose M1*M2 into Rot * Shear * Scale + Trans: " << endl
       << endl;
       
   vnl_matrix<double> Rot, Shear;
@@ -504,7 +504,9 @@ int main(int argc, char *argv[])
     cout
         << "       6            Interpolation Smoothing (only for first transform)"
         << endl;
-    cout << "       7            Decomposition M1*M2 = Rot*Shear*Scaling"
+    cout << "       7            Decomposition RAS M1*M2 = Rot*Shear*Scaling"
+        << endl;
+    cout << "       8            Decomposition VOX M1*M2 = Rot*Shear*Scaling"
         << endl;
     cout << "                       pass 'identity.nofile' for second lta "
         << endl;
@@ -625,16 +627,18 @@ int main(int argc, char *argv[])
 
   double dist = -1;
   //Registration R;
-
+  LTAchangeType(lta1,LINEAR_VOX_TO_VOX);
+  MATRIX* VOX1 = MatrixCopy(lta1->xforms[0].m_L,NULL);
   LTAchangeType(lta1, LINEAR_RAS_TO_RAS);
-//  LTAchangeType(lta1,LINEAR_VOX_TO_VOX);
-  MATRIX* RAS1 = lta1->xforms[0].m_L;
+  MATRIX* RAS1 = MatrixCopy(lta1->xforms[0].m_L,NULL);
   MATRIX* RAS2 = NULL;
+  MATRIX* VOX2 = NULL;
   if (lta2f != "identity.nofile")
   {
+    LTAchangeType(lta2,LINEAR_VOX_TO_VOX);
+    VOX2 = MatrixCopy(lta2->xforms[0].m_L,NULL);
     LTAchangeType(lta2, LINEAR_RAS_TO_RAS);
-//    LTAchangeType(lta2,LINEAR_VOX_TO_VOX);
-    RAS2 = lta2->xforms[0].m_L;
+    RAS2 = MatrixCopy(lta2->xforms[0].m_L,NULL);
   }
 
   switch (disttype)
@@ -664,10 +668,20 @@ int main(int argc, char *argv[])
     decompose(RAS1, RAS2);
     exit(0);
     break;
+  case 8:
+    decompose(VOX1, VOX2);
+    exit(0);
+    break;
   default:
     cerr << "ERROR: dist-type " << disttype << " unknown!" << endl;
     exit(1);
     break;
   }
-  cout << dist << endl;
+  if (disttype < 7)
+    cout << dist << endl;
+    
+  MatrixFree(&VOX1);
+  MatrixFree(&RAS1);
+  if (VOX2) MatrixFree(&VOX2);
+  if (RAS2) MatrixFree(&RAS2);
 }
