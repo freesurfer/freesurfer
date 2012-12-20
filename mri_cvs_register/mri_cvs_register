@@ -20,7 +20,7 @@
 #                      and not into current
 
 set inputargs = ($argv);
-set VERSION = '$Id: mri_cvs_register,v 1.42 2012/12/20 19:11:59 lzollei Exp $';
+set VERSION = '$Id: mri_cvs_register,v 1.43 2012/12/20 19:32:17 lzollei Exp $';
 
 set movingid = ();
 set templateid = ();
@@ -313,20 +313,16 @@ set tlabel = $TEMPLATE_DIR/$templateid/label/
 set out_root = el_reg
 set elasticmorph = ${out_root}_to$templateid.tm3d
 
-echo LILLA $DoAllSteps $OnlyStep2
 if ($DoAllSteps || $OnlyStep2) then 
 
 echo "Ready for elastic registration (CVS: Step 2)" >> $sLF
 set Step2StartTime = `date +%s`;
 
 ## Run the elastic registration
-# pushd $cvsdir
-echo LILLA2 $outdir/$elasticmorph $CleanElReg
 if (!(-e $outdir/$elasticmorph) || $CleanElReg) then
  set elasticoptions = (-lin_res 20 -ksp_rtol 1.0e-9 -penalty_weight 1000 -fem_steps 17 -elt_vol_range 5.0,10.0 \
                        -topology_old -compress -pc_type jacobi -ksp_type preonly \
                        -ksp_view -ksp_converged_reason -poisson .3 -young 1000)
- #                       -log_summary # taken out to shorten the log file -- otherwise writes all petsc summary -- 12172012
  if ($BothHemis) then
   set cmd = (surf2vol -fixed_mri $tmri/$voltype.mgz -moving_mri $mmri/$voltype.mgz  \
                       -fixed_surf $tsurf/lh.white     -moving_surf $outdir/lh.resample.white \
@@ -338,7 +334,6 @@ if (!(-e $outdir/$elasticmorph) || $CleanElReg) then
                       $elasticoptions -cache_transform $outdir/transform.txt \
                       -out $outdir/${elasticmorph:r}.mgz -out_surf $outdir/surf-mfc_to$templateid \
                       -out_mesh $outdir/${elasticmorph:r} )
-#                      -dbg_output $outdir/${elasticmorph:r}.debug ) 
   echo $cmd >> $LF
   echo $cmd >> $sLF
   $cmd |& tee -a $LF
@@ -357,7 +352,6 @@ if (!(-e $outdir/$elasticmorph) || $CleanElReg) then
   if($status) exit 1;
  endif
 endif
-# popd
 
 set Step2EndTime = `date +%s`;
 
