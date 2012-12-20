@@ -49,6 +49,9 @@ example* , bugs* , reporting* , references* , see-also*)*>
       <argument>--templatedir directory</argument>
       <explanation>This option needs to be used if the template subject's SUBJECTS_DIR directory is different from that of the moving subject. All the relevant FS recon files should be located here. By default, without using this option, this parameter is set to be SUBJECTS_DIR. If the --template argument is not specified, so the registration is to the CVS template, this parameter is implicitely set. </explanation>
 
+      <argument>--mni</argument>
+      <explanation>Use the CVS atlas in MNI152 space as a target for registration (as opposed to the default CVS template).</explanation>
+
       <argument>--outdir directory</argument>
       <explanation>Name of the output directory where all the registration results are written. The default is SUBJECTS_DIR/mov/cvs. The final output directory is going to be ~.6G, but make sure that there is around double that amount of space available for the computations.</explanation>
 
@@ -62,12 +65,13 @@ example* , bugs* , reporting* , references* , see-also*)*>
       <explanation>Only do step 2 (elastic registration).</explanation>
       <argument>--step3</argument>
       <explanation>Only do step 3 (volumetric registration).</explanation>
-      <argument>--mni</argument>
-      <explanation>Use the CVS atlas in MNI152 space as a target for registration.</explanation>
       <argument>--noaseg</argument>
       <explanation>Do not use aseg volumes in the volumetric registration pipeline (default is 0). Setting this option could shorten significantly the time of registration, however, might also take away from the accuracy of the final results.</explanation>
       <argument>--nointensity</argument>
       <explanation>Do not use the intensity volumes in the volumetric registration pipeline (default is 0). Setting this option could shorten significantly the time of registration. It also indicates that the intensity values are not to be trusted during the registration.</explanation>
+      <argument>--hemi</argument>
+      <explanation>Run the CVS registration only one of the hemispheres. For example, in case of single hemisphere ex-vivo cases.</explanation>
+
 
       <intro>Cleanup Arguments</intro>
       <argument>--nocleanup</argument>
@@ -88,6 +92,8 @@ example* , bugs* , reporting* , references* , see-also*)*>
       <intro>Others</intro>
       <argument>--m3d</argument>
       <explanation>Use m3d instead of m3z in order to represent the registration morphs (and to avoid potential gzip errors).</explanation>
+      <argument>--openmp N</argument>
+      <exlanation>Assign the number of nodes for openmp runs to be N. The default is = 1. Note, with N = 8, you can get a threefold speedup. </explanation>
       <argument>--nolog</argument>
       <explanation>Do not produce a log file (default is 0).</explanation>
       <argument>--version</argument>
@@ -183,7 +189,18 @@ example* , bugs* , reporting* , references* , see-also*)*>
 
   <example>Register Subj1 to Subj2 where the two subjects have different SUBJECTS_DIR's: mri_cvs_register --mov Subj1ID --template Subj2ID --templatedir OTHER_SUBJECTS_DIR</example>
 
-  <example>If running mri_cvs_register on lanchpad, use "-l nodes=1:ppn=4,vmem=28gb"</example>
+  <example>If running mri_cvs_register on lanchpad, use "-l nodes=1:ppn=5,vmem=35gb"</example>
+
+  <example>Some timing estimates from launchpad with the above node settings: 
+  <argument>cvs_avg35 (default) template; launchpad: t = 33.955hrs </argument>
+  <argument>--openmp = 8; cvs_avg35 (default) template; launchpad: t = 11.28hrs </argument>
+  <argument>cvs_avg35_inMNI152 template; launchpad: t = 21.69hrs </argument>
+  <argument>--openmp = 8; cvs_avg35_inMNI152template; launchpad: t = 7.66hrs </argument>
+  <argument>subject template; launchpad: t = 45.48hrs </argument>
+  <argument>--openmp = 8; subject template; launchpad: t = 15.07hrs </argument>
+
+</example>
+
 
   <bugs>None</bugs>
 

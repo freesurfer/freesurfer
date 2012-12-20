@@ -15,9 +15,12 @@
 # also resampling norm / aseg files after nl_align so that only one resampling is done
 # Edited : 08-24-2011: added new logfile that should be easier to read for the user
 # Edited : 06-03-2012: added new flags --asegfname and --nointensity
+# Edited : 12-20-2012: young modulus changed to 1000 for atlases as well; no petsc log written now; 
+#                      more timing and launchpad help; openmp option; logfiles written to the outputdir 
+#                      and not into current
 
 set inputargs = ($argv);
-set VERSION = '$Id: mri_cvs_register,v 1.41 2012/09/07 17:55:47 lzollei Exp $';
+set VERSION = '$Id: mri_cvs_register,v 1.42 2012/12/20 19:11:59 lzollei Exp $';
 
 set movingid = ();
 set templateid = ();
@@ -38,6 +41,7 @@ set BothHemis = 1
 set CleanSurfReg = 0
 set CleanElReg = 0
 set CleanVolReg = 0
+set openmpN = 1
 
 set FStemplate = cvs_avg35
 set usingFStemplate = 0
@@ -71,6 +75,10 @@ if (($UseAseg == 0) && ($UseInt == 0)) then
   set DoAllSteps = 0;
 endif
 
+### 
+setenv OMP_NUM_THREADS $openmpN
+###
+
 set StartTime = `date`;
 set DateString = "`date '+%y%m%d%H%M'`"
 
@@ -85,7 +93,6 @@ mkdir -p $outdir
 # Setting up the default params and logging utilities 
 if(! $nolog) then
   set currdir = `pwd`
-  #set LF = $currdir/${movingid}_to_${templateid}.mri_cvs_register.$DateString.log
   set LF  = $outdir/${movingid}_to_${templateid}.mri_cvs_register.$DateString.log
   set sLF = $outdir/summary.${movingid}_to_${templateid}.mri_cvs_register.$DateString.log
   if(-e $LF) mv $LF $LF.old;
@@ -115,9 +122,6 @@ echo $tmpMsg >> $sLF
 echo "asegfname $asegfname" | tee -a $sLF | tee -a $LF
 
 ############--------------##################
-
-# setenv LD_LIBRARY_PATH $ITK_DIR
-# setenv PATH {$PATH}:/usr/pubsw/packages/petsc/current/bin
 
 echo "Initializing the mri_cvs_register run" >> $sLF
 
@@ -309,6 +313,7 @@ set tlabel = $TEMPLATE_DIR/$templateid/label/
 set out_root = el_reg
 set elasticmorph = ${out_root}_to$templateid.tm3d
 
+echo LILLA $DoAllSteps $OnlyStep2
 if ($DoAllSteps || $OnlyStep2) then 
 
 echo "Ready for elastic registration (CVS: Step 2)" >> $sLF
@@ -316,15 +321,12 @@ set Step2StartTime = `date +%s`;
 
 ## Run the elastic registration
 # pushd $cvsdir
+echo LILLA2 $outdir/$elasticmorph $CleanElReg
 if (!(-e $outdir/$elasticmorph) || $CleanElReg) then
  set elasticoptions = (-lin_res 20 -ksp_rtol 1.0e-9 -penalty_weight 1000 -fem_steps 17 -elt_vol_range 5.0,10.0 \
-                       -log_summary -topology_old -compress -pc_type jacobi -ksp_type preonly \
-                       -ksp_view -ksp_converged_reason -poisson .3)
- if (!($usingFStemplate) && !($usingCVSMNItemplate)) then 
-   set elasticoptions = ($elasticoptions -young 1000) # otherwise default is 10
- endif
-
- 
+                       -topology_old -compress -pc_type jacobi -ksp_type preonly \
+                       -ksp_view -ksp_converged_reason -poisson .3 -young 1000)
+ #                       -log_summary # taken out to shorten the log file -- otherwise writes all petsc summary -- 12172012
  if ($BothHemis) then
   set cmd = (surf2vol -fixed_mri $tmri/$voltype.mgz -moving_mri $mmri/$voltype.mgz  \
                       -fixed_surf $tsurf/lh.white     -moving_surf $outdir/lh.resample.white \
@@ -336,7 +338,7 @@ if (!(-e $outdir/$elasticmorph) || $CleanElReg) then
                       $elasticoptions -cache_transform $outdir/transform.txt \
                       -out $outdir/${elasticmorph:r}.mgz -out_surf $outdir/surf-mfc_to$templateid \
                       -out_mesh $outdir/${elasticmorph:r} )
-#                      -dbg_output $outdir/${elasticmorph:r}.debug )
+#                      -dbg_output $outdir/${elasticmorph:r}.debug ) 
   echo $cmd >> $LF
   echo $cmd >> $sLF
   $cmd |& tee -a $LF
@@ -472,7 +474,6 @@ if ($UseAseg) then
     if($status) exit 1;
   endif
   set oldcombined = $combined
-  # set input = ${combined:r}_${voltype}.mgz # input from aseg registration
   set input = $outputfilename # input from aseg registration
   set basemorph = ${combined}
 endif # (aseg registration)
@@ -566,6 +567,7 @@ endif
 #  $cmd |& tee -a $LF
 #  if($status) exit 1; 
 #endif
+
 set oldfinaloutputfilename = $finaloutputfilename
 set voltype = $asegfname
 set finaloutputfilename = final_CVSmorphed_to${templateid}_${voltype}.mgz
@@ -774,6 +776,11 @@ while( $#argv != 0 )
       if ( $#argv < 1) goto arg1err;
       set hemiReq = $argv[1]; shift;
       set BothHemis = 0;
+    breaksw
+
+    case "--openmp":
+      if ( $#argv < 1) goto arg1err;
+      set openmpN = $argv[1]; shift;
     breaksw
 
     case "--no-log":
