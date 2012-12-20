@@ -93,7 +93,7 @@ example* , bugs* , reporting* , references* , see-also*)*>
       <argument>--m3d</argument>
       <explanation>Use m3d instead of m3z in order to represent the registration morphs (and to avoid potential gzip errors).</explanation>
       <argument>--openmp N</argument>
-      <exlanation>Assign the number of nodes for openmp runs to be N. The default is = 1. Note, with N = 8, you can get a threefold speedup. </explanation>
+      <explanation>Assign the number of nodes for openmp runs to be N. The default is = 1. Note, with N = 8, you can get a threefold speedup.</explanation>
       <argument>--nolog</argument>
       <explanation>Do not produce a log file (default is 0).</explanation>
       <argument>--version</argument>
