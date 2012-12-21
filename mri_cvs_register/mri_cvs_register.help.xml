@@ -183,6 +183,7 @@ example* , bugs* , reporting* , references* , see-also*)*>
   </outputs>
 
   <example>Register Subj1 to average CVS space: mri_cvs_register --mov Subj1ID</example>
+  
   <example>Register Subj1 to average CVS space with outputs written into "myFav" directory: mri_cvs_register --mov Subj1ID --outdir myFav/Subj1ID/cvs</example>
 
   <example>Register Subj1 to Subj2: mri_cvs_register --mov Subj1ID --template Subj2ID</example>
@@ -192,14 +193,13 @@ example* , bugs* , reporting* , references* , see-also*)*>
   <example>If running mri_cvs_register on lanchpad, use "-l nodes=1:ppn=5,vmem=35gb"</example>
 
   <example>Some timing estimates from launchpad with the above node settings: 
-  <argument>cvs_avg35 (default) template; launchpad: t = 33.955hrs </argument>
-  <argument>--openmp = 8; cvs_avg35 (default) template; launchpad: t = 11.28hrs </argument>
-  <argument>cvs_avg35_inMNI152 template; launchpad: t = 21.69hrs </argument>
-  <argument>--openmp = 8; cvs_avg35_inMNI152template; launchpad: t = 7.66hrs </argument>
-  <argument>subject template; launchpad: t = 45.48hrs </argument>
-  <argument>--openmp = 8; subject template; launchpad: t = 15.07hrs </argument>
-
-</example>
+  cvs_avg35 (default) template; launchpad: t = 33.955hrs
+  --openmp = 8; cvs_avg35 (default) template; launchpad: t = 11.28hrs
+  cvs_avg35_inMNI152 template; launchpad: t = 21.69hrs
+  --openmp = 8; cvs_avg35_inMNI152template; launchpad: t = 7.66hrs
+  subject template; launchpad: t = 45.48hrs
+  --openmp = 8; subject template; launchpad: t = 15.07hrs
+  </example>
 
 
   <bugs>None</bugs>
