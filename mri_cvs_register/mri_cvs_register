@@ -18,9 +18,25 @@
 # Edited : 12-20-2012: young modulus changed to 1000 for atlases as well; no petsc log written now; 
 #                      more timing and launchpad help; openmp option; logfiles written to the outputdir 
 #                      and not into current
+#
+# CVS Revision Info:
+#    $Author: nicks $
+#    $Date: 2012/12/22 20:09:00 $
+#    $Revision: 1.44 $
+#
+# Copyright © 2010-2012 The General Hospital Corporation (Boston, MA) "MGH"
+#
+# Terms and conditions for use, reproduction, distribution and contribution
+# are found in the 'FreeSurfer Software License Agreement' contained
+# in the file 'LICENSE' found in the FreeSurfer distribution, and here:
+#
+# https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
+#
+# Reporting: freesurfer@nmr.mgh.harvard.edu
+#
 
 set inputargs = ($argv);
-set VERSION = '$Id: mri_cvs_register,v 1.43 2012/12/20 19:32:17 lzollei Exp $';
+set VERSION = '$Id: mri_cvs_register,v 1.44 2012/12/22 20:09:00 nicks Exp $';
 
 set movingid = ();
 set templateid = ();
