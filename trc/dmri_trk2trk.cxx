@@ -8,8 +8,8 @@
  * Original Author: Anastasia Yendiki
  * CVS Revision Info:
  *    $Author: ayendiki $
- *    $Date: 2011/09/22 18:41:18 $
- *    $Revision: 1.11 $
+ *    $Date: 2012/12/28 18:52:55 $
+ *    $Revision: 1.12 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -357,7 +357,7 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcmp(option, "--in")) {
       if (nargc < 1) CMDargNErr(option,1);
       nargsused = 0;
-      while (strncmp(pargv[nargsused], "--", 2)) {
+      while (nargsused < nargc && strncmp(pargv[nargsused], "--", 2)) {
         inFile[nin] = pargv[nargsused];
         nargsused++;
         nin++;
@@ -371,7 +371,7 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcmp(option, "--out")) {
       if (nargc < 1) CMDargNErr(option,1);
       nargsused = 0;
-      while (strncmp(pargv[nargsused], "--", 2)) {
+      while (nargsused < nargc && strncmp(pargv[nargsused], "--", 2)) {
         outFile[nout] = pargv[nargsused];
         nargsused++;
         nout++;
@@ -380,7 +380,7 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcmp(option, "--outvol")) {
       if (nargc < 1) CMDargNErr(option,1);
       nargsused = 0;
-      while (strncmp(pargv[nargsused], "--", 2)) {
+      while (nargsused < nargc && strncmp(pargv[nargsused], "--", 2)) {
         outVolFile[nvol] = pargv[nargsused];
         nargsused++;
         nvol++;

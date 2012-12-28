@@ -8,8 +8,8 @@
  * Original Author: Anastasia Yendiki
  * CVS Revision Info:
  *    $Author: ayendiki $
- *    $Date: 2011/05/18 20:00:12 $
- *    $Revision: 1.5 $
+ *    $Date: 2012/12/28 18:52:55 $
+ *    $Revision: 1.6 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -208,7 +208,7 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcmp(option, "--in")) {
       if (nargc < 1) CMDargNErr(option,1);
       nargsused = 0;
-      while (strncmp(pargv[nargsused], "--", 2)) {
+      while (nargsused < nargc && strncmp(pargv[nargsused], "--", 2)) {
         inFile[nframe] = pargv[nargsused];
         nargsused++;
         nframe++;
