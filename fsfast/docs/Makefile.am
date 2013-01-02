@@ -5,6 +5,11 @@
 # Note: the pdf files should be committed to CVS, so as not to require a
 # latex installation on all build systems.
 
+# NJS: notice the .pdf files are not removed during clean or distclean.
+# this is done so as not to play havoc with cvs updates since the pdf
+# files are committed.  so this means that if the tex files change, 
+# someone must manually delete the pdfs then run make.   
+
 if HAVE_LATEX
 foodir=$(prefix)/fsfast/docs
 # cannot specify *, since Makefile etc will be copied
@@ -53,7 +58,7 @@ clean-local:
 	rm -f *.aux *.log *.ps
 
 distclean-local:
-	rm -f *.pdf Makefile
+	rm -f Makefile
 
 # endif HAVE_LATEX
 endif
