@@ -5,7 +5,13 @@
 bin_PROGRAMS=cudadetect
 
 cudadetect_SOURCES=cudadetect.cpp
+# cudadetect_LDFLAGS=-rdynamic -ldl
+
+if HAVE_MAC_OSX
+cudadetect_LDFLAGS=-rdynamic -ldl -F/Library/Frameworks -framework CUDA
+else
 cudadetect_LDFLAGS=-rdynamic -ldl
+endif
 
 # BUILDCUDA is defined if configure.in finds CUDA
 if BUILDCUDA
