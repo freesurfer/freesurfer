@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2012/07/07 12:17:22 $
- *    $Revision: 1.157 $
+ *    $Author: lzollei $
+ *    $Date: 2013/01/05 20:42:41 $
+ *    $Revision: 1.158 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -2102,7 +2102,7 @@ TransformRead(const char *fname)
   if (0 == strcmp(fname_no_path, "identity.nofile"))
   {
     trans->type = LINEAR_VOX_TO_VOX;
-    trans->type = LINEAR_RAS_TO_RAS;
+    //trans->type = LINEAR_RAS_TO_RAS;
     LTA* lta = LTAalloc(1, NULL);
     lta->xforms[0].m_L = MatrixIdentity(4, NULL);
     lta->xforms[0].type = trans->type;
@@ -2196,6 +2196,7 @@ TransformSample(TRANSFORM *transform,
   if (transform->type == MORPH_3D_TYPE)
   {
     gcam = (GCA_MORPH *)transform->xform ;
+    //printf("gcam spacing, xind size: %d, (%d, %d, %d) \n ", gcam->spacing, gcam->mri_xind->width, gcam->mri_xind->height, gcam->mri_xind->depth);
 
     if (!gcam->mri_xind)
       ErrorReturn(ERROR_UNSUPPORTED,
@@ -2369,6 +2370,106 @@ TransformSampleReal(TRANSFORM *transform,
 
   return errCode ;
 }
+
+// with interpolation
+int
+TransformSampleReal2(TRANSFORM *transform,
+                    float xv, float yv, float zv,
+                    float *px, float *py, float *pz)
+{
+  static VECTOR   *v_input, *v_canon = NULL ;
+  // float           xt, yt, zt ;
+  double           xt, yt, zt ;
+  LTA             *lta ;
+  GCA_MORPH       *gcam ;
+  int errCode = NO_ERROR; //, xi, yi, zi;
+
+  *px = *py = *pz = 0 ;
+  if (transform->type == MORPH_3D_TYPE)
+  {
+    gcam = (GCA_MORPH *)transform->xform ;
+    if (!gcam->mri_xind)
+      ErrorReturn(ERROR_UNSUPPORTED,
+                  (ERROR_UNSUPPORTED,
+                   "TransformSample: gcam has not been inverted!")) ;
+
+    // the following should not happen /////////////////
+    if (xv < 0)
+      xv = 0 ;
+    if (xv >= gcam->mri_xind->width)
+      xv = gcam->mri_xind->width-1 ;
+    if (yv < 0)
+      yv = 0 ;
+    if (yv >= gcam->mri_yind->height)
+      yv = gcam->mri_yind->height-1 ;
+    if (zv < 0)
+      zv = 0 ;
+    if (zv >= gcam->mri_zind->depth)
+      zv = gcam->mri_zind->depth-1 ;
+
+    /*xi = nint(xv) ;
+    yi = nint(yv) ;
+    zi = nint(zv) ;
+
+    xt = MRIgetVoxVal(gcam->mri_xind, xi, yi, zi, 0)*gcam->spacing ;
+    yt = MRIgetVoxVal(gcam->mri_yind, xi, yi, zi, 0)*gcam->spacing ;
+    zt = MRIgetVoxVal(gcam->mri_zind, xi, yi, zi, 0)*gcam->spacing ;*/
+
+    MRIsampleVolume(gcam->mri_xind, xv, yv, zv, &xt);
+    MRIsampleVolume(gcam->mri_yind, xv, yv, zv, &yt);
+    MRIsampleVolume(gcam->mri_zind, xv, yv, zv, &zt);
+    xt *= gcam->spacing;
+    yt *= gcam->spacing;
+    zt *= gcam->spacing;
+
+  }
+  else
+  {
+    lta = (LTA *)transform->xform ;
+    if (lta->type != LINEAR_VOXEL_TO_VOXEL)
+    {
+      int i;
+      printf("Converting to LTA type LINEAR_VOXEL_TO_VOXEL...\n");
+      lta = LTAchangeType(lta, LINEAR_VOXEL_TO_VOXEL);
+      printf("After conversion:\n");
+      for (i = 0 ; i < lta->num_xforms ; i++)
+      {
+        LINEAR_TRANSFORM *lt = &lta->xforms[i] ;
+        MatrixAsciiWriteInto(stdout, lt->m_L) ;
+      }
+    }
+    if (!v_canon)
+    {
+      v_input = VectorAlloc(4, MATRIX_REAL) ;
+      v_canon = VectorAlloc(4, MATRIX_REAL) ;
+      *MATRIX_RELT(v_input, 4, 1) = 1.0 ;
+      *MATRIX_RELT(v_canon, 4, 1) = 1.0 ;
+    }
+    V3_X(v_input) = xv;
+    V3_Y(v_input) = yv;
+    V3_Z(v_input) = zv;
+    MatrixMultiply(lta->xforms[0].m_L, v_input, v_canon) ;
+    xt = V3_X(v_canon) ;
+    yt = V3_Y(v_canon) ;
+    zt = V3_Z(v_canon) ;
+
+    if (xt < 0) xt = 0;
+    if (yt < 0) yt = 0;
+    if (zt < 0) zt = 0;
+
+    if (!v_canon)
+    {
+      VectorFree(&v_input);
+      VectorFree(&v_canon);
+    }
+  }
+  *px = (float)xt ;
+  *py = (float)yt ;
+  *pz = (float)zt ;
+  
+  return errCode ;
+}
+
 /*
   take a voxel in gca/gcamorph space and find the MRI voxel to which
   it maps
@@ -3257,7 +3358,7 @@ LTAreadEx(const char *fname)
   {
     LTA* lta = LTAalloc(1, NULL);
     lta->type = LINEAR_VOX_TO_VOX;
-    lta->type = LINEAR_RAS_TO_RAS;
+    //lta->type = LINEAR_RAS_TO_RAS;
     lta->xforms[0].m_L = MatrixIdentity(4, NULL);
     lta->xforms[0].type = lta->type;
     return lta;
@@ -4229,13 +4330,15 @@ LTA *TransformRegDat2LTA(MRI *targ, MRI *mov, MATRIX *R)
   MATRIX *Ttarg, *Tmov, *invTmov;
 
   Ttarg = MRIxfmCRS2XYZtkreg(targ);
+  MatrixPrint(stdout, Ttarg);
   Tmov  = MRIxfmCRS2XYZtkreg(mov);
   invTmov = MatrixInverse(Tmov,NULL);
 
   // vox2vox = invTmov * R * Ttarg
   vox2vox = MatrixMultiply(invTmov,R,NULL);
-  MatrixMultiply(vox2vox,Ttarg,vox2vox);
-
+  MatrixMultiply(vox2vox,Ttarg,vox2vox); 
+  // MatrixMultiply(vox2vox,Tmov,vox2vox); // this is the one that works with ds atlas
+  
   lta = LTAalloc(1,NULL);
   lta->type = LINEAR_VOX_TO_VOX;
   lta->xforms[0].type = LINEAR_VOX_TO_VOX;

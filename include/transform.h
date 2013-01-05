@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2012/07/07 12:17:24 $
- *    $Revision: 1.70 $
+ *    $Author: lzollei $
+ *    $Date: 2013/01/05 20:42:57 $
+ *    $Revision: 1.71 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -236,6 +236,9 @@ int LTAvoxelXformToRASXform(const MRI *src, const MRI *dst,
 MATRIX *surfaceRASFromSurfaceRAS_(MRI *dst, MRI *src, LTA *lta);
 MRI   *MRITransformedCentered(MRI *src, MRI *orig_dst, LTA *lta) ;
 int TransformSampleReal(TRANSFORM *transform,
+                        float xv, float yv, float zv,
+                        float *px, float *py, float *pz) ;
+int TransformSampleReal2(TRANSFORM *transform,
                         float xv, float yv, float zv,
                         float *px, float *py, float *pz) ;
 

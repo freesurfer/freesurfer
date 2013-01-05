@@ -10,9 +10,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2012/11/09 18:34:29 $
- *    $Revision: 1.274 $
+ *    $Author: lzollei $
+ *    $Date: 2013/01/05 20:42:41 $
+ *    $Revision: 1.275 $
  *
  * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -4970,11 +4970,12 @@ GCAMmorphPlistFromAtlas(int N,
       {
         DiagBreak() ;
       }
-      if (GCAsourceVoxelToPriorReal(gcam->gca, NULL, transform,
-                                    x, y, z, &xr, &yr, &zr) != NO_ERROR)
-      {
+      //if (GCAsourceVoxelToPriorReal(gcam->gca, NULL, transform,
+      //                              x, y, z, &xr, &yr, &zr) != NO_ERROR)
+      if (GCAsourceFloatVoxelToPriorReal(gcam->gca, NULL, transform, 
+					 x, y, z, &xr, &yr, &zr) != NO_ERROR)
         continue ;
-      }
+      
       xr *= scale ;
       yr *= scale ;
       zr *= scale ;
@@ -13188,8 +13189,7 @@ GCAMmorphFieldFromAtlas(GCA_MORPH *gcam, MRI *mri, int which, int save_inversion
   ymin = mri_tmp->height ;
   zmin = mri_tmp->depth ;
   xmax = ymax = zmax = 0 ;
-  // LZ
-  printf("(gcam->width, gcam->height, gcam->depth) = (%d, %d, %d)\n",  gcam->width,gcam->height,gcam->depth ) ;
+
   for (x = 0 ; x < gcam->width ; x++)
   {
     for (y = 0 ; y < gcam->height ; y++)
@@ -13230,7 +13230,6 @@ GCAMmorphFieldFromAtlas(GCA_MORPH *gcam, MRI *mri, int which, int save_inversion
         yd = nint(yr) ;
         zd = nint(zr) ;
 
-        // LZ
         if (x == Gx && y == Gy && z == Gz)
         {
           printf("(xd, yd, zd) = (%d, %d, %d)\n", xd, yd, zd) ;
@@ -13258,7 +13257,7 @@ GCAMmorphFieldFromAtlas(GCA_MORPH *gcam, MRI *mri, int which, int save_inversion
       }
     }
   }
-  //LZ
+
   //if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
   MRIwrite(mri_tmp, "tmp1.mgz") ;
 
@@ -13280,10 +13279,7 @@ GCAMmorphFieldFromAtlas(GCA_MORPH *gcam, MRI *mri, int which, int save_inversion
   ymin = mri_tmp2->height ;
   zmin = mri_tmp2->depth ;
   xmax = ymax = zmax = 0 ;
-  //LZ
-  printf("BEFORE loop: (gcam->width, gcam->height, gcam->depth) = (%d, %d, %d); \n", gcam->width, gcam->height, gcam->depth) ;
-  printf("BEFORE loop: (Gx, Gy, Gz) = (%d, %d, %d); \n", Gx, Gy, Gz) ;
-  printf("BEFORE loop: (mri->width, mri->height , mri->depth) = (%d, %d, %d); \n", mri->width, mri->height , mri->depth) ;
+
   for (x = 0 ; x < gcam->width ; x++)
   {
     for (y = 0 ; y < gcam->height ; y++)
@@ -13310,8 +13306,6 @@ GCAMmorphFieldFromAtlas(GCA_MORPH *gcam, MRI *mri, int which, int save_inversion
         if (label == 0)
           //if(0)
         {
-          //LZ
-          //printf("Zero label\n");
           continue ;
         }
         V3_X(v1) = gcamn->x ;
@@ -13333,8 +13327,7 @@ GCAMmorphFieldFromAtlas(GCA_MORPH *gcam, MRI *mri, int which, int save_inversion
         xmax = MAX(xmax, xd) ;
         ymax = MAX(ymax, yd) ;
         zmax = MAX(zmax, zd) ;
-        //LZ
-        //printf("computing: (%d, %d, %d) --> (%d, %d, %d)\n", xmin, ymin, zmin, xmax, ymax, zmax) ;
+
         if (xmin < -100 || ymin < -100 || zmin < -100)
         {
           DiagBreak() ;
@@ -13347,9 +13340,7 @@ GCAMmorphFieldFromAtlas(GCA_MORPH *gcam, MRI *mri, int which, int save_inversion
       }
     }
   }
-  // LZ
-  printf("AFTER loop\n");
-  //LZA
+
   //if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
   MRIwrite(mri_tmp2, "tmp2.mgz") ;
   if (xmin < -100)
@@ -20516,9 +20507,7 @@ GCAMconcatenate(GCA_MORPH *gcam1, GCA_MORPH *gcam2, GCA_MORPH *gcam_composed)
                 ydd < gcam1->image.height &&
                 zdd < gcam1->image.depth)
             {
-              // printf("Within gcam1 and gcam2: (%d, %d, %d): (%f, %f, %f), (%f, %f, %f) \n", x, y, z, xd, yd, zd, xdd, ydd, zdd) ;
-              // LZ here
-              //printf("LABEL in concat: gcam1n->label\n");
+
               gcamn->label = gcam1n->label;
 
               gcamn->origx =  xdd;
@@ -20609,7 +20598,6 @@ GCAMfillInverse(GCA_MORPH* gcam)
         invgcamn->yn =  MRIgetVoxVal(gcam->mri_yind, x, y, z, 0) ;
         invgcamn->zn =  MRIgetVoxVal(gcam->mri_zind, x, y, z, 0) ;
 
-        // LZ: Is that right?
         invgcamn->label = gcamn->label;
       }
     }
