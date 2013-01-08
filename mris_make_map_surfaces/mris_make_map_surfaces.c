@@ -1,3 +1,27 @@
+/**
+ * @file  mris_make_map_surfaces.c
+ * @brief 
+ *
+ */
+/*
+ * Original Author: Bruce Fischl
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2013/01/08 18:20:41 $
+ *    $Revision: 1.2 $
+ *
+ * Copyright © 2013 The General Hospital Corporation (Boston, MA) "MGH"
+ *
+ * Terms and conditions for use, reproduction, distribution and contribution
+ * are found in the 'FreeSurfer Software License Agreement' contained
+ * in the file 'LICENSE' found in the FreeSurfer distribution, and here:
+ *
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
+ *
+ * Reporting: freesurfer@nmr.mgh.harvard.edu
+ *
+ */
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <math.h>
@@ -16,7 +40,7 @@
 #include "mrisurf.h"
 
 static char vcid[] =
-  "$Id: mris_make_map_surfaces.c,v 1.1 2013/01/08 15:40:45 fischl Exp $";
+  "$Id: mris_make_map_surfaces.c,v 1.2 2013/01/08 18:20:41 nicks Exp $";
 char *Progname ;
 static char sdir[STRLEN] = "" ;
 static double l_surf_repulse = 5.0 ;
@@ -51,16 +75,18 @@ main(int argc, char *argv[])
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mris_make_map_surfaces.c,v 1.1 2013/01/08 15:40:45 fischl Exp $",
+   "$Id: mris_make_map_surfaces.c,v 1.2 2013/01/08 18:20:41 nicks Exp $",
    "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mris_make_map_surfaces.c,v 1.1 2013/01/08 15:40:45 fischl Exp $",
+           "$Id: mris_make_map_surfaces.c,v 1.2 2013/01/08 18:20:41 nicks Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
+  {
     exit (0);
+  }
 
   argc -= nargs;
   Progname = argv[0] ;
@@ -94,13 +120,17 @@ main(int argc, char *argv[])
   }
 
   if (argc < 4)
+  {
     usage_exit() ;
+  }
 
   subject = argv[1] ;
   printf("deforming surfaces based on input volume %s\n", argv[2]) ;
   mri = MRIread(argv[2]) ;
   if (mri == NULL)
+  {
     ErrorExit(ERROR_NOFILE, "%s: could not load MRI volume from %s\n", Progname,argv[2]) ;
+  }
   output_suffix = argv[3] ;
 
   if (!strlen(sdir))
@@ -124,20 +154,28 @@ main(int argc, char *argv[])
     MRISsetNeighborhoodSize(mris_lh, nbrs) ;
     MRISsetNeighborhoodSize(mris_rh, nbrs) ;
   }
-  MRIScomputeMetricProperties(mris_lh) ;             MRIScomputeMetricProperties(mris_rh) ;
-  MRISstoreMetricProperties(mris_lh) ;               MRISstoreMetricProperties(mris_rh) ;
-  MRISsaveVertexPositions(mris_lh, WHITE_VERTICES) ; MRISsaveVertexPositions(mris_rh, WHITE_VERTICES) ;
+  MRIScomputeMetricProperties(mris_lh) ;
+  MRIScomputeMetricProperties(mris_rh) ;
+  MRISstoreMetricProperties(mris_lh) ;
+  MRISstoreMetricProperties(mris_rh) ;
+  MRISsaveVertexPositions(mris_lh, WHITE_VERTICES) ;
+  MRISsaveVertexPositions(mris_rh, WHITE_VERTICES) ;
   printf("reading pial coordinates from %s\n", pial_name) ;
-  MRISreadPialCoordinates(mris_lh, pial_name);       MRISreadPialCoordinates(mris_rh, pial_name);
+  MRISreadPialCoordinates(mris_lh, pial_name);
+  MRISreadPialCoordinates(mris_rh, pial_name);
   mris = MRISconcat(mris_lh, mris_rh, NULL) ;
   if (nbrs > 1)
+  {
     MRISsetNeighborhoodSize(mris, nbrs) ;
+  }
   MRISrestoreVertexPositions(mris, PIAL_VERTICES) ;
   MRISstoreMetricProperties(mris) ;
   MRISsaveVertexPositions(mris, ORIGINAL_VERTICES) ;
 
   if (mri_aseg)
+  {
     mask_volume(mri, mri_aseg, mri) ;
+  }
 
   parms.mri_aseg = mri_aseg ;
   orig_dt = parms.dt ;
@@ -146,7 +184,7 @@ main(int argc, char *argv[])
     for (averages = max_averages ; averages >= min_averages ; averages /= 2)
     {
       printf("----------- Positioning Surfaces with %d iterative averages ------------------\n", averages) ;
-      parms.n_averages = averages ; 
+      parms.n_averages = averages ;
 //    parms.dt = orig_dt * sqrt(averages) ;
       MRISpositionSurface(mris, mri, mri, &parms) ;
     }
@@ -158,7 +196,7 @@ main(int argc, char *argv[])
 
   return(0) ;
 }
-  
+
 static int
 get_option(int argc, char *argv[])
 {
@@ -184,7 +222,9 @@ get_option(int argc, char *argv[])
   {
     mri_aseg = MRIread(argv[2]) ;
     if (mri_aseg == NULL)
+    {
       ErrorExit(ERROR_NOFILE, "%s: could not load aseg from %s", Progname, argv[2]) ;
+    }
     printf("using aseg from %s to mask cerebellum and other non-cortical structures\n", argv[2]) ;
     nargs = 1 ;
   }
@@ -321,34 +361,40 @@ mask_volume(MRI *mri_src, MRI *mri_aseg, MRI *mri_dst)
   int  x, y, z, l ;
 
   if (mri_dst == NULL)
+  {
     mri_dst = MRIcopy(mri_src, NULL) ;
+  }
 
   for (x = 0 ; x < mri_src->width ; x++)
     for (y = 0 ; y < mri_src->height ; y++)
       for (z = 0 ; z < mri_src->depth ; z++)
       {
-	l = MRIgetVoxVal(mri_aseg, x, y, z, 0) ;
-	switch (l)
-	{
-	case Left_Cerebellum_Cortex:
-	case Right_Cerebellum_Cortex:
-	  if ((MRIlabelsInNbhd(mri_aseg, x, y, z, 1, Left_Cerebral_Cortex) == 0) &&
-	      (MRIlabelsInNbhd(mri_aseg, x, y, z, 1, Right_Cerebral_Cortex) == 0))
-	    MRIsetVoxVal(mri_dst, x, y, z, 0, 0) ;
-	  break ;
-	case Brain_Stem:
-	case Left_Cerebellum_White_Matter:
-	case Right_Cerebellum_White_Matter:
-	  MRIsetVoxVal(mri_dst, x, y, z, 0, 0) ;
-	  break ;
-	case Unknown:
-	  if ((MRIlabelsInNbhd(mri_aseg, x, y, z, 2, Left_Cerebral_Cortex) == 0) &&
-	      (MRIlabelsInNbhd(mri_aseg, x, y, z, 2, Right_Cerebral_Cortex) == 0))
-	    MRIsetVoxVal(mri_dst, x, y, z, 0, 0) ;
-	  break ;
-	default:
-	  break ;
-	}
+        l = MRIgetVoxVal(mri_aseg, x, y, z, 0) ;
+        switch (l)
+        {
+        case Left_Cerebellum_Cortex:
+        case Right_Cerebellum_Cortex:
+          if ((MRIlabelsInNbhd(mri_aseg, x, y, z, 1, Left_Cerebral_Cortex) == 0) &&
+              (MRIlabelsInNbhd(mri_aseg, x, y, z, 1, Right_Cerebral_Cortex) == 0))
+          {
+            MRIsetVoxVal(mri_dst, x, y, z, 0, 0) ;
+          }
+          break ;
+        case Brain_Stem:
+        case Left_Cerebellum_White_Matter:
+        case Right_Cerebellum_White_Matter:
+          MRIsetVoxVal(mri_dst, x, y, z, 0, 0) ;
+          break ;
+        case Unknown:
+          if ((MRIlabelsInNbhd(mri_aseg, x, y, z, 2, Left_Cerebral_Cortex) == 0) &&
+              (MRIlabelsInNbhd(mri_aseg, x, y, z, 2, Right_Cerebral_Cortex) == 0))
+          {
+            MRIsetVoxVal(mri_dst, x, y, z, 0, 0) ;
+          }
+          break ;
+        default:
+          break ;
+        }
       }
 
   return(mri_dst) ;
