@@ -1,14 +1,15 @@
 /**
  * @file  mris_make_map_surfaces.c
- * @brief 
+ * @brief surface deformation that maximizes likelihood of underlying MRI data
+
  *
  */
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2013/01/08 18:20:41 $
- *    $Revision: 1.2 $
+ *    $Date: 2013/01/08 22:01:16 $
+ *    $Revision: 1.3 $
  *
  * Copyright © 2013 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -40,7 +41,7 @@
 #include "mrisurf.h"
 
 static char vcid[] =
-  "$Id: mris_make_map_surfaces.c,v 1.2 2013/01/08 18:20:41 nicks Exp $";
+  "$Id: mris_make_map_surfaces.c,v 1.3 2013/01/08 22:01:16 nicks Exp $";
 char *Progname ;
 static char sdir[STRLEN] = "" ;
 static double l_surf_repulse = 5.0 ;
@@ -75,14 +76,14 @@ main(int argc, char *argv[])
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mris_make_map_surfaces.c,v 1.2 2013/01/08 18:20:41 nicks Exp $",
+   "$Id: mris_make_map_surfaces.c,v 1.3 2013/01/08 22:01:16 nicks Exp $",
    "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
-          (argc, argv,
-           "$Id: mris_make_map_surfaces.c,v 1.2 2013/01/08 18:20:41 nicks Exp $",
-           "$Name:  $");
+    (argc, argv,
+     "$Id: mris_make_map_surfaces.c,v 1.3 2013/01/08 22:01:16 nicks Exp $",
+     "$Name:  $");
   if (nargs && argc - nargs == 1)
   {
     exit (0);
@@ -129,7 +130,9 @@ main(int argc, char *argv[])
   mri = MRIread(argv[2]) ;
   if (mri == NULL)
   {
-    ErrorExit(ERROR_NOFILE, "%s: could not load MRI volume from %s\n", Progname,argv[2]) ;
+    ErrorExit(ERROR_NOFILE, 
+              "%s: could not load MRI volume from %s\n",
+              Progname,argv[2]) ;
   }
   output_suffix = argv[3] ;
 
@@ -138,7 +141,8 @@ main(int argc, char *argv[])
     cp = getenv("SUBJECTS_DIR") ;
     if (!cp)
       ErrorExit(ERROR_BADPARM,
-                "%s: SUBJECTS_DIR not defined in environment.\n", Progname) ;
+                "%s: SUBJECTS_DIR not defined in environment.\n",
+                Progname) ;
     strcpy(sdir, cp) ;
   }
 
@@ -223,9 +227,12 @@ get_option(int argc, char *argv[])
     mri_aseg = MRIread(argv[2]) ;
     if (mri_aseg == NULL)
     {
-      ErrorExit(ERROR_NOFILE, "%s: could not load aseg from %s", Progname, argv[2]) ;
+      ErrorExit(ERROR_NOFILE, 
+                "%s: could not load aseg from %s", 
+                Progname, argv[2]) ;
     }
-    printf("using aseg from %s to mask cerebellum and other non-cortical structures\n", argv[2]) ;
+    printf("using aseg from %s to mask cerebellum and "
+           "other non-cortical structures\n", argv[2]) ;
     nargs = 1 ;
   }
   else if (!stricmp(option, "DT"))
@@ -338,7 +345,8 @@ usage_exit(void)
 static void
 print_usage(void)
 {
-  outputHelpXml(mris_make_map_surfaces_help_xml,mris_make_map_surfaces_help_xml_len);
+  outputHelpXml(mris_make_map_surfaces_help_xml,
+                mris_make_map_surfaces_help_xml_len);
 }
 
 static void
