@@ -7,9 +7,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2012/12/06 18:31:56 $
- *    $Revision: 1.444 $
+ *    $Author: fischl $
+ *    $Date: 2013/01/08 19:49:54 $
+ *    $Revision: 1.445 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -1451,6 +1451,8 @@ MRI *MRInormalizeInteriorDistanceTransform(MRI *mri_src_dist,
 
 const char* MRItype2str(int type);
 int MRIfindSliceWithMostStructure(MRI *mri_aseg, int slice_direction, int label) ;
+int MRIcomputeVolumeFractions(MRI *mri_src, MATRIX *m_vox2vox, 
+			      MRI *mri_seg, MRI *mri_fractions) ;
 
 #ifdef FS_CUDA
   void MRImarkLabelBorderVoxelsGPU( const MRI* mri_src,
