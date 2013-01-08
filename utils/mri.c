@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2012/12/05 21:07:17 $
- *    $Revision: 1.519 $
+ *    $Author: fischl $
+ *    $Date: 2013/01/08 19:49:48 $
+ *    $Revision: 1.520 $
  *
  * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -23,7 +23,7 @@
  */
 
 extern const char* Progname;
-const char *MRI_C_VERSION = "$Revision: 1.519 $";
+const char *MRI_C_VERSION = "$Revision: 1.520 $";
 
 
 /*-----------------------------------------------------
@@ -3284,7 +3284,7 @@ MATRIX *surfaceRASFromVoxel_(MRI *mri)
   }
 
   vox2ras = MRIxfmCRS2XYZtkreg(mri);
-  if (Gdiag_no > 0)
+  if (Gdiag_no > 0 && DIAG_VERBOSE_ON)
   {
     printf("surfaceRASFromVoxel_() vox2ras --------------------\n");
     MatrixPrint(stdout,vox2ras);
@@ -17654,5 +17654,99 @@ MRImaskLabel(MRI *mri_src, MRI *mri_dst, MRI *mri_labeled, int label_to_mask, fl
 	if (label == label_to_mask)
 	  MRIsetVoxVal(mri_dst, x, y, z, 0, out_val) ;
       }
+  return(NO_ERROR) ;
+}
+int
+MRIcomputeVolumeFractions(MRI *mri_src, MATRIX *m_vox2vox, 
+                                 MRI *mri_seg, MRI *mri_fractions)
+{
+  int    x, y, z, xs, ys, zs, label ;
+  VECTOR *v1, *v2 ;
+  MRI    *mri_counts ;
+  float  val, count ;
+  MATRIX *m_inv ;
+
+  m_inv = MatrixInverse(m_vox2vox, NULL) ;
+  if (m_inv == NULL)
+  {
+    MatrixPrint(stdout, m_vox2vox) ;
+    ErrorExit(ERROR_BADPARM, "MRIcomputePartialVolumeFractions: non-invertible vox2vox matrix");
+  }
+  mri_counts = MRIcloneDifferentType(mri_src, MRI_INT) ;
+
+  v1 = VectorAlloc(4, MATRIX_REAL) ;
+  v2 = VectorAlloc(4, MATRIX_REAL) ;
+  VECTOR_ELT(v1, 4) = 1.0 ; VECTOR_ELT(v2, 4) = 1.0 ;
+  for (x = 0 ; x < mri_seg->width ; x++)
+  {
+    V3_X(v1) = x ;
+    for (y = 0 ; y < mri_seg->height ; y++)
+    {
+      V3_Y(v1) = y ;
+      for (z = 0 ; z < mri_seg->depth ; z++)
+      {
+        if (x == Gx && y == Gy && z == Gz)
+          DiagBreak() ;
+        V3_Z(v1) = z ;
+        MatrixMultiply(m_vox2vox, v1, v2) ;
+        xs = nint(V3_X(v2)) ; ys = nint(V3_Y(v2)) ; zs = nint(V3_Z(v2)) ;
+        if (xs == Gx && ys == Gy && zs == Gz)
+          DiagBreak() ;
+        if (xs >= 0 && ys >= 0 && zs >= 0 &&
+            xs < mri_src->width && ys < mri_src->height && zs < mri_src->depth)
+        {
+          val = MRIgetVoxVal(mri_counts, xs, ys, zs, 0) ;
+          if (val > 0)
+            DiagBreak() ;
+          MRIsetVoxVal(mri_counts, xs, ys, zs, 0, val+1) ;
+
+          label = MRIgetVoxVal(mri_seg, x, y, z, 0) ;
+          if (label >= 0 && label <= mri_fractions->nframes)
+          {
+            val = MRIgetVoxVal(mri_fractions, xs, ys, zs, label-1) ;  // labels are frame+1
+            MRIsetVoxVal(mri_fractions, xs, ys, zs, label-1, val+1) ;
+          }
+          else
+            DiagBreak() ;
+        }
+      }
+    }
+  }
+
+  for (x = 0 ; x < mri_src->width ; x++)
+    for (y = 0 ; y < mri_src->height ; y++)
+      for (z = 0 ; z < mri_src->depth ; z++)
+      {
+        count = MRIgetVoxVal(mri_counts, x, y, z, 0) ;
+        if (count >= 1)
+        {
+          for (label = 0 ; label < mri_fractions->nframes ; label++)
+          {
+            if (x == Gx && y == Gy && z == Gz)
+              DiagBreak() ;
+            val = MRIgetVoxVal(mri_fractions, x, y, z, label) ;
+            MRIsetVoxVal(mri_fractions, x, y, z, label, val/count) ;
+          }
+        }
+        else  // sample in other direction
+        {
+          V3_X(v1) = x ; V3_Y(v1) = y ; V3_Z(v1) = z ;
+          MatrixMultiply(m_inv, v1, v2) ;
+          MatrixMultiply(m_inv, v1, v2) ;
+          xs = nint(V3_X(v2)) ; ys = nint(V3_Y(v2)) ; zs = nint(V3_Z(v2)) ;
+          if (xs >= 0 && ys >= 0 && zs >= 0 &&
+              xs < mri_seg->width && ys < mri_seg->height && zs < mri_seg->depth)
+          {
+            label = MRIgetVoxVal(mri_seg, xs, ys, zs, 0) ;
+            if (label >= 0 && label < mri_fractions->nframes)
+              MRIsetVoxVal(mri_fractions, x, y, z, label-1, 1) ;
+            else
+              DiagBreak() ;
+          }
+        }
+      }
+  VectorFree(&v1) ; VectorFree(&v2) ;
+  MRIfree(&mri_counts) ; MatrixFree(&m_inv) ;
+  
   return(NO_ERROR) ;
 }
