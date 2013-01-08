@@ -8,8 +8,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2012/11/08 00:45:56 $
- *    $Revision: 1.30 $
+ *    $Date: 2013/01/08 22:28:02 $
+ *    $Revision: 1.31 $
  *
  * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -54,6 +54,7 @@
 #define PADVOX   1
 
 
+static int handle_expanded_ventricles = 0 ;
 static char *label_ignore_name = NULL ;
 static char *label_dist_name = NULL ;
 static int apply_transform = 1 ;
@@ -64,10 +65,8 @@ static int write_snapshot(MRI *mri_target, MRI *mri_source,
                           MATRIX *m_vox_xform, GCA_MORPH_PARMS *parms,
                           int fno, int conform, char *fname) ;
 
-static MRI *create_distance_transforms(MRI *mri_source, MRI *mri_target,
-                                       MRI *mri_all_dtrans, float max_dist,
-                                       GCA_MORPH *gcam) ;
 static int regrid = 0 ;
+static int nowmsa = 1 ; // remove all wmsa labels from the atlas
 
 static void  usage_exit(int ecode) ;
 static int get_option(int argc, char *argv[]) ;
@@ -92,6 +91,32 @@ static GCA_MORPH_PARMS mp ;
 
 static int renormalize = 1 ;
 static int rip = 0 ;
+static MRI *mri_target_diag = NULL ;
+
+static MRI *
+replace_wmsa(MRI *mri_src, MRI *mri_dst) 
+{
+  int   x, y, z, label, lh, rh, nreplaced ;
+
+  mri_dst = MRIcopy(mri_src, mri_dst) ;
+  for (nreplaced = x = 0 ; x < mri_dst->width; x++)
+    for (y = 0 ; y < mri_dst->height; y++)
+      for (z = 0 ; z < mri_dst->depth; z++)
+      {
+	label = MRIgetVoxVal(mri_dst, x, y, z, 0) ;
+	if (IS_WMSA(label))
+	{
+	  lh = MRIlabelsInNbhd(mri_dst,  x,  y,  z, 4, Left_Cerebral_White_Matter) ;
+	  rh = MRIlabelsInNbhd(mri_dst,  x,  y,  z, 4, Right_Cerebral_White_Matter) ;
+	  label = lh > rh ? Left_Cerebral_White_Matter : Right_Cerebral_White_Matter ;
+	  MRIsetVoxVal(mri_dst, x, y, z, 0, label) ;
+	  nreplaced++ ;
+	}
+      }
+  printf("%d WMSA labels replaced with WM\n", nreplaced) ;
+  return(mri_dst) ;
+}
+
 
 int
 main(int argc, char *argv[])
@@ -164,6 +189,7 @@ main(int argc, char *argv[])
   Progname = argv[0] ;
   ac = argc ;
   av = argv ;
+  mp.mri_diag = NULL;
   for ( ; argc > 1 && ISOPTION(*argv[1]) ; argc--, argv++)
   {
     nargs = get_option(argc, argv) ;
@@ -203,6 +229,8 @@ main(int argc, char *argv[])
     MRIfree(&mri_target); mri_target = mri_tmp ;
   }
 
+  if (mri_target_diag == NULL)
+    mri_target_diag = mri_target ;
   if (mask_fname)
   {
     MRI *mri_mask = MRIread(mask_fname) ;
@@ -382,6 +410,8 @@ main(int argc, char *argv[])
     }
     if (use_aseg)
     {
+      if (nowmsa)
+	replace_wmsa(mri_source, mri_source) ;
       if (ribbon_name)
       {
         char fname[STRLEN], path[STRLEN], *str, *hemi ;
@@ -468,8 +498,6 @@ main(int argc, char *argv[])
       }
       GCAMinitLabels(gcam, mri_target) ;
       GCAMsetVariances(gcam, 1.0) ;
-      mp.mri_dist_map =
-        create_distance_transforms(mri_source, mri_target, NULL, 40.0, gcam) ;
     }
   }
   else  /* use a previously create morph and integrate it some more */
@@ -499,8 +527,6 @@ main(int argc, char *argv[])
     {
       GCAMinitLabels(gcam, mri_target) ;
       GCAMsetVariances(gcam, 1.0) ;
-      mp.mri_dist_map =
-        create_distance_transforms(mri_source, mri_target, NULL, 40.0, gcam) ;
     }
     else
     {
@@ -516,7 +542,8 @@ main(int argc, char *argv[])
               Progname, gcam->width, gcam->height, gcam->depth,
               mri_source->width, mri_source->height, mri_source->depth) ;
 
-  mp.mri_diag = mri_source ;
+  if (mp.mri_diag == NULL)
+    mp.mri_diag = mri_source ;
   mp.diag_morph_from_atlas = 0 ;
   mp.diag_write_snapshots = 1 ;
   mp.diag_sample_type = use_aseg ? SAMPLE_NEAREST : SAMPLE_TRILINEAR ;
@@ -542,9 +569,9 @@ main(int argc, char *argv[])
     if (mp.diag_morph_from_atlas == 0)
     {
       printf("writing target volume to %s...\n", fname) ;
-      MRIwrite(mri_target, fname) ;
+      MRIwrite(mri_target_diag, fname) ;
       sprintf(fname, "%s_target", mp.base_name) ;
-      MRIwriteImageViews(mri_target, fname, IMAGE_SIZE) ;
+      MRIwriteImageViews(mri_target_diag, fname, IMAGE_SIZE) ;
     }
     else
     {
@@ -565,7 +592,7 @@ main(int argc, char *argv[])
     }
   }
 
-  if (nozero)
+  if (nozero)  // if negative will run once without them and once with them
   {
     printf("disabling zero nodes\n") ;
     GCAMignoreZero(gcam, mri_target) ;
@@ -586,7 +613,35 @@ main(int argc, char *argv[])
 	  if (abs(x-Gx) > 1 || abs(y-Gy) > 1 || abs(z-Gz) > 1)
 	    gcam->nodes[x][y][z].invalid = GCAM_POSITION_INVALID ;
   }
+  if (handle_expanded_ventricles)
+  {
+    GCA_MORPH_PARMS old_parms ;
+    int               start_t ;
+
+    memmove(&old_parms, (const void *)&mp, sizeof(old_parms)) ;
+    mp.tol = .01 ;
+    mp.l_label = 0 ;
+    mp.l_smoothness = .1 ;   // defaults to 10 when renormalizing by alignment
+    mp.uncompress = 1 ;
+    mp.ratio_thresh = .25;
+    mp.navgs = 1024*4 ;
+    mp.integration_type = GCAM_INTEGRATE_OPTIMAL ;
+    mp.noneg = 0 ;
+    printf("registering ventricular system...\n") ;
+    GCAMregisterVentricles(gcam, mri_source, &mp) ;
+    start_t = mp.start_t ;
+    memmove(&mp, (const void *)&old_parms, sizeof(old_parms)) ;
+    mp.start_t = start_t ;
+  }
   GCAMregister(gcam, mri_source, &mp) ; // atlas is target, morph target into register with it
+  if (nozero < 0)
+  {
+    mp.navgs /= 16 ;  // only do finer scales in second set of passes to align exterior edges
+    printf("enabling zero nodes\n") ;
+    GCAMremoveIgnoreZero(gcam, mri_target) ;
+    GCAMregister(gcam, mri_source, &mp) ; // atlas is target, morph target into register with it
+  }
+  
   if (apply_transform)
   {
     MRI *mri_aligned ;
@@ -632,6 +687,21 @@ get_option(int argc, char *argv[])
     Gsz = Gz = atoi(argv[4]) ;
     nargs = 3 ;
     printf("debugging voxel (%d, %d, %d)\n", Gx, Gy, Gz) ;
+  }
+  else if (!stricmp(option, "bigventricles"))
+  {
+    handle_expanded_ventricles = 1 ;
+    printf("handling expanded ventricles...\n") ;
+  }
+  else if (!stricmp(option, "nobigventricles"))
+  {
+    handle_expanded_ventricles = 0 ;
+    printf("not handling expanded ventricles...\n") ;
+  }
+  else if (!stricmp(option, "wmsa"))
+  {
+    nowmsa = atoi(argv[2]) ;
+    printf("%sabling WMSA labels\n", nowmsa ? "dis" : "en") ;
   }
   else if (!stricmp(option, "uncompress"))
   {
@@ -682,8 +752,11 @@ get_option(int argc, char *argv[])
   {
     mp.noneg = atoi(argv[2]) ;
     nargs = 1 ;
-    printf("%s allowing temporary folds during numerical minimization\n",
-           mp.noneg ? "not" : "") ;
+    if (mp.noneg >= 0)
+      printf("%s allowing temporary folds during numerical minimization\n",
+	     mp.noneg ? "not" : "") ;
+    else
+      printf("allowing folds during numerical minimization and removing them before termination\n") ;
   }
   else if (!stricmp(option, "renormalize"))
   {
@@ -722,6 +795,28 @@ get_option(int argc, char *argv[])
   {
     mp.mri_diag2 = MRIread(argv[2]) ;
     if (mp.mri_diag2 == NULL)
+    {
+      ErrorExit(ERROR_NOFILE,
+                "%s: could not read diag volume from %s", Progname, argv[2]) ;
+    }
+    nargs = 1 ;
+    printf("writing d2 diagnostics for input volume %s\n", argv[2]) ;
+  }
+  else if (!stricmp(option, "diag_target") || !stricmp(option, "target_diag"))
+  {
+    mri_target_diag = MRIread(argv[2]) ;
+    if (mri_target_diag == NULL)
+    {
+      ErrorExit(ERROR_NOFILE,
+                "%s: could not read target diag volume from %s", Progname, argv[2]) ;
+    }
+    nargs = 1 ;
+    printf("writing target image using input volume %s\n", argv[2]) ;
+  }
+  else if (!stricmp(option, "diag"))
+  {
+    mp.mri_diag = MRIread(argv[2]) ;
+    if (mp.mri_diag == NULL)
     {
       ErrorExit(ERROR_NOFILE,
                 "%s: could not read diag volume from %s", Progname, argv[2]) ;
@@ -772,6 +867,12 @@ get_option(int argc, char *argv[])
     mp.l_log_likelihood = atof(argv[2]) ;
     nargs = 1 ;
     printf("setting l_log_likelihood = %2.3f\n", mp.l_log_likelihood );
+  }
+  else if (!stricmp(option, "likelihood"))
+  {
+    mp.l_likelihood = atof(argv[2]) ;
+    nargs = 1 ;
+    printf("setting l_likelihood = %2.3f\n", mp.l_likelihood );
   }
   else if (!stricmp(option, "noregrid"))
   {
@@ -878,6 +979,12 @@ get_option(int argc, char *argv[])
     printf("masking inputs with %s\n", mask_fname) ;
     nargs = 1 ;
   }
+  else if (!stricmp(option, "debug_label"))
+  {
+    Gdiag_no = atoi(argv[2]);
+    printf("debugging label %s (%d)\n", cma_label_to_name(Gdiag_no), Gdiag_no) ;
+    nargs = 1 ;
+  }
   else if (!stricmp(option, "apply"))
   {
     apply_transform = atoi(argv[2]) ;
@@ -957,10 +1064,25 @@ get_option(int argc, char *argv[])
       printf("using l_jacobian=%2.3f\n", mp.l_jacobian) ;
       break ;
     case 'Z':
-      nozero = (atoi(argv[2]) == 0) ;
-      printf("%sdisabling zero image locations\n", nozero ? "" : "not ") ;
+    {
+      int i ;
+      i = atoi(argv[2]) ;
+	
+      if (i > 0)
+	nozero = 0 ;
+      else if (i < 0)
+	nozero = -1 ;
+      else
+	nozero = 1 ;
+		
+      if (nozero >= 0)
+	printf("%sdisabling zero image locations\n", nozero ? "" : "not ") ;
+      else
+	printf("disabling zero image locations for initial run, then enabling\n") ;
+
       nargs = 1 ;
       break ;
+    }
     case 'A':
       mp.navgs = atoi(argv[2]) ;
       nargs = 1 ;
@@ -1128,53 +1250,4 @@ write_snapshot(MRI *mri_target, MRI *mri_source, MATRIX *m_vox_xform,
   return(NO_ERROR) ;
 }
 
-
-static MRI *
-create_distance_transforms(MRI *mri_source,
-                           MRI *mri_target,
-                           MRI *mri_all_dtrans,
-                           float max_dist,
-                           GCA_MORPH *gcam)
-{
-  MRI   *mri_dtrans, *mri_atlas_dtrans ;
-  int   frame ;
-  char  fname[STRLEN] ;
-
-  mri_all_dtrans = MRIallocSequence(mri_source->width,
-                                    mri_source->height,
-                                    mri_source->depth,
-                                    MRI_FLOAT,
-                                    NDTRANS_LABELS) ;
-  MRIcopyHeader(mri_target, mri_all_dtrans) ;
-
-  for (frame = 0 ; frame < NDTRANS_LABELS ; frame++)
-  {
-    printf("creating distance transform for %s, frame %d...\n",
-           cma_label_to_name(dtrans_labels[frame]), frame) ;
-    mri_dtrans =
-      MRIdistanceTransform(mri_source, NULL, dtrans_labels[frame], max_dist,
-                           DTRANS_MODE_SIGNED, NULL) ;
-    sprintf(fname, "%s.mgz", cma_label_to_name(dtrans_labels[frame])) ;
-    if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
-    {
-      MRIwrite(mri_dtrans, fname) ;
-    }
-    MRIcopyFrame(mri_dtrans, mri_all_dtrans, 0, frame) ;
-    mri_atlas_dtrans =
-      MRIdistanceTransform(mri_target, NULL, dtrans_labels[frame], max_dist,
-                           DTRANS_MODE_SIGNED, NULL) ;
-    MRInormalizeInteriorDistanceTransform(mri_atlas_dtrans,
-                                          mri_dtrans,
-                                          mri_atlas_dtrans) ;
-    GCAMsetTargetDistancesForLabel(gcam,
-                                   mri_target,
-                                   mri_atlas_dtrans,
-                                   dtrans_labels[frame]);
-
-    MRIfree(&mri_dtrans) ;
-    MRIfree(&mri_atlas_dtrans) ;
-  }
-
-  return(mri_all_dtrans) ;
-}
 
