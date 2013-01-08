@@ -8,8 +8,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2013/01/08 15:42:11 $
- *    $Revision: 1.76 $
+ *    $Date: 2013/01/08 18:30:22 $
+ *    $Revision: 1.77 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -2581,7 +2581,8 @@ HISTO2Dplot(HISTOGRAM2D *histo, char *fname)
   fp = fopen(fname, "w") ;
   if (fp == NULL)
     return(ERROR_NOFILE);
-
+  
+  bmin2 = 0 ; bmax2 = histo->nbins2-1 ;
   for (bmin1 = 0 ; bmin1 < histo->nbins1 ; bmin1++)
     for (bmin2 = 0 ; bmin2 < histo->nbins2 ; bmin2++)
       if (histo->counts[bmin1][bmin2] > 0)
