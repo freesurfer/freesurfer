@@ -10,9 +10,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: lzollei $
- *    $Date: 2013/01/05 20:42:41 $
- *    $Revision: 1.275 $
+ *    $Author: fischl $
+ *    $Date: 2013/01/08 22:28:18 $
+ *    $Revision: 1.276 $
  *
  * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -118,6 +118,7 @@
 
 extern const char* Progname;
 
+int dtrans_label_to_frame(GCA_MORPH_PARMS *mp, int label) ;
 MRI *MRIcomposeWarps(MRI *mri_warp1, MRI *mri_warp2, MRI *mri_dst) ;
 int fix_borders(GCA_MORPH *gcam)  ;
 
@@ -169,12 +170,21 @@ int combine_labels[][2] =
 } ;
 
 #else
+int combine_labels[][2] =
+{
+  { Right_Pallidum, Left_Pallidum},
+  { Right_Putamen, Left_Putamen},
+  { Right_Amygdala, Left_Amygdala},
+  { Right_Hippocampus, Left_Hippocampus},
+  { Left_Inf_Lat_Vent, Left_Lateral_Ventricle},
+  { Right_Inf_Lat_Vent, Right_Lateral_Ventricle},
+  { Right_Caudate, Left_Caudate},
+  { Right_VentralDC, Left_VentralDC},
+} ;
 int dtrans_labels[] =
 {
   Left_Lateral_Ventricle,
-  Right_Lateral_Ventricle,
-  Left_Cerebral_White_Matter,
-  Right_Cerebral_White_Matter,
+  Right_Lateral_Ventricle
 } ;
 #endif
 
@@ -253,9 +263,11 @@ int gcamLimitGradientMagnitude(GCA_MORPH *gcam,
 int gcamMultiscaleTerm(GCA_MORPH *gcam, MRI *mri, MRI *mri_smooth,
                        double l_multiscale) ;
 int gcamDistanceTransformTerm( GCA_MORPH *gcam,
+                               MRI *mri_source,
                                MRI *mri,
                                double l_dtrans, GCA_MORPH_PARMS *mp);
 double gcamDistanceTransformEnergy( GCA_MORPH *gcam,
+				    MRI *mri_source,
                                     MRI *mri,
                                     GCA_MORPH_PARMS *mp) ;
 int gcamLikelihoodTerm(GCA_MORPH *gcam, MRI *mri, MRI *mri_smooth,
@@ -946,6 +958,10 @@ GCAMregister(GCA_MORPH *gcam, MRI *mri, GCA_MORPH_PARMS *parms)
      and it must already have been transformed to be in the same voxel space as
      the intensity image, otherwise things are too much of a mess.
   */
+  if (!DZERO(parms->l_dtrans))
+    parms->mri_dist_map =
+        GCAMcreateDistanceTransforms(mri, parms->mri, NULL, 40.0, gcam, &parms->mri_atlas_dist_map);
+
   if (!DZERO(parms->l_binary))
   {
     MRI *mri_tmp ;
@@ -1283,10 +1299,11 @@ GCAMregister(GCA_MORPH *gcam, MRI *mri, GCA_MORPH_PARMS *parms)
   parms->l_elastic = l_orig_elastic ;
   parms->navgs = navgs ;
   parms->dt = orig_dt ;
-  if (parms->mri_dist_map && !DZERO(parms->l_dtrans))
-  {
+  if (parms->mri_dist_map)
     MRIfree(&parms->mri_dist_map) ;
-  }
+  if (parms->mri_atlas_dist_map)
+    MRIfree(&parms->mri_atlas_dist_map) ;
+
   return(NO_ERROR) ;
 }
 
@@ -6708,7 +6725,7 @@ gcamComputeSSE(GCA_MORPH *gcam, MRI *mri, GCA_MORPH_PARMS *parms)
 
   if (!DZERO(parms->l_dtrans))
   {
-    dtrans_sse = gcamDistanceTransformEnergy(gcam, parms->mri_dist_map, parms) ;
+    dtrans_sse = gcamDistanceTransformEnergy(gcam, mri, parms->mri_dist_map, parms) ;
   }
   check_gcam(gcam) ;
   if (!DZERO(parms->l_label))
@@ -6850,7 +6867,7 @@ gcamComputeGradient
                  parms->mri_dist_map, parms->l_binary) ;
   gcamExpansionTerm(gcam, mri, parms->l_expansion)  ;
   gcamLikelihoodTerm(gcam, mri, mri_smooth, parms->l_likelihood, parms)  ;
-  gcamDistanceTransformTerm(gcam, parms->mri_dist_map, parms->l_dtrans, parms)  ;
+  gcamDistanceTransformTerm(gcam, mri, parms->mri_dist_map, parms->l_dtrans, parms)  ;
   gcamLogLikelihoodTerm(gcam, mri, mri_smooth, parms->l_log_likelihood)  ;
   gcamMultiscaleTerm(gcam, mri, mri_smooth, parms->l_multiscale)  ;
   gcamDistanceTerm(gcam, mri, parms->l_distance)  ;
@@ -6939,6 +6956,7 @@ gcamComputeGradient
   {
     MRI *mri ;
     char fname[STRLEN] ;
+    printf("writing gradients to ...%s_d[xyz]_%4.4d.mgz\n", parms->base_name, i) ;
     mri = GCAMwriteMRI(gcam, NULL, GCAM_X_GRAD) ;
     sprintf(fname, "%s_dx_%4.4d.mgz", parms->base_name, i) ;
     MRIwrite(mri, fname) ;
@@ -7072,8 +7090,12 @@ gcamLimitGradientMagnitude(GCA_MORPH *gcam, GCA_MORPH_PARMS *parms, MRI *mri)
       fflush(stdout);
       if (parms->l_dtrans > 0)
       {
-        load_vals(parms->mri_dist_map, gcamn->x, gcamn->y, gcamn->z, vals, gcam->ninputs) ;
-        printf("dist:target = %2.2f:%2.2f ", vals[0], gcamn->target_dist) ;
+	double dist = -10000; ;
+        int frame = dtrans_label_to_frame(parms, gcamn->label) ;
+	if (frame >= 0)
+	  MRIsampleVolumeFrameType(parms->mri_dist_map, gcamn->x, gcamn->y, gcamn->z, frame, SAMPLE_TRILINEAR,&dist) ;
+
+        printf("dist:target = %2.2f:%2.2f ", dist, gcamn->target_dist) ;
       }
       else
       {
@@ -8943,6 +8965,13 @@ GCAMwriteMRI(GCA_MORPH *gcam, MRI *mri, int which)
         case GCAM_JACOBIAN:
           d = FZERO(gcamn->orig_area) ? 1.0 : gcamn->area / gcamn->orig_area ;
           break ;
+        case GCAM_LOG_JACOBIAN:
+          d = FZERO(gcamn->orig_area) ? 1.0 : gcamn->area / gcamn->orig_area ;
+	  if (d < 0)
+	    d = -100 ;
+	  else
+	    d = log(d) ;
+          break ;
         case GCAM_AREA:
           d = gcamn->area ;
           break ;
@@ -8972,6 +9001,7 @@ GCAMwriteMRI(GCA_MORPH *gcam, MRI *mri, int which)
           break ;
         case GCAM_MEANS:
           d = gcamn->gc ? gcamn->gc->means[0] : 0;
+	  break ;
         }
         MRIFvox(mri, x, y, z) = d ;
       }
@@ -9434,7 +9464,7 @@ gcamFindOptimalTimeStep(GCA_MORPH *gcam, GCA_MORPH_PARMS *parms, MRI *mri)
   gcamApplyGradient(gcam, parms) ;
   rms = rms_out[1] = GCAMcomputeRMS(gcam, mri, parms) ;
   gcamUndoGradient(gcam) ;
-  if (rms < min_rms && (gcam->neg == 0 || parms->noneg == False))
+  if (rms < min_rms && (gcam->neg == 0 || parms->noneg <= 0))
   {
     min_rms = rms ;
     min_dt = parms->dt ;
@@ -9443,7 +9473,7 @@ gcamFindOptimalTimeStep(GCA_MORPH *gcam, GCA_MORPH_PARMS *parms, MRI *mri)
   parms->dt = dt_in[2] = dt_in[0] - dt_in[0]*.4 ;
   gcamApplyGradient(gcam, parms) ;
   rms = rms_out[2] = GCAMcomputeRMS(gcam, mri, parms) ;
-  if (rms < min_rms && (gcam->neg == 0 || parms->noneg == False))
+  if (rms < min_rms && (gcam->neg == 0 || parms->noneg <= 0))
   {
     min_rms = rms ;
     min_dt = parms->dt ;
@@ -9454,7 +9484,7 @@ gcamFindOptimalTimeStep(GCA_MORPH *gcam, GCA_MORPH_PARMS *parms, MRI *mri)
   gcamApplyGradient(gcam, parms) ;
   rms = rms_out[3] = GCAMcomputeRMS(gcam, mri, parms) ;
   gcamUndoGradient(gcam) ;
-  if (rms < min_rms && (gcam->neg == 0 || parms->noneg == False))
+  if (rms < min_rms && (gcam->neg == 0 || parms->noneg <= 0))
   {
     min_rms = rms ;
     min_dt = parms->dt ;
@@ -9465,7 +9495,7 @@ gcamFindOptimalTimeStep(GCA_MORPH *gcam, GCA_MORPH_PARMS *parms, MRI *mri)
   gcamApplyGradient(gcam, parms) ;
   rms = rms_out[4] = GCAMcomputeRMS(gcam, mri, parms) ;
   gcamUndoGradient(gcam) ;
-  if (rms < min_rms && (gcam->neg == 0 || parms->noneg == False))
+  if (rms < min_rms && (gcam->neg == 0 || parms->noneg <= 0))
   {
     min_rms = rms ;
     min_dt = parms->dt ;
@@ -9513,7 +9543,7 @@ gcamFindOptimalTimeStep(GCA_MORPH *gcam, GCA_MORPH_PARMS *parms, MRI *mri)
       gcamApplyGradient(gcam, parms) ;
       rms = GCAMcomputeRMS(gcam, mri, parms) ;
       gcamUndoGradient(gcam) ;
-      if (rms < min_rms && (gcam->neg == 0 || parms->noneg == False))
+      if (rms < min_rms && (gcam->neg == 0 || parms->noneg <= 0))
       {
         min_rms = rms ;
         min_dt = parms->dt ;
@@ -16418,6 +16448,38 @@ GCAMignoreZero(GCA_MORPH *gcam, MRI *mri_target)
 }
 
 
+int
+GCAMremoveIgnoreZero(GCA_MORPH *gcam, MRI *mri_target)
+{
+  int             x, y, z ;
+  double            val ;
+  GCA_MORPH_NODE  *gcamn ;
+
+  for (x = 0 ; x < gcam->width ; x++)
+  {
+    for (y = 0 ; y < gcam->height ; y++)
+    {
+      for (z = 0 ; z < gcam->depth ; z++)
+      {
+        if (x == Gx && y == Gy && z == Gz)
+          DiagBreak() ;
+
+        gcamn = &gcam->nodes[x][y][z] ;
+        MRIsampleVolume(mri_target, gcamn->x, gcamn->y, gcamn->z, &val) ;
+        if (gcamn->label > 0 && !FZERO(val))
+        {
+          continue ;
+        }
+        if ((gcamn->gc == NULL || FZERO(gcamn->gc->means[0]) || FZERO(val)))
+          gcamn->status &= ~GCAM_NEVER_USE_LIKELIHOOD;
+      }
+    }
+  }
+
+  return(NO_ERROR) ;
+}
+
+
 MATRIX *
 gcamComputeOptimalLinearTransformInRegion(GCA_MORPH *gcam, MRI *mri_mask, MATRIX *m_L, int x0, int y0, int z0, int whalf)
 {
@@ -17624,9 +17686,9 @@ dtrans_label_to_frame(GCA_MORPH_PARMS *mp, int label)
 
 
 int
-gcamDistanceTransformTerm(GCA_MORPH *gcam, MRI *mri, double l_dtrans, GCA_MORPH_PARMS *mp)
+gcamDistanceTransformTerm(GCA_MORPH *gcam, MRI *mri_source, MRI *mri, double l_dtrans, GCA_MORPH_PARMS *mp)
 {
-  int             x, y, z, frame ;
+  int             x, y, z, frame, label ;
   GCA_MORPH_NODE  *gcamn ;
   double          dist, dx, dy, dz, error ;
 
@@ -17645,49 +17707,57 @@ gcamDistanceTransformTerm(GCA_MORPH *gcam, MRI *mri, double l_dtrans, GCA_MORPH_
         gcamn = &gcam->nodes[x][y][z] ;
 
         if (gcamn->invalid == GCAM_POSITION_INVALID)
-        {
           continue;
-        }
+
         check_gcam(gcam) ;
         if (gcamn->status & (GCAM_IGNORE_LIKELIHOOD|GCAM_NEVER_USE_LIKELIHOOD))
-        {
           continue ;
-        }
 
         frame = dtrans_label_to_frame(mp, gcamn->label) ;
-        if (frame < 0)  // not one that distance transform applies to
-        {
-          continue ;
-        }
+        if (frame >= 0)  //  one that distance transform applies to
+	{
+	  MRIsampleVolumeGradientFrame(mri, gcamn->x, gcamn->y, gcamn->z, &dx, &dy, &dz, frame) ;
+	  MRIsampleVolumeFrameType(mri, gcamn->x, gcamn->y, gcamn->z, frame, SAMPLE_TRILINEAR,&dist) ;
+	  error = (dist - gcamn->target_dist) ;
+	  if (x == Gx && y == Gy && z == Gz)
+	    printf("l_dtrans: node(%d,%d,%d, %s) -> (%2.1f,%2.1f,%2.1f), dist=%2.2f, T=%2.2f, D=(%2.1f,%2.1f,%2.1f)\n",
+		   x, y, z, cma_label_to_name(gcamn->label), gcamn->x, gcamn->y, gcamn->z,
+		   dist, gcamn->target_dist, -error*dx, -error*dy, -error*dz) ;
+	  gcamn->dx -= l_dtrans*error*dx ;
+	  gcamn->dy -= l_dtrans*error*dy ;
+	  gcamn->dz -= l_dtrans*error*dz ;
+	}
 
-        MRIsampleVolumeGradientFrame(mri, gcamn->x, gcamn->y, gcamn->z, &dx, &dy, &dz, frame) ;
-        MRIsampleVolumeFrameType(mri, gcamn->x, gcamn->y, gcamn->z, frame, SAMPLE_TRILINEAR,&dist) ;
-        error = (dist - gcamn->target_dist) ;
-        if (x == Gx && y == Gy && z == Gz)
-          printf("l_dtrans: node(%d,%d,%d, %s) -> (%2.1f,%2.1f,%2.1f), dist=%2.2f, T=%2.2f, D=(%2.1f,%2.1f,%2.1f)\n",
-                 x, y, z, cma_label_to_name(gcamn->label), gcamn->x, gcamn->y, gcamn->z,
-                 dist, gcamn->target_dist, -error*dx, -error*dy, -error*dz) ;
+	label = MRIgetVoxVal(mri_source, x, y, z, 0) ;
+        frame = dtrans_label_to_frame(mp, label) ;
+        if (frame >= 0)   // add in gradients from voxels in source that are this label
+	{
+	  double target_dist ;
+	  MRIsampleVolumeGradientFrame(mp->mri_atlas_dist_map, x, y, z, &dx, &dy, &dz, frame) ;
+	  MRIsampleVolumeFrameType(mri, gcamn->x, gcamn->y, gcamn->z, frame, SAMPLE_TRILINEAR,&dist) ;
+	  MRIsampleVolumeFrameType(mp->mri_atlas_dist_map, x, y, z, frame, SAMPLE_TRILINEAR,&target_dist) ;
+	  error = (target_dist - dist) ;
+	  if (x == Gx && y == Gy && z == Gz)
+	    printf("l_dtrans: node(%d,%d,%d, %s) -> (%2.1f,%2.1f,%2.1f), dist=%2.2f, T=%2.2f, D=(%2.1f,%2.1f,%2.1f)\n",
+		   x, y, z, cma_label_to_name(label), gcamn->x, gcamn->y, gcamn->z,
+		   dist, target_dist, -error*dx, -error*dy, -error*dz) ;
 
-#if 0
-        if (fabs(error) > 1)
-        {
-          error = error / fabs(error) ;
-        }
-#endif
+	  gcamn->dx += l_dtrans*error*dx ;
+	  gcamn->dy += l_dtrans*error*dy ;
+	  gcamn->dz += l_dtrans*error*dz ;
+	}
+
         check_gcam(gcam) ;
-        gcamn->dx -= l_dtrans*error*dx ;
-        gcamn->dy -= l_dtrans*error*dy ;
-        gcamn->dz -= l_dtrans*error*dz ;
       }
   return(NO_ERROR) ;
 }
 
 
 double
-gcamDistanceTransformEnergy(GCA_MORPH *gcam, MRI *mri, GCA_MORPH_PARMS *mp)
+gcamDistanceTransformEnergy(GCA_MORPH *gcam, MRI *mri_source, MRI *mri, GCA_MORPH_PARMS *mp)
 {
   double          sse = 0.0 ;
-  int             x, y, z, frame ;
+  int             x, y, z, frame, label ;
   GCA_MORPH_NODE  *gcamn ;
   double          dist ;
 
@@ -17696,41 +17766,53 @@ gcamDistanceTransformEnergy(GCA_MORPH *gcam, MRI *mri, GCA_MORPH_PARMS *mp)
       for (z = 0 ; z < gcam->depth ; z++)
       {
         if (x == Gx && y == Gy && z == Gz)
-        {
           DiagBreak() ;
-        }
+
         gcamn = &gcam->nodes[x][y][z] ;
 
         if (gcamn->invalid == GCAM_POSITION_INVALID)
-        {
           continue;
-        }
+
         check_gcam(gcam) ;
         if (gcamn->status & (GCAM_IGNORE_LIKELIHOOD|GCAM_NEVER_USE_LIKELIHOOD))
-        {
           continue ;
-        }
+
 
         frame = dtrans_label_to_frame(mp, gcamn->label) ;
-        if (frame < 0)
-        {
-          continue ;  // no distance transform for this label
-        }
+        if (frame >= 0) // there is a distance transform for this label
+	{
+	  MRIsampleVolumeFrameType(mri, gcamn->x, gcamn->y, gcamn->z,
+				   frame, SAMPLE_TRILINEAR,&dist) ;
+	  if (x == Gx && y == Gy && z == Gz)
+	    printf("E_dtrans: node(%d,%d,%d, %s) -> (%2.1f,%2.1f,%2.1f), dist=%2.2f, target=%2.2f\n",
+		   x, y, z, cma_label_to_name(gcamn->label),
+		   gcamn->x, gcamn->y, gcamn->z, dist, gcamn->target_dist) ;
+	  
+	  check_gcam(gcam) ;
+	  dist -= (gcamn->target_dist) ;
+	  sse += (dist*dist) ;
+	  if (!finitep(sse))
+	    DiagBreak() ;
+	}
 
-        MRIsampleVolumeFrameType(mri, gcamn->x, gcamn->y, gcamn->z,
-                                 frame, SAMPLE_TRILINEAR,&dist) ;
-        if (x == Gx && y == Gy && z == Gz)
-          printf("E_dtrans: node(%d,%d,%d, %s) -> (%2.1f,%2.1f,%2.1f), dist=%2.2f, target=%2.2f\n",
-                 x, y, z, cma_label_to_name(gcamn->label),
-                 gcamn->x, gcamn->y, gcamn->z, dist, gcamn->target_dist) ;
+	label = MRIgetVoxVal(mri_source, x, y, z, 0) ;
+        frame = dtrans_label_to_frame(mp, label) ;
+        if (frame >= 0)   // add in gradients from voxels in source that are this label
+	{
+	  double target_dist ;
+	  MRIsampleVolumeFrameType(mri, gcamn->x, gcamn->y, gcamn->z, frame, SAMPLE_TRILINEAR,&dist) ;
+	  MRIsampleVolumeFrameType(mp->mri_atlas_dist_map, x, y, z, frame, SAMPLE_TRILINEAR,&target_dist) ;
 
-        check_gcam(gcam) ;
-        dist -= (gcamn->target_dist) ;
-        sse += (dist*dist) ;
-        if (!finitep(sse))
-        {
-          DiagBreak() ;
-        }
+	  if (x == Gx && y == Gy && z == Gz)
+	    printf("E_dtrans: node(%d,%d,%d, %s) -> (%2.1f,%2.1f,%2.1f), dist=%2.2f, target=%2.2f\n",
+		   x, y, z, cma_label_to_name(gcamn->label),
+		   gcamn->x, gcamn->y, gcamn->z, dist, target_dist) ;
+	  
+	  check_gcam(gcam) ;
+	  dist -= (target_dist) ;
+	  sse += (dist*dist) ;
+	}
+
       }
   return(sse) ;
 }
@@ -18528,6 +18610,73 @@ GCAMlogPosteriorDensity(GCA_MORPH *gcam, MRI *mri_inputs)
 }
 #endif
 MRI *
+GCAMcreateDistanceTransforms(MRI *mri_source,
+			     MRI *mri_target,
+			     MRI *mri_all_dtrans,
+			     float max_dist,
+			     GCA_MORPH *gcam,
+			     MRI **pmri_atlas_dist_map)
+{
+  MRI   *mri_dtrans, *mri_atlas_dtrans, *mri_atlas_dist_map ;
+  int   frame, label ;
+  char  fname[STRLEN] ;
+
+  mri_all_dtrans = MRIallocSequence(mri_source->width,
+                                    mri_source->height,
+                                    mri_source->depth,
+                                    MRI_FLOAT,
+                                    NDTRANS_LABELS) ;
+  MRIcopyHeader(mri_target, mri_all_dtrans) ; // should this be mri_source????
+
+  if (pmri_atlas_dist_map)
+    *pmri_atlas_dist_map = mri_atlas_dist_map = MRIallocSequence(mri_target->width,
+								mri_target->height,
+								mri_target->depth,
+								MRI_FLOAT,
+								NDTRANS_LABELS) ;
+  MRIcopyHeader(mri_target, mri_all_dtrans) ;
+
+#ifdef HAVE_OPENMP
+  label = 0;
+#pragma omp parallel for firstprivate(label, fname, mri_atlas_dtrans, mri_source, mri_target, mri_all_dtrans, mri_dtrans, max_dist, Gdiag_no, gcam)    schedule(static,1)
+#endif
+  for (frame = 0 ; frame < NDTRANS_LABELS ; frame++)
+  {
+    label = dtrans_labels[frame] ;
+    printf("creating distance transform for %s, frame %d...\n", cma_label_to_name(label), frame) ;
+
+    mri_dtrans = MRIdistanceTransform(mri_source, NULL, label, max_dist, DTRANS_MODE_SIGNED, NULL) ;
+    MRIcopyFrame(mri_dtrans, mri_all_dtrans, 0, frame) ;
+    mri_atlas_dtrans = MRIdistanceTransform(mri_target, NULL, label, max_dist, DTRANS_MODE_SIGNED, NULL) ;
+    MRInormalizeInteriorDistanceTransform(mri_atlas_dtrans,
+                                          mri_dtrans,
+                                          mri_atlas_dtrans) ;
+    MRIcopyFrame(mri_atlas_dtrans, mri_atlas_dist_map, 0, frame) ;
+    GCAMsetTargetDistancesForLabel(gcam,
+                                   mri_target,
+                                   mri_atlas_dtrans,
+                                   dtrans_labels[frame]);
+
+    if (Gdiag & DIAG_WRITE && (DIAG_VERBOSE_ON || Gdiag_no == label))
+    {
+      sprintf(fname, "source.%s.mgz", cma_label_to_name(label)) ;
+      printf("writing distance transform to %s\n", fname) ;
+      MRIwrite(mri_dtrans, fname) ;
+      sprintf(fname, "atlas.%s.mgz", cma_label_to_name(label)) ;
+      printf("writing distance transform to %s\n", fname) ;
+      MRIwrite(mri_atlas_dtrans, fname) ;
+    }
+    MRIfree(&mri_dtrans) ;
+    MRIfree(&mri_atlas_dtrans) ;
+  }
+
+  mri_all_dtrans->outside_val = max_dist ;
+  mri_atlas_dist_map->outside_val = max_dist ;
+  return(mri_all_dtrans) ;
+}
+
+#if 0
+MRI *
 GCAMcreateDistanceTransforms(GCA_MORPH *gcam, MRI *mri, MRI *mri_all_dtrans,
                              MRI **pmri_atlas_dtrans, float max_dist)
 {
@@ -18547,6 +18696,9 @@ GCAMcreateDistanceTransforms(GCA_MORPH *gcam, MRI *mri, MRI *mri_all_dtrans,
   mri_labels = MRIcloneDifferentType(mri, MRI_FLOAT) ;
   GCAMbuildLabelVolume(gcam, mri_labels) ;
   MRIwrite(mri_labels, "labels.mgz") ;
+#ifdef HAVE_OPENMP
+#pragma omp parallel for firstprivate(fname, mri_labels, mri_all_dtrans, dtrans_labels,mri_dtrans, mri, max_dist, Gdiag_no, gcam)  schedule(static,1)
+#endif
   for (frame = 0 ; frame < NDTRANS_LABELS ; frame++)
   {
     printf("creating distance transform for %s, frame %d...\n", cma_label_to_name(dtrans_labels[frame]), frame) ;
@@ -18555,9 +18707,9 @@ GCAMcreateDistanceTransforms(GCA_MORPH *gcam, MRI *mri, MRI *mri_all_dtrans,
       DiagBreak() ;
     }
     mri_dtrans = MRIdistanceTransform(mri, NULL, dtrans_labels[frame], max_dist, DTRANS_MODE_SIGNED, NULL) ;
-    sprintf(fname, "%s.mgz", cma_label_to_name(dtrans_labels[frame])) ;
-    if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
+    if (Gdiag & DIAG_WRITE && (DIAG_VERBOSE_ON || dtrans_labels[frame] == Gdiag_no))
     {
+      sprintf(fname, "%s.mgz", cma_label_to_name(dtrans_labels[frame])) ;
       MRIwrite(mri_dtrans, fname) ;
     }
     MRIcopyFrame(mri_dtrans, mri_all_dtrans, 0, frame) ;
@@ -18579,6 +18731,7 @@ GCAMcreateDistanceTransforms(GCA_MORPH *gcam, MRI *mri, MRI *mri_all_dtrans,
   MRIfree(&mri_labels) ;
   return(mri_all_dtrans) ;
 }
+#endif
 
 int
 GCAMwriteDistanceTransforms(GCA_MORPH *gcam,  MRI *mri_source_dist_map, MRI *mri_atlas_dist_map,
@@ -18902,7 +19055,7 @@ MRIcomposeWarps(MRI *mri_warp1, MRI *mri_warp2, MRI *mri_dst)
           }
         }
     DiagBreak() ;
-    printf("I (%d, %d, %d) <-- A (%2.1f, %2.1f, %2.1f), dist=%2.1f\n", Gx2, Gy2, Gz2, xf, yf, zf, min_dist) ;
+    printf("I (%d, %d, %d) <=- A (%2.1f, %2.1f, %2.1f), dist=%2.1f\n", Gx2, Gy2, Gz2, xf, yf, zf, min_dist) ;
   }
 
   return(mri_dst) ;
@@ -19659,6 +19812,9 @@ GCAMwriteWarpToMRI( const GCA_MORPH *gcam, MRI *mri_warp)
 
     mri_warp = MRIallocSequence(gcam->width, gcam->height, gcam->depth, MRI_FLOAT, 3) ;
     MRIcopyVolGeomToMRI(mri_warp, &gcam->atlas) ;
+    MRIsetResolution(mri_warp, gcam->atlas.xsize*gcam->spacing, 
+		     gcam->atlas.ysize*gcam->spacing, 
+		     gcam->atlas.zsize*gcam->spacing) ;
     for (x = 0 ; x < mri_warp->width ; x++)
       for (y = 0 ; y < mri_warp->height ; y++)
         for (z = 0 ; z < mri_warp->depth ; z++)
