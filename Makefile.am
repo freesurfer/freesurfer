@@ -252,6 +252,7 @@ MRISSUBDIRS=\
 	mris_label2annot \
 	mris_make_average_surface \
 	mris_make_surfaces \
+	mris_make_map_surfaces \
 	mris_longitudinal_surfaces \
 	mris_make_template \
 	mris_morph_stats \

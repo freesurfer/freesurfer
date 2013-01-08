@@ -8,9 +8,9 @@
 # Process this file with autoconf to produce a configure script.
 #
 # CVS Revision Info:
-#    $Author: zkaufman $
-#    $Date: 2012/12/15 06:04:07 $
-#    $Revision: 1.583 $
+#    $Author: fischl $
+#    $Date: 2013/01/08 15:40:54 $
+#    $Revision: 1.584 $
 #
 ########################################################################
 AC_PREREQ(2.57)
@@ -3712,6 +3712,7 @@ AC_OUTPUT([Makefile
            mris_label2annot/Makefile
            mris_make_average_surface/Makefile
            mris_make_surfaces/Makefile
+           mris_make_map_surfaces/Makefile
            mris_make_template/Makefile
            mris_mesh_subdivide/Makefile
            mris_morph_stats/Makefile
