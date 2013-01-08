@@ -6,11 +6,11 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: lzollei $
- *    $Date: 2013/01/05 20:42:41 $
- *    $Revision: 1.158 $
+ *    $Author: nicks $
+ *    $Date: 2013/01/08 20:34:49 $
+ *    $Revision: 1.159 $
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2011-2013 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -2101,8 +2101,7 @@ TransformRead(const char *fname)
   FileNameOnly(fname, fname_no_path) ;
   if (0 == strcmp(fname_no_path, "identity.nofile"))
   {
-    trans->type = LINEAR_VOX_TO_VOX;
-    //trans->type = LINEAR_RAS_TO_RAS;
+    trans->type = LINEAR_RAS_TO_RAS;
     LTA* lta = LTAalloc(1, NULL);
     lta->xforms[0].m_L = MatrixIdentity(4, NULL);
     lta->xforms[0].type = trans->type;
@@ -3357,8 +3356,7 @@ LTAreadEx(const char *fname)
   if (0 == strcmp(fname_no_path, "identity.nofile"))
   {
     LTA* lta = LTAalloc(1, NULL);
-    lta->type = LINEAR_VOX_TO_VOX;
-    //lta->type = LINEAR_RAS_TO_RAS;
+    lta->type = LINEAR_RAS_TO_RAS;
     lta->xforms[0].m_L = MatrixIdentity(4, NULL);
     lta->xforms[0].type = lta->type;
     return lta;
