@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2012/12/13 22:20:43 $
- *    $Revision: 1.743 $
+ *    $Author: fischl $
+ *    $Date: 2013/01/08 15:41:28 $
+ *    $Revision: 1.744 $
  *
  * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -63,6 +63,7 @@
 #include "cma.h"
 #include "gifti_local.h"
 #include "mri_identify.h"
+#include "voxlist.h"
 
 #define DMALLOC 0
 
@@ -270,8 +271,14 @@ static int mrisComputeDuraTerm(MRI_SURFACE *mris,
                                double dura_thresh) ;
 static double mrisComputeHistoNegativeLikelihood(MRI_SURFACE *mris,
     INTEGRATION_PARMS *parms);
+static double mrisComputeNegativeLogPosterior(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int *pnvox);
+static double mrisComputeNegativeLogPosterior2D(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int *pnvox);
 static int mrisComputeHistoTerm(MRI_SURFACE *mris,
                                 INTEGRATION_PARMS *parms) ;
+static int mrisComputePosteriorTerm(MRI_SURFACE *mris,
+                                INTEGRATION_PARMS *parms) ;
+static int mrisComputePosterior2DTerm(MRI_SURFACE *mris,
+				      INTEGRATION_PARMS *parms) ;
 int MRISrestoreExtraGradients(MRI_SURFACE *mris) ;
 static int mrisComputePositioningGradients(MRI_SURFACE *mris,
     INTEGRATION_PARMS *parms) ;
@@ -764,7 +771,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void)
 {
-  return("$Id: mrisurf.c,v 1.743 2012/12/13 22:20:43 greve Exp $");
+  return("$Id: mrisurf.c,v 1.744 2013/01/08 15:41:28 fischl Exp $");
 }
 
 /*-----------------------------------------------------
@@ -9574,7 +9581,7 @@ MRIScomputeSSE(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
     sse_grad, sse_nl_area, sse_nl_dist, sse_tspring,
     sse_repulse, sse_tsmooth, sse_loc, sse_thick_spring,
     sse_repulsive_ratio, sse_shrinkwrap, sse_expandwrap,
-    sse_lap, sse_dura, sse_nlspring, sse_thick_normal, sse_histo ;
+    sse_lap, sse_dura, sse_nlspring, sse_thick_normal, sse_histo, sse_map, sse_map2d ;
   int     ano, fno ;
   FACE    *face ;
   MHT     *mht_v_current = NULL ;
@@ -9620,7 +9627,9 @@ MRIScomputeSSE(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
                                                       sse_tspring =
                                                           sse_loc =
                                                               sse_nlspring =
-                                                                  sse_grad=0.0;
+                                                                  sse_map =
+                                                                    sse_map2d =
+                                                                      sse_grad=0.0;
 
   if (!FZERO(parms->l_repulse))
   {
@@ -9733,6 +9742,14 @@ MRIScomputeSSE(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
   {
     sse_histo = mrisComputeHistoNegativeLikelihood(mris, parms) ;
   }
+  if (!DZERO(parms->l_map))
+  {
+    sse_map = mrisComputeNegativeLogPosterior(mris, parms, NULL) ;
+  }
+  if (!DZERO(parms->l_map2d))
+  {
+    sse_map2d = mrisComputeNegativeLogPosterior2D(mris, parms, NULL) ;
+  }
   if (!DZERO(parms->l_grad))
   {
     sse_grad = mrisComputeIntensityGradientError(mris, parms) ;
@@ -9769,6 +9786,8 @@ MRIScomputeSSE(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
     (double)parms->l_ashburner_triangle * sse_ashburner_triangle +
     (double)parms->l_shrinkwrap * sse_shrinkwrap +
     (double)parms->l_expandwrap * sse_expandwrap +
+    (double)parms->l_map       * sse_map +
+    (double)parms->l_map2d     * sse_map2d +
     (double)parms->l_grad      * sse_grad +
     (double)parms->l_parea     * sse_area +
     (double)parms->l_nldist    * sse_nl_dist +
@@ -9816,7 +9835,7 @@ MRIScomputeSSE_CUDA(MRI_SURFACE *mris,
     sse_tsmooth, sse_loc,
     sse_repulsive_ratio, sse_shrinkwrap, sse_expandwrap, sse_lap,
     sse_dura, sse_nlspring, sse_thick_normal, sse_thick_spring,
-    sse_histo ;
+    sse_histo, sse_map = 0.0, sse_map2d = 0.0  ;
   int     ano, fno ;
   FACE    *face ;
   MHT     *mht_v_current = NULL ;
@@ -9974,6 +9993,14 @@ MRIScomputeSSE_CUDA(MRI_SURFACE *mris,
   {
     sse_histo = mrisComputeHistoNegativeLikelihood(mris, parms) ;
   }
+  if (!DZERO(parms->l_map))
+  {
+    sse_map = mrisComputeNegativeLogPosterior(mris, parms, NULL) ;
+  }
+  if (!DZERO(parms->l_map2d))
+  {
+    sse_map2d = mrisComputeNegativeLogPosterior2D(mris, parms, NULL) ;
+  }
   if (!DZERO(parms->l_grad))
   {
     sse_grad = mrisComputeIntensityGradientError(mris, parms) ;
@@ -10022,6 +10049,8 @@ MRIScomputeSSE_CUDA(MRI_SURFACE *mris,
     (double)parms->l_histo     * sse_histo +
     (double)parms->l_tspring   * sse_tspring +
     (double)l_corr             * sse_corr +
+    (double)parms->l_map       * sse_map +
+    (double)parms->l_map2d     * sse_map2d +
     (double)parms->l_curv      * CURV_SCALE * sse_curv ;
 
   if (parms->flags & IP_USE_MULTIFRAMES)
@@ -10642,8 +10671,8 @@ int MRISaverageGradients(MRI_SURFACE *mris, int num_avgs)
     float dot ;
     v = &mris->vertices[Gdiag_no] ;
     dot = v->nx*v->dx + v->ny*v->dy + v->nz*v->dz ;
-    fprintf(stdout, " after dot = %2.2f (%2.1f, %2.1f, %2.1f)\n",
-            dot,v->dx, v->dy, v->dz) ;
+    fprintf(stdout, " after dot = %2.2f D = (%2.2f, %2.2f, %2.2f), N = (%2.1f, %2.1f, %2.1f)\n",
+            dot,v->dx, v->dy, v->dz, v->nx, v->ny, v->nz) ;
     if (fabs(dot) > 50)
     {
       DiagBreak() ;
@@ -22618,6 +22647,14 @@ mrisLogIntegrationParms(FILE *fp, MRI_SURFACE *mris,INTEGRATION_PARMS *parms)
   {
     fprintf(fp, ", l_area=%2.3f", parms->l_area) ;
   }
+  if (!FZERO(parms->l_map))
+  {
+    fprintf(fp, ", l_map=%2.3f", parms->l_map) ;
+  }
+  if (!FZERO(parms->l_map2d))
+  {
+    fprintf(fp, ", l_map2d=%2.3f", parms->l_map2d) ;
+  }
   if (!FZERO(parms->l_dura))
   {
     fprintf(fp, ", l_dura=%2.3f", parms->l_dura) ;
@@ -34054,7 +34091,7 @@ MRISpositionSurface(MRI_SURFACE *mris, MRI *mri_brain, MRI *mri_smooth,
     if (!parms->fp)
     {
       sprintf(fname, "%s.%s.out",
-              mris->hemisphere==RIGHT_HEMISPHERE ? "rh":"lh",parms->base_name);
+              mris->hemisphere==RIGHT_HEMISPHERE ? "rh": mris->hemisphere == BOTH_HEMISPHERES ? "both" : "lh",parms->base_name);
       if (!parms->start_t)
       {
         parms->fp = fopen(fname, "w") ;
@@ -34094,6 +34131,44 @@ MRISpositionSurface(MRI_SURFACE *mris, MRI *mri_brain, MRI *mri_smooth,
   {
     last_rms = rms = mrisComputeHistoNegativeLikelihood(mris, parms) ;
   }
+  else if (!FZERO(parms->l_map))
+  {
+    int nvox ;
+    MRISsaveVertexPositions(mris, PIAL_VERTICES) ;
+    if (parms->mri_volume_fractions)
+      MRIfree(&parms->mri_volume_fractions) ;
+    if (parms->mri_dtrans)
+      MRIfree(&parms->mri_dtrans) ;
+    parms->mri_volume_fractions = MRIcomputeLaminarVolumeFractions(mris, parms->resolution, parms->mri_brain, NULL) ;
+
+    rms = mrisComputeNegativeLogPosterior(mris, parms, &nvox) ;
+//    last_rms = rms = 1-exp(-rms/nvox) ;
+    last_rms = rms = sqrt(rms/nvox) ;
+  }
+  else if (!FZERO(parms->l_map2d))
+  {
+    int nvox ;
+    MRISsaveVertexPositions(mris, PIAL_VERTICES) ;
+#if 0
+    if (parms->h2d != NULL)
+      HISTO2Dfree(&parms->h2d) ;
+#endif
+    if (parms->mri_volume_fractions)
+      MRIfree(&parms->mri_volume_fractions) ;
+    if (parms->mri_dtrans)
+      MRIfree(&parms->mri_dtrans) ;
+    if ((getenv("READ_VOLS") != NULL))
+    {
+      parms->mri_volume_fractions = MRIread("map2d.vfrac.0000.mgz") ;
+      parms->mri_dtrans = MRIread("dtrans.mgz") ;
+    }
+    else
+      parms->mri_volume_fractions = MRIcomputeLaminarVolumeFractions(mris, parms->resolution, parms->mri_brain, NULL) ;
+
+    rms = mrisComputeNegativeLogPosterior2D(mris, parms, &nvox) ;
+//    last_rms = rms = 1-exp(-rms/nvox) ;
+    last_rms = rms = sqrt(rms/nvox) ;
+  }
   else if (!FZERO(parms->l_location))
   {
     last_rms = rms = mrisRmsDistanceError(mris) ;
@@ -34118,12 +34193,12 @@ MRISpositionSurface(MRI_SURFACE *mris, MRI *mri_brain, MRI *mri_smooth,
   }
 #endif
   if (Gdiag & DIAG_SHOW)
-    fprintf(stdout, "%3.3d: dt: %2.4f, sse=%2.1f, rms=%2.2f\n",
+    fprintf(stdout, "%3.3d: dt: %2.4f, sse=%2.1f, rms=%2.3f\n",
             0, 0.0f, (float)sse, (float)rms);
 
   if (Gdiag & DIAG_WRITE)
   {
-    fprintf(parms->fp, "%3.3d: dt: %2.4f, sse=%2.1f, rms=%2.2f\n",
+    fprintf(parms->fp, "%3.3d: dt: %2.4f, sse=%2.1f, rms=%2.3f\n",
             0, 0.0f, (float)sse, (float)rms);
     fflush(parms->fp) ;
   }
@@ -34132,6 +34207,7 @@ MRISpositionSurface(MRI_SURFACE *mris, MRI *mri_brain, MRI *mri_smooth,
   l_intensity = parms->l_intensity ;
   for (n = parms->start_t ; n < parms->start_t+niterations ; n++)
   {
+    parms->t = n ;
 #if 0
     if (n == parms->start_t+niterations-5)
     {
@@ -34169,6 +34245,8 @@ MRISpositionSurface(MRI_SURFACE *mris, MRI *mri_brain, MRI *mri_smooth,
     mrisComputeIntensityGradientTerm(mris, parms->l_grad,mri_brain,mri_smooth);
     mrisComputeSurfaceRepulsionTerm(mris, parms->l_surf_repulse, mht_v_orig);
     mrisComputeHistoTerm(mris, parms) ;
+    mrisComputePosteriorTerm(mris, parms) ;
+    mrisComputePosterior2DTerm(mris, parms) ;
     if (parms->l_osurf_repulse > 0)
       mrisComputeWhichSurfaceRepulsionTerm
       (mris, -parms->l_osurf_repulse, mht_pial, PIAL_VERTICES,.1);
@@ -34231,6 +34309,7 @@ MRISpositionSurface(MRI_SURFACE *mris, MRI *mri_brain, MRI *mri_smooth,
       MRISclearMarks(mris) ;
       delta_t = mrisAsynchronousTimeStep(mris, parms->momentum, dt,mht,
                                          max_mm) ;
+      parms->t = n+1 ;  // for diags
 #if 0
       if (Gdiag & DIAG_WRITE)
       {
@@ -34271,6 +34350,32 @@ MRISpositionSurface(MRI_SURFACE *mris, MRI *mri_brain, MRI *mri_smooth,
       if (!FZERO(parms->l_histo))
       {
         rms = mrisComputeHistoNegativeLikelihood(mris, parms) ;
+      }
+      else if (!FZERO(parms->l_map))
+      {
+	int nvox ;
+	MRISsaveVertexPositions(mris, PIAL_VERTICES) ;
+	if (parms->mri_volume_fractions)
+	  MRIfree(&parms->mri_volume_fractions) ;
+	parms->mri_volume_fractions = MRIcomputeLaminarVolumeFractions(mris, parms->resolution, parms->mri_brain, NULL) ;
+        rms = mrisComputeNegativeLogPosterior(mris, parms, &nvox) ;
+	rms = sqrt(rms/nvox) ;
+      }
+      else if (!FZERO(parms->l_map2d))
+      {
+	int nvox ;
+	MRISsaveVertexPositions(mris, PIAL_VERTICES) ;
+#if 0
+	if (parms->h2d != NULL)
+	  HISTO2Dfree(&parms->h2d) ;
+#endif
+	if (parms->mri_volume_fractions)
+	  MRIfree(&parms->mri_volume_fractions) ;
+	if (parms->mri_dtrans)
+	  MRIfree(&parms->mri_dtrans) ;
+	parms->mri_volume_fractions = MRIcomputeLaminarVolumeFractions(mris, parms->resolution, parms->mri_brain, NULL) ;
+        rms = mrisComputeNegativeLogPosterior2D(mris, parms, &nvox) ;
+	rms = sqrt(rms/nvox) ;
       }
       else if (!FZERO(parms->l_location))
       {
@@ -34325,9 +34430,18 @@ MRISpositionSurface(MRI_SURFACE *mris, MRI *mri_brain, MRI *mri_smooth,
     enforce_link_positions(mris) ;
     mrisTrackTotalDistanceNew(mris) ;  /* computes signed
                              deformation amount */
+#if 0
     if (!FZERO(parms->l_histo))
     {
       rms = mrisComputeHistoNegativeLikelihood(mris, parms) ;
+    }
+    else if (!FZERO(parms->l_map))
+    {
+      rms = mrisComputeNegativeLogPosterior(mris, parms) ;
+    }
+    else if (!FZERO(parms->l_map2d))
+    {
+      rms = mrisComputeNegativeLogPosterior2D(mris, parms) ;
     }
     else if (!FZERO(parms->l_location))
     {
@@ -34342,14 +34456,15 @@ MRISpositionSurface(MRI_SURFACE *mris, MRI *mri_brain, MRI *mri_smooth,
       rms = mrisRmsValError(mris, mri_brain) ;
     }
     sse = MRIScomputeSSE(mris, parms) ;
+#endif
     if (Gdiag & DIAG_SHOW)
       fprintf(stdout, "%3.3d: dt: %2.4f, sse=%2.1f, rms=%2.3f (%2.3f%%)\n",
-              n+1,(float)delta_t, (float)sse, (float)rms, (last_rms-rms)/last_rms);
+              n+1,(float)delta_t, (float)sse, (float)rms, 100*(last_rms-rms)/last_rms);
 
     if (Gdiag & DIAG_WRITE)
     {
       fprintf(parms->fp, "%3.3d: dt: %2.4f, sse=%2.1f, rms=%2.3f (%2.3f%%)\n",
-              n+1,(float)delta_t, (float)sse, (float)rms, (last_rms-rms)/last_rms);
+              n+1,(float)delta_t, (float)sse, (float)rms, 100*(last_rms-rms)/last_rms);
       fflush(parms->fp) ;
     }
 
@@ -34377,10 +34492,10 @@ MRISpositionSurface(MRI_SURFACE *mris, MRI *mri_brain, MRI *mri_smooth,
       n++ ;  /* count this step */
       break ;
     }
+    last_sse = sse ;
+    last_rms = rms ;
   }
 
-  last_sse = sse ;
-  last_rms = rms ;
   parms->start_t = n ;
   parms->dt = base_dt ;
   if (Gdiag & DIAG_SHOW)
@@ -82514,6 +82629,177 @@ mrisCreateLikelihoodHistograms(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
   MRIfree(&mri_pial) ;
   return(NO_ERROR) ;
 }
+MRI_SURFACE *
+MRISconcat(MRI_SURFACE *mris1, MRI_SURFACE *mris2, MRI_SURFACE *mris)
+{
+  int    vno, n ;
+  int    fno ;
+  VERTEX *v, *vo ;
+  FACE   *f, *fo ;
+
+  if (mris == NULL)
+    mris = MRISalloc(mris1->nvertices+mris2->nvertices, mris1->nfaces+mris2->nfaces) ;
+
+  for (vno = 0 ; vno < mris1->nvertices ; vno++)
+  {
+    v = &mris->vertices[vno] ;
+    vo = &mris1->vertices[vno] ;
+    memmove(v, vo, sizeof(VERTEX)) ;
+    v->v = (int *)calloc(vo->vtotal, sizeof(int)) ;
+    if (v->v == NULL)
+      ErrorExit(ERROR_NOMEMORY, "MRISconcat: could not allocate %dth vertex array", vno) ;
+    for (n = 0 ; n < v->vtotal ; n++)
+      v->v[n] = vo->v[n] ;
+    v->f = (int *)calloc(vo->num, sizeof(int)) ;
+    if (v->f == NULL)
+      ErrorExit(ERROR_NOMEMORY, "MRISconcat: could not allocate %dth face array", vno) ;
+    for (n = 0 ; n < v->vtotal ; n++)
+      v->f[n] = vo->f[n] ;
+  }
+
+  for (fno = 0 ; fno < mris1->nfaces ; fno++)
+  {
+    f = &mris->faces[fno] ;
+    fo = &mris1->faces[fno] ;
+    memmove(f, fo, sizeof(FACE)) ;
+  }
+  for (vno = mris1->nvertices ; vno < mris->nvertices ; vno++)
+  {
+    v = &mris->vertices[vno] ;
+    vo = &mris2->vertices[vno-mris1->nvertices] ;
+    memmove(v, vo, sizeof(VERTEX)) ;
+    v->v = (int *)calloc(vo->vtotal, sizeof(int)) ;
+    if (v->v == NULL)
+      ErrorExit(ERROR_NOMEMORY, "MRISconcat: could not allocate %dth vertex array", vno) ;
+    for (n = 0 ; n < v->vtotal ; n++)
+      v->v[n] = vo->v[n]+mris1->nvertices ;
+    v->f = (int *)calloc(vo->num, sizeof(int)) ;
+    if (v->f == NULL)
+      ErrorExit(ERROR_NOMEMORY, "MRISconcat: could not allocate %dth face array", vno) ;
+    for (n = 0 ; n < v->num ; n++)
+      v->f[n] = vo->f[n]+mris1->nfaces ;
+  }
+  for (fno = mris1->nfaces ; fno < mris->nfaces ; fno++)
+  {
+    f = &mris->faces[fno] ;
+    fo = &mris2->faces[fno-mris1->nfaces] ;
+    for (n = 0 ; n < VERTICES_PER_FACE ; n++)
+      f->v[n] = fo->v[n]+mris1->nvertices ;
+  }
+
+  if (mris1->hemisphere != mris2->hemisphere)
+    mris->hemisphere = BOTH_HEMISPHERES ;
+  else
+    mris->hemisphere = mris1->hemisphere ;
+  mris->type = mris1->type ;
+  mris->nsize = mris1->nsize ;
+  MRISsetNeighborhoodSize(mris, mris->nsize) ;
+
+  memmove(&mris->vg, &mris1->vg, sizeof(mris1->vg)) ;
+  MRIScomputeMetricProperties(mris) ;
+  MRIScomputeSecondFundamentalForm(mris) ;
+  strcpy(mris->fname, mris1->fname) ;
+  
+  return(mris) ;
+}
+
+#define WM_VAL  1
+#define GM_VAL  2
+#define CSF_VAL 3
+
+MRI *
+MRIcomputeLaminarVolumeFractions(MRI_SURFACE *mris, double resolution, MRI *mri_src, MRI *mri_fractions)
+{
+  int     width, height, depth, nvox ;
+  MRI    *mri_layers, *mri_interior_pial, *mri_tmp ;
+  MATRIX *m_vox2vox ;
+  static MRI *mri_interior_wm = NULL ;
+#if 0
+  MATRIX *m_tmp, *m_src_vox2ras, *m_layers_vox2ras, *m_trans ;
+  double trans[4] ;
+#endif
+
+  MRISsaveVertexPositions(mris, TMP2_VERTICES) ;
+
+  nvox = nint(MAX(MAX((mri_src->xsize/resolution), (mri_src->ysize/resolution)), 
+		  (mri_src->zsize/resolution))) ;
+  if (Gdiag & DIAG_VERBOSE_ON)
+    printf("packing each voxel with %d voxels to compute laminar fractions\n", (int)pow(nvox,3)) ;
+  width = (int)ceil(mri_src->width * nvox);  
+  height = (int)ceil(mri_src->height * nvox) ;
+  depth = (int)ceil(mri_src->depth * nvox) ;
+#if 0
+  mri_layers = MRIalloc(width, height, depth, MRI_UCHAR) ;
+  MRIsetResolution(mri_layers, resolution, resolution, resolution) ;
+  mri_layers->xstart = mri_src->xstart ; mri_layers->xend = mri_src->xend ;
+  mri_layers->ystart = mri_src->ystart ; mri_layers->yend = mri_src->yend ;
+  mri_layers->zstart = mri_src->zstart ; mri_layers->zend = mri_src->zend ;
+  mri_layers->x_r = mri_src->x_r ; mri_layers->x_a = mri_src->x_a ; mri_layers->x_s = mri_src->x_s ;
+  mri_layers->y_r = mri_src->y_r ; mri_layers->y_a = mri_src->y_a ; mri_layers->y_s = mri_src->y_s ;
+  mri_layers->z_r = mri_src->z_r ; mri_layers->z_a = mri_src->z_a ; mri_layers->z_s = mri_src->z_s ;
+  mri_layers->c_r = mri_src->c_r ; mri_layers->c_a = mri_src->c_a ; mri_layers->c_s = mri_src->c_s ;
+  MRIreInitCache(mri_layers) ; 
+  // compute vox2ras for highres by vox2vox low->high and vox2ras of low
+  m_vox2vox = MRIgetVoxelToVoxelXform(mri_src, mri_layers) ;  // v2v low->high
+  trans[0] = (nvox-1.0)/2.0 ; trans[1] = (nvox-1.0)/2.0 ; trans[2] = (nvox-1.0)/2.0 ;
+  m_trans = MatrixAllocTranslation(4, trans) ;
+  m_tmp = MatrixMultiply(m_trans, m_vox2vox, NULL) ;   // correct vox2vox low->high
+  MatrixFree(&m_vox2vox) ; m_vox2vox = MatrixInverse(m_tmp, NULL) ; 
+  if (Gdiag & DIAG_VERBOSE_ON)
+  {
+    printf("correct high->low vox2vox\n") ;
+    MatrixPrint(stdout, m_vox2vox) ;
+  }
+  m_src_vox2ras = MRIgetVoxelToRasXform(mri_src) ;  // lowres vox2ras
+  m_layers_vox2ras = MatrixMultiply(m_src_vox2ras, m_vox2vox, NULL) ;
+
+  if (Gdiag & DIAG_VERBOSE_ON)
+  {
+    printf("hires vox2ras:\n") ;
+    MatrixPrint(stdout, m_layers_vox2ras) ;
+    printf("lowres vox2ras:\n") ;
+    MatrixPrint(stdout, m_src_vox2ras) ;
+  }
+  MRIsetVoxelToRasXform(mri_layers, m_layers_vox2ras) ;
+  MatrixFree(&m_layers_vox2ras) ; MatrixFree(&m_src_vox2ras) ; MatrixFree(&m_vox2vox) ;
+  MatrixFree(&m_trans) ; MatrixFree(&m_tmp) ;
+#else
+  mri_layers = MRIupsampleN(mri_src, NULL, nvox);
+#endif
+
+  mri_interior_pial = MRIclone(mri_layers, NULL) ;
+  if (mri_interior_wm == NULL)
+  {
+    MRISrestoreVertexPositions(mris, WHITE_VERTICES) ; MRIScomputeMetricProperties(mris) ;
+    MRISfillInterior(mris, resolution, mri_layers) ;
+    mri_interior_wm = MRIcopy(mri_layers, NULL) ;
+  }
+  else
+    MRIcopy(mri_interior_wm, mri_layers) ;
+
+  MRISrestoreVertexPositions(mris, PIAL_VERTICES) ; MRIScomputeMetricProperties(mris) ;
+  MRISfillInterior(mris, resolution, mri_interior_pial) ;
+  
+  mri_tmp = MRInot(mri_layers, NULL) ;
+  MRIand(mri_interior_pial, mri_tmp, mri_tmp, 1) ;
+  MRIreplaceValuesOnly(mri_tmp, mri_tmp, 1, GM_VAL) ; 
+  MRIcopyLabel(mri_tmp, mri_layers, GM_VAL) ;
+  MRIfree(&mri_tmp) ;
+  MRIreplaceValuesOnly(mri_layers, mri_layers, 0, CSF_VAL) ;
+  m_vox2vox = MRIgetVoxelToVoxelXform(mri_layers, mri_src) ;
+  if (mri_fractions == NULL)
+  {
+    mri_fractions = 
+      MRIallocSequence(mri_src->width, mri_src->height, mri_src->depth, MRI_FLOAT, 3) ;
+    MRIcopyHeader(mri_src, mri_fractions) ;
+  }
+  MRIcomputeVolumeFractions(mri_src, m_vox2vox, mri_layers, mri_fractions) ;
+  MatrixFree(&m_vox2vox) ; MRIfree(&mri_layers) ;  MRIfree(&mri_interior_pial) ;
+  MRISrestoreVertexPositions(mris, TMP2_VERTICES) ;
+  MRIScomputeMetricProperties(mris) ;
+  return(mri_fractions) ;
+}
+
 
 static double
 mrisComputeHistoNegativeLikelihood(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
@@ -82646,6 +82932,10 @@ mrisComputeHistoTerm(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
              vno, val, best_d, best_p, dx, dy, dz, dx*v->nx+ dy*v->ny+ dz*v->nz) ;
 
       DiagBreak() ;
+      if (Gx < 0)
+      {
+	Gx = x ; Gy = y ; Gz = z ;
+      }
     }
     v->dx += dx ;
     v->dy += dy ;
@@ -82653,77 +82943,1497 @@ mrisComputeHistoTerm(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
   }
   return(NO_ERROR) ;
 }
-
-MRI_SURFACE *
-MRISconcat(MRI_SURFACE *mris1, MRI_SURFACE *mris2, MRI_SURFACE *mris)
+static double
+vlst_loglikelihood(MRI_SURFACE *mris, MRI *mri, int vno, double displacement, VOXEL_LIST *vl, HISTOGRAM *hin, HISTOGRAM *hout)
 {
-  int    vno, n ;
-  int    fno ;
-  VERTEX *v, *vo ;
-  FACE   *f, *fo ;
+  double   ll = 0.0, dot, dx, dy, dz, pval, dist, Ig, Ic, gm_frac, out_frac ;
+  int      i ;
+  float    val ;
+  VERTEX   *v ;
+  double     xs, ys, zs ;
 
-  if (mris == NULL)
-    mris = MRISalloc(mris1->nvertices+mris2->nvertices, mris1->nfaces+mris2->nfaces) ;
-
-  for (vno = 0 ; vno < mris1->nvertices ; vno++)
+  v = &mris->vertices[vno] ;
+  xs = v->x + displacement*v->nx ;
+  ys = v->y + displacement*v->ny ;
+  zs = v->z + displacement*v->nz ;
+  for (i = 0 ; i < vl->nvox ; i++)
   {
-    v = &mris->vertices[vno] ;
-    vo = &mris1->vertices[vno] ;
-    memmove(v, vo, sizeof(VERTEX)) ;
-    v->v = (int *)calloc(vo->vtotal, sizeof(int)) ;
-    if (v->v == NULL)
-      ErrorExit(ERROR_NOMEMORY, "MRISconcat: could not allocate %dth vertex array", vno) ;
-    for (n = 0 ; n < v->vtotal ; n++)
-      v->v[n] = vo->v[n] ;
-    v->f = (int *)calloc(vo->num, sizeof(int)) ;
-    if (v->f == NULL)
-      ErrorExit(ERROR_NOMEMORY, "MRISconcat: could not allocate %dth face array", vno) ;
-    for (n = 0 ; n < v->vtotal ; n++)
-      v->f[n] = vo->f[n] ;
+    dx = vl->xd[i]-xs ; dy = vl->yd[i]-ys ; dz = vl->zd[i]-zs ; 
+    dist = sqrt(dx*dx + dy*dy + dz*dz) ;
+    dot = dx*v->nx + dy*v->ny + dz*v->nz ;
+    val = MRIgetVoxVal(mri, vl->xi[i], vl->yi[i], vl->zi[i], 0) ;
+    if (dist < .5) // distance to center<.5 --> distance to edge <1
+    {
+      if (dot > 0)
+      {
+	out_frac = dist+.5 ;
+	gm_frac = 1-out_frac ;
+      }
+      else
+      {
+	gm_frac = dist+.5 ;
+	out_frac = 1-gm_frac ;
+      }
+      for (pval = 0.0, Ig = 0 ; Ig <= 256 ; Ig++)
+      {
+	Ic = (val - gm_frac*Ig) / out_frac ;
+	pval += HISTOgetCount(hout, Ic) * HISTOgetCount(hin, Ig) ;
+      }
+    }
+    else if (dot > 0)  // outside surface
+      pval = HISTOgetCount(hout, val) ;
+    else         // inside the surface
+      pval = HISTOgetCount(hin, val) ;
+    if (DZERO(pval))
+      pval = 1e-10 ;
+    ll += -log(pval) ;
   }
-
-  for (fno = 0 ; fno < mris1->nfaces ; fno++)
-  {
-    f = &mris->faces[fno] ;
-    fo = &mris1->faces[fno] ;
-    memmove(f, fo, sizeof(FACE)) ;
-  }
-  for (vno = mris1->nvertices ; vno < mris->nvertices ; vno++)
-  {
-    v = &mris->vertices[vno] ;
-    vo = &mris2->vertices[vno-mris1->nvertices] ;
-    memmove(v, vo, sizeof(VERTEX)) ;
-    v->v = (int *)calloc(vo->vtotal, sizeof(int)) ;
-    if (v->v == NULL)
-      ErrorExit(ERROR_NOMEMORY, "MRISconcat: could not allocate %dth vertex array", vno) ;
-    for (n = 0 ; n < v->vtotal ; n++)
-      v->v[n] = vo->v[n]+mris1->nvertices ;
-    v->f = (int *)calloc(vo->num, sizeof(int)) ;
-    if (v->f == NULL)
-      ErrorExit(ERROR_NOMEMORY, "MRISconcat: could not allocate %dth face array", vno) ;
-    for (n = 0 ; n < v->num ; n++)
-      v->f[n] = vo->f[n]+mris1->nfaces ;
-  }
-  for (fno = mris1->nfaces ; fno < mris->nfaces ; fno++)
-  {
-    f = &mris->faces[fno] ;
-    fo = &mris2->faces[fno-mris1->nfaces] ;
-    for (n = 0 ; n < VERTICES_PER_FACE ; n++)
-      f->v[n] = fo->v[n]+mris1->nvertices ;
-  }
-
-  if (mris1->hemisphere != mris2->hemisphere)
-    mris->hemisphere = BOTH_HEMISPHERES ;
-  else
-    mris->hemisphere = mris1->hemisphere ;
-  mris->type = mris1->type ;
-  mris->nsize = mris1->nsize ;
-  MRISsetNeighborhoodSize(mris, mris->nsize) ;
-
-  memmove(&mris->vg, &mris1->vg, sizeof(mris1->vg)) ;
-  MRIScomputeMetricProperties(mris) ;
-  MRIScomputeSecondFundamentalForm(mris) ;
   
-  return(mris) ;
+  return(ll) ;
 }
 
+#if 0
+static double
+vlst_loglikelihood2D(MRI_SURFACE *mris, MRI *mri, int vno, double displacement, VOXEL_LIST *vl, HISTOGRAM2D *hin, HISTOGRAM2D *hout)
+{
+  double   ll = 0.0, dot, dx, dy, dz, pval, dist, Ig, Ic, gm_frac, out_frac ;
+  int      i ;
+  float    val ;
+  VERTEX   *v ;
+  double     xs, ys, zs ;
+
+  v = &mris->vertices[vno] ;
+  xs = v->x + displacement*v->nx ; ys = v->y + displacement*v->ny ; zs = v->z + displacement*v->nz ;
+  for (i = 0 ; i < vl->nvox ; i++)
+  {
+    dx = vl->xd[i]-xs ; dy = vl->yd[i]-ys ; dz = vl->zd[i]-zs ; 
+    dist = sqrt(dx*dx + dy*dy + dz*dz) ;
+    dot = dx*v->nx + dy*v->ny + dz*v->nz ;
+    val = MRIgetVoxVal(mri, vl->xi[i], vl->yi[i], vl->zi[i], 0) ;
+    if (dist < .5) // distance to center<.5 --> distance to edge <1
+    {
+      if (dot > 0)
+      {
+	out_frac = dist+.5 ;
+	gm_frac = 1-out_frac ;
+      }
+      else
+      {
+	gm_frac = dist+.5 ;
+	out_frac = 1-gm_frac ;
+      }
+      for (pval = 0.0, Ig = 0 ; Ig <= 256 ; Ig++)
+      {
+	Ic = (val - gm_frac*Ig) / out_frac ;
+	pval += HISTO2DgetCount(hout, Ic, dot) * HISTO2DgetCount(hin, Ig, dot) ;
+      }
+    }
+    else if (dot > 0)  // outside surface
+      pval = HISTO2DgetCount(hout, val, dot) ;
+    else         // inside the surface
+      pval = HISTO2DgetCount(hin, val, dot) ;
+    if (DZERO(pval))
+      pval = 1e-10 ;
+    ll += -log(pval) ;
+  }
+  
+  return(ll) ;
+}
+#else
+static double
+vlst_loglikelihood2D(MRI_SURFACE *mris, MRI *mri, int vno, double displacement, VOXEL_LIST *vl, HISTOGRAM2D *h, FILE *fp)
+{
+  double   ll = 0.0, dot, dx, dy, dz, pval, dist ;
+  int      i ;
+  float    val ;
+  VERTEX   *v ;
+  double     xs, ys, zs ;
+
+  if (fp)
+    fprintf(fp, "%f ", displacement) ;
+
+  v = &mris->vertices[vno] ;
+  xs = v->x + displacement*v->nx ; ys = v->y + displacement*v->ny ; zs = v->z + displacement*v->nz ;
+  for (i = 0 ; i < vl->nvox ; i++)
+  {
+    dx = vl->xd[i]-xs ; dy = vl->yd[i]-ys ; dz = vl->zd[i]-zs ; 
+    dist = sqrt(dx*dx + dy*dy + dz*dz) ;
+    dot = dx*v->nx + dy*v->ny + dz*v->nz ;
+    val = MRIgetVoxVal(mri, vl->xi[i], vl->yi[i], vl->zi[i], 0) ;
+    pval = HISTO2DgetCount(h, val, dot) ;
+    if (DZERO(pval))
+      pval = 1e-10 ;
+    if (fp)
+      fprintf(fp, "%d %2.2f %2.2f ", (int)val, dot, -log(pval)) ;
+    ll += -log(pval) ;
+  }
+  
+  if (fp)
+    fprintf(fp, "\n") ;
+  return(ll) ;
+}
+#endif
+static VOXEL_LIST **
+vlst_alloc(MRI_SURFACE *mris, int max_vox)
+{
+  int        vno ;
+  VOXEL_LIST **vl ;
+
+  vl = (VOXEL_LIST **)calloc(mris->nvertices, sizeof(VOXEL_LIST *)) ;
+  if (vl == NULL)
+    ErrorExit(ERROR_NOMEMORY, "vlst_alloc(%d): could not allocate vl array", max_vox) ;
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    vl[vno] = VLSTalloc(max_vox) ;
+    if (vl[vno] == NULL)
+      ErrorExit(ERROR_NOMEMORY, "vlst_alloc(%d): could not allocate list for vno %d",
+		max_vox, vno) ;
+    vl[vno]->nvox = 0 ;
+  }
+  return(vl) ;
+}
+static int 
+vlst_free(MRI_SURFACE *mris, VOXEL_LIST ***pvl)
+{
+  VOXEL_LIST **vl = *pvl ;
+  int        vno ;
+
+  *pvl = NULL ;
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+    VLSTfree(&vl[vno]) ;
+  free(vl) ;
+  return(NO_ERROR) ;
+}
+
+#if 1
+static int
+vlst_enough_data(MRI_SURFACE *mris, int vno, VOXEL_LIST *vl, double displacement)
+{
+  double   dot, dx, dy, dz ;
+  int      i, nin, nout ;
+  VERTEX   *v ;
+  double     xs, ys, zs ;
+
+  v = &mris->vertices[vno] ;
+  xs = v->x + displacement*v->nx ; 
+  ys = v->y + displacement*v->ny ;
+  zs = v->z + displacement*v->nz ;
+  for (nin = nout = i = 0 ; i < vl->nvox ; i++)
+  {
+    dx = vl->xd[i]-xs ; dy = vl->yd[i]-ys ; dz = vl->zd[i]-zs ; 
+    dot = dx*v->nx + dy*v->ny + dz*v->nz ;
+    if (dot > 0)  // outside surface
+      nout++ ;
+    else         // inside the surface
+      nin++ ;
+  }
+  return((nout >= 2 && nin >= 2) || (nout >= 10 && nin >= 1) || (nout+nin>4)) ;
+}
+#endif
+
+#define MAX_VOXELS 1500
+#define MAX_DISPLACEMENT 5
+#define DISPLACEMENT_DELTA .1
+
+
+static double
+mrisComputeNegativeLogPosterior(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int *pnvox)
+{
+  MRI       *mri  = parms->mri_brain ;
+  double    sse = 0.0, ll, wm_frac, gm_frac, out_frac, Ig, Ic, pval ;
+  float     vmin, vmax, val ;
+  HISTOGRAM *hin, *hout ;
+  int       x, y, z, nvox, label ;
+  MRI        *mri_ll = NULL ;
+  static double last_sse = 0.0 ;
+
+  if (Gdiag & DIAG_WRITE)
+  {
+    char fname[STRLEN] ;
+    mri_ll = MRIcloneDifferentType(mri, MRI_FLOAT) ;
+    sprintf(fname, "%s.vfrac.%4.4d.mgz", parms->base_name, parms->t) ;
+    MRIwrite(parms->mri_volume_fractions, fname) ;
+  }
+
+  MRIvalRange(mri, &vmin, &vmax) ;
+  if (mri->type == MRI_UCHAR)
+  {
+    vmin = 0 ; vmax = 255 ;
+  }
+  if (parms->hgm == NULL)
+  {
+    printf("creating intensity histograms\n") ;
+    parms->hgm = hin = HISTOinit(parms->hgm, 256, (double)vmin, (double)vmax) ;
+    parms->hout = hout = HISTOinit(parms->hout, 256, (double)vmin,  (double)vmax) ;
+    MRISclearMarks(mris) ;
+    
+    // build histogram estimates of PDFs of interior and exterior of ribbon
+    for (x = 0 ; x < mri->width; x++)
+      for (y = 0 ; y < mri->height; y++)
+	for (z = 0 ; z < mri->depth; z++)
+	{
+	  if (Gx == x && Gy == y && Gz == z)
+	    DiagBreak() ;
+	  if (Gx2 == x && Gy2 == y && Gz2 == z)
+	    DiagBreak() ;
+	  val = MRIgetVoxVal(mri, x, y, z, 0) ;
+	  if (FZERO(val))
+	    continue ;
+	  
+	  wm_frac = MRIgetVoxVal(parms->mri_volume_fractions, x, y, z, 0) ;
+	  gm_frac = MRIgetVoxVal(parms->mri_volume_fractions, x, y, z, 1) ;
+	  out_frac = MRIgetVoxVal(parms->mri_volume_fractions, x, y, z, 2) ;
+	  if (parms->mri_aseg)
+	  {
+	    label = MRIgetVoxVal(parms->mri_aseg, x, y, z, 0) ;
+	    if (FZERO(gm_frac) && IS_CORTEX(label))  // aseg thinks it is but outside ribbon - ambiguous
+	      continue ;
+	  }
+	  HISTOaddFractionalSample(hout, val, 0, 0, out_frac) ;
+	  HISTOaddFractionalSample(hin, val, 0, 0, gm_frac) ;
+	}
+    
+    HISTOmakePDF(hin, hin) ;
+    HISTOmakePDF(hout, hout) ;
+    if (Gdiag & DIAG_WRITE)
+    {
+      char fname[STRLEN] ;
+      sprintf(fname, "hin.%s.%3.3d.plt", parms->base_name, parms->t) ;
+      HISTOplot(hin, fname) ; 
+      sprintf(fname, "hout.%s.%3.3d.plt", parms->base_name, parms->t) ;
+      HISTOplot(hout, fname) ;
+    }
+  }
+  else // use previously computed ones
+  {
+    hin = parms->hgm ;
+    hout = parms->hout ;
+  }
+
+  for (sse = 0.0, nvox = x = 0 ; x < mri->width; x++)
+    for (y = 0 ; y < mri->height; y++)
+      for (z = 0 ; z < mri->depth; z++)
+      {
+	if (Gx == x && Gy == y && Gz == z)
+	  DiagBreak() ;
+	if (Gx2 == x && Gy2 == y && Gz2 == z)
+	  DiagBreak() ;
+	val = MRIgetVoxVal(mri, x, y, z, 0) ;
+	if (FZERO(val))
+	  continue ;
+	wm_frac = MRIgetVoxVal(parms->mri_volume_fractions, x, y, z, 0) ;
+	if (wm_frac > 0)
+	  continue ;
+
+	gm_frac = MRIgetVoxVal(parms->mri_volume_fractions, x, y, z, 1) ;
+	out_frac = MRIgetVoxVal(parms->mri_volume_fractions, x, y, z, 2) ;
+
+	if (FZERO(out_frac))   // all gm
+	  pval = HISTOgetCount(hin, val) ;
+	else if (FZERO(gm_frac))
+	  pval = HISTOgetCount(hout, val) ;
+	else  // partial volume voxel
+	{
+	  for (pval = 0.0, Ig = 0 ; Ig <= 256 ; Ig++)
+	  {
+	    Ic = (val - gm_frac*Ig) / out_frac ;
+	    pval += HISTOgetCount(hout, Ic) * HISTOgetCount(hin, Ig) ;
+	  }
+	}
+	
+	if (pval > 1 || pval < 0)
+	  DiagBreak() ;
+	if (DZERO(pval))
+	  pval = 1e-20 ;
+	ll = -log10(pval) ;
+	sse += ll ;
+	nvox++ ;
+	if (mri_ll)
+	  MRIsetVoxVal(mri_ll, x, y, z, 0, ll) ;
+	if (Gx == x && Gy == y && Gz == z)
+	  printf("voxel(%d, %d, %d) = %d, vfracs = (%2.1f, %2.1f, %2.1f), ll = %2.1f\n",
+		 x, y, z, nint(val), wm_frac, gm_frac, out_frac, ll) ;
+      }
+
+  if (!FZERO(last_sse) && sse > last_sse)
+    DiagBreak() ;
+  if (mri_ll)
+  {
+    char fname[STRLEN] ;
+    sprintf(fname, "%s.ll.%4.4d.mgz", parms->base_name, parms->t) ;
+    printf("writing log likelihood volume to %s\n", fname) ;
+    MRIwrite(mri_ll, fname) ;
+    MRIfree(&mri_ll) ;
+  }
+//  HISTOfree(&hin) ; HISTOfree(&hout) ; 
+  if (pnvox)
+    *pnvox = nvox ;
+  if (Gdiag_no >= 0)
+    printf("E_logPosterior, %3.3d: %.1f (nvox=%d)\n", parms->t, sse, nvox) ;
+
+  last_sse = sse ; // diagnostics
+  return(sse) ;
+}
+
+static int
+vlst_add_to_list(VOXEL_LIST *vl_src, VOXEL_LIST *vl_dst) 
+{
+  int  i ;
+
+  for (i = 0 ; i < vl_src->nvox ; i++)
+    VLSTaddUnique(vl_dst, vl_src->xi[i], vl_src->yi[i], vl_src->zi[i], vl_src->xd[i], vl_src->yd[i], vl_src->zd[i]) ;
+    
+  return(NO_ERROR) ;
+}
+static int
+mrisComputePosteriorTerm(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
+{
+  MRI       *mri  = parms->mri_brain ;
+  static MRI *mri_white_dist ;
+  FILE      *fp ;
+  double    dist, xs, ys, zs, dn, best_dn, best_ll, ll ;
+  float     vmin, vmax, val, wdist ;
+  HISTOGRAM *hin, *hout ;
+  int       x, y, z, vno, n ;
+  VECTOR    *v1, *v2 ;
+  MATRIX    *m_vox2vox ;
+  MHT       *mht ;
+  VERTEX    *v, *vn ;
+  VOXEL_LIST **vl, **vl2 ;
+
+  if (FZERO(parms->l_map))
+    return(NO_ERROR) ;
+
+  vl = vlst_alloc(mris, MAX_VOXELS) ;
+  vl2 = vlst_alloc(mris, MAX_VOXELS) ;
+
+  hin = parms->hgm ; hout = parms->hout ;  // created in mrisComputeNegativeLogPosterior
+
+  if (mri_white_dist == NULL)
+  {
+    MRISsaveVertexPositions(mris, TMP_VERTICES) ;
+    MRISrestoreVertexPositions(mris, WHITE_VERTICES) ;
+    mri_white_dist = MRIScomputeDistanceToSurface(mris, NULL, 0.5) ;
+    MRISrestoreVertexPositions(mris, TMP_VERTICES) ;
+  }
+  mht = MHTfillVertexTableRes(mris, NULL, CURRENT_VERTICES, 10);
+
+  m_vox2vox = MRIgetVoxelToVoxelXform(mri, mri_white_dist) ;
+  v1 = VectorAlloc(4, MATRIX_REAL) ; v2 = VectorAlloc(4, MATRIX_REAL) ;
+  VECTOR_ELT(v1,4) = 1.0; VECTOR_ELT(v2,4) = 1.0;
+
+  if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
+    MRIwrite(mri_white_dist, "wd.mgz") ;
+
+  MRIvalRange(mri, &vmin, &vmax) ;
+  if (mri->type == MRI_UCHAR)
+  {
+    vmin = 0 ; vmax = 255 ;
+  }
+  MRISclearMarks(mris) ;
+
+  // build histogram estimates of PDFs of interior and exterior of ribbon
+  for (x = 0 ; x < mri->width; x++)
+    for (y = 0 ; y < mri->height; y++)
+      for (z = 0 ; z < mri->depth; z++)
+      {
+	val = MRIgetVoxVal(mri, x, y, z, 0) ;
+	if (FZERO(val))
+	  continue ;
+	V3_X(v1) = x ; V3_Y(v1) = y ; V3_Z(v1) = z ;
+	MatrixMultiply(m_vox2vox, v1, v2) ;
+
+	if (MRIindexNotInVolume(mri_white_dist, V3_X(v2), V3_Y(v2), V3_Z(v2)))
+	  continue ;
+	wdist = MRIgetVoxVal(mri_white_dist, V3_X(v2), V3_Y(v2), V3_Z(v2), 0) ;
+	if (wdist < 0)
+	  continue ;
+
+	// add this voxel to the list of voxels of the vertex it is closest to
+	MRIvoxelToSurfaceRAS(mri, x, y, z, &xs, &ys, &zs) ;
+	MHTfindClosestVertexGeneric(mht, mris,  xs, ys, zs, 10, 4, &v, &vno, &dist) ;
+	if (v == NULL)
+	  continue ;
+	if (vno == Gdiag_no)
+	  DiagBreak() ;
+	v->marked++ ;
+	VLSTadd(vl[vno], x, y, z, xs, ys, zs) ;
+      }
+
+  // find vertices that don't have enough data and pool across nbrs
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    v = &mris->vertices[vno] ;
+    if (vno == Gdiag_no)
+      DiagBreak() ;
+    vlst_add_to_list(vl[vno], vl2[vno]) ;
+    if (v->ripflag || vlst_enough_data(mris, vno, vl[vno], 0.0))
+      continue ;
+    for (n = 0; n < v->vnum ; n++)
+    {
+      if (vl2[vno]->nvox + vl[v->v[n]]->nvox >= vl2[vno]->max_vox)
+	break ;
+      vlst_add_to_list(vl[v->v[n]], vl2[vno]) ;
+    }
+    v->marked = vl[vno]->nvox ;
+  }
+
+  vlst_free(mris, &vl) ; vl = vl2 ;
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    v = &mris->vertices[vno] ;
+    if (vno == Gdiag_no)
+      DiagBreak() ;
+    if (v->ripflag || v->marked == 0)
+      continue ;
+    if (vlst_enough_data(mris, vno, vl[vno], 0.0) == 0)
+    {
+      v->marked = 0 ;
+      continue ;
+    }
+
+    if (vno == Gdiag_no)
+    {
+      char fname[STRLEN] ;
+      sprintf(fname, "vno%d.%d.l.dat", vno, parms->t) ;
+      fp = fopen(fname, "w") ;
+    }
+    else
+      fp = NULL ;
+    best_ll = -1e10 ; best_dn = 0 ;
+    for (dn = -MAX_DISPLACEMENT ; dn <= MAX_DISPLACEMENT ; dn += DISPLACEMENT_DELTA)
+    {
+      ll = -vlst_loglikelihood(mris, mri, vno, dn, vl[vno], hin, hout) ;
+      if (devIsnan(ll))
+	DiagBreak() ;
+      if (fp)
+	fprintf(fp, "%f %f\n", dn, ll) ;
+      if (ll > best_ll)
+      {
+	best_dn = dn ;
+	best_ll = ll ;
+      }
+    }
+    if (fp)
+      fclose(fp) ;
+
+#if 1
+    if (fabs(best_dn) > MAX_MOVEMENT)
+      best_dn = MAX_MOVEMENT*best_dn / fabs(best_dn) ;
+#endif
+    if (vno == Gdiag_no)
+    {
+      int i ;
+      char fname[STRLEN] ;
+      double dx, dy, dz, dist, dot, pin, pout ;
+
+      sprintf(fname, "vno%d.%d.vox.l.dat", vno, parms->t) ;
+      fp = fopen(fname, "w") ;
+
+      for (i = 0 ; i < vl[vno]->nvox ; i++)
+      {
+	val = MRIgetVoxVal(mri, vl[vno]->xi[i], vl[vno]->yi[i], vl[vno]->zi[i], 0) ;
+	dx = vl[vno]->xd[i]-v->x ; dy = vl[vno]->yd[i]-v->y ; dz = vl[vno]->zd[i]-v->z ;
+	dist = dx*dx + dy*dy + dz*dz ;
+	pin = HISTOgetCount(hin, val) ; pout = HISTOgetCount(hout, val) ;
+	dot = dx*v->nx + dy*v->ny + dz*v->nz ;
+	if (dot <0)
+	  dist *= -1 ;
+	fprintf(fp, "%d %d %d %d %d %f %f %f %f\n",
+		vno, i, vl[vno]->xi[i], vl[vno]->yi[i], vl[vno]->zi[i], val, dist, pin, pout) ;
+      }
+      fclose(fp) ;
+
+      printf("l_map: vno %d, best displacement %2.3f, ll = %2.3f, D = (%2.3f, %2.3f, %2.3f)\n",  
+	     vno, best_dn, best_ll, 
+	     best_dn * v->nx * parms->l_map,
+	     best_dn * v->ny * parms->l_map,
+	     best_dn * v->nz * parms->l_map) ;
+      DiagBreak() ;
+    }
+    v->dx += best_dn * v->nx * parms->l_map ;
+    v->dy += best_dn * v->ny * parms->l_map ;
+    v->dz += best_dn * v->nz * parms->l_map ;
+    v->d = best_dn ;
+  }
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    int    num ;
+    double dn = 0.0 ;
+
+    v = &mris->vertices[vno] ;
+    if (vno == Gdiag_no)
+      DiagBreak() ;
+    if (v->marked > 0)  // already estimated
+      continue ;
+    for (n = num = 0; n < v->vnum ; n++)
+    {
+      vn = &mris->vertices[v->v[n]] ;
+      if (vn->marked == 0)
+	continue ;
+      num++ ;
+      dn += vn->d ;
+    }
+    if (num > 0)
+    {
+      dn /= num ;
+      v->dx += dn * v->nx * parms->l_map ;
+      v->dy += dn * v->ny * parms->l_map ;
+      v->dz += dn * v->nz * parms->l_map ;
+      v->d = dn ;
+      if (vno == Gdiag_no)
+	printf("l_map: vno %d, soap bubble displacement %2.3f, D = (%2.3f, %2.3f, %2.3f)\n",  
+	       vno, dn, dn * v->nx * parms->l_map, dn * v->ny * parms->l_map,
+	       dn * v->nz * parms->l_map) ;
+    }
+  }
+
+  if (Gdiag & DIAG_WRITE)
+  {
+    char fname[STRLEN], path[STRLEN] ;
+
+    FileNamePath(mris->fname, path) ;
+    sprintf(fname, "%s/%s.%d.dist.mgz", path, mris->hemisphere == LEFT_HEMISPHERE ? "lh" : 
+	    mris->hemisphere == BOTH_HEMISPHERES ? "both" : "rh", parms->t) ;
+    MRISwriteD(mris, fname) ;
+    DiagBreak() ;
+  }
+  MHTfree(&mht) ;
+//  HISTOfree(&hin) ; HISTOfree(&hout) ; 
+  VectorFree(&v1) ; VectorFree(&v2) ; MatrixFree(&m_vox2vox) ;
+  vlst_free(mris, &vl) ;
+  return(NO_ERROR) ;
+}
+
+#if 0
+static double
+mrisComputeNegativeLogPosterior2D(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int *pnvox)
+{
+  MRI       *mri  = parms->mri_brain ;
+  double    sse = 0.0, ll, wm_frac, gm_frac, out_frac, Ig, Ic, pval, dist ;
+  float     vmin, vmax, val ;
+  HISTO2D   *hin, *hout ;
+  int       x, y, z, nvox, label ;
+  MRI        *mri_ll = NULL ;
+  static double last_sse = 0.0 ;
+  HISTOGRAM2D *hs ;
+
+  if (parms->mri_dtrans == NULL)
+    MRIScomputeDistanceToSurface(mris, NULL, parms->resolution) ;
+
+  if (Gdiag & DIAG_WRITE)
+  {
+    char fname[STRLEN] ;
+    mri_ll = MRIcloneDifferentType(mri, MRI_FLOAT) ;
+    sprintf(fname, "%s.vfrac.%4.4d.mgz", parms->base_name, parms->t) ;
+    MRIwrite(parms->mri_volume_fractions, fname) ;
+  }
+
+  MRIvalRange(mri, &vmin, &vmax) ;
+  if (mri->type == MRI_UCHAR)
+  {
+    vmin = 0 ; vmax = 255 ;
+  }
+  if (parms->h2d_gm == NULL)
+  {
+    printf("creating 2D intensity histograms\n") ;
+    parms->h2d_gm = hin = HISTO2Dinit(parms->h2d_gm, 256, 256, (double)vmin, (double)vmax, -10, 10) ;
+    parms->h2d_out = hout = HISTO2Dinit(parms->h2d_out, 256, 256, (double)vmin,  (double)vmax, -10, 10) ;
+    MRISclearMarks(mris) ;
+    
+    // build histogram estimates of PDFs of interior and exterior of ribbon
+    for (x = 0 ; x < mri->width; x++)
+      for (y = 0 ; y < mri->height; y++)
+	for (z = 0 ; z < mri->depth; z++)
+	{
+	  if (Gx == x && Gy == y && Gz == z)
+	    DiagBreak() ;
+	  if (Gx2 == x && Gy2 == y && Gz2 == z)
+	    DiagBreak() ;
+	  val = MRIgetVoxVal(mri, x, y, z, 0) ;
+	  if (FZERO(val))
+	    continue ;
+
+	  dist = MRIgetVoxVal(parms->mri_dtrans, x, y, z, 0) ;
+	  wm_frac = MRIgetVoxVal(parms->mri_volume_fractions, x, y, z, 0) ;
+	  gm_frac = MRIgetVoxVal(parms->mri_volume_fractions, x, y, z, 1) ;
+	  out_frac = MRIgetVoxVal(parms->mri_volume_fractions, x, y, z, 2) ;
+	  if (parms->mri_aseg)
+	  {
+	    label = MRIgetVoxVal(parms->mri_aseg, x, y, z, 0) ;
+	    if (FZERO(gm_frac) && IS_CORTEX(label))  // aseg thinks it is but outside ribbon - ambiguous
+	      continue ;
+	  }
+	  HISTO2DaddFractionalSample(hout, val, dist, 0, 0, 0, 0, out_frac) ;
+	  HISTO2DaddFractionalSample(hin, val, dist, 0, 0, 0, 0, gm_frac) ;
+	}
+    if (Gdiag & DIAG_WRITE)
+    {
+      char fname[STRLEN] ;
+      HISTOGRAM2D *hs ;
+
+      hs = HISTO2DsoapBubbleZeros(hin, NULL, 10) ;
+      sprintf(fname, "hin.%s.%3.3d.plt", parms->base_name, parms->t) ;
+      printf("writing histogram %s\n", fname) ;
+      HISTO2Dwrite(hin, fname) ;
+      sprintf(fname, "hin.%s.%3.3d.soap.plt", parms->base_name, parms->t) ;
+      printf("writing histogram %s\n", fname) ;
+      HISTO2Dwrite(hs, fname) ;
+      HISTO2Dfree(&hs) ;
+
+      hs = HISTO2DsoapBubbleZeros(hout, NULL, 10) ;
+      HISTO2Dfree(&hs) ;
+    }
+
+    HISTO2DmakePDF(hin, hin) ;
+    HISTO2DmakePDF(hout, hout) ;
+    hs = HISTO2Dsmooth(hin, NULL, 5) ;
+    if (Gdiag & DIAG_WRITE)
+    {
+      char fname[STRLEN] ;
+      sprintf(fname, "hin.%s.%3.3d.plt", parms->base_name, parms->t) ;
+      HISTO2Dwrite(hin, fname) ; 
+      sprintf(fname, "hin.%s.%3.3d.smooth.plt", parms->base_name, parms->t) ;
+      HISTO2Dwrite(hs, fname) ; 
+    }
+    HISTO2Dfree(&hin) ; hin = parms->h2d_gm = hs ;
+
+    hs = HISTO2Dsmooth(hout, NULL, 5) ;
+    if (Gdiag & DIAG_WRITE)
+    {
+      char fname[STRLEN] ;
+      sprintf(fname, "hout.%s.%3.3d.plt", parms->base_name, parms->t) ;
+      HISTO2Dwrite(hout, fname) ; 
+      sprintf(fname, "hout.%s.%3.3d.smooth.plt", parms->base_name, parms->t) ;
+      HISTO2Dwrite(hs, fname) ; 
+    }
+    HISTO2Dfree(&hout) ; hout = parms->h2d_out = hs ;
+    
+
+    if (Gx > 0)
+    {
+      int b1, b2 ;
+      float wm_frac, gm_frac, out_frac, val, cin, cout ;
+
+      x = Gx ; y = Gy ; z = Gz ;
+      dist = MRIgetVoxVal(parms->mri_dtrans, x, y, z, 0) ;
+      wm_frac = MRIgetVoxVal(parms->mri_volume_fractions, x, y, z, 0) ;
+      gm_frac = MRIgetVoxVal(parms->mri_volume_fractions, x, y, z, 1) ;
+      out_frac = MRIgetVoxVal(parms->mri_volume_fractions, x, y, z, 2) ;
+      val = MRIgetVoxVal(mri, x, y, z, 0) ;
+      b1 = HISTO2DfindBin1(hin, val) ;
+      b2 = HISTO2DfindBin2(hin, dist) ;
+      cin = HISTO2DgetCount(hin, val, dist) ;
+      cout = HISTO2DgetCount(hout, val, dist) ;
+      printf("voxel (%d, %d, %d) - vfracts (%2.1f, %2.1f, %2.1f) = %2.0f, dist=%2.1f, bin=%d,%d, cin=%f, cout=%f\n",
+	     Gx, Gy, Gz, wm_frac, gm_frac, out_frac, val, dist, b1, b2, cin, cout) ;
+      
+      DiagBreak() ;
+    }
+  }
+  else // use previously computed ones
+  {
+    hin = parms->h2d_gm ;
+    hout = parms->h2d_out ;
+  }
+
+  for (sse = 0.0, nvox = x = 0 ; x < mri->width; x++)
+    for (y = 0 ; y < mri->height; y++)
+      for (z = 0 ; z < mri->depth; z++)
+      {
+	if (Gx == x && Gy == y && Gz == z)
+	  DiagBreak() ;
+	if (Gx2 == x && Gy2 == y && Gz2 == z)
+	  DiagBreak() ;
+	val = MRIgetVoxVal(mri, x, y, z, 0) ;
+	if (FZERO(val))
+	  continue ;
+	wm_frac = MRIgetVoxVal(parms->mri_volume_fractions, x, y, z, 0) ;
+	if (wm_frac > 0)
+	  continue ;
+
+	gm_frac = MRIgetVoxVal(parms->mri_volume_fractions, x, y, z, 1) ;
+	out_frac = MRIgetVoxVal(parms->mri_volume_fractions, x, y, z, 2) ;
+	dist = MRIgetVoxVal(parms->mri_dtrans, x, y, z, 0) ;
+
+	if (FZERO(out_frac))   // all gm
+	  pval = HISTO2DgetCount(hin, val, dist) ;
+	else if (FZERO(gm_frac))
+	  pval = HISTO2DgetCount(hout, val, dist) ;
+	else  // partial volume voxel
+	{
+	  for (pval = 0.0, Ig = 0 ; Ig <= 256 ; Ig++)
+	  {
+	    Ic = (val - gm_frac*Ig) / out_frac ;
+	    pval += HISTO2DgetCount(hout, Ic, dist) * HISTO2DgetCount(hin, Ig, dist) ;
+	  }
+	}
+	
+	if (pval > 1 || pval < 0)
+	  DiagBreak() ;
+	if (DZERO(pval))
+	  pval = 1e-20 ;
+	ll = -log10(pval) ;
+	sse += ll ;
+	nvox++ ;
+	if (mri_ll)
+	  MRIsetVoxVal(mri_ll, x, y, z, 0, ll) ;
+	if (Gx == x && Gy == y && Gz == z)
+	  printf("voxel(%d, %d, %d) = %d, vfracs = (%2.1f, %2.1f, %2.1f), ll = %2.1f\n",
+		 x, y, z, nint(val), wm_frac, gm_frac, out_frac, ll) ;
+      }
+
+  if (!FZERO(last_sse) && sse > last_sse)
+    DiagBreak() ;
+  if (mri_ll)
+  {
+    char fname[STRLEN] ;
+    sprintf(fname, "%s.ll.%4.4d.mgz", parms->base_name, parms->t) ;
+    printf("writing log likelihood volume to %s\n", fname) ;
+    MRIwrite(mri_ll, fname) ;
+    MRIfree(&mri_ll) ;
+  }
+//  HISTOfree(&hin) ; HISTOfree(&hout) ; 
+  if (pnvox)
+    *pnvox = nvox ;
+  if (Gdiag_no >= 0)
+    printf("E_logPosterior, %3.3d: %.1f (nvox=%d)\n", parms->t, sse, nvox) ;
+
+  last_sse = sse ; // diagnostics
+  return(sse) ;
+}
+
+static int
+mrisComputePosterior2DTerm(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
+{
+  MRI       *mri  = parms->mri_brain ;
+  static MRI *mri_white_dist ;
+  FILE      *fp ;
+  double    dist, xs, ys, zs, dn, best_dn, best_ll, ll ;
+  float     vmin, vmax, val, wdist ;
+  HISTO2D   *hin, *hout ;
+  int       x, y, z, vno, n ;
+  VECTOR    *v1, *v2 ;
+  MATRIX    *m_vox2vox ;
+  MHT       *mht ;
+  VERTEX    *v, *vn ;
+  VOXEL_LIST **vl, **vl2 ;
+
+  if (FZERO(parms->l_map2d))
+    return(NO_ERROR) ;
+  vl = vlst_alloc(mris, MAX_VOXELS) ;
+  vl2 = vlst_alloc(mris, MAX_VOXELS) ;
+
+  hin = parms->h2d_gm ; hout = parms->h2d_out ;  // created in mrisComputeNegativeLogPosterior2D
+
+  if (mri_white_dist == NULL)
+  {
+    MRISsaveVertexPositions(mris, TMP_VERTICES) ;
+    MRISrestoreVertexPositions(mris, WHITE_VERTICES) ;
+    mri_white_dist = MRIScomputeDistanceToSurface(mris, NULL, 0.5) ;
+    MRISrestoreVertexPositions(mris, TMP_VERTICES) ;
+  }
+  mht = MHTfillVertexTableRes(mris, NULL, CURRENT_VERTICES, 10);
+
+  m_vox2vox = MRIgetVoxelToVoxelXform(mri, mri_white_dist) ;
+  v1 = VectorAlloc(4, MATRIX_REAL) ; v2 = VectorAlloc(4, MATRIX_REAL) ;
+  VECTOR_ELT(v1,4) = 1.0; VECTOR_ELT(v2,4) = 1.0;
+
+  if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
+    MRIwrite(mri_white_dist, "wd.mgz") ;
+
+  MRIvalRange(mri, &vmin, &vmax) ;
+  if (mri->type == MRI_UCHAR)
+  {
+    vmin = 0 ; vmax = 255 ;
+  }
+  MRISclearMarks(mris) ;
+
+  // build histogram estimates of PDFs of interior and exterior of ribbon
+  for (x = 0 ; x < mri->width; x++)
+    for (y = 0 ; y < mri->height; y++)
+      for (z = 0 ; z < mri->depth; z++)
+      {
+	val = MRIgetVoxVal(mri, x, y, z, 0) ;
+	if (FZERO(val))
+	  continue ;
+	V3_X(v1) = x ; V3_Y(v1) = y ; V3_Z(v1) = z ;
+	MatrixMultiply(m_vox2vox, v1, v2) ;
+
+	if (MRIindexNotInVolume(mri_white_dist, V3_X(v2), V3_Y(v2), V3_Z(v2)))
+	  continue ;
+	wdist = MRIgetVoxVal(mri_white_dist, V3_X(v2), V3_Y(v2), V3_Z(v2), 0) ;
+	if (wdist < 0)
+	  continue ;
+
+	// add this voxel to the list of voxels of the vertex it is closest to
+	MRIvoxelToSurfaceRAS(mri, x, y, z, &xs, &ys, &zs) ;
+	MHTfindClosestVertexGeneric(mht, mris,  xs, ys, zs, 10, 4, &v, &vno, &dist) ;
+	if (v == NULL)
+	  continue ;
+	if (vno == Gdiag_no)
+	  DiagBreak() ;
+	v->marked++ ;
+	VLSTadd(vl[vno], x, y, z, xs, ys, zs) ;
+      }
+
+  // find vertices that don't have enough data and pool across nbrs
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    v = &mris->vertices[vno] ;
+    if (vno == Gdiag_no)
+      DiagBreak() ;
+    vlst_add_to_list(vl[vno], vl2[vno]) ;
+    if (v->ripflag || vlst_enough_data(mris, vno, vl[vno], 0.0))
+      continue ;
+    for (n = 0; n < v->vnum ; n++)
+    {
+      if (vl2[vno]->nvox + vl[v->v[n]]->nvox >= vl2[vno]->max_vox)
+	break ;
+      vlst_add_to_list(vl[v->v[n]], vl2[vno]) ;
+    }
+    v->marked = vl[vno]->nvox ;
+  }
+
+  vlst_free(mris, &vl) ; vl = vl2 ;
+  m_vox2vox = MRIgetVoxelToVoxelXform(mri, parms->mri_dtrans) ; // dist to pial surface
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    v = &mris->vertices[vno] ;
+    if (vno == Gdiag_no)
+      DiagBreak() ;
+    if (v->ripflag || v->marked == 0)
+      continue ;
+    if (vlst_enough_data(mris, vno, vl[vno], 0.0) == 0)
+    {
+      v->marked = 0 ;
+      continue ;
+    }
+
+    if (vno == Gdiag_no)
+    {
+      char fname[STRLEN] ;
+      sprintf(fname, "vno%d.%d.l.dat", vno, parms->t) ;
+      fp = fopen(fname, "w") ;
+    }
+    else
+      fp = NULL ;
+    best_ll = -1e10 ; best_dn = 0 ;
+    for (dn = -MAX_DISPLACEMENT ; dn <= MAX_DISPLACEMENT ; dn += DISPLACEMENT_DELTA)
+    {
+      if (fp)
+	fprintf(fp, "%f ", dn) ;
+      ll = -vlst_loglikelihood2D(mris, mri, vno, dn, vl[vno], hin, hout, fp) ;
+      if (fp)
+	fprintf(fp, "\n") ;
+      if (devIsnan(ll))
+	DiagBreak() ;
+      if (fp)
+	fprintf(fp, "%f %f\n", dn, ll) ;
+      if (ll > best_ll)
+      {
+	best_dn = dn ;
+	best_ll = ll ;
+      }
+    }
+    if (fp)
+      fclose(fp) ;
+
+//#undef MAX_MOVEMENT
+//#define MAX_MOVEMENT 1
+    
+#if 1
+    if (fabs(best_dn) > MAX_MOVEMENT)
+      best_dn = MAX_MOVEMENT*best_dn / fabs(best_dn) ;
+#endif
+    if (vno == Gdiag_no)
+    {
+      int i ;
+      char fname[STRLEN] ;
+      double dx, dy, dz, dist, dot, pin, pout ;
+
+      sprintf(fname, "vno%d.%d.vox.l.dat", vno, parms->t) ;
+      fp = fopen(fname, "w") ;
+
+      for (i = 0 ; i < vl[vno]->nvox ; i++)
+      {
+	val = MRIgetVoxVal(mri, vl[vno]->xi[i], vl[vno]->yi[i], vl[vno]->zi[i], 0) ;
+	dx = vl[vno]->xd[i]-v->x ; dy = vl[vno]->yd[i]-v->y ; dz = vl[vno]->zd[i]-v->z ;
+	dist = dx*dx + dy*dy + dz*dz ;
+	dot = dx*v->nx + dy*v->ny + dz*v->nz ;
+	if (dot <0)
+	  dist *= -1 ;
+	pin = HISTO2DgetCount(hin, val, dot) ; pout = HISTO2DgetCount(hout, val, dot) ;
+	fprintf(fp, "%d %d %d %d %d %f %f %f %f\n",
+		vno, i, vl[vno]->xi[i], vl[vno]->yi[i], vl[vno]->zi[i], val, dist, pin, pout) ;
+      }
+      fclose(fp) ;
+
+      printf("l_map: vno %d, best displacement %2.3f, ll = %2.3f, D = (%2.3f, %2.3f, %2.3f)\n",  
+	     vno, best_dn, best_ll, 
+	     best_dn * v->nx * parms->l_map2d,
+	     best_dn * v->ny * parms->l_map2d,
+	     best_dn * v->nz * parms->l_map2d) ;
+      DiagBreak() ;
+    }
+    v->dx += best_dn * v->nx * parms->l_map2d ;
+    v->dy += best_dn * v->ny * parms->l_map2d ;
+    v->dz += best_dn * v->nz * parms->l_map2d ;
+    v->d = best_dn ;
+  }
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    int    num ;
+    double dn = 0.0 ;
+
+    v = &mris->vertices[vno] ;
+    if (vno == Gdiag_no)
+      DiagBreak() ;
+    if (v->marked > 0)  // already estimated
+      continue ;
+    for (n = num = 0; n < v->vnum ; n++)
+    {
+      vn = &mris->vertices[v->v[n]] ;
+      if (vn->marked == 0)
+	continue ;
+      num++ ;
+      dn += vn->d ;
+    }
+    if (num > 0)
+    {
+      dn /= num ;
+      v->dx += dn * v->nx * parms->l_map2d ;
+      v->dy += dn * v->ny * parms->l_map2d ;
+      v->dz += dn * v->nz * parms->l_map2d ;
+      v->d = dn ;
+      if (vno == Gdiag_no)
+	printf("l_map: vno %d, soap bubble displacement %2.3f, D = (%2.3f, %2.3f, %2.3f)\n",  
+	       vno, dn, dn * v->nx * parms->l_map2d, dn * v->ny * parms->l_map2d,
+	       dn * v->nz * parms->l_map2d) ;
+    }
+  }
+
+  if (Gdiag & DIAG_WRITE)
+  {
+    char fname[STRLEN], path[STRLEN] ;
+
+    FileNamePath(mris->fname, path) ;
+    sprintf(fname, "%s/%s.%d.dist.mgz", path, mris->hemisphere == LEFT_HEMISPHERE ? "lh" : 
+	    mris->hemisphere == BOTH_HEMISPHERES ? "both" : "rh", parms->t) ;
+    MRISwriteD(mris, fname) ;
+    DiagBreak() ;
+  }
+  MHTfree(&mht) ;
+//  HISTOfree(&hin) ; HISTOfree(&hout) ; 
+  VectorFree(&v1) ; VectorFree(&v2) ; MatrixFree(&m_vox2vox) ;
+  vlst_free(mris, &vl) ;
+  return(NO_ERROR) ;
+}
+#else
+static double
+mrisComputeNegativeLogPosterior2D(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int *pnvox)
+{
+  MRI       *mri  = parms->mri_brain ;
+  MHT       *mht ;
+  double    sse = 0.0, ll, wm_frac, pval, dist, vdist, xs, ys, zs ;
+  float     vmin, vmax, val ;
+  int       x, y, z, nvox, label, xd, yd, zd, vno ;
+  VERTEX    *v ;
+  MRI       *mri_ll = NULL ;
+  static double last_sse = 0.0 ;
+  HISTOGRAM2D *hs ;
+  MATRIX      *m_vox2vox ;
+  VECTOR      *v1, *v2 ;
+
+  mht = MHTfillVertexTableRes(mris, NULL, CURRENT_VERTICES, 10);
+
+  if (parms->mri_dtrans == NULL)
+  {
+    int nvox ;
+    MRI *mri_tmp ;
+
+    nvox = nint(MAX(MAX((mri->xsize/parms->resolution), (mri->ysize/parms->resolution)), 
+		    (mri->zsize/parms->resolution))) ;
+    mri_tmp = MRIcloneDifferentType(mri, MRI_FLOAT) ;
+    parms->mri_dtrans =  MRIupsampleN(mri_tmp, NULL, nvox);
+    MRIfree(&mri_tmp) ;
+    MRIScomputeDistanceToSurface(mris, parms->mri_dtrans, parms->resolution) ;
+    if (parms->t > 0)
+      DiagBreak() ;
+    DiagBreak() ;
+  }
+
+  m_vox2vox = MRIgetVoxelToVoxelXform(mri, parms->mri_dtrans) ;
+  v1 = VectorAlloc(4, MATRIX_REAL) ; v2 = VectorAlloc(4, MATRIX_REAL) ;
+  VECTOR_ELT(v1,4) = 1.0; VECTOR_ELT(v2,4) = 1.0;
+
+  if (Gdiag & DIAG_WRITE)
+  {
+    char fname[STRLEN] ;
+    mri_ll = MRIcloneDifferentType(mri, MRI_FLOAT) ;
+    sprintf(fname, "%s.vfrac.%4.4d.mgz", parms->base_name, parms->t) ;
+    MRIwrite(parms->mri_volume_fractions, fname) ;
+  }
+
+  MRIvalRange(mri, &vmin, &vmax) ;
+  if (mri->type == MRI_UCHAR)
+  {
+    vmin = 0 ; vmax = 255 ;
+  }
+
+  if (parms->h2d == NULL)
+  {
+    printf("creating 2D intensity histograms\n") ;
+    parms->h2d = HISTO2Dinit(parms->h2d, 128, 101, (double)vmin, (double)vmax, -10, 10) ;
+    MRISclearMarks(mris) ;
+    
+    // build histogram estimates of PDFs of interior and exterior of ribbon
+    for (x = 0 ; x < mri->width; x++)
+      for (y = 0 ; y < mri->height; y++)
+	for (z = 0 ; z < mri->depth; z++)
+	{
+	  if (Gx == x && Gy == y && Gz == z)
+	    DiagBreak() ;
+	  if (Gx2 == x && Gy2 == y && Gz2 == z)
+	    DiagBreak() ;
+	  val = MRIgetVoxVal(mri, x, y, z, 0) ;
+	  wm_frac = MRIgetVoxVal(parms->mri_volume_fractions, x, y, z, 0) ;
+	  if (wm_frac > 0)
+	    continue ;
+
+	  V3_X(v1) = x ; V3_Y(v1) = y ; V3_Z(v1) = z ;
+	  MatrixMultiply(m_vox2vox, v1, v2) ; xd = nint(V3_X(v2)) ; yd = nint(V3_Y(v2)) ; zd = nint(V3_Z(v2)) ;
+	  if (MRIindexNotInVolume(parms->mri_dtrans, xd, yd, zd))
+	    continue ;
+	  dist = MRIgetVoxVal(parms->mri_dtrans, xd, yd, zd, 0) ;
+	  if (FZERO(val) && (dist > 1 || dist < 0))  // don't allow 0s inside ribbon or too far out
+	    continue ;
+	  if (FZERO(val)) 
+	    continue ;
+	  if (FZERO(val) && dist < 0)
+	    DiagBreak() ;
+
+	  // update distance with continuum measure
+	  MRIvoxelToSurfaceRAS(mri, x, y, z, &xs, &ys, &zs) ;
+	  MHTfindClosestVertexGeneric(mht, mris,  xs, ys, zs, 10, 4, &v, &vno, &vdist) ;
+	  if (v != NULL)  // compute distance from surface in normal direction
+	  {
+	    double dx, dy, dz ;
+
+	    dx = xs-v->x ; dy = ys-v->y ;  dz = zs-v->z ; 
+	    dist = dx*v->nx + dy*v->ny + dz*v->nz ;
+	  }
+
+	  if (parms->mri_aseg)
+	  {
+	    label = MRIgetVoxVal(parms->mri_aseg, x, y, z, 0) ;
+	    if (dist>1 && IS_CORTEX(label))  // aseg thinks it is but outside ribbon - ambiguous
+	      continue ;
+	  }
+	  HISTO2DaddSample(parms->h2d, val, dist, 0, 0, 0, 0) ;
+	}
+    if (Gdiag & DIAG_WRITE)
+    {
+      char fname[STRLEN] ;
+
+      sprintf(fname, "h.%s.%3.3d.plt", parms->base_name, parms->t) ;
+      printf("writing histogram %s\n", fname) ;
+      HISTO2Dwrite(parms->h2d, fname) ;
+    }
+
+//    hs = HISTO2DsoapBubbleZeros(parms->h2d, NULL, 100) ;
+    hs = HISTO2DmakePDF(parms->h2d, NULL) ;
+    if (Gdiag & DIAG_WRITE)
+    {
+      char fname[STRLEN] ;
+      sprintf(fname, "h.%s.%3.3d.pdf.plt", parms->base_name, parms->t) ;
+      printf("writing histogram %s\n", fname) ;
+      HISTO2Dwrite(hs, fname) ; 
+    }
+//    HISTO2DsmoothBins2(hs, parms->h2d, 5) ;
+    if (parms->h2d_out)
+      HISTO2Dfree(&parms->h2d_out) ;
+    parms->h2d_out = HISTO2DsmoothAnisotropic(hs, NULL, .25, 1) ;
+    HISTO2Dsmooth(hs, parms->h2d, 1) ;
+    HISTO2DmakePDF(parms->h2d_out, hs) ;
+    if (Gdiag & DIAG_WRITE)
+    {
+      char fname[STRLEN] ;
+      sprintf(fname, "h.%s.%3.3d.pdf.smooth.plt", parms->base_name, parms->t) ;
+      printf("writing histogram %s\n", fname) ;
+      HISTO2Dwrite(hs, fname) ; 
+    }
+    HISTO2Dfree(&parms->h2d) ; parms->h2d = hs ;
+
+    if (Gx > 0)
+    {
+      int b1, b2 ;
+      float val, c ;
+
+      x = Gx ; y = Gy ; z = Gz ;
+      V3_X(v1) = x ; V3_Y(v1) = y ; V3_Z(v1) = z ;
+      MatrixMultiply(m_vox2vox, v1, v2) ; xd = nint(V3_X(v2)) ; yd = nint(V3_Y(v2)) ; zd = nint(V3_Z(v2)) ;
+      if (MRIindexNotInVolume(parms->mri_dtrans, xd, yd, zd))
+	dist = 10 ;
+      else
+	dist = MRIgetVoxVal(parms->mri_dtrans, xd, yd, zd, 0) ;
+      val = MRIgetVoxVal(mri, x, y, z, 0) ;
+      b1 = HISTO2DfindBin1(parms->h2d, val) ;
+      b2 = HISTO2DfindBin2(parms->h2d, dist) ;
+      c = HISTO2DgetCount(parms->h2d, val, dist) ;
+      printf("voxel (%d, %d, %d) = %2.0f, dist=%2.2f, bin=%d,%d, count=%f\n",
+	     Gx, Gy, Gz, val, dist, b1, b2, c) ;
+      
+      DiagBreak() ;
+    }
+  }
+  else // use previously computed ones
+  {
+  }
+
+  for (sse = 0.0, nvox = x = 0 ; x < mri->width; x++)
+    for (y = 0 ; y < mri->height; y++)
+      for (z = 0 ; z < mri->depth; z++)
+      {
+	if (Gx == x && Gy == y && Gz == z)
+	  DiagBreak() ;
+	if (Gx2 == x && Gy2 == y && Gz2 == z)
+	  DiagBreak() ;
+	val = MRIgetVoxVal(mri, x, y, z, 0) ;
+	wm_frac = MRIgetVoxVal(parms->mri_volume_fractions, x, y, z, 0) ;
+	if (wm_frac > 0)
+	  continue ;
+
+	V3_X(v1) = x ; V3_Y(v1) = y ; V3_Z(v1) = z ;
+	MatrixMultiply(m_vox2vox, v1, v2) ; xd = nint(V3_X(v2)) ; yd = nint(V3_Y(v2)) ; zd = nint(V3_Z(v2)) ;
+	if (MRIindexNotInVolume(parms->mri_dtrans, xd, yd, zd))
+	  dist = 10 ;
+	else
+	  dist = MRIgetVoxVal(parms->mri_dtrans, xd, yd, zd, 0) ;
+	if (FZERO(val) && dist > 1)
+	  continue ;
+	if (FZERO(val))
+	  continue ;
+	if (FZERO(val))
+	  DiagBreak() ;
+
+	pval = HISTO2DgetCount(parms->h2d, val, dist) ;
+	if (pval > 1 || pval < 0)
+	  DiagBreak() ;
+	if (DZERO(pval))
+	  pval = 1e-20 ;
+	ll = -log10(pval) ;
+	if (!finite(ll))
+	  DiagBreak() ;
+	sse += ll ;
+	nvox++ ;
+	if (mri_ll)
+	  MRIsetVoxVal(mri_ll, x, y, z, 0, ll) ;
+	if (Gx == x && Gy == y && Gz == z)
+	{
+	  printf("voxel(%d, %d, %d) = %d, dist=%2.2f, ll = %2.1f, bins = %d, %d\n", x, y, z, nint(val), dist, ll, HISTO2DfindBin1(parms->h2d,val), HISTO2DfindBin2(parms->h2d, dist)) ;
+	}
+      }
+
+  if (!FZERO(last_sse) && sse > last_sse)
+    DiagBreak() ;
+  if (mri_ll)
+  {
+    char fname[STRLEN] ;
+    sprintf(fname, "%s.ll.%4.4d.mgz", parms->base_name, parms->t) ;
+    printf("writing log likelihood volume to %s\n", fname) ;
+    MRIwrite(mri_ll, fname) ;
+    MRIfree(&mri_ll) ;
+  }
+//  HISTOfree(&hin) ; HISTOfree(&hout) ; 
+  if (pnvox)
+    *pnvox = nvox ;
+  if (Gdiag_no >= 0)
+    printf("E_logPosterior, %3.3d: %.1f (nvox=%d)\n", parms->t, sse, nvox) ;
+
+  MHTfree(&mht) ;
+  MatrixFree(&m_vox2vox) ; VectorFree(&v1) ; VectorFree(&v2) ;
+  last_sse = sse ; // diagnostics
+  return(sse) ;
+}
+
+static int
+mrisComputePosterior2DTerm(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
+{
+  MRI       *mri  = parms->mri_brain ;
+  static MRI *mri_white_dist ;
+  FILE      *fp, *fp2 ;
+  double    dist, xs, ys, zs, dn, best_dn, best_ll, ll ;
+  float     vmin, vmax, val, wdist ;
+  int       x, y, z, vno, n ;
+  VECTOR    *v1, *v2 ;
+  MATRIX    *m_vox2vox ;
+  MHT       *mht ;
+  VERTEX    *v, *vn ;
+  VOXEL_LIST **vl, **vl2 ;
+
+  if (FZERO(parms->l_map2d))
+    return(NO_ERROR) ;
+  vl = vlst_alloc(mris, MAX_VOXELS) ;
+  vl2 = vlst_alloc(mris, MAX_VOXELS) ;
+
+  if (mri_white_dist == NULL)
+  {
+    MRISsaveVertexPositions(mris, TMP_VERTICES) ;
+    MRISrestoreVertexPositions(mris, WHITE_VERTICES) ;
+    mri_white_dist = MRIScomputeDistanceToSurface(mris, NULL, 0.5) ;
+    MRISrestoreVertexPositions(mris, TMP_VERTICES) ;
+  }
+  mht = MHTfillVertexTableRes(mris, NULL, CURRENT_VERTICES, 10);
+
+  m_vox2vox = MRIgetVoxelToVoxelXform(mri, mri_white_dist) ;
+  v1 = VectorAlloc(4, MATRIX_REAL) ; v2 = VectorAlloc(4, MATRIX_REAL) ;
+  VECTOR_ELT(v1,4) = 1.0; VECTOR_ELT(v2,4) = 1.0;
+
+  if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
+    MRIwrite(mri_white_dist, "wd.mgz") ;
+
+  MRIvalRange(mri, &vmin, &vmax) ;
+  if (mri->type == MRI_UCHAR)
+  {
+    vmin = 0 ; vmax = 255 ;
+  }
+  MRISclearMarks(mris) ;
+
+  // find set of voxels that are closest to each vertex
+  for (x = 0 ; x < mri->width; x++)
+    for (y = 0 ; y < mri->height; y++)
+      for (z = 0 ; z < mri->depth; z++)
+      {
+	val = MRIgetVoxVal(mri, x, y, z, 0) ;
+	V3_X(v1) = x ; V3_Y(v1) = y ; V3_Z(v1) = z ;
+	MatrixMultiply(m_vox2vox, v1, v2) ;
+
+	if (MRIindexNotInVolume(mri_white_dist, V3_X(v2), V3_Y(v2), V3_Z(v2)))
+	  continue ;
+	wdist = MRIgetVoxVal(mri_white_dist, V3_X(v2), V3_Y(v2), V3_Z(v2), 0) ;
+	if (wdist < 0)
+	  continue ;
+
+	// add this voxel to the list of voxels of the vertex it is closest to
+	MRIvoxelToSurfaceRAS(mri, x, y, z, &xs, &ys, &zs) ;
+	MHTfindClosestVertexGeneric(mht, mris,  xs, ys, zs, 10, 4, &v, &vno, &dist) ;
+	if (v == NULL)
+	  continue ;
+	if (FZERO(val) && dist > 1)
+	  continue ;
+	if (vno == Gdiag_no)
+	  DiagBreak() ;
+	v->marked++ ;
+	VLSTadd(vl[vno], x, y, z, xs, ys, zs) ;
+	if (x == Gx && y == Gy && z == Gz)
+	{
+	  printf("voxel (%d, %d, %d) --> vertex %d\n", x, y, z, vno) ;
+	  if (Gdiag_no < 0)
+	  {
+	    printf("setting Gdiag_no to %d\n", vno) ;
+	    Gdiag_no = vno ;
+	  }
+	}
+      }
+
+  if (Gdiag_no >= 0)
+    printf("%d nearest voxels found to vertex %d\n", vl[Gdiag_no]->nvox, Gdiag_no) ;
+
+  // find vertices that don't have enough data and pool across nbrs
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    v = &mris->vertices[vno] ;
+    if (vno == Gdiag_no)
+      DiagBreak() ;
+    vlst_add_to_list(vl[vno], vl2[vno]) ;
+    if (v->ripflag || vlst_enough_data(mris, vno, vl[vno], 0.0))
+      continue ;
+    for (n = 0; n < v->vnum ; n++)
+    {
+      if (vl2[vno]->nvox + vl[v->v[n]]->nvox >= vl2[vno]->max_vox)
+	break ;
+      vlst_add_to_list(vl[v->v[n]], vl2[vno]) ;
+    }
+    v->marked = vl2[vno]->nvox ;
+    if (vno == Gdiag_no)
+      printf("%d total voxels found close to vertex %d after nbr adding\n", 
+	     vl2[vno]->nvox, vno) ;
+  }
+
+  vlst_free(mris, &vl) ; vl = vl2 ;
+  m_vox2vox = MRIgetVoxelToVoxelXform(mri, parms->mri_dtrans) ; // dist to pial surface
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    v = &mris->vertices[vno] ;
+    if (vno == Gdiag_no)
+      DiagBreak() ;
+    if (v->ripflag || v->marked == 0)
+      continue ;
+    if (vlst_enough_data(mris, vno, vl[vno], 0.0) == 0)
+    {
+      v->marked = 0 ;
+      continue ;
+    }
+
+    if (vno == Gdiag_no)
+    {
+      char fname[STRLEN] ;
+      sprintf(fname, "vno%d.%d.l.dat", vno, parms->t) ;
+      fp = fopen(fname, "w") ;
+      sprintf(fname, "vno%d.%d.l.vals.dat", vno, parms->t) ;
+      fp2 = fopen(fname, "w") ;
+    }
+    else
+      fp = fp2 = NULL ;
+    best_ll = -1e10 ; best_dn = 0 ;
+    if (fp2)
+    {
+      int i ;
+      float dot, dx, dy, dz, val ;
+      char fname[STRLEN] ;
+
+      for (i = 0 ; i < vl[vno]->nvox ; i++)
+      {
+	val = MRIgetVoxVal(mri, vl[vno]->xi[i], vl[vno]->yi[i], vl[vno]->zi[i], 0) ;
+	dx = vl[vno]->xd[i]-v->x ; dy = vl[vno]->yd[i]-v->y ; dz = vl[vno]->zd[i]-v->z ;
+	dot = dx*v->nx + dy*v->ny + dz*v->nz ;
+	fprintf(fp2, "%d %d %d %f %f\n", vl[vno]->xi[i], vl[vno]->yi[i], vl[vno]->zi[i], dot, val) ;
+      }
+      fclose(fp2) ;
+      sprintf(fname, "vno%d.%d.l.good.dat", vno, parms->t) ;
+      fp2 = fopen(fname, "w") ;
+    }
+    for (dn = -MAX_DISPLACEMENT ; dn <= MAX_DISPLACEMENT ; dn += DISPLACEMENT_DELTA)
+    {
+      ll = -vlst_loglikelihood2D(mris, mri, vno, dn, vl[vno], parms->h2d, fp2) ;
+      if (devIsnan(ll))
+	DiagBreak() ;
+      if (fp)
+	fprintf(fp, "%f %f\n", dn, ll) ;
+      if (ll > best_ll)
+      {
+	best_dn = dn ;
+	best_ll = ll ;
+      }
+    }
+    if (fp)
+      fclose(fp) ;
+    if (fp2)
+      fclose(fp2) ;
+
+    if (vno == Gdiag_no && parms->h2d_out != NULL)  // diags
+    {
+      char fname[STRLEN] ;
+      double best_dn = 0, best_ll = -1e10 ; 
+      sprintf(fname, "vno%d.%d.l.bad.dat", vno, parms->t) ;
+      fp = fopen(fname, "w") ;
+      for (dn = -MAX_DISPLACEMENT ; dn <= MAX_DISPLACEMENT ; dn += DISPLACEMENT_DELTA)
+      {
+	ll = -vlst_loglikelihood2D(mris, mri, vno, dn, vl[vno], parms->h2d_out, fp) ;
+	if (devIsnan(ll))
+	  DiagBreak() ;
+	if (ll > best_ll)
+	{
+	  best_dn = dn ;
+	  best_ll = ll ;
+	}
+      }
+      fclose(fp) ;
+    }
+
+#undef MAX_MOVEMENT
+#define MAX_MOVEMENT 1
+    
+    if (vno == Gdiag_no)
+    {
+      int i ;
+      char fname[STRLEN] ;
+      double dx, dy, dz, dist, dot, p ;
+
+      sprintf(fname, "vno%d.%d.vox.l.dat", vno, parms->t) ;
+      fp = fopen(fname, "w") ;
+
+      for (i = 0 ; i < vl[vno]->nvox ; i++)
+      {
+	val = MRIgetVoxVal(mri, vl[vno]->xi[i], vl[vno]->yi[i], vl[vno]->zi[i], 0) ;
+	dx = vl[vno]->xd[i]-v->x ; dy = vl[vno]->yd[i]-v->y ; dz = vl[vno]->zd[i]-v->z ;
+	dist = dx*dx + dy*dy + dz*dz ;
+	dot = dx*v->nx + dy*v->ny + dz*v->nz ;
+	if (dot <0)
+	  dist *= -1 ;
+	p = HISTO2DgetCount(parms->h2d, val, dot) ; 
+	fprintf(fp, "%d %d %d %d %d %f %f %f\n",
+		vno, i, vl[vno]->xi[i], vl[vno]->yi[i], vl[vno]->zi[i], val, dist, p) ;
+      }
+      fclose(fp) ;
+
+      printf("l_map: vno %d, best displacement %2.3f, ll = %2.3f, D = (%2.3f, %2.3f, %2.3f)\n",  
+	     vno, best_dn, best_ll, 
+	     best_dn * v->nx * parms->l_map2d,
+	     best_dn * v->ny * parms->l_map2d,
+	     best_dn * v->nz * parms->l_map2d) ;
+      DiagBreak() ;
+    }
+#if 1
+    if (fabs(best_dn) > MAX_MOVEMENT)
+    {
+      best_dn = MAX_MOVEMENT*best_dn / fabs(best_dn) ;
+      if (vno == Gdiag_no)
+	printf("cropping displacement to %2.3f\n", best_dn) ;
+    }
+#endif
+    v->dx += best_dn * v->nx * parms->l_map2d ;
+    v->dy += best_dn * v->ny * parms->l_map2d ;
+    v->dz += best_dn * v->nz * parms->l_map2d ;
+    v->d = best_dn ;
+  }
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    int    num ;
+    double dn = 0.0 ;
+
+    v = &mris->vertices[vno] ;
+    if (vno == Gdiag_no)
+      DiagBreak() ;
+    if (v->marked > 0)  // already estimated
+      continue ;
+    for (n = num = 0; n < v->vnum ; n++)
+    {
+      vn = &mris->vertices[v->v[n]] ;
+      if (vn->marked == 0)
+	continue ;
+      num++ ;
+      dn += vn->d ;
+    }
+    if (num > 0)
+    {
+      dn /= num ;
+      v->dx += dn * v->nx * parms->l_map2d ;
+      v->dy += dn * v->ny * parms->l_map2d ;
+      v->dz += dn * v->nz * parms->l_map2d ;
+      v->d = dn ;
+      if (vno == Gdiag_no)
+	printf("l_map: vno %d, soap bubble displacement %2.3f, D = (%2.3f, %2.3f, %2.3f)\n",  
+	       vno, dn, dn * v->nx * parms->l_map2d, dn * v->ny * parms->l_map2d,
+	       dn * v->nz * parms->l_map2d) ;
+    }
+  }
+
+  if (Gdiag & DIAG_WRITE)
+  {
+    char fname[STRLEN], path[STRLEN] ;
+
+    FileNamePath(mris->fname, path) ;
+    sprintf(fname, "%s/%s.%d.dist.mgz", path, mris->hemisphere == LEFT_HEMISPHERE ? "lh" : 
+	    mris->hemisphere == BOTH_HEMISPHERES ? "both" : "rh", parms->t) ;
+    MRISwriteD(mris, fname) ;
+    DiagBreak() ;
+  }
+  MHTfree(&mht) ;
+//  HISTOfree(&hin) ; HISTOfree(&hout) ; 
+  VectorFree(&v1) ; VectorFree(&v2) ; MatrixFree(&m_vox2vox) ;
+  vlst_free(mris, &vl) ;
+  return(NO_ERROR) ;
+}
+#endif
