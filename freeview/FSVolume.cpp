@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2012/06/27 18:58:40 $
- *    $Revision: 1.79 $
+ *    $Date: 2013/01/08 20:35:10 $
+ *    $Revision: 1.80 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -1180,6 +1180,7 @@ MRI* FSVolume::CreateTargetMRI( MRI* src, MRI* refTarget, bool bAllocatePixel, b
       }
     }
   }
+
   if ( bConform )
   {
     int dim[3];

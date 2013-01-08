@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2012/10/24 19:59:46 $
- *    $Revision: 1.124 $
+ *    $Date: 2013/01/08 20:35:10 $
+ *    $Revision: 1.125 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -1409,6 +1409,8 @@ void LayerMRI::UpdateVectorActor( int nPlane, vtkImageData* imagedata )
                                    pt[2] - scale * v[2] );
           lines->InsertCellPoint( nCnt++ );
           lines->InsertCellPoint( nCnt++ );
+
+
           c[0] = (int)(fabs( v[0] *255 ) );
           c[1] = (int)(fabs( v[1] *255 ) );
           c[2] = (int)(fabs( v[2] *255 ) );
@@ -2154,7 +2156,6 @@ void LayerMRI::UpdateUpSampleMethod()
 
 void LayerMRI::GetCurrentLabelStats(int nPlane, float *label_out, int *count_out, float *area_out,
                                     LayerMRI *underlying_mri, double *mean_out, double *sd_out)
-
 {
   if ( !m_imageData || nPlane < 0 || nPlane > 2 )
   {

@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2012/11/15 18:32:14 $
- *    $Revision: 1.228 $
+ *    $Date: 2013/01/08 20:35:10 $
+ *    $Revision: 1.229 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -5278,7 +5278,7 @@ void MainWindow::OnActiveLayerChanged(Layer* layer)
   {
     this->setWindowTitle(QString("FreeView (%1)")
                          .arg(MyUtils::Win32PathProof(layer->GetFileName())));
-    if (layer->IsTypeOf("MRI") )
+    if (layer->IsTypeOf("MRI") && !layer->IsTypeOf("DTI") && !layer->IsTypeOf("PLabel"))
     {
       if (((LayerMRI*)layer)->GetNumberOfFrames() > 1)
       {

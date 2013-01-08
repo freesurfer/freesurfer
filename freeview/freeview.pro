@@ -318,6 +318,9 @@ LIBS += \
     -lvtkGenericFiltering -lvtkexoIIc -lvtkNetCDF -lvtkVolumeRendering \
     -lvtkRendering -lvtkftgl -lvtkWidgets -lvtkHybrid -lvtkIO -lvtkDICOMParser
 
+#LIBS += \
+#    -lvtkhdf5_hl -lvtkhdf5 -lLSDyna  -lvtkNetCDF_cxx
+
 QMAKE_CXXFLAGS += -Wno-deprecated -DUNICODE -D_FILE_OFFSET_BITS=64 -D_LARGE_FILES \
                                   -Wno-write-strings  -DDEVELOPMENT
 
@@ -415,7 +418,7 @@ LIBS -= -L/usr/pubsw/packages/vtk/current/lib/vtk-5.6 -L/usr/X11R6/lib \
     -lvnl_algo -lvnl -lvcl -lnetlib -lv3p_netlib
 
 LIBS -= \
-    -lvtkverdict -lvtkGraphics -lvtkmetaio -lvtkpng -lvtkzlib \
+    -lvtkverdict -lvtkGraphics -lvtkmetaio -lvtkpng \ #-lvtkzlib \
     -lvtksqlite -lvtkImaging -lvtkFiltering -lvtkCommon -lvtksys \
     -lvtkGenericFiltering -lvtkexoIIc -lvtkNetCDF -lvtkVolumeRendering \
     -lvtkRendering -lvtkftgl -lvtkWidgets -lvtkHybrid -lvtkIO -lvtkDICOMParser
