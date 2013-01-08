@@ -8,9 +8,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2012/12/13 22:20:43 $
- *    $Revision: 1.373 $
+ *    $Author: fischl $
+ *    $Date: 2013/01/08 15:41:50 $
+ *    $Revision: 1.374 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -466,6 +466,8 @@ typedef struct
   float   l_unfold ;          /* move inwards along normal */
   float   l_dura ;            // move away from dura
   float   l_histo ;           // increase the likelihood of the entire volume given the surfaces
+  double  l_map ;             // for MAP deformation
+  double  l_map2d ;             // for 2D MAP deformation (intensity x distance)
   double  dura_thresh ;
   MRI     *mri_dura ;         /* ratio of early to late echo -
                                          dura shows up bright */
@@ -580,6 +582,18 @@ typedef struct
   HISTOGRAM    *h_nonbrain ;
   MRI          *mri_labels ;   // hires labeling of interior of WM, GM and nonbrain
   MRI          *mri_white ;
+  MRI          *mri_aseg ;
+  HISTOGRAM    *hwm ;
+  HISTOGRAM    *hgm ;
+  HISTOGRAM    *hout ;
+
+  HISTOGRAM2D  *h2d_wm ;
+  HISTOGRAM2D  *h2d_gm ;
+  HISTOGRAM2D  *h2d_out ;
+  HISTOGRAM2D  *h2d ;
+  MRI          *mri_volume_fractions ;  // the partial volume fractions associated with the boundaries in this mris
+  MRI          *mri_dtrans ;   // distance to surface
+  float        resolution ;  // at which to compute distance transforms and such
 }
 INTEGRATION_PARMS ;
 
@@ -2069,5 +2083,8 @@ MRI_SURFACE *MRISconcat(MRI_SURFACE *mris1, MRI_SURFACE *mris2, MRI_SURFACE *mri
 #define TAUBIN_UNIFORM_WEIGHTS   0
 #define TAUBIN_INVERSE_WEIGHTS   1
 #define TAUBIN_EDGE_WEIGHTS      2
+
+MRI *MRIcomputeLaminarVolumeFractions(MRI_SURFACE *mris, double res, MRI *mri_src, MRI *mri_vfracs) ;
+
 
 #endif // MRISURF_H
