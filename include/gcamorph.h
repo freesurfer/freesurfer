@@ -15,8 +15,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2012/11/08 00:45:24 $
- *    $Revision: 1.111 $
+ *    $Date: 2013/01/08 22:28:44 $
+ *    $Revision: 1.112 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -209,7 +209,8 @@ typedef struct
   int    diag_mode_filter ;     // # of iterations of mode filter to apply
   int    diag_volume ;  // volume to write in write_snapshot e.g. GCAM_MEANS
   int    npasses ;              // # of times to go through all levels
-  MRI    *mri_dist_map ;        // distance to non-zero binary values
+  MRI    *mri_dist_map ;        // distance to non-zero binary values or labels in source image
+  MRI    *mri_atlas_dist_map ;        // distance to various labels in target/atlas image
   int    constrain_jacobian ;
   int    diag_write_snapshots ;
   int    scale_smoothness ; // scale down smoothness coef at larger gradient smoothing scales
@@ -407,15 +408,21 @@ double GCAMlogPosterior(GCA_MORPH *gcam, MRI *mri) ;
 int GCAMreinitWithLTA(GCA_MORPH *gcam, 
                       LTA *lta, MRI *mri, GCA_MORPH_PARMS *parms) ;
 MRI *GCAMwriteMRI(GCA_MORPH *gcam, MRI *mri, int which) ;
+int GCAMremoveIgnoreZero(GCA_MORPH *gcam, MRI *mri_target) ;
 int GCAMignoreZero(GCA_MORPH *gcam, MRI *mri_target) ;
 int GCAMmatchVentricles(GCA_MORPH *gcam, MRI *mri_inputs) ;
 int GCAMdeformVentricles(GCA_MORPH *gcam, MRI *mri, GCA_MORPH_PARMS *parms) ;
 int GCAMnormalizeIntensities(GCA_MORPH *gcam, MRI *mr_target) ;
+MRI *GCAMcreateDistanceTransforms(MRI *mri_source, MRI *mri_target,
+				  MRI *mri_all_dtrans, float max_dist,
+				  GCA_MORPH *gcam, MRI **pmri_atlas_dist_map) ;
+#if 0
 MRI *GCAMcreateDistanceTransforms(GCA_MORPH *gcam,
                                   MRI *mri_target,
                                   MRI *mri_all_dtrans, 
                                   MRI **pmri_atlas_dtrans,
                                   float max_dist);
+#endif
 
 #define MAX_LTT_LABELS 1000
 typedef struct
@@ -472,6 +479,7 @@ MRI  *GCAMinitDensities(GCA_MORPH *gcam,
 #define GCAM_NEG       19
 #define GCAM_MIN_AREA  20
 #define GCAM_LOG_MIN_AREA  21
+#define GCAM_LOG_JACOBIAN  22
 
 int GCAMsmoothConditionalDensities(GCA_MORPH *gcam, float sigma);
 
