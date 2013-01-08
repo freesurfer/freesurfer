@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<!DOCTYPE help [
+<!ENTITY lt "#38;#60;">
+<!ENTITY gt "&#62;">
+<!ENTITY amp "&#38;#38;">
+<!ELEMENT help (name , synopsis , description , arguments+ , outputs* , example* , bugs* , reporting* , see-also*)*>
+<!ELEMENT name (#PCDATA)>
+<!ELEMENT synopsis (#PCDATA)>
+<!ELEMENT description (#PCDATA)>
+<!ELEMENT arguments (positional* , required-flagged* , optional-flagged*)*>
+<!ELEMENT positional (intro* , argument* , explanation*)*>
+<!ELEMENT required-flagged (intro* , argument* , explanation*)*>
+<!ELEMENT optional-flagged (intro* , argument* , explanation*)*>
+<!ELEMENT intro (#PCDATA)>
+<!ELEMENT argument (#PCDATA)>
+<!ELEMENT explanation (#PCDATA)>
+<!ELEMENT outputs (output* , explanation*)>
+<!ELEMENT output (#PCDATA)>
+<!ELEMENT example (#PCDATA)>
+<!ELEMENT bugs (#PCDATA)>
+<!ELEMENT reporting (#PCDATA)>
+<!ELEMENT see-also (#PCDATA)>
+]>
+
+<help>
+	<name>mris_make_map_surfaces</name>
+	<synopsis>mris_make_map_surfaces [options] &lt;subject
+	name&gt; &lt;input volume&gt;&lt;output suffix&gt;</synopsis>
+	<description>This program positions the tessellation of the cortical surface at the white matter surface, then the gray matter surface and generate surface files for these surfaces as well as a 'curvature' file for the cortical thickness, and a surface file which approximates layer IV of the cortical sheet.</description>
+  <arguments>
+    <positional>
+      <argument>&lt;Subject Name&gt;</argument>
+      <argument>&lt;Hemisphere&gt;</argument>
+      <explanation>r(right) or l(left) brain hemisphere</explanation>
+    </positional>
+    <required-flagged>
+      <intro>None</intro>
+    </required-flagged>
+    <optional-flagged>
+      <argument>-q</argument>
+      <explanation>Omit self-intersection and only generate gray/white surface</explanation>
+      <argument>-c</argument>
+      <explanation>Create curvature and area files from white matter surface</explanation>
+      <argument>-a &lt;avgs&gt;</argument>
+      <explanation>Average curvature values &lt;avgs&gt; times (default=10)</explanation>
+      <argument>-whiteonly</argument>
+      <explanation>Only generate white matter surface</explanation>
+      <argument>-orig_white &lt;surf&gt;</argument>
+      <explanation>specify a white surface to start with</explanation>
+      <argument>-orig_pial &lt;surf&gt;</argument>
+      <explanation>specify a white surface to start with</explanation>
+      <argument>-w &lt;value&gt;</argument>
+      <explanation>unknown</explanation>
+      <argument>-pa &lt;avgs&gt;</argument>
+      <explanation>average pial curvature values a max of &lt;avgs&gt; times (default=16)</explanation>
+      <argument>-wa &lt;avgs&gt;</argument>
+      <explanation>average white curvature values a max of &lt;avgs&gt; times (default=4)</explanation>
+      <argument>-T1 T1vol</argument>
+      <explanation>default is brain</explanation>
+      <argument>-wvol whitevol &lt;hires&gt;</argument>
+      <argument>-long</argument>
+      <explanation>longitudinal</explanation>
+      <argument>-SDIR</argument>
+      <explanation>SUBJECTS_DIR</explanation>
+      <argument>-pial</argument>
+      <explanation>pialsurfname</explanation>
+      <argument>-white</argument>
+      <explanation>whitesurfname</explanation>
+      <argument>-nsigma_above n</argument>
+      <explanation># of sigmas above the mean to allow gray matter T2 intensities</explanation>
+      <argument>-nsigma_below n</argument>
+      <explanation># of sigmas below the mean to allow gray matter T2 intensities</explanation>
+    </optional-flagged>
+  </arguments>
+  <reporting>Report bugs to &lt;freesurfer@nmr.mgh.harvard.edu&gt;</reporting>
+</help>
+
