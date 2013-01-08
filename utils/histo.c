@@ -8,8 +8,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2012/12/12 13:50:40 $
- *    $Revision: 1.75 $
+ *    $Date: 2013/01/08 15:42:11 $
+ *    $Revision: 1.76 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -339,7 +339,7 @@ HISTOclearCounts(HISTOGRAM *histo_src, HISTOGRAM *histo_dst)
     memmove(histo_dst->bins, histo_src->bins, sizeof(*histo_src->bins)) ;
   }
 
-  memset(histo_dst->counts, 0, sizeof(histo_dst->counts)) ;
+  memset(histo_dst->counts, 0, sizeof(histo_dst->counts[0])) ;
 
   return(histo_dst) ;
 }
@@ -631,7 +631,7 @@ HISTOsmooth(HISTOGRAM *histo_src, HISTOGRAM *histo_dst,float sigma)
   }
   /* build the kernel in k */
   len = (int)nint(8.0f * sigma)+1 ;
-  if (ISEVEN(len))   /* ensure it's even */
+  if (ISEVEN(len))   /* ensure it's odd */
     len++ ;
   if (MAX_LEN && (MAX_LEN < len))
     len = MAX_LEN ;
@@ -2281,3 +2281,1076 @@ HISTOfindMaxDerivative(HISTOGRAM *h, double min_count, double max_count, int wha
   return(peak_index) ;
 }
 
+/**************************   2D Histogram stuff starts *************** */
+
+
+HISTOGRAM2D *
+HISTO2Dalloc(int nbins1, int nbins2)
+{
+  HISTOGRAM2D *histo ;
+  int         i ;
+
+  histo = (HISTOGRAM2D *)calloc(1, sizeof(HISTOGRAM2D)) ;
+  if (!histo)
+    ErrorExit(ERROR_NO_MEMORY, "HISTO2Dalloc(%d, %d): allocation failed", nbins1, nbins2) ;
+
+  histo->bins1 = (float *)calloc(nbins1, sizeof(float)) ;
+  histo->bins2 = (float *)calloc(nbins2, sizeof(float)) ;
+  histo->counts = (float **)calloc(nbins1, sizeof(float *)) ;
+  if (!histo->counts || !histo->bins1 || !histo->bins2)
+    ErrorExit(ERROR_NOMEMORY, 
+              "HISTO2Dalloc(%d, %d): could not allocate histogram", nbins1, nbins2) ;
+  histo->nbins1 = nbins1 ;
+  histo->nbins2 = nbins2 ;
+  for (i = 0 ; i < nbins1 ; i++)
+  {
+    histo->counts[i] = (float *)calloc(nbins2, sizeof(float)) ;
+    if (!histo->counts[i])
+      ErrorExit(ERROR_NOMEMORY, 
+              "HISTO2Dalloc(%d, %d): could not allocate histogram slice %d", nbins1, nbins2,i) ;
+  }
+
+  return(histo) ;
+}
+int
+HISTO2Dfree(HISTOGRAM2D **phisto) 
+{
+  HISTOGRAM2D *histo ;
+  int         i ;
+
+  histo = *phisto ;
+  *phisto = NULL ;
+  if (histo)
+  {
+    if (histo->bins1)
+      free(histo->bins1) ;
+    if (histo->bins2)
+      free(histo->bins2) ;
+    if (histo->counts)
+    {
+      for (i = 0 ; i < histo->nbins1 ; i++)
+	free(histo->counts[i]) ;
+      free(histo->counts) ;
+    }
+    else
+      DiagBreak() ;
+    free(histo) ;
+  }
+  else
+    DiagBreak() ;
+  
+  return(NO_ERROR) ;
+}
+
+int
+HISTO2Ddump(HISTOGRAM2D *histo, FILE *fp) 
+{
+  int  bin1, bin2 ;
+
+  if (!histo)
+    fprintf(stderr, "NULL histogram") ;
+  else
+  {
+    fprintf(fp, "nbins = %d, %d\n", histo->nbins1, histo->nbins2) ;
+    for (bin1 = 0 ; bin1 < histo->nbins1 ; bin1++)
+    {
+      for (bin2 = 0 ; bin2 < histo->nbins2 ; bin2++)
+	if (histo->counts[bin1][bin2])
+	  fprintf(fp, "bin[%d, %d] = %2.1f, %2.1f = %2.2f\n",
+		  bin1, bin2, histo->bins1[bin1], histo->bins2[bin2], histo->counts[bin1][bin2]) ;
+    }
+  }
+  return(NO_ERROR) ;
+}
+int
+HISTO2Dwrite(HISTOGRAM2D *h, char *fname)
+{
+  FILE *fp ;
+  int  ret ;
+
+  fp = fopen(fname, "wb");
+  ret = HISTO2DwriteInto(h, fp) ;
+  fclose(fp) ;
+  return(ret) ;
+}
+int
+HISTO2DwriteInto(HISTOGRAM2D *h, FILE *fp)
+{
+  int b1, b2 ;
+
+  fwriteInt(h->nbins1, fp) ;
+  fwriteInt(h->nbins2, fp) ;
+  fwriteFloat(h->bin_size1, fp) ;
+  fwriteFloat(h->bin_size2, fp) ;
+  fwriteFloat(h->min1, fp) ;
+  fwriteFloat(h->min2, fp) ;
+  fwriteFloat(h->max1, fp) ;
+  fwriteFloat(h->max2, fp) ;
+  for (b1 = 0 ; b1 < h->nbins1 ; b1++)
+    fwriteFloat(h->bins1[b1], fp) ;
+  for (b2 = 0 ; b2 < h->nbins2 ; b2++)
+    fwriteFloat(h->bins2[b2], fp) ;
+
+  for (b1 = 0 ; b1 < h->nbins1 ; b1++)
+    for (b2 = 0 ; b2 < h->nbins2 ; b2++)
+    fwriteFloat(h->counts[b1][b2], fp) ;
+  return(NO_ERROR) ;
+}
+HISTOGRAM2D *
+HISTO2Dread(char *fname)
+{
+  HISTOGRAM2D *histo ;
+  FILE *fp ;
+
+  fp = fopen(fname, "rb") ;
+  if (fp == NULL)
+    ErrorReturn(NULL, (ERROR_NOFILE, "HISTO2Dread(%s); could not open file",fname)) ;
+
+  histo = HISTO2DreadFrom(fp) ;
+  fclose(fp) ;
+  return(histo) ;
+}
+  
+HISTOGRAM2D *
+HISTO2DreadFrom(FILE *fp)
+{
+  int       b1, nbins1, b2, nbins2 ;
+  HISTOGRAM2D *h ;
+
+  nbins1 = freadInt(fp) ;
+  nbins2 = freadInt(fp) ;
+  h = HISTO2Dalloc(nbins1, nbins2) ;
+  h->bin_size1 = freadFloat(fp) ;
+  h->bin_size2 = freadFloat(fp) ;
+  h->min1 = freadFloat(fp) ;
+  h->min2 = freadFloat(fp) ;
+  h->max1 = freadFloat(fp) ;
+  h->max2 = freadFloat(fp) ;
+  for (b1 = 0 ; b1 < h->nbins1 ; b1++)
+    h->bins1[b1] = freadFloat(fp) ;
+  for (b2 = 0 ; b2 < h->nbins2 ; b2++)
+    h->bins2[b2] = freadFloat(fp) ;
+
+  for (b1 = 0 ; b1 < h->nbins1 ; b1++)
+    for (b2 = 0 ; b2 < h->nbins2 ; b2++)
+      h->counts[b1][b2] = freadFloat(fp) ;
+  return(h) ;
+}
+HISTOGRAM2D *
+HISTO2Dclear(HISTOGRAM2D *histo_src, HISTOGRAM2D *histo_dst)
+{
+  int b ;
+
+  if (!histo_dst)
+    histo_dst = HISTO2Dalloc(histo_src->nbins1, histo_src->nbins2) ;
+
+  memset(histo_dst->bins1, 0, histo_dst->nbins1*sizeof(*histo_dst->bins1)) ;
+  memset(histo_dst->bins2, 0, histo_dst->nbins2*sizeof(*histo_dst->bins2)) ;
+  for (b = 0 ; b < histo_dst->nbins1 ; b++)
+    memset(histo_dst->counts[b], 0, histo_dst->nbins2*sizeof(*histo_dst->counts[b])) ;
+
+  return(histo_dst) ;
+}
+HISTOGRAM2D *
+HISTO2Dinit(HISTOGRAM2D *h, int nbins1, int nbins2, double mn1, int mx1, double mn2, double mx2)
+{
+  int b ;
+
+  if (h == NULL)
+    h = HISTO2Dalloc(nbins1, nbins2) ;
+  else
+    HISTO2Dclear(h, h);
+
+  h->min1 = mn1 ; h->max1 = mx1 ;
+  h->min2 = mn2 ; h->max2 = mx2 ;
+  h->bin_size1 = (mx1 - mn1) / (nbins1-1) ;
+  h->bin_size2 = (mx2 - mn2) / (nbins2-1) ;
+  HISTO2Dclear(h, h) ;
+  for (b = 0 ; b < h->nbins1 ; b++)
+    h->bins1[b] = mn1 + h->bin_size1*(float)b ;
+  for (b = 0 ; b < h->nbins2 ; b++)
+    h->bins2[b] = mn2 + h->bin_size2*(float)b ;
+
+  return(h) ;
+}
+HISTOGRAM2D *
+HISTO2Drealloc(HISTOGRAM2D *histo, int nbins1, int nbins2)
+{
+  int b ;
+  if (histo == NULL)
+    return(HISTO2Dalloc(nbins1, nbins2)) ;
+
+  if (histo->bins1)
+    free(histo->bins1) ;
+  if (histo->bins2)
+    free(histo->bins2) ;
+  if (histo->counts)
+  {
+    for (b = 0 ; b < histo->nbins1 ; b++)
+      free(histo->counts[b]) ;
+    free(histo->counts) ;
+  }
+  histo->bins1 = (float *)calloc(nbins1, sizeof(float)) ;
+  histo->bins2 = (float *)calloc(nbins2, sizeof(float)) ;
+  histo->counts = (float **)calloc(nbins1, sizeof(float *)) ;
+  if (!histo->counts || !histo->bins1 || !histo->bins2)
+    ErrorExit(ERROR_NOMEMORY, 
+              "HISTO2Drealloc(%d, %d): could not allocate histogram", nbins1, nbins2) ;
+  histo->nbins1 = nbins1 ;
+  histo->nbins2 = nbins2 ;
+  for (b = 0 ; b < histo->nbins1 ; b++)
+    histo->counts[b] = (float *)calloc(nbins2, sizeof(float)) ;
+
+  return(histo) ;
+}
+int
+HISTO2DaddFractionalSample(HISTOGRAM2D *histo, float val1, float val2, float bmin1, float bmax1, float bmin2, float bmax2, float frac)
+{
+  int    bin_no1, bin_no2 ;
+  float  bin_size1, bin_size2 ;
+
+  if (bmin1 >= bmax1)  // not specified by caller
+  {
+    bmin1 = histo->min1 ;
+    bmax1 = histo->max1 ;
+    bin_size1 = histo->bin_size1 ;
+  }
+  else
+    bin_size1 = (bmax1 - bmin1) / ((float)histo->nbins1-1) ;
+
+  bin_no1 = nint((val1 - bmin1) / bin_size1) ;
+  if (bmin2 >= bmax2)  // not specified by caller
+  {
+    bmin2 = histo->min2 ;
+    bmax2 = histo->max2 ;
+    bin_size2 = histo->bin_size2 ;
+  }
+  else
+    bin_size2 = (bmax2 - bmin2) / ((float)histo->nbins2-1) ;
+
+  bin_no2 = nint((val2 - bmin2) / bin_size2) ;
+
+  if ((bin_no1 < histo->nbins1 && bin_no1 >= 0) &&
+      (bin_no2 < histo->nbins2 && bin_no2 >= 0))
+    histo->counts[bin_no1][bin_no2] += frac ;
+  else
+    DiagBreak() ;
+
+  return(NO_ERROR) ;
+}
+int
+HISTO2DaddSample(HISTOGRAM2D *histo, float val1, float val2, float bmin1, float bmax1, float bmin2, float bmax2)
+{
+  int    bin_no1, bin_no2 ;
+  float  bin_size1, bin_size2 ;
+
+  if (bmin1 >= bmax1) // not specified by caller
+  {
+    bmin1 = histo->min1 ;
+    bmax1 = histo->max1 ;
+    bin_size1 = histo->bin_size1 ;
+  }
+  else
+    bin_size1 = (bmax1 - bmin1) / ((float)histo->nbins1-1) ;
+  bin_no1 = nint((val1 - bmin1) / bin_size1) ;
+
+  if (bmin2 >= bmax2) // not specified by caller
+  {
+    bmin2 = histo->min2 ;
+    bmax2 = histo->max2 ;
+    bin_size2 = histo->bin_size2 ;
+  }
+  else
+    bin_size2 = (bmax2 - bmin2) / ((float)histo->nbins2-1) ;
+  bin_no2 = nint((val2 - bmin2) / bin_size2) ;
+
+  if ((bin_no1 < histo->nbins1 && bin_no1 >= 0) &&
+      (bin_no2 < histo->nbins2 && bin_no2 >= 0))
+    histo->counts[bin_no1][bin_no2]++ ;
+  else
+    DiagBreak() ;
+
+  return(NO_ERROR) ;
+}
+int
+HISTO2Dplot(HISTOGRAM2D *histo, char *fname)
+{
+  FILE *fp ;
+  int  bin_no1, bmin1, bmax1, bin_no2, bmin2, bmax2 ;
+
+  fp = fopen(fname, "w") ;
+  if (fp == NULL)
+    return(ERROR_NOFILE);
+
+  for (bmin1 = 0 ; bmin1 < histo->nbins1 ; bmin1++)
+    for (bmin2 = 0 ; bmin2 < histo->nbins2 ; bmin2++)
+      if (histo->counts[bmin1][bmin2] > 0)
+	break ;
+  for (bmax1 = histo->nbins1-1 ; bmax1 > bmin1 ; bmax1--)
+    for (bmax2 = histo->nbins2-1 ; bmax2 > bmin2 ; bmax2--)
+    if (histo->counts[bmax1][bmax2] > 0)
+      break ;
+
+  for (bin_no1 = bmin1 ; bin_no1 <= bmax1 ; bin_no1++)
+    fprintf(fp, "%f ", histo->bins1[bin_no1]) ;
+  fprintf(fp, "\n") ;
+  for (bin_no2 = bmin2 ; bin_no2 <= bmax2 ; bin_no2++)
+    fprintf(fp, "%f ", histo->bins1[bin_no1]) ;
+  fprintf(fp, "\n") ;
+  for (bin_no1 = bmin1 ; bin_no1 <= bmax1 ; bin_no1++)
+  {
+    for (bin_no2 = bmin2 ; bin_no2 <= bmax2 ; bin_no2++)
+      fprintf(fp, "%f ", histo->counts[bin_no1][bin_no2]) ;
+    fprintf(fp, "\n") ;
+  }
+
+
+  fclose(fp) ;
+
+  return(NO_ERROR) ;
+}
+HISTOGRAM2D *
+HISTO2Dcopy(HISTOGRAM2D *histo_src, HISTOGRAM2D *histo_dst)
+{
+  int b ;
+
+  if (!histo_dst)
+    histo_dst = HISTO2Dalloc(histo_src->nbins1, histo_src->nbins2) ;
+  histo_dst->nbins1 = histo_src->nbins1 ;
+  histo_dst->nbins2 = histo_src->nbins2 ;
+  histo_dst->bin_size1 = histo_src->bin_size1 ;
+  histo_dst->bin_size2 = histo_src->bin_size2 ;
+  // use memmove, not memcpy, as src and dst could overlap
+  for (b = 0 ; b < histo_dst->nbins1 ; b++)
+    memmove(histo_dst->counts[b], 
+          histo_src->counts[b], 
+	    sizeof(*histo_src->counts[b])*histo_src->nbins2) ;
+
+  memmove(histo_dst->bins1, 
+          histo_src->bins1, 
+          sizeof(*histo_src->bins1)*histo_src->nbins1) ;
+  memmove(histo_dst->bins2, 
+          histo_src->bins2, 
+          sizeof(*histo_src->bins2)*histo_src->nbins2) ;
+  histo_dst->min1 = histo_src->min1 ;
+  histo_dst->max1 = histo_src->max1 ;
+  histo_dst->min2 = histo_src->min2 ;
+  histo_dst->max2 = histo_src->max2 ;
+
+  return(histo_dst) ;
+}
+HISTOGRAM2D *
+HISTO2DmakePDF(HISTO2D *h_src, HISTO2D *h_dst)
+{
+  int    b1, b2 ;
+  double total, unlikely ;
+
+  h_dst = HISTO2Dcopy(h_src, h_dst) ;
+
+  for (total = 0.0, b1 = 0 ; b1 < h_dst->nbins1 ; b1++)
+    for (b2 = 0 ; b2 < h_dst->nbins2 ; b2++)
+      total += h_dst->counts[b1][b2] ;
+
+  if (total > 0)
+  {
+    unlikely = 1.0/(10*total) ;
+    for (b1 = 0 ; b1 < h_dst->nbins1 ; b1++)
+      for (b2 = 0 ; b2 < h_dst->nbins2 ; b2++)
+      {
+	h_dst->counts[b1][b2]/=total ;
+	if (DZERO(h_dst->counts[b1][b2]))
+	  h_dst->counts[b1][b2] = unlikely ;
+      }
+  }
+
+  return(h_dst) ;
+}
+int
+HISTO2DfindBin1(HISTOGRAM2D *h, float val)
+{
+  int b ;
+
+  if (h->bin_size1 == 1)
+    return((int)val-h->min1) ;
+
+  for (b = h->nbins1-1 ; b > 0 ; b--)
+    if (h->bins1[b-1] < val)
+      return(b) ;
+
+  return(0) ;
+}
+int
+HISTO2DfindBin2(HISTOGRAM2D *h, float val)
+{
+  int b ;
+
+  if (h->bin_size2 == 1)
+    return((int)val-h->min2) ;
+
+  for (b = h->nbins2-1 ; b > 0 ; b--)
+    if (h->bins2[b-1] < val)
+      return(b) ;
+
+  return(0) ;
+}
+double
+HISTO2DgetCount(HISTOGRAM2D *h, float bin_val1, float bin_val2)
+{
+  int b1, b2 ;
+
+  b1 = HISTO2DfindBin1(h, bin_val1);
+  if (b1 < 0 || b1 >= h->nbins1)
+    return(0) ;
+  b2 = HISTO2DfindBin2(h, bin_val2);
+  if (b2 < 0 || b2 >= h->nbins2)
+    return(0) ;
+  return(h->counts[b1][b2]);
+
+}
+/*-----------------------------------------------------
+  Parameters:
+
+  Returns value:
+
+  Description
+  ------------------------------------------------------*/
+#define MAX_LEN 2000
+/*-----------------------------------------------------
+  Parameters:
+
+  Returns value:
+
+  Description
+  ------------------------------------------------------*/
+#define MAX_LEN 2000
+HISTOGRAM2D *
+HISTO2Dsmooth(HISTOGRAM2D *histo_src, HISTOGRAM2D *histo_dst,float sigma)
+{
+  float     norm, two_sigma, fx, k, kernel[MAX_LEN], total ;
+  int       x, half, len, b1, b2, kx, nbins1, nbins2, y, ky, b1k, b2k, i ;
+
+  nbins1 = histo_src->nbins1 ; nbins2 = histo_src->nbins2 ;
+  if (!histo_dst)
+  {
+    histo_dst = HISTO2Dalloc(nbins1, nbins2) ;
+    histo_dst->bin_size1 = histo_src->bin_size1 ;
+    histo_dst->min1 = histo_src->min1 ;
+    histo_dst->max1 = histo_src->max1 ;
+    histo_dst->bin_size2 = histo_src->bin_size2 ;
+    histo_dst->min2 = histo_src->min2 ;
+    histo_dst->max2 = histo_src->max2 ;
+  }
+  else
+  {
+    if ((histo_dst->nbins1 < histo_src->nbins1) ||
+	(histo_dst->nbins2 < histo_src->nbins2))
+    {
+      // fprintf(stderr, "realloc: histo_dst->nbins = %d, "
+      //"histo_src->nbins = %d\n",
+      //         histo_dst->nbins, histo_src->nbins);
+      HISTO2Drealloc(histo_dst, nbins1, nbins2);
+    }
+    histo_dst->nbins1 = nbins1 ;
+    histo_dst->bin_size1 = histo_src->bin_size1 ;
+    histo_dst->nbins2 = nbins2 ;
+    histo_dst->bin_size2 = histo_src->bin_size2 ;
+    HISTO2Dclear(histo_dst, histo_dst) ;
+  }
+  /* build the kernel in k */
+  len = (int)nint(sqrt(2)*8.0f * sigma)+1 ;
+  if (ISEVEN(len))   /* ensure it's odd */
+    len++ ;
+  if (MAX_LEN && (MAX_LEN < len))
+    len = MAX_LEN ;
+  half = len/2 ;
+
+  norm = 0.0f ;
+  two_sigma = 2.0f * sigma ;
+  
+  for (norm = 0.0f, x = 0 ; x < len ; x++)
+  {
+    fx = (float)(x-half) ;
+    if (fabs(fx) <= two_sigma)
+      k = (float)exp((double)(-fx*fx/(two_sigma*sigma))) ;
+    else if (two_sigma < fabs(fx) && fabs(fx) <= 4.0f*sigma)
+      k = 1.0f / (16.0f * (float)(M_E * M_E)) *
+          (float)pow(4.0f - fabs(fx)/(double)sigma, 4.0) ;
+    else
+      k = 0 ;
+
+    kernel[x] = k ;
+    norm += k ;
+  }
+  for (x = 0 ; x < len ; x++)
+    kernel[x] /= norm ;
+  
+  for (b1 = 0 ; b1 < nbins1 ; b1++)
+  {
+    histo_dst->bins1[b1] = histo_src->bins1[b1] ;
+    for (b2 = 0 ; b2 < nbins2 ; b2++)
+    {
+      histo_dst->bins2[b2] = histo_src->bins2[b2] ;
+      for (norm = 0.0, total = 0.0f, x = 0 ; x < len ; x++)
+	for (y = 0 ; y < len ; y++)
+	{
+	  kx = x - half ;
+	  ky = y - half ;
+	  b1k = b1 + kx ;
+	  b2k = b2 + ky ;
+	  if ((b1k >= nbins1 || b1k < 0) ||
+	      (b2k >= nbins2 || b2k < 0))
+	    continue ;
+
+	  i = nint(sqrt(x*x+y*y)) ;
+	  if (i > len-1)
+	    i = len-1 ;
+	  norm += kernel[i] ;
+	  total += kernel[i] * (float)histo_src->counts[b1k][b2k] ;
+	  if ((float)histo_src->counts[b1k][b2k] >  0.00027)
+	    DiagBreak() ;
+	  if (!finite(norm) || !finite(total) || !finite(kernel[i]))
+	    DiagBreak() ;
+	}
+      if (b1 == Gx && b2 == Gy)
+	DiagBreak() ;
+      if (DZERO(norm))
+      {
+	DiagBreak() ;
+	histo_dst->counts[b1][b2] = histo_src->counts[b1][b2];
+	continue ;
+      }
+
+      histo_dst->counts[b1][b2] = total/norm ;
+    }
+  }
+
+  return(histo_dst) ;
+}
+#if 1
+HISTOGRAM2D *
+HISTO2DsmoothAnisotropic(HISTOGRAM2D *histo_src, HISTOGRAM2D *histo_dst,float sigma1, float sigma2)
+{
+  float     norm, k, total ;
+  int       x, half1, half2, len1, len2, b1, b2, kx, nbins1, nbins2, y, ky, b1k, b2k, dist ;
+
+  nbins1 = histo_src->nbins1 ; nbins2 = histo_src->nbins2 ;
+  if (!histo_dst)
+  {
+    histo_dst = HISTO2Dalloc(nbins1, nbins2) ;
+    histo_dst->bin_size1 = histo_src->bin_size1 ;
+    histo_dst->min1 = histo_src->min1 ;
+    histo_dst->max1 = histo_src->max1 ;
+    histo_dst->bin_size2 = histo_src->bin_size2 ;
+    histo_dst->min2 = histo_src->min2 ;
+    histo_dst->max2 = histo_src->max2 ;
+  }
+  else
+  {
+    if ((histo_dst->nbins1 < histo_src->nbins1) ||
+	(histo_dst->nbins2 < histo_src->nbins2))
+    {
+      // fprintf(stderr, "realloc: histo_dst->nbins = %d, "
+      //"histo_src->nbins = %d\n",
+      //         histo_dst->nbins, histo_src->nbins);
+      HISTO2Drealloc(histo_dst, nbins1, nbins2);
+    }
+    histo_dst->nbins1 = nbins1 ;
+    histo_dst->bin_size1 = histo_src->bin_size1 ;
+    histo_dst->nbins2 = nbins2 ;
+    histo_dst->bin_size2 = histo_src->bin_size2 ;
+    HISTO2Dclear(histo_dst, histo_dst) ;
+  }
+
+  /* build the kernel in k for bins1 */
+  len1 = (int)nint(8.0f * sigma1)+1 ;
+  if (ISEVEN(len1))   /* ensure it's odd */
+    len1++ ;
+  half1 = len1/2 ;
+  len2 = (int)nint(8.0f * sigma2)+2 ;
+  if (MAX_LEN && (MAX_LEN < len1))
+    len1 = MAX_LEN ;
+  if (MAX_LEN && (MAX_LEN < len2))
+    len2 = MAX_LEN ;
+  if (ISEVEN(len2))   /* ensure it's odd */
+    len2++ ;
+  half2 = len2/2 ;
+
+
+  for (b1 = 0 ; b1 < nbins1 ; b1++)
+  {
+    histo_dst->bins1[b1] = histo_src->bins1[b1] ;
+    for (b2 = 0 ; b2 < nbins2 ; b2++)
+    {
+      histo_dst->bins2[b2] = histo_src->bins2[b2] ;
+      for (norm = 0.0, total = 0.0f, x = 0 ; x < len1 ; x++)
+	for (y = 0 ; y < len2 ; y++)
+	{
+	  kx = x - half1 ;
+	  ky = y - half2 ;
+	  b1k = b1 + kx ;
+	  b2k = b2 + ky ;
+	  if ((b1k >= nbins1 || b1k < 0) ||
+	      (b2k >= nbins2 || b2k < 0))
+	    continue ;
+
+	  dist = (SQR(kx/sigma1) + SQR(ky/sigma2)) ;
+	  k = exp(-0.5*dist) ;
+	  norm += k ;
+	  total += k * (float)histo_src->counts[b1k][b2k] ;
+	  if ((float)histo_src->counts[b1k][b2k] >  0.00027)
+	    DiagBreak() ;
+	  if (!finite(norm) || !finite(total) || !finite(k))
+	    DiagBreak() ;
+	}
+      if (b1 == Gx && b2 == Gy)
+	DiagBreak() ;
+      if (DZERO(norm))
+      {
+	DiagBreak() ;
+	histo_dst->counts[b1][b2] = histo_src->counts[b1][b2];
+	continue ;
+      }
+
+      histo_dst->counts[b1][b2] = total/norm ;
+    }
+  }
+
+  return(histo_dst) ;
+}
+#else
+#if 1
+HISTOGRAM2D *
+HISTO2DsmoothAnisotropic(HISTOGRAM2D *histo_src, HISTOGRAM2D *histo_dst,float sigma1, float sigma2)
+{
+  float     norm, two_sigma, fx, k, k1, k2, kernel1[MAX_LEN], kernel2[MAX_LEN], total ;
+  int       x, half1, half2, len1, len2, b1, b2, kx, nbins1, nbins2, y, ky, b1k, b2k ;
+
+  nbins1 = histo_src->nbins1 ; nbins2 = histo_src->nbins2 ;
+  if (!histo_dst)
+  {
+    histo_dst = HISTO2Dalloc(nbins1, nbins2) ;
+    histo_dst->bin_size1 = histo_src->bin_size1 ;
+    histo_dst->min1 = histo_src->min1 ;
+    histo_dst->max1 = histo_src->max1 ;
+    histo_dst->bin_size2 = histo_src->bin_size2 ;
+    histo_dst->min2 = histo_src->min2 ;
+    histo_dst->max2 = histo_src->max2 ;
+  }
+  else
+  {
+    if ((histo_dst->nbins1 < histo_src->nbins1) ||
+	(histo_dst->nbins2 < histo_src->nbins2))
+    {
+      // fprintf(stderr, "realloc: histo_dst->nbins = %d, "
+      //"histo_src->nbins = %d\n",
+      //         histo_dst->nbins, histo_src->nbins);
+      HISTO2Drealloc(histo_dst, nbins1, nbins2);
+    }
+    histo_dst->nbins1 = nbins1 ;
+    histo_dst->bin_size1 = histo_src->bin_size1 ;
+    histo_dst->nbins2 = nbins2 ;
+    histo_dst->bin_size2 = histo_src->bin_size2 ;
+    HISTO2Dclear(histo_dst, histo_dst) ;
+  }
+
+  /* build the kernel in k for bins1 */
+  len1 = (int)nint(sqrt(2)*8.0f * sigma1)+1 ;
+  if (ISEVEN(len1))   /* ensure it's odd */
+    len1++ ;
+  if (MAX_LEN && (MAX_LEN < len1))
+    len1 = MAX_LEN ;
+  half1 = len1/2 ;
+
+  norm = 0.0f ;
+  two_sigma = 2.0f * sigma1 ;
+  
+  for (norm = 0.0f, x = 0 ; x < len1 ; x++)
+  {
+    fx = (float)(x-half1) ;
+    if (fabs(fx) <= two_sigma)
+      k = (float)exp((double)(-fx*fx/(two_sigma*sigma1))) ;
+    else if (two_sigma < fabs(fx) && fabs(fx) <= 4.0f*sigma1)
+      k = 1.0f / (16.0f * (float)(M_E * M_E)) *
+          (float)pow(4.0f - fabs(fx)/(double)sigma1, 4.0) ;
+    else
+      k = 0 ;
+
+    kernel1[x] = k ;
+    norm += k ;
+  }
+  for (x = 0 ; x < len1 ; x++)
+    kernel1[x] /= norm ;
+  
+  /* build the kernel in k for bins2 */
+  len2 = (int)nint(sqrt(2)*8.0f * sigma2)+1 ;
+  if (ISEVEN(len2))   /* ensure it's odd */
+    len2++ ;
+  if (MAX_LEN && (MAX_LEN < len2))
+    len2 = MAX_LEN ;
+  half2 = len2/2 ;
+
+  norm = 0.0f ;
+  two_sigma = 2.0f * sigma2 ;
+  
+  for (norm = 0.0f, x = 0 ; x < len2 ; x++)
+  {
+    fx = (float)(x-half2) ;
+    if (fabs(fx) <= two_sigma)
+      k = (float)exp((double)(-fx*fx/(two_sigma*sigma2))) ;
+    else if (two_sigma < fabs(fx) && fabs(fx) <= 4.0f*sigma2)
+      k = 1.0f / (16.0f * (float)(M_E * M_E)) *
+          (float)pow(4.0f - fabs(fx)/(double)sigma2, 4.0) ;
+    else
+      k = 0 ;
+
+    kernel2[x] = k ;
+    norm += k ;
+  }
+  for (x = 0 ; x < len1 ; x++)
+    kernel2[x] /= norm ;
+  
+  for (b1 = 0 ; b1 < nbins1 ; b1++)
+  {
+    histo_dst->bins1[b1] = histo_src->bins1[b1] ;
+    for (b2 = 0 ; b2 < nbins2 ; b2++)
+    {
+      histo_dst->bins2[b2] = histo_src->bins2[b2] ;
+      for (norm = 0.0, total = 0.0f, x = 0 ; x < len1 ; x++)
+	for (y = 0 ; y < len2 ; y++)
+	{
+	  kx = x - half1 ;
+	  ky = y - half2 ;
+	  b1k = b1 + kx ;
+	  b2k = b2 + ky ;
+	  if ((b1k >= nbins1 || b1k < 0) ||
+	      (b2k >= nbins2 || b2k < 0))
+	    continue ;
+
+	  k1 = kernel1[x] ; k2 = kernel2[y] ; k = k1*k2 ;
+	  norm += k ;
+	  total += k * (float)histo_src->counts[b1k][b2k] ;
+	  if ((float)histo_src->counts[b1k][b2k] >  0.00027)
+	    DiagBreak() ;
+	  if (!finite(norm) || !finite(total) || !finite(k))
+	    DiagBreak() ;
+	}
+      if (b1 == Gx && b2 == Gy)
+	DiagBreak() ;
+      if (DZERO(norm))
+      {
+	DiagBreak() ;
+	histo_dst->counts[b1][b2] = histo_src->counts[b1][b2];
+	continue ;
+      }
+
+      histo_dst->counts[b1][b2] = total/norm ;
+    }
+  }
+
+  return(histo_dst) ;
+}
+#else
+HISTOGRAM2D *
+HISTO2DsmoothAnisotropic(HISTOGRAM2D *histo_src, HISTOGRAM2D *histo_dst,float sigma1, float sigma2)
+{
+  HISTO2D *h_tmp ;
+  h_tmp = HISTO2DsmoothBins1(histo_src,  NULL, sigma1) ;
+  histo_dst = HISTO2DsmoothBins2(h_tmp, histo_dst, sigma2) ;
+  HISTO2Dfree(&h_tmp) ;
+  return(histo_dst) ;
+}
+#endif
+#endif
+HISTOGRAM2D *
+HISTO2DsmoothBins1(HISTOGRAM2D *histo_src, HISTOGRAM2D *histo_dst,float sigma) 
+{
+  float     norm, two_sigma, fx, k, kernel[MAX_LEN], total ;
+  int       x, half, len, b1, b2, kx, nbins1, nbins2, b1k ;
+
+  nbins1 = histo_src->nbins1 ; nbins2 = histo_src->nbins2 ;
+  if (!histo_dst)
+  {
+    histo_dst = HISTO2Dalloc(nbins1, nbins2) ;
+    histo_dst->bin_size1 = histo_src->bin_size1 ;
+    histo_dst->min1 = histo_src->min1 ;
+    histo_dst->max1 = histo_src->max1 ;
+    histo_dst->bin_size2 = histo_src->bin_size2 ;
+    histo_dst->min2 = histo_src->min2 ;
+    histo_dst->max2 = histo_src->max2 ;
+  }
+  else
+  {
+    if ((histo_dst->nbins1 < histo_src->nbins1) ||
+	(histo_dst->nbins2 < histo_src->nbins2))
+    {
+      // fprintf(stderr, "realloc: histo_dst->nbins = %d, "
+      //"histo_src->nbins = %d\n",
+      //         histo_dst->nbins, histo_src->nbins);
+      HISTO2Drealloc(histo_dst, nbins1, nbins2);
+    }
+    histo_dst->nbins1 = nbins1 ;
+    histo_dst->bin_size1 = histo_src->bin_size1 ;
+    histo_dst->nbins2 = nbins2 ;
+    histo_dst->bin_size2 = histo_src->bin_size2 ;
+    HISTO2Dclear(histo_dst, histo_dst) ;
+  }
+  /* build the kernel in k */
+  len = (int)nint(8.0f * sigma)+1 ;
+  if (ISEVEN(len))   /* ensure it's odd */
+    len++ ;
+  if (MAX_LEN && (MAX_LEN < len))
+    len = MAX_LEN ;
+  half = len/2 ;
+
+  norm = 0.0f ;
+  two_sigma = 2.0f * sigma ;
+  
+  for (norm = 0.0f, x = 0 ; x < len ; x++)
+  {
+    fx = (float)(x-half) ;
+    if (fabs(fx) <= two_sigma)
+      k = (float)exp((double)(-fx*fx/(two_sigma*sigma))) ;
+    else if (two_sigma < fabs(fx) && fabs(fx) <= 4.0f*sigma)
+      k = 1.0f / (16.0f * (float)(M_E * M_E)) *
+          (float)pow(4.0f - fabs(fx)/(double)sigma, 4.0) ;
+    else
+      k = 0 ;
+
+    kernel[x] = k ;
+    norm += k ;
+  }
+  for (x = 0 ; x < len ; x++)
+    kernel[x] /= norm ;
+  
+  for (b1 = 0 ; b1 < nbins1 ; b1++)
+  {
+    histo_dst->bins1[b1] = histo_src->bins1[b1] ;
+    for (b2 = 0 ; b2 < nbins2 ; b2++)
+    {
+      histo_dst->bins2[b2] = histo_src->bins2[b2] ;
+      for (norm = 0.0, total = 0.0f, x = 0 ; x < len ; x++)
+      {
+	kx = x - half ;
+	b1k = b1 + kx ;
+	if (b1k >= nbins1 || b1k < 0)
+	  continue ;
+
+	norm += kernel[x] ;
+	total += kernel[x] * (float)histo_src->counts[b1k][b2] ;
+	if (!finite(norm) || !finite(total) || !finite(kernel[x]))
+	  DiagBreak() ;
+      }
+      if (b1 == Gx && b2 == Gy)
+	DiagBreak() ;
+      if (DZERO(norm))
+      {
+	DiagBreak() ;
+	histo_dst->counts[b1][b2] = histo_src->counts[b1][b2];
+	continue ;
+      }
+
+      histo_dst->counts[b1][b2] = total/norm ;
+    }
+  }
+
+  return(histo_dst) ;
+}
+
+HISTOGRAM2D *
+HISTO2DsmoothBins2(HISTOGRAM2D *histo_src, HISTOGRAM2D *histo_dst,float sigma)
+{
+  float     norm, two_sigma, fx, k, kernel[MAX_LEN], total ;
+  int       x, kx, half, len, b1, b2, nbins1, nbins2, b2k ;
+
+  nbins1 = histo_src->nbins1 ; nbins2 = histo_src->nbins2 ;
+  if (!histo_dst)
+  {
+    histo_dst = HISTO2Dalloc(nbins1, nbins2) ;
+    histo_dst->bin_size1 = histo_src->bin_size1 ;
+    histo_dst->min1 = histo_src->min1 ;
+    histo_dst->max1 = histo_src->max1 ;
+    histo_dst->bin_size2 = histo_src->bin_size2 ;
+    histo_dst->min2 = histo_src->min2 ;
+    histo_dst->max2 = histo_src->max2 ;
+  }
+  else
+  {
+    if ((histo_dst->nbins1 < histo_src->nbins1) ||
+	(histo_dst->nbins2 < histo_src->nbins2))
+    {
+      // fprintf(stderr, "realloc: histo_dst->nbins = %d, "
+      //"histo_src->nbins = %d\n",
+      //         histo_dst->nbins, histo_src->nbins);
+      HISTO2Drealloc(histo_dst, nbins1, nbins2);
+    }
+    histo_dst->nbins1 = nbins1 ;
+    histo_dst->bin_size1 = histo_src->bin_size1 ;
+    histo_dst->nbins2 = nbins2 ;
+    histo_dst->bin_size2 = histo_src->bin_size2 ;
+    HISTO2Dclear(histo_dst, histo_dst) ;
+  }
+  /* build the kernel in k */
+  len = (int)nint(8.0f * sigma)+1 ;
+  if (ISEVEN(len))   /* ensure it's odd */
+    len++ ;
+  if (MAX_LEN && (MAX_LEN < len))
+    len = MAX_LEN ;
+  half = len/2 ;
+
+  norm = 0.0f ;
+  two_sigma = 2.0f * sigma ;
+  
+  for (norm = 0.0f, x = 0 ; x < len ; x++)
+  {
+    fx = (float)(x-half) ;
+    if (fabs(fx) <= two_sigma)
+      k = (float)exp((double)(-fx*fx/(two_sigma*sigma))) ;
+    else if (two_sigma < fabs(fx) && fabs(fx) <= 4.0f*sigma)
+      k = 1.0f / (16.0f * (float)(M_E * M_E)) *
+          (float)pow(4.0f - fabs(fx)/(double)sigma, 4.0) ;
+    else
+      k = 0 ;
+
+    kernel[x] = k ;
+    norm += k ;
+  }
+  for (x = 0 ; x < len ; x++)
+    kernel[x] /= norm ;
+  
+  for (b1 = 0 ; b1 < nbins1 ; b1++)
+  {
+    histo_dst->bins1[b1] = histo_src->bins1[b1] ;
+    for (b2 = 0 ; b2 < nbins2 ; b2++)
+    {
+      histo_dst->bins2[b2] = histo_src->bins2[b2] ;
+      for (norm = 0.0, total = 0.0f, x = 0 ; x < len ; x++)
+      {
+	kx = x - half ;
+	b2k = b2 + kx ;
+	if (b2k >= nbins2 || b2k< 0)
+	  continue ;
+
+	norm += kernel[x] ;
+	total += kernel[x] * (float)histo_src->counts[b1][b2k] ;
+	if (!finite(norm) || !finite(total) || !finite(kernel[x]))
+	  DiagBreak() ;
+      }
+      if (b1 == Gx && b2 == Gy)
+	DiagBreak() ;
+      if (DZERO(norm))
+      {
+	DiagBreak() ;
+	histo_dst->counts[b1][b2] = histo_src->counts[b1][b2];
+	continue ;
+      }
+
+      histo_dst->counts[b1][b2] = total/norm ;
+    }
+  }
+
+  return(histo_dst) ;
+}
+
+
+HISTOGRAM2D *
+HISTO2DsoapBubbleZeros(HISTOGRAM2D *hsrc, HISTOGRAM2D *hdst, int niters)
+{
+  int    n, b1, b2, **control, num ;
+  double **tmp, val ;
+
+  tmp = (double **)calloc(hsrc->nbins1, sizeof(double *)) ;
+  control = (int **)calloc(hsrc->nbins1, sizeof(int *)) ;
+  for (b1 = 0 ; b1 < hsrc->nbins1 ; b1++)
+  {
+    tmp[b1] = (double *)calloc(hsrc->nbins2, sizeof(double)) ;
+    control[b1] = (int *)calloc(hsrc->nbins2, sizeof(int)) ;
+  }
+
+  hdst = HISTO2Dcopy(hsrc, hdst) ;
+
+  for (b1 = 0 ; b1 < hsrc->nbins1 ; b1++)
+    for (b2 = 0 ; b2 < hsrc->nbins2 ; b2++)
+      if (hsrc->counts[b1][b2] > 0)
+	control[b1][b2] = 1 ;   // in case hsrc == hdst
+
+  // first set values of all zero bins that are adjacent to non-zero to the avg of the nbrs
+  for (b1 = 0 ; b1 < hsrc->nbins1 ; b1++)
+    for (b2 = 0 ; b2 < hsrc->nbins2 ; b2++)
+    {
+      if (control[b1][b2])
+	continue ;
+
+      val = 0 ; num = 0 ;
+      if (b1 > 0)
+      {
+	if (control[b1-1][b2])
+	{
+	  val += hdst->counts[b1-1][b2] ;  num++ ;
+	}
+      }
+      if (b2 > 0)
+      {
+	if (control[b1][b2-1])
+	{
+	  val += hdst->counts[b1][b2-1] ;  num++ ;
+	}
+      }
+      if (b2 < hdst->nbins2-1)
+      {
+	if (control[b1][b2+1])
+	{
+	  val += hdst->counts[b1][b2+1] ;  num++ ;
+	}
+      }
+      if (b1 < hdst->nbins1-1)
+      {
+	if (control[b1+1][b2])
+	{
+	  val += hdst->counts[b1+1][b2] ;  num++ ;
+	}
+      }
+      if (num > 0)
+	hdst->counts[b1][b2] = val / num ;
+    }
+
+  for (n = 0 ; n < niters ; n++)
+  {
+    for (b1 = 0 ; b1 < hsrc->nbins1 ; b1++)
+      for (b2 = 0 ; b2 < hsrc->nbins2 ; b2++)
+      {
+	if (control[b1][b2])
+	  tmp[b1][b2] = hsrc->counts[b1][b2] ;
+	else
+	{
+	  val = hsrc->counts[b1][b2] ; num = 1 ;
+	  if (b1 > 0)
+	  {
+	    val += hdst->counts[b1-1][b2] ;  num++ ;
+	  }
+	  if (b2 > 0)
+	  {
+	    val += hdst->counts[b1][b2-1] ;  num++ ;
+	  }
+	  if (b2 < hdst->nbins2-1)
+	  {
+	    val += hdst->counts[b1][b2+1] ;  num++ ;
+	  }
+	  if (b1 < hdst->nbins1-1)
+	  {
+	    val += hdst->counts[b1+1][b2] ;  num++ ;
+	  }
+	  tmp[b1][b2] = val / num ;
+	}
+      }
+    for (b1 = 0 ; b1 < hsrc->nbins1 ; b1++)
+      for (b2 = 0 ; b2 < hsrc->nbins2 ; b2++)
+	hdst->counts[b1][b2] = tmp[b1][b2] ;
+  }
+
+  for (b1 = 0 ; b1 < hsrc->nbins1 ; b1++)
+  {
+    free(tmp[b1]) ; free(control[b1]) ;
+  }
+  free(tmp) ; free(control) ;
+  return(hdst) ;
+}
