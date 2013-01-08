@@ -11,8 +11,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2012/08/28 22:11:20 $
- *    $Revision: 1.114.2.1 $
+ *    $Date: 2013/01/08 19:37:41 $
+ *    $Revision: 1.114.2.2 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -268,6 +268,9 @@ int    GCAsourceVoxelToPrior( const GCA *gca, MRI *mri, TRANSFORM *transform,
 			      int *pxp, int *pyp, int *pzp) ;
 int    GCAsourceVoxelToPriorReal(GCA *gca, MRI *mri, TRANSFORM *transform,
                                  int xv, int yv, int zv,
+                                 double *pxp, double *pyp, double *pzp) ;
+int    GCAsourceFloatVoxelToPriorReal(GCA *gca, MRI *mri, TRANSFORM *transform,
+                                 float xv, float yv, float zv,
                                  double *pxp, double *pyp, double *pzp) ;
 int    GCAsourceFloatVoxelToPrior(GCA *gca, MRI *mri, TRANSFORM *transform,
                                   float xv, float yv, float zv,
