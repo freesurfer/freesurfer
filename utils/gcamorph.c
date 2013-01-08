@@ -11,8 +11,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2013/01/08 22:28:18 $
- *    $Revision: 1.276 $
+ *    $Date: 2013/01/08 23:02:46 $
+ *    $Revision: 1.277 $
  *
  * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -18638,6 +18638,7 @@ GCAMcreateDistanceTransforms(MRI *mri_source,
 
 #ifdef HAVE_OPENMP
   label = 0;
+  mri_atlas_dtrans = mri_dtrans = NULL ;
 #pragma omp parallel for firstprivate(label, fname, mri_atlas_dtrans, mri_source, mri_target, mri_all_dtrans, mri_dtrans, max_dist, Gdiag_no, gcam)    schedule(static,1)
 #endif
   for (frame = 0 ; frame < NDTRANS_LABELS ; frame++)
