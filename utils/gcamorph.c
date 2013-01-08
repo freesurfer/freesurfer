@@ -11,8 +11,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2012/10/17 19:11:33 $
- *    $Revision: 1.247.2.4 $
+ *    $Date: 2013/01/08 22:03:08 $
+ *    $Revision: 1.247.2.5 $
  *
  * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -122,6 +122,7 @@ MRI *MRIcomposeWarps(MRI *mri_warp1, MRI *mri_warp2, MRI *mri_dst) ;
 int fix_borders(GCA_MORPH *gcam)  ;
 
 int gcam_write_grad = 0 ;
+int gcam_write_neg = 0 ;
 
 #if 1
 int dtrans_labels[] =
@@ -182,6 +183,7 @@ int dtrans_labels[] =
 int NCOMBINE_LABELS = _NCOMBINE_LABELS ;
 int NDTRANS_LABELS = _NDTRANS_LABELS ;
 
+//static int GCAMsetNegativeNodeStatus(GCA_MORPH *gcam, int status) ;
 HISTOGRAM *gcamJacobianHistogram(GCA_MORPH *gcam, HISTOGRAM *h);
 int gcamComputePeriventricularWMDeformation(GCA_MORPH *gcam, MRI *mri) ;
 double gcamMaxGradient(GCA_MORPH *gcam) ;
@@ -4959,11 +4961,12 @@ GCAMmorphPlistFromAtlas(int N,
       {
         DiagBreak() ;
       }
-      if (GCAsourceVoxelToPriorReal(gcam->gca, NULL, transform,
-                                    x, y, z, &xr, &yr, &zr) != NO_ERROR)
-      {
+      //if (GCAsourceVoxelToPriorReal(gcam->gca, NULL, transform,
+      //                              x, y, z, &xr, &yr, &zr) != NO_ERROR)
+      if (GCAsourceFloatVoxelToPriorReal(gcam->gca, NULL, transform, 
+					 x, y, z, &xr, &yr, &zr) != NO_ERROR)
         continue ;
-      }
+      
       xr *= scale ;
       yr *= scale ;
       zr *= scale ;
@@ -13152,8 +13155,8 @@ GCAMmorphFieldFromAtlas(GCA_MORPH *gcam, MRI *mri, int which, int save_inversion
       }
     }
   }
-  //LZ
-  //if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
+  
+//if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
   MRIwrite(mri_tmp, "tmp1.mgz") ;
 
   pad = MAX(-xmin, MAX(-ymin, -zmin)) ;
@@ -13174,11 +13177,8 @@ GCAMmorphFieldFromAtlas(GCA_MORPH *gcam, MRI *mri, int which, int save_inversion
   ymin = mri_tmp2->height ;
   zmin = mri_tmp2->depth ;
   xmax = ymax = zmax = 0 ;
-  //LZ
-  printf("BEFORE loop: (gcam->width, gcam->height, gcam->depth) = (%d, %d, %d); \n", gcam->width, gcam->height, gcam->depth) ;
-  printf("BEFORE loop: (Gx, Gy, Gz) = (%d, %d, %d); \n", Gx, Gy, Gz) ;
-  printf("BEFORE loop: (mri->width, mri->height , mri->depth) = (%d, %d, %d); \n", mri->width, mri->height , mri->depth) ;
-  for (x = 0 ; x < gcam->width ; x++)
+  
+	for (x = 0 ; x < gcam->width ; x++)
   {
     for (y = 0 ; y < gcam->height ; y++)
     {
@@ -21002,3 +21002,4 @@ GCAMregisterVentricles(GCA_MORPH *gcam, MRI *mri, GCA_MORPH_PARMS *parms)
 
   return(NO_ERROR) ;
 }
+	

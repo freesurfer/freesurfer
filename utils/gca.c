@@ -14,8 +14,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2012/10/17 19:11:32 $
- *    $Revision: 1.292.2.5 $
+ *    $Date: 2013/01/08 22:03:08 $
+ *    $Revision: 1.292.2.6 $
  *
  * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -1489,6 +1489,51 @@ GCAsourceFloatVoxelToPrior(GCA *gca, MRI *mri, TRANSFORM *transform,
   }
   return (NO_ERROR) ;
 }
+
+int
+GCAsourceFloatVoxelToPriorReal(GCA *gca, MRI *mri, TRANSFORM *transform,
+                           float xv, float yv, float zv,
+                           double *pxp, double *pyp, double *pzp)
+{
+  float   xt, yt, zt ;
+  double    xrt, yrt, zrt, xrp, yrp, zrp;
+
+  LTA *lta;
+  if (transform->type != MORPH_3D_TYPE)
+  {
+    if (transform->type == LINEAR_VOX_TO_VOX)
+    {
+      lta = (LTA *) transform->xform;
+      // transform point to talairach volume point
+      TransformWithMatrix(lta->xforms[0].m_L,
+                          xv, yv, zv, &xrt, &yrt, &zrt);
+      xt = xrt;
+      yt = yrt;
+      zt = zrt;
+      // TransformSample(transform, xv, yv, zv, &xt, &yt, &zt) ;
+    }
+    else
+      ErrorExit(ERROR_BADPARM, \
+                "GCAsourceVoxelToPrior: needs vox-to-vox transform") ;
+  }
+  else // morph 3d type can go directly from source to template
+  {
+    TransformSampleReal2(transform, xv, yv, zv, &xt, &yt, &zt);
+  }
+  // get the position in gca from talairach volume
+  GCAvoxelToPriorReal(gca, gca->mri_tal__, xt, yt, zt, &xrp, &yrp, &zrp) ;
+  *pxp = xrp ;
+  *pyp = yrp ;
+  *pzp = zrp ;
+  if (*pxp < 0 || *pyp < 0 || *pzp < 0 ||
+      *pxp >= gca->prior_width ||
+      *pyp >= gca->prior_height ||
+      *pzp >= gca->prior_depth)
+    return(ERROR_BADPARM) ;
+  return (NO_ERROR) ;
+}
+
+
 
 /////////////////////////////////////////////////////////////////////
 // transform from source -> template space -> prior
