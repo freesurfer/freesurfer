@@ -22,16 +22,16 @@ if ($debug) set echo
 # mpr2atl_4dfp QC
 #################
 set awkfile = $FREESURFER_HOME/bin/extract_talairach_avi_QA.awk
-set mpr2atl_v1	= `gawk -f $awkfile $logfile`
+set mpr2atl_v1	= `awk -f $awkfile $logfile`
 set eta		= `echo $mpr2atl_v1 | awk '{printf("%s\n",$13)}'`
 set error	= 0
 @ k = 1
 while ($k <= 12)
 	set x = `echo "($mpr2atl_v0[$k] - $mpr2atl_v1[$k]) / $mpr2atl_sd[$k]" | bc -l`
-	@ pos = `echo $x | gawk '{if ($1 > 0) {print 1} else {print 0}}'`
+	@ pos = `echo $x | awk '{if ($1 > 0) {print 1} else {print 0}}'`
 	set error = `echo $error + $x | bc -l`
 @ k++
 end
-set error = `echo $error | gawk '{printf ("%.4f", $1)}'`
+set error = `echo $error | awk '{printf ("%.4f", $1)}'`
 echo "eta = $eta  atlas_transform_error = $error"
 exit
