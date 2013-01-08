@@ -8,7 +8,13 @@ if BUILDCUDA
 bin_PROGRAMS=cudadetect
 
 cudadetect_SOURCES=cudadetect.cpp
+
+
+if HAVE_MAC_OSX
+cudadetect_LDFLAGS=-rdynamic -ldl -F/Library/Frameworks -framework CUDA
+else
 cudadetect_LDFLAGS=-rdynamic -ldl
+endif
 
 cudadetect_CXXFLAGS=$(CUDA_CFLAGS) -DFS_CUDA
 cudadetect_LDADD=$(CUDA_LIBS)
