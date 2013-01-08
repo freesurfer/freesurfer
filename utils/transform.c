@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2013/01/08 20:34:49 $
- *    $Revision: 1.159 $
+ *    $Date: 2013/01/08 22:02:19 $
+ *    $Revision: 1.160 $
  *
  * Copyright © 2011-2013 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -2195,7 +2195,6 @@ TransformSample(TRANSFORM *transform,
   if (transform->type == MORPH_3D_TYPE)
   {
     gcam = (GCA_MORPH *)transform->xform ;
-    //printf("gcam spacing, xind size: %d, (%d, %d, %d) \n ", gcam->spacing, gcam->mri_xind->width, gcam->mri_xind->height, gcam->mri_xind->depth);
 
     if (!gcam->mri_xind)
       ErrorReturn(ERROR_UNSUPPORTED,
@@ -4328,15 +4327,13 @@ LTA *TransformRegDat2LTA(MRI *targ, MRI *mov, MATRIX *R)
   MATRIX *Ttarg, *Tmov, *invTmov;
 
   Ttarg = MRIxfmCRS2XYZtkreg(targ);
-  MatrixPrint(stdout, Ttarg);
   Tmov  = MRIxfmCRS2XYZtkreg(mov);
   invTmov = MatrixInverse(Tmov,NULL);
 
   // vox2vox = invTmov * R * Ttarg
   vox2vox = MatrixMultiply(invTmov,R,NULL);
-  MatrixMultiply(vox2vox,Ttarg,vox2vox); 
-  // MatrixMultiply(vox2vox,Tmov,vox2vox); // this is the one that works with ds atlas
-  
+  MatrixMultiply(vox2vox,Ttarg,vox2vox);
+
   lta = LTAalloc(1,NULL);
   lta->type = LINEAR_VOX_TO_VOX;
   lta->xforms[0].type = LINEAR_VOX_TO_VOX;
