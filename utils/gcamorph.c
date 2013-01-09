@@ -11,8 +11,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2013/01/08 23:02:46 $
- *    $Revision: 1.277 $
+ *    $Date: 2013/01/09 03:16:12 $
+ *    $Revision: 1.278 $
  *
  * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -18628,12 +18628,8 @@ GCAMcreateDistanceTransforms(MRI *mri_source,
                                     NDTRANS_LABELS) ;
   MRIcopyHeader(mri_target, mri_all_dtrans) ; // should this be mri_source????
 
-  if (pmri_atlas_dist_map)
-    *pmri_atlas_dist_map = mri_atlas_dist_map = MRIallocSequence(mri_target->width,
-								mri_target->height,
-								mri_target->depth,
-								MRI_FLOAT,
-								NDTRANS_LABELS) ;
+  mri_atlas_dist_map = MRIallocSequence(mri_target->width, mri_target->height, mri_target->depth, MRI_FLOAT, NDTRANS_LABELS) ;
+
   MRIcopyHeader(mri_target, mri_all_dtrans) ;
 
 #ifdef HAVE_OPENMP
@@ -18673,6 +18669,10 @@ GCAMcreateDistanceTransforms(MRI *mri_source,
 
   mri_all_dtrans->outside_val = max_dist ;
   mri_atlas_dist_map->outside_val = max_dist ;
+  if (pmri_atlas_dist_map)
+    *pmri_atlas_dist_map = mri_atlas_dist_map ;
+  else
+    MRIfree(&mri_atlas_dist_map) ;
   return(mri_all_dtrans) ;
 }
 
