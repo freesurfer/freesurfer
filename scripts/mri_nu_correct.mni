@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2011/03/02 20:16:39 $
-#    $Revision: 1.18 $
+#    $Date: 2013/01/09 21:22:55 $
+#    $Revision: 1.19 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -23,7 +23,7 @@
 
 # mri_nu_correct.mni
 #
-set VERSION = '$Id: mri_nu_correct.mni,v 1.18 2011/03/02 20:16:39 nicks Exp $';
+set VERSION = '$Id: mri_nu_correct.mni,v 1.19 2013/01/09 21:22:55 nicks Exp $';
 
 set InVol = ();
 set OutVol = ();
@@ -150,6 +150,10 @@ if($DoRescale) then
 endif
 
 # Convert nu back to cor or mgz, use --like to keep all the header info
+if ( ! -e $numnc) then
+  echo "ERROR: file $numnc does not exist!" |& tee -a $LF
+  exit 1;
+endif
 set cmd = (mri_convert ${HiRes} $numnc $OutVol --like $InVol)
 if($UseFloat && $#HiRes == 0 && ! $DoUchar) set cmd = ($cmd --conform)
 echo $cmd |& tee -a $LF
