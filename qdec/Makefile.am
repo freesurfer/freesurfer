@@ -118,6 +118,10 @@ endif
 
 # Copy over precompiled 32-bit versions until we get 64-bit builds working.
 if INSTALL_MAC32_GUIS
+
+qdecdir=$(prefix)/lib/resource
+qdec_DATA=QdecIcons.txt
+
 install-exec-hook:
 	cp $(top_builddir)/distribution/Mac_32b/qdec_Mac32.bin $(DESTDIR)$(bindir)/qdec.bin
 	echo "#!/bin/tcsh -ef" > $(DESTDIR)$(bindir)/qdec
