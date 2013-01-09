@@ -57,17 +57,14 @@ void DialogLineProfile::OnCompute()
     return;
 
   MainWindow* mainwnd = MainWindow::GetMainWindow();
-  int nViewId = mainwnd->GetActiveViewId();
+  int nViewId = mainwnd->GetActiveViewId();  
+
   LayerCollection* col = mainwnd->GetLayerCollection("Supplement");
   if (!col)
     return;
+
   QList<Layer*> lineLayers = col->GetLayers("LineProfile");
-  if (lineLayers.isEmpty())
-  {
-    m_lineProfile = new LayerLineProfile(nViewId, NULL, layer1, layer2);
-    col->AddLayer(m_lineProfile);
-  }
-  else
+  if (!lineLayers.isEmpty())
   {
     m_lineProfile = NULL;
     foreach (Layer* layer, lineLayers)
@@ -79,14 +76,14 @@ void DialogLineProfile::OnCompute()
         break;
       }
     }
-    if (!m_lineProfile)
+    if (m_lineProfile)
     {
-      m_lineProfile = new LayerLineProfile(nViewId, NULL, layer1, layer2);
-      col->AddLayer(m_lineProfile);
+      col->RemoveLayer(m_lineProfile);
+      m_lineProfile = NULL;
     }
-    else
-      m_lineProfile->SetSourceLayers(layer1, layer2);
   }
+  m_lineProfile = new LayerLineProfile(nViewId, NULL, layer1, layer2);
+  col->AddLayer(m_lineProfile);
 
   double dVoxelSize = 1.0;
   LayerMRI* mri = qobject_cast<LayerMRI*>(mainwnd->GetActiveLayer("MRI"));

@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2012/11/01 19:21:06 $
- *    $Revision: 1.79 $
+ *    $Date: 2013/01/09 01:07:31 $
+ *    $Revision: 1.80 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -381,7 +381,6 @@ bool LayerSurface::LoadAnnotationFromFile( const QString& filename )
   return true;
 }
 
-
 bool LayerSurface::LoadLabelFromFile( const QString& filename )
 {
   // create annotation
@@ -425,7 +424,6 @@ bool LayerSurface::LoadSplineFromFile(const QString &filename)
   return true;
 }
 
-
 void LayerSurface::InitializeSurface()
 {
   if ( m_surfaceSource == NULL )
@@ -445,7 +443,6 @@ void LayerSurface::InitializeSurface()
   m_dWorldSize[1] = RASBounds[3] - RASBounds[2];
   m_dWorldSize[2] = RASBounds[5] - RASBounds[4];
 }
-
 
 void LayerSurface::InitializeActors()
 {

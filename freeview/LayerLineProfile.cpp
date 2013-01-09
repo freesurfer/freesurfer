@@ -92,7 +92,7 @@ void LayerLineProfile::SetSourceLayers(LayerPointSet *line1, LayerPointSet *line
   if (m_spline0)
     connect(m_spline0, SIGNAL(destroyed()), this, SLOT(OnSourceLineDestroyed()));
   if (m_spline1)
-  connect(m_spline1, SIGNAL(destroyed()), this, SLOT(OnSourceLineDestroyed()));
+    connect(m_spline1, SIGNAL(destroyed()), this, SLOT(OnSourceLineDestroyed()));
 }
 
 void LayerLineProfile::OnSlicePositionChanged(int nPlane)
@@ -259,12 +259,12 @@ bool LayerLineProfile::Solve(double profileSpacing, double referenceSize, double
 
   m_nActiveLineId = -1;
   m_activeLine->SetMapper(vtkSmartPointer<vtkPolyDataMapper>::New());
-  UpdateActors();
 
   m_dResolution = laplaceResolution;
   m_dSpacing = profileSpacing;
   m_dOffset = offset;
 
+  UpdateActors();
   return true;
 }
 
