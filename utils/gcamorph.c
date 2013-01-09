@@ -11,8 +11,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2013/01/08 22:03:08 $
- *    $Revision: 1.247.2.5 $
+ *    $Date: 2013/01/09 03:22:49 $
+ *    $Revision: 1.247.2.6 $
  *
  * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -21002,4 +21002,4 @@ GCAMregisterVentricles(GCA_MORPH *gcam, MRI *mri, GCA_MORPH_PARMS *parms)
 
   return(NO_ERROR) ;
 }
-	
+
