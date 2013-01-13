@@ -1,0 +1,6 @@
+#! /bin/tcsh -ef
+
+source ../scripts/vtk_setup
+source ../scripts/petsc_setup
+
+./LineProfTest
