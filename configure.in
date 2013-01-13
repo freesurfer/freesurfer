@@ -8,9 +8,9 @@
 # Process this file with autoconf to produce a configure script.
 #
 # CVS Revision Info:
-#    $Author: fischl $
-#    $Date: 2013/01/08 15:40:54 $
-#    $Revision: 1.584 $
+#    $Author: nicks $
+#    $Date: 2013/01/13 21:55:11 $
+#    $Revision: 1.585 $
 #
 ########################################################################
 AC_PREREQ(2.57)
@@ -3436,6 +3436,8 @@ AC_OUTPUT([Makefile
            distribution/average/Makefile
            distribution/average/surf/Makefile
            distribution/average/Yeo_JNeurophysiol11_MNI152/Makefile
+           distribution/average/Buckner_JNeurophysiol11_MNI152/Makefile
+           distribution/average/Choi_JNeurophysiol12_MNI152/Makefile
            distribution/docs/Makefile
            distribution/diffusion/Makefile
            distribution/diffusion/mgh-dti-seqpack/Makefile
