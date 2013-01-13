@@ -74,14 +74,17 @@ Other Downloads
 ===============
 1) The surface parcellations in Caret space can be viewed using Webcaret here: http://sumsdb.wustl.edu:8081/sums/directory.do?id=8286317
 
-2) The surface parcellations in FreeSurfer space can also be downloaded here: http://surfer.nmr.mgh.harvard.edu/fswiki/CorticalParcellation_Yeo2011
+2) Seed-based fcMRI Movies can be downloaded here: http://www.youtube.com/YeoKrienen
+Cerebellum seed-based fcMRI movies can be watched here: http://www.youtube.com/BucknerKrienen
 
-3) Seed-based fcMRI Movies can be downloaded here: http://www.youtube.com/YeoKrienen
+3) Remember to also check out the cerebellar and striatum parcellations
 
 
 References
 ==========
-Yeo BT, Krienen FM, Sepulcre J, Sabuncu MR, Lashkari D, Hollinshead M, Roffman JL, Smoller JW, Zollei L., Polimeni JR, Fischl B, Liu H, Buckner RL (2011) The organization of the human cerebral cortex estimated by intrinsic functional connectivity. J. Neurophysiol. In Press.
 
-The paper can be downloaded from PubMed here: http://www.ncbi.nlm.nih.gov/pubmed/21653723
+Yeo BTT, Krienen FM, Sepulcre J, Sabuncu MR, Lashkari D, Hollinshead M, Roffman JL, Smoller JW, Zollei L, Polimeni JR, Fischl B, Liu H, Buckner RL (2011) The organization of the human cerebral cortex estimated by intrinsic functional connectivity. J Neurophysiol 106: 1125-1165
 
+Buckner RL, Krienen FM, Castellanos A, Diaz JC, Yeo BTT (2011) The organization of the human cerebellum estimated by intrinsic functional connectivity. J Neurophysiol 106:2322-2345
+
+Choi EY, Yeo BT, Buckner RL (2012) The organization of the human striatum estimated by intrinsic functional connectivity. J Neurophysiol 108: 2242-2263
