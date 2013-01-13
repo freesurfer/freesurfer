@@ -8,9 +8,9 @@
 # Process this file with autoconf to produce a configure script.
 #
 # CVS Revision Info:
-#    $Author: zkaufman $
-#    $Date: 2013/01/05 05:04:18 $
-#    $Revision: 1.519.2.30 $
+#    $Author: nicks $
+#    $Date: 2013/01/13 22:00:38 $
+#    $Revision: 1.519.2.31 $
 #
 ########################################################################
 AC_PREREQ(2.57)
@@ -3421,7 +3421,7 @@ AM_CONDITIONAL(HAVE_OPENGL_LIBS, ! test "X$GL_LIBS" = "X")
 # these environment variable.  The first one bypasses the need for a 
 # license in FREESURFER_HOME, the others specify necessary libs.
 #
-TESTS_ENVIRONMENT="SURFER_FRONTDOOR=1 LD_LIBRARY_PATH=$TCL_LIB"
+TESTS_ENVIRONMENT="SURFER_FRONTDOOR=1 LD_LIBRARY_PATH=$TCL_LIB:$VTK_LIB"
 if (! test "x$ac_cppunit_dir" = "xNO"); then
   TESTS_ENVIRONMENT="$TESTS_ENVIRONMENT:$CPPUNIT_LIB"
 fi
@@ -3444,6 +3444,8 @@ AC_OUTPUT([Makefile
            distribution/average/Makefile
            distribution/average/surf/Makefile
            distribution/average/Yeo_JNeurophysiol11_MNI152/Makefile
+           distribution/average/Buckner_JNeurophysiol11_MNI152/Makefile
+           distribution/average/Choi_JNeurophysiol12_MNI152/Makefile
            distribution/docs/Makefile
            distribution/diffusion/Makefile
            distribution/diffusion/mgh-dti-seqpack/Makefile
@@ -3780,6 +3782,7 @@ AC_OUTPUT([Makefile
            qdecproject/Makefile
            vtkfsio/Makefile
            vtkutils/Makefile
+           lineprof/Makefile
            xml2/Makefile])
 
 ########################################################################
