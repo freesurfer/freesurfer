@@ -321,6 +321,7 @@ SUBDIRS=\
 	itkio \
 	itkutils \
 	tetgen \
+  lineprof \
 	$(FSGDF) \
 	connectgraph \
 	qdecproject \
