@@ -8,8 +8,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2013/01/08 22:28:02 $
- *    $Revision: 1.31 $
+ *    $Date: 2013/01/13 14:04:27 $
+ *    $Revision: 1.32 $
  *
  * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -633,14 +633,9 @@ main(int argc, char *argv[])
     memmove(&mp, (const void *)&old_parms, sizeof(old_parms)) ;
     mp.start_t = start_t ;
   }
-  GCAMregister(gcam, mri_source, &mp) ; // atlas is target, morph target into register with it
   if (nozero < 0)
-  {
-    mp.navgs /= 16 ;  // only do finer scales in second set of passes to align exterior edges
-    printf("enabling zero nodes\n") ;
-    GCAMremoveIgnoreZero(gcam, mri_target) ;
-    GCAMregister(gcam, mri_source, &mp) ; // atlas is target, morph target into register with it
-  }
+    mp.enable_zero_passes = mp.npasses-1 ;
+  GCAMregister(gcam, mri_source, &mp) ; // atlas is target, morph target into register with it
   
   if (apply_transform)
   {
