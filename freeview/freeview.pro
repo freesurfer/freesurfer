@@ -136,7 +136,10 @@ SOURCES += \
     SurfaceSpline.cpp \
     DialogLoadSurfaceOverlay.cpp \
     DialogReloadLayer.cpp \
-    DialogSmoothSurface.cpp
+    DialogSmoothSurface.cpp \
+    DialogLineProfile.cpp \
+    LayerLineProfile.cpp \
+    LayerPropertyLineProfile.cpp
 
 HEADERS  += \
     Annotation2D.h \
@@ -262,7 +265,10 @@ HEADERS  += \
     SurfaceSpline.h \
     DialogLoadSurfaceOverlay.h \
     DialogReloadLayer.h \
-    DialogSmoothSurface.h
+    DialogSmoothSurface.h \
+    DialogLineProfile.h \
+    LayerLineProfile.h \
+    LayerPropertyLineProfile.h
 
 FORMS    += MainWindow.ui \
     PanelVolume.ui \
@@ -300,7 +306,8 @@ FORMS    += MainWindow.ui \
     WindowGroupPlot.ui \
     DialogLoadSurfaceOverlay.ui \
     DialogReloadLayer.ui \
-    DialogSmoothSurface.ui
+    DialogSmoothSurface.ui \
+    DialogLineProfile.ui
 
 RESOURCES += \
     freeview.qrc
@@ -310,6 +317,9 @@ LIBS += \
     -lvtksqlite -lvtkImaging -lvtkFiltering -lvtkCommon -lvtksys \
     -lvtkGenericFiltering -lvtkexoIIc -lvtkNetCDF -lvtkVolumeRendering \
     -lvtkRendering -lvtkftgl -lvtkWidgets -lvtkHybrid -lvtkIO -lvtkDICOMParser
+
+#LIBS += \
+#    -lvtkhdf5_hl -lvtkhdf5 -lLSDyna  -lvtkNetCDF_cxx
 
 QMAKE_CXXFLAGS += -Wno-deprecated -DUNICODE -D_FILE_OFFSET_BITS=64 -D_LARGE_FILES \
                                   -Wno-write-strings  -DDEVELOPMENT
@@ -323,16 +333,35 @@ FREESURFER_BIN = /homes/5/rpwang/freesurfer/bin
 
 # for linux
 unix {
-
 INCLUDEPATH += /usr/pubsw/packages/vtk/current/include/vtk-5.6 \
                $$FREESURFER_DEV_DIR/include $$FREESURFER_DEV_DIR/vtkutils \
-               /usr/pubsw/packages/mni/current/include
+               /usr/pubsw/packages/mni/current/include \
+               $$FREESURFER_DEV_DIR/lineprof
+
+QMAKE_CXXFLAGS += -I/usr/pubsw/packages/itk/current/include/InsightToolkit \
+    -I/usr/pubsw/packages/itk/current/include/InsightToolkit/Algorithms \
+    -I/usr/pubsw/packages/itk/current/include/InsightToolkit/BasicFilters \
+    -I/usr/pubsw/packages/itk/current/include/InsightToolkit/Common \
+    -I/usr/pubsw/packages/itk/current/include/InsightToolkit/IO \
+    -I/usr/pubsw/packages/itk/current/include/InsightToolkit/Numerics \
+    -I/usr/pubsw/packages/itk/current/include/InsightToolkit/Numerics/Statistics \
+    -I/usr/pubsw/packages/itk/current/include/InsightToolkit/Review \
+    -I/usr/pubsw/packages/itk/current/include/InsightToolkit/Review/Statistics \
+    -I/usr/pubsw/packages/itk/current/include/InsightToolkit/SpatialObject \
+    -I/usr/pubsw/packages/itk/current/include/InsightToolkit/Utilities \
+    -I/usr/pubsw/packages/vxl/current/include/vxl/core \
+    -I/usr/pubsw/packages/vxl/current/include/vxl/vcl \
+    -I/usr/pubsw/packages/vxl/current/include/vxl/v3p/netlib \
+    -I/usr/pubsw/packages/vxl/current/include/vxl/v3p/netlib/opt \
+    -I/usr/pubsw/packages/petsc/current/include
+
 
 LIBS += -L/usr/pubsw/packages/vtk/current/lib/vtk-5.6 -L/usr/X11R6/lib \
     -lX11 -lXext -lXt -lSM -lICE -lGLU -lm -ldl \
     -L/usr/pubsw/packages/vxl/current/lib -L/usr/pubsw/packages/itk/current/lib/InsightToolkit \
     $$FREESURFER_DEV_DIR/utils/libutils.a $$FREESURFER_DEV_DIR/fsgdf/libfsgdf.a \
     $$FREESURFER_DEV_DIR/vtkutils/libvtkutils.a \
+    $$FREESURFER_DEV_DIR/lineprof/liblineprof.a \
     $$FREESURFER_DEV_DIR/hipsstubs/libhipsstubs.a $$FREESURFER_DEV_DIR/vtkutils/libvtkutils.a \
     $$FREESURFER_DEV_DIR/rgb/librgb.a $$FREESURFER_DEV_DIR/unix/libunix.a $$FREESURFER_DEV_DIR/dicom/libdicom.a \
     $$FREESURFER_DEV_DIR/jpeg/libjpeg.a $$FREESURFER_DEV_DIR/tiff/libtiff.a $$FREESURFER_DEV_DIR/expat/libexpat.a \
@@ -347,7 +376,10 @@ LIBS += -L/usr/pubsw/packages/vtk/current/lib/vtk-5.6 -L/usr/X11R6/lib \
     /usr/pubsw/packages/itk/current/lib/InsightToolkit/libITKDICOMParser.a \
     /usr/lib64/libuuid.a -lz -lcrypt -ldl -lpthread \
     /usr/pubsw/packages/mni/1.4/lib/libvolume_io.a -L/usr/pubsw/packages/mni/1.4/lib /usr/pubsw/packages/mni/1.4/lib/libminc.a /usr/pubsw/packages/mni/1.4/lib/libnetcdf.a \
-    -lvnl_algo -lvnl -lvcl -lnetlib -lv3p_netlib
+    -lvnl_algo -lvnl -lvcl -lnetlib -lv3p_netlib \
+    -L/usr/pubsw/packages/petsc/current/lib -lpetscts -lpetscsnes -lpetscksp \
+    -lpetscdm -lpetscmat -lpetscvec -lpetsc -lmpich -lfmpich \
+    /usr/lib64/liblapack.a /usr/lib64/libblas.a -lgfortran
 
 TARGET = freeview.bin
 DESTDIR = $$FREESURFER_BIN
@@ -386,7 +418,7 @@ LIBS -= -L/usr/pubsw/packages/vtk/current/lib/vtk-5.6 -L/usr/X11R6/lib \
     -lvnl_algo -lvnl -lvcl -lnetlib -lv3p_netlib
 
 LIBS -= \
-    -lvtkverdict -lvtkGraphics -lvtkmetaio -lvtkpng -lvtkzlib \
+    -lvtkverdict -lvtkGraphics -lvtkmetaio -lvtkpng \ #-lvtkzlib \
     -lvtksqlite -lvtkImaging -lvtkFiltering -lvtkCommon -lvtksys \
     -lvtkGenericFiltering -lvtkexoIIc -lvtkNetCDF -lvtkVolumeRendering \
     -lvtkRendering -lvtkftgl -lvtkWidgets -lvtkHybrid -lvtkIO -lvtkDICOMParser

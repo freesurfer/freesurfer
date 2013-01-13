@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2012/08/28 18:50:25 $
- *    $Revision: 1.30.2.4 $
+ *    $Date: 2013/01/13 22:59:00 $
+ *    $Revision: 1.30.2.5 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -36,6 +36,7 @@ class QWheelEvent;
 class QFocusEvent;
 class vtkActor2D;
 class vtkScalarBarActor;
+class vtkProp;
 class Layer;
 
 class RenderView : public GenericRenderView
@@ -48,6 +49,8 @@ public:
 
   void SetWorldCoordinateInfo( const double* origin, const double* size, bool bResetView = true );
   virtual void UpdateViewByWorldCoordinate() {}
+
+  int PickCell( vtkProp* prop, int posX, int posY, double* pos_out = NULL );
 
   int GetInteractionMode();
   virtual void SetInteractionMode( int nMode );
@@ -80,6 +83,9 @@ public:
 
   virtual void TriggerContextMenu( QMouseEvent* event ) {}
 
+signals:
+  void ViewChanged();
+
 public slots:
   void RequestRedraw( bool bForce = false );
   void MoveUp();
@@ -92,6 +98,7 @@ public slots:
   void ShowScalarBar( bool bShow );
   void SetScalarBarLayer( Layer* layer );
   void SetScalarBarLayer( QAction* act );
+  void CenterAtWorldPosition( double* pos );
 
 protected:
   virtual void paintEvent(QPaintEvent *event);

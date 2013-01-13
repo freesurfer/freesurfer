@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2012/08/28 18:50:25 $
- *    $Revision: 1.40.2.4 $
+ *    $Date: 2013/01/13 22:59:00 $
+ *    $Revision: 1.40.2.5 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -48,6 +48,8 @@
 #include "vtkRGBAColorTransferFunction.h"
 #include <QPainter>
 #include <QAction>
+#include <vtkCellPicker.h>
+#include <vtkRenderWindow.h>
 
 #define SCALE_FACTOR  200
 
@@ -78,6 +80,12 @@ RenderView::RenderView( QWidget* parent ) : GenericRenderView( parent),
   Lines->InsertNextCell( 2 );
   Lines->InsertCellPoint( 3 );
   Lines->InsertCellPoint( 0 );
+
+  vtkCellPicker* picker = vtkCellPicker::New();
+  picker->SetTolerance( 0.0005 );
+  picker->PickFromListOn();
+  this->GetRenderWindow()->GetInteractor()->SetPicker( picker );
+  picker->Delete();
 
   vtkSmartPointer<vtkPolyData> Grid = vtkSmartPointer<vtkPolyData>::New();
   Grid->SetPoints(Pts);
@@ -314,7 +322,7 @@ void RenderView::MoveLeft()
   double focal_pt[3], cam_pos[3];
   cam->GetFocalPoint( focal_pt );
   cam->GetPosition( cam_pos );
-  double scale = qMin( qMin( m_dWorldSize[0], m_dWorldSize[1] ), m_dWorldSize[2] ) / SCALE_FACTOR;
+  double scale = qMax( qMax( m_dWorldSize[0], m_dWorldSize[1] ), m_dWorldSize[2] ) / SCALE_FACTOR;
   for ( int i = 0; i < 3; i++ )
   {
     focal_pt[i] -= v[i] * scale;
@@ -324,6 +332,7 @@ void RenderView::MoveLeft()
   cam->SetPosition( cam_pos );
 
   RequestRedraw();
+  emit ViewChanged();
 }
 
 void RenderView::MoveRight()
@@ -336,7 +345,7 @@ void RenderView::MoveRight()
   double focal_pt[3], cam_pos[3];
   cam->GetFocalPoint( focal_pt );
   cam->GetPosition( cam_pos );
-  double scale = qMin( qMin( m_dWorldSize[0], m_dWorldSize[1] ), m_dWorldSize[2] ) / SCALE_FACTOR;
+  double scale = qMax( qMax( m_dWorldSize[0], m_dWorldSize[1] ), m_dWorldSize[2] ) / SCALE_FACTOR;
   for ( int i = 0; i < 3; i++ )
   {
     focal_pt[i] += v[i] * scale;
@@ -346,6 +355,7 @@ void RenderView::MoveRight()
   cam->SetPosition( cam_pos );
 
   RequestRedraw();
+  emit ViewChanged();
 }
 
 void RenderView::MoveUp()
@@ -356,7 +366,7 @@ void RenderView::MoveUp()
   double focal_pt[3], cam_pos[3];
   cam->GetFocalPoint( focal_pt );
   cam->GetPosition( cam_pos );
-  double scale = qMin( qMin( m_dWorldSize[0], m_dWorldSize[1] ), m_dWorldSize[2] ) / SCALE_FACTOR;
+  double scale = qMax( qMax( m_dWorldSize[0], m_dWorldSize[1] ), m_dWorldSize[2] ) / SCALE_FACTOR;
   for ( int i = 0; i < 3; i++ )
   {
     focal_pt[i] -= v[i] * scale;
@@ -366,6 +376,7 @@ void RenderView::MoveUp()
   cam->SetPosition( cam_pos );
 
   RequestRedraw();
+  emit ViewChanged();
 }
 
 void RenderView::MoveDown()
@@ -376,7 +387,7 @@ void RenderView::MoveDown()
   double focal_pt[3], cam_pos[3];
   cam->GetFocalPoint( focal_pt );
   cam->GetPosition( cam_pos );
-  double scale = qMin( qMin( m_dWorldSize[0], m_dWorldSize[1] ), m_dWorldSize[2] ) / SCALE_FACTOR;
+  double scale = qMax( qMax( m_dWorldSize[0], m_dWorldSize[1] ), m_dWorldSize[2] ) / SCALE_FACTOR;
   for ( int i = 0; i < 3; i++ )
   {
     focal_pt[i] += v[i] * scale;
@@ -386,6 +397,7 @@ void RenderView::MoveDown()
   cam->SetPosition( cam_pos );
 
   RequestRedraw();
+  emit ViewChanged();
 }
 
 void RenderView::Zoom( double dFactor )
@@ -393,7 +405,25 @@ void RenderView::Zoom( double dFactor )
   vtkCamera* cam = m_renderer->GetActiveCamera();
   cam->Zoom( dFactor );
 
+  emit ViewChanged();
   Render();
+}
+
+void RenderView::CenterAtWorldPosition(double *pos)
+{
+  vtkCamera* cam = m_renderer->GetActiveCamera();
+  double v[3], cam_pos[3];
+  cam->GetDirectionOfProjection( v );
+  double dist = cam->GetDistance();
+  for ( int i = 0; i < 3; i++ )
+  {
+    cam_pos[i] = pos[i] - v[i] * dist;
+  }
+  cam->SetFocalPoint( pos );
+  cam->SetPosition( cam_pos );
+
+  RequestRedraw();
+  emit ViewChanged();
 }
 
 int RenderView::GetAction()
@@ -490,4 +520,22 @@ bool RenderView::SaveScreenShot(const QString& filename, bool bAntiAliasing, int
   bool ret = SaveImage(filename, bAntiAliasing, nMag);
   RefreshAllActors(false);
   return ret;
+}
+
+int RenderView::PickCell( vtkProp* prop, int posX, int posY, double* pos_out )
+{
+  vtkCellPicker* picker = vtkCellPicker::SafeDownCast( GetRenderWindow()->GetInteractor()->GetPicker() );
+  if ( !picker )
+  {
+    return -1;
+  }
+
+  picker->InitializePickList();
+  picker->AddPickList( prop );
+  picker->Pick( posX, this->rect().height() - posY, 0, GetRenderer() );
+  if ( pos_out )
+  {
+    picker->GetPickPosition( pos_out );
+  }
+  return picker->GetCellId();
 }

@@ -385,6 +385,8 @@
     <addaction name="actionSmoothSurface"/>
     <addaction name="actionRemoveIntersectionsSurface"/>
     <addaction name="separator"/>
+    <addaction name="actionLineProfile"/>
+    <addaction name="separator"/>
     <addaction name="actionSavePoint"/>
     <addaction name="actionGoToPoint"/>
     <addaction name="separator"/>
@@ -1303,6 +1305,14 @@
   <action name="actionRemoveIntersectionsSurface">
    <property name="text">
     <string>Remove Intersections In Surface</string>
+   </property>
+  </action>
+  <action name="actionLineProfile">
+   <property name="text">
+    <string>Line Profile...</string>
+   </property>
+   <property name="toolTip">
+    <string>Line Profile</string>
    </property>
   </action>
  </widget>
@@ -2499,6 +2509,22 @@
     </hint>
    </hints>
   </connection>
+  <connection>
+   <sender>actionLineProfile</sender>
+   <signal>triggered()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>OnLineProfile()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>606</x>
+     <y>435</y>
+    </hint>
+   </hints>
+  </connection>
  </connections>
  <slots>
   <slot>OnLoadVolume()</slot>
@@ -2569,5 +2595,6 @@
   <slot>OnReloadSurface()</slot>
   <slot>OnSmoothSurface()</slot>
   <slot>OnRemoveIntersectionsFromSurface()</slot>
+  <slot>OnLineProfile()</slot>
  </slots>
 </ui>

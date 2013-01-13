@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2012/08/28 18:50:24 $
- *    $Revision: 1.56.2.6 $
+ *    $Date: 2013/01/13 22:59:00 $
+ *    $Revision: 1.56.2.7 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -292,15 +292,19 @@ bool LayerSurface::LoadOverlayFromFile(const QString &filename, const QString& f
 
 bool LayerSurface::LoadGenericOverlayFromFile( const QString& filename, const QString& fn_reg )
 {
-  if ( !m_surfaceSource->LoadOverlay( filename, fn_reg ) )
+  float* data = NULL;
+  int nframes, nvertices;
+  if ( !m_surfaceSource->LoadOverlay( filename, fn_reg, &data, &nvertices, &nframes ) )
   {
     return false;
   }
 
   // create overlay
   SurfaceOverlay* overlay = new SurfaceOverlay( this );
+  overlay->InitializeData(data, nvertices, nframes);
   overlay->SetName( QFileInfo(filename).fileName() );
   overlay->SetFileName( filename );
+
   m_overlays.push_back( overlay );
   SetActiveOverlay( m_overlays.size() - 1 );
 
@@ -377,7 +381,6 @@ bool LayerSurface::LoadAnnotationFromFile( const QString& filename )
   return true;
 }
 
-
 bool LayerSurface::LoadLabelFromFile( const QString& filename )
 {
   // create annotation
@@ -421,7 +424,6 @@ bool LayerSurface::LoadSplineFromFile(const QString &filename)
   return true;
 }
 
-
 void LayerSurface::InitializeSurface()
 {
   if ( m_surfaceSource == NULL )
@@ -441,7 +443,6 @@ void LayerSurface::InitializeSurface()
   m_dWorldSize[1] = RASBounds[3] - RASBounds[2];
   m_dWorldSize[2] = RASBounds[5] - RASBounds[4];
 }
-
 
 void LayerSurface::InitializeActors()
 {
@@ -1156,10 +1157,10 @@ void LayerSurface::UpdateOverlay( bool bAskRedraw )
           data[i*4+3] = 255;
         }
       }
-      if (m_nActiveAnnotation >= 0)
-        GetActiveAnnotation()->MapAnnotationColor(data);
       if (m_nActiveOverlay >= 0)
         GetActiveOverlay()->MapOverlay( data );
+      if (m_nActiveAnnotation >= 0)
+        GetActiveAnnotation()->MapAnnotationColor(data);
       MapLabels( data, nCount );
       for ( int i = 0; i < nCount; i++ )
       {

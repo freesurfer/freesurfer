@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2012/08/28 18:50:24 $
- *    $Revision: 1.159.2.11 $
+ *    $Date: 2013/01/13 22:59:00 $
+ *    $Revision: 1.159.2.12 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -91,6 +91,8 @@
 #include "DialogLoadSurfaceOverlay.h"
 #include "DialogReloadLayer.h"
 #include "DialogSmoothSurface.h"
+#include "DialogLineProfile.h"
+#include "LayerLineProfile.h"
 
 MainWindow::MainWindow( QWidget *parent, MyCmdLineParser* cmdParser ) :
   QMainWindow( parent ),
@@ -114,7 +116,7 @@ MainWindow::MainWindow( QWidget *parent, MyCmdLineParser* cmdParser ) :
   // supplemental layers will not show on control panel
   m_layerCollections["Supplement"] = new LayerCollection( "Supplement", this);
   LayerLandmarks* landmarks = new LayerLandmarks(this);
-  m_layerCollections["Supplement"]->AddLayer(landmarks);
+  m_layerCollections["Supplement"]->AddLayer(landmarks);  
 
   m_luts = new LUTDataHolder();
   m_propertyBrush = new BrushProperty();
@@ -223,6 +225,17 @@ MainWindow::MainWindow( QWidget *parent, MyCmdLineParser* cmdParser ) :
   m_dlgLabelStats = new DialogLabelStats(this);
   m_dlgLabelStats->hide();
   connect(this, SIGNAL(SlicePositionChanged()), m_dlgLabelStats, SLOT(OnSlicePositionChanged()), Qt::QueuedConnection);
+
+  m_dlgLineProfile = new DialogLineProfile(this);
+  m_dlgLineProfile->hide();
+  connect(m_layerCollections["PointSet"], SIGNAL(LayerAdded(Layer*)), m_dlgLineProfile, SLOT(UpdatePointSetList()));
+  connect(m_layerCollections["PointSet"], SIGNAL(LayerRemoved(Layer*)), m_dlgLineProfile, SLOT(UpdatePointSetList()));
+  connect(m_layerCollections["PointSet"], SIGNAL(LayerNameChanged()), m_dlgLineProfile, SLOT(UpdatePointSetList()));
+  for (int i = 0; i < 3; i++)
+  {
+    connect(this->m_views[i], SIGNAL(LineProfileIdPicked(LayerLineProfile*, int)),
+            m_dlgLineProfile, SLOT(OnLineProfileIdPicked(LayerLineProfile*,int)));
+  }
 
   QStringList keys = m_layerCollections.keys();
   for ( int i = 0; i < keys.size(); i++ )
@@ -1314,6 +1327,10 @@ void MainWindow::RunScript()
   {
     CommandSetOpacity( sa );
   }
+  else if ( cmd == "setdisplayoutline")
+  {
+    CommandSetLabelOutline(sa);
+  }
   else if ( cmd == "setdisplayisosurface" )
   {
     CommandSetDisplayIsoSurface( sa );
@@ -1570,6 +1587,13 @@ void MainWindow::CommandLoadVolume( const QStringList& sa )
 
         m_scripts.insert( 0, script );
       }
+      else if ( subOption == "outline")
+      {
+        QString script = "setdisplayoutline ";
+        script += subArgu;
+
+        m_scripts.insert( 0, script );
+      }
       else if ( subOption == "isosurface" )
       {
         QString script = "setdisplayisosurface ";
@@ -1794,6 +1818,18 @@ void MainWindow::CommandShowLayer( const QStringList& cmd )
   }
 }
 
+void MainWindow::CommandSetLabelOutline(const QStringList &cmd)
+{
+  QString stemp = cmd[1].toLower();
+  if ( stemp == "yes"|| stemp == "true" || stemp == "1" || stemp == "on")
+  {
+    LayerMRI* mri = (LayerMRI*)GetLayerCollection( "MRI" )->GetActiveLayer();
+    if ( mri )
+    {
+      mri->GetProperty()->SetShowLabelOutline(true);
+    }
+  }
+}
 
 void MainWindow::CommandSetDisplayVector( const QStringList& cmd )
 {
@@ -2981,6 +3017,7 @@ void MainWindow::CommandSetRAS( const QStringList& cmd )
     }
     lc->SetCursorRASPosition( ras );
     SetSlicePosition( ras );
+    this->GetMainView()->CenterAtWorldPosition(ras);
   }
   else
   {
@@ -3828,8 +3865,9 @@ void MainWindow::OnSaveROI()
   QString fn = layer_roi->GetFileName();
   if ( fn.isEmpty() )
   {
+    QString def_fn = AutoSelectLastDir( "label" ) + "/" + layer_roi->GetName() + ".label";
     fn = QFileDialog::getSaveFileName( this, "Select label file",
-                                       AutoSelectLastDir( "label" ),
+                                       def_fn,
                                        "Label files (*)");
   }
 
@@ -3858,8 +3896,9 @@ void MainWindow::OnSaveROIAs()
     QMessageBox::warning( this, "Error", "Current ROI layer is not visible. Please turn it on before saving.");
     return;
   }
+  QString def_fn = AutoSelectLastDir( "label" ) + "/" + layer_roi->GetName() + ".label";
   QString fn = QFileDialog::getSaveFileName( this, "Select label file",
-                                       AutoSelectLastDir( "label" ),
+                                       def_fn,
                                        "Label files (*)");
 
   if ( !fn.isEmpty() )
@@ -3905,7 +3944,7 @@ void MainWindow::OnNewPointSet()
 
   // enter the name of the new point set
   DialogNewPointSet dlg( this );
-  dlg.SetPointSetName( "New Point Set");
+  dlg.SetPointSetName( tr("New Point Set %1").arg(GetLayerCollection("PointSet")->GetNumberOfLayers()));
   if ( dlg.exec() == QDialog::Accepted )
   {
     // finally we are about to create new point set.
@@ -4057,7 +4096,10 @@ void MainWindow::OnSavePointSetAs()
 
   DialogSavePointSet dlg( this );
   dlg.SetType( layer->GetProperty()->GetType() );
-  dlg.SetFileName( layer->GetFileName() );
+  QString fn = layer->GetFileName();
+  if (fn.isEmpty())
+    fn = layer->GetName();
+  dlg.SetFileName(fn);
   dlg.SetLastDir(m_strLastDir);
   if ( dlg.exec() == QDialog::Accepted )
   {
@@ -4174,8 +4216,13 @@ void MainWindow::OnIOError( Layer* layer, int jobtype )
     {
       msg = "Failed to save volume to ";
     }
+    else if ( jobtype == ThreadIOWorker::JT_SaveSurface )
+    {
+      msg = "Failed to save surface to ";
+    }
     QMessageBox::warning( this, "Error", msg + layer->GetFileName() );
-    delete layer;
+    if ( jobtype != ThreadIOWorker::JT_SaveVolume && jobtype != ThreadIOWorker::JT_SaveSurface )
+      delete layer;
   }
   else
   {
@@ -5231,7 +5278,7 @@ void MainWindow::OnActiveLayerChanged(Layer* layer)
   {
     this->setWindowTitle(QString("FreeView (%1)")
                          .arg(MyUtils::Win32PathProof(layer->GetFileName())));
-    if (layer->IsTypeOf("MRI") )
+    if (layer->IsTypeOf("MRI") && !layer->IsTypeOf("DTI") && !layer->IsTypeOf("PLabel"))
     {
       if (((LayerMRI*)layer)->GetNumberOfFrames() > 1)
       {
@@ -5389,6 +5436,11 @@ void MainWindow::OnShowLabelStats()
   m_dlgLabelStats->show();
 }
 
+void MainWindow::OnLineProfile()
+{
+  m_dlgLineProfile->show();
+}
+
 void MainWindow::OnSaveIsoSurface()
 {
   QString fn = QFileDialog::getSaveFileName(this, "Save IsoSurface As",
@@ -5485,4 +5537,10 @@ void MainWindow::OnReloadSurface()
       this->LoadSurfaceFile(filename);
     }
   }
+}
+
+void MainWindow::UpdateInfoPanel()
+{
+  QTimer::singleShot(0, ui->treeWidgetCursorInfo, SLOT(OnCursorPositionChanged()));
+  QTimer::singleShot(0, ui->treeWidgetMouseInfo, SLOT(OnMousePositionChanged()));
 }

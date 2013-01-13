@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2012/08/28 18:50:25 $
- *    $Revision: 1.4.2.5 $
+ *    $Date: 2013/01/13 22:59:01 $
+ *    $Revision: 1.4.2.6 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -48,6 +48,9 @@ public:
 
   virtual void showEvent(QShowEvent *);
 
+signals:
+  void ActiveFrameChanged();
+
 public slots:
   void UpdateGraph();
   void UpdateUI();
@@ -64,6 +67,8 @@ protected slots:
   void OnHistogramMarkerChanged();
   void OnSmoothChanged();
   void OnTextThresholdChanged(const QString& strg);
+  void OnApply();
+  void OnFrameChanged(int nFrame);
 
 private:
   Ui::WindowConfigureOverlay *ui;

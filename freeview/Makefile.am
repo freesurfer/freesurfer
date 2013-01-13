@@ -42,6 +42,7 @@ BUILT_SOURCES = \
   ui_DialogLoadSurfaceOverlay.h \
   ui_DialogReloadLayer.h \
   ui_DialogSmoothSurface.h \
+  ui_DialogLineProfile.h \
 	qtcolorpicker.moc \
 	moc_BrushProperty.cpp \
 	moc_CommandEdit.cpp \
@@ -147,6 +148,9 @@ BUILT_SOURCES = \
   moc_DialogLoadSurfaceOverlay.cpp \
   moc_DialogReloadLayer.cpp \
   moc_DialogSmoothSurface.cpp \
+  moc_DialogLineProfile.cpp \
+  moc_LayerLineProfile.cpp \
+  moc_LayerPropertyLineProfile.cpp \
   qrc_freeview.cpp
 
 freeview_SOURCES = $(BUILT_SOURCES) \
@@ -422,6 +426,12 @@ freeview_SOURCES = $(BUILT_SOURCES) \
   DialogReloadLayer.h \
   DialogSmoothSurface.cpp \
   DialogSmoothSurface.h \
+  LayerLineProfile.cpp \
+  LayerLineProfile.h \
+  DialogLineProfile.cpp \
+  DialogLineProfile.h \
+  LayerPropertyLineProfile.cpp \
+  LayerPropertyLineProfile.h \
 	freeview.qrc
 
 qrc_freeview.cpp: freeview.qrc
@@ -512,7 +522,8 @@ AM_CXXFLAGS=\
 	-I$(top_srcdir)/vtkfsio \
 	-I$(top_srcdir)/vtkutils \
 	$(ITK_CFLAGS) -DHAVE_ITK_LIBS \
-	$(VXL_CFLAGS)
+  $(VXL_CFLAGS) \
+  -I$(top_srcdir)/lineprof
 
 freeview_CXXFLAGS = $(QT_CXXFLAGS) $(AM_CXXFLAGS)
 freeview_CPPFLAGS = $(QT_CPPFLAGS) $(AM_CPPFLAGS)
@@ -520,7 +531,8 @@ freeview_LDFLAGS	= $(QT_LDFLAGS) $(OS_LDFLAGS)
 freeview_LDADD		= $(QT_LIBS)	\
 	$(addprefix $(top_builddir)/, $(LIBS_MGH)) \
 	$(top_builddir)/vtkfsio/libvtkfsio.a \
-	$(top_builddir)/vtkutils/libvtkutils.a \
+  $(top_builddir)/vtkutils/libvtkutils.a \
+  $(top_builddir)/lineprof/liblineprof.a \
 	$(VTK_LIBS) $(VTK_VERDICT_LIB) -lvtkGraphics \
 	$(VTK_EXPAT_LIB) $(VTK_FREETYPE_LIB) \
 	$(VTK_TIFF_LIB) $(VTK_JPEG_LIB) \
@@ -531,7 +543,11 @@ freeview_LDADD		= $(QT_LIBS)	\
 	-lvtkexoIIc -lvtkNetCDF $(VTK_NETCDFCXX_LIB) \
 	-lvtkVolumeRendering -lvtkRendering -lvtkftgl \
 	-lvtkWidgets -lvtkHybrid $(VTK_HDF5_LIB) \
-	-lvtkIO	$(VTK_LSDYNA_LIB) -lvtkDICOMParser $(VTK_MPEG2ENCODE_LIB)
+  -lvtkIO	$(VTK_LSDYNA_LIB) -lvtkDICOMParser $(VTK_MPEG2ENCODE_LIB) \
+  $(ITK_LIBS) \
+  $(PETSC_LIBS) -lpetscts -lpetscsnes -lpetscksp \
+  -lpetscdm -lpetscmat -lpetscvec -lpetsc -lmpich -lfmpich \
+  $(LIB_GFORTRAN) $(LIB_LAPACK_A) $(LIB_BLAS_A) $(LIB_G2C_A) $(LIB_GFORTRAN)
 
 # put a wrapper around the bin, used to setup tcltktixblt,vtk enviro vars
 # and if the OS is MACOSX have a different install-hook to create a bundle

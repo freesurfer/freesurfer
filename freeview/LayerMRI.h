@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2012/08/28 18:50:24 $
- *    $Revision: 1.61.2.9 $
+ *    $Date: 2013/01/13 22:58:59 $
+ *    $Revision: 1.61.2.10 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -95,6 +95,9 @@ public:
   double GetVoxelValueByOriginalIndex( int i, int j, int k, int frame = -1 );
   QList<double> GetVoxelValueByOriginalIndexAllFrames(int i, int j, int k);
   double GetSampledVoxelValueByRAS(double* ras, int frame = -1);
+
+  std::vector<double> GetSampledVoxelValues(std::vector< std::vector<double> >& line3d, int frame = -1);
+  std::vector<double> GetMeanSegmentValues(std::vector< std::vector<double> >& line3d, int frame = -1);
 
   virtual QString GetLabelName( double value );
 

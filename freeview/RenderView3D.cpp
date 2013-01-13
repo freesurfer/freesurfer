@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2012/08/28 18:50:25 $
- *    $Revision: 1.54.2.9 $
+ *    $Date: 2013/01/13 22:59:00 $
+ *    $Revision: 1.54.2.10 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -66,12 +66,6 @@ RenderView3D::RenderView3D( QWidget* parent ) : RenderView( parent )
 {
   this->GetRenderWindow()->GetInteractor()->SetDesiredUpdateRate(30);
   this->GetRenderWindow()->GetInteractor()->SetStillUpdateRate(0.01);
-
-  vtkCellPicker* picker = vtkCellPicker::New();
-  picker->SetTolerance( 0.0005 );
-  picker->PickFromListOn();
-  this->GetRenderWindow()->GetInteractor()->SetPicker( picker );
-  picker->Delete();
 
   m_bShowSlices = true;
   for ( int i = 0; i < 3; i++ )
@@ -222,24 +216,6 @@ void RenderView3D::UpdateSliceFrames()
   }
 
   RequestRedraw();
-}
-
-int RenderView3D::PickCell( vtkProp* prop, int posX, int posY, double* pos_out )
-{
-  vtkCellPicker* picker = vtkCellPicker::SafeDownCast( GetRenderWindow()->GetInteractor()->GetPicker() );
-  if ( !picker )
-  {
-    return -1;
-  }
-
-  picker->InitializePickList();
-  picker->AddPickList( prop );
-  picker->Pick( posX, this->rect().height() - posY, 0, GetRenderer() );
-  if ( pos_out )
-  {
-    picker->GetPickPosition( pos_out );
-  }
-  return picker->GetCellId();
 }
 
 void RenderView3D::UpdateViewByWorldCoordinate()

@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2012/08/28 18:50:25 $
- *    $Revision: 1.4.2.9 $
+ *    $Date: 2013/01/13 22:59:01 $
+ *    $Revision: 1.4.2.10 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -31,6 +31,7 @@
 #include <QDebug>
 #include "CursorFactory.h"
 #include "vtkObject.h"
+#include "LineProf.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include "error.h"
@@ -79,9 +80,11 @@ int main(int argc, char *argv[])
     putenv((char*)"LANG=en_US");
   qInstallMsgHandler(myMessageOutput);
 
+  LineProf::InitializePetsc();
+
   CmdLineEntry cmdLineDesc[] =
   {
-    CmdLineEntry( CMD_LINE_OPTION, "v", "volume", "<FILE>...", "Load one or multiple volume files. Available sub-options are: \n\n':colormap=name' Set colormap for display. Valid names are grayscale/lut/heat/jet/gecolor/nih. \n\n':grayscale=min,max' Set grayscale window values.\n\n':heatscale=min,mid,max' Set heat scale values.\n\n':heatscaleoptions=option1[,option2]' Set heat scale options. Options can be 'truncate','invert', or both.\n\n':colorscale=min,max' Set generic colorscale values for jet/gecolor/nih.\n\n':lut=name' Set lookup table to the given name. Name can be the name of a stock color table or the filename of a color table file.\n\n':vector=flag' Display 3 frame volume as vectors. flag can be 'yes', 'true' or '1'.\n\n':tensor=flag' Display 9 frame volume as tensors. flag can be 'yes', 'true' or '1'.\n\n':render=flag' When displaying as vectors or tensors, render the glyph in the given form. For vector, flag can be 'line' as simple line or 'bar' as 3D bar (might be slow). For tensor, flag can be 'boxoid' or 'ellipsoid' (slow!).\n\n':inversion=flag' When displaying as vectors or tensors, invert the given component of the vectors. Valid flags are 'x', 'y' and 'z'.\n\n':reg=reg_filename' Set registration file for the volume. reg_filename can contain relative path to the volume file.\n\n':sample=method' Set the sample method when resampling is necessary. method can be 'nearest' (default) or 'trilinear'.\n\n':opacity=value' Set the opacity of the volume layer. value ranges from 0 to 1.\n\n':isosurface=low_threshold,high_threshold' Set 3D display as isosurface. High_threshold is optional. If no threshold or simply 'on' is given, threshold will be either automatically determined or retrieved from the save previously settings.\n\n':color=name' Set color of the isosurface. Name can be a generic color name such as 'red' or 'lightgreen', or three integer values as RGB values ranging from 0 to 255. For example '255,0,0' is the same as 'red'.\n\n':surface_region=file' Load isosurface region(s) from the given file. isosurface display will automatically be turned on.\n\n':name=display_name' Set the display name of the volume.\n\n':lock=lock_status' Lock the volume layer so it will not be moved in the layer stack. Status can be '1' or 'true'.\n\n':visible=visibility' Set the initial visibility of the volume. Visibility can be '1' or '0' or 'true' or 'false'.\n\n':structure=name_or_value' Move the slice in the main viewport to where it has the most of the given structure.\n\nExample:\nfreeview -v T1.mgz:colormap=heatscale:heatscale=10,100,200\n", 1, 100 ),
+    CmdLineEntry( CMD_LINE_OPTION, "v", "volume", "<FILE>...", "Load one or multiple volume files. Available sub-options are: \n\n':colormap=name' Set colormap for display. Valid names are grayscale/lut/heat/jet/gecolor/nih. \n\n':grayscale=min,max' Set grayscale window values.\n\n':heatscale=min,mid,max' Set heat scale values.\n\n':heatscaleoptions=option1[,option2]' Set heat scale options. Options can be 'truncate','invert', or both.\n\n':colorscale=min,max' Set generic colorscale values for jet/gecolor/nih.\n\n':lut=name' Set lookup table to the given name. Name can be the name of a stock color table or the filename of a color table file.\n\n':vector=flag' Display 3 frame volume as vectors. flag can be 'yes', 'true' or '1'.\n\n':tensor=flag' Display 9 frame volume as tensors. flag can be 'yes', 'true' or '1'.\n\n':render=flag' When displaying as vectors or tensors, render the glyph in the given form. For vector, flag can be 'line' as simple line or 'bar' as 3D bar (might be slow). For tensor, flag can be 'boxoid' or 'ellipsoid' (slow!).\n\n':inversion=flag' When displaying as vectors or tensors, invert the given component of the vectors. Valid flags are 'x', 'y' and 'z'.\n\n':outline=flag' Display labels as outline only. flag can be '1', 'yes' or 'true'.\n\n':reg=reg_filename' Set registration file for the volume. reg_filename can contain relative path to the volume file.\n\n':sample=method' Set the sample method when resampling is necessary. method can be 'nearest' (default) or 'trilinear'.\n\n':opacity=value' Set the opacity of the volume layer. value ranges from 0 to 1.\n\n':isosurface=low_threshold,high_threshold' Set 3D display as isosurface. High_threshold is optional. If no threshold or simply 'on' is given, threshold will be either automatically determined or retrieved from the save previously settings.\n\n':color=name' Set color of the isosurface. Name can be a generic color name such as 'red' or 'lightgreen', or three integer values as RGB values ranging from 0 to 255. For example '255,0,0' is the same as 'red'.\n\n':surface_region=file' Load isosurface region(s) from the given file. isosurface display will automatically be turned on.\n\n':name=display_name' Set the display name of the volume.\n\n':lock=lock_status' Lock the volume layer so it will not be moved in the layer stack. Status can be '1' or 'true'.\n\n':visible=visibility' Set the initial visibility of the volume. Visibility can be '1' or '0' or 'true' or 'false'.\n\n':structure=name_or_value' Move the slice in the main viewport to where it has the most of the given structure.\n\nExample:\nfreeview -v T1.mgz:colormap=heatscale:heatscale=10,100,200\n", 1, 100 ),
     CmdLineEntry( CMD_LINE_SWITCH, "r", "resample", "", "Resample oblique data to standard RAS." ),
     CmdLineEntry( CMD_LINE_SWITCH, "conform", "conform", "", "Conform the volume to the first loaded volume." ),
     CmdLineEntry( CMD_LINE_SWITCH, "trilinear", "trilinear", "", "Use trilinear as the default resample method." ),
@@ -154,5 +157,8 @@ int main(int argc, char *argv[])
     return false;
   }
 
-  return app.exec();
+  int ret = app.exec();
+
+  LineProf::FinalizePetsc();
+  return ret;
 }

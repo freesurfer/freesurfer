@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2012/08/28 18:50:24 $
- *    $Revision: 1.96.2.9 $
+ *    $Date: 2013/01/13 22:58:59 $
+ *    $Revision: 1.96.2.10 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -815,7 +815,7 @@ void LayerMRI::ShowContour()
 
 void LayerMRI::UpdateContourColor()
 {
-  if ( GetProperty()->GetContourUseImageColorMap() )
+  if ( GetProperty()->GetContourUseImageColorMap() || GetProperty()->GetShowAsLabelContour())
   {
     m_actorContour->GetMapper()->ScalarVisibilityOn();
   }
@@ -1108,6 +1108,58 @@ double LayerMRI::GetSampledVoxelValueByRAS(double* ras, int frame)
   return val;
 }
 
+std::vector<double> LayerMRI::GetSampledVoxelValues(std::vector<std::vector<double> > &line3d, int frame)
+{
+  MRI* mri = m_volumeSource->GetMRI();
+  std::vector<double> vals;
+  for (size_t i = 0; i < line3d.size(); i++)
+  {
+    double pt[3] = { line3d[i][0], line3d[i][1], line3d[i][2] };
+    this->TargetToRAS(pt, pt);
+    vals.push_back(GetSampledVoxelValueByRAS(pt, frame));
+  }
+  return vals;
+}
+
+std::vector<double> LayerMRI::GetMeanSegmentValues(std::vector<std::vector<double> > &line3d, int frame)
+{
+  MRI* mri = m_volumeSource->GetMRI();
+  double* spacing = this->m_imageData->GetSpacing();
+  double voxel_length = qMin(spacing[0], qMin(spacing[1], spacing[2]));
+  std::vector<double> vals;
+  for (size_t i = 0; i < line3d.size()-1; i++)
+  {
+    double pt1[3] = { line3d[i][0], line3d[i][1], line3d[i][2] };
+    double pt2[3] = { line3d[i+1][0], line3d[i+1][1], line3d[i+1][2] };
+    this->TargetToRAS(pt1, pt1);
+    this->TargetToRAS(pt2, pt2);
+    double dist = sqrt(vtkMath::Distance2BetweenPoints(pt1, pt2));
+    if (dist == 0)
+      dist = 1.0;   // not going to happen
+    double v[3];
+    for (int j = 0; j < 3; j++)
+      v[j] = (pt2[j] - pt1[j]) / dist;
+    int n = (int)(dist/voxel_length/2.0+0.5);
+    if (n < 1)
+      n = 1;
+    dist = dist/n;
+    double sum = 0;
+    for (int j = 0; j <= n; j++)
+    {
+      double pt[3];
+      pt[0] = pt1[0] + v[0]*j*dist;
+      pt[1] = pt1[1] + v[1]*j*dist;
+      pt[2] = pt1[2] + v[2]*j*dist;
+      double val = GetSampledVoxelValueByRAS(pt, frame);
+      sum += val;
+      if (j != 0 && j != n)
+        sum += val;
+    }
+    vals.push_back(sum/n/2);
+  }
+  return vals;
+}
+
 QList<double> LayerMRI::GetVoxelValueByOriginalIndexAllFrames(int i, int j, int k)
 {
   QList<double> list;
@@ -1357,6 +1409,8 @@ void LayerMRI::UpdateVectorActor( int nPlane, vtkImageData* imagedata )
                                    pt[2] - scale * v[2] );
           lines->InsertCellPoint( nCnt++ );
           lines->InsertCellPoint( nCnt++ );
+
+
           c[0] = (int)(fabs( v[0] *255 ) );
           c[1] = (int)(fabs( v[1] *255 ) );
           c[2] = (int)(fabs( v[2] *255 ) );
@@ -2102,7 +2156,6 @@ void LayerMRI::UpdateUpSampleMethod()
 
 void LayerMRI::GetCurrentLabelStats(int nPlane, float *label_out, int *count_out, float *area_out,
                                     LayerMRI *underlying_mri, double *mean_out, double *sd_out)
-
 {
   if ( !m_imageData || nPlane < 0 || nPlane > 2 )
   {

@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2012/08/28 18:50:25 $
- *    $Revision: 1.90.2.9 $
+ *    $Date: 2013/01/13 22:59:00 $
+ *    $Revision: 1.90.2.10 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -59,6 +59,7 @@ class WindowGroupPlot;
 class DialogLabelStats;
 class VolumeFilterWorkerThread;
 class VolumeFilter;
+class DialogLineProfile;
 
 #define MAX_RECENT_FILES    10
 
@@ -302,6 +303,7 @@ protected:
   void CommandSetLUT            ( const QStringList& cmd );
   void CommandSetHeadScaleOptions( const QStringList& sa );
   void CommandSetOpacity        ( const QStringList& cmd );
+  void CommandSetLabelOutline   ( const QStringList& cmd );
   void CommandSetSurfaceOverlayMethod     ( const QStringList& cmd );
   void CommandSetSurfaceColor   ( const QStringList& cmd );
   void CommandSetSurfaceEdgeColor ( const QStringList& cmd );
@@ -395,6 +397,7 @@ protected slots:
   void OnShowLabelStats();
   void OnSaveIsoSurface();
   void OnPlot();
+  void OnLineProfile();
 
   void OnActiveLayerChanged(Layer*);
 
@@ -418,6 +421,7 @@ protected slots:
     this->activateWindow();
   }
 
+  void UpdateInfoPanel();
 
 private:
   bool DoParseCommand(bool bAutoQuit);
@@ -480,6 +484,7 @@ private:
   WindowTimeCourse*     m_wndTimeCourse;
   WindowGroupPlot*      m_wndGroupPlot;
   DialogLabelStats*     m_dlgLabelStats;
+  DialogLineProfile*    m_dlgLineProfile;
 
   VolumeFilterWorkerThread* m_threadVolumeFilter;
 

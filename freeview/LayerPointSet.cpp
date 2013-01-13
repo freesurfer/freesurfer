@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2012/08/28 18:50:24 $
- *    $Revision: 1.4.2.5 $
+ *    $Date: 2013/01/13 22:58:59 $
+ *    $Revision: 1.4.2.6 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -62,6 +62,10 @@ LayerPointSet::LayerPointSet( LayerMRI* ref, int nType, QObject* parent ) : Laye
     m_actorSlice[i]->GetProperty()->SetInterpolationToFlat();
     m_actorSlice[i]->GetProperty()->SetAmbient( 1 );
     m_actorSlice[i]->GetProperty()->SetDiffuse( 0 );
+    m_actorSplineSlice[i] = vtkActor::New();
+    m_actorSplineSlice[i]->GetProperty()->SetInterpolationToFlat();
+    m_actorSplineSlice[i]->GetProperty()->SetAmbient( 1 );
+    m_actorSplineSlice[i]->GetProperty()->SetDiffuse( 0 );
   }
   m_layerRef = ref;
   m_pointSetSource = new FSPointSet();
@@ -87,6 +91,7 @@ LayerPointSet::LayerPointSet( LayerMRI* ref, int nType, QObject* parent ) : Laye
   connect(p, SIGNAL(ScalarLayerChanged(LayerMRI*)), this, SLOT(RebuildActors()));
   connect(p, SIGNAL(ScalarSetChanged()), this, SLOT(RebuildActors()));
   connect(p, SIGNAL(SnapToVoxelCenterChanged(bool)), this, SLOT(UpdateSnapToVoxelCenter()));
+  connect(p, SIGNAL(SplineVisibilityChanged(bool)), this, SLOT(UpdateSplineVisibility()));
 }
 
 LayerPointSet::~LayerPointSet()
@@ -96,6 +101,7 @@ LayerPointSet::~LayerPointSet()
   for ( int i = 0; i < 3; i++ )
   {
     m_actorSlice[i]->Delete();
+    m_actorSplineSlice[i]->Delete();
   }
 }
 
@@ -119,6 +125,18 @@ bool LayerPointSet::LoadFromFile( const QString& filename )
   m_points.clear();
   m_pointSetSource->LabelToPointSet( m_points, m_layerRef->GetSourceVolume() );
   SetFileName( filename );
+  RebuildActors();
+
+  return true;
+}
+
+bool LayerPointSet::LoadFromString(const QString &content)
+{
+  if (!m_pointSetSource->ReadFromStringAsControlPoints(content))
+    return false;
+
+  m_points.clear();
+  m_pointSetSource->LabelToPointSet( m_points, m_layerRef->GetSourceVolume() );
   RebuildActors();
 
   return true;
@@ -198,6 +216,7 @@ void LayerPointSet::Append2DProps( vtkRenderer* renderer, int nPlane )
 {
   if ( nPlane < 3 && nPlane >= 0 )
   {
+    renderer->AddViewProp( m_actorSplineSlice[nPlane] );
     renderer->AddViewProp( m_actorSlice[nPlane] );
   }
 }
@@ -213,10 +232,14 @@ void LayerPointSet::SetVisible( bool bVisible )
   if ( GetProperty()->GetShowSpline() )
   {
     m_actorSpline->SetVisibility( bVisible ? 1 : 0 );
+    for (int i = 0; i < 3; i++)
+      m_actorSplineSlice[i]->SetVisibility( bVisible ? 1 : 0 );
   }
   else
   {
     m_actorSpline->SetVisibility( 0 );
+    for (int i = 0; i < 3; i++)
+      m_actorSplineSlice[i]->SetVisibility( 0 );
   }
   m_actorBalls->SetVisibility( bVisible ? 1 : 0 );
   for ( int i = 0; i < 3; i++ )
@@ -232,6 +255,12 @@ bool LayerPointSet::IsVisible()
   return m_actorSlice[0]->GetVisibility() > 0;
 }
 
+void LayerPointSet::UpdateSplineVisibility()
+{
+  SetVisible(IsVisible());
+  RebuildActors();
+}
+
 bool LayerPointSet::HasProp( vtkProp* prop )
 {
   return ( prop == m_actorSpline || prop == m_actorBalls );
@@ -244,22 +273,88 @@ void LayerPointSet::OnSlicePositionChanged( int nPlane )
 
 void LayerPointSet::RebuildActors( bool bRebuild3D )
 {
-  // 2D
   if ( !m_layerRef )
   {
     return;
   }
 
   blockSignals( true );
+
+  // 3D
   MRI* mri = m_layerRef->GetSourceVolume()->GetMRITarget();
   double voxel_size[3] = { mri->xsize, mri->ysize, mri->zsize };
 // double* origin = m_layerRef->GetWorldOrigin();
   double scale = qMin( voxel_size[0], qMin( voxel_size[1], voxel_size[2] ) );
   double radius = GetProperty()->GetRadius();
+
+  vtkAppendPolyData* append = vtkAppendPolyData::New();
+  vtkPoints* pts = vtkPoints::New();
+  vtkCellArray* lines = vtkCellArray::New();
+  lines->InsertNextCell( m_points.size() );
+  for ( int i = 0; i < m_points.size(); i++ )
+  {
+    vtkSphereSource* sphere = vtkSphereSource::New();
+    sphere->SetCenter( m_points[i].pt );
+    sphere->SetRadius( radius * scale );
+    sphere->SetThetaResolution( 10 );
+    sphere->SetPhiResolution( 20 );
+    append->AddInput( sphere->GetOutput() );
+    sphere->Delete();
+    pts->InsertNextPoint( m_points[i].pt );
+    lines->InsertCellPoint( i );
+  }
+  vtkPolyDataMapper* mapper = vtkPolyDataMapper::New();
+  if ( m_points.size() > 0 )
+  {
+    mapper->SetInput( append->GetOutput() );
+  }
+  else
+  {
+    mapper->SetInput( vtkSmartPointer<vtkPolyData>::New() );
+  }
+  append->Delete();
+  m_actorBalls->SetMapper( mapper );
+  mapper->Delete();
+
+  vtkPolyData* polydata_tube = NULL;
+  if ( GetProperty()->GetShowSpline() )
+  {
+    vtkPolyData* polydata = vtkPolyData::New();
+    polydata->SetPoints( pts );
+    polydata->SetLines( lines );
+    vtkSplineFilter* spline = vtkSplineFilter::New();
+    if ( GetProperty()->GetScalarType() == LayerPropertyPointSet::ScalarSet )
+    {
+      spline->SetSubdivideToSpecified();
+      spline->SetNumberOfSubdivisions( GetProperty()->GetActiveScalarSet().nNum - 1 );
+    }
+    if ( m_points.size() > 1 )
+    {
+      spline->SetInput( polydata );
+      vtkTubeFilter* tube = vtkTubeFilter::New();
+      tube->SetNumberOfSides( NUM_OF_SIDES );
+      tube->SetInputConnection( spline->GetOutputPort() );
+      tube->SetRadius( GetProperty()->GetSplineRadius() * scale );
+      tube->CappingOn();
+      m_mapper->SetInputConnection( tube->GetOutputPort() );
+      tube->Update();
+      polydata_tube = tube->GetOutput();
+      m_actorSpline->SetMapper( m_mapper );
+      UpdateScalars();
+      tube->Delete();
+    }
+    polydata->Delete();
+    spline->Delete();
+  }
+
+  pts->Delete();
+  lines->Delete();
+
+  // 2D
   for ( int i = 0; i < 3; i++ )
   {
-    vtkPolyDataMapper* mapper = vtkPolyDataMapper::New();
-    vtkAppendPolyData* append = vtkAppendPolyData::New();
+    vtkSmartPointer<vtkPolyDataMapper> mapper = vtkSmartPointer<vtkPolyDataMapper>::New();
+    vtkSmartPointer<vtkAppendPolyData> append = vtkSmartPointer<vtkAppendPolyData>::New();
     int n = 0;
     for ( int j = 0; j < m_points.size(); j++ )
     {
@@ -308,76 +403,43 @@ void LayerPointSet::RebuildActors( bool bRebuild3D )
       mapper->SetInput( vtkSmartPointer<vtkPolyData>::New() );
     }
     m_actorSlice[i]->SetMapper( mapper );
-    append->Delete();
-    mapper->Delete();
+
+    // 2D tube
+    if (polydata_tube)
+    {
+      vtkSmartPointer<vtkPlane> plane = vtkSmartPointer<vtkPlane>::New();
+      plane->SetOrigin( m_dSlicePosition );
+      plane->SetNormal( i==0?1:0, i==1?1:0, i==2?1:0 );
+
+      vtkSmartPointer<vtkCutter> cutter =
+        vtkSmartPointer<vtkCutter>::New();
+      cutter->SetInput( polydata_tube );
+      cutter->SetCutFunction( plane );
+
+      vtkSmartPointer<vtkStripper> stripper = vtkSmartPointer<vtkStripper>::New();
+      stripper->SetInputConnection( cutter->GetOutputPort() );
+      stripper->Update();
+
+      vtkSmartPointer<vtkPolyData> cutpoly = vtkSmartPointer<vtkPolyData>::New();
+      cutpoly->SetPoints( stripper->GetOutput()->GetPoints() );
+      cutpoly->SetPolys( stripper->GetOutput()->GetLines() );
+
+      vtkSmartPointer<vtkTriangleFilter> triangleFilter = vtkSmartPointer<vtkTriangleFilter>::New();
+      triangleFilter->SetInput( cutpoly );
+
+      mapper = vtkSmartPointer<vtkPolyDataMapper>::New();
+      mapper->SetInput(triangleFilter->GetOutput());
+
+      m_actorSplineSlice[i]->SetMapper(mapper);
+    }
   }
 
   if ( !bRebuild3D )
   {
+    blockSignals(false);
     return;
   }
 
-  // 3D
-  vtkAppendPolyData* append = vtkAppendPolyData::New();
-  vtkPoints* pts = vtkPoints::New();
-  vtkCellArray* lines = vtkCellArray::New();
-  lines->InsertNextCell( m_points.size() );
-  for ( int i = 0; i < m_points.size(); i++ )
-  {
-    vtkSphereSource* sphere = vtkSphereSource::New();
-    sphere->SetCenter( m_points[i].pt );
-    sphere->SetRadius( radius * scale );
-    sphere->SetThetaResolution( 10 );
-    sphere->SetPhiResolution( 20 );
-    append->AddInput( sphere->GetOutput() );
-    sphere->Delete();
-    pts->InsertNextPoint( m_points[i].pt );
-    lines->InsertCellPoint( i );
-  }
-  vtkPolyDataMapper* mapper = vtkPolyDataMapper::New();
-  if ( m_points.size() > 0 )
-  {
-    mapper->SetInput( append->GetOutput() );
-  }
-  else
-  {
-    mapper->SetInput( vtkSmartPointer<vtkPolyData>::New() );
-  }
-  append->Delete();
-  m_actorBalls->SetMapper( mapper );
-  mapper->Delete();
-
-  if ( GetProperty()->GetShowSpline() )
-  {
-    vtkPolyData* polydata = vtkPolyData::New();
-    polydata->SetPoints( pts );
-    polydata->SetLines( lines );
-    vtkSplineFilter* spline = vtkSplineFilter::New();
-    if ( GetProperty()->GetScalarType() == LayerPropertyPointSet::ScalarSet )
-    {
-      spline->SetSubdivideToSpecified();
-      spline->SetNumberOfSubdivisions( GetProperty()->GetActiveScalarSet().nNum - 1 );
-    }
-    if ( m_points.size() > 1 )
-    {
-      spline->SetInput( polydata );
-      vtkTubeFilter* tube = vtkTubeFilter::New();
-      tube->SetNumberOfSides( NUM_OF_SIDES );
-      tube->SetInputConnection( spline->GetOutputPort() );
-      tube->SetRadius( GetProperty()->GetSplineRadius() * scale );
-      tube->CappingOn();
-      m_mapper->SetInputConnection( tube->GetOutputPort() );
-      tube->Update();
-      m_actorSpline->SetMapper( m_mapper );
-      UpdateScalars();
-      tube->Delete();
-    }
-    polydata->Delete();
-    spline->Delete();
-  }
-
-  pts->Delete();
-  lines->Delete();
 
   UpdateColorMap();
   UpdateOpacity();
@@ -599,6 +661,7 @@ void LayerPointSet::UpdateOpacity()
   for ( int i = 0; i < 3; i++ )
   {
     m_actorSlice[i]->GetProperty()->SetOpacity( GetProperty()->GetOpacity() );
+    m_actorSplineSlice[i]->GetProperty()->SetOpacity( GetProperty()->GetOpacity() );
   }
   emit ActorUpdated();
 }
@@ -607,7 +670,8 @@ void LayerPointSet::UpdateColorMap()
 {
   for ( int i = 0; i < 3; i++ )
   {
-    m_actorSlice[i]->GetProperty()->SetColor( GetProperty()->GetColor() );
+    m_actorSlice[i]->GetProperty()->SetColor( GetProperty()->GetColor() );  
+    m_actorSplineSlice[i]->GetProperty()->SetColor( GetProperty()->GetSplineColor() );
   }
 
   m_actorBalls->GetProperty()->SetColor( GetProperty()->GetColor() );
@@ -634,3 +698,17 @@ bool LayerPointSet::Rotate( std::vector<RotationElement>& rotations, wxWindow* w
 
   return true;
 }
+
+std::vector<double> LayerPointSet::GetPoints()
+{
+  std::vector<double> list;
+  foreach (WayPoint wp, m_points)
+  {
+    list.push_back(wp.pt[0]);
+    list.push_back(wp.pt[1]);
+    list.push_back(wp.pt[2]);
+  }
+
+  return list;
+}
+

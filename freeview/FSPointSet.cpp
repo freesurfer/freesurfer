@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2012/08/28 18:50:24 $
- *    $Revision: 1.4.2.7 $
+ *    $Date: 2013/01/13 22:58:59 $
+ *    $Revision: 1.4.2.8 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -85,12 +85,15 @@ bool FSPointSet::ReadAsControlPoints( const QString& filename )
     return false;
   }
 
-  QStringList ar;
   QTextStream in(&file);
-  while (!in.atEnd())
-  {
-    ar << in.readLine();
-  }
+  QString content = in.readAll();
+
+  return ReadFromStringAsControlPoints(content);
+}
+
+bool FSPointSet::ReadFromStringAsControlPoints(const QString &content)
+{
+  QStringList ar = content.split("\n");
   int nCount = 0;
   QList<float> values;
   for ( int i = 0; i < ar.size(); i++ )
@@ -124,7 +127,6 @@ bool FSPointSet::ReadAsControlPoints( const QString& filename )
   return true;
 }
 
-
 bool FSPointSet::WriteAsLabel( const QString& filename )
 {
   int err = ::LabelWrite( m_label, filename.toAscii().data() );
@@ -137,7 +139,6 @@ bool FSPointSet::WriteAsLabel( const QString& filename )
   return err == 0;
 }
 
-
 bool FSPointSet::WriteAsControlPoints( const QString& filename )
 {
   QFile file( filename );
@@ -147,20 +148,26 @@ bool FSPointSet::WriteAsControlPoints( const QString& filename )
     if (strg.isEmpty())
       cerr << "Can not open file for writing\n";
     else
-      cerr << qPrintable(strg) << "\n";;
+      cerr << qPrintable(strg) << "\n";
     return false;
   }
 
   QTextStream out(&file);
-  for ( int i = 0; i < m_label->n_points; i++ )
-  {
-    out << m_label->lv[i].x << " " << m_label->lv[i].y << " " << m_label->lv[i].z << "\n";
-  }
-  out << QString("info\nnumpoints %1\nuseRealRAS 1\n").arg( m_label->n_points );
+  out << WriteAsControlPointsToString();
 
   return true;
 }
 
+QString FSPointSet::WriteAsControlPointsToString()
+{
+  QString strg;
+  for ( int i = 0; i < m_label->n_points; i++ )
+  {
+    strg += QString("%1 %2 %3\n").arg(m_label->lv[i].x).arg(m_label->lv[i].y).arg(m_label->lv[i].z);
+  }
+  strg += QString("info\nnumpoints %1\nuseRealRAS 1\n").arg( m_label->n_points );
+  return strg;
+}
 
 void FSPointSet::UpdateLabel( PointSet& points_in, FSVolume* ref_vol )
 {

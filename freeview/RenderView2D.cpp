@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2012/08/28 18:50:25 $
- *    $Revision: 1.44.2.8 $
+ *    $Date: 2013/01/13 22:59:00 $
+ *    $Revision: 1.44.2.9 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -47,6 +47,7 @@
 #include <QMessageBox>
 #include <QMenu>
 #include <QDebug>
+#include "LayerLineProfile.h"
 
 RenderView2D::RenderView2D( QWidget* parent ) : RenderView( parent )
 {
@@ -57,6 +58,7 @@ RenderView2D::RenderView2D( QWidget* parent ) : RenderView( parent )
   m_selection2D = new Region2DRectangle( this );
   m_selection2D->SetEnableStats( false );
   connect(m_cursor2D, SIGNAL(Updated()), this, SLOT(RequestRedraw()));
+  connect(this, SIGNAL(ViewChanged()), this, SLOT(Update2DOverlay()));
 
   m_interactorNavigate = new Interactor2DNavigate( this );
   m_interactorMeasure = new Interactor2DMeasure( this );
@@ -140,7 +142,6 @@ void RenderView2D::RefreshAllActors(bool bForScreenShot)
   mainwnd->GetLayerCollection( "ROI" )->Append2DProps( m_renderer, m_nViewPlane );
   mainwnd->GetLayerCollection( "Surface" )->Append2DProps( m_renderer, m_nViewPlane );
   mainwnd->GetLayerCollection( "PointSet" )->Append2DProps( m_renderer, m_nViewPlane );
-
   mainwnd->GetLayerCollection( "Supplement" )->Append2DProps( m_renderer, m_nViewPlane );
 
   mainwnd->GetVolumeCropper()->Append2DProps( m_renderer, m_nViewPlane );
@@ -161,10 +162,12 @@ void RenderView2D::RefreshAllActors(bool bForScreenShot)
   {
     double* orig = lc->GetWorldOrigin();
     double* size = lc->GetWorldSize();
+
     m_renderer->ResetCameraClippingRange(orig[0], orig[0]+size[0],
                                          orig[1], orig[1]+size[1],
                                          orig[2], orig[2]+size[2]);
   }
+//  m_renderer->ResetCameraClippingRange();
   RenderView::RefreshAllActors(bForScreenShot);
 }
 
@@ -177,18 +180,19 @@ void RenderView2D::UpdateViewByWorldCoordinate()
     wcenter[i] = m_dWorldOrigin[i] + m_dWorldSize[i] / 2;
   }
   cam->SetFocalPoint( wcenter );
+  double len = qMax(m_dWorldSize[0], qMax(m_dWorldSize[1], m_dWorldSize[2]));
   switch ( m_nViewPlane )
   {
   case 0:
-    cam->SetPosition( wcenter[0] + m_dWorldSize[0], wcenter[1], wcenter[2] );
+    cam->SetPosition( wcenter[0] + len, wcenter[1], wcenter[2] );
     cam->SetViewUp( 0, 0, 1 );
     break;
   case 1:
-    cam->SetPosition( wcenter[0], wcenter[1] + m_dWorldSize[1], wcenter[2] );
+    cam->SetPosition( wcenter[0], wcenter[1] + len, wcenter[2] );
     cam->SetViewUp( 0, 0, 1 );
     break;
   case 2:
-    cam->SetPosition( wcenter[0], wcenter[1], wcenter[2] - m_dWorldSize[2] );
+    cam->SetPosition( wcenter[0], wcenter[1], wcenter[2] - len );
     break;
   }
 //  m_renderer->ResetCameraClippingRange();
@@ -549,4 +553,34 @@ void RenderView2D::OnDuplicateRegion()
 void RenderView2D::OnInteractorError(const QString &msg)
 {
   QMessageBox::warning(this, "Error", msg);
+}
+
+bool RenderView2D::PickLineProfile(int x, int y)
+{
+  QList<LayerLineProfile*> lineprofs;
+  QList<Layer*> layers = MainWindow::GetMainWindow()->GetLayers("Supplement");
+  foreach (Layer* layer, layers)
+  {
+    if (layer->IsTypeOf("LineProfile"))
+    {
+      LayerLineProfile* l = qobject_cast<LayerLineProfile*>(layer);
+      if (l->GetPlane() == this->m_nViewPlane)
+        lineprofs << l;
+    }
+  }
+  if (lineprofs.isEmpty())
+    return false;
+
+  foreach (LayerLineProfile* lp, lineprofs)
+  {
+    int nId = this->PickCell(lp->GetLineProfileActor(), x, y);
+    if (nId >= 0)
+    {
+      nId /= 6;
+      emit LineProfileIdPicked(lp, nId);
+      lp->SetActiveLineId(nId);
+      return true;
+    }
+  }
+  return false;
 }
