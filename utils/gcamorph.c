@@ -11,8 +11,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2013/01/09 03:16:12 $
- *    $Revision: 1.278 $
+ *    $Date: 2013/01/13 14:04:56 $
+ *    $Revision: 1.279 $
  *
  * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -1068,6 +1068,14 @@ GCAMregister(GCA_MORPH *gcam, MRI *mri, GCA_MORPH_PARMS *parms)
       fprintf(parms->log_fp,
               "**************** pass %d of %d ************************\n",
               passno+1, parms->npasses);
+    if (passno == parms->enable_zero_passes)
+    {
+      printf("enabling zero nodes\n") ;
+      if (parms->log_fp)
+	fprintf(parms->log_fp, "enabling zero nodes\n") ;
+      GCAMremoveIgnoreZero(gcam, parms->mri) ;
+    }
+      
     parms->navgs = navgs ;
     label_dist = parms->label_dist ;
     for (level = parms->levels-1 ; level >= 0 ; level--)
