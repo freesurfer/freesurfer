@@ -1,0 +1,104 @@
+Background
+==========
+Resting state fMRI data from 1000 subjects were registered using nonlinear deformation of the cerebellum in combination with surface-based alignment of the cerebral cortex. We mapped the complete topography of the cerebellum by estimating the principal cerebral target for each point in the cerebellum. The majority of the human cerebellum maps to association areas. Furthermore, the extent of the cerebellum dedicated to each cerebral network is proportional to the network's extent. Like somatomotor representations, cerebellar regions linked to association cortex have separate anterior and posterior representations that are oriented as mirror images of one another. The orderly topography of the representations suggests that the cerebellum possesses at least two large, homotopic maps of the full cerebrum and possibly a smaller third representation.
+
+Files in Folder (Excluding README)
+==================================
+1)  FSL_MNI152_FreeSurferConformed_1mm.nii.gz
+2)  Buckner2011_7Networks_MNI152_FreeSurferConformed1mm_LooseMask.nii.gz
+3)  Buckner2011_7Networks_MNI152_FreeSurferConformed1mm_TightMask.nii.gz
+4)  Buckner2011_7NetworksConfidence_MNI152_FreeSurferConformed1mm_LooseMask.nii.gz
+5)  Buckner2011_7NetworksConfidence_MNI152_FreeSurferConformed1mm_TightMask.nii.gz
+6)  Buckner2011_7Networks_ColorLUT.txt
+7)  Buckner2011_17Networks_MNI152_FreeSurferConformed1mm_LooseMask.nii.gz
+8)  Buckner2011_17Networks_MNI152_FreeSurferConformed1mm_TightMask.nii.gz
+9)  Buckner2011_17NetworksConfidence_MNI152_FreeSurferConformed1mm_LooseMask.nii.gz
+10) Buckner2011_17NetworksConfidence_MNI152_FreeSurferConformed1mm_TightMask.nii.gz
+11) Buckner2011_17Networks_ColorLUT.txt
+
+Descriptions of files
+=====================
+1) FSL_MNI152_FreeSurferConformed_1mm.nii.gz is the FSL MNI152 1mm template interpolated and intensity normalized into a 256 x 256 x 256 1mm-isotropic volume (obtained by putting the FSL MNI152 1mm template through recon-all using FreeSurfer 4.5.0)
+
+2) Buckner2011_7Networks_MNI152_FreeSurferConformed1mm_LooseMask.nii.gz is a volume where each cerebellar voxel was assigned to the cerebral network (out of 7 cerebral networks estimated in Yeo et al., 2011) with the most similar pattern of connectivity. The slices of this volume is shown in Buckner et al., 2011. 
+
+3) Buckner2011_7Networks_MNI152_FreeSurferConformed1mm_TightMask.nii.gz is a volume where each cerebellar voxel was assigned to the cerebral network (out of 7 cerebral networks estimated in Yeo et al., 2011) with the most similar pattern of connectivity. Here, the cerebellar mask is tighter than in (2).
+ 
+4) Buckner2011_7NetworksConfidence_MNI152_FreeSurferConformed1mm_LooseMask.nii.gz displays the confidence of the network assignment in Buckner2011_7Networks_MNI152_FreeSurferConformed1mm_LooseMask.nii.gz 
+
+5) Buckner2011_7NetworksConfidence_MNI152_FreeSurferConformed1mm_TightMask.nii.gz displays the confidence of the network assignment in Buckner2011_7Networks_MNI152_FreeSurferConformed1mm_TightMask.nii.gz 
+
+6) Buckner2011_7Networks_ColorLUT.txt is a FreeSurfer readable text file specifying how the 7 networks are named, numbered and colored in Buckner et al. 2011:
+
+  0            NONE   0   0   0   0
+  1     7Networks_1 120  18 134   0
+  2     7Networks_2  70 130 180   0
+  3     7Networks_3   0 118  14   0
+  4     7Networks_4 196  58 250   0
+  5     7Networks_5 220 248 164   0
+  6     7Networks_6 230 148  34   0
+  7     7Networks_7 205  62  78   0
+
+In particular the networks are numbered from 7Networks_1 to 7Networks_7. The first column of the text file specifies the value of voxels in the nifty values corresponding to the particular network. The second column of the text file specifies the names of the networks. For example, from the text file, voxels whose values = 3 corresponds to the network 7Networks_3.Columns 3 to 5 corresponds to the R, G, B values (ranges from 0 to 255) of the networks. Last column is all zeros (FreeSurfer's default).
+
+7) Buckner2011_17Networks_MNI152_FreeSurferConformed1mm_LooseMask.nii.gz is a volume where each cerebellar voxel was assigned to the cerebral network (out of 17 cerebral networks estimated in Yeo et al., 2011) with the most similar pattern of connectivity. The slices of this volume is shown in Buckner et al., 2011. 
+
+8) Buckner2011_17Networks_MNI152_FreeSurferConformed1mm_TightMask.nii.gz is a volume where each cerebellar voxel was assigned to the cerebral network (out of 17 cerebral networks estimated in Yeo et al., 2011) with the most similar pattern of connectivity. Here, the cerebellar mask is tighter than in (7).
+ 
+9) Buckner2011_17NetworksConfidence_MNI152_FreeSurferConformed1mm_LooseMask.nii.gz displays the confidence of the network assignment in Buckner2011_17Networks_MNI152_FreeSurferConformed1mm_LooseMask.nii.gz 
+
+10) Buckner2011_17NetworksConfidence_MNI152_FreeSurferConformed1mm_TightMask.nii.gz displays the confidence of the network assignment in Buckner2011_17Networks_MNI152_FreeSurferConformed1mm_TightMask.nii.gz 
+
+11) Buckner2011_17Networks_ColorLUT.txt is a FreeSurfer readable text file specifying how the 17 networks are named, numbered and colored in Buckner et al. 2011:
+
+  0            NONE   0   0   0   0
+  1    17Networks_1 120  18 134   0
+  2    17Networks_2 255   0   0   0
+  3    17Networks_3  70 130 180   0
+  4    17Networks_4  42 204 164   0
+  5    17Networks_5  74 155  60   0
+  6    17Networks_6   0 118  14   0
+  7    17Networks_7 196  58 250   0
+  8    17Networks_8 255 152 213   0
+  9    17Networks_9 220 248 164   0
+ 10   17Networks_10 122 135  50   0
+ 11   17Networks_11 119 140 176   0
+ 12   17Networks_12 230 148  34   0
+ 13   17Networks_13 135  50  74   0
+ 14   17Networks_14  12  48 255   0
+ 15   17Networks_15   0   0 130   0
+ 16   17Networks_16 255 255   0   0
+ 17   17Networks_17 205  62  78   0
+
+
+Example Usage
+=============
+1) Except for the colortables, all the volumes are nifty volumes which can be read using any software like freeview (FreeSurfer), fslview (FSL), etc. 
+
+2) To overlay the 7-network volume on the FSL MNI152 1mm template in freeview (assuming FreeSurfer is already installed) with the appropriate colors, type the following assuming the working directory is in the same directory as this README:
+
+freeview -v FSL_MNI152_FreeSurferConformed_1mm.nii.gz Buckner2011_7Networks_MNI152_FreeSurferConformed1mm_LooseMask.nii.gz:colormap=lut:lut=Buckner2011_7Networks_ColorLUT.txt
+
+3) To overlay the 7-network volume and the confidence of the network assignments on the FSL MNI152 1mm template in freeview (assuming FreeSurfer is already installed) with the appropriate colors, type the following assuming the working directory is in the same directory as this README:
+
+freeview -v FSL_MNI152_FreeSurferConformed_1mm.nii.gz Buckner2011_7Networks_MNI152_FreeSurferConformed1mm_LooseMask.nii.gz:colormap=lut:lut=Buckner2011_7Networks_ColorLUT.txt Buckner2011_7NetworksConfidence_MNI152_FreeSurferConformed1mm_LooseMask.nii.gz:colormap=heat:heatscale=0,0.3,0.6
+
+
+Other Downloads
+===============
+1) Cerebellum seed-based fcMRI movies can be download here: http://www.youtube.com/BucknerKrienen
+
+2) The cerebral surface parcellations in Caret space can be viewed using Webcaret here: http://sumsdb.wustl.edu:8081/sums/directory.do?id=8286317
+   Cerebral seed-based fcMRI movies can be downloaded here: http://www.youtube.com/YeoKrienen
+
+3) Remember to also check out the cortical and striatum parcellations
+
+
+References
+==========
+
+Buckner RL, Krienen FM, Castellanos A, Diaz JC, Yeo BTT (2011) The organization of the human cerebellum estimated by intrinsic functional connectivity. J Neurophysiol 106:2322-2345
+
+Yeo BTT, Krienen FM, Sepulcre J, Sabuncu MR, Lashkari D, Hollinshead M, Roffman JL, Smoller JW, Zollei L, Polimeni JR, Fischl B, Liu H, Buckner RL (2011) The organization of the human cerebral cortex estimated by intrinsic functional connectivity. J Neurophysiol 106: 1125-1165
+
+Choi EY, Yeo BT, Buckner RL (2012) The organization of the human striatum estimated by intrinsic functional connectivity. J Neurophysiol 108: 2242-2263

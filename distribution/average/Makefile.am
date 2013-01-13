@@ -1,7 +1,10 @@
 #
 # Makefile.am
 #
-SUBDIRS=surf Yeo_JNeurophysiol11_MNI152
+SUBDIRS=surf \
+	Yeo_JNeurophysiol11_MNI152 \
+	Buckner_JNeurophysiol11_MNI152 \
+	Choi_JNeurophysiol12_MNI152
 
 foodir=$(prefix)/average
 
@@ -159,6 +162,8 @@ install: install-fooDATA
 	chmod -R 775 $(DESTDIR)$(prefix)/average/mult-comp-cor
 	cd surf; make install
 	cd Yeo_JNeurophysiol11_MNI152; make install
+	cd Buckner_JNeurophysiol11_MNI152; make install
+	cd Choi_JNeurophysiol12_MNI152; make install
 
 uninstall-hook:
 	rm -Rf $(DESTDIR)$(prefix)/subjects/cvs_avg35
