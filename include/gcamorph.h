@@ -15,8 +15,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2013/01/08 22:28:44 $
- *    $Revision: 1.112 $
+ *    $Date: 2013/01/13 14:05:16 $
+ *    $Revision: 1.113 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -234,6 +234,7 @@ mu = G = E / (2 ( 1+v))
 
  */
   MRI *mri_twm ;     // for manually specified temporal lobe white matter 
+  int   enable_zero_passes ;  // re-enable zero nodes after this many passes
 } GCA_MORPH_PARMS, GMP ;
 
 
