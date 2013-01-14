@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2013/01/14 22:33:30 $
- *    $Revision: 1.9 $
+ *    $Date: 2013/01/14 22:39:14 $
+ *    $Revision: 1.10 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -39,7 +39,7 @@
 #include "version.h"
 
 static char vcid[] =
-  "$Id: mris_euler_number.c,v 1.9 2013/01/14 22:33:30 greve Exp $";
+  "$Id: mris_euler_number.c,v 1.10 2013/01/14 22:39:14 greve Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -65,7 +65,7 @@ main(int argc, char *argv[])
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
     (argc, argv,
-     "$Id: mris_euler_number.c,v 1.9 2013/01/14 22:33:30 greve Exp $",
+     "$Id: mris_euler_number.c,v 1.10 2013/01/14 22:39:14 greve Exp $",
      "$Name:  $");
   if (nargs && argc - nargs == 1)
   {
@@ -110,6 +110,13 @@ main(int argc, char *argv[])
 
   dno = MRIStopologicalDefectIndex(mris) ;
   fprintf(stderr, "\ntotal defect index = %d\n", dno) ;
+  if(outfile && !patch_flag){
+    // write out number of holes
+    FILE *fp;
+    fp = fopen(outfile,"w");
+    fprintf(fp,"%5d\n",1-eno/2);
+    fclose(fp);
+  }
 
   if (patch_flag)
   {
@@ -133,15 +140,15 @@ main(int argc, char *argv[])
     sprintf(fname, "%s.edit", in_fname) ;
     fprintf(stderr, "writing out patched surface to %s\n", fname) ;
     MRISwritePatch(mris, fname) ;
+    if(outfile){
+      // write out number of holes
+      FILE *fp;
+      fp = fopen(outfile,"w");
+      fprintf(fp,"%5d\n",2-eno);
+      fclose(fp);
+    }
   }
 
-  if(outfile){
-    // write out number of holes
-    FILE *fp;
-    fp = fopen(outfile,"w");
-    fprintf(fp,"%5d\n",2-eno);
-    fclose(fp);
-  }
 
   exit(0) ;
   return(0) ;  /* for ansi */
