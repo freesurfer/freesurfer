@@ -6,9 +6,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/14 23:44:46 $
- *    $Revision: 1.9 $
+ *    $Author: rpwang $
+ *    $Date: 2013/01/14 17:36:55 $
+ *    $Revision: 1.10 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -28,7 +28,7 @@
 
 #include <QObject>
 #include <QColor>
-#include <vtkSmartPointer.h>
+#include "vtkSmartPointer.h"
 
 class RenderView2D;
 class vtkRenderer;
