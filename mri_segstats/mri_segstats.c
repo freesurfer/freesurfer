@@ -12,8 +12,8 @@
  * Original Author: Dougas N Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2012/12/18 21:46:51 $
- *    $Revision: 1.95 $
+ *    $Date: 2013/01/14 22:20:22 $
+ *    $Revision: 1.96 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -110,7 +110,7 @@ int DumpStatSumTable(STATSUMENTRY *StatSumTable, int nsegid);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-  "$Id: mri_segstats.c,v 1.95 2012/12/18 21:46:51 greve Exp $";
+  "$Id: mri_segstats.c,v 1.96 2013/01/14 22:20:22 greve Exp $";
 char *Progname = NULL, *SUBJECTS_DIR = NULL, *FREESURFER_HOME=NULL;
 char *SegVolFile = NULL;
 char *InVolFile = NULL;
@@ -1045,6 +1045,14 @@ int main(int argc, char **argv)
               "Estimated Total Intracranial Volume, %f, mm^3\n",atlas_icv);
 
     }
+    if(DoETIV && BrainVolFromSeg){
+      fprintf(fp,"# Measure BrainVol-to-eTIV, BrainVol-to-eTIV, "
+              "Ratio of BrainVol to eTIV, %f, unitless\n",
+              BrainVolStats[0]/atlas_icv);
+      fprintf(fp,"# Measure MaskVol-to-eTIV, MaskVol-to-eTIV, "
+              "Ratio of MaskVol to eTIV, %f, unitless\n",
+              BrainVolStats[12]/atlas_icv);
+    }
     if (SegVolFile)
     {
       fprintf(fp,"# SegVolFile %s \n",SegVolFile);
@@ -1310,7 +1318,7 @@ int main(int argc, char **argv)
 #ifdef FS_CUDA
   PrintGPUtimers();
 #endif
-
+  printf("mri_segstats done\n");
   return(0);
 }
 /*-----------------------------------------------------------------*/
