@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:32 $
- *    $Revision: 1.8 $
+ *    $Author: greve $
+ *    $Date: 2013/01/14 22:33:30 $
+ *    $Revision: 1.9 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -39,7 +39,7 @@
 #include "version.h"
 
 static char vcid[] =
-  "$Id: mris_euler_number.c,v 1.8 2011/03/02 00:04:32 nicks Exp $";
+  "$Id: mris_euler_number.c,v 1.9 2013/01/14 22:33:30 greve Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -53,6 +53,7 @@ char *Progname ;
 
 static float curv_thresh = 2.0f ;
 static int patch_flag = 0 ;
+char *outfile=NULL;
 
 int
 main(int argc, char *argv[])
@@ -64,7 +65,7 @@ main(int argc, char *argv[])
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
     (argc, argv,
-     "$Id: mris_euler_number.c,v 1.8 2011/03/02 00:04:32 nicks Exp $",
+     "$Id: mris_euler_number.c,v 1.9 2013/01/14 22:33:30 greve Exp $",
      "$Name:  $");
   if (nargs && argc - nargs == 1)
   {
@@ -133,6 +134,15 @@ main(int argc, char *argv[])
     fprintf(stderr, "writing out patched surface to %s\n", fname) ;
     MRISwritePatch(mris, fname) ;
   }
+
+  if(outfile){
+    // write out number of holes
+    FILE *fp;
+    fp = fopen(outfile,"w");
+    fprintf(fp,"%5d\n",2-eno);
+    fclose(fp);
+  }
+
   exit(0) ;
   return(0) ;  /* for ansi */
 }
@@ -170,6 +180,10 @@ get_option(int argc, char *argv[])
       break ;
     case 'T':
       curv_thresh = (float)atof(argv[2]) ;
+      nargs = 1 ;
+      break ;
+    case 'O':
+      outfile = argv[2];
       nargs = 1 ;
       break ;
     default:

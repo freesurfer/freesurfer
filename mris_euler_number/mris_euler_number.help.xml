@@ -23,9 +23,9 @@
 ]>
 
 <help>
-	<name>mris_euler_number</name>
-	<synopsis>mris_euler_number [&lt;options&gt;] insurf</synopsis>
-	<description>This program computes EulerNumber for a cortical surface</description>
+  <name>mris_euler_number</name>
+  <synopsis>mris_euler_number [&lt;options&gt;] insurf</synopsis>
+  <description>This program computes EulerNumber for a cortical surface</description>
   <arguments>
     <positional>
       <argument>insurf</argument>
@@ -35,7 +35,8 @@
       <intro>None</intro>
     </required-flagged>
     <optional-flagged>
-      <intro>None</intro>
+      <intro>-o outfile</intro>
+      <explanation>write number of holes to outfile</explanation>
     </optional-flagged>
   </arguments>
   <outputs>
