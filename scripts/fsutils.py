@@ -1,5 +1,5 @@
 # Original author - Krish Subramaniam
-# $Id: fsutils.py,v 1.4.2.3 2012/09/17 16:38:18 greve Exp $
+# $Id: fsutils.py,v 1.4.2.4 2013/01/14 23:19:33 greve Exp $
 import os
 import logging
 import sys
@@ -92,7 +92,7 @@ Derived from StatsParser
 """
 class AsegStatsParser(StatsParser):
 
-    measure_column_map = {'volume':3, 'mean':5, 'std':6, 'max':8, 'snr':10}
+    measure_column_map = {'nvoxels':2,'nvertices':2,'volume':3,'Area_mm2':3, 'mean':5, 'std':6, 'max':8, 'snr':10}
     maxsegno = None
     id_name_map = StableDict()
 
@@ -158,10 +158,17 @@ class AsegStatsParser(StatsParser):
                         ('# Measure SuperTentorial, SuperTentorialVol,','SuperTentorialVol'),
                         ('# Measure SupraTentorial, SupraTentorialVol,','SupraTentorialVol'),
                         ('# Measure SupraTentorialNotVent, SupraTentorialVolNotVent,','SupraTentorialVolNotVent'),
+                        ('# Measure SupraTentorialNotVentVox, SupraTentorialVolNotVentVox,','SupraTentorialVolNotVentVox'),
                         ('# Measure IntraCranialVol, ICV,','IntraCranialVol'),
                         ('# Measure EstimatedTotalIntraCranialVol, eTIV,','EstimatedTotalIntraCranialVol'),
+                        ('# Measure BrainVol-to-eTIV, BrainVol-to-eTIV,','BrainVol-to-eTIV'),
+                        ('# Measure MaskVol-to-eTIV, MaskVol-to-eTIV,','MaskVol-to-eTIV'),
+                        ('# Measure lhSurfaceHoles, lhSurfaceHoles,','lhSurfaceHoles'),
+                        ('# Measure rhSurfaceHoles, rhSurfaceHoles,','rhSurfaceHoles'),
+                        ('# Measure SurfaceHoles, SurfaceHoles,','SurfaceHoles'),
                         ('# Measure BrainSeg, BrainSegVol,','BrainSegVol'),
-                        ('# Measure BrainSegNotVent, BrainSegVolNotVent,','BrainSegVolNotVent'),)
+                        ('# Measure BrainSegNotVent, BrainSegVolNotVent,','BrainSegVolNotVent'),
+                        ('# Measure BrainSegNotVentSurf, BrainSegVolNotVentSurf,','BrainSegVolNotVentSurf'),)
                 c = 0
                 for start, structn in beg_struct_tuple:
                     c = c + 1
