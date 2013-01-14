@@ -12,8 +12,8 @@
  * Original Author: Dougas N Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2013/01/14 22:20:22 $
- *    $Revision: 1.96 $
+ *    $Date: 2013/01/14 22:58:46 $
+ *    $Revision: 1.97 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -110,7 +110,7 @@ int DumpStatSumTable(STATSUMENTRY *StatSumTable, int nsegid);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-  "$Id: mri_segstats.c,v 1.96 2013/01/14 22:20:22 greve Exp $";
+  "$Id: mri_segstats.c,v 1.97 2013/01/14 22:58:46 greve Exp $";
 char *Progname = NULL, *SUBJECTS_DIR = NULL, *FREESURFER_HOME=NULL;
 char *SegVolFile = NULL;
 char *InVolFile = NULL;
@@ -192,6 +192,9 @@ int UseRobust = 0;
 float RobustPct = 5.0;
 struct utsname uts;
 char *cmdline, cwd[2000];
+
+int DoEuler = 0;
+int lheno, rheno;
 
 /*--------------------------------------------------*/
 int main(int argc, char **argv)
@@ -319,6 +322,23 @@ int main(int argc, char **argv)
     }
     fclose(fp);
     unlink(FrameAvgFile); // delete
+  }
+
+  if(DoEuler){
+    int nvertices, nfaces, nedges;
+    printf("Computing euler number\n");
+    sprintf(tmpstr,"%s/%s/surf/lh.orig.nofix",SUBJECTS_DIR,subject);
+    mris = MRISread(tmpstr);
+    if(mris==NULL) exit(1);
+    lheno = MRIScomputeEulerNumber(mris, &nvertices, &nfaces, &nedges) ;
+    MRISfree(&mris);
+    sprintf(tmpstr,"%s/%s/surf/rh.orig.nofix",SUBJECTS_DIR,subject);
+    mris = MRISread(tmpstr);
+    if(mris==NULL) exit(1);
+    rheno = MRIScomputeEulerNumber(mris, &nvertices, &nfaces, &nedges) ;
+    MRISfree(&mris);
+    printf("orig.nofix lheno = %4d, rheno = %d\n",lheno,rheno);
+    printf("orig.nofix lhholes = %4d, rhholes = %d\n",1-lheno/2,1-rheno/2);
   }
 
   /* Load the segmentation */
@@ -1053,6 +1073,17 @@ int main(int argc, char **argv)
               "Ratio of MaskVol to eTIV, %f, unitless\n",
               BrainVolStats[12]/atlas_icv);
     }
+    if(DoEuler){
+      fprintf(fp,"# Measure lhSurfaceHoles, lhSurfaceHoles, "
+              "Number of defect holes in lh surfaces prior to fixing, %d, unitless\n",
+              (1-lheno/2));
+      fprintf(fp,"# Measure rhSurfaceHoles, rhSurfaceHoles, "
+              "Number of defect holes in rh surfaces prior to fixing, %d, unitless\n",
+              (1-rheno/2));
+      fprintf(fp,"# Measure SurfaceHoles, SurfaceHoles, "
+              "Total number of defect holes in surfaces prior to fixing, %d, unitless\n",
+              (1-lheno/2) + (1-rheno/2) );
+    }
     if (SegVolFile)
     {
       fprintf(fp,"# SegVolFile %s \n",SegVolFile);
@@ -1411,6 +1442,10 @@ static int parse_commandline(int argc, char **argv)
     else if ( !strcmp(option, "--surf-wm-vol") )
     {
       DoSurfWMVol = 1;
+    }
+    else if ( !strcmp(option, "--euler") )
+    {
+      DoEuler = 1;
     }
     else if ( !strcmp(option, "--sqr") )
     {
@@ -1925,6 +1960,10 @@ static void check_options(void)
   if (masksign == NULL)
   {
     masksign = "abs";
+  }
+  if(DoEuler && subject == NULL){
+    printf("ERROR: need subject with --euler\n");
+    exit(1);
   }
   return;
 }
