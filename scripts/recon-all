@@ -7,9 +7,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: nicks $
-#    $Date: 2013/01/08 02:16:12 $
-#    $Revision: 1.379.2.52 $
+#    $Author: greve $
+#    $Date: 2013/01/14 23:27:00 $
+#    $Revision: 1.379.2.53 $
 #
 # Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -26,7 +26,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.379.2.52 2013/01/08 02:16:12 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.379.2.53 2013/01/14 23:27:00 greve Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -3663,6 +3663,9 @@ if($DoSegStats) then
   else
     echo "\nINFO: ?h.white surfaces not available to mri_segstats.\n"\
      |& tee -a $SF |& tee -a $LF |& tee -a $CF
+  endif
+  if( ( -e surf/lh.orig.nofix ) && ( -e surf/rh.orig.nofix ) ) then
+     set cmd = ($cmd --euler)
   endif
   set cmd = ($cmd --ctab $FREESURFER_HOME/ASegStatsLUT.txt)
   set cmd = ($cmd --subject $subjid $xopts);
