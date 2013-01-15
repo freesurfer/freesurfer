@@ -438,7 +438,6 @@ qrc_freeview.cpp: freeview.qrc
 	cp -v $(top_srcdir)/distribution/FreeSurferColorLUT.txt resource/
 	$(RCC) $<  -o $@
 
-
 if HAVE_MAC_OSX
 AM_CXXFLAGS=\
 	-fno-strict-aliasing \
@@ -454,17 +453,18 @@ AM_CXXFLAGS=\
 	-I$(top_srcdir)/vtkfsio \
 	-I$(top_srcdir)/vtkutils \
 	$(ITK_CFLAGS) -DHAVE_ITK_LIBS \
-	$(VXL_CFLAGS)
-
+	$(VXL_CFLAGS) \
+	-I$(top_srcdir)/lineprof
 
 freeview_CXXFLAGS = $(QT_CXXFLAGS) $(AM_CXXFLAGS)
 freeview_CPPFLAGS = $(QT_CPPFLAGS) $(AM_CPPFLAGS)
 freeview_LDFLAGS	= $(QT_LDFLAGS) $(OS_LDFLAGS) \
-	-framework Cocoa -framework IOKit
+	-framework Cocoa -framework IOKit -framework Accelerate
 freeview_LDADD		= $(QT_LIBS) \
 	$(addprefix $(top_builddir)/, $(LIBS_MGH)) \
 	$(top_builddir)/vtkfsio/libvtkfsio.a \
 	$(top_builddir)/vtkutils/libvtkutils.a \
+	$(top_builddir)/lineprof/liblineprof.a \
 	$(VTK_COCOA_LIBS) $(VTK_VERDICT_LIB) -lvtkGraphics \
 	$(VTK_EXPAT_LIB) $(VTK_FREETYPE_LIB) \
 	$(VTK_TIFF_LIB) $(VTK_JPEG_LIB) \
@@ -475,8 +475,9 @@ freeview_LDADD		= $(QT_LIBS) \
 	-lvtkexoIIc -lvtkNetCDF $(VTK_NETCDFCXX_LIB) \
 	-lvtkVolumeRendering -lvtkRendering -lvtkftgl \
 	-lvtkWidgets -lvtkHybrid $(VTK_HDF5_LIB) \
-	-lvtkIO	$(VTK_LSDYNA_LIB) -lvtkDICOMParser $(VTK_MPEG2ENCODE_LIB)
-
+	-lvtkIO	$(VTK_LSDYNA_LIB) -lvtkDICOMParser $(VTK_MPEG2ENCODE_LIB) \
+	$(PETSC_LIBS) -lpetscts -lpetscsnes -lpetscksp -lpetscdm -lpetscmat \
+	-lpetscvec -lpetsc -lmpich -lpmpich
 
 # need to create a bundle for Macs
 install-exec-hook:freeview
