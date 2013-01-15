@@ -12,8 +12,8 @@
  * Original Author: Dougas N Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2013/01/14 22:23:47 $
- *    $Revision: 1.75.2.7 $
+ *    $Date: 2013/01/15 17:04:14 $
+ *    $Revision: 1.75.2.8 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -110,7 +110,7 @@ int DumpStatSumTable(STATSUMENTRY *StatSumTable, int nsegid);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-  "$Id: mri_segstats.c,v 1.75.2.7 2013/01/14 22:23:47 greve Exp $";
+  "$Id: mri_segstats.c,v 1.75.2.8 2013/01/15 17:04:14 greve Exp $";
 char *Progname = NULL, *SUBJECTS_DIR = NULL, *FREESURFER_HOME=NULL;
 char *SegVolFile = NULL;
 char *InVolFile = NULL;
@@ -192,6 +192,9 @@ int UseRobust = 0;
 float RobustPct = 5.0;
 struct utsname uts;
 char *cmdline, cwd[2000];
+
+int DoEuler = 0;
+int lheno, rheno;
 
 /*--------------------------------------------------*/
 int main(int argc, char **argv)
@@ -319,6 +322,23 @@ int main(int argc, char **argv)
     }
     fclose(fp);
     unlink(FrameAvgFile); // delete
+  }
+
+  if(DoEuler){
+    int nvertices, nfaces, nedges;
+    printf("Computing euler number\n");
+    sprintf(tmpstr,"%s/%s/surf/lh.orig.nofix",SUBJECTS_DIR,subject);
+    mris = MRISread(tmpstr);
+    if(mris==NULL) exit(1);
+    lheno = MRIScomputeEulerNumber(mris, &nvertices, &nfaces, &nedges) ;
+    MRISfree(&mris);
+    sprintf(tmpstr,"%s/%s/surf/rh.orig.nofix",SUBJECTS_DIR,subject);
+    mris = MRISread(tmpstr);
+    if(mris==NULL) exit(1);
+    rheno = MRIScomputeEulerNumber(mris, &nvertices, &nfaces, &nedges) ;
+    MRISfree(&mris);
+    printf("orig.nofix lheno = %4d, rheno = %d\n",lheno,rheno);
+    printf("orig.nofix lhholes = %4d, rhholes = %d\n",1-lheno/2,1-rheno/2);
   }
 
   /* Load the segmentation */
@@ -978,12 +998,15 @@ int main(int argc, char **argv)
     if(UseRobust) fprintf(fp,"# RobustPct %g\n",RobustPct);
     if (BrainVolFromSeg)
     {
-      fprintf(fp,"# Measure BrainSegNotVent, BrainSegVolNotVent, "
-              "Brain Segmentation Volume Without Ventricles, %f, mm^3\n",
-              BrainVolStats[1]);
       fprintf(fp,"# Measure BrainSeg, BrainSegVol, "
               "Brain Segmentation Volume, %f, mm^3\n",
               BrainVolStats[0]);
+      fprintf(fp,"# Measure BrainSegNotVent, BrainSegVolNotVent, "
+              "Brain Segmentation Volume Without Ventricles, %f, mm^3\n",
+              BrainVolStats[1]);
+      fprintf(fp,"# Measure BrainSegNotVentSurf, BrainSegVolNotVentSurf, "
+              "Brain Segmentation Volume Without Ventricles from Surf, %f, mm^3\n",
+              BrainVolStats[14]);
     }
     if(DoSurfCtxVol)
     {
@@ -1021,6 +1044,8 @@ int main(int argc, char **argv)
               "Supratentorial volume, %f, mm^3\n",BrainVolStats[2]);
       fprintf(fp,"# Measure SupraTentorialNotVent, SupraTentorialVolNotVent, "
               "Supratentorial volume, %f, mm^3\n",BrainVolStats[3]);
+      fprintf(fp,"# Measure SupraTentorialNotVentVox, SupraTentorialVolNotVentVox, "
+              "Supratentorial volume voxel count, %f, mm^3\n",BrainVolStats[13]);
     }
     if (BrainMaskFile){
       //fprintf(fp,"# BrainMaskFile  %s \n",BrainMaskFile);
@@ -1032,21 +1057,31 @@ int main(int argc, char **argv)
       fprintf(fp,"# Measure Mask, MaskVol, "
               "Mask Volume, %f, mm^3\n",BrainVolStats[12]);
     }
+    if(DoETIV && BrainVolFromSeg){
+      fprintf(fp,"# Measure BrainSegVol-to-eTIV, BrainSegVol-to-eTIV, "
+              "Ratio of BrainSegVol to eTIV, %f, unitless\n",
+              BrainVolStats[0]/atlas_icv);
+      fprintf(fp,"# Measure MaskVol-to-eTIV, MaskVol-to-eTIV, "
+              "Ratio of MaskVol to eTIV, %f, unitless\n",
+              BrainVolStats[12]/atlas_icv);
+    }
+    if(DoEuler){
+      fprintf(fp,"# Measure lhSurfaceHoles, lhSurfaceHoles, "
+              "Number of defect holes in lh surfaces prior to fixing, %d, unitless\n",
+              (1-lheno/2));
+      fprintf(fp,"# Measure rhSurfaceHoles, rhSurfaceHoles, "
+              "Number of defect holes in rh surfaces prior to fixing, %d, unitless\n",
+              (1-rheno/2));
+      fprintf(fp,"# Measure SurfaceHoles, SurfaceHoles, "
+              "Total number of defect holes in surfaces prior to fixing, %d, unitless\n",
+              (1-lheno/2) + (1-rheno/2) );
+    }
     if (DoETIV)
     {
       //fprintf(fp,"# Measure IntraCranialVol, ICV, "
       //      "Intracranial Volume, %f, mm^3\n",atlas_icv);
       fprintf(fp,"# Measure EstimatedTotalIntraCranialVol, eTIV, "
               "Estimated Total Intracranial Volume, %f, mm^3\n",atlas_icv);
-
-    }
-    if(DoETIV && BrainVolFromSeg){
-      fprintf(fp,"# Measure BrainVol-to-eTIV, BrainVol-to-eTIV, "
-              "Ratio of BrainVol to eTIV, %f, unitless\n",
-              BrainVolStats[0]/atlas_icv);
-      fprintf(fp,"# Measure MaskVol-to-eTIV, MaskVol-to-eTIV, "
-              "Ratio of MaskVol to eTIV, %f, unitless\n",
-              BrainVolStats[12]/atlas_icv);
     }
     if (SegVolFile)
     {
@@ -1291,7 +1326,7 @@ int main(int argc, char **argv)
       //fprintf(fp,"\n");
       for (f=0; f < invol->nframes; f++){
         //fprintf(fp,"%3d %7.3f ",f,f*invol->tr/1000);
-        for (n=0; n < nsegid; n++) fprintf(fp,"%g ",favg[n][f]);
+        for (n=0; n < nsegid; n++) fprintf(fp,"%11.5f ",favg[n][f]);
         fprintf(fp,"\n");
       }
       fclose(fp);
@@ -1406,6 +1441,10 @@ static int parse_commandline(int argc, char **argv)
     else if ( !strcmp(option, "--surf-wm-vol") )
     {
       DoSurfWMVol = 1;
+    }
+    else if ( !strcmp(option, "--euler") )
+    {
+      DoEuler = 1;
     }
     else if ( !strcmp(option, "--sqr") )
     {
@@ -1869,7 +1908,7 @@ static void check_options(void)
     printf("ERROR: must specify a segmentation volume\n");
     exit(1);
   }
-  if (StatTableFile == NULL && FrameAvgFile == NULL && DoETIVonly == 0 && DoOldETIVonly == 0)
+  if (StatTableFile == NULL && FrameAvgFile == NULL && DoETIVonly == 0 && DoOldETIVonly == 0 && FrameAvgVolFile==NULL)
   {
     printf("ERROR: must specify an output table file\n");
     exit(1);
@@ -1920,6 +1959,10 @@ static void check_options(void)
   if (masksign == NULL)
   {
     masksign = "abs";
+  }
+  if(DoEuler && subject == NULL){
+    printf("ERROR: need subject with --euler\n");
+    exit(1);
   }
   return;
 }
