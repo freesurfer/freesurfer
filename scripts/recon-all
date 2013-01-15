@@ -7,9 +7,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: greve $
-#    $Date: 2013/01/15 16:59:06 $
-#    $Revision: 1.442 $
+#    $Author: nicks $
+#    $Date: 2013/01/15 22:30:00 $
+#    $Revision: 1.443 $
 #
 # Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -26,7 +26,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.442 2013/01/15 16:59:06 greve Exp $';
+set VERSION = '$Id: recon-all,v 1.443 2013/01/15 22:30:00 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -3965,6 +3965,20 @@ if ($DoBaLabels) then
       if($status) goto error_exit;
     end # balabel
 
+    # generate .thresh labels
+     foreach balabel (BA1 BA2 BA3a BA3b BA4a BA4p BA6 BA44 BA45 V1 V2 MT)
+      set cmd=(mri_label2label \
+        --srcsubject fsaverage \
+        --srclabel $SUBJECTS_DIR/fsaverage/label/${hemi}.${balabel}.thresh.label \
+        --trgsubject $subjid \
+        --trglabel ./${hemi}.${balabel}.thresh.label \
+        --hemi ${hemi} \
+        --regmethod surface)
+      echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+      if($RunIt) $fs_time $cmd |& tee -a $LF
+      if($status) goto error_exit;
+    end # balabel
+
     # create .annot
     set cmd=(mris_label2annot \
         --s $subjid \
@@ -3991,10 +4005,46 @@ if ($DoBaLabels) then
     if($RunIt) $fs_time $cmd |& tee -a $LF
     if($status) goto error_exit;
 
+    # create .thresh.annot
+    set cmd=(mris_label2annot \
+        --s $subjid \
+        --hemi $hemi \
+        --ctab $FREESURFER_HOME/average/colortable_BA.txt \
+        --l $hemi.BA1.thresh.label \
+        --l $hemi.BA2.thresh.label \
+        --l $hemi.BA3a.thresh.label \
+        --l $hemi.BA3b.thresh.label \
+        --l $hemi.BA4a.thresh.label \
+        --l $hemi.BA4p.thresh.label \
+        --l $hemi.BA6.thresh.label \
+        --l $hemi.BA44.thresh.label \
+        --l $hemi.BA45.thresh.label \
+        --l $hemi.V1.thresh.label \
+        --l $hemi.V2.thresh.label \
+        --l $hemi.MT.thresh.label \
+        --a BA.thresh \
+        --maxstatwinner \
+        --noverbose )
+    if($RunIt) if ( -e ./$hemi.BA.thresh.annot) rm -fv ./$hemi.BA.thresh.annot
+    echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+    if($RunIt) $fs_time $cmd |& tee -a $LF
+    if($status) goto error_exit;
+
     # generate stats
     set annot = ./$hemi.BA.annot
     set stats = ../stats/$hemi.BA.stats
     set ctab  = ./BA.ctab
+    set xopts = `fsr-getxopts mris_anatomical_stats $XOptsFile`;
+    set cmd = (mris_anatomical_stats -mgz -f $stats \
+            -b -a $annot -c $ctab $xopts $subjid $hemi white);
+    echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+    if($RunIt) $fs_time $cmd |& tee -a $LF
+    if($status) goto error_exit;
+
+    # generate .thresh stats
+    set annot = ./$hemi.BA.thresh.annot
+    set stats = ../stats/$hemi.BA.thresh.stats
+    set ctab  = ./BA.thresh.ctab
     set xopts = `fsr-getxopts mris_anatomical_stats $XOptsFile`;
     set cmd = (mris_anatomical_stats -mgz -f $stats \
             -b -a $annot -c $ctab $xopts $subjid $hemi white);
