@@ -62,6 +62,9 @@ LineProfTest_LDADD=\
   -lpetscdm -lpetscmat -lpetscvec -lpetsc -lmpich -lfmpich \
   $(LIB_GFORTRAN) $(LIB_LAPACK_A) $(LIB_BLAS_A) $(LIB_G2C_A) $(LIB_GFORTRAN)
 
+endif
+# endif ENABLE_QT_APPS
+
 EXTRA_DIST=  \
 PetscSolver.h \
 Preprocessor.h \
@@ -75,5 +78,3 @@ testLineProf
 # release' target.
 EXCLUDE_FILES=
 include $(top_srcdir)/Makefile.extra
-
-endif
