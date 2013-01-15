@@ -8,9 +8,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2011/09/20 17:53:32 $
- *    $Revision: 1.60 $
+ *    $Author: greve $
+ *    $Date: 2013/01/15 17:19:03 $
+ *    $Revision: 1.61 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -30,6 +30,7 @@
 #include <string.h>
 #include <math.h>
 #include <ctype.h>
+#include <unistd.h>
 
 #include "timer.h"
 #include "macros.h"
@@ -44,7 +45,7 @@
 #include "gcsa.h"
 
 static char vcid[] =
-  "$Id: mris_register.c,v 1.60 2011/09/20 17:53:32 fischl Exp $";
+  "$Id: mris_register.c,v 1.61 2013/01/15 17:19:03 greve Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -135,19 +136,19 @@ main(int argc, char *argv[])
   MRI_SURFACE  *mris ;
   MRI_SP       *mrisp_template ;
 
-  char cmdline[CMD_LINE_LEN] ;
+  char cmdline[CMD_LINE_LEN],cwd[2000],*cmdline2 ;
   struct  timeb start ;
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mris_register.c,v 1.60 2011/09/20 17:53:32 fischl Exp $",
+   "$Id: mris_register.c,v 1.61 2013/01/15 17:19:03 greve Exp $",
    "$Name:  $",
    cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mris_register.c,v 1.60 2011/09/20 17:53:32 fischl Exp $",
+           "$Id: mris_register.c,v 1.61 2013/01/15 17:19:03 greve Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
   {
@@ -159,6 +160,10 @@ main(int argc, char *argv[])
   Progname = argv[0] ;
   ErrorInit(NULL, NULL, NULL) ;
   DiagInit(NULL, NULL, NULL) ;
+  cmdline2 = argv2cmdline(argc,argv);
+  getcwd(cwd,2000);
+  printf("\ncwd %s\n",cwd);
+  printf("cmdline %s\n\n",cmdline2);
 
   memset(&parms, 0, sizeof(parms)) ;
   parms.projection = PROJECT_SPHERE ;
@@ -199,6 +204,8 @@ main(int argc, char *argv[])
     argc -= nargs ;
     argv += nargs ;
   }
+
+  MRISprintCurvatureNames(stdout);
 
   if (nsigmas > 0)
   {
@@ -580,12 +587,11 @@ main(int argc, char *argv[])
 #endif
   }
 
-  msec = TimerStop(&start) ;
-  if (Gdiag & DIAG_SHOW)
-    printf("registration took %2.2f hours\n",
-           (float)msec/(1000.0f*60.0f*60.0f));
   MRISPfree(&mrisp_template) ;
   MRISfree(&mris) ;
+
+  msec = TimerStop(&start) ;
+  printf("registration took %2.2f hours\n",(float)msec/(1000.0f*60.0f*60.0f));
   exit(0) ;
   return(0) ;  /* for ansi */
 }
@@ -867,6 +873,7 @@ get_option(int argc, char *argv[])
   else if (!stricmp(option, "curv0"))
   {
     curvature_names[0]  = argv[2];
+    MRISsetCurvatureName(0, curvature_names[0]);
     fprintf(stderr, "using %s as curvature function for surface 0.\n",
             curvature_names[0]) ;
     nargs = 1 ;
@@ -875,6 +882,7 @@ get_option(int argc, char *argv[])
   else if (!stricmp(option, "curv1"))
   {
     curvature_names[1]  = argv[2];
+    MRISsetCurvatureName(1, curvature_names[1]);
     fprintf(stderr, "using %s as curvature function for surface 1.\n",
             curvature_names[1]) ;
     nargs = 1 ;
@@ -883,6 +891,7 @@ get_option(int argc, char *argv[])
   else if (!stricmp(option, "curv2"))
   {
     curvature_names[2]  = argv[2];
+    MRISsetCurvatureName(2, curvature_names[2]);
     fprintf(stderr, "using %s as curvature function for surface 2.\n",
             curvature_names[2]) ;
     nargs = 1 ;
