@@ -1,5 +1,5 @@
 # Original author - Krish Subramaniam
-# $Id: fsutils.py,v 1.4.2.4 2013/01/14 23:19:33 greve Exp $
+# $Id: fsutils.py,v 1.4.2.5 2013/01/15 17:00:45 greve Exp $
 import os
 import logging
 import sys
@@ -161,7 +161,9 @@ class AsegStatsParser(StatsParser):
                         ('# Measure SupraTentorialNotVentVox, SupraTentorialVolNotVentVox,','SupraTentorialVolNotVentVox'),
                         ('# Measure IntraCranialVol, ICV,','IntraCranialVol'),
                         ('# Measure EstimatedTotalIntraCranialVol, eTIV,','EstimatedTotalIntraCranialVol'),
+                        ('# Measure Mask, MaskVol,','MaskVol'),
                         ('# Measure BrainVol-to-eTIV, BrainVol-to-eTIV,','BrainVol-to-eTIV'),
+                        ('# Measure BrainSegVol-to-eTIV, BrainSegVol-to-eTIV,','BrainSegVol-to-eTIV'),
                         ('# Measure MaskVol-to-eTIV, MaskVol-to-eTIV,','MaskVol-to-eTIV'),
                         ('# Measure lhSurfaceHoles, lhSurfaceHoles,','lhSurfaceHoles'),
                         ('# Measure rhSurfaceHoles, rhSurfaceHoles,','rhSurfaceHoles'),
