@@ -1,6 +1,22 @@
+
+if USE_LOCAL_TIFF
+TIFF_THINGS=-I$(top_srcdir)/tiff -L$(top_srcdir)/tiff
+else
+TIFF_THINGS=$(TIFF_CFLAGS)
+endif
+
+if USE_LOCAL_JPEG
+JPEG_THINGS=-I$(top_srcdir)/jpeg -L$(top_srcdir)/jpeg
+else
+JPEG_THINGS=$(JPEG_CFLAGS)
+endif
+
+
 AM_CFLAGS=-I$(top_srcdir)/include \
+	$(TIFF_THINGS) $(JPEG_THINGS) \
 	$(VTK_CFLAGS) $(KWWIDGETS_CFLAGS) $(TCL_CFLAGS)
 AM_CXXFLAGS=-Wno-deprecated -I$(top_srcdir)/include \
+	$(TIFF_THINGS) $(JPEG_THINGS)\
 	-I$(top_srcdir)/vtkfsio \
 	-I$(top_srcdir)/vtkutils \
 	$(VTK_CXXFLAGS) $(KWWIDGETS_CXXFLAGS) $(TCL_CFLAGS)
