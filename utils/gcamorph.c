@@ -11,8 +11,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2013/01/13 14:04:56 $
- *    $Revision: 1.279 $
+ *    $Date: 2013/01/18 14:01:59 $
+ *    $Revision: 1.280 $
  *
  * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -17477,9 +17477,13 @@ gcamJacobianHistogram(GCA_MORPH *gcam, HISTOGRAM *h)
 int
 GCAMnormalizeIntensities(GCA_MORPH *gcam, MRI *mri_target)
 {
-  int             x, y, z, num ;
+  int             x, y, z, num, peak ;
   double            val, mean, std, low_thresh, hi_thresh ;
   GCA_MORPH_NODE  *gcamn ;
+  HISTOGRAM        *h ;
+
+  h = HISTOalloc(200) ;
+  HISTOinit(h, 200, 0, 5) ;
 
   std = mean = 0.0 ;
   num = 0 ;
@@ -17509,12 +17513,16 @@ GCAMnormalizeIntensities(GCA_MORPH *gcam, MRI *mri_target)
           continue ;  // stay away from skull stripped areas
         }
         val /= gcamn->gc->means[0] ;
+	HISTOaddSample(h, val, 0, 0) ;
         mean += val ;
         std += val*val ;
         num++ ;
       }
     }
   }
+
+  if (Gdiag & DIAG_WRITE)
+    HISTOplot(h, "hratio.plt") ;
 
   if ( !num )
     printf(" GCAMnormalizeIntensities - no valid "
@@ -17569,6 +17577,11 @@ GCAMnormalizeIntensities(GCA_MORPH *gcam, MRI *mri_target)
   mean /= (float)num ;
   printf("renormalizing gcam intensities by %2.4f\n", mean) ;
 
+  peak = HISTOfindHighestPeakInRegion(h, 2, h->nbins-2) ;
+  if (peak >= 0)
+    mean = h->bins[peak] ;
+  HISTOfree(&h) ;
+  printf("renormalizing gcam intensities using histo estimate %2.4f\n", mean) ;
   for (x = 0 ; x < gcam->width ; x++)
   {
     for (y = 0 ; y < gcam->height ; y++)
