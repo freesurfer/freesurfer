@@ -299,8 +299,7 @@ MRISSUBDIRS=\
 	mris_thickness_diff \
 	mris_ms_surface_CNR \
 	mris_mesh_subdivide \
-	mris_surface_stats \
-	mris_compute_volume_fractions
+	mris_surface_stats
 
 FSGDF=\
 	fsgdf \
