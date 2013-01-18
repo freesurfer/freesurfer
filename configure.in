@@ -9,8 +9,8 @@
 #
 # CVS Revision Info:
 #    $Author: zkaufman $
-#    $Date: 2013/01/18 16:59:27 $
-#    $Revision: 1.586 $
+#    $Date: 2013/01/18 19:35:53 $
+#    $Revision: 1.587 $
 #
 ########################################################################
 AC_PREREQ(2.57)
@@ -611,10 +611,6 @@ AC_ARG_ENABLE(all-apps,
  [  --disable-all-apps      disable building Tcl/Tk, ITK, VTK/KWWidgets, wxWidgets and OpenGL-based apps],
  [ disable_all_apps="YES"
  ])
-
-if (test "x$MAC_64" = "xNO") || (test "x$disable_all_apps" = "xNO"); then
-    install_Mac32_GUIs="NO" 
-fi
 
 AM_CONDITIONAL(INSTALL_MAC32_GUIS, test "x$install_Mac32_GUIs" = "xYES" )
 
