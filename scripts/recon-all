@@ -8,10 +8,10 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2013/01/15 22:30:00 $
-#    $Revision: 1.443 $
+#    $Date: 2013/01/20 16:19:04 $
+#    $Revision: 1.444 $
 #
-# Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
+# Copyright © 2011-2013 The General Hospital Corporation (Boston, MA) "MGH"
 #
 # Terms and conditions for use, reproduction, distribution and contribution
 # are found in the 'FreeSurfer Software License Agreement' contained
@@ -26,7 +26,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.443 2013/01/15 22:30:00 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.444 2013/01/20 16:19:04 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -1469,6 +1469,7 @@ if($DoMotionCor) then
     echo "\n****************************************" |& tee -a $LF
     echo "ERROR! FOV=${FOV} > 256" |& tee -a $LF
     echo "Include the flag -cw256 with recon-all!" |& tee -a $LF
+    echo "Inspect orig.mgz to ensure the head is fully visible." |& tee -a $LF
     echo "****************************************\n" |& tee -a $LF
     goto error_exit;
   endif
