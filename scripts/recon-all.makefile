@@ -39,7 +39,7 @@ TAL_LTA=$(subj)/mri/transforms/talairach.lta
 NORM=$(subj)/mri/norm.mgz
 TAL_M3Z=$(subj)/mri/transforms/talairach.m3z
 NU_NONECK=$(subj)/mri/nu_noneck.mgz
-TAL_SKULL_LTA=$(subj)/mri/transforms/talairach_with_skull.lta
+TAL_SKULL_LTA=$(subj)/mri/transforms/talairach_with_skull_2.lta
 ASEG=$(subj)/mri/aseg.mgz
 # ASEG_TOUCH can be used as a dependency target in some targets instead of
 # aseg.mgz because aseg.mgz can change in autorecon3 as a result of edits
