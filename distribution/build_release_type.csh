@@ -1,6 +1,6 @@
 #!/bin/tcsh -f
 
-set ID='$Id: build_release_type.csh,v 1.146 2012/12/08 16:17:20 nicks Exp $'
+set ID='$Id: build_release_type.csh,v 1.147 2013/01/21 16:31:49 nicks Exp $'
 
 unsetenv echo
 if ($?SET_ECHO_1) set echo=1
@@ -34,23 +34,15 @@ set FAILURE_MAIL_LIST=(\
     ayendiki@nmr.mgh.harvard.edu \
     zkaufman@nmr.mgh.harvard.edu)
 #set FAILURE_MAIL_LIST=(nicks@nmr.mgh.harvard.edu)
-if ("$HOSTNAME" == "hima") then
-  set FAILURE_MAIL_LIST=(\
-    zkaufman@nmr.mgh.harvard.edu)
-endif
+#if ("$HOSTNAME" == "hima") then
+#  set FAILURE_MAIL_LIST=(zkaufman@nmr.mgh.harvard.edu)
+#endif
 if ("$HOSTNAME" == "sleet") then
-  set FAILURE_MAIL_LIST=(\
-    zkaufman@nmr.mgh.harvard.edu)
+  set FAILURE_MAIL_LIST=(zkaufman@nmr.mgh.harvard.edu)
 endif
 if ("$HOSTNAME" == "mist") then
   set FAILURE_MAIL_LIST=(nicks@nmr.mgh.harvard.edu)
 endif
-if ("$HOSTNAME" == "storm") then
-  set FAILURE_MAIL_LIST=(nicks@nmr.mgh.harvard.edu)
-endif
-#if ("$HOSTNAME" == "monster") then
-#  set FAILURE_MAIL_LIST=(nicks@nmr.mgh.harvard.edu)
-#endif
 
 setenv OSTYPE `uname -s`
 if ("$OSTYPE" == "linux") setenv OSTYPE Linux
@@ -75,9 +67,6 @@ setenv LOCAL_FS /usr/local/freesurfer
 # if /space/freesurfer is down, or if there is a need to install
 # outside of /usr/local/freesurfer, 
 # then these can override
-if ("$HOSTNAME" == "monster") then
-  setenv USE_LOCAL_FS /autofs/cluster/freesurfer/centos6_x86_64
-endif
 if ($?USE_SPACE_FS) then
   setenv SPACE_FS $USE_SPACE_FS
 endif
@@ -148,10 +137,10 @@ unsetenv QTDIR
 unsetenv GSLDIR
 
 # on Mac OS X Tiger, need /sw/bin (Fink) to get latex and dvips.
-if ("$OSTYPE" == "Darwin") then
-  setenv PATH "/sw/bin":"$PATH"
-  rehash
-endif
+#if ("$OSTYPE" == "Darwin") then
+#  setenv PATH "/sw/bin":"$PATH"
+#  rehash
+#endif
 
 
 #
@@ -161,6 +150,7 @@ endif
 set FAILED_FILE=${BUILD_HOSTNAME_DIR}/${RELEASE_TYPE}-build-FAILED
 set OUTPUTF=${LOG_DIR}/build_log-${RELEASE_TYPE}-${HOSTNAME}.txt
 set CVSUPDATEF=${LOG_DIR}/update-output-${RELEASE_TYPE}-${HOSTNAME}.txt
+rm -f $FAILED_FILE $OUTPUTF $CVSUPDATEF
 echo "$HOSTNAME $RELEASE_TYPE build" >& $OUTPUTF
 chmod g+w $OUTPUTF
 set BEGIN_TIME=`date`
@@ -634,6 +624,8 @@ make_check_done:
 echo "CMD: rm -Rf ${INSTALL_DIR}/bin-new" >>& $OUTPUTF
 if (-e ${INSTALL_DIR}/bin-new) rm -rf ${INSTALL_DIR}/bin-new >>& $OUTPUTF
 if ("${RELEASE_TYPE}" == "stable-pub") then
+  echo "CMD: rm -Rf ${INSTALL_DIR}/*" >>& $OUTPUTF
+  rm -rf ${INSTALL_DIR}/* >>& $OUTPUTF
   # make release does make install, and runs some extra commands that
   # remove stuff not intended for public release
   echo "Building public stable" >>& $OUTPUTF
@@ -887,7 +879,17 @@ symlinks:
   echo "$cmd" >>& $OUTPUTF
   $cmd
 
-
+#
+# fix mac libs
+######################################################################
+# Until we are building 64-bit GUIs on the Mac, we need to link
+# to the 32-bit versions of vtk, qt, and KWWidgets.
+if ( ("$PLATFORM" == "lion") || \
+    ( "$PLATFORM" == "mountain_lion") ) then
+  echo "executing fix_mac_libs.csh"
+  ${SPACE_FS}/build/scripts/fix_mac_libs.csh ${RELEASE_TYPE}
+endif
+  
 #
 # create build-stamp.txt
 ######################################################################

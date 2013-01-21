@@ -1,6 +1,6 @@
 #!/bin/tcsh -f
 
-set ID='$Id: postprocess_targz.csh,v 1.14 2011/05/03 20:35:09 nicks Exp $'
+set ID='$Id: postprocess_targz.csh,v 1.15 2013/01/21 16:31:49 nicks Exp $'
 
 set echo=1
 
@@ -34,6 +34,9 @@ sudo chgrp -R $ROOTGRP freesurfer
 if ($status) exit 1
 sudo chgrp -R $ROOTGRP freesurfer/*.*
 if ($status) exit 1
+cd freesurfer/lib/vtk/lib
+sudo ${SPACE_FS}/build/scripts/fixvtklibs.csh
+cd -
 pwd
 tar -X ${SPACE_FS}/build/scripts/exclude_from_targz -cvf $1.tar freesurfer
 if ($status) exit 1

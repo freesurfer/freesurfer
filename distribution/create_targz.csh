@@ -1,6 +1,6 @@
 #!/bin/tcsh -f
 
-set ID='$Id: create_targz.csh,v 1.32 2012/12/08 16:22:01 nicks Exp $'
+set ID='$Id: create_targz.csh,v 1.33 2013/01/21 16:31:49 nicks Exp $'
 
 unsetenv echo
 if ($?SET_ECHO_1) set echo=1
@@ -52,14 +52,24 @@ else if ("$PLATFORM" == "leopard-ppc") then
         echo "must run on machine storm"
         exit 1
     endif
+else if ("$PLATFORM" == "snow_leopard") then
+    if ("${HOSTNAME}" != "sleet" ) then
+        echo "must run on machine sleet"
+        exit 1
+    endif
 else if ("$PLATFORM" == "leopard-i686") then
     if ("${HOSTNAME}" != "hima" ) then
         echo "must run on machine hima"
         exit 1
     endif
-else if ("$PLATFORM" == "lion") then
+else if ("$PLATFORM" == "mountain_lion") then
     if ("${HOSTNAME}" != "hima" ) then
         echo "must run on machine hima"
+        exit 1
+    endif
+else if ("$PLATFORM" == "lion") then
+    if ("${HOSTNAME}" != "gust" ) then
+        echo "must run on machine gust"
         exit 1
     endif
 else if ("$PLATFORM" == "tiger-ppc") then
@@ -75,8 +85,8 @@ else if ("$PLATFORM" == "tiger-i686") then
 else
     echo "Usage:"
     echo "$0 <platform> <release_type>"
-    echo "where <platform> is centos5_x86_64, centos4, centos4_x86_64,"
-    echo "         leopard-ppc, leopard-i686, tiger-ppc or tiger-i686"
+    echo "where <platform> is centos6_x86_64, centos4, centos4_x86_64,"
+    echo "snow_leopard, lion, or mountain_lion"
     echo "and <release_type> is either dev, or stable-pub"
     exit 1
 endif
@@ -93,8 +103,7 @@ cd ${LOCAL_FS}
 
 if ( ("$PLATFORM" == "leopard-ppc") || \
     ("$PLATFORM" == "leopard-i686") || \
-    ( "$PLATFORM" == "tiger-ppc") || \
-    ( "$PLATFORM" == "lion") ) then
+    ( "$PLATFORM" == "tiger-ppc") ) then
   if (-e /Users/Shared/tmp/$RELEASE_TYPE) \
     rm -Rf /Users/Shared/tmp/$RELEASE_TYPE
   echo "cp -r $RELEASE_TYPE /Users/Shared/tmp"
@@ -118,6 +127,7 @@ setenv TARNAME ${FILENAME}.tar
 echo creating $TARNAME...
 # the -h flag passed to tar is critical!  
 # it follows the links to the libraries.
+
 tar -X ${SPACE_FS}/build/scripts/exclude_from_targz -hcvf $TARNAME freesurfer
 echo gzipping $TARNAME...
 gzip $TARNAME
