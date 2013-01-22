@@ -9,8 +9,8 @@
  * Original Author: Ender Konukoglu
  * CVS Revision Info:
  *    $Author: enderk $
- *    $Date: 2013/01/18 22:30:26 $
- *    $Revision: 1.1 $
+ *    $Date: 2013/01/22 16:14:14 $
+ *    $Revision: 1.2 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -23,7 +23,7 @@
  * Reporting: freesurfer@nmr.mgh.harvard.edu
  *
  */
-
+  
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -254,7 +254,7 @@ static void print_help(void) ;
 static void print_version(void) ;
 static void dump_options(FILE *fp);
 
-static char vcid[] = "$Id: mris_compute_volume_fractions.c,v 1.1 2013/01/18 22:30:26 enderk Exp $";
+static char vcid[] = "$Id: mris_compute_volume_fractions.c,v 1.2 2013/01/22 16:14:14 enderk Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
