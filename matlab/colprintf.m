@@ -3,7 +3,6 @@ function [] = colprintf(aC, astr_LC, varargin)
 % NAME
 %
 %  function [] = colprintf(aC, astr_LC, format, ...)
-%  $Id: colprintf.m,v 1.2 2010/02/01 20:52:10 rudolph Exp $
 %
 % ARGUMENTS
 % INPUT
@@ -20,10 +19,7 @@ function [] = colprintf(aC, astr_LC, varargin)
 %
 %       Prints two-tuple text inputs in two-columns, with column widths
 %       defined in the hosting class <aC> or alternatively if aC is a 
-%       string of form "<LC>;<RC>"
-%       
-%       A carriage-return is appended to the end of the right string
-%       col.
+%       string of form "<LC>.<RC>"
 %
 % NOTE:
 %
@@ -47,11 +43,11 @@ function [] = colprintf(aC, astr_LC, varargin)
         end
 
         sfrmt   = sprintf(varargin{:});
-
+        
         if length(astr_LC) & verbosity
-            fprintf(1, '%s', sprintf('%*s',   LC, astr_LC));
+            fprintf(1, '%s', sprintf('%*s', LC, astr_LC));
         end
         if length(sfrmt)   & verbosity
-            fprintf(1, '%s', sprintf('%*s\n', RC, sfrmt));
+            fprintf(1, '%s', sprintf('%*s', RC, sfrmt));
         end
 end

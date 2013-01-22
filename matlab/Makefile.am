@@ -15,6 +15,7 @@ mfiles_DATA=\
 	cc_cut_afd.m \
 	cc_cut_dir_afd.m \
 	cc_cut_table.m \
+	combine_labels.m \
 	convert_fieldsign.m \
 	convert_unwarp_resample.m \
 	cortical_labeling_afd_txt.m \
@@ -56,10 +57,12 @@ mfiles_DATA=\
 	MRIread.m \
 	MRIseg2labelxyz.m \
 	MRIsegReg.m \
+        mri_surfrft_jlbr.m \
 	MRIvol2vol.m \
 	MRIvote.m \
 	MRIwrite.m \
 	mri_zcdf.m \
+	mris_display.m \
 	peakfinder.m \
 	pons_cut_afd.m \
 	pons_cut_dir_afd.m \
@@ -93,6 +96,7 @@ mfiles_DATA=\
 	ribbon_afd.m \
 	ribbon_dir_afd.m \
 	ribbon_table.m \
+	rotmat.m \
 	rotmat2angles.m \
 	sampleSize.m \
 	save_cor.m \
@@ -128,11 +132,85 @@ mfiles_DATA=\
 	wm_seg_dir_afd.m \
 	wm_seg_table.m \
 	write_analyze_hdr.m \
+	write_annotation.m \
 	write_ascii_curv.m \
 	write_curv.m \
 	write_label.m \
+	write_surf.m \
 	write_wfile.m \
-	xfm_read.m
+	xfm_read.m \
+	sphCoord.m \
+	RgAdjMtx.m \
+	parfor_progress.m \
+	lme_RgFSfit.m \
+	lme_mass_RgMean.m \
+	lme_mass_RgGrow.m \
+	lme_mass_RgGradient.m \
+	lme_mass_RgFSfit.m \
+	lme_mass_RgEI.m \
+	lme_mass_RgDist.m \
+	lme_mass_LR.m \
+	lme_mass_F.m \
+	lme_mass_fit_vw.m \
+	lme_mass_fit_Rgw.m \
+	lme_mass_fit.m \
+	lme_mass_fit_init.m \
+	lme_mass_fit_EMinit.m \
+	lme_mass_FDR.m \
+	lme_mass_FDR2.m \
+	lme_FSfit.m \
+	dijkstra.m \
+	AdjMtx.m \
+	vec.m \
+	lme_timePlot.m \
+	lme_realizedPower.m \
+	lme_plannedSampleSize.m \
+	lme_plannedPower.m \
+	lme_LR.m \
+	lme_lowessPlot.m \
+	lme_Hessian.m \
+	lme_Gradient.m \
+	lme_F.m \
+	lme_fit_NR.m \
+	lme_fit_init.m \
+	lme_fit_FS.m \
+	lme_fit_FSinit.m \
+	lme_fit_EM.m \
+	lme_fit_EMinit.m \
+	lme_EI.m \
+	sortData.m \
+	fs_write_Y.m \
+	fs_write_fstats.m \
+	fs_read_Y.m \
+	fs_read_surf.m \
+	fs_read_label.m \
+	rmQdecCol.m \
+	Qdec2num.m \
+	num2Qdec.m \
+	getQdecVars.m \
+	getQdecVarData.m \
+	fWriteQdec.m \
+	fReadQdec.m \
+	findQdecVar.m \
+	create_flat_triangular_mesh.m \
+	create_hedgehog_mesh.m \
+	create_subdivision_pattern.m \
+	example1.m \
+	example2.m \
+	example3.m \
+	example4.m \
+	example5.m \
+	extract_coordinates_from_path.m \
+	geodesic_convert_surface_points.m \
+	geodesic_create_surface_point.m \
+	geodesic_delete.m \
+	geodesic_distance_and_source.m \
+	geodesic_matlab_api.h \
+	geodesic_new_algorithm.m \
+	geodesic_new_mesh.m \
+	geodesic_propagate.m \
+	geodesic_trace_back.m 
+
 
 if NMR_INSTALL
 siemens_DATA=\

@@ -46,9 +46,9 @@ function mri = MRIread(fstring,headeronly)
 %
 % Original Author: Doug Greve
 % CVS Revision Info:
-%    $Author: greve $
-%    $Date: 2011/06/02 21:01:41 $
-%    $Revision: 1.22.2.1 $
+%    $Author: nicks $
+%    $Date: 2013/01/22 20:59:08 $
+%    $Revision: 1.22.2.2 $
 %
 % Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 %
@@ -165,8 +165,12 @@ switch(fmt)
   indnz = find(volsz~=0);
   volsz = volsz(indnz);
   volsz = volsz(:)'; % just make sure it's a row vect
-  if(~headeronly) mri.vol = permute(hdr.vol,[2 1 3 4]);
-  else            mri.vol = [];
+  % This handles the case where data has > 4 dims
+  % Just puts all data into dim 4.
+  if(~headeronly) 
+    hdr.vol = reshape(hdr.vol,[volsz(1) volsz(2) volsz(3) prod(volsz(4:end))]);
+    mri.vol = permute(hdr.vol,[2 1 3 4]);
+  else mri.vol = [];
   end
   volsz([1 2]) = volsz([2 1]); % Make consistent. No effect when rows=cols
   tr = hdr.pixdim(5); % already msec

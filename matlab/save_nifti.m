@@ -10,28 +10,26 @@ function err = save_nifti(hdr,niftifile)
 % reshaped to 27307x1x6xnframes. This is for handling the 7th
 % order icosahedron used by FS group analysis.
 %
-% $Id: save_nifti.m,v 1.11 2010/07/01 20:28:33 greve Exp $
+% $Id: save_nifti.m,v 1.13.2.1 2013/01/22 20:59:09 nicks Exp $
 
 %
 % save_nifti.m
 %
 % Original Author: Doug Greve
 % CVS Revision Info:
-%    $Author: greve $
-%    $Date: 2010/07/01 20:28:33 $
-%    $Revision: 1.11 $
+%    $Author: nicks $
+%    $Date: 2013/01/22 20:59:09 $
+%    $Revision: 1.13.2.1 $
 %
-% Copyright (C) 2002-2007,
-% The General Hospital Corporation (Boston, MA). 
-% All rights reserved.
+% Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 %
-% Distribution, usage and copying of this software is covered under the
-% terms found in the License Agreement file named 'COPYING' found in the
-% FreeSurfer source code root directory, and duplicated here:
-% https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+% Terms and conditions for use, reproduction, distribution and contribution
+% are found in the 'FreeSurfer Software License Agreement' contained
+% in the file 'LICENSE' found in the FreeSurfer distribution, and here:
 %
-% General inquiries: freesurfer@nmr.mgh.harvard.edu
-% Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+% https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
+%
+% Reporting: freesurfer@nmr.mgh.harvard.edu
 %
 
 err = 1;
@@ -52,7 +50,7 @@ end
 % Check for ico7
 sz = size(hdr.vol);
 if(sz(1) == 163842)
-  fprintf('save_nifti: ico7 reshaping\n');
+  %fprintf('save_nifti: ico7 reshaping\n');
   dim = [27307 1 6 size(hdr.vol,4)];
   hdr.vol = reshape(hdr.vol, dim);
 end
@@ -66,7 +64,7 @@ end
 hdr.data_type = [hdr.data_type(:)' repmat(' ',[1 10])];
 hdr.data_type = hdr.data_type(1:10);
 
-hdr.db_name = [hdr.data_type(:)' repmat(' ',[1 18])];
+hdr.db_name = [hdr.db_name(:)' repmat(' ',[1 18])];
 hdr.db_name = hdr.db_name(1:18);
 
 hdr.dim = ones(1,8);

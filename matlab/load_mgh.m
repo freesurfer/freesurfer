@@ -30,20 +30,18 @@ function [vol, M, mr_parms, volsz] = load_mgh(fname,slices,frames,headeronly)
 % Original Author: Bruce Fischl
 % CVS Revision Info:
 %    $Author: nicks $
-%    $Date: 2009/11/09 22:36:52 $
-%    $Revision: 1.19 $
+%    $Date: 2013/01/22 20:59:09 $
+%    $Revision: 1.20.2.1 $
 %
-% Copyright (C) 2002-2007,
-% The General Hospital Corporation (Boston, MA). 
-% All rights reserved.
+% Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 %
-% Distribution, usage and copying of this software is covered under the
-% terms found in the License Agreement file named 'COPYING' found in the
-% FreeSurfer source code root directory, and duplicated here:
-% https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+% Terms and conditions for use, reproduction, distribution and contribution
+% are found in the 'FreeSurfer Software License Agreement' contained
+% in the file 'LICENSE' found in the FreeSurfer distribution, and here:
 %
-% General inquiries: freesurfer@nmr.mgh.harvard.edu
-% Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+% https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
+%
+% Reporting: freesurfer@nmr.mgh.harvard.edu
 %
 
 vol = [];
@@ -63,8 +61,10 @@ if (strcmpi(fname((strlen(fname)-3):strlen(fname)), '.MGZ') | ...
   rand('state', sum(100*clock));
   gzipped =  round(rand(1)*10000000 + ...
 		   sum(int16(fname))) + round(cputime);
-  ind = findstr(fname, '.');
-  new_fname = sprintf('/tmp/tmp%d.mgh', gzipped);
+  %ind = findstr(fname, '.');
+  %new_fname = sprintf('/tmp/tmp.load_mgh.%d.mgh', gzipped);
+  new_fname = sprintf('%s.load_mgh.%d.mgh', tempname,gzipped);
+
   if(strcmp(computer,'MAC') || strcmp(computer,'MACI') || ismac)
     unix(sprintf('gunzip -c %s > %s', fname, new_fname)) ;
   else
