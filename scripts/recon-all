@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2013/01/22 19:16:52 $
-#    $Revision: 1.445 $
+#    $Date: 2013/01/22 20:44:21 $
+#    $Revision: 1.446 $
 #
 # Copyright © 2011-2013 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -26,7 +26,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.445 2013/01/22 19:16:52 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.446 2013/01/22 20:44:21 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -3939,9 +3939,27 @@ if ($DoBaLabels) then
         |& tee -a $LF |& tee -a $CF
     echo "#@# BA Labels $hemi `date`" \
         |& tee -a $SF |& tee -a $LF |& tee -a $CF
+    set HaveFsAverage=1;
     if ( ! -e $SUBJECTS_DIR/fsaverage) then
       echo "INFO: fsaverage subject does not exist in SUBJECTS_DIR" \
         |& tee -a $LF |& tee -a $CF
+      set HaveFsAverage=0;
+    else
+      # check if the latest-greatest fsaverage is here (which would not be
+      # the case if running on subjects processed by an older version)
+      if ( ! -e $SUBJECTS_DIR/fsaverage/label/lh.perirhinal.label) then
+        echo "INFO: fsaverage subject does not have perirhinal labels!" \
+          |& tee -a $LF |& tee -a $CF
+        set HaveFsAverage=0;
+        set cmd=(rm -Rf fsaverage)
+        echo "\n cd $SUBJECTS_DIR; $cmd; cd - \n"|& tee -a $LF |& tee -a $CF
+        cd $SUBJECTS_DIR
+        if($RunIt && -e fsaverage) $fs_time $cmd |& tee -a $LF
+        cd -
+      endif
+    endif
+
+    if ( ! $HaveFsAverage ) then
       echo "INFO: Creating symlink to fsaverage subject..." \
         |& tee -a $LF |& tee -a $CF
       set cmd=(ln -s $FREESURFER_HOME/subjects/fsaverage)
