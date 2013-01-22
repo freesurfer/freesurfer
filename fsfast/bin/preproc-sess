@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2012/08/23 15:57:35 $
-#    $Revision: 1.45.2.2 $
+#    $Date: 2013/01/22 22:09:10 $
+#    $Revision: 1.45.2.3 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -27,7 +27,7 @@
 # This creates fmcpr.sm5, then
 # mkanalysis-sess -native -funcstem fmcpr.sm5 ...
 
-set VERSION = '$Id: preproc-sess,v 1.45.2.2 2012/08/23 15:57:35 greve Exp $';
+set VERSION = '$Id: preproc-sess,v 1.45.2.3 2013/01/22 22:09:10 greve Exp $';
 
 set inputargs = ($argv);
 set DateStr = "`date '+%y%m%d%H%M'`"
@@ -512,8 +512,8 @@ while( $#argv != 0 )
       set subject = $argv[1]; shift;
       set hemi = $argv[1]; shift;
       set ToSurf = 1;
-      set PerRun = 1;
-      set PerSess = 0;
+      #set PerRun = 1;
+      #set PerSess = 0;
       if($subject != self && ! -e $SUBJECTS_DIR/$subject) then
         echo "ERROR: cannot find $subject in $SUBJECTS_DIR"
         exit 1;
@@ -524,8 +524,8 @@ while( $#argv != 0 )
     case "-mni305":
       set RawRes = 2;
       set ToMNI305 = 1;
-      set PerRun = 1;
-      set PerSess = 0;
+      #set PerRun = 1;
+      #set PerSess = 0;
       breaksw
 
     case "-usual":
@@ -542,8 +542,8 @@ while( $#argv != 0 )
     case "-mni305-1mm":
       set RawRes = 1;
       set ToMNI305 = 1;
-      set PerRun = 1;
-      set PerSess = 0;
+      #set PerRun = 1;
+      #set PerSess = 0;
       breaksw
 
     case "-subcort-mask":
