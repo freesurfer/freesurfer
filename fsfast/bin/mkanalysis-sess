@@ -7,8 +7,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2012/12/10 18:01:42 $
-#    $Revision: 1.71 $
+#    $Date: 2013/01/22 21:50:52 $
+#    $Revision: 1.72 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 # Bug reports: analysis-bugs@nmr.mgh.harvard.edu
 #
 
-set VERSION = '$Id: mkanalysis-sess,v 1.71 2012/12/10 18:01:42 greve Exp $';
+set VERSION = '$Id: mkanalysis-sess,v 1.72 2013/01/22 21:50:52 greve Exp $';
 
 set analysis = ();
 set TR = ();
@@ -83,6 +83,7 @@ set HeteroGCor = 0;
 set UseB0DC = 0;
 set ApplySubCortMask = 1;
 set PerSession = 0;
+set PerRun = 0;
 
 set force = 0;
 
@@ -464,7 +465,7 @@ while( $#argv != 0 )
       set RawSpace = $argv[1]; shift; # subjectname
       set RawHemi = $argv[1]; shift;
       set RawSpaceType = surface
-      set mcstem = fmcpr
+      #set mcstem = fmcpr
       if($RawHemi != lh && $RawHemi != rh) then
         echo "ERROR: hemisphere $RawHemi unrecognized, must be lh or rh"
         exit 1;
@@ -478,7 +479,7 @@ while( $#argv != 0 )
       endif
       set RawSpaceType = volume;
       set RawSpace = mni305;
-      set mcstem = fmcpr
+      #set mcstem = fmcpr
       breaksw
 
     case "-subcort-mask":
@@ -491,10 +492,13 @@ while( $#argv != 0 )
       breaksw
 
     case "-per-run":
+      set PerRun = 1;
       set PerSession = 0;
+      set mcstem = fmcpr
       breaksw
 
     case "-per-session":
+      set PerRun = 0;
       set PerSession = 1;
       set mcstem = fmc
       breaksw
@@ -633,6 +637,12 @@ goto parse_args_return;
 
 ############--------------##################
 check_params:
+  if($PerRun == 0 && $PerSession == 0) then
+    echo "ERROR: must specify either -per-run or -per-session"
+    echo "       you probably want to use -per-run unless you used"
+    echo "       -per-session when you ran preproc-sess"
+    exit 1;
+  endif
 
   if($#fsd == 0) then
     echo "ERROR: you must specify a functional subdirectory with -fsd"
@@ -769,6 +779,8 @@ usage_exit:
   echo "  -stc SliceOrder : slice-time correct using the name of the SliceOrder (default none)"
   echo "  -reg-dof DOF    : use given DOF when performing registration (default is $RegDOF)"
   echo "  -fsd FSD        : functional subdirectory (eg, bold)"
+  echo "  -per-run : to be used when you run preproc-sess -per-run"
+  echo "  -per-session : to be used when you run preproc-sess -per-session"
   echo ""
   echo "Basic Design Arguments"
   echo "  -event-related          : event-related or blocked design"
@@ -811,7 +823,6 @@ usage_exit:
   echo "   -fsv3-whiten   : perform whitening like FreeSurfer Version 3 (and -no-)"
   echo ""
   echo "Other Optional Arguments"
-  echo "  -per-session : to be used when you run preproc-sess -per-session"
   echo "  -runlistfile filename : file with list of runs to include in analysis"
   echo "  -funcstem stem  : override default"
   echo "  -mask  maskid : use masks/maskid to compute autocor and whitening"
@@ -901,6 +912,18 @@ If you do not want smoothing, you must still specify 0.
 Perform slice-timing correction using FSLs slicetimer. Options for 
 Slice Order are siemens, up, down, odd, even. By default, no
 slice timing correction is done.
+
+-per-run : to be used when you run preproc-sess -per-session
+-per-session : to be used when you run preproc-sess -per-session
+
+These dictate how motion correction and registration will be
+performed.  For PerRun, each run is handled separately with the
+template being the middle time point of each run. The template is the
+target used for both motion correction and registration to the
+anatomical. For PerSession, the template is the first time point from
+the first run. All time points for all runs are aligned to this
+template, and only one anatomical registration is done. Generally, 
+it is better to use -per-run.
 
 BASIC DESIGN ARGUMENTS
 
@@ -1091,8 +1114,7 @@ exist in each functional run. By default, the stem is f.  If the
 -motioncor flag is included, then the stem fmc is used (this is the
 default output of mc-sess).
 
--per-session : to be used when you run preproc-sess -per-session
- 
+
 -runlistfile filename (Shortcut: -rlf) 
 
 This is a file that should exist in each FSD that lists the runs to be 
