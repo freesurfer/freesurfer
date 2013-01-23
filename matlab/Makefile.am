@@ -57,7 +57,7 @@ mfiles_DATA=\
 	MRIread.m \
 	MRIseg2labelxyz.m \
 	MRIsegReg.m \
-        mri_surfrft_jlbr.m \
+  mri_surfrft_jlbr.m \
 	MRIvol2vol.m \
 	MRIvote.m \
 	MRIwrite.m \
@@ -205,12 +205,10 @@ mfiles_DATA=\
 	geodesic_create_surface_point.m \
 	geodesic_delete.m \
 	geodesic_distance_and_source.m \
-	geodesic_matlab_api.h \
 	geodesic_new_algorithm.m \
 	geodesic_new_mesh.m \
 	geodesic_propagate.m \
 	geodesic_trace_back.m 
-
 
 if NMR_INSTALL
 siemens_DATA=\
@@ -221,7 +219,7 @@ else
 siemens_DATA=
 endif
 
-EXTRA_DIST=$(mfiles_DATA)
+EXTRA_DIST=$(mfiles_DATA) geodesic_matlab_api.h 
 
 # Our release target. Include files to be excluded here. They will be
 # found and removed after 'make install' is run during the 'make
