@@ -9,8 +9,8 @@
 # Original Author: Martin Reuter
 # CVS Revision Info:
 #    $Author: mreuter $
-#    $Date: 2013/01/23 21:50:29 $
-#    $Revision: 1.19 $
+#    $Date: 2013/01/24 16:02:47 $
+#    $Revision: 1.20 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -201,7 +201,7 @@ OPTIONAL ARGUMENTS
 
 --simulate        Do not submit anything, just print commands
 
---simfiles        Do not submit anything, just creade command files
+--simfiles        Do not submit anything, just create command files
 
 --check           Checks if all longitudinals are done
 
@@ -280,7 +280,7 @@ def options_parse():
     Command Line Options Parser for long_mris_slopes
     initiate the option parser and return the parsed object
     """
-    parser = optparse.OptionParser(version='$Id: long_submit_jobs,v 1.19 2013/01/23 21:50:29 mreuter Exp $', usage=HELPTEXT)
+    parser = optparse.OptionParser(version='$Id: long_submit_jobs,v 1.20 2013/01/24 16:02:47 mreuter Exp $', usage=HELPTEXT)
     
     # help text
     h_qdec      = '(REQUIRED) qdec table file specifying the subjects and time points'
