@@ -5,8 +5,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2012/04/30 14:27:57 $
-#    $Revision: 1.10 $
+#    $Date: 2013/01/25 19:41:27 $
+#    $Revision: 1.11 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -22,7 +22,7 @@
 # Bug reports: analysis-bugs@nmr.mgh.harvard.edu
 #
 
-set VERSION = '$Id: getana,v 1.10 2012/04/30 14:27:57 greve Exp $';
+set VERSION = '$Id: getana,v 1.11 2013/01/25 19:41:27 greve Exp $';
 
 set analysis = ();
 set tag = ();
@@ -377,7 +377,7 @@ switch ($tag)
 
   case "contrasts":
     set contrasts = ();
-    set matfiles = (`find $analysis -name "*.mat"`);
+    set matfiles = (`find $analysis -maxdepth 1 -name "*.mat"`);
     foreach matfile ($matfiles)
       set contrasts = ($contrasts `basename $matfile .mat`); # strip .mat
     end
