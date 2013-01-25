@@ -63,13 +63,13 @@ foo:
 
 check_PROGRAMS=foo
 
-TESTS=test_mri_robust_template $(top_builddir)/scripts/help_xml_validate
+TESTS=test_libgfortran test_mri_robust_template $(top_builddir)/scripts/help_xml_validate
 
 EXTRA_DIST=Regression.h Regression.cpp Registration.h RegistrationStep.h \
 	MultiRegistration.h Quaternion.h RobustGaussian.cpp RegPowell.cpp \
 	CostFunctions.h RobustGaussian.h RegPowell.h MyMatrix.h MyMRI.h \
 	testdata.tar.gz $(foo_DATA) Registration.cpp test_mri_robust_template \
-	$(BUILT_SOURCES) JointHisto.h RegRobust.h Transformation.h
+	$(BUILT_SOURCES) JointHisto.h RegRobust.h Transformation.h test_libgfortran
 
 # Our release target. Include files to be excluded here. They will be
 # found and removed after 'make install' is run during the 'make

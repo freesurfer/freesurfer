@@ -1,0 +1,29 @@
+#! /bin/tcsh -f
+
+# binaries must not build against the shared libgfortan, as that
+# lib is not found on most installations (and there is no reason to distribute
+# it if we can avoid it).
+# On the mac, ditto for libquadmath.0.dylib, which is one of the shared libs
+# found in gfortran, which we dont want to be dependent upon.
+
+# check for an enviro var to skip
+if ( $?SKIP_LIBGFORTRAN_TEST ) exit 77
+
+set OS=`uname -s`
+
+set grepstatus=1
+
+if ("$OS" == "Linux") then
+  ldd ./mri_robust_template | grep libgfortran
+  set grepstatus=$status
+endif
+
+if ("$OS" == "Darwin") then
+  otool -L ./mri_robust_template | grep libquadmath
+  set grepstatus=$status
+endif
+
+if ( ! $grepstatus ) then
+  echo "ERROR: mri_robust_template built against shared gfortran libs!"
+  exit 1
+endif
