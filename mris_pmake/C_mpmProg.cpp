@@ -13,8 +13,8 @@
  * Original Author: Rudolph Pienaar
  * CVS Revision Info:
  *    $Author: rudolph $
- *    $Date: 2012/11/20 18:27:05 $
- *    $Revision: 1.27 $
+ *    $Date: 2013/01/25 21:40:17 $
+ *    $Revision: 1.28 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -658,7 +658,7 @@ C_mpmProg_autodijk::vertexCosts_pack(e_stats& a_stats) {
      */
     a_stats.f_max               =  0.0;
     a_stats.indexMax            = -1;
-    for(int v = 0; v < mvertex_end; v++) {
+    for(int v = 0; v < mvertex_total; v++) {
         mpf_cost[v]     = mps_env->pMS_active->vertices[v].val;
         if(a_stats.f_max < mpf_cost[v]) {
             a_stats.f_max   = mpf_cost[v];
