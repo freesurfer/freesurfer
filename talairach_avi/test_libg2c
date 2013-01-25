@@ -28,6 +28,11 @@ if ( ! $grepstatus ) then
   exit 1
 endif
 
+if ("$OS" == "Linux") then
+  ldd ./gauss_4dfp | grep libgfortran
+  set grepstatus=$status
+endif
+
 if ("$OS" == "Darwin") then
   otool -L ./gauss_4dfp | grep libquadmath
   set grepstatus=$status
