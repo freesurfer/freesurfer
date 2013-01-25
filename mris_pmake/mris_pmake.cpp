@@ -18,8 +18,8 @@
  * Original Authors: Rudolph Pienaar / Christian Haselgrove
  * CVS Revision Info:
  *    $Author: rudolph $
- *    $Date: 2012/07/02 20:18:09 $
- *    $Revision: 1.17 $
+ *    $Date: 2013/01/25 16:39:24 $
+ *    $Revision: 1.18 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -74,7 +74,7 @@ bool    Gb_stdout       = true;         // Global flag controlling output to
                                         //+stdout
 string  G_SELF          = "";           // "My" name
 string  G_VERSION       =               // version
-  "$Id: mris_pmake.cpp,v 1.17 2012/07/02 20:18:09 rudolph Exp $";
+  "$Id: mris_pmake.cpp,v 1.18 2013/01/25 16:39:24 rudolph Exp $";
 char 	pch_buffer[65536];
 
 // "Class"-like globals...
@@ -102,12 +102,12 @@ main(
   st_env.str_workingDir         = "./";
   st_env.str_optionsFileName    = "options.txt";
   st_env.b_surfacesKeepInSync   = true;         // This allows us to
-                                                //+ propogate changes
+                                                //+ propagate changes
                                                 //+ in the working
                                                 //+ surface to the
-                                                //+ auxillary surface.
+                                                //+ auxiliary surface.
 
-  // Set the default cost function in the enviroment
+  // Set the default cost function in the environment
   // -- Cost function is set when mpmOverlay initialized
   //s_env_costFctSet(&st_env, costFunc_defaultDetermine, e_default);
 
