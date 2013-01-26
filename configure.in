@@ -8,9 +8,9 @@
 # Process this file with autoconf to produce a configure script.
 #
 # CVS Revision Info:
-#    $Author: enderk $
-#    $Date: 2013/01/22 15:58:45 $
-#    $Revision: 1.590 $
+#    $Author: nicks $
+#    $Date: 2013/01/26 22:19:50 $
+#    $Revision: 1.591 $
 #
 ########################################################################
 AC_PREREQ(2.57)
@@ -631,6 +631,16 @@ if test "x$MAC_64" = "xYES"; then
   else 
     FFLAGS="-m64"
   fi
+fi
+
+# many linux systems, namedly Ubuntu, dont have libgfortran.so installed 
+# by default, so build using the static lib if available, so that 
+# distro is more widely compatible.
+if test -e /usr/lib/libgfortran.a ; then
+  LIB_GFORTRAN="/usr/lib/libgfortran.a"
+fi
+if test -e /usr/lib64/libgfortran.a ; then
+  LIB_GFORTRAN="/usr/lib64/libgfortran.a"
 fi
 
 AC_SUBST(LIB_GFORTRAN)
