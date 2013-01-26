@@ -9,8 +9,8 @@
 #
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2013/01/13 22:00:38 $
-#    $Revision: 1.519.2.31 $
+#    $Date: 2013/01/26 22:23:24 $
+#    $Revision: 1.519.2.32 $
 #
 ########################################################################
 AC_PREREQ(2.57)
@@ -638,6 +638,16 @@ if test "x$MAC_64" = "xYES"; then
   else 
     FFLAGS="-m64"
   fi
+fi
+
+# many linux systems, namedly Ubuntu, dont have libgfortran.so installed 
+# by default, so build using the static lib if available, so that 
+# distro is more widely compatible.
+if test -e /usr/lib/libgfortran.a ; then
+  LIB_GFORTRAN="/usr/lib/libgfortran.a"
+fi
+if test -e /usr/lib64/libgfortran.a ; then
+  LIB_GFORTRAN="/usr/lib64/libgfortran.a"
 fi
 
 AC_SUBST(LIB_GFORTRAN)
