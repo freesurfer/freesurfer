@@ -179,6 +179,7 @@ MRISSUBDIRS=\
 	label2flat \
 	spherical_stats \
 	tridec \
+	mris_apply_reg \
 	mris_register_to_volume \
 	mris_parcellate_connectivity \
 	mris_map_cuts \

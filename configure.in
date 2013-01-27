@@ -9,8 +9,8 @@
 #
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2013/01/26 22:23:24 $
-#    $Revision: 1.519.2.32 $
+#    $Date: 2013/01/27 23:40:09 $
+#    $Revision: 1.519.2.33 $
 #
 ########################################################################
 AC_PREREQ(2.57)
@@ -3656,6 +3656,7 @@ AC_OUTPUT([Makefile
            mri_multispectral_segment/Makefile
            mri_compute_change_map/Makefile
            mris2rgb/Makefile
+           mris_apply_reg/Makefile
            mris_hausdorff_dist/Makefile
            mris_map_cuts/Makefile
            mris_merge_parcellations/Makefile
