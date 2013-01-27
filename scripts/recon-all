@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2013/01/22 20:45:28 $
-#    $Revision: 1.379.2.56 $
+#    $Date: 2013/01/27 19:10:52 $
+#    $Revision: 1.379.2.57 $
 #
 # Copyright © 2011-2013 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -26,7 +26,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.379.2.56 2013/01/22 20:45:28 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.379.2.57 2013/01/27 19:10:52 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -50,6 +50,15 @@ set DoTime = 0;
 set fs_time = "";
 set ErrorFile = /dev/null
 set cmd = ();
+
+set tcsh617 = (`tcsh --version | grep "6\.17"`)
+if ("$tcsh617" != "") then
+     echo ""
+     echo "WARNING: tcsh v6.17 has an exit code bug! Please update tcsh!"
+     echo ""
+     # workaround to force expected behavior:
+    set anyerror
+endif
 
 set Force = 0;
 set DoCleanCSDF  = 0;
