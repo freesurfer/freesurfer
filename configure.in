@@ -9,8 +9,8 @@
 #
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2013/01/27 23:40:09 $
-#    $Revision: 1.519.2.33 $
+#    $Date: 2013/01/28 15:55:48 $
+#    $Revision: 1.519.2.34 $
 #
 ########################################################################
 AC_PREREQ(2.57)
@@ -3592,7 +3592,6 @@ AC_OUTPUT([Makefile
            mri_matrix_multiply/Makefile
            mri_mc/Makefile
            mri_mcsim/Makefile
-           mri_mi_nl_align/Makefile
            mri_modify/Makefile
            mri_morphology/Makefile
            mri_jacobian/Makefile
