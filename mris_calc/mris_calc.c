@@ -11,9 +11,9 @@
 /*
  * Original Author: Rudolph Pienaar
  * CVS Revision Info:
- *    $Author: rudolph $
- *    $Date: 2012/07/05 21:44:25 $
- *    $Revision: 1.48 $
+ *    $Author: greve $
+ *    $Date: 2013/01/28 17:04:22 $
+ *    $Revision: 1.49 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -63,7 +63,7 @@
 #define  START_i        3
 
 static const char vcid[] =
-  "$Id: mris_calc.c,v 1.48 2012/07/05 21:44:25 rudolph Exp $";
+  "$Id: mris_calc.c,v 1.49 2013/01/28 17:04:22 greve Exp $";
 double fn_sign(float af_A);
 
 // ----------------------------------------------------------------------------
@@ -133,6 +133,7 @@ typedef enum _operation
   e_bcor,
   e_sig2p,
   e_mag,
+  e_log10,
   e_abs,
   e_inv,
   e_sign,
@@ -180,6 +181,7 @@ const char* Gppch_operation[] =
   "bcor",
   "sig2p",
   "mag",
+  "log10",
   "abs",
   "inv",
   "sign",
@@ -401,9 +403,12 @@ double  fn_masked(float af_A, float af_B)
   return(af_B ? af_A : af_B);
 }
 
-
-
 // Simple functions on one argument
+double fn_log10(float af_A)
+{
+  if(af_A == 0) return(0);
+  return (log10(af_A));
+}
 double fn_abs(float af_A)
 {
   return fabs(af_A);
@@ -1371,7 +1376,7 @@ main(
   init();
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mris_calc.c,v 1.48 2012/07/05 21:44:25 rudolph Exp $",
+           "$Id: mris_calc.c,v 1.49 2013/01/28 17:04:22 greve Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
   {
@@ -1627,6 +1632,10 @@ operation_lookup(
   else if(!strcmp(apch_operation, "mag"))
   {
     e_op    = e_mag;
+  }
+  else if(!strcmp(apch_operation, "log10"))
+  {
+    e_op    = e_log10;
   }
   else if(!strcmp(apch_operation, "abs"))
   {
@@ -2073,6 +2082,7 @@ b_outCurvFile_write(e_operation e_op)
     e_op == e_bcor          ||
     e_op == e_sig2p         ||
     e_op == e_mag           ||
+    e_op == e_log10         ||
     e_op == e_abs           ||
     e_op == e_inv           ||
     e_op == e_sign          ||
@@ -2192,6 +2202,9 @@ CURV_process(void)
     break;
   case  e_abs:
     CURV_functionRunAC( fn_abs);
+    break;
+  case  e_log10:
+    CURV_functionRunAC( fn_log10);
     break;
   case  e_inv:
     CURV_functionRunAC( fn_inv);

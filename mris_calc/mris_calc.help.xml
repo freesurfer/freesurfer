@@ -76,17 +76,19 @@ will result in the 'black.mgz' volume having all its intensity values set to 0.
       <argument>mag</argument>
       <explanation>2 inputs and 1 output. &lt;outputFile&gt; = atan2(&lt;file1&gt;,&lt;file2&gt;)</explanation>
       <argument>sig2p</argument>
-      <explanation>1 inputs and 1 output. &lt;outputFile&gt; = 10^(-abs(&lt;file1&gt;)</explanation>
+      <explanation>1 input and 1 output. &lt;outputFile&gt; = 10^(-abs(&lt;file1&gt;)</explanation>
       <argument>sqr</argument>
-      <explanation>1 inputs and 1 output. &lt;outputFile&gt; = &lt;file1&gt; * &lt;file1&gt;</explanation>
+      <explanation>1 input and 1 output. &lt;outputFile&gt; = &lt;file1&gt; * &lt;file1&gt;</explanation>
       <argument>sqrt</argument>
-      <explanation>1 inputs and 1 output. &lt;outputFile&gt; = sqrt(&lt;file1&gt;)</explanation>
+      <explanation>1 input and 1 output. &lt;outputFile&gt; = sqrt(&lt;file1&gt;)</explanation>
       <argument>abs</argument>
-      <explanation>1 inputs and 1 output. &lt;outputFile&gt; = abs(&lt;file1&gt;)</explanation>
+      <explanation>1 input and 1 output. &lt;outputFile&gt; = abs(&lt;file1&gt;)</explanation>
+      <argument>log10</argument>
+      <explanation>1 input and 1 output. &lt;outputFile&gt; = log10(&lt;file1&gt;). If input=0, then output=0. Output is NaN if input less than zero </explanation>
       <argument>inv</argument>
-      <explanation>1 inputs and 1 output. &lt;outputFile&gt; = 1/(&lt;file1&gt;)</explanation>
+      <explanation>1 input and 1 output. &lt;outputFile&gt; = 1/(&lt;file1&gt;)</explanation>
       <argument>sign</argument>
-      <explanation>1 inputs and 1 output. &lt;outputFile&gt; = sign(&lt;file1&gt;). The 'sign' function returns at each index of an input file:
+      <explanation>1 input and 1 output. &lt;outputFile&gt; = sign(&lt;file1&gt;). The 'sign' function returns at each index of an input file:
 -1 if &lt;file1&gt;[n] &lt;  0
 0 if &lt;file1&gt;[n] == 0
 1 if &lt;file1[n] &gt;  0</explanation>
