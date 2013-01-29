@@ -2525,6 +2525,38 @@
     </hint>
    </hints>
   </connection>
+  <connection>
+   <sender>actionSaveSurface</sender>
+   <signal>triggered()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>SaveSurface()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>606</x>
+     <y>435</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>actionSaveSurfaceAs</sender>
+   <signal>triggered()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>SaveSurfaceAs()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>606</x>
+     <y>435</y>
+    </hint>
+   </hints>
+  </connection>
  </connections>
  <slots>
   <slot>OnLoadVolume()</slot>
@@ -2596,5 +2628,7 @@
   <slot>OnSmoothSurface()</slot>
   <slot>OnRemoveIntersectionsFromSurface()</slot>
   <slot>OnLineProfile()</slot>
+  <slot>SaveSurface()</slot>
+  <slot>SaveSurfaceAs()</slot>
  </slots>
 </ui>
