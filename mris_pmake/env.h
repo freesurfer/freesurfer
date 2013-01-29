@@ -12,8 +12,8 @@
  * Original Author: Rudolph Pienaar / Christian Haselgrove
  * CVS Revision Info:
  *    $Author: rudolph $
- *    $Date: 2012/11/20 18:17:44 $
- *    $Revision: 1.23 $
+ *    $Date: 2013/01/29 16:57:40 $
+ *    $Revision: 1.24 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -258,10 +258,11 @@ typedef struct _env {
     int           rw;                       // right width (for stdout format)
 
     bool          b_syslogPrepend;          // prepend syslog style
-    C_SMessage*   pcsm_stdout;              // stdout C_SMessage object
+    string        str_stdout;
     string        str_userMsgLog;
     string        str_sysMsgLog;
     string        str_resultMsgLog;
+    C_SMessage*   pcsm_stdout;              // stdout C_SMessage object
     C_SMessage*   pcsm_syslog;              // log file for "sys" events
     C_SMessage*   pcsm_userlog;             // log file for "user" events
     C_SMessage*   pcsm_resultlog;           // log file for "result" event

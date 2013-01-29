@@ -12,8 +12,8 @@
  * Original Author: Rudolph Pienaar / Christian Haselgrove
  * CVS Revision Info:
  *    $Author: rudolph $
- *    $Date: 2012/11/20 18:17:44 $
- *    $Revision: 1.36 $
+ *    $Date: 2013/01/29 16:57:40 $
+ *    $Revision: 1.37 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -402,15 +402,8 @@ s_env_nullify(
 
     st_env.b_syslogPrepend          = false;
     st_env.b_exitOnDone             = false;
-    st_env.pcsm_stdout              = new C_SMessage( "",
-                                           eSM_raw,
-                                           "stdout",
-                                           eSM_c);
-    st_env.pcsm_stdout->b_syslogPrepend_set(true);
-    st_env.pcsm_stdout->lw_set(st_env.lw);
-    st_env.pcsm_stdout->rw_set(st_env.rw);
-    st_env.pcsm_stdout->b_canPrint_set(true);
     st_env.pcsm_optionsFile         = NULL;
+    st_env.pcsm_stdout              = NULL;
     st_env.pcsm_syslog              = NULL;
     st_env.pcsm_userlog             = NULL;
     st_env.pcsm_resultlog           = NULL;
@@ -741,10 +734,10 @@ s_env_defaultsSet(
     st_env.startVertex                  = 0;
     st_env.endVertex                    = 0;
 
-    st_env.str_primarySurfaceFileName      = "";
-    st_env.str_secondarySurfaceFileName       = "";
-    st_env.str_primaryCurvatureFileName    = "";
-    st_env.str_secondaryCurvatureFileName     = "";
+    st_env.str_primarySurfaceFileName           = "";
+    st_env.str_secondarySurfaceFileName         = "";
+    st_env.str_primaryCurvatureFileName         = "";
+    st_env.str_secondaryCurvatureFileName       = "";
 
     st_env.b_patchFile_save             = false;
     st_env.b_labelFile_save             = true;
@@ -756,17 +749,18 @@ s_env_defaultsSet(
     st_env.str_labelFileNameOS          = "dijkAuxSurface";
 
     st_env.b_syslogPrepend              = true;
+    st_env.str_stdout                   = "./stdout.log";
     st_env.str_userMsgLog               = "./user_msg.log";
     st_env.str_sysMsgLog                = "localhost:1834";
     st_env.str_resultMsgLog             = "localhost:1835";
     st_env.serverControlPort            = 1701;
     st_env.timeoutSec                   = 60;
 
+    //
+    // LEGACY CODE
     st_env.pSTw                         = new s_weights;
     st_env.pSTDw                        = new s_Dweights;
 
-    //
-    // LEGACY CODE
     s_weights_setAll(*st_env.pSTw, 0.0);
     st_env.pSTw->wc                    	= 1.0;
 
@@ -875,6 +869,8 @@ s_env_optionsFile_write(
         O->pcolprintf("labelFileAuxSurface"," = %s\n",
                         st_env.str_labelFileNameOS.c_str());
         O->pprintf("\n# Messaging channels\n");
+        O->pcolprintf("stdout",              " = %s\n",
+                        st_env.str_stdout.c_str());
         O->pcolprintf("userMessages",        " = %s\n",
                         st_env.str_userMsgLog.c_str());
         O->pcolprintf("sysMessages",         " = %s\n",
@@ -993,6 +989,7 @@ s_env_scan(
   string        str_labelFileName       = "";
   string        str_labelFileNameOS     = "";
   string        str_costFileName        = "";
+  string        str_stdout              = "";
   string        str_userMsgFileName     = "";
   string        str_sysMsgFileName      = "";
   string        str_resultMsgFileName   = "";
@@ -1018,13 +1015,14 @@ s_env_scan(
 
   // These are used to re-read possibly new files if a HUP
   // is sent to the process with changed options file.
-  static string str_surfaceFileNameOld      = "";
-  static string str_auxSurfaceFileNameOld   = "";
-  static string str_curvatureFileNameOld    = "";
-  static string str_secondaryCurvatureFileOld       = "";
-  static string str_userMsgFileNameOld      = "";
-  static string str_sysMsgFileNameOld       = "";
-  static string str_resultMsgFileNameOld    = "";
+  static string str_surfaceFileNameOld          = "";
+  static string str_auxSurfaceFileNameOld       = "";
+  static string str_curvatureFileNameOld        = "";
+  static string str_secondaryCurvatureFileOld   = "";
+  static string str_stdoutOld                   = "";
+  static string str_userMsgFileNameOld          = "";
+  static string str_sysMsgFileNameOld           = "";
+  static string str_resultMsgFileNameOld        = "";
 
   // mpmProg options
   static string str_costCurvFile        = "autodijk.cost.crv";
@@ -1152,6 +1150,12 @@ s_env_scan(
     error_exit("scanning user options",
                "I couldn't find resultMessages.",
                53);
+  if (cso_options.scanFor("stdout", &str_value))
+    str_stdout =  str_value;
+  else
+    error_exit("scanning user options",
+               "I couldn't find stdout.",
+               54);
 
   if (cso_options.scanFor("costCurvFile",       &str_value))
       str_costCurvFile  =  str_value;
@@ -1180,6 +1184,24 @@ s_env_scan(
   st_env.b_syslogPrepend = b_syslogPrepend;
   e_SMessageIO esm_io  = eSM_cpp;
   int pos   = 0;
+
+  if (str_stdout != str_stdoutOld) {
+    if (st_env.pcsm_stdout)
+      delete st_env.pcsm_stdout;
+    pos  = str_userMsgFileName.find_first_of(":");
+    // C-style IO for the internal "printf"ing...
+    esm_io = ((unsigned) pos != (unsigned) string::npos) ? eSS : eSM_c;
+    st_env.pcsm_stdout  = new C_SMessage( "",
+                                           eSM_raw,
+                                           str_stdout,
+                                           esm_io);
+    st_env.pcsm_stdout->str_syslogID_set(G_SELF);
+    st_env.pcsm_stdout->b_syslogPrepend_set(true);
+    st_env.pcsm_stdout->lw_set(st_env.lw);
+    st_env.pcsm_stdout->rw_set(st_env.rw);
+    st_env.pcsm_stdout->b_canPrint_set(true);
+  }
+
   if (str_userMsgFileName != str_userMsgFileNameOld) {
     if (st_env.pcsm_userlog)
       delete st_env.pcsm_userlog;

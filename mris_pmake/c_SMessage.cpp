@@ -15,8 +15,8 @@
  * Original Author: Rudolph Pienaar
  * CVS Revision Info:
  *    $Author: rudolph $
- *    $Date: 2012/01/30 15:00:45 $
- *    $Revision: 1.13 $
+ *    $Date: 2013/01/29 16:57:40 $
+ *    $Revision: 1.14 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -731,7 +731,7 @@ C_SMessage::printf(const char* format, ...) {
         str_buffer      = pch_buffer;
         ret             = fprintf(pFILE_out, "%s", str_buffer.c_str());
     }
-    fflush(stdout);
+    fflush(pFILE_out);
     return ret;
 }
 
@@ -754,7 +754,7 @@ C_SMessage::lprintf(const char* format, ...) {
             str_buffer      = pch_buffer;
         ret = fprintf(pFILE_out, "%-*s", lw, str_buffer.c_str());
     }
-    fflush(stdout);
+    fflush(pFILE_out);
     return ret;
 }
 
@@ -927,6 +927,6 @@ C_SMessage::colprintf(
         } else
             retrw =  fprintf(pFILE_out, "%-*s", rw, pch_buffer);
     }
-    fflush(stdout);
+    fflush(pFILE_out);
     return retlw + retrw;
 }
