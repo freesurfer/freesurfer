@@ -11,9 +11,9 @@
 /*
  * Original Author: Rudolph Pienaar
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2013/01/28 17:04:22 $
- *    $Revision: 1.49 $
+ *    $Author: rudolph $
+ *    $Date: 2013/01/30 18:40:46 $
+ *    $Revision: 1.50 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -63,7 +63,7 @@
 #define  START_i        3
 
 static const char vcid[] =
-  "$Id: mris_calc.c,v 1.49 2013/01/28 17:04:22 greve Exp $";
+  "$Id: mris_calc.c,v 1.50 2013/01/30 18:40:46 rudolph Exp $";
 double fn_sign(float af_A);
 
 // ----------------------------------------------------------------------------
@@ -230,8 +230,8 @@ static float*     G_pf_arrayCurv1Copy     = NULL;
 static int        G_sizeCurv1Copy         = 0;
 static int        G_nfaces                = 0;
 static int        G_valsPerVertex         = 0;
-static int    G_FSFILETYPE1     = -1; // FreeSurfer type designator
-static e_FILETYPE G_eFILETYPE1        = e_Unknown;
+static int        G_FSFILETYPE1           = -1; // FreeSurfer type designator
+static e_FILETYPE G_eFILETYPE1            = e_Unknown;
 
 // Input 2
 static int        Gb_curvFile2            = 0;  //  The second input
@@ -240,8 +240,8 @@ static int        G_sizeCurv2             = 0;
 static float*     G_pf_arrayCurv2         = NULL;
 static float*     G_pf_arrayCurv2Copy     = NULL;
 static int        G_sizeCurv2Copy         = 0;
-static int    G_FSFILETYPE2     = -1; // FreeSurfer type designator
-static e_FILETYPE G_eFILETYPE2        = e_Unknown;
+static int        G_FSFILETYPE2           = -1; // FreeSurfer type designator
+static e_FILETYPE G_eFILETYPE2            = e_Unknown;
 
 // "Helper" pointers
 static MRI*       Gp_MRI            = NULL; // Pointer to most
@@ -252,19 +252,19 @@ static MRI*       Gp_MRI            = NULL; // Pointer to most
 //+ for volume size.
 
 // Operation to perform on input1 and input2
-static char*        G_pch_operator          = NULL;
+static char*            G_pch_operator          = NULL;
 static e_operation      Ge_operation            = e_unknown;
 
 // Output file
-static int          G_sizeCurv3             = 0;
-static char   G_pch_curvFile3[STRBUF];
-static float*       G_pf_arrayCurv3         = NULL;
+static int              G_sizeCurv3             = 0;
+static char             G_pch_curvFile3[STRBUF];
+static float*           G_pf_arrayCurv3         = NULL;
 static float*           G_pf_arrayCurv3Copy     = NULL;
 static int              G_sizeCurv3Copy         = 0;
-static short      Gb_file3        = 0;
+static short            Gb_file3                = 0;
 static short            Gb_canWrite             = 0;
-static int      G_FSFILETYPE3   = -1; // FreeSurfer type designator
-static e_FILETYPE   G_eFILETYPE3    = e_Unknown;
+static int              G_FSFILETYPE3           = -1; // FreeSurfer type designator
+static e_FILETYPE       G_eFILETYPE3            = e_Unknown;
 
 // Label file and data
 static short            Gb_labelMask            = 0;
@@ -446,6 +446,19 @@ double fn_sign(float af_A)
     f_ret = 1.0;
   }
   return f_ret;
+}
+
+double fn_zeroCount(float af_A)
+{
+    static int          count = 0;
+    if(af_A == 0.0)     count++;
+    return count;
+}
+double fn_nonZeroCount(float af_A)
+{
+    static int          count = 0;
+    if(af_A != 0.0)     count++;
+    return count;
 }
 
 double fn_min(float af_A)
@@ -1376,7 +1389,7 @@ main(
   init();
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mris_calc.c,v 1.49 2013/01/28 17:04:22 greve Exp $",
+           "$Id: mris_calc.c,v 1.50 2013/01/30 18:40:46 rudolph Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
   {
@@ -2360,6 +2373,10 @@ CURV_process(void)
     {
       PrintStatToFile(G_pch_curvFile3,Gf_sum);
     }
+    int zeroCount       = CURV_functionRunAC(fn_zeroCount);
+    int nonZeroCount    = CURV_functionRunAC(fn_nonZeroCount);
+    cprintf("ZeroCount",        zeroCount);
+    cprintf("nonZeroCount",     nonZeroCount);
   }
   if(Ge_operation == e_prod || Ge_operation == e_stats)
   {
