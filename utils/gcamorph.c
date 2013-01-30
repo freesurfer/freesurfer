@@ -10,9 +10,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2013/01/18 14:01:59 $
- *    $Revision: 1.280 $
+ *    $Author: ayendiki $
+ *    $Date: 2013/01/30 21:45:04 $
+ *    $Revision: 1.281 $
  *
  * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -812,6 +812,28 @@ GCA_MORPH *GCAMreadAndInvertNonTal(const char *gcamfname)
     printf("Inverting Morph\n");
     // Need template mri
     sprintf(tmpstr, "%s", (gcam->image).fname);
+    if (!fio_FileExistsReadable(tmpstr)) {	// Look in parent directory
+      char *mridir, altname[2000];
+
+      mridir = fio_dirname(gcamdir);
+      sprintf(altname, "%s/mri/norm.mgz", mridir);
+
+      if (fio_FileExistsReadable(altname)) {
+        printf("WARN: cannot acccess %s\n", tmpstr);
+        printf("WARN: using %s\n", altname);
+        strcpy(tmpstr, altname);
+      }
+      else {
+        mridir = fio_dirname(mridir);
+        sprintf(altname, "%s/mri/norm.mgz", mridir);
+
+        if (fio_FileExistsReadable(altname)) {
+          printf("WARN: cannot acccess %s\n", tmpstr);
+          printf("WARN: using %s\n", altname);
+          strcpy(tmpstr, altname);
+        }
+      }
+    }
     mri = MRIreadHeader(tmpstr,MRI_VOLUME_TYPE_UNKNOWN);
     if (mri==NULL)
     {
