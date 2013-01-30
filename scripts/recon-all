@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2013/01/28 18:19:59 $
-#    $Revision: 1.379.2.58 $
+#    $Date: 2013/01/30 21:37:33 $
+#    $Revision: 1.379.2.59 $
 #
 # Copyright © 2011-2013 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -26,7 +26,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.379.2.58 2013/01/28 18:19:59 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.379.2.59 2013/01/30 21:37:33 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -159,6 +159,7 @@ set SmoothCortexOnly = 1; # For -qcache. smooths only within ?h.cortex.label
 
 set UseMincMritotal = 0; # if 1, then use the BIC-MNI mritotal tal reg tools
 set UseYa3tTalAtlas = 0; # if 1, use 3T18yoSchwartz young-adult 3T atlas for tal_avi
+set CustomTalAtlas = ""; # -custom-tal-atlas <name of atlas in average dir>
 set DoMakefile = 0; # if 1, run make -f recon-all.makefile $(MakefileTarget)
 set MakefileTarget = () # argument to recon-all -make
 set DoAsegStatsDiff = 0; # if 1, then run asegstatsdiff
@@ -1546,9 +1547,14 @@ talairach:
       # Avi Snyder's registration tools
       set xopts = `fsr-getxopts talairach_avi $XOptsFile`;
       set cmd = (talairach_avi --i $tal_input --xfm $xfma)
-      if($UseYa3tTalAtlas) then
-        # special atlas composed of young adults scanned at 3T
-        set cmd = ($cmd --atlas 3T18yoSchwartzReactN32_as_orig)
+      if($?CustomTalAtlas && "$CustomTalAtlas" != "") then
+        # use user-specified atlas found in average dir
+        set cmd = ($cmd --atlas "$CustomTalAtlas")
+      else
+        if($UseYa3tTalAtlas) then
+          # special atlas composed of young adults scanned at 3T
+          set cmd = ($cmd --atlas 3T18yoSchwartzReactN32_as_orig)
+        endif
       endif
       set cmd = ($cmd $xopts)
     endif
@@ -4499,6 +4505,10 @@ while( $#argv != 0 )
       breaksw
     case "-schwartzya3t-atlas":
       set UseYa3tTalAtlas = 1;
+      breaksw
+    case "-custom-tal-atlas":
+      if ( $#argv < 1) goto arg1err;
+      set CustomTalAtlas = $argv[1]; shift;
       breaksw
 
     case "-deface":
