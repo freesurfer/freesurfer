@@ -16,8 +16,8 @@
  * Original Author: Rudolph Pienaar
  * CVS Revision Info:
  *    $Author: rudolph $
- *    $Date: 2012/07/03 21:50:44 $
- *    $Revision: 1.6 $
+ *    $Date: 2013/01/30 19:52:03 $
+ *    $Revision: 1.7 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -800,8 +800,6 @@ C_mpmOverlay_euclidean::costEdge_calc(int i, int j) {
     st_V3D   V3_c; // current point
     st_V3D   V3_n; // next points
 
-
-    f_distance  = pVrtx_i->dist[j];
     // Cartesian points "current" and "next"
     V3_c.f_x    = pVrtx_i->x;
     V3_n.f_x    = pVrtx_j->x;
