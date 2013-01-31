@@ -1,5 +1,5 @@
 # Original author - Krish Subramaniam
-# $Id: fsutils.py,v 1.4.2.5 2013/01/15 17:00:45 greve Exp $
+# $Id: fsutils.py,v 1.4.2.6 2013/01/31 19:23:49 greve Exp $
 import os
 import logging
 import sys
@@ -192,7 +192,7 @@ Derived from StatsParser
 class AparcStatsParser(StatsParser):
 
     # this is a map of measure requested and its corresponding column# in ?h.aparc*.stats
-    measure_column_map = {'area':2, 'volume':3, 'thickness':4, 'thicknessstd':5, 'meancurv':6 }
+    measure_column_map = {'area':2, 'volume':3, 'thickness':4, 'thicknessstd':5, 'meancurv':6, 'gauscurv':7, 'foldind':8, 'curvind':9 }
     parc_measure_map = StableDict()
 
     # we take in the measure we need..

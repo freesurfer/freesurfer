@@ -9,7 +9,7 @@ from fsutils import AparcStatsParser, BadFileError, aparclogger
 
 # Original Version - Douglas Greve, MGH
 # Rewrite - Krish Subramaniam, MGH
-# $Id: aparcstats2table,v 1.20.2.2 2012/12/03 18:12:50 nicks Exp $
+# $Id: aparcstats2table,v 1.20.2.3 2013/01/31 19:23:49 greve Exp $
 
 # globals
 l = aparclogger
@@ -88,7 +88,7 @@ def options_parse():
     Command Line Options Parser for aparcstats2table
     initiate the option parser and return the parsed object
     """
-    parser = optparse.OptionParser(version='$Id: aparcstats2table,v 1.20.2.2 2012/12/03 18:12:50 nicks Exp $', usage=HELPTEXT)
+    parser = optparse.OptionParser(version='$Id: aparcstats2table,v 1.20.2.3 2013/01/31 19:23:49 greve Exp $', usage=HELPTEXT)
     
     # help text
     h_sub = '(REQUIRED) subject1 <subject2 subject3..>'
@@ -98,7 +98,7 @@ def options_parse():
     h_qdeclong = 'name of the longitudinal qdec table which has the column of tp ids (fsid) and subject templates (fsid-base)'
     h_hemi = '(REQUIRED) lh or rh'
     h_parc = 'parcellation.. default is aparc ( alt aparc.a2009s)'
-    h_meas = 'measure: default is area ( alt volume, thickness, thicknessstd, meancurv)'
+    h_meas = 'measure: default is area ( alt volume, thickness, thicknessstd, meancurv, gauscurv, foldind, curvind)'
     h_skip = 'if a subject does not have input, skip it'
     h_t = '(REQUIRED) output table file'
     h_deli = 'delimiter between measures in the table. default is tab (alt comma, space, semicolon )' 
@@ -124,7 +124,7 @@ def options_parse():
     parser.add_option('-p', '--parc', dest='parc',
                       default='aparc', help=h_parc)
     parser.add_option('-m', '--measure', dest='meas',
-                      choices=('area','volume','thickness','thicknessstd','meancurv'),
+                      choices=('area','volume','thickness','thicknessstd','meancurv','gauscurv','foldind','curvind'),
                       default='area', help=h_meas)
     parser.add_option('-d', '--delimiter', dest='delimiter',
                       choices=('comma','tab','space','semicolon'),
