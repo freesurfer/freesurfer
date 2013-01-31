@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2013/01/30 21:50:40 $
-#    $Revision: 1.379.2.60 $
+#    $Date: 2013/01/31 16:58:08 $
+#    $Revision: 1.379.2.61 $
 #
 # Copyright © 2011-2013 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -26,7 +26,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.379.2.60 2013/01/30 21:50:40 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.379.2.61 2013/01/31 16:58:08 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -1646,7 +1646,8 @@ if($DoTalCheck) then
         goto error_exit;
       endif
       $fs_time $cmd2 >& $qalog2
-      if($status) then
+      set tal_QC_AZS_status = $status
+      if($tal_QC_AZS_status) then
         echo "INFO: ${cmd2} failed!  See logfile ${qalog2}" |& tee -a $LF
         echo "      skipping tal_QC_AZS test" |& tee -a $LF
         #NJS: skip instead of exit because tal_QC_AZS doesnt work on centos5.4
@@ -1661,7 +1662,7 @@ if($DoTalCheck) then
       echo "z-score: ${zscore}" |& tee -a $LF
       set zscoreThreshold=(-9) # conservative value, but catches M.Harms subjs.
       # second set:
-      if ( -e $qalog2 ) then
+      if ( ! $tal_QC_AZS_status ) then
         set talAviQA2=`grep "atlas_transform_error" ${qalog2} | awk '{print $6}'`
         echo "TalAviQA2: ${talAviQA2}" |& tee -a $LF
         set atlaserrhi=`echo "${talAviQA2} > 24" | bc`
