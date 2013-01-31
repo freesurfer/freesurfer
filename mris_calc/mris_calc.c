@@ -12,8 +12,8 @@
  * Original Author: Rudolph Pienaar
  * CVS Revision Info:
  *    $Author: rudolph $
- *    $Date: 2013/01/30 18:40:46 $
- *    $Revision: 1.50 $
+ *    $Date: 2013/01/31 15:17:09 $
+ *    $Revision: 1.51 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -63,7 +63,7 @@
 #define  START_i        3
 
 static const char vcid[] =
-  "$Id: mris_calc.c,v 1.50 2013/01/30 18:40:46 rudolph Exp $";
+  "$Id: mris_calc.c,v 1.51 2013/01/31 15:17:09 rudolph Exp $";
 double fn_sign(float af_A);
 
 // ----------------------------------------------------------------------------
@@ -454,10 +454,16 @@ double fn_zeroCount(float af_A)
     if(af_A == 0.0)     count++;
     return count;
 }
-double fn_nonZeroCount(float af_A)
+double fn_negCount(float af_A)
 {
     static int          count = 0;
-    if(af_A != 0.0)     count++;
+    if(af_A < 0.0)      count++;
+    return count;
+}
+double fn_posCount(float af_A)
+{
+    static int          count = 0;
+    if(af_A > 0.0)      count++;
     return count;
 }
 
@@ -1389,7 +1395,7 @@ main(
   init();
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mris_calc.c,v 1.50 2013/01/30 18:40:46 rudolph Exp $",
+           "$Id: mris_calc.c,v 1.51 2013/01/31 15:17:09 rudolph Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
   {
@@ -2373,10 +2379,12 @@ CURV_process(void)
     {
       PrintStatToFile(G_pch_curvFile3,Gf_sum);
     }
+    int negCount        = CURV_functionRunAC(fn_negCount);
     int zeroCount       = CURV_functionRunAC(fn_zeroCount);
-    int nonZeroCount    = CURV_functionRunAC(fn_nonZeroCount);
-    cprintf("ZeroCount",        zeroCount);
-    cprintf("nonZeroCount",     nonZeroCount);
+    int posCount        = CURV_functionRunAC(fn_posCount);
+    cprintf("negCount",         negCount);
+    cprintf("zeroCount",        zeroCount);
+    cprintf("posCount",         posCount);
   }
   if(Ge_operation == e_prod || Ge_operation == e_stats)
   {
