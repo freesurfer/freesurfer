@@ -13,8 +13,8 @@
  * Original Author: Rudolph Pienaar
  * CVS Revision Info:
  *    $Author: rudolph $
- *    $Date: 2013/02/04 14:18:36 $
- *    $Revision: 1.29 $
+ *    $Date: 2013/02/04 14:38:14 $
+ *    $Revision: 1.30 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -495,11 +495,11 @@ C_mpmProg_autodijk::C_mpmProg_autodijk(
     s_env_activeSurfaceSetIndex(mps_env, 0);
     mstr_costFileName   = mps_env->str_costCurvFile;
     mstr_costFullPath   = mps_env->str_workingDir + "/" + mstr_costFileName;
-    mvertex_end         = mps_env->pMS_primary->nvertices;
-    mvertex_total       = mvertex_end;
+    mvertex_end         = mps_env->pMS_primary->nvertices - 1;
+    mvertex_total       = mps_env->pMS_primary->nvertices;
     mpf_cost            = new float[mvertex_total];
     mpf_persistent      = new float[mvertex_total];
-    for(int i=0; i<mvertex_end; i++) {
+    for(int i=0; i<mvertex_total; i++) {
         mpf_cost[i]             = 0.0;
         mpf_persistent[i]       = 0.0;
     }
@@ -706,7 +706,7 @@ C_mpmProg_autodijk::run() {
       // single sweep of the dijkstra from polar->polar will
       // have the same result in seconds... the exhaustive search
       // can take multiple hours.
-      for(int v = mvertex_start; v < mvertex_end; v+=mvertex_step) {
+      for(int v = mvertex_start; v <= mvertex_end; v+=mvertex_step) {
           f_cost        = cost_compute(mvertex_polar, v);
           mpf_cost[v]   = f_cost;
       }
@@ -873,7 +873,7 @@ int C_mpmProg_autodijk_fast::run()
     cout << "Done." << endl;
 
     // Save back the resulting costs
-    for(int v = mvertex_start; v < mvertex_end; v+=mvertex_step)
+    for(int v = mvertex_start; v <= mvertex_end; v+=mvertex_step)
     {
         mpf_cost[v] = results[v];
     }
