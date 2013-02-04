@@ -13,8 +13,8 @@
  * Original Author: Rudolph Pienaar
  * CVS Revision Info:
  *    $Author: rudolph $
- *    $Date: 2013/01/25 21:40:17 $
- *    $Revision: 1.28 $
+ *    $Date: 2013/02/04 14:18:36 $
+ *    $Revision: 1.29 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -715,7 +715,7 @@ C_mpmProg_autodijk::run() {
         mps_env->pcsm_stdout->colprintf(
                               "Progress iteration interval",
                               "[ %d ]\n", mprogressIter);
-        for(int v = mvertex_start; v < mvertex_end; v+=mvertex_step) {
+        for(int v = mvertex_start; v <= mvertex_end; v+=mvertex_step) {
             // First we need to find the anti-pole for current 'v'
             // by setting the env overlay to the distance object, 
             // performing a single sweep from 'v' to 'v' and then

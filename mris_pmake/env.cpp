@@ -12,8 +12,8 @@
  * Original Author: Rudolph Pienaar / Christian Haselgrove
  * CVS Revision Info:
  *    $Author: rudolph $
- *    $Date: 2013/01/29 16:57:40 $
- *    $Revision: 1.37 $
+ *    $Date: 2013/02/04 14:18:36 $
+ *    $Revision: 1.38 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -589,6 +589,7 @@ s_env_HUP(
     // costs
     s_env_mpmProgSetIndex(&st_env, st_env.empmProg_current);
 
+#if 0
     // start legacy
     // WARNING!!
     s_env_costFctSetIndex (&st_env, st_env.empmOverlay_current);
@@ -601,6 +602,7 @@ s_env_HUP(
     // LEGACY DEBUGGING!!
     // st_env.b_mpmOverlayUse		= false;
     // end legacy
+#endif
     
     if(st_env.port != oldport) {
 	if(*pCSSocketReceive) {
@@ -769,7 +771,8 @@ s_env_defaultsSet(
     // LEGACY CODE
     //
 
-    st_env.str_costCurvFile             = st_env.str_hemi + ".autodijk.crv";
+    st_env.str_costCurvFile             = st_env.str_hemi+st_env.str_surface+\
+                                            ".autodijk.crv";
     st_env.b_exitOnDone                 = true;
     st_env.b_costPathSave               = false;
 
@@ -835,11 +838,13 @@ s_env_optionsFile_write(
         if(st_env.b_secondaryCurvature)
             O->pcolprintf("secondaryCurvature",   " = %s\n",
                         st_env.str_secondaryCurvatureFileName.c_str());
+#if 0
         O->pprintf("\n# Start and End vertices\n");
         O->pcolprintf("startVertex",        " = %d\n",
                         st_env.startVertex);
         O->pcolprintf("endVertex",          " = %d\n",
                         st_env.endVertex);
+#endif
         O->pprintf("\n# Control flags and settings\n");
         O->pcolprintf("controlPort",         " = %d\n",
                         st_env.serverControlPort);
@@ -877,6 +882,7 @@ s_env_optionsFile_write(
                         st_env.str_sysMsgLog.c_str());
         O->pcolprintf("resultMessages",      " = %s\n",
                         st_env.str_resultMsgLog.c_str());
+#if 0
         O->pprintf("\n# Weights\n");
         O->pcolprintf("wd",                 " = %f\n",
                         st_env.pSTw->wd);
@@ -911,6 +917,7 @@ s_env_optionsFile_write(
                         st_env.pSTDw->Dwdch);
         O->pcolprintf("Dwdir",              " = %f\n",
                         st_env.pSTDw->Dwdir);
+#endif
         O->pprintf("\n# mpmProg\n");
         O->pcolprintf("mpmProgID",          " = %d\n",
                         st_env.empmProg_current);
@@ -1027,7 +1034,8 @@ s_env_scan(
   // mpmProg options
   static string str_costCurvFile        = "autodijk.cost.crv";
   C_scanopt	cso_options		= *st_env.pcso_options;
-  
+
+#if 0
   if (cso_options.scanFor("startVertex", &str_value))
     startVertex  = atoi(str_value.c_str());
   else
@@ -1040,6 +1048,7 @@ s_env_scan(
     error_exit("scanning user options",
                "I couldn't find a endVertex index.",
                11);
+#endif
 
   if (cso_options.scanFor("surfaceFile", &str_value))
     str_surfaceFileName =  str_value;
@@ -1729,7 +1738,7 @@ s_env_mpmProgSetIndex(
                 apst_env->str_costCurvFile =
                         apst_env->str_hemi + "."                +
                         apst_env->str_surface + "."             +
-                        "autodijk."                             +
+                        "autodijk-"                             +
                         str_costCurvStem                        + 
                         ".crv";
                 pC_autodijk->costFile_set(apst_env->str_costCurvFile);
