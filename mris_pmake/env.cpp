@@ -12,8 +12,8 @@
  * Original Author: Rudolph Pienaar / Christian Haselgrove
  * CVS Revision Info:
  *    $Author: rudolph $
- *    $Date: 2013/02/04 14:18:36 $
- *    $Revision: 1.38 $
+ *    $Date: 2013/02/04 19:23:00 $
+ *    $Revision: 1.39 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -567,8 +567,10 @@ s_env_HUP(
     string		str_asynchComms         = "RUNPROG";
     string		str_optionsFQName;
     struct stat		st_fileInfo;
+#if 0
     s_weights           st_costWeight;
     s_Dweights		st_DcostWeight;
+#endif
     static int		oldport;
 
     str_optionsFQName = 	st_env.str_workingDir + 
