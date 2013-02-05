@@ -1099,7 +1099,7 @@
       <item row="5" column="1">
        <widget class="QCheckBox" name="checkBoxUpsampleContour">
         <property name="text">
-         <string>Up sample volume</string>
+         <string>Upsample volume</string>
         </property>
        </widget>
       </item>
