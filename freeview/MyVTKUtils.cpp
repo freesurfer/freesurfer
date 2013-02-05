@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2012/10/04 18:06:50 $
- *    $Revision: 1.7 $
+ *    $Date: 2013/02/05 20:51:41 $
+ *    $Revision: 1.8 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -81,6 +81,7 @@
 #include <vtkImageClip.h>
 #include <vtkDijkstraImageGeodesicPath.h>
 #include <vtkCleanPolyData.h>
+#include <vtkImageResample.h>
 #include <QFileInfo>
 
 bool MyVTKUtils::VTKScreenCapture( vtkRenderWindow* renderWnd,
@@ -208,7 +209,7 @@ void MyVTKUtils::WorldToViewport( vtkRenderer* renderer,
 // test multiple contours
 bool MyVTKUtils::BuildLabelContourActor( vtkImageData* data_in,
                                     double dTh1, double dTh2,
-                                    vtkActor* actor_out, int nSmoothIterations, int* ext, bool bAllRegions )
+                                    vtkActor* actor_out, int nSmoothIterations, int* ext, bool bAllRegions, bool bResample )
 {
   double nValue = 1;
   int nSwell = 2;
@@ -217,7 +218,17 @@ bool MyVTKUtils::BuildLabelContourActor( vtkImageData* data_in,
   for (int i = ((int)dTh1); i <= dTh2; i++)
   {
     vtkSmartPointer<vtkImageThreshold> threshold = vtkSmartPointer<vtkImageThreshold>::New();
-    threshold->SetInput( data_in );
+    if (bResample)
+    {
+      vtkSmartPointer<vtkImageResample> resampler = vtkSmartPointer<vtkImageResample>::New();
+      resampler->SetAxisMagnificationFactor(0, 2.0);
+      resampler->SetAxisMagnificationFactor(1, 2.0);
+      resampler->SetAxisMagnificationFactor(2, 2.0);
+      resampler->SetInput(data_in);
+      threshold->SetInputConnection(resampler->GetOutputPort());
+    }
+    else
+      threshold->SetInput( data_in );
     threshold->ThresholdBetween( i-0.5, i+0.5 );
     threshold->ReplaceOutOn();
     threshold->SetOutValue( 0 );
@@ -273,22 +284,39 @@ bool MyVTKUtils::BuildLabelContourActor( vtkImageData* data_in,
 
 bool MyVTKUtils::BuildContourActor( vtkImageData* data_in,
                                     double dTh1, double dTh2,
-                                    vtkActor* actor_out, int nSmoothIterations, int* ext, bool bAllRegions )
+                                    vtkActor* actor_out, int nSmoothIterations, int* ext, bool bAllRegions,
+                                    bool bUpsample)
 {
   double nValue = 1;
   int nSwell = 2;
   vtkSmartPointer<vtkImageThreshold> threshold = vtkSmartPointer<vtkImageThreshold>::New();
 
+  vtkSmartPointer<vtkImageResample> resampler = vtkSmartPointer<vtkImageResample>::New();
+  resampler->SetAxisMagnificationFactor(0, 2.0);
+  resampler->SetAxisMagnificationFactor(1, 2.0);
+  resampler->SetAxisMagnificationFactor(2, 2.0);
   if ( ext )
   {
     vtkSmartPointer<vtkImageClip> clipper = vtkSmartPointer<vtkImageClip>::New();
-    clipper->SetInput( data_in );
+    if (bUpsample)
+    {
+      resampler->SetInput(data_in);
+      clipper->SetInputConnection(resampler->GetOutputPort());
+    }
+    else
+      clipper->SetInput( data_in );
     clipper->SetOutputWholeExtent( ext );
     threshold->SetInputConnection( clipper->GetOutputPort() );
   }
   else
   {
-    threshold->SetInput( data_in );
+    if (bUpsample)
+    {
+      resampler->SetInput(data_in);
+      threshold->SetInputConnection(resampler->GetOutputPort());
+    }
+    else
+      threshold->SetInput( data_in );
   }
   threshold->ThresholdByLower( dTh2 );
   threshold->ReplaceOutOn();

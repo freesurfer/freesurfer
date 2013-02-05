@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2013/01/14 17:36:55 $
- *    $Revision: 1.10 $
+ *    $Date: 2013/02/05 20:51:41 $
+ *    $Revision: 1.11 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -28,7 +28,7 @@
 
 #include <QObject>
 #include <QColor>
-#include "vtkSmartPointer.h"
+#include <vtkSmartPointer.h>
 
 class RenderView2D;
 class vtkRenderer;

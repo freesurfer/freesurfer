@@ -28,7 +28,7 @@
      <x>0</x>
      <y>-196</y>
      <width>308</width>
-     <height>1695</height>
+     <height>1723</height>
     </rect>
    </property>
    <layout class="QVBoxLayout" name="verticalLayout">
@@ -859,7 +859,7 @@
     </item>
     <item>
      <layout class="QGridLayout" name="gridLayoutContour" columnstretch="0,0">
-      <item row="1" column="0">
+      <item row="2" column="0">
        <widget class="QLabel" name="labelContourThresholdLow">
         <property name="text">
          <string>Low threshold</string>
@@ -869,14 +869,14 @@
         </property>
        </widget>
       </item>
-      <item row="4" column="1">
+      <item row="6" column="1">
        <widget class="QCheckBox" name="checkBoxContourExtractAll">
         <property name="text">
          <string>Extract all regions</string>
         </property>
        </widget>
       </item>
-      <item row="6" column="0">
+      <item row="8" column="0">
        <widget class="QLabel" name="labelContourColor">
         <property name="text">
          <string>Surface color</string>
@@ -886,17 +886,17 @@
         </property>
        </widget>
       </item>
-      <item row="6" column="1">
+      <item row="8" column="1">
        <widget class="QtColorPicker" name="colorPickerContour" native="true"/>
       </item>
-      <item row="7" column="1">
+      <item row="9" column="1">
        <widget class="QCheckBox" name="checkBoxUseColorMap">
         <property name="text">
          <string>Use color map</string>
         </property>
        </widget>
       </item>
-      <item row="2" column="0">
+      <item row="3" column="0">
        <widget class="QLabel" name="labelContourThresholdHigh">
         <property name="text">
          <string>High threshold</string>
@@ -906,7 +906,7 @@
         </property>
        </widget>
       </item>
-      <item row="2" column="1">
+      <item row="3" column="1">
        <layout class="QHBoxLayout" name="horizontalLayout_13">
         <item>
          <widget class="QSlider" name="sliderContourThresholdHigh">
@@ -936,7 +936,7 @@
         </item>
        </layout>
       </item>
-      <item row="5" column="0">
+      <item row="7" column="0">
        <widget class="QLabel" name="labelSmoothIteration">
         <property name="text">
          <string>Smooth iterations</string>
@@ -946,7 +946,7 @@
         </property>
        </widget>
       </item>
-      <item row="5" column="1">
+      <item row="7" column="1">
        <layout class="QHBoxLayout" name="horizontalLayout_15">
         <item>
          <widget class="QSlider" name="sliderContourSmoothIteration">
@@ -976,7 +976,7 @@
         </item>
        </layout>
       </item>
-      <item row="8" column="1">
+      <item row="10" column="1">
        <layout class="QHBoxLayout" name="horizontalLayout_16">
         <item>
          <widget class="QPushButton" name="pushButtonContourSave">
@@ -1000,7 +1000,7 @@
         </item>
        </layout>
       </item>
-      <item row="1" column="1">
+      <item row="2" column="1">
        <layout class="QHBoxLayout" name="horizontalLayout_12">
         <item>
          <widget class="QSlider" name="sliderContourThresholdLow">
@@ -1030,14 +1030,14 @@
         </item>
        </layout>
       </item>
-      <item row="0" column="1">
+      <item row="1" column="1">
        <widget class="QCheckBox" name="checkBoxShowLabelContour">
         <property name="text">
-         <string>Label Volume</string>
+         <string>Label volume</string>
         </property>
        </widget>
       </item>
-      <item row="3" column="0">
+      <item row="4" column="0">
        <widget class="QLabel" name="labelContourLabelRange">
         <property name="text">
          <string>Range</string>
@@ -1047,7 +1047,7 @@
         </property>
        </widget>
       </item>
-      <item row="3" column="1">
+      <item row="4" column="1">
        <layout class="QHBoxLayout" name="horizontalLayout_3">
         <item>
          <widget class="QLineEdit" name="lineEditContourLabelRangeLow">
@@ -1095,6 +1095,13 @@
          </spacer>
         </item>
        </layout>
+      </item>
+      <item row="5" column="1">
+       <widget class="QCheckBox" name="checkBoxUpsampleContour">
+        <property name="text">
+         <string>Up sample volume</string>
+        </property>
+       </widget>
       </item>
      </layout>
     </item>

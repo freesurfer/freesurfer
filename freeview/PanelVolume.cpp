@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2012/10/04 18:06:50 $
- *    $Revision: 1.81 $
+ *    $Date: 2013/02/05 20:51:41 $
+ *    $Revision: 1.82 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -129,7 +129,8 @@ PanelVolume::PanelVolume(QWidget *parent) :
                       << ui->labelContourLabelRange
                       << ui->lineEditContourLabelRangeLow
                       << ui->lineEditContourLabelRangeHigh
-                      << ui->checkBoxShowLabelContour;
+                      << ui->checkBoxShowLabelContour
+                      << ui->checkBoxUpsampleContour;
 
   m_widgetlistContourNormal << ui->sliderContourThresholdLow
       << ui->sliderContourThresholdHigh
@@ -234,6 +235,7 @@ void PanelVolume::ConnectLayer( Layer* layer_in )
   connect( ui->checkBoxUseColorMap, SIGNAL(toggled(bool)), p, SLOT(SetContourUseImageColorMap(bool)) );
   connect( ui->checkBoxShowInfo, SIGNAL(toggled(bool)), p, SLOT(SetShowInfo(bool)) );
   connect( ui->colorPickerContour, SIGNAL(colorChanged(QColor)), p, SLOT(SetContourColor(QColor)));
+  connect( ui->checkBoxUpsampleContour, SIGNAL(toggled(bool)), p, SLOT(SetContourUpsample(bool)));
   connect( ui->checkBoxRememberFrame, SIGNAL(toggled(bool)), p, SLOT(SetRememberFrameSettings(bool)));
 }
 
@@ -404,6 +406,7 @@ void PanelVolume::DoUpdateWidgets()
     ChangeLineEditNumber( ui->lineEditContourThresholdLow, layer->GetProperty()->GetContourMinThreshold() );
     ChangeLineEditNumber( ui->lineEditContourThresholdHigh, layer->GetProperty()->GetContourMaxThreshold() );
     ui->checkBoxUseColorMap->setChecked( layer->GetProperty()->GetContourUseImageColorMap() );
+    ui->checkBoxUpsampleContour->setChecked( layer->GetProperty()->GetContourUpsample());
     ui->checkBoxContourExtractAll->setChecked( layer->GetProperty()->GetContourExtractAllRegions() );
     ui->sliderContourSmoothIteration->setValue( layer->GetProperty()->GetContourSmoothIterations() );
     ChangeLineEditNumber( ui->lineEditContourSmoothIteration, layer->GetProperty()->GetContourSmoothIterations() );
