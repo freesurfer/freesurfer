@@ -160,62 +160,27 @@ vector<int> CurveFill(const vector<int> &InPoints) {
 //
 Spline::Spline(const char *ControlPointFile, const char *MaskFile) {
   ReadControlPoints(ControlPointFile);
+  mMask = 0;
+  mVolume = 0;
   ReadMask(MaskFile);
-  mVolume = MRIclone(mMask, NULL);
-  mAllPoints.clear();
-  mArcLength.clear();
-  mDerivative1.clear();
-  mDerivative2.clear();
-  mFiniteDifference1.clear();
-  mFiniteDifference2.clear();
-  mTangent.clear();
-  mNormal.clear();
-  mCurvature.clear();
 }
 
 Spline::Spline(const vector<int> &ControlPoints, MRI *Mask) {
   SetControlPoints(ControlPoints);
   mMask = MRIcopy(Mask, NULL);
   mVolume = MRIclone(mMask, NULL);
-  mAllPoints.clear();
-  mArcLength.clear();
-  mDerivative1.clear();
-  mDerivative2.clear();
-  mFiniteDifference1.clear();
-  mFiniteDifference2.clear();
-  mTangent.clear();
-  mNormal.clear();
-  mCurvature.clear();
 }
 
 Spline::Spline(const int NumControl, MRI *Mask) : mNumControl(NumControl) {
   mMask = MRIcopy(Mask, NULL);
   mVolume = MRIclone(mMask, NULL);
-  mControlPoints.clear();
-  mAllPoints.clear();
-  mArcLength.clear();
-  mDerivative1.clear();
-  mDerivative2.clear();
-  mFiniteDifference1.clear();
-  mFiniteDifference2.clear();
-  mTangent.clear();
-  mNormal.clear();
-  mCurvature.clear();
 }
 
+Spline::Spline() : mNumControl(0), mMask(0), mVolume(0) { }
+
 Spline::~Spline() {
-  mControlPoints.clear();
-  mAllPoints.clear();
-  mArcLength.clear();
-  mDerivative1.clear();
-  mDerivative2.clear();
-  mFiniteDifference1.clear();
-  mFiniteDifference2.clear();
-  mTangent.clear();
-  mNormal.clear();
-  mCurvature.clear();
-  MRIfree(&mMask);
-  MRIfree(&mVolume);
+  if (mMask)   MRIfree(&mMask);
+  if (mVolume) MRIfree(&mVolume);
 }
 
 //
@@ -551,6 +516,27 @@ bool Spline::FitControlPoints(const vector<int> &InputPoints) {
 }
 
 //
+// Find which spline segment a point belongs to
+//
+unsigned int Spline::PointToSegment(unsigned int PointIndex) {
+  unsigned int iseg = 0;
+
+  if (PointIndex > mArcLength.size()-1) {
+    cout << "ERROR: Specified point index (" << PointIndex
+         << ") is outside acceptable range (0-" << mArcLength.size()-1
+         << ")" << endl;
+    exit(1);
+  }
+
+  for (vector<float>::const_iterator iarc = mArcLength.begin() + PointIndex;
+                                     iarc > mArcLength.begin(); iarc--)
+    if (*iarc < *(iarc-1))
+      iseg++;
+
+  return iseg;
+}
+
+//
 // Compute tangent vectors along spline (either from analytical derivatives
 // or from finite difference approximation)
 //
@@ -752,8 +738,12 @@ void Spline::ReadControlPoints(const char *ControlPointFile) {
 // Read mask volume from file
 //
 void Spline::ReadMask(const char *MaskFile) {
+  if (mMask)   MRIfree(&mMask);
+  if (mVolume) MRIfree(&mVolume);
+
   cout << "Loading spline mask from " << MaskFile << endl;
   mMask = MRIread(MaskFile);
+  mVolume = MRIclone(mMask, NULL);
 }
 
 //
@@ -764,6 +754,17 @@ void Spline::SetControlPoints(const std::vector<int> &ControlPoints) {
   copy(ControlPoints.begin(), ControlPoints.end(), mControlPoints.begin());
 
   mNumControl = mControlPoints.size()/3;
+}
+
+//
+// Set mask volume
+//
+void Spline::SetMask(MRI *Mask) {
+  if (mMask)   MRIfree(&mMask);
+  if (mVolume) MRIfree(&mVolume);
+
+  mMask = MRIcopy(Mask, NULL);
+  mVolume = MRIclone(mMask, NULL);
 }
 
 //
