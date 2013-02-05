@@ -8,8 +8,8 @@
  * Original Author: Anastasia Yendiki
  * CVS Revision Info:
  *    $Author: ayendiki $
- *    $Date: 2012/11/03 21:06:10 $
- *    $Revision: 1.8 $
+ *    $Date: 2013/02/05 05:09:26 $
+ *    $Revision: 1.9 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -22,6 +22,8 @@
  * Reporting: freesurfer@nmr.mgh.harvard.edu
  *
  */
+
+#include "blood.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -50,8 +52,6 @@ double round(double x);
 #include "cmdargs.h"
 #include "timer.h"
 
-#include "blood.h"
-
 using namespace std;
 
 static int  parse_commandline(int argc, char **argv);
@@ -73,9 +73,11 @@ bool useTrunc = false, excludeStr = false;
 vector<int> nControl;
 vector<float> trainMaskLabel;
 vector<char *> outBase, trainTrkList, trainRoi1List, trainRoi2List;
-char *outDir = NULL, *trainListFile = NULL,
-     *trainAsegFile = NULL, *trainMaskFile = NULL,
-     *testMaskFile = NULL, *testFaFile = NULL;
+char *outDir = NULL, *outTestDir = NULL,
+     *trainListFile = NULL, *trainAsegFile = NULL, *trainMaskFile = NULL,
+     *testAffineXfmFile = NULL, *testNonlinXfmFile = NULL,
+     *testNonlinRefFile = NULL, *testBaseMaskFile = NULL;
+vector<char *> testMaskList, testFaList, testBaseXfmList;
 
 struct utsname uts;
 char *cmdline, cwd[2000];
@@ -122,7 +124,10 @@ int main(int argc, char **argv) {
                 trainAsegFile, trainMaskFile,
                 trainMaskLabel.size() ? trainMaskLabel[0] : 0,
                 excludeStr ? excfile : 0,
-                testMaskFile, testFaFile, useTrunc, nControl,
+                testMaskList, testFaList,
+                testAffineXfmFile, testNonlinXfmFile, testNonlinRefFile,
+                testBaseXfmList, testBaseMaskFile,
+                useTrunc, nControl,
                 debug);
 
   for (unsigned int itrk = 0; itrk < trainTrkList.size(); itrk++) {
@@ -152,7 +157,15 @@ int main(int argc, char **argv) {
     else
       strcpy(fbase, outBase[itrk]);
 
-    myblood.WriteOutputs(fbase);
+    if (outTestDir) {
+      char ftbase[PATH_MAX];
+
+      sprintf(ftbase, "%s/%s", outTestDir, outBase[itrk]);
+
+      myblood.WriteOutputs(fbase, ftbase);
+    }
+    else
+      myblood.WriteOutputs(fbase);
 
     cputime = TimerStop(&cputimer);
     cout << "Done in " << cputime/1000.0 << " sec." << endl;
@@ -190,9 +203,14 @@ static int parse_commandline(int argc, char **argv) {
       outDir = fio_fullpath(pargv[0]);
       nargsused = 1;
     }
+    else if (!strcmp(option, "--cptdir")) {
+      if (nargc < 1) CMDargNErr(option,1);
+      outTestDir = fio_fullpath(pargv[0]);
+      nargsused = 1;
+    }
     else if (!strcmp(option, "--out")) {
       if (nargc < 1) CMDargNErr(option,1);
-      while (strncmp(pargv[nargsused], "--", 2)) {
+      while (nargsused < nargc && strncmp(pargv[nargsused], "--", 2)) {
         outBase.push_back(pargv[nargsused]);
         nargsused++;
       }
@@ -204,14 +222,14 @@ static int parse_commandline(int argc, char **argv) {
     }
     else if (!strcmp(option, "--trk")) {
       if (nargc < 1) CMDargNErr(option,1);
-      while (strncmp(pargv[nargsused], "--", 2)) {
+      while (nargsused < nargc && strncmp(pargv[nargsused], "--", 2)) {
         trainTrkList.push_back(pargv[nargsused]);
         nargsused++;
       }
     }
     else if (!strcmp(option, "--rois")) {
       if (nargc < 2) CMDargNErr(option,1);
-      while (strncmp(pargv[nargsused], "--", 2)) {
+      while (nargsused < nargc && strncmp(pargv[nargsused], "--", 2)) {
         trainRoi1List.push_back(pargv[nargsused]);
         nargsused++;
         trainRoi2List.push_back(pargv[nargsused]);
@@ -231,7 +249,7 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcmp(option, "--lmask")) {
       float labid;
       if (nargc < 1) CMDargNErr(option,1);
-      while (strncmp(pargv[nargsused], "--", 2)) {
+      while (nargsused < nargc && strncmp(pargv[nargsused], "--", 2)) {
         sscanf(pargv[nargsused], "%f", &labid);
         trainMaskLabel.push_back(labid);
         nargsused++;
@@ -239,18 +257,49 @@ static int parse_commandline(int argc, char **argv) {
     }
     else if (!strcmp(option, "--bmask")) {
       if (nargc < 1) CMDargNErr(option,1);
-      testMaskFile = fio_fullpath(pargv[0]);
-      nargsused = 1;
+      while (nargsused < nargc && strncmp(pargv[nargsused], "--", 2)) {
+        testMaskList.push_back(fio_fullpath(pargv[nargsused]));
+        nargsused++;
+      }
     }
     else if (!strcmp(option, "--fa")) {
       if (nargc < 1) CMDargNErr(option,1);
-      testFaFile = fio_fullpath(pargv[0]);
+      while (nargsused < nargc && strncmp(pargv[nargsused], "--", 2)) {
+        testFaList.push_back(fio_fullpath(pargv[nargsused]));
+        nargsused++;
+      }
+    }
+    else if (!strcmp(option, "--reg")) {
+      if (nargc < 1) CMDargNErr(option,1);
+      testAffineXfmFile = fio_fullpath(pargv[nargsused]);
+      nargsused = 1;
+    }
+    else if (!strcmp(option, "--regnl")) {
+      if (nargc < 1) CMDargNErr(option,1);
+      testNonlinXfmFile = fio_fullpath(pargv[nargsused]);
+      nargsused = 1;
+    }
+    else if (!strcmp(option, "--refnl")) {
+      if (nargc < 1) CMDargNErr(option,1);
+      testNonlinRefFile = fio_fullpath(pargv[nargsused]);
+      nargsused = 1;
+    }
+    else if (!strcmp(option, "--basereg")) {
+      if (nargc < 1) CMDargNErr(option,1);
+      while (nargsused < nargc && strncmp(pargv[nargsused], "--", 2)) {
+        testBaseXfmList.push_back(fio_fullpath(pargv[nargsused]));
+        nargsused++;
+      }
+    }
+    else if (!strcmp(option, "--baseref")) {
+      if (nargc < 1) CMDargNErr(option,1);
+      testBaseMaskFile = fio_fullpath(pargv[nargsused]);
       nargsused = 1;
     }
     else if (!strcmp(option, "--ncpts")) {
       int ncpts;
       if (nargc < 1) CMDargNErr(option,1);
-      while (strncmp(pargv[nargsused], "--", 2)) {
+      while (nargsused < nargc && strncmp(pargv[nargsused], "--", 2)) {
         sscanf(pargv[nargsused], "%d", &ncpts);
         nControl.push_back(ncpts);
         nargsused++;
@@ -276,6 +325,9 @@ static void print_usage(void) {
   << "     Base name(s) of output(s), one per path" << endl
   << "   --outdir <dir>:" << endl
   << "     Output directory (optional)" << endl
+  << "   --cptdir <dir>:" << endl
+  << "     Output directory for control points in test subject's space" << endl
+  << "     (optional, requires registration files)" << endl
   << "     If specified, base names of outputs are relative to this" << endl
   << "   --slist <file>:" << endl
   << "     Text file with list of training subject directories" << endl
@@ -293,10 +345,20 @@ static void print_usage(void) {
   << "   --lmask <id> [...]:" << endl
   << "     Add a label ID from aparc+aseg to cortex mask, one per path" << endl
   << "     (0 doesn't add any label)" << endl
-  << "   --bmask <file>:" << endl
-  << "     Input brain mask volume for test subject" << endl
-  << "   --fa <file>:" << endl
-  << "     Input FA volume for test subject (optional)" << endl
+  << "   --bmask <file> [...]:" << endl
+  << "     Input brain mask volume(s) for test subject" << endl
+  << "   --fa <file> [...]:" << endl
+  << "     Input FA volume(s) for test subject (optional)" << endl
+  << "   --reg <file>:" << endl
+  << "     Affine registration from atlas to base space (optional)" << endl
+  << "   --regnl <file>:" << endl
+  << "     Nonlinear registration from atlas to base space (optional)" << endl
+  << "   --refnl <file>:" << endl
+  << "     Nonlinear registration source reference volume (optional)" << endl
+  << "   --basereg <file> [...]:" << endl
+  << "     Affine registration(s) from base to FA volume(s) (optional)" << endl
+  << "   --baseref <file> [...]:" << endl
+  << "     Base space reference volume (optional)" << endl
   << "   --ncpts <num> [...]:" << endl
   << "     Number of control points for initial spline" << endl
   << "   --xstr:" << endl
@@ -379,12 +441,31 @@ static void check_options(void) {
          << endl;
     exit(1);
   }
-  if (!testMaskFile) {
+  if (testMaskList.empty()) {
     cout << "ERROR: Must specify brain mask volume for output subject" << endl;
+    exit(1);
+  }
+  if (!testFaList.empty() && (testFaList.size() != testMaskList.size())) {
+    cout << "ERROR: Must specify as many FA volumes as brain masks" << endl;
     exit(1);
   }
   if (nControl.empty()) {
     cout << "ERROR: Must specify number of control points for initial spline"
+         << endl;
+    exit(1);
+  }
+  if (testNonlinXfmFile && !testNonlinRefFile) {
+    cout << "ERROR: Must specify source reference volume for nonlinear warp"
+         << endl;
+    exit(1);
+  }
+  if (!testBaseXfmList.empty() && !testBaseMaskFile) {
+    cout << "ERROR: Must specify reference volume for base space" << endl;
+    exit(1);
+  }
+  if (!testBaseXfmList.empty() &&
+      (testBaseXfmList.size() != testFaList.size())) {
+    cout << "ERROR: Must specify as many base registrations as FA volumes"
          << endl;
     exit(1);
   }
@@ -409,7 +490,10 @@ static void dump_options() {
   if (outDir)
     cout << "Output directory: " << outDir << endl;
 
-  cout << "Output base:" << endl;
+  if (outTestDir)
+    cout << "Output directory in test subject's space: " << outTestDir << endl;
+
+  cout << "Output base:";
   for (istr = outBase.begin(); istr < outBase.end(); istr++)
     cout << " " << *istr;
   cout << endl;
@@ -445,10 +529,43 @@ static void dump_options() {
 
   cout << "Location of aparc+aseg's relative to base: " << trainAsegFile
        << endl;
-  cout << "Brain mask for output subject: " << testMaskFile << endl;
 
-  if (testFaFile)
-    cout << "FA map for output subject: " << testFaFile << endl;
+  cout << "Brain mask for output subject:";
+  for (vector<char *>::const_iterator ifile = testMaskList.begin();
+                                      ifile < testMaskList.end(); ifile++)
+    cout << " " << *ifile;
+  cout << endl;
+
+  if (!testFaList.empty()) {
+    cout << "FA map for output subject:";
+    for (vector<char *>::const_iterator ifile = testFaList.begin();
+                                        ifile < testFaList.end(); ifile++)
+      cout << " " << *ifile;
+    cout << endl;
+  }
+
+  if (testAffineXfmFile)
+    cout << "Affine registration from atlas to base for output subject: "
+         << testAffineXfmFile << endl;
+
+  if (testNonlinXfmFile)
+    cout << "Nonlinear registration from atlas to base for output subject: "
+         << testNonlinXfmFile << endl;
+
+  if (testNonlinRefFile)
+    cout << "Nonlinear registration source reference for output subject: "
+         << testNonlinRefFile << endl;
+
+  if (!testBaseXfmList.empty()) {
+    cout << "Affine registration from base to FA map for output subject:";
+    for (vector<char *>::const_iterator ifile = testBaseXfmList.begin();
+                                        ifile < testBaseXfmList.end(); ifile++)
+      cout << " " << *ifile;
+    cout << endl;
+  }
+
+  if (testBaseMaskFile)
+    cout << "Base mask for output subject: " << testBaseMaskFile << endl;
 
   cout << "Number of control points for initial spline:";
   for (inum = nControl.begin(); inum < nControl.end(); inum++)
