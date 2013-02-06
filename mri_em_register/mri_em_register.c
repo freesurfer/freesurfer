@@ -9,9 +9,9 @@
  * Original Author: Bruce Fischl
  * CUDA version : Richard Edgar
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2012/10/30 19:15:36 $
- *    $Revision: 1.96 $
+ *    $Author: fischl $
+ *    $Date: 2013/02/06 18:27:04 $
+ *    $Revision: 1.97 $
  *
  * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -58,8 +58,10 @@
 #define FAST_TRANSFORM 0
 #endif // FS_CUDA
 
+#define DEFAULT_MIN_SCALES 3
 #define MM_FROM_EXTERIOR  5  // distance into brain mask to go when erasing super bright CSF voxels
 
+static int MIN_SCALES = DEFAULT_MIN_SCALES ;
 static int clamp_set = 0 ;
 static double Gclamp = 6 ;   // robust threshold - everything less likely than -Gclamp will be set to -Gclamp
 static int remove_cerebellum = 0 ;
@@ -70,6 +72,7 @@ static double TRs[MAX_GCA_INPUTS] ;
 static double fas[MAX_GCA_INPUTS] ;
 static double TEs[MAX_GCA_INPUTS] ;
 
+static int bigvent = 0 ;
 static int skull = 0 ;  /* if 1, aligning to image with skull */
 static int rigid = 0 ;
 
@@ -228,7 +231,7 @@ main(int argc, char *argv[])
   nargs =
     handle_version_option
     (argc, argv,
-     "$Id: mri_em_register.c,v 1.96 2012/10/30 19:15:36 nicks Exp $",
+     "$Id: mri_em_register.c,v 1.97 2013/02/06 18:27:04 fischl Exp $",
      "$Name:  $");
   if (nargs && argc - nargs == 1)
   {
@@ -404,12 +407,15 @@ main(int argc, char *argv[])
     if (mask_fname)
     {
       MRI *mri_mask ;
+      int val ;
 
       mri_mask = MRIread(mask_fname) ;
       if (!mri_mask)
         ErrorExit(ERROR_NOFILE, "%s: could not open mask volume %s.\n",
                   Progname, mask_fname) ;
-      MRImask(mri_tmp, mri_mask, mri_tmp, 0, 0) ;
+      for (val = 0 ; val < MIN_WM_VAL ; val++)
+	MRImask(mri_tmp, mri_mask, mri_tmp, val, 0) ;
+
       MRIfree(&mri_mask) ;
       if (parms.write_iterations != 0 && Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
       {
@@ -758,7 +764,7 @@ main(int argc, char *argv[])
                                         min_prior,unknown_nbr_spacing, 0) ;
   else
     parms.gcas = GCAfindAllSamples(gca, &nsamples,
-                                   exclude_list, unknown_nbr_spacing) ;
+                                   exclude_list, unknown_nbr_spacing, bigvent) ;
   mark_gcas_classes(parms.gcas, nsamples) ;
   parms.nsamples = nsamples ;
   parms.tol = 1e-7 ;
@@ -1515,9 +1521,8 @@ find_optimal_transform
   min_scale = 1-max_scale_pct ;
   scale_steps = max_scales ;
 
-#define MIN_SCALES 3
   //////////////// loop here ////////////////////////////////////////////
-  niter = nscales = 0 ;
+  niter = nscales = 0 ; 
   scale = 1.0 ;
   good_step = 0 ;
   done = 0 ;
@@ -1644,6 +1649,11 @@ get_option(int argc, char *argv[])
   {
     // seems not used
     nomap = 1 ;
+  }
+  else if (!strcmp(option, "bigvent"))
+  {
+    bigvent = 1 ;
+    printf("handling expanded ventricles\n") ;
   }
   else if (!strcmp(option, "LSCALE"))
   {
@@ -1897,9 +1907,9 @@ get_option(int argc, char *argv[])
   }
   else if (!stricmp(option, "SCALES") || !stricmp(option, "SCALES"))
   {
-    nscales = atoi(argv[2]) ;
+    nscales = MIN_SCALES = atoi(argv[2]) ;
     nargs = 1 ;
-    printf("finding optimal linear transform over %d scales...\n", nscales);
+    printf("finding optimal linear transform over %d scales...\n", MIN_SCALES);
   }
   else if (!stricmp(option, "NSCALES"))
   {
