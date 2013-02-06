@@ -4,16 +4,17 @@
  *
  * This program compares two segmentation volumes and
  * computes the Dice and Jaccard Coefficients.
- * It considers only 9 major structures.
+ * It considers only 12 major structures, except the 'overall dice' measure
+ * which excludes white matter, cortex and accumbens.
  */
 /*
- * Original Authors: Xiao Han, Nick Schmansky 
+ * Original Authors: Xiao Han, Nick Schmansky
  * CVS Revision Info:
- *    $Author: lzollei $
- *    $Date: 2012/09/05 21:15:50 $
- *    $Revision: 1.14 $
+ *    $Author: nicks $
+ *    $Date: 2013/02/06 19:21:07 $
+ *    $Revision: 1.15 $
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2011-2013 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -56,20 +57,21 @@ static char *slog_fname = NULL ; //std of individual dice
 static char *olog_fname = NULL ; //overall dice for subcortical structures
 
 static const int num_labels       = 24;
-static const int labels_of_interest[24] = {
-      Left_Cerebral_White_Matter, Right_Cerebral_White_Matter,
-      Left_Cerebral_Cortex, Right_Cerebral_Cortex,
-      Left_Lateral_Ventricle, Right_Lateral_Ventricle,
-      Left_Hippocampus, Right_Hippocampus,
-      Left_Thalamus_Proper, Right_Thalamus_Proper,
-      Left_Caudate, Right_Caudate,
-      Left_Putamen, Right_Putamen,
-      Left_Pallidum,Right_Pallidum,
-      Left_Amygdala, Right_Amygdala,
-      Left_Accumbens_area, Right_Accumbens_area,
-      Third_Ventricle, Fourth_Ventricle,
-      Left_Inf_Lat_Vent, Right_Inf_Lat_Vent
-    };
+static const int labels_of_interest[24] =
+{
+  Left_Cerebral_White_Matter, Right_Cerebral_White_Matter,
+  Left_Cerebral_Cortex, Right_Cerebral_Cortex,
+  Left_Lateral_Ventricle, Right_Lateral_Ventricle,
+  Left_Hippocampus, Right_Hippocampus,
+  Left_Thalamus_Proper, Right_Thalamus_Proper,
+  Left_Caudate, Right_Caudate,
+  Left_Putamen, Right_Putamen,
+  Left_Pallidum,Right_Pallidum,
+  Left_Amygdala, Right_Amygdala,
+  Left_Accumbens_area, Right_Accumbens_area,
+  Third_Ventricle, Fourth_Ventricle,
+  Left_Inf_Lat_Vent, Right_Inf_Lat_Vent
+};
 
 /* Note: these are the labels included in the
      'overall subcortical Dice coefficient' calculations.
@@ -78,22 +80,28 @@ static const int labels_of_interest[24] = {
      Left/Right-Cerebral-Cortex (labels 3 and 42),
      Left/Right-Accumbens-area (labels 26 and 58) */
 static const int num_labels_overall_Dice = 18;
-static const int labels_overall_Dice[18] = {
-      Left_Lateral_Ventricle, Right_Lateral_Ventricle,
-      Left_Hippocampus, Right_Hippocampus,
-      Left_Thalamus_Proper, Right_Thalamus_Proper,
-      Left_Caudate, Right_Caudate,
-      Left_Putamen, Right_Putamen,
-      Left_Pallidum,Right_Pallidum,
-      Left_Amygdala, Right_Amygdala,
-      Third_Ventricle, Fourth_Ventricle,
-      Left_Inf_Lat_Vent, Right_Inf_Lat_Vent
-    };
+static const int labels_overall_Dice[18] =
+{
+  Left_Lateral_Ventricle, Right_Lateral_Ventricle,
+  Left_Hippocampus, Right_Hippocampus,
+  Left_Thalamus_Proper, Right_Thalamus_Proper,
+  Left_Caudate, Right_Caudate,
+  Left_Putamen, Right_Putamen,
+  Left_Pallidum,Right_Pallidum,
+  Left_Amygdala, Right_Amygdala,
+  Third_Ventricle, Fourth_Ventricle,
+  Left_Inf_Lat_Vent, Right_Inf_Lat_Vent
+};
 // returns 1 if volVal is one of the labels to include in overall Dice calc
-static int isOverallDiceLabel(int volVal) {
+static int isOverallDiceLabel(int volVal)
+{
   int i;
-  for (i=0; i < num_labels_overall_Dice; i++) {
-    if (volVal == labels_overall_Dice[i]) return 1;
+  for (i=0; i < num_labels_overall_Dice; i++)
+  {
+    if (volVal == labels_overall_Dice[i])
+    {
+      return 1;
+    }
   }
   return 0;
 }
@@ -107,7 +115,8 @@ int num_all_labels = 0;
 int all_labels_of_interest[MAX_CLASSES];
 
 
-int main(int argc, char *argv[]) {
+int main(int argc, char *argv[])
+{
   MRI *mri_seg1, *mri_seg2;
   int nargs, ac;
   char **av;
@@ -130,10 +139,10 @@ int main(int argc, char *argv[]) {
 
   Progname = argv[0];
 
-  nargs = 
+  nargs =
     handle_version_option
     (argc, argv,
-     "$Id: mri_compute_seg_overlap.c,v 1.14 2012/09/05 21:15:50 lzollei Exp $",
+     "$Id: mri_compute_seg_overlap.c,v 1.15 2013/02/06 19:21:07 nicks Exp $",
      "$Name:  $");
   if (nargs && argc - nargs == 1)
   {
@@ -143,14 +152,17 @@ int main(int argc, char *argv[]) {
 
   ac = argc ;
   av = argv ;
-  for ( ; argc > 1 && ISOPTION(*argv[1]) ; argc--, argv++) {
+  for ( ; argc > 1 && ISOPTION(*argv[1]) ; argc--, argv++)
+  {
     nargs = get_option(argc, argv) ;
     argc -= nargs ;
     argv += nargs ;
   }
 
   if (argc != 3)
+  {
     usage(1);
+  }
 
   mri_seg1 = MRIread(argv[1]) ;
   if (!mri_seg1)
@@ -169,7 +181,8 @@ int main(int argc, char *argv[]) {
               "%s: two input label volumes have different sizes \n",
               Progname);
 
-  for (i=0; i < MAX_CLASSES; i++) {
+  for (i=0; i < MAX_CLASSES; i++)
+  {
     Volume_union[i] = 0;
     Volume_overlap[i] = 0;
     Volume_from1[i] = 0;
@@ -180,23 +193,33 @@ int main(int argc, char *argv[]) {
   height = mri_seg1->height ;
   depth = mri_seg1->depth ;
   nframes = mri_seg1->nframes ;
-  if (nframes == 0) nframes = 1;
+  if (nframes == 0)
+  {
+    nframes = 1;
+  }
 
   subcorvolume_overlap = 0;
   subcorvolume1 = 0;
   subcorvolume2 = 0;
 
-  for (f = 0 ; f < nframes ; f++) {
-    for (z = 0 ; z < depth ; z++) {
-      for (y = 0 ; y < height ; y++) {
-        for (x = 0 ; x < width ; x++) {
+  for (f = 0 ; f < nframes ; f++)
+  {
+    for (z = 0 ; z < depth ; z++)
+    {
+      for (y = 0 ; y < height ; y++)
+      {
+        for (x = 0 ; x < width ; x++)
+        {
           v1 = (int) MRIgetVoxVal(mri_seg1,x,y,z,f);
           v2 = (int) MRIgetVoxVal(mri_seg2,x,y,z,f);
 
           if (v1 > MAX_CLASS_NUM ||
               v1 <= 0 ||
               v2 > MAX_CLASS_NUM ||
-              v2 <= 0) continue;
+              v2 <= 0)
+          {
+            continue;
+          }
 
           /* do not include these in the overall Dice coefficient calculations:
              Left/Right-Cerebral-White-Matter (labels 2 and 41),
@@ -204,29 +227,45 @@ int main(int argc, char *argv[]) {
              Left/Right-Accumbens-area (labels 26 and 58)
              Notice that these labels are not included in the 'if' checks: */
 
-          if (v1 == v2) {
-	    if (all_labels_flag)
-	      subcorvolume_overlap++;
-            else 
-	      if (isOverallDiceLabel(v1)) subcorvolume_overlap++;
+          if (v1 == v2)
+          {
+            if (all_labels_flag)
+            {
+              subcorvolume_overlap++;
+            }
+            else if (isOverallDiceLabel(v1))
+            {
+              subcorvolume_overlap++;
+            }
           }
 
-	  if (all_labels_flag)
-	    subcorvolume1++;
-          else 
-	    if (isOverallDiceLabel(v1)) subcorvolume1++;
-	  if (all_labels_flag) 
-	    subcorvolume2++;
-          else 
-	    if (isOverallDiceLabel(v2)) subcorvolume2++;
+          if (all_labels_flag)
+          {
+            subcorvolume1++;
+          }
+          else if (isOverallDiceLabel(v1))
+          {
+            subcorvolume1++;
+          }
+          if (all_labels_flag)
+          {
+            subcorvolume2++;
+          }
+          else if (isOverallDiceLabel(v2))
+          {
+            subcorvolume2++;
+          }
 
           Volume_from1[v1]++;
           Volume_from2[v2]++;
 
-          if (v1 == v2) {
+          if (v1 == v2)
+          {
             Volume_overlap[v1]++;
             Volume_union[v1]++;
-          } else {
+          }
+          else
+          {
             Volume_union[v1]++;
             Volume_union[v2]++;
           }
@@ -235,7 +274,8 @@ int main(int argc, char *argv[]) {
     }
   }
 
-  for (i=0; i < MAX_CLASSES; i++) {
+  for (i=0; i < MAX_CLASSES; i++)
+  {
     correct_ratio[i] =
       (double)Volume_overlap[i]/((double)Volume_union[i] + 1e-10);
     correct_ratio2[i] =
@@ -247,31 +287,34 @@ int main(int argc, char *argv[]) {
   mean1 = 0;
   std1 = 0;
   if (all_labels_flag)
+  {
+    num_all_labels = 0;
+    for (i=0; i < MAX_CLASSES; i++)
     {
-      num_all_labels = 0;
-      for (i=0; i < MAX_CLASSES; i++) {
-	if(correct_ratio[i] > 0.0) // This will include zero overlap areas as well (not just non-existing labels. If it is a problem, should flag existing labels....
-	  {
-	    printf("correct ratio for label %d = %g\n",
-		   i, correct_ratio[i]);
-	    mean1 += correct_ratio[i];
-	    std1 += correct_ratio[i] *
-	      correct_ratio[i];
-	    num_all_labels++;
-	  }
+      if(correct_ratio[i] > 0.0) // This will include zero overlap areas as well (not just non-existing labels. If it is a problem, should flag existing labels....
+      {
+        printf("correct ratio for label %d = %g\n",
+               i, correct_ratio[i]);
+        mean1 += correct_ratio[i];
+        std1 += correct_ratio[i] *
+                correct_ratio[i];
+        num_all_labels++;
       }
-      mean1 /= num_all_labels;
-      std1 /= num_all_labels;
-      std1 = sqrt(std1 - mean1*mean1);
-      printf("mean +/- std = %6.4f +/- %6.4f\n", mean1, std1);
     }
-  else {
-    for (i=0; i < num_labels; i++) {
+    mean1 /= num_all_labels;
+    std1 /= num_all_labels;
+    std1 = sqrt(std1 - mean1*mean1);
+    printf("mean +/- std = %6.4f +/- %6.4f\n", mean1, std1);
+  }
+  else
+  {
+    for (i=0; i < num_labels; i++)
+    {
       printf("correct ratio for label %d = %g\n",
-	     labels_of_interest[i], correct_ratio[labels_of_interest[i]]);
+             labels_of_interest[i], correct_ratio[labels_of_interest[i]]);
       mean1 += correct_ratio[labels_of_interest[i]];
       std1 += correct_ratio[labels_of_interest[i]] *
-	correct_ratio[labels_of_interest[i]];
+              correct_ratio[labels_of_interest[i]];
     }
     mean1 /= num_labels;
     std1 /= num_labels;
@@ -284,52 +327,60 @@ int main(int argc, char *argv[]) {
   mean2 = 0;
   std2 = 0;
   if (all_labels_flag)
+  {
+    num_all_labels = 0;
+    for (i=0; i < MAX_CLASSES; i++)
     {
-      num_all_labels = 0;
-      for (i=0; i < MAX_CLASSES; i++) {
-	if(correct_ratio2[i] > 0.0) // This will include zero overlap areas as well (not just non-existing labels. If it is a problem, should flag existing labels....                                                                                                        
-          {
-	    all_labels_of_interest[num_all_labels] = i;
-	    printf("label %d = %g\n",
-		   i, correct_ratio2[i]);
-	    mean2 += correct_ratio2[i];
-	    std2 += correct_ratio2[i] *
-	      correct_ratio2[i];
-	    num_all_labels++;
-	  }
+      if(correct_ratio2[i] > 0.0) // This will include zero overlap areas as well (not just non-existing labels. If it is a problem, should flag existing labels....
+      {
+        all_labels_of_interest[num_all_labels] = i;
+        printf("label %d = %g\n",
+               i, correct_ratio2[i]);
+        mean2 += correct_ratio2[i];
+        std2 += correct_ratio2[i] *
+                correct_ratio2[i];
+        num_all_labels++;
       }
-      mean2 /= num_all_labels;
-      std2 /= num_all_labels;
-      std2 = sqrt(std2 - mean2*mean2);
-      printf("mean +/- std = %6.4f +/- %6.4f \n", mean2, std2);
     }
-  else {
-    for (i=0; i < num_labels; i++) {
+    mean2 /= num_all_labels;
+    std2 /= num_all_labels;
+    std2 = sqrt(std2 - mean2*mean2);
+    printf("mean +/- std = %6.4f +/- %6.4f \n", mean2, std2);
+  }
+  else
+  {
+    for (i=0; i < num_labels; i++)
+    {
       printf("label %d = %g\n",
-	     labels_of_interest[i], correct_ratio2[labels_of_interest[i]]);
+             labels_of_interest[i], correct_ratio2[labels_of_interest[i]]);
       mean2 += correct_ratio2[labels_of_interest[i]];
       std2 += correct_ratio2[labels_of_interest[i]] *
-	correct_ratio2[labels_of_interest[i]];
+              correct_ratio2[labels_of_interest[i]];
     }
     mean2 /= num_labels;
     std2 /= num_labels;
     std2 = sqrt(std2 - mean2*mean2);
     printf("mean +/- std = %6.4f +/- %6.4f \n", mean2, std2);
   }
-  
-  if (log_fname != NULL) {
+
+  if (log_fname != NULL)
+  {
     log_fp = fopen(log_fname, "a+") ;
     if (!log_fp)
       ErrorExit(ERROR_BADFILE, "%s: could not open %s for writing",
                 Progname, log_fname) ;
-    if (all_labels_flag) {
-      for (i=0; i < num_all_labels; i++) {
-	fprintf(log_fp, "%6.4f ", correct_ratio2[all_labels_of_interest[i]]);
+    if (all_labels_flag)
+    {
+      for (i=0; i < num_all_labels; i++)
+      {
+        fprintf(log_fp, "%6.4f ", correct_ratio2[all_labels_of_interest[i]]);
       }
     }
-    else {
-      for (i=0; i < num_labels; i++) {
-	fprintf(log_fp, "%6.4f ", correct_ratio2[labels_of_interest[i]]);
+    else
+    {
+      for (i=0; i < num_labels; i++)
+      {
+        fprintf(log_fp, "%6.4f ", correct_ratio2[labels_of_interest[i]]);
       }
     }
     fprintf(log_fp, "%6.4f ", mean2);
@@ -339,7 +390,8 @@ int main(int argc, char *argv[]) {
     fclose(log_fp);
   }
 
-  if (mlog_fname != NULL) {
+  if (mlog_fname != NULL)
+  {
     log_fp = fopen(mlog_fname, "a+") ;
     if (!log_fp)
       ErrorExit(ERROR_BADFILE, "%s: could not open %s for writing",
@@ -348,7 +400,8 @@ int main(int argc, char *argv[]) {
     fclose(log_fp);
   }
 
-  if (slog_fname != NULL) {
+  if (slog_fname != NULL)
+  {
     log_fp = fopen(slog_fname, "a+") ;
     if (!log_fp)
       ErrorExit(ERROR_BADFILE, "%s: could not open %s for writing",
@@ -357,7 +410,8 @@ int main(int argc, char *argv[]) {
     fclose(log_fp);
   }
 
-  if (olog_fname != NULL) {
+  if (olog_fname != NULL)
+  {
     log_fp = fopen(olog_fname, "a+") ;
     if (!log_fp)
       ErrorExit(ERROR_BADFILE, "%s: could not open %s for writing",
@@ -376,42 +430,56 @@ int main(int argc, char *argv[]) {
 
 
 #include "mri_compute_seg_overlap.help.xml.h"
-static void usage(int exit_val) {
+static void usage(int exit_val)
+{
   outputHelpXml(mri_compute_seg_overlap_help_xml,
                 mri_compute_seg_overlap_help_xml_len);
   exit(exit_val);
 }  /*  end usage()  */
 
 
-static int get_option(int argc, char *argv[]) {
+static int get_option(int argc, char *argv[])
+{
   int  nargs = 0 ;
   char *option ;
 
   option = argv[1] + 1 ;            /* past '-' */
   if (!stricmp(option, "-help"))
+  {
     usage(0) ;
-  else if (!stricmp(option, "-all_labels")) {
+  }
+  else if (!stricmp(option, "-all_labels"))
+  {
     all_labels_flag = TRUE;
     nargs = 1;
     fprintf(stderr, "Computing overlap measures for all commonly existing labels. \n") ;
   }
-  else if (!stricmp(option, "mlog")) {
+  else if (!stricmp(option, "mlog"))
+  {
     mlog_fname = argv[2];
     nargs = 1;
     fprintf(stderr, "logging mean Dice to %s\n", mlog_fname) ;
-  } else if (!stricmp(option, "log") || !stricmp(option, "L")) {
+  }
+  else if (!stricmp(option, "log") || !stricmp(option, "L"))
+  {
     log_fname = argv[2];
     nargs = 1;
     fprintf(stderr, "logging individual Dice to %s\n", log_fname) ;
-  } else if (!stricmp(option, "slog")) {
+  }
+  else if (!stricmp(option, "slog"))
+  {
     slog_fname = argv[2];
     nargs = 1;
     fprintf(stderr, "logging std Dice to %s\n", slog_fname) ;
-  } else if (!stricmp(option, "olog")) {
+  }
+  else if (!stricmp(option, "olog"))
+  {
     olog_fname = argv[2];
     nargs = 1;
     fprintf(stderr, "logging overall Dice to %s\n", olog_fname) ;
-  } else {
+  }
+  else
+  {
     fprintf(stderr, "unknown option %s\n", argv[1]) ;
     usage(0) ;
     exit(1) ;
