@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2013/02/05 20:51:41 $
- *    $Revision: 1.82 $
+ *    $Date: 2013/02/06 18:35:43 $
+ *    $Revision: 1.83 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -159,7 +159,9 @@ PanelVolume::PanelVolume(QWidget *parent) :
                             << ui->labelColorMap
                             << ui->comboBoxColorMap;
 
-  m_widgetlistVolumeTrack << ui->treeWidgetColorTable << m_widgetlistFrame;
+  m_widgetlistVolumeTrack << ui->treeWidgetColorTable << m_widgetlistFrame
+                          << ui->labelSmoothIteration << ui->sliderContourSmoothIteration
+                          << ui->lineEditContourSmoothIteration;
 
   m_widgetlistVolumeTrackSpecs
                         << ui->labelTrackVolumeThreshold
@@ -518,6 +520,8 @@ void PanelVolume::DoUpdateWidgets()
   }
 
   UpdateTrackVolumeThreshold();
+
+  ui->checkBoxUpsampleContour->hide();
 
   BlockAllSignals( false );
 }
@@ -1020,7 +1024,7 @@ void PanelVolume::OnContourValueChanged()
 {
   bool bOK;
   double fMin, fMax = 0;
-  int nSmooth = 20;
+  int nSmooth = 30;
   if (ui->checkBoxShowLabelContour->isChecked())
   {
     fMin = ui->lineEditContourLabelRangeLow->text().trimmed().toDouble(&bOK);

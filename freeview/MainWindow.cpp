@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2013/01/08 20:35:10 $
- *    $Revision: 1.229 $
+ *    $Date: 2013/02/06 18:35:43 $
+ *    $Revision: 1.230 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -1339,6 +1339,10 @@ void MainWindow::RunScript()
   {
     CommandSetIsoSurfaceColor( sa );
   }
+  else if (cmd == "setisosurfaceupsample")
+  {
+    CommandSetIsoSurfaceUpsample( sa );
+  }
   else if ( cmd == "loadisosurfaceregion" )
   {
     CommandLoadIsoSurfaceRegion( sa );
@@ -1607,6 +1611,10 @@ void MainWindow::CommandLoadVolume( const QStringList& sa )
           script += " " + args[1];
         }
         m_scripts.insert( 0, script );
+      }
+      else if ( subOption == "upsample_isosurface")
+      {
+        m_scripts.insert( 0,  QString("setisosurfaceupsample ") + subArgu );
       }
       else if (subOption == "color")
       {
@@ -2016,6 +2024,18 @@ void MainWindow::CommandSetIsoSurfaceColor(const QStringList &cmd)
     else
     {
       cerr << "Invalid color name or value " << cmd[1].toAscii().constData() << ".\n";
+    }
+  }
+}
+
+void MainWindow::CommandSetIsoSurfaceUpsample(const QStringList &cmd)
+{
+  LayerMRI* mri = (LayerMRI*)GetLayerCollection( "MRI" )->GetActiveLayer();
+  if ( mri )
+  {
+    if (cmd[1].toLower() == "on" || cmd[1].toLower() == "true" || cmd[1].toLower() == "1")
+    {
+      mri->GetProperty()->SetContourUpsample(true);
     }
   }
 }

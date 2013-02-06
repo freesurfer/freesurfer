@@ -12,8 +12,8 @@
  * Reimplemented by: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2013/02/05 20:51:41 $
- *    $Revision: 1.14 $
+ *    $Date: 2013/02/06 18:35:43 $
+ *    $Revision: 1.15 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -81,7 +81,7 @@ LayerPropertyMRI::LayerPropertyMRI (QObject* parent) : LayerProperty( parent ),
   m_bContourExtractAll( false ),
   m_bShowLabelOutline( false ),
   m_nUpSampleMethod( UM_None ),
-  m_nContourSmoothIterations( 0 ),
+  m_nContourSmoothIterations( 5 ),
   mSource( NULL ),
   m_bShowProjectionMap( false ),
   m_bRememberFrameSettings( false ),

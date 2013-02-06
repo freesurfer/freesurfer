@@ -26,7 +26,7 @@
    <property name="geometry">
     <rect>
      <x>0</x>
-     <y>-196</y>
+     <y>-224</y>
      <width>308</width>
      <height>1723</height>
     </rect>
@@ -834,13 +834,6 @@
      </layout>
     </item>
     <item>
-     <widget class="QCheckBox" name="checkBoxProjectionMap">
-      <property name="text">
-       <string>Show intensity projection map</string>
-      </property>
-     </widget>
-    </item>
-    <item>
      <widget class="QCheckBox" name="checkBoxShowOutline">
       <property name="text">
        <string>Show label outline only (Alt+L)</string>
@@ -952,6 +945,9 @@
          <widget class="QSlider" name="sliderContourSmoothIteration">
           <property name="maximum">
            <number>20</number>
+          </property>
+          <property name="pageStep">
+           <number>5</number>
           </property>
           <property name="orientation">
            <enum>Qt::Horizontal</enum>
@@ -1104,6 +1100,13 @@
        </widget>
       </item>
      </layout>
+    </item>
+    <item>
+     <widget class="QCheckBox" name="checkBoxProjectionMap">
+      <property name="text">
+       <string>Show intensity projection map</string>
+      </property>
+     </widget>
     </item>
     <item>
      <widget class="QCheckBox" name="checkBoxShowInfo">
