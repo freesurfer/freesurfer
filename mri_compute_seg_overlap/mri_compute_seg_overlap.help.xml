@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<!DOCTYPE help [
+<!ENTITY lt "#38;#60;">
+<!ENTITY gt "&#62;">
+<!ENTITY amp "&#38;#38;">
+<!ELEMENT help (name , synopsis , description , arguments+ , outputs* , example* , bugs* , reporting* , see-also*)*>
+<!ELEMENT name (#PCDATA)>
+<!ELEMENT synopsis (#PCDATA)>
+<!ELEMENT description (#PCDATA)>
+<!ELEMENT arguments (positional* , required-flagged* , optional-flagged*)*>
+<!ELEMENT positional (intro* , argument* , explanation*)*>
+<!ELEMENT required-flagged (intro* , argument* , explanation*)*>
+<!ELEMENT optional-flagged (intro* , argument* , explanation*)*>
+<!ELEMENT intro (#PCDATA)>
+<!ELEMENT argument (#PCDATA)>
+<!ELEMENT explanation (#PCDATA)>
+<!ELEMENT outputs (output* , explanation*)>
+<!ELEMENT output (#PCDATA)>
+<!ELEMENT example (#PCDATA)>
+<!ELEMENT bugs (#PCDATA)>
+<!ELEMENT reporting (#PCDATA)>
+<!ELEMENT see-also (#PCDATA)>
+]>
+
+<help>
+	<name>mri_compute_seg_overlap - compute coefficents of overlap</name>
+	<synopsis>mri_compute_seg_overlap [&lt;options&gt;] segvol1 segvol2</synopsis>
+	<description>This program compares two segmentation volumes and computes the Dice and Jaccard Coefficients. It considers 12 major structures (label numbers):
+    L/R Hippocampus (17,53)
+    L/R Caudate (11,50)
+    L/R Putamen (12,51)
+    L/R Pallidum (13,52)
+    L/R Amygdala (18,54)
+    L/R Thalamus_Proper (10,49)
+    L/R Lateral_Ventricle (75,76)
+    Third and Fourth Ventricles (14,15)
+    L/R Inf_Lat_Vent (5,44)
+    L/R Cerebral_White_Matter (2,41)
+    L/R Cerebral-Cortex (3,42)
+    L/R Accumbens-area (26,58)
+
+    NOTE! white matter, cortex and accumbens are excluded from the
+    'overall Dice' measure (which is a mean), as the surface-based 
+    wm/gm measures are more accurate (and accumbens is very 
+    difficult to measure).
+
+</description>
+  <arguments>
+    <positional>
+      <argument>segvol1</argument>
+      <explanation>first segmentation volume</explanation>
+      <argument>segvol2</argument>
+      <explanation>second segmentation volume</explanation>
+    </positional>
+    <required-flagged>
+      <intro>None</intro>
+    </required-flagged>
+    <optional-flagged>
+      <argument>-log filename</argument>
+      <explanation>log file for individual Dice
+(12 structure pairs, plus mean, std, and 'overall')</explanation>
+      <argument>-mlog filename</argument>
+      <explanation>log file for mean Dice </explanation>
+      <argument>-slog filename</argument>
+      <explanation>log file for std Dice</explanation>
+      <argument>-olog</argument>
+      <explanation>log file for 'overall' Dice
+(mean excluding wm, gm and accumbens)</explanation>
+    </optional-flagged>
+  </arguments>
+  <example>mri_compute_seg_overlap manual_seg.mgz aseg.mgz
+
+Used to compare the quality of the automatic segmentation with a manual segmentation.  A Dice of 0.85 is about average. </example>
+  <reporting>Report bugs to &lt;freesurfer@nmr.mgh.harvard.edu&gt;</reporting>
+</help>
+
