@@ -9,9 +9,9 @@
  * Original Author: Bruce Fischl
  * CUDA version : Richard Edgar
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2013/02/06 18:27:04 $
- *    $Revision: 1.97 $
+ *    $Author: nicks $
+ *    $Date: 2013/02/06 22:51:40 $
+ *    $Revision: 1.98 $
  *
  * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -231,7 +231,7 @@ main(int argc, char *argv[])
   nargs =
     handle_version_option
     (argc, argv,
-     "$Id: mri_em_register.c,v 1.97 2013/02/06 18:27:04 fischl Exp $",
+     "$Id: mri_em_register.c,v 1.98 2013/02/06 22:51:40 nicks Exp $",
      "$Name:  $");
   if (nargs && argc - nargs == 1)
   {
@@ -764,7 +764,7 @@ main(int argc, char *argv[])
                                         min_prior,unknown_nbr_spacing, 0) ;
   else
     parms.gcas = GCAfindAllSamples(gca, &nsamples,
-                                   exclude_list, unknown_nbr_spacing, bigvent) ;
+                                   exclude_list, unknown_nbr_spacing);//HACK, bigvent) ;
   mark_gcas_classes(parms.gcas, nsamples) ;
   parms.nsamples = nsamples ;
   parms.tol = 1e-7 ;
