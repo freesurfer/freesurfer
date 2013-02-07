@@ -70,8 +70,8 @@ LineProfTest_LDADD=\
 	-lvtkCommon -lvtksys \
 	-lvtkHybrid -lvtkexoIIc -lvtkNetCDF -lvtkDICOMParser \
 	-lvtkVolumeRendering -lvtkRendering -lvtkftgl \
+	-ltiff $(VTK_TIFF_LIB) -ljpeg $(VTK_JPEG_LIB) \
 	-lexpat $(VTK_EXPAT_LIB) $(VTK_FREETYPE_LIB) \
-    $(LIBTIFF) $(LIBJPEG) \
 	$(VTK_PNG_LIB) $(VTK_Z_LIB) $(VTK_METAIO_LIB) \
   $(ITK_LIBS) \
   $(PETSC_LIBS) -lpetscts -lpetscsnes -lpetscksp \
