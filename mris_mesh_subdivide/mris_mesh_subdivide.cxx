@@ -8,8 +8,8 @@
  * Original Author: jonathan polimeni
  * CVS Revision Info:
  *    $Author: jonp $
- *    $Date: 2012/09/30 17:54:10 $
- *    $Revision: 1.4 $
+ *    $Date: 2013/02/07 16:04:07 $
+ *    $Revision: 1.5 $
  *
  * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -47,6 +47,8 @@ extern "C"
 
 // string_to_type
 #include "mri_identify.h"
+
+
 }
 
 #include <vtkVersion.h>
@@ -75,7 +77,7 @@ static void argnerr(char *, int) ;
 static int debug = 0;
 
 static char vcid[] =
-  "$Id: mris_mesh_subdivide.cxx,v 1.4 2012/09/30 17:54:10 jonp Exp $";
+  "$Id: mris_mesh_subdivide.cxx,v 1.5 2013/02/07 16:04:07 jonp Exp $";
 
 
 
@@ -100,7 +102,7 @@ enum subdividemethod_type
 
 MRI_SURFACE  *mris_subdivide  = NULL;
 
-int iter  = 1;
+int iter  = -1;
 
 static char *surf_filename = NULL;
 static char *newsurf_filename = NULL;
@@ -129,12 +131,12 @@ int main(int argc, char *argv[])
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mris_mesh_subdivide.cxx,v 1.4 2012/09/30 17:54:10 jonp Exp $",
+   "$Id: mris_mesh_subdivide.cxx,v 1.5 2013/02/07 16:04:07 jonp Exp $",
    "$Name:  $", cmdline);
 
 
   //nargs = handle_version_option (argc, argv,
-  //   "$Id: mris_mesh_subdivide.cxx,v 1.4 2012/09/30 17:54:10 jonp Exp $",
+  //   "$Id: mris_mesh_subdivide.cxx,v 1.5 2013/02/07 16:04:07 jonp Exp $",
   //   "$Name:  $");
   if (nargs && argc - nargs == 1)
   {
@@ -156,8 +158,9 @@ int main(int argc, char *argv[])
     usage_exit();
   }
 
-  // set default
+  // set defaults
   subdividemethod = SUBDIVIDE_BUTTERFLY;
+  iter = 1;
 
   parse_commandline(argc, argv);
 
@@ -178,6 +181,16 @@ int main(int argc, char *argv[])
 
   // TODO!
 
+  // NOTE: because the vertices at the boundary of the subsurface
+  // cannot move, this feature will have to constrain the subdivision
+  // method to be interpolation (i.e., approximation schemes like loop
+  // will not be allowed)
+
+  //if ( USER_SPECIFIED_LABEL_FOR_SUBSURFACE )
+  //if ( subdividemethod == SUBDIVIDE_LOOP )
+  //  {
+  //    RAISE_WARNING
+  //  }
 
 
   //==--------------------------------------------------------------
@@ -199,6 +212,26 @@ int main(int argc, char *argv[])
 
   // TODO: report change in edge length or triangle area over
   // subsurface
+
+  MRIScomputeMetricProperties(mris);
+  MRIScomputeMetricProperties(mris_subdivide);
+
+  double totvtxarea, totvtxarea_subdivide, avgvtxarea, avgvtxarea_subdivide;
+
+  totvtxarea           = mris->total_area;
+  totvtxarea_subdivide = mris_subdivide->total_area;
+
+  avgvtxarea           = mris->total_area/mris->nvertices;
+  avgvtxarea_subdivide = mris_subdivide->total_area/mris_subdivide->nvertices;
+
+  printf("    original surface total area: %2.2f\n subdivision surface total area: %2.2f\n", totvtxarea, totvtxarea_subdivide);
+  printf("    original surface average area per vertex: %2.2f\n subdivision surface average area per vertex: %2.2f\n", avgvtxarea, avgvtxarea_subdivide);
+
+
+  //==--------------------------------------------------------------
+  // 4) optionally update cortex label, curv and area files
+
+  // in progress...
 
 
   //==--------------------------------------------------------------
@@ -234,13 +267,6 @@ int mris_mesh_subdivide__VTK(MRI_SURFACE *mris,
   inputMesh = vtkPolyData::New();
 
   err = mris_mesh_subdivide__convert_mris_VTK(mris, inputMesh);
-
-  std::cout << "Before subdivision" << std::endl;
-  std::cout << "    There are " << inputMesh->GetNumberOfPoints()
-            << " vertices." << std::endl;
-  std::cout << "    There are " << inputMesh->GetNumberOfPolys()
-            << " triangle faces." << std::endl;
-
 
   // NOTE TO MYSELF [jrp, 2012/sep/29]: in some viewers like freeview
   // the interpolating subdivision does not appear to strictly
@@ -297,11 +323,13 @@ int mris_mesh_subdivide__VTK(MRI_SURFACE *mris,
   outputMesh = subdivisionFilter->GetOutput();
 
 
-  std::cout << "After subdivision" << std::endl;
-  std::cout << "    There are " << outputMesh->GetNumberOfPoints()
-            << " vertices." << std::endl;
-  std::cout << "    There are " << outputMesh->GetNumberOfPolys()
-            << " triangle faces." << std::endl;
+  std::cout            << " ->    original surface: ";
+  std::cout << setw(7) << inputMesh->GetNumberOfPoints()  << " vertices, ";
+  std::cout << setw(7) << inputMesh->GetNumberOfPolys()   << " triangle faces." << std::endl;
+	               
+  std::cout            << " -> subdivision surface: ";
+  std::cout << setw(7) << outputMesh->GetNumberOfPoints() << " vertices, ";
+  std::cout << setw(7) << outputMesh->GetNumberOfPolys()  << " triangle faces." << std::endl;
 
 
   mris_subdivide = MRISalloc(outputMesh->GetNumberOfPoints(),
@@ -329,6 +357,10 @@ int mris_mesh_subdivide__convert_mris_VTK(MRI_SURFACE *mris,
   for (unsigned int ui(0), nvertices(mris->nvertices);
        ui < nvertices; ++ui, ++pvtx )
   {
+//    if (pvtx->ripflag)
+//      {
+//      printf("rip'd vertex found: %ud\n", ui);
+//      }
     points->SetPoint(ui, pvtx->x, pvtx->y, pvtx->z);
   } // next point (vertex)
 
@@ -501,7 +533,7 @@ static int parse_commandline(int argc, char **argv)
       surf_filename = pargv[0];
       if( !strcmp(surf_filename, "inflated") )
       {
-	// TODO: add "force" option to subdivide inflated surface
+        // TODO: add "force" option to subdivide inflated surface
         printf("\nWARNING: do you really want to subdivide the "
                "*inflated* surface?\n\n");
         exit(1);
@@ -597,7 +629,7 @@ static void print_usage(void)
   printf("                           contain '/' outputs to same directory\n");
   printf("                           as input surface)\n");
   printf("   --method <methodname>   subdivision method options are:\n");
-  printf("                           'butterfly', 'loop', or 'linear'\n");
+  printf("                           'butterfly' (default), 'loop', or 'linear'\n");
   printf("   --iter <N>              number of subdivision iterations\n");
   printf("\n");
   printf("\n");
@@ -613,8 +645,19 @@ static void print_help(void)
 {
   print_usage() ;
 
-  printf(
-    "This program will subdivide a surface.\n"
+  printf("\n"
+    "This program will subdivide a triangular mesh surface.\n\n"
+    "The available subdivision schemes are: 'modified butterfly', 'loop', \n"
+    "or 'linear'\n\n"
+    "The modified butterfly method does not alter the positions of the\n"
+    "original vertices and is the desired method for most cases (since the\n"
+    "original vertices have been carefully positioned along the cortical\n"
+    "gray matter based on image intensity).\n\n"
+    "The loop subdivision method alters the positions of the original\n"
+    "vertices.\n\n"
+    "The linear subdivision method is the simplest in that it only adds\n"
+    "new vertices to existing edges, which increases the triangle count\n"
+    "but does not affect the geometry of the mesh surface.\n\n"
   ) ;
 
   exit(1) ;
@@ -626,3 +669,5 @@ static void print_version(void)
   printf("%s\n", vcid) ;
   exit(1) ;
 }
+
+
