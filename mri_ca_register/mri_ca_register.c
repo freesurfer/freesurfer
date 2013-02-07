@@ -23,9 +23,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2012/10/03 23:14:16 $
- *    $Revision: 1.85 $
+ *    $Author: fischl $
+ *    $Date: 2013/02/07 19:19:07 $
+ *    $Revision: 1.86 $
  *
  * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -237,7 +237,7 @@ main(int argc, char *argv[])
 
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mri_ca_register.c,v 1.85 2012/10/03 23:14:16 nicks Exp $",
+           "$Id: mri_ca_register.c,v 1.86 2013/02/07 19:19:07 fischl Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
   {
@@ -309,13 +309,15 @@ main(int argc, char *argv[])
     if (mask_fname)
     {
       MRI *mri_mask ;
+      int val ;
 
       mri_mask = MRIread(mask_fname) ;
       if (!mri_mask)
         ErrorExit(ERROR_NOFILE, "%s: could not open mask volume %s.\n",
                   Progname, mask_fname) ;
       // if mask == 0, then set dst as 0
-      MRImask(mri_tmp, mri_mask, mri_tmp, 0, 0) ;
+      for (val = 0 ; val < MIN_WM_VAL ; val++)
+	MRImask(mri_tmp, mri_mask, mri_tmp, val, 0) ;
       MRIfree(&mri_mask) ;
     }
     if (T2_mask_fname)
