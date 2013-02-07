@@ -6,16 +6,30 @@
 # ENABLE_QT_APPS = false) because lineprof is only used by freeview.
 if ENABLE_QT_APPS
 
+if USE_LOCAL_TIFF
+TIFFCFLAGS=-I$(top_srcdir)/tiff
+LIBTIFF=$(top_builddir)/tiff/libtiff.a
+else
+TIFFCFLAGS=$(TIFF_CFLAGS)
+LIBTIFF=$(LIB_TIFF)
+endif
+
 AM_CPPFLAGS= -Wno-deprecated \
+	-I$(top_srcdir)/include \
+	-I$(top_srcdir)/tetgen \
 	$(VXL_CFLAGS) \
 	$(VTK_CXXFLAGS) \
-  $(ITK_CFLAGS) \
-  $(PETSC_CFLAGS)
+  $(ITK_CFLAGS) -DHAVE_ITK_LIBS \
+  $(PETSC_CFLAGS) $(TIFFCFLAGS) \
+	$(BOOST_CFLAGS)
 
-AM_CXXFLAGS=$(AM_CPPFLAGS)
+if HAVE_MAC_OSX
+AM_LDFLAGS=$(OS_LDFLAGS) -framework Accelerate -framework Cocoa
+else
+AM_LDFLAGS=$(OS_LDFLAGS) -z muldefs
+endif
 
-AM_LDFLAGS=
-
+AM_CXXFLAGS=$(AM_CPPFLAGS) $(VTK_COCOA_CXXFLAGS)
 
 noinst_LIBRARIES= liblineprof.a
 
@@ -46,6 +60,23 @@ TESTS=LineProfTest
 
 LineProfTest_SOURCES=LineProfTest.cpp
 
+
+if HAVE_MAC_OSX
+LineProfTest_LDADD=\
+	$(top_builddir)/lineprof/liblineprof.a \
+	$(VTK_COCOA_LIBS) $(VTK_VERDICT_LIB) $(VTK_SQLITE_LIB) \
+	-lvtkIO -lvtkWidgets -lvtkGraphics \
+	-lvtkImaging -lvtkFiltering \
+	-lvtkCommon -lvtksys \
+	-lvtkHybrid -lvtkexoIIc -lvtkNetCDF -lvtkDICOMParser \
+	-lvtkVolumeRendering -lvtkRendering -lvtkftgl \
+	-ltiff $(VTK_TIFF_LIB) -ljpeg $(VTK_JPEG_LIB) \
+	-lexpat $(VTK_EXPAT_LIB) $(VTK_FREETYPE_LIB) \
+	$(VTK_PNG_LIB) $(VTK_Z_LIB) $(VTK_METAIO_LIB) \
+  $(ITK_LIBS) \
+  $(PETSC_LIBS) -lpetscts -lpetscsnes -lpetscksp \
+  -lpetscdm -lpetscmat -lpetscvec -lpetsc -lmpich -lpmpich
+else
 LineProfTest_LDADD=\
 	$(top_builddir)/lineprof/liblineprof.a \
 	$(VTK_LIBS) $(VTK_VERDICT_LIB) $(VTK_SQLITE_LIB) \
@@ -55,12 +86,13 @@ LineProfTest_LDADD=\
 	-lvtkHybrid -lvtkexoIIc -lvtkNetCDF -lvtkDICOMParser \
 	-lvtkVolumeRendering -lvtkRendering -lvtkftgl \
 	-lexpat $(VTK_EXPAT_LIB) $(VTK_FREETYPE_LIB) \
-	-ltiff $(VTK_TIFF_LIB) -ljpeg $(VTK_JPEG_LIB) \
+    $(LIBTIFF) $(LIBJPEG) \
 	$(VTK_PNG_LIB) $(VTK_Z_LIB) $(VTK_METAIO_LIB) \
   $(ITK_LIBS) \
   $(PETSC_LIBS) -lpetscts -lpetscsnes -lpetscksp \
   -lpetscdm -lpetscmat -lpetscvec -lpetsc -lmpich -lfmpich \
   $(LIB_GFORTRAN) $(LIB_LAPACK_A) $(LIB_BLAS_A) $(LIB_G2C_A) $(LIB_GFORTRAN)
+endif
 
 endif
 # endif ENABLE_QT_APPS
