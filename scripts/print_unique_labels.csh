@@ -6,6 +6,7 @@
 #
 # Original Author: Lilla Zollei
 # Created: 08-09-2011
+# MOdifications: 02-07-13: added option to just output a list of lables and not lables + name into a file
 
 alias grep grep
 set PrintHelp = 0;
@@ -13,9 +14,10 @@ set labelvol = ()
 set LOI = -1
 set outputfile = ()
 set fscolor = $FREESURFER_HOME/FreeSurferColorLUT.txt
+set onlylist = 0
 
 set inputargs = ($argv);
-set VERSION = '$Id: print_unique_labels.csh,v 1.1 2011/09/08 23:37:59 lzollei Exp $';
+set VERSION = '$Id: print_unique_labels.csh,v 1.2 2013/02/07 21:59:52 lzollei Exp $';
 
 if($#argv == 0) goto usage_exit;
 set n = `echo $argv | egrep -e --version | wc -l`
@@ -34,8 +36,10 @@ parse_args_return:
 goto check_params;
 check_params_return:
 
-echo "Input file: $labelvol" > $outputfile
-echo "Output file: $outputfile"
+if !($onlylist) then
+  echo "Input file: $labelvol" > $outputfile
+  echo "Output file: $outputfile"
+endif 
 
 # Working with some fsl code so make sure that there is a NIFTI
 # version of the input
@@ -65,25 +69,27 @@ while ($counter < $bins + 1)
   endif
   @ counter = $counter + 1
 end
-echo "There are $#labels unique lables in this volume. They are: ($labels)"
+if ($onlylist) then
+  echo $labels
+else
+  echo "There are $#labels unique lables in this volume. They are: ($labels)"
+endif 
 
-foreach LOI ($labels)
-
-  # To get FS structure name:
-  set linenumber = `sed -n "/^$LOI / =" $fscolor`
-  if ($LOI < 10) then
-    set structure  = `sed -n "$linenumber s/$LOI   \([0-9a-zA-Z-]*\).*/ \1/p" < $fscolor`
-  else if ($LOI < 100) then
-    set structure  = `sed -n "$linenumber s/$LOI  \([0-9a-zA-Z-]*\).*/ \1/p" < $fscolor`
-  else 
-    set structure  = `sed -n "$linenumber s/$LOI \([0-9a-zA-Z-]*\).*/ \1/p" < $fscolor`
-  endif
-
-  echo "$structure (label ${LOI})" >> $outputfile
-
-end
-
-more $outputfile
+if !($onlylist) then
+  foreach LOI ($labels)
+    # To get FS structure name:
+    set linenumber = `sed -n "/^$LOI / =" $fscolor`
+    if ($LOI < 10) then
+      set structure  = `sed -n "$linenumber s/$LOI   \([0-9a-zA-Z-]*\).*/ \1/p" < $fscolor`
+    else if ($LOI < 100) then
+      set structure  = `sed -n "$linenumber s/$LOI  \([0-9a-zA-Z-]*\).*/ \1/p" < $fscolor`
+    else 
+      set structure  = `sed -n "$linenumber s/$LOI \([0-9a-zA-Z-]*\).*/ \1/p" < $fscolor`
+    endif
+    echo "$structure (label ${LOI})" >> $outputfile
+  end
+  # more $outputfile
+endif
 
 if ($didconversion) then
   rm $labelvol
@@ -111,6 +117,10 @@ while( $#argv != 0 )
       set outputfile = $argv[1]; shift;
       breaksw
 
+    case "--list":
+      set onlylist = 1; 
+      breaksw
+
     default:
       echo ERROR: Flag $flag unrecognized.
       echo $cmdline
@@ -130,8 +140,8 @@ check_params:
     exit 1;
   endif
 
-  if($#outputfile == 0) then
-    echo "ERROR: must have an output file specified"
+  if(($#outputfile == 0) && ($onlylist == 0)) then
+    echo "ERROR: must have an output file specified or the list option specified"
     exit 1;
   endif
 
@@ -148,7 +158,9 @@ usage_exit:
   echo ""
   echo "Required Arguments:";
   echo "   --vol labelvol   : label volume to be analyzed"
+  echo "  and one of the below"
   echo "   --out outputfile : text file where the results are written"
+  echo "   --list : only lists the labels"
   echo ""
   echo "Optional Arguments"
   echo ""
@@ -176,5 +188,11 @@ Label volume to be analyzed
 --out outputfile 
 
 Text file where the results are written
+
+or
+
+--list 
+
+Only list the labels (not their anatomical equivalents)
 
 BUGS:
