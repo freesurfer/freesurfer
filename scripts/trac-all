@@ -8,8 +8,8 @@
 # Original Author: Anastasia Yendiki
 # CVS Revision Info:
 #    $Author: ayendiki $
-#    $Date: 2012/11/03 21:09:58 $
-#    $Revision: 1.44 $
+#    $Date: 2013/02/08 02:03:37 $
+#    $Revision: 1.45 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -25,7 +25,7 @@
 
 umask 002
 
-set VERSION = '$Id: trac-all,v 1.44 2012/11/03 21:09:58 ayendiki Exp $'
+set VERSION = '$Id: trac-all,v 1.45 2013/02/08 02:03:37 ayendiki Exp $'
 set ProgName = `basename $0`
 set inputargs = ($argv)
 
@@ -39,7 +39,7 @@ endif
 
 set onpbs = 0
 set hname = `hostname -s`
-if ($hname == seychelles || $hname == launchpad) then
+if ($hname == tensor || $hname == launchpad) then
   set onpbs = 1
 endif
 
@@ -490,20 +490,18 @@ if ($onpbs && $RunIt) then
   if ($dopreproc) then
     if (! $?MYPBSWAIT) setenv MYPBSWAIT 30
     if ($doregcvs) then
-      if ($hname == launchpad)  setenv MYPBSARCH "ppn=4,vmem=28gb"
-      if ($hname == seychelles)	setenv MYPBSARCH "bigmem:ppn=2"
+      setenv MYPBSARCH "ppn=4,vmem=28gb"
     endif
     echo Queueing pre-processing
     set preid = `fsl_sub_mgh \
                  -l $pbslogdir/log -m a -N trcpre -t $submitfile`
   else if ($dobedpost) then
     if (! $?MYPBSWAIT) setenv MYPBSWAIT 0
-    bedpostx_mgh $dmdirlist
+    bedpostx_mgh -n $nstick $dmdirlist
   else if ($dopaths) then
     if (! $?MYPBSWAIT) setenv MYPBSWAIT 30
     if ($doregcvs) then
-      if ($hname == launchpad)  setenv MYPBSARCH "ppn=4,vmem=28gb"
-      if ($hname == seychelles)	setenv MYPBSARCH "bigmem:ppn=2"
+      setenv MYPBSARCH "ppn=4,vmem=28gb"
     endif
     echo Queueing path reconstruction
     set trcid = `fsl_sub_mgh \
