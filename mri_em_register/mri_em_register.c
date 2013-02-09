@@ -10,8 +10,8 @@
  * CUDA version : Richard Edgar
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2012/10/30 19:16:52 $
- *    $Revision: 1.84.2.2 $
+ *    $Date: 2013/02/09 00:49:26 $
+ *    $Revision: 1.84.2.3 $
  *
  * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -225,7 +225,7 @@ main(int argc, char *argv[])
   nargs =
     handle_version_option
     (argc, argv,
-     "$Id: mri_em_register.c,v 1.84.2.2 2012/10/30 19:16:52 nicks Exp $",
+     "$Id: mri_em_register.c,v 1.84.2.3 2013/02/09 00:49:26 nicks Exp $",
      "$Name:  $");
   if (nargs && argc - nargs == 1)
   {
@@ -401,12 +401,15 @@ main(int argc, char *argv[])
     if (mask_fname)
     {
       MRI *mri_mask ;
+      int val ;
 
       mri_mask = MRIread(mask_fname) ;
       if (!mri_mask)
         ErrorExit(ERROR_NOFILE, "%s: could not open mask volume %s.\n",
                   Progname, mask_fname) ;
-      MRImask(mri_tmp, mri_mask, mri_tmp, 0, 0) ;
+      for (val = 0 ; val < MIN_WM_VAL ; val++)
+	MRImask(mri_tmp, mri_mask, mri_tmp, val, 0) ;
+
       MRIfree(&mri_mask) ;
       if (parms.write_iterations != 0 && Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
       {
