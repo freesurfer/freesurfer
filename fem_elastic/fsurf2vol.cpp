@@ -91,6 +91,8 @@ struct IoParams
   std::string      strOutputMesh;
   std::string      strOutputSurf; // only root of the name (<index>.surf will be appended)
   std::string      strOutputSurfAffine;
+  std::string      strGcam;
+  std::string      strOutputAffine;
 
   // dbg
   std::string      dbgOutput; // will write a morph file at every iteration
@@ -99,6 +101,7 @@ struct IoParams
   //tDblCoords       pixelsPerElt;
   double           eltVolMin, eltVolMax;
   float            poissonRatio;
+  float            YoungModulus; 
 
   bool             compress;
 
@@ -464,7 +467,7 @@ main(int argc,
       std::cout << "elt_vol= " << deltVol << std::endl;
       DelaunayMesh creator(  srcPoints,
                              cmin, cmax,
-                             deltVol , 10,
+                             deltVol , params.YoungModulus, //10,
                              params.poissonRatio);
       CMesh3d* pmesh = creator.get();
 
@@ -627,6 +630,13 @@ main(int argc,
 
       MRIwrite(warped,
                const_cast<char*>( params.strOutput.c_str())  );
+
+      // 02/07/13: orig location has a bug...needed to write it here...
+      if( !params.strGcam.empty() ) {
+	GCA_MORPH* gcam = morph.exportGcam(mri_moving, FALSE, 0);
+	GCAMwrite(gcam, const_cast<char*>( params.strGcam.c_str()));
+      }
+
     }
 
     std::cout << "baly\n";
@@ -648,35 +658,91 @@ main(int argc,
       morph.m_transforms.push_back(ptransform);
       boost::shared_ptr<gmp::AffineTransform3d>
 	paffine( new gmp::AffineTransform3d(inv_t));
-      morph.m_transforms.push_back( paffine );	
-      
+      morph.m_transforms.push_back( paffine );	      
       morph.save(os.str().c_str());
       }  
       catch (const char* msg)
 	{
 	  std::cerr << " exception caught while trying to write transform \n"
 		    << msg << std::endl;
+	}      
+    } 
+
+    // 02/07/13: there is a bug in this; see above for gcam write 
+    if (0) {
+      if( !params.strGcam.empty() ) {
+	// write the m3z version of the morph
+	try {
+	  boost::shared_ptr<gmp::AffineTransform3d> paffine(new gmp::AffineTransform3d(inv_t));
+	  gmp::VolumeMorph morph;
+	  morph.set_volGeom_fixed( mri_fixed );
+	  morph.set_volGeom_moving(mri_moving);
+	  morph.m_transforms.push_back(ptransform);
+	  morph.m_transforms.push_back(paffine);
+	  morph.m_template = mri_fixed;
+	  // LZ: test beg
+	  //VOL_GEOM vgLike;
+	  //initVolGeom(&vgLike);
+	  //getVolGeom(morph.m_template, &vgLike);
+	  //MRI* mriOut  = morph.apply_transforms(mri_moving, true, &vgLike);
+	  //MRI* mriOut  = morph.apply_transforms(mri_moving); 
+	  //MRIwrite(mriOut, "tmpout2.mgz");
+	  //MRIfree(&mriOut);
+	  // LZ: test end
+	  GCA_MORPH* gcam = morph.exportGcam(mri_moving, FALSE, 0);
+	  GCAMwrite(gcam, const_cast<char*>( params.strGcam.c_str()));
+	}
+	catch (const char* msg)
+	  {
+	    std::cerr << " exception caught while trying to write transform \n"
+		      << msg << std::endl;
+	  }
+      }
+    }
+    // 02/07/13: there is a bug in this; see above for gcam write 
+    
+    if( !params.strOutputAffine.empty() ) {
+      // write the affine morpehd version of the input 
+      try {
+	boost::shared_ptr<gmp::AffineTransform3d> paffine(new gmp::AffineTransform3d(inv_t));
+	
+	gmp::VolumeMorph morph;
+	morph.m_template = mri_fixed;
+	morph.set_volGeom_fixed( mri_fixed );
+	morph.set_volGeom_moving( mri_moving );
+	morph.m_transforms.push_back(paffine);
+	
+	MRI* warped = morph.apply_transforms(mri_moving);
+	
+	MRIwrite(warped,
+		 const_cast<char*>( params.strOutputAffine.c_str())  );
+      }
+      catch (const char* msg)
+	{
+	  std::cerr << " exception caught while trying to write affine morphed input volume \n"
+		    << msg << std::endl;
 	}
     }
+    
   }
   catch (const char* msg)
-  {
-    std::cout << " caught const char exception \n"
-    << msg << std::endl;
-  }
+    {
+      std::cout << " caught const char exception \n"
+		<< msg << std::endl;
+    }
   catch (const std::exception& e)
-  {
-    std::cout << " Master-net caught exception\n"
-    << e.what() << std::endl;
-  }
-
+    {
+      std::cout << " Master-net caught exception\n"
+		<< e.what() << std::endl;
+    }
+  
   std::cout << " releasing Petsc resources\n";
   // RELEASE PETSC resources
   ierr = PetscFinalize();
   CHKERRQ(ierr);
-
+  
   std::cout << " process performed in " << timer.elapsed()/60. << " minutes\n";
-
+  
   return 0;
 }
 
@@ -1135,12 +1201,15 @@ IoParams::IoParams()
     strOutput("out.mgz"),
     strOutputField("out_field.mgz"),
     strOutputMesh(),
-    strOutputSurf(),
-    strOutputSurfAffine()
+    strOutputSurf(),        // just a placeholder
+    strOutputSurfAffine(),  // just a placeholder
+    strGcam(),
+    strOutputAffine()  
 {
   eltVolMin = 2;
   eltVolMax = 21;
   poissonRatio = .3f;
+  YoungModulus = 10;
   iSteps = 1; // by default, simple linear elastic model
   iEndStep = -1; // by default, do an extra step to finish converging
   surfSubsample = -1;
@@ -1295,6 +1364,17 @@ IoParams::parse(std::string& errMsg)
   CHKERRQ(ierr);
   if (petscFlag) strOutputSurfAffine = buffer;
 
+  ierr = PetscOptionsGetString( NULL, "-gcam",
+                                buffer, maxLen,
+                                &petscFlag);
+  CHKERRQ(ierr);
+  if (petscFlag) strGcam = buffer;
+
+  ierr = PetscOptionsGetString( NULL, "-out_affine",
+                                buffer, maxLen,
+                                &petscFlag);
+  CHKERRQ(ierr);
+  if (petscFlag) strOutputAffine = buffer;
 
   ierr = PetscOptionsGetString( NULL, "-dbg_output",
                                 buffer, maxLen,
@@ -1340,6 +1420,16 @@ IoParams::parse(std::string& errMsg)
   else std::cout << " No Poisson ratio specified (option -poisson)\n"
     << "\t will use default value " << poissonRatio
     << std::endl;
+
+  // Young modulus
+  ierr = PetscOptionsGetReal( NULL, "-young",
+                              &petreal, &petscFlag);
+  CHKERRQ(ierr);
+  if (petscFlag) YoungModulus = petreal;
+  else std::cout << " No Young-modulus specified (option -young)\n"
+    << "\t will use default value " << YoungModulus
+    << std::endl;
+
   ierr = PetscOptionsGetReal( NULL, "-surf_subsample",
                               &petreal, &petscFlag);
   CHKERRQ(ierr);
@@ -1413,6 +1503,8 @@ IoParams::parse(int ac, char* av[])
    " spacing for the parametric mesh X Y Z")
   ("poisson", po::value<float>(&poissonRatio),
    " poisson ratio")
+  ("young", po::value<float>(&YoungModulus),
+   " Young modulus")
   ("cache_transform",po::value<std::string>(&strTransform),
    " store linear transform for subsequent use ")
   ("fem_steps", po::value<int>(&iSteps),
