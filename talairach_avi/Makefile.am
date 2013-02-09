@@ -34,7 +34,39 @@ foo_DATA= \
 	3T18yoSchwartzReactN32_as_orig.4dfp.ifh \
 	3T18yoSchwartzReactN32_as_orig.4dfp.img.rec \
 	3T18yoSchwartzReactN32_as_orig.4dfp.mat \
-	3T18yoSchwartzReactN32_as_orig.lst
+	3T18yoSchwartzReactN32_as_orig.lst \
+	RLB700_atlas_as_orig.4dfp.hdr \
+	RLB700_atlas_as_orig.4dfp.ifh \
+	RLB700_atlas_as_orig.4dfp.img \
+	RLB700_atlas_as_orig.4dfp.img.rec \
+	SVIP_Adult_Comp_N24_as_orig.4dfp.hdr \
+	SVIP_Adult_Comp_N24_as_orig.4dfp.ifh \
+	SVIP_Adult_Comp_N24_as_orig.4dfp.img \
+	SVIP_Adult_Comp_N24_as_orig.4dfp.img.rec \
+	SVIP_Adult_Control_N12_as_orig.4dfp.hdr \
+	SVIP_Adult_Control_N12_as_orig.4dfp.ifh \
+	SVIP_Adult_Control_N12_as_orig.4dfp.img \
+	SVIP_Adult_Control_N12_as_orig.4dfp.img.rec \
+	SVIP_Adult_Patient_N12_as_orig.4dfp.hdr \
+	SVIP_Adult_Patient_N12_as_orig.4dfp.ifh \
+	SVIP_Adult_Patient_N12_as_orig.4dfp.img \
+	SVIP_Adult_Patient_N12_as_orig.4dfp.img.rec \
+	SVIP_Child_Comp_N24_as_orig.4dfp.hdr \
+	SVIP_Child_Comp_N24_as_orig.4dfp.ifh \
+	SVIP_Child_Comp_N24_as_orig.4dfp.img \
+	SVIP_Child_Comp_N24_as_orig.4dfp.img.rec \
+	SVIP_Full_Comp_N48_as_orig.4dfp.hdr \
+	SVIP_Full_Comp_N48_as_orig.4dfp.ifh \
+	SVIP_Full_Comp_N48_as_orig.4dfp.img \
+	SVIP_Full_Comp_N48_as_orig.4dfp.img.rec \
+	SVIP_Young_Control_N12_as_orig.4dfp.hdr \
+	SVIP_Young_Control_N12_as_orig.4dfp.ifh \
+	SVIP_Young_Control_N12_as_orig.4dfp.img \
+	SVIP_Young_Control_N12_as_orig.4dfp.img.rec \
+	SVIP_Young_Patient_N12_as_orig.4dfp.hdr \
+	SVIP_Young_Patient_N12_as_orig.4dfp.ifh \
+	SVIP_Young_Patient_N12_as_orig.4dfp.img \
+	SVIP_Young_Patient_N12_as_orig.4dfp.img.rec
 
 xmldir=$(prefix)/docs/xml
 xml_DATA=talairach_avi.help.xml
@@ -168,7 +200,7 @@ foo:
 		cp -v $(top_srcdir)/talairach_avi/711-2* \
 					$(top_builddir)/talairach_avi/; fi;
 	if ! test -f "$(top_builddir)/talairach_avi/3T18yoSchwartzReactN32_as_orig.4dfp.img"; then \
-		cp -v $(top_srcdir)/talairach_avi/3T18yoSchwartzReactN32_as_orig* \
+		cp -v $(top_srcdir)/talairach_avi/*_orig* \
 					$(top_builddir)/talairach_avi/; fi;
 	if ! test -f "$(top_builddir)/talairach_avi/talairach_avi"; then \
 		list=( $(dist_bin_SCRIPTS) ); \
