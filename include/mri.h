@@ -8,8 +8,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2013/01/08 19:49:54 $
- *    $Revision: 1.445 $
+ *    $Date: 2013/02/11 22:56:47 $
+ *    $Revision: 1.446 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -916,6 +916,7 @@ int        MRIvalRangeFrame(MRI *mri, float *pmin, float *pmax, int frame) ;
 MRI        *MRIvalScale(MRI *mri_src, MRI *mri_dst, float fmin, float fmax) ;
 
 #include "histo.h" // HISTOGRAM
+double MRIfindPercentile(MRI *mri, double percentile, int frame) ;
 HISTOGRAM *MRIhistogramVoxel(MRI *mri,
                              int nbins,
                              HISTOGRAM *histo,
