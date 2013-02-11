@@ -2,7 +2,7 @@
 # dcmunpack
 # 
 
-set VERSION = '$Id: dcmunpack,v 1.17 2012/10/16 19:24:27 greve Exp $';
+set VERSION = '$Id: dcmunpack,v 1.18 2013/02/11 19:49:06 greve Exp $';
 
 set SeriesInfo = ();
 
@@ -22,6 +22,7 @@ set MGHDCM = 0;
 set Key = ();
 set DoBase = 0;
 set infofile = ();
+set itdicom = ();
 
 set RunNos = ();
 set SubDirs = ();
@@ -132,6 +133,8 @@ if($#flist > 100 && $#SrcInfo == 0) then
   echo "  Be patient." 
   echo "If you have collected the data in the Martinos center, this "
   echo "will run faster if you kill this job and re-run with -martinos "
+  echo "Except, with changes in the file naming (Oct 2012), this does "
+  echo "not work."
 endif
 
 # Go through each file, create an info dump, extract params. 
@@ -294,7 +297,7 @@ foreach run ($RunNos)
   if($DoConvert) then
     set f = `cat $infofile | awk -v r=$run '{if($2 == r) print $11}' | head -n 1`
     set outfname = $outdir/$FName.$Format
-    mri_convert $f $outfname --nskip $NSkip --ndrop $NDrop |& tee -a $LF
+    mri_convert $f $outfname --nskip $NSkip --ndrop $NDrop $itdicom |& tee -a $LF
     if($status) exit 1;
   endif
 
@@ -367,6 +370,7 @@ while( $#argv != 0 )
   switch($flag)
 
     case "-targ":
+    case "-trg":
       if($#argv < 1) goto arg1err;
       set TargetDir = "$argv[1]"; shift;
       set DoUnpack = 1;
@@ -408,6 +412,13 @@ while( $#argv != 0 )
 
     case "-base":
       set DoBase = 1;
+      breaksw
+
+    case "-itdicom":
+      # This adds -it dicom to the mri_convert cmd line
+      # This will force Seimens dicoms to be treated as generic
+      # which may be helpful for some applications (eg, PET)
+      set itdicom = ("-it dicom")
       breaksw
 
     case "-src":
@@ -702,6 +713,7 @@ usage_exit:
   echo "   -key keystring : put keystring before each run line (good for searching)"
   echo "   -index-out index.out.dat : save index of files to index.out.dat (for re-use)"
   echo "   -index-in  index.dat : read index of files (can make things much faster on 2nd run) "
+  echo "   -itdicom : add -it dicom to mri_convert cmd line"
   echo ""
   echo "   -fips project site birnid visit"
   echo "   -fips-run run paradigm <<nskip> ndrop>"
