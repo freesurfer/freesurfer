@@ -9,8 +9,8 @@
 # Original Author: Martin Reuter
 # CVS Revision Info:
 #    $Author: mreuter $
-#    $Date: 2012/11/28 00:31:50 $
-#    $Revision: 1.4.2.8 $
+#    $Date: 2013/02/11 19:32:18 $
+#    $Revision: 1.4.2.9 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -201,6 +201,8 @@ OPTIONAL ARGUMENTS
 
 --simulate        Do not submit anything, just print commands
 
+--simfiles        Do not submit anything, just create command files
+
 --check           Checks if all longitudinals are done
 
 --pause <int>     Pause in sec between submissions (default: 13)
@@ -278,7 +280,7 @@ def options_parse():
     Command Line Options Parser for long_mris_slopes
     initiate the option parser and return the parsed object
     """
-    parser = optparse.OptionParser(version='$Id: long_submit_jobs,v 1.4.2.8 2012/11/28 00:31:50 mreuter Exp $', usage=HELPTEXT)
+    parser = optparse.OptionParser(version='$Id: long_submit_jobs,v 1.4.2.9 2013/02/11 19:32:18 mreuter Exp $', usage=HELPTEXT)
     
     # help text
     h_qdec      = '(REQUIRED) qdec table file specifying the subjects and time points'
@@ -298,6 +300,7 @@ def options_parse():
     h_affine    = 'use affine registration for base'
     h_force     = 'force reprocessing even if finished successfully before (recon-all.done)'
     h_simulate  = 'do not submit anything, just print commands'
+    h_simfiles  = 'do not submit anything, just create command files'
     h_skip      = '0 (exit on missing), 1 (default, skip instead of exit), 2 (skip instead of wait)'
     h_skiperror = 'skip re-submission if run had errors earlier (default: resubmit if not running)'
     h_check     = 'check if all longitudinals are done'
@@ -329,6 +332,7 @@ def options_parse():
     parser.add_option('--affine' , action='store_true', dest='affine', help=h_affine , default=False)
     parser.add_option('--force'  , action='store_true', dest='force',  help=h_force , default=False)
     parser.add_option('--simulate', action='store_true', dest='simulate',  help=h_simulate , default=False)
+    parser.add_option('--simfiles', action='store_true', dest='simfiles',  help=h_simfiles , default=False)
     parser.add_option('--skip', dest='skip',  help=h_skip , default=1, type="int")
     parser.add_option('--skiperror'  , action='store_true', dest='skiperror',  help=h_skiperror , default=False)
     parser.add_option('--check', action='store_true', dest='check',  help=h_check , default=False)
@@ -387,6 +391,9 @@ def options_parse():
         
     if options.lflags is None:
         options.lflags = "-all"
+                   
+    if options.simfiles:
+        options.simulate = True 
                    
     return options
 
@@ -524,12 +531,13 @@ def run_cross(qdectable,options):
             
             # create tp cross sectionally:
             cmd = recall+" -s "+tpid+" -sd "+options.cdir+" "+options.cflags
-            if not options.simulate:
+            if not options.simulate or options.simfiles:
                 cmdf=os.path.join(options.cdir,tpid+"-cross.cmdf")
                 f = open(cmdf, 'w')
                 f.write(cmd+"\n")
                 f.close()
                 os.chmod(cmdf,stat.S_IRWXU | stat.S_IRWXG)
+            if not options.simulate:
                 wait_jobs(options.max)
                 submit(cmdf,1,7,options.queue)
                 submitted = submitted + 1
@@ -697,12 +705,13 @@ def run_base(qdectable,options):
             #if mem < 28: mem = mem+7
             
         cmd = recall+" -sd "+options.bdir+baseflag+subjectid+tps+" "+options.bflags
-        if not options.simulate:
+        if not options.simulate or options.simfiles:
             cmdf=os.path.join(options.bdir,subjectid+"-base.cmdf")
             f = open(cmdf, 'w')
             f.write(cmd+"\n")
             f.close()
             os.chmod(cmdf,stat.S_IRWXU)
+        if not options.simulate:
             wait_jobs(options.max)
             submit(cmdf,nodes,mem,options.queue)
             submitted = submitted + 1
@@ -896,12 +905,13 @@ def run_long(qdectable,options):
             
             
             cmd = recall+" -sd "+options.ldir+" -long "+tpid+" "+subjectid+" "+options.lflags
-            if not options.simulate:
+            if not options.simulate or options.simfiles:
                 cmdf=os.path.join(options.ldir,tpid+"-long.cmdf")
                 f = open(cmdf, 'w')
                 f.write(cmd+"\n")
                 f.close()
                 os.chmod(cmdf,stat.S_IRWXU)
+            if not options.simulate:
                 wait_jobs(options.max)
                 submit(cmdf,1,7,options.queue)
                 submitted = submitted + 1
