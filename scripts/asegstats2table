@@ -11,7 +11,7 @@ from fsutils import AsegStatsParser, BadFileError, aseglogger
 
 # Original Version - Douglas Greve, MGH
 # Rewrite - Krish Subramaniam, MGH
-# $Id: asegstats2table,v 1.33.2.2 2013/02/11 19:31:56 mreuter Exp $
+# $Id: asegstats2table,v 1.33.2.3 2013/02/11 19:48:32 mreuter Exp $
 
 # globals
 l = aseglogger
@@ -110,7 +110,7 @@ def options_parse():
     Command Line Options Parser for asegstats2table
     initiate the option parser and return the parsed object
     """
-    parser = optparse.OptionParser(version='$Id: asegstats2table,v 1.33.2.2 2013/02/11 19:31:56 mreuter Exp $', usage=HELPTEXT)
+    parser = optparse.OptionParser(version='$Id: asegstats2table,v 1.33.2.3 2013/02/11 19:48:32 mreuter Exp $', usage=HELPTEXT)
     
     # help text
     h_sub = '(REQUIRED) subject1 <subject2 subject3..>'
@@ -289,6 +289,7 @@ def assemble_inputs(o):
             try:
                 sf = open(o.subjectsfile)
                 [o.subjects.append(subfromfile.strip()) for subfromfile in sf]
+                sf.close()
             except IOError:
                 print 'ERROR: the file %s doesnt exist'%o.subjectsfile
                 sys.exit(1)
@@ -304,6 +305,7 @@ def assemble_inputs(o):
                     fsid=row['fsid'].strip()
                     if fsid[0] != '#':
                         o.subjects.append(fsid)
+                f.close()
             except IOError:
                 print 'ERROR: the file %s doesnt exist'%o.qdec
                 sys.exit(1)
@@ -319,6 +321,7 @@ def assemble_inputs(o):
                     fsid=row['fsid'].strip()
                     if fsid[0] != '#':
                         o.subjects.append(fsid+'.long.'+row['fsid-base'].strip())
+                f.close()
             except IOError:
                 print 'ERROR: the file %s doesnt exist'%o.qdeclong
                 sys.exit(1)

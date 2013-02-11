@@ -9,7 +9,7 @@ from fsutils import AparcStatsParser, BadFileError, aparclogger
 
 # Original Version - Douglas Greve, MGH
 # Rewrite - Krish Subramaniam, MGH
-# $Id: aparcstats2table,v 1.20.2.4 2013/02/11 19:31:56 mreuter Exp $
+# $Id: aparcstats2table,v 1.20.2.5 2013/02/11 19:48:32 mreuter Exp $
 
 # globals
 l = aparclogger
@@ -88,7 +88,7 @@ def options_parse():
     Command Line Options Parser for aparcstats2table
     initiate the option parser and return the parsed object
     """
-    parser = optparse.OptionParser(version='$Id: aparcstats2table,v 1.20.2.4 2013/02/11 19:31:56 mreuter Exp $', usage=HELPTEXT)
+    parser = optparse.OptionParser(version='$Id: aparcstats2table,v 1.20.2.5 2013/02/11 19:48:32 mreuter Exp $', usage=HELPTEXT)
     
     # help text
     h_sub = '(REQUIRED) subject1 <subject2 subject3..>'
@@ -212,6 +212,7 @@ def assemble_inputs(options):
         try:
             sf = open(o.subjectsfile)
             [o.subjects.append(subfromfile.strip()) for subfromfile in sf]
+            sf.close()
         except IOError:
             print 'ERROR: the file %s doesnt exist'%o.subjectsfile
             sys.exit(1)
@@ -228,6 +229,7 @@ def assemble_inputs(options):
                 if fsid[0] != '#':
                     o.subjects.append(fsid)
             #print o.subjects
+            f.close()
         except IOError:
             print 'ERROR: the file %s doesnt exist'%o.qdec
             sys.exit(1)
@@ -243,6 +245,7 @@ def assemble_inputs(options):
                 fsid=row['fsid'].strip()
                 if fsid[0] != '#':
                     o.subjects.append(fsid+'.long.'+row['fsid-base'].strip())
+            f.close()
         except IOError:
             print 'ERROR: the file %s doesnt exist'%o.qdeclong
             sys.exit(1)
