@@ -11,7 +11,7 @@ from fsutils import AsegStatsParser, BadFileError, aseglogger
 
 # Original Version - Douglas Greve, MGH
 # Rewrite - Krish Subramaniam, MGH
-# $Id: asegstats2table,v 1.33.2.1 2012/11/30 23:17:55 mreuter Exp $
+# $Id: asegstats2table,v 1.33.2.2 2013/02/11 19:31:56 mreuter Exp $
 
 # globals
 l = aseglogger
@@ -110,7 +110,7 @@ def options_parse():
     Command Line Options Parser for asegstats2table
     initiate the option parser and return the parsed object
     """
-    parser = optparse.OptionParser(version='$Id: asegstats2table,v 1.33.2.1 2012/11/30 23:17:55 mreuter Exp $', usage=HELPTEXT)
+    parser = optparse.OptionParser(version='$Id: asegstats2table,v 1.33.2.2 2013/02/11 19:31:56 mreuter Exp $', usage=HELPTEXT)
     
     # help text
     h_sub = '(REQUIRED) subject1 <subject2 subject3..>'
@@ -295,30 +295,30 @@ def assemble_inputs(o):
         if o.qdec is not None:
             o.subjects=[]
             try:
-                with open(o.qdec, 'rb') as f:
-                    dialect = csv.Sniffer().sniff(f.read(1024))
-                    f.seek(0)
-                    reader = csv.DictReader(f,dialect=dialect)
-                    #o.subjects = [row['fsid'] for row in reader]
-                    for row in reader:
-                        fsid=row['fsid'].strip()
-                        if fsid[0] != '#':
-                            o.subjects.append(fsid)
+                f = open(o.qdec, 'rb')
+                dialect = csv.Sniffer().sniff(f.read(1024))
+                f.seek(0)
+                reader = csv.DictReader(f,dialect=dialect)
+                #o.subjects = [row['fsid'] for row in reader]
+                for row in reader:
+                    fsid=row['fsid'].strip()
+                    if fsid[0] != '#':
+                        o.subjects.append(fsid)
             except IOError:
                 print 'ERROR: the file %s doesnt exist'%o.qdec
                 sys.exit(1)
         if o.qdeclong is not None:
             o.subjects=[]
             try:
-                with open(o.qdeclong, 'rb') as f:
-                    dialect = csv.Sniffer().sniff(f.read(1024))
-                    f.seek(0)
-                    reader = csv.DictReader(f,dialect=dialect)
-                    #o.subjects = [(row['fsid']+'.long.'+row['fsid-base']) for row in reader]
-                    for row in reader:
-                        fsid=row['fsid'].strip()
-                        if fsid[0] != '#':
-                            o.subjects.append(fsid+'.long.'+row['fsid-base'].strip())
+                f = open(o.qdeclong, 'rb')
+                dialect = csv.Sniffer().sniff(f.read(1024))
+                f.seek(0)
+                reader = csv.DictReader(f,dialect=dialect)
+                #o.subjects = [(row['fsid']+'.long.'+row['fsid-base']) for row in reader]
+                for row in reader:
+                    fsid=row['fsid'].strip()
+                    if fsid[0] != '#':
+                        o.subjects.append(fsid+'.long.'+row['fsid-base'].strip())
             except IOError:
                 print 'ERROR: the file %s doesnt exist'%o.qdeclong
                 sys.exit(1)
