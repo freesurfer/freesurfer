@@ -8,8 +8,8 @@
 # Original Author: Anastasia Yendiki
 # CVS Revision Info:
 #    $Author: ayendiki $
-#    $Date: 2013/02/05 05:12:43 $
-#    $Revision: 1.40 $
+#    $Date: 2013/02/11 01:49:47 $
+#    $Revision: 1.41 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -25,7 +25,7 @@
 
 umask 002
 
-set VERSION = '$Id: trac-preproc,v 1.40 2013/02/05 05:12:43 ayendiki Exp $'
+set VERSION = '$Id: trac-preproc,v 1.41 2013/02/11 01:49:47 ayendiki Exp $'
 set ProgName = `basename $0`
 set inputargs = ($argv)
 
@@ -363,23 +363,52 @@ if ($docorr) then
   endif
 
   # Make diffusion brain mask
-  if ($#nb0 == 0) then
-    set nb0 = `grep "sWiPMemBlock.alFree\[8\]" $dwidir/dcminfo.dat \
-               | awk '{print $NF}'`
-  endif
+  if ($#nb0 > 0) then
+    set cmd = (fslroi $dwidir/dwi.nii.gz $dwidir/lowb.nii.gz 0 $nb0)
+    echo $cmd |& tee -a $LF |& tee -a $CF
+    if ($RunIt) then
+      $cmd |& tee -a $LF
+      if ($status) goto error_exit
+    endif
 
-  set cmd = (fslroi $dwidir/dwi.nii.gz $dwidir/lowb.nii.gz 0 $nb0)
-  echo $cmd |& tee -a $LF |& tee -a $CF
-  if ($RunIt) then
-    $cmd |& tee -a $LF
-    if ($status) goto error_exit
-  endif
+    set cmd = (fslmaths $dwidir/lowb.nii.gz -Tmean $dwidir/lowb.nii.gz)
+    echo $cmd |& tee -a $LF |& tee -a $CF
+    if ($RunIt) then
+      $cmd |& tee -a $LF
+      if ($status) goto error_exit
+    endif
+  else
+    set bmin = `grep -v ^$ $dwidir/dwi_orig.mghdti.bvals \
+                | sort --numeric-sort | head -1`
+    set flist = `cat $dwidir/dwi_orig.mghdti.bvals \
+                 | awk -v bmin=$bmin '{if ($1 == bmin) print NR-1}'`
+    foreach iframe ($flist)
+      set cmd = mri_convert
+      set cmd = ($cmd --frame $iframe)
+      set cmd = ($cmd $dwidir/dwi.nii.gz)
+      set cmd = ($cmd $dwidir/dwi_frame$iframe.nii.gz)
+      echo $cmd |& tee -a $LF |& tee -a $CF
+      if ($RunIt) then
+        $cmd |& tee -a $LF
+        if ($status) goto error_exit
+      endif
+    end
 
-  set cmd = (fslmaths $dwidir/lowb.nii.gz -Tmean $dwidir/lowb.nii.gz)
-  echo $cmd |& tee -a $LF |& tee -a $CF
-  if ($RunIt) then
-    $cmd |& tee -a $LF
-    if ($status) goto error_exit
+    set cmd = mri_concat
+    set cmd = ($cmd --i `printf "$dwidir/dwi_frame%s.nii.gz " $flist`)
+    set cmd = ($cmd --mean)
+    set cmd = ($cmd --o $dwidir/lowb.nii.gz)
+    echo $cmd |& tee -a $LF |& tee -a $CF
+    if ($RunIt) then
+      $cmd |& tee -a $LF
+      if ($status) goto error_exit
+    endif
+
+    set cmd = (rm -f $dwidir/dwi_frame*.nii.gz)
+    if ($RunIt) then
+      $cmd |& tee -a $LF
+      if ($status) goto error_exit
+    endif
   endif
 
   set cmd = bet
