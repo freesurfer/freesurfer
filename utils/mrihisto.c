@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl (1/8/97)
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2012/10/24 13:21:38 $
- *    $Revision: 1.43 $
+ *    $Date: 2013/02/11 22:56:36 $
+ *    $Revision: 1.44 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -1460,4 +1460,32 @@ mriHistogramRegionWithThreshold(MRI *mri, int nbins, HISTOGRAM *histo,
   }
 
   return(histo) ;
+}
+#define NBINS 1000
+double
+MRIfindPercentile(MRI *mri, double percentile, int frame)
+{
+  int x, y, z, val, bin ;
+  HISTO          *histo, *hcdf ;
+  float          min_val, max_val ;
+
+  MRIvalRange(mri, &min_val, &max_val) ;
+  histo = HISTOinit(NULL, NBINS, min_val, max_val);
+
+  for (x = 0 ; x < mri->width; x++)
+    for (y = 0 ; y < mri->height; y++)
+      for (z = 0 ; z < mri->depth; z++)
+      {
+	val = MRIgetVoxVal(mri, x, y, z, frame) ;
+	if (FZERO(val))
+	  continue ;
+	HISTOaddSample(histo, val, 0, 0) ;
+      }
+
+  hcdf = HISTOmakeCDF(histo, NULL);
+  bin = HISTOfindBinWithCount(hcdf, percentile) ;
+  val = hcdf->bins[bin] ;
+  HISTOfree(&hcdf) ; HISTOfree(&histo);
+
+  return(val) ;
 }
