@@ -28,6 +28,7 @@
 #include <iostream>
 #include <fstream>
 #include <limits>
+#include <algorithm>
 #include <math.h>
 #include "mri.h"
 
