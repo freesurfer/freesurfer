@@ -8,8 +8,8 @@
  * Original Author: Anastasia Yendiki
  * CVS Revision Info:
  *    $Author: ayendiki $
- *    $Date: 2012/11/03 21:06:10 $
- *    $Revision: 1.7 $
+ *    $Date: 2013/02/12 01:50:37 $
+ *    $Revision: 1.8 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -70,6 +70,7 @@ int main(int argc, char *argv[]);
 static char vcid[] = "";
 const char *Progname = "dmri_spline";
 
+bool showControls = false;
 char *inFile = NULL, *maskFile = NULL,
      *outVolFile = NULL, *outTextFile = NULL, *outVecBase = NULL;
 
@@ -115,7 +116,7 @@ int main(int argc, char **argv) {
   printf("Done in %g sec.\n", cputime/1000.0);
 
   if (outVolFile)
-    myspline.WriteVolume(outVolFile);
+    myspline.WriteVolume(outVolFile, showControls);
 
   if (outTextFile)
     myspline.WriteAllPoints(outTextFile);
@@ -196,22 +197,24 @@ static int parse_commandline(int argc, char **argv) {
       if (nargc < 1) CMDargNErr(option,1);
       outVolFile = fio_fullpath(pargv[0]);
       nargsused = 1;
-    } 
+    }
     else if (!strcmp(option, "--outpts")) {
       if (nargc < 1) CMDargNErr(option,1);
       outTextFile = fio_fullpath(pargv[0]);
       nargsused = 1;
-    } 
+    }
     else if (!strcmp(option, "--outvec")) {
       if (nargc < 1) CMDargNErr(option,1);
       outVecBase = fio_fullpath(pargv[0]);
       nargsused = 1;
-    } 
+    }
     else if (!strcmp(option, "--mask")) {
       if (nargc < 1) CMDargNErr(option,1);
       maskFile = fio_fullpath(pargv[0]);
       nargsused = 1;
     }
+    else if (!strcmp(option, "--show"))
+      showControls = true;
     else {
       fprintf(stderr,"ERROR: Option %s unknown\n",option);
       if (CMDsingleDash(option))
@@ -237,6 +240,8 @@ static void print_usage(void) {
   << "Outputs (at least one output type must be specified)" << endl
   << "   --out <file>:" << endl
   << "     Output volume of the interpolated spline" << endl
+  << "   --show:" << endl
+  << "     Highlight control points in output volume (default: no)" << endl
   << "   --outpts <file>:" << endl
   << "     Output text file containing all interpolated spline points" << endl
   << "   --outvec <base>:" << endl
@@ -305,8 +310,10 @@ static void dump_options() {
 
   cout << "Control points: " << inFile << endl;
   cout << "Mask volume: " << maskFile << endl;
-  if (outVolFile)
-    cout << "Output volume: " << outVolFile << endl;
+  if (outVolFile) {
+    cout << "Output volume: " << outVolFile << endl
+         << "Show controls: " << showControls << endl;
+  }
   if (outTextFile)
     cout << "Output text file: " << outTextFile << endl;
   if (outVecBase)
