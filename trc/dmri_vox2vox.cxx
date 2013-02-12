@@ -8,8 +8,8 @@
  * Original Author: Anastasia Yendiki
  * CVS Revision Info:
  *    $Author: ayendiki $
- *    $Date: 2012/12/28 18:52:55 $
- *    $Revision: 1.2 $
+ *    $Date: 2013/02/12 01:58:07 $
+ *    $Revision: 1.3 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -124,6 +124,7 @@ int main(int argc, char **argv) {
       affinereg.ReadXfm(affineXfmFile, inref, 0);
     nonlinreg.ReadXfm(nonlinXfmFile, outref);
   }
+  else
 #endif
   if (affineXfmFile)
     affinereg.ReadXfm(affineXfmFile, inref, outref);
