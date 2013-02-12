@@ -766,11 +766,11 @@ void Aeon::WriteOutputs() {
                                        icpt < isamp->end(); icpt += 3)
         sampfile << icpt[0] << " " << icpt[1] << " " << icpt[2] << endl;
 
-      if ((int) (isamp - mControlPointSamples.begin())
-           == mMaximumAPosterioriPath)
+      if (isamp - mControlPointSamples.begin() == mMaximumAPosterioriPath)
         cptsmap.insert(cptsmap.end(), isamp->begin(), isamp->end());
 
-      if (isamp - mControlPointSamples.begin() == mMaximumAPosterioriPath0)
+      if (isamp - mControlPointSamples.begin() == (int)
+                                                  mMaximumAPosterioriPath0)
         cptsmap0.insert(cptsmap0.end(), isamp->begin(), isamp->end());
     }
   }
@@ -791,12 +791,12 @@ void Aeon::WriteOutputs() {
         sampfile << round(point[0]) << " " << round(point[1]) << " "
                                            << round(point[2]) << endl;
 
-        if ((int) (isamp - mControlPointSamples.begin())
-             == mMaximumAPosterioriPath)
+        if (isamp - mControlPointSamples.begin() == mMaximumAPosterioriPath)
           for (int k = 0; k < 3; k++)
             cptsmap.push_back((int) round(point[k]));
 
-        if (isamp - mControlPointSamples.begin() == mMaximumAPosterioriPath0)
+        if (isamp - mControlPointSamples.begin() == (int)
+                                                    mMaximumAPosterioriPath0)
           for (int k = 0; k < 3; k++)
             cptsmap0.push_back((int) round(point[k]));
       }
