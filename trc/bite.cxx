@@ -26,6 +26,7 @@ using namespace std;
 
 int Bite::mNumDir, Bite::mNumB0, Bite::mNumTract, Bite::mNumBedpost;
 float Bite::mFminPath;
+vector<unsigned int> Bite::mBaselineImages;
 vector<float> Bite::mGradients, Bite::mBvalues;
 
 Bite::Bite(MRI *Dwi, MRI **Phi, MRI **Theta, MRI **F,
@@ -41,15 +42,17 @@ Bite::Bite(MRI *Dwi, MRI **Phi, MRI **Theta, MRI **F,
   mPhi.clear();
   mTheta.clear();
   mF.clear();
-  mAtlasCoords.clear();
+
+  // DWI intensity values
+  for (int idir = 0; idir < mNumDir; idir++)
+    mDwi.push_back(MRIgetVoxVal(Dwi, mCoordX, mCoordY, mCoordZ, idir));
 
   // Initialize s0
   mS0 = 0;
-  for (int idir = 0; idir < mNumDir; idir++) {
-    mDwi.push_back(MRIgetVoxVal(Dwi, mCoordX, mCoordY, mCoordZ, idir));
-    if (mBvalues[idir] == 0)
-      mS0 += MRIgetVoxVal(Dwi, mCoordX, mCoordY, mCoordZ, idir);
-  }
+  for (vector<unsigned int>::const_iterator ibase = mBaselineImages.begin();
+                                            ibase < mBaselineImages.end();
+                                            ibase++)
+      mS0 += mDwi[*ibase];
   mS0 /= mNumB0;
 
   // Samples of phi, theta, f
@@ -105,12 +108,20 @@ void Bite::SetStatic(const char *GradientFile, const char *BvalueFile,
 
   cout << "Loading b-values from " << BvalueFile << endl;
   mBvalues.clear();
-  mNumB0 = 0;
-  while (bfile >> val) {
+  while (bfile >> val)
     mBvalues.push_back(val);
-    if (val == 0) mNumB0++;
-  }
+
   mNumDir = mBvalues.size();
+
+  // Find baseline images (the ones with the lowest b-value)
+  val = *min_element(mBvalues.begin(), mBvalues.end());
+  mBaselineImages.clear();
+  for (vector<float>::const_iterator ival = mBvalues.begin();
+                                     ival < mBvalues.end(); ival++)
+    if (*ival == val)
+      mBaselineImages.push_back(ival - mBvalues.begin());
+
+  mNumB0 = mBaselineImages.size();
 
   cout << "Loading gradients from " << GradientFile << endl;
   mGradients.clear();
@@ -143,6 +154,8 @@ int Bite::GetNumDir() { return mNumDir; }
 int Bite::GetNumB0() { return mNumB0; }
 
 int Bite::GetNumBedpost() { return mNumBedpost; }
+
+float Bite::GetLowBvalue() { return mBvalues[mBaselineImages[0]]; }
 
 //
 // Draw samples from marginal posteriors of diffusion parameters
@@ -368,24 +381,8 @@ void Bite::ComputePriorOnPath() {
   mPrior1 = 0;
 }
 
-//
-// Check if the coordinates of this voxel in atlas space have been set
-//
-bool Bite::IsAtlasSet() { return !mAtlasCoords.empty(); }
-
-//
-// Set the coordinates of this voxel in atlas space
-//
-void Bite::SetAtlasCoords(vector<int>::const_iterator AtlasCoords) {
-  mAtlasCoords.clear();
-  mAtlasCoords.insert(mAtlasCoords.begin(), AtlasCoords, AtlasCoords + 3);
-}
-
-//
-// Retrieve the previously saved coordinates of this voxel in atlas space
-//
-void Bite::GetAtlasCoords(vector<int>::iterator AtlasCoords) {
-  copy(mAtlasCoords.begin(), mAtlasCoords.end(), AtlasCoords);
+bool Bite::IsAllFZero() {
+  return (*max_element(mF.begin(), mF.end()) < mFminPath);
 }
 
 bool Bite::IsFZero() { return (mF[mPathTract] < mFminPath); }

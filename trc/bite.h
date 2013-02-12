@@ -41,20 +41,19 @@ class Bite {
   private:
     static int mNumDir, mNumB0, mNumTract, mNumBedpost;
     static float mFminPath;
+    static std::vector<unsigned int> mBaselineImages;
     static std::vector<float> mGradients,	// [3 x mNumDir]
                               mBvalues;		// [mNumDir]
 
-    bool mIsAtlasSet;
     int mCoordX, mCoordY, mCoordZ, mPathTract;
     float mS0, mD, mLikelihood0, mLikelihood1, mPrior0, mPrior1;
-    std::vector<int> mAtlasCoords;	// [3]
-    std::vector<float> mDwi;		// [mNumDir]
-    std::vector<float> mPhiSamples;	// [mNumTract x mNumBedpost]
-    std::vector<float> mThetaSamples;	// [mNumTract x mNumBedpost]
-    std::vector<float> mFSamples;	// [mNumTract x mNumBedpost]
-    std::vector<float> mPhi;		// [mNumTract]
-    std::vector<float> mTheta;		// [mNumTract]
-    std::vector<float> mF;		// [mNumTract]
+    std::vector<float> mDwi;			// [mNumDir]
+    std::vector<float> mPhiSamples;		// [mNumTract x mNumBedpost]
+    std::vector<float> mThetaSamples;		// [mNumTract x mNumBedpost]
+    std::vector<float> mFSamples;		// [mNumTract x mNumBedpost]
+    std::vector<float> mPhi;			// [mNumTract]
+    std::vector<float> mTheta;			// [mNumTract]
+    std::vector<float> mF;			// [mNumTract]
 
   public:
     static void SetStatic(const char *GradientFile, const char *BvalueFile,
@@ -63,6 +62,7 @@ class Bite {
     static int GetNumDir();
     static int GetNumB0();
     static int GetNumBedpost();
+    static float GetLowBvalue();
 
     void SampleParameters();
     void ComputeLikelihoodOffPath();
@@ -71,9 +71,7 @@ class Bite {
     void ChoosePathTractLike(float PathPhi, float PathTheta);
     void ComputePriorOffPath();
     void ComputePriorOnPath();
-    bool IsAtlasSet();
-    void SetAtlasCoords(std::vector<int>::const_iterator AtlasCoords);
-    void GetAtlasCoords(std::vector<int>::iterator AtlasCoords);
+    bool IsAllFZero();
     bool IsFZero();
     bool IsThetaZero();
     float GetLikelihoodOffPath();

@@ -24,76 +24,84 @@
 
 using namespace std;
 
-const unsigned int Coffin::mDiffStep = 3;
+const unsigned int Aeon::mDiffStep = 3;
+int Aeon::mMaximumAPosterioriPath;
+unsigned int Aeon::mMaximumAPosterioriPath0;
+vector< vector<int> > Aeon::mControlPointSamples;
+vector<float> Aeon::mPriorSamples;
+MRI *Aeon::mBaseMask;
+
+const unsigned int Coffin::mMaxTryMask = 100,
+                   Coffin::mMaxTryWhite = 10,
+                   Coffin::mDiffStep = 3;
 const float Coffin::mTangentBinSize = 0.1,
             Coffin::mCurvatureBinSize = 0.002;
 
-Coffin::Coffin(const char *OutDir, const vector<char *> InDir,
-        const char *DwiFile,
-        const char *GradientFile, const char *BvalueFile,
-        const char *MaskFile, const char *BedpostDir,
-        const int NumTract, const float FminPath,
-        const char *InitFile,
-        const char *RoiFile1, const char *RoiFile2,
-        const char *RoiMeshFile1, const char *RoiMeshFile2,
-        const char *RoiRefFile1, const char *RoiRefFile2,
-        const char *XyzPriorFile0, const char *XyzPriorFile1,
-        const char *TangPriorFile, const char *CurvPriorFile,
-        const char *NeighPriorFile, const char *NeighIdFile,
-        const int NeighPriorSet, 
-        const char *LocalPriorFile, const char *LocalIdFile,
-        const int LocalPriorSet, 
-        const char *AsegFile,
-        const char *AffineXfmFile, const char *NonlinXfmFile,
-        const int NumBurnIn, const int NumSample,
-        const int KeepSampleNth, const int UpdatePropNth,
-        const char *PropStdFile,
-        const bool Debug) :
-        mDebug(Debug),
-        mPriorSetLocal(LocalPriorSet), mPriorSetNear(NeighPriorSet),
-        mMask(0), mRoi1(0), mRoi2(0),
-        mXyzPrior0(0), mXyzPrior1(0),
-        mAseg(0),
-        mPathSamples(0),
-        mSpline(InitFile, MaskFile) {
+//
+// A single point in time
+//
+Aeon::Aeon() {
+  mNx = mNy = mNz = mNxy = mNumVox = 0;
+  mMask = 0;
+  ClearPath();
+}
+
+Aeon::~Aeon() {
+}
+
+//
+// Set the common base template mask for all time points
+//
+void Aeon::SetBaseMask(MRI *BaseMask) { mBaseMask = BaseMask; }
+
+//
+// Save a sample of the atlas-based path priors, common among all time points
+//
+void Aeon::SavePathPriors(vector<float> &Priors) {
+  mPriorSamples.insert(mPriorSamples.end(), Priors.begin(), Priors.end());
+}
+
+//
+// Save a sample of the control points, common among all time points
+//
+void Aeon::SaveControlPointSample(vector<int> &ControlPoints) {
+  mControlPointSamples.push_back(ControlPoints);
+}
+
+//
+// Set the current sample as the MAP path
+//
+void Aeon::SetPathMap() {
+  mMaximumAPosterioriPath0 = mControlPointSamples.size() - 1;
+}
+
+//
+// Read data specific to a single time point
+//
+void Aeon::ReadData(const char *RootDir, const char *DwiFile,
+                    const char *GradientFile, const char *BvalueFile,
+                    const char *MaskFile, const char *BedpostDir,
+                    const int NumTract, const float FminPath,
+                    const char *BaseXfmFile) {
+  string dwifile, gradfile, bvalfile, maskfile, bpdir;
   char fname[PATH_MAX];
   MRI *dwi, *phi[NumTract], *theta[NumTract], *f[NumTract],
       *v0[NumTract], *f0[NumTract], *d0;
-  ostringstream infostr;
 
-  // Save input info for logging
-  if (!InDir.empty()) {
-    infostr << "Input directory: ";
-    for (vector<char *>::const_iterator idir = InDir.begin();
-                                        idir < InDir.end(); idir++)
-      infostr << " " << *idir;
-    infostr << endl;
-  }
-  infostr  << "DWIs: " << DwiFile << endl
-           << "Gradients: " << GradientFile << endl
-           << "B-values: " << BvalueFile << endl
-           << "Mask: " << MaskFile << endl
-           << "BEDPOST directory: " << BedpostDir << endl
-           << "Max number of tracts per voxel: " << NumTract << endl
-           << "Tract volume fraction threshold: " << FminPath << endl;
-  if (AsegFile)
-    infostr << "Segmentation map: " << AsegFile << endl;
-  if (AffineXfmFile)
-    infostr << "DWI-to-atlas affine registration: "
-            << AffineXfmFile << endl;
-  if (NonlinXfmFile)
-    infostr << "DWI-to-atlas nonlinear registration: "
-            << NonlinXfmFile << endl;
-  mInfoGeneral = infostr.str();
+  if (RootDir)
+    mRootDir = string(RootDir) + "/";
 
-  // Make output directory
-  SetOutputDir(OutDir);
+  dwifile    = mRootDir + DwiFile;
+  gradfile   = mRootDir + GradientFile;
+  bvalfile   = mRootDir + BvalueFile;
+  maskfile   = mRootDir + MaskFile;
+  bpdir      = mRootDir + BedpostDir;
 
   // Read diffusion-weighted images
-  cout << "Loading DWIs from " << DwiFile << endl;
-  dwi = MRIread(DwiFile);
+  cout << "Loading DWIs from " << dwifile << endl;
+  dwi = MRIread(dwifile.c_str());
   if (!dwi) {
-    cout << "ERROR: Could not read " << DwiFile << endl;
+    cout << "ERROR: Could not read " << dwifile << endl;
     exit(1);
   }
 
@@ -104,43 +112,41 @@ Coffin::Coffin(const char *OutDir, const vector<char *> InDir,
   mNxy = mNx * mNy;
 
   // Read mask
-  cout << "Loading mask from " << MaskFile << endl;
-  mMask = MRIread(MaskFile);
+  cout << "Loading mask from " << maskfile << endl;
+  mMask = MRIread(maskfile.c_str());
   if (!mMask) {
-    cout << "ERROR: Could not read " << MaskFile << endl;
+    cout << "ERROR: Could not read " << maskfile << endl;
     exit(1);
   }
 
-  mPathSamples = MRIclone(mMask, NULL);
-
   // Read parameter samples from BEDPOST directory
-  cout << "Loading BEDPOST parameter samples from " << BedpostDir << endl;
+  cout << "Loading BEDPOST parameter samples from " << bpdir << endl;
   for (int itract = 0; itract < NumTract; itract++) {
-    sprintf(fname, "%s/merged_ph%usamples.nii.gz", BedpostDir, itract+1);
+    sprintf(fname, "%s/merged_ph%usamples.nii.gz", bpdir.c_str(), itract+1);
     phi[itract] = MRIread(fname);
     if (!phi[itract]) {
       cout << "ERROR: Could not read " << fname << endl;
       exit(1);
     }
-    sprintf(fname, "%s/merged_th%usamples.nii.gz", BedpostDir, itract+1);
+    sprintf(fname, "%s/merged_th%usamples.nii.gz", bpdir.c_str(), itract+1);
     theta[itract] = MRIread(fname);
     if (!theta[itract]) {
       cout << "ERROR: Could not read " << fname << endl;
       exit(1);
     }
-    sprintf(fname, "%s/merged_f%usamples.nii.gz", BedpostDir, itract+1);
+    sprintf(fname, "%s/merged_f%usamples.nii.gz", bpdir.c_str(), itract+1);
     f[itract] = MRIread(fname);
     if (!f[itract]) {
       cout << "ERROR: Could not read " << fname << endl;
       exit(1);
     }
-    sprintf(fname, "%s/dyads%u.nii.gz", BedpostDir, itract+1);
+    sprintf(fname, "%s/dyads%u.nii.gz", bpdir.c_str(), itract+1);
     v0[itract] = MRIread(fname);
     if (!v0[itract]) {
       cout << "ERROR: Could not read " << fname << endl;
       exit(1);
     }
-    sprintf(fname, "%s/mean_f%usamples.nii.gz", BedpostDir, itract+1);
+    sprintf(fname, "%s/mean_f%usamples.nii.gz", bpdir.c_str(), itract+1);
     f0[itract] = MRIread(fname);
     if (!f0[itract]) {
       cout << "ERROR: Could not read " << fname << endl;
@@ -148,34 +154,27 @@ Coffin::Coffin(const char *OutDir, const vector<char *> InDir,
     }
   }
 
-  sprintf(fname, "%s/mean_dsamples.nii.gz", BedpostDir);
+  sprintf(fname, "%s/mean_dsamples.nii.gz", bpdir.c_str());
   d0 = MRIread(fname);
   if (!d0) {
     cout << "ERROR: Could not read " << fname << endl;
     exit(1);
   }
 
-  // Read segmentation map
-  if (AsegFile) {
-    cout << "Loading segmentation map from " << AsegFile << endl;
-    mAseg = MRIread(AsegFile);
-    if (!mAseg) {
-      cout << "ERROR: Could not read " << AsegFile << endl;
-      exit(1);
-    }
-  }
-  else
-    mAseg = 0;
-
   // Initialize voxel-wise diffusion model
-  Bite::SetStatic(GradientFile, BvalueFile,
+  Bite::SetStatic(gradfile.c_str(), bvalfile.c_str(),
                   NumTract, phi[0]->nframes, FminPath);
 
   if (Bite::GetNumDir() != dwi->nframes) {
-    cout << "ERROR: Dimensions of " << BvalueFile << " and " << DwiFile
+    cout << "ERROR: Dimensions of " << bvalfile << " and " << dwifile
          << " do not match" << endl;
     exit(1);
   }
+
+  cout << "INFO: Found "
+       << Bite::GetNumB0() << " baseline images (b = "
+       << Bite::GetLowBvalue() << ") out of a total of "
+       << Bite::GetNumDir() << " frames" << endl;
 
   mData.clear();
   for (int iz = 0; iz < mNz; iz++)
@@ -198,6 +197,8 @@ Coffin::Coffin(const char *OutDir, const vector<char *> InDir,
         else
           mDataMask.push_back(0);
 
+  cout << "INFO: Found " << mNumVox << " voxels in brain mask" << endl;
+
   // Free temporary variables
   MRIfree(&dwi);
 
@@ -211,12 +212,886 @@ Coffin::Coffin(const char *OutDir, const vector<char *> InDir,
 
   MRIfree(&d0);
 
-  // Read start ROI as reference volume
+  // Read transform from base template space to native DWI space
+  // (only used for longitudinal data)
+  if (BaseXfmFile) {
+    string regfile = mRootDir + BaseXfmFile;
+    if (!mBaseMask) {
+      cout << "ERROR: Cannot load base-to-DWI transform without base mask"
+           << endl;
+      exit(1);
+    }
+    mBaseReg.ReadXfm(regfile.c_str(), mBaseMask, mMask);
+  }
+}
+
+//
+// Return a pointer to this time point's mask
+//
+MRI *Aeon::GetMask() const { return mMask; }
+
+//
+// Return this time point's spatial resolution
+//
+float Aeon::GetDx() const { return mMask->xsize; }
+float Aeon::GetDy() const { return mMask->ysize; }
+float Aeon::GetDz() const { return mMask->zsize; }
+
+//
+// Free the space allocation to this time point's mask for clean-up
+//
+void Aeon::FreeMask() {
+  MRIfree(&mMask);
+}
+
+//
+// Set this time point's output directory for the current pathway
+//
+void Aeon::SetOutputDir(const char *OutDir) {
+  string cmdline("mkdir -p ");
+
+  mOutDir = mRootDir + OutDir;
+  cmdline += mOutDir; 
+
+  cout << "Creating output directory " << mOutDir << endl;
+  if (system(cmdline.c_str()) != 0) {
+    cout << "ERROR: Could not create directory " << mOutDir << endl;
+    exit(1);
+  }
+}
+
+//
+// Return this time point's output directory for the current pathway
+//
+const string &Aeon::GetOutputDir() const { return mOutDir; }
+
+//
+// Clear all path-related variables
+//
+void Aeon::ClearPath() {
+  // Path-related variables that are common among all time points
+  mMaximumAPosterioriPath = -1;
+  mMaximumAPosterioriPath0 = 0;
+  mControlPointSamples.clear();
+  mPriorSamples.clear();
+
+  // Path-related variables that are specific to this time point
+  mPathPoints.clear();
+  mPathPointsNew.clear();
+  mPathPointSamples.clear();
+  mPathPhi.clear();
+  mPathPhiNew.clear();
+  mPathTheta.clear();
+  mPathThetaNew.clear();
+
+  mDataFitSamples.clear();
+
+  mRejectF = false;
+  mAcceptF = false;
+  mRejectTheta = false;
+  mAcceptTheta = false;
+  mLog.clear();
+  mErrorPoint.clear();
+
+  mPathLength = 0;
+  mPathLengthNew = 0;
+  mLikelihoodOnPath = 0;
+  mLikelihoodOnPathNew = 0;
+  mPriorOnPath = 0;
+  mPriorOnPathNew = 0;
+  mPosteriorOnPath = 0;
+  mPosteriorOnPathNew = 0;
+  mLikelihoodOffPath = 0;
+  mLikelihoodOffPathNew = 0;
+  mPriorOffPath = 0;
+  mPriorOffPathNew = 0;
+  mPosteriorOffPath = 0;
+  mPosteriorOffPathNew = 0;
+}
+
+//
+// Map proposed path from the base space to this time point's native space
+// and calculate orientation angles along the path in the native space
+//
+bool Aeon::MapPathFromBase(Spline &BaseSpline) {
+  vector<float>::const_iterator tangbegin, tangend;
+  vector<float>::iterator iphi, itheta;
+  vector<float> diff1;
+
+  if (mBaseReg.IsEmpty()) {	// Single time point, there is no base
+    // Copy spline points
+    mPathPointsNew.resize(BaseSpline.GetAllPointsEnd() -
+                          BaseSpline.GetAllPointsBegin());
+    copy(BaseSpline.GetAllPointsBegin(), BaseSpline.GetAllPointsEnd(), 
+         mPathPointsNew.begin());
+
+    // Calculate tangent vectors along spline
+    BaseSpline.ComputeTangent();
+
+    tangbegin = BaseSpline.GetTangentBegin();
+    tangend   = BaseSpline.GetTangentEnd();
+  }
+  else {			// Multiple time points, must map path from base
+    vector<int> point(3);
+    vector<float> pointf(3), pathsmooth;
+
+    // Map spline points from base to native DWI space, making sure there are
+    // no duplicate points due to the higher resolution of the base space
+    mPathPointsNew.clear();
+    mErrorPoint.clear();
+
+    for (vector<int>::const_iterator iptbase = BaseSpline.GetAllPointsBegin();
+                                     iptbase < BaseSpline.GetAllPointsEnd();
+                                     iptbase += 3) {
+      for (int k = 0; k < 3; k++)
+        pointf[k] = (float) iptbase[k];
+
+      mBaseReg.ApplyXfm(pointf, pointf.begin());
+
+      for (int k = 0; k < 3; k++)
+        point[k] = (int) round(pointf[k]);
+
+      // Keep point if it's not a duplicate (duplicates occur when mapping from
+      // a higher-resolution base space to a lower-resolution native space)
+      // and it's in the mask (points that are in the base mask may not be in 
+      // an individual time point's mask due to interpolation/rounding errors)
+      if ( (mPathPointsNew.empty() || !(point[0] == *(mPathPointsNew.end()-3) &&
+                                        point[1] == *(mPathPointsNew.end()-2) &&
+                                        point[2] == *(mPathPointsNew.end()-1)))
+          && IsInMask(point.begin()) ) {
+        // Reject the path if it self-intersects (a path downsampled from base
+        // space may self-intersect in native space)
+        for (vector<int>::const_iterator ipt = mPathPointsNew.begin();
+                                         ipt < mPathPointsNew.end(); ipt += 3)
+          if (point[0] == ipt[0] && point[1] == ipt[1] && point[2] == ipt[2]) {
+            mErrorPoint.insert(mErrorPoint.begin(), point.begin(), point.end());
+            return false;
+          }
+
+        mPathPointsNew.insert(mPathPointsNew.end(), point.begin(), point.end());
+      }
+    }
+
+    // Smooth discrete point coordinates
+    pathsmooth.resize(mPathPointsNew.size());
+    CurveSmooth(pathsmooth, mPathPointsNew);
+
+    // Approximate first derivative by smoothed finite differences
+    // of the point coordinates
+    diff1.resize(mPathPointsNew.size());
+    CurveFiniteDifferences(diff1, pathsmooth, mDiffStep);
+
+    tangbegin = diff1.begin();
+    tangend   = diff1.end();
+  }
+
+  // Find path length in the native space
+  mPathLengthNew = mPathPointsNew.size() / 3;
+
+  // Calculate orientation angles along path
+  mPathPhiNew.resize(mPathPointsNew.size());
+  iphi = mPathPhiNew.begin();
+  mPathThetaNew.resize(mPathPointsNew.size());
+  itheta = mPathThetaNew.begin();
+
+  for (vector<float>::const_iterator itang = tangbegin; itang < tangend;
+                                                        itang += 3) {
+      *iphi = atan2(itang[1], itang[0]);
+      *itheta = acos(itang[2] / sqrt(itang[0]*itang[0] + itang[1]*itang[1]
+                                                       + itang[2]*itang[2]));
+
+    iphi++;
+    itheta++;
+  }
+
+  return true;
+}
+
+//
+// Propose diffusion parameters by sampling from their marginal posteriors
+// for this time point along the proposed and current path
+//
+void Aeon::ProposeDiffusionParameters() {
+  vector<int>::const_iterator ipt;
+
+  // Sample parameters on proposed path
+  for (ipt = mPathPointsNew.begin(); ipt < mPathPointsNew.end(); ipt += 3) {
+    Bite *ivox = mDataMask[ipt[0] + ipt[1]*mNx + ipt[2]*mNxy];
+    ivox->SampleParameters();
+  }
+
+  // Sample parameters on current path
+  for (ipt = mPathPoints.begin(); ipt < mPathPoints.end(); ipt += 3) {
+    Bite *ivox = mDataMask[ipt[0] + ipt[1]*mNx + ipt[2]*mNxy];
+    ivox->SampleParameters();
+  }
+}
+
+//
+// Compute data-fit terms of the objective function for this time point
+// along the proposed and current path
+//
+bool Aeon::ComputePathDataFit() {
+  vector<float>::const_iterator iphi, itheta;
+
+  mRejectF = false;
+  mAcceptF = false;
+  mRejectTheta = false;
+  mAcceptTheta = false;
+  mLog.clear();
+  mErrorPoint.clear();
+
+  // Compute data-fit terms on proposed path
+  mLikelihoodOnPathNew = 0;
+  mPriorOnPathNew = 0;
+  mLikelihoodOffPathNew = 0;
+  mPriorOffPathNew = 0;
+  iphi = mPathPhiNew.begin();
+  itheta = mPathThetaNew.begin();
+
+  for (vector<int>::iterator ipt = mPathPointsNew.begin();
+                             ipt < mPathPointsNew.end(); ipt += 3) {
+    Bite *ivox = mDataMask[ipt[0] + ipt[1]*mNx + ipt[2]*mNxy];
+
+    ivox->ComputeLikelihoodOffPath();
+    ivox->ComputeLikelihoodOnPath(*iphi, *itheta);
+    if (ivox->IsFZero()) {
+      ostringstream msg;
+      msg << "Reject due to f=0 at "
+          << ipt[0] << " " << ipt[1] << " " << ipt[2];
+      mLog = msg.str();
+      mErrorPoint.insert(mErrorPoint.begin(), ipt, ipt+3);
+
+      mRejectF = true;
+
+      return false;
+    }
+    if (ivox->IsThetaZero()) {
+      ostringstream msg;
+      msg << "Accept due to theta=0 at "
+          << ipt[0] << " " << ipt[1] << " " << ipt[2];
+      mLog = msg.str();
+      mErrorPoint.insert(mErrorPoint.begin(), ipt, ipt+3);
+
+      mAcceptTheta = true;
+
+      return false;
+    }
+    ivox->ComputePriorOffPath();
+    ivox->ComputePriorOnPath();
+
+    mLikelihoodOnPathNew += ivox->GetLikelihoodOnPath();
+    mPriorOnPathNew += ivox->GetPriorOnPath();
+
+    mLikelihoodOffPathNew += ivox->GetLikelihoodOffPath();
+    mPriorOffPathNew += ivox->GetPriorOffPath();
+
+    iphi++;
+    itheta++;
+  }
+
+  mPosteriorOnPathNew  = mLikelihoodOnPathNew  + mPriorOnPathNew;
+  mPosteriorOffPathNew = mLikelihoodOffPathNew + mPriorOffPathNew;
+
+  // Compute data-fit terms on current path
+  mLikelihoodOnPath = 0;
+  mPriorOnPath = 0;
+  mLikelihoodOffPath = 0;
+  mPriorOffPath = 0;
+  iphi = mPathPhi.begin();
+  itheta = mPathTheta.begin();
+
+  for (vector<int>::iterator ipt = mPathPoints.begin();
+                             ipt < mPathPoints.end(); ipt += 3) {
+    Bite *ivox = mDataMask[ipt[0] + ipt[1]*mNx + ipt[2]*mNxy];
+
+    ivox->ComputeLikelihoodOffPath();
+    ivox->ComputeLikelihoodOnPath(*iphi, *itheta);
+    if (ivox->IsFZero()) {
+      ostringstream msg;
+      msg << "Accept due to f=0 at "
+          << ipt[0] << " " << ipt[1] << " " << ipt[2];
+      mLog = msg.str();
+      mErrorPoint.insert(mErrorPoint.begin(), ipt, ipt+3);
+
+      mAcceptF = true;
+
+      return false;
+    }
+    if (ivox->IsThetaZero()) {
+      ostringstream msg;
+      msg << "Reject due to theta=0 at "
+          << ipt[0] << " " << ipt[1] << " " << ipt[2];
+      mLog = msg.str();
+      mErrorPoint.insert(mErrorPoint.begin(), ipt, ipt+3);
+
+      mRejectTheta = true;
+
+      return false;
+    }
+    ivox->ComputePriorOffPath();
+    ivox->ComputePriorOnPath();
+
+    mLikelihoodOnPath += ivox->GetLikelihoodOnPath();
+    mPriorOnPath += ivox->GetPriorOnPath();
+
+    mLikelihoodOffPath += ivox->GetLikelihoodOffPath();
+    mPriorOffPath += ivox->GetPriorOffPath();
+
+    iphi++;
+    itheta++;
+  }
+
+  mPosteriorOnPath  = mLikelihoodOnPath  + mPriorOnPath;
+  mPosteriorOffPath = mLikelihoodOffPath + mPriorOffPath;
+
+  return true;
+}
+
+//
+// Find spline segment corresponding to the point along the path
+// where an error occured
+//
+int Aeon::FindErrorSegment(Spline &BaseSpline) {
+  int iseg = -1;
+
+  if (mErrorPoint.empty())
+    return iseg;
+
+  // Find where along the spline the error occured
+  if (mBaseReg.IsEmpty()) {	// Single time point, there is no base
+    for (vector<int>::const_iterator iptbase = BaseSpline.GetAllPointsBegin();
+                                     iptbase < BaseSpline.GetAllPointsEnd();
+                                     iptbase += 3)
+      if (equal(mErrorPoint.begin(), mErrorPoint.end(), iptbase)) {
+        const unsigned int ierr = (iptbase - BaseSpline.GetAllPointsBegin())/3; 
+        iseg = (int) BaseSpline.PointToSegment(ierr);
+        break;
+      }
+  }
+  else {			// Multiple time points, must map path from base
+    vector<int> point(3);
+    vector<float> pointf(3);
+
+    for (vector<int>::const_iterator iptbase = BaseSpline.GetAllPointsBegin();
+                                     iptbase < BaseSpline.GetAllPointsEnd();
+                                     iptbase += 3) {
+      for (int k = 0; k < 3; k++)
+        pointf[k] = (float) iptbase[k];
+
+      mBaseReg.ApplyXfm(pointf, pointf.begin());
+
+      for (int k = 0; k < 3; k++)
+        point[k] = (int) round(pointf[k]);
+
+      if (equal(mErrorPoint.begin(), mErrorPoint.end(), point.begin())) {
+        const unsigned int ierr = (iptbase - BaseSpline.GetAllPointsBegin())/3; 
+        iseg = (int) BaseSpline.PointToSegment(ierr);
+        break;
+      }
+    }
+  }
+
+  return iseg;
+}
+
+//
+// Copy newly accepted path over current path for this time point
+//
+void Aeon::UpdatePath() {
+  mPathPoints.resize(mPathPointsNew.size());
+  copy(mPathPointsNew.begin(), mPathPointsNew.end(), mPathPoints.begin());
+
+  mPathPhi.resize(mPathPhiNew.size());
+  copy(mPathPhiNew.begin(), mPathPhiNew.end(), mPathPhi.begin());
+
+  mPathTheta.resize(mPathThetaNew.size());
+  copy(mPathThetaNew.begin(), mPathThetaNew.end(), mPathTheta.begin());
+
+  mPathLength        = mPathLengthNew;
+  mLikelihoodOnPath  = mLikelihoodOnPathNew; 
+  mLikelihoodOffPath = mLikelihoodOffPathNew; 
+  mPriorOnPath       = mPriorOnPathNew; 
+  mPriorOffPath      = mPriorOffPathNew; 
+  mPosteriorOnPath   = mPosteriorOnPathNew; 
+  mPosteriorOffPath  = mPosteriorOffPathNew; 
+}
+
+//
+// Save data-fit terms of accepted and rejected path for this time point
+//
+void Aeon::SavePathDataFit(bool IsPathAccepted) {
+  if (IsPathAccepted) {			// The newly sampled path was accepted
+    mDataFitSamples.push_back(GetDataFitNew());
+    mDataFitSamples.push_back(GetDataFit());
+  }
+  else {				// The newly sampled path was rejected
+    mDataFitSamples.push_back(GetDataFit());
+    mDataFitSamples.push_back(GetDataFitNew());
+  }
+}
+
+//
+// Save current path as an MCMC sample for this time point
+//
+void Aeon::SavePath() {
+  mPathPointSamples.push_back(mPathPoints);
+}
+
+//
+// Write output files for this time point
+//
+void Aeon::WriteOutputs() {
+  vector<int> lengths(mPathPointSamples.size()), cptsmap, cptsmap0;
+  vector<int>::iterator ilen;
+  vector<float>::const_iterator ipr;
+  string fname;
+  MRI *pdvol = MRIclone(mMask, NULL);
+
+  // Save volume of path samples
+  ilen = lengths.begin();
+  for (vector< vector<int> >::const_iterator ipath = mPathPointSamples.begin();
+                                             ipath < mPathPointSamples.end();
+                                             ipath++) {
+    *ilen = ipath->size() / 3;
+
+    for (vector<int>::const_iterator ipt = ipath->begin();
+                                     ipt < ipath->end(); ipt += 3) {
+      const int ix = ipt[0], iy = ipt[1], iz = ipt[2];
+      
+      MRIsetVoxVal(pdvol, ix, iy, iz, 0,
+                   MRIgetVoxVal(pdvol, ix, iy, iz, 0) + 1);
+    }
+
+    ilen++;
+  }
+
+  fname = mOutDir + "/path.pd.nii.gz";
+  MRIwrite(pdvol, fname.c_str());
+
+  // Save length of path samples
+  fname = mOutDir + "/length.samples.txt";
+  ofstream lenfile(fname.c_str(), ios::out);
+
+  if (!lenfile) {
+    cout << "ERROR: Could not open " << fname << " for writing" << endl;
+    exit(1);
+  }
+
+  for (vector<int>::const_iterator ilen = lengths.begin(); ilen < lengths.end();
+                                                           ilen++)
+    lenfile << *ilen << endl;
+
+  // Find maximum a posteriori path if it hasn't been found yet
+  if (mMaximumAPosterioriPath < 0)
+    mMaximumAPosterioriPath =
+      FindMaximumAPosterioriPath(mPathPointSamples, lengths, pdvol);
+
+{	// !NEW METHOD: Replace the old method with this eventually!
+  // Save maximum a posteriori path
+  vector< vector<int> >::const_iterator pathmap = mPathPointSamples.begin() +
+                                                  mMaximumAPosterioriPath;
+
+  MRIclear(pdvol);
+  for (vector<int>::const_iterator ipt = pathmap->begin();
+                                   ipt < pathmap->end(); ipt += 3) {
+    const int ix = ipt[0], iy = ipt[1], iz = ipt[2];
+    MRIsetVoxVal(pdvol, ix, iy, iz, 0, 1);
+  }
+
+  fname = mOutDir + "/path.map.test.nii.gz";
+  MRIwrite(pdvol, fname.c_str());
+}
+
+{	// !OLD METHOD! Remove this eventually
+  // Save maximum a posteriori path
+  vector< vector<int> >::const_iterator pathmap = mPathPointSamples.begin() +
+                                                  mMaximumAPosterioriPath0;
+
+  MRIclear(pdvol);
+  for (vector<int>::const_iterator ipt = pathmap->begin();
+                                   ipt < pathmap->end(); ipt += 3) {
+    const int ix = ipt[0], iy = ipt[1], iz = ipt[2];
+    MRIsetVoxVal(pdvol, ix, iy, iz, 0, 1);
+  }
+
+  fname = mOutDir + "/path.map.nii.gz";
+  MRIwrite(pdvol, fname.c_str());
+}
+
+  // Save volumes of path start point samples
+  MRIclear(pdvol);
+  for (vector< vector<int> >::const_iterator ipath = mPathPointSamples.begin();
+                                             ipath < mPathPointSamples.end();
+                                             ipath++) {
+    const int ix = *(ipath->begin()),
+              iy = *(ipath->begin()+1),
+              iz = *(ipath->begin()+2);
+
+    MRIsetVoxVal(pdvol, ix, iy, iz, 0, MRIgetVoxVal(pdvol, ix, iy, iz, 0) + 1);
+  }
+
+  fname = mOutDir + "/endpt1.pd.nii.gz";
+  MRIwrite(pdvol, fname.c_str());
+
+  // Save volumes of path end point samples
+  MRIclear(pdvol);
+  for (vector< vector<int> >::const_iterator ipath = mPathPointSamples.begin();
+                                             ipath < mPathPointSamples.end();
+                                             ipath++) {
+    const int ix = *(ipath->end()-3),
+              iy = *(ipath->end()-2),
+              iz = *(ipath->end()-1);
+
+    MRIsetVoxVal(pdvol, ix, iy, iz, 0, MRIgetVoxVal(pdvol, ix, iy, iz, 0) + 1);
+  }
+
+  fname = mOutDir + "/endpt2.pd.nii.gz";
+  MRIwrite(pdvol, fname.c_str());
+
+  // Save control point samples
+  fname = mOutDir + "/cpts.samples.txt";
+  ofstream sampfile(fname.c_str(), ios::out);
+
+  if (!sampfile) {
+    cout << "ERROR: Could not open " << fname << " for writing" << endl;
+    exit(1);
+  }
+
+  if (mBaseReg.IsEmpty()) {	// Single time point, there is no base
+    for (vector< vector<int> >::const_iterator
+         isamp = mControlPointSamples.begin();
+         isamp < mControlPointSamples.end(); isamp++) {
+      for (vector<int>::const_iterator icpt = isamp->begin();
+                                       icpt < isamp->end(); icpt += 3)
+        sampfile << icpt[0] << " " << icpt[1] << " " << icpt[2] << endl;
+
+      if (isamp - mControlPointSamples.begin() == mMaximumAPosterioriPath)
+        cptsmap.insert(cptsmap.end(), isamp->begin(), isamp->end());
+
+      if (isamp - mControlPointSamples.begin() == mMaximumAPosterioriPath0)
+        cptsmap0.insert(cptsmap0.end(), isamp->begin(), isamp->end());
+    }
+  }
+  else {			// Multiple time points, must map from base
+    vector<float> point(3);
+
+    for (vector< vector<int> >::const_iterator
+         isamp = mControlPointSamples.begin();
+         isamp < mControlPointSamples.end(); isamp++)
+      for (vector<int>::const_iterator icpt = isamp->begin();
+                                       icpt < isamp->end(); icpt += 3) {
+        // Map control points from base to native DWI space
+        for (int k = 0; k < 3; k++)
+          point[k] = (float) icpt[k];
+
+        mBaseReg.ApplyXfm(point, point.begin());
+
+        sampfile << round(point[0]) << " " << round(point[1]) << " "
+                                           << round(point[2]) << endl;
+
+        if (isamp - mControlPointSamples.begin() == mMaximumAPosterioriPath)
+          for (int k = 0; k < 3; k++)
+            cptsmap.push_back((int) round(point[k]));
+
+        if (isamp - mControlPointSamples.begin() == mMaximumAPosterioriPath0)
+          for (int k = 0; k < 3; k++)
+            cptsmap0.push_back((int) round(point[k]));
+      }
+  }
+
+{	// !NEW METHOD: Replace the old method with this eventually!
+  // Save control points corresponding to maximum a posteriori path
+  fname = mOutDir + "/cpts.map.test.txt";
+  ofstream mapfile(fname.c_str(), ios::out);
+
+  if (!mapfile) {
+    cout << "ERROR: Could not open " << fname << " for writing" << endl;
+    exit(1);
+  }
+
+  for (vector<int>::const_iterator icpt = cptsmap.begin();
+                                   icpt < cptsmap.end(); icpt += 3)
+    mapfile << icpt[0] << " " << icpt[1] << " " << icpt[2] << endl;
+}
+
+{	// !OLD METHOD! Remove this eventually
+  // Save control points corresponding to maximum a posteriori path
+  fname = mOutDir + "/cpts.map.txt";
+  ofstream mapfile(fname.c_str(), ios::out);
+
+  if (!mapfile) {
+    cout << "ERROR: Could not open " << fname << " for writing" << endl;
+    exit(1);
+  }
+
+  for (vector<int>::const_iterator icpt = cptsmap0.begin();
+                                   icpt < cptsmap0.end(); icpt += 3)
+    mapfile << icpt[0] << " " << icpt[1] << " " << icpt[2] << endl;
+}
+
+  // Save data-fit and prior terms of objective function on accepted and
+  // rejected path samples
+  fname = mOutDir + "/pd.samples.txt";
+  ofstream pdfile(fname.c_str(), ios::out);
+
+  if (!pdfile) {
+    cout << "ERROR: Could not open " << fname << " for writing" << endl;
+    exit(1);
+  }
+
+  pdfile << "DataFit1 XyzPrior1 AnatPrior1 ShapePrior1 "
+         << "DataFit0 XyzPrior0 AnatPrior0 ShapePrior0" << endl;
+  ipr = mPriorSamples.begin();
+  for (vector<float>::const_iterator idf = mDataFitSamples.begin();
+                                     idf < mDataFitSamples.end(); idf += 2) {
+    pdfile << idf[0] << " " << ipr[0] << " " << ipr[1] << " " << ipr[2] << " "
+           << idf[1] << " " << ipr[3] << " " << ipr[4] << " " << ipr[5] << endl;
+
+    ipr += 6;
+  }
+
+  MRIfree(&pdvol);
+}
+
+//
+// Find number of points with f=0 on proposed path
+//
+unsigned int Aeon::GetNumFZerosNew() const {
+  unsigned int nzeros = 0;
+
+  for (vector<int>::const_iterator ipt = mPathPointsNew.begin();
+                                   ipt < mPathPointsNew.end(); ipt += 3) {
+    Bite *ivox = mDataMask[ipt[0] + ipt[1]*mNx + ipt[2]*mNxy];
+
+    if (ivox->IsAllFZero())
+      nzeros++;
+  }
+
+  return nzeros;
+}
+
+//
+// Find number of points with f=0 on current path
+//
+unsigned int Aeon::GetNumFZeros() const {
+  unsigned int nzeros = 0;
+
+  for (vector<int>::const_iterator ipt = mPathPoints.begin();
+                                   ipt < mPathPoints.end(); ipt += 3) {
+    Bite *ivox = mDataMask[ipt[0] + ipt[1]*mNx + ipt[2]*mNxy];
+
+    if (ivox->IsAllFZero())
+      nzeros++;
+  }
+
+  return nzeros;
+}
+
+//
+// Return path-related variables
+//
+bool Aeon::RejectF() const { return mRejectF; }
+bool Aeon::AcceptF() const { return mAcceptF; }
+
+bool Aeon::RejectTheta() const { return mRejectTheta; }
+bool Aeon::AcceptTheta() const { return mAcceptTheta; }
+
+const string &Aeon::GetLog() const { return mLog; }
+
+unsigned int Aeon::GetPathLengthNew() const { return mPathLengthNew; }
+unsigned int Aeon::GetPathLength() const { return mPathLength; }
+
+double Aeon::GetLikelihoodOffPathNew() const {
+  return mLikelihoodOffPathNew/mPathLengthNew;
+}
+double Aeon::GetLikelihoodOffPath() const {
+  return mLikelihoodOffPath/mPathLength;
+}
+
+double Aeon::GetLikelihoodOnPathNew() const {
+  return mLikelihoodOnPathNew/mPathLengthNew;
+}
+double Aeon::GetLikelihoodOnPath() const {
+  return mLikelihoodOnPath/mPathLength;
+}
+
+double Aeon::GetPriorOnPathNew() const {
+  return mPriorOnPathNew/mPathLengthNew;
+}
+double Aeon::GetPriorOnPath() const {
+  return mPriorOnPath/mPathLength;
+}
+
+double Aeon::GetPriorOffPathNew() const {
+  return mPriorOffPathNew/mPathLengthNew;
+}
+double Aeon::GetPriorOffPath() const {
+  return mPriorOffPath/mPathLength;
+}
+
+double Aeon::GetPosteriorOffPathNew() const {
+  return mPosteriorOffPathNew/mPathLengthNew;
+}
+double Aeon::GetPosteriorOffPath() const {
+  return mPosteriorOffPath/mPathLength;
+}
+
+double Aeon::GetPosteriorOnPathNew() const {
+  return mPosteriorOnPathNew/mPathLengthNew;
+}
+double Aeon::GetPosteriorOnPath() const {
+  return mPosteriorOnPath/mPathLength;
+}
+
+double Aeon::GetDataFitNew() const {
+  return (mPosteriorOnPathNew - mPosteriorOffPathNew) / mPathLengthNew;
+}
+double Aeon::GetDataFit() const {
+  return (mPosteriorOnPath - mPosteriorOffPath) / mPathLength;
+}
+
+//
+// The main container
+//
+Coffin::Coffin(const char *OutDir, vector<char *> InDirList,
+               const char *DwiFile,
+               const char *GradientFile, const char *BvalueFile,
+               const char *MaskFile, const char *BedpostDir,
+               const int NumTract, const float FminPath,
+               const char *BaseXfmFile, const char *BaseMaskFile,
+               const char *InitFile,
+               const char *RoiFile1, const char *RoiFile2,
+               const char *RoiMeshFile1, const char *RoiMeshFile2,
+               const char *RoiRefFile1, const char *RoiRefFile2,
+               const char *XyzPriorFile0, const char *XyzPriorFile1,
+               const char *TangPriorFile, const char *CurvPriorFile,
+               const char *NeighPriorFile, const char *NeighIdFile,
+               const int NeighPriorSet, 
+               const char *LocalPriorFile, const char *LocalIdFile,
+               const int LocalPriorSet, 
+               const vector<char *>AsegList,
+               const char *AffineXfmFile, const char *NonlinXfmFile,
+               const int NumBurnIn, const int NumSample,
+               const int KeepSampleNth, const int UpdatePropNth,
+               const char *PropStdFile,
+               const bool Debug) :
+               mDebug(Debug),
+               mPriorSetLocal(LocalPriorSet), mPriorSetNear(NeighPriorSet),
+               mMask(0), mRoi1(0), mRoi2(0),
+               mXyzPrior0(0), mXyzPrior1(0) {
+  vector<char *>::const_iterator idir;
+  MRI *atlasref;
+  ostringstream infostr;
+
+  // Save input info for logging
+  if (!InDirList.empty()) {
+    infostr << "Input directory: ";
+    for (idir = InDirList.begin(); idir < InDirList.end(); idir++)
+      infostr << " " << *idir;
+    infostr << endl;
+  }
+  infostr  << "DWIs: " << DwiFile << endl
+           << "Gradients: " << GradientFile << endl
+           << "B-values: " << BvalueFile << endl
+           << "Mask: " << MaskFile << endl
+           << "BEDPOST directory: " << BedpostDir << endl
+           << "Max number of tracts per voxel: " << NumTract << endl
+           << "Tract volume fraction threshold: " << FminPath << endl;
+  if (BaseXfmFile)
+    infostr << "Base-to-DWI affine registration: " << BaseXfmFile << endl;
+  if (BaseMaskFile)
+    infostr << "Base mask: " << BaseMaskFile << endl;
+  if (AffineXfmFile)
+    infostr << (BaseMaskFile?"Base":"DWI")
+            << "-to-atlas affine registration: " << AffineXfmFile << endl;
+  if (NonlinXfmFile)
+    infostr << (BaseMaskFile?"Base":"DWI")
+            << "-to-atlas nonlinear registration: " << NonlinXfmFile << endl;
+  if (!AsegList.empty()) {
+    infostr << "Segmentation map: ";
+    for (vector<char *>::const_iterator ifile = AsegList.begin();
+                                        ifile < AsegList.end(); ifile++)
+      infostr << " " << *ifile;
+    infostr << endl;
+  }
+  mInfoGeneral = infostr.str();
+
+  // Read base template mask for longitudinal data
+  if (BaseMaskFile) {
+    cout << "Loading base mask from " << BaseMaskFile << endl;
+    mMask = MRIread(BaseMaskFile);
+    if (!mMask) {
+      cout << "ERROR: Could not read " << BaseMaskFile << endl;
+      exit(1);
+    }
+    Aeon::SetBaseMask(mMask);
+  }
+  else		// No base needed when there is a single time point
+    Aeon::SetBaseMask(0);
+
+  // Read diffusion data, anatomical segmentation, and transform to atlas
+  // for each time point
+  if (InDirList.empty())
+    InDirList.push_back(0);
+
+  mDwi.resize(InDirList.size());
+  idir = InDirList.begin();
+
+  for (vector<Aeon>::iterator idwi = mDwi.begin(); idwi < mDwi.end(); idwi++) {
+    idwi->ReadData(*idir, DwiFile, GradientFile, BvalueFile,
+                          MaskFile, BedpostDir, NumTract, FminPath,
+                          BaseXfmFile);
+    idir++;
+  }
+
+  // In cross-sectional case there is no base template mask,
+  // so use the single time point as the base
+  if (!mMask)
+    mMask = mDwi[0].GetMask();
+
+  // Size of base image
+  mNx = mMask->width;
+  mNy = mMask->height;
+  mNz = mMask->depth;
+  mNxy = mNx * mNy;
+
+  // Resolution of DWI space relative to base space (used to determine how big
+  // the control point perturbations should be in base space)
+  mResolution.resize(3);
+  mResolution[0] = mDwi[0].GetDx();
+  mResolution[1] = mDwi[0].GetDy();
+  mResolution[2] = mDwi[0].GetDz();
+
+  for (vector<Aeon>::const_iterator idwi = mDwi.begin() + 1; idwi < mDwi.end();
+                                                             idwi++) {
+    const float dx = idwi->GetDx(), dy = idwi->GetDy(), dz = idwi->GetDz();
+
+    if (dx > mResolution[0])	mResolution[0] = dx;
+    if (dy > mResolution[1])	mResolution[1] = dy;
+    if (dz > mResolution[2])	mResolution[2] = dz;
+  }
+
+  mResolution[0] /= mMask->xsize;
+  mResolution[1] /= mMask->ysize;
+  mResolution[2] /= mMask->zsize;
+
+  cout << "INFO: Resolution of DWI space relative to base space is ("
+       << mResolution[0] << ", " << mResolution[1] << ", " << mResolution[2]
+       << ")" << endl;
+
+  // Set mask for spline interpolation
+  mSpline.SetMask(mMask);
+
+  // Allocate space for saving and reusing voxel coordinates in atlas space
+  mAtlasCoords.resize(mNxy*mNz);
+
+  // Read start ROI as atlas-space reference volume
   // TODO: Use more general reference volume if ROI isn't specified
   if (RoiFile1) {
     cout << "Loading atlas reference volume from " << RoiFile1 << endl;
-    mRoi1 = MRIread(RoiFile1);
-    if (!mRoi1) {
+    atlasref = MRIread(RoiFile1);
+    if (!atlasref) {
       cout << "ERROR: Could not read " << RoiFile1 << endl;
       exit(1);
     }
@@ -226,12 +1101,12 @@ Coffin::Coffin(const char *OutDir, const vector<char *> InDir,
 #ifndef NO_CVS_UP_IN_HERE
   if (NonlinXfmFile) {
     mAffineReg.ReadXfm(AffineXfmFile, mMask, 0);
-    mNonlinReg.ReadXfm(NonlinXfmFile, mRoi1);
+    mNonlinReg.ReadXfm(NonlinXfmFile, atlasref);
   }
   else
 #endif
   if (AffineXfmFile)
-    mAffineReg.ReadXfm(AffineXfmFile, mMask, mRoi1);
+    mAffineReg.ReadXfm(AffineXfmFile, mMask, atlasref);
 
 	/*
 vector<float> pt(3);
@@ -243,7 +1118,28 @@ cout << "In atlas space: " << pt[0] << " " << pt[1] << " " << pt[2] << endl;
 exit(1);
 	*/
 
-  // Set variables specific to pathway
+  // Free atlas-space reference volume
+  MRIfree(&atlasref);
+
+  // Read segmentation map
+  for (vector<char *>::const_iterator ifile = AsegList.begin();
+                                      ifile < AsegList.end(); ifile++) {
+    MRI *aseg = 0;
+
+    cout << "Loading segmentation map from " << *ifile << endl;
+    aseg = MRIread(*ifile);
+    if (!aseg) {
+      cout << "ERROR: Could not read " << *ifile << endl;
+      exit(1);
+    }
+
+    mAseg.push_back(aseg);
+  }
+
+  // Create output directory for current pathway for each time point
+  SetOutputDir(OutDir);
+
+  // Set atlas-derived information specific to current pathway
   SetPathway(InitFile, RoiFile1, RoiFile2,
              RoiMeshFile1, RoiMeshFile2, RoiRefFile1, RoiRefFile2,
              XyzPriorFile0, XyzPriorFile1,
@@ -251,13 +1147,21 @@ exit(1);
              NeighPriorFile, NeighIdFile,
              LocalPriorFile, LocalIdFile);
 
-  // Set variables specific to MCMC algorithm
-  SetMCMCParameters(NumBurnIn, NumSample,
+  // Set parameters for MCMC algorithm
+  SetMcmcParameters(NumBurnIn, NumSample,
                     KeepSampleNth, UpdatePropNth, PropStdFile);
 }
 
 Coffin::~Coffin() {
-  MRIfree(&mMask);
+  if (mMask != mDwi[0].GetMask())
+    MRIfree(&mMask);
+
+  for (vector<Aeon>::iterator idwi = mDwi.begin(); idwi < mDwi.end(); idwi++)
+    idwi->FreeMask();
+
+  for (vector<MRI *>::iterator iaseg = mAseg.begin(); iaseg < mAseg.end();
+                                                      iaseg++)
+    MRIfree(&(*iaseg));
 
   MRIfree(&mRoi1);
   MRIfree(&mRoi2);
@@ -266,33 +1170,20 @@ Coffin::~Coffin() {
     MRIfree(&mXyzPrior0);
     MRIfree(&mXyzPrior1);
   }
-
-  if (mAseg)
-    MRIfree(&mAseg);
-
-  MRIfree(&mPathSamples);
 }
 
-
 //
-// Set output directory
+// Set output directory for each time point
 //
 void Coffin::SetOutputDir(const char *OutDir) {
-  char fname[PATH_MAX];
+  for (vector<Aeon>::iterator idwi = mDwi.begin(); idwi < mDwi.end(); idwi++)
+    idwi->SetOutputDir(OutDir);
 
-  cout << "Creating output directory " << OutDir << endl;
-  sprintf(fname, "mkdir -p %s", OutDir);
-  if (system(fname) != 0) {
-    cout << "ERROR: Could not create directory " << OutDir << endl;
-    exit(1);
-  }
-
-  mOutDir = (char *) calloc(strlen(OutDir)+1, sizeof(char));
-  strcpy(mOutDir, OutDir);
+  mOutDir = mDwi[0].GetOutputDir();
 }
 
 //
-// Set variables specific to a given pathway
+// Set atlas-derived information specific to a given pathway
 //
 void Coffin::SetPathway(const char *InitFile,
                         const char *RoiFile1, const char *RoiFile2,
@@ -357,8 +1248,12 @@ void Coffin::SetPathway(const char *InitFile,
       cout << "ERROR: Could not read " << RoiFile1 << endl;
       exit(1);
     }
+
+    if (RoiMeshFile1) {
+      cout << "ERROR: .label ROIs not supported" << endl;
+      exit(1);
+    }
   }
-  else if (RoiMeshFile1) {}
 
   // Read end ROI
   if (RoiFile2) {
@@ -371,8 +1266,12 @@ void Coffin::SetPathway(const char *InitFile,
       cout << "ERROR: Could not read " << RoiFile2 << endl;
       exit(1);
     }
+
+    if (RoiMeshFile2) {
+      cout << "ERROR: .label ROIs not supported" << endl;
+      exit(1);
+    }
   }
-  else if (RoiMeshFile2) {}
 
   // Size of atlas space
   mNxAtlas = mRoi1->width;
@@ -666,7 +1565,7 @@ void Coffin::SetPathway(const char *InitFile,
 //
 // Set MCMC parameters
 //
-void Coffin::SetMCMCParameters(const int NumBurnIn, const int NumSample,
+void Coffin::SetMcmcParameters(const int NumBurnIn, const int NumSample,
                                const int KeepSampleNth, const int UpdatePropNth,
                                const char *PropStdFile) {
   ostringstream infostr;
@@ -678,7 +1577,7 @@ void Coffin::SetMCMCParameters(const int NumBurnIn, const int NumSample,
           << "Update proposal every: " << UpdatePropNth << "-th sample" << endl;
   if (PropStdFile)
     infostr << "Initial proposal SD file: " << PropStdFile << endl;
-  mInfoMCMC = infostr.str();
+  mInfoMcmc = infostr.str();
 
   // Set sampling parameters
   mNumBurnIn = NumBurnIn;
@@ -928,33 +1827,48 @@ void Coffin::ReadProposalStds(const char *PropStdFile) {
     while (infile >> val)
       mProposalStdInit.push_back(val);
   }
-  else {	// Default values
+  else {	// Default value (one DWI voxel, scaled to base voxel units)
+    vector<float>::iterator istd;
+
     mProposalStdInit.resize(mControlPoints.size());
-    fill(mProposalStdInit.begin(), mProposalStdInit.begin()+3, 1.0);	//5.0
-    fill(mProposalStdInit.begin()+3, mProposalStdInit.end()-3, 1.0);	//1.0
-    fill(mProposalStdInit.end()-3, mProposalStdInit.end(), 1.0);	//5.0
+    istd = mProposalStdInit.begin();
+
+    copy(mResolution.begin(), mResolution.end(), istd);			//x5.0
+    for (istd += 3; istd < mProposalStdInit.end() - 3; istd +=3)
+      copy(mResolution.begin(), mResolution.end(), istd);		//x1.0
+    copy(mResolution.begin(), mResolution.end(), istd);			//x5.0
   }
 }
 
 //
-// Run MCMC
+// Run MCMC (full spline updates)
 //
-bool Coffin::RunMCMC() {
+bool Coffin::RunMcmcFull() {
   int iprop, ikeep;
   char fname[PATH_MAX];
+  string cmdline;
+
+  // Open log file in first time point's output directory
+  sprintf(fname, "%s/log.txt", mOutDir.c_str());
+  mLog.open(fname, ios::out | ios::app);
+  if (!mLog) {
+    cout << "ERROR: Could not open " << fname << " for writing" << endl;
+    exit(1);
+  }
 
   // Write input parameters to log file
-  sprintf(fname, "%s/log.txt", mOutDir);
-  mLog.open(fname, ios::out | ios::app);
-  mLog << mInfoGeneral << mInfoPathway << mInfoMCMC;
+  mLog << mInfoGeneral << mInfoPathway << mInfoMcmc;
 
   cout << "Initializing MCMC" << endl;
   mLog << "Initializing MCMC" << endl;
-  if (! InitializeMCMC())
+  if (! InitializeMcmc()) {
+    mLog.flush();
+    mLog.close();
     return false;
+  }
 
   if (mDebug) {
-    sprintf(fname, "%s/Finit.nii.gz", mOutDir);
+    sprintf(fname, "%s/Finit.nii.gz", mOutDir.c_str());
     mSpline.WriteVolume(fname, true);
   }
 
@@ -962,20 +1876,22 @@ bool Coffin::RunMCMC() {
   mLog << "Running MCMC burn-in jumps" << endl;
   iprop = 1;
   for (int ijump = mNumBurnIn; ijump > 0; ijump--) {
-    if (JumpMCMC() || mAcceptF || mAcceptTheta) {	// Accept new path
+    if (JumpMcmcFull() || mAcceptF || mAcceptTheta) {	// Accept new path
       UpdatePath();
-      UpdateAcceptanceRate();
+      UpdateAcceptanceRateFull();
 
       if (mDebug) {
-        sprintf(fname, "%s/Faccept_b%05d.nii.gz", mOutDir, mNumBurnIn-ijump+1);
+        sprintf(fname, "%s/Faccept_b%05d.nii.gz",
+                mOutDir.c_str(), mNumBurnIn-ijump+1);
         mSpline.WriteVolume(fname, true);
       }
     }
     else {						// Reject new path
-      UpdateRejectionRate();
+      UpdateRejectionRateFull();
 
       if (mDebug) {
-        sprintf(fname, "%s/Freject_b%05d.nii.gz", mOutDir, mNumBurnIn-ijump+1);
+        sprintf(fname, "%s/Freject_b%05d.nii.gz",
+                mOutDir.c_str(), mNumBurnIn-ijump+1);
         mSpline.WriteVolume(fname, true);
       }
     }
@@ -995,22 +1911,24 @@ bool Coffin::RunMCMC() {
   iprop = 1;
   ikeep = 1;
   for (int ijump = mNumSample; ijump > 0; ijump--) {
-    if (JumpMCMC() || mAcceptF || mAcceptTheta) {	// Accept new path
+    if (JumpMcmcFull() || mAcceptF || mAcceptTheta) {	// Accept new path
       SavePathPosterior(true);
       UpdatePath();
-      UpdateAcceptanceRate();
+      UpdateAcceptanceRateFull();
 
       if (mDebug) {
-        sprintf(fname, "%s/Faccept_%05d.nii.gz", mOutDir, mNumSample-ijump+1);
+        sprintf(fname, "%s/Faccept_%05d.nii.gz",
+                mOutDir.c_str(), mNumSample-ijump+1);
         mSpline.WriteVolume(fname, true);
       }
     }
     else {						// Reject new path
       SavePathPosterior(false);
-      UpdateRejectionRate();
+      UpdateRejectionRateFull();
 
       if (mDebug) {
-        sprintf(fname, "%s/Freject_%05d.nii.gz", mOutDir, mNumSample-ijump+1);
+        sprintf(fname, "%s/Freject_%05d.nii.gz",
+                mOutDir.c_str(), mNumSample-ijump+1);
         mSpline.WriteVolume(fname, true);
       }
     }
@@ -1030,34 +1948,56 @@ bool Coffin::RunMCMC() {
       ikeep++;
   }
 
-  FindPathMAP();
-
+  // Close log file and copy it to other time points's output directories
   mLog.flush();
   mLog.close();
+
+  for (vector<Aeon>::const_iterator idwi = mDwi.begin() + 1; idwi < mDwi.end();
+                                                             idwi++) {
+    cmdline = "cp -f " + mDwi[0].GetOutputDir() + "/log.txt " +
+              idwi->GetOutputDir();
+
+    if (system(cmdline.c_str()) != 0) {
+      cout << "ERROR: Could not save log file in " << idwi->GetOutputDir()
+           << endl;
+      exit(1);
+    }
+  }
+
   return true;
 }
 
 //
-// Run MCMC (single point updates)
+// Run MCMC (single control point updates)
 //
-bool Coffin::RunMCMC1() {
+bool Coffin::RunMcmcSingle() {
   int iprop, ikeep;
   char fname[PATH_MAX];
+  string cmdline;
   vector<int> cptorder(mNumControl);
   vector<int>::const_iterator icpt;
 
-  // Write input parameters to log file
-  sprintf(fname, "%s/log.txt", mOutDir);
+  // Open log file in first time point's output directory
+  sprintf(fname, "%s/log.txt", mOutDir.c_str());
   mLog.open(fname, ios::out | ios::app);
-  mLog << mInfoGeneral << mInfoPathway << mInfoMCMC;
+  if (!mLog) {
+    cout << "ERROR: Could not open " << fname << " for writing" << endl;
+    exit(1);
+  }
+
+  // Write input parameters to log file
+  mLog << mInfoGeneral << mInfoPathway << mInfoMcmc;
 
   cout << "Initializing MCMC" << endl;
   mLog << "Initializing MCMC" << endl;
-  if (! InitializeMCMC())
+  if (! InitializeMcmc()) {
+    mLog.flush();
+    mLog.close();
     return false;
+  }
 
   if (mDebug) {
-    sprintf(fname, "%s/Finit.nii.gz", mOutDir);
+    sprintf(fname, "%s/Finit.nii.gz", mOutDir.c_str());
     mSpline.WriteVolume(fname, true);
   }
 
@@ -1080,12 +2020,12 @@ bool Coffin::RunMCMC1() {
       mAcceptTheta = false;
       mRejectPosterior = false;
 
-      if (JumpMCMC1(*icpt) || mAcceptF || mAcceptTheta) {	// Accept point
+      if (JumpMcmcSingle(*icpt) || mAcceptF || mAcceptTheta) {	// Accept point
         UpdatePath();
 
         if (mDebug) {
           sprintf(fname, "%s/Faccept_b%05d_%d.nii.gz",
-                  mOutDir, mNumBurnIn-ijump+1, *icpt);
+                  mOutDir.c_str(), mNumBurnIn-ijump+1, *icpt);
           mSpline.WriteVolume(fname, true);
         }
       }
@@ -1094,13 +2034,13 @@ bool Coffin::RunMCMC1() {
 
         if (mDebug) {
           sprintf(fname, "%s/Freject_b%05d_%d.nii.gz",
-                  mOutDir, mNumBurnIn-ijump+1, *icpt);
+                  mOutDir.c_str(), mNumBurnIn-ijump+1, *icpt);
           mSpline.WriteVolume(fname, true);
         }
       }
     }
 
-    UpdateAcceptRejectRate1();
+    UpdateAcceptRejectRateSingle();
 
     if (iprop == mUpdatePropNth) {
       UpdateProposalStd();
@@ -1132,13 +2072,13 @@ bool Coffin::RunMCMC1() {
       mAcceptTheta = false;
       mRejectPosterior = false;
 
-      if (JumpMCMC1(*icpt) || mAcceptF || mAcceptTheta) {	// Accept point
+      if (JumpMcmcSingle(*icpt) || mAcceptF || mAcceptTheta) {	// Accept point
         SavePathPosterior(true);
         UpdatePath();
 
         if (mDebug) {
           sprintf(fname, "%s/Faccept_%05d_%d.nii.gz",
-                  mOutDir, mNumSample-ijump+1, *icpt);
+                  mOutDir.c_str(), mNumSample-ijump+1, *icpt);
           mSpline.WriteVolume(fname, true);
         }
       }
@@ -1148,13 +2088,13 @@ bool Coffin::RunMCMC1() {
 
         if (mDebug) {
           sprintf(fname, "%s/Freject_%05d_%d.nii.gz",
-                  mOutDir, mNumSample-ijump+1, *icpt);
+                  mOutDir.c_str(), mNumSample-ijump+1, *icpt);
           mSpline.WriteVolume(fname, true);
         }
       }
     }
 
-    UpdateAcceptRejectRate1();
+    UpdateAcceptRejectRateSingle();
 
     if (iprop == mUpdatePropNth) {
       UpdateProposalStd();
@@ -1171,20 +2111,33 @@ bool Coffin::RunMCMC1() {
       ikeep++;
   }
 
-  FindPathMAP();
-
+  // Close log file and copy it to other time points's output directories
   mLog.flush();
   mLog.close();
+
+  for (vector<Aeon>::const_iterator idwi = mDwi.begin() + 1; idwi < mDwi.end();
+                                                             idwi++) {
+    cmdline = "cp -f " + mDwi[0].GetOutputDir() + "/log.txt " +
+              idwi->GetOutputDir();
+
+    if (system(cmdline.c_str()) != 0) {
+      cout << "ERROR: Could not save log file in " << idwi->GetOutputDir()
+           << endl;
+      exit(1);
+    }
+  }
+
   return true;
 }
 
 //
 // Initialize path and MCMC proposals
 //
-bool Coffin::InitializeMCMC() {
+bool Coffin::InitializeMcmc() {
+  bool success = true, doinit = true, firstinit = true;
+  int failseg = -1;
   vector<int> atlaspoints;
   vector<int>::iterator iptatlas;
-  vector<float>::iterator phi, theta;
 
   // Initialize control point proposal distribution
   mProposalStd.resize(mProposalStdInit.size());
@@ -1200,6 +2153,7 @@ bool Coffin::InitializeMCMC() {
 
   // Initialize jump acceptance statistics
   mRejectControl.resize(mNumControl);
+  fill(mRejectControl.begin(), mRejectControl.end(), false);
 
   mAcceptCount.resize(mNumControl);
   fill(mAcceptCount.begin(), mAcceptCount.end(), 0);
@@ -1213,138 +2167,336 @@ bool Coffin::InitializeMCMC() {
 
   mControlPointsNew.resize(mControlPoints.size());
   mControlPointJumps.resize(mControlPoints.size());
-  mControlPointsMap.resize(mControlPoints.size());
-
-  // Clear saved path samples
-  mPosteriorSamples.clear();
-  mControlPointSamples.clear();
-  mPathLengthSamples.clear();
-  mPathPointSamples.clear();
-  MRIclear(mPathSamples);
 
   // Interpolate spline from initial control points
   mSpline.SetControlPoints(mControlPoints);
-  if (!mSpline.InterpolateSpline()) {
-    cout << "INFO: Path from initial control points is not entirely in mask"
-         << endl << "INFO: or is self-intersecting" << endl
-         << "INFO: Attemping to perturb control points" << endl;
 
-    // Perturb control points until I get a valid initial path
-    for (int itry = 0; itry < 100; itry++) {
-      fill(mRejectControl.begin(), mRejectControl.end(), false);
+  if (!mSpline.InterpolateSpline()) {	// Initial path goes off brain mask
+    failseg = FindErrorSegment();
 
-      for (int icpt = mNumControl-1; icpt >= 0; icpt--) {
-        mRejectSpline = false;
-
-        if (ProposePath1(icpt)) {
-          copy(mControlPointsNew.begin(), mControlPointsNew.end(),
-               mControlPoints.begin());
-          break;
-        }
-      }
-
-      if (!mRejectSpline && !mRejectControl[0]) {
-        cout << "INFO: Success after " << itry+1 << " perturbation(s)" << endl;
-        break;
-      }
-    }
-
-    mSpline.SetControlPoints(mControlPoints);
-    if (!mSpline.InterpolateSpline()) {
-      cout << "ERROR: Path from initial control points is not entirely in mask"
-           << endl << "ERROR: or is self-intersecting" << endl
+    if (!InitializeFixOffMask(failseg)) {
+      cout << "ERROR: Path from initial control points is not entirely"
+           << " in mask or is irregular" << endl
            << "ERROR: Initialization failed" << endl;
       return false;
     }
   }
+  else {
+    copy(mControlPoints.begin(), mControlPoints.end(),
+         mControlPointsNew.begin());
 
-  // Get initial path points
-  mPathPoints.clear();
-  mPathPoints.insert(mPathPoints.begin(), mSpline.GetAllPointsBegin(),
-                                          mSpline.GetAllPointsEnd());
+    // Clear path-related variables for all time points
+    for (vector<Aeon>::iterator idwi = mDwi.begin(); idwi < mDwi.end(); idwi++)
+      idwi->ClearPath();
 
-  // Get initial path tangent angles
-  mSpline.ComputeTangent();
-
-  mPathTangent.clear();
-  mPathTangent.insert(mPathTangent.begin(), mSpline.GetTangentBegin(),
-                                            mSpline.GetTangentEnd());
-
-  mPathPhi.resize(mPathPoints.size());
-  phi = mPathPhi.begin();
-  mPathTheta.resize(mPathPoints.size());
-  theta = mPathTheta.begin();
-  for (vector<float>::const_iterator ipt = mSpline.GetTangentBegin();
-                                     ipt < mSpline.GetTangentEnd(); ipt += 3) {
-    *phi = atan2(ipt[1], ipt[0]);
-    *theta = acos(ipt[2] / sqrt(ipt[0]*ipt[0] + ipt[1]*ipt[1] + ipt[2]*ipt[2]));
-    if (mDebug)
-      mLog << (*phi)/M_PI*180 << " " << (*theta)/M_PI*180 << endl;
-    phi++;
-    theta++;
-  }
-
-  // Get initial path curvatures, if they'll be used for priors
-  if (!mPriorCurvature.empty()) {
-    mSpline.ComputeNormal();
-    mSpline.ComputeCurvature();
-
-    mPathCurvature.clear();
-    mPathCurvature.insert(mPathCurvature.begin(), mSpline.GetCurvatureBegin(),
-                                                  mSpline.GetCurvatureEnd());
-  }
-
-  // Compute energy on initial path
-  mLikelihoodOnPath = 0;
-  mPriorOnPath = 0;
-  atlaspoints.resize(mPathPoints.size());
-  iptatlas = atlaspoints.begin();
-  phi = mPathPhi.begin();
-  theta = mPathTheta.begin();
-
-  for (vector<int>::const_iterator ipt = mPathPoints.begin();
-                                   ipt < mPathPoints.end(); ipt += 3) {
-    Bite *ivox = mDataMask[ipt[0] + ipt[1]*mNx + ipt[2]*mNxy];
-
-    ivox->ComputeLikelihoodOnPath(*phi, *theta);
-    ivox->ComputePriorOnPath();
-
-    mLikelihoodOnPath += ivox->GetLikelihoodOnPath();
-    mPriorOnPath += ivox->GetPriorOnPath();
-
-    // Map point to atlas space
-    if (ivox->IsAtlasSet())
-      // Retrieve previously computed coordinates in atlas space
-      ivox->GetAtlasCoords(iptatlas);
-    else {
-      // Map point coordinates from diffusion space to atlas space
-      MapPointToAtlas(iptatlas, ipt);
-
-      // Save transformed coordinates for future use
-      ivox->SetAtlasCoords(iptatlas);
+    // Propagate initial path to all time points
+    for (vector<Aeon>::iterator idwi = mDwi.begin(); idwi < mDwi.end();
+                                                     idwi++) {
+      success = idwi->MapPathFromBase(mSpline);
+      if (!success) {
+        failseg = idwi->FindErrorSegment(mSpline);
+        break;
+      }
     }
 
-    iptatlas += 3;
-    phi++;
-    theta++;
+    if (!success) {			// Initial path goes off brain mask
+      if (!InitializeFixOffMask(failseg)) {
+        cout << "ERROR: Path from initial control points is not entirely"
+             << " in mask or is irregular" << endl
+             << "ERROR: Initialization failed" << endl;
+        return false;
+      }
+    }
   }
 
-  mXyzPriorOnPath = ComputeXyzPriorOnPath(atlaspoints);
+  while (doinit) {
+    // Get initial path points
+    mPathPointsNew.clear();
+    mPathPointsNew.insert(mPathPointsNew.begin(), mSpline.GetAllPointsBegin(),
+                                                  mSpline.GetAllPointsEnd());
 
-  mAnatomicalPrior = ComputeAnatomicalPrior(atlaspoints);
+    // Compute data-fit terms on initial path for all time points
+    mDataPosteriorOnPathNew = 0;
+    mDataPosteriorOffPathNew = 0;
 
-  mShapePrior = ComputeShapePrior(atlaspoints);
+    for (vector<Aeon>::iterator idwi = mDwi.begin(); idwi < mDwi.end();
+                                                     idwi++) {
+      success = idwi->ComputePathDataFit();
+      if (!success) {
+        failseg = idwi->FindErrorSegment(mSpline);
+        break;
+      }
 
-  mPosteriorOnPath = mLikelihoodOnPath + mPriorOnPath + mXyzPriorOnPath
-                   + mAnatomicalPrior  + mShapePrior;
+      mDataPosteriorOnPathNew  += idwi->GetPosteriorOnPathNew();
+      mDataPosteriorOffPathNew += idwi->GetPosteriorOffPathNew();
+    }
+
+    // Map initial path from diffusion/base space to atlas space
+    atlaspoints.resize(mPathPointsNew.size());
+    iptatlas = atlaspoints.begin();
+
+    for (vector<int>::const_iterator ipt = mPathPointsNew.begin();
+                                     ipt < mPathPointsNew.end(); ipt += 3) {
+      vector< vector<int> >::iterator icoord =
+        mAtlasCoords.begin() + (ipt[0] + ipt[1]*mNx + ipt[2]*mNxy);
+
+      if (icoord->empty()) {
+        // Map point coordinates from diffusion/base space to atlas space
+        MapPointToAtlas(iptatlas, ipt);
+
+        // Save transformed coordinates for future use
+        icoord->insert(icoord->end(), iptatlas, iptatlas+3);
+      }
+      else
+        // Retrieve previously computed coordinates in atlas space
+        copy(icoord->begin(), icoord->end(), iptatlas);
+
+      iptatlas += 3;
+    }
+
+    // Compute atlas-derived prior terms on initial path
+    mXyzPriorOnPathNew = ComputeXyzPriorOnPath(atlaspoints);
+
+    mAnatomicalPriorNew = ComputeAnatomicalPrior(atlaspoints);
+
+    mShapePriorNew = ComputeShapePrior(atlaspoints);
+
+    // Compute posterior on initial path
+    mPosteriorOnPathNew  = mDataPosteriorOnPathNew + mXyzPriorOnPathNew
+                         + mAnatomicalPriorNew + mShapePriorNew;
+    mPosteriorOffPathNew = mDataPosteriorOffPathNew + mXyzPriorOffPathNew;
+
+    // Save initial path
+    UpdatePath();
+
+    if (!success && firstinit) {	// Initial path goes off white matter
+      doinit = !InitializeFixOffWhite(failseg);
+      firstinit = false;
+    }
+    else
+      doinit = false;
+  }
 
   return true;
 }
 
 //
-// Perform a single MCMC jump
+// Try to fix the initial path if it is not entirely in the brain mask
 //
-bool Coffin::JumpMCMC() {
+bool Coffin::InitializeFixOffMask(int FailSegment) {
+  bool success = false;
+  int failseg = FailSegment,
+      perturbfirst = failseg,
+      perturblast  = (failseg == mNumControl-1) ? failseg : failseg+1;
+  const float maxdist2 = 4 * ( mResolution[0]*mResolution[0] +
+                               mResolution[1]*mResolution[1] +
+                               mResolution[2]*mResolution[2] ) / 3.0;
+  vector<int> controlorig(mControlPoints);
+
+  // Perturb control points until I get a valid initial path
+  for (unsigned int itry = 0; itry < mMaxTryMask; itry++) {
+    cout << "INFO: Path from initial control points is not entirely in mask"
+         << " or is irregular" << endl
+         << "INFO: in segment " << failseg << endl
+         << "INFO: Attempting to perturb control points" << endl;
+
+    fill(mRejectControl.begin(), mRejectControl.end(), false);
+
+    for (int icpt = perturbfirst; icpt <= perturblast; icpt++) {
+      mRejectSpline = false;
+
+      success = ProposePathSingle(icpt);
+
+      if (success) {
+        vector<int>::const_iterator inew = mControlPointsNew.begin() + 3*icpt,
+                                    iold = controlorig.begin() + 3*icpt;
+        const int dx = inew[0] - iold[0],
+                  dy = inew[1] - iold[1],
+                  dz = inew[2] - iold[2];
+
+        if (dx*dx + dy*dy + dz*dz > maxdist2)	// Too far from original points
+          success = false;
+        else {
+          copy(mControlPointsNew.begin(), mControlPointsNew.end(),
+               mControlPoints.begin());
+          break;
+        }
+      }
+      else if (mRejectSpline) {		// Error may now be in another segment
+        int failsegnew = FindErrorSegment();
+
+        if (failsegnew > -1) {
+          failseg = failsegnew;
+          perturbfirst = failseg;
+          perturblast  = (failseg == mNumControl-1) ? failseg : failseg+1;
+        }
+        else
+          for (vector<Aeon>::iterator idwi = mDwi.begin(); idwi < mDwi.end();
+                                                           idwi++) {
+            failsegnew = idwi->FindErrorSegment(mSpline);
+
+            if (failsegnew > -1) {
+              failseg = failsegnew;
+              perturbfirst = failseg;
+              perturblast  = (failseg == mNumControl-1) ? failseg : failseg+1;
+              break;
+            }
+          }
+
+        if (failsegnew > -1)
+          break;
+      }
+    }
+
+    if (success) {
+      cout << "INFO: Success after " << itry+1 << " perturbation(s)" << endl;
+      break;
+    }
+  }
+
+  return success;
+}
+
+//
+// Try to fix the initial path if it is not entirely in the white matter
+//
+bool Coffin::InitializeFixOffWhite(int FailSegment) {
+  bool success = true, improved = true;
+  int failseg = FailSegment,
+      perturbfirst = failseg,
+      perturblast  = (failseg == mNumControl-1) ? failseg : failseg+1;
+  char fname[PATH_MAX];
+  vector<int> controlorig(mControlPoints);
+
+  // Set proposal standard deviations to a conservative value for this
+  if (mMaxTryWhite > 0)
+    for (vector<float>::iterator istd = mProposalStd.begin();
+                                 istd < mProposalStd.end(); istd += 3)
+      for (int k = 0; k < 3; k++)
+        if (istd[k] > mResolution[k])
+          istd[k] = mResolution[k];
+
+  // Perturb control points to find a valid initial path
+  for (unsigned int itry = 0; itry < mMaxTryWhite; itry++) {
+    cout << "INFO: Path from initial control points is not entirely in "
+         << "white matter" << endl
+         << "INFO: in segment " << failseg << endl
+         << "INFO: Attempting to perturb control points" << endl;
+
+    fill(mRejectControl.begin(), mRejectControl.end(), false);
+
+    for (int icpt = perturbfirst; icpt <= perturblast; icpt++) {
+      mRejectSpline = false;
+      mRejectF = false;
+      mAcceptF = false;
+      mRejectTheta = false;
+      mAcceptTheta = false;
+      mRejectPosterior = false;
+
+      // If the new path is on the white matter, accept it
+      success = (JumpMcmcSingle(icpt) || mAcceptF || mRejectTheta); 
+
+      // If the new path is still off the white matter 
+      // but less so than the current one,
+      // decide to accept it based on the path prior only
+      if (mRejectF || mAcceptTheta) {
+        unsigned int noffnew = 0, noff = 0,
+                     ntotnew = 0, ntot = 0;
+
+        for (vector<Aeon>::iterator idwi = mDwi.begin(); idwi < mDwi.end();
+                                                         idwi++) {
+          noffnew += idwi->GetNumFZerosNew();
+          noff    += idwi->GetNumFZeros();
+          ntotnew += idwi->GetPathLengthNew();
+          ntot    += idwi->GetPathLength();
+        }
+
+        improved = ( (noffnew / (float) ntotnew) < (noff / (float) ntot)
+                     && AcceptPath(true) );
+      }
+      else
+        improved = success;
+
+      if (success || improved) {				// Accept point
+        UpdatePath();
+
+        if (mDebug) {
+          sprintf(fname, "%s/Faccept_f%05d_%d.nii.gz",
+                  mOutDir.c_str(), itry+1, icpt);
+          mSpline.WriteVolume(fname, true);
+        }
+
+        if (success)
+          break;
+        else
+          for (vector<Aeon>::iterator idwi = mDwi.begin(); idwi < mDwi.end();
+                                                           idwi++) {
+            const int failsegnew = idwi->FindErrorSegment(mSpline);
+
+            if (failsegnew > -1 && failseg != failsegnew) {
+              failseg = failsegnew;
+              perturbfirst = failseg;
+              perturblast  = (failseg == mNumControl-1) ? failseg : failseg+1;
+              break;
+            }
+          }
+      }
+      else {							// Reject point
+        mRejectControl[icpt] = true;
+
+        if (mDebug) {
+          sprintf(fname, "%s/Freject_f%05d_%d.nii.gz",
+                  mOutDir.c_str(), itry+1, icpt);
+          mSpline.WriteVolume(fname, true);
+        }
+      }
+    }
+
+    if (success) {
+      cout << "INFO: Success after " << itry+1 << " perturbation(s)" << endl;
+      break;
+    }
+  }
+
+  if (!success) {
+    cout << "INFO: Reverting to original control points" << endl;
+    copy(controlorig.begin(), controlorig.end(), mControlPointsNew.begin());
+    mSpline.SetControlPoints(mControlPointsNew);
+    mSpline.InterpolateSpline();
+  }
+
+  // Restore proposal standard deviations
+  if (mMaxTryWhite > 0)
+    copy(mProposalStdInit.begin(), mProposalStdInit.end(),
+         mProposalStd.begin());
+
+  return success;
+}
+
+//
+// Find spline segment corresponding to the point along the path
+// where an error occured
+//
+int Coffin::FindErrorSegment() {
+  const unsigned int ierr = (mSpline.GetAllPointsEnd() -
+                             mSpline.GetAllPointsBegin())/3 - 1;
+  int iseg;
+
+  if (ierr < 0)
+    iseg = 0;
+  else
+    iseg = (int) mSpline.PointToSegment(ierr);
+
+  if (iseg == mNumControl-1)	// Spline interpolation was completed w/o error
+    iseg = -1;
+
+  return iseg;
+}
+
+//
+// Perform one MCMC jump (full spline update)
+//
+bool Coffin::JumpMcmcFull() {
   fill(mRejectControl.begin(), mRejectControl.end(), false);
   mRejectSpline = false;
   mRejectF = false;
@@ -1353,7 +2505,7 @@ bool Coffin::JumpMCMC() {
   mAcceptTheta = false;
   mRejectPosterior = false;
 
-  if (!ProposePath())
+  if (!ProposePathFull())
     return false;
 
   ProposeDiffusionParameters();
@@ -1365,10 +2517,10 @@ bool Coffin::JumpMCMC() {
 }
 
 //
-// Perform a single MCMC jump (single point updates)
+// Perform one MCMC jump (single control point update)
 //
-bool Coffin::JumpMCMC1(int ControlIndex) {
-  if (!ProposePath1(ControlIndex))
+bool Coffin::JumpMcmcSingle(int ControlIndex) {
+  if (!ProposePathSingle(ControlIndex))
     return false;
 
   ProposeDiffusionParameters();
@@ -1380,16 +2532,15 @@ bool Coffin::JumpMCMC1(int ControlIndex) {
 }
 
 //
-// Propose path by perturbing spline control points
+// Propose path by perturbing all control points
 //
-bool Coffin::ProposePath() {
+bool Coffin::ProposePathFull() {
   vector<bool>::iterator isrej;
   vector<int>::const_iterator coord = mControlPoints.begin();
   vector<int>::const_iterator cpoint = mControlPointsNew.begin();
   vector<int>::iterator newcoord = mControlPointsNew.begin();
   vector<float>::const_iterator pstd = mProposalStd.begin();
   vector<float>::iterator jump = mControlPointJumps.begin();
-  vector<float>::iterator phi, theta;
 
   // Perturb current control points
   if (mDebug)
@@ -1429,7 +2580,7 @@ bool Coffin::ProposePath() {
         mLog << "Reject due to control point " 
              << isrej - mRejectControl.begin() << " off mask at "
              << cpoint[0] << " " << cpoint[1] << " " << cpoint[2] << endl;
-        LogObjectiveNaN();
+        LogObjectiveNaN(0);
     }
 
     cpoint += 3;
@@ -1446,7 +2597,7 @@ bool Coffin::ProposePath() {
       cpoint = mControlPointsNew.begin();
       mLog << "Reject due to control point 0 off end ROI at "
            << cpoint[0] << " " << cpoint[1] << " " << cpoint[2] << endl;
-      LogObjectiveNaN();
+      LogObjectiveNaN(0);
     }
   }
 
@@ -1458,7 +2609,7 @@ bool Coffin::ProposePath() {
       mLog << "Reject due to control point " << mNumControl-1
            << " off end ROI at "
            << cpoint[0] << " " << cpoint[1] << " " << cpoint[2] << endl;
-      LogObjectiveNaN();
+      LogObjectiveNaN(0);
     }
   }
 
@@ -1473,7 +2624,7 @@ bool Coffin::ProposePath() {
 
     if (mDebug) {
       mLog << "Reject due to zig-zag in spline" << endl;
-      LogObjectiveNaN();
+      LogObjectiveNaN(0);
     }
 
     return false;
@@ -1486,7 +2637,7 @@ bool Coffin::ProposePath() {
 
     if (mDebug) {
       mLog << "Reject due to spline" << endl;
-      LogObjectiveNaN();
+      LogObjectiveNaN(0);
     }
 
     return false;
@@ -1497,43 +2648,26 @@ bool Coffin::ProposePath() {
   mPathPointsNew.insert(mPathPointsNew.begin(), mSpline.GetAllPointsBegin(),
                                                 mSpline.GetAllPointsEnd());
 
-  // Get proposed path tangent angles
-  mSpline.ComputeTangent();
+  // Propagate proposed path to all time points
+  for (vector<Aeon>::iterator idwi = mDwi.begin(); idwi < mDwi.end(); idwi++)
+    if (!idwi->MapPathFromBase(mSpline)) {
+      mRejectSpline = true;
 
-  mPathTangentNew.clear();
-  mPathTangentNew.insert(mPathTangentNew.begin(), mSpline.GetTangentBegin(),
-                                                  mSpline.GetTangentEnd());
+      if (mDebug) {
+        mLog << "Reject due to spline" << endl;
+        LogObjectiveNaN(0);
+      }
 
-  mPathPhiNew.resize(mPathPointsNew.size());
-  phi = mPathPhiNew.begin();
-  mPathThetaNew.resize(mPathPointsNew.size());
-  theta = mPathThetaNew.begin();
-  for (vector<float>::const_iterator ipt = mSpline.GetTangentBegin();
-                                     ipt < mSpline.GetTangentEnd(); ipt += 3) {
-    *phi = atan2(ipt[1], ipt[0]);
-    *theta = acos(ipt[2] / sqrt(ipt[0]*ipt[0] + ipt[1]*ipt[1] + ipt[2]*ipt[2]));
-    phi++;
-    theta++;
-  }
-
-  // Get proposed path curvatures, if they'll be used for priors
-  if (!mPriorCurvature.empty()) {
-    mSpline.ComputeNormal();
-    mSpline.ComputeCurvature();
-
-    mPathCurvatureNew.clear();
-    mPathCurvatureNew.insert(mPathCurvatureNew.begin(),
-                                                  mSpline.GetCurvatureBegin(),
-                                                  mSpline.GetCurvatureEnd());
-  }
+      return false;
+    }
 
   return true;
 }
 
 //
-// Propose path by perturbing spline control points (single point updates)
+// Propose path by perturbing a single control point
 //
-bool Coffin::ProposePath1(int ControlIndex) {
+bool Coffin::ProposePathSingle(int ControlIndex) {
   const int offset = ControlIndex * 3;
   double norm = 0;
   vector<int>::const_iterator coord = mControlPoints.begin() + offset;
@@ -1541,7 +2675,6 @@ bool Coffin::ProposePath1(int ControlIndex) {
   vector<int>::iterator newcoord = mControlPointsNew.begin() + offset;
   vector<float>::const_iterator pstd = mProposalStd.begin() + offset;
   vector<float>::iterator jump = mControlPointJumps.begin() + offset;
-  vector<float>::iterator phi, theta;
 
   copy(mControlPoints.begin(), mControlPoints.end(), mControlPointsNew.begin());
 
@@ -1577,7 +2710,7 @@ bool Coffin::ProposePath1(int ControlIndex) {
       mLog << "Reject due to control point " << ControlIndex 
            << (IsInMask(cpoint) ? " off end ROI at " : " off mask at ")
            << cpoint[0] << " " << cpoint[1] << " " << cpoint[2] << endl;
-      LogObjectiveNaN();
+      LogObjectiveNaN(0);
     }
 
     return false;
@@ -1585,11 +2718,11 @@ bool Coffin::ProposePath1(int ControlIndex) {
 
   // Check if new control point creates zig-zag in path
   if (IsZigZag(mControlPointsNew, cpoint, cpoint)) {
-    mRejectSpline = true;
+    mRejectControl[ControlIndex] = true;
 
     if (mDebug) {
       mLog << "Reject due to zig-zag at control point " << ControlIndex << endl;
-      LogObjectiveNaN();
+      LogObjectiveNaN(0);
     }
 
     return false;
@@ -1602,7 +2735,7 @@ bool Coffin::ProposePath1(int ControlIndex) {
 
     if (mDebug) {
       mLog << "Reject due to spline" << endl;
-      LogObjectiveNaN();
+      LogObjectiveNaN(0);
     }
 
     return false;
@@ -1613,138 +2746,92 @@ bool Coffin::ProposePath1(int ControlIndex) {
   mPathPointsNew.insert(mPathPointsNew.begin(), mSpline.GetAllPointsBegin(),
                                                 mSpline.GetAllPointsEnd());
 
-  // Get proposed path tangent angles
-  mSpline.ComputeTangent();
+  // Propagate proposed path to all time points
+  for (vector<Aeon>::iterator idwi = mDwi.begin(); idwi < mDwi.end(); idwi++)
+    if (!idwi->MapPathFromBase(mSpline)) {
+      mRejectSpline = true;
 
-  mPathTangentNew.clear();
-  mPathTangentNew.insert(mPathTangentNew.begin(), mSpline.GetTangentBegin(),
-                                                  mSpline.GetTangentEnd());
+      if (mDebug) {
+        mLog << "Reject due to spline" << endl;
+        LogObjectiveNaN(0);
+      }
 
-  mPathPhiNew.resize(mPathPointsNew.size());
-  phi = mPathPhiNew.begin();
-  mPathThetaNew.resize(mPathPointsNew.size());
-  theta = mPathThetaNew.begin();
-  for (vector<float>::const_iterator ipt = mSpline.GetTangentBegin();
-                                     ipt < mSpline.GetTangentEnd(); ipt += 3) {
-    *phi = atan2(ipt[1], ipt[0]);
-    *theta = acos(ipt[2] / sqrt(ipt[0]*ipt[0] + ipt[1]*ipt[1] + ipt[2]*ipt[2]));
-    phi++;
-    theta++;
-  }
-
-  // Get proposed path curvatures, if they'll be used for priors
-  if (!mPriorCurvature.empty()) {
-    mSpline.ComputeNormal();
-    mSpline.ComputeCurvature();
-
-    mPathCurvatureNew.clear();
-    mPathCurvatureNew.insert(mPathCurvatureNew.begin(),
-                                                  mSpline.GetCurvatureBegin(),
-                                                  mSpline.GetCurvatureEnd());
-  }
+      return false;
+    }
 
   return true;
 }
 
 //
-// Propose diffusion parameters by sampling from their marginal posteriors
+// Propose diffusion parameters along the path for all time points
 //
 void Coffin::ProposeDiffusionParameters() {
-  vector<int>::const_iterator ipt;
-
-  // Sample parameters on proposed path
-  for (ipt = mPathPointsNew.begin(); ipt < mPathPointsNew.end(); ipt += 3) {
-    Bite *ivox = mDataMask[ipt[0] + ipt[1]*mNx + ipt[2]*mNxy];
-    ivox->SampleParameters();
-  }
-
-  // Sample parameters on current path
-  for (ipt = mPathPoints.begin(); ipt < mPathPoints.end(); ipt += 3) {
-    Bite *ivox = mDataMask[ipt[0] + ipt[1]*mNx + ipt[2]*mNxy];
-    ivox->SampleParameters();
-  }
+  for (vector<Aeon>::iterator idwi = mDwi.begin(); idwi < mDwi.end(); idwi++)
+    idwi->ProposeDiffusionParameters();
 }
 
 //
 // Determine if proposed path will be accepted
 //
-bool Coffin::AcceptPath() {
+bool Coffin::AcceptPath(bool UsePriorOnly) {
   double neglogratio;
   vector<int> atlaspoints;
   vector<int>::iterator iptatlas;
-  vector<float>::const_iterator phi, theta;
 
-  // Compute posterior on proposed path
-  mLikelihoodOnPathNew = 0;
-  mPriorOnPathNew = 0;
-  mLikelihoodOffPathNew = 0;
-  mPriorOffPathNew = 0;
+  mDataPosteriorOnPathNew = 0;
+  mDataPosteriorOffPathNew = 0;
+  mDataPosteriorOnPath = 0;
+  mDataPosteriorOffPath = 0;
+
+  // Compute data-fit terms for all time points on proposed and current path
+  if (!UsePriorOnly)
+    for (vector<Aeon>::iterator idwi = mDwi.begin(); idwi < mDwi.end();
+                                                     idwi++) {
+      if (!idwi->ComputePathDataFit()) {
+        mRejectF = idwi->RejectF();
+        mAcceptF = idwi->AcceptF();
+        mRejectTheta = idwi->RejectTheta();
+        mAcceptTheta = idwi->AcceptTheta();
+
+        if (mDebug) {
+          const unsigned int itime = idwi - mDwi.begin();
+          mLog << idwi->GetLog() << ", time point " << itime << endl;
+          LogObjectiveNaN(itime);
+        }
+
+        return false;
+      }
+
+      mDataPosteriorOnPathNew  += idwi->GetPosteriorOnPathNew();
+      mDataPosteriorOffPathNew += idwi->GetPosteriorOffPathNew();
+      mDataPosteriorOnPath     += idwi->GetPosteriorOnPath();
+      mDataPosteriorOffPath    += idwi->GetPosteriorOffPath();
+    }
+
+  // Map proposed path from diffusion/base space to atlas space
   atlaspoints.resize(mPathPointsNew.size());
   iptatlas = atlaspoints.begin();
-  phi = mPathPhiNew.begin();
-  theta = mPathThetaNew.begin();
 
   for (vector<int>::iterator ipt = mPathPointsNew.begin();
                              ipt < mPathPointsNew.end(); ipt += 3) {
-    Bite *ivox = mDataMask[ipt[0] + ipt[1]*mNx + ipt[2]*mNxy];
+    vector< vector<int> >::iterator icoord =
+      mAtlasCoords.begin() + (ipt[0] + ipt[1]*mNx + ipt[2]*mNxy);
 
-    ivox->ComputeLikelihoodOffPath();
-    ivox->ComputeLikelihoodOnPath(*phi, *theta);
-    if (ivox->IsFZero()) {
-      mRejectF = true;
-
-      if (mDebug) {
-        mLog << "Reject due to f=0 at "
-             << ipt[0] << " " << ipt[1] << " " << ipt[2] << endl;
-        LogObjectiveNaN();
-      }
-
-      return false;
-    }
-    if (ivox->IsThetaZero()) {
-      mAcceptTheta = true;
-
-      if (mDebug) {
-        mLog << "Accept due to theta=0 at "
-             << ipt[0] << " " << ipt[1] << " " << ipt[2] << endl;
-        LogObjectiveNaN();
-      }
-
-      return false;
-    }
-    ivox->ComputePriorOffPath();
-    ivox->ComputePriorOnPath();
-
-    if (mDebug && 0)
-      mLog << ipt[0] << " " << ipt[1] << " " << ipt[2] << " "
-           << ivox->GetLikelihoodOffPath() << " "
-           << ivox->GetPriorOffPath() << " "
-           << ivox->GetLikelihoodOnPath() << " "
-           << ivox->GetPriorOnPath() << endl;
-
-    mLikelihoodOnPathNew += ivox->GetLikelihoodOnPath();
-    mPriorOnPathNew += ivox->GetPriorOnPath();
-
-    mLikelihoodOffPathNew += ivox->GetLikelihoodOffPath();
-    mPriorOffPathNew += ivox->GetPriorOffPath();
-
-    // Map point to atlas space
-    if (ivox->IsAtlasSet())
-      // Retrieve previously computed coordinates in atlas space
-      ivox->GetAtlasCoords(iptatlas);
-    else {
-      // Map point coordinates from diffusion space to atlas space
+    if (icoord->empty()) {
+      // Map point coordinates from diffusion/base space to atlas space
       MapPointToAtlas(iptatlas, ipt);
 
       // Save transformed coordinates for future use
-      ivox->SetAtlasCoords(iptatlas);
+      icoord->insert(icoord->end(), iptatlas, iptatlas+3);
     }
+    else
+      // Retrieve previously computed coordinates in atlas space
+      copy(icoord->begin(), icoord->end(), iptatlas);
 
     iptatlas += 3;
-    phi++;
-    theta++;
   }
 
+  // Compute atlas-derived prior terms on proposed path
   mXyzPriorOffPathNew = ComputeXyzPriorOffPath(atlaspoints);
   mXyzPriorOnPathNew  = ComputeXyzPriorOnPath(atlaspoints);
 
@@ -1752,73 +2839,21 @@ bool Coffin::AcceptPath() {
 
   mShapePriorNew = ComputeShapePrior(atlaspoints);
 
-  mPosteriorOnPathNew  = mLikelihoodOnPathNew  + mPriorOnPathNew
-                       + mXyzPriorOnPathNew
-                       + mAnatomicalPriorNew   + mShapePriorNew;
-  mPosteriorOffPathNew = mLikelihoodOffPathNew + mPriorOffPathNew
-                       + mXyzPriorOffPathNew;
+  // Compute posterior on proposed path
+  mPosteriorOnPathNew  = mDataPosteriorOnPathNew + mXyzPriorOnPathNew
+                       + mAnatomicalPriorNew + mShapePriorNew;
+  mPosteriorOffPathNew = mDataPosteriorOffPathNew + mXyzPriorOffPathNew;
 
   // Compute posterior on current path
-  mLikelihoodOnPath = 0;
-  mPriorOnPath = 0;
-  mLikelihoodOffPath = 0;
-  mPriorOffPath = 0;
-  phi = mPathPhi.begin();
-  theta = mPathTheta.begin();
+  mPosteriorOnPath  = mDataPosteriorOnPath + mXyzPriorOnPath
+                    + mAnatomicalPrior + mShapePrior;
+  mPosteriorOffPath = mDataPosteriorOffPath + mXyzPriorOffPath;
 
-  for (vector<int>::iterator ipt = mPathPoints.begin();
-                             ipt < mPathPoints.end(); ipt += 3) {
-    Bite *ivox = mDataMask[ipt[0] + ipt[1]*mNx + ipt[2]*mNxy];
+  // Compute ratio of proposed/current path posteriors
+  neglogratio = mPosteriorOnPathNew - mPosteriorOffPathNew
+              + mPosteriorOffPath   - mPosteriorOnPath;
 
-    ivox->ComputeLikelihoodOffPath();
-    ivox->ComputeLikelihoodOnPath(*phi, *theta);
-    if (ivox->IsFZero()) {
-      mAcceptF = true;
-
-      if (mDebug) {
-        mLog << "Accept due to f=0 at "
-             << ipt[0] << " " << ipt[1] << " " << ipt[2] << endl;
-        LogObjectiveNaN();
-      }
-
-      return false;
-    }
-    if (ivox->IsThetaZero()) {
-      mRejectTheta = true;
-
-      if (mDebug) {
-        mLog << "Reject due to theta=0 at "
-             << ipt[0] << " " << ipt[1] << " " << ipt[2] << endl;
-        LogObjectiveNaN();
-      }
-
-      return false;
-    }
-    ivox->ComputePriorOffPath();
-    ivox->ComputePriorOnPath();
-
-    mLikelihoodOnPath += ivox->GetLikelihoodOnPath();
-    mPriorOnPath += ivox->GetPriorOnPath();
-
-    mLikelihoodOffPath += ivox->GetLikelihoodOffPath();
-    mPriorOffPath += ivox->GetPriorOffPath();
-
-    phi++;
-    theta++;
-  }
-
-  mPosteriorOnPath  = mLikelihoodOnPath  + mPriorOnPath + mXyzPriorOnPath
-                    + mAnatomicalPrior   + mShapePrior;
-  mPosteriorOffPath = mLikelihoodOffPath + mPriorOffPath + mXyzPriorOffPath;
-
-  neglogratio = (mPosteriorOnPathNew - mPosteriorOffPathNew)
-                / (mPathPointsNew.size()/3) 
-              + (mPosteriorOffPath   - mPosteriorOnPath)
-                / (mPathPoints.size()/3);
-//neglogratio = mLikelihoodOnPathNew / (mPathPointsNew.size()/3)
-//            - mLikelihoodOnPath / (mPathPoints.size()/3);
-
-  // Accept or reject based on ratio of posteriors
+  // Accept or reject proposed path based on ratio of posteriors
   if (drand48() < exp(-neglogratio)) {
     if (mDebug) {
       mLog << "Accept due to posterior (alpha = " << exp(-neglogratio) << ")"
@@ -1846,12 +2881,14 @@ bool Coffin::AcceptPath() {
 double Coffin::ComputeXyzPriorOffPath(std::vector<int> &PathAtlasPoints) {
   double prior = 0;
 
-  if (mXyzPrior0)
-    for (vector<int>::const_iterator ipt = PathAtlasPoints.begin();
-                                     ipt < PathAtlasPoints.end(); ipt += 3)
-      prior += (double) MRIgetVoxVal(mXyzPrior0, ipt[0], ipt[1], ipt[2], 0);
+  if (!mXyzPrior0)
+    return 0;
 
-  return prior;
+  for (vector<int>::const_iterator ipt = PathAtlasPoints.begin();
+                                   ipt < PathAtlasPoints.end(); ipt += 3)
+    prior += (double) MRIgetVoxVal(mXyzPrior0, ipt[0], ipt[1], ipt[2], 0);
+
+  return prior / (PathAtlasPoints.size()/3);
 }
 
 //
@@ -1860,12 +2897,14 @@ double Coffin::ComputeXyzPriorOffPath(std::vector<int> &PathAtlasPoints) {
 double Coffin::ComputeXyzPriorOnPath(std::vector<int> &PathAtlasPoints) {
   double prior = 0;
 
-  if (mXyzPrior1)
-    for (vector<int>::const_iterator ipt = PathAtlasPoints.begin();
-                                     ipt < PathAtlasPoints.end(); ipt += 3)
-      prior += (double) MRIgetVoxVal(mXyzPrior1, ipt[0], ipt[1], ipt[2], 0);
+  if (!mXyzPrior1)
+    return 0;
 
-  return prior;
+  for (vector<int>::const_iterator ipt = PathAtlasPoints.begin();
+                                   ipt < PathAtlasPoints.end(); ipt += 3)
+    prior += (double) MRIgetVoxVal(mXyzPrior1, ipt[0], ipt[1], ipt[2], 0);
+
+  return prior / (PathAtlasPoints.size()/3);
 }
 
 //
@@ -1953,7 +2992,7 @@ double Coffin::ComputeShapePrior(vector<int> &PathAtlasPoints) {
     }
   }
 
-  return prior;
+  return prior / (PathAtlasPoints.size()/3);
 }
 
 //
@@ -1962,6 +3001,7 @@ double Coffin::ComputeShapePrior(vector<int> &PathAtlasPoints) {
 double Coffin::ComputeAnatomicalPrior(vector<int> &PathAtlasPoints) {
   const double darc = mNumArc / (double) (PathAtlasPoints.size()/3);
   double larc = 0, prior = 0;
+  vector<float>::iterator iseg0;
   vector<unsigned int>::const_iterator imatch;
   vector< vector<unsigned int> >::const_iterator iidlocal = mIdsLocal.begin(),
                                                  iidnear  = mIdsNear.begin(),
@@ -1969,6 +3009,7 @@ double Coffin::ComputeAnatomicalPrior(vector<int> &PathAtlasPoints) {
   vector< vector<float> >::const_iterator iprlocal = mPriorLocal.begin(), 
                                           iprnear  = mPriorNear.begin(),
                                           ipr;
+  vector<float> seg0(mAseg.size());
 
   if (mPriorLocal.empty() && mPriorNear.empty())
     return 0;
@@ -1976,7 +3017,6 @@ double Coffin::ComputeAnatomicalPrior(vector<int> &PathAtlasPoints) {
   for (vector<int>::const_iterator ipt = PathAtlasPoints.begin();
                                    ipt < PathAtlasPoints.end(); ipt += 3) {
     const int ix0 = ipt[0], iy0 = ipt[1], iz0 = ipt[2];
-    const float seg0 = MRIgetVoxVal(mAseg, ix0, iy0, iz0, 0);
 
     // Find prior given local neighbor labels
     iid = iidlocal;
@@ -1988,17 +3028,20 @@ double Coffin::ComputeAnatomicalPrior(vector<int> &PathAtlasPoints) {
                 iy = iy0 + idir[1],
                 iz = iz0 + idir[2];
 
-      imatch = find(iid->begin(), iid->end(),
-                    (unsigned int) MRIgetVoxVal(mAseg,
-                                   ((ix > -1 && ix < mNxAtlas) ? ix : ix0),
-                                   ((iy > -1 && iy < mNyAtlas) ? iy : iy0),
-                                   ((iz > -1 && iz < mNzAtlas) ? iz : iz0),
-                                   0));
+      for (vector<MRI *>::const_iterator iaseg = mAseg.begin();
+                                         iaseg < mAseg.end(); iaseg++) {
+        imatch = find(iid->begin(), iid->end(),
+                      (unsigned int) MRIgetVoxVal(*iaseg,
+                                     ((ix > -1 && ix < mNxAtlas) ? ix : ix0),
+                                     ((iy > -1 && iy < mNyAtlas) ? iy : iy0),
+                                     ((iz > -1 && iz < mNzAtlas) ? iz : iz0),
+                                     0));
 
-      if (imatch < iid->end())
-        prior += ipr->at(imatch - iid->begin());
-      else
-        prior += *(ipr->end() - 1);
+        if (imatch < iid->end())
+          prior += ipr->at(imatch - iid->begin());
+        else
+          prior += *(ipr->end() - 1);
+      }
 
       iid += mNumArc;
       ipr += mNumArc;
@@ -2008,31 +3051,44 @@ double Coffin::ComputeAnatomicalPrior(vector<int> &PathAtlasPoints) {
     iid = iidnear;
     ipr = iprnear;
 
+    iseg0 = seg0.begin();
+    for (vector<MRI *>::const_iterator iaseg = mAseg.begin();
+                                       iaseg < mAseg.end(); iaseg++) {
+      *iseg0 = MRIgetVoxVal(*iaseg, ix0, iy0, iz0, 0);
+      iseg0++;
+    }
+
     for (vector<int>::const_iterator idir = mDirNear.begin();
                                      idir != mDirNear.end(); idir += 3) {
       int dist = 0, ix = ix0 + idir[0],
                     iy = iy0 + idir[1],
                     iz = iz0 + idir[2];
-      float seg = seg0;
 
-      while ((ix > -1) && (ix < mNxAtlas) &&
-             (iy > -1) && (iy < mNyAtlas) &&
-             (iz > -1) && (iz < mNzAtlas) && (seg == seg0)) {
-        seg = MRIgetVoxVal(mAseg, ix, iy, iz, 0);
-        dist++;
+      iseg0 = seg0.begin();
+      for (vector<MRI *>::const_iterator iaseg = mAseg.begin();
+                                         iaseg < mAseg.end(); iaseg++) {
+        float seg = *iseg0;
 
-        ix += idir[0];
-        iy += idir[1];
-        iz += idir[2];
+        while ((ix > -1) && (ix < mNxAtlas) &&
+               (iy > -1) && (iy < mNyAtlas) &&
+               (iz > -1) && (iz < mNzAtlas) && (seg == *iseg0)) {
+          seg = MRIgetVoxVal(*iaseg, ix, iy, iz, 0);
+          dist++;
+
+          ix += idir[0];
+          iy += idir[1];
+          iz += idir[2];
+        }
+
+        imatch = find(iid->begin(), iid->end(), (unsigned int) seg);
+
+        if (imatch < iid->end())
+          prior += ipr->at(imatch - iid->begin());
+        else
+          prior += *(ipr->end() - 1);
+
+        iseg0++;
       }
-
-      imatch = find(iid->begin(), iid->end(), (unsigned int) seg);
-      //mAsegDistArc[inear].push_back(dist);
-
-      if (imatch < iid->end())
-        prior += ipr->at(imatch - iid->begin());
-      else
-        prior += *(ipr->end() - 1);
 
       iid += mNumArc;
       ipr += mNumArc;
@@ -2049,41 +3105,36 @@ double Coffin::ComputeAnatomicalPrior(vector<int> &PathAtlasPoints) {
     }
   }
 
-  return prior;
+  return prior / (PathAtlasPoints.size()/3);
 }
 
 //
-// Copy newly accepted path over current path
+// Copy newly accepted path over current path for all time points and base
 //
 void Coffin::UpdatePath() {
+  for (vector<Aeon>::iterator idwi = mDwi.begin(); idwi < mDwi.end(); idwi++)
+    idwi->UpdatePath();
+
   copy(mControlPointsNew.begin(), mControlPointsNew.end(), 
        mControlPoints.begin());
 
   mPathPoints.resize(mPathPointsNew.size());
   copy(mPathPointsNew.begin(), mPathPointsNew.end(), mPathPoints.begin());
 
-  mPathPhi.resize(mPathPhiNew.size());
-  copy(mPathPhiNew.begin(), mPathPhiNew.end(), mPathPhi.begin());
-
-  mPathTheta.resize(mPathThetaNew.size());
-  copy(mPathThetaNew.begin(), mPathThetaNew.end(), mPathTheta.begin());
-
-  mLikelihoodOnPath  = mLikelihoodOnPathNew; 
-  mLikelihoodOffPath = mLikelihoodOffPathNew; 
-  mPriorOnPath       = mPriorOnPathNew; 
-  mPriorOffPath      = mPriorOffPathNew; 
-  mPosteriorOnPath   = mPosteriorOnPathNew;
-  mPosteriorOffPath  = mPosteriorOffPathNew;
-  mXyzPriorOnPath    = mXyzPriorOnPathNew;
-  mXyzPriorOffPath   = mXyzPriorOffPathNew;
-  mAnatomicalPrior   = mAnatomicalPriorNew; 
-  mShapePrior        = mShapePriorNew; 
+  mDataPosteriorOnPath  = mDataPosteriorOnPathNew; 
+  mDataPosteriorOffPath = mDataPosteriorOffPathNew; 
+  mXyzPriorOnPath       = mXyzPriorOnPathNew;
+  mXyzPriorOffPath      = mXyzPriorOffPathNew;
+  mAnatomicalPrior      = mAnatomicalPriorNew; 
+  mShapePrior           = mShapePriorNew; 
+  mPosteriorOnPath      = mPosteriorOnPathNew;
+  mPosteriorOffPath     = mPosteriorOffPathNew;
 }
 
 //
-// Update control point acceptance rate
+// Update control point acceptance rate (for full spline updates)
 //
-void Coffin::UpdateAcceptanceRate() {
+void Coffin::UpdateAcceptanceRateFull() {
   vector<float>::const_iterator jump = mControlPointJumps.begin();
   
   if (!(mAcceptF || mAcceptTheta))
@@ -2096,9 +3147,9 @@ void Coffin::UpdateAcceptanceRate() {
 }
 
 //
-// Update control point rejection rate
+// Update control point rejection rate (for full spline updates)
 //
-void Coffin::UpdateRejectionRate() {
+void Coffin::UpdateRejectionRateFull() {
   vector<float>::const_iterator jump = mControlPointJumps.begin();
 
   if (mRejectPosterior || mRejectSpline)
@@ -2128,9 +3179,9 @@ void Coffin::UpdateRejectionRate() {
 }
 
 //
-// Update control point acceptance and rejection rates (single point update)
+// Update control point acceptance/rejection rates (for single control updates)
 //
-void Coffin::UpdateAcceptRejectRate1() {
+void Coffin::UpdateAcceptRejectRateSingle() {
   vector<int>::iterator acount = mAcceptCount.begin();
   vector<int>::iterator rcount = mRejectCount.begin();
   vector<float>::const_iterator jump = mControlPointJumps.begin();
@@ -2232,64 +3283,51 @@ void Coffin::UpdateProposalStd() {
 
 //
 // Save data-fit and prior terms of accepted and rejected path
+// for all time points
 //
 void Coffin::SavePathPosterior(bool IsPathAccepted) {
+  vector<float> priors(6);
+
+  // Save path data-fit terms for each time point
+  for (vector<Aeon>::iterator idwi = mDwi.begin(); idwi < mDwi.end(); idwi++)
+    idwi->SavePathDataFit(IsPathAccepted);
+
+  // Save atlas-derived path prior terms, common among all time points
   if (IsPathAccepted) {			// The newly sampled path was accepted
-    mPosteriorSamples.push_back(mLikelihoodOnPathNew  + mPriorOnPathNew
-                              - mLikelihoodOffPathNew - mPriorOffPathNew);
-    mPosteriorSamples.push_back(mXyzPriorOnPathNew - mXyzPriorOffPathNew);
-    mPosteriorSamples.push_back(mAnatomicalPriorNew);
-    mPosteriorSamples.push_back(mShapePriorNew);
-    mPosteriorSamples.push_back(mLikelihoodOnPath  + mPriorOnPath
-                              - mLikelihoodOffPath - mPriorOffPath);
-    mPosteriorSamples.push_back(mXyzPriorOnPath - mXyzPriorOffPath);
-    mPosteriorSamples.push_back(mAnatomicalPrior);
-    mPosteriorSamples.push_back(mShapePrior);
+    priors[0] = (float) mXyzPriorOnPathNew - mXyzPriorOffPathNew;
+    priors[1] = (float) mAnatomicalPriorNew;
+    priors[2] = (float) mShapePriorNew;
+    priors[3] = (float) mXyzPriorOnPath - mXyzPriorOffPath;
+    priors[4] = (float) mAnatomicalPrior;
+    priors[5] = (float) mShapePrior;
   }
   else {				// The newly sampled path was rejected
-    mPosteriorSamples.push_back(mLikelihoodOnPath  + mPriorOnPath
-                              - mLikelihoodOffPath - mPriorOffPath);
-    mPosteriorSamples.push_back(mXyzPriorOnPath - mXyzPriorOffPath);
-    mPosteriorSamples.push_back(mAnatomicalPrior);
-    mPosteriorSamples.push_back(mShapePrior);
-    mPosteriorSamples.push_back(mLikelihoodOnPathNew  + mPriorOnPathNew
-                              - mLikelihoodOffPathNew - mPriorOffPathNew);
-    mPosteriorSamples.push_back(mXyzPriorOnPathNew - mXyzPriorOffPathNew);
-    mPosteriorSamples.push_back(mAnatomicalPriorNew);
-    mPosteriorSamples.push_back(mShapePriorNew);
+    priors[0] = (float) mXyzPriorOnPath - mXyzPriorOffPath;
+    priors[1] = (float) mAnatomicalPrior;
+    priors[2] = (float) mShapePrior;
+    priors[3] = (float) mXyzPriorOnPathNew - mXyzPriorOffPathNew;
+    priors[4] = (float) mAnatomicalPriorNew;
+    priors[5] = (float) mShapePriorNew;
   }
+
+  Aeon::SavePathPriors(priors);
 }
 
 //
 // Save current path as an MCMC sample
 //
 void Coffin::SavePath() {
+  // Save current path for all time points
+  for (vector<Aeon>::iterator idwi = mDwi.begin(); idwi < mDwi.end(); idwi++)
+    idwi->SavePath();
+
   // Save current control points
-  mControlPointSamples.insert(mControlPointSamples.end(),
-                              mControlPoints.begin(), mControlPoints.end());
-
-  // Save current path
-  mPathPointSamples.push_back(mPathPoints);
-
-  // Save current path length
-  mPathLengthSamples.push_back(mPathPoints.size()/3);
-
-  // Add current path to path posterior
-  for (vector<int>::const_iterator ipt = mPathPoints.begin();
-                                   ipt < mPathPoints.end(); ipt += 3) {
-    const int ix = ipt[0], iy = ipt[1], iz = ipt[2];
-      
-    MRIsetVoxVal(mPathSamples, ix, iy, iz, 0, 
-                 MRIgetVoxVal(mPathSamples, ix, iy, iz, 0) + 1);
-  }
+  Aeon::SaveControlPointSample(mControlPoints);
 
   // Keep track of MAP path
-  if (mPosteriorOnPath / (mPathPoints.size()/3) < mPosteriorOnPathMap) {
-    copy(mControlPoints.begin(), mControlPoints.end(), 
-         mControlPointsMap.begin());
-    mPathPointsMap.resize(mPathPoints.size());
-    copy(mPathPoints.begin(), mPathPoints.end(), mPathPointsMap.begin());
-    mPosteriorOnPathMap = mPosteriorOnPath / (mPathPoints.size()/3);
+  if (mPosteriorOnPath < mPosteriorOnPathMap) {
+    Aeon::SetPathMap();
+    mPosteriorOnPathMap = mPosteriorOnPath;
   }
 }
 
@@ -2408,7 +3446,7 @@ bool Coffin::IsZigZag(vector<int> &ControlPoints,
 }
 
 //
-// Map point coordinates from diffusion space to atlas space
+// Map point coordinates from diffusion/base space to atlas space
 //
 void Coffin::MapPointToAtlas(vector<int>::iterator OutPoint,
                              vector<int>::const_iterator InPoint) {
@@ -2430,82 +3468,172 @@ void Coffin::MapPointToAtlas(vector<int>::iterator OutPoint,
 }
 
 //
-// Write elements of objective function to log file
+// Write terms of objective function to log file (all terms are defined)
 //
 void Coffin::LogObjective() {
-  mLog << "mLikelihoodOnPathNew=" << mLikelihoodOnPathNew << " "
-       << "mPriorOnPathNew=" << mPriorOnPathNew << endl
-       << "mXyzPriorOnPathNew=" << mXyzPriorOnPathNew << endl
+  for (vector<Aeon>::const_iterator idwi = mDwi.begin();
+                                    idwi < mDwi.end(); idwi++)
+    mLog << "mLikelihoodOnPathNew=" << idwi->GetLikelihoodOnPathNew()
+         << " mPriorOnPathNew=" << idwi->GetPriorOnPathNew() << endl;
+
+  mLog << "mXyzPriorOnPathNew=" << mXyzPriorOnPathNew << endl
        << "mAnatomicalPriorNew=" << mAnatomicalPriorNew << endl
-       << "mShapePriorNew=" << mShapePriorNew << endl
-       << "mLikelihoodOffPathNew=" << mLikelihoodOffPathNew << " "
-       << "mPriorOffPathNew=" << mPriorOffPathNew << endl
-       << "mXyzPriorOffPathNew=" << mXyzPriorOffPathNew << endl
-       << "mLikelihoodOn-OffPathNew="
-       << mLikelihoodOnPathNew-mLikelihoodOffPathNew << " "
-       << "mPriorOn-OffPathNew=" << mPriorOnPathNew-mPriorOffPathNew << endl
-       << "mXyzPriorOn-OffPathNew="
-       << mXyzPriorOnPathNew-mXyzPriorOffPathNew << endl
-       << "mPathLengthNew=" << mPathPointsNew.size()/3 << endl
-       << "mLikelihoodOnPath=" << mLikelihoodOnPath << " "
-       << "mPriorOnPath=" << mPriorOnPath << endl
-       << "mXyzPriorOnPath=" << mXyzPriorOnPath << endl
+       << "mShapePriorNew=" << mShapePriorNew << endl;
+
+  for (vector<Aeon>::const_iterator idwi = mDwi.begin();
+                                    idwi < mDwi.end(); idwi++)
+    mLog << "mLikelihoodOffPathNew=" << idwi->GetLikelihoodOffPathNew()
+         << " mPriorOffPathNew=" << idwi->GetPriorOffPathNew() << endl;
+
+  mLog << "mXyzPriorOffPathNew=" << mXyzPriorOffPathNew << endl;
+
+  for (vector<Aeon>::const_iterator idwi = mDwi.begin();
+                                    idwi < mDwi.end(); idwi++)
+    mLog << "mLikelihoodOn-OffPathNew="
+         << idwi->GetLikelihoodOnPathNew() - idwi->GetLikelihoodOffPathNew()
+         << " mPriorOn-OffPathNew="
+         << idwi->GetPriorOnPathNew() - idwi->GetPriorOffPathNew() << endl;
+
+  mLog << "mXyzPriorOn-OffPathNew="
+       << mXyzPriorOnPathNew - mXyzPriorOffPathNew << endl
+       << "mPathLengthNew=" << mPathPointsNew.size()/3 << endl;
+
+  for (vector<Aeon>::const_iterator idwi = mDwi.begin();
+                                    idwi < mDwi.end(); idwi++)
+    mLog << "mLikelihoodOnPath=" << idwi->GetLikelihoodOnPath()
+         << " mPriorOnPath=" << idwi->GetPriorOnPath() << endl;
+
+  mLog << "mXyzPriorOnPath=" << mXyzPriorOnPath << endl
        << "mAnatomicalPrior=" << mAnatomicalPrior << endl
-       << "mShapePrior=" << mShapePrior << endl
-       << "mLikelihoodOffPath=" << mLikelihoodOffPath << " "
-       << "mPriorOffPath=" << mPriorOffPath << endl
-       << "mXyzPriorOffPath=" << mXyzPriorOffPath << endl
-       << "mLikelihoodOff-OnPath="
-       << mLikelihoodOffPath-mLikelihoodOnPath << " "
-       << "mPriorOff-OnPath=" << mPriorOffPath-mPriorOnPath << endl
-       << "mXyzPriorOn-OffPath=" << mXyzPriorOnPath-mXyzPriorOffPath << endl
+       << "mShapePrior=" << mShapePrior << endl;
+
+  for (vector<Aeon>::const_iterator idwi = mDwi.begin();
+                                    idwi < mDwi.end(); idwi++)
+    mLog << "mLikelihoodOffPath=" << idwi->GetLikelihoodOffPath()
+         << " mPriorOffPath=" << idwi->GetPriorOffPath() << endl;
+
+  mLog << "mXyzPriorOffPath=" << mXyzPriorOffPath << endl;
+
+  for (vector<Aeon>::const_iterator idwi = mDwi.begin();
+                                    idwi < mDwi.end(); idwi++)
+    mLog << "mLikelihoodOff-OnPath="
+         << idwi->GetLikelihoodOffPath() - idwi->GetLikelihoodOnPath()
+         << " mPriorOff-OnPath="
+         << idwi->GetPriorOffPath() - idwi->GetPriorOnPath() << endl;
+
+  mLog << "mXyzPriorOn-OffPath=" << mXyzPriorOnPath-mXyzPriorOffPath << endl
        << "mPathLength=" << mPathPoints.size()/3 << endl;
 }
 
 //
-// Placeholder for elements of objective function when path is not valid
+// Write terms of objective function to log file (some terms are not defined
+// because the new path was rejected or accepted before some of the terms were
+// computed)
 //
-void Coffin::LogObjectiveNaN() {
-  mLog << "mLikelihoodOnPathNew=NaN mPriorOnPathNew=NaN" << endl
-       << "mXyzPriorOnPathNew=NaN" << endl
+void Coffin::LogObjectiveNaN(const unsigned int NumValidData) {
+  for (vector<Aeon>::const_iterator idwi = mDwi.begin();
+                                    idwi < mDwi.begin() + NumValidData; idwi++)
+    mLog << "mLikelihoodOnPathNew=" << idwi->GetLikelihoodOnPathNew()
+         << " mPriorOnPathNew=" << idwi->GetPriorOnPathNew() << endl;
+
+  for (vector<Aeon>::const_iterator idwi = mDwi.begin() + NumValidData;
+                                    idwi < mDwi.end(); idwi++)
+    mLog << "mLikelihoodOnPathNew=NaN mPriorOnPathNew=NaN" << endl;
+
+  mLog << "mXyzPriorOnPathNew=NaN" << endl
        << "mAnatomicalPriorNew=NaN" << endl
-       << "mShapePriorNew=NaN" << endl
-       << "mLikelihoodOffPathNew=NaN mPriorOffPathNew=NaN" << endl
-       << "mXyzPriorOffPathNew=NaN" << endl
-       << "mLikelihoodOn-OffPathNew=NaN mPriorOn-OffPathNew=NaN" << endl
-       << "mXyzPriorOn-OffPathNew=NaN" << endl
-       << "mPathLengthNew=NaN" << endl
-       << "mLikelihoodOnPath=NaN mPriorOnPath=NaN" << endl
-       << "mXyzPriorOnPath=NaN" << endl
-       << "mAnatomicalPrior=NaN" << endl
-       << "mShapePrior=NaN" << endl
-       << "mLikelihoodOffPath=NaN mPriorOffPath=NaN" << endl
-       << "mXyzPriorOffPathNew=NaN" << endl
-       << "mLikelihoodOff-OnPath=NaN mPriorOff-OnPath=NaN" << endl
-       << "mXyzPriorOn-OffPath=NaN" << endl
-       << "mPathLength=NaN" << endl;
+       << "mShapePriorNew=NaN" << endl;
+
+  for (vector<Aeon>::const_iterator idwi = mDwi.begin();
+                                    idwi < mDwi.begin() + NumValidData; idwi++)
+    mLog << "mLikelihoodOffPathNew=" << idwi->GetLikelihoodOffPathNew()
+         << " mPriorOffPathNew=" << idwi->GetPriorOffPathNew() << endl;
+
+  for (vector<Aeon>::const_iterator idwi = mDwi.begin() + NumValidData;
+                                    idwi < mDwi.end(); idwi++)
+    mLog << "mLikelihoodOffPathNew=NaN mPriorOffPathNew=NaN" << endl;
+
+  mLog << "mXyzPriorOffPathNew=NaN" << endl;
+
+  for (vector<Aeon>::const_iterator idwi = mDwi.begin();
+                                    idwi < mDwi.begin() + NumValidData; idwi++)
+    mLog << "mLikelihoodOn-OffPathNew="
+         << idwi->GetLikelihoodOnPathNew() - idwi->GetLikelihoodOffPathNew()
+         << " mPriorOn-OffPathNew="
+         << idwi->GetPriorOnPathNew() - idwi->GetPriorOffPathNew() << endl;
+
+  for (vector<Aeon>::const_iterator idwi = mDwi.begin() + NumValidData;
+                                    idwi < mDwi.end(); idwi++)
+    mLog << "mLikelihoodOn-OffPathNew=NaN mPriorOn-OffPathNew=NaN" << endl;
+
+  mLog << "mXyzPriorOn-OffPathNew=NaN" << endl
+       << "mPathLengthNew=" << mPathPointsNew.size()/3 << endl;
+
+  for (vector<Aeon>::const_iterator idwi = mDwi.begin();
+                                    idwi < mDwi.begin() + NumValidData; idwi++)
+    mLog << "mLikelihoodOnPath=" << idwi->GetLikelihoodOnPath()
+         << " mPriorOnPath=" << idwi->GetPriorOnPath() << endl;
+
+  for (vector<Aeon>::const_iterator idwi = mDwi.begin() + NumValidData;
+                                    idwi < mDwi.end(); idwi++)
+    mLog << "mLikelihoodOnPath=NaN mPriorOnPath=NaN" << endl;
+
+  mLog << "mXyzPriorOnPath=" << mXyzPriorOnPath << endl
+       << "mAnatomicalPrior=" << mAnatomicalPrior << endl
+       << "mShapePrior=" << mShapePrior << endl;
+
+  for (vector<Aeon>::const_iterator idwi = mDwi.begin();
+                                    idwi < mDwi.begin() + NumValidData; idwi++)
+    mLog << "mLikelihoodOffPath=" << idwi->GetLikelihoodOffPath()
+         << " mPriorOffPath=" << idwi->GetPriorOffPath() << endl;
+
+  for (vector<Aeon>::const_iterator idwi = mDwi.begin() + NumValidData;
+                                  idwi < mDwi.end(); idwi++)
+    mLog << "mLikelihoodOffPath=NaN mPriorOffPath=NaN" << endl;
+
+  mLog << "mXyzPriorOffPath=" << mXyzPriorOffPath << endl;
+
+  for (vector<Aeon>::const_iterator idwi = mDwi.begin();
+                                    idwi < mDwi.begin() + NumValidData; idwi++)
+    mLog << "mLikelihoodOff-OnPath="
+         << idwi->GetLikelihoodOffPath() - idwi->GetLikelihoodOnPath()
+         << " mPriorOff-OnPath="
+         << idwi->GetPriorOffPath() - idwi->GetPriorOnPath() << endl;
+
+  for (vector<Aeon>::const_iterator idwi = mDwi.begin() + NumValidData;
+                                    idwi < mDwi.end(); idwi++)
+    mLog << "mLikelihoodOff-OnPath=NaN mPriorOff-OnPath=NaN" << endl;
+
+  mLog << "mXyzPriorOn-OffPath=" << mXyzPriorOnPath-mXyzPriorOffPath << endl
+       << "mPathLength=" << mPathPoints.size()/3 << endl;
+}
+
+//
+// Check that a point is inside this time point's mask
+//
+bool Aeon::IsInMask(vector<int>::const_iterator Point) {
+  return (Point[0] > -1) && (Point[0] < mMask->width) &&
+         (Point[1] > -1) && (Point[1] < mMask->height) &&
+         (Point[2] > -1) && (Point[2] < mMask->depth) &&
+         (MRIgetVoxVal(mMask, Point[0], Point[1], Point[2], 0) > 0);
 }
 
 //
 // Find maximum a posteriori path
 //
-void Coffin::FindPathMAP() {
-  const int lmin = *min_element(mPathLengthSamples.begin(),
-                                mPathLengthSamples.end()),
-            lmax = *max_element(mPathLengthSamples.begin(),
-                                mPathLengthSamples.end());
+int Aeon::FindMaximumAPosterioriPath(vector< vector<int> > &PathSamples,
+                                     vector<int> &PathLengths,
+                                     MRI *PathHisto) {
+  const int lmin = *min_element(PathLengths.begin(), PathLengths.end()),
+            lmax = *max_element(PathLengths.begin(), PathLengths.end());
   float lnorm, pathnorm = 0.0, probmax = 0.0;
   vector<int>::const_iterator icptsmap, ilen;
   vector< vector<int> >::const_iterator ipathmap;
   vector<float> lhisto(lmax-lmin+1, 0), lhistofilt(lhisto.size(), 0);
   vector<float>::iterator ihistofilt = lhistofilt.begin();
-vector<int> pathPointsMap;	// !Replace with mPathPointsMap eventually!
-vector<int> controlPointsMap;	// !Replace with mControlPointsMap eventually!
-controlPointsMap.resize(mControlPoints.size()); // !Remove eventually!
 
   // Find histogram of lengths
-  for (ilen = mPathLengthSamples.begin();
-       ilen < mPathLengthSamples.end(); ilen++)
+  for (ilen = PathLengths.begin(); ilen < PathLengths.end(); ilen++)
     lhisto.at(*ilen - lmin)++;
 
   // Smooth histogram of lengths
@@ -2527,19 +3655,19 @@ controlPointsMap.resize(mControlPoints.size()); // !Remove eventually!
   for (int iz = 0; iz < mNz; iz++)
     for (int iy = 0; iy < mNy; iy++)
       for (int ix = 0; ix < mNx; ix++)
-        pathnorm += MRIgetVoxVal(mPathSamples, ix, iy, iz, 0);
+        pathnorm += MRIgetVoxVal(PathHisto, ix, iy, iz, 0);
 
   // Find maximum a posteriori path
-  ilen = mPathLengthSamples.begin();
-  for (vector< vector<int> >::const_iterator ipath = mPathPointSamples.begin();
-                                             ipath < mPathPointSamples.end();
+  ilen = PathLengths.begin();
+  for (vector< vector<int> >::const_iterator ipath = PathSamples.begin();
+                                             ipath < PathSamples.end();
                                              ipath++) {
     float prob = 0.0;
 
     // Path probability
     for (vector<int>::const_iterator ipt = ipath->begin();
                                      ipt < ipath->end(); ipt += 3)
-      prob += MRIgetVoxVal(mPathSamples, ipt[0], ipt[1], ipt[2], 0);
+      prob += MRIgetVoxVal(PathHisto, ipt[0], ipt[1], ipt[2], 0);
 
     prob /= pathnorm;
     prob /= (*ilen);		 // Bin paths by length eventually?
@@ -2555,158 +3683,31 @@ controlPointsMap.resize(mControlPoints.size()); // !Remove eventually!
     ilen++;
   }
 
-  // Save maximum a posteriori path
-  pathPointsMap.resize(ipathmap->size());
-  copy(ipathmap->begin(), ipathmap->end(), pathPointsMap.begin());
-
-  // Save control points corresponding to maximum a posteriori path
-  icptsmap = mControlPointSamples.begin() +
-             (ipathmap - mPathPointSamples.begin()) * 3 * mNumControl;
-  copy(icptsmap, icptsmap + 3 * mNumControl, controlPointsMap.begin());
-  
-  
-{	// !Remove this eventually b/c it's done in WriteOutputs()!
-  char fname[PATH_MAX];
-  MRI *out1 = MRIclone(mMask, NULL);
-
-  // Save MAP control point sample
-  sprintf(fname, "%s/cpts.map.test.txt", mOutDir);
-  ofstream mapfile(fname, ios::out);
-
-  if (!mapfile) {
-    cout << "ERROR: Could not open " << fname << " for writing" << endl;
-    exit(1);
-  }
-
-  for (vector<int>::const_iterator icpt = controlPointsMap.begin();
-                                   icpt < controlPointsMap.end(); icpt += 3)
-    mapfile << icpt[0] << " " << icpt[1] << " " << icpt[2] << endl;
-
-
-  // Save MAP path sample
-  for (vector<int>::const_iterator ipt = pathPointsMap.begin();
-                                   ipt < pathPointsMap.end(); ipt += 3) {
-    const int ix = ipt[0], iy = ipt[1], iz = ipt[2];
-    MRIsetVoxVal(out1, ix, iy, iz, 0, MRIgetVoxVal(out1, ix, iy, iz, 0) + 1);
-  }
-
-  sprintf(fname, "%s/path.map.test.nii.gz", mOutDir);
-  MRIwrite(out1, fname);
-}
+  // Return index of maximum a posteriori path
+  return ipathmap - PathSamples.begin();
 }
 
 //
-// Write output files
+// Write output files for all time points
 //
 void Coffin::WriteOutputs() {
-  char fname[PATH_MAX];
-  MRI *out1 = MRIclone(mMask, NULL);
-  MRI *out2 = MRIclone(mMask, NULL);
+  string fname;
 
-  sprintf(fname, "%s/log.txt", mOutDir);
-  mLog.open(fname, ios::out | ios::app);
+  for (vector<Aeon>::iterator idwi = mDwi.begin(); idwi < mDwi.end(); idwi++) {
+    fname = idwi->GetOutputDir() + "/log.txt";
+    mLog.open(fname.c_str(), ios::out | ios::app);
+    if (!mLog) {
+      cout << "ERROR: Could not open " << fname << " for writing" << endl;
+      exit(1);
+    }
 
-  cout << "Writing output files to " << mOutDir << endl;
-  mLog << "Writing output files to " << mOutDir << endl;
+    cout << "Writing output files to " << idwi->GetOutputDir() << endl;
+    mLog << "Writing output files to " << idwi->GetOutputDir() << endl;
 
-  // Save volume of path samples
-  sprintf(fname, "%s/path.pd.nii.gz", mOutDir);
-  MRIwrite(mPathSamples, fname);
+    idwi->WriteOutputs();
 
-  // Save volumes of end point samples
-  for (vector<int>::const_iterator icpt = mControlPointSamples.begin();
-                                 icpt < mControlPointSamples.end(); icpt += 3) {
-    int ix, iy, iz;
-
-    ix = icpt[0];
-    iy = icpt[1];
-    iz = icpt[2];
-    MRIsetVoxVal(out1, ix, iy, iz, 0, MRIgetVoxVal(out1, ix, iy, iz, 0) + 1);
-
-    icpt += 3 * (mNumControl-1);
-
-    ix = icpt[0];
-    iy = icpt[1];
-    iz = icpt[2];
-    MRIsetVoxVal(out2, ix, iy, iz, 0, MRIgetVoxVal(out2, ix, iy, iz, 0) + 1);
+    mLog.flush();
+    mLog.close();
   }
-
-  sprintf(fname, "%s/endpt1.pd.nii.gz", mOutDir);
-  MRIwrite(out1, fname);
-
-  sprintf(fname, "%s/endpt2.pd.nii.gz", mOutDir);
-  MRIwrite(out2, fname);
-
-  // Save control point samples
-  sprintf(fname, "%s/cpts.samples.txt", mOutDir);
-  ofstream sampfile(fname, ios::out);
-
-  if (!sampfile) {
-    cout << "ERROR: Could not open " << fname << " for writing" << endl;
-    exit(1);
-  }
-
-  for (vector<int>::const_iterator icpt = mControlPointSamples.begin();
-                                   icpt < mControlPointSamples.end(); icpt += 3)
-    sampfile << icpt[0] << " " << icpt[1] << " " << icpt[2] << endl;
-
-  // Save length of path samples
-  sprintf(fname, "%s/length.samples.txt", mOutDir);
-  ofstream lenfile(fname, ios::out);
-
-  if (!lenfile) {
-    cout << "ERROR: Could not open " << fname << " for writing" << endl;
-    exit(1);
-  }
-
-  for (vector<int>::const_iterator ilen = mPathLengthSamples.begin();
-                                   ilen < mPathLengthSamples.end(); ilen++)
-    lenfile << *ilen << endl;
-
-  // Save likelihood and prior of accepted and rejected path samples
-  sprintf(fname, "%s/pd.samples.txt", mOutDir);
-  ofstream pdfile(fname, ios::out);
-
-  if (!pdfile) {
-    cout << "ERROR: Could not open " << fname << " for writing" << endl;
-    exit(1);
-  }
-
-  pdfile << "DataFit1 XyzPrior1 AnatPrior1 ShapePrior1 "
-         << "DataFit0 XyzPrior0 AnatPrior0 ShapePrior0" << endl;
-  for (vector<float>::const_iterator ipd = mPosteriorSamples.begin();
-                                     ipd < mPosteriorSamples.end(); ipd += 8)
-    pdfile << ipd[0] << " " << ipd[1] << " " << ipd[2] << " " << ipd[3] << " "
-           << ipd[4] << " " << ipd[5] << " " << ipd[6] << " " << ipd[7] << endl;
-
-  // Save MAP control point sample
-  sprintf(fname, "%s/cpts.map.txt", mOutDir);
-  ofstream mapfile(fname, ios::out);
-
-  if (!mapfile) {
-    cout << "ERROR: Could not open " << fname << " for writing" << endl;
-    exit(1);
-  }
-
-  for (vector<int>::const_iterator icpt = mControlPointsMap.begin();
-                                   icpt < mControlPointsMap.end(); icpt += 3)
-    mapfile << icpt[0] << " " << icpt[1] << " " << icpt[2] << endl;
-
-  // Save MAP path sample
-  MRIclear(out1);
-  for (vector<int>::const_iterator ipt = mPathPointsMap.begin();
-                                   ipt < mPathPointsMap.end(); ipt += 3) {
-    const int ix = ipt[0], iy = ipt[1], iz = ipt[2];
-    MRIsetVoxVal(out1, ix, iy, iz, 0, MRIgetVoxVal(out1, ix, iy, iz, 0) + 1);
-  }
-
-  sprintf(fname, "%s/path.map.nii.gz", mOutDir);
-  MRIwrite(out1, fname);
-
-  MRIfree(&out1);
-  MRIfree(&out2);
-
-  mLog.flush();
-  mLog.close();
 }
 
