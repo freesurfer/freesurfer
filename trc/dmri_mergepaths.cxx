@@ -8,8 +8,8 @@
  * Original Author: Anastasia Yendiki
  * CVS Revision Info:
  *    $Author: ayendiki $
- *    $Date: 2012/12/28 18:52:55 $
- *    $Revision: 1.6 $
+ *    $Date: 2013/02/12 01:48:33 $
+ *    $Revision: 1.7 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -133,14 +133,7 @@ int main(int argc, char **argv) {
       MRIcopyFrame(invol, outvol, 0, iframe);
 
       if (dispThresh > 0)
-        for (int iz = 0; iz < invol->depth; iz++)
-          for (int iy = 0; iy < invol->height; iy++)
-            for (int ix = 0; ix < invol->width; ix++) {
-              const float inval = MRIgetVoxVal(invol, ix, iy, iz, 0);
-
-              if (inval > inmax)
-                inmax = inval;
-            }
+        inmax = (float) MRIfindPercentile(invol, .99, 0);	// Robust max
     }
 
     outvol->frames[iframe].thresh = dispThresh * inmax;
