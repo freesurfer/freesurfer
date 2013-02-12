@@ -1,5 +1,5 @@
 /**
- * @file  dmri_trk2trk.c
+ * @file  dmri_trk2trk.cxx
  * @brief Apply affine and non-linear warp to streamlines in .trk file
  *
  * Apply affine and non-linear warp to streamlines in .trk file
@@ -8,8 +8,8 @@
  * Original Author: Anastasia Yendiki
  * CVS Revision Info:
  *    $Author: ayendiki $
- *    $Date: 2013/01/25 23:56:37 $
- *    $Revision: 1.13 $
+ *    $Date: 2013/02/12 06:19:26 $
+ *    $Revision: 1.14 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
