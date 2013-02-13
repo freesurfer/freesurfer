@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2013/01/28 21:37:31 $
-#    $Revision: 1.449 $
+#    $Date: 2013/02/13 18:23:56 $
+#    $Revision: 1.450 $
 #
 # Copyright © 2011-2013 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -26,7 +26,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.449 2013/01/28 21:37:31 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.450 2013/02/13 18:23:56 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -902,7 +902,7 @@ if($longitudinal) then
   endif
 endif
 
-#----------- Convert Input ------------------#
+#----------- Convert T1 Input ------------------#
 if($#InputList != 0) then
   @ nth = 1;
   foreach InputVol ($InputList)
@@ -941,6 +941,36 @@ if($#InputList != 0) then
     endif
     @ nth = $nth + 1;
   end
+endif
+
+#----------- Input T2 or FLAIR images ------------------#
+if ($DoConvertT2Input || $DoConvertFlairInput) then
+
+  echo "#--------------------------------------------" \
+    |& tee -a $LF |& tee -a $CF
+  echo "#@# T2/FLAIR Input `date`" \
+    |& tee -a $SF |& tee -a $LF |& tee -a $CF
+
+  if ($DoConvertT2Input) then
+    set cmd = (mri_convert $InputT2Vol $subjdir/mri/orig/T2raw.mgz)
+    $PWD |& tee -a $LF
+    echo "\n $cmd \n" |& tee -a $LF |& tee -a $CF
+    if($RunIt) then
+      $fs_time $cmd |& tee -a $LF
+      if($status) goto error_exit;
+    endif
+  endif
+
+  if ($DoConvertFlairInput) then
+    set cmd = (mri_convert $InputFlairVol $subjdir/mri/orig/FLAIRraw.mgz)
+    $PWD |& tee -a $LF
+    echo "\n $cmd \n" |& tee -a $LF |& tee -a $CF
+    if($RunIt) then
+      $fs_time $cmd |& tee -a $LF
+      if($status) goto error_exit;
+    endif
+  endif
+
 endif
 
 #------------- Longitudinal 'base' subject input file creation ------------#
@@ -1095,53 +1125,6 @@ if ($DoCreateBaseInput && $DoCreateBaseSubj) then
   end
   touch $touchdir/base.touch
 endif
-
-#----------- Import T2 or FLAIR images ------------------#
-if ($DoConvertT2Input || $DoConvertFlairInput) then
-
-  echo "#--------------------------------------------" \
-    |& tee -a $LF |& tee -a $CF
-  echo "#@# T2/FLAIR Input `date`" \
-    |& tee -a $SF |& tee -a $LF |& tee -a $CF
-
-  if ($DoConvertT2Input) then
-    set cmd = (mri_convert $InputT2Vol $subjdir/mri/orig/T2raw.mgz)
-    $PWD |& tee -a $LF
-    echo "\n $cmd \n" |& tee -a $LF |& tee -a $CF
-    if($RunIt) then
-      $fs_time $cmd |& tee -a $LF
-      if($status) goto error_exit;
-    endif
-    set cmd = (mri_convert --conform $subjdir/mri/orig/T2raw.mgz \
-        $subjdir/mri/orig/T2conf.mgz)
-    $PWD |& tee -a $LF
-    echo "\n $cmd \n" |& tee -a $LF |& tee -a $CF
-    if($RunIt) then
-      $fs_time $cmd |& tee -a $LF
-      if($status) goto error_exit;
-    endif
-  endif
-
-  if ($DoConvertFlairInput) then
-    set cmd = (mri_convert $InputFlairVol $subjdir/mri/orig/FLAIRraw.mgz)
-    $PWD |& tee -a $LF
-    echo "\n $cmd \n" |& tee -a $LF |& tee -a $CF
-    if($RunIt) then
-      $fs_time $cmd |& tee -a $LF
-      if($status) goto error_exit;
-    endif
-    set cmd = (mri_convert --conform $subjdir/mri/orig/FLAIRraw.mgz \
-        $subjdir/mri/orig/FLAIRconf.mgz)
-    $PWD |& tee -a $LF
-    echo "\n $cmd \n" |& tee -a $LF |& tee -a $CF
-    if($RunIt) then
-      $fs_time $cmd |& tee -a $LF
-      if($status) goto error_exit;
-    endif
-  endif
-
-endif
-
 
 #----------- Motion Correct and Average ------------------#
 if($DoMotionCor) then
@@ -4383,6 +4366,7 @@ while( $#argv != 0 )
       breaksw
 
     case "-T2"
+    case "-t2"
       if( $#argv < 1) goto arg1err;
       set InputT2Vol = "$argv[1]"; shift;
       if(! -e "$InputT2Vol") then
@@ -4393,10 +4377,17 @@ while( $#argv != 0 )
         echo "ERROR: $InputT2Vol exists but is not readable"
         goto error_exit;
       endif
+      set T2InVolDir  = `dirname  "$InputT2Vol"`;
+      set T2InVolBase = `basename "$InputT2Vol"`;
+      pushd $T2InVolDir > /dev/null
+      set T2InVolDir = `pwd`;
+      popd > /dev/null
+      set InputT2Vol = "$T2InVolDir/$T2InVolBase";
       set DoConvertT2Input = 1;
       breaksw
 
     case "-FLAIR"
+    case "-flair"
       if( $#argv < 1) goto arg1err;
       set InputFlairVol = "$argv[1]"; shift;
       if(! -e "$InputFlairVol") then
@@ -4407,6 +4398,12 @@ while( $#argv != 0 )
         echo "ERROR: $InputFlairVol exists but is not readable"
         goto error_exit;
       endif
+      set FlairInVolDir  = `dirname  "$InputFlairVol"`;
+      set FlairInVolBase = `basename "$InputFlairVol"`;
+      pushd $FlairInVolDir > /dev/null
+      set FlairInVolDir = `pwd`;
+      popd > /dev/null
+      set InputFlairVol = "$FlairInVolDir/$FlairInVolBase";
       set DoConvertFlairInput = 1;
       breaksw
 
