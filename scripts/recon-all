@@ -7,9 +7,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: nicks $
-#    $Date: 2013/02/13 19:00:09 $
-#    $Revision: 1.379.2.62 $
+#    $Author: mreuter $
+#    $Date: 2013/02/13 23:15:20 $
+#    $Revision: 1.379.2.63 $
 #
 # Copyright © 2011-2013 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -26,7 +26,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.379.2.62 2013/02/13 19:00:09 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.379.2.63 2013/02/13 23:15:20 mreuter Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -3484,17 +3484,71 @@ if($DoT2pial || $DoFLAIRpial) then
   set sdir=$SUBJECTS_DIR/${subjid}/surf
 
   if (! -e $mdir/${t2flair}.mgz) then
-    # first create a T2/FLAIR that is registered to the T1s
-    set bbcmd = (bbregister \
-        --s $subjid \
-        --mov $mdir/orig/${t2flair}conf.mgz \
-        --reg $mdir/transforms/${t2flair}conf.reg.dat \
-        --init-fsl \
-        --T2 \
-        --o $mdir/${t2flair}.mgz)
-    echo "\n $bbcmd \n"|& tee -a $LF |& tee -a $CF
-    if($RunIt) $fs_time $bbcmd |& tee -a $LF
+  
+    set t2flairraw = $mdir/orig/${t2flair}raw.mgz
+    
+    # Longitudinal processing
+    if ($longitudinal) then
+    
+      # use T2/FLAIR raw from cross if missing in long
+      if (! -e $t2flairraw) then
+        set t2flairraw = ${SUBJECTS_DIR}/${tpNid}/mri/orig/${t2flair}raw.mgz
+      endif
+      if (! -e $t2flairraw) then
+          echo "ERROR: mri/orig/${t2flair}raw.mgz missing in long and cross." \
+            |& tee -a $LF
+          goto error_exit;
+      endif  
+      
+      # concatenate lta if created in cross (T2cross->T1cross->longspace)
+      # this avoids registering again if already done in cross
+      if ( -e ${SUBJECTS_DIR}/${tpNid}/mri/transforms/${t2flair}raw.lta ) then
+        set cmd = (mri_concatenate_lta )
+        set cmd = ($cmd ${SUBJECTS_DIR}/${tpNid}/mri/transforms/${t2flair}raw.lta )
+        set cmd = ($cmd $tpNtobase_regfile $mdir/transforms/${t2flair}raw.lta)
+        echo "\n $cmd \n" |& tee -a $LF |& tee -a $CF
+        if($RunIt) $fs_time $cmd |& tee -a $LF
+        if($status) goto error_exit;
+      else
+        # if t2flairraw.lta does not exist in cross, register T2raw to longspace
+        set bbcmd = (bbregister \
+            --s $subjid \
+            --mov $t2flairraw \
+            --lta $mdir/transforms/${t2flair}raw.lta \
+            --init-fsl \
+            --T2 )
+        echo "\n $bbcmd \n"|& tee -a $LF |& tee -a $CF
+        if($RunIt) $fs_time $bbcmd |& tee -a $LF
+        if($status) goto error_exit;
+      endif
+      
+    else #regular processing, register T2flairraw to T1 and create lta
+
+      # first create a T2/FLAIR that is registered to the T1s
+      set bbcmd = (bbregister \
+          --s $subjid \
+          --mov $t2flairraw \
+          --lta $mdir/transforms/${t2flair}raw.lta \
+          --init-fsl \
+          --T2 )
+      echo "\n $bbcmd \n"|& tee -a $LF |& tee -a $CF
+      if($RunIt) $fs_time $bbcmd |& tee -a $LF
+      if($status) goto error_exit;
+
+    endif 
+    
+    # both regular and long processing:
+    
+    # actually map the input (and make conform as the T1 target)
+    set mapcmd = ( mri_convert -at $mdir/transforms/${t2flair}raw.lta )
+    if($UseCubic) set mapcmd = ($mapcmd -rt cubic )
+    set mapcmd = ($mapcmd -rl $mdir/orig.mgz )
+    set mapcmd = ($mapcmd $t2flairraw )
+    set mapcmd = ($mapcmd $mdir/${t2flair}.mgz )
+    echo "\n $mapcmd \n"|& tee -a $LF |& tee -a $CF
+    if($RunIt) $fs_time $mapcmd |& tee -a $LF
     if($status) goto error_exit;
+    
     # then give the T2/FLAIR a little normalizing
     set normcmd = (mri_normalize \
         -aseg $mdir/aseg.mgz \
