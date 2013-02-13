@@ -70,9 +70,9 @@ LineProfTest_LDADD=\
 	-lvtkCommon -lvtksys \
 	-lvtkHybrid -lvtkexoIIc -lvtkNetCDF -lvtkDICOMParser \
 	-lvtkVolumeRendering -lvtkRendering -lvtkftgl \
-	-ltiff $(VTK_TIFF_LIB) -ljpeg $(VTK_JPEG_LIB) \
 	-lexpat $(VTK_EXPAT_LIB) $(VTK_FREETYPE_LIB) \
-	$(VTK_PNG_LIB) $(VTK_Z_LIB) $(VTK_METAIO_LIB) \
+  $(LIBTIFF) \	
+  $(VTK_PNG_LIB) $(VTK_Z_LIB) $(VTK_METAIO_LIB) \
   $(ITK_LIBS) \
   $(PETSC_LIBS) -lpetscts -lpetscsnes -lpetscksp \
   -lpetscdm -lpetscmat -lpetscvec -lpetsc -lmpich -lpmpich
@@ -86,7 +86,7 @@ LineProfTest_LDADD=\
 	-lvtkHybrid -lvtkexoIIc -lvtkNetCDF -lvtkDICOMParser \
 	-lvtkVolumeRendering -lvtkRendering -lvtkftgl \
 	-lexpat $(VTK_EXPAT_LIB) $(VTK_FREETYPE_LIB) \
-    $(LIBTIFF) $(LIBJPEG) \
+    $(LIBTIFF) \
 	$(VTK_PNG_LIB) $(VTK_Z_LIB) $(VTK_METAIO_LIB) \
   $(ITK_LIBS) \
   $(PETSC_LIBS) -lpetscts -lpetscsnes -lpetscksp \
