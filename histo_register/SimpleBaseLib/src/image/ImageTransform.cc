@@ -21,6 +21,13 @@ template<> aptr<ImageColorU> crop( const ImageColorU &input, int xMin, int xMax,
     assertDebug( yMin > 0 && yMax < input.height() );
     int newWidth = xMax - xMin + 1;
     int newHeight = yMax - yMin + 1;
+    if (newWidth > input.width() || newHeight > input.height() )
+    {
+      disp(1,"ERROR ImageTransform crop: new size larger old size!");
+      disp(1,"w: %d  h: %d  new w: %d  new h: %d",input.width(),input.height(),newWidth,newHeight);
+      disp(1,"Min -> Max   x: %d -> %d  y: %d -> %d",xMin,xMax,yMin,yMax);
+      exit(1);
+    }
     aptr<ImageColorU> output( new ImageColorU( newWidth, newHeight ) );
     for (int y = yMin; y <= yMax; y++) 
         for (int x = xMin; x <= xMax; x++)
