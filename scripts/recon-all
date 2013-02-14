@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: mreuter $
-#    $Date: 2013/02/13 23:15:47 $
-#    $Revision: 1.451 $
+#    $Date: 2013/02/14 17:48:47 $
+#    $Revision: 1.452 $
 #
 # Copyright © 2011-2013 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -26,7 +26,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.451 2013/02/13 23:15:47 mreuter Exp $';
+set VERSION = '$Id: recon-all,v 1.452 2013/02/14 17:48:47 mreuter Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -3563,21 +3563,11 @@ if($DoT2pial || $DoFLAIRpial) then
       echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
       if($RunIt) $fs_time $cmd |& tee -a $LF
       if($status) goto error_exit;
-    endif
-    if($longitudinal) then
-      # longitudinal processing:
-      set cmd = (mris_make_surfaces \
-          -orig orig_white \
-          -orig_white orig_white \
-          -orig_pial orig_pial \
-          -long -max 3.5)
-    else
-      # default stream:
-      set cmd = (mris_make_surfaces \
-          -orig_white white \
-          -orig_pial wo${t2flair}.pial \
-          -aseg aseg)
-    endif
+    endif    
+    set cmd = (mris_make_surfaces \
+        -orig_white white \
+        -orig_pial wo${t2flair}.pial \
+        -aseg aseg)
     if ( ! $UseAseg) set cmd = ($cmd -noaseg)
     if ($PialNoAparc) set cmd = ($cmd -noaparc)
     # -white NOWRITE: dont overwrite white, curv, area, and cortex.label files
