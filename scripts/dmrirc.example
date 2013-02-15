@@ -13,8 +13,8 @@
 # Original Author: Anastasia Yendiki
 # CVS Revision Info:
 #    $Author: ayendiki $
-#    $Date: 2012/10/26 21:00:14 $
-#    $Revision: 1.8 $
+#    $Date: 2013/02/15 00:45:32 $
+#    $Revision: 1.9 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -172,21 +172,18 @@ set pathlist = ( lh.cst_AS rh.cst_AS \
                  lh.slft_PP rh.slft_PP )
 
 # Number of path control points
-# Default: 5
+# It can be a single number for all paths or a different number for each of the
+# paths specified in pathlist
+# Default: 7 for the forceps major, 6 for the corticospinal tract,
+#          4 for the angular bundle, and 5 for all other paths
 #
-set ncpts = 5
+set ncpts = (6 6 5 5 5 5 7 5 5 5 5 5 4 4 5 5 5 5)
 
 # List of training subjects
 # This text file lists the locations of training subject directories
 # Default: $FREESURFER_HOME/trctrain/trainlist.txt
 #
 set trainfile = $FREESURFER_HOME/trctrain/trainlist.txt
-
-# Use long (more descriptive) directory hierarchy for saving path distributions?
-# By default, paths distributions are saved directly under $subjectname/dpath
-# Default: 0 (no)
-#
-set dopathsubdirs = 0
 
 # Number of "sticks" (anisotropic diffusion compartments) in the bedpostx
 # ball-and-stick model
