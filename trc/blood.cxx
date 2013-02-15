@@ -2214,7 +2214,8 @@ void Blood::FindCenterStreamline(bool CheckOverlap, bool CheckDeviation,
 
   if (mNumStrEnds == 1)		// Only one candidate streamline
     for (vector< vector<int> >::const_iterator istr = mStreamlines.begin();
-                                            istr < mStreamlines.end(); istr++) {
+                                               istr < mStreamlines.end();
+                                               istr++) {
       if (*ivalid1 && *ivalid2) {
         mCenterStreamline = *istr;
 
@@ -2231,7 +2232,8 @@ void Blood::FindCenterStreamline(bool CheckOverlap, bool CheckDeviation,
   cout << "INFO: Step is " << lag/3 << " voxels" << endl;
 
   for (vector< vector<int> >::const_iterator istr = mStreamlines.begin();
-                                            istr < mStreamlines.end(); istr++) {
+                                             istr < mStreamlines.end();
+                                             istr++) {
     if (*ivalid1 && *ivalid2) {
       bool isexcluded = false,
            okhist = true, okfa = true,
@@ -2412,17 +2414,17 @@ void Blood::FindCenterStreamline(bool CheckOverlap, bool CheckDeviation,
 
   if (hdmin == numeric_limits<double>::infinity()) {
     // In case checks caused failure
-    if (CheckFa) {
-      cout << "WARN: Turning off FA check for center streamline" << endl;
-      FindCenterStreamline(CheckOverlap, CheckDeviation, false);
-    }
-    else if (CheckDeviation) {
+    if (CheckDeviation) {
       cout << "WARN: Turning off deviation check for center streamline" << endl;
+      FindCenterStreamline(CheckOverlap, false, CheckFa);
+    }
+    else if (CheckFa) {
+      cout << "WARN: Turning off FA check for center streamline" << endl;
       FindCenterStreamline(CheckOverlap, false, false);
     }
     else {
       cout << "WARN: Turning off overlap check for center streamline" << endl;
-      FindCenterStreamline(false, false);
+      FindCenterStreamline(false, false, false);
     }
   }
   else {
