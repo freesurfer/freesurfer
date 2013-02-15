@@ -3,8 +3,64 @@
 # $DEV/distribution/DefectLUT.txt file. It does not
 # need to be distrubted.
 
-set VERSION = '$Id: mkdefectlut,v 1.4 2008/11/25 23:26:35 greve Exp $';
+set VERSION = '$Id: mkdefectlut,v 1.4.4.1 2013/02/15 19:45:01 greve Exp $';
 
+# =================================================
+# First, create an LUT with random colors
+set lut = $DEV/distribution/DefectLUTRand.txt
+set ver = (`echo $VERSION | awk '{print $3" "$4" "$5}'`);
+
+rm -f $lut
+
+echo "# Created by mkdefectlut $ver" >> $lut
+echo "# Created on `date`"  >> $lut
+echo "" >> $lut
+
+echo "0   Unknown  0   0   0   0" >> $lut
+echo "" >> $lut
+
+set r = ();
+set g = ();
+set b = ();
+@ n = 1;
+while ($n <= 500)
+  set r0 = `perl -e "print int(255*rand)"`
+  set g0 = `perl -e "print int(255*rand)"`
+  set b0 = `perl -e "print int(255*rand)"`
+  set r = ($r $r0)
+  set g = ($g $g0)
+  set b = ($b $b0)
+  @ n = $n + 1;
+end
+
+@ n = 1;
+while ($n <= 500)
+  set tmp = `printf %03d $n`
+  echo "$n Defect-$tmp $r[$n] $g[$n] $b[$n]  0" >> $lut
+  @ n = $n + 1;
+end
+echo "" >> $lut
+
+@ n = 1;
+while ($n <= 500)
+  set tmp = `printf %03d $n`
+  @ m = $n + 1000
+  echo "$m LH-Defect-$tmp $r[$n] $g[$n] $b[$n]  0" >> $lut
+  @ n = $n + 1;
+end
+echo "" >> $lut
+
+@ n = 1;
+while ($n <= 500)
+  set tmp = `printf %03d $n`
+  @ m = $n + 2000
+  echo "$m RH-Defect-$tmp $r[$n] $g[$n] $b[$n]  0" >> $lut
+  @ n = $n + 1;
+end
+echo "" >> $lut
+
+# =================================================
+# Now, create an LUT with fixed colors
 set lut = $DEV/distribution/DefectLUT.txt
 set ver = (`echo $VERSION | awk '{print $3" "$4" "$5}'`);
 
@@ -41,7 +97,6 @@ while ($n <= 500)
   echo "$m RH-Defect-$tmp 255 0 255   0" >> $lut
   @ n = $n + 1;
 end
-
 
 
 exit 0
