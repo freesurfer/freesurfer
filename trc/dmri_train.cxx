@@ -8,8 +8,8 @@
  * Original Author: Anastasia Yendiki
  * CVS Revision Info:
  *    $Author: ayendiki $
- *    $Date: 2013/02/15 00:29:04 $
- *    $Revision: 1.10 $
+ *    $Date: 2013/02/15 01:28:02 $
+ *    $Revision: 1.11 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -300,11 +300,11 @@ static int parse_commandline(int argc, char **argv) {
       nargsused = 1;
     }
     else if (!strcmp(option, "--ncpts")) {
-      int ncpts;
-      vector<int> ncptlist;
-
       if (nargc < 1) CMDargNErr(option,1);
       while (nargsused < nargc && strncmp(pargv[nargsused], "--", 2)) {
+        int ncpts;
+        vector<int> ncptlist;
+
         sscanf(pargv[nargsused], "%d", &ncpts);
         ncptlist.push_back(ncpts);
         nControl.push_back(ncptlist);
@@ -366,7 +366,8 @@ static void print_usage(void) {
   << "   --baseref <file> [...]:" << endl
   << "     Base space reference volume (optional)" << endl
   << "   --ncpts <num> [...]:" << endl
-  << "     Number of control points for initial spline" << endl
+  << "     Number of control points for initial spline, one per path" << endl
+  << "     or one for all paths" << endl
   << "   --xstr:" << endl
   << "     Exclude previously chosen center streamline(s) (Default: No)" << endl
   << "   --trunc:" << endl
