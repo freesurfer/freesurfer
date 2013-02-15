@@ -8,8 +8,8 @@
  * Original Author: Anastasia Yendiki
  * CVS Revision Info:
  *    $Author: ayendiki $
- *    $Date: 2013/02/05 05:09:26 $
- *    $Revision: 1.9 $
+ *    $Date: 2013/02/15 00:29:04 $
+ *    $Revision: 1.10 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -70,14 +70,14 @@ static char vcid[] = "";
 const char *Progname = "dmri_train";
 
 bool useTrunc = false, excludeStr = false;
-vector<int> nControl;
 vector<float> trainMaskLabel;
-vector<char *> outBase, trainTrkList, trainRoi1List, trainRoi2List;
+vector< vector<int> > nControl;
+vector<char *> outBase, trainTrkList, trainRoi1List, trainRoi2List,
+               testMaskList, testFaList, testBaseXfmList;
 char *outDir = NULL, *outTestDir = NULL,
      *trainListFile = NULL, *trainAsegFile = NULL, *trainMaskFile = NULL,
      *testAffineXfmFile = NULL, *testNonlinXfmFile = NULL,
      *testNonlinRefFile = NULL, *testBaseMaskFile = NULL;
-vector<char *> testMaskList, testFaList, testBaseXfmList;
 
 struct utsname uts;
 char *cmdline, cwd[2000];
@@ -127,7 +127,7 @@ int main(int argc, char **argv) {
                 testMaskList, testFaList,
                 testAffineXfmFile, testNonlinXfmFile, testNonlinRefFile,
                 testBaseXfmList, testBaseMaskFile,
-                useTrunc, nControl,
+                useTrunc, nControl[0],
                 debug);
 
   for (unsigned int itrk = 0; itrk < trainTrkList.size(); itrk++) {
@@ -138,7 +138,10 @@ int main(int argc, char **argv) {
         else
           sprintf(excfile, "%s_cpts_all.bad.txt", outBase[itrk]);
       }
-      
+
+      if (nControl.size() > 1)		// Variable number of controls
+        myblood.SetNumControls(nControl[itrk]);
+
       myblood.ReadStreamlines(trainListFile, trainTrkList[itrk],
                               trainRoi1List.size() ? trainRoi1List[itrk] : 0,
                               trainRoi2List.size() ? trainRoi2List[itrk] : 0,
@@ -298,10 +301,13 @@ static int parse_commandline(int argc, char **argv) {
     }
     else if (!strcmp(option, "--ncpts")) {
       int ncpts;
+      vector<int> ncptlist;
+
       if (nargc < 1) CMDargNErr(option,1);
       while (nargsused < nargc && strncmp(pargv[nargsused], "--", 2)) {
         sscanf(pargv[nargsused], "%d", &ncpts);
-        nControl.push_back(ncpts);
+        ncptlist.push_back(ncpts);
+        nControl.push_back(ncptlist);
         nargsused++;
       }
     }
@@ -454,6 +460,12 @@ static void check_options(void) {
          << endl;
     exit(1);
   }
+  if (nControl.size() > 1 && nControl.size() != trainTrkList.size()) {
+    cout << "ERROR: Must specify number of control points for each .trk file"
+         << "ERROR: or a single number of control points for all .trk files"
+         << endl;
+    exit(1);
+  }
   if (testNonlinXfmFile && !testNonlinRefFile) {
     cout << "ERROR: Must specify source reference volume for nonlinear warp"
          << endl;
@@ -474,8 +486,6 @@ static void check_options(void) {
 
 /* --------------------------------------------- */
 static void dump_options() {
-  vector<int>::const_iterator inum;
-  vector<float>::const_iterator ilab;
   vector<char *>::const_iterator istr;
 
   cout << endl
@@ -522,7 +532,8 @@ static void dump_options() {
 
   if (!trainMaskLabel.empty()) {
     cout << "Label ID's from aparc+aseg to add to cortex mask:";
-    for (ilab = trainMaskLabel.begin(); ilab < trainMaskLabel.end(); ilab++)
+    for (vector<float>::const_iterator ilab = trainMaskLabel.begin();
+                                       ilab < trainMaskLabel.end(); ilab++)
       cout << " " << (int) *ilab;
     cout << endl;
   }
@@ -568,8 +579,11 @@ static void dump_options() {
     cout << "Base mask for output subject: " << testBaseMaskFile << endl;
 
   cout << "Number of control points for initial spline:";
-  for (inum = nControl.begin(); inum < nControl.end(); inum++)
-    cout << " " << *inum;
+  for (vector< vector<int> >::const_iterator inlist = nControl.begin();
+                                             inlist < nControl.end(); inlist++)
+    for (vector<int>::const_iterator inum = inlist->begin();
+                                     inum < inlist->end(); inum++)
+      cout << " " << *inum;
   cout << endl;
 
   cout << "Exclude previously chosen center streamlines: " << excludeStr << endl

@@ -59,6 +59,7 @@ class Blood {
           const char *TrainRoi1File, const char *TrainRoi2File,
           bool Debug=false);
     ~Blood();
+    void SetNumControls(std::vector<int> &NumControls);
     void ReadStreamlines(const char *TrainListFile, const char *TrainTrkFile,
                          const char *TrainRoi1File, const char *TrainRoi2File,
                          float TrainMaskLabel, const char *ExcludeFile);

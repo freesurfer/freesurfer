@@ -155,13 +155,14 @@ Blood::Blood(const char *TrainListFile, const char *TrainTrkFile,
     mTestBaseReg.push_back(basereg);
   }
 
-  // Number(s) of control points to fit for spline initialization
-  mNumControls.resize(NumControls.size());
-  copy(NumControls.begin(), NumControls.end(), mNumControls.begin());
+  // Set number(s) of control points to fit for first pathway
+  SetNumControls(NumControls);
 
-  // Read inputs for first pathway
+  // Read training data for first pathway
   ReadStreamlines(TrainListFile, TrainTrkFile, TrainRoi1File, TrainRoi2File,
                   TrainMaskLabel, ExcludeFile);
+
+  // Read training subjects' anatomy
   ReadAnatomy(TrainListFile, TrainAsegFile, TrainMaskFile);
 
   // Allocate space for histograms
@@ -215,6 +216,19 @@ Blood::~Blood() {
 
   if (mHistoSubj)
     MRIfree(&mHistoSubj);
+}
+
+//
+// Set the number(s) of control points to fit to the center streamline
+//
+void Blood::SetNumControls(vector<int> &NumControls) {
+  mNumControls.resize(NumControls.size());
+  copy(NumControls.begin(), NumControls.end(), mNumControls.begin());
+
+  mControlPoints.clear();
+  mControlPointsTest.clear();
+  mControlStd.clear();
+  mControlStdTest.clear();
 }
 
 //
