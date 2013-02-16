@@ -8,8 +8,8 @@
 # Original Author: Anastasia Yendiki
 # CVS Revision Info:
 #    $Author: ayendiki $
-#    $Date: 2013/02/08 02:03:37 $
-#    $Revision: 1.45 $
+#    $Date: 2013/02/16 00:55:13 $
+#    $Revision: 1.46 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -25,7 +25,7 @@
 
 umask 002
 
-set VERSION = '$Id: trac-all,v 1.45 2013/02/08 02:03:37 ayendiki Exp $'
+set VERSION = '$Id: trac-all,v 1.46 2013/02/16 00:55:13 ayendiki Exp $'
 set ProgName = `basename $0`
 set inputargs = ($argv)
 
@@ -120,14 +120,15 @@ set echospacing = ()
 set doeddy = 1
 set dorotbvecs = 1
 set thrbet = 0.3
-set doregflt = 1
-set doregbbr = 0
+set doregflt = 0
+set doregbbr = 1
 set doregmni = 1
 set doregcvs = 0
 set mnitemp = $FSLDIR/data/standard/MNI152_T1_1mm_brain.nii.gz
 set cvstempdir = $FREESURFER_HOME/subjects
 set cvstemp = cvs_avg35
 set usemaskanat = 1
+set baselist = ()
 set pathlist = ( lh.cst_AS rh.cst_AS \
                  lh.ilf_AS rh.ilf_AS \
                  lh.unc_AS rh.unc_AS \
@@ -137,7 +138,7 @@ set pathlist = ( lh.cst_AS rh.cst_AS \
                  lh.cab_PP rh.cab_PP \
                  lh.slfp_PP rh.slfp_PP \
                  lh.slft_PP rh.slft_PP )
-set ncpts = 5
+set ncpts = (6 6 5 5 5 5 7 5 5 5 5 5 4 4 5 5 5 5)
 set trainfile = $FREESURFER_HOME/trctrain/trainlist.txt
 set trainsubjlist = ()
 set ntrainlist = ()
@@ -152,10 +153,10 @@ set dopathsubdirs = 0
 set nstick = 2
 set fmin = 0.05
 set nburnin = 200
-set nsample = 5000
+set nsample = 7500
 set nupdate = 0
 set nkeep = 5
-set doinitprop = 0
+set doinitprop = 1
 set overwrite = 1
 set trcdir = $FREESURFER_HOME/bin
 
@@ -197,315 +198,690 @@ if ($allowcore) set cmdopts = ($cmdopts -allowcoredump)
 #------------ Loop over subjects ------------------------------------------#
 set dmdirlist = ()
 
-foreach isubj ($runlist)
-  if ($isubj > $#subjlist) then
-    echo "ERROR: $isubj is in run list but have only $#subjlist subjects"
-    exit 1
-  endif
+if ($#baselist == 0) then	#--->>> A single time point for each subject
+  foreach isubj ($runlist)
+    set subj = $subjlist[$isubj]
 
-  set subj = $subjlist[$isubj]
+    if ($do1out) then
+      set dtdir = $subj
+      set dtroot = `dirname $dtdir`
+      set subj = `basename $dtdir`
 
-  if ($do1out) then
-    set dtdir = $subj
-    set dtroot = `dirname $dtdir`
-    set subj = `basename $dtdir`
+      if (-e $trainfile) then
+        set trainsubjlist = `cat $trainfile | sed -n "$isubj p"`
+        shift trainsubjlist
+      endif
+    else
+      set dtdir = $dtroot/$subj
 
-    if (-e $trainfile) then
-      set trainsubjlist = `cat $trainfile | sed -n "$isubj p"`
-      shift trainsubjlist
-    endif
-  else
-    set dtdir = $dtroot/$subj
+      if (-e $trainfile) then
+        set trainsubjlist = `cat $trainfile`
+      endif
 
-    if (-e $trainfile) then
-      set trainsubjlist = `cat $trainfile`
-    endif
+      # Check freesurfer directory
+      set fsdir = $SUBJECTS_DIR/$subj
 
-    # Check freesurfer directory
-    set fsdir = $SUBJECTS_DIR/$subj
+      if (! -e $fsdir) then
+        echo "ERROR: cannot find $fsdir"
+        exit 1
+      endif
 
-    if (! -e $fsdir) then
-      echo "ERROR: cannot find $fsdir"
-      exit 1
-    endif
-
-    if (! -r $fsdir) then
-      echo "ERROR: $fsdir exists but is unreadable"
-      exit 1
-    endif
-  endif
-
-  # Check diffusion directory
-  mkdir -p $dtdir/scripts
-
-  if ($status || ! -w $dtdir) then
-    echo "ERROR: cannot write in $dtdir"
-    exit 1
-  endif
-
-  #---------- Check build stamp -------------------------------------------#
-  # This allows the user to require that the build stamp be
-  # consistent from one trac-all/recon-all invocation to the next.
-  # Good for frozen versions.
-
-  if ($?REQUIRE_FS_MATCH == 0) setenv REQUIRE_FS_MATCH 0
-
-  set bstampfile0 = $FREESURFER_HOME/build-stamp.txt
-  set bstampfile  = $dtdir/scripts/build-stamp.txt
-
-  if (-e $bstampfile0) then
-    if (! -e $bstampfile) cp $bstampfile0 $bstampfile
-
-    set bstamp0 = `cat $bstampfile0`
-    set bstamp  = `cat $bstampfile`
-
-    if ("$bstamp0" != "$bstamp") then
-      if ($REQUIRE_FS_MATCH) then
-        echo "ERROR: FreeSurfer build stamps do not match"
-        echo "Subject Stamp: $bstamp"
-        echo "Current Stamp: $bstamp0"
-        exit 1;
-      else
-        echo "INFO: FreeSurfer build stamps do not match"
-        echo "Subject Stamp: $bstamp"
-        echo "Current Stamp: $bstamp0"
+      if (! -r $fsdir) then
+        echo "ERROR: $fsdir exists but is unreadable"
+        exit 1
       endif
     endif
-  endif
 
-  #---------- Create log and command files --------------------------------#
+    # Check diffusion directory
+    mkdir -p $dtdir/scripts
 
-  if ($DoVersionsOnly) then
-    if (-e /dev/stdout) then
-      set LF = /dev/stdout
-    else
-      set LF = /dev/null
-    endif
-  else
-    if ($#logfile) then
-      set LF = $logfile
-    else
-      set LF = ($dtdir/scripts/trac-all.log)
-      if (-e $LF && ! $AppendLog) mv -f $LF $LF.old
+    if ($status || ! -w $dtdir) then
+      echo "ERROR: cannot write in $dtdir"
+      exit 1
     endif
 
-    if ($#cmdfile) then
-      set CF = $cmdfile
-    else
-      set CF = ($dtdir/scripts/trac-all.cmd)
-      rm -f $CF
-    endif
-  endif
+    #---------- Check build stamp -------------------------------------------#
+    # This allows the user to require that the build stamp be
+    # consistent from one trac-all/recon-all invocation to the next.
+    # Good for frozen versions.
 
-  if (-e $LF) then
-    printf '\n\n' >> $LF
-    echo "New invocation of $ProgName"  >> $LF
-    printf '\n\n' >> $LF
-  endif
+    if ($?REQUIRE_FS_MATCH == 0) setenv REQUIRE_FS_MATCH 0
+
+    set bstampfile0 = $FREESURFER_HOME/build-stamp.txt
+    set bstampfile  = $dtdir/scripts/build-stamp.txt
+
+    if (-e $bstampfile0) then
+      if (! -e $bstampfile) cp $bstampfile0 $bstampfile
+
+      set bstamp0 = `cat $bstampfile0`
+      set bstamp  = `cat $bstampfile`
+
+      if ("$bstamp0" != "$bstamp") then
+        if ($REQUIRE_FS_MATCH) then
+          echo "ERROR: FreeSurfer build stamps do not match"
+          echo "Subject Stamp: $bstamp"
+          echo "Current Stamp: $bstamp0"
+          exit 1;
+        else
+          echo "INFO: FreeSurfer build stamps do not match"
+          echo "Subject Stamp: $bstamp"
+          echo "Current Stamp: $bstamp0"
+        endif
+      endif
+    endif
+
+    #---------- Create log and command files --------------------------------#
+
+    if ($DoVersionsOnly) then
+      if (-e /dev/stdout) then
+        set LF = /dev/stdout
+      else
+        set LF = /dev/null
+      endif
+    else
+      if ($#logfile) then
+        set LF = $logfile
+      else
+        set LF = ($dtdir/scripts/trac-all.log)
+        if (-e $LF && ! $AppendLog) mv -f $LF $LF.old
+      endif
+
+      if ($#cmdfile) then
+        set CF = $cmdfile
+      else
+        set CF = ($dtdir/scripts/trac-all.cmd)
+        rm -f $CF
+      endif
+    endif
+
+    if (-e $LF) then
+      printf '\n\n' >> $LF
+      echo "New invocation of $ProgName"  >> $LF
+      printf '\n\n' >> $LF
+    endif
   
-  date >> $LF
-  pwd >> $LF
-  echo $0 >> $LF
-  echo $inputargs >> $LF
-  echo "Subject $subj" >> $LF
-  echo "SUBJECTS_DIR $SUBJECTS_DIR" >> $LF
-  echo "FREESURFER_HOME $FREESURFER_HOME" >> $LF
-  echo "Actual FREESURFER_HOME $freesurfer_home_true" >> $LF
-  if (-e $FREESURFER_HOME/build-stamp.txt) then
-    echo "build-stamp.txt: `cat $FREESURFER_HOME/build-stamp.txt`" >> $LF
-  endif
-  whoami >> $LF
-  hostname >> $LF
-  uname -a >> $LF
-  limit >> $LF
-  if (-e /usr/bin/free) then
-    echo "" >> $LF
-    /usr/bin/free >> $LF
-    echo "" >> $LF
-  endif
-  if ("`uname -s`" == "Darwin") then
-    echo "" >> $LF
-    /usr/bin/top -l 1 | grep PhysMem >> $LF
-    echo "" >> $LF
-  endif
-
-  echo "########################################" >> $LF
-  echo "Program versions:"	>> $LF
-  echo $VERSION               	>> $LF
-  mri_convert --all-info	>> $LF
-  flirt -version		>> $LF
-  bbregister --version		>> $LF
-  mri_cvs_register --version	>> $LF
-  $trcdir/dmri_train --all-info		>> $LF
-  $trcdir/dmri_paths --all-info		>> $LF
-  $trcdir/dmri_pathstats --all-info	>> $LF
-  $trcdir/dmri_mergepaths --all-info	>> $LF
-
-  if ($DoVersionsOnly) continue
-
-  #---------- Check FREESURFER_HOME consistency ---------------------------#
-
-  set CSDF = $dtdir/scripts/csurfdir
-  if ($DoCleanCSDF) rm -vf $CSDF
-  if (-e $CSDF) then
-    set tmp = `cat $CSDF`;
-    if ($tmp != $FREESURFER_HOME) then
-      echo "INFO: current FREESURFER_HOME does not match that of previous processing." \
-        | tee -a $LF
-      echo "    Current: $FREESURFER_HOME" | tee -a $LF
-      echo "    Previous: $tmp" | tee -a $LF
-      sleep 1;
+    date >> $LF
+    pwd >> $LF
+    echo $0 >> $LF
+    echo $inputargs >> $LF
+    echo "Subject $subj" >> $LF
+    echo "SUBJECTS_DIR $SUBJECTS_DIR" >> $LF
+    echo "FREESURFER_HOME $FREESURFER_HOME" >> $LF
+    echo "Actual FREESURFER_HOME $freesurfer_home_true" >> $LF
+    if (-e $FREESURFER_HOME/build-stamp.txt) then
+      echo "build-stamp.txt: `cat $FREESURFER_HOME/build-stamp.txt`" >> $LF
     endif
-  else
-    echo $FREESURFER_HOME > $CSDF
-  endif
+    whoami >> $LF
+    hostname >> $LF
+    uname -a >> $LF
+    limit >> $LF
+    if (-e /usr/bin/free) then
+      echo "" >> $LF
+      /usr/bin/free >> $LF
+      echo "" >> $LF
+    endif
+    if ("`uname -s`" == "Darwin") then
+      echo "" >> $LF
+      /usr/bin/top -l 1 | grep PhysMem >> $LF
+      echo "" >> $LF
+    endif
 
-  # Put a copy of myself (this script) in the scripts dir
-  cp $0 $dtdir/scripts/$ProgName.local-copy
+    echo "########################################" >> $LF
+    echo "Program versions:"		>> $LF
+    echo $VERSION               	>> $LF
+    mri_convert --all-info		>> $LF
+    flirt -version			>> $LF
+    bbregister --version		>> $LF
+    mri_cvs_register --version		>> $LF
+    $trcdir/dmri_train --all-info	>> $LF
+    $trcdir/dmri_paths --all-info	>> $LF
+    $trcdir/dmri_pathstats --all-info	>> $LF
+    $trcdir/dmri_mergepaths --all-info	>> $LF
 
-  # Write all parameters to local copy of dmrirc
-  set RCF = $dtdir/scripts/dmrirc.local
-  if (-e $RCF) mv -f $RCF $RCF.orig
+    if ($DoVersionsOnly) continue
 
-  echo "# Run command file generated automatically by $ProgName" 	>> $RCF
-  echo "#"							 	>> $RCF
-  echo "setenv FREESURFER_HOME $FREESURFER_HOME"			>> $RCF
-  echo "setenv SUBJECTS_DIR $SUBJECTS_DIR"				>> $RCF
-  echo "set dtroot = ($dtroot)"						>> $RCF
-  echo "set subj = ($subj)"						>> $RCF
-  echo "#"							 	>> $RCF
-  echo "# Processing steps to be performed"			 	>> $RCF
-  echo "#"							 	>> $RCF
-  echo "set docorr = ($docorr)"						>> $RCF
-  echo "set dointra = ($dointra)"					>> $RCF
-  echo "set dointer = ($dointer)"					>> $RCF
-  echo "set domasks = ($domasks)"					>> $RCF
-  echo "set dotensor = ($dotensor)"					>> $RCF
-  echo "set dopriors = ($dopriors)"					>> $RCF
-  echo "#"							 	>> $RCF
-  echo "# Options for image corrections and tensor fit"		 	>> $RCF
-  echo "#"							 	>> $RCF
-  echo "set dcmroot = ($dcmroot)"					>> $RCF
-  echo "set dcmfile = ($dcmlist[$isubj])"				>> $RCF
-  echo "set bvecfile = ($bvecfile)"					>> $RCF
-  echo "set bvalfile = ($bvalfile)"					>> $RCF
-  echo "set nb0 = ($nb0)"						>> $RCF
-  echo "set dob0 = ($dob0)"						>> $RCF
-  if ($#b0mlist) then
-    echo "set b0mfile = ($b0mlist[$isubj])"				>> $RCF
-  else
-    echo "set b0mfile = ()"						>> $RCF
-  endif
-  if ($#b0plist) then
-    echo "set b0pfile = ($b0plist[$isubj])"				>> $RCF
-  else
-    echo "set b0pfile = ()"						>> $RCF
-  endif
-  echo "set echospacing = ($echospacing)"				>> $RCF
-  echo "set doeddy = ($doeddy)"						>> $RCF
-  echo "set dorotbvecs = ($dorotbvecs)"					>> $RCF
-  echo "set thrbet = ($thrbet)"						>> $RCF
-  echo "#"							 	>> $RCF
-  echo "# Options for registrations"				 	>> $RCF
-  echo "#"							 	>> $RCF
-  echo "set doregflt = ($doregflt)"					>> $RCF
-  echo "set doregbbr = ($doregbbr)"					>> $RCF
-  echo "set doregmni = ($doregmni)"					>> $RCF
-  echo "set doregcvs = ($doregcvs)"					>> $RCF
-  echo "set mnitemp = ($mnitemp)"					>> $RCF
-  echo "set cvstempdir = ($cvstempdir)"					>> $RCF
-  echo "set cvstemp = ($cvstemp)"					>> $RCF
-  echo "#"							 	>> $RCF
-  echo "# Options for path reconstructions"				>> $RCF
-  echo "#"							 	>> $RCF
-  echo "set usemaskanat = ($usemaskanat)"				>> $RCF
-  echo "set pathlist = ($pathlist)"					>> $RCF
-  echo "set ncptlist = ($ncptlist)"					>> $RCF
-  echo "set trainsubjlist = ($trainsubjlist)"				>> $RCF
-  echo "set ntrainlist = ($ntrainlist)"					>> $RCF
-  echo "set avgname = ($avgname)"					>> $RCF
-  echo "set reinit = ($reinit)"						>> $RCF
-  echo "set usetrunc = ($usetrunc)"					>> $RCF
-  echo "set doxyzprior = ($doxyzprior)"					>> $RCF
-  echo "set dosegprior = ($dosegprior)"					>> $RCF
-  echo "set dotangprior = ($dotangprior)"				>> $RCF
-  echo "set dopathsubdirs = ($dopathsubdirs)"				>> $RCF
-  echo "set nstick = ($nstick)"						>> $RCF
-  echo "set fmin = ($fmin)"						>> $RCF
-  echo "set nburnin = ($nburnin)"					>> $RCF
-  echo "set nsample = ($nsample)"					>> $RCF
-  echo "set nupdate = ($nupdate)"					>> $RCF
-  echo "set nkeep = ($nkeep)"						>> $RCF
-  echo "set doinitprop = ($doinitprop)"					>> $RCF
-  echo "set overwrite = ($overwrite)"					>> $RCF
-  echo "set trcdir = ($trcdir)"						>> $RCF
+    #---------- Check FREESURFER_HOME consistency ---------------------------#
 
-  set dmdirlist = ($dmdirlist $dtdir/dmri)
-
-  if ($dopreproc) then			# Pre-processing #############
-    set cmd = trac-preproc
-    set cmd = ($cmd -c $RCF)
-    set cmd = ($cmd -log $LF)
-    set cmd = ($cmd -cmd $CF)
-    set cmd = ($cmd $cmdopts)
-    if ($onpbs) then
-      echo $cmd >> $submitfile
+    set CSDF = $dtdir/scripts/csurfdir
+    if ($DoCleanCSDF) rm -vf $CSDF
+    if (-e $CSDF) then
+      set tmp = `cat $CSDF`;
+      if ($tmp != $FREESURFER_HOME) then
+        echo "INFO: current FREESURFER_HOME does not match" \
+             "that of previous processing." | tee -a $LF
+        echo "    Current: $FREESURFER_HOME" | tee -a $LF
+        echo "    Previous: $tmp" | tee -a $LF
+        sleep 1;
+      endif
     else
-      echo $cmd
-      $cmd
-      if ($status) exit 1
+      echo $FREESURFER_HOME > $CSDF
     endif
-  else if ($dobedpost) then		# Bedpost ####################
-    if (! $onpbs) then
-      echo "WARN: Running FSL's bedbost locally - this might take a while" \
-        |& tee -a $LF
-      echo "WARN: It is recommended to run this step on a cluster" \
-        |& tee -a $LF
-      set cmd = (bedpostx_mgh -n $nstick $dtdir/dmri)
-      echo $cmd |& tee -a $LF |& tee -a $CF
-      if ($RunIt) then
-        $cmd |& tee -a $LF
+
+    # Put a copy of myself (this script) in the scripts dir
+    cp $0 $dtdir/scripts/$ProgName.local-copy
+
+    # Write all parameters to local copy of dmrirc
+    set RCF = $dtdir/scripts/dmrirc.local
+    if (-e $RCF) mv -f $RCF $RCF.orig
+
+    echo "# Run command file generated automatically by $ProgName" 	>> $RCF
+    echo "#"							 	>> $RCF
+    echo "setenv FREESURFER_HOME $FREESURFER_HOME"			>> $RCF
+    echo "setenv SUBJECTS_DIR $SUBJECTS_DIR"				>> $RCF
+    echo "set dtroot = ($dtroot)"					>> $RCF
+    echo "set subj = ($subj)"						>> $RCF
+    echo "#"							 	>> $RCF
+    echo "# Processing steps to be performed"			 	>> $RCF
+    echo "#"							 	>> $RCF
+    echo "set docorr = ($docorr)"					>> $RCF
+    echo "set dointra = ($dointra)"					>> $RCF
+    echo "set dointer = ($dointer)"					>> $RCF
+    echo "set domasks = ($domasks)"					>> $RCF
+    echo "set dotensor = ($dotensor)"					>> $RCF
+    echo "set dopriors = ($dopriors)"					>> $RCF
+    echo "#"							 	>> $RCF
+    echo "# Options for image corrections and tensor fit"	 	>> $RCF
+    echo "#"							 	>> $RCF
+    echo "set dcmroot = ($dcmroot)"					>> $RCF
+    echo "set dcmfile = ($dcmlist[$isubj])"				>> $RCF
+    echo "set bvecfile = ($bvecfile)"					>> $RCF
+    echo "set bvalfile = ($bvalfile)"					>> $RCF
+    echo "set nb0 = ($nb0)"						>> $RCF
+    echo "set dob0 = ($dob0)"						>> $RCF
+    if ($#b0mlist) then
+      echo "set b0mfile = ($b0mlist[$isubj])"				>> $RCF
+    else
+      echo "set b0mfile = ()"						>> $RCF
+    endif
+    if ($#b0plist) then
+      echo "set b0pfile = ($b0plist[$isubj])"				>> $RCF
+    else
+      echo "set b0pfile = ()"						>> $RCF
+    endif
+    echo "set echospacing = ($echospacing)"				>> $RCF
+    echo "set doeddy = ($doeddy)"					>> $RCF
+    echo "set dorotbvecs = ($dorotbvecs)"				>> $RCF
+    echo "set thrbet = ($thrbet)"					>> $RCF
+    echo "#"							 	>> $RCF
+    echo "# Options for registrations"				 	>> $RCF
+    echo "#"							 	>> $RCF
+    echo "set doregflt = ($doregflt)"					>> $RCF
+    echo "set doregbbr = ($doregbbr)"					>> $RCF
+    echo "set doregmni = ($doregmni)"					>> $RCF
+    echo "set doregcvs = ($doregcvs)"					>> $RCF
+    echo "set mnitemp = ($mnitemp)"					>> $RCF
+    echo "set cvstempdir = ($cvstempdir)"				>> $RCF
+    echo "set cvstemp = ($cvstemp)"					>> $RCF
+    echo "#"							 	>> $RCF
+    echo "# Options for ball-and-stick model fit"		 	>> $RCF
+    echo "#"							 	>> $RCF
+    echo "set nstick = ($nstick)"					>> $RCF
+    echo "#"							 	>> $RCF
+    echo "# Options for path reconstructions"				>> $RCF
+    echo "#"							 	>> $RCF
+    echo "set usemaskanat = ($usemaskanat)"				>> $RCF
+    echo "set pathlist = ($pathlist)"					>> $RCF
+    echo "set ncpts = ($ncpts)"						>> $RCF
+    echo "set trainsubjlist = ($trainsubjlist)"				>> $RCF
+    echo "set ntrainlist = ($ntrainlist)"				>> $RCF
+    echo "set avgname = ($avgname)"					>> $RCF
+    echo "set reinit = ($reinit)"					>> $RCF
+    echo "set usetrunc = ($usetrunc)"					>> $RCF
+    echo "set doxyzprior = ($doxyzprior)"				>> $RCF
+    echo "set dosegprior = ($dosegprior)"				>> $RCF
+    echo "set dotangprior = ($dotangprior)"				>> $RCF
+    echo "set dopathsubdirs = ($dopathsubdirs)"				>> $RCF
+    echo "set fmin = ($fmin)"						>> $RCF
+    echo "set nburnin = ($nburnin)"					>> $RCF
+    echo "set nsample = ($nsample)"					>> $RCF
+    echo "set nupdate = ($nupdate)"					>> $RCF
+    echo "set nkeep = ($nkeep)"						>> $RCF
+    echo "set doinitprop = ($doinitprop)"				>> $RCF
+    echo "set overwrite = ($overwrite)"					>> $RCF
+    echo "#"							 	>> $RCF
+    echo "# Location of TRACULA executables"			 	>> $RCF
+    echo "#"							 	>> $RCF
+    echo "set trcdir = ($trcdir)"					>> $RCF
+
+    set dmdirlist = ($dmdirlist $dtdir/dmri)
+
+    if ($dopreproc) then	# Pre-processing #############
+      set cmd = trac-preproc
+      set cmd = ($cmd -c $RCF)
+      set cmd = ($cmd -log $LF)
+      set cmd = ($cmd -cmd $CF)
+      set cmd = ($cmd $cmdopts)
+      if ($onpbs) then
+        echo $cmd >> $submitfile
+      else
+        echo $cmd
+        $cmd
+        if ($status) exit 1
+      endif
+    else if ($dobedpost) then	# Bedpost ####################
+      if (! $onpbs) then
+        echo "WARN: Running FSL's bedbost locally - this might take a while" \
+          |& tee -a $LF
+        echo "WARN: It is recommended to run this step on a cluster" \
+          |& tee -a $LF
+        set cmd = (bedpostx_mgh -n $nstick $dtdir/dmri)
+        echo $cmd |& tee -a $LF |& tee -a $CF
+        if ($RunIt) then
+          $cmd |& tee -a $LF
+          if ($status) exit 1
+        endif
+      endif
+    else if ($dopaths) then	# Path reconstruction ########
+      set cmd = trac-paths
+      set cmd = ($cmd -c $RCF)
+      set cmd = ($cmd -log $LF)
+      set cmd = ($cmd -cmd $CF)
+      set cmd = ($cmd $cmdopts)
+      if ($onpbs) then
+        echo $cmd >> $submitfile
+      else
+        echo $cmd
+        $cmd
         if ($status) exit 1
       endif
     endif
-  else if ($dopaths) then		# Path reconstruction ########
-    set cmd = trac-paths
-    set cmd = ($cmd -c $RCF)
-    set cmd = ($cmd -log $LF)
-    set cmd = ($cmd -cmd $CF)
-    set cmd = ($cmd $cmdopts)
-    if ($onpbs) then
-      echo $cmd >> $submitfile
-    else
-      echo $cmd
-      $cmd
-      if ($status) exit 1
-    endif
+  end
+else				#--->>> Multiple time points for each subject
+  if (! $do1out) then
+    # Find which base subjects will be processed
+    set bsubjlist = ()
+
+    foreach isubj ($runlist)
+      if ($#baselist > 0) then
+        set bsubjlist = ($bsubjlist $baselist[$isubj])
+      endif
+    end
+
+    set bsubjlist = `echo $bsubjlist | sort --unique`
   endif
-end
+
+  # Loop over base subjects
+  @ ibsubj = 1
+  while ($ibsubj <= $#bsubjlist)
+    set bsubj = $bsubjlist[$ibsubj]
+
+    if ($do1out) then
+      set dtdir = $bsubj
+      set dtroot = `dirname $dtdir`
+      set bsubj = `basename $dtdir`
+
+      if (-e $trainfile) then
+        set trainsubjlist = `cat $trainfile | sed -n "$ibsubj p"`
+        shift trainsubjlist
+      endif
+    else
+      set dtdir = $dtroot/$bsubj
+
+      if (-e $trainfile) then
+        set trainsubjlist = `cat $trainfile`
+      endif
+    endif
+
+    # Find which time points will be processed for this base subject
+    set itps = ()
+    set tplist = ()
+
+    foreach isubj ($runlist)
+      if ($baselist[$isubj] == $bsubj) then
+        set itps = ($itps $isubj)
+        set tplist = ($tplist $subjlist[$isubj])
+      endif
+    end
+
+    # Depending on which step of the analysis I am preforming,
+    # I may need to process the time points, the base, or all of the above
+    set proclist = ()
+
+    if ($dopreproc) then
+      set proclist = ($tplist $bsubj)
+    else if ($dobedpost) then
+      set proclist = ($tplist)
+    else if ($dopaths) then
+      set proclist = ($bsubj)
+    endif
+
+    set LFlist = ()
+    set CFlist = ()
+    set RCFlist = ()
+
+    @ iproc = 1
+    while ($iproc <= $#proclist)
+      set subj = $proclist[$iproc]
+
+      if (! $do1out) then
+        # Check freesurfer directory
+        set fsdir = $SUBJECTS_DIR/$subj
+
+        if (! -e $fsdir) then
+          echo "ERROR: cannot find $fsdir"
+          exit 1
+        endif
+
+        if (! -r $fsdir) then
+          echo "ERROR: $fsdir exists but is unreadable"
+        exit 1
+        endif
+      endif
+
+      # Check diffusion directory
+      set dtdir = $dtroot/$subj
+      mkdir -p $dtdir/scripts
+
+      if ($status || ! -w $dtdir) then
+        echo "ERROR: cannot write in $dtdir"
+        exit 1
+      endif
+
+      #---------- Check build stamp -------------------------------------------#
+      # This allows the user to require that the build stamp be
+      # consistent from one trac-all/recon-all invocation to the next.
+      # Good for frozen versions.
+
+      if ($?REQUIRE_FS_MATCH == 0) setenv REQUIRE_FS_MATCH 0
+
+      set bstampfile0 = $FREESURFER_HOME/build-stamp.txt
+      set bstampfile  = $dtdir/scripts/build-stamp.txt
+
+      if (-e $bstampfile0) then
+        if (! -e $bstampfile) cp $bstampfile0 $bstampfile
+
+        set bstamp0 = `cat $bstampfile0`
+        set bstamp  = `cat $bstampfile`
+
+        if ("$bstamp0" != "$bstamp") then
+          if ($REQUIRE_FS_MATCH) then
+            echo "ERROR: FreeSurfer build stamps do not match"
+            echo "Subject Stamp: $bstamp"
+            echo "Current Stamp: $bstamp0"
+            exit 1;
+          else
+            echo "INFO: FreeSurfer build stamps do not match"
+            echo "Subject Stamp: $bstamp"
+            echo "Current Stamp: $bstamp0"
+          endif
+        endif
+      endif
+
+      #---------- Create log and command files --------------------------------#
+
+      if ($DoVersionsOnly) then
+        if (-e /dev/stdout) then
+          set LF = /dev/stdout
+        else
+          set LF = /dev/null
+        endif
+      else
+        if ($#logfile) then
+          set LF = $logfile
+        else
+          set LF = ($dtdir/scripts/trac-all.log)
+          if (-e $LF && ! $AppendLog) mv -f $LF $LF.old
+        endif
+
+        if ($#cmdfile) then
+          set CF = $cmdfile
+        else
+          set CF = ($dtdir/scripts/trac-all.cmd)
+          rm -f $CF
+        endif
+      endif
+
+      if (-e $LF) then
+        printf '\n\n' >> $LF
+        echo "New invocation of $ProgName"  >> $LF
+        printf '\n\n' >> $LF
+      endif
+  
+      date >> $LF
+      pwd >> $LF
+      echo $0 >> $LF
+      echo $inputargs >> $LF
+      echo "Subject $subj" >> $LF
+      echo "SUBJECTS_DIR $SUBJECTS_DIR" >> $LF
+      echo "FREESURFER_HOME $FREESURFER_HOME" >> $LF
+      echo "Actual FREESURFER_HOME $freesurfer_home_true" >> $LF
+      if (-e $FREESURFER_HOME/build-stamp.txt) then
+        echo "build-stamp.txt: `cat $FREESURFER_HOME/build-stamp.txt`" >> $LF
+      endif
+      whoami >> $LF
+      hostname >> $LF
+      uname -a >> $LF
+      limit >> $LF
+      if (-e /usr/bin/free) then
+        echo "" >> $LF
+        /usr/bin/free >> $LF
+        echo "" >> $LF
+      endif
+      if ("`uname -s`" == "Darwin") then
+        echo "" >> $LF
+        /usr/bin/top -l 1 | grep PhysMem >> $LF
+        echo "" >> $LF
+      endif
+
+      echo "########################################" >> $LF
+      echo "Program versions:"		>> $LF
+      echo $VERSION               	>> $LF
+      mri_convert --all-info		>> $LF
+      flirt -version			>> $LF
+      bbregister --version		>> $LF
+      mri_cvs_register --version		>> $LF
+      $trcdir/dmri_train --all-info	>> $LF
+      $trcdir/dmri_paths --all-info	>> $LF
+      $trcdir/dmri_pathstats --all-info	>> $LF
+      $trcdir/dmri_mergepaths --all-info	>> $LF
+
+      if ($DoVersionsOnly) continue
+
+      #---------- Check FREESURFER_HOME consistency ---------------------------#
+
+      set CSDF = $dtdir/scripts/csurfdir
+      if ($DoCleanCSDF) rm -vf $CSDF
+      if (-e $CSDF) then
+        set tmp = `cat $CSDF`;
+        if ($tmp != $FREESURFER_HOME) then
+          echo "INFO: current FREESURFER_HOME does not match" \
+               "that of previous processing." | tee -a $LF
+          echo "    Current: $FREESURFER_HOME" | tee -a $LF
+          echo "    Previous: $tmp" | tee -a $LF
+          sleep 1;
+        endif
+      else
+        echo $FREESURFER_HOME > $CSDF
+      endif
+
+      # Put a copy of myself (this script) in the scripts dir
+      cp $0 $dtdir/scripts/$ProgName.local-copy
+
+      # Write all parameters to local copy of dmrirc
+      set RCF = $dtdir/scripts/dmrirc.local
+      if (-e $RCF) mv -f $RCF $RCF.orig
+
+      echo "# Run command file generated automatically by $ProgName" 	>> $RCF
+      echo "#"							 	>> $RCF
+      if ($subj == $bsubj) then
+        echo "# This is a base template for longitudinal tractography"	>> $RCF
+        echo "set tplist = ($tplist)"					>> $RCF
+      else
+        echo "# This is a time point for longitudinal tractography"	>> $RCF
+      endif
+      echo "#"							 	>> $RCF
+      echo "setenv FREESURFER_HOME $FREESURFER_HOME"			>> $RCF
+      echo "setenv SUBJECTS_DIR $SUBJECTS_DIR"				>> $RCF
+      echo "set dtroot = ($dtroot)"					>> $RCF
+      echo "set subj = ($subj)"						>> $RCF
+      echo "#"							 	>> $RCF
+      echo "# Processing steps to be performed"			 	>> $RCF
+      echo "#"							 	>> $RCF
+      if ($subj == $bsubj) then
+        echo "set docorr = (0)"						>> $RCF
+        echo "set dointra = (0)"					>> $RCF
+      else
+        echo "set docorr = ($docorr)"					>> $RCF
+        echo "set dointra = ($dointra)"					>> $RCF
+      endif
+      echo "set dointer = ($dointer)"					>> $RCF
+      echo "set domasks = ($domasks)"					>> $RCF
+      if ($subj == $bsubj) then
+        echo "set dotensor = (0)"					>> $RCF
+        echo "set dopriors = ($dopriors)"				>> $RCF
+      else
+        echo "set dotensor = ($dotensor)"				>> $RCF
+        echo "set dopriors = (0)"					>> $RCF
+      endif
+      echo "#"							 	>> $RCF
+      echo "# Options for image corrections and tensor fit"	 	>> $RCF
+      echo "#"							 	>> $RCF
+      echo "set dcmroot = ($dcmroot)"					>> $RCF
+      if ($subj != $bsubj) then
+        echo "set dcmfile = ($dcmlist[$itps[$iproc]])"			>> $RCF
+      else
+        echo "set dcmfile = ()"						>> $RCF
+      endif
+      echo "set bvecfile = ($bvecfile)"					>> $RCF
+      echo "set bvalfile = ($bvalfile)"					>> $RCF
+      echo "set nb0 = ($nb0)"						>> $RCF
+      echo "set dob0 = ($dob0)"						>> $RCF
+      if ($subj != $bsubj && $#b0mlist) then
+        echo "set b0mfile = ($b0mlist[$itps[$iproc]])"			>> $RCF
+      else
+        echo "set b0mfile = ()"						>> $RCF
+      endif
+      if ($subj != $bsubj && $#b0plist) then
+        echo "set b0pfile = ($b0plist[$itps[$iproc]])"			>> $RCF
+      else
+        echo "set b0pfile = ()"						>> $RCF
+      endif
+      echo "set echospacing = ($echospacing)"				>> $RCF
+      echo "set doeddy = ($doeddy)"					>> $RCF
+      echo "set dorotbvecs = ($dorotbvecs)"				>> $RCF
+      echo "set thrbet = ($thrbet)"					>> $RCF
+      echo "set usemaskanat = ($usemaskanat)"				>> $RCF
+      echo "#"							 	>> $RCF
+      echo "# Options for registrations"			 	>> $RCF
+      echo "#"							 	>> $RCF
+      echo "set doregflt = ($doregflt)"					>> $RCF
+      echo "set doregbbr = ($doregbbr)"					>> $RCF
+      echo "set doregmni = ($doregmni)"					>> $RCF
+      echo "set doregcvs = ($doregcvs)"					>> $RCF
+      echo "set mnitemp = ($mnitemp)"					>> $RCF
+      echo "set cvstempdir = ($cvstempdir)"				>> $RCF
+      echo "set cvstemp = ($cvstemp)"					>> $RCF
+      echo "#"							 	>> $RCF
+      echo "# Options for ball-and-stick model fit"		 	>> $RCF
+      echo "#"							 	>> $RCF
+      echo "set nstick = ($nstick)"					>> $RCF
+      echo "#"						 		>> $RCF
+      echo "# Options for path reconstructions"				>> $RCF
+      echo "#"							 	>> $RCF
+      echo "set pathlist = ($pathlist)"					>> $RCF
+      echo "set ncpts = ($ncpts)"					>> $RCF
+      echo "set trainsubjlist = ($trainsubjlist)"			>> $RCF
+      echo "set ntrainlist = ($ntrainlist)"				>> $RCF
+      echo "set avgname = ($avgname)"					>> $RCF
+      echo "set reinit = ($reinit)"					>> $RCF
+      echo "set usetrunc = ($usetrunc)"					>> $RCF
+      echo "set doxyzprior = ($doxyzprior)"				>> $RCF
+      echo "set dosegprior = ($dosegprior)"				>> $RCF
+      echo "set dotangprior = ($dotangprior)"				>> $RCF
+      echo "set dopathsubdirs = ($dopathsubdirs)"			>> $RCF
+      echo "set fmin = ($fmin)"						>> $RCF
+      echo "set nburnin = ($nburnin)"					>> $RCF
+      echo "set nsample = ($nsample)"					>> $RCF
+      echo "set nupdate = ($nupdate)"					>> $RCF
+      echo "set nkeep = ($nkeep)"					>> $RCF
+      echo "set doinitprop = ($doinitprop)"				>> $RCF
+      echo "set overwrite = ($overwrite)"				>> $RCF
+      echo "#"							 	>> $RCF
+      echo "# Location of TRACULA executables"			 	>> $RCF
+      echo "#"							 	>> $RCF
+      echo "set trcdir = ($trcdir)"					>> $RCF
+
+      set LFlist  = ($LFlist $LF)
+      set CFlist  = ($CFlist $CF)
+      set RCFlist = ($RCFlist $RCF)
+
+      if ($subj != $bsubj) then
+        set dmdirlist = ($dmdirlist $dtdir/dmri)
+      endif
+
+      @ iproc = $iproc + 1
+    end
+
+    if ($dopreproc) then	# Pre-processing #############
+      set cmd = ()
+      @ iproc = 1
+      while ($iproc <= $#proclist)
+        set cmd = ($cmd trac-preproc)
+        set cmd = ($cmd -c $RCFlist[$iproc])
+        set cmd = ($cmd -log $LFlist[$iproc])
+        set cmd = ($cmd -cmd $CFlist[$iproc])
+        set cmd = ($cmd $cmdopts;)
+        @ iproc = $iproc + 1
+      end
+      if ($onpbs) then
+        echo $cmd >> $submitfile
+      else
+        echo $cmd
+        $cmd
+        if ($status) exit 1
+      endif
+    else if ($dobedpost) then	# Bedpost ####################
+      @ iproc = 1
+      while ($iproc <= $#proclist)
+        if (! $onpbs) then
+          echo "WARN: Running FSL's bedbost locally - this might take a while" \
+            |& tee -a $LFlist[$iproc]
+          echo "WARN: It is recommended to run this step on a cluster" \
+            |& tee -a $LFlist[$iproc]
+          set cmd = (bedpostx_mgh -n $nstick $dtroot/$proclist[$iproc]/dmri)
+          echo $cmd |& tee -a $LFlist[$iproc] |& tee -a $CFlist[$iproc]
+          if ($RunIt) then
+            $cmd |& tee -a $LFlist[$iproc]
+            if ($status) exit 1
+          endif
+        endif
+        @ iproc = $iproc + 1
+      end
+    else if ($dopaths) then	# Path reconstruction ########
+      set cmd = trac-paths
+      set cmd = ($cmd -c $RCF)
+      set cmd = ($cmd -log $LF)
+      set cmd = ($cmd -cmd $CF)
+      set cmd = ($cmd $cmdopts)
+      if ($onpbs) then
+        echo $cmd >> $submitfile
+      else
+        echo $cmd
+        $cmd
+        if ($status) exit 1
+      endif
+    endif
+
+    @ ibsubj = $ibsubj + 1
+  end
+endif
 
 if ($onpbs && $RunIt) then
   if (! $?MYPBSMAXJOBS) setenv MYPBSMAXJOBS 30
 
   if ($dopreproc) then
     if (! $?MYPBSWAIT) setenv MYPBSWAIT 30
-    if ($doregcvs) then
-      setenv MYPBSARCH "ppn=4,vmem=28gb"
-    endif
+    if ($doregcvs) setenv MYPBSARCH "ppn=4,vmem=28gb"
     echo Queueing pre-processing
-    set preid = `fsl_sub_mgh \
-                 -l $pbslogdir/log -m a -N trcpre -t $submitfile`
+    set preid = `fsl_sub_mgh -l $pbslogdir/log -m a -N trcpre -t $submitfile`
   else if ($dobedpost) then
     if (! $?MYPBSWAIT) setenv MYPBSWAIT 0
     bedpostx_mgh -n $nstick $dmdirlist
   else if ($dopaths) then
     if (! $?MYPBSWAIT) setenv MYPBSWAIT 30
-    if ($doregcvs) then
-      setenv MYPBSARCH "ppn=4,vmem=28gb"
-    endif
+    if ($doregcvs) setenv MYPBSARCH "ppn=4,vmem=28gb"
     echo Queueing path reconstruction
-    set trcid = `fsl_sub_mgh \
-                 -l $pbslogdir/log -m a -N trc -t $submitfile`
+    set trcid = `fsl_sub_mgh -l $pbslogdir/log -m a -N trc -t $submitfile`
   endif
 endif
 
@@ -766,12 +1142,16 @@ check_params:
         # Leave-one-out training file:
         # The first subject of each line is the test subject,
         # the remaining subjects of the line are the training subjects
-        set subjlist = `cat $trainfile | awk '{print $1}'`
+        if ($#baselist == 0) then	# A single time point for each subject
+          set subjlist = `cat $trainfile | awk '{print $1}'`
 
-        set runlist = 1
-        while ($runlist[$#runlist] < $#subjlist)
-          set runlist = ($runlist `echo $runlist[$#runlist] + 1 | bc`)
-        end
+          set runlist = 1
+          while ($runlist[$#runlist] < $#subjlist)
+            set runlist = ($runlist `echo $runlist[$#runlist] + 1 | bc`)
+          end
+        else				# Multiple time points for each subject
+          set bsubjlist = `cat $trainfile | awk '{print $1}'`
+        endif
 
         if (! $#ntrainlist) then
           set ntrainlist = `head -1 $trainfile | wc -w | awk '{print $1 - 1}'`
@@ -796,10 +1176,17 @@ check_params:
       exit 1
     endif
 
-    if (! $#runlist) then		# Process all subjects
+    if ($#runlist == 0) then			# Process all subjects
       set runlist = 1
       while ($runlist[$#runlist] < $#subjlist)
         set runlist = ($runlist `echo $runlist[$#runlist] + 1 | bc`)
+      end
+    else
+      foreach isubj ($runlist)
+        if ($isubj > $#subjlist) then
+          echo "ERROR: $isubj is in run list but have only $#subjlist subjects"
+          exit 1
+        endif
       end
     endif
 
@@ -824,9 +1211,13 @@ check_params:
       set dtroot = $SUBJECTS_DIR
     endif
 
-    if (! $?ncptlist ) set ncptlist = $ncpts
+    if ($#ncpts > 1 && $#ncpts != $#pathlist) then
+      echo "ERROR: must specify either one number of control points"
+      echo "ERROR: or as many numbers as pathways"
+      exit 1
+    endif
 
-    foreach n ($ncptlist)
+    foreach n ($ncpts)
       if ($n < 2) then
         echo "ERROR: number of control points cannot be less than 2"
         exit 1
@@ -834,7 +1225,7 @@ check_params:
     end
 
     if ($#runlist > $#subjlist) then
-      echo "ERROR: run list is longer than subject list - potential duplicates"
+      echo "ERROR: run list is longer than subject list"
       exit 1
     endif
 
@@ -853,6 +1244,11 @@ check_params:
         echo "ERROR: must specify as many fieldmap phase dicoms as subjects"
         exit 1
       endif
+    endif
+
+    if ($#baselist > 0 && $#baselist != $#subjlist) then
+      echo "ERROR: must specify a base template name for every time point name"
+      exit 1
     endif
   endif
 
