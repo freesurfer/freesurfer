@@ -1,5 +1,9 @@
 #
-# dmrirc.example
+# dmrirc.long.example
+#
+# This example is applicable to longitudinal studies, where DWI data from
+# multiple time points are available for each subject. For a simple example
+# with a single DWI data set per subject, see dmrirc.example instead.
 #
 # This file contains commands that will be run by trac-all before an analysis.
 # It is used to set all parameters needed for the analysis.
@@ -14,7 +18,7 @@
 # CVS Revision Info:
 #    $Author: ayendiki $
 #    $Date: 2013/02/16 22:49:06 $
-#    $Revision: 1.3.2.4 $
+#    $Revision: 1.1.2.2 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -38,21 +42,40 @@ setenv SUBJECTS_DIR /path/to/recons/of/ducks
 #
 set dtroot = /path/to/tracts/of/ducks
 
-# Subject IDs
+# Subject IDs (one per time point per subject)
 #
-set subjlist = (huey dewey louie)
+set subjlist = ( huey-scan1 \
+                 huey-scan2 \
+                 dewey-scan1 \
+                 dewey-scan2 \
+                 louie-scan1 \
+                 louie-scan2 )
+
+# Longitudinal base template subject IDs (one for each time point above)
+#
+set baselist = ( huey \
+                 huey \
+                 dewey \
+                 dewey \
+                 louie \
+                 louie )
 
 # In case you want to analyze only Huey and Louie
-# Default: Run analysis on all subjects
+# Default: Run analysis on all time points and subjects
 #
-set runlist = (1 3)
+set runlist = (1 2 5 6)
 
 # Input diffusion DICOMs (file names relative to dcmroot)
 # If original DICOMs don't exist, these can be in other image format
-# but then bvecfile, bvalfile, and nb0 must be specified (see below)
+# but then bvecfile and bvalfile must be specified (see below)
 #
 set dcmroot = /path/to/dicoms/of/ducks
-set dcmlist = (huey/day1/XXX-1.dcm dewey/day1/XXX-1.dcm louie/day2/XXX-1.dcm)
+set dcmlist = ( huey/year1/dwi/XXX-1.dcm \
+                huey/year2/dwi/XXX-1.dcm \
+                dewey/year1/dwi/XXX-1.dcm \
+                dewey/year2/dwi/XXX-1.dcm \
+                louie/year1/dwi/XXX-1.dcm \
+                louie/year2/dwi/XXX-1.dcm )
 
 # Diffusion gradient table
 # Must be specified if inputs are not MGH DICOMs
@@ -68,12 +91,6 @@ set bvecfile = /path/to/bvecs.txt
 #
 set bvalfile = /path/to/bvals.txt
 
-# Number of low-b images
-# Must be specified if inputs are not DICOM
-# Default: Read from DICOM header
-#
-set nb0 = 10
-
 # Perform registration-based B0-inhomogeneity compensation?
 # Default: 0 (no)
 #
@@ -83,13 +100,23 @@ set dob0 = 1
 # Only used if dob0 = 1
 # Default: None
 #
-set b0mlist = (huey/fmag/XXX-1.dcm dewey/fmag/XXX-1.dcm louie/fmag/XXX-1.dcm)
+set b0mlist = ( huey/year1/fmag/XXX-1.dcm \
+                huey/year2/fmag/XXX-1.dcm \
+                dewey/year1/fmag/XXX-1.dcm \
+                dewey/year2/fmag/XXX-1.dcm \
+                louie/year1/fmag/XXX-1.dcm \
+                louie/year2/fmag/XXX-1.dcm )
 
 # Input B0 field map phase DICOMs (file names relative to dcmroot)
 # Only used if dob0 = 1
 # Default: None
 #
-set b0plist = (huey/fphas/XXX-1.dcm dewey/fphas/XXX-1.dcm louie/fphas/XXX-1.dcm)
+set b0plist = ( huey/year1/fphas/XXX-1.dcm \
+                huey/year2/fphas/XXX-1.dcm \
+                dewey/year1/fphas/XXX-1.dcm \
+                dewey/year2/fphas/XXX-1.dcm \
+                louie/year1/fphas/XXX-1.dcm \
+                louie/year2/fphas/XXX-1.dcm )
 
 # Echo spacing for field mapping sequence (from sequence printout)
 # Only used if dob0 = 1
@@ -199,7 +226,7 @@ set nburnin = 200
 
 # Number of MCMC iterations
 # (Path samples drawn by MCMC algorithm and used to estimate path distribution)
-# Default: 5000
+# Default: 7500
 #
 set nsample = 7500
 
