@@ -33,21 +33,33 @@
 #include <math.h>
 #include "mri.h"
 
+void CurveFiniteDifferences(std::vector<float> &DiffPoints,
+                            const std::vector<float> &CurvePoints,
+                            const unsigned int DiffStep);
+
+void CurveSmooth(std::vector<float> &SmoothPoints,
+                 const std::vector<int> &DiscretePoints);
+
+std::vector<int> CurveFill(const std::vector<int> &InPoints);
+
 class Spline {
   public:
     Spline(const char *ControlPointFile, const char *MaskFile);
     Spline(const std::vector<int> &ControlPoints, MRI *Mask);
     Spline(const int NumControl, MRI *Mask);
+    Spline();
     ~Spline();
     bool IsDegenerate();
     bool InterpolateSpline();
     bool FitControlPoints(const std::vector<int> &InputPoints);
+    unsigned int PointToSegment(unsigned int PointIndex);
     void ComputeTangent(const bool DoAnalytical=true);
     void ComputeNormal(const bool DoAnalytical=true);
     void ComputeCurvature(const bool DoAnalytical=true);
     void ReadControlPoints(const char *ControlPointFile);
     void ReadMask(const char *MaskFile);
     void SetControlPoints(const std::vector<int> &ControlPoints);
+    void SetMask(MRI *Mask);
     void WriteVolume(const char *VolumeFile, const bool ShowControls=false);
     void WriteAllPoints(const char *TextFile);
     void WriteTangent(const char *TextFile);

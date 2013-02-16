@@ -7,9 +7,9 @@
 /*
  * Original Author: Anastasia Yendiki
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2012/10/16 21:56:15 $
- *    $Revision: 1.3.2.4 $
+ *    $Author: ayendiki $
+ *    $Date: 2013/02/16 20:58:43 $
+ *    $Revision: 1.3.2.5 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -133,14 +133,7 @@ int main(int argc, char **argv) {
       MRIcopyFrame(invol, outvol, 0, iframe);
 
       if (dispThresh > 0)
-        for (int iz = 0; iz < invol->depth; iz++)
-          for (int iy = 0; iy < invol->height; iy++)
-            for (int ix = 0; ix < invol->width; ix++) {
-              const float inval = MRIgetVoxVal(invol, ix, iy, iz, 0);
-
-              if (inval > inmax)
-                inmax = inval;
-            }
+        inmax = (float) MRIfindPercentile(invol, .99, 0);	// Robust max
     }
 
     outvol->frames[iframe].thresh = dispThresh * inmax;
@@ -208,7 +201,7 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcmp(option, "--in")) {
       if (nargc < 1) CMDargNErr(option,1);
       nargsused = 0;
-      while (strncmp(pargv[nargsused], "--", 2)) {
+      while (nargsused < nargc && strncmp(pargv[nargsused], "--", 2)) {
         inFile[nframe] = pargv[nargsused];
         nargsused++;
         nframe++;

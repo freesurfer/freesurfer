@@ -23,6 +23,8 @@
 #ifndef BLOOD_H
 #define BLOOD_H
 
+#include "vial.h"	// Needs to be included first because of CVS libs
+
 #include <vector>
 #include <set>
 #include <string>
@@ -44,11 +46,20 @@ class Blood {
           const char *TrainRoi1File, const char *TrainRoi2File,
           const char *TrainAsegFile, const char *TrainMaskFile,
           float TrainMaskLabel, const char *ExcludeFile,
-          const char *TestMaskFile, const char *TestFaFile,
-          bool UseTruncated, std::vector<int> &NumControls);
-    Blood(const char *TrainTrkFile, const char *TrainRoi1File,
-          const char *TrainRoi2File);
+          const std::vector<char *> &TestMaskList,
+          const std::vector<char *> &TestFaList,
+          const char *TestAffineXfmFile,
+          const char *TestNonlinXfmFile,
+          const char *TestNonlinRefFile,
+          const std::vector<char *> &TestBaseXfmList,
+          const char *TestBaseMaskFile,
+          bool UseTruncated, std::vector<int> &NumControls,
+          bool Debug=false);
+    Blood(const char *TrainTrkFile,
+          const char *TrainRoi1File, const char *TrainRoi2File,
+          bool Debug=false);
     ~Blood();
+    void SetNumControls(std::vector<int> &NumControls);
     void ReadStreamlines(const char *TrainListFile, const char *TrainTrkFile,
                          const char *TrainRoi1File, const char *TrainRoi2File,
                          float TrainMaskLabel, const char *ExcludeFile);
@@ -60,7 +71,7 @@ class Blood {
     void ComputePriors();
     void FindCenterStreamline(bool CheckOverlap=true, bool CheckDeviation=true,
                                                       bool CheckFa=true);
-    void WriteOutputs(const char *OutBase);
+    void WriteOutputs(const char *OutTrainBase, const char *OutTestBase=NULL);
     void WriteCenterStreamline(const char *CenterTrkFile,
                                const char *RefTrkFile);
     void WriteEndPoints(const char *OutBase, MRI *RefVol);
@@ -83,11 +94,12 @@ class Blood {
 
   private:
     static const int mDistThresh, mEndDilation;
-    static const unsigned int mCurvOffset;
+    static const unsigned int mDiffStep;
     static const float mLengthCutoff, mLengthRatio,
-                       mHausStepRatio, mControlStepRatio;
+                       mHausStepRatio, mControlStepRatio,
+                       mTangentBinSize, mCurvatureBinSize;
 
-    const bool mUseTruncated;
+    const bool mDebug, mUseTruncated;
     int mNx, mNy, mNz, mNumTrain, mVolume,
         mNumStr, mLengthMin, mLengthMax,
         mNumStrEnds, mLengthMinEnds, mLengthMaxEnds,
@@ -97,24 +109,34 @@ class Blood {
     std::vector<int> mNumLines, mLengths, mMidPoints, mTruncatedLengths,
                      mCenterStreamline, mDirLocal, mDirNear, mNumControls;
     std::vector<float> mMeanEnd1, mMeanEnd2, mMeanMid,
-                       mVarEnd1, mVarEnd2, mVarMid,
-                       mTangentMean, mTangentStd,
-                       mTangentMeanAll, mTangentStdAll,
-                       mCurvatureMean, mCurvatureStd,
-                       mCurvatureMeanAll, mCurvatureStdAll;
-    std::vector< std::vector<int> > mStreamlines, mControlPoints,
+                       mVarEnd1, mVarEnd2, mVarMid;
+    std::vector< std::vector<int> > mStreamlines,
+                                    mControlPoints, mControlPointsTest,
                                     mExcludedStreamlines,
                                     mHistoLocal, mHistoNear,
-                                    mHistoLocalAll, mHistoNearAll;
-    std::vector< std::vector<float> > mControlStd,
+                                    mHistoLocalAll, mHistoNearAll,
+                                    mHistoTangent, mHistoCurvature,
+                                    mHistoTangentAll, mHistoCurvatureAll;
+    std::vector< std::vector<float> > mControlStd, mControlStdTest,
                                       mPriorLocal, mPriorNear,
                                       mPriorLocalAll, mPriorNearAll,
                                       mAsegDistMean, mAsegDistStd,
-                                      mAsegDistMeanAll, mAsegDistStdAll;
+                                      mAsegDistMeanAll, mAsegDistStdAll,
+                                      mPriorTangent, mPriorCurvature,
+                                      mPriorTangentAll, mPriorCurvatureAll,
+                                      mTangentXByArc, mTangentYByArc,
+                                      mCurvatureByArc,
+                                      mTangentXByArcAll, mTangentYByArcAll,
+                                      mCurvatureByArcAll;
     std::vector< std::set<unsigned int> > mIdsLocal, mIdsNear, //[{6,7}xmNumArc]
                                           mIdsLocalAll, mIdsNearAll;
-    std::vector<MRI *> mRoi1, mRoi2, mAseg, mMask;
-    MRI *mTestMask, *mTestFa, *mHistoStr, *mHistoSubj;
+    std::vector<MRI *> mRoi1, mRoi2, mAseg, mMask, mTestMask, mTestFa;
+    AffineReg mTestAffineReg;
+#ifndef NO_CVS_UP_IN_HERE
+    NonlinReg mTestNonlinReg;
+#endif
+    std::vector<AffineReg> mTestBaseReg;
+    MRI *mHistoStr, *mHistoSubj, *mTestBaseMask;
 
     void ReadExcludedStreamlines(const char *ExcludeFile);
     void ComputeStats();
@@ -127,7 +149,7 @@ class Blood {
                     MRI *Mask, MRI *Aseg);
     void SetArcSegments();
     void ComputeAnatomyPrior(bool UseTruncated);
-    void ComputeCurvaturePrior(bool UseTruncated);
+    void ComputeShapePrior(bool UseTruncated);
     void FindPointsOnStreamline(std::vector<int> &Streamline, int NumPoints);
     bool FindPointsOnStreamlineLS(std::vector<int> &Streamline, int NumPoints);
     bool FindPointsOnStreamlineComb(std::vector<int> &Streamline,
@@ -146,6 +168,11 @@ class Blood {
                       MRI *Mask, MRI *Aseg);
     bool IsEnd2InMask(std::vector< std::vector<int> >::iterator Streamline,
                       MRI *Mask, MRI *Aseg);
+    bool MapPointToBase(std::vector<int>::iterator OutPoint,
+                        std::vector<int>::const_iterator InPoint);
+    bool MapPointToNative(std::vector<int>::iterator OutPoint,
+                          std::vector<int>::const_iterator InPoint,
+                          unsigned int FrameIndex);
     void WritePriors(const char *OutBase, bool UseTruncated);
 };
 

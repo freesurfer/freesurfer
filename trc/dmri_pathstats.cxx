@@ -1,5 +1,5 @@
 /**
- * @file  dmri_pathstats.c
+ * @file  dmri_pathstats.cxx
  * @brief Compute measures on probabilistic or deterministic tractography paths
  *
  * Compute measures on probabilistic or deterministic tractography paths
@@ -7,9 +7,9 @@
 /*
  * Original Author: Anastasia Yendiki
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2012/10/16 21:56:15 $
- *    $Revision: 1.4.2.3 $
+ *    $Author: ayendiki $
+ *    $Date: 2013/02/16 20:58:43 $
+ *    $Revision: 1.4.2.4 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -182,17 +182,10 @@ int main(int argc, char **argv) {
     ny = post->height;
     nz = post->depth;
 
-    // Find maximum value of posterior distribution
-    for (int iz = 0; iz < nz; iz++)
-      for (int iy = 0; iy < ny; iy++)
-        for (int ix = 0; ix < nx; ix++) {
-          const float h = MRIgetVoxVal(post, ix, iy, iz, 0);
+    // Find (robust) maximum value of posterior distribution
+    thresh = (float) MRIfindPercentile(post, .99, 0);
 
-          if (h > thresh)
-            thresh = h;
-        }
-
-    // Set threshold at 20% of maximum
+    // Set threshold at 20% of (robust) maximum
     thresh *= .2;
 
     // Compute average and weighted average of measures on thresholded posterior

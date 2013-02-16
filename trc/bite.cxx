@@ -26,14 +26,13 @@ using namespace std;
 
 int Bite::mNumDir, Bite::mNumB0, Bite::mNumTract, Bite::mNumBedpost;
 float Bite::mFminPath;
+vector<unsigned int> Bite::mBaselineImages;
 vector<float> Bite::mGradients, Bite::mBvalues;
 
 Bite::Bite(MRI *Dwi, MRI **Phi, MRI **Theta, MRI **F,
            MRI **V0, MRI **F0, MRI *D0,
            int CoordX, int CoordY, int CoordZ) :
-           mIsPriorSet(false),
-           mCoordX(CoordX), mCoordY(CoordY), mCoordZ(CoordZ),
-           mPathPrior0(0), mPathPrior1(0) {
+           mCoordX(CoordX), mCoordY(CoordY), mCoordZ(CoordZ) {
   float fsum, vx, vy, vz;
 
   mDwi.clear();
@@ -44,13 +43,16 @@ Bite::Bite(MRI *Dwi, MRI **Phi, MRI **Theta, MRI **F,
   mTheta.clear();
   mF.clear();
 
+  // DWI intensity values
+  for (int idir = 0; idir < mNumDir; idir++)
+    mDwi.push_back(MRIgetVoxVal(Dwi, mCoordX, mCoordY, mCoordZ, idir));
+
   // Initialize s0
   mS0 = 0;
-  for (int idir = 0; idir < mNumDir; idir++) {
-    mDwi.push_back(MRIgetVoxVal(Dwi, mCoordX, mCoordY, mCoordZ, idir));
-    if (mBvalues[idir] == 0)
-      mS0 += MRIgetVoxVal(Dwi, mCoordX, mCoordY, mCoordZ, idir);
-  }
+  for (vector<unsigned int>::const_iterator ibase = mBaselineImages.begin();
+                                            ibase < mBaselineImages.end();
+                                            ibase++)
+      mS0 += mDwi[*ibase];
   mS0 /= mNumB0;
 
   // Samples of phi, theta, f
@@ -106,12 +108,20 @@ void Bite::SetStatic(const char *GradientFile, const char *BvalueFile,
 
   cout << "Loading b-values from " << BvalueFile << endl;
   mBvalues.clear();
-  mNumB0 = 0;
-  while (bfile >> val) {
+  while (bfile >> val)
     mBvalues.push_back(val);
-    if (val == 0) mNumB0++;
-  }
+
   mNumDir = mBvalues.size();
+
+  // Find baseline images (the ones with the lowest b-value)
+  val = *min_element(mBvalues.begin(), mBvalues.end());
+  mBaselineImages.clear();
+  for (vector<float>::const_iterator ival = mBvalues.begin();
+                                     ival < mBvalues.end(); ival++)
+    if (*ival == val)
+      mBaselineImages.push_back(ival - mBvalues.begin());
+
+  mNumB0 = mBaselineImages.size();
 
   cout << "Loading gradients from " << GradientFile << endl;
   mGradients.clear();
@@ -145,39 +155,7 @@ int Bite::GetNumB0() { return mNumB0; }
 
 int Bite::GetNumBedpost() { return mNumBedpost; }
 
-//
-// Check if prior has been set
-//
-bool Bite::IsPriorSet() { return mIsPriorSet; }
-
-//
-// Compute priors for this voxel, given its coordinates in atlas space
-//
-void Bite::SetPrior(MRI *Prior0, MRI *Prior1,
-                    int CoordX, int CoordY, int CoordZ) {
-  // Spatial path priors
-  if (Prior0 && Prior1) {
-    mPathPrior0 = MRIgetVoxVal(Prior0, CoordX, CoordY, CoordZ, 0);
-    mPathPrior1 = MRIgetVoxVal(Prior1, CoordX, CoordY, CoordZ, 0);
-  }
-  else {
-    mPathPrior0 = 0;
-    mPathPrior1 = 0;
-  }
-
-  mIsPriorSet = true;
-}
-
-//
-// Clear priors for this voxel
-//
-void Bite::ResetPrior() {
-  mIsPriorSet = false;
-
-  // Spatial path priors
-  mPathPrior0 = 0;
-  mPathPrior1 = 0;
-}
+float Bite::GetLowBvalue() { return mBvalues[mBaselineImages[0]]; }
 
 //
 // Draw samples from marginal posteriors of diffusion parameters
@@ -391,17 +369,20 @@ void Bite::ComputePriorOffPath() {
 //     << log(((double)*fjl - 1) * log(1 - (double)*fjl)) << endl;
 
 if (1) 
-  mPrior0 = log((*fjl - 1) * log(1 - *fjl)) - log(fabs(sin(*thetajl)))
-          + mPathPrior0;
+  mPrior0 = log((*fjl - 1) * log(1 - *fjl)) - log(fabs(sin(*thetajl)));
 else  
-  mPrior0 = mPathPrior0;
+  mPrior0 = 0;
 }
 
 //
 // Compute prior given that voxel is on path
 //
 void Bite::ComputePriorOnPath() {
-  mPrior1 = mPathPrior1;
+  mPrior1 = 0;
+}
+
+bool Bite::IsAllFZero() {
+  return (*max_element(mF.begin(), mF.end()) < mFminPath);
 }
 
 bool Bite::IsFZero() { return (mF[mPathTract] < mFminPath); }
@@ -411,10 +392,6 @@ bool Bite::IsThetaZero() { return (mTheta[mPathTract] == 0); }
 float Bite::GetLikelihoodOffPath() { return mLikelihood0; }
 
 float Bite::GetLikelihoodOnPath() { return mLikelihood1; }
-
-float Bite::GetPathPriorOffPath() { return mPathPrior0; }
-
-float Bite::GetPathPriorOnPath() { return mPathPrior1; }
 
 float Bite::GetPriorOffPath() { return mPrior0; }
 

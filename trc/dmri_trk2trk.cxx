@@ -1,5 +1,5 @@
 /**
- * @file  dmri_trk2trk.c
+ * @file  dmri_trk2trk.cxx
  * @brief Apply affine and non-linear warp to streamlines in .trk file
  *
  * Apply affine and non-linear warp to streamlines in .trk file
@@ -7,9 +7,9 @@
 /*
  * Original Author: Anastasia Yendiki
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2012/10/16 21:56:15 $
- *    $Revision: 1.8.2.2 $
+ *    $Author: ayendiki $
+ *    $Date: 2013/02/16 20:58:44 $
+ *    $Revision: 1.8.2.3 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -133,6 +133,7 @@ int main(int argc, char **argv) {
       affinereg.ReadXfm(affineXfmFile, inref, 0);
     nonlinreg.ReadXfm(nonlinXfmFile, outref);
   }
+  else
 #endif
   if (affineXfmFile)
     affinereg.ReadXfm(affineXfmFile, inref, outref);
@@ -357,7 +358,7 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcmp(option, "--in")) {
       if (nargc < 1) CMDargNErr(option,1);
       nargsused = 0;
-      while (strncmp(pargv[nargsused], "--", 2)) {
+      while (nargsused < nargc && strncmp(pargv[nargsused], "--", 2)) {
         inFile[nin] = pargv[nargsused];
         nargsused++;
         nin++;
@@ -371,7 +372,7 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcmp(option, "--out")) {
       if (nargc < 1) CMDargNErr(option,1);
       nargsused = 0;
-      while (strncmp(pargv[nargsused], "--", 2)) {
+      while (nargsused < nargc && strncmp(pargv[nargsused], "--", 2)) {
         outFile[nout] = pargv[nargsused];
         nargsused++;
         nout++;
@@ -380,7 +381,7 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcmp(option, "--outvol")) {
       if (nargc < 1) CMDargNErr(option,1);
       nargsused = 0;
-      while (strncmp(pargv[nargsused], "--", 2)) {
+      while (nargsused < nargc && strncmp(pargv[nargsused], "--", 2)) {
         outVolFile[nvol] = pargv[nargsused];
         nargsused++;
         nvol++;

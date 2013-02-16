@@ -28,6 +28,7 @@
 #include <iostream>
 #include <fstream>
 #include <limits>
+#include <algorithm>
 #include <math.h>
 #include "mri.h"
 
@@ -41,20 +42,19 @@ class Bite {
   private:
     static int mNumDir, mNumB0, mNumTract, mNumBedpost;
     static float mFminPath;
+    static std::vector<unsigned int> mBaselineImages;
     static std::vector<float> mGradients,	// [3 x mNumDir]
                               mBvalues;		// [mNumDir]
 
-    bool mIsPriorSet;
     int mCoordX, mCoordY, mCoordZ, mPathTract;
-    float mS0, mD, mPathPrior0, mPathPrior1,
-          mLikelihood0, mLikelihood1, mPrior0, mPrior1;
-    std::vector<float> mDwi;		// [mNumDir]
-    std::vector<float> mPhiSamples;	// [mNumTract x mNumBedpost]
-    std::vector<float> mThetaSamples;	// [mNumTract x mNumBedpost]
-    std::vector<float> mFSamples;	// [mNumTract x mNumBedpost]
-    std::vector<float> mPhi;		// [mNumTract]
-    std::vector<float> mTheta;		// [mNumTract]
-    std::vector<float> mF;		// [mNumTract]
+    float mS0, mD, mLikelihood0, mLikelihood1, mPrior0, mPrior1;
+    std::vector<float> mDwi;			// [mNumDir]
+    std::vector<float> mPhiSamples;		// [mNumTract x mNumBedpost]
+    std::vector<float> mThetaSamples;		// [mNumTract x mNumBedpost]
+    std::vector<float> mFSamples;		// [mNumTract x mNumBedpost]
+    std::vector<float> mPhi;			// [mNumTract]
+    std::vector<float> mTheta;			// [mNumTract]
+    std::vector<float> mF;			// [mNumTract]
 
   public:
     static void SetStatic(const char *GradientFile, const char *BvalueFile,
@@ -63,11 +63,8 @@ class Bite {
     static int GetNumDir();
     static int GetNumB0();
     static int GetNumBedpost();
+    static float GetLowBvalue();
 
-    bool IsPriorSet();
-    void SetPrior(MRI *Prior0, MRI *Prior1,
-                  int CoordX, int CoordY, int CoordZ);
-    void ResetPrior();
     void SampleParameters();
     void ComputeLikelihoodOffPath();
     void ComputeLikelihoodOnPath(float PathPhi, float PathTheta);
@@ -75,12 +72,11 @@ class Bite {
     void ChoosePathTractLike(float PathPhi, float PathTheta);
     void ComputePriorOffPath();
     void ComputePriorOnPath();
+    bool IsAllFZero();
     bool IsFZero();
     bool IsThetaZero();
     float GetLikelihoodOffPath();
     float GetLikelihoodOnPath();
-    float GetPathPriorOffPath();
-    float GetPathPriorOnPath();
     float GetPriorOffPath();
     float GetPriorOnPath();
     float GetPosteriorOffPath();
