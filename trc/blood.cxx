@@ -2711,7 +2711,7 @@ else {
 
 //
 // Find spread of streamlines around each control point
-// (in base space, if registration is available)
+// (in base space, if registration has been specified)
 //
 void Blood::ComputeStreamlineSpread(vector<int> &ControlPoints) {
   vector<int> point(3, 0), dmin(ControlPoints.size()/3),
