@@ -13,8 +13,8 @@
 # Original Author: Anastasia Yendiki
 # CVS Revision Info:
 #    $Author: ayendiki $
-#    $Date: 2013/02/15 00:45:32 $
-#    $Revision: 1.9 $
+#    $Date: 2013/02/16 22:17:10 $
+#    $Revision: 1.10 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -49,7 +49,7 @@ set runlist = (1 3)
 
 # Input diffusion DICOMs (file names relative to dcmroot)
 # If original DICOMs don't exist, these can be in other image format
-# but then bvecfile, bvalfile, and nb0 must be specified (see below)
+# but then bvecfile and bvalfile must be specified (see below)
 #
 set dcmroot = /path/to/dicoms/of/ducks
 set dcmlist = (huey/day1/XXX-1.dcm dewey/day1/XXX-1.dcm louie/day2/XXX-1.dcm)
@@ -67,12 +67,6 @@ set bvecfile = /path/to/bvecs.txt
 # Default: Read from DICOM header
 #
 set bvalfile = /path/to/bvals.txt
-
-# Number of low-b images
-# Must be specified if inputs are not DICOM
-# Default: Read from DICOM header
-#
-set nb0 = 10
 
 # Perform registration-based B0-inhomogeneity compensation?
 # Default: 0 (no)
@@ -115,14 +109,14 @@ set dorotbvecs = 1
 set thrbet = 0.5
 
 # Perform diffusion-to-T1 registration by flirt?
-# Default: 1 (yes)
-#
-set doregflt = 1
-
-# Perform diffusion-to-T1 registration by bbregister?
 # Default: 0 (no)
 #
-set doregbbr = 0
+set doregflt = 0
+
+# Perform diffusion-to-T1 registration by bbregister?
+# Default: 1 (yes)
+#
+set doregbbr = 1
 
 # Perform registration of T1 to MNI template?
 # Default: 1 (yes)
@@ -136,9 +130,9 @@ set doregmni = 1
 set mnitemp = /path/to/mni_template.nii.gz
 
 # Perform registration of T1 to CVS template?
-# Default: 1 (yes)
+# Default: 0 (no)
 #
-set doregcvs = 1
+set doregcvs = 0
 
 # CVS template subject ID
 # Only used if doregcvs = 1
@@ -199,9 +193,9 @@ set nburnin = 200
 
 # Number of MCMC iterations
 # (Path samples drawn by MCMC algorithm and used to estimate path distribution)
-# Default: 5000
+# Default: 7500
 #
-set nsample = 5000
+set nsample = 7500
 
 # Frequency with which MCMC path samples are retained for path distribution
 # Default: 5 (keep every 5th sample)
