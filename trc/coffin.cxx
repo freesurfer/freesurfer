@@ -687,7 +687,6 @@ void Aeon::WriteOutputs() {
     mMaximumAPosterioriPath =
       FindMaximumAPosterioriPath(mPathPointSamples, lengths, pdvol);
 
-{	// !NEW METHOD: Replace the old method with this eventually!
   // Save maximum a posteriori path
   vector< vector<int> >::const_iterator pathmap = mPathPointSamples.begin() +
                                                   mMaximumAPosterioriPath;
@@ -699,11 +698,10 @@ void Aeon::WriteOutputs() {
     MRIsetVoxVal(pdvol, ix, iy, iz, 0, 1);
   }
 
-  fname = mOutDir + "/path.map.test.nii.gz";
+  fname = mOutDir + "/path.map.nii.gz";
   MRIwrite(pdvol, fname.c_str());
-}
 
-{	// !OLD METHOD! Remove this eventually
+if (0) {		// !OLD METHOD! Remove this eventually
   // Save maximum a posteriori path
   vector< vector<int> >::const_iterator pathmap = mPathPointSamples.begin() +
                                                   mMaximumAPosterioriPath0;
@@ -802,9 +800,8 @@ void Aeon::WriteOutputs() {
       }
   }
 
-{	// !NEW METHOD: Replace the old method with this eventually!
   // Save control points corresponding to maximum a posteriori path
-  fname = mOutDir + "/cpts.map.test.txt";
+  fname = mOutDir + "/cpts.map.txt";
   ofstream mapfile(fname.c_str(), ios::out);
 
   if (!mapfile) {
@@ -815,9 +812,8 @@ void Aeon::WriteOutputs() {
   for (vector<int>::const_iterator icpt = cptsmap.begin();
                                    icpt < cptsmap.end(); icpt += 3)
     mapfile << icpt[0] << " " << icpt[1] << " " << icpt[2] << endl;
-}
 
-{	// !OLD METHOD! Remove this eventually
+if (0) {		// !OLD METHOD! Remove this eventually
   // Save control points corresponding to maximum a posteriori path
   fname = mOutDir + "/cpts.map.txt";
   ofstream mapfile(fname.c_str(), ios::out);
