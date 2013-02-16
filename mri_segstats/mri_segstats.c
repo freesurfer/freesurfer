@@ -12,8 +12,8 @@
  * Original Author: Dougas N Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2013/01/15 16:58:25 $
- *    $Revision: 1.98 $
+ *    $Date: 2013/02/16 00:09:19 $
+ *    $Revision: 1.99 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -110,7 +110,7 @@ int DumpStatSumTable(STATSUMENTRY *StatSumTable, int nsegid);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-  "$Id: mri_segstats.c,v 1.98 2013/01/15 16:58:25 greve Exp $";
+  "$Id: mri_segstats.c,v 1.99 2013/02/16 00:09:19 greve Exp $";
 char *Progname = NULL, *SUBJECTS_DIR = NULL, *FREESURFER_HOME=NULL;
 char *SegVolFile = NULL;
 char *InVolFile = NULL;
@@ -195,6 +195,7 @@ char *cmdline, cwd[2000];
 
 int DoEuler = 0;
 int lheno, rheno;
+int DoAbs = 0;
 
 /*--------------------------------------------------*/
 int main(int argc, char **argv)
@@ -526,6 +527,11 @@ int main(int argc, char **argv)
     {
       printf("Multiplying input by %lf\n",MultVal);
       MRImultiplyConst(invol,MultVal,invol);
+    }
+    if(DoAbs)
+    {
+      printf("Computing absolute value of input\n");
+      MRIabs(invol,invol);
     }
     if(DoSquare)
     {
@@ -1445,6 +1451,10 @@ static int parse_commandline(int argc, char **argv)
     else if ( !strcmp(option, "--euler") )
     {
       DoEuler = 1;
+    }
+    else if ( !strcmp(option, "--abs") )
+    {
+      DoAbs = 1;
     }
     else if ( !strcmp(option, "--sqr") )
     {
