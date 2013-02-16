@@ -8,8 +8,8 @@
  * Original Author: Anastasia Yendiki
  * CVS Revision Info:
  *    $Author: ayendiki $
- *    $Date: 2013/02/12 06:19:26 $
- *    $Revision: 1.8 $
+ *    $Date: 2013/02/16 19:53:14 $
+ *    $Revision: 1.9 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -182,17 +182,10 @@ int main(int argc, char **argv) {
     ny = post->height;
     nz = post->depth;
 
-    // Find maximum value of posterior distribution
-    for (int iz = 0; iz < nz; iz++)
-      for (int iy = 0; iy < ny; iy++)
-        for (int ix = 0; ix < nx; ix++) {
-          const float h = MRIgetVoxVal(post, ix, iy, iz, 0);
+    // Find (robust) maximum value of posterior distribution
+    thresh = (float) MRIfindPercentile(post, .99, 0);
 
-          if (h > thresh)
-            thresh = h;
-        }
-
-    // Set threshold at 20% of maximum
+    // Set threshold at 20% of (robust) maximum
     thresh *= .2;
 
     // Compute average and weighted average of measures on thresholded posterior
