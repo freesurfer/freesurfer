@@ -1,0 +1,249 @@
+#
+# dmrirc.long.example
+#
+# This example is applicable to longitudinal studies, where DWI data from
+# multiple time points are available for each subject. For a simple example
+# with a single DWI data set per subject, see dmrirc.example instead.
+#
+# This file contains commands that will be run by trac-all before an analysis.
+# It is used to set all parameters needed for the analysis.
+#
+# Remove a parameter from your dmrirc file if you want use the default value.
+# Parameters that don't have default values must be specified.
+#
+# Any other commands that you might want to run before an analysis can be added
+# to this file.
+#
+# Original Author: Anastasia Yendiki
+# CVS Revision Info:
+#    $Author: ayendiki $
+#    $Date: 2013/02/16 22:47:23 $
+#    $Revision: 1.1 $
+#
+# Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+#
+# Terms and conditions for use, reproduction, distribution and contribution
+# are found in the 'FreeSurfer Software License Agreement' contained
+# in the file 'LICENSE' found in the FreeSurfer distribution, and here:
+#
+# https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
+#
+# Reporting: freesurfer@nmr.mgh.harvard.edu
+#
+#
+
+# FreeSurfer SUBJECTS_DIR
+# T1 images and FreeSurfer segmentations are expected to be found here
+# 
+setenv SUBJECTS_DIR /path/to/recons/of/ducks
+
+# Output directory where trac-all results will be saved
+# Default: Same as SUBJECTS_DIR
+#
+set dtroot = /path/to/tracts/of/ducks
+
+# Subject IDs (one per time point per subject)
+#
+set subjlist = ( huey-scan1 \
+                 huey-scan2 \
+                 dewey-scan1 \
+                 dewey-scan2 \
+                 louie-scan1 \
+                 louie-scan2 )
+
+# Longitudinal base template subject IDs (one for each time point above)
+#
+set baselist = ( huey \
+                 huey \
+                 dewey \
+                 dewey \
+                 louie \
+                 louie )
+
+# In case you want to analyze only Huey and Louie
+# Default: Run analysis on all time points and subjects
+#
+set runlist = (1 2 5 6)
+
+# Input diffusion DICOMs (file names relative to dcmroot)
+# If original DICOMs don't exist, these can be in other image format
+# but then bvecfile and bvalfile must be specified (see below)
+#
+set dcmroot = /path/to/dicoms/of/ducks
+set dcmlist = ( huey/year1/dwi/XXX-1.dcm \
+                huey/year2/dwi/XXX-1.dcm \
+                dewey/year1/dwi/XXX-1.dcm \
+                dewey/year2/dwi/XXX-1.dcm \
+                louie/year1/dwi/XXX-1.dcm \
+                louie/year2/dwi/XXX-1.dcm )
+
+# Diffusion gradient table
+# Must be specified if inputs are not MGH DICOMs
+# Three-column format, one row for each volume in the diffusion data set
+# Default: Read from DICOM header
+#
+set bvecfile = /path/to/bvecs.txt
+
+# Diffusion b-value table
+# Must be specified if inputs are not MGH DICOMs
+# Single-column format, one value for each volume in the diffusion data set
+# Default: Read from DICOM header
+#
+set bvalfile = /path/to/bvals.txt
+
+# Perform registration-based B0-inhomogeneity compensation?
+# Default: 0 (no)
+#
+set dob0 = 1
+
+# Input B0 field map magnitude DICOMs (file names relative to dcmroot)
+# Only used if dob0 = 1
+# Default: None
+#
+set b0mlist = ( huey/year1/fmag/XXX-1.dcm \
+                huey/year2/fmag/XXX-1.dcm \
+                dewey/year1/fmag/XXX-1.dcm \
+                dewey/year2/fmag/XXX-1.dcm \
+                louie/year1/fmag/XXX-1.dcm \
+                louie/year2/fmag/XXX-1.dcm )
+
+# Input B0 field map phase DICOMs (file names relative to dcmroot)
+# Only used if dob0 = 1
+# Default: None
+#
+set b0plist = ( huey/year1/fphas/XXX-1.dcm \
+                huey/year2/fphas/XXX-1.dcm \
+                dewey/year1/fphas/XXX-1.dcm \
+                dewey/year2/fphas/XXX-1.dcm \
+                louie/year1/fphas/XXX-1.dcm \
+                louie/year2/fphas/XXX-1.dcm )
+
+# Echo spacing for field mapping sequence (from sequence printout)
+# Only used if dob0 = 1
+# Default: None
+#
+set echospacing = 0.7
+
+# Perform registration-based eddy-current compensation?
+# Default: 1 (yes)
+#
+set doeddy = 1
+
+# Rotate diffusion gradient vectors to match eddy-current compensation?
+# Only used if doeddy = 1
+# Default: 1 (yes)
+#
+set dorotbvecs = 1
+
+# Fractional intensity threshold for BET mask extraction from low-b images
+# This mask is used only if usemaskanat = 0
+# Default: 0.3
+#
+set thrbet = 0.5
+
+# Perform diffusion-to-T1 registration by flirt?
+# Default: 0 (no)
+#
+set doregflt = 0
+
+# Perform diffusion-to-T1 registration by bbregister?
+# Default: 1 (yes)
+#
+set doregbbr = 1
+
+# Perform registration of T1 to MNI template?
+# Default: 1 (yes)
+#
+set doregmni = 1
+
+# MNI template
+# Only used if doregmni = 1
+# Default: $FSLDIR/data/standard/MNI152_T1_1mm_brain.nii.gz
+#
+set mnitemp = /path/to/mni_template.nii.gz
+
+# Perform registration of T1 to CVS template?
+# Default: 0 (no)
+#
+set doregcvs = 0
+
+# CVS template subject ID
+# Only used if doregcvs = 1
+# Default: cvs_avg35
+#
+set cvstemp = donald
+
+# Parent directory of the CVS template subject
+# Only used if doregcvs = 1
+# Default: $FREESURFER_HOME/subjects
+#
+set cvstempdir = /path/to/cvs/atlases/of/ducks
+
+# Use brain mask extracted from T1 image instead of low-b diffusion image?
+# Has no effect if there is no T1 data
+# Default: 1 (yes)
+#
+set usemaskanat = 1
+
+# Paths to reconstruct
+# Default: All paths in the atlas
+#
+set pathlist = ( lh.cst_AS rh.cst_AS \
+                 lh.unc_AS rh.unc_AS \
+                 lh.ilf_AS rh.ilf_AS \
+                 fmajor_PP fminor_PP \
+                 lh.atr_PP rh.atr_PP \
+                 lh.ccg_PP rh.ccg_PP \
+                 lh.cab_PP rh.cab_PP \
+                 lh.slfp_PP rh.slfp_PP \
+                 lh.slft_PP rh.slft_PP )
+
+# Number of path control points
+# It can be a single number for all paths or a different number for each of the
+# paths specified in pathlist
+# Default: 7 for the forceps major, 6 for the corticospinal tract,
+#          4 for the angular bundle, and 5 for all other paths
+#
+set ncpts = (6 6 5 5 5 5 7 5 5 5 5 5 4 4 5 5 5 5)
+
+# List of training subjects
+# This text file lists the locations of training subject directories
+# Default: $FREESURFER_HOME/trctrain/trainlist.txt
+#
+set trainfile = $FREESURFER_HOME/trctrain/trainlist.txt
+
+# Number of "sticks" (anisotropic diffusion compartments) in the bedpostx
+# ball-and-stick model
+# Default: 2
+#
+set nstick = 2
+
+# Number of MCMC burn-in iterations
+# (Path samples drawn initially by MCMC algorithm and discarded)
+# Default: 200
+#
+set nburnin = 200
+
+# Number of MCMC iterations
+# (Path samples drawn by MCMC algorithm and used to estimate path distribution)
+# Default: 7500
+#
+set nsample = 7500
+
+# Frequency with which MCMC path samples are retained for path distribution
+# Default: 5 (keep every 5th sample)
+#
+set nkeep = 5
+
+# Reinitialize path reconstruction?
+# This is an option of last resort, to be used only if one of the reconstructed
+# pathway distributions looks like a single curve. This is a sign that the
+# initial guess for the pathway was problematic, perhaps due to poor alignment
+# between the individual and the atlas. Setting the reinit parameter to 1 and
+# rerunning "trac-all -prior" and "trac-all -path", only for the specific
+# subjects and pathways that had this problem, will attempt to reconstruct them
+# with a different initial guess.
+# Default: 0 (do not reinitialize)
+#
+set reinit = 0
+
