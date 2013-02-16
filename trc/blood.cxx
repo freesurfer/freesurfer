@@ -2711,64 +2711,86 @@ else {
 
 //
 // Find spread of streamlines around each control point
+// (in base space, if registration is available)
 //
 void Blood::ComputeStreamlineSpread(vector<int> &ControlPoints) {
-  vector<int> sum(3, 0), sumsq(3, 0), ptmin(3, 0);
-  vector<float> cstd;
+  vector<int> point(3, 0), dmin(ControlPoints.size()/3),
+                           ptmin(ControlPoints.size(), 0),
+                           sum(ControlPoints.size(), 0),
+                           sumsq(ControlPoints.size(), 0);
+  vector<float> cstd(ControlPoints.size(), 0);
 
-  if (mNumStrEnds == 1) {
-    cstd.resize(ControlPoints.size());
-    fill(cstd.begin(), cstd.end(), 0.0);
-  }
-  else {
+  if (mNumStrEnds > 1) {
     bool isinbase = true;
+    vector<bool>::const_iterator ivalid1 = mIsInEnd1.begin(),
+                                 ivalid2 = mIsInEnd2.begin();
+    vector<int>::const_iterator isum   = sum.begin(),
+                                isumsq = sumsq.begin();
 
-    for (vector<int>::const_iterator icpt = ControlPoints.begin();
-                                     icpt != ControlPoints.end(); icpt +=3) {
-      vector<bool>::const_iterator ivalid1 = mIsInEnd1.begin(),
-                                   ivalid2 = mIsInEnd2.begin();
+    for (vector< vector<int> >::const_iterator istr = mStreamlines.begin();
+                                               istr < mStreamlines.end();
+                                               istr++) {
+      if (*ivalid1 && *ivalid2) {
+        vector<int>::iterator isum   = sum.begin(),
+                              isumsq = sumsq.begin();
 
-      fill(sum.begin(), sum.end(), 0);
-      fill(sumsq.begin(), sumsq.end(), 0);
+        // Find closest point on streamline to each control point in base space
+        fill(dmin.begin(), dmin.end(), 1000000);
 
-      for (vector< vector<int> >::const_iterator
-           istr = mStreamlines.begin(); istr != mStreamlines.end(); istr++) {
-        if (*ivalid1 && *ivalid2) {
-          int dmin = 1000000;
-
-          for (vector<int>::const_iterator ipt = istr->begin();
-                                           ipt != istr->end(); ipt += 3) {
-            int dist = 0;
-
-            for (int k = 0; k < 3; k++) {
-              const int diff = ipt[k] - icpt[k];
-              dist += diff*diff;
-            }
-
-            if (dist < dmin) {
-              dmin = dist;
-              copy(ipt, ipt+3, ptmin.begin());
-            }
-          }
+        for (vector<int>::const_iterator ipt = istr->begin(); ipt < istr->end();
+                                                              ipt += 3) {
+          vector<int>::iterator idmin  = dmin.begin(),
+                                iptmin = ptmin.begin();
 
           // Map point to base space if registration has been specified
           if (!mTestAffineReg.IsEmpty() || !mTestNonlinReg.IsEmpty())
-            isinbase = MapPointToBase(ptmin.begin(), ptmin.begin());
+            isinbase = MapPointToBase(point.begin(), ipt);
 
-          if (isinbase)
+          if (!isinbase)
+            continue;
+
+          // Find point's distance from each control point in base space
+          for (vector<int>::const_iterator icpt = ControlPoints.begin();
+                                           icpt < ControlPoints.end();
+                                           icpt += 3) {
+            int dist = 0;
+
             for (int k = 0; k < 3; k++) {
-              sum[k] += ptmin[k];
-              sumsq[k] += ptmin[k]*ptmin[k];
+              const int diff = point[k] - icpt[k];
+              dist += diff*diff;
             }
+
+            if (dist < *idmin) {
+              *idmin = dist;
+              copy(point.begin(), point.end(), iptmin);
+            }
+
+            idmin++;
+            iptmin += 3;
+          }
         }
 
-        ivalid1++;
-        ivalid2++;
+        // Compute variance of nearest streamline points for each control point
+        for (vector<int>::const_iterator iptmin = ptmin.begin();
+                                         iptmin < ptmin.end(); iptmin++) {
+          *isum += *iptmin;
+          *isumsq += (*iptmin) * (*iptmin);
+
+          isum++;
+          isumsq++;
+        }
       }
 
-      for (int k = 0; k < 3; k++)
-        cstd.push_back( sqrt((sumsq[k] - sum[k] * (sum[k] / float(mNumStrEnds)))
-                             / (mNumStrEnds-1)) );
+      ivalid1++;
+      ivalid2++;
+    }
+
+    for (vector<float>::iterator istd = cstd.begin(); istd < cstd.end();
+                                                      istd++) {
+      *istd = sqrt((*isumsq - (*isum) * (*isum / float(mNumStrEnds)))
+                   / (mNumStrEnds-1));
+      isum++;
+      isumsq++;
     }
   }
 
@@ -2875,9 +2897,11 @@ bool Blood::FindPointsOnStreamlineComb(vector<int> &Streamline, int NumPoints) {
     cout << endl;
 
     mControlPointsTest.push_back(cptsout);
-  }
 
-  ComputeStreamlineSpread(cpts);
+    ComputeStreamlineSpread(cptsout);
+  }
+  else
+    ComputeStreamlineSpread(cpts);
 
   return success;
 }
@@ -3268,9 +3292,11 @@ bool Blood::FindPointsOnStreamlineLS(vector<int> &Streamline, int NumPoints) {
     cout << endl;
 
     mControlPointsTest.push_back(cptsout);
-  }
 
-  ComputeStreamlineSpread(cpts);
+    ComputeStreamlineSpread(cptsout);
+  }
+  else
+    ComputeStreamlineSpread(cpts);
 
   return success;
 }
