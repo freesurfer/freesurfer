@@ -7,19 +7,18 @@
  * Original Author: Bruce Fischl (1/8/97)
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2010/03/13 01:32:44 $
- *    $Revision: 1.41 $
+ *    $Date: 2013/02/17 16:22:24 $
+ *    $Revision: 1.42.2.1 $
  *
- * Copyright (C) 2002-2010,
- * The General Hospital Corporation (Boston, MA). 
- * All rights reserved.
+ * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
- * Distribution, usage and copying of this software is covered under the
- * terms found in the License Agreement file named 'COPYING' found in the
- * FreeSurfer source code root directory, and duplicated here:
- * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ * Terms and conditions for use, reproduction, distribution and contribution
+ * are found in the 'FreeSurfer Software License Agreement' contained
+ * in the file 'LICENSE' found in the FreeSurfer distribution, and here:
  *
- * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
+ *
+ * Reporting: freesurfer@nmr.mgh.harvard.edu
  *
  */
 
@@ -230,6 +229,9 @@ MRIhistogramLabelStruct(MRI *mri, int nbins, HISTOGRAM *histo, LABEL *label)
       histo->nbins = nbins;
   }
   HISTOclear(histo, histo) ;
+  if (nbins == 256)
+    histo->bin_size = bin_size = 1 ;
+
   histo->bin_size = bin_size = (fmax - fmin + 1) / (float)nbins ;
 
 
@@ -269,7 +271,14 @@ mriHistogramLabel(MRI *mri, int nbins, HISTOGRAM *histo, LABEL *label)
   }
   HISTOclear(histo, histo) ;
 
-  bin_size = histo->bin_size = (fmax - fmin + 1) / (float)nbins ;
+  if (nbins == 256)
+  {
+    fmax = 255 ;
+    fmin = 0 ;
+    bin_size = 1 ;
+  }
+  else
+    bin_size = histo->bin_size = (fmax - fmin + 1) / (float)nbins ;
   width = mri->width ;
   height = mri->height ;
   depth = mri->depth ;
@@ -616,13 +625,12 @@ MRIgetEqualizeHisto(MRI *mri, HISTOGRAM *histo_eq, int low, int high,int norm)
   int       i, total, total_pix ;
   HISTOGRAM *histo ;
 
-  if (mri->type != MRI_UCHAR)
-    ErrorReturn(NULL,
-                (ERROR_UNSUPPORTED, "MRIgetEqualizeHisto: unsupported type %d",
-                 mri->type)) ;
   histo = MRIhistogram(mri, 0) ;
   if (!histo_eq)
     histo_eq = HISTOalloc(histo->nbins) ;
+
+  if (high > histo->max)
+    high = histo->max ;
 
   for (total_pix = 0, i = low ; i <= high ; i++)
     total_pix += histo->counts[i] ;
@@ -652,6 +660,44 @@ MRIgetEqualizeHisto(MRI *mri, HISTOGRAM *histo_eq, int low, int high,int norm)
   HISTOfree(&histo) ;
   return(histo_eq) ;
 }
+MRI *
+MRIhistogramNormalize(MRI *mri_src, MRI *mri_template, MRI *mri_dst)
+{
+  float  scale, offset ;
+  HISTOGRAM *h_src, *h_template ;
+
+  h_src = MRIhistogram(mri_src, 0) ;
+  h_template = MRIhistogram(mri_template, 0) ;
+
+  HISTOfindLinearFit(h_src, h_template, .5, 1,  -20, 20, &scale, &offset) ;
+  printf("scaling image intensities by %2.3f + %2.3f\n", scale, offset) ;
+  mri_dst = MRIscaleIntensities(mri_src, mri_dst, scale, offset) ;
+  HISTOfree(&h_src) ; HISTOfree(&h_template) ;
+  return(mri_dst) ;
+}
+MRI *
+MRIscaleIntensities(MRI *mri_src, MRI *mri_dst, float scale, float offset) 
+{
+  int   x, y, z, f ;
+  float val ;
+
+  if (mri_dst == NULL)
+    mri_dst = MRIclone(mri_src, NULL) ;
+
+  for (f = 0 ; f < mri_src->nframes ; f++)
+    for (x = 0 ; x < mri_src->width ; x++)
+      for (y = 0 ; y < mri_src->height ; y++)
+	for (z = 0 ; z < mri_src->depth ; z++)
+	{
+	  val = MRIgetVoxVal(mri_src, x, y, z, f) ;
+	  val = val * scale + offset ;
+	  if (mri_dst->type == MRI_UCHAR && val > 255)
+	    val = 255 ;
+	  MRIsetVoxVal(mri_dst, x, y, z, f, val) ;
+	}
+  return(mri_dst) ;
+}
+
 /*-----------------------------------------------------
   Parameters:
 
@@ -663,8 +709,7 @@ MRI *
 MRIhistoEqualize(MRI *mri_src, MRI *mri_template,MRI *mri_dst,int low,int high)
 {
   HISTOGRAM  *histo_src, *histo_template ;
-  int       width, height, depth, x, y, z, index ;
-  BUFTYPE   *psrc, *pdst, sval, dval ;
+  int       width, height, depth, x, y, z, index, sval, dval ;
   float     pct ;
 
   if (!mri_dst)
@@ -674,23 +719,22 @@ MRIhistoEqualize(MRI *mri_src, MRI *mri_template,MRI *mri_dst,int low,int high)
   histo_template = MRIgetEqualizeHisto(mri_template, NULL, low, high, 1) ;
 
 
-  HISTOplot(histo_src, "cum_src.plt") ;
-  HISTOplot(histo_template, "cum_template.plt") ;
-  width = mri_src->width ;
-  height = mri_src->height ;
-  depth = mri_src->depth ;
+  if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
+  {
+    HISTOplot(histo_src, "cum_src.plt") ;
+    HISTOplot(histo_template, "cum_template.plt") ;
+  }
+  width = mri_src->width ; height = mri_src->height ; depth = mri_src->depth ;
 
   for (z = 0 ; z < depth ; z++)
   {
     for (y = 0 ; y < height ; y++)
     {
-      psrc = &MRIvox(mri_src, 0, y, z) ;
-      pdst = &MRIvox(mri_dst, 0, y, z) ;
       for (x = 0 ; x < width ; x++)
       {
-        if (x == 137 && y == 87 && z == 36)
+        if (x == Gx && y == Gy && z == Gz)
           DiagBreak() ;
-        sval = *psrc++ ;
+        sval = MRIgetVoxVal(mri_src, x, y, z, 0) ;
         dval = sval ;
         if (sval > 80 && sval < 95)
           DiagBreak() ;
@@ -713,7 +757,7 @@ MRIhistoEqualize(MRI *mri_src, MRI *mri_template,MRI *mri_dst,int low,int high)
           DiagBreak() ;
         if (dval > 246)
           DiagBreak() ;
-        *pdst++ = dval ;
+	MRIsetVoxVal(mri_dst, x, y, z, 0, dval) ;
       }
     }
   }
@@ -755,40 +799,47 @@ MRIcrunch(MRI *mri_src, MRI *mri_dst)
 }
 /*-----------------------------------------------------
   Parameters:
-
+     if nbins==0 then compute the max range
   Returns value:
-
+     the computed histogram
   Description
+     compute a histogram of all frames in the input image
   ------------------------------------------------------*/
 HISTOGRAM *
 MRIhistogram(MRI *mri, int nbins)
 {
-  int        width, height, depth, x, y, z, bin_no ;
+  int        width, height, depth, x, y, z, bin_no, frame ;
   HISTOGRAM  *histo ;
   float      fmin, fmax, bin_size ;
   double     val ;
 
   MRIvalRange(mri, &fmin, &fmax) ; // fmin = is wrong!
   if (!nbins)
+  {
     nbins = nint(fmax - fmin + 1.0) ;
-
+    bin_size = 1 ;
+  }
+  else
+    bin_size = (fmax - fmin + 1) / (float)nbins ;
   histo = HISTOalloc(nbins) ;
-  histo->bin_size = bin_size = (fmax - fmin + 1) / (float)nbins ;
-  width = mri->width ;
-  height = mri->height ;
-  depth = mri->depth ;
+  histo->bin_size = bin_size ;
+  width = mri->width ; height = mri->height ; depth = mri->depth ;
+  histo->min = fmin ; histo->max = histo->min + (histo->nbins-1)*histo->bin_size ;
 
   for (bin_no = 0 ; bin_no < nbins ; bin_no++)
     histo->bins[bin_no] = (bin_no)*bin_size+fmin ;
-  for (z = 0 ; z < depth ; z++)
+  for (frame = 0 ; frame < mri->nframes ; frame++)
   {
-    for (y = 0 ; y < height ; y++)
+    for (z = 0 ; z < depth ; z++)
     {
-      for (x = 0 ; x < width ; x++)
+      for (y = 0 ; y < height ; y++)
       {
-        MRIsampleVolumeType(mri, x, y, z, &val, SAMPLE_NEAREST) ;
-        bin_no = nint((float)(val - fmin) / (float)bin_size) ;
-        histo->counts[bin_no]++ ;
+        for (x = 0 ; x < width ; x++)
+        {
+          val = MRIgetVoxVal(mri, x, y, z, frame) ;
+          bin_no = nint((float)(val - fmin) / (float)bin_size) ;
+          histo->counts[bin_no]++ ;
+        }
       }
     }
   }
@@ -1409,4 +1460,32 @@ mriHistogramRegionWithThreshold(MRI *mri, int nbins, HISTOGRAM *histo,
   }
 
   return(histo) ;
+}
+#define NBINS 1000
+double
+MRIfindPercentile(MRI *mri, double percentile, int frame)
+{
+  int x, y, z, val, bin ;
+  HISTO          *histo, *hcdf ;
+  float          min_val, max_val ;
+
+  MRIvalRange(mri, &min_val, &max_val) ;
+  histo = HISTOinit(NULL, NBINS, min_val, max_val);
+
+  for (x = 0 ; x < mri->width; x++)
+    for (y = 0 ; y < mri->height; y++)
+      for (z = 0 ; z < mri->depth; z++)
+      {
+	val = MRIgetVoxVal(mri, x, y, z, frame) ;
+	if (FZERO(val))
+	  continue ;
+	HISTOaddSample(histo, val, 0, 0) ;
+      }
+
+  hcdf = HISTOmakeCDF(histo, NULL);
+  bin = HISTOfindBinWithCount(hcdf, percentile) ;
+  val = hcdf->bins[bin] ;
+  HISTOfree(&hcdf) ; HISTOfree(&histo);
+
+  return(val) ;
 }

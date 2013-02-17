@@ -8,8 +8,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2012/08/28 22:11:20 $
- *    $Revision: 1.422.2.7 $
+ *    $Date: 2013/02/17 16:22:23 $
+ *    $Revision: 1.422.2.8 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -66,6 +66,10 @@ extern "C" {
 #define SEQUENCE_MPRAGE      1
 #define SEQUENCE_EPI         2
 
+#define FRAME_TYPE_ORIGINAL             0
+#define FRAME_TYPE_DIFFUSION_AUGMENTED  1
+
+
 typedef struct
 {
   int     type ;           // code for what is stored in this frame
@@ -74,7 +78,6 @@ typedef struct
   float   flip ;           // flip angle
   float   TI ;             // time-to-inversion
   float   TD ;             // delay time
-  float   TM;              // mixing time (for stimulluated echo sequences)
   int     sequence_type ;  // see SEQUENCE* constants
   float   echo_spacing ;
   float   echo_train_len ; // length of the echo train
@@ -87,6 +90,46 @@ typedef struct
   MATRIX  *m_ras2vox ;      
   float   thresh ;
   int     units ;          // e.g. UNITS_PPM,  UNITS_RAD_PER_SEC, ...         
+
+  // for Herr Dr. Prof. Dr. Dr. Witzel
+  // directions: maybe best in both reference frames
+  // or just 3 coordinates and a switch which frame it is ?
+  double DX ; 
+  double DY ;
+  double DZ ;
+  
+  double DR ;
+  double DP ;
+  double DS ;
+
+// B-value
+  double bvalue ;
+
+// Mixing time
+  double TM ;
+
+// What kind of diffusion scan is this (can be an enum)
+// stejskal-tanner,trse,steam etc....
+
+  long diffusion_type ;
+ 
+// Gradient values 
+  long D1_ramp ;
+  long D1_flat ;
+  double D1_amp ;
+
+  long D2_ramp ;
+  long D2_flat ;
+  double D2_amp ;
+
+  long D3_ramp ;
+  long D3_flat ;
+  double D3_amp ;
+ 
+  long D4_ramp ;
+  long D4_flat ;
+  double D4_amp ;
+
 } MRI_FRAME ;
 
 
@@ -565,6 +608,7 @@ MRI   *MRIerodeZero(MRI *mri_src, MRI *mri_dst) ;
 MRI   *MRIerode2D(MRI *mri_src, MRI *mri_dst);
 MRI   *MRIerodeRegion(MRI *mri_src, MRI *mri_dst,int wsize,MRI_REGION *region);
 MRI   *MRIerodeSegmentation(MRI *seg, MRI *out, int nErodes, int nDiffThresh);
+MRI   *MRIdilateSegmentation(MRI *seg, MRI *out, int nDils, MRI *mask, int *pnchanges);
 MRI   *MRIdilate(MRI *mri_src, MRI *mri_dst) ;
 MRI   *MRIdilateUchar(MRI *mri_src, MRI *mri_dst) ;
 MRI   *MRIopen(MRI *mri_src, MRI *mri_dst) ;
@@ -611,6 +655,7 @@ MRI *MRI_fft_lowpass(MRI *src, MRI *dst, int percent);
 MRI *MRI_fft_highpass(MRI *src, MRI *dst, int percent);
 
 MRI *MRIscaleMeanIntensities(MRI *mri_src, MRI *mri_ref, MRI *mri_dst) ;
+MRI   *MRIscaleIntensities(MRI *mri_src, MRI *mri_dst, float scale, float offset) ;
 MRI   *MRImedian(MRI *mri_src, MRI *mri_dst, int wsize, MRI_REGION *box) ;
 MRI   *MRImean(MRI *mri_src, MRI *mri_dst, int wsize) ;
 MRI   *MRIminAbs(MRI *mri_src1, MRI *mri_src2, MRI *mri_dst) ;
@@ -871,6 +916,7 @@ int        MRIvalRangeFrame(MRI *mri, float *pmin, float *pmax, int frame) ;
 MRI        *MRIvalScale(MRI *mri_src, MRI *mri_dst, float fmin, float fmax) ;
 
 #include "histo.h" // HISTOGRAM
+double MRIfindPercentile(MRI *mri, double percentile, int frame) ;
 HISTOGRAM *MRIhistogramVoxel(MRI *mri,
                              int nbins,
                              HISTOGRAM *histo,
@@ -886,6 +932,7 @@ HISTOGRAM  *MRIhistogramLabelRegion(MRI *mri,
                                     MRI *mri_labeled,
                                     MRI_REGION *region,
                                     int label, int nbins);
+MRI        *MRIhistogramNormalize(MRI *mri_src, MRI *mri_template, MRI *mri_dst) ;
 MRI        *MRIhistoEqualize(MRI *mri_src, MRI *mri_template, MRI *mri_dst,
                              int low, int high) ;
 MRI        *MRIapplyHistogram(MRI *mri_src, MRI *mri_dst, HISTOGRAM *histo) ;
@@ -948,11 +995,9 @@ int MRIvol2VolR(MRI *src, MRI *targ, MATRIX *Vt2s,
 
 MRI *MRIresampleFill(MRI *src, MRI *template_vol,
                      int resample_type, float fill_val) ;
-MRI *MRIreplaceValuesOnly(MRI *mri_src,
-                          MRI *mri_dst,
-                          float in_val, float out_val) ;
-MRI   *MRIreplaceValues(MRI *mri_src, MRI *mri_dst,
-                        float in_val, float out_val) ;
+MRI *MRIreplaceList(MRI *seg, int *srclist, int *targlist, int nlist, MRI *out);
+MRI *MRIreplaceValuesOnly(MRI *mri_src, MRI *mri_dst,float in_val, float out_val) ;
+MRI   *MRIreplaceValues(MRI *mri_src, MRI *mri_dst, float in_val, float out_val) ;
 MRI   *MRIreplaceValueRange(MRI *mri_src, MRI *mri_dst,
                             float low_in_val, float hi_in_val, float out_val) ;
 MRI   *MRIreplaceValuesUchar(MRI *mri_src, MRI *mri_dst,
@@ -1407,6 +1452,8 @@ MRI *MRInormalizeInteriorDistanceTransform(MRI *mri_src_dist,
 
 const char* MRItype2str(int type);
 int MRIfindSliceWithMostStructure(MRI *mri_aseg, int slice_direction, int label) ;
+int MRIcomputeVolumeFractions(MRI *mri_src, MATRIX *m_vox2vox, 
+			      MRI *mri_seg, MRI *mri_fractions) ;
 
 #ifdef FS_CUDA
   void MRImarkLabelBorderVoxelsGPU( const MRI* mri_src,
