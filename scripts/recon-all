@@ -7,9 +7,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: mreuter $
-#    $Date: 2013/02/14 17:49:26 $
-#    $Revision: 1.379.2.64 $
+#    $Author: nicks $
+#    $Date: 2013/02/19 22:34:56 $
+#    $Revision: 1.379.2.65 $
 #
 # Copyright © 2011-2013 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -26,7 +26,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.379.2.64 2013/02/14 17:49:26 mreuter Exp $';
+set VERSION = '$Id: recon-all,v 1.379.2.65 2013/02/19 22:34:56 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -5437,6 +5437,7 @@ while( $#argv != 0 )
 
     case "-autorecon2-cp":
     case "-autorecon2-noaseg":
+    case "-autorecon2-wm":
       set DoNormalization2 = 1;
       set DoSegmentation   = 1;
       set DoFill           = 1;
@@ -5446,20 +5447,6 @@ while( $#argv != 0 )
       set DoQSphere        = 1;
       set DoFix            = 1;
       set DoMaskBFS        = 1;
-      set DoWhiteSurfs     = 1;
-      set DoSmooth2        = 1;
-      set DoInflate2       = 1;
-      set DoSegStats       = 1;
-      set DoCurvStats      = 1;
-      breaksw
-
-    case "-autorecon2-wm":
-      set DoFill           = 1;
-      set DoTessellate     = 1;
-      set DoSmooth1        = 1;
-      set DoInflate1       = 1;
-      set DoQSphere        = 1;
-      set DoFix            = 1;
       set DoWhiteSurfs     = 1;
       set DoSmooth2        = 1;
       set DoInflate2       = 1;
