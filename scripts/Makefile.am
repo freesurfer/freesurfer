@@ -15,7 +15,7 @@ beta2sxa \
 bblabel \
 bbregister \
 biasfield \
-bedpostx_seychelles \
+bedpostx_mgh \
 browse-minc-header.tcl \
 bugr \
 build_desikan_killiany_gcs.csh \
@@ -33,6 +33,7 @@ deface_subject \
 defect-seg \
 dicom-rename \
 dmrirc.example \
+dmrirc.long.example \
 dsh \
 dt_recon \
 epidewarp.fsl\
@@ -54,7 +55,7 @@ fname2stem \
 fscalc \
 fscalc.fsl \
 fsgd_parser.py \
-fsl_sub_seychelles \
+fsl_sub_mgh \
 fsutils.py \
 stem2fname \
 freesurfer \
