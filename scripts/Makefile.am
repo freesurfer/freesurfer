@@ -34,6 +34,7 @@ deface_subject \
 defect-seg \
 dicom-rename \
 dmrirc.example \
+dmrirc.long.example \
 dsh \
 dt_recon \
 epidewarp.fsl\
