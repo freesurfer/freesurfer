@@ -642,11 +642,92 @@ void Aeon::SavePath() {
 // Write output files for this time point
 //
 void Aeon::WriteOutputs() {
+  char outorient[4];
+  MATRIX *outv2r;
+  CTrackWriter trkwriter;
+  TRACK_HEADER trkheadout;
   vector<int> lengths(mPathPointSamples.size()), cptsmap, cptsmap0;
   vector<int>::iterator ilen;
+  vector<float> fpath;
+  vector<float>::iterator ifpt;
   vector<float>::const_iterator ipr;
   string fname;
   MRI *pdvol = MRIclone(mMask, NULL);
+
+  // Save a .trk file with path samples:
+  // Output space orientation information
+  outv2r = MRIgetVoxelToRasXform(mMask);
+  MRIdircosToOrientationString(mMask, outorient);
+
+  // Set output .trk header
+  trkheadout.Initialize();
+
+  trkheadout.origin[0] = 0;
+  trkheadout.origin[1] = 0;
+  trkheadout.origin[2] = 0;
+
+  trkheadout.voxel_size[0] = mMask->xsize;
+  trkheadout.voxel_size[1] = mMask->ysize;
+  trkheadout.voxel_size[2] = mMask->zsize;
+
+  trkheadout.dim[0] = mMask->width;
+  trkheadout.dim[1] = mMask->height;
+  trkheadout.dim[2] = mMask->depth;
+
+  for (int i = 0; i < 4; i++)
+    for (int j = 0; j < 4; j++)
+      trkheadout.vox_to_ras[i][j] = outv2r->rptr[i+1][j+1];
+
+  strcpy(trkheadout.voxel_order, outorient);
+
+  // Find patient-to-scanner coordinate transform:
+  // Take x and y vectors from vox2RAS matrix, convert to LPS,
+  // divide by voxel size
+  trkheadout.image_orientation_patient[0] =
+    - trkheadout.vox_to_ras[0][0] / trkheadout.voxel_size[0];
+  trkheadout.image_orientation_patient[1] =
+    - trkheadout.vox_to_ras[1][0] / trkheadout.voxel_size[0];
+  trkheadout.image_orientation_patient[2] =
+      trkheadout.vox_to_ras[2][0] / trkheadout.voxel_size[0];
+  trkheadout.image_orientation_patient[3] =
+    - trkheadout.vox_to_ras[0][1] / trkheadout.voxel_size[1];
+  trkheadout.image_orientation_patient[4] =
+    - trkheadout.vox_to_ras[1][1] / trkheadout.voxel_size[1];
+  trkheadout.image_orientation_patient[5] =
+      trkheadout.vox_to_ras[2][1] / trkheadout.voxel_size[1];
+
+  trkheadout.n_count = (int) mPathPointSamples.size();
+
+  // Open output .trk file
+  fname = mOutDir + "/path.pd.trk";
+  if (!trkwriter.Initialize(fname.c_str(), trkheadout)) {
+    cout << "ERROR: Cannot open output file " << fname << endl;
+    cout << "ERROR: " << trkwriter.GetLastErrorMessage() << endl;
+    exit(1);
+  }
+
+  for (vector< vector<int> >::const_iterator ipath = mPathPointSamples.begin();
+                                             ipath < mPathPointSamples.end();
+                                             ipath++) {
+    fpath.resize(ipath->size());
+    ifpt = fpath.begin();
+
+    // Make point coordinates .5-based and multiply by voxel size
+    for (vector<int>::const_iterator ipt = ipath->begin();
+                                     ipt < ipath->end(); ipt += 3) {
+      for (int k = 0; k < 3; k++)
+        ifpt[k] = (ipt[k] + .5) * trkheadout.voxel_size[k];
+
+      ifpt += 3;
+    }
+
+    // Write path to .trk file
+    trkwriter.WriteNextTrack(fpath.size()/3, &fpath[0]);
+  }
+
+  // Close output .trk file
+  trkwriter.Close();
+  MatrixFree(&outv2r);
 
   // Save volume of path samples
   ilen = lengths.begin();

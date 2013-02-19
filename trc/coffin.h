@@ -40,6 +40,8 @@
 #include "bite.h"
 #include "spline.h"
 
+#include "TrackIO.h"
+
 class Aeon {		// One point in time
   public:
     Aeon();
