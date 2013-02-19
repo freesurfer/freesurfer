@@ -45,7 +45,8 @@ dmri_train_LDADD= $(addprefix $(top_builddir)/, $(LIBS_MGH)) \
 dmri_train_LDFLAGS=$(OS_LDFLAGS)
 
 dmri_paths_SOURCES=dmri_paths.cxx coffin.cxx coffin.h \
-                   bite.cxx bite.h spline.cxx spline.h vial.cxx vial.h
+                   bite.cxx bite.h spline.cxx spline.h vial.cxx vial.h \
+                   TrackIO.cxx TrackIO.h ByteSwap.h ErrorCode.h
 dmri_paths_LDADD= $(addprefix $(top_builddir)/, $(LIBS_MGH)) \
                   $(top_builddir)/fem_elastic/libfem_elastic.a \
                   $(top_builddir)/tetgen/libtetgen.a 
