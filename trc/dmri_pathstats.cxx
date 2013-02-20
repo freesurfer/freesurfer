@@ -8,8 +8,8 @@
  * Original Author: Anastasia Yendiki
  * CVS Revision Info:
  *    $Author: ayendiki $
- *    $Date: 2013/02/16 20:58:43 $
- *    $Revision: 1.4.2.4 $
+ *    $Date: 2013/02/20 01:43:43 $
+ *    $Revision: 1.4.2.5 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -53,6 +53,8 @@ double round(double x);
 #include "version.h"
 #include "cmdargs.h"
 #include "timer.h"
+
+#include "TrackIO.h"
 
 using namespace std;
 
@@ -145,7 +147,10 @@ int main(int argc, char **argv) {
 
     ofstream fvox(outVoxFile, ios::app);
     fvox << "# pathway start" << endl;
-    fvox << "x y z AD RD MD FA" << endl;
+    if (inTrcDir > 0)			// Probabilistic paths
+      fvox << "x y z AD RD MD FA AD_Avg RD_Avg MD_Avg FA_Avg" << endl;
+    else				// Deterministic paths
+      fvox << "x y z AD RD MD FA" << endl;
     fvox.close();
   }
 
@@ -243,8 +248,110 @@ int main(int argc, char **argv) {
       cavg = myspline.ComputeAvg(meas);
 
     // Measures by voxel on MAP streamline
-    if (outVoxFile)
-      myspline.WriteValues(meas, outVoxFile);
+    if (outVoxFile) {
+//      myspline.WriteValues(meas, outVoxFile);
+      int npts;
+      CTrackReader trkreader;
+      TRACK_HEADER trkheadin;
+      vector<float> valsum(meas.size());
+      vector<float>::iterator ivalsum;
+      vector< vector<int> > pathsamples;
+      ofstream outfile(outVoxFile, ios::app);
+
+      if (!outfile) {
+        cout << "ERROR: Could not open " << outVoxFile << " for writing"
+             << endl;
+        exit(1);
+      }
+
+      // Read sample paths from .trk file
+      sprintf(fname, "%s/path.pd.trk", inTrcDir);
+
+      if (!trkreader.Open(fname, &trkheadin)) {
+        cout << "ERROR: Cannot open input file " << fname << endl;
+        cout << "ERROR: " << trkreader.GetLastErrorMessage() << endl;
+        exit(1);
+      }
+
+      while (trkreader.GetNextPointCount(&npts)) {
+        float *iraw, *rawpts = new float[npts*3];
+        vector<int> coords(npts*3);
+        vector<int>::iterator icoord = coords.begin();
+
+        // Read a streamline from input file
+        trkreader.GetNextTrackData(npts, rawpts);
+
+        // Divide by input voxel size and make 0-based to get voxel coords
+        iraw = rawpts;
+        for (int ipt = npts; ipt > 0; ipt--)
+          for (int k = 0; k < 3; k++) {
+            *icoord = (int) round(*iraw / trkheadin.voxel_size[k] - .5);
+            iraw++;
+            icoord++;
+          }
+
+        pathsamples.push_back(coords);
+        delete[] rawpts;
+      }
+
+      // Loop over all points along the MAP path
+      for (vector<int>::const_iterator ipt = myspline.GetAllPointsBegin();
+                                       ipt < myspline.GetAllPointsEnd();
+                                       ipt += 3) {
+        // Write coordinates of this point
+        outfile << ipt[0] << " " << ipt[1] << " " << ipt[2];
+
+        // Write value of each diffusion measure at this point
+        for (vector<MRI *>::const_iterator ivol = meas.begin();
+                                           ivol < meas.end(); ivol++)
+          outfile << " " << MRIgetVoxVal(*ivol, ipt[0], ipt[1], ipt[2], 0);
+
+        // Find closest point on each sample path
+        fill(valsum.begin(), valsum.end(), 0.0);
+
+        for (vector< vector<int> >::const_iterator ipath = pathsamples.begin();
+                                                   ipath < pathsamples.end();
+                                                   ipath++) {
+          int dmin = 1000000;
+          vector<int>::const_iterator iptmin = ipath->begin();
+
+          for (vector<int>::const_iterator ipathpt = ipath->begin();
+                                           ipathpt < ipath->end();
+                                           ipathpt += 3) {
+            int dist = 0;
+
+            for (int k = 0; k < 3; k++) {
+              const int diff = ipathpt[k] - ipt[k];
+              dist += diff*diff;
+            }
+
+            if (dist < dmin) {
+              dmin = dist;
+              iptmin = ipathpt;
+            }
+          }
+
+          ivalsum = valsum.begin();
+
+          for (vector<MRI *>::const_iterator ivol = meas.begin();
+                                             ivol < meas.end(); ivol++) {
+            *ivalsum += MRIgetVoxVal(*ivol, iptmin[0], iptmin[1], iptmin[2], 0);
+            ivalsum++;
+          }
+        }
+
+        // Write average value of each diffusion measure around this point
+        ivalsum = valsum.begin();
+
+        for (vector<MRI *>::const_iterator ivol = meas.begin();
+                                           ivol < meas.end(); ivol++) {
+          outfile << " " << *ivalsum / pathsamples.size();
+          ivalsum++;
+        }
+
+        outfile << endl;
+      }
+    }
   }
   else {				// Deterministic paths
     // Read .trk file
