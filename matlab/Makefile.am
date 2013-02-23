@@ -4,6 +4,11 @@
 
 mfilesdir=$(prefix)/matlab
 siemensdir=$(prefix)/matlab
+lmefilesdir=$(prefix)/matlab/lme
+lmegeofilesdir=$(prefix)/matlab/lme/geodesic
+lmemassunifilesdir=$(prefix)/matlab/lme/mass_univariate
+lmeunifilesdir=$(prefix)/matlab/lme/univariate
+lmeQdecfilesdir=$(prefix)/matlab/lme/Qdec
 
 mfiles_DATA=\
 	angles2rotmat.m \
@@ -138,77 +143,7 @@ mfiles_DATA=\
 	write_label.m \
 	write_surf.m \
 	write_wfile.m \
-	xfm_read.m \
-	sphCoord.m \
-	RgAdjMtx.m \
-	parfor_progress.m \
-	lme_RgFSfit.m \
-	lme_mass_RgMean.m \
-	lme_mass_RgGrow.m \
-	lme_mass_RgGradient.m \
-	lme_mass_RgFSfit.m \
-	lme_mass_RgEI.m \
-	lme_mass_RgDist.m \
-	lme_mass_LR.m \
-	lme_mass_F.m \
-	lme_mass_fit_vw.m \
-	lme_mass_fit_Rgw.m \
-	lme_mass_fit.m \
-	lme_mass_fit_init.m \
-	lme_mass_fit_EMinit.m \
-	lme_mass_FDR.m \
-	lme_mass_FDR2.m \
-	lme_FSfit.m \
-	dijkstra.m \
-	AdjMtx.m \
-	vec.m \
-	lme_timePlot.m \
-	lme_realizedPower.m \
-	lme_plannedSampleSize.m \
-	lme_plannedPower.m \
-	lme_LR.m \
-	lme_lowessPlot.m \
-	lme_Hessian.m \
-	lme_Gradient.m \
-	lme_F.m \
-	lme_fit_NR.m \
-	lme_fit_init.m \
-	lme_fit_FS.m \
-	lme_fit_FSinit.m \
-	lme_fit_EM.m \
-	lme_fit_EMinit.m \
-	lme_EI.m \
-	sortData.m \
-	fs_write_Y.m \
-	fs_write_fstats.m \
-	fs_read_Y.m \
-	fs_read_surf.m \
-	fs_read_label.m \
-	rmQdecCol.m \
-	Qdec2num.m \
-	num2Qdec.m \
-	getQdecVars.m \
-	getQdecVarData.m \
-	fWriteQdec.m \
-	fReadQdec.m \
-	findQdecVar.m \
-	create_flat_triangular_mesh.m \
-	create_hedgehog_mesh.m \
-	create_subdivision_pattern.m \
-	example1.m \
-	example2.m \
-	example3.m \
-	example4.m \
-	example5.m \
-	extract_coordinates_from_path.m \
-	geodesic_convert_surface_points.m \
-	geodesic_create_surface_point.m \
-	geodesic_delete.m \
-	geodesic_distance_and_source.m \
-	geodesic_new_algorithm.m \
-	geodesic_new_mesh.m \
-	geodesic_propagate.m \
-	geodesic_trace_back.m 
+	xfm_read.m
 
 if NMR_INSTALL
 siemens_DATA=\
@@ -219,7 +154,97 @@ else
 siemens_DATA=
 endif
 
-EXTRA_DIST=$(mfiles_DATA) geodesic_matlab_api.h 
+lmefiles_DATA=\
+	lme/usage.txt \
+	lme/fs_read_label.m \
+	lme/fs_read_surf.m \
+	lme/fs_read_Y.m \
+	lme/fs_write_fstats.m \
+	lme/fs_write_Y.m \
+	lme/sortData.m
+
+lmegeofiles_DATA=\
+	lme/geodesic/geodesic_license.txt \
+	lme/geodesic/geodesic_readme.txt \
+	lme/geodesic/geodesic_src.tar.gz \
+	lme/geodesic/geodesic_matlab_api.h \
+	lme/geodesic/create_flat_triangular_mesh.m \
+	lme/geodesic/create_hedgehog_mesh.m \
+	lme/geodesic/create_subdivision_pattern.m \
+	lme/geodesic/example1.m \
+	lme/geodesic/example2.m \
+	lme/geodesic/example3.m \
+	lme/geodesic/example4.m \
+	lme/geodesic/example5.m \
+	lme/geodesic/extract_coordinates_from_path.m \
+	lme/geodesic/geodesic_convert_surface_points.m \
+	lme/geodesic/geodesic_create_surface_point.m \
+	lme/geodesic/geodesic_delete.m \
+	lme/geodesic/geodesic_distance_and_source.m \
+	lme/geodesic/geodesic_new_algorithm.m \
+	lme/geodesic/geodesic_new_mesh.m \
+	lme/geodesic/geodesic_propagate.m \
+	lme/geodesic/geodesic_trace_back.m
+
+lmemassunifiles_DATA=\
+	lme/mass_univariate/AdjMtx.m \
+	lme/mass_univariate/lme_FSfit.m \
+	lme/mass_univariate/lme_mass_FDR2.m \
+	lme/mass_univariate/lme_mass_FDR.m \
+	lme/mass_univariate/lme_mass_fit_EMinit.m \
+	lme/mass_univariate/lme_mass_fit_init.m \
+	lme/mass_univariate/lme_mass_fit.m \
+	lme/mass_univariate/lme_mass_fit_Rgw.m \
+	lme/mass_univariate/lme_mass_fit_vw.m \
+	lme/mass_univariate/lme_mass_F.m \
+	lme/mass_univariate/lme_mass_LR.m \
+	lme/mass_univariate/lme_mass_RgDist.m \
+	lme/mass_univariate/lme_mass_RgEI1.m \
+	lme/mass_univariate/lme_mass_RgEI.m \
+	lme/mass_univariate/lme_mass_RgFSfit.m \
+	lme/mass_univariate/lme_mass_RgGradient1.m \
+	lme/mass_univariate/lme_mass_RgGradient.m \
+	lme/mass_univariate/lme_mass_RgGrow.m \
+	lme/mass_univariate/lme_mass_RgMean.m \
+	lme/mass_univariate/lme_RgFSfit.m \
+	lme/mass_univariate/parfor_progress.m \
+	lme/mass_univariate/sphCoord.m
+
+lmeunifiles_DATA=\
+	lme/univariate/lme_EI.m \
+	lme/univariate/lme_fit_EMinit.m \
+	lme/univariate/lme_fit_EM.m \
+	lme/univariate/lme_fit_FSinit.m \
+	lme/univariate/lme_fit_FS.m \
+	lme/univariate/lme_fit_init.m \
+	lme/univariate/lme_fit_NR.m \
+	lme/univariate/lme_F.m \
+	lme/univariate/lme_Gradient.m \
+	lme/univariate/lme_Hessian.m \
+	lme/univariate/lme_lowessPlot.m \
+	lme/univariate/lme_LR.m \
+	lme/univariate/lme_plannedPower.m \
+	lme/univariate/lme_plannedSampleSize.m \
+	lme/univariate/lme_realizedPower.m \
+	lme/univariate/lme_timePlot.m \
+	lme/univariate/vec.m
+
+lmeQdecfiles_DATA=\
+	lme/Qdec/findQdecVar.m \
+	lme/Qdec/fReadQdec.m \
+	lme/Qdec/fWriteQdec.m \
+	lme/Qdec/getQdecVarData.m \
+	lme/Qdec/getQdecVars.m \
+	lme/Qdec/num2Qdec.m \
+	lme/Qdec/Qdec2num.m \
+	lme/Qdec/rmQdecCol.m
+
+EXTRA_DIST=$(mfiles_DATA) \
+	$(lmefiles_DATA) \
+	$(lmegeofiles_DATA) \
+	$(lmeunifiles_DATA) \
+	$(lmemassunifiles_DATA) \
+	$(lmeQdecfiles_DATA)
 
 # Our release target. Include files to be excluded here. They will be
 # found and removed after 'make install' is run during the 'make
