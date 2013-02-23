@@ -15,9 +15,9 @@
 /*
  * Original Author: Doug Greve
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2012/07/30 14:05:08 $
- *    $Revision: 1.33.2.3 $
+ *    $Author: nicks $
+ *    $Date: 2013/02/23 04:40:48 $
+ *    $Revision: 1.33.2.4 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -63,7 +63,7 @@
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_probedicom.c,v 1.33.2.3 2012/07/30 14:05:08 greve Exp $";
+static char vcid[] = "$Id: mri_probedicom.c,v 1.33.2.4 2013/02/23 04:40:48 nicks Exp $";
 char *Progname = NULL;
 
 static int  parse_commandline(int argc, char **argv);
@@ -128,6 +128,7 @@ char *title = NULL;
 int DoBackslash = 0;
 int DoAltDump = 0;
 int GetMax = 0;
+int GetSiemensCrit = 0;
 
 /*---------------------------------------------------------------*/
 int main(int argc, char **argv) {
@@ -144,7 +145,7 @@ int main(int argc, char **argv) {
   int n,nvoxs;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_probedicom.c,v 1.33.2.3 2012/07/30 14:05:08 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_probedicom.c,v 1.33.2.4 2013/02/23 04:40:48 nicks Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -265,6 +266,7 @@ int main(int argc, char **argv) {
     else{
       if(! GetMax){
 	if(outputbfile) {
+	  // Not sure if this will fail with 8bit
 	  sprintf(tmpstr,"%s.hdr",outputfile);
 	  ncols = GetDimLength(dicomfile,0);
 	  nrows = GetDimLength(dicomfile,1);
@@ -286,6 +288,7 @@ int main(int argc, char **argv) {
 	ncols = GetDimLength(dicomfile,0);
 	nrows = GetDimLength(dicomfile,1);
 	nvoxs = nrows*ncols;
+	// This will still fail with 8bit
 	pixeldata = (short *) element.d.string;
 	maxpixel = pixeldata[0];
 	minpixel = pixeldata[0];
@@ -340,6 +343,7 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--verbose")) verbose = 1;
     else if (!strcasecmp(option, "--no-name")) DoPatientName = 0;
     else if (!strcasecmp(option, "--alt"))   DoAltDump = 1;
+    else if (!strcasecmp(option, "--siemens-crit"))  GetSiemensCrit = 1;
 
     /* -------- source volume inputs ------ */
     else if (!strcmp(option, "--i")) {
@@ -452,6 +456,7 @@ static void print_usage(void) {
   fprintf(stdout, "   --dictionary      : dump dicom dictionary and exit\n");
   fprintf(stdout, "   --compare dcm1 dcm2 : compare on key parameters\n");
   fprintf(stdout, "   --backslash       : replace backslashes with spaces\n");
+  fprintf(stdout, "   --siemens-crit    : include tag 51,1016 in dump\n");
   fprintf(stdout, "   --alt             : print alt ascii header\n");
   fprintf(stdout, "   --help            : how to use this program \n");
   fprintf(stdout, "\n");
@@ -1164,11 +1169,13 @@ int PartialDump(char *dicomfile, FILE *fp)
     free(e);
   }
 
-  e = GetElementFromFile(dicomfile, 0x51, 0x1016);
-  if (e != NULL) {
-    fprintf(fp,"SiemensCrit %s\n",e->d.string);
-    FreeElementData(e);
-    free(e);
+  if(GetSiemensCrit){
+    e = GetElementFromFile(dicomfile, 0x51, 0x1016);
+    if (e != NULL) {
+      fprintf(fp,"SiemensCrit %s\n",e->d.string);
+      FreeElementData(e);
+      free(e);
+    }
   }
 
   return(0);
@@ -1449,9 +1456,11 @@ int RenderImage(int argc, char **argv) {
   DCM_TAG tag;
   unsigned int rtnLength;
   void * Ctx = NULL;
-  short * pixeldata;
+  short *pixeldata, *pS;
   short minpixel, maxpixel;
   int nvoxs,nthvox;
+  DICOMInfo RefDCMInfo;
+  unsigned char *pC;
 
   ncols = GetDimLength(dicomfile,0);
   nrows = GetDimLength(dicomfile,1);
@@ -1475,10 +1484,17 @@ int RenderImage(int argc, char **argv) {
     exit(1);
   }
 
-  pixeldata = (short *) element.d.string;
+  // Get info about the number of bits
+  GetDICOMInfo(dicomfile, &RefDCMInfo, FALSE, 1);
+
+  pixeldata = (short *) calloc(nvoxs,sizeof(short));
   maxpixel = pixeldata[0];
   minpixel = pixeldata[0];
+  pC = (unsigned char *)element.d.string;
+  pS = (short *)element.d.string;
   for (n=0;n<nvoxs;n++) {
+    if(RefDCMInfo.BitsAllocated ==  8) pixeldata[n] = (short)(*pC++);
+    if(RefDCMInfo.BitsAllocated == 16) pixeldata[n] = (short)(*pS++);
     if (maxpixel < pixeldata[n]) maxpixel = pixeldata[n];
     if (minpixel > pixeldata[n]) minpixel = pixeldata[n];
   }
