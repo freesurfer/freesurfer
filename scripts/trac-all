@@ -8,8 +8,8 @@
 # Original Author: Anastasia Yendiki
 # CVS Revision Info:
 #    $Author: ayendiki $
-#    $Date: 2013/02/16 20:57:05 $
-#    $Revision: 1.22.2.11 $
+#    $Date: 2013/02/23 02:01:02 $
+#    $Revision: 1.22.2.12 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -25,7 +25,7 @@
 
 umask 002
 
-set VERSION = '$Id: trac-all,v 1.22.2.11 2013/02/16 20:57:05 ayendiki Exp $'
+set VERSION = '$Id: trac-all,v 1.22.2.12 2013/02/23 02:01:02 ayendiki Exp $'
 set ProgName = `basename $0`
 set inputargs = ($argv)
 
@@ -497,7 +497,7 @@ else				#--->>> Multiple time points for each subject
       endif
     end
 
-    set bsubjlist = `echo $bsubjlist | sort --unique`
+    set bsubjlist = `printf '%s\n' $bsubjlist | sort --unique`
   endif
 
   # Loop over base subjects
