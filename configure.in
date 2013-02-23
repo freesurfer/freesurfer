@@ -9,8 +9,8 @@
 #
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2013/01/26 22:19:50 $
-#    $Revision: 1.591 $
+#    $Date: 2013/02/23 21:00:22 $
+#    $Revision: 1.592 $
 #
 ########################################################################
 AC_PREREQ(2.57)
@@ -3776,7 +3776,7 @@ AC_OUTPUT([Makefile
            mris_w_to_curv/Makefile
            mrisp_paint/Makefile
            mris_longitudinal_surfaces/Makefile
-	   mris_compute_volume_fractions/Makefile
+           mris_compute_volume_fractions/Makefile
            nmovie/Makefile
            optseq2/Makefile
            orient_mri/Makefile
@@ -3794,6 +3794,7 @@ AC_OUTPUT([Makefile
            stat_normalize/Makefile
            stim_polar/Makefile
            svm-lib/Makefile
+           swi_processing/Makefile
            talairach_afd/Makefile
            talairach_avi/Makefile
            template/Makefile

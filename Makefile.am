@@ -330,7 +330,8 @@ MISCDIRS=\
 	hiam_make_surfaces\
 	hiam_make_template\
 	hiam_register \
-	gradient_nonlin_unwarp
+	gradient_nonlin_unwarp \
+	swi_processing
 
 # ordering is important here for proper 'make check' and 'make distcheck' function
 SUBDIRS=\
@@ -479,5 +480,5 @@ distcleancheck:
 # Our release target. Include files to be excluded here. They will be
 # found and removed after 'make install' is run during the 'make
 # release' target.
-EXCLUDE_FILES=CVS
+EXCLUDE_FILES=CVS core
 include $(top_srcdir)/Makefile.extra
