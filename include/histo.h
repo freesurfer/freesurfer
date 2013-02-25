@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2012/08/28 22:11:20 $
- *    $Revision: 1.41.2.1 $
+ *    $Date: 2013/02/25 21:12:22 $
+ *    $Revision: 1.41.2.2 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -92,6 +92,7 @@ int       HISTOfindFirstPeakInRegion(HISTOGRAM *h, int wsize, float min_pct,
                                      int b0, int b1) ;
 int       HISTOfindHighestPeakInRegion(HISTOGRAM *h, int b0, int b1);
 int       HISTOplot(HISTOGRAM *histo, char *fname) ;
+int       HISTOaddFractionalSample(HISTOGRAM *histo, float val, float bmin, float bmax, float frac);
 int       HISTOaddSample(HISTOGRAM *histo, float val, float bmin, float bmax) ;
 int       HISTOfindCurrentPeak(HISTOGRAM *histo,
                                int b0,
@@ -134,4 +135,49 @@ double    HISTOgetEntropy(HISTOGRAM *h);
 HISTOGRAM *HISTOsoapBubbleZeros(HISTOGRAM *hsrc, HISTOGRAM *hdst, int niters) ;
 int       HISTOfindMaxDerivative(HISTOGRAM *h, double min_count, double max_count, int whalf, 
                                  int grad_dir) ;
+
+
+
+typedef struct
+{
+  int     nbins1 ;
+  int     nbins2 ;
+  float   *bins1 ;   /* upper end of the range that maps to this bin */
+  float   *bins2 ;   /* upper end of the range that maps to this bin */
+  float   **counts ; /* # of voxels which map to this bin */
+  float   bin_size1 ;
+  float   bin_size2 ;
+  float   min1 ;
+  float   min2 ;
+  float   max1 ;     // min and max vals in the histo
+  float   max2 ;     // min and max vals in the histo
+}
+HISTOGRAM2D, HISTO2D ;
+
+HISTOGRAM2D *HISTO2Dalloc(int nbins1, int nbins2) ;
+
+int         HISTO2Dfree(HISTOGRAM2D **phisto) ;
+int         HISTO2Ddump(HISTOGRAM2D *histo, FILE *fp) ;
+int         HISTO2Dwrite(HISTOGRAM2D *h, char *fname) ;
+int         HISTO2DwriteInto(HISTOGRAM2D *histo, FILE *fp) ;
+HISTOGRAM2D *HISTO2DreadFrom(FILE *fp) ;
+HISTOGRAM2D *HISTO2Dinit(HISTOGRAM2D *h, int nbins1, int nbins2, double mn1, int mx1, double mn2, double mx2) ;
+HISTOGRAM2D *HISTO2Drealloc(HISTOGRAM2D *histo, int nbins1, int nbins2) ;
+int         HISTO2DaddFractionalSample(HISTOGRAM2D *histo, float val1, float val2, float bmin1, float bmax1, float bmin2, float bmax2, float frac) ;
+
+int         HISTO2DaddSample(HISTOGRAM2D *histo, float val1, float val2, float bmin1, float bmax1, float bmin2, float bmax2) ;
+int         HISTO2Dplot(HISTOGRAM2D *histo, char *fname) ;
+HISTOGRAM2D *HISTO2DmakePDF(HISTO2D *h_src, HISTO2D *h_dst) ;
+HISTOGRAM2D *HISTO2Dclear(HISTOGRAM2D *histo_src, HISTOGRAM2D *histo_dst) ;
+HISTOGRAM2D *HISTO2Dcopy(HISTOGRAM2D *histo_src, HISTOGRAM2D *histo_dst) ;
+double       HISTO2DgetCount(HISTOGRAM2D *h, float bin_val1, float bin_val2);
+int          HISTO2DfindBin1(HISTOGRAM2D *h, float val) ;
+int          HISTO2DfindBin2(HISTOGRAM2D *h, float val) ;
+HISTOGRAM2D *HISTO2Dsmooth(HISTOGRAM2D *histo_src, HISTOGRAM2D *histo_dst,float sigma) ;
+HISTOGRAM2D *HISTO2DsmoothAnisotropic(HISTOGRAM2D *histo_src, HISTOGRAM2D *histo_dst,float sigma1, float sigma2) ;
+HISTOGRAM2D *HISTO2DsmoothBins1(HISTOGRAM2D *histo_src, HISTOGRAM2D *histo_dst,float sigma) ;
+HISTOGRAM2D *HISTO2DsmoothBins2(HISTOGRAM2D *histo_src, HISTOGRAM2D *histo_dst,float sigma) ;
+HISTOGRAM2D *HISTO2Dread(char *fname) ;
+HISTOGRAM2D *HISTO2DsoapBubbleZeros(HISTOGRAM2D *hsrc, HISTOGRAM2D *hdst, int niters) ;
+
 #endif
