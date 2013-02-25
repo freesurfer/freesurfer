@@ -8,9 +8,9 @@
 # Process this file with autoconf to produce a configure script.
 #
 # CVS Revision Info:
-#    $Author: nicks $
-#    $Date: 2013/02/23 21:00:22 $
-#    $Revision: 1.592 $
+#    $Author: zkaufman $
+#    $Date: 2013/02/25 20:20:19 $
+#    $Revision: 1.593 $
 #
 ########################################################################
 AC_PREREQ(2.57)
@@ -810,9 +810,6 @@ else # else enable if nvcc is found and libcuda is found
   AC_PATH_PROG([NVCC],[nvcc],[no],[$PATH:$with_cuda/bin])
   if ((test ! "x$NVCC" = "xno") && (test ! "x$LIB_CUDA" = "x")); then
     AM_CONDITIONAL(BUILDCUDA, true)
-    if test "x$MAC_64" = "xYES"; then
-        OS_LDFLAGS="$OS_LDFLAGS -F/Library/Frameworks -framework CUDA"
-    fi
   else
   AM_CONDITIONAL(BUILDCUDA, false)
   fi
