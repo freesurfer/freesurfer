@@ -9,8 +9,8 @@
 #
 # CVS Revision Info:
 #    $Author: zkaufman $
-#    $Date: 2013/02/25 20:19:45 $
-#    $Revision: 1.519.2.35 $
+#    $Date: 2013/02/26 05:32:02 $
+#    $Revision: 1.519.2.36 $
 #
 ########################################################################
 AC_PREREQ(2.57)
@@ -593,10 +593,6 @@ MAC_64="NO"
 machine_hardware=`uname -m`
 if (test "$OS" = "Darwin") && (test "$machine_hardware" = "x86_64"); then
   MAC_64="YES"
-  CPPFLAGS="$CPPFLAGS -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.7.sdk"
-  CPPFLAGS="$CPPFLAGS -mmacosx-version-min=10.7"
-  LDFLAGS="$LDFLAGS -Wl,-syslibroot,/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.7.sdk"
-  LDFLAGS="$LDFLAGS -mmacosx-version-min=10.7"
 fi
 
 # The --install-Mac32-GUIs flag should only be used when building
