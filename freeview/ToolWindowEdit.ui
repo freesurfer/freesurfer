@@ -41,6 +41,7 @@
      <addaction name="actionPolyLine"/>
      <addaction name="actionLiveWire"/>
      <addaction name="actionFill"/>
+     <addaction name="actionClone"/>
      <addaction name="actionContour"/>
      <addaction name="actionColorPicker"/>
      <addaction name="separator"/>
@@ -96,19 +97,6 @@
          </property>
         </widget>
        </item>
-       <item row="0" column="2" colspan="3">
-        <spacer name="horizontalSpacer">
-         <property name="orientation">
-          <enum>Qt::Horizontal</enum>
-         </property>
-         <property name="sizeHint" stdset="0">
-          <size>
-           <width>0</width>
-           <height>0</height>
-          </size>
-         </property>
-        </spacer>
-       </item>
        <item row="1" column="0">
         <widget class="QLabel" name="labelReference">
          <property name="text">
@@ -116,7 +104,7 @@
          </property>
         </widget>
        </item>
-       <item row="1" column="1" colspan="3">
+       <item row="1" column="1" colspan="2">
         <widget class="QComboBox" name="comboBoxReference">
          <property name="sizePolicy">
           <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
@@ -136,13 +124,6 @@
         <widget class="QLabel" name="labelTolerance">
          <property name="text">
           <string>Tolerance</string>
-         </property>
-        </widget>
-       </item>
-       <item row="3" column="0">
-        <widget class="QLabel" name="labelContourValue">
-         <property name="text">
-          <string>Contour value</string>
          </property>
         </widget>
        </item>
@@ -168,6 +149,13 @@
          </property>
         </widget>
        </item>
+       <item row="3" column="0">
+        <widget class="QLabel" name="labelContourValue">
+         <property name="text">
+          <string>Contour value</string>
+         </property>
+        </widget>
+       </item>
        <item row="2" column="1">
         <widget class="QSpinBox" name="spinBoxTolerance">
          <property name="suffix">
@@ -175,7 +163,7 @@
          </property>
         </widget>
        </item>
-       <item row="2" column="3">
+       <item row="2" column="2">
         <spacer name="horizontalSpacer_2">
          <property name="orientation">
           <enum>Qt::Horizontal</enum>
@@ -188,7 +176,7 @@
          </property>
         </spacer>
        </item>
-       <item row="3" column="3">
+       <item row="3" column="2">
         <spacer name="horizontalSpacer_3">
          <property name="orientation">
           <enum>Qt::Horizontal</enum>
@@ -200,6 +188,13 @@
           </size>
          </property>
         </spacer>
+       </item>
+       <item row="0" column="2">
+        <widget class="QCheckBox" name="checkBoxReconEditing">
+         <property name="text">
+          <string>Recon editing</string>
+         </property>
+        </widget>
        </item>
       </layout>
      </item>
@@ -619,6 +614,21 @@ Alt + L to turn on/off label outline display mode.</string>
     <string>Replace Label</string>
    </property>
   </action>
+  <action name="actionClone">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="icon">
+    <iconset resource="freeview.qrc">
+     <normaloff>:/resource/icons/voxel_draw_clone.png</normaloff>:/resource/icons/voxel_draw_clone.png</iconset>
+   </property>
+   <property name="text">
+    <string>Clone</string>
+   </property>
+   <property name="toolTip">
+    <string>Clone Voxel</string>
+   </property>
+  </action>
  </widget>
  <customwidgets>
   <customwidget>
@@ -643,8 +653,8 @@ Alt + L to turn on/off label outline display mode.</string>
    <slot>setEnabled(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>81</x>
-     <y>249</y>
+     <x>90</x>
+     <y>235</y>
     </hint>
     <hint type="destinationlabel">
      <x>24</x>
@@ -659,12 +669,12 @@ Alt + L to turn on/off label outline display mode.</string>
    <slot>setEnabled(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>261</x>
-     <y>238</y>
+     <x>270</x>
+     <y>235</y>
     </hint>
     <hint type="destinationlabel">
-     <x>204</x>
-     <y>271</y>
+     <x>212</x>
+     <y>268</y>
     </hint>
    </hints>
   </connection>
@@ -675,8 +685,8 @@ Alt + L to turn on/off label outline display mode.</string>
    <slot>setEnabled(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>137</x>
-     <y>239</y>
+     <x>146</x>
+     <y>235</y>
     </hint>
     <hint type="destinationlabel">
      <x>86</x>
@@ -691,12 +701,12 @@ Alt + L to turn on/off label outline display mode.</string>
    <slot>setEnabled(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>195</x>
-     <y>238</y>
+     <x>204</x>
+     <y>235</y>
     </hint>
     <hint type="destinationlabel">
-     <x>144</x>
-     <y>273</y>
+     <x>146</x>
+     <y>268</y>
     </hint>
    </hints>
   </connection>
@@ -707,8 +717,8 @@ Alt + L to turn on/off label outline display mode.</string>
    <slot>setEnabled(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>114</x>
-     <y>298</y>
+     <x>123</x>
+     <y>297</y>
     </hint>
     <hint type="destinationlabel">
      <x>89</x>
@@ -723,12 +733,12 @@ Alt + L to turn on/off label outline display mode.</string>
    <slot>setEnabled(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>31</x>
-     <y>298</y>
+     <x>40</x>
+     <y>297</y>
     </hint>
     <hint type="destinationlabel">
-     <x>29</x>
-     <y>349</y>
+     <x>33</x>
+     <y>330</y>
     </hint>
    </hints>
   </connection>
@@ -739,8 +749,8 @@ Alt + L to turn on/off label outline display mode.</string>
    <slot>setEnabled(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>157</x>
-     <y>299</y>
+     <x>166</x>
+     <y>297</y>
     </hint>
     <hint type="destinationlabel">
      <x>140</x>
@@ -755,12 +765,12 @@ Alt + L to turn on/off label outline display mode.</string>
    <slot>setEnabled(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>122</x>
-     <y>379</y>
+     <x>131</x>
+     <y>359</y>
     </hint>
     <hint type="destinationlabel">
-     <x>106</x>
-     <y>414</y>
+     <x>116</x>
+     <y>392</y>
     </hint>
    </hints>
   </connection>
@@ -771,8 +781,8 @@ Alt + L to turn on/off label outline display mode.</string>
    <slot>setEnabled(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>248</x>
-     <y>302</y>
+     <x>257</x>
+     <y>297</y>
     </hint>
     <hint type="destinationlabel">
      <x>202</x>
@@ -791,8 +801,8 @@ Alt + L to turn on/off label outline display mode.</string>
      <y>358</y>
     </hint>
     <hint type="destinationlabel">
-     <x>194</x>
-     <y>414</y>
+     <x>188</x>
+     <y>392</y>
     </hint>
    </hints>
   </connection>
@@ -835,8 +845,8 @@ Alt + L to turn on/off label outline display mode.</string>
    <slot>OnDrawRangeChanged(QString)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>79</x>
-     <y>277</y>
+     <x>99</x>
+     <y>268</y>
     </hint>
     <hint type="destinationlabel">
      <x>427</x>
@@ -867,8 +877,8 @@ Alt + L to turn on/off label outline display mode.</string>
    <slot>OnExcludeRangeChanged(QString)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>75</x>
-     <y>342</y>
+     <x>99</x>
+     <y>330</y>
     </hint>
     <hint type="destinationlabel">
      <x>365</x>
@@ -883,8 +893,8 @@ Alt + L to turn on/off label outline display mode.</string>
    <slot>OnExcludeRangeChanged(QString)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>186</x>
-     <y>341</y>
+     <x>212</x>
+     <y>330</y>
     </hint>
     <hint type="destinationlabel">
      <x>344</x>
@@ -899,8 +909,8 @@ Alt + L to turn on/off label outline display mode.</string>
    <slot>OnLineEditSmoothSD(QString)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>157</x>
-     <y>395</y>
+     <x>188</x>
+     <y>392</y>
     </hint>
     <hint type="destinationlabel">
      <x>381</x>
@@ -924,6 +934,22 @@ Alt + L to turn on/off label outline display mode.</string>
     </hint>
    </hints>
   </connection>
+  <connection>
+   <sender>checkBoxReconEditing</sender>
+   <signal>toggled(bool)</signal>
+   <receiver>ToolWindowEdit</receiver>
+   <slot>OnCheckReconEditing(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>290</x>
+     <y>56</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>351</x>
+     <y>59</y>
+    </hint>
+   </hints>
+  </connection>
  </connections>
  <slots>
   <slot>OnSpinBrushSize(int)</slot>
@@ -933,5 +959,6 @@ Alt + L to turn on/off label outline display mode.</string>
   <slot>OnExcludeRangeChanged(QString)</slot>
   <slot>OnLineEditSmoothSD(QString)</slot>
   <slot>OnReplaceLabel()</slot>
+  <slot>OnCheckReconEditing(bool)</slot>
  </slots>
 </ui>

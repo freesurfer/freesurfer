@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2011/12/09 22:09:06 $
- *    $Revision: 1.31 $
+ *    $Date: 2013/02/28 20:35:34 $
+ *    $Revision: 1.32 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -49,6 +49,7 @@ ToolWindowEdit::ToolWindowEdit(QWidget *parent) :
   ag->addAction( ui->actionLiveWire );
   ag->addAction( ui->actionPolyLine );
   ag->addAction( ui->actionColorPicker );
+  ag->addAction( ui->actionClone );
   ag->setExclusive( true );
   ui->actionContour->setData( Interactor2DVoxelEdit::EM_Contour );
   ui->actionColorPicker->setData( Interactor2DVoxelEdit::EM_ColorPicker );
@@ -56,6 +57,7 @@ ToolWindowEdit::ToolWindowEdit(QWidget *parent) :
   ui->actionFreeHand->setData( Interactor2DVoxelEdit::EM_Freehand );
   ui->actionLiveWire->setData( Interactor2DVoxelEdit::EM_Livewire );
   ui->actionPolyLine->setData( Interactor2DVoxelEdit::EM_Polyline );
+  ui->actionClone->setData( Interactor2DVoxelEdit::EM_Clone );
   connect( ag, SIGNAL(triggered(QAction*)), this, SLOT(OnEditMode(QAction*)) );
   MainWindow* mainwnd = MainWindow::GetMainWindow();
   BrushProperty* bp = mainwnd->GetBrushProperty();
@@ -164,6 +166,7 @@ void ToolWindowEdit::OnIdle()
   ui->actionLiveWire->setChecked( view->GetAction() == Interactor2DVoxelEdit::EM_Livewire );
   ui->actionFreeHand->setChecked( view->GetAction() == Interactor2DVoxelEdit::EM_Freehand );
   ui->actionPolyLine->setChecked( view->GetAction() == Interactor2DVoxelEdit::EM_Polyline );
+  ui->actionClone->setChecked( view->GetAction() == Interactor2DVoxelEdit::EM_Clone );
 
   ui->spinBoxBrushSize->setEnabled( view->GetAction() != Interactor2DVoxelEdit::EM_Fill );
   ui->spinBoxTolerance->setEnabled( view->GetAction() == Interactor2DVoxelEdit::EM_Fill );
@@ -336,4 +339,18 @@ void ToolWindowEdit::OnReplaceLabel()
     if (mri)
       mri->ReplaceVoxelValue(dlg.GetOriginalValue(), dlg.GetNewValue(), nPlane);
   }
+}
+
+void ToolWindowEdit::OnCheckReconEditing(bool bRecon)
+{
+    if (bRecon)
+    {
+        QList<Layer*> layers = MainWindow::GetMainWindow()->GetLayers("MRI");
+        foreach (Layer* layer, layers)
+        {
+            LayerMRI* mri = qobject_cast<LayerMRI*>(layer);
+            if (mri)
+                mri->SetFillValue(1.0);
+        }
+    }
 }

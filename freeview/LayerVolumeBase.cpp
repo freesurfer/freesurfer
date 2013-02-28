@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2011/12/09 22:09:05 $
- *    $Revision: 1.24 $
+ *    $Date: 2013/02/28 20:35:34 $
+ *    $Revision: 1.25 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -144,6 +144,61 @@ bool LayerVolumeBase::SetVoxelByIndex( int* n_in, int nPlane, bool bAdd )
   return true;
 }
 
+bool LayerVolumeBase::CloneVoxelByIndex( int* n_in, int nPlane )
+{
+  int* nDim = m_imageData->GetDimensions();
+
+  int nBrushSize = m_propertyBrush->GetBrushSize();
+  int n[3], nsize[3] = { nBrushSize/2+1, nBrushSize/2+1, nBrushSize/2+1 };
+  nsize[nPlane] = 1;
+  int nActiveComp = GetActiveFrame();
+  double* draw_range = m_propertyBrush->GetDrawRange();
+  double* exclude_range = m_propertyBrush->GetExcludeRange();
+  LayerVolumeBase* ref_layer = m_propertyBrush->GetReferenceLayer();
+  vtkImageData* ref = m_imageData;
+  int nActiveCompRef = 0;
+  if ( ref_layer != NULL )
+  {
+    ref = ref_layer->GetImageData();
+    nActiveCompRef = ref_layer->GetActiveFrame();
+  }
+  for ( int i = -nsize[0]+1; i < nsize[0]; i++ )
+  {
+    for ( int j = -nsize[1]+1; j < nsize[1]; j++ )
+    {
+      for ( int k = -nsize[2]+1; k < nsize[2]; k++ )
+      {
+        n[0] = n_in[0] + i;
+        n[1] = n_in[1] + j;
+        n[2] = n_in[2] + k;
+        if ( n[0] >= 0 && n[0] < nDim[0] &&
+             n[1] >= 0 && n[1] < nDim[1] &&
+             n[2] >= 0 && n[2] < nDim[2] &&
+             MyUtils::GetDistance<int>( n, n_in ) <= nBrushSize/2.0 )
+        {
+          double fvalue = ref->GetScalarComponentAsDouble( n[0], n[1], n[2], nActiveCompRef );
+          if ( ( m_propertyBrush->GetDrawRangeEnabled() &&
+                   ( fvalue < draw_range[0] || fvalue > draw_range[1] ) ) ||
+                 ( m_propertyBrush->GetExcludeRangeEnabled() &&
+                   ( fvalue >= exclude_range[0] && fvalue <= exclude_range[1] ) ) ||
+                 ( m_propertyBrush->GetDrawConnectedOnly() &&
+                   ( !GetConnectedToOld( m_imageData, nActiveComp, n, nPlane ) ) ) )
+          {
+            ;
+          }
+          else
+          {
+            m_imageData->SetScalarComponentFromFloat( n[0], n[1], n[2], nActiveComp, fvalue );
+            UpdateVoxelValueRange( fvalue );
+          }
+        }
+      }
+    }
+  }
+  return true;
+}
+
+
 bool LayerVolumeBase::GetConnectedToOld( vtkImageData* img, int nFrame, int* n_in, int nPlane )
 {
   int* nDim = img->GetDimensions();
@@ -269,6 +324,104 @@ bool LayerVolumeBase::SetVoxelByIndex( int* n1, int* n2, int nPlane, bool bAdd )
       n[ny] = y0;
       n[nPlane] = n1[nPlane];
       bChanged = SetVoxelByIndex( n, nPlane, bAdd );
+    }
+  }
+  return true;
+}
+
+void LayerVolumeBase::CloneVoxelByRAS( double* ras, int nPlane )
+{
+  int n[3];
+  double* origin = m_imageData->GetOrigin();
+  double* voxel_size = m_imageData->GetSpacing();
+  for ( int i = 0; i < 3; i++ )
+  {
+    n[i] = ( int )( ( ras[i] - origin[i] ) / voxel_size[i] + 0.5 );
+  }
+
+  if ( CloneVoxelByIndex( n, nPlane ) )
+  {
+    SetModified();
+    emit ActorUpdated();
+  }
+  else
+  {
+    // PopUndo();  // pop the previously saved undo step
+  }
+}
+
+void LayerVolumeBase::CloneVoxelByRAS( double* ras1, double* ras2, int nPlane )
+{
+  int n1[3], n2[3];
+  double* origin = m_imageData->GetOrigin();
+  double* voxel_size = m_imageData->GetSpacing();
+  for ( int i = 0; i < 3; i++ )
+  {
+    n1[i] = ( int )( ( ras1[i] - origin[i] ) / voxel_size[i] + 0.5 );
+    n2[i] = ( int )( ( ras2[i] - origin[i] ) / voxel_size[i] + 0.5 );
+  }
+
+  if ( CloneVoxelByIndex( n1, n2, nPlane ) )
+  {
+    SetModified();
+    emit ActorUpdated();
+  }
+  else
+  {
+    // PopUndo();
+  }
+}
+
+bool LayerVolumeBase::CloneVoxelByIndex( int* n1, int* n2, int nPlane)
+{
+  int nx = 1, ny = 2;
+  if ( nPlane == 1 )
+  {
+    nx = 0;
+    ny = 2;
+  }
+  else if (  nPlane == 2 )
+  {
+    nx = 0;
+    ny = 1;
+  }
+  int x0 = n1[nx], y0 = n1[ny], x1 = n2[nx], y1 = n2[ny];
+
+  int dx = x1 - x0;
+  int dy = y1 - y0;
+  double t = 0.5;
+  int n[3];
+  bool bChanged = CloneVoxelByIndex( n1, nPlane );
+  if ( abs( dx ) > abs( dy ) )
+  {
+    double m = (double) dy / (double) dx;
+    t += y0;
+    dx = ( dx < 0 ? -1 : 1 );
+    m *= dx;
+    while ( x0 != x1 )
+    {
+      x0 += dx;
+      t += m;
+      n[nx] = x0;
+      n[ny] = (int) t;
+      n[nPlane] = n1[nPlane];
+      bChanged = CloneVoxelByIndex( n, nPlane );
+    }
+  }
+  else
+  {
+    double m = (double) dx / (double) dy;
+    t += x0;
+    dy = ( dy < 0 ? -1 : 1 );
+    m *= dy;
+    while ( y0 != y1 )
+    {
+      y0 += dy;
+      t += m;
+      n[nx] = (int) t;
+      n[ny] = y0;
+      n[nPlane] = n1[nPlane];
+      bChanged = CloneVoxelByIndex( n, nPlane );
     }
   }
   return true;

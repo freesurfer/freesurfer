@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2011/03/16 22:07:51 $
- *    $Revision: 1.18 $
+ *    $Date: 2013/02/28 20:35:34 $
+ *    $Revision: 1.19 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -53,6 +53,7 @@ protected slots:
   void OnDrawRangeChanged(const QString& strg);
   void OnExcludeRangeChanged(const QString& strg);
   void OnReplaceLabel();
+  void OnCheckReconEditing(bool bRecon);
 
 protected:
   virtual void showEvent(QShowEvent *);

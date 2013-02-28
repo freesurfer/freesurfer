@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2011/12/09 22:09:06 $
- *    $Revision: 1.20 $
+ *    $Date: 2013/02/28 20:35:34 $
+ *    $Revision: 1.21 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -47,6 +47,8 @@ public:
   void SetVoxelByRAS( double* ras, int nPlane, bool bAdd = true );
   void SetVoxelByRAS( double* ras1, double* ras2, int nPlane, bool bAdd = true );
   bool FloodFillByRAS( double* ras, int nPlane, bool bAdd = true, bool b3D = false, char* mask_out = 0 );
+  void CloneVoxelByRAS( double* ras, int nPlane );
+  void CloneVoxelByRAS( double* ras1, double* ras2, int nPlane );
 
   void SetLiveWireByRAS( double* ras1, double* raw2, int nPlane );
   std::vector<double> GetLiveWirePointsByRAS( double* pt1, double* pt2, int nPlane );
@@ -113,6 +115,8 @@ protected:
   bool SetVoxelByIndex( int* n1, int* n2, int nPlane, bool bAdd = true );
   bool FloodFillByIndex( int* n, int nPlane, bool bAdd = true, bool ignore_overflow = true, char* mask_out = false );
   bool SetLiveWireByIndex( int* n1, int* n2, int nPlane );
+  bool CloneVoxelByIndex( int* n, int nPlane );
+  bool CloneVoxelByIndex( int* n1, int* n2, int nPlane );
 
   bool GetConnectedToOld( vtkImageData* img, int nFrame, int* n, int nPlane );
 
