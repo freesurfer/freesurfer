@@ -8,8 +8,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2013/03/01 21:20:59 $
- *    $Revision: 1.1 $
+ *    $Date: 2013/03/01 21:36:49 $
+ *    $Revision: 1.2 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -91,7 +91,7 @@ main(int argc, char *argv[])
   MRI         *mri_src, *mri_vfrac_wm, *mri_vfrac_cortex, *mri_vfrac_subcort, *mri_vfrac_csf, *mri_unpv_intensities ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_compute_volume_intensities.c,v 1.1 2013/03/01 21:20:59 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_compute_volume_intensities.c,v 1.2 2013/03/01 21:36:49 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -220,6 +220,7 @@ compute_unpartial_volumed_intensities(MRI *mri_src, MRI *mri_vfrac_wm, MRI *mri_
   double  w, distsq, dx, dy, dz, norm, total_gm, total_csf, total_wm, vwm, vgm, vcsf ;
   MATRIX   *m_A_pinv, *m_A3, *m_A2, *m_A1, *m_A ;
   VECTOR  *v_I, *v_s3, *v_s2, *v_s1, *v_s ;
+  float   wm, gm, csf ;
 
   whalfx = (int)ceil(whalf0 / mri_src->xsize) ;
   whalfy = (int)ceil(whalf0 / mri_src->ysize) ;
@@ -368,61 +369,47 @@ compute_unpartial_volumed_intensities(MRI *mri_src, MRI *mri_vfrac_wm, MRI *mri_
 	vwm = MRIgetVoxVal(mri_vfrac_wm, x, y, z, 0) ;
 	vcsf = MRIgetVoxVal(mri_vfrac_csf, x, y, z, 0) ;
 	vgm = MRIgetVoxVal(mri_vfrac_cortex, x, y, z, 0) + MRIgetVoxVal(mri_vfrac_subcort, x, y, z, 0) ;
+	wm = gm = csf = 0.0 ;
+	if (!FZERO(total_wm))  // wm in 1st col
+	{
+	  wm = (float)VECTOR_ELT(v_s, 1) ; 
+	  if (!FZERO(total_gm))
+	  {
+	    gm = (float)VECTOR_ELT(v_s, 2) ; 
+	    if (!FZERO(total_csf))
+	      csf = (float)VECTOR_ELT(v_s, 3) ; 
+	  }
+	  else   // wm but no gm, csf in col 2
+	    if (!FZERO(total_csf))
+	      csf = (float)VECTOR_ELT(v_s, 2) ; 
+	}
+	else  // no wm in this region
+	{
+	  if (!FZERO(total_gm))  // some gm in this voxel
+	  {
+	    gm = (float)VECTOR_ELT(v_s, 1) ; 
+	    if (!FZERO(total_csf))
+	      csf = (float)VECTOR_ELT(v_s, 2) ; 
+	  }
+	  else  // only csf in this voxel
+	    csf = (float)VECTOR_ELT(v_s, 1) ; 
+	}
+
 	if (separate_frames)
 	{
-	  float wm, gm, csf ;
-	  wm = gm = csf = 0.0 ;
-
-	  if (!FZERO(total_wm))  // wm in 1st col
-	  {
-	    wm = (float)VECTOR_ELT(v_s, 1) ; 
-	    if (!FZERO(total_gm))
-	    {
-	      gm = (float)VECTOR_ELT(v_s, 2) ; 
-	      if (!FZERO(total_csf))
-		csf = (float)VECTOR_ELT(v_s, 3) ; 
-	    }
-	    else   // wm but no gm, csf in col 2
-	      if (!FZERO(total_csf))
-		csf = (float)VECTOR_ELT(v_s, 2) ; 
-	  }
-	  else  // no wm in this region
-	  {
-	    if (!FZERO(total_gm))  // some gm in this voxel
-	    {
-	      gm = (float)VECTOR_ELT(v_s, 1) ; 
-	      if (!FZERO(total_csf))
-		csf = (float)VECTOR_ELT(v_s, 2) ; 
-	    }
-	    else  // only csf in this voxel
-	      csf = (float)VECTOR_ELT(v_s, 1) ; 
-
-	  }
-
 	  MRIsetVoxVal(mri_dst, x, y, z, 0, wm) ;
 	  MRIsetVoxVal(mri_dst, x, y, z, 1, gm) ;
 	  MRIsetVoxVal(mri_dst, x, y, z, 2, csf) ;
 	}
-	else
+	else  // store the value for the class with the largest volume fraction
 	{
 	  if (vwm > vgm && vwm > vcsf) // wm always in first col
-	    MRIsetVoxVal(mri_dst, x, y, z, 0, (float)VECTOR_ELT(v_s, 1)) ;  // mostly wm
+	    MRIsetVoxVal(mri_dst, x, y, z, 0, wm) ;  // mostly wm
 	  else if (vgm > vcsf)   // mostly gm
-	  {
-	    if (!FZERO(total_wm))   // wm was estimated, so gm in col 2
-	      MRIsetVoxVal(mri_dst, x, y, z, 0, (float)VECTOR_ELT(v_s, 2)) ;  
-	    else   // wm not estimated, in col 1
-	      MRIsetVoxVal(mri_dst, x, y, z, 0, (float)VECTOR_ELT(v_s, 1)) ;  
-	  }
-	  else   // mostly cfs
-	  {
-	    if (!FZERO(total_wm) && !FZERO(total_gm))
-	      MRIsetVoxVal(mri_dst, x, y, z, 0, (float)VECTOR_ELT(v_s, 3)) ;  // both wm and gm estimated, in col 3
-	  else if (!FZERO(total_wm) || !FZERO(total_gm))
-	    MRIsetVoxVal(mri_dst, x, y, z, 0, (float)VECTOR_ELT(v_s, 2)) ;  // both wm and gm estimated, in col 2
-	  else
-	    MRIsetVoxVal(mri_dst, x, y, z, 0, (float)VECTOR_ELT(v_s, 1)) ;  // neither wm nor gm estimated, in col 1
-	  }
+	    MRIsetVoxVal(mri_dst, x, y, z, 0, gm) ;  
+	  else   // wm not estimated, in col 1
+	    MRIsetVoxVal(mri_dst, x, y, z, 0, csf) ;  
+
 	  if (!devFinite(MRIgetVoxVal(mri_dst, x, y, z, 0)))
 	  {
 	    DiagBreak() ;
