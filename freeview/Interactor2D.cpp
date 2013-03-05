@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2012/10/23 17:35:43 $
- *    $Revision: 1.37 $
+ *    $Date: 2013/03/05 21:57:13 $
+ *    $Revision: 1.38 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -32,6 +32,7 @@
 #include <vtkRenderer.h>
 #include <QDebug>
 #include <QTimer>
+#include <QApplication>
 
 Interactor2D::Interactor2D( QObject* parent ) : Interactor( parent ),
   m_nMousePosX( -1 ),

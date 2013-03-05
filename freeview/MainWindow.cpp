@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2013/02/06 18:35:43 $
- *    $Revision: 1.230 $
+ *    $Date: 2013/03/05 21:57:14 $
+ *    $Revision: 1.231 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -4335,8 +4335,19 @@ void MainWindow::OnIOFinished( Layer* layer, int jobtype )
       }
       else
       {
-        lc_surface->SetWorldOrigin( lc_mri->GetWorldOrigin() );
-        lc_surface->SetWorldSize( lc_mri->GetWorldSize() );
+        double mri_origin[3], mri_size[3];
+        lc_mri->GetWorldOrigin(mri_origin);
+        lc_mri->GetWorldSize(mri_size);
+        for (int i = 0; i < 3; i++)
+        {
+          if (worigin[i] > mri_origin[i])
+            worigin[i] = mri_origin[i];
+          if (worigin[i] + wsize[i] < mri_origin[i]+mri_size[i])
+            wsize[i] = mri_origin[i]+mri_size[i] - worigin[i];
+        }
+
+        lc_surface->SetWorldOrigin( worigin );
+        lc_surface->SetWorldSize( wsize );
         lc_surface->SetWorldVoxelSize( lc_mri->GetWorldVoxelSize() );
         lc_surface->SetSlicePosition( lc_mri->GetSlicePosition() );
         lc_surface->AddLayer( sf );

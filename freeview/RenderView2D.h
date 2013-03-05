@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2012/10/23 17:35:44 $
- *    $Revision: 1.32 $
+ *    $Date: 2013/03/05 21:57:14 $
+ *    $Revision: 1.33 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -135,6 +135,7 @@ protected:
 
 private:
   int m_nViewPlane;
+  double    m_dPreSlicePosition;
   Cursor2D*       m_cursor2D;
   Contour2D*      m_contour2D;
   Annotation2D*   m_annotation2D;

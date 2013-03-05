@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2012/10/19 15:52:08 $
- *    $Revision: 1.33 $
+ *    $Date: 2013/03/05 21:57:13 $
+ *    $Revision: 1.34 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -609,6 +609,13 @@ double* LayerCollection::GetWorldOrigin()
   return m_dWorldOrigin;
 }
 
+void LayerCollection::GetWorldOrigin(double *dWorldOrigin_out)
+{
+  dWorldOrigin_out[0] = m_dWorldOrigin[0];
+  dWorldOrigin_out[1] = m_dWorldOrigin[1];
+  dWorldOrigin_out[2] = m_dWorldOrigin[2];
+}
+
 void LayerCollection::SetWorldOrigin( double* dWorldOrigin )
 {
   for ( int i = 0; i < 3; i++ )
@@ -620,6 +627,13 @@ void LayerCollection::SetWorldOrigin( double* dWorldOrigin )
 double* LayerCollection::GetWorldSize()
 {
   return m_dWorldSize;
+}
+
+void LayerCollection::GetWorldSize(double *dWorldSize_out)
+{
+  dWorldSize_out[0] = m_dWorldSize[0];
+  dWorldSize_out[1] = m_dWorldSize[1];
+  dWorldSize_out[2] = m_dWorldSize[2];
 }
 
 void LayerCollection::SetWorldSize( double* dWorldSize )
