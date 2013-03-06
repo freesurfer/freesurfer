@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2012/05/29 16:59:22 $
- *    $Revision: 1.8 $
+ *    $Date: 2013/03/06 15:12:15 $
+ *    $Revision: 1.9 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -53,6 +53,7 @@ protected slots:
   void OnToggleShowInfo(bool bShow);
   void OnToggleSurfaceCurvature(bool show);
   void OnToggleSurfaceNormal(bool show);
+  void OnToggleShowTkRegRAS(bool bShow);
 
 protected:
   void showEvent(QShowEvent *);
@@ -63,6 +64,7 @@ private:
   double m_dRAS[3];
   bool  m_bShowSurfaceNormal;
   bool  m_bShowSurfaceCurvature;
+  bool  m_bShowTkRegRAS;
   QLineEdit*  m_editor;
   QTreeWidgetItem* m_itemEdited;
 };
