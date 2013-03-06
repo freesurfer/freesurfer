@@ -10,8 +10,8 @@
  * Original Author: Martin Reuter, Nov. 4th ,2008
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2012/12/06 21:53:34 $
- *    $Revision: 1.69 $
+ *    $Date: 2013/03/06 16:24:35 $
+ *    $Revision: 1.70 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -147,7 +147,7 @@ static bool parseCommandLine(int argc, char *argv[], Parameters & P);
 static void initRegistration(Registration & R, Parameters & P);
 
 static char vcid[] =
-    "$Id: mri_robust_register.cpp,v 1.69 2012/12/06 21:53:34 mreuter Exp $";
+    "$Id: mri_robust_register.cpp,v 1.70 2013/03/06 16:24:35 mreuter Exp $";
 char *Progname = NULL;
 
 //static MORPH_PARMS  parms ;
@@ -1528,6 +1528,18 @@ static void initRegistration(Registration & R, Parameters & P)
   }
 
   P.mri_mov = MRIcopy(mri_mov, P.mri_mov); // save dst mri
+  
+  // Load Mask
+  MRI *mri_mask = NULL;
+  if (P.maskmov != "")
+  {
+    cout << "reading source mask '" << P.maskmov << "'..." << endl;
+    mri_mask = MRIread(P.maskmov.c_str());
+    if (!mri_mask)
+      ErrorExit(ERROR_NOFILE, "%s: could not open mask volume %s.\n", Progname,
+          P.maskmov.c_str());
+  }
+  
   if (P.entropy)
   {
     MRI * temp = mri_mov;
@@ -1537,7 +1549,7 @@ static void initRegistration(Registration & R, Parameters & P)
     cout << "Converting mov to entropy image (radius " << P.entroradius
         << " ) ... (can take 1-2 min)" << endl;
     mri_mov = MyMRI::entropyImage(temp, P.entroradius, P.entball,
-        P.entcorrection);
+        P.entcorrection,mri_mask);
     if (P.entmov != "")
       MRIwrite(mri_mov, P.entmov.c_str());
     msec = TimerStop(&start);
@@ -1547,17 +1559,16 @@ static void initRegistration(Registration & R, Parameters & P)
     cout << " Entropy computation took " << seconds << " seconds." << endl;
     MRIfree(&temp);
   }
-
-  if (P.maskmov != "")
+  // apply mask
+  else if (mri_mask)
   {
-    MRI *mri_mask = MRIread(P.maskmov.c_str());
-    if (!mri_mask)
-      ErrorExit(ERROR_NOFILE, "%s: could not open mask volume %s.\n", Progname,
-          P.maskmov.c_str());
     MRImask(mri_mov, mri_mask, mri_mov, 0, 0);
+   }
+   
+  if (mri_mask)
+  {
     MRIfree(&mri_mask);
   }
-
   ///////////  read MRI Target //////////////////////////////////////////////////
   cout << "reading target '" << P.dst << "'..." << endl;
   fflush(stdout);
@@ -1576,25 +1587,33 @@ static void initRegistration(Registration & R, Parameters & P)
         Progname, P.dst.c_str());
   }
   P.mri_dst = MRIcopy(mri_dst, P.mri_dst); // save dst mri
+  
+  if (P.maskdst != "")
+  {
+    cout << "reading target mask '" << P.maskdst << "'..." << endl;
+    mri_mask = MRIread(P.maskdst.c_str());
+    if (!mri_mask)
+      ErrorExit(ERROR_NOFILE, "%s: could not open mask volume %s.\n", Progname,
+          P.maskdst.c_str());
+  }
+  
   if (P.entropy)
   {
     MRI * temp = mri_dst;
     cout << "Converting dst to entropy image (radius " << P.entroradius
         << " ) ... (can take 1-2 min)" << endl;
     mri_dst = MyMRI::entropyImage(temp, P.entroradius, P.entball,
-        P.entcorrection);
+        P.entcorrection,mri_mask);
     if (P.entdst != "")
       MRIwrite(mri_dst, P.entdst.c_str());
     MRIfree(&temp);
   }
-
-  if (P.maskdst != "")
+  else if (mri_mask)
   {
-    MRI *mri_mask = MRIread(P.maskdst.c_str());
-    if (!mri_mask)
-      ErrorExit(ERROR_NOFILE, "%s: could not open mask volume %s.\n", Progname,
-          P.maskdst.c_str());
     MRImask(mri_dst, mri_mask, mri_dst, 0, 0);
+  }
+  if (mri_mask)
+  {
     MRIfree(&mri_mask);
   }
 
@@ -1891,7 +1910,7 @@ static int parseNextCommand(int argc, char *argv[], Parameters & P)
   {
     P.entmov = string(argv[1]);
     nargs = 1;
-    cout << "--entmov: Output entropy mov image as " << P.entdst << endl;
+    cout << "--entmov: Output entropy mov image as " << P.entmov << endl;
   }
   else if (!strcmp(option, "MAXIT"))
   {

@@ -9,8 +9,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2012/12/07 03:55:14 $
- *    $Revision: 1.16 $
+ *    $Date: 2013/03/06 16:24:34 $
+ *    $Revision: 1.17 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -67,7 +67,7 @@ public:
   {
     return sqrt(var(i));
   }
-  ;
+
   //! Get median of intensity values
   static float median(MRI *i);
   //! Get d times median absolute deviation of intensity values (robust std)
@@ -99,7 +99,7 @@ public:
     H.smooth(fwhm);
     return -H.computeMI();
   }
-  ;
+
   //! Normalized Mutual Information (joint histograms)
   static double normalizedMutualInformation(MRI * i1, MRI * i2, double fwhm = 7)
   {
@@ -107,7 +107,7 @@ public:
     H.smooth(fwhm);
     return -H.computeNMI();
   }
-  ;
+
   //! Entropy Correlation (joint histograms) (does it work?)
   static double entropyCorrelationCoefficient(MRI * i1, MRI * i2, double fwhm =
       7)
@@ -116,7 +116,7 @@ public:
     H.smooth(fwhm);
     return -H.computeECC();
   }
-  ;
+
   //! Normalized Cross Correlation (joint histograms) (does it work?)
   static double normalizedCrossCorrelation(MRI * i1, MRI * i2, double fwhm = 7)
   {
@@ -124,7 +124,7 @@ public:
     H.smooth(fwhm);
     return -H.computeNCC();
   }
-  ;
+
 
   //! not implemented and not sure where they are from? Flirt?
   static float woods(MRI * i1, MRI * i2 = NULL);
@@ -137,7 +137,7 @@ protected:
   {
     return d * d;
   }
-  ;
+
 };
 
 inline double CostFunctions::rhoTukeyBiweight(double d, double sat)

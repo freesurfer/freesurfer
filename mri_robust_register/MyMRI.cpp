@@ -8,8 +8,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2012/12/06 21:53:33 $
- *    $Revision: 1.23 $
+ *    $Date: 2013/03/06 16:24:35 $
+ *    $Revision: 1.24 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -1086,13 +1086,18 @@ MRI * MyMRI::nlsdImage(MRI * mri, int prad, int nrad)
 //   return nlsdI;
 // }
 
-MRI * MyMRI::entropyImage(MRI* mri, int radius, bool ball, bool correction)
+MRI * MyMRI::entropyImage(MRI* mri, int radius, bool ball, bool correction, MRI * mask)
 {
 
   if (mri->nframes > 1)
   {
     cerr << "MyMRI::entropyImage multiple frames not supported!" << endl;
     exit(1);
+  }
+  
+  if (correction && radius > 1)
+  {
+    cout << "WARNING: using correction mode with radius > 1 may take a very long time !" << endl;
   }
 
   //int nbins = 64;
@@ -1110,6 +1115,22 @@ MRI * MyMRI::entropyImage(MRI* mri, int radius, bool ball, bool correction)
     cout << "ERROR: Memory Overflow for mriIn in myMRI::entropyImage" << endl;
     exit(1);
   }
+  unsigned char * mriMask = NULL;
+  MRI* localMask = NULL;
+  if (mask)
+  {
+    mriMask = new unsigned char[insize];
+    if (!mriMask)
+    {
+      cout << "ERROR: Memory Overflow for mriMask in myMRI::entropyImage" << endl;
+      exit(1);
+    }
+    MATRIX* m = MRIgetVoxelToVoxelXform(mask,mri);
+    localMask = MRIcopy(mri,NULL);
+    localMask = MRIlinearTransformInterp(mask,localMask,m,SAMPLE_NEAREST);
+    MatrixFree(&m);
+  }
+  
 
   // -------------------------------------------------------------------------------------
   // scale image to fit bins (probably faster w/o using histogram)
@@ -1143,7 +1164,7 @@ MRI * MyMRI::entropyImage(MRI* mri, int radius, bool ball, bool correction)
   if (mri->type != MRI_UCHAR)
   {
     int no_scale_flag = FALSE;
-    printf("changing data type from %d to %d (noscale = %d)...\n", mri->type,
+    printf("  - changing data type from %d to %d (noscale = %d)...\n", mri->type,
         MRI_UCHAR, no_scale_flag);
     mriuchar = MRISeqchangeType(mri, MRI_UCHAR, 0.0, 0.999, no_scale_flag);
     if (mriuchar == NULL)
@@ -1169,16 +1190,27 @@ MRI * MyMRI::entropyImage(MRI* mri, int radius, bool ball, bool correction)
         temp = (int) (MRIgetVoxVal(mriuchar, x, y, z, 0) * factor);
         assert(temp >= 0 && temp < nbins);
         mriIn[count] = (unsigned char) temp;
+        
+        // if mask:
+        if (localMask)
+        {
+          temp = (int) MRIgetVoxVal(localMask, x, y, z, 0);
+          if (temp > 0) temp = 1;
+          if (temp < 0) temp = 0;
+          mriMask[count] = (unsigned char) temp;
+        }
         count++;
       }
   if (mriuchar != mri)
     MRIfree(&mriuchar);
+  if (localMask)
+    MRIfree(&localMask);
 
   // -------------------------------------------------------------------------------------
   // get gaussian kernel
   int ssize = 2 * radius + 1;
   double sigma = ssize / (4 * sqrt(2 * log(2)));
-  cout << "compute Gaussian cube( size: " << ssize << " )  sigma: " << sigma
+  cout << "  - compute Gaussian cube( size: " << ssize << " )  sigma: " << sigma
       << endl;
   int gsize = ssize * ssize * ssize;
   double* g = new double[gsize];
@@ -1244,6 +1276,12 @@ MRI * MyMRI::entropyImage(MRI* mri, int radius, bool ball, bool correction)
   int r2 = radius * radius;
   int wtimesh = width * height;
   //cout << depth << " " << height << " " << width << endl;
+  int Nthreads = omp_get_max_threads();
+  if (correction)
+    cout << "  - compute entropy image now with correction (threads="<<Nthreads<<")... " << endl;
+  else
+    cout << "  - compute entropy image now (threads="<<Nthreads<<")... " << endl;
+
 
 #ifdef HAVE_OPENMP
 #pragma omp parallel for firstprivate(y,x,o,histo,count,zz,yy,xx,pos,histosum,entropy,etmp) shared(depth,height,width,radius,entI,nbins,ssize,xmax,ymax,zmax,mriIn,g) schedule(static,1)
@@ -1276,6 +1314,18 @@ MRI * MyMRI::entropyImage(MRI* mri, int radius, bool ball, bool correction)
           }
         }
 
+        // outside mask, continue:
+        if (mriMask)
+        {
+          int mpos = (z * height + y ) * width + x;
+          if (mriMask[mpos] == 0 )
+          {
+            MRIsetVoxVal(entI, x, y, z, 0, 0.0);
+            continue;
+          }       
+        }
+        
+        
         // inside compute entropy in box or ball:
 
         // init histo
@@ -1397,6 +1447,7 @@ MRI * MyMRI::entropyImage(MRI* mri, int radius, bool ball, bool correction)
   // cleanup
   delete[] g;
   delete[] mriIn;
+  if (mriMask) delete[] mriMask;
 
 //  MRIwrite(entI,"enttest.mgz");
 //  return mriEnt;

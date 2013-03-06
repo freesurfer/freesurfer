@@ -8,8 +8,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2012/12/06 21:53:33 $
- *    $Revision: 1.15 $
+ *    $Date: 2013/03/06 16:24:35 $
+ *    $Revision: 1.16 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -67,7 +67,7 @@ public:
   static MRI * entropyImage(MRI * mri, int radius, int sigma);
   //! Get Entropy image using box or ball
   static MRI * entropyImage(MRI * mri, int radius, bool ball = false,
-      bool correction = false);
+      bool correction = false, MRI * mask=NULL);
   //! NLSD not tested
   static MRI * nlsdImage(MRI * mri, int prad, int nrad);
 
