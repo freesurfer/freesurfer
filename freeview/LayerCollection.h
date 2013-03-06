@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2013/03/05 21:57:13 $
- *    $Revision: 1.27 $
+ *    $Date: 2013/03/06 22:55:25 $
+ *    $Revision: 1.28 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -92,6 +92,7 @@ public:
   void SetWorldSize( double* dWorldSize );
 
   double* GetWorldVoxelSize();
+  void GetWorldVoxelSize( double* dVoxelSize_out );
   void SetWorldVoxelSize( double* dVoxelSize );
 
   void GetWorldCenter( double* pos );

@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2013/03/05 21:57:13 $
- *    $Revision: 1.34 $
+ *    $Date: 2013/03/06 22:55:25 $
+ *    $Revision: 1.35 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -647,6 +647,13 @@ void LayerCollection::SetWorldSize( double* dWorldSize )
 double* LayerCollection::GetWorldVoxelSize()
 {
   return m_dWorldVoxelSize;
+}
+
+void LayerCollection::GetWorldVoxelSize(double* vs_out)
+{
+  vs_out[0] = m_dWorldVoxelSize[0];
+  vs_out[1] = m_dWorldVoxelSize[1];
+  vs_out[2] = m_dWorldVoxelSize[2];
 }
 
 void LayerCollection::SetWorldVoxelSize( double* dVoxelSize )

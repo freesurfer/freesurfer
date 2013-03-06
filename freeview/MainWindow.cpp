@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2013/03/05 21:57:14 $
- *    $Revision: 1.231 $
+ *    $Date: 2013/03/06 22:55:25 $
+ *    $Revision: 1.232 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -4335,20 +4335,26 @@ void MainWindow::OnIOFinished( Layer* layer, int jobtype )
       }
       else
       {
-        double mri_origin[3], mri_size[3];
+        double mri_origin[3], mri_size[3], vs[3];
         lc_mri->GetWorldOrigin(mri_origin);
         lc_mri->GetWorldSize(mri_size);
+        lc_mri->GetWorldVoxelSize(vs);
+
         for (int i = 0; i < 3; i++)
         {
-          if (worigin[i] > mri_origin[i])
+          double upper = worigin[i] + wsize[i];
+          if (worigin[i] >= mri_origin[i])
             worigin[i] = mri_origin[i];
-          if (worigin[i] + wsize[i] < mri_origin[i]+mri_size[i])
+          else
+            worigin[i] = mri_origin[i] - ((int)((mri_origin[i]-worigin[i])/vs[i]+1))*vs[i];
+          if (upper <= mri_origin[i]+mri_size[i])
             wsize[i] = mri_origin[i]+mri_size[i] - worigin[i];
+          else
+            wsize[i] = mri_origin[i]+mri_size[i] + ((int)((upper-mri_origin[i]-mri_size[i])/vs[i]+1))*vs[i];
         }
-
         lc_surface->SetWorldOrigin( worigin );
         lc_surface->SetWorldSize( wsize );
-        lc_surface->SetWorldVoxelSize( lc_mri->GetWorldVoxelSize() );
+        lc_surface->SetWorldVoxelSize( vs );
         lc_surface->SetSlicePosition( lc_mri->GetSlicePosition() );
         lc_surface->AddLayer( sf );
       }

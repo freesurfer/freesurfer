@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2013/03/06 15:12:15 $
- *    $Revision: 1.12 $
+ *    $Date: 2013/03/06 22:55:25 $
+ *    $Revision: 1.13 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -54,6 +54,8 @@ InfoTreeWidget::InfoTreeWidget(QWidget* parent) :
   connect(this, SIGNAL(itemClicked(QTreeWidgetItem*,int)),
           this, SLOT(OnItemClicked(QTreeWidgetItem*,int)), Qt::QueuedConnection);
   connect(m_editor, SIGNAL(returnPressed()), this, SLOT(OnEditFinished()));
+  connect(MainWindow::GetMainWindow()->GetLayerCollection("MRI"), SIGNAL(ActiveLayerChanged(Layer*)),
+          this, SLOT(UpdateAll()), Qt::QueuedConnection);
 }
 
 void InfoTreeWidget::OnCursorPositionChanged()
@@ -93,7 +95,7 @@ void InfoTreeWidget::UpdateAll()
   double ras[3] = {m_dRAS[0], m_dRAS[1], m_dRAS[2]};
   if (!lc_mri->IsEmpty())
   {
-    qobject_cast<LayerMRI*>(lc_mri->GetLayer(0))->RemapPositionToRealRAS(m_dRAS, ras);
+    qobject_cast<LayerMRI*>(lc_mri->GetActiveLayer())->RemapPositionToRealRAS(m_dRAS, ras);
   }
   QVariantMap map;
   item->setText(1, QString("%1, %2, %3")
@@ -107,9 +109,10 @@ void InfoTreeWidget::UpdateAll()
   if (!lc_mri->IsEmpty() && m_bShowTkRegRAS)
   {
     double tkRegRAS[3];
-    qobject_cast<LayerMRI*>(lc_mri->GetLayer(0))->NativeRASToTkReg(ras, tkRegRAS);
+    LayerMRI* mri = qobject_cast<LayerMRI*>(lc_mri->GetActiveLayer());
+    mri->NativeRASToTkReg(ras, tkRegRAS);
     item = new QTreeWidgetItem(this);
-    item->setText(0, "TkReg RAS");
+    item->setText(0, QString("TkReg RAS (%1)").arg(mri->GetName()));
     map.clear();
     item->setText(1, QString("%1, %2, %3")
                   .arg(tkRegRAS[0], 0, 'f', 2)
@@ -331,7 +334,7 @@ void InfoTreeWidget::OnEditFinished()
       {
         if (type == "RAS")
         {
-          LayerMRI* mri = (LayerMRI*)MainWindow::GetMainWindow()->GetLayerCollection("MRI")->GetLayer( 0 );
+          LayerMRI* mri = (LayerMRI*)MainWindow::GetMainWindow()->GetLayerCollection("MRI")->GetActiveLayer();
           if ( mri )
           {
             mri->RASToTarget( ras, ras );
@@ -339,7 +342,7 @@ void InfoTreeWidget::OnEditFinished()
         }
         else if (type == "TkRegRAS")
         {
-          LayerMRI* mri = (LayerMRI*)MainWindow::GetMainWindow()->GetLayerCollection("MRI")->GetLayer( 0 );
+          LayerMRI* mri = (LayerMRI*)MainWindow::GetMainWindow()->GetLayerCollection("MRI")->GetActiveLayer();
           if ( mri )
           {
             mri->TkRegToNativeRAS(ras, ras);
