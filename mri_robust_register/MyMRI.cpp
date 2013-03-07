@@ -8,8 +8,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2013/03/06 16:24:35 $
- *    $Revision: 1.24 $
+ *    $Date: 2013/03/07 19:59:49 $
+ *    $Revision: 1.25 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -1276,7 +1276,10 @@ MRI * MyMRI::entropyImage(MRI* mri, int radius, bool ball, bool correction, MRI 
   int r2 = radius * radius;
   int wtimesh = width * height;
   //cout << depth << " " << height << " " << width << endl;
-  int Nthreads = omp_get_max_threads();
+  int Nthreads = 1;
+#ifdef HAVE_OPENMP
+  Nthreads = omp_get_max_threads();
+#endif  
   if (correction)
     cout << "  - compute entropy image now with correction (threads="<<Nthreads<<")... " << endl;
   else
