@@ -6,11 +6,11 @@
 /*
  * Original Authors: Sebastien Gicquel and Douglas Greve, 06/04/2001
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2012/10/10 20:00:34 $
- *    $Revision: 1.135.2.1 $
+ *    $Author: nicks $
+ *    $Date: 2013/03/12 20:43:47 $
+ *    $Revision: 1.135.2.2 $
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2011-2013 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -5331,8 +5331,10 @@ MRI *DICOMRead2(const char *dcmfile, int LoadVolume)
   // Return here if only reading in the header
   if (!LoadVolume)
   {
-    for (nthfile = 0; nthfile < ndcmfiles; nthfile ++) 
-      free(dcminfo[ndcmfiles]);
+    for (nthfile = 0; nthfile < ndcmfiles; nthfile ++)
+    {
+      free(dcminfo[nthfile]);
+    }
     free(dcminfo);
     return(mri);
   }
