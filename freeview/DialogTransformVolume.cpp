@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2012/05/03 19:50:00 $
- *    $Revision: 1.16 $
+ *    $Date: 2013/03/13 20:11:31 $
+ *    $Revision: 1.17 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -754,4 +754,30 @@ void DialogTransformVolume::OnRadioButtonLandmark(bool bChecked)
                               ->GetSupplementLayer("Landmarks");
   if (landmarks)
     landmarks->SetVisible(bChecked);
+}
+
+void DialogTransformVolume::OnButtonCenterToCursor()
+{
+  if ( isVisible() )
+  {
+    LayerMRI* layer = ( LayerMRI* )MainWindow::GetMainWindow()->GetActiveLayer( "MRI" );
+    if ( layer )
+    {
+      double pos[3];
+      layer->GetSlicePosition(pos);
+      qDebug() << pos[0] << pos[1] << pos[2];
+      layer->SetTranslateByCenterPosition( pos );
+      MainWindow::GetMainWindow()->RequestRedraw();
+
+      double* vs = layer->GetWorldVoxelSize();
+      for (int n = 0; n < 3; n++)
+      {
+        int range = m_scrollTranslate[n]->maximum();
+        m_scrollTranslate[n]->blockSignals(true);
+        m_scrollTranslate[n]->setValue(range/2 + (int)( pos[n] / vs[n] ) );
+        m_scrollTranslate[n]->blockSignals(false);
+      }
+      UpdateUI( 0 );
+    }
+  }
 }

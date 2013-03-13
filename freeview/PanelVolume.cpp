@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2013/02/06 18:35:43 $
- *    $Revision: 1.83 $
+ *    $Date: 2013/03/13 20:11:31 $
+ *    $Revision: 1.84 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -252,9 +252,9 @@ void PanelVolume::DoIdle()
     layer = qobject_cast<LayerMRI*>( item->data(0, Qt::UserRole).value<QObject*>() );
   }
   int nItemIndex = ui->treeWidgetLayers->indexOfTopLevelItem(item);
-  ui->actionMoveLayerUp->setEnabled( item && !layer->IsLocked() && ui->treeWidgetLayers->topLevelItemCount() > 1 &&
+  ui->actionMoveLayerUp->setEnabled( item /*&& !layer->IsLocked()*/ && ui->treeWidgetLayers->topLevelItemCount() > 1 &&
                                      nItemIndex != 0 );
-  ui->actionMoveLayerDown->setEnabled( item && !layer->IsLocked() && ui->treeWidgetLayers->topLevelItemCount() > 1 &&
+  ui->actionMoveLayerDown->setEnabled( item /*&& !layer->IsLocked()*/ && ui->treeWidgetLayers->topLevelItemCount() > 1 &&
                                        nItemIndex < ui->treeWidgetLayers->topLevelItemCount()-1 );
   ui->actionLockLayer->setEnabled( item );
   ui->actionLockLayer->setChecked( layer && layer->IsLocked() );

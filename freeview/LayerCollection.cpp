@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2013/03/06 22:55:25 $
- *    $Revision: 1.35 $
+ *    $Date: 2013/03/13 20:11:31 $
+ *    $Revision: 1.36 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -176,7 +176,8 @@ bool LayerCollection::MoveLayerUp( Layer* layer )
   QList<Layer*> unlocked_layers;
   for ( int i = 0; i < m_layers.size(); i++ )
   {
-    if ( !m_layers[i]->IsLocked() )
+    // unlocked layers can still be moved
+ //   if ( !m_layers[i]->IsLocked() )
     {
       unlocked_layers << m_layers[i];
     }
@@ -191,6 +192,7 @@ bool LayerCollection::MoveLayerUp( Layer* layer )
       unlocked_layers[i] = temp;
 
       // restore locked layers
+      /*
       for ( int j = 0; j < m_layers.size(); j++ )
       {
         if ( m_layers[j]->IsLocked() )
@@ -205,6 +207,7 @@ bool LayerCollection::MoveLayerUp( Layer* layer )
           }
         }
       }
+      */
       m_layers = unlocked_layers;
 
       emit LayerMoved( layer );
@@ -220,7 +223,7 @@ bool LayerCollection::MoveLayerDown( Layer* layer )
   QList<Layer*> unlocked_layers;
   for ( int i = 0; i < m_layers.size(); i++ )
   {
-    if ( !m_layers[i]->IsLocked() )
+  //  if ( !m_layers[i]->IsLocked() )
     {
       unlocked_layers.push_back( m_layers[i] );
     }
@@ -235,6 +238,7 @@ bool LayerCollection::MoveLayerDown( Layer* layer )
       unlocked_layers[i] = temp;
 
       // restore locked layers
+      /*
       for ( int j = 0; j < m_layers.size(); j++ )
       {
         if ( m_layers[j]->IsLocked() )
@@ -249,6 +253,7 @@ bool LayerCollection::MoveLayerDown( Layer* layer )
           }
         }
       }
+      */
       m_layers = unlocked_layers;
 
       emit LayerMoved( layer );
@@ -474,12 +479,15 @@ bool LayerCollection::SetSlicePosition( int nPlane, double dPos_in, bool bRoundT
   {
     dPos = ((int)( ( dPos - m_dWorldOrigin[nPlane]) / m_dWorldVoxelSize[nPlane] ) ) * m_dWorldVoxelSize[nPlane]
            + m_dWorldOrigin[nPlane];
+    // no longer refrain to boundary
+    /*
     if ( m_dSlicePosition[nPlane] <= m_dWorldOrigin[nPlane] + m_dWorldSize[nPlane] &&
          m_dSlicePosition[nPlane] >= m_dWorldOrigin[nPlane] &&
          ( dPos >  m_dWorldOrigin[nPlane] + m_dWorldSize[nPlane] || dPos < m_dWorldOrigin[nPlane] ) )
     {
       return false;
     }
+    */
   }
 
   if ( fabs( dPos - m_dSlicePosition[nPlane] ) < 1e-8 )

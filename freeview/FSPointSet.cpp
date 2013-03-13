@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2012/10/23 17:35:43 $
- *    $Revision: 1.9 $
+ *    $Date: 2013/03/13 20:11:31 $
+ *    $Revision: 1.10 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -66,6 +66,25 @@ bool FSPointSet::ReadAsLabel( const QString& filename )
   {
     cerr << "LabelRead failed\n";
     return false;
+  }
+
+  QFile file( filename );
+  if (!file.open(QIODevice::ReadOnly | QIODevice::Text))
+  {
+    cerr << qPrintable(file.errorString()) << "\n";
+    return false;
+  }
+
+  QTextStream in(&file);
+  while (!in.atEnd())
+  {
+    QString line = in.readLine().toLower();
+    if ( line.contains( "vox2ras=" ) &&
+         line.contains( "vox2ras=tkreg" ) )
+    {
+      m_bRealRAS = false;
+      break;
+    }
   }
 
   return true;
@@ -135,7 +154,25 @@ bool FSPointSet::WriteAsLabel( const QString& filename )
   {
     cerr << "Way Points Write failed\n";
   }
+  else
+  {
+    // always writes in scanner coords
+    QFile file( filename );
+    if (file.open(QIODevice::ReadOnly | QIODevice::Text))
+    {
+      QTextStream in(&file);
+      QString all = in.readAll();
+      all.replace("TkReg", "Scanner", Qt::CaseInsensitive);
+      file.close();
 
+      QFile file_out(filename);
+      file_out.open(QIODevice::WriteOnly | QIODevice::Text);
+
+      QTextStream out(&file_out);
+      out << all;
+      file_out.close();
+    }
+  }
   return err == 0;
 }
 

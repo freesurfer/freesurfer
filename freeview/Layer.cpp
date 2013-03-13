@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2012/05/03 19:50:01 $
- *    $Revision: 1.25 $
+ *    $Date: 2013/03/13 20:11:31 $
+ *    $Revision: 1.26 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -297,6 +297,15 @@ void Layer::SetTranslate(double *offset)
   m_dTranslate[0] = offset[0];
   m_dTranslate[1] = offset[1];
   m_dTranslate[2] = offset[2];
+  UpdateTransform();
+}
+
+void Layer::SetTranslateByCenterPosition(double *c_pos /* in target space */)
+{
+  for (int i = 0; i < 3; i++)
+  {
+    m_dTranslate[i] = c_pos[i] - (m_dWorldOrigin[i] + m_dWorldSize[i]/2);
+  }
   UpdateTransform();
 }
 

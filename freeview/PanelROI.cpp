@@ -6,9 +6,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/14 23:44:48 $
- *    $Revision: 1.18 $
+ *    $Author: rpwang $
+ *    $Date: 2013/03/13 20:11:31 $
+ *    $Revision: 1.19 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -81,9 +81,9 @@ void PanelROI::DoIdle()
     layer = qobject_cast<LayerROI*>( item->data(0, Qt::UserRole).value<QObject*>() );
   }
   int nItemIndex = ui->treeWidgetLayers->indexOfTopLevelItem(item);
-  ui->actionMoveLayerUp->setEnabled( item && !layer->IsLocked() && ui->treeWidgetLayers->topLevelItemCount() > 1 &&
+  ui->actionMoveLayerUp->setEnabled( item /*&& !layer->IsLocked()*/ && ui->treeWidgetLayers->topLevelItemCount() > 1 &&
                                      nItemIndex != 0 );
-  ui->actionMoveLayerDown->setEnabled( item && !layer->IsLocked() && ui->treeWidgetLayers->topLevelItemCount() > 1 &&
+  ui->actionMoveLayerDown->setEnabled( item /*&& !layer->IsLocked()*/ && ui->treeWidgetLayers->topLevelItemCount() > 1 &&
                                        nItemIndex < ui->treeWidgetLayers->topLevelItemCount()-1 );
 
   BlockAllSignals( false );

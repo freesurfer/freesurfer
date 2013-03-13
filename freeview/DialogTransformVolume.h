@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2012/05/03 19:50:00 $
- *    $Revision: 1.14 $
+ *    $Date: 2013/03/13 20:11:31 $
+ *    $Revision: 1.15 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -92,6 +92,8 @@ protected slots:
   void OnButtonLandmarkPick();
 
   void UpdateLandmarkColors();
+
+  void OnButtonCenterToCursor();
 
 private:
   void DoRotate();
