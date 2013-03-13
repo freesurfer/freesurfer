@@ -322,7 +322,7 @@ LIBS += \
 #    -lvtkhdf5_hl -lvtkhdf5 -lLSDyna  -lvtkNetCDF_cxx
 
 QMAKE_CXXFLAGS += -Wno-deprecated -DUNICODE -D_FILE_OFFSET_BITS=64 -D_LARGE_FILES \
-                                  -Wno-write-strings  -DDEVELOPMENT
+                                  -Wno-write-strings -DDEVELOPMENT
 
 # set this to your local dev directory
 FREESURFER_DEV_DIR = /homes/5/rpwang/freesurfer/dev
@@ -393,15 +393,18 @@ RC_FILE = resource/icons/freeview.icns
 
 # uncomment following lines to build for 10.5 compatible binaries
 CONFIG += i386
-QMAKE_MACOSX_DEPLOYMENT_TARGET = 10.5
-QMAKE_MAC_SDK=/Developer/SDKs/MacOSX10.5.sdk
-QMAKE_CXXFLAGS += -mmacosx-version-min=10.5 -arch i386
-QMAKE_CFLAGS += -mmacosx-version-min=10.5 -arch i386
-QMAKE_LFLAGS += -mmacosx-version-min=10.5 -arch i386
+CONFIG -= x86_64
+QMAKE_MACOSX_DEPLOYMENT_TARGET = 10.6
+QMAKE_MAC_SDK=/Developer/SDKs/MacOSX10.6.sdk
+QMAKE_CXXFLAGS += -mmacosx-version-min=10.6 -arch i386
+QMAKE_CFLAGS += -mmacosx-version-min=10.6 -arch i386
+QMAKE_LFLAGS += -mmacosx-version-min=10.6 -arch i386
 
 LIBS -= -L/usr/pubsw/packages/vtk/current/lib/vtk-5.6 -L/usr/X11R6/lib \
     -L/usr/pubsw/packages/vxl/current/lib -L/usr/pubsw/packages/itk/current/lib/InsightToolkit \
     $$FREESURFER_DEV_DIR/utils/libutils.a $$FREESURFER_DEV_DIR/fsgdf/libfsgdf.a \
+    $$FREESURFER_DEV_DIR/vtkutils/libvtkutils.a \
+    $$FREESURFER_DEV_DIR/lineprof/liblineprof.a \
     $$FREESURFER_DEV_DIR/hipsstubs/libhipsstubs.a $$FREESURFER_DEV_DIR/vtkutils/libvtkutils.a \
     $$FREESURFER_DEV_DIR/rgb/librgb.a $$FREESURFER_DEV_DIR/unix/libunix.a $$FREESURFER_DEV_DIR/dicom/libdicom.a \
     $$FREESURFER_DEV_DIR/jpeg/libjpeg.a $$FREESURFER_DEV_DIR/tiff/libtiff.a $$FREESURFER_DEV_DIR/expat/libexpat.a \
@@ -413,9 +416,13 @@ LIBS -= -L/usr/pubsw/packages/vtk/current/lib/vtk-5.6 -L/usr/X11R6/lib \
     /usr/pubsw/packages/itk/current/lib/InsightToolkit/libitkzlib.a /usr/pubsw/packages/itk/current/lib/InsightToolkit/libitkgdcm.a \
     /usr/pubsw/packages/itk/current/lib/InsightToolkit/libitkopenjpeg.a /usr/pubsw/packages/itk/current/lib/InsightToolkit/libitkjpeg8.a \
     /usr/pubsw/packages/itk/current/lib/InsightToolkit/libitkjpeg12.a /usr/pubsw/packages/itk/current/lib/InsightToolkit/libitkjpeg16.a \
-    /usr/pubsw/packages/itk/current/lib/InsightToolkit/libITKDICOMParser.a /usr/lib64/libuuid.a -lz -lcrypt -ldl -lpthread \
+    /usr/pubsw/packages/itk/current/lib/InsightToolkit/libITKDICOMParser.a \
+    /usr/lib64/libuuid.a -lz -lcrypt -ldl -lpthread \
     /usr/pubsw/packages/mni/1.4/lib/libvolume_io.a -L/usr/pubsw/packages/mni/1.4/lib /usr/pubsw/packages/mni/1.4/lib/libminc.a /usr/pubsw/packages/mni/1.4/lib/libnetcdf.a \
-    -lvnl_algo -lvnl -lvcl -lnetlib -lv3p_netlib
+    -lvnl_algo -lvnl -lvcl -lnetlib -lv3p_netlib \
+    -L/usr/pubsw/packages/petsc/current/lib -lpetscts -lpetscsnes -lpetscksp \
+    -lpetscdm -lpetscmat -lpetscvec -lpetsc -lmpich -lfmpich \
+    /usr/lib64/liblapack.a /usr/lib64/libblas.a -lgfortran
 
 LIBS -= \
     -lvtkverdict -lvtkGraphics -lvtkmetaio -lvtkpng \ #-lvtkzlib \
@@ -432,7 +439,8 @@ LIBS += -lvtkHybrid -lvtkVolumeRendering -lvtkRendering -lvtkIO \
 FREESURFER_DEV_DIR = /Users/rpwang/freesurfer/dev
 
 INCLUDEPATH += /usr/pubsw/packages/vtk/current/include/vtk-5.6 $$FREESURFER_DEV_DIR/include $$FREESURFER_DEV_DIR/vtkutils \
-               "/usr/pubsw/packages/mni/current/include"
+               "/usr/pubsw/packages/mni/current/include" \
+               $$FREESURFER_DEV_DIR/lineprof
 
 LIBS += -L/usr/pubsw/packages/vtk/current/lib/vtk-5.6 -framework OpenGL -lm -ldl -lz -framework ApplicationServices \
     -framework CoreServices -framework cocoa -framework IOKit \
@@ -441,6 +449,7 @@ LIBS += -L/usr/pubsw/packages/vtk/current/lib/vtk-5.6 -framework OpenGL -lm -ldl
     $$FREESURFER_DEV_DIR/lib/libhipsstubs.a $$FREESURFER_DEV_DIR/lib/libvtkutils.a \
     $$FREESURFER_DEV_DIR/lib/librgb.a $$FREESURFER_DEV_DIR/lib/libunix.a $$FREESURFER_DEV_DIR/lib/libdicom.a \
     $$FREESURFER_DEV_DIR/lib/libjpeg.a $$FREESURFER_DEV_DIR/lib/libtiff.a $$FREESURFER_DEV_DIR/lib/libexpat.a \
+    $$FREESURFER_DEV_DIR/lib/liblineprof.a \
     /usr/pubsw/packages/itk/current/lib/InsightToolkit/libITKIO.a /usr/pubsw/packages/itk/current/lib/InsightToolkit/libITKAlgorithms.a \
     /usr/pubsw/packages/itk/current/lib/InsightToolkit/libITKCommon.a /usr/pubsw/packages/itk/current/lib/InsightToolkit/libITKMetaIO.a \
     /usr/pubsw/packages/itk/current/lib/InsightToolkit/libITKniftiio.a /usr/pubsw/packages/itk/current/lib/InsightToolkit/libITKNrrdIO.a \
@@ -452,7 +461,10 @@ LIBS += -L/usr/pubsw/packages/vtk/current/lib/vtk-5.6 -framework OpenGL -lm -ldl
     /usr/pubsw/packages/itk/current/lib/InsightToolkit/libITKDICOMParser.a -lz -ldl -lpthread \
     /usr/pubsw/packages/mni/current/lib/libvolume_io.a -L/usr/pubsw/packages/mni/current/lib \
     /usr/pubsw/packages/mni/current/lib/libminc.a /usr/pubsw/packages/mni/current/lib/libnetcdf.a \
-    -lvnl_algo -lvnl -lvcl -lnetlib -lv3p_netlib
+    -lvnl_algo -lvnl -lvcl -lnetlib -lv3p_netlib \
+    -L/usr/pubsw/packages/petsc/current/lib -lpetscts -lpetscsnes -lpetscksp \
+    -lpetscdm -lpetscmat -lpetscvec -lpetsc  -lmpich -lfmpich -lpmpich \
+    -framework Accelerate /usr/local/gfortran/lib/libgfortran.a
 
 LIBS -= -L/usr/X11R6/lib -lX11 -lXext -lXt -lSM -lICE -lGLU -lGL
 
