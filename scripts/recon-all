@@ -7,9 +7,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: nicks $
-#    $Date: 2013/02/19 22:34:56 $
-#    $Revision: 1.379.2.65 $
+#    $Author: zkaufman $
+#    $Date: 2013/03/14 15:48:19 $
+#    $Revision: 1.379.2.66 $
 #
 # Copyright © 2011-2013 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -26,7 +26,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.379.2.65 2013/02/19 22:34:56 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.379.2.66 2013/03/14 15:48:19 zkaufman Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -4403,6 +4403,11 @@ while( $#argv != 0 )
       set InputVol = "$argv[1]"; shift;
       if(! -e "$InputVol") then
         echo "ERROR: cannot find $InputVol"
+        goto error_exit;
+      endif
+      if (-d "$InputVol") then
+        echo "ERROR: You cannot give recon-all a folder as input. It must be an image file."
+        echo "If you have multiple files, you need multiple -i flags."
         goto error_exit;
       endif
       if(! -r "$InputVol") then
