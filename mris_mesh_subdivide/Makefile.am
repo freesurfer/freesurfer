@@ -7,6 +7,10 @@ AM_CXXFLAGS=-Wno-deprecated -I$(top_srcdir)/include \
 	-I$(top_srcdir)/vtkutils \
 	$(VTK_CXXFLAGS)
 
+# vtkutils does not build if KWWIDGETS is not enabled.
+# Therefore do not build mris_mesh_subdivide either because
+# mris_mesh_subdivide depends upon libvtkutils.
+if ENABLE_KWWIDGETS_APPS
 bin_PROGRAMS = mris_mesh_subdivide
 mris_mesh_subdivide_SOURCES=mris_mesh_subdivide.cxx
 mris_mesh_subdivide_LDADD= \
@@ -46,6 +50,13 @@ uninstall-hook:
 	rm -f $(DESTDIR)$(bindir)/mris_mesh_subdivide.bin
 
 
+else
+bin_PROGRAMS = 
+
+all:
+	@echo "Building KWWidgets apps not enabled."
+	@echo "Run configure with either --enable-kww-apps or --with-kwwidgets-dir=DIR"
+endif
 
 # Our release target. Include files to be excluded here. They will be
 # found and removed after 'make install' is run during the 'make
