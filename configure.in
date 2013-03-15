@@ -9,8 +9,8 @@
 #
 # CVS Revision Info:
 #    $Author: zkaufman $
-#    $Date: 2013/02/25 20:20:19 $
-#    $Revision: 1.593 $
+#    $Date: 2013/03/15 19:32:15 $
+#    $Revision: 1.594 $
 #
 ########################################################################
 AC_PREREQ(2.57)
@@ -597,7 +597,7 @@ if (test "$OS" = "Darwin") && (test "$machine_hardware" = "x86_64"); then
 fi
 
 # The --install-Mac32-GUIs flag should only be used when building
-# on 64-bit Mac systems and in conjuction with the --disable-all-apps
+# on 64-bit Mac systems and in conjuction with the --disable-GUI-build
 # flag. In this way, it will skip the building of the GUIs but will
 # install the precompiled 32bit versions of tkmedit, tksurfer, tkregister, freeview and qdec.
 install_Mac32_GUIs="NO"
@@ -606,11 +606,15 @@ AC_ARG_WITH(Mac32-GUIs,
  [ install_Mac32_GUIs="YES"
  ])
 
-disable_all_apps="NO"
-AC_ARG_ENABLE(all-apps,
- [  --disable-all-apps      disable building Tcl/Tk, ITK, VTK/KWWidgets, wxWidgets and OpenGL-based apps],
- [ disable_all_apps="YES"
+disable_gui_build="NO"
+AC_ARG_ENABLE(GUI-build,
+ [  --disable-GUI-build     disable building Tcl/Tk, ITK, VTK/KWWidgets, wxWidgets and OpenGL-based apps],
+ [ disable_gui_build="YES"
  ])
+
+if (test "x$MAC_64" = "xNO") || (test "x$disable_gui_build" = "xNO"); then
+    install_Mac32_GUIs="NO" 
+fi
 
 AM_CONDITIONAL(INSTALL_MAC32_GUIS, test "x$install_Mac32_GUIs" = "xYES" )
 
@@ -1706,8 +1710,8 @@ AM_CONDITIONAL(HAVE_ANN_LIBS, ! test "x$ac_ann_libraries" = "xNO")
 tcltk_apps="NO"
 itk_apps="NO"
 kww_apps="NO"
-AC_ARG_ENABLE(all-apps,
- [  --disable-all-apps      disable building Tcl/Tk, ITK, VTK/KWWidgets, wxWidgets and OpenGL-based apps],
+AC_ARG_ENABLE(GUI-build,
+ [  --disable-GUI-build     disable building Tcl/Tk, ITK, VTK/KWWidgets, wxWidgets and OpenGL-based apps],
  [ tcltk_apps="NO"
    itk_apps="NO"
    vtk_apps="NO"
@@ -1779,10 +1783,9 @@ AC_ARG_ENABLE(tcltk-apps,
  [ tcltk_apps="NO"
  ])
 
-AC_ARG_ENABLE(all-apps,
- [  --disable-all-apps      disable all apps],
- [ tcltk_apps="NO"
- ])
+if test "$disable_gui_build" = "YES"; then
+  tcltk_apps="NO"
+fi
 
 if test "$tcltk_apps" = "yes"; then
   AC_MSG_RESULT([Enabled building of Tcl/Tk apps.])
@@ -1917,10 +1920,9 @@ AC_ARG_ENABLE(xawplus-apps,
  [ xawplus_apps="yes"
  ])
 
-AC_ARG_ENABLE(all-apps,
- [  --disable-all-apps      disable all apps],
- [ xawplus_apps="NO"
- ])
+if test "$disable_gui_build" = "YES"; then
+  xawplus_apps="NO"
+fi
 
 if test "$xawplus_apps" = "yes"; then
   AC_MSG_RESULT([Enabled building of XawPlus apps.])
@@ -2091,13 +2093,12 @@ QT_PATH=""
 m4_include([m4/autotroll.m4])
 AT_WITH_QT([opengl])
 # support for --without-qt:
+
+if test "$disable_gui_build" = "YES"; then
+  QT_PATH=""
+fi
+
 AM_CONDITIONAL(ENABLE_QT_APPS, ! test "x$QT_PATH" = "x")
-
-AC_ARG_ENABLE(all-apps,
- [  --disable-all-apps      disable all apps],
- [ QT_PATH=""
- ])
-
 # hack: make sure our QT_LIBS overrides /usr/lib64 native Qt install
 # this is problematic on Centos6, where qt 4.6.3 is installed, but
 # we (at the NMR Center) want to use v4.7.1 in /usr/pubsw/packages/qt
@@ -2458,10 +2459,9 @@ AC_ARG_ENABLE(kww-apps,
  [ kww_apps="NO"
  ])
 
-AC_ARG_ENABLE(all-apps,
- [  --disable-all-apps      disable all apps],
- [ kww_apps="NO"
- ])
+if test "$disable_gui_build" = "YES"; then
+  kww_apps="NO"
+fi
 
 if test "$kww_apps" = "yes"; then
   AC_MSG_RESULT([Enabled building of KWWidgets apps.])
