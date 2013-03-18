@@ -12,6 +12,9 @@
 #include "prep/VolumeFile.h"
 #include "registration/VarCorres3D.h"
 #include "registration/Normalization.h"
+#ifdef HAVE_OPENMP
+  #include <omp.h>
+#endif
 using namespace sbl;
 namespace hb {
 
@@ -81,6 +84,9 @@ double BlockRegisterData::eval( const VectorD &params ) {
 	}
 	
 	// loop over block face images
+#ifdef HAVE_OPENMP
+#pragma omp parallel for reduction(+ : sumDiff,count)
+#endif
 	for (int bz = 0; bz < m_blockNormImages.count(); bz++) {
 
 		// get block-face slice for quick reference
@@ -236,9 +242,9 @@ void registerBlockToMrLinear( BlockRegisterData &brd ) {
 void registerBlockToMrNonLinear( const BlockRegisterData &brd ) {
 
 	// estimate correspondences
-	const Array<ImageGrayU> &srcNormSeq = brd.blockNormImages();
+	const Array<ImageGrayU> &srcNormSeq  = brd.blockNormImages();
 	const Array<ImageGrayU> &destNormSeq = brd.mrNormImages();
-	const Array<ImageGrayU> &srcOrigSeq = brd.blockOrigImages();
+	const Array<ImageGrayU> &srcOrigSeq  = brd.blockOrigImages();
 	const Array<ImageGrayU> &destOrigSeq = brd.mrOrigImages();
 	Array<CorresField3D> cfSeq;
 	disp( 1, "srcNormSeq: %d, destNormSeq: %d, srcOrigSeq: %d, destOrigSeq: %d",
@@ -304,11 +310,19 @@ void normalizeVolume( const Array<ImageGrayU> &origImages, const Array<ImageGray
 	blurGaussSeqXY( blurredOrigImages, 1.0f );
 
 	// normalize each slice
+  normImages.extend(origImages.count());
+  bool keepgoing = true;
+#ifdef HAVE_OPENMP
+#pragma omp parallel for schedule(guided)
+#endif
 	for (int i = 0; i < origImages.count(); i++) {
 
+    if (!keepgoing) continue;
+    
 		// compute normalized image
 		aptr<ImageGrayU> normImage = normalize( blurredOrigImages[ i ], masks[ i ], blurredMasks[ i ] );
-		normImages.append( normImage.release() );
+		//normImages.append( normImage.release() );
+    normImages.set(i,normImage.release()); 
 		
 		// save diagnostics
 		if (i == origImages.count() / 2) {
@@ -320,8 +334,19 @@ void normalizeVolume( const Array<ImageGrayU> &origImages, const Array<ImageGray
 		}
 
 		// check for user cancel
-		if (checkCommandEvents())
-			break;
+#ifdef HAVE_OPENMP
+    if(omp_get_thread_num() == 0)
+#endif
+    {
+		  if (checkCommandEvents())
+      {
+#ifdef HAVE_OPENMP
+#pragma omp critical
+#endif
+          keepgoing = false;
+//			  break;
+      }
+    }
 	}
 }
 
@@ -336,11 +361,110 @@ void createRegistrationVolumes( Config &conf ) {
 
 	// get command parameters
 	String blockCropPath = addDataPath( conf.readString( "blockCropPath", "blockface/crop" ) );
-	String blockSegPath = addDataPath( conf.readString( "blockSegPath", "blockface/seg" ) );
-	String mrRawPath = addDataPath( conf.readString( "mrRawPath", "mri/rawFlash20" ) );
-	String mrRegLinPath = addDataPath( conf.readString( "mrRegLinPath", "mri/regLin" ) );
-	String mrRegPath = addDataPath( conf.readString( "mrRegPath", "mri/reg" ) );
-	String histoRegPath = addDataPath( conf.readString( "histoRegPath", "histo/reg" ) );
+	String blockSegPath  = addDataPath( conf.readString( "blockSegPath",  "blockface/seg" ) );
+	String mrRawPath     = addDataPath( conf.readString( "mrRawPath",     "mri/rawFlash20" ) );
+	String mrRegLinPath  = addDataPath( conf.readString( "mrRegLinPath",  "mri/regLin" ) );
+	String mrRegPath     = addDataPath( conf.readString( "mrRegPath",     "mri/reg" ) );
+	String histoRegPath  = addDataPath( conf.readString( "histoRegPath",  "histo/reg" ) );
+
+	// load spacing from MR file
+	String spacingFileName = mrRawPath + "/spacing.txt";
+	File spacingFile( spacingFileName, FILE_READ, FILE_TEXT );
+	if (spacingFile.openSuccess() == false) {
+		warning( "unable to open spacing file: %s", spacingFileName.c_str() );
+		return;
+	}
+	String line = spacingFile.readLine();
+	Array<String> lineSplit = line.split( "," );
+	if (lineSplit.count() != 3) {
+		warning( "invalid spacing file: %s", spacingFileName.c_str() );
+		return;
+	}
+	float xSpacing = lineSplit[ 0 ].strip().toFloat();
+	float ySpacing = lineSplit[ 1 ].strip().toFloat();
+	float zSpacing = lineSplit[ 2 ].strip().toFloat();
+	if (xSpacing <= 0 || ySpacing <= 0 || zSpacing <= 0) {
+		warning( "invalid spacing file: %s", spacingFileName.c_str() );
+		return;
+	}
+
+	// load linear MR/block transformation
+	String transformFileName = mrRegLinPath + "/linearTransform.txt";
+	bool useTransform = fileExists( transformFileName );
+	if (useTransform) {
+		AffineTransform3 transform;
+		File transformFile( transformFileName, FILE_READ, FILE_TEXT );
+		if (transformFile.openSuccess()) {
+			transform = loadTransform( transformFile );
+		} else {
+			warning( "invalid transform file: %s", transformFileName.c_str() );
+			return;
+		}
+
+		// compute new spacing
+		if (dAbs( transform.a.data[ 0 ][ 0 ] ) < 1e-6 || dAbs( transform.a.data[ 1 ][ 1 ] ) < 1e-6 || dAbs( transform.a.data[ 2 ][ 2 ] ) < 1e-6) {
+			warning( "invalid transform: %f, %f, %f", transform.a.data[ 0 ][ 0 ], transform.a.data[ 1 ][ 1 ], transform.a.data[ 2 ][ 2 ] );
+			return;
+		}
+		xSpacing /= (float) transform.a.data[ 0 ][ 0 ];
+		ySpacing /= (float) transform.a.data[ 1 ][ 1 ];
+		zSpacing /= (float) transform.a.data[ 2 ][ 2 ];
+	}
+  
+	// convert files
+	disp( 1, "Converting Images now ...");
+	if (useTransform) {
+#ifdef HAVE_OPENMP
+#pragma omp parallel sections
+#endif
+{  
+#ifdef HAVE_OPENMP
+#pragma omp section
+#endif
+		convertImagesToMghFile( blockCropPath, dataPath() + "blockface/blockCrop.mgz", xSpacing, ySpacing, zSpacing );
+#ifdef HAVE_OPENMP
+#pragma omp section
+#endif
+		convertImagesToMghFile( blockSegPath, dataPath() + "blockface/blockSeg.mgz", xSpacing, ySpacing, zSpacing );
+#ifdef HAVE_OPENMP
+#pragma omp section
+#endif
+		convertImagesToMghFile( mrRegLinPath, dataPath() + "blockface/mrRegLin.mgz", xSpacing, ySpacing, zSpacing );
+#ifdef HAVE_OPENMP
+#pragma omp section
+#endif
+		convertImagesToMghFile( mrRegPath, dataPath() + "blockface/mrReg.mgz", xSpacing, ySpacing, zSpacing );
+}
+	} else {
+#ifdef HAVE_OPENMP
+#pragma omp parallel sections
+#endif
+{  
+#ifdef HAVE_OPENMP
+#pragma omp section
+#endif
+		convertImagesToMghFile( blockCropPath, dataPath() + "blockface/blockCropNoTransform.mgz", xSpacing, ySpacing, zSpacing );
+#ifdef HAVE_OPENMP
+#pragma omp section
+#endif
+		convertImagesToMghFile( blockSegPath, dataPath() + "blockface/blockSegNoTransform.mgz", xSpacing, ySpacing, zSpacing );
+}
+	}
+
+	// we don't handle this case currently; need to add code to handle missing histo slices
+	//convertImagesToMghFile( histoRegPath, dataPath() + "blockface/histoReg.mgz", xSpacing, ySpacing, zSpacing, width, height );
+}
+
+
+/// create mgz files a folder of registered images (in blockface space) with right spacing
+void createRegistrationVolume( Config &conf ) {
+
+	// get command parameters
+	String inputPath      = addDataPath( conf.readString( "inputPath" ) );
+	String outputFileName = addDataPath( conf.readString( "outputFileName" ) );
+	bool autoScaleValues  = conf.readBool( "autoScaleValues", false );
+	String mrRawPath      = addDataPath( conf.readString( "mrRawPath", "mri/rawFlash20" ) );
+	String mrRegLinPath   = addDataPath( conf.readString( "mrRegLinPath", "mri/regLin" ) );
 
 	// load spacing from MR file
 	String spacingFileName = mrRawPath + "/spacing.txt";
@@ -387,20 +511,17 @@ void createRegistrationVolumes( Config &conf ) {
 	}
 
 	// convert files
+	disp( 1, "Converting Image now ...");
 	if (useTransform) {
-		convertImagesToMghFile( blockCropPath, dataPath() + "blockface/blockCrop.mgz", xSpacing, ySpacing, zSpacing );
-		convertImagesToMghFile( blockSegPath, dataPath() + "blockface/blockSeg.mgz", xSpacing, ySpacing, zSpacing );
-		convertImagesToMghFile( mrRegLinPath, dataPath() + "blockface/mrRegLin.mgz", xSpacing, ySpacing, zSpacing );
-		convertImagesToMghFile( mrRegPath, dataPath() + "blockface/mrReg.mgz", xSpacing, ySpacing, zSpacing );
-	} else {
-		convertImagesToMghFile( blockCropPath, dataPath() + "blockface/blockCropNoTransform.mgz", xSpacing, ySpacing, zSpacing );
-		convertImagesToMghFile( blockSegPath, dataPath() + "blockface/blockSegNoTransform.mgz", xSpacing, ySpacing, zSpacing );
-	}
-
-	// we don't handle this case currently; need to add code to handle missing histo slices
-	//convertImagesToMghFile( histoRegPath, dataPath() + "blockface/histoReg.mgz", xSpacing, ySpacing, zSpacing, width, height );
+		//convertImagesToMghFile( inputPath, dataPath() + "blockface/blockCrop.mgz", xSpacing, ySpacing, zSpacing );
+    if (autoScaleValues)
+  		convertImagesToMghFile( inputPath, outputFileName, xSpacing, ySpacing, zSpacing );
+    else
+  		convertImagesToMghFile( inputPath, outputFileName, xSpacing, ySpacing, zSpacing,0,0,1 );
+  }
+  else
+    warning( "transform does not exist: %s", transformFileName.c_str() );
 }
-
 
 /// perform a linear or non-linear registration of a block-face volume with an MR volume
 void registerBlockToMrOnePass( Config &conf ) {
@@ -412,6 +533,9 @@ void registerBlockToMrOnePass( Config &conf ) {
 	String mrPath = addDataPath( conf.readString( "mrPath" ) );
 	String outputPath = addDataPath( conf.readString( "outputPath" ) );
 	bool linear = conf.readBool( "linear" );
+	String blockEntroPath    = conf.readString( "blockEntroPath", "" );
+	if (blockEntroPath != "" ) 
+    blockEntroPath    = addDataPath( blockEntroPath);
 
 	// make sure output path exists
 	createDir( outputPath );
@@ -434,10 +558,20 @@ void registerBlockToMrOnePass( Config &conf ) {
 	disp( 1, "loading %d blockface images", blockFileList.count() );
 	for (int i = 0; i < blockFileList.count(); i++) {
 		aptr<ImageGrayU> origInput = load<ImageGrayU>( blockCropPath + "/" + blockFileList[ i ] );
-		aptr<ImageGrayU> segInput = load<ImageGrayU>( blockSegPath + "/" + blockFileList[ i ] );
-		aptr<ImageGrayU> segMask = threshold( *segInput, 128, false );
-		blockMaskImages.append( segMask.release() );
 		brd.blockOrigImages().append( origInput.release() );
+
+    // if available read entro images:
+    if (blockEntroPath!= "")
+    {
+		  aptr<ImageGrayU> entInput = load<ImageGrayU>( blockEntroPath + "/" + blockFileList[ i ] );
+		  brd.blockNormImages().append( entInput.release() );
+    }
+    else // get mask for normalization step below:
+    {
+		  aptr<ImageGrayU> segInput = load<ImageGrayU>( blockSegPath + "/" + blockFileList[ i ] );
+		  aptr<ImageGrayU> segMask = threshold( *segInput, 128, false );
+		  blockMaskImages.append( segMask.release() );
+    }
 
 		// check for user cancel
 		if (checkCommandEvents())
@@ -469,28 +603,97 @@ void registerBlockToMrOnePass( Config &conf ) {
 		return;
 
 	// prepare the volumes
-	normalizeVolume( brd.blockOrigImages(), blockMaskImages, brd.blockNormImages(), outputPath + "/vis/block" );
-	if (checkCommandEvents())
-		return;
+  if (blockEntroPath == "" )
+  {
+    disp( 1, "Normalizing blockface images");
+	  normalizeVolume( brd.blockOrigImages(), blockMaskImages, brd.blockNormImages(), outputPath + "/vis/block" );
+	  if (checkCommandEvents())
+		  return;
+  }
+  disp( 1, "Normalizing MR slices");
 	normalizeVolume( brd.mrOrigImages(), mrMaskImages, brd.mrNormImages(), outputPath + "/vis/mr" );
 	if (checkCommandEvents())
 		return;
 
 	// perform registration
 	if (linear) {
+    disp( 1, "Performing Linear Registration");
 		registerBlockToMrLinear( brd );
 	} else {
+    disp( 1, "Performing Non-Linear Registration");
 		registerBlockToMrNonLinear( brd );
 	}
+}
+
+/// load, normalize and save a path (used for blockface, to keep them around for the two paths)
+void normalizeImages( Config &conf)
+{
+	String inputPath  = addDataPath( conf.readString( "inputPath" ) );
+	String outputPath = addDataPath( conf.readString( "outputPath" ) );
+	String segPath    = conf.readString( "segPath", "" );
+	if (segPath != "" ) 
+    segPath    = addDataPath( segPath);
+    
+	// make sure output path exists
+	createDir( outputPath );
+	createDir( outputPath + "/vis" );
+
+	// load images
+	Array<String> fileList = dirFileList( inputPath, "", ".png" );
+	Array<ImageGrayU> maskImages;
+	Array<ImageGrayU> origImages;
+	disp( 1, "loading %d images (%s)",fileList.count(),inputPath.c_str() );
+	for (int i = 0; i < fileList.count(); i++)
+  {
+		aptr<ImageGrayU> origInput = load<ImageGrayU>( inputPath + "/" + fileList[ i ] );
+		aptr<ImageGrayU> segMask;
+    if (segPath != "")
+    {
+	  	aptr<ImageGrayU> segInput = load<ImageGrayU>( segPath + "/" + fileList[ i ] );
+      segMask = threshold( *segInput, 128, false );
+    }
+    else
+      segMask = threshold( *origInput, 1, false );
+      
+		maskImages.append( segMask.release() );
+		origImages.append( origInput.release() );
+
+		// check for user cancel
+		if (checkCommandEvents())
+			break;
+	}
+	if (checkCommandEvents())
+		return;
+
+  disp( 1, "Normalizing slices ( %s )",inputPath.c_str());
+  Array<ImageGrayU> normImages;
+	normalizeVolume( origImages, maskImages, normImages, outputPath + "/vis" );
+
+  disp( 1, "Saving slices to %s",outputPath.c_str());
+  assertAlways( normImages.count() == fileList.count() );
+	for (int i = 0; i < normImages.count(); i++)
+  {
+		saveImage( normImages[ i ], outputPath + "/" + fileList[ i ] );  
+  }
+
 }
 
 
 /// perform a linear then non-linear registration of a block-face volume with an MR volume
 void registerBlockToMr( Config &conf ) {
 
+  // first create blockface entropy images and store to disk:
+  disp( 1, "Normalization of Blockface Images");
+	conf.writeString( "inputPath", conf.readString( "blockCropPath", "blockface/crop" ) );
+	conf.writeString( "outputPath", "blockface/entro" );
+	conf.writeString( "segPath", conf.readString( "blockSegPath", "blockface/seg" ) );
+  normalizeImages(conf);
+  disp( 1, "Done Normalization of Blockface");
+
 	// first pass: linear registration
 	conf.writeString( "mrPath", "mri/seg" );
 	conf.writeString( "outputPath", "mri/regLin" );
+  conf.writeString( "blockEntroPath" , "blockface/entro");
 	conf.writeBool( "linear", true );
 	registerBlockToMrOnePass( conf );
 
@@ -539,6 +742,7 @@ void createHistologyBlockIndexTable( Config &conf ) {
 // register commands, etc. defined in this module
 void initBlockRegister() {
 	registerCommand( "rvol", createRegistrationVolumes );
+	registerCommand( "rvolsingle", createRegistrationVolume );
 	registerCommand( "bregpass", registerBlockToMrOnePass );
 	registerCommand( "breg", registerBlockToMr );
 	registerCommand( "btable", createHistologyBlockIndexTable );
