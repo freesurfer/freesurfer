@@ -238,8 +238,10 @@ void mapBack( const Array<CorresField3D> &cfSeq,
 
 	// get dimensions
 	int length = cfSeq.count();
+  disp( 1, " mapBack length: %d, seq: %d, mapped: %d",length,seq.count(),seqMapped.count());
 	assertAlways( length );
-	assertAlways( length == seq.count() && length == seqMapped.count() );
+	assertAlways( length == seq.count() ) ;
+  assertAlways( length == seqMapped.count() );
 	int width = cfSeq[ 0 ].width(), height = cfSeq[ 0 ].height();
 	assertAlways( width == seq[ 0 ].width() && width == seqMapped[ 0 ].width() );
 	assertAlways( height == seq[ 0 ].height() && height == seqMapped[ 0 ].height() );
