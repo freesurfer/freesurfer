@@ -10,8 +10,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2012/06/08 20:13:20 $
- *    $Revision: 1.54 $
+ *    $Date: 2013/03/18 12:53:55 $
+ *    $Revision: 1.55 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -59,6 +59,9 @@ LABEL ;
 
 #include "mrisurf.h" // MRI_SURFACE, MRIS
 
+LABEL *LabelToScannerRAS(LABEL *lsrc, MRI *mri, LABEL *ldst) ;
+LABEL *LabelToVoxel(LABEL *lsrc, MRI *mri, LABEL *ldst) ;
+
 int     LabelIsCompletelyUnassigned(LABEL *area, int *unassigned);
 int     LabelFillUnassignedVertices(MRI_SURFACE *mris,
                                     LABEL *area,
@@ -83,10 +86,12 @@ int     LabelRipRestOfSurfaceWithThreshold(LABEL *area,
     float thresh) ;
 int     LabelRemoveOverlap(LABEL *area1, LABEL *area2) ;
 int     LabelIntersect(LABEL *area1, LABEL *area2) ;
+LABEL  *LabelRemoveAlmostDuplicates(LABEL *area, double dist, LABEL *ldst);
+LABEL   *LabelCompact(LABEL *lsrc, LABEL *ldst) ;
 int     LabelRemoveDuplicates(LABEL *area) ;
 int     LabelHasVertex(int vtxno, LABEL *lb);
 LABEL   *LabelAlloc(int max_points, char *subject_name, char *label_name) ;
-int     LabelRealloc(LABEL *lb, int max_points);
+LABEL   *LabelRealloc(LABEL *lb, int max_points);
 int     LabelCurvFill(LABEL *area, int *vertex_list, int nvertices,
                       int max_vertices, MRI_SURFACE *mris) ;
 int     LabelFillMarked(LABEL *area, MRI_SURFACE *mris) ;
@@ -141,7 +146,7 @@ LABEL   *LabelSphericalCombine(MRI_SURFACE *mris, LABEL *area,
                                MRIS_HASH_TABLE *mht,
                                MRI_SURFACE *mris_dst, LABEL *area_dst);
 
-#define LabelClone(a)  LabelAlloc(a->max_points,a->subject_name,a->name)
+LABEL *LabelClone(LABEL *a)  ;
 int LabelCropPosterior(LABEL *area, float anterior_dist) ;
 int LabelCropAnterior(LABEL *area, float anterior_dist) ;
 int LabelCentroid(LABEL *area, MRI_SURFACE *mris, double *px, double *py, double *pz) ;
