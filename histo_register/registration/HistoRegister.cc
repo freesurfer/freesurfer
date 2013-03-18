@@ -13,6 +13,9 @@
 #include <pvl/VarMotionUtil.h>
 #include "registration/Normalization.h"
 #include "registration/CorresField3D.h"
+#ifdef HAVE_OPENMP
+  #include <omp.h>
+#endif
 using namespace sbl;
 using namespace pvl;
 namespace hb {
@@ -42,11 +45,15 @@ aptr<ImageColorU> colorizeDifference( const ImageGrayU &input1, const ImageGrayU
 
 
 /// register a single histology image with an MR slice
+//void registerHistologySlice( int hIndex, int blockOffset,
+//							 const String &hPath, const String &bPath, const String &mPath, String &outputPath,
+//							 const Array<String> &hFileList, const Array<String> &bFileList, const Array<String> &mFileList, 
+//							 OutputVideo &outputVideo, 
+//							 VectorD &mutInfo, VectorD &normDiff, VectorD &flowGrad ) {
 void registerHistologySlice( int hIndex, int blockOffset,
 							 const String &hPath, const String &bPath, const String &mPath, String &outputPath,
-							 const Array<String> &hFileList, const Array<String> &bFileList, const Array<String> &mFileList, 
-							 OutputVideo &outputVideo, 
-							 VectorD &mutInfo, VectorD &normDiff, VectorD &flowGrad ) {
+							 const Array<String> &hFileList, const Array<String> &bFileList, const Array<String> &mFileList )
+{
 
 	// parameters
 	int linearParamCount = 6;
@@ -90,9 +97,14 @@ void registerHistologySlice( int hIndex, int blockOffset,
 	String bFileName = bFileList[ mIndex ];
 
 	// display info
+#ifdef HAVE_OPENMP
+#pragma omp critical
+#endif
+{
 	disp( 1, "histo: %s, %d, %d", hFileName.c_str(), hWidth, hHeight );
 	disp( 1, "block: %s", bFileName.c_str() );
 	disp( 1, "mr: %s, %d, %d", mFileName.c_str(), mWidth, mHeight );
+}
 
 	// resize the histo image
 	// fix(later): preserve aspect ratio: resize then pad/crop
@@ -152,27 +164,28 @@ void registerHistologySlice( int hIndex, int blockOffset,
 	saveImage( *mImage, outputPath + "/vis/reg_" + name + "_mOrig.png" );
 	saveImage( *hImage, outputPath + "/vis/reg_" + name + "_hOrig.png" );
 
-	// only do eval if have flow
-	if (computeFlow) {
-
-		// update eval video
-		aptr<ImageColorU> mfVis = colorizeMotion( *mf );
-		aptr<ImageColorU> diff = colorizeDifference( *hNormFlow, *mNorm );
-		aptr<ImageColorU> vis = joinHoriz( *mfVis, *diff );
-		int visWidth = (vis->width() / 8) * 8;
-		int visHeight = vis->height();
-		vis = resize( *vis, visWidth, visHeight, false );
-		if (outputVideo.openSuccess() == false) 
-			outputVideo.open( outputPath + "/vis/eval.avi", vis->width(), vis->height(), 6 );
-		outputVideo.append( *vis );
-
-		// store eval stats
-		int xBorder = 20, yBorder = 20;
-		int bucketCount = 50;
-		mutInfo.append( mutualInfo( *hImageFlow, *mImage, xBorder, yBorder, bucketCount ) );
-		normDiff.append( meanAbsDiff( *hNormFlow, *mNorm, xBorder, yBorder ) );
-		flowGrad.append( meanGradMag( *mf ) );
-	}
+// (mr) removed, will not work in parallel and is not used anyway
+//	// only do eval if have flow
+//	if (computeFlow) {
+//
+//		// update eval video
+//		aptr<ImageColorU> mfVis = colorizeMotion( *mf );
+//		aptr<ImageColorU> diff = colorizeDifference( *hNormFlow, *mNorm );
+//		aptr<ImageColorU> vis = joinHoriz( *mfVis, *diff );
+//		int visWidth = (vis->width() / 8) * 8;
+//		int visHeight = vis->height();
+//		vis = resize( *vis, visWidth, visHeight, false );
+//		if (outputVideo.openSuccess() == false) 
+//			outputVideo.open( outputPath + "/vis/eval.avi", vis->width(), vis->height(), 6 );
+//		outputVideo.append( *vis );
+//
+//		// store eval stats
+//		int xBorder = 20, yBorder = 20;
+//		int bucketCount = 50;
+//		mutInfo.append( mutualInfo( *hImageFlow, *mImage, xBorder, yBorder, bucketCount ) );
+//		normDiff.append( meanAbsDiff( *hNormFlow, *mNorm, xBorder, yBorder ) );
+//		flowGrad.append( meanGradMag( *mf ) );
+//	}
 }
 
 
@@ -226,15 +239,30 @@ void registerHistology( Config &conf ) {
 	VectorD mutInfo, normDiff, flowGrad;
 
 	// loop over histo input files
+  bool keepgoing = true;
+#ifdef HAVE_OPENMP
+#pragma omp parallel for
+#endif
 	for (int hIndex = 0; hIndex < hFileList.count(); hIndex += histoStep) {
 
+    if (! keepgoing ) continue;
+    
 		// register this slice
-		registerHistologySlice( hIndex, blockOffset, histoPath, blockPath, mrPath, outputPath, 
-								hFileList, bFileList, mFileList, outputVideo, mutInfo, normDiff, flowGrad );
+//		registerHistologySlice( hIndex, blockOffset, histoPath, blockPath, mrPath, outputPath, 
+//								hFileList, bFileList, mFileList, outputVideo, mutInfo, normDiff, flowGrad );
+		registerHistologySlice( hIndex, blockOffset, histoPath, blockPath, mrPath, outputPath, hFileList, bFileList, mFileList );
 
 		// check for user cancel
-		if (checkCommandEvents())
-			break;
+#ifdef HAVE_OPENMP
+    if(omp_get_thread_num() == 0)
+#endif
+    {
+		  if (checkCommandEvents())
+      {
+          keepgoing = false;
+//			  break;
+      }
+    }
 	}
 }
 
