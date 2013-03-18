@@ -6,6 +6,11 @@
 #include <sbl/image/ImageUtil.h>
 #include <sbl/image/MotionFieldUtil.h>
 #include <sbl/image/ImageDraw.h>
+#include <sbl/image/ImageSeqUtil.h>
+#include "registration/VarCorres3D.h"
+#ifdef HAVE_OPENMP
+  #include <omp.h>
+#endif
 using namespace sbl;
 namespace hb {
 
@@ -732,12 +737,14 @@ void projectMriToBlockFace( Config &conf ) {
 	String inputPath = addDataPath( conf.readString( "inputPath", "mri/label" ) );
 	String outputPath = addDataPath( conf.readString( "outputPath", "mri/labelProj" ) );
 	bool useNonLinear = conf.readBool( "useNonLinear", true );
+  int interpType = conf.readInt( "interpType", 0);
 	String mrRawPath = addDataPath( conf.readString( "mrRawPath", "mri/rawFlash20" ) );
 	String mrRegLinPath = addDataPath( conf.readString( "mrRegLinPath", "mri/regLin" ) );
 	String mrRegPath = addDataPath( conf.readString( "mrRegPath", "mri/reg" ) );
 	String histoSplitPath = addDataPath( conf.readString( "histoSplitPath", "histo/split" ) );
 	String histoRegPath = addDataPath( conf.readString( "histoRegPath", "histo/reg" ) );
 	bool useMrTransform = false;
+//  int interpType = 0;
 
 	// load transformation data
 	HistoTransform histoTransform;
@@ -779,9 +786,24 @@ void projectMriToBlockFace( Config &conf ) {
 	disp( 1, "projecting point: %.1f, %.1f, %.1f", point.x, point.y, point.z );
 	point = histoTransform.projectBToM( point, useMrTransform, useNonLinear, true );
 
+  if (interpType == 0)
+	  disp( 1, "Mapping using nearest neighbor interpolation ...");
+  else if (interpType == 1)
+	  disp( 1, "Mapping using tri-linear interpolation ...");
+  else
+  {
+    disp( 1, "Error: interpolation type %d unknown.",interpType );
+    exit(1);
+  }
+
 	// loop over block-face slices
+  bool keepgoing = true;
+#ifdef HAVE_OPENMP
+#pragma omp parallel for
+#endif 
 	for (int bIndex = 0; bIndex < bDepth; bIndex++) {
 
+    if (!keepgoing) continue;
 		// create output image in block-face coordinates
 		ImageGrayU outputImage( bWidth, bHeight );
 
@@ -794,15 +816,57 @@ void projectMriToBlockFace( Config &conf ) {
 				point.z = bIndex;
 				point = histoTransform.projectBToM( point, useMrTransform, useNonLinear, false );
 				if (point.x || point.y || point.z) {
-					int mx = sbl::round( point.x );
-					int my = sbl::round( point.y );
-					int mz = sbl::round( point.z );
 					int mValue = 0;
-					if (mz >= 0 && mz < mrVolume.count()) {
-						ImageGrayU &mSlice = mrVolume[ mz ];
-						if (mSlice.inBounds( mx, my ))
-							mValue = mSlice.data( mx, my );
-					}
+          if (interpType == 0)
+          {
+					  int mz = sbl::round( point.z );
+  					if (mz >= 0 && mz < mrVolume.count()) {
+					    int mx = sbl::round( point.x );
+					    int my = sbl::round( point.y );
+  						ImageGrayU &mSlice = mrVolume[ mz ];
+  						if (mSlice.inBounds( mx, my ))
+  							mValue = mSlice.data( mx, my );
+  					}
+          }
+          else if (interpType == 1)
+          {
+            if (point.z >=0 && point.z <= (double)mrVolume.count()-1)
+            {
+              int zm = MAX((int)point.z, 0) ;
+              int zp = MIN(mrVolume.count()-1, zm+1) ;
+  						ImageGrayU &slicem = mrVolume[ zm ];
+  						ImageGrayU &slicep = mrVolume[ zp ];
+              
+              if (slicem.inBounds( (float)point.x, (float)point.y))
+              {
+              
+                int xm = MAX((int)point.x, 0) ;
+                int xp = MIN(slicem.width()-1, xm+1) ;
+                int ym = MAX((int)point.y, 0) ;
+                int yp = MIN(slicem.height()-1, ym+1) ;
+
+                double xmd = point.x - (float)xm ;
+                double ymd = point.y - (float)ym ;
+                double zmd = point.z - (float)zm ;
+                double xpd = (1.0f - xmd) ;
+                double ypd = (1.0f - ymd) ;
+                double zpd = (1.0f - zmd) ;
+              
+                mValue = (int) (
+                  xpd * ypd * zpd * slicem.data( xm, ym ) +
+                  xpd * ypd * zmd * slicep.data( xm, ym ) +
+                  xpd * ymd * zpd * slicem.data( xm, yp ) +
+                  xpd * ymd * zmd * slicep.data( xm, yp ) +
+                  xmd * ypd * zpd * slicem.data( xp, ym ) +
+                  xmd * ypd * zmd * slicep.data( xp, ym ) +
+                  xmd * ymd * zpd * slicem.data( xp, yp ) +
+                  xmd * ymd * zmd * slicep.data( xp, yp ) );
+              
+              }
+              
+              
+            }
+          }
 					outputImage.data( x, y ) = mValue;
 				}
 			}
@@ -813,10 +877,141 @@ void projectMriToBlockFace( Config &conf ) {
 		saveImage( outputImage, outputFileName );
 
 		// check for user cancel
+//		if (checkCommandEvents())
+//			break;
+#ifdef HAVE_OPENMP
+    if(omp_get_thread_num() == 0)
+#endif
+    {
+		  if (checkCommandEvents())
+      {
+#ifdef HAVE_OPENMP
+#pragma omp critical
+#endif
+          keepgoing = false;
+//			  break;
+      }
+    }
+	}
+}
+
+/*void projectMriToBlockFace2( Config &conf )
+{
+
+	String inputPath = addDataPath( conf.readString( "inputPath", "mri/label" ) );
+	String outputPath = addDataPath( conf.readString( "outputPath", "mri/labelProj" ) );
+	bool useNonLinear = conf.readBool( "useNonLinear", true );
+  String mrRegPath = addDataPath( conf.readString( "mrRegPath", "mri/reg" ) );
+  
+  // load MR input images
+	Array<String> mrFileList = dirFileList( inputPath, "", ".png" );
+	Array<ImageGrayU> mrInputImages;
+	disp( 1, "loading %d MR images", mrFileList.count() );
+	for (int i = 0; i < mrFileList.count(); i++)
+  {
+		aptr<ImageGrayU> origInput = load<ImageGrayU>( inputPath + "/" + mrFileList[ i ] );
+		mrInputImages.append( origInput.release() );
+
+		// check for user cancel
 		if (checkCommandEvents())
 			break;
 	}
-}
+	if (checkCommandEvents())
+		return;
+
+  // load affine transform
+  AffineTransform3 transform = loadTransform( );
+
+	// loop over block face images
+#ifdef HAVE_OPENMP
+#pragma omp parallel for reduction(+ : sumDiff,count)
+#endif
+	for (int bz = 0; bz < m_blockNormImages.count(); bz++) {
+
+		// get block-face slice for quick reference
+		ImageGrayU &bNorm = m_blockNormImages[ bz ];
+		ImageGrayU &bOrig = m_blockOrigImages[ bz ];
+		int bWidth = bNorm.width(), bHeight = bNorm.height();
+	
+		// prepare visualization images if needed
+		aptr<ImageGrayU> mNormProj, mOrigProj;
+		if (m_saveResults) {
+			mNormProj.reset( new ImageGrayU( bWidth, bHeight ) );
+			mNormProj->clear( 0 );
+			mOrigProj.reset( new ImageGrayU( bWidth, bHeight ) );
+			mOrigProj->clear( 0 );
+		}
+
+		// loop over block-face slice
+		for (int by = yCrop; by < bHeight - yCrop; by += step) {
+			for (int bx = xCrop; bx < bWidth - xCrop; bx += step) {
+				Point3 bPt( bx, by, bz );
+				Point3 mPt = transform.transform( bPt );
+
+				// check whether z coordinate falls within MR volume
+				int mz = sbl::round( mPt.z );
+				if (mz < 0 || mz >= m_mrNormImages.count()) {
+					sumDiff += zBoundPenalty;
+					count++;
+				} else {
+					ImageGrayU &mNorm = m_mrNormImages[ mz ];
+					int mx = sbl::round( mPt.x );
+					int my = sbl::round( mPt.y );
+					if (mNorm.inBounds( mx, my )) {
+						int diff = bNorm.data( bx, by ) - mNorm.data( mx, my );
+						if (diff < 0)
+							diff = -diff;
+						sumDiff += diff;
+						count++;
+
+						// if requested, create a visualization of the registration
+						if (m_saveResults) {
+							if (mPt.z > 0) {
+								int vNorm = round( interp( m_mrNormImages, (float) mPt.x, (float) mPt.y, (float) mPt.z ) );
+								int vOrig = round( interp( m_mrOrigImages, (float) mPt.x, (float) mPt.y, (float) mPt.z ) );
+								if (bx + step <= bWidth && by + step <= bHeight) {
+									for (int y = by; y < by + step; y++) {
+										for (int x = bx; x < bx + step; x++) {
+											mNormProj->data( x, y ) = vNorm;
+											mOrigProj->data( x, y ) = vOrig;
+										}
+									}
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+		// if requested, save a visualization of the registration
+		if (m_saveResults) {
+			ImageColorU vis( bWidth, bHeight );
+			vis.clear( 255, 255, 255 );
+			drawMaskBoundary( vis, bNorm, 128, 255, 0, 0 );
+			drawMaskBoundary( vis, *mNormProj, 128, 0, 0, 255 );
+			saveImage( vis, m_outputPath + "/vis/" + sprintF( "%04d.png", bz ) );
+			saveImage( *mOrigProj, m_outputPath + "/" + sprintF( "%04d.png", bz ) );
+			aptr<ImageGrayU> both = joinHoriz( bOrig, *mOrigProj );
+			saveImage( *both, m_outputPath + "/vis/" + sprintF( "both_%04d.png", bz ) );
+		}
+	}
+  
+  if (useNonLinear)
+  {
+	  Array<CorresField3D> cfSeq;
+    cfSeq = loadCorresSeq( mrRegPath + "/cfSeq.cfs" );
+  	int depth = cfSeq.count();
+  	int width = cfSeq[ 0 ].width(), height = cfSeq[ 0 ].height();
+  	Array<ImageGrayU> destSeqMapped;
+  	initImageSeq( destSeqMapped, width, height, depth, false, 0 );
+  	mapBack( cfSeq, mrInputImages, destSeqMapped );
+  }
+
+	for (int z = 0; z < depth; z++) {
+		saveImage( destSeqMapped[ z ], outputPath + sprintF( "/%04d.png", z ) );
+  }
+  
+}*/
 
 
 //-------------------------------------------
@@ -831,6 +1026,7 @@ void initHistoTransform() {
 	registerCommand( "hprojtest", testProjectPoints );
 	registerCommand( "hprojb", projectHistoToBlockFace );
 	registerCommand( "mprojb", projectMriToBlockFace );
+//	registerCommand( "mprojb2", projectMriToBlockFace2 );
 }
 
 
