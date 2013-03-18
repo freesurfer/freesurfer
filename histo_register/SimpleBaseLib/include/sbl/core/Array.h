@@ -133,10 +133,10 @@ public:
     /// remove all items and reset to empty array (as if destruct then construct)
     void reset();
 
-private:
-
     /// extend the set (keeping old items, if any)
     void extend( int newLength );
+
+private:
 
     // returns number of elements in array (some may be NULL if not set using set())
     int m_count;
