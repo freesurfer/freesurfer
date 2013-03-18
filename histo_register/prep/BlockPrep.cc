@@ -9,6 +9,13 @@
 #include <sbl/image/ImageRegister.h>
 #include <sbl/image/Video.h>
 #include <sbl/other/Plot.h>
+#include <vector>
+#include <string> 
+#include <iostream>
+#ifdef HAVE_OPENMP
+  #include <omp.h>
+#endif
+
 using namespace sbl;
 namespace hb {
 
@@ -41,13 +48,13 @@ void selectBlockFaceImageSubset( Config &conf ) {
 
 
 /// compute a rough mask of a block-face image
-aptr<ImageGrayU> roughMask( const ImageColorU &image ) {
+aptr<ImageGrayU> roughMask( const ImageColorU &image, int pixelstep = 1) {
 
 	// blur to remove outliers
 	aptr<ImageColorU> blurImage = blurBox( image, 3 );
 	int width = image.width(), height = image.height();
 
-	// compute mask of candidate pixels
+/*	// compute mask of candidate pixels
 	int candCount = 0;
 	aptr<ImageGrayU> mask( new ImageGrayU( width, height ) );
 	for (int y = 0; y < height; y++) {
@@ -61,7 +68,86 @@ aptr<ImageGrayU> roughMask( const ImageColorU &image ) {
 				mask->data( x, y ) = 0;
 			}
 		}
+	}*/
+
+  int histogramSize = 50;
+	std::vector < int >  HistogramRaw(histogramSize,0);
+	int histoCount = 0;
+
+	// first run to compute min max of  red-blue
+  int minrmb = 257;
+  int maxrmb = -257;
+	for (int y = 0; y < height; y+=pixelstep) {
+		for (int x = 0; x < width; x+=pixelstep) {
+			int rmb = blurImage->r( x, y ) - blurImage->b( x, y );
+      if (rmb < minrmb) minrmb = rmb;
+      if (rmb > maxrmb) maxrmb = rmb;
+		}
 	}
+  //disp( 1, "rhisto: minrmb: %d, maxrmb: %d", minrmb, maxrmb );
+  //disp( 1, "histosize: %d", histogramSize );
+  
+	// second run to compute histogram
+	for (int y = 0; y < height; y+=pixelstep) {
+		for (int x = 0; x < width; x+=pixelstep) {
+			double rmb = blurImage->r( x, y ) - blurImage->b( x, y );
+      rmb = double(rmb-minrmb)/(maxrmb-minrmb);  // scale to  0..1
+      int rmbh = rmb * (histogramSize - 1);
+      
+      if (rmbh < 0 || rmbh >= histogramSize)
+      {
+        disp( 1, "Error out of bounds histo: %f %d",rmb, rmbh );
+        exit(1);
+      } 
+      
+      HistogramRaw[ rmbh ]++;
+      histoCount++;
+		}
+	}
+
+  // compute split in histogram
+  int s = HistogramRaw.size();
+  int max1 = 0; double max1val = HistogramRaw.front();
+  int max2 = s -1 ; double max2val = HistogramRaw.back();
+  for (int i = 1 ; i< histogramSize/2 ; i++)
+  {
+    if (HistogramRaw[i] > max1val) 
+    {
+      max1val = HistogramRaw[i];
+      max1 = i;
+    }
+    if (HistogramRaw[s-1-i] > max2val)
+    {
+      max2val = HistogramRaw[s-1-i];
+      max2 = s-1-i;
+    }
+  }
+  int min = max1; double minval = HistogramRaw[max1];
+  for (int i = max1+1; i<max2;i++)
+    if (HistogramRaw[i] < minval)
+    {
+      minval = HistogramRaw[i];
+      min = i;
+    }
+    
+
+	// compute mask of candidate pixels based on histogram split at min
+	int candCount = 0;
+	aptr<ImageGrayU> mask( new ImageGrayU( width, height ) );
+	for (int y = 0; y < height; y++) {
+		for (int x = 0; x < width; x++) {
+			double rmb = blurImage->r( x, y ) - blurImage->b( x, y );
+      rmb = double(rmb-minrmb)/(maxrmb-minrmb);  // scale to  0..1
+      int rmbh = rmb * (histogramSize - 1);
+			if (rmbh > min) {
+				mask->data( x, y ) = 255;
+				candCount++;
+			} else {
+				mask->data( x, y ) = 0;
+			}
+		}
+	}
+
 
 	// clean up the mask
 	mask = blurBoxAndThreshold( *mask, 5, 128 );
@@ -91,8 +177,58 @@ aptr<ImageGrayU> roughMask( const ImageColorU &image ) {
 			}
 		}
 	}
-	disp( 1, "candCount: %d, finalCount: %d", candCount, finalCount );
+	disp( 1, "Rough mask: candCount: %d, finalCount: %d", candCount, finalCount );
+      
 	return mask;
+}
+
+double normalizeBackground( ImageColorU& image, const ImageGrayU& mask)
+{
+	int width = image.width(), height = image.height();
+  long int sumr = 0;
+  long int sumg = 0;
+  long int sumb = 0;
+  long int bcount = 0;
+	for (int y = 0; y < height; y++) {
+		for (int x = 0; x < width; x++) {
+			if (mask.data( x, y ) == 0) {
+				sumr += image.r( x, y );
+        sumg += image.g( x, y );
+        sumb += image.b( x, y );
+        bcount++;
+			}
+    }
+  }
+
+  double scaler = (200.0 * bcount) / sumr;
+  double scaleg = (200.0 * bcount) / sumg;
+  double scaleb = (200.0 * bcount) / sumb;
+  disp(1,"mean background rgb %f %f %f",((double)sumr)/bcount,((double)sumg)/bcount,((double)sumb)/bcount);
+  //disp(1,"scale rgb %f %f %f",scaler,scaleg,scaleb);
+  double rval,gval,bval;
+  double mval = 0.0;
+  long int fcount = 0;
+	for (int y = 0; y < height; y++) {
+		for (int x = 0; x < width; x++) {
+		  rval= image.r(x,y) * scaler;
+      if (rval > 255) rval = 255;
+      image.setR(x,y,rval);
+		  gval= image.g(x,y) * scaleg;
+      if (gval > 255) gval = 255;
+      image.setG(x,y,gval);
+		  bval= image.b(x,y) * scaleb;
+      if (bval > 255) bval = 255;
+      image.setB(x,y,bval);
+      if (mask.data( x, y) ==255){
+        mval += (rval+gval+bval)/3.0;
+        fcount++;
+      }
+    }
+  }
+  mval /= fcount;
+  disp(1,"mean foreground intensity %f",mval);
+  return mval;
+
 }
 
 
@@ -176,12 +312,16 @@ void cropBlockFaceImages( Config &conf ) {
 	// get command parameters
 	String inputPath = addDataPath( conf.readString( "inputPath", "blockface/raw" ) );
 	String outputPath = addDataPath( conf.readString( "outputPath", "blockface/crop" ) );
+	String outSegPath = addDataPath( conf.readString( "outputPath", "blockface/roughseg" ) );
 	String mriPath = addDataPath( conf.readString( "mriPath", "mri/seg" ) );
+  int splitIndex = conf.readInt( "splitIndex", -2 );
+  bool findsplit = (splitIndex == -2 ); //automatically estimate split
 	int visScale = 8;
 	int pad = 100; // note: the pad will end up being larger than this because of the split transform
 
 	// create output dir
 	createDir( outputPath );
+	createDir( outSegPath );
 
 	// get input file list
 	Array<String> fileList = dirFileList( inputPath, "", ".JPG" );
@@ -193,6 +333,7 @@ void cropBlockFaceImages( Config &conf ) {
 	// prepare visualization path
 	String visPath = outputPath + "/vis";
 	createDir( visPath );
+  //createDir( outSegPath + "/vis");
 
 	// load first image to get dimensions
 	aptr<ImageColorU> firstImage = load<ImageColorU>( inputPath + "/" + fileList[ 0 ] );
@@ -209,17 +350,23 @@ void cropBlockFaceImages( Config &conf ) {
 
 	// first pass: compute bounds
 	int xMin = 100000, xMax = 0, yMin = 100000, yMax = 0;
-	VectorD countVect;
-	int splitIndex = -1, maxDiff = 0;
+	VectorD countVect(fileList.count());
+  bool keepgoing = true;
+  bool doreturn = false;
+#ifdef HAVE_OPENMP
+#pragma omp parallel for 
+#endif
 	for (int inputIndex = 0; inputIndex < fileList.count(); inputIndex++) {
 	
+    if (! keepgoing) continue; // can't break in parallel loop
 		// load the input image
 		aptr<ImageColorU> image = load<ImageColorU>( inputPath + "/" + fileList[ inputIndex ] );
 		assertAlways( image->width() == width && image->height() == height );
 
 		// compute rough mask of tissue area
-		aptr<ImageGrayU> mask = roughMask( *image );
-
+		aptr<ImageGrayU> mask = roughMask( *image, 1 );
+    saveImage( *mask,  outSegPath + "/" +  fileList[ inputIndex ].leftOfLast( '.' ) + ".png" );
+    
 		// find bounds of mask area
 		int insideCount = 0;
 		for (int y = 0; y < height; y++) {
@@ -227,51 +374,80 @@ void cropBlockFaceImages( Config &conf ) {
 				if (mask->data( x, y ) == 255) {
 					insideCount++;
 					if (x < xMin) 
-						xMin = x;
+#ifdef HAVE_OPENMP
+#pragma omp critical
+#endif
+{	  				if (x < xMin) xMin = x; }
 					if (x > xMax)
-						xMax = x;
+#ifdef HAVE_OPENMP
+#pragma omp critical
+#endif
+{						if (x > xMax) xMax = x; }
 					if (y < yMin)
-						yMin = y;
+#ifdef HAVE_OPENMP
+#pragma omp critical
+#endif
+{						if (y < yMin) yMin = y; }
 					if (y > yMax)
-						yMax = y;
+#ifdef HAVE_OPENMP
+#pragma omp critical
+#endif
+{						if (y > yMax) yMax = y; }
 					image->setRGB( x, y, 255, 0, 0 );
 				}
 			}
 		}
-		
-		// check for split
-		int diff = 0;
-		if (countVect.length())
-			diff = iAbs( insideCount - (int) countVect.endValue() );
-		if (diff > maxDiff) {
-			maxDiff = diff;
-			splitIndex = inputIndex - 1;
-		}
-
+		    
 		// store for counts
-		disp( 1, "inputIndex: %d, file: %s, insideCount: %d, diff: %d", inputIndex, fileList[ inputIndex ].c_str(), insideCount, diff );
-		countVect.append( (double) insideCount );
+#ifdef HAVE_OPENMP
+#pragma omp critical
+#endif
+		disp( 1, "inputIndex: %d, file: %s, insideCount: %d", inputIndex, fileList[ inputIndex ].c_str(), insideCount );
+		//disp( 1, "inputIndex: %d, file: %s, insideCount: %d, diff: %d", inputIndex, fileList[ inputIndex ].c_str(), insideCount, diff );
+		countVect[inputIndex] =  (double) insideCount ;
 
 		// check for bad slice
-		if (insideCount < 100000 || diff > 1000000) {
+		if (insideCount < 100000 ) {
+#ifdef HAVE_OPENMP
+#pragma omp critical
+#endif
+{
 			warning( "bad slice: %s; stopping command", fileList[ inputIndex ].c_str() );
-			return;
+      keepgoing = false;
+      doreturn = true;
+//			return;
+}
 		}
+    if (! keepgoing) continue; // can't break in parallel loop
 
 		// create visualization image
-		aptr<ImageColorU> visImage = resize( *image, visWidth, visHeight, true );
-		outputVideo.append( *visImage );
-//		saveImage( *visImage, visPath + "/" + fileList[ inputIndex ] );
+//		aptr<ImageColorU> visImage = resize( *image, visWidth, visHeight, true );
+//		outputVideo.append( *visImage );
+////		saveImage( *visImage, visPath + "/" + fileList[ inputIndex ] );
 
 		// check for user cancel
-		if (checkCommandEvents())
-			break;
+#ifdef HAVE_OPENMP
+    if(omp_get_thread_num() == 0)
+#endif
+    {
+		  if (checkCommandEvents())
+      {
+#ifdef HAVE_OPENMP
+#pragma omp critical
+#endif
+          keepgoing = false;
+//			  break;
+      }
+    }
 	}
+  if (doreturn) return;
+	if (checkCommandEvents())
+		return;
 	disp( 1, "orig xMin: %d, xMax: %d, yMin: %d, yMax: %d", xMin, xMax, yMin, yMax );
 	xMin = bound( xMin - pad, 0, width - 1 );
 	xMax = bound( xMax + pad, 0, width - 1 );
-	yMin = bound( yMin - pad, 0, width - 1 );
-	yMax = bound( yMax + pad, 0, width - 1 );
+	yMin = bound( yMin - pad, 0, height - 1 );
+	yMax = bound( yMax + pad, 0, height - 1 );
 	disp( 1, "crop xMin: %d, xMax: %d, yMin: %d, yMax: %d", xMin, xMax, yMin, yMax );
 
 	// save plot of counts
@@ -279,11 +455,35 @@ void cropBlockFaceImages( Config &conf ) {
 	plot.add( countVect );
 	plot.save( visPath + "/counts.svg" );
 
-	// compute transformation
-	String fileName1 = fileList[ splitIndex ];
-	String fileName2 = fileList[ splitIndex + 1 ];
-	disp( 1, "split index: %d, max diff: %d, file 1: %s, file 2: %s", splitIndex, maxDiff, fileName1.c_str(), fileName2.c_str() );
-	aptr<ImageTransform> transform = computeSplitTransform( inputPath + "/" + fileName1, inputPath + "/" + fileName2, visPath );
+  // find split and transform
+	int maxDiff = 0;
+  aptr<ImageTransform> transform;
+	for (int inputIndex = 1; inputIndex < fileList.count(); inputIndex++)
+  {
+    // check for split
+    int diff = iAbs( (int) countVect[inputIndex] - (int) countVect[inputIndex-1] );
+    if ( diff > 1000000) {
+			  warning( "bad slice: %s; stopping command", fileList[ inputIndex ].c_str() );
+			  return;
+    }
+    if (diff > maxDiff)
+    {
+  		maxDiff = diff;
+      if (findsplit) splitIndex = inputIndex - 1;
+    }
+  }
+
+  
+  if (splitIndex > 0)
+  {
+	  // compute transformation
+	  String fileName1 = fileList[ splitIndex ];
+	  String fileName2 = fileList[ splitIndex + 1 ];
+    int diff = iAbs( (int) countVect[splitIndex] - (int) countVect[splitIndex+1]);
+	  disp( 1, "split index: %d, diff: %d, max diff: %d, file 1: %s, file 2: %s", splitIndex, diff, maxDiff, fileName1.c_str(), fileName2.c_str() );
+	  disp( 1, "Computing Transform (microtome adjustment) ...");
+	  transform = computeSplitTransform( inputPath + "/" + fileName1, inputPath + "/" + fileName2, visPath );
+  }
 
 	// compute final scale factor
 	int xSize = xMax - xMin + 1;
@@ -296,11 +496,22 @@ void cropBlockFaceImages( Config &conf ) {
 	disp( 1, "block size: %d, mri size: %d, output width: %d, output height: %d", blockSize, mriSize, outputWidth, outputHeight );
 
 	// second pass: crop images
+  keepgoing = true;
+#ifdef HAVE_OPENMP
+#pragma omp parallel for 
+#endif
 	for (int inputIndex = 0; inputIndex < fileList.count(); inputIndex++) {
 	
+    if (! keepgoing) continue;
+  
 		// load the image
 		aptr<ImageColorU> image = load<ImageColorU>( inputPath + "/" + fileList[ inputIndex ] );
+#ifdef HAVE_OPENMP
+#pragma omp critical
+#endif
 		disp( 1, "file: %s", fileList[ inputIndex ].c_str() );
+		aptr<ImageGrayU> mask = load<ImageGrayU>( outSegPath + "/" + fileList[ inputIndex ].leftOfLast( '.' ) + ".png" );
+    normalizeBackground(*image,*mask);
 
 		// if before split, apply transform
 		if (inputIndex <= splitIndex) 
@@ -314,9 +525,42 @@ void cropBlockFaceImages( Config &conf ) {
 		saveImage( *image, outputPath + "/" + fileList[ inputIndex ].leftOfLast( '.' ) + ".png" );
 
 		// check for user cancel
+#ifdef HAVE_OPENMP
+    if(omp_get_thread_num() == 0)
+#endif
+    {
+		  if (checkCommandEvents())
+      {
+#ifdef HAVE_OPENMP
+#pragma omp critical
+#endif
+          keepgoing = false;
+//			  break;
+      }
+    }
+	}
+/*	// second pass: crop masks
+	for (int inputIndex = 0; inputIndex < fileList.count(); inputIndex++) {
+	
+		// load the image
+		aptr<ImageColorU> image = load<ImageColorU>( outSegPath + "/" + fileList[ inputIndex ].leftOfLast( '.' ) + ".png" );
+		disp( 1, "Seg file: %s", fileList[ inputIndex ].c_str() );
+
+		// if before split, apply transform
+		if (inputIndex <= splitIndex) 
+			image = transform->mapForward( *image, width, height, 255 );
+
+		// crop and shrink the image
+		image = crop( *image, xMin, xMax, yMin, yMax );
+		image = resize( *image, outputWidth, outputHeight, true );
+
+		// save to output path
+		saveImage( *image, outSegPath + "/" + fileList[ inputIndex ].leftOfLast( '.' ) + ".png" );
+
+		// check for user cancel
 		if (checkCommandEvents())
 			break;
-	}
+	}*/
 }
 
 
@@ -474,12 +718,52 @@ void segmentBlockFaceImages( Config &conf ) {
 	status( "\n" );
 }
 
+/// segment a set of cropped block-face images (using only rough mask)
+void segmentBlockFaceImagesSimple( Config &conf ) {
+
+	// get command parameters
+	String inputPath = addDataPath( conf.readString( "inputPath", "blockface/crop" ) );
+	String outputPath = addDataPath( conf.readString( "outputPath", "blockface/seg" ) );
+
+	// create output dir
+	createDir( outputPath );
+
+	// get input file list
+	Array<String> fileList = dirFileList( inputPath, "", ".png" );
+	if (fileList.count() == 0) { 
+		warning( "no input files at %s", inputPath.c_str() );
+		return;
+	}
+
+	// prepare visualization path
+	String visPath = outputPath + "/vis";
+	createDir( visPath );
+
+	for (int inputIndex = 0; inputIndex < fileList.count(); inputIndex++) {
+    disp(1,"file name %s ",fileList[ inputIndex ].c_str());
+  
+		// load image
+		aptr<ImageColorU> image = load<ImageColorU>( inputPath + "/" + fileList[ inputIndex ] );
+
+		// compute rough mask of tissue area
+		aptr<ImageGrayU> mask = roughMask( *image);
+
+		// save the mask
+		saveImage( *mask, outputPath + "/" + fileList[ inputIndex ] );
+
+		// check for user cancel
+		if (checkCommandEvents())
+			break;
+	}
+  
+	status( "\n" );
+}
 
 /// perform all steps needed to prepare a set of block-face images for registration
 void prepareBlockFaceImages( Config &conf ) {
 	cropBlockFaceImages( conf );
 	execCommand( "vcross blockface/crop blockface/crop/vis/cross", false );
-	segmentBlockFaceImages( conf );
+	segmentBlockFaceImagesSimple( conf );
 	execCommand( "vcross blockface/seg blockface/seg/vis/cross", false );
 }
 
@@ -494,6 +778,7 @@ void initBlockPrep() {
 	registerCommand( "bsubset", selectBlockFaceImageSubset );
 	registerCommand( "bcrop", cropBlockFaceImages ); 
 	registerCommand( "bseg", segmentBlockFaceImages ); 
+	registerCommand( "bsegsimple", segmentBlockFaceImagesSimple ); 
 	registerCommand( "bprep", prepareBlockFaceImages ); 
 }
 
