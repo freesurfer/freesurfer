@@ -9,8 +9,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2012/10/01 18:59:58 $
- *    $Revision: 1.110 $
+ *    $Date: 2013/03/18 12:53:45 $
+ *    $Revision: 1.111 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -249,7 +249,7 @@ LabelToCanonical(LABEL *area, MRI_SURFACE *mris)
     area->lv[n].y = v->cy ;
     area->lv[n].z = v->cz ;
   }
-  strncpy (area->space, "coords=canonical", sizeof(area->space));
+  strncpy (area->space, "TkReg coords=canonical", sizeof(area->space));
   return(NO_ERROR) ;
 }
 /*-----------------------------------------------------
@@ -607,7 +607,7 @@ LabelWrite(LABEL *area, const char *label_name)
                                "%s: could not open label file %s",
                                Progname, fname)) ;
 
-  nbytes = fprintf(fp, "#!ascii label %s , from subject %s vox2ras=TkReg %s\n",
+  nbytes = fprintf(fp, "#!ascii label %s , from subject %s vox2ras=%s\n",
                    area->name, area->subject_name, area->space);
   if(nbytes < 0)
   {
@@ -851,7 +851,7 @@ LabelAlloc(int max_points, char *subject_name, char *label_name)
       strncpy(area->name, label_name, STRLEN-1) ;
     }
   }
-  strcpy(area->space, "");
+  strcpy(area->space, "TkReg");
 
   area->n_points = 0 ;
   area->max_points = max_points ;
@@ -1367,13 +1367,89 @@ int LabelRemoveDuplicates(LABEL *area)
         deleted++ ;
         lv2->deleted = 1 ;
       }
+      else if (lv1->vno < 0 && lv2->vno < 0)
+      {
+	if (FEQUAL(lv1->x, lv2->x) && FEQUAL(lv1->y, lv2->y) && FEQUAL(lv1->z, lv2->z))
+	{
+	  deleted++ ;
+	  lv2->deleted = 1 ;
+	}
+      }
     }
   }
+
   if (Gdiag & DIAG_SHOW)
     fprintf(stderr, "%d duplicate vertices removed from label %s.\n",
             deleted, area->name) ;
   return(NO_ERROR) ;
 }
+
+/*-----------------------------------------------------
+  int LabelRemoveDuplicates(LABEL *area)
+  Sets the 'deleted' flag of a label point if it is
+  a duplicate. Does not actually remove duplicats!
+  ------------------------------------------------------*/
+LABEL *LabelRemoveAlmostDuplicates(LABEL *area, double dist, LABEL *ldst)
+{
+  int    n1, n2, deleted = 0 ;
+  LV     *lv1, *lv2 ;
+
+  // loop thru each label point
+  for (n1 = 0 ; n1 < area->n_points ; n1++)
+  {
+    lv1 = &area->lv[n1] ;
+    if(lv1->deleted)
+    {
+      continue ;
+    }
+    // loop thru the remaining looking for duplicates
+    for (n2 = n1+1 ; n2 < area->n_points ; n2++)
+    {
+      lv2 = &area->lv[n2] ;
+      if(lv1->vno >= 0 && lv2->vno >= 0 && lv1->vno == lv2->vno)
+      {
+        deleted++ ;
+        lv2->deleted = 1 ;
+      }
+      else if (lv1->vno < 0 && lv2->vno < 0)
+      {
+	if (fabs(lv1->x-lv2->x)<dist && fabs(lv1->y-lv2->y)<dist && fabs(lv1->z- lv2->z)<dist)
+	{
+	  deleted++ ;
+	  lv2->deleted = 1 ;
+	}
+      }
+    }
+  }
+  if (Gdiag & DIAG_SHOW)
+    fprintf(stderr, "%d duplicate vertices removed from label %s.\n",
+            deleted, area->name) ;
+  ldst = LabelCompact(area, ldst) ;
+  return(ldst) ;
+}
+LABEL   *
+LabelCompact(LABEL *lsrc, LABEL *ldst)
+{
+  int i, n ;
+  for (i = n = 0 ; i < lsrc->n_points ; i++)
+    if (lsrc->lv[i].deleted == 0)
+      n++ ;
+
+  ldst = LabelRealloc(ldst, n) ;
+  for (i = n = 0 ; i < lsrc->n_points ; i++)
+    if (lsrc->lv[i].deleted == 0)
+    {
+      ldst->lv[n] .x = lsrc->lv[i].x ;
+      ldst->lv[n] .y = lsrc->lv[i].y ;
+      ldst->lv[n] .z = lsrc->lv[i].z ;
+      ldst->lv[n] .vno = lsrc->lv[i].vno ;
+      ldst->lv[n] .stat = lsrc->lv[i].stat ;
+      n++ ;
+    }
+  ldst->n_points = n ;
+  return(ldst) ;
+}
+
 /*-----------------------------------------------------*/
 double LabelArea(LABEL *area, MRI_SURFACE *mris)
 {
@@ -1626,7 +1702,7 @@ LabelToOriginal(LABEL *area, MRI_SURFACE *mris)
     area->lv[n].y = v->origy ;
     area->lv[n].z = v->origz ;
   }
-  strncpy (area->space, "coords=orig", sizeof(area->space));
+  strncpy (area->space, "TkReg coords=orig", sizeof(area->space));
   return(NO_ERROR) ;
 }
 /*-----------------------------------------------------
@@ -1656,7 +1732,7 @@ LabelToWhite(LABEL *area, MRI_SURFACE *mris)
     area->lv[n].y = v->whitey ;
     area->lv[n].z = v->whitez ;
   }
-  strncpy (area->space, "coords=white", sizeof(area->space));
+  strncpy (area->space, "TkReg coords=white", sizeof(area->space));
   return(NO_ERROR) ;
 }
 /*-----------------------------------------------------
@@ -2687,24 +2763,26 @@ int LabelHasVertex(int vtxno, LABEL *lb)
   to have max_points. If something goes wrong, returns 1 without
   changing anything. Otherwise returns 0.
   ---------------------------------------------------------------*/
-int LabelRealloc(LABEL *lb, int max_points)
+LABEL *LabelRealloc(LABEL *lb, int max_points)
 {
   LV *lvtmp;
 
+  if (lb == NULL)
+    return(LabelAlloc(max_points, NULL, NULL)) ;
   if (max_points <= lb->max_points)
   {
-    return(0);
+    return(lb);
   }
 
   lvtmp = realloc(lb->lv,sizeof(LV)*max_points);
   if (lvtmp == NULL)
   {
-    return(1);
+    return(lb);
   }
   lb->max_points = max_points;
   lb->lv = lvtmp;
 
-  return(0);
+  return(lb);
 }
 /*------------------------------------------------------------
   LabelfromASeg() - creates a label from a segmentation given
@@ -3263,3 +3341,78 @@ LabelSetVals(MRI_SURFACE *mris, LABEL *area, float fillval)
   }
   return(NO_ERROR) ;
 }
+/*
+  convert the label coords from tkreg (surface) RAS to scanner RAS. Note that this assumes that the
+  label coords are in tkreg space
+*/
+LABEL *
+LabelToScannerRAS(LABEL *lsrc, MRI *mri, LABEL *ldst)
+{
+  int i ;
+  MATRIX *M_surface_to_RAS = RASFromSurfaceRAS_(mri)  ;
+  VECTOR *v1, *v2 ;
+
+  if (ldst == NULL)
+  {
+    ldst = LabelClone(lsrc) ;
+    ldst->n_points = lsrc->n_points ;
+  }
+  
+  v1 = VectorAlloc(4, MATRIX_REAL) ;
+  v2 = VectorAlloc(4, MATRIX_REAL) ;
+  VECTOR_ELT(v1,4) = 1.0 ;
+  VECTOR_ELT(v2,4) = 1.0 ;
+  for (i = 0 ; i < lsrc->n_points ; i++)
+  {
+    V3_X(v1) = lsrc->lv[i].x ; V3_Y(v1) = lsrc->lv[i].y ; V3_Z(v1) = lsrc->lv[i].z ;
+    MatrixMultiply(M_surface_to_RAS, v1, v2) ;
+    ldst->lv[i].x = V3_X(v2) ; ldst->lv[i].y = V3_Y(v2) ;  ldst->lv[i].z = V3_Z(v2) ;
+    ldst->lv[i].stat = lsrc->lv[i].stat ;
+  }
+  strncpy (ldst->space, "scanner", sizeof(ldst->space));
+  VectorFree(&v1) ; VectorFree(&v2) ; MatrixFree(&M_surface_to_RAS) ;
+  return(ldst) ;
+}
+
+/*
+  convert the label coords from tkreg (surface) RAS to voxels. Note that this assumes that the
+  label coords are in tkreg space
+*/
+LABEL *
+LabelToVoxel(LABEL *lsrc, MRI *mri, LABEL *ldst)
+{
+  int i ;
+  MATRIX *M_surface_to_vox = RASFromSurfaceRAS_(mri)  ;
+  VECTOR *v1, *v2 ;
+
+  M_surface_to_vox = voxelFromSurfaceRAS_(mri);
+  if (ldst == NULL)
+  {
+    ldst = LabelClone(lsrc) ;
+    ldst->n_points = lsrc->n_points ;
+  }
+  
+  v1 = VectorAlloc(4, MATRIX_REAL) ;
+  v2 = VectorAlloc(4, MATRIX_REAL) ;
+  VECTOR_ELT(v1,4) = 1.0 ;
+  VECTOR_ELT(v2,4) = 1.0 ;
+  for (i = 0 ; i < lsrc->n_points ; i++)
+  {
+    V3_X(v1) = lsrc->lv[i].x ; V3_Y(v1) = lsrc->lv[i].y ; V3_Z(v1) = lsrc->lv[i].z ;
+    MatrixMultiply(M_surface_to_vox, v1, v2) ;
+    ldst->lv[i].x = V3_X(v2) ; ldst->lv[i].y = V3_Y(v2) ;  ldst->lv[i].z = V3_Z(v2) ;
+    ldst->lv[i].stat = lsrc->lv[i].stat ;
+  }
+  strncpy (ldst->space, "voxel", sizeof(ldst->space));
+  VectorFree(&v1) ; VectorFree(&v2) ; MatrixFree(&M_surface_to_vox) ;
+  return(ldst) ;
+}
+LABEL *
+LabelClone(LABEL *a) 
+{
+  LABEL *l ;
+  l = LabelAlloc(a->max_points,a->subject_name,a->name) ;
+  strcpy(l->space, a->space) ;
+  return(l) ;
+}
+
