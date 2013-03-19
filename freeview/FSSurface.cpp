@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2012/10/31 20:10:11 $
- *    $Revision: 1.66 $
+ *    $Date: 2013/03/19 21:27:06 $
+ *    $Revision: 1.67 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -88,6 +88,33 @@ FSSurface::FSSurface( FSVolume* ref, QObject* parent ) : QObject( parent ),
     m_bSurfaceLoaded[i] = false;
     m_HashTable[i] = NULL;
   }
+
+  m_targetToRasMatrix[0] = 1;
+  m_targetToRasMatrix[1] = 0;
+  m_targetToRasMatrix[2] = 0;
+  m_targetToRasMatrix[3] = 0;
+  m_targetToRasMatrix[4] = 0;
+  m_targetToRasMatrix[5] = 1;
+  m_targetToRasMatrix[6] = 0;
+  m_targetToRasMatrix[7] = 0;
+  m_targetToRasMatrix[8] = 0;
+  m_targetToRasMatrix[9] = 0;
+  m_targetToRasMatrix[10] = 1;
+  m_targetToRasMatrix[11] = 0;
+  m_targetToRasMatrix[12] = 0;
+  m_targetToRasMatrix[13] = 0;
+  m_targetToRasMatrix[14] = 0;
+  m_targetToRasMatrix[15] = 1;
+  if (ref)
+  {
+    MATRIX* mat = ref->GetTargetToRASMatrix();
+    for ( int i = 0; i < 16; i++ )
+    {
+      m_targetToRasMatrix[i] = (double) *MATRIX_RELT((mat),(i/4)+1,(i%4)+1);
+    }
+  }
+  m_targetToRasTransform = vtkSmartPointer<vtkTransform>::New();
+  m_targetToRasTransform->SetMatrix( m_targetToRasMatrix );
 }
 
 FSSurface::~FSSurface()
@@ -718,10 +745,13 @@ void FSSurface::UpdatePolyData( MRIS* mris,
     surfaceRAS[1] = mris->vertices[vno].y;
     surfaceRAS[2] = mris->vertices[vno].z;
     this->ConvertSurfaceToRAS( surfaceRAS, point );
+    /*
     if ( m_volumeRef )
     {
       m_volumeRef->RASToTarget( point, point );
     }
+    */
+    m_targetToRasTransform->GetInverse()->TransformPoint(point, point);
     newPoints->InsertNextPoint( point );
 
     normal[0] = mris->vertices[vno].nx;
@@ -730,11 +760,16 @@ void FSSurface::UpdatePolyData( MRIS* mris,
     float orig[3] = { 0, 0, 0 };
     this->ConvertSurfaceToRAS( orig, orig );
     this->ConvertSurfaceToRAS( normal, normal );
+    /*
     if ( m_volumeRef )
     {
       m_volumeRef->RASToTarget( orig, orig );
       m_volumeRef->RASToTarget( normal, normal );
     }
+    */
+    m_targetToRasTransform->GetInverse()->TransformPoint(orig, orig);
+    m_targetToRasTransform->GetInverse()->TransformPoint(normal, normal);
+
     for (int i = 0; i < 3; i++)
       normal[i] = normal[i] - orig[i];
     vtkMath::Normalize(normal);
@@ -814,10 +849,13 @@ void FSSurface::UpdateVerticesAndNormals()
     surfaceRAS[1] = m_MRIS->vertices[vno].y;
     surfaceRAS[2] = m_MRIS->vertices[vno].z;
     this->ConvertSurfaceToRAS( surfaceRAS, point );
+    /*
     if ( m_volumeRef )
     {
       m_volumeRef->RASToTarget( point, point );
     }
+    */
+    m_targetToRasTransform->GetInverse()->TransformPoint(point, point);
     newPoints->InsertNextPoint( point );
 
     normal[0] = m_MRIS->vertices[vno].nx;
@@ -859,10 +897,13 @@ void FSSurface::UpdateVectors()
         surfaceRAS[1] = m_fVertexSets[m_nActiveSurface][vno].y + vectors[vno].y;
         surfaceRAS[2] = m_fVertexSets[m_nActiveSurface][vno].z + vectors[vno].z;
         this->ConvertSurfaceToRAS( surfaceRAS, point );
+        /*
         if ( m_volumeRef )
         {
           m_volumeRef->RASToTarget( point, point );
         }
+        */
+        m_targetToRasTransform->GetInverse()->TransformPoint(point, point);
         double* p0 = oldPoints->GetPoint( vno );
         if (normals)
         {
@@ -999,10 +1040,13 @@ void FSSurface::UpdateVector2D( int nPlane, double slice_pos, vtkPolyData* conto
         surfaceRAS[1] = m_fVertexSets[m_nActiveSurface][vno].y + vectors[vno].y;
         surfaceRAS[2] = m_fVertexSets[m_nActiveSurface][vno].z + vectors[vno].z;
         this->ConvertSurfaceToRAS( surfaceRAS, point );
+        /*
         if ( m_volumeRef )
         {
           m_volumeRef->RASToTarget( point, point );
         }
+        */
+        m_targetToRasTransform->GetInverse()->TransformPoint(point, point);
 
         if ( contour_pts )
         {
@@ -1379,6 +1423,16 @@ void FSSurface::ConvertRASToSurface ( float const iRAS[3], float oSurf[3] ) cons
 void FSSurface::ConvertRASToSurface ( double const iRAS[3], double oSurf[3] ) const
 {
   m_SurfaceToRASTransform->GetInverse()->TransformPoint( iRAS, oSurf );
+}
+
+void FSSurface::ConvertTargetToRAS(const double iTarget[], double oRAS[]) const
+{
+  m_targetToRasTransform->TransformPoint(iTarget, oRAS);
+}
+
+void FSSurface::ConvertRASToTarget(const double iRAS[], double oTarget[]) const
+{
+  m_targetToRasTransform->GetInverse()->TransformPoint(iRAS, oTarget);
 }
 
 void FSSurface::GetBounds ( float oRASBounds[6] )

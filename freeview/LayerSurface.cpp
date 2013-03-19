@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2013/01/09 01:07:31 $
- *    $Revision: 1.80 $
+ *    $Date: 2013/03/19 21:27:06 $
+ *    $Revision: 1.81 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -133,6 +133,8 @@ LayerSurface::LayerSurface( LayerMRI* ref, QObject* parent ) : LayerEditable( pa
   connect( p, SIGNAL(PositionChanged()), this, SLOT(UpdateActorPositions()) );
   connect( p, SIGNAL(PositionChanged(double, double, double)),
            this, SLOT(UpdateROIPosition(double, double, double)));
+
+  connect( m_volumeRef, SIGNAL(destroyed()), this, SLOT(ResetVolumeRef()));
 }
 
 LayerSurface::~LayerSurface()
@@ -847,6 +849,7 @@ int LayerSurface::GetVertexIndexAtTarget( double* pos, double* distance )
   {
     pos_o[i] = pos[i] - offset[i];
   }
+  /*
   if ( m_volumeRef )
   {
     double realRas[3];
@@ -857,6 +860,10 @@ int LayerSurface::GetVertexIndexAtTarget( double* pos, double* distance )
   {
     return m_surfaceSource->FindVertexAtRAS( pos_o, distance );
   }
+  */
+  double realRas[3];
+  m_surfaceSource->ConvertTargetToRAS( pos_o, realRas );
+  return m_surfaceSource->FindVertexAtRAS( realRas, distance );
 }
 
 bool LayerSurface::GetRASAtVertex( int nVertex, double* ras )
@@ -882,10 +889,13 @@ void LayerSurface::GetSurfaceRASAtTarget( double* pos_in, double* ras_out )
   {
     pos_o[i] = pos_in[i] - offset[i];
   }
+  /*
   if ( m_volumeRef )
   {
     m_volumeRef->TargetToRAS( pos_o, pos_o );
   }
+  */
+  m_surfaceSource->ConvertTargetToRAS( pos_o, pos_o );
   m_surfaceSource->ConvertRASToSurface( pos_o, ras_out );
 }
 
@@ -897,10 +907,13 @@ void LayerSurface::GetTargetAtSurfaceRAS( double* ras_in, double* pos_out )
   }
 
   m_surfaceSource->ConvertSurfaceToRAS( ras_in, pos_out );
+  /*
   if ( m_volumeRef )
   {
     m_volumeRef->RASToTarget( pos_out, pos_out );
   }
+  */
+  m_surfaceSource->ConvertRASToTarget(pos_out, pos_out);
 }
 
 bool LayerSurface::GetSurfaceRASAtVertex( int nVertex, double* ras )
@@ -921,9 +934,10 @@ bool LayerSurface::GetTargetAtVertex( int nVertex, double* ras )
   }
 
   bool bRet = m_surfaceSource->GetRASAtVertex( nVertex, ras );
-  if ( bRet && m_volumeRef )
+  if ( bRet )
   {
-    m_volumeRef->RASToTarget( ras, ras );
+    //m_volumeRef->RASToTarget( ras, ras );
+    m_surfaceSource->ConvertRASToTarget(ras, ras);
   }
 
   double* offset = GetProperty()->GetPosition();
@@ -1601,4 +1615,10 @@ bool LayerSurface::HasValidVolumeGeometry()
 int LayerSurface::GetNumberOfVertices()
 {
   return this->m_surfaceSource->GetNumberOfVertices();
+}
+
+void LayerSurface::ResetVolumeRef()
+{
+  m_volumeRef = NULL;
+  m_surfaceSource->ResetVolumeRef();
 }

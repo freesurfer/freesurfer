@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2013/03/06 22:55:25 $
- *    $Revision: 1.232 $
+ *    $Date: 2013/03/19 21:27:06 $
+ *    $Revision: 1.233 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -5123,7 +5123,9 @@ void MainWindow::OnGoToPoint()
     QFile file( fn );
     file.open(QIODevice::ReadOnly | QIODevice::Text);
     QString strg = file.readAll();
-    QStringList args = strg.trimmed().split(" ", QString::SkipEmptyParts);
+    QStringList args = strg.trimmed().split(QRegExp("\\s+"));
+    while (args.size() > 3)
+      args.removeLast();
     args.insert( args.begin(), "setras" );
     args << "tkreg";
     CommandSetRAS( args );
