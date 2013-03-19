@@ -92,7 +92,7 @@ aptr<ImageGrayU> roughMask( const ImageColorU &image, int pixelstep = 1) {
 		for (int x = 0; x < width; x+=pixelstep) {
 			double rmb = blurImage->r( x, y ) - blurImage->b( x, y );
       rmb = double(rmb-minrmb)/(maxrmb-minrmb);  // scale to  0..1
-      int rmbh = rmb * (histogramSize - 1);
+      int rmbh = (int) (rmb * (histogramSize - 1));
       
       if (rmbh < 0 || rmbh >= histogramSize)
       {
@@ -138,7 +138,7 @@ aptr<ImageGrayU> roughMask( const ImageColorU &image, int pixelstep = 1) {
 		for (int x = 0; x < width; x++) {
 			double rmb = blurImage->r( x, y ) - blurImage->b( x, y );
       rmb = double(rmb-minrmb)/(maxrmb-minrmb);  // scale to  0..1
-      int rmbh = rmb * (histogramSize - 1);
+      int rmbh = (int) (rmb * (histogramSize - 1));
 			if (rmbh > min) {
 				mask->data( x, y ) = 255;
 				candCount++;
@@ -212,13 +212,13 @@ double normalizeBackground( ImageColorU& image, const ImageGrayU& mask)
 		for (int x = 0; x < width; x++) {
 		  rval= image.r(x,y) * scaler;
       if (rval > 255) rval = 255;
-      image.setR(x,y,rval);
+      image.setR(x,y,(unsigned char)rval);
 		  gval= image.g(x,y) * scaleg;
       if (gval > 255) gval = 255;
-      image.setG(x,y,gval);
+      image.setG(x,y,(unsigned char)gval);
 		  bval= image.b(x,y) * scaleb;
       if (bval > 255) bval = 255;
-      image.setB(x,y,bval);
+      image.setB(x,y,(unsigned char)bval);
       if (mask.data( x, y) ==255){
         mval += (rval+gval+bval)/3.0;
         fcount++;
