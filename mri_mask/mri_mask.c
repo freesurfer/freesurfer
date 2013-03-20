@@ -14,21 +14,19 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2010/01/14 20:35:45 $
- *    $Revision: 1.13 $
+ *    $Author: greve $
+ *    $Date: 2013/03/20 20:10:45 $
+ *    $Revision: 1.16.2.1 $
  *
- * Copyright (C) 2002-2007,
- * The General Hospital Corporation (Boston, MA). 
- * All rights reserved.
+ * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
- * Distribution, usage and copying of this software is covered under the
- * terms found in the License Agreement file named 'COPYING' found in the
- * FreeSurfer source code root directory, and duplicated here:
- * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ * Terms and conditions for use, reproduction, distribution and contribution
+ * are found in the 'FreeSurfer Software License Agreement' contained
+ * in the file 'LICENSE' found in the FreeSurfer distribution, and here:
  *
- * General inquiries: freesurfer@nmr.mgh.harvard.edu
- * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
+ *
+ * Reporting: freesurfer@nmr.mgh.harvard.edu
  *
  */
 
@@ -50,7 +48,7 @@
 #include "version.h"
 #include "transform.h"
 
-static char vcid[] = "$Id: mri_mask.c,v 1.13 2010/01/14 20:35:45 nicks Exp $";
+static char vcid[] = "$Id: mri_mask.c,v 1.16.2.1 2013/03/20 20:10:45 greve Exp $";
 
 void usage(int exit_val);
 
@@ -73,7 +71,8 @@ static float transfer_val;
 static int keep_mask_deletion_edits = 0; // if 1, keep mask voxels with value=1
 int DoAbs = 0;
 
-int main(int argc, char *argv[]) {
+int main(int argc, char *argv[])
+{
   char **av;
   MRI *mri_src, *mri_mask, *mri_dst ;
   int nargs, ac, nmask;
@@ -87,9 +86,12 @@ int main(int argc, char *argv[]) {
     handle_version_option
     (
       argc, argv,
-      "$Id: mri_mask.c,v 1.13 2010/01/14 20:35:45 nicks Exp $", "$Name:  $"
+      "$Id: mri_mask.c,v 1.16.2.1 2013/03/20 20:10:45 greve Exp $", "$Name:  $"
     );
-  if (nargs && argc - nargs == 1) exit (0);
+  if (nargs && argc - nargs == 1)
+  {
+    exit (0);
+  }
   argc -= nargs ;
 
   Progname = argv[0];
@@ -98,13 +100,15 @@ int main(int argc, char *argv[]) {
 
   ac = argc ;
   av = argv ;
-  for ( ; argc > 1 && ISOPTION(*argv[1]) ; argc--, argv++) {
+  for ( ; argc > 1 && ISOPTION(*argv[1]) ; argc--, argv++)
+  {
     nargs = get_option(argc, argv) ;
     argc -= nargs ;
     argv += nargs ;
   }
 
-  if (argc != 4) {
+  if (argc != 4)
+  {
     printf("Incorrect number of arguments, argc = %d\n", argc);
     usage(1);
   }
@@ -118,7 +122,8 @@ int main(int argc, char *argv[]) {
     ErrorExit(ERROR_BADPARM, "%s: could not read mask volume %s",
               Progname, argv[1]) ;
 
-  if(mri_src->width != mri_mask->width){
+  if(mri_src->width != mri_mask->width)
+  {
     printf("ERROR: dimension mismatch between source and mask\n");
     exit(1);
   }
@@ -126,7 +131,8 @@ int main(int argc, char *argv[]) {
   printf("DoAbs = %d\n",DoAbs);
 
   /* Read LTA transform and apply it to mri_mask */
-  if (xform_fname != NULL) {
+  if (xform_fname != NULL)
+  {
     MRI *mri_tmp;
 
     printf("Apply the given LTA xfrom to the mask volume\n");
@@ -137,15 +143,18 @@ int main(int argc, char *argv[]) {
         transform_type == TRANSFORM_ARRAY_TYPE ||
         transform_type == REGISTER_DAT ||
         transform_type == FSLREG_TYPE
-       ) {
+       )
+    {
       printf("Reading transform ...\n");
       lta = LTAreadEx(xform_fname) ;
       if (!lta)
         ErrorExit(ERROR_NOFILE, "%s: could not read transform file %s",
                   Progname, xform_fname) ;
 
-      if (transform_type == FSLREG_TYPE) {
-        if (lta_src == 0 || lta_dst == 0) {
+      if (transform_type == FSLREG_TYPE)
+      {
+        if (lta_src == 0 || lta_dst == 0)
+        {
           fprintf(stderr,
                   "ERROR: fslmat does not have information on "
                   "the src and dst volumes\n");
@@ -159,8 +168,10 @@ int main(int argc, char *argv[]) {
         LTAchangeType(lta, LINEAR_VOX_TO_VOX);
       }
 
-      if (lta->xforms[0].src.valid == 0) {
-        if (lta_src == 0) {
+      if (lta->xforms[0].src.valid == 0)
+      {
+        if (lta_src == 0)
+        {
           fprintf(stderr,
                   "The transform does not have the valid src volume info.\n");
           fprintf(stderr,
@@ -168,13 +179,17 @@ int main(int argc, char *argv[]) {
           fprintf(stderr,
                   "make the transform to have the valid src info.\n");
           ErrorExit(ERROR_BAD_PARM, "Bailing out...\n");
-        } else {
+        }
+        else
+        {
           LTAmodifySrcDstGeom(lta, lta_src, NULL); // add src information
           //      getVolGeom(lta_src, &lt->src);
         }
       }
-      if (lta->xforms[0].dst.valid == 0) {
-        if (lta_dst == 0) {
+      if (lta->xforms[0].dst.valid == 0)
+      {
+        if (lta_dst == 0)
+        {
           fprintf(stderr,
                   "The transform does not have the valid dst volume info.\n");
           fprintf(stderr,
@@ -188,23 +203,29 @@ int main(int argc, char *argv[]) {
           fprintf(stderr,
                   "without giving the dst volume for RAS-to-RAS transform.\n");
           ErrorExit(ERROR_BAD_PARM, "Bailing out...\n");
-        } else {
+        }
+        else
+        {
           LTAmodifySrcDstGeom(lta, NULL, lta_dst); // add  dst information
         }
       }
-    } else {
+    }
+    else
+    {
       ErrorExit(ERROR_BADPARM,
                 "transform is not of MNI, nor Register.dat, nor FSLMAT type");
     }
 
-    if (invert) {
+    if (invert)
+    {
       VOL_GEOM vgtmp;
       LT *lt;
       MATRIX *m_tmp = lta->xforms[0].m_L ;
       lta->xforms[0].m_L = MatrixInverse(lta->xforms[0].m_L, NULL) ;
       MatrixFree(&m_tmp) ;
       lt = &lta->xforms[0];
-      if (lt->dst.valid == 0 || lt->src.valid == 0) {
+      if (lt->dst.valid == 0 || lt->src.valid == 0)
+      {
         fprintf(stderr,
                 "WARNING:**************************************"
                 "*************************\n");
@@ -240,20 +261,36 @@ int main(int argc, char *argv[]) {
 
     mri_mask = mri_tmp;
 
-    if (lta_src)  MRIfree(&lta_src);
-    if (lta_dst)  MRIfree(&lta_dst);
-    if (lta)      LTAfree(&lta);
+    if (lta_src)
+    {
+      MRIfree(&lta_src);
+    }
+    if (lta_dst)
+    {
+      MRIfree(&lta_dst);
+    }
+    if (lta)
+    {
+      LTAfree(&lta);
+    }
   }   /* if (xform_fname != NULL) */
 
   // Threshold mask
   nmask = 0;
-  for (z = 0 ; z <mri_mask->depth ; z++){
-    for (y = 0 ; y < mri_mask->height ; y++){
-      for (x = 0 ; x < mri_mask->width ; x++) {
+  for (z = 0 ; z <mri_mask->depth ; z++)
+  {
+    for (y = 0 ; y < mri_mask->height ; y++)
+    {
+      for (x = 0 ; x < mri_mask->width ; x++)
+      {
         value = MRIgetVoxVal(mri_mask, x, y, z, 0);
-	if(DoAbs) value = fabs(value);
-        if(value <= threshold)  MRIsetVoxVal(mri_mask,x,y,z,0,0);
-	else nmask ++;
+        if(DoAbs) value = fabs(value);
+        if(value <= threshold) MRIsetVoxVal(mri_mask,x,y,z,0,0);
+        else
+        {
+	  MRIsetVoxVal(mri_mask,x,y,z,0,1);//required
+          nmask ++;
+        }
       }
     }
   }
@@ -261,18 +298,22 @@ int main(int argc, char *argv[]) {
 
   int mask=0;
   float out_val=0;
-  if (do_transfer)  {
+  if (do_transfer)
+  {
     mask = (int)transfer_val;
     out_val = transfer_val;
   }
   mri_dst = MRImask(mri_src, mri_mask, NULL, mask, out_val) ;
   if (!mri_dst)
+  {
     ErrorExit(Gerror, "%s: stripping failed", Progname) ;
+  }
 
-  if (keep_mask_deletion_edits) {
+  if (keep_mask_deletion_edits)
+  {
     mri_dst = MRImask(mri_dst, mri_mask, NULL, 1, 1) ; // keep voxels = 1
     if (!mri_dst)
-      ErrorExit(Gerror, "%s: stripping failed on keep_mask_deletion_edits", 
+      ErrorExit(Gerror, "%s: stripping failed on keep_mask_deletion_edits",
                 Progname) ;
   }
 
@@ -288,110 +329,102 @@ int main(int argc, char *argv[]) {
 
 }  /*  end main()  */
 
-void usage(int exit_val) {
-
-  FILE *fout;
-
-  fout = (exit_val ? stderr : stdout);
-
-  fprintf(fout,
-          "Usage: %s [options] <in vol> <mask vol> <out vol>\n",
-          Progname);
-  fprintf(fout,
-          "This program applies a mask volume (typically skull stripped).\n") ;
-
-  fprintf(fout, "Options:\n") ;
-  fprintf(fout,
-          "   -xform %%s    apply LTA transform to align mask "
-          "to input volume\n");
-  fprintf(fout,
-          "   -invert      reversely apply -xform \n");
-  fprintf(fout,
-          "   -lta_src %%s  source volume for -xform "
-          "(if not available from the xform file) \n");
-  fprintf(fout,
-          "   -lta_dst %%s  target volume for -xform "
-          "(if not available from the xform file) \n");
-  fprintf(fout,
-          "   -T #         threshold mask volume at # "
-          "(i.e., all values <= T considered as zero) \n");
-  fprintf(fout,
-          "   -abs : take abs() before applying threshold\n");
-  fprintf(fout, 
-          "   -transfer #  transfer only voxel value # from mask to out\n");
-  fprintf(fout,
-          "   -keep_mask_deletion_edits   transfer voxel-deletion edits\n"
-          "                               (voxels=1) from mask to out vol\n");
-
-  fprintf(fout, "\n");
-
+#include "mri_mask.help.xml.h"
+void usage(int exit_val)
+{
+  outputHelpXml(mri_mask_help_xml,
+                mri_mask_help_xml_len);
   exit(exit_val);
 
 }  /*  end usage()  */
-/*  EOF  */
 
 /* --------------------------------------------- */
-static void print_version(void) {
+static void print_version(void)
+{
   fprintf(stdout, "%s\n", vcid) ;
   exit(1) ;
 }
 
 static int
-get_option(int argc, char *argv[]) {
+get_option(int argc, char *argv[])
+{
   int  nargs = 0 ;
   char *option ;
 
   option = argv[1] + 1 ;            /* past '-' */
-  if (!stricmp(option, "help"))
+  if (!stricmp(option, "-help")||!stricmp(option, "-usage"))
+  {
     usage(1) ;
+  }
   else if (!stricmp(option, "version"))
+  {
     print_version() ;
+  }
   else if (!stricmp(option, "abs"))
+  {
     DoAbs = 1;
-  else if (!stricmp(option, "xform")) {
+  }
+  else if (!stricmp(option, "xform"))
+  {
     xform_fname = argv[2];
     nargs = 1;
     fprintf(stderr, "transform file name is %s\n", xform_fname);
-  } else if (!stricmp(option, "T")
-             || !stricmp(option, "threshold")
-            ) {
+  }
+  else if (!stricmp(option, "T")
+           || !stricmp(option, "threshold")
+          )
+  {
     threshold = (float)atof(argv[2]);
     nargs = 1;
     fprintf(stderr, "threshold mask volume at %g\n", threshold);
-  } else if (!stricmp(option, "transfer")) {
+  }
+  else if (!stricmp(option, "transfer"))
+  {
     do_transfer = 1;
     transfer_val = (float)atof(argv[2]);
     nargs = 1;
     fprintf(stderr, "transfer mask voxels=%g to dst vol\n", transfer_val);
-  } else if (!stricmp(option, "invert")) {
+  }
+  else if (!stricmp(option, "invert"))
+  {
     invert = 1;
     fprintf(stderr, "Inversely apply the given LTA transform\n");
-  } else if (!stricmp(option, "lta_src") ||
-             !stricmp(option, "src")
-            ) {
+  }
+  else if (!stricmp(option, "lta_src") ||
+           !stricmp(option, "src")
+          )
+  {
     fprintf(stderr, "src volume for the given transform "
             "(given by -xform) is %s\n",argv[2]);
     fprintf(stderr, "Reading the src volume...\n");
     lta_src = MRIreadHeader(argv[2], MRI_VOLUME_TYPE_UNKNOWN);
-    if (!lta_src) {
+    if (!lta_src)
+    {
       ErrorExit(ERROR_BADPARM, "Could not read file %s\n", argv[2]);
     }
     nargs = 1;
-  } else if (!stricmp(option, "lta_dst") ||
-             !stricmp(option, "dst")
-            ) {
+  }
+  else if (!stricmp(option, "lta_dst") ||
+           !stricmp(option, "dst")
+          )
+  {
     fprintf(stderr, "dst volume for the transform "
             "(given by -xform) is %s\n",argv[2]);
     fprintf(stderr, "Reading the dst volume...\n");
     lta_dst = MRIreadHeader(argv[2], MRI_VOLUME_TYPE_UNKNOWN);
-    if (!lta_dst) {
+    if (!lta_dst)
+    {
       ErrorExit(ERROR_BADPARM, "Could not read file %s\n", argv[2]);
     }
     nargs = 1;
-  } else if (!stricmp(option, "keep_mask_deletion_edits")) {
+  }
+  else if (!stricmp(option, "keep_mask_deletion_edits"))
+  {
     keep_mask_deletion_edits = 1;
     fprintf(stderr, "Transferring mask edits ('1' voxels) to dst vol\n");
-  } else {
+  }
+  else
+  {
     fprintf(stderr, "unknown option %s\n", argv[1]) ;
     usage(1) ;
     exit(1) ;
