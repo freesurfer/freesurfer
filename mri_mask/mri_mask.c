@@ -15,8 +15,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2012/12/07 22:45:50 $
- *    $Revision: 1.18 $
+ *    $Date: 2013/03/20 14:23:18 $
+ *    $Revision: 1.19 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -49,7 +49,7 @@
 #include "transform.h"
 #include "region.h"
 
-static char vcid[] = "$Id: mri_mask.c,v 1.18 2012/12/07 22:45:50 greve Exp $";
+static char vcid[] = "$Id: mri_mask.c,v 1.19 2013/03/20 14:23:18 greve Exp $";
 
 void usage(int exit_val);
 
@@ -89,7 +89,7 @@ int main(int argc, char *argv[])
     handle_version_option
     (
       argc, argv,
-      "$Id: mri_mask.c,v 1.18 2012/12/07 22:45:50 greve Exp $", "$Name:  $"
+      "$Id: mri_mask.c,v 1.19 2013/03/20 14:23:18 greve Exp $", "$Name:  $"
     );
   if (nargs && argc - nargs == 1)
   {
@@ -277,7 +277,8 @@ int main(int argc, char *argv[])
     }
   }   /* if (xform_fname != NULL) */
 
-  // Threshold mask
+  // Threshold and binarize mask. Without binarization, this fails 
+  // when values are less than 1
   nmask = 0;
   for (z = 0 ; z <mri_mask->depth ; z++)
   {
@@ -286,16 +287,11 @@ int main(int argc, char *argv[])
       for (x = 0 ; x < mri_mask->width ; x++)
       {
         value = MRIgetVoxVal(mri_mask, x, y, z, 0);
-        if(DoAbs)
-        {
-          value = fabs(value);
-        }
-        if(value <= threshold)
-        {
-          MRIsetVoxVal(mri_mask,x,y,z,0,0);
-        }
+        if(DoAbs) value = fabs(value);
+        if(value <= threshold) MRIsetVoxVal(mri_mask,x,y,z,0,0);
         else
         {
+	  MRIsetVoxVal(mri_mask,x,y,z,0,1);
           nmask ++;
         }
       }
