@@ -9,8 +9,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: lzollei $
- *    $Date: 2011/10/06 21:08:23 $
- *    $Revision: 1.4 $
+ *    $Date: 2013/03/20 15:03:29 $
+ *    $Revision: 1.5 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -24,7 +24,7 @@
  *
  */
 
-char *MRI_INFO_VERSION = "$Revision: 1.4 $";
+char *MRI_INFO_VERSION = "$Revision: 1.5 $";
 
 #include <stdio.h>
 #include <sys/stat.h>
@@ -47,7 +47,7 @@ static void print_help(void) ;
 static void print_version(void) ;
 
 static int get_option(int argc, char *argv[]) ;
-static char vcid[] = "$Id: mri_or.c,v 1.4 2011/10/06 21:08:23 lzollei Exp $";
+static char vcid[] = "$Id: mri_or.c,v 1.5 2013/03/20 15:03:29 lzollei Exp $";
 
 char *Progname ;
 int use_orig_value = 0;
@@ -167,9 +167,13 @@ static void print_help(void)
 {
   print_usage() ;
   printf(
-    "\n"
-    "Performs a logical voxel-wise OR on a series of volumes\n"
-  );
+	 "\n"
+	 "Performs a logical voxel-wise OR on a series of volumes\n"
+	 "\n"
+	 );
+  printf("Options:\n\n") ;
+  printf("  -o : The logical OR operation will keep the original label values in the input files when creating the output.\n");
+  printf("  -help : print usage\n");
   exit(1) ;
 }
 
