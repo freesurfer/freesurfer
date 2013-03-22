@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2011/03/22 21:21:26 $
- *    $Revision: 1.5 $
+ *    $Date: 2013/03/22 18:49:10 $
+ *    $Revision: 1.6 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -207,8 +207,8 @@ void PanelPointSet::DoUpdateWidgets()
 
 void PanelPointSet::OnSliderOpacity( int nVal )
 {
-  LayerPointSet* layer = GetCurrentLayer<LayerPointSet*>();
-  if ( layer )
+  QList<LayerPointSet*> layers = GetSelectedLayers<LayerPointSet*>();
+  foreach (LayerPointSet* layer, layers)
   {
     layer->GetProperty()->SetOpacity( nVal / 100.0 );
   }
@@ -216,8 +216,8 @@ void PanelPointSet::OnSliderOpacity( int nVal )
 
 void PanelPointSet::OnSliderMin(int nVal)
 {
-  LayerPointSet* layer = GetCurrentLayer<LayerPointSet*>();
-  if ( layer )
+  QList<LayerPointSet*> layers = GetSelectedLayers<LayerPointSet*>();
+  foreach (LayerPointSet* layer, layers)
   {
     double fMin = layer->GetProperty()->GetScalarMinValue();
     double fMax = layer->GetProperty()->GetScalarMaxValue();
@@ -228,8 +228,8 @@ void PanelPointSet::OnSliderMin(int nVal)
 
 void PanelPointSet::OnSliderMid(int nVal)
 {
-  LayerPointSet* layer = GetCurrentLayer<LayerPointSet*>();
-  if ( layer )
+  QList<LayerPointSet*> layers = GetSelectedLayers<LayerPointSet*>();
+  foreach (LayerPointSet* layer, layers)
   {
     double fMin = layer->GetProperty()->GetScalarMinValue();
     double fMax = layer->GetProperty()->GetScalarMaxValue();
@@ -239,8 +239,8 @@ void PanelPointSet::OnSliderMid(int nVal)
 
 void PanelPointSet::OnSliderMax(int nVal)
 {
-  LayerPointSet* layer = GetCurrentLayer<LayerPointSet*>();
-  if ( layer )
+  QList<LayerPointSet*> layers = GetSelectedLayers<LayerPointSet*>();
+  foreach (LayerPointSet* layer, layers)
   {
     double fMin = layer->GetProperty()->GetScalarMinValue();
     double fMax = layer->GetProperty()->GetScalarMaxValue();
@@ -250,8 +250,8 @@ void PanelPointSet::OnSliderMax(int nVal)
 
 void PanelPointSet::OnSliderOffset(int nVal)
 {
-  LayerPointSet* layer = GetCurrentLayer<LayerPointSet*>();
-  if ( layer )
+  QList<LayerPointSet*> layers = GetSelectedLayers<LayerPointSet*>();
+  foreach (LayerPointSet* layer, layers)
   {
     double fMax = layer->GetProperty()->GetScalarMaxValue();
     layer->GetProperty()->SetHeatScaleOffset( nVal / 100.0 * ( fMax + fMax ) - fMax );
@@ -260,74 +260,92 @@ void PanelPointSet::OnSliderOffset(int nVal)
 
 void PanelPointSet::OnLineEditMin(const QString& text)
 {
-  LayerPointSet* layer = GetCurrentLayer<LayerPointSet*>();
-  bool bOK;
-  double dVal = text.toDouble( &bOK );
-  if ( layer && bOK && layer->GetProperty()->GetHeatScaleMin() != dVal )
+  QList<LayerPointSet*> layers = GetSelectedLayers<LayerPointSet*>();
+  foreach (LayerPointSet* layer, layers)
   {
-    layer->GetProperty()->SetHeatScaleMin( dVal );
+    bool bOK;
+    double dVal = text.toDouble( &bOK );
+    if ( layer && bOK && layer->GetProperty()->GetHeatScaleMin() != dVal )
+    {
+      layer->GetProperty()->SetHeatScaleMin( dVal );
+    }
   }
 }
 
 void PanelPointSet::OnLineEditMid(const QString& text)
 {
-  LayerPointSet* layer = GetCurrentLayer<LayerPointSet*>();
-  bool bOK;
-  double dVal = text.toDouble( &bOK );
-  if ( layer && bOK && layer->GetProperty()->GetHeatScaleMid() != dVal )
+  QList<LayerPointSet*> layers = GetSelectedLayers<LayerPointSet*>();
+  foreach (LayerPointSet* layer, layers)
   {
-    layer->GetProperty()->SetHeatScaleMid( dVal );
+    bool bOK;
+    double dVal = text.toDouble( &bOK );
+    if ( layer && bOK && layer->GetProperty()->GetHeatScaleMid() != dVal )
+    {
+      layer->GetProperty()->SetHeatScaleMid( dVal );
+    }
   }
 }
 
 void PanelPointSet::OnLineEditMax(const QString& text)
 {
-  LayerPointSet* layer = GetCurrentLayer<LayerPointSet*>();
-  bool bOK;
-  double dVal = text.toDouble( &bOK );
-  if ( layer && bOK && layer->GetProperty()->GetHeatScaleMax() != dVal )
+  QList<LayerPointSet*> layers = GetSelectedLayers<LayerPointSet*>();
+  foreach (LayerPointSet* layer, layers)
   {
-    layer->GetProperty()->SetHeatScaleMax( dVal );
+    bool bOK;
+    double dVal = text.toDouble( &bOK );
+    if ( layer && bOK && layer->GetProperty()->GetHeatScaleMax() != dVal )
+    {
+      layer->GetProperty()->SetHeatScaleMax( dVal );
+    }
   }
 }
 
 void PanelPointSet::OnLineEditOffset(const QString& text)
 {
-  LayerPointSet* layer = GetCurrentLayer<LayerPointSet*>();
-  bool bOK;
-  double dVal = text.toDouble( &bOK );
-  if ( layer && bOK && layer->GetProperty()->GetHeatScaleOffset() != dVal )
+  QList<LayerPointSet*> layers = GetSelectedLayers<LayerPointSet*>();
+  foreach (LayerPointSet* layer, layers)
   {
-    layer->GetProperty()->SetHeatScaleOffset( dVal );
+    bool bOK;
+    double dVal = text.toDouble( &bOK );
+    if ( layer && bOK && layer->GetProperty()->GetHeatScaleOffset() != dVal )
+    {
+      layer->GetProperty()->SetHeatScaleOffset( dVal );
+    }
   }
 }
 
 void PanelPointSet::OnLineEditRadius(const QString& text)
 {
-  LayerPointSet* layer = GetCurrentLayer<LayerPointSet*>();
-  bool bOK;
-  double dVal = text.toDouble( &bOK );
-  if ( layer && bOK && dVal > 0 && layer->GetProperty()->GetRadius() != dVal )
+  QList<LayerPointSet*> layers = GetSelectedLayers<LayerPointSet*>();
+  foreach (LayerPointSet* layer, layers)
   {
-    layer->GetProperty()->SetRadius( dVal );
+    bool bOK;
+    double dVal = text.toDouble( &bOK );
+    if ( layer && bOK && dVal > 0 && layer->GetProperty()->GetRadius() != dVal )
+    {
+      layer->GetProperty()->SetRadius( dVal );
+    }
   }
 }
 
 void PanelPointSet::OnLineEditSplineRadius(const QString& text)
 {
-  LayerPointSet* layer = GetCurrentLayer<LayerPointSet*>();
-  bool bOK;
-  double dVal = text.toDouble( &bOK );
-  if ( layer && bOK && dVal > 0 && layer->GetProperty()->GetSplineRadius() != dVal )
+  QList<LayerPointSet*> layers = GetSelectedLayers<LayerPointSet*>();
+  foreach (LayerPointSet* layer, layers)
   {
-    layer->GetProperty()->SetSplineRadius( dVal );
+    bool bOK;
+    double dVal = text.toDouble( &bOK );
+    if ( layer && bOK && dVal > 0 && layer->GetProperty()->GetSplineRadius() != dVal )
+    {
+      layer->GetProperty()->SetSplineRadius( dVal );
+    }
   }
 }
 
 void PanelPointSet::OnComboScalarMap(int nSel)
 {
-  LayerPointSet* layer = GetCurrentLayer<LayerPointSet*>();
-  if ( layer )
+  QList<LayerPointSet*> layers = GetSelectedLayers<LayerPointSet*>();
+  foreach (LayerPointSet* layer, layers)
   {
     LayerMRI* mri = qobject_cast<LayerMRI*>(ui->comboBoxScalarMap->itemData( nSel ).value<QObject*>());
     if ( mri )
@@ -348,8 +366,8 @@ void PanelPointSet::OnComboScalarMap(int nSel)
 
 void PanelPointSet::LoadScalarValues()
 {
-  LayerPointSet* layer = GetCurrentLayer<LayerPointSet*>();
-  if ( layer )
+  QList<LayerPointSet*> layers = GetSelectedLayers<LayerPointSet*>();
+  foreach (LayerPointSet* layer, layers)
   {
     QString fn = QFileDialog::getOpenFileName( this, "Select scalar file",
                  "",
