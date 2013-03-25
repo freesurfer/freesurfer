@@ -9,8 +9,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2013/03/25 12:38:14 $
- *    $Revision: 1.1 $
+ *    $Date: 2013/03/25 17:28:06 $
+ *    $Revision: 1.2 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -138,3 +138,29 @@ CMATalloc(int nlabels, int *labels)
 }
 
 
+int
+CMATfree(CMAT **pcmat)
+{
+  CMAT *cmat ;
+  int  i, j ;
+
+  cmat = *pcmat ;
+  *pcmat = NULL ;
+
+  free(cmat->labels) ;
+  for (i = 0 ; i < cmat->nlabels ; i++)
+  {
+    for (j = i+1 ; j < cmat->nlabels ; j++)
+    {
+      if (cmat->splines[i])
+	LabelFree(&cmat->splines[i][j]) ;
+    }
+    free(cmat->splines[i]) ;
+    free(cmat->weights[i]) ;
+  }
+
+  free(cmat->splines) ;
+  free(cmat->weights) ;
+  free(cmat) ;
+  return(NO_ERROR) ;
+}
