@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2013/03/25 12:38:13 $
- *    $Revision: 1.99 $
+ *    $Date: 2013/03/25 18:30:02 $
+ *    $Revision: 1.100 $
  *
  * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -6354,6 +6354,7 @@ MRIsmoothLabel(MRI *mri_intensity,
 
   for (i = 0 ; i < niter ; i++)
   {
+    max_change = 0.0 ;
     for (x = 0 ; x < mri_tmp->width ; x++)
     {
       for (y = 0 ; y < mri_tmp->height ; y++)
