@@ -9,8 +9,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2013/03/25 12:38:13 $
- *    $Revision: 1.112 $
+ *    $Date: 2013/03/25 19:30:37 $
+ *    $Revision: 1.113 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -87,14 +87,16 @@ LabelReadFrom(const char *subject_name, FILE *fp)
   while ((cp = fgetl(line, STRLEN, fp)) != NULL)
   {
     if (sscanf(cp, "%d %f %f %f %f", &vno, &x, &y, &z, &stat) != 5)
-      ErrorReturn(NULL, (ERROR_BADFILE, "%s: could not parse %dth line in label file",
-                         Progname, area->n_points)) ;
+      ErrorReturn(NULL, (ERROR_BADFILE, "%s: could not parse %dth line '%s' in label file",
+                         Progname, nlines+1, cp)) ;
     area->lv[nlines].x = x ;
     area->lv[nlines].y = y ;
     area->lv[nlines].z = z ;
     area->lv[nlines].stat = stat ;
     area->lv[nlines].vno = vno ;
     nlines++ ;
+    if (nlines == area->n_points)
+      break ;
   }
 
   if (!nlines)
