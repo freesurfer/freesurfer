@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2012/07/18 15:29:02 $
-#    $Revision: 1.55 $
+#    $Date: 2013/03/25 18:04:29 $
+#    $Revision: 1.56 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -22,7 +22,7 @@
 #
 
 #
-set VERSION = '$Id: bbregister,v 1.55 2012/07/18 15:29:02 greve Exp $';
+set VERSION = '$Id: bbregister,v 1.56 2013/03/25 18:04:29 greve Exp $';
 set inputargs = ($argv);
 
 set subject = ();
@@ -152,7 +152,7 @@ if($#InitReg == 0) then
   if($InitFSL) then
     set cmd = (fslregister --s $subject --mov $regvol --reg $InitReg \
       --niters 1 --maxangle 90 --tmp $tmpdir/fslregister \
-      --dof $FSLDOF --fsvol $fsvol)
+      --dof $FSLDOF --fsvol $fsvol.mgz)
     if($FSLBETMov)   set cmd = ($cmd --betmov)
     if(! $FSLBETMov) set cmd = ($cmd --nobetmov)
     if($FSLSwapTrans) set cmd = ($cmd --allow-swap --trans)
