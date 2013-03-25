@@ -8,8 +8,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2013/02/11 22:56:47 $
- *    $Revision: 1.446 $
+ *    $Date: 2013/03/25 12:38:27 $
+ *    $Revision: 1.447 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -808,6 +808,7 @@ MRI   *MRIzDerivative(MRI *mri_src, MRI *mri_dz) ;
 /* resampling routines */
 MRI   *MRIupsample2(MRI *mri_src, MRI *mri_dst) ;
 MRI   *MRIupsampleN(MRI *mri_src, MRI *mri_dst, int N) ;
+MRI   *MRIdownsampleN(MRI *mri_src, MRI *mri_dst, int N) ;
 MRI   *MRIdownsample2(MRI *mri_src, MRI *mri_dst) ;
 MRI   *MRIdownsample2LabeledVolume(MRI *mri_src, MRI *mri_dst) ;
 
@@ -1239,7 +1240,15 @@ MRI *MRIsmoothLabel(MRI *mri_intensity,
                     MRI *mri_label,
                     MRI *mri_smooth,
                     int niter,
-                    int label) ;
+                    int label,
+		    float min_change) ;
+MRI *MRIsmoothLabel6Connected(MRI *mri_intensity,
+			      MRI *mri_label,
+			      MRI *mri_smooth,
+			      int niter,
+			      int label,
+			      int fixed_label, 
+			      float min_change) ;
 MRI *MRIreadGeRoi(const char *fname, int n_slices);
 
 int decompose_b_fname(const char *fname_passed, char *directory, char *stem);
@@ -1381,6 +1390,7 @@ MRI *MRImatchMeanIntensity(MRI *mri_source,
                            MRI *mri_target,
                            MRI *mri_source_scaled) ;
 MRI *MRIsqrt(MRI *mri_src, MRI *mri_dst)  ;
+float MRImaxInRegion(MRI *mri, int x, int y, int z, int whalf) ;
 double MRImaxInLabelInRegion(MRI *mri_src,
                              MRI *mri_labeled,
                              int label,
@@ -1454,6 +1464,8 @@ const char* MRItype2str(int type);
 int MRIfindSliceWithMostStructure(MRI *mri_aseg, int slice_direction, int label) ;
 int MRIcomputeVolumeFractions(MRI *mri_src, MATRIX *m_vox2vox, 
 			      MRI *mri_seg, MRI *mri_fractions) ;
+
+MRI *MRInbrThresholdLabel(MRI *mri_src, MRI *mri_dst,  int label, int out_label, int whalf,  float thresh) ;
 
 #ifdef FS_CUDA
   void MRImarkLabelBorderVoxelsGPU( const MRI* mri_src,
