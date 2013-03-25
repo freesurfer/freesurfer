@@ -9,8 +9,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2013/03/25 12:38:27 $
- *    $Revision: 1.1 $
+ *    $Date: 2013/03/25 17:28:16 $
+ *    $Revision: 1.2 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -48,5 +48,6 @@ typedef struct
 CMAT  *CMATread(char *fname) ;
 int CMATwrite(CMAT *cmat, char *fname) ;
 CMAT *CMATalloc(int nlabels, int *labels) ;
+int CMATfree(CMAT **pcmat) ;
 
 #endif
