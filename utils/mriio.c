@@ -9,8 +9,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2013/03/25 12:38:13 $
- *    $Revision: 1.406 $
+ *    $Date: 2013/03/25 18:33:15 $
+ *    $Revision: 1.407 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -6231,7 +6231,7 @@ static MRI *analyzeRead(const char *fname, int read_volume)
   char *buf;
   FILE *fp;
   dsr *hdr;
-  int swap, mritype, bytes_per_voxel, cantreadmatfile=0;
+  int swap = 0, mritype = 0, bytes_per_voxel = 0, cantreadmatfile=0;
   int ncols, nrows, nslcs, nframes, row, slice, frame, startframe;
   MATRIX *T=NULL, *PcrsCenter, *PxyzCenter, *T1=NULL, *Q=NULL;
   MRI *mri, *mritmp;
