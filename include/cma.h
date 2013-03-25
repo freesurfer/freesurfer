@@ -8,9 +8,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2012/09/10 15:58:53 $
- *    $Revision: 1.67 $
+ *    $Author: fischl $
+ *    $Date: 2013/03/25 17:31:44 $
+ *    $Revision: 1.68 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -327,6 +327,97 @@ extern "C" {
 #define rh_slft 5116 //                                 153 255 255 0
 #define rh_unc 5117 //                                  102 153 255 0
 
+/*
+# Below is the color table for the cortical labels of the seg volume
+# created by mri_aparc2aseg in which the aseg cortex label is replaced
+# by the labels in the aparc. It also supports wm labels that will
+# eventually be created by mri_aparc2aseg. Otherwise, the aseg labels
+# do not change from above. The cortical lables are the same as in
+# colortable_desikan_killiany.txt, except that left hemisphere has
+# 1000 added to the index and the right has 2000 added.  The label
+# names are also prepended with ctx-lh or ctx-rh. The white matter
+# labels are the same as in colortable_desikan_killiany.txt, except
+# that left hemisphere has 3000 added to the index and the right has
+# 4000 added. The label names are also prepended with wm-lh or wm-rh.
+# Centrum semiovale is also labled with 5001 (left) and 5002 (right).
+# Even further below are the color tables for aparc.a2005s and aparc.a2009s.
+
+*/
+
+#define    ctx_lh_unknown  1000 //                      25  5   25  0
+#define    ctx_lh_bankssts  1001 //                     25  100 40  0
+#define    ctx_lh_caudalanteriorcingulate  1002 //      125 100 160 0
+#define    ctx_lh_caudalmiddlefrontal  1003 //          100 25  0   0
+#define    ctx_lh_corpuscallosum  1004 //               120 70  50  0
+#define    ctx_lh_cuneus  1005 //                       220 20  100 0
+#define    ctx_lh_entorhinal  1006 //                   220 20  10  0
+#define    ctx_lh_fusiform  1007 //                     180 220 140 0
+#define    ctx_lh_inferiorparietal  1008 //             220 60  220 0
+#define    ctx_lh_inferiortemporal  1009 //             180 40  120 0
+#define    ctx_lh_isthmuscingulate  1010 //             140 20  140 0
+#define    ctx_lh_lateraloccipital  1011 //             20  30  140 0
+#define    ctx_lh_lateralorbitofrontal  1012 //         35  75  50  0
+#define    ctx_lh_lingual  1013 //                      225 140 140 0
+#define    ctx_lh_medialorbitofrontal  1014 //          200 35  75  0
+#define    ctx_lh_middletemporal  1015 //               160 100 50  0
+#define    ctx_lh_parahippocampal  1016 //              20  220 60  0
+#define    ctx_lh_paracentral  1017 //                  60  220 60  0
+#define    ctx_lh_parsopercularis  1018 //              220 180 140 0
+#define    ctx_lh_parsorbitalis  1019 //                20  100 50  0
+#define    ctx_lh_parstriangularis  1020 //             220 60  20  0
+#define    ctx_lh_pericalcarine  1021 //                120 100 60  0
+#define    ctx_lh_postcentral  1022 //                  220 20  20  0
+#define    ctx_lh_posteriorcingulate  1023 //           220 180 220 0
+#define    ctx_lh_precentral  1024 //                   60  20  220 0
+#define    ctx_lh_precuneus  1025 //                    160 140 180 0
+#define    ctx_lh_rostralanteriorcingulate  1026 //     80  20  140 0
+#define    ctx_lh_rostralmiddlefrontal  1027 //         75  50  125 0
+#define    ctx_lh_superiorfrontal  1028 //              20  220 160 0
+#define    ctx_lh_superiorparietal  1029 //             20  180 140 0
+#define    ctx_lh_superiortemporal  1030 //             140 220 220 0
+#define    ctx_lh_supramarginal  1031 //                80  160 20  0
+#define    ctx_lh_frontalpole  1032 //                  100 0   100 0
+#define    ctx_lh_temporalpole  1033 //                 70  70  70  0
+#define    ctx_lh_transversetemporal  1034 //           150 150 200 0
+#define    ctx_lh_insula  1035 //                       255 192 32  0
+
+#define    ctx_rh_unknown  2000 //                      25  5   25  0
+#define    ctx_rh_bankssts  2001 //                     25  100 40  0
+#define    ctx_rh_caudalanteriorcingulate  2002 //      125 100 160 0
+#define    ctx_rh_caudalmiddlefrontal  2003 //          100 25  0   0
+#define    ctx_rh_corpuscallosum  2004 //               120 70  50  0
+#define    ctx_rh_cuneus  2005 //                       220 20  100 0
+#define    ctx_rh_entorhinal  2006 //                   220 20  10  0
+#define    ctx_rh_fusiform  2007 //                     180 220 140 0
+#define    ctx_rh_inferiorparietal  2008 //             220 60  220 0
+#define    ctx_rh_inferiortemporal  2009 //             180 40  120 0
+#define    ctx_rh_isthmuscingulate  2010 //             140 20  140 0
+#define    ctx_rh_lateraloccipital  2011 //             20  30  140 0
+#define    ctx_rh_lateralorbitofrontal  2012 //         35  75  50  0
+#define    ctx_rh_lingual  2013 //                      225 140 140 0
+#define    ctx_rh_medialorbitofrontal  2014 //          200 35  75  0
+#define    ctx_rh_middletemporal  2015 //               160 100 50  0
+#define    ctx_rh_parahippocampal  2016 //              20  220 60  0
+#define    ctx_rh_paracentral  2017 //                  60  220 60  0
+#define    ctx_rh_parsopercularis  2018 //              220 180 140 0
+#define    ctx_rh_parsorbitalis  2019 //                20  100 50  0
+#define    ctx_rh_parstriangularis  2020 //             220 60  20  0
+#define    ctx_rh_pericalcarine  2021 //                120 100 60  0
+#define    ctx_rh_postcentral  2022 //                  220 20  20  0
+#define    ctx_rh_posteriorcingulate  2023 //           220 180 220 0
+#define    ctx_rh_precentral  2024 //                   60  20  220 0
+#define    ctx_rh_precuneus  2025 //                    160 140 180 0
+#define    ctx_rh_rostralanteriorcingulate  2026 //     80  20  140 0
+#define    ctx_rh_rostralmiddlefrontal  2027 //         75  50  125 0
+#define    ctx_rh_superiorfrontal  2028 //              20  220 160 0
+#define    ctx_rh_superiorparietal  2029 //             20  180 140 0
+#define    ctx_rh_superiortemporal  2030 //             140 220 220 0
+#define    ctx_rh_supramarginal  2031 //                80  160 20  0
+#define    ctx_rh_frontalpole  2032 //                  100 0   100 0
+#define    ctx_rh_temporalpole  2033 //                 70  70  70  0
+#define    ctx_rh_transversetemporal  2034 //           150 150 200 0
+#define    ctx_rh_insula  2035 //                       255 192 32  0
+
 // be sure to update MAX_LABEL if additional labels are added!
 
 #define MAX_LABEL rh_unc
@@ -338,12 +429,15 @@ extern "C" {
 
 #define IS_BRAIN(label)  ((!IS_UNKNOWN(label) && label < Dura) || IS_CC(label))
 
-#define IS_WM(label) (((label) == Left_Cerebral_White_Matter) || ((label) == Right_Cerebral_White_Matter) || ((label) == Left_Temporal_Cerebral_White_Matter) || ((label) == Right_Temporal_Cerebral_White_Matter))
+// (label == Brain_Stem) ||
+#define IS_WM(label) (((label) == Left_Cerebral_White_Matter) || ((label) == Right_Cerebral_White_Matter) || ((label) == Left_Temporal_Cerebral_White_Matter) || ((label) == Right_Temporal_Cerebral_White_Matter) || IS_CC(label) || (label == Left_VentralDC) || (label == Right_VentralDC) || IS_CEREBELLAR_WM(label))
 #define IS_HYPO(label) (((label) == WM_hypointensities)  || ((label) == Left_WM_hypointensities)  || ((label) == Right_WM_hypointensities) || IS_FUTURE_WMSA(label))
 #define IS_WMSA(label) IS_HYPO(label)
 #define IS_WMH(label) (IS_WM(label) || IS_HYPO(label))
 #define IS_THALAMUS(label)  (((label) == Left_Thalamus) || ((label) == Left_Thalamus_Proper) || ((label) == Right_Thalamus) || ((label) == Right_Thalamus_Proper))
 #define IS_GM(label) (((label) == Left_Cerebral_Cortex) || ((label) == Right_Cerebral_Cortex))
+#define IS_VENTRAL_DC(l)  (((l) == Left_VentralDC) || ((l) == Right_VentralDC))
+
 
 
 #define IS_CEREBELLAR_WM(label) (((label) == Left_Cerebellum_White_Matter) || ((label) == Right_Cerebellum_White_Matter))
