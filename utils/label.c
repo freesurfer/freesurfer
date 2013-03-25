@@ -9,8 +9,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2013/03/18 12:53:45 $
- *    $Revision: 1.111 $
+ *    $Date: 2013/03/25 12:38:13 $
+ *    $Revision: 1.112 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -53,12 +53,11 @@ static Transform *labelLoadTransform(const char *subject_name,
 #define MAX_VERTICES 500000
 /*-----------------------------------------------------
 ------------------------------------------------------*/
-LABEL *LabelRead(const char *subject_name, const char *label_name)
+LABEL   *
+LabelReadFrom(const char *subject_name, FILE *fp) 
 {
   LABEL  *area ;
-  char   fname[STRLEN], *cp, line[STRLEN], subjects_dir[STRLEN], lname[STRLEN];
-  char   label_name0[STRLEN];
-  FILE   *fp ;
+  char   line[STRLEN], subjects_dir[STRLEN], *cp;
   int    vno, nlines ;
   float  x, y, z, stat ;
 
@@ -67,6 +66,56 @@ LABEL *LabelRead(const char *subject_name, const char *label_name)
   {
     ErrorExit(ERROR_NOMEMORY,"%s: could not allocate LABEL struct.",Progname);
   }
+
+  cp = fgetl(line, STRLEN, fp) ;
+  if (!cp)
+    ErrorReturn(NULL,
+                (ERROR_BADFILE, "%s: empty label", Progname)) ;
+  if (!sscanf(cp, "%d", &area->n_points))
+  {
+    printf("\n%s\n",cp);
+    ErrorReturn(NULL,
+                (ERROR_BADFILE, "%s: could not scan # of lines from label file", Progname)) ;
+  }
+  area->max_points = area->n_points ;
+  area->lv = (LABEL_VERTEX *)calloc(area->n_points, sizeof(LABEL_VERTEX)) ;
+  if (!area->lv)
+    ErrorExit(ERROR_NOMEMORY,
+              "%s: LabelReadFrom could not allocate %d-sized vector",
+              Progname, sizeof(LV)*area->n_points) ;
+  nlines = 0 ;
+  while ((cp = fgetl(line, STRLEN, fp)) != NULL)
+  {
+    if (sscanf(cp, "%d %f %f %f %f", &vno, &x, &y, &z, &stat) != 5)
+      ErrorReturn(NULL, (ERROR_BADFILE, "%s: could not parse %dth line in label file",
+                         Progname, area->n_points)) ;
+    area->lv[nlines].x = x ;
+    area->lv[nlines].y = y ;
+    area->lv[nlines].z = z ;
+    area->lv[nlines].stat = stat ;
+    area->lv[nlines].vno = vno ;
+    nlines++ ;
+  }
+
+  if (!nlines)
+    ErrorReturn(NULL, (ERROR_BADFILE, "%s: no data in label file", Progname));
+  if (subject_name)
+  {
+    strcpy(area->subject_name, subject_name) ;
+    area->linear_transform =
+      labelLoadTransform(subject_name, subjects_dir, &area->transform) ;
+    area->inverse_linear_transform =
+      get_inverse_linear_transform_ptr(&area->transform) ;
+  }
+  return(area) ;
+}
+
+LABEL *LabelRead(const char *subject_name, const char *label_name)
+{
+  LABEL  *area ;
+  char   fname[STRLEN], *cp, subjects_dir[STRLEN], lname[STRLEN];
+  char   label_name0[STRLEN];
+  FILE   *fp ;
 
   sprintf(label_name0,"%s",label_name); // keep a copy
 
@@ -83,112 +132,53 @@ LABEL *LabelRead(const char *subject_name, const char *label_name)
     strcpy(lname, label_name) ;
     cp = strstr(lname, ".label") ;
     if(cp)
-    {
       *cp = 0 ;
-    }
+
     cp = strrchr(lname, '/') ;
     if(cp)
-    {
       label_name = cp+1 ;
-    }
     else
-    {
       label_name = lname ;
-    }
+
     sprintf(fname, "%s/%s/label/%s.label", subjects_dir,subject_name,
             label_name);
-    strcpy(area->subject_name, subject_name) ;
   }
   else
   {
     strcpy(fname, label_name) ;
     cp = getenv("SUBJECTS_DIR") ;
     if(!cp)
-    {
       strcpy(subjects_dir, ".") ;
-    }
     else
-    {
       strcpy(subjects_dir, cp) ;
-    }
     strcpy(lname, label_name) ;
     cp = strstr(lname, ".label") ;
     if (cp == NULL)
-    {
       sprintf(fname, "%s.label", lname);
-    }
     else
-    {
       strcpy(fname, label_name) ;
-    }
   }
 
   // As a last resort, treat label_name0 as a full path name
   if(!fio_FileExistsReadable(fname) && fio_FileExistsReadable(label_name0))
-  {
     sprintf(fname,"%s",label_name0);
-  }
 
   //  printf("%s %s\n",label_name0,fname);
-
-  strncpy(area->name, label_name, STRLEN-1) ;
 
   /* read in the file */
   errno = 0 ;
   fp = fopen(fname, "r") ;
   if (errno)
-  {
     perror(NULL);
-  }
+
   if (!fp)
     ErrorReturn(NULL, (ERROR_NOFILE, "%s: could not open label file %s",
                        Progname, fname)) ;
 
-
-  cp = fgetl(line, STRLEN, fp) ;
-  if (!cp)
-    ErrorReturn(NULL,
-                (ERROR_BADFILE, "%s: empty label file %s", Progname, fname)) ;
-  if (!sscanf(cp, "%d", &area->n_points))
-  {
-    printf("\n%s\n",cp);
-    ErrorReturn(NULL,
-                (ERROR_BADFILE, "%s: could not scan # of lines from %s",
-                 Progname, fname)) ;
-  }
-  area->max_points = area->n_points ;
-  area->lv = (LABEL_VERTEX *)calloc(area->n_points, sizeof(LABEL_VERTEX)) ;
-  if (!area->lv)
-    ErrorExit(ERROR_NOMEMORY,
-              "%s: LabelRead(%s) could not allocate %d-sized vector",
-              Progname, label_name, sizeof(LV)*area->n_points) ;
-  nlines = 0 ;
-  while ((cp = fgetl(line, STRLEN, fp)) != NULL)
-  {
-    if (sscanf(cp, "%d %f %f %f %f", &vno, &x, &y, &z, &stat) != 5)
-      ErrorReturn(NULL, (ERROR_BADFILE, "%s: could not parse %dth line in %s",
-                         Progname, area->n_points, fname)) ;
-    area->lv[nlines].x = x ;
-    area->lv[nlines].y = y ;
-    area->lv[nlines].z = z ;
-    area->lv[nlines].stat = stat ;
-    area->lv[nlines].vno = vno ;
-    nlines++ ;
-  }
-
+  area = LabelReadFrom(subject_name, fp) ;
   fclose(fp) ;
-  if (!nlines)
-    ErrorReturn(NULL,
-                (ERROR_BADFILE,
-                 "%s: no data in label file %s", Progname, fname));
-  if (subject_name)
-  {
-    area->linear_transform =
-      labelLoadTransform(subject_name, subjects_dir, &area->transform) ;
-    area->inverse_linear_transform =
-      get_inverse_linear_transform_ptr(&area->transform) ;
-  }
   return(area) ;
+
 }
 /*-----------------------------------------------------
         Parameters:
@@ -547,6 +537,48 @@ LabelToFlat(LABEL *area, MRI_SURFACE *mris)
   MHTfree(&mht) ;
   return(NO_ERROR) ;
 }
+int
+LabelWriteInto(LABEL *area, FILE *fp)
+{
+  int    n, num, nbytes ;
+  
+  for (num = n = 0 ; n < area->n_points ; n++)
+    if (!area->lv[n].deleted)
+    {
+      num++ ;
+    }
+
+  nbytes = fprintf(fp, "#!ascii label %s , from subject %s vox2ras=%s\n",
+                   area->name, area->subject_name, area->space);
+  if(nbytes < 0)
+  {
+    printf("ERROR: writing to label file 1\n");
+    fclose(fp);
+    return(1);
+  }
+
+  nbytes =   fprintf(fp, "%d\n", num) ;
+  if(nbytes < 0)
+  {
+    printf("ERROR: writing to label file 2\n");
+    fclose(fp);
+    return(1);
+  }
+  for (n = 0 ; n < area->n_points ; n++)
+    if (!area->lv[n].deleted)
+    {
+      nbytes = fprintf(fp, "%d  %2.3f  %2.3f  %2.3f %10.10f\n",
+                       area->lv[n].vno, area->lv[n].x,
+                       area->lv[n].y, area->lv[n].z, area->lv[n].stat) ;
+      if(nbytes < 0)
+      {
+        printf("ERROR: writing to label file 3\n");
+        fclose(fp);
+        return(1);
+      }
+    }
+  return(NO_ERROR) ;
+}
 /*-----------------------------------------------------
         Parameters:
 
@@ -557,9 +589,9 @@ LabelToFlat(LABEL *area, MRI_SURFACE *mris)
 int
 LabelWrite(LABEL *area, const char *label_name)
 {
-  FILE   *fp ;
-  int    n, num, nbytes ;
   char   fname[STRLEN], *cp, subjects_dir[STRLEN], lname[STRLEN] ;
+  FILE   *fp ;
+  int    ret ;
 
   strcpy(lname, label_name) ;
   cp = strrchr(lname, '.') ;
@@ -593,51 +625,15 @@ LabelWrite(LABEL *area, const char *label_name)
     }
   }
 
-  for (num = n = 0 ; n < area->n_points ; n++)
-    if (!area->lv[n].deleted)
-    {
-      num++ ;
-    }
-
-  printf("LabelWrite: saving to %s\n",fname);
-
   fp = fopen(fname, "w") ;
   if (!fp)
     ErrorReturn(ERROR_NOFILE, (ERROR_NO_FILE,
                                "%s: could not open label file %s",
                                Progname, fname)) ;
 
-  nbytes = fprintf(fp, "#!ascii label %s , from subject %s vox2ras=%s\n",
-                   area->name, area->subject_name, area->space);
-  if(nbytes < 0)
-  {
-    printf("ERROR: writing to %s\n",fname);
-    fclose(fp);
-    return(1);
-  }
-
-  nbytes =   fprintf(fp, "%d\n", num) ;
-  if(nbytes < 0)
-  {
-    printf("ERROR: writing to %s\n",fname);
-    fclose(fp);
-    return(1);
-  }
-  for (n = 0 ; n < area->n_points ; n++)
-    if (!area->lv[n].deleted)
-    {
-      nbytes = fprintf(fp, "%d  %2.3f  %2.3f  %2.3f %10.10f\n",
-                       area->lv[n].vno, area->lv[n].x,
-                       area->lv[n].y, area->lv[n].z, area->lv[n].stat) ;
-      if(nbytes < 0)
-      {
-        printf("ERROR: writing to %s\n",fname);
-        fclose(fp);
-        return(1);
-      }
-    }
+  ret = LabelWriteInto(area, fp) ;
   fclose(fp) ;
-  return(NO_ERROR) ;
+  return(ret) ;
 }
 /*-----------------------------------------------------
         Parameters:

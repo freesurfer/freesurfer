@@ -9,8 +9,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2012/11/15 21:06:44 $
- *    $Revision: 1.405 $
+ *    $Date: 2013/03/25 12:38:13 $
+ *    $Revision: 1.406 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -1262,6 +1262,17 @@ int MRIwriteType(MRI *mri, const char *fname, int type)
   else if (type == BRIK_FILE)
   {
     error = afniWrite(mri, fname);
+  }
+  else if (type == MGH_MORPH)
+  {
+    GCA_MORPH *gcam ;
+    
+    gcam = GCAMalloc(mri->width, mri->height, mri->depth) ;
+    GCAMinitVolGeom(gcam, mri, mri) ;
+    GCAMinit(gcam, mri, NULL, NULL, 0) ;
+    GCAMreadWarpFromMRI(gcam, mri) ;
+    GCAMwrite(gcam, fname) ;
+    GCAMfree(&gcam) ;
   }
   else if (type == MRI_MGH_FILE)
   {
@@ -6282,6 +6293,12 @@ static MRI *analyzeRead(const char *fname, int read_volume)
   // then reads in the vox2ras matrix with the nifti reader.
   // It does not look like it makes a difference.
   hdr = ReadAnalyzeHeader(hdrfile, &swap, &mritype, &bytes_per_voxel);
+  if (mritype == MRI_FLOAT && getenv("ATROPHY_SIMULATOR") != NULL)
+  {
+    printf("adjusting analyze type to uchar to correct simulator bug\n") ;
+    mritype = MRI_UCHAR ;
+    bytes_per_voxel = 1 ;
+  }
   if (hdr == NULL) return(NULL);
   if (Gdiag_no > 0)  DumpAnalyzeHeader(stdout,hdr);
 

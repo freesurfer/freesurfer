@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2011/03/23 20:23:28 $
- *    $Revision: 1.49 $
+ *    $Date: 2013/03/25 12:38:13 $
+ *    $Revision: 1.50 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -984,7 +984,7 @@ TiffReadImage(const char*fname, int frame0)
     }
     break;
   default:
-    ErrorExit(ERROR_BADPARM, "IMAGE: nsamples = %d.  only grey scale or RGB image is supported\n", nsamples );
+    ErrorExit(ERROR_BADPARM, "IMAGE: nsamples=%d, bits_per_sample=%d.  only grey scale or RGB image is supported\n", nsamples,bits_per_sample);
   }
   // nsamples not handled here
   if (nsamples != 1 && nsamples != 3)

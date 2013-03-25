@@ -13,9 +13,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: lzollei $
- *    $Date: 2013/01/05 20:42:40 $
- *    $Revision: 1.312 $
+ *    $Author: fischl $
+ *    $Date: 2013/03/25 12:38:13 $
+ *    $Revision: 1.313 $
  *
  * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -13272,6 +13272,152 @@ cma_label_to_name(int label)
   {
     return("Cbm_Right_X") ;
   }
+
+  if (label == ctx_lh_unknown)
+    return("ctx_lh_unknown") ;
+  if (label == ctx_lh_bankssts)
+    return("ctx_lh_bankssts") ;
+  if (label == ctx_lh_caudalanteriorcingulate)
+    return("ctx_lh_caudalanteriorcingulate") ;
+  if (label == ctx_lh_caudalmiddlefrontal)
+    return("ctx_lh_caudalmiddlefrontal") ;
+  if (label == ctx_lh_corpuscallosum)
+    return("ctx_lh_corpuscallosum") ;
+  if (label == ctx_lh_cuneus)
+    return("ctx_lh_cuneus") ;
+  if (label == ctx_lh_entorhinal)
+    return("ctx_lh_entorhinal") ;
+  if (label == ctx_lh_fusiform)
+    return("ctx_lh_fusiform") ;
+  if (label == ctx_lh_inferiorparietal)
+    return("ctx_lh_inferiorparietal") ;
+  if (label == ctx_lh_inferiortemporal)
+    return("ctx_lh_inferiortemporal") ;
+  if (label == ctx_lh_isthmuscingulate)
+    return("ctx_lh_isthmuscingulate") ;
+  if (label == ctx_lh_lateraloccipital)
+    return("ctx_lh_lateraloccipital") ;
+  if (label == ctx_lh_lateralorbitofrontal)
+    return("ctx_lh_lateralorbitofrontal") ;
+  if (label == ctx_lh_lingual)
+    return("ctx_lh_lingual") ;
+  if (label == ctx_lh_medialorbitofrontal)
+    return("ctx_lh_medialorbitofrontal") ;
+  if (label == ctx_lh_middletemporal)
+    return("ctx_lh_middletemporal") ;
+  if (label == ctx_lh_parahippocampal)
+    return("ctx_lh_parahippocampal") ;
+  if (label == ctx_lh_paracentral)
+    return("ctx_lh_paracentral") ;
+  if (label == ctx_lh_parsopercularis)
+    return("ctx_lh_parsopercularis") ;
+  if (label == ctx_lh_parsorbitalis)
+    return("ctx_lh_parsorbitalis") ;
+  if (label == ctx_lh_parstriangularis)
+    return("ctx_lh_parstriangularis") ;
+  if (label == ctx_lh_pericalcarine)
+    return("ctx_lh_pericalcarine") ;
+  if (label == ctx_lh_postcentral)
+    return("ctx_lh_postcentral") ;
+  if (label == ctx_lh_posteriorcingulate)
+    return("ctx_lh_posteriorcingulate") ;
+  if (label == ctx_lh_precentral)
+    return("ctx_lh_precentral") ;
+  if (label == ctx_lh_precuneus)
+    return("ctx_lh_precuneus") ;
+  if (label == ctx_lh_rostralanteriorcingulate)
+    return("ctx_lh_rostralanteriorcingulate") ;
+  if (label == ctx_lh_rostralmiddlefrontal)
+    return("ctx_lh_rostralmiddlefrontal") ;
+  if (label == ctx_lh_superiorfrontal)
+    return("ctx_lh_superiorfrontal") ;
+  if (label == ctx_lh_superiorparietal)
+    return("ctx_lh_superiorparietal") ;
+  if (label == ctx_lh_superiortemporal)
+    return("ctx_lh_superiortemporal") ;
+  if (label == ctx_lh_supramarginal)
+    return("ctx_lh_supramarginal") ;
+  if (label == ctx_lh_frontalpole)
+    return("ctx_lh_frontalpole") ;
+  if (label == ctx_lh_temporalpole)
+    return("ctx_lh_temporalpole") ;
+  if (label == ctx_lh_transversetemporal)
+    return("ctx_lh_transversetemporal") ;
+  if (label == ctx_lh_insula)
+    return("ctx_lh_insula") ;
+  if (label == ctx_rh_unknown)
+    return("ctx_rh_unknown") ;
+  if (label == ctx_rh_bankssts)
+    return("ctx_rh_bankssts") ;
+  if (label == ctx_rh_caudalanteriorcingulate)
+    return("ctx_rh_caudalanteriorcingulate") ;
+  if (label == ctx_rh_caudalmiddlefrontal)
+    return("ctx_rh_caudalmiddlefrontal") ;
+  if (label == ctx_rh_corpuscallosum)
+    return("ctx_rh_corpuscallosum") ;
+  if (label == ctx_rh_cuneus)
+    return("ctx_rh_cuneus") ;
+  if (label == ctx_rh_entorhinal)
+    return("ctx_rh_entorhinal") ;
+  if (label == ctx_rh_fusiform)
+    return("ctx_rh_fusiform") ;
+  if (label == ctx_rh_inferiorparietal)
+    return("ctx_rh_inferiorparietal") ;
+  if (label == ctx_rh_inferiortemporal)
+    return("ctx_rh_inferiortemporal") ;
+  if (label == ctx_rh_isthmuscingulate)
+    return("ctx_rh_isthmuscingulate") ;
+  if (label == ctx_rh_lateraloccipital)
+    return("ctx_rh_lateraloccipital") ;
+  if (label == ctx_rh_lateralorbitofrontal)
+    return("ctx_rh_lateralorbitofrontal") ;
+  if (label == ctx_rh_lingual)
+    return("ctx_rh_lingual") ;
+  if (label == ctx_rh_medialorbitofrontal)
+    return("ctx_rh_medialorbitofrontal") ;
+  if (label == ctx_rh_middletemporal)
+    return("ctx_rh_middletemporal") ;
+  if (label == ctx_rh_parahippocampal)
+    return("ctx_rh_parahippocampal") ;
+  if (label == ctx_rh_paracentral)
+    return("ctx_rh_paracentral") ;
+  if (label == ctx_rh_parsopercularis)
+    return("ctx_rh_parsopercularis") ;
+  if (label == ctx_rh_parsorbitalis)
+    return("ctx_rh_parsorbitalis") ;
+  if (label == ctx_rh_parstriangularis)
+    return("ctx_rh_parstriangularis") ;
+  if (label == ctx_rh_pericalcarine)
+    return("ctx_rh_pericalcarine") ;
+  if (label == ctx_rh_postcentral)
+    return("ctx_rh_postcentral") ;
+  if (label == ctx_rh_posteriorcingulate)
+    return("ctx_rh_posteriorcingulate") ;
+  if (label == ctx_rh_precentral)
+    return("ctx_rh_precentral") ;
+  if (label == ctx_rh_precuneus)
+    return("ctx_rh_precuneus") ;
+  if (label == ctx_rh_rostralanteriorcingulate)
+    return("ctx_rh_rostralanteriorcingulate") ;
+  if (label == ctx_rh_rostralmiddlefrontal)
+    return("ctx_rh_rostralmiddlefrontal") ;
+  if (label == ctx_rh_superiorfrontal)
+    return("ctx_rh_superiorfrontal") ;
+  if (label == ctx_rh_superiorparietal)
+    return("ctx_rh_superiorparietal") ;
+  if (label == ctx_rh_superiortemporal)
+    return("ctx_rh_superiortemporal") ;
+  if (label == ctx_rh_supramarginal)
+    return("ctx_rh_supramarginal") ;
+  if (label == ctx_rh_frontalpole)
+    return("ctx_rh_frontalpole") ;
+  if (label == ctx_rh_temporalpole)
+    return("ctx_rh_temporalpole") ;
+  if (label == ctx_rh_transversetemporal)
+    return("ctx_rh_transversetemporal") ;
+  if (label == ctx_rh_insula)
+    return("ctx_rh_insula") ;
+
   return(name) ;
 }
 MRI *

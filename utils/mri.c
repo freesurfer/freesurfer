@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2013/01/08 19:49:48 $
- *    $Revision: 1.520 $
+ *    $Date: 2013/03/25 12:38:13 $
+ *    $Revision: 1.521 $
  *
  * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -23,7 +23,7 @@
  */
 
 extern const char* Progname;
-const char *MRI_C_VERSION = "$Revision: 1.520 $";
+const char *MRI_C_VERSION = "$Revision: 1.521 $";
 
 
 /*-----------------------------------------------------
@@ -8251,6 +8251,122 @@ MRIdownsample2(MRI *mri_src, MRI *mri_dst)
   mri_dst->zsize = mri_src->zsize*2 ;
   mri_dst->thick = mri_src->thick*2 ;
   mri_dst->ps    = mri_src->ps*2 ;
+  
+  // adjust cras
+  //printf("COMPUTING new CRAS\n") ;
+  VECTOR* C = VectorAlloc(4, MATRIX_REAL);
+  VECTOR_ELT(C,1) = mri_src->width/2+0.5;
+  VECTOR_ELT(C,2) = mri_src->height/2+0.5;
+  VECTOR_ELT(C,3) = mri_src->depth/2+0.5;
+  VECTOR_ELT(C,4) = 1.0;
+  MATRIX* V2R     = extract_i_to_r(mri_src);
+  MATRIX* P       = MatrixMultiply(V2R,C,NULL);
+  mri_dst->c_r    = P->rptr[1][1];
+  mri_dst->c_a    = P->rptr[2][1];
+  mri_dst->c_s    = P->rptr[3][1];
+  MatrixFree(&P);
+  MatrixFree(&V2R);
+  VectorFree(&C);
+  
+  MRIreInitCache(mri_dst) ;
+  //printf("CRAS new: %2.3f %2.3f %2.3f\n",mri_dst->c_r,mri_dst->c_a,mri_dst->c_s);
+
+  //  mri_dst->ras_good_flag = 0;
+
+  return(mri_dst) ;
+}
+/*-----------------------------------------------------
+  Parameters:
+
+  Returns value:
+
+  Description
+  ------------------------------------------------------*/
+MRI *
+MRIdownsampleN(MRI *mri_src, MRI *mri_dst, int N)
+{
+  int     width, depth, height, x, y, z, x1, y1, z1 ;
+  BUFTYPE *psrc ;
+  short   *pssrc ;
+  float   *pfsrc ;
+  float   val ;
+
+  if (mri_dst && mri_src->type != mri_dst->type)
+    ErrorReturn
+    (NULL,
+     (ERROR_UNSUPPORTED,
+      "MRIdownsampleN: source and dst must be same type"));
+
+  width  = mri_src->width/N ;
+  height = mri_src->height/N ;
+  depth  = mri_src->depth/N ;
+
+  if (!mri_dst)
+  {
+    mri_dst = MRIalloc(width, height, depth, mri_src->type) ;
+    MRIcopyHeader(mri_src, mri_dst) ;
+  }
+
+  MRIclear(mri_dst) ;
+  for (z = 0 ; z < depth ; z++)
+  {
+    for (y = 0 ; y < height ; y++)
+    {
+      for (x = 0 ; x < width ; x++)
+      {
+        for (val = 0.0f, z1 = N*z ; z1 <= N*z+1 ; z1++)
+        {
+          for (y1 = N*y ; y1 <= N*y+1 ; y1++)
+          {
+            switch (mri_src->type)
+            {
+            case MRI_UCHAR:
+              psrc = &MRIvox(mri_src, N*x, y1, z1) ;
+              for (x1 = N*x ; x1 <= N*x+1 ; x1++)
+                val += *psrc++ ;
+              break ;
+            case MRI_SHORT:
+              pssrc = &MRISvox(mri_src, N*x, y1, z1) ;
+              for (x1 = N*x ; x1 <= N*x+1 ; x1++)
+                val += *pssrc++ ;
+              break ;
+            case MRI_FLOAT:
+              pfsrc = &MRIFvox(mri_src, N*x, y1, z1) ;
+              for (x1 = N*x ; x1 <= N*x+1 ; x1++)
+                val += *pfsrc++ ;
+              break ;
+            default:
+              ErrorReturn
+              (NULL,
+               (ERROR_UNSUPPORTED,
+                "MRIdownsampleN: unsupported input type %d",
+                mri_src->type));
+            }
+          }
+        }
+        switch (mri_src->type)
+        {
+        case MRI_UCHAR:
+          MRIvox(mri_dst, x, y, z) = (BUFTYPE)nint(val/(N*N*N)) ;
+          break ;
+        case MRI_FLOAT:
+          MRIFvox(mri_dst, x, y, z) = val/8.0f ;
+          break ;
+        case MRI_SHORT:
+          MRISvox(mri_dst, x, y, z) = (short)nint(val/(N*N*N)) ;
+          break ;
+        }
+      }
+    }
+  }
+
+  mri_dst->imnr0 = mri_src->imnr0 ;
+  mri_dst->imnr1 = mri_src->imnr0 + mri_dst->depth - 1 ;
+  mri_dst->xsize = mri_src->xsize*N ;
+  mri_dst->ysize = mri_src->ysize*N ;
+  mri_dst->zsize = mri_src->zsize*N ;
+  mri_dst->thick = mri_src->thick*N ;
+  mri_dst->ps    = mri_src->ps*N ;
   
   // adjust cras
   //printf("COMPUTING new CRAS\n") ;
@@ -17749,4 +17865,25 @@ MRIcomputeVolumeFractions(MRI *mri_src, MATRIX *m_vox2vox,
   MRIfree(&mri_counts) ; MatrixFree(&m_inv) ;
   
   return(NO_ERROR) ;
+}
+float
+MRImaxInRegion(MRI *mri, int x, int y, int z, int whalf) 
+{
+  int xi, yi, zi, xk, yk, zk ;
+  float max_val, val ;
+
+  max_val = -1e-10 ;
+
+  for (xk = -whalf ; xk <= whalf ; xk++)
+    for (yk = -whalf ; yk <= whalf ; yk++)
+      for (zk = -whalf ; zk <= whalf ; zk++)
+      {
+	xi = mri->xi[x+xk] ; 
+	yi = mri->yi[y+yk] ; 
+	zi = mri->zi[z+zk] ; 
+	val = MRIgetVoxVal(mri, xi, yi, zi, 0) ;
+	if (val > max_val)
+	  max_val = val ;
+      }
+  return(max_val) ;
 }

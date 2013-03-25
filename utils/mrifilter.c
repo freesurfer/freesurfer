@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2012/10/17 19:06:11 $
- *    $Revision: 1.98 $
+ *    $Date: 2013/03/25 12:38:13 $
+ *    $Revision: 1.99 $
  *
  * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -6342,10 +6342,11 @@ MRIsmoothLabel(MRI *mri_intensity,
                MRI *mri_label,
                MRI *mri_smooth,
                int niter,
-               int label)
+               int label,
+	       float min_change)
 {
   int   x, y, z, n, xi, yi, zi, xk, yk, zk, i, l ;
-  float val, val_mean ;
+  float val, val_mean, change, max_change ;
   MRI   *mri_tmp ;
 
   mri_tmp = MRIcopy(mri_intensity, NULL) ;
@@ -6360,14 +6361,12 @@ MRIsmoothLabel(MRI *mri_intensity,
         for (z = 0 ; z < mri_tmp->depth ; z++)
         {
           if (x == Gx && y == Gy && z == Gz)
-          {
             DiagBreak() ;
-          }
+
           l = nint(MRIgetVoxVal(mri_label, x, y, z, 0)) ;
           if (l != label)
-          {
             continue ;
-          }
+
           val_mean = 0 ;
           n = 0 ;
           for (xk = -1 ; xk <= 1 ; xk++)
@@ -6381,9 +6380,8 @@ MRIsmoothLabel(MRI *mri_intensity,
                 zi = mri_tmp->zi[zk+z] ;
                 l = nint(MRIgetVoxVal(mri_label, xi, yi, zi, 0)) ;
                 if (l != label)
-                {
                   continue ;
-                }
+
                 val = MRIgetVoxVal(mri_smooth, xi, yi, zi, 0) ;
                 val_mean += val ;
                 n++ ;
@@ -6392,12 +6390,96 @@ MRIsmoothLabel(MRI *mri_intensity,
           }
           if (n > 0)
           {
-            MRIsetVoxVal(mri_tmp, x, y, z, 0, val_mean/(float)n) ;
+	    val = MRIgetVoxVal(mri_smooth, x, y, z, 0) ;
+	    val_mean /= (float)n ;
+	    change = fabs(val-val_mean) ;
+	    if (change > max_change)
+	      max_change = change ;
+            MRIsetVoxVal(mri_tmp, x, y, z, 0, val_mean) ;
           }
         }
       }
     }
     MRIcopy(mri_tmp, mri_smooth) ;
+    if (max_change < min_change)
+      break ;
+  }
+
+  MRIfree(&mri_tmp) ;
+  return(mri_smooth) ;
+}
+
+MRI *
+MRIsmoothLabel6Connected(MRI *mri_intensity,
+			 MRI *mri_label,
+			 MRI *mri_smooth,
+			 int niter,
+			 int label,
+			 int fixed_label,
+			 float min_change)
+{
+  int   x, y, z, n, xi, yi, zi, xk, yk, zk, i, l ;
+  float val, val_mean, max_change, change ;
+  MRI   *mri_tmp ;
+
+  mri_tmp = MRIcopy(mri_intensity, NULL) ;
+  mri_smooth = MRIcopy(mri_intensity, mri_smooth) ;
+
+  for (i = 0 ; i < niter ; i++)
+  {
+    max_change = 0.0 ;
+    for (x = 0 ; x < mri_tmp->width ; x++)
+    {
+      for (y = 0 ; y < mri_tmp->height ; y++)
+      {
+        for (z = 0 ; z < mri_tmp->depth ; z++)
+        {
+          if (x == Gx && y == Gy && z == Gz)
+            DiagBreak() ;
+
+          l = nint(MRIgetVoxVal(mri_label, x, y, z, 0)) ;
+          if (l != label)
+            continue ;
+
+          val_mean = 0 ;
+          n = 0 ;
+          for (xk = -1 ; xk <= 1 ; xk++)
+          {
+            xi = mri_tmp->xi[xk+x] ;
+            for (yk = -1 ; yk <= 1 ; yk++)
+            {
+              yi = mri_tmp->yi[yk+y] ;
+              for (zk = -1 ; zk <= 1 ; zk++)
+              {
+		if (abs(xk) + abs(yk) + abs(zk) > 1)
+		  continue ; // enforce 6-connectivity
+
+                zi = mri_tmp->zi[zk+z] ;
+                l = nint(MRIgetVoxVal(mri_label, xi, yi, zi, 0)) ;
+                if (l != label && l != fixed_label)
+                  continue ;
+
+                val = MRIgetVoxVal(mri_smooth, xi, yi, zi, 0) ;
+                val_mean += val ;
+                n++ ;
+              }
+            }
+          }
+          if (n > 0)
+	  {
+	    val = MRIgetVoxVal(mri_smooth, x, y, z, 0) ;
+	    val_mean /= (float)n ;
+	    change = fabs(val-val_mean) ;
+	    if (change > max_change)
+	      max_change = change ;
+            MRIsetVoxVal(mri_tmp, x, y, z, 0, val_mean) ;
+	  }
+        }
+      }
+    }
+    MRIcopy(mri_tmp, mri_smooth) ;
+    if (max_change < min_change)
+      break ;
   }
 
   MRIfree(&mri_tmp) ;
@@ -7578,3 +7660,30 @@ MRIcomputeFrameVectorL1Length(MRI *mri_src, MRI *mri_dst)
   return(mri_dst) ;
 }
 
+MRI *
+MRInbrThresholdLabel(MRI *mri_src, MRI *mri_dst,  int label, int out_label, int whalf,  float thresh)
+{
+  int  x, y, z, count, total ;
+
+  if (mri_dst != mri_src)
+    mri_dst = MRIcopy(mri_src, mri_dst) ;
+
+  for (total = x = 0 ; x < mri_dst->width ; x++)
+    for (y = 0 ; y < mri_dst->height ; y++)
+      for (z = 0 ; z < mri_dst->depth ; z++)
+      {
+	if (x == Gx && y == Gy && z == Gz)
+	  DiagBreak() ;
+	if (nint(MRIgetVoxVal(mri_dst, x, y, z, 0)) != label)
+	    continue ; // only filter this label
+	count = MRIlabelsInNbhd(mri_dst,  x,  y,  z, whalf, label) ;
+	if (count < thresh)
+	{
+	  total++ ;
+	  MRIsetVoxVal(mri_dst, x, y, z, 0, out_label) ;
+	}
+      }
+
+//  printf("%d voxels thresholded due to insufficient neighbors\n", total) ;
+  return(mri_dst) ;
+}

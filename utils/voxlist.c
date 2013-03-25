@@ -1,6 +1,6 @@
 /**
  * @file  voxlist.c
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief utilities to create and process lists of voxels
  *
  * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
  */
@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2012/06/04 16:45:09 $
- *    $Revision: 1.25 $
+ *    $Date: 2013/03/25 12:38:13 $
+ *    $Revision: 1.26 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -72,7 +72,7 @@ VLSTcreateInRegion(MRI *mri, float low_val, float hi_val ,
     printf("allocating %d voxel indices...\n", nvox) ;
   if (vl == NULL)
     vl = (VOXEL_LIST *)calloc(1, sizeof(VOXEL_LIST)) ;
-  else if (vl->nvox < nvox)
+  else if (vl->max_vox < nvox)
   {
     free(vl->xi) ;
     free(vl->yi) ;
@@ -159,7 +159,7 @@ VLSTcreate(MRI *mri,
     printf("allocating %d voxel indices...\n", nvox) ;
   if (vl == NULL)
     vl = (VOXEL_LIST *)calloc(1, sizeof(VOXEL_LIST)) ;
-  else if (vl->nvox < nvox)
+  else if (vl->max_vox < nvox)
   {
     free(vl->xi) ;
     free(vl->yi) ;
@@ -403,6 +403,7 @@ VLSTdilate(VOXEL_LIST *vl, int mode, MRI *mri_exclude)
   {
     vl_exp = (VOXEL_LIST *)calloc(1, sizeof(VOXEL_LIST)) ;
     vl_exp->nvox = vl->nvox + nvox ;
+    vl_exp->max_vox = vl->nvox + nvox ;
     vl_exp->mri = vl->mri ;
     vl_exp->xi = (int *)calloc(vl->nvox+nvox, sizeof(int)) ;
     vl_exp->yi = (int *)calloc(vl->nvox+nvox, sizeof(int)) ;
@@ -421,7 +422,7 @@ VLSTdilate(VOXEL_LIST *vl, int mode, MRI *mri_exclude)
   else if (mode == VL_DILATE_REPLACE)
   {
     vl_exp = (VOXEL_LIST *)calloc(1, sizeof(VOXEL_LIST)) ;
-    vl_exp->nvox = nvox ;
+    vl_exp->nvox = vl_exp->max_vox = nvox ;
     vl_exp->mri = vl->mri ;
     vl_exp->xi = (int *)calloc(nvox, sizeof(int)) ;
     vl_exp->yi = (int *)calloc(nvox, sizeof(int)) ;
@@ -588,7 +589,7 @@ VLSTcreateFromDifference(MRI *mri1, MRI *mri2, VOXEL_LIST *vl, int target_label)
     printf("allocating %d voxel indices...\n", nvox) ;
   if (vl == NULL)
     vl = (VOXEL_LIST *)calloc(1, sizeof(VOXEL_LIST)) ;
-  else if (vl->nvox < nvox)
+  else if (vl->max_vox < nvox)
   {
     free(vl->xi) ;
     free(vl->yi) ;
@@ -605,6 +606,7 @@ VLSTcreateFromDifference(MRI *mri1, MRI *mri2, VOXEL_LIST *vl, int target_label)
     vl->xi = (int *)calloc(nvox, sizeof(int)) ;
     vl->yi = (int *)calloc(nvox, sizeof(int)) ;
     vl->zi = (int *)calloc(nvox, sizeof(int)) ;
+    vl->max_vox = nvox ;
   }
   if (!vl || !vl->xi || !vl->yi || !vl->zi)
     ErrorExit(ERROR_NOMEMORY, "%s: could not allocate %d voxel list\n",
@@ -772,7 +774,7 @@ int
 VLSTadd(VOXEL_LIST *vl, int x, int y, int z, float xd, float yd, float zd)
 {
   if (vl->nvox >= vl->max_vox)
-    ErrorExit(ERROR_NOMEMORY, "VLSTadd: too many voxels (%d)", vl->max_vox) ;
+    ErrorReturn(ERROR_NOMEMORY, (ERROR_NOMEMORY, "VLSTadd: too many voxels (%d)", vl->max_vox)) ;
   vl->xi[vl->nvox] = x ;
   vl->yi[vl->nvox] = y ;
   vl->zi[vl->nvox] = z ;
@@ -891,12 +893,26 @@ VLSTtoLabel(VOXEL_LIST *vl, MRI_SURFACE *mris, MRI *mri)
   LABEL *area = LabelAlloc(vl->nvox, NULL, "") ;
   double xs, ys, zs ;
 
-  for (n = 0 ; n < vl->nvox ; n++)
+  if (mris)
   {
-    MRISsurfaceRASFromVoxel(mris, mri, (double)vl->xd[n], (double)vl->yd[n], (double)vl->zd[n], &xs, &ys, &zs) ;
-    area->lv[n].x = xs ;
-    area->lv[n].y = ys ;
-    area->lv[n].z = zs ;
+    for (n = 0 ; n < vl->nvox ; n++)
+    {
+      MRISsurfaceRASFromVoxel(mris, mri, (double)vl->xd[n], (double)vl->yd[n], (double)vl->zd[n], &xs, &ys, &zs) ;
+      area->lv[n].x = xs ;
+      area->lv[n].y = ys ;
+      area->lv[n].z = zs ;
+    }
+  }
+  else   // use scanner coords
+  {
+    for (n = 0 ; n < vl->nvox ; n++)
+    {
+      MRIvoxelToWorld(mri, (double)vl->xd[n], (double)vl->yd[n], (double)vl->zd[n], &xs, &ys, &zs) ;
+      area->lv[n].x = xs ;
+      area->lv[n].y = ys ;
+      area->lv[n].z = zs ;
+    }
+    sprintf(area->space, "coords=scanner") ;
   }
   area->n_points = vl->nvox ;
 
@@ -1150,3 +1166,67 @@ VLSTcomputeSplineSegmentMean(VOXEL_LIST *vl_spline, MRI *mri, double step_size, 
   return(mean) ;
 }
 
+double
+VLSTrmsDistance(VOXEL_LIST *vl1, VOXEL_LIST *vl2, double max_dist, MRI **pmri_dist)
+{
+  MRI *mri_dist ; 
+  double dist, rms ;
+  int   i ;
+
+  if (*pmri_dist == NULL)
+  {
+    MRI *mri_tmp ;
+    if (vl1->mri == NULL)
+      ErrorExit(ERROR_BADPARM, "VLSTrmsDistance: vl1->mri must be set prior to calling") ;
+
+    mri_tmp = VLSTtoMri(vl1, NULL) ;
+    MRIbinarize(mri_tmp, mri_tmp, 1, 0, 1) ;
+    *pmri_dist = mri_dist = MRIdistanceTransform(mri_tmp, NULL, 1, max_dist, DTRANS_MODE_SIGNED, NULL);
+    MRIfree(&mri_tmp) ;
+  }
+  else
+    mri_dist = *pmri_dist ;  // already allocated and computed (hopefully!)
+
+  for (rms = 0.0, i = 0 ; i < vl2->nvox ; i++)
+  {
+    dist = MRIgetVoxVal(mri_dist,  vl2->xi[i], vl2->yi[i], vl2->zi[i], 0) ;
+    if (dist < 0)
+      dist = 0 ;
+    rms += dist*dist ;
+  }
+  rms = sqrt(rms/vl2->nvox) ;
+  return(rms) ;
+}
+
+double
+VLSThausdorffDistance(VOXEL_LIST *vl1, VOXEL_LIST *vl2, double max_dist, MRI **pmri_dist)
+{
+  MRI *mri_dist ; 
+  double dist, hdist ;
+  int   i ;
+
+  if (*pmri_dist == NULL)
+  {
+    MRI *mri_tmp ;
+    if (vl1->mri == NULL)
+      ErrorExit(ERROR_BADPARM, "VLSTrmsDistance: vl1->mri must be set prior to calling") ;
+
+    mri_tmp = VLSTtoMri(vl1, NULL) ;
+    MRIbinarize(mri_tmp, mri_tmp, 1, 0, 1) ;
+    *pmri_dist = mri_dist = MRIdistanceTransform(mri_tmp, NULL, 1, max_dist, DTRANS_MODE_SIGNED, NULL);
+    MRIfree(&mri_tmp) ;
+  }
+  else
+    mri_dist = *pmri_dist ;  // already allocated and computed (hopefully!)
+
+  hdist = 0 ;
+  for (i = 0 ; i < vl2->nvox ; i++)
+  {
+    dist = MRIgetVoxVal(mri_dist,  vl2->xi[i], vl2->yi[i], vl2->zi[i], 0) ;
+    if (dist < 0)
+      dist = 0 ;
+    if (dist > hdist)
+      hdist = dist ;
+  }
+  return(hdist) ;
+}
