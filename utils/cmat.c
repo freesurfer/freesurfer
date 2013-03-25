@@ -9,8 +9,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2013/03/25 17:28:06 $
- *    $Revision: 1.2 $
+ *    $Date: 2013/03/25 19:30:50 $
+ *    $Revision: 1.3 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -49,13 +49,13 @@ CMATread(char *fname)
   for (i = 0 ; i < nlabels ; i++)
     fscanf(fp, "%d\n", &cmat->labels[i]) ;
 
-  for (i = 0 ; i < cmat->nlabels ; i++)
+  for (i = 0 ; i < cmat->nlabels-1 ; i++)
   {
     for (j = i+1 ; j < cmat->nlabels ; j++)
       fscanf(fp, "%lf", &cmat->weights[i][j]) ;
     fscanf(fp, "\n") ;
   }
-  for (i = 0 ; i < cmat->nlabels ; i++)
+  for (i = 0 ; i < cmat->nlabels-1 ; i++)
   {
     for (j = i+1 ; j < cmat->nlabels ; j++)
     {
@@ -83,14 +83,14 @@ CMATwrite(CMAT *cmat, char *fname)
   for (i = 0 ; i < cmat->nlabels ; i++)
     fprintf(fp, "%d\n", cmat->labels[i]) ;
 
-  for (i = 0 ; i < cmat->nlabels ; i++)
+  for (i = 0 ; i < cmat->nlabels-1 ; i++)
   {
     for (j = i+1 ; j < cmat->nlabels ; j++)
       fprintf(fp, "%f", cmat->weights[i][j]) ;
     fprintf(fp, "\n") ;
   }
 
-  for (i = 0 ; i < cmat->nlabels ; i++)
+  for (i = 0 ; i < cmat->nlabels-1 ; i++)
     for (j = i+1 ; j < cmat->nlabels ; j++)
     {
       if (cmat->splines[i][j] == NULL)
