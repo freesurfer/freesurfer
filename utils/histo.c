@@ -8,8 +8,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2013/01/08 18:30:22 $
- *    $Revision: 1.77 $
+ *    $Date: 2013/03/26 14:14:59 $
+ *    $Revision: 1.78 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -3355,3 +3355,22 @@ HISTO2DsoapBubbleZeros(HISTOGRAM2D *hsrc, HISTOGRAM2D *hdst, int niters)
   free(tmp) ; free(control) ;
   return(hdst) ;
 }
+float
+HISTOcomputeFWHM(HISTOGRAM *h, int peak)
+{
+  int    width, max_width ;
+  float  thresh, fwhm ;
+
+  thresh = h->counts[peak]/2 ;
+  max_width = MIN(peak, h->nbins-(peak+1)) ;
+
+  for (width = 1 ; width < max_width ; width++)
+  {
+    if (h->counts[peak-width] < thresh && h->counts[peak+width] < thresh)
+      break ;
+  }
+
+  fwhm = 2*width*h->bin_size ;
+  return(fwhm) ;
+}
+

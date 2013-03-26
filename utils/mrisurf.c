@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2013/01/08 15:41:28 $
- *    $Revision: 1.744 $
+ *    $Date: 2013/03/26 14:14:58 $
+ *    $Revision: 1.745 $
  *
  * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -771,7 +771,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void)
 {
-  return("$Id: mrisurf.c,v 1.744 2013/01/08 15:41:28 fischl Exp $");
+  return("$Id: mrisurf.c,v 1.745 2013/03/26 14:14:58 fischl Exp $");
 }
 
 /*-----------------------------------------------------
@@ -77523,10 +77523,11 @@ MRIScomputeClassStatistics(MRI_SURFACE *mris,
 int
 MRIScomputeClassModes(MRI_SURFACE *mris,
                       MRI *mri,
-                      float *pwhite_mode, float *pgray_mode, float *pcsf_mode)
+                      float *pwhite_mode, float *pgray_mode, float *pcsf_mode,
+                      float *pwhite_std, float *pgray_std, float *pcsf_std)
 {
   HISTOGRAM *h_white, *h_csf, *h_gray ;
-  float      min_val, max_val ;
+  float      min_val, max_val, white_std, gray_std, csf_std ;
   int        nbins, b, vno, gray_peak, white_peak, csf_peak, bin ;
   VERTEX     *v ;
   double       val, x, y, z, xw, yw, zw ;
@@ -77543,6 +77544,9 @@ MRIScomputeClassModes(MRI_SURFACE *mris,
     h_csf->bins[b] = min_val + b ;
     h_gray->bins[b] = min_val + b ;
   }
+  h_white->min = h_gray->min = h_csf->min = min_val ;
+  h_white->max = h_gray->max = h_csf->max = max_val ;
+  h_white->bin_size = h_gray->bin_size = h_csf->bin_size = 1 ;
 
   // use g/w boundary to compute gray and white histograms
   MRISsaveVertexPositions(mris, TMP_VERTICES) ;
@@ -77552,13 +77556,9 @@ MRIScomputeClassModes(MRI_SURFACE *mris,
   {
     v = &mris->vertices[vno] ;
     if (v->ripflag)
-    {
       continue ;
-    }
     if (vno == Gdiag_no)
-    {
       DiagBreak() ;
-    }
 
 #define WM_SAMPLE_DIST 1.0
     x = v->x-WM_SAMPLE_DIST*v->nx ;
@@ -77644,6 +77644,9 @@ MRIScomputeClassModes(MRI_SURFACE *mris,
     {
       HISTOplot(h_csf, "csf.plt") ;
     }
+    csf_std = HISTOcomputeFWHM(h_csf, csf_peak) / 2.3 ;
+    if (pcsf_std)
+      *pcsf_std = csf_std ;
   }
 
   HISTOclearZeroBin(h_white) ;
@@ -77652,12 +77655,18 @@ MRIScomputeClassModes(MRI_SURFACE *mris,
   gray_peak = HISTOfindHighestPeakInRegion(h_gray, 0, h_gray->nbins) ;
   *pwhite_mode = h_white->bins[white_peak] ;
   *pgray_mode = h_gray->bins[gray_peak] ;
+  white_std = HISTOcomputeFWHM(h_white, white_peak) / 2.3 ;
+  gray_std = HISTOcomputeFWHM(h_gray, gray_peak) / 2.3 ;
+  if (*pwhite_std)
+    *pwhite_std = white_std ;
+  if (*pgray_std)
+    *pgray_std = gray_std ;
   if (pcsf_mode)
-    printf("intensity peaks found at WM=%d,    GM=%d,   CSF=%d\n",
-           nint(*pwhite_mode), nint(*pgray_mode), nint(*pcsf_mode)) ;
+    printf("intensity peaks found at WM=%d+-%2.1f,   GM=%d+-%2.1f,  CSF=%d+-%2.1f\n",
+           nint(*pwhite_mode), white_std, nint(*pgray_mode), gray_std, nint(*pcsf_mode),csf_std) ;
   else
-    printf("intensity peaks found at WM=%d,    GM=%d\n",
-           nint(*pwhite_mode), nint(*pgray_mode)) ;
+    printf("intensity peaks found at WM=%d+-%2.1f,    GM=%d+-%2.1f\n",
+           nint(*pwhite_mode), white_std, nint(*pgray_mode), gray_std) ;
   if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
   {
     HISTOplot(h_white, "wm.plt") ;
