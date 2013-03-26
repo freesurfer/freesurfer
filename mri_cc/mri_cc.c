@@ -10,8 +10,8 @@
  * Original Authors: Bruce Fischl and Peng Yu
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2011/03/16 20:28:43 $
- *    $Revision: 1.33 $
+ *    $Date: 2013/03/26 18:57:11 $
+ *    $Revision: 1.34 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -59,6 +59,7 @@
 #define LABEL_BORDER_CC 64
 #define MAX_CENTRAL_SLICES      500
 
+static int norm_thresh = 80 ;
 static double max_cc_rot = MAX_CC_ROT ;
 static int use_aseg = 1 ;
 static int write_lta = 0 ;
@@ -175,13 +176,13 @@ main(int argc, char *argv[])
   char cmdline[CMD_LINE_LEN] ;
   make_cmd_version_string
   (argc, argv,
-   "$Id: mri_cc.c,v 1.33 2011/03/16 20:28:43 fischl Exp $",
+   "$Id: mri_cc.c,v 1.34 2013/03/26 18:57:11 fischl Exp $",
    "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mri_cc.c,v 1.33 2011/03/16 20:28:43 fischl Exp $",
+           "$Id: mri_cc.c,v 1.34 2013/03/26 18:57:11 fischl Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
   {
@@ -1701,7 +1702,7 @@ find_cc_with_aseg(MRI *mri_aseg_orig, MRI *mri_cc, LTA **plta,
   MatrixFree(&m_trans_inv) ;
   MatrixFree(&m_tmp) ;
 
-  // remove aseg voxels with norm < 85 (won't really be cc)
+  // remove aseg voxels with norm < norm_thresh (won't really be cc)
   if (mri_norm)
   {
     for (x0 = 0 ; x0 < mri_norm->width ; x0++)
@@ -1712,7 +1713,7 @@ find_cc_with_aseg(MRI *mri_aseg_orig, MRI *mri_cc, LTA **plta,
           {
             DiagBreak() ;
           }
-          if (MRIgetVoxVal(mri_norm, x0, y0, z0, 0) < 80)
+          if (MRIgetVoxVal(mri_norm, x0, y0, z0, 0) < norm_thresh)
           {
             MRIsetVoxVal(mri_aseg, x0, y0, z0, 0, 0) ;
           }
@@ -1762,6 +1763,9 @@ find_cc_with_aseg(MRI *mri_aseg_orig, MRI *mri_cc, LTA **plta,
         }
       }
   }
+  if (xleft_min > xright_max)
+    ErrorExit(ERROR_UNSUPPORTED, "%s: no WM voxels found with norm > %d\n",
+	      Progname, norm_thresh) ;
   xmin = MIN(xleft_min, xright_max)-1 ;
   xmax = MAX(xleft_min, xright_max)+1 ;
   printf("updating x range to be [%d, %d] in xformed coordinates\n",xmin,xmax);
@@ -2034,7 +2038,7 @@ find_cc_with_aseg(MRI *mri_aseg_orig, MRI *mri_cc, LTA **plta,
       }
     i-- ;
   }
-  while (changed == 0) ;
+  while (changed == 0 && i > 0) ;
 
   if (write_lta)
   {
