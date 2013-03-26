@@ -9,8 +9,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2013/01/08 15:41:50 $
- *    $Revision: 1.374 $
+ *    $Date: 2013/03/26 14:15:29 $
+ *    $Revision: 1.375 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -1720,7 +1720,10 @@ int MRIScomputeClassModes(MRI_SURFACE *mris,
                           MRI *mri,
                           float *pwhite_mode,
                           float *pgray_mode,
-                          float *pcsf_mode);
+                          float *pcsf_mode,
+			  float *pwhite_std,
+			  float *pgray_std,
+			  float *pcsf_std);
 int MRISrasToVoxel(MRI_SURFACE *mris,
                    MRI *mri,
                    double xs, double ys, double zs,

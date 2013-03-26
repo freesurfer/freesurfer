@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2013/01/08 15:42:17 $
- *    $Revision: 1.45 $
+ *    $Date: 2013/03/26 14:15:29 $
+ *    $Revision: 1.46 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -179,5 +179,5 @@ HISTOGRAM2D *HISTO2DsmoothBins1(HISTOGRAM2D *histo_src, HISTOGRAM2D *histo_dst,f
 HISTOGRAM2D *HISTO2DsmoothBins2(HISTOGRAM2D *histo_src, HISTOGRAM2D *histo_dst,float sigma) ;
 HISTOGRAM2D *HISTO2Dread(char *fname) ;
 HISTOGRAM2D *HISTO2DsoapBubbleZeros(HISTOGRAM2D *hsrc, HISTOGRAM2D *hdst, int niters) ;
-
+float       HISTOcomputeFWHM(HISTOGRAM *h, int peak) ;
 #endif
