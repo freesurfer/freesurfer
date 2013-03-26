@@ -12,8 +12,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2013/03/26 00:21:14 $
- *    $Revision: 1.137 $
+ *    $Date: 2013/03/26 14:14:37 $
+ *    $Revision: 1.138 $
  *
  * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -56,7 +56,7 @@
 #define CONTRAST_FLAIR 2
 
 static char vcid[] =
-  "$Id: mris_make_surfaces.c,v 1.137 2013/03/26 00:21:14 fischl Exp $";
+  "$Id: mris_make_surfaces.c,v 1.138 2013/03/26 14:14:37 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -265,13 +265,13 @@ main(int argc, char *argv[])
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mris_make_surfaces.c,v 1.137 2013/03/26 00:21:14 fischl Exp $",
+   "$Id: mris_make_surfaces.c,v 1.138 2013/03/26 14:14:37 fischl Exp $",
    "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mris_make_surfaces.c,v 1.137 2013/03/26 00:21:14 fischl Exp $",
+           "$Id: mris_make_surfaces.c,v 1.138 2013/03/26 14:14:37 fischl Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
   {
@@ -554,13 +554,13 @@ main(int argc, char *argv[])
               (mri_wm, NULL, WM_MIN_VAL, MRI_NOT_WHITE, MRI_WHITE) ;
     fprintf(stderr, "computing class statistics...\n");
     MRISsaveVertexPositions(mris, WHITE_VERTICES) ;
-    MRIScomputeClassModes(mris, mri_T1, &white_mode, &gray_mode, NULL);
     MRIcomputeClassStatistics(mri_T1, mri_tmp, 30, WHITE_MATTER_MEAN,
                               &white_mean, &white_std, &gray_mean,
                               &gray_std) ;
     if (use_mode)
     {
       printf("using class modes intead of means....\n") ;
+      MRIScomputeClassModes(mris, mri_T1, &white_mode, &gray_mode, NULL, &white_std, &gray_std, NULL);
       white_mean = white_mode ;
       gray_mean = gray_mode ;
     }
@@ -584,6 +584,19 @@ main(int argc, char *argv[])
     {
       min_border_white = gray_mean ;
     }
+
+    // apply some sanity checks
+#define MAX_SCALE_DOWN .2
+
+    if (min_gray_at_white_border < MAX_SCALE_DOWN*MIN_GRAY_AT_WHITE_BORDER)
+      min_gray_at_white_border = nint(MAX_SCALE_DOWN*MIN_GRAY_AT_WHITE_BORDER) ;
+    if (max_border_white < MAX_SCALE_DOWN*MAX_BORDER_WHITE)
+      max_border_white = nint(MAX_SCALE_DOWN*MAX_BORDER_WHITE) ;
+    if (min_border_white < MAX_SCALE_DOWN*MIN_BORDER_WHITE)
+      min_border_white = nint(MAX_SCALE_DOWN*MIN_BORDER_WHITE) ;
+    if (max_csf < MAX_SCALE_DOWN*MAX_CSF)
+      max_csf = MAX_SCALE_DOWN*MAX_CSF ;
+
     fprintf(stderr, "setting MIN_GRAY_AT_WHITE_BORDER to %2.1f (was %d)\n",
             min_gray_at_white_border, MIN_GRAY_AT_WHITE_BORDER) ;
     fprintf(stderr, "setting MAX_BORDER_WHITE to %2.1f (was %d)\n",
@@ -605,6 +618,12 @@ main(int argc, char *argv[])
     {
       min_gray_at_csf_border = gray_mean - variablesigma*gray_std ;
     }
+    if (max_gray < MAX_SCALE_DOWN*MAX_GRAY)
+      max_gray = nint(MAX_SCALE_DOWN*MAX_GRAY) ;
+    if (max_gray_at_csf_border < MAX_SCALE_DOWN*MAX_GRAY_AT_CSF_BORDER)
+      max_gray_at_csf_border = nint(MAX_SCALE_DOWN*MAX_GRAY_AT_CSF_BORDER) ;
+    if (min_gray_at_csf_border < MAX_SCALE_DOWN*MIN_GRAY_AT_CSF_BORDER)
+      min_gray_at_csf_border = nint(MAX_SCALE_DOWN*MIN_GRAY_AT_CSF_BORDER) ;
     fprintf(stderr, "setting MAX_GRAY to %2.1f (was %d)\n",
             max_gray, MAX_GRAY) ;
     fprintf(stderr, "setting MAX_GRAY_AT_CSF_BORDER to %2.1f (was %d)\n",
@@ -702,14 +721,13 @@ main(int argc, char *argv[])
                 (mri_wm, NULL, WM_MIN_VAL, MRI_NOT_WHITE, MRI_WHITE) ;
       fprintf(stderr, "computing class statistics...\n");
       MRISsaveVertexPositions(mris, WHITE_VERTICES) ;
-      MRIScomputeClassModes
-      (mris, mri_echos[nechos-1], &white_mode, &gray_mode, NULL);
-      MRIcomputeClassStatistics
-      (mri_echos[nechos-1], mri_tmp, 30, WHITE_MATTER_MEAN,
-       &white_mean, &white_std, &gray_mean, &gray_std) ;
+      MRIcomputeClassStatistics(mri_echos[nechos-1], mri_tmp, 30, WHITE_MATTER_MEAN,
+				&white_mean, &white_std, &gray_mean, &gray_std) ;
       if (use_mode)
       {
         printf("using class modes intead of means....\n") ;
+	MRIScomputeClassModes(mris, mri_echos[nechos-1], &white_mode, &gray_mode, NULL,
+			      &white_std, &gray_std,NULL);
         white_mean = white_mode ;
         gray_mean = gray_mode ;
       }
