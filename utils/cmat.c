@@ -8,9 +8,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2013/03/25 19:30:50 $
- *    $Revision: 1.3 $
+ *    $Author: rpwang $
+ *    $Date: 2013/03/26 17:26:55 $
+ *    $Revision: 1.4 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -35,7 +35,7 @@
 
 
 CMAT  *
-CMATread(char *fname)
+CMATread(const char *fname)
 {
   CMAT   *cmat ;
   int    nlabels, i, j, ind1, ind2 ;
@@ -72,7 +72,7 @@ CMATread(char *fname)
 }
 
 int 
-CMATwrite(CMAT *cmat, char *fname)
+CMATwrite(CMAT *cmat, const char *fname)
 {
   FILE   *fp ;
   int    i, j ;

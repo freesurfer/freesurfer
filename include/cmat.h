@@ -8,9 +8,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2013/03/25 17:28:16 $
- *    $Revision: 1.2 $
+ *    $Author: rpwang $
+ *    $Date: 2013/03/26 17:26:55 $
+ *    $Revision: 1.3 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -45,9 +45,13 @@ typedef struct
 } CMAT ;
 
 
-CMAT  *CMATread(char *fname) ;
-int CMATwrite(CMAT *cmat, char *fname) ;
+CMAT  *CMATread(const char *fname) ;
+int CMATwrite(CMAT *cmat, const char *fname) ;
 CMAT *CMATalloc(int nlabels, int *labels) ;
 int CMATfree(CMAT **pcmat) ;
+
+#if defined(__cplusplus)
+};
+#endif
 
 #endif
