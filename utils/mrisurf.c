@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2013/03/26 14:14:58 $
- *    $Revision: 1.745 $
+ *    $Date: 2013/03/26 19:04:41 $
+ *    $Revision: 1.746 $
  *
  * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -771,7 +771,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void)
 {
-  return("$Id: mrisurf.c,v 1.745 2013/03/26 14:14:58 fischl Exp $");
+  return("$Id: mrisurf.c,v 1.746 2013/03/26 19:04:41 fischl Exp $");
 }
 
 /*-----------------------------------------------------
@@ -77527,7 +77527,7 @@ MRIScomputeClassModes(MRI_SURFACE *mris,
                       float *pwhite_std, float *pgray_std, float *pcsf_std)
 {
   HISTOGRAM *h_white, *h_csf, *h_gray ;
-  float      min_val, max_val, white_std, gray_std, csf_std ;
+  float      min_val, max_val, white_std, gray_std, csf_std = 0 ;
   int        nbins, b, vno, gray_peak, white_peak, csf_peak, bin ;
   VERTEX     *v ;
   double       val, x, y, z, xw, yw, zw ;
