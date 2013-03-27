@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2013/03/19 21:27:06 $
- *    $Revision: 1.81 $
+ *    $Date: 2013/03/27 19:08:22 $
+ *    $Revision: 1.82 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -134,7 +134,8 @@ LayerSurface::LayerSurface( LayerMRI* ref, QObject* parent ) : LayerEditable( pa
   connect( p, SIGNAL(PositionChanged(double, double, double)),
            this, SLOT(UpdateROIPosition(double, double, double)));
 
-  connect( m_volumeRef, SIGNAL(destroyed()), this, SLOT(ResetVolumeRef()));
+  if (m_volumeRef)
+    connect( m_volumeRef, SIGNAL(destroyed()), this, SLOT(ResetVolumeRef()));
 }
 
 LayerSurface::~LayerSurface()
