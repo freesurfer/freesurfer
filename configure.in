@@ -9,8 +9,8 @@
 #
 # CVS Revision Info:
 #    $Author: zkaufman $
-#    $Date: 2013/03/27 16:29:33 $
-#    $Revision: 1.595 $
+#    $Date: 2013/03/27 21:07:02 $
+#    $Revision: 1.596 $
 #
 ########################################################################
 AC_PREREQ(2.57)
@@ -2211,15 +2211,18 @@ AC_ARG_WITH(vtk-dir,
      VTK_DIR=$ac_vtk_dir
   ])
 
-if test "x$VTK_DIR" = "x"; then
-  # if a VTK root was not supplied, but one exists in the
-  # default packages path at the NMR Center, then use that:
-  if test -d "/usr/pubsw/packages/vtk/current" ; then
-    withval=/usr/pubsw/packages/vtk/current
-    ac_vtk_includes="$withval/include"
-    ac_vtk_libraries="$withval"/lib
-    ac_vtk_dir="$withval"
-    VTK_DIR=$ac_vtk_dir
+
+if test ! "$disable_gui_build" = "YES"; then
+  if test "x$VTK_DIR" = "x"; then
+    # if a VTK root was not supplied, but one exists in the
+    # default packages path at the NMR Center, then use that:
+    if test -d "/usr/pubsw/packages/vtk/current" ; then
+      withval=/usr/pubsw/packages/vtk/current
+      ac_vtk_includes="$withval/include"
+      ac_vtk_libraries="$withval"/lib
+      ac_vtk_dir="$withval"
+      VTK_DIR=$ac_vtk_dir
+    fi
   fi
 fi
 
