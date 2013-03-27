@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:33 $
- *    $Revision: 1.5 $
+ *    $Author: fischl $
+ *    $Date: 2013/03/27 01:53:37 $
+ *    $Revision: 1.6 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -46,7 +46,7 @@
 #include "version.h"
 #include "label.h"
 
-static char vcid[] = "$Id: mris_longitudinal_surfaces.c,v 1.5 2011/03/02 00:04:33 nicks Exp $";
+static char vcid[] = "$Id: mris_longitudinal_surfaces.c,v 1.6 2013/03/27 01:53:37 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -184,10 +184,10 @@ main(int argc, char *argv[]) {
 
   char cmdline[CMD_LINE_LEN] ;
 
-  make_cmd_version_string (argc, argv, "$Id: mris_longitudinal_surfaces.c,v 1.5 2011/03/02 00:04:33 nicks Exp $", "$Name:  $", cmdline);
+  make_cmd_version_string (argc, argv, "$Id: mris_longitudinal_surfaces.c,v 1.6 2013/03/27 01:53:37 fischl Exp $", "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_longitudinal_surfaces.c,v 1.5 2011/03/02 00:04:33 nicks Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_longitudinal_surfaces.c,v 1.6 2013/03/27 01:53:37 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -411,7 +411,7 @@ main(int argc, char *argv[]) {
     mri_tmp = MRIbinarize(mri_wm, NULL, WM_MIN_VAL, MRI_NOT_WHITE, MRI_WHITE) ;
     fprintf(stderr, "computing class statistics...\n");
     MRISsaveVertexPositions(mris, WHITE_VERTICES) ;
-    MRIScomputeClassModes(mris, mri_T1, &white_mode, &gray_mode, NULL);
+    MRIScomputeClassModes(mris, mri_T1, &white_mode, &gray_mode, NULL,&white_std, &gray_std, NULL);  // move this later if want to use the stds
     MRIcomputeClassStatistics(mri_T1, mri_tmp, 30, WHITE_MATTER_MEAN,
                               &white_mean, &white_std, &gray_mean,
                               &gray_std) ;
@@ -1517,7 +1517,7 @@ MRIfindBrightNonWM(MRI *mri_T1, MRI *mri_wm) {
   MRIunion(mri_tmp, mri_labeled, mri_labeled) ;
 #if 0
   fprintf(stderr, "selectively smoothing volume....\n") ;
-  MRIsoapBubbleLabel(mri_T1, mri_labeled, mri_T1, BRIGHT_LABEL, 200) ;
+  MRIsoapBubbleLabel(mri_T1, mri_labeled, mri_T1, BRIGHT_LABEL, 200, 1) ;
 #endif
   if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
     MRIwrite(mri_labeled, "label.mgz") ;

@@ -8,8 +8,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2011/08/12 17:19:54 $
- *    $Revision: 1.22 $
+ *    $Date: 2013/03/27 01:53:50 $
+ *    $Revision: 1.23 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -44,7 +44,7 @@
 #include "mrishash.h"
 #include "cma.h"
 
-static char vcid[] = "$Id: mris_intensity_profile.c,v 1.22 2011/08/12 17:19:54 fischl Exp $";
+static char vcid[] = "$Id: mris_intensity_profile.c,v 1.23 2013/03/27 01:53:50 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -130,7 +130,7 @@ main(int argc, char *argv[]) {
   float         *norm = NULL ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_intensity_profile.c,v 1.22 2011/08/12 17:19:54 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_intensity_profile.c,v 1.23 2013/03/27 01:53:50 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -894,7 +894,7 @@ MRISmeasureCorticalIntensityProfiles(MRI_SURFACE *mris, MRI *mri, int nbhd_size,
   MRI     *mri_profiles ;
   float   scale = 1 ;
 
-  MRIScomputeClassModes(mris, mri, &white_mode, &gray_mode, &csf_mode) ;
+  MRIScomputeClassModes(mris, mri, &white_mode, &gray_mode, &csf_mode, NULL, NULL, NULL) ;
   min_gray = (gray_mode + 2*csf_mode)/3 ;
   min_gray_at_wm = (1.5*gray_mode + csf_mode)/2.5 ;
   max_gray = (2*white_mode+gray_mode)/3 ;
