@@ -43,6 +43,8 @@ BUILT_SOURCES = \
   ui_DialogReloadLayer.h \
   ui_DialogSmoothSurface.h \
   ui_DialogLineProfile.h \
+  ui_DialogLoadConnectome.h \
+  ui_PanelConnectomeMatrix.h \
 	qtcolorpicker.moc \
 	moc_BrushProperty.cpp \
 	moc_CommandEdit.cpp \
@@ -151,6 +153,10 @@ BUILT_SOURCES = \
   moc_DialogLineProfile.cpp \
   moc_LayerLineProfile.cpp \
   moc_LayerPropertyLineProfile.cpp \
+  moc_DialogLoadConnectome.cpp \
+  moc_LayerConnectomeMatrix.cpp \
+  moc_LayerPropertyConnectomeMatrix.cpp \
+  moc_PanelConnectomeMatrix.cpp \
   qrc_freeview.cpp
 
 freeview_SOURCES = $(BUILT_SOURCES) \
@@ -432,6 +438,14 @@ freeview_SOURCES = $(BUILT_SOURCES) \
   DialogLineProfile.h \
   LayerPropertyLineProfile.cpp \
   LayerPropertyLineProfile.h \
+  LayerConnectomeMatrix.cpp \
+  LayerConnectomeMatrix.h \
+  LayerPropertyConnectomeMatrix.cpp \
+  LayerPropertyConnectomeMatrix.h \
+  PanelConnectomeMatrix.cpp \
+  PanelConnectomeMatrix.h \
+  DialogLoadConnectome.cpp \
+  DialogLoadConnectome.h \
 	freeview.qrc
 
 qrc_freeview.cpp: freeview.qrc

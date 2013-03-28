@@ -141,7 +141,6 @@ SOURCES += \
     LayerLineProfile.cpp \
     LayerPropertyLineProfile.cpp \
     LayerConnectomeMatrix.cpp \
-    FSConnectomeMatrix.cpp \
     DialogLoadConnectome.cpp \
     PanelConnectomeMatrix.cpp \
     LayerPropertyConnectomeMatrix.cpp
@@ -275,7 +274,6 @@ HEADERS  += \
     LayerLineProfile.h \
     LayerPropertyLineProfile.h \
     LayerConnectomeMatrix.h \
-    FSConnectomeMatrix.h \
     DialogLoadConnectome.h \
     PanelConnectomeMatrix.h \
     LayerPropertyConnectomeMatrix.h
