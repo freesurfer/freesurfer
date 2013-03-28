@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2012/05/03 21:12:12 $
- *    $Revision: 1.26 $
+ *    $Date: 2013/03/28 19:54:41 $
+ *    $Revision: 1.27 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -110,6 +110,7 @@ int     gdfCheckMatrixMethod(char *gd2mtx_method);
 MATRIX *gdfMatrixDOSS(FSGD *gd, MATRIX *X);
 MATRIX *gdfMatrixDODS(FSGD *gd, MATRIX *X);
 MATRIX *gdfContrastDODS(FSGD *fsgd, float *wClass, float *wCovar);
+MATRIX *gdfContrastDOSS(FSGD *fsgd, float *wClass, float *wCovar);
 MATRIX *gdfMatrix(FSGD *gd, char *gd2mtx_method, MATRIX *X);
 int     gdfOffsetSlope(FSGD *gd, int classno, int varno,
                        int c, int r, int s, float *offset, float *slope);
