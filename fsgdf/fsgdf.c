@@ -45,8 +45,8 @@
  * Original Author: Doug Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2011/10/24 19:57:03 $
- *    $Revision: 1.50.2.2 $
+ *    $Date: 2013/03/28 19:56:38 $
+ *    $Revision: 1.50.2.3 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -1660,19 +1660,25 @@ char **gdfCopySubjIdppc(FSGD *fsgd) {
   return(ppc);
 }
 
-
-/*-------------------------------------------------------------
-  gdfContrastDODS() - creates a contrast matrix for the DODS design
+/*!
+\fn MATRIX *gdfContrastDOSS(FSGD *fsgd, float *wClass, float *wCovar) 
+\brief creates a contrast matrix for the DODS design
   matrix. wClass are the weights for each class; if NULL, then all
   ones are assumed. wCovar are the weights for each covariate
   (including offset); if NULL, then all ones are assumed. Note:
   wCovar must have nvariables+1 items where the first one
   corresponds to the offset.
-  -------------------------------------------------------------*/
-MATRIX *gdfContrastDODS(FSGD *fsgd, float *wClass, float *wCovar) {
+*/
+MATRIX *gdfContrastDODS(FSGD *fsgd, float *wClass, float *wCovar) 
+{
   MATRIX *C;
   float w;
   int c, v, n;
+
+  if(strcasecmp(fsgd->DesignMatMethod,"dods") != 0){
+    printf("ERROR: gdfContrastDODS() cannot be used with %s\n",fsgd->DesignMatMethod);
+    return(NULL);
+  }
 
   /* Contrast matrix (+1 for offsets) */
   C = MatrixAlloc(1, (fsgd->nvariables+1) * fsgd->nclasses, MATRIX_REAL);
@@ -1691,6 +1697,43 @@ MATRIX *gdfContrastDODS(FSGD *fsgd, float *wClass, float *wCovar) {
   return(C);
 }
 
+/*!
+\fn MATRIX *gdfContrastDOSS(FSGD *fsgd, float *wClass, float *wCovar) 
+\brief creates a contrast matrix for the DOSS design matrix. wClass
+  are the weights for each class intercept; if NULL, then all ones are
+  assumed. wCovar are the weights for each covariate (excluding
+  offset); if NULL, then all ones are assumed. wCovar has
+  nvariables items
+*/
+MATRIX *gdfContrastDOSS(FSGD *fsgd, float *wClass, float *wCovar) 
+{
+  MATRIX *C;
+  float w;
+  int c, v, n;
+
+  if(strcasecmp(fsgd->DesignMatMethod,"doss") != 0){
+    printf("ERROR: gdfContrastDOSS() cannot be used with %s\n",fsgd->DesignMatMethod);
+    return(NULL);
+  }
+
+  /* Contrast matrix*/
+  C = MatrixAlloc(1, fsgd->nvariables+fsgd->nclasses, MATRIX_REAL);
+
+  n = 0;
+  for (c=0; c < fsgd->nclasses; c++) {
+    w = 1;
+    if (wClass != NULL) w *= wClass[c];
+    C->rptr[1][n+1] = w;
+    n++;
+  }
+  for (v=0; v < fsgd->nvariables+1; v++) {
+    w = 1;
+    if (wCovar != NULL) w *= wCovar[v];
+    C->rptr[1][n+1] = w;
+    n++;
+  }
+  return(C);
+}
 
 /*-------------------------------------------------------------------------
   gdfGetSDataFromTable() - gets a cell from a table and returns as a string.
