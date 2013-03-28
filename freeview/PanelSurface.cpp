@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2012/11/01 19:21:06 $
- *    $Revision: 1.47 $
+ *    $Date: 2013/03/28 18:54:13 $
+ *    $Revision: 1.48 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -100,6 +100,7 @@ PanelSurface::PanelSurface(QWidget *parent) :
   connect( mainwnd->GetLayerCollection("Surface"), SIGNAL(ActiveLayerChanged(Layer*)),
            m_wndConfigureOverlay, SLOT(OnActiveSurfaceChanged(Layer*)));
   connect(m_wndConfigureOverlay, SIGNAL(ActiveFrameChanged()), mainwnd, SLOT(UpdateInfoPanel()));
+  connect(mainwnd, SIGNAL(SlicePositionChanged()), m_wndConfigureOverlay, SLOT(OnCurrentVertexChanged()));
 }
 
 PanelSurface::~PanelSurface()

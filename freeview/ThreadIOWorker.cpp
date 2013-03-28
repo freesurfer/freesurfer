@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2012/06/12 20:17:09 $
- *    $Revision: 1.8 $
+ *    $Date: 2013/03/28 18:54:13 $
+ *    $Revision: 1.9 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -28,6 +28,7 @@
 #include "LayerPLabel.h"
 #include "LayerTrack.h"
 #include "LayerVolumeTrack.h"
+#include "LayerConnectomeMatrix.h"
 #include <QApplication>
 
 ThreadIOWorker::ThreadIOWorker(QObject *parent) :
@@ -82,6 +83,14 @@ void ThreadIOWorker::LoadTrack( Layer* layer, const QVariantMap& args)
 {
   m_layer = layer;
   m_nJobType = JT_LoadTrack;
+  m_args = args;
+  start();
+}
+
+void ThreadIOWorker::LoadConnectomeMatrix(Layer* layer, const QVariantMap& args)
+{
+  m_layer = layer;
+  m_nJobType = JT_LoadConnectome;
   m_args = args;
   start();
 }
@@ -238,6 +247,21 @@ void ThreadIOWorker::run()
     else
     {
       emit Finished( m_layer, m_nJobType );
+    }
+  }
+  else if (m_nJobType == JT_LoadConnectome)
+  {
+    LayerConnectomeMatrix* layer = qobject_cast<LayerConnectomeMatrix*>(m_layer);
+    if (!layer)
+      return;
+  //  connect(layer, SIGNAL(Progress(int)), this, SIGNAL(Progress(int)), Qt::UniqueConnection);
+    if (!layer->LoadFromFile())
+    {
+      emit Error(m_layer, m_nJobType);
+    }
+    else
+    {
+      emit Finished(m_layer, m_nJobType);
     }
   }
   disconnect(qApp, SIGNAL(GlobalProgress(int)), this, SIGNAL(Progress(int)));

@@ -1,0 +1,83 @@
+#include "PanelConnectomeMatrix.h"
+#include "ui_PanelConnectomeMatrix.h"
+#include "LayerConnectomeMatrix.h"
+#include "MainWindow.h"
+
+PanelConnectomeMatrix::PanelConnectomeMatrix(QWidget *parent) :
+    PanelLayer(parent),
+    ui(new Ui::PanelConnectomeMatrix)
+{
+    ui->setupUi(this);
+
+    LayerCollection* lc = MainWindow::GetMainWindow()->GetLayerCollection("CMAT");
+    PanelLayer::InitializeLayerList( ui->treeWidgetLayers, lc );
+}
+
+PanelConnectomeMatrix::~PanelConnectomeMatrix()
+{
+    delete ui;
+}
+
+void PanelConnectomeMatrix::ConnectLayer( Layer* layer_in )
+{
+  PanelLayer::ConnectLayer( layer_in );
+
+  LayerConnectomeMatrix* layer = qobject_cast<LayerConnectomeMatrix*>(layer_in);
+  if ( !layer )
+  {
+    return;
+  }
+
+  /*
+  LayerPropertyMRI* p = layer->GetProperty();
+  connect( p, SIGNAL(PropertyChanged()), this, SLOT(UpdateWidgets()), Qt::UniqueConnection );
+  connect( ui->doubleSpinBoxOpacity, SIGNAL(valueChanged(double)), p, SLOT(SetOpacity(double)) );
+  connect( ui->checkBoxSmooth, SIGNAL(stateChanged(int)), p, SLOT(SetTextureSmoothing(int)) );
+  connect( ui->checkBoxShowContour, SIGNAL(clicked(bool)), p, SLOT(SetShowAsContour(bool)) );
+  connect( ui->checkBoxShowLabelContour, SIGNAL(clicked(bool)), p, SLOT(SetShowAsLabelContour(bool)) );
+  connect( ui->sliderFrame, SIGNAL(valueChanged(int)), layer, SLOT(SetActiveFrameOneBase(int)) );
+  connect( ui->spinBoxFrame, SIGNAL(valueChanged(int)), layer, SLOT(SetActiveFrameOneBase(int)) );
+  connect( ui->checkBoxDisplayVector, SIGNAL(toggled(bool)), p, SLOT(SetDisplayVector(bool)) );
+  connect( ui->checkBoxDisplayTensor, SIGNAL(toggled(bool)), p, SLOT(SetDisplayTensor(bool)) );
+  connect( ui->comboBoxRenderObject, SIGNAL(currentIndexChanged(int)), p, SLOT(SetVectorRepresentation(int)) );
+  connect( ui->comboBoxInversion, SIGNAL(currentIndexChanged(int)), p, SLOT(SetVectorInversion(int)) );
+  connect( ui->checkBoxProjectionMap, SIGNAL(toggled(bool)), p, SLOT(SetShowProjectionMap(bool)));
+  if ( layer->IsTypeOf( "DTI" ) )
+    connect( ui->comboBoxDirectionCode, SIGNAL(currentIndexChanged(int)),
+             qobject_cast<LayerDTI*>(layer)->GetProperty(), SLOT(SetDirectionCode(int)) );
+  connect( layer, SIGNAL(ActiveFrameChanged(int)), this, SLOT(UpdateWidgets()) );
+  connect( layer, SIGNAL(ActiveFrameChanged(int)), this, SLOT(OnActiveFrameChanged(int)));
+  connect( layer, SIGNAL(FillValueChanged(double)), this, SLOT(UpdateWidgets()) );
+  connect( layer, SIGNAL(LabelStatsReady()), this, SLOT(UpdateWidgets()));
+  connect( ui->checkBoxClearBackground, SIGNAL(toggled(bool)), p, SLOT(SetClearZero(bool)) );
+  connect( ui->checkBoxClearHigher, SIGNAL(toggled(bool)), p, SLOT(SetHeatScaleClearHigh(bool)) );
+  connect( ui->checkBoxTruncate, SIGNAL(toggled(bool)), p, SLOT(SetHeatScaleTruncate(bool)) );
+  connect( ui->checkBoxInvert, SIGNAL(toggled(bool)), p, SLOT(SetHeatScaleInvert(bool)) );
+  connect( ui->checkBoxShowOutline, SIGNAL(toggled(bool)), p, SLOT(SetShowLabelOutline(bool)) );
+  connect( ui->checkBoxContourExtractAll, SIGNAL(toggled(bool)), p, SLOT(SetContourExtractAllRegions(bool)) );
+  connect( ui->checkBoxUseColorMap, SIGNAL(toggled(bool)), p, SLOT(SetContourUseImageColorMap(bool)) );
+  connect( ui->checkBoxShowInfo, SIGNAL(toggled(bool)), p, SLOT(SetShowInfo(bool)) );
+  connect( ui->colorPickerContour, SIGNAL(colorChanged(QColor)), p, SLOT(SetContourColor(QColor)));
+  connect( ui->checkBoxUpsampleContour, SIGNAL(toggled(bool)), p, SLOT(SetContourUpsample(bool)));
+  connect( ui->checkBoxRememberFrame, SIGNAL(toggled(bool)), p, SLOT(SetRememberFrameSettings(bool)));
+  */
+}
+
+void PanelConnectomeMatrix::DoIdle()
+{
+
+}
+
+void PanelConnectomeMatrix::DoUpdateWidgets()
+{
+  BlockAllSignals(true);
+
+  LayerConnectomeMatrix* layer = GetCurrentLayer<LayerConnectomeMatrix*>();
+  if (layer)
+  {
+    ui->lineEditFileName->setText(layer->GetFileName());
+    ui->lineEditFileName->setCursorPosition(ui->lineEditFileName->text().size());
+  }
+
+  BlockAllSignals(false);
+}

@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2012/11/01 19:21:06 $
- *    $Revision: 1.8 $
+ *    $Date: 2013/03/28 18:54:13 $
+ *    $Revision: 1.9 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -54,6 +54,7 @@ signals:
 public slots:
   void UpdateGraph();
   void UpdateUI();
+  void OnCurrentVertexChanged();
 
 protected slots:
   void OnActiveSurfaceChanged(Layer* layer);

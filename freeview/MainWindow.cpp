@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2013/03/19 21:27:06 $
- *    $Revision: 1.233 $
+ *    $Date: 2013/03/28 18:54:13 $
+ *    $Revision: 1.234 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -93,6 +93,8 @@
 #include "DialogSmoothSurface.h"
 #include "DialogLineProfile.h"
 #include "LayerLineProfile.h"
+#include "DialogLoadConnectome.h"
+#include "LayerConnectomeMatrix.h"
 
 MainWindow::MainWindow( QWidget *parent, MyCmdLineParser* cmdParser ) :
   QMainWindow( parent ),
@@ -113,6 +115,7 @@ MainWindow::MainWindow( QWidget *parent, MyCmdLineParser* cmdParser ) :
   m_layerCollections["Surface"] = new LayerCollection( "Surface", this );
   m_layerCollections["PointSet"] = new LayerCollection( "PointSet", this );
   m_layerCollections["Track"] = new LayerCollection( "Track", this );
+  m_layerCollections["CMAT"] = new LayerCollection("CMAT", this);
   // supplemental layers will not show on control panel
   m_layerCollections["Supplement"] = new LayerCollection( "Supplement", this);
   LayerLandmarks* landmarks = new LayerLandmarks(this);
@@ -861,7 +864,7 @@ bool MainWindow::DoParseCommand(bool bAutoQuit)
 
   if ( m_cmdParser->Found( "conn", &sa ) )
   {
-    this->AddScript( QString("loadconnectivity ") + sa[0] + " " + sa[1] );
+    this->AddScript( QString("loadconnectome ") + sa[0] + " " + sa[1] );
   }
 
   if ( m_cmdParser->Found( "ras", &sa ) )
@@ -1110,6 +1113,8 @@ void MainWindow::OnIdle()
   ui->actionVolumeFilterGradient->setEnabled( !bBusy && layerVolume && layerVolume->IsEditable() );
   ui->actionVolumeFilterSobel->setEnabled( !bBusy && layerVolume && layerVolume->IsEditable() );
 
+  ui->actionLoadConnectome->setEnabled( !bBusy );
+
   ui->actionShowCoordinateAnnotation->setChecked(ui->viewAxial->GetShowCoordinateAnnotation());
   ui->actionShowColorScale->setChecked(view->GetShowScalarBar());
 
@@ -1255,9 +1260,9 @@ void MainWindow::RunScript()
   {
     CommandLoadSurfaceSpline( sa );
   }
-  else if ( cmd == "loadconnectivity" )
+  else if ( cmd == "loadconnectome" )
   {
-    CommandLoadConnectivityData( sa );
+    CommandLoadConnectomeMatrix( sa );
   }
   else if ( cmd == "loadroi" || sa[0] == "loadlabel" )
   {
@@ -2158,11 +2163,33 @@ void MainWindow::CommandLoadPVolumes( const QStringList& cmd )
   this->LoadPVolumeFiles( files, prefix, lut );
 }
 
-void MainWindow::CommandLoadConnectivityData( const QStringList& cmd )
+void MainWindow::CommandLoadConnectomeMatrix(const QStringList& cmd )
 {
-//  if ( cmd.size() > 2 )
-//    this->LoadConnectivityDataFile( cmd[1], cmd[2] );
+  if ( cmd.size() > 2 )
+    this->LoadConnectomeMatrixFile( cmd[1], cmd[2] );
 }
+
+void MainWindow::LoadConnectomeMatrixFile(const QString &fn_cmat, const QString &fn_parcel)
+{
+  LayerConnectomeMatrix* layer = new LayerConnectomeMatrix(m_layerVolumeRef);
+  layer->SetFileName(fn_cmat);
+  layer->SetParcelFilename(fn_parcel);
+  layer->SetName(QFileInfo(fn_cmat).completeBaseName());
+  m_threadIOWorker->LoadConnectomeMatrix( layer );
+//  m_statusBar->StartTimer();
+}
+
+void MainWindow::OnCloseConnectomeMatrix()
+{
+  LayerConnectomeMatrix* layer = (LayerConnectomeMatrix*)GetActiveLayer( "CMAT" );
+  if ( !layer )
+  {
+    return;
+  }
+
+  GetLayerCollection( "CMAT" )->RemoveLayer( layer );
+}
+
 
 void MainWindow::CommandLoadROI( const QStringList& cmd )
 {
@@ -3657,18 +3684,18 @@ void MainWindow::OnSaveVolume()
   }
 }
 
-void MainWindow::SaveVolumeAs()
+bool MainWindow::SaveVolumeAs()
 {
   LayerCollection* col_mri = GetLayerCollection( "MRI" );
   LayerMRI* layer_mri = ( LayerMRI* )col_mri->GetActiveLayer();
   if ( !layer_mri)
   {
-    return;
+    return false;
   }
   else if ( !layer_mri->IsVisible() )
   {
     QMessageBox::warning( this, "Error", "Current volume layer is not visible. Please turn it on before saving." );
-    return;
+    return false;
   }
 
   QString fn;
@@ -3691,8 +3718,17 @@ void MainWindow::SaveVolumeAs()
     layer_mri->SetFileName( fn );
     OnSaveVolume();
     ui->tabVolume->UpdateWidgets();
+    return true;
   }
+  else
+    return false;
 }
+
+void MainWindow::SaveVolumeAsAndReload()
+{
+
+}
+
 
 void MainWindow::OnLoadDTI()
 {
@@ -4407,6 +4443,12 @@ void MainWindow::OnIOFinished( Layer* layer, int jobtype )
       }
       m_views[3]->ResetCameraClippingRange();
     }
+  }
+  else if (jobtype == ThreadIOWorker::JT_LoadConnectome && layer->IsTypeOf("CMAT"))
+  {
+    LayerConnectomeMatrix* cmat = qobject_cast<LayerConnectomeMatrix*>( layer );
+    LayerCollection* lc_cmat = GetLayerCollection( "CMAT" );
+    lc_cmat->AddLayer(cmat);
   }
   m_bProcessing = false;
 
@@ -5582,4 +5624,13 @@ void MainWindow::UpdateInfoPanel()
 {
   QTimer::singleShot(0, ui->treeWidgetCursorInfo, SLOT(OnCursorPositionChanged()));
   QTimer::singleShot(0, ui->treeWidgetMouseInfo, SLOT(OnMousePositionChanged()));
+}
+
+void MainWindow::OnLoadConnectomeMatrix()
+{
+  DialogLoadConnectome dlg(this);
+  if (dlg.exec() == QDialog::Accepted)
+  {
+    AddScript(QString("loadconnectome %1 %2").arg(dlg.GetCMATFilename()).arg(dlg.GetParcelFilename()));
+  }
 }

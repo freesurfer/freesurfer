@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2013/03/13 20:11:31 $
- *    $Revision: 1.17 $
+ *    $Date: 2013/03/28 18:54:13 $
+ *    $Revision: 1.18 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -105,6 +105,8 @@ DialogTransformVolume::DialogTransformVolume(QWidget *parent) :
           this, SLOT(OnActiveLayerChanged()));
   connect(ui->pushButtonSaveVolumeAs, SIGNAL(clicked()),
           MainWindow::GetMainWindow(), SLOT(SaveVolumeAs()));
+  connect(ui->pushButtonSaveAndReload, SIGNAL(clicked()),
+          MainWindow::GetMainWindow(), SLOT(SaveVolumeAsAndReload()));
 
   LayerLandmarks* landmarks = (LayerLandmarks*)MainWindow::GetMainWindow()
                               ->GetSupplementLayer("Landmarks");

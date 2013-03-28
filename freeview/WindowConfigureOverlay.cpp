@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2012/11/01 19:21:06 $
- *    $Revision: 1.10 $
+ *    $Date: 2013/03/28 18:54:13 $
+ *    $Revision: 1.11 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -49,6 +49,8 @@ WindowConfigureOverlay::WindowConfigureOverlay(QWidget *parent) :
   m_layerSurface = NULL;
   QSettings settings;
   QVariant v = settings.value("WindowConfigureOverlay/Geometry");
+  ui->checkBoxAutoApply->setChecked(settings.value("WindowConfigureOverlay/AutoApply").toBool());
+  ui->checkBoxAutoFrame->setChecked(settings.value("WindowConfigureOverlay/AutoFrame").toBool());
   if (v.isValid())
   {
     this->restoreGeometry(v.toByteArray());
@@ -63,6 +65,9 @@ WindowConfigureOverlay::~WindowConfigureOverlay()
 
   QSettings settings;
   settings.setValue("WindowConfigureOverlay/Geometry", this->saveGeometry());
+  settings.setValue("WindowConfigureOverlay/AutoApply", ui->checkBoxAutoApply->isChecked());
+  settings.setValue("WindowConfigureOverlay/AutoFrame", ui->checkBoxAutoFrame->isChecked());
+
   delete ui;
 }
 
@@ -513,13 +518,13 @@ void WindowConfigureOverlay::OnTextThresholdChanged(const QString &strg)
 
 void WindowConfigureOverlay::OnFrameChanged(int nFrame)
 {
-  if (sender() == ui->sliderFrame)
+  if (sender() != ui->spinBoxFrame)
   {
     ui->spinBoxFrame->blockSignals(true);
     ui->spinBoxFrame->setValue(nFrame);
     ui->spinBoxFrame->blockSignals(false);
   }
-  else
+  if (sender() != ui->sliderFrame)
   {
     ui->sliderFrame->blockSignals(true);
     ui->sliderFrame->setValue(nFrame);
@@ -531,5 +536,20 @@ void WindowConfigureOverlay::OnFrameChanged(int nFrame)
     overlay->SetActiveFrame(nFrame);
     UpdateGraph();
     emit ActiveFrameChanged();
+  }
+}
+
+void WindowConfigureOverlay::OnCurrentVertexChanged()
+{
+  if ( m_layerSurface && m_layerSurface->GetActiveOverlay() )
+  {
+    int nVertex = m_layerSurface->GetVertexIndexAtTarget( m_layerSurface->GetSlicePosition(), NULL );
+    if (nVertex >= 0 && ui->checkBoxAutoFrame->isChecked()
+        && nVertex < m_layerSurface->GetActiveOverlay()->GetNumberOfFrames())
+      OnFrameChanged(nVertex);
+
+    // even if not auto apply, still call apply
+    if (!ui->checkBoxAutoApply->isChecked())
+      OnApply();
   }
 }

@@ -1,0 +1,141 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>PanelConnectomeMatrix</class>
+ <widget class="QScrollArea" name="PanelConnectomeMatrix">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>361</width>
+    <height>860</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>ScrollArea</string>
+  </property>
+  <property name="widgetResizable">
+   <bool>true</bool>
+  </property>
+  <widget class="QWidget" name="scrollAreaWidgetContents">
+   <property name="geometry">
+    <rect>
+     <x>0</x>
+     <y>0</y>
+     <width>357</width>
+     <height>856</height>
+    </rect>
+   </property>
+   <layout class="QVBoxLayout" name="verticalLayout">
+    <property name="leftMargin">
+     <number>5</number>
+    </property>
+    <property name="topMargin">
+     <number>0</number>
+    </property>
+    <property name="rightMargin">
+     <number>5</number>
+    </property>
+    <property name="bottomMargin">
+     <number>5</number>
+    </property>
+    <item>
+     <widget class="LayerTreeWidget" name="treeWidgetLayers">
+      <property name="maximumSize">
+       <size>
+        <width>16777215</width>
+        <height>145</height>
+       </size>
+      </property>
+      <property name="showDropIndicator" stdset="0">
+       <bool>false</bool>
+      </property>
+      <property name="rootIsDecorated">
+       <bool>false</bool>
+      </property>
+      <property name="itemsExpandable">
+       <bool>false</bool>
+      </property>
+      <attribute name="headerVisible">
+       <bool>false</bool>
+      </attribute>
+      <column>
+       <property name="text">
+        <string notr="true">1</string>
+       </property>
+      </column>
+     </widget>
+    </item>
+    <item>
+     <layout class="QGridLayout" name="gridLayout" columnstretch="0,1">
+      <item row="0" column="0">
+       <widget class="QLabel" name="labelFileName">
+        <property name="text">
+         <string>File name</string>
+        </property>
+       </widget>
+      </item>
+      <item row="0" column="1">
+       <widget class="QLineEdit" name="lineEditFileName">
+        <property name="readOnly">
+         <bool>true</bool>
+        </property>
+       </widget>
+      </item>
+     </layout>
+    </item>
+    <item>
+     <widget class="QTreeWidget" name="treeWidgetRows">
+      <property name="showDropIndicator" stdset="0">
+       <bool>false</bool>
+      </property>
+      <attribute name="headerVisible">
+       <bool>false</bool>
+      </attribute>
+      <column>
+       <property name="text">
+        <string notr="true">1</string>
+       </property>
+      </column>
+     </widget>
+    </item>
+    <item>
+     <widget class="QTreeWidget" name="treeWidgetColumns">
+      <property name="showDropIndicator" stdset="0">
+       <bool>false</bool>
+      </property>
+      <attribute name="headerVisible">
+       <bool>false</bool>
+      </attribute>
+      <column>
+       <property name="text">
+        <string notr="true">1</string>
+       </property>
+      </column>
+     </widget>
+    </item>
+    <item>
+     <spacer name="verticalSpacer">
+      <property name="orientation">
+       <enum>Qt::Vertical</enum>
+      </property>
+      <property name="sizeHint" stdset="0">
+       <size>
+        <width>10</width>
+        <height>10</height>
+       </size>
+      </property>
+     </spacer>
+    </item>
+   </layout>
+  </widget>
+ </widget>
+ <customwidgets>
+  <customwidget>
+   <class>LayerTreeWidget</class>
+   <extends>QTreeWidget</extends>
+   <header>LayerTreeWidget.h</header>
+  </customwidget>
+ </customwidgets>
+ <resources/>
+ <connections/>
+</ui>

@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2013/02/06 18:35:43 $
- *    $Revision: 1.125 $
+ *    $Date: 2013/03/28 18:54:13 $
+ *    $Revision: 1.126 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -221,7 +221,8 @@ public slots:
   void LoadSurfaceSpline();
   void LoadLUT();
   void RequestRedraw();
-  void SaveVolumeAs();
+  bool SaveVolumeAs();
+  void SaveVolumeAsAndReload();
   void SetSaveCopy(bool bSaveCopy)
   {
     m_settings["SaveCopy"] = bSaveCopy;
@@ -289,7 +290,7 @@ protected:
   void CommandLoadSurfaceAnnotation ( const QStringList& cmd );
   void CommandLoadSurfaceLabel  ( const QStringList& cmd );
   void CommandLoadSurfaceSpline ( const QStringList& cmd );
-  void CommandLoadConnectivityData  ( const QStringList& cmd );
+  void CommandLoadConnectomeMatrix  ( const QStringList& cmd );
   void CommandLoadWayPoints     ( const QStringList& cmd );
   void CommandLoadControlPoints ( const QStringList& cmd );
   void CommandLoadPVolumes      ( const QStringList& cmd );
@@ -400,6 +401,9 @@ protected slots:
   void OnPlot();
   void OnLineProfile();
 
+  void OnLoadConnectomeMatrix();
+  void OnCloseConnectomeMatrix();
+
   void OnActiveLayerChanged(Layer*);
 
   void SetSlicePosition(double x, double y, double z)
@@ -434,6 +438,7 @@ private:
   void ToggleShowLayer(const QString& type );
   bool UpdateSurfaceCorrelation(LayerSurface* layer);
   void ShowNonModalMessage(const QString& title, const QString& msg);
+  void LoadConnectomeMatrixFile(const QString& fn_cmat, const QString& fn_parcel);
 
   QColor ParseColorInput(const QString& cmd);
 

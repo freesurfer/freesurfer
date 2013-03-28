@@ -139,7 +139,12 @@ SOURCES += \
     DialogSmoothSurface.cpp \
     DialogLineProfile.cpp \
     LayerLineProfile.cpp \
-    LayerPropertyLineProfile.cpp
+    LayerPropertyLineProfile.cpp \
+    LayerConnectomeMatrix.cpp \
+    FSConnectomeMatrix.cpp \
+    DialogLoadConnectome.cpp \
+    PanelConnectomeMatrix.cpp \
+    LayerPropertyConnectomeMatrix.cpp
 
 HEADERS  += \
     Annotation2D.h \
@@ -268,7 +273,12 @@ HEADERS  += \
     DialogSmoothSurface.h \
     DialogLineProfile.h \
     LayerLineProfile.h \
-    LayerPropertyLineProfile.h
+    LayerPropertyLineProfile.h \
+    LayerConnectomeMatrix.h \
+    FSConnectomeMatrix.h \
+    DialogLoadConnectome.h \
+    PanelConnectomeMatrix.h \
+    LayerPropertyConnectomeMatrix.h
 
 FORMS    += MainWindow.ui \
     PanelVolume.ui \
@@ -307,7 +317,9 @@ FORMS    += MainWindow.ui \
     DialogLoadSurfaceOverlay.ui \
     DialogReloadLayer.ui \
     DialogSmoothSurface.ui \
-    DialogLineProfile.ui
+    DialogLineProfile.ui \
+    DialogLoadConnectome.ui \
+    PanelConnectomeMatrix.ui
 
 RESOURCES += \
     freeview.qrc
