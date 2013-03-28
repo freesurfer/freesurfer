@@ -14,9 +14,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2013/03/20 14:23:18 $
- *    $Revision: 1.19 $
+ *    $Author: fischl $
+ *    $Date: 2013/03/28 17:40:21 $
+ *    $Revision: 1.20 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -49,7 +49,7 @@
 #include "transform.h"
 #include "region.h"
 
-static char vcid[] = "$Id: mri_mask.c,v 1.19 2013/03/20 14:23:18 greve Exp $";
+static char vcid[] = "$Id: mri_mask.c,v 1.20 2013/03/28 17:40:21 fischl Exp $";
 
 void usage(int exit_val);
 
@@ -76,7 +76,7 @@ int DoBB = 0, nPadBB=0;
 int main(int argc, char *argv[])
 {
   char **av;
-  MRI *mri_src, *mri_mask, *mri_dst ;
+  MRI *mri_src, *mri_mask, *mri_dst, *mri_mask_orig ;
   int nargs, ac, nmask;
   int x, y, z;
   float value;
@@ -89,7 +89,7 @@ int main(int argc, char *argv[])
     handle_version_option
     (
       argc, argv,
-      "$Id: mri_mask.c,v 1.19 2013/03/20 14:23:18 greve Exp $", "$Name:  $"
+      "$Id: mri_mask.c,v 1.20 2013/03/28 17:40:21 fischl Exp $", "$Name:  $"
     );
   if (nargs && argc - nargs == 1)
   {
@@ -124,6 +124,7 @@ int main(int argc, char *argv[])
   if (!mri_mask)
     ErrorExit(ERROR_BADPARM, "%s: could not read mask volume %s",
               Progname, argv[2]) ;
+  mri_mask_orig = MRIcopy(mri_mask, NULL) ;
 
   if(mri_src->width != mri_mask->width)
   {
@@ -329,7 +330,7 @@ int main(int argc, char *argv[])
 
   if (keep_mask_deletion_edits)
   {
-    mri_dst = MRImask(mri_dst, mri_mask, NULL, 1, 1) ; // keep voxels = 1
+    mri_dst = MRImask(mri_dst, mri_mask_orig, NULL, 1, 1) ; // keep voxels = 1
     if (!mri_dst)
       ErrorExit(Gerror, "%s: stripping failed on keep_mask_deletion_edits",
                 Progname) ;
