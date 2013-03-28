@@ -198,6 +198,7 @@ MRISSUBDIRS=\
 	tridec \
 	mris_segmentation_stats \
 	mris_register_to_volume \
+	mris_init_global_tractography \
 	mris_interpolate_warp \
 	mris_parcellate_connectivity \
 	mris_map_cuts \
