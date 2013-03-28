@@ -15,8 +15,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2013/03/28 17:40:21 $
- *    $Revision: 1.20 $
+ *    $Date: 2013/03/28 20:55:33 $
+ *    $Revision: 1.21 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -49,7 +49,7 @@
 #include "transform.h"
 #include "region.h"
 
-static char vcid[] = "$Id: mri_mask.c,v 1.20 2013/03/28 17:40:21 fischl Exp $";
+static char vcid[] = "$Id: mri_mask.c,v 1.21 2013/03/28 20:55:33 fischl Exp $";
 
 void usage(int exit_val);
 
@@ -89,7 +89,7 @@ int main(int argc, char *argv[])
     handle_version_option
     (
       argc, argv,
-      "$Id: mri_mask.c,v 1.20 2013/03/28 17:40:21 fischl Exp $", "$Name:  $"
+      "$Id: mri_mask.c,v 1.21 2013/03/28 20:55:33 fischl Exp $", "$Name:  $"
     );
   if (nargs && argc - nargs == 1)
   {
@@ -330,10 +330,12 @@ int main(int argc, char *argv[])
 
   if (keep_mask_deletion_edits)
   {
-    mri_dst = MRImask(mri_dst, mri_mask_orig, NULL, 1, 1) ; // keep voxels = 1
-    if (!mri_dst)
+    MRI *mri_tmp ;
+    mri_tmp = MRImask(mri_dst, mri_mask_orig, NULL, 1, 1) ; // keep voxels = 1
+    if (!mri_tmp)
       ErrorExit(Gerror, "%s: stripping failed on keep_mask_deletion_edits",
                 Progname) ;
+    MRIfree(&mri_dst) ; mri_dst = mri_tmp ;
   }
 
   printf("Writing masked volume to %s...", argv[3]) ;
