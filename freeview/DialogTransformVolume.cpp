@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2013/03/28 18:54:13 $
- *    $Revision: 1.18 $
+ *    $Date: 2013/03/28 19:00:42 $
+ *    $Revision: 1.19 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -52,6 +52,7 @@ DialogTransformVolume::DialogTransformVolume(QWidget *parent) :
   ui->setupUi(this);
   ui->groupBoxLandmarks->hide();
   ui->pushButtonApply->hide();
+  ui->pushButtonSaveAndReload->hide();
 
   QButtonGroup* bg = new QButtonGroup(this);
   bg->addButton(ui->radioButtonRotateLandmarks);
