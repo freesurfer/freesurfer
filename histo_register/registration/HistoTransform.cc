@@ -642,12 +642,23 @@ void projectHistoToBlockFace( Config &conf ) {
 	// get command parameters
 	String inputPath = addDataPath( conf.readString( "inputPath", "histo/label" ) );
 	String outputPath = addDataPath( conf.readString( "outputPath", "histo/labelProj" ) );
+  int interpType = conf.readInt( "interpType", 0);
 	String mrRawPath = addDataPath( conf.readString( "mrRawPath", "mri/rawFlash20" ) );
 	String mrRegLinPath = addDataPath( conf.readString( "mrRegLinPath", "mri/regLin" ) );
 	String mrRegPath = addDataPath( conf.readString( "mrRegPath", "mri/reg" ) );
 	String histoSplitPath = addDataPath( conf.readString( "histoSplitPath", "histo/split" ) );
 	String histoRegPath = addDataPath( conf.readString( "histoRegPath", "histo/reg" ) );
 	bool smallHistoCoords = false;
+
+  if (interpType == 0)
+	  disp( 1, "Mapping using nearest neighbor interpolation ...");
+  else if (interpType == 1)
+	  disp( 1, "Mapping using tri-linear interpolation ...");
+  else
+  {
+    disp( 1, "Error: interpolation type %d unknown.",interpType );
+    exit(1);
+  }
 
 	// load transformation data
 	// fix(faster); don't load B to M data (we do it just because we need to know the block-face dims)
@@ -672,8 +683,13 @@ void projectHistoToBlockFace( Config &conf ) {
 	int bHeight = histoTransform.blockHeight();
 
 	// loop over block-face slices
+  bool keepgoing = true;
+#ifdef HAVE_OPENMP
+#pragma omp parallel for
+#endif 
 	for (int bIndex = 0; bIndex < bDepth; bIndex++) {
 
+    if (!keepgoing) continue;
 		// create output image in block-face coordinates
 		ImageGrayU outputImage( bWidth, bHeight );
 
@@ -702,11 +718,42 @@ void projectHistoToBlockFace( Config &conf ) {
 						point.y = y;
 						point.z = bIndex;
 						point = histoTransform.projectBToH( point, smallHistoCoords, false );
-						int xHisto = sbl::round( point.x );
-						int yHisto = sbl::round( point.y );
-						int histoValue = 0;
-						if (inputImage->inBounds( xHisto, yHisto ))
-							histoValue = inputImage->data( xHisto, yHisto );
+						int histoValue = 255;
+            if (interpType == 0)
+            {
+						  int xHisto = sbl::round( point.x );
+						  int yHisto = sbl::round( point.y );
+						  if (inputImage->inBounds( xHisto, yHisto ))
+							  histoValue = inputImage->data( xHisto, yHisto );
+            }
+            else if  (interpType == 1)
+            {
+              
+              if (inputImage->inBounds( (float)point.x, (float)point.y))
+              {
+              
+                int xm = MAX((int)point.x, 0) ;
+                int xp = MIN(inputImage->width()-1, xm+1) ;
+                int ym = MAX((int)point.y, 0) ;
+                int yp = MIN(inputImage->height()-1, ym+1) ;
+
+                double xmd = point.x - (float)xm ;
+                double ymd = point.y - (float)ym ;
+                double xpd = (1.0f - xmd) ;
+                double ypd = (1.0f - ymd) ;
+              
+                histoValue = (int) (
+                  xpd * ypd * inputImage->data( xm, ym ) +
+                  xpd * ymd * inputImage->data( xm, yp ) +
+                  xmd * ypd * inputImage->data( xp, ym ) +
+                  xmd * ymd * inputImage->data( xp, yp ) );
+              
+              }
+              
+              
+            }
+            
+            
 						outputImage.data( x, y ) = histoValue;
 					}
 				}
@@ -724,8 +771,21 @@ void projectHistoToBlockFace( Config &conf ) {
 		saveImage( outputImage, outputFileName );
 
 		// check for user cancel
-		if (checkCommandEvents())
-			break;
+		//if (checkCommandEvents())
+		//	break;
+#ifdef HAVE_OPENMP
+    if(omp_get_thread_num() == 0)
+#endif
+    {
+		  if (checkCommandEvents())
+      {
+#ifdef HAVE_OPENMP
+#pragma omp critical
+#endif
+          keepgoing = false;
+//			  break;
+      }
+    }
 	}
 }
 
