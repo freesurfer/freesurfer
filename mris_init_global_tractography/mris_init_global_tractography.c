@@ -9,8 +9,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2013/03/28 19:20:06 $
- *    $Revision: 1.1 $
+ *    $Date: 2013/03/29 12:43:13 $
+ *    $Revision: 1.2 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -120,7 +120,7 @@ main(int argc, char *argv[]) {
   MRI          *mri_tmp, *mri_wm_only ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_init_global_tractography.c,v 1.1 2013/03/28 19:20:06 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_init_global_tractography.c,v 1.2 2013/03/29 12:43:13 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -1158,7 +1158,7 @@ compute_optimal_number_of_control_points(MRI *mri_aseg, VOXEL_LIST *vl, int min_
   int          ncontrol, max_points ;
   double       dist ;
   MRI          *mri_dist = NULL ;
-  VOXEL_LIST  *vl_spline, *vl_spline_list ;
+  VOXEL_LIST  *vl_spline = vl, *vl_spline_list ;
 
   vl->mri = mri_aseg ;
   max_points = MIN(10*min_points, vl->nvox) ;
