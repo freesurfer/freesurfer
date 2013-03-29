@@ -11,8 +11,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2012/01/04 17:23:20 $
- *    $Revision: 1.17 $
+ *    $Date: 2013/03/29 18:58:26 $
+ *    $Revision: 1.18 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -88,6 +88,7 @@ bool SurfaceAnnotation::LoadAnnotation( const QString& fn )
 {
   if ( m_surface )
   {
+    m_strFilename = QFileInfo(fn).canonicalFilePath();
     MRIS* mris = m_surface->GetSourceSurface()->GetMRIS();
     m_nIndices = NULL;
 

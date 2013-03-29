@@ -10,8 +10,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2011/08/03 20:18:54 $
- *    $Revision: 1.15 $
+ *    $Date: 2013/03/29 18:58:26 $
+ *    $Revision: 1.16 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -96,6 +96,11 @@ public:
 
   void MapAnnotationColor( unsigned char* colordata );
 
+  QString GetFilename()
+  {
+    return m_strFilename;
+  }
+
 protected:
   void Reset();
 
@@ -112,6 +117,7 @@ private:
   LayerSurface* m_surface;
   bool          m_bShowOutline;
   double        m_dOpacity;
+  QString       m_strFilename;
 };
 
 #endif

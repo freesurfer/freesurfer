@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2013/03/28 18:54:13 $
- *    $Revision: 1.48 $
+ *    $Date: 2013/03/29 18:58:26 $
+ *    $Revision: 1.49 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -281,14 +281,17 @@ void PanelSurface::DoUpdateWidgets()
   // update annotation controls
   ui->comboBoxAnnotation->clear();
   ui->comboBoxAnnotation->addItem( "Off" );
+  ui->comboBoxAnnotation->setItemData(0, "Off", Qt::ToolTipRole);
   if ( layer )
   {
     for ( int i = 0; i < layer->GetNumberOfAnnotations(); i++ )
     {
       ui->comboBoxAnnotation->addItem( layer->GetAnnotation( i )->GetName() );
+      ui->comboBoxAnnotation->setItemData(i+1, layer->GetAnnotation(i)->GetFilename(), Qt::ToolTipRole);
     }
   }
   ui->comboBoxAnnotation->addItem( "Load from file..." );
+  ui->comboBoxAnnotation->setItemData(ui->comboBoxAnnotation->count()-1, "Load from file", Qt::ToolTipRole);
   ui->comboBoxAnnotation->setCurrentIndex( layer ? 1 + layer->GetActiveAnnotationIndex() : 0 );
 
   // update label controls
