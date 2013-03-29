@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2013/03/27 19:08:22 $
- *    $Revision: 1.82 $
+ *    $Date: 2013/03/29 18:27:45 $
+ *    $Revision: 1.83 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -365,15 +365,29 @@ bool LayerSurface::LoadAnnotationFromFile( const QString& filename )
   }
 
   QFileInfo fi(filename);
+  QString name;
   if ( fi.suffix() == ".annot" )
   {
-    annot->SetName( fi.completeBaseName() );
+    name = fi.completeBaseName();
   }
   else
   {
-    annot->SetName( fi.fileName() );
+    name = fi.fileName();
   }
 
+  QStringList names;
+  for (int i = 0; i < m_annotations.size(); i++)
+    names << m_annotations[i]->GetName();
+
+  QString basename = name;
+  int n = 0;
+  while (names.contains(name))
+  {
+    n++;
+    name = QString("%1_%2").arg(basename).arg(n);
+  }
+
+  annot->SetName(name);
   m_annotations.push_back( annot );
 
   SetActiveAnnotation( m_annotations.size() - 1 );
