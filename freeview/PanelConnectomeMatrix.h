@@ -7,13 +7,24 @@ namespace Ui {
     class PanelConnectomeMatrix;
 }
 
+class QTreeWidget;
+
 class PanelConnectomeMatrix : public PanelLayer
 {
-    Q_OBJECT
+  Q_OBJECT
 
 public:
-    explicit PanelConnectomeMatrix(QWidget *parent = 0);
-    ~PanelConnectomeMatrix();
+  explicit PanelConnectomeMatrix(QWidget *parent = 0);
+  ~PanelConnectomeMatrix();
+
+  void PopulateColorTable();
+
+protected slots:
+  void OnCurrentFromChanged();
+  void OnCurrentToChanged();
+
+  void OnCheckBoxToAll(bool bChecked);
+  void UpdateToLabelVisibility();
 
 protected:
   void DoIdle();
@@ -21,7 +32,10 @@ protected:
   virtual void ConnectLayer( Layer* layer );
 
 private:
-    Ui::PanelConnectomeMatrix *ui;
+  void AddColorTableItem(int value, const QString& name, const QColor& color, QTreeWidget* treeWidget);
+
+  Ui::PanelConnectomeMatrix *ui;
+  bool  m_bColorTableDirty;
 };
 
 #endif // PANELCONNECTOMEMATRIX_H

@@ -84,8 +84,37 @@
      </layout>
     </item>
     <item>
-     <widget class="QTreeWidget" name="treeWidgetRows">
+     <spacer name="verticalSpacer_2">
+      <property name="orientation">
+       <enum>Qt::Vertical</enum>
+      </property>
+      <property name="sizeType">
+       <enum>QSizePolicy::Fixed</enum>
+      </property>
+      <property name="sizeHint" stdset="0">
+       <size>
+        <width>5</width>
+        <height>0</height>
+       </size>
+      </property>
+     </spacer>
+    </item>
+    <item>
+     <widget class="QLabel" name="label">
+      <property name="text">
+       <string>From:</string>
+      </property>
+     </widget>
+    </item>
+    <item>
+     <widget class="QTreeWidget" name="treeWidgetFrom">
       <property name="showDropIndicator" stdset="0">
+       <bool>false</bool>
+      </property>
+      <property name="rootIsDecorated">
+       <bool>false</bool>
+      </property>
+      <property name="itemsExpandable">
        <bool>false</bool>
       </property>
       <attribute name="headerVisible">
@@ -99,8 +128,61 @@
      </widget>
     </item>
     <item>
-     <widget class="QTreeWidget" name="treeWidgetColumns">
+     <spacer name="verticalSpacer_3">
+      <property name="orientation">
+       <enum>Qt::Vertical</enum>
+      </property>
+      <property name="sizeType">
+       <enum>QSizePolicy::Fixed</enum>
+      </property>
+      <property name="sizeHint" stdset="0">
+       <size>
+        <width>1</width>
+        <height>5</height>
+       </size>
+      </property>
+     </spacer>
+    </item>
+    <item>
+     <layout class="QHBoxLayout" name="horizontalLayout">
+      <item>
+       <widget class="QLabel" name="label_2">
+        <property name="text">
+         <string>To:</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <spacer name="horizontalSpacer">
+        <property name="orientation">
+         <enum>Qt::Horizontal</enum>
+        </property>
+        <property name="sizeHint" stdset="0">
+         <size>
+          <width>5</width>
+          <height>5</height>
+         </size>
+        </property>
+       </spacer>
+      </item>
+      <item>
+       <widget class="QCheckBox" name="checkBox">
+        <property name="text">
+         <string>All</string>
+        </property>
+       </widget>
+      </item>
+     </layout>
+    </item>
+    <item>
+     <widget class="QTreeWidget" name="treeWidgetTo">
       <property name="showDropIndicator" stdset="0">
+       <bool>false</bool>
+      </property>
+      <property name="rootIsDecorated">
+       <bool>false</bool>
+      </property>
+      <property name="itemsExpandable">
        <bool>false</bool>
       </property>
       <attribute name="headerVisible">
@@ -137,5 +219,59 @@
   </customwidget>
  </customwidgets>
  <resources/>
- <connections/>
+ <connections>
+  <connection>
+   <sender>treeWidgetFrom</sender>
+   <signal>currentItemChanged(QTreeWidgetItem*,QTreeWidgetItem*)</signal>
+   <receiver>PanelConnectomeMatrix</receiver>
+   <slot>OnCurrentFromChanged()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>229</x>
+     <y>298</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>463</x>
+     <y>421</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>treeWidgetTo</sender>
+   <signal>currentItemChanged(QTreeWidgetItem*,QTreeWidgetItem*)</signal>
+   <receiver>PanelConnectomeMatrix</receiver>
+   <slot>OnCurrentToChanged()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>237</x>
+     <y>505</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>565</x>
+     <y>601</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>checkBox</sender>
+   <signal>toggled(bool)</signal>
+   <receiver>PanelConnectomeMatrix</receiver>
+   <slot>OnCheckBoxToAll(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>330</x>
+     <y>434</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>415</x>
+     <y>437</y>
+    </hint>
+   </hints>
+  </connection>
+ </connections>
+ <slots>
+  <slot>OnCurrentFromChanged()</slot>
+  <slot>OnCurrentToChanged()</slot>
+  <slot>OnCheckBoxToAll(bool)</slot>
+ </slots>
 </ui>

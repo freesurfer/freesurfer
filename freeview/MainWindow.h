@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2013/03/28 18:54:13 $
- *    $Revision: 1.126 $
+ *    $Date: 2013/03/30 16:38:12 $
+ *    $Revision: 1.127 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -438,7 +438,7 @@ private:
   void ToggleShowLayer(const QString& type );
   bool UpdateSurfaceCorrelation(LayerSurface* layer);
   void ShowNonModalMessage(const QString& title, const QString& msg);
-  void LoadConnectomeMatrixFile(const QString& fn_cmat, const QString& fn_parcel);
+  void LoadConnectomeMatrixFile(const QString& fn_cmat, const QString& fn_parcel, const QString& fn_ctab);
 
   QColor ParseColorInput(const QString& cmd);
 

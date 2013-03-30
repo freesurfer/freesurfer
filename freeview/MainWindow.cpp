@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2013/03/28 18:54:13 $
- *    $Revision: 1.234 $
+ *    $Date: 2013/03/30 16:38:11 $
+ *    $Revision: 1.235 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -2165,16 +2165,21 @@ void MainWindow::CommandLoadPVolumes( const QStringList& cmd )
 
 void MainWindow::CommandLoadConnectomeMatrix(const QStringList& cmd )
 {
-  if ( cmd.size() > 2 )
-    this->LoadConnectomeMatrixFile( cmd[1], cmd[2] );
+  if ( cmd.size() > 3 )
+    this->LoadConnectomeMatrixFile( cmd[1], cmd[2], cmd[3] );
 }
 
-void MainWindow::LoadConnectomeMatrixFile(const QString &fn_cmat, const QString &fn_parcel)
+void MainWindow::LoadConnectomeMatrixFile(const QString &fn_cmat, const QString &fn_parcel, const QString &fn_ctab)
 {
   LayerConnectomeMatrix* layer = new LayerConnectomeMatrix(m_layerVolumeRef);
   layer->SetFileName(fn_cmat);
   layer->SetParcelFilename(fn_parcel);
-  layer->SetName(QFileInfo(fn_cmat).completeBaseName());
+  layer->SetName(QFileInfo(fn_cmat).completeBaseName());  
+  COLOR_TABLE* ct = m_luts->LoadColorTable( fn_ctab );
+  if (ct)
+    layer->SetColorTable(ct);
+  else
+    layer->SetColorTable(m_luts->GetColorTable(0));
   m_threadIOWorker->LoadConnectomeMatrix( layer );
 //  m_statusBar->StartTimer();
 }
@@ -4449,6 +4454,16 @@ void MainWindow::OnIOFinished( Layer* layer, int jobtype )
     LayerConnectomeMatrix* cmat = qobject_cast<LayerConnectomeMatrix*>( layer );
     LayerCollection* lc_cmat = GetLayerCollection( "CMAT" );
     lc_cmat->AddLayer(cmat);
+    double worigin[3], wsize[3];
+    cmat->GetWorldOrigin(worigin);
+    cmat->GetWorldSize(wsize);
+    if (lc_mri->IsEmpty() && lc_surface->IsEmpty())
+    {
+      for ( int i = 0; i < 4; i++ )
+      {
+        m_views[i]->SetWorldCoordinateInfo( worigin, wsize, true );
+      }
+    }
   }
   m_bProcessing = false;
 
@@ -5631,6 +5646,7 @@ void MainWindow::OnLoadConnectomeMatrix()
   DialogLoadConnectome dlg(this);
   if (dlg.exec() == QDialog::Accepted)
   {
-    AddScript(QString("loadconnectome %1 %2").arg(dlg.GetCMATFilename()).arg(dlg.GetParcelFilename()));
+    AddScript(QString("loadconnectome %1 %2 %3").arg(dlg.GetCMATFilename()).arg(dlg.GetParcelFilename())
+        .arg(dlg.GetCTABFilename()));
   }
 }

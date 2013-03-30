@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>381</width>
-    <height>271</height>
+    <width>377</width>
+    <height>264</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -109,27 +109,12 @@
    <item>
     <widget class="QLabel" name="label_3">
      <property name="text">
-      <string>Color table file</string>
+      <string>Color table</string>
      </property>
     </widget>
    </item>
    <item>
-    <layout class="QHBoxLayout" name="horizontalLayout_3">
-     <item>
-      <widget class="QLineEdit" name="lineEditCTAB"/>
-     </item>
-     <item>
-      <widget class="QToolButton" name="toolButtonOpenCTAB">
-       <property name="text">
-        <string>...</string>
-       </property>
-       <property name="icon">
-        <iconset resource="freeview.qrc">
-         <normaloff>:/resource/icons/file_open_16.png</normaloff>:/resource/icons/file_open_16.png</iconset>
-       </property>
-      </widget>
-     </item>
-    </layout>
+    <widget class="QComboBox" name="comboBoxColorTable"/>
    </item>
    <item>
     <spacer name="verticalSpacer">
@@ -187,7 +172,7 @@
      <y>46</y>
     </hint>
     <hint type="destinationlabel">
-     <x>380</x>
+     <x>376</x>
      <y>42</y>
     </hint>
    </hints>
@@ -203,24 +188,40 @@
      <y>112</y>
     </hint>
     <hint type="destinationlabel">
-     <x>380</x>
+     <x>376</x>
      <y>114</y>
     </hint>
    </hints>
   </connection>
   <connection>
-   <sender>toolButtonOpenCTAB</sender>
-   <signal>clicked()</signal>
+   <sender>comboBoxColorTable</sender>
+   <signal>currentIndexChanged(int)</signal>
    <receiver>DialogLoadConnectome</receiver>
-   <slot>OnButtonOpenCTAB()</slot>
+   <slot>OnComboBoxColorTable(int)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>354</x>
-     <y>181</y>
+     <x>319</x>
+     <y>178</y>
     </hint>
     <hint type="destinationlabel">
-     <x>434</x>
-     <y>183</y>
+     <x>496</x>
+     <y>184</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>buttonBox</sender>
+   <signal>rejected()</signal>
+   <receiver>DialogLoadConnectome</receiver>
+   <slot>reject()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>245</x>
+     <y>237</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>230</x>
+     <y>367</y>
     </hint>
    </hints>
   </connection>
@@ -230,5 +231,6 @@
   <slot>OnButtonOpenCMAT()</slot>
   <slot>OnButtonOpenParcel()</slot>
   <slot>OnButtonOpenCTAB()</slot>
+  <slot>OnComboBoxColorTable(int)</slot>
  </slots>
 </ui>

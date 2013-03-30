@@ -22,10 +22,12 @@ public:
 public slots:
   void OnButtonOpenCMAT();
   void OnButtonOpenParcel();
-  void OnButtonOpenCTAB();
+  void OnComboBoxColorTable(int n);
   void OnOK();
 
 private:
+  void UpdateLUT();
+
   Ui::DialogLoadConnectome *ui;
   QString m_strLastDir;
 };

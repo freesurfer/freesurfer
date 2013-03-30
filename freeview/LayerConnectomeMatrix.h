@@ -2,6 +2,10 @@
 #define LAYERCONNECTOMEMATRIX_H
 
 #include "Layer.h"
+#include <QVariantMap>
+#include <QList>
+#include <vtkSmartPointer.h>
+
 extern "C"
 {
 #include "cmat.h"
@@ -10,6 +14,7 @@ extern "C"
 
 class LayerMRI;
 class LayerPropertyConnectomeMatrix;
+class vtkActor;
 
 class LayerConnectomeMatrix : public Layer
 {
@@ -23,7 +28,7 @@ public:
     return (LayerPropertyConnectomeMatrix*)mProperty;
   }
 
-  bool LoadFromFile(const QString& fn_cmat, const QString& fn_parcel, const QString& fn_ctab);
+  bool LoadFromFile(const QString& fn_cmat, const QString& fn_parcel);
   bool LoadFromFile();
 
   void Append2DProps(vtkRenderer *renderer, int nPlane);
@@ -31,6 +36,13 @@ public:
   bool HasProp(vtkProp *prop);
   bool IsVisible();
   void OnSlicePositionChanged(int nPlane);
+
+  QList<int> GetLabelList();
+
+  QString GetLabelName(int n);
+  QColor GetLabelColor(int n);
+
+  bool HasConnection(int i, int j);
 
 signals:
 
@@ -40,18 +52,30 @@ public slots:
     m_sFilenameParcel = filename;
   }
 
-  void SetColorTableFilename(const QString& fn)
-  {
-    m_sFilenameCTAB = fn;
-  }
+  void SetColorTable(COLOR_TABLE* ctab);
+
+  void SetFromLabelIndex(int n);
+  void SetToLabelIndex(int n);
+  void SetToAllLabels(bool bAll);
+
+  void RebuildSplineActors();
 
 private:
+  void BuildLabelActors();
+  void UpdateLabelActors();
+
   LayerMRI* m_mriRef;
   LayerMRI* m_mriParcel;
   CMAT* m_cmat;
   COLOR_TABLE* m_ctab;
   QString   m_sFilenameParcel;
-  QString   m_sFilenameCTAB;
+  QList<int> m_listLabels;
+  int     m_nFromLabelIndex;
+  int     m_nToLabelIndex;
+  bool    m_bToAllLabels;
+
+  vtkSmartPointer<vtkActor> m_actorSplines;
+  QList< vtkSmartPointer<vtkActor> > m_actorLabels;
 };
 
 #endif // LAYERCONNECTOMEMATRIX_H

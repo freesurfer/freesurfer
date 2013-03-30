@@ -4,8 +4,9 @@
 #include "MainWindow.h"
 
 PanelConnectomeMatrix::PanelConnectomeMatrix(QWidget *parent) :
-    PanelLayer(parent),
-    ui(new Ui::PanelConnectomeMatrix)
+  PanelLayer(parent),
+  ui(new Ui::PanelConnectomeMatrix),
+  m_bColorTableDirty(true)
 {
     ui->setupUi(this);
 
@@ -27,6 +28,7 @@ void PanelConnectomeMatrix::ConnectLayer( Layer* layer_in )
   {
     return;
   }
+  m_bColorTableDirty = true;
 
   /*
   LayerPropertyMRI* p = layer->GetProperty();
@@ -79,5 +81,81 @@ void PanelConnectomeMatrix::DoUpdateWidgets()
     ui->lineEditFileName->setCursorPosition(ui->lineEditFileName->text().size());
   }
 
+  if (m_bColorTableDirty)
+    PopulateColorTable();
+
   BlockAllSignals(false);
+}
+
+void PanelConnectomeMatrix::PopulateColorTable()
+{
+  LayerConnectomeMatrix* layer = GetCurrentLayer<LayerConnectomeMatrix*>();
+  if (!layer)
+    return;
+
+  ui->treeWidgetFrom->clear();
+  ui->treeWidgetTo->clear();
+  QList<int> labels = layer->GetLabelList();
+  foreach (int n, labels)
+  {
+    QString name = layer->GetLabelName(n);
+    QColor color = layer->GetLabelColor(n);
+    AddColorTableItem(n, name, color, ui->treeWidgetFrom);
+    AddColorTableItem(n, name, color, ui->treeWidgetTo);
+  }
+  m_bColorTableDirty = false;
+}
+
+void PanelConnectomeMatrix::UpdateToLabelVisibility()
+{
+  int nFrom = ui->treeWidgetFrom->indexOfTopLevelItem(ui->treeWidgetFrom->currentItem());
+  LayerConnectomeMatrix* layer = GetCurrentLayer<LayerConnectomeMatrix*>();
+  if (nFrom < 0 || !layer)
+    return;
+
+  for (int i = 0; i < ui->treeWidgetTo->topLevelItemCount(); i++)
+  {
+    ui->treeWidgetTo->setItemHidden(ui->treeWidgetTo->topLevelItem(i),
+                                    !layer->HasConnection(nFrom, i));
+  }
+}
+
+void PanelConnectomeMatrix::AddColorTableItem(int value, const QString& name, const QColor& color,
+                                              QTreeWidget *treeWidget)
+{
+  QTreeWidgetItem* item = new QTreeWidgetItem( treeWidget );
+  item->setText(0, QString("%1 %2").arg(value).arg(name));
+  QPixmap pix(13, 13);
+  pix.fill( color );
+  item->setIcon(0, QIcon(pix) );
+  item->setData( 0, Qt::UserRole, color );
+  item->setData(0, Qt::UserRole+1, value);
+}
+
+void PanelConnectomeMatrix::OnCurrentFromChanged()
+{
+  LayerConnectomeMatrix* layer = GetCurrentLayer<LayerConnectomeMatrix*>();
+  if (!layer)
+    return;
+
+  layer->SetFromLabelIndex(ui->treeWidgetFrom->indexOfTopLevelItem(ui->treeWidgetFrom->currentItem()));
+  UpdateToLabelVisibility();
+}
+
+void PanelConnectomeMatrix::OnCurrentToChanged()
+{
+  LayerConnectomeMatrix* layer = GetCurrentLayer<LayerConnectomeMatrix*>();
+  if (!layer)
+    return;
+
+  layer->SetToLabelIndex(ui->treeWidgetTo->indexOfTopLevelItem(ui->treeWidgetTo->currentItem()));
+}
+
+void PanelConnectomeMatrix::OnCheckBoxToAll(bool bChecked)
+{
+  LayerConnectomeMatrix* layer = GetCurrentLayer<LayerConnectomeMatrix*>();
+  if (!layer)
+    return;
+
+  layer->SetToAllLabels(bChecked);
 }

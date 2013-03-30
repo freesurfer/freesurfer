@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2012/01/10 17:46:15 $
- *    $Revision: 1.28 $
+ *    $Date: 2013/03/30 16:38:11 $
+ *    $Revision: 1.29 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -133,6 +133,8 @@ void DialogLoadVolume::OnLUT( int nSel )
       UpdateLUT();
       ui->comboBoxLUT->setCurrentIndex( luts->GetCount() - 1 );
     }
+    else
+      ui->comboBoxLUT->setCurrentIndex(0);
   }
 }
 

@@ -1,5 +1,7 @@
 #include "DialogLoadConnectome.h"
 #include "ui_DialogLoadConnectome.h"
+#include "MainWindow.h"
+#include "LUTDataHolder.h"
 
 #include <QFileDialog>
 #include <QSettings>
@@ -18,6 +20,8 @@ DialogLoadConnectome::DialogLoadConnectome(QWidget *parent) :
     QString strg = GetCMATFilename();
     if (!strg.isEmpty())
       m_strLastDir = QFileInfo(strg).absolutePath();
+
+    UpdateLUT();
 }
 
 DialogLoadConnectome::~DialogLoadConnectome()
@@ -42,7 +46,7 @@ QString DialogLoadConnectome::GetParcelFilename()
 
 QString DialogLoadConnectome::GetCTABFilename()
 {
-  return ui->lineEditCTAB->text().trimmed();
+  return ui->comboBoxColorTable->currentText().trimmed();
 }
 
 void DialogLoadConnectome::OnButtonOpenCMAT()
@@ -69,16 +73,40 @@ void DialogLoadConnectome::OnButtonOpenParcel()
   }
 }
 
-void DialogLoadConnectome::OnButtonOpenCTAB()
+void DialogLoadConnectome::OnComboBoxColorTable( int nSel )
 {
-  QString fn = QFileDialog::getOpenFileName(this, "Select Color Table File", m_strLastDir,
-                                            "CTAB files (*.ctab);;All files (*)");
-  if (!fn.isEmpty())
+  LUTDataHolder* luts = MainWindow::GetMainWindow()->GetLUTData();
+  if ( nSel >= luts->GetCount() )
   {
-    ui->lineEditCTAB->setText(fn);
-    ui->lineEditCTAB->setCursorPosition(fn.size());
+    QString filename = QFileDialog::getOpenFileName( this, "Load color table file",
+                       m_strLastDir,
+                       "Color table files (*)" );
+    if ( !filename.isEmpty() && luts->LoadColorTable( filename ) )
+    {
+      UpdateLUT();
+      ui->comboBoxColorTable->setCurrentIndex( luts->GetCount() - 1 );
+    }
+    else
+    {
+      ui->comboBoxColorTable->setCurrentIndex(0);
+    }
   }
 }
+
+void DialogLoadConnectome::UpdateLUT()
+{
+  ui->comboBoxColorTable->blockSignals( true );
+  LUTDataHolder* luts = MainWindow::GetMainWindow()->GetLUTData();
+  ui->comboBoxColorTable->clear();
+  for ( int i = 0; i < luts->GetCount(); i++ )
+  {
+    ui->comboBoxColorTable->addItem( luts->GetName( i ));
+  }
+  ui->comboBoxColorTable->addItem( "Load color table..." );
+  ui->comboBoxColorTable->setCurrentIndex( 0 );
+  ui->comboBoxColorTable->blockSignals( false );
+}
+
 
 void DialogLoadConnectome::OnOK()
 {
@@ -90,11 +118,6 @@ void DialogLoadConnectome::OnOK()
   if (GetParcelFilename().isEmpty())
   {
     QMessageBox::warning(this, "Error", "Please select a parcellation file.");
-    return;
-  }
-  if (GetCTABFilename().isEmpty())
-  {
-    QMessageBox::warning(this, "Error", "Please select a color table file.");
     return;
   }
 
