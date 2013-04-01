@@ -8,9 +8,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/04/27 13:59:36 $
- *    $Revision: 1.100.2.1 $
+ *    $Author: greve $
+ *    $Date: 2013/04/01 16:23:11 $
+ *    $Revision: 1.100.2.2 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -183,6 +183,11 @@ LABEL *LabelRead(const char *subject_name, const char *label_name)
                  "%s: no data in label file %s", Progname, fname));
   if (subject_name)
   {
+    cp = getenv("SUBJECTS_DIR") ;
+    if (!cp) ErrorExit(ERROR_BADPARM,
+                "%s: no subject's directory specified in environment "
+                "(SUBJECTS_DIR)", Progname) ;
+    strcpy(subjects_dir, cp) ;
     area->linear_transform =
       labelLoadTransform(subject_name, subjects_dir, &area->transform) ;
     area->inverse_linear_transform =
