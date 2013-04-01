@@ -12,6 +12,8 @@
 #include <vtkCellArray.h>
 #include <vtkPointData.h>
 #include <vtkProperty.h>
+#include <vtkBox.h>
+#include <vtkCutter.h>
 #include "MyVTKUtils.h"
 
 LayerConnectomeMatrix::LayerConnectomeMatrix(LayerMRI* ref, QObject *parent) :
@@ -21,13 +23,21 @@ LayerConnectomeMatrix::LayerConnectomeMatrix(LayerMRI* ref, QObject *parent) :
   m_cmat(NULL),
   m_ctab(NULL),
   m_nFromLabelIndex(-1),
-  m_nToLabelIndex(-1),
   m_bToAllLabels(false)
 {
   this->m_strTypeNames << "CMAT";
   mProperty = new LayerPropertyConnectomeMatrix( this );
 
+  LayerPropertyConnectomeMatrix* p = GetProperty();
+  connect(p, SIGNAL(OpacityChanged()), this, SLOT(UpdateOpacity()));
+
   m_actorSplines = vtkSmartPointer<vtkActor>::New();
+  m_actorSplines->GetProperty()->SetColor(1, 1, 0);
+  for (int i = 0; i < 3; i++)
+  {
+    m_actorSlice[i] = vtkSmartPointer<vtkActor>::New();
+    m_actorSlice[i]->GetProperty()->SetColor(1, 1, 0);
+  }
 }
 
 LayerConnectomeMatrix::~LayerConnectomeMatrix()
@@ -64,6 +74,7 @@ bool LayerConnectomeMatrix::LoadFromFile(const QString &fn_cmat, const QString &
   m_listLabels.clear();
   for (int i = 0; i < m_cmat->nlabels; i++)
     m_listLabels << m_cmat->labels[i];
+
 
   // read parcellation file
   if (m_mriParcel)
@@ -169,7 +180,8 @@ bool LayerConnectomeMatrix::LoadFromFile()
 
 void LayerConnectomeMatrix::Append2DProps(vtkRenderer *renderer, int nPlane)
 {
-
+  if (m_actorSlice[nPlane].GetPointer())
+    renderer->AddViewProp(m_actorSlice[nPlane]);
 }
 
 void LayerConnectomeMatrix::Append3DProps(vtkRenderer *renderer, bool *bPlaneVisibility)
@@ -191,7 +203,7 @@ void LayerConnectomeMatrix::UpdateLabelActors()
 
   for (int i = 0; i < m_cmat->nlabels; i++)
   {
-    if (i != m_nFromLabelIndex && (m_bToAllLabels || i == m_nToLabelIndex))
+    if (i != m_nFromLabelIndex && (m_bToAllLabels || m_listToLabelIndices.contains(i)))
     {
       if (m_cmat->splines[m_nFromLabelIndex][i])
         m_actorLabels[i]->VisibilityOn();
@@ -211,19 +223,20 @@ bool LayerConnectomeMatrix::IsVisible()
 
 void LayerConnectomeMatrix::OnSlicePositionChanged(int nPlane)
 {
-
+  RebuildSplineActors();
 }
 
 void LayerConnectomeMatrix::SetFromLabelIndex(int n)
 {
   m_nFromLabelIndex = n;
   UpdateLabelActors();
+  UpdateOpacity();
   RebuildSplineActors();
 }
 
-void LayerConnectomeMatrix::SetToLabelIndex(int n)
+void LayerConnectomeMatrix::SetToLabelIndices(const QList<int> &indices)
 {
-  m_nToLabelIndex = n;
+  m_listToLabelIndices = indices;
   if (!m_bToAllLabels)
   {
     UpdateLabelActors();
@@ -243,15 +256,19 @@ void LayerConnectomeMatrix::RebuildSplineActors()
   if (m_nFromLabelIndex < 0)
     return;
 
-  if (!m_bToAllLabels && m_nToLabelIndex < 0)
+  if (!m_bToAllLabels && m_listToLabelIndices.isEmpty())
+  {
+    m_actorSplines->SetMapper(vtkSmartPointer<vtkPolyDataMapper>::New());
+    emit ActorUpdated();
     return;
+  }
 
   vtkSmartPointer<vtkPoints> points = vtkSmartPointer<vtkPoints>::New();
   vtkSmartPointer<vtkCellArray> lines = vtkSmartPointer<vtkCellArray>::New();
   int nCount = 0;
   for (int i = 0; i < m_cmat->nlabels; i++)
   {
-    if (m_bToAllLabels || i == m_nToLabelIndex)
+    if (m_bToAllLabels || m_listToLabelIndices.contains(i))
     {
       LABEL* label = m_cmat->splines[m_nFromLabelIndex][i];
       if (label)
@@ -276,11 +293,43 @@ void LayerConnectomeMatrix::RebuildSplineActors()
   spline->SetLength(2*voxel_len);
   vtkSmartPointer<vtkPolyDataMapper> mapper = vtkSmartPointer<vtkPolyDataMapper>::New();
   vtkSmartPointer<vtkTubeFilter> tube = vtkSmartPointer<vtkTubeFilter>::New();
-  tube->SetInput(spline->GetOutput());
+  tube->SetInputConnection(spline->GetOutputPort());
   tube->SetRadius(GetProperty()->GetSplineRadius()*voxel_len);
   tube->SetNumberOfSides(GetProperty()->GetNumberOfSides());
   mapper->SetInput(tube->GetOutput());
+  mapper->SetScalarVisibility(0);
   m_actorSplines->SetMapper(mapper);
+
+  // 2D actors
+  double wsize[3], worigin[3], vsize[3], pos[3];
+  GetWorldOrigin(worigin);
+  GetWorldSize(wsize);
+  GetWorldVoxelSize(vsize);
+  GetSlicePosition(pos);
+  for (int i = 0; i < 3; i++)
+  {
+    vtkSmartPointer<vtkBox> box = vtkSmartPointer<vtkBox>::New();
+
+    double bound[6] = { worigin[0], worigin[0]+wsize[0], worigin[1], worigin[1]+wsize[1],
+                        worigin[2], worigin[2]+wsize[2] };
+    bound[i*2] = pos[i] - vsize[i]/2;
+    bound[i*2+1] = pos[i] + vsize[i]/2;
+    box->SetBounds(bound);
+
+    vtkSmartPointer<vtkCutter> cutter = vtkSmartPointer<vtkCutter>::New();
+    cutter->SetInputConnection( spline->GetOutputPort() );
+    cutter->SetCutFunction( box );
+
+    vtkSmartPointer<vtkPolyDataMapper> mapper = vtkSmartPointer<vtkPolyDataMapper>::New();
+    vtkSmartPointer<vtkTubeFilter> tube = vtkSmartPointer<vtkTubeFilter>::New();
+    tube->SetInputConnection(cutter->GetOutputPort());
+    tube->SetRadius(GetProperty()->GetSplineRadius()*voxel_len);
+    tube->SetNumberOfSides(GetProperty()->GetNumberOfSides());
+    mapper->SetInput(tube->GetOutput());
+    mapper->SetScalarVisibility(0);
+    m_actorSlice[i]->SetMapper(mapper);
+  }
+
   emit ActorUpdated();
 }
 
@@ -290,4 +339,16 @@ bool LayerConnectomeMatrix::HasConnection(int i, int j)
     return false;
 
   return m_cmat->splines[i][j];
+}
+
+void LayerConnectomeMatrix::UpdateOpacity()
+{
+  for (int i = 0; i < m_actorLabels.size(); i++)
+  {
+    if (i == m_nFromLabelIndex)
+      m_actorLabels[i]->GetProperty()->SetOpacity(GetProperty()->GetFromLabelOpacity());
+    else
+      m_actorLabels[i]->GetProperty()->SetOpacity(GetProperty()->GetToLabelOpacity());
+  }
+  emit ActorUpdated();
 }

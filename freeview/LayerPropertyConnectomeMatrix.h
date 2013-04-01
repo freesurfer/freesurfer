@@ -19,14 +19,28 @@ public:
     return m_nNumberOfSides;
   }
 
+  double GetFromLabelOpacity()
+  {
+    return m_dFromLabelOpacity;
+  }
+
+  double GetToLabelOpacity()
+  {
+    return m_dToLabelOpacity;
+  }
+
 signals:
+  void OpacityChanged();
 
 public slots:
-
+  void SetFromLabelOpacity(double dval);
+  void SetToLabelOpacity(double dval);
 
 private:
   double  m_dSplineRadius;
   int     m_nNumberOfSides;
+  double  m_dFromLabelOpacity;
+  double  m_dToLabelOpacity;
 };
 
 #endif // LAYERPROPERTYCONNECTOMEMATRIX_H

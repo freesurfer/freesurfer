@@ -55,10 +55,11 @@ public slots:
   void SetColorTable(COLOR_TABLE* ctab);
 
   void SetFromLabelIndex(int n);
-  void SetToLabelIndex(int n);
+  void SetToLabelIndices(const QList<int>& indices);
   void SetToAllLabels(bool bAll);
 
   void RebuildSplineActors();
+  void UpdateOpacity();
 
 private:
   void BuildLabelActors();
@@ -71,10 +72,11 @@ private:
   QString   m_sFilenameParcel;
   QList<int> m_listLabels;
   int     m_nFromLabelIndex;
-  int     m_nToLabelIndex;
+  QList<int>    m_listToLabelIndices;
   bool    m_bToAllLabels;
 
   vtkSmartPointer<vtkActor> m_actorSplines;
+  vtkSmartPointer<vtkActor> m_actorSlice[3];
   QList< vtkSmartPointer<vtkActor> > m_actorLabels;
 };
 

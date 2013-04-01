@@ -26,6 +26,9 @@ protected slots:
   void OnCheckBoxToAll(bool bChecked);
   void UpdateToLabelVisibility();
 
+  void OnSliderFromOpacity(int val);
+  void OnSliderToOpacity(int val);
+
 protected:
   void DoIdle();
   void DoUpdateWidgets();

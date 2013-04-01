@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2013/03/30 16:38:11 $
- *    $Revision: 1.235 $
+ *    $Date: 2013/04/01 21:11:16 $
+ *    $Revision: 1.236 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -862,9 +862,10 @@ bool MainWindow::DoParseCommand(bool bAutoQuit)
     this->AddScript( script );
   }
 
-  if ( m_cmdParser->Found( "conn", &sa ) )
+  if ( m_cmdParser->Found( "cmat", &sa ) )
   {
-    this->AddScript( QString("loadconnectome ") + sa[0] + " " + sa[1] );
+    QString script = QString("loadconnectome ") + sa[0] + " " + sa[1];
+    this->AddScript( script );
   }
 
   if ( m_cmdParser->Found( "ras", &sa ) )
@@ -1113,7 +1114,8 @@ void MainWindow::OnIdle()
   ui->actionVolumeFilterGradient->setEnabled( !bBusy && layerVolume && layerVolume->IsEditable() );
   ui->actionVolumeFilterSobel->setEnabled( !bBusy && layerVolume && layerVolume->IsEditable() );
 
-  ui->actionLoadConnectome->setEnabled( !bBusy );
+  ui->actionLoadConnectome->setEnabled( !bBusy );  
+  ui->actionCloseConnectome ->setEnabled( !bBusy && GetActiveLayer( "CMAT"));
 
   ui->actionShowCoordinateAnnotation->setChecked(ui->viewAxial->GetShowCoordinateAnnotation());
   ui->actionShowColorScale->setChecked(view->GetShowScalarBar());
@@ -2165,8 +2167,32 @@ void MainWindow::CommandLoadPVolumes( const QStringList& cmd )
 
 void MainWindow::CommandLoadConnectomeMatrix(const QStringList& cmd )
 {
-  if ( cmd.size() > 3 )
-    this->LoadConnectomeMatrixFile( cmd[1], cmd[2], cmd[3] );
+  if (cmd.size() < 3)
+    return;
+
+  QStringList options = cmd[1].split(":");
+  QString fn = options[0];
+  QString lut;
+  for ( int i = 1; i < options.size(); i++ )
+  {
+    QString strg = options[i];
+    int n = strg.indexOf( "=" );
+    if ( n != -1 )
+    {
+      QString option = strg.left( n ).toLower();
+      QString argu = strg.mid( n+1 );
+      if ( option == "lut" )
+      {
+        lut = argu;
+      }
+      else
+      {
+        cerr << "Unrecognized sub-option flag '" << strg.toAscii().constData() << "'.\n";
+      }
+    }
+  }
+
+  this->LoadConnectomeMatrixFile( fn, cmd[2], lut );
 }
 
 void MainWindow::LoadConnectomeMatrixFile(const QString &fn_cmat, const QString &fn_parcel, const QString &fn_ctab)
@@ -2175,7 +2201,9 @@ void MainWindow::LoadConnectomeMatrixFile(const QString &fn_cmat, const QString 
   layer->SetFileName(fn_cmat);
   layer->SetParcelFilename(fn_parcel);
   layer->SetName(QFileInfo(fn_cmat).completeBaseName());  
-  COLOR_TABLE* ct = m_luts->LoadColorTable( fn_ctab );
+  COLOR_TABLE* ct = NULL;
+  if (!fn_ctab.isEmpty())
+    m_luts->LoadColorTable( fn_ctab );
   if (ct)
     layer->SetColorTable(ct);
   else
@@ -5646,7 +5674,7 @@ void MainWindow::OnLoadConnectomeMatrix()
   DialogLoadConnectome dlg(this);
   if (dlg.exec() == QDialog::Accepted)
   {
-    AddScript(QString("loadconnectome %1 %2 %3").arg(dlg.GetCMATFilename()).arg(dlg.GetParcelFilename())
+    AddScript(QString("loadconnectome %1:lut=%3 %2").arg(dlg.GetCMATFilename()).arg(dlg.GetParcelFilename())
         .arg(dlg.GetCTABFilename()));
   }
 }

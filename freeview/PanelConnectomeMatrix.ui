@@ -100,6 +100,13 @@
      </spacer>
     </item>
     <item>
+     <widget class="Line" name="line_2">
+      <property name="orientation">
+       <enum>Qt::Horizontal</enum>
+      </property>
+     </widget>
+    </item>
+    <item>
      <widget class="QLabel" name="label">
       <property name="text">
        <string>From:</string>
@@ -125,6 +132,56 @@
         <string notr="true">1</string>
        </property>
       </column>
+     </widget>
+    </item>
+    <item>
+     <layout class="QHBoxLayout" name="horizontalLayout_2">
+      <item>
+       <widget class="QLabel" name="label_3">
+        <property name="text">
+         <string>Opacity</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QSlider" name="sliderFromOpacity">
+        <property name="sizePolicy">
+         <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+          <horstretch>1</horstretch>
+          <verstretch>0</verstretch>
+         </sizepolicy>
+        </property>
+        <property name="maximum">
+         <number>100</number>
+        </property>
+        <property name="value">
+         <number>100</number>
+        </property>
+        <property name="orientation">
+         <enum>Qt::Horizontal</enum>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QDoubleSpinBox" name="doubleSpinBoxFromOpacity">
+        <property name="maximum">
+         <double>1.000000000000000</double>
+        </property>
+        <property name="singleStep">
+         <double>0.100000000000000</double>
+        </property>
+        <property name="value">
+         <double>1.000000000000000</double>
+        </property>
+       </widget>
+      </item>
+     </layout>
+    </item>
+    <item>
+     <widget class="Line" name="line">
+      <property name="orientation">
+       <enum>Qt::Horizontal</enum>
+      </property>
      </widget>
     </item>
     <item>
@@ -172,12 +229,33 @@
         </property>
        </widget>
       </item>
+      <item>
+       <widget class="QPushButton" name="pushButton">
+        <property name="maximumSize">
+         <size>
+          <width>35</width>
+          <height>16777215</height>
+         </size>
+        </property>
+        <property name="font">
+         <font>
+          <pointsize>9</pointsize>
+         </font>
+        </property>
+        <property name="text">
+         <string>Clear</string>
+        </property>
+       </widget>
+      </item>
      </layout>
     </item>
     <item>
      <widget class="QTreeWidget" name="treeWidgetTo">
       <property name="showDropIndicator" stdset="0">
        <bool>false</bool>
+      </property>
+      <property name="selectionMode">
+       <enum>QAbstractItemView::MultiSelection</enum>
       </property>
       <property name="rootIsDecorated">
        <bool>false</bool>
@@ -193,6 +271,56 @@
         <string notr="true">1</string>
        </property>
       </column>
+     </widget>
+    </item>
+    <item>
+     <layout class="QHBoxLayout" name="horizontalLayout_3">
+      <item>
+       <widget class="QLabel" name="label_4">
+        <property name="text">
+         <string>Opacity</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QSlider" name="sliderToOpacity">
+        <property name="sizePolicy">
+         <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+          <horstretch>1</horstretch>
+          <verstretch>0</verstretch>
+         </sizepolicy>
+        </property>
+        <property name="maximum">
+         <number>100</number>
+        </property>
+        <property name="value">
+         <number>100</number>
+        </property>
+        <property name="orientation">
+         <enum>Qt::Horizontal</enum>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QDoubleSpinBox" name="doubleSpinBoxToOpacity">
+        <property name="maximum">
+         <double>1.000000000000000</double>
+        </property>
+        <property name="singleStep">
+         <double>0.100000000000000</double>
+        </property>
+        <property name="value">
+         <double>1.000000000000000</double>
+        </property>
+       </widget>
+      </item>
+     </layout>
+    </item>
+    <item>
+     <widget class="Line" name="line_3">
+      <property name="orientation">
+       <enum>Qt::Horizontal</enum>
+      </property>
      </widget>
     </item>
     <item>
@@ -237,34 +365,98 @@
    </hints>
   </connection>
   <connection>
-   <sender>treeWidgetTo</sender>
-   <signal>currentItemChanged(QTreeWidgetItem*,QTreeWidgetItem*)</signal>
-   <receiver>PanelConnectomeMatrix</receiver>
-   <slot>OnCurrentToChanged()</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>237</x>
-     <y>505</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>565</x>
-     <y>601</y>
-    </hint>
-   </hints>
-  </connection>
-  <connection>
    <sender>checkBox</sender>
    <signal>toggled(bool)</signal>
    <receiver>PanelConnectomeMatrix</receiver>
    <slot>OnCheckBoxToAll(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>330</x>
-     <y>434</y>
+     <x>289</x>
+     <y>482</y>
     </hint>
     <hint type="destinationlabel">
      <x>415</x>
      <y>437</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>treeWidgetTo</sender>
+   <signal>itemSelectionChanged()</signal>
+   <receiver>PanelConnectomeMatrix</receiver>
+   <slot>OnCurrentToChanged()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>223</x>
+     <y>534</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>528</x>
+     <y>550</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>sliderFromOpacity</sender>
+   <signal>valueChanged(int)</signal>
+   <receiver>PanelConnectomeMatrix</receiver>
+   <slot>OnSliderFromOpacity(int)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>165</x>
+     <y>432</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>471</x>
+     <y>449</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>sliderToOpacity</sender>
+   <signal>valueChanged(int)</signal>
+   <receiver>PanelConnectomeMatrix</receiver>
+   <slot>OnSliderToOpacity(int)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>172</x>
+     <y>713</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>596</x>
+     <y>772</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>checkBox</sender>
+   <signal>toggled(bool)</signal>
+   <receiver>pushButton</receiver>
+   <slot>setDisabled(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>302</x>
+     <y>482</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>331</x>
+     <y>483</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>pushButton</sender>
+   <signal>clicked()</signal>
+   <receiver>treeWidgetTo</receiver>
+   <slot>clearSelection()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>331</x>
+     <y>492</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>335</x>
+     <y>541</y>
     </hint>
    </hints>
   </connection>
@@ -273,5 +465,7 @@
   <slot>OnCurrentFromChanged()</slot>
   <slot>OnCurrentToChanged()</slot>
   <slot>OnCheckBoxToAll(bool)</slot>
+  <slot>OnSliderFromOpacity(int)</slot>
+  <slot>OnSliderToOpacity(int)</slot>
  </slots>
 </ui>

@@ -1,6 +1,7 @@
 #include "PanelConnectomeMatrix.h"
 #include "ui_PanelConnectomeMatrix.h"
 #include "LayerConnectomeMatrix.h"
+#include "LayerPropertyConnectomeMatrix.h"
 #include "MainWindow.h"
 
 PanelConnectomeMatrix::PanelConnectomeMatrix(QWidget *parent) :
@@ -30,9 +31,11 @@ void PanelConnectomeMatrix::ConnectLayer( Layer* layer_in )
   }
   m_bColorTableDirty = true;
 
+  LayerPropertyConnectomeMatrix* p = layer->GetProperty();
+  connect(p, SIGNAL(PropertyChanged()), this, SLOT(UpdateWidgets()), Qt::UniqueConnection);
+  connect(ui->doubleSpinBoxFromOpacity, SIGNAL(valueChanged(double)), p, SLOT(SetFromLabelOpacity(double)));
+  connect(ui->doubleSpinBoxToOpacity, SIGNAL(valueChanged(double)), p, SLOT(SetToLabelOpacity(double)));
   /*
-  LayerPropertyMRI* p = layer->GetProperty();
-  connect( p, SIGNAL(PropertyChanged()), this, SLOT(UpdateWidgets()), Qt::UniqueConnection );
   connect( ui->doubleSpinBoxOpacity, SIGNAL(valueChanged(double)), p, SLOT(SetOpacity(double)) );
   connect( ui->checkBoxSmooth, SIGNAL(stateChanged(int)), p, SLOT(SetTextureSmoothing(int)) );
   connect( ui->checkBoxShowContour, SIGNAL(clicked(bool)), p, SLOT(SetShowAsContour(bool)) );
@@ -79,6 +82,12 @@ void PanelConnectomeMatrix::DoUpdateWidgets()
   {
     ui->lineEditFileName->setText(layer->GetFileName());
     ui->lineEditFileName->setCursorPosition(ui->lineEditFileName->text().size());
+    double dval = layer->GetProperty()->GetFromLabelOpacity();
+    ui->sliderFromOpacity->setValue((int)(dval*100));
+    ChangeDoubleSpinBoxValue( ui->doubleSpinBoxFromOpacity, dval );
+    dval = layer->GetProperty()->GetToLabelOpacity();
+    ui->sliderToOpacity->setValue((int)(dval*100));
+    ChangeDoubleSpinBoxValue( ui->doubleSpinBoxToOpacity, dval );
   }
 
   if (m_bColorTableDirty)
@@ -148,7 +157,11 @@ void PanelConnectomeMatrix::OnCurrentToChanged()
   if (!layer)
     return;
 
-  layer->SetToLabelIndex(ui->treeWidgetTo->indexOfTopLevelItem(ui->treeWidgetTo->currentItem()));
+  QList<QTreeWidgetItem*> items = ui->treeWidgetTo->selectedItems();
+  QList<int> indices;
+  foreach (QTreeWidgetItem* item, items)
+    indices << ui->treeWidgetTo->indexOfTopLevelItem(item);
+  layer->SetToLabelIndices(indices);
 }
 
 void PanelConnectomeMatrix::OnCheckBoxToAll(bool bChecked)
@@ -158,4 +171,22 @@ void PanelConnectomeMatrix::OnCheckBoxToAll(bool bChecked)
     return;
 
   layer->SetToAllLabels(bChecked);
+}
+
+void PanelConnectomeMatrix::OnSliderFromOpacity(int val)
+{
+  LayerConnectomeMatrix* layer = GetCurrentLayer<LayerConnectomeMatrix*>();
+  if (layer)
+  {
+    layer->GetProperty()->SetFromLabelOpacity(val/100.0);
+  }
+}
+
+void PanelConnectomeMatrix::OnSliderToOpacity(int val)
+{
+  LayerConnectomeMatrix* layer = GetCurrentLayer<LayerConnectomeMatrix*>();
+  if (layer)
+  {
+    layer->GetProperty()->SetToLabelOpacity(val/100.0);
+  }
 }
