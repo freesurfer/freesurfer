@@ -40,8 +40,8 @@
  * Original Author: Douglas Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2013/04/02 16:22:23 $
- *    $Revision: 1.43 $
+ *    $Date: 2013/04/02 16:24:34 $
+ *    $Revision: 1.44 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -90,7 +90,7 @@ static int  nth_is_arg(int nargc, char **argv, int nth);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] = 
-  "$Id: mri_label2label.c,v 1.43 2013/04/02 16:22:23 greve Exp $";
+  "$Id: mri_label2label.c,v 1.44 2013/04/02 16:24:34 greve Exp $";
 char *Progname = NULL;
 
 char  *srclabelfile = NULL;
@@ -181,7 +181,7 @@ int main(int argc, char **argv) {
   /* rkt: check for and handle version tag */
   nargs = handle_version_option 
     (argc, argv,
-     "$Id: mri_label2label.c,v 1.43 2013/04/02 16:22:23 greve Exp $",
+     "$Id: mri_label2label.c,v 1.44 2013/04/02 16:24:34 greve Exp $",
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -508,7 +508,7 @@ int main(int argc, char **argv) {
           srcvtxno = MHTfindClosestVertexNo(PaintHash,PaintSurf,&v,&dmin);
         else
           srcvtxno = MRISfindClosestVertex(PaintSurf,v.x,v.y,v.z,&dmin);
-	printf("%3d %6d (%5.2f,%5.2f,%5.2f) %g\n",n,srcvtxno,v.x,v.y,v.z,dmin);
+	if(debug) printf("%3d %6d (%5.2f,%5.2f,%5.2f) %g\n",n,srcvtxno,v.x,v.y,v.z,dmin);
         if (dmin > PaintMax) continue;
       } else {
         srcvtxno = srclabel->lv[n].vno;
