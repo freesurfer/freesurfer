@@ -40,8 +40,8 @@
  * Original Author: Douglas Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2012/04/23 20:13:40 $
- *    $Revision: 1.42 $
+ *    $Date: 2013/04/02 16:22:23 $
+ *    $Revision: 1.43 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -90,7 +90,7 @@ static int  nth_is_arg(int nargc, char **argv, int nth);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] = 
-  "$Id: mri_label2label.c,v 1.42 2012/04/23 20:13:40 greve Exp $";
+  "$Id: mri_label2label.c,v 1.43 2013/04/02 16:22:23 greve Exp $";
 char *Progname = NULL;
 
 char  *srclabelfile = NULL;
@@ -119,6 +119,8 @@ int trgicoorder = -1;
 MRI_SURFACE *SrcSurfReg;
 MRI_SURFACE *TrgSurf;
 MRI_SURFACE *TrgSurfReg;
+MRI_SURFACE *PaintSurf=NULL;
+char *PaintSurfName=NULL;
 MATRIX *SrcVolReg;
 MATRIX *TrgVolReg;
 MATRIX *InvTrgVolReg;
@@ -163,7 +165,7 @@ int DoOutMaskStat = 0;
 int main(int argc, char **argv) {
   int err,m;
   MATRIX *xyzSrc, *xyzTrg;
-  MHT *TrgHash, *SrcHash=NULL;
+  MHT *TrgHash, *SrcHash=NULL, *PaintHash=NULL;
   VERTEX *srcvtx, *trgvtx, *trgregvtx;
   VERTEX v;
   int n,srcvtxno,trgvtxno,allzero,nrevhits;
@@ -179,7 +181,7 @@ int main(int argc, char **argv) {
   /* rkt: check for and handle version tag */
   nargs = handle_version_option 
     (argc, argv,
-     "$Id: mri_label2label.c,v 1.42 2012/04/23 20:13:40 greve Exp $",
+     "$Id: mri_label2label.c,v 1.43 2013/04/02 16:22:23 greve Exp $",
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -478,6 +480,20 @@ int main(int argc, char **argv) {
     trglabel = LabelAlloc(srclabel->n_points,trgsubject,trglabelfile);
     trglabel->n_points = srclabel->n_points;
 
+    if(DoPaint){
+      sprintf(tmpstr,"%s/%s/surf/%s.%s",SUBJECTS_DIR,srcsubject,
+		  srchemi,PaintSurfName);
+      printf("Painting onto %s\n",tmpstr);
+      PaintSurf = MRISread(tmpstr);
+      if (PaintSurf == NULL) {
+        printf("ERROR: could not read %s\n",tmpstr);
+        exit(1);
+      }
+      if(usehash)
+	PaintHash = MHTfillVertexTableRes(PaintSurf, NULL,
+					  CURRENT_VERTICES,hashres);
+    }
+
     /* Loop through each source label and map its xyz to target */
     allzero = 1;
     m = 0;
@@ -489,9 +505,10 @@ int main(int argc, char **argv) {
         v.y = srclabel->lv[n].y;
         v.z = srclabel->lv[n].z;
         if (usehash)
-          srcvtxno = MHTfindClosestVertexNo(SrcHash,SrcSurfReg,&v,&dmin);
+          srcvtxno = MHTfindClosestVertexNo(PaintHash,PaintSurf,&v,&dmin);
         else
-          srcvtxno = MRISfindClosestVertex(SrcSurfReg,v.x,v.y,v.z,&dmin);
+          srcvtxno = MRISfindClosestVertex(PaintSurf,v.x,v.y,v.z,&dmin);
+	printf("%3d %6d (%5.2f,%5.2f,%5.2f) %g\n",n,srcvtxno,v.x,v.y,v.z,dmin);
         if (dmin > PaintMax) continue;
       } else {
         srcvtxno = srclabel->lv[n].vno;
@@ -878,14 +895,14 @@ static int parse_commandline(int argc, char **argv) {
       if (!strcmp(regmethod,"vol"))  regmethod = "volume";
       nargsused = 1;
     } else if (!strcmp(option, "--paint")) {
-      if (nargc < 1) argnerr(option,1);
+      if (nargc < 2) argnerr(option,2);
       sscanf(pargv[0],"%lf",&PaintMax);
       DoPaint = 1;
       DoRescale = 0;
       reversemap = 0;
       regmethod = "surface";
-      surfreg = "white";
-      nargsused = 1;
+      PaintSurfName = pargv[1];
+      nargsused = 2;
     } else if (!strcmp(option, "--xfm")) {
       if (nargc < 1) argnerr(option,1);
       XFMFile = pargv[0];
@@ -954,7 +971,7 @@ static void print_usage(void) {
   printf("   --trgsurfreg-file  specify full path to source reg\n");
 
   printf("\n");
-  printf("   --paint dmax : map to closest vertex if d < dmax\n");
+  printf("   --paint dmax surfname : map to closest vertex on source surfname if d < dmax\n");
   printf("     uses white surface and surface regmethod.\n");
   printf("\n");
   printf("   --srcmask     surfvalfile thresh <format>\n");
@@ -1021,6 +1038,17 @@ static void print_help(void) {
     "                    --regmethod volume\n"
     "\n"
     "    Note that no hemisphere is specified with --regmethod volume.\n"
+    "\n"
+    "  Example 4: You have a label in the volume and you want to find \n"
+    "  the closest surface vertices:\n"
+    "\n"
+    "   mri_label2label --srclabel your.volume.label --s subject \n"
+    "     --trglabel lh.your.volume.on-pial.label --hemi lh --paint 30 pial\n"
+    "     --trgsurf pial\n"
+    "  This keeps the label on a single subject (but could also map to \n"
+    "  another subject). The label is mapped to vertices on the pial surface\n"
+    "  that are within 30mm of the label point. The xyz of the output label\n"
+    "  takes the coordinates of the pial surface (--trgsurf pial).\n"
     "\n"
     "  Notes:\n"
     "\n"
