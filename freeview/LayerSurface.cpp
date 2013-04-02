@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2013/03/29 18:27:45 $
- *    $Revision: 1.83 $
+ *    $Date: 2013/04/02 19:27:04 $
+ *    $Revision: 1.84 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -301,7 +301,7 @@ bool LayerSurface::LoadGenericOverlayFromFile( const QString& filename, const QS
   {
     return false;
   }
-
+;
   // create overlay
   SurfaceOverlay* overlay = new SurfaceOverlay( this );
   overlay->InitializeData(data, nvertices, nframes);
@@ -1047,7 +1047,9 @@ void LayerSurface::SetActiveOverlay( int nOverlay )
   {
     if ( m_nActiveOverlay < 0 && nOverlay >= 0 )
     {
+      this->GetProperty()->blockSignals(true);
       this->GetProperty()->SetCurvatureMap( LayerPropertySurface::CM_Binary );
+      this->GetProperty()->blockSignals(false);
     }
     m_nActiveOverlay = nOverlay;
     UpdateOverlay(false);
@@ -1152,8 +1154,14 @@ void LayerSurface::UpdateCorrelationOverlay()
 void LayerSurface::UpdateOverlay( bool bAskRedraw )
 {
   vtkPolyDataMapper* mapper = vtkPolyDataMapper::SafeDownCast( m_mainActor->GetMapper() );
+  vtkPolyDataMapper* wf_mapper = vtkPolyDataMapper::SafeDownCast( m_wireframeActor->GetMapper() );
+  if (!mapper->GetInput() || !wf_mapper->GetInput())
+  {
+    mapper->Update();
+    wf_mapper->Update();
+  }
   vtkPolyData* polydata = mapper->GetInput();
-  vtkPolyData* polydataWireframe = vtkPolyDataMapper::SafeDownCast( m_wireframeActor->GetMapper() )->GetInput();
+  vtkPolyData* polydataWireframe = wf_mapper->GetInput();
   if ( m_nActiveOverlay >= 0 || m_nActiveAnnotation >= 0 )
   {
     if ( mapper )
