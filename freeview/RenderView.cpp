@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2012/10/25 00:36:17 $
- *    $Revision: 1.47 $
+ *    $Date: 2013/04/04 19:41:57 $
+ *    $Revision: 1.48 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -422,6 +422,7 @@ void RenderView::CenterAtWorldPosition(double *pos)
   cam->SetFocalPoint( pos );
   cam->SetPosition( cam_pos );
 
+  ResetCameraClippingRange();
   RequestRedraw();
   emit ViewChanged();
 }
