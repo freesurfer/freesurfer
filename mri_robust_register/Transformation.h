@@ -8,8 +8,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2012/09/21 23:05:16 $
- *    $Revision: 1.3 $
+ *    $Date: 2013/04/04 21:28:50 $
+ *    $Revision: 1.4 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -42,9 +42,8 @@ class Transformation
 {
 public:
   virtual ~Transformation()
-  {
-  }
-  ;
+  {}
+  
   //! Get the transformation as a 4x4 affine matrix
   virtual vnl_matrix_fixed<double, 4, 4> getMatrix() const =0;
   //! Get the degrees of freedom of the transform
@@ -52,13 +51,13 @@ public:
   {
     return parameters.size();
   }
-  ;
+
   //! Get the parameters
   const vnl_vector<double> & getParameters() const
   {
     return parameters;
   }
-  ;
+
   //! Get steps for Powell
   virtual vnl_vector<double> getSteps() const =0;
   //! Get the gradient ( grad Image * grad Transform )
@@ -74,7 +73,7 @@ public:
     for (unsigned int i = 0; i < getDOF(); i++)
       parameters[i] = p[i];
   }
-  ;
+
   //! Set the parameters from float vnl vector
   void setParameters(const vnl_vector<float> &v)
   {
@@ -83,7 +82,7 @@ public:
     for (unsigned int i = 0; i < getDOF(); i++)
       parameters[i] = v[i];
   }
-  ;
+
   //! Set the parameters from double vnl vector
   void setParameters(const vnl_vector<double> &v)
   {
@@ -92,13 +91,13 @@ public:
     parameters = v;
     parameters.set_size(getDOF());
   }
-  ;
+
   //! Set parameters to identity transform
   virtual void setIdentity()
   {
     parameters.fill(0.0);
   }
-  ;
+
 protected:
   //! vector to store the parameters
   vnl_vector<double> parameters;
@@ -126,34 +125,33 @@ public:
     parameters.set_size(getDOF());
     setIdentity();
   }
-  ;
+
   Transform2dAffine(const std::vector<double> &p)
   {
     parameters.set_size(getDOF());
     setParameters(p);
   }
-  ;
+
   Transform2dAffine(const vnl_vector<float> &v)
   {
     parameters.set_size(getDOF());
     setParameters(v);
   }
-  ;
+
   Transform2dAffine(const vnl_vector<double> &v)
   {
     parameters.set_size(getDOF());
     setParameters(v);
   }
-  ;
+
   virtual ~Transform2dAffine()
-  {
-  }
-  ;
+  {}
+  
   inline virtual unsigned int getDOF() const
   {
     return 6;
   }
-  ;
+
   inline virtual vnl_vector<double> getSteps() const
   {
     vnl_vector<double> v(getDOF(), 0.001);
@@ -161,7 +159,7 @@ public:
     v[5] = 0.02;
     return v;
   }
-  ;
+
   virtual vnl_matrix_fixed<double, 4, 4> getMatrix() const
   {
     vnl_matrix_fixed<double, 4, 4> ret;
@@ -174,7 +172,7 @@ public:
     ret[1][3] = parameters[5];
     return ret;
   }
-  ;
+
   inline virtual vnl_vector<double> getGradient(const unsigned int& x,
       const float& fx, const unsigned int& y, const float& fy,
       const unsigned int& z, const float& fz) const
@@ -188,7 +186,7 @@ public:
     ret[5] = fy;
     return ret;
   }
-  ;
+
 };
 
 /** \class Transform2dAffine2
@@ -204,41 +202,40 @@ public:
     parameters.set_size(getDOF());
     setIdentity();
   }
-  ;
+
   Transform2dAffine2(const std::vector<double> &p)
   {
     parameters.set_size(getDOF());
     setParameters(p);
   }
-  ;
+
   Transform2dAffine2(const vnl_vector<float> &v)
   {
     parameters.set_size(getDOF());
     setParameters(v);
   }
-  ;
+
   Transform2dAffine2(const vnl_vector<double> &v)
   {
     parameters.set_size(getDOF());
     setParameters(v);
   }
-  ;
+
   virtual ~Transform2dAffine2()
-  {
-  }
-  ;
+  {}
+  
   inline virtual unsigned int getDOF() const
   {
     return 6;
   }
-  ;
+
   virtual void setIdentity()
   {
     std::fill(parameters.begin(), parameters.end(), 0.0);
     parameters[3] = 1.0;
     parameters[4] = 1.0;
   }
-  ;
+
   inline virtual vnl_vector<double> getSteps() const
   {
     vnl_vector<double> v(getDOF(), 0.001);
@@ -248,7 +245,7 @@ public:
     v[4] = 0.01;
     return v;
   }
-  ;
+
   virtual vnl_matrix_fixed<double, 4, 4> getMatrix() const
   {
     // M = T*shear*Scale*Rot
@@ -287,7 +284,7 @@ public:
 
     return ret;
   }
-  ;
+
   inline virtual vnl_vector<double> getGradient(const unsigned int& x,
       const float& fx, const unsigned int& y, const float& fy,
       const unsigned int& z, const float& fz) const
@@ -304,7 +301,7 @@ public:
     ret[5] = y * fx;
     return ret;
   }
-  ;
+
 };
 
 /** \class Transform2dIsoscale
@@ -319,34 +316,33 @@ public:
     parameters.set_size(getDOF());
     setIdentity();
   }
-  ;
+
   Transform2dIsoscale(const std::vector<double> &p)
   {
     parameters.set_size(getDOF());
     setParameters(p);
   }
-  ;
+
   Transform2dIsoscale(const vnl_vector<float> &v)
   {
     parameters.set_size(getDOF());
     setParameters(v);
   }
-  ;
+
   Transform2dIsoscale(const vnl_vector<double> &v)
   {
     parameters.set_size(getDOF());
     setParameters(v);
   }
-  ;
+
   virtual ~Transform2dIsoscale()
-  {
-  }
-  ;
+  {}
+  
   inline virtual unsigned int getDOF() const
   {
     return 4;
   }
-  ;
+
   inline virtual vnl_vector<double> getSteps() const
   {
     vnl_vector<double> v(getDOF(), 0.001);
@@ -354,7 +350,7 @@ public:
     v[1] = 0.02;
     return v;
   }
-  ;
+
   virtual vnl_matrix_fixed<double, 4, 4> getMatrix() const
   {
     vnl_matrix_fixed<double, 4, 4> ret;
@@ -367,7 +363,7 @@ public:
     ret[1][3] = parameters[1];
     return ret;
   }
-  ;
+
   inline virtual vnl_vector<double> getGradient(const unsigned int& x,
       const float& fx, const unsigned int& y, const float& fy,
       const unsigned int& z, const float& fz) const
@@ -379,7 +375,7 @@ public:
     ret[3] = -fx * y + fy * x;
     return ret;
   }
-  ;
+
 };
 
 /** \class Transform2dIsoscale2
@@ -394,40 +390,39 @@ public:
     parameters.set_size(getDOF());
     setIdentity();
   }
-  ;
+
   Transform2dIsoscale2(const std::vector<double> &p)
   {
     parameters.set_size(getDOF());
     setParameters(p);
   }
-  ;
+
   Transform2dIsoscale2(const vnl_vector<float> &v)
   {
     parameters.set_size(getDOF());
     setParameters(v);
   }
-  ;
+
   Transform2dIsoscale2(const vnl_vector<double> &v)
   {
     parameters.set_size(getDOF());
     setParameters(v);
   }
-  ;
+
   virtual ~Transform2dIsoscale2()
-  {
-  }
-  ;
+  {}
+  
   inline virtual unsigned int getDOF() const
   {
     return 4;
   }
-  ;
+
   inline virtual void setIdentity()
   {
     parameters.fill(0.0);
     parameters[3] = 1.0;
   }
-  ;
+
   inline virtual vnl_vector<double> getSteps() const
   {
     vnl_vector<double> v(getDOF(), 0.001);
@@ -436,7 +431,7 @@ public:
     v[3] = 0.01;
     return v;
   }
-  ;
+
   virtual vnl_matrix_fixed<double, 4, 4> getMatrix() const
   {
     vnl_matrix_fixed<double, 4, 4> ret;
@@ -459,7 +454,7 @@ public:
 
     return ret;
   }
-  ;
+
   inline virtual vnl_vector<double> getGradient(const unsigned int& x,
       const float& fx, const unsigned int& y, const float& fy,
       const unsigned int& z, const float& fz) const
@@ -474,7 +469,7 @@ public:
     ret[3] = fx * x + fy * y;
     return ret;
   }
-  ;
+
 };
 
 /** \class Transform2dRigid
@@ -489,34 +484,33 @@ public:
     parameters.set_size(getDOF());
     setIdentity();
   }
-  ;
+
   Transform2dRigid(const std::vector<double> &p)
   {
     parameters.set_size(getDOF());
     setParameters(p);
   }
-  ;
+
   Transform2dRigid(const vnl_vector<float> &v)
   {
     parameters.set_size(getDOF());
     setParameters(v);
   }
-  ;
+
   Transform2dRigid(const vnl_vector<double> &v)
   {
     parameters.set_size(getDOF());
     setParameters(v);
   }
-  ;
+
   virtual ~Transform2dRigid()
-  {
-  }
-  ;
+  {}
+  
   inline virtual unsigned int getDOF() const
   {
     return 3;
   }
-  ;
+
   inline virtual vnl_vector<double> getSteps() const
   {
     vnl_vector<double> v(getDOF(), 0.001);
@@ -524,7 +518,7 @@ public:
     v[1] = 0.02;
     return v;
   }
-  ;
+
   virtual vnl_matrix_fixed<double, 4, 4> getMatrix() const
   {
     Quaternion q;
@@ -549,7 +543,7 @@ public:
     ret[1][3] = parameters[1];
     return ret;
   }
-  ;
+
   inline virtual vnl_vector<double> getGradient(const unsigned int& x,
       const float& fx, const unsigned int& y, const float& fy,
       const unsigned int& z, const float& fz) const
@@ -560,7 +554,7 @@ public:
     ret[2] = (fy * x - fx * y);
     return ret;
   }
-  ;
+
 };
 
 /** \class Transform2dRigid2
@@ -574,34 +568,33 @@ public:
     parameters.set_size(getDOF());
     setIdentity();
   }
-  ;
+
   Transform2dRigid2(const std::vector<double> &p)
   {
     parameters.set_size(getDOF());
     setParameters(p);
   }
-  ;
+
   Transform2dRigid2(const vnl_vector<float> &v)
   {
     parameters.set_size(getDOF());
     setParameters(v);
   }
-  ;
+
   Transform2dRigid2(const vnl_vector<double> &v)
   {
     parameters.set_size(getDOF());
     setParameters(v);
   }
-  ;
+
   virtual ~Transform2dRigid2()
-  {
-  }
-  ;
+  {}
+  
   inline virtual unsigned int getDOF() const
   {
     return 3;
   }
-  ;
+
   inline virtual vnl_vector<double> getSteps() const
   {
     vnl_vector<double> v(getDOF(), 0.001);
@@ -609,7 +602,7 @@ public:
     v[1] = 0.02;
     return v;
   }
-  ;
+
   virtual vnl_matrix_fixed<double, 4, 4> getMatrix() const
   {
     // rigid: first 2 translation, next rotation (as a vector)
@@ -645,7 +638,7 @@ public:
 
     return ret;
   }
-  ;
+
   inline virtual vnl_vector<double> getGradient(const unsigned int& x,
       const float& fx, const unsigned int& y, const float& fy,
       const unsigned int& z, const float& fz) const
@@ -659,7 +652,7 @@ public:
     ret[2] = (y * fx) - (x * fy); // negative rotation compared to other 2d rigid
     return ret;
   }
-  ;
+
 };
 
 /** \class Transform2dTranslate
@@ -673,40 +666,39 @@ public:
     parameters.set_size(getDOF());
     setIdentity();
   }
-  ;
+
   Transform2dTranslate(const std::vector<double> &p)
   {
     parameters.set_size(getDOF());
     setParameters(p);
   }
-  ;
+
   Transform2dTranslate(const vnl_vector<float> &v)
   {
     parameters.set_size(getDOF());
     setParameters(v);
   }
-  ;
+
   Transform2dTranslate(const vnl_vector<double> &v)
   {
     parameters.set_size(getDOF());
     setParameters(v);
   }
-  ;
+
   virtual ~Transform2dTranslate()
-  {
-  }
-  ;
+  {}
+  
   inline virtual unsigned int getDOF() const
   {
     return 2;
   }
-  ;
+
   inline virtual vnl_vector<double> getSteps() const
   {
     vnl_vector<double> v(getDOF(), 0.02);
     return v;
   }
-  ;
+
   virtual vnl_matrix_fixed<double, 4, 4> getMatrix() const
   {
     vnl_matrix_fixed<double, 4, 4> ret;
@@ -715,7 +707,7 @@ public:
     ret[1][3] = parameters[1];
     return ret;
   }
-  ;
+
   inline virtual vnl_vector<double> getGradient(const unsigned int& x,
       const float& fx, const unsigned int& y, const float& fy,
       const unsigned int& z, const float& fz) const
@@ -725,7 +717,7 @@ public:
     ret[1] = fy;
     return ret;
   }
-  ;
+
 };
 
 /**************************************************************
@@ -745,34 +737,33 @@ public:
     parameters.set_size(getDOF());
     setIdentity();
   }
-  ;
+
   Transform3dAffine(const std::vector<double> &p)
   {
     parameters.set_size(getDOF());
     setParameters(p);
   }
-  ;
+
   Transform3dAffine(const vnl_vector<float> &v)
   {
     parameters.set_size(getDOF());
     setParameters(v);
   }
-  ;
+
   Transform3dAffine(const vnl_vector<double> &v)
   {
     parameters.set_size(getDOF());
     setParameters(v);
   }
-  ;
+
   virtual ~Transform3dAffine()
-  {
-  }
-  ;
+  {}
+  
   inline virtual unsigned int getDOF() const
   {
     return 12;
   }
-  ;
+
   inline virtual vnl_vector<double> getSteps() const
   {
     vnl_vector<double> v(getDOF(), 0.001);
@@ -781,7 +772,7 @@ public:
     v[11] = 0.02;
     return v;
   }
-  ;
+
   virtual vnl_matrix_fixed<double, 4, 4> getMatrix() const
   {
     vnl_matrix_fixed<double, 4, 4> ret;
@@ -795,7 +786,7 @@ public:
       }
     return ret;
   }
-  ;
+
   inline virtual vnl_vector<double> getGradient(const unsigned int& x,
       const float& fx, const unsigned int& y, const float& fy,
       const unsigned int& z, const float& fz) const
@@ -815,7 +806,7 @@ public:
     ret[11] = fz;
     return ret;
   }
-  ;
+
 };
 
 /** \class Transform3dAffine2
@@ -829,34 +820,33 @@ public:
     parameters.set_size(getDOF());
     setIdentity();
   }
-  ;
+
   Transform3dAffine2(const std::vector<double> &p)
   {
     parameters.set_size(getDOF());
     setParameters(p);
   }
-  ;
+
   Transform3dAffine2(const vnl_vector<float> &v)
   {
     parameters.set_size(getDOF());
     setParameters(v);
   }
-  ;
+
   Transform3dAffine2(const vnl_vector<double> &v)
   {
     parameters.set_size(getDOF());
     setParameters(v);
   }
-  ;
+
   virtual ~Transform3dAffine2()
-  {
-  }
-  ;
+  {}
+  
   inline virtual unsigned int getDOF() const
   {
     return 12;
   }
-  ;
+
   inline virtual void setIdentity()
   {
     parameters.fill(0.0);
@@ -864,7 +854,7 @@ public:
     parameters[7] = 1.0;
     parameters[8] = 1.0;
   }
-  ;
+
   inline virtual vnl_vector<double> getSteps() const
   {
     vnl_vector<double> v(getDOF(), 0.001);
@@ -876,7 +866,7 @@ public:
     v[8] = 0.01;
     return v;
   }
-  ;
+
   virtual vnl_matrix_fixed<double, 4, 4> getMatrix() const
   {
     // M = T*shear*Scale*Rot
@@ -916,7 +906,7 @@ public:
 
     return ret;
   }
-  ;
+
   inline virtual vnl_vector<double> getGradient(const unsigned int& x,
       const float& fx, const unsigned int& y, const float& fy,
       const unsigned int& z, const float& fz) const
@@ -939,7 +929,7 @@ public:
     ret[11] = fz;
     return ret;
   }
-  ;
+
 };
 
 /** \class Transform3dIsoscale
@@ -953,40 +943,39 @@ public:
     parameters.set_size(getDOF());
     setIdentity();
   }
-  ;
+
   Transform3dIsoscale(const std::vector<double> &p)
   {
     parameters.set_size(getDOF());
     setParameters(p);
   }
-  ;
+
   Transform3dIsoscale(const vnl_vector<float> &v)
   {
     parameters.set_size(getDOF());
     setParameters(v);
   }
-  ;
+
   Transform3dIsoscale(const vnl_vector<double> &v)
   {
     parameters.set_size(getDOF());
     setParameters(v);
   }
-  ;
+
   virtual ~Transform3dIsoscale()
-  {
-  }
-  ;
+  {}
+  
   inline virtual unsigned int getDOF() const
   {
     return 7;
   }
-  ;
+
   inline virtual void setIdentity()
   {
     parameters.fill(0.0);
     parameters[6] = 1.0;
   }
-  ;
+
   inline virtual vnl_vector<double> getSteps() const
   {
     vnl_vector<double> v(getDOF(), 0.001);
@@ -996,7 +985,7 @@ public:
     v[6] = 0.01;
     return v;
   }
-  ;
+
   virtual vnl_matrix_fixed<double, 4, 4> getMatrix() const
   {
     std::cerr << " Isoscale in 3D not implemented yet, use ridig or affine"
@@ -1027,7 +1016,7 @@ public:
 
     return ret;
   }
-  ;
+
   inline virtual vnl_vector<double> getGradient(const unsigned int& x,
       const float& fx, const unsigned int& y, const float& fy,
       const unsigned int& z, const float& fz) const
@@ -1045,7 +1034,7 @@ public:
     ret[6] = (fx * x + fy * y);
     return ret;
   }
-  ;
+
 };
 
 /** \class Transform3dIsoscale2
@@ -1059,40 +1048,39 @@ public:
     parameters.set_size(getDOF());
     setIdentity();
   }
-  ;
+
   Transform3dIsoscale2(const std::vector<double> &p)
   {
     parameters.set_size(getDOF());
     setParameters(p);
   }
-  ;
+
   Transform3dIsoscale2(const vnl_vector<float> &v)
   {
     parameters.set_size(getDOF());
     setParameters(v);
   }
-  ;
+
   Transform3dIsoscale2(const vnl_vector<double> &v)
   {
     parameters.set_size(getDOF());
     setParameters(v);
   }
-  ;
+
   virtual ~Transform3dIsoscale2()
-  {
-  }
-  ;
+  {}
+  
   inline virtual unsigned int getDOF() const
   {
     return 7;
   }
-  ;
+
   inline virtual void setIdentity()
   {
     parameters.fill(0.0);
     parameters[6] = 1.0;
   }
-  ;
+
   inline virtual vnl_vector<double> getSteps() const
   {
     vnl_vector<double> v(getDOF(), 0.001);
@@ -1102,7 +1090,7 @@ public:
     v[6] = 0.01;
     return v;
   }
-  ;
+
   virtual vnl_matrix_fixed<double, 4, 4> getMatrix() const
   {
     vnl_matrix_fixed<double, 4, 4> ret;
@@ -1130,7 +1118,7 @@ public:
 
     return ret;
   }
-  ;
+
   inline virtual vnl_vector<double> getGradient(const unsigned int& x,
       const float& fx, const unsigned int& y, const float& fy,
       const unsigned int& z, const float& fz) const
@@ -1148,7 +1136,7 @@ public:
     ret[6] = (fx * x + fy * y);
     return ret;
   }
-  ;
+
 };
 
 /** \class Transform3dRigid
@@ -1162,34 +1150,33 @@ public:
     parameters.set_size(getDOF());
     setIdentity();
   }
-  ;
+
   Transform3dRigid(const std::vector<double> &p)
   {
     parameters.set_size(getDOF());
     setParameters(p);
   }
-  ;
+
   Transform3dRigid(const vnl_vector<float> &v)
   {
     parameters.set_size(getDOF());
     setParameters(v);
   }
-  ;
+
   Transform3dRigid(const vnl_vector<double> &v)
   {
     parameters.set_size(getDOF());
     setParameters(v);
   }
-  ;
+
   virtual ~Transform3dRigid()
-  {
-  }
-  ;
+  {}
+  
   inline virtual unsigned int getDOF() const
   {
     return 6;
   }
-  ;
+
   inline virtual vnl_vector<double> getSteps() const
   {
     vnl_vector<double> v(getDOF(), 0.001);
@@ -1198,7 +1185,7 @@ public:
     v[2] = 0.02;
     return v;
   }
-  ;
+
   virtual vnl_matrix_fixed<double, 4, 4> getMatrix() const
   {
     vnl_matrix_fixed<double, 4, 4> ret;
@@ -1223,7 +1210,7 @@ public:
 
     return ret;
   }
-  ;
+
   inline virtual vnl_vector<double> getGradient(const unsigned int& x,
       const float& fx, const unsigned int& y, const float& fy,
       const unsigned int& z, const float& fz) const
@@ -1237,7 +1224,7 @@ public:
     ret[5] = (fy * x - fx * y);
     return ret;
   }
-  ;
+
 };
 
 /** \class Transform3dRigid2
@@ -1251,34 +1238,33 @@ public:
     parameters.set_size(getDOF());
     setIdentity();
   }
-  ;
+
   Transform3dRigid2(const std::vector<double> &p)
   {
     parameters.set_size(getDOF());
     setParameters(p);
   }
-  ;
+
   Transform3dRigid2(const vnl_vector<float> &v)
   {
     parameters.set_size(getDOF());
     setParameters(v);
   }
-  ;
+
   Transform3dRigid2(const vnl_vector<double> &v)
   {
     parameters.set_size(getDOF());
     setParameters(v);
   }
-  ;
+
   virtual ~Transform3dRigid2()
-  {
-  }
-  ;
+  {}
+  
   inline virtual unsigned int getDOF() const
   {
     return 6;
   }
-  ;
+
   inline virtual vnl_vector<double> getSteps() const
   {
     vnl_vector<double> v(getDOF(), 0.001);
@@ -1287,7 +1273,7 @@ public:
     v[2] = 0.02;
     return v;
   }
-  ;
+
   virtual vnl_matrix_fixed<double, 4, 4> getMatrix() const
   {
     vnl_matrix_fixed<double, 4, 4> ret;
@@ -1312,7 +1298,7 @@ public:
 
     return ret;
   }
-  ;
+
   inline virtual vnl_vector<double> getGradient(const unsigned int& x,
       const float& fx, const unsigned int& y, const float& fy,
       const unsigned int& z, const float& fz) const
@@ -1329,7 +1315,7 @@ public:
     ret[5] = (fy * x - fx * y);
     return ret;
   }
-  ;
+
 };
 
 /** \class Transform3dTranslate
@@ -1343,40 +1329,39 @@ public:
     parameters.set_size(getDOF());
     setIdentity();
   }
-  ;
+
   Transform3dTranslate(const std::vector<double> &p)
   {
     parameters.set_size(getDOF());
     setParameters(p);
   }
-  ;
+
   Transform3dTranslate(const vnl_vector<float> &v)
   {
     parameters.set_size(getDOF());
     setParameters(v);
   }
-  ;
+
   Transform3dTranslate(const vnl_vector<double> &v)
   {
     parameters.set_size(getDOF());
     setParameters(v);
   }
-  ;
+
   virtual ~Transform3dTranslate()
-  {
-  }
-  ;
+  {}
+  
   inline virtual unsigned int getDOF() const
   {
     return 3;
   }
-  ;
+
   inline virtual vnl_vector<double> getSteps() const
   {
     vnl_vector<double> v(getDOF(), 0.02);
     return v;
   }
-  ;
+
   virtual vnl_matrix_fixed<double, 4, 4> getMatrix() const
   {
     vnl_matrix_fixed<double, 4, 4> ret;
@@ -1387,7 +1372,7 @@ public:
     ret[2][3] = parameters[2];
     return ret;
   }
-  ;
+
   inline virtual vnl_vector<double> getGradient(const unsigned int& x,
       const float& fx, const unsigned int& y, const float& fy,
       const unsigned int& z, const float& fz) const
@@ -1398,7 +1383,7 @@ public:
     ret[2] = fz;
     return ret;
   }
-  ;
+
 };
 
 #endif
