@@ -7,9 +7,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: zkaufman $
-#    $Date: 2013/03/14 15:48:19 $
-#    $Revision: 1.379.2.66 $
+#    $Author: greve $
+#    $Date: 2013/04/05 17:18:29 $
+#    $Revision: 1.379.2.67 $
 #
 # Copyright © 2011-2013 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -26,7 +26,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.379.2.66 2013/03/14 15:48:19 zkaufman Exp $';
+set VERSION = '$Id: recon-all,v 1.379.2.67 2013/04/05 17:18:29 greve Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -324,6 +324,7 @@ set IsRunningFile  = ();
 setenv LANG C # Required by MNI tool
 
 # -------------------------------------------------- #
+set argv0 = ($argv); # make a copy
 set PWD = pwd;
 # better yet, make sure the real pwd is used:
 if ( -e /bin/pwd ) set PWD = /bin/pwd
@@ -343,6 +344,9 @@ goto parse_args;
 parse_args_return:
 goto check_params;
 check_params_return:
+
+set StartTime = `date`;
+set tSecStart = `date '+%s'`;
 
 # This allows the user to require that the build stamp be
 # consistent from one recon-all invocation to the next.
@@ -4272,6 +4276,15 @@ echo "" |& tee -a $LF
 echo "#------------------------------------------" |& tee -a $LF
 echo "" |& tee -a $LF
 
+set EndTime = `date`;
+set tSecEnd = `date '+%s'`;
+@ tSecRun = $tSecEnd - $tSecStart;
+set tRunHours = `echo $tSecRun/3600|bc -l`
+set tRunHours = `printf %6.3f $tRunHours`
+echo "Started at $StartTime " |& tee -a $LF
+echo "Ended   at $EndTime" |& tee -a $LF
+echo "#@#%# recon-all-run-time-hours $tRunHours" |& tee -a $LF
+
 if($#NotifyFile != 0) then
   echo "INFO: touching notification file $NotifyFile" |& tee -a $LF
   touch $NotifyFile
@@ -4282,14 +4295,17 @@ if($DoIsRunning && $#IsRunningFile) rm -f $IsRunningFile
 # Create the Done File
 echo "------------------------------" > $DoneFile
 echo "SUBJECT $subjid" >> $DoneFile
-echo "DATE `date`"     >> $DoneFile
+echo "START_TIME $StartTime"     >> $DoneFile
+echo "END_TIME $EndTime"     >> $DoneFile
+echo "RUNTIME_HOURS $tRunHours" >> $DoneFile
 echo "USER $user"      >> $DoneFile
 echo "HOST `hostname`" >> $DoneFile
 echo "PROCESSOR `uname -m`" >> $DoneFile
 echo "OS `uname -s`"       >> $DoneFile
-uname -a         >> $DoneFile
-echo $VERSION    >> $DoneFile
-echo $0          >> $DoneFile
+echo "UNAME `uname -a`"  >> $DoneFile
+echo "VERSION $VERSION"    >> $DoneFile
+echo "CMDPATH $0"          >> $DoneFile
+echo "CMDARGS $argv0"      >> $DoneFile
 
 echo "recon-all -s $subjid finished without error at `date`" \
     |& tee -a $LF |& tee -a $SF
