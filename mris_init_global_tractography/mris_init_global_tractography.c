@@ -9,8 +9,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2013/03/29 12:43:13 $
- *    $Revision: 1.2 $
+ *    $Date: 2013/04/05 13:37:25 $
+ *    $Revision: 1.3 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -82,8 +82,8 @@ static double max_wm_dist = -2.5 ;
 
 static int energy_flags = SPLINE_WM_DIST | SPLINE_LENGTH ;
 static double spline_length_penalty = 2 ;
-static double proposal_sigma = 5.0 ; // stddev of noise distribution
-static double acceptance_sigma = .5 ;
+static double proposal_sigma = .5 ; // stddev of noise distribution
+static double acceptance_sigma = 6 ;
 static double compute_spline_energy(VOXEL_LIST *vl, MRI *mri_wm_dist, int flags, double spline_length_penalty, double spline_interior_penalty) ;
 static VOXEL_LIST *find_optimal_spline(VOXEL_LIST *vl, MRI *mri_aseg, MRI *mri_wm_dist, int mcmc_samples, double spline_length_penalty, double spline_interior_penalty) ;
 
@@ -120,7 +120,7 @@ main(int argc, char *argv[]) {
   MRI          *mri_tmp, *mri_wm_only ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_init_global_tractography.c,v 1.2 2013/03/29 12:43:13 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_init_global_tractography.c,v 1.3 2013/04/05 13:37:25 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -202,12 +202,14 @@ main(int argc, char *argv[]) {
 //  labels[1] = 1035 ;
   if (Gdiag_no > 0)
     nlabels = 3;
+  for (label = 0 ; label < nlabels ; label++)
+    vl_splines[label] = (VOXEL_LIST **)calloc(nlabels, sizeof(VOXEL_LIST *)) ;
+
   for (label = 0 ; label < nlabels-1 ; label++)
   {
     printf("************************* processing label %d of %d --> %s (%d) **************************\n", 
 	   label+1, nlabels, cma_label_to_name(labels[label]), labels[label]) ;
     MRIcopy(mri_wm_only, mri_wm) ;
-    vl_splines[label] = (VOXEL_LIST **)calloc(nlabels, sizeof(VOXEL_LIST *)) ;
     if (label == 16)
       DiagBreak() ;
     mri_tmp = MRInbrThresholdLabel(mri_aseg, NULL, labels[label], 0, 1, 5) ;  // remove isolated voxels in label
@@ -229,7 +231,7 @@ main(int argc, char *argv[]) {
       mri_tmp = MRIcopy(mri_smooth, NULL) ;
       for (i = 0 ; i < 10 ; i++)
       {
-#if 1
+#if 0
 #ifdef HAVE_OPENMP
 	    val = 0 ; l = 0 ;
 #pragma omp parallel for firstprivate(val, l) shared(mri_aseg, mri_tmp, labels, y, z) schedule(static,1)
@@ -261,24 +263,33 @@ main(int argc, char *argv[]) {
       MRIwrite(mri_dist_grad, fname) ;
     }
 
-    for (label2 = label+1 ; label2 < nlabels ; label2++)
+    for (label2 = 0 ; label2 < nlabels ; label2++)
     {
-      if (label2 == label)
-	continue ;  // only when debugging
-      vl = vl_splines[label][label2] = compute_spline_initialization(mri_aseg, mri_wm, mri_wm_dist, mri_label1_dist,
-								     mri_dist_grad,
-								     labels[label], labels[label2], 
-								     min_spline_control_points) ;
+      if (label2 == label || vl_splines[label2][label])
+	continue ;  // if this spline has already been successfully computed from the other direction
+      vl = compute_spline_initialization(mri_aseg, mri_wm, mri_wm_dist, mri_label1_dist,
+					 mri_dist_grad,
+					 labels[label], labels[label2], 
+					 min_spline_control_points) ;
       if (vl == NULL)
 	continue ;
-      sprintf(fname, "%s.%d.%d.label", base_name, labels[label], labels[label2]) ;
-      printf("writing %d control point spline to %s for %s --> %s\n",
-	     vl_splines[label][label2]->nvox, fname, cma_label_to_name(labels[label2]), cma_label_to_name(labels[label]));
-      printf("\t(%d: [%d %d %d]) --> (%d: [%d %d %d])\n", 
-	     labels[label2], vl->xi[0], vl->yi[0], vl->zi[0], 
-	     labels[label], vl->xi[vl->nvox-1], vl->yi[vl->nvox-1], vl->zi[vl->nvox-1]) ; 
-      VLSTwriteLabel(vl_splines[label][label2], fname, NULL, mri_aseg) ;
-      
+      if (label < label2)
+	vl_splines[label][label2] = vl ;
+      else
+	vl_splines[label2][label] = vl ;
+
+      if (write_diags)
+      {
+	sprintf(fname, "%s.%d.%d.label", base_name, labels[label], labels[label2]) ;
+	printf("writing %d control point spline to %s for %s --> %s\n",
+	       vl_splines[label][label2]->nvox, fname, cma_label_to_name(labels[label2]), cma_label_to_name(labels[label]));
+	printf("\t(%d: [%d %d %d]) --> (%d: [%d %d %d])\n", 
+	       labels[label2], vl->xi[0], vl->yi[0], vl->zi[0], 
+	       labels[label], vl->xi[vl->nvox-1], vl->yi[vl->nvox-1], vl->zi[vl->nvox-1]) ; 
+	VLSTwriteLabel(vl_splines[label][label2], fname, NULL, mri_aseg) ;
+      }
+      else
+	printf("%d control point spline computed for %s --> %s\n",vl->nvox, cma_label_to_name(labels[label2]), cma_label_to_name(labels[label]));
     }
     MRIfree(&mri_label1_dist) ; MRIfree(&mri_dist_grad) ;
   }
@@ -1015,7 +1026,7 @@ compute_path_to_label(MRI *mri_aseg, MRI *mri_wm, MRI *mri_dist_grad, MRI *mri_d
   double     step, xc, yc, zc, dist, min_dist ;
   VOXEL_LIST *vl ;
   int        label = 0, max_steps, nvox, xk, yk, zk, xi, yi, zi, xm, ym, zm, pno, odx, ody, odz, dx, dy, dz, xv, yv, zv, found,
-    backtrack_steps = 10, current_label ;
+    backtrack_steps = 10, current_label, restarted = 0 ;
   MRI        *mri_path ;
   char        fname[STRLEN] ;
 
@@ -1050,7 +1061,7 @@ compute_path_to_label(MRI *mri_aseg, MRI *mri_wm, MRI *mri_dist_grad, MRI *mri_d
 	if (MRIgetVoxVal(mri_aseg, xv, yv, zv,0) == label2 && MRIlabelsInNbhd6(mri_wm,xv,yv,zv,1))
 	{
 	  dist = SQR(xv-xc) + SQR(yv-yc) + SQR(zv-zc) ;
-//	  dist = MRIgetVoxVal(mri_dist, xv, yv, zv, 0) ;
+	  dist = MRIgetVoxVal(mri_dist, xv, yv, zv, 0) ;
 	  if (dist < min_dist)
 	  {
 	    xm = xv ; ym = yv ; zm = zv ; min_dist = dist ;
@@ -1063,6 +1074,7 @@ compute_path_to_label(MRI *mri_aseg, MRI *mri_wm, MRI *mri_dist_grad, MRI *mri_d
   xv = xm ; yv = ym ; zv = zm ;
   MRIsetVoxVal(mri_path, xv, yv, zv, 0, vl->nvox+1) ;
   dx = dy = dz = odx = ody = odz = 0 ;
+  VLSTadd(vl, nint(xv), nint(yv), nint(zv), xv, yv, zv);
   do
   {
     if (vl->nvox == Gdiag_no)
@@ -1093,14 +1105,23 @@ compute_path_to_label(MRI *mri_aseg, MRI *mri_wm, MRI *mri_dist_grad, MRI *mri_d
 	    min_dist = dist ;
 	  }
 	}
+#define PATH_START 10
     if (found == 0)
     {
-      if (vl->nvox > backtrack_steps)
-	vl->nvox = vl->nvox-backtrack_steps ;
+      if (vl->nvox-1 > (backtrack_steps-PATH_START))   // near the start of the path, start somewhere random
+	vl->nvox = MAX(1, vl->nvox-backtrack_steps) ;
       else
 	vl->nvox = vl->nvox-(int)randomNumber(1, (vl->nvox-1)) ;
       printf("backing up %d steps to %d and restarting minimization\n", backtrack_steps, vl->nvox) ;
       xv = vl->xi[vl->nvox-1] ; yv = vl->yi[vl->nvox-1] ; zv = vl->zi[vl->nvox-1] ;
+      if (vl->nvox <= 1)
+      {
+	if (restarted)
+	  MRIclear(mri_path) ;
+	restarted++ ;
+	if (restarted > 3)
+	  return(NULL) ;    // fail
+      }
       continue ;
       
 //      printf("!!!!!!!!!!!!!!  path to label %d from label %d step could not be found !!!!!!!!!!!\n", label1, label2) ;
@@ -1318,13 +1339,11 @@ compute_spline_energy(VOXEL_LIST *vl, MRI *mri_wm_dist, int which,
       DiagBreak() ;
     MRIsampleVolume(mri_wm_dist, vl_interp->xd[n], vl_interp->yd[n], vl_interp->zd[n], &wm_dist) ;
     if (wm_dist > 0)
-      interior_energy += wm_dist;
+      interior_energy = MAX(interior_energy, wm_dist);
     num++ ;
   }
 
   // add in specified penalty
-  if (num > 0)
-    interior_energy /= num ;
   length_energy = vl_interp->nvox ;
 
   energy = 0 ;
