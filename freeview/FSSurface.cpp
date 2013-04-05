@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2013/03/19 21:27:06 $
- *    $Revision: 1.67 $
+ *    $Date: 2013/04/05 17:43:31 $
+ *    $Revision: 1.68 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -381,12 +381,14 @@ bool FSSurface::LoadCurvature( const QString& filename )
 }
 
 bool FSSurface::LoadOverlay( const QString& filename, const QString& fn_reg,
-                             float** data_out, int* nvertices_out, int* nframes_out )
+                             float** data_out, int* nvertices_out, int* nframes_out,
+                             bool bUseSecondHalfData )
 {
 //    int mritype = mri_identify((char*)( filename.toAscii().data() ));
 //    qDebug() << "mritype " << mritype;
   MRI* mriheader = MRIreadHeader(filename.toAscii().data(), MRI_VOLUME_TYPE_UNKNOWN);
-  if (mriheader && mriheader->width*mriheader->height*mriheader->depth != m_MRIS->nvertices)
+  if (mriheader && mriheader->width*mriheader->height*mriheader->depth != m_MRIS->nvertices &&
+      mriheader->width*mriheader->height*mriheader->depth*mriheader->nframes != m_MRIS->nvertices )
   {
     // try load as volume
     MRI* mri = MRIread(filename.toAscii().data());
@@ -453,7 +455,9 @@ bool FSSurface::LoadOverlay( const QString& filename, const QString& fn_reg,
       cerr << "could not read overlay data from " << qPrintable(filename) << "\n";
       return false;
     }
-    float* data = new float[mri->nframes*m_MRIS->nvertices];
+    int nPerFrame = mri->width*mri->height*mri->depth;
+    int nframes = nPerFrame*mri->nframes / m_MRIS->nvertices;
+    float* data = new float[nPerFrame*mri->nframes];
     for (int nx = 0; nx < mri->width; nx++)
     {
       for (int ny = 0; ny < mri->height; ny++)
@@ -462,14 +466,25 @@ bool FSSurface::LoadOverlay( const QString& filename, const QString& fn_reg,
         {
           for (int nk = 0; nk < mri->nframes; nk++)
           {
-            data[nk*m_MRIS->nvertices + nz*mri->height*mri->width + ny*mri->width + nx]
+            data[nk*nPerFrame + nz*mri->height*mri->width + ny*mri->width + nx]
                 = ::MRIgetVoxVal(mri, nx, ny, nz, nk);
           }
         }
       }
     }
-    *data_out = data;
-    *nframes_out = mri->nframes;
+    if (bUseSecondHalfData)
+    {
+      float* data2 = new float[m_MRIS->nvertices];
+      memcpy(data2, data+m_MRIS->nvertices, sizeof(float)*m_MRIS->nvertices);
+      delete[] data;
+      *data_out = data2;
+      *nframes_out = 1;
+    }
+    else
+    {
+      *data_out = data;
+      *nframes_out = nframes;
+    }
     *nvertices_out = m_MRIS->nvertices;
   }
 

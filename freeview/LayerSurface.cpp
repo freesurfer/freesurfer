@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2013/04/02 19:27:04 $
- *    $Revision: 1.84 $
+ *    $Date: 2013/04/05 17:43:31 $
+ *    $Revision: 1.85 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -267,7 +267,7 @@ bool LayerSurface::LoadCurvatureFromFile( const QString& filename )
   return true;
 }
 
-bool LayerSurface::LoadOverlayFromFile(const QString &filename, const QString& fn_reg, bool bCorrelation)
+bool LayerSurface::LoadOverlayFromFile(const QString &filename, const QString& fn_reg, bool bCorrelation, bool bSeconfHalfData)
 {
   QString fn = filename;
   fn.replace("~", QDir::homePath());
@@ -289,19 +289,19 @@ bool LayerSurface::LoadOverlayFromFile(const QString &filename, const QString& f
       fullpath.replace("~", QDir::homePath());
       fullpath = QFileInfo(fullpath).absoluteFilePath();
     }
-    return LoadGenericOverlayFromFile(fn, fullpath);
+    return LoadGenericOverlayFromFile(fn, fullpath, bSeconfHalfData);
   }
 }
 
-bool LayerSurface::LoadGenericOverlayFromFile( const QString& filename, const QString& fn_reg )
+bool LayerSurface::LoadGenericOverlayFromFile( const QString& filename, const QString& fn_reg, bool bSecondHalfData )
 {
   float* data = NULL;
   int nframes, nvertices;
-  if ( !m_surfaceSource->LoadOverlay( filename, fn_reg, &data, &nvertices, &nframes ) )
+  if ( !m_surfaceSource->LoadOverlay( filename, fn_reg, &data, &nvertices, &nframes, bSecondHalfData ) )
   {
     return false;
   }
-;
+
   // create overlay
   SurfaceOverlay* overlay = new SurfaceOverlay( this );
   overlay->InitializeData(data, nvertices, nframes);

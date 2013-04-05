@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2013/03/28 18:54:13 $
- *    $Revision: 1.9 $
+ *    $Date: 2013/04/05 17:43:31 $
+ *    $Revision: 1.10 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -223,7 +223,8 @@ void ThreadIOWorker::run()
     QString fn = m_args["FileName"].toString();
     QString fn_reg = m_args["Registration"].toString();
     bool bCorrelation = m_args["Correlation"].toBool();
-    if ( !surf->LoadOverlayFromFile(fn, fn_reg, bCorrelation))
+    bool bSecondHalf = m_args["SecondHalfData"].toBool();
+    if ( !surf->LoadOverlayFromFile(fn, fn_reg, bCorrelation, bSecondHalf))
     {
       emit Error( m_layer, m_nJobType );
     }

@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2013/04/04 19:41:57 $
- *    $Revision: 1.237 $
+ *    $Date: 2013/04/05 17:43:31 $
+ *    $Revision: 1.238 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -2278,6 +2278,7 @@ void MainWindow::CommandLoadSurface( const QStringList& cmd )
   QString overlay_reg;
   QString overlay_method = "linearopaque";
   QStringList overlay_thresholds;
+  bool bSecondHalfData = false;
   for ( int k = sa_fn.size()-1; k >= 1; k-- )
   {
     int n = sa_fn[k].indexOf( "=" );
@@ -2291,10 +2292,14 @@ void MainWindow::CommandLoadSurface( const QStringList& cmd )
         overlay_method = subArgu;
       else if (subOption == "overlay_threshold")
         overlay_thresholds = subArgu.split(",", QString::SkipEmptyParts);
+      else if (subOption == "overlay_rh" && (subArgu == "1" || subArgu == "true"))
+        bSecondHalfData = true;
     }
   }
   if (overlay_reg.isEmpty())
     overlay_reg = "n/a";
+
+
   for ( int k = sa_fn.size()-1; k >= 1; k-- )
   {
     int n = sa_fn[k].indexOf( "=" );
@@ -2352,9 +2357,12 @@ void MainWindow::CommandLoadSurface( const QStringList& cmd )
 
           script += " " + overlay_reg;
           if (subOption == "correlation")
-          {
             script += QString(" correlation");
-          }
+          else
+            script += QString(" n/a");
+
+          if (bSecondHalfData)
+            script += " rh";
           m_scripts.insert( 0, script );
 
           // if there are sub-options attached with overlay file, parse them
@@ -2474,7 +2482,8 @@ void MainWindow::CommandLoadSurface( const QStringList& cmd )
         if ( subArgu.toLower() == "true" || subArgu.toLower() == "yes" || subArgu == "1")
           bLabelOutline = true;
       }
-      else if (subOption != "overlay_reg" && subOption != "overlay_method" && subOption != "overlay_threshold")
+      else if (subOption != "overlay_reg" && subOption != "overlay_method" && subOption != "overlay_threshold" &&
+               subOption != "overlay_rh")
       {
         cerr << "Unrecognized sub-option flag '" << subOption.toAscii().constData() << "'.\n";
         return;
@@ -2776,7 +2785,7 @@ void MainWindow::CommandLoadSurfaceOverlay( const QStringList& cmd )
   QString reg_file = cmd[2];
   if (reg_file == "n/a")
     reg_file = "";
-  LoadSurfaceOverlayFile( cmd[1], reg_file, cmd.size() > 3 && cmd[3] == "correlation" );
+  LoadSurfaceOverlayFile( cmd[1], reg_file, cmd.size() > 3 && cmd[3] == "correlation", cmd.size() > 4 && cmd[4] == "rh" );
 }
 
 void MainWindow::CommandLoadSurfaceAnnotation( const QStringList& cmd )
@@ -4703,7 +4712,7 @@ void MainWindow::LoadSurfaceOverlay(bool bCorrelation)
   }
 }
 
-void MainWindow::LoadSurfaceOverlayFile( const QString& filename, const QString& reg_file, bool bCorrelation )
+void MainWindow::LoadSurfaceOverlayFile( const QString& filename, const QString& reg_file, bool bCorrelation, bool bSecondHalfData )
 {
   LayerSurface* layer = ( LayerSurface* )GetLayerCollection( "Surface" )->GetActiveLayer();
   if ( layer )
@@ -4712,6 +4721,7 @@ void MainWindow::LoadSurfaceOverlayFile( const QString& filename, const QString&
     args["FileName"] = filename;
     args["Correlation"] = bCorrelation;
     args["Registration"] = reg_file;
+    args["SecondHalfData"] = bSecondHalfData;
     this->m_threadIOWorker->LoadSurfaceOverlay(layer, args);
 //   m_strLastDir = QFileInfo(filename).absoluteFilePath();
   }
