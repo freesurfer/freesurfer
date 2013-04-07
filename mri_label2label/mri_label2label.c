@@ -39,9 +39,9 @@
 /*
  * Original Author: Douglas Greve
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2013/04/02 16:24:34 $
- *    $Revision: 1.44 $
+ *    $Author: fischl $
+ *    $Date: 2013/04/07 13:40:50 $
+ *    $Revision: 1.45 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -90,8 +90,13 @@ static int  nth_is_arg(int nargc, char **argv, int nth);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] = 
-  "$Id: mri_label2label.c,v 1.44 2013/04/02 16:24:34 greve Exp $";
+  "$Id: mri_label2label.c,v 1.45 2013/04/07 13:40:50 fischl Exp $";
 char *Progname = NULL;
+
+static int label_erode = 0 ;
+static int label_dilate = 0 ;
+static int label_open = 0 ;
+static int label_close = 0 ;
 
 char  *srclabelfile = NULL;
 static char  *sample_surf_file = NULL ;
@@ -181,7 +186,7 @@ int main(int argc, char **argv) {
   /* rkt: check for and handle version tag */
   nargs = handle_version_option 
     (argc, argv,
-     "$Id: mri_label2label.c,v 1.44 2013/04/02 16:24:34 greve Exp $",
+     "$Id: mri_label2label.c,v 1.45 2013/04/07 13:40:50 fischl Exp $",
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -361,6 +366,8 @@ int main(int argc, char **argv) {
         fprintf(stderr,"ERROR: could not read %s\n",tmpstr);
         exit(1);
       }
+      MRISreadWhiteCoordinates(SrcSurfReg, "white") ;
+      LabelFillUnassignedVertices(SrcSurfReg, srclabel, WHITE_VERTICES);
       if (DoRescale) {
         printf("Rescaling ... ");
         SubjRadius = MRISaverageRadius(SrcSurfReg) ;
@@ -667,6 +674,21 @@ int main(int argc, char **argv) {
       trglabel = tmplabel;
     }
 
+    if (label_dilate)
+      LabelDilate(trglabel, TrgSurfReg, label_dilate) ;
+    if (label_erode)
+      LabelErode(trglabel, TrgSurfReg, label_erode) ;
+    if (label_close)
+    {
+      LabelDilate(trglabel, TrgSurfReg, label_close) ;
+      LabelErode(trglabel, TrgSurfReg, label_close) ;
+    }
+    if (label_open)
+    {
+      LabelErode(trglabel, TrgSurfReg, label_open) ;
+      LabelDilate(trglabel, TrgSurfReg, label_open) ;
+    }
+
     if (OutMaskFile) {
       printf("Creating output %s\n",OutMaskFile);
       outmask = MRISlabel2Mask(TrgSurfReg,trglabel,NULL);
@@ -771,6 +793,22 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcmp(option, "--sd")) {
       if (nargc < 1) argnerr(option,1);
       SUBJECTS_DIR = pargv[0];
+      nargsused = 1;
+    } else if (!strcmp(option, "--dilate")) {
+      if (nargc < 1) argnerr(option,1);
+      label_dilate = atoi(pargv[0]);
+      nargsused = 1;
+    } else if (!strcmp(option, "--erode")) {
+      if (nargc < 1) argnerr(option,1);
+      label_erode = atoi(pargv[0]);
+      nargsused = 1;
+    } else if (!strcmp(option, "--open")) {
+      if (nargc < 1) argnerr(option,1);
+      label_open = atoi(pargv[0]);
+      nargsused = 1;
+    } else if (!strcmp(option, "--close")) {
+      if (nargc < 1) argnerr(option,1);
+      label_close = atoi(pargv[0]);
       nargsused = 1;
     } else if (!strcmp(option, "--srcsubject")) {
       if (nargc < 1) argnerr(option,1);
@@ -943,6 +981,10 @@ static void print_usage(void) {
   printf("\n");
   printf("   --srclabel     input label file \n");
   printf("\n");
+  printf("   --erode  N     erode the label N times before writing\n");
+  printf("   --open   N     open the label N times before writing\n");
+  printf("   --close  N     close the label N times before writing\n");
+  printf("   --dilate  N    dilate the label N times before writing\n");
   printf("   --srcsubject   source subject\n");
   printf("   --trgsubject   target subject\n");
   printf("   --s subject : use for both target and source\n");
