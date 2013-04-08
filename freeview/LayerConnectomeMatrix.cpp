@@ -205,7 +205,7 @@ void LayerConnectomeMatrix::UpdateLabelActors()
   {
     if (i != m_nFromLabelIndex && (m_bToAllLabels || m_listToLabelIndices.contains(i)))
     {
-      if (m_cmat->splines[m_nFromLabelIndex][i])
+      if (m_cmat->splines[m_nFromLabelIndex][i] || m_cmat->splines[i][m_nFromLabelIndex])
         m_actorLabels[i]->VisibilityOn();
     }
   }
@@ -338,7 +338,7 @@ bool LayerConnectomeMatrix::HasConnection(int i, int j)
   if (!m_cmat || i < 0 || i >= m_cmat->nlabels || j < 0 || j >= m_cmat->nlabels)
     return false;
 
-  return m_cmat->splines[i][j];
+  return (m_cmat->splines[i][j] || m_cmat->splines[j][i]);
 }
 
 void LayerConnectomeMatrix::UpdateOpacity()
