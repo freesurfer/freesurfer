@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2013/04/09 21:31:40 $
-#    $Revision: 1.456 $
+#    $Date: 2013/04/09 21:34:56 $
+#    $Revision: 1.457 $
 #
 # Copyright © 2011-2013 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -26,7 +26,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.456 2013/04/09 21:31:40 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.457 2013/04/09 21:34:56 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -57,7 +57,7 @@ if ("$tcsh61706" != "") then
      echo "WARNING: tcsh v6.17.06 has an exit code bug! Please update tcsh!"
      echo ""
      # workaround to force expected behavior:
-     set anyerror
+    set anyerror
 endif
 
 set Force = 0;
@@ -1627,15 +1627,19 @@ if($DoTalCheck) then
     set qalog2 = ($subjdir/mri/transforms/talairach_avi_QA2.log)
     echo "\n $cmd2 \n"|& tee -a $LF |& tee -a $CF
     if($RunIt) then
+      rm -f $qalog $qalog2
       $fs_time $cmd >& $qalog
       if($status) then
         echo "ERROR: ${cmd} failed!  See logfile ${qalog}" |& tee -a $LF
         goto error_exit;
       endif
       $fs_time $cmd2 >& $qalog2
-      if($status) then
-        echo "ERROR: ${cmd2} failed!  See logfile ${qalog2}" |& tee -a $LF
-        goto error_exit;
+      set tal_QC_AZS_status = $status
+      if($tal_QC_AZS_status) then
+        echo "INFO: ${cmd2} failed!  See logfile ${qalog2}" |& tee -a $LF
+        echo "      skipping tal_QC_AZS test" |& tee -a $LF
+        #NJS: skip instead of exit because tal_QC_AZS doesnt work on centos5.4
+        #goto error_exit;
       endif
       # first set of QA data:
       set talAviQA=`grep "TalAviQA" ${qalog} | awk '{print $2}'`
@@ -1646,10 +1650,16 @@ if($DoTalCheck) then
       echo "z-score: ${zscore}" |& tee -a $LF
       set zscoreThreshold=(-9) # conservative value, but catches M.Harms subjs.
       # second set:
-      set talAviQA2=`grep "atlas_transform_error" ${qalog2} | awk '{print $6}'`
-      echo "TalAviQA2: ${talAviQA2}" |& tee -a $LF
-      set atlaserrhi=`echo "${talAviQA2} > 24" | bc`
-      set atlaserrlo=`echo "${talAviQA2} < -36" | bc`
+      if ( ! $tal_QC_AZS_status ) then
+        set talAviQA2=`grep "atlas_transform_error" ${qalog2} | awk '{print $6}'`
+        echo "TalAviQA2: ${talAviQA2}" |& tee -a $LF
+        set atlaserrhi=`echo "${talAviQA2} > 24" | bc`
+        set atlaserrlo=`echo "${talAviQA2} < -36" | bc`
+      else
+        set talAviQA2=0
+        set atlaserrhi=0
+        set atlaserrlo=0
+      endif
       # check both:
       if (($zscore < $zscoreThreshold) || $atlaserrhi || $atlaserrlo) then
         echo "ERROR: Talairach QA check failed!" |& tee -a $LF
