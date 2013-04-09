@@ -52,6 +52,7 @@ mfiles_DATA=\
 	lta_read.m \
 	mksubfov.m \
 	mri_cdf2p.m \
+	mri_glmfit_pcc.m \
 	MRIeuler2Mdc.m \
 	MRIextractImage.m \
 	MRIfspec.m \
