@@ -118,6 +118,9 @@
       <property name="showDropIndicator" stdset="0">
        <bool>false</bool>
       </property>
+      <property name="selectionMode">
+       <enum>QAbstractItemView::MultiSelection</enum>
+      </property>
       <property name="rootIsDecorated">
        <bool>false</bool>
       </property>
@@ -382,7 +385,7 @@
   </connection>
   <connection>
    <sender>treeWidgetTo</sender>
-   <signal>itemSelectionChanged()</signal>
+   <signal>currentItemChanged(QTreeWidgetItem*,QTreeWidgetItem*)</signal>
    <receiver>PanelConnectomeMatrix</receiver>
    <slot>OnCurrentToChanged()</slot>
    <hints>

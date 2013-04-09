@@ -54,7 +54,7 @@ public slots:
 
   void SetColorTable(COLOR_TABLE* ctab);
 
-  void SetFromLabelIndex(int n);
+  void SetFromLabelIndices(const QList<int>& indices);
   void SetToLabelIndices(const QList<int>& indices);
   void SetToAllLabels(bool bAll);
 
@@ -71,7 +71,7 @@ private:
   COLOR_TABLE* m_ctab;
   QString   m_sFilenameParcel;
   QList<int> m_listLabels;
-  int     m_nFromLabelIndex;
+  QList<int>    m_listFromLabelIndices;
   QList<int>    m_listToLabelIndices;
   bool    m_bToAllLabels;
 

@@ -117,15 +117,26 @@ void PanelConnectomeMatrix::PopulateColorTable()
 
 void PanelConnectomeMatrix::UpdateToLabelVisibility()
 {
-  int nFrom = ui->treeWidgetFrom->indexOfTopLevelItem(ui->treeWidgetFrom->currentItem());
+  QList<QTreeWidgetItem*> items = ui->treeWidgetFrom->selectedItems();
+  QList<int> indices;
+  foreach (QTreeWidgetItem* item, items)
+    indices << ui->treeWidgetFrom->indexOfTopLevelItem(item);
   LayerConnectomeMatrix* layer = GetCurrentLayer<LayerConnectomeMatrix*>();
-  if (nFrom < 0 || !layer)
+  if (indices.isEmpty() || !layer)
     return;
 
   for (int i = 0; i < ui->treeWidgetTo->topLevelItemCount(); i++)
   {
-    ui->treeWidgetTo->setItemHidden(ui->treeWidgetTo->topLevelItem(i),
-                                    !layer->HasConnection(nFrom, i));
+    bool bConnected = false;
+    for (int j = 0; j < indices.size(); j++)
+    {
+      if (layer->HasConnection(indices[j], i))
+      {
+        bConnected = true;
+        break;
+      }
+    }
+    ui->treeWidgetTo->setItemHidden(ui->treeWidgetTo->topLevelItem(i),!bConnected);
   }
 }
 
@@ -147,7 +158,12 @@ void PanelConnectomeMatrix::OnCurrentFromChanged()
   if (!layer)
     return;
 
-  layer->SetFromLabelIndex(ui->treeWidgetFrom->indexOfTopLevelItem(ui->treeWidgetFrom->currentItem()));
+  QList<QTreeWidgetItem*> items = ui->treeWidgetFrom->selectedItems();
+  QList<int> indices;
+  foreach (QTreeWidgetItem* item, items)
+    indices << ui->treeWidgetFrom->indexOfTopLevelItem(item);
+  layer->SetFromLabelIndices(indices);
+
   UpdateToLabelVisibility();
 }
 

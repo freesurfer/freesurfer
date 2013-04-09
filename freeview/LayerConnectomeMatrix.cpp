@@ -22,7 +22,6 @@ LayerConnectomeMatrix::LayerConnectomeMatrix(LayerMRI* ref, QObject *parent) :
   m_mriParcel(NULL),
   m_cmat(NULL),
   m_ctab(NULL),
-  m_nFromLabelIndex(-1),
   m_bToAllLabels(false)
 {
   this->m_strTypeNames << "CMAT";
@@ -198,15 +197,19 @@ void LayerConnectomeMatrix::UpdateLabelActors()
     m_actorLabels[i]->VisibilityOff();
   }
 
-  if (m_nFromLabelIndex >= 0)
-    m_actorLabels[m_nFromLabelIndex]->VisibilityOn();
+  for (int i = 0; i < m_listFromLabelIndices.size(); i++)
+    m_actorLabels[m_listFromLabelIndices[i]]->VisibilityOn();
 
   for (int i = 0; i < m_cmat->nlabels; i++)
   {
-    if (i != m_nFromLabelIndex && (m_bToAllLabels || m_listToLabelIndices.contains(i)))
+    for (int j = 0; j < m_listFromLabelIndices.size(); j++)
     {
-      if (m_cmat->splines[m_nFromLabelIndex][i] || m_cmat->splines[i][m_nFromLabelIndex])
-        m_actorLabels[i]->VisibilityOn();
+      int nFrom = m_listFromLabelIndices[j];
+      if (i != nFrom && (m_bToAllLabels || m_listToLabelIndices.contains(i)))
+      {
+        if (m_cmat->splines[nFrom][i] || m_cmat->splines[i][nFrom])
+          m_actorLabels[i]->VisibilityOn();
+      }
     }
   }
 }
@@ -226,9 +229,9 @@ void LayerConnectomeMatrix::OnSlicePositionChanged(int nPlane)
   RebuildSplineActors();
 }
 
-void LayerConnectomeMatrix::SetFromLabelIndex(int n)
+void LayerConnectomeMatrix::SetFromLabelIndices(const QList<int> &indices)
 {
-  m_nFromLabelIndex = n;
+  m_listToLabelIndices = indices;
   UpdateLabelActors();
   UpdateOpacity();
   RebuildSplineActors();
@@ -253,7 +256,7 @@ void LayerConnectomeMatrix::SetToAllLabels(bool bAll)
 
 void LayerConnectomeMatrix::RebuildSplineActors()
 {
-  if (m_nFromLabelIndex < 0)
+  if (m_listFromLabelIndices.isEmpty())
     return;
 
   if (!m_bToAllLabels && m_listToLabelIndices.isEmpty())
@@ -268,17 +271,23 @@ void LayerConnectomeMatrix::RebuildSplineActors()
   int nCount = 0;
   for (int i = 0; i < m_cmat->nlabels; i++)
   {
-    if (m_bToAllLabels || m_listToLabelIndices.contains(i))
+    for (int j = 0; j < m_listFromLabelIndices.size(); j++)
     {
-      LABEL* label = m_cmat->splines[m_nFromLabelIndex][i];
-      if (label)
+      int nFrom = m_listFromLabelIndices[j];
+      if (m_bToAllLabels || m_listToLabelIndices.contains(i))
       {
-        lines->InsertNextCell(label->n_points);
-        for (int n = 0; n < label->n_points; n++)
+        LABEL* label = m_cmat->splines[nFrom][i];
+        if (!label)
+          label = m_cmat->splines[i][nFrom];
+        if (label)
         {
-          points->InsertNextPoint(label->lv[n].x, label->lv[n].y, label->lv[n].z);
-          lines->InsertCellPoint(nCount);
-          nCount++;
+          lines->InsertNextCell(label->n_points);
+          for (int n = 0; n < label->n_points; n++)
+          {
+            points->InsertNextPoint(label->lv[n].x, label->lv[n].y, label->lv[n].z);
+            lines->InsertCellPoint(nCount);
+            nCount++;
+          }
         }
       }
     }
@@ -345,7 +354,7 @@ void LayerConnectomeMatrix::UpdateOpacity()
 {
   for (int i = 0; i < m_actorLabels.size(); i++)
   {
-    if (i == m_nFromLabelIndex)
+    if (m_listFromLabelIndices.contains(i))
       m_actorLabels[i]->GetProperty()->SetOpacity(GetProperty()->GetFromLabelOpacity());
     else
       m_actorLabels[i]->GetProperty()->SetOpacity(GetProperty()->GetToLabelOpacity());
