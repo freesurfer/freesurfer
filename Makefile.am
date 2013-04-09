@@ -268,6 +268,7 @@ MRISSUBDIRS=\
 	mris_ms_refine \
 	mris_diff \
 	mris_distance_to_label \
+        mris_register_label_map \
 	mris_register \
 	mris_left_right_register \
 	mris_congeal \

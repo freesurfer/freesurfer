@@ -9,8 +9,8 @@
 #
 # CVS Revision Info:
 #    $Author: fischl $
-#    $Date: 2013/03/28 19:19:04 $
-#    $Revision: 1.597 $
+#    $Date: 2013/04/09 12:28:15 $
+#    $Revision: 1.598 $
 #
 ########################################################################
 AC_PREREQ(2.57)
@@ -3736,6 +3736,7 @@ AC_OUTPUT([Makefile
            mris_niters2fwhm/Makefile
            mris_pmake/Makefile
            mris_register/Makefile
+           mris_register_label_map/Makefile
            mris_left_right_register/Makefile
            mris_register_to_volume/Makefile
            mris_init_global_tractography/Makefile
