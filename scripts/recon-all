@@ -7,9 +7,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: greve $
-#    $Date: 2013/04/05 17:18:29 $
-#    $Revision: 1.379.2.67 $
+#    $Author: nicks $
+#    $Date: 2013/04/09 21:34:13 $
+#    $Revision: 1.379.2.68 $
 #
 # Copyright © 2011-2013 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -26,7 +26,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.379.2.67 2013/04/05 17:18:29 greve Exp $';
+set VERSION = '$Id: recon-all,v 1.379.2.68 2013/04/09 21:34:13 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -1603,6 +1603,7 @@ if($DoTalCheck) then
         echo "INFO: Attempting MINC mritotal to perform Talairach align" \
           |& tee -a $LF
         set UseMincMritotal = 1;
+        set DoCleanTal = 1;
         goto talairach;
       else
         echo "Manual Talairach alignment may be necessary, or" |& tee -a $LF
@@ -1679,6 +1680,7 @@ if($DoTalCheck) then
           echo "INFO: Attempting MINC mritotal to perform Talairach align" \
             |& tee -a $LF
           set UseMincMritotal = 1;
+          set DoCleanTal = 1;
           goto talairach;
         else
           goto error_exit;
@@ -4309,7 +4311,6 @@ echo "CMDARGS $argv0"      >> $DoneFile
 
 echo "recon-all -s $subjid finished without error at `date`" \
     |& tee -a $LF |& tee -a $SF
-
 
 if($#mailuser != 0) then
   echo "recon-all -s $subjid finished without error at `date`" | \
