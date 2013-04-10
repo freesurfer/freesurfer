@@ -575,6 +575,15 @@ install-exec-hook:freeview
 		>> $(DESTDIR)$(bindir)/freeview
 	echo "source \$$FREESURFER_HOME/bin/qt_setup" \
 		>> $(DESTDIR)$(bindir)/freeview
+	echo "if(\$$#argv > 0) then" \
+		>> $(DESTDIR)$(bindir)/freeview
+	echo "  if(\"\$$argv[1]\" == \"-tkmedit\") then" \
+		>> $(DESTDIR)$(bindir)/freeview
+	echo "    tkmeditfv \$$argv[2-\$$#argv]" \
+		>> $(DESTDIR)$(bindir)/freeview
+	echo "    exit 0"	>> $(DESTDIR)$(bindir)/freeview
+	echo "  endif"	>> $(DESTDIR)$(bindir)/freeview
+	echo "endif"	>> $(DESTDIR)$(bindir)/freeview
 	echo "freeview.bin \$$argv" >> $(DESTDIR)$(bindir)/freeview
 	chmod a+x $(DESTDIR)$(bindir)/freeview
 	if [[ -f /usr/pubsw/bin/chrpath ]]; then \
