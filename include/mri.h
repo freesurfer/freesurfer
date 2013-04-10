@@ -8,8 +8,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2013/03/25 12:38:27 $
- *    $Revision: 1.447 $
+ *    $Date: 2013/04/10 00:29:57 $
+ *    $Revision: 1.448 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -69,6 +69,7 @@ extern "C" {
 #define FRAME_TYPE_ORIGINAL             0
 #define FRAME_TYPE_DIFFUSION_AUGMENTED  1
 
+#define MRInvox(mri)  ((mri)->width * (mri)->height * (mri)->depth * (mri)->nframes)
 
 typedef struct
 {
