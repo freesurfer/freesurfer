@@ -58,6 +58,7 @@ fscalc.fsl \
 fsgd_parser.py \
 fsl_sub_mgh \
 fsutils.py \
+tkmeditfv \
 stem2fname \
 freesurfer \
 fs_lib_check \
