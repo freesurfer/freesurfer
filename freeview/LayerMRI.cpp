@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2013/01/08 20:35:10 $
- *    $Revision: 1.125 $
+ *    $Date: 2013/04/12 20:05:02 $
+ *    $Revision: 1.126 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -55,10 +55,12 @@
 #include "vtkPolyDataToImageStencil.h"
 #include "vtkImageStencil.h"
 #include "vtkSimpleLabelEdgeFilter.h"
+#include "vtkImageMask.h"
 #include "vtkImageResample.h"
 #include "vtkPolyDataWriter.h"
 #include "vtkMath.h"
 #include "vtkImageThreshold.h"
+#include "vtkImageShiftScale.h"
 #include "MyUtils.h"
 #include "FSVolume.h"
 #include "LayerPropertyMRI.h"
@@ -90,7 +92,8 @@ LayerMRI::LayerMRI( LayerMRI* ref, QObject* parent ) : LayerVolumeBase( parent )
   m_bWriteResampled( true ),
   m_currentSurfaceRegion( NULL ),
   m_nGotoLabelSlice(-1),
-  m_nGotoLabelOrientation(-1)
+  m_nGotoLabelOrientation(-1),
+  m_layerMask(NULL)
 {
   m_strTypeNames.push_back( "MRI" );
 
@@ -2858,4 +2861,53 @@ bool LayerMRI::SaveIsoSurface(const QString &fn)
 bool LayerMRI::HasReg()
 {
   return GetSourceVolume()->GetRegMatrix();
+}
+
+void LayerMRI::SetMaskLayer(LayerMRI *layer_mask)
+{
+  m_layerMask = layer_mask;
+  vtkImageData* source = this->GetImageData();
+  if (layer_mask == NULL)
+  {
+    if (m_imageDataBackup.GetPointer())
+      source->DeepCopy(m_imageDataBackup);
+  }
+  else
+  {
+    vtkImageData* mask = layer_mask->GetImageData();
+    if (!m_imageDataBackup.GetPointer())
+    {
+      m_imageDataBackup = vtkSmartPointer<vtkImageData>::New();
+      m_imageDataBackup->DeepCopy(source);
+    }
+    /*
+    double *origin = source->GetOrigin();
+    double *spacing = source->GetSpacing();
+    int *ext = source->GetExtent();
+    qDebug() << origin[0] << origin[1] << origin[2] << spacing[0] << spacing[1] << spacing[2]
+                << ext[0] << ext[1] << ext[2] << ext[3] << ext[4] << ext[5];
+    origin = mask->GetOrigin();
+    spacing = mask->GetSpacing();
+    ext = mask->GetExtent();
+    qDebug() << origin[0] << origin[1] << origin[2] << spacing[0] << spacing[1] << spacing[2]
+                << ext[0] << ext[1] << ext[2] << ext[3] << ext[4] << ext[5];
+    */
+
+    vtkSmartPointer<vtkImageMask> mask_filter = vtkSmartPointer<vtkImageMask>::New();
+    vtkSmartPointer<vtkImageShiftScale> cast = vtkSmartPointer<vtkImageShiftScale>::New();
+    double range[2];
+    mask->GetScalarRange(range);
+    if (range[1] <= 0)
+      range[1] = 1;
+    cast->SetScale(255/range[1]);
+    cast->SetInput(mask);
+    cast->SetOutputScalarTypeToUnsignedChar();
+    mask_filter->SetInput(m_imageDataBackup);
+    mask_filter->SetMaskInput(cast->GetOutput());
+    mask_filter->SetMaskedOutputValue(0);
+    mask_filter->Update();
+    source->DeepCopy(mask_filter->GetOutput());
+  }
+  emit ActorUpdated();
+  GetProperty()->EmitChangeSignal();
 }

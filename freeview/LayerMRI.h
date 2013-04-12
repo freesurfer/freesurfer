@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2012/10/24 19:59:46 $
- *    $Revision: 1.81 $
+ *    $Date: 2013/04/12 20:05:02 $
+ *    $Revision: 1.82 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -275,6 +275,13 @@ public:
 
   bool HasReg();
 
+  void SetMaskLayer(LayerMRI* layer_mask);
+
+  LayerMRI* GetMaskLayer()
+  {
+    return m_layerMask;
+  }
+
 public slots:
   void SetActiveFrame( int nFrame );
   void SetActiveFrameOneBase( int nFrame )
@@ -390,6 +397,9 @@ protected:
   int         m_nGotoLabelSlice;
   int         m_nGotoLabelOrientation;
   QString     m_strGotoLabelName;
+
+  vtkSmartPointer<vtkImageData> m_imageDataBackup;
+  LayerMRI*   m_layerMask;
 
 private:
   double**    private_buf1_3x3;

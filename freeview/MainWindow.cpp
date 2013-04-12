@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2013/04/05 17:43:31 $
- *    $Revision: 1.238 $
+ *    $Date: 2013/04/12 20:05:02 $
+ *    $Revision: 1.239 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -921,6 +921,11 @@ bool MainWindow::DoParseCommand(bool bAutoQuit)
     this->AddScript( QString("setcamera ") + sa.join(" ") );
   }
 
+  if (m_cmdParser->Found("colorscale"))
+  {
+    this->AddScript("showcolorscale");
+  }
+
   if ( m_cmdParser->Found( "ss", &sa ) )
   {
     this->AddScript( QString("screencapture ")+sa[0] );
@@ -1095,7 +1100,7 @@ void MainWindow::OnIdle()
   ui->actionSavePointSetAs  ->setEnabled( layerPointSet );
   ui->actionSaveSurface     ->setEnabled( !bBusy && layerSurface && layerSurface->IsModified() );
   ui->actionSaveSurfaceAs   ->setEnabled( layerSurface );
-  //  ui->actionShowColorScale  ->setEnabled( bHasLayer );
+  ui->actionShowColorScale  ->setEnabled( bHasLayer );
   ui->actionShowSliceFrames  ->setEnabled(bHasLayer && ui->view3D->GetShowSlices());
   ui->actionShowSliceFrames  ->setChecked(ui->view3D->GetShowSliceFrames());
   ui->actionShowSlices        ->setEnabled(bHasLayer);
@@ -1418,6 +1423,14 @@ void MainWindow::RunScript()
   {
     CommandGotoLabel( sa );
   }
+  else if (cmd == "showcolorscale")
+  {
+    OnShowColorBar(true);
+  }
+  else if (cmd == "setvolumemask")
+  {
+    CommandSetVolumeMask( sa );
+  }
   m_bScriptRunning = false;
 }
 
@@ -1649,6 +1662,10 @@ void MainWindow::CommandLoadVolume( const QStringList& sa )
       {
         m_scripts.insert(0, QString("gotolabel ")+subArgu);
         gotoLabelName = subArgu;
+      }
+      else if (subOption == "mask")
+      {
+        m_scripts.insert(0, QString("setvolumemask ")+subArgu);
       }
       else
       {
@@ -5686,5 +5703,20 @@ void MainWindow::OnLoadConnectomeMatrix()
   {
     AddScript(QString("loadconnectome %1:lut=%3 %2").arg(dlg.GetCMATFilename()).arg(dlg.GetParcelFilename())
         .arg(dlg.GetCTABFilename()));
+  }
+}
+
+void MainWindow::CommandSetVolumeMask(const QStringList &cmd)
+{
+  LayerMRI* mri = qobject_cast<LayerMRI*>(this->GetActiveLayer("MRI"));
+  LayerMRI* mask = qobject_cast<LayerMRI*>(GetLayerCollection("MRI")->GetLayerByName(cmd[1]));
+  if (!mask)
+  {
+    cerr << "Can not find volume by name of " << qPrintable(cmd[1]) << endl;
+    return;
+  }
+  if (mri && mask)
+  {
+    mri->SetMaskLayer(mask);
   }
 }

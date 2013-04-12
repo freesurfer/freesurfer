@@ -9,9 +9,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/14 23:44:47 $
- *    $Revision: 1.4 $
+ *    $Author: rpwang $
+ *    $Date: 2013/04/12 20:05:02 $
+ *    $Revision: 1.5 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -45,6 +45,10 @@ public:
 
 public slots:
   void SetShowInfo( bool bShow );
+  void EmitChangeSignal()
+  {
+    emit PropertyChanged();
+  }
 
 Q_SIGNALS:
   void ShowInfoChanged( bool bShow );

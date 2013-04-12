@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2013/03/13 20:11:31 $
- *    $Revision: 1.84 $
+ *    $Date: 2013/04/12 20:05:02 $
+ *    $Revision: 1.85 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -108,9 +108,9 @@ PanelVolume::PanelVolume(QWidget *parent) :
   m_widgetlistVector << ui->labelInversion
                      << ui->comboBoxInversion
                      << ui->labelRenderObject
-                     << ui->comboBoxRenderObject
-                     << ui->labelMask
-                     << ui->comboBoxMask;
+                     << ui->comboBoxRenderObject;
+                 //    << ui->labelMask
+                 //    << ui->comboBoxMask;
 
   m_widgetlistContour << ui->sliderContourThresholdLow
                       << ui->sliderContourThresholdHigh
@@ -447,6 +447,22 @@ void PanelVolume::DoUpdateWidgets()
 
     //    ui->m_choiceUpSampleMethod->SetSelection( layer->GetProperty()->GetUpSampleMethod() );
     ui->checkBoxShowExistingLabels->setEnabled(!layer->GetAvailableLabels().isEmpty());
+
+    // mask layer setting
+    ui->comboBoxMask->clear();
+    ui->comboBoxMask->addItem("None");
+    QList<Layer*> layers = MainWindow::GetMainWindow()->GetLayers("MRI");
+    int n = 0;
+    for (int i = 0; i < layers.size(); i++)
+    {
+      if (layer != layers[i])
+      {
+        ui->comboBoxMask->addItem( layers[i]->GetName(),  QVariant::fromValue((QObject*)layers[i]) );
+        if (layer->GetMaskLayer() == layers[i])
+          n = ui->comboBoxMask->count()-1;
+      }
+    }
+    ui->comboBoxMask->setCurrentIndex(n);
   }
 
   bool bNormalDisplay = (layer && !layer->GetProperty()->GetDisplayVector() && !layer->GetProperty()->GetDisplayTensor());
@@ -1225,4 +1241,14 @@ void PanelVolume::OnShowExistingLabelsOnly(bool b)
   m_bShowExistingLabelsOnly = b;
 //  this->UpdateWidgets();
   OnLineEditBrushValue(ui->lineEditBrushValue->text());
+}
+
+void PanelVolume::OnComboMask(int sel)
+{
+  LayerMRI* mask = qobject_cast<LayerMRI*>(ui->comboBoxMask->itemData(sel).value<QObject*>());
+  LayerMRI* layer = GetCurrentLayer<LayerMRI*>();
+  if ( layer )
+  {
+    layer->SetMaskLayer(mask);
+  }
 }

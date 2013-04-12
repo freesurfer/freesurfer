@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2013/01/08 20:35:10 $
- *    $Revision: 1.80 $
+ *    $Date: 2013/04/12 20:05:02 $
+ *    $Revision: 1.81 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -2558,7 +2558,7 @@ MATRIX* FSVolume::GetTargetToRASMatrix()
   MATRIX* m_invert = MatrixInverse( m, NULL );
 
   MATRIX* v2r = MRIgetVoxelToRasXform( m_MRITarget );
-  MATRIX* t2r = MatrixMultiply( m_invert, v2r, NULL );
+  MATRIX* t2r = MatrixMultiply( v2r, m_invert, NULL );
   MatrixFree( &m );
   MatrixFree( &v2r );
   MatrixFree( &m_invert );

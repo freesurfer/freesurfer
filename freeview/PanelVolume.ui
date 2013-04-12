@@ -26,9 +26,9 @@
    <property name="geometry">
     <rect>
      <x>0</x>
-     <y>-224</y>
-     <width>308</width>
-     <height>1723</height>
+     <y>-156</y>
+     <width>311</width>
+     <height>1655</height>
     </rect>
    </property>
    <layout class="QVBoxLayout" name="verticalLayout">
@@ -1243,8 +1243,8 @@
    <slot>OnCheckShowContour(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>165</x>
-     <y>1149</y>
+     <x>163</x>
+     <y>1111</y>
     </hint>
     <hint type="destinationlabel">
      <x>325</x>
@@ -1259,8 +1259,8 @@
    <slot>OnComboColorMap(int)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>301</x>
-     <y>425</y>
+     <x>304</x>
+     <y>440</y>
     </hint>
     <hint type="destinationlabel">
      <x>44</x>
@@ -1291,8 +1291,8 @@
    <slot>OnLineEditBrushValue(QString)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>153</x>
-     <y>821</y>
+     <x>150</x>
+     <y>815</y>
     </hint>
     <hint type="destinationlabel">
      <x>37</x>
@@ -1307,8 +1307,8 @@
    <slot>OnSliderOpacity(int)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>239</x>
-     <y>332</y>
+     <x>243</x>
+     <y>349</y>
     </hint>
     <hint type="destinationlabel">
      <x>39</x>
@@ -1323,8 +1323,8 @@
    <slot>OnSliderWindow(int)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>219</x>
-     <y>522</y>
+     <x>222</x>
+     <y>529</y>
     </hint>
     <hint type="destinationlabel">
      <x>101</x>
@@ -1339,8 +1339,8 @@
    <slot>OnSliderLevel(int)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>219</x>
-     <y>557</y>
+     <x>222</x>
+     <y>562</y>
     </hint>
     <hint type="destinationlabel">
      <x>91</x>
@@ -1355,8 +1355,8 @@
    <slot>OnSliderMin(int)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>219</x>
-     <y>592</y>
+     <x>222</x>
+     <y>595</y>
     </hint>
     <hint type="destinationlabel">
      <x>94</x>
@@ -1371,8 +1371,8 @@
    <slot>OnSliderMid(int)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>219</x>
-     <y>627</y>
+     <x>222</x>
+     <y>628</y>
     </hint>
     <hint type="destinationlabel">
      <x>64</x>
@@ -1387,8 +1387,8 @@
    <slot>OnSliderMax(int)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>219</x>
-     <y>662</y>
+     <x>222</x>
+     <y>661</y>
     </hint>
     <hint type="destinationlabel">
      <x>97</x>
@@ -1403,8 +1403,8 @@
    <slot>OnSliderOffset(int)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>219</x>
-     <y>697</y>
+     <x>222</x>
+     <y>694</y>
     </hint>
     <hint type="destinationlabel">
      <x>74</x>
@@ -1419,8 +1419,8 @@
    <slot>OnLineEditWindow(QString)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>300</x>
-     <y>525</y>
+     <x>303</x>
+     <y>534</y>
     </hint>
     <hint type="destinationlabel">
      <x>324</x>
@@ -1435,8 +1435,8 @@
    <slot>OnLineEditLevel(QString)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>300</x>
-     <y>560</y>
+     <x>303</x>
+     <y>567</y>
     </hint>
     <hint type="destinationlabel">
      <x>323</x>
@@ -1451,8 +1451,8 @@
    <slot>OnLineEditMin(QString)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>300</x>
-     <y>595</y>
+     <x>303</x>
+     <y>600</y>
     </hint>
     <hint type="destinationlabel">
      <x>325</x>
@@ -1467,8 +1467,8 @@
    <slot>OnLineEditMid(QString)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>300</x>
-     <y>630</y>
+     <x>303</x>
+     <y>633</y>
     </hint>
     <hint type="destinationlabel">
      <x>325</x>
@@ -1483,8 +1483,8 @@
    <slot>OnLineEditMax(QString)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>300</x>
-     <y>665</y>
+     <x>303</x>
+     <y>666</y>
     </hint>
     <hint type="destinationlabel">
      <x>325</x>
@@ -1499,8 +1499,8 @@
    <slot>OnLineEditOffset(QString)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>300</x>
-     <y>700</y>
+     <x>303</x>
+     <y>699</y>
     </hint>
     <hint type="destinationlabel">
      <x>309</x>
@@ -1515,8 +1515,8 @@
    <slot>OnComboLookupTable(int)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>301</x>
-     <y>458</y>
+     <x>304</x>
+     <y>471</y>
     </hint>
     <hint type="destinationlabel">
      <x>52</x>
@@ -1531,8 +1531,8 @@
    <slot>OnSliderContourMin(int)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>234</x>
-     <y>1210</y>
+     <x>237</x>
+     <y>1172</y>
     </hint>
     <hint type="destinationlabel">
      <x>325</x>
@@ -1547,8 +1547,8 @@
    <slot>OnSliderContourMax(int)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>234</x>
-     <y>1245</y>
+     <x>237</x>
+     <y>1205</y>
     </hint>
     <hint type="destinationlabel">
      <x>325</x>
@@ -1563,8 +1563,8 @@
    <slot>OnSliderContourSmooth(int)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>234</x>
-     <y>1363</y>
+     <x>237</x>
+     <y>1339</y>
     </hint>
     <hint type="destinationlabel">
      <x>325</x>
@@ -1579,8 +1579,8 @@
    <slot>OnContourValueChanged()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>234</x>
-     <y>1210</y>
+     <x>237</x>
+     <y>1172</y>
     </hint>
     <hint type="destinationlabel">
      <x>325</x>
@@ -1595,8 +1595,8 @@
    <slot>OnContourValueChanged()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>234</x>
-     <y>1245</y>
+     <x>237</x>
+     <y>1205</y>
     </hint>
     <hint type="destinationlabel">
      <x>325</x>
@@ -1611,8 +1611,8 @@
    <slot>OnContourValueChanged()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>234</x>
-     <y>1363</y>
+     <x>237</x>
+     <y>1339</y>
     </hint>
     <hint type="destinationlabel">
      <x>325</x>
@@ -1627,8 +1627,8 @@
    <slot>OnContourValueChanged()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>300</x>
-     <y>1207</y>
+     <x>303</x>
+     <y>1167</y>
     </hint>
     <hint type="destinationlabel">
      <x>325</x>
@@ -1643,8 +1643,8 @@
    <slot>OnContourValueChanged()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>300</x>
-     <y>1242</y>
+     <x>303</x>
+     <y>1200</y>
     </hint>
     <hint type="destinationlabel">
      <x>288</x>
@@ -1659,8 +1659,8 @@
    <slot>OnContourValueChanged()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>300</x>
-     <y>1366</y>
+     <x>303</x>
+     <y>1344</y>
     </hint>
     <hint type="destinationlabel">
      <x>68</x>
@@ -1675,8 +1675,8 @@
    <slot>OnContourSave()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>208</x>
-     <y>1452</y>
+     <x>198</x>
+     <y>1426</y>
     </hint>
     <hint type="destinationlabel">
      <x>325</x>
@@ -1739,8 +1739,8 @@
    <slot>OnSliderTrackVolumeMin(int)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>234</x>
-     <y>1061</y>
+     <x>237</x>
+     <y>1056</y>
     </hint>
     <hint type="destinationlabel">
      <x>325</x>
@@ -1755,8 +1755,8 @@
    <slot>OnTrackVolumeThresholdChanged()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>300</x>
-     <y>1058</y>
+     <x>303</x>
+     <y>1051</y>
     </hint>
     <hint type="destinationlabel">
      <x>325</x>
@@ -1771,8 +1771,8 @@
    <slot>OnTrackVolumeThresholdChanged()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>234</x>
-     <y>1061</y>
+     <x>237</x>
+     <y>1056</y>
     </hint>
     <hint type="destinationlabel">
      <x>325</x>
@@ -1803,12 +1803,12 @@
    <slot>setHidden(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>57</x>
-     <y>1093</y>
+     <x>55</x>
+     <y>1435</y>
     </hint>
     <hint type="destinationlabel">
-     <x>56</x>
-     <y>1121</y>
+     <x>54</x>
+     <y>1084</y>
     </hint>
    </hints>
   </connection>
@@ -1819,12 +1819,12 @@
    <slot>setHidden(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>103</x>
-     <y>1093</y>
+     <x>101</x>
+     <y>1435</y>
     </hint>
     <hint type="destinationlabel">
-     <x>101</x>
-     <y>1149</y>
+     <x>99</x>
+     <y>1111</y>
     </hint>
    </hints>
   </connection>
@@ -1835,12 +1835,12 @@
    <slot>setDisabled(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>79</x>
-     <y>1149</y>
+     <x>77</x>
+     <y>1111</y>
     </hint>
     <hint type="destinationlabel">
-     <x>81</x>
-     <y>1093</y>
+     <x>79</x>
+     <y>1435</y>
     </hint>
    </hints>
   </connection>
@@ -1851,8 +1851,8 @@
    <slot>OnShowExistingLabelsOnly(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>177</x>
-     <y>830</y>
+     <x>175</x>
+     <y>824</y>
     </hint>
     <hint type="destinationlabel">
      <x>325</x>
@@ -1867,8 +1867,8 @@
    <slot>OnCheckShowLabelContour(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>196</x>
-     <y>1196</y>
+     <x>304</x>
+     <y>1139</y>
     </hint>
     <hint type="destinationlabel">
      <x>-122</x>
@@ -1883,8 +1883,8 @@
    <slot>OnContourValueChanged()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>157</x>
-     <y>1287</y>
+     <x>178</x>
+     <y>1233</y>
     </hint>
     <hint type="destinationlabel">
      <x>-88</x>
@@ -1899,12 +1899,28 @@
    <slot>OnContourValueChanged()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>221</x>
-     <y>1294</y>
+     <x>244</x>
+     <y>1233</y>
     </hint>
     <hint type="destinationlabel">
      <x>-51</x>
      <y>1299</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>comboBoxMask</sender>
+   <signal>currentIndexChanged(int)</signal>
+   <receiver>PanelVolume</receiver>
+   <slot>OnComboMask(int)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>161</x>
+     <y>308</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>396</x>
+     <y>306</y>
     </hint>
    </hints>
   </connection>
@@ -1941,5 +1957,6 @@
   <slot>UpdateTrackVolumeThreshold()</slot>
   <slot>OnShowExistingLabelsOnly(bool)</slot>
   <slot>OnCheckShowLabelContour(bool)</slot>
+  <slot>OnComboMask(int)</slot>
  </slots>
 </ui>

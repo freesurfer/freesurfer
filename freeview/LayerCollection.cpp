@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2013/03/13 20:11:31 $
- *    $Revision: 1.36 $
+ *    $Date: 2013/04/12 20:05:02 $
+ *    $Revision: 1.37 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -719,4 +719,14 @@ QList<Layer*> LayerCollection::GetLayers(const QString& type)
       layers << m_layers[i];
   }
   return layers;
+}
+
+Layer* LayerCollection::GetLayerByName(const QString &name)
+{
+  for (int i = 0; i < m_layers.size(); i++)
+  {
+    if (m_layers[i]->GetName() == name)
+      return m_layers[i];
+  }
+  return NULL;
 }
