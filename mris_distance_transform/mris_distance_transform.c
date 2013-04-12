@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:31 $
- *    $Revision: 1.4 $
+ *    $Author: fischl $
+ *    $Date: 2013/04/12 20:59:17 $
+ *    $Revision: 1.5 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -43,7 +43,7 @@
 #include "MARS_DT_Boundary.h"
 
 static char vcid[] = 
-"$Id: mris_distance_transform.c,v 1.4 2011/03/02 00:04:31 nicks Exp $";
+"$Id: mris_distance_transform.c,v 1.5 2013/04/12 20:59:17 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 static int  get_option(int argc, char *argv[]) ;
@@ -60,20 +60,22 @@ static int divide = 1 ;
 static char *divide_surf_name ;
 static int output_label = 0 ;
 static float normalize = -1 ;
+static int vol = 0 ;   // do distance from surface into volume instead of label on surface
 
 int
 main(int argc, char *argv[])
 {
   char          **av, *output_fname ;
   int           ac, nargs, msec, mode=-1 ;
-  LABEL         *area ;
+  LABEL         *area = NULL ;
   MRI_SURFACE   *mris ;
   struct timeb  then ;
+  MRI           *mri_dist ;
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option 
     (argc, argv, 
-     "$Id: mris_distance_transform.c,v 1.4 2011/03/02 00:04:31 nicks Exp $", 
+     "$Id: mris_distance_transform.c,v 1.5 2013/04/12 20:59:17 fischl Exp $", 
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -102,15 +104,27 @@ main(int argc, char *argv[])
   if (mris == NULL)
     ErrorExit(ERROR_NOFILE, "%s: could not read surface %s",
               Progname, argv[1]) ;
-  area = LabelRead(NULL, argv[2]) ;
-  if (area == NULL)
-    ErrorExit(ERROR_NOFILE, "%s: could not read label %s",
-              Progname, argv[2]) ;
 
-  if (anterior_dist > 0)
-    LabelCropAnterior(area, anterior_dist) ;
-  if (posterior_dist > 0)
-    LabelCropPosterior(area, posterior_dist) ;
+  if (vol)
+  {
+/*
+    mri_template = MRIread(argv[2]) ;
+    if (!mri_template)
+      ErrorExit(ERROR_NOFILE, "%s: could not read MRI volume from %s\n", Progname, argv[2]) ;
+*/
+  }
+  else
+  {
+    area = LabelRead(NULL, argv[2]) ;
+    if (area == NULL)
+      ErrorExit(ERROR_NOFILE, "%s: could not read label %s",
+		Progname, argv[2]) ;
+    
+    if (anterior_dist > 0)
+      LabelCropAnterior(area, anterior_dist) ;
+    if (posterior_dist > 0)
+      LabelCropPosterior(area, posterior_dist) ;
+  }
   
   if (stricmp(argv[3], "signed") == 0)
     mode = DTRANS_MODE_SIGNED ;
@@ -126,107 +140,115 @@ main(int argc, char *argv[])
   output_fname = argv[4] ;
 
   MRIScomputeMetricProperties(mris) ;
-  MRIScomputeSecondFundamentalForm(mris) ;
-  if (normalize > 0)
+  if (vol)
   {
-    normalize = sqrt(mris->total_area) ;
-    printf("normalizing surface distances by sqrt(%2.1f) = %2.1f\n", mris->total_area,normalize) ;
-  }
-  if (divide > 1)
-  {
-    int  i ;
-    char fname[STRLEN], ext[STRLEN], base_name[STRLEN] ;
-    LABEL *area_division ;
-
-    FileNameExtension(output_fname, ext) ;
-    FileNameRemoveExtension(output_fname, base_name) ;
-    LabelMark(area, mris) ;
-    MRIScopyMarksToAnnotation(mris) ;
-    MRISsaveVertexPositions(mris, TMP_VERTICES) ;
-    if (MRISreadVertexPositions(mris, divide_surf_name) != NO_ERROR)
-      ErrorExit(ERROR_BADPARM, "%s: could not read vertex coords from %s", Progname, divide_surf_name) ;
-    MRIScomputeSecondFundamentalForm(mris) ;
-    MRISdivideAnnotationUnit(mris, 1, divide) ;
-    MRISrestoreVertexPositions(mris, TMP_VERTICES) ;
-    MRIScomputeSecondFundamentalForm(mris) ;
-
-    
-    // MRISdivideAnnotationUnit sets the marked to be in [0,divide-1], make it [1,divide]
-    // make sure they are oriented along original a/p direction
-#define MAX_UNITS 100    
-    {
-      double cx[MAX_UNITS], cy[MAX_UNITS], cz[MAX_UNITS], min_a ;
-      int    index, num[MAX_UNITS], new_index[MAX_UNITS], j, min_i ;
-      VERTEX *v ;
-      
-      memset(num, 0, sizeof(num[0])*divide) ;
-      memset(cx, 0, sizeof(cx[0])*divide) ;
-      memset(cy, 0, sizeof(cy[0])*divide) ;
-      memset(cz, 0, sizeof(cz[0])*divide) ;
-      for (i = 0 ; i < area->n_points ; i++)
-      {
-        if (area->lv[i].vno < 0 || area->lv[i].deleted > 0)
-          continue ;
-        v = &mris->vertices[area->lv[i].vno] ;
-        v->marked++ ;
-        index = v->marked ;
-        cx[index] += v->x ;
-        cy[index] += v->y ;
-        cz[index] += v->z ;
-        num[index]++ ;
-      }
-      memset(new_index, 0, sizeof(new_index[0])*divide) ;
-      for (i = 1 ; i <= divide ; i++)
-        cy[i] /= num[i] ;
-
-      // order them from posterior to anterior
-      for (j = 1 ; j <= divide ; j++)
-      {
-        min_a = 1e10 ; min_i = 0 ;
-        for (i = 1 ; i <= divide ; i++)
-        {
-          if (cy[i] < min_a)
-          {
-            min_a = cy[i] ;
-            min_i = i ;
-          }
-        }
-        cy[min_i] = 1e10 ;  // make it biggest so it won't be considered again
-        new_index[j] = min_i ;
-      }
-      for (i = 0 ; i < area->n_points ; i++)
-      {
-        if (area->lv[i].vno < 0 || area->lv[i].deleted > 0)
-          continue ;
-        v = &mris->vertices[area->lv[i].vno] ;
-        v->marked = new_index[v->marked] ;
-      }
-    }
-    for (i = 1 ; i <= divide ; i++)
-    {
-      area_division = LabelFromMarkValue(mris, i) ;
-
-      printf("performing distance transform on division %d with %d vertices\n", 
-             i, area_division->n_points) ;
-      if (output_label)
-      {
-        sprintf(fname, "%s%d.label", base_name, i) ;
-        printf("writing %dth subdivision to %s\n", i, fname) ;
-        LabelWrite(area_division, fname);
-      }
-      MRISdistanceTransform(mris, area_division, mode) ;
-      sprintf(fname, "%s%d.%s", base_name, i, ext) ;
-      if (normalize > 0)
-        MRISmulVal(mris, 1.0/normalize) ;
-      MRISwriteValues(mris, fname) ;
-    }
+    mri_dist = MRIScomputeDistanceToSurface(mris, NULL, 0.25) ;
+    MRIwrite(mri_dist, argv[4]) ;
   }
   else
   {
-    MRISdistanceTransform(mris, area, mode) ;
+    MRIScomputeSecondFundamentalForm(mris) ;
     if (normalize > 0)
-      MRISmulVal(mris, 1.0/normalize) ;
-    MRISwriteValues(mris, output_fname) ;
+    {
+      normalize = sqrt(mris->total_area) ;
+      printf("normalizing surface distances by sqrt(%2.1f) = %2.1f\n", mris->total_area,normalize) ;
+    }
+    if (divide > 1)
+    {
+      int  i ;
+      char fname[STRLEN], ext[STRLEN], base_name[STRLEN] ;
+      LABEL *area_division ;
+      
+      FileNameExtension(output_fname, ext) ;
+      FileNameRemoveExtension(output_fname, base_name) ;
+      LabelMark(area, mris) ;
+      MRIScopyMarksToAnnotation(mris) ;
+      MRISsaveVertexPositions(mris, TMP_VERTICES) ;
+      if (MRISreadVertexPositions(mris, divide_surf_name) != NO_ERROR)
+	ErrorExit(ERROR_BADPARM, "%s: could not read vertex coords from %s", Progname, divide_surf_name) ;
+      MRIScomputeSecondFundamentalForm(mris) ;
+      MRISdivideAnnotationUnit(mris, 1, divide) ;
+      MRISrestoreVertexPositions(mris, TMP_VERTICES) ;
+      MRIScomputeSecondFundamentalForm(mris) ;
+      
+      
+      // MRISdivideAnnotationUnit sets the marked to be in [0,divide-1], make it [1,divide]
+      // make sure they are oriented along original a/p direction
+#define MAX_UNITS 100    
+      {
+	double cx[MAX_UNITS], cy[MAX_UNITS], cz[MAX_UNITS], min_a ;
+	int    index, num[MAX_UNITS], new_index[MAX_UNITS], j, min_i ;
+	VERTEX *v ;
+	
+	memset(num, 0, sizeof(num[0])*divide) ;
+	memset(cx, 0, sizeof(cx[0])*divide) ;
+	memset(cy, 0, sizeof(cy[0])*divide) ;
+	memset(cz, 0, sizeof(cz[0])*divide) ;
+	for (i = 0 ; i < area->n_points ; i++)
+	{
+	  if (area->lv[i].vno < 0 || area->lv[i].deleted > 0)
+	    continue ;
+	  v = &mris->vertices[area->lv[i].vno] ;
+	  v->marked++ ;
+	  index = v->marked ;
+	  cx[index] += v->x ;
+	  cy[index] += v->y ;
+	  cz[index] += v->z ;
+	  num[index]++ ;
+	}
+	memset(new_index, 0, sizeof(new_index[0])*divide) ;
+	for (i = 1 ; i <= divide ; i++)
+	  cy[i] /= num[i] ;
+	
+	// order them from posterior to anterior
+	for (j = 1 ; j <= divide ; j++)
+	{
+	  min_a = 1e10 ; min_i = 0 ;
+	  for (i = 1 ; i <= divide ; i++)
+	  {
+	    if (cy[i] < min_a)
+	    {
+	      min_a = cy[i] ;
+	      min_i = i ;
+	    }
+	  }
+	  cy[min_i] = 1e10 ;  // make it biggest so it won't be considered again
+	  new_index[j] = min_i ;
+	}
+	for (i = 0 ; i < area->n_points ; i++)
+	{
+	  if (area->lv[i].vno < 0 || area->lv[i].deleted > 0)
+	    continue ;
+	  v = &mris->vertices[area->lv[i].vno] ;
+	  v->marked = new_index[v->marked] ;
+	}
+      }
+      for (i = 1 ; i <= divide ; i++)
+      {
+	area_division = LabelFromMarkValue(mris, i) ;
+	
+	printf("performing distance transform on division %d with %d vertices\n", 
+	       i, area_division->n_points) ;
+	if (output_label)
+	{
+	  sprintf(fname, "%s%d.label", base_name, i) ;
+	  printf("writing %dth subdivision to %s\n", i, fname) ;
+	  LabelWrite(area_division, fname);
+	}
+	MRISdistanceTransform(mris, area_division, mode) ;
+	sprintf(fname, "%s%d.%s", base_name, i, ext) ;
+	if (normalize > 0)
+	  MRISmulVal(mris, 1.0/normalize) ;
+	MRISwriteValues(mris, fname) ;
+      }
+    }
+    else
+    {
+      MRISdistanceTransform(mris, area, mode) ;
+      if (normalize > 0)
+	MRISmulVal(mris, 1.0/normalize) ;
+      MRISwriteValues(mris, output_fname) ;
+    }
   }
 
   msec = TimerStop(&then) ;
@@ -258,6 +280,11 @@ get_option(int argc, char *argv[])
     anterior_dist = atof(argv[2]) ;
     nargs = 1 ;
     printf("using anterior-most %2.3f mm of label only\n", anterior_dist) ;
+  }
+  else if (!stricmp(option, "vol"))
+  {
+    vol = 1 ;
+    printf("computing distance to surface in volume instead of label distance\n") ;
   }
   else if (!stricmp(option, "normalize"))
   {
