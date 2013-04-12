@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2012/10/24 13:46:17 $
- *    $Revision: 1.129 $
+ *    $Author: greve $
+ *    $Date: 2013/04/12 22:40:55 $
+ *    $Revision: 1.130 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -4069,4 +4069,117 @@ MATRIX *MatrixCumTrapZ(MATRIX *y, MATRIX *t, MATRIX *yz)
     }
   }
   return(yz);
+}
+//---------------------------------------------------------
+/*!
+  \fn MATRIX *ANOVAContrast(int *FLevels, int nFactors, int *FactorList, int nFactorList)
+  \brief Computes a contrast matrix to test an effect or interaction in an ANOVA.
+   FLevels is an array of length nFactors with the number of levels for each factor.
+     Number of levels must be >= 2 or else it is not a factor.
+   All factors must be discrete factors (ie, not continuous)
+   FactorList is an array of length nFactorList with the Factors to test.
+   Eg, FLevels = [2 2], FactorList = [1] tests for the main effect of Factor 1.
+   Eg, FLevels = [2 3], FactorList = [1 2] tests for the interaction between Factors 1 and 2
+   The Factors in the FactorList should be 1-based.
+   The regressors should have the following order 
+      (eg, if factors are gender, handedness, and diagnosis)
+   F1L1-F2L1-F3L1    M-L-N
+   F1L1-F2L1-F3L2    M-L-AD
+   F1L1-F2L2-F3L1    M-R-N
+   F1L1-F2L2-F3L2    M-R-AD
+   F1L2-F2L1-F3L1    F-L-N
+   F1L2-F2L1-F3L2    F-L-AD
+   F1L2-F2L2-F3L1    F-R-N
+   F1L2-F2L2-F3L2    F-R-AD
+
+   This should be general enough to handle any number of Factors with any number
+   of levels per factor. The number of levels does not need to be the same across
+   factors.
+
+   Woodward, J. A., Bonett, D. G., & Brecht, M-L. (1990). Introduction
+   to linear models and experimental design. San Diego, CA: Harcourt
+   Brace Jovanovich.
+
+*/
+MATRIX *ANOVAContrast(int *FLevels, int nFactors, int *FactorList, int nFactorList)
+{
+  int n,nthFactor,InList;
+  MATRIX *M,*Mf,*K;
+
+  for(nthFactor = 0; nthFactor < nFactors;  nthFactor++){
+    if(FLevels[nthFactor] < 2){
+      printf("ERROR: ANOVAContrast: Factor %d has only %d levels.\n",
+	     nthFactor,FactorList[nthFactor]);
+      printf("       Must have at least 2 levels\n");
+      return(NULL);
+    }
+  }
+  for(nthFactor = 0; nthFactor < nFactorList;  nthFactor++){
+    if(FactorList[nthFactor] > nFactors){
+      printf("ERROR: ANOVAContrast: %d > %d\n",FactorList[nthFactor],nFactors);
+      return(NULL);
+    }
+    if(FactorList[nthFactor] < 1){
+      printf("ERROR: ANOVAContrast: Factor %d = %d < 1\n",nthFactor,FactorList[nthFactor]);
+      return(NULL);
+    }
+  }
+
+  M = MatrixConstVal(1,1,1,NULL);
+  for(nthFactor = 0; nthFactor < nFactors;  nthFactor++){
+    InList = 0;
+    for(n = 0; n < nFactorList;  n++){
+      if(nthFactor+1 == FactorList[n]) {
+	InList = 1;
+	break;
+      }
+    }
+    if(InList) Mf = ANOVAOmnibus(FLevels[nthFactor]);
+    else       Mf = ANOVASummingVector(FLevels[nthFactor]);
+    //printf("Mf %d --------------------\n",InList);
+    //MatrixPrint(stdout,Mf);
+    K = MatrixKron(M,Mf,NULL);
+    MatrixFree(&Mf);
+    MatrixFree(&M);
+    M = K;
+  }
+  return(M);
+}
+//---------------------------------------------------------
+/*!
+  \fn MATRIX *ANOVASummingVector(int nLevels)
+  \brief Summing vector for main effect of a factor. nLevels = number
+  of levels in the factor.
+*/
+MATRIX *ANOVASummingVector(int nLevels)
+{
+  MATRIX *S;
+  S = MatrixConstVal(1,1,nLevels,NULL);
+  return(S);
+}
+//---------------------------------------------------------
+/*!
+  \fn MATRIX *ANOVASelectionVector(int nLevels, int Level)
+  \brief Selects a given level of a given factor. nLevels = number of
+  levels in the factor, Level is the one-based level number to select.
+  Used to create a Simple Main Effect ANOVA matrix.
+*/
+MATRIX *ANOVASelectionVector(int nLevels, int Level)
+{
+  MATRIX *S;
+  S = MatrixConstVal(0,1,nLevels,NULL);
+  S->rptr[1][Level] = 1;
+  return(S);
+}
+//---------------------------------------------------------
+MATRIX *ANOVAOmnibus(int nLevels)
+{
+  MATRIX *O;
+  int r;
+  O = MatrixAlloc(nLevels-1,nLevels,MATRIX_REAL);
+  for(r=0; r< nLevels-1; r++){
+    O->rptr[r+1][r+1] = 1;
+    O->rptr[r+1][nLevels] = -1;
+  }
+  return(O);
 }

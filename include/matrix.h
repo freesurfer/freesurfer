@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2012/10/24 13:46:08 $
- *    $Revision: 1.78 $
+ *    $Author: greve $
+ *    $Date: 2013/04/12 22:40:55 $
+ *    $Revision: 1.79 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -287,6 +287,11 @@ MATRIX *MatrixKron(MATRIX *m1, MATRIX *m2, MATRIX *k);
 MATRIX *MatrixDemean(MATRIX *M, MATRIX *Mdm);
 MATRIX *MatrixExcludeFrames(MATRIX *Src, int *ExcludeFrames, int nExclude);
 MATRIX *MatrixCumTrapZ(MATRIX *y, MATRIX *t, MATRIX *yz);
+
+MATRIX *ANOVAOmnibus(int nLevels);
+MATRIX *ANOVASelectionVector(int nLevels, int Level);
+MATRIX *ANOVASummingVector(int nLevels);
+MATRIX *ANOVAContrast(int *FLevels, int nFactors, int *FactorList, int nFactorList);
 
 #if defined(__cplusplus)
 };
