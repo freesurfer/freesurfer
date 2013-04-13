@@ -12,8 +12,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2013/03/26 14:14:37 $
- *    $Revision: 1.138 $
+ *    $Date: 2013/04/13 19:49:04 $
+ *    $Revision: 1.139 $
  *
  * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -56,7 +56,7 @@
 #define CONTRAST_FLAIR 2
 
 static char vcid[] =
-  "$Id: mris_make_surfaces.c,v 1.138 2013/03/26 14:14:37 fischl Exp $";
+  "$Id: mris_make_surfaces.c,v 1.139 2013/04/13 19:49:04 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -265,13 +265,13 @@ main(int argc, char *argv[])
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mris_make_surfaces.c,v 1.138 2013/03/26 14:14:37 fischl Exp $",
+   "$Id: mris_make_surfaces.c,v 1.139 2013/04/13 19:49:04 fischl Exp $",
    "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mris_make_surfaces.c,v 1.138 2013/03/26 14:14:37 fischl Exp $",
+           "$Id: mris_make_surfaces.c,v 1.139 2013/04/13 19:49:04 fischl Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
   {
@@ -560,7 +560,8 @@ main(int argc, char *argv[])
     if (use_mode)
     {
       printf("using class modes intead of means....\n") ;
-      MRIScomputeClassModes(mris, mri_T1, &white_mode, &gray_mode, NULL, &white_std, &gray_std, NULL);
+//      MRIScomputeClassModes(mris, mri_T1, &white_mode, &gray_mode, NULL, &white_std, &gray_std, NULL);
+      MRIScomputeClassModes(mris, mri_T1, &white_mode, &gray_mode, NULL, NULL, NULL, NULL);
       white_mean = white_mode ;
       gray_mean = gray_mode ;
     }
@@ -578,7 +579,7 @@ main(int argc, char *argv[])
     }
     if (!max_csf_set)
     {
-      max_csf = gray_mean - variablesigma*gray_std ;
+      max_csf = gray_mean - MAX(.5, (variablesigma-1.0))*gray_std ;
     }
     if (!min_border_white_set)
     {
@@ -1704,7 +1705,7 @@ main(int argc, char *argv[])
         MRIScomputeBorderValues
         (mris, mri_T1, mri_smooth, max_gray,
          max_gray_at_csf_border, min_gray_at_csf_border,
-         min_csf,(max_csf+min_gray_at_csf_border)/2,
+         min_csf,(max_csf+max_gray_at_csf_border)/2,
          current_sigma, 2*max_thickness, parms.fp,
          GRAY_CSF, mri_mask, thresh) ;
         MRImask(mri_T1, mri_labeled, mri_T1, BRIGHT_LABEL, 0) ;
