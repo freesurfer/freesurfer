@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2013/03/26 19:04:41 $
- *    $Revision: 1.746 $
+ *    $Date: 2013/04/13 19:48:51 $
+ *    $Revision: 1.747 $
  *
  * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -771,7 +771,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void)
 {
-  return("$Id: mrisurf.c,v 1.746 2013/03/26 19:04:41 fischl Exp $");
+  return("$Id: mrisurf.c,v 1.747 2013/04/13 19:48:51 fischl Exp $");
 }
 
 /*-----------------------------------------------------
@@ -77657,9 +77657,9 @@ MRIScomputeClassModes(MRI_SURFACE *mris,
   *pgray_mode = h_gray->bins[gray_peak] ;
   white_std = HISTOcomputeFWHM(h_white, white_peak) / 2.3 ;
   gray_std = HISTOcomputeFWHM(h_gray, gray_peak) / 2.3 ;
-  if (*pwhite_std)
+  if (pwhite_std)
     *pwhite_std = white_std ;
-  if (*pgray_std)
+  if (pgray_std)
     *pgray_std = gray_std ;
   if (pcsf_mode)
     printf("intensity peaks found at WM=%d+-%2.1f,   GM=%d+-%2.1f,  CSF=%d+-%2.1f\n",
