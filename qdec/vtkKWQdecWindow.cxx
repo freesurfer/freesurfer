@@ -11,10 +11,10 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2011/11/10 21:48:12 $
- *    $Revision: 1.61.2.5 $
+ *    $Date: 2013/04/14 21:09:16 $
+ *    $Revision: 1.61.2.6 $
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2011-2013 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -102,7 +102,7 @@ extern "C" {
 using namespace std;
 
 vtkStandardNewMacro( vtkKWQdecWindow );
-vtkCxxRevisionMacro( vtkKWQdecWindow, "$Revision: 1.61.2.5 $" );
+vtkCxxRevisionMacro( vtkKWQdecWindow, "$Revision: 1.61.2.6 $" );
 
 const char* vtkKWQdecWindow::ksSubjectsPanelName = "Subjects";
 const char* vtkKWQdecWindow::ksDesignPanelName = "Design";
@@ -4180,9 +4180,15 @@ vtkKWQdecWindow::SetSurfaceScalarsColorMin ( double iMin ) {
     // Update the Mid value as well, by 0.0001, since this typically
     // what you would always do anyway.
     this->SetSurfaceScalarsColorMid( iMin + 0.0001 );
-#endif
     // note that the prior call will update the editor, and
     // draw with the new values.
+#else
+    // Update the editor.
+    this->UpdateSurfaceScalarsColorsEditor();
+
+    // Draw with the new values.
+    this->ComposeSurfaceScalarsAndShow();
+#endif
   }
 }
 
