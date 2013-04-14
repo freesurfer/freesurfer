@@ -10,10 +10,10 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2012/10/15 20:49:01 $
- *    $Revision: 1.12 $
+ *    $Date: 2013/04/14 21:06:37 $
+ *    $Revision: 1.13 $
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2011-2013 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -47,7 +47,7 @@
 using namespace std;
 
 vtkStandardNewMacro( vtkKWQdecApp );
-vtkCxxRevisionMacro( vtkKWQdecApp, "$Revision: 1.12 $" );
+vtkCxxRevisionMacro( vtkKWQdecApp, "$Revision: 1.13 $" );
 
 vtkKWQdecApp::vtkKWQdecApp () :
   vtkKWApplication() {
@@ -80,8 +80,8 @@ vtkKWQdecApp::vtkKWQdecApp () :
 
   // Set some application stuff.
   this->SetName( "Qdec" );
-  this->SetMajorVersion( 1 ); // v1.4
-  this->SetMinorVersion( 4 );
+  this->SetMajorVersion( 1 ); // v1.5
+  this->SetMinorVersion( 5 );
   this->SetHelpDialogStartingPage
     ("https://surfer.nmr.mgh.harvard.edu/fswiki/Qdec");
   this->SupportSplashScreenOn ( );
@@ -284,7 +284,7 @@ vtkKWQdecApp::AddAboutText( ostream &os) {
   buildStamp += __DATE__ ;
   buildStamp += " " ;
   buildStamp += __TIME__ ;
-  buildStamp += "\n  - Copyright (c) 2007-2012\n";
+  buildStamp += "\n  - Copyright (c) 2007-2013\n";
   buildStamp += "    The General Hospital Corporation (Boston, MA),\n";
   buildStamp += "    Martinos Center for Biomedical Imaging,\n";
   buildStamp += "    http://www.nmr.mgh.harvard.edu\n";
