@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:25 $
- *    $Revision: 1.14 $
+ *    $Author: fischl $
+ *    $Date: 2013/04/15 21:56:07 $
+ *    $Revision: 1.15 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -38,12 +38,13 @@
 #include "transform.h"
 #include "version.h"
 #include "gcamorph.h"
+#include "cmat.h"
 
 #define LINEAR_CORONAL_RAS_TO_CORONAL_RAS       21
 //E/ should be in transform.h if it isn't already
 
 double MRIcomputeLinearTransformLabelDist(MRI *mri_src, MATRIX *mA, int label) ;
-static char vcid[] = "$Id: mri_transform.c,v 1.14 2011/03/02 00:04:25 nicks Exp $";
+static char vcid[] = "$Id: mri_transform.c,v 1.15 2013/04/15 21:56:07 fischl Exp $";
 
 //E/ For transformations: for case LINEAR_RAS_TO_RAS, we convert to
 //vox2vox with MRIrasXformToVoxelXform() in mri.c; for case
@@ -69,6 +70,7 @@ char *Progname ;
 static int quiet_mode = 0 ;
 static char *subject_name ;
 static char *out_like_fname = NULL ;
+static char *in_like_fname = NULL ;  // for cmat stuff
 static int invert_flag = 0 ;
 static int resample_type = SAMPLE_TRILINEAR ;
 static int nlabels = 0 ;
@@ -92,7 +94,7 @@ main(int argc, char *argv[]) {
 #endif
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_transform.c,v 1.14 2011/03/02 00:04:25 nicks Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_transform.c,v 1.15 2013/04/15 21:56:07 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -115,6 +117,55 @@ main(int argc, char *argv[]) {
   in_vol = argv[1] ;
   out_vol = argv[argc-1] ;
 
+  xform_fname = argv[argc-2] ;
+  if ((strcmp(in_vol+strlen(in_vol)-5, ".cmat") == 0) ||
+      (strcmp(in_vol+strlen(in_vol)-5, ".CMAT") == 0))
+  {
+    CMAT *cmat_in, *cmat_out ;
+    MRI   *mri_in, *mri_out ;
+    LTA   *lta ;
+
+    if (out_like_fname == NULL)
+      ErrorExit(ERROR_NOFILE, "%s: must specifiy --out_like MRI volume for cmat transform (use target volume)\n") ;
+    if (in_like_fname == NULL)
+      ErrorExit(ERROR_NOFILE, "%s: must specifiy --in_like MRI volume for cmat transform (use original conformed one)\n") ;
+
+    mri_in = MRIread(in_like_fname) ;
+    if (!mri_in)
+      ErrorExit(ERROR_NOFILE, "%s: could not read template volume from %s",Progname, in_like_fname) ;
+
+    mri_out = MRIread(out_like_fname) ;
+    if (!mri_out)
+      ErrorExit(ERROR_NOFILE, "%s: could not read template volume from %s",Progname, out_like_fname) ;
+
+    printf("reading input CMAT files...\n") ;
+    cmat_in = CMATread(in_vol) ;
+
+    transform = TransformRead(xform_fname) ;
+    if (!transform)
+      ErrorExit(ERROR_NOFILE, "%s: could not read transform from %s",
+                Progname, xform_fname) ;
+    lta = (LTA *)(transform->xform) ;
+    if (lta->type == LINEAR_COR_TO_COR)
+    {
+      LTAsetVolGeom(lta, mri_in, mri_out) ;
+#if 0
+      LTAchangeType(lta, LINEAR_RAS_TO_RAS) ;
+#else
+      MRItkReg2Native(mri_in,  mri_out, lta->xforms[0].m_L) ;
+      lta->type = LINEAR_RAS_TO_RAS ;
+#endif
+      transform->type = lta->type ;
+    }
+    cmat_out = CMATtransform(cmat_in, transform, mri_in, mri_out, NULL) ;
+    MRIfree(&mri_in) ;
+    MRIfree(&mri_out) ;
+
+    printf("writing transformed cmat to %s\n", out_vol) ;
+    CMATwrite(cmat_out, out_vol) ;
+    exit(0) ;
+  }
+
   fprintf(stderr, "reading volume from %s...\n", in_vol) ;
   mri_in = MRIread(in_vol) ;
   if (!mri_in)
@@ -124,7 +175,7 @@ main(int argc, char *argv[]) {
   {
     mri_tmp = MRIread(out_like_fname) ;
     if (!mri_tmp)
-      ErrorExit(ERROR_NOFILE, "%s: could not read template volume from %s",out_like_fname) ;
+      ErrorExit(ERROR_NOFILE, "%s: could not read template volume from %s",Progname,out_like_fname) ;
     mri_out = MRIalloc(mri_tmp->width, mri_tmp->height, mri_tmp->depth, mri_tmp->type) ;
     //E/ maybe better mri_in->type?
     MRIcopyHeader(mri_tmp, mri_out) ; //E/ reinstate this
@@ -328,7 +379,11 @@ get_option(int argc, char *argv[]) {
     print_help() ;
   else if (!stricmp(option, "-version"))
     print_version() ;
-  else if (!stricmp(option, "out_like") || !stricmp(option, "ol")) {
+  else if (!stricmp(option, "in_like") || !stricmp(option, "il")) {
+    in_like_fname = argv[2] ;
+    nargs = 1 ;
+    printf("shaping output to be like %s...\n", out_like_fname) ;
+  } else if (!stricmp(option, "out_like") || !stricmp(option, "ol")) {
     out_like_fname = argv[2] ;
     nargs = 1 ;
     printf("shaping output to be like %s...\n", out_like_fname) ;
