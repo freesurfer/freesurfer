@@ -10,8 +10,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2013/03/25 17:32:13 $
- *    $Revision: 1.56 $
+ *    $Date: 2013/04/15 21:56:39 $
+ *    $Revision: 1.57 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -154,5 +154,8 @@ int LabelCropAnterior(LABEL *area, float anterior_dist) ;
 int LabelCentroid(LABEL *area, MRI_SURFACE *mris, double *px, double *py, double *pz) ;
 int LabelSetVals(MRI_SURFACE *mris, LABEL *area, float fillval) ;
 int LabelAddToMark(LABEL *area, MRI_SURFACE *mris, int val_to_add) ;
+LABEL *LabelTransform(LABEL *area_in, TRANSFORM *xform, MRI *mri, LABEL *area_out) ;
+LABEL *LabelFromScannerRAS(LABEL *lsrc, MRI *mri, LABEL *ldst) ;
+
 
 #endif
