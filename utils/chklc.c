@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2012/07/05 14:20:27 $
- *    $Revision: 1.14 $
+ *    $Author: nicks $
+ *    $Date: 2013/04/15 23:25:12 $
+ *    $Revision: 1.15 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -74,7 +74,6 @@ void chklc(void)
   char* lfilename;
   char  str[STRLEN] ;
 
-  return ;
   sprintf(str, "S%sER%sRONT%sOR", "URF", "_F", "DO") ;
   if (getenv(str) != NULL) return ;
 
