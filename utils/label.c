@@ -8,9 +8,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2013/04/01 16:21:26 $
- *    $Revision: 1.114 $
+ *    $Author: fischl $
+ *    $Date: 2013/04/15 21:56:21 $
+ *    $Revision: 1.115 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -57,7 +57,7 @@ LABEL   *
 LabelReadFrom(const char *subject_name, FILE *fp) 
 {
   LABEL  *area ;
-  char   line[STRLEN], subjects_dir[STRLEN], *cp;
+  char   line[STRLEN], subjects_dir[STRLEN], *cp, *str;
   int    vno, nlines ;
   float  x, y, z, stat ;
 
@@ -65,6 +65,14 @@ LabelReadFrom(const char *subject_name, FILE *fp)
   if (!area)
   {
     ErrorExit(ERROR_NOMEMORY,"%s: could not allocate LABEL struct.",Progname);
+  }
+  cp = fgets(line, STRLEN, fp) ;  // read comment line
+  str = strstr(cp, "vox2ras=") ;
+  if (str)
+  {
+    if (*(cp+strlen(cp)-1) == '\n')
+      *(cp+strlen(cp)-1) = 0 ;
+    sprintf(area->space, "%s", str+strlen("vox2ras=")) ;
   }
 
   cp = fgetl(line, STRLEN, fp) ;
@@ -1198,6 +1206,8 @@ labelLoadTransform(const char *subject_name,
 
   sprintf(xform_fname, "%s/%s/mri/transforms/talairach.xfm",
           sdir, subject_name) ;
+  if (FileExists(xform_fname) == 0)
+    return(NULL) ;
   if (input_transform_file(xform_fname, transform) != OK)
     ErrorReturn(NULL,
                 (ERROR_NOFILE, "%s: could not load transform file '%s'",
@@ -3376,6 +3386,40 @@ LabelToScannerRAS(LABEL *lsrc, MRI *mri, LABEL *ldst)
   VectorFree(&v1) ; VectorFree(&v2) ; MatrixFree(&M_surface_to_RAS) ;
   return(ldst) ;
 }
+/*
+  convert the label coords from tkreg (surface) RAS to scanner RAS. Note that this assumes that the
+  label coords are in tkreg space
+*/
+LABEL *
+LabelFromScannerRAS(LABEL *lsrc, MRI *mri, LABEL *ldst)
+{
+  int i ;
+  MATRIX *M_surface_to_RAS = RASFromSurfaceRAS_(mri), *M_surface_from_RAS  ;
+  VECTOR *v1, *v2 ;
+
+  M_surface_from_RAS = MatrixInverse(M_surface_to_RAS, NULL) ;
+
+  if (ldst == NULL)
+  {
+    ldst = LabelClone(lsrc) ;
+    ldst->n_points = lsrc->n_points ;
+  }
+  
+  v1 = VectorAlloc(4, MATRIX_REAL) ;
+  v2 = VectorAlloc(4, MATRIX_REAL) ;
+  VECTOR_ELT(v1,4) = 1.0 ;
+  VECTOR_ELT(v2,4) = 1.0 ;
+  for (i = 0 ; i < lsrc->n_points ; i++)
+  {
+    V3_X(v1) = lsrc->lv[i].x ; V3_Y(v1) = lsrc->lv[i].y ; V3_Z(v1) = lsrc->lv[i].z ;
+    MatrixMultiply(M_surface_from_RAS, v1, v2) ;
+    ldst->lv[i].x = V3_X(v2) ; ldst->lv[i].y = V3_Y(v2) ;  ldst->lv[i].z = V3_Z(v2) ;
+    ldst->lv[i].stat = lsrc->lv[i].stat ;
+  }
+  strcpy (ldst->space, "TkReg") ;
+  VectorFree(&v1) ; VectorFree(&v2) ; MatrixFree(&M_surface_to_RAS) ; MatrixFree(&M_surface_from_RAS) ;
+  return(ldst) ;
+}
 
 /*
   convert the label coords from tkreg (surface) RAS to voxels. Note that this assumes that the
@@ -3387,6 +3431,9 @@ LabelToVoxel(LABEL *lsrc, MRI *mri, LABEL *ldst)
   int i ;
   MATRIX *M_surface_to_vox = RASFromSurfaceRAS_(mri)  ;
   VECTOR *v1, *v2 ;
+
+  if (strstr(lsrc->space, "scanner") != NULL)
+    ldst = LabelFromScannerRAS(lsrc, mri, ldst) ;
 
   M_surface_to_vox = voxelFromSurfaceRAS_(mri);
   if (ldst == NULL)
@@ -3417,5 +3464,46 @@ LabelClone(LABEL *a)
   l = LabelAlloc(a->max_points,a->subject_name,a->name) ;
   strcpy(l->space, a->space) ;
   return(l) ;
+}
+
+LABEL *
+LabelTransform(LABEL *lsrc, TRANSFORM *xform, MRI *mri, LABEL *ldst)
+{
+  int    i ;
+  MATRIX *M ;
+  VECTOR *v1, *v2 ;
+
+  if (ldst  == NULL)
+  {
+    ldst = LabelClone(lsrc) ;
+    ldst->n_points = lsrc->n_points ;
+  }
+
+  if (xform->type != LINEAR_RAS_TO_RAS)
+    ErrorExit(ERROR_NOFILE, "LabelTransform: unsupported type %d. Must be RAS->RAS", xform->type) ;
+  if (strstr(ldst->space, "scanner") == NULL)
+    ErrorExit(ERROR_NOFILE, "LabelTransform: label must be in scanner RAS not %s", ldst->space) ;
+
+  M = ((LTA *)(xform->xform))->xforms[0].m_L ;
+  if (ldst == NULL)
+  {
+    ldst = LabelClone(lsrc) ;
+    ldst->n_points = lsrc->n_points ;
+  }
+  
+  v1 = VectorAlloc(4, MATRIX_REAL) ;
+  v2 = VectorAlloc(4, MATRIX_REAL) ;
+  VECTOR_ELT(v1,4) = 1.0 ;
+  VECTOR_ELT(v2,4) = 1.0 ;
+  for (i = 0 ; i < lsrc->n_points ; i++)
+  {
+    V3_X(v1) = lsrc->lv[i].x ; V3_Y(v1) = lsrc->lv[i].y ; V3_Z(v1) = lsrc->lv[i].z ;
+    MatrixMultiply(M, v1, v2) ;
+    ldst->lv[i].x = V3_X(v2) ; ldst->lv[i].y = V3_Y(v2) ;  ldst->lv[i].z = V3_Z(v2) ;
+    ldst->lv[i].stat = lsrc->lv[i].stat ;
+  }
+  strncpy (ldst->space, "scanner", sizeof(ldst->space));
+  
+  return(ldst) ;
 }
 
