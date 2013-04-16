@@ -158,7 +158,7 @@
          <number>100</number>
         </property>
         <property name="value">
-         <number>100</number>
+         <number>0</number>
         </property>
         <property name="orientation">
          <enum>Qt::Horizontal</enum>
@@ -174,7 +174,7 @@
          <double>0.100000000000000</double>
         </property>
         <property name="value">
-         <double>1.000000000000000</double>
+         <double>0.000000000000000</double>
         </property>
        </widget>
       </item>

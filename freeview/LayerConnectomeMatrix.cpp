@@ -74,7 +74,6 @@ bool LayerConnectomeMatrix::LoadFromFile(const QString &fn_cmat, const QString &
   for (int i = 0; i < m_cmat->nlabels; i++)
     m_listLabels << m_cmat->labels[i];
 
-
   // read parcellation file
   if (m_mriParcel)
     delete m_mriParcel;
