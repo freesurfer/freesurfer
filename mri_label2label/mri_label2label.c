@@ -39,9 +39,9 @@
 /*
  * Original Author: Douglas Greve
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2013/04/07 13:40:50 $
- *    $Revision: 1.45 $
+ *    $Author: greve $
+ *    $Date: 2013/04/16 18:30:15 $
+ *    $Revision: 1.46 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -90,7 +90,7 @@ static int  nth_is_arg(int nargc, char **argv, int nth);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] = 
-  "$Id: mri_label2label.c,v 1.45 2013/04/07 13:40:50 fischl Exp $";
+  "$Id: mri_label2label.c,v 1.46 2013/04/16 18:30:15 greve Exp $";
 char *Progname = NULL;
 
 static int label_erode = 0 ;
@@ -166,6 +166,8 @@ double PaintMax = 2.0;
 int DoRescale = 1;
 int DoOutMaskStat = 0;
 
+int UseScannerCoords = 0;
+
 /*-------------------------------------------------*/
 int main(int argc, char **argv) {
   int err,m;
@@ -186,7 +188,7 @@ int main(int argc, char **argv) {
   /* rkt: check for and handle version tag */
   nargs = handle_version_option 
     (argc, argv,
-     "$Id: mri_label2label.c,v 1.45 2013/04/07 13:40:50 fischl Exp $",
+     "$Id: mri_label2label.c,v 1.46 2013/04/16 18:30:15 greve Exp $",
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -712,6 +714,9 @@ int main(int argc, char **argv) {
 
   }/*---------- done with surface-based mapping -------------*/
 
+
+  if(UseScannerCoords) strcpy(trglabel->space,"scanner");
+
   if (usepathfiles) {
     /* Convert the label to a path. */
     err = PathCreateFromLabel(trglabel,&path);
@@ -782,6 +787,7 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcmp(option, "--xfm-invert")) InvertXFM = 1;
     else if (!strcmp(option, "--src-invert")) SrcInv = 1;
     else if (!strcmp(option, "--trg-invert")) TrgInv = 1;
+    else if (!strcmp(option, "--scanner")) UseScannerCoords = 1;
 
     else if (!strcmp(option, "--s")) {
       if (nargc < 1) argnerr(option,1);
@@ -1031,6 +1037,8 @@ static void print_usage(void) {
   printf("   --sd subjectsdir : default is to use env SUBJECTS_DIR\n");
   printf("   --nohash : don't use hash table when regmethod is surface\n");
   printf("   --norevmap : don't use reverse mapping regmethod is surface\n");
+  printf("   --scanner : set output coordinate type to scanner\n");
+  printf("     NOTE: this does nothing more than change a string in the label file\n");
   printf("\n");
 }
 /* --------------------------------------------- */
