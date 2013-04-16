@@ -230,7 +230,7 @@ void LayerConnectomeMatrix::OnSlicePositionChanged(int nPlane)
 
 void LayerConnectomeMatrix::SetFromLabelIndices(const QList<int> &indices)
 {
-  m_listToLabelIndices = indices;
+  m_listFromLabelIndices = indices;
   UpdateLabelActors();
   UpdateOpacity();
   RebuildSplineActors();

@@ -353,7 +353,7 @@
  <connections>
   <connection>
    <sender>treeWidgetFrom</sender>
-   <signal>currentItemChanged(QTreeWidgetItem*,QTreeWidgetItem*)</signal>
+   <signal>itemSelectionChanged()</signal>
    <receiver>PanelConnectomeMatrix</receiver>
    <slot>OnCurrentFromChanged()</slot>
    <hints>
@@ -385,7 +385,7 @@
   </connection>
   <connection>
    <sender>treeWidgetTo</sender>
-   <signal>currentItemChanged(QTreeWidgetItem*,QTreeWidgetItem*)</signal>
+   <signal>itemSelectionChanged()</signal>
    <receiver>PanelConnectomeMatrix</receiver>
    <slot>OnCurrentToChanged()</slot>
    <hints>
