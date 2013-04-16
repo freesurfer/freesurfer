@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2013/04/15 21:56:07 $
- *    $Revision: 1.15 $
+ *    $Date: 2013/04/16 12:46:10 $
+ *    $Revision: 1.16 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -44,7 +44,7 @@
 //E/ should be in transform.h if it isn't already
 
 double MRIcomputeLinearTransformLabelDist(MRI *mri_src, MATRIX *mA, int label) ;
-static char vcid[] = "$Id: mri_transform.c,v 1.15 2013/04/15 21:56:07 fischl Exp $";
+static char vcid[] = "$Id: mri_transform.c,v 1.16 2013/04/16 12:46:10 fischl Exp $";
 
 //E/ For transformations: for case LINEAR_RAS_TO_RAS, we convert to
 //vox2vox with MRIrasXformToVoxelXform() in mri.c; for case
@@ -94,7 +94,7 @@ main(int argc, char *argv[]) {
 #endif
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_transform.c,v 1.15 2013/04/15 21:56:07 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_transform.c,v 1.16 2013/04/16 12:46:10 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -149,12 +149,18 @@ main(int argc, char *argv[]) {
     if (lta->type == LINEAR_COR_TO_COR)
     {
       LTAsetVolGeom(lta, mri_in, mri_out) ;
+      printf("src - %s\n", mri_in->fname) ;
+      printf("dst - %s\n", mri_out->fname) ;
+      printf("TKreg matrix\n") ;
+      MatrixPrint(stdout, lta->xforms[0].m_L) ;
 #if 0
       LTAchangeType(lta, LINEAR_RAS_TO_RAS) ;
 #else
-      MRItkReg2Native(mri_in,  mri_out, lta->xforms[0].m_L) ;
+      lta->xforms[0].m_L = MRItkReg2Native(mri_in, mri_out, lta->xforms[0].m_L) ;
       lta->type = LINEAR_RAS_TO_RAS ;
 #endif
+      printf("scanner RAS matrix\n") ;
+      MatrixPrint(stdout, lta->xforms[0].m_L) ;
       transform->type = lta->type ;
     }
     cmat_out = CMATtransform(cmat_in, transform, mri_in, mri_out, NULL) ;
