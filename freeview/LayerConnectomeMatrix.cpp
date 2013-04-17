@@ -106,6 +106,10 @@ bool LayerConnectomeMatrix::LoadFromFile(const QString &fn_cmat, const QString &
           pt[0] = label->lv[n].x;
           pt[1] = label->lv[n].y;
           pt[2] = label->lv[n].z;
+          if ( strstr(label->space,"voxel") != NULL )
+          {
+            m_mriParcel->OriginalVoxelToRAS(pt, pt);
+          }
           m_mriParcel->RASToTarget(pt, pt);
           label->lv[n].x = pt[0];
           label->lv[n].y = pt[1];
@@ -129,7 +133,7 @@ void LayerConnectomeMatrix::BuildLabelActors()
     actor->SetMapper(mapper);
     MyVTKUtils::BuildContourActor(m_mriParcel->GetImageData(),
                                   m_listLabels[i], m_listLabels[i],
-                                  actor);
+                                  actor, 0, 0, true);
     QColor c = GetLabelColor(m_listLabels[i]);
     actor->GetProperty()->SetColor(c.redF(), c.greenF(), c.blueF());
     actor->VisibilityOff();

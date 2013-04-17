@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2013/04/12 20:05:02 $
- *    $Revision: 1.82 $
+ *    $Date: 2013/04/17 20:46:05 $
+ *    $Revision: 1.83 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -103,6 +103,8 @@ public:
 
   void RASToOriginalIndex( const double* pos, int* n );
   void OriginalIndexToRAS( const int* n, double* pos );
+
+  void OriginalVoxelToRAS( const double* vcoord, double* pos);
 
   virtual void SetVisible( bool bVisible = true );
   virtual bool IsVisible();
