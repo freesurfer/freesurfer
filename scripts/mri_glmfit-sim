@@ -1,5 +1,5 @@
 #!/bin/tcsh -f
-set VERSION = '$Id: mri_glmfit-sim,v 1.46 2012/10/01 22:31:27 greve Exp $';
+set VERSION = '$Id: mri_glmfit-sim,v 1.47 2013/04/17 15:38:31 greve Exp $';
 
 set inputargs = ($argv);
 
@@ -29,6 +29,7 @@ set subjectOverride = ();
 set Bonferroni = 0;
 set ReportCentroid = 0;
 set annot = aparc
+set IsPVR = 0;
 
 set nJobs = 1;
 set DoBackground = 0;
@@ -195,6 +196,10 @@ while($#glmfitcmd)
   case "--ffxdof"
   case "--ffxdofdat"
   case "--exclude-frame"
+    shift glmfitcmd;
+    breaksw
+  case "--pvr"
+    set IsPVR = 1;
     shift glmfitcmd;
     breaksw
   default
