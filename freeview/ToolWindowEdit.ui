@@ -206,7 +206,7 @@
        <item row="1" column="2" colspan="3">
         <widget class="QLabel" name="labelEraseValue">
          <property name="text">
-          <string>Erase value</string>
+          <string>Eraser value</string>
          </property>
          <property name="alignment">
           <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
