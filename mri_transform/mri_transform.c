@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2013/04/16 12:46:10 $
- *    $Revision: 1.16 $
+ *    $Date: 2013/04/18 14:01:25 $
+ *    $Revision: 1.17 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -39,12 +39,10 @@
 #include "version.h"
 #include "gcamorph.h"
 #include "cmat.h"
-
-#define LINEAR_CORONAL_RAS_TO_CORONAL_RAS       21
-//E/ should be in transform.h if it isn't already
+#include "transform.h"
 
 double MRIcomputeLinearTransformLabelDist(MRI *mri_src, MATRIX *mA, int label) ;
-static char vcid[] = "$Id: mri_transform.c,v 1.16 2013/04/16 12:46:10 fischl Exp $";
+static char vcid[] = "$Id: mri_transform.c,v 1.17 2013/04/18 14:01:25 fischl Exp $";
 
 //E/ For transformations: for case LINEAR_RAS_TO_RAS, we convert to
 //vox2vox with MRIrasXformToVoxelXform() in mri.c; for case
@@ -76,6 +74,8 @@ static int resample_type = SAMPLE_TRILINEAR ;
 static int nlabels = 0 ;
 static int labels[1000] ;
 
+static int cmat_output_coords = LABEL_COORDS_VOXEL ;
+
 int
 main(int argc, char *argv[]) {
   char        **av, *in_vol, *out_vol, *xform_fname ;
@@ -94,7 +94,7 @@ main(int argc, char *argv[]) {
 #endif
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_transform.c,v 1.16 2013/04/16 12:46:10 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_transform.c,v 1.17 2013/04/18 14:01:25 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -125,15 +125,17 @@ main(int argc, char *argv[]) {
     MRI   *mri_in, *mri_out ;
     LTA   *lta ;
 
-    if (out_like_fname == NULL)
-      ErrorExit(ERROR_NOFILE, "%s: must specifiy --out_like MRI volume for cmat transform (use target volume)\n") ;
     if (in_like_fname == NULL)
-      ErrorExit(ERROR_NOFILE, "%s: must specifiy --in_like MRI volume for cmat transform (use original conformed one)\n") ;
+      ErrorExit(ERROR_NOFILE, "%s: must specifiy --in_like MRI volume for cmat transform (use original conformed one)\n",
+	Progname) ;
 
     mri_in = MRIread(in_like_fname) ;
     if (!mri_in)
       ErrorExit(ERROR_NOFILE, "%s: could not read template volume from %s",Progname, in_like_fname) ;
 
+    if (out_like_fname == NULL)
+      ErrorExit(ERROR_NOFILE, "%s: must specifiy --out_like MRI volume for cmat transform (use target volume)\n",
+	Progname) ;
     mri_out = MRIread(out_like_fname) ;
     if (!mri_out)
       ErrorExit(ERROR_NOFILE, "%s: could not read template volume from %s",Progname, out_like_fname) ;
@@ -141,6 +143,23 @@ main(int argc, char *argv[]) {
     printf("reading input CMAT files...\n") ;
     cmat_in = CMATread(in_vol) ;
 
+
+#if 0
+    if (stricmp(xform_fname, "voxel") == 0)
+    {
+      CMATtoVoxel(cmat_in, mri_out) ;
+      printf("writing transformed cmat to %s\n", out_vol) ;
+      CMATwrite(cmat_in, out_vol) ;
+      exit(0) ;
+    }
+    else if (stricmp(xform_fname, "tkreg") == 0)
+    {
+      CMATtoTKreg(cmat_in, mri_out) ;
+      printf("writing transformed cmat to %s\n", out_vol) ;
+      CMATwrite(cmat_in, out_vol) ;
+      exit(0) ;
+    }
+#endif
     transform = TransformRead(xform_fname) ;
     if (!transform)
       ErrorExit(ERROR_NOFILE, "%s: could not read transform from %s",
@@ -164,11 +183,28 @@ main(int argc, char *argv[]) {
       transform->type = lta->type ;
     }
     cmat_out = CMATtransform(cmat_in, transform, mri_in, mri_out, NULL) ;
-    MRIfree(&mri_in) ;
-    MRIfree(&mri_out) ;
+
+    switch (cmat_output_coords)
+    {
+    case LABEL_COORDS_VOXEL:
+      if (cmat_out->coords != LABEL_COORDS_VOXEL)
+	CMATtoVoxel(cmat_out, mri_out) ;
+      break ;
+    case LABEL_COORDS_SCANNER_RAS:
+      if (cmat_out->coords != LABEL_COORDS_SCANNER_RAS)
+	CMATtoScannerRAS(cmat_out, mri_out) ;
+      break ;
+    default:
+    case LABEL_COORDS_TKREG_RAS:
+      if (cmat_out->coords != LABEL_COORDS_TKREG_RAS)
+	CMATtoScannerRAS(cmat_out, mri_out) ;
+      break ;
+    }
 
     printf("writing transformed cmat to %s\n", out_vol) ;
     CMATwrite(cmat_out, out_vol) ;
+    MRIfree(&mri_in) ;
+    MRIfree(&mri_out) ;
     exit(0) ;
   }
 
@@ -385,11 +421,20 @@ get_option(int argc, char *argv[]) {
     print_help() ;
   else if (!stricmp(option, "-version"))
     print_version() ;
-  else if (!stricmp(option, "in_like") || !stricmp(option, "il")) {
+  else if (!stricmp(option, "in_like") || !stricmp(option, "in-like") || !stricmp(option, "il")) {
     in_like_fname = argv[2] ;
     nargs = 1 ;
     printf("shaping output to be like %s...\n", out_like_fname) ;
-  } else if (!stricmp(option, "out_like") || !stricmp(option, "ol")) {
+  } else if (!stricmp(option, "voxel")){
+    cmat_output_coords  = LABEL_COORDS_VOXEL ;
+    printf("transforming cmat labels to voxel coords before writing\n") ;
+  } else if (!stricmp(option, "scanner")){
+    cmat_output_coords  = LABEL_COORDS_SCANNER_RAS ;
+    printf("transforming cmat labels to scanner ras coords before writing\n") ;
+  } else if (!stricmp(option, "tkreg")){
+    cmat_output_coords  = LABEL_COORDS_TKREG_RAS ;
+    printf("transforming cmat labels to tkreg ras coords before writing\n") ;
+  } else if (!stricmp(option, "out_like") || !stricmp(option, "out-like") || !stricmp(option, "ol")) {
     out_like_fname = argv[2] ;
     nargs = 1 ;
     printf("shaping output to be like %s...\n", out_like_fname) ;
