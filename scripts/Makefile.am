@@ -207,6 +207,7 @@ tcl_setup \
 test_recon-all.csh \
 test_fs_tutorial.csh \
 thickdiffmap \
+tkmeditfv \
 trac-all \
 trac-paths \
 trac-preproc \
