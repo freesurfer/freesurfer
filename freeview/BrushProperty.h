@@ -9,8 +9,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2011/12/09 22:09:05 $
- *    $Revision: 1.13 $
+ *    $Date: 2013/04/18 19:21:27 $
+ *    $Revision: 1.14 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -66,7 +66,24 @@ public:
     return m_bFill3D;
   }
 
+  double GetFillValue()
+  {
+    return m_dFillValue;
+  }
+
+  double GetEraseValue()
+  {
+    return m_dEraseValue;
+  }
+
+signals:
+  void FillValueChanged(double);
+  void EraseValueChanged(double);
+  void BrushSizeChanged(int);
+
 public slots:
+  void SetFillValue(double val);
+  void SetEraseValue(double val);
   void SetBrushSize( int nSize );
   void SetBrushTolerance( int nTolerance );
   void SetReferenceLayer( LayerVolumeBase* layer );
@@ -88,6 +105,9 @@ protected:
   bool m_bEnableExcludeRange;
   bool m_bDrawConnectedOnly;
   bool  m_bFill3D;
+
+  double m_dFillValue;
+  double m_dEraseValue;
 
   LayerVolumeBase* m_layerRef;
 };

@@ -94,6 +94,7 @@ bool LayerConnectomeMatrix::LoadFromFile(const QString &fn_cmat, const QString &
 
   // update label coords to target coords
   double pt[3];
+  bool bVoxelCoords = (m_cmat->coords == LABEL_COORDS_VOXEL);
   for (int i = 0; i < m_cmat->nlabels; i++)
   {
     for (int j = 0; j < m_cmat->nlabels; j++)
@@ -106,7 +107,7 @@ bool LayerConnectomeMatrix::LoadFromFile(const QString &fn_cmat, const QString &
           pt[0] = label->lv[n].x;
           pt[1] = label->lv[n].y;
           pt[2] = label->lv[n].z;
-          if ( strstr(label->space,"voxel") != NULL )
+          if (bVoxelCoords)
           {
             m_mriParcel->OriginalVoxelToRAS(pt, pt);
           }

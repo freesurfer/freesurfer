@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2013/02/28 20:35:34 $
- *    $Revision: 1.21 $
+ *    $Date: 2013/04/18 19:21:27 $
+ *    $Revision: 1.22 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -65,14 +65,11 @@ public:
 
   void SaveForUndo( int nPlane );
 
-  float GetFillValue();
-  void SetFillValue( float fFill );
+  double GetFillValue();
 
-  float GetBlankValue();
-  void SetBlankValue( float fBlank );
+  double GetBlankValue();
 
   int GetBrushRadius();
-  void SetBrushRadius( int nRadius );
 
   virtual void UpdateVoxelValueRange( double fValue ) {}
 
@@ -109,6 +106,13 @@ public:
 
 signals:
   void FillValueChanged( double );
+  void EraseValueChanged( double );
+  void BrushRadiusChanged( int );
+
+public slots:
+  void SetFillValue( double fFill );
+  void SetBlankValue( double fBlank );
+  void SetBrushRadius( int nRadius );
 
 protected:
   bool SetVoxelByIndex( int* n, int nPlane, bool bAdd = true ); // true is to add, false is to remove
@@ -157,8 +161,8 @@ protected:
   vtkSmartPointer<vtkImageData> m_imageData;
   vtkSmartPointer<vtkImageData> m_imageDataRef;
 
-  float   m_fFillValue;
-  float   m_fBlankValue;
+  double   m_fFillValue;
+  double   m_fBlankValue;
 
   std::vector<UndoRedoBufferItem>  m_bufferUndo;
   std::vector<UndoRedoBufferItem>  m_bufferRedo;

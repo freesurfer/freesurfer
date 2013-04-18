@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2013/04/12 20:05:02 $
- *    $Revision: 1.85 $
+ *    $Date: 2013/04/18 19:21:27 $
+ *    $Revision: 1.86 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -33,6 +33,7 @@
 #include "LayerVolumeTrack.h"
 #include "LUTDataHolder.h"
 #include "MyUtils.h"
+#include "BrushProperty.h"
 #include <QToolBar>
 #include <QDebug>
 #include <QStringList>
@@ -684,10 +685,13 @@ void PanelVolume::OnLineEditBrushValue( const QString& strg )
   }
   else if ( bOK )
   {
+    /*
     if ( layer )
     {
       layer->SetFillValue( nVal );
     }
+    */
+    MainWindow::GetMainWindow()->GetBrushProperty()->SetFillValue(nVal);
     bool bFound = false;
     for ( int i = 0; i < ui->treeWidgetColorTable->topLevelItemCount(); i++ )
     {

@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2013/02/28 20:35:34 $
- *    $Revision: 1.25 $
+ *    $Date: 2013/04/18 19:21:27 $
+ *    $Revision: 1.26 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -43,14 +43,17 @@ LayerVolumeBase::LayerVolumeBase( QObject* parent ) : LayerEditable( parent )
 {
   m_strTypeNames.push_back( "VolumeBase" );
 
-  m_fFillValue = 1;
-  m_fBlankValue = 0;
-  m_nBrushRadius = 1;
   m_nActiveFrame = 0;
   m_propertyBrush = MainWindow::GetMainWindow()->GetBrushProperty();
+  m_fFillValue = m_propertyBrush->GetFillValue();
+  m_fBlankValue = m_propertyBrush->GetEraseValue();
+  m_nBrushRadius = m_propertyBrush->GetBrushSize();
   m_livewire = new LivewireTool();
   m_imageData = NULL;
   m_imageDataRef = NULL;
+  connect(m_propertyBrush, SIGNAL(FillValueChanged(double)), this, SLOT(SetFillValue(double)));
+  connect(m_propertyBrush, SIGNAL(EraseValueChanged(double)), this, SLOT(SetBlankValue(double)));
+  connect(m_propertyBrush, SIGNAL(BrushSizeChanged(int)), this, SLOT(SetBrushRadius(int)));
 }
 
 LayerVolumeBase::~LayerVolumeBase()
@@ -1043,25 +1046,32 @@ void LayerVolumeBase::LoadBufferItem( UndoRedoBufferItem& item, bool bIgnoreZero
   }
 }
 
-float LayerVolumeBase::GetFillValue()
+double LayerVolumeBase::GetFillValue()
 {
   return m_fFillValue;
 }
 
-void LayerVolumeBase::SetFillValue( float fFill )
+void LayerVolumeBase::SetFillValue( double fFill )
 {
-  m_fFillValue = fFill;
-  emit FillValueChanged( fFill );
+  if (m_fFillValue != fFill)
+  {
+    m_fFillValue = fFill;
+    emit FillValueChanged( fFill );
+  }
 }
 
-float LayerVolumeBase::GetBlankValue()
+double LayerVolumeBase::GetBlankValue()
 {
   return m_fBlankValue;
 }
 
-void LayerVolumeBase::SetBlankValue( float fBlank )
+void LayerVolumeBase::SetBlankValue( double fBlank )
 {
-  m_fBlankValue = fBlank;
+  if (m_fBlankValue != fBlank)
+  {
+    m_fBlankValue = fBlank;
+    emit EraseValueChanged(fBlank);
+  }
 }
 
 int LayerVolumeBase::GetBrushRadius()
@@ -1071,7 +1081,11 @@ int LayerVolumeBase::GetBrushRadius()
 
 void LayerVolumeBase::SetBrushRadius( int nRadius )
 {
-  m_nBrushRadius = nRadius;
+  if (m_nBrushRadius != nRadius)
+  {
+    m_nBrushRadius = nRadius;
+    emit BrushRadiusChanged(nRadius);
+  }
 }
 
 double LayerVolumeBase::GetMinimumVoxelSize()

@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2013/02/28 20:35:34 $
- *    $Revision: 1.32 $
+ *    $Date: 2013/04/18 19:21:27 $
+ *    $Revision: 1.33 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -70,6 +70,8 @@ ToolWindowEdit::ToolWindowEdit(QWidget *parent) :
   connect(ui->checkBoxFill3D, SIGNAL(toggled(bool)), bp, SLOT(SetFill3D(bool)));
   connect(mainwnd->GetLayerCollection("MRI"), SIGNAL(LayerAdded(Layer*)), this, SLOT(UpdateWidgets()));
   connect(mainwnd->GetLayerCollection("MRI"), SIGNAL(LayerRemoved(Layer*)), this, SLOT(UpdateWidgets()));
+  connect(bp, SIGNAL(FillValueChanged(double)), this, SLOT(UpdateWidgets()));
+  connect(bp, SIGNAL(EraseValueChanged(double)), this, SLOT(UpdateWidgets()));
   for (int i = 0; i < 3; i++)
   {
     RenderView2D* view = (RenderView2D*)mainwnd->GetRenderView(i);
@@ -185,13 +187,14 @@ void ToolWindowEdit::OnIdle()
     {
       nSel = i+1;
     }
-
     ui->comboBoxReference->addItem( mri->GetName(),  QVariant::fromValue((QObject*)mri) );
   }
   ui->comboBoxReference->setCurrentIndex( nSel );
 
   ChangeSpinBoxValue( ui->spinBoxBrushSize, bp->GetBrushSize() );
   ChangeSpinBoxValue( ui->spinBoxTolerance, bp->GetBrushTolerance() );
+  ChangeLineEditNumber(ui->lineEditBrushValue, bp->GetFillValue());
+  ChangeLineEditNumber(ui->lineEditEraseValue, bp->GetEraseValue());
 
   double* range = bp->GetDrawRange();
   ChangeLineEditNumber( ui->lineEditDrawRangeLow, range[0]);
@@ -280,6 +283,26 @@ void ToolWindowEdit::OnLineEditSmoothSD(const QString& strg)
   }
 }
 
+void ToolWindowEdit::OnLineEditFillValue(const QString &strg)
+{
+  bool bOK;
+  double value = strg.toDouble(&bOK);
+  if ( bOK )
+  {
+    MainWindow::GetMainWindow()->GetBrushProperty()->SetFillValue(value);
+  }
+}
+
+void ToolWindowEdit::OnLineEditEraseValue(const QString &strg)
+{
+  bool bOK;
+  double value = strg.toDouble(&bOK);
+  if ( bOK )
+  {
+    MainWindow::GetMainWindow()->GetBrushProperty()->SetEraseValue(value);
+  }
+}
+
 void ToolWindowEdit::OnDrawRangeChanged(const QString& strg)
 {
   bool bOK;
@@ -343,14 +366,26 @@ void ToolWindowEdit::OnReplaceLabel()
 
 void ToolWindowEdit::OnCheckReconEditing(bool bRecon)
 {
+    BrushProperty* bp = MainWindow::GetMainWindow()->GetBrushProperty();
     if (bRecon)
     {
+      /*
         QList<Layer*> layers = MainWindow::GetMainWindow()->GetLayers("MRI");
         foreach (Layer* layer, layers)
         {
             LayerMRI* mri = qobject_cast<LayerMRI*>(layer);
             if (mri)
-                mri->SetFillValue(1.0);
+            {
+                mri->SetFillValue(255);
+                mri->SetBlankValue(1.0);
+            }
         }
+        */
+       bp->SetFillValue(255);
+       bp->SetEraseValue(1);
+    }
+    else
+    {
+      bp->SetEraseValue(0);
     }
 }
