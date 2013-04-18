@@ -9,8 +9,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2013/04/15 21:56:21 $
- *    $Revision: 1.115 $
+ *    $Date: 2013/04/18 14:00:45 $
+ *    $Revision: 1.116 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -74,6 +74,13 @@ LabelReadFrom(const char *subject_name, FILE *fp)
       *(cp+strlen(cp)-1) = 0 ;
     sprintf(area->space, "%s", str+strlen("vox2ras=")) ;
   }
+
+  if (strstr(cp, "voxel"))
+    area->coords = LABEL_COORDS_VOXEL ;
+  else if (strstr(cp, "scanner"))
+    area->coords = LABEL_COORDS_SCANNER_RAS ;
+  else
+    area->coords = LABEL_COORDS_TKREG_RAS ;
 
   cp = fgetl(line, STRLEN, fp) ;
   if (!cp)
@@ -3383,6 +3390,7 @@ LabelToScannerRAS(LABEL *lsrc, MRI *mri, LABEL *ldst)
     ldst->lv[i].stat = lsrc->lv[i].stat ;
   }
   strncpy (ldst->space, "scanner", sizeof(ldst->space));
+  ldst->coords = LABEL_COORDS_SCANNER_RAS ;
   VectorFree(&v1) ; VectorFree(&v2) ; MatrixFree(&M_surface_to_RAS) ;
   return(ldst) ;
 }
@@ -3417,6 +3425,7 @@ LabelFromScannerRAS(LABEL *lsrc, MRI *mri, LABEL *ldst)
     ldst->lv[i].stat = lsrc->lv[i].stat ;
   }
   strcpy (ldst->space, "TkReg") ;
+  ldst->coords = LABEL_COORDS_TKREG_RAS ;
   VectorFree(&v1) ; VectorFree(&v2) ; MatrixFree(&M_surface_to_RAS) ; MatrixFree(&M_surface_from_RAS) ;
   return(ldst) ;
 }
@@ -3454,6 +3463,7 @@ LabelToVoxel(LABEL *lsrc, MRI *mri, LABEL *ldst)
     ldst->lv[i].stat = lsrc->lv[i].stat ;
   }
   strncpy (ldst->space, "voxel", sizeof(ldst->space));
+  ldst->coords = LABEL_COORDS_VOXEL ;
   VectorFree(&v1) ; VectorFree(&v2) ; MatrixFree(&M_surface_to_vox) ;
   return(ldst) ;
 }

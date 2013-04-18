@@ -9,8 +9,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2013/04/15 21:56:21 $
- *    $Revision: 1.5 $
+ *    $Date: 2013/04/18 14:00:45 $
+ *    $Revision: 1.6 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -61,6 +61,11 @@ CMATread(const char *fname)
     {
       fscanf(fp, "%d %d\n", &ind1, &ind2) ;
       cmat->splines[ind1][ind2] = LabelReadFrom(NULL, fp) ;
+      if (cmat->coords == LABEL_COORDS_NONE)
+      {
+	cmat->coords = cmat->splines[ind1][ind2]->coords ;
+	printf("reading cmat in coords %d\n", cmat->coords) ;
+      }
       if (feof(fp))
 	break ;
     }
@@ -112,6 +117,7 @@ CMATalloc(int nlabels, int *labels)
   if (cmat == NULL)
     ErrorExit(ERROR_NOMEMORY, "CMATalloc(%d): could not allocate cmat", nlabels) ;
 
+  cmat->coords = LABEL_COORDS_NONE ;
   cmat->nlabels = nlabels ;
   cmat->labels = (int *)calloc(nlabels, sizeof(int)) ;
   if (cmat->labels == NULL)
@@ -175,7 +181,7 @@ CMATtransform(CMAT *csrc, TRANSFORM *xform, MRI *mri_src, MRI *mri_dst, CMAT *cd
     cdst->weights[i] = csrc->weights[i] ;
     for (j = i+1 ; j < csrc->nlabels ; j++)
     {
-      if (csrc->splines[i])
+      if (csrc->splines[i][j])
       {
 	cdst->splines[i][j] = LabelTransform(csrc->splines[i][j], xform, mri_src, NULL) ;
       }
@@ -183,5 +189,65 @@ CMATtransform(CMAT *csrc, TRANSFORM *xform, MRI *mri_src, MRI *mri_dst, CMAT *cd
   }
 
   return(cdst) ;
+}
+
+int
+CMATtoVoxel(CMAT *cmat, MRI *mri)
+{
+  int  i, j ;
+
+  cmat->coords = LABEL_COORDS_VOXEL ;
+  for (i = 0 ; i < cmat->nlabels ; i++)
+  {
+    cmat->weights[i] = cmat->weights[i] ;
+    for (j = i+1 ; j < cmat->nlabels ; j++)
+    {
+      if (cmat->splines[i][j])
+      {
+	LabelToVoxel(cmat->splines[i][j], mri, cmat->splines[i][j]) ;
+      }
+    }
+  }
+
+  return(NO_ERROR) ;
+}
+int CMATtoTKreg(CMAT *cmat, MRI *mri) 
+{
+  int  i, j ;
+
+  cmat->coords = LABEL_COORDS_TKREG_RAS ;
+  for (i = 0 ; i < cmat->nlabels ; i++)
+  {
+    cmat->weights[i] = cmat->weights[i] ;
+    for (j = i+1 ; j < cmat->nlabels ; j++)
+    {
+      if (cmat->splines[i][j])
+      {
+	LabelFromScannerRAS(cmat->splines[i][j], mri, cmat->splines[i][j]) ;
+      }
+    }
+  }
+
+  return(NO_ERROR) ;
+}
+int
+CMATtoScannerRAS(CMAT *cmat, MRI *mri)
+{
+  int  i, j ;
+
+  cmat->coords = LABEL_COORDS_SCANNER_RAS ;
+  for (i = 0 ; i < cmat->nlabels ; i++)
+  {
+    cmat->weights[i] = cmat->weights[i] ;
+    for (j = i+1 ; j < cmat->nlabels ; j++)
+    {
+      if (cmat->splines[i][j])
+      {
+	LabelToScannerRAS(cmat->splines[i][j], mri, cmat->splines[i][j]) ;
+      }
+    }
+  }
+
+  return(NO_ERROR) ;
 }
 
