@@ -9,8 +9,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2013/04/15 21:56:39 $
- *    $Revision: 1.4 $
+ *    $Date: 2013/04/18 20:04:41 $
+ *    $Revision: 1.5 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -38,10 +38,11 @@ extern "C" {
 
 typedef struct
 {
- int  nlabels ;       // # of labels
- int   *labels ;      // annot value of each label
- LABEL ***splines ;    // nlabels x nlabels splines
- double **weights ;   // nlabels x nlabels measure of connection strength
+  int    coords ;        // taken from first non-NULL label. Defined in label.h
+  int    nlabels ;       // # of labels
+  int    *labels ;      // annot value of each label
+  LABEL   ***splines ;    // nlabels x nlabels splines
+  double  **weights ;   // nlabels x nlabels measure of connection strength
 } CMAT ;
 
 
@@ -50,6 +51,9 @@ int CMATwrite(CMAT *cmat, const char *fname) ;
 CMAT *CMATalloc(int nlabels, int *labels) ;
 int CMATfree(CMAT **pcmat) ;
 CMAT *CMATtransform(CMAT *csrc, TRANSFORM *xform, MRI *mri_src, MRI *mri_dst, CMAT *cdst) ;
+int CMATtoVoxel(CMAT *cmat, MRI *mri) ;
+int CMATtoTKreg(CMAT *cmat, MRI *mri) ;
+int CMATtoScannerRAS(CMAT *cmat, MRI *mri) ;
 
 #if defined(__cplusplus)
 };
