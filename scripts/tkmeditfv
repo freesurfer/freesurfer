@@ -1,0 +1,382 @@
+#!/bin/tcsh -f
+# tkmeditfv
+
+set VERSION = '$Id: tkmeditfv,v 1.4.2.2 2013/04/18 22:58:07 greve Exp $';
+
+set subject = ();
+set overlay = ();
+set mainvol = ();
+set auxvol = ();
+set auxvol0 = ();
+set segvol = ();
+set segvol0 = ();
+set segctab = ();
+set surflist = ();
+set surflist0 = ();
+set mainsurf = ();
+set auxsurf = ();
+set DoSurfs = 0;
+set overlay = ();
+set overlayreg = ();
+set twfvol = ();
+set twfreg = ();
+set segcolor = $FREESURFER_HOME/FreeSurferColorLUT.txt
+set segopacity = .3;
+set fthresh = 2;
+set fmax    = 5;
+set label = ();
+set UseTkMedit = 0;
+set surfcolor = (yellow red yellow red);
+
+set tmpdir = ();
+set cleanup = 1;
+set LF = ();
+
+set inputargs = ($argv);
+set PrintHelp = 0;
+
+if($#argv == 0) goto usage_exit;
+set n = `echo $argv | grep -e -help | wc -l` 
+if($n != 0) then
+  set PrintHelp = 1;
+  goto usage_exit;
+endif
+set n = `echo $argv | grep -e -version | wc -l` 
+if($n != 0) then
+  echo $VERSION
+  exit 0;
+endif
+goto parse_args;
+parse_args_return:
+goto check_params;
+check_params_return:
+
+set StartTime = `date`;
+set tSecStart = `date '+%s'`;
+
+#========================================================
+
+if(! $UseTkMedit) then
+  ### FreeView ####----------------------------------------------
+  set cmd = (freeview  -v $mainvol)
+  if($#auxvol) set cmd = ($cmd -v $auxvol)
+  if($#segvol) set cmd = ($cmd -v "$segvol":"lut=$segcolor":"opacity=$segopacity":"colormap=lut")
+  if($#label) set cmd = ($cmd -l $label)
+  if($#overlay) then
+    set fmid = `echo "($fthresh+$fmax)/2"|bc -l`
+    set fvopt = ($overlay":"colormap=heat":"heatscale=$fthresh,$fmid,$fmax)
+    if($#overlayreg) set fvopt = ($fvopt":"reg=$overlayreg)
+    set cmd = ($cmd -v $fvopt)
+  endif
+  if($#twfvol) then
+    set fvopt = ($twfvol)
+    if($#twfreg) set fvopt = ($fvopt":"reg=$twfreg)
+    set cmd = ($cmd -v $fvopt)
+  endif
+  @ nth = 0;
+  foreach surf ($surflist)
+    @ nth = $nth + 1;
+    set cmd = ($cmd --surface $surf":"edgecolor=$surfcolor[$nth])
+  end
+else
+  ### tkmedit ####----------------------------------------------
+  set cmd = tkmedit
+  if($#subject) then 
+    set cmd = ($cmd $subject)
+  else
+    set cmd = ($cmd -f)
+  endif
+  set cmd = ($cmd $mainvol)
+  if($#mainsurf) set cmd = ($cmd $mainsurf)
+  if($#auxvol) set cmd = ($cmd -aux $auxvol)
+  if($#segvol) set cmd = ($cmd -seg $segvol $segcolor -opacity $segopacity)
+  if($#overlay) then
+    set cmd = ($cmd -overlay $overlay)
+    if($#overlayreg) set cmd = ($cmd -overlay-reg $overlayreg)
+  endif
+  if($#twfvol) then
+    set cmd = ($cmd -t $twfvol)
+    if($#twfreg) set cmd = ($cmd -timecourse-reg $twfreg)
+  endif
+  if($#label) set cmd = ($cmd -label $label)
+  if($#auxsurf) set cmd = ($cmd -aux-surface $auxsurf)
+  if($DoSurfs) set cmd = ($cmd -surfs)
+endif
+echo $cmd
+$cmd
+
+#========================================================
+
+exit 0
+
+###############################################
+
+############--------------##################
+parse_args:
+set cmdline = ($argv);
+
+if("$argv[1]" == "-f") then
+  set flag = $argv[1]; shift;
+  set mainvol0 = $argv[1]; shift;
+else
+  set subject = $argv[1]; shift;
+  set mainvol0 = $argv[1]; shift;
+  if(! `isargflag $argv`) then
+    set mainsurf = $argv[1]
+    set surflist0 = ($surflist0 $mainsurf); shift;
+  endif
+endif
+
+while( $#argv != 0 )
+
+  set flag = $argv[1]; shift;
+  
+  switch($flag)
+
+    case "-aux":
+      if($#argv < 1) goto arg1err;
+      set auxvol0 = $argv[1]; shift;
+      breaksw
+
+    case "-seg":
+      if($#argv < 1) goto arg1err;
+      set segvol0 = $argv[1]; shift;
+      if(! `isargflag $argv`) then
+        set segcolor = $argv[1]; shift;
+      endif
+      breaksw
+
+    case "-aseg":
+      set segvol0 = aseg.mgz
+      breaksw
+
+    case "-aparc+aseg":
+      set segvol0 = aparc+aseg.mgz
+      breaksw
+
+    case "-op":
+    case "-opacity":
+      if($#argv < 1) goto arg1err;
+      set segopacity = $argv[1]; shift;
+      breaksw
+
+    case "-label":
+    case "-l":
+      if($#argv < 1) goto arg1err;
+      set label = $argv[1]; shift;
+      breaksw
+
+    case "-reg":
+      if($#argv < 1) goto arg1err;
+      set overlayreg = $argv[1]; shift;
+      set twfreg = $overlayreg;
+      breaksw
+
+    case "-overlay-reg":
+      if($#argv < 1) goto arg1err;
+      set overlayreg = $argv[1]; shift;
+      breaksw
+
+    case "-timecourse-reg":
+      if($#argv < 1) goto arg1err;
+      set twfreg = $argv[1]; shift;
+      breaksw
+
+    case "-overlay":
+    case "-ov":
+      if($#argv < 1) goto arg1err;
+      set ov = $argv[1]; shift;
+      if(! -e $ov) then
+        echo "ERROR: cannot find $ov"
+        exit 1;
+      endif
+      set overlay = ($overlay $ov)
+      breaksw
+
+    case "-timecourse":
+    case "-t":
+      if($#argv < 1) goto arg1err;
+      set twfvol = $argv[1]; shift;
+      if(! -e $twfvol) then
+        echo "ERROR: cannot find $twfvol"
+        exit 1;
+      endif
+      breaksw
+
+    case "-fminmax":
+      if($#argv < 2) goto arg2err;
+      set fthresh = $argv[1]; shift;
+      set fmax = $argv[1]; shift;
+      breaksw
+
+    case "-fmin":
+    case "-fthresh":
+      if($#argv < 1) goto arg1err;
+      set fthresh = $argv[1]; shift;
+      breaksw
+
+    case "-fmax":
+      if($#argv < 1) goto arg1err;
+      set fmax = $argv[1]; shift;
+      breaksw
+
+    case "-surf":
+      if($#argv < 1) goto arg1err;
+      set mainsurf = $argv[1]
+      set surflist0 = ($surflist0 $mainsurf); shift;
+      breaksw
+
+    case "-aux-surface":
+    case "-aux-surf":
+      if($#argv < 1) goto arg1err;
+      set auxsurf = $argv[1]
+      set surflist0 = ($surflist0 $auxsurf); shift;
+      breaksw
+
+    case "-surfs":
+      set DoSurfs = 1;
+      set surflist0 = (lh.white lh.pial rh.white rh.pial)
+      breaksw
+
+    case "-tkmedit":
+    case "-tkm":
+      set UseTkMedit = 1;
+      breaksw
+
+    case "--nolog":
+    case "--no-log":
+      set LF = /dev/null
+      breaksw
+
+    case "--tmp":
+    case "--tmpdir":
+      if($#argv < 1) goto arg1err;
+      set tmpdir = $argv[1]; shift;
+      set cleanup = 0;
+      breaksw
+
+    case "--nocleanup":
+      set cleanup = 0;
+      breaksw
+
+    case "--cleanup":
+      set cleanup = 1;
+      breaksw
+
+    case "-debug":
+    case "--debug":
+      set verbose = 1;
+      set echo = 1;
+      breaksw
+
+    default:
+      echo ERROR: Flag $flag unrecognized. 
+      echo $cmdline
+      exit 1
+      breaksw
+  endsw
+
+end
+
+goto parse_args_return;
+############--------------##################
+
+############--------------##################
+check_params:
+
+if($#subject) then
+  if($subject == getreg) then
+    if($#overlayreg == 0) then
+      echo "ERROR: must supply regfile with getreg"
+      exit 1;
+    endif
+    set subject = `head -n 1 $overlayreg`
+  endif
+  if(! -e $SUBJECTS_DIR/$subject) then
+    echo "ERROR: cannot find $subject"
+    exit 1;
+  endif
+  if(-e $mainvol0) then
+    set mainvol = $mainvol0
+  else
+    set mainvol = $SUBJECTS_DIR/$subject/mri/$mainvol0
+  endif
+  if($#auxvol0) then
+    if(-e $auxvol0) then
+      set auxvol = $auxvol0
+    else
+      set auxvol = $SUBJECTS_DIR/$subject/mri/$auxvol0
+    endif
+  endif
+  if($#segvol0) then
+    if(-e $segvol0) then
+      set segvol = $segvol0
+    else
+      set segvol = $SUBJECTS_DIR/$subject/mri/$segvol0
+    endif
+  endif
+  foreach surf ($surflist0)
+    if(-e $surf) then
+      set surflist = ($surflist $surf)
+    else
+      set surfpath = $SUBJECTS_DIR/$subject/surf/$surf
+      set surflist = ($surflist $surfpath)
+    endif
+  end
+  if($#label) then
+    if(! -e $label) then
+      set l0 = $SUBJECTS_DIR/$subject/label/$label
+      if(! -e $l0 && ! -e $label) then 
+        echo "ERROR: cannot find $label or $l0"
+        exit 1;
+      endif
+      set label = $l0
+    endif
+  endif
+else
+  set mainvol = $mainvol0
+  if($#auxvol0) set auxvol = $auxvol0
+  if($#segvol0) set segvol = $segvol0
+  set surflist = ($surflist0)
+endif
+
+if($#label) then
+  if(! -e $label) then
+    echo "ERROR: cannot find $label"
+    exit 1;
+  endif
+endif
+
+goto check_params_return;
+############--------------##################
+
+############--------------##################
+arg1err:
+  echo "ERROR: flag $flag requires one argument"
+  exit 1
+############--------------##################
+arg2err:
+  echo "ERROR: flag $flag requires two arguments"
+  exit 1
+############--------------##################
+
+############--------------##################
+usage_exit:
+  echo ""
+  echo "This is a script that runs freeview with arguments like tkmedit."
+  echo "Not all tkmedit functionality is replicated."
+  echo ""
+  echo "tkmeditfv subject mainvol -aux auxvol -seg segvol -ov overlay -reg overlayreg "
+  echo "tkmeditfv -f mainvol -aux auxvol -seg segvol -ov overlay -reg overlayreg "
+  echo ""
+  echo "-tkmedit : use tkmedit instead of freeview"
+  echo "-aparc+aseg"
+  echo ""
+  if(! $PrintHelp) exit 1;
+  echo $VERSION
+  cat $0 | awk 'BEGIN{prt=0}{if(prt) print $0; if($1 == "BEGINHELP") prt = 1 }'
+exit 1;
+
+#---- Everything below here is printed out as part of help -----#
+BEGINHELP
+
