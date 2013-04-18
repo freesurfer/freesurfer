@@ -10,8 +10,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2013/04/15 21:56:39 $
- *    $Revision: 1.57 $
+ *    $Date: 2013/04/18 14:01:09 $
+ *    $Revision: 1.58 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -46,6 +46,7 @@ LABEL_VERTEX, LV ;
 typedef struct
 {
   int    max_points ;         /* # of points allocated */
+  int    coords ;             // one of the LABEL_COORDS* constants below
   int    n_points ;           /* # of points in area */
   char   name[STRLEN] ;       /* name of label file */
   char   subject_name[100] ;  /* name of subject */
@@ -56,6 +57,11 @@ typedef struct
   char   space[100];          /* space description of the coords */
 }
 LABEL ;
+
+#define LABEL_COORDS_NONE         0
+#define LABEL_COORDS_TKREG_RAS    1
+#define LABEL_COORDS_SCANNER_RAS  2
+#define LABEL_COORDS_VOXEL        3
 
 #include "mrisurf.h" // MRI_SURFACE, MRIS
 
