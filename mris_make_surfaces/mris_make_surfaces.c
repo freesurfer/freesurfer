@@ -12,8 +12,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2013/04/13 19:49:04 $
- *    $Revision: 1.139 $
+ *    $Date: 2013/04/19 16:37:40 $
+ *    $Revision: 1.140 $
  *
  * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -56,7 +56,7 @@
 #define CONTRAST_FLAIR 2
 
 static char vcid[] =
-  "$Id: mris_make_surfaces.c,v 1.139 2013/04/13 19:49:04 fischl Exp $";
+  "$Id: mris_make_surfaces.c,v 1.140 2013/04/19 16:37:40 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -265,13 +265,13 @@ main(int argc, char *argv[])
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mris_make_surfaces.c,v 1.139 2013/04/13 19:49:04 fischl Exp $",
+   "$Id: mris_make_surfaces.c,v 1.140 2013/04/19 16:37:40 fischl Exp $",
    "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mris_make_surfaces.c,v 1.139 2013/04/13 19:49:04 fischl Exp $",
+           "$Id: mris_make_surfaces.c,v 1.140 2013/04/19 16:37:40 fischl Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
   {
@@ -559,7 +559,7 @@ main(int argc, char *argv[])
                               &gray_std) ;
     if (use_mode)
     {
-      printf("using class modes intead of means....\n") ;
+      printf("using class modes intead of means, discounting robust sigmas....\n") ;
 //      MRIScomputeClassModes(mris, mri_T1, &white_mode, &gray_mode, NULL, &white_std, &gray_std, NULL);
       MRIScomputeClassModes(mris, mri_T1, &white_mode, &gray_mode, NULL, NULL, NULL, NULL);
       white_mean = white_mode ;
