@@ -9,8 +9,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2013/04/18 14:00:45 $
- *    $Revision: 1.116 $
+ *    $Date: 2013/04/19 16:38:23 $
+ *    $Revision: 1.117 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -67,6 +67,8 @@ LabelReadFrom(const char *subject_name, FILE *fp)
     ErrorExit(ERROR_NOMEMORY,"%s: could not allocate LABEL struct.",Progname);
   }
   cp = fgets(line, STRLEN, fp) ;  // read comment line
+  if (cp == NULL)
+    return(NULL) ;
   str = strstr(cp, "vox2ras=") ;
   if (str)
   {
