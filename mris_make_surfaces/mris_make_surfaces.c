@@ -12,8 +12,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2013/04/17 17:42:24 $
- *    $Revision: 1.127.2.4 $
+ *    $Date: 2013/04/19 20:15:38 $
+ *    $Revision: 1.127.2.5 $
  *
  * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -56,7 +56,7 @@
 #define CONTRAST_FLAIR 2
 
 static char vcid[] =
-  "$Id: mris_make_surfaces.c,v 1.127.2.4 2013/04/17 17:42:24 nicks Exp $";
+  "$Id: mris_make_surfaces.c,v 1.127.2.5 2013/04/19 20:15:38 nicks Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -259,13 +259,13 @@ main(int argc, char *argv[])
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mris_make_surfaces.c,v 1.127.2.4 2013/04/17 17:42:24 nicks Exp $",
+   "$Id: mris_make_surfaces.c,v 1.127.2.5 2013/04/19 20:15:38 nicks Exp $",
    "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mris_make_surfaces.c,v 1.127.2.4 2013/04/17 17:42:24 nicks Exp $",
+           "$Id: mris_make_surfaces.c,v 1.127.2.5 2013/04/19 20:15:38 nicks Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
   {
@@ -548,13 +548,14 @@ main(int argc, char *argv[])
               (mri_wm, NULL, WM_MIN_VAL, MRI_NOT_WHITE, MRI_WHITE) ;
     fprintf(stderr, "computing class statistics...\n");
     MRISsaveVertexPositions(mris, WHITE_VERTICES) ;
-    MRIScomputeClassModes(mris, mri_T1, &white_mode, &gray_mode, NULL);
     MRIcomputeClassStatistics(mri_T1, mri_tmp, 30, WHITE_MATTER_MEAN,
                               &white_mean, &white_std, &gray_mean,
                               &gray_std) ;
     if (use_mode)
     {
-      printf("using class modes intead of means....\n") ;
+      printf("using class modes intead of means, discounting robust sigmas....\n") ;
+//      MRIScomputeClassModes(mris, mri_T1, &white_mode, &gray_mode, NULL, &white_std, &gray_std, NULL);
+      MRIScomputeClassModes(mris, mri_T1, &white_mode, &gray_mode, NULL);
       white_mean = white_mode ;
       gray_mean = gray_mode ;
     }
