@@ -1,6 +1,6 @@
 /**
  * @file  mri_transform.c
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief program to transform an mri or cmat structure using a linear transform
  *
  * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
  */
@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2013/04/18 14:01:25 $
- *    $Revision: 1.17 $
+ *    $Date: 2013/04/21 17:10:41 $
+ *    $Revision: 1.18 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -40,9 +40,10 @@
 #include "gcamorph.h"
 #include "cmat.h"
 #include "transform.h"
+#include "cma.h"
 
 double MRIcomputeLinearTransformLabelDist(MRI *mri_src, MATRIX *mA, int label) ;
-static char vcid[] = "$Id: mri_transform.c,v 1.17 2013/04/18 14:01:25 fischl Exp $";
+static char vcid[] = "$Id: mri_transform.c,v 1.18 2013/04/21 17:10:41 fischl Exp $";
 
 //E/ For transformations: for case LINEAR_RAS_TO_RAS, we convert to
 //vox2vox with MRIrasXformToVoxelXform() in mri.c; for case
@@ -94,7 +95,7 @@ main(int argc, char *argv[]) {
 #endif
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_transform.c,v 1.17 2013/04/18 14:01:25 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_transform.c,v 1.18 2013/04/21 17:10:41 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -167,6 +168,8 @@ main(int argc, char *argv[]) {
     lta = (LTA *)(transform->xform) ;
     if (lta->type == LINEAR_COR_TO_COR)
     {
+      MATRIX *M ;
+
       LTAsetVolGeom(lta, mri_in, mri_out) ;
       printf("src - %s\n", mri_in->fname) ;
       printf("dst - %s\n", mri_out->fname) ;
@@ -175,7 +178,14 @@ main(int argc, char *argv[]) {
 #if 0
       LTAchangeType(lta, LINEAR_RAS_TO_RAS) ;
 #else
-      lta->xforms[0].m_L = MRItkReg2Native(mri_in, mri_out, lta->xforms[0].m_L) ;
+      M = MRItkReg2Native(mri_in, mri_out, lta->xforms[0].m_L) ;
+      MatrixFree(&lta->xforms[0].m_L) ;
+#if 0
+      lta->xforms[0].m_L  = MatrixInverse(M, NULL) ;
+      MatrixFree(&M) ;
+#else
+      lta->xforms[0].m_L  = M ;
+#endif      
       lta->type = LINEAR_RAS_TO_RAS ;
 #endif
       printf("scanner RAS matrix\n") ;
@@ -184,6 +194,14 @@ main(int argc, char *argv[]) {
     }
     cmat_out = CMATtransform(cmat_in, transform, mri_in, mri_out, NULL) ;
 
+    if (DIAG_VERBOSE_ON)
+    {
+      printf("writing before and after labels from %s (%d) to %s (%d)\n",
+	     cma_label_to_name(cmat_in->labels[0]), cmat_in->labels[0],
+	     cma_label_to_name(cmat_in->labels[3]), cmat_in->labels[3]) ;
+      LabelWrite(cmat_in->splines[0][3], "before.label") ;
+      LabelWrite(cmat_out->splines[0][3], "after.label") ;
+    }
     switch (cmat_output_coords)
     {
     case LABEL_COORDS_VOXEL:
