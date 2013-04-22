@@ -60,6 +60,7 @@ public slots:
 
   void RebuildSplineActors();
   void UpdateOpacity();
+  void UpdateSplineColor();
 
 private:
   void BuildLabelActors();

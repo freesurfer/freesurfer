@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2013/04/12 20:05:02 $
- *    $Revision: 1.239 $
+ *    $Date: 2013/04/22 17:33:28 $
+ *    $Revision: 1.240 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -651,6 +651,7 @@ bool MainWindow::DoParseCommand(bool bAutoQuit)
     floatingArgs << tmp_ar[i].c_str();
   }
 
+  bool bReverseOrder = m_cmdParser->Found("rorder");
   if ( m_cmdParser->Found("cmd", &sa))
   {
     this->AddScript( QString("loadcommand ") + sa[0]);
@@ -710,6 +711,7 @@ bool MainWindow::DoParseCommand(bool bAutoQuit)
     this->AddScript( QString("setviewsize ") + sa[0] + " " + sa[1] );
   }
 
+  QStringList cmds;
   if ( floatingArgs.size() > 0 )
   {
     for ( int i = 0; i < floatingArgs.size(); i++ )
@@ -719,7 +721,7 @@ bool MainWindow::DoParseCommand(bool bAutoQuit)
       {
         script += " r";
       }
-      this->AddScript( script );
+      cmds << script;
     }
   }
 
@@ -734,9 +736,18 @@ bool MainWindow::DoParseCommand(bool bAutoQuit)
       {
         script += " r";
       }
-      this->AddScript( script );
+      cmds << script;
     }
   }
+
+  if (bReverseOrder)
+  {
+    QStringList tempList;
+    for (int i = cmds.size()-1; i >= 0; i--)
+      tempList << cmds[i];
+    cmds = tempList;
+  }
+  AddScripts(cmds);
 
   nRepeats = m_cmdParser->GetNumberOfRepeats( "dti" );
   for ( int n = 0; n < nRepeats; n++ )
@@ -769,16 +780,26 @@ bool MainWindow::DoParseCommand(bool bAutoQuit)
     }
   }
 
+  cmds.clear();
   nRepeats = m_cmdParser->GetNumberOfRepeats( "l" );
   for ( int n = 0; n < nRepeats; n++ )
   {
     m_cmdParser->Found( "l", &sa, n );
     for (int i = 0; i < sa.size(); i++ )
     {
-      this->AddScript( QString("loadroi ") + sa[i] );
+      cmds << (QString("loadroi ") + sa[i]);
     }
   }
+  if (bReverseOrder)
+  {
+    QStringList tempList;
+    for (int i = cmds.size()-1; i >= 0; i--)
+      tempList << cmds[i];
+    cmds = tempList;
+  }
+  AddScripts(cmds);
 
+  cmds.clear();
   nRepeats = m_cmdParser->GetNumberOfRepeats( "f" );
   for ( int n = 0; n < nRepeats; n++ )
   {
@@ -791,9 +812,17 @@ bool MainWindow::DoParseCommand(bool bAutoQuit)
       {
         script += " r";
       }
-      this->AddScript( script );
+      cmds << script;
     }
   }
+  if (bReverseOrder)
+  {
+    QStringList tempList;
+    for (int i = cmds.size()-1; i >= 0; i--)
+      tempList << cmds[i];
+    cmds = tempList;
+  }
+  AddScripts(cmds);
 
   nRepeats = m_cmdParser->GetNumberOfRepeats( "t" );
   for ( int n = 0; n < nRepeats; n++ )
@@ -805,7 +834,7 @@ bool MainWindow::DoParseCommand(bool bAutoQuit)
     }
   }
 
-
+  cmds.clear();
   nRepeats = m_cmdParser->GetNumberOfRepeats( "w" );
   for ( int n = 0; n < nRepeats; n++ )
   {
@@ -818,9 +847,17 @@ bool MainWindow::DoParseCommand(bool bAutoQuit)
       {
         script += " r";
       }
-      this->AddScript( script );
+      cmds << script;
     }
   }
+  if (bReverseOrder)
+  {
+    QStringList tempList;
+    for (int i = cmds.size()-1; i >= 0; i--)
+      tempList << cmds[i];
+    cmds = tempList;
+  }
+  AddScripts(cmds);
 
   nRepeats = m_cmdParser->GetNumberOfRepeats( "c" );
   for ( int n = 0; n < nRepeats; n++ )
@@ -994,6 +1031,11 @@ bool MainWindow::IsEmpty()
 void MainWindow::AddScript(const QString & command)
 {
   m_scripts << command;
+}
+
+void MainWindow::AddScripts(const QStringList &cmds)
+{
+  m_scripts << cmds;
 }
 
 void MainWindow::OnIdle()

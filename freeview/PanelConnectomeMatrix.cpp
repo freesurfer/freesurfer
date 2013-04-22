@@ -35,6 +35,7 @@ void PanelConnectomeMatrix::ConnectLayer( Layer* layer_in )
   connect(p, SIGNAL(PropertyChanged()), this, SLOT(UpdateWidgets()), Qt::UniqueConnection);
   connect(ui->doubleSpinBoxFromOpacity, SIGNAL(valueChanged(double)), p, SLOT(SetFromLabelOpacity(double)));
   connect(ui->doubleSpinBoxToOpacity, SIGNAL(valueChanged(double)), p, SLOT(SetToLabelOpacity(double)));
+  connect( ui->colorPickerSpline, SIGNAL(colorChanged(QColor)), p, SLOT(SetSplineColor(QColor)));
   /*
   connect( ui->doubleSpinBoxOpacity, SIGNAL(valueChanged(double)), p, SLOT(SetOpacity(double)) );
   connect( ui->checkBoxSmooth, SIGNAL(stateChanged(int)), p, SLOT(SetTextureSmoothing(int)) );
@@ -88,6 +89,9 @@ void PanelConnectomeMatrix::DoUpdateWidgets()
     dval = layer->GetProperty()->GetToLabelOpacity();
     ui->sliderToOpacity->setValue((int)(dval*100));
     ChangeDoubleSpinBoxValue( ui->doubleSpinBoxToOpacity, dval );
+
+    ChangeLineEditNumber(ui->lineEditSplineRadius, layer->GetProperty()->GetSplineRadius());
+    ui->colorPickerSpline->setCurrentColor(layer->GetProperty()->GetSplineColor());
   }
 
   if (m_bColorTableDirty)
@@ -204,5 +208,16 @@ void PanelConnectomeMatrix::OnSliderToOpacity(int val)
   if (layer)
   {
     layer->GetProperty()->SetToLabelOpacity(val/100.0);
+  }
+}
+
+void PanelConnectomeMatrix::OnLineEditSplineRadius(const QString &strg)
+{
+  LayerConnectomeMatrix* layer = GetCurrentLayer<LayerConnectomeMatrix*>();
+  bool bOK;
+  double val = strg.toDouble(&bOK);
+  if (layer && bOK && val > 0)
+  {
+    layer->GetProperty()->SetSplineRadius(val);
   }
 }

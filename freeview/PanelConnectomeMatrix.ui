@@ -119,7 +119,7 @@
        <bool>false</bool>
       </property>
       <property name="selectionMode">
-       <enum>QAbstractItemView::MultiSelection</enum>
+       <enum>QAbstractItemView::ExtendedSelection</enum>
       </property>
       <property name="rootIsDecorated">
        <bool>false</bool>
@@ -258,7 +258,7 @@
        <bool>false</bool>
       </property>
       <property name="selectionMode">
-       <enum>QAbstractItemView::MultiSelection</enum>
+       <enum>QAbstractItemView::ExtendedSelection</enum>
       </property>
       <property name="rootIsDecorated">
        <bool>false</bool>
@@ -327,6 +327,74 @@
      </widget>
     </item>
     <item>
+     <layout class="QGridLayout" name="gridLayout_2" columnstretch="0,1">
+      <item row="0" column="0">
+       <widget class="QLabel" name="label_5">
+        <property name="text">
+         <string>Spline radius</string>
+        </property>
+       </widget>
+      </item>
+      <item row="0" column="1">
+       <layout class="QHBoxLayout" name="horizontalLayout_4">
+        <item>
+         <widget class="QLineEdit" name="lineEditSplineRadius">
+          <property name="maximumSize">
+           <size>
+            <width>60</width>
+            <height>16777215</height>
+           </size>
+          </property>
+          <property name="text">
+           <string>0.5</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <spacer name="horizontalSpacer_2">
+          <property name="orientation">
+           <enum>Qt::Horizontal</enum>
+          </property>
+          <property name="sizeHint" stdset="0">
+           <size>
+            <width>40</width>
+            <height>20</height>
+           </size>
+          </property>
+         </spacer>
+        </item>
+       </layout>
+      </item>
+      <item row="1" column="0">
+       <widget class="QLabel" name="label_6">
+        <property name="text">
+         <string>Spline color</string>
+        </property>
+       </widget>
+      </item>
+      <item row="1" column="1">
+       <layout class="QHBoxLayout" name="horizontalLayout_5">
+        <item>
+         <widget class="QtColorPicker" name="colorPickerSpline" native="true"/>
+        </item>
+        <item>
+         <spacer name="horizontalSpacer_3">
+          <property name="orientation">
+           <enum>Qt::Horizontal</enum>
+          </property>
+          <property name="sizeHint" stdset="0">
+           <size>
+            <width>40</width>
+            <height>20</height>
+           </size>
+          </property>
+         </spacer>
+        </item>
+       </layout>
+      </item>
+     </layout>
+    </item>
+    <item>
      <spacer name="verticalSpacer">
       <property name="orientation">
        <enum>Qt::Vertical</enum>
@@ -343,6 +411,16 @@
   </widget>
  </widget>
  <customwidgets>
+  <customwidget>
+   <class>QtColorPicker</class>
+   <extends>QWidget</extends>
+   <header>qtcolorpicker.h</header>
+   <container>1</container>
+   <slots>
+    <signal>colorChanged(QColor)</signal>
+    <signal>currentColorChanged(QColor)</signal>
+   </slots>
+  </customwidget>
   <customwidget>
    <class>LayerTreeWidget</class>
    <extends>QTreeWidget</extends>
@@ -463,6 +541,22 @@
     </hint>
    </hints>
   </connection>
+  <connection>
+   <sender>lineEditSplineRadius</sender>
+   <signal>textChanged(QString)</signal>
+   <receiver>PanelConnectomeMatrix</receiver>
+   <slot>OnLineEditSplineRadius(QString)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>125</x>
+     <y>767</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>129</x>
+     <y>901</y>
+    </hint>
+   </hints>
+  </connection>
  </connections>
  <slots>
   <slot>OnCurrentFromChanged()</slot>
@@ -470,5 +564,6 @@
   <slot>OnCheckBoxToAll(bool)</slot>
   <slot>OnSliderFromOpacity(int)</slot>
   <slot>OnSliderToOpacity(int)</slot>
+  <slot>OnLineEditSplineRadius(QString)</slot>
  </slots>
 </ui>

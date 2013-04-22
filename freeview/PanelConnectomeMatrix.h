@@ -29,6 +29,8 @@ protected slots:
   void OnSliderFromOpacity(int val);
   void OnSliderToOpacity(int val);
 
+  void OnLineEditSplineRadius(const QString& strg);
+
 protected:
   void DoIdle();
   void DoUpdateWidgets();

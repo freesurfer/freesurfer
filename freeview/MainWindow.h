@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2013/04/12 20:05:02 $
- *    $Revision: 1.129 $
+ *    $Date: 2013/04/22 17:33:28 $
+ *    $Revision: 1.130 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -167,6 +167,7 @@ public:
   void TransformVolume(double* mat, int sample_method);
 
   void AddScript(const QString& command);
+  void AddScripts(const QStringList& cmds);
 
   QString AutoSelectLastDir( const QString& subdir );
   static QString AutoSelectLastDir( const QString& lastdir, const QString& subdir );

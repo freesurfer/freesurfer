@@ -29,13 +29,16 @@ LayerConnectomeMatrix::LayerConnectomeMatrix(LayerMRI* ref, QObject *parent) :
 
   LayerPropertyConnectomeMatrix* p = GetProperty();
   connect(p, SIGNAL(OpacityChanged()), this, SLOT(UpdateOpacity()));
+  connect(p, SIGNAL(SplineRadiusChanged()), this, SLOT(RebuildSplineActors()));
+  connect(p, SIGNAL(SplineColorChanged()), this, SLOT(UpdateSplineColor()));
 
   m_actorSplines = vtkSmartPointer<vtkActor>::New();
-  m_actorSplines->GetProperty()->SetColor(1, 1, 0);
+  QColor c = p->GetSplineColor();
+  m_actorSplines->GetProperty()->SetColor(c.redF(), c.greenF(), c.blueF());
   for (int i = 0; i < 3; i++)
   {
     m_actorSlice[i] = vtkSmartPointer<vtkActor>::New();
-    m_actorSlice[i]->GetProperty()->SetColor(1, 1, 0);
+    m_actorSlice[i]->GetProperty()->SetColor(c.redF(), c.greenF(), c.blueF());
   }
 }
 
@@ -256,6 +259,13 @@ void LayerConnectomeMatrix::SetToAllLabels(bool bAll)
   m_bToAllLabels = bAll;
   UpdateLabelActors();
   RebuildSplineActors();
+}
+
+void LayerConnectomeMatrix::UpdateSplineColor()
+{
+  QColor c = GetProperty()->GetSplineColor();
+  m_actorSplines->GetProperty()->SetColor(c.redF(), c.greenF(), c.blueF());
+  emit ActorUpdated();
 }
 
 void LayerConnectomeMatrix::RebuildSplineActors()
