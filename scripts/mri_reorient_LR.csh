@@ -8,10 +8,11 @@
 # Created: 07-16-2010
 
 set inputargs = ($argv);
-set VERSION = '$Id: mri_reorient_LR.csh,v 1.7 2011/07/26 17:10:48 lzollei Exp $';
+set VERSION = '$Id: mri_reorient_LR.csh,v 1.8 2013/04/23 21:31:45 lzollei Exp $';
 
 set inputvol      = ();
 set outputvol     = ();
+set outreg        = ();
 set displayresult = 1;
 set newinputnii   = 0;
 set newoutputnii  = 0;
@@ -39,32 +40,32 @@ check_params_return:
 ############--------------##################
 ############--------------##################
 
-set orientation = `mri_info --orientation $inputvol`
+#set orientation = `mri_info --orientation $inputvol`
 #if ($orientation == RIA) then
 #  set neworientation = LIA
 #else
 #  set neworientation = RIA
 #endif
 
-switch ($orientation)
- case 'RIA':
-   set neworientation = LIA;
-   breaksw;
- case 'LIA':
-   set neworientation = RIA;
-   breaksw;
- case 'RAS':
-   set neworientation = LAS;
-   breaksw;
- case 'LAS':
-   set neworientation = RAS;
-   breaksw;
- default:
-   echo "***Input orientation ($orientation) not handled! Sorry..."
-   exit 1;
-endsw
+#switch ($orientation)
+# case 'RIA':
+#   set neworientation = LIA;
+#   breaksw;
+# case 'LIA':
+#   set neworientation = RIA;
+#   breaksw;
+# case 'RAS':
+#   set neworientation = LAS;
+#   breaksw;
+# case 'LAS':
+#   set neworientation = RAS;
+#   breaksw;
+# default:
+#   echo "***Input orientation ($orientation) not handled! Sorry..."
+#   exit 1;
+#endsw
 
-echo "registration will take place between: $orientation and $neworientation"
+#echo "registration will take place between: $orientation and $neworientation"
 
 # If input does not have nii(.gz) then do conversion -- FLIRT canot handle .mgz
 echo "***Input check..."
@@ -79,8 +80,10 @@ endif
 ### FLIP input volume around lh/rh axis
 echo "***Flip..."
 set outputdir = ${outputvol:h}
-set inputvolLR = $outputdir/${inputvol:t:r:r}.lrflipped.nii.gz
-set cmd = (mri_convert --out_orientation $neworientation $originputvol $inputvolLR)
+#set inputvolLR = $outputdir/${inputvol:t:r:r}.lrflipped.nii.gz
+set inputvolLR = $outputdir/${inputvol:t:r:r}.lrreversed.nii.gz
+#set cmd = (mri_convert --out_orientation $neworientation $originputvol $inputvolLR)
+set cmd = (mri_convert --left-right-reverse $originputvol $inputvolLR)
 echo $cmd; eval $cmd
 
 ### REGISTER between orig and lhrhflipped volumes
@@ -114,6 +117,16 @@ if ($newoutputnii) then
   set cmd = (mri_convert $outputvol $origoutputvol)
   $cmd
   set outputvol = $origoutputvol
+endif
+
+### SAVE
+if ($#outreg > 0) then
+  if (${outreg:e} == lta) then
+    set cmd = (tkregister2_cmdl --mov $inputvol --targ $inputvolLR --ltaout $outreg --fsl $newtransformation --reg ~lzollei/bogus.reg)
+  else # assume fslmat
+    set cmd = (cp $newtransformation $outreg)
+  endif
+  echo $cmd; eval $cmd
 endif
 
 ### DISPLAY
@@ -157,6 +170,11 @@ while( $#argv != 0 )
     case "--o":
       if ( $#argv < 1) goto arg1err;
       set outputvol = $argv[1]; shift;
+      breaksw
+
+    case "--outreg":
+      if ( $#argv < 1) goto arg1err;
+      set outreg = $argv[1]; shift;
       breaksw
 
     case "--disp":
@@ -209,6 +227,7 @@ usage_exit:
   echo ""
   echo "   --disp       : display registration result using FreeView (def = 1)"
   echo "   --clean      : delete all aux and reg files (def = 0)"
+  echo "   --outreg     : write out the registration file that is applied to the reoriented input file (fslmat or lta)"
   echo "   --version    : print version and exit"
   echo "   --help       : print help and exit"
   echo ""
