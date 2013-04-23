@@ -14,9 +14,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2013/03/28 20:55:33 $
- *    $Revision: 1.21 $
+ *    $Author: greve $
+ *    $Date: 2013/04/23 17:36:10 $
+ *    $Revision: 1.22 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -49,7 +49,7 @@
 #include "transform.h"
 #include "region.h"
 
-static char vcid[] = "$Id: mri_mask.c,v 1.21 2013/03/28 20:55:33 fischl Exp $";
+static char vcid[] = "$Id: mri_mask.c,v 1.22 2013/04/23 17:36:10 greve Exp $";
 
 void usage(int exit_val);
 
@@ -67,6 +67,7 @@ MRI          *lta_dst = 0;
 static int invert = 0 ;
 static char *xform_fname = NULL;
 static float threshold = -1e10;
+int ThresholdSet = 0;
 static int do_transfer=0;
 static float transfer_val;
 static int keep_mask_deletion_edits = 0; // if 1, keep mask voxels with value=1
@@ -89,7 +90,7 @@ int main(int argc, char *argv[])
     handle_version_option
     (
       argc, argv,
-      "$Id: mri_mask.c,v 1.21 2013/03/28 20:55:33 fischl Exp $", "$Name:  $"
+      "$Id: mri_mask.c,v 1.22 2013/04/23 17:36:10 greve Exp $", "$Name:  $"
     );
   if (nargs && argc - nargs == 1)
   {
@@ -280,26 +281,24 @@ int main(int argc, char *argv[])
 
   // Threshold and binarize mask. Without binarization, this fails 
   // when values are less than 1
-  nmask = 0;
-  for (z = 0 ; z <mri_mask->depth ; z++)
-  {
-    for (y = 0 ; y < mri_mask->height ; y++)
-    {
-      for (x = 0 ; x < mri_mask->width ; x++)
-      {
-        value = MRIgetVoxVal(mri_mask, x, y, z, 0);
-        if(DoAbs) value = fabs(value);
-        if(value <= threshold) MRIsetVoxVal(mri_mask,x,y,z,0,0);
-        else
-        {
-	  MRIsetVoxVal(mri_mask,x,y,z,0,1);
-          nmask ++;
-        }
+  if(ThresholdSet){
+    nmask = 0;
+    for (z = 0 ; z <mri_mask->depth ; z++) {
+      for (y = 0 ; y < mri_mask->height ; y++) {
+	for (x = 0 ; x < mri_mask->width ; x++) {
+	  value = MRIgetVoxVal(mri_mask, x, y, z, 0);
+	  if(DoAbs) value = fabs(value);
+	  if(value <= threshold) MRIsetVoxVal(mri_mask,x,y,z,0,0);
+	  else {
+	    MRIsetVoxVal(mri_mask,x,y,z,0,1);
+	    nmask ++;
+	  }
+	}
       }
     }
+    printf("Found %d voxels in mask (pct=%6.2f)\n",nmask,
+	   100.0*nmask/(mri_mask->width*mri_mask->height*mri_mask->depth));
   }
-  printf("Found %d voxels in mask (pct=%6.2f)\n",nmask,
-	 100.0*nmask/(mri_mask->width*mri_mask->height*mri_mask->depth));
 
   if(DoBB){
     printf("Computing bounding box, npad = %d\n",nPadBB);
@@ -398,6 +397,7 @@ get_option(int argc, char *argv[])
     threshold = (float)atof(argv[2]);
     nargs = 1;
     fprintf(stderr, "threshold mask volume at %g\n", threshold);
+    ThresholdSet = 1;
   }
   else if (!stricmp(option, "BB")|| !stricmp(option, "boundingbox"))
   {
