@@ -14,9 +14,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2013/04/22 21:00:01 $
- *    $Revision: 1.16.2.2 $
+ *    $Author: greve $
+ *    $Date: 2013/04/23 17:41:13 $
+ *    $Revision: 1.16.2.3 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -48,7 +48,7 @@
 #include "version.h"
 #include "transform.h"
 
-static char vcid[] = "$Id: mri_mask.c,v 1.16.2.2 2013/04/22 21:00:01 nicks Exp $";
+static char vcid[] = "$Id: mri_mask.c,v 1.16.2.3 2013/04/23 17:41:13 greve Exp $";
 
 void usage(int exit_val);
 
@@ -66,6 +66,7 @@ MRI          *lta_dst = 0;
 static int invert = 0 ;
 static char *xform_fname = NULL;
 static float threshold = -1e10;
+int ThresholdSet = 0;
 static int do_transfer=0;
 static float transfer_val;
 static int keep_mask_deletion_edits = 0; // if 1, keep mask voxels with value=1
@@ -86,7 +87,7 @@ int main(int argc, char *argv[])
     handle_version_option
     (
       argc, argv,
-      "$Id: mri_mask.c,v 1.16.2.2 2013/04/22 21:00:01 nicks Exp $", "$Name:  $"
+      "$Id: mri_mask.c,v 1.16.2.3 2013/04/23 17:41:13 greve Exp $", "$Name:  $"
     );
   if (nargs && argc - nargs == 1)
   {
@@ -278,27 +279,24 @@ int main(int argc, char *argv[])
 
   // Threshold and binarize mask. Without binarization, this fails 
   // when values are less than 1
-  nmask = 0;
-  for (z = 0 ; z <mri_mask->depth ; z++)
-  {
-    for (y = 0 ; y < mri_mask->height ; y++)
-    {
-      for (x = 0 ; x < mri_mask->width ; x++)
-      {
-        value = MRIgetVoxVal(mri_mask, x, y, z, 0);
-        if(DoAbs) value = fabs(value);
-        if(value <= threshold) MRIsetVoxVal(mri_mask,x,y,z,0,0);
-        else
-        {
-          MRIsetVoxVal(mri_mask,x,y,z,0,1);//required
-          nmask ++;
-        }
+  if(ThresholdSet){
+    nmask = 0;
+    for (z = 0 ; z <mri_mask->depth ; z++) {
+      for (y = 0 ; y < mri_mask->height ; y++) {
+	for (x = 0 ; x < mri_mask->width ; x++) {
+	  value = MRIgetVoxVal(mri_mask, x, y, z, 0);
+	  if(DoAbs) value = fabs(value);
+	  if(value <= threshold) MRIsetVoxVal(mri_mask,x,y,z,0,0);
+	  else {
+	    MRIsetVoxVal(mri_mask,x,y,z,0,1);
+	    nmask ++;
+	  }
+	}
       }
     }
+    printf("Found %d voxels in mask (pct=%6.2f)\n",nmask,
+	   100.0*nmask/(mri_mask->width*mri_mask->height*mri_mask->depth));
   }
-  printf("Found %d voxels in mask (pct=%6.2f)\n",nmask,
-	 100.0*nmask/(mri_mask->width*mri_mask->height*mri_mask->depth));
-
 
   int mask=0;
   float out_val=0;
@@ -377,12 +375,12 @@ get_option(int argc, char *argv[])
     fprintf(stderr, "transform file name is %s\n", xform_fname);
   }
   else if (!stricmp(option, "T")
-           || !stricmp(option, "threshold")
-          )
+           || !stricmp(option, "threshold"))
   {
     threshold = (float)atof(argv[2]);
     nargs = 1;
     fprintf(stderr, "threshold mask volume at %g\n", threshold);
+    ThresholdSet = 1;
   }
   else if (!stricmp(option, "transfer"))
   {
