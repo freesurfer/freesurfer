@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2011/03/28 20:27:03 $
- *    $Revision: 1.27 $
+ *    $Author: mreuter $
+ *    $Date: 2013/04/24 22:07:32 $
+ *    $Revision: 1.28 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -181,10 +181,12 @@ int regio_print_register(FILE *fp, char *subject, float inplaneres,
   int r,c;
   char *f2imethod ;
 
-  if (subject != NULL)
-    fprintf(fp,"%s\n",subject);
-  else
+  if (subject == NULL)
     fprintf(fp,"subjectunknown\n");
+  else if (strlen(subject) ==  0)
+    fprintf(fp,"subjectunknown\n");
+  else
+    fprintf(fp,"%s\n",subject);
 
   fprintf(fp,"%f\n",inplaneres);
   fprintf(fp,"%f\n",betplaneres);
