@@ -511,6 +511,15 @@ install-exec-hook:freeview
 		>> $(DESTDIR)$(bindir)/freeview
 	echo "source \$$FREESURFER_HOME/bin/qt_setup" \
 		>> $(DESTDIR)$(bindir)/freeview
+	echo "if(\$$#argv > 0) then" \
+		>> $(DESTDIR)$(bindir)/freeview
+	echo "  if(\"\$$argv[1]\" == \"-tkmedit\") then" \
+		>> $(DESTDIR)$(bindir)/freeview
+	echo "    tkmeditfv \$$argv[2-\$$#argv]" \
+		>> $(DESTDIR)$(bindir)/freeview
+	echo "    exit 0"	>> $(DESTDIR)$(bindir)/freeview
+	echo "  endif"	>> $(DESTDIR)$(bindir)/freeview
+	echo "endif"	>> $(DESTDIR)$(bindir)/freeview
 	echo "exec \$$FREESURFER_HOME/bin/Freeview.app/Contents/MacOS/freeview.bin \$$*" >> $(DESTDIR)$(bindir)/freeview
 	chmod a+x $(DESTDIR)$(bindir)/freeview
 #	./mac_package_dylibs.sh $(WXWIDGETS_DIR)lib $(DESTDIR)$(bindir)/Freeview.app/Contents/Frameworks $(DESTDIR)$(bindir)/Freeview.app/Contents/MacOS/freeview.bin
