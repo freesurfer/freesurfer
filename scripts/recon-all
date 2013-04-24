@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2013/04/09 21:34:13 $
-#    $Revision: 1.379.2.68 $
+#    $Date: 2013/04/24 17:57:20 $
+#    $Revision: 1.379.2.69 $
 #
 # Copyright © 2011-2013 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -26,7 +26,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.379.2.68 2013/04/09 21:34:13 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.379.2.69 2013/04/24 17:57:20 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -3232,8 +3232,7 @@ foreach hemi ($hemilist)
           -long -max 3.5)
     else
       # default stream:
-      set cmd = (mris_make_surfaces \
-          -aseg aseg)
+      set cmd = (mris_make_surfaces)
     endif
     if ( ! $UseAseg) set cmd = ($cmd -noaseg)
     if ($PialNoAparc) set cmd = ($cmd -noaparc)
@@ -3582,8 +3581,7 @@ if($DoT2pial || $DoFLAIRpial) then
     endif    
     set cmd = (mris_make_surfaces \
         -orig_white white \
-        -orig_pial wo${t2flair}.pial \
-        -aseg aseg)
+        -orig_pial wo${t2flair}.pial)
     if ( ! $UseAseg) set cmd = ($cmd -noaseg)
     if ($PialNoAparc) set cmd = ($cmd -noaparc)
     # -white NOWRITE: dont overwrite white, curv, area, and cortex.label files
