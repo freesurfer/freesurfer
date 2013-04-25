@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2013/04/25 21:22:45 $
- *    $Revision: 1.161 $
+ *    $Date: 2013/04/25 22:13:00 $
+ *    $Revision: 1.162 $
  *
  * Copyright © 2011-2013 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -2928,7 +2928,8 @@ ltaReadRegisterDat(const char *fname)
 
   lta = LTAalloc(1, NULL) ;
   lta->xforms[0].sigma = 1.0f ;
-  lta->xforms[0].x0 = lta->xforms[0].y0 = lta->xforms[0].z0 = 0 ;
+  // (mr) does not seem to make a difference, so I removed it:
+  //lta->xforms[0].x0 = lta->xforms[0].y0 = lta->xforms[0].z0 = 0 ;
   err = regio_read_register((char *)fname, &tmpstr, &ipr, &bpr, &lta->fscale, &R,
                             &float2int);
   if (err > 0)
@@ -2937,7 +2938,11 @@ ltaReadRegisterDat(const char *fname)
   strcpy(lta->subject, tmpstr) ; free(tmpstr) ;
   MatrixCopy(R, lta->xforms[0].m_L) ; MatrixFree(&R) ;
 
-  lta->type = LINEAR_CORONAL_RAS_TO_CORONAL_RAS ;
+  // (mr) I dont think CORONAL_RAS_TO_CORONAL_RAS is the same here,
+  // it did not work for me so I changed it to the REGISTER_DAT
+  // if you change it back, make sure lta_convert does not break
+  // lta->type = LINEAR_CORONAL_RAS_TO_CORONAL_RAS ;
+  lta->type = REGISTER_DAT;
   return(lta) ;
 }
 
@@ -3378,11 +3383,9 @@ LTA *ltaReadFileEx(const char *fname)
   return(lta) ;
 }
 
-
 LTA *
-LTAreadEx(const char *fname)
+LTAreadExType(const char *fname, int type)
 {
-  int       type ;
   char      fname_no_path[STRLEN] ;
   LTA       *lta=NULL ;
 #if 0
@@ -3403,7 +3406,6 @@ LTAreadEx(const char *fname)
   }
   // continue normal processing...
 
-  type = TransformFileNameType((char *) fname) ;
   switch (type)
   {
   case FSLREG_TYPE:
@@ -3443,7 +3445,10 @@ LTAreadEx(const char *fname)
     MatrixFree(&m_tmp) ;
     lta->type = LINEAR_VOX_TO_VOX ;
 #else
-    lta->type = LINEAR_CORONAL_RAS_TO_CORONAL_RAS ;
+    // (mr) I dont think CORONAL_RAS_TO_CORONAL_RAS is the same here,
+    // it did not work for me so I changed it to the REGISTER_DAT
+    // if you change it back, make sure lta_convert does not break
+    //lta->type = LINEAR_CORONAL_RAS_TO_CORONAL_RAS ;
 #endif
     break ;
 
@@ -3464,6 +3469,14 @@ LTAreadEx(const char *fname)
     break ;
   }
   return(lta) ;
+}
+
+LTA *
+LTAreadEx(const char *fname)
+{
+  int       type ;
+  type = TransformFileNameType((char *) fname) ;
+  return LTAreadExType(fname,type);
 }
 
 // write out the information on src and dst volume
@@ -3607,7 +3620,11 @@ ltaFSLread(const char *fname)
            MATRIX_RELT(m_L,row,3), MATRIX_RELT(m_L,row,4)) ;
   }
   fclose(fp) ;
-  lta->type = LINEAR_PHYSVOX_TO_PHYSVOX;
+  // (mr) I dont think physvox_to_physvox is the same here,
+  // it did not work for me so I changed it to the FSLREG_TYPE
+  // if you change it back, make sure lta_convert does not break
+  //lta->type = LINEAR_PHYSVOX_TO_PHYSVOX;
+  lta->type = FSLREG_TYPE;
 
   return(lta) ;
 }
