@@ -27,6 +27,7 @@ MRISUBDIRS=\
 	repair_siemens_file \
 	mkxsubjreg \
 	rbftest \
+  lta_convert \
 	mri_interpolate \
 	mri_elastic_energy \
 	mri_jacobian \

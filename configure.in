@@ -8,9 +8,9 @@
 # Process this file with autoconf to produce a configure script.
 #
 # CVS Revision Info:
-#    $Author: fischl $
-#    $Date: 2013/04/09 12:28:15 $
-#    $Revision: 1.598 $
+#    $Author: mreuter $
+#    $Date: 2013/04/25 17:38:18 $
+#    $Revision: 1.599 $
 #
 ########################################################################
 AC_PREREQ(2.57)
@@ -3506,6 +3506,7 @@ AC_OUTPUT([Makefile
            label2patch/Makefile
            label2flat/Makefile
            log/Makefile
+           lta_convert/Makefile
            matlab/Makefile
            mkxsubjreg/Makefile
            mri_bias/Makefile
