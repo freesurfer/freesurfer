@@ -8,8 +8,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2013/04/25 21:23:12 $
- *    $Revision: 1.3 $
+ *    $Date: 2013/04/25 22:13:26 $
+ *    $Revision: 1.4 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -72,7 +72,7 @@ static void printUsage(void);
 static bool parseCommandLine(int argc, char *argv[], Parameters & P);
 
 static char vcid[] =
-    "$Id: lta_convert.cpp,v 1.3 2013/04/25 21:23:12 mreuter Exp $";
+    "$Id: lta_convert.cpp,v 1.4 2013/04/25 22:13:26 mreuter Exp $";
 char *Progname = NULL;
 
 LTA * shallowCopyLTA(const LTA * lta)
@@ -88,6 +88,7 @@ LTA * shallowCopyLTA(const LTA * lta)
 }
 
 LTA * readLTA(const string& xfname, const string& sname, const string& tname)
+// here sname and tname are not necessary
 {
   LTA* lta = LTAread(P.transin.c_str());
   if (lta == NULL)
@@ -131,34 +132,11 @@ LTA * readLTA(const string& xfname, const string& sname, const string& tname)
 }
 
 LTA * readFSL(const string& xfname, const string& sname, const string& tname)
-// direcly readin fslmatrix
+// use lta transform to readin fslreg
 // and then an lta change type from FSLREG_TYPE (I implemented that in transform.c)
 {
-  FILE *fp = fopen(xfname.c_str(),"r");
-  if (fp == NULL)
-  {
-    cerr << "ERROR readFSL: cannot open "<< xfname << endl;
-    exit(1);
-  }
 
-  MATRIX *FSLRegMat= MatrixAlloc(4,4,MATRIX_REAL);
-  int i,j,n;
-  for (i=0;i<4;i++)
-  {
-    for (j=0;j<4;j++)
-    {
-      n = fscanf(fp,"%f",&(FSLRegMat->rptr[i+1][j+1]));
-      if (n != 1)
-      {
-        cerr << "ERROR readFSL: reading "<<xfname<<", row "<<i<<", col " << j << endl;
-        exit(1);
-      }
-    }
-  }
-
-  cout << "------ FSL registration matrix --------" << endl;
-  MatrixPrint(stdout,FSLRegMat);
-  cout << "---------------------------------------" << endl;
+  LTA * lta = LTAreadExType(xfname.c_str(),FSLREG_TYPE);
 
   // read src and target mri header
   MRI * src = MRIreadHeader(sname.c_str(),MRI_VOLUME_TYPE_UNKNOWN);
@@ -174,14 +152,11 @@ LTA * readFSL(const string& xfname, const string& sname, const string& tname)
     exit(1);
   }
   
-  LTA *lta = LTAalloc(1, NULL) ;
-  lta->xforms[0].m_L = MatrixCopy(FSLRegMat, NULL) ;
   getVolGeom(src, &lta->xforms[0].src);
   getVolGeom(trg, &lta->xforms[0].dst);
-  lta->type = FSLREG_TYPE;
+  //lta->type = FSLREG_TYPE; // necessary before fix type in transform.c
   lta = LTAchangeType(lta, LINEAR_RAS_TO_RAS);
 
-  MatrixFree(&FSLRegMat);
   MRIfree(&src);
   MRIfree(&trg);
 
@@ -195,17 +170,8 @@ LTA * readMNI(const string& xfname, const string& sname, const string& tname)
 // then the matrix should be RAS2RAS
 {
 
-  MATRIX * MNIRegMat = NULL;
-  int err = regio_read_mincxfm(xfname.c_str(), &MNIRegMat, NULL);
-  if (err || MNIRegMat == NULL)
-  {
-    cerr << "ERROR readMNI: cannot read "<< xfname << endl;
-    exit(1);
-  }
 
-  cout << "------ MNI registration matrix --------" << endl;
-  MatrixPrint(stdout,MNIRegMat);
-  cout << "---------------------------------------" << endl;
+  LTA * lta = LTAreadExType(xfname.c_str(),MNI_TRANSFORM_TYPE);
 
   // read src and target mri header
   MRI * src = MRIreadHeader(sname.c_str(),MRI_VOLUME_TYPE_UNKNOWN);
@@ -222,13 +188,10 @@ LTA * readMNI(const string& xfname, const string& sname, const string& tname)
   }
   
   // NMI XFM matrix should be identical with RAS2RAS?
-  LTA *lta = LTAalloc(1, NULL) ;
-  lta->xforms[0].m_L = MatrixCopy(MNIRegMat, NULL) ;
   getVolGeom(src, &lta->xforms[0].src);
   getVolGeom(trg, &lta->xforms[0].dst);
-  lta->type = LINEAR_RAS_TO_RAS;
+  //lta->type = LINEAR_RAS_TO_RAS;
 
-  MatrixFree(&MNIRegMat);
   MRIfree(&src);
   MRIfree(&trg);
 
@@ -240,21 +203,7 @@ LTA * readREG(const string& xfname, const string& sname, const string& tname)
 //based on regio_read_register for reading and then lta change type from REGISTER_DAT
 {
 
-  MATRIX * RegMat = NULL;
-  char *sidstr;
-  float ipr, bpr, fscale;
-  int float2int;
-  int err = regio_read_register(xfname.c_str(), &sidstr, &ipr, &bpr, 
-                                &fscale, &RegMat, &float2int);
-  if (err || RegMat == NULL)
-  {
-    cerr << "ERROR readREG: cannot read "<< xfname << endl;
-    exit(1);
-  }
-
-  cout << "------ REG registration matrix --------" << endl;
-  MatrixPrint(stdout,RegMat);
-  cout << "---------------------------------------" << endl;
+  LTA * lta = LTAreadExType(xfname.c_str(),REGISTER_DAT);
 
   // read src and target mri header
   MRI * src = MRIreadHeader(sname.c_str(),MRI_VOLUME_TYPE_UNKNOWN);
@@ -270,20 +219,14 @@ LTA * readREG(const string& xfname, const string& sname, const string& tname)
     exit(1);
   }
   
-  LTA *lta = LTAalloc(1, NULL) ;
-  lta->xforms[0].m_L = MatrixCopy(RegMat, NULL) ;
   getVolGeom(src, &lta->xforms[0].src);
   getVolGeom(trg, &lta->xforms[0].dst);
-  lta->type = REGISTER_DAT;
-  lta->fscale = fscale;
-  strcpy(lta->subject,sidstr);
-  // uses MRItkReg2Native internally:
+  //lta->type = REGISTER_DAT;  // necessary before fix type in transform.c
+  //// uses MRItkReg2Native internally:
   lta = LTAchangeType(lta, LINEAR_RAS_TO_RAS);
 
-  MatrixFree(&RegMat);
   MRIfree(&src);
   MRIfree(&trg);
-  free(sidstr);
 
   return lta;
 }
