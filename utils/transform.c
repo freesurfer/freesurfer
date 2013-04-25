@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2013/01/08 22:02:19 $
- *    $Revision: 1.160 $
+ *    $Author: mreuter $
+ *    $Date: 2013/04/25 21:22:45 $
+ *    $Revision: 1.161 $
  *
  * Copyright © 2011-2013 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -55,7 +55,8 @@ extern const char* Progname;
 static LTA  *ltaReadRegisterDat(const char *fname) ;
 static LTA  *ltaMNIread(const char *fname) ;
 static LTA  *ltaFSLread(const char *fname) ;
-static int  ltaMNIwrite(LTA *lta,const char *fname) ;
+static int  ltaMNIwrite(const LTA *lta,const char *fname) ;
+static int  ltaFSLwrite(const LTA *lta,const char *fname) ;
 static LTA  *ltaReadFile(const char *fname) ;
 
 static LTA *ltaMNIreadEx(const char *fname);
@@ -1544,10 +1545,49 @@ int TransformFileNameType(const char *fname)
   return(file_type) ;
 }
 
+static int
+ltaFSLwrite(const LTA *lta, const char *fname)
+{
+  FILE             *fp ;
+  MATRIX           *m_L ;
+
+  fp = fopen(fname, "w") ;
+  if (!fp)
+    ErrorReturn(ERROR_NOFILE,
+                (ERROR_NOFILE, "ltaFSLwrite: could not open file %s",fname));
+
+  // create shallow copy of LTA
+  LTA * ltatmp = LTAalloc(1,NULL);
+  ltatmp->xforms[0].m_L=MatrixCopy(lta->xforms[0].m_L,NULL);
+  copyVolGeom(&lta->xforms[0].src,&ltatmp->xforms[0].src);
+  copyVolGeom(&lta->xforms[0].dst,&ltatmp->xforms[0].dst);
+  ltatmp->type = lta->type;
+
+  // convert to FSL matrix if necessary
+  if (ltatmp->type != FSLREG_TYPE)
+    LTAchangeType(ltatmp, FSLREG_TYPE); 
+  if (ltatmp->type != FSLREG_TYPE)
+    ErrorReturn(ERROR_BADPARM,
+                (ERROR_BADPARM, "ltaFSLwrite: could not convert to FSL format"));
+  
+  // write matrix to file:
+  m_L = ltatmp->xforms[0].m_L;
+  int i,j;
+  for (i=0;i<4;i++) {
+    for (j=0;j<4;j++)
+      fprintf(fp,"%13.8f ",m_L->rptr[i+1][j+1]);
+    fprintf(fp,"\n");
+  }
+  fclose(fp);
+
+  LTAfree(&ltatmp);
+  return(NO_ERROR);
+}
+
 #include "minc_volume_io.h"
 
 static int
-ltaMNIwrite(LTA *lta, const char *fname)
+ltaMNIwrite(const LTA *lta, const char *fname)
 {
   FILE             *fp ;
   int              row ;
@@ -1556,7 +1596,7 @@ ltaMNIwrite(LTA *lta, const char *fname)
   fp = fopen(fname, "w") ;
   if (!fp)
     ErrorReturn(ERROR_NOFILE,
-                (ERROR_NOFILE, "ltMNIwrite: could not open file %s",fname));
+                (ERROR_NOFILE, "ltaMNIwrite: could not open file %s",fname));
 
   fprintf(fp, "MNI Transform File\n") ;
   // now saves src and dst in comment line
@@ -1566,12 +1606,13 @@ ltaMNIwrite(LTA *lta, const char *fname)
   fprintf(fp, "Transform_Type = Linear;\n") ;
   fprintf(fp, "Linear_Transform =\n") ;
 
-  if (lta->type == LINEAR_RAS_TO_RAS)
+  // MNI_TRANSFORM_TYPE is used to force MNI output of otherwise RAS2RAS lta
+  if (lta->type == LINEAR_RAS_TO_RAS || lta->type == MNI_TRANSFORM_TYPE)
   {
     m_L = lta->xforms[0].m_L ;
     for (row = 1 ; row <= 3 ; row++)
     {
-      fprintf(fp, "      %f       %f       %f       %f",
+      fprintf(fp, "%13.8f %13.8f %13.8f %13.8f ",
               *MATRIX_RELT(m_L,row,1), *MATRIX_RELT(m_L,row,2),
               *MATRIX_RELT(m_L,row,3), *MATRIX_RELT(m_L,row,4)) ;
       if (row == 3)
@@ -1606,7 +1647,7 @@ ltaMNIwrite(LTA *lta, const char *fname)
     rasToRAS = MatrixMultiply(rasFromVoxel, tmp, NULL);
     for (row = 1 ; row <= 3 ; row++)
     {
-      fprintf(fp, "      %f       %f       %f       %f",
+      fprintf(fp, "%13.8f %13.8f %13.8f %13.8f ",
               *MATRIX_RELT(rasToRAS,row,1), *MATRIX_RELT(rasToRAS,row,2),
               *MATRIX_RELT(rasToRAS,row,3), *MATRIX_RELT(rasToRAS,row,4)) ;
       if (row == 3)
@@ -3475,11 +3516,15 @@ LTAwriteEx(const LTA *lta, const char *fname)
   char             *user, *time_str ;
   char             ext[STRLEN] ;
 
-  if (!stricmp(FileNameExtension((char *) fname, ext), "XFM"))
+  if (!stricmp(FileNameExtension((char *) fname, ext), "XFM") || 
+      lta->type == MNI_TRANSFORM_TYPE)
+  {
     // someone defined NO_ERROR to be 0 and thus I have to change it
     return(ltaMNIwrite((LTA *) lta, (char *)fname)) ;
+  }
   else if(!stricmp(FileNameExtension((char *) fname, ext), "DAT") ||
-	  !stricmp(FileNameExtension((char *) fname, ext), "REG"))
+	        !stricmp(FileNameExtension((char *) fname, ext), "REG") ||
+          lta->type == REGISTER_DAT)
   {
     int err ;
     err =  regio_write_register((char*)fname, (char *)lta->subject, lta->xforms[0].src.xsize,
@@ -3487,6 +3532,11 @@ LTAwriteEx(const LTA *lta, const char *fname)
                                 FLT2INT_ROUND);
     if (err == 0) return(NO_ERROR) ;
     else          return(ERROR_NOFILE);
+  }
+  else if(!stricmp(FileNameExtension((char *) fname, ext), "FSLMAT") || 
+          lta->type == FSLREG_TYPE)
+  {
+     return ltaFSLwrite(lta,fname);
   }
 
   fp = fopen(fname,"w");
@@ -3707,6 +3757,10 @@ LTA *LTAchangeType(LTA *lta, int ltatype)
   MATRIX *dSize = 0;
   MATRIX *tmp = 0;
   int               i;
+  MRI* movmri = 0;
+  MRI* refmri = 0;
+  MATRIX* mreg = 0;
+  MATRIX* mfsl = 0;
   // if it is the same, don't do anything
   if (lta->type == ltatype)
     return lta;
@@ -3772,6 +3826,42 @@ LTA *LTAchangeType(LTA *lta, int ltatype)
       tmp = 0;
       lta->type = LINEAR_PHYSVOX_TO_PHYSVOX;
       break;
+    case REGISTER_DAT:
+      for (i = 0; i < lta->num_xforms; ++i)
+      {
+        lt = &lta->xforms[i];
+        m_L = lt->m_L;
+        movmri = MRIallocHeader(lt->src.width,lt->src.height,lt->src.depth,MRI_UCHAR,1);
+        refmri = MRIallocHeader(lt->dst.width,lt->dst.height,lt->dst.depth,MRI_UCHAR,1);
+        useVolGeomToMRI(&lt->src,movmri);
+        useVolGeomToMRI(&lt->dst,refmri);
+        mreg = MRItkRegMtx(refmri, movmri, m_L);
+        MatrixCopy(mreg, m_L);
+        MatrixFree(&mreg);
+        MRIfree(&movmri);
+        MRIfree(&refmri);
+      }
+      lta->type = REGISTER_DAT;
+      break;
+    case FSLREG_TYPE:
+      for (i = 0; i < lta->num_xforms; ++i)
+      {
+        lt = &lta->xforms[i];
+        m_L = lt->m_L;
+        movmri = MRIallocHeader(lt->src.width,lt->src.height,lt->src.depth,MRI_UCHAR,1);
+        refmri = MRIallocHeader(lt->dst.width,lt->dst.height,lt->dst.depth,MRI_UCHAR,1);
+        useVolGeomToMRI(&lt->src,movmri);
+        useVolGeomToMRI(&lt->dst,refmri);
+        mreg = MRItkRegMtx(refmri, movmri, m_L);
+        mfsl = MRItkreg2FSL(refmri, movmri, mreg);
+        MatrixCopy(mfsl, m_L);
+        MatrixFree(&mreg);
+        MatrixFree(&mfsl);
+        MRIfree(&movmri);
+        MRIfree(&refmri);
+      }
+      lta->type = FSLREG_TYPE;      
+      break;
     default:
       ErrorExit(ERROR_BADPARM, "LTAchangeType: you are "
                 "requesting ras-to-ras to %d ", ltatype);
@@ -3826,6 +3916,14 @@ LTA *LTAchangeType(LTA *lta, int ltatype)
       MatrixFree(&tmp);
       tmp = 0;
       lta->type = LINEAR_PHYSVOX_TO_PHYSVOX;
+      break;
+    case REGISTER_DAT:
+      lta = LTAchangeType(lta, LINEAR_RAS_TO_RAS);
+      lta = LTAchangeType(lta, REGISTER_DAT);
+      break;
+    case FSLREG_TYPE:
+      lta = LTAchangeType(lta, LINEAR_RAS_TO_RAS);
+      lta = LTAchangeType(lta, FSLREG_TYPE);
       break;
     default:
       ErrorExit(ERROR_BADPARM, "LTAchangeType: you are "
@@ -3900,6 +3998,14 @@ LTA *LTAchangeType(LTA *lta, int ltatype)
       tmp = 0;
       lta->type = LINEAR_RAS_TO_RAS;
       break;
+    case REGISTER_DAT:
+      lta = LTAchangeType(lta, LINEAR_RAS_TO_RAS);
+      lta = LTAchangeType(lta, REGISTER_DAT);
+      break;
+    case FSLREG_TYPE:
+      lta = LTAchangeType(lta, LINEAR_RAS_TO_RAS);
+      lta = LTAchangeType(lta, FSLREG_TYPE);
+      break;
     default:
       ErrorExit(ERROR_BADPARM, "LTAchangeType: you are"
                 " requesting physvox-to-physvox to %d ", ltatype);
@@ -3908,24 +4014,45 @@ LTA *LTAchangeType(LTA *lta, int ltatype)
   } 
   else if (lta->type == REGISTER_DAT)
   {
-    MRI    *mriSrc, *mriDst ;
-    lt = &lta->xforms[0];
-    m_L = lt->m_L;
     switch (ltatype){
     case LINEAR_RAS_TO_RAS:
-      mriSrc = MRIallocHeader(lt->src.width, lt->src.height, lt->src.depth, MRI_UCHAR,1) ;
-      MRIcopyVolGeomToMRI(mriSrc, &lt->src) ;
-      mriDst = MRIallocHeader(lt->dst.width, lt->dst.height, lt->dst.depth, MRI_UCHAR,1) ;
-      MRIcopyVolGeomToMRI(mriDst, &lt->dst) ;
-      lt->m_L = MRItkReg2Native(mriDst,mriSrc,m_L);
-      MRIfree(&mriSrc) ;
-      MRIfree(&mriDst) ;
-      lta->type = ltatype ;
+      for (i = 0; i < lta->num_xforms; ++i)
+      {
+        lt = &lta->xforms[0];
+        m_L = lt->m_L;      
+        movmri = MRIallocHeader(lt->src.width, lt->src.height, lt->src.depth, MRI_UCHAR,1) ;
+        refmri = MRIallocHeader(lt->dst.width, lt->dst.height, lt->dst.depth, MRI_UCHAR,1) ;
+        MRIcopyVolGeomToMRI(movmri, &lt->src) ;
+        MRIcopyVolGeomToMRI(refmri, &lt->dst) ;
+        mreg = MRItkReg2Native(refmri,movmri,m_L); //ras2ras
+        MatrixCopy(mreg, m_L);
+        MatrixFree(&mreg);
+        MRIfree(&movmri) ;
+        MRIfree(&refmri) ;
+      }
+      lta->type = LINEAR_RAS_TO_RAS;
       break ;
     case LINEAR_VOX_TO_VOX:
       lta = LTAchangeType(lta, LINEAR_RAS_TO_RAS);
       lta = LTAchangeType(lta, LINEAR_VOX_TO_VOX);
       break ;
+    case FSLREG_TYPE:
+      for (i = 0; i < lta->num_xforms; ++i)
+      {
+        lt = &lta->xforms[i];
+        m_L = lt->m_L;      
+        movmri = MRIallocHeader(lt->src.width,lt->src.height,lt->src.depth,MRI_UCHAR,1);
+        refmri = MRIallocHeader(lt->dst.width,lt->dst.height,lt->dst.depth,MRI_UCHAR,1);
+        useVolGeomToMRI(&lt->src,movmri);
+        useVolGeomToMRI(&lt->dst,refmri);
+        mfsl = MRItkreg2FSL(refmri, movmri, m_L);
+        MatrixCopy(mfsl, m_L);
+        MatrixFree(&mfsl);
+        MRIfree(&movmri);
+        MRIfree(&refmri);
+      }
+      lta->type = FSLREG_TYPE;      
+      break;
     default:
       ErrorExit(ERROR_BADPARM, "LTAchangeType unsupported: you are"
                 " requesting REGISTER_DAT to %d ", ltatype);
@@ -3937,23 +4064,69 @@ LTA *LTAchangeType(LTA *lta, int ltatype)
   {
     MATRIX *m_sras2ras ;
     MRI    *mri_tmp ;
-
-    lt = &lta->xforms[0];
-    m_L = lt->m_L;
     switch (ltatype)
     {
     case LINEAR_RAS_TO_RAS:
-      mri_tmp = MRIallocHeader(lt->dst.width, lt->dst.height, lt->dst.depth, MRI_UCHAR,1) ;
-      MRIcopyVolGeomToMRI(mri_tmp, &lt->dst) ;
-      m_sras2ras =  RASFromSurfaceRAS_(mri_tmp) ;
-      MRIfree(&mri_tmp) ;
-      lt->m_L = MatrixMultiply(m_sras2ras, m_L, NULL) ;
-      MatrixFree(&m_L) ;
-      lta->type = ltatype ;
+      for (i = 0; i < lta->num_xforms; ++i)
+      {
+        lt = &lta->xforms[i];
+        m_L = lt->m_L;      
+        mri_tmp = MRIallocHeader(lt->dst.width, lt->dst.height, lt->dst.depth, MRI_UCHAR,1) ;
+        MRIcopyVolGeomToMRI(mri_tmp, &lt->dst) ;
+        m_sras2ras =  RASFromSurfaceRAS_(mri_tmp) ;
+        m_L = MatrixMultiply(m_sras2ras, m_L, m_L) ;
+        MatrixFree(&m_sras2ras);
+        MRIfree(&mri_tmp) ;
+      }
+      lta->type = LINEAR_RAS_TO_RAS ;
       break ;
+    case REGISTER_DAT:
+      lta = LTAchangeType(lta, LINEAR_RAS_TO_RAS);
+      lta = LTAchangeType(lta, REGISTER_DAT);
+      break;
+    case FSLREG_TYPE:
+      lta = LTAchangeType(lta, LINEAR_RAS_TO_RAS);
+      lta = LTAchangeType(lta, FSLREG_TYPE);
+      break;
     default:
       ErrorExit(ERROR_BADPARM, "LTAchangeType unsupported: you are"
                 " requesting COR_RAS_TO_COR_RAS to %d ", ltatype);
+      break;
+    }
+    printf("transformed matrix:\n") ;MatrixPrint(Gstdout, lta->xforms[0].m_L) ;
+  }
+  else if (lta->type == FSLREG_TYPE)
+  {
+    switch (ltatype)
+    {
+    case LINEAR_RAS_TO_RAS:
+      lta = LTAchangeType(lta, REGISTER_DAT);
+      lta = LTAchangeType(lta, LINEAR_RAS_TO_RAS);    
+      break;
+    case LINEAR_VOX_TO_VOX:
+      lta = LTAchangeType(lta, REGISTER_DAT);
+      lta = LTAchangeType(lta, LINEAR_VOX_TO_VOX);    
+      break;
+    case REGISTER_DAT:
+      for (i = 0; i < lta->num_xforms; ++i)
+      {
+        lt = &lta->xforms[i];
+        m_L = lt->m_L;
+        movmri = MRIallocHeader(lt->src.width,lt->src.height,lt->src.depth,MRI_UCHAR,1);
+        refmri = MRIallocHeader(lt->dst.width,lt->dst.height,lt->dst.depth,MRI_UCHAR,1);
+        useVolGeomToMRI(&lt->src,movmri);
+        useVolGeomToMRI(&lt->dst,refmri);
+        mreg = MRIfsl2TkReg(refmri, movmri, m_L);
+        MatrixCopy(mreg, m_L);
+        MatrixFree(&mreg);
+        MRIfree(&movmri);
+        MRIfree(&refmri);
+      }
+      lta->type = REGISTER_DAT;            
+      break;
+    default:
+      ErrorExit(ERROR_BADPARM, "LTAchangeType unsupported: you are"
+                " requesting FSLREG_TYPE to %d ", ltatype);
       break;
     }
     printf("transformed matrix:\n") ;MatrixPrint(Gstdout, lta->xforms[0].m_L) ;
