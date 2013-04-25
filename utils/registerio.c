@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2013/04/25 16:12:02 $
- *    $Revision: 1.29 $
+ *    $Date: 2013/04/25 19:10:51 $
+ *    $Revision: 1.30 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -182,9 +182,9 @@ int regio_print_register(FILE *fp, const char *subject, float inplaneres,
   char *f2imethod ;
 
   if (subject == NULL)
-    fprintf(fp,"subjectunknown\n");
+    fprintf(fp,"subject-unknown\n");
   else if (strlen(subject) ==  0)
-    fprintf(fp,"subjectunknown\n");
+    fprintf(fp,"subject-unknown\n");
   else
     fprintf(fp,"%s\n",subject);
 
