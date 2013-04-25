@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<!DOCTYPE help [
+<!ENTITY lt "#38;#60;">
+<!ENTITY gt "&#62;">
+<!ENTITY amp "&#38;#38;">
+<!ELEMENT help (name , synopsis , description* , arguments+ , outputs* , example* , bugs* , references* , reporting* , see-also*)*>
+<!ELEMENT name (#PCDATA)>
+<!ELEMENT synopsis (#PCDATA)>
+<!ELEMENT description (#PCDATA)>
+<!ELEMENT arguments (positional* , required-flagged* , optional-flagged*)*>
+<!ELEMENT positional (intro* , argument* , explanation*)*>
+<!ELEMENT required-flagged (intro* , argument* , explanation*)*>
+<!ELEMENT optional-flagged (intro* , argument* , explanation*)*>
+<!ELEMENT intro (#PCDATA)>
+<!ELEMENT argument (#PCDATA)>
+<!ELEMENT explanation (#PCDATA)>
+<!ELEMENT outputs (output* , explanation*)>
+<!ELEMENT output (#PCDATA)>
+<!ELEMENT example (#PCDATA)>
+<!ELEMENT bugs (#PCDATA)>
+<!ELEMENT references (#PCDATA)>
+<!ELEMENT reporting (#PCDATA)>
+<!ELEMENT see-also (#PCDATA)>
+]>
+
+<help>
+  <name>lta_convert</name>
+  <synopsis>convert_convert [options]</synopsis>
+  <description>This program converts different transformation formats. Some formats may require you to pass an image if the geometry information is missing form the transform file format.</description>
+  <arguments>
+    <positional>
+      <intro>None.</intro>
+    </positional>
+    <required-flagged>
+      <intro>Exactly one input is required:</intro>
+      <argument>--inlta &lt;in.lta&gt;</argument>
+      <explanation>input transform of LTA type</explanation>
+      <argument>--infsl &lt;in.fslmat&gt;</argument>
+      <explanation>input transform of FSL type</explanation>
+      <argument>--inmni &lt;in.xfm&gt;</argument>
+      <explanation>input transform of MNI / XFM type</explanation>
+      <argument>--inreg &lt;inreg.dat&gt;</argument>
+      <explanation>input transform of TK REG type (deprecated format)</explanation>
+      <intro>At least one output is required:</intro>
+      <argument>--outlta &lt;out.lta&gt;</argument>
+      <explanation>output linear transform (LTA Freesurfer format)</explanation>
+      <argument>--outfsl &lt;out.mat&gt;</argument>
+      <explanation>output transform in FSL format</explanation>
+      <argument>--outmni &lt;out.xfm&gt;</argument>
+      <explanation>output transform in mni/xfm format</explanation>
+      <argument>--outreg &lt;reg.dat&gt;</argument>
+      <explanation>output transform in reg dat format</explanation>
+    </required-flagged>
+    <optional-flagged>      
+      <argument>--invert</argument>
+      <explanation>inverts transform</explanation>
+      <argument>--ltavox2vox</argument>
+      <explanation>(with --ltaout) output type VOX2VOX (default RAS2RAS)</explanation>
+      <intro>While LTA contains src and trg information, other file formats 
+are missing this information and you need to explicitly pass it
+via --src and/or --trg. You can also use this if you want to 
+inform the transform to reslice your image differently (i.e.
+to modify the geometry information without changing RAS 
+coordinates).</intro>
+      <argument>--src</argument>
+      <explanation>specify src image geometry</explanation>
+      <argument>--trg</argument>
+      <explanation>specify trg image geometry</explanation>
+      <argument>--trgconform</argument>
+      <explanation>conform trg image geometry (COR standard). Will be done before inversion, if specified.</explanation>
+    </optional-flagged>
+  </arguments>
+  <example>Convert FSL transform to LTA (FreeSurfer):
+  
+lta_convert --infsl fsl.mat --outlta my.lta --src src.nii --trg trg.nii
+
+converts FSL matrix to FreeSurfer LTA, adding missing src and target geometry info.</example>
+  <example>Invert transform:
+  
+lta_convert --inlta in.lta --outlta out-inverse.lta --invert
+  
+Reads in.lta, inverts it and saves it as out-inverse.lta </example>
+  <example>Conform target geometry:
+  
+lta_convert --inlta in.lta --outlta out-conform.lta --trgconform
+  
+Reads in.lta, conforms trg geometry and saves it as out-conform.lta </example>
+  <example>Create transform from header geometries only:
+  
+lta_convert --inlta identity.nofile --src src.nii --trg trg.nii --outlta out.lta
+  
+Creates LTA from SRC and TRG header geometies, e.g. to convert SPM results to LTA (SPM stores its transforms in the header). Similarly you can create a lta for conform reslicing when specifying --trgconform instead of --trg trg.nii. </example>
+  <reporting>Report bugs to &lt;freesurfer@nmr.mgh.harvard.edu&gt;</reporting>
+  <see-also>mri_concatenate_lta (to concatenate or invert LTA transforms).
+or mri_convert -at or -ait to apply transforms to an image.</see-also>
+</help>
