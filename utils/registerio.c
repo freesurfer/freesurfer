@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2013/04/24 22:07:32 $
- *    $Revision: 1.28 $
+ *    $Date: 2013/04/25 16:12:02 $
+ *    $Revision: 1.29 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -51,7 +51,7 @@ extern const char* Progname;
       is returned (indicating that the regfile was created by
       tkregister).
   -------------------------------------------------------------*/
-int regio_read_register(char *regfile, char **subject, float *inplaneres,
+int regio_read_register(const char *regfile, char **subject, float *inplaneres,
                         float *betplaneres, float *intensity,  MATRIX **R,
                         int *float2int)
 {
@@ -174,8 +174,8 @@ int regio_read_register(char *regfile, char **subject, float *inplaneres,
   return(0);
 }
 /* -------------------------------------------------------------- */
-int regio_print_register(FILE *fp, char *subject, float inplaneres,
-                         float betplaneres, float intensity, MATRIX *R,
+int regio_print_register(FILE *fp, const char *subject, float inplaneres,
+                         float betplaneres, float intensity, const MATRIX *R,
                          int float2int)
 {
   int r,c;
@@ -226,8 +226,8 @@ int regio_print_register(FILE *fp, char *subject, float inplaneres,
 }
 
 /* -------------------------------------------------------------- */
-int regio_write_register(char *regfile, char *subject, float inplaneres,
-                         float betplaneres, float intensity, MATRIX *R,
+int regio_write_register(const char *regfile, const char *subject, float inplaneres,
+                         float betplaneres, float intensity, const MATRIX *R,
                          int float2int)
 {
   FILE *fp;
@@ -260,7 +260,7 @@ int regio_write_register(char *regfile, char *subject, float inplaneres,
    argument. If one is not going to write out the xfm, then
    simply set fileinfo to NULL.
    -------------------------------------------------------------- */
-int regio_read_mincxfm(char *xfmfile, MATRIX **R, char **fileinfo)
+int regio_read_mincxfm(const char *xfmfile, MATRIX **R, char **fileinfo)
 {
   FILE *fp;
   char tmpstr[1000];
@@ -341,7 +341,7 @@ int regio_read_mincxfm(char *xfmfile, MATRIX **R, char **fileinfo)
    like a minc xfm file. See regio_read_mincxfm() for docs on
    fileinfo.
    -------------------------------------------------------------- */
-int regio_write_mincxfm(char *xfmfile, MATRIX *R, char *fileinfo)
+int regio_write_mincxfm(const char *xfmfile, const MATRIX *R, const char *fileinfo)
 {
   FILE *fp;
   int r,c;
@@ -378,7 +378,7 @@ int regio_write_mincxfm(char *xfmfile, MATRIX *R, char *fileinfo)
    regio_read_xfm4() - reads a 4x4 transform as the last four
    lines of the xfmfile. Blank lines at the end will defeat it.
    -------------------------------------------------------------- */
-int regio_read_xfm4(char *xfmfile, MATRIX **R)
+int regio_read_xfm4(const char *xfmfile, MATRIX **R)
 {
   FILE *fp;
   char tmpstr[1000];
@@ -442,7 +442,7 @@ int regio_read_xfm4(char *xfmfile, MATRIX **R)
    are read. Blank lines at the end will defeat it. This should
    be able to read tlas properly.
    -------------------------------------------------------------- */
-int regio_read_xfm(char *xfmfile, MATRIX **R)
+int regio_read_xfm(const char *xfmfile, MATRIX **R)
 {
   char *ext, *fileinfo;
   int err = 0;
@@ -469,9 +469,9 @@ int regio_read_xfm(char *xfmfile, MATRIX **R)
 #include "mri_circulars.h"
 #include "error.h"
 int
-regio_write_surfacexform_to_register_dat(MATRIX *B, char *fname, 
-                                         MRI_SURFACE *mris, MRI *mri, 
-                                         char *subject, int float2int)
+regio_write_surfacexform_to_register_dat(const MATRIX *B, const char *fname, 
+                                         const MRI_SURFACE *mris, const MRI *mri, 
+                                         const char *subject, int float2int)
 {
   MATRIX *Ta, *Sa, *invTa, *A, *R, *S, *invS, *T, *m1, *m2 ;
   MRI *mri_surf = MRIallocHeader(mris->vg.width, mris->vg.height, 
@@ -500,8 +500,8 @@ regio_write_surfacexform_to_register_dat(MATRIX *B, char *fname,
 }
 
 MATRIX *
-regio_read_surfacexform_from_register_dat(char *fname, MRI_SURFACE *mris, 
-                                          MRI *mri, char **subject)
+regio_read_surfacexform_from_register_dat(const char *fname, const MRI_SURFACE *mris, 
+                                          const MRI *mri, char **subject)
 {
   MATRIX *Ta, *Sa, *invT, *A, *R, *S, *invSa, *T, *m1, *m2, *B ;
   float  pres, bres, intensity ;
@@ -541,7 +541,7 @@ regio_read_surfacexform_from_register_dat(char *fname, MRI_SURFACE *mris,
   Just reads in the matrix and leaves the rest of the
   crap in the file.
 */
-MATRIX *regio_read_registermat(char *regfile)
+MATRIX *regio_read_registermat(const char *regfile)
 {
   char *subject;
   float inplaneres, betplaneres, intensity;

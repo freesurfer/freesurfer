@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:10 $
- *    $Revision: 1.9 $
+ *    $Author: mreuter $
+ *    $Date: 2013/04/25 16:12:22 $
+ *    $Revision: 1.10 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -37,39 +37,31 @@ Routines for handling register.dat files
 #include "mri.h"
 #include "mrisurf.h"
 
-int regio_read_register(char *regfile, char **subject, float *inplaneres,
+int regio_read_register(const char *regfile, char **subject, float *inplaneres,
                         float *betplaneres, float *intensity,  MATRIX **R,
                         int *float2int);
 
-int regio_print_register(FILE *fp, char *subject, float inplaneres,
-                         float betplaneres, float intensity, MATRIX *R,
+int regio_print_register(FILE *fp, const char *subject, float inplaneres,
+                         float betplaneres, float intensity, const MATRIX *R,
                          int float2int);
 
-int regio_write_register(char *regfile, char *subject, float inplaneres,
-                         float betplaneres, float intensity, MATRIX *R,
+int regio_write_register(const char *regfile, const char *subject, float inplaneres,
+                         float betplaneres, float intensity, const MATRIX *R,
                          int float2int);
 
-int regio_read_mincxfm(char *xfmfile, MATRIX **R, char **fileinfo);
-int regio_write_mincxfm(char *xfmfile, MATRIX *R, char *fileinfo);
+int regio_read_mincxfm(const char *xfmfile, MATRIX **R, char **fileinfo);
+int regio_write_mincxfm(const char *xfmfile, const MATRIX *R, const char *fileinfo);
 
 
-int regio_read_xfm4(char *xfmfile, MATRIX **R);
-int regio_read_xfm(char *xfmfile, MATRIX **R);
-int regio_write_surfacexform_to_register_dat(MATRIX *B, char *fname, 
-                                             MRI_SURFACE *mris, MRI *mri, 
-                                             char *subject, int float2int);
-MATRIX *regio_read_surfacexform_from_register_dat(char *fname, 
-                                                  MRI_SURFACE *mris, 
-                                                  MRI *mri, char **subject);
+int regio_read_xfm4(const char *xfmfile, MATRIX **R);
+int regio_read_xfm(const char *xfmfile, MATRIX **R);
+int regio_write_surfacexform_to_register_dat(const MATRIX *B, const char *fname, 
+                                             const MRI_SURFACE *mris, const MRI *mri, 
+                                             const char *subject, int float2int);
+MATRIX *regio_read_surfacexform_from_register_dat(const char *fname, 
+                                                  const MRI_SURFACE *mris, 
+                                                  const MRI *mri, char **subject);
 
-int
-regio_write_surfacexform_to_register_dat(MATRIX *B, char *fname, 
-                                         MRI_SURFACE *mris, MRI *mri, 
-                                         char *subject, int float2int);
-MATRIX *
-regio_read_surfacexform_from_register_dat(char *fname, MRI_SURFACE *mris, 
-                                          MRI *mri, char **subject);
-
-MATRIX *regio_read_registermat(char *regfile);
+MATRIX *regio_read_registermat(const char *regfile);
 
 #endif /*BF_H_INC*/
