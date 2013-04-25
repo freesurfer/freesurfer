@@ -8,8 +8,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2013/04/25 17:40:03 $
- *    $Revision: 1.1 $
+ *    $Date: 2013/04/25 19:01:20 $
+ *    $Revision: 1.2 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -72,7 +72,7 @@ static void printUsage(void);
 static bool parseCommandLine(int argc, char *argv[], Parameters & P);
 
 static char vcid[] =
-    "$Id: lta_convert.cpp,v 1.1 2013/04/25 17:40:03 mreuter Exp $";
+    "$Id: lta_convert.cpp,v 1.2 2013/04/25 19:01:20 mreuter Exp $";
 char *Progname = NULL;
 
 LTA * shallowCopyLTA(const LTA * lta)
@@ -186,6 +186,7 @@ LTA * readFSL(const string& xfname, const string& sname, const string& tname)
   getVolGeom(src, &lta->xforms[0].src);
   getVolGeom(trg, &lta->xforms[0].dst);
   lta->type = REGISTER_DAT;
+  // uses MRItkReg2Native internally:
   lta = LTAchangeType(lta, LINEAR_RAS_TO_RAS);
 
   MatrixFree(&FSLRegMat);
@@ -286,6 +287,7 @@ LTA * readREG(const string& xfname, const string& sname, const string& tname)
   lta->type = REGISTER_DAT;
   lta->fscale = fscale;
   strcpy(lta->subject,sidstr);
+  // uses MRItkReg2Native internally:
   lta = LTAchangeType(lta, LINEAR_RAS_TO_RAS);
 
   MatrixFree(&RegMat);
@@ -320,9 +322,9 @@ void writeFSL(const string& fname, const LTA * lta)
 //   LTAfree(&ltatmp);
 //   return;
 
-  MRI * src = MRIallocHeader(1,1,1,MRI_FLOAT,1);
+  MRI * src = MRIallocHeader(lta->xforms[0].src.width,lta->xforms[0].src.height,lta->xforms[0].src.depth,MRI_UCHAR,1);
   useVolGeomToMRI(&lta->xforms[0].dst,src);
-  MRI * trg = MRIallocHeader(1,1,1,MRI_FLOAT,1);
+  MRI * trg = MRIallocHeader(lta->xforms[0].dst.width,lta->xforms[0].dst.height,lta->xforms[0].dst.depth,MRI_UCHAR,1);
   useVolGeomToMRI(&lta->xforms[0].src,trg);
 
   if (lta->type != LINEAR_RAS_TO_RAS)
@@ -387,27 +389,21 @@ void writeMNI(const string& fname, const LTA * lta)
 //   LTAfree(&ltatmp);
 //   return;
   
-  MRI * src = MRIallocHeader(1,1,1,MRI_FLOAT,1);
-  useVolGeomToMRI(&lta->xforms[0].dst,src);
-  MRI * trg = MRIallocHeader(1,1,1,MRI_FLOAT,1);
-  useVolGeomToMRI(&lta->xforms[0].src,trg);
-
   if (lta->type != LINEAR_RAS_TO_RAS)
   {
     cerr << "ERROR: lta should be RAS_TO_RAS by now!!!"<< endl;
     exit(1);  
   }
-  MATRIX *Mreg = MRItkRegMtx(trg, src, lta->xforms[0].m_L);
-  MATRIX *Mmni = MRItkReg2Native(trg, src, Mreg);
+
+  // not necessary (old way convert to reg.dat and then to nmi(=ras2ras):
+  //MRI * src = MRIallocHeader(1,1,1,MRI_FLOAT,1);
+  //useVolGeomToMRI(&lta->xforms[0].dst,src);
+  //MRI * trg = MRIallocHeader(1,1,1,MRI_FLOAT,1);
+  //useVolGeomToMRI(&lta->xforms[0].src,trg);
+  //MATRIX *Mreg = MRItkRegMtx(trg, src, lta->xforms[0].m_L);
+  //MATRIX *Mmni = MRItkReg2Native(trg, src, Mreg);
   
-  // should be identical to ras to ras:
-  cout << "------ MNI registration matrix --------" << endl;
-  MatrixPrint(stdout,Mmni);
-  cout << "---------------------------------------" << endl;
-  cout << "------ LTA registration matrix --------" << endl;
-  MatrixPrint(stdout,lta->xforms[0].m_L);
-  cout << "---------------------------------------" << endl;
-  
+  // MNI matrix is identical to lta ras to ras: 
   FILE *fp = fopen(fname.c_str(),"w");
   if (fp == NULL) {
     printf("ERROR: cannot open %s for writing\n",fname.c_str());
@@ -421,16 +417,16 @@ void writeMNI(const string& fname, const LTA * lta)
   int i,j;
   for (i=0;i<3;i++) {
     for (j=0;j<4;j++)
-      fprintf(fp,"%13.8f ",Mmni->rptr[i+1][j+1]);
+      fprintf(fp,"%13.8f ",lta->xforms[0].m_L->rptr[i+1][j+1]);
     if (i != 2) fprintf(fp,"\n");
     else       fprintf(fp,";\n");
   }
   fclose(fp);
 
-  MatrixFree(&Mreg);
-  MatrixFree(&Mmni);
-  MRIfree(&src);
-  MRIfree(&trg);
+  //MatrixFree(&Mreg);
+  //MatrixFree(&Mmni);
+  //MRIfree(&src);
+  //MRIfree(&trg);
 
   return;
   
@@ -458,10 +454,10 @@ void writeREG(const string& fname, const LTA * lta)
 //   LTAfree(&ltatmp);
 //   return;
 
-  MRI * src = MRIallocHeader(1,1,1,MRI_FLOAT,1);
-  useVolGeomToMRI(&lta->xforms[0].dst,src);
-  MRI * trg = MRIallocHeader(1,1,1,MRI_FLOAT,1);
-  useVolGeomToMRI(&lta->xforms[0].src,trg);
+  MRI * src = MRIallocHeader(lta->xforms[0].src.width,lta->xforms[0].src.height,lta->xforms[0].src.depth,MRI_UCHAR,1);
+  useVolGeomToMRI(&lta->xforms[0].src,src);
+  MRI * trg = MRIallocHeader(lta->xforms[0].dst.width,lta->xforms[0].dst.height,lta->xforms[0].dst.depth,MRI_UCHAR,1);
+  useVolGeomToMRI(&lta->xforms[0].dst,trg);
 
   if (lta->type != LINEAR_RAS_TO_RAS)
   {
