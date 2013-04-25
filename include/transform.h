@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: lzollei $
- *    $Date: 2013/01/05 20:42:57 $
- *    $Revision: 1.71 $
+ *    $Author: mreuter $
+ *    $Date: 2013/04/25 22:11:59 $
+ *    $Revision: 1.72 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -137,6 +137,7 @@ LTA *LTAchangeType(LTA *lta, int ltatype);  /* must have both src and
 
 // new routines to retrieve src and dst volume info for transform
 LTA      *LTAreadEx(const char *fname);
+LTA      *LTAreadExType(const char *fname, int type);
 int      LTAwriteEx(const LTA *lta, const char *fname);
 int      LTAprint(FILE *fp, const LTA *lta);
 
