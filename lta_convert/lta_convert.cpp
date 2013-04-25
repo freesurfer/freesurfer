@@ -8,8 +8,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2013/04/25 19:01:20 $
- *    $Revision: 1.2 $
+ *    $Date: 2013/04/25 21:23:12 $
+ *    $Revision: 1.3 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -72,7 +72,7 @@ static void printUsage(void);
 static bool parseCommandLine(int argc, char *argv[], Parameters & P);
 
 static char vcid[] =
-    "$Id: lta_convert.cpp,v 1.2 2013/04/25 19:01:20 mreuter Exp $";
+    "$Id: lta_convert.cpp,v 1.3 2013/04/25 21:23:12 mreuter Exp $";
 char *Progname = NULL;
 
 LTA * shallowCopyLTA(const LTA * lta)
@@ -131,8 +131,8 @@ LTA * readLTA(const string& xfname, const string& sname, const string& tname)
 }
 
 LTA * readFSL(const string& xfname, const string& sname, const string& tname)
-// this is based on a conversion to tkreg matrix  using MRIfsl2TkReg 
-// and then an lta change type from REGISTER_DAT
+// direcly readin fslmatrix
+// and then an lta change type from FSLREG_TYPE (I implemented that in transform.c)
 {
   FILE *fp = fopen(xfname.c_str(),"r");
   if (fp == NULL)
@@ -173,24 +173,15 @@ LTA * readFSL(const string& xfname, const string& sname, const string& tname)
     cerr << "ERROR readFSL: cannot read trg MRI" << tname << endl;
     exit(1);
   }
-
-  // convert to reg mat
-  MATRIX * RegMat = MRIfsl2TkReg(trg, src, FSLRegMat);
-
-  cout << "------- TK registration matrix --------" << endl;
-  MatrixPrint(stdout,RegMat);
-  cout << "---------------------------------------" << endl;
   
   LTA *lta = LTAalloc(1, NULL) ;
-  lta->xforms[0].m_L = MatrixCopy(RegMat, NULL) ;
+  lta->xforms[0].m_L = MatrixCopy(FSLRegMat, NULL) ;
   getVolGeom(src, &lta->xforms[0].src);
   getVolGeom(trg, &lta->xforms[0].dst);
-  lta->type = REGISTER_DAT;
-  // uses MRItkReg2Native internally:
+  lta->type = FSLREG_TYPE;
   lta = LTAchangeType(lta, LINEAR_RAS_TO_RAS);
 
   MatrixFree(&FSLRegMat);
-  MatrixFree(&RegMat);
   MRIfree(&src);
   MRIfree(&trg);
 
@@ -279,7 +270,6 @@ LTA * readREG(const string& xfname, const string& sname, const string& tname)
     exit(1);
   }
   
-  // NMI XFM matrix should be identical with RAS2RAS?
   LTA *lta = LTAalloc(1, NULL) ;
   lta->xforms[0].m_L = MatrixCopy(RegMat, NULL) ;
   getVolGeom(src, &lta->xforms[0].src);
@@ -301,58 +291,19 @@ LTA * readREG(const string& xfname, const string& sname, const string& tname)
 
 void writeFSL(const string& fname, const LTA * lta)
 {
-//   // shallow copy
-//   LTA * ltatmp = shallowCopyLTA(lta);
-//   
-//   if (ltatmp->type != FSLREG_TYPE)
-//     LTAchangeType(ltatmp, FSLREG_TYPE);
-// 
-//   FILE *fp = fopen(fname.c_str(),"w");
-//   if (fp == NULL) {
-//     cerr << "ERROR: cannot open FSL output "<<fname<<" for writing\n";
-//     return;
-//   }
-//   int i,j;
-//   for (i=0;i<4;i++) {
-//     for (j=0;j<4;j++)
-//       fprintf(fp,"%13.8f ",ltatmp->xforms[0].m_L->rptr[i+1][j+1]);
-//     fprintf(fp,"\n");
-//   }
-//   fclose(fp);
-//   LTAfree(&ltatmp);
-//   return;
+  // shallow copy
+  LTA * ltatmp = shallowCopyLTA(lta);
+     
+  // I implemented this in transform.c instead of here
+  if (ltatmp->type != FSLREG_TYPE)
+    LTAchangeType(ltatmp, FSLREG_TYPE);
 
-  MRI * src = MRIallocHeader(lta->xforms[0].src.width,lta->xforms[0].src.height,lta->xforms[0].src.depth,MRI_UCHAR,1);
-  useVolGeomToMRI(&lta->xforms[0].dst,src);
-  MRI * trg = MRIallocHeader(lta->xforms[0].dst.width,lta->xforms[0].dst.height,lta->xforms[0].dst.depth,MRI_UCHAR,1);
-  useVolGeomToMRI(&lta->xforms[0].src,trg);
-
-  if (lta->type != LINEAR_RAS_TO_RAS)
+  if(LTAwrite(ltatmp, fname.c_str()) != NO_ERROR)
   {
-    cerr << "ERROR: lta should be RAS_TO_RAS by now!!!"<< endl;
-    exit(1);  
+    cerr << "ERROR writeFSL: cannot create file " << fname << endl;
+    exit(1);
   }
-
-  MATRIX *Mreg = MRItkRegMtx(trg, src, lta->xforms[0].m_L);
-  MATRIX *Mfsl = MRItkreg2FSL(trg, src, Mreg);
-
-  FILE *fp = fopen(fname.c_str(),"w");
-  if (fp == NULL) {
-    printf("ERROR: cannot open %s for writing\n",fname.c_str());
-    return;
-  }
-  int i,j;
-  for (i=0;i<4;i++) {
-    for (j=0;j<4;j++)
-      fprintf(fp,"%13.8f ",Mfsl->rptr[i+1][j+1]);
-    fprintf(fp,"\n");
-  }
-  fclose(fp);
-
-  MatrixFree(&Mreg);
-  MatrixFree(&Mfsl);
-  MRIfree(&src);
-  MRIfree(&trg);
+  LTAfree(&ltatmp);
 
   return;
 }
@@ -360,125 +311,41 @@ void writeFSL(const string& fname, const LTA * lta)
 void writeMNI(const string& fname, const LTA * lta)
 // this is the xfm format
 {
-//   // shallow copy
-//   LTA * ltatmp = shallowCopyLTA(lta);
-//   
-//   if (ltatmp->type != MNI_TRANSFORM_TYPE)
-//     LTAchangeType(ltatmp, MNI_TRANSFORM_TYPE);
-// 
-//   FILE *fp = fopen(fname.c_str(),"w");
-//   if (fp == NULL) {
-//     cerr << "ERROR: cannot open MNI output "<<fname<<" for writing\n";
-//     return;
-//   }
-//   fprintf(fp,"MNI Transform File\n");
-//   fprintf(fp,"%% lta_convert\n");
-//   fprintf(fp,"\n");
-//   fprintf(fp,"Transform_Type = Linear;\n");
-//   fprintf(fp,"Linear_Transform =\n");
-//   int i,j;
-//   for (i=0;i<3;i++) {
-//     for (j=0;j<4;j++)
-//       fprintf(fp,"%13.8f ",ltatmp->xforms[0].m_L->rptr[i+1][j+1]);
-//     if (i != 2) fprintf(fp,"\n");
-//     else       fprintf(fp,";\n");
-//   }
-//   
-//   
-//   fclose(fp);
-//   LTAfree(&ltatmp);
-//   return;
-  
   if (lta->type != LINEAR_RAS_TO_RAS)
   {
     cerr << "ERROR: lta should be RAS_TO_RAS by now!!!"<< endl;
     exit(1);  
   }
-
-  // not necessary (old way convert to reg.dat and then to nmi(=ras2ras):
-  //MRI * src = MRIallocHeader(1,1,1,MRI_FLOAT,1);
-  //useVolGeomToMRI(&lta->xforms[0].dst,src);
-  //MRI * trg = MRIallocHeader(1,1,1,MRI_FLOAT,1);
-  //useVolGeomToMRI(&lta->xforms[0].src,trg);
-  //MATRIX *Mreg = MRItkRegMtx(trg, src, lta->xforms[0].m_L);
-  //MATRIX *Mmni = MRItkReg2Native(trg, src, Mreg);
+  // shallow copy
+  LTA * ltatmp = shallowCopyLTA(lta);
   
-  // MNI matrix is identical to lta ras to ras: 
-  FILE *fp = fopen(fname.c_str(),"w");
-  if (fp == NULL) {
-    printf("ERROR: cannot open %s for writing\n",fname.c_str());
-    return;
-  }
-  fprintf(fp,"MNI Transform File\n");
-  fprintf(fp,"%% lta_convert\n");
-  fprintf(fp,"\n");
-  fprintf(fp,"Transform_Type = Linear;\n");
-  fprintf(fp,"Linear_Transform =\n");
-  int i,j;
-  for (i=0;i<3;i++) {
-    for (j=0;j<4;j++)
-      fprintf(fp,"%13.8f ",lta->xforms[0].m_L->rptr[i+1][j+1]);
-    if (i != 2) fprintf(fp,"\n");
-    else       fprintf(fp,";\n");
-  }
-  fclose(fp);
+  // to force mni output for a RAS2RAS
+  ltatmp->type = MNI_TRANSFORM_TYPE;
 
-  //MatrixFree(&Mreg);
-  //MatrixFree(&Mmni);
-  //MRIfree(&src);
-  //MRIfree(&trg);
+  if(LTAwrite(ltatmp, fname.c_str()) != NO_ERROR)
+  {
+    cerr << "ERROR writeFSL: cannot create file " << fname << endl;
+    exit(1);
+  }
+  LTAfree(&ltatmp);
 
   return;
-  
 }
 
 void writeREG(const string& fname, const LTA * lta)
-//RegMat = MRItkRegMtx(targ_vol,mov_vol,XFM);
 {
-//   // shallow copy
-//   LTA * ltatmp = shallowCopyLTA(lta);
-//     
-//   if (ltatmp->type != REGISTER_DAT)
-//     LTAchangeType(ltatmp, REGISTER_DAT);
-// 
-//   int err ;
-//   err =  regio_write_register((char*)fname.c_str(), (char *)ltatmp->subject, ltatmp->xforms[0].src.xsize,
-//                               ltatmp->xforms[0].src.zsize, ltatmp->fscale, ltatmp->xforms[0].m_L,
-//                               FLT2INT_ROUND);
-//   
-//   if (err != 0)
-//   {
-//     cerr << "ERROR: exporting REG dat output "<<fname<< endl;
-//     return;
-//   }
-//   LTAfree(&ltatmp);
-//   return;
+  // shallow copy
+  LTA * ltatmp = shallowCopyLTA(lta);
+     
+  // I implemented this in transform.c instead of here
+  if (ltatmp->type != REGISTER_DAT)
+    LTAchangeType(ltatmp, REGISTER_DAT);
 
-  MRI * src = MRIallocHeader(lta->xforms[0].src.width,lta->xforms[0].src.height,lta->xforms[0].src.depth,MRI_UCHAR,1);
-  useVolGeomToMRI(&lta->xforms[0].src,src);
-  MRI * trg = MRIallocHeader(lta->xforms[0].dst.width,lta->xforms[0].dst.height,lta->xforms[0].dst.depth,MRI_UCHAR,1);
-  useVolGeomToMRI(&lta->xforms[0].dst,trg);
-
-  if (lta->type != LINEAR_RAS_TO_RAS)
-  {
-    cerr << "ERROR: lta should be RAS_TO_RAS by now!!!"<< endl;
-    exit(1);  
-  }
-  MATRIX *Mreg = MRItkRegMtx(trg, src, lta->xforms[0].m_L);
-
-  LTA* ltatmp = shallowCopyLTA(lta);
-  ltatmp->xforms[0].m_L=MatrixCopy(Mreg,ltatmp->xforms[0].m_L);
-  ltatmp->type = REGISTER_DAT;
-  
   if(LTAwrite(ltatmp, fname.c_str()) != NO_ERROR)
   {
     cerr << "ERROR writeREG: cannot create file " << fname << endl;
     exit(1);
   }
-
-  MatrixFree(&Mreg);
-  MRIfree(&src);
-  MRIfree(&trg);
   LTAfree(&ltatmp);
 
   return;
