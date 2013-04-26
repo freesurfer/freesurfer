@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2013/04/19 16:38:23 $
- *    $Revision: 1.748 $
+ *    $Date: 2013/04/26 17:32:46 $
+ *    $Revision: 1.749 $
  *
  * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -771,7 +771,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void)
 {
-  return("$Id: mrisurf.c,v 1.748 2013/04/19 16:38:23 fischl Exp $");
+  return("$Id: mrisurf.c,v 1.749 2013/04/26 17:32:46 fischl Exp $");
 }
 
 /*-----------------------------------------------------
@@ -37539,7 +37539,7 @@ MRIScomputeBorderValues(MRI_SURFACE *mris,MRI *mri_brain,
       }
       inward_dist = dist+step_size/2 ;
 
-      if (DIAG_VERBOSE_ON && mri_brain->xsize < 1.95 && mag >= 0.0)  // refine inward_dist for hires volumes
+      if (DIAG_VERBOSE_ON && mri_brain->xsize < .95 && mag >= 0.0)  // refine inward_dist for hires volumes
       {
         for (dist = inward_dist ; dist > -max_thickness ; dist -= step_size/2)
         {
@@ -37713,7 +37713,7 @@ MRIScomputeBorderValues(MRI_SURFACE *mris,MRI *mri_brain,
         MRISsurfaceRASToVoxelCached(mris, mri_brain, x, y, z, &xw, &yw, &zw) ;
         MRIsampleVolumeDerivativeScale(mri_tmp, xw, yw, zw, nx, ny, nz,&mag,sigma);
         // only for hires volumes - if intensities are increasing don't keep going - in gm
-        if (which == GRAY_WHITE && mri_brain->xsize < 1.95 &&
+        if (which == GRAY_WHITE && mri_brain->xsize < .95 &&
             val > previous_val && next_val > val)
         {
           break ;
