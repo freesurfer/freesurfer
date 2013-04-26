@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2013/04/19 20:27:29 $
- *    $Revision: 1.693.2.5 $
+ *    $Date: 2013/04/26 19:03:01 $
+ *    $Revision: 1.693.2.6 $
  *
  * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -764,7 +764,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void)
 {
-  return("$Id: mrisurf.c,v 1.693.2.5 2013/04/19 20:27:29 nicks Exp $");
+  return("$Id: mrisurf.c,v 1.693.2.6 2013/04/26 19:03:01 nicks Exp $");
 }
 
 /*-----------------------------------------------------
@@ -37428,7 +37428,7 @@ MRIScomputeBorderValues(MRI_SURFACE *mris,
       }
       inward_dist = dist+step_size/2 ;
 
-      if (DIAG_VERBOSE_ON && mri_brain->xsize < 1.95 && mag >= 0.0)  // refine inward_dist for hires volumes
+      if (DIAG_VERBOSE_ON && mri_brain->xsize < .95 && mag >= 0.0)  // refine inward_dist for hires volumes
       {
         for (dist = inward_dist ; dist > -max_thickness ; dist -= step_size/2)
         {
@@ -37602,7 +37602,7 @@ MRIScomputeBorderValues(MRI_SURFACE *mris,
         MRISsurfaceRASToVoxelCached(mris, mri_brain, x, y, z, &xw, &yw, &zw) ;
         MRIsampleVolumeDerivativeScale(mri_tmp, xw, yw, zw, nx, ny, nz,&mag,sigma);
         // only for hires volumes - if intensities are increasing don't keep going - in gm
-        if (which == GRAY_WHITE && mri_brain->xsize < 1.95 &&
+        if (which == GRAY_WHITE && mri_brain->xsize < .95 &&
             val > previous_val && next_val > val)
         {
           break ;
