@@ -12,8 +12,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2013/04/19 16:37:40 $
- *    $Revision: 1.140 $
+ *    $Date: 2013/04/26 16:28:12 $
+ *    $Revision: 1.141 $
  *
  * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -56,7 +56,7 @@
 #define CONTRAST_FLAIR 2
 
 static char vcid[] =
-  "$Id: mris_make_surfaces.c,v 1.140 2013/04/19 16:37:40 fischl Exp $";
+  "$Id: mris_make_surfaces.c,v 1.141 2013/04/26 16:28:12 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -265,13 +265,13 @@ main(int argc, char *argv[])
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mris_make_surfaces.c,v 1.140 2013/04/19 16:37:40 fischl Exp $",
+   "$Id: mris_make_surfaces.c,v 1.141 2013/04/26 16:28:12 fischl Exp $",
    "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mris_make_surfaces.c,v 1.140 2013/04/19 16:37:40 fischl Exp $",
+           "$Id: mris_make_surfaces.c,v 1.141 2013/04/26 16:28:12 fischl Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
   {
@@ -1698,6 +1698,13 @@ main(int argc, char *argv[])
           mri_T1 = mri_tmp ;
           MRISsetVals(mris, 0) ;   // target is 0 distance transform val
           MRIfree(&mri_bin) ;
+#if 0
+	  if (nowhite)
+	  {
+	    parms.mri_brain = mri_T1 ;
+	    MRISexpandSurface(mris, 1, &parms, 0, 1) ;
+	  }
+#endif
         }
       }
       else if (flair_or_T2_name == NULL) // otherwise already done
