@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2013/04/25 15:51:51 $
- *    $Revision: 1.241 $
+ *    $Date: 2013/05/01 19:29:27 $
+ *    $Revision: 1.242 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -5199,11 +5199,13 @@ void MainWindow::OnSavePoint()
 {
   QString fn;
   LayerCollection* lc = GetLayerCollection( "MRI" );
+  Layer* layer = NULL;
   for ( int i = 0; i < lc->GetNumberOfLayers(); i++ )
   {
     fn = ( (LayerMRI*)lc->GetLayer( i ) )->GetFileName();
     if ( !fn.isEmpty() )
     {
+      layer = lc->GetLayer(i);
       break;
     }
   }
@@ -5215,6 +5217,7 @@ void MainWindow::OnSavePoint()
       fn = ( (LayerSurface*)lc->GetLayer( i ) )->GetFileName();
       if ( !fn.isEmpty() )
       {
+        layer = lc->GetLayer(i);
         break;
       }
     }
@@ -5225,11 +5228,19 @@ void MainWindow::OnSavePoint()
   if ( !fn.isEmpty() )
   {
     QString dir = AutoSelectLastDir( QFileInfo(fn).absolutePath(), "tmp" );
+    fn = dir + "/edit.dat";
+    QString path = getenv( "FS_SAVE_GOTO_POINT" );
+    QString subjectName = layer->GetSubjectName();
+    if (!path.isEmpty() && !subjectName.isEmpty())
+    {
+      fn = path + "-" + subjectName;
+      dir = QFileInfo(fn).absolutePath();
+    }
     if ( QDir(dir).exists() )
     {
       double ras[3];
       GetCursorRAS( ras, true );  // in tkReg coordinate
-      QFile file( dir + "/edit.dat");
+      QFile file(fn);
       if (!file.open(QIODevice::WriteOnly | QIODevice::Text))
       {
         bError = true;
@@ -5263,10 +5274,15 @@ void MainWindow::OnGoToPoint()
 {
   LayerCollection* lc = GetLayerCollection( "MRI" );
   QString fn;
+  QString path = getenv( "FS_SAVE_GOTO_POINT" );
   for ( int i = 0; i < lc->GetNumberOfLayers(); i++ )
   {
     fn = ( (LayerMRI*)lc->GetLayer( i ) )->GetFileName();
-    fn = AutoSelectLastDir( QFileInfo(fn).absolutePath(), "tmp") + "/edit.dat";
+    QString subjectName = lc->GetLayer(i)->GetSubjectName();
+    if (!path.isEmpty() && !subjectName.isEmpty())
+      fn = path + "-" + subjectName;
+    else
+      fn = AutoSelectLastDir( QFileInfo(fn).absolutePath(), "tmp") + "/edit.dat";
     if ( !QFile::exists( fn ) )
     {
       fn = "";

@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2013/03/13 20:11:31 $
- *    $Revision: 1.25 $
+ *    $Date: 2013/05/01 19:29:27 $
+ *    $Revision: 1.26 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -182,6 +182,13 @@ public:
     emit ActorUpdated();
   }
 
+  QString GetSubjectName()
+  {
+    return m_sSubjectName;
+  }
+
+  void ParseSubjectName(const QString& file_path);
+
 Q_SIGNALS:
   void NameChanged( const QString& name );
   void Transformed();
@@ -224,6 +231,7 @@ protected:
 
   QString   m_sFilename;
   QStringList m_strTypeNames;
+  QString   m_sSubjectName;
 
   int       m_nID;
   static int m_nLastID;

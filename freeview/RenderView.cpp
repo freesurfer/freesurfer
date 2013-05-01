@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2013/04/04 19:41:57 $
- *    $Revision: 1.48 $
+ *    $Date: 2013/05/01 19:29:27 $
+ *    $Revision: 1.49 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -147,7 +147,7 @@ void RenderView::OnIdle()
 //   if ( qApp->hasPendingEvents() )
 //       return;
 
-  if ( m_bNeedRedraw )
+  if ( m_bNeedRedraw && isVisible())
   {
     Render();
     m_bNeedRedraw = false;

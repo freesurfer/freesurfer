@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2013/03/13 20:11:31 $
- *    $Revision: 1.26 $
+ *    $Date: 2013/05/01 19:29:27 $
+ *    $Revision: 1.27 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -27,6 +27,8 @@
 #include "Layer.h"
 #include "LayerProperty.h"
 #include <math.h>
+#include <QFileInfo>
+#include <QDir>
 
 #define CLOSE_DISTANCE 1e-6
 
@@ -321,4 +323,11 @@ void Layer::UpdateTransform(int sample_method)
 {
   DoTransform(sample_method);
   emit Transformed();
+}
+
+void Layer::ParseSubjectName(const QString &file_path)
+{
+  QDir dir = QFileInfo(file_path).absoluteDir();
+  dir.cdUp();
+  m_sSubjectName = dir.dirName();
 }
