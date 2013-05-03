@@ -21,7 +21,7 @@ AM_CXXFLAGS=-Wno-deprecated -I$(top_srcdir)/include \
 	-I$(top_srcdir)/vtkutils \
 	$(VTK_CXXFLAGS) $(KWWIDGETS_CXXFLAGS) $(TCL_CFLAGS)
 
-if ENABLE_KWWIDGETS_APPS
+if ENABLE_TCLTK_APPS
 bin_PROGRAMS = orient_mri
 orient_mri_SOURCES= \
 	OrientMRIMain.cxx \
