@@ -501,7 +501,6 @@ install-exec-hook:freeview
 	mkdir -p $(DESTDIR)$(bindir)/../Freeview.app/Contents/Resources
 	mkdir -p $(DESTDIR)$(bindir)/../Freeview.app/Contents/Resources/English.lproj
 	mkdir -p $(DESTDIR)$(bindir)/../Freeview.app/Contents/Frameworks
-	cp $(top_builddir)/freeview/Info.plist $(DESTDIR)$(bindir)/../Freeview.app/Contents
 	echo -n 'APPL????' > $(DESTDIR)$(bindir)/../Freeview.app/Contents/PkgInfo
 	cp $(top_builddir)/freeview/freeview $(DESTDIR)$(bindir)/../Freeview.app/Contents/MacOS/freeview.bin
 	echo "#!/bin/tcsh -ef" > $(DESTDIR)$(bindir)/freeview
