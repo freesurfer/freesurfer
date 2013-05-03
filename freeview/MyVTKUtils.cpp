@@ -6,9 +6,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2013/01/13 22:59:00 $
- *    $Revision: 1.4.2.9 $
+ *    $Author: zkaufman $
+ *    $Date: 2013/05/03 17:52:34 $
+ *    $Revision: 1.4.2.10 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -81,6 +81,8 @@
 #include <vtkImageClip.h>
 #include <vtkDijkstraImageGeodesicPath.h>
 #include <vtkCleanPolyData.h>
+#include <vtkImageResample.h>
+#include <vtkWindowedSincPolyDataFilter.h>
 #include <QFileInfo>
 
 bool MyVTKUtils::VTKScreenCapture( vtkRenderWindow* renderWnd,
@@ -208,7 +210,7 @@ void MyVTKUtils::WorldToViewport( vtkRenderer* renderer,
 // test multiple contours
 bool MyVTKUtils::BuildLabelContourActor( vtkImageData* data_in,
                                     double dTh1, double dTh2,
-                                    vtkActor* actor_out, int nSmoothIterations, int* ext, bool bAllRegions )
+                                    vtkActor* actor_out, int nSmoothIterations, int* ext, bool bAllRegions, bool bUpsample )
 {
   double nValue = 1;
   int nSwell = 2;
@@ -221,8 +223,16 @@ bool MyVTKUtils::BuildLabelContourActor( vtkImageData* data_in,
     threshold->ThresholdBetween( i-0.5, i+0.5 );
     threshold->ReplaceOutOn();
     threshold->SetOutValue( 0 );
+    vtkSmartPointer<vtkImageResample> resampler = vtkSmartPointer<vtkImageResample>::New();
+    if (bUpsample)
+    {
+      resampler->SetAxisMagnificationFactor(0, 2.0);
+      resampler->SetAxisMagnificationFactor(1, 2.0);
+      resampler->SetAxisMagnificationFactor(2, 2.0);
+      resampler->SetInputConnection(threshold->GetOutputPort());
+    }
     vtkSmartPointer<vtkMarchingCubes> contour = vtkSmartPointer<vtkMarchingCubes>::New();
-    contour->SetInputConnection( threshold->GetOutputPort());
+    contour->SetInputConnection( bUpsample? resampler->GetOutputPort() : threshold->GetOutputPort());
     contour->SetValue(0, i);
     append->AddInput(contour->GetOutput());
   }
@@ -243,7 +253,7 @@ bool MyVTKUtils::BuildLabelContourActor( vtkImageData* data_in,
     vtkSmartPointer<vtkPolyDataConnectivityFilter> conn = vtkSmartPointer<vtkPolyDataConnectivityFilter>::New();
     conn->SetInputConnection( append->GetOutputPort() );
     conn->SetExtractionModeToLargestRegion();
-    vtkSmartPointer<vtkSmoothPolyDataFilter> smoother = vtkSmartPointer<vtkSmoothPolyDataFilter>::New();
+    vtkSmartPointer<vtkWindowedSincPolyDataFilter> smoother = vtkSmartPointer<vtkWindowedSincPolyDataFilter>::New();
     if ( bAllRegions )
     {
       smoother->SetInputConnection( append->GetOutputPort() );
@@ -273,22 +283,39 @@ bool MyVTKUtils::BuildLabelContourActor( vtkImageData* data_in,
 
 bool MyVTKUtils::BuildContourActor( vtkImageData* data_in,
                                     double dTh1, double dTh2,
-                                    vtkActor* actor_out, int nSmoothIterations, int* ext, bool bAllRegions )
+                                    vtkActor* actor_out, int nSmoothIterations, int* ext, bool bAllRegions,
+                                    bool bUpsample)
 {
   double nValue = 1;
   int nSwell = 2;
   vtkSmartPointer<vtkImageThreshold> threshold = vtkSmartPointer<vtkImageThreshold>::New();
 
+  vtkSmartPointer<vtkImageResample> resampler = vtkSmartPointer<vtkImageResample>::New();
+  resampler->SetAxisMagnificationFactor(0, 2.0);
+  resampler->SetAxisMagnificationFactor(1, 2.0);
+  resampler->SetAxisMagnificationFactor(2, 2.0);
   if ( ext )
   {
     vtkSmartPointer<vtkImageClip> clipper = vtkSmartPointer<vtkImageClip>::New();
-    clipper->SetInput( data_in );
+    if (bUpsample)
+    {
+      resampler->SetInput(data_in);
+      clipper->SetInputConnection(resampler->GetOutputPort());
+    }
+    else
+      clipper->SetInput( data_in );
     clipper->SetOutputWholeExtent( ext );
     threshold->SetInputConnection( clipper->GetOutputPort() );
   }
   else
   {
-    threshold->SetInput( data_in );
+    if (bUpsample)
+    {
+      resampler->SetInput(data_in);
+      threshold->SetInputConnection(resampler->GetOutputPort());
+    }
+    else
+      threshold->SetInput( data_in );
   }
   threshold->ThresholdByLower( dTh2 );
   threshold->ReplaceOutOn();
@@ -315,7 +342,7 @@ bool MyVTKUtils::BuildContourActor( vtkImageData* data_in,
     vtkSmartPointer<vtkPolyDataConnectivityFilter> conn = vtkSmartPointer<vtkPolyDataConnectivityFilter>::New();
     conn->SetInputConnection( contour->GetOutputPort() );
     conn->SetExtractionModeToLargestRegion();
-    vtkSmartPointer<vtkSmoothPolyDataFilter> smoother = vtkSmartPointer<vtkSmoothPolyDataFilter>::New();
+    vtkSmartPointer<vtkWindowedSincPolyDataFilter> smoother = vtkSmartPointer<vtkWindowedSincPolyDataFilter>::New();
     if ( bAllRegions )
     {
       smoother->SetInputConnection( contour->GetOutputPort() );
@@ -325,6 +352,7 @@ bool MyVTKUtils::BuildContourActor( vtkImageData* data_in,
       smoother->SetInputConnection( conn->GetOutputPort() );
     }
     smoother->SetNumberOfIterations( nSmoothIterations );
+ //   smoother->SetRelaxationFactor(smoother->GetRelaxationFactor()*2);
  //   smoother->FeatureEdgeSmoothingOn();
  //   smoother->SetEdgeAngle( 90 );
     vtkSmartPointer<vtkPolyDataNormals> normals = vtkSmartPointer<vtkPolyDataNormals>::New();

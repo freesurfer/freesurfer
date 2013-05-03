@@ -10,9 +10,9 @@
  * Original Author: Kevin Teich
  * Reimplemented by: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2013/01/13 22:59:00 $
- *    $Revision: 1.4.2.6 $
+ *    $Author: zkaufman $
+ *    $Date: 2013/05/03 17:52:32 $
+ *    $Revision: 1.4.2.7 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -309,6 +309,11 @@ public:
     return this->m_bShowAsLabelContour;
   }
 
+  bool GetContourUpsample()
+  {
+    return this->m_bContourUpsample;
+  }
+
   void SetActiveFrame(int nFrame);
 
   void GetLabelContourRange(double* th1, double* th2)
@@ -339,6 +344,7 @@ public slots:
   void SetHeatScaleTruncate( bool bTruncate );
   void SetHeatScaleInvert( bool bInvert );
   void SetContourUseImageColorMap( bool bFlag );
+  void SetContourUpsample( bool bFlag );
   void SetContourExtractAllRegions( bool bExtractAll );
   void SetContourColor(const QColor& c)
   {
@@ -435,6 +441,7 @@ private:
   bool    m_bContourUseImageColorMap;
   bool    m_bContourExtractAll;
   int     m_nContourSmoothIterations;
+  bool    m_bContourUpsample;
 
   bool    m_bShowAsLabelContour;
   double  m_dLabelContourRange[2];

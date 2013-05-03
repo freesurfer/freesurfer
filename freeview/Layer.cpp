@@ -6,9 +6,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2013/01/13 22:58:59 $
- *    $Revision: 1.23.2.9 $
+ *    $Author: zkaufman $
+ *    $Date: 2013/05/03 17:52:31 $
+ *    $Revision: 1.23.2.10 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -27,6 +27,8 @@
 #include "Layer.h"
 #include "LayerProperty.h"
 #include <math.h>
+#include <QFileInfo>
+#include <QDir>
 
 #define CLOSE_DISTANCE 1e-6
 
@@ -300,6 +302,15 @@ void Layer::SetTranslate(double *offset)
   UpdateTransform();
 }
 
+void Layer::SetTranslateByCenterPosition(double *c_pos /* in target space */)
+{
+  for (int i = 0; i < 3; i++)
+  {
+    m_dTranslate[i] = c_pos[i] - (m_dWorldOrigin[i] + m_dWorldSize[i]/2);
+  }
+  UpdateTransform();
+}
+
 void Layer::SetScale(double *scale)
 {
   m_dScale[0] = scale[0];
@@ -312,4 +323,11 @@ void Layer::UpdateTransform(int sample_method)
 {
   DoTransform(sample_method);
   emit Transformed();
+}
+
+void Layer::ParseSubjectName(const QString &file_path)
+{
+  QDir dir = QFileInfo(file_path).absoluteDir();
+  dir.cdUp();
+  m_sSubjectName = dir.dirName();
 }

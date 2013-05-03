@@ -6,9 +6,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2013/01/13 22:58:59 $
- *    $Revision: 1.61.2.10 $
+ *    $Author: zkaufman $
+ *    $Date: 2013/05/03 17:52:32 $
+ *    $Revision: 1.61.2.11 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -103,6 +103,8 @@ public:
 
   void RASToOriginalIndex( const double* pos, int* n );
   void OriginalIndexToRAS( const int* n, double* pos );
+
+  void OriginalVoxelToRAS( const double* vcoord, double* pos);
 
   virtual void SetVisible( bool bVisible = true );
   virtual bool IsVisible();
@@ -275,6 +277,13 @@ public:
 
   bool HasReg();
 
+  void SetMaskLayer(LayerMRI* layer_mask);
+
+  LayerMRI* GetMaskLayer()
+  {
+    return m_layerMask;
+  }
+
 public slots:
   void SetActiveFrame( int nFrame );
   void SetActiveFrameOneBase( int nFrame )
@@ -390,6 +399,9 @@ protected:
   int         m_nGotoLabelSlice;
   int         m_nGotoLabelOrientation;
   QString     m_strGotoLabelName;
+
+  vtkSmartPointer<vtkImageData> m_imageDataBackup;
+  LayerMRI*   m_layerMask;
 
 private:
   double**    private_buf1_3x3;

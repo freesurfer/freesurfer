@@ -6,9 +6,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2013/01/13 22:58:59 $
- *    $Revision: 1.23.2.5 $
+ *    $Author: zkaufman $
+ *    $Date: 2013/05/03 17:52:31 $
+ *    $Revision: 1.23.2.6 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -118,6 +118,12 @@ bool Interactor2DVolumeEdit::ProcessMouseDownEvent( QMouseEvent* event, RenderVi
           m_bEditing = true;
           mri->SetVoxelByRAS( ras, view->GetViewPlane(),bCondition );
         }
+      }
+      else if ( m_nAction == EM_Clone )
+      {
+        mri->SaveForUndo( view->GetViewPlane() );
+        m_bEditing = true;
+        mri->CloneVoxelByRAS( ras, view->GetViewPlane() );
       }
       else if ( m_nAction == EM_Fill ) //&& ( event->ControlDown() ) )
       {
@@ -301,6 +307,14 @@ bool Interactor2DVolumeEdit::ProcessMouseMoveEvent( QMouseEvent* event, RenderVi
       mri->SetVoxelByRAS( ras1, ras2, view->GetViewPlane(),
                           !(event->modifiers() & Qt::ShiftModifier) && !(event->buttons() & Qt::RightButton) );
     }
+    else if ( m_nAction == EM_Clone )
+    {
+      double ras1[3], ras2[3];
+      view->MousePositionToRAS( m_nMousePosX, m_nMousePosY, ras1 );
+      view->MousePositionToRAS( posX, posY, ras2 );
+
+      mri->CloneVoxelByRAS( ras1, ras2, view->GetViewPlane() );
+    }
     else if ( m_nAction == EM_Polyline || m_nAction == EM_Livewire )
     {
       double ras[3];
@@ -446,6 +460,9 @@ void Interactor2DVolumeEdit::UpdateCursor( QEvent* event, QWidget* wnd )
         switch ( m_nAction )
         {
         case EM_Freehand:
+          wnd->setCursor( CursorFactory::CursorPencil );
+          break;
+        case EM_Clone:
           wnd->setCursor( CursorFactory::CursorPencil );
           break;
         case EM_Polyline:

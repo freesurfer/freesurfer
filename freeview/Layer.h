@@ -6,9 +6,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2013/01/13 22:58:59 $
- *    $Revision: 1.22.2.9 $
+ *    $Author: zkaufman $
+ *    $Date: 2013/05/03 17:52:31 $
+ *    $Revision: 1.22.2.10 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -114,6 +114,7 @@ public:
 
   void SetRotate(double* rotate, bool bAroundCenter = true);
   void SetTranslate(double* offset);
+  void SetTranslateByCenterPosition(double* c_pos);
   void SetScale(double* scale);
   void UpdateTransform(int sample_method = 0);
 
@@ -181,6 +182,13 @@ public:
     emit ActorUpdated();
   }
 
+  QString GetSubjectName()
+  {
+    return m_sSubjectName;
+  }
+
+  void ParseSubjectName(const QString& file_path);
+
 Q_SIGNALS:
   void NameChanged( const QString& name );
   void Transformed();
@@ -223,6 +231,7 @@ protected:
 
   QString   m_sFilename;
   QStringList m_strTypeNames;
+  QString   m_sSubjectName;
 
   int       m_nID;
   static int m_nLastID;

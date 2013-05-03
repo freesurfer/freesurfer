@@ -6,74 +6,83 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: rpwang $
- *    $Date: 2010/05/24 21:42:53 $
- *    $Revision: 1.7 $
+ *    $Author: zkaufman $
+ *    $Date: 2013/05/03 17:52:30 $
+ *    $Revision: 1.13.2.1 $
  *
- * Copyright (C) 2008-2009,
- * The General Hospital Corporation (Boston, MA).
- * All rights reserved.
+ * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
- * Distribution, usage and copying of this software is covered under the
- * terms found in the License Agreement file named 'COPYING' found in the
- * FreeSurfer source code root directory, and duplicated here:
- * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ * Terms and conditions for use, reproduction, distribution and contribution
+ * are found in the 'FreeSurfer Software License Agreement' contained
+ * in the file 'LICENSE' found in the FreeSurfer distribution, and here:
  *
- * General inquiries: freesurfer@nmr.mgh.harvard.edu
- * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
+ *
+ * Reporting: freesurfer@nmr.mgh.harvard.edu
+ *
  *
  */
 
 #ifndef Interactor_h
 #define Interactor_h
 
-#include <wx/wx.h>
-#include "Broadcaster.h"
+#include <QObject>
+#include <QMouseEvent>
+#include <QKeyEvent>
 
 class vtkRenderer;
 class RenderView;
+class QEvent;
+class QWheelEvent;
+class QMouseEvent;
+class QKeyEvent;
 
-class Interactor : public Broadcaster
+class Interactor : public QObject
 {
+  Q_OBJECT
 public:
-  Interactor();
+  Interactor( QObject* parent = NULL );
   virtual ~Interactor();
-  
-  enum MeasureMode 
-  { 
-    MM_Line = 0, MM_Polyline, MM_Spline, MM_Rectangle, MM_SurfaceRegion
+
+  enum MeasureMode
+  {
+    MM_Line = 0, MM_Polyline, MM_Spline, MM_Rectangle, MM_Label, MM_SurfaceRegion
   };
 
   enum EditMode
   {
-    EM_Freehand = 0, EM_Fill, EM_Polyline, EM_Livewire, EM_ColorPicker, EM_Contour
+    EM_Freehand = 0, EM_Fill, EM_Polyline, EM_Livewire, EM_ColorPicker, EM_Contour, EM_Clone
   };
-  
+
   int GetAction();
   void SetAction( int nAction );
 
   // return true if to have parent interactor continue processing the event
   // return false to stop event from further processing
-  virtual bool ProcessMouseDownEvent( wxMouseEvent& event, RenderView* view );
-  virtual bool ProcessMouseUpEvent( wxMouseEvent& event, RenderView* view );
-  virtual bool ProcessMouseMoveEvent( wxMouseEvent& event, RenderView* view );
-  virtual bool ProcessMouseWheelEvent( wxMouseEvent& event, RenderView* view );
-  virtual bool ProcessMouseEnterEvent( wxMouseEvent& event, RenderView* view );
-  virtual bool ProcessMouseLeaveEvent( wxMouseEvent& event, RenderView* view );
-  virtual bool ProcessKeyDownEvent( wxKeyEvent& event, RenderView* view );
-  virtual bool ProcessKeyUpEvent( wxKeyEvent& event, RenderView* view );
-  virtual void ProcessPostMouseMoveEvent( wxMouseEvent& event, RenderView* view )
+  virtual bool ProcessMouseDownEvent    ( QMouseEvent* event, RenderView* view );
+  virtual bool ProcessMouseUpEvent      ( QMouseEvent* event, RenderView* view );
+  virtual bool ProcessMouseMoveEvent    ( QMouseEvent* event, RenderView* view );
+  virtual bool ProcessMouseWheelEvent   ( QWheelEvent* event, RenderView* view );
+  virtual bool ProcessMouseEnterEvent   ( QEvent* event, RenderView* view );
+  virtual bool ProcessMouseLeaveEvent   ( QEvent* event, RenderView* view );
+  virtual bool ProcessKeyDownEvent      ( QKeyEvent* event, RenderView* view );
+  virtual bool ProcessKeyUpEvent        ( QKeyEvent* event, RenderView* view );
+  virtual void ProcessPostMouseMoveEvent( QMouseEvent* event, RenderView* view )
   {}
-  virtual void ProcessPostMouseWheelEvent( wxMouseEvent& event, RenderView* view )
+  virtual void ProcessPostMouseWheelEvent( QWheelEvent* event, RenderView* view )
   {}
 
+  static void SetUseCommandControl(bool b);
+
 protected:
-  virtual void UpdateCursor( wxEvent& event, wxWindow* wnd );
+  virtual void UpdateCursor( QEvent* event, QWidget* wnd );
 
   int  m_nDownPosX;
   int  m_nDownPosY;
 
   int  m_nAction;
+  static Qt::KeyboardModifier CONTROL_MODIFIER;
+  static Qt::Key CONTROL_KEY;
 };
 
 #endif

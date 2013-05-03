@@ -1,133 +1,75 @@
 /**
  * @file  ToolWindowEdit.h
- * @brief Preferences Dialog.
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
  *
  */
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: rpwang $
- *    $Date: 2010/03/10 21:40:06 $
- *    $Revision: 1.10 $
+ *    $Author: zkaufman $
+ *    $Date: 2013/05/03 17:52:37 $
+ *    $Revision: 1.18.2.1 $
  *
- * Copyright (C) 2008-2009,
- * The General Hospital Corporation (Boston, MA).
- * All rights reserved.
+ * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
- * Distribution, usage and copying of this software is covered under the
- * terms found in the License Agreement file named 'COPYING' found in the
- * FreeSurfer source code root directory, and duplicated here:
- * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ * Terms and conditions for use, reproduction, distribution and contribution
+ * are found in the 'FreeSurfer Software License Agreement' contained
+ * in the file 'LICENSE' found in the FreeSurfer distribution, and here:
  *
- * General inquiries: freesurfer@nmr.mgh.harvard.edu
- * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
+ *
+ * Reporting: freesurfer@nmr.mgh.harvard.edu
  *
  */
-#ifndef ToolWindowEdit_h
-#define ToolWindowEdit_h
+#ifndef TOOLWINDOWEDIT_H
+#define TOOLWINDOWEDIT_H
 
-#include <wx/wx.h>
-#include <vector>
-#include "Listener.h"
+#include "UIUpdateHelper.h"
+#include <QWidget>
+#include <QList>
 
-class wxTextCtrl;
-class wxCheckBox;
-class wxComboBox;
-class wxChoice;
-class wxToolBar;
-class wxSpinEvent;
-class wxSpinCtrl;
-class wxColourPickerCtrl;
-class wxColourPickerEvent;
-
-class ToolWindowEdit : public wxFrame, public Listener
+namespace Ui
 {
+class ToolWindowEdit;
+}
+
+class ToolWindowEdit : public QWidget, public UIUpdateHelper
+{
+  Q_OBJECT
+
 public:
-  ToolWindowEdit( wxWindow* parent );
-  virtual ~ToolWindowEdit();
+  explicit ToolWindowEdit(QWidget *parent = 0);
+  ~ToolWindowEdit();
 
-  void OnShow( wxShowEvent& event );
+public slots:
+  void UpdateWidgets();
 
-  void OnActionVoxelFreehand          ( wxCommandEvent& event );
-  void OnActionVoxelFreehandUpdateUI  ( wxUpdateUIEvent& event );
-  void OnActionVoxelFill              ( wxCommandEvent& event );
-  void OnActionVoxelFillUpdateUI      ( wxUpdateUIEvent& event );
-  void OnActionVoxelPolyline          ( wxCommandEvent& event );
-  void OnActionVoxelPolylineUpdateUI  ( wxUpdateUIEvent& event );
-  void OnActionVoxelLivewire          ( wxCommandEvent& event );
-  void OnActionVoxelLivewireUpdateUI  ( wxUpdateUIEvent& event );
-  void OnActionVoxelColorPicker       ( wxCommandEvent& event );
-  void OnActionVoxelColorPickerUpdateUI  ( wxUpdateUIEvent& event );
-  void OnActionVoxelContour           ( wxCommandEvent& event );
-  void OnActionVoxelContourUpdateUI   ( wxUpdateUIEvent& event );
-
-  void OnActionROIFreehand            ( wxCommandEvent& event );
-  void OnActionROIFreehandUpdateUI    ( wxUpdateUIEvent& event );
-  void OnActionROIFill                ( wxCommandEvent& event );
-  void OnActionROIFillUpdateUI        ( wxUpdateUIEvent& event );
-  void OnActionROIPolyline            ( wxCommandEvent& event );
-  void OnActionROIPolylineUpdateUI    ( wxUpdateUIEvent& event );
-  void OnActionROILivewire            ( wxCommandEvent& event );
-  void OnActionROILivewireUpdateUI    ( wxUpdateUIEvent& event );
-
-  void OnSpinBrushSize          ( wxSpinEvent& event );
-  void OnSpinBrushTolerance     ( wxSpinEvent& event );
-  void OnChoiceBrushTemplate    ( wxCommandEvent& event );
-  void OnCheckDrawRange         ( wxCommandEvent& event );
-  void OnCheckExcludeRange      ( wxCommandEvent& event );
-  void OnEditDrawRangeLow       ( wxCommandEvent& event );
-  void OnEditDrawRangeHigh      ( wxCommandEvent& event );
-  void OnEditExcludeRangeLow    ( wxCommandEvent& event );
-  void OnEditExcludeRangeHigh   ( wxCommandEvent& event );
-  void OnEditSmoothSD           ( wxCommandEvent& event );
-  
-  void OnEditContourValue       ( wxCommandEvent& event );
-  void OnColorContour           ( wxColourPickerEvent& event );
-
-  void OnCheckDrawConnectedOnly ( wxCommandEvent& event );
-  void OnCheckSmooth            ( wxCommandEvent& event );
-
-  void UpdateTools();
-
-  void ResetPosition();
-  
-  void ShowWidgets( std::vector<wxWindow*>& list, bool bShow );
+protected slots:
+  void OnIdle();
+  void OnEditMode( QAction* act );
+  void OnComboReference(int sel);
+  void OnLineEditContourValue(const QString& strg);
+  void OnLineEditSmoothSD(const QString& strg);
+  void OnDrawRangeChanged(const QString& strg);
+  void OnExcludeRangeChanged(const QString& strg);
+  void OnReplaceLabel();
+  void OnCheckReconEditing(bool bRecon);
+  void OnLineEditFillValue(const QString& strg);
+  void OnLineEditEraseValue(const QString& strg);
 
 protected:
-  void DoListenToMessage ( std::string const iMsg, void* iData, void* sender );
-  void DoUpdateTools();
-  void UpdateTextValue( wxTextCtrl* ctrl, double dvalue );
+  virtual void showEvent(QShowEvent *);
 
-  void OnInternalIdle();
+private:
+  Ui::ToolWindowEdit *ui;
 
-  wxToolBar*    m_toolbarVoxelEdit;
-  wxToolBar*    m_toolbarROIEdit;
-  wxSpinCtrl*   m_spinBrushSize;
-  wxSpinCtrl*   m_spinBrushTolerance;
-  wxChoice*     m_choiceTemplate;
-  wxCheckBox*   m_checkDrawRange;
-  wxCheckBox*   m_checkExcludeRange;
-  wxTextCtrl*   m_editDrawRangeLow;
-  wxTextCtrl*   m_editDrawRangeHigh;
-  wxTextCtrl*   m_editExcludeRangeLow;
-  wxTextCtrl*   m_editExcludeRangeHigh;
-  wxCheckBox*   m_checkDrawConnectedOnly;
-  wxTextCtrl*   m_editSmoothSD;
-  wxCheckBox*   m_checkSmooth;
-  wxTextCtrl*   m_editContourValue;
-  wxColourPickerCtrl*  m_colorPickerContour;
-
-  bool m_bToUpdateTools;
-  
-  std::vector<wxWindow*>  m_widgetsBrushSize;
-  std::vector<wxWindow*>  m_widgetsReference;
-  std::vector<wxWindow*>  m_widgetsTolerance;
-  std::vector<wxWindow*>  m_widgetsConstrain;
-  std::vector<wxWindow*>  m_widgetsSmooth;
-  std::vector<wxWindow*>  m_widgetsContour;
-
-  DECLARE_EVENT_TABLE()
+  bool m_bToUpdateWidgets;
+  QList<QWidget*>  m_widgetsBrushSize;
+  QList<QWidget*>  m_widgetsReference;
+  QList<QWidget*>  m_widgetsTolerance;
+  QList<QWidget*>  m_widgetsConstrain;
+  QList<QWidget*>  m_widgetsSmooth;
+  QList<QWidget*>  m_widgetsContour;
 };
 
-#endif
-
+#endif // TOOLWINDOWEDIT_H

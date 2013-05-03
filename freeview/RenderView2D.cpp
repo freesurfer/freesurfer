@@ -6,9 +6,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2013/01/13 22:59:00 $
- *    $Revision: 1.44.2.9 $
+ *    $Author: zkaufman $
+ *    $Date: 2013/05/03 17:52:37 $
+ *    $Revision: 1.44.2.10 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -71,6 +71,7 @@ RenderView2D::RenderView2D( QWidget* parent ) : RenderView( parent )
   connect(m_interactorROIEdit, SIGNAL(Error(QString)), this, SLOT(OnInteractorError(QString)));
   connect(m_interactorPointSetEdit, SIGNAL(Error(QString)), this, SLOT(OnInteractorError(QString)));
   SetInteractionMode( IM_Navigate );
+  m_dPreSlicePosition = -1e10;
 }
 
 void RenderView2D::SetViewPlane( int nPlane )
@@ -251,9 +252,16 @@ void RenderView2D::OnSlicePositionChanged()
 {
   double slicePos[3];
   MainWindow::GetMainWindow()->GetLayerCollection( "MRI" )->GetSlicePosition( slicePos );
-  for ( int i = 0; i < m_regions.size(); i++ )
+
+  if (m_dPreSlicePosition != slicePos[m_nViewPlane])
   {
-    m_regions[i]->UpdateSlicePosition( m_nViewPlane, slicePos[m_nViewPlane] );
+    for ( int i = 0; i < m_regions.size(); i++ )
+    {
+      m_regions[i]->UpdateSlicePosition( m_nViewPlane, slicePos[m_nViewPlane] );
+    }
+
+    ResetCameraClippingRange();
+    m_dPreSlicePosition = slicePos[m_nViewPlane];
   }
   m_cursor2D->SetPosition( slicePos );
   Update2DOverlay();

@@ -11,9 +11,9 @@
  * Original Author: Kevin Teich
  * Reimplemented by: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2013/01/13 22:59:00 $
- *    $Revision: 1.4.2.6 $
+ *    $Author: zkaufman $
+ *    $Date: 2013/05/03 17:52:32 $
+ *    $Revision: 1.4.2.7 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -81,12 +81,13 @@ LayerPropertyMRI::LayerPropertyMRI (QObject* parent) : LayerProperty( parent ),
   m_bContourExtractAll( false ),
   m_bShowLabelOutline( false ),
   m_nUpSampleMethod( UM_None ),
-  m_nContourSmoothIterations( 0 ),
+  m_nContourSmoothIterations( 5 ),
   mSource( NULL ),
   m_bShowProjectionMap( false ),
   m_bRememberFrameSettings( false ),
   m_nActiveFrame( 0 ),
-  m_bShowAsLabelContour( false )
+  m_bShowAsLabelContour( false ),
+  m_bContourUpsample(false)
 {
   mGrayScaleTable = vtkSmartPointer<vtkRGBAColorTransferFunction>::New();
   mHeatScaleTable = vtkSmartPointer<vtkRGBAColorTransferFunction>::New();
@@ -1433,6 +1434,14 @@ void LayerPropertyMRI::SetContourExtractAllRegions( bool bExtractAll )
   }
 }
 
+void LayerPropertyMRI::SetContourUpsample(bool bFlag)
+{
+  if (m_bContourUpsample != bFlag)
+  {
+    m_bContourUpsample = bFlag;
+    emit ContourChanged();
+  }
+}
 
 void LayerPropertyMRI::SetContourColor( double r, double g, double b )
 {

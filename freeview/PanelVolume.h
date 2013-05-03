@@ -6,9 +6,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2013/01/13 22:59:00 $
- *    $Revision: 1.37.2.8 $
+ *    $Author: zkaufman $
+ *    $Date: 2013/05/03 17:52:36 $
+ *    $Revision: 1.37.2.9 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -85,6 +85,8 @@ protected slots:
   void OnActiveFrameChanged(int nFrame);
 
   void OnShowExistingLabelsOnly(bool b);
+
+  void OnComboMask( int nSel );
 
 protected:
   void PopulateColorTable( COLOR_TABLE* ctab );

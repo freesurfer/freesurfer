@@ -6,9 +6,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2013/01/13 22:59:00 $
- *    $Revision: 1.60.2.9 $
+ *    $Author: zkaufman $
+ *    $Date: 2013/05/03 17:52:35 $
+ *    $Revision: 1.60.2.10 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -33,6 +33,7 @@
 #include "LayerVolumeTrack.h"
 #include "LUTDataHolder.h"
 #include "MyUtils.h"
+#include "BrushProperty.h"
 #include <QToolBar>
 #include <QDebug>
 #include <QStringList>
@@ -108,9 +109,9 @@ PanelVolume::PanelVolume(QWidget *parent) :
   m_widgetlistVector << ui->labelInversion
                      << ui->comboBoxInversion
                      << ui->labelRenderObject
-                     << ui->comboBoxRenderObject
-                     << ui->labelMask
-                     << ui->comboBoxMask;
+                     << ui->comboBoxRenderObject;
+                 //    << ui->labelMask
+                 //    << ui->comboBoxMask;
 
   m_widgetlistContour << ui->sliderContourThresholdLow
                       << ui->sliderContourThresholdHigh
@@ -129,7 +130,8 @@ PanelVolume::PanelVolume(QWidget *parent) :
                       << ui->labelContourLabelRange
                       << ui->lineEditContourLabelRangeLow
                       << ui->lineEditContourLabelRangeHigh
-                      << ui->checkBoxShowLabelContour;
+                      << ui->checkBoxShowLabelContour
+                      << ui->checkBoxUpsampleContour;
 
   m_widgetlistContourNormal << ui->sliderContourThresholdLow
       << ui->sliderContourThresholdHigh
@@ -158,7 +160,9 @@ PanelVolume::PanelVolume(QWidget *parent) :
                             << ui->labelColorMap
                             << ui->comboBoxColorMap;
 
-  m_widgetlistVolumeTrack << ui->treeWidgetColorTable << m_widgetlistFrame;
+  m_widgetlistVolumeTrack << ui->treeWidgetColorTable << m_widgetlistFrame
+                          << ui->labelSmoothIteration << ui->sliderContourSmoothIteration
+                          << ui->lineEditContourSmoothIteration;
 
   m_widgetlistVolumeTrackSpecs
                         << ui->labelTrackVolumeThreshold
@@ -234,6 +238,7 @@ void PanelVolume::ConnectLayer( Layer* layer_in )
   connect( ui->checkBoxUseColorMap, SIGNAL(toggled(bool)), p, SLOT(SetContourUseImageColorMap(bool)) );
   connect( ui->checkBoxShowInfo, SIGNAL(toggled(bool)), p, SLOT(SetShowInfo(bool)) );
   connect( ui->colorPickerContour, SIGNAL(colorChanged(QColor)), p, SLOT(SetContourColor(QColor)));
+  connect( ui->checkBoxUpsampleContour, SIGNAL(toggled(bool)), p, SLOT(SetContourUpsample(bool)));
   connect( ui->checkBoxRememberFrame, SIGNAL(toggled(bool)), p, SLOT(SetRememberFrameSettings(bool)));
 }
 
@@ -248,9 +253,9 @@ void PanelVolume::DoIdle()
     layer = qobject_cast<LayerMRI*>( item->data(0, Qt::UserRole).value<QObject*>() );
   }
   int nItemIndex = ui->treeWidgetLayers->indexOfTopLevelItem(item);
-  ui->actionMoveLayerUp->setEnabled( item && !layer->IsLocked() && ui->treeWidgetLayers->topLevelItemCount() > 1 &&
+  ui->actionMoveLayerUp->setEnabled( item /*&& !layer->IsLocked()*/ && ui->treeWidgetLayers->topLevelItemCount() > 1 &&
                                      nItemIndex != 0 );
-  ui->actionMoveLayerDown->setEnabled( item && !layer->IsLocked() && ui->treeWidgetLayers->topLevelItemCount() > 1 &&
+  ui->actionMoveLayerDown->setEnabled( item /*&& !layer->IsLocked()*/ && ui->treeWidgetLayers->topLevelItemCount() > 1 &&
                                        nItemIndex < ui->treeWidgetLayers->topLevelItemCount()-1 );
   ui->actionLockLayer->setEnabled( item );
   ui->actionLockLayer->setChecked( layer && layer->IsLocked() );
@@ -404,6 +409,7 @@ void PanelVolume::DoUpdateWidgets()
     ChangeLineEditNumber( ui->lineEditContourThresholdLow, layer->GetProperty()->GetContourMinThreshold() );
     ChangeLineEditNumber( ui->lineEditContourThresholdHigh, layer->GetProperty()->GetContourMaxThreshold() );
     ui->checkBoxUseColorMap->setChecked( layer->GetProperty()->GetContourUseImageColorMap() );
+    ui->checkBoxUpsampleContour->setChecked( layer->GetProperty()->GetContourUpsample());
     ui->checkBoxContourExtractAll->setChecked( layer->GetProperty()->GetContourExtractAllRegions() );
     ui->sliderContourSmoothIteration->setValue( layer->GetProperty()->GetContourSmoothIterations() );
     ChangeLineEditNumber( ui->lineEditContourSmoothIteration, layer->GetProperty()->GetContourSmoothIterations() );
@@ -442,6 +448,22 @@ void PanelVolume::DoUpdateWidgets()
 
     //    ui->m_choiceUpSampleMethod->SetSelection( layer->GetProperty()->GetUpSampleMethod() );
     ui->checkBoxShowExistingLabels->setEnabled(!layer->GetAvailableLabels().isEmpty());
+
+    // mask layer setting
+    ui->comboBoxMask->clear();
+    ui->comboBoxMask->addItem("None");
+    QList<Layer*> layers = MainWindow::GetMainWindow()->GetLayers("MRI");
+    int n = 0;
+    for (int i = 0; i < layers.size(); i++)
+    {
+      if (layer != layers[i])
+      {
+        ui->comboBoxMask->addItem( layers[i]->GetName(),  QVariant::fromValue((QObject*)layers[i]) );
+        if (layer->GetMaskLayer() == layers[i])
+          n = ui->comboBoxMask->count()-1;
+      }
+    }
+    ui->comboBoxMask->setCurrentIndex(n);
   }
 
   bool bNormalDisplay = (layer && !layer->GetProperty()->GetDisplayVector() && !layer->GetProperty()->GetDisplayTensor());
@@ -515,6 +537,8 @@ void PanelVolume::DoUpdateWidgets()
   }
 
   UpdateTrackVolumeThreshold();
+
+  ui->checkBoxUpsampleContour->hide();
 
   BlockAllSignals( false );
 }
@@ -661,10 +685,13 @@ void PanelVolume::OnLineEditBrushValue( const QString& strg )
   }
   else if ( bOK )
   {
+    /*
     if ( layer )
     {
       layer->SetFillValue( nVal );
     }
+    */
+    MainWindow::GetMainWindow()->GetBrushProperty()->SetFillValue(nVal);
     bool bFound = false;
     for ( int i = 0; i < ui->treeWidgetColorTable->topLevelItemCount(); i++ )
     {
@@ -1017,7 +1044,7 @@ void PanelVolume::OnContourValueChanged()
 {
   bool bOK;
   double fMin, fMax = 0;
-  int nSmooth = 20;
+  int nSmooth = 30;
   if (ui->checkBoxShowLabelContour->isChecked())
   {
     fMin = ui->lineEditContourLabelRangeLow->text().trimmed().toDouble(&bOK);
@@ -1218,4 +1245,14 @@ void PanelVolume::OnShowExistingLabelsOnly(bool b)
   m_bShowExistingLabelsOnly = b;
 //  this->UpdateWidgets();
   OnLineEditBrushValue(ui->lineEditBrushValue->text());
+}
+
+void PanelVolume::OnComboMask(int sel)
+{
+  LayerMRI* mask = qobject_cast<LayerMRI*>(ui->comboBoxMask->itemData(sel).value<QObject*>());
+  LayerMRI* layer = GetCurrentLayer<LayerMRI*>();
+  if ( layer )
+  {
+    layer->SetMaskLayer(mask);
+  }
 }

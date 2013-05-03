@@ -6,9 +6,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2013/01/13 22:59:00 $
- *    $Revision: 1.56.2.7 $
+ *    $Author: zkaufman $
+ *    $Date: 2013/05/03 17:52:33 $
+ *    $Revision: 1.56.2.8 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -133,6 +133,9 @@ LayerSurface::LayerSurface( LayerMRI* ref, QObject* parent ) : LayerEditable( pa
   connect( p, SIGNAL(PositionChanged()), this, SLOT(UpdateActorPositions()) );
   connect( p, SIGNAL(PositionChanged(double, double, double)),
            this, SLOT(UpdateROIPosition(double, double, double)));
+
+  if (m_volumeRef)
+    connect( m_volumeRef, SIGNAL(destroyed()), this, SLOT(ResetVolumeRef()));
 }
 
 LayerSurface::~LayerSurface()
@@ -176,6 +179,7 @@ bool LayerSurface::LoadSurfaceFromFile()
     return false;
   }
 
+  ParseSubjectName(m_sFilename);
   InitializeSurface();
   InitializeActors();
 
@@ -264,7 +268,7 @@ bool LayerSurface::LoadCurvatureFromFile( const QString& filename )
   return true;
 }
 
-bool LayerSurface::LoadOverlayFromFile(const QString &filename, const QString& fn_reg, bool bCorrelation)
+bool LayerSurface::LoadOverlayFromFile(const QString &filename, const QString& fn_reg, bool bCorrelation, bool bSeconfHalfData)
 {
   QString fn = filename;
   fn.replace("~", QDir::homePath());
@@ -286,15 +290,15 @@ bool LayerSurface::LoadOverlayFromFile(const QString &filename, const QString& f
       fullpath.replace("~", QDir::homePath());
       fullpath = QFileInfo(fullpath).absoluteFilePath();
     }
-    return LoadGenericOverlayFromFile(fn, fullpath);
+    return LoadGenericOverlayFromFile(fn, fullpath, bSeconfHalfData);
   }
 }
 
-bool LayerSurface::LoadGenericOverlayFromFile( const QString& filename, const QString& fn_reg )
+bool LayerSurface::LoadGenericOverlayFromFile( const QString& filename, const QString& fn_reg, bool bSecondHalfData )
 {
   float* data = NULL;
   int nframes, nvertices;
-  if ( !m_surfaceSource->LoadOverlay( filename, fn_reg, &data, &nvertices, &nframes ) )
+  if ( !m_surfaceSource->LoadOverlay( filename, fn_reg, &data, &nvertices, &nframes, bSecondHalfData ) )
   {
     return false;
   }
@@ -362,15 +366,29 @@ bool LayerSurface::LoadAnnotationFromFile( const QString& filename )
   }
 
   QFileInfo fi(filename);
+  QString name;
   if ( fi.suffix() == ".annot" )
   {
-    annot->SetName( fi.completeBaseName() );
+    name = fi.completeBaseName();
   }
   else
   {
-    annot->SetName( fi.fileName() );
+    name = fi.fileName();
   }
 
+  QStringList names;
+  for (int i = 0; i < m_annotations.size(); i++)
+    names << m_annotations[i]->GetName();
+
+  QString basename = name;
+  int n = 0;
+  while (names.contains(name))
+  {
+    n++;
+    name = QString("%1_%2").arg(basename).arg(n);
+  }
+
+  annot->SetName(name);
   m_annotations.push_back( annot );
 
   SetActiveAnnotation( m_annotations.size() - 1 );
@@ -847,6 +865,7 @@ int LayerSurface::GetVertexIndexAtTarget( double* pos, double* distance )
   {
     pos_o[i] = pos[i] - offset[i];
   }
+  /*
   if ( m_volumeRef )
   {
     double realRas[3];
@@ -857,6 +876,10 @@ int LayerSurface::GetVertexIndexAtTarget( double* pos, double* distance )
   {
     return m_surfaceSource->FindVertexAtRAS( pos_o, distance );
   }
+  */
+  double realRas[3];
+  m_surfaceSource->ConvertTargetToRAS( pos_o, realRas );
+  return m_surfaceSource->FindVertexAtRAS( realRas, distance );
 }
 
 bool LayerSurface::GetRASAtVertex( int nVertex, double* ras )
@@ -882,10 +905,13 @@ void LayerSurface::GetSurfaceRASAtTarget( double* pos_in, double* ras_out )
   {
     pos_o[i] = pos_in[i] - offset[i];
   }
+  /*
   if ( m_volumeRef )
   {
     m_volumeRef->TargetToRAS( pos_o, pos_o );
   }
+  */
+  m_surfaceSource->ConvertTargetToRAS( pos_o, pos_o );
   m_surfaceSource->ConvertRASToSurface( pos_o, ras_out );
 }
 
@@ -897,10 +923,13 @@ void LayerSurface::GetTargetAtSurfaceRAS( double* ras_in, double* pos_out )
   }
 
   m_surfaceSource->ConvertSurfaceToRAS( ras_in, pos_out );
+  /*
   if ( m_volumeRef )
   {
     m_volumeRef->RASToTarget( pos_out, pos_out );
   }
+  */
+  m_surfaceSource->ConvertRASToTarget(pos_out, pos_out);
 }
 
 bool LayerSurface::GetSurfaceRASAtVertex( int nVertex, double* ras )
@@ -921,9 +950,10 @@ bool LayerSurface::GetTargetAtVertex( int nVertex, double* ras )
   }
 
   bool bRet = m_surfaceSource->GetRASAtVertex( nVertex, ras );
-  if ( bRet && m_volumeRef )
+  if ( bRet )
   {
-    m_volumeRef->RASToTarget( ras, ras );
+    //m_volumeRef->RASToTarget( ras, ras );
+    m_surfaceSource->ConvertRASToTarget(ras, ras);
   }
 
   double* offset = GetProperty()->GetPosition();
@@ -1018,7 +1048,9 @@ void LayerSurface::SetActiveOverlay( int nOverlay )
   {
     if ( m_nActiveOverlay < 0 && nOverlay >= 0 )
     {
+      this->GetProperty()->blockSignals(true);
       this->GetProperty()->SetCurvatureMap( LayerPropertySurface::CM_Binary );
+      this->GetProperty()->blockSignals(false);
     }
     m_nActiveOverlay = nOverlay;
     UpdateOverlay(false);
@@ -1123,8 +1155,14 @@ void LayerSurface::UpdateCorrelationOverlay()
 void LayerSurface::UpdateOverlay( bool bAskRedraw )
 {
   vtkPolyDataMapper* mapper = vtkPolyDataMapper::SafeDownCast( m_mainActor->GetMapper() );
+  vtkPolyDataMapper* wf_mapper = vtkPolyDataMapper::SafeDownCast( m_wireframeActor->GetMapper() );
+  if (!mapper->GetInput() || !wf_mapper->GetInput())
+  {
+    mapper->Update();
+    wf_mapper->Update();
+  }
   vtkPolyData* polydata = mapper->GetInput();
-  vtkPolyData* polydataWireframe = vtkPolyDataMapper::SafeDownCast( m_wireframeActor->GetMapper() )->GetInput();
+  vtkPolyData* polydataWireframe = wf_mapper->GetInput();
   if ( m_nActiveOverlay >= 0 || m_nActiveAnnotation >= 0 )
   {
     if ( mapper )
@@ -1601,4 +1639,10 @@ bool LayerSurface::HasValidVolumeGeometry()
 int LayerSurface::GetNumberOfVertices()
 {
   return this->m_surfaceSource->GetNumberOfVertices();
+}
+
+void LayerSurface::ResetVolumeRef()
+{
+  m_volumeRef = NULL;
+  m_surfaceSource->ResetVolumeRef();
 }

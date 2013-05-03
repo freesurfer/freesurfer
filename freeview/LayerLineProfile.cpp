@@ -447,6 +447,16 @@ bool LayerLineProfile::Export(const QString &filename, LayerMRI *mri, int nSampl
     {
       out << "," << vals[j];
     }
+    out << ",,";
+    double pt[3];
+    pt[0] = line3d[0][0]; pt[1] = line3d[0][1]; pt[2] = line3d[0][2];
+    mri->TargetToRAS(pt, pt);
+    out << pt[0] << "," << pt[1] << "," << pt[2] << ",";
+
+    int n = line3d.size()-1;
+    pt[0] = line3d[n][0]; pt[1] = line3d[n][1]; pt[2] = line3d[n][2];
+    mri->TargetToRAS(pt, pt);
+    out << pt[0] << "," << pt[1] << "," << pt[2] << ",";
     out << "\n";
   }
   m_nSamples = nSamples;

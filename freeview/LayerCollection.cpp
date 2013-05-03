@@ -6,9 +6,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2013/01/13 22:58:59 $
- *    $Revision: 1.28.2.10 $
+ *    $Author: zkaufman $
+ *    $Date: 2013/05/03 17:52:31 $
+ *    $Revision: 1.28.2.11 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -176,7 +176,8 @@ bool LayerCollection::MoveLayerUp( Layer* layer )
   QList<Layer*> unlocked_layers;
   for ( int i = 0; i < m_layers.size(); i++ )
   {
-    if ( !m_layers[i]->IsLocked() )
+    // unlocked layers can still be moved
+ //   if ( !m_layers[i]->IsLocked() )
     {
       unlocked_layers << m_layers[i];
     }
@@ -191,6 +192,7 @@ bool LayerCollection::MoveLayerUp( Layer* layer )
       unlocked_layers[i] = temp;
 
       // restore locked layers
+      /*
       for ( int j = 0; j < m_layers.size(); j++ )
       {
         if ( m_layers[j]->IsLocked() )
@@ -205,6 +207,7 @@ bool LayerCollection::MoveLayerUp( Layer* layer )
           }
         }
       }
+      */
       m_layers = unlocked_layers;
 
       emit LayerMoved( layer );
@@ -220,7 +223,7 @@ bool LayerCollection::MoveLayerDown( Layer* layer )
   QList<Layer*> unlocked_layers;
   for ( int i = 0; i < m_layers.size(); i++ )
   {
-    if ( !m_layers[i]->IsLocked() )
+  //  if ( !m_layers[i]->IsLocked() )
     {
       unlocked_layers.push_back( m_layers[i] );
     }
@@ -235,6 +238,7 @@ bool LayerCollection::MoveLayerDown( Layer* layer )
       unlocked_layers[i] = temp;
 
       // restore locked layers
+      /*
       for ( int j = 0; j < m_layers.size(); j++ )
       {
         if ( m_layers[j]->IsLocked() )
@@ -249,6 +253,7 @@ bool LayerCollection::MoveLayerDown( Layer* layer )
           }
         }
       }
+      */
       m_layers = unlocked_layers;
 
       emit LayerMoved( layer );
@@ -474,12 +479,15 @@ bool LayerCollection::SetSlicePosition( int nPlane, double dPos_in, bool bRoundT
   {
     dPos = ((int)( ( dPos - m_dWorldOrigin[nPlane]) / m_dWorldVoxelSize[nPlane] ) ) * m_dWorldVoxelSize[nPlane]
            + m_dWorldOrigin[nPlane];
+    // no longer refrain to boundary
+    /*
     if ( m_dSlicePosition[nPlane] <= m_dWorldOrigin[nPlane] + m_dWorldSize[nPlane] &&
          m_dSlicePosition[nPlane] >= m_dWorldOrigin[nPlane] &&
          ( dPos >  m_dWorldOrigin[nPlane] + m_dWorldSize[nPlane] || dPos < m_dWorldOrigin[nPlane] ) )
     {
       return false;
     }
+    */
   }
 
   if ( fabs( dPos - m_dSlicePosition[nPlane] ) < 1e-8 )
@@ -609,6 +617,13 @@ double* LayerCollection::GetWorldOrigin()
   return m_dWorldOrigin;
 }
 
+void LayerCollection::GetWorldOrigin(double *dWorldOrigin_out)
+{
+  dWorldOrigin_out[0] = m_dWorldOrigin[0];
+  dWorldOrigin_out[1] = m_dWorldOrigin[1];
+  dWorldOrigin_out[2] = m_dWorldOrigin[2];
+}
+
 void LayerCollection::SetWorldOrigin( double* dWorldOrigin )
 {
   for ( int i = 0; i < 3; i++ )
@@ -622,6 +637,13 @@ double* LayerCollection::GetWorldSize()
   return m_dWorldSize;
 }
 
+void LayerCollection::GetWorldSize(double *dWorldSize_out)
+{
+  dWorldSize_out[0] = m_dWorldSize[0];
+  dWorldSize_out[1] = m_dWorldSize[1];
+  dWorldSize_out[2] = m_dWorldSize[2];
+}
+
 void LayerCollection::SetWorldSize( double* dWorldSize )
 {
   for ( int i = 0; i < 3; i++ )
@@ -633,6 +655,13 @@ void LayerCollection::SetWorldSize( double* dWorldSize )
 double* LayerCollection::GetWorldVoxelSize()
 {
   return m_dWorldVoxelSize;
+}
+
+void LayerCollection::GetWorldVoxelSize(double* vs_out)
+{
+  vs_out[0] = m_dWorldVoxelSize[0];
+  vs_out[1] = m_dWorldVoxelSize[1];
+  vs_out[2] = m_dWorldVoxelSize[2];
 }
 
 void LayerCollection::SetWorldVoxelSize( double* dVoxelSize )
@@ -690,4 +719,14 @@ QList<Layer*> LayerCollection::GetLayers(const QString& type)
       layers << m_layers[i];
   }
   return layers;
+}
+
+Layer* LayerCollection::GetLayerByName(const QString &name)
+{
+  for (int i = 0; i < m_layers.size(); i++)
+  {
+    if (m_layers[i]->GetName() == name)
+      return m_layers[i];
+  }
+  return NULL;
 }

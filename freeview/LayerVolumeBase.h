@@ -6,9 +6,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2013/01/13 22:59:00 $
- *    $Revision: 1.18.2.5 $
+ *    $Author: zkaufman $
+ *    $Date: 2013/05/03 17:52:33 $
+ *    $Revision: 1.18.2.6 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -47,6 +47,8 @@ public:
   void SetVoxelByRAS( double* ras, int nPlane, bool bAdd = true );
   void SetVoxelByRAS( double* ras1, double* ras2, int nPlane, bool bAdd = true );
   bool FloodFillByRAS( double* ras, int nPlane, bool bAdd = true, bool b3D = false, char* mask_out = 0 );
+  void CloneVoxelByRAS( double* ras, int nPlane );
+  void CloneVoxelByRAS( double* ras1, double* ras2, int nPlane );
 
   void SetLiveWireByRAS( double* ras1, double* raw2, int nPlane );
   std::vector<double> GetLiveWirePointsByRAS( double* pt1, double* pt2, int nPlane );
@@ -63,14 +65,11 @@ public:
 
   void SaveForUndo( int nPlane );
 
-  float GetFillValue();
-  void SetFillValue( float fFill );
+  double GetFillValue();
 
-  float GetBlankValue();
-  void SetBlankValue( float fBlank );
+  double GetBlankValue();
 
   int GetBrushRadius();
-  void SetBrushRadius( int nRadius );
 
   virtual void UpdateVoxelValueRange( double fValue ) {}
 
@@ -107,12 +106,21 @@ public:
 
 signals:
   void FillValueChanged( double );
+  void EraseValueChanged( double );
+  void BrushRadiusChanged( int );
+
+public slots:
+  void SetFillValue( double fFill );
+  void SetBlankValue( double fBlank );
+  void SetBrushRadius( int nRadius );
 
 protected:
   bool SetVoxelByIndex( int* n, int nPlane, bool bAdd = true ); // true is to add, false is to remove
   bool SetVoxelByIndex( int* n1, int* n2, int nPlane, bool bAdd = true );
   bool FloodFillByIndex( int* n, int nPlane, bool bAdd = true, bool ignore_overflow = true, char* mask_out = false );
   bool SetLiveWireByIndex( int* n1, int* n2, int nPlane );
+  bool CloneVoxelByIndex( int* n, int nPlane );
+  bool CloneVoxelByIndex( int* n1, int* n2, int nPlane );
 
   bool GetConnectedToOld( vtkImageData* img, int nFrame, int* n, int nPlane );
 
@@ -153,8 +161,8 @@ protected:
   vtkSmartPointer<vtkImageData> m_imageData;
   vtkSmartPointer<vtkImageData> m_imageDataRef;
 
-  float   m_fFillValue;
-  float   m_fBlankValue;
+  double   m_fFillValue;
+  double   m_fBlankValue;
 
   std::vector<UndoRedoBufferItem>  m_bufferUndo;
   std::vector<UndoRedoBufferItem>  m_bufferRedo;

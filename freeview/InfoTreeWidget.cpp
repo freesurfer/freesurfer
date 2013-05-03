@@ -6,9 +6,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2013/01/13 22:58:59 $
- *    $Revision: 1.4.2.9 $
+ *    $Author: zkaufman $
+ *    $Date: 2013/05/03 17:52:30 $
+ *    $Revision: 1.4.2.10 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -45,7 +45,8 @@
 InfoTreeWidget::InfoTreeWidget(QWidget* parent) :
   QTreeWidget(parent),
   m_bShowSurfaceCurvature(false),
-  m_bShowSurfaceNormal(false)
+  m_bShowSurfaceNormal(false),
+  m_bShowTkRegRAS(true)
 {
   this->setAlternatingRowColors(true);
   m_editor = new QLineEdit(this);
@@ -53,6 +54,8 @@ InfoTreeWidget::InfoTreeWidget(QWidget* parent) :
   connect(this, SIGNAL(itemClicked(QTreeWidgetItem*,int)),
           this, SLOT(OnItemClicked(QTreeWidgetItem*,int)), Qt::QueuedConnection);
   connect(m_editor, SIGNAL(returnPressed()), this, SLOT(OnEditFinished()));
+  connect(MainWindow::GetMainWindow()->GetLayerCollection("MRI"), SIGNAL(ActiveLayerChanged(Layer*)),
+          this, SLOT(UpdateAll()), Qt::QueuedConnection);
 }
 
 void InfoTreeWidget::OnCursorPositionChanged()
@@ -92,7 +95,7 @@ void InfoTreeWidget::UpdateAll()
   double ras[3] = {m_dRAS[0], m_dRAS[1], m_dRAS[2]};
   if (!lc_mri->IsEmpty())
   {
-    qobject_cast<LayerMRI*>(lc_mri->GetLayer(0))->RemapPositionToRealRAS(m_dRAS, ras);
+    qobject_cast<LayerMRI*>(lc_mri->GetActiveLayer())->RemapPositionToRealRAS(m_dRAS, ras);
   }
   QVariantMap map;
   item->setText(1, QString("%1, %2, %3")
@@ -102,6 +105,23 @@ void InfoTreeWidget::UpdateAll()
   map["Type"] = "RAS";
   map["EditableText"] = item->text(1);
   item->setData(1, Qt::UserRole, map);
+
+  if (!lc_mri->IsEmpty() && m_bShowTkRegRAS)
+  {
+    double tkRegRAS[3];
+    LayerMRI* mri = qobject_cast<LayerMRI*>(lc_mri->GetActiveLayer());
+    mri->NativeRASToTkReg(ras, tkRegRAS);
+    item = new QTreeWidgetItem(this);
+    item->setText(0, QString("TkReg RAS (%1)").arg(mri->GetName()));
+    map.clear();
+    item->setText(1, QString("%1, %2, %3")
+                  .arg(tkRegRAS[0], 0, 'f', 2)
+                  .arg(tkRegRAS[1], 0, 'f', 2)
+                  .arg(tkRegRAS[2], 0, 'f', 2));
+    map["Type"] = "TkRegRAS";
+    map["EditableText"] = item->text(1);
+    item->setData(1, Qt::UserRole, map);
+  }
 
   for (int i = 0; i < lc_mri->GetNumberOfLayers(); i++)
   {
@@ -314,9 +334,18 @@ void InfoTreeWidget::OnEditFinished()
       {
         if (type == "RAS")
         {
-          LayerMRI* mri = (LayerMRI*)MainWindow::GetMainWindow()->GetLayerCollection("MRI")->GetLayer( 0 );
+          LayerMRI* mri = (LayerMRI*)MainWindow::GetMainWindow()->GetLayerCollection("MRI")->GetActiveLayer();
           if ( mri )
           {
+            mri->RASToTarget( ras, ras );
+          }
+        }
+        else if (type == "TkRegRAS")
+        {
+          LayerMRI* mri = (LayerMRI*)MainWindow::GetMainWindow()->GetLayerCollection("MRI")->GetActiveLayer();
+          if ( mri )
+          {
+            mri->TkRegToNativeRAS(ras, ras);
             mri->RASToTarget( ras, ras );
           }
         }
@@ -392,6 +421,15 @@ void InfoTreeWidget::contextMenuEvent(QContextMenuEvent * e)
     return;
 
   QMenu* menu = new QMenu;
+  if (!layers.isEmpty())
+  {
+    QAction* act = new QAction("Show TkReg RAS", this);
+    act->setCheckable(true);
+    act->setChecked(m_bShowTkRegRAS);
+    connect(act, SIGNAL(toggled(bool)), this, SLOT(OnToggleShowTkRegRAS(bool)));
+    menu->addAction(act);
+    menu->addSeparator();
+  }
   foreach (Layer* layer, layers)
   {
     QAction* act = new QAction(layer->GetName(), this);
@@ -438,5 +476,11 @@ void InfoTreeWidget::OnToggleSurfaceCurvature(bool show)
 void InfoTreeWidget::OnToggleSurfaceNormal(bool show)
 {
   m_bShowSurfaceNormal = show;
+  UpdateAll();
+}
+
+void InfoTreeWidget::OnToggleShowTkRegRAS(bool bShow)
+{
+  m_bShowTkRegRAS = bShow;
   UpdateAll();
 }

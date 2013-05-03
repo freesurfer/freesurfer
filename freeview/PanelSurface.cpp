@@ -6,9 +6,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2013/01/13 22:59:00 $
- *    $Revision: 1.39.2.6 $
+ *    $Author: zkaufman $
+ *    $Date: 2013/05/03 17:52:35 $
+ *    $Revision: 1.39.2.7 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -100,6 +100,7 @@ PanelSurface::PanelSurface(QWidget *parent) :
   connect( mainwnd->GetLayerCollection("Surface"), SIGNAL(ActiveLayerChanged(Layer*)),
            m_wndConfigureOverlay, SLOT(OnActiveSurfaceChanged(Layer*)));
   connect(m_wndConfigureOverlay, SIGNAL(ActiveFrameChanged()), mainwnd, SLOT(UpdateInfoPanel()));
+  connect(mainwnd, SIGNAL(SlicePositionChanged()), m_wndConfigureOverlay, SLOT(OnCurrentVertexChanged()));
 }
 
 PanelSurface::~PanelSurface()
@@ -280,14 +281,17 @@ void PanelSurface::DoUpdateWidgets()
   // update annotation controls
   ui->comboBoxAnnotation->clear();
   ui->comboBoxAnnotation->addItem( "Off" );
+  ui->comboBoxAnnotation->setItemData(0, "Off", Qt::ToolTipRole);
   if ( layer )
   {
     for ( int i = 0; i < layer->GetNumberOfAnnotations(); i++ )
     {
       ui->comboBoxAnnotation->addItem( layer->GetAnnotation( i )->GetName() );
+      ui->comboBoxAnnotation->setItemData(i+1, layer->GetAnnotation(i)->GetFilename(), Qt::ToolTipRole);
     }
   }
   ui->comboBoxAnnotation->addItem( "Load from file..." );
+  ui->comboBoxAnnotation->setItemData(ui->comboBoxAnnotation->count()-1, "Load from file", Qt::ToolTipRole);
   ui->comboBoxAnnotation->setCurrentIndex( layer ? 1 + layer->GetActiveAnnotationIndex() : 0 );
 
   // update label controls

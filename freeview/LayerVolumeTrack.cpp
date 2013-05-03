@@ -6,9 +6,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2013/01/13 22:59:00 $
- *    $Revision: 1.5.2.8 $
+ *    $Author: zkaufman $
+ *    $Date: 2013/05/03 17:52:33 $
+ *    $Revision: 1.5.2.9 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -46,6 +46,7 @@ LayerVolumeTrack::LayerVolumeTrack( LayerMRI* ref, QObject* parent ) :
 {
   m_strTypeNames.push_back( "VolumeTrack" );
   SetEditable(false);
+  connect(GetProperty(), SIGNAL(ContourSmoothIterationChanged(int)), this, SLOT(RebuildActors()));
 }
 
 LayerVolumeTrack::~LayerVolumeTrack()
@@ -118,6 +119,7 @@ void LayerVolumeTrack::RebuildActors()
   m_actors.clear();
   MRI* mri = m_volumeSource->GetMRI();
   COLOR_TABLE* ct = m_ctabStripped;
+  int nSmoothIterations = GetProperty()->GetContourSmoothIterations();
   for (int i = 0; i < mri->nframes; i++)
   {
     vtkSmartPointer<vtkImageExtractComponents> extract = vtkSmartPointer<vtkImageExtractComponents>::New();
@@ -127,7 +129,7 @@ void LayerVolumeTrack::RebuildActors()
     vtkSmartPointer<vtkActor> actor = vtkSmartPointer<vtkActor>::New();
     vtkSmartPointer<vtkPolyDataMapper> mapper = vtkSmartPointer<vtkPolyDataMapper>::New();
     actor->SetMapper(mapper);
-    MyVTKUtils::BuildContourActor(extract->GetOutput(), mri->frames[i].thresh, 1e8, actor);
+    MyVTKUtils::BuildContourActor(extract->GetOutput(), mri->frames[i].thresh, 1e8, actor, nSmoothIterations, NULL, false, false);
     mapper->ScalarVisibilityOff();
     if (ct)
     {
@@ -137,6 +139,7 @@ void LayerVolumeTrack::RebuildActors()
     }
     m_actors << actor;
   }
+  emit ActorChanged();
 }
 
 void LayerVolumeTrack::RestoreColors()

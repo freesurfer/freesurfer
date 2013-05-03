@@ -6,9 +6,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2013/01/13 22:59:00 $
- *    $Revision: 1.40.2.5 $
+ *    $Author: zkaufman $
+ *    $Date: 2013/05/03 17:52:36 $
+ *    $Revision: 1.40.2.6 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -147,7 +147,7 @@ void RenderView::OnIdle()
 //   if ( qApp->hasPendingEvents() )
 //       return;
 
-  if ( m_bNeedRedraw )
+  if ( m_bNeedRedraw && isVisible())
   {
     Render();
     m_bNeedRedraw = false;
@@ -422,6 +422,7 @@ void RenderView::CenterAtWorldPosition(double *pos)
   cam->SetFocalPoint( pos );
   cam->SetPosition( cam_pos );
 
+  ResetCameraClippingRange();
   RequestRedraw();
   emit ViewChanged();
 }

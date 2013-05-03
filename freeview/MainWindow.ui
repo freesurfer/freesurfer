@@ -86,6 +86,11 @@
          <string>Point Sets</string>
         </attribute>
        </widget>
+       <widget class="PanelConnectomeMatrix" name="tabCMAT">
+        <attribute name="title">
+         <string>CMAT</string>
+        </attribute>
+       </widget>
        <widget class="PanelTrack" name="tabTrack">
         <attribute name="title">
          <string>Tracks</string>
@@ -240,7 +245,7 @@
      <x>0</x>
      <y>0</y>
      <width>1213</width>
-     <height>25</height>
+     <height>23</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuFile">
@@ -279,7 +284,11 @@
     <addaction name="actionSavePointSet"/>
     <addaction name="actionSavePointSetAs"/>
     <addaction name="separator"/>
+    <addaction name="actionLoadConnectome"/>
+    <addaction name="actionCloseConnectome"/>
+    <addaction name="separator"/>
     <addaction name="actionLoadTrack"/>
+    <addaction name="actionCloseTrack"/>
     <addaction name="separator"/>
     <addaction name="actionSaveScreenshot"/>
     <addaction name="actionSaveMovieFrames"/>
@@ -1315,6 +1324,19 @@
     <string>Line Profile</string>
    </property>
   </action>
+  <action name="actionLoadConnectome">
+   <property name="text">
+    <string>Load Connectome Matrix...</string>
+   </property>
+   <property name="toolTip">
+    <string>Load Connectome Matrix</string>
+   </property>
+  </action>
+  <action name="actionCloseConnectome">
+   <property name="text">
+    <string>Close Connectome Matrix</string>
+   </property>
+  </action>
  </widget>
  <layoutdefault spacing="6" margin="11"/>
  <customwidgets>
@@ -1366,6 +1388,12 @@
    <class>PanelTrack</class>
    <extends>QWidget</extends>
    <header>PanelTrack.h</header>
+   <container>1</container>
+  </customwidget>
+  <customwidget>
+   <class>PanelConnectomeMatrix</class>
+   <extends>QWidget</extends>
+   <header>PanelConnectomeMatrix.h</header>
    <container>1</container>
   </customwidget>
  </customwidgets>
@@ -2525,6 +2553,70 @@
     </hint>
    </hints>
   </connection>
+  <connection>
+   <sender>actionSaveSurface</sender>
+   <signal>triggered()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>SaveSurface()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>606</x>
+     <y>435</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>actionSaveSurfaceAs</sender>
+   <signal>triggered()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>SaveSurfaceAs()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>606</x>
+     <y>435</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>actionLoadConnectome</sender>
+   <signal>triggered()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>OnLoadConnectomeMatrix()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>606</x>
+     <y>435</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>actionCloseConnectome</sender>
+   <signal>triggered()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>OnCloseConnectomeMatrix()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>606</x>
+     <y>435</y>
+    </hint>
+   </hints>
+  </connection>
  </connections>
  <slots>
   <slot>OnLoadVolume()</slot>
@@ -2596,5 +2688,9 @@
   <slot>OnSmoothSurface()</slot>
   <slot>OnRemoveIntersectionsFromSurface()</slot>
   <slot>OnLineProfile()</slot>
+  <slot>SaveSurface()</slot>
+  <slot>SaveSurfaceAs()</slot>
+  <slot>OnLoadConnectomeMatrix()</slot>
+  <slot>OnCloseConnectomeMatrix()</slot>
  </slots>
 </ui>

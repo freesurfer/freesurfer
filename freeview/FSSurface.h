@@ -6,9 +6,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2013/01/13 22:58:59 $
- *    $Revision: 1.32.2.7 $
+ *    $Author: zkaufman $
+ *    $Date: 2013/05/03 17:52:29 $
+ *    $Revision: 1.32.2.8 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -80,6 +80,9 @@ public:
   void ConvertRASToSurface ( float const iRAS[3], float oSurf[3] ) const;
   void ConvertRASToSurface ( double const iRAS[3], double oSurf[3] ) const;
 
+  void ConvertTargetToRAS( double const iTarget[3], double oRAS[3]) const;
+  void ConvertRASToTarget( double const iRAS[3], double oTarget[3]) const;
+
   // Description:
   // Get the vertex number from a RAS or surface RAS point. This uses
   // the hash table and finds only the closest vertex point. If
@@ -102,7 +105,7 @@ public:
   bool LoadSurface    ( const QString& filename, int nSet );
   bool LoadCurvature  ( const QString& filename = NULL );
   bool LoadOverlay    ( const QString& filename, const QString& fn_reg,
-                        float** data_out, int* nvertices_out, int* nframes_out );
+                        float** data_out, int* nvertices_out, int* nframes_out, bool bUseSecondHalfData = false );
 
   bool IsSurfaceLoaded( int nSet )
   {
@@ -201,6 +204,11 @@ public:
     return m_bValidVolumeGeometry;
   }
 
+  void ResetVolumeRef()
+  {
+    m_volumeRef = NULL;
+  }
+
 protected:
   void UpdatePolyData();
   void UpdatePolyData( MRIS* mris, vtkPolyData* polydata,
@@ -234,6 +242,9 @@ protected:
 
   double  m_SurfaceToRASMatrix[16];
   vtkSmartPointer<vtkTransform> m_SurfaceToRASTransform;
+
+  double  m_targetToRasMatrix[16];
+  vtkSmartPointer<vtkTransform> m_targetToRasTransform;
 
   // RAS bounds.
   bool    m_bBoundsCacheDirty;

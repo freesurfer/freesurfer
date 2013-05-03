@@ -6,9 +6,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2013/01/13 22:59:00 $
- *    $Revision: 1.90.2.10 $
+ *    $Author: zkaufman $
+ *    $Date: 2013/05/03 17:52:34 $
+ *    $Revision: 1.90.2.11 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -124,7 +124,7 @@ public:
   }
 
   void LoadSurfaceCurvatureFile( const QString& filename );
-  void LoadSurfaceOverlayFile( const QString& filename, const QString& reg_file = "", bool bCorrelation = false );
+  void LoadSurfaceOverlayFile( const QString& filename, const QString& reg_file = "", bool bCorrelation = false, bool bSecondHalfData = false );
   void LoadSurfaceAnnotationFile( const QString& filename );
   void LoadSurfaceLabelFile( const QString& filename );
   void LoadSurfaceVectorFile( const QString& filename );
@@ -167,6 +167,7 @@ public:
   void TransformVolume(double* mat, int sample_method);
 
   void AddScript(const QString& command);
+  void AddScripts(const QStringList& cmds);
 
   QString AutoSelectLastDir( const QString& subdir );
   static QString AutoSelectLastDir( const QString& lastdir, const QString& subdir );
@@ -221,7 +222,8 @@ public slots:
   void LoadSurfaceSpline();
   void LoadLUT();
   void RequestRedraw();
-  void SaveVolumeAs();
+  bool SaveVolumeAs();
+  void SaveVolumeAsAndReload();
   void SetSaveCopy(bool bSaveCopy)
   {
     m_settings["SaveCopy"] = bSaveCopy;
@@ -289,7 +291,7 @@ protected:
   void CommandLoadSurfaceAnnotation ( const QStringList& cmd );
   void CommandLoadSurfaceLabel  ( const QStringList& cmd );
   void CommandLoadSurfaceSpline ( const QStringList& cmd );
-  void CommandLoadConnectivityData  ( const QStringList& cmd );
+  void CommandLoadConnectomeMatrix  ( const QStringList& cmd );
   void CommandLoadWayPoints     ( const QStringList& cmd );
   void CommandLoadControlPoints ( const QStringList& cmd );
   void CommandLoadPVolumes      ( const QStringList& cmd );
@@ -318,10 +320,12 @@ protected:
   void CommandSetDisplayTensor  ( const QStringList& cmd );
   void CommandSetDisplayIsoSurface  ( const QStringList& cmd );
   void CommandSetIsoSurfaceColor( const QStringList& cmd );
+  void CommandSetIsoSurfaceUpsample ( const QStringList& cmd );
   void CommandLoadIsoSurfaceRegion  ( const QStringList& cmd );
   void CommandLockLayer         ( const QStringList& cmd );
   void CommandShowLayer         ( const QStringList& cmd );
   void CommandSetLayerName      ( const QStringList& cmd );
+  void CommandSetVolumeMask     ( const QStringList& cmd );
   void CommandSetCamera         ( const QStringList& cmd );
   void CommandGotoLabel         ( const QStringList& cmd );
 
@@ -399,6 +403,9 @@ protected slots:
   void OnPlot();
   void OnLineProfile();
 
+  void OnLoadConnectomeMatrix();
+  void OnCloseConnectomeMatrix();
+
   void OnActiveLayerChanged(Layer*);
 
   void SetSlicePosition(double x, double y, double z)
@@ -433,6 +440,7 @@ private:
   void ToggleShowLayer(const QString& type );
   bool UpdateSurfaceCorrelation(LayerSurface* layer);
   void ShowNonModalMessage(const QString& title, const QString& msg);
+  void LoadConnectomeMatrixFile(const QString& fn_cmat, const QString& fn_parcel, const QString& fn_ctab);
 
   QColor ParseColorInput(const QString& cmd);
 

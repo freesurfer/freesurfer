@@ -6,9 +6,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2013/01/13 22:58:59 $
- *    $Revision: 1.11.2.9 $
+ *    $Author: zkaufman $
+ *    $Date: 2013/05/03 17:52:28 $
+ *    $Revision: 1.11.2.10 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -52,6 +52,7 @@ DialogTransformVolume::DialogTransformVolume(QWidget *parent) :
   ui->setupUi(this);
   ui->groupBoxLandmarks->hide();
   ui->pushButtonApply->hide();
+  ui->pushButtonSaveAndReload->hide();
 
   QButtonGroup* bg = new QButtonGroup(this);
   bg->addButton(ui->radioButtonRotateLandmarks);
@@ -105,6 +106,8 @@ DialogTransformVolume::DialogTransformVolume(QWidget *parent) :
           this, SLOT(OnActiveLayerChanged()));
   connect(ui->pushButtonSaveVolumeAs, SIGNAL(clicked()),
           MainWindow::GetMainWindow(), SLOT(SaveVolumeAs()));
+  connect(ui->pushButtonSaveAndReload, SIGNAL(clicked()),
+          MainWindow::GetMainWindow(), SLOT(SaveVolumeAsAndReload()));
 
   LayerLandmarks* landmarks = (LayerLandmarks*)MainWindow::GetMainWindow()
                               ->GetSupplementLayer("Landmarks");
@@ -754,4 +757,30 @@ void DialogTransformVolume::OnRadioButtonLandmark(bool bChecked)
                               ->GetSupplementLayer("Landmarks");
   if (landmarks)
     landmarks->SetVisible(bChecked);
+}
+
+void DialogTransformVolume::OnButtonCenterToCursor()
+{
+  if ( isVisible() )
+  {
+    LayerMRI* layer = ( LayerMRI* )MainWindow::GetMainWindow()->GetActiveLayer( "MRI" );
+    if ( layer )
+    {
+      double pos[3];
+      layer->GetSlicePosition(pos);
+      qDebug() << pos[0] << pos[1] << pos[2];
+      layer->SetTranslateByCenterPosition( pos );
+      MainWindow::GetMainWindow()->RequestRedraw();
+
+      double* vs = layer->GetWorldVoxelSize();
+      for (int n = 0; n < 3; n++)
+      {
+        int range = m_scrollTranslate[n]->maximum();
+        m_scrollTranslate[n]->blockSignals(true);
+        m_scrollTranslate[n]->setValue(range/2 + (int)( pos[n] / vs[n] ) );
+        m_scrollTranslate[n]->blockSignals(false);
+      }
+      UpdateUI( 0 );
+    }
+  }
 }

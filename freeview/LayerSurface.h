@@ -6,9 +6,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2013/01/13 22:59:00 $
- *    $Revision: 1.40.2.7 $
+ *    $Author: zkaufman $
+ *    $Date: 2013/05/03 17:52:33 $
+ *    $Revision: 1.40.2.8 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -61,8 +61,8 @@ public:
   bool LoadSurfaceFromFile();
   bool LoadVectorFromFile();
   bool LoadCurvatureFromFile( const QString& filename );
-  bool LoadOverlayFromFile( const QString& filename, const QString& fn_reg, bool bCorrelation );
-  bool LoadGenericOverlayFromFile( const QString& filename, const QString& fn_reg );
+  bool LoadOverlayFromFile( const QString& filename, const QString& fn_reg, bool bCorrelation, bool bSecondHalfData = false );
+  bool LoadGenericOverlayFromFile( const QString& filename, const QString& fn_reg, bool bSecondHalfData = false );
   bool LoadCorrelationFromFile( const QString& filename );
   bool LoadAnnotationFromFile( const QString& filename );
   bool LoadLabelFromFile( const QString& filename );
@@ -236,6 +236,8 @@ public slots:
   void SetActiveLabelOutline(bool bOutline);
 
   void SetActiveAnnotationOutline(bool bOutline);
+
+  void ResetVolumeRef();
 
 Q_SIGNALS:
   void SurfaceAnnotationAdded( SurfaceAnnotation* );

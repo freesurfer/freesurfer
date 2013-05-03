@@ -43,6 +43,8 @@ BUILT_SOURCES = \
   ui_DialogReloadLayer.h \
   ui_DialogSmoothSurface.h \
   ui_DialogLineProfile.h \
+  ui_DialogLoadConnectome.h \
+  ui_PanelConnectomeMatrix.h \
 	qtcolorpicker.moc \
 	moc_BrushProperty.cpp \
 	moc_CommandEdit.cpp \
@@ -151,6 +153,10 @@ BUILT_SOURCES = \
   moc_DialogLineProfile.cpp \
   moc_LayerLineProfile.cpp \
   moc_LayerPropertyLineProfile.cpp \
+  moc_DialogLoadConnectome.cpp \
+  moc_LayerConnectomeMatrix.cpp \
+  moc_LayerPropertyConnectomeMatrix.cpp \
+  moc_PanelConnectomeMatrix.cpp \
   qrc_freeview.cpp
 
 freeview_SOURCES = $(BUILT_SOURCES) \
@@ -432,6 +438,14 @@ freeview_SOURCES = $(BUILT_SOURCES) \
   DialogLineProfile.h \
   LayerPropertyLineProfile.cpp \
   LayerPropertyLineProfile.h \
+  LayerConnectomeMatrix.cpp \
+  LayerConnectomeMatrix.h \
+  LayerPropertyConnectomeMatrix.cpp \
+  LayerPropertyConnectomeMatrix.h \
+  PanelConnectomeMatrix.cpp \
+  PanelConnectomeMatrix.h \
+  DialogLoadConnectome.cpp \
+  DialogLoadConnectome.h \
 	freeview.qrc
 
 qrc_freeview.cpp: freeview.qrc
@@ -481,31 +495,35 @@ freeview_LDADD		= $(QT_LIBS) \
 
 # need to create a bundle for Macs
 install-exec-hook:freeview
-	mkdir -p $(DESTDIR)$(bindir)/Freeview.app
-	mkdir -p $(DESTDIR)$(bindir)/Freeview.app/Contents
-	mkdir -p $(DESTDIR)$(bindir)/Freeview.app/Contents/MacOS
-	mkdir -p $(DESTDIR)$(bindir)/Freeview.app/Contents/Resources
-	mkdir -p $(DESTDIR)$(bindir)/Freeview.app/Contents/Resources/English.lproj
-#	mkdir -p $(DESTDIR)$(bindir)/Freeview.app/Contents/Frameworks
-	cp $(top_builddir)/freeview/Info.plist $(DESTDIR)$(bindir)/Freeview.app/Contents
-	echo -n 'APPL????' > $(DESTDIR)$(bindir)/Freeview.app/Contents/PkgInfo
-	cp $(top_builddir)/freeview/freeview $(DESTDIR)$(bindir)/Freeview.app/Contents/MacOS/freeview.bin
-	if [[ -d  /usr/pubsw/packages/qt/current/lib/qt_menu.nib ]]; then \
-	cp -rv /usr/pubsw/packages/qt/current/lib/qt_menu.nib $(DESTDIR)$(bindir)/Freeview.app/Contents/Resources; fi
+	mkdir -p $(DESTDIR)$(bindir)/../Freeview.app
+	mkdir -p $(DESTDIR)$(bindir)/../Freeview.app/Contents
+	mkdir -p $(DESTDIR)$(bindir)/../Freeview.app/Contents/MacOS
+	mkdir -p $(DESTDIR)$(bindir)/../Freeview.app/Contents/Resources
+	mkdir -p $(DESTDIR)$(bindir)/../Freeview.app/Contents/Resources/English.lproj
+	mkdir -p $(DESTDIR)$(bindir)/../Freeview.app/Contents/Frameworks
+	cp $(top_builddir)/freeview/Info.plist $(DESTDIR)$(bindir)/../Freeview.app/Contents
+	echo -n 'APPL????' > $(DESTDIR)$(bindir)/../Freeview.app/Contents/PkgInfo
+	cp $(top_builddir)/freeview/freeview $(DESTDIR)$(bindir)/../Freeview.app/Contents/MacOS/freeview.bin
 	echo "#!/bin/tcsh -ef" > $(DESTDIR)$(bindir)/freeview
-#	echo "source \$$FREESURFER_HOME/bin/tcl_setup" \
+	echo "if(\$$#argv > 0) then" \
 		>> $(DESTDIR)$(bindir)/freeview
-	echo "source \$$FREESURFER_HOME/bin/qt_setup" \
+	echo "  if(\"\$$argv[1]\" == \"-tkmedit\") then" \
 		>> $(DESTDIR)$(bindir)/freeview
-	echo "exec \$$FREESURFER_HOME/bin/Freeview.app/Contents/MacOS/freeview.bin \$$*" >> $(DESTDIR)$(bindir)/freeview
+	echo "    tkmeditfv \$$argv[2-\$$#argv]" \
+		>> $(DESTDIR)$(bindir)/freeview
+	echo "    exit 0"	>> $(DESTDIR)$(bindir)/freeview
+	echo "  endif"	>> $(DESTDIR)$(bindir)/freeview
+	echo "endif"	>> $(DESTDIR)$(bindir)/freeview
+	echo "\$$FREESURFER_HOME/bin/Freeview.app/Contents/MacOS/Freeview \$$*" >> $(DESTDIR)$(bindir)/freeview
 	chmod a+x $(DESTDIR)$(bindir)/freeview
-#	./mac_package_dylibs.sh $(WXWIDGETS_DIR)lib $(DESTDIR)$(bindir)/Freeview.app/Contents/Frameworks $(DESTDIR)$(bindir)/Freeview.app/Contents/MacOS/freeview.bin
-	if [[ -f /usr/pubsw/bin/chrpath ]]; then \
-	/usr/pubsw/bin/chrpath -d $(DESTDIR)$(bindir)/Freeview.app/Contents/MacOS/freeview.bin; fi
+	chgrp -R admin $(DESTDIR)$(bindir)/../FreeView.app/
+	chmod -R a+rx $(DESTDIR)$(bindir)/../FreeView.app
+	chmod -R g+w $(DESTDIR)$(bindir)/../FreeView.app
+	macdeployqt $(DESTDIR)$(bindir)/../FreeView.app
 
 uninstall-hook:
 	rm -f $(DESTDIR)$(bindir)/freeview
-	rm -rf $(DESTDIR)$(bindir)/Freeview.app
+	rm -rf $(DESTDIR)$(bindir)/../Freeview.app
 
 else
 
@@ -561,6 +579,15 @@ install-exec-hook:freeview
 		>> $(DESTDIR)$(bindir)/freeview
 	echo "source \$$FREESURFER_HOME/bin/qt_setup" \
 		>> $(DESTDIR)$(bindir)/freeview
+	echo "if(\$$#argv > 0) then" \
+		>> $(DESTDIR)$(bindir)/freeview
+	echo "  if(\"\$$argv[1]\" == \"-tkmedit\") then" \
+		>> $(DESTDIR)$(bindir)/freeview
+	echo "    tkmeditfv \$$argv[2-\$$#argv]" \
+		>> $(DESTDIR)$(bindir)/freeview
+	echo "    exit 0"	>> $(DESTDIR)$(bindir)/freeview
+	echo "  endif"	>> $(DESTDIR)$(bindir)/freeview
+	echo "endif"	>> $(DESTDIR)$(bindir)/freeview
 	echo "freeview.bin \$$argv" >> $(DESTDIR)$(bindir)/freeview
 	chmod a+x $(DESTDIR)$(bindir)/freeview
 	if [[ -f /usr/pubsw/bin/chrpath ]]; then \
