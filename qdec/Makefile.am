@@ -13,7 +13,7 @@ AM_CXXFLAGS=-Wno-deprecated -I$(top_srcdir)/include \
 
 dist_bin_SCRIPTS=run_mris_preproc
 
-if ENABLE_KWWIDGETS_APPS
+if ENABLE_TCLTK_APPS
 bin_PROGRAMS = qdec
 qdec_SOURCES= \
 	QdecMain.cxx \
