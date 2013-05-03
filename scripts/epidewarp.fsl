@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2012/03/27 18:54:33 $
-#    $Revision: 1.44 $
+#    $Date: 2013/05/03 20:20:16 $
+#    $Revision: 1.45 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -26,7 +26,7 @@
 # epidewarp.fsl
 #
 
-set VERSION = '$Id: epidewarp.fsl,v 1.44 2012/03/27 18:54:33 greve Exp $'
+set VERSION = '$Id: epidewarp.fsl,v 1.45 2013/05/03 20:20:16 greve Exp $'
 set inputargs = ($argv);
 
 set KeepMean = 0;
@@ -105,15 +105,15 @@ else if($FSLVerMaj == 4) then
   set DilFlag = -dilM
   set FSLToFloat = (fslmaths)
   set FSLToFloatFlag = (-odt float)
+else if($FSLVerMaj == 5) then
+  set FSLPre = fsl
+  set DilFlag = -dilM
+  set FSLToFloat = (fslmaths)
+  set FSLToFloatFlag = (-odt float)
 else
-  echo "FSL Version is $FSLVersion, must be 3.X or 4.X"
+  echo "FSL Version is $FSLVersion, must be 3.X or 4.X or 5.X"
   exit 1;
 endif
-
-# Setup the proper extensions
-if($FSLOUTPUTTYPE == ANALYZE)  set ext = img
-if($FSLOUTPUTTYPE == NIFTI)    set ext = nii
-if($FSLOUTPUTTYPE == NIFTI_GZ) set ext = nii.gz
 
 # Create a log file
 if($#LF == 0) set LF = $vsm.log
@@ -149,7 +149,9 @@ if(! -e $epimat) set epimat = ();
 if($#exf == 0) then
   # Extract the middle time point for the example func (exf)
   set exf   = $tmpdir/exf.$ext
-  set nframes = `"$FSLPre"info $epi | awk '{if($1 == "dim4") print $2}'`
+  #set nframes = `"$FSLPre"info $epi | awk '{if($1 == "dim4") print $2}'`
+echo $epi
+  set nframes = `mri_info --nframes $epi`
   if($nframes == 1) then
     set nmidframe = 0;
   else
@@ -805,6 +807,21 @@ check_params:
       exit 1;
     endif
   endif
+
+  if($#exf == 0 && $epi == 0) then
+    echo "ERROR: must supply either an exf or epi"
+    exit 1;
+  endif
+
+  # Setup the proper extensions
+  set vsmext = `fname2ext $vsm`
+  if(($FSLOUTPUTTYPE == ANALYZE  && $vsmext != img) || \
+     ($FSLOUTPUTTYPE == NIFTI    && $vsmext != nii) || \
+     ($FSLOUTPUTTYPE == NIFTI_GZ && $vsmext != nii.gz) ) then
+    echo "ERROR: $vsm format does not match FSLOUTPUTTYPE $FSLOUTPUTTYPE"
+    exit 1;
+  endif
+  set ext = $vsmext
 
 goto check_params_return;
 ############--------------##################
