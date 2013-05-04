@@ -502,7 +502,7 @@ install-exec-hook:freeview
 	mkdir -p $(DESTDIR)$(bindir)/../Freeview.app/Contents/Resources/English.lproj
 	mkdir -p $(DESTDIR)$(bindir)/../Freeview.app/Contents/Frameworks
 	echo -n 'APPL????' > $(DESTDIR)$(bindir)/../Freeview.app/Contents/PkgInfo
-	cp $(top_builddir)/freeview/freeview $(DESTDIR)$(bindir)/../Freeview.app/Contents/MacOS/freeview.bin
+	cp $(top_builddir)/freeview/freeview $(DESTDIR)$(bindir)/../Freeview.app/Contents/MacOS/Freeview
 	echo "#!/bin/tcsh -ef" > $(DESTDIR)$(bindir)/freeview
 	echo "if(\$$#argv > 0) then" \
 		>> $(DESTDIR)$(bindir)/freeview
@@ -513,12 +513,12 @@ install-exec-hook:freeview
 	echo "    exit 0"	>> $(DESTDIR)$(bindir)/freeview
 	echo "  endif"	>> $(DESTDIR)$(bindir)/freeview
 	echo "endif"	>> $(DESTDIR)$(bindir)/freeview
-	echo "\$$FREESURFER_HOME/bin/Freeview.app/Contents/MacOS/Freeview \$$*" >> $(DESTDIR)$(bindir)/freeview
+	echo "\$$FREESURFER_HOME/Freeview.app/Contents/MacOS/Freeview \$$*" >> $(DESTDIR)$(bindir)/freeview
 	chmod a+x $(DESTDIR)$(bindir)/freeview
-	chgrp -R admin $(DESTDIR)$(bindir)/../FreeView.app/
-	chmod -R a+rx $(DESTDIR)$(bindir)/../FreeView.app
-	chmod -R g+w $(DESTDIR)$(bindir)/../FreeView.app
-	macdeployqt $(DESTDIR)$(bindir)/../FreeView.app
+	chgrp -R admin $(DESTDIR)$(bindir)/../Freeview.app/
+	chmod -R a+rx $(DESTDIR)$(bindir)/../Freeview.app
+	chmod -R g+w $(DESTDIR)$(bindir)/../Freeview.app
+	macdeployqt $(DESTDIR)$(bindir)/../Freeview.app
 
 uninstall-hook:
 	rm -f $(DESTDIR)$(bindir)/freeview
