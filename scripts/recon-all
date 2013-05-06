@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2013/04/24 17:57:20 $
-#    $Revision: 1.379.2.69 $
+#    $Date: 2013/05/06 19:51:35 $
+#    $Revision: 1.379.2.70 $
 #
 # Copyright © 2011-2013 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -26,7 +26,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.379.2.69 2013/04/24 17:57:20 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.379.2.70 2013/05/06 19:51:35 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -1515,7 +1515,7 @@ talairach:
     else
       # default: run one pass of nu_correct, as its been found that scans
       # with strong bias fields can cause talairach_avi to fail.  note that
-      # this orig_nu gets deleted, as it doesnt do as much correction as
+      # this orig_nu doesnt do as much correction as
       # the nuintensitycor stage (which does more passes and uses talairach.xfm
       # to find the wm ball so as to do histogramming).
       set tal_input = orig_nu.mgz
@@ -1549,9 +1549,6 @@ talairach:
   echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
   if($RunIt) $fs_time $cmd |& tee -a $LF
   if($status) goto error_exit;
-  if (-e orig_nu.mgz) then
-    rm -vf orig_nu.mgz orig_nu.log
-  endif
 
   if( -e $xfm && ! $DoCleanTal) then
     echo "\nINFO: $xfm already exists!" \
