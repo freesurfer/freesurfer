@@ -9,20 +9,19 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2010/05/20 23:27:00 $
- *    $Revision: 1.47 $
+ *    $Author: zkaufman $
+ *    $Date: 2013/05/06 17:16:47 $
+ *    $Revision: 1.48.2.1 $
  *
- * Copyright (C) 2002-2010,
- * The General Hospital Corporation (Boston, MA). 
- * All rights reserved.
+ * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
- * Distribution, usage and copying of this software is covered under the
- * terms found in the License Agreement file named 'COPYING' found in the
- * FreeSurfer source code root directory, and duplicated here:
- * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ * Terms and conditions for use, reproduction, distribution and contribution
+ * are found in the 'FreeSurfer Software License Agreement' contained
+ * in the file 'LICENSE' found in the FreeSurfer distribution, and here:
  *
- * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
+ *
+ * Reporting: freesurfer@nmr.mgh.harvard.edu
  *
  */
 
@@ -31,6 +30,7 @@
 
 #include "minc_volume_io.h"
 #include "matrix.h"
+#include "const.h"
 
 typedef struct
 {
@@ -46,8 +46,9 @@ LABEL_VERTEX, LV ;
 typedef struct
 {
   int    max_points ;         /* # of points allocated */
+  int    coords ;             // one of the LABEL_COORDS* constants below
   int    n_points ;           /* # of points in area */
-  char   name[100] ;          /* name of label file */
+  char   name[STRLEN] ;       /* name of label file */
   char   subject_name[100] ;  /* name of subject */
   LV     *lv ;                /* labeled vertices */
   General_transform transform ;   /* the next two are from this struct */
@@ -57,7 +58,15 @@ typedef struct
 }
 LABEL ;
 
+#define LABEL_COORDS_NONE         0
+#define LABEL_COORDS_TKREG_RAS    1
+#define LABEL_COORDS_SCANNER_RAS  2
+#define LABEL_COORDS_VOXEL        3
+
 #include "mrisurf.h" // MRI_SURFACE, MRIS
+
+LABEL *LabelToScannerRAS(LABEL *lsrc, MRI *mri, LABEL *ldst) ;
+LABEL *LabelToVoxel(LABEL *lsrc, MRI *mri, LABEL *ldst) ;
 
 int     LabelIsCompletelyUnassigned(LABEL *area, int *unassigned);
 int     LabelFillUnassignedVertices(MRI_SURFACE *mris,
@@ -66,11 +75,14 @@ int     LabelFillUnassignedVertices(MRI_SURFACE *mris,
 int     LabelFree(LABEL **parea) ;
 int     LabelDump(FILE *fp, LABEL *area) ;
 LABEL   *LabelRead(const char *subject_name,const char *label_name) ;
+LABEL   *LabelReadFrom(const char *subject_name, FILE *fp) ;
+int     LabelWriteInto(LABEL *area, FILE *fp) ;
 int     LabelWrite(LABEL *area,const char *fname) ;
 int     LabelToCanonical(LABEL *area, MRI_SURFACE *mris) ;
 int     LabelThreshold(LABEL *area, float thresh) ;
 int     LabelMarkWithThreshold(LABEL *area, MRI_SURFACE *mris, float thresh);
 int     LabelMarkSurface(LABEL *area, MRI_SURFACE *mris) ;
+int     LabelAddToSurfaceMark(LABEL *area, MRI_SURFACE *mris, int mark_to_add)  ;
 int     LabelToOriginal(LABEL *area, MRI_SURFACE *mris) ;
 int     LabelToWhite(LABEL *area, MRI_SURFACE *mris) ;
 int     LabelFromCanonical(LABEL *area, MRI_SURFACE *mris) ;
@@ -82,10 +94,12 @@ int     LabelRipRestOfSurfaceWithThreshold(LABEL *area,
     float thresh) ;
 int     LabelRemoveOverlap(LABEL *area1, LABEL *area2) ;
 int     LabelIntersect(LABEL *area1, LABEL *area2) ;
+LABEL  *LabelRemoveAlmostDuplicates(LABEL *area, double dist, LABEL *ldst);
+LABEL   *LabelCompact(LABEL *lsrc, LABEL *ldst) ;
 int     LabelRemoveDuplicates(LABEL *area) ;
 int     LabelHasVertex(int vtxno, LABEL *lb);
 LABEL   *LabelAlloc(int max_points, char *subject_name, char *label_name) ;
-int     LabelRealloc(LABEL *lb, int max_points);
+LABEL   *LabelRealloc(LABEL *lb, int max_points);
 int     LabelCurvFill(LABEL *area, int *vertex_list, int nvertices,
                       int max_vertices, MRI_SURFACE *mris) ;
 int     LabelFillMarked(LABEL *area, MRI_SURFACE *mris) ;
@@ -124,6 +138,7 @@ int   LabelCopyStatsToSurface(LABEL *area, MRI_SURFACE *mris, int which) ;
 LABEL *LabelFillHoles(LABEL *area_src, MRI_SURFACE *mris, int coords) ;
 LABEL *LabelFillHolesWithOrig(LABEL *area_src, MRI_SURFACE *mris) ;
 LABEL *LabelfromASeg(MRI *aseg, int segcode);
+int   LabelFillVolume(MRI *mri, LABEL *label, int fillval) ;
 
 MATRIX *LabelFitXYZ(LABEL *label, int order);
 LABEL *LabelBoundary(LABEL *label, MRIS *surf);
@@ -132,15 +147,21 @@ LABEL *LabelInFOV(MRI_SURFACE *mris, MRI *mri, float pad) ;
 int   LabelUnassign(LABEL *area) ;
 LABEL *MRISlabelInvert(MRIS *surf, LABEL *label);
 int LabelMaskSurface(LABEL *label, MRI_SURFACE *mris) ;
+int LabelMaskSurfaceVolume(LABEL *label, MRI *mri, float nonmask_val) ;
 
 #include "mrishash.h"
 LABEL   *LabelSphericalCombine(MRI_SURFACE *mris, LABEL *area,
                                MRIS_HASH_TABLE *mht,
                                MRI_SURFACE *mris_dst, LABEL *area_dst);
 
-#define LabelClone(a)  LabelAlloc(a->max_points,a->subject_name,a->name)
+LABEL *LabelClone(LABEL *a)  ;
 int LabelCropPosterior(LABEL *area, float anterior_dist) ;
 int LabelCropAnterior(LABEL *area, float anterior_dist) ;
 int LabelCentroid(LABEL *area, MRI_SURFACE *mris, double *px, double *py, double *pz) ;
+int LabelSetVals(MRI_SURFACE *mris, LABEL *area, float fillval) ;
+int LabelAddToMark(LABEL *area, MRI_SURFACE *mris, int val_to_add) ;
+LABEL *LabelTransform(LABEL *area_in, TRANSFORM *xform, MRI *mri, LABEL *area_out) ;
+LABEL *LabelFromScannerRAS(LABEL *lsrc, MRI *mri, LABEL *ldst) ;
+
 
 #endif

@@ -8,9 +8,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2013/04/01 16:23:11 $
- *    $Revision: 1.100.2.2 $
+ *    $Author: zkaufman $
+ *    $Date: 2013/05/06 17:19:18 $
+ *    $Revision: 1.100.2.3 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -53,12 +53,11 @@ static Transform *labelLoadTransform(const char *subject_name,
 #define MAX_VERTICES 500000
 /*-----------------------------------------------------
 ------------------------------------------------------*/
-LABEL *LabelRead(const char *subject_name, const char *label_name)
+LABEL   *
+LabelReadFrom(const char *subject_name, FILE *fp) 
 {
   LABEL  *area ;
-  char   fname[STRLEN], *cp, line[STRLEN], subjects_dir[STRLEN], lname[STRLEN];
-  char   label_name0[STRLEN];
-  FILE   *fp ;
+  char   line[STRLEN], subjects_dir[STRLEN], *cp, *str;
   int    vno, nlines ;
   float  x, y, z, stat ;
 
@@ -67,6 +66,80 @@ LABEL *LabelRead(const char *subject_name, const char *label_name)
   {
     ErrorExit(ERROR_NOMEMORY,"%s: could not allocate LABEL struct.",Progname);
   }
+  cp = fgets(line, STRLEN, fp) ;  // read comment line
+  if (cp == NULL)
+    return(NULL) ;
+  str = strstr(cp, "vox2ras=") ;
+  if (str)
+  {
+    if (*(cp+strlen(cp)-1) == '\n')
+      *(cp+strlen(cp)-1) = 0 ;
+    sprintf(area->space, "%s", str+strlen("vox2ras=")) ;
+  }
+
+  if (strstr(cp, "voxel"))
+    area->coords = LABEL_COORDS_VOXEL ;
+  else if (strstr(cp, "scanner"))
+    area->coords = LABEL_COORDS_SCANNER_RAS ;
+  else
+    area->coords = LABEL_COORDS_TKREG_RAS ;
+
+  cp = fgetl(line, STRLEN, fp) ;
+  if (!cp)
+    ErrorReturn(NULL,
+                (ERROR_BADFILE, "%s: empty label", Progname)) ;
+  if (!sscanf(cp, "%d", &area->n_points))
+  {
+    printf("\n%s\n",cp);
+    ErrorReturn(NULL,
+                (ERROR_BADFILE, "%s: could not scan # of lines from label file", Progname)) ;
+  }
+  area->max_points = area->n_points ;
+  area->lv = (LABEL_VERTEX *)calloc(area->n_points, sizeof(LABEL_VERTEX)) ;
+  if (!area->lv)
+    ErrorExit(ERROR_NOMEMORY,
+              "%s: LabelReadFrom could not allocate %d-sized vector",
+              Progname, sizeof(LV)*area->n_points) ;
+  nlines = 0 ;
+  while ((cp = fgetl(line, STRLEN, fp)) != NULL)
+  {
+    if (sscanf(cp, "%d %f %f %f %f", &vno, &x, &y, &z, &stat) != 5)
+      ErrorReturn(NULL, (ERROR_BADFILE, "%s: could not parse %dth line '%s' in label file",
+                         Progname, nlines+1, cp)) ;
+    area->lv[nlines].x = x ;
+    area->lv[nlines].y = y ;
+    area->lv[nlines].z = z ;
+    area->lv[nlines].stat = stat ;
+    area->lv[nlines].vno = vno ;
+    nlines++ ;
+    if (nlines == area->n_points)
+      break ;
+  }
+
+  if (!nlines)
+    ErrorReturn(NULL, (ERROR_BADFILE, "%s: no data in label file", Progname));
+  if (subject_name)
+  {
+    cp = getenv("SUBJECTS_DIR") ;
+    if (!cp) ErrorExit(ERROR_BADPARM,
+                "%s: no subject's directory specified in environment "
+                "(SUBJECTS_DIR)", Progname) ;
+    strcpy(subjects_dir, cp) ;
+    strcpy(area->subject_name, subject_name) ;
+    area->linear_transform =
+      labelLoadTransform(subject_name, subjects_dir, &area->transform) ;
+    area->inverse_linear_transform =
+      get_inverse_linear_transform_ptr(&area->transform) ;
+  }
+  return(area) ;
+}
+
+LABEL *LabelRead(const char *subject_name, const char *label_name)
+{
+  LABEL  *area ;
+  char   fname[STRLEN], *cp, subjects_dir[STRLEN], lname[STRLEN];
+  char   label_name0[STRLEN];
+  FILE   *fp ;
 
   sprintf(label_name0,"%s",label_name); // keep a copy
 
@@ -83,117 +156,53 @@ LABEL *LabelRead(const char *subject_name, const char *label_name)
     strcpy(lname, label_name) ;
     cp = strstr(lname, ".label") ;
     if(cp)
-    {
       *cp = 0 ;
-    }
+
     cp = strrchr(lname, '/') ;
     if(cp)
-    {
       label_name = cp+1 ;
-    }
     else
-    {
       label_name = lname ;
-    }
+
     sprintf(fname, "%s/%s/label/%s.label", subjects_dir,subject_name,
             label_name);
-    strcpy(area->subject_name, subject_name) ;
   }
   else
   {
     strcpy(fname, label_name) ;
     cp = getenv("SUBJECTS_DIR") ;
     if(!cp)
-    {
       strcpy(subjects_dir, ".") ;
-    }
     else
-    {
       strcpy(subjects_dir, cp) ;
-    }
     strcpy(lname, label_name) ;
     cp = strstr(lname, ".label") ;
     if (cp == NULL)
-    {
       sprintf(fname, "%s.label", lname);
-    }
     else
-    {
       strcpy(fname, label_name) ;
-    }
   }
 
   // As a last resort, treat label_name0 as a full path name
   if(!fio_FileExistsReadable(fname) && fio_FileExistsReadable(label_name0))
-  {
     sprintf(fname,"%s",label_name0);
-  }
 
   //  printf("%s %s\n",label_name0,fname);
-
-  strcpy(area->name, label_name) ;
 
   /* read in the file */
   errno = 0 ;
   fp = fopen(fname, "r") ;
   if (errno)
-  {
     perror(NULL);
-  }
+
   if (!fp)
     ErrorReturn(NULL, (ERROR_NOFILE, "%s: could not open label file %s",
                        Progname, fname)) ;
 
-
-  cp = fgetl(line, STRLEN, fp) ;
-  if (!cp)
-    ErrorReturn(NULL,
-                (ERROR_BADFILE, "%s: empty label file %s", Progname, fname)) ;
-  if (!sscanf(cp, "%d", &area->n_points))
-  {
-    printf("\n%s\n",cp);
-    ErrorReturn(NULL,
-                (ERROR_BADFILE, "%s: could not scan # of lines from %s",
-                 Progname, fname)) ;
-  }
-  area->max_points = area->n_points ;
-  area->lv = (LABEL_VERTEX *)calloc(area->n_points, sizeof(LABEL_VERTEX)) ;
-  if (!area->lv)
-    ErrorExit(ERROR_NOMEMORY,
-              "%s: LabelRead(%s) could not allocate %d-sized vector",
-              Progname, label_name, sizeof(LV)*area->n_points) ;
-  nlines = 0 ;
-  while ((cp = fgetl(line, STRLEN, fp)) != NULL)
-  {
-    if (sscanf(cp, "%d %f %f %f %f", &vno, &x, &y, &z, &stat) != 5)
-      ErrorReturn(NULL, (ERROR_BADFILE, "%s: could not parse %dth line in %s",
-                         Progname, area->n_points, fname)) ;
-    area->lv[nlines].x = x ;
-    area->lv[nlines].y = y ;
-    area->lv[nlines].z = z ;
-    area->lv[nlines].stat = stat ;
-    area->lv[nlines].vno = vno ;
-    nlines++ ;
-  }
-
+  area = LabelReadFrom(subject_name, fp) ;
   fclose(fp) ;
-  if (!nlines)
-    ErrorReturn(NULL,
-                (ERROR_BADFILE,
-                 "%s: no data in label file %s", Progname, fname));
-  if (subject_name)
-  {
-    cp = getenv("SUBJECTS_DIR") ;
-    if (!cp) ErrorExit(ERROR_BADPARM,
-                "%s: no subject's directory specified in environment "
-                "(SUBJECTS_DIR)", Progname) ;
-    strcpy(subjects_dir, cp) ;
-    area->linear_transform =
-      labelLoadTransform(subject_name, subjects_dir, &area->transform) ;
-    area->inverse_linear_transform =
-      get_inverse_linear_transform_ptr(&area->transform) ;
-  }
   return(area) ;
+
 }
 /*-----------------------------------------------------
         Parameters:
@@ -254,7 +263,7 @@ LabelToCanonical(LABEL *area, MRI_SURFACE *mris)
     area->lv[n].y = v->cy ;
     area->lv[n].z = v->cz ;
   }
-  strncpy (area->space, "coords=canonical", sizeof(area->space));
+  strncpy (area->space, "TkReg coords=canonical", sizeof(area->space));
   return(NO_ERROR) ;
 }
 /*-----------------------------------------------------
@@ -552,6 +561,48 @@ LabelToFlat(LABEL *area, MRI_SURFACE *mris)
   MHTfree(&mht) ;
   return(NO_ERROR) ;
 }
+int
+LabelWriteInto(LABEL *area, FILE *fp)
+{
+  int    n, num, nbytes ;
+  
+  for (num = n = 0 ; n < area->n_points ; n++)
+    if (!area->lv[n].deleted)
+    {
+      num++ ;
+    }
+
+  nbytes = fprintf(fp, "#!ascii label %s , from subject %s vox2ras=%s\n",
+                   area->name, area->subject_name, area->space);
+  if(nbytes < 0)
+  {
+    printf("ERROR: writing to label file 1\n");
+    fclose(fp);
+    return(1);
+  }
+
+  nbytes =   fprintf(fp, "%d\n", num) ;
+  if(nbytes < 0)
+  {
+    printf("ERROR: writing to label file 2\n");
+    fclose(fp);
+    return(1);
+  }
+  for (n = 0 ; n < area->n_points ; n++)
+    if (!area->lv[n].deleted)
+    {
+      nbytes = fprintf(fp, "%d  %2.3f  %2.3f  %2.3f %10.10f\n",
+                       area->lv[n].vno, area->lv[n].x,
+                       area->lv[n].y, area->lv[n].z, area->lv[n].stat) ;
+      if(nbytes < 0)
+      {
+        printf("ERROR: writing to label file 3\n");
+        fclose(fp);
+        return(1);
+      }
+    }
+  return(NO_ERROR) ;
+}
 /*-----------------------------------------------------
         Parameters:
 
@@ -562,9 +613,9 @@ LabelToFlat(LABEL *area, MRI_SURFACE *mris)
 int
 LabelWrite(LABEL *area, const char *label_name)
 {
-  FILE   *fp ;
-  int    n, num, nbytes ;
   char   fname[STRLEN], *cp, subjects_dir[STRLEN], lname[STRLEN] ;
+  FILE   *fp ;
+  int    ret ;
 
   strcpy(lname, label_name) ;
   cp = strrchr(lname, '.') ;
@@ -598,51 +649,15 @@ LabelWrite(LABEL *area, const char *label_name)
     }
   }
 
-  for (num = n = 0 ; n < area->n_points ; n++)
-    if (!area->lv[n].deleted)
-    {
-      num++ ;
-    }
-
-  printf("LabelWrite: saving to %s\n",fname);
-
   fp = fopen(fname, "w") ;
   if (!fp)
     ErrorReturn(ERROR_NOFILE, (ERROR_NO_FILE,
                                "%s: could not open label file %s",
                                Progname, fname)) ;
 
-  nbytes = fprintf(fp, "#!ascii label %s , from subject %s vox2ras=TkReg %s\n",
-                   area->name, area->subject_name, area->space);
-  if(nbytes < 0)
-  {
-    printf("ERROR: writing to %s\n",fname);
-    fclose(fp);
-    return(1);
-  }
-
-  nbytes =   fprintf(fp, "%d\n", num) ;
-  if(nbytes < 0)
-  {
-    printf("ERROR: writing to %s\n",fname);
-    fclose(fp);
-    return(1);
-  }
-  for (n = 0 ; n < area->n_points ; n++)
-    if (!area->lv[n].deleted)
-    {
-      nbytes = fprintf(fp, "%d  %2.3f  %2.3f  %2.3f %10.10f\n",
-                       area->lv[n].vno, area->lv[n].x,
-                       area->lv[n].y, area->lv[n].z, area->lv[n].stat) ;
-      if(nbytes < 0)
-      {
-        printf("ERROR: writing to %s\n",fname);
-        fclose(fp);
-        return(1);
-      }
-    }
+  ret = LabelWriteInto(area, fp) ;
   fclose(fp) ;
-  return(NO_ERROR) ;
+  return(ret) ;
 }
 /*-----------------------------------------------------
         Parameters:
@@ -853,10 +868,10 @@ LabelAlloc(int max_points, char *subject_name, char *label_name)
   {
     if (label_name)
     {
-      strcpy(area->name, label_name) ;
+      strncpy(area->name, label_name, STRLEN-1) ;
     }
   }
-  strcpy(area->space, "");
+  strcpy(area->space, "TkReg");
 
   area->n_points = 0 ;
   area->max_points = max_points ;
@@ -1200,6 +1215,8 @@ labelLoadTransform(const char *subject_name,
 
   sprintf(xform_fname, "%s/%s/mri/transforms/talairach.xfm",
           sdir, subject_name) ;
+  if (FileExists(xform_fname) == 0)
+    return(NULL) ;
   if (input_transform_file(xform_fname, transform) != OK)
     ErrorReturn(NULL,
                 (ERROR_NOFILE, "%s: could not load transform file '%s'",
@@ -1372,13 +1389,89 @@ int LabelRemoveDuplicates(LABEL *area)
         deleted++ ;
         lv2->deleted = 1 ;
       }
+      else if (lv1->vno < 0 && lv2->vno < 0)
+      {
+	if (FEQUAL(lv1->x, lv2->x) && FEQUAL(lv1->y, lv2->y) && FEQUAL(lv1->z, lv2->z))
+	{
+	  deleted++ ;
+	  lv2->deleted = 1 ;
+	}
+      }
     }
   }
+
   if (Gdiag & DIAG_SHOW)
     fprintf(stderr, "%d duplicate vertices removed from label %s.\n",
             deleted, area->name) ;
   return(NO_ERROR) ;
 }
+
+/*-----------------------------------------------------
+  int LabelRemoveDuplicates(LABEL *area)
+  Sets the 'deleted' flag of a label point if it is
+  a duplicate. Does not actually remove duplicats!
+  ------------------------------------------------------*/
+LABEL *LabelRemoveAlmostDuplicates(LABEL *area, double dist, LABEL *ldst)
+{
+  int    n1, n2, deleted = 0 ;
+  LV     *lv1, *lv2 ;
+
+  // loop thru each label point
+  for (n1 = 0 ; n1 < area->n_points ; n1++)
+  {
+    lv1 = &area->lv[n1] ;
+    if(lv1->deleted)
+    {
+      continue ;
+    }
+    // loop thru the remaining looking for duplicates
+    for (n2 = n1+1 ; n2 < area->n_points ; n2++)
+    {
+      lv2 = &area->lv[n2] ;
+      if(lv1->vno >= 0 && lv2->vno >= 0 && lv1->vno == lv2->vno)
+      {
+        deleted++ ;
+        lv2->deleted = 1 ;
+      }
+      else if (lv1->vno < 0 && lv2->vno < 0)
+      {
+	if (fabs(lv1->x-lv2->x)<dist && fabs(lv1->y-lv2->y)<dist && fabs(lv1->z- lv2->z)<dist)
+	{
+	  deleted++ ;
+	  lv2->deleted = 1 ;
+	}
+      }
+    }
+  }
+  if (Gdiag & DIAG_SHOW)
+    fprintf(stderr, "%d duplicate vertices removed from label %s.\n",
+            deleted, area->name) ;
+  ldst = LabelCompact(area, ldst) ;
+  return(ldst) ;
+}
+LABEL   *
+LabelCompact(LABEL *lsrc, LABEL *ldst)
+{
+  int i, n ;
+  for (i = n = 0 ; i < lsrc->n_points ; i++)
+    if (lsrc->lv[i].deleted == 0)
+      n++ ;
+
+  ldst = LabelRealloc(ldst, n) ;
+  for (i = n = 0 ; i < lsrc->n_points ; i++)
+    if (lsrc->lv[i].deleted == 0)
+    {
+      ldst->lv[n] .x = lsrc->lv[i].x ;
+      ldst->lv[n] .y = lsrc->lv[i].y ;
+      ldst->lv[n] .z = lsrc->lv[i].z ;
+      ldst->lv[n] .vno = lsrc->lv[i].vno ;
+      ldst->lv[n] .stat = lsrc->lv[i].stat ;
+      n++ ;
+    }
+  ldst->n_points = n ;
+  return(ldst) ;
+}
+
 /*-----------------------------------------------------*/
 double LabelArea(LABEL *area, MRI_SURFACE *mris)
 {
@@ -1483,6 +1576,34 @@ LabelMark(LABEL *area, MRI_SURFACE *mris)
     }
     v = &mris->vertices[vno] ;
     v->marked = 1 ;
+  }
+  return(NO_ERROR) ;
+}
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+------------------------------------------------------*/
+int
+LabelAddToMark(LABEL *area, MRI_SURFACE *mris, int val_to_add)
+{
+  int    n, vno ;
+  VERTEX *v ;
+
+  for (n = 0 ; n < area->n_points ; n++)
+  {
+    vno = area->lv[n].vno ;
+    if (vno < 0 || vno >= mris->nvertices)
+    {
+      DiagBreak() ;
+    }
+    if (area->lv[n].deleted > 0)
+      continue ;
+
+    v = &mris->vertices[vno] ;
+    v->marked += val_to_add ;
   }
   return(NO_ERROR) ;
 }
@@ -1603,7 +1724,7 @@ LabelToOriginal(LABEL *area, MRI_SURFACE *mris)
     area->lv[n].y = v->origy ;
     area->lv[n].z = v->origz ;
   }
-  strncpy (area->space, "coords=orig", sizeof(area->space));
+  strncpy (area->space, "TkReg coords=orig", sizeof(area->space));
   return(NO_ERROR) ;
 }
 /*-----------------------------------------------------
@@ -1633,7 +1754,7 @@ LabelToWhite(LABEL *area, MRI_SURFACE *mris)
     area->lv[n].y = v->whitey ;
     area->lv[n].z = v->whitez ;
   }
-  strncpy (area->space, "coords=white", sizeof(area->space));
+  strncpy (area->space, "TkReg coords=white", sizeof(area->space));
   return(NO_ERROR) ;
 }
 /*-----------------------------------------------------
@@ -1738,6 +1859,34 @@ LabelFromMarkValue(MRI_SURFACE *mris, int mark)
 }
 /*-----------------------------------------------------
 ------------------------------------------------------*/
+int
+LabelAddToSurfaceMark(LABEL *area, MRI_SURFACE *mris, int mark_to_add) 
+{
+  int     n, vno ;
+  VERTEX  *v ;
+
+  for (n = 0 ; n < area->n_points ; n++)
+  {
+    vno = area->lv[n].vno ;
+    if(vno < 0)
+      continue ;
+
+    if(vno >= mris->nvertices)
+    {
+      printf("ERROR: LabelMarkSurface: label point %d exceeds nvertices %d\n",
+             vno,mris->nvertices);
+      return(1);
+    }
+    v = &mris->vertices[vno] ;
+    if(v->ripflag)
+      continue ;
+
+    v->marked += mark_to_add ;
+  }
+  return(NO_ERROR) ;
+}
+/*-----------------------------------------------------
+------------------------------------------------------*/
 int LabelMarkSurface(LABEL *area, MRI_SURFACE *mris)
 {
   int     n, vno ;
@@ -1825,7 +1974,7 @@ LabelFillUnassignedVertices(MRI_SURFACE *mris, LABEL *area, int coords)
   vx = vy = vz = -1;
 
   MRIScomputeVertexSpacingStats(mris, NULL, NULL, &max_spacing,
-                                NULL,&max_vno, CURRENT_VERTICES);
+                                NULL,&max_vno, coords);
 
   for (i = n = 0 ; n < area->n_points ; n++)
   {
@@ -2449,6 +2598,8 @@ LabelFillHoles(LABEL *area_src, MRI_SURFACE *mris, int coords)
 
   vx = vy = vz = -1;
   mri = MRIalloc(256,256,256,MRI_UCHAR) ;
+  
+  useVolGeomToMRI(&mris->vg, mri);
   area_dst = LabelAlloc(mris->nvertices, mris->subject_name, area_src->name) ;
   LabelCopy(area_src, area_dst) ;
   LabelFillUnassignedVertices(mris, area_dst, coords) ;
@@ -2634,24 +2785,26 @@ int LabelHasVertex(int vtxno, LABEL *lb)
   to have max_points. If something goes wrong, returns 1 without
   changing anything. Otherwise returns 0.
   ---------------------------------------------------------------*/
-int LabelRealloc(LABEL *lb, int max_points)
+LABEL *LabelRealloc(LABEL *lb, int max_points)
 {
   LV *lvtmp;
 
+  if (lb == NULL)
+    return(LabelAlloc(max_points, NULL, NULL)) ;
   if (max_points <= lb->max_points)
   {
-    return(0);
+    return(lb);
   }
 
   lvtmp = realloc(lb->lv,sizeof(LV)*max_points);
   if (lvtmp == NULL)
   {
-    return(1);
+    return(lb);
   }
   lb->max_points = max_points;
   lb->lv = lvtmp;
 
-  return(0);
+  return(lb);
 }
 /*------------------------------------------------------------
   LabelfromASeg() - creates a label from a segmentation given
@@ -2715,6 +2868,7 @@ LABEL *LabelfromASeg(MRI *aseg, int segcode)
           lb->lv[nlabel].x = ras->rptr[1][1];
           lb->lv[nlabel].y = ras->rptr[2][1];
           lb->lv[nlabel].z = ras->rptr[3][1];
+	  lb->lv[nlabel].vno = -1 ;   // not assigned yet
           nlabel++;
         }
       }
@@ -3124,6 +3278,34 @@ LabelMaskSurface(LABEL *area, MRI_SURFACE *mris)
   return(NO_ERROR) ;
 }
 int
+LabelMaskSurfaceVolume(LABEL *area, MRI *mri, float nonmask_val)
+{
+  int    vno, n, x, y, z, f ;
+  uchar  *marked ;
+  long   nvox ;
+
+  nvox = mri->width*mri->height*mri->depth*mri->nframes ;
+  marked = (uchar *)calloc(nvox, sizeof(uchar)) ;
+  for (n = 0 ; n < area->n_points ; n++)
+  {
+    vno = area->lv[n].vno ;
+    if (vno >= 0)
+      marked[vno] = 1 ;
+  }
+  for (n = x = 0 ; x < mri->width ; x++)
+    for (y = 0 ; y < mri->height ; y++)
+      for (z = 0 ; z < mri->depth ; z++)
+	for (f = 0 ; f < mri->nframes ; f++, n++)
+	{
+	  if (marked[n])
+	    continue ;
+	  MRIsetVoxVal(mri, x, y, z, f, nonmask_val) ;
+	}
+
+  free(marked) ;
+  return(NO_ERROR) ;
+}
+int
 LabelCentroid(LABEL *area, MRI_SURFACE *mris, double *px, double *py, double *pz)
 {
   int    vno, num, n  ;
@@ -3148,5 +3330,192 @@ LabelCentroid(LABEL *area, MRI_SURFACE *mris, double *px, double *py, double *pz
   *py = yc / num ;
   *pz = zc / num ;
   return(NO_ERROR) ;
+}
+
+int
+LabelFillVolume(MRI *mri, LABEL *area, int fillval)
+{
+  int           n ;
+  double        xv, yv, zv ;
+  LABEL_VERTEX  *lv ;
+
+  for (n = 0 ; n < area->n_points ; n++)
+  {
+    lv = &area->lv[n] ;
+    MRIsurfaceRASToVoxel(mri, lv->x, lv->y, lv->z, &xv, &yv, &zv) ;
+    MRIsetVoxVal(mri, nint(xv), nint(yv), nint(zv), 0, fillval) ;
+  }
+  return(NO_ERROR) ;
+}
+
+int
+LabelSetVals(MRI_SURFACE *mris, LABEL *area, float fillval)
+{
+  int           n ;
+  LABEL_VERTEX  *lv ;
+
+  for (n = 0 ; n < area->n_points ; n++)
+  {
+    lv = &area->lv[n] ;
+    if (lv->deleted || lv->vno < 0)
+      continue ;
+    mris->vertices[lv->vno].val = fillval ;
+  }
+  return(NO_ERROR) ;
+}
+/*
+  convert the label coords from tkreg (surface) RAS to scanner RAS. Note that this assumes that the
+  label coords are in tkreg space
+*/
+LABEL *
+LabelToScannerRAS(LABEL *lsrc, MRI *mri, LABEL *ldst)
+{
+  int i ;
+  MATRIX *M_surface_to_RAS = RASFromSurfaceRAS_(mri)  ;
+  VECTOR *v1, *v2 ;
+
+  if (ldst == NULL)
+  {
+    ldst = LabelClone(lsrc) ;
+    ldst->n_points = lsrc->n_points ;
+  }
+  
+  v1 = VectorAlloc(4, MATRIX_REAL) ;
+  v2 = VectorAlloc(4, MATRIX_REAL) ;
+  VECTOR_ELT(v1,4) = 1.0 ;
+  VECTOR_ELT(v2,4) = 1.0 ;
+  for (i = 0 ; i < lsrc->n_points ; i++)
+  {
+    V3_X(v1) = lsrc->lv[i].x ; V3_Y(v1) = lsrc->lv[i].y ; V3_Z(v1) = lsrc->lv[i].z ;
+    MatrixMultiply(M_surface_to_RAS, v1, v2) ;
+    ldst->lv[i].x = V3_X(v2) ; ldst->lv[i].y = V3_Y(v2) ;  ldst->lv[i].z = V3_Z(v2) ;
+    ldst->lv[i].stat = lsrc->lv[i].stat ;
+  }
+  strncpy (ldst->space, "scanner", sizeof(ldst->space));
+  ldst->coords = LABEL_COORDS_SCANNER_RAS ;
+  VectorFree(&v1) ; VectorFree(&v2) ; MatrixFree(&M_surface_to_RAS) ;
+  return(ldst) ;
+}
+/*
+  convert the label coords from tkreg (surface) RAS to scanner RAS. Note that this assumes that the
+  label coords are in tkreg space
+*/
+LABEL *
+LabelFromScannerRAS(LABEL *lsrc, MRI *mri, LABEL *ldst)
+{
+  int i ;
+  MATRIX *M_surface_to_RAS = RASFromSurfaceRAS_(mri), *M_surface_from_RAS  ;
+  VECTOR *v1, *v2 ;
+
+  M_surface_from_RAS = MatrixInverse(M_surface_to_RAS, NULL) ;
+
+  if (ldst == NULL)
+  {
+    ldst = LabelClone(lsrc) ;
+    ldst->n_points = lsrc->n_points ;
+  }
+  
+  v1 = VectorAlloc(4, MATRIX_REAL) ;
+  v2 = VectorAlloc(4, MATRIX_REAL) ;
+  VECTOR_ELT(v1,4) = 1.0 ;
+  VECTOR_ELT(v2,4) = 1.0 ;
+  for (i = 0 ; i < lsrc->n_points ; i++)
+  {
+    V3_X(v1) = lsrc->lv[i].x ; V3_Y(v1) = lsrc->lv[i].y ; V3_Z(v1) = lsrc->lv[i].z ;
+    MatrixMultiply(M_surface_from_RAS, v1, v2) ;
+    ldst->lv[i].x = V3_X(v2) ; ldst->lv[i].y = V3_Y(v2) ;  ldst->lv[i].z = V3_Z(v2) ;
+    ldst->lv[i].stat = lsrc->lv[i].stat ;
+  }
+  strcpy (ldst->space, "TkReg") ;
+  ldst->coords = LABEL_COORDS_TKREG_RAS ;
+  VectorFree(&v1) ; VectorFree(&v2) ; MatrixFree(&M_surface_to_RAS) ; MatrixFree(&M_surface_from_RAS) ;
+  return(ldst) ;
+}
+
+/*
+  convert the label coords from tkreg (surface) RAS to voxels. Note that this assumes that the
+  label coords are in tkreg space
+*/
+LABEL *
+LabelToVoxel(LABEL *lsrc, MRI *mri, LABEL *ldst)
+{
+  int i ;
+  MATRIX *M_surface_to_vox = RASFromSurfaceRAS_(mri)  ;
+  VECTOR *v1, *v2 ;
+
+  if (strstr(lsrc->space, "scanner") != NULL)
+    ldst = LabelFromScannerRAS(lsrc, mri, ldst) ;
+
+  M_surface_to_vox = voxelFromSurfaceRAS_(mri);
+  if (ldst == NULL)
+  {
+    ldst = LabelClone(lsrc) ;
+    ldst->n_points = lsrc->n_points ;
+  }
+  
+  v1 = VectorAlloc(4, MATRIX_REAL) ;
+  v2 = VectorAlloc(4, MATRIX_REAL) ;
+  VECTOR_ELT(v1,4) = 1.0 ;
+  VECTOR_ELT(v2,4) = 1.0 ;
+  for (i = 0 ; i < lsrc->n_points ; i++)
+  {
+    V3_X(v1) = lsrc->lv[i].x ; V3_Y(v1) = lsrc->lv[i].y ; V3_Z(v1) = lsrc->lv[i].z ;
+    MatrixMultiply(M_surface_to_vox, v1, v2) ;
+    ldst->lv[i].x = V3_X(v2) ; ldst->lv[i].y = V3_Y(v2) ;  ldst->lv[i].z = V3_Z(v2) ;
+    ldst->lv[i].stat = lsrc->lv[i].stat ;
+  }
+  strncpy (ldst->space, "voxel", sizeof(ldst->space));
+  ldst->coords = LABEL_COORDS_VOXEL ;
+  VectorFree(&v1) ; VectorFree(&v2) ; MatrixFree(&M_surface_to_vox) ;
+  return(ldst) ;
+}
+LABEL *
+LabelClone(LABEL *a) 
+{
+  LABEL *l ;
+  l = LabelAlloc(a->max_points,a->subject_name,a->name) ;
+  strcpy(l->space, a->space) ;
+  return(l) ;
+}
+
+LABEL *
+LabelTransform(LABEL *lsrc, TRANSFORM *xform, MRI *mri, LABEL *ldst)
+{
+  int    i ;
+  MATRIX *M ;
+  VECTOR *v1, *v2 ;
+
+  if (ldst  == NULL)
+  {
+    ldst = LabelClone(lsrc) ;
+    ldst->n_points = lsrc->n_points ;
+  }
+
+  if (xform->type != LINEAR_RAS_TO_RAS)
+    ErrorExit(ERROR_NOFILE, "LabelTransform: unsupported type %d. Must be RAS->RAS", xform->type) ;
+  if (strstr(ldst->space, "scanner") == NULL)
+    ErrorExit(ERROR_NOFILE, "LabelTransform: label must be in scanner RAS not %s", ldst->space) ;
+
+  M = ((LTA *)(xform->xform))->xforms[0].m_L ;
+  if (ldst == NULL)
+  {
+    ldst = LabelClone(lsrc) ;
+    ldst->n_points = lsrc->n_points ;
+  }
+  
+  v1 = VectorAlloc(4, MATRIX_REAL) ;
+  v2 = VectorAlloc(4, MATRIX_REAL) ;
+  VECTOR_ELT(v1,4) = 1.0 ;
+  VECTOR_ELT(v2,4) = 1.0 ;
+  for (i = 0 ; i < lsrc->n_points ; i++)
+  {
+    V3_X(v1) = lsrc->lv[i].x ; V3_Y(v1) = lsrc->lv[i].y ; V3_Z(v1) = lsrc->lv[i].z ;
+    MatrixMultiply(M, v1, v2) ;
+    ldst->lv[i].x = V3_X(v2) ; ldst->lv[i].y = V3_Y(v2) ;  ldst->lv[i].z = V3_Z(v2) ;
+    ldst->lv[i].stat = lsrc->lv[i].stat ;
+  }
+  strncpy (ldst->space, "scanner", sizeof(ldst->space));
+  
+  return(ldst) ;
 }
 

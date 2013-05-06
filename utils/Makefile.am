@@ -240,7 +240,8 @@ libutils_main_SOURCES=\
 	gcamorphtestutils.cpp\
 	gcautils.cpp\
 	gcalinearnode.cpp\
-	gcalinearprior.cpp
+	gcalinearprior.cpp\
+	cmat.c
 
 libutils_cephes_SOURCES=\
 	$(srcdir)/$(cephes_dir)/bdtr.c \
