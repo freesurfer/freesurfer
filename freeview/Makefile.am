@@ -503,6 +503,8 @@ install-exec-hook:freeview
 	mkdir -p $(DESTDIR)$(bindir)/../Freeview.app/Contents/Frameworks
 	echo -n 'APPL????' > $(DESTDIR)$(bindir)/../Freeview.app/Contents/PkgInfo
 	cp $(top_builddir)/freeview/freeview $(DESTDIR)$(bindir)/../Freeview.app/Contents/MacOS/Freeview
+	cp $(top_builddir)/freeview/Info.plist $(DESTDIR)$(bindir)/../Freeview.app/Contents/
+	cp $(top_builddir)/freeview/resource/icons/freeview.icns $(DESTDIR)$(bindir)/../Freeview.app/Contents/Resources/freeview.icns 
 	echo "#!/bin/tcsh -ef" > $(DESTDIR)$(bindir)/freeview
 	echo "if(\$$#argv > 0) then" \
 		>> $(DESTDIR)$(bindir)/freeview
