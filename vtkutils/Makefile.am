@@ -73,8 +73,12 @@ foo:
 	cp -v $(top_srcdir)/vtkutils/IconLoaderTestIcons.txt \
 				$(top_builddir)/vtkutils/; fi;
 
+if HAVE_MAC_OSX
+check_PROGRAMS=foo vtkKWRGBATransferFunctionEditorTester vtkArrowPipelineTester
+else
 check_PROGRAMS=foo IconLoaderTest \
 vtkKWRGBATransferFunctionEditorTester vtkArrowPipelineTester
+endif
 #these commented-out because the tests are interactive (can't run automatically)
 #TESTS=vtkKWRGBATransferFunctionEditorTester vtkArrowPipelineTester
 #TESTS=testIconLoader
