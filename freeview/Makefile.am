@@ -495,6 +495,7 @@ freeview_LDADD		= $(QT_LIBS) \
 
 # need to create a bundle for Macs
 install-exec-hook:freeview
+	rm -Rf $(DESTDIR)$(bindir)/../Freeview.app
 	mkdir -p $(DESTDIR)$(bindir)/../Freeview.app
 	mkdir -p $(DESTDIR)$(bindir)/../Freeview.app/Contents
 	mkdir -p $(DESTDIR)$(bindir)/../Freeview.app/Contents/MacOS
