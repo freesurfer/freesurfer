@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2013/05/06 19:50:38 $
-#    $Revision: 1.459 $
+#    $Date: 2013/05/08 00:09:18 $
+#    $Revision: 1.460 $
 #
 # Copyright © 2011-2013 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -26,7 +26,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.459 2013/05/06 19:50:38 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.460 2013/05/08 00:09:18 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -1651,7 +1651,7 @@ if($DoTalCheck) then
         set talAviQA2=`grep "atlas_transform_error" ${qalog2} | awk '{print $6}'`
         echo "TalAviQA2: ${talAviQA2}" |& tee -a $LF
         set atlaserrhi=`echo "${talAviQA2} > 24" | bc`
-        set atlaserrlo=`echo "${talAviQA2} < -36" | bc`
+        set atlaserrlo=`echo "${talAviQA2} < -60" | bc`
       else
         set talAviQA2=0
         set atlaserrhi=0
@@ -1661,7 +1661,7 @@ if($DoTalCheck) then
       if (($zscore < $zscoreThreshold) || $atlaserrhi || $atlaserrlo) then
         echo "ERROR: Talairach QA check failed!" |& tee -a $LF
         echo "       z-score = ${zscore} <= ${zscoreThreshold} = threshold\n" \
-             "      atlas xform error = $talAviQA2 < -36 | > 24" \
+             "      atlas xform error = $talAviQA2 < -60 | > 24" \
              |& tee -a $LF
         echo "Manual Talairach alignment may be necessary, or" |& tee -a $LF
         echo "include the -notal-check flag to skip this test," |& tee -a $LF
