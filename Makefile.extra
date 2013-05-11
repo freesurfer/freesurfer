@@ -5,7 +5,7 @@
 # It just creates a list of files for later removal from files in an exclude list.
 release: install
 	list=( $(EXCLUDE_FILES) ); for p in $${list[@]}; do \
-		echo "rm -Rfv $$PWD/$$p" >> $(prefix)/EXCLUDE_FILES_rm_cmds \;; \
+		echo "rm -fv $(prefix)/$(subdir)/$$p" >> $(prefix)/EXCLUDE_FILES_rm_cmds \;; \
 	done; \
 	list=( $(SUBDIRS) ); for subdir in $${list[@]}; do \
 		echo "Making release in $$subdir"; \
