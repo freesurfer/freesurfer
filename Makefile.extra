@@ -1,10 +1,11 @@
 
 .PHONY: release
 
-# A rule for making the release. It just removes files in an exclude list.
+# A rule for making the release. 
+# It just creates a list of files for later removal from files in an exclude list.
 release: install
 	list=( $(EXCLUDE_FILES) ); for p in $${list[@]}; do \
-		find $(prefix) -follow -name $$p -exec rm -Rf {} \;; \
+		echo "rm -Rfv $$PWD/$$p" >> $(prefix)/EXCLUDE_FILES_rm_cmds \;; \
 	done; \
 	list=( $(SUBDIRS) ); for subdir in $${list[@]}; do \
 		echo "Making release in $$subdir"; \
