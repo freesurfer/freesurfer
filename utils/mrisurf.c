@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2013/04/26 17:32:46 $
- *    $Revision: 1.749 $
+ *    $Date: 2013/05/12 13:43:24 $
+ *    $Revision: 1.750 $
  *
  * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -771,7 +771,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void)
 {
-  return("$Id: mrisurf.c,v 1.749 2013/04/26 17:32:46 fischl Exp $");
+  return("$Id: mrisurf.c,v 1.750 2013/05/12 13:43:24 fischl Exp $");
 }
 
 /*-----------------------------------------------------
@@ -37430,7 +37430,8 @@ MRIScomputeBorderValues(MRI_SURFACE *mris,MRI *mri_brain,
                         FILE *log_fp,
                         int which,
                         MRI *mri_mask,
-                        double thresh)
+                        double thresh,
+			int flags)
 {
   double    val, x, y, z, max_mag_val, xw, yw, zw,mag,max_mag, max_mag_dist=0.0f,
                                                                previous_val, next_val, min_val,inward_dist,outward_dist,xw1,yw1,zw1,
@@ -37713,7 +37714,8 @@ MRIScomputeBorderValues(MRI_SURFACE *mris,MRI *mri_brain,
         MRISsurfaceRASToVoxelCached(mris, mri_brain, x, y, z, &xw, &yw, &zw) ;
         MRIsampleVolumeDerivativeScale(mri_tmp, xw, yw, zw, nx, ny, nz,&mag,sigma);
         // only for hires volumes - if intensities are increasing don't keep going - in gm
-        if (which == GRAY_WHITE && mri_brain->xsize < .95 &&
+        if (which == GRAY_WHITE && 
+	    (mri_brain->xsize < .95 || flags & IPFLAG_FIND_FIRST_WM_PEAK) &&
             val > previous_val && next_val > val)
         {
           break ;
@@ -37816,7 +37818,8 @@ MRIScomputeBorderValues(MRI_SURFACE *mris,MRI *mri_brain,
     if (vno == Gdiag_no)
       fclose(fp) ;
 
-    if (mri_brain->xsize < .95)  // doesn't appy to standard stream - only highres
+    // doesn't appy to standard stream - only highres or if user specifies
+    if (mri_brain->xsize < .95 || flags & IPFLAG_FIND_FIRST_WM_PEAK) 
     {
 #ifdef WSIZE
 #undef WSIZE
