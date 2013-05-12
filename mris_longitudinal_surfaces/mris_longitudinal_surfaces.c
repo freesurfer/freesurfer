@@ -7,21 +7,19 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2007/10/02 20:00:37 $
- *    $Revision: 1.4 $
+ *    $Author: nicks $
+ *    $Date: 2013/05/12 22:28:01 $
+ *    $Revision: 1.5.2.1 $
  *
- * Copyright (C) 2002-2007,
- * The General Hospital Corporation (Boston, MA). 
- * All rights reserved.
+ * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
- * Distribution, usage and copying of this software is covered under the
- * terms found in the License Agreement file named 'COPYING' found in the
- * FreeSurfer source code root directory, and duplicated here:
- * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ * Terms and conditions for use, reproduction, distribution and contribution
+ * are found in the 'FreeSurfer Software License Agreement' contained
+ * in the file 'LICENSE' found in the FreeSurfer distribution, and here:
  *
- * General inquiries: freesurfer@nmr.mgh.harvard.edu
- * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
+ *
+ * Reporting: freesurfer@nmr.mgh.harvard.edu
  *
  */
 
@@ -48,7 +46,7 @@
 #include "version.h"
 #include "label.h"
 
-static char vcid[] = "$Id: mris_longitudinal_surfaces.c,v 1.4 2007/10/02 20:00:37 fischl Exp $";
+static char vcid[] = "$Id: mris_longitudinal_surfaces.c,v 1.5.2.1 2013/05/12 22:28:01 nicks Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -186,10 +184,10 @@ main(int argc, char *argv[]) {
 
   char cmdline[CMD_LINE_LEN] ;
 
-  make_cmd_version_string (argc, argv, "$Id: mris_longitudinal_surfaces.c,v 1.4 2007/10/02 20:00:37 fischl Exp $", "$Name:  $", cmdline);
+  make_cmd_version_string (argc, argv, "$Id: mris_longitudinal_surfaces.c,v 1.5.2.1 2013/05/12 22:28:01 nicks Exp $", "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_longitudinal_surfaces.c,v 1.4 2007/10/02 20:00:37 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_longitudinal_surfaces.c,v 1.5.2.1 2013/05/12 22:28:01 nicks Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -538,7 +536,7 @@ main(int argc, char *argv[]) {
                             MAX_WHITE, max_border_white, min_border_white,
                             min_gray_at_white_border,
                             max_border_white /*max_gray*/, current_sigma,
-                            2*max_thickness, parms.fp, GRAY_WHITE, NULL, 0) ;
+                            2*max_thickness, parms.fp, GRAY_WHITE, NULL, 0, 0) ;
     MRISfindExpansionRegions(mris) ;
     if (vavgs) {
       fprintf(stderr, "averaging target values for %d iterations...\n",vavgs) ;
@@ -715,7 +713,7 @@ main(int argc, char *argv[]) {
                               max_gray_at_csf_border, min_gray_at_csf_border,
                               min_csf,(max_csf+max_gray_at_csf_border)/2,
                               current_sigma, 2*max_thickness, parms.fp,
-                              GRAY_CSF, NULL, 0) ;
+                              GRAY_CSF, NULL, 0, 0) ;
       MRImask(mri_T1, mri_labeled, mri_T1, BRIGHT_LABEL, 0) ;
       if (vavgs) {
         fprintf(stderr, "averaging target values for %d iterations...\n",vavgs) ;
@@ -807,7 +805,7 @@ main(int argc, char *argv[]) {
                               max_border_white, min_border_white,
                               min_gray_at_white_border, max_border_white /*max_gray*/,
                               current_sigma, 2*max_thickness, parms.fp,
-                              GRAY_WHITE, NULL, 0) ;
+                              GRAY_WHITE, NULL, 0, 0) ;
       MRISfindExpansionRegions(mris) ;
       if (vavgs) {
         fprintf(stderr,"averaging target values for %d iterations...\n",vavgs);

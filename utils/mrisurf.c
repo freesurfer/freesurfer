@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2013/04/26 19:03:01 $
- *    $Revision: 1.693.2.6 $
+ *    $Date: 2013/05/12 22:28:01 $
+ *    $Revision: 1.693.2.7 $
  *
  * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -764,7 +764,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void)
 {
-  return("$Id: mrisurf.c,v 1.693.2.6 2013/04/26 19:03:01 nicks Exp $");
+  return("$Id: mrisurf.c,v 1.693.2.7 2013/05/12 22:28:01 nicks Exp $");
 }
 
 /*-----------------------------------------------------
@@ -37316,7 +37316,8 @@ MRIScomputeBorderValues(MRI_SURFACE *mris,
                         FILE *log_fp,
                         int which,
                         MRI *mri_mask,
-                        double thresh)
+                        double thresh,
+                        int flags)
 {
   double val, x, y, z, max_mag_val, xw, yw, zw;
   double mag,max_mag, max_mag_dist=0.0f;
@@ -37602,7 +37603,8 @@ MRIScomputeBorderValues(MRI_SURFACE *mris,
         MRISsurfaceRASToVoxelCached(mris, mri_brain, x, y, z, &xw, &yw, &zw) ;
         MRIsampleVolumeDerivativeScale(mri_tmp, xw, yw, zw, nx, ny, nz,&mag,sigma);
         // only for hires volumes - if intensities are increasing don't keep going - in gm
-        if (which == GRAY_WHITE && mri_brain->xsize < .95 &&
+        if (which == GRAY_WHITE && 
+	    (mri_brain->xsize < .95 || flags & IPFLAG_FIND_FIRST_WM_PEAK) &&
             val > previous_val && next_val > val)
         {
           break ;
@@ -37705,7 +37707,8 @@ MRIScomputeBorderValues(MRI_SURFACE *mris,
     if (vno == Gdiag_no)
       fclose(fp) ;
 
-    if (mri_brain->xsize < .95)  // doesn't appy to standard stream - only highres
+    // doesn't appy to standard stream - only highres or if user specifies
+    if (mri_brain->xsize < .95 || flags & IPFLAG_FIND_FIRST_WM_PEAK) 
     {
 #ifdef WSIZE
 #undef WSIZE

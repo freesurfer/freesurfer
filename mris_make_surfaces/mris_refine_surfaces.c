@@ -12,21 +12,19 @@
 /*
  * Original Author: Bruce Fischl (June 16, 1998)
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2008/01/24 14:51:25 $
- *    $Revision: 1.19 $
+ *    $Author: nicks $
+ *    $Date: 2013/05/12 22:28:01 $
+ *    $Revision: 1.20.2.1 $
  *
- * Copyright (C) 2002-2007,
- * The General Hospital Corporation (Boston, MA). 
- * All rights reserved.
+ * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
- * Distribution, usage and copying of this software is covered under the
- * terms found in the License Agreement file named 'COPYING' found in the
- * FreeSurfer source code root directory, and duplicated here:
- * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ * Terms and conditions for use, reproduction, distribution and contribution
+ * are found in the 'FreeSurfer Software License Agreement' contained
+ * in the file 'LICENSE' found in the FreeSurfer distribution, and here:
  *
- * General inquiries: freesurfer@nmr.mgh.harvard.edu
- * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
+ *
+ * Reporting: freesurfer@nmr.mgh.harvard.edu
  *
  */
 
@@ -51,7 +49,7 @@
 #include "registerio.h"
 
 static char vcid[] = 
-"$Id: mris_refine_surfaces.c,v 1.19 2008/01/24 14:51:25 fischl Exp $";
+"$Id: mris_refine_surfaces.c,v 1.20.2.1 2013/05/12 22:28:01 nicks Exp $";
 
 int debug__ = 0; /// tosa debug
 
@@ -201,7 +199,7 @@ main(int argc, char *argv[]) {
   /* rkt: check for and handle version tag */
   nargs = handle_version_option 
     (argc, argv, 
-     "$Id: mris_refine_surfaces.c,v 1.19 2008/01/24 14:51:25 fischl Exp $", 
+     "$Id: mris_refine_surfaces.c,v 1.20.2.1 2013/05/12 22:28:01 nicks Exp $", 
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -638,7 +636,7 @@ main(int argc, char *argv[]) {
                               max_white, max_border_white, min_border_white,
                               min_gray_at_white_border,
                               max_border_white /*max_gray*/, current_sigma,
-                              2*max_thickness, parms.fp, GRAY_WHITE, NULL, 0) ;
+                              2*max_thickness, parms.fp, GRAY_WHITE, NULL, 0, parms.flags) ;
 #else
     MRIScomputeMaxGradBorderValues(mris,mri_hires, mri_smooth,
                                    current_sigma, max_thickness, 1, parms.fp,
@@ -828,7 +826,7 @@ main(int argc, char *argv[]) {
            max_gray_at_csf_border, min_gray_at_csf_border,
            min_csf,(max_csf+max_gray_at_csf_border)/2,
            current_sigma, 2*max_thickness, parms.fp,
-           GRAY_CSF, NULL, 0) ;
+           GRAY_CSF, NULL, 0, parms.flags) ;
 
       if (i == 0)
       {

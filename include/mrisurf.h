@@ -9,8 +9,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2012/11/07 22:37:59 $
- *    $Revision: 1.351.2.4 $
+ *    $Date: 2013/05/12 22:28:00 $
+ *    $Revision: 1.351.2.5 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -329,6 +329,7 @@ positive areas */
 #define IPFLAG_NOSCALE_TOL            0x8000   // don't scale tol with navgs
 #define IPFLAG_FORCE_GRADIENT_OUT    0x10000
 #define IPFLAG_FORCE_GRADIENT_IN     0x20000
+#define IPFLAG_FIND_FIRST_WM_PEAK    0x40000  // for Matt Glasser/David Van Essen
 
 #define INTEGRATE_LINE_MINIMIZE    0  /* use quadratic fit */
 #define INTEGRATE_MOMENTUM         1
@@ -1220,7 +1221,7 @@ int   MRIScomputeBorderValues(MRI_SURFACE *mris,
                               float max_dist,
                               FILE *log_fp,
                               int white,
-                              MRI *mri_mask, double thresh);
+                              MRI *mri_mask, double thresh, int flags);
 int  MRIScomputeWhiteSurfaceValues(MRI_SURFACE *mris, MRI *mri_brain,
                                    MRI *mri_smooth);
 int  MRIScomputeGraySurfaceValues(MRI_SURFACE *mris, MRI *mri_brain,
