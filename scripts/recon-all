@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2013/05/08 15:57:58 $
-#    $Revision: 1.379.2.72 $
+#    $Date: 2013/05/12 23:15:37 $
+#    $Revision: 1.379.2.73 $
 #
 # Copyright © 2011-2013 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -26,7 +26,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.379.2.72 2013/05/08 15:57:58 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.379.2.73 2013/05/12 23:15:37 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -1630,6 +1630,8 @@ if($DoTalCheck) then
         echo "ERROR: ${cmd} failed!  See logfile ${qalog}" |& tee -a $LF
         goto error_exit;
       endif
+# tal_QC_AZS disabled.  failing in weird ways. getting caught in infinite 'test' loops.
+if (0) then
       $fs_time $cmd2 >& $qalog2
       set tal_QC_AZS_status = $status
       if($tal_QC_AZS_status) then
@@ -1638,6 +1640,7 @@ if($DoTalCheck) then
         #NJS: skip instead of exit because tal_QC_AZS doesnt work on centos5.4
         #goto error_exit;
       endif
+endif
       # first set of QA data:
       set talAviQA=`grep "TalAviQA" ${qalog} | awk '{print $2}'`
       echo "TalAviQA: ${talAviQA}" |& tee -a $LF
@@ -1646,6 +1649,7 @@ if($DoTalCheck) then
       set zscore=`echo "scale=0;(${talAviQA} - ${mean}) / ${std}" | bc`
       echo "z-score: ${zscore}" |& tee -a $LF
       set zscoreThreshold=(-9) # conservative value, but catches M.Harms subjs.
+if (0) then
       # second set:
       if ( ! $tal_QC_AZS_status ) then
         set talAviQA2=`grep "atlas_transform_error" ${qalog2} | awk '{print $6}'`
@@ -1657,6 +1661,12 @@ if($DoTalCheck) then
         set atlaserrhi=0
         set atlaserrlo=0
       endif
+else
+  set talAviQA2=0
+  set atlaserrhi=0
+  set atlaserrlo=0
+endif
+
       # check both:
       if (($zscore < $zscoreThreshold) || $atlaserrhi || $atlaserrlo) then
         echo "ERROR: Talairach QA check failed!" |& tee -a $LF
