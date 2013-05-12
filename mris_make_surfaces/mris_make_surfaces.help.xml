@@ -42,6 +42,9 @@
       <explanation>Create curvature and area files from white matter surface</explanation>
       <argument>-a &lt;avgs&gt;</argument>
       <explanation>Average curvature values &lt;avgs&gt; times (default=10)</explanation>
+      <argument>-first_wm_peak</argument>
+      <explanation>Settle WM surface at first peak in intensity
+      profile instead of highest</explanation>
       <argument>-whiteonly</argument>
       <explanation>Only generate white matter surface</explanation>
       <argument>-orig_white &lt;surf&gt;</argument>
@@ -65,6 +68,10 @@
       <explanation>pialsurfname</explanation>
       <argument>-white</argument>
       <explanation>whitesurfname</explanation>
+      <argument>-nsigma_above n</argument>
+      <explanation># of sigmas above the mean to allow gray matter T2 intensities</explanation>
+      <argument>-nsigma_below n</argument>
+      <explanation># of sigmas below the mean to allow gray matter T2 intensities</explanation>
     </optional-flagged>
   </arguments>
   <reporting>Report bugs to &lt;freesurfer@nmr.mgh.harvard.edu&gt;</reporting>

@@ -12,9 +12,9 @@
 /*
  * Original Author: Bruce Fischl (June 16, 1998)
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:33 $
- *    $Revision: 1.20 $
+ *    $Author: fischl $
+ *    $Date: 2013/05/12 13:43:11 $
+ *    $Revision: 1.21 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -49,7 +49,7 @@
 #include "registerio.h"
 
 static char vcid[] = 
-"$Id: mris_refine_surfaces.c,v 1.20 2011/03/02 00:04:33 nicks Exp $";
+"$Id: mris_refine_surfaces.c,v 1.21 2013/05/12 13:43:11 fischl Exp $";
 
 int debug__ = 0; /// tosa debug
 
@@ -199,7 +199,7 @@ main(int argc, char *argv[]) {
   /* rkt: check for and handle version tag */
   nargs = handle_version_option 
     (argc, argv, 
-     "$Id: mris_refine_surfaces.c,v 1.20 2011/03/02 00:04:33 nicks Exp $", 
+     "$Id: mris_refine_surfaces.c,v 1.21 2013/05/12 13:43:11 fischl Exp $", 
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -636,7 +636,7 @@ main(int argc, char *argv[]) {
                               max_white, max_border_white, min_border_white,
                               min_gray_at_white_border,
                               max_border_white /*max_gray*/, current_sigma,
-                              2*max_thickness, parms.fp, GRAY_WHITE, NULL, 0) ;
+                              2*max_thickness, parms.fp, GRAY_WHITE, NULL, 0, parms.flags) ;
 #else
     MRIScomputeMaxGradBorderValues(mris,mri_hires, mri_smooth,
                                    current_sigma, max_thickness, 1, parms.fp,
@@ -826,7 +826,7 @@ main(int argc, char *argv[]) {
            max_gray_at_csf_border, min_gray_at_csf_border,
            min_csf,(max_csf+max_gray_at_csf_border)/2,
            current_sigma, 2*max_thickness, parms.fp,
-           GRAY_CSF, NULL, 0) ;
+           GRAY_CSF, NULL, 0, parms.flags) ;
 
       if (i == 0)
       {

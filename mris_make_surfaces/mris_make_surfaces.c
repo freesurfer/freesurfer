@@ -12,8 +12,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2013/04/26 16:28:12 $
- *    $Revision: 1.141 $
+ *    $Date: 2013/05/12 13:43:10 $
+ *    $Revision: 1.142 $
  *
  * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -56,7 +56,7 @@
 #define CONTRAST_FLAIR 2
 
 static char vcid[] =
-  "$Id: mris_make_surfaces.c,v 1.141 2013/04/26 16:28:12 fischl Exp $";
+  "$Id: mris_make_surfaces.c,v 1.142 2013/05/12 13:43:10 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -265,13 +265,13 @@ main(int argc, char *argv[])
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mris_make_surfaces.c,v 1.141 2013/04/26 16:28:12 fischl Exp $",
+   "$Id: mris_make_surfaces.c,v 1.142 2013/05/12 13:43:10 fischl Exp $",
    "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mris_make_surfaces.c,v 1.141 2013/04/26 16:28:12 fischl Exp $",
+           "$Id: mris_make_surfaces.c,v 1.142 2013/05/12 13:43:10 fischl Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
   {
@@ -828,7 +828,7 @@ main(int argc, char *argv[])
          max_gray_at_csf_border, min_gray_at_csf_border,
          min_csf,(max_csf+min_gray_at_csf_border)/2,
          current_sigma, 2*max_thickness, parms.fp,
-         GRAY_CSF, mri_ratio, thresh) ;
+         GRAY_CSF, mri_ratio, thresh, parms.flags) ;
       MRISaddToValues(mris, white_target_offset) ;
       {
         int i, vno ;
@@ -1018,7 +1018,7 @@ main(int argc, char *argv[])
                               MAX_WHITE, max_border_white, min_border_white,
                               min_gray_at_white_border,
                               max_border_white /*max_gray*/, current_sigma,
-                              2*max_thickness, parms.fp, GRAY_WHITE, NULL, 0) ;
+                              2*max_thickness, parms.fp, GRAY_WHITE, NULL, 0, parms.flags) ;
       MRISfindExpansionRegions(mris) ;
     }
     if (vavgs)
@@ -1714,7 +1714,7 @@ main(int argc, char *argv[])
          max_gray_at_csf_border, min_gray_at_csf_border,
          min_csf,(max_csf+max_gray_at_csf_border)/2,
          current_sigma, 2*max_thickness, parms.fp,
-         GRAY_CSF, mri_mask, thresh) ;
+         GRAY_CSF, mri_mask, thresh, parms.flags) ;
         MRImask(mri_T1, mri_labeled, mri_T1, BRIGHT_LABEL, 0) ;
       }
       MRISaddToValues(mris, pial_target_offset) ;
@@ -1864,7 +1864,7 @@ main(int argc, char *argv[])
          max_border_white, min_border_white,
          min_gray_at_white_border, max_border_white /*max_gray*/,
          current_sigma, 2*max_thickness, parms.fp,
-         GRAY_WHITE, NULL, 0) ;
+         GRAY_WHITE, NULL, 0, parms.flags) ;
       MRISfindExpansionRegions(mris) ;
       if (vavgs)
       {
@@ -2507,6 +2507,11 @@ get_option(int argc, char *argv[])
   {
     add = 1 ;
     fprintf(stderr, "adding vertices to tessellation during deformation.\n");
+  }
+  else if (!stricmp(option, "first_wm_peak"))
+  {
+    parms.flags |= IPFLAG_FIND_FIRST_WM_PEAK ;
+    printf("settling WM surface at first peak in intensity profile\n") ;
   }
   else if (!stricmp(option, "max"))
   {
