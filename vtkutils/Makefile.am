@@ -74,7 +74,7 @@ foo:
 				$(top_builddir)/vtkutils/; fi;
 
 if HAVE_MAC_OSX
-check_PROGRAMS=foo vtkKWRGBATransferFunctionEditorTester vtkArrowPipelineTester
+check_PROGRAMS=foo vtkArrowPipelineTester
 else
 check_PROGRAMS=foo IconLoaderTest \
 vtkKWRGBATransferFunctionEditorTester vtkArrowPipelineTester
