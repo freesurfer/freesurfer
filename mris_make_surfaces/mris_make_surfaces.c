@@ -12,8 +12,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2013/05/12 13:43:10 $
- *    $Revision: 1.142 $
+ *    $Date: 2013/05/13 13:42:51 $
+ *    $Revision: 1.143 $
  *
  * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -56,7 +56,7 @@
 #define CONTRAST_FLAIR 2
 
 static char vcid[] =
-  "$Id: mris_make_surfaces.c,v 1.142 2013/05/12 13:43:10 fischl Exp $";
+  "$Id: mris_make_surfaces.c,v 1.143 2013/05/13 13:42:51 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -265,13 +265,13 @@ main(int argc, char *argv[])
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mris_make_surfaces.c,v 1.142 2013/05/12 13:43:10 fischl Exp $",
+   "$Id: mris_make_surfaces.c,v 1.143 2013/05/13 13:42:51 fischl Exp $",
    "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mris_make_surfaces.c,v 1.142 2013/05/12 13:43:10 fischl Exp $",
+           "$Id: mris_make_surfaces.c,v 1.143 2013/05/13 13:42:51 fischl Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
   {
@@ -1335,6 +1335,13 @@ main(int argc, char *argv[])
         (ERROR_BADPARM,
          "%s: could not read %dth echo for dura localization from %s",
          Progname, e, fname) ;
+      if (mri_echos[e]->type != MRI_FLOAT)
+      {
+	MRI *mri_tmp = MRIchangeType(mri_echos[e], MRI_FLOAT, 0, 1, 1) ;
+	printf("changing echo voxel type to FLOAT\n") ;
+	MRIfree(&mri_echos[e]) ;
+	mri_echos[e] = mri_tmp ;
+      }
     }
 
     mri_ratio = MRIdivide(mri_echos[0], mri_echos[nechos-1], NULL) ;
