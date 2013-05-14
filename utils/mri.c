@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2013/03/25 12:38:13 $
- *    $Revision: 1.521 $
+ *    $Date: 2013/05/14 16:18:04 $
+ *    $Revision: 1.522 $
  *
  * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -23,7 +23,7 @@
  */
 
 extern const char* Progname;
-const char *MRI_C_VERSION = "$Revision: 1.521 $";
+const char *MRI_C_VERSION = "$Revision: 1.522 $";
 
 
 /*-----------------------------------------------------
@@ -1208,7 +1208,6 @@ MRIgetVoxDz(MRI *mri, int c, int r, int s, int f)
 */
 inline float MRIgetVoxVal(const MRI *mri, int c, int r, int s, int f)
 {
-  static void *p=NULL;
 
   // bounds checks:
   if (c < 0) return mri->outside_val;
@@ -1217,6 +1216,7 @@ inline float MRIgetVoxVal(const MRI *mri, int c, int r, int s, int f)
 
   if (mri->ischunked)
   {
+    void *p;
     p = mri->chunk + c + r*mri->bytes_per_row +
         s*mri->bytes_per_slice + f*mri->bytes_per_vol;
     switch (mri->type)
@@ -1273,8 +1273,6 @@ inline float MRIgetVoxVal(const MRI *mri, int c, int r, int s, int f)
 */
 inline int MRIsetVoxVal(MRI *mri, int c, int r, int s, int f, float voxval)
 {
-  static void *p=NULL;
-  
   //clipping
   switch (mri->type)
   {
@@ -1298,6 +1296,8 @@ inline int MRIsetVoxVal(MRI *mri, int c, int r, int s, int f, float voxval)
   
   if (mri->ischunked)
   {
+    void *p;
+  
     p = mri->chunk + c + r*mri->bytes_per_row +
         s*mri->bytes_per_slice + f*mri->bytes_per_vol;
     switch (mri->type)
@@ -1447,6 +1447,20 @@ MRImatch(MRI *mri1, MRI *mri2)
           (mri1->depth == mri2->depth) &&
           (mri1->type == mri2->type)
         ) ;
+}
+/*-----------------------------------------------------
+  ------------------------------------------------------*/
+int
+MRImatchDimensions(MRI *mri1, MRI *mri2)
+{
+  return(
+          (mri1->width == mri2->width) &&
+          (mri1->height == mri2->height) &&
+          (mri1->depth == mri2->depth) &&
+          (FEQUAL(mri1->xsize, mri2->xsize)) &&
+          (FEQUAL(mri1->ysize, mri2->ysize)) &&
+          (FEQUAL(mri1->zsize, mri2->zsize))
+    ) ;
 }
 MRI *
 MRIlinearScale(MRI *mri_src, MRI *mri_dst, float scale, float offset, 
@@ -6510,7 +6524,7 @@ int MRIfreeFrames(MRI *mri, int start_frame)
 
   end_frame = mri->nframes-1 ;
   if (!mri)
-    ErrorReturn(ERROR_BADPARM, (ERROR_BADPARM, "MRIfree: null pointer\n")) ;
+    ErrorReturn(ERROR_BADPARM, (ERROR_BADPARM, "MRIfreeFrames: null pointer\n")) ;
 
   if (mri->slices)
   {
