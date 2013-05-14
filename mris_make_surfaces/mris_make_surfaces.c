@@ -12,8 +12,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2013/05/14 14:22:43 $
- *    $Revision: 1.144 $
+ *    $Date: 2013/05/14 16:17:45 $
+ *    $Revision: 1.145 $
  *
  * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -56,7 +56,7 @@
 #define CONTRAST_FLAIR 2
 
 static char vcid[] =
-  "$Id: mris_make_surfaces.c,v 1.144 2013/05/14 14:22:43 fischl Exp $";
+  "$Id: mris_make_surfaces.c,v 1.145 2013/05/14 16:17:45 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -266,13 +266,13 @@ main(int argc, char *argv[])
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mris_make_surfaces.c,v 1.144 2013/05/14 14:22:43 fischl Exp $",
+   "$Id: mris_make_surfaces.c,v 1.145 2013/05/14 16:17:45 fischl Exp $",
    "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mris_make_surfaces.c,v 1.144 2013/05/14 14:22:43 fischl Exp $",
+           "$Id: mris_make_surfaces.c,v 1.145 2013/05/14 16:17:45 fischl Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
   {
@@ -1340,6 +1340,13 @@ main(int argc, char *argv[])
       {
 	MRI *mri_tmp = MRIchangeType(mri_echos[e], MRI_FLOAT, 0, 1, 1) ;
 	printf("changing echo voxel type to FLOAT\n") ;
+	MRIfree(&mri_echos[e]) ;
+	mri_echos[e] = mri_tmp ;
+      }
+      if (MRImatchDimensions(mri_T1, mri_echos[e]) == 0)
+      {
+	MRI *mri_tmp = MRIresample(mri_echos[e], mri_T1, SAMPLE_TRILINEAR) ;
+	printf("echo not conformed - reslicing to match conformed volumes\n") ;
 	MRIfree(&mri_echos[e]) ;
 	mri_echos[e] = mri_tmp ;
       }
