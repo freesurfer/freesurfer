@@ -12,8 +12,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2013/05/13 13:42:51 $
- *    $Revision: 1.143 $
+ *    $Date: 2013/05/14 14:22:43 $
+ *    $Revision: 1.144 $
  *
  * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -56,7 +56,7 @@
 #define CONTRAST_FLAIR 2
 
 static char vcid[] =
-  "$Id: mris_make_surfaces.c,v 1.143 2013/05/13 13:42:51 fischl Exp $";
+  "$Id: mris_make_surfaces.c,v 1.144 2013/05/14 14:22:43 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -122,6 +122,7 @@ static LABEL *highres_label = NULL ;
 static char T1_name[STRLEN] = "brain" ;
 
 static float nsigma = 2.0 ;
+static float dura_thresh = -1 ;
 static float nsigma_above = 3.0 ;
 static float nsigma_below = 3.0 ;
 static int remove_contra = 1 ;
@@ -265,13 +266,13 @@ main(int argc, char *argv[])
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mris_make_surfaces.c,v 1.143 2013/05/13 13:42:51 fischl Exp $",
+   "$Id: mris_make_surfaces.c,v 1.144 2013/05/14 14:22:43 fischl Exp $",
    "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mris_make_surfaces.c,v 1.143 2013/05/13 13:42:51 fischl Exp $",
+           "$Id: mris_make_surfaces.c,v 1.144 2013/05/14 14:22:43 fischl Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
   {
@@ -1345,7 +1346,10 @@ main(int argc, char *argv[])
     }
 
     mri_ratio = MRIdivide(mri_echos[0], mri_echos[nechos-1], NULL) ;
-    thresh = compute_brain_thresh(mris, mri_ratio, nsigma) ;
+    if (dura_thresh < 0)
+      thresh = compute_brain_thresh(mris, mri_ratio, nsigma) ;
+    else
+      thresh = dura_thresh ;
     mri_mask = mri_ratio ;
     if (Gdiag & DIAG_WRITE)
     {
@@ -2013,6 +2017,12 @@ get_option(int argc, char *argv[])
     fprintf(stderr,
             "using dura threshold of %2.2f sigmas from mean (default=2)\n",
             nsigma) ;
+    nargs = 1;
+  }
+  else if (!stricmp(option, "dura_thresh") || !stricmp(option, "dura+thresh"))
+  {
+    dura_thresh = atof(argv[2]) ;
+    fprintf(stderr, "setting dura threshold to %2.2f instead of estimating it\n", dura_thresh) ;
     nargs = 1;
   }
   else if (!stricmp(option, "nsigma_above") ||
@@ -3685,7 +3695,9 @@ compute_brain_thresh(MRI_SURFACE *mris, MRI *mri_ratio, float nstd)
   VERTEX    *v ;
   double    thresh ;
   FILE      *logfp = NULL ;
+  MRI       *mri_filled ;
 
+  mri_filled = MRIclone(mri_ratio, NULL) ;
   if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
   {
     logfp = fopen("gm.plt", "w") ;
@@ -3696,9 +3708,8 @@ compute_brain_thresh(MRI_SURFACE *mris, MRI *mri_ratio, float nstd)
   {
     v = &mris->vertices[vno] ;
     if (v->ripflag)
-    {
       continue ;
-    }
+
     MRISvertexToVoxel(mris, v, mri_ratio, &xv, &yv, &zv) ;
     MRIsampleVolume(mri_ratio, xv, yv, zv, &val) ;
     for (d = .5 ; d <= 1.0 ; d += 0.5)
@@ -3707,15 +3718,16 @@ compute_brain_thresh(MRI_SURFACE *mris, MRI *mri_ratio, float nstd)
       ys = v->y + d*v->ny ;
       zs = v->z + d*v->nz ;
       MRISsurfaceRASToVoxelCached(mris, mri_ratio, xs, ys, zs, &xv, &yv, &zv);
-      MRIsampleVolumeType(mri_ratio, xv, yv, zv, &val, SAMPLE_TRILINEAR) ;
+      if (MRIgetVoxVal(mri_filled, nint(xv), nint(yv), nint(zv), 0) > 0)
+	continue ;  // already visited this voxel
+      MRIsetVoxVal(mri_filled, nint(xv), nint(yv), nint(zv), 0, 1) ;
+      val = MRIgetVoxVal(mri_ratio, nint(xv), nint(yv), nint(zv), 0) ;
       if (val < 0)
-      {
         continue ;
-      }
+
       if (logfp)
-      {
         fprintf(logfp, "%f\n", val) ;
-      }
+
       mean += val ;
       std += val*val ;
       num++ ;
@@ -3729,6 +3741,7 @@ compute_brain_thresh(MRI_SURFACE *mris, MRI *mri_ratio, float nstd)
   mean /= num ;
   std = sqrt(std/num - mean*mean) ;
   thresh = mean+nstd*std ;
+  MRIfree(&mri_filled) ;
   return(thresh) ;
 }
 
