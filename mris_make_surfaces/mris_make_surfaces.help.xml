@@ -62,6 +62,8 @@
       <argument>-wvol whitevol &lt;hires&gt;</argument>
       <argument>-long</argument>
       <explanation>longitudinal</explanation>
+      <argument>-dura_thresh &lt;threshold&gt;</argument>
+      <explanation>set a threshold for the multi-echo mprage dura avoidance instead of automatically estimating it</explanation>
       <argument>-SDIR</argument>
       <explanation>SUBJECTS_DIR</explanation>
       <argument>-pial</argument>
