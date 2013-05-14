@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2012/11/21 16:41:51 $
- *    $Revision: 1.14.2.2 $
+ *    $Date: 2013/05/14 16:28:43 $
+ *    $Revision: 1.14.2.3 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -572,8 +572,9 @@ int RandPermListLimit0(int N, int *v, int lim, int nitersmax)
         runlen = 0;
       }
     }
-    // Termination conditions
-    if (runlenmax <= lim) return(0);
+    // Termination conditions. Require first stim to be non-null,
+    // I can't remember why.
+    if (runlenmax <= lim && v[0] != 0) return(0);
     if (niters > nitersmax) return(-1);
     niters++;
   }
