@@ -10,8 +10,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2013/04/18 14:01:09 $
- *    $Revision: 1.58 $
+ *    $Date: 2013/05/16 19:38:50 $
+ *    $Revision: 1.59 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -78,6 +78,7 @@ LABEL   *LabelRead(const char *subject_name,const char *label_name) ;
 LABEL   *LabelReadFrom(const char *subject_name, FILE *fp) ;
 int     LabelWriteInto(LABEL *area, FILE *fp) ;
 int     LabelWrite(LABEL *area,const char *fname) ;
+int     LabelToCurrent(LABEL *area, MRI_SURFACE *mris) ;
 int     LabelToCanonical(LABEL *area, MRI_SURFACE *mris) ;
 int     LabelThreshold(LABEL *area, float thresh) ;
 int     LabelMarkWithThreshold(LABEL *area, MRI_SURFACE *mris, float thresh);
