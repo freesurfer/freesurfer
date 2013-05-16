@@ -10,8 +10,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2013/05/16 22:56:03 $
- *    $Revision: 1.1 $
+ *    $Date: 2013/05/16 23:26:25 $
+ *    $Revision: 1.2 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -102,7 +102,7 @@ main(int argc, char *argv[])
   nargs = 
     handle_version_option
     (argc, argv,
-     "$Id: mris_simulate_atrophy.c,v 1.1 2013/05/16 22:56:03 fischl Exp $",
+     "$Id: mris_simulate_atrophy.c,v 1.2 2013/05/16 23:26:25 fischl Exp $",
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -252,9 +252,11 @@ main(int argc, char *argv[])
 
   mri_no_atrophy =  MRISsimulateAtrophy(mri_norm, mri_unpv_intensities, mri_wm, mri_subcort_gm, mri_cortex, mri_csf,
 					area, 0, NULL) ;   // no atrophy
+  MRIadd(mri_noise, mri_no_atrophy, mri_no_atrophy) ;
   mri_norm_atrophy =  MRISsimulateAtrophy(mri_norm, mri_unpv_intensities, mri_wm, mri_subcort_gm, mri_cortex, mri_csf,
 					  area, atrophy_frac, NULL) ;
   printf("writing simulated atrophy image to %s\n", out_fname) ;
+  MRIadd(mri_noise, mri_norm_atrophy, mri_norm_atrophy) ;
   MRIwrite(mri_norm_atrophy, out_fname) ;
   {
     char extension[STRLEN], fname2[STRLEN] ;
