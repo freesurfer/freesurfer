@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2013/05/14 16:18:04 $
- *    $Revision: 1.522 $
+ *    $Date: 2013/05/16 19:38:22 $
+ *    $Revision: 1.523 $
  *
  * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -23,7 +23,7 @@
  */
 
 extern const char* Progname;
-const char *MRI_C_VERSION = "$Revision: 1.522 $";
+const char *MRI_C_VERSION = "$Revision: 1.523 $";
 
 
 /*-----------------------------------------------------
@@ -14239,6 +14239,34 @@ MRIfindNearestNonzero(MRI *mri,
     return(0) ;
   return(min_val) ;
 }
+int
+MRImeanNonzeroInNbhd(MRI *mri, int wsize, int x, int y, int z, int frame)
+{
+  int   xk, yk, zk, xi, yi, zi, whalf, total ;
+  double mean,val ;
+
+  whalf = (wsize-1)/2 ;
+  for (mean = 0.0, total = 0, zk = -whalf ; zk <= whalf ; zk++)
+  {
+    zi = mri->zi[z+zk] ;
+    for (yk = -whalf ; yk <= whalf ; yk++)
+    {
+      yi = mri->yi[y+yk] ;
+      for (xk = -whalf ; xk <= whalf ; xk++)
+      {
+        xi = mri->xi[x+xk] ;
+	val = MRIgetVoxVal(mri, xi, yi, zi,frame) ;
+        if (val > 0)
+	{
+	  mean += val ;
+          total++ ;
+	}
+      }
+    }
+  }
+  return(mean/total) ;
+}
+
 int
 MRIcountNonzeroInNbhd(MRI *mri, int wsize, int x, int y, int z)
 {

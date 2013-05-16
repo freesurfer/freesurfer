@@ -9,8 +9,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2013/04/19 16:38:23 $
- *    $Revision: 1.117 $
+ *    $Date: 2013/05/16 19:38:22 $
+ *    $Revision: 1.118 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -262,6 +262,31 @@ LabelToCanonical(LABEL *area, MRI_SURFACE *mris)
     area->lv[n].x = v->cx ;
     area->lv[n].y = v->cy ;
     area->lv[n].z = v->cz ;
+  }
+  strncpy (area->space, "TkReg coords=canonical", sizeof(area->space));
+  return(NO_ERROR) ;
+}
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+------------------------------------------------------*/
+int
+LabelToCurrent(LABEL *area, MRI_SURFACE *mris)
+{
+  int     n, vno ;
+  VERTEX  *v ;
+
+  for (n = 0 ; n < area->n_points ; n++)
+  {
+    vno = area->lv[n].vno ;
+    v = &mris->vertices[vno] ;
+    area->lv[n].vno = -1 ;      /* not associated with a vertex anymore */
+    area->lv[n].x = v->x ;
+    area->lv[n].y = v->y ;
+    area->lv[n].z = v->z ;
   }
   strncpy (area->space, "TkReg coords=canonical", sizeof(area->space));
   return(NO_ERROR) ;
