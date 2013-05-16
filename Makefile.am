@@ -198,6 +198,7 @@ MRISSUBDIRS=\
 	spherical_stats \
 	tridec \
 	mris_segmentation_stats \
+	mris_simulate_atrophy \
 	mris_register_to_volume \
 	mris_init_global_tractography \
 	mris_interpolate_warp \
