@@ -7,27 +7,26 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: nicks $
-#    $Date: 2008/08/12 18:15:54 $
-#    $Revision: 1.27 $
+#    $Author: mreuter $
+#    $Date: 2013/05/17 15:19:35 $
+#    $Revision: 1.31.2.1 $
 #
-# Copyright (C) 2002-2007,
-# The General Hospital Corporation (Boston, MA).
-# All rights reserved.
+# Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
-# Distribution, usage and copying of this software is covered under the
-# terms found in the License Agreement file named 'COPYING' found in the
-# FreeSurfer source code root directory, and duplicated here:
-# https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+# Terms and conditions for use, reproduction, distribution and contribution
+# are found in the 'FreeSurfer Software License Agreement' contained
+# in the file 'LICENSE' found in the FreeSurfer distribution, and here:
 #
-# General inquiries: freesurfer@nmr.mgh.harvard.edu
-# Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+# https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
 #
-
+# Reporting: freesurfer@nmr.mgh.harvard.edu
 #
 #
 
-set VERSION = '$Id: fsl_rigid_register,v 1.27 2008/08/12 18:15:54 nicks Exp $';
+#
+#
+
+set VERSION = '$Id: fsl_rigid_register,v 1.31.2.1 2013/05/17 15:19:35 mreuter Exp $';
 
 setenv FSLOUTPUTTYPE NIFTI
 
@@ -170,7 +169,7 @@ endif
 
 
 # Run flirt
-set cmd = (flirt -in $involbase.hdr)
+set cmd = (flirt.fsl -in $involbase.hdr)
 set cmd = ($cmd -out $outvolbase.hdr)
 set cmd = ($cmd -bins $bins -cost $cost )
 set cmd = ($cmd -searchrx -$maxangle $maxangle)
@@ -188,7 +187,7 @@ endif
 # Check if schedule file flirt.newdefault.20080811.sch exists, which
 # explicitly uses an identity starting matrix at both 4mm and 1mm phases.
 # this bug fix is necessary only for v5.4.2b
-set flirtversion=`flirt -version`
+set flirtversion=`flirt.fsl -version`
 if ("$flirtversion" == "FLIRT version 5.4.2b") then
   set schedulefile="$FREESURFER_HOME/bin/flirt.newdefault.20080811.sch"
   if ( -e $schedulefile) then
@@ -217,6 +216,13 @@ if($convertout) then
   $cmd
   if($status) exit 1;
 endif
+
+# Make sure MR parameters are copied to output
+set cmd = (mri_copy_params --pulse $outvol $invol $outvol)
+pwd
+echo $cmd
+$cmd
+if($status) exit 1;
 
 if($#applyxfm == 0) then
   # Copy registration matrix
@@ -274,7 +280,7 @@ echo "fsl_rigid_register Done"
 echo " "
 
 echo "To check results, run:"
-echo "tkmedit -f $refvol -aux $outvol"
+echo "freeview $refvol $outvol"
 echo " "
 
 exit 0;
