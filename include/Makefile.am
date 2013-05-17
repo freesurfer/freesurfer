@@ -195,6 +195,7 @@ EXTRA_DIST=\
 	devicemanagement.h \
 	MRISOBBTree.h \
 	MRISdistancefield.h \
+	mris_compVolFrac.h \
 	mthread.h \
 	nifti1.h \
 	nifti1_io.h \
