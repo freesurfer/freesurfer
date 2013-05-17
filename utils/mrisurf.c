@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2013/05/12 13:43:24 $
- *    $Revision: 1.750 $
+ *    $Date: 2013/05/17 18:25:08 $
+ *    $Revision: 1.751 $
  *
  * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -771,7 +771,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void)
 {
-  return("$Id: mrisurf.c,v 1.750 2013/05/12 13:43:24 fischl Exp $");
+  return("$Id: mrisurf.c,v 1.751 2013/05/17 18:25:08 fischl Exp $");
 }
 
 /*-----------------------------------------------------
@@ -29004,9 +29004,14 @@ mrisReadAsciiFile(const char *fname)
   for (fno = 0 ; fno < mris->nfaces ; fno++)
   {
     face = &mris->faces[fno] ;
+    if (fno == Gdiag_no)
+      DiagBreak() ;
     for (n = 0 ; n < VERTICES_PER_FACE ; n++)
     {
       fscanf(fp, "%d ", &face->v[n]) ;
+      if (face->v[n] < 0 || face->v[n] >= mris->nvertices)
+	ErrorExit(ERROR_BADPARM, "%s: face %d vertex %d: %d -- out of range!!! Should be in [0 %d]",
+		  Progname, fno, n, face->v[n], mris->nvertices-1) ;
       mris->vertices[face->v[n]].num++;
     }
     fscanf(fp, "%d\n", &rip) ;
