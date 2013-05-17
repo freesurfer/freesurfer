@@ -6,9 +6,9 @@
 /*
  * Original Authors: Bruce Fischl and Doug Greve
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2012/03/07 18:00:25 $
- *    $Revision: 1.37 $
+ *    $Author: mreuter $
+ *    $Date: 2013/05/17 15:09:31 $
+ *    $Revision: 1.38 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -255,6 +255,7 @@ STAT_TABLE *InitStatTableFromMRI(MRI* mri_in, const char* tablefile)
   {
     fscanf(fp,"%s",tmpstr);
     st->rownames[r] = strcpyalloc(tmpstr);
+    fgets(tmpstr,100000,fp); // skip till end of line
   }
   fclose(fp);
 
