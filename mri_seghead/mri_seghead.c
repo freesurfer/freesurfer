@@ -7,21 +7,19 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2008/04/24 21:17:35 $
- *    $Revision: 1.3 $
+ *    $Author: mreuter $
+ *    $Date: 2013/05/17 15:11:49 $
+ *    $Revision: 1.5.2.1 $
  *
- * Copyright (C) 2002-2007,
- * The General Hospital Corporation (Boston, MA). 
- * All rights reserved.
+ * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
- * Distribution, usage and copying of this software is covered under the
- * terms found in the License Agreement file named 'COPYING' found in the
- * FreeSurfer source code root directory, and duplicated here:
- * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ * Terms and conditions for use, reproduction, distribution and contribution
+ * are found in the 'FreeSurfer Software License Agreement' contained
+ * in the file 'LICENSE' found in the FreeSurfer distribution, and here:
  *
- * General inquiries: freesurfer@nmr.mgh.harvard.edu
- * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
+ *
+ * Reporting: freesurfer@nmr.mgh.harvard.edu
  *
  */
 
@@ -32,7 +30,7 @@
   email:   analysis-bugs@nmr.mgh.harvard.edu
   Date:    2/27/02
   Purpose: Segment the head.
-  $Id: mri_seghead.c,v 1.3 2008/04/24 21:17:35 greve Exp $
+  $Id: mri_seghead.c,v 1.5.2.1 2013/05/17 15:11:49 mreuter Exp $
 */
 
 #include <stdio.h>
@@ -63,7 +61,7 @@ static int  singledash(char *flag);
 static int  stringmatch(char *str1, char *str2);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_seghead.c,v 1.3 2008/04/24 21:17:35 greve Exp $";
+static char vcid[] = "$Id: mri_seghead.c,v 1.5.2.1 2013/05/17 15:11:49 mreuter Exp $";
 char *Progname = NULL;
 int debug = 0;
 char *subjid;
@@ -79,12 +77,14 @@ int fillslices = 1;
 int fillrows = 1;
 int fillcols = 1;
 
+int dilate = 0;
+
 MRI *invol;
 MRI *HitMap;
 MRI *outvol, *outvol2;
 MRI *cvol, *rvol, *svol;
 MRI *mrgvol;
-MRI *mritmp;
+MRI *invol_orig;
 
 char tmpstr[1000];
 char *hvoldat = NULL;
@@ -120,19 +120,17 @@ int main(int argc, char **argv) {
 
   printf("Loading input volume\n");
   fflush(stdout);
-  invol = MRIread(involid);
-  if (invol == NULL) {
+  invol_orig = MRIread(involid);
+  if (invol_orig == NULL) {
     printf("ERROR: could not read %s\n",involid);
     exit(1);
   }
 
-  mritmp = MRIchangeType(invol,MRI_UCHAR,0,255,1);
-  if (mritmp == NULL) {
+  invol = MRIchangeType(invol_orig,MRI_UCHAR,0,255,1);
+  if (invol == NULL) {
     printf("ERROR: bvolumeWrite: MRIchangeType\n");
     return(1);
   }
-  MRIfree(&invol);
-  invol = mritmp;
 
   cvol = MRIclone(invol,NULL);
   rvol = MRIclone(invol,NULL);
@@ -165,6 +163,11 @@ int main(int argc, char **argv) {
         }
         cmax = c;
 
+        if (cmin >= dilate) cmin-=dilate;
+        else cmin = 0;
+        if (cmax <= invol->width-1-dilate) cmax+=dilate;
+        else cmax = invol->width-1; 
+
         for (c = cmin; c <= cmax; c++) MRIseq_vox(cvol,c,r,s,0) = fillval;
         //printf("%3d %3d  %3d %3d\n",r,s,cmin,cmax);
       }
@@ -196,6 +199,11 @@ int main(int argc, char **argv) {
         }
         rmax = r;
 
+        if (rmin >= dilate) rmin-=dilate;
+        else rmin = 0;
+        if (rmax <= invol->height-1-dilate) rmax+=dilate;
+        else rmax = invol->height-1; 
+        
         for (r = rmin; r <= rmax; r++) MRIseq_vox(rvol,c,r,s,0) = fillval;
         //printf("%3d %3d  %3d %3d\n",r,s,rmin,rmax);
       }
@@ -227,6 +235,11 @@ int main(int argc, char **argv) {
         }
         smax = s;
 
+        if (smin >= dilate) smin-=dilate;
+        else smin = 0;
+        if (smax <= invol->depth-1-dilate) smax+=dilate;
+        else smax = invol->depth-1; 
+        
         for (s = smin; s <= smax; s++) MRIseq_vox(svol,c,r,s,0) = fillval;
         //printf("%3d %3d  %3d %3d\n",r,s,rmin,rmax);
       }
@@ -246,7 +259,7 @@ int main(int argc, char **argv) {
       }
     }
   }
-
+  
   printf("Growing\n");
   fflush(stdout);
   outvol = MRIfill(mrgvol, NULL, (int)(mrgvol->width/2.0),
@@ -255,14 +268,30 @@ int main(int argc, char **argv) {
 
   printf("Counting\n");
   n = 0;
+  double backnoise = 0.0;
+  int backcount = 0;
+  double backmax = 0.0;
+  double val = 0.0;
   for (c=0; c < invol->width; c++) {
     for (r=0; r < invol->height; r++) {
       for (s=0; s < invol->depth; s++) {
         if (MRIseq_vox(outvol,c,r,s,0)) n++;
+        else
+        {
+          val = MRIgetVoxVal(invol_orig,c,r,s,0);
+          backnoise += val;
+          if (backmax < val) backmax = val;
+          backcount++;
+        }
       }
     }
   }
+  backnoise= backnoise/backcount;
   printf("N Head Voxels = %d\n",n);
+  printf("N Back Voxels = %d\n",backcount);
+  printf("Avg. Back Intensity = %f\n",backnoise);
+  printf("Max. Back Intensity = %f\n",backmax);
+  
   if(hvoldat){
     fp = fopen(hvoldat,"w");
     fprintf(fp,"%lf\n",n*invol->xsize*invol->ysize*invol->zsize);
@@ -345,6 +374,10 @@ static int parse_commandline(int argc, char **argv) {
     } else if (stringmatch(option, "--hvoldat")) {
       if (nargc < 1) argnerr(option,1);
       hvoldat = pargv[0];
+      nargsused = 1;
+    } else if (stringmatch(option, "--dilate")) {
+      if (nargc < 1) argnerr(option,1);
+      sscanf(pargv[0],"%d",&dilate);
       nargsused = 1;
     } else {
       fprintf(stderr,"ERROR: Option %s unknown\n",option);
@@ -432,10 +465,10 @@ static void check_options(void) {
     printf("An input volume path must be supplied\n");
     exit(1);
   }
-  if(outvolid == NULL && hvoldat == NULL) {
+/*  if(outvolid == NULL && hvoldat == NULL) {
     printf("An output volume path must be supplied\n");
     exit(1);
-  }
+  }*/
   if (thresh1 <= 0) {
     printf("Must specify a thresh1 > 0\n");
     exit(1);
@@ -458,6 +491,7 @@ static void dump_options(FILE *fp) {
   fprintf(fp,"threshold2:    %d\n",thresh2);
   fprintf(fp,"nhitsmin:      %d\n",nhitsmin);
   fprintf(fp,"fill value:    %d\n",(int)fillval);
+  if (dilate > 0) fprintf(fp,"dilate    :    %d\n",dilate);
   return;
 }
 /*---------------------------------------------------------------*/
