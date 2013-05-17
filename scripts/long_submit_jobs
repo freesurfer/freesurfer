@@ -9,8 +9,8 @@
 # Original Author: Martin Reuter
 # CVS Revision Info:
 #    $Author: mreuter $
-#    $Date: 2013/02/11 19:32:18 $
-#    $Revision: 1.4.2.9 $
+#    $Date: 2013/05/17 15:13:47 $
+#    $Revision: 1.4.2.10 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -280,7 +280,7 @@ def options_parse():
     Command Line Options Parser for long_mris_slopes
     initiate the option parser and return the parsed object
     """
-    parser = optparse.OptionParser(version='$Id: long_submit_jobs,v 1.4.2.9 2013/02/11 19:32:18 mreuter Exp $', usage=HELPTEXT)
+    parser = optparse.OptionParser(version='$Id: long_submit_jobs,v 1.4.2.10 2013/05/17 15:13:47 mreuter Exp $', usage=HELPTEXT)
     
     # help text
     h_qdec      = '(REQUIRED) qdec table file specifying the subjects and time points'
@@ -710,7 +710,7 @@ def run_base(qdectable,options):
             f = open(cmdf, 'w')
             f.write(cmd+"\n")
             f.close()
-            os.chmod(cmdf,stat.S_IRWXU)
+            os.chmod(cmdf,stat.S_IRWXU | stat.S_IRWXG)
         if not options.simulate:
             wait_jobs(options.max)
             submit(cmdf,nodes,mem,options.queue)
@@ -910,7 +910,7 @@ def run_long(qdectable,options):
                 f = open(cmdf, 'w')
                 f.write(cmd+"\n")
                 f.close()
-                os.chmod(cmdf,stat.S_IRWXU)
+                os.chmod(cmdf,stat.S_IRWXU | stat.S_IRWXG)
             if not options.simulate:
                 wait_jobs(options.max)
                 submit(cmdf,1,7,options.queue)
