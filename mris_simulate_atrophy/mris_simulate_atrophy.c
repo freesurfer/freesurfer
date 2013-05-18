@@ -10,8 +10,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2013/05/16 23:26:25 $
- *    $Revision: 1.2 $
+ *    $Date: 2013/05/18 21:16:30 $
+ *    $Revision: 1.3 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -52,7 +52,7 @@
 #define SUBCORT_GM_VAL 4
 
 static MRI *MRISsimulateAtrophy(MRI *mri_norm, MRI *mri_unpv_intensities, MRI  *mri_wm, MRI *mri_subcort_gm, MRI *mri_cortex, MRI *mri_csf,
-				LABEL *area, double atrophy_frac, MRI *mri_norm_atrophy) ;
+				LABEL *area, double atrophy_frac, MRI *mri_norm_atrophy, MRI **pmri_cortex_out, MRI **pmri_csf_out) ;
 static void patch_csf_vol(MRI *mri_vfrac_wm, MRI *mri_vfrac_cortex, MRI *mri_vfrac_subcort,  MRI *mri_vfrac_csf) ;
 MRI *add_aseg_structures_outside_ribbon(MRI *mri_src, MRI *mri_aseg, MRI *mri_dst,
                                        int wm_val, int gm_val, int csf_val) ;
@@ -82,6 +82,14 @@ static char *pial_name = "pial" ;
 static char *aseg_name = "aseg.mgz" ;
 static float resolution = .5 ;
 
+static float noise_min = -1 ;
+static float noise_max = 0 ;
+static float noise_step = 0 ;
+
+static float atrophy_min = -1 ;
+static float atrophy_max = 0 ;
+static float atrophy_step = 0 ;
+
 static int whalf = 1 ;
 static double sigma = 1 ;
 
@@ -92,17 +100,18 @@ main(int argc, char *argv[])
   int          ac, nargs, msec, minutes, seconds, nvox ;
   struct timeb start ;
   MRI         *mri_norm, *mri_norm_atrophy, *mri_noise, *mri_pial, *mri_seg, *mri_aseg, *mri_cortex,*mri_wm,
-    *mri_csf, *mri_subcort_gm, *mri_ribbon, *mri_unpv_intensities, *mri_no_atrophy, *mri_tmp ;
+    *mri_csf, *mri_subcort_gm, *mri_ribbon, *mri_unpv_intensities, *mri_tmp, *mri_noisy_atrophy, *mri_cortex_atrophy, *mri_csf_atrophy ;
   LABEL       *area ;
   float        atrophy_frac ;
   MRI_SURFACE  *mris_white_lh, *mris_pial_lh, *mris_white_rh, *mris_pial_rh ;
   MATRIX       *m_vox2vox ;
+  char         extension[STRLEN] ;
 
   /* rkt: check for and handle version tag */
   nargs = 
     handle_version_option
     (argc, argv,
-     "$Id: mris_simulate_atrophy.c,v 1.2 2013/05/16 23:26:25 fischl Exp $",
+     "$Id: mris_simulate_atrophy.c,v 1.3 2013/05/18 21:16:30 fischl Exp $",
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -148,6 +157,8 @@ main(int argc, char *argv[])
     atrophy_frac /= 100 ; // assume it was specified in pct
   }
   out_fname = argv[5] ;
+  FileNameExtension(out_fname, extension) ;
+  FileNameRemoveExtension(out_fname, out_fname) ;
 
   sprintf(fname, "%s/%s/mri/%s", sdir, subject, T1_name) ;
   mri_norm = MRIread(fname) ;
@@ -185,10 +196,14 @@ main(int argc, char *argv[])
   else
     LabelToCurrent(area, mris_pial_lh) ;
 
-  mri_noise = MRIrandn(mri_norm->width, mri_norm->height, mri_norm->depth,1,
-                       0, noise_sigma, NULL) ;
-  MRImaskZero(mri_noise, mri_norm, mri_noise) ;
-
+  if (noise_min < 0)  // only one step
+  {
+    noise_min = noise_max = noise_sigma ; noise_step = 1 ;
+  }
+  if (atrophy_min < 0)  // only one step
+  {
+    atrophy_min = atrophy_max = atrophy_frac ; atrophy_step = 1 ;
+  }
 
   nvox = (int)ceil(mri_norm->width/resolution); 
   mri_pial = MRIalloc(nvox, nvox, nvox, MRI_UCHAR) ;
@@ -240,31 +255,57 @@ main(int argc, char *argv[])
   printf("computing partial volume fractions...\n") ;
   MRIcomputePartialVolumeFractions(mri_norm, m_vox2vox, mri_seg, mri_wm, mri_subcort_gm, mri_cortex, mri_csf,
 				   WM_VAL, SUBCORT_GM_VAL, GM_VAL, 0) ;
-  MRIwrite(mri_wm, "wm.mgz") ;
-  MRIwrite(mri_csf, "csf.mgz") ;
-  MRIwrite(mri_cortex, "cortex.mgz") ;
-  MRIwrite(mri_subcort_gm, "gm.mgz") ;
+  if (Gdiag & DIAG_WRITE)
+  {
+    printf("writing volume fractions...\n") ;
+    MRIwrite(mri_wm, "wm.vfrac.mgz") ;
+    MRIwrite(mri_csf, "csf.vfrac.mgz") ;
+    MRIwrite(mri_cortex, "cortex.vfrac.mgz") ;
+    MRIwrite(mri_subcort_gm, "gm.vfrac.mgz") ;
+  }
   patch_csf_vol(mri_wm, mri_cortex, mri_subcort_gm,  mri_csf) ;
   mri_unpv_intensities =   
     compute_unpartial_volumed_intensities(mri_norm, mri_wm,  mri_cortex, mri_subcort_gm, 
 					  mri_csf, whalf,  sigma, NULL, 1) ;
-  MRIwrite(mri_unpv_intensities, "pvi.mgz") ;
+  if (Gdiag & DIAG_WRITE)
+    MRIwrite(mri_unpv_intensities, "pvi.mgz") ;
 
-  mri_no_atrophy =  MRISsimulateAtrophy(mri_norm, mri_unpv_intensities, mri_wm, mri_subcort_gm, mri_cortex, mri_csf,
-					area, 0, NULL) ;   // no atrophy
-  MRIadd(mri_noise, mri_no_atrophy, mri_no_atrophy) ;
-  mri_norm_atrophy =  MRISsimulateAtrophy(mri_norm, mri_unpv_intensities, mri_wm, mri_subcort_gm, mri_cortex, mri_csf,
-					  area, atrophy_frac, NULL) ;
-  printf("writing simulated atrophy image to %s\n", out_fname) ;
-  MRIadd(mri_noise, mri_norm_atrophy, mri_norm_atrophy) ;
-  MRIwrite(mri_norm_atrophy, out_fname) ;
+  for (atrophy_frac = atrophy_min ; atrophy_frac <= atrophy_max ; atrophy_frac += atrophy_step)
   {
-    char extension[STRLEN], fname2[STRLEN] ;
-    FileNameExtension(out_fname, extension) ;
-    FileNameRemoveExtension(out_fname, out_fname) ;
-    sprintf(fname2, "%s.synth.%s", out_fname, extension) ;
-    printf("writing synthesized volume with no atrophy to %s\n", fname2) ;
-    MRIwrite(mri_no_atrophy, fname2) ;
+    mri_norm_atrophy =  MRISsimulateAtrophy(mri_norm, mri_unpv_intensities, mri_wm, mri_subcort_gm, mri_cortex, mri_csf,
+					    area, atrophy_frac, NULL, &mri_cortex_atrophy, &mri_csf_atrophy) ;
+    
+    sprintf(fname, "%s.gm.atrophy%2.1f.%s", out_fname, atrophy_frac, extension) ;
+    printf("writing atrophic gm vfracs to %s\n", fname) ;
+    MRIwrite(mri_cortex_atrophy, fname) ;
+    sprintf(fname, "%s.csf.atrophy%2.1f.%s", out_fname, atrophy_frac, extension) ;
+    printf("writing atrophic csf vfracs to %s\n", fname) ;
+    MRIwrite(mri_csf_atrophy, fname) ;
+    sprintf(fname, "%s.atrophy.0.0.noise.0.0.%s", out_fname, extension) ;
+    printf("writing simulated atrophy with noise sigma = 0 image to %s\n", fname) ;
+    MRIwrite(mri_norm_atrophy, fname) ;
+
+    for (mri_noisy_atrophy = NULL, noise_sigma = noise_min ; noise_sigma <= noise_max ; noise_sigma += noise_step)
+    {
+      mri_noise = MRIrandn(mri_norm->width, mri_norm->height, mri_norm->depth, 1, 0, noise_sigma, NULL) ;
+      MRImaskZero(mri_noise, mri_norm, mri_noise) ;
+      mri_noisy_atrophy = MRIadd(mri_noise, mri_norm_atrophy, mri_noisy_atrophy) ;
+      MRIfree(&mri_noise) ;
+      
+      sprintf(fname, "%s.atrophy.%2.2f.noise.%2.1f.%s", out_fname, atrophy_frac, noise_sigma, extension) ;
+      printf("writing simulated atrophy (%2.2f) with noise sigma = %2.1f image to %s\n", atrophy_frac, noise_sigma, fname) ;
+      MRIwrite(mri_noisy_atrophy, fname) ;
+    }
+#if 0
+    {
+      char extension[STRLEN], fname2[STRLEN] ;
+      FileNameExtension(out_fname, extension) ;
+      FileNameRemoveExtension(out_fname, out_fname) ;
+      sprintf(fname2, "%s.synth.%s", out_fname, extension) ;
+      printf("writing synthesized volume with no atrophy to %s\n", fname2) ;
+      MRIwrite(mri_no_atrophy, fname2) ;
+    }
+#endif
   }
   msec = TimerStop(&start) ;
   seconds = nint((float)msec/1000.0f) ;
@@ -297,6 +338,28 @@ static int get_option(int argc, char *argv[])
   {
     sdir = argv[2] ;
     printf("using %s as SUBJECTS_DIR\n", sdir) ;
+    nargs = 1 ;
+  }
+  else if (!stricmp(option, "nrange") || !stricmp(option, "noise_range"))
+  {
+    if (sscanf(argv[2], "%f:%f:%f", &noise_min, &noise_step, &noise_max) != 3)
+      ErrorExit(ERROR_BADPARM, "%s: couldn't parse min:step:max from '%s'", Progname, argv[2]) ;
+    printf("stepping through noise values from %2.1f to %2.1f in steps of %2.2f\n", 
+	   noise_min, noise_max, noise_step) ;
+    nargs = 1 ;
+  }
+  else if (!stricmp(option, "arange") || !stricmp(option, "atrophy_range"))
+  {
+    if (sscanf(argv[2], "%f:%f:%f", &atrophy_min, &atrophy_step, &atrophy_max) != 3)
+      ErrorExit(ERROR_BADPARM, "%s: couldn't parse min:step:max from '%s'", Progname, argv[2]) ;
+    printf("stepping through atrophy values from %2.1f to %2.1f in steps of %2.2f\n", 
+	   atrophy_min, atrophy_max, atrophy_step) ;
+    nargs = 1 ;
+  }
+  else if (!stricmp(option, "T1") || !stricmp(option, "input"))
+  {
+    T1_name = argv[2] ;
+    printf("using %s as input volume\n", T1_name) ;
     nargs = 1 ;
   }
   else switch (toupper(*option))
@@ -769,12 +832,16 @@ compute_unpartial_volumed_intensities(MRI *mri_src, MRI *mri_vfrac_wm, MRI *mri_
 }
 static MRI *
 MRISsimulateAtrophy(MRI *mri_norm, MRI *mri_unpv_intensities, MRI  *mri_wm, MRI *mri_subcort_gm, MRI *mri_cortex, MRI *mri_csf,
-		    LABEL *area, double atrophy_frac, MRI *mri_norm_atrophy) 
+		    LABEL *area, double atrophy_frac, MRI *mri_norm_atrophy, MRI **pmri_cortex_out, MRI **pmri_csf_out) 
 {
-  MRI *mri_filled ;
+  MRI *mri_filled, *mri_csf_out, *mri_cortex_out, *mri_unpv_intensities_out ;
   int x, y, z, n, xi, yi, zi, xk, yk, zk, xv, yv, zv ;
-  float gm_frac, csf_frac, wm_frac, wm_intensity, gm_intensity, csf_intensity, out_val, gm_reduced ;
+  float gm_frac, csf_frac, wm_frac, wm_intensity, gm_intensity, csf_intensity, out_val, gm_reduced, max_csf ;
   LABEL  *lvox ;
+
+  mri_unpv_intensities_out = MRIcopy(mri_unpv_intensities, NULL) ;
+  mri_csf_out = MRIcopy(mri_csf, NULL) ;
+  mri_cortex_out = MRIcopy(mri_cortex, NULL) ;
 
   mri_norm_atrophy = MRIcopy(mri_norm, mri_norm_atrophy) ;
   mri_filled = MRIclone(mri_norm, NULL) ;
@@ -790,24 +857,22 @@ MRISsimulateAtrophy(MRI *mri_norm, MRI *mri_unpv_intensities, MRI  *mri_wm, MRI 
 	  xi = mri_norm->xi[xv+xk] ;  yi = mri_norm->yi[yv+yk] ;  zi = mri_norm->zi[zv+zk] ;
 	  if (MRIgetVoxVal(mri_filled, xi, yi, zi, 0)) // already added atrophy here
 	    continue ;
+	  if (xi == Gx && yi == Gy && zi == Gz)
+	    DiagBreak() ;
 	  csf_frac = MRIgetVoxVal(mri_csf, xi, yi, zi, 0) ;
 	  gm_frac = MRIgetVoxVal(mri_cortex, xi, yi, zi, 0) ;
-	  gm_reduced = atrophy_frac * gm_frac ;
-	  if (!FZERO(csf_frac) && gm_frac > 0)  // can only simulate in voxels where there is some of each
+	  if (csf_frac > 0)
+	    max_csf = 1.0 ;
+	  else
+	    max_csf = MRImaxInNbhd6Connected(mri_csf,  xi,  yi, zi, 0) ;
+	  if (max_csf > 0 && gm_frac > 0)  // can only simulate in voxels where there is some of each
 	  {
+	    gm_reduced = atrophy_frac * gm_frac * max_csf ;
+	    if (xi == Gx && yi == Gy && zi == Gz)
+	      DiagBreak() ;
 	    gm_frac -= gm_reduced ; csf_frac += gm_reduced ;
-	    MRIsetVoxVal(mri_csf, xi, yi, zi, 0, csf_frac) ;
-	    MRIsetVoxVal(mri_cortex, xi, yi, zi, 0, gm_frac) ;
-	    MRIsetVoxVal(mri_filled, xi, yi, zi, 0, 1) ;
-	  }
-	  else if (FEQUAL(csf_frac, 0) && MRIneighborsOn(mri_csf, xi, yi, zi, .01))
-	  {
-	    // this voxel is all gm, but is adjacent to a voxel with some
-	    csf_intensity = MRImeanNonzeroInNbhd(mri_unpv_intensities, 3, xi, yi, zi, 2) ;
-	    MRIsetVoxVal(mri_unpv_intensities, xi, yi, zi, 2, csf_intensity) ;
-	    gm_frac -= gm_reduced ; csf_frac += gm_reduced ;
-	    MRIsetVoxVal(mri_csf, xi, yi, zi, 0, csf_frac) ;
-	    MRIsetVoxVal(mri_cortex, xi, yi, zi, 0, gm_frac) ;
+	    MRIsetVoxVal(mri_csf_out, xi, yi, zi, 0, csf_frac) ;
+	    MRIsetVoxVal(mri_cortex_out, xi, yi, zi, 0, gm_frac) ;
 	    MRIsetVoxVal(mri_filled, xi, yi, zi, 0, 1) ;
 	  }
 	}
@@ -821,20 +886,32 @@ MRISsimulateAtrophy(MRI *mri_norm, MRI *mri_unpv_intensities, MRI  *mri_wm, MRI 
 	if (x == Gx && y == Gy && z == Gz)
 	  DiagBreak() ;
 	wm_frac = MRIgetVoxVal(mri_wm, x, y, z, 0) ;
-	csf_frac = MRIgetVoxVal(mri_csf, x, y, z, 0) ;
-	gm_frac = MRIgetVoxVal(mri_cortex, x, y, z, 0) ;
+	csf_frac = MRIgetVoxVal(mri_csf_out, x, y, z, 0) ;
+	gm_frac = MRIgetVoxVal(mri_cortex_out, x, y, z, 0) ;
 	gm_frac += MRIgetVoxVal(mri_subcort_gm, x, y, z, 0) ;
 
+#if 0
 	if (FEQUAL(csf_frac,1))   // retain contralateral hemi
 	  continue ;
-	wm_intensity = MRIgetVoxVal(mri_unpv_intensities, x, y, z, 0) ;
-	gm_intensity = MRIgetVoxVal(mri_unpv_intensities, x, y, z, 1) ;
-	csf_intensity = MRIgetVoxVal(mri_unpv_intensities, x, y, z, 2) ;
+#endif
+	wm_intensity = MRIgetVoxVal(mri_unpv_intensities_out, x, y, z, 0) ;
+	gm_intensity = MRIgetVoxVal(mri_unpv_intensities_out, x, y, z, 1) ;
+	csf_intensity = MRIgetVoxVal(mri_unpv_intensities_out, x, y, z, 2) ;
 	out_val = wm_frac * wm_intensity + gm_frac * gm_intensity + csf_frac*csf_intensity ;
 	MRIsetVoxVal(mri_norm_atrophy, x, y, z, 0, out_val) ;
       }
 
-  MRIfree(&mri_filled) ;
+  MRIfree(&mri_filled) ; 
+  // these are copies of those supplied by the caller - not the original volumes (alloced at start)
+  MRIfree(&mri_unpv_intensities_out) ; 
+  if (pmri_csf_out)
+    *pmri_csf_out = mri_csf_out ; 
+  else
+    MRIfree(&mri_csf_out) ; 
+  if (pmri_cortex_out)
+    *pmri_cortex_out = mri_cortex_out ;
+  else
+    MRIfree(&mri_cortex_out) ;
   return(mri_norm_atrophy) ;
 }
 
