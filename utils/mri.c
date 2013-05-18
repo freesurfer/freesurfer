@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2013/05/16 19:38:22 $
- *    $Revision: 1.523 $
+ *    $Date: 2013/05/18 21:17:21 $
+ *    $Revision: 1.524 $
  *
  * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -23,7 +23,7 @@
  */
 
 extern const char* Progname;
-const char *MRI_C_VERSION = "$Revision: 1.523 $";
+const char *MRI_C_VERSION = "$Revision: 1.524 $";
 
 
 /*-----------------------------------------------------
@@ -14239,6 +14239,57 @@ MRIfindNearestNonzero(MRI *mri,
     return(0) ;
   return(min_val) ;
 }
+int
+MRImaxInNbhd6Connected(MRI *mri, int x, int y, int z, int frame)
+{
+  int   xk, yk, zk, xi, yi, zi ;
+  double max_val,val ;
+
+  for (max_val = -1e10, zk = -1 ; zk <= 1 ; zk++)
+  {
+    zi = mri->zi[z+zk] ;
+    for (yk = -1 ; yk <= 1 ; yk++)
+    {
+      yi = mri->yi[y+yk] ;
+      for (xk = -1 ; xk <= 1 ; xk++)
+      {
+	if (fabs(xk) + fabs(yk) + fabs(zk) != 1)
+	  continue ;
+        xi = mri->xi[x+xk] ;
+	val = MRIgetVoxVal(mri, xi, yi, zi,frame) ;
+        if (val > max_val)
+	  max_val = val ;
+      }
+    }
+  }
+  return(max_val) ;
+}
+
+int
+MRImaxInNbhd(MRI *mri, int wsize, int x, int y, int z, int frame)
+{
+  int   xk, yk, zk, xi, yi, zi, whalf ;
+  double max_val,val ;
+
+  whalf = (wsize-1)/2 ;
+  for (max_val = -1e10, zk = -whalf ; zk <= whalf ; zk++)
+  {
+    zi = mri->zi[z+zk] ;
+    for (yk = -whalf ; yk <= whalf ; yk++)
+    {
+      yi = mri->yi[y+yk] ;
+      for (xk = -whalf ; xk <= whalf ; xk++)
+      {
+        xi = mri->xi[x+xk] ;
+	val = MRIgetVoxVal(mri, xi, yi, zi,frame) ;
+        if (val > max_val)
+	  max_val = val ;
+      }
+    }
+  }
+  return(max_val) ;
+}
+
 int
 MRImeanNonzeroInNbhd(MRI *mri, int wsize, int x, int y, int z, int frame)
 {
