@@ -18,7 +18,8 @@ AM_CXXFLAGS=-I$(top_srcdir)/include \
 AM_LDFLAGS=$(OS_LDFLAGS)
 
 bin_PROGRAMS = dmri_spline dmri_trk2trk dmri_vox2vox \
-               dmri_train dmri_paths dmri_pathstats dmri_mergepaths
+               dmri_train dmri_paths dmri_pathstats dmri_mergepaths \
+               dmri_forrest
 
 dmri_spline_SOURCES=dmri_spline.cxx spline.cxx spline.h
 dmri_spline_LDADD= $(addprefix $(top_builddir)/, $(LIBS_MGH))
@@ -64,6 +65,10 @@ dmri_pathstats_LDFLAGS=$(OS_LDFLAGS)
 dmri_mergepaths_SOURCES=dmri_mergepaths.cxx
 dmri_mergepaths_LDADD= $(addprefix $(top_builddir)/, $(LIBS_MGH))
 dmri_mergepaths_LDFLAGS=$(OS_LDFLAGS)
+
+dmri_forrest_SOURCES=dmri_forrest.cxx forrest.cxx forrest.h
+dmri_forrest_LDADD= $(addprefix $(top_builddir)/, $(LIBS_MGH))
+dmri_forrest_LDFLAGS=$(OS_LDFLAGS)
 
 # endif HAVE_ITK_LIBS, HAVE_PETSC_LIBS, HAVE_BOOST_LIBS
 endif
