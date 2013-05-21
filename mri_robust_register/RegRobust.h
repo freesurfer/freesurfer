@@ -8,8 +8,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2012/12/06 21:53:33 $
- *    $Revision: 1.3 $
+ *    $Date: 2013/05/21 18:04:11 $
+ *    $Revision: 1.4 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -31,6 +31,7 @@
 #define RegRobust_H
 
 #include "Registration.h"
+#include <vcl_iostream.h>
 
 // forward declaration
 template<class T> class RegistrationStep;
@@ -144,7 +145,8 @@ void RegRobust::iterativeRegistrationHelper(int nmax, double epsit, MRI * mriS,
   {
     std::cout << "   - initial iscale: " << iscalefinal << std::endl;
     std::cout << "   - initial transform:\n";
-    std::cout << fmd.first << std::endl;
+    vnl_matlab_print(vcl_cout,fmd.first,"Minit",vnl_matlab_print_format_long);
+    std::cout << std::endl;
   }
 
   //std::cout << "mris width " << mriS->width << std::endl;
@@ -209,7 +211,14 @@ void RegRobust::iterativeRegistrationHelper(int nmax, double epsit, MRI * mriS,
 
     // store M and d
     if (verbose > 1)
-      std::cout << "   - store transform" << std::endl;
+    {
+      std::cout << "   - recieved matrix update " << std::endl;
+      vnl_matlab_print(vcl_cout,cmd.first,"Mupdate",vnl_matlab_print_format_long);
+      std::cout << std::endl;
+      std::cout << "   - store old transform" << std::endl;
+      vnl_matlab_print(vcl_cout,fmd.first,"Mold",vnl_matlab_print_format_long);
+      std::cout <<  std::endl;
+    }
     vnl_matrix_fixed<double, 4, 4> fmdtmp(fmd.first);
     if (symmetry)
     {
@@ -219,6 +228,12 @@ void RegRobust::iterativeRegistrationHelper(int nmax, double epsit, MRI * mriS,
     }
     else
       fmd.first = cmd.first * fmd.first; // was '* mh' which should be the same
+    if (verbose > 1)
+    {
+      std::cout << "   - updated full transform" << std::endl;
+      vnl_matlab_print(vcl_cout,fmd.first,"Mnew",vnl_matlab_print_format_long);
+      std::cout <<  std::endl;
+    }
 
     // ISCALECHANGE:
     if (iscale)
