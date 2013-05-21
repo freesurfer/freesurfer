@@ -14,8 +14,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2012/12/06 21:53:33 $
- *    $Revision: 1.48 $
+ *    $Date: 2013/05/21 18:03:15 $
+ *    $Revision: 1.49 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -989,12 +989,16 @@ bool MultiRegistration::initialXforms(int tpi, bool fixtp, int maxres,
     Md[i].second = R.getFinalIscale();
     converged[i] = R.getConverged();
 
-    // get centroid of tpi (target of the registration)
-    // only do this once (when i==1) is enough
     // the centroid is the voxel coord where the moment based centroid is located
     vnl_vector_fixed<double, 4> centroid_temp(R.getCentroidSinT());
+    // add centroid of tpi (target of the registration)
+    // only do this once (when i==1) is enough
     if (i == 1)
+    {
       centroid_temp += R.getCentroidT();
+      vnl_matlab_print(vcl_cout,R.getCentroidT(),"CentroidT",vnl_matlab_print_format_long);std::cout << std::endl;
+    }
+    vnl_matlab_print(vcl_cout,R.getCentroidSinT(),"CentroidSinT",vnl_matlab_print_format_long);std::cout << std::endl;
 #ifdef HAVE_OPENMP
 #pragma omp critical
 #endif  
@@ -1004,6 +1008,7 @@ bool MultiRegistration::initialXforms(int tpi, bool fixtp, int maxres,
   } // end for loop (initial registration to inittp)
 
   centroid = (1.0 / nin) * centroid;
+  vnl_matlab_print(vcl_cout,centroid,"Centroid",vnl_matlab_print_format_long);std::cout << std::endl;
 
   for (int i = 1; i < nin; i++)
   {
@@ -1022,6 +1027,7 @@ bool MultiRegistration::initialXforms(int tpi, bool fixtp, int maxres,
     assert(ltas[j] == NULL);
     ltas[j] = MyMatrix::VOXmatrix2LTA(Md[i].first, mri_mov[j], mri_mov[tpi]); // use geometry of tpi
     intensities[j] = Md[i].second;
+    //LTAwrite(ltas[j],(mov[i]+"-temp.lta").c_str());
 
     if (debug && fixtp)
     {
@@ -1049,7 +1055,7 @@ bool MultiRegistration::initialXforms(int tpi, bool fixtp, int maxres,
 
   }
 
-  if (fixtp) // we are done, as we maped to this (itp) TP
+  if (fixtp) // we are done, as we mapped to this (itp) TP
   {
     return true;
   }
@@ -1082,20 +1088,21 @@ bool MultiRegistration::initialXforms(int tpi, bool fixtp, int maxres,
     cout << "   wrt to TP " << tpi + 1 << " ( " << mov[tpi] << " )" << endl;
     mras[i] = MyMRI::MRIvoxelXformToRasXform(mri_mov[j], mri_mov[tpi],
         Md[i].first);
-    //cout << " mras[" << i << "]: " << endl << mras[i] << endl;
+    //vnl_matlab_print(vcl_cout,mras[i],"mras",vnl_matlab_print_format_long);std::cout << std::endl;
 
     // split into rotation translation
     MyMatrix::getRTfromM(mras[i], rot, trans);
-    //cout << " trans: " << endl << trans << endl;
-    //cout << " rot  : " << endl << rot << endl;
+    //vnl_matlab_print(vcl_cout,trans,"trans",vnl_matlab_print_format_long);std::cout << std::endl;
+    //vnl_matlab_print(vcl_cout,rot,"rot",vnl_matlab_print_format_long);std::cout << std::endl;
 
     // reverse order (first translate, then rotate)
     // rot stays, trans changes: Rx+t = R (x + R^{-1} t)
     roti = rot.transpose(); // inverse
-    //cout << " roti: " << endl << roti << endl;
+    //vnl_matlab_print(vcl_cout,roti,"roti",vnl_matlab_print_format_long);std::cout << std::endl;
 
     trans = roti * trans;
-    //cout << " transi: - " << endl << trans << endl;
+    //cout << " transi: - " << endl ;
+    //vnl_matlab_print(vcl_cout,trans,"transi",vnl_matlab_print_format_long);std::cout << std::endl;
 
 //     if (P.debug) // output transonly
 //     {
@@ -1116,19 +1123,17 @@ bool MultiRegistration::initialXforms(int tpi, bool fixtp, int maxres,
 
   //average
   meant = (1.0 / nin) * meant;
-//vnl_matlab_print(vcl_cout,meant,"meant",vnl_matlab_print_format_long);std::cout << std::endl;
-  //cout << "meant: "<< endl << meant << endl;
+  //vnl_matlab_print(vcl_cout,meant,"meant",vnl_matlab_print_format_long);std::cout << std::endl;  
 
 //  meanr = MyMatrix::GeometricMean(rotinv,nin);
   // Project meanr back to SO(3) via polar decomposition:  
   meanr = (1.0 / nin) * meanr;
-//vnl_matlab_print(vcl_cout,meanr,"meanr",vnl_matlab_print_format_long);std::cout << std::endl;
+  //vnl_matlab_print(vcl_cout,meanr,"meanr",vnl_matlab_print_format_long);std::cout << std::endl;
   vnl_matrix<double> PolR(3, 3), PolS(3, 3);
   MyMatrix::PolarDecomposition(meanr, PolR, PolS);
   meanr = PolR;
-//vnl_matlab_print(vcl_cout,meanr,"meanr2",vnl_matlab_print_format_long);std::cout << std::endl;
+  //vnl_matlab_print(vcl_cout,meanr,"meanrpol",vnl_matlab_print_format_long);std::cout << std::endl;
 
-//   //cout << "meanr: " << endl << meanr << endl;  
 //   // project meanr back to SO(3) (using polar decomposition)
 //   vnl_svd < double > svd_decomp(meanr);
 //   if ( svd_decomp.valid() )
@@ -1150,26 +1155,50 @@ bool MultiRegistration::initialXforms(int tpi, bool fixtp, int maxres,
 //   }
   vnl_matrix_fixed<double, 4, 4> Mm(MyMatrix::getMfromRT(meanr, meant));
 
-  // construct target geometry for the mean space by centering
-  // at the mean of all tp centroids mapped to the mean space
+  // construct target geometry for the mean space 
   // (the mean space may be outside any of the input RAS geometries)
   // copy initial geometry from TPI (keep directions/rotation)
   MRI * template_geo = MRIclone(mri_mov[tpi], NULL);
-  // map average centroid from TPI vox space to mean RAS space:
-  MATRIX * mv2r_temp = MRIgetVoxelToRasXform(mri_mov[tpi]);
-  vnl_matrix_fixed<double, 4, 4> tpi_v2r(
-      MyMatrix::convertMATRIX2VNL(mv2r_temp));
-  MatrixFree(&mv2r_temp);
-  vnl_vector_fixed<double, 4> ncenter = centroid;
-  //cout << "ncenter: " << ncenter << endl;
-  // map to RAS:
-  ncenter = tpi_v2r * ncenter;
-  //cout << "ncenter RAS: " << ncenter << endl;
-  // map to mean space
-  ncenter = Mm * ncenter;
-  //cout << "ncenter mean: " << ncenter << endl;
+  vnl_vector_fixed<double, 4> ncenter(0.0);
+
+  // determine center
+  if ( crascenter ) 
+  {
+    // use the average cras coords of the input images
+    for (int i = 0; i < nin; i++)
+    {
+      ncenter[0] += mri_mov[i]->c_r;
+      ncenter[1] += mri_mov[i]->c_a;
+      ncenter[2] += mri_mov[i]->c_s;
+    }
+    ncenter[0] /= (double)nin;
+    ncenter[1] /= (double)nin;
+    ncenter[2] /= (double)nin;
+    ncenter[3] = 1.0;    
+  }
+  else //default
+  {
+    // center at the mean of all tp centroids mapped to the mean space
+    // map average centroid from TPI vox space to mean RAS space:
+    MATRIX * mv2r_temp = MRIgetVoxelToRasXform(mri_mov[tpi]);
+    vnl_matrix_fixed<double, 4, 4> tpi_v2r(
+        MyMatrix::convertMATRIX2VNL(mv2r_temp));
+    MatrixFree(&mv2r_temp);
+    //vnl_matlab_print(vcl_cout,tpi_v2r,"tpiv2r",vnl_matlab_print_format_long);std::cout << std::endl;
+  
+    ncenter = centroid;
+    //vnl_matlab_print(vcl_cout,centroid,"centroid",vnl_matlab_print_format_long);std::cout << std::endl;
+
+    // map to RAS:
+    ncenter = tpi_v2r * ncenter;
+    //vnl_matlab_print(vcl_cout,ncenter,"centroidras",vnl_matlab_print_format_long);std::cout << std::endl;
+  
+    // map to mean space
+    ncenter = Mm * ncenter;
+    //vnl_matlab_print(vcl_cout,ncenter,"centroidmeanras",vnl_matlab_print_format_long);std::cout << std::endl;
+  }
+  
   // set new center in geometry
-//vnl_matlab_print(vcl_cout,ncenter,"ncenter",vnl_matlab_print_format_long);std::cout << std::endl;
   template_geo->c_r = ncenter[0];
   template_geo->c_a = ncenter[1];
   template_geo->c_s = ncenter[2];
@@ -1219,6 +1248,7 @@ bool MultiRegistration::initialXforms(int tpi, bool fixtp, int maxres,
     if (ltas[j] != NULL)
       LTAfree(&ltas[j]);
     ltas[j] = MyMatrix::RASmatrix2LTA(M, mri_mov[j], template_geo); // use geometry of template_geo
+    //LTAwrite(ltas[j],(mov[i]+"-temp2.lta").c_str());  
     LTAchangeType(ltas[j], LINEAR_VOX_TO_VOX);
 
     if (rigid) // map back to Rotation (RAS2RAS->VOX2VOX introduces scaling!)
@@ -1256,6 +1286,7 @@ bool MultiRegistration::initialXforms(int tpi, bool fixtp, int maxres,
 //vnl_matlab_print(vcl_cout,MM,"MM2",vnl_matlab_print_format_long);std::cout << std::endl;
       ltas[j]->xforms[0].m_L = MyMatrix::convertVNL2MATRIX(MM,
           ltas[j]->xforms[0].m_L);
+    //LTAwrite(ltas[j],(mov[i]+"-temp3.lta").c_str());
 
     }
 

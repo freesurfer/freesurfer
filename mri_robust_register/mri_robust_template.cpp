@@ -10,8 +10,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2012/09/21 23:05:17 $
- *    $Revision: 1.47 $
+ *    $Date: 2013/05/21 18:03:15 $
+ *    $Revision: 1.48 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -125,6 +125,7 @@ struct Parameters
   int finalinterp;
   int highit;
   unsigned int seed;
+  bool crascenter;
 };
 
 // Initializations:
@@ -132,13 +133,13 @@ static struct Parameters P =
 { vector<string>(0), "", vector<string>(0), vector<string>(0), vector<string>(
     0), false, false, false, false, false, false, false, 5, -1.0, SAT, vector<
     string>(0), 0, 1, -1, false, false, SSAMPLE, false, false, "", false, true,
-    vector<string>(0), vector<string>(0), SAMPLE_CUBIC_BSPLINE, -1, 0 };
+    vector<string>(0), vector<string>(0), SAMPLE_CUBIC_BSPLINE, -1, 0 , false};
 
 static void printUsage(void);
 static bool parseCommandLine(int argc, char *argv[], Parameters & P);
 
 static char vcid[] =
-    "$Id: mri_robust_template.cpp,v 1.47 2012/09/21 23:05:17 mreuter Exp $";
+    "$Id: mri_robust_template.cpp,v 1.48 2013/05/21 18:03:15 mreuter Exp $";
 char *Progname = NULL;
 
 int getRandomNumber(int start, int end, unsigned int & seed)
@@ -229,7 +230,8 @@ int main(int argc, char *argv[])
     MR.setHighit(P.highit);
     if (P.nweights.size() > 0)
       MR.setBackupWeights(true);
-
+    MR.useCRAS(P.crascenter);
+    
     // init MultiRegistration and load movables
     //int nnin = (int) P.mov.size();
     //assert (P.mov.size() >1);
@@ -720,6 +722,12 @@ static int parseNextCommand(int argc, char *argv[], Parameters & P)
     P.seed = atoi(argv[1]);
     nargs = 1;
     cout << "--seed: Will use random seed " << P.seed << endl;
+  }
+  else if (!strcmp(option, "CRAS"))
+  {
+    P.crascenter = true;
+    nargs = 0;
+    cout << "--cras: Will center template at avgerage CRAS!" << endl;
   }
   else if (!stricmp(option, "HELP") || !stricmp(option, "USAGE")
       || !stricmp(option, "h") || !stricmp(option, "u"))

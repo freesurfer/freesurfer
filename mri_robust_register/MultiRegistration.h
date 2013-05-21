@@ -14,8 +14,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2012/09/21 23:05:15 $
- *    $Revision: 1.20 $
+ *    $Date: 2013/05/21 18:03:15 $
+ *    $Revision: 1.21 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -61,26 +61,23 @@ public:
       outdir("./"), transonly(false), rigid(true), robust(true), sat(4.685), satit(
           false), debug(0), iscale(false), subsamplesize(-1), highit(-1), fixvoxel(
           false), keeptype(false), average(1), doubleprec(false), backupweights(
-          false), sampletype(SAMPLE_CUBIC_BSPLINE), mri_mean(NULL)
+          false), sampletype(SAMPLE_CUBIC_BSPLINE), crascenter(false), mri_mean(NULL)
   {
   }
-  ;
 
   MultiRegistration(const std::vector<std::string> mov) :
       outdir("./"), transonly(false), rigid(true), robust(true), sat(4.685), satit(
           false), debug(0), iscale(false), subsamplesize(-1), highit(-1), fixvoxel(
           false), keeptype(false), average(1), doubleprec(false), backupweights(
-          false), sampletype(SAMPLE_CUBIC_BSPLINE), mri_mean(NULL)
+          false), sampletype(SAMPLE_CUBIC_BSPLINE), crascenter(false), mri_mean(NULL)
   {
     loadMovables(mov);
   }
-  ;
 
   ~MultiRegistration()
   {
     clear();
   }
-  ;
 
   //! Initialize co-registration based on tpi
   bool initialXforms(int tpi, bool fixtp, int regmaxres, int regitmax,
@@ -123,91 +120,90 @@ public:
   {
     outdir = s;
   }
-  ;
+
   //! Restrict to translation only
   void setTransonly(bool r)
   {
     transonly = r;
   }
-  ;
+
   //! Run rigid registration
   void setRigid(bool r)
   {
     rigid = r;
   }
-  ;
+
   //! Toggle robustness
   void setRobust(bool r)
   {
     robust = r;
   }
-  ;
+
   //! Specify saturation for outlier sensitivity
   void setSaturation(double d)
   {
     sat = d;
   }
-  ;
+
   //! Switch on automatic saturation estimation
   void setSatit(bool b)
   {
     satit = b;
   }
-  ;
+
   //! Set debug level
   void setDebug(int d)
   {
     debug = d;
   }
-  ;
+
   //! Toggle global intensity scaling
   void setIscale(bool i)
   {
     iscale = i;
   }
-  ;
+
   //! Toggle fixed voxel???
   void setFixVoxel(bool i)
   {
     fixvoxel = i;
   }
-  ;
+
   //! Specify if we keep input type 
   void setKeepType(bool i)
   {
     keeptype = i;
   }
-  ;
+
   //! Specify method to create average (1 mean, 2 median..)
   void setAverage(int i)
   {
     average = i;
   }
-  ;
+
   //! Specify size to start subsampling
   void setSubsamplesize(int sss)
   {
     subsamplesize = sss;
   }
-  ;
+
   //! Specify iteration number on highest resolution
   void setHighit(int hit)
   {
     highit = hit;
   }
-  ;
+
   //! Specify precision for registration
   void setDoublePrec(bool b)
   {
     doubleprec = b;
   }
-  ;
+
   //! Specify if weights are keept
   void setBackupWeights(bool b)
   {
     backupweights = b;
   }
-  ;
 
   //! Sample type when creating averages
   void setSampleType(int st)
@@ -225,12 +221,18 @@ public:
     }
     sampletype = st;
   }
+  
   //! Get the sample type
   int getSampleType()
   {
     return sampletype;
   }
-  ;
+
+  //! If true: center at average CRAS, else at avg. barycenter
+  void useCRAS(bool b)
+  {
+    crascenter=b;
+  }
 
   //! Maps mov based on ltas (also iscale) and then averages them
   bool mapAndAverageMov(int itdebug);
@@ -274,6 +276,7 @@ private:
   bool doubleprec;
   bool backupweights;
   int sampletype;
+  bool crascenter;
 
   // DATA
   std::vector<MRI*> mri_mov;
