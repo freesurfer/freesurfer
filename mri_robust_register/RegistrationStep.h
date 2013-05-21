@@ -8,8 +8,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2012/12/06 21:53:33 $
- *    $Revision: 1.24 $
+ *    $Date: 2013/05/21 18:00:47 $
+ *    $Revision: 1.25 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -411,7 +411,7 @@ void RegistrationStep<T>::constructAb(MRI *mriS, MRI *mriT, vnl_matrix<T>& A,
   {
     if (verbose > 1)
     {
-      std::cout << "     -- using LONG for indexing ... " << std::flush;
+      std::cout << "     -- using LONG for indexing ... " << std::endl;
       double mu = ((double) ss) * sizeof(long int) / (1024.0 * 1024.0);
       std::cout << "     -- allocating " << mu << "Mb mem for indexing ... "
           << std::flush;
@@ -422,7 +422,7 @@ void RegistrationStep<T>::constructAb(MRI *mriS, MRI *mriT, vnl_matrix<T>& A,
   {
     if (verbose > 1)
     {
-      std::cout << "     -- using INT for indexing ... " << std::flush;
+      std::cout << "     -- using INT for indexing ... " << std::endl;
       double mu = ((double) ss) * sizeof(int) / (1024.0 * 1024.0);
       std::cout << "     -- allocating " << mu << "Mb mem for indexing ... "
           << std::flush;
