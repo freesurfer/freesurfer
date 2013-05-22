@@ -1,6 +1,6 @@
 #!/bin/tcsh -f
 
-set ID='$Id: create_targz.csh,v 1.33 2013/01/21 16:31:49 nicks Exp $'
+set ID='$Id: create_targz.csh,v 1.34 2013/05/22 22:04:42 nicks Exp $'
 
 unsetenv echo
 if ($?SET_ECHO_1) set echo=1
@@ -19,6 +19,15 @@ if ("$OSTYPE" == "Darwin") setenv OSTYPE Darwin
 
 setenv SPACE_FS /space/freesurfer
 setenv LOCAL_FS /usr/local/freesurfer
+# if /space/freesurfer is down, or if there is a need to install
+# outside of /usr/local/freesurfer, 
+# then these can override
+if ($?USE_SPACE_FS) then
+  setenv SPACE_FS $USE_SPACE_FS
+endif
+if ($?USE_LOCAL_FS) then
+  setenv LOCAL_FS $USE_LOCAL_FS
+endif
 # if /space/freesurfer is down, or if there is a need to run
 # the build scripts outside of /usr/local/freesurfer, then 
 # the var USE_SPACE_MINERVA can be set
@@ -53,6 +62,11 @@ else if ("$PLATFORM" == "leopard-ppc") then
         exit 1
     endif
 else if ("$PLATFORM" == "snow_leopard") then
+    if ("${HOSTNAME}" != "sleet" ) then
+        echo "must run on machine sleet"
+        exit 1
+    endif
+else if ("$PLATFORM" == "snowleopard-i686") then
     if ("${HOSTNAME}" != "sleet" ) then
         echo "must run on machine sleet"
         exit 1
@@ -142,6 +156,9 @@ if (-e /Users/Shared/tmp/$RELEASE_TYPE) rm -Rf /Users/Shared/tmp/$RELEASE_TYPE
 # cleanup useless link
 cd ${LOCAL_FS}
 if (-e freesurfer) rm freesurfer
+
+# check contents of tar file
+#${SPACE_FS}/build/scripts/check_manifest.sh ${SPACE_FS}/build/pub-releases/$TARNAME.gz ${SPACE_FS}/build/scripts/manifest/${TARNAME}.gz.manifest
 
 # for the Mac, create_dmg.csh creates the .dmg file from the .tar.gz file.
 # create_dmg must be executed separately, since root access is 

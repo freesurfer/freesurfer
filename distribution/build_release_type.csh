@@ -1,6 +1,6 @@
 #!/bin/tcsh -f
 
-set ID='$Id: build_release_type.csh,v 1.147 2013/01/21 16:31:49 nicks Exp $'
+set ID='$Id: build_release_type.csh,v 1.148 2013/05/22 22:04:42 nicks Exp $'
 
 unsetenv echo
 if ($?SET_ECHO_1) set echo=1
@@ -13,8 +13,8 @@ umask 002
 #  build_release_type stable-pub
 set RELEASE_TYPE=$1
 
-set STABLE_VER_NUM="v5.2.0"
-set STABLE_PUB_VER_NUM="v5.2.0"
+set STABLE_VER_NUM="v5.3.0"
+set STABLE_PUB_VER_NUM="v5.3.0"
 
 set HOSTNAME=`hostname -s`
 
@@ -33,15 +33,9 @@ set FAILURE_MAIL_LIST=(\
     rudolph@nmr.mgh.harvard.edu \
     ayendiki@nmr.mgh.harvard.edu \
     zkaufman@nmr.mgh.harvard.edu)
-#set FAILURE_MAIL_LIST=(nicks@nmr.mgh.harvard.edu)
-#if ("$HOSTNAME" == "hima") then
-#  set FAILURE_MAIL_LIST=(zkaufman@nmr.mgh.harvard.edu)
-#endif
-if ("$HOSTNAME" == "sleet") then
+set FAILURE_MAIL_LIST=(zkaufman@nmr.mgh.harvard.edu nicks@nmr.mgh.harvard.edu)
+if ("$HOSTNAME" == "zeke") then
   set FAILURE_MAIL_LIST=(zkaufman@nmr.mgh.harvard.edu)
-endif
-if ("$HOSTNAME" == "mist") then
-  set FAILURE_MAIL_LIST=(nicks@nmr.mgh.harvard.edu)
 endif
 
 setenv OSTYPE `uname -s`
@@ -114,7 +108,7 @@ if (("${RELEASE_TYPE}" == "stable") || ("${RELEASE_TYPE}" == "stable-pub")) then
   set TIXWISH=${TCLDIR}/bin/tixwish8.1.8.4
   set VTKDIR=/usr/pubsw/packages/vtk/current
   set KWWDIR=/usr/pubsw/packages/KWWidgets/current
-  setenv FSLDIR /usr/pubsw/packages/fsl/current
+  setenv FSLDIR /usr/pubsw/packages/fsl/4.1.9
   set CPPUNITDIR=/usr/pubsw/packages/cppunit/current
   if ( ! -d ${CPPUNITDIR} ) unset CPPUNITDIR
   setenv AFNIDIR /usr/pubsw/packages/AFNI/current
@@ -672,31 +666,29 @@ if ($makestatus != 0) then
   chgrp ${change_flags} fsbuild ${INSTALL_DIR}/subjects/fsaverage >>& $OUTPUTF
   exit 1  
 endif
+# delete the files in the EXCLUDE_FILES_rm_cmds list which were created from
+# the EXCLUDE_FILES section of each Makefile.am by the top-level Makefile.extra
+# when make release was run (which is done only during a stable-pub build)
+if ( -e {$INSTALL_DIR}/EXCLUDE_FILES_rm_cmds ) then
+  echo "CMD: cat ${INSTALL_DIR}/EXCLUDE_FILES_rm_cmds" >>& $OUTPUTF
+  cat ${INSTALL_DIR}/EXCLUDE_FILES_rm_cmds >>& $OUTPUTF
+  echo "CMD: source ${INSTALL_DIR}/EXCLUDE_FILES_rm_cmds" >>& $OUTPUTF
+  source ${INSTALL_DIR}/EXCLUDE_FILES_rm_cmds >>& $OUTPUTF
+  echo "CMD: mv -f ${INSTALL_DIR}/EXCLUDE_FILES_rm_cmds /tmp" >>& $OUTPUTF
+  mv -f ${INSTALL_DIR}/EXCLUDE_FILES_rm_cmds /tmp
+endif
+
 # strip symbols from binaries, greatly reducing their size
 if ("${RELEASE_TYPE}" == "stable-pub") then
-  echo "CMD: strip ${INSTALL_DIR}/bin-new/*" >>& $OUTPUTF
-  strip ${INSTALL_DIR}/bin-new/* >& /dev/null
+  echo "CMD: strip -v ${INSTALL_DIR}/bin-new/*" >>& $OUTPUTF
+  cd ${INSTALL_DIR}/bin-new
+  rm -vf ${OUTPUTF}-strip.log >>& $OUTPUTF
+  foreach f (`ls -d *`)
+    strip -v $f >>& ${OUTPUTF}-strip.log
+  end
+  cd -
 endif
-# compress binaries using 'upx', greatly reducing their size even more (3x)
-if ("${RELEASE_TYPE}" == "stable-pub") then
-  if ( -e /usr/pubsw/bin/upx ) then
-    rm -f ELF-files
-    foreach f (`ls ${INSTALL_DIR}/bin-new/*`)
-      file $f | grep ELF >& /dev/null
-      if ( ! $status ) echo $f >> ELF-files
-    end
-    # UPX seems to munge the _cuda file, causing this error:
-    # CUDA Error in file 'devicemanagement.cu'
-    # so dont upx those files
-    grep -v _cuda ELF-files >> ELF-files-wocuda
-    mv ELF-files-wocuda ELF-files
-    # now run upx...
-    foreach f (`cat ELF-files`)
-      echo "CMD: /usr/pubsw/bin/upx $f" >>& $OUTPUTF
-      /usr/pubsw/bin/upx $f >& /dev/null
-    end
-  endif
-endif
+
 #
 # Shift bin/ to bin-old/ to keep old versions.
 # Move bin/ to bin-old/ instead of copy, to avoid core dumps if some script
@@ -752,15 +744,27 @@ else
 endif
 echo "CMD: mv ${INSTALL_DIR}/bin-new ${INSTALL_DIR}/bin" >>& $OUTPUTF
 mv ${INSTALL_DIR}/bin-new ${INSTALL_DIR}/bin >>& $OUTPUTF
+
 # one final step is to change the freeview script path in Macs
 # Basically the end of freeview script has "open <BINPATH>/Freeview.app
 # But because of our bin-new procedure, even if we rename the directory bin-new to bin,
 # the path inside the freeview script remains "bin-new".. change that to point to bin
-if ("$HOSTNAME" == "hima") then
-    sed s/bin-new/bin/ ${INSTALL_DIR}/bin/freeview > ${INSTALL_DIR}/bin/freeview.new
-    mv ${INSTALL_DIR}/bin/freeview.new ${INSTALL_DIR}/bin/freeview
-    chmod a+x ${INSTALL_DIR}/bin/freeview
+#if ("$HOSTNAME" == "hima") then
+#    sed s/bin-new/bin/ ${INSTALL_DIR}/bin/freeview > ${INSTALL_DIR}/bin/freeview.new
+#    mv ${INSTALL_DIR}/bin/freeview.new ${INSTALL_DIR}/bin/freeview
+#    chmod a+x ${INSTALL_DIR}/bin/freeview
+#endif
+
+#
+# fix qdec.bin for centos6_x86_64: for as yet unknown reasons, qdec core
+# dumps on centos6_x86_64 (std::length_error) but the centos4_x86_64
+# version works, so copy it over
+if ("$PLATFORM" == "centos6_x86_64") then
+  echo "cp /space/freesurfer/centos4.0_x86_64/${RELEASE_TYPE}/bin/qdec.bin ${INSTALL_DIR}/bin" >>& $OUTPUTF
+  cp /space/freesurfer/centos4.0_x86_64/${RELEASE_TYPE}/bin/qdec.bin ${INSTALL_DIR}/bin
 endif
+
+
 #
 # make install is now complete, and /bin dir is now setup with new code
 #
@@ -790,11 +794,11 @@ chmod ${change_flags} g+rw ${LOG_DIR} >>& $OUTPUTF
 #goto make_distcheck_done
 if (("$RELEASE_TYPE" == "stable") || \
     ("$RELEASE_TYPE" == "dev")) then
-# just run on swan
-if ("$HOSTNAME" == "swan") then
+# just run on terrier
+if ("$HOSTNAME" == "terrier") then
 # just do this once a week, as it takes a few hours to run
-#date | grep "Sat " >& /dev/null
-#if ( ! $status ) then
+date | grep "Sat " >& /dev/null
+if ( ! $status ) then
   echo "########################################################" >>& $OUTPUTF
   echo "Make distcheck $BUILD_DIR" >>& $OUTPUTF
   echo "" >>& $OUTPUTF
@@ -823,7 +827,7 @@ if ("$HOSTNAME" == "swan") then
     set msg="$HOSTNAME $RELEASE_TYPE build PASSED make distcheck"
     tail -n 20 $OUTPUTF | mail -s "$msg" nicks@nmr.mgh.harvard.edu
   endif
-#endif
+endif
 endif
 endif
 make_distcheck_done:
@@ -882,14 +886,20 @@ symlinks:
 #
 # fix mac libs
 ######################################################################
+# Mac uses Qt frameworks for freeview, which are included in the
+# Freeview.app bundle. So remove the qt symlink in the 
+# $FREESURFER_HOME/lib directory
+if ("$OSTYPE" == "Darwin") then
+   rm ${INSTALL_DIR}/lib/qt
+endif
+
 # Until we are building 64-bit GUIs on the Mac, we need to link
-# to the 32-bit versions of vtk, qt, and KWWidgets.
-if ( ("$PLATFORM" == "lion") || \
-    ( "$PLATFORM" == "mountain_lion") ) then
-  echo "executing fix_mac_libs.csh"
+# to the 32-bit versions of vtk, and KWWidgets.
+if ("$PLATFORM" == "lion") then
+  echo "executing fix_mac_libs.csh" >>& $OUTPUTF
   ${SPACE_FS}/build/scripts/fix_mac_libs.csh ${RELEASE_TYPE}
 endif
-  
+
 #
 # create build-stamp.txt
 ######################################################################

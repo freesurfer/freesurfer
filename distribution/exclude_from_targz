@@ -13,6 +13,7 @@ freesurfer/Simple_surface_labels2005.txt
 freesurfer/COPYING
 freesurfer/INSTALL
 freesurfer/NEWS
+freesurfer/EXCLUDE_FILES_rm_cmds
 freesurfer/bin-new
 freesurfer/bin-old
 freesurfer/bin-old-old
