@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2013/05/01 19:29:27 $
- *    $Revision: 1.26 $
+ *    $Date: 2013/05/23 17:10:43 $
+ *    $Revision: 1.27 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -84,6 +84,13 @@ public:
     pos[2] = m_dTranslate[2];
   }
 
+  void GetFlip( bool* flip)
+  {
+    flip[0] = m_bFlip[0];
+    flip[1] = m_bFlip[1];
+    flip[2] = m_bFlip[2];
+  }
+
   void ResetScale()
   {
     m_dScale[0] = 1;
@@ -116,6 +123,7 @@ public:
   void SetTranslate(double* offset);
   void SetTranslateByCenterPosition(double* c_pos);
   void SetScale(double* scale);
+  void SetFlip(bool* flip);
   void UpdateTransform(int sample_method = 0);
 
   double* GetWorldOrigin();
@@ -223,6 +231,7 @@ protected:
   double    m_dTranslate[3];
   double    m_dScale[3];
   double    m_dRotate[3];
+  bool      m_bFlip[3];
   bool      m_bRotateAroundCenter;
 
   bool      m_bLocked;

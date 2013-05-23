@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2013/05/01 19:29:27 $
- *    $Revision: 1.128 $
+ *    $Date: 2013/05/23 17:10:43 $
+ *    $Revision: 1.129 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -74,6 +74,7 @@
 #include <QDebug>
 #include "ProgressCallback.h"
 #include "LayerMRIWorkerThread.h"
+#include "vtkImageFlip.h"
 
 extern "C"
 {
@@ -484,6 +485,31 @@ void LayerMRI::DoTransform(int sample_method)
     pos[0] = m_dSlicePosition[0];
     pos[1] = m_dSlicePosition[1];
     pos[2] = m_dSlicePosition[2];
+  }
+
+  // flip
+  for (int i = 0; i < 3; i++)
+  {
+    if (m_bFlip[i])
+    {
+      double dTargetPoint[3] = { pos[0], pos[1], pos[2] };
+      double m[16] = { 1, 0, 0, 0,
+                       0, 1, 0, 0,
+                       0, 0, 1, 0,
+                       0, 0, 0, 1 };
+      m[i*4+i] = -1;
+      double ras[3];
+      this->TargetToRAS(pos, ras);
+      slice_tr->Translate( dTargetPoint[0], dTargetPoint[1], dTargetPoint[2] );
+      slice_tr->Concatenate(m);
+      slice_tr->Translate( -dTargetPoint[0], -dTargetPoint[1], -dTargetPoint[2] );
+
+      ras_tr->Translate( -ras[0], -ras[1], -ras[2] );
+      for (int j = 0; j < 16; j++)
+        m[j] = -m[j];
+      ras_tr->Concatenate(m);
+      ras_tr->Translate( ras );
+    }
   }
 
   // rotate
@@ -1381,6 +1407,14 @@ void LayerMRI::UpdateVectorActor( int nPlane, vtkImageData* imagedata )
     vtkPolyDataMapper::SafeDownCast( m_glyphActor3D[nPlane]->GetMapper() )->SetInput( polydata );
   }
 
+  QString orient = GetOrientationString();
+  bool flip[3] = { false, false, false };
+  QString default_orient = "RAS";
+  for (int i = 0; i < 3; i++)
+  {
+    flip[i] = (orient[i] != default_orient[i]);
+  }
+
   unsigned char c[4] = { 0, 0, 0, 255 };
   switch ( nPlane )
   {
@@ -1396,7 +1430,11 @@ void LayerMRI::UpdateVectorActor( int nPlane, vtkImageData* imagedata )
         v[2] = imagedata->GetScalarComponentAsDouble( n[0], i, j, 2 );
         if ( vtkMath::Normalize( v ) != 0 )
         {
-          v[1] = -v[1];         // by default invert Y !!
+          for (int k = 0; k < 3; k++)
+          {
+            if (flip[k])
+              v[k] = -v[k];
+          }
           if ( GetProperty()->GetVectorInversion() == LayerPropertyMRI::VI_X )
           {
             v[0] = -v[0];
@@ -1445,7 +1483,11 @@ void LayerMRI::UpdateVectorActor( int nPlane, vtkImageData* imagedata )
         v[2] = imagedata->GetScalarComponentAsDouble( i, n[1], j, 2 );
         if ( vtkMath::Normalize( v ) != 0 )
         {
-          v[1] = -v[1];         // by default invert Y !!
+          for (int k = 0; k < 3; k++)
+          {
+            if (flip[k])
+              v[k] = -v[k];
+          }
           if ( GetProperty()->GetVectorInversion() == LayerPropertyMRI::VI_X )
           {
             v[0] = -v[0];
@@ -1492,7 +1534,11 @@ void LayerMRI::UpdateVectorActor( int nPlane, vtkImageData* imagedata )
         v[2] = imagedata->GetScalarComponentAsDouble( i, j, n[2], 2 );
         if ( vtkMath::Normalize( v ) != 0 )
         {
-          v[1] = -v[1];         // by default invert Y !!
+          for (int k = 0; k < 3; k++)
+          {
+            if (flip[k])
+              v[k] = -v[k];
+          }
           if ( GetProperty()->GetVectorInversion() == LayerPropertyMRI::VI_X )
           {
             v[0] = -v[0];

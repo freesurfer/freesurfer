@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2013/05/01 19:29:27 $
- *    $Revision: 1.27 $
+ *    $Date: 2013/05/23 17:10:43 $
+ *    $Revision: 1.28 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -49,6 +49,7 @@ Layer::Layer( QObject* parent ) : QObject( parent )
     m_dTranslate[i] = 0;
     m_dScale[i] = 1;
     m_dRotate[i] = 0;
+    m_bFlip[i] = false;
   }
   m_bLocked = false;
   mProperty = NULL;
@@ -291,6 +292,14 @@ void Layer::SetRotate(double *rotate, bool bAroundCenter)
   m_dRotate[2] = rotate[2];
   m_bRotateAroundCenter = bAroundCenter;
 
+  UpdateTransform();
+}
+
+void Layer::SetFlip(bool *flip)
+{
+  m_bFlip[0] = flip[0];
+  m_bFlip[1] = flip[1];
+  m_bFlip[2] = flip[2];
   UpdateTransform();
 }
 

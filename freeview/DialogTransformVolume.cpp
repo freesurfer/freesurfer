@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2013/03/28 19:00:42 $
- *    $Revision: 1.19 $
+ *    $Date: 2013/05/23 17:10:43 $
+ *    $Revision: 1.20 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -415,8 +415,15 @@ void DialogTransformVolume::OnActiveLayerChanged()
     UpdateUI();
   }
   LayerMRI* layer = (LayerMRI* )MainWindow::GetMainWindow()->GetActiveLayer( "MRI" );
+  if (!layer)
+    return;
+  connect(layer->GetProperty(), SIGNAL(ColorMapChanged()), this, SLOT(OnActiveLayerChanged()), Qt::UniqueConnection);
   LayerLandmarks* landmarks = (LayerLandmarks*)MainWindow::GetMainWindow()->GetSupplementLayer( "Landmarks" );
   landmarks->SetMRIRef(layer);
+  if (layer->GetProperty()->GetColorMap() == LayerPropertyMRI::LUT)
+    ui->radioButtonNearestNeighbor->setChecked(true);
+  else
+    ui->radioButtonCubic->setChecked(true);
   OnSampleMethodChanged();
 }
 
@@ -768,7 +775,6 @@ void DialogTransformVolume::OnButtonCenterToCursor()
     {
       double pos[3];
       layer->GetSlicePosition(pos);
-      qDebug() << pos[0] << pos[1] << pos[2];
       layer->SetTranslateByCenterPosition( pos );
       MainWindow::GetMainWindow()->RequestRedraw();
 
@@ -781,6 +787,24 @@ void DialogTransformVolume::OnButtonCenterToCursor()
         m_scrollTranslate[n]->blockSignals(false);
       }
       UpdateUI( 0 );
+    }
+  }
+}
+
+void DialogTransformVolume::OnCheckBoxFlip()
+{
+  if (isVisible())
+  {
+    LayerMRI* layer = ( LayerMRI* )MainWindow::GetMainWindow()->GetActiveLayer( "MRI" );
+    if ( layer )
+    {
+      bool flip[3];
+      layer->GetFlip(flip);
+      flip[0] = ui->checkBoxFlipX->isChecked();
+      flip[1] = ui->checkBoxFlipY->isChecked();
+      flip[2] = ui->checkBoxFlipZ->isChecked();
+      layer->SetFlip(flip);
+      MainWindow::GetMainWindow()->RequestRedraw();
     }
   }
 }

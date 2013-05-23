@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2013/04/05 17:43:31 $
- *    $Revision: 1.56 $
+ *    $Date: 2013/05/23 17:10:43 $
+ *    $Revision: 1.57 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -36,7 +36,6 @@ class vtkTransform;
 class vtkTexture;
 class vtkPolyDataMapper;
 class vtkActor;
-class vtkLODActor;
 class vtkImageActor;
 class vtkImageData;
 class vtkPlane;
@@ -274,9 +273,6 @@ protected:
   vtkSmartPointer<vtkPlane>     mReslicePlane[3];
   vtkSmartPointer<vtkImageMapToColors>  mColorMap[3];
 
-  vtkSmartPointer<vtkDecimatePro>   mLowResFilter;
-  vtkSmartPointer<vtkDecimatePro>   mMediumResFilter;
-
   FSSurface*   m_surfaceSource;
   bool    m_bResampleToRAS;
   LayerMRI*   m_volumeRef;
@@ -289,7 +285,6 @@ protected:
   vtkSmartPointer<vtkActor>   m_sliceActor3D[3];
   vtkSmartPointer<vtkActor>   m_vectorActor2D[3];
 
-  // vtkLODActor*  m_mainActor;
   vtkSmartPointer<vtkActor>   m_mainActor;
   vtkSmartPointer<vtkActor>   m_vectorActor;
   vtkSmartPointer<vtkActor>   m_vertexActor;

@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2013/05/01 19:29:27 $
- *    $Revision: 1.86 $
+ *    $Date: 2013/05/23 17:10:43 $
+ *    $Revision: 1.87 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -90,13 +90,8 @@ LayerSurface::LayerSurface( LayerMRI* ref, QObject* parent ) : LayerEditable( pa
     m_vertexActor2D[i]->VisibilityOff();
   }
 
-// m_mainActor = vtkLODActor::New();
   m_mainActor = vtkSmartPointer<vtkActor>::New();
   m_mainActor->GetProperty()->SetEdgeColor( 0.75, 0.75, 0.75 );
-  mLowResFilter = vtkSmartPointer<vtkDecimatePro>::New();
-  mLowResFilter->SetTargetReduction( 0.9 );
-// mMediumResFilter = vtkSmartPointer<vtkDecimatePro>::New();
-// mMediumResFilter->SetTargetReduction( 0.9 );
 
   m_vectorActor = vtkSmartPointer<vtkActor>::New();
   m_vectorActor->GetProperty()->SetColor( GetProperty()->GetVectorColor() );
@@ -123,7 +118,7 @@ LayerSurface::LayerSurface( LayerMRI* ref, QObject* parent ) : LayerEditable( pa
   connect(m_spline, SIGNAL(SplineChanged()), this, SIGNAL(ActorChanged()));
 
   LayerPropertySurface* p = GetProperty();
-  connect( p, SIGNAL(ColorMapChanged()), this, SLOT(UpdateColorMap()) ),
+  connect( p, SIGNAL(ColorMapChanged()), this, SLOT(UpdateColorMap()) );
   connect( p, SIGNAL(OpacityChanged(double)), this, SLOT(UpdateOpacity()) );
   connect( p, SIGNAL(EdgeThicknessChanged(int)), this, SLOT(UpdateEdgeThickness()) );
   connect( p, SIGNAL(VectorPointSizeChanged(int)), this, SLOT(UpdateVectorPointSize()) );

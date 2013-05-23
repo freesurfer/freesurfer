@@ -1176,6 +1176,60 @@
        </item>
       </layout>
      </widget>
+     <widget class="QWidget" name="tab_3">
+      <attribute name="title">
+       <string>Flip</string>
+      </attribute>
+      <layout class="QGridLayout" name="gridLayout_5">
+       <item row="0" column="0">
+        <widget class="QCheckBox" name="checkBoxFlipX">
+         <property name="text">
+          <string>Flip X (L-R)</string>
+         </property>
+        </widget>
+       </item>
+       <item row="0" column="1">
+        <spacer name="horizontalSpacer_10">
+         <property name="orientation">
+          <enum>Qt::Horizontal</enum>
+         </property>
+         <property name="sizeHint" stdset="0">
+          <size>
+           <width>348</width>
+           <height>18</height>
+          </size>
+         </property>
+        </spacer>
+       </item>
+       <item row="3" column="1">
+        <spacer name="verticalSpacer">
+         <property name="orientation">
+          <enum>Qt::Vertical</enum>
+         </property>
+         <property name="sizeHint" stdset="0">
+          <size>
+           <width>20</width>
+           <height>40</height>
+          </size>
+         </property>
+        </spacer>
+       </item>
+       <item row="1" column="0">
+        <widget class="QCheckBox" name="checkBoxFlipY">
+         <property name="text">
+          <string>Flip Y (P-A)</string>
+         </property>
+        </widget>
+       </item>
+       <item row="2" column="0">
+        <widget class="QCheckBox" name="checkBoxFlipZ">
+         <property name="text">
+          <string>Flip Z (I-S)</string>
+         </property>
+        </widget>
+       </item>
+      </layout>
+     </widget>
     </widget>
    </item>
    <item>
@@ -1503,7 +1557,7 @@
    <slot>OnSaveReg()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>334</x>
+     <x>244</x>
      <y>704</y>
     </hint>
     <hint type="destinationlabel">
@@ -1567,7 +1621,7 @@
    <slot>OnLineEditTranslateX(QString)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>463</x>
+     <x>410</x>
      <y>65</y>
     </hint>
     <hint type="destinationlabel">
@@ -1583,7 +1637,7 @@
    <slot>OnLineEditTranslateY(QString)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>463</x>
+     <x>410</x>
      <y>96</y>
     </hint>
     <hint type="destinationlabel">
@@ -1599,7 +1653,7 @@
    <slot>OnLineEditTranslateZ(QString)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>463</x>
+     <x>410</x>
      <y>127</y>
     </hint>
     <hint type="destinationlabel">
@@ -1615,8 +1669,8 @@
    <slot>OnScrollBarScaleX(int)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>70</x>
-     <y>40</y>
+     <x>129</x>
+     <y>60</y>
     </hint>
     <hint type="destinationlabel">
      <x>462</x>
@@ -1631,8 +1685,8 @@
    <slot>OnScrollBarScaleY(int)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>70</x>
-     <y>44</y>
+     <x>129</x>
+     <y>91</y>
     </hint>
     <hint type="destinationlabel">
      <x>462</x>
@@ -1647,8 +1701,8 @@
    <slot>OnScrollBarScaleZ(int)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>70</x>
-     <y>48</y>
+     <x>129</x>
+     <y>122</y>
     </hint>
     <hint type="destinationlabel">
      <x>421</x>
@@ -1663,8 +1717,8 @@
    <slot>OnLineEditScaleX(QString)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>99</x>
-     <y>40</y>
+     <x>463</x>
+     <y>65</y>
     </hint>
     <hint type="destinationlabel">
      <x>462</x>
@@ -1679,8 +1733,8 @@
    <slot>OnLineEditScaleY(QString)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>99</x>
-     <y>44</y>
+     <x>463</x>
+     <y>96</y>
     </hint>
     <hint type="destinationlabel">
      <x>462</x>
@@ -1695,8 +1749,8 @@
    <slot>OnLineEditScaleZ(QString)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>99</x>
-     <y>48</y>
+     <x>463</x>
+     <y>127</y>
     </hint>
     <hint type="destinationlabel">
      <x>416</x>
@@ -2072,6 +2126,54 @@
     </hint>
    </hints>
   </connection>
+  <connection>
+   <sender>checkBoxFlipX</sender>
+   <signal>toggled(bool)</signal>
+   <receiver>DialogTransformVolume</receiver>
+   <slot>OnCheckBoxFlip()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>73</x>
+     <y>47</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>-28</x>
+     <y>126</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>checkBoxFlipY</sender>
+   <signal>toggled(bool)</signal>
+   <receiver>DialogTransformVolume</receiver>
+   <slot>OnCheckBoxFlip()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>54</x>
+     <y>78</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>-28</x>
+     <y>197</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>checkBoxFlipZ</sender>
+   <signal>toggled(bool)</signal>
+   <receiver>DialogTransformVolume</receiver>
+   <slot>OnCheckBoxFlip()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>34</x>
+     <y>105</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>600</x>
+     <y>316</y>
+    </hint>
+   </hints>
+  </connection>
  </connections>
  <slots>
   <slot>OnApply()</slot>
@@ -2102,5 +2204,6 @@
   <slot>OnLineEditRotateY(QString)</slot>
   <slot>OnLineEditRotateZ(QString)</slot>
   <slot>OnButtonCenterToCursor()</slot>
+  <slot>OnCheckBoxFlip()</slot>
  </slots>
 </ui>

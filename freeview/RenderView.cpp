@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2013/05/01 19:29:27 $
- *    $Revision: 1.49 $
+ *    $Date: 2013/05/23 17:10:43 $
+ *    $Revision: 1.50 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -540,3 +540,4 @@ int RenderView::PickCell( vtkProp* prop, int posX, int posY, double* pos_out )
   }
   return picker->GetCellId();
 }
+
