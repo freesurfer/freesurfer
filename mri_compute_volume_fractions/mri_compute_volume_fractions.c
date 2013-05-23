@@ -9,9 +9,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2012/11/07 18:58:02 $
- *    $Revision: 1.9 $
+ *    $Author: fischl $
+ *    $Date: 2013/05/23 12:42:34 $
+ *    $Revision: 1.10 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -51,6 +51,10 @@
 #define CSF_VAL        3
 #define SUBCORT_GM_VAL 4
 
+int MRIcomputePartialVolumeFractions(MRI *mri_src, MATRIX *m_vox2vox, 
+                                     MRI *mri_seg, MRI *mri_wm, MRI *mri_subcort_gm, MRI *mri_cortex, 
+				     MRI *mri_csf,
+                                     int wm_val, int subcort_gm_val, int cortex_val, int csf_val) ;
 int main(int argc, char *argv[]) ;
 static int get_option(int argc, char *argv[]) ;
 
@@ -63,10 +67,6 @@ static double resolution = .5 ;
 static char *fmt = "mgz";
 MRI *add_aseg_structures_outside_ribbon(MRI *mri_src, MRI *mri_aseg, MRI *mri_dst,
                                        int wm_val, int gm_val, int csf_val) ;
-int MRIcomputePartialVolumeFractions(MRI *mri_src, MATRIX *m_vox2vox, 
-                                     MRI *mri_seg, MRI *mri_wm, MRI *mri_subcort_gm, MRI *mri_cortex, 
-				     MRI *mri_csf,
-                                     int wm_val, int subcort_gm_val, int cortex_val, int csf_val) ;
 int
 main(int argc, char *argv[]) {
   char   **av, fname[STRLEN] ;
@@ -81,7 +81,7 @@ main(int argc, char *argv[]) {
   float       intensity, betplaneres, inplaneres ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_compute_volume_fractions.c,v 1.9 2012/11/07 18:58:02 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_compute_volume_fractions.c,v 1.10 2013/05/23 12:42:34 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -104,7 +104,7 @@ main(int argc, char *argv[]) {
     strcpy(sdir, cp) ;
   }
   reg_fname = argv[1] ; in_fname = argv[2] ;
-  out_stem = argv[3] ; Progname = argv[0] ;
+  out_stem = argv[3] ; 
   ErrorInit(NULL, NULL, NULL) ;
   DiagInit(NULL, NULL, NULL) ;
 
@@ -339,6 +339,81 @@ usage_exit(int code) {
 
 
 
+MRI *
+add_aseg_structures_outside_ribbon(MRI *mri_src, MRI *mri_aseg, MRI *mri_dst,
+                                   int wm_val, int gm_val, int csf_val)
+{
+  VECTOR *v1, *v2 ;
+  MATRIX *m_vox2vox ;
+  int    x, y, z, xa, ya, za, seg_label, aseg_label ;
+
+  if (mri_dst == NULL)
+    mri_dst = MRIcopy(mri_src, NULL) ;
+  v1 = VectorAlloc(4, MATRIX_REAL) ;
+  v2 = VectorAlloc(4, MATRIX_REAL) ;
+  VECTOR_ELT(v1, 4) = 1.0 ; VECTOR_ELT(v2, 4) = 1.0 ;
+  m_vox2vox = MRIgetVoxelToVoxelXform(mri_src, mri_aseg) ;
+
+
+  for (x = 0 ; x < mri_dst->width ; x++)
+  {
+    V3_X(v1) = x ;
+    for (y = 0 ; y < mri_dst->height ; y++)
+    {
+      V3_Y(v1) = y ;
+      for (z = 0 ; z < mri_dst->depth ; z++)
+      {
+        if (x == Gx && y == Gy && z == Gz)
+          DiagBreak() ;
+        seg_label = nint(MRIgetVoxVal(mri_dst, x, y, z, 0)) ;
+        V3_Z(v1) = z ;
+        MatrixMultiply(m_vox2vox, v1, v2) ;
+        xa = (int)(nint(V3_X(v2))) ;
+        ya = (int)(nint(V3_Y(v2))) ;
+        za = (int)(nint(V3_Z(v2))) ;
+        if (xa < 0 || ya < 0 || za < 0 ||
+            xa >= mri_aseg->width || ya >= mri_aseg->height || za >= mri_aseg->depth)
+          continue ;
+        if (xa == Gx && ya == Gy && za == Gz)
+          DiagBreak() ;
+        aseg_label = nint(MRIgetVoxVal(mri_aseg, xa, ya, za, 0)) ;
+        if (seg_label != 0 && !IS_MTL(aseg_label))  // already labeled and not amyg/hippo, skip it
+          continue ;
+        switch (aseg_label)
+        {
+        case Left_Cerebellum_White_Matter:
+        case Right_Cerebellum_White_Matter:
+        case Brain_Stem:
+          MRIsetVoxVal(mri_dst, x, y, z, 0, wm_val) ;
+          break ;
+	case Left_Hippocampus:
+	case Right_Hippocampus:
+	case Left_Amygdala:
+	case Right_Amygdala:
+        case Left_Cerebellum_Cortex:
+        case Right_Cerebellum_Cortex:
+        case Left_Pallidum:
+        case Right_Pallidum:
+        case Left_Thalamus_Proper:
+        case Right_Thalamus_Proper:
+        case Right_Putamen:
+        case Left_Putamen:
+        case Right_Caudate:
+        case Left_Caudate:
+        case Left_Accumbens_area:
+        case Right_Accumbens_area:  // remove them from cortex
+          MRIsetVoxVal(mri_dst, x, y, z, 0, gm_val) ;
+          break ;
+        default:
+          break ;
+        }
+      }
+    }
+  }
+
+  VectorFree(&v1) ; VectorFree(&v2) ; MatrixFree(&m_vox2vox) ;
+  return(mri_dst) ;
+}
 int
 MRIcomputePartialVolumeFractions(MRI *mri_src, MATRIX *m_vox2vox, 
                                  MRI *mri_seg, MRI *mri_wm, MRI *mri_subcort_gm, MRI *mri_cortex,
@@ -454,79 +529,4 @@ MRIcomputePartialVolumeFractions(MRI *mri_src, MATRIX *m_vox2vox,
   MRIfree(&mri_counts) ;
 
   return(NO_ERROR) ;
-}
-MRI *
-add_aseg_structures_outside_ribbon(MRI *mri_src, MRI *mri_aseg, MRI *mri_dst,
-                                   int wm_val, int gm_val, int csf_val)
-{
-  VECTOR *v1, *v2 ;
-  MATRIX *m_vox2vox ;
-  int    x, y, z, xa, ya, za, seg_label, aseg_label ;
-
-  if (mri_dst == NULL)
-    mri_dst = MRIcopy(mri_src, NULL) ;
-  v1 = VectorAlloc(4, MATRIX_REAL) ;
-  v2 = VectorAlloc(4, MATRIX_REAL) ;
-  VECTOR_ELT(v1, 4) = 1.0 ; VECTOR_ELT(v2, 4) = 1.0 ;
-  m_vox2vox = MRIgetVoxelToVoxelXform(mri_src, mri_aseg) ;
-
-
-  for (x = 0 ; x < mri_dst->width ; x++)
-  {
-    V3_X(v1) = x ;
-    for (y = 0 ; y < mri_dst->height ; y++)
-    {
-      V3_Y(v1) = y ;
-      for (z = 0 ; z < mri_dst->depth ; z++)
-      {
-        if (x == Gx && y == Gy && z == Gz)
-          DiagBreak() ;
-        seg_label = nint(MRIgetVoxVal(mri_dst, x, y, z, 0)) ;
-        V3_Z(v1) = z ;
-        MatrixMultiply(m_vox2vox, v1, v2) ;
-        xa = (int)(nint(V3_X(v2))) ;
-        ya = (int)(nint(V3_Y(v2))) ;
-        za = (int)(nint(V3_Z(v2))) ;
-        if (xa < 0 || ya < 0 || za < 0 ||
-            xa >= mri_aseg->width || ya >= mri_aseg->height || za >= mri_aseg->depth)
-          continue ;
-        if (xa == Gx && ya == Gy && za == Gz)
-          DiagBreak() ;
-        aseg_label = nint(MRIgetVoxVal(mri_aseg, xa, ya, za, 0)) ;
-        if (seg_label != 0 && !IS_MTL(aseg_label))  // already labeled and not amyg/hippo, skip it
-          continue ;
-        switch (aseg_label)
-        {
-        case Left_Cerebellum_White_Matter:
-        case Right_Cerebellum_White_Matter:
-        case Brain_Stem:
-          MRIsetVoxVal(mri_dst, x, y, z, 0, wm_val) ;
-          break ;
-	case Left_Hippocampus:
-	case Right_Hippocampus:
-	case Left_Amygdala:
-	case Right_Amygdala:
-        case Left_Cerebellum_Cortex:
-        case Right_Cerebellum_Cortex:
-        case Left_Pallidum:
-        case Right_Pallidum:
-        case Left_Thalamus_Proper:
-        case Right_Thalamus_Proper:
-        case Right_Putamen:
-        case Left_Putamen:
-        case Right_Caudate:
-        case Left_Caudate:
-        case Left_Accumbens_area:
-        case Right_Accumbens_area:  // remove them from cortex
-          MRIsetVoxVal(mri_dst, x, y, z, 0, gm_val) ;
-          break ;
-        default:
-          break ;
-        }
-      }
-    }
-  }
-
-  VectorFree(&v1) ; VectorFree(&v2) ; MatrixFree(&m_vox2vox) ;
-  return(mri_dst) ;
 }
