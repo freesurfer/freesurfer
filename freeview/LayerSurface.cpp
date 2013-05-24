@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2013/05/23 17:10:43 $
- *    $Revision: 1.87 $
+ *    $Date: 2013/05/24 18:07:31 $
+ *    $Revision: 1.88 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -1235,6 +1235,14 @@ void LayerSurface::UpdateOverlay( bool bAskRedraw )
         unsigned char* data = new unsigned char[ nCount*4 ];
         if (polydata->GetPointData()->GetScalars("Curvature"))
           GetProperty()->GetCurvatureLUT()->MapScalarsThroughTable( polydata->GetPointData()->GetScalars("Curvature"), data, VTK_RGBA );
+        else
+        {
+          double* dColor = GetProperty()->GetBinaryColor();
+          unsigned char rgba[4] = { (int)(dColor[0]*255), (int)(dColor[1]*255), (int)(dColor[2]*255), 255 };
+          for (int i = 0; i < nCount*4; i+=4)
+            memcpy(data+i, rgba, 4);
+        }
+
         MapLabels( data, nCount );
         for ( int i = 0; i < nCount; i++ )
         {
