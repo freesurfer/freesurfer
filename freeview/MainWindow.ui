@@ -96,6 +96,12 @@
          <string>Tracks</string>
         </attribute>
        </widget>
+       <widget class="PanelAllLayers" name="tabAllLayers">
+        <attribute name="title">
+         <string>All</string>
+        </attribute>
+        <layout class="QVBoxLayout" name="verticalLayout"/>
+       </widget>
       </widget>
       <widget class="QWidget" name="widget" native="true">
        <property name="sizePolicy">
@@ -1394,6 +1400,12 @@
    <class>PanelConnectomeMatrix</class>
    <extends>QWidget</extends>
    <header>PanelConnectomeMatrix.h</header>
+   <container>1</container>
+  </customwidget>
+  <customwidget>
+   <class>PanelAllLayers</class>
+   <extends>QWidget</extends>
+   <header>PanelAllLayers.h</header>
    <container>1</container>
   </customwidget>
  </customwidgets>

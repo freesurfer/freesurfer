@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2013/03/06 22:55:25 $
- *    $Revision: 1.59 $
+ *    $Date: 2013/05/28 18:48:16 $
+ *    $Revision: 1.60 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -203,6 +203,7 @@ void RenderView2D::UpdateViewByWorldCoordinate()
 void RenderView2D::UpdateAnnotation()
 {
   m_annotation2D->Update( m_renderer, m_nViewPlane );
+  RequestRedraw();
 }
 
 void RenderView2D::UpdateMouseRASPosition( int posX, int posY )

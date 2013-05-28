@@ -143,7 +143,8 @@ SOURCES += \
     LayerConnectomeMatrix.cpp \
     DialogLoadConnectome.cpp \
     PanelConnectomeMatrix.cpp \
-    LayerPropertyConnectomeMatrix.cpp
+    LayerPropertyConnectomeMatrix.cpp \
+    PanelAllLayers.cpp
 
 HEADERS  += \
     Annotation2D.h \
@@ -276,7 +277,8 @@ HEADERS  += \
     LayerConnectomeMatrix.h \
     DialogLoadConnectome.h \
     PanelConnectomeMatrix.h \
-    LayerPropertyConnectomeMatrix.h
+    LayerPropertyConnectomeMatrix.h \
+    PanelAllLayers.h
 
 FORMS    += MainWindow.ui \
     PanelVolume.ui \
@@ -317,7 +319,8 @@ FORMS    += MainWindow.ui \
     DialogSmoothSurface.ui \
     DialogLineProfile.ui \
     DialogLoadConnectome.ui \
-    PanelConnectomeMatrix.ui
+    PanelConnectomeMatrix.ui \
+    PanelAllLayers.ui
 
 RESOURCES += \
     freeview.qrc

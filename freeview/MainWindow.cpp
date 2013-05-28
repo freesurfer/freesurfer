@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2013/05/01 19:29:27 $
- *    $Revision: 1.242 $
+ *    $Date: 2013/05/28 18:48:15 $
+ *    $Revision: 1.243 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -301,10 +301,23 @@ MainWindow::MainWindow( QWidget *parent, MyCmdLineParser* cmdParser ) :
 
     connect(m_layerCollections[keys[i]], SIGNAL(ActiveLayerChanged(Layer*)),
             this, SLOT(OnActiveLayerChanged(Layer*)), Qt::QueuedConnection);
+
+    connect(m_layerCollections[keys[i]], SIGNAL(ActiveLayerChanged(Layer*)),
+            ui->tabAllLayers, SLOT(OnActiveLayerChanged(Layer*)), Qt::QueuedConnection);
+    connect(m_layerCollections[keys[i]], SIGNAL(LayerAdded(Layer*)),
+            ui->tabAllLayers, SLOT(OnLayerAdded(Layer*)), Qt::QueuedConnection);
+    connect(m_layerCollections[keys[i]], SIGNAL(LayerRemoved(Layer*)),
+            ui->tabAllLayers, SLOT(OnLayerRemoved(Layer*)), Qt::QueuedConnection);
   }
   for ( int i = 0; i < 4; i++ )
   {
     connect( this, SIGNAL(SlicePositionChanged()), m_views[i], SLOT(OnSlicePositionChanged()) );
+  }
+
+  for (int i = 0; i < 3; i++)
+  {
+    connect(m_layerCollections["MRI"], SIGNAL(ActiveLayerChanged(Layer*)),
+            m_views[i], SLOT(UpdateAnnotation()));
   }
 
   QActionGroup* actionGroupMode = new QActionGroup( this );
@@ -5500,7 +5513,7 @@ void MainWindow::OnActiveLayerChanged(Layer* layer)
         m_wndTimeCourse->UpdateData();
         if (ui->actionTimeCourse->isChecked() && !layer->IsTypeOf("VolumeTrack") && !layer->IsTypeOf("DTI"))
         {
-            m_wndTimeCourse->show();
+        //    m_wndTimeCourse->show();
         }
       }
       else
