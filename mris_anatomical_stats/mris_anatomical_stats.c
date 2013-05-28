@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl and Doug Greve
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:26 $
- *    $Revision: 1.72 $
+ *    $Author: greve $
+ *    $Date: 2013/05/28 19:46:31 $
+ *    $Revision: 1.73 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -41,7 +41,7 @@
 #include "colortab.h"
 
 static char vcid[] =
-  "$Id: mris_anatomical_stats.c,v 1.72 2011/03/02 00:04:26 nicks Exp $";
+  "$Id: mris_anatomical_stats.c,v 1.73 2013/05/28 19:46:31 greve Exp $";
 
 int main(int argc, char *argv[]) ;
 static int  get_option(int argc, char *argv[]) ;
@@ -101,7 +101,7 @@ int
 main(int argc, char *argv[])
 {
   char          **av, *hemi, *sname, *cp, fname[STRLEN], *surf_name ;
-  int           ac, nargs, vno ;
+  int           ac, nargs, vno,n ;
   MRI_SURFACE   *mris ;
   MRI           *mri_wm, *mri_kernel = NULL, *mri_orig ;
   double        gray_volume, wm_volume;
@@ -120,7 +120,7 @@ main(int argc, char *argv[])
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mris_anatomical_stats.c,v 1.72 2011/03/02 00:04:26 nicks Exp $",
+           "$Id: mris_anatomical_stats.c,v 1.73 2013/05/28 19:46:31 greve Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
   {
@@ -345,6 +345,16 @@ main(int argc, char *argv[])
     {
       ErrorExit(ERROR_NOFILE, "%s: could not read label file %s\n", sname) ;
     }
+    for (n = 0; n < area->n_points; n++) {
+      if(area->lv[n].vno >= mris->nvertices){
+	printf("ERROR: label point %d has vertex number = %d, but surface only has %d vertices\n",
+	       n,area->lv[n].vno,mris->nvertices);
+	printf("Make sure that the label and surface come from the same hemisphere of the same subject.\n");
+	printf("Make sure that the label was created after the surface.\n");
+	exit(1);
+      }
+    }
+
     MRISsetMarks(mris, -1) ;
     LabelMark(area, mris) ;  // set the vertices in the label to marked=1
     LabelFree(&area) ;
