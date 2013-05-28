@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2012/11/27 21:03:08 $
-#    $Revision: 1.61 $
+#    $Date: 2013/05/28 14:13:30 $
+#    $Revision: 1.62 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: isxconcat-sess,v 1.61 2012/11/27 21:03:08 greve Exp $'
+set VERSION = '$Id: isxconcat-sess,v 1.62 2013/05/28 14:13:30 greve Exp $'
 
 set inputargs = ($argv);
 
@@ -175,7 +175,9 @@ foreach sess ($SessList)
   set bstampfile = $sess/$fsd/$analysis/fs.build-stamp.txt
   if(-e $bstampfile) then
     set bstamp = `cat $bstampfile`
-    set mdate = `stat -c %y $bstampfile | awk '{print $1}'`
+    # This fails on mac, no -c option
+    #set mdate = `stat -c %y $bstampfile | awk '{print $1}'`
+    set mdate = ();
   else
     set bstamp = ();
     set mdate = ();
