@@ -23,9 +23,9 @@ function [edge, bincenter, binmap] = fast_histeq(y,nbins)
 %
 % Original Author: Doug Greve
 % CVS Revision Info:
-%    $Author: nicks $
-%    $Date: 2011/03/02 00:04:04 $
-%    $Revision: 1.6 $
+%    $Author: greve $
+%    $Date: 2013/05/29 02:59:15 $
+%    $Revision: 1.7 $
 %
 % Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 %
@@ -48,9 +48,17 @@ end
 y = y(:);
 ysorted = sort(y);
 ny = length(y);
-nperbin = round(ny/nbins);
+% This is a little bit of a hack for cases where there
+% cannot be an equal number per bin.
+nperbin = round(ny/nbins);                                          
 indedge = [1:nperbin:ny];
-if(indedge(end) ~= ny) indedge = [indedge ny]; end
+n0 = length(indedge);                                                   
+if(n0 ~= nbins+1)                                                   
+  indedge = [indedge ny];                                                   
+end                                                                 
+if(indedge(end) ~= ny)                                                  
+  indedge(end) = ny;                                                    
+end                                                                 
 edge = ysorted(indedge)';
 bincenter = (edge(1:end-1)+edge(2:end))/2;
 binmap = zeros(ny,1);
