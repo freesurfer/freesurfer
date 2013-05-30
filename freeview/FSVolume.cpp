@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2013/04/12 20:05:02 $
- *    $Revision: 1.81 $
+ *    $Date: 2013/05/30 19:47:47 $
+ *    $Revision: 1.82 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -1732,7 +1732,8 @@ bool FSVolume::CreateImage( MRI* rasMRI )
 
   imageData->SetSpacing( rasMRI->xsize, rasMRI->ysize, rasMRI->zsize );
   imageData->SetOrigin( origin[0], origin[1], origin[2] );
-  imageData->SetWholeExtent( 0, zX-1, 0, zY-1, 0, zZ-1 );
+//  imageData->SetWholeExtent( 0, zX-1, 0, zY-1, 0, zZ-1 );
+  imageData->SetDimensions(zX, zY, zZ);
   imageData->SetNumberOfScalarComponents( zFrames );
 
   // create the scalars for all of the images. set the element size

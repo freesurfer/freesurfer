@@ -20,6 +20,7 @@ PanelAllLayers::PanelAllLayers(QWidget *parent) :
     connect(wnd->GetLayerCollection(type), SIGNAL(LayerCycled(Layer*)), this, SLOT(RefreshLayerList()));
     connect(wnd->GetLayerCollection(type), SIGNAL(LayerVisibilityChanged()), this, SLOT(OnLayerChanged()));
   }
+  connect(this, SIGNAL(LayerTypeTriggered(QString)), wnd, SLOT(SetActivePanel(QString)));
 }
 
 PanelAllLayers::~PanelAllLayers()

@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2013/04/12 20:05:02 $
- *    $Revision: 1.29 $
+ *    $Date: 2013/05/30 19:47:47 $
+ *    $Revision: 1.30 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -118,6 +118,7 @@ signals:
   void LayerShowInfoChanged();
   void LayerModified();
   void LayerNameChanged();
+  void LayerTransformed();
   void MouseRASPositionChanged();
   void CursorRASPositionChanged();
 

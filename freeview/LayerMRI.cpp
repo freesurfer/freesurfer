@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2013/05/23 17:10:43 $
- *    $Revision: 1.129 $
+ *    $Date: 2013/05/30 19:47:47 $
+ *    $Revision: 1.130 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -617,7 +617,6 @@ void LayerMRI::DoTranslate( double* offset )
   }
 }
 
-
 void LayerMRI::DoScale( double* scale, int nSampleMethod )
 {
   if ( GetProperty()->GetColorMap() == LayerPropertyMRI::LUT || nSampleMethod == SAMPLE_NEAREST )
@@ -663,6 +662,8 @@ void LayerMRI::InitializeVolume()
   m_dWorldSize[0] = ( ( int )( (RASBounds[1] - RASBounds[0]) / m_dWorldVoxelSize[0] ) ) * m_dWorldVoxelSize[0];
   m_dWorldSize[1] = ( ( int )( (RASBounds[3] - RASBounds[2]) / m_dWorldVoxelSize[1] ) ) * m_dWorldVoxelSize[1];
   m_dWorldSize[2] = ( ( int )( (RASBounds[5] - RASBounds[4]) / m_dWorldVoxelSize[2] ) ) * m_dWorldVoxelSize[2];
+//  qDebug() << RASBounds[0] << RASBounds[1] << RASBounds[2] << RASBounds[3] << RASBounds[4] << RASBounds[5];
+//  qDebug() << m_dWorldSize[0] << m_dWorldSize[1] << m_dWorldSize[2];
 
   m_imageData = source->GetImageOutput();
 }
@@ -679,9 +680,9 @@ void LayerMRI::InitializeActors()
     //
     mReslice[i] = vtkSmartPointer<vtkImageReslice>::New();
     mReslice[i]->SetInput( m_imageData );
-    mReslice[i]->BorderOff();
+//    mReslice[i]->BorderOff();
     mReslice[i]->SetResliceTransform( tr );
-//    mReslice[i]->AutoCropOutputOn();
+    mReslice[i]->AutoCropOutputOn();
 
     // This sets us to extract slices.
     mReslice[i]->SetOutputDimensionality( 2 );
@@ -702,7 +703,7 @@ void LayerMRI::InitializeActors()
     mColorMap[i]->SetLookupTable( GetProperty()->GetGrayScaleTable() );
     mColorMap[i]->SetInputConnection( mReslice[i]->GetOutputPort() );
     mColorMap[i]->SetOutputFormatToRGBA();
- //   mColorMap[i]->PassAlphaToOutputOn();
+    mColorMap[i]->PassAlphaToOutputOn();
 
     //
     // Prop in scene with plane mesh and texture.

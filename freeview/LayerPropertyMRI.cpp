@@ -12,8 +12,8 @@
  * Reimplemented by: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2013/02/06 18:35:43 $
- *    $Revision: 1.15 $
+ *    $Date: 2013/05/30 19:47:47 $
+ *    $Revision: 1.16 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -237,6 +237,11 @@ void LayerPropertyMRI::RestoreSettings(const QVariantMap& map)
     m_frameSettings = map["FrameSettings"].toMap();
   }
 
+  if (map.contains("ClearBackground"))
+  {
+    mbClearZero = map["ClearBackground"].toBool();
+  }
+
   this->OnColorMapChanged();
 }
 
@@ -265,6 +270,7 @@ QVariantMap LayerPropertyMRI::GetSettings()
   map["MaxLabelContourRange"] = m_dLabelContourRange[1];
   map["RememberFrameSettings"] = m_bRememberFrameSettings;
   map["FrameSettings"] = m_frameSettings;
+  map["ClearBackground"] = mbClearZero;
   return map;
 }
 

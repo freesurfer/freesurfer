@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2013/05/28 18:48:15 $
- *    $Revision: 1.243 $
+ *    $Date: 2013/05/30 19:47:47 $
+ *    $Revision: 1.244 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -319,6 +319,8 @@ MainWindow::MainWindow( QWidget *parent, MyCmdLineParser* cmdParser ) :
     connect(m_layerCollections["MRI"], SIGNAL(ActiveLayerChanged(Layer*)),
             m_views[i], SLOT(UpdateAnnotation()));
   }
+  connect(m_layerCollections["MRI"], SIGNAL(LayerTransformed()),
+          m_views[3], SLOT(UpdateBounds()));
 
   QActionGroup* actionGroupMode = new QActionGroup( this );
   actionGroupMode->addAction( ui->actionNavigate );
@@ -5791,4 +5793,18 @@ void MainWindow::CommandSetVolumeMask(const QStringList &cmd)
   {
     mri->SetMaskLayer(mask);
   }
+}
+
+void MainWindow::SetActivePanel(const QString &layer_type)
+{
+  if (layer_type == "MRI")
+    ui->tabWidgetControlPanel->setCurrentWidget(ui->tabVolume);
+  else if (layer_type == "ROI")
+    ui->tabWidgetControlPanel->setCurrentWidget(ui->tabROI);
+  else if (layer_type == "Surface")
+    ui->tabWidgetControlPanel->setCurrentWidget(ui->tabSurface);
+  else if (layer_type == "PointSet")
+    ui->tabWidgetControlPanel->setCurrentWidget(ui->tabPointSet);
+  else if (layer_type == "CMAT")
+    ui->tabWidgetControlPanel->setCurrentWidget(ui->tabCMAT);
 }
