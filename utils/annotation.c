@@ -8,9 +8,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2011/11/16 22:16:50 $
- *    $Revision: 1.29 $
+ *    $Author: fischl $
+ *    $Date: 2013/05/30 17:36:50 $
+ *    $Revision: 1.30 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -452,7 +452,7 @@ int MRISdivideAnnotation(MRI_SURFACE *mris, int *nunits) {
           offset++ ;
           found = 0 ;
         }
-      } while (!found) ;
+      } while (!found && offset < 256) ;
       index++ ;
     }
   }

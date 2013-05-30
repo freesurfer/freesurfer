@@ -11,9 +11,9 @@
 /*
  * Original Authors: Kevin Teich, Bruce Fischl
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2012/09/14 15:44:28 $
- *    $Revision: 1.40 $
+ *    $Author: fischl $
+ *    $Date: 2013/05/30 17:36:50 $
+ *    $Revision: 1.41 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -437,7 +437,7 @@ COLOR_TABLE *CTABalloc(int nentries)
     sprintf (ct->entries[structure]->name, "cluster%d", structure);
   }
   ct->idbase = 0;
-  CTABunique(ct, 10);
+  CTABunique(ct, 100);
 
   return(ct);
 }
