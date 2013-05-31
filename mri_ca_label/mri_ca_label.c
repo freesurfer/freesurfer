@@ -10,8 +10,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2012/05/21 15:15:06 $
- *    $Revision: 1.99 $
+ *    $Date: 2013/05/31 21:21:59 $
+ *    $Revision: 1.100 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -207,13 +207,13 @@ int main(int argc, char *argv[])
   FSinit() ;
   make_cmd_version_string
   (argc, argv,
-   "$Id: mri_ca_label.c,v 1.99 2012/05/21 15:15:06 fischl Exp $",
+   "$Id: mri_ca_label.c,v 1.100 2013/05/31 21:21:59 fischl Exp $",
    "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mri_ca_label.c,v 1.99 2012/05/21 15:15:06 fischl Exp $",
+           "$Id: mri_ca_label.c,v 1.100 2013/05/31 21:21:59 fischl Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
   {
@@ -1141,7 +1141,6 @@ int main(int argc, char *argv[])
 
   mri_labeled->ct = gca->ct ;  // embed color table in output volume
   /*  GCAfree(&gca) ; */
-  MRIfree(&mri_inputs) ;
 #if 0
   if (filter)
   {
@@ -1159,6 +1158,19 @@ int main(int argc, char *argv[])
   {
     ErrorExit(Gerror, "%s: MRIwrite(%s) failed", Progname, out_fname) ;
   }
+
+  if (G_write_probs != NULL)
+  {
+    MRI *mri_probs ;
+    char fname[STRLEN] ;
+
+    mri_probs = GCAcomputeTopNProbabilities(mri_inputs, gca, mri_labeled, NULL, transform, 3) ;
+    sprintf(fname, "%s.mgz", G_write_probs) ;
+    printf("writing ordered labels and  probabilities to %s\n", fname) ;
+    MRIwrite(mri_probs, fname) ;
+    MRIfree(&mri_probs) ;
+  }
+  MRIfree(&mri_inputs) ;
 
   msec = TimerStop(&start) ;
   seconds = nint((float)msec/1000.0f) ;
