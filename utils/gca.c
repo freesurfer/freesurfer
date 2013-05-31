@@ -14,8 +14,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2013/03/25 12:38:13 $
- *    $Revision: 1.313 $
+ *    $Date: 2013/05/31 21:21:15 $
+ *    $Revision: 1.314 $
  *
  * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -66,6 +66,15 @@
 #include <dmalloc.h>
 #endif
 
+typedef struct
+{
+  int   label ;
+  float prob ;
+  int   index ;
+}
+LABEL_PROB ;
+
+static int compare_sort_probabilities(const void *plp1, const void *plp2);
 extern const char* Progname;
 
 int Ggca_label = -1 ;
@@ -4224,6 +4233,100 @@ GCAlabelProbabilities(MRI *mri_inputs,
 }
 
 MRI  *
+GCAcomputeTopNProbabilities(MRI *mri_inputs, GCA *gca, MRI *mri_labels,
+			    MRI *mri_dst, TRANSFORM *transform, int max_labels)
+{
+  int       x, y, z, width, height, depth, label,
+    xn, yn, zn, n ;
+  GCA_NODE  *gcan ;
+  GCA_PRIOR *gcap ;
+  GC1D      *gc ;
+  double    p, total_p ;
+  float     vals[MAX_GCA_INPUTS] ;
+  LABEL_PROB label_probs[MAX_LABELS_PER_GCAN] ;
+
+  width = mri_inputs->width ; height = mri_inputs->height; depth = mri_inputs->depth ;
+  if (!mri_dst)
+  {
+    mri_dst = MRIallocSequence(width, height, depth, MRI_FLOAT, 2*max_labels) ;
+    if (!mri_dst)
+      ErrorExit(ERROR_NOMEMORY, "GCAlabel: could not allocate dst") ;
+    MRIcopyHeader(mri_inputs, mri_dst) ;
+  }
+
+
+  /* go through each voxel in the input volume and find the canonical
+     voxel (and hence the classifier) to which it maps. Then update the
+     classifiers statistics based on this voxel's intensity and label.
+  */
+  for (x = 0 ; x < width ; x++)
+  {
+    for (y = 0 ; y < height ; y++)
+    {
+      for (z = 0 ; z < depth ; z++)
+      {
+        if (x == Gx && y == Gy && z == Gz)
+          DiagBreak() ;
+        load_vals(mri_inputs, x, y, z, vals, gca->ninputs) ;
+        if (!GCAsourceVoxelToNode(gca, mri_inputs, transform, x, y, z, &xn, &yn, &zn))
+        {
+          label = nint(MRIgetVoxVal(mri_labels, x, y, z, 0)) ;
+
+          gcan = &gca->nodes[xn][yn][zn] ; gcap = getGCAP(gca, mri_inputs, transform, x, y, z) ;
+          if (gcap==NULL)
+            continue;
+
+          for (total_p = 0.0, n = 0 ; n < gcap->nlabels ; n++)
+          {
+	    gc = GCAfindGC(gca, xn, yn, zn, gcap->labels[n]) ;
+	    if (gc == NULL)
+	    {
+	      label_probs[n].prob = 0 ;
+	      label_probs[n].label = -1 ;
+	      continue ;
+	    }
+	    MRIsetVoxVal(mri_labels, x, y, z, 0, gcap->labels[n]) ;  // change it for markov calculation
+
+	    p = gcaGibbsLogPosterior(gca,
+				     mri_labels,
+				     vals,
+				     gcap->labels[n],
+				     x, y, z, gcap, gcan);
+	    p = label_probs[n].prob = exp(p) ;
+	    label_probs[n].label = gcap->labels[n] ;
+	    label_probs[n].index = n ;
+            total_p += p ;
+          }
+	  if (total_p > 0)
+	    for (n = 0 ; n < gcap->nlabels ; n++)
+	      label_probs[n].prob /= -total_p ;  // make it negative for sorting
+
+          qsort(label_probs, gcap->nlabels, sizeof(LABEL_PROB), compare_sort_probabilities) ;
+	  
+	  
+          MRIsetVoxVal(mri_labels, x, y, z,0, label) ;  // change it back to original label
+          for (n = 0 ; n < max_labels ; n++)
+          {
+	    if (n < gcap->nlabels)
+	    {
+	      MRIsetVoxVal(mri_dst, x, y, z, 2*n, label_probs[n].label) ;
+	      MRIsetVoxVal(mri_dst, x, y, z, 2*n+1, -label_probs[n].prob) ;  // remove the negative from before
+	    }
+	    else
+	    {
+	      MRIsetVoxVal(mri_dst, x, y, z, 2*n, -1) ;
+	      MRIsetVoxVal(mri_dst, x, y, z, 2*n+1, 0) ;
+	    }
+	  }
+        }
+      }
+    }
+  }
+  
+  return(mri_dst) ;
+}
+
+MRI  *
 GCAcomputeProbabilities(MRI *mri_inputs, GCA *gca, MRI *mri_labels,
                         MRI *mri_dst, TRANSFORM *transform)
 {
@@ -4622,15 +4725,6 @@ GCAreduce(GCA *gca_src)
 }
 
 
-typedef struct
-{
-  int   label ;
-  float prob ;
-  int   index ;
-}
-LABEL_PROB ;
-
-static int compare_sort_probabilities(const void *plp1, const void *plp2);
 MRI *
 GCAclassify(MRI *mri_inputs,GCA *gca,MRI *mri_dst,
             TRANSFORM *transform,int max_labels)
