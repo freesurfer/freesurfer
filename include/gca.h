@@ -10,9 +10,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: lzollei $
- *    $Date: 2013/01/05 20:42:57 $
- *    $Revision: 1.120 $
+ *    $Author: fischl $
+ *    $Date: 2013/05/31 21:22:10 $
+ *    $Revision: 1.121 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -324,6 +324,8 @@ MRI        *GCAbuildMostLikelyVolumeForStructure( const GCA *gca,
 						  int border,
 						  TRANSFORM *transform,
 						  MRI *mri_labels);
+MRI  *GCAcomputeTopNProbabilities(MRI *mri_inputs, GCA *gca, MRI *mri_labels,
+				  MRI *mri_dst, TRANSFORM *transform, int max_labels) ;
 MRI        *GCAbuildMostLikelyVolumeFrame(GCA *gca, MRI *mri, int frame) ;
 MRI *GCAbuildMostLikelyLabelVolume(GCA *gca);
 MRI *GCAbuildMostLikelyLabelProbabilityVolume(GCA *gca);
