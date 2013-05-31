@@ -10,7 +10,7 @@
 #
 #############################################################################
 
-set VERSION='$Id: test_optseq2.csh,v 2.17.4.1 2012/11/30 17:19:14 zkaufman Exp $'
+set VERSION='$Id: test_optseq2.csh,v 2.17.4.2 2013/05/31 19:49:26 zkaufman Exp $'
 
 umask 002
 
@@ -36,7 +36,7 @@ set EXPECTED=$WD/test_data
 cd $EXPECTED
 set PROC=`uname -p`
 if ($status) set PROC=`uname -m`
-echo $PROC | grep 86
+echo $PROC | grep 64
 if (! $status) set PROC=(x86_64)
 set TEST_DATA=$EXPECTED/$PROC-emot.tar.gz
 # Mac OS has its own test data since it uses a different RNG
