@@ -7,9 +7,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: nicks $
-#    $Date: 2011/03/02 20:16:39 $
-#    $Revision: 1.36 $
+#    $Author: greve $
+#    $Date: 2013/06/03 16:43:14 $
+#    $Revision: 1.37 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -24,7 +24,7 @@
 #
 
 
-set VERSION = '$Id: reg-feat2anat,v 1.36 2011/03/02 20:16:39 nicks Exp $'
+set VERSION = '$Id: reg-feat2anat,v 1.37 2013/06/03 16:43:14 greve Exp $'
 set FeatDir = ();
 set subject = ();
 set anatvol = brainmask;
@@ -259,7 +259,7 @@ if(! $UseSPM) then
   # Now run the fslregister cmd
   set cmd = (fslregister --s $subject --reg $anat2exf_regdat \
     --mov $tempvol --dof $dof --bins $bins --cost $cost \
-    --fslmat $exf2anat_fslmat --fsvol $anatvol \
+    --fslmat $exf2anat_fslmat --fsvol $anatvol.mgz \
     --maxangle $maxangle  --initfslmat $exf2anat_init_fslmat \
     --tmp $FeatDir/reg/freesurfer/tmp --out $outvol.$fslext)
   if($DoBETFunc) set cmd = ($cmd --betfunc) # Not with FSL 4.0
