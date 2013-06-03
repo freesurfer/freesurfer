@@ -19,6 +19,8 @@ public:
   explicit PanelAllLayers(QWidget *parent = 0);
   ~PanelAllLayers();
 
+  QString GetCurrentLayerType();
+
 signals:
   void LayerTypeTriggered(const QString& type);
 
@@ -33,7 +35,7 @@ public slots:
   void OnLayerChanged();
 
 private:
-  void AddLayers(QList<Layer*> layers, const QString& cat_name);
+  void AddLayers(QList<Layer*> layers, const QString& cat_name, Layer* curLayer = NULL);
 
   Ui::PanelAllLayers *ui;
 };

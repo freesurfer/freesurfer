@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2013/05/30 19:47:47 $
- *    $Revision: 1.130 $
+ *    $Date: 2013/06/03 16:24:31 $
+ *    $Revision: 1.131 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -680,7 +680,7 @@ void LayerMRI::InitializeActors()
     //
     mReslice[i] = vtkSmartPointer<vtkImageReslice>::New();
     mReslice[i]->SetInput( m_imageData );
-//    mReslice[i]->BorderOff();
+    mReslice[i]->BorderOn();
     mReslice[i]->SetResliceTransform( tr );
     mReslice[i]->AutoCropOutputOn();
 

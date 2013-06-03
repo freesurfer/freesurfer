@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2013/05/30 19:47:47 $
- *    $Revision: 1.244 $
+ *    $Date: 2013/06/03 16:24:31 $
+ *    $Revision: 1.245 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -108,7 +108,7 @@ MainWindow::MainWindow( QWidget *parent, MyCmdLineParser* cmdParser ) :
   m_bProcessing(false),
   m_bSplinePicking(true),
   m_cmdParser(cmdParser)
-{
+{ 
   // must create layer collections first before setupui()
   m_layerCollections["MRI"] = new LayerCollection( "MRI", this );
   m_layerCollections["ROI"] = new LayerCollection( "ROI", this );
@@ -138,6 +138,8 @@ MainWindow::MainWindow( QWidget *parent, MyCmdLineParser* cmdParser ) :
 
   m_statusBar = new FloatingStatusBar(this);
   m_statusBar->hide();
+
+  ui->widgetAllLayers->hide();
 
   ui->viewSagittal->SetViewPlane( 0 );
   ui->viewCoronal ->SetViewPlane( 1 );
@@ -3539,6 +3541,10 @@ LayerCollection* MainWindow::GetCurrentLayerCollection()
   else if ( name == "Tracks" )
   {
     lc = GetLayerCollection( "Track");
+  }
+  else if ( name == "All")
+  {
+    lc = GetLayerCollection(ui->tabAllLayers->GetCurrentLayerType());
   }
 
   return lc;

@@ -61,16 +61,20 @@ void PanelAllLayers::OnLayerAdded(Layer *added_layer)
 
 void PanelAllLayers::RefreshLayerList(Layer *curLayer)
 {
+  Layer* layer = NULL;
+  QTreeWidgetItem* item = ui->treeWidgetLayers->currentItem();
+  if (item)
+    layer = qobject_cast<Layer*>(item->data( 0, Qt::UserRole ).value<QObject*>());
   ui->treeWidgetLayers->clear();
   MainWindow* wnd = MainWindow::GetMainWindow();
-  AddLayers(wnd->GetLayers("MRI"), "Volumes");
-  AddLayers(wnd->GetLayers("Surface"), "Surfaces");
-  AddLayers(wnd->GetLayers("ROI"), "ROIs");
-  AddLayers(wnd->GetLayers("PointSet"), "Point Sets");
-  AddLayers(wnd->GetLayers("CMAT"), "CMAT");
+  AddLayers(wnd->GetLayers("MRI"), "Volumes", layer);
+  AddLayers(wnd->GetLayers("Surface"), "Surfaces", layer);
+  AddLayers(wnd->GetLayers("ROI"), "ROIs", layer);
+  AddLayers(wnd->GetLayers("PointSet"), "Point Sets", layer);
+  AddLayers(wnd->GetLayers("CMAT"), "CMAT", layer);
 }
 
-void PanelAllLayers::AddLayers(QList<Layer *> layers, const QString &cat_name)
+void PanelAllLayers::AddLayers(QList<Layer *> layers, const QString &cat_name, Layer* curLayer)
 {
   ui->treeWidgetLayers->blockSignals(true);
   if (!layers.isEmpty())
@@ -83,6 +87,8 @@ void PanelAllLayers::AddLayers(QList<Layer *> layers, const QString &cat_name)
       item->setText(0, layers[i]->GetName());
       item->setData(0, Qt::UserRole, QVariant::fromValue((QObject*)layers[i]));
       item->setCheckState(0, layers[i]->IsVisible() ? Qt::Checked : Qt::Unchecked);
+      if (layers[i] == curLayer)
+        ui->treeWidgetLayers->setCurrentItem(item);
     }
     topItem->setExpanded(true);
   }
@@ -166,9 +172,7 @@ void PanelAllLayers::OnLayerChanged()
 void PanelAllLayers::OnItemDoubleClicked(QTreeWidgetItem *item)
 {
   Layer* layer = qobject_cast<Layer*>(item->data( 0, Qt::UserRole ).value<QObject*>());
-  if (!layer)
-    return;
-
+/*
   QStringList layer_types;
   layer_types << "MRI" << "Surface" << "ROI" << "PointSet" << "CMAT";
   foreach (QString type, layer_types)
@@ -179,4 +183,37 @@ void PanelAllLayers::OnItemDoubleClicked(QTreeWidgetItem *item)
       return;
     }
   }
+  */
+  if (layer)
+  {
+    MainWindow* mainwnd = MainWindow::GetMainWindow();
+    LayerCollection* lc = mainwnd->GetLayerCollection(GetCurrentLayerType());
+    if (lc)
+    {
+      lc->MoveToTop(layer);
+      lc->SetActiveLayer(layer);
+    }
+  }
+}
+
+QString PanelAllLayers::GetCurrentLayerType()
+{
+  QTreeWidgetItem* item = ui->treeWidgetLayers->currentItem();
+  if (item)
+  {
+    Layer* layer = qobject_cast<Layer*>(item->data( 0, Qt::UserRole ).value<QObject*>());
+    if (layer)
+    {
+      QStringList layer_types;
+      layer_types << "MRI" << "Surface" << "ROI" << "PointSet" << "CMAT";
+      foreach (QString type, layer_types)
+      {
+        if (layer->IsTypeOf(type))
+        {
+          return type;
+        }
+      }
+    }
+  }
+  return "";
 }
