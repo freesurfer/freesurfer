@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2013/05/18 21:17:21 $
- *    $Revision: 1.524 $
+ *    $Date: 2013/06/04 19:28:08 $
+ *    $Revision: 1.525 $
  *
  * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -23,7 +23,7 @@
  */
 
 extern const char* Progname;
-const char *MRI_C_VERSION = "$Revision: 1.524 $";
+const char *MRI_C_VERSION = "$Revision: 1.525 $";
 
 
 /*-----------------------------------------------------
@@ -12866,6 +12866,7 @@ MRI *MRIresampleFill
   int si, sj, sk;
   float si_f, sj_f, sk_f;
   float si_ff, sj_ff, sk_ff;
+  float di_ff, dj_ff, dk_ff;
   MATRIX *sp, *dp;
   float val, val000, val001, val010, val011, val100, val101, val110, val111;
   float w000, w001, w010, w011, w100, w101, w110, w111;
@@ -12927,12 +12928,103 @@ MRI *MRIresampleFill
   dp = MatrixAlloc(4, 1, MATRIX_REAL);
 
   *MATRIX_RELT(dp, 4, 1) = 1.0;
+  *MATRIX_RELT(sp, 4, 1) = 1.0;
 
   MRI_BSPLINE * bspline = NULL;
   if (resample_type == SAMPLE_CUBIC_BSPLINE)
     bspline = MRItoBSpline(src,NULL,3);
-  
 
+  if (resample_type == SAMPLE_VOTE)
+  {
+    MRI *mri_votes ;
+    int  count ;
+    MATRIX *minv ;
+
+    printf("resampling using voting...\n") ;
+    // iterate over source voxels and vote to create dest one
+    mri_votes = MRIallocSequence(template_vol->width, template_vol->height, template_vol->depth, MRI_UCHAR, 256) ;
+    minv = MRIgetResampleMatrix(template_vol, src);
+    // center the sampling
+#if 0
+    *MATRIX_RELT(minv, 1, 4) -= .5*(src->width/template_vol->width) ;
+    *MATRIX_RELT(minv, 2, 4) -= .5*(src->height/template_vol->height) ;
+    *MATRIX_RELT(minv, 3, 4) -= .5*(src->depth/template_vol->depth);
+#endif
+    *MATRIX_RELT(minv, 1, 4) += .5 ;
+    *MATRIX_RELT(minv, 2, 4) += .5 ;
+    *MATRIX_RELT(minv, 3, 4) += .5 ;
+    if (minv == NULL)
+      return(NULL);
+    for (nframe = 0; nframe < src->nframes; nframe++)
+    {
+      for (si = 0; si < src->width; si++)
+      {
+	for (sj = 0;sj < src->height;sj++)
+	{
+	  for (sk = 0;sk < src->depth;sk++)
+	  {
+	    if (si == Gx && sj == Gy && sk == Gz)
+	      DiagBreak() ;
+	    *MATRIX_RELT(sp, 1, 1) = (float)si;
+	    *MATRIX_RELT(sp, 2, 1) = (float)sj;
+	    *MATRIX_RELT(sp, 3, 1) = (float)sk;
+
+	    MatrixMultiply(minv, sp, dp);
+	    
+	    di_ff = *MATRIX_RELT(dp, 1, 1);
+	    dj_ff = *MATRIX_RELT(dp, 2, 1);
+	    dk_ff = *MATRIX_RELT(dp, 3, 1);
+	    
+	    di = (int)floor(di_ff);
+	    dj = (int)floor(dj_ff);
+	    dk = (int)floor(dk_ff);
+	    if (di < 0 || dj < 0 || dk < 0 || 
+		di > mri_votes->width-1 ||
+		dj > mri_votes->height-1 ||
+		dk > mri_votes->depth-1)
+	      continue ;
+	    if (di == Gx && dj == Gy && dk == Gz)
+	      DiagBreak() ;
+	    val = nint(MRIgetVoxVal(src, si, sj, sk, nframe)) ;
+	    if (val < 0)
+	      val = 0 ;
+	    else if (val > 255)
+	      val = 255 ;
+	    count = MRIgetVoxVal(mri_votes, di, dj, dk, val) ;
+	    MRIsetVoxVal(mri_votes, di, dj, dk, val, count+1) ;
+	  }
+	}
+      }
+    }
+    for (nframe = 0; nframe < template_vol->nframes; nframe++)
+    {
+      int max_label, max_count, label ;
+      for (di = 0;di < template_vol->width;di++)
+      {
+	for (dj = 0;dj < template_vol->height;dj++)
+	{
+	  for (dk = 0;dk < template_vol->depth;dk++)
+	  {
+	    if (di == Gx && dj == Gy && dk == Gz)
+	      DiagBreak() ;
+	    max_label = max_count = -1 ; 
+	    for (label = 0 ; label < 256 ; label++)
+	    {
+	      count = MRIgetVoxVal(mri_votes, di, dj, dk, label) ;
+	      if (count > max_count)
+	      {
+		max_count = count ;
+		max_label = label ;
+	      }
+	    }
+	    MRIsetVoxVal(dest, di, dj, dk, nframe, max_label) ;
+	  }
+	}
+      }
+    }
+    MRIfree(&mri_votes) ;
+  }
+  else
   for (nframe = 0; nframe < template_vol->nframes; nframe++)
   {
     for (di = 0;di < template_vol->width;di++)
