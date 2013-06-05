@@ -1,5 +1,5 @@
 #!/bin/tcsh -f
-set VERSION = '$Id: mri_glmfit-sim,v 1.47 2013/04/17 15:38:31 greve Exp $';
+set VERSION = '$Id: mri_glmfit-sim,v 1.48 2013/06/05 16:59:32 greve Exp $';
 
 set inputargs = ($argv);
 
@@ -865,7 +865,7 @@ usage_exit:
   echo "mri_glmfit-sim"
   echo ""
   echo " --glmdir glmdir"
-  echo " --cwpvalthresh thresh : cluster p-value thresh ($cwpvalthresh)"
+  echo " --cwp thresh : cluster p-value thresh ($cwpvalthresh)"
   echo ""
   echo " --cache threshold sign"
   echo "   --cache-dir dir : default is FREESURFER_HOME/average/mult-comp-cor"
@@ -1050,6 +1050,7 @@ backgrounded jobs creating a file called glmdir/csd/poll/StopSim. If
 you are in the Martinos center, do not attempt to use --bg on the
 launchpad computational cluster.
 
+--cwp cwpvalthresh
 --cwpvalthresh cwpvalthresh
 
 Only report clusters that have p < cwpvalthresh. Default is .05. If you
@@ -1072,9 +1073,18 @@ structures, then use --3spaces. The correction applied is Bonferroni
 
 --no-sim csdbase
 
-Run this if you have already run the stimulation but just want to 
-run the correction for multiple comparisons again. "csdbase" is 
-the same that was used in the orignial invocation to mri_glmfit.
+Run this if you have already run the stimulation but just want to run
+the correction for multiple comparisons again to change the
+clusterwise threshold. "csdbase" is the same that was used in the
+orignial invocation to mri_glmfit-sim.  Eg, if this was your original
+mri_glmfit-sim command:
+
+  mri_glmfit-sim --glmdir lh.thickness.sm05 --cwp .05\
+    --sim mc-z 10000 3 mc-z.pos.3 --sim-sign pos
+
+But then then you wanted to re-run with a higher CWP, then
+
+  mri_glmfit-sim --glmdir lh.thickness.sm05 --no-sim mc-z.pos.3 --cwp .1
 
 --seed seed
 
