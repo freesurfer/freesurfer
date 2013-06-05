@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl (Apr 16, 1997)
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2012/12/06 21:44:17 $
- *    $Revision: 1.203 $
+ *    $Author: fischl $
+ *    $Date: 2013/06/05 17:00:52 $
+ *    $Revision: 1.204 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -213,7 +213,7 @@ int main(int argc, char *argv[])
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mri_convert.c,v 1.203 2012/12/06 21:44:17 greve Exp $",
+   "$Id: mri_convert.c,v 1.204 2013/06/05 17:00:52 fischl Exp $",
    "$Name:  $",
    cmdline);
 
@@ -338,7 +338,7 @@ int main(int argc, char *argv[])
     handle_version_option
     (
       argc, argv,
-      "$Id: mri_convert.c,v 1.203 2012/12/06 21:44:17 greve Exp $",
+      "$Id: mri_convert.c,v 1.204 2013/06/05 17:00:52 fischl Exp $",
       "$Name:  $"
     );
   if (nargs && argc - nargs == 1)
@@ -1032,6 +1032,10 @@ int main(int argc, char *argv[])
       {
         resample_type_val = SAMPLE_NEAREST;
       }
+      else if(strcmp(StrLower(resample_type), "vote") == 0)
+      {
+        resample_type_val = SAMPLE_VOTE;
+      }
       else if(strcmp(StrLower(resample_type), "weighted") == 0)
       {
         resample_type_val = SAMPLE_WEIGHTED;
@@ -1626,9 +1630,10 @@ int main(int argc, char *argv[])
             "= --zero_ge_z_offset option ignored.\n");
   }
 
-  printf("$Id: mri_convert.c,v 1.203 2012/12/06 21:44:17 greve Exp $\n");
+  printf("$Id: mri_convert.c,v 1.204 2013/06/05 17:00:52 fischl Exp $\n");
   printf("reading from %s...\n", in_name_only);
 
+#if  0
   if (in_volume_type == MGH_MORPH)
   {
     GCA_MORPH *gcam, *gcam_out ;
@@ -1645,6 +1650,8 @@ int main(int argc, char *argv[])
     GCAMwrite(gcam_out, out_name) ;
     exit(0) ;
   }
+#endif
+
   if (in_volume_type == OTL_FILE)
   {
 
@@ -2986,6 +2993,9 @@ int main(int argc, char *argv[])
       break;
     case SAMPLE_WEIGHTED:
       printf("weighted \n");
+      break;
+    case SAMPLE_VOTE:
+      printf("voting \n");
       break;
     }
     mri2 = MRIresample(mri, template, resample_type_val);
