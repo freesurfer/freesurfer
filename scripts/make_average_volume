@@ -10,8 +10,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2011/05/20 23:35:44 $
-#    $Revision: 1.30.2.1 $
+#    $Date: 2013/06/05 16:42:51 $
+#    $Revision: 1.30.2.2 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -28,7 +28,7 @@
 # uncomment this to increase number of allowable open files to maximum:
 #limit descriptors unlimited
 
-set VERSION = '$Id: make_average_volume,v 1.30.2.1 2011/05/20 23:35:44 greve Exp $';
+set VERSION = '$Id: make_average_volume,v 1.30.2.2 2013/06/05 16:42:51 greve Exp $';
 
 set PrintHelp = 0;
 set transform_fname = talairach.xfm
@@ -52,6 +52,9 @@ parse_args_return:
 
 goto check_params;
 check_params_return:
+
+set StartTime = `date`;
+set tSecStart = `date '+%s'`;
 
 # Include cross-hemi registration
 if($DoXHemi) then
@@ -203,7 +206,15 @@ if($DoASeg) then
       set xfmvol = $tmpdir/seg-$subject.mgh
       set cmd = (mri_vol2vol --mov $invol \
            --targ $FREESURFER_HOME/average/mni305.cor.mgz \
-           --xfm $xfm  --o $xfmvol --interp nearest)
+           --o $xfmvol --interp nearest)
+      echo "xfm $xfm" | tee -a $LF
+      set bn0 = `basename $xfm`
+      set bn = `basename $xfm .xfm`
+      echo "bn = $bn"  | tee -a $LF
+      if($bn0 == $bn.xfm) set cmd = ($cmd --xfm $xfm)
+      set bn = `basename $xfm .m3z`
+      echo "bn = $bn"  | tee -a $LF
+      if($bn0 == $bn.m3z) set cmd = ($cmd --m3z $bn0 --s $subject)
       echo $cmd | tee -a $LF
       $cmd  |& tee -a $LF
       if($status) then
@@ -246,6 +257,16 @@ endif #DoASeg
 #----------------------------------------------------------
 
 if($cleanup) rm -r $tmpdir
+
+set tSecEnd = `date '+%s'`;
+@ tSecRun = $tSecEnd - $tSecStart;
+set tRunHours = `echo $tSecRun/3600|bc -l`
+set tRunHours = `printf %5.2f $tRunHours`
+echo "Started at $StartTime " |& tee -a $LF
+echo "Ended   at `date`" |& tee -a $LF
+echo "make_average_volume-Run-Time-Sec $tSecRun" |& tee -a $LF
+echo "make_average_volume-Run-Time-Hours $tRunHours" |& tee -a $LF
+echo " " |& tee -a $LF
 
 date | tee -a $LF
 echo "make_average_volume done" | tee -a $LF
@@ -364,6 +385,9 @@ while( $#argv != 0 )
     case "--no-surf":
     case "--no-vol":
     case "--force":
+    case "--lh":
+    case "--rh":
+    case "--lhrh":
       if ( $getting_subjects ) then
         set getting_subjects = 0;
         # got em all, from --subjects variable arg loop
