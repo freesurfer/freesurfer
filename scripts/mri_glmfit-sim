@@ -1,5 +1,5 @@
 #!/bin/tcsh -f
-set VERSION = '$Id: mri_glmfit-sim,v 1.36.2.5 2012/10/01 22:31:37 greve Exp $';
+set VERSION = '$Id: mri_glmfit-sim,v 1.36.2.6 2013/06/05 17:06:31 greve Exp $';
 
 set inputargs = ($argv);
 
@@ -465,7 +465,7 @@ endif #DoSim
 if($DoPBSubmit) then
   # pbsubmit the surfcluster part
   set cmd = (mri_glmfit-sim --glmdir $glmdir  --tmp $tmpdir)
-  set cmd = ($cmd --sim-sign $simsign --no-sim $csdbase)
+  set cmd = ($cmd --sim-sign $simsign --no-sim $csdbase --cwpvalthresh $cwpvalthresh)
   set cmd = ($cmd --log $LF)
   echo "------------------------------------------------" | tee -a $LF
   echo $cmd  | tee -a $LF
@@ -741,8 +741,8 @@ while( $#argv != 0 )
       set Bonferroni = 3;
       breaksw
 
-    case "--cwp":
     case "--cwpvalthresh":
+    case "--cwp":
       if($#argv < 1) goto arg1err;
       set cwpvalthresh = $argv[1]; shift;
       breaksw
@@ -838,7 +838,7 @@ usage_exit:
   echo "mri_glmfit-sim"
   echo ""
   echo " --glmdir glmdir"
-  echo " --cwpvalthresh thresh : cluster p-value thresh ($cwpvalthresh)"
+  echo " --cwp thresh : cluster p-value thresh ($cwpvalthresh)"
   echo ""
   echo " --cache threshold sign"
   echo "   --cache-dir dir : default is FREESURFER_HOME/average/mult-comp-cor"
@@ -847,7 +847,7 @@ usage_exit:
   echo " --grf threshold sign : -log10(p) and pos or neg (volumes only)"
   echo ""
   echo " --sim nulltype nsim threshold csdbase"
-  echo " --sim-sign sign : <abs>,pos,neg"
+  echo " --sim-sign sign : abs,pos,neg"
   echo ""
   echo " --2spaces : additional Bonferroni correction across 2 spaces (eg, lh, rh)"
   echo " --3spaces : additional Bonferroni correction across 3 spaces (eg, lh, rh, mni305)"
@@ -855,6 +855,9 @@ usage_exit:
   echo " --overwrite : delete previous CSDs"
   echo " --bg njobs : divide sim into njobs and put in background"
   echo " --sleep tSleepSec : number of seconds to sleep between background polls "
+  echo ""
+  echo " --a2009s : use aparc.a2009s instead of aparc for reporting region of vertex max"
+  echo " --annot annot : use annot instead of aparc for reporting region of vertex max"
   echo ""
   echo " --log logfile : default is csdbase.mri_glmfit-sim.log"
   echo ""
@@ -924,7 +927,10 @@ To use this program:
 6. Select the threshold sign (--sim-sign). This is the sign of the
    threshold used to create the clusters for cluster-wise correction
    of multiple comparisons. Options are abs (unsigned), pos
-   (positive), and neg (negative).
+   (positive), and neg (negative). If you have an a priori hypothesis
+   (eg, group1 > group2), then choose positive. If you don not know
+   the sign, then use abs. Choosing a sign will yield stronger results
+   (ie, smaller p-values), but you will lose the other sign.
 
 Now run the command:
 
@@ -1017,6 +1023,7 @@ backgrounded jobs creating a file called glmdir/csd/poll/StopSim. If
 you are in the Martinos center, do not attempt to use --bg on the
 launchpad computational cluster.
 
+--cwp cwpvalthresh
 --cwpvalthresh cwpvalthresh
 
 Only report clusters that have p < cwpvalthresh. Default is .05. If you
@@ -1039,9 +1046,18 @@ structures, then use --3spaces. The correction applied is Bonferroni
 
 --no-sim csdbase
 
-Run this if you have already run the stimulation but just want to 
-run the correction for multiple comparisons again. "csdbase" is 
-the same that was used in the orignial invocation to mri_glmfit.
+Run this if you have already run the stimulation but just want to run
+the correction for multiple comparisons again to change the
+clusterwise threshold. "csdbase" is the same that was used in the
+orignial invocation to mri_glmfit-sim.  Eg, if this was your original
+mri_glmfit-sim command:
+
+  mri_glmfit-sim --glmdir lh.thickness.sm05 --cwp .05\
+    --sim mc-z 10000 3 mc-z.pos.3 --sim-sign pos
+
+But then then you wanted to re-run with a higher CWP, then
+
+  mri_glmfit-sim --glmdir lh.thickness.sm05 --no-sim mc-z.pos.3 --cwp .1
 
 --seed seed
 
