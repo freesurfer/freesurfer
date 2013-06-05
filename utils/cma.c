@@ -9,8 +9,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2012/10/22 19:34:41 $
- *    $Revision: 1.16 $
+ *    $Date: 2013/06/05 21:28:32 $
+ *    $Revision: 1.17 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -32,6 +32,7 @@
 #include <errno.h>
 #include "error.h"
 #include "mrisutils.h"
+#include "fio.h"
 
 /* see ch notebook 2 */
 
@@ -879,7 +880,7 @@ double *ComputeBrainVolumeStats(char *subject)
   char *SUBJECTS_DIR;
   MRI *aseg, *ribbon, *asegfixed, *brainmask;
   MRIS *mris;
-  int c,r,s,asegid,ribbonid,asegfixedid;
+  int c,r,s,asegid,ribbonid,asegfixedid,ribbonRead;
   double lhwhitevolTot, rhwhitevolTot, lhpialvolTot, rhpialvolTot;
   double lhCtxGM, rhCtxGM, lhCtxWM, rhCtxWM;
   double lhCtxGMCor, rhCtxGMCor, lhCtxWMCor, rhCtxWMCor;
@@ -920,9 +921,17 @@ double *ComputeBrainVolumeStats(char *subject)
   aseg = MRIread(tmpstr); if(aseg == NULL) return(NULL);
 
   sprintf(tmpstr,"%s/%s/mri/ribbon.mgz",SUBJECTS_DIR,subject);
-  ribbon = MRIread(tmpstr); if(ribbon == NULL) return(NULL);
-
-  asegfixed = MRIfixAsegWithRibbon(aseg, ribbon, NULL);
+  if(fio_FileExistsReadable(tmpstr)){
+    ribbon = MRIread(tmpstr); if(ribbon == NULL) return(NULL);
+    asegfixed = MRIfixAsegWithRibbon(aseg, ribbon, NULL);
+    ribbonRead = 1;
+  }
+  else {
+    printf("WARNING: %s does not exist, ribbon based measurements will be inaccurate\n",tmpstr);
+    ribbon = aseg;
+    asegfixed = aseg;
+    ribbonRead = 0;
+  }
 
   lhCtxGMCor = 0;
   rhCtxGMCor = 0;
@@ -1059,10 +1068,17 @@ double *ComputeBrainVolumeStats(char *subject)
   printf("CSFVol %9.3f, OptChiasmVol %9.3f\n",CSFVol,OptChiasmVol);
   printf("MaskVol %9.3f\n",MaskVol);
 
+  if(ribbonRead) {
+    MRIfree(&ribbon);
+    MRIfree(&asegfixed);
+  }
   MRIfree(&aseg);
-  MRIfree(&ribbon);
-  MRIfree(&asegfixed);
   MRIfree(&brainmask);
+
+  if(!ribbonRead){
+    lhCtxGM = 0;
+    rhCtxGM = 0;
+  }
 
   stats = (double*)calloc(15,sizeof(double));
   stats[0] = BrainSegVol;
