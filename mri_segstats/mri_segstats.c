@@ -12,8 +12,8 @@
  * Original Author: Dougas N Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2013/02/16 00:09:33 $
- *    $Revision: 1.75.2.9 $
+ *    $Date: 2013/06/06 14:09:08 $
+ *    $Revision: 1.75.2.10 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -77,6 +77,7 @@
 #include "annotation.h"
 #include "registerio.h"
 #include "cmdargs.h"
+#include "fio.h"
 
 #ifdef FS_CUDA
 #include "devicemanagement.h"
@@ -110,7 +111,7 @@ int DumpStatSumTable(STATSUMENTRY *StatSumTable, int nsegid);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-  "$Id: mri_segstats.c,v 1.75.2.9 2013/02/16 00:09:33 greve Exp $";
+  "$Id: mri_segstats.c,v 1.75.2.10 2013/06/06 14:09:08 greve Exp $";
 char *Progname = NULL, *SUBJECTS_DIR = NULL, *FREESURFER_HOME=NULL;
 char *SegVolFile = NULL;
 char *InVolFile = NULL;
@@ -326,9 +327,21 @@ int main(int argc, char **argv)
   }
 
   if(DoEuler){
-    int nvertices, nfaces, nedges;
-    printf("Computing euler number\n");
     sprintf(tmpstr,"%s/%s/surf/lh.orig.nofix",SUBJECTS_DIR,subject);
+    if(!fio_FileExistsReadable(tmpstr)){
+      printf("Warning: cannot find %s, not computing euler number\n",tmpstr);
+      DoEuler = 0;
+    }
+    sprintf(tmpstr,"%s/%s/surf/rh.orig.nofix",SUBJECTS_DIR,subject);
+    if(!fio_FileExistsReadable(tmpstr)){
+      printf("Warning: cannot find %s, not computing euler number\n",tmpstr);
+      DoEuler = 0;
+    }
+  }
+  if(DoEuler){
+    int nvertices, nfaces, nedges;
+    sprintf(tmpstr,"%s/%s/surf/lh.orig.nofix",SUBJECTS_DIR,subject);
+    printf("Computing euler number\n");
     mris = MRISread(tmpstr);
     if(mris==NULL) exit(1);
     lheno = MRIScomputeEulerNumber(mris, &nvertices, &nfaces, &nedges) ;
@@ -473,9 +486,17 @@ int main(int argc, char **argv)
   }
 
   if(DoSurfWMVol || DoSurfCtxVol || DoSupraTent || BrainVolFromSeg || DoSubCortGrayVol){
-    printf("Getting Brain Volume Statistics\n");
-    BrainVolStats = ComputeBrainVolumeStats(subject);
-    if(BrainVolStats == NULL) exit(1);
+    sprintf(tmpstr,"%s/%s/mri/ribbon.mgz",SUBJECTS_DIR,subject);
+    if(fio_FileExistsReadable(tmpstr)){
+      printf("Getting Brain Volume Statistics\n");
+      BrainVolStats = ComputeBrainVolumeStats(subject);
+      if(BrainVolStats == NULL) exit(1);
+    }
+    else{
+      printf("Warning: cannot find %s, not computing whole brain stats\n",tmpstr);
+      DoSurfWMVol=DoSurfCtxVol=DoSupraTent=BrainVolFromSeg=DoSubCortGrayVol=0;
+      DoTotalGrayVol=0;DoSupraTent=0;DoETIV=0;
+    }
   }
 
   /* Load the input volume */
@@ -1053,7 +1074,7 @@ int main(int argc, char **argv)
       fprintf(fp,"# Measure SupraTentorialNotVentVox, SupraTentorialVolNotVentVox, "
               "Supratentorial volume voxel count, %f, mm^3\n",BrainVolStats[13]);
     }
-    if (BrainMaskFile){
+    if (BrainMaskFile && BrainVolStats != NULL){
       //fprintf(fp,"# BrainMaskFile  %s \n",BrainMaskFile);
       //fprintf(fp,"# BrainMaskFileTimeStamp  %s \n",
       //       VERfileTimeStamp(BrainMaskFile));
