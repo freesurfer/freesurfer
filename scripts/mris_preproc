@@ -11,8 +11,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: mreuter $
-#    $Date: 2012/12/06 16:06:52 $
-#    $Revision: 1.59.2.4 $
+#    $Date: 2013/06/06 17:51:01 $
+#    $Revision: 1.59.2.5 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -29,7 +29,7 @@
 #
 setenv FIX_VERTEX_AREA
 
-set VERSION = '$Id: mris_preproc,v 1.59.2.4 2012/12/06 16:06:52 mreuter Exp $';
+set VERSION = '$Id: mris_preproc,v 1.59.2.5 2013/06/06 17:51:01 mreuter Exp $';
 
 set PrintHelp = 0;
 set subjlist = ();
@@ -404,7 +404,11 @@ while( $#argv != 0 )
         echo "ERROR: cannot find $fsgdf";
         exit 1;
       endif
-      set sl = `cat $fsgdf | awk '{if ($1 != "fsid" && substr($1,0,1) != "#") printf("%s.long.%s\n", $1, $2)}'`;
+      # set sl = `cat $fsgdf | awk '{if ($1 != "fsid" && substr($1,0,1) != "#") printf("%s.long.%s\n", $1, $2)}'`;
+      # cat does not work on mac (newline=\r) files, so this should (and also should work with windows \r\n):
+      # set sl = `perl -pe 'if ( s/\r\n?/\n/g ) { $f=1 }; if ( $f || ! $m ) { s/([^\n])\z/$1\n/ }; $m=1' $fsgdf | awk '{if ($1 != "" && $1 != "fsid" && substr($1,0,1) != "#") printf("%s.long.%s\n", $1, $2)}'`;
+      # shorter and since we need to skip empty lines anyway, this should also work with windows files:
+      set sl = `tr '\r' '\n' | awk '{if ($1 != "" && $1 != "fsid" && substr($1,0,1) != "#") printf("%s.long.%s\n", $1, $2)}'`;
       set subjlist = ($subjlist $sl);
       breaksw
 
