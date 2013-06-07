@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2011/12/05 20:03:33 $
- *    $Revision: 1.5 $
+ *    $Date: 2013/06/07 02:20:33 $
+ *    $Revision: 1.6 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -31,7 +31,7 @@
 #include "LayerPropertyTrack.h"
 
 PanelTrack::PanelTrack(QWidget *parent) :
-  PanelLayer(parent),
+  PanelLayer("Track", parent),
   ui(new Ui::PanelTrack)
 {
   ui->setupUi(this);
@@ -41,9 +41,6 @@ PanelTrack::PanelTrack(QWidget *parent) :
     ui->toolbar->addAction(mainwnd->ui->actionLoadTrack);
     ui->toolbar->addAction(mainwnd->ui->actionCloseTrack);
   }
-
-  LayerCollection* lc = mainwnd->GetLayerCollection("Track");
-  PanelLayer::InitializeLayerList( ui->treeWidgetLayers, lc );
 
   m_widgetlistDirectionalColor << ui->labelDirectionScheme
                                 << ui->comboBoxDirectionScheme
@@ -79,6 +76,7 @@ void PanelTrack::ConnectLayer(Layer *layer_in)
 void PanelTrack::DoUpdateWidgets()
 {
   BlockAllSignals( true );
+  /*
   for ( int i = 0; i < ui->treeWidgetLayers->topLevelItemCount(); i++ )
   {
     QTreeWidgetItem* item = ui->treeWidgetLayers->topLevelItem( i );
@@ -88,6 +86,7 @@ void PanelTrack::DoUpdateWidgets()
       item->setCheckState( 0, (layer->IsVisible() ? Qt::Checked : Qt::Unchecked) );
     }
   }
+  */
 
   LayerTrack* layer = GetCurrentLayer<LayerTrack*>();
   for ( int i = 0; i < this->allWidgets.size(); i++ )

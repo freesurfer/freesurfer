@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2013/06/03 16:24:31 $
- *    $Revision: 1.245 $
+ *    $Date: 2013/06/07 02:20:32 $
+ *    $Revision: 1.246 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -138,8 +138,6 @@ MainWindow::MainWindow( QWidget *parent, MyCmdLineParser* cmdParser ) :
 
   m_statusBar = new FloatingStatusBar(this);
   m_statusBar->hide();
-
-  ui->widgetAllLayers->hide();
 
   ui->viewSagittal->SetViewPlane( 0 );
   ui->viewCoronal ->SetViewPlane( 1 );
@@ -304,12 +302,14 @@ MainWindow::MainWindow( QWidget *parent, MyCmdLineParser* cmdParser ) :
     connect(m_layerCollections[keys[i]], SIGNAL(ActiveLayerChanged(Layer*)),
             this, SLOT(OnActiveLayerChanged(Layer*)), Qt::QueuedConnection);
 
+    /*
     connect(m_layerCollections[keys[i]], SIGNAL(ActiveLayerChanged(Layer*)),
             ui->tabAllLayers, SLOT(OnActiveLayerChanged(Layer*)), Qt::QueuedConnection);
     connect(m_layerCollections[keys[i]], SIGNAL(LayerAdded(Layer*)),
             ui->tabAllLayers, SLOT(OnLayerAdded(Layer*)), Qt::QueuedConnection);
     connect(m_layerCollections[keys[i]], SIGNAL(LayerRemoved(Layer*)),
             ui->tabAllLayers, SLOT(OnLayerRemoved(Layer*)), Qt::QueuedConnection);
+            */
   }
   for ( int i = 0; i < 4; i++ )
   {
@@ -495,6 +495,7 @@ void MainWindow::LoadSettings()
   m_term->SetDarkTheme(m_settings["DarkConsole"].toBool());
 
   // restore panel order from last time
+  /*
   QStringList tabs = settings.value("ControlPanel/TabOrder").toStringList();
   if ( tabs.size() == ui->tabWidgetControlPanel->count())
   {
@@ -524,6 +525,7 @@ void MainWindow::LoadSettings()
     }
   }
   ui->tabWidgetControlPanel->setCurrentIndex(0);
+  */
 
 #ifdef Q_WS_MAC
   this->SetUnifiedTitleAndToolBar(m_settings["MacUnifiedTitleBar"].toBool());
@@ -553,12 +555,14 @@ void MainWindow::SaveSettings()
   {
     settings.setValue("Settings/General", m_dlgPreferences->GetSettings());
   }
+  /*
   QStringList tabs;
   for (int i = 0; i < ui->tabWidgetControlPanel->count(); i++)
   {
     tabs << ui->tabWidgetControlPanel->widget(i)->objectName();
   }
   settings.setValue("ControlPanel/TabOrder", tabs);
+  */
 }
 
 void MainWindow::closeEvent( QCloseEvent * event )
@@ -1113,7 +1117,7 @@ void MainWindow::OnIdle()
   LayerROI* layerROI  = (LayerROI*)GetActiveLayer( "ROI");
   LayerPointSet* layerPointSet  = (LayerPointSet*)GetActiveLayer( "PointSet");
   LayerTrack* layerTrack  = (LayerTrack*)GetActiveLayer( "Track");
-  LayerCollection* lc = GetCurrentLayerCollection();
+//  LayerCollection* lc = GetCurrentLayerCollection();
   bool bHasLayer = !IsEmpty();
   ui->actionVoxelEdit       ->setEnabled( layerVolume && layerVolume->IsEditable() );
   ui->actionROIEdit         ->setEnabled( layerROI && layerROI->IsEditable() );
@@ -1129,10 +1133,10 @@ void MainWindow::OnIdle()
   ui->actionReloadVolume    ->setEnabled( !bBusy && layerVolume );
   ui->actionReloadSurface    ->setEnabled( !bBusy && layerSurface );
   ui->actionCreateOptimalCombinedVolume->setEnabled( GetLayerCollection("MRI")->GetNumberOfLayers() > 1 );
-  ui->actionCycleLayer      ->setEnabled( lc && lc->GetNumberOfLayers() > 1 );
-  ui->actionReverseCycleLayer      ->setEnabled( lc && lc->GetNumberOfLayers() > 1 );
-  ui->actionHideAllLayers   ->setEnabled( lc && !lc->IsEmpty() );
-  ui->actionShowAllLayers   ->setEnabled( lc && !lc->IsEmpty() );
+//  ui->actionCycleLayer      ->setEnabled( lc && lc->GetNumberOfLayers() > 1 );
+//  ui->actionReverseCycleLayer      ->setEnabled( lc && lc->GetNumberOfLayers() > 1 );
+//  ui->actionHideAllLayers   ->setEnabled( lc && !lc->IsEmpty() );
+//  ui->actionShowAllLayers   ->setEnabled( lc && !lc->IsEmpty() );
   ui->actionLoadDTIVolumes  ->setEnabled( !bBusy );
   ui->actionLoadVolume      ->setEnabled( !bBusy );
   ui->actionLoadROI         ->setEnabled( !bBusy && layerVolume );
@@ -3521,6 +3525,7 @@ void MainWindow::SetViewLayout( int nLayout )
 LayerCollection* MainWindow::GetCurrentLayerCollection()
 {
   LayerCollection* lc = NULL;
+  /*
   QString name = ui->tabWidgetControlPanel->tabText( ui->tabWidgetControlPanel->currentIndex() );
   if ( name == "Volumes" )
   {
@@ -3546,6 +3551,7 @@ LayerCollection* MainWindow::GetCurrentLayerCollection()
   {
     lc = GetLayerCollection(ui->tabAllLayers->GetCurrentLayerType());
   }
+  */
 
   return lc;
 }
@@ -3764,8 +3770,6 @@ void MainWindow::OnNewVolume()
     layer_new->GetProperty()->SetLUTCTAB( m_luts->GetColorTable( 0 ) );
     layer_new->SetName( dlg.GetVolumeName() );
     col_mri->AddLayer( layer_new );
-
-    ui->tabWidgetControlPanel->setCurrentWidget( ui->tabVolume );
   }
 }
 
@@ -3839,7 +3843,7 @@ bool MainWindow::SaveVolumeAs()
   {
     layer_mri->SetFileName( fn );
     OnSaveVolume();
-    ui->tabVolume->UpdateWidgets();
+    ui->widgetAllLayers->UpdateWidgets();
     return true;
   }
   else
@@ -3953,7 +3957,6 @@ void MainWindow::OnNewROI()
     layer_roi->SetName( dlg.GetROIName() );
     col_roi->AddLayer( layer_roi );
 
-    ui->tabWidgetControlPanel->setCurrentWidget( ui->tabROI );
     SetMode( RenderView::IM_ROIEdit );
   }
 }
@@ -4138,7 +4141,6 @@ void MainWindow::OnNewPointSet()
     layer_wp->SetName( dlg.GetPointSetName() );
     col_wp->AddLayer( layer_wp );
 
-    ui->tabWidgetControlPanel->setCurrentWidget( ui->tabPointSet );
     SetMode( RenderView::IM_PointSetEdit );
   }
 }
@@ -4284,7 +4286,7 @@ void MainWindow::OnSavePointSetAs()
     layer->SetFileName( dlg.GetFileName() );
     layer->GetProperty()->SetType( dlg.GetType() );
     OnSavePointSet();
-    ui->tabPointSet->UpdateWidgets();
+    ui->widgetAllLayers->UpdateWidgets();
   }
 }
 
@@ -4641,7 +4643,7 @@ bool MainWindow::UpdateSurfaceCorrelation(LayerSurface *layer)
 
 void MainWindow::OnCycleLayer()
 {
-  LayerCollection* lc = GetCurrentLayerCollection();
+  LayerCollection* lc = GetLayerCollection(ui->widgetAllLayers->GetCurrentLayerType());
   if ( lc )
   {
     lc->CycleLayer();
@@ -4650,7 +4652,7 @@ void MainWindow::OnCycleLayer()
 
 void MainWindow::OnReverseCycleLayer()
 {
-  LayerCollection* lc = GetCurrentLayerCollection();
+  LayerCollection* lc = GetLayerCollection(ui->widgetAllLayers->GetCurrentLayerType());
   if ( lc )
   {
     lc->CycleLayer( false );
@@ -5354,30 +5356,6 @@ bool MainWindow::GetCursorRAS( double* ras_out, bool tkReg )
   }
 }
 
-void MainWindow::ShowAllLayers()
-{
-  LayerCollection* lc = GetCurrentLayerCollection();
-  if (lc)
-  {
-    for (int i = 0; i < lc->GetNumberOfLayers(); i++)
-    {
-      lc->GetLayer(i)->SetVisible(true);
-    }
-  }
-}
-
-void MainWindow::HideAllLayers()
-{
-  LayerCollection* lc = GetCurrentLayerCollection();
-  if (lc)
-  {
-    for (int i = 0; i < lc->GetNumberOfLayers(); i++)
-    {
-      lc->GetLayer(i)->SetVisible(false);
-    }
-  }
-}
-
 void MainWindow::OnShowAnnotation(bool bShow)
 {
   for ( int i = 0; i < 3; i++ )
@@ -5658,7 +5636,7 @@ void MainWindow::SaveSurfaceAs()
   {
     layer_surf->SetFileName(fn );
     SaveSurface();
-    ui->tabSurface->UpdateWidgets();
+    ui->widgetAllLayers->UpdateWidgets();
   }
 }
 
@@ -5801,16 +5779,3 @@ void MainWindow::CommandSetVolumeMask(const QStringList &cmd)
   }
 }
 
-void MainWindow::SetActivePanel(const QString &layer_type)
-{
-  if (layer_type == "MRI")
-    ui->tabWidgetControlPanel->setCurrentWidget(ui->tabVolume);
-  else if (layer_type == "ROI")
-    ui->tabWidgetControlPanel->setCurrentWidget(ui->tabROI);
-  else if (layer_type == "Surface")
-    ui->tabWidgetControlPanel->setCurrentWidget(ui->tabSurface);
-  else if (layer_type == "PointSet")
-    ui->tabWidgetControlPanel->setCurrentWidget(ui->tabPointSet);
-  else if (layer_type == "CMAT")
-    ui->tabWidgetControlPanel->setCurrentWidget(ui->tabCMAT);
-}

@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2013/03/22 18:49:10 $
- *    $Revision: 1.6 $
+ *    $Date: 2013/06/07 02:20:32 $
+ *    $Revision: 1.7 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -34,7 +34,7 @@
 #include "MyUtils.h"
 
 PanelPointSet::PanelPointSet(QWidget *parent) :
-  PanelLayer(parent),
+  PanelLayer("PointSet", parent),
   ui(new Ui::PanelPointSet)
 {
   ui->setupUi(this);
@@ -68,9 +68,6 @@ PanelPointSet::PanelPointSet(QWidget *parent) :
                      << ui->comboBoxSplineColor
                      << ui->lineEditSplineRadius
                      << ui->labelSplineRadius;
-
-  LayerCollection* lc = mainwnd->GetLayerCollection("PointSet");
-  PanelLayer::InitializeLayerList( ui->treeWidgetLayers, lc );
 }
 
 PanelPointSet::~PanelPointSet()
@@ -104,13 +101,13 @@ void PanelPointSet::DoIdle()
   // update action status
   BlockAllSignals( true );
 
-
   BlockAllSignals( false );
 }
 
 void PanelPointSet::DoUpdateWidgets()
 {
   BlockAllSignals( true );
+  /*
   for ( int i = 0; i < ui->treeWidgetLayers->topLevelItemCount(); i++ )
   {
     QTreeWidgetItem* item = ui->treeWidgetLayers->topLevelItem( i );
@@ -120,6 +117,7 @@ void PanelPointSet::DoUpdateWidgets()
       item->setCheckState( 0, (layer->IsVisible() ? Qt::Checked : Qt::Unchecked) );
     }
   }
+  */
 
   LayerPointSet* layer = GetCurrentLayer<LayerPointSet*>();
   for ( int i = 0; i < this->allWidgets.size(); i++ )

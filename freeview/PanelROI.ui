@@ -67,36 +67,6 @@
         <addaction name="actionMoveLayerDown"/>
        </widget>
       </item>
-      <item>
-       <widget class="LayerTreeWidget" name="treeWidgetLayers">
-        <property name="sizePolicy">
-         <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
-          <horstretch>0</horstretch>
-          <verstretch>0</verstretch>
-         </sizepolicy>
-        </property>
-        <property name="maximumSize">
-         <size>
-          <width>16777215</width>
-          <height>145</height>
-         </size>
-        </property>
-        <property name="rootIsDecorated">
-         <bool>false</bool>
-        </property>
-        <property name="uniformRowHeights">
-         <bool>true</bool>
-        </property>
-        <attribute name="headerVisible">
-         <bool>false</bool>
-        </attribute>
-        <column>
-         <property name="text">
-          <string notr="true">1</string>
-         </property>
-        </column>
-       </widget>
-      </item>
      </layout>
     </item>
     <item>
@@ -228,11 +198,6 @@
     <signal>currentColorChanged(QColor)</signal>
    </slots>
   </customwidget>
-  <customwidget>
-   <class>LayerTreeWidget</class>
-   <extends>QTreeWidget</extends>
-   <header>LayerTreeWidget.h</header>
-  </customwidget>
  </customwidgets>
  <resources>
   <include location="freeview.qrc"/>
@@ -245,8 +210,8 @@
    <slot>OnSliderOpacity(int)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>211</x>
-     <y>251</y>
+     <x>249</x>
+     <y>243</y>
     </hint>
     <hint type="destinationlabel">
      <x>56</x>

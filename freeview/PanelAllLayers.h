@@ -21,6 +21,8 @@ public:
 
   QString GetCurrentLayerType();
 
+  QList<Layer*> GetSelectedLayers(const QString& layerType);
+
 signals:
   void LayerTypeTriggered(const QString& type);
 
@@ -32,7 +34,10 @@ public slots:
   void OnCurrentItemChanged(QTreeWidgetItem* item);
   void OnItemDoubleClicked(QTreeWidgetItem* item);
   void OnItemChanged(QTreeWidgetItem* item);
+  void OnItemSelectionChanged();
   void OnLayerChanged();
+
+  void UpdateWidgets();
 
 private:
   void AddLayers(QList<Layer*> layers, const QString& cat_name, Layer* curLayer = NULL);

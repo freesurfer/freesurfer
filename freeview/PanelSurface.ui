@@ -24,22 +24,13 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>314</width>
-     <height>1032</height>
+     <width>332</width>
+     <height>1030</height>
     </rect>
    </property>
    <layout class="QVBoxLayout" name="verticalLayout">
-    <property name="leftMargin">
-     <number>5</number>
-    </property>
-    <property name="topMargin">
+    <property name="margin">
      <number>0</number>
-    </property>
-    <property name="rightMargin">
-     <number>5</number>
-    </property>
-    <property name="bottomMargin">
-     <number>5</number>
     </property>
     <item>
      <layout class="QVBoxLayout" name="verticalLayoutToolbar">
@@ -67,36 +58,6 @@
         <addaction name="actionSurfaceOriginal"/>
         <addaction name="separator"/>
         <addaction name="actionLockLayer"/>
-       </widget>
-      </item>
-      <item>
-       <widget class="LayerTreeWidget" name="treeWidgetLayers">
-        <property name="sizePolicy">
-         <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
-          <horstretch>0</horstretch>
-          <verstretch>0</verstretch>
-         </sizepolicy>
-        </property>
-        <property name="maximumSize">
-         <size>
-          <width>16777215</width>
-          <height>145</height>
-         </size>
-        </property>
-        <property name="rootIsDecorated">
-         <bool>false</bool>
-        </property>
-        <property name="uniformRowHeights">
-         <bool>true</bool>
-        </property>
-        <attribute name="headerVisible">
-         <bool>false</bool>
-        </attribute>
-        <column>
-         <property name="text">
-          <string notr="true">1</string>
-         </property>
-        </column>
        </widget>
       </item>
      </layout>
@@ -840,11 +801,6 @@
     <signal>currentColorChanged(QColor)</signal>
    </slots>
   </customwidget>
-  <customwidget>
-   <class>LayerTreeWidget</class>
-   <extends>QTreeWidget</extends>
-   <header>LayerTreeWidget.h</header>
-  </customwidget>
  </customwidgets>
  <resources>
   <include location="freeview.qrc"/>
@@ -857,8 +813,8 @@
    <slot>OnSliderOpacity(int)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>245</x>
-     <y>251</y>
+     <x>269</x>
+     <y>243</y>
     </hint>
     <hint type="destinationlabel">
      <x>368</x>
@@ -873,8 +829,8 @@
    <slot>OnComboCurvature(int)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>254</x>
-     <y>463</y>
+     <x>330</x>
+     <y>444</y>
     </hint>
     <hint type="destinationlabel">
      <x>349</x>
@@ -889,8 +845,8 @@
    <slot>OnSliderMidPoint(int)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>225</x>
-     <y>494</y>
+     <x>248</x>
+     <y>471</y>
     </hint>
     <hint type="destinationlabel">
      <x>46</x>
@@ -905,8 +861,8 @@
    <slot>OnSliderSlope(int)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>225</x>
-     <y>529</y>
+     <x>248</x>
+     <y>504</y>
     </hint>
     <hint type="destinationlabel">
      <x>78</x>
@@ -921,8 +877,8 @@
    <slot>OnLineEditMidPoint(QString)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>306</x>
-     <y>497</y>
+     <x>329</x>
+     <y>476</y>
     </hint>
     <hint type="destinationlabel">
      <x>326</x>
@@ -937,8 +893,8 @@
    <slot>OnLineEditSlope(QString)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>306</x>
-     <y>532</y>
+     <x>329</x>
+     <y>509</y>
     </hint>
     <hint type="destinationlabel">
      <x>332</x>
@@ -953,8 +909,8 @@
    <slot>OnComboOverlay(int)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>296</x>
-     <y>566</y>
+     <x>330</x>
+     <y>541</y>
     </hint>
     <hint type="destinationlabel">
      <x>56</x>
@@ -969,8 +925,8 @@
    <slot>OnButtonConfigureOverlay()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>307</x>
-     <y>599</y>
+     <x>330</x>
+     <y>573</y>
     </hint>
     <hint type="destinationlabel">
      <x>350</x>
@@ -985,8 +941,8 @@
    <slot>OnComboAnnotation(int)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>246</x>
-     <y>632</y>
+     <x>330</x>
+     <y>604</y>
     </hint>
     <hint type="destinationlabel">
      <x>429</x>
@@ -1001,8 +957,8 @@
    <slot>OnComboLabel(int)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>307</x>
-     <y>695</y>
+     <x>330</x>
+     <y>664</y>
     </hint>
     <hint type="destinationlabel">
      <x>60</x>
@@ -1017,8 +973,8 @@
    <slot>OnComboVector(int)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>276</x>
-     <y>809</y>
+     <x>330</x>
+     <y>778</y>
     </hint>
     <hint type="destinationlabel">
      <x>27</x>
@@ -1033,8 +989,8 @@
    <slot>OnEditPositionOffset()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>307</x>
-     <y>991</y>
+     <x>330</x>
+     <y>942</y>
     </hint>
     <hint type="destinationlabel">
      <x>486</x>
@@ -1049,8 +1005,8 @@
    <slot>OnComboSpline(int)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>228</x>
-     <y>890</y>
+     <x>320</x>
+     <y>863</y>
     </hint>
     <hint type="destinationlabel">
      <x>398</x>

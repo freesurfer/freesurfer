@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2013/03/29 18:58:26 $
- *    $Revision: 1.49 $
+ *    $Date: 2013/06/07 02:20:33 $
+ *    $Revision: 1.50 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -39,7 +39,7 @@
 #include <QMessageBox>
 
 PanelSurface::PanelSurface(QWidget *parent) :
-  PanelLayer(parent),
+  PanelLayer("Surface", parent),
   ui(new Ui::PanelSurface)
 {
   ui->setupUi(this);
@@ -92,7 +92,6 @@ PanelSurface::PanelSurface(QWidget *parent) :
   connect( ag, SIGNAL(triggered(QAction*)), this, SLOT(OnChangeSurfaceType(QAction*)));
 
   LayerCollection* lc = mainwnd->GetLayerCollection("Surface");
-  PanelLayer::InitializeLayerList( ui->treeWidgetLayers, lc );
   connect( ui->actionLockLayer, SIGNAL(toggled(bool)), lc, SLOT(LockCurrent(bool)) );
 
   m_wndConfigureOverlay = new WindowConfigureOverlay( this );
@@ -173,6 +172,7 @@ void PanelSurface::DoIdle()
 void PanelSurface::DoUpdateWidgets()
 {
   BlockAllSignals( true );
+  /*
   for ( int i = 0; i < ui->treeWidgetLayers->topLevelItemCount(); i++ )
   {
     QTreeWidgetItem* item = ui->treeWidgetLayers->topLevelItem( i );
@@ -182,6 +182,7 @@ void PanelSurface::DoUpdateWidgets()
       item->setCheckState( 0, (layer->IsVisible() ? Qt::Checked : Qt::Unchecked) );
     }
   }
+  */
 
   LayerSurface* layer = GetCurrentLayer<LayerSurface*>();
   for ( int i = 0; i < this->allWidgets.size(); i++ )

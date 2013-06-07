@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2013/05/30 19:47:47 $
- *    $Revision: 1.131 $
+ *    $Date: 2013/06/07 02:20:32 $
+ *    $Revision: 1.132 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -231,8 +231,8 @@ public slots:
   void SyncZoom(bool bSync);
   void SetUseCommandControl(bool b);
   void SetUnifiedTitleAndToolBar(bool b);
-  void ShowAllLayers();
-  void HideAllLayers();
+//  void ShowAllLayers();
+//  void HideAllLayers();
   bool ParseCommand(const QString& cmd, bool bAutoQuit = false);
 
   void SetProgress(int n);
@@ -242,8 +242,6 @@ public slots:
 
   void ToggleSplinePicking();
   void SetSplinePicking(bool b);
-
-  void SetActivePanel(const QString& layer_type);
 
 protected:
   void closeEvent   ( QCloseEvent * event );

@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>375</width>
-    <height>679</height>
+    <height>857</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -25,29 +25,38 @@
      <x>0</x>
      <y>0</y>
      <width>375</width>
-     <height>679</height>
+     <height>857</height>
     </rect>
    </property>
    <layout class="QVBoxLayout" name="verticalLayout">
     <property name="leftMargin">
-     <number>5</number>
+     <number>6</number>
     </property>
     <property name="topMargin">
-     <number>0</number>
+     <number>8</number>
     </property>
     <property name="rightMargin">
      <number>5</number>
     </property>
     <property name="bottomMargin">
-     <number>8</number>
+     <number>5</number>
     </property>
     <item>
-     <widget class="QTreeWidget" name="treeWidgetLayers">
+     <widget class="LayerTreeWidget" name="treeWidgetLayers">
+      <property name="maximumSize">
+       <size>
+        <width>16777215</width>
+        <height>230</height>
+       </size>
+      </property>
+      <property name="selectionMode">
+       <enum>QAbstractItemView::ExtendedSelection</enum>
+      </property>
       <property name="rootIsDecorated">
-       <bool>false</bool>
+       <bool>true</bool>
       </property>
       <property name="itemsExpandable">
-       <bool>false</bool>
+       <bool>true</bool>
       </property>
       <attribute name="headerVisible">
        <bool>false</bool>
@@ -60,14 +69,36 @@
      </widget>
     </item>
     <item>
+     <widget class="QStackedWidget" name="stackedWidget">
+      <property name="sizePolicy">
+       <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+        <horstretch>0</horstretch>
+        <verstretch>1</verstretch>
+       </sizepolicy>
+      </property>
+      <property name="lineWidth">
+       <number>0</number>
+      </property>
+      <property name="currentIndex">
+       <number>5</number>
+      </property>
+      <widget class="PanelVolume" name="pageVolume"/>
+      <widget class="PanelSurface" name="pageSurface"/>
+      <widget class="PanelROI" name="pageROI"/>
+      <widget class="PanelPointSet" name="pagePointSet"/>
+      <widget class="PanelConnectomeMatrix" name="pageCMAT"/>
+      <widget class="PanelTrack" name="pageTrack"/>
+     </widget>
+    </item>
+    <item>
      <spacer name="verticalSpacer">
       <property name="orientation">
        <enum>Qt::Vertical</enum>
       </property>
       <property name="sizeHint" stdset="0">
        <size>
-        <width>5</width>
-        <height>5</height>
+        <width>0</width>
+        <height>0</height>
        </size>
       </property>
      </spacer>
@@ -75,6 +106,48 @@
    </layout>
   </widget>
  </widget>
+ <customwidgets>
+  <customwidget>
+   <class>PanelVolume</class>
+   <extends>QWidget</extends>
+   <header>PanelVolume.h</header>
+   <container>1</container>
+  </customwidget>
+  <customwidget>
+   <class>PanelSurface</class>
+   <extends>QWidget</extends>
+   <header>PanelSurface.h</header>
+  </customwidget>
+  <customwidget>
+   <class>PanelROI</class>
+   <extends>QWidget</extends>
+   <header>PanelROI.h</header>
+   <container>1</container>
+  </customwidget>
+  <customwidget>
+   <class>PanelPointSet</class>
+   <extends>QWidget</extends>
+   <header>PanelPointSet.h</header>
+   <container>1</container>
+  </customwidget>
+  <customwidget>
+   <class>PanelTrack</class>
+   <extends>QWidget</extends>
+   <header>PanelTrack.h</header>
+   <container>1</container>
+  </customwidget>
+  <customwidget>
+   <class>PanelConnectomeMatrix</class>
+   <extends>QWidget</extends>
+   <header>PanelConnectomeMatrix.h</header>
+   <container>1</container>
+  </customwidget>
+  <customwidget>
+   <class>LayerTreeWidget</class>
+   <extends>QTreeWidget</extends>
+   <header>LayerTreeWidget.h</header>
+  </customwidget>
+ </customwidgets>
  <resources/>
  <connections>
   <connection>
@@ -84,11 +157,11 @@
    <slot>OnCurrentItemChanged(QTreeWidgetItem*)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>306</x>
-     <y>286</y>
+     <x>307</x>
+     <y>199</y>
     </hint>
     <hint type="destinationlabel">
-     <x>629</x>
+     <x>374</x>
      <y>458</y>
     </hint>
    </hints>
@@ -100,11 +173,11 @@
    <slot>OnItemChanged(QTreeWidgetItem*)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>235</x>
-     <y>259</y>
+     <x>236</x>
+     <y>199</y>
     </hint>
     <hint type="destinationlabel">
-     <x>653</x>
+     <x>374</x>
      <y>577</y>
     </hint>
    </hints>
@@ -120,8 +193,24 @@
      <y>106</y>
     </hint>
     <hint type="destinationlabel">
-     <x>748</x>
+     <x>374</x>
      <y>497</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>treeWidgetLayers</sender>
+   <signal>itemSelectionChanged()</signal>
+   <receiver>PanelAllLayers</receiver>
+   <slot>OnItemSelectionChanged()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>192</x>
+     <y>116</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>940</x>
+     <y>317</y>
     </hint>
    </hints>
   </connection>
@@ -130,5 +219,6 @@
   <slot>OnCurrentItemChanged(QTreeWidgetItem*)</slot>
   <slot>OnItemChanged(QTreeWidgetItem*)</slot>
   <slot>OnItemDoubleClicked(QTreeWidgetItem*)</slot>
+  <slot>OnItemSelectionChanged()</slot>
  </slots>
 </ui>

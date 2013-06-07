@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2013/05/30 19:47:47 $
- *    $Revision: 1.38 $
+ *    $Date: 2013/06/07 02:20:32 $
+ *    $Revision: 1.39 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -29,6 +29,7 @@
 #include <math.h>
 #include <QDebug>
 #include <iostream>
+#include <QTimer>
 
 LayerCollection::LayerCollection( const QString& strType, QObject* parent ) :
   QObject( parent ),

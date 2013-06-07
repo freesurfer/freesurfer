@@ -29,17 +29,8 @@
     </rect>
    </property>
    <layout class="QVBoxLayout" name="verticalLayout">
-    <property name="leftMargin">
-     <number>5</number>
-    </property>
-    <property name="topMargin">
+    <property name="margin">
      <number>0</number>
-    </property>
-    <property name="rightMargin">
-     <number>5</number>
-    </property>
-    <property name="bottomMargin">
-     <number>5</number>
     </property>
     <item>
      <layout class="QVBoxLayout" name="verticalLayoutToolbar">
@@ -63,36 +54,6 @@
         <property name="floatable">
          <bool>false</bool>
         </property>
-       </widget>
-      </item>
-      <item>
-       <widget class="LayerTreeWidget" name="treeWidgetLayers">
-        <property name="sizePolicy">
-         <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
-          <horstretch>0</horstretch>
-          <verstretch>0</verstretch>
-         </sizepolicy>
-        </property>
-        <property name="maximumSize">
-         <size>
-          <width>16777215</width>
-          <height>145</height>
-         </size>
-        </property>
-        <property name="rootIsDecorated">
-         <bool>false</bool>
-        </property>
-        <property name="uniformRowHeights">
-         <bool>true</bool>
-        </property>
-        <attribute name="headerVisible">
-         <bool>false</bool>
-        </attribute>
-        <column>
-         <property name="text">
-          <string notr="true">1</string>
-         </property>
-        </column>
        </widget>
       </item>
      </layout>
@@ -486,11 +447,6 @@
     <signal>currentColorChanged(QColor)</signal>
    </slots>
   </customwidget>
-  <customwidget>
-   <class>LayerTreeWidget</class>
-   <extends>QTreeWidget</extends>
-   <header>LayerTreeWidget.h</header>
-  </customwidget>
  </customwidgets>
  <resources/>
  <connections>
@@ -501,8 +457,8 @@
    <slot>OnSliderOpacity(int)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>209</x>
-     <y>224</y>
+     <x>251</x>
+     <y>216</y>
     </hint>
     <hint type="destinationlabel">
      <x>-22</x>
@@ -533,8 +489,8 @@
    <slot>OnSliderMin(int)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>219</x>
-     <y>445</y>
+     <x>245</x>
+     <y>427</y>
     </hint>
     <hint type="destinationlabel">
      <x>46</x>
@@ -549,8 +505,8 @@
    <slot>OnSliderMid(int)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>240</x>
-     <y>480</y>
+     <x>245</x>
+     <y>460</y>
     </hint>
     <hint type="destinationlabel">
      <x>86</x>
@@ -565,8 +521,8 @@
    <slot>OnSliderMax(int)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>240</x>
-     <y>515</y>
+     <x>245</x>
+     <y>493</y>
     </hint>
     <hint type="destinationlabel">
      <x>87</x>
@@ -581,8 +537,8 @@
    <slot>OnSliderOffset(int)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>204</x>
-     <y>531</y>
+     <x>245</x>
+     <y>526</y>
     </hint>
     <hint type="destinationlabel">
      <x>88</x>
@@ -677,8 +633,8 @@
    <slot>OnComboScalarMap(int)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>232</x>
-     <y>414</y>
+     <x>310</x>
+     <y>400</y>
     </hint>
     <hint type="destinationlabel">
      <x>268</x>

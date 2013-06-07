@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2013/04/18 19:21:27 $
- *    $Revision: 1.86 $
+ *    $Date: 2013/06/07 02:20:33 $
+ *    $Revision: 1.87 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -45,7 +45,7 @@
 #define FS_VOLUME_SETTING_ID    "freesurfer/volume-setting"
 
 PanelVolume::PanelVolume(QWidget *parent) :
-  PanelLayer(parent),
+  PanelLayer("MRI", parent),
   ui(new Ui::PanelVolume),
   m_curCTAB( NULL ),
   m_bShowExistingLabelsOnly(false)
@@ -188,7 +188,6 @@ PanelVolume::PanelVolume(QWidget *parent) :
   m_widgetlistNonVolumeTrack = combo;
 
   LayerCollection* lc = mainwnd->GetLayerCollection("MRI");
-  PanelLayer::InitializeLayerList( ui->treeWidgetLayers, lc );
   connect( ui->actionLockLayer, SIGNAL(toggled(bool)), lc, SLOT(LockCurrent(bool)) );
   connect( ui->actionMoveLayerUp, SIGNAL(triggered()), lc, SLOT(MoveLayerUp()));
   connect( ui->actionMoveLayerDown, SIGNAL(triggered()), lc, SLOT(MoveLayerDown()));
@@ -246,20 +245,23 @@ void PanelVolume::DoIdle()
 {
   // update action status
   BlockAllSignals( true );
-  QTreeWidgetItem* item = ui->treeWidgetLayers->currentItem();
-  LayerMRI* layer = NULL;
-  if ( item )
-  {
-    layer = qobject_cast<LayerMRI*>( item->data(0, Qt::UserRole).value<QObject*>() );
-  }
-  int nItemIndex = ui->treeWidgetLayers->indexOfTopLevelItem(item);
-  ui->actionMoveLayerUp->setEnabled( item /*&& !layer->IsLocked()*/ && ui->treeWidgetLayers->topLevelItemCount() > 1 &&
+  LayerMRI* layer = GetCurrentLayer<LayerMRI*>();
+  /*
+  int nItemIndex = treeWidgetLayers->indexOfTopLevelItem(item);
+
+  ui->actionMoveLayerUp->setEnabled( item && treeWidgetLayers->topLevelItemCount() > 1 &&
                                      nItemIndex != 0 );
-  ui->actionMoveLayerDown->setEnabled( item /*&& !layer->IsLocked()*/ && ui->treeWidgetLayers->topLevelItemCount() > 1 &&
-                                       nItemIndex < ui->treeWidgetLayers->topLevelItemCount()-1 );
-  ui->actionLockLayer->setEnabled( item );
+  ui->actionMoveLayerDown->setEnabled( item && treeWidgetLayers->topLevelItemCount() > 1 &&
+                                       nItemIndex < treeWidgetLayers->topLevelItemCount()-1 );
+                                       */
+  ui->actionMoveLayerUp->setEnabled(layer && m_layerCollection
+                                  && m_layerCollection->GetLayerIndex(layer) > 0);
+  ui->actionMoveLayerDown->setEnabled(layer && m_layerCollection
+                                  && m_layerCollection->GetLayerIndex(layer) < m_layerCollection->GetNumberOfLayers()-1);
+  ui->actionLockLayer->setEnabled( layer );
   ui->actionLockLayer->setChecked( layer && layer->IsLocked() );
   ui->actionCopySetting->setEnabled(layer);
+
   QStringList strgs = qApp->clipboard()->text().split(",");
   bool bDataAvail = (!strgs.isEmpty() && strgs[0] == FS_VOLUME_SETTING_ID);
   ui->actionPasteSetting->setEnabled(layer && bDataAvail);
@@ -270,7 +272,7 @@ void PanelVolume::DoIdle()
 void PanelVolume::DoUpdateWidgets()
 {
   BlockAllSignals( true );
-
+/*
   for ( int i = 0; i < ui->treeWidgetLayers->topLevelItemCount(); i++ )
   {
     QTreeWidgetItem* item = ui->treeWidgetLayers->topLevelItem( i );
@@ -280,6 +282,7 @@ void PanelVolume::DoUpdateWidgets()
       item->setCheckState( 0, (layer->IsVisible() ? Qt::Checked : Qt::Unchecked) );
     }
   }
+  */
 
   LayerMRI* layer = GetCurrentLayer<LayerMRI*>();
   for ( int i = 0; i < this->allWidgets.size(); i++ )

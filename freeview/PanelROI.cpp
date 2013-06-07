@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2013/03/13 20:11:31 $
- *    $Revision: 1.19 $
+ *    $Date: 2013/06/07 02:20:33 $
+ *    $Revision: 1.20 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -31,7 +31,7 @@
 #include "MyUtils.h"
 
 PanelROI::PanelROI(QWidget *parent) :
-  PanelLayer(parent),
+  PanelLayer("ROI", parent),
   ui(new Ui::PanelROI)
 {
   ui->setupUi(this);
@@ -44,9 +44,6 @@ PanelROI::PanelROI(QWidget *parent) :
     ui->toolbar->insertAction(ui->actionMoveLayerUp, mainwnd->ui->actionSaveROI);
     ui->toolbar->insertSeparator(ui->actionMoveLayerUp);
   }
-
-  LayerCollection* lc = mainwnd->GetLayerCollection("ROI");
-  PanelLayer::InitializeLayerList( ui->treeWidgetLayers, lc );
 }
 
 PanelROI::~PanelROI()
@@ -74,17 +71,6 @@ void PanelROI::DoIdle()
 {
   // update action status
   BlockAllSignals( true );
-  QTreeWidgetItem* item = ui->treeWidgetLayers->currentItem();
-  LayerROI* layer = NULL;
-  if ( item )
-  {
-    layer = qobject_cast<LayerROI*>( item->data(0, Qt::UserRole).value<QObject*>() );
-  }
-  int nItemIndex = ui->treeWidgetLayers->indexOfTopLevelItem(item);
-  ui->actionMoveLayerUp->setEnabled( item /*&& !layer->IsLocked()*/ && ui->treeWidgetLayers->topLevelItemCount() > 1 &&
-                                     nItemIndex != 0 );
-  ui->actionMoveLayerDown->setEnabled( item /*&& !layer->IsLocked()*/ && ui->treeWidgetLayers->topLevelItemCount() > 1 &&
-                                       nItemIndex < ui->treeWidgetLayers->topLevelItemCount()-1 );
 
   BlockAllSignals( false );
 }
@@ -101,6 +87,7 @@ void PanelROI::OnSliderOpacity(int nVal)
 void PanelROI::DoUpdateWidgets()
 {
   BlockAllSignals( true );
+  /*
   for ( int i = 0; i < ui->treeWidgetLayers->topLevelItemCount(); i++ )
   {
     QTreeWidgetItem* item = ui->treeWidgetLayers->topLevelItem( i );
@@ -110,6 +97,7 @@ void PanelROI::DoUpdateWidgets()
       item->setCheckState( 0, (layer->IsVisible() ? Qt::Checked : Qt::Unchecked) );
     }
   }
+  */
 
   LayerROI* layer = GetCurrentLayer<LayerROI*>();
   for ( int i = 0; i < this->allWidgets.size(); i++ )

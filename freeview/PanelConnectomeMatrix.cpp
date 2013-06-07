@@ -5,14 +5,11 @@
 #include "MainWindow.h"
 
 PanelConnectomeMatrix::PanelConnectomeMatrix(QWidget *parent) :
-  PanelLayer(parent),
+  PanelLayer("CMAT", parent),
   ui(new Ui::PanelConnectomeMatrix),
   m_bColorTableDirty(true)
 {
     ui->setupUi(this);
-
-    LayerCollection* lc = MainWindow::GetMainWindow()->GetLayerCollection("CMAT");
-    PanelLayer::InitializeLayerList( ui->treeWidgetLayers, lc );
 }
 
 PanelConnectomeMatrix::~PanelConnectomeMatrix()

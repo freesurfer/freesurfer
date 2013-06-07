@@ -29,17 +29,8 @@
     </rect>
    </property>
    <layout class="QVBoxLayout" name="verticalLayout">
-    <property name="leftMargin">
-     <number>5</number>
-    </property>
-    <property name="topMargin">
+    <property name="margin">
      <number>0</number>
-    </property>
-    <property name="rightMargin">
-     <number>5</number>
-    </property>
-    <property name="bottomMargin">
-     <number>5</number>
     </property>
     <item>
      <layout class="QVBoxLayout" name="verticalLayoutToolbar">
@@ -63,36 +54,6 @@
         <property name="floatable">
          <bool>false</bool>
         </property>
-       </widget>
-      </item>
-      <item>
-       <widget class="LayerTreeWidget" name="treeWidgetLayers">
-        <property name="sizePolicy">
-         <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
-          <horstretch>0</horstretch>
-          <verstretch>0</verstretch>
-         </sizepolicy>
-        </property>
-        <property name="maximumSize">
-         <size>
-          <width>16777215</width>
-          <height>145</height>
-         </size>
-        </property>
-        <property name="rootIsDecorated">
-         <bool>false</bool>
-        </property>
-        <property name="uniformRowHeights">
-         <bool>true</bool>
-        </property>
-        <attribute name="headerVisible">
-         <bool>false</bool>
-        </attribute>
-        <column>
-         <property name="text">
-          <string notr="true">1</string>
-         </property>
-        </column>
        </widget>
       </item>
      </layout>
@@ -277,11 +238,6 @@
   </widget>
  </widget>
  <customwidgets>
-  <customwidget>
-   <class>LayerTreeWidget</class>
-   <extends>QTreeWidget</extends>
-   <header>LayerTreeWidget.h</header>
-  </customwidget>
   <customwidget>
    <class>QtColorPicker</class>
    <extends>QWidget</extends>

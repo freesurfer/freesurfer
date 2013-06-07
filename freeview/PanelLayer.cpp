@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2012/03/13 21:32:06 $
- *    $Revision: 1.9 $
+ *    $Date: 2013/06/07 02:20:32 $
+ *    $Revision: 1.10 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -24,7 +24,6 @@
 #include "PanelLayer.h"
 #include "Layer.h"
 #include "LayerProperty.h"
-#include "LayerCollection.h"
 #include <QTimer>
 #include <QApplication>
 #include <QTreeWidget>
@@ -34,13 +33,18 @@
 #include <QDoubleSpinBox>
 #include <QDebug>
 #include "LayerTreeWidget.h"
+#include "MainWindow.h"
 
-PanelLayer::PanelLayer(QWidget *parent) :
+PanelLayer::PanelLayer(const QString& layerType, QWidget *parent) :
   QScrollArea(parent),
   UIUpdateHelper(),
   m_bToUpdate( false ),
-  treeWidgetPrivate( NULL )
+  m_currentLayer( NULL ),
+  treeWidgetLayers( NULL ),
+  m_layerType(layerType)
 {
+  m_layerCollection = MainWindow::GetMainWindow()->GetLayerCollection(layerType);
+  connect(m_layerCollection, SIGNAL(destroyed()), this, SLOT(ResetLayerCollection()));
   QTimer* idleTimer = new QTimer(this);
   connect( idleTimer, SIGNAL(timeout()), this, SLOT(OnIdle()), Qt::QueuedConnection);
   idleTimer->start(500);
@@ -68,14 +72,19 @@ void PanelLayer::OnUpdate()
   }
 }
 
-void PanelLayer::InitializeLayerList( QTreeWidget* treeWidget, LayerCollection* cl )
+void PanelLayer::SetCurrentLayer(Layer *layer)
+{
+  m_currentLayer = layer;
+
+  UpdateWidgets();
+}
+
+void PanelLayer::InitializeLayerTreeWidget( QTreeWidget* treeWidget)
 {
   allWidgets = this->widget()->findChildren<QWidget*>();
   allActions = this->findChildren<QAction*>();
-  treeWidgetPrivate = treeWidget;
-  treeWidget->setSelectionMode(QAbstractItemView::ExtendedSelection);
-  layerCollectionPrivate = cl;
-  treeWidget->setEditTriggers( QTreeWidget::DoubleClicked );
+  treeWidgetLayers = treeWidget;
+  /*
   connect( cl, SIGNAL(LayerAdded(Layer*)), this, SLOT(OnLayerAdded(Layer*)), Qt::UniqueConnection );
   connect( cl, SIGNAL(LayerRemoved(Layer*)), this, SLOT(OnLayerRemoved(Layer*)), Qt::UniqueConnection );
   connect( cl, SIGNAL(LayerMoved(Layer*)), this, SLOT(OnLayerMoved(Layer*)), Qt::UniqueConnection );
@@ -91,15 +100,17 @@ void PanelLayer::InitializeLayerList( QTreeWidget* treeWidget, LayerCollection* 
            this, SLOT(UpdateWidgets()));
   connect( treeWidget, SIGNAL(itemChanged(QTreeWidgetItem*,int)), this, SLOT(OnItemChanged(QTreeWidgetItem*)) );
   connect( treeWidget, SIGNAL(doubleClicked(QModelIndex)), this, SLOT(OnItemDoubleClicked(QModelIndex)));
+*/
 
-  UpdateWidgets();
+//  UpdateWidgets();
 }
 
 void PanelLayer::ConnectLayer( Layer* layer )
 {
-  connect( layer, SIGNAL(Locked(bool)), treeWidgetPrivate, SLOT(ForceUpdate()) );
+  connect( layer, SIGNAL(Locked(bool)), treeWidgetLayers, SLOT(ForceUpdate()) );
 }
 
+/*
 void PanelLayer::OnLayerAdded( Layer* layer )
 {
   QTreeWidget* t = treeWidgetPrivate;
@@ -193,28 +204,6 @@ void PanelLayer::OnCurrentItemChanged(QTreeWidgetItem *item)
     if (layer)
     {
       layerCollectionPrivate->SetActiveLayer( layer );
-      /*
-      // first disconnect all previous layer connections
-      for ( int i = 0; i < layerCollectionPrivate->GetNumberOfLayers(); i++ )
-      {
-        for ( int j = 0; j < allWidgets.size(); j++ )
-        {
-          layerCollectionPrivate->GetLayer( i )->disconnect( this );
-          layerCollectionPrivate->GetLayer( i )->GetProperty()->disconnect( this );
-          allWidgets[j]->disconnect( layerCollectionPrivate->GetLayer( i ) );
-          allWidgets[j]->disconnect( layerCollectionPrivate->GetLayer( i )->GetProperty() );
-        }
-      }
-      qDebug()<< "current item changed";
-      QList<Layer*> layers = this->GetSelectedLayers<Layer*>();
-      if (!layers.isEmpty())
-      {
-        foreach (Layer* l, layers)
-          ConnectLayer(l);
-      }
-      else
-        ConnectLayer( layer );
-        */
     }
   }
 }
@@ -259,6 +248,22 @@ void PanelLayer::OnItemDoubleClicked(const QModelIndex &index)
   {
     layerCollectionPrivate->MoveToTop(layer);
     layerCollectionPrivate->SetActiveLayer(layer);
+  }
+}
+*/
+
+void PanelLayer::DisconnectAllLayers()
+{
+  LayerCollection* lc = MainWindow::GetMainWindow()->GetLayerCollection(m_layerType);
+  for ( int i = 0; i < lc->GetNumberOfLayers(); i++ )
+  {
+    for ( int j = 0; j < allWidgets.size(); j++ )
+    {
+      lc->GetLayer( i )->disconnect( this );
+      lc->GetLayer( i )->GetProperty()->disconnect( this );
+      allWidgets[j]->disconnect( lc->GetLayer( i ) );
+      allWidgets[j]->disconnect( lc->GetLayer( i )->GetProperty() );
+    }
   }
 }
 

@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2012/03/13 21:32:06 $
- *    $Revision: 1.7 $
+ *    $Date: 2013/06/07 02:20:32 $
+ *    $Revision: 1.8 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -29,6 +29,7 @@
 #include <QList>
 #include <QTreeWidget>
 #include <QTreeWidgetItem>
+#include "LayerCollection.h"
 
 class QLineEdit;
 class QSpinBox;
@@ -41,7 +42,17 @@ class PanelLayer : public QScrollArea, public UIUpdateHelper
 {
   Q_OBJECT
 public:
-  explicit PanelLayer(QWidget *parent = 0);
+  explicit PanelLayer(const QString& layerType, QWidget *parent = 0);
+
+  void InitializeLayerTreeWidget( QTreeWidget* treeWidget);
+  void SetCurrentLayer(Layer* layer);
+  void DisconnectAllLayers();
+  virtual void ConnectLayer( Layer* layer );
+
+  QString GetLayerType()
+  {
+    return m_layerType;
+  }
 
 signals:
 
@@ -51,8 +62,6 @@ public slots:
 protected:
   virtual void DoIdle() = 0;
   virtual void DoUpdateWidgets() = 0;
-  virtual void ConnectLayer( Layer* layer );
-  void InitializeLayerList( QTreeWidget* treeWidget, LayerCollection* lc );
   void BlockAllSignals( bool bBlock );
   template<typename T> inline T GetCurrentLayer();
   template<typename T> inline QList<T> GetSelectedLayers();
@@ -60,57 +69,55 @@ protected:
 protected slots:
   void OnIdle();
   void OnUpdate();
-  void OnLayerAdded( Layer* layer );
-  void OnLayerRemoved( Layer* layer );
-  void OnLayerMoved( Layer* layer );
-  void OnActiveLayerChanged( Layer* layer );
-  void OnItemChanged( QTreeWidgetItem* item );
-  void OnCurrentItemChanged( QTreeWidgetItem* item );
-  void OnItemSelectionChanged();
-  void OnItemDoubleClicked(const QModelIndex& index);
-  void OnLayerNameChanged();
+//  void OnLayerMoved( Layer* layer );
+//  void OnActiveLayerChanged( Layer* layer );
+
+  void ResetLayerCollection()
+  {
+    m_layerCollection = NULL;
+  }
 
 protected:
   QList<QWidget*>     allWidgets;
   QList<QAction*>     allActions;
+  QTreeWidget*        treeWidgetLayers;
+  LayerCollection*    m_layerCollection;
 
 private:
   bool m_bToUpdate;
-  QTreeWidget*        treeWidgetPrivate;
-  LayerCollection*    layerCollectionPrivate;
+  Layer*              m_currentLayer;
+  QString             m_layerType;
 };
 
 template<typename T> T PanelLayer::GetCurrentLayer()
 {
-  if ( !treeWidgetPrivate )
+  if ( !treeWidgetLayers || !m_layerCollection)
   {
     return NULL;
   }
 
-  QTreeWidgetItem* item = treeWidgetPrivate->currentItem();
-  if ( item )
-  {
-    return qobject_cast<T>( item->data(0, Qt::UserRole).template value<QObject*>() );
-  }
+  if (m_layerCollection->Contains(m_currentLayer))
+    return qobject_cast<T>(m_currentLayer);
   else
-  {
     return NULL;
-  }
 }
 
 template<typename T> QList<T> PanelLayer::GetSelectedLayers()
 {
   QList<T> list;
-  if ( !treeWidgetPrivate )
+  if ( !treeWidgetLayers )
   {
     return list;
   }
 
-  QList<QTreeWidgetItem*> items = treeWidgetPrivate->selectedItems();
+  QList<QTreeWidgetItem*> items = treeWidgetLayers->selectedItems();
   foreach (QTreeWidgetItem* item, items)
   {
-    list << qobject_cast<T>( item->data(0, Qt::UserRole).template value<QObject*>() );
+    T t = qobject_cast<T>( item->data(0, Qt::UserRole).template value<QObject*>() );
+    if (t)
+      list << t;
   }
   return list;
 }
+
 #endif // PANELLAYER_H

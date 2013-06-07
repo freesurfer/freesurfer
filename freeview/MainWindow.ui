@@ -50,70 +50,6 @@
          <number>0</number>
         </property>
         <item>
-         <widget class="QTabWidget" name="tabWidgetControlPanel">
-          <property name="minimumSize">
-           <size>
-            <width>0</width>
-            <height>0</height>
-           </size>
-          </property>
-          <property name="tabShape">
-           <enum>QTabWidget::Rounded</enum>
-          </property>
-          <property name="currentIndex">
-           <number>0</number>
-          </property>
-          <property name="elideMode">
-           <enum>Qt::ElideNone</enum>
-          </property>
-          <property name="usesScrollButtons">
-           <bool>true</bool>
-          </property>
-          <property name="documentMode">
-           <bool>false</bool>
-          </property>
-          <property name="movable">
-           <bool>true</bool>
-          </property>
-          <widget class="PanelVolume" name="tabVolume">
-           <attribute name="title">
-            <string>Volumes</string>
-           </attribute>
-          </widget>
-          <widget class="PanelSurface" name="tabSurface">
-           <attribute name="title">
-            <string>Surfaces</string>
-           </attribute>
-          </widget>
-          <widget class="PanelROI" name="tabROI">
-           <attribute name="title">
-            <string>ROIs</string>
-           </attribute>
-          </widget>
-          <widget class="PanelPointSet" name="tabPointSet">
-           <attribute name="title">
-            <string>Point Sets</string>
-           </attribute>
-          </widget>
-          <widget class="PanelConnectomeMatrix" name="tabCMAT">
-           <attribute name="title">
-            <string>CMAT</string>
-           </attribute>
-          </widget>
-          <widget class="PanelTrack" name="tabTrack">
-           <attribute name="title">
-            <string>Tracks</string>
-           </attribute>
-          </widget>
-          <widget class="PanelAllLayers" name="tabAllLayers">
-           <attribute name="title">
-            <string>All</string>
-           </attribute>
-           <layout class="QVBoxLayout" name="verticalLayout"/>
-          </widget>
-         </widget>
-        </item>
-        <item>
          <widget class="PanelAllLayers" name="widgetAllLayers" native="true"/>
         </item>
        </layout>
@@ -1362,29 +1298,6 @@
  <layoutdefault spacing="6" margin="11"/>
  <customwidgets>
   <customwidget>
-   <class>PanelVolume</class>
-   <extends>QWidget</extends>
-   <header>PanelVolume.h</header>
-   <container>1</container>
-  </customwidget>
-  <customwidget>
-   <class>PanelSurface</class>
-   <extends>QWidget</extends>
-   <header>PanelSurface.h</header>
-  </customwidget>
-  <customwidget>
-   <class>PanelROI</class>
-   <extends>QWidget</extends>
-   <header>PanelROI.h</header>
-   <container>1</container>
-  </customwidget>
-  <customwidget>
-   <class>PanelPointSet</class>
-   <extends>QWidget</extends>
-   <header>PanelPointSet.h</header>
-   <container>1</container>
-  </customwidget>
-  <customwidget>
    <class>RenderView3D</class>
    <extends>QWidget</extends>
    <header>RenderView3D.h</header>
@@ -1406,18 +1319,6 @@
    <header>InfoTreeWidget.h</header>
   </customwidget>
   <customwidget>
-   <class>PanelTrack</class>
-   <extends>QWidget</extends>
-   <header>PanelTrack.h</header>
-   <container>1</container>
-  </customwidget>
-  <customwidget>
-   <class>PanelConnectomeMatrix</class>
-   <extends>QWidget</extends>
-   <header>PanelConnectomeMatrix.h</header>
-   <container>1</container>
-  </customwidget>
-  <customwidget>
    <class>PanelAllLayers</class>
    <extends>QWidget</extends>
    <header>PanelAllLayers.h</header>
@@ -1428,22 +1329,6 @@
   <include location="freeview.qrc"/>
  </resources>
  <connections>
-  <connection>
-   <sender>actionShowControlPanel</sender>
-   <signal>toggled(bool)</signal>
-   <receiver>tabWidgetControlPanel</receiver>
-   <slot>setVisible(bool)</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>-1</x>
-     <y>-1</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>101</x>
-     <y>455</y>
-    </hint>
-   </hints>
-  </connection>
   <connection>
    <sender>actionExit</sender>
    <signal>triggered()</signal>
@@ -2041,38 +1926,6 @@
    <signal>triggered()</signal>
    <receiver>MainWindow</receiver>
    <slot>OnSavePoint()</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>-1</x>
-     <y>-1</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>606</x>
-     <y>433</y>
-    </hint>
-   </hints>
-  </connection>
-  <connection>
-   <sender>actionShowAllLayers</sender>
-   <signal>triggered()</signal>
-   <receiver>MainWindow</receiver>
-   <slot>ShowAllLayers()</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>-1</x>
-     <y>-1</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>606</x>
-     <y>433</y>
-    </hint>
-   </hints>
-  </connection>
-  <connection>
-   <sender>actionHideAllLayers</sender>
-   <signal>triggered()</signal>
-   <receiver>MainWindow</receiver>
-   <slot>HideAllLayers()</slot>
    <hints>
     <hint type="sourcelabel">
      <x>-1</x>
