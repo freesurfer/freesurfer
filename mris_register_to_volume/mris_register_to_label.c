@@ -11,8 +11,8 @@
  * Original Author: Greg Grev
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2013/06/04 13:50:48 $
- *    $Revision: 1.2 $
+ *    $Date: 2013/06/07 18:56:17 $
+ *    $Revision: 1.3 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -191,7 +191,7 @@ static char base_name[STRLEN] ;
 static char *SUBJECTS_DIR ;
 static char *Progname ;
 static MATRIX *R0 ;
-static char vcid[] = "$Id: mris_register_to_label.c,v 1.2 2013/06/04 13:50:48 fischl Exp $";
+static char vcid[] = "$Id: mris_register_to_label.c,v 1.3 2013/06/07 18:56:17 fischl Exp $";
 int
 main(int argc, char **argv) 
 {
@@ -202,12 +202,12 @@ main(int argc, char **argv)
   struct timeb  then ;
 
   make_cmd_version_string(argc, argv,
-                          "$Id: mris_register_to_label.c,v 1.2 2013/06/04 13:50:48 fischl Exp $",
+                          "$Id: mris_register_to_label.c,v 1.3 2013/06/07 18:56:17 fischl Exp $",
                           "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option(argc, argv,
-                                "$Id: mris_register_to_label.c,v 1.2 2013/06/04 13:50:48 fischl Exp $",
+                                "$Id: mris_register_to_label.c,v 1.3 2013/06/07 18:56:17 fischl Exp $",
                                 "$Name:  $");
   if(nargs && argc - nargs == 1) exit (0);
 
@@ -713,7 +713,7 @@ find_optimal_linear_xform(MRI *mri_dist, MRI *mri_src, LABEL *area,
   double  x_max_rot;
   double  y_max_rot, z_max_rot, delta_rot;
   double  x_max_scale, y_max_scale, z_max_scale;
-  double  delta_scale, delta_trans;
+  double  delta_scale = 1, delta_trans;
   double   mean_angle, x_angle, y_angle, z_angle, x_scale, y_scale, z_scale, min_z_scale, max_z_scale, delta_z_scale;
   double  mean_scale, x_max_trans, y_max_trans, z_max_trans, mean_trans, x_trans, y_trans, z_trans ;
   int     i, nfound = 0  ;
