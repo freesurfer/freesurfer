@@ -1,6 +1,6 @@
 % fast_selxavg3.m
 %
-% $Id: fast_selxavg3.m,v 1.106 2012/11/30 18:40:18 greve Exp $
+% $Id: fast_selxavg3.m,v 1.107 2013/06/07 23:48:14 greve Exp $
 
 
 %
@@ -9,8 +9,8 @@
 % Original Author: Doug Greve
 % CVS Revision Info:
 %    $Author: greve $
-%    $Date: 2012/11/30 18:40:18 $
-%    $Revision: 1.106 $
+%    $Date: 2013/06/07 23:48:14 $
+%    $Revision: 1.107 $
 %
 % Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 %
@@ -31,7 +31,7 @@ fprintf('%s\n',sess);
 
 
 fprintf('-------------------------\n');
-fprintf('$Id: fast_selxavg3.m,v 1.106 2012/11/30 18:40:18 greve Exp $\n');
+fprintf('$Id: fast_selxavg3.m,v 1.107 2013/06/07 23:48:14 greve Exp $\n');
 which fast_selxavg3
 which fast_ldanaflac
 which MRIread
@@ -58,7 +58,7 @@ if(isempty(flac0))
   if(~monly) quit; end
   return; 
 end
-flac0.sxaversion = '$Id: fast_selxavg3.m,v 1.106 2012/11/30 18:40:18 greve Exp $';
+flac0.sxaversion = '$Id: fast_selxavg3.m,v 1.107 2013/06/07 23:48:14 greve Exp $';
 
 flac0.sess = sess;
 flac0.nthrun = 1;
@@ -972,6 +972,12 @@ if(DoContrasts)
 
     err = mkdirp(outcondir);
     if(err) return; end
+
+    fprintf('Saving efficiency %g\n',flacC.con(nthcon).eff);
+    fname = sprintf('%s/efficiency.dat',outcondir);
+    fid = fopen(fname,'w');
+    fprintf(fid,'%g\n',flacC.con(nthcon).eff);
+    fclose(fid);
 
     ces = mri;
     ces.vol = fast_mat2vol(cesmat,mri.volsize);
