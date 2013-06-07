@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2013/06/07 02:20:32 $
- *    $Revision: 1.246 $
+ *    $Date: 2013/06/07 19:20:28 $
+ *    $Revision: 1.247 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -986,7 +986,10 @@ bool MainWindow::DoParseCommand(bool bAutoQuit)
 
   if ( m_cmdParser->Found( "ss", &sa ) )
   {
-    this->AddScript( QString("screencapture ")+sa[0] );
+    QString mag_factor = "1";
+    if (sa.size() > 1)
+      mag_factor = sa[1];
+    this->AddScript( QString("screencapture %1 %2").arg(sa[0]).arg(mag_factor) );
     if (bAutoQuit)
     {
       this->AddScript( "quit" );
@@ -3064,9 +3067,15 @@ void MainWindow::CommandSetPointSetRadius( const QStringList& cmd )
 
 void MainWindow::CommandScreenCapture( const QStringList& cmd )
 {
+  double mag_factor = 1.0;
+  bool bOK;
+  mag_factor = cmd[2].toDouble(&bOK);
+  if (bOK && mag_factor < 1)
+    mag_factor = 1;
+
   if (!m_views[m_nMainView]->SaveScreenShot( cmd[1],
       m_settingsScreenshot.AntiAliasing,
-      m_settingsScreenshot.Magnification ))
+      (int)mag_factor ))
   {
     cerr << "Failed to save screen shot to " << cmd[1].toAscii().constData() << ".\n";
   }
