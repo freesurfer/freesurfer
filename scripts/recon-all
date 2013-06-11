@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2013/06/11 16:28:24 $
-#    $Revision: 1.379.2.74 $
+#    $Date: 2013/06/11 17:07:22 $
+#    $Revision: 1.379.2.75 $
 #
 # Copyright © 2011-2013 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -26,7 +26,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.379.2.74 2013/06/11 16:28:24 greve Exp $';
+set VERSION = '$Id: recon-all,v 1.379.2.75 2013/06/11 17:07:22 greve Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -4772,7 +4772,7 @@ while( $#argv != 0 )
       set DoCANormalize    = 1;
       set DoCAReg          = 1;
       set DoCALabel        = 1;
-      set DoSegStats       = 1;
+      set DoSegStats       = 0;
       breaksw
 
     case "-nosubcortseg":
@@ -5393,7 +5393,7 @@ while( $#argv != 0 )
       set DoCANormalize    = 1;
       set DoCAReg          = 1;
       set DoCALabel        = 1;
-      set DoSegStats       = 1;
+      set DoSegStats       = 0;
       set DoNormalization2 = 1;
       set DoMaskBFS        = 1;
       set DoSegmentation   = 1;
@@ -5416,7 +5416,7 @@ while( $#argv != 0 )
       set DoCANormalize    = 1;
       set DoCAReg          = 1;
       set DoCALabel        = 1;
-      set DoSegStats       = 1;
+      set DoSegStats       = 0;
       set DoNormalization2 = 1;
       set DoMaskBFS        = 1;
       set DoSegmentation   = 1;
@@ -5434,7 +5434,7 @@ while( $#argv != 0 )
       set DoSmooth2        = 1;
       set DoInflate2       = 1;
       set DoWhiteSurfs     = 1;
-      set DoSegStats       = 1;
+      set DoSegStats       = 0;
       set DoCurvStats      = 1;
       breaksw
 
@@ -5445,7 +5445,7 @@ while( $#argv != 0 )
       set DoCANormalize    = 1;
       set DoCAReg          = 1;
       set DoCALabel        = 1;
-      set DoSegStats       = 1;
+      set DoSegStats       = 0;
       set DoNormalization2 = 1;
       set DoMaskBFS        = 1;
       set DoSegmentation   = 1;
@@ -5470,7 +5470,7 @@ while( $#argv != 0 )
       set DoWhiteSurfs     = 1;
       set DoSmooth2        = 1;
       set DoInflate2       = 1;
-      set DoSegStats       = 1;
+      set DoSegStats       = 0;
       set DoCurvStats      = 1;
       breaksw
 
@@ -5519,8 +5519,8 @@ while( $#argv != 0 )
       set DoSegStats       = 1;
       set DoCortRibbonVolMask = 1;
       set DoAParc2ASeg     = 1;
-      set DoWMParc         = 1;
       set DoCurvStats      = 1;
+      set DoWMParc         = 1;
       set DoBaLabels       = 1;
       set DoLabelExvivoEC  = 1;
       breaksw
@@ -5559,7 +5559,7 @@ while( $#argv != 0 )
       set DoCortRibbonVolMask = 0;
       set DoAParc2ASeg     = 0;
       set DoWMParc         = 0;
-      set DoSegStats       = 1;
+      set DoSegStats       = 0;
       set DoCurvStats      = 1;
       set DoBaLabels       = 1;
       set DoLabelExvivoEC  = 1;
@@ -6356,7 +6356,8 @@ check_params:
      ! $DoGEMS && ! $DoPctSurfCon && ! $DoT2pial && ! $DoFLAIRpial && \
      ! $DoConvertT2Input && ! $DoConvertFlairInput && \
      ! $DoCortParc3 && ! $DoParcStats3) then
-     echo "ERROR: nothing to do"
+     echo "ERROR: nothing to do. You must specify an operation to perform by adding"
+     echo "flags. Eg, -all, -autorecon1, -autorecon2, -autorecon3, etc."
      exit 1;
   endif
 
