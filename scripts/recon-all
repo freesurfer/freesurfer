@@ -7,9 +7,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: nicks $
-#    $Date: 2013/05/08 15:59:02 $
-#    $Revision: 1.461 $
+#    $Author: greve $
+#    $Date: 2013/06/11 16:27:19 $
+#    $Revision: 1.462 $
 #
 # Copyright © 2011-2013 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -26,7 +26,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.461 2013/05/08 15:59:02 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.462 2013/06/11 16:27:19 greve Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -4757,7 +4757,6 @@ while( $#argv != 0 )
 
     case "-subcortseg":
       set DoGCAReg         = 1;
-      set DoCARegInv       = 1;
       set DoRemoveNeck     = 1;
       set DoSkullLTA       = 1;
       set DoCANormalize    = 1;
@@ -4768,7 +4767,6 @@ while( $#argv != 0 )
 
     case "-nosubcortseg":
       set DoGCAReg         = 0;
-      set DoCARegInv       = 0;
       set DoRemoveNeck     = 0;
       set DoSkullLTA       = 0;
       set DoCANormalize    = 0;
@@ -4781,7 +4779,6 @@ while( $#argv != 0 )
     case "-noaseg":
       set UseAseg          = 0;
       set DoGCAReg         = 0;
-      set DoCARegInv       = 0;
       set DoRemoveNeck     = 0;
       set DoSkullLTA       = 0;
       set DoCANormalize    = 0;
@@ -5330,7 +5327,6 @@ while( $#argv != 0 )
       set DoNormalization  = 1;
       set DoSkullStrip     = 1;
       set DoGCAReg         = 1;
-      set DoCARegInv       = 1;
       set DoRemoveNeck     = 1;
       set DoSkullLTA       = 1;
       set DoCANormalize    = 1;
@@ -5382,7 +5378,6 @@ while( $#argv != 0 )
 
     case "-autorecon2":
       set DoGCAReg         = 1;
-      set DoCARegInv       = 1;
       set DoRemoveNeck     = 1;
       set DoSkullLTA       = 1;
       set DoCANormalize    = 1;
@@ -5406,7 +5401,6 @@ while( $#argv != 0 )
 
     case "-autorecon2-volonly":
       set DoGCAReg         = 1;
-      set DoCARegInv       = 1;
       set DoRemoveNeck     = 1;
       set DoSkullLTA       = 1;
       set DoCANormalize    = 1;
@@ -5436,7 +5430,6 @@ while( $#argv != 0 )
 
     case "-autorecon2-inflate1":
       set DoGCAReg         = 1;
-      set DoCARegInv       = 1;
       set DoRemoveNeck     = 1;
       set DoSkullLTA       = 1;
       set DoCANormalize    = 1;
@@ -5676,7 +5669,6 @@ while( $#argv != 0 )
       # -noaseg flags:
       set UseAseg          = 0;
       set DoGCAReg         = 0;
-      set DoCARegInv       = 0;
       set DoRemoveNeck     = 0;
       set DoSkullLTA       = 0;
       set DoCANormalize    = 0;
