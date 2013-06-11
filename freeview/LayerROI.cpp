@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2012/01/04 17:23:20 $
- *    $Revision: 1.21 $
+ *    $Date: 2013/06/11 17:05:35 $
+ *    $Revision: 1.22 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -52,6 +52,7 @@
 LayerROI::LayerROI( LayerMRI* layerMRI, QObject* parent ) : LayerVolumeBase( parent )
 {
   m_strTypeNames.push_back( "ROI" );
+  m_sPrimaryType = "ROI";
 
   m_label = new FSLabel( this );
   for ( int i = 0; i < 3; i++ )

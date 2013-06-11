@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2012/10/23 17:35:43 $
- *    $Revision: 1.7 $
+ *    $Date: 2013/06/11 17:05:35 $
+ *    $Revision: 1.8 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -54,6 +54,7 @@
 LayerPointSet::LayerPointSet( LayerMRI* ref, int nType, QObject* parent ) : LayerEditable( parent )
 {
   m_strTypeNames.push_back( "PointSet" );
+  m_sPrimaryType = "PointSet";
   m_actorBalls = vtkActor::New();
   m_actorSpline = vtkActor::New();
   for ( int i = 0; i < 3; i++ )

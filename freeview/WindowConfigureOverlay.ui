@@ -571,7 +571,7 @@
    <item>
     <widget class="QLabel" name="label_4">
      <property name="text">
-      <string>Or you must click &quot;Apply&quot; to apply the changes to the overlay.</string>
+      <string>Or you must click &quot;Apply&quot; to apply changes to the overlay.</string>
      </property>
      <property name="alignment">
       <set>Qt::AlignCenter</set>

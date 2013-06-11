@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2013/06/03 16:24:31 $
- *    $Revision: 1.131 $
+ *    $Date: 2013/06/11 17:05:35 $
+ *    $Revision: 1.132 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -97,6 +97,7 @@ LayerMRI::LayerMRI( LayerMRI* ref, QObject* parent ) : LayerVolumeBase( parent )
   m_layerMask(NULL)
 {
   m_strTypeNames.push_back( "MRI" );
+  m_sPrimaryType = "MRI";
 
   for ( int i = 0; i < 3; i++ )
   {

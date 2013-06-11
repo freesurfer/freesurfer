@@ -10,6 +10,7 @@ namespace Ui {
 
 class Layer;
 class QTreeWidgetItem;
+class PanelLayer;
 
 class PanelAllLayers : public QScrollArea
 {
@@ -41,6 +42,7 @@ public slots:
 
 private:
   void AddLayers(QList<Layer*> layers, const QString& cat_name, Layer* curLayer = NULL);
+  PanelLayer* SetCurrentPanel(const QString& layerType);
 
   Ui::PanelAllLayers *ui;
 };

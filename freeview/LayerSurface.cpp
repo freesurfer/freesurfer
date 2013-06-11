@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2013/05/24 18:07:31 $
- *    $Revision: 1.88 $
+ *    $Date: 2013/06/11 17:05:35 $
+ *    $Revision: 1.89 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -75,6 +75,7 @@ LayerSurface::LayerSurface( LayerMRI* ref, QObject* parent ) : LayerEditable( pa
   m_spline(NULL)
 {
   m_strTypeNames.push_back( "Surface" );
+  m_sPrimaryType = "Surface";
 
   // create property before actors!
   mProperty = new LayerPropertySurface( this );

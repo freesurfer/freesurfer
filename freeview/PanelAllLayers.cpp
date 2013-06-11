@@ -152,6 +152,20 @@ void PanelAllLayers::OnLayerRemoved(Layer * removed_layer)
   ui->treeWidgetLayers->blockSignals(false);
 }
 
+PanelLayer* PanelAllLayers::SetCurrentPanel(const QString& layerType)
+{
+  for (int i = 0; i < ui->stackedWidget->count(); i++)
+  {
+    PanelLayer* panel = qobject_cast<PanelLayer*>(ui->stackedWidget->widget(i));
+    if (panel && panel->GetLayerType() == layerType)
+    {
+      ui->stackedWidget->setCurrentWidget(panel);
+      return panel;
+    }
+  }
+  return NULL;
+}
+
 void PanelAllLayers::OnCurrentItemChanged(QTreeWidgetItem *item)
 {
   ui->stackedWidget->setVisible(item);
@@ -170,41 +184,16 @@ void PanelAllLayers::OnCurrentItemChanged(QTreeWidgetItem *item)
     return;
 
   MainWindow* mainwnd = MainWindow::GetMainWindow();
-  if (layer->IsTypeOf("MRI"))
+  QString type = layer->GetPrimaryType();
+  LayerCollection* lc = mainwnd->GetLayerCollection(type);
+  if (lc)
   {
-    mainwnd->GetLayerCollection("MRI")->SetActiveLayer(layer);
-    ui->stackedWidget->setCurrentWidget(ui->pageVolume);
+    lc->SetActiveLayer(layer);
   }
-  else if (layer->IsTypeOf("Surface"))
-  {
-    mainwnd->GetLayerCollection("Surface")->SetActiveLayer(layer);
-    ui->stackedWidget->setCurrentWidget(ui->pageSurface);
-  }
-  else if (layer->IsTypeOf("ROI"))
-  {
-    mainwnd->GetLayerCollection("ROI")->SetActiveLayer(layer);
-    ui->stackedWidget->setCurrentWidget(ui->pageROI);
-  }
-  else if (layer->IsTypeOf("PointSet"))
-  {
-    mainwnd->GetLayerCollection("PointSet")->SetActiveLayer(layer);
-    ui->stackedWidget->setCurrentWidget(ui->pagePointSet);
-  }
-  else if (layer->IsTypeOf("CMAT"))
-  {
-    mainwnd->GetLayerCollection("CMAT")->SetActiveLayer(layer);
-    ui->stackedWidget->setCurrentWidget(ui->pageCMAT);
-  }
-  else if (layer->IsTypeOf("Track"))
-  {
-    mainwnd->GetLayerCollection("Track")->SetActiveLayer(layer);
-    ui->stackedWidget->setCurrentWidget(ui->pageTrack);
-  }
-  PanelLayer* panel = qobject_cast<PanelLayer*>(ui->stackedWidget->currentWidget());
+
+  PanelLayer* panel = SetCurrentPanel(type);
   if (panel)
-  {
     panel->SetCurrentLayer(layer);
-  }
 }
 
 void PanelAllLayers::OnItemChanged(QTreeWidgetItem *item)
@@ -220,6 +209,15 @@ void PanelAllLayers::OnItemChanged(QTreeWidgetItem *item)
 void PanelAllLayers::OnItemSelectionChanged()
 {
   // first disconnect all previous layer connections
+  QTreeWidgetItem* item = ui->treeWidgetLayers->currentItem();
+  if (item)
+  {
+    Layer* layer = qobject_cast<Layer*>(item->data(0, Qt::UserRole).value<QObject*>());
+    if (layer)
+    {
+      SetCurrentPanel(layer->GetPrimaryType());
+    }
+  }
   PanelLayer* panel = qobject_cast<PanelLayer*>(ui->stackedWidget->currentWidget());
   if (panel)
   {

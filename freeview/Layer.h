@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2013/05/23 17:10:43 $
- *    $Revision: 1.27 $
+ *    $Date: 2013/06/11 17:05:35 $
+ *    $Revision: 1.28 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -156,6 +156,8 @@ public:
 
   QString GetEndType() const;
 
+  QString GetPrimaryType() const;
+
   inline LayerProperty* GetProperty()
   {
     return mProperty;
@@ -239,8 +241,9 @@ protected:
   LayerProperty*  mProperty;
 
   QString   m_sFilename;
-  QStringList m_strTypeNames;
   QString   m_sSubjectName;
+  QStringList m_strTypeNames;
+  QString   m_sPrimaryType;
 
   int       m_nID;
   static int m_nLastID;

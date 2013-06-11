@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2013/06/07 02:20:33 $
- *    $Revision: 1.50 $
+ *    $Date: 2013/06/11 17:05:35 $
+ *    $Revision: 1.51 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -37,6 +37,7 @@
 #include "WindowConfigureOverlay.h"
 #include "MyUtils.h"
 #include <QMessageBox>
+#include <QDebug>
 
 PanelSurface::PanelSurface(QWidget *parent) :
   PanelLayer("Surface", parent),
