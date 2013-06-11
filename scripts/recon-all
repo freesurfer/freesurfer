@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2013/06/11 17:02:03 $
-#    $Revision: 1.463 $
+#    $Date: 2013/06/11 17:06:58 $
+#    $Revision: 1.464 $
 #
 # Copyright © 2011-2013 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -26,7 +26,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.463 2013/06/11 17:02:03 greve Exp $';
+set VERSION = '$Id: recon-all,v 1.464 2013/06/11 17:06:58 greve Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -4762,7 +4762,7 @@ while( $#argv != 0 )
       set DoCANormalize    = 1;
       set DoCAReg          = 1;
       set DoCALabel        = 1;
-      set DoSegStats       = 1;
+      set DoSegStats       = 0;
       breaksw
 
     case "-nosubcortseg":
