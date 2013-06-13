@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2013/03/28 18:54:13 $
- *    $Revision: 1.11 $
+ *    $Date: 2013/06/13 19:59:27 $
+ *    $Revision: 1.12 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -27,6 +27,9 @@
 #include "SurfaceOverlayProperty.h"
 #include "SurfaceOverlay.h"
 #include "LayerPropertySurface.h"
+#include "MainWindow.h"
+#include "LayerCollection.h"
+#include "LayerMRI.h"
 #include <QMessageBox>
 #include <QDebug>
 #include <QSettings>
@@ -55,6 +58,10 @@ WindowConfigureOverlay::WindowConfigureOverlay(QWidget *parent) :
   {
     this->restoreGeometry(v.toByteArray());
   }
+
+  LayerCollection* lc = MainWindow::GetMainWindow()->GetLayerCollection("MRI");
+  connect(lc, SIGNAL(LayerAdded(Layer*)), this, SLOT(UpdateUI()));
+  connect(lc, SIGNAL(LayerRemoved(Layer*)), this, SLOT(UpdateUI()));
 }
 
 WindowConfigureOverlay::~WindowConfigureOverlay()
@@ -151,6 +158,28 @@ void WindowConfigureOverlay::UpdateUI()
       m.color = stops[i].second;
       m_markers << m;
     }
+
+    int nFrames = overlay->GetNumberOfFrames();
+    if (nFrames == 1)
+      ui->groupBoxFrame->setEnabled(true);
+    ui->checkBoxComputeCorrelation->setChecked(overlay->GetComputeCorrelation());
+
+    ui->comboBoxVolumes->clear();
+    QList<Layer*> layers = MainWindow::GetMainWindow()->GetLayers("MRI");
+    foreach (Layer* mri, layers)
+    {
+      if ((qobject_cast<LayerMRI*>(mri))->GetNumberOfFrames() == nFrames)
+      {
+        ui->comboBoxVolumes->addItem(mri->GetName(), QVariant::fromValue((QObject*)mri));
+        if (overlay->GetCorrelationSourceVolume() == mri)
+        {
+          ui->comboBoxVolumes->setCurrentIndex(ui->comboBoxVolumes->count()-1);
+        }
+      }
+    }
+
+    ui->checkBoxComputeCorrelation->setEnabled(ui->comboBoxVolumes->count() > 0);
+    ui->groupBoxCorrelation->setVisible(nFrames > 1 && ui->comboBoxVolumes->count() > 0);
 
     for ( int i = 0; i < allwidgets.size(); i++ )
     {
@@ -472,7 +501,7 @@ void WindowConfigureOverlay::OnSmoothChanged()
       }
       else
       {
-        memcpy(m_fDataCache, overlay->GetOriginalData(), sizeof(float)*overlay->GetDataSize());
+        memcpy(m_fDataCache, overlay->GetUnsmoothedData(), sizeof(float)*overlay->GetDataSize());
       }
       UpdateGraph();
     }
@@ -534,6 +563,8 @@ void WindowConfigureOverlay::OnFrameChanged(int nFrame)
   {
     SurfaceOverlay* overlay = m_layerSurface->GetActiveOverlay();
     overlay->SetActiveFrame(nFrame);
+    delete[] m_fDataCache;
+    m_fDataCache = NULL;
     UpdateGraph();
     emit ActiveFrameChanged();
   }
@@ -551,5 +582,37 @@ void WindowConfigureOverlay::OnCurrentVertexChanged()
     // even if not auto apply, still call apply
     if (!ui->checkBoxAutoApply->isChecked())
       OnApply();
+  }
+}
+
+void WindowConfigureOverlay::OnCheckComputeCorrelation(bool bChecked)
+{
+  if ( m_layerSurface && m_layerSurface->GetActiveOverlay() )
+  {
+    SurfaceOverlay* overlay = m_layerSurface->GetActiveOverlay();
+    if (bChecked && overlay->GetCorrelationSourceVolume() == NULL)
+    {
+      int n = ui->comboBoxVolumes->currentIndex();
+      if (n >= 0)
+      {
+        OnComboCorrelationVolume(n);
+      }
+    }
+    overlay->SetComputeCorrelation(bChecked);
+    delete[] m_fDataCache;
+    m_fDataCache = NULL;
+
+    UpdateGraph();
+  }
+}
+
+void WindowConfigureOverlay::OnComboCorrelationVolume(int n)
+{
+  if ( m_layerSurface && m_layerSurface->GetActiveOverlay() )
+  {
+    SurfaceOverlay* overlay = m_layerSurface->GetActiveOverlay();
+    LayerMRI* mri = qobject_cast<LayerMRI*>(ui->comboBoxVolumes->itemData(n).value<QObject*>());
+    if (mri)
+      overlay->SetCorrelationSourceVolume(mri);
   }
 }

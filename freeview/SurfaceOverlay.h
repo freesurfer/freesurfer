@@ -10,8 +10,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2012/10/31 20:10:12 $
- *    $Revision: 1.12 $
+ *    $Date: 2013/06/13 19:59:27 $
+ *    $Revision: 1.13 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -40,6 +40,7 @@ extern "C"
 class vtkLookupTable;
 class vtkRGBAColorTransferFunction;
 class LayerSurface;
+class LayerMRI;
 class SurfaceOverlayProperty;
 
 class SurfaceOverlay  : public QObject
@@ -71,9 +72,12 @@ public:
     return m_fData;
   }
 
-  float* GetOriginalData()
+  float* GetUnsmoothedData()
   {
-    return m_fDataOriginal;
+    if (m_bComputeCorrelation)
+      return m_fDataUnsmoothed;
+    else
+      return m_fDataRaw + m_nActiveFrame*m_nDataSize;
   }
 
   int GetDataSize()
@@ -129,16 +133,32 @@ public:
     return m_nActiveFrame;
   }
 
+  bool GetComputeCorrelation()
+  {
+    return m_bComputeCorrelation;
+  }
+
+  void SetComputeCorrelation(bool flag);
+
+  void SetCorrelationSourceVolume(LayerMRI* mri);
+
+  LayerMRI* GetCorrelationSourceVolume()
+  {
+    return m_volumeCorrelationSource;
+  }
+
 signals:
   void DataUpdated();
 
 public slots:
   void UpdateSmooth(bool trigger_paired = true);
+  void UpdateCorrelationCoefficient();
+  void OnCorrelationSourceDeleted(QObject* obj);
 
 private:
-  float*        m_fData;          // pointer only, do not release
+  float*        m_fData;
   float*        m_fDataRaw;
-  float*        m_fDataOriginal;
+  float*        m_fDataUnsmoothed;
   int           m_nDataSize;
   double        m_dMaxValue;
   double        m_dMinValue;
@@ -149,6 +169,7 @@ private:
 
   bool        m_bCorrelationData;
   bool        m_bCorrelationDataReady;
+  bool        m_bComputeCorrelation;
 
   MRI*      m_mriCorrelation;
   SurfaceOverlayProperty* m_property;
@@ -157,6 +178,9 @@ private:
 
   int       m_nActiveFrame;
   int       m_nNumOfFrames;
+  LayerMRI*  m_volumeCorrelationSource;
+  float*    m_fCorrelationSourceData;
+  float*    m_fCorrelationDataBuffer;
 };
 
 #endif

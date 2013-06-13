@@ -11,8 +11,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2012/10/31 20:10:12 $
- *    $Revision: 1.15 $
+ *    $Date: 2013/06/13 19:59:27 $
+ *    $Revision: 1.16 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -36,6 +36,8 @@
 #include "FSSurface.h"
 #include <QDebug>
 #include "ProgressCallback.h"
+#include "LayerMRI.h"
+#include "MyUtils.h"
 
 extern "C"
 {
@@ -46,7 +48,7 @@ SurfaceOverlay::SurfaceOverlay ( LayerSurface* surf ) :
   QObject(),
   m_fData( NULL ),
   m_fDataRaw( NULL ),
-  m_fDataOriginal( NULL ),
+  m_fDataUnsmoothed(NULL),
   m_dMaxValue(0),
   m_dMinValue(0),
   m_surface( surf ),
@@ -54,7 +56,11 @@ SurfaceOverlay::SurfaceOverlay ( LayerSurface* surf ) :
   m_mriCorrelation(NULL),
   m_overlayPaired(NULL),
   m_nActiveFrame(0),
-  m_nNumOfFrames(1)
+  m_nNumOfFrames(1),
+  m_bComputeCorrelation(false),
+  m_volumeCorrelationSource(NULL),
+  m_fCorrelationSourceData(NULL),
+  m_fCorrelationDataBuffer(NULL)
 {
   InitializeData();
 
@@ -68,8 +74,11 @@ SurfaceOverlay::~SurfaceOverlay ()
   if ( m_fDataRaw )
     delete[] m_fDataRaw;
 
-  if (m_fDataOriginal)
-    delete[] m_fDataOriginal;
+  if (m_fData)
+    delete[] m_fData;
+
+  if (m_fDataUnsmoothed)
+    delete[] m_fDataUnsmoothed;
 
   if (m_overlayPaired)
   {
@@ -83,6 +92,12 @@ SurfaceOverlay::~SurfaceOverlay ()
       MRIfree(&m_mriCorrelation);
     }
   }
+
+  if (m_fCorrelationSourceData)
+    delete[] m_fCorrelationSourceData;
+
+  if (m_fCorrelationDataBuffer)
+    delete[] m_fCorrelationDataBuffer;
 }
 
 void SurfaceOverlay::InitializeData()
@@ -94,17 +109,23 @@ void SurfaceOverlay::InitializeData()
       delete[] m_fDataRaw;
 
     m_nDataSize = mris->nvertices;
-    m_fData = m_fDataRaw = new float[ m_nDataSize ];
+    m_fDataRaw = new float[ m_nDataSize ];
+    if ( !m_fDataRaw )
+    {
+      return;
+    }
+
+    if ( m_fData )
+      delete[] m_fData;
+
+    m_fData = new float[m_nDataSize];
     if ( !m_fData )
     {
       return;
     }
 
-    if ( m_fDataOriginal )
-      delete[] m_fDataOriginal;
-
-    m_fDataOriginal = new float[ m_nDataSize ];
-    if ( !m_fDataOriginal )
+    m_fDataUnsmoothed = new float[m_nDataSize];
+    if ( !m_fDataUnsmoothed )
     {
       return;
     }
@@ -122,7 +143,7 @@ void SurfaceOverlay::InitializeData()
         m_dMinValue = m_fData[vno];
       }
     }
-    memcpy(m_fDataOriginal, m_fData, sizeof(float)*m_nDataSize);
+    memcpy(m_fDataRaw, m_fData, sizeof(float)*m_nDataSize);
   }
 }
 
@@ -135,23 +156,26 @@ void SurfaceOverlay::InitializeData(float *data_buffer_in, int nvertices, int nf
 
     m_nDataSize = nvertices;
     m_nNumOfFrames = nframes;
-    m_fData = m_fDataRaw = data_buffer_in;
+    m_fDataRaw = data_buffer_in;
+    if ( !m_fDataRaw )
+      return;
+
+    if ( m_fData )
+      delete[] m_fData;
+
+    m_fData = new float[ m_nDataSize ];
     if ( !m_fData )
-    {
       return;
-    }
 
-    if ( m_fDataOriginal )
-      delete[] m_fDataOriginal;
-
-    m_fDataOriginal = new float[ m_nDataSize ];
-    if ( !m_fDataOriginal )
-    {
+    m_fDataUnsmoothed = new float[m_nDataSize];
+    if (!m_fDataUnsmoothed)
       return;
-    }
 
     SetActiveFrame(0);
     GetProperty()->Reset();
+    m_fCorrelationSourceData = new float[nframes];
+    memset(m_fCorrelationSourceData, 0, sizeof(float)*nframes);
+    m_fCorrelationDataBuffer = new float[nframes];
   }
 }
 
@@ -234,7 +258,8 @@ void SurfaceOverlay::UpdateCorrelationAtVertex( int nVertex, int nHemisphere )
       m_dMinValue = m_fData[i];
     }
   }
-  memcpy(m_fDataOriginal, m_fData, sizeof(float)*m_nDataSize);
+  memcpy(m_fDataRaw, m_fData, sizeof(float)*m_nDataSize);
+  memcpy(m_fDataUnsmoothed, m_fData, sizeof(float)*m_nDataSize);
   if (GetProperty()->GetSmooth())
   {
     SmoothData();
@@ -288,7 +313,7 @@ void SurfaceOverlay::UpdateSmooth(bool trigger_paired)
   }
   else
   {
-    memcpy(m_fData, m_fDataOriginal, sizeof(float)*m_nDataSize);
+    memcpy(m_fData, m_fDataUnsmoothed, sizeof(float)*m_nDataSize);
   }
   m_surface->UpdateOverlay(true);
   emit DataUpdated();
@@ -308,7 +333,7 @@ void SurfaceOverlay::SmoothData(int nSteps_in, float *data_out)
     cerr << "Can not allocate mri\n";
     return;
   }
-  memcpy(&MRIFseq_vox( mri, 0, 0, 0, 0 ), m_fDataOriginal, sizeof(float)*m_nDataSize);
+  memcpy(&MRIFseq_vox( mri, 0, 0, 0, 0 ), m_fDataUnsmoothed, sizeof(float)*m_nDataSize);
   int nSteps = nSteps_in;
   if (nSteps < 1)
     nSteps = GetProperty()->GetSmoothSteps();
@@ -335,7 +360,8 @@ void SurfaceOverlay::SetActiveFrame(int nFrame)
   if (nFrame >= m_nNumOfFrames)
     nFrame = 0;
   m_nActiveFrame = nFrame;
-  m_fData = m_fDataRaw + m_nActiveFrame*m_nDataSize;
+  memcpy(m_fData, m_fDataRaw + m_nActiveFrame*m_nDataSize, sizeof(float)*m_nDataSize);
+  memcpy(m_fDataUnsmoothed, m_fData, sizeof(float)*m_nDataSize);
   m_dMaxValue = m_dMinValue = m_fData[0];
   for ( int i = 0; i < m_nDataSize; i++ )
   {
@@ -348,5 +374,62 @@ void SurfaceOverlay::SetActiveFrame(int nFrame)
       m_dMinValue = m_fData[i];
     }
   }
-  memcpy(m_fDataOriginal, m_fData, sizeof(float)*m_nDataSize);
+  if (GetProperty()->GetSmooth())
+  {
+    SmoothData();
+  }
+}
+
+void SurfaceOverlay::SetComputeCorrelation(bool flag)
+{
+  m_bComputeCorrelation = flag;
+  if (flag)
+  {
+    UpdateCorrelationCoefficient();
+  }
+  else
+  {
+    SetActiveFrame(m_nActiveFrame);
+  }
+}
+
+void SurfaceOverlay::UpdateCorrelationCoefficient()
+{
+  if (m_bComputeCorrelation && m_volumeCorrelationSource && m_volumeCorrelationSource->GetNumberOfFrames() == m_nNumOfFrames)
+  {
+    double pos[3];
+    int n[3];
+    m_volumeCorrelationSource->GetSlicePosition(pos);
+    m_volumeCorrelationSource->TargetToRAS(pos, pos);
+    m_volumeCorrelationSource->RASToOriginalIndex(pos, n);
+    m_volumeCorrelationSource->GetVoxelValueByOriginalIndexAllFrames(n[0], n[1], n[2], m_fCorrelationSourceData);
+    for (int i = 0; i < m_nDataSize; i++)
+    {
+      for (int j = 0; j < m_nNumOfFrames; j++)
+      {
+        m_fCorrelationDataBuffer[j] = m_fDataRaw[i+j*m_nDataSize];
+      }
+      m_fData[i] = MyUtils::CalculateCorrelationCoefficient(m_fCorrelationSourceData, m_fCorrelationDataBuffer, m_nNumOfFrames);
+    }
+    memcpy(m_fDataUnsmoothed, m_fData, sizeof(float)*m_nDataSize);
+    if (GetProperty()->GetSmooth())
+      SmoothData();
+    m_surface->UpdateOverlay(true);
+    emit DataUpdated();
+  }
+}
+
+void SurfaceOverlay::SetCorrelationSourceVolume(LayerMRI *vol)
+{
+  if (m_volumeCorrelationSource)
+    m_volumeCorrelationSource->disconnect(this, 0);
+  m_volumeCorrelationSource = vol;
+  connect(vol, SIGNAL(destroyed(QObject*)), this, SLOT(OnCorrelationSourceDeleted(QObject*)));
+  UpdateCorrelationCoefficient();
+}
+
+void SurfaceOverlay::OnCorrelationSourceDeleted(QObject *obj)
+{
+  if (m_volumeCorrelationSource == obj)
+    m_volumeCorrelationSource = NULL;
 }

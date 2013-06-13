@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2011/10/13 21:05:31 $
- *    $Revision: 1.28 $
+ *    $Date: 2013/06/13 19:59:27 $
+ *    $Revision: 1.29 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -61,6 +61,8 @@ public:
                                       std::vector<void*> input_volumes, unsigned char* output_volume, int vol_size );
   static bool CalculateOptimalVolume( int* vox, int nsize1, int* vox2, int nsize2,
                                       std::vector<void*> input_volumes, long* output_volume, int vol_size );
+
+  static double CalculateCorrelationCoefficient(float* x, float* y, int n);
 
   static bool IsIdentity( double m[4][4] );
 

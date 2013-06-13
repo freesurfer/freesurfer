@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2013/05/28 18:48:16 $
- *    $Revision: 1.60 $
+ *    $Date: 2013/06/13 19:59:27 $
+ *    $Revision: 1.61 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -231,8 +231,8 @@ void RenderView2D::UpdateCursorRASPosition( int posX, int posY )
   double pos[3];
   MousePositionToRAS( posX, posY, pos );
 
-  lc->SetCursorRASPosition( pos );
   MainWindow::GetMainWindow()->SetSlicePosition( pos );
+  lc->SetCursorRASPosition( pos );
 }
 
 void RenderView2D::Update2DOverlay()

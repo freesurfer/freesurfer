@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>490</width>
-    <height>723</height>
+    <width>489</width>
+    <height>750</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -22,7 +22,7 @@
      <property name="topMargin">
       <number>0</number>
      </property>
-     <item row="1" column="0">
+     <item row="2" column="0">
       <widget class="QGroupBox" name="groupBox">
        <property name="title">
         <string>Opacity</string>
@@ -57,7 +57,7 @@
        </layout>
       </widget>
      </item>
-     <item row="1" column="1">
+     <item row="2" column="1">
       <widget class="QGroupBox" name="groupBox_5">
        <property name="title">
         <string>Smooth</string>
@@ -114,8 +114,11 @@
        <property name="title">
         <string>Frame</string>
        </property>
-       <layout class="QHBoxLayout" name="horizontalLayout_4" stretch="0,0,0,0">
-        <item>
+       <property name="alignment">
+        <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
+       </property>
+       <layout class="QGridLayout" name="gridLayout_3">
+        <item row="0" column="0">
          <widget class="QSlider" name="sliderFrame">
           <property name="maximum">
            <number>100</number>
@@ -128,14 +131,21 @@
           </property>
          </widget>
         </item>
-        <item>
+        <item row="0" column="1">
          <widget class="QSpinBox" name="spinBoxFrame">
           <property name="wrapping">
            <bool>true</bool>
           </property>
          </widget>
         </item>
-        <item>
+        <item row="0" column="3">
+         <widget class="QCheckBox" name="checkBoxAutoFrame">
+          <property name="text">
+           <string>Auto set frame by vertex number</string>
+          </property>
+         </widget>
+        </item>
+        <item row="0" column="2">
          <spacer name="horizontalSpacer_12">
           <property name="orientation">
            <enum>Qt::Horizontal</enum>
@@ -151,12 +161,59 @@
           </property>
          </spacer>
         </item>
+       </layout>
+      </widget>
+     </item>
+     <item row="1" column="0" colspan="2">
+      <widget class="QGroupBox" name="groupBoxCorrelation">
+       <property name="title">
+        <string>Correlation</string>
+       </property>
+       <layout class="QHBoxLayout" name="horizontalLayout_4">
         <item>
-         <widget class="QCheckBox" name="checkBoxAutoFrame">
+         <widget class="QCheckBox" name="checkBoxComputeCorrelation">
           <property name="text">
-           <string> Auto set frame by vertex number</string>
+           <string>Compute correlation to volume</string>
           </property>
          </widget>
+        </item>
+        <item>
+         <widget class="QComboBox" name="comboBoxVolumes">
+          <property name="enabled">
+           <bool>false</bool>
+          </property>
+          <property name="sizePolicy">
+           <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+            <horstretch>1</horstretch>
+            <verstretch>0</verstretch>
+           </sizepolicy>
+          </property>
+          <property name="minimumSize">
+           <size>
+            <width>200</width>
+            <height>0</height>
+           </size>
+          </property>
+          <property name="maximumSize">
+           <size>
+            <width>300</width>
+            <height>1677777</height>
+           </size>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <spacer name="horizontalSpacer_13">
+          <property name="orientation">
+           <enum>Qt::Horizontal</enum>
+          </property>
+          <property name="sizeHint" stdset="0">
+           <size>
+            <width>0</width>
+            <height>0</height>
+           </size>
+          </property>
+         </spacer>
         </item>
        </layout>
       </widget>
@@ -633,8 +690,8 @@
    <slot>OnSliderOpacity(int)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>170</x>
-     <y>123</y>
+     <x>169</x>
+     <y>191</y>
     </hint>
     <hint type="destinationlabel">
      <x>472</x>
@@ -649,8 +706,8 @@
    <slot>OnSpinBoxOpacity(double)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>230</x>
-     <y>128</y>
+     <x>229</x>
+     <y>196</y>
     </hint>
     <hint type="destinationlabel">
      <x>472</x>
@@ -666,7 +723,7 @@
    <hints>
     <hint type="sourcelabel">
      <x>93</x>
-     <y>225</y>
+     <y>293</y>
     </hint>
     <hint type="destinationlabel">
      <x>472</x>
@@ -682,7 +739,7 @@
    <hints>
     <hint type="sourcelabel">
      <x>196</x>
-     <y>225</y>
+     <y>293</y>
     </hint>
     <hint type="destinationlabel">
      <x>472</x>
@@ -698,7 +755,7 @@
    <hints>
     <hint type="sourcelabel">
      <x>93</x>
-     <y>195</y>
+     <y>263</y>
     </hint>
     <hint type="destinationlabel">
      <x>472</x>
@@ -714,7 +771,7 @@
    <hints>
     <hint type="sourcelabel">
      <x>196</x>
-     <y>195</y>
+     <y>263</y>
     </hint>
     <hint type="destinationlabel">
      <x>472</x>
@@ -730,7 +787,7 @@
    <hints>
     <hint type="sourcelabel">
      <x>298</x>
-     <y>195</y>
+     <y>263</y>
     </hint>
     <hint type="destinationlabel">
      <x>472</x>
@@ -762,11 +819,11 @@
    <hints>
     <hint type="sourcelabel">
      <x>196</x>
-     <y>195</y>
+     <y>263</y>
     </hint>
     <hint type="destinationlabel">
      <x>93</x>
-     <y>225</y>
+     <y>293</y>
     </hint>
    </hints>
   </connection>
@@ -778,11 +835,11 @@
    <hints>
     <hint type="sourcelabel">
      <x>298</x>
-     <y>195</y>
+     <y>263</y>
     </hint>
     <hint type="destinationlabel">
      <x>93</x>
-     <y>225</y>
+     <y>293</y>
     </hint>
    </hints>
   </connection>
@@ -794,11 +851,11 @@
    <hints>
     <hint type="sourcelabel">
      <x>196</x>
-     <y>195</y>
+     <y>263</y>
     </hint>
     <hint type="destinationlabel">
      <x>206</x>
-     <y>602</y>
+     <y>629</y>
     </hint>
    </hints>
   </connection>
@@ -810,7 +867,7 @@
    <hints>
     <hint type="sourcelabel">
      <x>89</x>
-     <y>602</y>
+     <y>629</y>
     </hint>
     <hint type="destinationlabel">
      <x>1</x>
@@ -826,7 +883,7 @@
    <hints>
     <hint type="sourcelabel">
      <x>206</x>
-     <y>602</y>
+     <y>629</y>
     </hint>
     <hint type="destinationlabel">
      <x>0</x>
@@ -842,7 +899,7 @@
    <hints>
     <hint type="sourcelabel">
      <x>295</x>
-     <y>602</y>
+     <y>629</y>
     </hint>
     <hint type="destinationlabel">
      <x>472</x>
@@ -858,11 +915,11 @@
    <hints>
     <hint type="sourcelabel">
      <x>196</x>
-     <y>195</y>
+     <y>263</y>
     </hint>
     <hint type="destinationlabel">
      <x>73</x>
-     <y>558</y>
+     <y>585</y>
     </hint>
    </hints>
   </connection>
@@ -874,11 +931,11 @@
    <hints>
     <hint type="sourcelabel">
      <x>298</x>
-     <y>195</y>
+     <y>263</y>
     </hint>
     <hint type="destinationlabel">
-     <x>469</x>
-     <y>613</y>
+     <x>468</x>
+     <y>640</y>
     </hint>
    </hints>
   </connection>
@@ -890,11 +947,11 @@
    <hints>
     <hint type="sourcelabel">
      <x>298</x>
-     <y>195</y>
+     <y>263</y>
     </hint>
     <hint type="destinationlabel">
      <x>206</x>
-     <y>602</y>
+     <y>629</y>
     </hint>
    </hints>
   </connection>
@@ -906,11 +963,11 @@
    <hints>
     <hint type="sourcelabel">
      <x>298</x>
-     <y>195</y>
+     <y>263</y>
     </hint>
     <hint type="destinationlabel">
-     <x>469</x>
-     <y>549</y>
+     <x>468</x>
+     <y>576</y>
     </hint>
    </hints>
   </connection>
@@ -922,7 +979,7 @@
    <hints>
     <hint type="sourcelabel">
      <x>298</x>
-     <y>195</y>
+     <y>263</y>
     </hint>
     <hint type="destinationlabel">
      <x>455</x>
@@ -938,10 +995,10 @@
    <hints>
     <hint type="sourcelabel">
      <x>368</x>
-     <y>549</y>
+     <y>576</y>
     </hint>
     <hint type="destinationlabel">
-     <x>489</x>
+     <x>488</x>
      <y>508</y>
     </hint>
    </hints>
@@ -954,11 +1011,11 @@
    <hints>
     <hint type="sourcelabel">
      <x>298</x>
-     <y>195</y>
+     <y>263</y>
     </hint>
     <hint type="destinationlabel">
      <x>196</x>
-     <y>225</y>
+     <y>293</y>
     </hint>
    </hints>
   </connection>
@@ -970,11 +1027,11 @@
    <hints>
     <hint type="sourcelabel">
      <x>298</x>
-     <y>195</y>
+     <y>263</y>
     </hint>
     <hint type="destinationlabel">
      <x>298</x>
-     <y>225</y>
+     <y>293</y>
     </hint>
    </hints>
   </connection>
@@ -986,11 +1043,11 @@
    <hints>
     <hint type="sourcelabel">
      <x>298</x>
-     <y>195</y>
+     <y>263</y>
     </hint>
     <hint type="destinationlabel">
-     <x>469</x>
-     <y>225</y>
+     <x>468</x>
+     <y>293</y>
     </hint>
    </hints>
   </connection>
@@ -1002,10 +1059,10 @@
    <hints>
     <hint type="sourcelabel">
      <x>298</x>
-     <y>225</y>
+     <y>293</y>
     </hint>
     <hint type="destinationlabel">
-     <x>489</x>
+     <x>488</x>
      <y>228</y>
     </hint>
    </hints>
@@ -1017,11 +1074,11 @@
    <slot>UpdateGraph()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>469</x>
-     <y>225</y>
+     <x>468</x>
+     <y>293</y>
     </hint>
     <hint type="destinationlabel">
-     <x>489</x>
+     <x>488</x>
      <y>204</y>
     </hint>
    </hints>
@@ -1034,11 +1091,11 @@
    <hints>
     <hint type="sourcelabel">
      <x>298</x>
-     <y>195</y>
+     <y>263</y>
     </hint>
     <hint type="destinationlabel">
-     <x>469</x>
-     <y>198</y>
+     <x>468</x>
+     <y>266</y>
     </hint>
    </hints>
   </connection>
@@ -1049,8 +1106,8 @@
    <slot>FlipMarkers()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>469</x>
-     <y>198</y>
+     <x>468</x>
+     <y>266</y>
     </hint>
     <hint type="destinationlabel">
      <x>376</x>
@@ -1065,12 +1122,12 @@
    <slot>setEnabled(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>322</x>
-     <y>126</y>
+     <x>321</x>
+     <y>194</y>
     </hint>
     <hint type="destinationlabel">
-     <x>382</x>
-     <y>128</y>
+     <x>381</x>
+     <y>196</y>
     </hint>
    </hints>
   </connection>
@@ -1081,12 +1138,12 @@
    <slot>setEnabled(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>322</x>
-     <y>126</y>
+     <x>321</x>
+     <y>194</y>
     </hint>
     <hint type="destinationlabel">
-     <x>422</x>
-     <y>128</y>
+     <x>421</x>
+     <y>196</y>
     </hint>
    </hints>
   </connection>
@@ -1097,11 +1154,11 @@
    <slot>OnSmoothChanged()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>322</x>
-     <y>126</y>
+     <x>321</x>
+     <y>194</y>
     </hint>
     <hint type="destinationlabel">
-     <x>489</x>
+     <x>488</x>
      <y>95</y>
     </hint>
    </hints>
@@ -1113,11 +1170,11 @@
    <slot>OnSmoothChanged()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>382</x>
-     <y>128</y>
+     <x>381</x>
+     <y>196</y>
     </hint>
     <hint type="destinationlabel">
-     <x>489</x>
+     <x>488</x>
      <y>16</y>
     </hint>
    </hints>
@@ -1129,11 +1186,11 @@
    <slot>OnTextThresholdChanged(QString)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>167</x>
-     <y>508</y>
+     <x>166</x>
+     <y>535</y>
     </hint>
     <hint type="destinationlabel">
-     <x>489</x>
+     <x>488</x>
      <y>420</y>
     </hint>
    </hints>
@@ -1145,11 +1202,11 @@
    <slot>OnTextThresholdChanged(QString)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>296</x>
-     <y>508</y>
+     <x>295</x>
+     <y>535</y>
     </hint>
     <hint type="destinationlabel">
-     <x>489</x>
+     <x>488</x>
      <y>438</y>
     </hint>
    </hints>
@@ -1161,11 +1218,11 @@
    <slot>OnTextThresholdChanged(QString)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>428</x>
-     <y>508</y>
+     <x>427</x>
+     <y>535</y>
     </hint>
     <hint type="destinationlabel">
-     <x>489</x>
+     <x>488</x>
      <y>463</y>
     </hint>
    </hints>
@@ -1178,11 +1235,11 @@
    <hints>
     <hint type="sourcelabel">
      <x>295</x>
-     <y>602</y>
+     <y>629</y>
     </hint>
     <hint type="destinationlabel">
-     <x>296</x>
-     <y>508</y>
+     <x>295</x>
+     <y>535</y>
     </hint>
    </hints>
   </connection>
@@ -1218,6 +1275,70 @@
     </hint>
    </hints>
   </connection>
+  <connection>
+   <sender>checkBoxComputeCorrelation</sender>
+   <signal>toggled(bool)</signal>
+   <receiver>groupBoxFrame</receiver>
+   <slot>setDisabled(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>86</x>
+     <y>114</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>74</x>
+     <y>64</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>checkBoxComputeCorrelation</sender>
+   <signal>toggled(bool)</signal>
+   <receiver>comboBoxVolumes</receiver>
+   <slot>setEnabled(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>239</x>
+     <y>112</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>262</x>
+     <y>111</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>checkBoxComputeCorrelation</sender>
+   <signal>toggled(bool)</signal>
+   <receiver>WindowConfigureOverlay</receiver>
+   <slot>OnCheckComputeCorrelation(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>60</x>
+     <y>113</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>-32</x>
+     <y>136</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>comboBoxVolumes</sender>
+   <signal>currentIndexChanged(int)</signal>
+   <receiver>WindowConfigureOverlay</receiver>
+   <slot>OnComboCorrelationVolume(int)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>410</x>
+     <y>118</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>586</x>
+     <y>139</y>
+    </hint>
+   </hints>
+  </connection>
  </connections>
  <slots>
   <slot>OnApply()</slot>
@@ -1231,5 +1352,7 @@
   <slot>OnSmoothChanged()</slot>
   <slot>OnTextThresholdChanged(QString)</slot>
   <slot>OnFrameChanged(int)</slot>
+  <slot>OnCheckComputeCorrelation(bool)</slot>
+  <slot>OnComboCorrelationVolume(int)</slot>
  </slots>
 </ui>

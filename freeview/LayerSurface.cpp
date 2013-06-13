@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2013/06/11 17:05:35 $
- *    $Revision: 1.89 $
+ *    $Date: 2013/06/13 19:59:27 $
+ *    $Revision: 1.90 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -772,6 +772,11 @@ void LayerSurface::OnSlicePositionChanged( int nPlane )
   {
     int nVertex = this->GetVertexIndexAtTarget(m_dSlicePosition, NULL);
     m_spline->SetActiveVertex(nVertex);
+  }
+
+  for (int i = 0; i < m_overlays.size(); i++)
+  {
+    m_overlays[i]->UpdateCorrelationCoefficient();
   }
 }
 

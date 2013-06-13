@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2013/04/17 20:46:05 $
- *    $Revision: 1.83 $
+ *    $Date: 2013/06/13 19:59:27 $
+ *    $Revision: 1.84 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -94,6 +94,7 @@ public:
   virtual double GetVoxelValue( double* pos );
   double GetVoxelValueByOriginalIndex( int i, int j, int k, int frame = -1 );
   QList<double> GetVoxelValueByOriginalIndexAllFrames(int i, int j, int k);
+  void GetVoxelValueByOriginalIndexAllFrames(int i, int j, int k, float* buffer);
   double GetSampledVoxelValueByRAS(double* ras, int frame = -1);
 
   std::vector<double> GetSampledVoxelValues(std::vector< std::vector<double> >& line3d, int frame = -1);

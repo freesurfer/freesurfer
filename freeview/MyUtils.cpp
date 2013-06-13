@@ -6,9 +6,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/14 23:44:47 $
- *    $Revision: 1.44 $
+ *    $Author: rpwang $
+ *    $Date: 2013/06/13 19:59:27 $
+ *    $Revision: 1.45 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -350,6 +350,14 @@ bool MyUtils::CalculateOptimalVolume( int* vox1, int nsize1,
 double MyUtils::RoundToGrid(double x)
 {
   int n = 0;
+  if (x == 0)
+    return 0;
+  int sign = 1;
+  if (x < 0)
+  {
+    x = -x;
+    sign = -1;
+  }
   if (x < 1)
   {
     do
@@ -382,7 +390,30 @@ double MyUtils::RoundToGrid(double x)
     x = 2;
   }
 
-  return x/pow(10, n);
+  return x/pow(10, n)*sign;
+}
+
+template <class T> double calculate_correlation_coefficient(T* x, T* y, int n)
+{
+  double sxy = 0, sx = 0, sy=0, sx2 = 0, sy2 = 0;
+  for (int i = 0; i < n; i++)
+  {
+    sxy += x[i]*y[i];
+    sx += x[i];
+    sy += y[i];
+    sx2 += x[i]*x[i];
+    sy2 += y[i]*y[i];
+  }
+  double sq2 = (n*sx2-sx*sx)*(n*sy2-sy*sy);
+  if (sq2 > 0)
+    return (n*sxy-sx*sy)/sqrt(sq2);
+  else
+    return 0;
+}
+
+double MyUtils::CalculateCorrelationCoefficient(float *x, float *y, int n)
+{
+  return calculate_correlation_coefficient(x, y, n);
 }
 
 QStringList MyUtils::SplitString( const QString& strg_to_split,
