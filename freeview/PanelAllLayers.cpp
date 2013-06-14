@@ -98,6 +98,7 @@ void PanelAllLayers::AddLayers(QList<Layer *> layers, const QString &cat_name, L
   {
     QTreeWidgetItem* topItem = new QTreeWidgetItem(ui->treeWidgetLayers);
     topItem->setText(0, cat_name);
+    topItem->setData(0, Qt::UserRole, layers[0]->GetPrimaryType());
     topItem->setFlags(topItem->flags() & (~Qt::ItemIsSelectable));
     for (int i = 0; i < layers.size(); i++)
     {
@@ -180,15 +181,20 @@ void PanelAllLayers::OnCurrentItemChanged(QTreeWidgetItem *item)
   }
 
   Layer* layer = qobject_cast<Layer*>(item->data(0, Qt::UserRole).value<QObject*>());
-  if (!layer)
-    return;
-
-  MainWindow* mainwnd = MainWindow::GetMainWindow();
-  QString type = layer->GetPrimaryType();
-  LayerCollection* lc = mainwnd->GetLayerCollection(type);
-  if (lc)
+  QString type;
+  if (layer)
   {
-    lc->SetActiveLayer(layer);
+    MainWindow* mainwnd = MainWindow::GetMainWindow();
+    type = layer->GetPrimaryType();
+    LayerCollection* lc = mainwnd->GetLayerCollection(type);
+    if (lc)
+    {
+      lc->SetActiveLayer(layer);
+    }
+  }
+  else
+  {
+    type = item->data(0, Qt::UserRole).toString();
   }
 
   PanelLayer* panel = SetCurrentPanel(type);
