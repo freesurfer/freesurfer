@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2012/10/23 17:35:44 $
- *    $Revision: 1.37 $
+ *    $Date: 2013/06/25 20:32:36 $
+ *    $Revision: 1.38 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -101,6 +101,8 @@ public:
   SurfaceROI* InitializeSurfaceROI( int posX, int posY );
 
   void AddSurfaceROIPoint( int posX, int posY );
+
+  void PickCurrentSurfaceVertex(int posX, int posY);
 
 signals:
   void SurfaceVertexClicked();

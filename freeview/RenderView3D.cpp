@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2013/03/30 16:38:12 $
- *    $Revision: 1.68 $
+ *    $Date: 2013/06/25 20:32:36 $
+ *    $Revision: 1.69 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -438,6 +438,8 @@ void RenderView3D::DoUpdateRASPosition( int posX, int posY, bool bCursor )
           if (layer)
           {
             lc_surface->SetActiveLayer(layer);
+            LayerSurface* surf = (LayerSurface*)layer;
+            surf->SetCurrentVertex(surf->GetVertexIndexAtTarget(pos, NULL));
           }
           emit SurfaceVertexClicked();
         }
@@ -448,6 +450,51 @@ void RenderView3D::DoUpdateRASPosition( int posX, int posY, bool bCursor )
       }
 
       HighlightSliceFrame( -1 );
+    }
+  }
+}
+
+void RenderView3D::PickCurrentSurfaceVertex(int posX, int posY)
+{
+  LayerCollection* lc_surface = MainWindow::GetMainWindow()->GetLayerCollection( "Surface" );
+
+  this->setToolTip("");
+  if ( lc_surface->IsEmpty() )
+  {
+    return;
+  }
+
+  vtkCellPicker* picker = vtkCellPicker::SafeDownCast( this->GetRenderWindow()->GetInteractor()->GetPicker() );
+  if ( picker )
+  {
+    picker->InitializePickList();
+
+    vtkPropCollection* props = GetRenderer()->GetViewProps();
+    if ( props )
+    {
+      props->InitTraversal();
+      vtkProp* prop = props->GetNextProp();
+      while ( prop )
+      {
+        if ( vtkActor::SafeDownCast( prop ) )
+        {
+          picker->AddPickList( prop );
+        }
+        prop = props->GetNextProp();
+      }
+    }
+
+    double pos[3];
+    picker->Pick( posX, rect().height() - posY, 0, GetRenderer() );
+    picker->GetPickPosition( pos );
+
+    vtkProp* prop = picker->GetViewProp();
+    Layer* layer = lc_surface->HasProp( prop );
+    if (layer)
+    {
+      LayerSurface* surf = (LayerSurface*)layer;
+      surf->SetCurrentVertex(surf->GetVertexIndexAtTarget(pos, NULL));
+      emit SurfaceVertexClicked();
     }
   }
 }

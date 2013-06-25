@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2013/06/13 19:59:27 $
- *    $Revision: 1.90 $
+ *    $Date: 2013/06/25 20:32:36 $
+ *    $Revision: 1.91 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -72,7 +72,8 @@ LayerSurface::LayerSurface( LayerMRI* ref, QObject* parent ) : LayerEditable( pa
   m_bUndoable( false ),
   m_bVector2DPendingUpdate( true ),
   m_bLoadAll(false),
-  m_spline(NULL)
+  m_spline(NULL),
+  m_nCurrentVertex(-1)
 {
   m_strTypeNames.push_back( "Surface" );
   m_sPrimaryType = "Surface";
@@ -1655,3 +1656,14 @@ void LayerSurface::ResetVolumeRef()
   m_volumeRef = NULL;
   m_surfaceSource->ResetVolumeRef();
 }
+
+void LayerSurface::SetCurrentVertex(int n)
+{
+  if (m_nCurrentVertex != n)
+  {
+    m_nCurrentVertex = n;
+    emit CurrentVertexChanged(n);
+  }
+}
+
+

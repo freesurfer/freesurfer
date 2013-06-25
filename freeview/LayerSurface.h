@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2013/05/23 17:10:43 $
- *    $Revision: 1.57 $
+ *    $Date: 2013/06/25 20:32:36 $
+ *    $Revision: 1.58 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -223,6 +223,11 @@ public:
     return m_roi;
   }
 
+  int GetCurrentVertex()
+  {
+    return m_nCurrentVertex;
+  }
+
 public slots:
   void SetActiveSurface( int nSurfaceType );
   void UpdateOverlay( bool bAskRedraw = true );
@@ -238,6 +243,8 @@ public slots:
 
   void ResetVolumeRef();
 
+  void SetCurrentVertex(int n);
+
 Q_SIGNALS:
   void SurfaceAnnotationAdded( SurfaceAnnotation* );
   void SurfaceLabelAdded( SurfaceLabel* );
@@ -249,6 +256,7 @@ Q_SIGNALS:
   void ActiveOverlayChanged( int n );
   void ActiveAnnotationChanged( int n );
   void ActiveLabelChanged( int n );
+  void CurrentVertexChanged(int n);
 
 protected slots:
   void UpdateOpacity();
@@ -299,6 +307,8 @@ protected:
 
   QList<SurfaceLabel*>      m_labels;
   int         m_nActiveLabel;
+
+  int         m_nCurrentVertex;
 
   SurfaceROI*           m_roi;
   SurfaceSpline*        m_spline;

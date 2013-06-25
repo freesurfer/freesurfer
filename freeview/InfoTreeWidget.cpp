@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2013/03/06 22:55:25 $
- *    $Revision: 1.13 $
+ *    $Date: 2013/06/25 20:32:35 $
+ *    $Revision: 1.14 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -49,6 +49,7 @@ InfoTreeWidget::InfoTreeWidget(QWidget* parent) :
   m_bShowTkRegRAS(true)
 {
   this->setAlternatingRowColors(true);
+  this->setTextElideMode(Qt::ElideMiddle);
   m_editor = new QLineEdit(this);
   m_editor->hide();
   connect(this, SIGNAL(itemClicked(QTreeWidgetItem*,int)),
@@ -133,7 +134,7 @@ void InfoTreeWidget::UpdateAll()
       item->setText(0, layer->GetName());
       layer->RASToOriginalIndex( ras, nIndex );
       double dvalue;
-      if (layer->IsModified()) // || layer->HasReg())
+      if (layer->IsModified() || layer->GetCorrelationSurface())
         dvalue = layer->GetVoxelValue( m_dRAS );
       else
         dvalue = layer->GetVoxelValueByOriginalIndex(nIndex[0], nIndex[1], nIndex[2]);
@@ -240,6 +241,7 @@ void InfoTreeWidget::UpdateAll()
           SurfaceOverlay* overlay = surf->GetOverlay( i );
           item = new QTreeWidgetItem(this);
           item->setText(1, QString("%1 \t%2").arg(overlay->GetName()).arg(overlay->GetDataAtVertex( nVertex )));
+          item->setToolTip(1, item->text(1));
         }
 
         int nAnnotations = surf->GetNumberOfAnnotations();
@@ -248,6 +250,7 @@ void InfoTreeWidget::UpdateAll()
           SurfaceAnnotation* annot = surf->GetAnnotation( i );
           item = new QTreeWidgetItem(this);
           item->setText(1, QString("%1 \t%2").arg(annot->GetName()).arg(annot->GetAnnotationNameAtVertex( nVertex )));
+          item->setToolTip(1, item->text(1));
         }
       }
       else

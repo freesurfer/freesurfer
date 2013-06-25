@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2012/05/01 16:35:36 $
- *    $Revision: 1.33 $
+ *    $Date: 2013/06/25 20:32:35 $
+ *    $Revision: 1.34 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -91,8 +91,15 @@ bool Interactor3D::ProcessMouseUpEvent( QMouseEvent* event, RenderView* rendervi
   {
     if ( event->button() == Qt::LeftButton )
     {
-      view->UpdateCursorRASPosition( event->x(), event->y() );
-      view->UpdateConnectivityDisplay();
+      if ( event->modifiers() & Qt::ShiftModifier)
+      {
+        view->PickCurrentSurfaceVertex(event->x(), event->y());
+      }
+      else
+      {
+        view->UpdateCursorRASPosition( event->x(), event->y() );
+        view->UpdateConnectivityDisplay();
+      }
     }
   }
   else

@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2013/06/13 19:59:27 $
- *    $Revision: 1.133 $
+ *    $Date: 2013/06/25 20:32:35 $
+ *    $Revision: 1.134 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -75,6 +75,7 @@
 #include "ProgressCallback.h"
 #include "LayerMRIWorkerThread.h"
 #include "vtkImageFlip.h"
+#include "LayerSurface.h"
 
 extern "C"
 {
@@ -94,7 +95,8 @@ LayerMRI::LayerMRI( LayerMRI* ref, QObject* parent ) : LayerVolumeBase( parent )
   m_currentSurfaceRegion( NULL ),
   m_nGotoLabelSlice(-1),
   m_nGotoLabelOrientation(-1),
-  m_layerMask(NULL)
+  m_layerMask(NULL),
+  m_correlationSurface(NULL)
 {
   m_strTypeNames.push_back( "MRI" );
   m_sPrimaryType = "MRI";
@@ -1109,7 +1111,10 @@ double LayerMRI::GetVoxelValue( double* pos )
   }
   else
   {
-    return m_imageData->GetScalarComponentAsDouble( n[0], n[1], n[2], m_nActiveFrame );
+    if (GetCorrelationSurface())
+      return m_imageRawDisplay->GetScalarComponentAsDouble( n[0], n[1], n[2], 0 );
+    else
+      return m_imageData->GetScalarComponentAsDouble( n[0], n[1], n[2], m_nActiveFrame );
   }
 }
 
@@ -2974,4 +2979,72 @@ void LayerMRI::SetMaskLayer(LayerMRI *layer_mask)
   }
   emit ActorUpdated();
   GetProperty()->EmitChangeSignal();
+}
+
+void LayerMRI::SetCorrelationSurface(LayerSurface *surf)
+{
+  if (m_correlationSurface)
+    disconnect(m_correlationSurface, 0, this, 0);
+
+  m_correlationSurface = surf;
+  if (m_correlationSurface)
+  {
+    this->SetActiveFrame(0);
+    if (!m_imageRawDisplay.GetPointer())
+    {
+      m_imageRawDisplay = vtkSmartPointer<vtkImageData>::New();
+      m_imageRawDisplay->SetDimensions(m_imageData->GetDimensions());
+      m_imageRawDisplay->SetExtent(m_imageData->GetExtent());
+      m_imageRawDisplay->SetSpacing(m_imageData->GetSpacing());
+      m_imageRawDisplay->SetOrigin(m_imageData->GetOrigin());
+      m_imageRawDisplay->SetScalarTypeToFloat();
+      m_imageRawDisplay->SetNumberOfScalarComponents(1);
+      m_imageRawDisplay->AllocateScalars();
+      GetProperty()->SetWindowLevel(1, 0);
+      GetProperty()->SetHeatScale(0, 0.5, 1);
+    }
+    for ( int i = 0; i < 3; i++ )
+    {
+      mReslice[i]->SetInput( m_imageRawDisplay );
+    }
+    connect(m_correlationSurface, SIGNAL(CurrentVertexChanged(int)), this, SLOT(UpdateSurfaceCorrelationData()));
+  }
+  else
+  {
+    for ( int i = 0; i < 3; i++ )
+    {
+      mReslice[i]->SetInput( m_imageData );
+    }
+  }
+  emit ActorUpdated();
+}
+
+void LayerMRI::UpdateSurfaceCorrelationData()
+{
+  if (m_correlationSurface && m_correlationSurface->GetCurrentVertex() >= 0)
+  {
+    int nFrames = GetNumberOfFrames();
+    float* buffer = new float[nFrames];
+    float* x;
+    int dim[3];
+    m_imageRawDisplay->GetDimensions(dim);
+    float* inPixel = static_cast<float*>(m_imageData->GetScalarPointer());
+    float* outPixel = static_cast<float*>(m_imageRawDisplay->GetScalarPointer());
+    for (int i = 0; i < dim[0]; i++)
+    {
+      for (int j = 0; j < dim[1]; j++)
+      {
+        for (int k = 0; k < dim[2]; k++)
+        {
+          int nOffset = k*dim[0]*dim[1] + j*dim[0] + i;
+          x = inPixel + nFrames*nOffset;
+
+          outPixel[nOffset] = MyUtils::CalculateCorrelationCoefficient(buffer, x, nFrames);
+        }
+      }
+    }
+    delete[] buffer;
+    m_imageRawDisplay->Modified();
+    emit ActorUpdated();
+  }
 }

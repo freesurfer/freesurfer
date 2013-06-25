@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2013/06/07 02:20:33 $
- *    $Revision: 1.87 $
+ *    $Date: 2013/06/25 20:32:36 $
+ *    $Revision: 1.88 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -32,6 +32,8 @@
 #include "LayerPropertyDTI.h"
 #include "LayerVolumeTrack.h"
 #include "LUTDataHolder.h"
+#include "LayerSurface.h"
+#include "SurfaceOverlay.h"
 #include "MyUtils.h"
 #include "BrushProperty.h"
 #include <QToolBar>
@@ -104,7 +106,9 @@ PanelVolume::PanelVolume(QWidget *parent) :
                     << ui->spinBoxFrame
                     << ui->labelFrame
                     << ui->checkBoxRememberFrame
-                    << ui->labelRememberFrame;
+                    << ui->labelRememberFrame
+                    << ui->labelCorrelationSurface
+                    << ui->comboBoxCorrelationSurface;
 
   m_widgetlistVector << ui->labelInversion
                      << ui->comboBoxInversion
@@ -467,6 +471,31 @@ void PanelVolume::DoUpdateWidgets()
       }
     }
     ui->comboBoxMask->setCurrentIndex(n);
+
+    // correlation surface setting
+    if (layer->GetNumberOfFrames() > 1)
+    {
+      ui->comboBoxCorrelationSurface->clear();
+      ui->comboBoxCorrelationSurface->addItem("None");
+      QList<Layer*> surfs = MainWindow::GetMainWindow()->GetLayers("Surface");
+      n = 0;
+      for (int i = 0; i < surfs.size(); i++)
+      {
+        LayerSurface* surf = ((LayerSurface*)surfs[i]);
+        for (int j = 0; j < surf->GetNumberOfOverlays(); j++)
+        {
+          SurfaceOverlay* overlay = surf->GetOverlay(j);
+          if (overlay->GetNumberOfFrames() == layer->GetNumberOfFrames())
+          {
+            ui->comboBoxCorrelationSurface->addItem(surf->GetName(), QVariant::fromValue((QObject*)surf));
+            if (surf == layer->GetCorrelationSurface())
+              n = ui->comboBoxCorrelationSurface->count()-1;
+            break;
+          }
+        }
+      }
+      ui->comboBoxCorrelationSurface->setCurrentIndex(n);
+    }
   }
 
   bool bNormalDisplay = (layer && !layer->GetProperty()->GetDisplayVector() && !layer->GetProperty()->GetDisplayTensor());
@@ -490,7 +519,9 @@ void PanelVolume::DoUpdateWidgets()
     ShowWidgets( m_widgetlistEditable, bNormalDisplay && layer->IsEditable() );
     ShowWidgets( m_widgetlistFrame, layer &&
                  !layer->IsTypeOf( "DTI" ) &&
-                 layer->GetNumberOfFrames() > 1 );
+                 layer->GetNumberOfFrames() > 1 && !layer->GetCorrelationSurface() );
+    ui->labelCorrelationSurface->setVisible(layer && layer->GetNumberOfFrames() > 1 && ui->comboBoxCorrelationSurface->count() > 1);
+    ui->comboBoxCorrelationSurface->setVisible(ui->labelCorrelationSurface->isVisible());
 
     ui->sliderFrame->setEnabled( layer &&
                                  !layer->GetProperty()->GetDisplayVector() &&
@@ -1257,5 +1288,15 @@ void PanelVolume::OnComboMask(int sel)
   if ( layer )
   {
     layer->SetMaskLayer(mask);
+  }
+}
+
+void PanelVolume::OnComboCorrelationSurface(int nSel)
+{
+  LayerSurface* surf = qobject_cast<LayerSurface*>(ui->comboBoxCorrelationSurface->itemData(nSel).value<QObject*>());
+  LayerMRI* layer = GetCurrentLayer<LayerMRI*>();
+  if ( layer )
+  {
+    layer->SetCorrelationSurface(surf);
   }
 }

@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2013/06/13 19:59:27 $
- *    $Revision: 1.84 $
+ *    $Date: 2013/06/25 20:32:36 $
+ *    $Revision: 1.85 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -58,6 +58,7 @@ class Contour2D;
 class SurfaceRegion;
 class SurfaceRegionGroups;
 class LayerMRIWorkerThread;
+class LayerSurface;
 
 #ifndef IntList
 typedef QList<int> IntList;
@@ -285,6 +286,13 @@ public:
     return m_layerMask;
   }
 
+  void SetCorrelationSurface(LayerSurface* surf);
+
+  LayerSurface* GetCorrelationSurface()
+  {
+    return m_correlationSurface;
+  }
+
 public slots:
   void SetActiveFrame( int nFrame );
   void SetActiveFrameOneBase( int nFrame )
@@ -328,6 +336,8 @@ protected slots:
   void OnContourThreadFinished(int thread_id);
 
   void OnAvailableLabels(const IntList& vals);
+
+  void UpdateSurfaceCorrelationData();
 
 protected:
   virtual void DoTransform(double *mat, int sample_method);
@@ -403,6 +413,9 @@ protected:
 
   vtkSmartPointer<vtkImageData> m_imageDataBackup;
   LayerMRI*   m_layerMask;
+
+  vtkSmartPointer<vtkImageData> m_imageRawDisplay;
+  LayerSurface* m_correlationSurface;
 
 private:
   double**    private_buf1_3x3;
