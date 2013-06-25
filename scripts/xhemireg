@@ -16,7 +16,7 @@
 #  Dont convert volumes in mri/orig
 #
 
-set VERSION = '$Id: xhemireg,v 1.23 2012/06/04 15:00:51 greve Exp $';
+set VERSION = '$Id: xhemireg,v 1.24 2013/06/25 04:25:04 greve Exp $';
 
 set subject = ();
 set srchemilist = ();
@@ -131,12 +131,15 @@ foreach srchemi ($srchemilist)
     # Convert volumes. aseg will be wrong -- need to swap labels too
     date | tee -a $LF
     foreach vol ($vollist )
+      echo "vol $vol --------------" | tee -a $LF
       set invol = mri/$vol.mgz
       if(! -e $invol) then
         set invol = mri/$vol.mgh
         if(! -e $invol) then
-           echo "ERROR: canot find $vol" | tee -a $LF
-           exit 1;
+          echo "WARNING: cannot find $vol" | tee -a $LF
+          echo " ... skipping ... "| tee -a $LF
+          continue
+          #exit 1;
         endif
       endif
       set cmd = (mri_vol2vol --mov $invol --targ $invol \
@@ -267,6 +270,13 @@ while( $#argv != 0 )
 
     case "--zilles":
       set vollist = (orig T1 brain brainmask nu norm)
+      set DoReg = 0;
+      breaksw
+
+    case "--avgerage-subject":
+    case "--avgeragesubject":
+    case "--avgsubject":
+      set vollist = (orig T1 brain brainmask aseg aparc+aseg)
       set DoReg = 0;
       breaksw
 
