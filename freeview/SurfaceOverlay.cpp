@@ -11,8 +11,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2013/06/27 16:11:23 $
- *    $Revision: 1.17 $
+ *    $Date: 2013/06/27 17:27:35 $
+ *    $Revision: 1.18 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -446,4 +446,16 @@ void SurfaceOverlay::GetRange( double* range )
     range[0] = m_dMinValue;
     range[1] = m_dMaxValue;
   }
+}
+
+bool SurfaceOverlay::GetDataAtVertex(int nVertex, float *output)
+{
+  if (nVertex < 0)
+    return false;
+
+  for (int i = 0; i < m_nNumOfFrames; i++)
+  {
+    output[i] = m_fDataRaw[nVertex+i*m_nDataSize];
+  }
+  return true;
 }

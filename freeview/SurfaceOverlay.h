@@ -10,8 +10,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2013/06/27 16:11:23 $
- *    $Revision: 1.14 $
+ *    $Date: 2013/06/27 17:27:35 $
+ *    $Revision: 1.15 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -142,6 +142,8 @@ public:
   {
     return m_volumeCorrelationSource;
   }
+
+  bool GetDataAtVertex(int nVertex, float* output);
 
 signals:
   void DataUpdated();

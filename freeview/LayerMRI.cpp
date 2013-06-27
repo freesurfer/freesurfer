@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2013/06/27 16:11:23 $
- *    $Revision: 1.135 $
+ *    $Date: 2013/06/27 17:27:35 $
+ *    $Revision: 1.136 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -3034,6 +3034,7 @@ void LayerMRI::UpdateSurfaceCorrelationData()
   {
     int nFrames = GetNumberOfFrames();
     float* buffer = new float[nFrames];
+    m_correlationSurface->GetCorrelationOverlayDataAtVertex(m_correlationSurface->GetCurrentVertex(), buffer, nFrames);
     float* x;
     int dim[3];
     m_imageRawDisplay->GetDimensions(dim);

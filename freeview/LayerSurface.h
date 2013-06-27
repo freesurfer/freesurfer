@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2013/06/25 20:32:36 $
- *    $Revision: 1.58 $
+ *    $Date: 2013/06/27 17:27:35 $
+ *    $Revision: 1.59 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -227,6 +227,8 @@ public:
   {
     return m_nCurrentVertex;
   }
+
+  bool GetCorrelationOverlayDataAtVertex(int nVert, float* output, int nFrames);
 
 public slots:
   void SetActiveSurface( int nSurfaceType );

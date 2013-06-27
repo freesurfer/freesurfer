@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2013/06/13 19:59:27 $
- *    $Revision: 1.45 $
+ *    $Date: 2013/06/27 17:27:35 $
+ *    $Revision: 1.46 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -393,7 +393,7 @@ double MyUtils::RoundToGrid(double x)
   return x/pow(10, n)*sign;
 }
 
-template <class T> double calculate_correlation_coefficient(T* x, T* y, int n)
+template <class T> double calculate_correlation_coefficient(float* x, T* y, int n)
 {
   double sxy = 0, sx = 0, sy=0, sx2 = 0, sy2 = 0;
   for (int i = 0; i < n; i++)

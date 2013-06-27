@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2013/06/25 20:32:36 $
- *    $Revision: 1.91 $
+ *    $Date: 2013/06/27 17:27:35 $
+ *    $Revision: 1.92 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -1666,4 +1666,21 @@ void LayerSurface::SetCurrentVertex(int n)
   }
 }
 
+bool LayerSurface::GetCorrelationOverlayDataAtVertex(int nVert, float *output, int nFrames)
+{
+  SurfaceOverlay* overlay = NULL;
+  for (int i = 0; i < m_overlays.size(); i++)
+  {
+    if (m_overlays[i]->GetNumberOfFrames() == nFrames)
+    {
+      overlay = m_overlays[i];
+      break;
+    }
+  }
 
+  if (overlay)
+  {
+    return overlay->GetDataAtVertex(nVert, output);
+  }
+  return false;
+}
