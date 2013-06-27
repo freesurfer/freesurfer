@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2013/06/27 17:27:35 $
- *    $Revision: 1.92 $
+ *    $Date: 2013/06/27 18:41:53 $
+ *    $Revision: 1.93 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -777,7 +777,7 @@ void LayerSurface::OnSlicePositionChanged( int nPlane )
 
   for (int i = 0; i < m_overlays.size(); i++)
   {
-    m_overlays[i]->UpdateCorrelationCoefficient();
+    m_overlays[i]->UpdateCorrelationCoefficient(m_dSlicePosition);
   }
 }
 

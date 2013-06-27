@@ -11,8 +11,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2013/06/27 17:27:35 $
- *    $Revision: 1.18 $
+ *    $Date: 2013/06/27 18:41:53 $
+ *    $Revision: 1.19 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -393,16 +393,30 @@ void SurfaceOverlay::SetComputeCorrelation(bool flag)
   }
 }
 
-void SurfaceOverlay::UpdateCorrelationCoefficient()
+void SurfaceOverlay::UpdateCorrelationCoefficient(double* pos_in)
 {
-  if (m_bComputeCorrelation && m_volumeCorrelationSource && m_volumeCorrelationSource->GetNumberOfFrames() == m_nNumOfFrames)
+  if (m_bComputeCorrelation)
   {
-    double pos[3];
-    int n[3];
-    m_volumeCorrelationSource->GetSlicePosition(pos);
-    m_volumeCorrelationSource->TargetToRAS(pos, pos);
-    m_volumeCorrelationSource->RASToOriginalIndex(pos, n);
-    m_volumeCorrelationSource->GetVoxelValueByOriginalIndexAllFrames(n[0], n[1], n[2], m_fCorrelationSourceData);
+    if (m_volumeCorrelationSource && m_volumeCorrelationSource->GetNumberOfFrames() == m_nNumOfFrames)
+    {
+      double pos[3];
+      int n[3];
+      m_volumeCorrelationSource->GetSlicePosition(pos);
+      m_volumeCorrelationSource->TargetToRAS(pos, pos);
+      m_volumeCorrelationSource->RASToOriginalIndex(pos, n);
+      m_volumeCorrelationSource->GetVoxelValueByOriginalIndexAllFrames(n[0], n[1], n[2], m_fCorrelationSourceData);
+    }
+    else
+    {
+      int nVertex = m_surface->GetCurrentVertex();
+      if (pos_in)
+        nVertex = m_surface->GetVertexIndexAtTarget(pos_in, NULL);
+
+      if (nVertex >= 0)
+      {
+        this->GetDataAtVertex(nVertex, m_fCorrelationSourceData);
+      }
+    }
     for (int i = 0; i < m_nDataSize; i++)
     {
       for (int j = 0; j < m_nNumOfFrames; j++)
@@ -424,14 +438,18 @@ void SurfaceOverlay::SetCorrelationSourceVolume(LayerMRI *vol)
   if (m_volumeCorrelationSource)
     m_volumeCorrelationSource->disconnect(this, 0);
   m_volumeCorrelationSource = vol;
-  connect(vol, SIGNAL(destroyed(QObject*)), this, SLOT(OnCorrelationSourceDeleted(QObject*)));
+  if (vol)
+    connect(vol, SIGNAL(destroyed(QObject*)), this, SLOT(OnCorrelationSourceDeleted(QObject*)));
   UpdateCorrelationCoefficient();
 }
 
 void SurfaceOverlay::OnCorrelationSourceDeleted(QObject *obj)
 {
   if (m_volumeCorrelationSource == obj)
+  {
     m_volumeCorrelationSource = NULL;
+    UpdateCorrelationCoefficient();
+  }
 }
 
 void SurfaceOverlay::GetRange( double* range )

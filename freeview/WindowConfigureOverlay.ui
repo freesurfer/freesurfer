@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>489</width>
-    <height>750</height>
+    <height>791</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -173,7 +173,7 @@
         <item>
          <widget class="QCheckBox" name="checkBoxComputeCorrelation">
           <property name="text">
-           <string>Compute correlation to volume</string>
+           <string>Compute correlation to</string>
           </property>
          </widget>
         </item>

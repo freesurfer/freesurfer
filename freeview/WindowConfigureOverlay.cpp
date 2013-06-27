@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2013/06/13 19:59:27 $
- *    $Revision: 1.12 $
+ *    $Date: 2013/06/27 18:41:53 $
+ *    $Revision: 1.13 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -165,6 +165,9 @@ void WindowConfigureOverlay::UpdateUI()
     ui->checkBoxComputeCorrelation->setChecked(overlay->GetComputeCorrelation());
 
     ui->comboBoxVolumes->clear();
+    ui->comboBoxVolumes->addItem("Self");
+    if (!overlay->GetCorrelationSourceVolume())
+      ui->comboBoxVolumes->setCurrentIndex(0);
     QList<Layer*> layers = MainWindow::GetMainWindow()->GetLayers("MRI");
     foreach (Layer* mri, layers)
     {
@@ -590,7 +593,7 @@ void WindowConfigureOverlay::OnCheckComputeCorrelation(bool bChecked)
   if ( m_layerSurface && m_layerSurface->GetActiveOverlay() )
   {
     SurfaceOverlay* overlay = m_layerSurface->GetActiveOverlay();
-    if (bChecked && overlay->GetCorrelationSourceVolume() == NULL)
+    if (bChecked)
     {
       int n = ui->comboBoxVolumes->currentIndex();
       if (n >= 0)
@@ -612,7 +615,6 @@ void WindowConfigureOverlay::OnComboCorrelationVolume(int n)
   {
     SurfaceOverlay* overlay = m_layerSurface->GetActiveOverlay();
     LayerMRI* mri = qobject_cast<LayerMRI*>(ui->comboBoxVolumes->itemData(n).value<QObject*>());
-    if (mri)
-      overlay->SetCorrelationSourceVolume(mri);
+    overlay->SetCorrelationSourceVolume(mri);
   }
 }
