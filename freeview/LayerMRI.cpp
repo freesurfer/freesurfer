@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2013/06/25 20:32:35 $
- *    $Revision: 1.134 $
+ *    $Date: 2013/06/27 16:11:23 $
+ *    $Revision: 1.135 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -76,6 +76,7 @@
 #include "LayerMRIWorkerThread.h"
 #include "vtkImageFlip.h"
 #include "LayerSurface.h"
+#include "vtkImageResample.h"
 
 extern "C"
 {
@@ -2962,14 +2963,22 @@ void LayerMRI::SetMaskLayer(LayerMRI *layer_mask)
                 << ext[0] << ext[1] << ext[2] << ext[3] << ext[4] << ext[5];
     */
 
+    vtkSmartPointer<vtkImageResample> resampler = vtkSmartPointer<vtkImageResample>::New();
     vtkSmartPointer<vtkImageMask> mask_filter = vtkSmartPointer<vtkImageMask>::New();
     vtkSmartPointer<vtkImageShiftScale> cast = vtkSmartPointer<vtkImageShiftScale>::New();
     double range[2];
     mask->GetScalarRange(range);
     if (range[1] <= 0)
       range[1] = 1;
+    double s1[3], s2[3];
+    source->GetSpacing(s1);
+    mask->GetSpacing(s2);
+    resampler->SetInput(mask);
+    for (int i = 0; i < 3; i++)
+      resampler->SetAxisMagnificationFactor(i, s2[i]/s1[i]);
+    resampler->SetInterpolationModeToNearestNeighbor();
     cast->SetScale(255/range[1]);
-    cast->SetInput(mask);
+    cast->SetInput(resampler->GetOutput());
     cast->SetOutputScalarTypeToUnsignedChar();
     mask_filter->SetInput(m_imageDataBackup);
     mask_filter->SetMaskInput(cast->GetOutput());
@@ -3038,8 +3047,19 @@ void LayerMRI::UpdateSurfaceCorrelationData()
         {
           int nOffset = k*dim[0]*dim[1] + j*dim[0] + i;
           x = inPixel + nFrames*nOffset;
-
-          outPixel[nOffset] = MyUtils::CalculateCorrelationCoefficient(buffer, x, nFrames);
+          bool masked = true;
+          for (int n = 0; n < nFrames; n++)
+          {
+            if (x[n] != 0)
+            {
+              masked = false;
+              break;
+            }
+          }
+          if (!masked)
+            outPixel[nOffset] = MyUtils::CalculateCorrelationCoefficient(buffer, x, nFrames);
+          else
+            outPixel[nOffset] = 0;
         }
       }
     }

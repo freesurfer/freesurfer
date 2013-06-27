@@ -10,8 +10,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2013/06/13 19:59:27 $
- *    $Revision: 1.13 $
+ *    $Date: 2013/06/27 16:11:23 $
+ *    $Revision: 1.14 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -87,11 +87,7 @@ public:
 
   double GetDataAtVertex( int nVertex );
 
-  void GetRange( double* range )
-  {
-    range[0] = m_dMinValue;
-    range[1] = m_dMaxValue;
-  }
+  void GetRange( double* range );
 
   bool LoadCorrelationData( const QString& filename );
 

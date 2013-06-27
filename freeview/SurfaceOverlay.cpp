@@ -11,8 +11,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2013/06/13 19:59:27 $
- *    $Revision: 1.16 $
+ *    $Date: 2013/06/27 16:11:23 $
+ *    $Revision: 1.17 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -432,4 +432,18 @@ void SurfaceOverlay::OnCorrelationSourceDeleted(QObject *obj)
 {
   if (m_volumeCorrelationSource == obj)
     m_volumeCorrelationSource = NULL;
+}
+
+void SurfaceOverlay::GetRange( double* range )
+{
+  if (m_bComputeCorrelation)
+  {
+    range[0] = -1;
+    range[1] = 1;
+  }
+  else
+  {
+    range[0] = m_dMinValue;
+    range[1] = m_dMaxValue;
+  }
 }
