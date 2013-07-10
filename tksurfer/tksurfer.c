@@ -12,8 +12,8 @@
  * Original Author: Martin Sereno and Anders Dale, 1996
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2013/07/10 19:03:17 $
- *    $Revision: 1.362 $
+ *    $Date: 2013/07/10 19:06:26 $
+ *    $Revision: 1.363 $
  *
  * Copyright (C) 2002-2011, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA).
@@ -21611,7 +21611,7 @@ int main(int argc, char *argv[])   /* new main */
   nargs =
     handle_version_option
     (argc, argv,
-     "$Id: tksurfer.c,v 1.362 2013/07/10 19:03:17 greve Exp $", "$Name:  $");
+     "$Id: tksurfer.c,v 1.363 2013/07/10 19:06:26 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -26946,9 +26946,9 @@ int sclv_send_histogram ( int field )
   /* start a string of the proper size; give us the length of the
      command, and then 10 characters per number, begin + end +
      increment + num values */
-  //tcl_cmd = (char*)calloc(STRLEN, sizeof(char));
-  tcl_cmd = (char*)calloc(4000, sizeof(char));
-  // Careful -- string len can easily exceed STRLEN
+  // Careful -- tcl_cmd string len can easily exceed STRLEN
+  tcl_cmd = (char*)calloc(21 + (sclv_field_info[field].num_freq_bins + 4) * 10,
+                          sizeof(char));
   if (NULL == tcl_cmd)
   {
     return (ERROR_NO_MEMORY);
