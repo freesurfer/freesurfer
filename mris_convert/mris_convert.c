@@ -6,20 +6,19 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2010/05/06 22:12:58 $
- *    $Revision: 1.37 $
+ *    $Author: greve $
+ *    $Date: 2013/07/15 19:47:28 $
+ *    $Revision: 1.39.2.1 $
  *
- * Copyright (C) 2002-2010,
- * The General Hospital Corporation (Boston, MA). 
- * All rights reserved.
+ * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
- * Distribution, usage and copying of this software is covered under the
- * terms found in the License Agreement file named 'COPYING' found in the
- * FreeSurfer source code root directory, and duplicated here:
- * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ * Terms and conditions for use, reproduction, distribution and contribution
+ * are found in the 'FreeSurfer Software License Agreement' contained
+ * in the file 'LICENSE' found in the FreeSurfer distribution, and here:
  *
- * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
+ *
+ * Reporting: freesurfer@nmr.mgh.harvard.edu
  *
  */
 
@@ -46,7 +45,7 @@
 
 //------------------------------------------------------------------------
 static char vcid[] =
-"$Id: mris_convert.c,v 1.37 2010/05/06 22:12:58 nicks Exp $";
+"$Id: mris_convert.c,v 1.39.2.1 2013/07/15 19:47:28 greve Exp $";
 
 /*-------------------------------- CONSTANTS -----------------------------*/
 // this mini colortable is used when .label file gets converted to gifti
@@ -103,6 +102,8 @@ static int output_normals=0;
 static int PrintXYZOnly = 0;
 static MATRIX *XFM=NULL;
 static int write_vertex_neighbors = 0;
+static int combinesurfs_flag = 0;
+int DeleteCommands = 0;
 int MRISwriteVertexNeighborsAscii(MRIS *mris, char *out_fname);
 
 /*-------------------------------- FUNCTIONS ----------------------------*/
@@ -112,13 +113,15 @@ main(int argc, char *argv[]) {
   MRI_SURFACE  *mris ;
   char **av, *in_fname, *out_fname, fname[STRLEN], hemi[10],
     *cp, path[STRLEN], *dot, ext[STRLEN] ;
-  int ac, nargs,nthvtx ;
+  int ac, nargs,nthvtx,n ;
   FILE *fp=NULL;
+  char *in2_fname=NULL;
+  MRI_SURFACE *mris2=NULL;
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
     (argc, argv,
-     "$Id: mris_convert.c,v 1.37 2010/05/06 22:12:58 nicks Exp $",
+     "$Id: mris_convert.c,v 1.39.2.1 2013/07/15 19:47:28 greve Exp $",
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -140,10 +143,20 @@ main(int argc, char *argv[]) {
 
   // confirm that all options were eaten (this catches the case where options
   // were included at the end of the command string)
-  if (argc != 3) usage_exit() ;
+  if (combinesurfs_flag) {
+    if (argc != 4) usage_exit() ;
+  } 
+  else {
+    if (argc != 3) usage_exit() ;
+  }
 
   in_fname = argv[1] ;
   out_fname = argv[2] ;
+
+  if (combinesurfs_flag) {
+    in2_fname = argv[2];
+    out_fname = argv[3];
+  }
 
   if (talxfmsubject && curv_file_flag) {
     printf("ERROR: cannot specify -t and -c\n");
@@ -214,6 +227,20 @@ main(int argc, char *argv[]) {
     if (!mris)
       ErrorExit(ERROR_NOFILE, "%s: could not read surface file %s",
                 Progname, in_fname) ;
+    if (combinesurfs_flag) {
+      mris2 = MRISread(in2_fname) ;
+      if (!mris2)
+        ErrorExit(ERROR_NOFILE, "%s: could not read surface file %s",
+                  Progname, in2_fname) ;
+    }
+  }
+  if(DeleteCommands){
+    fprintf(stderr,"Deleting %d commands from surface header\n",mris->ncmds);
+    for(n=0; n<mris->ncmds; n++){
+      free(mris->cmdlines[n]);
+      mris->cmdlines[n] = NULL;
+    }
+    mris->ncmds = 0;
   }
 
   if (talxfmsubject) {
@@ -426,6 +453,36 @@ main(int argc, char *argv[]) {
     }
     fclose(fp);
   }
+  else if (combinesurfs_flag) {
+    MRI_SURFACE *mris3 = MRISalloc(mris->nvertices+mris2->nvertices,
+                                   mris->nfaces+mris2->nfaces);
+    int vno,vno2,vno3;
+    for (vno=0,vno3=0; vno < mris->nvertices; vno++, vno3++) {
+      mris3->vertices[vno3].x = mris->vertices[vno].x;
+      mris3->vertices[vno3].y = mris->vertices[vno].y;
+      mris3->vertices[vno3].z = mris->vertices[vno].z;
+    }
+    for (vno2=0; vno2 < mris2->nvertices; vno2++, vno3++) {
+      mris3->vertices[vno3].x = mris2->vertices[vno2].x;
+      mris3->vertices[vno3].y = mris2->vertices[vno2].y;
+      mris3->vertices[vno3].z = mris2->vertices[vno2].z;
+    }
+    int fno,fno2,fno3;
+    for (fno=0,fno3=0; fno < mris->nfaces; fno++, fno3++) {
+      mris3->faces[fno3].v[0] = mris->faces[fno].v[0];
+      mris3->faces[fno3].v[1] = mris->faces[fno].v[1];
+      mris3->faces[fno3].v[2] = mris->faces[fno].v[2];
+    }
+    int offset = mris->nvertices;
+    for (fno2=0; fno2 < mris2->nfaces; fno2++, fno3++) {
+      mris3->faces[fno3].v[0] = mris2->faces[fno2].v[0] + offset;
+      mris3->faces[fno3].v[1] = mris2->faces[fno2].v[1] + offset;
+      mris3->faces[fno3].v[2] = mris2->faces[fno2].v[2] + offset;
+    }
+    MRISwrite(mris3, out_fname);
+    MRISfree(&mris2);
+    MRISfree(&mris3);
+  }
   else {
     // default output: 
     MRISwrite(mris, out_fname) ;
@@ -473,7 +530,14 @@ get_option(int argc, char *argv[]) {
     parcstats_fname = argv[2] ;
     parcstats_file_flag = 1;
     nargs = 1 ;
-  } else switch (toupper(*option)) {
+  } 
+  else if (!stricmp(option, "-combinesurfs")) {
+    combinesurfs_flag = 1;
+  } 
+  else if (!stricmp(option, "-delete-cmds")) {
+    DeleteCommands = 1;
+  } 
+  else switch (toupper(*option)) {
   case 'A':
     PrintXYZOnly = 1;
     break ;
@@ -578,6 +642,8 @@ print_help(void) {
   printf( "     the remaining cols are the vertex numbers of the neighbors.  \n");
   printf( "     Note: there can be a different number of neighbors for each vertex.\n") ;
   printf( "  -a                Print only surface xyz to ascii file\n") ;
+  printf( "  --combinesurfs <infile> <in2file> <outfile>\n") ;
+  printf( "  --delete-cmds : delete command lines in surface\n") ;
   printf( "\n") ;
   printf( "These file formats are supported:\n") ;
   printf( "  ASCII:       .asc\n");
