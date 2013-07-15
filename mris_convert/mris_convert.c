@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2011/12/08 20:42:03 $
- *    $Revision: 1.40 $
+ *    $Date: 2013/07/15 19:44:12 $
+ *    $Revision: 1.41 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -45,7 +45,7 @@
 
 //------------------------------------------------------------------------
 static char vcid[] =
-"$Id: mris_convert.c,v 1.40 2011/12/08 20:42:03 greve Exp $";
+"$Id: mris_convert.c,v 1.41 2013/07/15 19:44:12 greve Exp $";
 
 /*-------------------------------- CONSTANTS -----------------------------*/
 // this mini colortable is used when .label file gets converted to gifti
@@ -103,6 +103,7 @@ static int PrintXYZOnly = 0;
 static MATRIX *XFM=NULL;
 static int write_vertex_neighbors = 0;
 static int combinesurfs_flag = 0;
+int DeleteCommands = 0;
 int MRISwriteVertexNeighborsAscii(MRIS *mris, char *out_fname);
 
 /*-------------------------------- FUNCTIONS ----------------------------*/
@@ -112,7 +113,7 @@ main(int argc, char *argv[]) {
   MRI_SURFACE  *mris ;
   char **av, *in_fname, *out_fname, fname[STRLEN], hemi[10],
     *cp, path[STRLEN], *dot, ext[STRLEN] ;
-  int ac, nargs,nthvtx ;
+  int ac, nargs,nthvtx,n ;
   FILE *fp=NULL;
   char *in2_fname=NULL;
   MRI_SURFACE *mris2=NULL;
@@ -120,7 +121,7 @@ main(int argc, char *argv[]) {
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
     (argc, argv,
-     "$Id: mris_convert.c,v 1.40 2011/12/08 20:42:03 greve Exp $",
+     "$Id: mris_convert.c,v 1.41 2013/07/15 19:44:12 greve Exp $",
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -233,6 +234,15 @@ main(int argc, char *argv[]) {
                   Progname, in2_fname) ;
     }
   }
+  if(DeleteCommands){
+    fprintf(stderr,"Deleting %d commands from surface header\n",mris->ncmds);
+    for(n=0; n<mris->ncmds; n++){
+      free(mris->cmdlines[n]);
+      mris->cmdlines[n] = NULL;
+    }
+    mris->ncmds = 0;
+  }
+
 
   if (talxfmsubject) {
     XFM = DevolveXFM(talxfmsubject, NULL, NULL);
@@ -534,7 +544,11 @@ get_option(int argc, char *argv[]) {
     nargs = 1 ;
   } else if (!stricmp(option, "-combinesurfs")) {
     combinesurfs_flag = 1;
-  } else switch (toupper(*option)) {
+  } 
+  else if (!stricmp(option, "-delete-cmds")) {
+    DeleteCommands = 1;
+  } 
+  else switch (toupper(*option)) {
   case 'A':
     PrintXYZOnly = 1;
     break ;
@@ -640,6 +654,7 @@ print_help(void) {
   printf( "     Note: there can be a different number of neighbors for each vertex.\n") ;
   printf( "  -a                Print only surface xyz to ascii file\n") ;
   printf( "  --combinesurfs <infile> <in2file> <outfile>\n") ;
+  printf( "  --delete-cmds : delete command lines in surface\n") ;
   printf( "\n") ;
   printf( "These file formats are supported:\n") ;
   printf( "  ASCII:       .asc\n");
