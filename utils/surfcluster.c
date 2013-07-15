@@ -10,8 +10,8 @@
  * Original Author: Doug Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2011/11/10 16:01:11 $
- *    $Revision: 1.26.2.2 $
+ *    $Date: 2013/07/15 15:57:53 $
+ *    $Revision: 1.26.2.3 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -51,7 +51,7 @@ static int sclustCompare(const void *a, const void *b);
   ---------------------------------------------------------------*/
 const char *sculstSrcVersion(void)
 {
-  return("$Id: surfcluster.c,v 1.26.2.2 2011/11/10 16:01:11 greve Exp $");
+  return("$Id: surfcluster.c,v 1.26.2.3 2013/07/15 15:57:53 greve Exp $");
 }
 
 /* ------------------------------------------------------------
@@ -607,7 +607,7 @@ int sclustAnnot(MRIS *surf, int NClusters)
   ct = CTABalloc(NClusters+1);
   surf->ct = ct;
 
-  for(n=1; n < NClusters; n++) // no cluster 0
+  for(n=1; n < NClusters+1; n++) // no cluster 0
     sprintf(surf->ct->entries[n]->name, "%s-%03d","cluster",n);
 
   for(vtxno = 0; vtxno < surf->nvertices; vtxno++)  {
