@@ -1,7 +1,7 @@
 #!/bin/tcsh -f
 # rtview
 
-set VERSION = '$Id: rtview,v 1.1.2.3 2013/03/27 19:57:07 greve Exp $';
+set VERSION = '$Id: rtview,v 1.1.2.4 2013/07/15 18:49:12 greve Exp $';
 
 set srcsubject = ();
 set trgsubject = ();
@@ -13,6 +13,7 @@ set hfile = ();
 set stimtype = ();
 set flat = 0;
 set patch = ();
+set smoothsteps = 2
 
 set tmpdir = ();
 set cleanup = 1;
@@ -125,7 +126,7 @@ setenv noexit
 setenv dir $tmpdir
 setenv polardir $tmpdir
 setenv eccendir $tmpdir
-setenv smoothsteps 2
+setenv smoothsteps $smoothsteps
 if($flat) setenv patchname $patch
 
 #set tclcmd = $tmpdir/rtview.tcl
@@ -218,6 +219,11 @@ while( $#argv != 0 )
     case "--hemi":
       if($#argv < 1) goto arg1err;
       set hemi = $argv[1]; shift;
+      breaksw
+
+    case "--ss":
+      if($#argv < 1) goto arg1err;
+      set smoothsteps = $argv[1]; shift;
       breaksw
 
     case "--lh":
