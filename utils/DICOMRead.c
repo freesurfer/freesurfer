@@ -7,8 +7,8 @@
  * Original Authors: Sebastien Gicquel and Douglas Greve, 06/04/2001
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2013/07/28 18:49:12 $
- *    $Revision: 1.151 $
+ *    $Date: 2013/07/29 23:56:15 $
+ *    $Revision: 1.152 $
  *
  * Copyright © 2011-2013 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -385,7 +385,8 @@ MRI * sdcmLoadVolume(const char *dcmfile, int LoadVolume, int nthonly)
   {
     printf("MGH DTI SeqPack Info\n");
     // Get b Values from header, based on sequence name.
-    // Problem: nthfile = nthvolume when mosaics are used, but not for non-mosaics.
+    // Problem: nthfile = nthvolume when mosaics are used, 
+    // but not for non-mosaics.
     vol->bvals = MatrixAlloc(nframes,1,MATRIX_REAL);
     for (nthfile = 0; nthfile < nlist; nthfile ++)
     {
@@ -463,7 +464,8 @@ MRI * sdcmLoadVolume(const char *dcmfile, int LoadVolume, int nthonly)
   global_progress_range[0] = global_progress_range[1];
   global_progress_range[1] += (nend-nstart)/3;
 
-  printf("UseSliceScaleFactor %d (slice 0: %g)\n",sdfi_list[0]->UseSliceScaleFactor,
+  printf("UseSliceScaleFactor %d (slice 0: %g)\n",
+         sdfi_list[0]->UseSliceScaleFactor,
          sdfi_list[0]->SliceScaleFactor);
   MinSliceScaleFactor = sdfi_list[0]->SliceScaleFactor;
   for(nthfile = 0; nthfile < nlist; nthfile ++)
@@ -683,11 +685,13 @@ MRI * sdcmLoadVolume(const char *dcmfile, int LoadVolume, int nthonly)
 }
 
 /*
-  Note: This is a complete copy of sdcmLoadVolume, but applying both the autoscale to each
-        frame (even for MOSAIC) and also resulting in a float volume, to avoid reduction
-        of dynamic range by the cast to short. This is what is needed for autoscaled diffusion
-        data. TW 03/22/2012
-
+  Note: This is a complete copy of sdcmLoadVolume, 
+  but applying both the autoscale to each
+  frame (even for MOSAIC) and also resulting in a 
+  float volume, to avoid reduction
+  of dynamic range by the cast to short. 
+  This is what is needed for autoscaled diffusion
+  data. TW 03/22/2012
 */
 MRI * sdcmLoadVolumeAutoScale(const char *dcmfile, int LoadVolume, int nthonly)
 {
@@ -977,7 +981,8 @@ MRI * sdcmLoadVolumeAutoScale(const char *dcmfile, int LoadVolume, int nthonly)
   {
     printf("MGH DTI SeqPack Info\n");
     // Get b Values from header, based on sequence name.
-    // Problem: nthfile = nthvolume when mosaics are used, but not for non-mosaics.
+    // Problem: nthfile = nthvolume when mosaics are used, 
+    // but not for non-mosaics.
     vol->bvals = MatrixAlloc(nframes,1,MATRIX_REAL);
     for (nthfile = 0; nthfile < nlist; nthfile ++)
     {
@@ -1074,7 +1079,8 @@ MRI * sdcmLoadVolumeAutoScale(const char *dcmfile, int LoadVolume, int nthonly)
     element = GetElementFromFile(sdfi->FileName,0x0020,0x4000);
     if(strncmp(element->d.string,"Scale Factor:",strlen("Scale Factor:")) == 0)
     {
-      ascale_factor = (float)strtod(&(element->d.string[strlen("Scale Factor:")+1]), NULL);
+      ascale_factor = 
+        (float)strtod(&(element->d.string[strlen("Scale Factor:")+1]), NULL);
     }
 
     /* Get the pixel data */
@@ -1159,7 +1165,8 @@ MRI * sdcmLoadVolumeAutoScale(const char *dcmfile, int LoadVolume, int nthonly)
             }
             /* Compute the linear index into the block of pixel data */
             mosindex = moscol + mosrow * nmoscols;
-            MRIFseq_vox(vol,col,row,slice,frame) = (float)(*(pixeldata + mosindex))/ascale_factor;
+            MRIFseq_vox(vol,col,row,slice,frame) = 
+              (float)(*(pixeldata + mosindex))/ascale_factor;
           }
         }
       }
@@ -1436,7 +1443,7 @@ int AllocElementData(DCM_ELEMENT *e)
   case DCM_ST:
   case DCM_TM:
   case DCM_UI:
-    e->d.string = (char *) calloc(e->length+1,sizeof(char));
+    e->d.string = (char *) calloc(e->length+17,sizeof(char));
     e->d.string[e->length] = '\0'; /* add null terminator */
     break;
   case DCM_SS:
@@ -1687,7 +1694,7 @@ char *SiemensAsciiTagEx(const char *dcmfile, const char *TagString, int cleanup)
       }
 
       // check the region
-      if (strncmp(buf, "### ASCCONV BEGIN", 17)==0)
+      if (strncmp(buf, "### ASCCONV BEGIN ###", 21)==0)
       {
         startOfAscii = 1;
       }
@@ -1736,12 +1743,13 @@ char *SiemensAsciiTagEx(const char *dcmfile, const char *TagString, int cleanup)
   for (i=0; i < count; ++i)
   {
     // get the variable name (the first string)
+    VariableName[0]=0;
     sscanf(lists[i],"%s %*s %*s",VariableName);
-    if ( strcmp(VariableName,TagString)==0 )
+    if ( VariableName[0] && (strcmp(VariableName,TagString)==0) )
     {
       /* match found. get the value (the third string) */
       sscanf(lists[i], "%*s %*s %s",tmpstr2);
-      VariableValue = (char *) calloc(strlen(tmpstr2)+1,sizeof(char));
+      VariableValue = (char *) calloc(strlen(tmpstr2)+17,sizeof(char));
       memmove(VariableValue, tmpstr2, strlen(tmpstr2));
     }
     else
@@ -1785,7 +1793,7 @@ char *SiemensAsciiTagEx(const char *dcmfile, const char *TagString, int cleanup)
   -----------------------------------------------------------------*/
 char *SiemensAsciiTag(const char *dcmfile, const char *TagString, int flag)
 {
-  char linestr[1000];
+  char linestr[4000];
   char tmpstr2[500];
   FILE *fp;
   int dumpline, nthchar;
@@ -1858,7 +1866,7 @@ char *SiemensAsciiTag(const char *dcmfile, const char *TagString, int flag)
   VariableValue = NULL;
   while (1)
   {
-    rt = fgets(linestr,1000,fp);
+    rt = fgets(linestr,4000,fp);
     if (rt == NULL)
     {
       break;
@@ -1869,6 +1877,8 @@ char *SiemensAsciiTag(const char *dcmfile, const char *TagString, int flag)
       break;
     }
 
+    VariableName[0]=0;
+    linestr[3999]=0;
     sscanf(linestr,"%s %*s %*s",VariableName);
 
     if (strlen(VariableName) != strlen(TagString))
@@ -3241,7 +3251,7 @@ char **ScanSiemensSeries(const char *dcmfile, int *nList)
       SeriesNoTest = dcmGetSeriesNo(tmpstr);
       if (SeriesNoTest == SeriesNo)
       {
-        SeriesList[*nList] = (char *) calloc(strlen(tmpstr)+1,sizeof(char));
+        SeriesList[*nList] = (char *) calloc(strlen(tmpstr)+1+8,sizeof(char));
         memmove(SeriesList[*nList], tmpstr, strlen(tmpstr));
         //printf("%3d  %s\n",*nList,SeriesList[*nList]);
         (*nList)++;
@@ -4448,7 +4458,7 @@ CONDITION GetString(DCM_OBJECT** object, DCM_TAG tag, char **st)
     memmove(*st,"unknown",8);
     return cond;
   }
-  *st=(char*)calloc(attribute.length+1, sizeof(char));
+  *st=(char*)calloc(attribute.length+9, sizeof(char));
   attribute.d.string=*st;
   ctx=NULL;
   cond=DCM_GetElementValue(object, &attribute, &attribute.length, &ctx);
@@ -6026,17 +6036,20 @@ MRI *DICOMRead2(const char *dcmfile, int LoadVolume)
     if (FZERO(mri->xsize))
     {
       mri->xsize = 1 ;
-      fprintf(stderr, "!!!!!!! DICOMread: mri->xsize == 0 - setting to 1 !!!!!!!\n");
+      fprintf(stderr, 
+              "!!!!!!! DICOMread: mri->xsize == 0 - setting to 1 !!!!!!!\n");
     }
     if (FZERO(mri->ysize))
     {
       mri->ysize = 1 ;
-      fprintf(stderr, "!!!!!!! DICOMread: mri->ysize == 0 - setting to 1 !!!!!!!\n");
+      fprintf(stderr, 
+              "!!!!!!! DICOMread: mri->ysize == 0 - setting to 1 !!!!!!!\n");
     }
     if (FZERO(mri->zsize))
     {
       mri->zsize = 1 ;
-      fprintf(stderr, "!!!!!!! DICOMread: mri->zsize == 0 - setting to 1 !!!!!!!\n");
+      fprintf(stderr, 
+              "!!!!!!! DICOMread: mri->zsize == 0 - setting to 1 !!!!!!!\n");
     }
   }
 
@@ -6405,7 +6418,8 @@ int DCMSliceDir(DICOMInfo **dcmfi_list, int nlist)
   if (FZERO(dlength) && (getenv("FS_FIX_DICOMS")))
   {
     d[0] = 1.0 ;
-    fprintf(stderr, "!!!!!DICOMread: warning, direction cosines all zero!!!!!!!!\n") ;
+    fprintf(stderr, 
+            "!!!!!DICOMread: warning, direction cosines all zero!!!!!!!!\n") ;
     dlength = 1 ;
   }
   for (c=0; c < 3; c++)
