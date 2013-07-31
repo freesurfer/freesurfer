@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2013/06/27 18:41:53 $
- *    $Revision: 1.13 $
+ *    $Date: 2013/07/31 21:28:05 $
+ *    $Revision: 1.14 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -86,12 +86,20 @@ void WindowConfigureOverlay::showEvent(QShowEvent *)
 
 void WindowConfigureOverlay::OnActiveSurfaceChanged(Layer* layer)
 {
+  if (m_layerSurface)
+  {
+    disconnect(m_layerSurface, 0, this, 0);
+  }
   m_layerSurface = qobject_cast<LayerSurface*>(layer);
   if (m_layerSurface)
   {
     connect(m_layerSurface, SIGNAL(SurfaceOverlyDataUpdated()),
             this, SLOT(UpdateUI()), Qt::UniqueConnection);
     connect(m_layerSurface, SIGNAL(SurfaceOverlyDataUpdated()),
+            this, SLOT(UpdateGraph()), Qt::UniqueConnection);
+    connect(m_layerSurface, SIGNAL(ActiveOverlayChanged(int)),
+            this, SLOT(UpdateUI()), Qt::UniqueConnection);
+    connect(m_layerSurface, SIGNAL(ActiveOverlayChanged(int)),
             this, SLOT(UpdateGraph()), Qt::UniqueConnection);
   }
 

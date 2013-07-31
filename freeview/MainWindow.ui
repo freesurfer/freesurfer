@@ -1294,6 +1294,14 @@
     <string>Close Connectome Matrix</string>
    </property>
   </action>
+  <action name="actionCycleSurfaceLabel">
+   <property name="text">
+    <string>Cycle Surface Label</string>
+   </property>
+   <property name="shortcut">
+    <string>Alt+L</string>
+   </property>
+  </action>
  </widget>
  <layoutdefault spacing="6" margin="11"/>
  <customwidgets>
@@ -2497,6 +2505,22 @@
     </hint>
    </hints>
   </connection>
+  <connection>
+   <sender>actionCycleSurfaceLabel</sender>
+   <signal>triggered()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>OnCycleSurfaceLabel()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>606</x>
+     <y>435</y>
+    </hint>
+   </hints>
+  </connection>
  </connections>
  <slots>
   <slot>OnLoadVolume()</slot>
@@ -2572,5 +2596,6 @@
   <slot>SaveSurfaceAs()</slot>
   <slot>OnLoadConnectomeMatrix()</slot>
   <slot>OnCloseConnectomeMatrix()</slot>
+  <slot>OnCycleSurfaceLabel()</slot>
  </slots>
 </ui>

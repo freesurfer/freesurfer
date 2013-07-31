@@ -6,9 +6,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/14 23:44:48 $
- *    $Revision: 1.4 $
+ *    $Author: rpwang $
+ *    $Date: 2013/07/31 21:28:05 $
+ *    $Revision: 1.5 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -473,6 +473,59 @@ void WidgetHistogram::mousePressEvent(QMouseEvent* event )
     else
     {
       m_nActiveMarker = -1;
+      if (m_markers.size() > 0)
+      {
+        int nMarker = 0;
+        int x = event->x();
+        double pos = (x - m_rectGraph.left())*(m_dOutputRange[1] - m_dOutputRange[0])/m_rectGraph.width() + m_dOutputRange[0];
+        if (pos < m_dOutputRange[0])
+        {
+          pos = m_dOutputRange[0];
+        }
+        else if (pos > m_dOutputRange[1])
+        {
+          pos = m_dOutputRange[1];
+        }
+        if (m_bActiveMarkerMirrored)
+        {
+          m_markers[nMarker].position = -pos;
+        }
+        else
+        {
+          m_markers[nMarker].position = pos;
+        }
+
+        this->repaint();
+        emit MarkerChanged();
+      }
+    }
+  }
+  else if (event->button() == Qt::RightButton)
+  {
+    if (m_markers.size() > 1)
+    {
+      int nMarker = m_markers.size()-1;
+      int x = event->x();
+      double pos = (x - m_rectGraph.left())*(m_dOutputRange[1] - m_dOutputRange[0])/m_rectGraph.width() + m_dOutputRange[0];
+      if (pos < m_dOutputRange[0])
+      {
+        pos = m_dOutputRange[0];
+      }
+      else if (pos > m_dOutputRange[1])
+      {
+        pos = m_dOutputRange[1];
+      }
+      if (m_bActiveMarkerMirrored)
+      {
+        m_markers[nMarker].position = -pos;
+      }
+      else
+      {
+        m_markers[nMarker].position = pos;
+      }
+
+      this->repaint();
+      emit MarkerChanged();
     }
   }
 }

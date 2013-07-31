@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2013/06/07 19:20:28 $
- *    $Revision: 1.247 $
+ *    $Date: 2013/07/31 21:28:05 $
+ *    $Revision: 1.248 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -135,6 +135,7 @@ MainWindow::MainWindow( QWidget *parent, MyCmdLineParser* cmdParser ) :
 
   this->addAction(ui->actionIncreaseOpacity);
   this->addAction(ui->actionDecreaseOpacity);
+  this->addAction(ui->actionCycleSurfaceLabel);
 
   m_statusBar = new FloatingStatusBar(this);
   m_statusBar->hide();
@@ -1473,6 +1474,10 @@ void MainWindow::RunScript()
   {
     CommandSetSurfaceLabelOutline( sa );
   }
+  else if (cmd == "setsurfacelabelcolor")
+  {
+    CommandSetSurfaceLabelColor( sa );
+  }
   else if ( cmd == "setlayername" )
   {
     CommandSetLayerName( sa );
@@ -2358,6 +2363,7 @@ void MainWindow::CommandLoadSurface( const QStringList& cmd )
   QString fn_target = "";
   bool bLoadAll = false;
   bool bLabelOutline = false;
+  QString labelColor;
   QString overlay_reg;
   QString overlay_method = "linearopaque";
   QStringList overlay_thresholds;
@@ -2394,11 +2400,11 @@ void MainWindow::CommandLoadSurface( const QStringList& cmd )
       {
         m_scripts.insert( 0, QString("setsurfacecolor ") + subArgu );
       }
-      else if ( subOption == "edgecolor" )
+      else if ( subOption == "edgecolor" || subOption == "edge_color")
       {
         m_scripts.insert( 0, QString("setsurfaceedgecolor ") + subArgu );
       }
-      else if ( subOption == "edgethickness" )
+      else if ( subOption == "edgethickness"|| subOption == "edge_thickness" )
       {
         m_scripts.insert( 0, QString("setsurfaceedgethickness ") + subArgu );
       }
@@ -2406,7 +2412,7 @@ void MainWindow::CommandLoadSurface( const QStringList& cmd )
       {
         m_scripts.insert( 0, QString("displaysurfacevertex ") + subArgu);
       }
-      else if ( subOption == "vertexcolor" )
+      else if ( subOption == "vertexcolor" || subOption == "vertex_color" )
       {
         m_scripts.insert( 0, QString("setsurfacevertexcolor ") + subArgu );
       }
@@ -2565,6 +2571,10 @@ void MainWindow::CommandLoadSurface( const QStringList& cmd )
         if ( subArgu.toLower() == "true" || subArgu.toLower() == "yes" || subArgu == "1")
           bLabelOutline = true;
       }
+      else if (subOption == "label_color" || subOption == "labelcolor")
+      {
+        labelColor = subArgu;
+      }
       else if (subOption != "overlay_reg" && subOption != "overlay_method" && subOption != "overlay_threshold" &&
                subOption != "overlay_rh")
       {
@@ -2579,6 +2589,14 @@ void MainWindow::CommandLoadSurface( const QStringList& cmd )
     {
       if (m_scripts[i].indexOf("loadsurfacelabel") == 0)
         m_scripts.insert(i+1, "setsurfacelabeloutline 1");
+    }
+  }
+  if (!labelColor.isEmpty())
+  {
+    for (int i = 0; i < m_scripts.size(); i++)
+    {
+      if (m_scripts[i].indexOf("loadsurfacelabel") == 0)
+        m_scripts.insert(i+1, QString("setsurfacelabelcolor ") + labelColor);
     }
   }
   LoadSurfaceFile( fn, fn_patch, fn_target, bLoadAll );
@@ -2776,6 +2794,23 @@ void MainWindow::CommandSetSurfaceVertexColor(const QStringList &cmd)
     if ( color.isValid() )
     {
       surf->GetProperty()->SetVertexColor( color.redF(), color.greenF(), color.blueF() );
+    }
+    else
+    {
+      cerr << "Invalid color name or value " << cmd[1].toAscii().constData() << ".\n";
+    }
+  }
+}
+
+void MainWindow::CommandSetSurfaceLabelColor(const QStringList &cmd)
+{
+  LayerSurface* surf = (LayerSurface*)GetLayerCollection( "Surface" )->GetActiveLayer();
+  if ( surf && cmd[1] != "null" )
+  {
+    QColor color = ParseColorInput( cmd[1] );
+    if ( color.isValid() )
+    {
+      surf->SetActiveLabelColor(color);
     }
     else
     {
@@ -4795,7 +4830,7 @@ void MainWindow::LoadSurfaceOverlay(bool bCorrelation)
                      "Overlay files (*)");
 */
   DialogLoadSurfaceOverlay dlg;
-  dlg.SetLastDir(AutoSelectLastDir("mri"));
+  dlg.SetLastDir(AutoSelectLastDir("surf"));
   if (dlg.exec() == QDialog::Accepted)
   {
     QString filename = dlg.GetFileName();
@@ -5788,3 +5823,14 @@ void MainWindow::CommandSetVolumeMask(const QStringList &cmd)
   }
 }
 
+void MainWindow::OnCycleSurfaceLabel()
+{
+  LayerSurface* surf = qobject_cast<LayerSurface*>(GetActiveLayer("Surface"));
+  if (surf && surf->GetNumberOfLabels() > 0 )
+  {
+    int n = surf->GetActiveLabelIndex() + 1;
+    if (n >= surf->GetNumberOfLabels())
+      n = 0;
+    surf->SetActiveLabel(n);
+  }
+}

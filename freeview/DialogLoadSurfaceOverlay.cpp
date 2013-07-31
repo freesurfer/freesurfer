@@ -40,7 +40,7 @@ QString DialogLoadSurfaceOverlay::GetRegistration()
 
 void DialogLoadSurfaceOverlay::OnButtonOpen()
 {
-  QString filename = QFileDialog::getOpenFileName( this, "Select volume files",
+  QString filename = QFileDialog::getOpenFileName( this, "Select overlay files",
                           m_strLastDir,
                           "Volume files (*.mgz *.mgh *.nii *.nii.gz *.img *.mnc);;All files (*)");
   if ( !filename.isEmpty() )
