@@ -10,9 +10,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: ayendiki $
- *    $Date: 2013/01/30 21:45:04 $
- *    $Revision: 1.281 $
+ *    $Author: fischl $
+ *    $Date: 2013/08/01 17:24:07 $
+ *    $Revision: 1.282 $
  *
  * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -198,7 +198,7 @@ HISTOGRAM *gcamJacobianHistogram(GCA_MORPH *gcam, HISTOGRAM *h);
 int gcamComputePeriventricularWMDeformation(GCA_MORPH *gcam, MRI *mri) ;
 double gcamMaxGradient(GCA_MORPH *gcam) ;
 int gcamCheck(GCA_MORPH *gcam, MRI *mri) ;
-int gcamWriteDiagnostics(GCA_MORPH *gcam) ;
+static int gcamWriteDiagnostics(GCA_MORPH *gcam) ;
 int gcamShowCompressed(GCA_MORPH *gcam, FILE *fp) ;
 MATRIX *gcamComputeOptimalTargetLinearTransform(GCA_MORPH *gcam,
     MATRIX *m_L,
@@ -5730,7 +5730,8 @@ GCAMregisterLevel(GCA_MORPH *gcam, MRI *mri, MRI *mri_smooth,
     GCAMremoveStatus(gcam, GCAM_IGNORE_LIKELIHOOD) ;
     gcamComputeGradient(gcam, mri, mri_smooth, parms) ;
     parms->l_jacobian = orig_j ;
-    gcamWriteDiagnostics(gcam) ;
+    if ((Gdiag & DIAG_WRITE) && DIAG_VERBOSE_ON)
+      gcamWriteDiagnostics(gcam) ;
     switch (parms->integration_type)
     {
     case GCAM_INTEGRATE_OPTIMAL:
@@ -16221,7 +16222,7 @@ gcamSuppressNegativeGradients(GCA_MORPH *gcam, float scale)
 }
 
 
-int
+static int
 gcamWriteDiagnostics(GCA_MORPH *gcam)
 {
   FILE  *fp ;
@@ -16239,6 +16240,8 @@ gcamWriteDiagnostics(GCA_MORPH *gcam)
   {
     return(NO_ERROR) ;
   }
+
+  printf("writing GCAM morph to file for diagnostic purposes\n") ;
 
   for (i = 0 ; i < gcam->width ; i++)
   {
