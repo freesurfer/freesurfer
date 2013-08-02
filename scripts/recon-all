@@ -7,9 +7,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: greve $
-#    $Date: 2013/06/11 17:06:58 $
-#    $Revision: 1.464 $
+#    $Author: zkaufman $
+#    $Date: 2013/08/02 16:23:23 $
+#    $Revision: 1.465 $
 #
 # Copyright © 2011-2013 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -26,7 +26,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.464 2013/06/11 17:06:58 greve Exp $';
+set VERSION = '$Id: recon-all,v 1.465 2013/08/02 16:23:23 zkaufman Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -336,7 +336,7 @@ if($n != 0) then
 endif
 set n = `echo $argv | egrep -e -version | wc -l`
 if($n != 0) then
-  echo $VERSION
+  cat $FREESURFER_HOME/build-stamp.txt 
   exit 0;
 endif
 
