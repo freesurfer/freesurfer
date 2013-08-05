@@ -9,8 +9,8 @@
 # Original Author: Martin Reuter
 # CVS Revision Info:
 #    $Author: mreuter $
-#    $Date: 2013/08/05 18:04:07 $
-#    $Revision: 1.40 $
+#    $Date: 2013/08/05 18:10:52 $
+#    $Revision: 1.41 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -169,21 +169,21 @@ Choose one or more of the following options:
 
 * 'do-rate' for rate, this will compute the slope of a linear fit across
      time within each subject. Depending on the time variable this will
-     yield the thinning in mm/time (if the time variable is measured in
-     years, such as age: mm/year).
+     yield the thickening in mm/time_unit (if the time variable is measured
+     in years, such as age: mm/year). Negative values mean thinning!
 * 'do-pc1' is the percent change, this is the rate normalized by the
-     measure at the first time point times 100, e.g. percent thinning per
+     measure at the first time point times 100, e.g. percent thickening per
      year.
 * 'do-pc1fit' is the percent change with respect to the value at
      tp1, evalutated from the linear fit. This is the rate normalized by the
      estimated measure at the first time point times 100, e.g. percent
-     thinning per year. Using the linear fit instead of the measure at time
+     thickening per year. Using the linear fit instead of the measure at time
      point 1 directly reduces noise as tp1 data is more noisy than the fit,
      therefore we recommend pc1fit over pc1.
 * 'do-spc' for symmetrized percent change. Here we normalize by the temporal
      average instead of taking it from the first time point. The average
      is computed from the linear fit at the middle of the time interval.
-     This is a symmetric 'percent thinning per year' and more robust, as
+     This is a symmetric 'percent thickening per year' and more robust, as
      TP1 can be an outlier.
 * 'do-avg' for output of the temporal average (linear fit evaluated at mid
      time).
@@ -333,7 +333,7 @@ def options_parse():
     Command Line Options Parser for long_mris_slopes
     initiate the option parser and return the parsed object
     """
-    parser = optparse.OptionParser(version='$Id: long_mris_slopes,v 1.40 2013/08/05 18:04:07 mreuter Exp $', usage=HELPTEXT)
+    parser = optparse.OptionParser(version='$Id: long_mris_slopes,v 1.41 2013/08/05 18:10:52 mreuter Exp $', usage=HELPTEXT)
     
     # help text
 #    h_fsgd = '(REQUIRED) fsdg file specifying the subjects and time points'

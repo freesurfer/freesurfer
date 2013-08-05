@@ -9,8 +9,8 @@
 # Original Author: Martin Reuter
 # CVS Revision Info:
 #    $Author: mreuter $
-#    $Date: 2013/08/05 18:04:07 $
-#    $Revision: 1.22 $
+#    $Date: 2013/08/05 18:10:52 $
+#    $Revision: 1.23 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -88,21 +88,22 @@ The within subject output will be written into the template stats directory:
 
 For the output choose one or more of the following options:
 *  'out-rate' for rate, this will compute the slope of a linear fit.
-   Depending on the time variable and the stats file, will yield the
-   volume loss in mm^3/time or thinning in mm/time for each region
+   Depending on the time variable and the stats file, will yield the volume
+   gain in mm^3/time_unit or thickening in mm/time_unit for each region
    (if the time variable is measured in years, such as age: mm/year).
+   Negative values mean volume loss or thinning!
 *  'out-pc1' is the percent change, this is the rate normalized by the
-   measure at the first time point times 100, e.g. percent thinning per year.
+   measure at the first time point times 100, e.g. percent thickening per year.
 *  'out-pc1fit' is the percent change with respect to the value at
    tp1, evalutated from the linear fit. This is the rate normalized by the
    estimated measure at the first time point times 100, e.g. percent
-   thinning per year. Using the linear fit instead of the measure at time
+   thickening per year. Using the linear fit instead of the measure at time
    point 1 directly reduces noise as tp1 data is more noisy than the fit,
    therefore we recommend pc1fit over pc1.
 *  'out-spc' for symmetrized percent change. Here we normalize by the temporal
    average instead of taking it from the first time point. The average is
    computed from the linear fit at the middle of the time interval.
-   This is a symmetric 'percent thinning per year' and more robust, as TP1
+   This is a symmetric 'percent thickening per year' and more robust, as TP1
    can be an outlier. Note, however, that the temporal average will change
    when adding new time points!
 *  'out-avg' for output of the temporal average (linear fit at mid time).
@@ -141,7 +142,7 @@ def options_parse():
     Command Line Options Parser for long_mris_slopes
     initiate the option parser and return the parsed object
     """
-    parser = optparse.OptionParser(version='$Id: long_stats_slopes,v 1.22 2013/08/05 18:04:07 mreuter Exp $', usage=HELPTEXT)
+    parser = optparse.OptionParser(version='$Id: long_stats_slopes,v 1.23 2013/08/05 18:10:52 mreuter Exp $', usage=HELPTEXT)
     
     # help text
     h_qdec      = '(REQUIRED) qdec table file specifying the subjects and time points'
