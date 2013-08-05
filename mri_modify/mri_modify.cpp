@@ -7,9 +7,9 @@
 /*
  * Original Author: Yasunari Tosa
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:23 $
- *    $Revision: 1.9 $
+ *    $Author: fischl $
+ *    $Date: 2013/08/05 17:57:07 $
+ *    $Revision: 1.10 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -42,6 +42,11 @@ static float gte=0;
 static float gtr=0;
 static float gti=0;
 static char new_transform_fname[STRLEN];
+
+static int tr_specified = 0 ;
+static int te_specified = 0 ;
+static int ti_specified = 0 ;
+static int fa_specified = 0 ;
 
 void print_usage() {
   cout << "Usage: mri_modify <-xras xr xa xs> <-yras yr ya ys> <-zras zr za zs> <-cras cr ca cs> \\ " << endl;
@@ -89,16 +94,20 @@ int get_option(int argc, char *argv[], VOL_GEOM &vg) {
     nargs=1;
   } else if (!stricmp(option, (char*)"tr")) {
     gtr=atof(argv[2]);
+    tr_specified = 1 ;
     nargs=1;
   } else if (!stricmp(option, (char*)"te")) {
     gte=atof(argv[2]);
+    te_specified = 1 ;
     nargs=1;
   } else if (!stricmp(option, (char*)"ti")) {
     gti=atof(argv[2]);
+    ti_specified = 1 ;
     nargs=1;
   } else if (!stricmp(option, (char*)"fa")) {
     // mri stores it as radian
     gflip_angle=RADIANS(atof(argv[2]));
+    fa_specified = 1 ;
     nargs=1;
   } else if (!stricmp(option, (char*)"xform")) {
     // get new transform file name
@@ -112,7 +121,7 @@ int main(int argc, char *argv[]) {
   /* rkt: check for and handle version tag */
   nargs = handle_version_option 
     (argc, argv, 
-     "$Id: mri_modify.cpp,v 1.9 2011/03/02 00:04:23 nicks Exp $", 
+     "$Id: mri_modify.cpp,v 1.10 2013/08/05 17:57:07 fischl Exp $", 
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -201,16 +210,16 @@ int main(int argc, char *argv[]) {
   useVolGeomToMRI(&vgOut,mri);
 
   // now TR, TE, TI, flip_angle
-  if (gtr)
+  if (tr_specified)
   {
     printf("setting tr to %2.1f ms\n", gtr) ;
     mri->tr = gtr;
   }
-  if (gte)
+  if (te_specified)
     mri->te = gte;
-  if (gti)
+  if (ti_specified)
     mri->ti = gti;
-  if (gflip_angle)
+  if (fa_specified)
     mri->flip_angle = gflip_angle;
 
   // stuff-in the new transform filename, if one was grabbed from command-line
