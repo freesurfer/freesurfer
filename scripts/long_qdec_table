@@ -9,8 +9,8 @@
 # Original Author: Martin Reuter
 # CVS Revision Info:
 #    $Author: mreuter $
-#    $Date: 2012/05/24 00:10:48 $
-#    $Revision: 1.5 $
+#    $Date: 2013/08/05 18:02:41 $
+#    $Revision: 1.6 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -97,7 +97,7 @@ def options_parse():
     Command Line Options Parser
     initiate the option parser and return the parsed object
     """
-    parser = optparse.OptionParser(version='$Id: long_qdec_table,v 1.5 2012/05/24 00:10:48 mreuter Exp $', usage=HELPTEXT)
+    parser = optparse.OptionParser(version='$Id: long_qdec_table,v 1.6 2013/08/05 18:02:41 mreuter Exp $', usage=HELPTEXT)
     
     # help text
     h_qdec      = '(REQUIRED) qdec table file specifying the subjects and time points'
@@ -142,7 +142,7 @@ if __name__=="__main__":
         longqdec = LongQdecTable(options.qdec)
 #        subjects_tp_map, variables, subjectdir = qdecparse.parse()
     except BadFileError, e:
-        print 'ERROR: qdec table '+str(e)+' not found!'
+        print 'ERROR: qdec table '+str(e)+' not found or wrong format!'
         sys.exit(1)
     
 
