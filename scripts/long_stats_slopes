@@ -9,8 +9,8 @@
 # Original Author: Martin Reuter
 # CVS Revision Info:
 #    $Author: mreuter $
-#    $Date: 2012/06/06 21:40:33 $
-#    $Revision: 1.21 $
+#    $Date: 2013/08/05 18:04:07 $
+#    $Revision: 1.22 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -141,7 +141,7 @@ def options_parse():
     Command Line Options Parser for long_mris_slopes
     initiate the option parser and return the parsed object
     """
-    parser = optparse.OptionParser(version='$Id: long_stats_slopes,v 1.21 2012/06/06 21:40:33 mreuter Exp $', usage=HELPTEXT)
+    parser = optparse.OptionParser(version='$Id: long_stats_slopes,v 1.22 2013/08/05 18:04:07 mreuter Exp $', usage=HELPTEXT)
     
     # help text
     h_qdec      = '(REQUIRED) qdec table file specifying the subjects and time points'
@@ -155,7 +155,7 @@ def options_parse():
     h_dopc1fit  = 'compute and output the pct. change (w.r.t. tp1 from linear fit)'
     h_dospc     = 'compute and output the sym. pct. change (w.r.t. temp. average)'
     h_dostack   = 'Compute and output tables showing the time series (row per time point)'
-    h_resid     = 'residual tp (pass 1 for tp1) to export (default no export)'
+    h_resid     = 'residual tp (pass 1 for tp1, etc., pass 0 for average) to export (default no export)'
 
     h_out_avg   = 'filename to store temporal average in <template>/stats/<OUT_AVG> (default: long.<stats>.<meas>-avg.dat)'
     h_out_rate  = 'filename to store rate in <template>/stats/<OUT_RATE> (default: long.<stats>.<meas>-rate.dat)'
@@ -271,19 +271,20 @@ def options_parse():
         options.out_spc = crosslong+options.stats+'.'+options.meas+'-spc.dat'
     else:
         options.do_spc = True
-    if options.out_resid is None:
+    if optioins.resid > 0 and options.out_resid is None:
         options.out_resid = crosslong+options.stats+'.'+options.meas+'-resid'+str(options.resid)+'.dat'
-    else:
-        if options.resid < 1:
-            print 'ERROR: Please also specify the tp number to export residuals (starting at 1) with --resid !\n'
-            sys.exit(1)
+    if options.resid == 0 and options.out_resid is None:
+        options.out_resid = crosslong+options.stats+'.'+options.meas+'-resid-mean.dat'
+    if options.resid < 0 and options.out_resid is not None:
+        print 'ERROR: Please also specify the tp number to export residuals (starting at 1, or 0 for mean) with --resid !\n'
+        sys.exit(1)
                 
     if options.out_stack is None:
         options.out_stack = crosslong+options.stats+'.'+options.meas+'-stack.dat'
     else:
         options.do_stack = True
     
-    do_something = options.do_avg or options.do_rate or options.do_pc1fit or options.do_pc1 or options.do_spc or (options.resid > 0)
+    do_something = options.do_avg or options.do_rate or options.do_pc1fit or options.do_pc1 or options.do_spc or (options.resid >= 0)
     if not do_something:
         print 'ERROR: Analysis type should be specified, use one or more of --do-avg, --do-rate, --do-pc1fit, --do-pc1, --do-spc, --resid <tpid>\n'
         sys.exit(1)
@@ -470,7 +471,7 @@ if __name__=="__main__":
         if num==2:
             zerodof=" --allow-zero-dof "
         saveeres=""
-        if options.resid > 0:
+        if options.resid >= 0:
             saveeres=" --eres-save "
 
         glmdir=os.path.join(dirname,'glm')
@@ -508,6 +509,20 @@ if __name__=="__main__":
             outtmp = os.path.join(dirname,options.out_resid+'.mgh')
             cmd = 'mri_convert --frame '+str(options.resid - 1)+' '+eres+' '+outtmp 
             run_cmd(cmd,'mri_convert split residual frames '+str(options.resid)+' did not work?')      
+            outname = os.path.join(basestatsdir,options.out_resid)
+            outex = outname
+            allresid.append(outname)
+            template = os.path.join(dirname,'template.'+options.out_resid+'.dat')
+            create_template_table(meas_target,options.meas+'-resid'+str(options.resid),[ subjectid ], template)
+            cmd ='mri_convert --out_stats_table --like '+template+' '+outtmp+' '+outname
+            run_cmd(cmd,'converting resid '+str(options.resid)+' to statstable failed?') 
+
+        if options.resid == 0:
+            # output residual L1 norm (mean abs)
+            eres =  os.path.join(glmdir,'eres.mgh' )
+            outtmp = os.path.join(dirname,options.out_resid+'.mgh')
+            cmd = 'mri_concat --abs --mean --i '+eres+' --o '+outtmp 
+            run_cmd(cmd,'mri_concat mean abs did not work?')      
             outname = os.path.join(basestatsdir,options.out_resid)
             outex = outname
             allresid.append(outname)

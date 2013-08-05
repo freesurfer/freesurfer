@@ -9,8 +9,8 @@
 # Original Author: Martin Reuter
 # CVS Revision Info:
 #    $Author: mreuter $
-#    $Date: 2012/08/20 19:50:22 $
-#    $Revision: 1.39 $
+#    $Date: 2013/08/05 18:04:07 $
+#    $Revision: 1.40 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -333,7 +333,7 @@ def options_parse():
     Command Line Options Parser for long_mris_slopes
     initiate the option parser and return the parsed object
     """
-    parser = optparse.OptionParser(version='$Id: long_mris_slopes,v 1.39 2012/08/20 19:50:22 mreuter Exp $', usage=HELPTEXT)
+    parser = optparse.OptionParser(version='$Id: long_mris_slopes,v 1.40 2013/08/05 18:04:07 mreuter Exp $', usage=HELPTEXT)
     
     # help text
 #    h_fsgd = '(REQUIRED) fsdg file specifying the subjects and time points'
@@ -349,7 +349,7 @@ def options_parse():
     h_dospc     = 'compute and output the sym. pct. change (w.r.t. temp. average) (recommended)'
     h_dostack   = 'save the stacked within subject file (time series)'
     h_dolabel   = 'compute and output intersected cortex label (recommended)'
-    h_resid     = 'residual tp (pass 1 for tp1) to export (default no export)'
+    h_resid     = 'residual tp (pass 1 for tp1 etc., pass 0 for average) to export (default no export)'
 
     h_name_avg  = 'filename (without hemi ?h) to store temporal average in <template>/surf/<hemi>.<NAME_AVG>.mgh (default: long.<meas>-avg)'
     h_name_rate = 'filename (without hemi ?h) to store rate in <template>/surf/<hemi>.<NAME_RATE>.mgh (default: long.<meas>-rate)'
@@ -469,12 +469,14 @@ def options_parse():
         options.out_stack = 'long.'+options.meas+'-stack'
     if options.resid > 0 and options.name_resid is None:
         options.name_resid = 'long.'+options.meas+'-resid'+str(options.resid)
-    if options.resid < 1 and options.name_resid is not None:
-        print 'ERROR: Please also specify the tp number to export residuals (starting at 1) with --resid !\n'
+    if options.resid == 0 and options.name_resid is None:
+        options.name_resid = 'long.'+options.meas+'-resid-mean'
+    if options.resid < 0 and options.name_resid is not None:
+        print 'ERROR: Please also specify the tp number to export residuals (starting at 1, or 0 for mean) with --resid !\n'
         sys.exit(1)
         
 
-    do_analysis = options.do_avg or options.do_pc1fit or options.do_pc1 or options.do_spc or options.do_rate or (options.resid > 0)
+    do_analysis = options.do_avg or options.do_pc1fit or options.do_pc1 or options.do_spc or options.do_rate or (options.resid >= 0)
     if options.meas is None and do_analysis:
         print 'ERROR: Specify --meas (e.g. \'thickness\')\n'
         sys.exit(1)
@@ -844,7 +846,7 @@ if __name__=="__main__":
                         tavg[fwhm].append(outtname)
             
             # if no subject base processing, continue:
-            if not (options.do_pc1fit or options.do_pc1 or options.do_avg or options.do_spc or options.do_rate or options.resid > 0):
+            if not (options.do_pc1fit or options.do_pc1 or options.do_avg or options.do_spc or options.do_rate or options.resid >= 0):
                 continue #skip within subject processing and mapping to target
             
             # check if 2 or more time points
@@ -934,7 +936,7 @@ if __name__=="__main__":
                 if num==2:
                     zerodof=" --allow-zero-dof "
                 saveeres=""
-                if options.resid > 0:
+                if options.resid >= 0:
                     saveeres=" --eres-save "   
                 labelpara=""
                 if label != "" :
@@ -973,6 +975,12 @@ if __name__=="__main__":
                     cmd = 'mri_convert --frame '+str(options.resid - 1)+' '+eres+' '+outresid 
                     run_cmd(cmd,'mri_convert split residual frames '+str(options.resid)+' did not work?')      
                 
+                # get residuals if needed
+                if options.resid == 0:
+                    eres =  os.path.join(glmdir,'eres.mgh' )
+                    outresid = os.path.join(dirname,options.name_resid+'.mgh')
+                    cmd = 'mri_concat --abs --mean --i '+eres+' --o '+outresid 
+                    run_cmd(cmd,'mri_concat mean abs did not work?')
             
             # either of the cases:        
             
@@ -1011,7 +1019,7 @@ if __name__=="__main__":
                         tp1fwhm =  os.path.join(dirname,'tp1'+fwhmstr+'.mgh') 
                         cmd = 'mris_fwhm --hemi '+hemi+' --s '+tpids[0]+' --i '+measures[0]+labelpara+smooth+' --o '+tp1fwhm
                         run_cmd(cmd,'mris_fwhm smoothing tp1 did not work?')
-                    if options.resid > 0:
+                    if options.resid >= 0:
                         residfwhm =  os.path.join(dirname,'resid'+fwhmstr+'.mgh') 
                         cmd = 'mris_fwhm --hemi '+hemi+' --s '+subjectid+' --i '+outresid+labelpara+smooth+' --o '+residfwhm
                         run_cmd(cmd,'mris_fwhm smoothing resid did not work?')
@@ -1030,7 +1038,7 @@ if __name__=="__main__":
             
                 # create ouput (depending on type)
                 
-                if options.resid > 0:
+                if options.resid >= 0:
                     print "\n==============================================================================="
                     print "SUBJECT "+subjectid+" fwhm "+str(fwhm)+"  computing residuals tp "+str(options.resid)+"\n"
                     outname = os.path.join(basesurfdir,hemi+'.'+options.name_resid+fwhmstr+'.mgh')
