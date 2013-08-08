@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2012/11/08 16:18:43 $
-#    $Revision: 1.36 $
+#    $Date: 2013/08/08 21:09:54 $
+#    $Revision: 1.37 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -24,7 +24,7 @@
 #
 
 #
-set VERSION = '$Id: fslregister,v 1.36 2012/11/08 16:18:43 greve Exp $';
+set VERSION = '$Id: fslregister,v 1.37 2013/08/08 21:09:54 greve Exp $';
 set inputargs = ($argv);
 
 set subjid = ();
@@ -246,7 +246,7 @@ set cmd0 = ($cmd0  -verbose $Verbosity);
 # First, run with translation only. This is good for problem data sets
 if($DoTrans) then
   set newfslmat0 = $tmpdir/fslmat0.trans.mat
-  set cmd = ($cmd0 -omat $newfslmat0 -schedule $FSLDIR/etc/flirtsch/xyztrans.sch)
+  set cmd = ($cmd0 -omat $newfslmat0 -schedule $transsch)
   if($#fslmat0) set cmd = ($cmd -init $fslmat0)
   date | tee -a $LF
   pwd | tee -a $LF
@@ -605,13 +605,11 @@ check_params:
     exit 1;
   endif
 
+  # set transsch = $FSLDIR/etc/flirtsch/xyztrans.sch
+  set transsch = $FREESURFER_HOME/bin/fsl.5.0.2.xyztrans.sch
   if($DoTrans) then
-    if($?FSLDIR == 0) then
-      echo "ERROR: you must have the FSLDIR environment variable defined and pointing to the FSL installation"
-      exit 1;
-    endif
-    if(! -e $FSLDIR/etc/flirtsch/xyztrans.sch) then
-      echo "ERROR: cannot find $FSLDIR/etc/flirtsch/xyztrans.sch"
+    if(! -e $transsch) then
+      echo "ERROR: cannot find $transsch"
       exit 1;
     endif
   endif
