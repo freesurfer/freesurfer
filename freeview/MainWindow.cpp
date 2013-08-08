@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2013/07/31 21:28:05 $
- *    $Revision: 1.248 $
+ *    $Date: 2013/08/08 19:55:12 $
+ *    $Revision: 1.249 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -991,7 +991,7 @@ bool MainWindow::DoParseCommand(bool bAutoQuit)
     if (sa.size() > 1)
       mag_factor = sa[1];
     this->AddScript( QString("screencapture %1 %2").arg(sa[0]).arg(mag_factor) );
-    if (bAutoQuit)
+    if (bAutoQuit && !m_cmdParser->Found("noquit"))
     {
       this->AddScript( "quit" );
     }

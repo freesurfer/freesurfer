@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2013/07/31 21:28:05 $
- *    $Revision: 1.5 $
+ *    $Date: 2013/08/08 19:55:12 $
+ *    $Revision: 1.6 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -43,6 +43,7 @@ WidgetHistogram::WidgetHistogram(QWidget *parent) :
   m_nMaxCount = 0;
   m_nColorTable = NULL;
   m_bMarkerEditable = false;
+  m_bUsePercentile = false;
 
   m_rectGraph = QRect( 50, 20, 100, 100 );
 }
@@ -145,6 +146,12 @@ void WidgetHistogram::UpdateData( bool bRepaint )
     {
       m_nOutputData[n] ++;
     }
+  }
+
+  m_dOutputTotalArea = 0;
+  for (int i = 0; i < m_nNumberOfBins; i++)
+  {
+    m_dOutputTotalArea += m_nOutputData[i];
   }
 
   // find max and second max
@@ -370,6 +377,7 @@ void WidgetHistogram::SetColorTableData( unsigned char* colortable, bool bRefres
 void WidgetHistogram::SetMarkers( const LineMarkers& markers, bool bRefresh  )
 {
   m_markers = markers;
+
   if ( bRefresh )
   {
     repaint();
@@ -631,4 +639,53 @@ void WidgetHistogram::FlipMarkers()
   m_markers = markers;
   this->repaint();
   emit MarkerChanged();
+}
+
+void WidgetHistogram::SetUsePercentile(bool bUsePercentile)
+{
+  if (m_bUsePercentile == bUsePercentile)
+    return;
+
+  m_bUsePercentile = bUsePercentile;
+
+  emit MarkerChanged();
+}
+
+double WidgetHistogram::PositionToPercentile(double pos)
+{
+  double dArea = 0;
+  double dPos = m_dOutputRange[0];
+  int n = 0;
+  while (dPos < pos && n < m_nNumberOfBins)
+  {
+    dArea += m_nOutputData[n];
+    dPos += m_dBinWidth;
+    n++;
+  }
+  if (dPos > pos && n > 0)
+  {
+    dArea -= (dPos-pos)*m_nOutputData[n-1]/m_dBinWidth;
+  }
+
+  return dArea/m_dOutputTotalArea;
+}
+
+double WidgetHistogram::PercentileToPosition(double percentile)
+{
+  double dArea = 0;
+  double dPos = m_dOutputRange[0];
+  int n = 0;
+  while (dArea/m_dOutputTotalArea < percentile && n < m_nNumberOfBins)
+  {
+    dArea += m_nOutputData[n];
+    dPos += m_dBinWidth;
+    n++;
+  }
+
+  if (dArea > percentile*m_dOutputTotalArea && n > 0)
+  {
+    dPos -= (dArea-percentile*m_dOutputTotalArea)*m_dBinWidth/m_nOutputData[n-1];
+  }
+
+  return dPos;
 }

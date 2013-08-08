@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2013/07/31 21:28:05 $
- *    $Revision: 1.34 $
+ *    $Date: 2013/08/08 19:55:12 $
+ *    $Revision: 1.35 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -114,6 +114,7 @@ int main(int argc, char *argv[])
     CmdLineEntry( CMD_LINE_OPTION, "unload", "unload", "<LAYER_TYPE>", "Unload/Close the current layer. Useful for loading comands by -cmd option. Valid LAYER_TYPEs are volume, surface, label, etc.", 1, 1 ),
     CmdLineEntry( CMD_LINE_SWITCH, "rorder", "reverse-order", "", "Load layers in reversed order." ),
     CmdLineEntry( CMD_LINE_SWITCH, "quit", "quit", "", "Quit freeview. Useful for scripting or loading comands by -cmd option." ),
+    CmdLineEntry( CMD_LINE_SWITCH, "noquit", "noquit", "", "Do not quit freeview after screenshot command." ),
     CmdLineEntry( CMD_LINE_NONE )
   };
 

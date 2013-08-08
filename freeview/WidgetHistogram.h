@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2011/04/29 17:27:02 $
- *    $Revision: 1.5 $
+ *    $Date: 2013/08/08 19:55:12 $
+ *    $Revision: 1.6 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -101,12 +101,18 @@ public:
     range[1] = m_dInputRange[1];
   }
 
+
+  double PositionToPercentile(double pos);
+
+  double PercentileToPosition(double percentile);
+
 signals:
   void MouseButtonPressed(int button, double value);
   void MarkerChanged();
 
 public slots:
   void SetAutoRange( bool bRange );
+  void SetUsePercentile(bool bUsePercentile);
   void SetForegroundColor( const QColor& color );
   void FlipMarkers();
 
@@ -133,6 +139,7 @@ protected:
   int*        m_nOutputData;
   int         m_nOutputSize;
   double      m_dOutputRange[2];
+  double      m_dOutputTotalArea;
   bool        m_bAutoRange;
   int         m_nNumberOfBins;
   unsigned char* m_nColorTable;       // color table for histogram drawing as RGBA
@@ -150,6 +157,8 @@ protected:
   bool        m_bMarkerEditable;
   int         m_nActiveMarker;
   bool        m_bActiveMarkerMirrored;
+
+  bool        m_bUsePercentile;
 };
 
 template <class T> void WidgetHistogram::SetInputData( T* data, long size, double* range )
