@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2013/08/08 19:55:12 $
- *    $Revision: 1.249 $
+ *    $Date: 2013/08/08 21:09:11 $
+ *    $Revision: 1.250 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -2614,8 +2614,9 @@ void MainWindow::CommandSetSurfaceLabelOutline(const QStringList &cmd)
   }
 }
 
-void MainWindow::CommandSetSurfaceOverlayMethod( const QStringList& cmd )
+void MainWindow::CommandSetSurfaceOverlayMethod( const QStringList& cmd_in )
 {
+  QStringList cmd = cmd_in;
   LayerSurface* surf = (LayerSurface*)GetLayerCollection( "Surface" )->GetActiveLayer();
   if ( surf )
   {
@@ -2639,6 +2640,12 @@ void MainWindow::CommandSetSurfaceOverlayMethod( const QStringList& cmd )
 
       overlay->GetProperty()->SetColorMethod( nMethod );
 
+      bool bPercentile = false;
+      if (cmd.last() == "percentile")
+      {
+        cmd.removeLast();
+        bPercentile = true;
+      }
       double values[3];
       if ( cmd.size() - 2 >= 3 )   // 3 values
       {
@@ -2646,6 +2653,12 @@ void MainWindow::CommandSetSurfaceOverlayMethod( const QStringList& cmd )
         values[0] = cmd[2].toDouble(&bOK);
         values[1] = cmd[3].toDouble(&bOK);
         values[2] = cmd[4].toDouble(&bOK);
+        if (bPercentile)
+        {
+          overlay->GetProperty()->SetUsePercentile(bPercentile);
+          for (int i = 0; i < 3; i++)
+            values[i] = overlay->PercentileToPosition(values[i]);
+        }
         if ( bOK )
         {
           overlay->GetProperty()->SetMinPoint( values[0] );
@@ -2664,6 +2677,12 @@ void MainWindow::CommandSetSurfaceOverlayMethod( const QStringList& cmd )
         values[1] = cmd[3].toDouble(&bOK);
         if ( bOK )
         {
+          if (bPercentile)
+          {
+            overlay->GetProperty()->SetUsePercentile(bPercentile);
+            for (int i = 0; i < 2; i++)
+              values[i] = overlay->PercentileToPosition(values[i]);
+          }
           overlay->GetProperty()->SetMinPoint( values[0] );
           overlay->GetProperty()->SetMaxPoint( values[1] );
           overlay->GetProperty()->SetMidPoint( ( values[0] + values[1] ) / 2 );

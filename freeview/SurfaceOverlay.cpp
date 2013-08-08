@@ -11,8 +11,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2013/06/27 18:41:53 $
- *    $Revision: 1.19 $
+ *    $Date: 2013/08/08 21:09:11 $
+ *    $Revision: 1.20 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -476,4 +476,53 @@ bool SurfaceOverlay::GetDataAtVertex(int nVertex, float *output)
     output[i] = m_fDataRaw[nVertex+i*m_nDataSize];
   }
   return true;
+}
+
+double SurfaceOverlay::PercentileToPosition(double percentile)
+{
+  double range[2];
+  GetRange(range);
+  int m_nNumberOfBins = 100;
+  double m_dBinWidth = ( range[1] - range[0] ) / m_nNumberOfBins;
+  int* m_nOutputData = new int[m_nNumberOfBins];
+  if ( !m_nOutputData )
+  {
+    qCritical() << "Can not allocate memory.";
+    return 0;
+  }
+
+  // calculate histogram data
+  memset( m_nOutputData, 0, m_nNumberOfBins * sizeof( int ) );
+  for ( long i = 0; i < m_nDataSize; i++ )
+  {
+    int n = (int)( ( m_fData[i] - range[0] ) / m_dBinWidth );
+    if ( n >= 0 && n < m_nNumberOfBins )
+    {
+      m_nOutputData[n] ++;
+    }
+  }
+
+  double m_dOutputTotalArea = 0;
+  for (int i = 0; i < m_nNumberOfBins; i++)
+  {
+    m_dOutputTotalArea += m_nOutputData[i];
+  }
+
+  double dArea = 0;
+  double dPos = range[0];
+  int n = 0;
+  while (dArea/m_dOutputTotalArea < percentile && n < m_nNumberOfBins)
+  {
+    dArea += m_nOutputData[n];
+    dPos += m_dBinWidth;
+    n++;
+  }
+
+  if (dArea > percentile*m_dOutputTotalArea && n > 0)
+  {
+    dPos -= (dArea-percentile*m_dOutputTotalArea)*m_dBinWidth/m_nOutputData[n-1];
+  }
+
+  delete[] m_nOutputData;
+  return dPos;
 }

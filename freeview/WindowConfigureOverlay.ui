@@ -1380,16 +1380,16 @@
   <connection>
    <sender>checkBoxUsePercentile</sender>
    <signal>toggled(bool)</signal>
-   <receiver>widgetHistogram</receiver>
-   <slot>SetUsePercentile(bool)</slot>
+   <receiver>WindowConfigureOverlay</receiver>
+   <slot>OnCheckUsePercentile(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>235</x>
+     <x>283</x>
      <y>583</y>
     </hint>
     <hint type="destinationlabel">
-     <x>43</x>
-     <y>391</y>
+     <x>654</x>
+     <y>586</y>
     </hint>
    </hints>
   </connection>
@@ -1408,5 +1408,6 @@
   <slot>OnFrameChanged(int)</slot>
   <slot>OnCheckComputeCorrelation(bool)</slot>
   <slot>OnComboCorrelationVolume(int)</slot>
+  <slot>OnCheckUsePercentile(bool)</slot>
  </slots>
 </ui>

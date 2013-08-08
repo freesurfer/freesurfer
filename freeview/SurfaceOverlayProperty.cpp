@@ -11,8 +11,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2012/06/26 17:06:07 $
- *    $Revision: 1.6 $
+ *    $Date: 2013/08/08 21:09:11 $
+ *    $Revision: 1.7 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -46,7 +46,8 @@ SurfaceOverlayProperty::SurfaceOverlayProperty ( SurfaceOverlay* overlay) :
   m_bClearHigher(false),
   m_bSmooth(false),
   m_nSmoothSteps(1),
-  m_overlay( overlay )
+  m_overlay( overlay ),
+  m_bUsePercentile(false)
 {
   m_lut = vtkRGBAColorTransferFunction::New();
 

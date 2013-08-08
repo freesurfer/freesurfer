@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2013/08/08 19:55:12 $
- *    $Revision: 1.15 $
+ *    $Date: 2013/08/08 21:09:11 $
+ *    $Revision: 1.16 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -136,6 +136,9 @@ void WindowConfigureOverlay::UpdateUI()
     ui->radioButtonHeat       ->setChecked( p->GetColorScale() == SurfaceOverlayProperty::CS_Heat );
     ui->radioButtonColorWheel ->setChecked( p->GetColorScale() == SurfaceOverlayProperty::CS_ColorWheel );
     ui->radioButtonCustom  ->setChecked( p->GetColorScale() == SurfaceOverlayProperty::CS_Custom );
+
+    ui->checkBoxUsePercentile->setChecked(p->GetUsePercentile());
+    ui->widgetHistogram->SetUsePercentile(p->GetUsePercentile());
 
     if (ui->checkBoxUsePercentile->isChecked())
     {
@@ -659,5 +662,15 @@ void WindowConfigureOverlay::OnComboCorrelationVolume(int n)
     SurfaceOverlay* overlay = m_layerSurface->GetActiveOverlay();
     LayerMRI* mri = qobject_cast<LayerMRI*>(ui->comboBoxVolumes->itemData(n).value<QObject*>());
     overlay->SetCorrelationSourceVolume(mri);
+  }
+}
+
+void WindowConfigureOverlay::OnCheckUsePercentile(bool bChecked)
+{
+  if ( m_layerSurface && m_layerSurface->GetActiveOverlay() )
+  {
+    SurfaceOverlay* overlay = m_layerSurface->GetActiveOverlay();
+    overlay->GetProperty()->SetUsePercentile(bChecked);
+    ui->widgetHistogram->SetUsePercentile(bChecked);
   }
 }

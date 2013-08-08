@@ -10,8 +10,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2013/06/27 18:41:53 $
- *    $Revision: 1.16 $
+ *    $Date: 2013/08/08 21:09:11 $
+ *    $Revision: 1.17 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -144,6 +144,8 @@ public:
   }
 
   bool GetDataAtVertex(int nVertex, float* output);
+
+  double PercentileToPosition(double dPercentile);
 
 signals:
   void DataUpdated();

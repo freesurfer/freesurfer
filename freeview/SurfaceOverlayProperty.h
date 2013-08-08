@@ -10,8 +10,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2013/06/13 19:59:27 $
- *    $Revision: 1.6 $
+ *    $Date: 2013/08/08 21:09:11 $
+ *    $Revision: 1.7 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -110,6 +110,16 @@ public:
   }
   void SetSmoothSteps(int n);
 
+  bool GetUsePercentile()
+  {
+    return m_bUsePercentile;
+  }
+
+  void SetUsePercentile(bool bPercentile)
+  {
+    m_bUsePercentile = bPercentile;
+  }
+
 //  void MapOverlayColor( unsigned char* colordata, int nPoints );
   void MapOverlayColor( float* data, unsigned char* colordata, int nPoints );
   void MapOverlayColorSymmetric( float* data, unsigned char* colordata, int nPoints );
@@ -152,6 +162,7 @@ private:
   bool        m_bClearHigher;
   bool        m_bSmooth;
   int         m_nSmoothSteps;
+  bool        m_bUsePercentile;
 
   vtkRGBAColorTransferFunction* m_lut;
 
