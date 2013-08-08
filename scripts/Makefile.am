@@ -65,6 +65,7 @@ fs_lib_check \
 fs_time \
 fsl_rigid_register \
 fslregister \
+fsl.5.0.2.xyztrans.sch \
 fsfget \
 getfullpath \
 get_label_thickness \
