@@ -14,8 +14,8 @@
  * Original Author: Douglas N Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2012/12/13 22:19:14 $
- *    $Revision: 1.219 $
+ *    $Date: 2013/08/12 18:05:45 $
+ *    $Revision: 1.220 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -555,7 +555,7 @@ static int SmoothSurfOrVol(MRIS *surf, MRI *mri, MRI *mask, double SmthLevel);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-"$Id: mri_glmfit.c,v 1.219 2012/12/13 22:19:14 greve Exp $";
+"$Id: mri_glmfit.c,v 1.220 2013/08/12 18:05:45 greve Exp $";
 const char *Progname = "mri_glmfit";
 
 int SynthSeed = -1;
@@ -721,6 +721,7 @@ double SRTM_HalfLife=-1;
 MATRIX *SRTM_Cr, *SRTM_intCr, *SRTM_TimeSec;
 
 int nRandExclude=0,  *ExcludeFrames=NULL, nExclude=0;
+char *ExcludeFrameFile=NULL;
 MATRIX *MatrixExcludeFrames(MATRIX *Src, int *ExcludeFrames, int nExclude);
 MRI *fMRIexcludeFrames(MRI *f, int *ExcludeFrames, int nExclude, MRI *fex);
 int AllowZeroDOF=0;
@@ -2142,7 +2143,7 @@ int main(int argc, char **argv) {
 
 /* --------------------------------------------- */
 static int parse_commandline(int argc, char **argv) {
-  int  nargc , nargsused, msec, niters, frameno;
+  int  nargc , nargsused, msec, niters, frameno,k;
   char **pargv, *option ;
   double rvartmp;
   FILE *fp;
@@ -2283,6 +2284,21 @@ static int parse_commandline(int argc, char **argv) {
       nExclude = 1;
       ExcludeFrames = (int *)calloc(1,sizeof(int));
       ExcludeFrames[0] = frameno;
+      nargsused = 1;
+    } 
+    else if (!strcasecmp(option, "--exclude-frame-file")) {
+      if(nargc < 1) CMDargNErr(option,1);
+      ExcludeFrameFile = pargv[0];
+      ExcludeFrames = (int *)calloc(1000,sizeof(int));
+      fp = fopen(ExcludeFrameFile,"r");
+      if(fp == NULL) exit(1);
+      nExclude = 0;
+      while(1){
+	k=fscanf(fp,"%d",&ExcludeFrames[nExclude]);
+	if(k==EOF) break;
+	nExclude ++;
+      }
+      fclose(fp);
       nargsused = 1;
     } 
     else if (!strcmp(option, "--really-use-average7")) ReallyUseAverage7 = 1;
