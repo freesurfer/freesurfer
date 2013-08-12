@@ -14,8 +14,8 @@
  * Original Author: Douglas N Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2013/08/12 18:05:45 $
- *    $Revision: 1.220 $
+ *    $Date: 2013/08/12 18:54:32 $
+ *    $Revision: 1.221 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -555,7 +555,7 @@ static int SmoothSurfOrVol(MRIS *surf, MRI *mri, MRI *mask, double SmthLevel);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-"$Id: mri_glmfit.c,v 1.220 2013/08/12 18:05:45 greve Exp $";
+"$Id: mri_glmfit.c,v 1.221 2013/08/12 18:54:32 greve Exp $";
 const char *Progname = "mri_glmfit";
 
 int SynthSeed = -1;
@@ -728,6 +728,9 @@ int AllowZeroDOF=0;
 MRI *BindingPotential(MRI *k2, MRI *k2a, MRI *mask, MRI *bp);
 int DoReshape = 0;
 MRI *MRIconjunct3(MRI *sig1, MRI *sig2, MRI *sig3, MRI *mask, MRI *c123);
+
+int NSplits=0, SplitNo=0;
+int SplitMin, SplitMax, nPerSplit, RandSplit;
 
 /*--------------------------------------------------*/
 int main(int argc, char **argv) {
@@ -990,6 +993,37 @@ int main(int argc, char **argv) {
   }
   if (OneSampleGroupMean) {
     mriglm->Xg = MatrixConstVal(1.0,mriglm->y->nframes,1,NULL);
+  }
+
+  if(NSplits > 0){
+    nPerSplit = floor((double)mriglm->y->nframes/NSplits);
+    SplitMin = SplitNo*nPerSplit;
+    SplitMax = SplitMin + nPerSplit;
+    if((SplitNo==NSplits-1) && (SplitMax<mriglm->y->nframes-1)) SplitMax = mriglm->y->nframes-1;
+    nExclude = mriglm->y->nframes-(SplitMax-SplitMin);
+    printf("nframes=%d, NSplits=%d, SplitNo=%d, nPerSplit=%d, SplitMin=%d, SplitMax=%d, nEx=%d, RandSplit=%d\n",
+	   mriglm->y->nframes,NSplits,SplitNo,nPerSplit,SplitMin,SplitMax,nExclude,RandSplit);
+
+    Ex = MatrixConstVal(0,mriglm->y->nframes,1,NULL);
+    for(n=0; n<mriglm->y->nframes; n++) Ex->rptr[n+1][1] = n;
+
+    if(RandSplit) {
+      /* Make sure to use the same seed for each split group to assure
+         that each group is unqiue. Or run it once and get
+         glmdir/synthseed.dat, and use that for future splits.*/
+      // MatrixRandPermRows() creates a random order of frames to exclude, but 
+      // this is not important because it keeps the right order with the design matrix
+      MatrixRandPermRows(Ex);
+    }
+
+    ExcludeFrames = (int *) calloc(sizeof(int),nExclude);
+    m = 0;
+    for(n=0; n<mriglm->y->nframes; n++){
+      if(n < SplitMin || n >= SplitMax){
+	ExcludeFrames[m] = Ex->rptr[n+1][1];
+	m++;
+      }
+    }
   }
 
   // Randomly create frames to exclude
@@ -2122,6 +2156,13 @@ int main(int argc, char **argv) {
     WritePCAStats(tmpstr,Spca);
   }
 
+  if(RandSplit){
+    sprintf(tmpstr,"%s/synthseed.dat",GLMDir);
+    fp = fopen(tmpstr,"w");
+    fprintf(fp,"%d",SynthSeed);
+    fclose(fp);
+  }
+
   // re-write the log file, adding a few things
   sprintf(tmpstr,"%s/mri_glmfit.log",GLMDir);
   fp = fopen(tmpstr,"w");
@@ -2300,6 +2341,17 @@ static int parse_commandline(int argc, char **argv) {
       }
       fclose(fp);
       nargsused = 1;
+    } 
+    else if (!strcasecmp(option, "--rand-split")) {
+      if(nargc < 2) CMDargNErr(option,2);
+      sscanf(pargv[0],"%d",&NSplits);
+      sscanf(pargv[1],"%d",&SplitNo);
+      if(SplitNo > NSplits-1){
+	printf("ERROR: SplitNo = %d > NSplits-1 = %d\n",SplitNo,NSplits-1);
+	exit(1);
+      }
+      RandSplit = 1;
+      nargsused = 2;
     } 
     else if (!strcmp(option, "--really-use-average7")) ReallyUseAverage7 = 1;
     else if (!strcasecmp(option, "--surf") || !strcasecmp(option, "--surface")) {
@@ -2696,6 +2748,7 @@ printf("   --allow-zero-dof : mostly for very special purposes\n");
 printf("   --illcond : allow ill-conditioned design matrices\n");
 printf("   --no-rescale-x : do not rescale X prior to computing inverse\n");
 printf("   --sim-done SimDoneFile : create DoneFile when simulation finished \n");
+printf("   --rand-split NSplits SplitNo (make sure to use same seed for all splits) \n");
 printf("\n");
 }
 
