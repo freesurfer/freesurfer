@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2013/08/08 21:09:11 $
- *    $Revision: 1.250 $
+ *    $Date: 2013/08/14 19:32:54 $
+ *    $Revision: 1.251 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -329,6 +329,7 @@ MainWindow::MainWindow( QWidget *parent, MyCmdLineParser* cmdParser ) :
   actionGroupMode->addAction( ui->actionNavigate );
   actionGroupMode->addAction( ui->actionMeasure );
   actionGroupMode->addAction( ui->actionVoxelEdit );
+  actionGroupMode->addAction( ui->actionReconEdit );
   actionGroupMode->addAction( ui->actionROIEdit );
   actionGroupMode->addAction( ui->actionPointSetEdit );
   actionGroupMode->setExclusive( true );
@@ -1087,6 +1088,7 @@ void MainWindow::OnIdle()
   int nMode = view->GetInteractionMode();
   ui->actionNavigate->setChecked( nMode == RenderView::IM_Navigate );
   ui->actionVoxelEdit->setChecked( nMode == RenderView::IM_VoxelEdit );
+  ui->actionReconEdit->setChecked( nMode == RenderView::IM_ReconEdit );
   ui->actionROIEdit->setChecked( nMode == RenderView::IM_ROIEdit );
   ui->actionMeasure->setChecked( nMode == RenderView::IM_Measure );
   ui->actionCropVolume->setChecked( nMode == RenderView::IM_VolumeCrop );
@@ -1098,7 +1100,7 @@ void MainWindow::OnIdle()
     ui->actionUndo->setEnabled( roi && roi->IsVisible() && roi->HasUndo() );
     ui->actionRedo->setEnabled( roi && roi->IsVisible() && roi->HasRedo() );
   }
-  else if ( nMode == RenderView::IM_VoxelEdit || nMode == RenderView::IM_Navigate )
+  else if ( nMode == RenderView::IM_VoxelEdit || nMode == RenderView::IM_ReconEdit || nMode == RenderView::IM_Navigate )
   {
     LayerMRI* mri = ( LayerMRI* )GetActiveLayer( "MRI");
     ui->actionUndo->setEnabled( mri && mri->IsVisible() && mri->HasUndo() );
@@ -1124,6 +1126,7 @@ void MainWindow::OnIdle()
 //  LayerCollection* lc = GetCurrentLayerCollection();
   bool bHasLayer = !IsEmpty();
   ui->actionVoxelEdit       ->setEnabled( layerVolume && layerVolume->IsEditable() );
+  ui->actionReconEdit       ->setEnabled( layerVolume && layerVolume->IsEditable() );
   ui->actionROIEdit         ->setEnabled( layerROI && layerROI->IsEditable() );
   ui->actionMeasure         ->setEnabled( layerVolume );
   ui->actionPointSetEdit    ->setEnabled( layerPointSet && layerPointSet->IsEditable() );
@@ -1205,7 +1208,8 @@ void MainWindow::OnIdle()
     ui->actionPaste->setEnabled( roi && roi->IsVisible() && roi->IsEditable() &&
                                  nWnd >= 0 && nWnd < 3 && roi->IsValidToPaste( nWnd ) );
   }
-  else if ( ui->viewAxial->GetInteractionMode() == RenderView::IM_VoxelEdit )
+  else if ( ui->viewAxial->GetInteractionMode() == RenderView::IM_VoxelEdit ||
+            ui->viewAxial->GetInteractionMode() == RenderView::IM_ReconEdit )
   {
     LayerMRI* mri = ( LayerMRI* )GetActiveLayer("MRI");
     ui->actionCopy->setEnabled( mri && mri->IsVisible() && nWnd >= 0 && nWnd < 3 );
@@ -1227,7 +1231,7 @@ void MainWindow::OnIdle()
   bool bEditWindowVisible = m_toolWindowEdit->isVisible();
   bool bROIEditWindowVisible = m_toolWindowROIEdit->isVisible();
   m_toolWindowMeasure->setVisible( nMode == RenderView::IM_Measure );
-  m_toolWindowEdit->setVisible( nMode == RenderView::IM_VoxelEdit );
+  m_toolWindowEdit->setVisible( nMode == RenderView::IM_VoxelEdit || nMode == RenderView::IM_ReconEdit );
   m_toolWindowROIEdit->setVisible( nMode == RenderView::IM_ROIEdit );
 
   if ( !m_dlgCropVolume->isVisible() && nMode == RenderView::IM_VolumeCrop )
@@ -3326,7 +3330,9 @@ void MainWindow::SetAction( int nAction )
     m_views[i]->SetAction( nAction );
   }
 
-  if ( m_views[0]->GetInteractionMode() == RenderView::IM_VoxelEdit && nAction == Interactor::EM_Contour )
+  if ( (m_views[0]->GetInteractionMode() == RenderView::IM_VoxelEdit ||
+        m_views[0]->GetInteractionMode() == RenderView::IM_ReconEdit )
+      && nAction == Interactor::EM_Contour )
   {
     BrushProperty* bp =GetBrushProperty();
     LayerMRI* layer = (LayerMRI*)GetActiveLayer( "MRI" );
@@ -4990,6 +4996,7 @@ void MainWindow::SetMode( int nMode )
     m_volumeCropper->SetEnabled(false);
     RequestRedraw();
   }
+  m_toolWindowEdit->UpdateReconMode();
 }
 
 void MainWindow::OnSetModeNavigate()
@@ -5005,6 +5012,11 @@ void MainWindow::OnSetModeMeasure()
 void MainWindow::OnSetModeVoxelEdit()
 {
   SetMode( RenderView::IM_VoxelEdit );
+}
+
+void MainWindow::OnSetModeReconEdit()
+{
+  SetMode( RenderView::IM_ReconEdit );
 }
 
 void MainWindow::OnSetModeROIEdit()
@@ -5455,7 +5467,8 @@ void MainWindow::OnCopy()
       roi->Copy( nWnd );
     }
   }
-  else if ( ui->viewAxial->GetInteractionMode() == RenderView::IM_VoxelEdit )
+  else if ( ui->viewAxial->GetInteractionMode() == RenderView::IM_VoxelEdit ||
+            ui->viewAxial->GetInteractionMode() == RenderView::IM_ReconEdit )
   {
     LayerMRI* mri = ( LayerMRI* )GetActiveLayer( "MRI" );
     if ( mri && nWnd >= 0 && nWnd < 3 )
@@ -5468,7 +5481,8 @@ void MainWindow::OnCopy()
 void MainWindow::OnCopyStructure()
 {
   int nWnd = GetActiveViewId();
-  if ( ui->viewAxial->GetInteractionMode() == RenderView::IM_VoxelEdit )
+  if ( ui->viewAxial->GetInteractionMode() == RenderView::IM_VoxelEdit ||
+       ui->viewAxial->GetInteractionMode() == RenderView::IM_ReconEdit )
   {
     LayerMRI* mri = ( LayerMRI* )GetActiveLayer( "MRI" );
     if ( mri && nWnd >= 0 && nWnd < 3 )
@@ -5494,7 +5508,8 @@ void MainWindow::OnPaste()
       roi->Paste( nWnd );
     }
   }
-  else if ( ui->viewAxial->GetInteractionMode() == RenderView::IM_VoxelEdit )
+  else if ( ui->viewAxial->GetInteractionMode() == RenderView::IM_VoxelEdit ||
+            ui->viewAxial->GetInteractionMode() == RenderView::IM_ReconEdit )
   {
     LayerMRI* mri = ( LayerMRI* )GetActiveLayer( "MRI" );
     if ( mri && nWnd >= 0 && nWnd < 3 )

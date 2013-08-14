@@ -325,6 +325,7 @@
     <addaction name="actionNavigate"/>
     <addaction name="actionMeasure"/>
     <addaction name="actionVoxelEdit"/>
+    <addaction name="actionReconEdit"/>
     <addaction name="actionROIEdit"/>
     <addaction name="actionPointSetEdit"/>
    </widget>
@@ -397,6 +398,7 @@
    <addaction name="actionNavigate"/>
    <addaction name="actionMeasure"/>
    <addaction name="actionVoxelEdit"/>
+   <addaction name="actionReconEdit"/>
    <addaction name="actionROIEdit"/>
    <addaction name="actionPointSetEdit"/>
    <addaction name="separator"/>
@@ -1300,6 +1302,21 @@
    </property>
    <property name="shortcut">
     <string>Alt+L</string>
+   </property>
+  </action>
+  <action name="actionReconEdit">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="icon">
+    <iconset resource="freeview.qrc">
+     <normaloff>:/resource/icons/recon_edit.png</normaloff>:/resource/icons/recon_edit.png</iconset>
+   </property>
+   <property name="text">
+    <string>Recon Edit</string>
+   </property>
+   <property name="toolTip">
+    <string>Recon Edit</string>
    </property>
   </action>
  </widget>
@@ -2521,6 +2538,22 @@
     </hint>
    </hints>
   </connection>
+  <connection>
+   <sender>actionReconEdit</sender>
+   <signal>triggered()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>OnSetModeReconEdit()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>606</x>
+     <y>435</y>
+    </hint>
+   </hints>
+  </connection>
  </connections>
  <slots>
   <slot>OnLoadVolume()</slot>
@@ -2597,5 +2630,6 @@
   <slot>OnLoadConnectomeMatrix()</slot>
   <slot>OnCloseConnectomeMatrix()</slot>
   <slot>OnCycleSurfaceLabel()</slot>
+  <slot>OnSetModeReconEdit()</slot>
  </slots>
 </ui>

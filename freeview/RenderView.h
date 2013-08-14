@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2012/10/23 17:35:44 $
- *    $Revision: 1.35 $
+ *    $Date: 2013/08/14 19:32:55 $
+ *    $Revision: 1.36 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -45,7 +45,8 @@ class RenderView : public GenericRenderView
 public:
   RenderView( QWidget* parent = NULL );
 
-  enum InteractionMode { IM_Navigate = 0, IM_Measure, IM_VoxelEdit, IM_ROIEdit, IM_PointSetEdit, IM_VolumeCrop };
+  enum InteractionMode { IM_Navigate = 0, IM_Measure, IM_VoxelEdit, IM_ReconEdit,
+                         IM_ROIEdit, IM_PointSetEdit, IM_VolumeCrop };
 
   void SetWorldCoordinateInfo( const double* origin, const double* size, bool bResetView = true );
   virtual void UpdateViewByWorldCoordinate() {}

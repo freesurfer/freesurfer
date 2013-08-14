@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2013/06/13 19:59:27 $
- *    $Revision: 1.61 $
+ *    $Date: 2013/08/14 19:32:55 $
+ *    $Revision: 1.62 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -90,6 +90,7 @@ void RenderView2D::SetInteractionMode( int nMode )
     m_interactor = m_interactorMeasure;
     break;
   case IM_VoxelEdit:
+  case IM_ReconEdit:
     m_interactor = m_interactorVoxelEdit;
     break;
   case IM_ROIEdit:
