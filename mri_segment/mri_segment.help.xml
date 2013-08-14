@@ -53,7 +53,7 @@
       <argument>-log</argument>
       <explanation>log to ./segment.dat</explanation>
       <argument>-keep</argument>
-      <explanation>keep wm edits. maintains all values of 0 and 255</explanation>
+      <explanation>keep wm edits. maintains all values of 1 and 255. voxels of value 1 will be 'deleted' and voxels of value 255 will be 'filled'</explanation>
       <argument>-ghi,-gray_hi &lt;h&gt;</argument>
       <explanation>set the gray matter high limit (default=100.000)</explanation>
       <argument>-wlo,-wm_low &lt;l&gt;</argument>
