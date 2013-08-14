@@ -41,6 +41,8 @@
       <explanation>input transform of MNI / XFM type</explanation>
       <argument>--inreg &lt;inreg.dat&gt;</argument>
       <explanation>input transform of TK REG type (deprecated format)</explanation>
+      <argument>--inniftyreg &lt;inniftyreg.dat&gt;</argument>
+      <explanation>input transform of Nifty Reg type (inverse RAS2RAS)</explanation>
       <intro>At least one output is required:</intro>
       <argument>--outlta &lt;out.lta&gt;</argument>
       <explanation>output linear transform (LTA Freesurfer format)</explanation>

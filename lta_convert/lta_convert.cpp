@@ -8,8 +8,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2013/04/25 22:13:26 $
- *    $Revision: 1.4 $
+ *    $Date: 2013/08/14 21:06:39 $
+ *    $Revision: 1.5 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -25,6 +25,7 @@
 
 #include <string>
 #include <iostream>
+#include <fstream>
 
 // all other software are all in "C"
 #ifdef __cplusplus
@@ -47,7 +48,7 @@ extern "C"
 using namespace std;
 
 namespace intypes {
-enum InputType { UNKNOWN, LTA, REG, FSL, MNI };
+enum InputType { UNKNOWN, LTA, REG, FSL, MNI, NIFTYREG };
 }
 
 struct Parameters
@@ -72,7 +73,7 @@ static void printUsage(void);
 static bool parseCommandLine(int argc, char *argv[], Parameters & P);
 
 static char vcid[] =
-    "$Id: lta_convert.cpp,v 1.4 2013/04/25 22:13:26 mreuter Exp $";
+    "$Id: lta_convert.cpp,v 1.5 2013/08/14 21:06:39 mreuter Exp $";
 char *Progname = NULL;
 
 LTA * shallowCopyLTA(const LTA * lta)
@@ -177,13 +178,13 @@ LTA * readMNI(const string& xfname, const string& sname, const string& tname)
   MRI * src = MRIreadHeader(sname.c_str(),MRI_VOLUME_TYPE_UNKNOWN);
   if (src == NULL)
   {
-    cerr << "ERROR readFSL: cannot read src MRI" << sname << endl;
+    cerr << "ERROR readMNI: cannot read src MRI" << sname << endl;
     exit(1);
   }
   MRI * trg = MRIreadHeader(tname.c_str(),MRI_VOLUME_TYPE_UNKNOWN);
   if (trg == NULL)
   {
-    cerr << "ERROR readFSL: cannot read trg MRI" << tname << endl;
+    cerr << "ERROR readMNI: cannot read trg MRI" << tname << endl;
     exit(1);
   }
   
@@ -209,13 +210,13 @@ LTA * readREG(const string& xfname, const string& sname, const string& tname)
   MRI * src = MRIreadHeader(sname.c_str(),MRI_VOLUME_TYPE_UNKNOWN);
   if (src == NULL)
   {
-    cerr << "ERROR readFSL: cannot read src MRI" << sname << endl;
+    cerr << "ERROR readREG: cannot read src MRI" << sname << endl;
     exit(1);
   }
   MRI * trg = MRIreadHeader(tname.c_str(),MRI_VOLUME_TYPE_UNKNOWN);
   if (trg == NULL)
   {
-    cerr << "ERROR readFSL: cannot read trg MRI" << tname << endl;
+    cerr << "ERROR readREG: cannot read trg MRI" << tname << endl;
     exit(1);
   }
   
@@ -231,6 +232,64 @@ LTA * readREG(const string& xfname, const string& sname, const string& tname)
   return lta;
 }
 
+LTA * readNIFTYREG(const string& xfname, const string& sname, const string& tname)
+// nifty reg writes the inverse RAS2RAS matrix (trg -> src)
+// this functionality needs to be moved to LTA (transform) in the future
+{
+  LTA* lta = LTAalloc(1, NULL) ;
+  LINEAR_TRANSFORM * lt = &lta->xforms[0] ;
+  lt->sigma = 1.0f ;
+  lt->x0 = lt->y0 = lt->z0 = 0 ;
+  lta->type = LINEAR_RAS_TO_RAS;
+  
+  std::ifstream transfile (xfname.c_str());
+  MATRIX* m_L = MatrixAlloc(4,4,MATRIX_REAL);
+  if(transfile.is_open())
+  {
+    int row=1;
+    float v1,v2,v3,v4;
+    while(!transfile.eof())
+    {
+      transfile >> v1 >> v2 >> v3 >> v4;
+      *MATRIX_RELT(m_L,row,1) = v1;
+      *MATRIX_RELT(m_L,row,2) = v2;
+      *MATRIX_RELT(m_L,row,3) = v3;
+      *MATRIX_RELT(m_L,row,4) = v4;
+      row++;
+      if(row>4) break;
+    }
+    transfile.close();
+  }
+  else
+  {
+    cerr << "readNIFTYREG Error opening " << xfname << endl;
+    exit(1);
+  }
+  lt->m_L = MatrixInverse( m_L, lt->m_L );
+  MatrixFree(&m_L);
+  
+  // read src and target mri header
+  MRI * src = MRIreadHeader(sname.c_str(),MRI_VOLUME_TYPE_UNKNOWN);
+  if (src == NULL)
+  {
+    cerr << "ERROR readNIFTYREG: cannot read src MRI" << sname << endl;
+    exit(1);
+  }
+  MRI * trg = MRIreadHeader(tname.c_str(),MRI_VOLUME_TYPE_UNKNOWN);
+  if (trg == NULL)
+  {
+    cerr << "ERROR readNIFTYREG: cannot read trg MRI" << tname << endl;
+    exit(1);
+  }
+  
+  getVolGeom(src, &lta->xforms[0].src);
+  getVolGeom(trg, &lta->xforms[0].dst);
+  
+  MRIfree(&src);
+  MRIfree(&trg);
+
+  return lta;
+}
 
 void writeFSL(const string& fname, const LTA * lta)
 {
@@ -328,6 +387,8 @@ int main(int argc, char *argv[])
     lta = readMNI(P.transin.c_str(),P.src,P.trg);
   else if (P.intype==intypes::REG)
     lta = readREG(P.transin.c_str(),P.src,P.trg);
+  else if (P.intype==intypes::NIFTYREG)
+    lta = readNIFTYREG(P.transin.c_str(),P.src,P.trg);
   if (!lta)
   {
     ErrorExit(ERROR_BADFILE, "%s: can't read input file %s",Progname, P.transin.c_str());
@@ -458,6 +519,13 @@ static int parseNextCommand(int argc, char *argv[], Parameters & P)
     P.intype = intypes::REG;
     nargs = 1;
     cout << "--inreg: " << P.transin << " input TK REG transform." << endl;
+  }
+  else if (!strcmp(option, "INNIFTYREG"))
+  {
+    P.transin = string(argv[1]);
+    P.intype = intypes::NIFTYREG;
+    nargs = 1;
+    cout << "--inreg: " << P.transin << " input Nifty Reg transform." << endl;
   }
   else if (!strcmp(option, "OUTLTA") )
   {
