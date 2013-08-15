@@ -8,8 +8,8 @@
 # Original Author: Anastasia Yendiki
 # CVS Revision Info:
 #    $Author: ayendiki $
-#    $Date: 2013/02/16 00:55:13 $
-#    $Revision: 1.32 $
+#    $Date: 2013/08/15 22:14:53 $
+#    $Revision: 1.33 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -25,7 +25,7 @@
 
 umask 002
 
-set VERSION = '$Id: trac-paths,v 1.32 2013/02/16 00:55:13 ayendiki Exp $'
+set VERSION = '$Id: trac-paths,v 1.33 2013/08/15 22:14:53 ayendiki Exp $'
 set ProgName = `basename $0`
 set inputargs = ($argv)
 
@@ -195,17 +195,30 @@ if (! $dolong) then
         if ($dopathsubdirs) then
           set outdir = $outdir/${nsample}samp
 
-          if ($dosegprior && $dotangprior) then
-            set outdir = $outdir/all
-          else if ($dosegprior) then
-            set outdir = $outdir/seg14
-          else if ($doxyzprior) then
-            set outdir = $outdir/xyz
-          else if ($dotangprior) then
-            set outdir = $outdir/tang
-          else
-            set outdir = $outdir/none
+          set ptype = ()
+
+          if ($dosegprior) then
+            set ptype = seg14
           endif
+          if ($dotangprior) then
+            if ($#ptype) then
+              set ptype = $ptype.tang
+            else
+              set ptype = tang
+            endif
+          endif
+          if ($doxyzprior) then
+            if ($#ptype) then
+              set ptype = $ptype.xyz
+            else
+              set ptype = xyz
+            endif
+          endif
+          if (! $#ptype) then
+            set ptype = none
+          endif
+
+          set outdir = $outdir/$ptype
         endif
 
         mkdir -p $outdir
@@ -338,11 +351,13 @@ if (! $dolong) then
           set cmd = ($cmd --nprior $npriorlist)
           set cmd = ($cmd --lprior $lpriorlist)
           set cmd = ($cmd --seg    $labdir/$xspace/aparc+aseg.nii.gz)
-        else if ($doxyzprior) then
-          set cmd = ($cmd --prior $priorlist)
-        else if ($dotangprior) then
+        endif
+        if ($dotangprior) then
           set cmd = ($cmd --tprior $tpriorlist)
           set cmd = ($cmd --cprior $cpriorlist)
+        endif
+        if ($doxyzprior) then
+          set cmd = ($cmd --prior $priorlist)
         endif
         set cmd = ($cmd --nb $nburnin --ns $nsample --nu $nupdate --nk $nkeep)
         if ($doinitprop) then
@@ -703,6 +718,8 @@ set cmdline = ($argv)
 
 while( $#argv != 0 )
   set flag = $argv[1]; shift;
+
+  if ("$flag" == ";") break;
 
   switch($flag)
     case "-c":
