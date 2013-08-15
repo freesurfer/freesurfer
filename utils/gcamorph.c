@@ -10,9 +10,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2013/08/01 17:24:07 $
- *    $Revision: 1.282 $
+ *    $Author: zkaufman $
+ *    $Date: 2013/08/15 18:03:37 $
+ *    $Revision: 1.283 $
  *
  * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -198,7 +198,7 @@ HISTOGRAM *gcamJacobianHistogram(GCA_MORPH *gcam, HISTOGRAM *h);
 int gcamComputePeriventricularWMDeformation(GCA_MORPH *gcam, MRI *mri) ;
 double gcamMaxGradient(GCA_MORPH *gcam) ;
 int gcamCheck(GCA_MORPH *gcam, MRI *mri) ;
-static int gcamWriteDiagnostics(GCA_MORPH *gcam) ;
+int gcamWriteDiagnostics(GCA_MORPH *gcam) ;
 int gcamShowCompressed(GCA_MORPH *gcam, FILE *fp) ;
 MATRIX *gcamComputeOptimalTargetLinearTransform(GCA_MORPH *gcam,
     MATRIX *m_L,
@@ -16222,7 +16222,7 @@ gcamSuppressNegativeGradients(GCA_MORPH *gcam, float scale)
 }
 
 
-static int
+int
 gcamWriteDiagnostics(GCA_MORPH *gcam)
 {
   FILE  *fp ;
