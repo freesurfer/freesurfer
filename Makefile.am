@@ -337,8 +337,6 @@ SUBDIRS=\
 	$(DMRISUBDIRS) \
 	fsfast \
 	matlab \
-	scuba \
-	scuba2 \
 	freeview \
 	qdec_glmfit \
 	cudatest \
