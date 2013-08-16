@@ -9,8 +9,8 @@
 #
 # CVS Revision Info:
 #    $Author: zkaufman $
-#    $Date: 2013/08/16 20:21:11 $
-#    $Revision: 1.519.2.41 $
+#    $Date: 2013/08/16 20:57:03 $
+#    $Revision: 1.519.2.42 $
 #
 ########################################################################
 AC_PREREQ(2.57)
@@ -3722,8 +3722,6 @@ AC_OUTPUT([Makefile
            repair_siemens_file/Makefile
            rgb/Makefile
            scripts/Makefile
-           scuba/Makefile
-           scuba2/Makefile
            freeview/Makefile
            connectgraph/Makefile
            spherical_stats/Makefile
