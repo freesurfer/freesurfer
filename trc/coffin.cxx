@@ -34,8 +34,8 @@ MRI *Aeon::mBaseMask;
 const unsigned int Coffin::mMaxTryMask = 100,
                    Coffin::mMaxTryWhite = 10,
                    Coffin::mDiffStep = 3;
-const float Coffin::mTangentBinSize = 0.1,
-            Coffin::mCurvatureBinSize = 0.002;
+const float Coffin::mTangentBinSize = 1/3.0,	// 0.1,
+            Coffin::mCurvatureBinSize = 0.01;	// 0.002;
 
 //
 // A single point in time

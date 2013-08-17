@@ -31,8 +31,8 @@ const float Blood::mLengthCutoff = 0.05,
             Blood::mLengthRatio = 3.0,
             Blood::mHausStepRatio = 0.05,
             Blood::mControlStepRatio = 0.8,
-            Blood::mTangentBinSize = 0.1,
-            Blood::mCurvatureBinSize = 0.002;
+            Blood::mTangentBinSize = 1/3.0,	// 0.1,
+            Blood::mCurvatureBinSize = 0.01;	// 0.002;
 
 Blood::Blood(const char *TrainListFile, const char *TrainTrkFile,
              const char *TrainRoi1File, const char *TrainRoi2File,
