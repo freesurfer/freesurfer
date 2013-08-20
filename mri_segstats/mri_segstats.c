@@ -12,8 +12,8 @@
  * Original Author: Dougas N Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2013/06/05 22:21:20 $
- *    $Revision: 1.100 $
+ *    $Date: 2013/08/20 15:52:54 $
+ *    $Revision: 1.101 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -78,6 +78,7 @@
 #include "registerio.h"
 #include "cmdargs.h"
 #include "fio.h"
+#include "ctrpoints.h"
 
 #ifdef FS_CUDA
 #include "devicemanagement.h"
@@ -107,11 +108,12 @@ STATSUMENTRY;
 int MRIsegCount(MRI *seg, int id, int frame);
 STATSUMENTRY *LoadStatSumFile(char *fname, int *nsegid);
 int DumpStatSumTable(STATSUMENTRY *StatSumTable, int nsegid);
+int CountEdits(char *subject, char *outfile);
 
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-  "$Id: mri_segstats.c,v 1.100 2013/06/05 22:21:20 greve Exp $";
+  "$Id: mri_segstats.c,v 1.101 2013/08/20 15:52:54 greve Exp $";
 char *Progname = NULL, *SUBJECTS_DIR = NULL, *FREESURFER_HOME=NULL;
 char *SegVolFile = NULL;
 char *InVolFile = NULL;
@@ -1385,7 +1387,7 @@ int main(int argc, char **argv)
 /* --------------------------------------------- */
 static int parse_commandline(int argc, char **argv)
 {
-  int  nargc , nargsused, nth;
+  int  nargc , nargsused, nth, err;
   char **pargv, *option ;
 
   if (argc < 1)
@@ -1824,6 +1826,14 @@ static int parse_commandline(int argc, char **argv)
       subject = pargv[0];
       nargsused = 1;
     }
+    else if (!strcmp(option, "--count-edits"))
+    {
+      if (nargc < 2) argnerr(option,2);
+      subject = pargv[0];
+      err=CountEdits(subject,pargv[1]);
+      exit(err);
+      nargsused = 2;
+    }
     else if (!strcmp(option, "--annot"))
     {
       if (nargc < 3)
@@ -2117,5 +2127,108 @@ int DumpStatSumTable(STATSUMENTRY *StatSumTable, int nsegid)
            StatSumTable[n].std);
     printf("\n");
   }
+  return(0);
+}
+
+//-----------------------------------------------------
+/*!
+\fn int CountEdits(char *subject, char *outfile)
+\brief Prints out number of control points and number 
+of wm, brainmask, and aseg edits. Right now it just
+prints to a screen and/or to a file. It would be nice
+to have this in the aseg.stats file at some point.
+\param subject 
+\param outfile saves results in outfile
+*/
+int CountEdits(char *subject, char *outfile)
+{
+  char *SUBJECTS_DIR;
+  char sd[4000],tmpstr[4000];
+  MPoint *pArray = 0;
+  int count = 0,useRealRAS = 0;
+  int c,r,s;
+  MRI *mri, *mri2;
+  int nWMErase, nWMFill, nBMErase, nBMClone, nASegChanges;
+  double v1,v2;
+  FILE *fp;
+
+  SUBJECTS_DIR = getenv("SUBJECTS_DIR");
+  sprintf(sd,"%s/%s",SUBJECTS_DIR,subject);
+
+  sprintf(tmpstr,"%s/tmp/control.dat",sd);
+  count = 0;
+  if(fio_FileExistsReadable(tmpstr)){
+    pArray = MRIreadControlPoints(tmpstr, &count, &useRealRAS);
+    free(pArray);
+  }
+
+  sprintf(tmpstr,"%s/mri/wm.mgz",sd);
+  mri = MRIread(tmpstr);
+  if(mri == NULL) return(1);
+  nWMErase = 0;
+  nWMFill = 0;
+  for(c=0; c < mri->width; c++){
+    for(r=0; r < mri->height; r++){
+      for(s=0; s < mri->depth; s++){
+	v1 = MRIgetVoxVal(mri,c,r,s,0);
+	if(v1 == WM_EDITED_OFF_VAL) nWMErase++;
+	if(v1 == WM_EDITED_ON_VAL)  nWMFill++;
+      }
+    }
+  }
+  MRIfree(&mri);
+
+  sprintf(tmpstr,"%s/mri/brainmask.mgz",sd);
+  mri = MRIread(tmpstr);
+  if(mri == NULL) return(1);
+  sprintf(tmpstr,"%s/mri/brainmask.auto.mgz",sd);
+  mri2 = MRIread(tmpstr);
+  if(mri2 == NULL) return(1);
+  nBMErase = 0;
+  nBMClone = 0;
+  for(c=0; c < mri->width; c++){
+    for(r=0; r < mri->height; r++){
+      for(s=0; s < mri->depth; s++){
+	v1 = MRIgetVoxVal(mri,c,r,s,0);
+	v2 = MRIgetVoxVal(mri2,c,r,s,0);
+	if(v1 == v2) continue;
+	if(v1 == 1) nBMErase++;
+	else        nBMClone++;
+      }
+    }
+  }
+  MRIfree(&mri);
+  MRIfree(&mri2);
+
+  sprintf(tmpstr,"%s/mri/aseg.mgz",sd);
+  mri = MRIread(tmpstr);
+  if(mri == NULL) return(1);
+  sprintf(tmpstr,"%s/mri/aseg.auto.mgz",sd);
+  mri2 = MRIread(tmpstr);
+  if(mri2 == NULL) return(1);
+  nASegChanges = 0;
+  for(c=0; c < mri->width; c++){
+    for(r=0; r < mri->height; r++){
+      for(s=0; s < mri->depth; s++){
+	v1 = MRIgetVoxVal(mri,c,r,s,0);
+	v2 = MRIgetVoxVal(mri2,c,r,s,0);
+	if(v1 == v2) continue;
+	nASegChanges++;
+      }
+    }
+  }
+  MRIfree(&mri);
+  MRIfree(&mri2);
+
+  printf("%s nc %3d, nWMErase %3d, nWMFill %3d, nBMErase %3d, nBMClone %3d, nASegChanges %3d\n",
+	 subject,count,nWMErase,nWMFill,nBMErase,nBMClone,nASegChanges);
+
+  if(outfile){
+    fp = fopen(outfile,"w");
+    fprintf(fp,"%s %3d    %4d %4d    %4d %4d   %4d\n",
+	 subject,count,nWMErase,nWMFill,nBMErase,nBMClone,nASegChanges);
+    fclose(fp);
+  }
+
   return(0);
 }
