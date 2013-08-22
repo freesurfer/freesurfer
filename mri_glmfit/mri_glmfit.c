@@ -14,8 +14,8 @@
  * Original Author: Douglas N Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2013/08/12 18:54:32 $
- *    $Revision: 1.221 $
+ *    $Date: 2013/08/22 20:44:08 $
+ *    $Revision: 1.222 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -555,7 +555,7 @@ static int SmoothSurfOrVol(MRIS *surf, MRI *mri, MRI *mask, double SmthLevel);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-"$Id: mri_glmfit.c,v 1.221 2013/08/12 18:54:32 greve Exp $";
+"$Id: mri_glmfit.c,v 1.222 2013/08/22 20:44:08 greve Exp $";
 const char *Progname = "mri_glmfit";
 
 int SynthSeed = -1;
@@ -732,6 +732,8 @@ MRI *MRIconjunct3(MRI *sig1, MRI *sig2, MRI *sig3, MRI *mask, MRI *c123);
 int NSplits=0, SplitNo=0;
 int SplitMin, SplitMax, nPerSplit, RandSplit;
 
+double GLMEfficiency(MATRIX *X, MATRIX *C);
+
 /*--------------------------------------------------*/
 int main(int argc, char **argv) {
   int nargs, n,m,nframesNew;
@@ -739,7 +741,7 @@ int main(int argc, char **argv) {
   MATRIX *wvect=NULL, *Mtmp=NULL, *Xselfreg=NULL, *Ex=NULL, *XgNew=NULL;
   MATRIX *Ct, *CCt;
   FILE *fp;
-  double Ccond, dtmp, threshadj;
+  double Ccond, dtmp, threshadj, eff;
   char *tmpstr2=NULL;
 
   eresfwhm = -1;
@@ -1968,7 +1970,13 @@ int main(int argc, char **argv) {
     fclose(fp);
 
     MRIfree(&sig);
-  }
+
+    eff = GLMEfficiency(mriglm->Xg,mriglm->glm->C[n]);
+    sprintf(tmpstr,"%s/%s/efficiency.dat",GLMDir,mriglm->glm->Cname[n]);
+    fp = fopen(tmpstr,"w");
+    fprintf(fp,"%g\n",eff);
+    fclose(fp);
+  } // contrasts
   
   if(UseStatTable){
     PrintStatTable(stdout, OutStatTable);
@@ -3482,5 +3490,33 @@ MRI *MRIconjunct3(MRI *sig1, MRI *sig2, MRI *sig3, MRI *mask, MRI *c123)
   MRIfree(&f3);
   return(c123);
 }
+
+/*--------------------------------------------------------------*/
+double GLMEfficiency(MATRIX *X, MATRIX *C)
+{
+  double efficiency;
+  MATRIX *Xt, *Ct, *XtX, *iXtX, *A, *M;
+
+  Xt = MatrixTranspose(X,NULL);
+  Ct = MatrixTranspose(C,NULL);
+
+  XtX = MatrixMultiply(Xt,X,NULL);
+  iXtX = MatrixInverse(XtX,NULL);
+  // M = C*inv(X'*X)*C'
+  A = MatrixMultiply(C,iXtX,NULL);
+  M = MatrixMultiply(A,Ct,NULL);
+
+  efficiency = 1/MatrixTrace(M);
+
+  MatrixFree(&Xt);
+  MatrixFree(&Ct);
+  MatrixFree(&XtX);
+  MatrixFree(&iXtX);
+  MatrixFree(&A);
+  MatrixFree(&M);
+
+  return(efficiency);
+}
+
 
 
