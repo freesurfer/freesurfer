@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2013/08/14 19:32:54 $
- *    $Revision: 1.251 $
+ *    $Date: 2013/08/23 19:29:18 $
+ *    $Revision: 1.252 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -463,6 +463,10 @@ void MainWindow::LoadSettings()
   {
     m_settings["CursorStyle"] = 0;
   }
+  if (!m_settings.contains("AnnotationColor"))
+  {
+    m_settings["AnnotationColor"] = Qt::white;
+  }
   if (!m_settings.contains("SyncZoom"))
   {
     m_settings["SyncZoom"] = true;
@@ -601,7 +605,14 @@ void MainWindow::closeEvent( QCloseEvent * event )
       msg += layers[i]->GetName() + " (" + layers[i]->GetFileName() + ")\n";
     }
     msg += "\nDo you still want to quit?";
-    if ( QMessageBox::question( this, "Warning", msg, QMessageBox::Yes, QMessageBox::No ) == QMessageBox::No )
+    QMessageBox msgbox;
+    msgbox.setIcon(QMessageBox::Question);
+    QAbstractButton* yesBtn = msgbox.addButton("Quit", QMessageBox::YesRole);
+    QAbstractButton* noBtn = msgbox.addButton("Cancel", QMessageBox::NoRole);
+    msgbox.setText(msg);
+    msgbox.setWindowTitle("Warning");
+    msgbox.exec();
+    if (msgbox.clickedButton() != yesBtn)
     {
       event->ignore();
       return;

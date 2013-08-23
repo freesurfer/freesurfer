@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2013/08/14 19:32:55 $
- *    $Revision: 1.62 $
+ *    $Date: 2013/08/23 19:29:18 $
+ *    $Revision: 1.63 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -58,6 +58,7 @@ RenderView2D::RenderView2D( QWidget* parent ) : RenderView( parent )
   m_selection2D = new Region2DRectangle( this );
   m_selection2D->SetEnableStats( false );
   connect(m_cursor2D, SIGNAL(Updated()), this, SLOT(RequestRedraw()));
+  connect(m_annotation2D, SIGNAL(Updated()), this, SLOT(RequestRedraw()));
   connect(this, SIGNAL(ViewChanged()), this, SLOT(Update2DOverlay()));
 
   m_interactorNavigate = new Interactor2DNavigate( this );

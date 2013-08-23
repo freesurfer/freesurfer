@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2013/03/05 21:57:14 $
- *    $Revision: 1.33 $
+ *    $Date: 2013/08/23 19:29:18 $
+ *    $Revision: 1.34 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -66,6 +66,11 @@ public:
   Cursor2D* GetCursor2D()
   {
     return m_cursor2D;
+  }
+
+  Annotation2D* GetAnnotation2D()
+  {
+    return m_annotation2D;
   }
 
   void UpdateMouseRASPosition( int posX, int posY );

@@ -6,9 +6,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/14 23:44:47 $
- *    $Revision: 1.17 $
+ *    $Author: rpwang $
+ *    $Date: 2013/08/23 19:29:18 $
+ *    $Revision: 1.18 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -28,6 +28,7 @@
 #include "RenderView3D.h"
 #include "Cursor2D.h"
 #include "Cursor3D.h"
+#include "Annotation2D.h"
 #include "TermWidget.h"
 
 DialogPreferences::DialogPreferences(QWidget *parent) :
@@ -49,6 +50,8 @@ DialogPreferences::DialogPreferences(QWidget *parent) :
             ((RenderView2D*)mainwnd->GetRenderView(i))->GetCursor2D(), SLOT(SetColor(QColor)));
     connect(ui->comboBoxCursorStyle, SIGNAL(currentIndexChanged(int)),
             ((RenderView2D*)mainwnd->GetRenderView(i))->GetCursor2D(), SLOT(SetStyle(int)));
+    connect(ui->colorPickerAnnotation, SIGNAL(colorChanged(QColor)),
+            ((RenderView2D*)mainwnd->GetRenderView(i))->GetAnnotation2D(), SLOT(SetColor(QColor)));
   }
   connect(ui->colorPickerCursor, SIGNAL(colorChanged(QColor)),
           ((RenderView3D*)mainwnd->GetRenderView(3))->GetCursor3D(), SLOT(SetColor(QColor)));
@@ -85,6 +88,7 @@ void DialogPreferences::SetSettings(const QVariantMap &map)
   ui->checkBoxMacUnified->setChecked(map["MacUnifiedTitleBar"].toBool());
   ui->radioButtonThemeDark->setChecked(map["DarkConsole"].toBool());
   ui->radioButtonThemeLight->setChecked(!map["DarkConsole"].toBool());
+  ui->colorPickerAnnotation->setCurrentColor(map["AnnotationColor"].value<QColor>());
   BlockAllSignals(this, false);
 }
 
@@ -99,6 +103,7 @@ QVariantMap DialogPreferences::GetSettings()
   map["MacUseCommand"] = ui->checkBoxCommandKey->isChecked();
   map["MacUnifiedTitleBar"] = ui->checkBoxMacUnified->isChecked();
   map["DarkConsole"] = ui->radioButtonThemeDark->isChecked();
+  map["AnnotationColor"] = ui->colorPickerAnnotation->currentColor();
   return map;
 }
 
@@ -108,6 +113,7 @@ void DialogPreferences::OnClicked(QAbstractButton* btn)
   {
     ui->colorPickerBackground->setCurrentColor(Qt::black);
     ui->colorPickerCursor->setCurrentColor(Qt::red);
+    ui->colorPickerAnnotation->setCurrentColor(Qt::white);
     ui->comboBoxCursorStyle->setCurrentIndex(0);
     ui->checkBoxSaveCopy->setChecked(true);
     ui->checkBoxSyncZoom->setChecked(true);

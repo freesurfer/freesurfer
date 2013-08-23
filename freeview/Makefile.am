@@ -159,6 +159,7 @@ BUILT_SOURCES = \
   moc_LayerPropertyConnectomeMatrix.cpp \
   moc_PanelConnectomeMatrix.cpp \
   moc_PanelAllLayers.cpp \
+  moc_Annotation2D.cpp \
   qrc_freeview.cpp
 
 freeview_SOURCES = $(BUILT_SOURCES) \

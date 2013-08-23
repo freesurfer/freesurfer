@@ -6,9 +6,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/14 23:44:46 $
- *    $Revision: 1.19 $
+ *    $Author: rpwang $
+ *    $Date: 2013/08/23 19:29:17 $
+ *    $Revision: 1.20 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -480,3 +480,22 @@ bool Annotation2D::IsVisible()
   }
 }
 
+QColor Annotation2D::GetColor()
+{
+  double c[3];
+  m_actorScaleLine->GetProperty()->GetColor(c);
+  return QColor::fromRgbF(c[0], c[1], c[2]);
+}
+
+void Annotation2D::SetColor(const QColor &c)
+{
+  vtkProp* prop = NULL;
+  m_actorsAll->InitTraversal();
+  while ( ( prop = m_actorsAll->GetNextProp() ) )
+  {
+    vtkActor2D* actor = vtkActor2D::SafeDownCast(prop);
+    if (actor)
+      actor->GetProperty()->SetColor(c.redF(), c.greenF(), c.blueF());
+  }
+  emit Updated();
+}

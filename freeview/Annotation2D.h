@@ -6,9 +6,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/14 23:44:46 $
- *    $Revision: 1.14 $
+ *    $Author: rpwang $
+ *    $Date: 2013/08/23 19:29:18 $
+ *    $Revision: 1.15 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -27,6 +27,7 @@
 #define Annotation2D_h
 
 #include <QObject>
+#include <QColor>
 #include "vtkSmartPointer.h"
 
 class vtkTextActor;
@@ -37,6 +38,7 @@ class vtkPropCollection;
 
 class Annotation2D : public QObject
 {
+  Q_OBJECT
 public:
   Annotation2D( QObject* parent );
   virtual ~Annotation2D();
@@ -45,12 +47,19 @@ public:
 
   void AppendAnnotations( vtkRenderer* renderer );
 
-  void ShowScaleLine( bool bShow );
-
   bool GetShowScaleLine();
 
   void Show( bool bShow );
   bool IsVisible();
+
+  QColor GetColor();
+
+public slots:
+  void ShowScaleLine( bool bShow );
+  void SetColor(const QColor& c);
+
+Q_SIGNALS:
+  void Updated();
 
 private:
   void UpdateScaleActors( double length, int nNumOfTicks, const char* title );
