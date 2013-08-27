@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2012/11/19 22:35:56 $
-#    $Revision: 1.16.2.2 $
+#    $Date: 2013/08/27 15:49:58 $
+#    $Revision: 1.16.2.3 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: tksurfer-sess,v 1.16.2.2 2012/11/19 22:35:56 greve Exp $'
+set VERSION = '$Id: tksurfer-sess,v 1.16.2.3 2013/08/27 15:49:58 greve Exp $'
 set inputargs = ($argv);
 set analysis      = ();
 set contrastlist   = ();
@@ -384,6 +384,10 @@ while( $#argv != 0 )
       set annot = aparc
       breaksw
 
+    case "-a2009s":
+      set annot = aparc.a2009s
+      breaksw
+
     case "-annot":
       if($#argv < 1) goto arg1err;
       set annot = $argv[1]; shift
@@ -601,6 +605,7 @@ usage_exit:
   echo "   -surf surface : default is inflated"
   echo ""
   echo "   -no-aparc : do not show automatic parcellation"
+  echo "   -a2009s : use Destrieux atlas instead of Desikian/Killiany"
   echo "   -fthresh fthresh : threshold for color overlay"
   echo "   -fmax    fmax    : saturation threshold for color overlay"
   echo "   -interp method : interpolation for volume analyses"
