@@ -17,6 +17,7 @@ bblabel \
 bbregister \
 biasfield \
 bedpostx_mgh \
+bmedits2surf \
 browse-minc-header.tcl \
 bugr \
 build_desikan_killiany_gcs.csh \
@@ -230,6 +231,7 @@ vsm-smooth \
 vtk_setup \
 wfilemask \
 wm-anat-snr \
+wmedits2surf \
 xfmrot \
 xhemireg \
 xhemi-tal \
