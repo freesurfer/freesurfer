@@ -1,0 +1,313 @@
+#!/bin/tcsh -f
+# bmedits2surf
+
+set VERSION = '$Id: bmedits2surf,v 1.1 2013/08/28 18:02:12 greve Exp $';
+
+set subject = ();
+set hemilist = (lh rh);
+set UseFSA = 1; # target fsaverage, otherwise self
+set proj = (--projfrac-max 0 2 .3)
+set Overwrite = 0;
+
+set tmpdir = ();
+set cleanup = 1;
+set LF = ();
+
+set inputargs = ($argv);
+set PrintHelp = 0;
+
+if($#argv == 0) goto usage_exit;
+set n = `echo $argv | grep -e -help | wc -l` 
+if($n != 0) then
+  set PrintHelp = 1;
+  goto usage_exit;
+endif
+set n = `echo $argv | grep -e -version | wc -l` 
+if($n != 0) then
+  echo $VERSION
+  exit 0;
+endif
+goto parse_args;
+parse_args_return:
+goto check_params;
+check_params_return:
+set StartTime = `date`;
+set tSecStart = `date '+%s'`;
+set year  = `date +%Y`
+set month = `date +%m`
+set day   = `date +%d`
+set hour   = `date +%H`
+set min    = `date +%M`
+
+set outdir = $SUBJECTS_DIR/$subject/surf
+if($#tmpdir == 0) then
+  if(-e /scratch)   set tmpdir = /scratch/tmpdir.bmedits2surf.$$
+  if(! -e /scratch) set tmpdir = $outdir/tmpdir.bmedits2surf.$$
+endif
+mkdir -p $tmpdir
+
+set sd =  $SUBJECTS_DIR/$subject
+set bm = $sd/mri/brainmask.mgz
+set bma = $sd/mri/brainmask.auto.mgz
+
+# Check whether analysis is needed
+if(! $Overwrite) then
+  set UpdateNeeded = 0;
+  foreach bmedit (bmerase bmclone)
+    foreach hemi ($hemilist)
+      set bmeditsurf = $sd/surf/$hemi.$bmedit.mgh
+      if($UseFSA) set bmeditsurf = $sd/surf/$hemi.$bmedit.fsa.mgh
+      set UpdateNeeded = `UpdateNeeded $bmeditsurf $bm $bma`
+    end
+  end
+  if(! $UpdateNeeded) then
+    echo "bmedits2surf: update not needed for $subject"
+    echo "  run with --overwrite to force reanalysis"
+    exit 0;
+  endif
+endif
+
+# Set up log file
+if($#LF == 0) set LF = $outdir/bmedits2surf.log
+if($LF != /dev/null) rm -f $LF
+echo "Log file for bmedits2surf" >> $LF
+date  | tee -a $LF
+echo "" | tee -a $LF
+echo "setenv SUBJECTS_DIR $SUBJECTS_DIR" | tee -a $LF
+echo "cd `pwd`"  | tee -a $LF
+echo $0 $inputargs | tee -a $LF
+echo "" | tee -a $LF
+cat $FREESURFER_HOME/build-stamp.txt | tee -a $LF
+echo $VERSION | tee -a $LF
+uname -a  | tee -a $LF
+
+#========================================================
+
+# Create a binary map of the diff bet brainmask and auto
+set diff = $tmpdir/diff.mgh
+set cmd = (mri_concat $bma $bm --paired-diff --o $diff)
+echo $cmd | tee -a $LF
+$cmd | tee -a $LF
+if($status) exit 1;
+set cmd = (mri_binarize --abs --i $diff --min .5 --abs --o $diff)
+echo $cmd | tee -a $LF
+$cmd | tee -a $LF
+if($status) exit 1;
+
+# Extract voxels that have been erased
+set bmerase = $tmpdir/bm.erase.mgh
+set cmd = (mri_binarize --i $bm --match 1 --o $bmerase --mask $diff)
+echo $cmd | tee -a $LF
+$cmd | tee -a $LF
+if($status) exit 1;
+
+# Map erased voxels to the surface
+foreach hemi ($hemilist)
+  set bmeditsurf = $sd/surf/$hemi.bmerase.mgh
+  if($UseFSA) set bmeditsurf = $sd/surf/$hemi.bmerase.fsa.mgh
+  set cmd = (mri_vol2surf --regheader $subject --hemi $hemi \
+     --mov $bmerase --o $bmeditsurf  --interp nearest $proj)
+  if($UseFSA) set cmd = ($cmd --trgsubject fsaverage)
+  echo $cmd | tee -a $LF
+  $cmd | tee -a $LF
+  if($status) exit 1;
+  if($UseFSA) then
+    # Rebinarize 
+    set cmd = (mri_binarize --i $bmeditsurf --min .0001 --o $bmeditsurf)
+    echo $cmd | tee -a $LF
+    $cmd | tee -a $LF
+    if($status) exit 1;
+  endif
+end
+
+# Remove the erased voxels from the diff to leave the cloned
+set bmclone = $tmpdir/bm.clone.mgh
+set cmd = (mri_concat $diff $bmerase --paired-diff --o $bmclone)
+echo $cmd | tee -a $LF
+$cmd | tee -a $LF
+if($status) exit 1;
+
+# Map cloned voxels to the surface
+foreach hemi ($hemilist)
+  set bmeditsurf = $sd/surf/$hemi.bmclone.mgh
+  if($UseFSA) set bmeditsurf = $sd/surf/$hemi.bmclone.fsa.mgh
+  set cmd = (mri_vol2surf --regheader $subject --hemi $hemi \
+     --mov $bmclone --o $bmeditsurf  --interp nearest $proj)
+  if($UseFSA) set cmd = ($cmd --trgsubject fsaverage)
+  echo $cmd | tee -a $LF
+  $cmd | tee -a $LF
+  if($status) exit 1;
+  if($UseFSA) then
+    # Rebinarize 
+    set cmd = (mri_binarize --i $bmeditsurf --min .0001 --o $bmeditsurf)
+    echo $cmd | tee -a $LF
+    $cmd | tee -a $LF
+    if($status) exit 1;
+  endif
+end
+
+#========================================================
+
+# Cleanup
+if($cleanup) rm -rf $tmpdir
+
+# Done
+echo " " |& tee -a $LF
+set tSecEnd = `date '+%s'`;
+@ tSecRun = $tSecEnd - $tSecStart;
+set tRunHours = `echo $tSecRun/3600|bc -l`
+set tRunHours = `printf %5.2f $tRunHours`
+echo "Started at $StartTime " |& tee -a $LF
+echo "Ended   at `date`" |& tee -a $LF
+echo "Bmedits2surf-Run-Time-Sec $tSecRun" |& tee -a $LF
+echo "Bmedits2surf-Run-Time-Hours $tRunHours" |& tee -a $LF
+echo " " |& tee -a $LF
+echo "bmedits2surf Done" |& tee -a $LF
+exit 0
+
+###############################################
+
+############--------------##################
+parse_args:
+set cmdline = ($argv);
+while( $#argv != 0 )
+
+  set flag = $argv[1]; shift;
+  
+  switch($flag)
+
+    case "--s":
+      if($#argv < 1) goto arg1err;
+      set subject = $argv[1]; shift;
+      breaksw
+
+    case "--fsaverage":
+    case "--fsa":
+      set UseFSA = 1;
+      breaksw
+
+    case "--self":
+    case "--no-fsaverage":
+    case "--no-fsa":
+      set UseFSA = 0;
+      breaksw
+
+    case "--lh":
+      set hemilist = (lh)
+      breaksw
+
+    case "--rh":
+      set hemilist = (rh)
+      breaksw
+
+    case "--overwrite":
+      set Overwrite = 1;
+      breaksw
+
+    case "--no-overwrite":
+      set Overwrite = 0;
+      breaksw
+
+    case "--log":
+      if($#argv < 1) goto arg1err;
+      set LF = $argv[1]; shift;
+      breaksw
+
+    case "--nolog":
+    case "--no-log":
+      set LF = /dev/null
+      breaksw
+
+    case "--tmp":
+    case "--tmpdir":
+      if($#argv < 1) goto arg1err;
+      set tmpdir = $argv[1]; shift;
+      set cleanup = 0;
+      breaksw
+
+    case "--nocleanup":
+      set cleanup = 0;
+      breaksw
+
+    case "--cleanup":
+      set cleanup = 1;
+      breaksw
+
+    case "--debug":
+      set verbose = 1;
+      set echo = 1;
+      breaksw
+
+    default:
+      echo ERROR: Flag $flag unrecognized. 
+      echo $cmdline
+      exit 1
+      breaksw
+  endsw
+
+end
+
+goto parse_args_return;
+############--------------##################
+
+############--------------##################
+check_params:
+
+if($#subject == 0) then
+  echo "ERROR: must spec subject"
+  exit 1;
+endif
+if(! -e $SUBJECTS_DIR/$subject) then
+  echo "ERROR: cannot find $subject"
+  exit 1;
+endif
+
+goto check_params_return;
+############--------------##################
+
+############--------------##################
+arg1err:
+  echo "ERROR: flag $flag requires one argument"
+  exit 1
+############--------------##################
+arg2err:
+  echo "ERROR: flag $flag requires two arguments"
+  exit 1
+############--------------##################
+
+############--------------##################
+usage_exit:
+  echo ""
+  echo "bmedits2surf --s subject"
+  echo " --self : output will be on self instead of fsaverage"
+  echo " --overwrite : force overwriting of existing results"
+  echo " --tmp tmpdir, --cleanup, --no-cleanup, --debug "
+  echo " --lh, --rh : only do one hemi"
+  echo " "
+  echo " --help : without it you are helpless"
+  echo " "
+
+  if(! $PrintHelp) exit 1;
+  echo $VERSION
+  cat $0 | awk 'BEGIN{prt=0}{if(prt) print $0; if($1 == "BEGINHELP") prt = 1 }'
+exit 1;
+
+#---- Everything below here is printed out as part of help -----#
+BEGINHELP
+
+This program computes a binary map of surface locations near where the
+brainmask.mgz has been edited. It creates two files for each hemisphere,
+one for each type of edit. These will be
+
+subject/surf/lh.bmerase.fsa.mgh
+subject/surf/rh.bmerase.fsa.mgh
+subject/surf/lh.bmclone.fsa.mgh
+subject/surf/rh.bmclone.fsa.mgh
+
+These are binary masks on fsaverage space. They can be concatenated
+together to make maps of the likelyhood that a given spatial location
+is affected by a brainmask edit. Currently, this will not include
+changes to brainmask.finalsurfs.mgz.
+
+See also wmedits2surf
+
