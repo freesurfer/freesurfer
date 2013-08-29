@@ -11,8 +11,8 @@
  * Original Author: Douglas Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2011/11/17 21:35:11 $
- *    $Revision: 1.90.2.1 $
+ *    $Date: 2013/08/29 18:28:49 $
+ *    $Revision: 1.90.2.2 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -113,13 +113,14 @@ OPTIONS
     Name of file where the data on the target surface will be stored.
     BUG ALERT: for trg_type w or paint, use the full path.
 
-  --tval-xyz
+  --tval-xyz volume
 
     Flag to indicate that the source surface xyz as a binary surface file
     given by the target file. This requires that --sval-xyz or --sval-tal-xyz.
     This is a good way to map the surface of one subject to an average
     (talairach) subject. Note: it will save targetfile as
-    trgsubject/surf/targetfile unless targetfile has a path.
+    trgsubject/surf/targetfile unless targetfile has a path. volume
+    indicates the volume to get the volume geometry from.
 
   --tfmt typestring
 
@@ -348,7 +349,7 @@ MATRIX *MRIleftRightRevMatrix(MRI *mri);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_surf2surf.c,v 1.90.2.1 2011/11/17 21:35:11 greve Exp $";
+static char vcid[] = "$Id: mri_surf2surf.c,v 1.90.2.2 2013/08/29 18:28:49 greve Exp $";
 char *Progname = NULL;
 
 char *srcsurfregfile = NULL;
@@ -449,6 +450,8 @@ int ConvGaussian = 0;
 
 int UseDualHemi = 0; // Assume ?h.?h.surfreg file name, source only
 MRI *RegTarg = NULL;
+char *TrgSurfVolFile=NULL;
+MRI  *TrgSurfVol=NULL;
 
 /*---------------------------------------------------------------------------*/
 int main(int argc, char **argv)
@@ -471,7 +474,7 @@ int main(int argc, char **argv)
   /* rkt: check for and handle version tag */
   nargs = handle_version_option (
     argc, argv,
-    "$Id: mri_surf2surf.c,v 1.90.2.1 2011/11/17 21:35:11 greve Exp $",
+    "$Id: mri_surf2surf.c,v 1.90.2.2 2013/08/29 18:28:49 greve Exp $",
     "$Name:  $");
   if (nargs && argc - nargs == 1) {
     exit (0);
@@ -506,6 +509,11 @@ int main(int argc, char **argv)
   parse_commandline(argc, argv);
   check_options();
   dump_options(stdout);
+
+  if(TrgSurfVolFile){
+    TrgSurfVol = MRIread(TrgSurfVolFile);
+    if(TrgSurfVol == NULL) exit(1);
+  }
 
   /* --------- Load the registration surface for source subject --------- */
   if (!strcmp(srcsubject,"ico")) { /* source is ico */
@@ -1029,9 +1037,8 @@ int main(int argc, char **argv)
       printf("Reversing Face Order\n");
       MRISreverseFaceOrder(TrgSurfReg);
     }
-    if(RegTarg) {
-      getVolGeom(RegTarg, &TrgSurfReg->vg);
-    }
+    if(RegTarg) getVolGeom(RegTarg, &TrgSurfReg->vg);
+    else if(TrgSurfVol) getVolGeom(TrgSurfVol, &TrgSurfReg->vg);
     MRISwrite(TrgSurfReg, trgvalfile);
   } else if (UseSurfSrc == SURF_SRC_ANNOT) {
     printf("Converting to target annot\n");
@@ -1476,7 +1483,14 @@ static int parse_commandline(int argc, char **argv)
       trgvalfile = pargv[0];
       nargsused = 1;
     } else if (!strcasecmp(option, "--tval-xyz")) {
+      if(nargc < 1 || CMDnthIsArg(nargc, pargv, 1)){
+	printf("ERROR: --tval-xyz flag needs 1 argument\n");
+	printf("   FYI: --tval-xyz now requires a volume. See --help\n");
+	exit(1);
+      }
+      TrgSurfVolFile = pargv[0];
       UseSurfTarg = 1;
+      nargsused = 1;
     } else if (!strcmp(option, "--trgdump")) {
       if (nargc < 1) {
         argnerr(option,1);
@@ -1623,7 +1637,7 @@ static void print_usage(void)
   printf("   --trgsubject target subject\n");
   printf("   --trgicoorder when trgsubject=ico\n");
   printf("   --tval path of file in which to store output values\n");
-  printf("   --tval-xyz : save as surface with source xyz \n");
+  printf("   --tval-xyz volume: save as surface with source xyz (volume for geometry)\n");
   printf("   --tfmt target format\n");
   printf("   --trgdist distfile : save distance from source to target vtx\n");
   printf("   --s subject : use subject as src and target\n");
