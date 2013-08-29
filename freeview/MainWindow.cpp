@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2013/08/23 19:29:18 $
- *    $Revision: 1.252 $
+ *    $Date: 2013/08/29 19:06:35 $
+ *    $Revision: 1.253 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -4750,6 +4750,7 @@ void MainWindow::OnEditUndo()
     }
   }
   else if ( ui->viewAxial->GetInteractionMode() == RenderView2D::IM_VoxelEdit ||
+            ui->viewAxial->GetInteractionMode() == RenderView2D::IM_ReconEdit ||
             ui->viewAxial->GetInteractionMode() == RenderView2D::IM_Navigate )
   {
     LayerMRI* mri = ( LayerMRI* )GetLayerCollection( "MRI" )->GetActiveLayer();
@@ -4779,6 +4780,7 @@ void MainWindow::OnEditRedo()
     }
   }
   else if ( ui->viewAxial->GetInteractionMode() == RenderView2D::IM_VoxelEdit ||
+            ui->viewAxial->GetInteractionMode() == RenderView2D::IM_ReconEdit ||
             ui->viewAxial->GetInteractionMode() == RenderView2D::IM_Navigate)
   {
     LayerMRI* mri = ( LayerMRI* )GetLayerCollection( "MRI" )->GetActiveLayer();
