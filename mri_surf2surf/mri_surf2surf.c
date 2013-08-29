@@ -11,8 +11,8 @@
  * Original Author: Douglas Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2013/08/29 18:11:07 $
- *    $Revision: 1.97 $
+ *    $Date: 2013/08/29 18:21:10 $
+ *    $Revision: 1.98 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -354,7 +354,7 @@ MATRIX *MRIleftRightRevMatrix(MRI *mri);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_surf2surf.c,v 1.97 2013/08/29 18:11:07 greve Exp $";
+static char vcid[] = "$Id: mri_surf2surf.c,v 1.98 2013/08/29 18:21:10 greve Exp $";
 char *Progname = NULL;
 
 char *srcsurfregfile = NULL;
@@ -485,7 +485,7 @@ int main(int argc, char **argv)
   /* rkt: check for and handle version tag */
   nargs = handle_version_option (
     argc, argv,
-    "$Id: mri_surf2surf.c,v 1.97 2013/08/29 18:11:07 greve Exp $",
+    "$Id: mri_surf2surf.c,v 1.98 2013/08/29 18:21:10 greve Exp $",
     "$Name:  $");
   if (nargs && argc - nargs == 1) exit (0);
   argc -= nargs;
@@ -1075,9 +1075,8 @@ int main(int argc, char **argv)
       printf("Reversing Face Order\n");
       MRISreverseFaceOrder(TrgSurfReg);
     }
-    if(RegTarg) {
-      getVolGeom(RegTarg, &TrgSurfReg->vg);
-    }
+    if(RegTarg) getVolGeom(RegTarg, &TrgSurfReg->vg);
+    else if(TrgSurfVol) getVolGeom(TrgSurfVol, &TrgSurfReg->vg);
     MRISwrite(TrgSurfReg, trgvalfile);
   } 
   else if (UseSurfSrc == SURF_SRC_ANNOT) {
