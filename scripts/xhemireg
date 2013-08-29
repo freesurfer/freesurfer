@@ -16,7 +16,7 @@
 #  Dont convert volumes in mri/orig
 #
 
-set VERSION = '$Id: xhemireg,v 1.12.4.3 2012/05/02 21:28:58 greve Exp $';
+set VERSION = '$Id: xhemireg,v 1.12.4.4 2013/08/29 18:49:23 greve Exp $';
 
 set subject = ();
 set srchemilist = ();
@@ -172,7 +172,8 @@ foreach srchemi ($srchemilist)
   foreach surf ($surflist)
     date | tee -a $LF
     set cmd = (mri_surf2surf --s $subject --sval-xyz $surf \
-     --hemi $srchemi --tval-xyz --tval $outdir/surf/$trghemi.$surf)
+     --hemi $srchemi --tval-xyz $outdir/mri/$vollist[1].mgz \
+     --tval $outdir/surf/$trghemi.$surf)
     if($surf == inflated || $surf == sphere) then
       set cmd = ($cmd --reg $regpure)
     else
