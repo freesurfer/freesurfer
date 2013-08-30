@@ -8,9 +8,9 @@
 /*
  * Original Author: Florent Segonne
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2011/08/15 14:12:46 $
- *    $Revision: 1.21 $
+ *    $Author: mreuter $
+ *    $Date: 2013/08/30 18:12:25 $
+ *    $Revision: 1.22 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -1064,7 +1064,7 @@ int main(int argc, char *argv[])
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mri_pretess.c,v 1.21 2011/08/15 14:12:46 fischl Exp $",
+           "$Id: mri_pretess.c,v 1.22 2013/08/30 18:12:25 mreuter Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
   {
@@ -1073,7 +1073,7 @@ int main(int argc, char *argv[])
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mri_pretess.c,v 1.21 2011/08/15 14:12:46 fischl Exp $",
+   "$Id: mri_pretess.c,v 1.22 2013/08/30 18:12:25 mreuter Exp $",
    "$Name:  $",
    cmdline);
 
@@ -1138,7 +1138,7 @@ int main(int argc, char *argv[])
 	      "intensity (%d, %d, %d) and segmentation volume"
 	      " (%d x %d x %d) don't match",
 	      mri_orig->width, mri_orig->height, mri_orig->depth,
-	      mri_seg->width, mri_seg->height, mri_seg->height) ;
+	      mri_seg->width, mri_seg->height, mri_seg->depth) ;
   if (label == USE_WM)
   {
     printf("binarizing input wm segmentation...\n") ;
