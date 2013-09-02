@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2013/06/04 19:28:08 $
- *    $Revision: 1.525 $
+ *    $Author: greve $
+ *    $Date: 2013/09/02 17:36:58 $
+ *    $Revision: 1.526 $
  *
  * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -23,7 +23,7 @@
  */
 
 extern const char* Progname;
-const char *MRI_C_VERSION = "$Revision: 1.525 $";
+const char *MRI_C_VERSION = "$Revision: 1.526 $";
 
 
 /*-----------------------------------------------------
@@ -8289,15 +8289,105 @@ MRIdownsample2(MRI *mri_src, MRI *mri_dst)
 
   return(mri_dst) ;
 }
+
+
+/*-----------------------------------------------------*/
+/*!
+  \fn MRI *MRIdownsampleN(MRI *src, MRI *dst, int Fc, int Fr, int Fs, int KeepType)
+  \brief Downsamples volume
+  \param src - source volume
+  \param dst - destination (may be NULL)
+  \param Fc - downsample factor for columns (width)
+  \param Fr - downsample factor for rows (height)
+  \param Fs - downsample factor for slices (depth)
+  \param KeepType - set to non-0 to keep precision of src, otherwise float
+*/
+MRI *MRIdownsampleN(MRI *src, MRI *dst, int Fc, int Fr, int Fs, int KeepType)
+{
+  int c0,r0,s0,c,r,s,f;
+  int width, height, depth,type;
+  double val;
+
+  if(src->width % Fc != 0){
+    printf("ERROR: MRIdownsampleN: width=%d, Fc=%d\n",src->width,Fc);
+    return(NULL);
+  }    
+  if(src->height % Fr != 0){
+    printf("ERROR: MRIdownsampleN: height=%d, Fr=%d\n",src->height,Fr);
+    return(NULL);
+  }    
+  if(src->depth % Fs != 0){
+    printf("ERROR: MRIdownsampleN: depth=%d, Fs=%d\n",src->depth,Fs);
+    return(NULL);
+  }    
+  width  = src->width/Fc;
+  height = src->height/Fr;
+  depth  = src->depth/Fs;
+
+  if(dst == NULL){
+    type = MRI_FLOAT;
+    if(KeepType) type = src->type;
+    dst = MRIallocSequence(width, height, depth, type, src->nframes);
+    if (dst==NULL) {
+      printf("ERROR: MRIdownsampleN: could not alloc dst\n");
+      return(NULL);
+    }
+    MRIcopyHeader(src,dst);
+    dst->imnr0 = src->imnr0 ;
+    dst->imnr1 = src->imnr0 + dst->depth - 1; //???
+    dst->xsize = src->xsize*Fc ;
+    dst->ysize = src->ysize*Fr ;
+    dst->zsize = src->zsize*Fs ;
+    dst->thick = src->thick*Fs ;
+    dst->ps    = src->ps*Fc ; // not always right
+
+    // Compute P0 for dst
+    // C corresponds to the center of the 1st dst vox
+    VECTOR* C = VectorAlloc(4, MATRIX_REAL);
+    VECTOR_ELT(C,1) = -0.5 + Fc/2.0;
+    VECTOR_ELT(C,2) = -0.5 + Fr/2.0;
+    VECTOR_ELT(C,3) = -0.5 + Fs/2.0;
+    VECTOR_ELT(C,4) = 1.0;
+    MATRIX *V2R = MRIxfmCRS2XYZ(src,0);
+    MATRIX* P0  = MatrixMultiply(V2R,C,NULL);
+    // Compute New CRAS for dst
+    MRIp0ToCRAS(dst, P0->rptr[1][1],P0->rptr[2][1],P0->rptr[3][1]);
+    MatrixFree(&P0);
+    MatrixFree(&V2R);
+    VectorFree(&C);
+    MRIreInitCache(dst) ;
+  }
+  if(dst->width != width || dst->height != height || 
+     dst->depth != depth || dst->nframes != src->nframes){
+    printf("ERROR: MRIdownsampleN: dimension mismatch\n");
+    return(NULL);
+  }
+
+  for(f=0; f < dst->nframes; f++){
+    for(c=0; c < dst->width; c++){
+      for(r=0; r < dst->height; r++){
+	for(s=0; s < dst->depth; s++){
+	  val = 0;
+	  for(c0 = Fc*c; c0 < Fc*(c+1); c0++){
+	    for(r0 = Fr*r; r0 < Fr*(r+1); r0++){
+	      for(s0 = Fs*s; s0 < Fs*(s+1); s0++){
+		val += MRIgetVoxVal(src,c0,r0,s0,f);
+	      }
+	    }
+	  }
+	  MRIsetVoxVal(dst,c,r,s,f, val/(Fc*Fr*Fs));
+	}
+      }
+    }
+  }
+
+  return(dst);
+}
+
 /*-----------------------------------------------------
-  Parameters:
-
-  Returns value:
-
-  Description
+MRIdownsampleNOld(). Use MRIdownsampleN() instead.
   ------------------------------------------------------*/
-MRI *
-MRIdownsampleN(MRI *mri_src, MRI *mri_dst, int N)
+MRI *MRIdownsampleNOld(MRI *mri_src, MRI *mri_dst, int N)
 {
   int     width, depth, height, x, y, z, x1, y1, z1 ;
   BUFTYPE *psrc ;
