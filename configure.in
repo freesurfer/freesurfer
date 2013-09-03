@@ -8,9 +8,9 @@
 # Process this file with autoconf to produce a configure script.
 #
 # CVS Revision Info:
-#    $Author: zkaufman $
-#    $Date: 2013/08/16 20:57:04 $
-#    $Revision: 1.602 $
+#    $Author: greve $
+#    $Date: 2013/09/03 20:56:00 $
+#    $Revision: 1.603 $
 #
 ########################################################################
 AC_PREREQ(2.57)
@@ -3505,6 +3505,7 @@ AC_OUTPUT([Makefile
            mri_ca_register/Makefile
            mri_ca_tissue_parms/Makefile
            mri_ca_train/Makefile
+           mri_rbvpvc/Makefile
            mri_rf_label/Makefile
            mri_rf_train/Makefile
            mri_gcab_train/Makefile

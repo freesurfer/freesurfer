@@ -46,6 +46,7 @@ MRISUBDIRS=\
 	mri_binarize \
 	mri_build_priors \
 	mri_ca_label \
+	mri_rbvpvc \
 	mri_rf_label \
 	mri_rf_train \
 	mri_rf_long_label \
