@@ -10,8 +10,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2013/09/03 20:55:17 $
- *    $Revision: 1.1 $
+ *    $Date: 2013/09/03 21:32:33 $
+ *    $Revision: 1.2 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -33,7 +33,7 @@
 */
 
 
-// $Id: mri_rbvpvc.c,v 1.1 2013/09/03 20:55:17 greve Exp $
+// $Id: mri_rbvpvc.c,v 1.2 2013/09/03 21:32:33 greve Exp $
 
 /*
   BEGINHELP
@@ -73,7 +73,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_rbvpvc.c,v 1.1 2013/09/03 20:55:17 greve Exp $";
+static char vcid[] = "$Id: mri_rbvpvc.c,v 1.2 2013/09/03 21:32:33 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -94,7 +94,7 @@ int main(int argc, char *argv[])
   MRI *src, *seg, *mask=NULL,*rbv,*gtmsynth,*gtmsynthsm,*mritmp;
   int nsegs,msegs,nthseg,*segidlist0,*segidlist,segid;
   MATRIX *beta, *y, *X, *Xt, *XtX, *iXtX, *Xty;
-  double val;
+  double val,XtXcond;
   struct timeb  mytimer, timer;
 
   nargs = handle_version_option (argc, argv, vcid, "$Name:  $");
@@ -121,8 +121,10 @@ int main(int argc, char *argv[])
   sStd = sFWHM/sqrt(log(256.0));
 
   // Load the data
+  printf("Loading seg %s\n",SegVolFile);fflush(stdout);
   seg = MRIread(SegVolFile);
   if(seg==NULL) exit(1);
+  printf("Loading input %s\n",SrcVolFile);fflush(stdout);
   src = MRIread(SrcVolFile);
   if(src==NULL) exit(1);
   err = MRIdimMismatch(seg, src, 0);
@@ -131,6 +133,7 @@ int main(int argc, char *argv[])
     exit(1);
   }
   if(MaskVolFile){
+    printf("Loading mask %s\n",MaskVolFile);fflush(stdout);
     mask = MRIread(MaskVolFile);
     if(mask==NULL) exit(1);
     err = MRIdimMismatch(seg, mask, 0);
@@ -154,24 +157,22 @@ int main(int argc, char *argv[])
   }
   nsegs = msegs;
   free(segidlist0);
+  printf("nsegs = %d, excluding segid=0\n",nsegs);
 
   // Create GTM matrix
-  printf("Building GTM ... ");fflush(stdout);
-  TimerStart(&mytimer) ;
+  printf("Building GTM ... ");fflush(stdout); TimerStart(&mytimer) ;
   X = BuildGTM0(seg,mask,cFWHM,rFWHM,sFWHM,NULL);
   if(X==NULL) exit(1);
   printf(" %4.1f sec\n",TimerStop(&mytimer)/1000.0);fflush(stdout);
-
+  printf("nmask = %d\n",X->rows);
   //MatrixWriteTxt("X.mtx", X);
-
-  TimerStart(&mytimer) ;
+    
+  // Fill y matrix - must be done in the same way that X was built!
   y = MatrixAlloc(X->rows,src->nframes,MATRIX_REAL);
   if(y==NULL){
     printf("ERROR: could not alloc y matrix %d\n",X->rows);
     exit(1);
   }
-    
-  // Fill y - must be done in the same way that X was built!
   nmask = 0;
   for(s=0; s < src->depth; s++){
     for(c=0; c < src->width; c++){
@@ -184,15 +185,28 @@ int main(int argc, char *argv[])
     }
   }
 
+  // Compute GTM means
   // beta = inv(X'*X)*X'*y
+  // Should normalize X
   Xt = MatrixTranspose(X,NULL);
-  printf("Computing  XtX ... ");fflush(stdout);
-  TimerStart(&mytimer) ;
+  printf("Computing  XtX ... ");fflush(stdout); TimerStart(&mytimer) ;
   XtX = MatrixMultiplyD(Xt,X,NULL);
   printf(" %4.1f sec\n",TimerStop(&mytimer)/1000.0);fflush(stdout);
+  XtXcond = MatrixConditionNumber(XtX);
+  printf("XtX Condition  %8.3f \n",XtXcond);fflush(stdout);
+
   iXtX = MatrixInverse(XtX,NULL);
+  printf("Computing  Xty ... ");fflush(stdout); TimerStart(&mytimer) ;
   Xty = MatrixMultiplyD(Xt,y,NULL);
+  printf(" %4.1f sec\n",TimerStop(&mytimer)/1000.0);fflush(stdout);
+
   beta = MatrixMultiplyD(iXtX,Xty,NULL);
+
+  MatrixFree(&y);
+  MatrixFree(&Xt);
+  MatrixFree(&XtX);
+  MatrixFree(&iXtX);
+  MatrixFree(&Xty);
 
   if(OutBetaFile){
     printf("Writing GTM estimates to %s\n",OutBetaFile);
@@ -208,13 +222,15 @@ int main(int argc, char *argv[])
     //err=MatrixWriteTxt(OutBetaFile, beta);
   }
 
-  MatrixFree(&y);
-  MatrixFree(&Xt);
-  MatrixFree(&XtX);
-  MatrixFree(&iXtX);
-  MatrixFree(&Xty);
+  if(GTMOnly){
+    printf("GTM-Only requested, so exiting now\n");
+    printf("mri_rbvpvc-runtime %5.2f min\n",TimerStop(&timer)/60000.0);
+    printf("mri_rbvpvc done\n");
+    return(0);
+    exit(0);
+  }
 
-  // Simulate Image by filling with GTM betas
+  // Simulate Image by filling with GTM means
   gtmsynth = MRIallocSequence(src->width, src->height, src->depth,
 			 MRI_FLOAT, src->nframes);
   if(gtmsynth==NULL){
@@ -244,7 +260,7 @@ int main(int argc, char *argv[])
   //MRIwrite(gtmsynth,"gtmsynth.nii");
   //MRIwrite(gtmsynthsm,"gtmsynthsm.nii");
 
-  // Copy the final RBV
+  // Compute the final RBV
   rbv = MRIallocSequence(src->width, src->height, src->depth,
 			 MRI_FLOAT, src->nframes);
   if (rbv==NULL){
@@ -308,7 +324,7 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--nocheckopts")) checkoptsonly = 0;
     else if (!strcasecmp(option, "--gtm-only")) GTMOnly = 1;
 
-    else if (!strcasecmp(option, "--src")) {
+    else if(!strcasecmp(option, "--src") || !strcasecmp(option, "--i")) {
       if (nargc < 1) CMDargNErr(option,1);
       SrcVolFile = pargv[0];
       nargsused = 1;
