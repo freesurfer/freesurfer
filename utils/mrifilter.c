@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2013/03/25 18:30:02 $
- *    $Revision: 1.100 $
+ *    $Author: greve $
+ *    $Date: 2013/09/03 17:38:29 $
+ *    $Revision: 1.101 $
  *
  * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -7209,7 +7209,7 @@ MRI *MRIgaussianSmoothNI(MRI *src, double cstd, double rstd, double sstd,
   /* Smooth the columns */
   if (cstd > 0)
   {
-    printf("Smoothing columns by std=%g\n",cstd);
+    //printf("Smoothing columns by std=%g\n",cstd);
     G  = GaussianMatrix(src->width, cstd/src->xsize, 1, NULL);
     v  = MatrixAlloc(src->width,1,MATRIX_REAL);
     vg = MatrixAlloc(src->width,1,MATRIX_REAL);
@@ -7259,7 +7259,7 @@ MRI *MRIgaussianSmoothNI(MRI *src, double cstd, double rstd, double sstd,
   if (rstd > 0)
   {
     /* Smooth the rows */
-    printf("Smoothing rows by std=%g\n",rstd);
+    //printf("Smoothing rows by std=%g\n",rstd);
     G = GaussianMatrix(src->height, rstd/src->ysize, 1, NULL);
     v  = MatrixAlloc(src->height,1,MATRIX_REAL);
     vg = MatrixAlloc(src->height,1,MATRIX_REAL);
@@ -7309,7 +7309,7 @@ MRI *MRIgaussianSmoothNI(MRI *src, double cstd, double rstd, double sstd,
   /* Smooth the slices */
   if (sstd > 0)
   {
-    printf("Smoothing slices by std=%g\n",sstd);
+    //printf("Smoothing slices by std=%g\n",sstd);
     G = GaussianMatrix(src->depth, sstd/src->zsize, 1, NULL);
     v  = MatrixAlloc(src->depth,1,MATRIX_REAL);
     vg = MatrixAlloc(src->depth,1,MATRIX_REAL);
@@ -7407,8 +7407,8 @@ MRI *MRIgaussianSmoothNI(MRI *src, double cstd, double rstd, double sstd,
       }
     }
   }
-  printf("MRIguassianSmoothNI(): scale = %g\n",scale);
-  printf("MRIguassianSmoothNI(): VMF = %g, VRF = %g\n",vmf,1.0/vmf);
+  //printf("MRIguassianSmoothNI(): scale = %g\n",scale);
+  //printf("MRIguassianSmoothNI(): VMF = %g, VRF = %g\n",vmf,1.0/vmf);
 
   // Divide by the sum of the kernel so that a smoothed delta function
   // will sum to one and so that a constant input yields const output.
