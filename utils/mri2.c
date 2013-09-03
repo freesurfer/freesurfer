@@ -7,8 +7,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2012/06/11 17:46:18 $
- *    $Revision: 1.80 $
+ *    $Date: 2013/09/03 17:12:33 $
+ *    $Revision: 1.81 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -3607,4 +3607,103 @@ int *MRIsegmentationList(MRI *seg, int *pListLength)
   if(Gdiag_no > 0) for(n=0; n<*pListLength; n++)  printf("%2d %5d\n",n,list[n]);
   free(voxlist);
   return(list);
+}
+/* ----------------------------------------------------------*/
+/*!
+  \fn MATRIX *BuildGTM0(MRI *seg, MRI *mask,double cFWHM, double rFWHM, 
+		  double sFWHM, MATRIX *X)
+  \brief Builds the Geometric Transfer Matrix (GTM) without taking
+  into account the partial volume fraction within a voxel (thus the 0
+  in the name).
+  \param seg - segmentation. segid=0 will be ignored
+  \param mask - binary brain mask
+  \param {c,r,s}FWHM - PSF FWHM in mm for each dimension
+  \param X - GTM nmask by nsegs. Segs are sorted in numerical order.
+     The order of the voxels is row-fastest, then col, then slice,
+     making it consistent with matlab. This order must be used when 
+     creating the y-matrix.
+*/
+MATRIX *BuildGTM0(MRI *seg, MRI *mask,
+		  double cFWHM, double rFWHM, double sFWHM, 
+		  MATRIX *X)
+{
+  int c,r,s,nmask, nsegs,nthseg, mthseg, segid, *segidlist,has0;
+  double cStd,rStd,sStd,val;
+  MRI *roimask=NULL,*roimasksm=NULL;
+
+  cStd = cFWHM/sqrt(log(256.0));
+  rStd = rFWHM/sqrt(log(256.0));
+  sStd = sFWHM/sqrt(log(256.0));
+
+  segidlist = MRIsegIdList(seg, &nsegs, 0);
+
+  has0 = 0;
+  for(nthseg=0; nthseg < nsegs; nthseg++)
+    if(segidlist[nthseg] == 0) has0 = 1;
+
+  // Count number of voxels in the mask
+  nmask = 0;
+  for(c=0; c < seg->width; c++){
+    for(r=0; r < seg->height; r++){
+      for(s=0; s < seg->depth; s++){
+	if(mask && MRIgetVoxVal(mask,c,r,s,0) < 0.5) continue;
+	nmask ++;
+      }
+    }
+  }
+  if(Gdiag_no > 0) printf("BuildGTM0(): nmask = %d, nsegs = %d\n",nmask,nsegs);
+
+  if(X==NULL) X = MatrixAlloc(nmask,nsegs-has0,MATRIX_REAL);
+  if(X->rows != nmask || X->cols != nsegs-has0){
+    printf("ERROR: BuildGTM0(): X dim mismatch\n");
+    return(NULL);
+  }
+
+  roimask = MRIconst(seg->width,seg->height,seg->depth,1,0.0,NULL);
+  MRIcopyHeader(seg,roimask);
+
+  mthseg = 0;
+  for(nthseg=0; nthseg < nsegs; nthseg++){
+    segid = segidlist[nthseg];
+    if(segid == 0) continue;
+
+    if(Gdiag_no > 0) {
+      printf("BuildGTM0(): #@# %3d/%d %3d ---\n",mthseg,nsegs-has0,segid); 
+      fflush(stdout);
+    }
+
+    // Create a mask of the seg
+    for(c=0; c < seg->width; c++){
+      for(r=0; r < seg->height; r++){
+	for(s=0; s < seg->depth; s++){
+	  if(mask && MRIgetVoxVal(mask,c,r,s,0) < 0.5) continue;
+	  if(MRIgetVoxVal(seg,c,r,s,0) == segid) val = 1;
+	  else                                   val = 0;
+	  MRIsetVoxVal(roimask,c,r,s,0,val);
+	}
+      }
+    }
+    // Smooth the mask
+    roimasksm = MRIgaussianSmoothNI(roimask, cStd, rStd, sStd, roimasksm);
+    // Fill X
+    // Creating X in this order makes it consistent with matlab
+    // Note: y must be ordered in the same way.
+    nmask = 0;
+    for(s=0; s < seg->depth; s++){
+      for(c=0; c < seg->width; c++){
+	for(r=0; r < seg->height; r++){
+	  if(mask && MRIgetVoxVal(mask,c,r,s,0) < 0.5) continue;
+	  X->rptr[nmask+1][mthseg+1] = MRIgetVoxVal(roimasksm,c,r,s,0);
+	  nmask ++;
+	}
+      }
+    }
+    mthseg ++;
+  } // seg
+
+  MRIfree(&roimask);
+  MRIfree(&roimasksm);
+  free(segidlist);
+
+  return(X);
 }
