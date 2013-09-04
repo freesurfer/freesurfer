@@ -10,8 +10,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2013/09/04 16:43:59 $
- *    $Revision: 1.3 $
+ *    $Date: 2013/09/04 19:55:53 $
+ *    $Revision: 1.4 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -33,7 +33,7 @@
 */
 
 
-// $Id: mri_rbvpvc.c,v 1.3 2013/09/04 16:43:59 greve Exp $
+// $Id: mri_rbvpvc.c,v 1.4 2013/09/04 19:55:53 greve Exp $
 
 /*
   BEGINHELP
@@ -74,7 +74,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_rbvpvc.c,v 1.3 2013/09/04 16:43:59 greve Exp $";
+static char vcid[] = "$Id: mri_rbvpvc.c,v 1.4 2013/09/04 19:55:53 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -86,10 +86,15 @@ char *OutDir=NULL,*OutVolFile=NULL;
 char *OutBetaFile=NULL,*OutXtXFile=NULL;
 double psfFWHM=-1,cFWHM,rFWHM,sFWHM,cStd,rStd,sStd;
 int GTMOnly=0;
+int DoSegTest=0;
 char tmpstr[5000];
+int niterations = 0;
 
 MATRIX *MatrixGetDiag(MATRIX *M, VECTOR *d);
 int VRFStats(MATRIX *iXtX, double *vrfmean, double *vrfmin, double *vrfmax);
+MRI *IterativeRBV0PVC(MRI *src, MRI *seg, MRI *mask, int niters,
+		      double cFWHM, double rFWHM, double sFWHM, 
+		      MRI *dst);
 
 /*---------------------------------------------------------------*/
 int main(int argc, char *argv[]) 
@@ -124,18 +129,27 @@ int main(int argc, char *argv[])
   cStd = cFWHM/sqrt(log(256.0));
   rStd = rFWHM/sqrt(log(256.0));
   sStd = sFWHM/sqrt(log(256.0));
+  printf("FWHM: %g %g %g\n",cFWHM,rFWHM,sFWHM);
+  printf("Std:  %g %g %g\n",cStd,rStd,sStd);
 
   TimerStart(&timer);
 
-
-  // Load the data
+  // Load data
   TimerStart(&mytimer);
   printf("Loading seg %s\n",SegVolFile);fflush(stdout);
   seg = MRIread(SegVolFile);
   if(seg==NULL) exit(1);
-  printf("Loading input %s\n",SrcVolFile);fflush(stdout);
-  src = MRIread(SrcVolFile);
-  if(src==NULL) exit(1);
+
+  if(DoSegTest == 0){
+    printf("Loading input %s\n",SrcVolFile);fflush(stdout);
+    src = MRIread(SrcVolFile);
+    if(src==NULL) exit(1);
+  } 
+  else {
+    printf("Using smoothed seg as input \n");
+    src = MRIgaussianSmoothNI(seg, cStd, rStd, sStd, NULL);
+  }
+
   err = MRIdimMismatch(seg, src, 0);
   if(err){
     printf("ERROR: seg and source dim mismatch %d\n",err);
@@ -154,6 +168,20 @@ int main(int argc, char *argv[])
   printf("Data load time %4.1f sec\n",TimerStop(&mytimer)/1000.0);
   fflush(stdout);
 
+  if(niterations > 0){
+    printf("Starting iterative RBV\n");
+    rbv = IterativeRBV0PVC(src, seg, mask, niterations,cFWHM, rFWHM, sFWHM, NULL);
+    printf("Writing output to %s ...",OutVolFile);fflush(stdout); TimerStart(&mytimer) ;
+    err = MRIwrite(rbv,OutVolFile);
+    if(err){
+      printf("ERROR: writing to %s\n",OutVolFile);
+      exit(1);
+    }
+    printf(" %4.1f sec\n",TimerStop(&mytimer)/1000.0);fflush(stdout);
+    printf("mri_rbvpvc-runtime %5.2f min\n",TimerStop(&timer)/60000.0);
+    printf("mri_rbvpvc done\n");
+    exit(0);
+  }
   // get list of segmentation ids
   segidlist0 = MRIsegIdList(seg, &nsegs, 0);
   // remove 0 from the list
@@ -350,6 +378,7 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--checkopts"))   checkoptsonly = 1;
     else if (!strcasecmp(option, "--nocheckopts")) checkoptsonly = 0;
     else if (!strcasecmp(option, "--gtm-only")) GTMOnly = 1;
+    else if (!strcasecmp(option, "--seg-test")) DoSegTest = 1;
 
     else if(!strcasecmp(option, "--src") || !strcasecmp(option, "--i")) {
       if (nargc < 1) CMDargNErr(option,1);
@@ -369,6 +398,11 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--psf")){
       if(nargc < 1) CMDargNErr(option,1);
       sscanf(pargv[0],"%lf",&psfFWHM);
+      nargsused = 1;
+    } 
+    else if (!strcasecmp(option, "--niters")){
+      if(nargc < 1) CMDargNErr(option,1);
+      sscanf(pargv[0],"%d",&niterations);
       nargsused = 1;
     } 
     else if (!strcasecmp(option, "--od")) {
@@ -418,6 +452,8 @@ static void print_usage(void) {
   printf("   --gtm-means volfile : save ROI means in volume format\n");
   printf("   --gtm-only : only perform GTM\n");
   printf("   --xtx xtx.mtx : save X'*X into xtx.mtx\n");
+  printf("   --niters N : use iterative method instead of GTM\n");
+  printf("   --seg-test : replace input with seg smoothed by psf\n");
   //printf("   --od outdir     : output directory\n");
   printf("\n");
   printf("   --debug     turn on debugging\n");
@@ -442,7 +478,7 @@ static void print_version(void) {
 /*---------------------------------------------------------------*/
 static void check_options(void) 
 {
-  if(SrcVolFile == NULL){
+  if(SrcVolFile == NULL && ! DoSegTest){
     printf("ERROR: must spec source volume\n");
     exit(1);
   }
@@ -487,6 +523,126 @@ static void dump_options(FILE *fp) {
   return;
 }
 
+/*-----------------------------------------------*/
+MRI *IterativeRBV0PVC(MRI *src, MRI *seg, MRI *mask, int niters,
+		      double cFWHM, double rFWHM, double sFWHM, 
+		      MRI *dst)
+{
+  int *segidlist,segid,nsegs,nthseg,*nperseg;
+  double **segmeans;
+  int err, c,r,s, nthframe, nthiter;
+  MRI *srcsynth=NULL,*srcsynthsm=NULL,*isrc;
+  double cStd,rStd,sStd,val;
+
+  err = MRIdimMismatch(seg, src, 0);
+  if(err){
+    printf("ERROR: BuildGTM(): src seg dim mismatch %d\n",err);
+    return(NULL);
+  }
+
+  cStd = cFWHM/sqrt(log(256.0));
+  rStd = rFWHM/sqrt(log(256.0));
+  sStd = sFWHM/sqrt(log(256.0));
+  
+  segidlist = MRIsegIdList(seg, &nsegs, 0);
+
+  segmeans = (double **) calloc(sizeof(double*),nsegs);
+  for(nthseg=0; nthseg < nsegs; nthseg++)
+    segmeans[nthseg] = (double *) calloc(sizeof(double),src->nframes);
+  nperseg = (int *) calloc(sizeof(int),nsegs);
+
+  if(dst == NULL){
+    dst = MRIallocSequence(src->width,src->height,src->depth,
+			   MRI_FLOAT,src->nframes);
+    MRIcopyHeader(src,dst);
+  }
+  err = MRIdimMismatch(dst, src, 0);
+  if(err){
+    printf("ERROR: BuildGTM(): src dst dim mismatch %d\n",err);
+    return(NULL);
+  }
+
+  srcsynth = MRIallocSequence(src->width,src->height,src->depth,
+		      MRI_FLOAT,src->nframes);
+  MRIcopyHeader(src,srcsynth);
+
+  isrc = src;
+  for(nthiter=0; nthiter < niters; nthiter++){
+    printf("#@# iter %3d/%d ---------\n",nthiter,niters);
+    fflush(stdout);
+
+    // Compute seg means
+    printf("  computing seg means\n");    fflush(stdout);
+    for(c=0; c < seg->width; c++){
+      for(r=0; r < seg->height; r++){
+	for(s=0; s < seg->depth; s++){
+	  if(mask && MRIgetVoxVal(mask,c,r,s,0) < 0.5) continue;
+	  segid = MRIgetVoxVal(seg,c,r,s,0);
+	  for(nthseg=0; nthseg < nsegs; nthseg++)
+	    if(segid == segidlist[nthseg]) break;
+	  nperseg[nthseg]++;
+	  for(nthframe=0; nthframe < src->nframes; nthframe++)
+	    segmeans[nthseg][nthframe] += 
+	      MRIgetVoxVal(isrc,c,r,s,nthframe);
+	}
+      }
+    }
+
+    for(nthseg=0; nthseg < nsegs; nthseg++)
+      for(nthframe=0; nthframe < src->nframes; nthframe++)
+	segmeans[nthseg][nthframe] /= nperseg[nthseg];
+
+    // Create an image with segmeans
+    printf("  synthesize\n");    fflush(stdout);
+    for(c=0; c < seg->width; c++){
+      for(r=0; r < seg->height; r++){
+	for(s=0; s < seg->depth; s++){
+	  if(mask && MRIgetVoxVal(mask,c,r,s,0) < 0.5) continue;
+	  segid = MRIgetVoxVal(seg,c,r,s,0);
+	  for(nthseg=0; nthseg < nsegs; nthseg++)
+	    if(segid == segidlist[nthseg]) break;
+	  for(nthframe=0; nthframe < src->nframes; nthframe++)
+	    MRIsetVoxVal(srcsynth,c,r,s,nthframe,segmeans[nthseg][nthframe]);
+	}
+      }
+    }
+
+    // Smooth the syntesized image
+    printf("  smooth\n");    fflush(stdout);
+    srcsynthsm = MRIgaussianSmoothNI(srcsynth, cStd, rStd, sStd, srcsynthsm);
+    if(srcsynthsm == NULL) return(NULL);
+
+    // Apply
+    printf("  apply\n");    fflush(stdout);
+    for(c=0; c < seg->width; c++){
+      for(r=0; r < seg->height; r++){
+	for(s=0; s < seg->depth; s++){
+	  if(mask && MRIgetVoxVal(mask,c,r,s,0) < 0.5) continue;
+	  for(nthframe=0; nthframe < src->nframes; nthframe++){
+	    val = MRIgetVoxVal(src,c,r,s,nthframe)*
+	      MRIgetVoxVal(srcsynth,c,r,s,nthframe)/
+	      MRIgetVoxVal(srcsynthsm,c,r,s,nthframe);
+	    MRIsetVoxVal(dst,c,r,s,nthframe,val);
+	  }
+	}
+      }
+    }
+    isrc = dst;
+
+  }// Iteration
+
+  MRIfree(&srcsynth);
+  MRIfree(&srcsynthsm);
+  free(nperseg);
+  for(nthseg=0; nthseg < nsegs; nthseg++)
+    free(segmeans[nthseg]);
+  free(segmeans);
+
+  return(dst);
+}
+
+/*--------------------------------------------------------*/
+/*--------------------------------------------------------*/
 /*--------------------------------------------------------*/
 MRI *MRIdownSmoothUp(MRI *src, int Fc, int Fr, int Fs, 
 		     double cFWHM, double rFWHM, double sFWHM, 
@@ -631,123 +787,6 @@ MATRIX *Seg2TissueType(MRI *seg)
   return(SegTType);
 }
 
-/*-----------------------------------------------*/
-MRI *IterativeRBVPVC(MRI *src, MRI *seg, MRI *mask, int niters,
-		     double cFWHM, double rFWHM, double sFWHM, 
-		     MRI *dst)
-{
-  int *segidlist,segid,nsegs,nthseg,*nperseg;
-  double **segmeans;
-  int err, c,r,s, nthframe, nthiter;
-  MRI *srcsynth=NULL,*srcsynthsm=NULL,*isrc;
-  double cStd,rStd,sStd,val;
-
-  err = MRIdimMismatch(seg, src, 0);
-  if(err){
-    printf("ERROR: BuildGTM(): src seg dim mismatch %d\n",err);
-    return(NULL);
-  }
-
-  cStd = cFWHM/sqrt(log(256.0));
-  rStd = rFWHM/sqrt(log(256.0));
-  sStd = sFWHM/sqrt(log(256.0));
-  
-  segidlist = MRIsegIdList(seg, &nsegs, 0);
-
-  segmeans = (double **) calloc(sizeof(double*),nsegs);
-  for(nthseg=0; nthseg < nsegs; nthseg++)
-    segmeans[nthseg] = (double *) calloc(sizeof(double),src->nframes);
-  nperseg = (int *) calloc(sizeof(int),nsegs);
-
-  if(dst == NULL){
-    dst = MRIallocSequence(src->width,src->height,src->depth,
-			   MRI_FLOAT,src->nframes);
-    MRIcopyHeader(src,dst);
-  }
-  err = MRIdimMismatch(dst, src, 0);
-  if(err){
-    printf("ERROR: BuildGTM(): src dst dim mismatch %d\n",err);
-    return(NULL);
-  }
-
-  srcsynth = MRIallocSequence(src->width,src->height,src->depth,
-		      MRI_FLOAT,src->nframes);
-  MRIcopyHeader(src,srcsynth);
-
-  isrc = src;
-  for(nthiter=0; nthiter < niters; nthiter++){
-    printf("#@# iter %3d/%d ---------\n",nthiter,niters);
-    fflush(stdout);
-
-    // Compute seg means
-    printf("  computing seg means\n");    fflush(stdout);
-    for(c=0; c < seg->width; c++){
-      for(r=0; r < seg->height; r++){
-	for(s=0; s < seg->depth; s++){
-	  if(mask && MRIgetVoxVal(mask,c,r,s,0) < 0.5) continue;
-	  segid = MRIgetVoxVal(seg,c,r,s,0);
-	  for(nthseg=0; nthseg < nsegs; nthseg++)
-	    if(segid == segidlist[nthseg]) break;
-	  nperseg[nthseg]++;
-	  for(nthframe=0; nthframe < src->nframes; nthframe++)
-	    segmeans[nthseg][nthframe] += 
-	      MRIgetVoxVal(isrc,c,r,s,nthframe);
-	}
-      }
-    }
-
-    for(nthseg=0; nthseg < nsegs; nthseg++)
-      for(nthframe=0; nthframe < src->nframes; nthframe++)
-	segmeans[nthseg][nthframe] /= nperseg[nthseg];
-
-    // Create an image with segmeans
-    printf("  synthesize\n");    fflush(stdout);
-    for(c=0; c < seg->width; c++){
-      for(r=0; r < seg->height; r++){
-	for(s=0; s < seg->depth; s++){
-	  if(mask && MRIgetVoxVal(mask,c,r,s,0) < 0.5) continue;
-	  segid = MRIgetVoxVal(seg,c,r,s,0);
-	  for(nthseg=0; nthseg < nsegs; nthseg++)
-	    if(segid == segidlist[nthseg]) break;
-	  for(nthframe=0; nthframe < src->nframes; nthframe++)
-	    MRIsetVoxVal(srcsynth,c,r,s,nthframe,segmeans[nthseg][nthframe]);
-	}
-      }
-    }
-
-    // Smooth the syntesized image
-    printf("  smooth\n");    fflush(stdout);
-    srcsynthsm = MRIgaussianSmoothNI(srcsynth, cStd, rStd, sStd, srcsynthsm);
-    if(srcsynthsm == NULL) return(NULL);
-
-    // Apply
-    printf("  apply\n");    fflush(stdout);
-    for(c=0; c < seg->width; c++){
-      for(r=0; r < seg->height; r++){
-	for(s=0; s < seg->depth; s++){
-	  if(mask && MRIgetVoxVal(mask,c,r,s,0) < 0.5) continue;
-	  for(nthframe=0; nthframe < src->nframes; nthframe++){
-	    val = MRIgetVoxVal(src,c,r,s,nthframe)*
-	      MRIgetVoxVal(srcsynth,c,r,s,nthframe)/
-	      MRIgetVoxVal(srcsynthsm,c,r,s,nthframe);
-	    MRIsetVoxVal(dst,c,r,s,nthframe,val);
-	  }
-	}
-      }
-    }
-    isrc = dst;
-
-  }// Iteration
-
-  MRIfree(&srcsynth);
-  MRIfree(&srcsynthsm);
-  free(nperseg);
-  for(nthseg=0; nthseg < nsegs; nthseg++)
-    free(segmeans[nthseg]);
-  free(segmeans);
-
-  return(dst);
-}
 
 /*---------------------------------------------------------------*/
 MATRIX *GTM0PVC(MRI *src, MRI *seg, MRI *mask, 
