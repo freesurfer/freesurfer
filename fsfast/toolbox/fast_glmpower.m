@@ -35,9 +35,9 @@ function [tpr, tnc, dof] = fast_glmpower(beta,XtX,rvar,C,alpha,dof,nsides)
 %
 % Original Author: Doug Greve
 % CVS Revision Info:
-%    $Author: nicks $
-%    $Date: 2011/03/02 00:04:04 $
-%    $Revision: 1.5 $
+%    $Author: greve $
+%    $Date: 2013/09/06 18:59:42 $
+%    $Revision: 1.6 $
 %
 % Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 %
@@ -54,7 +54,7 @@ tpr = [];
 tnc = [];
 
 if(nargin < 6 | nargin > 7)
-  fprintf('[tpr tnc] = fast_glmpower(beta,X,rvar,C,alpha,dof,nsides)\n');
+  fprintf('[tpr tnc] = fast_glmpower(beta,XtX,rvar,C,alpha,dof,nsides)\n');
   return;
 end
 
