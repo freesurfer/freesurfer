@@ -9,9 +9,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:25 $
- *    $Revision: 1.36 $
+ *    $Author: fischl $
+ *    $Date: 2013/09/06 15:25:51 $
+ *    $Revision: 1.37 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -68,7 +68,7 @@
 //
 
 
-char *MRI_TESSELLATE_VERSION = "$Revision: 1.36 $";
+char *MRI_TESSELLATE_VERSION = "$Revision: 1.37 $";
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -92,13 +92,13 @@ char *MRI_TESSELLATE_VERSION = "$Revision: 1.36 $";
 #include "mrisurf.h"
 
 static char vcid[] =
-  "$Id: mri_tessellate.c,v 1.36 2011/03/02 00:04:25 nicks Exp $";
+  "$Id: mri_tessellate.c,v 1.37 2013/09/06 15:25:51 fischl Exp $";
 
 #define SQR(x) ((x)*(x))
 
 /////////////////////////////////////////////
-#define MAXFACES    2000000
-#define MAXVERTICES 1000000
+#define MAXVERTICES 10000000
+#define MAXFACES    (2*MAXVERTICES)
 
 ////////////////////////////////////////////////
 // gather globals
@@ -162,13 +162,13 @@ main(int argc, char *argv[])
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mri_tessellate.c,v 1.36 2011/03/02 00:04:25 nicks Exp $",
+   "$Id: mri_tessellate.c,v 1.37 2013/09/06 15:25:51 fischl Exp $",
    "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mri_tessellate.c,v 1.36 2011/03/02 00:04:25 nicks Exp $",
+           "$Id: mri_tessellate.c,v 1.37 2013/09/06 15:25:51 fischl Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
   {
