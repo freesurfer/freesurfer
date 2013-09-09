@@ -7,8 +7,8 @@
  * Original Authors: Sebastien Gicquel and Douglas Greve, 06/04/2001
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2013/07/29 23:56:15 $
- *    $Revision: 1.152 $
+ *    $Date: 2013/09/09 15:13:17 $
+ *    $Revision: 1.153 $
  *
  * Copyright © 2011-2013 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -1694,7 +1694,10 @@ char *SiemensAsciiTagEx(const char *dcmfile, const char *TagString, int cleanup)
       }
 
       // check the region
-      if (strncmp(buf, "### ASCCONV BEGIN ###", 21)==0)
+//      if (strncmp(buf, "### ASCCONV BEGIN ###", 21)==0)
+// it seems the connectome scanner has begin fields that 
+// do not include the chars ' ###'
+      if (strncmp(buf, "### ASCCONV BEGIN", 17)==0)
       {
         startOfAscii = 1;
       }
