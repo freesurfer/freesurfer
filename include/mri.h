@@ -7,9 +7,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2013/09/02 17:36:59 $
- *    $Revision: 1.453 $
+ *    $Author: fischl $
+ *    $Date: 2013/09/09 13:00:04 $
+ *    $Revision: 1.454 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -242,6 +242,7 @@ typedef struct
 }
 MRI_IMAGE, MRI ;
 
+MATRIX *MRIcopyFramesToMatrixRows(MRI *mri, MATRIX *m_dst, int start_frame, int nframes, int dst_row) ;
 MATRIX *MRIxfmCRS2XYZ( const MRI *mri, int base ); /* Native Vox2RAS Matrix
                                               (scanner and xfm too) */
 int MRIsetVox2RASFromMatrix(MRI *mri, MATRIX *m_vox2ras);
@@ -418,7 +419,9 @@ MRI   *MRIabsdiff(MRI *mri1, MRI *mri2, MRI *mri_dst) ;
 MRI   *MRIadd(MRI *mri1, MRI *mri2, MRI *mri_dst) ;
 MRI   *MRIaddScalar(MRI *mri_src, MRI *mri_dst, float scalar) ;
 MRI   *MRIaverage(MRI *mri_src, int dof, MRI *mri_dst) ;
+MRI   *MRIaddToFrame(MRI *mri_src, MRI *mri_to_add, MRI *mri_dst, int src_frame_no, int dst_frame_no) ;
 MRI   *MRIdivide(MRI *mri1, MRI *mri2, MRI *mri_dst) ;
+  MRI   *MRIdivideFrames(MRI *mri1, MRI *mri2, int frame1, int frame2, MRI *mri_dst) ;
 MRI   *MRImultiply(MRI *mri1, MRI *mri2, MRI *mri_dst) ;
 MRI   *MRIscaleAndMultiply(MRI *mri1, float scale, MRI *mri2, MRI *mri_dst) ;
 MRI   *MRIabs(MRI *mri, MRI *mri_dst) ;
@@ -656,6 +659,7 @@ MRI *MRI_fft_gaussian(MRI *src, MRI *dst, float std, int norm);
 MRI *MRI_fft_lowpass(MRI *src, MRI *dst, int percent);
 MRI *MRI_fft_highpass(MRI *src, MRI *dst, int percent);
 
+MRI  *MRIcomputeMeanAndStandardDeviation(MRI *mri_src, MRI *mri_dst, int dof) ; 
 MRI *MRIscaleMeanIntensities(MRI *mri_src, MRI *mri_ref, MRI *mri_dst) ;
 MRI   *MRIscaleIntensities(MRI *mri_src, MRI *mri_dst, float scale, float offset) ;
 MRI   *MRImedian(MRI *mri_src, MRI *mri_dst, int wsize, MRI_REGION *box) ;
@@ -1395,6 +1399,7 @@ int MRIcountThreshInNbhd(MRI *mri, int wsize, int x,int y,int z, float thresh);
 MRI *MRImatchMeanIntensity(MRI *mri_source,
                            MRI *mri_target,
                            MRI *mri_source_scaled) ;
+MRI *MRIsqr(MRI *mri_src, MRI *mri_dst)  ;
 MRI *MRIsqrt(MRI *mri_src, MRI *mri_dst)  ;
 float MRImaxInRegion(MRI *mri, int x, int y, int z, int whalf) ;
 double MRImaxInLabelInRegion(MRI *mri_src,
@@ -1410,6 +1415,7 @@ double MRIestimateTIV(char* theLtaFile,
 int MRInormalizeFrames(MRI *mri);
 int MRInormalizeFramesMean(MRI *mri);
 int MRInormalizeFramesFirst(MRI *mri);
+MRI *MRIaverageFrames(MRI *mri_src, MRI *mri_dst, int start_frame, int end_frame) ;
 MRI *MRIsort(MRI *in, MRI *mask, MRI *sorted);
 int CompareDoubles(const void *a, const void *b);
 int MRIlabeledVoxels(MRI *mri_src, int label) ;

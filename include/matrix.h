@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2013/04/12 22:40:55 $
- *    $Revision: 1.79 $
+ *    $Author: fischl $
+ *    $Date: 2013/09/09 13:00:04 $
+ *    $Revision: 1.80 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -275,6 +275,10 @@ MATRIX *GaussianVector(int len, float mean, float std, int norm, MATRIX *g);
 MATRIX *MatrixReorderRows(MATRIX *X, int *NewRowOrder, MATRIX *XRO);
 int MatrixRandPermRows(MATRIX *X);
 int MatrixColsAreNotOrthog(MATRIX *X);
+#define VectorSSE(v1, v2)  MatrixSSE(v1, v2)
+#define VectorRMS(v1, v2)  MatrixRMS(v1, v2)
+double MatrixSSE(MATRIX *m1, MATRIX *m2) ;
+double MatrixRMS(MATRIX *m1, MATRIX *m2) ;
 int MatrixOrthonormalizeTransform(MATRIX *m_L) ;
 int MatrixToRigidParameters(MATRIX *m, double *pxr, double *pyr, double *pzr,
                             double *pxt, double *pyt, double *pzt);
