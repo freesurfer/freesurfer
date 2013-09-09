@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2013/04/12 22:40:55 $
- *    $Revision: 1.130 $
+ *    $Author: fischl $
+ *    $Date: 2013/09/09 13:01:46 $
+ *    $Revision: 1.131 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -1881,8 +1881,11 @@ MATRIX *
 MatrixAllocTranslation(int n, double *trans)
 {
   MATRIX *mat ;
+  int    i ;
 
-  mat = MatrixAlloc(n, n, MATRIX_REAL) ;
+  mat = MatrixIdentity(n, NULL) ;
+  for (i = 0 ; i < n-1 ; i++)
+    *MATRIX_RELT(mat, i+1, 4) = trans[i] ;
   return(mat) ;
 }
 
@@ -4182,4 +4185,27 @@ MATRIX *ANOVAOmnibus(int nLevels)
     O->rptr[r+1][nLevels] = -1;
   }
   return(O);
+}
+double
+MatrixSSE(MATRIX *m1, MATRIX *m2) 
+{
+  int r, c ;
+  double sse, error ;
+
+  for (sse = 0.0, r = 1 ; r <= m1->rows ; r++)
+    for (c = 1 ; c <= m1->cols ; c++)
+    {
+      error = *MATRIX_RELT(m1, r, c) - *MATRIX_RELT(m2, r, c) ;
+      sse += SQR(error) ;
+    }
+  return(sse) ;
+}
+
+double
+MatrixRMS(MATRIX *m1, MATRIX *m2)
+{
+  double sse ;
+
+  sse = MatrixSSE(m1, m2) ;
+  return(sqrt(sse / (m1->rows*m1->cols))) ;
 }
