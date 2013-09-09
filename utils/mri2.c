@@ -6,9 +6,9 @@
 /*
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2013/09/03 17:12:33 $
- *    $Revision: 1.81 $
+ *    $Author: fischl $
+ *    $Date: 2013/09/09 13:00:58 $
+ *    $Revision: 1.82 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -2219,6 +2219,38 @@ MRI *MRIsquareRoot(MRI *in, MRI *mask, MRI *out)
           }
           else val = 0.0;
           MRIsetVoxVal(out,c,r,s,f,sqrt(fabs(val)));
+        }
+      }
+    }
+  }
+  return(out);
+}
+/*!
+  \fn MRI *MRIsqr(MRI *in, MRI *out)
+  \brief Square of the value at each voxel.
+*/
+MRI *MRIsqr(MRI *in, MRI *out)
+{
+  int c,r,s,f;
+  double val;
+
+  if (out == NULL)
+  {
+    out = MRIallocSequence(in->width, in->height,
+                           in->depth,MRI_FLOAT, in->nframes);
+    MRIcopyHeader(in,out);
+  }
+
+  for (c=0; c < in->width; c++)
+  {
+    for (r=0; r < in->height; r++)
+    {
+      for (s=0; s < in->depth; s++)
+      {
+        for (f=0; f < in->nframes; f++)
+        {
+	  val = MRIgetVoxVal(in,c,r,s,f);
+          MRIsetVoxVal(out,c,r,s,f,val*val);
         }
       }
     }
