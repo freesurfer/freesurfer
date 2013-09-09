@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2013/09/02 17:36:58 $
- *    $Revision: 1.526 $
+ *    $Author: fischl $
+ *    $Date: 2013/09/09 13:00:27 $
+ *    $Revision: 1.527 $
  *
  * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -23,7 +23,7 @@
  */
 
 extern const char* Progname;
-const char *MRI_C_VERSION = "$Revision: 1.526 $";
+const char *MRI_C_VERSION = "$Revision: 1.527 $";
 
 
 /*-----------------------------------------------------
@@ -8418,25 +8418,25 @@ MRI *MRIdownsampleNOld(MRI *mri_src, MRI *mri_dst, int N)
     {
       for (x = 0 ; x < width ; x++)
       {
-        for (val = 0.0f, z1 = N*z ; z1 <= N*z+1 ; z1++)
+        for (val = 0.0f, z1 = N*z ; z1 <= N*z+(N-1) ; z1++)
         {
-          for (y1 = N*y ; y1 <= N*y+1 ; y1++)
+          for (y1 = N*y ; y1 <= N*y+(N-1) ; y1++)
           {
             switch (mri_src->type)
             {
             case MRI_UCHAR:
               psrc = &MRIvox(mri_src, N*x, y1, z1) ;
-              for (x1 = N*x ; x1 <= N*x+1 ; x1++)
+              for (x1 = N*x ; x1 <= N*x+(N-1) ; x1++)
                 val += *psrc++ ;
               break ;
             case MRI_SHORT:
               pssrc = &MRISvox(mri_src, N*x, y1, z1) ;
-              for (x1 = N*x ; x1 <= N*x+1 ; x1++)
+              for (x1 = N*x ; x1 <= N*x+(N-1) ; x1++)
                 val += *pssrc++ ;
               break ;
             case MRI_FLOAT:
               pfsrc = &MRIFvox(mri_src, N*x, y1, z1) ;
-              for (x1 = N*x ; x1 <= N*x+1 ; x1++)
+              for (x1 = N*x ; x1 <= N*x+(N-1) ; x1++)
                 val += *pfsrc++ ;
               break ;
             default:
@@ -18162,3 +18162,126 @@ MRImaxInRegion(MRI *mri, int x, int y, int z, int whalf)
       }
   return(max_val) ;
 }
+MRI *
+MRIaverageFrames(MRI *mri_src, MRI *mri_dst, int start_frame, int end_frame)
+{
+  int   x, y, z, f, nframes ;
+  float sum ; 
+
+  if (start_frame < 0)
+    start_frame = 0 ;
+  if (end_frame < 0 || end_frame >= mri_src->nframes)
+    end_frame = mri_src->nframes-1 ;
+
+  mri_dst = MRIalloc(mri_src->width, mri_src->height, mri_src->depth, MRI_FLOAT) ;
+  MRIcopyHeader(mri_src, mri_dst) ;
+  nframes = end_frame - start_frame + 1 ;
+  for (x = 0 ; x < mri_src->width ; x++)
+    for (y = 0 ; y < mri_src->height ; y++)
+      for (z = 0 ; z < mri_src->depth ; z++)
+      {
+	for (sum = 0.0, f = start_frame ; f <= end_frame ; f++)
+	  sum += MRIgetVoxVal(mri_src, x, y, z, f) ;
+	sum /= nframes ;
+	MRIsetVoxVal(mri_dst, x, y, z, 0, sum) ;
+      }
+
+  return(mri_dst) ;
+}
+
+MRI *
+MRIaddToFrame(MRI *mri_src, MRI *mri_to_add, MRI *mri_dst, int src_frame_no, int dst_frame_no)
+{
+  int  x, y, z ;
+  float val ;
+
+  if (mri_dst == NULL)
+    mri_dst = MRIcopy(mri_src, NULL) ;
+
+  for (x = 0 ; x < mri_dst->width ; x++)
+    for (y = 0 ; y < mri_dst->height ; y++)
+      for (z = 0 ; z < mri_dst->depth ; z++)
+      {
+	val = MRIgetVoxVal(mri_src, x, y, z, src_frame_no) ;
+	val += MRIgetVoxVal(mri_to_add, x, y, z, 0) ;
+	MRIsetVoxVal(mri_dst, x, y, z, dst_frame_no, val) ;
+      }
+  return(mri_dst) ;
+}
+
+MRI  *
+MRIcomputeMeanAndStandardDeviation(MRI *mri_src, MRI *mri_dst, int dof)
+{
+ int  x, y, z ;
+ float mean, sum_sq, std ;
+
+  if (mri_dst == NULL)
+    mri_dst = MRIcopy(mri_src, NULL) ;
+
+  for (x = 0 ; x < mri_dst->width ; x++)
+    for (y = 0 ; y < mri_dst->height ; y++)
+      for (z = 0 ; z < mri_dst->depth ; z++)
+      {
+	mean = MRIgetVoxVal(mri_src, x, y, z, 0) / dof ;
+	sum_sq = MRIgetVoxVal(mri_src, x, y, z, 1) ;
+	std = (sum_sq/dof - mean*mean) ;
+	if (std < 0)
+	  std = 0 ;
+	else
+	  std = sqrt(std) ;
+	MRIsetVoxVal(mri_dst, x, y, z, 0, mean) ;
+	MRIsetVoxVal(mri_dst, x, y, z, 1, std) ;
+      }
+  return(mri_dst) ;
+}
+
+MRI *
+MRIdivideFrames(MRI *mri1, MRI *mri2, int frame1, int frame2, MRI *mri_dst) 
+{
+  int x, y, z ;
+  float val1, val2, val ;
+
+  if (mri_dst == NULL)
+  {
+    mri_dst = MRIalloc(mri1->width, mri1->height, mri1->depth, MRI_FLOAT) ;
+    MRIcopyHeader(mri1, mri_dst) ;
+  }
+
+  for (x = 0 ; x < mri_dst->width ; x++)
+    for (y = 0 ; y < mri_dst->height ; y++)
+      for (z = 0 ; z < mri_dst->depth ; z++)
+      {
+	val1 = MRIgetVoxVal(mri1, x, y, z, frame1) ;
+	val2 = MRIgetVoxVal(mri2, x, y, z, frame2) ;
+	if (FZERO(val2))
+	  val2 = 1 ;
+
+	val = val1 / val2 ;
+	MRIsetVoxVal(mri_dst, x, y, z, 0, val); 
+      }
+  return(mri_dst) ;
+}
+
+MATRIX *
+MRIcopyFramesToMatrixRows(MRI *mri, MATRIX *m_dst, int start_frame, int nframes, int dst_row) 
+{
+  int  x, y, z, i, r, f ;
+
+  if (m_dst == NULL) 
+    m_dst = MatrixAlloc(nframes, mri->width*mri->height*mri->depth, MATRIX_REAL) ;
+  for (r = dst_row, f = start_frame ; f < start_frame+nframes ; f++, r++)
+  {
+    for (x = 0, i = 1 ; x < mri->width ; x++)
+    {
+      for (y = 0 ; y < mri->height ; y++)
+      {
+	for (z = 0 ; z < mri->depth ; z++, i++)
+	{
+	  *MATRIX_RELT(m_dst, r, i) = MRIgetVoxVal(mri, x, y, z, f) ;
+	}
+      }
+    }
+  }
+  return(m_dst) ;
+}
+
