@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2013/06/27 17:27:35 $
- *    $Revision: 1.136 $
+ *    $Date: 2013/09/10 20:55:44 $
+ *    $Revision: 1.137 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -782,14 +782,14 @@ void LayerMRI::UpdateResliceInterpolation ()
     {
       switch (GetProperty()->GetResliceInterpolation())
       {
-      case SAMPLE_NEAREST:
-        mReslice[i]->SetInterpolationModeToNearestNeighbor();
-        break;
       case SAMPLE_TRILINEAR:
         mReslice[i]->SetInterpolationModeToLinear();
         break;
       case SAMPLE_CUBIC_BSPLINE:
         mReslice[i]->SetInterpolationModeToCubic();
+        break;
+      default:
+        mReslice[i]->SetInterpolationModeToNearestNeighbor();
         break;
       }
     }

@@ -12,8 +12,8 @@
  * Reimplemented by: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2013/05/30 19:47:47 $
- *    $Revision: 1.16 $
+ *    $Date: 2013/09/10 20:55:44 $
+ *    $Revision: 1.17 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -420,7 +420,7 @@ COLOR_TABLE* LayerPropertyMRI::GetLUTCTAB () const
 
 void LayerPropertyMRI::SetLUTCTAB( COLOR_TABLE* ct )
 {
-  if ( ct != mFreeSurferCTAB )
+//  if ( ct != mFreeSurferCTAB )
   {
     mFreeSurferCTAB = ct;
     UpdateLUTTable();

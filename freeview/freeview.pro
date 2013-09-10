@@ -392,7 +392,7 @@ LIBS += -L/usr/pubsw/packages/vtk/current/lib/vtk-5.6 -L/usr/X11R6/lib \
     -lvnl_algo -lvnl -lvcl -lnetlib -lv3p_netlib \
     -L/usr/pubsw/packages/petsc/current/lib -lpetscts -lpetscsnes -lpetscksp \
     -lpetscdm -lpetscmat -lpetscvec -lpetsc -lmpich -lfmpich \
-    /usr/lib64/liblapack.a /usr/lib64/libblas.a -lgfortran
+    /usr/lib64/liblapack.a /usr/lib64/libblas.a -lgfortran -fopenmp
 
 TARGET = freeview.bin
 DESTDIR = $$FREESURFER_BIN
