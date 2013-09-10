@@ -10,8 +10,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2013/09/04 19:55:53 $
- *    $Revision: 1.4 $
+ *    $Date: 2013/09/10 22:54:02 $
+ *    $Revision: 1.5 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -33,7 +33,7 @@
 */
 
 
-// $Id: mri_rbvpvc.c,v 1.4 2013/09/04 19:55:53 greve Exp $
+// $Id: mri_rbvpvc.c,v 1.5 2013/09/10 22:54:02 greve Exp $
 
 /*
   BEGINHELP
@@ -47,6 +47,12 @@
   ENDUSAGE
 */
 
+// Things to do:
+// 1. Bounding box smoothing
+// 2. FFT smoothing, sparse FFT
+// 3. Subvoxel
+// 4. Parallel
+// 5. XtX symetric
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -74,7 +80,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_rbvpvc.c,v 1.4 2013/09/04 19:55:53 greve Exp $";
+static char vcid[] = "$Id: mri_rbvpvc.c,v 1.5 2013/09/10 22:54:02 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
