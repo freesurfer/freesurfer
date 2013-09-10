@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2013/08/23 19:29:18 $
- *    $Revision: 1.63 $
+ *    $Date: 2013/09/10 20:11:57 $
+ *    $Revision: 1.64 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -183,7 +183,7 @@ void RenderView2D::UpdateViewByWorldCoordinate()
     wcenter[i] = m_dWorldOrigin[i] + m_dWorldSize[i] / 2;
   }
   cam->SetFocalPoint( wcenter );
-  double len = qMax(m_dWorldSize[0], qMax(m_dWorldSize[1], m_dWorldSize[2]));
+  double len = qMax(m_dWorldSize[0], qMax(m_dWorldSize[1], m_dWorldSize[2]))*5;
   switch ( m_nViewPlane )
   {
   case 0:
