@@ -8,8 +8,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2013/09/07 01:04:06 $
- *    $Revision: 1.2 $
+ *    $Date: 2013/09/10 13:05:23 $
+ *    $Revision: 1.3 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -33,7 +33,7 @@
 */
 
 
-// $Id: mris_register_label_map.c,v 1.2 2013/09/07 01:04:06 fischl Exp $
+// $Id: mris_register_label_map.c,v 1.3 2013/09/10 13:05:23 fischl Exp $
 
 /*
   BEGINHELP
@@ -112,7 +112,7 @@ int main(int argc, char *argv[]) ;
 static MRI *compute_mean_and_variance_across_frames(MRI **mri_label_avg, int nsubjects)  ;
 static MRI *compute_mean_and_variance(MRI **mri_label_avg, int nsubjects)  ;
 
-static char vcid[] = "$Id: mris_register_label_map.c,v 1.2 2013/09/07 01:04:06 fischl Exp $";
+static char vcid[] = "$Id: mris_register_label_map.c,v 1.3 2013/09/10 13:05:23 fischl Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -179,7 +179,7 @@ int main(int argc, char *argv[])
   int         nargs, n, ic, nvert;
   char        *subject, fname[STRLEN] ;
   MRI         *mri_cmat, *mri_prior, *mri_stats = NULL, *mri_label_avg[MAX_SUBJECTS], *mri_cmat_mov,
-    *mri_fvol[MAX_SUBJECTS][MAX_RUNS], *mri_fsurf[MAX_SUBJECTS][MAX_RUNS], *mri_target_label ;
+    *mri_fvol[MAX_SUBJECTS][MAX_RUNS], *mri_fsurf[MAX_SUBJECTS][MAX_RUNS], *mri_target_label = NULL ;
   LABEL       *labels[MAX_SUBJECTS], *target_area ;
   MRI_SURFACE *mris_lh_mov, *mris_rh_mov, *mris_lh_fixed, *mris_rh_fixed ;
   MATRIX      *m_map_weights ;
