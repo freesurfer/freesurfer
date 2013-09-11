@@ -1,0 +1,223 @@
+#!/bin/bash
+#
+## Reorients MRI Volumes
+# 
+# Author: Frederic Andersson
+# frederic.andersson@univ-tours.fr
+# 2013.08.19
+#
+TMP_ISFS=`echo $FREESURFER_HOME`
+TMP_VIDE=`echo " "`
+if [ "$TMP_ISFS" == "$TMP_VIDE" ]
+then
+  echo "FreeSurfer is not ready !"
+  echo "Please set FreeSurfer environment"
+  echo "   setenv FREESURFER_HOME /XX/freesurfer450"
+  echo "   source /XX/freesurfer450/SetUpFreeSurfer.csh"
+fi
+
+DISPLAY_APP=fv
+  
+if [ $# -ge 1 ]
+  then
+  for param in $*
+    do
+    PARAMTMP1=`echo $param | awk -F "=" '{ print $1}' `
+    PARAMTMP2=`echo $param | awk -F "=" '{ print $2}' `
+    case $PARAMTMP1 in
+      "-d")
+      DISPLAY_APP=$PARAMTMP2
+      ;;
+      "-i")
+      IN_ORIENT=$PARAMTMP2
+      IN_ORIENT1=`echo $IN_ORIENT | awk '{ print substr($0,1,1) }' `
+      IN_ORIENT2=`echo $IN_ORIENT | awk '{ print substr($0,2,1) }' `
+      IN_ORIENT3=`echo $IN_ORIENT | awk '{ print substr($0,3,1) }' `
+      ;;
+      "-o")
+      OUT_ORIENT=$PARAMTMP2
+      OUT_ORIENT1=`echo $OUT_ORIENT | awk '{ print substr($0,1,1) }' `
+      OUT_ORIENT2=`echo $OUT_ORIENT | awk '{ print substr($0,2,1) }' `
+      OUT_ORIENT3=`echo $OUT_ORIENT | awk '{ print substr($0,3,1) }' `
+      ;;
+    esac
+  done
+
+  ORIG=`echo $1 | awk -F "." '{ print $1}' `
+  EXT=`echo $1 | awk -F "." '{ print $2}' `
+  if  [ "$EXT" != "nii" ]
+  then
+  echo "FT4MRI_Reorient only works with nii files"
+  echo "Please convert $1"
+  echo "Sorry..."
+  exit
+  fi
+  
+  echo '  '
+  echo ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  echo FT4MRI_Reorient
+  echo ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  echo '  '
+  echo "$1"
+  echo '  '
+    
+  TMP_ORIENT=`mri_info $1 | grep Orientation`
+  TMP_ORIENT=`echo $TMP_ORIENT | awk -F ": " '{ print $2}' `
+  TMP_ORIENT1=`echo $TMP_ORIENT | awk '{ print substr($0,1,1) }' `
+  TMP_ORIENT2=`echo $TMP_ORIENT | awk '{ print substr($0,2,1) }' `
+  TMP_ORIENT3=`echo $TMP_ORIENT | awk '{ print substr($0,3,1) }' `
+
+  echo " " 
+  echo "Initial volume oriention : $TMP_ORIENT"
+  echo " "  
+  
+  if [ ! -z "$IN_ORIENT" ]
+  then
+    TMP_ORIENT1=$IN_ORIENT1
+    TMP_ORIENT2=$IN_ORIENT2
+    TMP_ORIENT3=$IN_ORIENT3
+  fi
+  
+  if [ ! -z "$OUT_ORIENT" ]
+  then
+    NEW_ORIENT1=$OUT_ORIENT1
+    NEW_ORIENT2=$OUT_ORIENT2
+    NEW_ORIENT3=$OUT_ORIENT3
+  else
+    case "$TMP_ORIENT1" in
+      "L")
+      TMP_ORIENT1t="Left"
+      ;;
+      "R")
+      TMP_ORIENT1t="Right"
+      ;;
+      "S")
+      TMP_ORIENT1t="Superior"
+      ;;
+      "I")
+      TMP_ORIENT1t="Inferior"
+      ;;
+      "A")
+      TMP_ORIENT1t="Anterior"
+      ;;
+      "P")
+      TMP_ORIENT1t="Posterior"
+      ;;
+    esac
+    case "$TMP_ORIENT2" in
+      "L")
+      TMP_ORIENT2t="Left"
+      ;;
+      "R")
+      TMP_ORIENT2t="Right"
+      ;;
+      "S")
+      TMP_ORIENT2t="Superior"
+      ;;
+      "I")
+      TMP_ORIENT2t="Inferior"
+      ;;
+      "A")
+      TMP_ORIENT2t="Anterior"
+      ;;
+      "P")
+      TMP_ORIENT2t="Posterior"
+      ;;
+    esac
+    case "$TMP_ORIENT3" in
+      "L")
+      TMP_ORIENT3t="Left"
+      ;;
+      "R")
+      TMP_ORIENT3t="Right"
+      ;;
+      "S")
+      TMP_ORIENT3t="Superior"
+      ;;
+      "I")
+      TMP_ORIENT3t="Inferior"
+      ;;
+      "A")
+      TMP_ORIENT3t="Anterior"
+      ;;
+      "P")
+      TMP_ORIENT3t="Posterior"
+      ;;
+    esac
+    
+    case $DISPLAY_APP in
+      "tk")
+      tkmedit -f $1 &
+      sleep 5
+      ;;
+      "fsl")
+      fslview $1 &
+      sleep 5      
+      ;;
+      "fv")
+      freeview -v $1:isosurface=on --viewport 3d &
+      sleep 5
+      ;;
+    esac   
+  
+  echo "   Check axes in tkmedit and set actual orientation."
+  echo " "
+  read -p "     '${TMP_ORIENT1t}' (${TMP_ORIENT1}) is actually (A,P,S,I,L,R) : " NEW_ORIENT1
+  read -p "     '${TMP_ORIENT2t}' (${TMP_ORIENT2}) is actually (A,P,S,I,L,R) : " NEW_ORIENT2
+  read -p "     '${TMP_ORIENT3t}' (${TMP_ORIENT3}) is actually (A,P,S,I,L,R) : " NEW_ORIENT3
+  
+  fi 
+  
+  NEW_ORIENT=${NEW_ORIENT1}${NEW_ORIENT2}${NEW_ORIENT3}
+  echo " "
+  #echo $NEW_ORIENT
+  NEW_FILE=${ORIG}_${NEW_ORIENT}
+  #echo $NEW_FILE
+  read -p "Save new volume as (if blank, ${NEW_FILE}.nii) " NEW_FILE2
+  if [ "$NEW_FILE2" == "" ]
+  then
+    NEW_FILE2=$NEW_FILE
+  fi
+  echo " "
+  mri_convert -i $1 -o ${NEW_FILE2}.nii --in_orientation $NEW_ORIENT -ot nii
+  echo " " 
+  echo "Done !"
+  echo " " 
+  echo ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+fi
+
+
+if [ $# -lt 1 ]
+then
+    echo
+	echo "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
+	echo "| FT4MRI_Reorient                                               |"
+	echo "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
+	echo "|                                                               |"
+	echo "| Reorients MRI Volumes                                         |"
+	echo "|                                                               |"
+	echo "| Usage :                                                       |"
+	echo "|                                                               |"
+	echo "| FT4MRI_Reorient <volume> options                              |"
+	echo "|                                                               |"
+	echo "| Options :                                                     |"
+	echo "|                                                               |"
+	echo "| -d  viewer (freeview: fv ; fslview: fsl ; tkmedit: tk )       |"
+	echo "|     default = freeview                                        |"
+	echo "| -i  initial volume orientation                                |"
+	echo "| -o  actual volume orientation                                 |"
+	echo "|                                                               |"
+	echo "| Examples :                                                    |"
+	echo "|                                                               |"
+	echo "| FT4MRI_Reorient brain.nii                                     |"
+	echo "| FT4MRI_Reorient brain.nii -d=tk                               |"
+	echo "| FT4MRI_Reorient brain.nii -i=ALS -o=LAS                       |"
+	echo "|                                                               |"
+	echo "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
+	echo "| Author: Frederic Andersson - frederic.andersson@univ-tours.fr |"
+	echo "|         INSERM UMR U930 'Imagerie et cerveau'                 |"
+      echo "| v2013.08.19                                                   |"
+	echo "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
+	echo
+fi
