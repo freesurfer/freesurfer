@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2013/05/30 19:47:47 $
- *    $Revision: 1.82 $
+ *    $Date: 2013/09/13 18:36:16 $
+ *    $Revision: 1.83 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -1119,6 +1119,7 @@ int FSVolume::RASToOriginalIndex ( float iRASX, float iRASY, float iRASZ,
 int FSVolume::RASToOriginalIndex ( float iRASX, float iRASY, float iRASZ,
                                    int& oIdxX, int& oIdxY, int& oIdxZ )
 {
+  /*
   float ix, iy, iz;
   int r = RASToOriginalIndex(iRASX, iRASY, iRASZ, ix, iy, iz);
   if (r == 0) // no error
@@ -1127,6 +1128,35 @@ int FSVolume::RASToOriginalIndex ( float iRASX, float iRASY, float iRASZ,
     oIdxY = (int)( iy + 0.5 );
     oIdxZ = (int)( iz + 0.5 );
   }
+  return r;
+  */
+  Real wx, wy, wz;
+  int r;
+
+  if (m_matReg)
+  {
+    Real v[4] = {iRASX, iRASY, iRASZ, 1};
+    MATRIX* matNative = MRItkReg2Native(this->m_MRIRef, m_MRI, m_matReg);
+    double m[16];
+    for ( int i = 0; i < 16; i++ )
+    {
+      m[i] = (double) *MATRIX_RELT((matNative),(i/4)+1,(i%4)+1);
+    }
+    vtkMatrix4x4::Invert(m, m);
+    vtkMatrix4x4::MultiplyPoint(m, v, v);
+    MatrixFree(&matNative);
+    wx = v[0];
+    wy = v[1];
+    wz = v[2];
+  }
+  else
+  {
+    wx = iRASX;
+    wy = iRASY;
+    wz = iRASZ;
+  }
+  r = ::MRIworldToVoxelIndex(m_MRI, wx, wy, wz, &oIdxX, &oIdxY, &oIdxZ );
+
   return r;
 }
 
