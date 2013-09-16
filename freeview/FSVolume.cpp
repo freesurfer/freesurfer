@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2013/09/13 18:36:16 $
- *    $Revision: 1.83 $
+ *    $Date: 2013/09/16 19:08:42 $
+ *    $Revision: 1.84 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -638,7 +638,7 @@ bool FSVolume::MRIWrite( const QString& filename, int nSampleMethod, bool resamp
     {
       // find out the output voxel bounds
       float cornerFactor[3];
-      Real RAS[3], index[3];
+      Real RAS[4] = {0, 0, 0, 1}, index[3];
       Real indexBounds[6];
       indexBounds[0] = indexBounds[2] = indexBounds[4] = 1e10;
       indexBounds[1] = indexBounds[3] = indexBounds[5] = -1e10;
@@ -708,8 +708,6 @@ bool FSVolume::MRIWrite( const QString& filename, int nSampleMethod, bool resamp
 
       MRIcopyHeader( m_MRITemp, mri );
 
-      // no need to calculate p0
-      /*
       if (!m_bCropToOriginal)
       {
         Real p0[3];
@@ -720,7 +718,6 @@ bool FSVolume::MRIWrite( const QString& filename, int nSampleMethod, bool resamp
                            &p0[0], &p0[1], &p0[2] );
         MRIp0ToCRAS( mri, p0[0], p0[1], p0[2] );
       }
-      */
 
       /*
       MATRIX* M = m;
@@ -728,7 +725,8 @@ bool FSVolume::MRIWrite( const QString& filename, int nSampleMethod, bool resamp
           << M->rptr[2][1] << " " << M->rptr[2][2] << " " << M->rptr[2][3] << " " << M->rptr[2][4]
           << M->rptr[3][1] << " " << M->rptr[3][2] << " " << M->rptr[3][3] << " " << M->rptr[3][4]
           << M->rptr[4][1] << " " << M->rptr[4][2] << " " << M->rptr[4][3] << " " << M->rptr[4][4];
-          */
+      */
+
       MATRIX* mi = MatrixIdentity(4, NULL);
       mri = MRIapplyRASlinearTransformInterp( m_MRITemp, mri, bRefTransformed?mi:m, nSampleMethod );
       MatrixFree(&mi);
