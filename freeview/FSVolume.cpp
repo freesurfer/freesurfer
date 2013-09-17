@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2013/09/16 19:08:42 $
- *    $Revision: 1.84 $
+ *    $Date: 2013/09/17 20:13:19 $
+ *    $Revision: 1.85 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -754,6 +754,10 @@ bool FSVolume::MRIWrite( const QString& filename, int nSampleMethod, bool resamp
       MRIp0ToCRAS( m_MRITemp, p0[0], p0[1], p0[2] );
       */
       MATRIX* new_v2r = MatrixMultiply(m, old_v2r, 0);
+      m_MRITemp->xsize = sqrt(new_v2r->rptr[1][1]*new_v2r->rptr[1][1] + new_v2r->rptr[2][1]*new_v2r->rptr[2][1] + new_v2r->rptr[3][1]*new_v2r->rptr[3][1]);
+      m_MRITemp->ysize = sqrt(new_v2r->rptr[1][2]*new_v2r->rptr[1][2] + new_v2r->rptr[2][2]*new_v2r->rptr[2][2] + new_v2r->rptr[3][2]*new_v2r->rptr[3][2]);
+      m_MRITemp->zsize = sqrt(new_v2r->rptr[1][3]*new_v2r->rptr[1][3] + new_v2r->rptr[2][3]*new_v2r->rptr[2][3] + new_v2r->rptr[3][3]*new_v2r->rptr[3][3]);
+
       MRIsetVoxelToRasXform(m_MRITemp, new_v2r);
       MatrixFree(&old_v2r);
       MatrixFree(&new_v2r);
