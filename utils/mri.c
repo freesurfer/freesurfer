@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2013/09/09 13:00:27 $
- *    $Revision: 1.527 $
+ *    $Author: twitzel $
+ *    $Date: 2013/09/17 02:00:22 $
+ *    $Revision: 1.528 $
  *
  * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -23,7 +23,7 @@
  */
 
 extern const char* Progname;
-const char *MRI_C_VERSION = "$Revision: 1.527 $";
+const char *MRI_C_VERSION = "$Revision: 1.528 $";
 
 
 /*-----------------------------------------------------
@@ -1216,8 +1216,8 @@ inline float MRIgetVoxVal(const MRI *mri, int c, int r, int s, int f)
 
   if (mri->ischunked)
   {
-    void *p;
-    p = mri->chunk + c + r*mri->bytes_per_row +
+    unsigned char *p;
+    p = (unsigned char *)( mri->chunk ) + c + r*mri->bytes_per_row +
         s*mri->bytes_per_slice + f*mri->bytes_per_vol;
     switch (mri->type)
     {
