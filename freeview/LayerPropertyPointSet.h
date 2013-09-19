@@ -9,9 +9,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/14 23:44:47 $
- *    $Revision: 1.4 $
+ *    $Author: rpwang $
+ *    $Date: 2013/09/19 20:25:17 $
+ *    $Revision: 1.5 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -33,6 +33,7 @@
 #include "LayerProperty.h"
 #include <QColor>
 #include <vector>
+#include <QVariantMap>
 
 extern "C"
 {
@@ -203,6 +204,9 @@ public slots:
 private:
   void SetColorMapChanged ();
   void UpdateScalarValues();
+
+  void LoadSettings();
+  void SaveSettings();
 
   //BTX
 

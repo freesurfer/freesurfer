@@ -11,8 +11,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2012/01/30 20:57:05 $
- *    $Revision: 1.8 $
+ *    $Date: 2013/09/19 20:25:17 $
+ *    $Revision: 1.9 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -36,6 +36,7 @@
 #include <QFile>
 #include <QStringList>
 #include <QTextStream>
+#include <QSettings>
 
 //using namespace std;
 
@@ -76,6 +77,8 @@ LayerPropertyPointSet::LayerPropertyPointSet (QObject* parent) :
   connect(this, SIGNAL(OpacityChanged(double)), this, SIGNAL(PropertyChanged()));
   connect(this, SIGNAL(RadiusChanged(double)), this, SIGNAL(PropertyChanged()));
   connect(this, SIGNAL(SplineRadiusChanged(double)), this, SIGNAL(PropertyChanged()));
+
+  LoadSettings();
 }
 
 LayerPropertyPointSet::~LayerPropertyPointSet ()
@@ -87,6 +90,30 @@ LayerPropertyPointSet::~LayerPropertyPointSet ()
       delete[] m_scalarSets[i].dValue;
     }
   }
+  SaveSettings();
+}
+
+void LayerPropertyPointSet::LoadSettings()
+{
+  QSettings s;
+  QVariantMap map = s.value("DataSettings/PointSet").toMap();
+  if (map.contains("Radius"))
+    m_dRadius = map["Radius"].toDouble();
+  if (map.contains("SplineRadius"))
+    m_dSplineRadius = map["SplineRadius"].toDouble();
+  if (map.contains("ShowSpline") && m_nType == WayPoint)
+    m_bShowSpline = map["ShowSpline"].toBool();
+}
+
+void LayerPropertyPointSet::SaveSettings()
+{
+  QSettings s;
+  QVariantMap map = s.value("DataSettings/PointSet").toMap();
+  map["Radius"] = m_dRadius;
+  map["SplineRadius"] = m_dSplineRadius;
+  map["ShowSpline"] = m_bShowSpline;
+  s.setValue("DataSettings/PointSet", map);
+  s.sync();
 }
 
 void LayerPropertyPointSet::SetColorMapChanged ()
