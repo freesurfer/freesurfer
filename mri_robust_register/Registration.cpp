@@ -8,8 +8,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2012/12/06 21:53:33 $
- *    $Revision: 1.84 $
+ *    $Date: 2013/09/19 21:54:20 $
+ *    $Revision: 1.85 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -3750,40 +3750,68 @@ void Registration::setSourceAndTarget(MRI * s, MRI * t, bool keeptype)
   }
 
   // source
-  pair<MRI*, vnl_matrix_fixed<double, 4, 4> > mm = makeIsotropic(s, NULL,
-      isosize, s_dim[0], s_dim[1], s_dim[2], keeptype);
-  if (mri_source)
-    MRIfree(&mri_source);
-  mri_source = mm.first;
-  Rsrc = mm.second;
-  bool rl = needReslice(s, isosize, s_dim[0], s_dim[1], s_dim[2], keeptype);
-  if (debug && rl)
+  if (needReslice(s, isosize,  s_dim[0], s_dim[1], s_dim[2], keeptype))
   {
-    cout << "   Reslice Src Matrix: " << endl << mm.second << endl;
-//       string n = name+string("-mriS-resample.mgz");
-//       cout << "   Writing resampled source as " << n << endl;
-//       MRIwrite(mri_source,n.c_str());
+    if (verbose > 0) cout << "    - reslicing Mov ..." << endl;
+    pair<MRI*, vnl_matrix_fixed<double, 4, 4> > mm = makeIsotropic(s, NULL,
+      isosize, s_dim[0], s_dim[1], s_dim[2], keeptype);
+    Rsrc = mm.second;
+    assert(mm.first != NULL);
+    if (mri_source)
+      MRIfree(&mri_source);
+    mri_source = mm.first;
+  
+    if (debug)
+    {
+      cout << "   Reslice Mov Matrix: " << endl << mm.second << endl;
+      string n = name+string("-mriS-resample.mgz");
+      cout << "   Writing resampled source as " << n << endl;
+      MRIwrite(mri_source,n.c_str());
+    }
   }
-  if (!rl && verbose > 0)
-    cout << "    - no Mov reslice necessary" << endl;
+  else
+  {
+    if (verbose > 0)
+      cout << "    - no Mov reslice necessary" << endl;
+    if (mri_source)
+      MRIfree(&mri_source);
+    vnl_matrix_fixed<double, 4, 4> Rm;
+    Rm.set_identity();
+    Rsrc = Rm;
+    mri_source = MRIcopy(s,NULL);
+  }
 
   // target
-  mm = makeIsotropic(t, NULL, isosize, t_dim[0], t_dim[1], t_dim[2], keeptype);
-  if (mri_target)
-    MRIfree(&mri_target);
-  mri_target = mm.first;
-  Rtrg = mm.second;
-  rl = needReslice(t, isosize, t_dim[0], t_dim[1], t_dim[2], keeptype);
-  if (debug && rl)
+  if (needReslice(t, isosize,  t_dim[0], t_dim[1], t_dim[2], keeptype))
   {
-    cout << "   Reslice Trg Matrix: " << endl << mm.second << endl;
-    string n = name + string("-mriT-resample.mgz");
-    cout << "   Writing resampled target as " << n << endl;
-    MRIwrite(mri_target, n.c_str());
+    if (verbose > 0) cout << "    - reslicing Dst ..." << endl;
+    pair<MRI*, vnl_matrix_fixed<double, 4, 4> > mm = makeIsotropic(t, NULL,
+      isosize, t_dim[0], t_dim[1], t_dim[2], keeptype);
+    Rtrg = mm.second;
+    assert(mm.first != NULL);
+    if (mri_target)
+      MRIfree(&mri_target);
+    mri_target = mm.first;
+    if (debug)
+    {
+      cout << "   Reslice Dst Matrix: " << endl << mm.second << endl;
+      string n = name + string("-mriT-resample.mgz");
+      cout << "   Writing resampled target as " << n << endl;
+      MRIwrite(mri_target, n.c_str());
+    }
   }
-  if (!rl && verbose > 0)
-    cout << "    - no Dst reslice necessary" << endl;
-
+  else
+  {
+    if (verbose > 0)
+      cout << "    - no Dst reslice necessary" << endl;
+    if (mri_target)
+      MRIfree(&mri_target);
+    vnl_matrix_fixed<double, 4, 4> Rm;
+    Rm.set_identity();
+    Rtrg = Rm;
+    mri_target = MRIcopy(t,NULL);
+  }
+  
   // flip and reorder axis of source based on RAS alignment or ixform:
   // this ensures that vox2vox rot is small and dimensions agree 
   // important for gaussian pyramid
@@ -3925,15 +3953,15 @@ std::pair<MRI*, vnl_matrix_fixed<double, 4, 4> > Registration::makeIsotropic(
     bool keeptype)
 {
 
-  out = MRIcopy(mri, out);
-  if (out->depth == 1)
-    out->zsize = out->ysize; // for 2d images adjust z voxels size
-
   vnl_matrix_fixed<double, 4, 4> Rm;
   Rm.set_identity();
 
-  if (!needReslice(out, vsize, xdim, ydim, zdim, keeptype))
-    return std::pair<MRI *, vnl_matrix_fixed<double, 4, 4> >(out, Rm);
+  if (!needReslice(mri, vsize, xdim, ydim, zdim, keeptype))
+    return std::pair<MRI *, vnl_matrix_fixed<double, 4, 4> >(NULL, Rm);
+
+  out = MRIcopy(mri, out);
+//  if (out->depth == 1)
+//    out->zsize = out->ysize; // for 2d images adjust z voxels size
 
   if (verbose > 1)
     cout << "     - will resample image or adjust type" << endl;
@@ -3948,9 +3976,11 @@ std::pair<MRI*, vnl_matrix_fixed<double, 4, 4> > Registration::makeIsotropic(
       conform_size = mri->zsize;
   }
   // get dimensions:
-  vector<int> conform_dimensions = MyMRI::findRightSize(out, conform_size,
-      false);
-  //cout<< " conform dim: " << conform_dimensions[0] << " "  << conform_dimensions[1] << " " << conform_dimensions[2] << endl;
+  vector<int> conform_dimensions = MyMRI::findRightSize(out, conform_size, false);
+  if (verbose > 1)
+    // will be cropped if larger than target dimensions
+    cout<< "     - conform dim: " << conform_dimensions[0] << " "  << conform_dimensions[1] << " " << conform_dimensions[2] << endl;
+
   if (xdim > 0)
   {
     if (xdim < conform_dimensions[0])
@@ -4010,16 +4040,17 @@ std::pair<MRI*, vnl_matrix_fixed<double, 4, 4> > Registration::makeIsotropic(
 //   }
 
   temp->width = conform_dimensions[0];
-  temp->height = conform_dimensions[1];
+  temp->height= conform_dimensions[1];
   temp->depth = conform_dimensions[2];
   temp->imnr0 = 1;
   temp->imnr1 = temp->depth;
   temp->thick = conform_size;
-  temp->ps = conform_size;
-  temp->xsize = temp->ysize = temp->zsize = conform_size;
+  temp->ps    = conform_size;
+  temp->xsize = temp->ysize = temp->zsize = conform_size;  
+  // if 2D image
   if (mri->depth == 1)
-    temp->zsize = mri->zsize; // if 2D image
-
+    temp->zsize = mri->zsize;
+    
   temp->xstart = -conform_dimensions[0] / 2;
   temp->ystart = -conform_dimensions[1] / 2;
   temp->zstart = -conform_dimensions[2] / 2;
@@ -4122,11 +4153,11 @@ std::pair<MRI*, vnl_matrix_fixed<double, 4, 4> > Registration::makeIsotropic(
 //     temp->zend   = conform_dimensions[rlookup[2]]/2;
 
     printf(
-        "       -- Original : (%g, %g, %g) mm size and (%d, %d, %d) voxels.\n",
+        "       -- Original : (%g, %g, %g)mm and (%d, %d, %d) voxels.\n",
         mri->xsize, mri->ysize, mri->zsize, mri->width, mri->height,
         mri->depth);
     printf(
-        "       -- Resampled: (%g, %g, %g) mm size and (%d, %d, %d) voxels.\n",
+        "       -- Resampled: (%g, %g, %g)mm and (%d, %d, %d) voxels.\n",
         temp->xsize, temp->ysize, temp->zsize, temp->width, temp->height,
         temp->depth);
 
@@ -4159,14 +4190,21 @@ std::pair<MRI*, vnl_matrix_fixed<double, 4, 4> > Registration::makeIsotropic(
 //    printf("   Output   : (%g, %g, %g) mm size and (%d, %d, %d) voxels.\n",
 //           mri2->xsize,mri2->ysize,mri2->zsize, mri2->width,mri2->height,mri2->depth);
 
+//MRIwrite(mri2,"mri2.mgz");
+//MRIwrite(out,"out.mgz");
+
     if (mri2 == NULL)
     {
-      cerr << "makeConform: MRIresample did not return MRI" << endl;
+      cerr << "makeIsotropic: MRIresample did not return MRI" << endl;
       exit(1);
     }
 
     MRIfree(&out);
     out = mri2;
+  }
+  else
+  {
+      cerr << "makeIsotropic WARNING: not different enough, won't reslice!" << endl;
   }
 
   MRIfree(&temp);
