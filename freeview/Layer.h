@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2013/06/11 17:05:35 $
- *    $Revision: 1.28 $
+ *    $Date: 2013/09/19 19:00:50 $
+ *    $Revision: 1.29 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -199,6 +199,16 @@ public:
 
   void ParseSubjectName(const QString& file_path);
 
+  void SetLayerIndex(int n)
+  {
+    m_nLayerIndex = n;
+  }
+
+  int GetLayerIndex()
+  {
+    return m_nLayerIndex;
+  }
+
 Q_SIGNALS:
   void NameChanged( const QString& name );
   void Transformed();
@@ -247,6 +257,8 @@ protected:
 
   int       m_nID;
   static int m_nLastID;
+
+  int       m_nLayerIndex;
 };
 
 #endif

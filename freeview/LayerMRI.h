@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2013/06/25 20:32:36 $
- *    $Revision: 1.85 $
+ *    $Date: 2013/09/19 19:00:50 $
+ *    $Revision: 1.86 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -321,7 +321,7 @@ protected slots:
   void ShowContour();
   void UpdateVolumeRendering();
   void UpdateVectorActor();
-  void UpdateVectorActor( int nPlane, vtkImageData* imagedata );
+  void UpdateVectorActor( int nPlane, vtkImageData* imagedata, vtkImageData* scaledata = NULL );
   virtual void UpdateVectorActor( int nPlane );
 
   void ResetSurfaceRegionIds();

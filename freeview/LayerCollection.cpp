@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2013/06/07 02:20:32 $
- *    $Revision: 1.39 $
+ *    $Date: 2013/09/19 19:00:50 $
+ *    $Revision: 1.40 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -78,6 +78,7 @@ bool LayerCollection::AddLayer( Layer* layer, bool initializeCoordinate )
     return false;
   }
 
+  Layer* old_top = (m_layers.isEmpty() ? NULL : m_layers[0]);
   for ( int i = 0; i < m_layers.size(); i++ )
   {
     if ( m_layers[i] == layer )
@@ -115,6 +116,11 @@ bool LayerCollection::AddLayer( Layer* layer, bool initializeCoordinate )
 
   this->SetActiveLayer( layer );
   emit LayerAdded( layer );
+
+  if (old_top && old_top->GetLayerIndex() >= m_layers.size()-1)
+  {
+    MoveToTop(old_top);
+  }
 
   return true;
 }
@@ -731,4 +737,10 @@ Layer* LayerCollection::GetLayerByName(const QString &name)
       return m_layers[i];
   }
   return NULL;
+}
+
+void LayerCollection::ClearLayerIndices()
+{
+  for (int i = 0; i < m_layers.size(); i++)
+    m_layers[i]->SetLayerIndex(0);
 }

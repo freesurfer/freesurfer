@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2013/05/30 19:47:47 $
- *    $Revision: 1.30 $
+ *    $Date: 2013/09/19 19:00:50 $
+ *    $Revision: 1.31 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -131,6 +131,7 @@ public slots:
     double ras[3] = {x, y, z};
     SetCurrentRASPosition(ras);
   }
+  void ClearLayerIndices();
 
 protected:
   QList<Layer*> m_layers;

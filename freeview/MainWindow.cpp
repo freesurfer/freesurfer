@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2013/08/29 19:06:35 $
- *    $Revision: 1.253 $
+ *    $Date: 2013/09/19 19:00:50 $
+ *    $Revision: 1.254 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -780,6 +780,16 @@ bool MainWindow::DoParseCommand(bool bAutoQuit)
     for (int i = cmds.size()-1; i >= 0; i--)
       tempList << cmds[i];
     cmds = tempList;
+  }
+  for (int i = 0; i < cmds.size(); i++)
+  {
+    if (cmds[i].contains(":basis=1"))
+    {
+      QString strg = cmds[i];
+      strg.replace(":basis=1", QString(":basis=%1").arg(i));
+      cmds.removeAt(i);
+      cmds.insert(0, strg);
+    }
   }
   AddScripts(cmds);
 
@@ -1599,6 +1609,7 @@ void MainWindow::CommandLoadVolume( const QStringList& sa )
   int nSampleMethod = m_nDefaultSampleMethod;
   bool bConform = m_bDefaultConform;
   QString gotoLabelName;
+  QVariantMap sup_data;
   for ( int i = 1; i < sa_vol.size(); i++ )
   {
     QString strg = sa_vol[i];
@@ -1753,6 +1764,10 @@ void MainWindow::CommandLoadVolume( const QStringList& sa )
       {
         m_scripts.insert(0, QString("setvolumemask ")+subArgu);
       }
+      else if (subOption == "basis")
+      {
+        sup_data["Basis"] = subArgu.toInt();
+      }
       else
       {
         cerr << "Unrecognized sub-option flag '" << strg.toAscii().constData() << "'.\n";
@@ -1815,7 +1830,7 @@ void MainWindow::CommandLoadVolume( const QStringList& sa )
   {
     orientation = 0;
   }
-  LoadVolumeFile( fn, reg_fn, bResample, nSampleMethod, bConform, orientation, gotoLabelName );
+  LoadVolumeFile( fn, reg_fn, bResample, nSampleMethod, bConform, orientation, gotoLabelName, sup_data );
 }
 
 void MainWindow::CommandSetColorMap( const QStringList& sa )
@@ -3755,7 +3770,8 @@ void MainWindow::LoadVolumeFile( const QString& filename,
                                  bool bResample_in, int nSampleMethod,
                                  bool bConform,
                                  int nGotoLabelOrientation,
-                                 const QString& strGotoLabelName )
+                                 const QString& strGotoLabelName,
+                                 const QVariantMap& sup_data)
 {
   QFileInfo fi(filename);
   bool bResample = bResample_in;
@@ -3794,6 +3810,10 @@ void MainWindow::LoadVolumeFile( const QString& filename,
       layer->SetRefVolume( mri->GetSourceVolume() );
     }
   }
+
+  if (sup_data.contains("Basis"))
+    layer->SetLayerIndex(sup_data["Basis"].toInt());
+
   m_threadIOWorker->LoadVolume( layer );
 }
 
@@ -4675,6 +4695,11 @@ void MainWindow::OnIOFinished( Layer* layer, int jobtype )
   {
     std::cout << qPrintable(qobject_cast<LayerSurface*>(layer)->GetFileName()) << " saved successfully.\n";
     m_dlgRepositionSurface->UpdateUI();
+  }
+
+  if (m_scripts.isEmpty())
+  {
+    GetLayerCollection("MRI")->ClearLayerIndices();
   }
 }
 

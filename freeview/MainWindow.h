@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2013/08/14 19:32:55 $
- *    $Revision: 1.134 $
+ *    $Date: 2013/09/19 19:00:50 $
+ *    $Revision: 1.135 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -254,7 +254,8 @@ protected:
                         int nSampleMethod = 0,
                         bool bConform = false,
                         int nGotoLabelOrientation = -1,
-                        const QString& strGotoLabelName = "" );
+                        const QString& strGotoLabelName = "",
+                        const QVariantMap& sup_data = QVariantMap());
 
   void LoadDTIFile( const QString& fn_vector,
                     const QString& fn_fa,

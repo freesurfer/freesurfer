@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2011/09/29 18:54:26 $
- *    $Revision: 1.18 $
+ *    $Date: 2013/09/19 19:00:50 $
+ *    $Revision: 1.19 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -35,7 +35,8 @@
 #include <QDebug>
 
 LayerDTI::LayerDTI( LayerMRI* ref, QObject* parent ) : LayerMRI( ref, parent ),
-  m_vectorSource( NULL)
+  m_vectorSource( NULL),
+  m_eigenvalueSource(NULL)
 {
   m_strTypeNames.push_back( "DTI" );
   if ( mProperty )
@@ -52,9 +53,10 @@ LayerDTI::LayerDTI( LayerMRI* ref, QObject* parent ) : LayerMRI( ref, parent ),
 LayerDTI::~LayerDTI()
 {
   if ( m_vectorSource )
-  {
     delete m_vectorSource;
-  }
+
+  if (m_eigenvalueSource)
+    delete m_eigenvalueSource;
 }
 
 bool LayerDTI::LoadDTIFromFile( )
@@ -74,6 +76,12 @@ bool LayerDTI::LoadDTIFromFile( )
 
   if ( !m_vectorSource->MRIRead(  m_sVectorFileName,
                                   m_sRegFilename.isEmpty() ? NULL : m_sRegFilename ) )
+  {
+    return false;
+  }
+
+  if (!m_sEigenvalueFileName.isEmpty() &&
+      !m_eigenvalueSource->MRIRead(m_sEigenvalueFileName, m_sRegFilename.isEmpty() ? NULL : m_sRegFilename ) )
   {
     return false;
   }

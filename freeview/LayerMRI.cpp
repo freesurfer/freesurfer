@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2013/09/10 20:55:44 $
- *    $Revision: 1.137 $
+ *    $Date: 2013/09/19 19:00:50 $
+ *    $Revision: 1.138 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -516,6 +516,18 @@ void LayerMRI::DoTransform(int sample_method)
     }
   }
 
+  // scale
+  double cpt[3], target_cpt[3];
+  GetRASCenter( cpt );
+  RASToTarget( cpt, target_cpt );
+  slice_tr->Translate( target_cpt[0], target_cpt[1], target_cpt[2] );
+  slice_tr->Scale( 1.0/m_dScale[0], 1.0/m_dScale[1], 1.0/m_dScale[2] );
+  slice_tr->Translate( -target_cpt[0], -target_cpt[1], -target_cpt[2] );
+
+  ras_tr->Translate( -cpt[0], -cpt[1], -cpt[2] );
+  ras_tr->Scale( m_dScale );
+  ras_tr->Translate( cpt[0], cpt[1], cpt[2] );
+
   // rotate
   for ( int i = 0; i < 3; i++ )
   {
@@ -547,17 +559,6 @@ void LayerMRI::DoTransform(int sample_method)
   slice_tr->Translate( -m_dTranslate[0], -m_dTranslate[1], -m_dTranslate[2] );
   ras_tr->Translate( m_dTranslate );
 
-  // scale
-  double cpt[3], target_cpt[3];
-  GetRASCenter( cpt );
-  RASToTarget( cpt, target_cpt );
-  slice_tr->Translate( target_cpt[0], target_cpt[1], target_cpt[2] );
-  slice_tr->Scale( 1.0/m_dScale[0], 1.0/m_dScale[1], 1.0/m_dScale[2] );
-  slice_tr->Translate( -target_cpt[0], -target_cpt[1], -target_cpt[2] );
-
-  ras_tr->Translate( -cpt[0], -cpt[1], -cpt[2] );
-  ras_tr->Scale( m_dScale );
-  ras_tr->Translate( cpt[0], cpt[1], cpt[2] );
 
   for ( int i = 0; i < 3; i++ )
   {
@@ -745,7 +746,7 @@ void LayerMRI::UpdateOpacity()
   emit ActorUpdated();
 }
 
-void LayerMRI::UpdateColorMap ()
+void LayerMRI::UpdateColorMap()
 {
   assert( GetProperty() );
 
@@ -1372,7 +1373,7 @@ void LayerMRI::UpdateVectorActor( int nPlane )
   UpdateVectorActor( nPlane, m_imageData );
 }
 
-void LayerMRI::UpdateVectorActor( int nPlane, vtkImageData* imagedata )
+void LayerMRI::UpdateVectorActor( int nPlane, vtkImageData* imagedata, vtkImageData* scaledata )
 {
   double* pos = GetSlicePosition();
   double* orig = imagedata->GetOrigin();

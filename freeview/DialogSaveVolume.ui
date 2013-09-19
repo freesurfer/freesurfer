@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>401</width>
-    <height>163</height>
+    <width>437</width>
+    <height>165</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -45,7 +45,7 @@
    <item>
     <widget class="QCheckBox" name="checkBoxNoResample">
      <property name="text">
-      <string>Do not resample when saving</string>
+      <string>Do not resample voxel data when saving (only update header)</string>
      </property>
     </widget>
    </item>

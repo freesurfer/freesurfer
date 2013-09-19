@@ -6,9 +6,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/14 23:44:47 $
- *    $Revision: 1.19 $
+ *    $Author: rpwang $
+ *    $Date: 2013/09/19 19:00:50 $
+ *    $Revision: 1.20 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -50,6 +50,16 @@ public:
     return m_sVectorFileName;
   }
 
+  void SetEigenvalueFileName( const QString& filename )
+  {
+    m_sEigenvalueFileName = filename;
+  }
+
+  QString GetEigenvalueFileName()
+  {
+    return m_sEigenvalueFileName;
+  }
+
   inline LayerPropertyDTI* GetProperty()
   {
     return (LayerPropertyDTI*)mProperty;
@@ -67,6 +77,9 @@ protected:
 
   FSVolume*  m_vectorSource;
   QString  m_sVectorFileName;
+
+  FSVolume*  m_eigenvalueSource;   // eigen values
+  QString m_sEigenvalueFileName;
 };
 
 #endif
