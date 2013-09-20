@@ -8,8 +8,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2013/09/19 21:54:20 $
- *    $Revision: 1.85 $
+ *    $Date: 2013/09/20 14:27:34 $
+ *    $Revision: 1.86 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -58,8 +58,9 @@ extern "C"
 
 using namespace std;
 
+/** Cleanup our private variables: mri_source, mri_target, Gaussian Pyramids and transform */
 Registration::~Registration()
-{ // we cleanup our private variables
+{ 
 //std::cout << " Destroy Registration" << std::endl;
   if (mri_source)
     MRIfree(&mri_source);
@@ -77,10 +78,11 @@ Registration::~Registration()
   //std::cout << " Done " << std::endl;
 }
 
-void Registration::clear() // initialize registration (keep source and target and gauss pyramid)
-// initialize registration (keep source and target and gauss pyramid)
-// also keep Rsrc and Rtrg (resampling matrices, if exist).
-// and keeps transformation type
+/**
+  Initialize registration (keep source and target and gauss pyramid)
+ also keep Rsrc and Rtrg (resampling matrices, if exist).
+ and keeps transformation type */
+void Registration::clear()
 {
 //  if (trans) delete trans;
 //  setRigid();
@@ -3978,7 +3980,7 @@ std::pair<MRI*, vnl_matrix_fixed<double, 4, 4> > Registration::makeIsotropic(
   // get dimensions:
   vector<int> conform_dimensions = MyMRI::findRightSize(out, conform_size, false);
   if (verbose > 1)
-    // will be cropped if larger than target dimensions
+    // will be cropped below, if larger than target dimensions
     cout<< "     - conform dim: " << conform_dimensions[0] << " "  << conform_dimensions[1] << " " << conform_dimensions[2] << endl;
 
   if (xdim > 0)
@@ -4189,9 +4191,6 @@ std::pair<MRI*, vnl_matrix_fixed<double, 4, 4> > Registration::makeIsotropic(
     MRI * mri2 = MRIresample(out, temp, resample_type_val);
 //    printf("   Output   : (%g, %g, %g) mm size and (%d, %d, %d) voxels.\n",
 //           mri2->xsize,mri2->ysize,mri2->zsize, mri2->width,mri2->height,mri2->depth);
-
-//MRIwrite(mri2,"mri2.mgz");
-//MRIwrite(out,"out.mgz");
 
     if (mri2 == NULL)
     {

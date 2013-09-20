@@ -10,8 +10,8 @@
  * Original Author: Martin Reuter, Nov. 4th ,2008
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2013/03/06 16:24:35 $
- *    $Revision: 1.70 $
+ *    $Date: 2013/09/20 14:27:34 $
+ *    $Revision: 1.71 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -147,7 +147,7 @@ static bool parseCommandLine(int argc, char *argv[], Parameters & P);
 static void initRegistration(Registration & R, Parameters & P);
 
 static char vcid[] =
-    "$Id: mri_robust_register.cpp,v 1.70 2013/03/06 16:24:35 mreuter Exp $";
+    "$Id: mri_robust_register.cpp,v 1.71 2013/09/20 14:27:34 mreuter Exp $";
 char *Progname = NULL;
 
 //static MORPH_PARMS  parms ;
@@ -1738,7 +1738,7 @@ static void initRegistration(Registration & R, Parameters & P)
     {
       ErrorExit(ERROR_BADFILE, "Load Iscale input: no such file ( %s )",
           P.iscalein.c_str());
-    };
+    }
     R.setIscaleInit(iscale);
   }
 
@@ -1880,11 +1880,11 @@ static int parseNextCommand(int argc, char *argv[], Parameters & P)
 
     cout << "--cost: Using cost function: " << cost << " !" << endl;
   }
-  else if (!strcmp(option, "RADIUS"))
+  else if (!strcmp(option, "ENTRADIUS")|| !strcmp(option, "RADIUS"))
   {
     P.entroradius = atoi(argv[1]);
     nargs = 1;
-    cout << "--radius: Using local boxes with radius " << P.entroradius << " = "
+    cout << "--entradius: Using local boxes with radius " << P.entroradius << " = "
         << P.entroradius * 2 + 1 << " sides. " << endl;
   }
   else if (!strcmp(option, "ENTDST"))
@@ -2141,6 +2141,11 @@ static int parseNextCommand(int argc, char *argv[], Parameters & P)
     nargs = 1;
     P.iscalein = string(argv[1]);
     cout << "--iscalein: Will use init intensity scale" << endl;
+  }
+  else if (!strcmp(option, "HELP") || !strcmp(option, "H"))
+  {
+    printUsage();
+    exit(1);
   }
   else
   {
