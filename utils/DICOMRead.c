@@ -6,9 +6,9 @@
 /*
  * Original Authors: Sebastien Gicquel and Douglas Greve, 06/04/2001
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2013/09/09 15:13:17 $
- *    $Revision: 1.153 $
+ *    $Author: twitzel $
+ *    $Date: 2013/09/23 02:50:41 $
+ *    $Revision: 1.154 $
  *
  * Copyright © 2011-2013 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -431,13 +431,24 @@ MRI * sdcmLoadVolume(const char *dcmfile, int LoadVolume, int nthonly)
     return(vol);
   }
 
-  if(strcmp(sdfi->TransferSyntaxUID,"1.2.840.10008.1.2.4.70")==0)
+  /* exclude all JPEG compressed dicoms for now */
+  if(strncmp(sdfi->TransferSyntaxUID,"1.2.840.10008.1.2.4",19)==0)
   {
     printf("ERROR: the pixel data cannot be loaded as it is JPEG compressed.\n");
     printf("       (Transfer Syntax UID: %s)\n",sdfi->TransferSyntaxUID);
     exit(1);
   }
 
+  /* exclude RLE compressed images for now */
+  if(strncmp(sdfi->TransferSyntaxUID,"1.2.840.10008.1.2.5",19)==0)
+  {
+    printf("ERROR: the pixel data cannot be loaded as it is RLE compressed.\n");
+    printf("       (Transfer Syntax UID: %s)\n",sdfi->TransferSyntaxUID);
+    printf("       You may be able to use dcmdrle (from the dcmtk package)\n");
+    printf("       to decompress the files before using mri_convert.\n"); 
+    exit(1);
+  }
+  
   /* Dump info about the first file to stdout */
   DumpSDCMFileInfo(stdout,sdfi);
   // verification of number of files vs. slices
