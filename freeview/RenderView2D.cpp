@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2013/09/10 20:11:57 $
- *    $Revision: 1.64 $
+ *    $Date: 2013/09/23 17:09:27 $
+ *    $Revision: 1.65 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -316,25 +316,29 @@ void RenderView2D::StopSelection()
 {
   m_selection2D->Show( false );
 
-  LayerMRI* layer = GetFirstNonLabelVolume();
-  if ( layer )
+  QList<Layer*> layers = MainWindow::GetMainWindow()->GetSelectedLayers("MRI");
+  for (int i = 0; i < layers.size(); i++)
   {
-    double range[2], m_dPt0[3], m_dPt2[3];
-    m_selection2D->GetWorldPoint( 0, m_dPt0 );
-    m_selection2D->GetWorldPoint( 2, m_dPt2 );
-    if ( layer->GetVoxelValueRange( m_dPt0, m_dPt2, m_nViewPlane, range ) )
+    LayerMRI* layer = qobject_cast<LayerMRI*>(layers[i]);
+    if ( layer )
     {
-      switch ( layer->GetProperty()->GetColorMap() )
+      double range[2], m_dPt0[3], m_dPt2[3];
+      m_selection2D->GetWorldPoint( 0, m_dPt0 );
+      m_selection2D->GetWorldPoint( 2, m_dPt2 );
+      if ( layer->GetVoxelValueRange( m_dPt0, m_dPt2, m_nViewPlane, range ) )
       {
-      case LayerPropertyMRI::Grayscale:
-        layer->GetProperty()->SetMinMaxGrayscaleWindow( range[0], range[1] );
-        break;
-      case LayerPropertyMRI::Heat:
-        layer->GetProperty()->SetHeatScale( range[0], (range[1]-range[0])/2, range[1] );
-        break;
-      default:
-        layer->GetProperty()->SetMinMaxGenericThreshold( range[0], range[1] );
-        break;
+        switch ( layer->GetProperty()->GetColorMap() )
+        {
+        case LayerPropertyMRI::Grayscale:
+          layer->GetProperty()->SetMinMaxGrayscaleWindow( range[0], range[1] );
+          break;
+        case LayerPropertyMRI::Heat:
+          layer->GetProperty()->SetHeatScale( range[0], (range[1]-range[0])/2, range[1] );
+          break;
+        default:
+          layer->GetProperty()->SetMinMaxGenericThreshold( range[0], range[1] );
+          break;
+        }
       }
     }
   }

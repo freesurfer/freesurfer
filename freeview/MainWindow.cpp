@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2013/09/19 19:00:50 $
- *    $Revision: 1.254 $
+ *    $Date: 2013/09/23 17:09:26 $
+ *    $Revision: 1.255 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -5905,4 +5905,17 @@ void MainWindow::OnCycleSurfaceLabel()
       n = 0;
     surf->SetActiveLabel(n);
   }
+}
+
+QList<Layer*> MainWindow::GetSelectedLayers(const QString &layerType)
+{
+  return ui->widgetAllLayers->GetSelectedLayers(layerType);
+}
+
+void MainWindow::OnGoToROI()
+{
+  LayerROI* roi = (LayerROI*)GetActiveLayer("ROI");
+  double pos[3];
+  roi->GetCentroidPosition(pos);
+  SetSlicePosition(pos);
 }

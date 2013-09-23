@@ -6,9 +6,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/14 23:44:47 $
- *    $Revision: 1.17 $
+ *    $Author: rpwang $
+ *    $Date: 2013/09/23 17:09:26 $
+ *    $Revision: 1.18 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -70,6 +70,8 @@ public:
 
   virtual void SetModified();
 
+  void GetCentroidPosition(double* pos);
+
 protected slots:
   void UpdateOpacity();
   void UpdateColorMap();
@@ -85,7 +87,7 @@ protected:
   vtkSmartPointer<vtkImageReslice>   mReslice[3];
   vtkSmartPointer<vtkImageMapToColors>  mColorMap[3];
 
-  LayerMRI*   m_layerSource;
+  LayerMRI*  m_layerSource;
   FSLabel*   m_label;
 
   vtkImageActor*  m_sliceActor2D[3];

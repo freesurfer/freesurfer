@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2013/06/11 17:05:35 $
- *    $Revision: 1.22 $
+ *    $Date: 2013/09/23 17:09:26 $
+ *    $Revision: 1.23 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -342,4 +342,10 @@ void LayerROI::UpdateLabelData( )
   {
     m_label->UpdateLabelFromImage( m_imageData, m_layerSource->GetSourceVolume() );
   }
+}
+
+void LayerROI::GetCentroidPosition(double *pos)
+{
+  m_label->GetCentroidRASPosition(pos, m_layerSource->GetSourceVolume());
+  m_layerSource->RASToTarget(pos, pos);
 }

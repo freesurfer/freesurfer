@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2013/09/19 19:00:50 $
- *    $Revision: 1.135 $
+ *    $Date: 2013/09/23 17:09:27 $
+ *    $Revision: 1.136 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -202,6 +202,8 @@ public:
   {
     return m_settings;
   }
+
+  QList<Layer*> GetSelectedLayers(const QString& layerType);
 
 Q_SIGNALS:
   void MainViewChanged( int n );
@@ -406,6 +408,7 @@ protected slots:
   void OnPlot();
   void OnLineProfile();
   void OnCycleSurfaceLabel();
+  void OnGoToROI();
 
   void OnLoadConnectomeMatrix();
   void OnCloseConnectomeMatrix();

@@ -50,7 +50,14 @@
          <number>0</number>
         </property>
         <item>
-         <widget class="PanelAllLayers" name="widgetAllLayers" native="true"/>
+         <widget class="PanelAllLayers" name="widgetAllLayers" native="true">
+          <property name="minimumSize">
+           <size>
+            <width>100</width>
+            <height>0</height>
+           </size>
+          </property>
+         </widget>
         </item>
        </layout>
       </widget>
@@ -1319,6 +1326,14 @@
     <string>Recon Edit</string>
    </property>
   </action>
+  <action name="actionGoToROI">
+   <property name="text">
+    <string>Go To Centroid</string>
+   </property>
+   <property name="toolTip">
+    <string>Go To Centroid</string>
+   </property>
+  </action>
  </widget>
  <layoutdefault spacing="6" margin="11"/>
  <customwidgets>
@@ -2554,6 +2569,22 @@
     </hint>
    </hints>
   </connection>
+  <connection>
+   <sender>actionGoToROI</sender>
+   <signal>triggered()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>OnGoToROI()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>606</x>
+     <y>435</y>
+    </hint>
+   </hints>
+  </connection>
  </connections>
  <slots>
   <slot>OnLoadVolume()</slot>
@@ -2631,5 +2662,6 @@
   <slot>OnCloseConnectomeMatrix()</slot>
   <slot>OnCycleSurfaceLabel()</slot>
   <slot>OnSetModeReconEdit()</slot>
+  <slot>OnGoToROI()</slot>
  </slots>
 </ui>
