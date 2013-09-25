@@ -11,8 +11,8 @@
  * Reimplemented by: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2013/02/05 20:51:41 $
- *    $Revision: 1.11 $
+ *    $Date: 2013/09/25 18:45:13 $
+ *    $Revision: 1.12 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -322,6 +322,11 @@ public:
     *th2 = m_dLabelContourRange[1];
   }
 
+  double GetVectorScale()
+  {
+    return m_dVectorScale;
+  }
+
 public slots:
   void SetOpacity( double opacity );
   void SetUpSampleMethod( int nUpSampleMethod );
@@ -354,6 +359,7 @@ public slots:
   void SetRememberFrameSettings(bool bFlag);
 
   void SetLabelContourRange(double dmin, double dmax);
+  void SetVectorScale(double dval);
 
 signals:
   void ColorMapChanged();
@@ -450,6 +456,8 @@ private:
   int     m_nUpSampleMethod;
 
   bool    m_bShowProjectionMap;
+
+  double  m_dVectorScale;
 
   // ---------------------------------------------------------------------
 

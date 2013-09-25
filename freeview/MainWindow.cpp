@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2013/09/23 17:09:26 $
- *    $Revision: 1.255 $
+ *    $Date: 2013/09/25 18:45:13 $
+ *    $Revision: 1.256 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -2247,7 +2247,7 @@ void MainWindow::CommandLoadDTI( const QStringList& sa )
       m_scripts.insert( 0, script );
     }
 
-    this->LoadDTIFile( fn, sa[2], reg_fn, bResample );
+    this->LoadDTIFile( fn, sa[2], sa.size() > 3 ? sa[3] : "", reg_fn, bResample );
   }
 }
 
@@ -3967,7 +3967,8 @@ void MainWindow::OnLoadDTI()
     return;
   }
 
-  this->LoadDTIFile( dlg.GetVectorFileName(), dlg.GetFAFileName(), dlg.GetRegFileName(), dlg.IsToResample() );
+  this->LoadDTIFile( dlg.GetVectorFileName(), dlg.GetFAFileName(), dlg.GetEigenvalueFileName(),
+                    dlg.GetRegFileName(), dlg.IsToResample() );
 }
 
 void MainWindow::OnLoadTrackVolume()
@@ -3981,6 +3982,7 @@ void MainWindow::OnLoadTrackVolume()
 
 void MainWindow::LoadDTIFile( const QString& fn_vector,
                               const QString& fn_fa,
+                              const QString& fn_scale,
                               const QString& reg_filename,
                               bool bResample )
 {
@@ -3999,6 +4001,10 @@ void MainWindow::LoadDTIFile( const QString& fn_vector,
   if ( !reg_filename.isEmpty() )
   {
     layer->SetRegFileName( QFileInfo(reg_filename).absoluteFilePath() );
+  }
+  if (!fn_scale.isEmpty())
+  {
+    layer->SetEigenvalueFileName(QFileInfo(fn_scale).absoluteFilePath() );
   }
   m_threadIOWorker->LoadVolume( layer );
 }

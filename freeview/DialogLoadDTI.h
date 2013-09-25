@@ -6,9 +6,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/14 23:44:46 $
- *    $Revision: 1.14 $
+ *    $Author: rpwang $
+ *    $Date: 2013/09/25 18:45:12 $
+ *    $Revision: 1.15 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -42,6 +42,7 @@ public:
   QString GetVectorFileName();
   QString GetFAFileName();
   QString GetRegFileName();
+  QString GetEigenvalueFileName();
 
   bool IsToResample();
 
@@ -57,6 +58,7 @@ protected slots:
   void OnButtonVector();
   void OnButtonFA();
   void OnButtonRegistration();
+  void OnButtonEigenvalue();
 
 private:
   Ui::DialogLoadDTI *ui;

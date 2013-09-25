@@ -12,8 +12,8 @@
  * Reimplemented by: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2013/09/10 20:55:44 $
- *    $Revision: 1.17 $
+ *    $Date: 2013/09/25 18:45:13 $
+ *    $Revision: 1.18 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -36,6 +36,7 @@
 #include "vtkLookupTable.h"
 #include "vtkImageReslice.h"
 #include "vtkPointData.h"
+#include "vtkImageData.h"
 #include "FSVolume.h"
 #include "StockColorMap.h"
 #include <QtGlobal>
@@ -87,7 +88,8 @@ LayerPropertyMRI::LayerPropertyMRI (QObject* parent) : LayerProperty( parent ),
   m_bRememberFrameSettings( false ),
   m_nActiveFrame( 0 ),
   m_bShowAsLabelContour( false ),
-  m_bContourUpsample(false)
+  m_bContourUpsample(false),
+  m_dVectorScale(1.0)
 {
   mGrayScaleTable = vtkSmartPointer<vtkRGBAColorTransferFunction>::New();
   mHeatScaleTable = vtkSmartPointer<vtkRGBAColorTransferFunction>::New();
@@ -1218,6 +1220,10 @@ void LayerPropertyMRI::SetVolumeSource ( FSVolume* source )
   mLevelRange[0] = mMinVoxelValue;
   mLevelRange[1] = mMaxVoxelValue;
 
+  double voxel_size[3];
+  source->GetImageOutput()->GetSpacing(voxel_size);
+  m_dVectorScale = qMin( qMin( voxel_size[0], voxel_size[1] ), voxel_size[2] ) / 1.8;
+
   double oneTenth;
   double highestAbsValue;
   highestAbsValue = qMax( fabs(mMinVoxelValue), fabs(mMaxVoxelValue) );
@@ -1532,5 +1538,14 @@ void LayerPropertyMRI::SetActiveFrame(int nFrame)
     m_nActiveFrame = nFrame;
     if (m_bRememberFrameSettings)
       this->OnColorMapChanged();
+  }
+}
+
+void LayerPropertyMRI::SetVectorScale(double dval)
+{
+  if (m_dVectorScale != dval)
+  {
+    m_dVectorScale = dval;
+
   }
 }

@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2011/03/22 21:21:26 $
- *    $Revision: 1.17 $
+ *    $Date: 2013/09/25 18:45:12 $
+ *    $Revision: 1.18 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -49,6 +49,11 @@ QString DialogLoadDTI::GetVectorFileName()
 QString DialogLoadDTI::GetFAFileName()
 {
   return MyUtils::CygwinPathProof(ui->lineEditFA->text().trimmed());
+}
+
+QString DialogLoadDTI::GetEigenvalueFileName()
+{
+  return MyUtils::CygwinPathProof(ui->lineEditEigenvalue->text().trimmed());
 }
 
 QString DialogLoadDTI::GetRegFileName()
@@ -131,6 +136,21 @@ void DialogLoadDTI::OnButtonRegistration()
   {
     ui->lineEditRegistration->setText( MyUtils::Win32PathProof(filename) );
     ui->lineEditRegistration->setCursorPosition( ui->lineEditRegistration->text().size() );
+  }
+}
+
+void DialogLoadDTI::OnButtonEigenvalue()
+{
+  QString filename = QFileDialog::getOpenFileName(
+                       this,
+                       "Select eigenvalue file",
+                       MainWindow::AutoSelectLastDir( m_strLastDir, "mri" ),
+                       "FA files (*.mgz *.mgh *.nii *.nii.gz *.img *.mnc);;All files (*)");
+  if ( !filename.isEmpty() )
+  {
+    ui->lineEditEigenvalue->setText( MyUtils::Win32PathProof(filename) );
+    ui->lineEditEigenvalue->setCursorPosition( ui->lineEditEigenvalue->text().size() );
+    m_strLastDir = QFileInfo(filename).canonicalPath();
   }
 }
 

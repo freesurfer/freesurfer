@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2013/09/19 19:00:50 $
- *    $Revision: 1.138 $
+ *    $Date: 2013/09/25 18:45:12 $
+ *    $Revision: 1.139 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -1404,14 +1404,14 @@ void LayerMRI::UpdateVectorActor( int nPlane, vtkImageData* imagedata, vtkImageD
   }
 
   int nCnt = 0;
-  double scale = qMin( qMin( voxel_size[0], voxel_size[1] ), voxel_size[2] ) / 1.8;
+  double scale_overall = GetProperty()->GetVectorScale();
 
   if ( GetProperty()->GetVectorRepresentation() == LayerPropertyMRI::VR_Bar )
   {
     vtkSmartPointer<vtkTubeFilter> tube = vtkSmartPointer<vtkTubeFilter>::New();
     tube->SetInput( polydata );
     tube->SetNumberOfSides( 4 );
-    tube->SetRadius( scale * 0.3 );
+    tube->SetRadius( qMin( qMin( voxel_size[0], voxel_size[1] ), voxel_size[2] ) / 8 );
     tube->CappingOn();
     vtkPolyDataMapper::SafeDownCast( m_glyphActor2D[nPlane]->GetMapper() )->SetInput( tube->GetOutput() );
     vtkPolyDataMapper::SafeDownCast( m_glyphActor3D[nPlane]->GetMapper() )->SetInput( tube->GetOutput() );
@@ -1431,6 +1431,7 @@ void LayerMRI::UpdateVectorActor( int nPlane, vtkImageData* imagedata, vtkImageD
   }
 
   unsigned char c[4] = { 0, 0, 0, 255 };
+  double scale = scale_overall;
   switch ( nPlane )
   {
   case 0:
@@ -1443,6 +1444,10 @@ void LayerMRI::UpdateVectorActor( int nPlane, vtkImageData* imagedata, vtkImageD
         v[0] = imagedata->GetScalarComponentAsDouble( n[0], i, j, 0 );
         v[1] = imagedata->GetScalarComponentAsDouble( n[0], i, j, 1 );
         v[2] = imagedata->GetScalarComponentAsDouble( n[0], i, j, 2 );
+        if (scaledata)
+          scale = scaledata->GetScalarComponentAsDouble( n[0], i, j, 0 ) * scale_overall;
+        else
+          scale = scale_overall;
         if ( vtkMath::Normalize( v ) != 0 )
         {
           for (int k = 0; k < 3; k++)
@@ -1496,6 +1501,10 @@ void LayerMRI::UpdateVectorActor( int nPlane, vtkImageData* imagedata, vtkImageD
         v[0] = imagedata->GetScalarComponentAsDouble( i, n[1], j, 0 );
         v[1] = imagedata->GetScalarComponentAsDouble( i, n[1], j, 1 );
         v[2] = imagedata->GetScalarComponentAsDouble( i, n[1], j, 2 );
+        if (scaledata)
+          scale = scaledata->GetScalarComponentAsDouble( i, n[1], j, 0 ) * scale_overall;
+        else
+          scale = scale_overall;
         if ( vtkMath::Normalize( v ) != 0 )
         {
           for (int k = 0; k < 3; k++)
@@ -1547,6 +1556,10 @@ void LayerMRI::UpdateVectorActor( int nPlane, vtkImageData* imagedata, vtkImageD
         v[0] = imagedata->GetScalarComponentAsDouble( i, j, n[2], 0 );
         v[1] = imagedata->GetScalarComponentAsDouble( i, j, n[2], 1 );
         v[2] = imagedata->GetScalarComponentAsDouble( i, j, n[2], 2 );
+        if (scaledata)
+          scale = scaledata->GetScalarComponentAsDouble( i, j, n[2], 0 ) * scale_overall;
+        else
+          scale = scale_overall;
         if ( vtkMath::Normalize( v ) != 0 )
         {
           for (int k = 0; k < 3; k++)

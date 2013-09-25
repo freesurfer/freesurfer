@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2013/09/19 19:00:50 $
- *    $Revision: 1.19 $
+ *    $Date: 2013/09/25 18:45:12 $
+ *    $Revision: 1.20 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -80,10 +80,18 @@ bool LayerDTI::LoadDTIFromFile( )
     return false;
   }
 
-  if (!m_sEigenvalueFileName.isEmpty() &&
-      !m_eigenvalueSource->MRIRead(m_sEigenvalueFileName, m_sRegFilename.isEmpty() ? NULL : m_sRegFilename ) )
+  if (!m_sEigenvalueFileName.isEmpty())
   {
-    return false;
+    m_eigenvalueSource = new FSVolume(m_volumeRef);
+    if (!m_eigenvalueSource->MRIRead(m_sEigenvalueFileName, m_sRegFilename.isEmpty() ? NULL : m_sRegFilename ) )
+    {
+      return false;
+    }
+    else
+    {
+      double scale = GetProperty()->GetVectorScale() / m_eigenvalueSource->GetMaxValue()*2;
+      GetProperty()->SetVectorScale(scale);
+    }
   }
 
   if ( m_vectorSource->GetNumberOfFrames() < 3 )
@@ -226,5 +234,6 @@ void LayerDTI::DoRestore()
 
 void LayerDTI::UpdateVectorActor( int nPlane )
 {
-  LayerMRI::UpdateVectorActor( nPlane, m_vectorSource->GetImageOutput() );
+  LayerMRI::UpdateVectorActor( nPlane, m_vectorSource->GetImageOutput(),
+                              m_eigenvalueSource ? m_eigenvalueSource->GetImageOutput() : NULL );
 }
