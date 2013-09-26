@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2011/08/29 15:25:00 $
- *    $Revision: 1.2 $
+ *    $Date: 2013/09/26 20:53:43 $
+ *    $Revision: 1.3 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -70,6 +70,8 @@ void WindowTimeCourse::UpdateData()
     FSVolume* vol = layer->GetSourceVolume();
     ui->widgetPlot->SetTimeCourseData(data, vol->GetMinValue(), vol->GetMaxValue(), layer->GetTR());
     ui->widgetPlot->SetCurrentFrame(layer->GetActiveFrame());
+    connect(layer, SIGNAL(CorrelationSurfaceChanged(LayerSurface*)),
+            this, SLOT(OnLayerCorrelationSurfaceChanged()), Qt::UniqueConnection);
   }
 }
 
@@ -85,4 +87,13 @@ void WindowTimeCourse::OnFrameChanged(int frame)
 void WindowTimeCourse::SetCurrentFrame(int n)
 {
   ui->widgetPlot->SetCurrentFrame(n);
+}
+
+void WindowTimeCourse::OnLayerCorrelationSurfaceChanged()
+{
+  LayerMRI* layer = qobject_cast<LayerMRI*>(MainWindow::GetMainWindow()->GetActiveLayer("MRI"));
+  if (layer && layer->GetCorrelationSurface())
+  {
+    hide();
+  }
 }

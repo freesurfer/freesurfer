@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2013/06/27 18:41:53 $
- *    $Revision: 1.93 $
+ *    $Date: 2013/09/26 20:53:43 $
+ *    $Revision: 1.94 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -311,6 +311,7 @@ bool LayerSurface::LoadGenericOverlayFromFile( const QString& filename, const QS
 
   emit Modified();
   emit SurfaceOverlayAdded( overlay );
+  connect(overlay, SIGNAL(DataUpdated()), this, SIGNAL(SurfaceOverlyDataUpdated()), Qt::UniqueConnection);
   return true;
 }
 

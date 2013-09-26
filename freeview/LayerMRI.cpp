@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2013/09/25 18:45:12 $
- *    $Revision: 1.139 $
+ *    $Date: 2013/09/26 20:53:42 $
+ *    $Revision: 1.140 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -3040,6 +3040,7 @@ void LayerMRI::SetCorrelationSurface(LayerSurface *surf)
     }
   }
   emit ActorUpdated();
+  emit CorrelationSurfaceChanged(surf);
 }
 
 void LayerMRI::UpdateSurfaceCorrelationData()

@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2013/09/25 18:45:13 $
- *    $Revision: 1.256 $
+ *    $Date: 2013/09/26 20:53:43 $
+ *    $Revision: 1.257 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -1265,7 +1265,7 @@ void MainWindow::OnIdle()
   }
 
   ui->actionShowCommandConsole->setChecked(m_term->isVisible());
-  ui->actionTimeCourse->setEnabled(layerVolume && layerVolume->GetNumberOfFrames() > 1);
+  ui->actionTimeCourse->setEnabled(layerVolume && layerVolume->GetNumberOfFrames() > 1 && !layerVolume->GetCorrelationSurface());
   if (ui->actionTimeCourse->isEnabled())
     ui->actionTimeCourse->setChecked(m_wndTimeCourse->isVisible());
 
@@ -5611,7 +5611,7 @@ void MainWindow::OnActiveLayerChanged(Layer* layer)
                          .arg(MyUtils::Win32PathProof(layer->GetFileName())));
     if (layer->IsTypeOf("MRI") && !layer->IsTypeOf("DTI") && !layer->IsTypeOf("PLabel"))
     {
-      if (((LayerMRI*)layer)->GetNumberOfFrames() > 1)
+      if (((LayerMRI*)layer)->GetNumberOfFrames() > 1 && !((LayerMRI*)layer)->GetCorrelationSurface())
       {
         connect(layer, SIGNAL(ActiveFrameChanged(int)), m_wndTimeCourse, SLOT(SetCurrentFrame(int)), Qt::UniqueConnection);
         connect(layer, SIGNAL(ActiveFrameChanged(int)),

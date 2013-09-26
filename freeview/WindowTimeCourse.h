@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2011/08/29 15:25:00 $
- *    $Revision: 1.2 $
+ *    $Date: 2013/09/26 20:53:43 $
+ *    $Revision: 1.3 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -43,6 +43,7 @@ public slots:
     void UpdateData();
     void OnFrameChanged(int n);
     void SetCurrentFrame(int n);
+    void OnLayerCorrelationSurfaceChanged();
 
 signals:
     void FrameChanged(int frame);
