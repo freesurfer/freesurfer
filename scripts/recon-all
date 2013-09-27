@@ -7,9 +7,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: zkaufman $
-#    $Date: 2013/08/02 16:16:44 $
-#    $Revision: 1.379.2.76 $
+#    $Author: mreuter $
+#    $Date: 2013/09/27 14:07:37 $
+#    $Revision: 1.379.2.77 $
 #
 # Copyright © 2011-2013 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -26,7 +26,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.379.2.76 2013/08/02 16:16:44 zkaufman Exp $';
+set VERSION = '$Id: recon-all,v 1.379.2.77 2013/09/27 14:07:37 mreuter Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -6180,16 +6180,35 @@ check_params:
       if ( -e $subjdir/$BaseSubjsListFname ) then
         echo ""
         echo "ERROR: It appears that this subject ID is an existing"
-        echo "       base/template from longitudinal processing (-base)."
-        echo "       Please make sure you pass all necessary flags. "
-        echo "       For example, if you are trying to re-run a -base:"
+        echo "       base/template from longitudinal processing (-base):"
+        echo "       $subjid"
+        echo "       If you are trying to re-run a -base template you"
+        echo "       need to pass the -base and all -tp flags: "
         echo ""
-        echo "       \' -base <templateid> -tp <tpNid> ... \'"
+        echo "       \' -base <templateid> -tp <tpNid> ... -all \'"
         echo ""
+        echo "       (Instead of -all you can pass other flags, such"
+        echo "       as -autorecon2 -autorecon3 to run only parts.)"
         exit 1;
       endif
     endif
 
+    # error if existing regular (cross run) is run as base
+    if ( $DoCreateBaseSubj && -e $subjdir) then
+      if ( ! -e $subjdir/$BaseSubjsListFname ) then
+        echo ""
+        echo "ERROR: It appears that the -base templateID that you passed:"
+        echo "       -base $subjid"
+        echo "       is an existing regular (cross sectional) run!"
+        echo "       Please make sure you pass a new name (not one of"
+        echo "       the time points) for the template with -base."
+        echo "       For example, if you are trying to create a -base:"
+        echo ""
+        echo "       \' -base BertTemplate -tp Bert1 -tp Bert2 ... \'"
+        echo ""
+        exit 1;      
+      endif      
+    endif
 
 
     #----------------------------------------------------------------#
