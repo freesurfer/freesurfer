@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2013/05/23 17:10:43 $
- *    $Revision: 1.20 $
+ *    $Date: 2013/10/01 16:53:30 $
+ *    $Revision: 1.21 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -438,6 +438,10 @@ void DialogTransformVolume::OnSampleMethodChanged()
     else if (ui->radioButtonCubic->isChecked())
       nMethod = SAMPLE_CUBIC_BSPLINE;
     layer->GetProperty()->SetResliceInterpolation(nMethod);
+    if (layer->IsTransformed())
+    {
+      layer->UpdateResliceInterpolation();
+    }
   }
 }
 

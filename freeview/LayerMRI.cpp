@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2013/09/26 20:53:42 $
- *    $Revision: 1.140 $
+ *    $Date: 2013/10/01 16:53:30 $
+ *    $Revision: 1.141 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -205,7 +205,7 @@ void LayerMRI::ConnectProperty()
   connect( p, SIGNAL(DisplayModeChanged()), this, SLOT(UpdateDisplayMode()) );
   connect( p, SIGNAL(LabelOutlineChanged(bool)), this, SLOT(UpdateLabelOutline()) );
   connect( p, SIGNAL(OpacityChanged(double)), this, SLOT(UpdateOpacity()) );
-  connect( p, SIGNAL(ResliceInterpolationChanged()), this, SLOT(UpdateResliceInterpolation()) );
+//  connect( p, SIGNAL(ResliceInterpolationChanged()), this, SLOT(UpdateResliceInterpolation()) );
   connect( p, SIGNAL(TextureSmoothingChanged()), this, SLOT(UpdateTextureSmoothing()) );
   connect( p, SIGNAL(UpSampleMethodChanged(int)), this, SLOT(UpdateUpSampleMethod()) );
   connect( this, SIGNAL(SurfaceRegionAdded()), this, SIGNAL(ActorChanged()));
@@ -404,11 +404,7 @@ bool LayerMRI::SaveVolume()
   }
 
   ::SetProgressCallback(ProgressCallback, 60, 100);
-  int nSampleMethod = SAMPLE_NEAREST;
-  if (mReslice[0]->GetInterpolationMode() == VTK_RESLICE_LINEAR )
-    nSampleMethod = SAMPLE_TRILINEAR;
-  else if (mReslice[0]->GetInterpolationMode() == VTK_RESLICE_CUBIC )
-    nSampleMethod = SAMPLE_CUBIC_BSPLINE;
+  int nSampleMethod = GetProperty()->GetResliceInterpolation();
   bool bSaved = m_volumeSource->MRIWrite( m_sFilename.toAscii().data(),
                                           nSampleMethod,
                                           m_bWriteResampled);
@@ -431,6 +427,7 @@ void LayerMRI::DoRestore()
   ras_tr->Identity();
   for ( int i = 0; i < 3; i++ )
   {
+    mReslice[i]->SetInterpolationModeToNearestNeighbor();
     mReslice[i]->Modified();
   }
 }
@@ -471,6 +468,7 @@ void LayerMRI::DoTransform(double *m, int sample_method)
 
 void LayerMRI::DoTransform(int sample_method)
 {
+  UpdateResliceInterpolation();
   vtkTransform* slice_tr = vtkTransform::SafeDownCast( mReslice[0]->GetResliceTransform() );
   // also record transformation in RAS space
   vtkTransform* ras_tr = m_volumeSource->GetTransform();
@@ -728,7 +726,7 @@ void LayerMRI::InitializeActors()
   }
 
   this->blockSignals( true );
-  this->UpdateResliceInterpolation();
+//  this->UpdateResliceInterpolation();
   this->UpdateTextureSmoothing();
   this->UpdateOpacity();
   this->UpdateColorMap();

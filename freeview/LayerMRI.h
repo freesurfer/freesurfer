@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2013/09/26 20:53:43 $
- *    $Revision: 1.87 $
+ *    $Date: 2013/10/01 16:53:30 $
+ *    $Revision: 1.88 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -299,6 +299,7 @@ public slots:
   {
     SetActiveFrame( nFrame-1 );
   }
+  void UpdateResliceInterpolation();
 
 Q_SIGNALS:
   void ResampleFactorChanged();
@@ -314,7 +315,6 @@ Q_SIGNALS:
 protected slots:
   void UpdateDisplayMode();
   virtual void UpdateOpacity();
-  void UpdateResliceInterpolation();
   void UpdateTextureSmoothing();
   void UpdateContour( int nSegIndex = -1 );
   void UpdateContourActor( int nSegIndex );
