@@ -14,8 +14,8 @@
  * Original Author: Douglas N Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2013/08/22 20:44:08 $
- *    $Revision: 1.222 $
+ *    $Date: 2013/10/01 23:49:31 $
+ *    $Revision: 1.223 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -555,7 +555,7 @@ static int SmoothSurfOrVol(MRIS *surf, MRI *mri, MRI *mask, double SmthLevel);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-"$Id: mri_glmfit.c,v 1.222 2013/08/22 20:44:08 greve Exp $";
+"$Id: mri_glmfit.c,v 1.223 2013/10/01 23:49:31 greve Exp $";
 const char *Progname = "mri_glmfit";
 
 int SynthSeed = -1;
@@ -1971,11 +1971,13 @@ int main(int argc, char **argv) {
 
     MRIfree(&sig);
 
-    eff = GLMEfficiency(mriglm->Xg,mriglm->glm->C[n]);
-    sprintf(tmpstr,"%s/%s/efficiency.dat",GLMDir,mriglm->glm->Cname[n]);
-    fp = fopen(tmpstr,"w");
-    fprintf(fp,"%g\n",eff);
-    fclose(fp);
+    if(mriglm->npvr == 0){
+      eff = GLMEfficiency(mriglm->Xg,mriglm->glm->C[n]);
+      sprintf(tmpstr,"%s/%s/efficiency.dat",GLMDir,mriglm->glm->Cname[n]);
+      fp = fopen(tmpstr,"w");
+      fprintf(fp,"%g\n",eff);
+      fclose(fp);
+    }
   } // contrasts
   
   if(UseStatTable){
