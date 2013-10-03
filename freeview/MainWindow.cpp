@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2013/09/26 20:53:43 $
- *    $Revision: 1.257 $
+ *    $Date: 2013/10/03 15:47:27 $
+ *    $Revision: 1.258 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -407,6 +407,14 @@ MainWindow::MainWindow( QWidget *parent, MyCmdLineParser* cmdParser ) :
   QTimer* timer = new QTimer( this );
   connect( timer, SIGNAL( timeout() ), this, SLOT( OnIdle() ), Qt::QueuedConnection );
   timer->start( 500 );
+
+  ui->menuFile->setTearOffEnabled(true);
+  ui->menuEdit->setTearOffEnabled(true);
+  ui->menuView->setTearOffEnabled(true);
+  ui->menuLayer->setTearOffEnabled(true);
+  ui->menuAction->setTearOffEnabled(true);
+  ui->menuTools->setTearOffEnabled(true);
+  ui->menuHelp->setTearOffEnabled(true);
 }
 
 MainWindow::~MainWindow()
