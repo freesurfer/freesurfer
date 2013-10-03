@@ -1,6 +1,6 @@
 % fast_selxavg3.m
 %
-% $Id: fast_selxavg3.m,v 1.100.2.3 2013/06/07 23:48:38 greve Exp $
+% $Id: fast_selxavg3.m,v 1.100.2.4 2013/10/03 19:24:36 greve Exp $
 
 
 %
@@ -9,8 +9,8 @@
 % Original Author: Doug Greve
 % CVS Revision Info:
 %    $Author: greve $
-%    $Date: 2013/06/07 23:48:38 $
-%    $Revision: 1.100.2.3 $
+%    $Date: 2013/10/03 19:24:36 $
+%    $Revision: 1.100.2.4 $
 %
 % Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 %
@@ -31,7 +31,7 @@ fprintf('%s\n',sess);
 
 
 fprintf('-------------------------\n');
-fprintf('$Id: fast_selxavg3.m,v 1.100.2.3 2013/06/07 23:48:38 greve Exp $\n');
+fprintf('$Id: fast_selxavg3.m,v 1.100.2.4 2013/10/03 19:24:36 greve Exp $\n');
 which fast_selxavg3
 which fast_ldanaflac
 which MRIread
@@ -58,7 +58,7 @@ if(isempty(flac0))
   if(~monly) quit; end
   return; 
 end
-flac0.sxaversion = '$Id: fast_selxavg3.m,v 1.100.2.3 2013/06/07 23:48:38 greve Exp $';
+flac0.sxaversion = '$Id: fast_selxavg3.m,v 1.100.2.4 2013/10/03 19:24:36 greve Exp $';
 
 flac0.sess = sess;
 flac0.nthrun = 1;
@@ -121,42 +121,49 @@ for nthouter = outer_runlist
     runflac(nthrun).flac = flac;
   end
 
-  % Load the brain mask
-  if(flac0.PerSession)
-    % Native space
-    if(~isempty(flac0.maskfspec))
-      mask = MRIread(flac0.maskfspec);
-      if(isempty(mask))
-	fprintf('ERROR: cannot load %s\n',flac0.maskfspec);
-	fprintf(fplf,'ERROR: cannot load %s\n',flac0.maskfspec);
-	return;
+  if(~isempty(flac0.mask))
+    % Load the brain mask
+    if(flac0.PerSession)
+      % Native space
+      if(~isempty(flac0.maskfspec))
+	mask = MRIread(flac0.maskfspec);
+	if(isempty(mask))
+	  fprintf('ERROR: cannot load %s\n',flac0.maskfspec);
+	  fprintf(fplf,'ERROR: cannot load %s\n',flac0.maskfspec);
+	  return;
+	end
+      else
+	tmp = MRIread(flac0.funcfspec,1);
+	mask = tmp;
+	mask.vol = ones(tmp.volsize);
+	clear tmp;
       end
     else
-      tmp = MRIread(flac0.funcfspec,1);
-      mask = tmp;
-      mask.vol = ones(tmp.volsize);
-      clear tmp;
+      % Non-native space, load per-run mask
+      mask = flac0.mri;
+      mask.vol = 0;
+      for nthrun = nthrunlist
+	flac = runflac(nthrun).flac;
+	runmask = MRIread(flac.maskfspec);
+	if(isempty(runmask)) 
+	  fprintf('ERROR: cannot load %s\n',flac.maskfspec);
+	  fprintf(fplf,'ERROR: cannot load %s\n',flac.maskfspec);
+	  return;
+	end
+	mask.vol = mask.vol + runmask.vol;
+      end
+      if(perrun) nmv = 1;
+      else       nmv = nruns;
+      end
+      mask.vol = (mask.vol == nmv); % Take intersection
     end
   else
-    % Non-native space, load per-run mask
-    mask = flac0.mri;
-    mask.vol = 0;
-    for nthrun = nthrunlist
-      flac = runflac(nthrun).flac;
-      runmask = MRIread(flac.maskfspec);
-      if(isempty(runmask)) 
-	fprintf('ERROR: cannot load %s\n',flac.maskfspec);
-	fprintf(fplf,'ERROR: cannot load %s\n',flac.maskfspec);
-	return;
-      end
-      mask.vol = mask.vol + runmask.vol;
-    end
-    if(perrun) nmv = 1;
-    else       nmv = nruns;
-    end
-    mask.vol = (mask.vol == nmv); % Take intersection
+    fprintf('No mask used\n');
+    hdr = MRIread(flac0.funcfspec,1);
+    mask = hdr;
+    mask.vol = ones(hdr.volsize);
   end
-
+  
   % Save mask
   outmaskfile = sprintf('%s/mask.%s',outanadir,ext);
   MRIwrite(mask,outmaskfile);
