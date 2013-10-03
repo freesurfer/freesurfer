@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2011/10/18 18:13:24 $
- *    $Revision: 1.9 $
+ *    $Date: 2013/10/03 15:00:32 $
+ *    $Revision: 1.10 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -165,11 +165,11 @@ MRI* VolumeFilter::CreateMRIFromVolume( LayerMRI* layer )
               break;
             case MRI_LONG:
               MRILseq_vox( mri, i, j, k, nFrame ) =
-                (int)image->GetScalarComponentAsDouble(i, j, k, nFrame);
+                (long)image->GetScalarComponentAsDouble(i, j, k, nFrame);
               break;
             case MRI_FLOAT:
               MRIFseq_vox( mri, i, j, k, nFrame ) =
-                (int)image->GetScalarComponentAsDouble(i, j, k, nFrame);
+                (float)image->GetScalarComponentAsDouble(i, j, k, nFrame);
               break;
             case MRI_SHORT:
               MRISseq_vox( mri, i, j, k, nFrame ) =
