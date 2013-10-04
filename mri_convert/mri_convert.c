@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl (Apr 16, 1997)
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2013/06/05 17:00:52 $
- *    $Revision: 1.204 $
+ *    $Author: greve $
+ *    $Date: 2013/10/04 18:33:25 $
+ *    $Revision: 1.205 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -213,7 +213,7 @@ int main(int argc, char *argv[])
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mri_convert.c,v 1.204 2013/06/05 17:00:52 fischl Exp $",
+   "$Id: mri_convert.c,v 1.205 2013/10/04 18:33:25 greve Exp $",
    "$Name:  $",
    cmdline);
 
@@ -338,7 +338,7 @@ int main(int argc, char *argv[])
     handle_version_option
     (
       argc, argv,
-      "$Id: mri_convert.c,v 1.204 2013/06/05 17:00:52 fischl Exp $",
+      "$Id: mri_convert.c,v 1.205 2013/10/04 18:33:25 greve Exp $",
       "$Name:  $"
     );
   if (nargs && argc - nargs == 1)
@@ -1274,6 +1274,14 @@ int main(int argc, char *argv[])
       fclose(fptmp);
     }
     /*-------------------------------------------------------------*/
+    else if ( (strcmp(argv[i], "--nslices-override") == 0)) {
+      int NSlicesOverride;
+      get_ints(argc, argv, &i, &NSlicesOverride, 1);
+      printf("NSlicesOverride %d\n",NSlicesOverride);
+      sprintf(tmpstr,"%d",NSlicesOverride);
+      setenv("NSLICES_OVERRIDE_BCHWAUNIE",tmpstr,1);
+    }
+    /*-------------------------------------------------------------*/
     else if ( (strcmp(argv[i], "--nspmzeropad") == 0) ||
               (strcmp(argv[i], "--out_nspmzeropad") == 0))
     {
@@ -1630,7 +1638,7 @@ int main(int argc, char *argv[])
             "= --zero_ge_z_offset option ignored.\n");
   }
 
-  printf("$Id: mri_convert.c,v 1.204 2013/06/05 17:00:52 fischl Exp $\n");
+  printf("$Id: mri_convert.c,v 1.205 2013/10/04 18:33:25 greve Exp $\n");
   printf("reading from %s...\n", in_name_only);
 
 #if  0

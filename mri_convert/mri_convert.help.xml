@@ -143,6 +143,8 @@ The main and aux volumes should overlap very closely. If they do not, use tkregi
       <explanation>keep slices s_start to s_end</explanation> 
       <argument>--slice-reverse </argument>
       <explanation>reverse order of slices, update vox2ras</explanation> 
+      <argument>--nslices-override nslices </argument>
+      <explanation>Use this number of slices when converting DICOM mosaics</explanation> 
       <argument>--slice-bias alpha </argument>
       <explanation>apply half-cosine bias field</explanation> 
       <argument>--fwhm fwhm </argument>
