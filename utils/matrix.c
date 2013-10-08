@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2013/09/09 13:01:46 $
- *    $Revision: 1.131 $
+ *    $Date: 2013/10/08 12:59:32 $
+ *    $Revision: 1.132 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -1833,6 +1833,8 @@ MatrixSVDInverse(MATRIX *m, MATRIX *m_inverse)
   int     row, rows, cols ;
   float   wmax, wmin ;
 
+  if (MatrixIsZero(m))
+    return(NULL) ;
   cols = m->cols ;
   rows = m->rows ;
   m_U = MatrixCopy(m, NULL) ;
@@ -2449,6 +2451,8 @@ MatrixSingular(MATRIX *m)
   int     row, rows, cols ;
   float   wmax, wmin, wi ;
 
+  if (MatrixIsZero(m))
+    return(1) ;
   cols = m->cols ;
   rows = m->rows ;
   m_U = MatrixCopy(m, NULL) ;
@@ -2482,6 +2486,20 @@ MatrixSingular(MATRIX *m)
 #endif
 }
 
+int
+MatrixIsZero(MATRIX *m)
+{
+  int row, col ;
+
+  for (row = 1 ; row <= m->rows ; row++)
+    for (col = 1 ; col <= m->cols ; col++)
+    {
+      if (!DZERO(*MATRIX_RELT(m, row, col)))
+	return(0) ;
+    }
+
+  return(1) ;
+}
 
 /*
   calcluate the condition # of a matrix using svd
@@ -2494,6 +2512,8 @@ float MatrixConditionNumber(MATRIX *m)
   int     row, rows, cols ;
   float   wmax, wmin, wi ;
 
+  if (MatrixIsZero(m))
+    return(1e10) ;
   cols = m->cols ;
   rows = m->rows ;
   m_U = MatrixCopy(m, NULL) ;
@@ -3570,6 +3590,8 @@ MatrixSVDPseudoInverse(MATRIX *m, MATRIX *m_pseudo_inv)
     m_V = MatrixAlloc(cols, cols, MATRIX_REAL) ;
     v_S = VectorAlloc(cols, MATRIX_REAL) ;
 
+    if (MatrixIsZero(m))
+      return(NULL) ;
     OpenSvdcmp(m_U, v_S, m_V) ;
 
     for (r = 1 ; r <= v_S->rows ; r++)
