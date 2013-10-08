@@ -1,12 +1,12 @@
 #!/bin/tcsh -f
 # mni152reg
 
-set VERSION = '$Id: mni152reg,v 1.1 2010/02/25 03:16:48 greve Exp $';
+set VERSION = '$Id: mni152reg,v 1.4.2.1 2013/10/08 15:21:31 greve Exp $';
 
 set subject = ();
 set res = 2;
+set outreg = ();
 
-set tmpdir = ();
 set cleanup = 1;
 set LF = ();
 
@@ -32,7 +32,12 @@ goto check_params;
 check_params_return:
 
 set sd = $SUBJECTS_DIR/$subject
-set LF = $sd/scripts/mni152reg.log
+if($#outreg == 0) then
+  set LF = $sd/scripts/mni152reg.log
+  set outreg = $sd/mri/transforms/reg.mni152.$res"mm.dat"
+else
+  set LF = $outreg.log
+endif
 rm -f $LF
 
 echo "Log file for mni152reg" >> $LF
@@ -44,12 +49,29 @@ echo $0 $inputargs | tee -a $LF
 echo "" | tee -a $LF
 uname -a  | tee -a $LF
 
-set mni152reg = $sd/mri/transforms/reg.mni152.$res"mm.dat"
+if(-e /scratch) then
+  set tmpdir = /scratch/mni152reg.$$
+else
+  set tmpdir = $SUBJECTS_DIR/$subject/tmp/mni152reg.$$
+endif
 
-set cmd = (fslregister --mov $mni152 --s $subject --reg $mni152reg --dof 12)
+set cmd = (fslregister --mov $mni152 --s $subject --reg $outreg --dof 12)
+set cmd = ($cmd --tmp $tmpdir --cleanup)
 echo $cmd | tee -a $LF
 $cmd | tee -a $LF
 if($status) exit 1;
+
+if(-e $SUBJECTS_DIR/$subject/mri/) then
+  set orig = $SUBJECTS_DIR/$subject/mri/orig.mgz
+  set mni152orig = $SUBJECTS_DIR/$subject/mri/mni152.orig.mgz
+  set cmd = (mri_vol2vol --mov $mni152 --targ $orig --reg $outreg --inv --o $mni152orig)
+  echo $cmd | tee -a $LF
+  $cmd | tee -a $LF
+  if($status) exit 1;
+endif
+
+date  | tee -a $LF
+echo "mni152reg done" | tee -a $LF
 
 exit 0
 
@@ -67,6 +89,11 @@ while( $#argv != 0 )
     case "--s":
       if($#argv < 1) goto arg1err;
       set subject = $argv[1]; shift;
+      breaksw
+
+    case "--o":
+      if($#argv < 1) goto arg1err;
+      set outreg = $argv[1]; shift;
       breaksw
 
     case "--1":
@@ -127,6 +154,7 @@ usage_exit:
   echo "mni152reg --s subject"
   echo ""
   echo "  --1 : register to 1mm target (instead of 2mm)"
+  echo "  --o outreg : explicity set output"
   echo ""
 
   if(! $PrintHelp) exit 1;
