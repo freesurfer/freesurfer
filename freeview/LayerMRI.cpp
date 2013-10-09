@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2013/10/01 16:53:30 $
- *    $Revision: 1.141 $
+ *    $Date: 2013/10/09 15:55:32 $
+ *    $Revision: 1.142 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -489,7 +489,7 @@ void LayerMRI::DoTransform(int sample_method)
     pos[2] = m_dSlicePosition[2];
   }
 
-  // flip
+  // flip first
   for (int i = 0; i < 3; i++)
   {
     if (m_bFlip[i])
@@ -514,7 +514,7 @@ void LayerMRI::DoTransform(int sample_method)
     }
   }
 
-  // scale
+  // then scale
   double cpt[3], target_cpt[3];
   GetRASCenter( cpt );
   RASToTarget( cpt, target_cpt );

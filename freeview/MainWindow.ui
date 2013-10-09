@@ -867,7 +867,7 @@
     <string>Reset View to Nearest Axis (3D View)</string>
    </property>
    <property name="shortcut">
-    <string>Alt+R</string>
+    <string>Ctrl+Alt+R</string>
    </property>
   </action>
   <action name="actionShowCoordinateAnnotation">
