@@ -8,8 +8,8 @@
 # Original Author: Anastasia Yendiki
 # CVS Revision Info:
 #    $Author: ayendiki $
-#    $Date: 2013/02/16 00:55:13 $
-#    $Revision: 1.42 $
+#    $Date: 2013/10/11 14:27:36 $
+#    $Revision: 1.43 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -25,7 +25,7 @@
 
 umask 002
 
-set VERSION = '$Id: trac-preproc,v 1.42 2013/02/16 00:55:13 ayendiki Exp $'
+set VERSION = '$Id: trac-preproc,v 1.43 2013/10/11 14:27:36 ayendiki Exp $'
 set ProgName = `basename $0`
 set inputargs = ($argv)
 
@@ -1356,21 +1356,21 @@ if ($dotensor && ! $dolong) then
             $cmd |& tee -a $LF
             if ($status) goto error_exit
           endif
-        endif
 
-        if (-e $xfmdir/cvs/$cvswarp.m3z) then
-          set cmd = mri_vol2vol
-          set cmd = ($cmd --mov  $dwidir/anatorig/$fname.$reg.nii.gz)
-          set cmd = ($cmd --targ $SUBJECTS_DIR/$cvstemp/mri/norm.mgz)
-          set cmd = ($cmd --o    $dwidir/cvs/$fname.$reg.nii.gz)
-          set cmd = ($cmd --m3z  $xfmdir/cvs/$cvswarp.m3z)
-          set cmd = ($cmd --noDefM3zPath)
-          set cmd = ($cmd --interp trilin)
-          set cmd = ($cmd --no-save-reg)
-          echo $cmd |& tee -a $LF |& tee -a $CF
-          if ($RunIt) then
-            $cmd |& tee -a $LF
-            if ($status) goto error_exit
+          if (-e $xfmdir/cvs/$cvswarp.m3z) then
+            set cmd = mri_vol2vol
+            set cmd = ($cmd --mov  $dwidir/anatorig/$fname.$reg.nii.gz)
+            set cmd = ($cmd --targ $SUBJECTS_DIR/$cvstemp/mri/norm.mgz)
+            set cmd = ($cmd --o    $dwidir/cvs/$fname.$reg.nii.gz)
+            set cmd = ($cmd --m3z  $xfmdir/cvs/$cvswarp.m3z)
+            set cmd = ($cmd --noDefM3zPath)
+            set cmd = ($cmd --interp trilin)
+            set cmd = ($cmd --no-save-reg)
+            echo $cmd |& tee -a $LF |& tee -a $CF
+            if ($RunIt) then
+              $cmd |& tee -a $LF
+              if ($status) goto error_exit
+            endif
           endif
         endif
       end
@@ -1668,6 +1668,8 @@ set cmdline = ($argv)
 
 while( $#argv != 0 )
   set flag = $argv[1]; shift;
+
+  if ("$flag" == ";") break;
 
   switch($flag)
     case "-c":
