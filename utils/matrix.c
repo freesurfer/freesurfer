@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2013/10/08 12:59:32 $
- *    $Revision: 1.132 $
+ *    $Date: 2013/10/15 22:46:33 $
+ *    $Revision: 1.133 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -2490,12 +2490,18 @@ int
 MatrixIsZero(MATRIX *m)
 {
   int row, col ;
+  double val ;
 
   for (row = 1 ; row <= m->rows ; row++)
     for (col = 1 ; col <= m->cols ; col++)
     {
-      if (!DZERO(*MATRIX_RELT(m, row, col)))
+      val = fabs(*MATRIX_RELT(m, row, col)) ;
+      if (val>1e-11)
+      {
+	if (val < 1e-10)
+	  DiagBreak() ;
 	return(0) ;
+      }
     }
 
   return(1) ;
@@ -2509,10 +2515,15 @@ float MatrixConditionNumber(MATRIX *m)
   float cond ;
   VECTOR  *v_w ;
   MATRIX  *m_U, *m_V ;
-  int     row, rows, cols ;
+  int     row, rows, cols, ret ;
   float   wmax, wmin, wi ;
+  static int callno = 0 ;
 
-  if (MatrixIsZero(m))
+  if (++callno == 62450)
+    DiagBreak() ;
+
+  ret = MatrixIsZero(m) ;
+  if (ret)
     return(1e10) ;
   cols = m->cols ;
   rows = m->rows ;
