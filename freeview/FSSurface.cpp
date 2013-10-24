@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2013/04/05 17:43:31 $
- *    $Revision: 1.68 $
+ *    $Date: 2013/10/24 17:20:26 $
+ *    $Revision: 1.69 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -246,6 +246,16 @@ bool FSSurface::MRISRead( const QString& filename,
     MRIfree( &tmp );
     MatrixFree( &vox2rasScanner );
     MatrixFree( &vo2rasTkReg );
+  }
+  else if ( !m_MRIS->useRealRAS && m_volumeRef )
+  {
+    MATRIX* m = RASFromSurfaceRAS_( m_volumeRef->GetMRI());
+    for ( int i = 0; i < 16; i++ )
+    {
+      m_SurfaceToRASMatrix[i] =
+        (double) *MATRIX_RELT( m, (i/4)+1, (i%4)+1 );
+    }
+    MatrixFree(&m);
   }
 
   // Make our transform object and set the matrix.
