@@ -29,6 +29,16 @@ using namespace std;
 //
 AffineReg::AffineReg() {}
 
+AffineReg::AffineReg(vector<float> &InToOut) {
+  if (InToOut.size() != 16) {
+    cout << "ERROR: Affine transform must be a 4x4 matrix" << endl;
+    exit(1);
+  }
+
+  mInToOut.resize(16);
+  copy(InToOut.begin(), InToOut.end(), mInToOut.begin());
+}
+
 AffineReg::~AffineReg() {}
 
 bool AffineReg::IsEmpty() { return mInToOut.empty(); }
@@ -111,6 +121,169 @@ void AffineReg::ApplyXfm(vector<float> &OutPoint,
 
   for (int i = 0; i < 3; i++)
     OutPoint[i] = pout[i] / pout[3] / mOutVoxelSize[i];
+}
+
+//
+// Decompose an affine transform into its parameters
+//
+void AffineReg::DecomposeXfm() {
+  float t11 = mInToOut[0], t12 = mInToOut[1], t13 = mInToOut[2],
+        t21 = mInToOut[4], t22 = mInToOut[5], t23 = mInToOut[6],
+        t31 = mInToOut[8], t32 = mInToOut[9], t33 = mInToOut[10],
+        yznorm, zxnorm,
+        sinx, cosx, siny, cosy, sinz, cosz;
+  const float x2 = t11*t11 + t21*t21 + t31*t31,
+              y2 = t12*t12 + t22*t22 + t32*t32,
+              z2 = t13*t13 + t23*t23 + t33*t33,
+              xy = t11*t12 + t21*t22 + t31*t32,
+              yz = t12*t13 + t22*t23 + t32*t33,
+              zx = t13*t11 + t23*t21 + t33*t31;
+  const float cx = 0.0, cy = 0.0, cz = 0.0;	// TODO: center of geometry
+
+  // Translation
+  mTranslate.resize(3);
+  mTranslate[0] = mInToOut[3]  - cx + t11*cx + t12*cy + t13*cz;
+  mTranslate[1] = mInToOut[7]  - cy + t21*cx + t22*cy + t23*cz;
+  mTranslate[2] = mInToOut[11] - cz + t31*cx + t32*cy + t33*cz;
+
+  // Scaling and shearing
+  mScale.resize(3);
+  mShear.resize(3);
+
+  mScale[0] = sqrt(x2);
+  mScale[1] = sqrt(y2 - xy*xy/x2);
+  mShear[0] = xy / (mScale[0] * mScale[1]);
+  zxnorm = zx / mScale[0];
+  yznorm = yz/mScale[1] - mShear[0]*zx/mScale[0];
+  mScale[2] = sqrt(z2 - zxnorm*zxnorm - yznorm*yznorm);
+  mShear[1] = zxnorm / mScale[2];
+  mShear[2] = yznorm / mScale[2];
+
+  // Remove scaling portion of affine transform
+  // T = (Rotate * Shear * Scale) * (Scale)^-1
+  t11 /= mScale[0]; t12 /= mScale[1]; t13 /= mScale[2];
+  t21 /= mScale[0]; t22 /= mScale[1]; t23 /= mScale[2];
+  t31 /= mScale[0]; t32 /= mScale[1]; t33 /= mScale[2];
+
+  // Remove shearing portion of affine transform
+  // T = (Rotate * Shear) * (Shear)^-1
+  t13 += (t11 * (mShear[0]*mShear[2]-mShear[1]) - t12 * mShear[2]);
+  t12 += (-t11 * mShear[0]);
+  t23 += (t21 * (mShear[0]*mShear[2]-mShear[1]) - t22 * mShear[2]);
+  t22 += (-t21 * mShear[0]);
+  t33 += (t31 * (mShear[0]*mShear[2]-mShear[1]) - t32 * mShear[2]);
+  t32 += (-t31 * mShear[0]);
+
+  // Rotation
+  // T = Rotate_x * Rotate_y * Rotate_z
+  //   = [ cosy*cosz                    -cosy*sinz                   siny 
+  //       cosx*sinz + cosz*sinx*siny   cosx*cosz - sinx*siny*sinz   -cosy*sinx
+  //       sinx*sinz - cosx*cosz*siny   cosz*sinx + cosx*siny*sinz   cosx*cosy ]
+  mRotate.resize(3);
+  cosy = sqrt(t11*t11 + t12*t12);
+
+  if (cosy < 1e-4) {
+    sinx = -t32;
+    cosx = t22;
+    siny = -t13;
+
+    mRotate[0] = atan2(sinx, cosx);
+    mRotate[1] = atan2(siny, (float) 0.0);
+    mRotate[2] = 0.0;
+  }
+  else {
+    sinx = t23 / cosy;
+    cosx = t33 / cosy;
+    siny = -t13;
+    sinz = t12 / cosy;
+    cosz = t11 / cosy;
+
+    mRotate[0] = atan2(sinx, cosx);
+    mRotate[1] = atan2(siny, cosy);
+    mRotate[2] = atan2(sinz, cosz);
+  }
+}
+
+//
+// Print scaling matrix
+//
+void AffineReg::PrintScale() {
+  if (mScale.empty())
+    DecomposeXfm();
+
+  cout << "Scale matrix:" << endl
+       << mScale[0] << "\t" << 0         << "\t" << 0         << endl
+       << 0         << "\t" << mScale[1] << "\t" << 0         << endl
+       << 0         << "\t" << 0         << "\t" << mScale[2] << endl;
+}
+
+//
+// Print shearing matrix
+//
+void AffineReg::PrintShear() {
+  if (mShear.empty())
+    DecomposeXfm();
+
+  cout << "Shear matrix:" << endl
+       << 1         << "\t" << mShear[0] << "\t" << mShear[1] << endl
+       << 0         << "\t" << 1         << "\t" << mShear[2] << endl
+       << 0         << "\t" << 0         << "\t" << 1         << endl;
+}
+
+//
+// Print rotation matrix
+//
+void AffineReg::PrintRotate() {
+  float sinx, cosx, siny, cosy, sinz, cosz;
+
+  if (mRotate.empty())
+    DecomposeXfm();
+
+  sinx = sin(mRotate[0]);
+  cosx = cos(mRotate[0]);
+  siny = sin(mRotate[1]);
+  cosy = cos(mRotate[1]);
+  sinz = sin(mRotate[2]);
+  cosz = cos(mRotate[2]);
+
+  cout << "Rotation matrix:" << endl
+       << cosy*cosz                  << "\t"
+       << -cosy*sinz                 << "\t" << siny       << endl
+       << cosx*sinz + cosz*sinx*siny << "\t"
+       << cosx*cosz - sinx*siny*sinz << "\t" << -cosy*sinx << endl
+       << sinx*sinz - cosx*cosz*siny << "\t" 
+       << cosz*sinx + cosx*siny*sinz << "\t" << cosx*cosy  << endl;
+}
+
+//
+// Return components of affine transform
+//
+vector<float> AffineReg::GetTranslate() {
+  if (mTranslate.empty())
+    DecomposeXfm();
+
+  return mTranslate;
+}
+
+vector<float> AffineReg::GetRotate() {
+  if (mRotate.empty())
+    DecomposeXfm();
+
+  return mRotate;
+}
+
+vector<float> AffineReg::GetShear() {
+  if (mShear.empty())
+    DecomposeXfm();
+
+  return mShear;
+}
+
+vector<float> AffineReg::GetScale() {
+  if (mScale.empty())
+    DecomposeXfm();
+
+  return mScale;
 }
 
 #ifndef NO_CVS_UP_IN_HERE

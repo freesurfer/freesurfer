@@ -52,16 +52,26 @@
 class AffineReg {
   public:
     AffineReg();
+    AffineReg(std::vector<float> &InToOut);
     ~AffineReg();
     bool IsEmpty();
     void ReadXfm(const char *XfmFile, const MRI *InRefVol, 
                                       const MRI *OutRefVol);
     void ApplyXfm(std::vector<float> &OutPoint,
                   std::vector<float>::const_iterator InPoint);
+    void DecomposeXfm();
+    void PrintScale();
+    void PrintShear();
+    void PrintRotate();
+    std::vector<float> GetTranslate();
+    std::vector<float> GetRotate();
+    std::vector<float> GetShear();
+    std::vector<float> GetScale();
 
   private:
-    std::vector<float> mInToOut,			// [4 x 4]
-                       mInVoxelSize, mOutVoxelSize;	// [3]
+    std::vector<float> mInToOut,				// [4 x 4]
+                       mInVoxelSize, mOutVoxelSize,		// [3]
+                       mTranslate, mRotate, mScale, mShear;	// [3]
 };
 
 #ifndef NO_CVS_UP_IN_HERE
