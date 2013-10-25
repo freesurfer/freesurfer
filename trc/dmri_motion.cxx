@@ -8,8 +8,8 @@
  * Original Author: Anastasia Yendiki
  * CVS Revision Info:
  *    $Author: ayendiki $
- *    $Date: 2013/10/25 03:12:59 $
- *    $Revision: 1.1 $
+ *    $Date: 2013/10/25 03:25:03 $
+ *    $Revision: 1.2 $
  *
  * Copyright © 2013 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -121,6 +121,11 @@ int main(int argc, char **argv) {
   // Read DWIs
   cout << "Reading DWI volume series..." << endl;
   dwi = MRIread(inDwiFile);
+  if (!dwi) {
+    cout << "ERROR: Could not read " << inDwiFile << endl;
+    exit(1);
+  }
+
   nx = dwi->width;
   ny = dwi->height;
   nz = dwi->depth;
