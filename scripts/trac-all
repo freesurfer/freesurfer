@@ -8,8 +8,8 @@
 # Original Author: Anastasia Yendiki
 # CVS Revision Info:
 #    $Author: ayendiki $
-#    $Date: 2013/02/23 01:59:42 $
-#    $Revision: 1.47 $
+#    $Date: 2013/10/25 03:41:44 $
+#    $Revision: 1.48 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -25,7 +25,7 @@
 
 umask 002
 
-set VERSION = '$Id: trac-all,v 1.47 2013/02/23 01:59:42 ayendiki Exp $'
+set VERSION = '$Id: trac-all,v 1.48 2013/10/25 03:41:44 ayendiki Exp $'
 set ProgName = `basename $0`
 set inputargs = ($argv)
 
@@ -73,6 +73,7 @@ set dobedpost = 0
 set dopaths = 0
 
 set docorr = 0
+set doqa = 0
 set dointra = 0
 set dointer = 0
 set domasks = 0
@@ -280,14 +281,24 @@ if ($#baselist == 0) then	#--->>> A single time point for each subject
       endif
     else
       if ($#logfile) then
-        set LF = $logfile
+        if (`basename $logfile` == $logfile) then
+          set LF = $dtdir/scripts/$logfile
+          if (-e $LF && ! $AppendLog) mv -f $LF $LF.old
+        else
+          set LF = $logfile
+        endif
       else
-        set LF = ($dtdir/scripts/trac-all.log)
+        set LF = $dtdir/scripts/trac-all.log
         if (-e $LF && ! $AppendLog) mv -f $LF $LF.old
       endif
 
       if ($#cmdfile) then
-        set CF = $cmdfile
+        if (`basename $cmdfile` == $cmdfile) then
+          set CF = $dtdir/scripts/$cmdfile
+          rm -f $CF
+        else
+          set CF = $cmdfile
+        endif
       else
         set CF = ($dtdir/scripts/trac-all.cmd)
         rm -f $CF
@@ -374,6 +385,7 @@ if ($#baselist == 0) then	#--->>> A single time point for each subject
     echo "# Processing steps to be performed"			 	>> $RCF
     echo "#"							 	>> $RCF
     echo "set docorr = ($docorr)"					>> $RCF
+    echo "set doqa = ($doqa)"						>> $RCF
     echo "set dointra = ($dointra)"					>> $RCF
     echo "set dointer = ($dointer)"					>> $RCF
     echo "set domasks = ($domasks)"					>> $RCF
@@ -617,14 +629,24 @@ else				#--->>> Multiple time points for each subject
         endif
       else
         if ($#logfile) then
-          set LF = $logfile
+          if (`basename $logfile` == $logfile) then
+            set LF = $dtdir/scripts/$logfile
+            if (-e $LF && ! $AppendLog) mv -f $LF $LF.old
+          else
+            set LF = $logfile
+          endif
         else
           set LF = ($dtdir/scripts/trac-all.log)
           if (-e $LF && ! $AppendLog) mv -f $LF $LF.old
         endif
 
         if ($#cmdfile) then
-          set CF = $cmdfile
+          if (`basename $cmdfile` == $cmdfile) then
+            set CF = $dtdir/scripts/$cmdfile
+            rm -f $CF
+          else
+            set CF = $cmdfile
+          endif
         else
           set CF = ($dtdir/scripts/trac-all.cmd)
           rm -f $CF
@@ -719,9 +741,11 @@ else				#--->>> Multiple time points for each subject
       echo "#"							 	>> $RCF
       if ($subj == $bsubj) then
         echo "set docorr = (0)"						>> $RCF
+        echo "set doqa = (0)"						>> $RCF
         echo "set dointra = (0)"					>> $RCF
       else
         echo "set docorr = ($docorr)"					>> $RCF
+        echo "set doqa = ($doqa)"					>> $RCF
         echo "set dointra = ($dointra)"					>> $RCF
       endif
       echo "set dointer = ($dointer)"					>> $RCF
@@ -953,6 +977,7 @@ while( $#argv != 0 )
     case "-prep":
       set dopreproc = 1
       set docorr = 1
+      set doqa = 1
       set dointra = 1
       set dointer = 1
       set domasks = 1
@@ -983,6 +1008,17 @@ while( $#argv != 0 )
 
     case "-nocorr":
       set docorr = 0
+      breaksw
+
+    case "-qa":
+      set dopreproc = 1
+      set doqa = 1
+      set dobedpost = 0
+      set dopaths = 0
+      breaksw
+
+    case "-noqa":
+      set doqa = 0
       breaksw
 
     case "-intra":
@@ -1262,7 +1298,7 @@ check_params:
     exit 1
   endif
 
-  if ((! $dopreproc || (! $docorr && ! $dointra && ! $dointer && \
+  if ((! $dopreproc || (! $docorr && ! $doqa && ! $dointra && ! $dointer && \
                         ! $domasks && ! $dotensor && ! $dopriors)) && \
        ! $dobedpost && ! $dopaths) then
     echo "ERROR: no analysis step (-{prep,bedp,path}) has been selected"
@@ -1291,25 +1327,28 @@ usage_exit:
   echo "Performing a part of the preprocessing or skipping a part:"
   echo "  -corr     : do image corrections (step 1.1)"
   echo "  -nocorr   : don't do step 1.1"
-  echo "  -intra    : do intra-subject registration (step 1.2)"
-  echo "  -nointra  : don't do step 1.2"
-  echo "  -inter    : do inter-subject registration (step 1.3)"
-  echo "  -nointer  : don't do step 1.3"
-  echo "  -masks    : do masks (step 1.4)"
-  echo "  -nomasks  : don't do step 1.4"
-  echo "  -tensor   : do tensor fit (step 1.5)"
-  echo "  -notensor : don't do step 1.5"
-  echo "  -prior    : do pathway priors (step 1.6)"
-  echo "  -noprior  : don't do step 1.6"
+  echo "  -qa       : do image quality assessment (step 1.2)"
+  echo "  -noqa     : don't do step 1.2"
+  echo "  -intra    : do intra-subject registration (step 1.3)"
+  echo "  -nointra  : don't do step 1.3"
+  echo "  -inter    : do inter-subject registration (step 1.4)"
+  echo "  -nointer  : don't do step 1.4"
+  echo "  -masks    : do masks (step 1.5)"
+  echo "  -nomasks  : don't do step 1.5"
+  echo "  -tensor   : do tensor fit (step 1.6)"
+  echo "  -notensor : don't do step 1.6"
+  echo "  -prior    : do pathway priors (step 1.7)"
+  echo "  -noprior  : don't do step 1.7"
   echo ""
   echo "Analysis steps:"
   echo "  1. Pre-processing"
   echo "     1.1 Image corrections (eddy-current and/or B0)"
-  echo "     1.2 Intra-subject registration (diffusion to T1)"
-  echo "     1.3 Inter-subject registration (T1 to template)"
-  echo "     1.4 White-matter, cortical, and whole-brain masks"
-  echo "     1.5 Tensor fit"
-  echo "     1.6 Pathway priors from atlas and T1"
+  echo "     1.2 Image quality assessment (head motion measures)"
+  echo "     1.3 Intra-subject registration (diffusion to T1)"
+  echo "     1.4 Inter-subject registration (T1 to template)"
+  echo "     1.5 White-matter, cortical, and whole-brain masks"
+  echo "     1.6 Tensor fit"
+  echo "     1.7 Pathway priors from atlas and T1"
   echo "  2. Stick-and-ball model fitting with bedpost"
   echo "  3. Pathway reconstruction"
   echo ""
@@ -1384,28 +1423,33 @@ file. See dmrirc.example for more details.
   Eddy current correction with eddy_correct, B0 field map correction with
   epidewarp.fsl.
 
-> Step 1.2: Intra-subject registration
+> Step 1.2: Image quality assessment
+            -qa to do this step, -noqa to skip this step
+
+  Estimation of between-volume and within-volume head motion.
+
+> Step 1.3: Intra-subject registration
             -intra to do this step, -nointra to skip this step
 
   Diffusion-to-T1 registration with flirt and/or bbregister.
 
-> Step 1.3: Inter-subject registration
+> Step 1.4: Inter-subject registration
             -inter to do this step, -nointer to skip this step
 
   T1-to-template registration using MNI and/or CVS templates.
 
-> Step 1.4: White-matter, cortical, and whole-brain masks
+> Step 1.5: White-matter, cortical, and whole-brain masks
             -masks to do this step, -nomasks to skip this step
 
   Generate masks of the white matter and cortex from FreeSurfer outputs,
   whole-brain masks from T1 and DWIs.
 
-> Step 1.5: Tensor fit
+> Step 1.6: Tensor fit
             -tensor to do this step, -notensor to skip this step
 
   Tensor model fitting on DWIs.
 
-> Step 1.6: Pathway priors
+> Step 1.7: Pathway priors
             -prior to do this step, -noprior to skip this step
 
   Combine training data and subject's own data to generate pathway priors.

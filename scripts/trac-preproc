@@ -8,8 +8,8 @@
 # Original Author: Anastasia Yendiki
 # CVS Revision Info:
 #    $Author: ayendiki $
-#    $Date: 2013/10/11 14:27:36 $
-#    $Revision: 1.43 $
+#    $Date: 2013/10/25 03:41:44 $
+#    $Revision: 1.44 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -25,7 +25,7 @@
 
 umask 002
 
-set VERSION = '$Id: trac-preproc,v 1.43 2013/10/11 14:27:36 ayendiki Exp $'
+set VERSION = '$Id: trac-preproc,v 1.44 2013/10/25 03:41:44 ayendiki Exp $'
 set ProgName = `basename $0`
 set inputargs = ($argv)
 
@@ -441,6 +441,30 @@ if ($docorr && $dolong) then
   echo "ERROR: Image correction step not available for base template"
   goto error_exit
 endif
+
+#------------ Image quality assessment ------------------------------------#
+
+if ($doqa && ! $dolong) then
+  echo "#-------------------------------------" |& tee -a $LF
+  echo "#@# Image quality assessment `date`" |& tee -a $LF
+
+  set cmd = $trcdir/dmri_motion
+  set cmd = ($cmd --dwi  $dwidir/dwi_orig.nii.gz)
+  set cmd = ($cmd --mat  $dwidir/dwi.ecclog)
+  set cmd = ($cmd --bval $dwidir/bvals)
+  set cmd = ($cmd --out  $dwidir/dwi_motion.txt)
+  echo $cmd |& tee -a $LF |& tee -a $CF
+  if ($RunIt) then
+    $cmd |& tee -a $LF
+    if ($status) goto error_exit
+  endif
+endif
+
+if ($doqa && $dolong) then
+  echo "ERROR: Image quality assessment step not available for base template"
+  goto error_exit
+endif
+
 
 #------------ Intra-subject registration ----------------------------------#
 
