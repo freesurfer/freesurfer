@@ -8,8 +8,8 @@
  * Original Author: Anastasia Yendiki
  * CVS Revision Info:
  *    $Author: ayendiki $
- *    $Date: 2013/10/25 03:25:03 $
- *    $Revision: 1.2 $
+ *    $Date: 2013/10/26 22:44:22 $
+ *    $Revision: 1.3 $
  *
  * Copyright © 2013 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -63,7 +63,7 @@ static void print_usage(void) ;
 static void usage_exit(void);
 static void print_help(void) ;
 static void print_version(void) ;
-static void dump_options(FILE *fp);
+static void dump_options();
 
 int debug = 0, checkoptsonly = 0;
 
@@ -74,8 +74,7 @@ const char *Progname = "dmri_motion";
 
 float T = 100, D = .001;
 
-char *inDwiFile = NULL, *inMatFile = NULL, *inBvalFile = NULL,
-     *outFile = NULL;
+char *inMatFile = NULL, *inDwiFile = NULL, *inBvalFile = NULL, *outFile = NULL;
 
 MRI *dwi;
 
@@ -86,10 +85,8 @@ struct timeb cputimer;
 
 /*--------------------------------------------------*/
 int main(int argc, char **argv) {
-  int nargs, cputime, nx, ny, nz, nd;
-  float score = 0, pbad = 0;
-  vector<unsigned int> lowbs;
-  vector<float> trtot(3,0), rotot(3,0), bvals;
+  int nargs, cputime;
+  float travg = 0, roavg = 0, score = 0, pbad = 0;
   string matline;
   ifstream infile;
   ofstream outfile;
@@ -114,35 +111,22 @@ int main(int argc, char **argv) {
   check_options();
   if (checkoptsonly) return(0);
 
-  dump_options(stdout);
+  dump_options();
 
   TimerStart(&cputimer);
 
-  // Read DWIs
-  cout << "Reading DWI volume series..." << endl;
-  dwi = MRIread(inDwiFile);
-  if (!dwi) {
-    cout << "ERROR: Could not read " << inDwiFile << endl;
-    exit(1);
-  }
-
-  nx = dwi->width;
-  ny = dwi->height;
-  nz = dwi->depth;
-  nd = dwi->nframes;
-
   if (inMatFile) {		// Estimate between-volume motion
     int nframe = 0;
-    vector<float> xform, tr0(3,0), ro0(3,0);
+    vector<float> xform, tr0(3,0), ro0(3,0), trtot(3,0), rotot(3,0);
 
-    cout << "Computing between-volume head motion measures..." << endl;
-
-    // Read volume-to-baseline affine transformations
+    cout << "Loading volume-to-baseline affine transformations" << endl;
     infile.open(inMatFile, ios::in);
     if (!infile) {
       cout << "ERROR: Could not open " << inMatFile << " for reading" << endl;
       exit(1);
     }
+
+    cout << "Computing between-volume head motion measures" << endl;
 
     while (getline(infile, matline))
       if (~matline.empty() && ~isalpha(matline[0])) {
@@ -185,25 +169,39 @@ int main(int argc, char **argv) {
 
     infile.close();
 
-    if (nframe != nd) {
-      cout << "ERROR: Number of volumes in " << inDwiFile
-           << " and in " << inMatFile << " do not match" << endl;
-      exit(1);
-    }
+    cout << "INFO: Processed transforms for " << nframe << " volumes" << endl;
+
+    travg = sqrt(trtot[0]*trtot[0] + trtot[1]*trtot[1] + trtot[2]*trtot[2])
+          / nframe;
+    roavg = (rotot[0] + rotot[1] + rotot[2]) / nframe;
   }
 
   if (inBvalFile) {		// Estimate within-volume motion
-    const int nxy = nx*ny;
-    int nslice = 0, nbad = 0;
-    float b;
-    const float minvox = 0.05*nxy;
+    int nx, ny, nz, nd, nxy, nslice = 0, nbad = 0;
+    float minvox, b;
     vector<int> r, r1;
     vector<int>::const_iterator ir1;
+    vector<float> bvals;
     vector<float>::const_iterator ibval;
  
-    cout << "Computing within-volume head motion measures..." << endl;
+    // Read DWI volume series
+    cout << "Loading DWI volume series from " << inDwiFile << endl;
+    dwi = MRIread(inDwiFile);
+    if (!dwi) {
+      cout << "ERROR: Could not read " << inDwiFile << endl;
+      exit(1);
+    }
+
+    nx = dwi->width;
+    ny = dwi->height;
+    nz = dwi->depth;
+    nd = dwi->nframes;
+
+    nxy = nx*ny;
+    minvox = 0.05*nxy;
 
     // Read b-value table
+    cout << "Loading b-value table from " << inBvalFile << endl;
     infile.open(inBvalFile, ios::in);
     if (!infile) {
       cout << "ERROR: Could not open " << inBvalFile << " for reading" << endl;
@@ -214,6 +212,8 @@ int main(int argc, char **argv) {
       bvals.push_back(b);
 
     infile.close();
+
+    cout << "Computing within-volume head motion measures" << endl;
 
     // Find unique b-values
     set<float> blist(bvals.begin(), bvals.end());
@@ -280,19 +280,13 @@ int main(int argc, char **argv) {
   outfile.open(outFile, ios::out);
   outfile << "AvgTranslation AvgRotation PercentBadSlices AvgDropoutScore"
           << endl
-          << sqrt(trtot[0]*trtot[0] + trtot[1]*trtot[1] + trtot[2]*trtot[2])/nd
-          << " "
-          << (rotot[0] + rotot[1] + rotot[2])/nd
-          << " "
-          << pbad
-          << " "
-          << score << endl;
+          << travg << " " << roavg << " " << pbad << " " << score << endl;
   outfile.close();
 
   cputime = TimerStop(&cputimer);
-  printf("Done in %g sec.\n", cputime/1000.0);
+  cout << "Done in " << cputime/1000.0 << " sec." << endl;
 
-  printf("dmri_motion done\n");
+  cout << "dmri_motion done" << endl;
   return(0);
   exit(0);
 }
@@ -358,85 +352,101 @@ static int parse_commandline(int argc, char **argv) {
 /* --------------------------------------------- */
 static void print_usage(void) 
 {
-  printf("\n");
-  printf("USAGE: ./dmri_motion\n");
-  printf("\n");
-  printf("   --dwi <file>:\n");
-  printf("     Input DWI volume series (unprocessed)\n");
-  printf("   --bval <file>:\n");
-  printf("     Input b-value table\n");
-  printf("   --mat <file>:\n");
-  printf("     Input text file of volume-to-baseline affine transformations\n");
-  printf("   --out <file>:\n");
-  printf("     Output text file of motion measures\n");
-  printf("\n");
-  printf("Optional arguments (see Benner et al MRM 2011):\n");
-  printf("   --T <num>: Low-b image intensity threshold (default: 100)\n");
-  printf("   --D <num>: Nominal diffusivity (default: .001)\n");
-  printf("\n");
-  printf("   --debug:     turn on debugging\n");
-  printf("   --checkopts: don't run anything, just check options and exit\n");
-  printf("   --help:      print out information on how to use this program\n");
-  printf("   --version:   print out version and exit\n");
-  printf("\n");
+  cout
+  << endl << "USAGE: " << Progname << endl << endl
+  << "Required arguments" << endl
+  << "   --out <file>:" << endl
+  << "     Output text file of motion measures" << endl
+  << endl
+  << "Arguments needed for between-volume motion measures" << endl
+  << "   --mat <file>:" << endl
+  << "     Input text file of volume-to-baseline affine transformations" << endl
+  << endl
+  << "Arguments needed for within-volume motion measures" << endl
+  << "(see Benner et al MRM 2011):" << endl
+  << "   --dwi <file>:" << endl
+  << "     Input DWI volume series, unprocessed" << endl
+  << "   --bval <file>:" << endl
+  << "     Input b-value table" << endl
+  << "   --T <num>:" << endl
+  << "     Low-b image intensity threshold (default: 100)" << endl
+  << "   --D <num>:" << endl
+  << "     Nominal diffusivity (default: .001)" << endl
+  << endl
+  << "Other options" << endl
+  << "   --debug:     turn on debugging" << endl
+  << "   --checkopts: don't run anything, just check options and exit" << endl
+  << "   --help:      print out information on how to use this program" << endl
+  << "   --version:   print out version and exit" << endl
+  << endl;
 }
 
 /* --------------------------------------------- */
 static void print_help(void) {
-  print_usage() ;
-  printf("\n");
-  printf("...\n");
-  printf("\n");
-  exit(1) ;
+  print_usage();
+
+  cout << endl
+       << "..." << endl
+       << endl;
+
+  exit(1);
 }
 
 /* ------------------------------------------------------ */
 static void usage_exit(void) {
-  print_usage() ;
-  exit(1) ;
+  print_usage();
+  exit(1);
 }
 
 /* --------------------------------------------- */
 static void print_version(void) {
-  printf("%s\n", vcid) ;
-  exit(1) ;
+  cout << vcid << endl;
+  exit(1);
 }
 
 /* --------------------------------------------- */
 static void check_options(void) {
-  if (!inDwiFile) {
-    printf("ERROR: must specify input DWI file\n");
+  if (!outFile) {
+    cout << "ERROR: must specify output file" << endl;
+    exit(1);
+  }
+  if ((inDwiFile && !inBvalFile) || (!inDwiFile && inBvalFile)) {
+    cout << "ERROR: must specify both DWI and b-value files" << endl;
     exit(1);
   }
   if (!inBvalFile && !inMatFile) {
-    printf("ERROR: must specify b-value file and/or affine transform file\n");
-    exit(1);
-  }
-  if (!outFile) {
-    printf("ERROR: must specify output file\n");
+    cout << "ERROR: must specify inputs for between-volume and/or "
+         << "within-volume motion measures" << endl;
     exit(1);
   }
   if (D < 0) {
-    printf("ERROR: diffusivity must be positive\n");
+    cout << "ERROR: diffusivity must be positive" << endl;
     exit(1);
   }
   return;
 }
 
-static void dump_options(FILE *fp) {
-  fprintf(fp,"\n");
-  fprintf(fp,"%s\n",vcid);
-  fprintf(fp,"cwd %s\n",cwd);
-  fprintf(fp,"cmdline %s\n",cmdline);
-  fprintf(fp,"sysname  %s\n",uts.sysname);
-  fprintf(fp,"hostname %s\n",uts.nodename);
-  fprintf(fp,"machine  %s\n",uts.machine);
-  fprintf(fp,"user     %s\n",VERuser());
+static void dump_options() {
+  cout << endl
+       << vcid << endl
+       << "cwd " << cwd << endl
+       << "cmdline " << cmdline << endl
+       << "sysname  " << uts.sysname << endl
+       << "hostname " << uts.nodename << endl
+       << "machine  " << uts.machine << endl
+       << "user     " << VERuser() << endl;
 
-  fprintf(fp, "Input DWI file: %s\n", inDwiFile);
-  fprintf(fp, "Input b-value table: %s\n", inBvalFile);
-  fprintf(fp, "Input transform file: %s\n", inMatFile);
-  fprintf(fp, "Output motion measure file: %s\n", outFile);
+  cout << "Output motion measure file: " << outFile << endl;
+
+  if (inMatFile)
+    cout << "Input transform file: " << inMatFile << endl;
+
+  if (inBvalFile) {
+    cout << "Input DWI file: " << inDwiFile << endl;
+    cout << "Input b-value table: " << inBvalFile << endl;
+    cout << "Low-b image intensity threshold: " << T << endl;
+    cout << "Nominal diffusivity: " << D << endl;
+  }
 
   return;
 }
