@@ -19,7 +19,7 @@ AM_LDFLAGS=$(OS_LDFLAGS)
 
 bin_PROGRAMS = dmri_spline dmri_trk2trk dmri_vox2vox \
                dmri_train dmri_paths dmri_pathstats dmri_mergepaths \
-               dmri_motion dmri_forrest
+               dmri_motion dmri_group dmri_forrest
 
 dmri_spline_SOURCES=dmri_spline.cxx spline.cxx spline.h
 dmri_spline_LDADD= $(addprefix $(top_builddir)/, $(LIBS_MGH))
@@ -71,6 +71,12 @@ dmri_motion_LDADD= $(addprefix $(top_builddir)/, $(LIBS_MGH)) \
                    $(top_builddir)/fem_elastic/libfem_elastic.a \
                    $(top_builddir)/tetgen/libtetgen.a 
 dmri_motion_LDFLAGS=$(OS_LDFLAGS)
+
+dmri_group_SOURCES=dmri_group.cxx vial.cxx vial.h 
+dmri_group_LDADD= $(addprefix $(top_builddir)/, $(LIBS_MGH)) \
+                   $(top_builddir)/fem_elastic/libfem_elastic.a \
+                   $(top_builddir)/tetgen/libtetgen.a 
+dmri_group_LDFLAGS=$(OS_LDFLAGS)
 
 dmri_forrest_SOURCES=dmri_forrest.cxx forrest.cxx forrest.h
 dmri_forrest_LDADD= $(addprefix $(top_builddir)/, $(LIBS_MGH))
