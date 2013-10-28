@@ -59,6 +59,8 @@
       <explanation>applies mode filter &lt;number&gt; times before writing output (default=10)</explanation>
       <argument>-t &lt;filename&gt;</argument>
       <explanation>specify parcellation table input file (default: none)</explanation>
+      <argument>-p &lt;filename&gt;</argument>
+      <explanation>output a file containing label probability for each vertex (default: none, example: -p $SUBJECTS_DIR/my_subject/label/lh.raparc.annot.prob.mgz)</explanation>
       <argument>-v &lt;number&gt;</argument>
       <explanation>diagnostic level (default=0)</explanation>
       <argument>-w &lt;number&gt; &lt;filename&gt;</argument>

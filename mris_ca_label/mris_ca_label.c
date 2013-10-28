@@ -13,10 +13,10 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:27 $
- *    $Revision: 1.35 $
+ *    $Date: 2013/10/28 20:41:30 $
+ *    $Revision: 1.36 $
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2011-2013 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -49,7 +49,7 @@
 #include "cma.h"
 
 static char vcid[] =
-  "$Id: mris_ca_label.c,v 1.35 2011/03/02 00:04:27 nicks Exp $";
+  "$Id: mris_ca_label.c,v 1.36 2013/10/28 20:41:30 nicks Exp $";
 
 int main(int argc, char *argv[]) ;
 static int get_option(int argc, char *argv[]) ;
@@ -63,6 +63,7 @@ static void print_version(void) ;
 static int which_norm = NORM_MEAN ;
 static double MIN_AREA_PCT = 0.1 ;
 static char *read_fname = NULL ;
+static char *prob_fname = NULL ;
 static int nbrs = 2 ;
 static int filter = 10 ;
 static char *orig_name = "smoothwm" ;
@@ -327,6 +328,19 @@ main(int argc, char *argv[])
     ErrorExit(ERROR_NOFILE, "%s: could not write annot file %s for %s",
               Progname, out_fname, subject_name) ;
 
+  if (NULL != prob_fname)
+  {
+    MRI* prob_image = MRIalloc(mris->nvertices, 1, 1, MRI_FLOAT) ;
+    for (i = 0 ; i < mris->nvertices ; i++)
+    {
+      MRIsetVoxVal(prob_image, i, 0, 0, 0, mris->vertices[i].val) ;
+    }
+
+    printf("writing vertex label probabilities to %s...\n", prob_fname) ;
+    MRIwrite(prob_image, prob_fname) ;
+    MRIfree(&prob_image) ;
+  }
+
   MRISfree(&mris) ;
   GCSAfree(&gcsa) ;
   msec = TimerStop(&start) ;
@@ -518,6 +532,11 @@ get_option(int argc, char *argv[])
       read_fname = argv[2] ;
       nargs = 1 ;
       printf("reading precomputed parcellation from %s...\n", read_fname) ;
+      break ;
+    case 'P':
+      prob_fname = argv[2] ;
+      nargs = 1 ;
+      printf("saving vertex label probability to %s...\n", prob_fname) ;
       break ;
     case 'H':
     case 'U':
