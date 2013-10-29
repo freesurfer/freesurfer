@@ -11,8 +11,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2013/10/28 20:41:31 $
- *    $Revision: 1.38 $
+ *    $Date: 2013/10/29 14:55:20 $
+ *    $Revision: 1.39 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -933,7 +933,7 @@ GCSAlabel(GCSA *gcsa, MRI_SURFACE *mris)
     cpn = &gcsa->cp_nodes[vno_prior] ;
     label = GCSANclassify(gcsan, cpn, v_inputs, gcsa->ninputs, &p,NULL,0) ;
     v->annotation = label ;
-    v->val = p ;
+//O.Hinds needs this for vertex probability feature (mris_ca_label -p) but it breaks mris_ca_label    v->val = p ;
     if (vno == Gdiag_no)
     {
       int  n ;
