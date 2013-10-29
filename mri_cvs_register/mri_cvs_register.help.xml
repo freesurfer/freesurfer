@@ -53,7 +53,7 @@ example* , bugs* , reporting* , references* , see-also*)*>
       <explanation>Use the CVS atlas in MNI152 space as a target for registration (as opposed to the default CVS template).</explanation>
 
       <argument>--outdir directory</argument>
-      <explanation>Name of the output directory where all the registration results are written. The default is SUBJECTS_DIR/mov/cvs. The final output directory is going to be ~.6G, but make sure that there is around double that amount of space available for the computations.</explanation>
+      <explanation>Name of the output directory where all the registration results are written. The default is $SUBJECTS_DIR/$subjid/cvs, where subjid is the subject id of the moving subject. The final output directory is going to be ~.6G, but make sure that there is around double that amount of space available for the computations.</explanation>
 
       <argument>--asegfname fname</argument>
       <explanation>Name of the segmentation volume that should be used in order to guide the volumetric registration step. The default value is aseg. Note that both the template and the moving subject needs to have this file if you want to use this option. Also, do not use the file extension of the volume that you are including with this flag!</explanation>
@@ -71,6 +71,8 @@ example* , bugs* , reporting* , references* , see-also*)*>
       <explanation>Do not use the intensity volumes in the volumetric registration pipeline (default is 0). Setting this option could shorten significantly the time of registration. It also indicates that the intensity values are not to be trusted during the registration.</explanation>
       <argument>--hemi</argument>
       <explanation>Run the CVS registration only one of the hemispheres. For example, in case of single hemisphere ex-vivo cases.</explanation>
+      <argument>--useonlyhemiinvivomov</argument>
+      <explanation>Use this possibly with the --hemi option. If the invivo scan is th moving subject, this would mask out the appropriate hemisphere in order to avoid strange artifacts resulting from moving a full brain to a single hemisphere. (The other way around it should not be a problem.) </explanation>
 
 
       <intro>Cleanup Arguments</intro>
@@ -188,7 +190,7 @@ example* , bugs* , reporting* , references* , see-also*)*>
 
   <example>Register Subj1 to Subj2: mri_cvs_register --mov Subj1ID --template Subj2ID</example>
 
-  <example>Register Subj1 to Subj2 where the two subjects have different SUBJECTS_DIR's: mri_cvs_register --mov Subj1ID --template Subj2ID --templatedir OTHER_SUBJECTS_DIR</example>
+  <example>Register Subj1 to Subj2 where the two subjects have different SUBJECTS_DIR's: mri_cvs_register --mov Subj1ID --template Subj2ID --templatedir $OTHER_SUBJECTS_DIR</example>
 
   <example>If running mri_cvs_register on lanchpad, use "-l nodes=1:ppn=5,vmem=35gb"</example>
 
