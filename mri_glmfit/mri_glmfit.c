@@ -14,8 +14,8 @@
  * Original Author: Douglas N Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2013/10/01 23:49:31 $
- *    $Revision: 1.223 $
+ *    $Date: 2013/10/29 18:35:59 $
+ *    $Revision: 1.224 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -555,7 +555,7 @@ static int SmoothSurfOrVol(MRIS *surf, MRI *mri, MRI *mask, double SmthLevel);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-"$Id: mri_glmfit.c,v 1.223 2013/10/01 23:49:31 greve Exp $";
+"$Id: mri_glmfit.c,v 1.224 2013/10/29 18:35:59 greve Exp $";
 const char *Progname = "mri_glmfit";
 
 int SynthSeed = -1;
@@ -716,9 +716,12 @@ int  nSignList = 3, nthSign;
 int SignList[3] = {-1,0,1};
 CSD *csdList[5][3][20];
 
-int DoSRTM=0;
-double SRTM_HalfLife=-1;
-MATRIX *SRTM_Cr, *SRTM_intCr, *SRTM_TimeSec;
+MATRIX *RTM_Cr, *RTM_intCr, *RTM_TimeSec, *RTM_TimeMin;
+int DoMRTM1=0;
+double MRTM1_HalfLife=-1;
+int DoMRTM2=0;
+double MRTM2_k2p=0;
+MATRIX *MRTM2_x1;
 
 int nRandExclude=0,  *ExcludeFrames=NULL, nExclude=0;
 char *ExcludeFrameFile=NULL;
@@ -1068,14 +1071,14 @@ int main(int argc, char **argv) {
     if(mriglm->FrameMask == NULL) exit(1);
   }
 
-  // SRTM ------------------------------------
-  if(DoSRTM) {
-    printf("Performing SRTM\n"); fflush(stdout);
-    mriglm->Xg = MatrixHorCat(SRTM_Cr,SRTM_intCr,NULL);
-    mriglm->wg = HalfLife2Weight(SRTM_HalfLife,SRTM_TimeSec);
+  // MRTM1 ------------------------------------
+  if(DoMRTM1) {
+    printf("Performing MRTM1\n"); fflush(stdout);
+    mriglm->Xg = MatrixHorCat(RTM_Cr,RTM_intCr,NULL);
+    mriglm->wg = HalfLife2Weight(MRTM1_HalfLife,RTM_TimeSec);
     mriglm->npvr = 1;
     printf("Computing integral of input ..."); fflush(stdout);
-    mriglm->pvr[0] = fMRIcumTrapZ(mriglm->y,SRTM_TimeSec,NULL,NULL);
+    mriglm->pvr[0] = fMRIcumTrapZ(mriglm->y,RTM_TimeSec,NULL,NULL);
     printf("done.\n"); fflush(stdout);
     nContrasts = 4;
     mriglm->glm->ncontrasts = nContrasts;
@@ -1096,6 +1099,32 @@ int main(int argc, char **argv) {
     mriglm->glm->C[3] = MatrixConstVal(0.0, 1, 3, NULL);
     mriglm->glm->C[3]->rptr[1][2] = +1;
     mriglm->glm->C[3]->rptr[1][3] = +1;
+  }
+  // MRTM2 ------------------------------------
+  if(DoMRTM2) {
+    printf("Performing MRTM2\n"); fflush(stdout);
+    mriglm->Xg = MRTM2_x1;
+    mriglm->wg = NULL;
+    mriglm->npvr = 1;
+    printf("Computing integral of input ..."); fflush(stdout);
+    mriglm->pvr[0] = fMRIcumTrapZ(mriglm->y,RTM_TimeMin,NULL,NULL);
+    printf("done.\n"); fflush(stdout);
+    mriglm->pvr[0] = MRImultiplyConst(mriglm->pvr[0], -1, mriglm->pvr[0]);
+    nContrasts = 3;
+    mriglm->glm->ncontrasts = nContrasts;
+    //------------------------------------------
+    mriglm->glm->Cname[0] = "k2";
+    mriglm->glm->C[0] = MatrixConstVal(0.0, 1, 2, NULL);
+    mriglm->glm->C[0]->rptr[1][1] = 1;
+    //------------------------------------------
+    mriglm->glm->Cname[1] = "k2a";
+    mriglm->glm->C[1] = MatrixConstVal(0.0, 1, 2, NULL);
+    mriglm->glm->C[1]->rptr[1][2] = 1;
+    //------------------------------------------
+    mriglm->glm->Cname[2] = "k2-k2a";
+    mriglm->glm->C[2] = MatrixConstVal(0.0, 1, 2, NULL);
+    mriglm->glm->C[2]->rptr[1][1] = +1;
+    mriglm->glm->C[2]->rptr[1][2] = -1;
   }
 
   if(! DontSave) {
@@ -1139,7 +1168,7 @@ int main(int argc, char **argv) {
   fflush(stdout);
 
   // Load Per-Voxel Regressors -----------------------------------
-  if(mriglm->npvr > 0 && !DoSRTM) {
+  if(mriglm->npvr > 0 && !DoMRTM1 && !DoMRTM2) {
     for (n=0; n < mriglm->npvr; n++) {
       mriglm->pvr[n] = MRIread(pvrFiles[n]);
       if (mriglm->pvr[n] == NULL) exit(1);
@@ -1284,7 +1313,7 @@ int main(int argc, char **argv) {
       exit(1);
     }
   }
-  else if(!DoSRTM) {
+  else if(!DoMRTM1 && !DoMRTM2) {
     mriglm->w = NULL;
     mriglm->wg = NULL;
   }
@@ -1375,7 +1404,7 @@ int main(int argc, char **argv) {
   mriglm->glm->ncontrasts = nContrasts;
   if(nContrasts > 0) {
     for(n=0; n < nContrasts; n++) {
-      if (! useasl && ! useqa  && !(fsgd != NULL && fsgd->nContrasts != 0) && !DoSRTM) {
+      if (! useasl && ! useqa  && !(fsgd != NULL && fsgd->nContrasts != 0) && !DoMRTM1 && !DoMRTM2) {
         // Get its name
         mriglm->glm->Cname[n] =
           fio_basename(CFile[n],".mat"); //strip .mat
@@ -2075,7 +2104,7 @@ int main(int argc, char **argv) {
     MRIfree(&adc);
   }
 
-  if(DoSRTM){
+  if(DoMRTM1){
     MRI *sig1, *sig2, *sig3, *c123;
     printf("Computing binding potentials\n");
     mritmp = BindingPotential(mriglm->gamma[1],mriglm->gamma[2], mriglm->mask, NULL);
@@ -2099,6 +2128,15 @@ int main(int argc, char **argv) {
     if(err) exit(1);
     MRIfree(&sig1);MRIfree(&sig2);MRIfree(&sig3);
     MRIfree(&c123);
+  }
+
+  if(DoMRTM2){
+    printf("Computing binding potentials\n");
+    mritmp = BindingPotential(mriglm->gamma[0],mriglm->gamma[1], mriglm->mask, NULL);
+    sprintf(tmpstr,"%s/bp.%s",GLMDir,format);
+    err = MRIwrite(mritmp,tmpstr);
+    if(err) exit(1);
+    MRIfree(&mritmp);
   }
 
   sprintf(tmpstr,"%s/X.mat",GLMDir);
@@ -2573,16 +2611,42 @@ static int parse_commandline(int argc, char **argv) {
       format = "nii.gz";
       ComputeFWHM = 0;
     } 
-    else if (!strcmp(option, "--srtm")) {
+    else if (!strcmp(option, "--mrtm1")) {
       if(nargc < 3) CMDargNErr(option,1);
-      DoSRTM=1;
-      SRTM_Cr = MatrixReadTxt(pargv[0], NULL);
-      if(SRTM_Cr == NULL) exit(1);
-      SRTM_TimeSec = MatrixReadTxt(pargv[1], NULL);
-      if(SRTM_TimeSec == NULL) exit(1);
-      sscanf(pargv[2],"%lf",&SRTM_HalfLife);
-      printf("SRTM_HalfLife %g\n",SRTM_HalfLife);
-      SRTM_intCr = MatrixCumTrapZ(SRTM_Cr, SRTM_TimeSec, NULL);
+      DoMRTM1=1;
+      RTM_Cr = MatrixReadTxt(pargv[0], NULL);
+      if(RTM_Cr == NULL) exit(1);
+      RTM_TimeSec = MatrixReadTxt(pargv[1], NULL);
+      if(RTM_TimeSec == NULL) exit(1);
+      for(k=0; k < RTM_TimeSec->rows; k++)
+	RTM_TimeMin->rptr[k+1][1] = RTM_TimeSec->rptr[k+1][1]/60;
+      sscanf(pargv[2],"%lf",&MRTM1_HalfLife);
+      printf("MRTM1_HalfLife %g\n",MRTM1_HalfLife);
+      RTM_intCr = MatrixCumTrapZ(RTM_Cr, RTM_TimeSec, NULL);
+      prunemask = 0;
+      NoContrastsOK = 1;
+      nargsused = 3;
+    } 
+    else if (!strcmp(option, "--mrtm2")) {
+      // --mrtm2 cr.dat time.sec.dat k2pmin 
+      // PET Kinetic Modeling, multilinear reference tissue model 2
+      // k2 and k2a are per-min
+      // R1 = k2/k2p --> not saved
+      if(nargc < 3) CMDargNErr(option,1);
+      DoMRTM2=1;
+      RTM_Cr = MatrixReadTxt(pargv[0], NULL);
+      if(RTM_Cr == NULL) exit(1);
+      RTM_TimeSec = MatrixReadTxt(pargv[1], NULL);
+      if(RTM_TimeSec == NULL) exit(1);
+      RTM_TimeMin = MatrixAlloc(RTM_TimeSec->rows,1,MATRIX_REAL);
+      for(k=0; k < RTM_TimeSec->rows; k++)
+	RTM_TimeMin->rptr[k+1][1] = RTM_TimeSec->rptr[k+1][1]/60;
+      sscanf(pargv[2],"%lf",&MRTM2_k2p);
+      printf("MRTM2 k2p %g\n",MRTM2_k2p);
+      RTM_intCr = MatrixCumTrapZ(RTM_Cr, RTM_TimeMin, NULL);
+      MRTM2_x1 = MatrixAlloc(RTM_Cr->rows,1,MATRIX_REAL);
+      for(k=0; k < RTM_Cr->rows; k++)
+	MRTM2_x1->rptr[k+1][1] = (RTM_Cr->rptr[k+1][1]/MRTM2_k2p + RTM_intCr->rptr[k+1][1]);
       prunemask = 0;
       NoContrastsOK = 1;
       nargsused = 3;
@@ -3159,7 +3223,7 @@ static void print_version(void) {
 /* --------------------------------------------- */
 static void check_options(void) {
   if(XFile == NULL && bvalfile == NULL && fsgdfile == NULL &&
-     ! OneSampleGroupMean && ! useasl && !useqa && !DoSRTM) {
+     ! OneSampleGroupMean && ! useasl && !useqa && !DoMRTM1 && !DoMRTM2) {
     printf("ERROR: must specify an input X file or fsgd file or --osgm\n");
     exit(1);
   }
