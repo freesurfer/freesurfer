@@ -9,7 +9,7 @@
 # Created: 07-14-2010
 
 set inputargs = ($argv);
-set VERSION = '$Id: mri_cvs_check,v 1.1 2011/03/24 23:07:52 nicks Exp $';
+set VERSION = '$Id: mri_cvs_check,v 1.2 2013/10/29 14:50:17 lzollei Exp $';
 set PrintHelp = 0;
 
 set movingid = ();
@@ -91,11 +91,6 @@ foreach s ($allids)
       endif
     end
 end
-
-set file = $cvsdir/mri_cvs_register.settings.txt
-if (! -e $file) then
-  set missing = ($missing $file)
-endif
 
 set file = $cvsdir/id.xfm
 if (! -e $file) then
