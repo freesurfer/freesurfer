@@ -14,8 +14,8 @@
  * Original Author: Douglas N Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2013/10/29 18:35:59 $
- *    $Revision: 1.224 $
+ *    $Date: 2013/10/29 18:58:02 $
+ *    $Revision: 1.225 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -555,7 +555,7 @@ static int SmoothSurfOrVol(MRIS *surf, MRI *mri, MRI *mask, double SmthLevel);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-"$Id: mri_glmfit.c,v 1.224 2013/10/29 18:35:59 greve Exp $";
+"$Id: mri_glmfit.c,v 1.225 2013/10/29 18:58:02 greve Exp $";
 const char *Progname = "mri_glmfit";
 
 int SynthSeed = -1;
@@ -1075,10 +1075,10 @@ int main(int argc, char **argv) {
   if(DoMRTM1) {
     printf("Performing MRTM1\n"); fflush(stdout);
     mriglm->Xg = MatrixHorCat(RTM_Cr,RTM_intCr,NULL);
-    mriglm->wg = HalfLife2Weight(MRTM1_HalfLife,RTM_TimeSec);
+    mriglm->wg = HalfLife2Weight(MRTM1_HalfLife,RTM_TimeMin);
     mriglm->npvr = 1;
     printf("Computing integral of input ..."); fflush(stdout);
-    mriglm->pvr[0] = fMRIcumTrapZ(mriglm->y,RTM_TimeSec,NULL,NULL);
+    mriglm->pvr[0] = fMRIcumTrapZ(mriglm->y,RTM_TimeMin,NULL,NULL);
     printf("done.\n"); fflush(stdout);
     nContrasts = 4;
     mriglm->glm->ncontrasts = nContrasts;
@@ -1099,6 +1099,9 @@ int main(int argc, char **argv) {
     mriglm->glm->C[3] = MatrixConstVal(0.0, 1, 3, NULL);
     mriglm->glm->C[3]->rptr[1][2] = +1;
     mriglm->glm->C[3]->rptr[1][3] = +1;
+    //------------------------------------------
+    sprintf(tmpstr,"%s/time.min.dat",GLMDir);
+    MatrixWriteTxt(tmpstr, RTM_TimeMin);
   }
   // MRTM2 ------------------------------------
   if(DoMRTM2) {
@@ -1125,6 +1128,9 @@ int main(int argc, char **argv) {
     mriglm->glm->C[2] = MatrixConstVal(0.0, 1, 2, NULL);
     mriglm->glm->C[2]->rptr[1][1] = +1;
     mriglm->glm->C[2]->rptr[1][2] = -1;
+    //------------------------------------------
+    sprintf(tmpstr,"%s/time.min.dat",GLMDir);
+    MatrixWriteTxt(tmpstr, RTM_TimeMin);
   }
 
   if(! DontSave) {
@@ -2612,17 +2618,21 @@ static int parse_commandline(int argc, char **argv) {
       ComputeFWHM = 0;
     } 
     else if (!strcmp(option, "--mrtm1")) {
+      // --mrtm1 cr.dat time.sec.dat halflife
+      // PET Kinetic Modeling, multilinear reference tissue model 1
+      // k2 and k2a are per-min
       if(nargc < 3) CMDargNErr(option,1);
       DoMRTM1=1;
       RTM_Cr = MatrixReadTxt(pargv[0], NULL);
       if(RTM_Cr == NULL) exit(1);
       RTM_TimeSec = MatrixReadTxt(pargv[1], NULL);
       if(RTM_TimeSec == NULL) exit(1);
+      RTM_TimeMin = MatrixAlloc(RTM_TimeSec->rows,1,MATRIX_REAL);
       for(k=0; k < RTM_TimeSec->rows; k++)
 	RTM_TimeMin->rptr[k+1][1] = RTM_TimeSec->rptr[k+1][1]/60;
       sscanf(pargv[2],"%lf",&MRTM1_HalfLife);
       printf("MRTM1_HalfLife %g\n",MRTM1_HalfLife);
-      RTM_intCr = MatrixCumTrapZ(RTM_Cr, RTM_TimeSec, NULL);
+      RTM_intCr = MatrixCumTrapZ(RTM_Cr, RTM_TimeMin, NULL);
       prunemask = 0;
       NoContrastsOK = 1;
       nargsused = 3;
