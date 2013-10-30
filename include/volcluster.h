@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2011/03/28 15:32:36 $
- *    $Revision: 1.23.2.1 $
+ *    $Date: 2013/10/30 14:41:56 $
+ *    $Revision: 1.23.2.2 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -136,6 +136,9 @@ typedef struct
   int nreps;          // number of repetitions
   int *nClusters;
   double *MaxClusterSize;
+  double *MaxClusterSizeVtx;
+  double *MaxClusterWeightVtx;
+  double *MaxClusterWeightArea;
   double *MaxSig;
   double *MaxStat;
   int mergedflag;     // Flag to indicate that two or more merged
@@ -155,6 +158,7 @@ CSD *CSDmerge(CSD *csd1, CSD *csd2);
 CSD *CSDreadMerge(char *csdfile, CSD *csd);
 int CSDprintHeader(FILE *fp, CLUSTER_SIM_DATA *csd);
 int CSDprint(FILE *fp, CSD *csd);
+int CSDprintWeight(FILE *fp, CLUSTER_SIM_DATA *csd);
 double CSDpvalMaxSig(double val, CSD *csd);
 MRI *CSDpvalMaxSigMap(MRI *sig, CSD *csd, MRI *mask, MRI *vwsig, int Bonf);
 double CSDpvalClustSize(CLUSTER_SIM_DATA *csd, double ClusterSize,

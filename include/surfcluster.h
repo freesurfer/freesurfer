@@ -10,8 +10,8 @@
  * Original Author: Doug Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2011/05/25 20:23:07 $
- *    $Revision: 1.15.2.1 $
+ *    $Date: 2013/10/30 14:41:56 $
+ *    $Revision: 1.15.2.2 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -46,8 +46,10 @@ extern int FixSurfClusterArea;
 typedef struct
 {
   int   clusterno;
-  int   nmembers;
+  int   nmembers; //  number of vertices;
   float area;
+  float weightvtx;  // vertex weighted weight
+  float weightarea; // area   weighted weight
   float maxval;
   int   vtxmaxval;
   float x,y,z;
@@ -66,6 +68,7 @@ SCS *sclustMapSurfClusters(MRI_SURFACE *Surf, float thmin, float thmax,
 int sclustGrowSurfCluster(int ClustNo, int SeedVtx, MRI_SURFACE *Surf,
                           float thmin, float thmax, int thsign);
 float sclustSurfaceArea(int ClusterNo, MRI_SURFACE *Surf, int *nvtxs) ;
+float sclustWeight(int ClusterNo, MRI_SURFACE *Surf, MRI *mri, int UseArea);
 float sclustSurfaceMax(int ClusterNo, MRI_SURFACE *Surf, int *vtxmax) ;
 int sclustSurfaceCentroid(const int ClusterNo, const MRI_SURFACE *Surf, double *xyz);
 float sclustZeroSurfaceClusterNo(int ClusterNo, MRI_SURFACE *Surf);
@@ -74,11 +77,13 @@ float sclustSetSurfaceValToClusterNo(MRI_SURFACE *Surf);
 float sclustSetSurfaceValToCWP(MRI_SURFACE *Surf, SCS *scs);
 float sclustCountClusters(MRI_SURFACE *Surf);
 SCS *SurfClusterSummary(MRI_SURFACE *Surf, MATRIX *T, int *nClusters);
+SCS *SurfClusterSummaryFast(MRI_SURFACE *Surf, MATRIX *T, int *nClusters);
 int DumpSurfClusterSum(FILE *fp, SCS *scs, int nClusters);
 SCS *SortSurfClusterSum(SCS *scs, int nClusters);
 int sclustReMap(MRI_SURFACE *Surf, int nClusters, SCS *scs_sorted);
 double sclustMaxClusterArea(SURFCLUSTERSUM *scs, int nClusters);
 int sclustMaxClusterCount(SURFCLUSTERSUM *scs, int nClusters);
+float sclustMaxClusterWeightVtx(SURFCLUSTERSUM *scs, int nClusters, int thsign);
 SCS *sclustPruneByCWPval(SCS *ClusterList, int nclusters, 
 			 double cwpvalthresh,int *nPruned, 
 			 MRIS *surf);
