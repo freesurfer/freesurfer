@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2013/10/15 22:49:06 $
- *    $Revision: 1.134 $
+ *    $Date: 2013/10/31 19:44:17 $
+ *    $Revision: 1.135 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -55,6 +55,7 @@
 #include "macros.h"
 #include "numerics.h"
 #include "evschutils.h"
+#include "fio.h"
 
 // private functions
 MATRIX *MatrixCalculateEigenSystemHelper( MATRIX *m,
@@ -693,7 +694,7 @@ int MatrixPrint(FILE *fp, const MATRIX *mat)
       switch (mat->type)
       {
       case MATRIX_REAL:
-        fprintf(fp, "% 2.3f", mat->rptr[row][col]) ;
+        fprintf(fp, "% 2.5f", mat->rptr[row][col]) ;
         break ;
       case MATRIX_COMPLEX:
         fprintf(fp, "% 2.3f + % 2.3f i",
@@ -2292,6 +2293,73 @@ MatrixAsciiReadFrom(FILE *fp, MATRIX *m)
   return(m) ;
 }
 
+int
+MatrixWriteInto(FILE *fp, MATRIX *m)
+{
+  int row, col ;
+
+  fwriteInt(m->type, fp) ;
+  fwriteInt(m->rows, fp) ;
+  fwriteInt(m->cols, fp) ;
+
+  for (row = 1 ; row <= m->rows ; row++)
+  {
+    for (col = 1 ; col <= m->cols ; col++)
+    {
+      if (m->type == MATRIX_COMPLEX)
+      {
+	fwriteDouble(MATRIX_CELT_REAL(m,row,col), fp) ;
+	fwriteDouble(MATRIX_CELT_IMAG(m,row,col), fp) ;
+      }
+      else
+        fwriteDouble(m->rptr[row][col], fp) ;
+    }
+  }
+  return(NO_ERROR) ;
+}
+
+
+MATRIX *
+MatrixReadFrom(FILE *fp, MATRIX *m)
+{
+  int row, col, rows, cols, type ;
+
+  type = freadInt(fp) ;
+  rows = freadInt(fp) ;
+  cols = freadInt(fp) ;
+
+  if (!m)
+  {
+    m = MatrixAlloc(rows, cols, type) ;
+    if (!m)
+      ErrorReturn(NULL,
+                  (ERROR_BADFILE, "MatrixReadFrom: could not allocate matrix")) ;
+  }
+  else
+  {
+    if (m->rows != rows || m->cols != cols || m->type != type)
+      ErrorReturn
+      (m,
+       (ERROR_BADFILE, "MatrixReadFrom: specified matrix does not match file"));
+  }
+
+  for (row = 1 ; row <= m->rows ; row++)
+  {
+    for (col = 1 ; col <= m->cols ; col++)
+    {
+      if (m->type == MATRIX_COMPLEX)
+      {
+	MATRIX_CELT_REAL(m,row,col) = freadDouble( fp) ;
+	MATRIX_CELT_IMAG(m,row,col) = freadDouble(fp) ;
+      }
+      else
+        m->rptr[row][col] = freadDouble(fp) ;
+    }
+  }
+
+  return(m) ;
+}
+
 
 /*
   calculate and return the Euclidean norm of the vector v.
@@ -3215,6 +3283,25 @@ MATRIX *MatrixDRand48(int rows, int cols, MATRIX *m)
     for (c=1; c <= m->cols; c++)
     {
       m->rptr[r][c] = drand48();
+    }
+  }
+
+  return(m);
+}
+
+/*----------------------------------------------------------------*/
+MATRIX *MatrixDRand48ZeroMean(int rows, int cols, MATRIX *m)
+{
+  int r,c;
+
+  if (m==NULL) m = MatrixAlloc(rows,cols,MATRIX_REAL);
+  /* if m != NULL rows and cols are ignored */
+
+  for (r=1; r <= m->rows; r++)
+  {
+    for (c=1; c <= m->cols; c++)
+    {
+      m->rptr[r][c] = 2*drand48()-1.0;
     }
   }
 
