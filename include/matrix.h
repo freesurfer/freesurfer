@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2013/10/08 12:59:13 $
- *    $Revision: 1.81 $
+ *    $Date: 2013/10/31 19:44:28 $
+ *    $Revision: 1.82 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -111,7 +111,7 @@ MATRIX  *MatrixDiag(MATRIX *mDiag, MATRIX *mOut) ;
 MATRIX  *MatrixMakeDiagonal(MATRIX *mSrc, MATRIX *mDst) ;
 MATRIX  *MatrixCopyRegion( const MATRIX *mSrc, MATRIX *mDst,
 			   const int start_row,
-			   const int start_col,
+			   const int startol,
 			   const int rows,
 			   const int cols,
 			   const int dest_row,
@@ -161,6 +161,9 @@ MATRIX *MatrixAsciiReadFrom(FILE *fp, MATRIX *m) ;
 int    MatrixAsciiWrite(const char *fname, MATRIX *m) ;
 MATRIX *MatrixAsciiRead(const char *fname, MATRIX *m) ;
 MATRIX *MatrixAsciiReadRaw(const char *fname, MATRIX *m) ;
+
+int    MatrixWriteInto(FILE *fp, MATRIX *m) ;
+MATRIX *MatrixReadFrom(FILE *fp, MATRIX *m) ;
 
 #define VectorAlloc(n, type)       MatrixAlloc(n, 1, type)
 #define RVectorAlloc(n, type)      MatrixAlloc(1, n, type)
@@ -251,7 +254,7 @@ MATRIX *MatrixNormalizeColScale(MATRIX *m, MATRIX *scale);
 MATRIX *MatrixAllocRotation(int n, float angle, int which) ;
 MATRIX *MatrixReallocRotation(int n, float angle, int which, MATRIX *m) ;
 MATRIX *MatrixAllocTranslation(int n, double *trans) ;
-#define MatrixClone(mat)   MatrixCopy(mat, NULL)
+#define MatrixClone(mat)   MatrixZero(0, 0, MatrixCopy(mat, NULL))
 #define VectorClone        MatrixClone
 
 float MatrixTrace(MATRIX *M);
@@ -263,6 +266,7 @@ MATRIX *MatrixZero(int rows, int cols, MATRIX *X);
 double  MatrixSumElts(MATRIX *m) ;
 MATRIX *MatrixSum(MATRIX *m, int dim, MATRIX *msum);
 MATRIX *MatrixDRand48(int rows, int cols, MATRIX *m);
+MATRIX *MatrixDRand48ZeroMean(int rows, int cols, MATRIX *m) ;
 MATRIX *MatrixSimilarityTransform(MATRIX *m_src, MATRIX *m_mul, MATRIX *m_dst);
 
 double VectorSum(MATRIX *v);
