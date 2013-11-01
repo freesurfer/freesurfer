@@ -8,8 +8,8 @@
 # Original Author: Anastasia Yendiki
 # CVS Revision Info:
 #    $Author: ayendiki $
-#    $Date: 2013/10/25 03:41:44 $
-#    $Revision: 1.48 $
+#    $Date: 2013/11/01 22:55:27 $
+#    $Revision: 1.49 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -25,7 +25,7 @@
 
 umask 002
 
-set VERSION = '$Id: trac-all,v 1.48 2013/10/25 03:41:44 ayendiki Exp $'
+set VERSION = '$Id: trac-all,v 1.49 2013/11/01 22:55:27 ayendiki Exp $'
 set ProgName = `basename $0`
 set inputargs = ($argv)
 
@@ -71,6 +71,7 @@ set DoCleanCSDF = 0	# If 1, ignore FREESURFER_HOME of previous processing
 set dopreproc = 0	# Perform select processing steps
 set dobedpost = 0
 set dopaths = 0
+set dostats = 0
 
 set docorr = 0
 set doqa = 0
@@ -197,7 +198,7 @@ if ($#groupid) set cmdopts = ($cmdopts -grp $groupid)
 if ($allowcore) set cmdopts = ($cmdopts -allowcoredump)
 
 #------------ Loop over subjects ------------------------------------------#
-set dmdirlist = ()
+set dtdirlist = ()
 
 if ($#baselist == 0) then	#--->>> A single time point for each subject
   foreach isubj ($runlist)
@@ -218,8 +219,14 @@ if ($#baselist == 0) then	#--->>> A single time point for each subject
       if (-e $trainfile) then
         set trainsubjlist = `cat $trainfile`
       endif
+    endif
 
-      # Check freesurfer directory
+    set dtdirlist = ($dtdirlist $dtdir)
+
+    if ($dostats) continue
+
+    # Check freesurfer directory
+    if ((! $do1out) && ($dointra || $dointer || $domasks)) then
       set fsdir = $SUBJECTS_DIR/$subj
 
       if (! -e $fsdir) then
@@ -344,10 +351,12 @@ if ($#baselist == 0) then	#--->>> A single time point for each subject
     flirt -version			>> $LF
     bbregister --version		>> $LF
     mri_cvs_register --version		>> $LF
+    $trcdir/dmri_motion --all-info	>> $LF
     $trcdir/dmri_train --all-info	>> $LF
     $trcdir/dmri_paths --all-info	>> $LF
     $trcdir/dmri_pathstats --all-info	>> $LF
     $trcdir/dmri_mergepaths --all-info	>> $LF
+    $trcdir/dmri_group --all-info	>> $LF
 
     if ($DoVersionsOnly) continue
 
@@ -455,8 +464,6 @@ if ($#baselist == 0) then	#--->>> A single time point for each subject
     echo "#"							 	>> $RCF
     echo "set trcdir = ($trcdir)"					>> $RCF
 
-    set dmdirlist = ($dmdirlist $dtdir/dmri)
-
     if ($dopreproc) then	# Pre-processing #############
       set cmd = trac-preproc
       set cmd = ($cmd -c $RCF)
@@ -551,7 +558,7 @@ else				#--->>> Multiple time points for each subject
 
     if ($dopreproc) then
       set proclist = ($tplist $bsubj)
-    else if ($dobedpost) then
+    else if ($dobedpost || $dostats) then
       set proclist = ($tplist)
     else if ($dopaths) then
       set proclist = ($bsubj)
@@ -565,7 +572,18 @@ else				#--->>> Multiple time points for each subject
     while ($iproc <= $#proclist)
       set subj = $proclist[$iproc]
 
-      if (! $do1out) then
+      set dtdir = $dtroot/$subj
+
+      if ($subj != $bsubj) then
+        set dtdirlist = ($dtdirlist $dtdir)
+      endif
+
+      if ($dostats) then
+        @ iproc = $iproc + 1
+        continue
+      endif
+
+      if ((! $do1out) && ($dointra || $dointer || $domasks)) then
         # Check freesurfer directory
         set fsdir = $SUBJECTS_DIR/$subj
 
@@ -576,12 +594,11 @@ else				#--->>> Multiple time points for each subject
 
         if (! -r $fsdir) then
           echo "ERROR: $fsdir exists but is unreadable"
-        exit 1
+          exit 1
         endif
       endif
 
       # Check diffusion directory
-      set dtdir = $dtroot/$subj
       mkdir -p $dtdir/scripts
 
       if ($status || ! -w $dtdir) then
@@ -829,10 +846,6 @@ else				#--->>> Multiple time points for each subject
       set CFlist  = ($CFlist $CF)
       set RCFlist = ($RCFlist $RCF)
 
-      if ($subj != $bsubj) then
-        set dmdirlist = ($dmdirlist $dtdir/dmri)
-      endif
-
       @ iproc = $iproc + 1
     end
 
@@ -851,7 +864,7 @@ else				#--->>> Multiple time points for each subject
         echo $cmd >> $submitfile
       else
         echo $cmd
-        $cmd
+        /bin/tcsh -fc "$cmd"
         if ($status) exit 1
       endif
     else if ($dobedpost) then	# Bedpost ####################
@@ -881,12 +894,123 @@ else				#--->>> Multiple time points for each subject
         echo $cmd >> $submitfile
       else
         echo $cmd
-        $cmd
+        /bin/tcsh -fc "$cmd"
         if ($status) exit 1
       endif
     endif
 
     @ ibsubj = $ibsubj + 1
+  end
+endif
+
+if ($dostats) then
+  set statdir = $dtroot/stats
+
+  if ($RunIt) then
+    mkdir -p $statdir
+  endif
+
+  set xspacelist = ()
+  if ($doregmni) set xspacelist = ($xspacelist mni)
+  if ($doregcvs) set xspacelist = ($xspacelist cvs)
+
+  set reglist = ()
+  if ($doregflt) set reglist = ($reglist flt)
+  if ($doregbbr) set reglist = ($reglist bbr)
+
+  foreach ntrain ($ntrainlist)
+    foreach xspace ($xspacelist)
+      foreach reg ($reglist)
+        if ($#baselist == 0) then
+          set outdir = dpath
+        else
+          set outdir = dpathlong
+        endif
+
+        if ($dopathsubdirs) then
+          set outdir = $outdir/${nsample}samp
+
+          set ptype = ()
+
+          if ($dosegprior) then
+            set ptype = seg14
+          endif
+          if ($dotangprior) then
+            if ($#ptype) then
+              set ptype = $ptype.tang
+            else
+              set ptype = tang
+            endif
+          endif
+          if ($doxyzprior) then
+            if ($#ptype) then
+              set ptype = $ptype.xyz
+            else
+              set ptype = xyz
+            endif
+          endif
+          if (! $#ptype) then
+            set ptype = none
+          endif
+
+          set outdir = $outdir/$ptype
+        endif
+
+        set avgmode = $avgname${ntrain}_${xspace}_$reg
+
+        foreach pathname ($pathlist)
+          if ($RunIt) then
+            rm -f $statdir/$pathname.$avgmode.inputs.txt
+
+            foreach dtdir ($dtdirlist)
+              set dwidir = $dtdir/dmri
+              set xfmdir = $dtdir/dmri/xfms
+              set pathdir = $dtdir/$outdir/${pathname}_$avgmode
+
+              if (-e $pathdir/path.pd.nii.gz) then
+                set inputs = $pathdir
+                set inputs = ($inputs $dwidir/dtifit_FA.nii.gz)
+                if ($xspace == mni) then
+                  set inputs = ($inputs $xfmdir/diff2mni.$reg.mat)
+                else if ($xspace == cvs) then
+                  set inputs = ($inputs $xfmdir/diff2anatorig.$reg.mat)
+                  if (-e $xfmdir/cvs/$cvswarp.m3z) then
+                    set inputs = ($inputs $xfmdir/cvs/$cvswarp.m3z)
+                  endif
+                endif
+
+                echo $inputs >> $statdir/$pathname.$avgmode.inputs.txt
+              endif
+            end
+
+            if (! -e $statdir/$pathname.$avgmode.inputs.txt) then
+              echo "ERROR: no pathway reconstructions found"
+              exit 1
+            endif
+          endif
+
+          set cmd = $trcdir/dmri_group
+          set cmd = ($cmd --list  $statdir/$pathname.$avgmode.inputs.txt)
+          if ($xspace == mni) then
+            set cmd = ($cmd --ref $mnitemp)
+          else if ($xspace == cvs) then
+            set cmd = ($cmd --ref $cvstempdir/$cvstemp)
+          endif
+          set cmd = ($cmd --out   $statdir/$pathname.$avgmode)
+          echo $cmd
+
+          if ($RunIt) then
+            if ($onpbs) then
+              echo $cmd >> $submitfile
+            else
+              echo $cmd
+              $cmd
+              if ($status) exit 1
+            endif
+          endif
+        end
+      end
+    end
   end
 endif
 
@@ -900,12 +1024,17 @@ if ($onpbs && $RunIt) then
     set preid = `fsl_sub_mgh -l $pbslogdir/log -m a -N trcpre -t $submitfile`
   else if ($dobedpost) then
     if (! $?MYPBSWAIT) setenv MYPBSWAIT 0
-    bedpostx_mgh -n $nstick $dmdirlist
+    bedpostx_mgh -n $nstick `printf '%s/dmri ' $dtdirlist`
   else if ($dopaths) then
     if (! $?MYPBSWAIT) setenv MYPBSWAIT 30
     if ($doregcvs) setenv MYPBSARCH "ppn=4,vmem=28gb"
     echo Queueing path reconstruction
     set trcid = `fsl_sub_mgh -l $pbslogdir/log -m a -N trc -t $submitfile`
+  else if ($dostats) then
+    if (! $?MYPBSWAIT) setenv MYPBSWAIT 30
+    if ($doregcvs) setenv MYPBSARCH "ppn=4,vmem=28gb"
+    echo Queueing group tables
+    set grpid = `fsl_sub_mgh -l $pbslogdir/log -m a -N trcgrp -t $submitfile`
   endif
 endif
 
@@ -985,18 +1114,28 @@ while( $#argv != 0 )
       set dopriors = 1
       set dobedpost = 0
       set dopaths = 0
+      set dostats = 0
       breaksw
 
     case "-bedp":
       set dopreproc = 0
       set dobedpost = 1
       set dopaths = 0
+      set dostats = 0
       breaksw
 
     case "-path":
       set dopreproc = 0
       set dobedpost = 0
       set dopaths = 1
+      set dostats = 0
+      breaksw
+
+    case "-stat":
+      set dopreproc = 0
+      set dobedpost = 0
+      set dopaths = 0
+      set dostats = 1
       breaksw
 
     case "-corr":
@@ -1004,6 +1143,7 @@ while( $#argv != 0 )
       set docorr = 1
       set dobedpost = 0
       set dopaths = 0
+      set dostats = 0
       breaksw
 
     case "-nocorr":
@@ -1015,6 +1155,7 @@ while( $#argv != 0 )
       set doqa = 1
       set dobedpost = 0
       set dopaths = 0
+      set dostats = 0
       breaksw
 
     case "-noqa":
@@ -1026,6 +1167,7 @@ while( $#argv != 0 )
       set dointra = 1
       set dobedpost = 0
       set dopaths = 0
+      set dostats = 0
       breaksw
 
     case "-nointra":
@@ -1037,6 +1179,7 @@ while( $#argv != 0 )
       set dointer = 1
       set dobedpost = 0
       set dopaths = 0
+      set dostats = 0
       breaksw
 
     case "-nointer":
@@ -1048,6 +1191,7 @@ while( $#argv != 0 )
       set domasks = 1
       set dobedpost = 0
       set dopaths = 0
+      set dostats = 0
       breaksw
 
     case "-nomasks":
@@ -1059,6 +1203,7 @@ while( $#argv != 0 )
       set dotensor = 1
       set dobedpost = 0
       set dopaths = 0
+      set dostats = 0
       breaksw
 
     case "-notensor":
@@ -1070,6 +1215,7 @@ while( $#argv != 0 )
       set dopriors = 1
       set dobedpost = 0
       set dopaths = 0
+      set dostats = 0
       breaksw
 
     case "-noprior":
@@ -1300,8 +1446,8 @@ check_params:
 
   if ((! $dopreproc || (! $docorr && ! $doqa && ! $dointra && ! $dointer && \
                         ! $domasks && ! $dotensor && ! $dopriors)) && \
-       ! $dobedpost && ! $dopaths) then
-    echo "ERROR: no analysis step (-{prep,bedp,path}) has been selected"
+       ! $dobedpost && ! $dopaths && ! $dostats) then
+    echo "ERROR: no analysis step (-{prep,bedp,path,stat}) has been selected"
     exit 1
   endif
 
@@ -1323,6 +1469,7 @@ usage_exit:
   echo "  -prep     : do pre-processing (step 1, all substeps)"
   echo "  -bedp     : do bedpost (step 2)"
   echo "  -path     : do pathway reconstruction (step 3)"
+  echo "  -stat     : assemble pathway measures from multiple subjects (step 4)"
   echo ""
   echo "Performing a part of the preprocessing or skipping a part:"
   echo "  -corr     : do image corrections (step 1.1)"
@@ -1351,6 +1498,7 @@ usage_exit:
   echo "     1.7 Pathway priors from atlas and T1"
   echo "  2. Stick-and-ball model fitting with bedpost"
   echo "  3. Pathway reconstruction"
+  echo "  4. Assemble pathway measures from all subjects"
   echo ""
   echo "Other options:"
   echo "  -log <file>     : unique log file instead of scripts/trac-all.log"
@@ -1386,10 +1534,10 @@ BASIC USAGE
 There are two ways to use this script.
 
 > Using only mandatory inputs with all default options:
-  trac-all -{prep,bedp,path} -subject subjectname -i dicomfile
+  trac-all -{prep,bedp,path,stat} -subject subjectname -i dicomfile
 
 > Using a file called dmrirc to define custom options:
-  trac-all -{prep,bedp,path} -c dmrirc
+  trac-all -{prep,bedp,path,stat} -c dmrirc
 
 If a dmrirc file is not specified, then the subject name and input DWI
 DICOM must be specified on the command line. If a dmrirc file is specified,
@@ -1398,9 +1546,9 @@ options.
 
 STEP-WISE DIRECTIVES
 Any of the two basic forms of usage described above must include an
-argument (-prep for pre-processing, -bedp for bedpost, or -path for path
-reconstruction) that specifies which part of the analysis to perform.
-The three parts must be performed in that order.
+argument (-prep for pre-processing, -bedp for bedpost, -path for path
+reconstruction, or -stat for group tables) that specifies which part of
+the analysis to perform. The four parts must be performed in that order.
 
 It is also possible to perform a certain step of the pre-processing
 (with -stepname) or to skip a certain step from the pre-processing (with
@@ -1462,7 +1610,13 @@ file. See dmrirc.example for more details.
 > Step 3: Pathway reconstruction
           -path to do this step
 
-  Do the actual work.
+  Do the actual tractography.
+
+> Step 4: Assemble pathway measures from multiple subjects
+          -stat to do this step
+
+   Combine whole-path or along-the-path measures (anisotropy and 
+   diffusivity) from multiple subjects to feed into group analyses.
 
 OTHER OPTIONS
 -log <file>     : default is scripts/trac-all.log
