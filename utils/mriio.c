@@ -9,8 +9,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2013/03/25 18:33:15 $
- *    $Revision: 1.407 $
+ *    $Date: 2013/11/03 19:56:01 $
+ *    $Revision: 1.408 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -81,6 +81,7 @@
 #include "dti.h"
 #include "gifti_local.h"
 #include "gcamorph.h"
+#include "autoencoder.h"
 
 static int niiPrintHdr(FILE *fp, struct nifti_1_header *hdr);
 
@@ -798,6 +799,16 @@ MRI *mri_read( const char *fname,
     }
 
     GCAMfree(&gcam) ;
+  }
+  else if (type == MGH_AUTOENCODER)
+  {
+    SAE *sae ;
+    sae = SAEread(fname_copy) ;
+    if (sae == NULL)
+      ErrorReturn(NULL, (ERROR_BADPARM, "MRIread(%s): could not read autoencoder\n", fname_copy)) ;
+
+    mri = SAEinputWeightsToMRI(sae, NULL) ;
+    SAEfree(&sae) ;
   }
   else if (type == GDF_FILE)
   {
