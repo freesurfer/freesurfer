@@ -14,8 +14,8 @@
  * Original Author: Douglas N Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2013/10/29 18:58:02 $
- *    $Revision: 1.225 $
+ *    $Date: 2013/11/03 18:37:24 $
+ *    $Revision: 1.226 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -555,7 +555,7 @@ static int SmoothSurfOrVol(MRIS *surf, MRI *mri, MRI *mask, double SmthLevel);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-"$Id: mri_glmfit.c,v 1.225 2013/10/29 18:58:02 greve Exp $";
+"$Id: mri_glmfit.c,v 1.226 2013/11/03 18:37:24 greve Exp $";
 const char *Progname = "mri_glmfit";
 
 int SynthSeed = -1;
@@ -1075,7 +1075,7 @@ int main(int argc, char **argv) {
   if(DoMRTM1) {
     printf("Performing MRTM1\n"); fflush(stdout);
     mriglm->Xg = MatrixHorCat(RTM_Cr,RTM_intCr,NULL);
-    mriglm->wg = HalfLife2Weight(MRTM1_HalfLife,RTM_TimeMin);
+    if(MRTM1_HalfLife > 0) mriglm->wg = HalfLife2Weight(MRTM1_HalfLife,RTM_TimeMin);
     mriglm->npvr = 1;
     printf("Computing integral of input ..."); fflush(stdout);
     mriglm->pvr[0] = fMRIcumTrapZ(mriglm->y,RTM_TimeMin,NULL,NULL);
