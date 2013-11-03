@@ -8,8 +8,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2013/09/09 13:00:04 $
- *    $Revision: 1.454 $
+ *    $Date: 2013/11/03 19:56:13 $
+ *    $Revision: 1.455 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -908,6 +908,7 @@ extern float ic_z_vertices[]  ;
 #define GIFTI_FILE                    27 // GIFTI func data frames
 #define VTK_FILE                      28 // VTK
 #define MGH_MORPH                     29 // .m3z, .m3d
+#define MGH_AUTOENCODER               30
 
 int        MRImatchDimensions(MRI *mri1, MRI *mri2) ;
 int        MRImatch(MRI *mri1, MRI *mri2) ;
