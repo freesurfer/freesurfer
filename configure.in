@@ -8,9 +8,9 @@
 # Process this file with autoconf to produce a configure script.
 #
 # CVS Revision Info:
-#    $Author: greve $
-#    $Date: 2013/09/03 20:56:00 $
-#    $Revision: 1.603 $
+#    $Author: fischl $
+#    $Date: 2013/11/03 19:57:28 $
+#    $Revision: 1.604 $
 #
 ########################################################################
 AC_PREREQ(2.57)
@@ -3486,6 +3486,7 @@ AC_OUTPUT([Makefile
            matlab/Makefile
            mkxsubjreg/Makefile
            mri_bias/Makefile
+           mri_train_autoencoder/Makefile
            mri_log_likelihood/Makefile
            mri_add_xform_to_header/Makefile
            mri_annotation2label/Makefile
