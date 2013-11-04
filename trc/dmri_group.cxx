@@ -8,8 +8,8 @@
  * Original Author: Anastasia Yendiki
  * CVS Revision Info:
  *    $Author: ayendiki $
- *    $Date: 2013/10/28 03:37:36 $
- *    $Revision: 1.1 $
+ *    $Date: 2013/11/04 23:00:21 $
+ *    $Revision: 1.2 $
  *
  * Copyright © 2013 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -59,15 +59,15 @@ using namespace std;
 
 static int  parse_commandline(int argc, char **argv);
 static void check_options(void);
-static void print_usage(void) ;
+static void print_usage(void);
 static void usage_exit(void);
-static void print_help(void) ;
-static void print_version(void) ;
+static void print_help(void);
+static void print_version(void);
 static void dump_options(FILE *fp);
 
 int debug = 0, checkoptsonly = 0;
 
-int main(int argc, char *argv[]) ;
+int main(int argc, char *argv[]);
 
 static char vcid[] = "";
 const char *Progname = "dmri_group";
@@ -106,11 +106,11 @@ int main(int argc, char **argv) {
   uname(&uts);
   getcwd(cwd, 2000);
 
-  Progname = argv[0] ;
+  Progname = argv[0];
   argc --;
   argv++;
-  ErrorInit(NULL, NULL, NULL) ;
-  DiagInit(NULL, NULL, NULL) ;
+  ErrorInit(NULL, NULL, NULL);
+  DiagInit(NULL, NULL, NULL);
 
   if (argc == 0) usage_exit();
 
@@ -124,6 +124,7 @@ int main(int argc, char **argv) {
 
   // Read output reference volume
   if (outRefFile) {
+    cout << "Loading output reference volume from " << outRefFile << endl;
     outref = MRIread(outRefFile);
     if (!outref) {
       cout << "ERROR: Could not read " << outRefFile << endl;
@@ -132,7 +133,7 @@ int main(int argc, char **argv) {
   }
 
   // Read list of inputs
-  cout << "Reading list of inputs from " << inListFile << endl;
+  cout << "Loading list of inputs from " << inListFile << endl;
   listfile.open(inListFile, ios::in);
   if (!listfile) {
     cout << "ERROR: Could not open " << inListFile << " for reading" << endl;
@@ -140,12 +141,12 @@ int main(int argc, char **argv) {
   }
 
   while (getline(listfile, listline)) {
-    string filename, measline;
+    string filename, measline, subjid;
     vector<unsigned int> knots;
     vector<float> arc, path, meas;
     vector<string> inputs;
     ifstream infile;
-    istringstream liststr;
+    istringstream liststr(listline);
     MRI *inref = 0;
     AffineReg affinereg;
 #ifndef NO_CVS_UP_IN_HERE
@@ -161,7 +162,7 @@ int main(int argc, char **argv) {
     // First input on each line is the path directory
     filename = inputs[0] + "/pathstats.byvoxel.txt";
 
-    cout << "Reading measures along the path from " << filename << endl;
+    cout << "Loading measures along the path from " << filename << endl;
     infile.open(filename.c_str(), ios::in);
     if (!infile) {
       cout << "WARN: Could not open " << filename << endl
@@ -172,6 +173,7 @@ int main(int argc, char **argv) {
     // Second input on each line is an input reference volume
     if (inputs.size() > 1) {
       // Read reference volumes
+      cout << "Loading input reference volume from " << inputs[1] << endl;
       inref = MRIread(inputs[1].c_str());
       if (!inref) {
         cout << "ERROR: Could not read " << inputs[1] << endl;
@@ -200,10 +202,8 @@ int main(int argc, char **argv) {
         linestr >> word;
         linestr >> word;
 
-        if (word.compare("subjectname") == 0) {
-          linestr >> word;
-          subjlist.push_back(word);
-        }
+        if (word.compare("subjectname") == 0)
+          linestr >> subjid;
       }
       else if (measline.substr(0,1).compare("x") == 0) {	// Header line
         string word;
@@ -242,7 +242,7 @@ int main(int argc, char **argv) {
           nonlinreg.ApplyXfm(point, point.begin());
 #endif
 
-        // Add length of new path segment to arc length
+        // Add length of new path segment to arc lengths
         if (path.empty())
           arc.push_back(0.0);
         else {
@@ -268,6 +268,10 @@ int main(int argc, char **argv) {
     if (inref)
       MRIfree(&inref);
 
+    if (arc.empty())
+      continue;
+
+    subjlist.push_back(subjid);
     lengths.push_back(arc.size());
     allarc.push_back(arc);
     allpaths.push_back(path);
@@ -380,10 +384,9 @@ int main(int argc, char **argv) {
     }
 
     // Make this point the origin of the arc length for this path
-    if (*iarc0 > 0)
-      for (vector<float>::iterator iarcnew = ialla->begin();
-                                   iarcnew < ialla->end(); iarcnew++)
-        *iarcnew /= *iarc0;
+    for (vector<float>::iterator iarcnew = ialla->begin();
+                                 iarcnew < ialla->end(); iarcnew++)
+      *iarcnew -= *iarc0;
 
     arcm = *min_element(ialla->begin(), ialla->end());
 
@@ -425,7 +428,7 @@ int main(int argc, char **argv) {
       // Linear interpolation
       slope = (larc - *(iarc-1)) / (*iarc - *(iarc-1));
 
-      imeas1 = iallm->begin() + (iarc - ialla->begin());
+      imeas1 = iallm->begin() + nmeas * (iarc - ialla->begin());
       imeas0 = imeas1 - nmeas;
 
       // Interpolate values of each measure
@@ -447,7 +450,7 @@ int main(int argc, char **argv) {
 
   for (vector<string>::const_iterator imeas = measlist.begin();
                                       imeas < measlist.end(); imeas++) {
-    string outname = string(outBase) + *imeas + ".txt";
+    string outname = string(outBase) + "." + *imeas + ".txt";
     ofstream outfile;
 
     cout << "Writing group table to " << outname << endl;
@@ -499,8 +502,8 @@ static int parse_commandline(int argc, char **argv) {
 
     nargsused = 0;
 
-    if (!strcasecmp(option, "--help"))  print_help() ;
-    else if (!strcasecmp(option, "--version")) print_version() ;
+    if (!strcasecmp(option, "--help"))  print_help();
+    else if (!strcasecmp(option, "--version")) print_version();
     else if (!strcasecmp(option, "--debug"))   debug = 1;
     else if (!strcasecmp(option, "--checkopts"))   checkoptsonly = 1;
     else if (!strcasecmp(option, "--nocheckopts")) checkoptsonly = 0;
@@ -560,13 +563,13 @@ static void print_help(void) {
 /* ------------------------------------------------------ */
 static void usage_exit(void) {
   print_usage();
-  exit(1) ;
+  exit(1);
 }
 
 /* --------------------------------------------- */
 static void print_version(void) {
   cout << vcid << endl;
-  exit(1) ;
+  exit(1);
 }
 
 /* --------------------------------------------- */
