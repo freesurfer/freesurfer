@@ -8,8 +8,8 @@
  * Original Author: Anastasia Yendiki
  * CVS Revision Info:
  *    $Author: ayendiki $
- *    $Date: 2013/11/04 23:00:21 $
- *    $Revision: 1.2 $
+ *    $Date: 2013/11/05 04:57:57 $
+ *    $Revision: 1.3 $
  *
  * Copyright © 2013 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -362,9 +362,9 @@ int main(int argc, char **argv) {
   for (vector< vector<float> >::const_iterator iallp = allpaths.begin();
                                                iallp < allpaths.end();
                                                iallp++) {
-    float dmin = numeric_limits<float>::infinity(), arcm;
-    vector<float>::const_iterator iarc = ialla->begin(),
-                                  iarc0 = iarc;
+    float dmin = numeric_limits<float>::infinity(),
+          arc0 = 0, arcm;
+    vector<float>::const_iterator iarc = ialla->begin();
 
     // Find the closest point to the mid-point of the most representative path
     for (vector<float>::const_iterator ipath = iallp->begin();
@@ -376,7 +376,7 @@ int main(int argc, char **argv) {
 //...
 
       if (dist < dmin) {
-        iarc0 = iarc;
+        arc0 = *iarc;
         dmin = dist;
       }
 
@@ -386,7 +386,7 @@ int main(int argc, char **argv) {
     // Make this point the origin of the arc length for this path
     for (vector<float>::iterator iarcnew = ialla->begin();
                                  iarcnew < ialla->end(); iarcnew++)
-      *iarcnew -= *iarc0;
+      *iarcnew -= arc0;
 
     arcm = *min_element(ialla->begin(), ialla->end());
 
@@ -395,7 +395,7 @@ int main(int argc, char **argv) {
 
     arcm = *max_element(ialla->begin(), ialla->end());
 
-    if (arcm > arcmin)
+    if (arcm > arcmax)
       arcmax = arcm;
 
     ialla++;
@@ -422,8 +422,15 @@ int main(int argc, char **argv) {
         continue;
       }
 
-      while (*iarc < larc)
+      while (*iarc < larc && iarc < ialla->end())
         iarc++;
+
+      if (iarc == ialla->end()) {	// No values in this segment, skip ahead
+        for (int k = (int) nmeas; k > 0; k--)
+          meas.push_back(numeric_limits<float>::infinity());
+
+        continue;
+      }
 
       // Linear interpolation
       slope = (larc - *(iarc-1)) / (*iarc - *(iarc-1));
@@ -465,8 +472,14 @@ int main(int argc, char **argv) {
 
     // Write interpolated values of this measure
     for (unsigned ipt = imeas - measlist.begin(); ipt < nint; ipt += nmeas) {
-      for (iallm = allmeasint.begin(); iallm < allmeasint.end(); iallm++)
-        outfile << *(iallm->begin() + ipt) << " ";
+      for (iallm = allmeasint.begin(); iallm < allmeasint.end(); iallm++) {
+        vector<float>::const_iterator ival = iallm->begin() + ipt;
+
+        if (*ival == numeric_limits<float>::infinity())
+          outfile << "NaN ";
+        else
+          outfile << *ival << " ";
+      }
 
       outfile << endl;
     }
