@@ -68,6 +68,7 @@ libutils_main_SOURCES=\
 	art1.c \
 	artmap.c \
 	aseg_edit_svm.c \
+	autoencoder.c \
 	backprop.c \
 	bfileio.c \
 	box.c \
@@ -77,6 +78,7 @@ libutils_main_SOURCES=\
 	cluster.c \
 	class_array.c \
 	cma.c \
+	cmat.c \
 	cmdargs.c \
 	colortab.c \
 	connectcomp.c \
@@ -199,6 +201,7 @@ libutils_main_SOURCES=\
 	rescale.c \
 	retinotopy.c \
 	rfa.c \
+	rfutils.c \
 	rforest.c \
 	selxavgio.c \
 	sig.c \
