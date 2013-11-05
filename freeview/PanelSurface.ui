@@ -426,7 +426,7 @@
       <item row="15" column="1">
        <widget class="QComboBox" name="comboBoxLabel"/>
       </item>
-      <item row="16" column="0">
+      <item row="17" column="0">
        <widget class="QLabel" name="labelLabelColor">
         <property name="text">
          <string>Color</string>
@@ -436,7 +436,7 @@
         </property>
        </widget>
       </item>
-      <item row="16" column="1">
+      <item row="17" column="1">
        <layout class="QHBoxLayout" name="horizontalLayout22">
         <item>
          <widget class="QtColorPicker" name="colorpickerLabelColor" native="true"/>
@@ -463,14 +463,14 @@
         </item>
        </layout>
       </item>
-      <item row="17" column="0">
+      <item row="18" column="0">
        <widget class="QLabel" name="labelEdgeColor">
         <property name="text">
          <string>Edge color</string>
         </property>
        </widget>
       </item>
-      <item row="17" column="1">
+      <item row="18" column="1">
        <layout class="QHBoxLayout" name="horizontalLayout23">
         <item>
          <widget class="QtColorPicker" name="colorpickerEdgeColor" native="true"/>
@@ -490,14 +490,14 @@
         </item>
        </layout>
       </item>
-      <item row="18" column="0">
+      <item row="19" column="0">
        <widget class="QLabel" name="labelEdgeThickness">
         <property name="text">
          <string>Edge thickness</string>
         </property>
        </widget>
       </item>
-      <item row="18" column="1">
+      <item row="19" column="1">
        <layout class="QHBoxLayout" name="horizontalLayout_17">
         <item>
          <widget class="QSpinBox" name="spinBoxEdgeThickness"/>
@@ -517,17 +517,17 @@
         </item>
        </layout>
       </item>
-      <item row="19" column="0">
+      <item row="20" column="0">
        <widget class="QLabel" name="labelVectorDisplay">
         <property name="text">
          <string>Vector display</string>
         </property>
        </widget>
       </item>
-      <item row="19" column="1">
+      <item row="20" column="1">
        <widget class="QComboBox" name="comboBoxVectorDisplay"/>
       </item>
-      <item row="20" column="0">
+      <item row="21" column="0">
        <widget class="QLabel" name="labelVectorColor">
         <property name="text">
          <string>Color</string>
@@ -537,7 +537,7 @@
         </property>
        </widget>
       </item>
-      <item row="20" column="1">
+      <item row="21" column="1">
        <layout class="QHBoxLayout" name="horizontalLayout24">
         <item>
          <widget class="QtColorPicker" name="colorpickerVectorColor" native="true"/>
@@ -557,7 +557,7 @@
         </item>
        </layout>
       </item>
-      <item row="21" column="0">
+      <item row="22" column="0">
        <widget class="QLabel" name="labelVectorPointSize">
         <property name="text">
          <string>Point size</string>
@@ -567,7 +567,7 @@
         </property>
        </widget>
       </item>
-      <item row="21" column="1">
+      <item row="22" column="1">
        <layout class="QHBoxLayout" name="horizontalLayout_3">
         <item>
          <widget class="QSpinBox" name="spinBoxVectorPointSize">
@@ -594,14 +594,14 @@
         </item>
        </layout>
       </item>
-      <item row="25" column="0">
+      <item row="26" column="0">
        <widget class="QLabel" name="labelPositionOffset">
         <property name="text">
          <string>Position offset</string>
         </property>
        </widget>
       </item>
-      <item row="25" column="1">
+      <item row="26" column="1">
        <widget class="QLineEdit" name="lineEditPositionOffset"/>
       </item>
       <item row="14" column="1">
@@ -628,17 +628,17 @@
         </item>
        </layout>
       </item>
-      <item row="22" column="0">
+      <item row="23" column="0">
        <widget class="QLabel" name="label">
         <property name="text">
          <string>Spline display</string>
         </property>
        </widget>
       </item>
-      <item row="22" column="1">
+      <item row="23" column="1">
        <widget class="QComboBox" name="comboBoxSplineDisplay"/>
       </item>
-      <item row="23" column="0">
+      <item row="24" column="0">
        <widget class="QLabel" name="labelSplineColor">
         <property name="text">
          <string>Color</string>
@@ -648,7 +648,7 @@
         </property>
        </widget>
       </item>
-      <item row="23" column="1">
+      <item row="24" column="1">
        <layout class="QHBoxLayout" name="horizontalLayout23_2">
         <item>
          <widget class="QtColorPicker" name="colorpickerSplineColor" native="true"/>
@@ -668,11 +668,32 @@
         </item>
        </layout>
       </item>
-      <item row="24" column="1">
+      <item row="25" column="1">
        <widget class="QCheckBox" name="checkBoxSplineProjection">
         <property name="text">
          <string>Project on 2D view</string>
         </property>
+       </widget>
+      </item>
+      <item row="16" column="1">
+       <widget class="QTreeWidget" name="treeWidgetLabels">
+        <property name="maximumSize">
+         <size>
+          <width>16777215</width>
+          <height>90</height>
+         </size>
+        </property>
+        <property name="rootIsDecorated">
+         <bool>false</bool>
+        </property>
+        <property name="headerHidden">
+         <bool>true</bool>
+        </property>
+        <column>
+         <property name="text">
+          <string notr="true">1</string>
+         </property>
+        </column>
        </widget>
       </item>
      </layout>

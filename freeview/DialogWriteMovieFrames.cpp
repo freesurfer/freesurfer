@@ -6,9 +6,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/14 23:44:47 $
- *    $Revision: 1.8 $
+ *    $Author: rpwang $
+ *    $Date: 2013/11/05 20:25:28 $
+ *    $Revision: 1.9 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -30,6 +30,8 @@
 #include <QMessageBox>
 #include <QCloseEvent>
 #include "Layer.h"
+#include "LayerMRI.h"
+#include <vtkImageData.h>
 
 DialogWriteMovieFrames::DialogWriteMovieFrames(QWidget *parent) :
   QDialog(parent),
@@ -68,19 +70,32 @@ void DialogWriteMovieFrames::closeEvent(QCloseEvent *e)
   QDialog::closeEvent(e);
 }
 
-void DialogWriteMovieFrames::UpdateUI()
+void DialogWriteMovieFrames::UpdateUI(bool bUpdateSliceNumber)
 {
   m_view = MainWindow::GetMainWindow()->GetMainView();
   bool b3D = m_b3D = (MainWindow::GetMainWindow()->GetMainViewId() == 3);
   ui->labelAngleStep->setVisible(b3D);
   ui->doubleSpinBoxAngleStep->setVisible(b3D);
   ui->labelSliceStartNumber->setVisible(!b3D);
+  ui->labelSliceEndNumber->setVisible(!b3D);
   ui->labelSliceStep->setVisible(!b3D);
   ui->spinBoxSliceStart->setVisible(!b3D);
+  ui->spinBoxSliceEnd->setVisible(!b3D);
   ui->spinBoxSliceStep->setVisible(!b3D);
   ui->pushButtonAbort->setEnabled(m_timer.isActive());
   ui->pushButtonClose->setEnabled(!m_timer.isActive());
   ui->pushButtonWrite->setEnabled(!m_timer.isActive());
+  if (bUpdateSliceNumber && !b3D)
+  {
+    int nPlane = MainWindow::GetMainWindow()->GetMainViewId();
+    LayerMRI* mri = (LayerMRI*)MainWindow::GetMainWindow()->GetActiveLayer("MRI");
+    if ( mri )
+    {
+      vtkImageData* imagedata = mri->GetImageData();
+      int* dim = imagedata->GetDimensions();
+      ui->spinBoxSliceEnd->setValue(dim[nPlane]-1);
+    }
+  }
 }
 
 void DialogWriteMovieFrames::OnOpen()
@@ -137,7 +152,7 @@ void DialogWriteMovieFrames::OnWrite()
     }
     if (layer)
     {
-      m_nTotalSteps = (int)((layer->GetWorldSize())[nView] / (layer->GetWorldVoxelSize())[nView]+0.5);
+      m_nTotalSteps = ui->spinBoxSliceEnd->value()-ui->spinBoxSliceStart->value()+1; // (int)((layer->GetWorldSize())[nView] / (layer->GetWorldVoxelSize())[nView]+0.5);
     }
     ((RenderView2D*)m_view)->SetSliceNumber( m_nStartSlice );
   }
@@ -146,14 +161,14 @@ void DialogWriteMovieFrames::OnWrite()
     m_nTotalSteps = 1;
   }
   m_timer.start();
-  UpdateUI();
+  UpdateUI(false);
   emit Started();
 }
 
 void DialogWriteMovieFrames::OnAbort()
 {
   m_timer.stop();
-  UpdateUI();
+  UpdateUI(false);
   emit Stopped();
 }
 

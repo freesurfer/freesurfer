@@ -6,9 +6,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/14 23:44:47 $
- *    $Revision: 1.8 $
+ *    $Author: rpwang $
+ *    $Date: 2013/11/05 20:25:28 $
+ *    $Revision: 1.9 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -46,7 +46,7 @@ public:
   void closeEvent(QCloseEvent *e);
 
 public slots:
-  void UpdateUI();
+  void UpdateUI(bool bUpdateSliceNumber = true);
 
 signals:
   void Started();

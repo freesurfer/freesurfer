@@ -10,8 +10,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2011/05/20 17:35:30 $
- *    $Revision: 1.7 $
+ *    $Date: 2013/11/05 20:25:29 $
+ *    $Revision: 1.8 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -74,8 +74,16 @@ public:
 
   vtkActor* GetOutlineActor();
 
+  bool IsVisible()
+  {
+    return m_bVisible;
+  }
+
 Q_SIGNALS:
   void SurfaceLabelChanged();
+
+public slots:
+  void SetVisible(bool flag);
 
 private:
   QList<int> DoConnectEdgeVertices(const QList<int>& indices_in, const QList<int>& vertices);
@@ -87,6 +95,7 @@ private:
   double        m_rgbColor[3];
   bool          m_bTkReg;
   bool          m_bShowOutline;
+  bool          m_bVisible;
   vtkSmartPointer<vtkActor> m_actorOutline;
 };
 

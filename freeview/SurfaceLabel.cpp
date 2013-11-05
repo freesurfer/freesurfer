@@ -11,8 +11,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2012/03/13 21:32:06 $
- *    $Revision: 1.10 $
+ *    $Date: 2013/11/05 20:25:29 $
+ *    $Revision: 1.11 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -47,7 +47,8 @@
 SurfaceLabel::SurfaceLabel ( LayerSurface* surf ) :
   QObject( surf ),
   m_label( NULL ),
-  m_surface( surf )
+  m_surface( surf ),
+  m_bVisible( true )
 {
   m_rgbColor[0] = 1.0;
   m_rgbColor[1] = 1.0;
@@ -344,4 +345,10 @@ void SurfaceLabel::SetShowOutline(bool bOutline)
 vtkActor* SurfaceLabel::GetOutlineActor()
 {
   return m_actorOutline;
+}
+
+void SurfaceLabel::SetVisible(bool flag)
+{
+  m_bVisible = flag;
+  emit SurfaceLabelChanged();
 }

@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2013/09/26 20:53:43 $
- *    $Revision: 1.94 $
+ *    $Date: 2013/11/05 20:25:29 $
+ *    $Revision: 1.95 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -1547,7 +1547,7 @@ void LayerSurface::MapLabels( unsigned char* data, int nVertexCount )
 {
   for ( int i = 0; i < m_labels.size(); i++ )
   {
-    if (i == m_nActiveLabel)
+    if (m_labels[i]->IsVisible())
       m_labels[i]->MapLabel( data, nVertexCount );
   }
 }

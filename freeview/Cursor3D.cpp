@@ -6,9 +6,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/14 23:44:46 $
- *    $Revision: 1.13 $
+ *    $Author: rpwang $
+ *    $Date: 2013/11/05 20:25:28 $
+ *    $Revision: 1.14 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -55,11 +55,11 @@ Cursor3D::Cursor3D( RenderView3D* view ) : QObject( view ),
 Cursor3D::~Cursor3D()
 {}
 
-void Cursor3D::RebuildActor()
+void Cursor3D::RebuildActor(double scale)
 {
 // vtkRenderer* renderer = m_view->GetRenderer();
 
-  double dLen = 1.5;
+  double dLen = 1.5*scale;
   int n = 0;
   vtkSmartPointer<vtkPoints> points = vtkSmartPointer<vtkPoints>::New();
   vtkSmartPointer<vtkCellArray> lines = vtkSmartPointer<vtkCellArray>::New();
@@ -86,7 +86,7 @@ void Cursor3D::RebuildActor()
   vtkSmartPointer<vtkTubeFilter> tube = vtkSmartPointer<vtkTubeFilter>::New();
   tube->SetInput( polydata );
   tube->SetNumberOfSides( 12 );
-  tube->SetRadius( 0.1 );
+  tube->SetRadius( 0.1*scale );
   tube->CappingOn();
 
   vtkSmartPointer<vtkPolyDataMapper> mapper = vtkSmartPointer<vtkPolyDataMapper>::New();

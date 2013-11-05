@@ -6,9 +6,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/14 23:44:46 $
- *    $Revision: 1.12 $
+ *    $Author: rpwang $
+ *    $Date: 2013/11/05 20:25:28 $
+ *    $Revision: 1.13 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -62,12 +62,12 @@ public:
 
 public slots:
   void SetColor( const QColor& color );
+  void RebuildActor(double scale = 1);
 
 Q_SIGNALS:
   void Updated();
 
 private:
-  void RebuildActor();
 
   vtkSmartPointer<vtkActor> m_actorCursor;
 

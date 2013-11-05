@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2013/06/11 17:05:35 $
- *    $Revision: 1.51 $
+ *    $Date: 2013/11/05 20:25:29 $
+ *    $Revision: 1.52 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -48,6 +48,8 @@ PanelSurface::PanelSurface(QWidget *parent) :
   ui->toolbar->insertAction(ui->actionSurfaceMain, mainwnd->ui->actionLoadSurface);
   ui->toolbar->insertAction(ui->actionSurfaceMain, mainwnd->ui->actionCloseSurface);
   ui->toolbar->insertSeparator(ui->actionSurfaceMain);
+
+  ui->treeWidgetLabels->hide();
 
   m_widgetsSlope << ui->sliderSlope
                  << ui->lineEditSlope
