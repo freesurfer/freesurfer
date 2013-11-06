@@ -8,8 +8,8 @@
  * Original Author: Anastasia Yendiki
  * CVS Revision Info:
  *    $Author: ayendiki $
- *    $Date: 2013/11/05 04:57:57 $
- *    $Revision: 1.3 $
+ *    $Date: 2013/11/06 00:40:09 $
+ *    $Revision: 1.4 $
  *
  * Copyright © 2013 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -72,6 +72,8 @@ int main(int argc, char *argv[]);
 static char vcid[] = "";
 const char *Progname = "dmri_group";
 
+int nSection = 0;
+
 char *inListFile = NULL, *outRefFile = NULL, *outBase = NULL;
 
 struct utsname uts;
@@ -82,11 +84,11 @@ struct timeb cputimer;
 /*--------------------------------------------------*/
 int main(int argc, char **argv) {
   int nargs, cputime;
-  unsigned int nmeas, lenmin, nint;
+  unsigned int nmeas, npt, lenmin, ntot;
   float distmin, darc,
         arcmin = numeric_limits<float>::infinity(),
         arcmax = 0.0;
-  string listline;
+  string listline, filename;
   vector<float>::const_iterator icenter;
   vector< vector<float> >::const_iterator itemplate, iallm;
   vector< vector<float> >::iterator ialla;
@@ -94,8 +96,10 @@ int main(int argc, char **argv) {
   vector<unsigned int> lengths;
   vector<string> subjlist, measlist;
   vector< vector<unsigned int> > allknots;
-  vector< vector<float> > allarc, allpaths, allmeas, allmeasint;
+  vector< vector<float> > allarc, allpaths, allmeas, allmeasint, allmeassec;
   ifstream listfile;
+  ofstream pathfile;
+  MATRIX *outv2r;
   MRI *outref = 0;
 
   /* rkt: check for and handle version tag */
@@ -130,6 +134,8 @@ int main(int argc, char **argv) {
       cout << "ERROR: Could not read " << outRefFile << endl;
       exit(1);
     }
+
+    outv2r = MRIgetVoxelToRasXform(outref);
   }
 
   // Read list of inputs
@@ -141,7 +147,7 @@ int main(int argc, char **argv) {
   }
 
   while (getline(listfile, listline)) {
-    string filename, measline, subjid;
+    string measline, subjid;
     vector<unsigned int> knots;
     vector<float> arc, path, meas;
     vector<string> inputs;
@@ -354,7 +360,33 @@ int main(int argc, char **argv) {
     iallk++;
   }
 
-  lenmin = *min_element(lengths.begin(), lengths.end());
+  // Write points of most representative path to file as RAS coords
+  filename = string(outBase) + ".median.label";
+
+  cout << "Writing median path to " << filename << endl;
+  pathfile.open(filename.c_str(), ios::out);
+
+  pathfile << "#!ascii label" << endl
+           << itemplate->size() / 3 << endl;
+
+  npt = 1;
+
+  for (vector<float>::const_iterator ipt = itemplate->begin();
+                                     ipt < itemplate->end(); ipt += 3) {
+    pathfile << npt;
+
+    for (int k = 1; k < 4; k++)		// Transform from voxel to RAS coords
+      pathfile << " " << ipt[0] * outv2r->rptr[k][1] +
+                         ipt[1] * outv2r->rptr[k][2] +
+                         ipt[2] * outv2r->rptr[k][3] +
+                                  outv2r->rptr[k][4];
+
+    pathfile << " 0" << endl;
+
+    npt++;
+  }
+
+  pathfile.close();
 
   // Reparameterize the arc length on each path
   ialla = allarc.begin();
@@ -402,6 +434,7 @@ int main(int argc, char **argv) {
   }
 
   // Interpolate measures at the same arc lengths on every path
+  lenmin = *min_element(lengths.begin(), lengths.end());
   darc = (arcmax - arcmin) / lenmin;
 
   iallm = allmeas.begin();
@@ -415,7 +448,7 @@ int main(int argc, char **argv) {
       vector<float>::const_iterator iarc = ialla->begin(),
                                     imeas1, imeas0;
 
-      if (*iarc > larc) {		// No values in this segment, skip ahead
+      if (*iarc > larc) {		// No points in this segment, skip ahead
         for (int k = (int) nmeas; k > 0; k--)
           meas.push_back(numeric_limits<float>::infinity());
 
@@ -425,7 +458,7 @@ int main(int argc, char **argv) {
       while (*iarc < larc && iarc < ialla->end())
         iarc++;
 
-      if (iarc == ialla->end()) {	// No values in this segment, skip ahead
+      if (iarc == ialla->end()) {	// No points in this segment, skip ahead
         for (int k = (int) nmeas; k > 0; k--)
           meas.push_back(numeric_limits<float>::infinity());
 
@@ -453,7 +486,7 @@ int main(int argc, char **argv) {
   }
 
   // Write output files
-  nint = allmeasint[0].size();
+  ntot = allmeasint[0].size();
 
   for (vector<string>::const_iterator imeas = measlist.begin();
                                       imeas < measlist.end(); imeas++) {
@@ -471,7 +504,7 @@ int main(int argc, char **argv) {
     outfile << endl;
 
     // Write interpolated values of this measure
-    for (unsigned ipt = imeas - measlist.begin(); ipt < nint; ipt += nmeas) {
+    for (unsigned ipt = imeas - measlist.begin(); ipt < ntot; ipt += nmeas) {
       for (iallm = allmeasint.begin(); iallm < allmeasint.end(); iallm++) {
         vector<float>::const_iterator ival = iallm->begin() + ipt;
 
@@ -487,8 +520,99 @@ int main(int argc, char **argv) {
     outfile.close();
   }
 
-  if (outref)
+  // Average measures over sections along the path
+  if (nSection > 0) {
+    char nsec[PATH_MAX];
+
+    sprintf(nsec, "%dsec", nSection);
+
+    darc = (arcmax - arcmin) / nSection;
+
+    iallm = allmeas.begin();
+
+    for (vector< vector<float> >::const_iterator ialla = allarc.begin();
+                                                 ialla < allarc.end();
+                                                 ialla++) {
+      float larc = arcmin + darc;
+      vector<float>::const_iterator iarc = ialla->begin(),
+                                    imeas = iallm->begin();
+      vector<float> meas;
+
+      while (larc <= arcmax) {
+        int nsamp = 0;
+        vector<float> avg(nmeas,0);
+
+        while (*iarc < larc && iarc < ialla->end()) {
+          for (vector<float>::iterator iavg = avg.begin(); iavg < avg.end();
+                                                           iavg++) {
+            *iavg += *imeas;
+
+            imeas++;
+          }
+
+          iarc++;
+          nsamp++;
+        }
+
+        if (nsamp > 0)
+          for (vector<float>::iterator iavg = avg.begin(); iavg < avg.end();
+                                                            iavg++)
+            *iavg /= nsamp;
+        else					// No points in this section
+          for (vector<float>::iterator iavg = avg.begin(); iavg < avg.end();
+                                                           iavg++)
+            *iavg = numeric_limits<float>::infinity();
+
+        meas.insert(meas.end(), avg.begin(), avg.end());
+
+        larc += darc;
+      }
+
+      allmeassec.push_back(meas);
+
+      iallm++;
+    }
+
+    // Write output files
+    ntot = nSection * nmeas;
+
+    for (vector<string>::const_iterator imeas = measlist.begin();
+                                        imeas < measlist.end(); imeas++) {
+      string outname = string(outBase) + "." + *imeas + "." + nsec + ".txt";
+      ofstream outfile;
+
+      cout << "Writing group table to " << outname << endl;
+      outfile.open(outname.c_str(), ios::out);
+
+      // Write subject names
+      for (vector<string>::const_iterator isubj = subjlist.begin();
+                                          isubj < subjlist.end(); isubj++)
+        outfile << *isubj << " ";
+
+      outfile << endl;
+
+      // Write section averages of values of this measure
+      for (unsigned ipt = imeas - measlist.begin(); ipt < ntot; ipt += nmeas) {
+        for (iallm = allmeassec.begin(); iallm < allmeassec.end(); iallm++) {
+          vector<float>::const_iterator ival = iallm->begin() + ipt;
+
+          if (*ival == numeric_limits<float>::infinity())
+            outfile << "NaN ";
+          else
+            outfile << *ival << " ";
+        }
+
+        outfile << endl;
+      }
+
+      outfile.close();
+    }
+  }
+
+  if (outref) {
     MRIfree(&outref);
+    MatrixFree(&outv2r);
+  }
 
   cputime = TimerStop(&cputimer);
   cout << "Done in " << cputime/1000.0 << " sec." << endl;
@@ -535,6 +659,11 @@ static int parse_commandline(int argc, char **argv) {
       outBase = fio_fullpath(pargv[0]);
       nargsused = 1;
     }
+    else if (!strcmp(option, "--sec")) {
+      if (nargc < 1) CMDargNErr(option,1);
+      sscanf(pargv[0], "%d", &nSection);
+      nargsused = 1;
+    }
     nargc -= nargsused;
     pargv += nargsused;
   }
@@ -553,6 +682,9 @@ static void print_usage(void)
   << "     Reference volume for output path" << endl
   << "   --out <base>:" << endl
   << "     Base name of output text files" << endl
+  << "   --sec <num>:" << endl
+  << "     Divide the pathway into a number of sections and output " << endl
+  << "     average measures for each section (optional)" << endl
   << endl
   << "Other options" << endl
   << "   --debug:     turn on debugging" << endl
