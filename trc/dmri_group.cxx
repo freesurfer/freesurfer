@@ -8,8 +8,8 @@
  * Original Author: Anastasia Yendiki
  * CVS Revision Info:
  *    $Author: ayendiki $
- *    $Date: 2013/11/06 00:40:09 $
- *    $Revision: 1.4 $
+ *    $Date: 2013/11/07 22:08:31 $
+ *    $Revision: 1.5 $
  *
  * Copyright © 2013 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -84,7 +84,7 @@ struct timeb cputimer;
 /*--------------------------------------------------*/
 int main(int argc, char **argv) {
   int nargs, cputime;
-  unsigned int nmeas, npt, lenmin, ntot;
+  unsigned int nmeas, npt, lenmax, ntot;
   float distmin, darc,
         arcmin = numeric_limits<float>::infinity(),
         arcmax = 0.0;
@@ -434,8 +434,8 @@ int main(int argc, char **argv) {
   }
 
   // Interpolate measures at the same arc lengths on every path
-  lenmin = *min_element(lengths.begin(), lengths.end());
-  darc = (arcmax - arcmin) / lenmin;
+  lenmax = *max_element(lengths.begin(), lengths.end());
+  darc = (arcmax - arcmin) / lenmax;
 
   iallm = allmeas.begin();
 
