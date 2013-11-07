@@ -10,8 +10,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2013/11/07 22:46:52 $
- *    $Revision: 1.6 $
+ *    $Date: 2013/11/07 23:13:00 $
+ *    $Revision: 1.7 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -33,7 +33,7 @@
 */
 
 
-// $Id: mri_rbvpvc.c,v 1.6 2013/11/07 22:46:52 greve Exp $
+// $Id: mri_rbvpvc.c,v 1.7 2013/11/07 23:13:00 greve Exp $
 
 /*
   BEGINHELP
@@ -81,7 +81,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_rbvpvc.c,v 1.6 2013/11/07 22:46:52 greve Exp $";
+static char vcid[] = "$Id: mri_rbvpvc.c,v 1.7 2013/11/07 23:13:00 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -186,7 +186,7 @@ int main(int argc, char *argv[])
       printf("ERROR: reading  %s\n",SegTTypeFile);
       exit(1);
     }
-    MatrixPrint(stdout,SegTType);
+    //MatrixPrint(stdout,SegTType);
   }
   if(MaskVolFile){
     printf("Loading mask %s\n",MaskVolFile);fflush(stdout);
@@ -1139,6 +1139,7 @@ MATRIX *BuildGTMPVF(MRI *seg, MATRIX *SegTType, MRI *pvf, MRI *mask,
       printf("  TType %d -----------\n",nthtt);
       if(nthtt != 2) // gm and wm
 	mritmp = MRIdilateSegmentation(segttvol[nthtt], NULL, ndil, pvftt[nthtt], &nchanges);
+      //mritmp = MRIdilateSegmentation(segttvol[nthtt], NULL, ndil, mask, &nchanges);
       else // csf
 	mritmp = MRIdilateSegmentation(segttvol[nthtt], NULL, 3, NULL, &nchanges);
       MRIfree(&segttvol[nthtt]);
@@ -1152,7 +1153,7 @@ MATRIX *BuildGTMPVF(MRI *seg, MATRIX *SegTType, MRI *pvf, MRI *mask,
   // overwhelmed the high PVF voxels. These would be the ones that
   // would be the most in error if the PSF is not accurate.
   // This matches what I did int matlab, but I don't know why I did 
-  // it in the first place.
+  // it in the first place. CSF PVF will include sulcal but the seg will not.
 
   // Alloc the ROI mask
   roimask = MRIconst(seg->width,seg->height,seg->depth,1,0.0,NULL);
@@ -1166,6 +1167,7 @@ MATRIX *BuildGTMPVF(MRI *seg, MATRIX *SegTType, MRI *pvf, MRI *mask,
   }
 
   // Create a regressor for each segid
+  printf("Computing regressors\n");
   mthseg = 0;
   for(nthseg=0; nthseg < nsegs; nthseg++){
     segid = segidlist[nthseg];
@@ -1179,8 +1181,7 @@ MATRIX *BuildGTMPVF(MRI *seg, MATRIX *SegTType, MRI *pvf, MRI *mask,
 	break;
       }
     }
-    printf("#@# %3d/%d %3d %d ---------\n",nthseg,nsegs,segid,segtt);
-
+    //printf("#@# %3d/%d %3d %d ---------\n",nthseg,nsegs,segid,segtt);
     if(Gdiag_no > 0) {
       printf("BuildGTM0(): #@# %3d/%d %3d ---\n",mthseg,nsegs-has0,segid); 
       fflush(stdout);
@@ -1199,11 +1200,6 @@ MATRIX *BuildGTMPVF(MRI *seg, MATRIX *SegTType, MRI *pvf, MRI *mask,
     }
     // Smooth the mask
     roimasksm = MRIgaussianSmoothNI(roimask, cStd, rStd, sStd, roimasksm);
-    if(segid == 11){
-      printf("     saving roimask\n");
-      MRIwrite(roimask,"roimask.mgh");
-      MRIwrite(roimasksm,"roimasksm.mgh");
-    }
     // Fill X
     // Creating X in this order makes it consistent with matlab
     // Note: y must be ordered in the same way.
@@ -1219,8 +1215,6 @@ MATRIX *BuildGTMPVF(MRI *seg, MATRIX *SegTType, MRI *pvf, MRI *mask,
     }
     mthseg ++;
   } // seg
-  printf("Saving X\n");
-  MatlabWrite(X,"X.mat","X");
 
   for(nthtt = 0; pvf->nframes < nthtt; nthtt++) {
     MRIfree(&segttvol[nthtt]);
