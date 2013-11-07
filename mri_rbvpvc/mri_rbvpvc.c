@@ -10,8 +10,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2013/09/10 22:54:02 $
- *    $Revision: 1.5 $
+ *    $Date: 2013/11/07 22:46:52 $
+ *    $Revision: 1.6 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -33,7 +33,7 @@
 */
 
 
-// $Id: mri_rbvpvc.c,v 1.5 2013/09/10 22:54:02 greve Exp $
+// $Id: mri_rbvpvc.c,v 1.6 2013/11/07 22:46:52 greve Exp $
 
 /*
   BEGINHELP
@@ -70,6 +70,7 @@
 #include "mri2.h"
 #include "timer.h"
 #include "fmriutils.h"
+#include "matfile.h"
 
 static int  parse_commandline(int argc, char **argv);
 static void check_options(void);
@@ -80,7 +81,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_rbvpvc.c,v 1.5 2013/09/10 22:54:02 greve Exp $";
+static char vcid[] = "$Id: mri_rbvpvc.c,v 1.6 2013/11/07 22:46:52 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -95,12 +96,17 @@ int GTMOnly=0;
 int DoSegTest=0;
 char tmpstr[5000];
 int niterations = 0;
+char *PVFFile=NULL, *SegTTypeFile=NULL;
 
 MATRIX *MatrixGetDiag(MATRIX *M, VECTOR *d);
 int VRFStats(MATRIX *iXtX, double *vrfmean, double *vrfmin, double *vrfmax);
 MRI *IterativeRBV0PVC(MRI *src, MRI *seg, MRI *mask, int niters,
 		      double cFWHM, double rFWHM, double sFWHM, 
 		      MRI *dst);
+MATRIX *BuildGTMPVF(MRI *seg, MATRIX *SegTType, MRI *pvf, MRI *mask, 
+		    double cFWHM, double rFWHM, double sFWHM, 
+		    MATRIX *X);
+MATRIX *Seg2TissueType(MRI *seg);
 
 /*---------------------------------------------------------------*/
 int main(int argc, char *argv[]) 
@@ -112,6 +118,8 @@ int main(int argc, char *argv[])
   double val,XtXcond;
   double vrfmin,vrfmax,vrfmean;
   struct timeb  mytimer, timer;
+  MRI *PVF=NULL;
+  MATRIX *SegTType=NULL;
 
   nargs = handle_version_option (argc, argv, vcid, "$Name:  $");
   if (nargs && argc - nargs == 1) exit (0);
@@ -155,11 +163,30 @@ int main(int argc, char *argv[])
     printf("Using smoothed seg as input \n");
     src = MRIgaussianSmoothNI(seg, cStd, rStd, sStd, NULL);
   }
-
   err = MRIdimMismatch(seg, src, 0);
   if(err){
     printf("ERROR: seg and source dim mismatch %d\n",err);
     exit(1);
+  }
+
+  if(PVFFile){
+    printf("Loading PVF %s\n",PVFFile);fflush(stdout);
+    PVF = MRIread(PVFFile);
+    if(PVF==NULL) exit(1);
+    err = MRIdimMismatch(seg, PVF, 0);
+    if(err){
+      printf("ERROR: seg and PVF dim mismatch %d\n",err);
+      exit(1);
+    }
+    printf("Computing SegTType\n");
+    SegTType = Seg2TissueType(seg);
+    //printf("Loading SegTType %s\n",SegTTypeFile);fflush(stdout);
+    //SegTType = MatrixReadTxt(SegTTypeFile, NULL);
+    if(SegTType == NULL){
+      printf("ERROR: reading  %s\n",SegTTypeFile);
+      exit(1);
+    }
+    MatrixPrint(stdout,SegTType);
   }
   if(MaskVolFile){
     printf("Loading mask %s\n",MaskVolFile);fflush(stdout);
@@ -205,7 +232,7 @@ int main(int argc, char *argv[])
 
   // Create GTM matrix
   printf("Building GTM ... ");fflush(stdout); TimerStart(&mytimer) ;
-  X = BuildGTM0(seg,mask,cFWHM,rFWHM,sFWHM,NULL);
+  X = BuildGTMPVF(seg,SegTType,PVF,mask,cFWHM,rFWHM,sFWHM,NULL);
   if(X==NULL) exit(1);
   printf(" %4.1f sec\n",TimerStop(&mytimer)/1000.0);fflush(stdout);
   printf("nmask = %d\n",X->rows);
@@ -396,6 +423,12 @@ static int parse_commandline(int argc, char **argv) {
       SegVolFile = pargv[0];
       nargsused = 1;
     } 
+    else if (!strcasecmp(option, "--pvf")) {
+      if (nargc < 2) CMDargNErr(option,1);
+      PVFFile = pargv[0];
+      SegTTypeFile = pargv[1];
+      nargsused = 2;
+    } 
     else if (!strcasecmp(option, "--mask")) {
       if (nargc < 1) CMDargNErr(option,1);
       MaskVolFile = pargv[0];
@@ -454,6 +487,7 @@ static void print_usage(void) {
   printf("   --src volfile : source data to PVC\n");
   printf("   --seg volfile : segmentation to define regions for RBV\n");
   printf("   --mask volfile : ignore areas outside of the mask\n");
+  printf("   --pvf pvffile segttype: Non-binary voxelwise PVF\n");
   printf("   --o  outvolfile : PVC'ed input\n");
   printf("   --gtm-means volfile : save ROI means in volume format\n");
   printf("   --gtm-only : only perform GTM\n");
@@ -683,6 +717,7 @@ MRI *MRIdownSmoothUp(MRI *src, int Fc, int Fr, int Fs,
 
   return(dst);
 }
+/*---------------------------------------------------------------------*/
 MATRIX *BuildGTM(MRI *seg, MATRIX *SegTType, MRI *pvf, MRI *mask,
 		 int Fc, int Fr, int Fs, 
 		 double cFWHM, double rFWHM, double sFWHM, 
@@ -752,6 +787,7 @@ MATRIX *BuildGTM(MRI *seg, MATRIX *SegTType, MRI *pvf, MRI *mask,
   return(X);
 }
 
+/*----------------------------------------------------------*/
 MATRIX *Seg2TissueType(MRI *seg)
 {
   int *segidlist, nsegs, nthseg, has0, segid, segtt,n;
@@ -776,9 +812,9 @@ MATRIX *Seg2TissueType(MRI *seg)
     segtt = -1;
     if(segid == 2 || segid == 41 || segid == 7 ||
        segid == 46 || segid == 16 || segid == 28 ||
-       segid == 60) segtt = 2; // WM
-    else if(segid == 24) segtt = 0; // CSF
-    else segtt = 1; // GM
+       segid == 60) segtt = 1; // WM
+    else if(segid == 24) segtt = 2; // CSF
+    else segtt = 0; // GM
 
     if(segtt == -1){
       printf("ERROR: Seg2TissueType(): segid %d unknown\n",segid);
@@ -1003,3 +1039,196 @@ MATRIX *MatrixGetDiag(MATRIX *M, VECTOR *d)
   return(d);
 }
 
+/***************------------------------******************/
+MATRIX *BuildGTMPVF(MRI *seg, MATRIX *SegTType, MRI *pvf, MRI *mask, 
+		    double cFWHM, double rFWHM, double sFWHM, 
+		    MATRIX *X)
+{
+  int c,r,s,nmask, nsegs,nthseg, mthseg, kthseg, segid, *segidlist,has0,segtt;
+  double cStd,rStd,sStd,val;
+  MRI *roimask=NULL,*roimasksm=NULL,*segttvol[10],*mritmp,*pvftt[10];
+  int nthtt,ndil=-1,nchanges;
+
+  if(pvf == NULL) return(BuildGTM0(seg,mask,cFWHM,rFWHM,sFWHM,X));
+
+  cStd = cFWHM/sqrt(log(256.0));
+  rStd = rFWHM/sqrt(log(256.0));
+  sStd = sFWHM/sqrt(log(256.0));
+
+  // Count number of voxels in the mask
+  nmask = 0;
+  for(c=0; c < seg->width; c++){
+    for(r=0; r < seg->height; r++){
+      for(s=0; s < seg->depth; s++){
+	if(mask && MRIgetVoxVal(mask,c,r,s,0) < 0.5) continue;
+	nmask ++;
+      }
+    }
+  }
+  if(Gdiag_no > 0) printf("BuildGTM0(): nmask = %d, nsegs = %d\n",nmask,nsegs);
+
+  // Get list of segids from the segmentation
+  segidlist = MRIsegIdList(seg, &nsegs, 0);
+  has0 = 0;
+  for(nthseg=0; nthseg < nsegs; nthseg++)
+    if(segidlist[nthseg] == 0) has0 = 1;
+
+  printf("nsegs = %d, has0 = %d, SegTType %d\n",nsegs,has0,SegTType->rows);
+  if(nsegs-has0 != SegTType->rows){
+    printf("ERROR:Seg dim mismatch\n");
+    return(NULL);
+  }
+  // Check that every segid in SegTType is in segidlist
+  for(nthseg=0; nthseg < nsegs; nthseg++){
+    segid = segidlist[nthseg];
+    if(segid == 0) continue;
+    segtt = -1;
+    for(kthseg=0; kthseg < nsegs; kthseg++){
+      if((int)SegTType->rptr[kthseg+1][1] == segid){
+	segtt = (int)SegTType->rptr[kthseg+1][2];
+	break;
+      }
+    }
+    if(segtt == -1){
+      printf("ERROR: cannot find a match for seg %d in SegTType\n",segid);
+      return(NULL);
+    }
+  }
+
+  printf("Creating tissue type specific seg\n");
+  // Create TT spec PVF MRI binarized/thresholded at 0.25
+  for(nthtt = 0; nthtt < pvf->nframes; nthtt++){
+    pvftt[nthtt] = fMRIframe(pvf, nthtt, NULL);
+    for(c=0; c < seg->width; c++){
+      for(r=0; r < seg->height; r++){
+	for(s=0; s < seg->depth; s++){
+	  if(mask && MRIgetVoxVal(mask,c,r,s,0) < 0.5) continue;
+	  val = MRIgetVoxVal(pvftt[nthtt],c,r,s,0);
+	  if(val < 0.25) MRIsetVoxVal(pvftt[nthtt],c,r,s,0,0.0);
+	  else           MRIsetVoxVal(pvftt[nthtt],c,r,s,0,1.0);
+	}
+      }
+    }
+  }
+  // Alloc tissue type specific seg
+  for(nthtt = 0; nthtt < pvf->nframes; nthtt++){
+    segttvol[nthtt] = MRIalloc(seg->width,seg->height,seg->depth,MRI_INT);
+    MRIcopyHeader(seg,segttvol[nthtt]);
+  }
+  // Fill tissue type specific seg
+  for(c=0; c < seg->width; c++){
+    for(r=0; r < seg->height; r++){
+      for(s=0; s < seg->depth; s++){
+	if(mask && MRIgetVoxVal(mask,c,r,s,0) < 0.5) continue;
+	segid = MRIgetVoxVal(seg,c,r,s,0);
+	if(segid == 0) continue;
+        segtt = -1;
+	for(kthseg=0; kthseg < nsegs; kthseg++){
+	  if((int)SegTType->rptr[kthseg+1][1] == segid){
+	    segtt = (int)SegTType->rptr[kthseg+1][2];
+	    break;
+	  }
+	}
+	MRIsetVoxVal(segttvol[segtt],c,r,s,0,segid);
+      }
+    }
+  }
+  printf("Dilating tissue type specific seg by %d\n",ndil);
+  if(ndil != 0){
+    for(nthtt = 0; nthtt < pvf->nframes; nthtt++){
+      printf("  TType %d -----------\n",nthtt);
+      if(nthtt != 2) // gm and wm
+	mritmp = MRIdilateSegmentation(segttvol[nthtt], NULL, ndil, pvftt[nthtt], &nchanges);
+      else // csf
+	mritmp = MRIdilateSegmentation(segttvol[nthtt], NULL, 3, NULL, &nchanges);
+      MRIfree(&segttvol[nthtt]);
+      segttvol[nthtt] = mritmp;
+      printf("  TType %d had  %d changes\n",nthtt,nchanges);
+    }
+  }
+
+  // Not sure why I threshold at 0.25 and do a fixed ndil=3 for CSF
+  // Maybe there were so many voxels with very small PVF that they
+  // overwhelmed the high PVF voxels. These would be the ones that
+  // would be the most in error if the PSF is not accurate.
+  // This matches what I did int matlab, but I don't know why I did 
+  // it in the first place.
+
+  // Alloc the ROI mask
+  roimask = MRIconst(seg->width,seg->height,seg->depth,1,0.0,NULL);
+  MRIcopyHeader(seg,roimask);
+
+  // Alloc the GTM design matrix
+  if(X==NULL) X = MatrixAlloc(nmask,nsegs-has0,MATRIX_REAL);
+  if(X->rows != nmask || X->cols != nsegs-has0){
+    printf("ERROR: BuildGTM0(): X dim mismatch\n");
+    return(NULL);
+  }
+
+  // Create a regressor for each segid
+  mthseg = 0;
+  for(nthseg=0; nthseg < nsegs; nthseg++){
+    segid = segidlist[nthseg];
+    if(segid == 0) continue;
+
+    // Get the tissue type for this seg
+    segtt = -1;
+    for(kthseg=0; kthseg < nsegs; kthseg++){
+      if((int)SegTType->rptr[kthseg+1][1] == segid){
+	segtt = (int)SegTType->rptr[kthseg+1][2];
+	break;
+      }
+    }
+    printf("#@# %3d/%d %3d %d ---------\n",nthseg,nsegs,segid,segtt);
+
+    if(Gdiag_no > 0) {
+      printf("BuildGTM0(): #@# %3d/%d %3d ---\n",mthseg,nsegs-has0,segid); 
+      fflush(stdout);
+    }
+
+    // Create a mask of the seg
+    for(c=0; c < seg->width; c++){
+      for(r=0; r < seg->height; r++){
+	for(s=0; s < seg->depth; s++){
+	  if(mask && MRIgetVoxVal(mask,c,r,s,0) < 0.5) continue;
+	  if(MRIgetVoxVal(segttvol[segtt],c,r,s,0) == segid) val = MRIgetVoxVal(pvf,c,r,s,segtt);
+	  else                                               val = 0;
+	  MRIsetVoxVal(roimask,c,r,s,0,val);
+	}
+      }
+    }
+    // Smooth the mask
+    roimasksm = MRIgaussianSmoothNI(roimask, cStd, rStd, sStd, roimasksm);
+    if(segid == 11){
+      printf("     saving roimask\n");
+      MRIwrite(roimask,"roimask.mgh");
+      MRIwrite(roimasksm,"roimasksm.mgh");
+    }
+    // Fill X
+    // Creating X in this order makes it consistent with matlab
+    // Note: y must be ordered in the same way.
+    nmask = 0;
+    for(s=0; s < seg->depth; s++){
+      for(c=0; c < seg->width; c++){
+	for(r=0; r < seg->height; r++){
+	  if(mask && MRIgetVoxVal(mask,c,r,s,0) < 0.5) continue;
+	  X->rptr[nmask+1][mthseg+1] = MRIgetVoxVal(roimasksm,c,r,s,0);
+	  nmask ++;
+	}
+      }
+    }
+    mthseg ++;
+  } // seg
+  printf("Saving X\n");
+  MatlabWrite(X,"X.mat","X");
+
+  for(nthtt = 0; pvf->nframes < nthtt; nthtt++) {
+    MRIfree(&segttvol[nthtt]);
+    MRIfree(&pvftt[nthtt]);
+  }
+  MRIfree(&roimask);
+  MRIfree(&roimasksm);
+  free(segidlist);
+
+  return(X);
+}
