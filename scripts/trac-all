@@ -8,8 +8,8 @@
 # Original Author: Anastasia Yendiki
 # CVS Revision Info:
 #    $Author: ayendiki $
-#    $Date: 2013/11/01 22:55:27 $
-#    $Revision: 1.49 $
+#    $Date: 2013/11/07 22:01:37 $
+#    $Revision: 1.50 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -25,7 +25,7 @@
 
 umask 002
 
-set VERSION = '$Id: trac-all,v 1.49 2013/11/01 22:55:27 ayendiki Exp $'
+set VERSION = '$Id: trac-all,v 1.50 2013/11/07 22:01:37 ayendiki Exp $'
 set ProgName = `basename $0`
 set inputargs = ($argv)
 
@@ -226,7 +226,7 @@ if ($#baselist == 0) then	#--->>> A single time point for each subject
     if ($dostats) continue
 
     # Check freesurfer directory
-    if ((! $do1out) && ($dointra || $dointer || $domasks)) then
+    if (($dointra || $dointer || $domasks) && ! $do1out) then
       set fsdir = $SUBJECTS_DIR/$subj
 
       if (! -e $fsdir) then
@@ -241,12 +241,12 @@ if ($#baselist == 0) then	#--->>> A single time point for each subject
     endif
 
     # Check diffusion directory
-    mkdir -p $dtdir/scripts
-
-    if ($status || ! -w $dtdir) then
+    if (! -w $dtdir) then
       echo "ERROR: cannot write in $dtdir"
       exit 1
     endif
+
+    mkdir -p $dtdir/scripts
 
     #---------- Check build stamp -------------------------------------------#
     # This allows the user to require that the build stamp be
@@ -583,7 +583,7 @@ else				#--->>> Multiple time points for each subject
         continue
       endif
 
-      if ((! $do1out) && ($dointra || $dointer || $domasks)) then
+      if (($dointra || $dointer || $domasks) && ! $do1out) then
         # Check freesurfer directory
         set fsdir = $SUBJECTS_DIR/$subj
 
@@ -599,12 +599,12 @@ else				#--->>> Multiple time points for each subject
       endif
 
       # Check diffusion directory
-      mkdir -p $dtdir/scripts
-
-      if ($status || ! -w $dtdir) then
+      if (! -w $dtdir) then
         echo "ERROR: cannot write in $dtdir"
         exit 1
       endif
+
+      mkdir -p $dtdir/scripts
 
       #---------- Check build stamp -------------------------------------------#
       # This allows the user to require that the build stamp be
@@ -703,16 +703,17 @@ else				#--->>> Multiple time points for each subject
       endif
 
       echo "########################################" >> $LF
-      echo "Program versions:"		>> $LF
-      echo $VERSION               	>> $LF
-      mri_convert --all-info		>> $LF
-      flirt -version			>> $LF
-      bbregister --version		>> $LF
+      echo "Program versions:"			>> $LF
+      echo $VERSION               		>> $LF
+      mri_convert --all-info			>> $LF
+      flirt -version				>> $LF
+      bbregister --version			>> $LF
       mri_cvs_register --version		>> $LF
-      $trcdir/dmri_train --all-info	>> $LF
-      $trcdir/dmri_paths --all-info	>> $LF
-      $trcdir/dmri_pathstats --all-info	>> $LF
+      $trcdir/dmri_train --all-info		>> $LF
+      $trcdir/dmri_paths --all-info		>> $LF
+      $trcdir/dmri_pathstats --all-info		>> $LF
       $trcdir/dmri_mergepaths --all-info	>> $LF
+      $trcdir/dmri_group --all-info		>> $LF
 
       if ($DoVersionsOnly) continue
 
@@ -904,6 +905,12 @@ else				#--->>> Multiple time points for each subject
 endif
 
 if ($dostats) then
+  # Check root diffusion directory
+  if (! -w $dtroot) then
+    echo "ERROR: cannot write in $dtroot"
+    exit 1
+  endif
+
   set statdir = $dtroot/stats
 
   if ($RunIt) then
@@ -997,14 +1004,15 @@ if ($dostats) then
             set cmd = ($cmd --ref $cvstempdir/$cvstemp)
           endif
           set cmd = ($cmd --out   $statdir/$pathname.$avgmode)
-          echo $cmd
+
+          set LF = $statdir/$pathname.$avgmode.log
 
           if ($RunIt) then
             if ($onpbs) then
-              echo $cmd >> $submitfile
+              echo "$cmd |& tee -a $LF" >> $submitfile
             else
               echo $cmd
-              $cmd
+              $cmd |& tee -a $LF
               if ($status) exit 1
             endif
           endif
